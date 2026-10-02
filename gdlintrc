@@ -1,0 +1,10 @@
+# gdlint configuration. Run via `make lint`.
+# Only the rules that deviate from gdtoolkit's defaults are listed here;
+# dump the full default set with `gdlint --dump-default-config`.
+
+# Declaration-ordering inside a class. Disabled deliberately: an @onready var
+# reads best beside the plain vars it relates to, and an enum beside the consts
+# it indexes; satisfying the rule means reshuffling declarations for no
+# correctness benefit.
+disable:
+- class-definitions-order

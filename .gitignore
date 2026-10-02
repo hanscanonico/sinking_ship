@@ -1,0 +1,29 @@
+# Godot
+.godot/
+
+# An optional vendored engine binary (bin/Godot.app). The gates fall back to
+# `godot` on PATH, so a checkout without one still works. No trailing slash: a
+# git worktree shares no ignored files with the main checkout, so the usual fix
+# is to symlink bin/ across — and `bin/` would not match a symlink named `bin`.
+bin
+
+# The Godot AI MCP plugin's installer drops a second copy of its licence at the
+# repo root; the vendored addon carries its own `addons/godot_ai/LICENSE`, which
+# is the copy we track.
+godot-ai-LICENSE.txt
+
+# macOS
+.DS_Store
+
+# Agent scratch space. .claude/worktrees holds nested checkouts of this repo,
+# which git would otherwise offer to commit as embedded repositories. `.claude/*`
+# rather than `.claude/`: git will not look inside an excluded directory, so a
+# rule below could not re-include anything. The agent kit (agents/, skills/,
+# workflows/) is tracked by force-adding it; ignoring a path git already tracks
+# changes nothing.
+.claude/*
+
+# Lavish review artifacts — in-progress plans and the screenshots they cite are
+# scratch by default. A plan worth keeping, such as the design of record
+# CLAUDE.md points at, is promoted with `git add -f .lavish/<name>.html`.
+.lavish/

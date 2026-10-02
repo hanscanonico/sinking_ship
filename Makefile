@@ -1,0 +1,74 @@
+# The engine: $GODOT when set (CI points it at the Linux build it fetches),
+# else a vendored bin/Godot.app when the checkout has one, else `godot` on PATH.
+# tools/lib/require_godot.sh resolves it the same way for the gate scripts.
+GODOT ?= $(if $(wildcard bin/Godot.app/Contents/MacOS/Godot),bin/Godot.app/Contents/MacOS/Godot,godot)
+
+# The two things a gate can be missing. The gate scripts say the first for
+# themselves, through tools/lib/require_godot.sh; a target that runs the tool
+# directly says it here, in the same two lines, so a fresh machine reads the
+# setup line instead of a bare "No such file or directory".
+require-godot = @test -x "$(GODOT)" || command -v "$(GODOT)" >/dev/null || { \
+	echo "$@: Godot binary not found at $(GODOT)" >&2; \
+	echo "$@: install Godot 4.7 so \`godot\` is on PATH, or pass GODOT=<path>" >&2; \
+	exit 1; }
+require-gdtoolkit = @command -v $(1) >/dev/null || { \
+	echo "$@: $(1) not found — pipx install \"gdtoolkit==4.*\"" >&2; \
+	exit 1; }
+
+# Registers every class_name and imports assets. A fresh checkout or worktree
+# needs it once before anything else: until it runs, every script typing
+# against a project class fails `check` as if the code were broken.
+import:
+	$(call require-godot)
+	$(GODOT) --headless --path . --import
+
+# The GUT suite, headless. One script:
+#   make test TEST=tests/unit/test_water_level.gd
+# tools/run_tests.sh hands any other GUT flag through (-gunit_test_name=...).
+TEST ?=
+test:
+	$(call require-godot)
+	GODOT="$(GODOT)" tools/run_tests.sh $(if $(TEST),-gselect=$(notdir $(TEST)))
+
+# The merge gate, in one command. Order is cheapest-feedback-first: parsing
+# fails fastest, style next, the suite last.
+#
+# Needs Godot 4.7+ and gdtoolkit 4.x for the lint and format steps:
+#   pipx install "gdtoolkit==4.*"
+verify: check lint format-check test
+
+# Every .gd file that is actually ours: skips the engine cache, vendored addons,
+# the engine binary, and .claude/worktrees, which holds whole nested checkouts of
+# this same repo and would otherwise be linted as if it were project source.
+#
+# Deferred, so only the three gdtoolkit targets below pay for the walk.
+SOURCES = $(shell find . -name '*.gd' \
+	-not -path './.godot/*' -not -path './addons/*' -not -path './bin/*' \
+	-not -path './.claude/*')
+
+# Parse/type check plus lightweight architecture invariants without booting the
+# scene tree. Rules live in tools/check_scripts.sh.
+check:
+	GODOT="$(GODOT)" tools/check_scripts.sh
+
+# Style and smells. Rule overrides live in gdlintrc.
+lint:
+	$(call require-gdtoolkit,gdlint)
+	gdlint $(SOURCES)
+
+# Reformat in place; `make format-check` only reports.
+format:
+	$(call require-gdtoolkit,gdformat)
+	gdformat $(SOURCES)
+
+format-check:
+	$(call require-gdtoolkit,gdformat)
+	gdformat --check $(SOURCES)
+
+# `verify`'s gates are a sequence rather than a set: they share one .godot/
+# across every engine boot, and their order is the cheapest feedback first, so
+# racing them under `make -j` would trade a one-second parse failure for the
+# whole suite.
+.NOTPARALLEL:
+
+.PHONY: import test verify check lint format format-check
