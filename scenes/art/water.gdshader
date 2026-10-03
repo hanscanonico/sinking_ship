@@ -17,7 +17,7 @@ uniform float clear_depth = 1.3;
 uniform float shallow_alpha = 0.5;
 uniform float murk_steps = 3.0;
 // Metres below the surface that still foam.
-uniform float foam_depth = 0.25;
+uniform float foam_depth = 0.15;
 // The ripple's peak, in metres, all three sines together.
 uniform float wave_height = 0.05;
 uniform float wave_speed = 0.8;

@@ -118,7 +118,7 @@ func _play(seats: int, tier: StringName, seed_text: String) -> void:
 	var capturing := not _args.capture_path.is_empty()
 	var observer := _args.observer or (capturing and _args.capture_eye < 0)
 	var eye := _args.capture_eye if capturing and _args.capture_eye >= 0 else MatchScene.LOCAL_SEAT
-	_match.start(config, _args.autoplay, observer, eye, _args.observer_cut)
+	_match.start(config, _args.autoplay, observer, eye, _args.observer_cut, _args.greybox)
 
 
 func _rematch() -> void:

@@ -1,4 +1,4 @@
-[gd_scene load_steps=13 format=3]
+[gd_scene load_steps=15 format=3]
 
 [ext_resource type="Script" path="res://scenes/match/match_scene.gd" id="1_scene"]
 [ext_resource type="Script" path="res://scenes/match/sim_driver.gd" id="2_driver"]
@@ -11,6 +11,8 @@
 [ext_resource type="Script" path="res://scenes/match/first_person_camera.gd" id="9_eyes"]
 [ext_resource type="Script" path="res://scenes/match/first_person_hud.gd" id="10_fp_hud"]
 [ext_resource type="Script" path="res://scenes/audio/match_audio.gd" id="11_audio"]
+[ext_resource type="Script" path="res://scenes/art/ship_art.gd" id="12_ship_art"]
+[ext_resource type="Script" path="res://scenes/art/first_person_arms.gd" id="13_arms"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
 bg_color = Color(0.06, 0.09, 0.13, 0.85)
@@ -39,7 +41,11 @@ script = ExtResource("3_view")
 [node name="Ship" type="Node3D" parent="MatchView"]
 
 [node name="Greybox" type="Node3D" parent="MatchView/Ship"]
+visible = false
 script = ExtResource("4_greybox")
+
+[node name="ShipArt" type="Node3D" parent="MatchView/Ship"]
+script = ExtResource("12_ship_art")
 
 [node name="ObserverCamera" type="Node3D" parent="."]
 script = ExtResource("5_rig")
@@ -51,6 +57,9 @@ far = 800.0
 [node name="FirstPersonCamera" type="Camera3D" parent="."]
 far = 800.0
 script = ExtResource("9_eyes")
+
+[node name="Arms" type="Node3D" parent="FirstPersonCamera"]
+script = ExtResource("13_arms")
 
 [node name="Hud" type="CanvasLayer" parent="."]
 script = ExtResource("6_hud")

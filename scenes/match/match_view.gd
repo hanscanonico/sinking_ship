@@ -1,7 +1,8 @@
 class_name MatchView
 extends Node3D
 ## Draws the match from two snapshots (D5): the ship root follows the interpolated
-## pose, the greybox the sinking's events as of the same moment, and every seat is a
+## pose, the ship drawn — dressed, or the greybox — the sinking's events as of the
+## same moment, read off the schedule here and handed in, and every seat is a
 ## Brawler with a blob shadow, placed in ship space — except the seat whose eyes the
 ## view is in, which is not drawn (D14). It never moves a body itself, and never
 ## reads a live PlayerState.
@@ -13,6 +14,10 @@ const SHADOW_COLOUR := Color(0.0, 0.0, 0.0, 0.45)
 const SHADOW_LIFT := 0.02
 ## Half the span over which the ground's slope under a seat is measured.
 const SLOPE_PROBE := 0.05
+## A telegraphed collapse blinks this many ticks on and off; a collapsed deck takes
+## FALL_SECONDS to fall.
+const BLINK_TICKS := 6
+const FALL_SECONDS := 0.5
 
 var _driver: SimDriver
 var _schedule: SinkSchedule
@@ -24,6 +29,7 @@ var _eye_seat := -1
 
 @onready var _ship: Node3D = $Ship
 @onready var _greybox: ShipGreybox = $Ship/Greybox
+@onready var _art: ShipArt = $Ship/ShipArt
 
 
 ## Draws [param sim]'s match as [param driver] steps it; [param local_seat] gets a
@@ -32,14 +38,25 @@ func setup(driver: SimDriver, sim: MatchSim, local_seat: int) -> void:
 	_driver = driver
 	_schedule = sim.schedule
 	_surfaces = sim.surfaces
-	_greybox.build(sim.config.ship, sim.config.rules.railing_height)
+	var ship := sim.config.ship
+	var rules := sim.config.rules
+	if _greybox.visible:
+		_greybox.build(ship, rules.railing_height)
+	else:
+		var falls: Array[StringName] = []
+		var fails := PackedInt32Array()
+		for event: SinkEvent in sim.config.scenario.events:
+			if event.kind == SinkEvent.Kind.COLLAPSE:
+				falls.append(event.platform)
+			elif event.kind == SinkEvent.Kind.RAILING_FAIL:
+				fails.append(event.railing)
+		_art.build(ship, rules.railing_height, rules.body_radius, falls, fails)
 	for body: Brawler in _bodies:
 		body.queue_free()
 	for shadow: MeshInstance3D in _shadows:
 		shadow.queue_free()
 	_bodies.clear()
 	_shadows.clear()
-	var rules := sim.config.rules
 	for seat in sim.config.seats:
 		_add_seat(seat, rules, seat == local_seat)
 	_process(0.0)
@@ -88,7 +105,7 @@ func _process(_delta: float) -> void:
 	_ship.transform = (_schedule.pose_at(previous["tick"]).transform.interpolate_with(
 		_schedule.pose_at(current["tick"]).transform, alpha
 	))
-	_greybox.show_sinking(_schedule, lerpf(previous["tick"], current["tick"], alpha))
+	_show_sinking(lerpf(previous["tick"], current["tick"], alpha))
 	var seats_then: Array = previous["seats"]
 	var seats_now: Array = current["seats"]
 	for index in seats_now.size():
@@ -110,6 +127,25 @@ func _process(_delta: float) -> void:
 			var ground := _surfaces.height_at(below, pos)
 			_shadows[seat].visible = body.visible
 			_shadows[seat].position = Vector3(pos.x, ground + SHADOW_LIFT, pos.z)
+
+
+## Hands the ship drawn what the schedule's events have done by [param tick] —
+## fractional, as the view interpolates between two snapshots: the platforms whose
+## collapse is telegraphed and whether the blink is lit now, how far (0…1) each
+## collapsed platform has fallen, by name, and the failed railings.
+func _show_sinking(tick: float) -> void:
+	var now := floori(tick)
+	var pose := _schedule.pose_at(now)
+	var fallen := {}
+	for scheduled: SinkSchedule.Scheduled in _schedule.fired(now):
+		if scheduled.event.kind == SinkEvent.Kind.COLLAPSE:
+			var since := (tick - scheduled.at) * Ticks.SECONDS_PER_TICK
+			fallen[scheduled.event.platform] = clampf(since / FALL_SECONDS, 0.0, 1.0)
+	var lit := now / BLINK_TICKS % 2 == 0
+	if _greybox.visible:
+		_greybox.show_sinking(pose.collapsing, fallen, pose.broken_railings, lit)
+	else:
+		_art.show_sinking(pose.collapsing, fallen, pose.broken_railings, lit)
 
 
 ## The up of [param surface] under [param pos], in ship space, from its heights a

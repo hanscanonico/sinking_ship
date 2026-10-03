@@ -3,11 +3,17 @@ extends SceneTree
 ## snapshots only (D5). Headless; run with --fixed-fps so match time advances one
 ## tick per two frames however fast the machine draws.
 ##
-## - Platforms: on every ship in data/ships, the drawn ship shows an upward face
-##   within PLATFORM_TOLERANCE of each platform's height across its whole area.
+## - The ship (ShipArt), on every ship in data/ships: an upward face within
+##   PLATFORM_TOLERANCE of each platform's height across its whole area; a face
+##   within BLOCKER_TOLERANCE of every blocker's sides, its top, and a lintel's
+##   underside; and over every ramp a stair whose top stands within half a riser
+##   (ShipArt.STEP_RISE) and PLATFORM_TOLERANCE of the ramp's height.
 ## - Seats: through a bots-only match in the real match scene, every brawler's
 ##   model hangs from its body's feet — the posed ship carrying the interpolated
 ##   snapshot position — and the mannequin's soles stand on that root.
+## - The collapse: once a match's first collapse has fallen, nothing is drawn at a
+##   collapsed platform's height wherever Surfaces, honouring that tick's pose, says
+##   it is gone — the dressed deck lies wrecked below, as the rules have it.
 ## - Snapshots only: no script anywhere under scenes/art names a live sim object.
 
 const RunMatch := preload("res://tools/run_match.gd")
@@ -16,15 +22,25 @@ const SHIPS_DIR := "res://data/ships/"
 const ART_DIR := "res://scenes/art/"
 const SEED := 1701
 const SEATS := 8
+## A match the default scenario's collapse comes in before it ends.
+const COLLAPSE_SEED := 8
 ## Match time the seat check watches, at most.
 const SEAT_SECONDS := 90.0
 const PLATFORM_TOLERANCE := 0.02
+const BLOCKER_TOLERANCE := 0.05
+const RAMP_TOLERANCE := ShipArt.STEP_RISE * 0.5 + PLATFORM_TOLERANCE
 const SEAT_TOLERANCE := 0.001
 const SOLE_TOLERANCE := 0.02
 ## How far in from a platform's edges the samples start, and how many per side.
 const SAMPLE_INSET := 0.1
 const SAMPLES_ALONG := 6
 const SAMPLES_ACROSS := 3
+## How far out of a blocker's face its side rays start, and the cylinder rays per
+## height.
+const SIDE_REACH := 0.3
+const CYLINDER_RAYS := 8
+## The side of the cells drawn triangles are filed under, in metres.
+const CELL := 0.5
 ## What art may not name: the live match and the queries only rules make. Enum
 ## reads off PlayerState are allowed, a PlayerState itself is not.
 const LIVE: PackedStringArray = [
@@ -50,8 +66,9 @@ func _initialize() -> void:
 	_check_snapshot_only()
 	for file: String in DirAccess.get_files_at(SHIPS_DIR):
 		if file.ends_with(".tres"):
-			_check_platforms(file, load(SHIPS_DIR + file))
+			_check_ship(file, load(SHIPS_DIR + file))
 	await _check_seats()
+	await _check_collapse()
 	if not _problems.is_empty():
 		printerr("\n".join(_problems))
 		printerr("art-lint: %d problem(s) in %d checks" % [_problems.size(), _checks])
@@ -93,31 +110,121 @@ func _scripts_under(dir: String) -> PackedStringArray:
 	return found
 
 
-## Each platform of [param layout] against the ship as drawn.
-func _check_platforms(file: String, layout: ShipLayout) -> void:
+## Each platform, blocker and ramp of [param layout] against the ship as drawn.
+func _check_ship(file: String, layout: ShipLayout) -> void:
 	var rules := RunMatch.default_config(SEED).rules
-	var art := ShipGreybox.new()
+	var art := ShipArt.new()
 	root.add_child(art)
-	art.build(layout, rules.railing_height)
+	art.build(layout, rules.railing_height, rules.body_radius)
 	var faces := _ship_faces(art)
+	var cells := _file_faces(faces)
 	for index in layout.platforms.size():
-		_checks += 1
 		var platform := layout.platforms[index]
-		var worst := 0.0
-		var worst_at := Vector2.ZERO
-		for point in _samples(platform.area):
-			var off := _nearest_face(faces, point, platform.height)
-			if off > worst:
-				worst = off
-				worst_at = point
-		if worst > PLATFORM_TOLERANCE:
-			_problems.append(
-				(
-					"art-lint: %s platform %d: drawn top %.1f cm off its height %.2f m at %s"
-					% [file, index, worst * 100.0, platform.height, worst_at]
-				)
-			)
+		_check_tops(
+			faces,
+			cells,
+			"%s platform %d" % [file, index],
+			_samples(platform.area),
+			func(_point: Vector2) -> float: return platform.height,
+			PLATFORM_TOLERANCE
+		)
+	for index in layout.ramps.size():
+		var ramp := layout.ramps[index]
+		_check_tops(
+			faces,
+			cells,
+			"%s ramp %d" % [file, index],
+			_samples(ramp.area),
+			func(point: Vector2) -> float: return ramp.height_at(point.x, point.y),
+			RAMP_TOLERANCE
+		)
+	for index in layout.blockers.size():
+		_check_blocker(
+			faces, cells, "%s blocker %d" % [file, index], layout.blockers[index], layout
+		)
 	art.free()
+
+
+## Whether, straight above or below each of [param points], a drawn face lies within
+## [param tolerance] of the height [param height_at] gives there.
+func _check_tops(
+	faces: PackedVector3Array,
+	cells: Dictionary,
+	what: String,
+	points: PackedVector2Array,
+	height_at: Callable,
+	tolerance: float
+) -> void:
+	_checks += 1
+	var worst := 0.0
+	var worst_at := Vector2.ZERO
+	for point in points:
+		var height: float = height_at.call(point)
+		var off := _nearest_face(faces, cells, Vector3(point.x, height, point.y), Vector3.DOWN)
+		if off > worst:
+			worst = off
+			worst_at = point
+	if worst > tolerance:
+		_problems.append(
+			"art-lint: %s: drawn top %.1f cm off its height at %s" % [what, worst * 100.0, worst_at]
+		)
+
+
+## [param blocker]'s faces against the drawn ship: rays across each side at a spread
+## of points, onto its top, and under a lintel; each probe is a point on a face and
+## the way out of it.
+func _check_blocker(
+	faces: PackedVector3Array,
+	cells: Dictionary,
+	what: String,
+	blocker: ShipBlocker,
+	layout: ShipLayout
+) -> void:
+	_checks += 1
+	var probes: Array[Array] = []
+	var span := blocker.top - blocker.bottom
+	var heights: Array[float] = [
+		blocker.bottom + span * 0.25, blocker.bottom + span * 0.5, blocker.bottom + span * 0.75
+	]
+	if blocker.shape == ShipBlocker.Shape.CYLINDER:
+		var centre := Vector3(blocker.centre.x, 0.0, blocker.centre.y)
+		probes.append([Vector3(centre.x, blocker.top, centre.z), Vector3.UP])
+		for ray in CYLINDER_RAYS:
+			var out := Vector3.RIGHT.rotated(Vector3.UP, TAU * ray / CYLINDER_RAYS)
+			for height in heights:
+				probes.append([centre + out * blocker.radius + Vector3.UP * height, out])
+	else:
+		var area := blocker.area
+		for point in _samples(area.grow(SAMPLE_INSET * 0.5)):
+			probes.append([Vector3(point.x, blocker.top, point.y), Vector3.UP])
+		var middle := area.get_center()
+		var deck := -INF
+		for platform: ShipPlatform in layout.platforms:
+			if platform.height <= blocker.bottom and platform.contains(middle.x, middle.y):
+				deck = maxf(deck, platform.height)
+		if blocker.bottom > deck + 0.5:
+			probes.append([Vector3(middle.x, blocker.bottom, middle.y), Vector3.DOWN])
+		for fraction: float in [0.2, 0.5, 0.8]:
+			var x := lerpf(area.position.x, area.end.x, fraction)
+			var z := lerpf(area.position.y, area.end.y, fraction)
+			for height in heights:
+				probes.append([Vector3(x, height, area.position.y), Vector3.FORWARD])
+				probes.append([Vector3(x, height, area.end.y), Vector3.BACK])
+				probes.append([Vector3(area.position.x, height, z), Vector3.LEFT])
+				probes.append([Vector3(area.end.x, height, z), Vector3.RIGHT])
+	var worst := 0.0
+	var worst_at := Vector3.ZERO
+	for probe: Array in probes:
+		var point: Vector3 = probe[0]
+		var out: Vector3 = probe[1]
+		var off := _nearest_face(faces, cells, point, -out)
+		if off > worst:
+			worst = off
+			worst_at = point
+	if worst > BLOCKER_TOLERANCE:
+		_problems.append(
+			"art-lint: %s: drawn face %.1f cm off its data at %s" % [what, worst * 100.0, worst_at]
+		)
 
 
 ## Every triangle drawn under [param art], in its (ship) space.
@@ -131,6 +238,27 @@ func _ship_faces(art: Node3D) -> PackedVector3Array:
 	return faces
 
 
+## The triangles of [param faces], filed by the CELL-sized squares of the ship plane
+## their bounds cover: Vector2i -> Array of first-corner indices (an Array, which a
+## Dictionary holds by reference, where a packed array would be copied out).
+func _file_faces(faces: PackedVector3Array) -> Dictionary:
+	var cells := {}
+	for index in range(0, faces.size(), 3):
+		var low := Vector2(INF, INF)
+		var high := Vector2(-INF, -INF)
+		for corner in 3:
+			var at := faces[index + corner]
+			low = Vector2(minf(low.x, at.x), minf(low.y, at.z))
+			high = Vector2(maxf(high.x, at.x), maxf(high.y, at.z))
+		for x in range(floori(low.x / CELL), floori(high.x / CELL) + 1):
+			for z in range(floori(low.y / CELL), floori(high.y / CELL) + 1):
+				var cell := Vector2i(x, z)
+				if not cells.has(cell):
+					cells[cell] = []
+				(cells[cell] as Array).append(index)
+	return cells
+
+
 func _samples(area: Rect2) -> PackedVector2Array:
 	var inner := area.grow(-SAMPLE_INSET)
 	var points := PackedVector2Array()
@@ -142,17 +270,28 @@ func _samples(area: Rect2) -> PackedVector2Array:
 	return points
 
 
-## How far the drawn face nearest [param height] lies from it, straight above or
-## below [param point]; INF when nothing is drawn there at all.
-func _nearest_face(faces: PackedVector3Array, point: Vector2, height: float) -> float:
-	var from := Vector3(point.x, height + 100.0, point.y)
+## How far the drawn face nearest [param point] lies from it along the line through
+## it in [param direction] (vertical, or across a side within SIDE_REACH); INF when
+## nothing is drawn on that line at all.
+func _nearest_face(
+	faces: PackedVector3Array, cells: Dictionary, point: Vector3, direction: Vector3
+) -> float:
+	var reach := 100.0 if absf(direction.y) > 0.5 else SIDE_REACH
+	var from := point - direction * reach
+	var candidates := {}
+	for at: Vector3 in [from, point, point + direction * reach]:
+		var cell := Vector2i(floori(at.x / CELL), floori(at.z / CELL))
+		for index: int in cells.get(cell, []):
+			candidates[index] = true
 	var nearest := INF
-	for index in range(0, faces.size(), 3):
+	for index: int in candidates:
 		var hit: Variant = Geometry3D.ray_intersects_triangle(
-			from, Vector3.DOWN, faces[index], faces[index + 1], faces[index + 2]
+			from, direction, faces[index], faces[index + 1], faces[index + 2]
 		)
 		if hit != null:
-			nearest = minf(nearest, absf((hit as Vector3).y - height))
+			var along := ((hit as Vector3) - from).dot(direction)
+			if along <= reach * 2.0:
+				nearest = minf(nearest, absf(along - reach))
 	return nearest
 
 
@@ -212,3 +351,54 @@ func _sole(model: Node3D) -> float:
 		if mesh_instance.skin != null:
 			lowest = minf(lowest, mesh_instance.get_aabb().position.y)
 	return lowest * model.scale.y
+
+
+func _check_collapse() -> void:
+	var scene: MatchScene = (load(MATCH_SCENE) as PackedScene).instantiate()
+	root.add_child(scene)
+	scene.start(RunMatch.default_config(COLLAPSE_SEED), true, true)
+	# The lint steps the match itself, then hands the driver where it got to.
+	scene.set_paused(true)
+	var driver: SimDriver = scene.get_node("SimDriver")
+	var runner := driver.runner
+	var sim := runner.sim
+	_checks += 1
+	while not runner.is_over() and sim.pose().collapsed.is_empty():
+		runner.step()
+	for _tick in Ticks.from_seconds(MatchView.FALL_SECONDS) + 1:
+		runner.step()
+	var collapsed := sim.pose().collapsed
+	if collapsed.is_empty():
+		_problems.append("art-lint: seed %d ends before anything collapses" % COLLAPSE_SEED)
+		scene.queue_free()
+		return
+	driver.start(runner)
+	await process_frame
+	var faces := _ship_faces(scene.get_node("MatchView/Ship/ShipArt"))
+	var cells := _file_faces(faces)
+	var layout := sim.config.ship
+	for index in layout.platforms.size():
+		var platform := layout.platforms[index]
+		if not platform.name in collapsed:
+			continue
+		_checks += 1
+		var nearest := INF
+		for point in _samples(platform.area):
+			var at := Vector3(point.x, platform.height, point.y)
+			if sim.surfaces.under(at, PLATFORM_TOLERANCE) == index:
+				_problems.append(
+					(
+						"art-lint: Surfaces still stands platform %d at %s after it collapsed"
+						% [index, point]
+					)
+				)
+				continue
+			nearest = minf(nearest, _nearest_face(faces, cells, at, Vector3.DOWN))
+		if nearest <= PLATFORM_TOLERANCE:
+			_problems.append(
+				(
+					"art-lint: collapsed platform %d (%s) still drawn at its height, %.1f cm off"
+					% [index, platform.name, nearest * 100.0]
+				)
+			)
+	scene.queue_free()

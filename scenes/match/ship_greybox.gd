@@ -7,9 +7,9 @@ extends Node3D
 ## lamp marker in every room, and a top rail on posts along every railing span. Drawn
 ## only — the sim never reads a mesh — and nothing is placed by hand. Nothing at or
 ## above [member cut_above] is drawn, so the observer can look inside. The sinking's
-## events are drawn as the schedule has them: a deck about to give way flashes, a
-## collapsed one falls onto the floor beneath and lies there broken, a failed railing
-## is gone.
+## events are drawn as MatchView hands them in: a deck about to give way flashes, a
+## collapsed one falls onto the floor beneath and lies there broken as the dressed
+## ship's does (ShipArt.wrecked), a failed railing is gone.
 
 ## How far the hull block reaches below the waterline of a level, unsunk ship.
 const HULL_DRAFT := 2.0
@@ -45,14 +45,8 @@ const POST_THICKNESS := 0.07
 const POST_SPACING := 1.5
 ## Size below which a leftover rectangle of hull is float noise, not hull.
 const SLIVER := 0.01
-## A deck about to give way: lit this colour BLINK_TICKS on and off.
-const FLASH_COLOUR := Color(1.0, 0.2, 0.1)
-const BLINK_TICKS := 6
-## A collapsed deck takes this long to fall, and comes to rest this far above the
-## floor beneath, tipped this far about the ship's length.
-const FALL_SECONDS := 0.5
-const WRECK_LIFT := 0.35
-const WRECK_TILT := 0.25
+## A deck about to give way is lit this colour while its telegraph blinks.
+const FLASH_COLOUR := ArtPalette.COLLAPSE_FLASH
 
 ## Ship-local height: nothing of the ship at or above it is drawn — the observer's
 ## cut-away (--observer-cut). INF draws everything.
@@ -81,10 +75,11 @@ func build(layout: ShipLayout, railing_height: float) -> void:
 	_flash.emission_enabled = true
 	_flash.emission = FLASH_COLOUR
 	var hull_depth := layout.freeboard + HULL_DRAFT
+	var space := ShipSpace.new(layout)
 	for platform: ShipPlatform in layout.platforms:
 		var area := platform.area
 		var centre := area.get_center()
-		_floors.append(_floor_beneath(platform, layout))
+		_floors.append(space.floor_beneath(platform))
 		for part: Rect2 in _over_nothing(platform, layout):
 			_solid(
 				part,
@@ -139,57 +134,27 @@ func build(layout: ShipLayout, railing_height: float) -> void:
 			_rails.append(null)
 
 
-## Draws what [param schedule]'s events have done by [param tick] — fractional, as
-## the view interpolates between two snapshots: a deck whose collapse is telegraphed
-## flashes, a collapsed one falls FALL_SECONDS onto the floor beneath its middle and
-## lies there broken, a failed railing is gone.
-func show_sinking(schedule: SinkSchedule, tick: float) -> void:
+## Draws what the sinking's events have done, as MatchView hands them in: a
+## platform named in [param collapsing] flashes while [param lit]; one named in
+## [param fallen] lies that far (0…1) down toward its wreck on the floor beneath its
+## middle; a railing in [param broken_railings] is gone.
+func show_sinking(
+	collapsing: Array[StringName], fallen: Dictionary, broken_railings: PackedInt32Array, lit: bool
+) -> void:
 	if _layout == null:
 		return
-	var now := floori(tick)
-	var pose := schedule.pose_at(now)
-	var lit := now / BLINK_TICKS % 2 == 0
 	for index in _decks.size():
 		var deck := _decks[index]
 		if deck == null:
 			continue
-		deck.transform = Transform3D.IDENTITY
-		var flashing := lit and _layout.platforms[index].name in pose.collapsing
+		var platform := _layout.platforms[index]
+		deck.transform = ShipArt.wrecked(platform, _floors[index], fallen.get(platform.name, 0.0))
+		var flashing := lit and platform.name in collapsing
 		for mesh: Node in deck.get_children():
 			(mesh as MeshInstance3D).material_override = _flash if flashing else null
-	for scheduled: SinkSchedule.Scheduled in schedule.fired(now):
-		if scheduled.event.kind != SinkEvent.Kind.COLLAPSE:
-			continue
-		var fallen := clampf(Ticks.to_seconds(tick - scheduled.at) / FALL_SECONDS, 0.0, 1.0)
-		for index in _decks.size():
-			if _decks[index] != null and _layout.platforms[index].name == scheduled.event.platform:
-				_decks[index].transform = _wrecked(index, fallen)
 	for index in _rails.size():
 		if _rails[index] != null:
-			_rails[index].visible = not index in pose.broken_railings
-
-
-## Where platform [param index]'s deck is drawn [param fallen] of the way (0…1) down
-## from its place to its wreck: dropped onto the floor beneath, tipped about its
-## middle.
-func _wrecked(index: int, fallen: float) -> Transform3D:
-	var platform := _layout.platforms[index]
-	var middle := platform.area.get_center()
-	var pivot := Vector3(middle.x, platform.height, middle.y)
-	var drop := (platform.height - _floors[index] - WRECK_LIFT) * fallen * fallen
-	var tilt := Basis(Vector3.RIGHT, WRECK_TILT * fallen)
-	return Transform3D(tilt, pivot - tilt * pivot + Vector3.DOWN * drop)
-
-
-## The height of the highest platform under [param platform]'s middle, lower than
-## it, or its own height when none is.
-func _floor_beneath(platform: ShipPlatform, layout: ShipLayout) -> float:
-	var middle := platform.area.get_center()
-	var beneath := -INF
-	for other: ShipPlatform in layout.platforms:
-		if other.height < platform.height and other.contains(middle.x, middle.y):
-			beneath = maxf(beneath, other.height)
-	return beneath if beneath != -INF else platform.height
+			_rails[index].visible = not index in broken_railings
 
 
 ## Whether some lower platform lies under [param platform] — a deck on a house
