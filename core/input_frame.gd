@@ -9,7 +9,9 @@ extends RefCounted
 ## are held state; the sim derives presses from the previous tick's buttons. Pitch
 ## is never here: no rule reads it (D14).
 
+## Held; a tap or a charge is the sim's call, from how many ticks it is held.
 const SHOVE := 1
+## Held; the seat braces for as long as it is.
 const BRACE := 2
 const RESERVED_3 := 4
 const AXIS_MAX := 127

@@ -15,6 +15,10 @@ const DIRECTORY := "res://data/bots"
 @export var edge_margin_m: float
 ## The fastest a bot turns its look, so that none turns faster than a person.
 @export var turn_rate_deg: float
+## The chance, rolled each think, that a bot braces against a facing windup.
+@export var brace_read: float
+## The chance, rolled each think, that a bot answers a bracing target with a charge.
+@export var charge_read: float
 
 
 static func for_tier(tier: StringName) -> BotProfile:
@@ -43,4 +47,7 @@ func problems() -> PackedStringArray:
 		found.append("bot: edge_margin_m must not be negative")
 	if turn_rate_deg <= 0.0:
 		found.append("bot: turn_rate_deg must be positive")
+	for field: String in ["brace_read", "charge_read"]:
+		if float(get(field)) < 0.0 or float(get(field)) > 1.0:
+			found.append("bot: %s must be within 0…1" % field)
 	return found

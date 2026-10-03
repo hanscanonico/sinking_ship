@@ -132,8 +132,10 @@ func test_shove_does_not_pass_through_a_blocker() -> void:
 		var sim := _steamer_sim(2)
 		SimFixtures.place(sim, 0, Vector3(mast.centre.x - apart, deck, z), 0.0)
 		SimFixtures.place(sim, 1, Vector3(mast.centre.x + apart, deck, z), 180.0)
-		var frames := {0: SimFixtures.frame(0, Vector2.ZERO, SHOVE), 1: SimFixtures.frame(1)}
-		SimFixtures.step(sim, frames, 10)
+		SimFixtures.step(
+			sim, {0: SimFixtures.frame(0, Vector2.ZERO, SHOVE), 1: SimFixtures.frame(1)}
+		)
+		SimFixtures.step(sim, {0: SimFixtures.frame(0)}, 9)
 		hit[lane] = sim.state.seats[1].is_staggered()
 	assert_false(hit["through the mast"], "the mast takes the shove")
 	assert_true(hit["beside it"], "the same shove beside the mast lands")
@@ -143,10 +145,12 @@ func test_shove_does_not_pass_through_a_blocker() -> void:
 	var target_x := mast.centre.x - mast.radius - rules.body_radius - 0.1
 	SimFixtures.place(sim, 0, Vector3(target_x - rules.body_radius * 2.0 - 0.1, deck, 0.0), 0.0)
 	SimFixtures.place(sim, 1, Vector3(target_x, deck, 0.0), 180.0)
-	var frames := {0: SimFixtures.frame(0, Vector2.ZERO, SHOVE), 1: SimFixtures.frame(1)}
 	var farthest := -INF
-	for _tick in Ticks.RATE:
-		SimFixtures.step(sim, frames)
+	for tick in Ticks.RATE:
+		var buttons := SHOVE if tick == 0 else 0
+		SimFixtures.step(
+			sim, {0: SimFixtures.frame(0, Vector2.ZERO, buttons), 1: SimFixtures.frame(1)}
+		)
 		farthest = maxf(farthest, sim.state.seats[1].pos.x)
 	assert_gt(farthest, target_x, "the shove landed and sent it toward the mast")
 	assert_almost_eq(
@@ -259,6 +263,6 @@ func test_a_body_on_a_blocker_top_can_be_shoved_from_the_deck() -> void:
 	SimFixtures.place(sim, 0, shover, 180.0)
 	SimFixtures.place(sim, 1, target)
 	assert_eq(sim.state.seats[1].surface, _top_of(hatch), "the target stands on the hatch")
-	var frames := {0: SimFixtures.frame(0, Vector2.ZERO, SHOVE, 180.0), 1: SimFixtures.frame(1)}
-	SimFixtures.step(sim, frames, 10)
+	SimFixtures.step(sim, {0: SimFixtures.frame(0, Vector2.ZERO, SHOVE), 1: SimFixtures.frame(1)})
+	SimFixtures.step(sim, {0: SimFixtures.frame(0)}, 9)
 	assert_true(sim.state.seats[1].is_staggered(), "the shove lands on it")

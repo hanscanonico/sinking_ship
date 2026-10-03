@@ -25,7 +25,7 @@ func test_bot_only_emits_input_frames() -> void:
 	assert_eq(frame.seat, 1)
 	assert_eq(frame.tick, runner.tick())
 	assert_true(frame.move.length_squared() <= InputFrame.AXIS_MAX * InputFrame.AXIS_MAX)
-	assert_eq(frame.buttons & ~InputFrame.SHOVE, 0, "SH1 bots only ever shove")
+	assert_eq(frame.buttons & ~(InputFrame.SHOVE | InputFrame.BRACE), 0, "shove and brace only")
 	assert_eq(runner.snapshot, seen, "the bot leaves what it saw alone")
 	assert_eq(runner.sim.snapshot(), before, "and the match too")
 
@@ -184,3 +184,75 @@ func test_bot_turn_rate_is_capped_by_its_profile() -> void:
 		assert_almost_eq(float(fastest), most, 0.5, "%s°/s: never faster" % turn_rate_deg)
 		var behind := angle_difference(InputFrame.yaw_angle(looks[-1]), PI)
 		assert_lt(absf(behind), deg_to_rad(profile.aim_error_deg + 0.1), "and it gets there")
+
+
+## The normal profile with its reads forced: [param brace] and [param charge] are
+## brace_read and charge_read.
+func _reading(brace: float, charge: float) -> BotProfile:
+	var profile: BotProfile = _profile().duplicate()
+	profile.brace_read = brace
+	profile.charge_read = charge
+	return profile
+
+
+func test_bot_braces_against_a_facing_windup() -> void:
+	var rules := SimFixtures.rules()
+	# Seat 0 winds up a shove that would land on the bot, seat 1, which faces away —
+	# its own shove could not land, so a brace is its answer.
+	var sim := SimFixtures.sim(2)
+	SimFixtures.place(sim, 0, Vector3.ZERO, 0.0)
+	SimFixtures.place(sim, 1, Vector3(rules.body_radius * 2.0 + 0.3, 0.0, 0.0), 0.0)
+	SimFixtures.step(sim, {0: SimFixtures.frame(0, Vector2.ZERO, InputFrame.SHOVE)})
+	assert_eq(sim.state.seats[0].action, PlayerState.Action.WINDUP)
+	var winding := sim.snapshot()
+	# The same windup turned away from the bot, and the same one thrown and spent.
+	var turned := winding.duplicate(true)
+	turned["seats"][0]["facing"] = PI
+	var spent := winding.duplicate(true)
+	spent["seats"][0]["action"] = PlayerState.Action.RECOVERY
+	var seen := {"reads it": winding, "no read": winding, "turned away": turned, "spent": spent}
+	var answers := {}
+	for case: String in seen:
+		var source := BotInputSource.new(
+			1, _reading(0.0 if case == "no read" else 1.0, 0.0), sim.config
+		)
+		source.observe(seen[case], sim.pose())
+		answers[case] = source.next_frame(sim.state.tick)
+	# Read again and again, it stands still and turns, at its turn rate, to look at
+	# the shover: the brace covers where it looks.
+	var reader := BotInputSource.new(1, _reading(1.0, 0.0), sim.config)
+	var looks: Array[int] = []
+	for tick in Ticks.RATE:
+		reader.observe(winding, sim.pose())
+		var frame := reader.next_frame(sim.state.tick + tick)
+		assert_eq([frame.buttons, frame.move], [InputFrame.BRACE, Vector2i.ZERO], "braced, still")
+		looks.append(frame.look_yaw)
+	assert_eq(answers["reads it"].buttons, InputFrame.BRACE, "it braces")
+	assert_ne(looks[0], looks[-1], "turning")
+	assert_eq(looks[-1], InputFrame.quantize_yaw(PI), "to look at the shover")
+	assert_eq(answers["no read"].buttons, 0, "without the read, no brace")
+	assert_eq(answers["turned away"].buttons, 0, "a windup that would miss, no brace")
+	assert_eq(answers["spent"].buttons, 0, "a shove already thrown, no brace")
+
+
+func test_bot_charges_a_bracing_target() -> void:
+	var rules := SimFixtures.rules()
+	# The bot, seat 0, faces seat 1 in reach; seat 1 braces facing it.
+	var sim := SimFixtures.sim(2)
+	SimFixtures.place(sim, 0, Vector3.ZERO, 0.0)
+	SimFixtures.place(sim, 1, Vector3(rules.body_radius * 2.0 + 0.3, 0.0, 0.0), 180.0)
+	var brace := SimFixtures.frame(1, Vector2.ZERO, InputFrame.BRACE, 180.0)
+	SimFixtures.step(sim, {1: brace})
+	assert_true(sim.state.seats[1].bracing)
+	var source := BotInputSource.new(0, _reading(0.0, 1.0), sim.config)
+	var held := 0
+	var target := sim.state.seats[1]
+	while not target.is_staggered() and held <= 2 * Ticks.RATE:
+		source.observe(sim.snapshot(), sim.pose())
+		var frame := source.next_frame(sim.state.tick)
+		if frame.is_held(InputFrame.SHOVE):
+			held += 1
+		sim.step([frame, brace])
+	assert_eq(held, Ticks.from_seconds(rules.charge_full), "held for a full charge")
+	assert_true(target.is_staggered(), "the charge broke the brace")
+	assert_almost_eq(Vector2(target.vel.x, target.vel.z).length(), rules.charged_knockback, 0.0001)

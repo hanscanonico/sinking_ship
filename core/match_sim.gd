@@ -4,7 +4,7 @@ extends RefCounted
 ## InputFrame per seat is the only way anything happens (D3); snapshot() is the
 ## whole truth and from_snapshot() continues it exactly (D5).
 
-const SNAPSHOT_VERSION := 3
+const SNAPSHOT_VERSION := 4
 
 var config: MatchConfig
 var schedule: SinkSchedule
@@ -16,6 +16,9 @@ var _windup_ticks: int
 var _active_ticks: int
 var _recovery_ticks: int
 var _stagger_ticks: int
+var _charge_threshold_ticks: int
+var _charge_full_ticks: int
+var _regen_delay_ticks: int
 
 
 func _init(match_config: MatchConfig) -> void:
@@ -29,6 +32,9 @@ func _init(match_config: MatchConfig) -> void:
 	_active_ticks = Ticks.from_seconds(_rules.shove_active)
 	_recovery_ticks = Ticks.from_seconds(_rules.shove_recovery)
 	_stagger_ticks = Ticks.from_seconds(_rules.stagger)
+	_charge_threshold_ticks = Ticks.from_seconds(_rules.charge_threshold)
+	_charge_full_ticks = Ticks.from_seconds(_rules.charge_full)
+	_regen_delay_ticks = Ticks.from_seconds(_rules.stamina_regen_delay)
 
 
 ## A new match: seats shuffled onto the layout's spawns by the match stream, each
@@ -54,6 +60,7 @@ static func create(match_config: MatchConfig) -> MatchSim:
 		player.last_look = InputFrame.quantize_yaw(Vector2(-player.pos.x, -player.pos.z).angle())
 		player.facing = InputFrame.yaw_angle(player.last_look)
 		player.surface = sim.surfaces.under(player.pos, match_config.rules.step_height)
+		player.stamina = match_config.rules.stamina_max
 		match_state.seats.append(player)
 	sim.state = match_state
 	return sim
@@ -103,6 +110,7 @@ func step(frames: Array[InputFrame]) -> Array[SimEvent]:
 			player.prev_buttons = player.last_buttons
 	else:
 		_intent()
+		_brace_and_stamina()
 		_forces(pose_now)
 		var feet_before := _move(tick, events)
 		_ground(tick, events, feet_before)
@@ -139,6 +147,14 @@ func _take_frames(frames: Array[InputFrame], tick: int) -> void:
 func _intent() -> void:
 	var candidates := _candidates()
 	for player: PlayerState in _live_seats():
+		# A stagger — a hit's, or a hard landing's — takes the shove being readied,
+		# and its buttons are not read (D3). A charge is paid on release, so nothing
+		# was spent and nothing comes back.
+		var readying := (
+			player.action == PlayerState.Action.WINDUP or player.action == PlayerState.Action.CHARGE
+		)
+		if readying and player.is_staggered():
+			_enter(player, PlayerState.Action.IDLE)
 		if player.action != PlayerState.Action.IDLE:
 			player.action_ticks += 1
 			_advance_action(player, candidates)
@@ -156,22 +172,26 @@ func _intent() -> void:
 			player.shove_spent = false
 
 
-## A shove goes where its shover looks as its active window starts, bent toward the
-## nearest target the autoaim cone holds — the shove, never the view (D14).
+## Tap or hold is read here, from ticks held (D3): a shove released after its
+## windup fires as a quick shove; one still held at charge_threshold becomes a
+## charge, which fires, paid for, when it is let go.
 func _advance_action(player: PlayerState, candidates: Array[ShoveResolver.Candidate]) -> void:
+	var held := player.last_buttons & InputFrame.SHOVE != 0
 	match player.action:
 		PlayerState.Action.WINDUP:
-			if player.action_ticks >= _windup_ticks:
-				_enter(player, PlayerState.Action.ACTIVE)
-				player.shove_facing = ShoveResolver.autoaim(
-					_candidate(player),
-					player.facing,
-					candidates,
-					_rules.shove_reach,
-					_rules.autoaim_cone_deg,
-					surfaces,
-					_rules.step_height
-				)
+			if held and player.action_ticks >= _charge_threshold_ticks:
+				if player.exhausted or player.stamina < _rules.charge_cost:
+					_fire(player, candidates)
+				else:
+					player.charge = player.action_ticks
+					_enter(player, PlayerState.Action.CHARGE)
+			elif not held and player.action_ticks >= _windup_ticks:
+				_fire(player, candidates)
+		PlayerState.Action.CHARGE:
+			player.charge = mini(player.charge + 1, _charge_full_ticks)
+			if not held:
+				_spend(player, _rules.charge_cost)
+				_fire(player, candidates)
 		PlayerState.Action.ACTIVE:
 			if player.action_ticks >= _active_ticks:
 				_enter(player, PlayerState.Action.RECOVERY)
@@ -180,9 +200,62 @@ func _advance_action(player: PlayerState, candidates: Array[ShoveResolver.Candid
 				_enter(player, PlayerState.Action.IDLE)
 
 
+## A charge lasts until its shove's active window is over, or it is cut short.
 func _enter(player: PlayerState, action: PlayerState.Action) -> void:
 	player.action = action
 	player.action_ticks = 0
+	if action == PlayerState.Action.IDLE or action == PlayerState.Action.RECOVERY:
+		player.charge = 0
+
+
+## Every shove's active window starts here, quick or charged: it goes where its
+## shover looks now, bent toward the nearest target the autoaim cone holds — the
+## shove, never the view (D14).
+func _fire(player: PlayerState, candidates: Array[ShoveResolver.Candidate]) -> void:
+	_enter(player, PlayerState.Action.ACTIVE)
+	player.shove_facing = ShoveResolver.autoaim(
+		_candidate(player),
+		player.facing,
+		candidates,
+		_rules.shove_reach,
+		_rules.autoaim_cone_deg,
+		surfaces,
+		_rules.step_height
+	)
+
+
+## Who is braced this tick, and stamina: a brace holds while its button is, on the
+## ground, idle, unstaggered and not exhausted, and spends as it holds; after
+## stamina_regen_delay without spending, stamina comes back.
+func _brace_and_stamina() -> void:
+	for player: PlayerState in _live_seats():
+		player.bracing = (
+			player.last_buttons & InputFrame.BRACE != 0
+			and player.action == PlayerState.Action.IDLE
+			and player.body == PlayerState.Body.GROUNDED
+			and not player.is_staggered()
+			and not player.exhausted
+		)
+		if player.bracing:
+			_spend(player, _rules.brace_drain * Ticks.SECONDS_PER_TICK)
+			player.bracing = not player.exhausted
+		elif player.stamina_wait > 0:
+			player.stamina_wait -= 1
+		else:
+			player.stamina = minf(
+				player.stamina + _rules.stamina_regen * Ticks.SECONDS_PER_TICK, _rules.stamina_max
+			)
+			if player.stamina == _rules.stamina_max:
+				player.exhausted = false
+
+
+## Takes [param amount] of stamina, never below zero — run dry, the seat is
+## exhausted — and restarts the wait before it comes back.
+func _spend(player: PlayerState, amount: float) -> void:
+	player.stamina = maxf(player.stamina - amount, 0.0)
+	player.stamina_wait = _regen_delay_ticks
+	if player.stamina == 0.0:
+		player.exhausted = true
 
 
 ## Walking, friction and gravity, as velocity. Gravity is the world's, turned
@@ -199,13 +272,19 @@ func _forces(pose_now: ShipPose) -> void:
 			continue
 		var planar := Vector2(player.vel.x, player.vel.z)
 		var wish := Vector2(player.last_move) / InputFrame.AXIS_MAX * _rules.walk_speed
+		if player.action == PlayerState.Action.CHARGE:
+			wish = wish.limit_length(_rules.charge_walk)
+		elif player.bracing:
+			wish = Vector2.ZERO
+		# A brace is rooted: the deck past the grip angle does not pull it.
+		var pulled := steep and not player.bracing
 		if player.is_staggered():
 			planar = (planar + downhill).move_toward(Vector2.ZERO, _rules.stagger_friction * dt)
 			player.stagger_ticks -= 1
-		elif wish == Vector2.ZERO and steep:
+		elif wish == Vector2.ZERO and pulled:
 			planar = (planar + downhill).move_toward(Vector2.ZERO, _rules.slide_friction * dt)
 		else:
-			if steep:
+			if pulled:
 				planar += downhill
 			var rate := _rules.ground_accel if wish != Vector2.ZERO else _rules.ground_friction
 			planar = planar.move_toward(wish, rate * dt)
@@ -361,11 +440,18 @@ func _shoves(tick: int, events: Array[SimEvent]) -> void:
 	hit_by.fill(-1)
 	var landed := PackedByteArray()
 	landed.resize(count)
+	var staggers := PackedByteArray()
+	staggers.resize(count)
 	for hit: ShoveResolver.Hit in hits:
 		var target := state.seats[hit.target]
-		var speed := _rules.knockback
+		var shover := state.seats[hit.shover]
+		var speed := _knockback(shover)
 		if target.is_staggered():
 			speed *= _rules.restagger_mult
+		if _braced_against(target, shover, hit.direction):
+			speed *= 1.0 - _rules.brace_reduction
+		else:
+			staggers[hit.target] = 1
 		knock[hit.target] += hit.direction * speed
 		rock[hit.shover] -= hit.direction * _rules.recoil
 		landed[hit.shover] = 1
@@ -379,12 +465,40 @@ func _shoves(tick: int, events: Array[SimEvent]) -> void:
 		var planar := Vector2(player.vel.x, player.vel.z)
 		if hit_by[seat] != -1:
 			planar = knock[seat] + rock[seat]
-			player.stagger_ticks = _stagger_ticks
 			player.last_hit_by = hit_by[seat]
-			_enter(player, PlayerState.Action.IDLE)
+			if staggers[seat] == 1:
+				player.stagger_ticks = _stagger_ticks
+				player.bracing = false
+				_enter(player, PlayerState.Action.IDLE)
 		elif landed[seat] == 1:
 			planar += rock[seat]
 		player.vel = Vector3(planar.x, player.vel.y, planar.y)
+
+
+## A quick shove's knockback, or a charged one's: from knockback at the threshold
+## to charged_knockback at a full charge.
+func _knockback(shover: PlayerState) -> float:
+	if not shover.is_charged():
+		return _rules.knockback
+	var weight := (
+		float(shover.charge - _charge_threshold_ticks)
+		/ (_charge_full_ticks - _charge_threshold_ticks)
+	)
+	return lerpf(_rules.knockback, _rules.charged_knockback, weight)
+
+
+## Whether [param target]'s brace takes the edge off [param shover]'s shove, sent
+## along [param direction]: it must come into the front arc, and not be a full
+## charge. A charge let go early is a stronger quick shove that a brace still
+## reads, so breaking one takes the whole charge_full: the glow a brace sees
+## coming, and a quick shove can cancel (§6, readable and punishable).
+func _braced_against(target: PlayerState, shover: PlayerState, direction: Vector2) -> bool:
+	if not target.bracing or shover.charge >= _charge_full_ticks:
+		return false
+	return (
+		absf(Vector2.from_angle(target.facing).angle_to(-direction))
+		<= deg_to_rad(_rules.brace_arc_deg)
+	)
 
 
 ## The water is a wall (SH1): feet below the sea plane is out, this tick.
@@ -397,6 +511,7 @@ func _water(pose_now: ShipPose, tick: int) -> Array[PlayerState]:
 			player.out_cause = PlayerState.Cause.WATER
 			player.vel = Vector3.ZERO
 			player.stagger_ticks = 0
+			player.bracing = false
 			_enter(player, PlayerState.Action.IDLE)
 			exits.append(player)
 	return exits

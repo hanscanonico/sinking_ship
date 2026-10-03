@@ -9,6 +9,8 @@ const FLAT_SINKING := "res://data/sinking/flat.tres"
 const STEAMER := "res://data/ships/steamer.tres"
 const STEAMER_SINKING := "res://data/sinking/steamer.tres"
 const NORMAL_BOT := "res://data/bots/normal.tres"
+## A frame's look when none is given: step() sends the seat's own look instead.
+const KEEP_LOOK := -1
 
 
 static func rules() -> BrawlRules:
@@ -98,13 +100,13 @@ static func place(match_sim: MatchSim, seat: int, pos: Vector3, facing_deg: floa
 	player.surface = match_sim.surfaces.under(pos, match_sim.config.rules.step_height)
 
 
-## A frame looking [param look_deg] from the bow toward starboard.
+## A frame looking [param look_deg] from the bow toward starboard; without one,
+## step() keeps the seat looking where it does — where place() turned it, say.
 static func frame(
-	seat: int, move: Vector2 = Vector2.ZERO, buttons: int = 0, look_deg: float = 0.0
+	seat: int, move: Vector2 = Vector2.ZERO, buttons: int = 0, look_deg: float = NAN
 ) -> InputFrame:
-	return InputFrame.new(
-		seat, 0, InputFrame.quantize(move), buttons, InputFrame.quantize_yaw(deg_to_rad(look_deg))
-	)
+	var look := KEEP_LOOK if is_nan(look_deg) else InputFrame.quantize_yaw(deg_to_rad(look_deg))
+	return InputFrame.new(seat, 0, InputFrame.quantize(move), buttons, look)
 
 
 ## Steps [param ticks] ticks; [param frames] maps a seat to the frame it sends
@@ -115,6 +117,10 @@ static func step(match_sim: MatchSim, frames: Dictionary = {}, ticks: int = 1) -
 		var row: Array[InputFrame] = []
 		row.resize(match_sim.config.seats)
 		for seat: int in frames:
-			row[seat] = frames[seat]
+			var sent: InputFrame = frames[seat]
+			if sent.look_yaw == KEEP_LOOK:
+				var look := match_sim.state.seats[seat].last_look
+				sent = InputFrame.new(seat, 0, sent.move, sent.buttons, look)
+			row[seat] = sent
 		events.append_array(match_sim.step(row))
 	return events

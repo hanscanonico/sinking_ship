@@ -3,8 +3,8 @@ extends RefCounted
 ## Which clip a brawler plays, read off one seat's snapshot entry (D5). It picks a
 ## pose for a state the sim already decided and never feeds anything back (D12).
 
-## BRACE, CHARGE, SWIM and CLIMB have no state to read until SH4 and SH5 add one;
-## their clips are chosen now so those milestones add only the case in move_for().
+## SWIM and CLIMB have no state to read until SH5 adds one; their clips are chosen
+## now so that milestone adds only the case in move_for().
 enum Move { IDLE, WALK, RUN, WINDUP, SHOVE, RECOVER, STAGGER, FALL, BRACE, CHARGE, SWIM, CLIMB }
 
 ## Clips of the Universal Animation Library's mannequin, by move.
@@ -61,6 +61,10 @@ static func move_for(entry: Dictionary, speed: float) -> Move:
 			return Move.SHOVE
 		PlayerState.Action.RECOVERY:
 			return Move.RECOVER
+		PlayerState.Action.CHARGE:
+			return Move.CHARGE
+	if entry["bracing"]:
+		return Move.BRACE
 	if speed >= RUN_FROM:
 		return Move.RUN
 	if speed >= WALK_FROM:

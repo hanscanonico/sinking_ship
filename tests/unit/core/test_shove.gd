@@ -3,7 +3,7 @@ extends GutTest
 const SHOVE := InputFrame.SHOVE
 
 
-func _shove(seat: int, look_deg: float = 0.0) -> InputFrame:
+func _shove(seat: int, look_deg: float = NAN) -> InputFrame:
 	return SimFixtures.frame(seat, Vector2.ZERO, SHOVE, look_deg)
 
 
@@ -13,7 +13,8 @@ func _shove_at(target_pos: Vector3) -> MatchSim:
 	var sim := SimFixtures.sim(2)
 	SimFixtures.place(sim, 0, Vector3.ZERO, 0.0)
 	SimFixtures.place(sim, 1, target_pos, 180.0)
-	SimFixtures.step(sim, {0: _shove(0)}, 6)
+	SimFixtures.step(sim, {0: _shove(0)})
+	SimFixtures.step(sim, {0: SimFixtures.frame(0)}, 5)
 	return sim
 
 
@@ -33,10 +34,11 @@ func test_shove_goes_where_you_look() -> void:
 			var sim := SimFixtures.sim(2)
 			SimFixtures.place(sim, 0, Vector3.ZERO, 0.0)
 			SimFixtures.place(sim, 1, _at(0.2, 90.0))
-			var frames := {
+			var press := {
 				0: SimFixtures.frame(0, move * 0.3, SHOVE, look_deg), 1: SimFixtures.frame(1)
 			}
-			SimFixtures.step(sim, frames, 6)
+			SimFixtures.step(sim, press)
+			SimFixtures.step(sim, {0: SimFixtures.frame(0, move * 0.3, 0, look_deg)}, 5)
 			var hit := sim.state.seats[1].is_staggered()
 			if look_deg > 0.0:
 				assert_true(hit, "dead ahead of the look, walking %s" % move)
@@ -55,9 +57,10 @@ func test_look_turns_any_amount_in_one_tick() -> void:
 	var sim := SimFixtures.sim(2)
 	SimFixtures.place(sim, 0, Vector3.ZERO, 0.0)
 	SimFixtures.place(sim, 1, _at(0.2, 0.0))
-	SimFixtures.step(sim, {0: _shove(0)}, 4)
+	SimFixtures.step(sim, {0: _shove(0)})
+	SimFixtures.step(sim, {0: SimFixtures.frame(0)}, 3)
 	assert_eq(sim.state.seats[0].action, PlayerState.Action.ACTIVE)
-	SimFixtures.step(sim, {0: _shove(0, 180.0)})
+	SimFixtures.step(sim, {0: SimFixtures.frame(0, Vector2.ZERO, 0, 180.0)})
 	var behind := angle_difference(sim.state.seats[0].facing, PI)
 	assert_almost_eq(behind, 0.0, 0.0001, "looked behind in one tick")
 	assert_almost_eq(sim.state.seats[0].shove_facing, 0.0, 0.0001, "the shove stays aimed")
@@ -74,7 +77,8 @@ func test_would_hit_matches_the_resolved_shove() -> void:
 				SimFixtures.place(sim, 0, Vector3.ZERO, look_deg)
 				SimFixtures.place(sim, 1, _at(gap, look_deg + off_deg))
 				var asked := ShoveResolver.would_hit(sim.snapshot(), 0, rules, sim.surfaces)
-				SimFixtures.step(sim, {0: _shove(0, look_deg), 1: SimFixtures.frame(1)}, 6)
+				SimFixtures.step(sim, {0: _shove(0, look_deg), 1: SimFixtures.frame(1)})
+				SimFixtures.step(sim, {0: SimFixtures.frame(0)}, 5)
 				var landed := sim.state.seats[1].is_staggered()
 				assert_eq(asked, landed, "look %s°, %s° off, gap %.2f" % [look_deg, off_deg, gap])
 				answers[asked] = true
@@ -133,7 +137,8 @@ func test_knockback_follows_shove_direction() -> void:
 	SimFixtures.place(combo, 0, Vector3.ZERO, 0.0)
 	SimFixtures.place(combo, 1, _at(0.3, 0.0), 180.0)
 	combo.state.seats[1].stagger_ticks = 20
-	SimFixtures.step(combo, {0: _shove(0)}, 4)
+	SimFixtures.step(combo, {0: _shove(0)})
+	SimFixtures.step(combo, {0: SimFixtures.frame(0)}, 3)
 	var again := Vector2(combo.state.seats[1].vel.x, combo.state.seats[1].vel.z)
 	assert_almost_eq(again.length(), rules.knockback * rules.restagger_mult, 0.0001)
 
@@ -143,7 +148,8 @@ func test_simultaneous_shoves_both_land() -> void:
 	var sim := SimFixtures.sim(2)
 	SimFixtures.place(sim, 0, Vector3(-0.6, 0.0, 0.0), 0.0)
 	SimFixtures.place(sim, 1, Vector3(0.6, 0.0, 0.0), 180.0)
-	SimFixtures.step(sim, {0: _shove(0), 1: _shove(1, 180.0)}, 4)
+	SimFixtures.step(sim, {0: _shove(0), 1: _shove(1)})
+	SimFixtures.step(sim, {0: SimFixtures.frame(0), 1: SimFixtures.frame(1)}, 3)
 	var west := sim.state.seats[0]
 	var east := sim.state.seats[1]
 	assert_true(west.is_staggered() and east.is_staggered(), "both land")
@@ -168,8 +174,8 @@ func test_staggered_seat_cannot_shove() -> void:
 	var duel := SimFixtures.sim(2)
 	SimFixtures.place(duel, 0, Vector3.ZERO, 0.0)
 	SimFixtures.place(duel, 1, _at(0.3, 0.0), 180.0)
-	SimFixtures.step(duel, {1: _shove(1, 180.0)})
-	SimFixtures.step(duel, {0: _shove(0)}, 3)
+	SimFixtures.step(duel, {1: _shove(1)})
+	SimFixtures.step(duel, {0: _shove(0), 1: SimFixtures.frame(1)}, 3)
 	assert_true(duel.state.seats[0].is_staggered())
 	assert_eq(duel.state.seats[0].action, PlayerState.Action.IDLE)
 	SimFixtures.step(duel, {0: SimFixtures.frame(0)}, 3)

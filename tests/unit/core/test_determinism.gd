@@ -82,7 +82,9 @@ func test_snapshot_continuation_is_exact() -> void:
 	SimFixtures.place(onto_a_deck, 0, Vector3(-14.6, 1.2, 0.0))
 	var walks := {into_the_sea: Vector2.DOWN, onto_a_deck: Vector2.RIGHT}
 	for fall: MatchSim in walks:
-		var walk: Array[InputFrame] = [SimFixtures.frame(0, walks[fall]), SimFixtures.frame(1)]
+		var walk: Array[InputFrame] = [
+			SimFixtures.frame(0, walks[fall], 0, 0.0), SimFixtures.frame(1, Vector2.ZERO, 0, 0.0)
+		]
 		var walked: Array[Dictionary] = [fall.snapshot()]
 		for _tick in 4 * Ticks.RATE:
 			if fall.is_over():
@@ -98,6 +100,59 @@ func test_snapshot_continuation_is_exact() -> void:
 				return
 	for field: String in covered:
 		assert_true(covered[field], "the match resumes from a %s in flight" % field)
+
+
+## The golden match is bots' and may hold no brace or charge on a platform, so a
+## scripted duel carries them: seat 1 braces, seat 0 charges and breaks the brace,
+## and both spend and wait for stamina, while seat 2, low to start with, braces
+## until it is exhausted — a sim rebuilt from any of it must continue.
+func test_continuation_through_brace_charge_and_stamina() -> void:
+	var rules := SimFixtures.rules()
+	var sim := SimFixtures.sim(3)
+	SimFixtures.place(sim, 0, Vector3.ZERO, 0.0)
+	SimFixtures.place(sim, 1, Vector3(rules.body_radius * 2.0 + 0.3, 0.0, 0.0), 180.0)
+	SimFixtures.place(sim, 2, Vector3(-5.0, 0.0, 0.0))
+	sim.state.seats[2].stamina = rules.brace_drain
+	var press_at := Ticks.from_seconds(rules.charge_threshold)
+	var release_at := press_at + Ticks.from_seconds(rules.charge_full)
+	var duel := func(tick: int) -> Array[InputFrame]:
+		var shove := InputFrame.SHOVE if tick >= press_at and tick < release_at else 0
+		var brace := InputFrame.BRACE if tick < 2 * Ticks.RATE else 0
+		return [
+			SimFixtures.frame(0, Vector2.ZERO, shove, 0.0),
+			SimFixtures.frame(1, Vector2.ZERO, brace, 180.0),
+			SimFixtures.frame(2, Vector2.ZERO, InputFrame.BRACE, 0.0),
+		]
+	var played: Array[Dictionary] = [sim.snapshot()]
+	for tick in 4 * Ticks.RATE:
+		sim.step(duel.call(tick))
+		played.append(sim.snapshot())
+	var covered := {
+		"brace": false,
+		"charge": false,
+		"charged shove": false,
+		"regen wait": false,
+		"exhaustion": false,
+	}
+	for start in range(played.size() - 1):
+		var seen := false
+		for entry: Dictionary in played[start]["seats"]:
+			var in_flight := {
+				"brace": entry["bracing"],
+				"charge": entry["action"] == PlayerState.Action.CHARGE,
+				"charged shove":
+				entry["action"] == PlayerState.Action.ACTIVE and entry["charge"] > 0,
+				"regen wait": entry["stamina_wait"] > 0,
+				"exhaustion": entry["exhausted"],
+			}
+			for field: String in in_flight:
+				if in_flight[field]:
+					covered[field] = true
+					seen = true
+		if seen and not _continues(played, start, sim.config, duel):
+			return
+	for field: String in covered:
+		assert_true(covered[field], "the duel resumes from a %s in flight" % field)
 
 
 func test_golden_for_this_platform() -> void:

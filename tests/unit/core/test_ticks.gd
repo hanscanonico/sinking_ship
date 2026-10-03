@@ -16,5 +16,6 @@ func test_seconds_convert_once_rounding_half_away() -> void:
 	var sim := MatchSim.create(config)
 	SimFixtures.place(sim, 0, Vector3.ZERO)
 	config.rules.shove_windup = 1.0
-	SimFixtures.step(sim, {0: SimFixtures.frame(0, Vector2.ZERO, InputFrame.SHOVE)}, 4)
+	SimFixtures.step(sim, {0: SimFixtures.frame(0, Vector2.ZERO, InputFrame.SHOVE)})
+	SimFixtures.step(sim, {0: SimFixtures.frame(0)}, 3)
 	assert_eq(sim.state.seats[0].action, PlayerState.Action.ACTIVE)

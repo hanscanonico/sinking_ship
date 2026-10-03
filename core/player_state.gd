@@ -4,7 +4,8 @@ extends RefCounted
 ## that affects the future and is missing from to_dict() is a continuation bug.
 
 enum Body { GROUNDED, AIRBORNE, OUT }
-enum Action { IDLE, WINDUP, ACTIVE, RECOVERY }
+## CHARGE: the shove held past charge_threshold, until it is released.
+enum Action { IDLE, WINDUP, ACTIVE, RECOVERY, CHARGE }
 enum Cause { NONE, WATER }
 
 var seat: int
@@ -26,6 +27,16 @@ var action_ticks: int
 var shove_spent: bool
 ## Where this shove goes, in the facing's radians: set as its active window starts.
 var shove_facing: float
+## Ticks the shove was held for, from the press, once it became a charge (capped at
+## charge_full); kept through the charged shove's active window, 0 otherwise.
+var charge: int
+## Planted: rooted, and a shove into the front arc loses brace_reduction.
+var bracing: bool
+var stamina: float
+## Ticks left before stamina starts to come back.
+var stamina_wait: int
+## Run dry: no brace and no charge until stamina is full again.
+var exhausted: bool
 var stagger_ticks: int
 ## The seat whose shove last landed on this one, until this body moves under its
 ## own input again; -1 otherwise.
@@ -53,6 +64,10 @@ func is_staggered() -> bool:
 	return stagger_ticks > 0
 
 
+func is_charged() -> bool:
+	return charge > 0
+
+
 func to_dict() -> Dictionary:
 	return {
 		"seat": seat,
@@ -70,6 +85,11 @@ func to_dict() -> Dictionary:
 		"action_ticks": action_ticks,
 		"shove_spent": shove_spent,
 		"shove_facing": shove_facing,
+		"charge": charge,
+		"bracing": bracing,
+		"stamina": stamina,
+		"stamina_wait": stamina_wait,
+		"exhausted": exhausted,
 		"stagger": stagger_ticks,
 		"last_hit_by": last_hit_by,
 		"prev_buttons": prev_buttons,
@@ -92,6 +112,11 @@ static func from_dict(entry: Dictionary) -> PlayerState:
 	player.action_ticks = entry["action_ticks"]
 	player.shove_spent = entry["shove_spent"]
 	player.shove_facing = entry["shove_facing"]
+	player.charge = entry["charge"]
+	player.bracing = entry["bracing"]
+	player.stamina = entry["stamina"]
+	player.stamina_wait = entry["stamina_wait"]
+	player.exhausted = entry["exhausted"]
 	player.stagger_ticks = entry["stagger"]
 	player.last_hit_by = entry["last_hit_by"]
 	player.prev_buttons = entry["prev_buttons"]
