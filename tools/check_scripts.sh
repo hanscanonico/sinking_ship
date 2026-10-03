@@ -191,6 +191,16 @@ if (($# == 0)); then
 			printf '%s\n' "$global_rng" >&2
 			failed=$((failed + 1))
 		fi
+
+		# The tick is the only clock, and a frame the only input (D1, D2): the
+		# engine's clocks and devices are out of reach of the sim and the bots.
+		# The word boundary is what lets InputFrame and BotInputSource through.
+		engine="$(grep -rnE '\b(Time|OS|Engine|Input|DisplayServer)\.' "${sim_dirs[@]}" --include='*.gd' || true)"
+		if [[ -n "$engine" ]]; then
+			echo "check: core/ and ai/ are clock- and device-free — count ticks, read InputFrames" >&2
+			printf '%s\n' "$engine" >&2
+			failed=$((failed + 1))
+		fi
 	fi
 fi
 

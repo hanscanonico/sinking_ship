@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="BrawlRules" format=3]
+
+[ext_resource type="Script" path="res://core/brawl_rules.gd" id="1_45yqy"]
+
+[resource]
+script = ExtResource("1_45yqy")
+walk_speed = 5.0
+ground_accel = 35.0
+ground_friction = 30.0
+turn_rate_deg = 720.0
+body_radius = 0.4
+body_height = 1.7
+gravity = 20.0
+shove_windup = 0.1
+shove_active = 0.1
+shove_recovery = 0.27
+shove_reach = 0.9
+shove_cone_deg = 40.0
+autoaim_cone_deg = 30.0
+knockback = 8.0
+restagger_mult = 1.25
+recoil = 1.5
+stagger = 0.4
+stagger_friction = 8.0

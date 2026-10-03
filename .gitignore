@@ -12,6 +12,9 @@ bin
 # is the copy we track.
 godot-ai-LICENSE.txt
 
+# `make capture`'s default output.
+captures/
+
 # macOS
 .DS_Store
 

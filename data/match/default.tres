@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="MatchRules" format=3]
+
+[ext_resource type="Resource" path="res://data/rules/brawl.tres" id="1_rq8bi"]
+[ext_resource type="Script" path="res://core/match_rules.gd" id="2_cfls3"]
+[ext_resource type="Resource" path="res://data/ships/flat_deck.tres" id="3_efbn2"]
+[ext_resource type="Resource" path="res://data/sinking/flat.tres" id="4_64jf7"]
+
+[resource]
+script = ExtResource("2_cfls3")
+seats = 6
+humans = 1
+bot_tier = &"normal"
+countdown = 3.0
+rules = ExtResource("1_rq8bi")
+ship = ExtResource("3_efbn2")
+sinking = ExtResource("4_64jf7")
