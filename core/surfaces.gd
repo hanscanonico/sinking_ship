@@ -7,7 +7,9 @@ extends RefCounted
 ## numbered platforms first, then ramps, then blocker tops, each in layout order. A
 ## blocker's top is stood on and landed on like a platform's; a wall is a blocker
 ## and its doorways are the gaps between walls. Nothing here assumes a size or a deck
-## count, and nothing reads the layout's rooms.
+## count, and nothing reads the layout's rooms. What still stands is the pose's to say
+## (D7): a collapsed platform and a failed railing are gone from every answer once
+## honour() has been handed a pose that says so.
 
 const NONE := -1
 ## The side of a cell of the spatial index, in metres. Rooms made the steamer's
@@ -47,6 +49,14 @@ var _platform_bottoms := PackedFloat64Array()
 var _grid_origin := Vector2.ZERO
 var _grid_size := Vector2i.ONE
 var _cells: Array[PackedInt32Array] = []
+## Per surface, 1 while it is gone: a collapsed platform, and the tops of the blockers
+## standing flush under it — the roof's edge goes with the roof.
+var _gone := PackedByteArray()
+## Per railing, 1 while it has failed, or its platform is gone.
+var _rail_gone := PackedByteArray()
+## What the last pose honoured said, so an unchanged one costs nothing.
+var _honoured_collapsed: Array[StringName] = []
+var _honoured_broken := PackedInt32Array()
 
 
 func _init(layout: ShipLayout) -> void:
@@ -68,6 +78,35 @@ func _init(layout: ShipLayout) -> void:
 			normal = -normal
 		_rail_normals.append(normal)
 	_index()
+	_gone.resize(count())
+	_rail_gone.resize(_railings.size())
+
+
+## Takes [param pose]'s collapsed platforms and failed railings as the ship's until
+## the next pose: whoever asks about a tick hands its pose here first. Holds nothing
+## the pose does not say, so a match resumed from a snapshot stands on the same ship.
+func honour(pose: ShipPose) -> void:
+	if pose.collapsed == _honoured_collapsed and pose.broken_railings == _honoured_broken:
+		return
+	_honoured_collapsed = pose.collapsed.duplicate()
+	_honoured_broken = pose.broken_railings.duplicate()
+	_gone.fill(0)
+	_rail_gone.fill(0)
+	var first_top := _platforms.size() + _ramps.size()
+	for platform in _platforms.size():
+		if not _platforms[platform].name in pose.collapsed:
+			continue
+		_gone[platform] = 1
+		var under_it := _platforms[platform].area.grow(ShipPlatform.EDGE)
+		for surface in range(first_top, count()):
+			if (
+				is_equal_approx(_blocker_of(surface).top, _platforms[platform].height)
+				and under_it.encloses(_area(surface))
+			):
+				_gone[surface] = 1
+	for index in _railings.size():
+		if index in pose.broken_railings or _gone[_railings[index].platform] == 1:
+			_rail_gone[index] = 1
 
 
 ## How many surfaces there are, platforms, ramps and blocker tops together.
@@ -109,7 +148,7 @@ func under(ship_point: Vector3, step: float) -> int:
 	var best := NONE
 	var best_height := -INF
 	for surface: int in _near(Rect2(Vector2(ship_point.x, ship_point.z), Vector2.ZERO)):
-		if not _contains(surface, ship_point):
+		if _gone[surface] == 1 or not _contains(surface, ship_point):
 			continue
 		var height := height_at(surface, ship_point)
 		if absf(height - ship_point.y) <= step and height > best_height:
@@ -125,12 +164,13 @@ func landing(ship_point: Vector3) -> int:
 
 
 ## How high a head rising from [param ship_point] may go: the lowest underside over
-## it — a deck's, a ramp's, a blocker's — more than [param clearance] above the
-## feet, or INF when nothing is. Anything nearer the feet than that is underfoot.
+## it — a deck's, a ramp's, a blocker's, one still standing — more than
+## [param clearance] above the feet, or INF when nothing is. Anything nearer the
+## feet than that is underfoot.
 func ceiling(ship_point: Vector3, clearance: float) -> float:
 	var lowest := INF
 	for surface: int in _near(Rect2(Vector2(ship_point.x, ship_point.z), Vector2.ZERO)):
-		if not _contains(surface, ship_point):
+		if _gone[surface] == 1 or not _contains(surface, ship_point):
 			continue
 		var underside := _underside(surface)
 		if underside > ship_point.y + clearance:
@@ -195,6 +235,8 @@ func obstacle_contacts(
 	for surface: int in near:
 		if surface >= first_top:
 			break
+		if _gone[surface] == 1:
+			continue
 		var area := _area(surface)
 		var closest := point.clamp(area.position, area.end)
 		var top := height_at(surface, Vector3(closest.x, 0.0, closest.y))
@@ -253,7 +295,7 @@ func rail_contacts(ship_point: Vector3, radius: float, surface: int) -> Array[Co
 	var contacts: Array[Contact] = []
 	var point := Vector2(ship_point.x, ship_point.z)
 	for index in _railings.size():
-		if _railings[index].platform != surface:
+		if _railings[index].platform != surface or _rail_gone[index] == 1:
 			continue
 		var contact := _rail_contact(index, point, radius)
 		if contact != null:
@@ -277,6 +319,8 @@ func airborne_rail_contacts(
 	var contacts: Array[Contact] = []
 	var point := Vector2(ship_point.x, ship_point.z)
 	for index in _railings.size():
+		if _rail_gone[index] == 1:
+			continue
 		var railing := _railings[index]
 		var deck := _platforms[railing.platform].height
 		if ship_point.y >= deck + railing_height or ship_point.y + body_height <= deck:
@@ -295,8 +339,9 @@ func airborne_rail_contacts(
 func railed(from_point: Vector3, to_point: Vector3, surface: int) -> bool:
 	var start := Vector2(from_point.x, from_point.z)
 	var end := Vector2(to_point.x, to_point.z)
-	for railing: ShipRailing in _railings:
-		if railing.platform != surface:
+	for index in _railings.size():
+		var railing := _railings[index]
+		if railing.platform != surface or _rail_gone[index] == 1:
 			continue
 		if Geometry2D.segment_intersects_segment(start, end, railing.from, railing.to) != null:
 			return true
@@ -395,12 +440,14 @@ func world_height(surface: int, pose: ShipPose) -> float:
 	return pose.world_height(_centre(surface))
 
 
-## The platform whose middle stands highest in the world under [param pose]; ties
-## go to the lower number.
+## The platform still standing whose middle stands highest in the world under
+## [param pose]; ties go to the lower number.
 func highest_platform(pose: ShipPose) -> int:
 	var best := NONE
 	var best_height := -INF
 	for platform in _platforms.size():
+		if _platforms[platform].name in pose.collapsed:
+			continue
 		var height := world_height(platform, pose)
 		if height > best_height:
 			best = platform
@@ -416,7 +463,7 @@ func _highest_at_or_below(ship_point: Vector3, surfaces: int) -> int:
 	for surface: int in _near(Rect2(Vector2(ship_point.x, ship_point.z), Vector2.ZERO)):
 		if surface >= surfaces:
 			break
-		if not _contains(surface, ship_point):
+		if _gone[surface] == 1 or not _contains(surface, ship_point):
 			continue
 		var height := height_at(surface, ship_point)
 		if height <= ship_point.y and height > best_height:

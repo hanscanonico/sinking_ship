@@ -9,3 +9,6 @@ extends Resource
 @export var sink: float
 @export var trim_deg: float
 @export var heel_deg: float
+## The name of the phase that begins here, for the HUD's banner; empty carries the
+## one before on.
+@export var phase: String

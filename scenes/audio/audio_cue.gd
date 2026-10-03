@@ -18,9 +18,9 @@ enum Kind {
 	CREAK,
 	GROAN,
 	FLOOD,
-	## SH6's lurch telegraph: the horn. No event asks for it yet.
+	## A lurch's telegraph (SH6): the horn, a second ahead of the swing.
 	HORN,
-	## SH6's collapse telegraph: wood giving way. No event asks for it yet.
+	## A deck giving way (SH6): as its collapse is telegraphed, and as it goes.
 	COLLAPSE,
 }
 ## What a footfall or a landing comes down on.

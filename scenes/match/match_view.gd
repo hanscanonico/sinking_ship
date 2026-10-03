@@ -1,9 +1,10 @@
 class_name MatchView
 extends Node3D
 ## Draws the match from two snapshots (D5): the ship root follows the interpolated
-## pose, and every seat is a Brawler with a blob shadow, placed in ship space —
-## except the seat whose eyes the view is in, which is not drawn (D14). It never
-## moves a body itself, and never reads a live PlayerState.
+## pose, the greybox the sinking's events as of the same moment, and every seat is a
+## Brawler with a blob shadow, placed in ship space — except the seat whose eyes the
+## view is in, which is not drawn (D14). It never moves a body itself, and never
+## reads a live PlayerState.
 
 ## The seat colours now live in ArtPalette; this name stays for code outside the art.
 const SEAT_COLOURS: Array[Color] = ArtPalette.SEAT_COLOURS
@@ -87,6 +88,7 @@ func _process(_delta: float) -> void:
 	_ship.transform = (_schedule.pose_at(previous["tick"]).transform.interpolate_with(
 		_schedule.pose_at(current["tick"]).transform, alpha
 	))
+	_greybox.show_sinking(_schedule, lerpf(previous["tick"], current["tick"], alpha))
 	var seats_then: Array = previous["seats"]
 	var seats_now: Array = current["seats"]
 	for index in seats_now.size():

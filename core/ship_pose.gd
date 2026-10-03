@@ -8,6 +8,19 @@ var sink: float
 var trim_deg: float
 var heel_deg: float
 var transform: Transform3D
+## What the scenario's events have done by this tick, and what they telegraph now —
+## derived from (scenario, seed, tick) like the rest of the pose, never stored (D5).
+## The platforms, by name, that have collapsed: no longer surfaces.
+var collapsed: Array[StringName] = []
+## The platforms, by name, whose collapse is telegraphed now: standing, not for long.
+var collapsing: Array[StringName] = []
+## The layout's railings, by index, that have failed.
+var broken_railings := PackedInt32Array()
+## The heel the lurch telegraphed now will swing by, signed as heel_deg; 0 for none.
+var lurch_warning: float
+## The heel the lurch under way swings by at its height, signed; 0 for none. Its
+## part of the swing is already in heel_deg.
+var lurch: float
 
 
 func _init(
@@ -27,6 +40,12 @@ func world_height(ship_point: Vector3) -> float:
 ## the deck's downhill, whichever way the ship leans.
 func ship_gravity(strength: float) -> Vector3:
 	return transform.basis.inverse() * Vector3(0.0, -strength, 0.0)
+
+
+## The way, in the ship plane, a heel of [param heel] puts the deck down: toward
+## starboard (+z) for a positive one.
+static func low_side(heel: float) -> Vector2:
+	return Vector2(0.0, signf(heel))
 
 
 ## The deck's combined slope, trim and heel together, in degrees.

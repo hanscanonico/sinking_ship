@@ -91,6 +91,7 @@ static func from_snapshot(snapshot: Dictionary, match_config: MatchConfig) -> Ma
 	for entry: Dictionary in snapshot["seats"]:
 		match_state.seats.append(PlayerState.from_dict(entry))
 	sim.state = match_state
+	sim.surfaces.honour(sim.pose())
 	return sim
 
 
@@ -117,6 +118,7 @@ func step(frames: Array[InputFrame]) -> Array[SimEvent]:
 	var tick := state.tick
 	_take_frames(frames, tick)
 	var pose_now := schedule.pose_at(tick)
+	_sinking_events(pose_now, tick, events)
 	if tick < config.countdown_ticks:
 		for player: PlayerState in state.seats:
 			player.prev_buttons = player.last_buttons
@@ -128,11 +130,20 @@ func step(frames: Array[InputFrame]) -> Array[SimEvent]:
 		_ground(tick, events, feet_before)
 		_thaw()
 		_shoves(tick, events)
-		_verdict(_water(pose_now, tick), tick, events)
+		var exits := _water(pose_now, tick)
+		exits.append_array(_out_at_cap(tick))
+		_verdict(exits, tick, events)
 	state.tick += 1
 	if state.phase == MatchState.Phase.COUNTDOWN and state.tick >= config.countdown_ticks:
 		state.phase = MatchState.Phase.LIVE
 	return events
+
+
+## The ship stands as the pose says from this tick on — a collapsed platform is no
+## surface — and the sinking's telegraphs and events for this tick go out.
+func _sinking_events(pose_now: ShipPose, tick: int, events: Array[SimEvent]) -> void:
+	surfaces.honour(pose_now)
+	events.append_array(schedule.events_at(tick))
 
 
 func _live_seats() -> Array[PlayerState]:
@@ -700,6 +711,27 @@ func _water(pose_now: ShipPose, tick: int) -> Array[PlayerState]:
 			player.bracing = false
 			_enter(player, PlayerState.Action.IDLE)
 			exits.append(player)
+	return exits
+
+
+## The hard cap (§5): every seat still in when the scenario's cap comes goes out on
+## its tick, together, so every match ends by then — everyone at once is a draw, the
+## sea wins. Once swimmers exist (SH5), this is where they are ranked by cold left.
+func _out_at_cap(tick: int) -> Array[PlayerState]:
+	var exits: Array[PlayerState] = []
+	if schedule.cap_tick() == -1 or tick < schedule.cap_tick():
+		return exits
+	for player: PlayerState in _live_seats():
+		player.body = PlayerState.Body.OUT
+		player.out_tick = tick
+		player.out_cause = PlayerState.Cause.WATER
+		player.vel = Vector3.ZERO
+		player.stagger_ticks = 0
+		player.hitstop = 0
+		player.held_vel = Vector3.ZERO
+		player.bracing = false
+		_enter(player, PlayerState.Action.IDLE)
+		exits.append(player)
 	return exits
 
 

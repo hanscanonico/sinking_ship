@@ -146,6 +146,45 @@ func test_poop_deck_has_two_routes() -> void:
 	assert_gt(poop_decks, 0, "the steamer has a poop deck")
 
 
+## The perches of [param layout] under [param scenario] with fewer than two routes
+## and no collapse of theirs scheduled, by name. A perch is a platform that, at some
+## second of the sinking, is the highest one standing and dry.
+func _lone_perches(layout: ShipLayout, scenario: SinkScenario) -> Array[StringName]:
+	var surfaces := Surfaces.new(layout)
+	var graph := _graph(layout, surfaces)
+	var routes := _routes(layout, surfaces, graph)
+	var schedule := SinkSchedule.new(scenario, layout.freeboard, SeedStreams.derive(1, "sink"))
+	var collapsing: Array[StringName] = []
+	for event: SinkEvent in scenario.events:
+		if event.kind == SinkEvent.Kind.COLLAPSE:
+			collapsing.append(event.platform)
+	var lone: Array[StringName] = []
+	for tick in range(0, Ticks.from_seconds(scenario.starts_at + scenario.cap), Ticks.RATE):
+		var pose := schedule.pose_at(tick)
+		surfaces.honour(pose)
+		var perch := surfaces.highest_platform(pose)
+		if perch == Surfaces.NONE or surfaces.flooded(perch, pose):
+			continue
+		var perch_name := layout.platforms[perch].name
+		if routes[graph.deck_of(perch)] < 2 and not perch_name in collapsing:
+			if not perch_name in lone:
+				lone.append(perch_name)
+	return lone
+
+
+func test_single_route_perches_collapse() -> void:
+	# §5: the only single-route perch is one with a scheduled collapse — the steamer's
+	# bridge, the high ground until its roof gives way.
+	var layout := SimFixtures.steamer()
+	var scenario: SinkScenario = load(SimFixtures.STEAMER_SINKING)
+	assert_eq(_lone_perches(layout, scenario), [] as Array[StringName])
+	var held: SinkScenario = scenario.duplicate()
+	held.events = []
+	assert_eq(
+		_lone_perches(layout, held), [&"bridge"] as Array[StringName], "without it, the rule bites"
+	)
+
+
 func test_every_room_has_a_door() -> void:
 	var rules := SimFixtures.rules()
 	var layouts := _layouts()

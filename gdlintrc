@@ -9,6 +9,7 @@
 disable:
 - class-definitions-order
 
-# Surfaces is the only door to spatial questions (D6), so every question the rules
-# ask of the ship is one of its public methods; it outgrows the default 20 by design.
-max-public-methods: 24
+# Surfaces is the only door to spatial questions (D6, D13), so every query a rule,
+# a bot or the HUD asks is one public method on it; its index (SH18) lands behind
+# the same door. gdtoolkit's default is 20.
+max-public-methods: 26

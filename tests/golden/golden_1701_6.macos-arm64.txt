@@ -1,6 +1,8 @@
 01:05.7 seat 5 out · water · place 6
-01:34.5 seat 2 out · water · place 5
-01:35.4 seat 0 out · water · place 4
-01:56.7 seat 1 out · water · place 3
-03:14.9 seat 3 out · water · place 2
-winner seat 4 at 03:14.9 · digest 3ee8d1f8ba4f5c41
+01:06.0 lurch coming · heel -15°
+01:07.0 lurched · heel -15°
+01:19.0 seat 1 out · water · place 5
+01:24.8 seat 0 out · water · place 4
+01:36.2 seat 4 out · water · place 3
+01:41.0 seat 3 out · water · place 2
+winner seat 2 at 01:41.0 · digest 162ca154d98dcff2
