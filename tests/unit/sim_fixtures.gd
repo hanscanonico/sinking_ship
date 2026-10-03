@@ -33,6 +33,21 @@ static func platform_named(layout: ShipLayout, platform_name: StringName) -> int
 	return Surfaces.NONE
 
 
+## A crate as the steamer carries them, its underside at [param at].
+static func crate(at: Vector3) -> ShipProp:
+	var made: ShipProp = steamer().props[0].duplicate()
+	made.pos = at
+	return made
+
+
+## [param layout] — the flat deck, when none is given — carrying [param crates] and
+## no other.
+static func crated(crates: Array[ShipProp], layout: ShipLayout = null) -> ShipLayout:
+	var loaded: ShipLayout = (layout if layout != null else deck()).duplicate()
+	loaded.props = crates
+	return loaded
+
+
 ## The name of [param layout]'s platform [param surface], or &"" for a ramp, a
 ## blocker top or nothing: the main deck is several platforms of one name.
 static func name_of(layout: ShipLayout, surface: int) -> StringName:

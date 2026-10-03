@@ -13,6 +13,8 @@ extends SceneTree
 ## - Seats: through a bots-only match in the real match scene, every brawler's
 ##   model hangs from its body's feet — the posed ship carrying the interpolated
 ##   snapshot position — and the mannequin's soles stand on that root.
+## - Cargo, through the same match: every crate is drawn at its underside as the
+##   interpolated snapshot has it, and not at all once it is lost.
 ## - The collapse: once a match's first collapse has fallen, nothing is drawn at a
 ##   collapsed platform's height wherever Surfaces, honouring that tick's pose, says
 ##   it is gone — the dressed deck lies wrecked below, as the rules have it.
@@ -33,6 +35,7 @@ const BLOCKER_TOLERANCE := 0.05
 const RAMP_TOLERANCE := ShipArt.STEP_RISE * 0.5 + PLATFORM_TOLERANCE
 const LADDER_TOLERANCE := 0.05
 const SEAT_TOLERANCE := 0.001
+const CRATE_TOLERANCE := 0.001
 const SOLE_TOLERANCE := 0.02
 ## How far in from a platform's edges the samples start, and how many per side.
 const SAMPLE_INSET := 0.1
@@ -358,9 +361,20 @@ func _check_seats() -> void:
 	_checks += 1
 	if brawlers.size() != SEATS:
 		_problems.append("art-lint: %d brawlers drawn for %d seats" % [brawlers.size(), SEATS])
+	var crates: Array[Node3D] = (scene.get_node("MatchView/Ship/ShipArt") as ShipArt).crates()
+	_checks += 1
+	if crates.size() != runner.sim.config.ship.props.size():
+		_problems.append(
+			(
+				"art-lint: %d crates drawn for %d props"
+				% [crates.size(), runner.sim.config.ship.props.size()]
+			)
+		)
 	var misses := {}
+	var crates_moved := false
 	while not runner.is_over() and runner.tick() < Ticks.from_seconds(SEAT_SECONDS):
 		await process_frame
+		crates_moved = _check_cargo(ship, driver, crates, misses) or crates_moved
 		var seats_then: Array = driver.previous["seats"]
 		var seats_now: Array = driver.current["seats"]
 		for brawler: Brawler in brawlers:
@@ -377,6 +391,13 @@ func _check_seats() -> void:
 					"art-lint: seat %d's model hangs %.1f mm off its feet at tick %d"
 					% [brawler.seat, off * 1000.0, runner.tick()]
 				)
+	_checks += 1
+	if not crates_moved:
+		_problems.append("art-lint: no crate moved in %.0f s of seed %d" % [SEAT_SECONDS, SEED])
+	for index in crates.size():
+		_checks += 1
+		if misses.has("crate %d" % index):
+			_problems.append(misses["crate %d" % index])
 	for brawler: Brawler in brawlers:
 		_checks += 1
 		if misses.has(brawler.seat):
@@ -390,6 +411,42 @@ func _check_seats() -> void:
 				)
 			)
 	scene.queue_free()
+
+
+## Each of [param crates] against the snapshots [param driver] interpolates: drawn
+## at its underside on the posed [param ship], or hidden once lost; the first miss
+## per crate goes in [param misses]. True when any crate moved between the two.
+func _check_cargo(
+	ship: Node3D, driver: SimDriver, crates: Array[Node3D], misses: Dictionary
+) -> bool:
+	var moved := false
+	for index in crates.size():
+		var then: Dictionary = driver.previous["props"][index]
+		var now: Dictionary = driver.current["props"][index]
+		var key := "crate %d" % index
+		var lost: bool = now["state"] == PropState.Body.LOST
+		if crates[index].visible == lost and not misses.has(key):
+			misses[key] = (
+				"art-lint: %s %s at tick %d"
+				% [
+					key,
+					"drawn though lost" if lost else "hidden though on board",
+					driver.current["tick"]
+				]
+			)
+		if lost:
+			continue
+		moved = moved or then["pos"] != now["pos"]
+		var feet: Vector3 = (
+			ship.global_transform * (then["pos"] as Vector3).lerp(now["pos"], driver.alpha)
+		)
+		var off := crates[index].global_position.distance_to(feet)
+		if off > CRATE_TOLERANCE and not misses.has(key):
+			misses[key] = (
+				"art-lint: %s drawn %.1f mm off its snapshot at tick %d"
+				% [key, off * 1000.0, driver.current["tick"]]
+			)
+	return moved
 
 
 ## The lowest point of [param model]'s skinned mesh at rest, in its parent's units.

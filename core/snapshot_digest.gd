@@ -64,11 +64,37 @@ static func quantized(snapshot: Dictionary) -> String:
 			roundi(climb_to.z * 1000.0),
 			entry["last_hit_by"],
 			entry["last_hit_at"],
+			entry["last_hit_crate"],
 			entry["prev_buttons"],
 		]
 		fields.append_array(entry["last_input"])
-		var text := PackedStringArray()
-		for field: Variant in fields:
-			text.append(str(field))
-		parts.append(",".join(text))
+		parts.append(_joined(fields))
+	for entry: Dictionary in snapshot["props"]:
+		var pos: Vector3 = entry["pos"]
+		var vel: Vector3 = entry["vel"]
+		var fields: Array = [
+			entry["prop"],
+			entry["state"],
+			roundi(pos.x * 1000.0),
+			roundi(pos.y * 1000.0),
+			roundi(pos.z * 1000.0),
+			roundi(vel.x * 100.0),
+			roundi(vel.y * 100.0),
+			roundi(vel.z * 100.0),
+			entry["surface"],
+			entry["shoved_by"],
+			entry["shoved_at"],
+		]
+		parts.append(_joined(fields))
+	var hp: Array = []
+	for left: float in snapshot["railing_hp"]:
+		hp.append(roundi(left * 100.0))
+	parts.append(_joined(hp))
 	return "|".join(parts)
+
+
+static func _joined(fields: Array) -> String:
+	var text := PackedStringArray()
+	for field: Variant in fields:
+		text.append(str(field))
+	return ",".join(text)

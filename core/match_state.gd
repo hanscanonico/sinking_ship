@@ -13,6 +13,10 @@ var match_seed: int
 var rng: RandomNumberGenerator
 ## Indexed by seat id, ascending.
 var seats: Array[PlayerState] = []
+## The ship's loose cargo, indexed as [member ShipLayout.props] (SH10).
+var props: Array[PropState] = []
+## Per railing of the layout, the hits it has left; a span at 0 is broken (SH10).
+var railing_hp := PackedFloat64Array()
 ## The last stepped tick's events: hints for presentation, not state.
 var events: Array[SimEvent] = []
 
@@ -35,10 +39,27 @@ func winner() -> int:
 	return -1
 
 
+## The railings, by index, that the match has broken.
+func broken_railings() -> PackedInt32Array:
+	return broken_in(railing_hp)
+
+
+## The railings, by index, broken in [param hp] — a snapshot's "railing_hp".
+static func broken_in(hp: PackedFloat64Array) -> PackedInt32Array:
+	var broken := PackedInt32Array()
+	for index in hp.size():
+		if hp[index] <= 0.0:
+			broken.append(index)
+	return broken
+
+
 func to_dict(version: int) -> Dictionary:
 	var seat_entries: Array[Dictionary] = []
 	for player: PlayerState in seats:
 		seat_entries.append(player.to_dict())
+	var prop_entries: Array[Dictionary] = []
+	for crate: PropState in props:
+		prop_entries.append(crate.to_dict())
 	var event_entries: Array[Dictionary] = []
 	for event: SimEvent in events:
 		event_entries.append(event.to_dict())
@@ -49,5 +70,7 @@ func to_dict(version: int) -> Dictionary:
 		"phase": phase,
 		"rng": rng.state,
 		"seats": seat_entries,
+		"props": prop_entries,
+		"railing_hp": railing_hp.duplicate(),
 		"events": event_entries,
 	}

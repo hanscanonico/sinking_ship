@@ -3,9 +3,9 @@ extends RefCounted
 ## Turns one step of the match into the sounds it makes (D12): the snapshot before
 ## it, the snapshot after it with the events it carries, and the ship's pose at
 ## both ticks as SinkSchedule answers them (D7). Nothing else — no live seat, no
-## sim (D5). Its own memory, how far through a stride each seat is and how far the
-## hull has strained since it last complained, is presentation state; nothing it
-## does reaches the sim.
+## sim (D5). Its own memory, how far through a stride each seat is, how far each
+## crate has slid since it last scraped and how far the hull has strained since it
+## last complained, is presentation state; nothing it does reaches the sim.
 
 ## Metres between footfalls, so steps land with the drawn feet: each locomotion
 ## clip's speed times its length (Walk 1.33 s, Jog_Fwd 0.93 s), over two feet.
@@ -44,6 +44,16 @@ const SETTLE_STRAIN := 0.004
 const CREAK_SPREAD := 6.0
 ## How far under the lowest deck the hull groans from: about the keel.
 const KEEL_BELOW := 0.8
+## Metres a crate slides along the deck between two scrapes, and the speed it
+## scrapes loudest at, in m/s.
+const SCRAPE_STRIDE := 0.4
+const SCRAPE_LOUD := 3.0
+## The quietest scrape and thud; a full one is 1.
+const CARGO_SOFT := 0.4
+## Speed a crate loses in one tick, in m/s, that is heard as a thud — it ran into
+## something — and the loss, or the speed it comes down at, heard loudest.
+const THUD_DROP := 2.0
+const THUD_LOUD := 4.0
 
 ## The seat whose ears the view is in: its own sounds are in the head. -1 when
 ## no seat's are (the observer camera).
@@ -55,6 +65,7 @@ var _layout: ShipLayout
 var _walk_speed: float
 ## Ticks of charge that make a shove a full one, heard heavy.
 var _charge_full: int
+var _railing_height: float
 ## The seat that is "you" for the end of the match.
 var _local_seat: int
 ## Every platform's area together, in the ship plane.
@@ -63,6 +74,8 @@ var _hull: Rect2
 var _keel := INF
 ## How far through its stride each seat is, 0…1.
 var _stride := PackedFloat32Array()
+## How far through its scrape each crate is, 0…1.
+var _scrape := PackedFloat32Array()
 var _creak_strain := 0.0
 var _groan_strain := 0.0
 
@@ -75,6 +88,7 @@ func _init(
 	_layout = config.ship
 	_walk_speed = config.rules.walk_speed
 	_charge_full = Ticks.from_seconds(config.rules.charge_full)
+	_railing_height = config.rules.railing_height
 	_local_seat = local_seat
 	_hull = _layout.platforms[0].area
 	for platform: ShipPlatform in _layout.platforms:
@@ -82,6 +96,7 @@ func _init(
 		_keel = minf(_keel, platform.height - KEEL_BELOW)
 	_stride.resize(config.seats)
 	_stride.fill(0.5)
+	_scrape.resize(_layout.props.size())
 
 
 ## The cues of the step from [param previous] to [param current], whose events
@@ -99,6 +114,7 @@ func plan(previous: Dictionary, current: Dictionary) -> Array[AudioCue]:
 		if then.has(seat):
 			_shove(then[seat], entry, tick, cues)
 			_take_off(then[seat], entry, tick, cues)
+	_cargo(previous["props"], current["props"], tick, cues)
 	for event: Dictionary in current["events"]:
 		_from_event(event, now, pose_now, cues)
 	if current["phase"] == MatchState.Phase.LIVE:
@@ -148,6 +164,41 @@ func _shove(then: Dictionary, now: Dictionary, tick: int, cues: Array[AudioCue])
 			cues.append(whoosh)
 
 
+## The cargo (SH10), crate by crate from [param then] to [param now] — the two
+## snapshots' "props": a scrape each SCRAPE_STRIDE a crate slides along the deck, a
+## thud as it comes down or loses THUD_DROP of its speed in a tick, and a splash as
+## it goes into the sea.
+func _cargo(then: Array, now: Array, tick: int, cues: Array[AudioCue]) -> void:
+	for index in now.size():
+		var entry: Dictionary = now[index]
+		var before: Dictionary = then[index]
+		var state: PropState.Body = entry["state"]
+		if state == PropState.Body.LOST:
+			if before["state"] != PropState.Body.LOST:
+				cues.append(_at_crate(AudioCue.Kind.SPLASH, tick, entry))
+			continue
+		var vel: Vector3 = entry["vel"]
+		var was: Vector3 = before["vel"]
+		var speed := Vector2(vel.x, vel.z).length()
+		var lost := Vector2(was.x, was.z).length() - speed
+		var landed: bool = (
+			before["state"] == PropState.Body.AIRBORNE and state == PropState.Body.GROUNDED
+		)
+		if landed or lost >= THUD_DROP:
+			var thud := _at_crate(AudioCue.Kind.THUD, tick, entry)
+			thud.gain = lerpf(CARGO_SOFT, 1.0, clampf(maxf(lost, -was.y) / THUD_LOUD, 0.0, 1.0))
+			cues.append(thud)
+		if state != PropState.Body.GROUNDED:
+			continue
+		_scrape[index] += speed * Ticks.SECONDS_PER_TICK / SCRAPE_STRIDE
+		if _scrape[index] < 1.0:
+			continue
+		_scrape[index] = fposmod(_scrape[index], 1.0)
+		var scrape := _at_crate(AudioCue.Kind.SCRAPE, tick, entry)
+		scrape.gain = lerpf(CARGO_SOFT, 1.0, clampf(speed / SCRAPE_LOUD, 0.0, 1.0))
+		cues.append(scrape)
+
+
 ## An effort as a body jumps; its landing is the LANDING event's thud.
 func _take_off(then: Dictionary, now: Dictionary, tick: int, cues: Array[AudioCue]) -> void:
 	if now["out"] or not now["jumped"] or then["jumped"]:
@@ -179,6 +230,15 @@ func _from_event(event: Dictionary, now: Dictionary, pose: ShipPose, cues: Array
 			cues.append(cue)
 		SimEvent.Kind.ENTERED_WATER:
 			cues.append(_at_seat(AudioCue.Kind.SPLASH, tick, now[seat]))
+		SimEvent.Kind.CRATE_HIT:
+			var thud := _at_seat(AudioCue.Kind.THUD, tick, now[seat])
+			thud.heavy = true
+			cues.append(thud)
+		SimEvent.Kind.RAILING_BROKE:
+			var crack := AudioCue.new(AudioCue.Kind.CRACK, tick)
+			crack.positional = true
+			crack.position = _layout.railing_middle(event["railing"], _railing_height * 0.5)
+			cues.append(crack)
 		SimEvent.Kind.KNOCKED_BACK_IN:
 			var thrown := _at_seat(AudioCue.Kind.SPLASH, tick, now[seat])
 			thrown.heavy = true
@@ -241,6 +301,13 @@ func _floods(pose_then: ShipPose, pose_now: ShipPose, tick: int, cues: Array[Aud
 		var middle := area.get_center()
 		flood.position = Vector3(middle.x, _layout.platforms[platform].height, middle.y)
 		cues.append(flood)
+
+
+func _at_crate(kind: AudioCue.Kind, tick: int, entry: Dictionary) -> AudioCue:
+	var cue := AudioCue.new(kind, tick)
+	cue.position = entry["pos"]
+	cue.positional = true
+	return cue
 
 
 func _at_seat(kind: AudioCue.Kind, tick: int, entry: Dictionary) -> AudioCue:

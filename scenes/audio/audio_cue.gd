@@ -24,6 +24,12 @@ enum Kind {
 	COLLAPSE,
 	## A swimmer's stroke through the water (SH5), where a walker's footfall would be.
 	STROKE,
+	## A crate dragged along the deck as it slides (SH10), every so far it goes.
+	SCRAPE,
+	## A crate coming down, or stopped short, or running into a brawler (SH10).
+	THUD,
+	## A railing span breaking (SH6's failure, SH10's damage).
+	CRACK,
 }
 ## What a footfall or a landing comes down on.
 enum Ground { WOOD, METAL, WET }

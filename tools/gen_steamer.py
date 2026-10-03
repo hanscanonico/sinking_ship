@@ -29,7 +29,7 @@ def rect_xz(x0, x1, z0, z1):
     return rect(x0, z0, x1 - x0, z1 - z0)
 
 subs = []
-platforms, ramps, blockers, railings, ladders, rooms = [], [], [], [], [], []
+platforms, ramps, blockers, railings, ladders, rooms, props = [], [], [], [], [], [], []
 used = set()
 
 def sub(kind_id, script, fields):
@@ -72,13 +72,27 @@ def cylinder(bid, cx, cz, r, bottom, top):
     f.append(("top", num(top)))
     blockers.append(sub("Blocker_" + bid, "3_block", f))
 
+# A railing breaks span by span (SH10): a run longer than RAIL_SECTION is laid as
+# touching spans of about that length, half-metre ends, none longer — a crate or
+# three vaults open a stretch of a side, never all of it.
+RAIL_SECTION = 3.5
+
 def railing(rid, plat, a, b):
-    f = []
-    if plat != 0:
-        f.append(("platform", str(plat)))
-    f.append(("from", "Vector2(%s, %s)" % (num(a[0]), num(a[1]))))
-    f.append(("to", "Vector2(%s, %s)" % (num(b[0]), num(b[1]))))
-    railings.append(sub("Railing_" + rid, "4_rail", f))
+    length = abs(b[0] - a[0]) + abs(b[1] - a[1])  # every railing runs along x or z
+    count = -(-length // RAIL_SECTION)
+    step = round(length / count * 2) / 2
+    ends = [a]
+    for k in range(1, int(count)):
+        t = step * k / length
+        ends.append((a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t))
+    ends.append(b)
+    for k in range(len(ends) - 1):
+        f = []
+        if plat != 0:
+            f.append(("platform", str(plat)))
+        f.append(("from", "Vector2(%s, %s)" % (num(ends[k][0]), num(ends[k][1]))))
+        f.append(("to", "Vector2(%s, %s)" % (num(ends[k + 1][0]), num(ends[k + 1][1]))))
+        railings.append(sub("Railing_" + rid + ("_%d" % k if len(ends) > 2 else ""), "4_rail", f))
 
 def ladder(lid, plat, a, b):
     f = []
@@ -88,6 +102,11 @@ def ladder(lid, plat, a, b):
     f.append(("to", "Vector2(%s, %s)" % (num(b[0]), num(b[1]))))
     ladders.append(sub("Ladder_" + lid, "7_ladder", f))
 
+def crate(cid, x, y, z):
+    f = [("pos", "Vector3(%s, %s, %s)" % (num(x), num(y), num(z)))]
+    f += [(k, num(v)) for k, v in CRATE]
+    props.append(sub("Prop_" + cid, "8_prop", f))
+
 def room(rid, name, x0, x1, z0, z1, floor):
     f = [("name", '&"%s"' % name), ("area", rect_xz(x0, x1, z0, z1))]
     if floor != 0.0:
@@ -95,6 +114,10 @@ def room(rid, name, x0, x1, z0, z1, floor):
     rooms.append(sub("Room_" + rid, "6_room", f))
 
 T = 0.1  # half a wall's thickness: walls are 0.2 m, centred on a room's side
+# A cargo crate (SH10): a 0.45 m circle, 0.8 m tall — a hop up, as onto the hatch —
+# of 200 kg against a brawler's 80, holding on the deck to 8°: past the early list,
+# short of a lurch's swing.
+CRATE = [("radius", 0.45), ("height", 0.8), ("mass", 200), ("grip_angle_deg", 8), ("friction", 2.5)]
 DOOR = 1.1
 LOWER = -2.6
 LINTEL = 2.1  # a door's height above its floor
@@ -236,6 +259,14 @@ railing("forward_companionway_starboard", SS, (9, 2.0), (12, 2.0))
 ladder("port", MAIN, (1.0, -5), (2.2, -5))
 ladder("starboard", SS, (1.0, 5), (2.2, 5))
 
+# --- The hatch's cargo (SH10): two crates on its lid, and two stowed on deck forward
+# of it to port, clear of the boat deck's stairs, the forecastle's and the lanes
+# round the hatch — the forward cargo a lurch to port sends into the port rail.
+crate("hatch_aft", 5.2, 0.8, -0.45)
+crate("hatch_forward", 6.8, 0.8, 0.45)
+crate("forward_inboard", 10.0, 0, -2.4)
+crate("forward_outboard", 11.0, 0, -3.6)
+
 # --- Rooms, to the middle of their walls.
 room("forward_hold", "forward hold", 4, 15, -3.8, 3.8, LOWER)
 room("engine_room", "engine room", -3, 4, -4.8, 4.8, LOWER)
@@ -267,6 +298,7 @@ head = """[gd_resource type="Resource" script_class="ShipLayout" format=3]
 [ext_resource type="Script" path="res://core/ship_layout.gd" id="5_layout"]
 [ext_resource type="Script" path="res://core/ship_room.gd" id="6_room"]
 [ext_resource type="Script" path="res://core/ship_ladder.gd" id="7_ladder"]
+[ext_resource type="Script" path="res://core/ship_prop.gd" id="8_prop"]
 """
 res = ["[resource]", 'script = ExtResource("5_layout")', "freeboard = 3.4",
        "platforms = " + arr("1_plat", platforms),
@@ -275,7 +307,8 @@ res = ["[resource]", 'script = ExtResource("5_layout")', "freeboard = 3.4",
        "railings = " + arr("4_rail", railings),
        "ladders = " + arr("7_ladder", ladders),
        "spawns = Array[Vector3]([%s])" % ", ".join("Vector3(%s, %s, %s)" % tuple(num(c) for c in s) for s in spawns),
+       "props = " + arr("8_prop", props),
        "rooms = " + arr("6_room", rooms)]
 with open(out, "w") as f:
     f.write(head + "\n" + "\n\n".join(subs) + "\n\n" + "\n".join(res) + "\n")
-print(len(platforms), "platforms", len(ramps), "ramps", len(blockers), "blockers", len(railings), "railings", len(ladders), "ladders", len(rooms), "rooms")
+print(len(platforms), "platforms", len(ramps), "ramps", len(blockers), "blockers", len(railings), "railings", len(ladders), "ladders", len(props), "props", len(rooms), "rooms")

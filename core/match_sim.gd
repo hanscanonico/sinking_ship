@@ -4,7 +4,7 @@ extends RefCounted
 ## InputFrame per seat is the only way anything happens (D3); snapshot() is the
 ## whole truth and from_snapshot() continues it exactly (D5).
 
-const SNAPSHOT_VERSION := 7
+const SNAPSHOT_VERSION := 8
 ## How many times a tick's contacts are resolved, at most. In one pass each contact
 ## is met where the body stood before it, so a body pushed two ways — into a corner,
 ## between a doorway's jambs, against a wall by a crowd — can end inside one wall or
@@ -18,6 +18,7 @@ var surfaces: Surfaces
 var state: MatchState
 
 var _rules: BrawlRules
+var _hazards: Hazards
 var _windup_ticks: int
 var _active_ticks: int
 var _recovery_ticks: int
@@ -39,6 +40,7 @@ func _init(match_config: MatchConfig) -> void:
 		config.scenario, config.ship.freeboard, SeedStreams.derive(config.match_seed, "sink")
 	)
 	surfaces = Surfaces.new(config.ship)
+	_hazards = Hazards.new(config, surfaces)
 	_windup_ticks = Ticks.from_seconds(_rules.shove_windup)
 	_active_ticks = Ticks.from_seconds(_rules.shove_active)
 	_recovery_ticks = Ticks.from_seconds(_rules.shove_recovery)
@@ -79,6 +81,9 @@ static func create(match_config: MatchConfig) -> MatchSim:
 		player.stamina = match_config.rules.stamina_max
 		player.cold = match_config.rules.cold_meter
 		match_state.seats.append(player)
+	match_state.props = PropState.from_layout(match_config.ship)
+	match_state.railing_hp.resize(match_config.ship.railings.size())
+	match_state.railing_hp.fill(match_config.rules.railing_hp)
 	sim.state = match_state
 	return sim
 
@@ -95,8 +100,10 @@ static func from_snapshot(snapshot: Dictionary, match_config: MatchConfig) -> Ma
 	match_state.rng.state = snapshot["rng"]
 	for entry: Dictionary in snapshot["seats"]:
 		match_state.seats.append(PlayerState.from_dict(entry))
+	match_state.props = PropState.from_snapshot(snapshot)
+	match_state.railing_hp = (snapshot["railing_hp"] as PackedFloat64Array).duplicate()
 	sim.state = match_state
-	sim.surfaces.honour(sim.pose())
+	sim.surfaces.honour(sim.pose(), match_state.broken_railings(), match_state.props)
 	return sim
 
 
@@ -134,6 +141,7 @@ func step(frames: Array[InputFrame]) -> Array[SimEvent]:
 		var feet_before := _move(pose_now, tick, events)
 		_ground(tick, events, feet_before)
 		_thaw()
+		_hazards.step(state, pose_now, tick, events)
 		_shoves(tick, events)
 		var exits := _water(pose_now, tick, events, feet_before)
 		_sea_settles(pose_now, tick, exits)
@@ -145,9 +153,10 @@ func step(frames: Array[InputFrame]) -> Array[SimEvent]:
 
 
 ## The ship stands as the pose says from this tick on — a collapsed platform is no
-## surface — and the sinking's telegraphs and events for this tick go out.
+## surface — with the railings the match has broken and its crates where they are,
+## and the sinking's telegraphs and events for this tick go out.
 func _sinking_events(pose_now: ShipPose, tick: int, events: Array[SimEvent]) -> void:
-	surfaces.honour(pose_now)
+	surfaces.honour(pose_now, state.broken_railings(), state.props)
 	events.append_array(schedule.events_at(tick))
 
 
@@ -374,7 +383,7 @@ func _forces(pose_now: ShipPose) -> void:
 			# The shove is spent once the body moves as its own input says; until then
 			# a slide that outlasts the stagger is still the shover's.
 			if planar == wish:
-				player.last_hit_by = -1
+				player.forget_hit()
 		player.vel = Vector3(planar.x, player.vel.y, planar.y)
 
 
@@ -420,7 +429,7 @@ func _move(pose_now: ShipPose, tick: int, events: Array[SimEvent]) -> PackedFloa
 			player.pos += player.vel * dt
 		for contact_pass in CONTACT_PASSES:
 			var held := _blockers(live, feet_before, pose_now)
-			held = _railings(live, tick, events, came_from) or held
+			held = _railings(live, pose_now, tick, events, came_from) or held
 			if contact_pass == CONTACT_PASSES - 1:
 				break
 			if not _bodies(live) and not held:
@@ -467,12 +476,17 @@ func _blockers(
 
 
 ## A railing stops a grounded body crossing it slower than vault_speed — it loses
-## the velocity into the rail — and tips one at or above it over, into the air. In
-## the air, a body that came from a rail's side with its feet below the rail's top
-## is held the same way, unless it crosses at vault_speed or more: a vaulter is never
-## pulled back. True when it moved anyone.
+## the velocity into the rail — and tips one at or above it over, into the air,
+## damaging the span by vault_damage (Hazards.damage). In the air, a body that came
+## from a rail's side with its feet below the rail's top is held the same way, unless
+## it crosses at vault_speed or more: a vaulter is never pulled back. True when it
+## moved anyone.
 func _railings(
-	live: Array[PlayerState], tick: int, events: Array[SimEvent], came_from: PackedVector2Array
+	live: Array[PlayerState],
+	pose_now: ShipPose,
+	tick: int,
+	events: Array[SimEvent],
+	came_from: PackedVector2Array
 ) -> bool:
 	var moved := false
 	for player: PlayerState in live:
@@ -499,6 +513,9 @@ func _railings(
 				player.fall_from = player.pos.y
 				player.vel.y = _rules.vault_lift
 				events.append(SimEvent.vaulted(tick, player.seat))
+				_hazards.damage(
+					state, contact.railing, _rules.vault_damage, pose_now, tick, events, player.seat
+				)
 				break
 			_hold(player, contact)
 			moved = true
@@ -591,10 +608,11 @@ func _thaw() -> void:
 			player.held_vel = Vector3.ZERO
 
 
-## Every active shove against the bodies as they stand now; all of this tick's
-## hits apply together, so simultaneous shoves both land. A landed shove freezes
-## its shover and its target for a hit-stop, and the knockback and the recoil wait
-## for it to end.
+## Every active shove against the bodies and the crates as they stand now; all of
+## this tick's hits apply together, so simultaneous shoves both land. A landed shove
+## freezes its shover and its target for a hit-stop, and the knockback and the
+## recoil wait for it to end; a crate takes its share of the knockback at once
+## (Hazards.shove), and its shover rocks and stops as for a body.
 func _shoves(tick: int, events: Array[SimEvent]) -> void:
 	var attempts: Array[ShoveResolver.Attempt] = []
 	for player: PlayerState in _live_seats():
@@ -657,6 +675,20 @@ func _shoves(tick: int, events: Array[SimEvent]) -> void:
 		events.append(SimEvent.shove_landed(tick, hit.shover, hit.target))
 		if hit_by[hit.target] == -1:
 			hit_by[hit.target] = hit.shover
+	var crate_hits := ShoveResolver.resolve(
+		attempts,
+		_hazards.candidates(state, count),
+		_rules.shove_reach,
+		_rules.shove_cone_deg,
+		surfaces,
+		_rules.step_height
+	)
+	for hit: ShoveResolver.Hit in crate_hits:
+		var shover := state.seats[hit.shover]
+		_hazards.shove(state, hit, count, _knockback(shover), tick)
+		rock[hit.shover] = -hit.direction * _rules.recoil
+		landed[hit.shover] = 1
+		stops[hit.shover] = maxi(stops[hit.shover], _hitstop(shover))
 	for player: PlayerState in _live_seats():
 		var seat := player.seat
 		if hit_by[seat] == -1 and landed[seat] == 0:
@@ -668,6 +700,7 @@ func _shoves(tick: int, events: Array[SimEvent]) -> void:
 		if hit_by[seat] != -1:
 			planar = knock[seat] + rock[seat]
 			player.last_hit_by = hit_by[seat]
+			player.last_hit_crate = -1
 			player.last_hit_at = tick
 			if player.is_climbing():
 				_knock_back_in(player, tick, events)
@@ -677,18 +710,7 @@ func _shoves(tick: int, events: Array[SimEvent]) -> void:
 				_enter(player, PlayerState.Action.IDLE)
 		else:
 			planar += rock[seat]
-		_freeze(player, Vector3(planar.x, moving.y, planar.y), stops[seat])
-
-
-## Freezes [param player] for [param ticks] — a longer stop already running wins —
-## holding [param velocity] back until the stop ends; with no stop it moves at once.
-func _freeze(player: PlayerState, velocity: Vector3, ticks: int) -> void:
-	player.hitstop = maxi(player.hitstop, ticks)
-	if player.is_frozen():
-		player.held_vel = velocity
-		player.vel = Vector3.ZERO
-	else:
-		player.vel = velocity
+		player.freeze(Vector3(planar.x, moving.y, planar.y), stops[seat])
 
 
 ## A quick shove's knockback, or a charged one's: from knockback at the threshold
@@ -721,12 +743,9 @@ func _charge_weight(shover: PlayerState) -> float:
 ## reads, so breaking one takes the whole charge_full: the glow a brace sees
 ## coming, and a quick shove can cancel (§6, readable and punishable).
 func _braced_against(target: PlayerState, shover: PlayerState, direction: Vector2) -> bool:
-	if not target.bracing or shover.charge >= _charge_full_ticks:
+	if shover.charge >= _charge_full_ticks:
 		return false
-	return (
-		absf(Vector2.from_angle(target.facing).angle_to(-direction))
-		<= deg_to_rad(_rules.brace_arc_deg)
-	)
+	return target.braced_against(direction, _rules.brace_arc_deg)
 
 
 ## A swimmer moves across the sea at swim_speed, without control while staggered.
@@ -857,8 +876,9 @@ func _sea_over(surface: int, feet: Vector3, pose_now: ShipPose) -> float:
 	return pose_now.sea_height(feet.x, feet.z) - surfaces.height_at(surface, feet)
 
 
-## Into the sea: whatever [param player] was readying is dropped, and a shove that
-## landed on it credit_window or longer ago no longer counts as what put it there.
+## Into the sea: whatever [param player] was readying is dropped, and a shove or a
+## crate that hit it credit_window or longer ago no longer counts as what put it
+## there.
 func _fall_in(player: PlayerState, tick: int, events: Array[SimEvent]) -> void:
 	player.body = PlayerState.Body.SWIMMING
 	player.surface = Surfaces.NONE
@@ -866,7 +886,7 @@ func _fall_in(player: PlayerState, tick: int, events: Array[SimEvent]) -> void:
 	player.bracing = false
 	_enter(player, PlayerState.Action.IDLE)
 	if tick - player.last_hit_at >= _credit_window_ticks:
-		player.last_hit_by = -1
+		player.forget_hit()
 	events.append(SimEvent.entered_water(tick, player.seat))
 
 
@@ -930,8 +950,8 @@ func _climb(player: PlayerState, tick: int, events: Array[SimEvent]) -> void:
 		_stand(player, ground, tick, events)
 
 
-## Out of the sea, standing on [param surface]: the shove that put it there no
-## longer counts.
+## Out of the sea, standing on [param surface]: the shove or the crate that put it
+## there no longer counts.
 func _stand(player: PlayerState, surface: int, tick: int, events: Array[SimEvent]) -> void:
 	player.body = PlayerState.Body.GROUNDED
 	player.surface = surface
@@ -939,7 +959,7 @@ func _stand(player: PlayerState, surface: int, tick: int, events: Array[SimEvent
 	player.vel.y = 0.0
 	player.jumped = false
 	player.climb_left = 0
-	player.last_hit_by = -1
+	player.forget_hit()
 	events.append(SimEvent.climbed_out(tick, player.seat, surface))
 
 
@@ -1005,7 +1025,14 @@ func _verdict(exits: Array[PlayerState], tick: int, events: Array[SimEvent]) -> 
 				warmer += 1
 		player.place = remaining + 1 + warmer
 		events.append(
-			SimEvent.seat_out(tick, player.seat, player.place, player.out_cause, player.last_hit_by)
+			SimEvent.seat_out(
+				tick,
+				player.seat,
+				player.place,
+				player.out_cause,
+				player.last_hit_by,
+				player.last_hit_crate
+			)
 		)
 	if remaining > 1:
 		return

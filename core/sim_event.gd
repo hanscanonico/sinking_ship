@@ -19,6 +19,8 @@ enum Kind {
 	ENTERED_WATER,
 	CLIMBED_OUT,
 	KNOCKED_BACK_IN,
+	CRATE_HIT,
+	CRATE_LOST,
 }
 
 var kind: Kind
@@ -26,14 +28,19 @@ var tick: int
 ## SEAT_OUT: who went out. MATCH_ENDED: the winner, or -1 for a draw. VAULTED:
 ## who tipped over a railing. FELL: who went off an edge. LANDED: who came down.
 ## SHOVE_LANDED: the shover. ENTERED_WATER: who started swimming. CLIMBED_OUT: who
-## stood up out of the sea. KNOCKED_BACK_IN: the climber a shove sent back. The
-## sinking's events: -1.
+## stood up out of the sea. KNOCKED_BACK_IN: the climber a shove sent back.
+## CRATE_HIT: the seat a crate ran into. RAILING_BROKE: the seat whose vault broke
+## the span, or -1. The sinking's events and CRATE_LOST: -1.
 var seat: int
 var place: int
 var cause: PlayerState.Cause = PlayerState.Cause.NONE
-## SEAT_OUT: the seat whose shove last landed on the one going out, or -1.
-## KNOCKED_BACK_IN: the shover.
+## SEAT_OUT: the seat whose shove last landed on the one going out — or that shoved
+## the crate credited — or -1. KNOCKED_BACK_IN: the shover.
 var credit: int = -1
+## SEAT_OUT: the crate that last ran into the one going out, or -1. CRATE_HIT,
+## CRATE_LOST: the crate. RAILING_BROKE: the crate that broke the span, or -1. By
+## its index in the layout's props.
+var prop: int = -1
 ## LANDED: the surface it came down on. CLIMBED_OUT: the surface it stands on.
 var surface: int = Surfaces.NONE
 ## LANDED: the ticks of stagger the drop cost.
@@ -55,12 +62,18 @@ func _init(event_kind: Kind, event_tick: int, event_seat: int) -> void:
 
 
 static func seat_out(
-	event_tick: int, out_seat: int, out_place: int, out_cause: PlayerState.Cause, by: int
+	event_tick: int,
+	out_seat: int,
+	out_place: int,
+	out_cause: PlayerState.Cause,
+	by: int,
+	by_crate: int = -1
 ) -> SimEvent:
 	var event := SimEvent.new(Kind.SEAT_OUT, event_tick, out_seat)
 	event.place = out_place
 	event.cause = out_cause
 	event.credit = by
+	event.prop = by_crate
 	return event
 
 
@@ -120,6 +133,27 @@ static func knocked_back_in(event_tick: int, climbing_seat: int, by: int) -> Sim
 	return event
 
 
+## The match breaking [param broken] (SH10): a vault by [param by], or a crate
+## [param by_crate] running into it.
+static func railing_broke(event_tick: int, broken: int, by: int, by_crate: int) -> SimEvent:
+	var event := SimEvent.new(Kind.RAILING_BROKE, event_tick, by)
+	event.railing = broken
+	event.prop = by_crate
+	return event
+
+
+static func crate_hit(event_tick: int, hit_seat: int, crate: int) -> SimEvent:
+	var event := SimEvent.new(Kind.CRATE_HIT, event_tick, hit_seat)
+	event.prop = crate
+	return event
+
+
+static func crate_lost(event_tick: int, crate: int) -> SimEvent:
+	var event := SimEvent.new(Kind.CRATE_LOST, event_tick, -1)
+	event.prop = crate
+	return event
+
+
 static func match_ended(event_tick: int, winner: int) -> SimEvent:
 	var event := SimEvent.new(Kind.MATCH_ENDED, event_tick, winner)
 	event.place = 1
@@ -140,4 +174,5 @@ func to_dict() -> Dictionary:
 		"heel": heel_deg,
 		"platform": platform,
 		"railing": railing,
+		"prop": prop,
 	}

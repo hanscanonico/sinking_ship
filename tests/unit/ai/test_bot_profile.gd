@@ -27,6 +27,11 @@ func test_tiers_load_and_validate() -> void:
 		assert_lt(float(easy.get(knob)), float(normal.get(knob)), "%s: easy under normal" % knob)
 		assert_lt(float(normal.get(knob)), float(hard.get(knob)), "%s: normal under hard" % knob)
 	assert_eq(hard.mistake_rate, 0.0, "hard never lapses")
+	assert_eq(
+		[easy.dodges_cargo, normal.dodges_cargo, hard.dodges_cargo],
+		[false, true, true],
+		"normal and hard step out of a sliding crate's path; easy does not"
+	)
 	# Every tier perceives as a person does: the same eyes, ears and memory.
 	for profile: BotProfile in profiles:
 		assert_eq(

@@ -69,6 +69,10 @@ class Tally:
 	var idle_near_where := ""
 	var tick_us := PackedInt64Array()
 	var wall_seconds := 0.0
+	## Exits credited to a crate, and railing spans the match broke — a vault or a crate,
+	## never the sinking's own failures (SH10).
+	var crate_exits := 0
+	var spans_broken := 0
 
 
 func _initialize() -> void:
@@ -196,6 +200,12 @@ func _match(runner: MatchRunner, tally: Tally, seed_value: int) -> void:
 			elif event.kind == SimEvent.Kind.MATCH_ENDED:
 				winner = event.seat
 				ended = event.tick
+			elif event.kind == SimEvent.Kind.SEAT_OUT and event.prop != -1:
+				tally.crate_exits += 1
+			elif (
+				event.kind == SimEvent.Kind.RAILING_BROKE and (event.seat != -1 or event.prop != -1)
+			):
+				tally.spans_broken += 1
 		for player: PlayerState in runner.sim.state.seats:
 			var seat := player.seat
 			var moved := Vector2(player.pos.x - before[seat].x, player.pos.z - before[seat].z)
@@ -460,6 +470,12 @@ func _lobby_lines(tally: Tally) -> PackedStringArray:
 				"%s %.1f%%" % [side, _share(tally.sight_wins[side], tally.matches) * 100.0]
 			)
 		lines.append("- Wins by sight: %s." % ", ".join(sight))
+	lines.append(
+		(
+			"- Cargo: %d exits credited to a crate; %d railing sections broken, %.1f a match."
+			% [tally.crate_exits, tally.spans_broken, _share(tally.spans_broken, tally.matches)]
+		)
+	)
 	lines.append(
 		(
 			"- Longest idle streak: %.1f s (%s)."

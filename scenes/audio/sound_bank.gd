@@ -78,6 +78,20 @@ const FILES := {
 	## Wet footfalls, slowed: a hand through the water.
 	AudioCue.Kind.STROKE:
 	["steps/wet_0.wav", "steps/wet_1.wav", "steps/wet_2.wav", "steps/wet_3.wav"],
+	## The hull's creaks, quick and high: wood dragged over planks.
+	AudioCue.Kind.SCRAPE:
+	[
+		"ship/creak_0.wav",
+		"ship/creak_1.wav",
+		"ship/creak_2.wav",
+		"ship/creak_3.wav",
+		"ship/creak_4.wav",
+		"ship/creak_5.wav",
+	],
+	## A body's landing on planks, low: a laden crate.
+	AudioCue.Kind.THUD: ["brawl/land_wood_0.wav", "brawl/land_wood_1.wav", "brawl/land_wood_2.wav"],
+	## A deck giving way, short and high: one span of rail.
+	AudioCue.Kind.CRACK: ["ship/collapse_0.wav"],
 }
 ## How each kind carries: its level in dB; for a positional cue the distance it
 ## plays at that level ("near") and the farthest it is heard ("far"), in metres;
@@ -100,6 +114,9 @@ const CARRY := {
 	AudioCue.Kind.HORN: {"db": 0.0, "near": 60.0, "far": 400.0},
 	AudioCue.Kind.COLLAPSE: {"db": 0.0, "near": 10.0, "far": 80.0},
 	AudioCue.Kind.STROKE: {"db": -6.0, "near": 2.5, "far": 25.0, "pitch": 0.8},
+	AudioCue.Kind.SCRAPE: {"db": -8.0, "near": 3.0, "far": 30.0, "pitch": 1.6},
+	AudioCue.Kind.THUD: {"db": -1.0, "near": 4.0, "far": 45.0, "pitch": 0.7},
+	AudioCue.Kind.CRACK: {"db": -2.0, "near": 6.0, "far": 60.0, "pitch": 1.4},
 }
 
 var _streams := {}

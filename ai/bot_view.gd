@@ -6,7 +6,9 @@ extends RefCounted
 ## those within its hearing through anything, as a person hears footsteps — plus where
 ## it last perceived each of the others, for as long as it remembers; and the ship's
 ## current pose, the water with it. What a player sees on screen, never the
-## schedule's future (Q16, R16).
+## schedule's future (Q16, R16). The cargo and the railings' hits left (SH10) come
+## through as the delayed snapshot has them: for the MVP every crate is seen, walls or
+## not, and only bodies are looked for, heard and remembered.
 
 ## Marks a seat's entry that is a memory: where it was last perceived, not where it is.
 const REMEMBERED := "remembered"
