@@ -51,6 +51,55 @@ func test_bot_is_deterministic_per_seed() -> void:
 	assert_ne(reseeded.digest.hex(), first.digest.hex())
 
 
+## What seat [param seat]'s brain answers to one view of [param sim] as it stands.
+func _first_move(sim: MatchSim, seat: int) -> Vector2:
+	var source := BotInputSource.new(seat, _profile(), sim.config)
+	source.observe(sim.snapshot(), sim.pose())
+	return Vector2(source.next_frame(sim.state.tick).move)
+
+
+func test_bot_gets_uphill_of_its_target_past_the_grip_angle() -> void:
+	var grip := SimFixtures.rules().grip_angle_deg
+	# Starboard down, so uphill is toward port (-z). The same bot, the same target
+	# and the same heading roll each time; only the heel and the bot's side change.
+	var moves: Array[Vector2] = []
+	for case: Vector2 in [
+		Vector2(grip - 4.0, 1.0), Vector2(grip + 4.0, 1.0), Vector2(grip + 4.0, -1.0)
+	]:
+		var sim := SimFixtures.sim(2, SimFixtures.tilted(0.0, case.x))
+		SimFixtures.place(sim, 0, Vector3(-8.0, 0.0, case.y))
+		SimFixtures.place(sim, 1, Vector3(-6.0, 0.0, 0.0))
+		moves.append(_first_move(sim, 0))
+	var held := moves[0]
+	var steep := moves[1]
+	var already_uphill := moves[2]
+	var aim_error := deg_to_rad(_profile().aim_error_deg + 1.0)
+	assert_lt(absf(held.angle_to(Vector2(2.0, -1.0))), aim_error, "gripping: straight at it")
+	assert_lt(steep.angle(), held.angle() - deg_to_rad(15.0), "steep: round its uphill side")
+	assert_lt(absf(already_uphill.angle_to(Vector2(2.0, 1.0))), aim_error, "uphill: straight")
+
+
+func test_bot_keeps_off_a_railing_gap_unless_lined_up() -> void:
+	var edge := SimFixtures.deck().platforms[0].area.end.y
+	var gap := SimFixtures.rail_gap(edge)
+	# Inside edge_margin of the starboard edge, and alone, so nothing to walk at.
+	var near := edge - _profile().edge_margin_m * 0.8
+	var railed := SimFixtures.sim(1)
+	SimFixtures.place(railed, 0, Vector3(-8.0, 0.0, near))
+	assert_eq(_first_move(railed, 0), Vector2.ZERO, "a railing between it and the sea: safe")
+
+	var open := SimFixtures.sim(1)
+	SimFixtures.place(open, 0, Vector3(gap.x, 0.0, near))
+	assert_lt(_first_move(open, 0).y, 0.0, "level with the gap: backs off from it")
+
+	# Its target stands between it and the gap: the shove is lined up, so it goes in.
+	var lined_up := SimFixtures.sim(2)
+	SimFixtures.place(lined_up, 0, Vector3(gap.x, 0.0, near))
+	var reach := SimFixtures.rules().body_radius * 2.0
+	SimFixtures.place(lined_up, 1, Vector3(gap.x, 0.0, near + reach))
+	assert_gt(_first_move(lined_up, 0).y, 0.0, "lined up: walks at the target, toward the gap")
+
+
 func test_lone_bot_stays_dry_while_it_can() -> void:
 	var config := SimFixtures.config(1, load(SimFixtures.FLAT_SINKING), SEED)
 	var runner := _bots(config)

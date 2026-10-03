@@ -2,13 +2,35 @@
 
 [ext_resource type="Script" path="res://core/ship_platform.gd" id="1_4q0u8"]
 [ext_resource type="Script" path="res://core/ship_layout.gd" id="2_6kr7n"]
+[ext_resource type="Script" path="res://core/ship_railing.gd" id="3_r4il5"]
 
 [sub_resource type="Resource" id="Resource_ffieq"]
 script = ExtResource("1_4q0u8")
 area = Rect2(-15, -4, 30, 8)
 
+[sub_resource type="Resource" id="Resource_rp1af"]
+script = ExtResource("3_r4il5")
+from = Vector2(-15, -4)
+to = Vector2(2, -4)
+
+[sub_resource type="Resource" id="Resource_rp2fw"]
+script = ExtResource("3_r4il5")
+from = Vector2(4, -4)
+to = Vector2(15, -4)
+
+[sub_resource type="Resource" id="Resource_rs1af"]
+script = ExtResource("3_r4il5")
+from = Vector2(-15, 4)
+to = Vector2(2, 4)
+
+[sub_resource type="Resource" id="Resource_rs2fw"]
+script = ExtResource("3_r4il5")
+from = Vector2(4, 4)
+to = Vector2(15, 4)
+
 [resource]
 script = ExtResource("2_6kr7n")
 freeboard = 3.0
 platforms = Array[ExtResource("1_4q0u8")]([SubResource("Resource_ffieq")])
+railings = Array[ExtResource("3_r4il5")]([SubResource("Resource_rp1af"), SubResource("Resource_rp2fw"), SubResource("Resource_rs1af"), SubResource("Resource_rs2fw")])
 spawns = Array[Vector3]([Vector3(-10.5, 0, -2), Vector3(-3.5, 0, -2), Vector3(3.5, 0, -2), Vector3(10.5, 0, -2), Vector3(-10.5, 0, 2), Vector3(-3.5, 0, 2), Vector3(3.5, 0, 2), Vector3(10.5, 0, 2)])

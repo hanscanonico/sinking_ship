@@ -42,7 +42,9 @@ func test_stops_under_friction() -> void:
 func test_walking_off_the_deck_falls_into_the_sea() -> void:
 	var sim := SimFixtures.sim(2)
 	SimFixtures.place(sim, 1, Vector3(-10.0, 0.0, 0.0))
-	SimFixtures.place(sim, 0, Vector3(0.0, 0.0, 3.0))
+	# Level with the gap in the starboard railing.
+	var gap := SimFixtures.rail_gap(SimFixtures.deck().platforms[0].area.end.y)
+	SimFixtures.place(sim, 0, Vector3(gap.x, 0.0, 3.0))
 	var to_starboard := {0: SimFixtures.frame(0, Vector2.DOWN)}
 	var fell_at := -1
 	var events: Array[SimEvent] = []

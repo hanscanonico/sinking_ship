@@ -21,3 +21,14 @@ func _init(
 
 func world_height(ship_point: Vector3) -> float:
 	return (transform * ship_point).y
+
+
+## The world's downward pull of [param strength], in ship space: its x/z part is
+## the deck's downhill, whichever way the ship leans.
+func ship_gravity(strength: float) -> Vector3:
+	return transform.basis.inverse() * Vector3(0.0, -strength, 0.0)
+
+
+## The deck's combined slope, trim and heel together, in degrees.
+func slope_deg() -> float:
+	return rad_to_deg(Vector3.UP.angle_to(transform.basis * Vector3.UP))

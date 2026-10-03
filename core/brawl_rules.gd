@@ -32,6 +32,18 @@ extends Resource
 ## Friction while staggered, in m/s².
 @export var stagger_friction: float
 
+@export_group("Slope and railings")
+## The combined deck slope a body standing idle holds at; past it, the deck pulls.
+@export var grip_angle_deg: float
+## Friction on an idle body sliding past the grip angle, in m/s².
+@export var slide_friction: float
+## Crossing a railing at this speed or faster tips a body over it.
+@export var vault_speed: float
+## The upward speed a body tips over a railing with.
+@export var vault_lift: float
+## How high a railing stands above its platform.
+@export var railing_height: float
+
 
 ## Every reason these numbers cannot run a match; empty when they can.
 func problems() -> PackedStringArray:
@@ -50,10 +62,13 @@ func problems() -> PackedStringArray:
 		"knockback",
 		"stagger",
 		"stagger_friction",
+		"slide_friction",
+		"vault_speed",
+		"railing_height",
 	]:
 		if float(get(field)) <= 0.0:
 			found.append("brawl rules: %s must be positive" % field)
-	for field: String in ["shove_recovery", "recoil"]:
+	for field: String in ["shove_recovery", "recoil", "vault_lift"]:
 		if float(get(field)) < 0.0:
 			found.append("brawl rules: %s must not be negative" % field)
 	for field: String in ["shove_cone_deg", "autoaim_cone_deg"]:
@@ -61,4 +76,8 @@ func problems() -> PackedStringArray:
 			found.append("brawl rules: %s must be within 0…180" % field)
 	if restagger_mult < 1.0:
 		found.append("brawl rules: restagger_mult must be at least 1")
+	if grip_angle_deg <= 0.0 or grip_angle_deg >= 90.0:
+		found.append("brawl rules: grip_angle_deg must be within 0…90")
+	elif gravity * sin(deg_to_rad(grip_angle_deg)) <= slide_friction:
+		found.append("brawl rules: slide_friction must be below the pull at the grip angle")
 	return found

@@ -72,6 +72,29 @@ func test_flat_scenario_meets_timeline() -> void:
 		assert_between(tick, by - Ticks.from_seconds(10.0), by, label)
 
 
+func test_flat_scenario_lists_to_port_after_one_minute() -> void:
+	var schedule := _schedule(load(SimFixtures.FLAT_SINKING))
+	var area := SimFixtures.deck().platforms[0].area
+	var port := Vector3(area.get_center().x, 0.0, area.position.y)
+	var starboard := Vector3(area.get_center().x, 0.0, area.end.y)
+	var one_minute := Ticks.from_seconds(60.0)
+	for tick in range(0, one_minute + 1, Ticks.RATE):
+		assert_eq(schedule.pose_at(tick).heel_deg, 0.0, "upright at tick %d" % tick)
+	for tick in range(one_minute + 1, Ticks.from_seconds(200.0), Ticks.RATE):
+		var pose := schedule.pose_at(tick)
+		assert_lt(pose.heel_deg, 0.0, "listing to port at tick %d" % tick)
+		assert_lt(pose.world_height(port), pose.world_height(starboard), "port low, tick %d" % tick)
+	# Trim and heel together pass the grip angle by about 1:45, and not long before.
+	var grip := SimFixtures.rules().grip_angle_deg
+	var steep_from := -1
+	for tick in Ticks.from_seconds(200.0):
+		if schedule.pose_at(tick).slope_deg() > grip:
+			steep_from = tick
+			break
+	var by := Ticks.from_seconds(105.0)
+	assert_between(steep_from, by - Ticks.from_seconds(10.0), by, "past the grip angle")
+
+
 func test_scenario_sign_decides_which_end_floods() -> void:
 	var bow_down := _schedule(SimFixtures.scenario([[0.0, 0.0, 0.0, 0.0], [60.0, 6.0, 8.0, 0.0]]))
 	var stern_down := _schedule(

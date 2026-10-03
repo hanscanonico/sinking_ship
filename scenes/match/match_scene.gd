@@ -64,6 +64,7 @@ func _start(seed_value: int) -> void:
 	var sim := MatchSim.create(config)
 	_driver.start(MatchRunner.new(sim, sources))
 	_view.setup(_driver, sim, LOCAL_SEAT)
+	_hud.setup(sim)
 	_rig.reset(_view.seat_world_position(LOCAL_SEAT), _deck_bounds(config.ship))
 	_end.hide()
 	print("match seed %d" % seed_value)

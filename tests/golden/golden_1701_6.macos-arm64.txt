@@ -1,6 +1,6 @@
-00:32.5 seat 0 out · water · place 6
-00:36.4 seat 4 out · water · place 5
-02:22.7 seat 3 out · water · place 4
-02:24.4 seat 2 out · water · place 3
-02:26.0 seat 5 out · water · place 2
-winner seat 1 at 02:26.0 · digest 3d71da4da529259c
+01:17.9 seat 0 out · water · place 6
+01:59.6 seat 5 out · water · place 5
+02:05.9 seat 2 out · water · place 4
+02:06.4 seat 4 out · water · place 3
+02:16.2 seat 3 out · water · place 2
+winner seat 1 at 02:16.2 · digest 48b659fda69eba19

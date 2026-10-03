@@ -39,7 +39,7 @@ func setup(driver: SimDriver, sim: MatchSim, local_seat: int) -> void:
 	_driver = driver
 	_schedule = sim.schedule
 	_surfaces = sim.surfaces
-	_greybox.build(sim.config.ship)
+	_greybox.build(sim.config.ship, sim.config.rules.railing_height)
 	for body: Node3D in _bodies:
 		body.queue_free()
 	for shadow: MeshInstance3D in _shadows:

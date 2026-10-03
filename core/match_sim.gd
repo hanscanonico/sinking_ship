@@ -102,8 +102,8 @@ func step(frames: Array[InputFrame]) -> Array[SimEvent]:
 			player.prev_buttons = player.last_buttons
 	else:
 		_intent()
-		_forces()
-		_move()
+		_forces(pose_now)
+		_move(tick, events)
 		_ground()
 		_shoves()
 		_verdict(_water(pose_now, tick), tick, events)
@@ -186,19 +186,28 @@ func _enter(player: PlayerState, action: PlayerState.Action) -> void:
 	player.action_ticks = 0
 
 
-## Walking, friction and gravity, as velocity.
-func _forces() -> void:
+## Walking, friction and gravity, as velocity. Gravity is the world's, turned
+## into ship space by the pose; a grounded body feels its downhill part only once
+## it has lost its grip — staggered, or idle on a deck steeper than the grip angle.
+func _forces(pose_now: ShipPose) -> void:
 	var dt := Ticks.SECONDS_PER_TICK
+	var gravity := pose_now.ship_gravity(_rules.gravity)
+	var downhill := Vector2(gravity.x, gravity.z) * dt
+	var steep := pose_now.slope_deg() > _rules.grip_angle_deg
 	for player: PlayerState in _live_seats():
 		if player.body == PlayerState.Body.AIRBORNE:
-			player.vel.y -= _rules.gravity * dt
+			player.vel += gravity * dt
 			continue
 		var planar := Vector2(player.vel.x, player.vel.z)
+		var wish := Vector2(player.last_move) / InputFrame.AXIS_MAX * _rules.walk_speed
 		if player.is_staggered():
-			planar = planar.move_toward(Vector2.ZERO, _rules.stagger_friction * dt)
+			planar = (planar + downhill).move_toward(Vector2.ZERO, _rules.stagger_friction * dt)
 			player.stagger_ticks -= 1
+		elif wish == Vector2.ZERO and steep:
+			planar = (planar + downhill).move_toward(Vector2.ZERO, _rules.slide_friction * dt)
 		else:
-			var wish := Vector2(player.last_move) / InputFrame.AXIS_MAX * _rules.walk_speed
+			if steep:
+				planar += downhill
 			var rate := _rules.ground_accel if wish != Vector2.ZERO else _rules.ground_friction
 			planar = planar.move_toward(wish, rate * dt)
 			# The shove is spent once the body moves as its own input says; until then
@@ -208,11 +217,13 @@ func _forces() -> void:
 		player.vel = Vector3(planar.x, player.vel.y, planar.y)
 
 
-## Integration, then bodies push each other apart, pair by pair in seat order.
-func _move() -> void:
+## Integration, then railings, then bodies push each other apart, pair by pair in
+## seat order.
+func _move(tick: int, events: Array[SimEvent]) -> void:
 	var live := _live_seats()
 	for player: PlayerState in live:
 		player.pos += player.vel * Ticks.SECONDS_PER_TICK
+	_railings(live, tick, events)
 	var reach := _rules.body_radius * 2.0
 	for first in live.size():
 		for second in range(first + 1, live.size()):
@@ -228,6 +239,28 @@ func _move() -> void:
 			var push := normal * ((reach - distance) * 0.5)
 			a.pos -= Vector3(push.x, 0.0, push.y)
 			b.pos += Vector3(push.x, 0.0, push.y)
+
+
+## A railing stops a grounded body crossing it slower than vault_speed — it loses
+## the velocity into the rail — and tips one at or above it over, into the air.
+func _railings(live: Array[PlayerState], tick: int, events: Array[SimEvent]) -> void:
+	for player: PlayerState in live:
+		if player.body != PlayerState.Body.GROUNDED:
+			continue
+		var contacts := surfaces.rail_contacts(player.pos, _rules.body_radius, player.surface)
+		for contact: Surfaces.RailContact in contacts:
+			var planar := Vector2(player.vel.x, player.vel.z)
+			var into := -planar.dot(contact.normal)
+			if into >= _rules.vault_speed:
+				player.body = PlayerState.Body.AIRBORNE
+				player.surface = Surfaces.NONE
+				player.vel.y = _rules.vault_lift
+				events.append(SimEvent.vaulted(tick, player.seat))
+				break
+			player.pos += Vector3(contact.normal.x, 0.0, contact.normal.y) * contact.depth
+			if into > 0.0:
+				planar += contact.normal * into
+				player.vel = Vector3(planar.x, player.vel.y, planar.y)
 
 
 ## What each body stands on; walking off a platform starts a fall.

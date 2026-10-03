@@ -38,6 +38,23 @@ static func calm() -> SinkScenario:
 	return scenario([[0.0, 0.0, 0.0, 0.0]])
 
 
+## A ship held at [param trim_deg] and [param heel_deg], lifted well clear of the
+## sea so that only the tilt matters.
+static func tilted(trim_deg: float, heel_deg: float) -> SinkScenario:
+	return scenario([[0.0, -10.0, trim_deg, heel_deg]])
+
+
+## The middle of the gap in the flat deck's railing along its edge at
+## [param edge_z], in the ship's x/z plane: the hole between that edge's spans.
+static func rail_gap(edge_z: float) -> Vector2:
+	var ends: Array[float] = []
+	for railing: ShipRailing in deck().railings:
+		if is_equal_approx(railing.from.y, edge_z):
+			ends.append_array([railing.from.x, railing.to.x])
+	ends.sort()
+	return Vector2((ends[1] + ends[2]) * 0.5, edge_z)
+
+
 static func config(seats: int, sinking: SinkScenario = null, seed_value: int = 1) -> MatchConfig:
 	return MatchConfig.new(
 		seed_value, seats, rules(), deck(), sinking if sinking != null else calm()
