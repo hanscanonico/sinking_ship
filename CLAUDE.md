@@ -12,11 +12,11 @@ Design of record: `.lavish/sinking-ship-plan.html`
   remote — enters as one quantized `InputFrame` per tick (D3); same seed + same input log ⇒
   same digest on the same build (D4); `from_snapshot(snapshot())` continues exactly and
   presentation reads snapshots only (D5); the ship is data in ship space, never mesh
-  collision (D6); the sinking is a pure function of (scenario, seed, tick) — bow-down is one
-  scenario value, never a rule — and `SinkSchedule` is the only water authority (D7); bots
-  are players reading a delayed `BotView` (D10); online will be server-authoritative
-  snapshots with client re-simulation (D11); `ShoveResolver` takes positions as data and
-  `MatchRunner` is the one loop (D13).
+  collision, and `Surfaces` is the only door to spatial questions (D6); the sinking is a pure
+  function of (scenario, seed, tick) — bow-down is one scenario value, never a rule — and
+  `SinkSchedule` is the only water authority (D7); bots are players reading a delayed
+  `BotView` (D10); online will be server-authoritative snapshots with client re-simulation
+  (D11); `ShoveResolver` takes positions as data and `MatchRunner` is the one loop (D13).
 
 ## Commands
 

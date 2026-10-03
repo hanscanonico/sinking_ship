@@ -6,6 +6,8 @@ extends RefCounted
 const RULES := "res://data/rules/brawl.tres"
 const FLAT_DECK := "res://data/ships/flat_deck.tres"
 const FLAT_SINKING := "res://data/sinking/flat.tres"
+const STEAMER := "res://data/ships/steamer.tres"
+const STEAMER_SINKING := "res://data/sinking/steamer.tres"
 const NORMAL_BOT := "res://data/bots/normal.tres"
 
 
@@ -15,6 +17,18 @@ static func rules() -> BrawlRules:
 
 static func deck() -> ShipLayout:
 	return load(FLAT_DECK)
+
+
+static func steamer() -> ShipLayout:
+	return load(STEAMER)
+
+
+## The index of [param layout]'s platform called [param platform_name].
+static func platform_named(layout: ShipLayout, platform_name: StringName) -> int:
+	for index in layout.platforms.size():
+		if layout.platforms[index].name == platform_name:
+			return index
+	return Surfaces.NONE
 
 
 ## A scenario from rows of [at, sink, trim_deg, heel_deg].
@@ -55,14 +69,21 @@ static func rail_gap(edge_z: float) -> Vector2:
 	return Vector2((ends[1] + ends[2]) * 0.5, edge_z)
 
 
-static func config(seats: int, sinking: SinkScenario = null, seed_value: int = 1) -> MatchConfig:
+## A match on the flat deck, or on [param layout] when one is given.
+static func config(
+	seats: int, sinking: SinkScenario = null, seed_value: int = 1, layout: ShipLayout = null
+) -> MatchConfig:
 	return MatchConfig.new(
-		seed_value, seats, rules(), deck(), sinking if sinking != null else calm()
+		seed_value,
+		seats,
+		rules(),
+		layout if layout != null else deck(),
+		sinking if sinking != null else calm()
 	)
 
 
-static func sim(seats: int, sinking: SinkScenario = null) -> MatchSim:
-	return MatchSim.create(config(seats, sinking))
+static func sim(seats: int, sinking: SinkScenario = null, layout: ShipLayout = null) -> MatchSim:
+	return MatchSim.create(config(seats, sinking, 1, layout))
 
 
 ## Puts [param seat] standing at [param pos] (ship-local), facing
@@ -73,7 +94,7 @@ static func place(match_sim: MatchSim, seat: int, pos: Vector3, facing_deg: floa
 	player.vel = Vector3.ZERO
 	player.facing = deg_to_rad(facing_deg)
 	player.body = PlayerState.Body.GROUNDED
-	player.surface = match_sim.surfaces.under(pos)
+	player.surface = match_sim.surfaces.under(pos, match_sim.config.rules.step_height)
 
 
 static func frame(seat: int, move: Vector2 = Vector2.ZERO, buttons: int = 0) -> InputFrame:

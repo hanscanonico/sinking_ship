@@ -9,11 +9,13 @@ var view: BotView
 
 func _init(seat: int, profile: BotProfile, config: MatchConfig) -> void:
 	view = BotView.new(profile.reaction_ticks)
+	var surfaces := Surfaces.new(config.ship)
 	brain = BotBrain.new(
 		seat,
 		profile,
 		config.rules,
-		Surfaces.new(config.ship),
+		surfaces,
+		WalkGraph.new(config.ship, surfaces, config.rules.body_radius),
 		SeedStreams.derive(config.match_seed, seat)
 	)
 

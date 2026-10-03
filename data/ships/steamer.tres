@@ -1,0 +1,184 @@
+[gd_resource type="Resource" script_class="ShipLayout" format=3]
+
+[ext_resource type="Script" path="res://core/ship_platform.gd" id="1_plat"]
+[ext_resource type="Script" path="res://core/ship_ramp.gd" id="2_ramp"]
+[ext_resource type="Script" path="res://core/ship_blocker.gd" id="3_block"]
+[ext_resource type="Script" path="res://core/ship_railing.gd" id="4_rail"]
+[ext_resource type="Script" path="res://core/ship_layout.gd" id="5_layout"]
+
+[sub_resource type="Resource" id="Platform_main_deck"]
+script = ExtResource("1_plat")
+name = &"main deck"
+area = Rect2(-14, -5, 26, 10)
+
+[sub_resource type="Resource" id="Platform_poop_deck"]
+script = ExtResource("1_plat")
+name = &"poop deck"
+area = Rect2(-20, -4.5, 6, 9)
+height = 1.2
+
+[sub_resource type="Resource" id="Platform_forecastle"]
+script = ExtResource("1_plat")
+name = &"forecastle"
+area = Rect2(12, -4, 8, 8)
+height = 1.8
+
+[sub_resource type="Resource" id="Platform_boat_deck"]
+script = ExtResource("1_plat")
+name = &"boat deck"
+area = Rect2(-7, -3.4, 10, 6.8)
+height = 2.5
+
+[sub_resource type="Resource" id="Platform_bridge"]
+script = ExtResource("1_plat")
+name = &"bridge"
+area = Rect2(-4, -1.5, 3, 3)
+height = 4.7
+
+[sub_resource type="Resource" id="Ramp_poop_port"]
+script = ExtResource("2_ramp")
+area = Rect2(-14, -4.5, 3, 1.4)
+start_height = 1.2
+
+[sub_resource type="Resource" id="Ramp_poop_starboard"]
+script = ExtResource("2_ramp")
+area = Rect2(-14, 3.1, 3, 1.4)
+start_height = 1.2
+
+[sub_resource type="Resource" id="Ramp_boat_port"]
+script = ExtResource("2_ramp")
+area = Rect2(3, -3.4, 6, 1.5)
+start_height = 2.5
+
+[sub_resource type="Resource" id="Ramp_boat_starboard"]
+script = ExtResource("2_ramp")
+area = Rect2(3, 1.9, 6, 1.5)
+start_height = 2.5
+
+[sub_resource type="Resource" id="Ramp_forecastle"]
+script = ExtResource("2_ramp")
+area = Rect2(9, -0.8, 3, 1.6)
+end_height = 1.8
+
+[sub_resource type="Resource" id="Ramp_bridge"]
+script = ExtResource("2_ramp")
+area = Rect2(-1, -0.7, 3, 1.4)
+start_height = 4.7
+end_height = 2.5
+
+[sub_resource type="Resource" id="Blocker_deckhouse"]
+script = ExtResource("3_block")
+area = Rect2(-7, -3.4, 10, 6.8)
+top = 2.5
+
+[sub_resource type="Resource" id="Blocker_wheelhouse"]
+script = ExtResource("3_block")
+area = Rect2(-4, -1.5, 3, 3)
+bottom = 2.5
+top = 4.7
+
+[sub_resource type="Resource" id="Blocker_funnel"]
+script = ExtResource("3_block")
+shape = 1
+centre = Vector2(-6, 0)
+radius = 0.9
+bottom = 2.5
+top = 7.5
+
+[sub_resource type="Resource" id="Blocker_mast"]
+script = ExtResource("3_block")
+shape = 1
+centre = Vector2(16, 0)
+radius = 0.2
+bottom = 1.8
+top = 11
+
+[sub_resource type="Resource" id="Blocker_hatch"]
+script = ExtResource("3_block")
+area = Rect2(4, -1, 4, 2)
+top = 0.8
+
+[sub_resource type="Resource" id="Railing_main_port_aft"]
+script = ExtResource("4_rail")
+from = Vector2(-14, -5)
+to = Vector2(3.5, -5)
+
+[sub_resource type="Resource" id="Railing_main_port_fwd"]
+script = ExtResource("4_rail")
+from = Vector2(5.5, -5)
+to = Vector2(12, -5)
+
+[sub_resource type="Resource" id="Railing_main_starboard_aft"]
+script = ExtResource("4_rail")
+from = Vector2(-14, 5)
+to = Vector2(3.5, 5)
+
+[sub_resource type="Resource" id="Railing_main_starboard_fwd"]
+script = ExtResource("4_rail")
+from = Vector2(5.5, 5)
+to = Vector2(12, 5)
+
+[sub_resource type="Resource" id="Railing_main_aft_port"]
+script = ExtResource("4_rail")
+from = Vector2(-14, -5)
+to = Vector2(-14, -4.5)
+
+[sub_resource type="Resource" id="Railing_main_aft_starboard"]
+script = ExtResource("4_rail")
+from = Vector2(-14, 4.5)
+to = Vector2(-14, 5)
+
+[sub_resource type="Resource" id="Railing_main_fwd_port"]
+script = ExtResource("4_rail")
+from = Vector2(12, -5)
+to = Vector2(12, -4)
+
+[sub_resource type="Resource" id="Railing_main_fwd_starboard"]
+script = ExtResource("4_rail")
+from = Vector2(12, 4)
+to = Vector2(12, 5)
+
+[sub_resource type="Resource" id="Railing_poop_aft"]
+script = ExtResource("4_rail")
+platform = 1
+from = Vector2(-20, -4.5)
+to = Vector2(-20, 4.5)
+
+[sub_resource type="Resource" id="Railing_poop_port"]
+script = ExtResource("4_rail")
+platform = 1
+from = Vector2(-20, -4.5)
+to = Vector2(-14, -4.5)
+
+[sub_resource type="Resource" id="Railing_poop_starboard"]
+script = ExtResource("4_rail")
+platform = 1
+from = Vector2(-20, 4.5)
+to = Vector2(-14, 4.5)
+
+[sub_resource type="Resource" id="Railing_forecastle_fwd"]
+script = ExtResource("4_rail")
+platform = 2
+from = Vector2(20, -4)
+to = Vector2(20, 4)
+
+[sub_resource type="Resource" id="Railing_forecastle_port"]
+script = ExtResource("4_rail")
+platform = 2
+from = Vector2(12, -4)
+to = Vector2(20, -4)
+
+[sub_resource type="Resource" id="Railing_forecastle_starboard"]
+script = ExtResource("4_rail")
+platform = 2
+from = Vector2(12, 4)
+to = Vector2(20, 4)
+
+[resource]
+script = ExtResource("5_layout")
+freeboard = 1.2
+platforms = Array[ExtResource("1_plat")]([SubResource("Platform_main_deck"), SubResource("Platform_poop_deck"), SubResource("Platform_forecastle"), SubResource("Platform_boat_deck"), SubResource("Platform_bridge")])
+ramps = Array[ExtResource("2_ramp")]([SubResource("Ramp_poop_port"), SubResource("Ramp_poop_starboard"), SubResource("Ramp_boat_port"), SubResource("Ramp_boat_starboard"), SubResource("Ramp_forecastle"), SubResource("Ramp_bridge")])
+blockers = Array[ExtResource("3_block")]([SubResource("Blocker_deckhouse"), SubResource("Blocker_wheelhouse"), SubResource("Blocker_funnel"), SubResource("Blocker_mast"), SubResource("Blocker_hatch")])
+railings = Array[ExtResource("4_rail")]([SubResource("Railing_main_port_aft"), SubResource("Railing_main_port_fwd"), SubResource("Railing_main_starboard_aft"), SubResource("Railing_main_starboard_fwd"), SubResource("Railing_main_aft_port"), SubResource("Railing_main_aft_starboard"), SubResource("Railing_main_fwd_port"), SubResource("Railing_main_fwd_starboard"), SubResource("Railing_poop_aft"), SubResource("Railing_poop_port"), SubResource("Railing_poop_starboard"), SubResource("Railing_forecastle_fwd"), SubResource("Railing_forecastle_port"), SubResource("Railing_forecastle_starboard")])
+spawns = Array[Vector3]([Vector3(-17.5, 1.2, -2.5), Vector3(-17.5, 1.2, 2.5), Vector3(-10.5, 0, -2.5), Vector3(-10.5, 0, 2.5), Vector3(-2, 0, -4.2), Vector3(-2, 0, 4.2), Vector3(10.5, 0, -3), Vector3(10.5, 0, 3)])

@@ -129,7 +129,14 @@ func test_resolver_reads_candidates_not_live_seats() -> void:
 		1, _at(0.2, 0.0), rules.body_radius, rules.body_height
 	)
 	var candidates: Array[ShoveResolver.Candidate] = [rewound]
-	var hits := ShoveResolver.resolve(attempts, candidates, rules.shove_reach, rules.shove_cone_deg)
+	var hits := ShoveResolver.resolve(
+		attempts,
+		candidates,
+		rules.shove_reach,
+		rules.shove_cone_deg,
+		sim.surfaces,
+		rules.step_height
+	)
 	assert_eq(hits.size(), 1)
 	assert_eq([hits[0].shover, hits[0].target, hits[0].direction], [0, 1, Vector2.RIGHT])
 	# And the other way round: a live seat in reach that is not a candidate is not hit.
@@ -138,5 +145,12 @@ func test_resolver_reads_candidates_not_live_seats() -> void:
 		1, Vector3(10.0, 0.0, 0.0), rules.body_radius, rules.body_height
 	)
 	candidates = [elsewhere]
-	hits = ShoveResolver.resolve(attempts, candidates, rules.shove_reach, rules.shove_cone_deg)
+	hits = ShoveResolver.resolve(
+		attempts,
+		candidates,
+		rules.shove_reach,
+		rules.shove_cone_deg,
+		sim.surfaces,
+		rules.step_height
+	)
 	assert_true(hits.is_empty())

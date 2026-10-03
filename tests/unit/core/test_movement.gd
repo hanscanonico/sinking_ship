@@ -63,6 +63,11 @@ func test_walking_off_the_deck_falls_into_the_sea() -> void:
 	assert_eq(walker.out_cause, PlayerState.Cause.WATER)
 	assert_lt(walker.pos.y, 0.0, "fell below the deck first")
 	assert_gt(walker.out_tick, fell_at)
-	assert_eq(events.size(), 2, "seat out, then the last one dry wins")
-	assert_eq(events[0].kind, SimEvent.Kind.SEAT_OUT)
-	assert_eq(events[0].seat, 0)
+	var kinds := events.map(func(event: SimEvent) -> SimEvent.Kind: return event.kind)
+	assert_eq(
+		kinds,
+		[SimEvent.Kind.FELL, SimEvent.Kind.SEAT_OUT, SimEvent.Kind.MATCH_ENDED],
+		"it fell, went out, and the last one dry won"
+	)
+	assert_eq([events[0].tick, events[0].seat], [fell_at, 0])
+	assert_eq(events[1].seat, 0)

@@ -1,0 +1,45 @@
+[gd_resource type="Resource" script_class="SinkScenario" format=3]
+
+[ext_resource type="Script" path="res://core/sink_keyframe.gd" id="1_key"]
+[ext_resource type="Script" path="res://core/sink_scenario.gd" id="2_scen"]
+
+[sub_resource type="Resource" id="Keyframe_0"]
+script = ExtResource("1_key")
+
+[sub_resource type="Resource" id="Keyframe_42"]
+script = ExtResource("1_key")
+at = 42.0
+sink = 0.15
+trim_deg = 4.0
+
+[sub_resource type="Resource" id="Keyframe_62"]
+script = ExtResource("1_key")
+at = 62.0
+sink = 0.75
+trim_deg = 12.0
+heel_deg = -2.0
+
+[sub_resource type="Resource" id="Keyframe_97"]
+script = ExtResource("1_key")
+at = 97.0
+sink = 1.0
+trim_deg = 13.0
+heel_deg = -5.0
+
+[sub_resource type="Resource" id="Keyframe_157"]
+script = ExtResource("1_key")
+at = 157.0
+sink = 2.3
+trim_deg = 15.0
+heel_deg = 4.0
+
+[sub_resource type="Resource" id="Keyframe_207"]
+script = ExtResource("1_key")
+at = 207.0
+sink = 12.5
+trim_deg = 28.0
+
+[resource]
+script = ExtResource("2_scen")
+starts_at = 3.0
+keyframes = Array[ExtResource("1_key")]([SubResource("Keyframe_0"), SubResource("Keyframe_42"), SubResource("Keyframe_62"), SubResource("Keyframe_97"), SubResource("Keyframe_157"), SubResource("Keyframe_207")])

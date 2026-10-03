@@ -44,6 +44,12 @@ extends Resource
 ## How high a railing stands above its platform.
 @export var railing_height: float
 
+@export_group("Levels and falls")
+## The most a body steps up or down without a ramp; a drop deeper than this is a fall.
+@export var step_height: float
+## Seconds of stagger on landing, per metre fallen.
+@export var fall_stagger_per_m: float
+
 
 ## Every reason these numbers cannot run a match; empty when they can.
 func problems() -> PackedStringArray:
@@ -65,10 +71,11 @@ func problems() -> PackedStringArray:
 		"slide_friction",
 		"vault_speed",
 		"railing_height",
+		"step_height",
 	]:
 		if float(get(field)) <= 0.0:
 			found.append("brawl rules: %s must be positive" % field)
-	for field: String in ["shove_recovery", "recoil", "vault_lift"]:
+	for field: String in ["shove_recovery", "recoil", "vault_lift", "fall_stagger_per_m"]:
 		if float(get(field)) < 0.0:
 			found.append("brawl rules: %s must not be negative" % field)
 	for field: String in ["shove_cone_deg", "autoaim_cone_deg"]:
@@ -80,4 +87,6 @@ func problems() -> PackedStringArray:
 		found.append("brawl rules: grip_angle_deg must be within 0…90")
 	elif gravity * sin(deg_to_rad(grip_angle_deg)) <= slide_friction:
 		found.append("brawl rules: slide_friction must be below the pull at the grip angle")
+	if step_height >= body_height:
+		found.append("brawl rules: step_height must be below body_height")
 	return found

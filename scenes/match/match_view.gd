@@ -85,10 +85,11 @@ func _process(_delta: float) -> void:
 			now["action"] == PlayerState.Action.WINDUP or now["action"] == PlayerState.Action.ACTIVE
 		)
 		_noses[seat].albedo_color = SHOVING_NOSE_COLOUR if shoving else NOSE_COLOUR
-		var under := _surfaces.under(pos)
-		if under != Surfaces.NONE and pos.y >= _surfaces.height(under):
+		var below := _surfaces.landing(pos)
+		if below != Surfaces.NONE:
+			var ground := _surfaces.height_at(below, pos)
 			_shadows[seat].visible = true
-			_shadows[seat].position = Vector3(pos.x, _surfaces.height(under) + SHADOW_LIFT, pos.z)
+			_shadows[seat].position = Vector3(pos.x, ground + SHADOW_LIFT, pos.z)
 
 
 func _add_seat(seat: int, rules: BrawlRules, local: bool) -> void:

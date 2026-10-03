@@ -4,7 +4,7 @@ extends RefCounted
 ## InputFrame per seat is the only way anything happens (D3); snapshot() is the
 ## whole truth and from_snapshot() continues it exactly (D5).
 
-const SNAPSHOT_VERSION := 1
+const SNAPSHOT_VERSION := 2
 
 var config: MatchConfig
 var schedule: SinkSchedule
@@ -52,7 +52,7 @@ static func create(match_config: MatchConfig) -> MatchSim:
 		var player := PlayerState.new(seat)
 		player.pos = spawns[order[seat]]
 		player.facing = Vector2(-player.pos.x, -player.pos.z).angle()
-		player.surface = sim.surfaces.under(player.pos)
+		player.surface = sim.surfaces.under(player.pos, match_config.rules.step_height)
 		match_state.seats.append(player)
 	sim.state = match_state
 	return sim
@@ -103,8 +103,8 @@ func step(frames: Array[InputFrame]) -> Array[SimEvent]:
 	else:
 		_intent()
 		_forces(pose_now)
-		_move(tick, events)
-		_ground()
+		var feet_before := _move(tick, events)
+		_ground(tick, events, feet_before)
 		_shoves()
 		_verdict(_water(pose_now, tick), tick, events)
 	state.tick += 1
@@ -157,7 +157,9 @@ func _intent() -> void:
 				player.facing,
 				candidates,
 				_rules.shove_reach,
-				_rules.autoaim_cone_deg
+				_rules.autoaim_cone_deg,
+				surfaces,
+				_rules.step_height
 			)
 		var aiming := (
 			player.action == PlayerState.Action.WINDUP or player.action == PlayerState.Action.ACTIVE
@@ -217,12 +219,16 @@ func _forces(pose_now: ShipPose) -> void:
 		player.vel = Vector3(planar.x, player.vel.y, planar.y)
 
 
-## Integration, then railings, then bodies push each other apart, pair by pair in
-## seat order.
-func _move(tick: int, events: Array[SimEvent]) -> void:
+## Integration, then blockers, then railings, then bodies push each other apart,
+## pair by pair in seat order. Returns each seat's feet height before it moved.
+func _move(tick: int, events: Array[SimEvent]) -> PackedFloat64Array:
 	var live := _live_seats()
+	var feet_before := PackedFloat64Array()
+	feet_before.resize(state.seats.size())
 	for player: PlayerState in live:
+		feet_before[player.seat] = player.pos.y
 		player.pos += player.vel * Ticks.SECONDS_PER_TICK
+	_blockers(live, feet_before)
 	_railings(live, tick, events)
 	var reach := _rules.body_radius * 2.0
 	for first in live.size():
@@ -239,6 +245,21 @@ func _move(tick: int, events: Array[SimEvent]) -> void:
 			var push := normal * ((reach - distance) * 0.5)
 			a.pos -= Vector3(push.x, 0.0, push.y)
 			b.pos += Vector3(push.x, 0.0, push.y)
+	return feet_before
+
+
+## Whatever stops a body — a blocker, a deck edge too high to step onto — pushes it
+## back out in the deck plane and takes the velocity into it. It is met at the
+## height the feet stood at before this tick's move, so a fall lands on a deck in
+## _ground rather than being pushed off its edge.
+func _blockers(live: Array[PlayerState], feet_before: PackedFloat64Array) -> void:
+	for player: PlayerState in live:
+		var feet := Vector3(player.pos.x, feet_before[player.seat], player.pos.z)
+		var contacts := surfaces.obstacle_contacts(
+			feet, _rules.body_radius, _rules.body_height, _rules.step_height
+		)
+		for contact: Surfaces.Contact in contacts:
+			_hold(player, contact)
 
 
 ## A railing stops a grounded body crossing it slower than vault_speed — it loses
@@ -248,32 +269,61 @@ func _railings(live: Array[PlayerState], tick: int, events: Array[SimEvent]) -> 
 		if player.body != PlayerState.Body.GROUNDED:
 			continue
 		var contacts := surfaces.rail_contacts(player.pos, _rules.body_radius, player.surface)
-		for contact: Surfaces.RailContact in contacts:
+		for contact: Surfaces.Contact in contacts:
 			var planar := Vector2(player.vel.x, player.vel.z)
 			var into := -planar.dot(contact.normal)
 			if into >= _rules.vault_speed:
 				player.body = PlayerState.Body.AIRBORNE
 				player.surface = Surfaces.NONE
+				player.fall_from = player.pos.y
 				player.vel.y = _rules.vault_lift
 				events.append(SimEvent.vaulted(tick, player.seat))
 				break
-			player.pos += Vector3(contact.normal.x, 0.0, contact.normal.y) * contact.depth
-			if into > 0.0:
-				planar += contact.normal * into
-				player.vel = Vector3(planar.x, player.vel.y, planar.y)
+			_hold(player, contact)
 
 
-## What each body stands on; walking off a platform starts a fall.
-func _ground() -> void:
+## Moves [param player] out of [param contact] in the deck plane and takes the
+## velocity into it.
+func _hold(player: PlayerState, contact: Surfaces.Contact) -> void:
+	player.pos += Vector3(contact.normal.x, 0.0, contact.normal.y) * contact.depth
+	var planar := Vector2(player.vel.x, player.vel.z)
+	var into := -planar.dot(contact.normal)
+	if into > 0.0:
+		planar += contact.normal * into
+		player.vel = Vector3(planar.x, player.vel.y, planar.y)
+
+
+## What each body stands on. A grounded body follows its surface up and down
+## within step_height; past an edge deeper than that it falls. A falling body lands
+## on the highest surface it comes down onto, staggered by the drop.
+func _ground(tick: int, events: Array[SimEvent], feet_before: PackedFloat64Array) -> void:
 	for player: PlayerState in _live_seats():
-		if player.body != PlayerState.Body.GROUNDED:
+		if player.body == PlayerState.Body.GROUNDED:
+			var surface := surfaces.under(player.pos, _rules.step_height)
+			player.surface = surface
+			if surface == Surfaces.NONE:
+				player.body = PlayerState.Body.AIRBORNE
+				player.fall_from = player.pos.y
+				events.append(SimEvent.fell(tick, player.seat))
+				continue
+			player.pos.y = surfaces.height_at(surface, player.pos)
 			continue
-		var surface := surfaces.under(player.pos)
-		player.surface = surface
-		if surface == Surfaces.NONE:
-			player.body = PlayerState.Body.AIRBORNE
+		player.fall_from = maxf(player.fall_from, player.pos.y)
+		if player.vel.y > 0.0:
 			continue
-		player.pos.y = surfaces.height(surface)
+		var below := surfaces.landing(Vector3(player.pos.x, feet_before[player.seat], player.pos.z))
+		if below == Surfaces.NONE:
+			continue
+		var ground := surfaces.height_at(below, player.pos)
+		if player.pos.y > ground:
+			continue
+		var stagger := Ticks.from_seconds((player.fall_from - ground) * _rules.fall_stagger_per_m)
+		player.body = PlayerState.Body.GROUNDED
+		player.surface = below
+		player.pos.y = ground
+		player.vel.y = 0.0
+		player.stagger_ticks = maxi(player.stagger_ticks, stagger)
+		events.append(SimEvent.landed(tick, player.seat, below, stagger))
 
 
 ## Every active shove against the bodies as they stand now; all of this tick's
@@ -294,7 +344,12 @@ func _shoves() -> void:
 	if attempts.is_empty():
 		return
 	var hits := ShoveResolver.resolve(
-		attempts, _candidates(), _rules.shove_reach, _rules.shove_cone_deg
+		attempts,
+		_candidates(),
+		_rules.shove_reach,
+		_rules.shove_cone_deg,
+		surfaces,
+		_rules.step_height
 	)
 	var count := state.seats.size()
 	var knock := PackedVector2Array()
