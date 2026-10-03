@@ -55,6 +55,14 @@ capture:
 	$(GODOT) --path . --fixed-fps 30 -- $(match-args) --autoplay \
 		--capture="$(CAPTURE)" --capture-at=$(AT)
 
+# The art against the data (D6) and the snapshots (D5): drawn platform tops,
+# every seat's model on its feet, no live sim object named under scenes/art.
+# Rules live in tools/art_lint.gd. Two frames per tick, so the view interpolates.
+art-lint:
+	$(call require-godot)
+	@set -o pipefail; $(GODOT) --headless --no-header --path . --fixed-fps 60 \
+		-s res://tools/art_lint.gd | grep -v -e '^\[godot_ai' -e '^match seed'
+
 # The GUT suite, headless. One script:
 #   make test TEST=tests/unit/core/test_ticks.gd
 # tools/run_tests.sh hands any other GUT flag through (-gunit_test_name=...).
@@ -104,4 +112,4 @@ format-check:
 # whole suite.
 .NOTPARALLEL:
 
-.PHONY: import run match capture test verify check lint format format-check
+.PHONY: import run match capture art-lint test verify check lint format format-check
