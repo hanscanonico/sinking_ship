@@ -55,10 +55,14 @@ func test_snapshot_continuation_is_exact() -> void:
 	while not replay.is_over():
 		replay.step()
 		snapshots.append(replay.snapshot)
-	# From every RESUME_EVERY-th snapshot — often enough to land inside every fall,
-	# shove and stagger — a sim rebuilt from it must step to the same next second.
+	# From every RESUME_EVERY-th snapshot, and from the first snapshot with each
+	# shove, stagger and fall in flight — a fall can be shorter than the stride,
+	# and where it lands differs by platform — a sim rebuilt from it must step to
+	# the same next second.
 	var covered := {"shove": false, "stagger": false, "airborne": false}
-	for start in range(0, snapshots.size() - 1, RESUME_EVERY):
+	for start in range(snapshots.size() - 1):
+		if not _note_coverage(snapshots[start], covered) and start % RESUME_EVERY != 0:
+			continue
 		var resumed := MatchSim.from_snapshot(snapshots[start], config)
 		assert_eq(resumed.snapshot(), _without_events(snapshots[start]), "tick %d" % start)
 		for offset in range(1, mini(Ticks.RATE, snapshots.size() - 1 - start) + 1):
@@ -70,7 +74,6 @@ func test_snapshot_continuation_is_exact() -> void:
 			if resumed.snapshot() != snapshots[start + offset]:
 				fail_test("continuation from tick %d diverged at tick %d" % [start, tick])
 				return
-		_note_coverage(snapshots[start], covered)
 	for field: String in covered:
 		assert_true(covered[field], "the golden match resumes from a %s in flight" % field)
 
@@ -90,11 +93,18 @@ func _without_events(snapshot: Dictionary) -> Dictionary:
 	return copy
 
 
-func _note_coverage(snapshot: Dictionary, covered: Dictionary) -> void:
+## Marks what the snapshot has in flight; true when that is something not seen before.
+func _note_coverage(snapshot: Dictionary, covered: Dictionary) -> bool:
+	var seen := {}
 	for entry: Dictionary in snapshot["seats"]:
 		if entry["action"] != PlayerState.Action.IDLE:
-			covered["shove"] = true
+			seen["shove"] = true
 		if entry["stagger"] > 0:
-			covered["stagger"] = true
+			seen["stagger"] = true
 		if entry["state"] == PlayerState.Body.AIRBORNE:
-			covered["airborne"] = true
+			seen["airborne"] = true
+	var fresh := false
+	for field: String in seen:
+		fresh = fresh or not covered[field]
+		covered[field] = true
+	return fresh
