@@ -8,6 +8,8 @@
 [resource]
 script = ExtResource("2_cfls3")
 seats = 6
+min_seats = 4
+max_seats = 8
 humans = 1
 bot_tier = &"normal"
 countdown = 3.0

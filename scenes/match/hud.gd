@@ -1,22 +1,29 @@
 class_name Hud
 extends CanvasLayer
-## Seats left, the match clock and the tilt gauge, read from the latest snapshot
-## and the pose SinkSchedule gives for its tick.
+## Seats left, the match clock, the tilt gauge and the countdown, read from the
+## latest snapshot and the pose SinkSchedule gives for its tick; and, once the
+## local seat is out, whom the camera is watching.
 
 const TILT_COLOUR := Color(1.0, 1.0, 1.0)
 const STEEP_COLOUR := Color(1.0, 0.72, 0.2)
+## How long "Go!" stays up once the countdown is over.
+const GO_SECONDS := 0.8
 
 var _schedule: SinkSchedule
 var _grip_angle_deg: float
+var _countdown_ticks: int
 
 @onready var _seats_left: Label = %SeatsLeft
 @onready var _clock: Label = %Clock
 @onready var _tilt: Label = %Tilt
+@onready var _countdown: Label = %Countdown
+@onready var _spectating: Label = %Spectating
 
 
 func setup(sim: MatchSim) -> void:
 	_schedule = sim.schedule
 	_grip_angle_deg = sim.config.rules.grip_angle_deg
+	_countdown_ticks = sim.config.countdown_ticks
 
 
 func show_snapshot(snapshot: Dictionary) -> void:
@@ -28,6 +35,25 @@ func show_snapshot(snapshot: Dictionary) -> void:
 	_seats_left.text = "Seats left %d / %d" % [left, seats.size()]
 	_clock.text = MatchTranscript.clock(snapshot["tick"])
 	_show_tilt(_schedule.pose_at(snapshot["tick"]))
+	_show_countdown(snapshot["tick"])
+
+
+## [param text] along the bottom of the screen; empty hides it.
+func show_spectating(text: String) -> void:
+	_spectating.text = text
+	_spectating.visible = not text.is_empty()
+
+
+## Whole seconds left while the sim holds the brawl, then "Go!" for a moment.
+func _show_countdown(tick: int) -> void:
+	var left := _countdown_ticks - tick
+	if left > 0:
+		_countdown.text = str(ceili(Ticks.to_seconds(left)))
+	elif _countdown_ticks > 0 and -left < Ticks.from_seconds(GO_SECONDS):
+		_countdown.text = "Go!"
+	else:
+		_countdown.text = ""
+	_countdown.visible = not _countdown.text.is_empty()
 
 
 ## Signed trim and heel, naming the end and side that are low; amber once the

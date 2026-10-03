@@ -107,6 +107,45 @@ grow_horizontal = 0
 theme_override_font_sizes/font_size = 22
 horizontal_alignment = 2
 
+[node name="Countdown" type="Label" parent="Hud"]
+unique_name_in_owner = true
+visible = false
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -200.0
+offset_top = -160.0
+offset_right = 200.0
+offset_bottom = -40.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_outline_color = Color(0.06, 0.09, 0.13, 1)
+theme_override_constants/outline_size = 12
+theme_override_font_sizes/font_size = 96
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Spectating" type="Label" parent="Hud"]
+unique_name_in_owner = true
+visible = false
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -420.0
+offset_top = -64.0
+offset_right = 420.0
+offset_bottom = -24.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_colors/font_outline_color = Color(0.06, 0.09, 0.13, 1)
+theme_override_constants/outline_size = 6
+theme_override_font_sizes/font_size = 22
+horizontal_alignment = 1
+
 [node name="EndOverlay" type="CanvasLayer" parent="."]
 layer = 2
 script = ExtResource("7_end")
@@ -134,23 +173,32 @@ unique_name_in_owner = true
 theme_override_font_sizes/font_size = 38
 horizontal_alignment = 1
 
+[node name="Table" type="GridContainer" parent="EndOverlay/Panel/Box"]
+unique_name_in_owner = true
+theme_override_constants/h_separation = 28
+theme_override_constants/v_separation = 6
+columns = 5
+
+[node name="Seed" type="Label" parent="EndOverlay/Panel/Box"]
+unique_name_in_owner = true
+modulate = Color(1, 1, 1, 0.7)
+horizontal_alignment = 1
+
 [node name="Hint" type="Label" parent="EndOverlay/Panel/Box"]
 modulate = Color(1, 1, 1, 0.7)
-text = "R / Start — restart   ·   Esc / Back — quit"
+text = "R / Start — rematch   ·   Esc — menu"
 horizontal_alignment = 1
 
 [node name="Buttons" type="HBoxContainer" parent="EndOverlay/Panel/Box"]
 alignment = 1
 theme_override_constants/separation = 16
 
-[node name="Restart" type="Button" parent="EndOverlay/Panel/Box/Buttons"]
+[node name="Rematch" type="Button" parent="EndOverlay/Panel/Box/Buttons"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(120, 0)
-focus_mode = 0
-text = "Restart"
+text = "Rematch"
 
-[node name="Quit" type="Button" parent="EndOverlay/Panel/Box/Buttons"]
+[node name="Menu" type="Button" parent="EndOverlay/Panel/Box/Buttons"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(120, 0)
-focus_mode = 0
-text = "Quit"
+text = "Menu"

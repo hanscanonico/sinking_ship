@@ -23,7 +23,7 @@ import:
 	$(GODOT) --headless --path . --import
 
 # One match's knobs, handed to the scene and tools/run_match.gd as user args:
-#   make run [SEED=] [SEATS=]          the game, windowed; a fresh seed by default
+#   make run [SEED=] [SEATS=]          the game, windowed, from the menu they fill in
 #   make match SEED=1701 [SEATS=] [SECONDS=]   bots only, headless, as a transcript
 #   make capture SEED=1701 AT=60 [SEATS=] [CAPTURE=path.png]
 #       a windowed bots-only match saved as a PNG at AT seconds of match time

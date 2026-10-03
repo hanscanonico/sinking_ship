@@ -3,12 +3,13 @@ extends RefCounted
 ## A typed hint of what happened on a tick. Presentation may announce or animate
 ## one; it never infers state from one — the snapshot is the truth (D5).
 
-enum Kind { SEAT_OUT, MATCH_ENDED, VAULTED, FELL, LANDED }
+enum Kind { SEAT_OUT, MATCH_ENDED, VAULTED, FELL, LANDED, SHOVE_LANDED }
 
 var kind: Kind
 var tick: int
 ## SEAT_OUT: who went out. MATCH_ENDED: the winner, or -1 for a draw. VAULTED:
 ## who tipped over a railing. FELL: who went off an edge. LANDED: who came down.
+## SHOVE_LANDED: the shover.
 var seat: int
 var place: int
 var cause: PlayerState.Cause = PlayerState.Cause.NONE
@@ -18,6 +19,8 @@ var credit: int = -1
 var surface: int = Surfaces.NONE
 ## LANDED: the ticks of stagger the drop cost.
 var stagger_ticks: int
+## SHOVE_LANDED: the seat the shove hit.
+var target: int = -1
 
 
 func _init(event_kind: Kind, event_tick: int, event_seat: int) -> void:
@@ -51,6 +54,12 @@ static func landed(event_tick: int, landing_seat: int, on_surface: int, stagger:
 	return event
 
 
+static func shove_landed(event_tick: int, shover: int, hit: int) -> SimEvent:
+	var event := SimEvent.new(Kind.SHOVE_LANDED, event_tick, shover)
+	event.target = hit
+	return event
+
+
 static func match_ended(event_tick: int, winner: int) -> SimEvent:
 	var event := SimEvent.new(Kind.MATCH_ENDED, event_tick, winner)
 	event.place = 1
@@ -67,4 +76,5 @@ func to_dict() -> Dictionary:
 		"credit": credit,
 		"surface": surface,
 		"stagger": stagger_ticks,
+		"target": target,
 	}

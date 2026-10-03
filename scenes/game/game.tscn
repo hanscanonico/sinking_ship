@@ -1,0 +1,158 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scenes/game/game.gd" id="1_game"]
+[ext_resource type="Script" path="res://scenes/game/main_menu.gd" id="2_menu"]
+[ext_resource type="Script" path="res://scenes/game/pause_menu.gd" id="3_pause"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
+bg_color = Color(0.06, 0.09, 0.13, 0.85)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+content_margin_left = 28.0
+content_margin_top = 20.0
+content_margin_right = 28.0
+content_margin_bottom = 20.0
+
+[node name="Game" type="Node"]
+script = ExtResource("1_game")
+
+[node name="MainMenu" type="CanvasLayer" parent="."]
+visible = false
+script = ExtResource("2_menu")
+
+[node name="Backdrop" type="ColorRect" parent="MainMenu"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.08, 0.32, 0.5, 1)
+
+[node name="Panel" type="PanelContainer" parent="MainMenu"]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -220.0
+offset_top = -200.0
+offset_right = 220.0
+offset_bottom = 200.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
+
+[node name="Box" type="VBoxContainer" parent="MainMenu/Panel"]
+alignment = 1
+theme_override_constants/separation = 14
+
+[node name="Title" type="Label" parent="MainMenu/Panel/Box"]
+theme_override_font_sizes/font_size = 44
+text = "Sinking Ship"
+horizontal_alignment = 1
+
+[node name="Subtitle" type="Label" parent="MainMenu/Panel/Box"]
+modulate = Color(1, 1, 1, 0.7)
+theme_override_font_sizes/font_size = 22
+text = "Play vs bots"
+horizontal_alignment = 1
+
+[node name="Choices" type="GridContainer" parent="MainMenu/Panel/Box"]
+theme_override_constants/h_separation = 18
+theme_override_constants/v_separation = 10
+columns = 2
+
+[node name="SeatsLabel" type="Label" parent="MainMenu/Panel/Box/Choices"]
+text = "Seats"
+
+[node name="Seats" type="OptionButton" parent="MainMenu/Panel/Box/Choices"]
+unique_name_in_owner = true
+size_flags_horizontal = 3
+
+[node name="TierLabel" type="Label" parent="MainMenu/Panel/Box/Choices"]
+text = "Bots"
+
+[node name="Tier" type="OptionButton" parent="MainMenu/Panel/Box/Choices"]
+unique_name_in_owner = true
+size_flags_horizontal = 3
+
+[node name="SeedLabel" type="Label" parent="MainMenu/Panel/Box/Choices"]
+text = "Seed"
+
+[node name="Seed" type="LineEdit" parent="MainMenu/Panel/Box/Choices"]
+unique_name_in_owner = true
+focus_neighbor_bottom = NodePath("../../Buttons/Play")
+size_flags_horizontal = 3
+placeholder_text = "random"
+
+[node name="Problem" type="Label" parent="MainMenu/Panel/Box"]
+unique_name_in_owner = true
+visible = false
+theme_override_colors/font_color = Color(1, 0.72, 0.2, 1)
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="Buttons" type="HBoxContainer" parent="MainMenu/Panel/Box"]
+alignment = 1
+theme_override_constants/separation = 16
+
+[node name="Play" type="Button" parent="MainMenu/Panel/Box/Buttons"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(140, 0)
+focus_neighbor_right = NodePath("../QuitGame")
+text = "Play"
+
+[node name="QuitGame" type="Button" parent="MainMenu/Panel/Box/Buttons"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(140, 0)
+focus_neighbor_left = NodePath("../Play")
+text = "Quit"
+
+[node name="PauseMenu" type="CanvasLayer" parent="."]
+layer = 3
+script = ExtResource("3_pause")
+
+[node name="Dim" type="ColorRect" parent="PauseMenu"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.4)
+
+[node name="Panel" type="PanelContainer" parent="PauseMenu"]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -140.0
+offset_top = -120.0
+offset_right = 140.0
+offset_bottom = 120.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
+
+[node name="Box" type="VBoxContainer" parent="PauseMenu/Panel"]
+alignment = 1
+theme_override_constants/separation = 12
+
+[node name="Title" type="Label" parent="PauseMenu/Panel/Box"]
+theme_override_font_sizes/font_size = 38
+text = "Paused"
+horizontal_alignment = 1
+
+[node name="Resume" type="Button" parent="PauseMenu/Panel/Box"]
+unique_name_in_owner = true
+text = "Resume"
+
+[node name="LeaveMatch" type="Button" parent="PauseMenu/Panel/Box"]
+unique_name_in_owner = true
+text = "Menu"
+
+[node name="QuitFromPause" type="Button" parent="PauseMenu/Panel/Box"]
+unique_name_in_owner = true
+text = "Quit"

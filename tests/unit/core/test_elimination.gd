@@ -112,8 +112,10 @@ func test_shove_credit_outlasts_the_stagger() -> void:
 	assert_true(hit, "the shove landed")
 	assert_true(stagger_ended_on_deck, "the stagger ran out before the edge")
 	assert_true(sim.state.seats[1].is_out(), "and the slide carried it over")
-	assert_eq(events[0].kind, SimEvent.Kind.SEAT_OUT)
-	assert_eq([events[0].seat, events[0].credit], [1, 0], "credited to the shover")
+	var outs := events.filter(
+		func(event: SimEvent) -> bool: return event.kind == SimEvent.Kind.SEAT_OUT
+	)
+	assert_eq([outs[0].seat, outs[0].credit], [1, 0], "credited to the shover")
 
 
 func test_everyone_out_together_is_a_draw() -> void:

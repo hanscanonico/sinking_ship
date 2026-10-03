@@ -16,12 +16,10 @@ static func default_config(seed_value: int, seats: int = 0) -> MatchConfig:
 	return MatchConfig.from_rules(load(DEFAULT_MATCH), seed_value, seats)
 
 
-## [param config] with every seat a bot of the default match's tier.
+## [param config] with every seat a bot of its tier.
 static func bots_only(config: MatchConfig) -> MatchRunner:
-	var match_rules: MatchRules = load(DEFAULT_MATCH)
 	return MatchRunner.new(
-		MatchSim.create(config),
-		BotInputSource.fill(config, BotProfile.for_tier(match_rules.bot_tier))
+		MatchSim.create(config), BotInputSource.fill(config, BotProfile.for_tier(config.bot_tier))
 	)
 
 

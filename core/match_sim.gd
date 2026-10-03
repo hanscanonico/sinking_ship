@@ -105,7 +105,7 @@ func step(frames: Array[InputFrame]) -> Array[SimEvent]:
 		_forces(pose_now)
 		var feet_before := _move(tick, events)
 		_ground(tick, events, feet_before)
-		_shoves()
+		_shoves(tick, events)
 		_verdict(_water(pose_now, tick), tick, events)
 	state.tick += 1
 	if state.phase == MatchState.Phase.COUNTDOWN and state.tick >= config.countdown_ticks:
@@ -328,7 +328,7 @@ func _ground(tick: int, events: Array[SimEvent], feet_before: PackedFloat64Array
 
 ## Every active shove against the bodies as they stand now; all of this tick's
 ## hits apply together, so simultaneous shoves both land.
-func _shoves() -> void:
+func _shoves(tick: int, events: Array[SimEvent]) -> void:
 	var attempts: Array[ShoveResolver.Attempt] = []
 	for player: PlayerState in _live_seats():
 		if (
@@ -369,6 +369,7 @@ func _shoves() -> void:
 		knock[hit.target] += hit.direction * speed
 		rock[hit.shover] -= hit.direction * _rules.recoil
 		landed[hit.shover] = 1
+		events.append(SimEvent.shove_landed(tick, hit.shover, hit.target))
 		if hit_by[hit.target] == -1:
 			hit_by[hit.target] = hit.shover
 	for player: PlayerState in _live_seats():
