@@ -2,12 +2,13 @@
 
 `AGENTS.md` is a symlink to this file — edit only `CLAUDE.md`.
 
-**Sinking Ship** (working title) — a 3D battle-royale survival brawl on a sinking ship, in
-Godot 4.7 and typed GDScript. Bots first; online play later.
+**Sinking Ship** (working title) — a first-person 3D battle-royale survival brawl on a
+sinking ship with rooms, in Godot 4.7 and typed GDScript. Bots first; online play later.
 
-Design of record: `.lavish/sinking-ship-plan.html`
+Design of record: `.lavish/sinking-ship-plan.html` (rev 3)
 
-- `sinking-ship-plan.html` — the MVP (SH1–SH15) and the destination (SH16–SH23). The match is
+- `sinking-ship-plan.html` — the MVP (SH1–SH15 plus SH3b, SH9b, SH14b) and the destination
+  (SH16–SH23). The match is
   a Node-free 30 Hz sim in `core/` that scenes only draw (D1, D2); every seat — human, bot,
   remote — enters as one quantized `InputFrame` per tick (D3); same seed + same input log ⇒
   same digest on the same build (D4); `from_snapshot(snapshot())` continues exactly and
@@ -16,7 +17,10 @@ Design of record: `.lavish/sinking-ship-plan.html`
   function of (scenario, seed, tick) — bow-down is one scenario value, never a rule — and
   `SinkSchedule` is the only water authority (D7); bots are players reading a delayed
   `BotView` (D10); online will be server-authoritative snapshots with client re-simulation
-  (D11); `ShoveResolver` takes positions as data and `MatchRunner` is the one loop (D13).
+  (D11); `ShoveResolver` takes positions as data and `MatchRunner` is the one loop (D13);
+  the game is first person and the elevated camera is only the observer tool (D14); rooms
+  are thin wall blockers with door openings, floors at negative heights and steep stairs as
+  ramps, and water inside a room is the sea plane (D6, D7).
 
 ## Commands
 
