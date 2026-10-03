@@ -9,7 +9,7 @@ extends Resource
 @export var think_period: int
 ## Each choice of heading is off by up to this many degrees either way.
 @export var aim_error_deg: float
-## How far a bot keeps from the waterline and the deck's edges, in metres.
+## How far a bot keeps from the waterline and the deck's open edges, in metres.
 @export var edge_margin_m: float
 
 

@@ -7,6 +7,8 @@ extends Resource
 ## Height of the main deck above the sea when the ship is level and unsunk.
 @export var freeboard: float
 @export var platforms: Array[ShipPlatform] = []
+## Railing spans along platform edges; an edge with no span is open.
+@export var railings: Array[ShipRailing] = []
 ## Where seats start, ship-local; the match stream shuffles who gets which.
 @export var spawns: Array[Vector3] = []
 
@@ -21,6 +23,16 @@ func problems(seats: int) -> PackedStringArray:
 	for platform: ShipPlatform in platforms:
 		if platform == null or platform.area.size.x <= 0.0 or platform.area.size.y <= 0.0:
 			found.append("ship: a platform has no area")
+	for railing: ShipRailing in railings:
+		if railing == null or railing.from.is_equal_approx(railing.to):
+			found.append("ship: a railing has no length")
+		elif railing.platform < 0 or railing.platform >= platforms.size():
+			found.append("ship: a railing names platform %d" % railing.platform)
+		elif (
+			platforms[railing.platform] != null
+			and not platforms[railing.platform].edge_holds(railing.from, railing.to)
+		):
+			found.append("ship: a railing does not run along its platform's edge")
 	if spawns.size() < seats:
 		found.append("ship: %d spawns for %d seats" % [spawns.size(), seats])
 	return found

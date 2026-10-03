@@ -82,11 +82,13 @@ func test_same_tick_exits_share_a_place() -> void:
 
 
 func test_shove_credit_outlasts_the_stagger() -> void:
-	# Seat 0 shoves seat 1 toward the starboard edge from far enough that the stagger
-	# ends on the deck and the leftover slide carries it over: still seat 0's kill.
+	# Seat 0 shoves seat 1 toward the starboard edge, through the railing's gap, from
+	# far enough that the stagger ends on the deck and the leftover slide carries it
+	# over: still seat 0's kill.
 	var sim := SimFixtures.sim(2)
-	SimFixtures.place(sim, 0, Vector3(0.0, 0.0, 0.2), 90.0)
-	SimFixtures.place(sim, 1, Vector3(0.0, 0.0, 1.3), -90.0)
+	var gap := SimFixtures.rail_gap(SimFixtures.deck().platforms[0].area.end.y)
+	SimFixtures.place(sim, 0, Vector3(gap.x, 0.0, 0.2), 90.0)
+	SimFixtures.place(sim, 1, Vector3(gap.x, 0.0, 1.3), -90.0)
 	var shove := {0: SimFixtures.frame(0, Vector2.ZERO, InputFrame.SHOVE)}
 	var events: Array[SimEvent] = []
 	var hit := false

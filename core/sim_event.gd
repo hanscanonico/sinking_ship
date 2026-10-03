@@ -3,11 +3,12 @@ extends RefCounted
 ## A typed hint of what happened on a tick. Presentation may announce or animate
 ## one; it never infers state from one — the snapshot is the truth (D5).
 
-enum Kind { SEAT_OUT, MATCH_ENDED }
+enum Kind { SEAT_OUT, MATCH_ENDED, VAULTED }
 
 var kind: Kind
 var tick: int
-## SEAT_OUT: who went out. MATCH_ENDED: the winner, or -1 for a draw.
+## SEAT_OUT: who went out. MATCH_ENDED: the winner, or -1 for a draw. VAULTED:
+## who tipped over a railing.
 var seat: int
 var place: int
 var cause: PlayerState.Cause = PlayerState.Cause.NONE
@@ -29,6 +30,10 @@ static func seat_out(
 	event.cause = out_cause
 	event.credit = by
 	return event
+
+
+static func vaulted(event_tick: int, vaulting_seat: int) -> SimEvent:
+	return SimEvent.new(Kind.VAULTED, event_tick, vaulting_seat)
 
 
 static func match_ended(event_tick: int, winner: int) -> SimEvent:

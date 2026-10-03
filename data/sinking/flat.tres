@@ -12,24 +12,33 @@ at = 35.0
 sink = 1.1
 trim_deg = 8.0
 
+[sub_resource type="Resource" id="Resource_l1st0"]
+script = ExtResource("1_03d8l")
+at = 60.0
+sink = 1.87
+trim_deg = 8.77
+
 [sub_resource type="Resource" id="Resource_ohips"]
 script = ExtResource("1_03d8l")
 at = 100.0
 sink = 3.1
 trim_deg = 10.0
+heel_deg = -9.5
 
 [sub_resource type="Resource" id="Resource_ag2v5"]
 script = ExtResource("1_03d8l")
 at = 160.0
-sink = 5.8
+sink = 6.75
 trim_deg = 10.0
+heel_deg = -15.5
 
 [sub_resource type="Resource" id="Resource_qt6oy"]
 script = ExtResource("1_03d8l")
 at = 200.0
 sink = 9.0
 trim_deg = 10.0
+heel_deg = -15.5
 
 [resource]
 script = ExtResource("2_46ypu")
-keyframes = Array[ExtResource("1_03d8l")]([SubResource("Resource_p5ecm"), SubResource("Resource_epro3"), SubResource("Resource_ohips"), SubResource("Resource_ag2v5"), SubResource("Resource_qt6oy")])
+keyframes = Array[ExtResource("1_03d8l")]([SubResource("Resource_p5ecm"), SubResource("Resource_epro3"), SubResource("Resource_l1st0"), SubResource("Resource_ohips"), SubResource("Resource_ag2v5"), SubResource("Resource_qt6oy")])
