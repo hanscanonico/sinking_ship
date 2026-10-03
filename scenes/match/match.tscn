@@ -1,4 +1,4 @@
-[gd_scene load_steps=12 format=3]
+[gd_scene load_steps=13 format=3]
 
 [ext_resource type="Script" path="res://scenes/match/match_scene.gd" id="1_scene"]
 [ext_resource type="Script" path="res://scenes/match/sim_driver.gd" id="2_driver"]
@@ -10,6 +10,7 @@
 [ext_resource type="PackedScene" path="res://scenes/art/sea_and_sky.tscn" id="8_sea"]
 [ext_resource type="Script" path="res://scenes/match/first_person_camera.gd" id="9_eyes"]
 [ext_resource type="Script" path="res://scenes/match/first_person_hud.gd" id="10_fp_hud"]
+[ext_resource type="Script" path="res://scenes/audio/match_audio.gd" id="11_audio"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
 bg_color = Color(0.06, 0.09, 0.13, 0.85)
@@ -116,6 +117,10 @@ horizontal_alignment = 1
 
 [node name="FirstPersonHud" type="CanvasLayer" parent="."]
 script = ExtResource("10_fp_hud")
+
+[node name="Audio" type="Node3D" parent="."]
+process_priority = 2
+script = ExtResource("11_audio")
 
 [node name="EndOverlay" type="CanvasLayer" parent="."]
 layer = 2

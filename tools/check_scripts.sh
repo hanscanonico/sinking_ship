@@ -201,6 +201,16 @@ if (($# == 0)); then
 			printf '%s\n' "$engine" >&2
 			failed=$((failed + 1))
 		fi
+
+		# Sound is presentation (D1, D12): cues are played under scenes/ from events
+		# and phases, so the sim and the bots never reach the audio server or hold a
+		# stream. The prefix catches every AudioStream* class and its players.
+		audio="$(grep -rnE '\bAudio(Server|Stream)' "${sim_dirs[@]}" --include='*.gd' || true)"
+		if [[ -n "$audio" ]]; then
+			echo "check: core/ and ai/ are silent — sound is played under scenes/ from events" >&2
+			printf '%s\n' "$audio" >&2
+			failed=$((failed + 1))
+		fi
 	fi
 fi
 

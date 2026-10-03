@@ -37,6 +37,12 @@ func _init(comfort: float = 1.0) -> void:
 	_comfort = comfort
 
 
+## Scales every kick and shake from now on — one already running too — by
+## [param comfort], ViewSettings' view_kick.
+func set_strength(comfort: float) -> void:
+	_comfort = comfort
+
+
 ## Kicks for the shoves [param seat] landed or took on [param snapshot]'s tick, as
 ## seen along the ship-plane [param yaw]; once per tick. Switching seats never kicks.
 func follow(snapshot: Dictionary, seat: int, yaw: float) -> void:

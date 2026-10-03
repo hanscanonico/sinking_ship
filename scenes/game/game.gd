@@ -10,11 +10,15 @@ extends Node
 ## eyes (D14); the observer camera is a tool that only --observer and captures
 ## reach, and --capture-eye takes a capture through a seat's eyes instead;
 ## --observer-cut cuts the observer's view of the ship away to show the inside.
+## The saved volumes and window apply as it boots; the settings screen opens from
+## the main menu and the pause menu.
 
 const MATCH_DATA := "res://data/match/default.tres"
 const MATCH_SCENE := preload("res://scenes/match/match.tscn")
 ## Frames drawn after a capture's moment, so the view has settled on it.
 const CAPTURE_SETTLE_FRAMES := 3
+## Frames between silencing everything and quitting, for the mixer to let go.
+const QUIT_SETTLE_FRAMES := 4
 
 var _args: MatchArgs
 var _match_rules: MatchRules
@@ -28,11 +32,17 @@ var _capturing := false
 
 @onready var _menu: MainMenu = $MainMenu
 @onready var _pause: PauseMenu = $PauseMenu
+@onready var _settings: SettingsMenu = $SettingsMenu
+@onready var _music: MusicPlayer = $Music
 
 
 func _ready() -> void:
 	_args = MatchArgs.parse(OS.get_cmdline_user_args())
 	_seeds.randomize()
+	AudioSettings.local().apply()
+	# A capture keeps the window it was launched with, whatever the player saved.
+	if _args.capture_path.is_empty():
+		ViewSettings.local().apply_window()
 	_match_rules = load(MATCH_DATA)
 	var problems := _match_rules.problems()
 	if not problems.is_empty():
@@ -40,10 +50,13 @@ func _ready() -> void:
 		get_tree().quit(1)
 		return
 	_menu.play_requested.connect(_play)
-	_menu.quit_requested.connect(get_tree().quit)
+	_menu.settings_requested.connect(_settings.open)
+	_menu.quit_requested.connect(_quit)
 	_pause.resume_requested.connect(_set_paused.bind(false))
 	_pause.menu_requested.connect(_to_menu)
-	_pause.quit_requested.connect(get_tree().quit)
+	_pause.settings_requested.connect(_settings.open)
+	_pause.quit_requested.connect(_quit)
+	_settings.view_changed.connect(_on_view_changed)
 	var seats := _args.seats if _args.seats > 0 else _match_rules.seats
 	var seed_text := str(_args.seed_value) if _args.seed_value >= 0 else ""
 	_menu.setup(_match_rules, seats, _match_rules.bot_tier, seed_text)
@@ -51,6 +64,7 @@ func _ready() -> void:
 		_play.call_deferred(seats, _match_rules.bot_tier, seed_text)
 	else:
 		_menu.open()
+		_music.play_menu()
 
 
 func _process(_delta: float) -> void:
@@ -99,6 +113,7 @@ func _play(seats: int, tier: StringName, seed_text: String) -> void:
 		_match.rematch_requested.connect(_rematch)
 		_match.menu_requested.connect(_to_menu)
 	_menu.hide()
+	_music.play_match()
 	_set_paused(false)
 	var capturing := not _args.capture_path.is_empty()
 	var observer := _args.observer or (capturing and _args.capture_eye < 0)
@@ -116,6 +131,26 @@ func _to_menu() -> void:
 		_match.queue_free()
 		_match = null
 	_menu.open()
+	_music.play_menu()
+
+
+## Stops every sound — the music, the menus' ticks, the match's — and gives the
+## mixer a few frames to let go of them first: a playback still alive at exit is
+## reported as leaked.
+func _quit() -> void:
+	for player: AudioStreamPlayer in find_children("*", "AudioStreamPlayer", true, false):
+		player.stop()
+	if _match != null:
+		_match.queue_free()
+		_match = null
+	for _frame in QUIT_SETTLE_FRAMES:
+		await get_tree().process_frame
+	get_tree().quit()
+
+
+func _on_view_changed(settings: ViewSettings) -> void:
+	if _match != null:
+		_match.apply_view(settings)
 
 
 func _set_paused(paused: bool) -> void:

@@ -53,12 +53,12 @@ match:
 		-- $(match-args) $(if $(SECONDS),--seconds=$(SECONDS)) | grep -v '^\[godot_ai'
 
 # --fixed-fps steps one tick per drawn frame, so the capture lands on its exact
-# tick however fast the machine draws.
+# tick however fast the machine draws. A capture is silent: the Dummy driver.
 capture:
 	$(call require-godot)
 	@test -n "$(AT)" || { echo "capture: AT=<seconds of match time> is required" >&2; exit 1; }
 	@mkdir -p "$(dir $(CAPTURE))"
-	$(GODOT) --path . --fixed-fps 30 -- $(match-args) --autoplay \
+	$(GODOT) --path . --audio-driver Dummy --fixed-fps 30 -- $(match-args) --autoplay \
 		--capture="$(CAPTURE)" --capture-at=$(AT) $(if $(EYE),--capture-eye=$(EYE)) \
 		$(if $(CUT),--observer-cut=$(CUT))
 

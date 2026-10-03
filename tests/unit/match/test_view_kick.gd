@@ -96,6 +96,8 @@ func test_view_kick_zero_turns_it_off() -> void:
 	assert_almost_eq(
 		_degrees(half.advance(ViewKick.KICK_RISE)), ViewKick.LAND_DEG * 0.5, 0.0001, "scaled"
 	)
+	half.set_strength(0.0)
+	assert_eq(half.offset(), Vector3.ZERO, "the settings screen turns it off mid-match")
 
 
 func test_a_lurch_shake_is_small_and_over_within_half_a_second() -> void:
