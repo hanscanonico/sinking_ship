@@ -50,7 +50,8 @@ func test_buttons_are_held_state() -> void:
 			starts += 1
 	assert_eq(starts, 1, "holding shove is one press")
 
-	SimFixtures.step(sim, {0: SimFixtures.frame(0)})
+	# Let go, and the held shove is thrown and recovered from before the next press.
+	SimFixtures.step(sim, {0: SimFixtures.frame(0)}, 20)
 	SimFixtures.step(sim, {0: shove})
 	assert_eq(sim.state.seats[0].action, PlayerState.Action.WINDUP, "release and press again")
 

@@ -25,6 +25,7 @@ var _observer: bool
 ## Whose eyes the view is in while that seat is dry: the local seat's, or a capture's.
 var _eye_seat := LOCAL_SEAT
 var _paused := false
+var _marks := BrawlMarks.new()
 
 @onready var _driver: SimDriver = $SimDriver
 @onready var _view: MatchView = $MatchView
@@ -39,6 +40,7 @@ func _ready() -> void:
 	_end.rematch_requested.connect(rematch_requested.emit)
 	_end.menu_requested.connect(menu_requested.emit)
 	_driver.stepped.connect(func(events: Array[SimEvent]) -> void: _stats.add(events))
+	add_child(_marks)
 
 
 func _exit_tree() -> void:
@@ -124,6 +126,7 @@ func start(
 	_view.setup(_driver, sim, LOCAL_SEAT)
 	_view.look_out_of(-1 if observer else _eye_seat)
 	_hud.setup(sim)
+	_marks.setup(_driver, _view, sim)
 	_eyes.setup(settings)
 	_first_person_hud.setup(sim, _names, not observer)
 	_observer_camera.reset(_view.seat_world_position(_eye_seat), _deck_bounds(config.ship))

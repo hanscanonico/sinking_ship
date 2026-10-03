@@ -37,6 +37,8 @@ func look_by_stick(delta: float) -> void:
 func next_frame(tick: int) -> InputFrame:
 	var stick := Input.get_vector("move_left", "move_right", "move_up", "move_down")
 	var buttons := InputFrame.SHOVE if Input.is_action_pressed("shove") else 0
+	if Input.is_action_pressed("brace"):
+		buttons |= InputFrame.BRACE
 	var look := InputFrame.quantize_yaw(yaw)
 	return InputFrame.new(_seat, tick, InputFrame.from_screen(stick, look), buttons, look)
 

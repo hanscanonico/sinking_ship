@@ -49,6 +49,30 @@ extends Resource
 ## Seconds of stagger on landing, per metre fallen.
 @export var fall_stagger_per_m: float
 
+@export_group("Brace, charge and stamina")
+## The share of a shove's knockback a brace takes off, when the shove comes into
+## its front arc and is not a full charge; 0…1.
+@export var brace_reduction: float
+## Half-angle of a brace's front arc, around its facing.
+@export var brace_arc_deg: float
+## Stamina a brace spends per second.
+@export var brace_drain: float
+## Holding shove this long, from the press, turns it into a charge.
+@export var charge_threshold: float
+## Held this long, from the press, a charge is full.
+@export var charge_full: float
+## A full charge's knockback; a charge released sooner sends between knockback and this.
+@export var charged_knockback: float
+## The most a charging body walks at, in m/s.
+@export var charge_walk: float
+## Stamina a charged shove spends on release; a charge needs this much to start.
+@export var charge_cost: float
+@export var stamina_max: float
+## Stamina regained per second, once the regen delay has passed.
+@export var stamina_regen: float
+## Seconds after spending before stamina starts to come back.
+@export var stamina_regen_delay: float
+
 
 ## Every reason these numbers cannot run a match; empty when they can.
 func problems() -> PackedStringArray:
@@ -70,13 +94,25 @@ func problems() -> PackedStringArray:
 		"vault_speed",
 		"railing_height",
 		"step_height",
+		"brace_drain",
+		"charge_threshold",
+		"charge_walk",
+		"stamina_max",
+		"stamina_regen",
 	]:
 		if float(get(field)) <= 0.0:
 			found.append("brawl rules: %s must be positive" % field)
-	for field: String in ["shove_recovery", "recoil", "vault_lift", "fall_stagger_per_m"]:
+	for field: String in [
+		"shove_recovery",
+		"recoil",
+		"vault_lift",
+		"fall_stagger_per_m",
+		"charge_cost",
+		"stamina_regen_delay",
+	]:
 		if float(get(field)) < 0.0:
 			found.append("brawl rules: %s must not be negative" % field)
-	for field: String in ["shove_cone_deg", "autoaim_cone_deg"]:
+	for field: String in ["shove_cone_deg", "autoaim_cone_deg", "brace_arc_deg"]:
 		if float(get(field)) < 0.0 or float(get(field)) > 180.0:
 			found.append("brawl rules: %s must be within 0…180" % field)
 	if restagger_mult < 1.0:
@@ -87,4 +123,19 @@ func problems() -> PackedStringArray:
 		found.append("brawl rules: slide_friction must be below the pull at the grip angle")
 	if step_height >= body_height:
 		found.append("brawl rules: step_height must be below body_height")
+	if brace_reduction < 0.0 or brace_reduction > 1.0:
+		found.append("brawl rules: brace_reduction must be within 0…1")
+	# Compared in ticks, as the sim counts them: a threshold that rounds onto the
+	# windup would make every held tap a charge.
+	var threshold_ticks := Ticks.from_seconds(charge_threshold)
+	if threshold_ticks <= Ticks.from_seconds(shove_windup):
+		found.append("brawl rules: charge_threshold must be more ticks than shove_windup")
+	if Ticks.from_seconds(charge_full) <= threshold_ticks:
+		found.append("brawl rules: charge_full must be more ticks than charge_threshold")
+	if charged_knockback < knockback:
+		found.append("brawl rules: charged_knockback must be at least knockback")
+	if charge_walk > walk_speed:
+		found.append("brawl rules: charge_walk must not exceed walk_speed")
+	if charge_cost > stamina_max:
+		found.append("brawl rules: charge_cost must not exceed stamina_max")
 	return found

@@ -9,3 +9,5 @@ think_period = 4
 aim_error_deg = 12.0
 edge_margin_m = 1.2
 turn_rate_deg = 720.0
+brace_read = 0.4
+charge_read = 0.6

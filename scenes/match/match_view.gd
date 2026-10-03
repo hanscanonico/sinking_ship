@@ -53,6 +53,11 @@ func look_out_of(seat: int) -> void:
 		_shadows[seat].visible = false
 
 
+## The seat whose eyes the view is in, or -1 for none.
+func eye_seat() -> int:
+	return _eye_seat
+
+
 ## Where [param seat] is drawn, in the world.
 func seat_world_position(seat: int) -> Vector3:
 	return _bodies[seat].global_position

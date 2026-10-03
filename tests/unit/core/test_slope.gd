@@ -57,9 +57,9 @@ func test_staggered_slides_at_any_tilt() -> void:
 		SimFixtures.place(sim, 1, Vector3(-6.9, 0.0, 0.0), 180.0)
 		var idle_at := Vector3(-8.0, 0.0, -2.5)
 		SimFixtures.place(sim, 2, idle_at)
-		var shove := SimFixtures.frame(0, Vector2.ZERO, InputFrame.SHOVE)
 		var drift := 0.0
-		for _tick in Ticks.RATE:
+		for tick in Ticks.RATE:
+			var shove := SimFixtures.frame(0, Vector2.ZERO, InputFrame.SHOVE if tick == 0 else 0)
 			SimFixtures.step(sim, {0: shove, 1: SimFixtures.frame(1), 2: SimFixtures.frame(2)})
 			if sim.state.seats[1].is_staggered():
 				drift = sim.state.seats[1].pos.z

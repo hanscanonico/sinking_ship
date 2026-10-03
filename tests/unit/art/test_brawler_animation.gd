@@ -8,6 +8,8 @@ const SHOVE := BrawlerAnimation.Move.SHOVE
 const RECOVER := BrawlerAnimation.Move.RECOVER
 const STAGGER := BrawlerAnimation.Move.STAGGER
 const FALL := BrawlerAnimation.Move.FALL
+const BRACE := BrawlerAnimation.Move.BRACE
+const CHARGE := BrawlerAnimation.Move.CHARGE
 
 
 func _entry(sim: MatchSim, seat: int = 0) -> Dictionary:
@@ -42,7 +44,8 @@ func test_a_landed_shove_flinches_the_shoved_for_its_stagger() -> void:
 	var sim := SimFixtures.sim(2)
 	SimFixtures.place(sim, 0, Vector3.ZERO, 0.0)
 	SimFixtures.place(sim, 1, Vector3(0.9, 0.0, 0.0), 180.0)
-	SimFixtures.step(sim, {0: SimFixtures.frame(0, Vector2.ZERO, InputFrame.SHOVE)}, 4)
+	SimFixtures.step(sim, {0: SimFixtures.frame(0, Vector2.ZERO, InputFrame.SHOVE)})
+	SimFixtures.step(sim, {0: SimFixtures.frame(0)}, 3)
 	var shoved := _entry(sim, 1)
 	assert_gt(shoved["stagger"], 0, "the shove landed")
 	var vel: Vector3 = shoved["vel"]
@@ -50,6 +53,23 @@ func test_a_landed_shove_flinches_the_shoved_for_its_stagger() -> void:
 	while _entry(sim, 1)["stagger"] > 0:
 		SimFixtures.step(sim, {0: SimFixtures.frame(0)})
 	assert_ne(_move(_entry(sim, 1)), STAGGER)
+
+
+func test_a_charge_and_a_brace_pose_off_the_snapshot() -> void:
+	var rules := SimFixtures.rules()
+	var sim := SimFixtures.sim(2)
+	SimFixtures.place(sim, 0, Vector3.ZERO)
+	SimFixtures.place(sim, 1, Vector3(-5.0, 0.0, 0.0))
+	var frames := {
+		0: SimFixtures.frame(0, Vector2.ZERO, InputFrame.SHOVE),
+		1: SimFixtures.frame(1, Vector2.ZERO, InputFrame.BRACE),
+	}
+	SimFixtures.step(sim, frames, Ticks.from_seconds(rules.charge_threshold) + 1)
+	assert_eq(_move(_entry(sim, 0)), CHARGE, "held past the threshold")
+	assert_eq(_move(_entry(sim, 1)), BRACE)
+	SimFixtures.step(sim, {0: SimFixtures.frame(0), 1: SimFixtures.frame(1)})
+	assert_eq(_move(_entry(sim, 0)), SHOVE, "let go")
+	assert_eq(_move(_entry(sim, 1)), IDLE)
 
 
 func test_airborne_falls_whatever_else_holds() -> void:

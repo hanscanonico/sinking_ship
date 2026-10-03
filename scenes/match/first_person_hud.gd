@@ -4,9 +4,9 @@ extends CanvasLayer
 ## a crosshair that lights when ShoveResolver.would_hit says a shove now would land
 ## (D13), the inclinometer, the height above the sea, the stamina and cold slots,
 ## an arc at the screen's edge for a shove winding up beside or behind, and a
-## chevron and a name over every brawler in sight within CHEVRON_RANGE. All of it
-## reads the snapshot, SinkSchedule's pose, Surfaces and the bodies as drawn (D5).
-## From the observer camera only the inclinometer shows.
+## chevron, a stamina ring and a name over every brawler in sight within
+## CHEVRON_RANGE. All of it reads the snapshot, SinkSchedule's pose, Surfaces and
+## the bodies as drawn (D5). From the observer camera only the inclinometer shows.
 
 ## How far away a brawler still gets its chevron, in metres.
 const CHEVRON_RANGE := 15.0
@@ -22,9 +22,15 @@ const INK := Color(0.06, 0.09, 0.13, 0.9)
 const STEEP := Color(1.0, 0.72, 0.2)
 ## Under a metre to the sea: the height readout warns.
 const LOW := Color(1.0, 0.3, 0.25)
+const STAMINA := Color(0.55, 0.9, 0.45)
+## Run dry, stamina stays red until it is full again.
+const EXHAUSTED := Color(0.95, 0.3, 0.25)
 const AIM := Color(1.0, 1.0, 1.0, 0.75)
 const AIM_LIT := Color(1.0, 0.85, 0.3)
 const DIAL_RADIUS := 30.0
+## A stamina ring round a chevron.
+const RING_RADIUS := 13.0
+const RING_WIDTH := 3.0
 ## Half the width of a windup arc, in radians round the screen.
 const ARC_HALF := 0.3
 ## How wide a line of text may run under a dial, and elsewhere.
@@ -89,7 +95,7 @@ func _draw_hud() -> void:
 	if me.is_empty() or me["out"]:
 		return
 	_draw_crosshair(ShoveResolver.would_hit(_snapshot, _seat, _rules, _surfaces))
-	_draw_readouts(pose.world_height(me["pos"]))
+	_draw_readouts(me, pose.world_height(me["pos"]))
 	_draw_chevrons(me["pos"])
 	_draw_windup_arcs(me["pos"])
 
@@ -158,9 +164,9 @@ func _draw_crosshair(lit: bool) -> void:
 		_canvas.draw_arc(centre, 16.0, 0.0, TAU, 32, colour, 2.5, true)
 
 
-## Bottom left: metres from the feet down to the sea, then the stamina and cold
-## slots, empty until SH4 and SH5 fill them.
-func _draw_readouts(above_sea: float) -> void:
+## Bottom left: metres from [param me]'s feet down to the sea, then the stamina and
+## cold slots — stamina filled from [param me], cold empty until SH5 fills it.
+func _draw_readouts(me: Dictionary, above_sea: float) -> void:
 	var at := Vector2(24.0, _canvas.size.y - 120.0)
 	var colour := LOW if above_sea < 1.0 else TEXT
 	_text(at, "%.1f m above the sea" % above_sea, colour, READOUT_TEXT, HORIZONTAL_ALIGNMENT_LEFT)
@@ -169,11 +175,15 @@ func _draw_readouts(above_sea: float) -> void:
 		_text(at, slot, Color(TEXT, 0.5), READOUT_TEXT, HORIZONTAL_ALIGNMENT_LEFT)
 		var bar := Rect2(at + Vector2(80.0, -13.0), Vector2(140.0, 14.0))
 		_canvas.draw_rect(bar, INK)
+		if slot == "Stamina":
+			var filled := Rect2(bar.position, Vector2(bar.size.x * _stamina(me), bar.size.y))
+			_canvas.draw_rect(filled, _stamina_colour(me))
 		_canvas.draw_rect(bar, Color(TEXT, 0.35), false, 1.5)
 
 
-## A chevron in seat colour and the seat's name over every other brawler within
-## CHEVRON_RANGE that no blocker hides from [param my_pos] — never through a wall.
+## A chevron in seat colour, ringed by its stamina, and the seat's name over every
+## other brawler within CHEVRON_RANGE that no blocker hides from [param my_pos] —
+## never through a wall.
 func _draw_chevrons(my_pos: Vector3) -> void:
 	for entry: Dictionary in _snapshot["seats"]:
 		var seat: int = entry["seat"]
@@ -191,6 +201,7 @@ func _draw_chevrons(my_pos: Vector3) -> void:
 			continue
 		var at := _camera.unproject_position(over)
 		at.y = maxf(at.y, CHEVRON_TOP)
+		_ring(at, entry)
 		var colour := ArtPalette.seat_colour(seat)
 		var chevron := PackedVector2Array(
 			[at + Vector2(-9.0, -6.0), at + Vector2(9.0, -6.0), at + Vector2(0.0, 5.0)]
@@ -198,11 +209,29 @@ func _draw_chevrons(my_pos: Vector3) -> void:
 		_canvas.draw_colored_polygon(chevron, colour)
 		chevron.append(chevron[0])
 		_canvas.draw_polyline(chevron, INK, 1.5, true)
-		_text(at + Vector2(0.0, -12.0), _names[seat], colour, READOUT_TEXT)
+		_text(at + Vector2(0.0, -RING_RADIUS - 6.0), _names[seat], colour, READOUT_TEXT)
+
+
+## [param entry]'s stamina as a ring round [param centre], filled clockwise from the top.
+func _ring(centre: Vector2, entry: Dictionary) -> void:
+	_canvas.draw_arc(centre, RING_RADIUS, 0.0, TAU, 32, INK, RING_WIDTH, true)
+	var share := _stamina(entry)
+	if share > 0.0:
+		var top := -PI * 0.5
+		_canvas.draw_arc(
+			centre,
+			RING_RADIUS,
+			top,
+			top + TAU * share,
+			32,
+			_stamina_colour(entry),
+			RING_WIDTH,
+			true
+		)
 
 
 ## An arc at the screen's edge, toward each seat outside the field of view that
-## winds up or throws a shove close enough to land on [param my_pos] before its
+## winds up, charges or throws a shove close enough to land on [param my_pos] before its
 ## active window ends — its reach plus a walk through windup and active.
 func _draw_windup_arcs(my_pos: Vector3) -> void:
 	var reach := (
@@ -215,7 +244,7 @@ func _draw_windup_arcs(my_pos: Vector3) -> void:
 		if entry["seat"] == _seat or entry["out"]:
 			continue
 		var action: PlayerState.Action = entry["action"]
-		if action != PlayerState.Action.WINDUP and action != PlayerState.Action.ACTIVE:
+		if action == PlayerState.Action.IDLE or action == PlayerState.Action.RECOVERY:
 			continue
 		var their_pos: Vector3 = entry["pos"]
 		var offset := Vector2(their_pos.x - my_pos.x, their_pos.z - my_pos.z)
@@ -246,6 +275,15 @@ func _text(
 	var left := at - Vector2(width * 0.5, 0.0) if align == HORIZONTAL_ALIGNMENT_CENTER else at
 	_canvas.draw_string_outline(_font, left, text, align, width, FONT_SIZE, 5, INK)
 	_canvas.draw_string(_font, left, text, align, width, FONT_SIZE, colour)
+
+
+## [param entry]'s stamina, as a share of the most there is.
+func _stamina(entry: Dictionary) -> float:
+	return entry["stamina"] / _rules.stamina_max
+
+
+func _stamina_colour(entry: Dictionary) -> Color:
+	return EXHAUSTED if entry["exhausted"] else STAMINA
 
 
 func _entry(seat: int) -> Dictionary:

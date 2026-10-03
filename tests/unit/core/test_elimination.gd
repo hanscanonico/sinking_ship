@@ -97,12 +97,13 @@ func test_shove_credit_outlasts_the_stagger() -> void:
 	var gap := SimFixtures.rail_gap(SimFixtures.deck().platforms[0].area.end.y)
 	SimFixtures.place(sim, 0, Vector3(gap.x, 0.0, 0.2), 90.0)
 	SimFixtures.place(sim, 1, Vector3(gap.x, 0.0, 1.3), -90.0)
-	var shove := {0: SimFixtures.frame(0, Vector2.ZERO, InputFrame.SHOVE, 90.0)}
 	var events: Array[SimEvent] = []
 	var hit := false
 	var stagger_ended_on_deck := false
-	for _tick in 120:
-		events.append_array(_exits(SimFixtures.step(sim, shove)))
+	for tick in 120:
+		var buttons := InputFrame.SHOVE if tick == 0 else 0
+		var tap := {0: SimFixtures.frame(0, Vector2.ZERO, buttons)}
+		events.append_array(_exits(SimFixtures.step(sim, tap)))
 		var target := sim.state.seats[1]
 		hit = hit or target.is_staggered()
 		if hit and not target.is_staggered() and target.body == PlayerState.Body.GROUNDED:

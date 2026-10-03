@@ -10,6 +10,9 @@ extends RefCounted
 ## it walks at it and the way it walks otherwise, turning no faster than its
 ## profile's turn rate. It keeps its edge margin from the waterline and from open
 ## edges: a drop, or a railing gap, unless the target stands between the bot and it.
+## On its reads, rolled each think, it charges a bracing target instead of tapping,
+## and braces, standing still and looking at it, against a seat that could be
+## winding up a shove that would land on it.
 
 ## Directions probed around the bot for water and open edges.
 const PROBES := 8
@@ -32,6 +35,12 @@ var _last_buttons := 0
 ## The look this brain last sent, or -1 before its first: it turns from there no
 ## faster than its profile's turn rate (D10).
 var _look := -1
+## Whether this think's reads came up: brace against a windup, charge a brace.
+var _reads_brace := false
+var _reads_charge := false
+## Ticks this charge has been held for; 0 when not charging.
+var _charge_held := 0
+var _charge_full_ticks: int
 
 
 ## [param rng] is this seat's own stream, SeedStreams' (match seed, seat).
@@ -49,6 +58,7 @@ func _init(
 	_surfaces = surfaces
 	_walk_graph = walk_graph
 	_rng = rng
+	_charge_full_ticks = Ticks.from_seconds(rules.charge_full)
 
 
 func decide(view: BotView, tick: int) -> InputFrame:
@@ -97,12 +107,72 @@ func decide(view: BotView, tick: int) -> InputFrame:
 		var stop_s := _rules.walk_speed / _rules.ground_friction
 		var escape_speed := _profile.edge_margin_m / (reaction_s + stop_s)
 		move = move.limit_length(escape_speed / _rules.walk_speed)
-	var buttons := 0
-	if _wants_shove(me, target) and not _last_buttons & InputFrame.SHOVE:
-		buttons = InputFrame.SHOVE
+	var threat := _threat(seen, me)
+	var buttons := _buttons(me, target, threat)
+	if buttons == InputFrame.BRACE:
+		# Rooted: stand still and look at the threat, whose shove the front arc takes.
+		var threat_pos: Vector3 = threat["pos"]
+		watch = Vector2(threat_pos.x - my_pos.x, threat_pos.z - my_pos.z)
+		move = Vector2.ZERO
 	_last_buttons = buttons
 	_turn_toward(watch if watch != Vector2.ZERO else move)
 	return InputFrame.new(seat, tick, InputFrame.quantize(move), buttons, _look)
+
+
+## A charge under way is held until it is full, then let go; otherwise a shove
+## when one would land — a charge if the target braces and the read says so, else
+## a tap — and failing that a brace against [param threat], if the read says so.
+func _buttons(me: Dictionary, target: Dictionary, threat: Dictionary) -> int:
+	if _charge_held > 0:
+		if _charge_held >= _charge_full_ticks:
+			_charge_held = 0
+			return 0
+		_charge_held += 1
+		return InputFrame.SHOVE
+	if _wants_shove(me, target):
+		if target["bracing"] and _reads_charge:
+			_charge_held = 1
+			return InputFrame.SHOVE
+		return 0 if _last_buttons & InputFrame.SHOVE else InputFrame.SHOVE
+	if _reads_brace and not threat.is_empty() and not me["exhausted"]:
+		return InputFrame.BRACE
+	return 0
+
+
+## The nearest seat whose shove would land on the bot as things stand and that
+## could be winding one up: seen in a windup or a charge, or idle and able to
+## start one. The view is reaction_ticks old, so this is a read, never a reaction
+## to a quick windup — that has landed before the bot could see it. Empty when
+## there is none.
+func _threat(seen: Dictionary, me: Dictionary) -> Dictionary:
+	var nearest := {}
+	var best := INF
+	var my_pos: Vector3 = me["pos"]
+	var mine := ShoveResolver.Candidate.new(seat, my_pos, _rules.body_radius, _rules.body_height)
+	for entry: Dictionary in seen["seats"]:
+		if entry["seat"] == seat or entry["out"]:
+			continue
+		var action: PlayerState.Action = entry["action"]
+		if action == PlayerState.Action.ACTIVE or action == PlayerState.Action.RECOVERY:
+			continue
+		if entry["stagger"] > 0:
+			continue
+		if not ShoveResolver.lands(
+			entry["pos"],
+			_rules.body_radius,
+			Vector2.from_angle(entry["facing"]),
+			mine,
+			_rules.shove_reach,
+			_rules.shove_cone_deg,
+			_surfaces,
+			_rules.step_height
+		):
+			continue
+		var distance := my_pos.distance_squared_to(entry["pos"])
+		if distance < best:
+			best = distance
+			nearest = entry
+	return nearest
 
 
 ## Picks the nearest seat still in (ties to the lower seat), this choice's heading
@@ -122,6 +192,8 @@ func _think(seen: Dictionary, me: Dictionary, now_pos: Vector3, pose: ShipPose) 
 			_target = entry["seat"]
 	var error := _profile.aim_error_deg
 	_aim_offset = deg_to_rad(_rng.randf_range(-error, error))
+	_reads_brace = _rng.randf() < _profile.brace_read
+	_reads_charge = _rng.randf() < _profile.charge_read
 	var target_surface: int = _entry(seen, _target)["surface"] if _target != -1 else Surfaces.NONE
 	_seeking_high = (
 		_water_near(now_pos, pose)
