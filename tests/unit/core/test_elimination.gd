@@ -8,15 +8,23 @@ func _overboard(sim: MatchSim, seat: int, x: float) -> void:
 	SimFixtures.place(sim, seat, Vector3(x, 0.0, OVERBOARD_Z))
 
 
-## Steps until [param seat] is out; returns every event on the way.
+## Steps until [param seat] is out; returns every exit and verdict on the way.
 func _until_out(sim: MatchSim, seat: int) -> Array[SimEvent]:
 	var events: Array[SimEvent] = []
 	for _tick in 300:
-		events.append_array(SimFixtures.step(sim))
+		events.append_array(_exits(SimFixtures.step(sim)))
 		if sim.state.seats[seat].is_out():
 			break
 	assert_true(sim.state.seats[seat].is_out(), "seat %d went out" % seat)
 	return events
+
+
+## [param events] without the falls: the seats out and the verdict.
+func _exits(events: Array[SimEvent]) -> Array[SimEvent]:
+	return events.filter(
+		func(event: SimEvent) -> bool:
+			return event.kind == SimEvent.Kind.SEAT_OUT or event.kind == SimEvent.Kind.MATCH_ENDED
+	)
 
 
 func test_feet_below_the_plane_is_out() -> void:
@@ -94,7 +102,7 @@ func test_shove_credit_outlasts_the_stagger() -> void:
 	var hit := false
 	var stagger_ended_on_deck := false
 	for _tick in 120:
-		events.append_array(SimFixtures.step(sim, shove))
+		events.append_array(_exits(SimFixtures.step(sim, shove)))
 		var target := sim.state.seats[1]
 		hit = hit or target.is_staggered()
 		if hit and not target.is_staggered() and target.body == PlayerState.Body.GROUNDED:

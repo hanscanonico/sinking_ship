@@ -100,6 +100,26 @@ func test_bot_keeps_off_a_railing_gap_unless_lined_up() -> void:
 	assert_gt(_first_move(lined_up, 0).y, 0.0, "lined up: walks at the target, toward the gap")
 
 
+func test_bot_finds_its_way_up_to_its_target() -> void:
+	# On the steamer, abaft the deckhouse, its only target standing still on the
+	# bridge: round the deckhouse, up to the boat deck, up to the bridge.
+	var layout := SimFixtures.steamer()
+	var bridge := SimFixtures.platform_named(layout, &"bridge")
+	var config := SimFixtures.config(2, null, SEED, layout)
+	var sim := MatchSim.create(config)
+	SimFixtures.place(sim, 0, Vector3(-10.5, 0.0, 2.5))
+	SimFixtures.place(sim, 1, Vector3(-2.5, layout.platforms[bridge].height, 0.0))
+	var sources: Array[InputSource] = [BotInputSource.new(0, _profile(), config), InputSource.new()]
+	var runner := MatchRunner.new(sim, sources)
+	var reached := false
+	for _tick in 30 * Ticks.RATE:
+		runner.step()
+		if sim.state.seats[0].surface == bridge:
+			reached = true
+			break
+	assert_true(reached, "the bot climbed to the bridge")
+
+
 func test_lone_bot_stays_dry_while_it_can() -> void:
 	var config := SimFixtures.config(1, load(SimFixtures.FLAT_SINKING), SEED)
 	var runner := _bots(config)

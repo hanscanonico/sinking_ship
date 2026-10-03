@@ -130,3 +130,22 @@ func test_ship_is_level_until_the_scenario_starts() -> void:
 	assert_gt(moving.sink, 0.0)
 	assert_gt(moving.trim_deg, 0.0)
 	assert_gt(moving.heel_deg, 0.0)
+
+
+func test_highest_surface_migrates() -> void:
+	# The steamer's bow-down scenario: the stern rises as the bow goes, so the high
+	# ground moves aft from the bridge to the poop deck.
+	var layout := SimFixtures.steamer()
+	var schedule := SinkSchedule.new(
+		load(SimFixtures.STEAMER_SINKING), layout.freeboard, SeedStreams.derive(SEED, "sink")
+	)
+	var surfaces := Surfaces.new(layout)
+	var expected := {
+		60.0: SimFixtures.platform_named(layout, &"bridge"),
+		160.0: SimFixtures.platform_named(layout, &"poop deck"),
+	}
+	for at: float in expected:
+		var pose := schedule.pose_at(Ticks.from_seconds(at))
+		var highest := surfaces.highest_platform(pose)
+		assert_eq(highest, expected[at], "highest at %s s" % at)
+		assert_false(surfaces.flooded(highest, pose), "and dry at %s s" % at)

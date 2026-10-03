@@ -70,26 +70,32 @@ func test_snapshot_continuation_is_exact() -> void:
 			continue
 		if not _continues(snapshots, start, config, golden_frames):
 			return
-	# On some platforms the golden match has no fall in flight at any tick, so a
-	# walk off the deck through the starboard railing's gap stands in for one.
-	var fall := SimFixtures.sim(2)
-	SimFixtures.place(fall, 1, Vector3(-10.0, 0.0, 0.0))
+	# On some platforms the golden match has no fall in flight at any tick, so two
+	# walks stand in for one: off the flat deck through its railing's gap into the
+	# sea, and off the steamer's poop deck down onto its main deck.
+	var into_the_sea := SimFixtures.sim(2)
+	SimFixtures.place(into_the_sea, 1, Vector3(-10.0, 0.0, 0.0))
 	var gap := SimFixtures.rail_gap(SimFixtures.deck().platforms[0].area.end.y)
-	SimFixtures.place(fall, 0, Vector3(gap.x, 0.0, 3.0))
-	var walk: Array[InputFrame] = [SimFixtures.frame(0, Vector2.DOWN), SimFixtures.frame(1)]
-	var walked: Array[Dictionary] = [fall.snapshot()]
-	for _tick in 4 * Ticks.RATE:
-		if fall.is_over():
-			break
-		fall.step(walk)
-		walked.append(fall.snapshot())
-	var walk_frames := func(_tick: int) -> Array[InputFrame]: return walk
-	for start in range(walked.size() - 1):
-		if walked[start]["seats"][0]["state"] != PlayerState.Body.AIRBORNE:
-			continue
-		covered["airborne"] = true
-		if not _continues(walked, start, fall.config, walk_frames):
-			return
+	SimFixtures.place(into_the_sea, 0, Vector3(gap.x, 0.0, 3.0))
+	var onto_a_deck := SimFixtures.sim(2, null, SimFixtures.steamer())
+	SimFixtures.place(onto_a_deck, 1, Vector3(5.0, 0.0, 4.2))
+	SimFixtures.place(onto_a_deck, 0, Vector3(-14.6, 1.2, 0.0))
+	var walks := {into_the_sea: Vector2.DOWN, onto_a_deck: Vector2.RIGHT}
+	for fall: MatchSim in walks:
+		var walk: Array[InputFrame] = [SimFixtures.frame(0, walks[fall]), SimFixtures.frame(1)]
+		var walked: Array[Dictionary] = [fall.snapshot()]
+		for _tick in 4 * Ticks.RATE:
+			if fall.is_over():
+				break
+			fall.step(walk)
+			walked.append(fall.snapshot())
+		var walk_frames := func(_tick: int) -> Array[InputFrame]: return walk
+		for start in range(walked.size() - 1):
+			if walked[start]["seats"][0]["state"] != PlayerState.Body.AIRBORNE:
+				continue
+			covered["airborne"] = true
+			if not _continues(walked, start, fall.config, walk_frames):
+				return
 	for field: String in covered:
 		assert_true(covered[field], "the match resumes from a %s in flight" % field)
 

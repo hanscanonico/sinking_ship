@@ -3,6 +3,8 @@ extends Resource
 ## A flat, standable rectangle in ship space (D6): x toward the bow, z to
 ## starboard, at a height above the main deck.
 
+## What the deck is called, for people reading the data and the tests; no rule reads it.
+@export var name: StringName
 ## The rectangle in the ship's x/z plane: position is its (x, z) minimum corner.
 @export var area: Rect2
 @export var height: float

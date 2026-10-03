@@ -2,11 +2,14 @@ class_name ShipLayout
 extends Resource
 ## The ship as data, in ship-local metres (D6): x toward the bow, z to starboard,
 ## y up, origin on the main deck amidships. Collision never comes from a mesh; the
-## greybox is generated from this.
+## greybox is generated from this. Nothing here assumes a size or a deck count.
 
 ## Height of the main deck above the sea when the ship is level and unsunk.
 @export var freeboard: float
 @export var platforms: Array[ShipPlatform] = []
+## The stairs between platforms; which platforms a ramp joins is where its ends lie.
+@export var ramps: Array[ShipRamp] = []
+@export var blockers: Array[ShipBlocker] = []
 ## Railing spans along platform edges; an edge with no span is open.
 @export var railings: Array[ShipRailing] = []
 ## Where seats start, ship-local; the match stream shuffles who gets which.
@@ -23,6 +26,21 @@ func problems(seats: int) -> PackedStringArray:
 	for platform: ShipPlatform in platforms:
 		if platform == null or platform.area.size.x <= 0.0 or platform.area.size.y <= 0.0:
 			found.append("ship: a platform has no area")
+	for ramp: ShipRamp in ramps:
+		if ramp == null or ramp.area.size.x <= 0.0 or ramp.area.size.y <= 0.0:
+			found.append("ship: a ramp has no area")
+		elif is_equal_approx(ramp.start_height, ramp.end_height):
+			found.append("ship: a ramp does not rise")
+	for blocker: ShipBlocker in blockers:
+		if blocker == null or blocker.top <= blocker.bottom:
+			found.append("ship: a blocker has no height")
+		elif (
+			blocker.shape == ShipBlocker.Shape.BOX
+			and (blocker.area.size.x <= 0.0 or blocker.area.size.y <= 0.0)
+		):
+			found.append("ship: a box blocker has no area")
+		elif blocker.shape == ShipBlocker.Shape.CYLINDER and blocker.radius <= 0.0:
+			found.append("ship: a cylinder blocker has no radius")
 	for railing: ShipRailing in railings:
 		if railing == null or railing.from.is_equal_approx(railing.to):
 			found.append("ship: a railing has no length")

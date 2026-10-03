@@ -39,6 +39,7 @@ static func quantized(snapshot: Dictionary) -> String:
 			roundi(vel.z * 100.0),
 			roundi(rad_to_deg(entry["facing"]) * 100.0),
 			entry["surface"],
+			roundi(float(entry["fall_from"]) * 1000.0),
 			entry["action"],
 			entry["action_ticks"],
 			int(entry["shove_spent"]),

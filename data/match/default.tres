@@ -2,8 +2,8 @@
 
 [ext_resource type="Resource" path="res://data/rules/brawl.tres" id="1_rq8bi"]
 [ext_resource type="Script" path="res://core/match_rules.gd" id="2_cfls3"]
-[ext_resource type="Resource" path="res://data/ships/flat_deck.tres" id="3_efbn2"]
-[ext_resource type="Resource" path="res://data/sinking/flat.tres" id="4_64jf7"]
+[ext_resource type="Resource" path="res://data/ships/steamer.tres" id="3_efbn2"]
+[ext_resource type="Resource" path="res://data/sinking/steamer.tres" id="4_64jf7"]
 
 [resource]
 script = ExtResource("2_cfls3")

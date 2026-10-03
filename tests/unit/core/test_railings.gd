@@ -169,3 +169,43 @@ func _gap_start(gap: Vector2) -> float:
 		if is_equal_approx(railing.from.y, gap.y) and forward_end < gap.x:
 			start = maxf(start, forward_end)
 	return start
+
+
+func test_a_railing_guards_only_its_own_platform() -> void:
+	var layout := SimFixtures.steamer()
+	var surfaces := Surfaces.new(layout)
+	var main_deck := SimFixtures.platform_named(layout, &"main deck")
+	var poop_deck := SimFixtures.platform_named(layout, &"poop deck")
+	# From the poop deck's open forward corner, out over the main deck's starboard
+	# railing, which stands 1.2 m below.
+	var from := Vector3(-14.1, 1.2, 4.0)
+	var to := Vector3(-13.0, 1.2, 5.1)
+	assert_true(surfaces.railed(from, to, main_deck), "the main deck's railing is on that line")
+	assert_false(surfaces.railed(from, to, poop_deck), "but it guards nobody on the poop deck")
+
+
+func test_touching_spans_hold_a_body_once() -> void:
+	# One platform with two spans meeting end to end along its starboard edge.
+	var layout := ShipLayout.new()
+	layout.freeboard = 3.0
+	var platform := ShipPlatform.new()
+	platform.area = Rect2(-5.0, -4.0, 10.0, 8.0)
+	layout.platforms = [platform]
+	var railings: Array[ShipRailing] = []
+	for ends: Array in [
+		[Vector2(-5.0, 4.0), Vector2(0.0, 4.0)], [Vector2(5.0, 4.0), Vector2(0.0, 4.0)]
+	]:
+		var railing := ShipRailing.new()
+		railing.from = ends[0]
+		railing.to = ends[1]
+		railings.append(railing)
+	layout.railings = railings
+	layout.spawns = [Vector3.ZERO]
+	var sim := MatchSim.create(
+		MatchConfig.new(1, 1, SimFixtures.rules(), layout, SimFixtures.calm())
+	)
+	SimFixtures.place(sim, 0, Vector3(0.0, 0.0, 2.0))
+	SimFixtures.step(sim, {0: SimFixtures.frame(0, Vector2.DOWN)}, 2 * Ticks.RATE)
+	var player := sim.state.seats[0]
+	assert_almost_eq(player.pos.z, 4.0 - SimFixtures.rules().body_radius, 0.0001, "at the rail")
+	assert_almost_eq(player.vel.z, 0.0, 0.0001)
