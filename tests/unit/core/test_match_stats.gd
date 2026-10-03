@@ -4,7 +4,7 @@ extends GutTest
 
 const RunMatch := preload("res://tools/run_match.gd")
 
-const WATER := PlayerState.Cause.WATER
+const COLD := PlayerState.Cause.COLD
 
 
 func test_knockout_credit_uses_the_event_field() -> void:
@@ -17,14 +17,14 @@ func test_knockout_credit_uses_the_event_field() -> void:
 			[
 				SimEvent.shove_landed(10, 0, 2),
 				SimEvent.shove_landed(40, 1, 2),
-				SimEvent.seat_out(60, 2, 3, WATER, 0),
+				SimEvent.seat_out(60, 2, 3, COLD, 0),
 			]
 		)
 	)
 	assert_eq(stats.seats[0].knockouts, 1, "credited where the event says")
 	assert_eq(stats.seats[1].knockouts, 0, "a later shove is not a credit")
 
-	stats.add([SimEvent.seat_out(90, 1, 2, WATER, -1)])
+	stats.add([SimEvent.seat_out(90, 1, 2, COLD, -1)])
 	assert_eq(stats.seats[0].knockouts, 1, "no credit, no knock-out")
 	assert_eq(stats.seats[1].knockouts, 0)
 	assert_eq(stats.seats[2].knockouts, 0)
@@ -35,7 +35,7 @@ func test_knockout_credit_uses_the_event_field() -> void:
 	SimFixtures.place(sim, 0, Vector3(gap.x, 0.0, 0.2), 90.0)
 	SimFixtures.place(sim, 1, Vector3(gap.x, 0.0, 1.3), -90.0)
 	var played := MatchStats.new(2, 0)
-	for tick in 120:
+	for tick in 300:
 		var buttons := InputFrame.SHOVE if tick == 0 else 0
 		played.add(SimFixtures.step(sim, {0: SimFixtures.frame(0, Vector2.ZERO, buttons)}))
 		if sim.is_over():
@@ -58,14 +58,14 @@ func test_stats_come_from_events_only() -> void:
 				SimEvent.shove_landed(100, 1, 2),
 				SimEvent.shove_landed(100, 1, 0),
 				SimEvent.shove_landed(130, 1, 2),
-				SimEvent.seat_out(150, 2, 3, WATER, 1),
+				SimEvent.seat_out(150, 2, 3, COLD, 1),
 			]
 		)
 	)
 	assert_false(told.ended)
 	assert_eq(told.seats[1].dry_ticks, -1, "still dry, match running")
 	assert_eq(told.seats[1].place, 0)
-	told.add([SimEvent.seat_out(200, 0, 2, WATER, -1), SimEvent.match_ended(200, 1)])
+	told.add([SimEvent.seat_out(200, 0, 2, COLD, -1), SimEvent.match_ended(200, 1)])
 	assert_true(told.ended)
 	assert_eq(told.winner, 1)
 	assert_eq(

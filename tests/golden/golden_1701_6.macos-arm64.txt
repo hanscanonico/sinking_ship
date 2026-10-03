@@ -1,8 +1,15 @@
-01:05.7 seat 5 out · water · place 6
 01:06.0 lurch coming · heel -15°
 01:07.0 lurched · heel -15°
-01:19.0 seat 1 out · water · place 5
-01:24.8 seat 0 out · water · place 4
-01:36.2 seat 4 out · water · place 3
-01:41.0 seat 3 out · water · place 2
-winner seat 2 at 01:41.0 · digest 162ca154d98dcff2
+01:09.7 seat 5 out · cold · place 6
+01:53.1 seat 0 out · cold · place 5
+01:57.8 seat 2 out · cold · place 4
+02:02.4 lurch coming · heel +20°
+02:03.4 lurched · heel +20°
+02:13.7 bridge collapsing
+02:16.7 bridge collapsed
+02:26.6 lurch coming · heel -16°
+02:27.6 lurched · heel -16°
+02:40.0 the plunge
+02:57.8 seat 1 out · cold · place 3
+03:21.5 seat 3 out · cold · place 2
+winner seat 4 at 03:21.5 · digest eff2f8cd2a3785e9

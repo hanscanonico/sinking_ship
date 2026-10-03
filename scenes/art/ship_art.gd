@@ -5,15 +5,16 @@ extends Node3D
 ## stair to its data — with nothing placed by hand, so any layout in the format
 ## dresses itself. A lofted hull (ShipHull); planked decks; walls white outside and
 ## painted inside under beamed ceilings, with wooden door frames; treads on every
-## ramp; railings of stanchions and rails; a buff funnel with a black top and smoke,
-## a mast; a tarpaulined hatch where a thick box stands outdoors and an engine where
-## one stands in a room; glass, furniture and lifeboats (ShipFittings); and a
-## ShipLamp in every room. Drawn only — the sim never reads a mesh. The sinking's
-## events are drawn as MatchView hands them in (show_sinking): every platform the
-## scenario may collapse and every railing it may fail is built as a node of its
-## own, so a deck about to give way blinks red, then falls onto the floor beneath
-## with its ceiling, beams, railings and the lamp of the room under it, and a failed
-## railing is gone. The walls under it stand.
+## ramp; railings of stanchions and rails; a ladder down the hull side at every
+## boarding ladder; a buff funnel with a black top and smoke, a mast; a tarpaulined
+## hatch where a thick box stands outdoors and an engine where one stands in a room;
+## glass, furniture and lifeboats (ShipFittings); and a ShipLamp in every room.
+## Drawn only — the sim never reads a mesh. The sinking's events are drawn as
+## MatchView hands them in (show_sinking): every platform the scenario may collapse
+## and every railing it may fail is built as a node of its own, so a deck about to
+## give way blinks red, then falls onto the floor beneath with its ceiling, beams,
+## railings, ladders and the lamp of the room under it, and a failed railing is gone.
+## The walls under it stand.
 
 const SHADER := preload("res://scenes/art/ship.gdshader")
 const CUT_SHADER := preload("res://scenes/art/ship_cut.gdshader")
@@ -43,6 +44,14 @@ const RAIL_DEPTH := 0.06
 const MID_RAIL := 0.035
 const POST := 0.06
 const POST_SPACING := 1.5
+## A boarding ladder: its rungs' line stands LADDER_OUT outboard of its deck's edge,
+## clear of the hull side and the toe rail; the top rung is flush with the deck, the
+## rest RUNG_SPACING apart down to LADDER_BELOW under the waterline at rest.
+const LADDER_OUT := 0.12
+const LADDER_BELOW := 0.4
+const RUNG_SPACING := 0.3
+const RUNG := 0.04
+const STILE := 0.06
 ## A cylinder this wide or wider is a funnel; a thinner one is a mast.
 const FUNNEL_FROM := 0.5
 const FUNNEL_SEGMENTS := 20
@@ -122,6 +131,9 @@ func build(
 		_rails.append(_piece(pieces, index in fails, "Railing%d" % index, on))
 		var into: ShipMesh = pieces.get(_rails[index], pieces.get(wreck, mesh))
 		_railing(into, railing, layout.platforms[railing.platform].height, railing_height)
+	for ladder: ShipLadder in layout.ladders:
+		var into: ShipMesh = pieces.get(_wrecks[ladder.platform], mesh)
+		_ladder(into, ladder, layout.platforms[ladder.platform], -layout.freeboard)
 	ShipFittings.new(_space, body_radius).build(mesh)
 	var brass := StandardMaterial3D.new()
 	brass.albedo_color = ArtPalette.BRASS
@@ -290,6 +302,25 @@ func _railing(mesh: ShipMesh, railing: ShipRailing, deck: float, height: float) 
 	_bar(mesh, railing.from, railing.to, deck + height - RAIL_DEPTH * 0.5, cap, ShipPaints.teak)
 	var middle := Vector2.ONE * MID_RAIL
 	_bar(mesh, railing.from, railing.to, deck + height * 0.5, middle, ShipPaints.white)
+
+
+## A ladder hung outboard of [param ladder]'s stretch of [param platform]'s edge:
+## two steel stiles and teak rungs, from the deck to LADDER_BELOW under
+## [param waterline], the sea's height on a level, unsunk ship.
+func _ladder(mesh: ShipMesh, ladder: ShipLadder, platform: ShipPlatform, waterline: float) -> void:
+	var outward := (ladder.to - ladder.from).normalized().orthogonal()
+	if (platform.area.get_center() - ladder.from).dot(outward) > 0.0:
+		outward = -outward
+	var from := ladder.from + outward * LADDER_OUT
+	var to := ladder.to + outward * LADDER_OUT
+	var bottom := waterline - LADDER_BELOW
+	for end: Vector2 in [from, to]:
+		var stile := Rect2(end - Vector2.ONE * STILE * 0.5, Vector2.ONE * STILE)
+		mesh.box(stile, bottom, platform.height, ShipPaints.steel)
+	var rung := platform.height - RUNG * 0.5
+	while rung > bottom:
+		_bar(mesh, from, to, rung, Vector2(RUNG, RUNG), ShipPaints.teak)
+		rung -= RUNG_SPACING
 
 
 ## A bar from [param from] to [param to] (x/z) centred at [param height], of

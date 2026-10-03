@@ -6,10 +6,11 @@ extends Node3D
 ## else. Under them the sea, the wind and the sea rushing in follow the listener's
 ## height above the water and the sinking's pace, and the room's reverb and the
 ## hull's muffling follow whether the seat heard through stands in a room, easing
-## across a doorway rather than snapping. The listener rides the current camera: a
-## seat's eyes, a spectated seat's, or the observer's (D14). Reads snapshots,
-## events, SinkSchedule's pose and the layout's rooms only (D5, D6); nothing it
-## does reaches the sim.
+## across a doorway rather than snapping; with its eyes under the sea, the outside
+## is heard through the water, muffled, the wind gone. The listener rides the current
+## camera: a seat's eyes, a spectated seat's, or the observer's (D14). Reads
+## snapshots, events, SinkSchedule's pose, the layout's rooms and whether the eyes
+## are under (Underwater.is_under) only (D5, D6); nothing it does reaches the sim.
 
 signal cue_played(cue: AudioCue)
 
@@ -24,6 +25,7 @@ const ENCLOSE_SECONDS := 0.25
 
 var _driver: SimDriver
 var _view: MatchView
+var _underwater: Underwater
 var _schedule: SinkSchedule
 var _layout: ShipLayout
 var _step_height: float
@@ -68,10 +70,14 @@ func _exit_tree() -> void:
 
 
 ## Hears [param sim]'s match as [param driver] steps it, from the bodies [param view]
-## draws; [param local_seat] is the one whose win is "you won".
-func setup(driver: SimDriver, sim: MatchSim, view: MatchView, local_seat: int) -> void:
+## draws; [param local_seat] is the one whose win is "you won". [param underwater]
+## says when the eyes heard through are under the sea.
+func setup(
+	driver: SimDriver, sim: MatchSim, view: MatchView, local_seat: int, underwater: Underwater
+) -> void:
 	_driver = driver
 	_view = view
+	_underwater = underwater
 	_schedule = sim.schedule
 	_layout = sim.config.ship
 	_step_height = sim.config.rules.step_height
@@ -107,12 +113,13 @@ func _process(delta: float) -> void:
 		_enclosure, _enclosure_at(_planner.listener_seat), delta / ENCLOSE_SECONDS
 	)
 	_sea.volume_db = AmbienceMix.sea_db(above_sea)
-	_wind.volume_db = AmbienceMix.wind_db(above_sea, _enclosure)
+	var under := _underwater.is_under()
+	_wind.volume_db = AmbienceMix.wind_db(above_sea, _enclosure, under)
 	_rush.volume_db = AmbienceMix.rush_db(sink_rate, above_sea)
 	var sea_filter := _filter(&"Sea")
 	if sea_filter != null:
 		sea_filter.cutoff_hz = AmbienceMix.sea_cutoff_hz(above_sea)
-	_set_enclosure(_enclosure)
+	_set_enclosure(_enclosure, under)
 
 
 func _on_stepped(_events: Array[SimEvent]) -> void:
@@ -185,8 +192,8 @@ func _enclosure_at(seat: int) -> float:
 	return AmbienceMix.enclosure(_layout, entry["pos"], _step_height)
 
 
-## The room's reverb, and the outside heard through the hull.
-func _set_enclosure(enclosure: float) -> void:
+## The room's reverb, and the outside heard through the hull — or the sea.
+func _set_enclosure(enclosure: float, under: bool = false) -> void:
 	var room := AudioServer.get_bus_index(SoundBank.ROOM_BUS)
 	if room != -1:
 		var reverb := AudioServer.get_bus_effect(room, 0) as AudioEffectReverb
@@ -194,7 +201,7 @@ func _set_enclosure(enclosure: float) -> void:
 		AudioServer.set_bus_effect_enabled(room, 0, enclosure > 0.0)
 	var outside := _filter(&"Ambience")
 	if outside != null:
-		outside.cutoff_hz = AmbienceMix.outside_cutoff_hz(enclosure)
+		outside.cutoff_hz = AmbienceMix.outside_cutoff_hz(enclosure, under)
 
 
 ## The low-pass filter on [param bus], or null when the layout has none.

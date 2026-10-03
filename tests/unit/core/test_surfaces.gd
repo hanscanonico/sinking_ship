@@ -190,14 +190,15 @@ func test_a_fall_past_every_surface_reaches_the_sea() -> void:
 	faller.fall_from = start.y
 	var events: Array[SimEvent] = []
 	var passed_every_deck := false
-	for _tick in 3 * Ticks.RATE:
+	for _tick in 8 * Ticks.RATE:
 		events.append_array(SimFixtures.step(sim))
 		passed_every_deck = passed_every_deck or faller.pos.y < lowest
 		if faller.is_out():
 			break
 	assert_true(passed_every_deck, "it fell past the lowest deck")
-	assert_true(faller.is_out(), "into the sea")
-	assert_eq(faller.out_cause, PlayerState.Cause.WATER)
+	assert_eq(_kinds(events, SimEvent.Kind.ENTERED_WATER).size(), 1, "into the sea")
+	assert_true(faller.is_out(), "where the cold took it")
+	assert_eq(faller.out_cause, PlayerState.Cause.COLD)
 	assert_true(_kinds(events, SimEvent.Kind.LANDED).is_empty(), "it never landed")
 
 
@@ -499,9 +500,9 @@ func test_falling_into_a_companionway_lands_on_the_stair() -> void:
 
 
 func test_room_floods_exactly_when_its_floor_is_under_the_sea() -> void:
-	# No compartments (D7): a body standing in a room goes out on the tick the sea
-	# plane passes its feet — whatever walls and doorways stand round it. Without the
-	# scenario's events: a lurch would slide the bodies off the points watched.
+	# No compartments (D7): a body standing in a room starts swimming on the tick the
+	# sea stands wade_depth over its feet — whatever walls and doorways stand round it.
+	# Without the scenario's events: a lurch would slide the bodies off the points watched.
 	var layout := _steamer()
 	var sinking: SinkScenario = load(SimFixtures.STEAMER_SINKING).duplicate()
 	sinking.events = []
@@ -511,20 +512,115 @@ func test_room_floods_exactly_when_its_floor_is_under_the_sea() -> void:
 		SimFixtures.place(sim, seat, rooms[seat])
 		assert_ne(layout.room_at(rooms[seat], 0.01), -1, "seat %d stands in a room" % seat)
 	SimFixtures.place(sim, 2, Vector3(-18.0, 1.2, 0.0))
+	var wade := sim.config.rules.wade_depth
 	var expected := {}
 	for tick in 150 * Ticks.RATE:
 		var pose := sim.schedule.pose_at(tick)
 		for seat: int in rooms:
-			if not expected.has(seat) and (pose.transform * rooms[seat]).y < 0.0:
+			var feet: Vector3 = rooms[seat]
+			if not expected.has(seat) and pose.sea_height(feet.x, feet.z) - feet.y >= wade:
 				expected[seat] = tick
 	assert_eq(expected.size(), 2, "both floors go under")
+	var swam := {}
 	while not sim.is_over() and sim.state.tick < 150 * Ticks.RATE:
-		SimFixtures.step(sim)
+		for event: SimEvent in _kinds(SimFixtures.step(sim), SimEvent.Kind.ENTERED_WATER):
+			swam[event.seat] = event.tick
 	for seat: int in rooms:
-		var body := sim.state.seats[seat]
-		assert_true(body.is_out(), "seat %d out" % seat)
-		assert_eq(body.out_cause, PlayerState.Cause.WATER)
 		assert_eq(
-			body.out_tick, expected.get(seat, -1), "seat %d out as its floor went under" % seat
+			swam.get(seat, -1),
+			expected.get(seat, -1),
+			"seat %d swam as its floor went under" % seat
 		)
+		assert_true(sim.state.seats[seat].is_out(), "seat %d out" % seat)
 	assert_ne(expected[0], expected[1], "each room by its own floor's height, not the hull's")
+
+
+func test_a_ladder_climbs_out_of_reach_and_only_where_it_hangs() -> void:
+	# At the start the main deck stands 3.4 m out of the sea, past any edge's reach:
+	# up the starboard boarding ladder, and nowhere else along that side.
+	var layout := _steamer()
+	var surfaces := Surfaces.new(layout)
+	var rules := SimFixtures.rules()
+	var sim := SimFixtures.sim(1, load(SimFixtures.STEAMER_SINKING), layout)
+	var pose := sim.pose()
+	var ladder: ShipLadder = layout.ladders[1]
+	var middle := (ladder.from + ladder.to) * 0.5
+	var outboard := ladder.from.y + rules.body_radius + 0.2
+	var feet := Vector3(middle.x, pose.sea_height(middle.x, outboard) - rules.swim_depth, outboard)
+	var climb := surfaces.climb_out(feet, Vector2(0.0, -1.0), pose, rules)
+	assert_not_null(climb, "up the ladder")
+	assert_eq(SimFixtures.name_of(layout, climb.surface), &"main deck")
+	assert_eq(climb.stand.y, 0.0)
+	assert_null(surfaces.climb_out(feet, Vector2(0.0, 1.0), pose, rules), "facing away")
+	var aft := feet + Vector3(-4.0, 0.0, 0.0)
+	assert_null(surfaces.climb_out(aft, Vector2(0.0, -1.0), pose, rules), "away from it")
+	var found := surfaces.nearest_climb(aft, pose, rules, 10.0)
+	assert_not_null(found, "the ladder is the nearest way out")
+	assert_almost_eq(found.stand.x, ladder.from.x, 0.0001, "its nearer, after end")
+
+
+func test_the_ship_is_sunk_only_when_every_surface_is() -> void:
+	var surfaces := Surfaces.new(_steamer())
+	var schedule := SinkSchedule.new(
+		load(SimFixtures.STEAMER_SINKING), _steamer().freeboard, RandomNumberGenerator.new()
+	)
+	var depth := SimFixtures.rules().wade_depth
+	assert_false(surfaces.sunk(schedule.pose_at(0), depth))
+	assert_false(surfaces.sunk(schedule.pose_at(150 * Ticks.RATE), depth))
+	assert_true(surfaces.sunk(schedule.pose_at(240 * Ticks.RATE), depth), "after the plunge")
+
+
+func test_sunk_passes_over_a_collapsed_platform() -> void:
+	# The flat deck 1 m under the sea, and a roof standing 3 m over its middle: the
+	# ship is not sunk while the roof stands, and is once it has collapsed.
+	var layout: ShipLayout = SimFixtures.deck().duplicate()
+	var roof := ShipPlatform.new()
+	roof.name = &"roof"
+	roof.area = Rect2(-1.0, -1.0, 2.0, 2.0)
+	roof.height = 3.0
+	var platforms := layout.platforms.duplicate()
+	platforms.append(roof)
+	layout.platforms = platforms
+	var surfaces := Surfaces.new(layout)
+	var sinking := SimFixtures.scenario([[0.0, layout.freeboard + 1.0, 0.0, 0.0]])
+	var pose := SimFixtures.sim(1, sinking, layout).pose()
+	var depth := SimFixtures.rules().wade_depth
+	assert_false(surfaces.sunk(pose, depth), "the roof stands out of the sea")
+	pose.collapsed = [&"roof"] as Array[StringName]
+	surfaces.honour(pose)
+	assert_true(surfaces.sunk(pose, depth), "gone, it is nothing standing")
+
+
+func test_a_collapsed_deck_takes_its_ladder() -> void:
+	# Below the starboard boarding ladder, with the main deck collapsed under the pose:
+	# no way up it, and it is nobody's nearest way out.
+	var layout := _steamer()
+	var surfaces := Surfaces.new(layout)
+	var rules := SimFixtures.rules()
+	var pose := SimFixtures.sim(1, load(SimFixtures.STEAMER_SINKING), layout).pose()
+	var ladder: ShipLadder = layout.ladders[1]
+	var middle := (ladder.from + ladder.to) * 0.5
+	var outboard := ladder.from.y + rules.body_radius + 0.2
+	var feet := Vector3(middle.x, pose.sea_height(middle.x, outboard) - rules.swim_depth, outboard)
+	assert_not_null(surfaces.climb_out(feet, Vector2(0.0, -1.0), pose, rules), "up it, standing")
+	pose.collapsed = [&"main deck"] as Array[StringName]
+	surfaces.honour(pose)
+	assert_null(surfaces.climb_out(feet, Vector2(0.0, -1.0), pose, rules), "not up it, gone")
+	assert_null(surfaces.nearest_climb(feet, pose, rules, 10.0), "nor anywhere near")
+
+
+func test_nobody_climbs_onto_a_round_blocker_top() -> void:
+	# The sea 0.4 m under the steamer's funnel top, everything else long under: a
+	# swimmer pressing into the funnel finds no way up it.
+	var layout := _steamer()
+	var surfaces := Surfaces.new(layout)
+	var rules := SimFixtures.rules()
+	var funnel: ShipBlocker = layout.blockers[0]
+	assert_eq(funnel.shape, ShipBlocker.Shape.CYLINDER)
+	var sea := funnel.top - 0.4
+	var sinking := SimFixtures.scenario([[0.0, layout.freeboard + sea, 0.0, 0.0]])
+	var pose := SimFixtures.sim(1, sinking, layout).pose()
+	var beside := funnel.centre + Vector2(0.0, funnel.radius + rules.body_radius + 0.05)
+	var feet := Vector3(beside.x, sea - rules.swim_depth, beside.y)
+	assert_null(surfaces.climb_out(feet, Vector2(0.0, -1.0), pose, rules), "not up a funnel")
+	assert_null(surfaces.nearest_climb(feet, pose, rules, 10.0), "nor is it a way out")

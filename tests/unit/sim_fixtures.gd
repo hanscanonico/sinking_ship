@@ -181,6 +181,26 @@ static func sent(player: PlayerState) -> Vector2:
 	return Vector2(moving.x, moving.z)
 
 
+## Puts [param seat] afloat in the sea at [param pos]'s x/z, at rest — its feet
+## swim_depth under the sea there — looking [param facing_deg] from the bow toward
+## starboard.
+static func swim(match_sim: MatchSim, seat: int, pos: Vector3, facing_deg: float = 0.0) -> void:
+	place(match_sim, seat, pos, facing_deg)
+	var player := match_sim.state.seats[seat]
+	var sea := match_sim.pose().sea_height(pos.x, pos.z)
+	player.pos.y = sea - match_sim.config.rules.swim_depth
+	player.body = PlayerState.Body.SWIMMING
+	player.surface = Surfaces.NONE
+
+
+## The flat deck standing [param freeboard] out of the sea, within a swimmer's reach
+## when that is low.
+static func low_deck(freeboard: float) -> ShipLayout:
+	var layout: ShipLayout = deck().duplicate()
+	layout.freeboard = freeboard
+	return layout
+
+
 ## A frame looking [param look_deg] from the bow toward starboard; without one,
 ## step() keeps the seat looking where it does — where place() turned it, say.
 static func frame(

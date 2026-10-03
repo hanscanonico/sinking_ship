@@ -339,6 +339,63 @@ func test_cap_puts_everyone_left_out_together() -> void:
 	assert_eq(events.back().seat, -1, "a draw: the sea wins")
 
 
+func test_the_cap_settles_swimmers_by_cold() -> void:
+	var rules := SimFixtures.rules()
+	var cap := Ticks.from_seconds(2.0)
+	# One seat still on deck, two swimming: the deck's is the lone warmest — at the cap
+	# nobody has to be swimming — and the swimmers place by the cold they have left.
+	var sim := SimFixtures.sim(3, SimFixtures.with_events(SimFixtures.calm(), [], 2.0))
+	SimFixtures.swim(sim, 1, Vector3(0.0, 0.0, 8.0))
+	SimFixtures.swim(sim, 2, Vector3(0.0, 0.0, -8.0))
+	sim.state.seats[1].cold = rules.cold_meter - 0.5
+	sim.state.seats[2].cold = rules.cold_meter - 1.0
+	var events := SimFixtures.step(sim, {}, 3 * Ticks.RATE)
+	assert_true(sim.is_over())
+	assert_eq(events.back().kind, SimEvent.Kind.MATCH_ENDED)
+	assert_eq(events.back().seat, 0, "the lone warmest wins")
+	for seat: int in [1, 2]:
+		var player := sim.state.seats[seat]
+		assert_eq([player.out_tick, player.out_cause], [cap, PlayerState.Cause.COLD])
+	assert_eq([sim.state.seats[1].place, sim.state.seats[2].place], [2, 3], "warmer places higher")
+
+	# Two swimmers as warm as each other and warmer than the third: a draw.
+	var tied := SimFixtures.sim(3, SimFixtures.with_events(SimFixtures.calm(), [], 2.0))
+	for seat: int in 3:
+		SimFixtures.swim(tied, seat, Vector3(-6.0 + 6.0 * seat, 0.0, 8.0))
+	tied.state.seats[2].cold = rules.cold_meter - 1.0
+	var ended := SimFixtures.step(tied, {}, 3 * Ticks.RATE)
+	assert_true(tied.is_over())
+	assert_eq(ended.back().seat, -1, "a tie for the warmest is the sea's")
+	var places := tied.state.seats.map(func(player: PlayerState) -> int: return player.place)
+	assert_eq(places, [1, 1, 3])
+
+
+func test_a_climb_whose_deck_collapses_drops_the_climber_back_in() -> void:
+	# The sea 0.4 m under the steamer's bridge, which goes while a swimmer beside it is
+	# climbing onto it: it lets go, back into the sea.
+	var layout := SimFixtures.steamer()
+	var rules := SimFixtures.rules()
+	var sea := 4.7 - 0.4
+	var sinking := SimFixtures.with_events(
+		SimFixtures.scenario([[0.0, layout.freeboard + sea, 0.0, 0.0]]),
+		[SimFixtures.collapse(0.3, &"bridge", 0.2)]
+	)
+	var sim := SimFixtures.sim(1, sinking, layout)
+	SimFixtures.swim(sim, 0, Vector3(-2.5, 0.0, 1.5 + rules.body_radius + 0.2))
+	var climber := sim.state.seats[0]
+	var press := {0: SimFixtures.frame(0, Vector2(0.0, -1.0))}
+	SimFixtures.step(sim, press, 2)
+	assert_true(climber.is_climbing(), "it started up onto the bridge")
+	var events := SimFixtures.step(sim, press, Ticks.RATE)
+	var kinds := _kinds(events)
+	assert_true(SimEvent.Kind.PLATFORM_COLLAPSED in kinds, "the bridge went")
+	assert_false(SimEvent.Kind.CLIMBED_OUT in kinds, "it never stood on it")
+	assert_false(climber.is_climbing())
+	assert_eq(climber.body, PlayerState.Body.SWIMMING, "back in the sea")
+	assert_lt(climber.pos.y, sea, "under the surface's height, afloat")
+	assert_false(climber.is_out())
+
+
 func test_mirrored_scenario_also_ends_by_its_cap() -> void:
 	var layout := SimFixtures.steamer()
 	var mirror := _mirrored()

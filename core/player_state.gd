@@ -3,10 +3,11 @@ extends RefCounted
 ## One seat's body and timers. Every field here is in the snapshot (D5): a field
 ## that affects the future and is missing from to_dict() is a continuation bug.
 
-enum Body { GROUNDED, AIRBORNE, OUT }
+## SWIMMING: in the sea (SH5), climbing out of it while climb_left counts down.
+enum Body { GROUNDED, AIRBORNE, SWIMMING, OUT }
 ## CHARGE: the shove held past charge_threshold, until it is released.
 enum Action { IDLE, WINDUP, ACTIVE, RECOVERY, CHARGE }
-enum Cause { NONE, WATER }
+enum Cause { NONE, COLD }
 
 var seat: int
 ## Ship-local; y is the feet's height above the main deck.
@@ -46,9 +47,17 @@ var stagger_ticks: int
 var hitstop: int
 ## The velocity a hit-stop holds back, handed back as the stop ends.
 var held_vel: Vector3
+## Seconds of swimming left before the cold puts the seat out.
+var cold: float
+## Ticks of a climb out of the sea left; 0 when not climbing.
+var climb_left: int
+## Where the climb puts the feet, standing.
+var climb_to: Vector3
 ## The seat whose shove last landed on this one, until this body moves under its
-## own input again; -1 otherwise.
+## own input again on deck — through a swim, until it regains one; -1 otherwise.
 var last_hit_by: int = -1
+## The tick that shove landed on, or -1.
+var last_hit_at: int = -1
 ## 0 while still in; the shared finishing place once out.
 var place: int
 var out_tick: int = -1
@@ -80,6 +89,10 @@ func is_frozen() -> bool:
 	return hitstop > 0
 
 
+func is_climbing() -> bool:
+	return climb_left > 0
+
+
 func to_dict() -> Dictionary:
 	return {
 		"seat": seat,
@@ -106,7 +119,11 @@ func to_dict() -> Dictionary:
 		"stagger": stagger_ticks,
 		"hitstop": hitstop,
 		"held_vel": held_vel,
+		"cold": cold,
+		"climb": climb_left,
+		"climb_to": climb_to,
 		"last_hit_by": last_hit_by,
+		"last_hit_at": last_hit_at,
 		"prev_buttons": prev_buttons,
 		"last_input": [last_move.x, last_move.y, last_look, last_buttons],
 	}
@@ -136,7 +153,11 @@ static func from_dict(entry: Dictionary) -> PlayerState:
 	player.stagger_ticks = entry["stagger"]
 	player.hitstop = entry["hitstop"]
 	player.held_vel = entry["held_vel"]
+	player.cold = entry["cold"]
+	player.climb_left = entry["climb"]
+	player.climb_to = entry["climb_to"]
 	player.last_hit_by = entry["last_hit_by"]
+	player.last_hit_at = entry["last_hit_at"]
 	player.prev_buttons = entry["prev_buttons"]
 	var last_input: Array = entry["last_input"]
 	player.last_move = Vector2i(last_input[0], last_input[1])

@@ -44,6 +44,7 @@ var _kick: ViewKick
 @onready var _arms: FirstPersonArms = $FirstPersonCamera/Arms
 @onready var _hud: Hud = $Hud
 @onready var _first_person_hud: FirstPersonHud = $FirstPersonHud
+@onready var _underwater: Underwater = $Underwater
 @onready var _end: EndOverlay = $EndOverlay
 @onready var _audio: MatchAudio = $Audio
 
@@ -98,6 +99,7 @@ func _process(delta: float) -> void:
 	_arms.show_seat(
 		viewed, _driver.previous["seats"][viewed], snapshot["seats"][viewed], _driver.alpha
 	)
+	_underwater.show_eye(_eyes.global_position)
 	_first_person_hud.show_view(snapshot, viewed, yaw, _eyes, _view)
 
 
@@ -166,8 +168,9 @@ func start(
 	_eyes.setup(settings)
 	_arms.setup(config.rules)
 	_first_person_hud.setup(sim, _names, not observer, _prompts)
+	_underwater.setup($SeaAndSky/Environment as WorldEnvironment)
 	_observer_camera.whole_ship = observer and is_finite(observer_cut)
-	_audio.setup(_driver, sim, _view, LOCAL_SEAT)
+	_audio.setup(_driver, sim, _view, LOCAL_SEAT, _underwater)
 	_observer_camera.reset(_view.seat_world_position(_eye_seat), _deck_bounds(config.ship))
 	if observer:
 		_observer_camera.make_current()

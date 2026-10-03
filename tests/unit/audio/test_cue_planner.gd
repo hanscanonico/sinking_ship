@@ -9,12 +9,14 @@ const GRUNT := AudioCue.Kind.GRUNT
 const WHOOSH := AudioCue.Kind.WHOOSH
 const LANDING := AudioCue.Kind.LANDING
 const SPLASH := AudioCue.Kind.SPLASH
+const STROKE := AudioCue.Kind.STROKE
 const IMPACT := AudioCue.Kind.IMPACT
 const GROAN := AudioCue.Kind.GROAN
 const GROUNDED := PlayerState.Body.GROUNDED
 const AIRBORNE := PlayerState.Body.AIRBORNE
+const SWIMMING := PlayerState.Body.SWIMMING
 ## The golden match heard through its countdown and first shoves; the splash of
-## a real exit is test_seat_out_by_water_splashes_once's.
+## a real fall in is test_going_into_the_sea_splashes_once's.
 const HEARD_TICKS := 15 * Ticks.RATE
 ## What only the sim may name: the live match, its loop and its seats. Enum reads
 ## are allowed; SinkSchedule and Surfaces are the authorities the planner asks.
@@ -93,6 +95,19 @@ func test_footsteps_follow_speed_and_stop_in_the_air() -> void:
 	assert_eq(airborne.size(), 0, "feet off the deck make no steps")
 
 
+func test_a_swimmer_strokes_instead_of_stepping() -> void:
+	var sim := SimFixtures.sim(1)
+	var ticks := Ticks.from_seconds(3.0)
+	var speed := sim.config.rules.swim_speed
+	var swimming := _cross(_planner(sim), sim, speed, SWIMMING, ticks, 0)
+	assert_eq(_of(swimming, FOOTSTEP).size(), 0, "no feet on a deck")
+	var strokes := _of(swimming, STROKE)
+	assert_almost_eq(strokes.size(), int(speed * 3.0 / CuePlanner.SWIM_STROKE), 1, "a stroke apart")
+	assert_false(strokes[0].positional, "your own strokes are in your head")
+	var floating := _cross(_planner(sim), sim, 0.0, SWIMMING, ticks, 0)
+	assert_eq(_of(floating, STROKE).size(), 0, "no strokes floating still")
+
+
 func test_a_body_frozen_in_a_hit_stop_makes_no_steps() -> void:
 	var sim := SimFixtures.sim(1)
 	var planner := _planner(sim)
@@ -156,29 +171,42 @@ func test_a_full_charge_whooshes_and_lands_heavy() -> void:
 		assert_eq(impacts[0].seat, 1, "the impact sounds from the one hit")
 
 
-func test_seat_out_by_water_splashes_once() -> void:
+func test_going_into_the_sea_splashes_once() -> void:
 	var sim := SimFixtures.sim(2)
 	var gap := SimFixtures.rail_gap(SimFixtures.deck().platforms[0].area.end.y)
 	SimFixtures.place(sim, 0, Vector3(gap.x, 0.0, 0.2), 90.0)
 	SimFixtures.place(sim, 1, Vector3(gap.x, 0.0, 1.3), -90.0)
 	var rows: Array = []
 	# Tapped, not held: a held shove becomes a charge that waits for its release (SH4).
-	for tick in 120:
-		var buttons := InputFrame.SHOVE if tick % 20 == 0 else 0
+	# Then long enough for the cold to take the one in the sea.
+	for tick in 120 + Ticks.from_seconds(sim.config.rules.cold_meter):
+		var buttons := InputFrame.SHOVE if tick % 20 == 0 and tick < 120 else 0
 		rows.append({0: SimFixtures.frame(0, Vector2.ZERO, buttons, 90.0)})
-	var heard := _play(_planner(sim), sim, rows)
-	assert_true(sim.snapshot()["seats"][1]["out"], "shoved overboard")
+	var planner := _planner(sim)
+	var heard: Array[AudioCue] = []
+	var went_in := -1
+	for frames: Dictionary in rows:
+		var previous := sim.snapshot()
+		for event: SimEvent in SimFixtures.step(sim, frames):
+			if event.kind == SimEvent.Kind.ENTERED_WATER and went_in == -1:
+				went_in = event.tick
+		heard.append_array(planner.plan(previous, sim.snapshot()))
+	assert_ne(went_in, -1, "shoved overboard")
+	assert_true(sim.snapshot()["seats"][1]["out"], "and the cold took it")
 	var splashes := _of(heard, SPLASH)
-	assert_eq(splashes.size(), 1, "one splash, however long the match is heard after")
+	assert_eq(splashes.size(), 1, "one splash going in, and none going out by the cold")
 	assert_eq(splashes[0].seat, 1)
 	assert_true(splashes[0].positional)
-	assert_eq(splashes[0].tick, sim.snapshot()["seats"][1]["out_tick"], "on the tick it went in")
-	assert_eq(_of(heard, AudioCue.Kind.WIN_STING).size(), 1, "and the last one dry is you")
+	assert_false(splashes[0].heavy)
+	assert_eq(splashes[0].tick, went_in, "on the tick it went in")
+	assert_eq(_of(heard, AudioCue.Kind.WIN_STING).size(), 1, "and the last one in is you")
 
-	# Out any other way (no rule sends a seat out dry yet; SH5 may) makes no splash.
-	var dry := sim.snapshot().duplicate(true)
-	dry["events"] = [SimEvent.seat_out(dry["tick"], 0, 1, PlayerState.Cause.NONE, -1).to_dict()]
-	assert_eq(_of(_planner(sim).plan(sim.snapshot(), dry), SPLASH).size(), 0, "only water splashes")
+	# A climber shoved back in goes in heavy.
+	var thrown := sim.snapshot().duplicate(true)
+	thrown["events"] = [SimEvent.knocked_back_in(thrown["tick"], 1, 0).to_dict()]
+	var back := _of(_planner(sim).plan(sim.snapshot(), thrown), SPLASH)
+	assert_eq(back.size(), 1)
+	assert_true(back[0].heavy, "a climber knocked back in splashes heavy")
 
 
 func test_landing_thud_scales_with_stagger() -> void:

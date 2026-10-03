@@ -1,12 +1,12 @@
 class_name MatchTranscript
 extends RefCounted
 ## A match told as text, one line per exit and per sinking event, and one for the end:
-##   00:52.3 seat 4 out · water · place 6
+##   00:52.3 seat 4 out · cold · place 6
 ##   02:12.4 bridge collapsing
 ##   winner seat 2 at 02:21.0 · digest 9f3c…
 ## What `make match` prints and what the golden files hold. Seats are sim seat ids.
 
-const CAUSES := {PlayerState.Cause.NONE: "none", PlayerState.Cause.WATER: "water"}
+const CAUSES := {PlayerState.Cause.NONE: "none", PlayerState.Cause.COLD: "cold"}
 const DIGEST_LENGTH := 16
 
 var _lines := PackedStringArray()

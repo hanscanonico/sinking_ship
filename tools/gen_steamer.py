@@ -29,7 +29,7 @@ def rect_xz(x0, x1, z0, z1):
     return rect(x0, z0, x1 - x0, z1 - z0)
 
 subs = []
-platforms, ramps, blockers, railings, rooms = [], [], [], [], []
+platforms, ramps, blockers, railings, ladders, rooms = [], [], [], [], [], []
 used = set()
 
 def sub(kind_id, script, fields):
@@ -79,6 +79,14 @@ def railing(rid, plat, a, b):
     f.append(("from", "Vector2(%s, %s)" % (num(a[0]), num(a[1]))))
     f.append(("to", "Vector2(%s, %s)" % (num(b[0]), num(b[1]))))
     railings.append(sub("Railing_" + rid, "4_rail", f))
+
+def ladder(lid, plat, a, b):
+    f = []
+    if plat != 0:
+        f.append(("platform", str(plat)))
+    f.append(("from", "Vector2(%s, %s)" % (num(a[0]), num(a[1]))))
+    f.append(("to", "Vector2(%s, %s)" % (num(b[0]), num(b[1]))))
+    ladders.append(sub("Ladder_" + lid, "7_ladder", f))
 
 def room(rid, name, x0, x1, z0, z1, floor):
     f = [("name", '&"%s"' % name), ("area", rect_xz(x0, x1, z0, z1))]
@@ -221,6 +229,13 @@ railing("inner_stair_starboard", MD, (-1.25, 1.0), (-0.15, 1.0))
 railing("forward_companionway_port", MF, (9, 0.9), (12, 0.9))
 railing("forward_companionway_starboard", SS, (9, 2.0), (12, 2.0))
 
+# --- Boarding ladders (SH5), one down each side amidships, beside the railing
+# gaps where bodies go over: the main deck stands 3.4 m out of the sea, far past a
+# swimmer's reach, so without them nobody who goes over the side before the bow is
+# down (about 1:25) has anywhere to climb out. A climb up one takes ~2.2 s.
+ladder("port", MAIN, (1.0, -5), (2.2, -5))
+ladder("starboard", SS, (1.0, 5), (2.2, 5))
+
 # --- Rooms, to the middle of their walls.
 room("forward_hold", "forward hold", 4, 15, -3.8, 3.8, LOWER)
 room("engine_room", "engine room", -3, 4, -4.8, 4.8, LOWER)
@@ -251,14 +266,16 @@ head = """[gd_resource type="Resource" script_class="ShipLayout" format=3]
 [ext_resource type="Script" path="res://core/ship_railing.gd" id="4_rail"]
 [ext_resource type="Script" path="res://core/ship_layout.gd" id="5_layout"]
 [ext_resource type="Script" path="res://core/ship_room.gd" id="6_room"]
+[ext_resource type="Script" path="res://core/ship_ladder.gd" id="7_ladder"]
 """
 res = ["[resource]", 'script = ExtResource("5_layout")', "freeboard = 3.4",
        "platforms = " + arr("1_plat", platforms),
        "ramps = " + arr("2_ramp", ramps),
        "blockers = " + arr("3_block", blockers),
        "railings = " + arr("4_rail", railings),
+       "ladders = " + arr("7_ladder", ladders),
        "spawns = Array[Vector3]([%s])" % ", ".join("Vector3(%s, %s, %s)" % tuple(num(c) for c in s) for s in spawns),
        "rooms = " + arr("6_room", rooms)]
 with open(out, "w") as f:
     f.write(head + "\n" + "\n\n".join(subs) + "\n\n" + "\n".join(res) + "\n")
-print(len(platforms), "platforms", len(ramps), "ramps", len(blockers), "blockers", len(railings), "railings", len(rooms), "rooms")
+print(len(platforms), "platforms", len(ramps), "ramps", len(blockers), "blockers", len(railings), "railings", len(ladders), "ladders", len(rooms), "rooms")

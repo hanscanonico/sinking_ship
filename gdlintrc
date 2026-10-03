@@ -13,3 +13,7 @@ disable:
 # a bot or the HUD asks is one public method on it; its index (SH18) lands behind
 # the same door. gdtoolkit's default is 20.
 max-public-methods: 26
+
+# MatchSim is the one tick (D2): the brawl, the sinking and the sea are each private
+# steps of it in §4's order, and together outgrow the default 1000 lines.
+max-file-lines: 1100

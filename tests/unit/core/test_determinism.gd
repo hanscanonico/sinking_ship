@@ -155,6 +155,80 @@ func test_continuation_through_brace_charge_and_stamina() -> void:
 		assert_true(covered[field], "the duel resumes from a %s in flight" % field)
 
 
+## The golden match may climb nowhere on a platform, so a scripted scene carries
+## the sea: beside a deck 0.4 m out of it, seat 0 swims, climbs, is shoved back
+## in by seat 1 — both frozen in the hit-stop — and climbs out again to dry off,
+## while seat 2 drops in from 2 m, dunks and floats up, the ship lurches, and a
+## roof over the deck collapses under seat 3 — a sim rebuilt from any of it must
+## continue.
+func test_continuation_through_swimming_and_climbing() -> void:
+	var layout := SimFixtures.low_deck(0.4)
+	var roof := ShipPlatform.new()
+	roof.name = &"roof"
+	roof.area = Rect2(6.0, -2.0, 3.0, 4.0)
+	roof.height = 1.0
+	var platforms := layout.platforms.duplicate()
+	platforms.append(roof)
+	layout.platforms = platforms
+	var scenario := SimFixtures.with_events(
+		SimFixtures.calm(), [SimFixtures.lurch(1.0, 5.0), SimFixtures.collapse(2.0, &"roof", 0.5)]
+	)
+	var sim := MatchSim.create(SimFixtures.config(4, scenario, 1, layout))
+	SimFixtures.swim(sim, 0, Vector3(0.0, 0.0, 4.6))
+	SimFixtures.place(sim, 1, Vector3(0.0, 0.0, 3.4), 90.0)
+	SimFixtures.place(sim, 2, Vector3(-6.0, 2.0, 5.5))
+	SimFixtures.place(sim, 3, Vector3(7.5, 1.0, 0.0))
+	var scene := func(tick: int) -> Array[InputFrame]:
+		var shove := InputFrame.SHOVE if tick == 4 else 0
+		return [
+			SimFixtures.frame(0, Vector2(0.0, -1.0), 0, -90.0),
+			SimFixtures.frame(1, Vector2.ZERO, shove, 90.0),
+			SimFixtures.frame(2, Vector2.ZERO, 0, 0.0),
+			SimFixtures.frame(3, Vector2.ZERO, 0, 0.0),
+		]
+	var played: Array[Dictionary] = [sim.snapshot()]
+	for tick in 4 * Ticks.RATE:
+		sim.step(scene.call(tick))
+		played.append(sim.snapshot())
+	var covered := {
+		"swim": false,
+		"climb": false,
+		"dunk": false,
+		"knock back": false,
+		"drying off": false,
+		"hit-stop": false,
+		"lurch": false,
+		"fall from a collapse": false,
+	}
+	var rules := sim.config.rules
+	for start in range(played.size() - 1):
+		var seen := false
+		var pose := sim.schedule.pose_at(start)
+		for entry: Dictionary in played[start]["seats"]:
+			var vel: Vector3 = entry["vel"]
+			var swimming: bool = entry["state"] == PlayerState.Body.SWIMMING
+			var in_flight := {
+				"swim": swimming,
+				"climb": entry["climb"] > 0,
+				"dunk": swimming and vel.y != 0.0,
+				"knock back": swimming and entry["stagger"] > 0,
+				"drying off":
+				entry["state"] == PlayerState.Body.GROUNDED and entry["cold"] < rules.cold_meter,
+				"hit-stop": entry["hitstop"] > 0,
+				"lurch": pose.lurch != 0.0,
+				"fall from a collapse":
+				not pose.collapsed.is_empty() and entry["state"] == PlayerState.Body.AIRBORNE,
+			}
+			for field: String in in_flight:
+				if in_flight[field]:
+					covered[field] = true
+					seen = true
+		if seen and not _continues(played, start, sim.config, scene):
+			return
+	for field: String in covered:
+		assert_true(covered[field], "the scene resumes from a %s in flight" % field)
+
+
 func test_golden_for_this_platform() -> void:
 	var platform := "%s-%s" % [OS.get_name().to_lower(), Engine.get_architecture_name()]
 	var path := "res://tests/golden/golden_%d_%d.%s.txt" % [GOLDEN_SEED, GOLDEN_SEATS, platform]

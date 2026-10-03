@@ -83,7 +83,7 @@ func test_quick_shove_from_mid_deck_is_held_by_the_rail() -> void:
 	var open := SimFixtures.sim(2)
 	var gap := SimFixtures.rail_gap(_starboard_edge())
 	_shove_to_starboard(open, gap.x, shover_z, target_z)
-	assert_true(open.state.seats[1].is_out(), "the same shove through the gap goes over")
+	assert_true(_overboard(open.state.seats[1]), "the same shove through the gap goes over")
 
 
 func test_quick_shove_when_pinned_vaults() -> void:
@@ -96,7 +96,8 @@ func test_quick_shove_when_pinned_vaults() -> void:
 	SimFixtures.place(sim, 1, Vector3(RAILED_X, 0.0, target_z), -90.0)
 	var events: Array[SimEvent] = []
 	var vaulted_at := -1
-	for tick in 3 * Ticks.RATE:
+	# Long enough to swim until the cold takes it: nothing to climb out onto.
+	for tick in 8 * Ticks.RATE:
 		var buttons := SHOVE if tick == 0 else 0
 		var frames := {
 			0: SimFixtures.frame(0, Vector2.ZERO, buttons, 90.0), 1: SimFixtures.frame(1)
@@ -135,7 +136,7 @@ func test_downhill_shove_vaults_from_farther() -> void:
 	var downhill := SimFixtures.sim(2, SimFixtures.tilted(0.0, rules.grip_angle_deg - 4.0))
 	var events := _shove_from(downhill, to_rail)
 	assert_eq(_vaults(events).size(), 1, "downhill: over from %s m" % to_rail)
-	assert_true(downhill.state.seats[1].is_out())
+	assert_true(_overboard(downhill.state.seats[1]))
 
 	# Uphill, the same shove does not even reach the rail at speed.
 	var uphill := SimFixtures.sim(2, SimFixtures.tilted(0.0, -(rules.grip_angle_deg - 4.0)))
@@ -156,7 +157,7 @@ func test_gap_lets_a_body_through() -> void:
 	}
 	var events := SimFixtures.step(sim, to_starboard, 3 * Ticks.RATE)
 	var walker := sim.state.seats[0]
-	assert_true(walker.is_out(), "walked out through the gap and into the sea")
+	assert_true(_overboard(walker), "walked out through the gap and into the sea")
 	assert_gt(walker.pos.z, _starboard_edge(), "past the edge")
 	var beside := sim.state.seats[1]
 	assert_eq(beside.body, PlayerState.Body.GROUNDED, "beside the gap: still on deck")
@@ -255,5 +256,10 @@ func test_a_rail_never_pulls_back_a_vaulter() -> void:
 	flier.fall_from = 0.5
 	flier.vel = Vector3(0.0, 0.0, rules.vault_speed)
 	var events := SimFixtures.step(sim, {}, 2 * Ticks.RATE)
-	assert_true(flier.is_out(), "over the rail and into the sea")
+	assert_true(_overboard(flier), "over the rail and into the sea")
 	assert_true(_vaults(events).is_empty(), "already in the air: no second vault")
+
+
+## Whether [param player] went into the sea: swimming, or out of the match.
+func _overboard(player: PlayerState) -> bool:
+	return player.body == PlayerState.Body.SWIMMING or player.is_out()

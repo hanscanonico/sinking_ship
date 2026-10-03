@@ -23,6 +23,9 @@ const DIRECTORY := "res://data/bots"
 ## room, or its open deck — is less than this many metres above the sea, the bot
 ## makes for the highest ground it can reach.
 @export var climb_margin_m: float
+## How near, in metres, a seat in the sea must be for the bot to make it its
+## target and guard the edge against its climbing out.
+@export var guard_range_m: float
 
 
 static func for_tier(tier: StringName) -> BotProfile:
@@ -56,4 +59,6 @@ func problems() -> PackedStringArray:
 			found.append("bot: %s must be within 0…1" % field)
 	if climb_margin_m < 0.0:
 		found.append("bot: climb_margin_m must not be negative")
+	if guard_range_m < 0.0:
+		found.append("bot: guard_range_m must not be negative")
 	return found

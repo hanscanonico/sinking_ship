@@ -48,7 +48,7 @@ func test_walking_off_the_deck_falls_into_the_sea() -> void:
 	var to_starboard := {0: SimFixtures.frame(0, Vector2.DOWN)}
 	var fell_at := -1
 	var events: Array[SimEvent] = []
-	for tick in 120:
+	for tick in 300:
 		events.append_array(SimFixtures.step(sim, to_starboard))
 		var player := sim.state.seats[0]
 		if fell_at == -1 and player.body == PlayerState.Body.AIRBORNE:
@@ -59,15 +59,20 @@ func test_walking_off_the_deck_falls_into_the_sea() -> void:
 			break
 	var walker := sim.state.seats[0]
 	assert_gt(fell_at, -1, "walked off the edge")
-	assert_true(walker.is_out(), "and into the sea")
-	assert_eq(walker.out_cause, PlayerState.Cause.WATER)
+	assert_true(walker.is_out(), "and into the sea, where the cold took it")
+	assert_eq(walker.out_cause, PlayerState.Cause.COLD)
 	assert_lt(walker.pos.y, 0.0, "fell below the deck first")
 	assert_gt(walker.out_tick, fell_at)
 	var kinds := events.map(func(event: SimEvent) -> SimEvent.Kind: return event.kind)
 	assert_eq(
 		kinds,
-		[SimEvent.Kind.FELL, SimEvent.Kind.SEAT_OUT, SimEvent.Kind.MATCH_ENDED],
-		"it fell, went out, and the last one dry won"
+		[
+			SimEvent.Kind.FELL,
+			SimEvent.Kind.ENTERED_WATER,
+			SimEvent.Kind.SEAT_OUT,
+			SimEvent.Kind.MATCH_ENDED
+		],
+		"it fell, swam, went out, and the last one dry won"
 	)
 	assert_eq([events[0].tick, events[0].seat], [fell_at, 0])
 	assert_eq(events[1].seat, 0)
