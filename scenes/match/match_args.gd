@@ -2,6 +2,8 @@ class_name MatchArgs
 extends RefCounted
 ## The user arguments a match host takes after `--`:
 ##   --seed=N  --seats=N  --seconds=S  --autoplay  --capture=PATH  --capture-at=S
+## The game reads --seed and --seats as the menu's choices; --autoplay presses its
+## Play, and without it --capture saves the menu.
 
 ## -1 when not given: the host picks one.
 var seed_value: int = -1
@@ -9,7 +11,7 @@ var seed_value: int = -1
 var seats: int = 0
 ## How much match time a headless run may take before it stops.
 var seconds: float = 300.0
-## A bot plays the local seat.
+## A bot plays the local seat, and nobody waits at the menu.
 var autoplay: bool = false
 var capture_path: String = ""
 ## Match time to save the capture at; -1 for the end of the match.

@@ -1,8 +1,10 @@
 class_name MatchConfig
 extends RefCounted
 ## The typed statement of one match (D13) — the only way a match starts: its seed,
-## its seat count, the rules, ship and sinking scenario it plays, and a hash of
-## that data so a replay refuses to run against changed numbers.
+## its seat count, the rules, ship and sinking scenario it plays, who fills the
+## seats, and a hash of that data so a replay refuses to run against changed
+## numbers. The UI builds one only through from_menu; the headless tools and the
+## tests build theirs from data.
 
 var match_seed: int
 var seats: int
@@ -10,6 +12,10 @@ var rules: BrawlRules
 var ship: ShipLayout
 var scenario: SinkScenario
 var countdown_ticks: int
+## Seats 0…humans-1 are played locally; the rest are bots of bot_tier.
+var humans: int
+## A BotProfile under data/bots/, by file name.
+var bot_tier: StringName
 
 
 func _init(
@@ -33,7 +39,7 @@ func _init(
 static func from_rules(
 	match_rules: MatchRules, seed_value: int, seat_count: int = 0
 ) -> MatchConfig:
-	return MatchConfig.new(
+	var config := MatchConfig.new(
 		seed_value,
 		seat_count if seat_count > 0 else match_rules.seats,
 		match_rules.rules,
@@ -41,6 +47,33 @@ static func from_rules(
 		match_rules.sinking,
 		Ticks.from_seconds(match_rules.countdown)
 	)
+	config.humans = match_rules.humans
+	config.bot_tier = match_rules.bot_tier
+	return config
+
+
+## A match from the menu's choices — the only route from the UI into a match.
+## A blank [param seed_text] is drawn from [param seeds] here, once, outside the
+## sim, and the config records it, so typing it back in replays the match. Null
+## when a choice is one [param match_rules] does not offer: a seat count outside
+## min_seats…max_seats, or a seed that is not a whole number.
+static func from_menu(
+	match_rules: MatchRules,
+	seat_count: int,
+	tier: StringName,
+	seed_text: String,
+	seeds: RandomNumberGenerator
+) -> MatchConfig:
+	if seat_count < match_rules.min_seats or seat_count > match_rules.max_seats:
+		return null
+	var typed := seed_text.strip_edges()
+	if not typed.is_empty() and not (typed.is_valid_int() and typed.to_int() >= 0):
+		return null
+	var config := from_rules(
+		match_rules, seeds.randi() if typed.is_empty() else typed.to_int(), seat_count
+	)
+	config.bot_tier = tier
+	return config
 
 
 ## Every reason this match cannot start; empty when it can.

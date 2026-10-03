@@ -3,6 +3,8 @@ extends Resource
 ## A bot's difficulty (D10) — this and nothing else. The numbers live in
 ## data/bots/*.tres.
 
+const DIRECTORY := "res://data/bots"
+
 ## How many ticks old the snapshot a bot acts on is.
 @export var reaction_ticks: int
 ## Ticks between re-choosing a target.
@@ -14,7 +16,17 @@ extends Resource
 
 
 static func for_tier(tier: StringName) -> BotProfile:
-	return load("res://data/bots/%s.tres" % tier) as BotProfile
+	return load("%s/%s.tres" % [DIRECTORY, tier]) as BotProfile
+
+
+## Every tier there is a profile for, by file name, sorted.
+static func tiers() -> PackedStringArray:
+	var found := PackedStringArray()
+	for file: String in ResourceLoader.list_directory(DIRECTORY):
+		if file.get_extension() == "tres":
+			found.append(file.get_basename())
+	found.sort()
+	return found
 
 
 func problems() -> PackedStringArray:
