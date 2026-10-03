@@ -3,10 +3,6 @@ extends GutTest
 const BRACE := InputFrame.BRACE
 
 
-func _planar(vector: Vector3) -> Vector2:
-	return Vector2(vector.x, vector.z)
-
-
 func _brace(seat: int, move: Vector2 = Vector2.ZERO) -> InputFrame:
 	return SimFixtures.frame(seat, move, BRACE)
 
@@ -34,9 +30,9 @@ func test_front_brace_cuts_knockback() -> void:
 	var target := braced.state.seats[1]
 	assert_eq(open.state.seats[1].last_hit_by, 0)
 	assert_eq(target.last_hit_by, 0, "the shove landed")
-	assert_almost_eq(_planar(open.state.seats[1].vel).length(), rules.knockback, 0.0001)
+	assert_almost_eq(SimFixtures.sent(open.state.seats[1]).length(), rules.knockback, 0.0001)
 	assert_almost_eq(
-		_planar(target.vel).length(), rules.knockback * (1.0 - rules.brace_reduction), 0.0001
+		SimFixtures.sent(target).length(), rules.knockback * (1.0 - rules.brace_reduction), 0.0001
 	)
 	assert_false(target.is_staggered(), "a front brace is not staggered")
 	assert_true(target.bracing, "and stays planted")
@@ -56,7 +52,7 @@ func test_brace_from_behind_does_nothing() -> void:
 		var target := sim.state.seats[1]
 		assert_true(target.is_staggered(), "facing %s: staggered" % facing)
 		assert_false(target.bracing, "facing %s: the brace is broken" % facing)
-		assert_almost_eq(_planar(target.vel).length(), rules.knockback, 0.0001)
+		assert_almost_eq(SimFixtures.sent(target).length(), rules.knockback, 0.0001)
 
 
 func test_brace_holds_on_a_steep_deck_and_drains() -> void:

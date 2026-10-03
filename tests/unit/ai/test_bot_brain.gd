@@ -280,7 +280,7 @@ func test_bot_charges_a_bracing_target() -> void:
 		sim.step([frame, brace])
 	assert_eq(held, Ticks.from_seconds(rules.charge_full), "held for a full charge")
 	assert_true(target.is_staggered(), "the charge broke the brace")
-	assert_almost_eq(Vector2(target.vel.x, target.vel.z).length(), rules.charged_knockback, 0.0001)
+	assert_almost_eq(SimFixtures.sent(target).length(), rules.charged_knockback, 0.0001)
 
 
 func test_lone_bot_climbs_out_before_its_floor_floods() -> void:

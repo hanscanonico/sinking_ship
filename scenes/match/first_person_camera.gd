@@ -21,8 +21,11 @@ func setup(settings: ViewSettings) -> void:
 
 ## Looks from the eye of feet at [param feet] (ship space) on a ship placed by
 ## [param ship_to_world], along the ship-plane [param yaw] and [param pitch] above
-## the horizon.
-func look_from(ship_to_world: Transform3D, feet: Vector3, yaw: float, pitch: float) -> void:
+## the horizon, turned on top of that by [param kick] — ViewKick's pitch, yaw and
+## roll, which never feeds back into the look.
+func look_from(
+	ship_to_world: Transform3D, feet: Vector3, yaw: float, pitch: float, kick := Vector3.ZERO
+) -> void:
 	var ahead := Vector3(cos(yaw), 0.0, sin(yaw))
 	var level_ahead := ship_to_world.basis * ahead
 	var level := Basis.from_euler(Vector3(pitch, atan2(-level_ahead.x, -level_ahead.z), 0.0))
@@ -31,5 +34,6 @@ func look_from(ship_to_world: Transform3D, feet: Vector3, yaw: float, pitch: flo
 		* Basis.from_euler(Vector3(pitch, atan2(-ahead.x, -ahead.z), 0.0))
 	)
 	global_transform = Transform3D(
-		level.slerp(rolled, _deck_roll), ship_to_world * (feet + Vector3.UP * EYE_HEIGHT)
+		level.slerp(rolled, _deck_roll) * Basis.from_euler(kick),
+		ship_to_world * (feet + Vector3.UP * EYE_HEIGHT)
 	)

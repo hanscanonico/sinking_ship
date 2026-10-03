@@ -108,6 +108,13 @@ static func place(match_sim: MatchSim, seat: int, pos: Vector3, facing_deg: floa
 	player.surface = match_sim.surfaces.under(pos, match_sim.config.rules.step_height)
 
 
+## The ship-plane velocity [param player] moves at — or, frozen in a hit-stop, the
+## one it moves at once the stop ends.
+static func sent(player: PlayerState) -> Vector2:
+	var moving := player.held_vel if player.is_frozen() else player.vel
+	return Vector2(moving.x, moving.z)
+
+
 ## A frame looking [param look_deg] from the bow toward starboard; without one,
 ## step() keeps the seat looking where it does — where place() turned it, say.
 static func frame(

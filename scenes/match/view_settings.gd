@@ -17,6 +17,8 @@ const PATH := "user://view_settings.tres"
 @export_range(0.0, 1.0) var deck_roll: float = 0.0
 ## Horizontal field of view.
 @export_range(75.0, 110.0) var fov_deg: float = 90.0
+## How hard a hit kicks the view and a lurch shakes it: 0 turns both off (R15).
+@export_range(0.0, 1.0) var view_kick: float = 1.0
 
 
 ## The saved settings, or the defaults when none are saved.

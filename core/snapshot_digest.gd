@@ -25,6 +25,7 @@ static func quantized(snapshot: Dictionary) -> String:
 	for entry: Dictionary in snapshot["seats"]:
 		var pos: Vector3 = entry["pos"]
 		var vel: Vector3 = entry["vel"]
+		var held: Vector3 = entry["held_vel"]
 		var fields: Array = [
 			entry["seat"],
 			entry["state"],
@@ -50,6 +51,10 @@ static func quantized(snapshot: Dictionary) -> String:
 			entry["stamina_wait"],
 			int(entry["exhausted"]),
 			entry["stagger"],
+			entry["hitstop"],
+			roundi(held.x * 100.0),
+			roundi(held.y * 100.0),
+			roundi(held.z * 100.0),
 			entry["last_hit_by"],
 			entry["prev_buttons"],
 		]

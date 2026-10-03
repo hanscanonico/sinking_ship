@@ -45,7 +45,7 @@ func test_tap_is_a_quick_shove() -> void:
 		assert_false(PlayerState.Action.CHARGE in phases, "held %d: never a charge" % held)
 		var target := sim.state.seats[1]
 		assert_true(target.is_staggered(), "held %d: it landed" % held)
-		assert_almost_eq(_planar(target.vel).length(), rules.knockback, 0.0001)
+		assert_almost_eq(SimFixtures.sent(target).length(), rules.knockback, 0.0001)
 		assert_eq(sim.state.seats[0].stamina, rules.stamina_max, "a quick shove is free")
 
 
@@ -79,7 +79,9 @@ func test_charged_shove_breaks_a_brace() -> void:
 	var target := sim.state.seats[1]
 	assert_true(target.is_staggered(), "the brace is broken")
 	assert_false(target.bracing)
-	assert_almost_eq(_planar(target.vel).length(), rules.charged_knockback, 0.0001, "full force")
+	assert_almost_eq(
+		SimFixtures.sent(target).length(), rules.charged_knockback, 0.0001, "full force"
+	)
 
 	# The shortest charge, let go the tick after it starts, sends one ninth of the way
 	# from a quick shove's knockback to a full charge's — and a brace reads it like a
@@ -97,7 +99,7 @@ func test_charged_shove_breaks_a_brace() -> void:
 		var reduction := rules.brace_reduction if braced else 0.0
 		assert_eq(nudged.is_staggered(), not braced, "braced %s: staggered unless braced" % braced)
 		assert_almost_eq(
-			_planar(nudged.vel).length(),
+			SimFixtures.sent(nudged).length(),
 			short_speed * (1.0 - reduction),
 			0.0001,
 			"braced %s: a short charge sends less than a full one" % braced

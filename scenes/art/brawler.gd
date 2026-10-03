@@ -33,6 +33,10 @@ var _feet_material: StandardMaterial3D
 var _move: BrawlerAnimation.Move = BrawlerAnimation.Move.IDLE
 ## The stagger last drawn, so a renewed stagger replays its flinch once.
 var _stagger := 0
+## The model's scale at rest, which a hit-stop's squash works from.
+var _rest_scale := Vector3.ONE
+## Seconds since the last hit-stop drawn ended; INF before the first.
+var _unsquashing := INF
 
 
 ## Builds [param seat_id]'s brawler at the rules' body size; [param local] puts a
@@ -45,7 +49,8 @@ func setup(seat_id: int, rules: BrawlRules, local: bool) -> void:
 	add_child(_model)
 	var mesh: MeshInstance3D = _model.get_node("Rig/Skeleton3D/Mannequin")
 	var crown := mesh.get_aabb().end.y
-	_model.scale = Vector3.ONE * (rules.body_height / crown)
+	_rest_scale = Vector3.ONE * (rules.body_height / crown)
+	_model.scale = _rest_scale
 	_model.rotation.y = MODEL_TURN
 	mesh.set_surface_override_material(0, _skin(_colour))
 	mesh.set_surface_override_material(1, _skin(ArtPalette.INK))
@@ -86,7 +91,8 @@ func model_root() -> Node3D:
 
 
 ## Poses the brawler for the display moment [param alpha] of the way from
-## [param then] to [param now], one seat's entries in two snapshots.
+## [param then] to [param now], one seat's entries in two snapshots. Frozen in a
+## hit-stop, its pose holds, squashed, and springs back as the stop ends.
 func show_state(then: Dictionary, now: Dictionary, alpha: float) -> void:
 	var vel: Vector3 = (then["vel"] as Vector3).lerp(now["vel"], alpha)
 	var speed := Vector2(vel.x, vel.z).length()
@@ -98,7 +104,10 @@ func show_state(then: Dictionary, now: Dictionary, alpha: float) -> void:
 		if renewed:
 			_player.seek(0.0, true)
 		_move = move
-	_player.speed_scale = BrawlerAnimation.rate(move, speed)
+	var frozen: bool = now["hitstop"] > 0
+	_player.speed_scale = 0.0 if frozen else BrawlerAnimation.rate(move, speed)
+	_unsquashing = 0.0 if frozen else _unsquashing + get_process_delta_time()
+	_model.scale = _rest_scale * BrawlerAnimation.squash(_unsquashing)
 	var shoving: bool = (
 		now["action"] == PlayerState.Action.WINDUP or now["action"] == PlayerState.Action.ACTIVE
 	)

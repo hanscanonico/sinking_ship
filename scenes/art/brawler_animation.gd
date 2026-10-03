@@ -45,6 +45,10 @@ const RUN_FROM := 2.5
 ## from how far a planted foot travels back through one cycle.
 const WALK_CLIP_SPEED := 1.1
 const RUN_CLIP_SPEED := 4.5
+## A hit-stop squashes the model this much shorter, wider by half of it, held for
+## the stop and springing back over SQUASH_SECONDS after.
+const SQUASH := 0.14
+const SQUASH_SECONDS := 0.18
 
 
 ## The move for [param entry], a seat's snapshot entry, moving at [param speed]
@@ -80,3 +84,11 @@ static func rate(move: Move, speed: float) -> float:
 		Move.RUN:
 			return speed / RUN_CLIP_SPEED
 	return 1.0
+
+
+## The model's scale [param since] seconds after its hit-stop ended — 0 while it
+## holds — back to one at SQUASH_SECONDS.
+static func squash(since: float) -> Vector3:
+	var left := clampf(1.0 - since / SQUASH_SECONDS, 0.0, 1.0)
+	var depth := SQUASH * left * left
+	return Vector3(1.0 + depth * 0.5, 1.0 - depth, 1.0 + depth * 0.5)

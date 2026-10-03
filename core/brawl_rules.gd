@@ -25,9 +25,16 @@ extends Resource
 @export var knockback: float
 ## Knockback on a body that is already staggered is multiplied by this.
 @export var restagger_mult: float
-## The speed a shover rocks back at when its shove lands.
+## The speed a shover rocks back at when its shove lands, once however many bodies
+## it lands on.
 @export var recoil: float
 @export var stagger: float
+## How long a landed quick shove freezes its shover and its target (D12).
+@export var hitstop: float
+## A full charge's hit-stop; a charge let go sooner stops between hitstop and this.
+@export var hitstop_charged: float
+## The hit-stop of a shove a front brace takes the edge off: short, a clang.
+@export var hitstop_braced: float
 ## Friction while staggered, in m/s².
 @export var stagger_friction: float
 
@@ -109,6 +116,8 @@ func problems() -> PackedStringArray:
 		"fall_stagger_per_m",
 		"charge_cost",
 		"stamina_regen_delay",
+		"hitstop",
+		"hitstop_braced",
 	]:
 		if float(get(field)) < 0.0:
 			found.append("brawl rules: %s must not be negative" % field)
@@ -134,6 +143,8 @@ func problems() -> PackedStringArray:
 		found.append("brawl rules: charge_full must be more ticks than charge_threshold")
 	if charged_knockback < knockback:
 		found.append("brawl rules: charged_knockback must be at least knockback")
+	if hitstop_charged < hitstop:
+		found.append("brawl rules: hitstop_charged must be at least hitstop")
 	if charge_walk > walk_speed:
 		found.append("brawl rules: charge_walk must not exceed walk_speed")
 	if charge_cost > stamina_max:
