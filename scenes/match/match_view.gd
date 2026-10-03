@@ -1,33 +1,22 @@
 class_name MatchView
 extends Node3D
 ## Draws the match from two snapshots (D5): the ship root follows the interpolated
-## pose, and every seat is a coloured capsule with a facing nose and a blob shadow,
-## placed in ship space. It never moves a body itself, and never reads a live
-## PlayerState.
+## pose, and every seat is a Brawler with a blob shadow, placed in ship space. It
+## never moves a body itself, and never reads a live PlayerState.
 
-const SEAT_COLOURS: Array[Color] = [
-	Color(0.9, 0.75, 0.15),
-	Color(0.85, 0.25, 0.25),
-	Color(0.25, 0.55, 0.9),
-	Color(0.3, 0.75, 0.35),
-	Color(0.7, 0.35, 0.85),
-	Color(0.95, 0.5, 0.15),
-	Color(0.2, 0.8, 0.8),
-	Color(0.9, 0.45, 0.65),
-]
-const NOSE_COLOUR := Color(0.12, 0.12, 0.14)
-const SHOVING_NOSE_COLOUR := Color(1.0, 1.0, 1.0)
+## The seat colours now live in ArtPalette; this name stays for code outside the art.
+const SEAT_COLOURS: Array[Color] = ArtPalette.SEAT_COLOURS
 const SHADOW_COLOUR := Color(0.0, 0.0, 0.0, 0.45)
-const MARKER_COLOUR := Color(1.0, 1.0, 1.0)
 ## Lift off the deck so the shadow never fights the planks for depth.
 const SHADOW_LIFT := 0.02
+## Half the span over which the ground's slope under a seat is measured.
+const SLOPE_PROBE := 0.05
 
 var _driver: SimDriver
 var _schedule: SinkSchedule
 var _surfaces: Surfaces
-var _bodies: Array[Node3D] = []
+var _bodies: Array[Brawler] = []
 var _shadows: Array[MeshInstance3D] = []
-var _noses: Array[StandardMaterial3D] = []
 
 @onready var _ship: Node3D = $Ship
 @onready var _greybox: ShipGreybox = $Ship/Greybox
@@ -40,13 +29,12 @@ func setup(driver: SimDriver, sim: MatchSim, local_seat: int) -> void:
 	_schedule = sim.schedule
 	_surfaces = sim.surfaces
 	_greybox.build(sim.config.ship, sim.config.rules.railing_height)
-	for body: Node3D in _bodies:
+	for body: Brawler in _bodies:
 		body.queue_free()
 	for shadow: MeshInstance3D in _shadows:
 		shadow.queue_free()
 	_bodies.clear()
 	_shadows.clear()
-	_noses.clear()
 	var rules := sim.config.rules
 	for seat in sim.config.seats:
 		_add_seat(seat, rules, seat == local_seat)
@@ -81,42 +69,35 @@ func _process(_delta: float) -> void:
 		var pos: Vector3 = (then["pos"] as Vector3).lerp(now["pos"], alpha)
 		body.position = pos
 		body.rotation.y = -lerp_angle(then["facing"], now["facing"], alpha)
-		var shoving: bool = (
-			now["action"] == PlayerState.Action.WINDUP or now["action"] == PlayerState.Action.ACTIVE
-		)
-		_noses[seat].albedo_color = SHOVING_NOSE_COLOUR if shoving else NOSE_COLOUR
+		body.show_state(then, now, alpha)
 		var below := _surfaces.landing(pos)
+		body.show_ground(Vector3.UP if below == Surfaces.NONE else _ground_normal(below, pos))
 		if below != Surfaces.NONE:
 			var ground := _surfaces.height_at(below, pos)
 			_shadows[seat].visible = true
 			_shadows[seat].position = Vector3(pos.x, ground + SHADOW_LIFT, pos.z)
 
 
+## The up of [param surface] under [param pos], in ship space, from its heights a
+## short step either side.
+func _ground_normal(surface: int, pos: Vector3) -> Vector3:
+	var along_x := (
+		_surfaces.height_at(surface, pos + Vector3.RIGHT * SLOPE_PROBE)
+		- _surfaces.height_at(surface, pos + Vector3.LEFT * SLOPE_PROBE)
+	)
+	var along_z := (
+		_surfaces.height_at(surface, pos + Vector3.BACK * SLOPE_PROBE)
+		- _surfaces.height_at(surface, pos + Vector3.FORWARD * SLOPE_PROBE)
+	)
+	return Vector3(-along_x, 2.0 * SLOPE_PROBE, -along_z).normalized()
+
+
 func _add_seat(seat: int, rules: BrawlRules, local: bool) -> void:
-	var body := Node3D.new()
+	var body := Brawler.new()
 	body.name = "Seat%d" % seat
 	_ship.add_child(body)
+	body.setup(seat, rules, local)
 	_bodies.append(body)
-
-	var capsule := CapsuleMesh.new()
-	capsule.radius = rules.body_radius
-	capsule.height = rules.body_height
-	capsule.material = _material(SEAT_COLOURS[seat % SEAT_COLOURS.size()])
-	_mesh(body, capsule, Vector3(0.0, rules.body_height * 0.5, 0.0))
-
-	var nose := BoxMesh.new()
-	nose.size = Vector3(0.35, 0.18, 0.18)
-	var nose_material := _material(NOSE_COLOUR)
-	nose.material = nose_material
-	_noses.append(nose_material)
-	_mesh(body, nose, Vector3(rules.body_radius + 0.1, rules.body_height * 0.72, 0.0))
-
-	if local:
-		var marker := PrismMesh.new()
-		marker.size = Vector3(0.4, 0.35, 0.4)
-		marker.material = _material(MARKER_COLOUR)
-		var arrow := _mesh(body, marker, Vector3(0.0, rules.body_height + 0.45, 0.0))
-		arrow.rotation.z = PI
 
 	var disc := CylinderMesh.new()
 	disc.top_radius = rules.body_radius * 1.1
@@ -131,14 +112,6 @@ func _add_seat(seat: int, rules: BrawlRules, local: bool) -> void:
 	shadow.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	_ship.add_child(shadow)
 	_shadows.append(shadow)
-
-
-func _mesh(parent: Node3D, mesh: Mesh, at: Vector3) -> MeshInstance3D:
-	var instance := MeshInstance3D.new()
-	instance.mesh = mesh
-	instance.position = at
-	parent.add_child(instance)
-	return instance
 
 
 func _material(colour: Color) -> StandardMaterial3D:
