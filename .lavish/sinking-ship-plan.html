@@ -119,6 +119,11 @@
     .svg-small { font: 600 8px ui-monospace, Menlo, monospace; fill: var(--sk-ink); }
     .svg-time { font: 800 14px ui-monospace, Menlo, monospace; fill: var(--sk-ink); }
     svg.sk-fluid { display: block; width: 100%; height: auto; }
+    .svg-room { fill: #f4ecda; }
+    .svg-floor { stroke: #3a2d1e; stroke-width: 2.5; }
+    .svg-wall { stroke: #3a2d1e; stroke-width: 2; }
+    .svg-stair { stroke: #9a7c4b; stroke-width: 3.5; stroke-linecap: round; }
+    .svg-onsteel { font: 700 8px ui-monospace, Menlo, monospace; fill: white; }
     .svg-spawn { fill: white; stroke: var(--sk-ink); stroke-width: 1.5; }
     .svg-high { fill: var(--sk-gold); stroke: var(--sk-ink); stroke-width: 1.2; }
     .mermaid { display: flex; justify-content: center; overflow-x: auto; background: white; border-radius: .6rem; padding: .75rem; }
@@ -157,14 +162,17 @@
 
     <!-- ============================== HERO ============================== -->
     <header class="sk-hero px-6 py-10 md:px-12">
-      <p class="sk-kicker opacity-80">Sinking Ship · design of record · rev 2 · MVP approved 2026-10-02 · <b>shipped: SH1, SH2, SH3</b></p>
+      <p class="sk-kicker opacity-80">Sinking Ship · design of record · rev 3 · MVP approved 2026-10-02 · first person and rooms 2026-10-03 · <b>shipped: SH1, SH2, SH3, SH8</b></p>
       <h1 class="text-3xl md:text-4xl font-black mt-2">Sinking Ship — last one dry wins</h1>
       <p class="mt-3 max-w-3xl opacity-90">
         A battle royale on a ship that is going down. Eight brawlers on a small coastal steamer,
         no loot and no weapons: you <strong>shove</strong>, you <strong>brace</strong>, you push
         people into the sea. The rising water and the listing deck are the shrinking zone. The
         steamer sinks by the head, so the bow goes under first, the stern climbs, the decks tilt
-        until standing still is work, and the last one standing on dry planks wins.
+        until standing still is work, and the last one standing on dry planks wins. You play it in
+        <strong>first person</strong>, through your own brawler's eyes, and the steamer has an
+        <strong>inside</strong> — a hold, an engine room, cabins and a saloon — that floods first and
+        drives everyone upward.
       </p>
       <p class="mt-3 max-w-3xl opacity-90">
         The one thing this plan cannot get wrong is the <strong>shape of the simulation</strong>,
@@ -181,14 +189,17 @@
         <span class="badge badge-lg" style="background:var(--sk-dry); color:white; border:0;">Node-free 30 Hz sim in <code>core/</code></span>
         <span class="badge badge-lg" style="background:var(--sk-sea); color:white; border:0;">Bots now · server-authoritative later</span>
         <span class="badge badge-lg" style="background:var(--sk-steel); color:white; border:0;">MVP SH1–SH15 · destination SH16–SH23</span>
+        <span class="badge badge-lg" style="background:var(--sk-hull); color:white; border:0;">First person · rooms below and above (rev 3)</span>
       </div>
       <p class="text-sm opacity-75 mt-4 max-w-3xl">
         <strong>How to read this plan.</strong> The milestones are §10's <code>&lt;h3&gt;</code>
-        entries SH1–SH23 — SH1–SH15 are the MVP, SH16–SH23 the destination — each with a size badge,
+        entries SH1–SH23 plus SH3b, SH9b and SH14b — the MVP is SH1–SH15 with those three, the
+        destination SH16–SH23 — each with a size badge,
         a status badge, the decisions it must respect,
-        its acceptance gates and its own non-goals. Decisions D1–D13 (§3) are locked as written
-        unless you strike one in review. The real forks are the fourteen open questions Q1–Q14 in §12
-        (Q10–Q14 belong to the destination);
+        its acceptance gates and its own non-goals. Decisions D1–D14 (§3) are locked as written
+        unless you strike one in review. The real forks are the open questions in §12 (Q3 was decided and
+        Q14 retired by first person in rev 3; Q10–Q13 belong to the destination, Q15–Q17 to first
+        person and rooms);
         each names the milestone it gates and what happens if it is still unanswered when that
         milestone comes up. Explicit non-goals are §13. <code>.lavish/</code> is gitignored in this
         repo, so <strong>SH1's PR force-adds this file</strong> (<code>git add -f
@@ -220,12 +231,13 @@
         <div class="card bg-base-100 border p-4">
           <h3 class="font-black">What a three-minute match feels like</h3>
           <ul class="text-sm mt-2 grid gap-1">
-            <li><strong>0:00–0:45 · Taking water.</strong> A level deck, a brawl in the open, the bow
-            starting to dip.</li>
-            <li><strong>0:45–1:40 · By the head.</strong> The forecastle goes under, water creeps aft
-            along the main deck, the ship starts to list. First lurch.</li>
-            <li><strong>1:40–2:40 · The list.</strong> The walkways flood. Everyone has climbed to the
-            deckhouse roof, the wheelhouse roof or the stern. The wheelhouse roof collapses.</li>
+            <li><strong>0:00–0:45 · Calm.</strong> Fights on every level, from the hold to the bridge;
+            the ship barely moves.</li>
+            <li><strong>0:45–1:30 · The flooding below.</strong> The sea pours into the hold at the
+            bow and chases everyone aft and up the stairs; the companionways are the fight.</li>
+            <li><strong>1:30–2:40 · By the head, then the list.</strong> The forward main deck and the
+            forecastle go under, the saloon floods, the deck lists one way then the other; the
+            wheelhouse roof collapses.</li>
             <li><strong>2:40–3:30 · The plunge.</strong> The stern stands up out of the sea, the decks
             are steeper than anyone can stand on for free, and the last two or three fight on the
             poop deck while it slides under.</li>
@@ -234,7 +246,9 @@
         <div class="card bg-base-100 border p-4">
           <h3 class="font-black">What the player does</h3>
           <ul class="text-sm mt-2 grid gap-1">
-            <li><strong>Move</strong> — analog, camera-relative, no jump.</li>
+            <li><strong>Look</strong> (rev 3) — first person: the mouse or the right stick turns you,
+            and you shove where you look.</li>
+            <li><strong>Move</strong> — analog, relative to where you look, no jump.</li>
             <li><strong>Shove</strong> — tap: quick and weak; hold (from SH4): a charged shove that
             breaks a brace.</li>
             <li><strong>Brace</strong> (from SH4) — plant your feet: shrugs off a shove from the front
@@ -400,7 +414,7 @@
         <h2 class="text-2xl font-black">Decisions</h2>
       </div>
       <p class="max-w-3xl text-sm mb-4">
-        The first card is what you decided before this plan existed; it is not revisited. D1–D13
+        The first card is what you decided before this plan existed; it is not revisited. D1–D14
         are this plan's locks. They are constraints on <em>how</em>: a milestone that violates one is
         wrong even if it plays well. Where a choice is a genuine fork you may want to overrule, it is
         not here — it is an open question in §12.
@@ -428,6 +442,13 @@
             is a ship on the scale of the Titanic — for reference about 269 m long, about 28 m in the
             beam, nine or ten decks — whose sinking is not one fixed script: it can go down by the bow,
             by the stern or to either side, at a moment the players cannot predict.</li>
+            <li><strong>First person and rooms</strong> (added 2026-10-03): <em>“1) I want the game in 3D
+            but in first person view  2° the boa needs multiple room”</em>. Asked to choose, you picked
+            <strong>first person only</strong> — the mouse or the right stick turns you, you shove where
+            you look, and once you are out you spectate through the survivors' eyes — and <strong>rooms
+            below deck and in the superstructure</strong>: holds, an engine room and cabins under the
+            main deck that flood first and force everyone upward, plus a saloon, cabins and the
+            wheelhouse above, on a deeper hull with one or two lower decks and stairs.</li>
           </ul>
           <p class="text-sm mt-3 max-w-3xl"><strong>Interpretation — this plan's reading, not your
           words.</strong> "Any time" is read as: the moment the ship is breached and the pace at which
@@ -437,6 +458,13 @@
           spec; whether its many decks include enclosed interiors is Q11; seats, match length and the
           camera at that scale are Q12–Q14. The destination's milestones are SH16–SH23, and the audit
           at the end of this section says what it changes in D1–D13 and SH1–SH15.</p>
+          <p class="text-sm mt-3 max-w-3xl"><strong>Interpretation of the 2026-10-03 given — this
+          plan's reading, not your words.</strong> "The boa" is read as "the boat". "Multiple room" is
+          read as rooms you walk into, built from the same ship-space data as the decks (D6): walls with
+          door openings, nothing that closes (Q15). Of "one or two lower decks", SH3b builds one,
+          because D7 keeps a single sea plane and a second level would need the hull to ride about 6 m
+          out of the water. The rest of rev 3 — the observer camera kept as a tool, a level horizon,
+          bots and walls — is this plan's design, flagged where it is a fork (Q15–Q17).</p>
         </div>
 
         <div class="card bg-base-100 border p-4 sk-locked">
@@ -491,19 +519,21 @@
           <p class="text-sm mt-2 max-w-3xl">
             Every seat — the local human, a bot, a remote player, a replay — produces exactly one
             <code>InputFrame</code> per tick, and <code>MatchSim.step(frames)</code> is the only way
-            anything happens. <strong>The frame is quantized when it is created</strong> (move and aim
-            as integers −127…127 per axis), so an offline match and the same match over a wire see
+            anything happens. <strong>The frame is quantized when it is created</strong> (move as
+            integers −127…127 per axis, the look yaw as 0…65 535 for one turn), so an offline match and the same match over a wire see
             bit-identical inputs. Buttons are <em>held</em> state; presses and releases are derived
             inside the sim from the previous tick's buttons, so a lost packet cannot eat a press once
             redundancy restores the frame. The sim validates every frame — clamps it, ignores buttons
             from an eliminated or staggered seat — because a frame is a request, never a fact.
             <strong>The sim never learns which seats are human, where the camera is, or what device
-            sent a frame.</strong> Move and aim are expressed in the ship's horizontal plane. The ship
-            never yaws, so turning a screen direction into a ship direction is one rotation by the
-            camera's current yaw, done in one place — <code>InputFrame.from_screen(stick,
-            camera_yaw)</code>, called by the input source, never by the sim. <strong>No input path
-            assumes which side the camera is on</strong>: the MVP's camera sits to starboard, and a
-            ship that can list either way may move it (Q14).
+            sent a frame.</strong> Move is expressed in the ship's horizontal plane. <strong>Since rev 3
+            the game is first person (D14)</strong>: the frame also carries the seat's
+            <code>look_yaw</code> — the facing it chooses this tick, quantized to 1/65 536 of a turn —
+            and <code>InputFrame.from_screen(stick, look_yaw)</code> turns the stick into a move
+            relative to that look (stick up walks where you look), computed against the quantized yaw
+            so both ends of a wire agree. The ship never yaws, so that one rotation is the whole
+            conversion, done by the input source, never by the sim. Bots and remote players set
+            <code>look_yaw</code> too; pitch never enters the frame — no rule reads it.
           </p>
 <pre class="sk-code">class_name InputFrame extends RefCounted
 const SHOVE := 1          <span class="c"># held; tap vs hold is the sim's call (SH4)</span>
@@ -512,7 +542,7 @@ const RESERVED_3 := 4     <span class="c"># kept free for a third verb (Q2)</spa
 var seat: int
 var tick: int
 var move: Vector2i        <span class="c"># ship-plane x/z, each axis -127..127, length clamped to 127</span>
-var aim: Vector2i         <span class="c"># ship-plane x/z; (0,0) = face where you move (live from SH9)</span>
+var look_yaw: int         <span class="c"># 0..65535 = one turn: the facing this seat chooses (rev 3; replaces aim)</span>
 var buttons: int</pre>
           <p class="text-sm mt-2 max-w-3xl"><strong>Rejected:</strong> per-action command objects
           (<code>ShoveCommand</code>, <code>BraceCommand</code>) as in Grid Commanders. In real time
@@ -587,6 +617,17 @@ var buttons: int</pre>
             <code>Surfaces</code> (D13), so the spatial index a Titanic-sized hull needs (SH18)
             arrives behind it without changing a caller.
           </p>
+          <p class="text-sm mt-2 max-w-3xl"><strong>Rooms are the same kinds (rev 3).</strong> A wall
+          is a thin box blocker (0.2 m) from its floor to the deck above, and a door is the gap between
+          two walls — an opening 1.1 m wide and 2.1 m tall, with nothing that closes (Q15). A lower
+          deck is platforms at negative heights under the main deck, which becomes rectangles that
+          leave an opening over each stair. Stairs are steep ramps, up to about 40° — ramps, not
+          ladders; the slope rule reads the ship's tilt, never a ramp's own pitch, so a steep stair is
+          walkable. <strong>A ceiling is not data</strong>: the platform above is the ceiling (a roof
+          you can stand on is already a platform over walls), and nothing in the rules looks up. A
+          <code>ShipRoom</code> annotation — name, area, floor — names a room for the lint, the walk
+          graph, the HUD and the drawing; the rules never read it. Walls stop bodies and shoves exactly
+          as blockers do: a body slammed into a wall stops, it never vaults one.</p>
           <p class="text-sm mt-2 max-w-3xl"><strong>Rejected:</strong> authoring the ship as a scene
           of CSG or <code>StaticBody3D</code> and reading its colliders — the sim would depend on the
           tree, and a surface the sim cannot see is one a player can stand on visually but not in the
@@ -615,7 +656,10 @@ var buttons: int</pre>
             plane. <strong>Nothing a player does speeds up or slows the sinking</strong>, which is what
             lets a client compute the ship's pose itself and keeps the snapshot small.
             <code>SinkSchedule</code> replaces the scaffold's seconds-driven <code>WaterLevel</code>:
-            one water authority.
+            one water authority. Inside the ship the rule is the same (rev 3): <strong>water inside a
+            room is the sea plane</strong> — no compartments, no air pockets — so a cabin floods exactly
+            when its floor is below the sea, and a lower deck stays dry only while it stands above it.
+            That is why SH3b raises the steamer's freeboard.
           </p>
           <p class="text-sm mt-2 max-w-3xl"><strong>Rejected:</strong> a buoyancy or compartment
           simulation (a second simulation to tune before anything is fun, and not authorable to a
@@ -668,6 +712,9 @@ var buttons: int</pre>
             screen</strong>: the current pose and water, never the schedule's future. It rolls only
             its own seeded stream. Difficulty is a <code>BotProfile</code> and nothing else. Online,
             bots run on the server only and reach clients as ordinary seats in snapshots.
+            <strong>Rooms strain the promise above (rev 3):</strong> until SH7 filters
+            <code>BotView</code> by line of sight through walls plus a short hearing radius (Q16), a
+            bot sees bodies behind walls that a first-person player cannot (R16).
           </p>
           <p class="text-sm mt-2 max-w-3xl"><strong>Rejected:</strong> bots that steer by writing
           velocities; bots that read <code>SinkSchedule</code> ahead of the current tick.</p>
@@ -728,12 +775,84 @@ var buttons: int</pre>
             queries, so an index can arrive behind it (SH18).</li>
             <li><code>ShoveResolver</code> — who a shove hits. <strong>It takes candidate bodies as
             data</strong> (positions, radii, states), never the live seat list, so SH13 can hand it
-            rewound positions for lag compensation without touching the rule.</li>
+            rewound positions for lag compensation without touching the rule. Its pure read
+            <code>would_hit</code> is what the first-person crosshair asks (SH9) — never a second
+            opinion.</li>
+            <li><code>Surfaces.line_of_sight(a, b)</code> (SH7) — whether a wall stands between two
+            points: the one answer bots' sight and any in-sight cue on the HUD ask.</li>
             <li><code>MatchRunner</code> — the one loop. The scene, the headless tools, the tests and
             the server all step the sim through it.</li>
             <li><code>MatchConfig</code> — the typed statement of one match (seed, seats, rules,
             ship, sinking scenario, data hash). The only way a match starts, mirroring Grid Commanders'
             <code>MatchRequest</code>.</li>
+          </ul>
+        </div>
+
+        <div class="card bg-base-100 border p-4 sk-locked">
+          <div class="flex flex-wrap items-baseline gap-2">
+            <h3 class="font-black">D14 · First person — every player sees through their own brawler's eyes</h3>
+            <span class="badge badge-outline">locked · rev 3</span>
+          </div>
+          <p class="text-sm mt-2 max-w-3xl">
+            Your given (2026-10-03), as a rule the code can hold. The local seat's camera sits at its
+            brawler's eye, 1.6 m above the interpolated feet, and turns with the seat's look: the mouse
+            or the right stick sets the frame's <code>look_yaw</code> every tick (D3), plus a pitch
+            that never leaves the client — no rule reads it, because <strong>you move relative to
+            your look and you shove where you look, horizontally</strong>. Reach, cone and the 30°
+            bend are unchanged (D12); the bend moves the shove, never the view. Online is unchanged
+            in kind (D11): the look yaw is one more input field, and the snapshot already carries
+            every seat's facing.
+          </p>
+          <p class="text-sm mt-2 max-w-3xl">
+            <strong>The horizon stays level</strong> while the deck, the walls and the sea tilt in
+            view — the recommendation against motion sickness on a ship that lists for minutes (R15);
+            a comfort slider that lets the view roll with the deck is Q17. Field of view 90°
+            horizontal by default, 75–110° in settings. <strong>You read others, never
+            yourself:</strong> seat colour and hat on every brawler (SH14), a chevron and a name over
+            anyone in line of sight — never through a wall — and an arc at the screen edge when a seat
+            within reach beside or behind you starts a shove, the visual twin of its sound (SH15).
+            Your own state is HUD: a crosshair that lights when a shove would land
+            (<code>ShoveResolver.would_hit</code>, a pure read), an inclinometer, your height above
+            the sea, stamina and cold.
+          </p>
+          <p class="text-sm mt-2 max-w-3xl">
+            <strong>Out of the match you watch through a survivor's eyes</strong> — their look yaw
+            from the snapshot and a level gaze, since pitch is never sent — cycling with Q/E or the
+            d-pad. <strong>The observer camera is a tool, not a feature:</strong> SH1's elevated
+            fixed-yaw rig survives for <code>make capture</code>, QA (<code>--observer</code>) and the
+            arena, so headless and capture gates still show the whole ship; no menu reaches it.
+          </p>
+          <p class="text-sm mt-2 max-w-3xl"><strong>Rejected:</strong> a third-person view beside
+          first person (two views to make readable and fair, and you chose first person only); a
+          camera that rolls with the deck by default (R15); sending pitch to the server (no rule needs
+          it); drawing others through walls (a wallhack by design).</p>
+        </div>
+
+        <div class="card bg-base-100 border p-4" id="rev3-changes">
+          <div class="flex flex-wrap items-baseline gap-2">
+            <h3 class="font-black">Rev 3 at a glance — first person and rooms (2026-10-03)</h3>
+            <span class="badge badge-outline">rev 3</span>
+          </div>
+          <ul class="text-sm mt-2 max-w-3xl grid gap-1">
+            <li><strong>Givens:</strong> first person only; rooms below deck and in the
+            superstructure (the card at the top of this section).</li>
+            <li><strong>Decisions changed:</strong> D3 (the frame carries a look yaw; move is
+            relative to it), D6 (rooms are walls with door openings, floors at negative heights, steep
+            stairs; a ceiling is the platform above), D7 (water inside a room is the sea plane; the
+            steamer rides higher so its lower deck starts dry), D10 (bots see through walls until
+            SH7's line of sight), D13 (<code>Surfaces.line_of_sight</code>,
+            <code>ShoveResolver.would_hit</code>). <strong>New:</strong> D14.</li>
+            <li><strong>Milestones:</strong> SH3b new (below decks and rooms); SH9 rewritten as first
+            person and moved to follow SH3b, in parallel with it; SH9b new (the feel SH9 used to
+            carry); SH14 split into SH14 (sea, sky, crew) and SH14b (the ship and its interiors,
+            first-person arms); SH5, SH6, SH7 and SH15 extended for first person and rooms; SH1's
+            camera rig and SH8's spectate superseded by SH9.</li>
+            <li><strong>Questions:</strong> Q3 decided and Q14 retired by first person; Q11's
+            recommendation moves to interiors; Q15 (doors), Q16 (bot line of sight) and Q17 (the
+            first-person horizon) are new.</li>
+            <li><strong>Risks:</strong> R10 rewritten; R15 motion sickness, R16 omniscient bots, R17
+            hand-authored rooms, R18 performance inside rooms, R19 reading a windup in first
+            person.</li>
           </ul>
         </div>
 
@@ -747,7 +866,9 @@ var buttons: int</pre>
           wording or gate change, already made in this revision so the MVP cannot block the
           destination — no MVP milestone grew beyond that. <strong>MVP-only</strong>: right for the
           steamer, knowingly replaced by a named post-MVP milestone. §7's camera side and §8's
-          capacity sums are MVP-only for the same reasons as SH9 and SH12.</p>
+          capacity sums are MVP-only for the same reasons as SH9 and SH12. <em>Rev 3 supersedes the
+          camera rows below (D3, SH9): there is no third-person camera any more — see D14 and the rev-3
+          card above.</em></p>
           <div class="overflow-x-auto mt-3">
             <table class="sk-table">
               <thead><tr><th style="width:4.5rem">Item</th><th style="width:7.5rem">Verdict</th><th>Why, and what changed</th></tr></thead>
@@ -934,7 +1055,10 @@ flowchart LR
         spot moves during the match. <strong>Bow-down is the MVP's one scenario value, not a
         rule</strong> (D7): a stern-down value floods the poop deck first and a starboard list tips
         the other way, and SH1–SH3 test both directions, so the destination's any-way sinking
-        (SH16) changes data, not rules.
+        (SH16) changes data, not rules. <strong>Rev 3 gives it an inside:</strong> SH3b deepens the
+        hull, adds a lower deck (the forward hold, the engine room, the passenger cabins) and puts
+        rooms in the deckhouse and the wheelhouse; the lower deck floods first, so the match is a
+        climb.
       </p>
 
       <h3 class="font-black mb-2">The steamer, from above <span class="badge badge-ghost badge-sm align-middle">schematic — the <code>.tres</code> is the authority</span></h3>
@@ -994,17 +1118,92 @@ flowchart LR
           <tbody>
             <tr><td><strong>Main deck</strong></td><td>platform</td><td>x −14…12 · z −5…5</td><td>0.0</td><td>—</td><td>The opening brawl. Railings both sides with one gap each side forward of the deckhouse — the first place anyone goes over.</td></tr>
             <tr><td><strong>Poop deck</strong></td><td>platform</td><td>x −20…−14 · z −4.5…4.5</td><td>1.2</td><td>2 ramps (port, starboard)</td><td>The last dry place on a ship going down by the head: broad, two routes, railed aft and outboard, open forward.</td></tr>
-            <tr><td><strong>Forecastle</strong></td><td>platform</td><td>x 12…20 · z −4…4</td><td>1.8</td><td>1 ramp (centre)</td><td>An early high perch that is the first to drown — rewards nobody for camping it.</td></tr>
+            <tr><td><strong>Forecastle</strong></td><td>platform</td><td>x 12…20 · z −4…4</td><td>1.8</td><td>1 ramp (centre)</td><td>A high perch at the bow. Since rev 3 it is no longer the first to drown: once the lower
+            deck has flooded it is the forward refuge, cut off when the forward main deck goes under at
+            about 1:30 and under itself by about 2:00.</td></tr>
             <tr><td><strong>Boat deck</strong> (deckhouse roof)</td><td>platform over a blocker</td><td>x −7…3 · z −3.4…3.4</td><td>2.5</td><td>2 ramps rising aft from x 9 to 3</td><td>The mid-match high ground. No railings: exposed on every side.</td></tr>
             <tr><td><strong>Bridge</strong> (wheelhouse roof)</td><td>platform over a blocker</td><td>x −4…−1 · z −1.5…1.5</td><td>4.7</td><td>1 steep ramp from the boat deck</td><td>The highest perch until trim ≈ 14°, the one single-route perch, and the one that collapses (Q6).</td></tr>
             <tr><td><strong>Funnel</strong>, <strong>mast</strong>, <strong>cargo hatch</strong></td><td>blockers</td><td>funnel r 0.9 at x −6 · mast at x 16 · hatch x 4…8, z −1.5…1.5</td><td>—</td><td>—</td><td>Cover to circle round, things to be pinned against. The hatch becomes SH10's cargo.</td></tr>
+            <tr><td><strong>Lower deck</strong> (SH3b)</td><td>platforms + walls</td><td>x −13…15 inside the hull</td><td>−2.6</td><td>3 stairs up: two companionways, one inner stair</td><td>The forward hold, the engine room and six cabins aft. It floods first, from the bow end, between about 0:45 and 1:30.</td></tr>
+            <tr><td><strong>Deckhouse rooms</strong> (SH3b)</td><td>walls under the boat deck</td><td>x −7…3 · z −3.4…3.4</td><td>0.0</td><td>a door forward, two each side; the inner stair arrives inside</td><td>The saloon forward, four cabins aft: the mid-game rooms.</td></tr>
+            <tr><td><strong>Wheelhouse room</strong> (SH3b)</td><td>walls under the bridge</td><td>x −4…−1 · z −1.5…1.5</td><td>2.5</td><td>doors port and starboard</td><td>Under the roof that collapses at about 2:15, dropping whoever stands on it inside.</td></tr>
           </tbody>
         </table>
         <p class="text-xs opacity-70 mt-2">SH3's layout lint holds the shape, not these exact numbers:
         every ramp joins two platforms at their heights; spawns stand on platforms; no two
         same-height platforms overlap; <strong>every elevated platform has at least one ramp, and the
         poop deck at least two</strong>; the only single-route perch is one with a scheduled
-        collapse.</p>
+        collapse. From SH3b it also holds the rooms: every room has a door; no sealed room; every
+        lower deck has at least two stairs up; no wall crosses a stair or an opening.</p>
+      </div>
+
+      <h3 class="font-black mb-2">The steamer inside — long section (SH3b) <span class="badge badge-ghost badge-sm align-middle">schematic — the <code>.tres</code> is the authority</span></h3>
+      <div class="sk-panel p-2 mb-2">
+        <div class="flex justify-between px-2 pb-1 text-xs font-bold"><span>◀ stern</span><span>bow ▶</span></div>
+        <svg class="sk-fluid" viewBox="-8 -8 676 200" width="100%" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Long section of the steamer after SH3b: one lower deck with the forward hold, the engine room and the aft cabins; the deckhouse with the saloon and cabins; the wheelhouse; the stairs between them; the sea line at rest.">
+          <rect class="svg-sky" x="-8" y="-8" width="676" height="200"/>
+          <line class="svg-rail" x1="544" y1="86.8" x2="544" y2="7"/>
+          <polygon class="svg-hull" points="40,112 614,112 572,173.6 54,173.6"/>
+          <rect class="svg-room" x="138" y="112" width="392" height="36.4"/>
+          <rect class="svg-steel" x="278" y="123.2" width="70" height="25.2"/>
+          <line class="svg-floor" x1="138" y1="148.4" x2="530" y2="148.4"/>
+          <line class="svg-wall" x1="236" y1="112" x2="236" y2="119"/>
+          <line class="svg-wall" x1="369" y1="112" x2="369" y2="119"/>
+          <line class="svg-stair" x1="488" y1="148.4" x2="446" y2="112"/>
+          <line class="svg-stair" x1="152" y1="148.4" x2="194" y2="112"/>
+          <line class="svg-stair" x1="243" y1="148.4" x2="278" y2="112"/>
+          <line class="svg-floor" x1="40" y1="112" x2="163.2" y2="112"/>
+          <line class="svg-floor" x1="194" y1="112" x2="247.2" y2="112"/>
+          <line class="svg-floor" x1="278" y1="112" x2="446" y2="112"/>
+          <line class="svg-floor" x1="476.8" y1="112" x2="614" y2="112"/>
+          <rect class="svg-deck-hi" x="40" y="95.2" width="84" height="16.8"/>
+          <rect class="svg-deck-hi" x="488" y="86.8" width="112" height="25.2"/>
+          <rect class="svg-room" x="222" y="77" width="140" height="35"/>
+          <line class="svg-wall" x1="222" y1="77" x2="222" y2="112"/>
+          <line class="svg-wall" x1="362" y1="77" x2="362" y2="82.6"/>
+          <line class="svg-wall" x1="292" y1="77" x2="292" y2="82.6"/>
+          <line class="svg-floor" x1="222" y1="77" x2="362" y2="77"/>
+          <rect class="svg-room" x="264" y="46.2" width="42" height="30.8"/>
+          <line class="svg-wall" x1="264" y1="46.2" x2="264" y2="77"/>
+          <line class="svg-wall" x1="306" y1="46.2" x2="306" y2="77"/>
+          <line class="svg-floor" x1="264" y1="46.2" x2="306" y2="46.2"/>
+          <rect class="svg-steel" x="223.4" y="21" width="25.2" height="56"/>
+          <line class="svg-stair" x1="348" y1="77" x2="306" y2="46.2"/>
+          <g class="svg-small" font-family="Menlo, monospace" font-size="8" font-weight="600" text-anchor="middle">
+            <text x="205" y="135">CABINS</text>
+            <text x="405" y="135">HOLD</text>
+            <text x="327" y="100">SALOON</text>
+            <text x="257" y="100">CABINS</text>
+            <text x="285" y="66">WHEEL</text>
+          </g>
+          <text class="svg-onsteel" x="313" y="139" text-anchor="middle" font-family="Menlo, monospace" font-size="8" font-weight="700">ENGINE</text>
+          <rect class="svg-water" x="-8" y="159.6" width="676" height="32.4"/>
+          <line class="svg-waterline" x1="-8" y1="159.6" x2="668" y2="159.6"/>
+        </svg>
+        <p class="text-xs px-2 pt-2 pb-1">Schematic long section in ship-local metres (heights above the
+        main deck). One lower deck at −2.6 m: the forward hold, the engine room around its engine block,
+        and the passenger cabins aft, with a doorway in each bulkhead. Brown diagonals are stairs — the
+        forward and aft companionways up to the main deck, the inner stair into the deckhouse cabins, and
+        the bridge ramp — and the gaps in the main-deck line are their openings. Above: the deckhouse
+        (saloon forward, cabins aft) under the boat deck at +2.5 m, and the wheelhouse ("WHEEL") under the
+        bridge at +4.7 m. The sea line is the ship at rest with freeboard 3.4 m: the lower deck floor
+        stands 0.8 m above it until the sinking starts.</p>
+      </div>
+      <div class="overflow-x-auto mb-5">
+        <table class="sk-table">
+          <thead><tr><th>Room</th><th>Floor (m)</th><th>Ceiling</th><th>Doors and stairs</th><th>Its part in the match</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Forward hold</strong></td><td>−2.6</td><td>main deck (the fo'c'sle further forward)</td><td>bulkhead doorway aft; forward companionway up</td><td>The first to flood, from the bow end, at about 0:45.</td></tr>
+            <tr><td><strong>Engine room</strong></td><td>−2.6</td><td>main deck</td><td>bulkhead doorways fore and aft; the inner stair up into the deckhouse</td><td>Floods next; the engine block splits it into two lanes.</td></tr>
+            <tr><td><strong>Passenger cabins</strong></td><td>−2.6</td><td>main deck</td><td>six cabins off a 1.4 m corridor; bulkhead doorway forward; aft companionway up</td><td>The last of the lower deck to flood, at about 1:30.</td></tr>
+            <tr><td><strong>Saloon</strong></td><td>0.0</td><td>boat deck (+2.5)</td><td>a door forward, one each side; a doorway to the cabins</td><td>The mid-game room; floods from its forward door as the bow goes down.</td></tr>
+            <tr><td><strong>Deckhouse cabins</strong></td><td>0.0</td><td>boat deck (+2.5)</td><td>four cabins off a corridor; a door each side; the inner stair arrives here</td><td>Where the climb from the engine room comes out.</td></tr>
+            <tr><td><strong>Wheelhouse</strong></td><td>+2.5</td><td>bridge (+4.7)</td><td>doors port and starboard</td><td>Under the roof that collapses at about 2:15.</td></tr>
+          </tbody>
+        </table>
+        <p class="text-xs opacity-70 mt-2">Doors are openings 1.1 m wide and 2.1 m tall — one body at a
+        time; walls are 0.2 m thick; stairs are 1.0–1.2 m wide and up to about 40°. As with the deck
+        plan, the lint holds the shape, not these exact numbers.</p>
       </div>
 
       <h3 class="font-black mb-2">The sinking, from the side <span class="badge badge-ghost badge-sm align-middle">illustrative poses · heel not shown</span></h3>
@@ -1067,6 +1266,9 @@ flowchart LR
           <p><strong>1:45 · by the head</strong> — sink 2.0 m · trim 8° · fo'c'sle gone · highest: bridge</p>
           <p><strong>2:50 · the plunge</strong> — sink 6 m · trim 22° · bridge collapsed · highest: poop deck</p>
         </div>
+        <p class="text-xs px-2 pb-1 opacity-80">Drawn for the exterior steamer SH3 shipped, before
+        rev 3. SH3b's deeper hull rides higher (freeboard 3.4 m) and floods from the lower deck first —
+        the long section above and the timeline below are current.</p>
       </div>
       <p class="text-xs opacity-70 mb-5">The gold dot is the highest dry point. Measured from the
       pivot (main deck, amidships) before any sink: at trim 10° the bridge roof is 5.1 m up and the
@@ -1079,19 +1281,25 @@ flowchart LR
           <thead><tr><th>Phase</th><th>Match time</th><th>Sink</th><th>Trim (bow down)</th><th>Heel</th><th>What floods</th><th>Scheduled events</th></tr></thead>
           <tbody>
             <tr><td><strong>Countdown</strong></td><td class="mono">0:00–0:03</td><td>0</td><td>0°</td><td>0°</td><td>—</td><td>Sim frozen; inputs ignored.</td></tr>
-            <tr><td><strong>Taking water</strong></td><td class="mono">0:03–0:45</td><td>→ 0.8 m</td><td>→ 3°</td><td>0°</td><td>Bow spray; fo'c'sle edge wet ≈ 0:40</td><td>—</td></tr>
-            <tr><td><strong>By the head</strong></td><td class="mono">0:45–1:40</td><td>→ 2.0 m</td><td>→ 8°</td><td>→ 5° port</td><td>Fo'c'sle gone ≈ 1:00; main deck forward of the deckhouse ≈ 1:40</td><td>Lurch ≈ 1:10</td></tr>
-            <tr><td><strong>The list</strong></td><td class="mono">1:40–2:40</td><td>→ 3.5 m</td><td>→ 15°</td><td>5° port → 4° stbd</td><td>Walkways; forward half of the boat deck</td><td>Lurch ≈ 2:00 (the swing); bridge collapse ≈ 2:15 (3 s telegraph); lurch ≈ 2:30</td></tr>
-            <tr><td><strong>The plunge</strong></td><td class="mono">2:40–3:30</td><td>→ ≈ 14 m</td><td>→ 28°</td><td>→ 0°</td><td>Boat deck, then the poop deck</td><td>Every surface ≥ 0.5 m under by 3:30 — the hard cap</td></tr>
+            <tr><td><strong>Calm</strong></td><td class="mono">0:03–0:45</td><td>→ 0.25 m</td><td>→ 2°</td><td>0°</td><td>Nothing yet; spray at the bow</td><td>—</td></tr>
+            <tr><td><strong>The flooding below</strong></td><td class="mono">0:45–1:30</td><td>→ 2.2 m</td><td>→ 6°</td><td>→ 2° port</td><td>The lower deck, from the forward hold aft through the engine room to the cabins; the companionways are the fight</td><td>Lurch ≈ 1:10 (below decks it slams bodies into walls)</td></tr>
+            <tr><td><strong>By the head</strong></td><td class="mono">1:30–2:00</td><td>→ 3.2 m</td><td>→ 10°</td><td>→ 5° port</td><td>The main deck forward of the deckhouse from about 1:30, then the forecastle by about 2:00</td><td>—</td></tr>
+            <tr><td><strong>The list</strong></td><td class="mono">2:00–2:40</td><td>→ 4.0 m</td><td>→ 15°</td><td>5° port → 4° stbd</td><td>Walkways, the saloon, the forward half of the boat deck</td><td>Lurch ≈ 2:00 (the swing); bridge collapse ≈ 2:15 (3 s telegraph; bodies drop into the wheelhouse); lurch ≈ 2:30</td></tr>
+            <tr><td><strong>The plunge</strong></td><td class="mono">2:40–3:30</td><td>→ ≈ 14.5 m</td><td>→ 28°</td><td>→ 0°</td><td>The boat deck, the deckhouse cabins, then the poop deck</td><td>Every surface ≥ 0.5 m under by 3:30 — the hard cap</td></tr>
           </tbody>
         </table>
-        <p class="text-xs opacity-70 mt-2">Numbers are the starting point for
-        <span class="sk-file">data/sinking/steamer.tres</span>, not a contract. The contract is the
-        timeline: SH6's tests assert the shipped profile against the targets (fo'c'sle under by
-        1:05, the poop deck the highest dry surface from the bridge collapse on, every surface under
-        by 3:30), so retuning a
-        keyframe cannot quietly break the match's shape. Seeded jitter moves each event by at most
-        ±3 s per match.</p>
+        <p class="text-xs opacity-70 mt-2">Rev 3 (SH3b) numbers, ship-local, with freeboard 3.4 m: the
+        starting point for <span class="sk-file">data/sinking/steamer.tres</span>, not a contract. The
+        contract is the timeline, asserted by SH3b's and SH6's tests: the lower deck wet at its forward
+        end by 0:50 and everywhere by 1:30; the main deck and the forecastle dry until about 1:30; the
+        forecastle under by 2:00; the poop deck the highest dry surface from the bridge collapse on;
+        every surface at least 0.5 m under by 3:30. <strong>Why it replaces the rev-2 table:</strong>
+        that table could not happen on its own ship — a flat forecastle 1.8 m up cannot flood before the
+        main deck forward of the deckhouse unless the trim passes about 11° — so SH3 shipped steeper
+        early trims to drown the forecastle first. With a lower deck that floods first, the forecastle no
+        longer has to be the first to go: <strong>the early game is now inside the ship</strong>, early
+        trim stays gentle, and the forecastle becomes a forward refuge cut off at about 1:30. Seeded
+        jitter moves each event by at most ±3 s per match.</p>
       </div>
 
       <div class="grid md:grid-cols-2 gap-4">
@@ -1106,7 +1314,9 @@ flowchart LR
             within <strong>0.6 m</strong> of the surface — which, on a ship going down by the head, is
             the low end, exactly where the fight is. Climbing takes <strong>0.5 s</strong> and a shove
             puts you back in. The meter refills slowly on deck, so a second dunking kills faster than
-            the first.</li>
+            the first. Since rev 3 the steamer rides higher (freeboard 3.4 m), so going over the side
+            early is final, and the first waterline anyone climbs out of is inside the ship — the stairs
+            up from a flooding lower deck.</li>
             <li><strong>Why the countdown wins.</strong> Instant death makes every edge a cliff and
             every match a string of one-hit outs. The countdown turns the waterline into the most
             contested strip on the ship (guarding the edge against climbers is the brawl's best
@@ -1155,8 +1365,9 @@ flowchart LR
         <div class="card bg-base-100 border p-4">
           <h3 class="font-black">The verbs, and the triangle they make</h3>
           <ul class="text-sm mt-2 grid gap-2">
-            <li><strong>Move.</strong> Analog, camera-relative, 5 m/s, quick to start and stop.
-            Facing follows movement (or aim from SH9), turning at 720°/s.</li>
+            <li><strong>Move.</strong> Analog, relative to where you look, 5 m/s, quick to start and stop.
+            Your facing is your look (first person, D14), turned by the mouse or the right stick; bots
+            turn at their profile's rate.</li>
             <li><strong>Shove (SH1).</strong> 3 ticks of windup, 3 active, 8 of recovery. A 40°
             cone in front, 0.9 m beyond the two bodies. A hit sends the target sliding at 8 m/s and
             staggers it for 0.4 s: no control, no grip. The windup is too short to react to — the
@@ -1178,9 +1389,9 @@ flowchart LR
         <div class="card bg-base-100 border p-4">
           <h3 class="font-black">Knockback rules</h3>
           <ul class="text-sm mt-2 grid gap-2">
-            <li><strong>Direction</strong> is the shover's facing at the start of the active window;
-            at windup start, facing snaps to the nearest target inside a 30° auto-aim cone (helps a
-            stick and is the same for bots).</li>
+            <li><strong>Direction</strong> is where the shover looks at the start of the active window
+            (its facing, D14); at windup start the shove — never the view — bends toward the nearest
+            target inside a 30° cone, the same for everyone.</li>
             <li><strong>A staggered body slides</strong> with low friction (8 m/s²): a quick shove
             on a flat deck moves a body about 3 m. Hitting a staggered body adds 25% (a combo).</li>
             <li><strong>Slopes add to it.</strong> Gravity in ship space pulls a sliding body
@@ -1205,7 +1416,7 @@ flowchart LR
           <tbody>
             <tr><td class="mono">walk_speed</td><td>5.0 m/s</td><td>SH1</td><td>Crosses the 10 m beam in two seconds.</td></tr>
             <tr><td class="mono">ground_accel / ground_friction</td><td>35 / 30 m/s²</td><td>SH1</td><td>Full speed in ~0.15 s, stopped in ~0.17 s: responsive, not instant.</td></tr>
-            <tr><td class="mono">turn_rate</td><td>720 °/s</td><td>SH1</td><td>Facing catches the stick in a few ticks.</td></tr>
+            <tr><td class="mono">turn_rate</td><td>720 °/s</td><td>SH1 · bots only from SH9</td><td>Retired from the sim in SH9 — a player's facing is their look; kept as a <code>BotProfile</code> knob so no bot turns faster than a person.</td></tr>
             <tr><td class="mono">body_radius / body_height</td><td>0.4 / 1.7 m</td><td>SH1</td><td>Two abreast on a 1.6 m walkway is a squeeze, on purpose.</td></tr>
             <tr><td class="mono">gravity</td><td>20 m/s²</td><td>SH1</td><td>Snappier falls than 9.81; nobody hangs in the air.</td></tr>
             <tr><td class="mono">shove_windup / active / recovery</td><td>0.10 / 0.10 / 0.27 s (3 / 3 / 8)</td><td>SH1</td><td>Quick to throw, a whiff is punishable.</td></tr>
@@ -1263,11 +1474,14 @@ flowchart LR
             <code>InputFrame</code>.</li>
             <li><strong>Perception.</strong> A <code>BotView</code> built from the snapshot
             <code>reaction_ticks</code> ago: every body's position, velocity, state and facing, the
-            current pose, which surfaces are dry, the distance to the waterline. No fog (a deck is
-            in plain sight), no future schedule (D10).</li>
+            current pose, which surfaces are dry, the distance to the waterline. No fog on an open
+            deck, no future schedule (D10). <strong>Rooms change this (rev 3):</strong> until SH7 adds
+            line of sight and hearing (Q16), bots see through walls a first-person player cannot
+            (R16).</li>
             <li><strong>Navigation.</strong> From SH3, a coarse walk graph built from the layout:
             platforms are nodes, ramps are edges; the brain paths to a platform, then steers
-            locally.</li>
+            locally. From SH3b the graph's zones are rooms and open-deck areas joined by doorways and
+            stairs, so paths go through doors, never walls.</li>
             <li><strong>How many.</strong> Eight seats per match by default — you plus seven bots
             (Q4). The sim is O(n²) in body pairs with n ≤ 16, which is nothing; SH7 records the
             measured cost per tick and the budget is ≤ 2 ms for sim + bots at eight seats on the
@@ -1299,23 +1513,19 @@ flowchart LR
 
       <div class="grid lg:grid-cols-2 gap-4">
         <div class="card bg-base-100 border p-4">
-          <h3 class="font-black">Camera (Q3)</h3>
-          <p class="text-sm mt-2"><strong>Recommended: a fixed-yaw, elevated follow camera from the
-          starboard side.</strong> It looks across the beam, pitched about 50° down, with the bow to
-          the right of the screen and the ship's long axis along the wide screen. It follows the
-          local brawler with smoothing, clamps to the ship, and does <em>not</em> roll with the
-          ship — the world stays level and the deck visibly tilts, which is how the sinking reads at
-          a glance. Movement is screen-relative and never changes meaning because the camera never
-          turns. After you are out (SH8) it follows the leader. <strong>Starboard is the MVP's
-          setting, not a rule</strong>: the rig's side is a parameter and inputs follow its yaw (D3),
-          so on a ship that may list either way (SH16) the camera can move — Q14.</p>
-          <p class="text-sm mt-2"><strong>The alternative</strong> is a free third-person orbit
-          behind your brawler (Fall Guys-style): more immersive, but the camera's yaw becomes part
-          of every input, the deckhouse occludes half the fight, and a rolling ship plus an orbiting
-          camera is a motion-sickness recipe. SH1 builds the recommendation because a camera is
-          presentation only and a few hours to replace; Q3 gates SH9's camera polish. Occlusion
-          (the deckhouse hiding the port walkway) is handled by drawing brawlers' silhouettes
-          through walls (SH9), not by moving the camera.</p>
+          <h3 class="font-black">Camera — first person (Q3 decided, rev 3)</h3>
+          <p class="text-sm mt-2"><strong>You see through your own brawler's eyes</strong> (D14): the eye
+          1.6 m above your feet, the mouse or the right stick turns you, the pitch is yours alone, and the
+          horizon stays level while the ship tilts around you (Q17); field of view 90° horizontal.
+          Movement is relative to your look. Once you are out you watch through a survivor's eyes, and
+          Q/E or the d-pad cycles. A first-person HUD carries what the elevated view used to show at a
+          glance: the inclinometer for the tilt, your height above the sea, a crosshair that lights when
+          your shove would land, and arcs at the screen edge for a windup you cannot see.</p>
+          <p class="text-sm mt-2"><strong>The observer camera is a tool, not a feature.</strong> SH1's
+          elevated rig — across the beam from starboard, pitched about 50° down, never rolling — stays as
+          the observer: <code>make capture</code>, QA (<code>--observer</code>) and the arena use it, and
+          from SH3b it can cut away the decks above a height to show the inside. No menu reaches it, and
+          nothing a player sees is drawn through walls.</p>
         </div>
         <div class="card bg-base-100 border p-4">
           <h3 class="font-black">Controls</h3>
@@ -1326,10 +1536,10 @@ flowchart LR
                 <tr><td>Move</td><td>WASD / arrows</td><td>Left stick / d-pad</td><td class="mono">move</td><td>SH1</td></tr>
                 <tr><td>Shove (tap) · charge (hold)</td><td>Space or left click</td><td>A / Cross</td><td class="mono">SHOVE</td><td>SH1 · SH4</td></tr>
                 <tr><td>Brace (hold)</td><td>Shift or right click</td><td>RB / R1</td><td class="mono">BRACE</td><td>SH4</td></tr>
-                <tr><td>Aim</td><td>Mouse cursor on the deck</td><td>Right stick</td><td class="mono">aim</td><td>SH9</td></tr>
+                <tr><td>Look (turn and tilt your view)</td><td>Mouse</td><td>Right stick</td><td class="mono">look_yaw</td><td>SH9</td></tr>
                 <tr><td>Restart after a result</td><td>R</td><td>Start</td><td>—</td><td>SH1</td></tr>
-                <tr><td>Pause · menu</td><td>Esc</td><td>Start</td><td>—</td><td>SH8</td></tr>
-                <tr><td>Spectate next / previous</td><td>E / Q</td><td>d-pad right / left</td><td>—</td><td>SH8</td></tr>
+                <tr><td>Pause · menu (frees the mouse)</td><td>Esc</td><td>Start</td><td>—</td><td>SH8</td></tr>
+                <tr><td>Spectate next / previous (through their eyes)</td><td>E / Q</td><td>d-pad right / left</td><td>—</td><td>SH8 · SH9</td></tr>
               </tbody>
             </table>
           </div>
@@ -1438,9 +1648,9 @@ sequenceDiagram
           <tbody>
             <tr><td class="mono">data/rules/brawl.tres</td><td><code>BrawlRules</code></td><td>Movement, gravity, shove timings and reach, knockback, stagger, slope and grip, railings and vault, brace, charge, stamina, cold meter, swimming, hit-stop. Compiled to tick counts by <code>Ticks</code> once per match.</td><td>SH1, grows each milestone</td></tr>
             <tr><td class="mono">data/match/default.tres</td><td><code>MatchRules</code></td><td>Seat count, bot fill and tier, countdown, tie rules, which ship and which sinking scenario.</td><td>SH1</td></tr>
-            <tr><td class="mono">data/ships/flat_deck.tres · steamer.tres</td><td><code>ShipLayout</code></td><td>Platforms, ramps, blockers, railing spans and gaps, spawns; props from SH10. <code>flat_deck</code> stays as a test fixture after SH3.</td><td>SH1 · SH3</td></tr>
+            <tr><td class="mono">data/ships/flat_deck.tres · steamer.tres</td><td><code>ShipLayout</code></td><td>Platforms, ramps, blockers, railing spans and gaps, spawns; props from SH10; from SH3b, walls as thin blockers and <code>ShipRoom</code> annotations. <code>flat_deck</code> stays as a test fixture after SH3.</td><td>SH1 · SH3 · SH3b</td></tr>
             <tr><td class="mono">data/sinking/flat.tres · steamer.tres</td><td><code>SinkScenario</code></td><td>One match's sinking: the pivot, the tick the sinking starts, keyframes (time, sink, signed trim, signed heel), scheduled events (lurch, collapse, railing failure) with telegraph times, jitter bounds, the cap. From SH16, a generated kind: breach-region, moment and pace bands.</td><td>SH1 · SH2 · SH6 · SH16</td></tr>
-            <tr><td class="mono">data/bots/easy · normal · hard.tres</td><td><code>BotProfile</code></td><td>The §7 knobs and the intent weights.</td><td>SH1 (normal) · SH7</td></tr>
+            <tr><td class="mono">data/bots/easy · normal · hard.tres</td><td><code>BotProfile</code></td><td>The §7 knobs, the intent weights and, from SH9, the bot's turn rate.</td><td>SH1 (normal) · SH7</td></tr>
             <tr><td class="mono">data/net/net.tres</td><td><code>NetRules</code></td><td>Snapshot interval, interpolation delay, input redundancy, the client's lead buffer, the rewind cap.</td><td>SH11</td></tr>
           </tbody>
         </table>
@@ -1454,7 +1664,13 @@ sequenceDiagram
         <h2 class="text-2xl font-black">Milestones — each one shippable</h2>
       </div>
       <p class="max-w-3xl mb-4 text-sm">
-        Twenty-three vertical slices, in dependency order: <strong>take them in order</strong>.
+        Twenty-six vertical slices, in dependency order: <strong>take them in the order the cards
+        appear</strong>. <strong>The MVP is SH1–SH15 plus SH3b, SH9b and SH14b</strong>, added in rev 3
+        (IDs stay stable, so a new slice takes a letter rather than renumbering). Rev 3 moved first
+        person up: <strong>SH9 follows SH3b and may run in parallel with it</strong> — they touch
+        different files, and whichever merges second regenerates the golden. The MVP order is SH1 → SH2
+        → SH3 → SH8 → SH14 (sea, sky, crew) → SH3b ∥ SH9 → SH4 → SH5 → SH6 → SH7 → SH9b → SH10 → SH11 →
+        SH12 → SH13 → SH14b → SH15.
         <strong>SH1–SH15 are the MVP</strong> you approved; <strong>SH16–SH23 are the
         destination</strong> — the Titanic-sized ship that can go down by any side at any time — and
         none of them starts before SH15 ships. Each is one
@@ -1478,20 +1694,23 @@ sequenceDiagram
             <tr><td class="mono">SH1</td><td>First playable greybox</td><td>L</td><td>—</td><td>…brawl five bots on a flat deck tipping into the sea, and win or lose.</td></tr>
             <tr><td class="mono">SH2</td><td>The listing deck</td><td>M</td><td>—</td><td>…feel the deck tilt, slide when it is steep, and go over a railing.</td></tr>
             <tr><td class="mono">SH3</td><td>The steamer</td><td>L</td><td>—</td><td>…fight up ramps and roofs and fall between decks of a real ship.</td></tr>
+            <tr><td class="mono">SH3b</td><td>Below decks and rooms</td><td>L</td><td>Q15 · build the recommendation</td><td>…climb out of a flooding hold, through a cabin corridor and up a companionway.</td></tr>
+            <tr><td class="mono">SH9</td><td>First person — look, move, shove, spectate</td><td>L</td><td>Q17 · build the recommendation</td><td>…play through your own eyes: turn with the mouse, shove where you look, spectate through survivors.</td></tr>
             <tr><td class="mono">SH4</td><td>Brace and the charged shove</td><td>M</td><td>Q2 · stop and ask</td><td>…brace a shove, and break a brace with a charge.</td></tr>
             <tr><td class="mono">SH5</td><td>Overboard</td><td>M</td><td>Q1 · stop and ask</td><td>…survive a dunking and climb back — unless someone guards the edge.</td></tr>
             <tr><td class="mono">SH6</td><td>The sinking script</td><td>M</td><td>Q5, Q6 · build the recommendation</td><td>…ride lurches and a collapse to a guaranteed final plunge.</td></tr>
-            <tr><td class="mono">SH7</td><td>Bots that brawl</td><td>M/L</td><td>Q4 · build the recommendation</td><td>…lose to hard bots, beat easy ones, read an arena report.</td></tr>
+            <tr><td class="mono">SH7</td><td>Bots that brawl</td><td>M/L</td><td>Q4, Q16 · build the recommendation</td><td>…lose to hard bots, beat easy ones, read an arena report.</td></tr>
             <tr><td class="mono">SH8</td><td>The match loop</td><td>M</td><td>—</td><td>…play the whole loop from a menu: countdown, spectate, results, rematch.</td></tr>
-            <tr><td class="mono">SH9</td><td>Feel and controls</td><td>M</td><td>Q3 · build the recommendation</td><td>…feel every hit, aim with mouse or stick, play entirely on a pad.</td></tr>
+            <tr><td class="mono">SH9b</td><td>Feel</td><td>M</td><td>—</td><td>…feel every hit land.</td></tr>
             <tr><td class="mono">SH10</td><td>Hazards I</td><td>M</td><td>—</td><td>…dodge sliding cargo and fall through a broken railing.</td></tr>
             <tr><td class="mono">SH11</td><td>The network seam</td><td>L</td><td>Q7 · stop and ask</td><td>…play offline through a local server with fake lag and feel no difference.</td></tr>
             <tr><td class="mono">SH12</td><td>Online</td><td>L</td><td>Q8 · build the recommendation</td><td>…play a friend in a browser through the mini PC.</td></tr>
             <tr><td class="mono">SH13</td><td>Lag compensation</td><td>M</td><td>SH12's measurement</td><td>…land the shoves that looked like hits at real-world ping.</td></tr>
-            <tr><td class="mono">SH14</td><td>Art pass I</td><td>L</td><td>Q9 · stop and ask</td><td>…see a ship, a sea and a crew instead of boxes.</td></tr>
+            <tr><td class="mono">SH14</td><td>Art pass I — sea, sky, crew</td><td>M</td><td>Q9 · stop and ask</td><td>…see a sea, a sky and a crew instead of planes and capsules.</td></tr>
+            <tr><td class="mono">SH14b</td><td>Art pass I, second half — the ship and its interiors</td><td>L</td><td>Q9 (as answered for SH14)</td><td>…walk a lamp-lit corridor as the sea comes in.</td></tr>
             <tr><td class="mono">SH15</td><td>Sound and atmosphere</td><td>M</td><td>—</td><td>…hear the ship going down.</td></tr>
             <tr><td colspan="5" style="background:var(--sk-deep); color:white; font-weight:800; text-align:center;">MVP ends here — the destination follows</td></tr>
-            <tr><td class="mono">SH16</td><td>Sinking scenarios: any side, any time</td><td>M</td><td>Q10 · stop and ask; Q14 · build the recommendation</td><td>…see the steamer go down by the bow, the stern or either side, from a moment nobody expects.</td></tr>
+            <tr><td class="mono">SH16</td><td>Sinking scenarios: any side, any time</td><td>M</td><td>Q10 · stop and ask</td><td>…see the steamer go down by the bow, the stern or either side, from a moment nobody expects.</td></tr>
             <tr><td class="mono">SH17</td><td>The ship bake tool</td><td>M</td><td>—</td><td>…draw a big ship as a greybox scene and bake it to data.</td></tr>
             <tr><td class="mono">SH18</td><td>Spatial index</td><td>M</td><td>—</td><td>…run 64 bodies on a huge hull inside the tick budget, outcomes unchanged.</td></tr>
             <tr><td class="mono">SH19</td><td>The big ship, greybox</td><td>L</td><td>Q11 · stop and ask; Q13 · build the recommendation</td><td>…brawl across a Titanic-sized greybox as it goes down.</td></tr>
@@ -1550,7 +1769,8 @@ sequenceDiagram
             pose; per seat a coloured capsule, a facing nose and a blob shadow, drawn from two
             snapshots); <code>ShipGreybox</code> (meshes generated from the layout); a translucent
             water plane at <code>y = 0</code>; <code>CameraRig</code> (§7's fixed-yaw follow; its side is a setting, starboard by default,
-            and nothing else names a side);
+            and nothing else names a side — <em>superseded in rev 3: SH9 turns this rig into the
+            observer camera, a tool, and players see in first person</em>);
             <code>Hud</code> (seats left, match clock); <code>EndOverlay</code> ("Last one dry!" /
             "Overboard — 4th of 6", restart, quit); <code>LocalInputSource</code>
             (screen-relative → ship plane through <code>InputFrame.from_screen</code> with the rig's
@@ -1751,6 +1971,79 @@ sequenceDiagram
           </ul>
         </div>
 
+        <!-- SH3b -->
+        <div class="card bg-base-100 border p-4 sk-ms" id="sh3b">
+          <div class="flex flex-wrap items-baseline gap-2">
+            <h3 class="font-black">SH3b · Below decks and rooms <span class="badge badge-outline badge-sm">size L</span> <span class="badge badge-ghost badge-sm align-middle">proposed</span> <span class="badge badge-sm align-middle" style="background:#e5d3a8; border:0;">gated · Q15 · build the recommendation</span></h3>
+          </div>
+          <p class="text-sm mt-2 max-w-3xl"><strong>Ships:</strong> the steamer gets an inside: a deeper hull with one lower deck — the forward hold, the engine room and the passenger cabins — and rooms in the deckhouse (saloon, cabins) and the wheelhouse. The sea comes in at the bottom first, so the match becomes a climb: out of the hold, up a companionway, through the saloon, onto the roofs.</p>
+          <h4>Builds</h4>
+          <ul class="sk-checks text-sm">
+            <li><strong>Rooms as data, no new collision kinds</strong> (D6): walls are thin box blockers (0.2 m) from a floor to the deck above, with gaps for door openings 1.1 m wide and 2.1 m tall — openings only (Q15); the lower deck is platforms at −2.6 m; stairs are ramps of up to about 40°, 1.0–1.2 m wide; the main deck becomes rectangles that leave an opening over the upper part of each stair, railed on three sides. Ceilings are not data — the platform above is the ceiling.</li>
+            <li><code>ShipRoom</code> (<code>core/</code>, Node-free): a rules-free annotation — name, area, floor height — read by the lint, the walk graph's zones, the HUD's room name and the greybox, never by the sim's rules. The hull's sides and ends below the main deck are wall blockers, so nothing walks or swims in through the hull.</li>
+            <li><strong><code>freeboard</code> rises from 1.2 m to 3.4 m</strong> — the one exterior number that changes, and why: D7 has no compartments, so a floor is dry only while it stands above the sea plane, and the lower deck must start 0.8 m above it. Every exterior rectangle and every height relative to the main deck stays as SH3 shipped it; the rest of the data is additive.</li>
+            <li>The rooms, per §5's long section and rooms table. On the lower deck: the forward hold, the engine room around an engine-block blocker, and six passenger cabins off a 1.4 m corridor aft, with a doorway in each of the two bulkheads. Three stairs up from it: the forward companionway (hold → main deck), the aft companionway (cabin corridor → main deck) and the inner stair (engine room → the deckhouse cabin corridor). The deckhouse becomes hollow: saloon forward, four cabins and a corridor aft, a door forward and two on each side, the funnel casing passing through as a blocker. The wheelhouse becomes one room with doors port and starboard, under the bridge roof.</li>
+            <li><span class="sk-file">data/sinking/steamer.tres</span> retimed so the inside floods first (§5's rev-3 timeline): calm to 0:45; the lower deck floods from the forward hold aft to the cabins between about 0:45 and 1:30; the main deck forward of the deckhouse and the forecastle go under between about 1:30 and 2:00; then the list, the 2:15 collapse (which now drops bodies into the wheelhouse room) and the plunge to the unchanged 3:30 cap. Early trim stays gentle (about 2° at 0:45, 6° at 1:30) and steepens after; this replaces SH3's steep early trims, which existed only to drown the forecastle first.</li>
+            <li>Spawns: three on the lower deck (hold, engine room, cabins), two in the deckhouse (saloon, aft corridor), three on deck — eight seats.</li>
+            <li>Walk graph: zones are rooms and open-deck areas, edges are doorways and stairs; a path crosses a wall only through a door gap. The existing bot brain gains one intent weight — climb when its floor is about to flood — not SH7's new intents.</li>
+            <li>Greybox and instruments: walls, door frames and the undersides of the decks above, all drawn from the data; a lamp marker per room for SH14b; the observer camera can cut away everything above a height (<code>--observer-cut=&lt;m&gt;</code>) so captures show the inside.</li>
+          </ul>
+          <h4>Respects</h4>
+          <p class="text-sm">D4, D5, D6, D7, D8, D10, D13.</p>
+          <h4>Acceptance gates</h4>
+          <ul class="sk-gates text-sm">
+            <li><code>make verify</code> green; continuation exact; golden regenerated with the reason in the PR body (a new layout and a new timeline).</li>
+            <li><span class="sk-file">test_ship_layout_lint.gd</span> gains <code>test_every_room_has_a_door</code>, <code>test_no_sealed_room</code> (every walkable area is reachable from the main deck), <code>test_every_lower_deck_has_two_stairs_up</code>, <code>test_doors_are_at_least_a_metre_wide</code>, <code>test_no_wall_crosses_a_stair_or_an_opening</code>.</li>
+            <li><span class="sk-file">test_surfaces.gd</span> gains <code>test_stacked_floors_pick_the_one_underfoot</code>, <code>test_walls_stop_bodies_and_shoves</code> (a body slammed into a wall stops without vaulting; a shove through a wall never lands), <code>test_doorway_passes_one_body_at_a_time</code>, <code>test_falling_into_a_companionway_lands_on_the_stair</code>, <code>test_room_floods_exactly_when_its_floor_is_under_the_sea</code> (no compartment).</li>
+            <li><span class="sk-file">test_sink_schedule.gd</span> gains <code>test_steamer_floods_from_the_bottom_up</code> (the lower deck wet at its forward end by 0:50 and everywhere by 1:30; the main deck and the forecastle dry until 1:30; the forecastle under by 2:00; every surface at least 0.5 m under by 3:30).</li>
+            <li><span class="sk-file">tests/unit/ai/test_walk_graph.gd</span> gains <code>test_path_from_the_hold_to_the_poop_deck</code>, <code>test_paths_cross_walls_only_through_doors</code>; <span class="sk-file">tests/unit/ai/test_bot_brain.gd</span> gains <code>test_lone_bot_climbs_out_before_its_floor_floods</code>.</li>
+            <li><code>make match</code> on 10 seeds ends with a winner or a draw every time.</li>
+            <li><code>make capture</code> with <code>--observer-cut=0</code> at 0:55 shows the lower deck from above with the sea entering the forward hold; at 0:20 without a cut it shows the exterior with the companionway openings.</li>
+            <li><code>make run</code> (in first person once SH9 has landed, with the observer camera before it): walk from the engine room up the inner stair into the deckhouse, out through a side door and down the forward companionway into the hold; every door is one body wide.</li>
+          </ul>
+          <h4>Not in this milestone</h4>
+          <ul class="sk-crosses text-sm">
+            <li>Closable doors (Q15); compartments or air pockets (D7); a second lower deck (§13's follow-ups); interior lighting and dressing (SH14b); bot line of sight (SH7, Q16); cargo in the hold (SH10); the first-person camera (SH9).</li>
+          </ul>
+        </div>
+
+        <!-- SH9 -->
+        <div class="card bg-base-100 border p-4 sk-ms" id="sh9">
+          <div class="flex flex-wrap items-baseline gap-2">
+            <h3 class="font-black">SH9 · First person — look, move, shove, spectate <span class="badge badge-outline badge-sm">size L</span> <span class="badge badge-ghost badge-sm align-middle">proposed</span> <span class="badge badge-sm align-middle" style="background:#e5d3a8; border:0;">gated · Q17 · build the recommendation</span></h3>
+          </div>
+          <p class="text-sm mt-2 max-w-3xl"><strong>Ships:</strong> you see through your own brawler's eyes. The mouse or the right stick turns you, you move relative to where you look, you shove where you look, and once you are out you watch through a survivor's eyes. The elevated camera survives only as the observer tool for captures, QA and the arena. Rev 3 rewrote this milestone; the feel it used to carry is SH9b.</p>
+          <h4>Builds</h4>
+          <ul class="sk-checks text-sm">
+            <li><code>InputFrame</code>: <code>aim</code> is replaced by <code>look_yaw: int</code> — 0…65 535 for one turn, quantized at creation by <code>InputFrame.quantize_yaw</code> and wrapped into range by <code>validated</code>. <code>from_screen(stick, look_yaw)</code> makes the move relative to the quantized look (stick up walks where you look). The snapshot's <code>facing</code> and <code>last_input</code> carry the look.</li>
+            <li>Sim: a seat's facing is its frame's look yaw, every tick and by any amount — no turn rate on frames; <code>turn_rate</code> leaves <code>BrawlRules</code> and becomes a <code>BotProfile</code> knob, so no bot turns faster than a person. The shove goes where you look (the facing at the start of the active window), with reach, cone and the 30° bend unchanged (D12). <code>ShoveResolver</code> gains a pure read, <code>would_hit(view, seat)</code>, for the crosshair (D13).</li>
+            <li>Bots set <code>look_yaw</code> toward their target or their way, within their turn-rate knob; <code>BotView</code> is unchanged here (line of sight is SH7, Q16).</li>
+            <li><code>scenes/</code>: a <code>FirstPersonCamera</code> at the local seat's eye, 1.6 m above its interpolated feet. Its yaw comes from the local, unquantized look so turning has no lag; pitch comes from the mouse or the stick, clamped to ±80°, never sent (presentation only). Level horizon by default (Q17); field of view 90° horizontal; sensitivity, invert-Y and the deck-roll value read from a local <code>ViewSettings</code> with defaults (SH15 adds the settings screen). The mouse is captured in play and freed on pause and results.</li>
+            <li><code>LocalInputSource</code> accumulates mouse motion and right-stick look into the local look yaw and builds each frame with <code>look_yaw</code> and <code>move = from_screen(stick, look_yaw)</code>. Input map: <code>look_left</code>, <code>look_right</code>, <code>look_up</code>, <code>look_down</code> on the right stick, plus mouse look.</li>
+            <li>Your own body is not drawn from your eye (arms and hands are SH14b); others are SH14's crew in seat colour and hat.</li>
+            <li>First-person HUD: a centre crosshair that lights when <code>would_hit</code> says a shove now would land; SH2's tilt gauge redrawn as an inclinometer (signed trim and heel, amber past the grip angle); your height above the sea (metres between your feet and the water, red under 1 m); stamina and cold in their slots; an off-screen windup arc at the screen edge when a seat within reach beside or behind you starts a shove.</li>
+            <li>Seat identity: a chevron in seat colour and the seat's name over every brawler you have line of sight to within 15 m — never through walls.</li>
+            <li>Spectating replaces SH8's follow camera: once you are out, your view moves into the best-placed survivor's eyes (their look yaw from the snapshot; their pitch never leaves their client, so the gaze is level); Q/E or the d-pad cycles; the HUD names whose eyes. <code>SpectateOrder</code> (<code>core/</code>, pure) picks and cycles.</li>
+            <li>The observer camera, a tool and not a feature: SH1's <code>CameraRig</code> becomes <code>ObserverCamera</code> — elevated, fixed-yaw, whole-ship framing, with SH3b's cut-away when it exists. <code>make capture</code> uses it by default, <code>--observer</code> opens it for QA, and the arena tools use it; no menu reaches it. Captures can also be taken through a seat's eyes (<code>--capture-eye=&lt;seat&gt;</code>).</li>
+          </ul>
+          <h4>Respects</h4>
+          <p class="text-sm">D3, D5, D10, D12, D13, D14.</p>
+          <h4>Acceptance gates</h4>
+          <ul class="sk-gates text-sm">
+            <li><code>make verify</code> green; continuation exact with <code>look_yaw</code>; golden regenerated with the reason in the PR body (facing now follows the look, and <code>turn_rate</code> leaves the sim).</li>
+            <li><span class="sk-file">test_input_frame.gd</span> gains <code>test_look_yaw_quantizes_one_turn_to_65536_steps</code>, <code>test_look_yaw_wraps_into_range</code>, <code>test_move_is_relative_to_look</code> (stick up moves along the look; the same stick moves the opposite way under looks 180° apart — this replaces <code>test_from_screen_respects_camera_yaw</code>), <code>test_validated_frame_keeps_the_look</code>.</li>
+            <li><span class="sk-file">test_shove.gd</span> gains <code>test_shove_goes_where_you_look</code> (a body dead ahead of the look is hit and the same body behind is not, whatever the move direction), <code>test_look_turns_any_amount_in_one_tick</code>, <code>test_would_hit_matches_the_resolved_shove</code>.</li>
+            <li><span class="sk-file">test_spectate.gd</span> — <code>test_spectates_the_best_placed_survivor</code>, <code>test_cycle_skips_seats_that_are_out</code>.</li>
+            <li><span class="sk-file">tests/unit/ai/test_bot_brain.gd</span> gains <code>test_bot_looks_toward_its_target</code>, <code>test_bot_turn_rate_is_capped_by_its_profile</code>.</li>
+            <li><code>make capture</code> still shows the whole ship from the observer camera; <code>make capture</code> with <code>--capture-eye=1</code> at 0:30 writes a first-person frame showing the crosshair and the inclinometer.</li>
+            <li><code>make run</code>: the mouse turns you and WASD moves relative to your view; Space shoves the bot in front of you; the horizon stays level while the deck tilts; going out moves your view into a survivor's eyes and Q/E cycles; <code>make run -- --observer</code> opens the observer view.</li>
+          </ul>
+          <h4>Not in this milestone</h4>
+          <ul class="sk-crosses text-sm">
+            <li>First-person arms and hands (SH14b); footsteps and positional audio (SH15); bot line of sight (SH7, Q16); hit-stop and the other feel (SH9b); rooms (SH3b); the settings screen (SH15 — SH9 only reads the values); head-bob; any third-person view for players.</li>
+          </ul>
+        </div>
+
         <!-- SH4 -->
         <div class="card bg-base-100 border p-4 sk-ms" id="sh4">
           <div class="flex flex-wrap items-baseline gap-2">
@@ -1823,6 +2116,10 @@ sequenceDiagram
             <li>HUD: the local cold meter, a ring over swimmers. <code>BotBrain</code>: a climb-back
             intent (nearest climbable edge) and an edge-guard intent (stand over a climber and
             shove).</li>
+            <li>In first person (with SH9): the eye rides at the surface while you swim; the view dips
+            under with a blue tint and muffled sound when a dunk takes you down; the cold meter frames
+            the screen as it empties. Climbing out works the same on an outside edge and on a stair
+            inside a flooded room (SH3b).</li>
           </ul>
           <h4>Respects</h4>
           <p class="text-sm">D5, D7, D8, D9, D10, D13.</p>
@@ -1870,9 +2167,12 @@ sequenceDiagram
             <li><code>Surfaces</code> honours collapsed platforms through the pose. Events
             <code>ShipLurched</code>, <code>PlatformCollapsing</code>, <code>PlatformCollapsed</code>,
             <code>RailingBroke</code>. Tie rules final (§5).</li>
-            <li>Presentation: the collapsing platform flashes through its telegraph; a camera shake
-            on each lurch (presentation only, D12); a phase banner ("Taking water", "By the head",
-            "The list", "The plunge").</li>
+            <li>Presentation for a player who cannot see the whole ship (first person, rev 3): every
+            telegraph is heard and felt before it is seen — a groan and a short view shake a second
+            before each lurch (presentation only, D12); the collapsing roof creaks, sheds dust and
+            flashes for its 3 s; the inclinometer swings — and a phase banner names the phase ("Calm",
+            "The flooding below", "By the head", "The list", "The plunge"). The observer camera shows
+            the whole ship for captures.</li>
           </ul>
           <h4>Respects</h4>
           <p class="text-sm">D4, D5, D7, D12, D13.</p>
@@ -1886,8 +2186,9 @@ sequenceDiagram
             starboard-listing mirror of the steamer's scenario fires its events and puts every surface
             under by its cap).</li>
             <li><span class="sk-file">test_sink_schedule.gd</span> gains
-            <code>test_steamer_meets_timeline</code> (fo'c'sle under by 1:05; poop deck the highest
-            dry surface from the collapse on; every surface at least 0.5 m under by 3:30).</li>
+            <code>test_steamer_meets_timeline</code> (SH3b's timeline: the lower deck wet by 1:30; the
+            fo'c'sle under by 2:00; the poop deck the highest dry surface from the collapse on; every
+            surface at least 0.5 m under by 3:30).</li>
             <li><span class="sk-file">test_match_end.gd</span> — <code>test_match_always_ends</code>:
             ten seeded eight-seat bot matches all end by 3:30 plus the cold meter.</li>
             <li><span class="sk-file">test_ship_layout_lint.gd</span> gains
@@ -1905,7 +2206,7 @@ sequenceDiagram
         <!-- SH7 -->
         <div class="card bg-base-100 border p-4 sk-ms" id="sh7">
           <div class="flex flex-wrap items-baseline gap-2">
-            <h3 class="font-black">SH7 · Bots that brawl — intents, tiers and the arena <span class="badge badge-outline badge-sm">size M/L</span> <span class="badge badge-ghost badge-sm align-middle">proposed</span> <span class="badge badge-sm align-middle" style="background:#e5d3a8; border:0;">gated · Q4 · build the recommendation</span></h3>
+            <h3 class="font-black">SH7 · Bots that brawl — intents, tiers and the arena <span class="badge badge-outline badge-sm">size M/L</span> <span class="badge badge-ghost badge-sm align-middle">proposed</span> <span class="badge badge-sm align-middle" style="background:#e5d3a8; border:0;">gated · Q4, Q16 · build the recommendation</span></h3>
           </div>
           <p class="text-sm mt-2 max-w-3xl"><strong>Ships:</strong> bots worth losing to, three
           tiers, eight seats, and the instrument that says whether the endgame works.</p>
@@ -1913,6 +2214,11 @@ sequenceDiagram
           <ul class="sk-checks text-sm">
             <li><code>BotBrain</code> v1: §7's intents with hysteresis; <code>BotView</code> with the
             reaction delay; <code>king_of_hill_bias</code>.</li>
+            <li><strong>Line of sight</strong> (Q16, recommended here): <code>BotView</code> keeps only
+            the bodies a bot could see — the segment from its eye to the body crosses no wall, asked of
+            <code>Surfaces.line_of_sight</code>, a pure query — plus anyone within 6 m through walls, as a
+            person hears footsteps; a bot remembers where it last saw someone for 3 s. This is the
+            fairness fix for R16.</li>
             <li><span class="sk-file">data/bots/easy.tres</span>, <span class="sk-file">normal.tres</span>,
             <span class="sk-file">hard.tres</span>; <span class="sk-file">match/default.tres</span>
             → eight seats.</li>
@@ -1929,7 +2235,13 @@ sequenceDiagram
           <ul class="sk-gates text-sm">
             <li><code>make verify</code> green.</li>
             <li><span class="sk-file">tests/unit/ai/test_bot_view.gd</span> — <code>test_view_lags_by_reaction_ticks</code>,
-            <code>test_view_has_no_future_schedule</code>.</li>
+            <code>test_view_has_no_future_schedule</code>, <code>test_view_hides_bodies_behind_walls</code>,
+            <code>test_view_hears_bodies_within_six_metres_through_walls</code>,
+            <code>test_view_remembers_last_seen_for_three_seconds</code>;
+            <span class="sk-file">test_surfaces.gd</span> gains
+            <code>test_line_of_sight_is_blocked_by_walls_not_by_doorways</code>;
+            <span class="sk-file">docs/arena.md</span> reports the win-share gap between sighted and
+            omniscient bots in mixed lobbies (the R16 measurement).</li>
             <li><span class="sk-file">tests/unit/ai/test_intents.gd</span> — <code>test_lineup_puts_the_target_between_bot_and_water</code>,
             <code>test_hard_bot_braces_a_charged_shove</code>, <code>test_bot_recovers_uphill_near_an_edge</code>,
             <code>test_hysteresis_prevents_dithering</code>, <code>test_king_of_hill_targets_the_highest_seat</code>.</li>
@@ -1964,7 +2276,8 @@ sequenceDiagram
             <li>Countdown; an offline pause menu (pause stops <code>SimDriver</code>; it is never sim
             state).</li>
             <li>Spectate after you are out: the camera follows the best-placed dry seat; Q/E or the
-            d-pad cycles.</li>
+            d-pad cycles. <em>Superseded in rev 3: SH9 moves the spectator into the survivor's own
+            eyes.</em></li>
             <li>Results: placement, time dry, shoves landed, knock-outs credited; Rematch (same
             seats, new seed) or Menu.</li>
             <li><code>MatchStats</code> in <code>core/</code>, built only from events.</li>
@@ -1988,40 +2301,28 @@ sequenceDiagram
           </ul>
         </div>
 
-        <!-- SH9 -->
-        <div class="card bg-base-100 border p-4 sk-ms" id="sh9">
+        <!-- SH9b -->
+        <div class="card bg-base-100 border p-4 sk-ms" id="sh9b">
           <div class="flex flex-wrap items-baseline gap-2">
-            <h3 class="font-black">SH9 · Feel and controls — hit-stop, aim, gamepad, camera <span class="badge badge-outline badge-sm">size M</span> <span class="badge badge-ghost badge-sm align-middle">proposed</span> <span class="badge badge-sm align-middle" style="background:#e5d3a8; border:0;">gated · Q3 · build the recommendation</span></h3>
+            <h3 class="font-black">SH9b · Feel — hit-stop, recoil, shake, placeholder sounds <span class="badge badge-outline badge-sm">size M</span> <span class="badge badge-ghost badge-sm align-middle">proposed</span></h3>
           </div>
-          <p class="text-sm mt-2 max-w-3xl"><strong>Ships:</strong> every hit lands like a hit, and
-          both input devices are first-class.</p>
+          <p class="text-sm mt-2 max-w-3xl"><strong>Ships:</strong> every hit lands like a hit — the part of the old SH9 that first person did not replace.</p>
           <h4>Builds</h4>
           <ul class="sk-checks text-sm">
-            <li>Hit-stop as a sim rule: shover and target freeze for <code>hitstop</code> ticks;
-            everyone else keeps moving (D12).</li>
-            <li><code>InputFrame.aim</code> goes live: the mouse cursor projected onto the deck
-            plane, the right stick; facing turns toward aim; auto-aim stays when aim is zero.</li>
-            <li>Presentation: camera shake on landed hits and lurches; squash and stretch on the
-            capsules; landing dust; placeholder sounds for whoosh, thud and splash (CC0 or generated,
-            listed in <span class="sk-file">assets/LICENSES.md</span>); silhouettes drawn through
-            the deckhouse; button prompts that follow the last device used; the camera per Q3.</li>
+            <li>Hit-stop as a sim rule: shover and target freeze for <code>hitstop</code> ticks while everyone else keeps moving (D12); recoil tuned.</li>
+            <li>Presentation: a short view kick when you land or take a shove; a shake on each lurch, small and brief (R15); squash on the crew models; landing dust; placeholder sounds for whoosh, thud and splash (CC0 or generated, listed in <span class="sk-file">assets/LICENSES.md</span>); button prompts that follow the last device used.</li>
           </ul>
           <h4>Respects</h4>
-          <p class="text-sm">D3, D5, D12.</p>
+          <p class="text-sm">D5, D12, D14.</p>
           <h4>Acceptance gates</h4>
           <ul class="sk-gates text-sm">
             <li><code>make verify</code> green; golden regenerated with the reason.</li>
-            <li><span class="sk-file">test_hitstop.gd</span> — <code>test_hitstop_freezes_both_and_resumes</code>,
-            <code>test_hitstop_does_not_freeze_others</code>, <code>test_hitstop_survives_snapshot_continuation</code>.</li>
-            <li><span class="sk-file">test_aim.gd</span> — <code>test_aim_overrides_movement_facing</code>,
-            <code>test_zero_aim_faces_movement_with_autoaim</code>.</li>
-            <li><code>make run</code>: a landed shove visibly pauses both brawlers for about a tenth
-            of a second; with the mouse you walk one way and shove another; a brawler behind the
-            deckhouse shows as an outline.</li>
+            <li><span class="sk-file">test_hitstop.gd</span> — <code>test_hitstop_freezes_both_and_resumes</code>, <code>test_hitstop_does_not_freeze_others</code>, <code>test_hitstop_survives_snapshot_continuation</code>.</li>
+            <li><code>make run</code>: a landed shove pauses both brawlers for about a tenth of a second and kicks your view; a lurch's shake lasts under half a second.</li>
           </ul>
           <h4>Not in this milestone</h4>
           <ul class="sk-crosses text-sm">
-            <li>Rebinding UI, haptics, final audio.</li>
+            <li>Footsteps, water and positional audio (SH15); final sounds; haptics; a rebinding screen.</li>
           </ul>
         </div>
 
@@ -2197,38 +2498,67 @@ sequenceDiagram
         <!-- SH14 -->
         <div class="card bg-base-100 border p-4 sk-ms" id="sh14">
           <div class="flex flex-wrap items-baseline gap-2">
-            <h3 class="font-black">SH14 · Art pass I — the ship, the sea and the crew <span class="badge badge-outline badge-sm">size L</span> <span class="badge badge-ghost badge-sm align-middle">proposed</span> <span class="badge badge-sm align-middle" style="background:var(--sk-deck); border:0;">gated · Q9 · stop and ask</span></h3>
+            <h3 class="font-black">SH14 · Art pass I — the sea, the sky and the crew <span class="badge badge-outline badge-sm">size M</span> <span class="badge badge-ghost badge-sm align-middle">proposed</span> <span class="badge badge-sm align-middle" style="background:var(--sk-deck); border:0;">gated · Q9 · stop and ask</span></h3>
           </div>
-          <p class="text-sm mt-2 max-w-3xl"><strong>Ships:</strong> boxes become a ship, a plane
-          becomes a sea, capsules become a crew — with not one rule changed.</p>
+          <p class="text-sm mt-2 max-w-3xl"><strong>Ships:</strong> the planes and capsules become a sea,
+          a sky and a crew — the first half of the art pass, split off in rev 3 (the ship and its interiors
+          are SH14b), with not one rule changed.</p>
           <h4>Builds</h4>
           <ul class="sk-checks text-sm">
-            <li>Ship meshes aligned to the layout (each platform's top within 2 cm of its data
-            height, blockers within 5 cm); <span class="sk-file">tools/art_lint.gd</span> and
-            <code>make art-lint</code> (headless) check it.</li>
             <li>A <code>gl_compatibility</code> water shader; its waves are visual only — the rule
             stays the plane (D7).</li>
+            <li>Sky, fog and light for the open deck.</li>
             <li>Brawler models with animation states mapped from <code>PlayerState</code> (idle, run,
             windup, shove, brace, charge, stagger, fall, swim, climb). Animation reads state; it never
-            drives it.</li>
-            <li>Seat identity at a distance (colour plus a hat or scarf); sky, fog and light;
+            drives it. The windup pose reads from the front and from the side — in first person it is
+            how you see a shove coming (R19).</li>
+            <li>Seat identity on the crew: seat colour plus a per-seat hat or scarf;
             <span class="sk-file">assets/LICENSES.md</span> for every asset.</li>
           </ul>
           <h4>Respects</h4>
-          <p class="text-sm">D5, D6, D7, D12.</p>
+          <p class="text-sm">D5, D7, D12, D14.</p>
           <h4>Acceptance gates</h4>
           <ul class="sk-gates text-sm">
             <li><code>make verify</code> and <code>make art-lint</code> green; golden unchanged
             (nothing the sim reads moved).</li>
             <li>60 fps at 1440×900 with eight seats on the MacBook Air, read with
-            <code>--print-fps</code> and recorded in the PR; the web build holds 30 fps or more in a
-            browser on the same machine.</li>
+            <code>--print-fps</code> and recorded in the PR; the web build holds 30 fps or more.</li>
             <li><code>make capture</code> at 0:30, 1:45 and 2:50 — three PNGs in the PR showing the
             tilt and the waterline at least as legibly as the greybox did.</li>
           </ul>
           <h4>Not in this milestone</h4>
           <ul class="sk-crosses text-sm">
-            <li>New rules, new geometry, a second ship, cosmetics as unlockables.</li>
+            <li>Ship meshes, rooms and interior light, first-person arms (all SH14b); new rules;
+            cosmetics as unlockables.</li>
+          </ul>
+        </div>
+
+        <!-- SH14b -->
+        <div class="card bg-base-100 border p-4 sk-ms" id="sh14b">
+          <div class="flex flex-wrap items-baseline gap-2">
+            <h3 class="font-black">SH14b · Art pass I, second half — the ship and its interiors <span class="badge badge-outline badge-sm">size L</span> <span class="badge badge-ghost badge-sm align-middle">proposed</span> <span class="badge badge-sm align-middle" style="background:var(--sk-deck); border:0;">gated · Q9 · as answered for SH14</span></h3>
+          </div>
+          <p class="text-sm mt-2 max-w-3xl"><strong>Ships:</strong> the steamer dressed inside and out — hull, decks and rooms; dark below decks with lamps; the sea seen from inside a flooding corridor, the game's signature image; and your own arms and hands.</p>
+          <h4>Builds</h4>
+          <ul class="sk-checks text-sm">
+            <li>Ship meshes aligned to the layout, rooms included: each platform's top within 2 cm of its data height, walls and blockers within 5 cm, door frames on the gaps; <code>make art-lint</code> extended to rooms and doors.</li>
+            <li>Interiors dressed: the hold, the engine room, the cabins, the saloon, the wheelhouse.</li>
+            <li>Interior light: dark below deck, a practical lamp per <code>ShipRoom</code> (SH3b's markers) that swings with the list and flickers out as its room floods — presentation only.</li>
+            <li>The sea inside: the same plane as outside (D7), drawn in rooms with an underwater tint and fog below it and foam where it meets walls and stairs.</li>
+            <li>First-person arms and hands with shove, brace, charge, swim and climb poses, driven by state, never driving it.</li>
+            <li>The observer captures and the cut-away keep working with the dressed ship.</li>
+          </ul>
+          <h4>Respects</h4>
+          <p class="text-sm">D5, D6, D7, D12, D14.</p>
+          <h4>Acceptance gates</h4>
+          <ul class="sk-gates text-sm">
+            <li><code>make verify</code> and <code>make art-lint</code> green; golden unchanged.</li>
+            <li>60 fps at 1440×900 with eight seats on the MacBook Air, both on the open deck and on the lower deck while it floods (<code>--print-fps</code>, recorded); the web build 30 fps or more.</li>
+            <li><code>make capture</code>: three observer PNGs (0:30, 1:45, 2:50) and two first-person ones (<code>--capture-eye</code>: a flooding lower-deck corridor near 1:10, the deck near 2:30), in the PR.</li>
+          </ul>
+          <h4>Not in this milestone</h4>
+          <ul class="sk-crosses text-sm">
+            <li>New rules, new geometry, the big ship (SH23).</li>
           </ul>
         </div>
 
@@ -2241,11 +2571,17 @@ sequenceDiagram
           going down, and the game has a settings screen.</p>
           <h4>Builds</h4>
           <ul class="sk-checks text-sm">
+            <li><strong>First-person essentials</strong> (rev 3): footsteps by surface for you and,
+            positionally, for everyone near — the sound of someone coming up behind you; the sea rushing
+            in below decks, sloshing and splashes; creaks and groans that carry the lurch and collapse
+            telegraphs; reverb per room (each <code>ShipRoom</code> a reverb zone); a positional grunt
+            and whoosh on every windup — the audio twin of SH9's off-screen arc.</li>
             <li>Ambient sea and wind; groans keyed to the phase; the horn on each lurch's telegraph;
             the final effects set; music (licensed or CC0, in
             <span class="sk-file">assets/LICENSES.md</span>); audio buses.</li>
-            <li>Settings: master, music and effects volume, fullscreen — persisted under
-            <code>user://</code>.</li>
+            <li>Settings: master, music and effects volume, fullscreen, and the first-person view —
+            mouse sensitivity, invert Y, field of view (75–110°) and the deck-roll comfort slider (Q17)
+            — persisted under <code>user://</code>.</li>
             <li>Every cue is driven by events and phases; <code>check</code> refuses
             <code>AudioServer</code> and <code>AudioStream</code> under <code>core/</code> and
             <code>ai/</code>.</li>
@@ -2255,6 +2591,8 @@ sequenceDiagram
           <h4>Acceptance gates</h4>
           <ul class="sk-gates text-sm">
             <li><code>make verify</code> green; golden unchanged.</li>
+            <li><code>make run</code>: you hear a brawler coming up behind you before you see them; the
+            rooms below deck sound enclosed.</li>
             <li><code>make run</code>: the creak lands a second before every lurch; a collapse is
             heard before it is seen; volume settings survive a restart.</li>
           </ul>
@@ -2274,7 +2612,7 @@ sequenceDiagram
         <!-- SH16 -->
         <div class="card bg-base-100 border p-4 sk-ms" id="sh16">
           <div class="flex flex-wrap items-baseline gap-2">
-            <h3 class="font-black">SH16 · Sinking scenarios — any side, any time <span class="badge badge-outline badge-sm">size M</span> <span class="badge badge-ghost badge-sm align-middle">proposed</span> <span class="badge badge-sm align-middle" style="background:var(--sk-deep); color:white; border:0;">post-MVP</span> <span class="badge badge-sm align-middle" style="background:var(--sk-deck); border:0;">gated · Q10 · stop and ask</span> <span class="badge badge-sm align-middle" style="background:#e5d3a8; border:0;">Q14 · build the recommendation</span></h3>
+            <h3 class="font-black">SH16 · Sinking scenarios — any side, any time <span class="badge badge-outline badge-sm">size M</span> <span class="badge badge-ghost badge-sm align-middle">proposed</span> <span class="badge badge-sm align-middle" style="background:var(--sk-deep); color:white; border:0;">post-MVP</span> <span class="badge badge-sm align-middle" style="background:var(--sk-deck); border:0;">gated · Q10 · stop and ask</span></h3>
           </div>
           <p class="text-sm mt-2 max-w-3xl"><strong>Ships:</strong> the steamer can go down by the bow, the stern or either side, starting at a moment nobody knows in advance — the destination's sinking, proven on the small ship first.</p>
           <h4>Builds</h4>
@@ -2282,7 +2620,7 @@ sequenceDiagram
             <li>A generated kind of <code>SinkScenario</code>: a breach region (bow, stern, port, starboard or between), a breach moment and a flooding pace, each drawn from bands with the sinking stream. <code>SinkSchedule</code> turns them into signed trim, heel and sink curves — trim from how far fore or aft the breach is, heel from how far off the centreline, sink from the pace. A parametric model, not a buoyancy simulation (D7); still pure in (scenario, seed, tick).</li>
             <li>The ship stays level until the breach; then a <code>Breached</code> event (a bang, spray, the list beginning). Bots learn of it on the same tick players do (D10).</li>
             <li>Each ship lists the scenarios it can draw; <code>MatchConfig</code> picks one by seed, or the menu names one. The steamer keeps its authored bow-down scenario and gains generated ones. Scheduled events in a generated scenario are timed from the breach, not from the start of the match.</li>
-            <li>The camera per Q14 (recommended: it moves to the side the ship lists toward, easing over about a second, so the tilted deck faces it); inputs follow the new yaw through <code>InputFrame.from_screen</code> (D3).</li>
+            <li>No camera move is needed (rev 3, D14): in first person a list either way reads through the level horizon and the inclinometer (Q17).</li>
             <li>The arena reruns across scenario families.</li>
           </ul>
           <h4>Respects</h4>
@@ -2363,7 +2701,7 @@ sequenceDiagram
           <ul class="sk-checks text-sm">
             <li>The big ship drawn with SH17's tool and baked: about 269 × 28 m; which decks exist, and whether any are enclosed, follow Q11's answer.</li>
             <li>Its scenario list (generated, SH16) with pace bands set for Q13's match length.</li>
-            <li>Spawns spread across decks; a HUD deck indicator (which deck you are on, how far above the water); camera framing tuned for a long hull, keeping Q14's side rule.</li>
+            <li>Spawns spread across decks; a HUD deck indicator (which deck you are on, how far above the water); the observer camera framing a long hull for captures (players see in first person, D14).</li>
             <li>The big ship is a menu choice (SH8's menu gains a ship picker); the steamer stays the default. Bots use SH3's walk graph as it is — SH20 makes them good at it.</li>
           </ul>
           <h4>Respects</h4>
@@ -2570,11 +2908,13 @@ sequenceDiagram
           unchanged.</p>
         </div>
         <div class="card bg-base-100 border p-4 sk-risk-medium">
-          <h3 class="font-black text-sm">R10 · medium — Greybox 3D does not read</h3>
-          <p class="text-sm mt-1">Depth during falls, who stands where on a tilted deck, the
-          deckhouse hiding the port walkway. <strong>Mitigation:</strong> blob shadows from SH1 (the
-          depth cue for falls), a camera that never rolls so the tilt reads against the horizon, seat
-          colours, the tilt gauge (SH2), silhouettes through walls (SH9).</p>
+          <h3 class="font-black text-sm">R10 · medium — First person in greybox does not read</h3>
+          <p class="text-sm mt-1">What is beside or behind you, how far a drop is, which way is
+          downhill, where the water is when you are inside. <strong>Mitigation (rev 3):</strong> the
+          inclinometer and the height-above-the-sea readout (SH9), off-screen windup arcs (SH9) and
+          positional footsteps (SH15), seat colour, hat and an in-sight chevron on every brawler, a level
+          horizon the tilt reads against (Q17), and blob shadows under others. Nothing is drawn through
+          walls — the silhouette idea is retired with the elevated camera.</p>
         </div>
         <div class="card bg-base-100 border p-4 sk-risk-good">
           <h3 class="font-black text-sm">R11 · low — The editor helper autoload in exported builds</h3>
@@ -2604,6 +2944,45 @@ sequenceDiagram
           <p class="text-sm mt-1">Scale can dilute the brawl into a walk. <strong>Mitigation:</strong>
           seats (Q12), pace (Q13) and spawn spread are data; SH20's arena reports idle time and
           meetings per minute on the big ship before anything is tuned.</p>
+        </div>
+        <div class="card bg-base-100 border p-4 sk-risk-high">
+          <h3 class="font-black text-sm">R15 · high — Motion sickness on a listing ship</h3>
+          <p class="text-sm mt-1">First person on a deck that tilts for minutes, plus lurches and view
+          kicks, is the textbook trigger. <strong>Mitigation:</strong> a level horizon by default (Q17),
+          no head-bob, a field-of-view slider (75–110°), shakes and kicks short and small (SH9b), the
+          deck-roll slider at 0 by default; every milestone's play note says whether anyone felt it.</p>
+        </div>
+        <div class="card bg-base-100 border p-4 sk-risk-high">
+          <h3 class="font-black text-sm">R16 · high — Omniscient bots against a blind player</h3>
+          <p class="text-sm mt-1">Bots read the whole delayed snapshot — through walls and behind you —
+          while a first-person player sees about 90°. <strong>Mitigation:</strong> perception already
+          lags; SH7 filters <code>BotView</code> by line of sight plus 6 m hearing (Q16); the arena
+          reports the win-share gap between sighted and omniscient bots, so the price of fairness is a
+          number.</p>
+        </div>
+        <div class="card bg-base-100 border p-4 sk-risk-medium">
+          <h3 class="font-black text-sm">R17 · medium — Authoring rooms by hand</h3>
+          <p class="text-sm mt-1">Walls, doors and stairs typed as rectangles into a <code>.tres</code>
+          are slow and easy to get wrong. <strong>Mitigation:</strong> SH3b's lint (doors, no sealed
+          room, two stairs up, nothing crossing a stair) catches the wrong; the steamer has about a dozen
+          rooms, which is hand-sized. <strong>Rule:</strong> if SH3b's PR reports hand-authoring as its
+          bottleneck, SH17's bake tool moves into the MVP before more rooms are added — decided then,
+          not pre-paid now.</p>
+        </div>
+        <div class="card bg-base-100 border p-4 sk-risk-good">
+          <h3 class="font-black text-sm">R18 · low — Performance inside rooms</h3>
+          <p class="text-sm mt-1">Fine, and said so: walls add roughly fifty box blockers, so collision
+          stays a few hundred cheap checks per tick at eight seats, and a lit interior with a lamp per
+          room is light work for <code>gl_compatibility</code> on the Air. SH14b measures frame time on
+          the flooding lower deck so "fine" is a number.</p>
+        </div>
+        <div class="card bg-base-100 border p-4 sk-risk-medium">
+          <h3 class="font-black text-sm">R19 · medium — A shove's windup is hard to read in first person</h3>
+          <p class="text-sm mt-1">You only see what is in front of you, and a quick shove's windup is
+          100 ms. <strong>Mitigation:</strong> the windup pose reads from the front and the side (SH14);
+          off-screen arcs (SH9) and a positional grunt and whoosh (SH15) cover the rest; the crosshair
+          says when your own shove would land. The quick shove was always meant to be beaten by spacing
+          and reads; the charged shove's glow and sound are the tells that matter.</p>
         </div>
       </div>
     </section>
@@ -2685,27 +3064,16 @@ sequenceDiagram
         <div class="card bg-base-100 border p-4">
           <div class="flex flex-wrap items-baseline gap-2">
             <h3 class="font-black">Q3 · Which camera?</h3>
-            <span class="badge badge-sm" style="background:#e5d3a8; border:0;">open · gates SH9 · build the recommendation</span>
+            <span class="badge badge-sm" style="background:var(--sk-dry); color:white; border:0;">decided · first person · 2026-10-03</span>
           </div>
-          <form data-lavish-question="camera" class="space-y-2 mt-2" onsubmit="skQueue(event, 'camera', 'Decision Q3 — camera')">
-            <label class="flex items-start gap-3 rounded-box border border-base-content/10 p-3 cursor-pointer">
-              <input type="radio" name="camera" class="radio radio-primary radio-sm mt-1" checked value="Fixed-yaw elevated follow from starboard; never rolls with the ship">
-              <span class="text-sm"><strong>Fixed-yaw follow from starboard</strong> <span class="badge badge-primary badge-sm">Recommended</span><br>
-              The sinking reads at a glance; controls never change meaning. SH1 builds this.</span>
-            </label>
-            <label class="flex items-start gap-3 rounded-box border border-base-content/10 p-3 cursor-pointer">
-              <input type="radio" name="camera" class="radio radio-sm mt-1" value="Free third-person orbit behind the player's brawler">
-              <span class="text-sm"><strong>Free third-person orbit</strong><br>
-              More immersive; occlusion, camera-relative inputs that keep turning, motion
-              sickness on a rolling ship.</span>
-            </label>
-            <label class="flex items-start gap-3 rounded-box border border-base-content/10 p-3 cursor-pointer">
-              <input type="radio" name="camera" class="radio radio-sm mt-1" value="Fixed-yaw follow with 90-degree snap turns">
-              <span class="text-sm"><strong>Fixed-yaw with 90° snap turns</strong><br>
-              The recommendation plus a way to look past the deckhouse; one more control to learn.</span>
-            </label>
-            <button type="submit" class="btn btn-primary btn-sm">Queue answer</button>
-          </form>
+          <div class="text-sm mt-2 grid gap-2">
+            <p><strong>Decided by you on 2026-10-03:</strong> “I want the game in 3D but in first person
+            view” — first person only (D14). The fixed-yaw follow camera this question recommended survives
+            only as the observer camera, a tool for captures, QA and the arena; no third-person view is
+            built.</p>
+            <p class="opacity-70">Weighed in rev 2: a fixed-yaw follow camera from starboard (then
+            recommended), a free third-person orbit, a fixed-yaw camera with 90° snap turns.</p>
+          </div>
         </div>
 
         <div class="card bg-base-100 border p-4">
@@ -2892,16 +3260,19 @@ sequenceDiagram
             <h3 class="font-black">Q11 · The big ship: open decks, or interiors too? <span class="badge badge-ghost badge-sm align-middle">destination</span></h3>
             <span class="badge badge-sm" style="background:var(--sk-deck); border:0;">open · gates SH19 · stop and ask</span>
           </div>
+          <p class="text-sm mt-2"><strong>Rev 3:</strong> the MVP now has rooms (SH3b) and a first-person
+          camera (D14), so the camera test the old recommendation waited for has happened; the
+          recommendation moves to interiors from the start, in SH3b's format.</p>
           <form data-lavish-question="interiors" class="space-y-2 mt-2" onsubmit="skQueue(event, 'interiors', 'Decision Q11 — big-ship interiors')">
             <label class="flex items-start gap-3 rounded-box border border-base-content/10 p-3 cursor-pointer">
-              <input type="radio" name="interiors" class="radio radio-primary radio-sm mt-1" checked value="Open decks first, stacked over many levels; enclosed interiors later, after a camera test">
-              <span class="text-sm"><strong>Open decks first, interiors later</strong> <span class="badge badge-primary badge-sm">Recommended</span><br>
+              <input type="radio" name="interiors" class="radio radio-sm mt-1" value="Open decks first, stacked over many levels; enclosed interiors later, after a camera test">
+              <span class="text-sm"><strong>Open decks first, interiors later</strong><br>
               Boat deck, promenades, well decks, fo'c'sle, poop and roofs stay visible from the follow camera, and many exterior levels already make a vertical fight.</span>
             </label>
             <label class="flex items-start gap-3 rounded-box border border-base-content/10 p-3 cursor-pointer">
-              <input type="radio" name="interiors" class="radio radio-sm mt-1" value="Interiors from the start: corridors, stairwells, saloons">
-              <span class="text-sm"><strong>Interiors from the start</strong><br>
-              The Titanic fantasy in full; needs a cutaway camera, line-of-sight rules and far more layout work.</span>
+              <input type="radio" name="interiors" class="radio radio-primary radio-sm mt-1" checked value="Interiors from the start: corridors, stairwells, saloons">
+              <span class="text-sm"><strong>Interiors from the start</strong> <span class="badge badge-primary badge-sm">Recommended</span><br>
+              The Titanic fantasy in full, in the format SH3b proves on the steamer; first person needs no cutaway camera and SH7's line of sight already reads walls. Far more layout work — SH17's bake tool.</span>
             </label>
             <label class="flex items-start gap-3 rounded-box border border-base-content/10 p-3 cursor-pointer">
               <input type="radio" name="interiors" class="radio radio-sm mt-1" value="A cutaway hull: interiors visible through an open side">
@@ -2970,28 +3341,88 @@ sequenceDiagram
         <div class="card bg-base-100 border p-4">
           <div class="flex flex-wrap items-baseline gap-2">
             <h3 class="font-black">Q14 · Where does the camera go when the ship can list either way? <span class="badge badge-ghost badge-sm align-middle">destination</span></h3>
-            <span class="badge badge-sm" style="background:#e5d3a8; border:0;">open · gates SH16 · build the recommendation</span>
+            <span class="badge badge-sm" style="background:var(--sk-dry); color:white; border:0;">retired · first person · 2026-10-03</span>
           </div>
-          <form data-lavish-question="list-camera" class="space-y-2 mt-2" onsubmit="skQueue(event, 'list-camera', 'Decision Q14 — camera on a ship that lists either way')">
+          <div class="text-sm mt-2 grid gap-2">
+            <p><strong>Retired by first person</strong> (D14): there is no third-person camera to place,
+            so "the camera moves to the low side" no longer applies. On a ship that lists either way you
+            read the tilt through a level horizon and the inclinometer; whether the view rolls with the
+            deck is Q17.</p>
+            <p class="opacity-70">Weighed in rev 2: move to the low side (then recommended), stay to
+            starboard, player-turned 90° steps, a free orbit.</p>
+          </div>
+        </div>
+
+        <div class="card bg-base-100 border p-4">
+          <div class="flex flex-wrap items-baseline gap-2">
+            <h3 class="font-black">Q15 · Doors: openings, or doors that close? <span class="badge badge-ghost badge-sm align-middle">rooms</span></h3>
+            <span class="badge badge-sm" style="background:#e5d3a8; border:0;">open · gates SH3b · build the recommendation</span>
+          </div>
+          <form data-lavish-question="doors" class="space-y-2 mt-2" onsubmit="skQueue(event, 'doors', 'Decision Q15 — doors')">
             <label class="flex items-start gap-3 rounded-box border border-base-content/10 p-3 cursor-pointer">
-              <input type="radio" name="list-camera" class="radio radio-primary radio-sm mt-1" checked value="It moves to the side the ship lists toward, easing over about a second, so the tilted deck faces it; inputs follow its yaw">
-              <span class="text-sm"><strong>It moves to the low side</strong> <span class="badge badge-primary badge-sm">Recommended</span><br>
-              The deck stays readable whichever way it goes; one automatic move per change of list.</span>
+              <input type="radio" name="doors" class="radio radio-primary radio-sm mt-1" checked value="Openings only: a doorway is a gap between walls, nothing to open or close">
+              <span class="text-sm"><strong>Openings only</strong> <span class="badge badge-primary badge-sm">Recommended</span><br>
+              Nothing to sync, no door state in the snapshot, no camping behind a shut door; bodies and the sea flow through as the ship goes down.</span>
             </label>
             <label class="flex items-start gap-3 rounded-box border border-base-content/10 p-3 cursor-pointer">
-              <input type="radio" name="list-camera" class="radio radio-sm mt-1" value="It stays to starboard, as in the MVP">
-              <span class="text-sm"><strong>It stays to starboard</strong><br>
-              Nothing moves; a list away from the camera tilts the deck out of sight.</span>
+              <input type="radio" name="doors" class="radio radio-sm mt-1" value="Doors that open and close: a door is a blocker with a state a player toggles">
+              <span class="text-sm"><strong>Doors that open and close</strong><br>
+              More tactics (shut a door on a chaser); a new state in the snapshot, a new verb, and easy camping. Under D7 a shut door still would not hold the sea back.</span>
             </label>
             <label class="flex items-start gap-3 rounded-box border border-base-content/10 p-3 cursor-pointer">
-              <input type="radio" name="list-camera" class="radio radio-sm mt-1" value="The player turns it in 90-degree steps">
-              <span class="text-sm"><strong>The player turns it in 90° steps</strong><br>
-              Full control; one more thing to manage in a brawl.</span>
+              <input type="radio" name="doors" class="radio radio-sm mt-1" value="Doors that swing: pushed open by bodies and by the list">
+              <span class="text-sm"><strong>Doors that swing</strong><br>
+              Lively; a moving body the sim must own, and a noisy thing to network.</span>
+            </label>
+            <button type="submit" class="btn btn-primary btn-sm">Queue answer</button>
+          </form>
+        </div>
+
+        <div class="card bg-base-100 border p-4">
+          <div class="flex flex-wrap items-baseline gap-2">
+            <h3 class="font-black">Q16 · Bots and walls: line of sight in the MVP, or later? <span class="badge badge-ghost badge-sm align-middle">rooms</span></h3>
+            <span class="badge badge-sm" style="background:#e5d3a8; border:0;">open · gates SH7 · build the recommendation</span>
+          </div>
+          <form data-lavish-question="bot-sight" class="space-y-2 mt-2" onsubmit="skQueue(event, 'bot-sight', 'Decision Q16 — bot line of sight')">
+            <label class="flex items-start gap-3 rounded-box border border-base-content/10 p-3 cursor-pointer">
+              <input type="radio" name="bot-sight" class="radio radio-primary radio-sm mt-1" checked value="In SH7: bots see only what no wall hides, hear within 6 m through walls, remember for 3 s">
+              <span class="text-sm"><strong>In SH7, with hearing and memory</strong> <span class="badge badge-primary badge-sm">Recommended</span><br>
+              Fair to a first-person player for the price of one pure Surfaces query, built where bot perception is built anyway.</span>
             </label>
             <label class="flex items-start gap-3 rounded-box border border-base-content/10 p-3 cursor-pointer">
-              <input type="radio" name="list-camera" class="radio radio-sm mt-1" value="Free third-person orbit">
-              <span class="text-sm"><strong>Free third-person orbit</strong><br>
-              As in Q3's alternative; harder still with a rolling ship and many decks.</span>
+              <input type="radio" name="bot-sight" class="radio radio-sm mt-1" value="Later, after the MVP: keep omniscient-but-delayed bots until then">
+              <span class="text-sm"><strong>Later, after the MVP</strong><br>
+              Cheapest now; bots ambush you through walls in the meantime (R16).</span>
+            </label>
+            <label class="flex items-start gap-3 rounded-box border border-base-content/10 p-3 cursor-pointer">
+              <input type="radio" name="bot-sight" class="radio radio-sm mt-1" value="In SH7, sight only, without hearing">
+              <span class="text-sm"><strong>In SH7, sight only</strong><br>
+              The simplest fair version; bots deaf to the obvious footsteps behind a thin wall.</span>
+            </label>
+            <button type="submit" class="btn btn-primary btn-sm">Queue answer</button>
+          </form>
+        </div>
+
+        <div class="card bg-base-100 border p-4">
+          <div class="flex flex-wrap items-baseline gap-2">
+            <h3 class="font-black">Q17 · The first-person horizon on a listing ship <span class="badge badge-ghost badge-sm align-middle">first person</span></h3>
+            <span class="badge badge-sm" style="background:#e5d3a8; border:0;">open · gates SH9 · build the recommendation</span>
+          </div>
+          <form data-lavish-question="horizon" class="space-y-2 mt-2" onsubmit="skQueue(event, 'horizon', 'Decision Q17 — first-person horizon')">
+            <label class="flex items-start gap-3 rounded-box border border-base-content/10 p-3 cursor-pointer">
+              <input type="radio" name="horizon" class="radio radio-primary radio-sm mt-1" checked value="Level horizon: the view stays upright with the world while the deck and walls tilt in it; a comfort slider can roll the view up to half the deck's tilt, default 0">
+              <span class="text-sm"><strong>Level horizon, optional roll slider</strong> <span class="badge badge-primary badge-sm">Recommended</span><br>
+              Easiest on stomachs on a ship that lists for minutes; the tilt still reads in the deck, the walls, the sea and the inclinometer.</span>
+            </label>
+            <label class="flex items-start gap-3 rounded-box border border-base-content/10 p-3 cursor-pointer">
+              <input type="radio" name="horizon" class="radio radio-sm mt-1" value="Roll with the deck: the view tilts as the ship does">
+              <span class="text-sm"><strong>Roll with the deck</strong><br>
+              The most immersive — you feel the list; the classic motion-sickness trigger, for minutes at a time.</span>
+            </label>
+            <label class="flex items-start gap-3 rounded-box border border-base-content/10 p-3 cursor-pointer">
+              <input type="radio" name="horizon" class="radio radio-sm mt-1" value="Partial roll by default: about 30% of the deck's tilt">
+              <span class="text-sm"><strong>Partial roll by default</strong><br>
+              A middle ground; some players will still feel it.</span>
             </label>
             <button type="submit" class="btn btn-primary btn-sm">Queue answer</button>
           </form>
@@ -3015,9 +3446,14 @@ sequenceDiagram
             <li><strong>Accounts, persistent stats, leaderboards, ranked play, matchmaking</strong>
             beyond room codes; text or voice chat.</li>
             <li><strong>Physics-driven gameplay bodies</strong> — ragdolls, tumbling debris (§2).</li>
-            <li><strong>Interiors</strong> in the MVP (for the big ship, Q11), and <strong>compartments or
-            flooding simulation</strong> anywhere (D7).</li>
+            <li><strong>Compartments, air pockets or a flooding simulation</strong> anywhere: water inside
+            a room is the same plane as outside (D7). Rooms themselves are in the MVP since rev 3
+            (SH3b).</li>
             <li><strong>A jump, wall-climbing</strong> (D8); grab or dash unless Q2 picks one.</li>
+            <li><strong>A third-person or free camera for players</strong> — first person only (D14);
+            the observer camera is a tool.</li>
+            <li><strong>Doors that close</strong> (Q15), and <strong>seeing through walls</strong> — no
+            x-ray chevrons or outlines.</li>
             <li><strong>Split-screen couch play</strong> — cheap later (several local input sources,
             one shared camera), not planned.</li>
             <li><strong>Mobile and console builds.</strong></li>
@@ -3032,6 +3468,9 @@ sequenceDiagram
             <li><strong>The destination</strong> — a Titanic-sized ship that can go down by any side at
             any time — is now planned as SH16–SH23.</li>
             <li><strong>Hazards II</strong> — §6's list, one milestone each, only if playtests ask.</li>
+            <li><strong>A second lower deck</strong> — SH3b builds one; a second level under the hold
+            needs the hull to ride about 6 m out of the water under D7's single sea plane, so it waits
+            for a playtest that asks for it.</li>
             <li><strong>Rebinding and accessibility</strong> — the input map is already the
             vocabulary.</li>
             <li><strong>Couch play and a replay viewer</strong>, both cheap on this architecture.</li>
@@ -3050,7 +3489,10 @@ sequenceDiagram
             only water authority (D7); bots are players reading a
             delayed <code>BotView</code> (D10); online will be server-authoritative snapshots with
             client re-simulation (D11); <code>ShoveResolver</code> takes positions as data and
-            <code>MatchRunner</code> is the one loop (D13).
+            <code>MatchRunner</code> is the one loop (D13); the game is first person and the elevated
+            camera is only the observer tool (D14); rooms are thin wall blockers with door openings,
+            floors at negative heights and steep stairs as ramps, and water inside a room is the sea
+            plane (D6, D7).
           </blockquote>
         </div>
       </div>
@@ -3059,8 +3501,9 @@ sequenceDiagram
     <!-- ============================== FOOTER ============================== -->
     <footer class="sk-hero px-6 py-6 md:px-12 text-sm">
       <p class="opacity-85">
-        Sinking Ship · design of record <strong>rev 2</strong>, 2026-10-02 · SH1–SH15 approved as
-        the MVP, the destination (SH16–SH23) added the same day; no milestone shipped. Written against the scaffold as it stood that evening (<span class="sk-file">project.godot</span>
+        Sinking Ship · design of record <strong>rev 3</strong>, 2026-10-03 · first person and rooms;
+        rev 2 (2026-10-02) approved SH1–SH15 as the MVP and added the destination (SH16–SH23). Shipped
+        milestones carry their badges. Written against the scaffold as it stood that evening (<span class="sk-file">project.godot</span>
         on 4.7 with <code>gl_compatibility</code>; <code>make verify</code> = check · lint ·
         format-check · test; GUT under <span class="sk-file">tests/unit</span>; the Node-free and
         RNG-free checks over <code>core/</code> and <code>ai/</code>). Architecture modelled on
@@ -3073,8 +3516,8 @@ sequenceDiagram
       </p>
       <p class="opacity-70 mt-2">
         When a milestone ships, its badge becomes <code>shipped · #PR</code> and the hero kicker's
-        <em>shipped</em> list grows; when SH15 lands the kicker reads <code>MVP shipped · rev 2</code>, and when SH23 lands,
-        <code>Shipped · rev 2</code>.
+        <em>shipped</em> list grows; when the last MVP milestone lands the kicker reads <code>MVP shipped · rev 3</code>, and
+        when SH23 lands, <code>Shipped · rev 3</code>.
       </p>
     </footer>
   </div>
