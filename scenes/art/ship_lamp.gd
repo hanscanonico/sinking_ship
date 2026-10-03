@@ -6,7 +6,10 @@ extends Node3D
 ## plane y = 0 (D7), so the room's floor and the lamp are wet exactly when their
 ## drawn world height is below zero. It reads only where the view has put the ship
 ## — presentation, never a rule (D12). Hung from a deck that has given way, it falls
-## with it and goes out once the deck lies wrecked (ShipArt).
+## with it and goes out once the deck lies wrecked (ShipArt). Its globe glows
+## whoever looks, but it lights its room only while the eye that draws the frame
+## stands near it on its storey (relevant), fading in and out, so a frame pays only
+## for the lamps it can see and none shines up or down through a deck.
 
 ## From the ceiling to the middle of the globe, in metres.
 const CORD := 0.3
@@ -24,11 +27,24 @@ const BROWNOUT := 0.12
 ## and with the sea at the lamp itself.
 const FAILING_FROM := 0.15
 const FAILING_TO := 0.8
+## How far across the ship plane from its room an eye still has the lamp lit, and
+## how far above its ceiling or below its floor: a stair's head, never the deck over.
+const REACH := 8.0
+const STOREY_MARGIN := 0.8
+## Seconds a lamp takes to come up or go down as the eye comes and goes.
+const FADE := 0.3
 
 ## False once the lamp is wrecked: it stays out whatever the water does.
 var burning := true
+## Whether the lamp lights its room whatever eye draws the frame: the observer's
+## cut-away, which looks down into every room at once.
+var everywhere := false
 
+## The room's box, ship space: its floor to its ceiling.
+var _room: AABB
 var _floor: Vector3
+## How far the lamp has faded up (0…1) toward lighting its room.
+var _presence := 1.0
 var _hang := Vector3.DOWN
 var _swing := Vector3.ZERO
 var _clock := 0.0
@@ -54,10 +70,25 @@ static func glow(lamp_height: float, floor_height: float, clock: float) -> float
 	return BROWNOUT if roll < failing else 1.0
 
 
-## Hangs the lamp from where it now stands, over [param floor_point] (ship space);
-## [param phase] keeps lamps from flickering in step.
-func setup(floor_point: Vector3, phase: float, glass: StandardMaterial3D, brass: Material) -> void:
-	_floor = floor_point
+## Whether a lamp lights [param room] (its box, ship space) for an eye at
+## [param eye] (ship space): never once it is wrecked ([param burning] false),
+## else while the eye stands within REACH of the room across the ship plane and on
+## its storey — up to STOREY_MARGIN over its ceiling or under its floor. A doorway's
+## neighbour is lit; a room a deck away is not, whatever lies between.
+static func relevant(eye: Vector3, room: AABB, burning: bool) -> bool:
+	if not burning:
+		return false
+	var nearest := eye.clamp(room.position, room.end)
+	var across := Vector2(eye.x - nearest.x, eye.z - nearest.z).length()
+	return across <= REACH and absf(eye.y - nearest.y) <= STOREY_MARGIN
+
+
+## Hangs the lamp from where it now stands, under the middle of [param room] (its
+## box, ship space); [param phase] keeps lamps from flickering in step.
+func setup(room: AABB, phase: float, glass: StandardMaterial3D, brass: Material) -> void:
+	_room = room
+	var middle := room.get_center()
+	_floor = Vector3(middle.x, room.position.y, middle.z)
 	_phase = phase
 	_glass = glass
 	var cord := CylinderMesh.new()
@@ -109,8 +140,15 @@ func _process(delta: float) -> void:
 	var level := glow(lamp_height, (ship.global_transform * _floor).y, _clock + _phase)
 	if not burning:
 		level = 0.0
-	_light.light_energy = ENERGY * level
-	_light.visible = level > 0.0
+	var camera := get_viewport().get_camera_3d()
+	var wanted := burning
+	if camera != null and not everywhere:
+		var eye := ship.global_transform.affine_inverse() * camera.global_position
+		wanted = relevant(eye, _room, burning)
+	_presence = move_toward(_presence, 1.0 if wanted else 0.0, delta / FADE)
+	var energy := level * smoothstep(0.0, 1.0, _presence)
+	_light.light_energy = ENERGY * energy
+	_light.visible = energy > 0.0
 	_glass.emission_energy_multiplier = level
 
 
