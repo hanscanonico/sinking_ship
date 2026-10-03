@@ -39,11 +39,14 @@ func _init(layout: ShipLayout, surfaces: Surfaces, body_radius: float) -> void:
 
 ## The legs from [param from_surface] (a body there at [param from_pos]) to the
 ## surface [param goal] — a ramp's goal is either platform it joins: each leg a
-## Vector2i of (ramp, the end it is left by), in order. Shortest by the distance
-## walked; empty when already there, when either end is nowhere, or when every way
-## ends on or crosses a flooded platform.
+## Vector2i of (ramp, the end it is left by), in order. A blocker top counts as
+## its footing (Surfaces.footing). Shortest by the distance walked; empty when
+## already there, when either end is nowhere, or when every way ends on or crosses
+## a flooded platform.
 func route(from_pos: Vector3, from_surface: int, goal: int, pose: ShipPose) -> Array[Vector2i]:
 	var legs: Array[Vector2i] = []
+	from_surface = _surfaces.footing(from_surface)
+	goal = _surfaces.footing(goal)
 	if from_surface == Surfaces.NONE or goal == Surfaces.NONE or goal == from_surface:
 		return legs
 	var nodes := _surfaces.platform_count()
@@ -66,8 +69,10 @@ func route(from_pos: Vector3, from_surface: int, goal: int, pose: ShipPose) -> A
 
 ## The platform standing highest in the world, by its middle, of those a body on
 ## [param from_surface] at [param from_pos] can reach without crossing a flooded
-## one — its own included; Surfaces.NONE when it stands on nothing.
+## one — its own included, a blocker top's footing for the top; Surfaces.NONE when
+## it stands on nothing.
 func highest_reachable(from_pos: Vector3, from_surface: int, pose: ShipPose) -> int:
+	from_surface = _surfaces.footing(from_surface)
 	if from_surface == Surfaces.NONE:
 		return Surfaces.NONE
 	var search := _search(from_pos, from_surface, pose)

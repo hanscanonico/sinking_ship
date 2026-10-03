@@ -4,7 +4,7 @@ extends RefCounted
 ## InputFrame per seat is the only way anything happens (D3); snapshot() is the
 ## whole truth and from_snapshot() continues it exactly (D5).
 
-const SNAPSHOT_VERSION := 1
+const SNAPSHOT_VERSION := 2
 
 var config: MatchConfig
 var schedule: SinkSchedule
@@ -259,12 +259,7 @@ func _blockers(live: Array[PlayerState], feet_before: PackedFloat64Array) -> voi
 			feet, _rules.body_radius, _rules.body_height, _rules.step_height
 		)
 		for contact: Surfaces.Contact in contacts:
-			player.pos += Vector3(contact.normal.x, 0.0, contact.normal.y) * contact.depth
-			var planar := Vector2(player.vel.x, player.vel.z)
-			var into := -planar.dot(contact.normal)
-			if into > 0.0:
-				planar += contact.normal * into
-				player.vel = Vector3(planar.x, player.vel.y, planar.y)
+			_hold(player, contact)
 
 
 ## A railing stops a grounded body crossing it slower than vault_speed — it loses
@@ -284,10 +279,18 @@ func _railings(live: Array[PlayerState], tick: int, events: Array[SimEvent]) -> 
 				player.vel.y = _rules.vault_lift
 				events.append(SimEvent.vaulted(tick, player.seat))
 				break
-			player.pos += Vector3(contact.normal.x, 0.0, contact.normal.y) * contact.depth
-			if into > 0.0:
-				planar += contact.normal * into
-				player.vel = Vector3(planar.x, player.vel.y, planar.y)
+			_hold(player, contact)
+
+
+## Moves [param player] out of [param contact] in the deck plane and takes the
+## velocity into it.
+func _hold(player: PlayerState, contact: Surfaces.Contact) -> void:
+	player.pos += Vector3(contact.normal.x, 0.0, contact.normal.y) * contact.depth
+	var planar := Vector2(player.vel.x, player.vel.z)
+	var into := -planar.dot(contact.normal)
+	if into > 0.0:
+		planar += contact.normal * into
+		player.vel = Vector3(planar.x, player.vel.y, planar.y)
 
 
 ## What each body stands on. A grounded body follows its surface up and down

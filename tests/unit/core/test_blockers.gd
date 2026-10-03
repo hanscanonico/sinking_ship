@@ -152,3 +152,93 @@ func test_shove_does_not_pass_through_a_blocker() -> void:
 	assert_almost_eq(
 		farthest, mast.centre.x - mast.radius - rules.body_radius, 0.0001, "stopped at the mast"
 	)
+
+
+## The surface number of the steamer's blocker [param blocker]'s top: after every
+## platform and ramp, in layout order.
+func _top_of(blocker: ShipBlocker) -> int:
+	var layout := SimFixtures.steamer()
+	for index in layout.blockers.size():
+		if (
+			layout.blockers[index].area == blocker.area
+			and layout.blockers[index].top == blocker.top
+		):
+			return layout.platforms.size() + layout.ramps.size() + index
+	return Surfaces.NONE
+
+
+## Seat 0 walks [param move] every tick until it lands somewhere; returns the
+## events of the walk.
+func _walk_until_landed(sim: MatchSim, move: Vector2) -> Array[SimEvent]:
+	var events: Array[SimEvent] = []
+	for _tick in 3 * Ticks.RATE:
+		var stepped := SimFixtures.step(sim, {0: SimFixtures.frame(0, move)})
+		events.append_array(stepped)
+		for event: SimEvent in stepped:
+			if event.kind == SimEvent.Kind.LANDED:
+				return events
+	return events
+
+
+func _kinds(events: Array[SimEvent], kind: SimEvent.Kind) -> Array[SimEvent]:
+	return events.filter(func(event: SimEvent) -> bool: return event.kind == kind)
+
+
+func test_a_body_lands_on_a_blocker_top() -> void:
+	var layout := SimFixtures.steamer()
+	var hatch := _blocker(ShipBlocker.Shape.BOX, Vector2(6.0, 0.0))
+	assert_not_null(hatch)
+	var hatch_top := _top_of(hatch)
+	var boat_deck := layout.platforms[SimFixtures.platform_named(layout, &"boat deck")]
+	# Off the boat deck's forward edge between its two ramps, at a walk: the hatch
+	# stands below, lower than the boat deck and too tall to step onto from the deck.
+	var sim := _steamer_sim(2)
+	var edge := boat_deck.area.end.x
+	SimFixtures.place(sim, 0, Vector3(edge - 0.2, boat_deck.height, hatch.area.get_center().y))
+	var events := _walk_until_landed(sim, Vector2.RIGHT)
+	var landed := _kinds(events, SimEvent.Kind.LANDED)
+	assert_eq(_kinds(events, SimEvent.Kind.FELL).size(), 1, "it fell off the edge")
+	assert_eq(landed.size(), 1, "and landed")
+	if landed.is_empty():
+		return
+	assert_eq(landed[0].surface, hatch_top, "on the hatch")
+	var walker := sim.state.seats[0]
+	assert_eq(walker.body, PlayerState.Body.GROUNDED)
+	assert_eq(walker.surface, hatch_top)
+	assert_almost_eq(walker.pos.y, hatch.top, 0.0001, "on top of it, not through it")
+	assert_true(hatch.area.has_point(Vector2(walker.pos.x, walker.pos.z)), "inside its footprint")
+	assert_gt(walker.stagger_ticks, 0, "staggered by the drop")
+	# Standing still, it stays up there.
+	SimFixtures.step(sim, {0: SimFixtures.frame(0)}, Ticks.RATE)
+	assert_eq(walker.body, PlayerState.Body.GROUNDED)
+	assert_eq(walker.surface, hatch_top)
+	assert_almost_eq(walker.pos.y, hatch.top, 0.0001)
+
+
+func test_walking_off_a_blocker_top_falls() -> void:
+	var rules := SimFixtures.rules()
+	var layout := SimFixtures.steamer()
+	var main_deck := SimFixtures.platform_named(layout, &"main deck")
+	var hatch := _blocker(ShipBlocker.Shape.BOX, Vector2(6.0, 0.0))
+	assert_not_null(hatch)
+	var sim := _steamer_sim(2)
+	var middle := hatch.area.get_center()
+	SimFixtures.place(sim, 0, Vector3(middle.x, hatch.top, middle.y))
+	assert_eq(sim.state.seats[0].surface, _top_of(hatch), "standing on the hatch")
+	# Aft off its after side at a stroll, toward the open bay before the deckhouse.
+	var events := _walk_until_landed(sim, Vector2.LEFT * 0.2)
+	var fell := _kinds(events, SimEvent.Kind.FELL)
+	var landed := _kinds(events, SimEvent.Kind.LANDED)
+	assert_eq(fell.size(), 1, "it fell off the edge")
+	assert_eq(landed.size(), 1, "and landed")
+	if fell.is_empty() or landed.is_empty():
+		return
+	assert_gt(landed[0].tick, fell[0].tick)
+	assert_eq(landed[0].surface, main_deck, "on the main deck")
+	var walker := sim.state.seats[0]
+	assert_eq(walker.body, PlayerState.Body.GROUNDED)
+	assert_eq(walker.pos.y, 0.0, "on the main deck's planks")
+	assert_lt(
+		walker.pos.x, hatch.area.position.x - rules.body_radius + 0.0001, "clear of the hatch"
+	)
+	assert_gt(walker.stagger_ticks, 0, "staggered by the drop")

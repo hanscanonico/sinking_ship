@@ -4,7 +4,8 @@ extends RefCounted
 ## on within a step, how high a surface is under a point, where a falling body
 ## lands, what holds a body back in the deck plane, whether a shove's line is
 ## blocked, whether a walk ends in a drop, and whether a point is wet. Surfaces are
-## numbered platforms first, then ramps, each in layout order. Nothing here assumes
+## numbered platforms first, then ramps, then blocker tops, each in layout order. A
+## blocker's top is stood on and landed on like a platform's. Nothing here assumes
 ## a size or a deck count, so a spatial index can arrive behind it (SH18).
 
 const NONE := -1
@@ -53,9 +54,9 @@ func _init(layout: ShipLayout) -> void:
 		_rail_normals.append(normal)
 
 
-## How many surfaces there are, platforms and ramps together.
+## How many surfaces there are, platforms, ramps and blocker tops together.
 func count() -> int:
-	return _platforms.size() + _ramps.size()
+	return _platforms.size() + _ramps.size() + _blockers.size()
 
 
 func platform_count() -> int:
@@ -63,7 +64,11 @@ func platform_count() -> int:
 
 
 func is_ramp(surface: int) -> bool:
-	return surface >= _platforms.size()
+	return surface >= _platforms.size() and surface < _platforms.size() + _ramps.size()
+
+
+func is_blocker_top(surface: int) -> bool:
+	return surface >= _platforms.size() + _ramps.size()
 
 
 ## The surface number of the layout's ramp at [param ramp].
@@ -75,6 +80,8 @@ func ramp_surface(ramp: int) -> int:
 func height_at(surface: int, ship_point: Vector3) -> float:
 	if is_ramp(surface):
 		return _ramps[surface - _platforms.size()].height_at(ship_point.x, ship_point.z)
+	if is_blocker_top(surface):
+		return _blocker_of(surface).top
 	return _platforms[surface].height
 
 
@@ -98,16 +105,18 @@ func under(ship_point: Vector3, step: float) -> int:
 ## Where a body falling straight down from [param ship_point] lands: the highest
 ## surface under it at or below its height, or NONE when nothing is — the sea.
 func landing(ship_point: Vector3) -> int:
-	var best := NONE
-	var best_height := -INF
-	for surface in count():
-		if not _contains(surface, ship_point):
-			continue
-		var height := height_at(surface, ship_point)
-		if height <= ship_point.y and height > best_height:
-			best = surface
-			best_height = height
-	return best
+	return _highest_at_or_below(ship_point, count())
+
+
+## The platform or ramp a body on [param surface] walks on: a blocker top's is
+## where a body stepping off its middle comes down, past any other blocker top, or
+## NONE when that is the sea; any other surface is its own.
+func footing(surface: int) -> int:
+	if not is_blocker_top(surface):
+		return surface
+	var middle := _area(surface).get_center()
+	var below := Vector3(middle.x, _blocker_of(surface).bottom, middle.y)
+	return _highest_at_or_below(below, _platforms.size() + _ramps.size())
 
 
 ## The platforms a ramp joins: at its start end, then at its end end — the
@@ -153,7 +162,7 @@ func obstacle_contacts(
 			contact = _circle_contact(blocker.centre, blocker.radius, point, radius)
 		if contact != null:
 			contacts.append(contact)
-	for surface in count():
+	for surface in _platforms.size() + _ramps.size():
 		var area := _area(surface)
 		var closest := point.clamp(area.position, area.end)
 		var top := height_at(surface, Vector3(closest.x, 0.0, closest.y))
@@ -269,15 +278,52 @@ func highest_platform(pose: ShipPose) -> int:
 	return best
 
 
+## The highest of the first [param surfaces] surfaces under [param ship_point] at
+## or below its height; ties go to the lower number.
+func _highest_at_or_below(ship_point: Vector3, surfaces: int) -> int:
+	var best := NONE
+	var best_height := -INF
+	for surface in surfaces:
+		if not _contains(surface, ship_point):
+			continue
+		var height := height_at(surface, ship_point)
+		if height <= ship_point.y and height > best_height:
+			best = surface
+			best_height = height
+	return best
+
+
+func _blocker_of(surface: int) -> ShipBlocker:
+	return _blockers[surface - _platforms.size() - _ramps.size()]
+
+
 func _area(surface: int) -> Rect2:
 	if is_ramp(surface):
 		return _ramps[surface - _platforms.size()].area
+	if is_blocker_top(surface):
+		var blocker := _blocker_of(surface)
+		if blocker.shape == ShipBlocker.Shape.BOX:
+			return blocker.area
+		var corner := blocker.centre - Vector2(blocker.radius, blocker.radius)
+		return Rect2(corner, Vector2(blocker.radius, blocker.radius) * 2.0)
 	return _platforms[surface].area
 
 
 func _contains(surface: int, ship_point: Vector3) -> bool:
 	if is_ramp(surface):
 		return _ramps[surface - _platforms.size()].contains(ship_point.x, ship_point.z)
+	if is_blocker_top(surface):
+		var blocker := _blocker_of(surface)
+		var point := Vector2(ship_point.x, ship_point.z)
+		if blocker.shape == ShipBlocker.Shape.CYLINDER:
+			return point.distance_to(blocker.centre) <= blocker.radius
+		var area := blocker.area
+		return (
+			point.x >= area.position.x
+			and point.x <= area.end.x
+			and point.y >= area.position.y
+			and point.y <= area.end.y
+		)
 	return _platforms[surface].contains(ship_point.x, ship_point.z)
 
 
