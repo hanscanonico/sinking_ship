@@ -342,3 +342,82 @@ func test_a_collapse_is_heard_before_it_happens() -> void:
 	for cue: AudioCue in giving:
 		assert_true(cue.positional)
 		assert_eq(cue.position, Vector3(-2.5, 4.7, 0.0), "from the bridge")
+
+
+## A match on the flat deck carrying one crate at [param at], seat 0 well clear.
+func _crated(at: Vector3) -> MatchSim:
+	var crates: Array[ShipProp] = [SimFixtures.crate(at)]
+	var sim := SimFixtures.sim(1, null, SimFixtures.crated(crates))
+	SimFixtures.place(sim, 0, Vector3(-12.0, 0.0, -2.0))
+	return sim
+
+
+func test_a_sliding_crate_scrapes_as_it_goes_and_a_still_one_is_silent() -> void:
+	var sim := _crated(Vector3.ZERO)
+	var planner := _planner(sim)
+	var speed := 2.0
+	var ticks := 2 * Ticks.RATE
+	var scrapes: Array[AudioCue] = []
+	var previous := sim.snapshot()
+	for tick in ticks:
+		var current := sim.snapshot().duplicate(true)
+		current["tick"] = tick + 1
+		current["props"][0]["pos"] = Vector3(speed * Ticks.to_seconds(tick + 1), 0.0, 0.0)
+		current["props"][0]["vel"] = Vector3(speed, 0.0, 0.0)
+		scrapes.append_array(_of(planner.plan(previous, current), AudioCue.Kind.SCRAPE))
+		previous = current
+	var expected := speed * Ticks.to_seconds(ticks) / CuePlanner.SCRAPE_STRIDE
+	assert_almost_eq(float(scrapes.size()), expected, 1.0, "a scrape every stride it slides")
+	for cue: AudioCue in scrapes:
+		assert_true(cue.positional, "from the crate")
+		assert_eq(cue.seat, -1)
+	var still := _of(_play(_planner(sim), sim, [{}, {}, {}, {}]), AudioCue.Kind.SCRAPE)
+	assert_true(still.is_empty(), "a crate at rest is silent")
+
+
+func test_a_crate_thuds_as_it_comes_down_and_as_it_is_stopped_short() -> void:
+	var sim := _crated(Vector3.ZERO)
+	var then := sim.snapshot().duplicate(true)
+	then["props"][0]["state"] = PropState.Body.AIRBORNE
+	then["props"][0]["vel"] = Vector3(0.0, -5.0, 0.0)
+	var now := sim.snapshot().duplicate(true)
+	now["tick"] = 1
+	assert_eq(_of(_planner(sim).plan(then, now), AudioCue.Kind.THUD).size(), 1, "down")
+	for case: Array in [[3.0, 0.0, 1], [3.0, 2.9, 0], [0.0, 3.0, 0]]:
+		then = sim.snapshot().duplicate(true)
+		then["props"][0]["vel"] = Vector3(case[0], 0.0, 0.0)
+		now["props"][0]["vel"] = Vector3(case[1], 0.0, 0.0)
+		var thuds := _of(_planner(sim).plan(then, now), AudioCue.Kind.THUD)
+		assert_eq(thuds.size(), case[2], "from %s m/s to %s m/s" % [case[0], case[1]])
+
+
+## A crate sent into the starboard rail: the span breaks with a crack from its
+## middle, and the crate splashes as the sea takes it.
+func test_a_breaking_span_cracks_and_a_lost_crate_splashes() -> void:
+	var edge := SimFixtures.deck().platforms[0].area.end.y
+	var sim := _crated(Vector3(-6.5, 0.0, 0.0))
+	sim.state.props[0].vel = Vector3(0.0, 0.0, 6.0)
+	var rows := []
+	rows.resize(3 * Ticks.RATE)
+	rows.fill({})
+	var heard := _play(_planner(sim), sim, rows)
+	var cracks := _of(heard, AudioCue.Kind.CRACK)
+	assert_eq(cracks.size(), 1, "the span cracks once")
+	assert_eq(cracks[0].position, Vector3(-6.5, 0.5, edge), "from its middle, halfway up")
+	assert_true(cracks[0].positional)
+	var splashes := _of(heard, AudioCue.Kind.SPLASH)
+	assert_eq(splashes.size(), 1, "the crate splashes into the sea")
+	assert_eq(splashes[0].seat, -1)
+
+
+func test_a_crate_hit_thuds_on_the_brawler() -> void:
+	var sim := _crated(Vector3(-12.0, 0.0, -3.0))
+	SimFixtures.place(sim, 0, Vector3(-12.0, 0.0, -1.5))
+	sim.state.props[0].vel = Vector3(0.0, 0.0, 4.0)
+	var rows := []
+	rows.resize(Ticks.RATE)
+	rows.fill({})
+	var thuds := _of(_play(_planner(sim, -1), sim, rows), AudioCue.Kind.THUD)
+	var on_the_brawler := thuds.filter(func(cue: AudioCue) -> bool: return cue.seat == 0)
+	assert_eq(on_the_brawler.size(), 1, "one thud on the brawler it hits")
+	assert_true(on_the_brawler[0].heavy)

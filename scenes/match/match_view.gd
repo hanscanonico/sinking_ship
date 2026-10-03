@@ -4,8 +4,9 @@ extends Node3D
 ## pose, the ship drawn — dressed, or the greybox — the sinking's events as of the
 ## same moment, read off the schedule here and handed in, and every seat is a
 ## Brawler with a blob shadow, placed in ship space — except the seat whose eyes the
-## view is in, which is not drawn (D14). It never moves a body itself, and never
-## reads a live PlayerState.
+## view is in, which is not drawn (D14) — and every crate of the cargo is placed where
+## the snapshots have it, hidden once lost (SH10). It never moves a body itself, and
+## never reads a live PlayerState.
 
 ## The seat colours now live in ArtPalette; this name stays for code outside the art.
 const SEAT_COLOURS: Array[Color] = ArtPalette.SEAT_COLOURS
@@ -24,6 +25,8 @@ var _schedule: SinkSchedule
 var _surfaces: Surfaces
 var _bodies: Array[Brawler] = []
 var _shadows: Array[MeshInstance3D] = []
+## Per crate of the layout's cargo, the node the ship drawn draws it under.
+var _crates: Array[Node3D] = []
 ## The seat the camera looks out of, or -1 for none.
 var _eye_seat := -1
 
@@ -42,15 +45,16 @@ func setup(driver: SimDriver, sim: MatchSim, local_seat: int) -> void:
 	var rules := sim.config.rules
 	if _greybox.visible:
 		_greybox.build(ship, rules.railing_height)
+		_crates = _greybox.crates()
 	else:
 		var falls: Array[StringName] = []
-		var fails := PackedInt32Array()
 		for event: SinkEvent in sim.config.scenario.events:
 			if event.kind == SinkEvent.Kind.COLLAPSE:
 				falls.append(event.platform)
-			elif event.kind == SinkEvent.Kind.RAILING_FAIL:
-				fails.append(event.railing)
+		# Any railing may break (SH10), not only those the scenario fails.
+		var fails := PackedInt32Array(range(ship.railings.size()))
 		_art.build(ship, rules.railing_height, rules.body_radius, falls, fails)
+		_crates = _art.crates()
 	for body: Brawler in _bodies:
 		body.queue_free()
 	for shadow: MeshInstance3D in _shadows:
@@ -105,7 +109,10 @@ func _process(_delta: float) -> void:
 	_ship.transform = (_schedule.pose_at(previous["tick"]).transform.interpolate_with(
 		_schedule.pose_at(current["tick"]).transform, alpha
 	))
-	_show_sinking(lerpf(previous["tick"], current["tick"], alpha))
+	_show_sinking(
+		lerpf(previous["tick"], current["tick"], alpha), MatchState.broken_in(current["railing_hp"])
+	)
+	_show_cargo(previous["props"], current["props"], alpha)
 	var seats_then: Array = previous["seats"]
 	var seats_now: Array = current["seats"]
 	for index in seats_now.size():
@@ -135,8 +142,9 @@ func _process(_delta: float) -> void:
 ## Hands the ship drawn what the schedule's events have done by [param tick] —
 ## fractional, as the view interpolates between two snapshots: the platforms whose
 ## collapse is telegraphed and whether the blink is lit now, how far (0…1) each
-## collapsed platform has fallen, by name, and the failed railings.
-func _show_sinking(tick: float) -> void:
+## collapsed platform has fallen, by name, and the failed railings — with them those
+## the match has [param broken].
+func _show_sinking(tick: float, broken: PackedInt32Array) -> void:
 	var now := floori(tick)
 	var pose := _schedule.pose_at(now)
 	var fallen := {}
@@ -145,10 +153,21 @@ func _show_sinking(tick: float) -> void:
 			var since := (tick - scheduled.at) * Ticks.SECONDS_PER_TICK
 			fallen[scheduled.event.platform] = clampf(since / FALL_SECONDS, 0.0, 1.0)
 	var lit := now / BLINK_TICKS % 2 == 0
+	var gone := pose.broken_railings.duplicate()
+	gone.append_array(broken)
 	if _greybox.visible:
-		_greybox.show_sinking(pose.collapsing, fallen, pose.broken_railings, lit)
+		_greybox.show_sinking(pose.collapsing, fallen, gone, lit)
 	else:
-		_art.show_sinking(pose.collapsing, fallen, pose.broken_railings, lit)
+		_art.show_sinking(pose.collapsing, fallen, gone, lit)
+
+
+## Each crate [param alpha] of the way from where [param then] has it to where
+## [param now] does — the two snapshots' "props" — and hidden once it is lost.
+func _show_cargo(then: Array, now: Array, alpha: float) -> void:
+	for index in _crates.size():
+		var entry: Dictionary = now[index]
+		_crates[index].visible = entry["state"] != PropState.Body.LOST
+		_crates[index].position = (then[index]["pos"] as Vector3).lerp(entry["pos"], alpha)
 
 
 ## The up of [param surface] under [param pos], in ship space, from its heights a

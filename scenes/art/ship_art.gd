@@ -14,7 +14,10 @@ extends Node3D
 ## and every railing it may fail is built as a node of its own, so a deck about to
 ## give way blinks red, then falls onto the floor beneath with its ceiling, beams,
 ## railings, ladders and the lamp of the room under it, and a failed railing is gone.
-## The walls under it stand.
+## The walls under it stand. The match's own hazards are drawn the same way (SH10):
+## any railing may break, so each is a node of its own, gone once broken; and every
+## crate of the cargo is a wooden box under a node of its own, which MatchView places
+## (crates()).
 
 const SHADER := preload("res://scenes/art/ship.gdshader")
 const CUT_SHADER := preload("res://scenes/art/ship_cut.gdshader")
@@ -60,6 +63,12 @@ const MAST_SEGMENTS := 10
 ## about the ship's length — the greybox's decks fall the same way.
 const WRECK_LIFT := 0.35
 const WRECK_TILT := 0.25
+## A crate is drawn a square whose half-side is this share of its circle's radius:
+## its corners stand a little proud of the circle, its sides a little inside it.
+const CRATE_SIDE := 0.85
+## The battens round a crate's foot and its lid: how tall, and how proud.
+const CRATE_BATTEN := 0.08
+const CRATE_PROUD := 0.015
 ## The finishes ship.gdshader paints; the glass has its own.
 const PAINTS: Array[int] = [
 	ShipMesh.Finish.PLAIN,
@@ -85,6 +94,8 @@ var _floors := PackedFloat64Array()
 var _rails: Array[Node3D] = []
 ## Per platform name that can collapse, its own materials: Finish -> Material.
 var _flashes := {}
+## Per crate of the layout's cargo, the node it is drawn under.
+var _crates: Array[Node3D] = []
 
 
 ## Draws [param layout]; [param railing_height] and [param body_radius] are the
@@ -107,6 +118,7 @@ func build(
 	_floors.clear()
 	_rails.clear()
 	_flashes.clear()
+	_crates.clear()
 	var materials := _materials(layout)
 	var mesh := _mesh()
 	# Each piece that can fall or fail gathers its faces apart, to commit under its node.
@@ -148,6 +160,14 @@ func build(
 			deck = _wrecks.find(node.get_parent())
 		var paints: Dictionary = materials if deck == -1 else _flashes[layout.platforms[deck].name]
 		(pieces[node] as ShipMesh).commit(node, paints)
+	for prop: ShipProp in layout.props:
+		_crates.append(_crate(prop, materials))
+
+
+## Per crate of the layout's cargo, the node it is drawn under, its origin at the
+## crate's underside: where MatchView puts it.
+func crates() -> Array[Node3D]:
+	return _crates
 
 
 ## Draws what the sinking's events have done, as MatchView hands them in: a
@@ -193,6 +213,27 @@ static func wrecked(platform: ShipPlatform, floor_height: float, fallen: float) 
 func _process(_delta: float) -> void:
 	if _smoke != null:
 		_smoke.emitting = _smoke.global_position.y > 0.0
+
+
+## [param prop] as a crate: planked sides and lid in the crate paint, a batten round
+## its foot and its lid, under a node of its own at its underside — outdoors, where
+## the cargo stands.
+func _crate(prop: ShipProp, materials: Dictionary) -> Node3D:
+	var node := Node3D.new()
+	node.name = "Crate%d" % _crates.size()
+	add_child(node)
+	node.position = prop.pos
+	var no_rooms: Array[PackedFloat32Array] = [
+		PackedFloat32Array(), PackedFloat32Array(), PackedFloat32Array()
+	]
+	var mesh := ShipMesh.new(func(_point: Vector3) -> bool: return true, no_rooms)
+	var half := prop.radius * CRATE_SIDE
+	var box := Rect2(-half, -half, half * 2.0, half * 2.0)
+	mesh.box(box, 0.0, prop.height, ShipPaints.crate, ShipMesh.SIDES | ShipMesh.TOP)
+	for band: float in [0.0, prop.height - CRATE_BATTEN]:
+		mesh.box(box.grow(CRATE_PROUD), band, band + CRATE_BATTEN, ShipPaints.frame, ShipMesh.SIDES)
+	mesh.commit(node, materials)
+	return node
 
 
 ## The faces of the ship, gathered for one commit.

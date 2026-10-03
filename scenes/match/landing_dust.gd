@@ -3,7 +3,8 @@ extends Node3D
 ## A puff of dust where a falling body comes down, kicked up by the sim's Landed
 ## event at the feet its snapshot puts there (D5), and a bigger one for a harder
 ## landing. Never under the seat whose eyes the view is in, as MatchView draws no
-## body there (D14). Presentation only (D12): it moves nothing.
+## body there (D14). And a burst of splinters from the middle of a railing span as
+## it breaks (RailingBroke, SH10). Presentation only (D12): it moves nothing.
 
 const COLOUR := Color(0.78, 0.74, 0.66, 0.55)
 const GRAINS := 14
@@ -13,6 +14,9 @@ const LIFETIME := 0.45
 const SPREAD_SPEED := 1.2
 const SPREAD_PER_STAGGER := 0.12
 const GRAIN_SIZE := 0.07
+## A breaking span's splinters: their colour, and how hard they fly.
+const SPLINTER := Color(0.62, 0.42, 0.26)
+const SPLINTER_STAGGER := 20
 
 var _driver: SimDriver
 var _view: MatchView
@@ -38,13 +42,20 @@ func setup(driver: SimDriver, view: MatchView) -> void:
 
 func _on_stepped(events: Array[SimEvent]) -> void:
 	for event: SimEvent in events:
+		if event.kind == SimEvent.Kind.RAILING_BROKE:
+			var config := _driver.runner.sim.config
+			var middle := config.ship.railing_middle(
+				event.railing, config.rules.railing_height * 0.5
+			)
+			var puff := _puff(_view.ship_to_world() * middle, SPLINTER_STAGGER)
+			puff.color = SPLINTER
 		if event.kind != SimEvent.Kind.LANDED or event.seat == _view.eye_seat():
 			continue
 		var feet: Vector3 = _driver.current["seats"][event.seat]["pos"]
 		_puff(_view.ship_to_world() * feet, event.stagger_ticks)
 
 
-func _puff(at: Vector3, stagger_ticks: int) -> void:
+func _puff(at: Vector3, stagger_ticks: int) -> CPUParticles3D:
 	var puff := CPUParticles3D.new()
 	puff.mesh = _grain
 	puff.amount = GRAINS
@@ -68,3 +79,4 @@ func _puff(at: Vector3, stagger_ticks: int) -> void:
 	puff.global_position = at
 	puff.finished.connect(puff.queue_free)
 	puff.emitting = true
+	return puff

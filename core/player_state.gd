@@ -58,6 +58,10 @@ var climb_to: Vector3
 var last_hit_by: int = -1
 ## The tick that shove landed on, or -1.
 var last_hit_at: int = -1
+## The crate, by its index in the layout, that last ran into this one — under the
+## same terms as last_hit_by, which is then the seat that shoved the crate, if any
+## did within credit_window; -1 otherwise (SH10).
+var last_hit_crate: int = -1
 ## 0 while still in; the shared finishing place once out.
 var place: int
 var out_tick: int = -1
@@ -93,6 +97,30 @@ func is_climbing() -> bool:
 	return climb_left > 0
 
 
+## The shove or the crate that sent this body no longer counts as what moves it.
+func forget_hit() -> void:
+	last_hit_by = -1
+	last_hit_crate = -1
+
+
+## Whether this body braces against something coming at it along
+## [param direction]: braced, with that inside the front arc of [param arc_deg]
+## either side of its facing.
+func braced_against(direction: Vector2, arc_deg: float) -> bool:
+	return bracing and absf(Vector2.from_angle(facing).angle_to(-direction)) <= deg_to_rad(arc_deg)
+
+
+## Freezes this body for [param ticks] — a longer stop already running wins —
+## holding [param velocity] back until the stop ends; with no stop it moves at once.
+func freeze(velocity: Vector3, ticks: int) -> void:
+	hitstop = maxi(hitstop, ticks)
+	if is_frozen():
+		held_vel = velocity
+		vel = Vector3.ZERO
+	else:
+		vel = velocity
+
+
 func to_dict() -> Dictionary:
 	return {
 		"seat": seat,
@@ -124,6 +152,7 @@ func to_dict() -> Dictionary:
 		"climb_to": climb_to,
 		"last_hit_by": last_hit_by,
 		"last_hit_at": last_hit_at,
+		"last_hit_crate": last_hit_crate,
 		"prev_buttons": prev_buttons,
 		"last_input": [last_move.x, last_move.y, last_look, last_buttons],
 	}
@@ -158,6 +187,7 @@ static func from_dict(entry: Dictionary) -> PlayerState:
 	player.climb_to = entry["climb_to"]
 	player.last_hit_by = entry["last_hit_by"]
 	player.last_hit_at = entry["last_hit_at"]
+	player.last_hit_crate = entry["last_hit_crate"]
 	player.prev_buttons = entry["prev_buttons"]
 	var last_input: Array = entry["last_input"]
 	player.last_move = Vector2i(last_input[0], last_input[1])

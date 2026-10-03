@@ -22,6 +22,7 @@ func _init(
 		seat,
 		profile,
 		config.rules,
+		config.ship.props,
 		walk_graph.surfaces(),
 		walk_graph,
 		SeedStreams.derive(config.match_seed, seat)

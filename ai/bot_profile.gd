@@ -49,6 +49,9 @@ const DIRECTORY := "res://data/bots"
 ## Told of a lurch, a bot within this many metres of the side it will put down, or
 ## of an unrailed drop that way, walks away from it; any farther, it stays.
 @export var ride_margin_m: float
+## Whether a bot steps out of the path of a crate it sees sliding at it (SH10): the
+## easy tier is caught by the cargo.
+@export var dodges_cargo: bool
 ## How much better another intent or target must score than the bot's current one
 ## before it switches: what keeps it from dithering between two.
 @export var hysteresis: float

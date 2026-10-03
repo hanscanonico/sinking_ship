@@ -642,6 +642,26 @@ func test_line_of_sight_is_blocked_by_walls_not_by_doorways() -> void:
 	assert_false(walled.line_of_sight(walled_off[1], walled_off[0], level), "the wall, back")
 	var low_wall := Vector3(-1.0, 3.0, -2.0)
 	assert_true(walled.line_of_sight(low_wall, walled_off[1] + Vector3.UP * 1.5, level), "over")
+	# A crate between two bodies hides neither, even with their eyes under its lid.
+	var rules := SimFixtures.rules()
+	var crates: Array[ShipProp] = [SimFixtures.crate(Vector3.ZERO)]
+	var crated := SimFixtures.crated(crates)
+	var cargo := Surfaces.new(crated)
+	cargo.honour(level, PackedInt32Array(), PropState.from_layout(crated))
+	var beside := Vector3(crates[0].radius, 0.0, 0.0)
+	assert_false(
+		(
+			cargo
+			. obstacle_contacts(beside, rules.body_radius, rules.body_height, rules.step_height)
+			. is_empty()
+		),
+		"the crate stands there"
+	)
+	var under_lid := crates[0].height * 0.5
+	assert_true(
+		cargo.line_of_sight(Vector3(-3.0, under_lid, 0.0), Vector3(3.0, under_lid, 0.0), level),
+		"the crate"
+	)
 
 	# On the steamer: the main deck hides the lower deck under it, the opening over the
 	# forward companionway does not, nor does a deck once it has collapsed.

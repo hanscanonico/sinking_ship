@@ -123,6 +123,30 @@ extends Resource
 ## not credited with its going out.
 @export var credit_window: float
 
+@export_group("Cargo and railing damage")
+## A brawler's mass in kilograms, what a crate's (ShipProp.mass) is weighed against.
+@export var body_mass: float
+## A crate closing on a brawler this fast or faster staggers it and knocks it back;
+## slower, it pushes it.
+@export var crate_impact_speed: float
+## How much of the closing speed a crate and a brawler it staggers part with; 0…1. A
+## push shares the speed, as with none.
+@export var crate_restitution: float
+## The least a crate at crate_impact_speed or more sends a brawler at, in m/s: a laden
+## crate bowls a body over as a shove does, however slow it came.
+@export var crate_knockback: float
+## The share of a crate's knockback a brace takes off when the crate comes into its
+## front arc; 0…1. Cargo is not a person: a braced body is still staggered.
+@export var crate_brace_reduction: float
+## The hits a railing span takes before it breaks and holds nothing.
+@export var railing_hp: float
+## A crate crossing a railing span this fast or faster damages it by crate_damage.
+@export var railing_break_speed: float
+## What a vault over a span takes off it.
+@export var vault_damage: float
+## What a crate at railing_break_speed or more takes off a span.
+@export var crate_damage: float
+
 
 ## Every reason these numbers cannot run a match; empty when they can.
 func problems() -> PackedStringArray:
@@ -162,6 +186,11 @@ func problems() -> PackedStringArray:
 		"climb_reach",
 		"climb_time",
 		"ladder_speed",
+		"body_mass",
+		"crate_impact_speed",
+		"crate_knockback",
+		"railing_hp",
+		"railing_break_speed",
 	]:
 		if float(get(field)) <= 0.0:
 			found.append("brawl rules: %s must be positive" % field)
@@ -177,6 +206,8 @@ func problems() -> PackedStringArray:
 		"jump_cost",
 		"climb_penalty",
 		"credit_window",
+		"vault_damage",
+		"crate_damage",
 	]:
 		if float(get(field)) < 0.0:
 			found.append("brawl rules: %s must not be negative" % field)
@@ -193,8 +224,9 @@ func problems() -> PackedStringArray:
 		found.append("brawl rules: step_height must be below body_height")
 	if brace_reduction < 0.0 or brace_reduction > 1.0:
 		found.append("brawl rules: brace_reduction must be within 0…1")
-	if air_control < 0.0 or air_control > 1.0:
-		found.append("brawl rules: air_control must be within 0…1")
+	for field: String in ["air_control", "crate_restitution", "crate_brace_reduction"]:
+		if float(get(field)) < 0.0 or float(get(field)) > 1.0:
+			found.append("brawl rules: %s must be within 0…1" % field)
 	# A railing must hold a jumper, so a perch keeps its defence.
 	if jump_height >= railing_height:
 		found.append("brawl rules: jump_height must be below railing_height")

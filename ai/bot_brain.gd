@@ -33,14 +33,15 @@ extends RefCounted
 ## it, past the grip angle round to its uphill side first.
 ##
 ## Its target is a seat it perceives and can reach, scored by nearness and, by
-## king_of_hill_bias, by how high it stands. Whatever the intent it keeps edge_margin_m
-## from water and open edges — unless its target stands lined up between it and one —
-## and shoves whoever a shove from where it looks would land on, charging a bracing
-## one on its read; it presses only once its view shows its last press, so what it
-## sees of itself is never from before it. A bot that has stood still for two thinks
-## while walking, with nobody at hand to be holding it back, steps aside. Its stream
-## also rolls, mistake_rate times a second, a lapse: mistake_seconds walking a heading
-## of its choosing, heedless of the edges.
+## king_of_hill_bias, by how high it stands. Whatever the intent, every tick, a tier
+## that dodges_cargo steps out of the path of a crate sliding at it (SH10), and then it
+## keeps edge_margin_m from water and open edges — unless its target stands lined up
+## between it and one — and shoves whoever a shove from where it looks would land on,
+## charging a bracing one on its read; it presses only once its view shows its last
+## press, so what it sees of itself is never from before it. A bot that has stood still
+## for two thinks while walking, with nobody at hand to be holding it back, steps
+## aside. Its stream also rolls, mistake_rate times a second, a lapse: mistake_seconds
+## walking a heading of its choosing, heedless of the edges.
 
 enum Intent { SEEK_HIGH, LINE_UP, HUNT, GUARD, BRACE, RECOVER, RIDE, CLIMB_OUT, FLEE, SWIM_OUT }
 
@@ -68,6 +69,8 @@ var target := -1
 
 var _profile: BotProfile
 var _rules: BrawlRules
+## The layout's cargo: each crate's grip, against the deck's slope.
+var _cargo: Array[ShipProp] = []
 var _surfaces: Surfaces
 var _walk_graph: WalkGraph
 var _rng: RandomNumberGenerator
@@ -121,6 +124,7 @@ func _init(
 	bot_seat: int,
 	profile: BotProfile,
 	rules: BrawlRules,
+	cargo: Array[ShipProp],
 	surfaces: Surfaces,
 	walk_graph: WalkGraph,
 	rng: RandomNumberGenerator
@@ -128,6 +132,7 @@ func _init(
 	seat = bot_seat
 	_profile = profile
 	_rules = rules
+	_cargo = cargo
 	_surfaces = surfaces
 	_walk_graph = walk_graph
 	_rng = rng
@@ -154,7 +159,8 @@ func decide(view: BotView, tick: int) -> InputFrame:
 	if first:
 		_look = InputFrame.quantize_yaw(me["facing"])
 	var pose := view.pose()
-	_surfaces.honour(pose)
+	# As a player sees them: the railings the match has broken, and its crates.
+	_surfaces.honour(pose, MatchState.broken_in(seen["railing_hp"]), PropState.from_snapshot(seen))
 	# The pose is current but the snapshot is reaction_ticks old: it reckons from where
 	# its own seen velocity has carried it since.
 	var reaction_s := _profile.reaction_ticks * Ticks.SECONDS_PER_TICK
@@ -185,6 +191,7 @@ func decide(view: BotView, tick: int) -> InputFrame:
 	if _stuck >= 2 and steer.move != Vector2.ZERO:
 		steer.move = steer.move.rotated(PI * 0.5 if _stuck % 4 < 2 else -PI * 0.5)
 	if not steer.heedless:
+		_out_of_cargo(steer, seen, now_pos, pose)
 		_keep_off_edges(steer, me, mark, now_pos, pose)
 	var buttons := steer.buttons
 	if _charge_held > 0:
@@ -945,6 +952,57 @@ func _danger_within(my_pos: Vector3, my_surface: int, pose: ShipPose, reach: flo
 		):
 			return true
 	return false
+
+
+## Turns [param steer]'s walk square to the path of the nearest crate seen coming at
+## the bot — ahead of it, no farther than it slides in the bot's reaction and stopping
+## time plus the edge margin, and passing within a body's radius and the edge margin of
+## the bot — toward the side of the path the bot stands on, and lets go of a brace:
+## rooted, it would be knocked down. Crates are seen as old as the rest of the view and
+## carried on by their speed as the bot carries itself (decide's now_pos) and, on a
+## deck [param pose] tilts past a crate's grip, by the pull downhill: one seen still as
+## the deck swings is coming too. Nothing for a tier that does not dodge cargo.
+func _out_of_cargo(steer: Steer, seen: Dictionary, now_pos: Vector3, pose: ShipPose) -> void:
+	if not _profile.dodges_cargo:
+		return
+	var reaction_s := _profile.reaction_ticks * Ticks.SECONDS_PER_TICK
+	var lead_s := reaction_s + _rules.walk_speed / _rules.ground_friction
+	var clearance := _rules.body_radius + _profile.edge_margin_m
+	var gravity := pose.ship_gravity(_rules.gravity)
+	var pull := Vector2(gravity.x, gravity.z) * reaction_s
+	var slope := pose.slope_deg()
+	var dodge := Vector2.ZERO
+	var nearest := INF
+	for entry: Dictionary in seen["props"]:
+		if entry["state"] == PropState.Body.LOST:
+			continue
+		var vel: Vector3 = entry["vel"]
+		var path := Vector2(vel.x, vel.z)
+		if (
+			entry["state"] == PropState.Body.GROUNDED
+			and slope > _cargo[entry["prop"]].grip_angle_deg
+		):
+			path += pull
+		var pos: Vector3 = entry["pos"]
+		if path == Vector2.ZERO or absf(pos.y - now_pos.y) >= _rules.body_height:
+			continue
+		var now := pos + Vector3(path.x, 0.0, path.y) * reaction_s
+		var offset := Vector2(now_pos.x - now.x, now_pos.z - now.z)
+		var way := path.normalized()
+		var ahead := offset.dot(way)
+		var aside := offset - way * ahead
+		if ahead <= 0.0 or ahead > path.length() * lead_s + _profile.edge_margin_m:
+			continue
+		if aside.length() >= clearance or ahead >= nearest:
+			continue
+		nearest = ahead
+		dodge = aside.normalized() if aside != Vector2.ZERO else way.orthogonal()
+	if dodge == Vector2.ZERO:
+		return
+	if steer.buttons == InputFrame.BRACE:
+		steer.buttons = 0
+		steer.hold_fire = false
+	steer.move = dodge
 
 
 ## Whether [param mark] stands between the bot and [param probe] — nearer the probe

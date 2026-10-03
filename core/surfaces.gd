@@ -10,7 +10,11 @@ extends RefCounted
 ## and its doorways are the gaps between walls. Nothing here assumes a size or a deck
 ## count, and nothing reads the layout's rooms. What still stands is the pose's to say
 ## (D7): a collapsed platform, its ladders and a failed railing are gone from every
-## answer once honour() has been handed a pose that says so.
+## answer once honour() has been handed a pose that says so. The match's own state
+## comes in the same way (SH10): the railings it has broken are gone like failed
+## ones, and its crates stand where it says — each an upright circle that holds a
+## body back as a round blocker does, and whose lid, surface count() + its index, is
+## stood on and landed on like a blocker's top.
 
 const NONE := -1
 ## The side of a cell of the spatial index, in metres. Rooms made the steamer's
@@ -29,10 +33,13 @@ class Contact:
 	var normal: Vector2
 	## How far the circle reaches into it.
 	var depth: float
+	## The layout's railing it is, by index, or -1 for anything else.
+	var railing: int
 
-	func _init(outward: Vector2, overlap: float) -> void:
+	func _init(outward: Vector2, overlap: float, span: int = -1) -> void:
 		normal = outward
 		depth = overlap
+		railing = span
 
 
 ## A way out of the sea: where the climb puts a swimmer's feet, standing, and on
@@ -53,6 +60,13 @@ var _railings: Array[ShipRailing] = []
 ## Per railing, the unit normal pointing onto its platform.
 var _rail_normals := PackedVector2Array()
 var _ladders: Array[ShipLadder] = []
+## Per crate, its radius and height, and where its underside stands as the last
+## honour() was told.
+var _prop_radii := PackedFloat64Array()
+var _prop_heights := PackedFloat64Array()
+var _prop_feet := PackedVector3Array()
+## The number of the first crate's lid: every surface before it is the ship's own.
+var _first_lid: int
 ## Per ladder, the unit normal pointing onto its platform.
 var _ladder_normals := PackedVector2Array()
 ## Per platform, how low its sides reach: a deck over a lower one is a slab, and a
@@ -65,13 +79,17 @@ var _grid_origin := Vector2.ZERO
 var _grid_size := Vector2i.ONE
 var _cells: Array[PackedInt32Array] = []
 ## Per surface, 1 while it is gone: a collapsed platform, and the tops of the blockers
-## standing flush under it — the roof's edge goes with the roof.
+## standing flush under it — the roof's edge goes with the roof; and, after them, per
+## crate, 1 while honour() has not been told where it stands, or it is lost.
 var _gone := PackedByteArray()
 ## Per railing, 1 while it has failed, or its platform is gone.
 var _rail_gone := PackedByteArray()
 ## What the last pose honoured said, so an unchanged one costs nothing.
 var _honoured_collapsed: Array[StringName] = []
 var _honoured_broken := PackedInt32Array()
+## The last pose honour() was handed, and the railings the match had broken with it.
+var _honoured_pose: ShipPose
+var _honoured_by_match := PackedInt32Array()
 ## Per surface, how low and how high it stands as something that hides what is
 ## behind it: a blocker from its bottom to its top, a ramp from its base to its high
 ## end, a deck at its height — or, a deck over none, from under the hull up.
@@ -86,6 +104,9 @@ func _init(layout: ShipLayout) -> void:
 	_blockers = layout.blockers.duplicate()
 	_railings = layout.railings.duplicate()
 	_ladders = layout.ladders.duplicate()
+	for prop: ShipProp in layout.props:
+		_prop_radii.append(prop.radius)
+		_prop_heights.append(prop.height)
 	for platform: ShipPlatform in _platforms:
 		var bottom := -INF
 		for other: ShipPlatform in _platforms:
@@ -97,8 +118,10 @@ func _init(layout: ShipLayout) -> void:
 		_rail_normals.append(_onto(railing.platform, railing.from, railing.to))
 	for ladder: ShipLadder in _ladders:
 		_ladder_normals.append(_onto(ladder.platform, ladder.from, ladder.to))
+	_first_lid = count()
 	_index()
-	_gone.resize(count())
+	_gone.resize(_first_lid + _prop_radii.size())
+	_prop_feet.resize(_prop_radii.size())
 	_rail_gone.resize(_railings.size())
 	for surface in count():
 		_sight_areas.append(_area(surface))
@@ -112,21 +135,49 @@ func _init(layout: ShipLayout) -> void:
 		else:
 			_sight_low.append(_platform_bottoms[surface])
 			_sight_high.append(_platforms[surface].height)
+	_stand_props([])
 
 
 ## Takes [param pose]'s collapsed platforms and failed railings as the ship's until
-## the next pose: whoever asks about a tick hands its pose here first. Holds nothing
-## the pose does not say, so a match resumed from a snapshot stands on the same ship.
-func honour(pose: ShipPose) -> void:
-	if pose.collapsed == _honoured_collapsed and pose.broken_railings == _honoured_broken:
+## the next pose, with the railings [param broken] by the match and its crates where
+## [param props] has them: whoever asks about a tick hands its pose here first. Holds
+## nothing it is not handed, so a match resumed from a snapshot stands on the same
+## ship.
+func honour(pose: ShipPose, broken := PackedInt32Array(), props: Array[PropState] = []) -> void:
+	# A pose is a value, never changed once handed in: the same one with the same
+	# broken spans masks what it last masked. The cargo honours many times a tick.
+	if pose != _honoured_pose or broken != _honoured_by_match:
+		_honoured_pose = pose
+		_honoured_by_match = broken
+		var failed := pose.broken_railings.duplicate()
+		failed.append_array(broken)
+		_mask(pose.collapsed, failed)
+	_stand_props(props)
+
+
+## Stands each crate of [param props] where it has it, and none of the others.
+func _stand_props(props: Array[PropState]) -> void:
+	for prop in _prop_radii.size():
+		_gone[_first_lid + prop] = 1
+	for crate: PropState in props:
+		if not crate.is_lost():
+			_prop_feet[crate.prop] = crate.pos
+			_gone[_first_lid + crate.prop] = 0
+
+
+## Takes the platforms [param collapsed] and the railings [param failed] as gone, and
+## the railings of a platform gone with it.
+func _mask(collapsed: Array[StringName], failed: PackedInt32Array) -> void:
+	if collapsed == _honoured_collapsed and failed == _honoured_broken:
 		return
-	_honoured_collapsed = pose.collapsed.duplicate()
-	_honoured_broken = pose.broken_railings.duplicate()
-	_gone.fill(0)
+	_honoured_collapsed = collapsed.duplicate()
+	_honoured_broken = failed
+	for surface in count():
+		_gone[surface] = 0
 	_rail_gone.fill(0)
 	var first_top := _platforms.size() + _ramps.size()
 	for platform in _platforms.size():
-		if not _platforms[platform].name in pose.collapsed:
+		if not _platforms[platform].name in collapsed:
 			continue
 		_gone[platform] = 1
 		var under_it := _platforms[platform].area.grow(ShipPlatform.EDGE)
@@ -137,11 +188,12 @@ func honour(pose: ShipPose) -> void:
 			):
 				_gone[surface] = 1
 	for index in _railings.size():
-		if index in pose.broken_railings or _gone[_railings[index].platform] == 1:
+		if index in failed or _gone[_railings[index].platform] == 1:
 			_rail_gone[index] = 1
 
 
-## How many surfaces there are, platforms, ramps and blocker tops together.
+## How many surfaces there are, platforms, ramps and blocker tops together; the
+## crates' lids are numbered after them.
 func count() -> int:
 	return _platforms.size() + _ramps.size() + _blockers.size()
 
@@ -155,7 +207,11 @@ func is_ramp(surface: int) -> bool:
 
 
 func _is_blocker_top(surface: int) -> bool:
-	return surface >= _platforms.size() + _ramps.size()
+	return surface >= _platforms.size() + _ramps.size() and surface < _first_lid
+
+
+func _is_prop_top(surface: int) -> bool:
+	return surface >= _first_lid
 
 
 ## The surface number of the layout's ramp at [param ramp].
@@ -169,17 +225,20 @@ func height_at(surface: int, ship_point: Vector3) -> float:
 		return _ramps[surface - _platforms.size()].height_at(ship_point.x, ship_point.z)
 	if _is_blocker_top(surface):
 		return _blocker_of(surface).top
+	if surface >= _first_lid:
+		return _prop_feet[surface - _first_lid].y + _prop_heights[surface - _first_lid]
 	return _platforms[surface].height
 
 
 ## The surface a body with its feet at [param ship_point] stands on: the highest
-## one under it whose height there is within [param step] of the feet, up or down.
-## NONE when every surface under it is farther below than that — it falls — or there
-## is none at all.
-func under(ship_point: Vector3, step: float) -> int:
+## one under it whose height there is within [param step] of the feet, up or down —
+## never the lid of the crate [param except_prop]. NONE when every surface under it
+## is farther below than that — it falls — or there is none at all.
+func under(ship_point: Vector3, step: float, except_prop: int = NONE) -> int:
 	var best := NONE
 	var best_height := -INF
-	for surface: int in _near(Rect2(Vector2(ship_point.x, ship_point.z), Vector2.ZERO)):
+	var point := Rect2(Vector2(ship_point.x, ship_point.z), Vector2.ZERO)
+	for surface: int in _with_lids(_near(point), ship_point, except_prop):
 		if _gone[surface] == 1 or not _contains(surface, ship_point):
 			continue
 		var height := height_at(surface, ship_point)
@@ -190,9 +249,10 @@ func under(ship_point: Vector3, step: float) -> int:
 
 
 ## Where a body falling straight down from [param ship_point] lands: the highest
-## surface under it at or below its height, or NONE when nothing is — the sea.
-func landing(ship_point: Vector3) -> int:
-	return _highest_at_or_below(ship_point, count())
+## surface under it at or below its height — never the lid of the crate
+## [param except_prop] — or NONE when nothing is: the sea.
+func landing(ship_point: Vector3, except_prop: int = NONE) -> int:
+	return _highest_at_or_below(ship_point, _gone.size(), except_prop)
 
 
 ## How high a head rising from [param ship_point] may go: the lowest underside over
@@ -214,6 +274,12 @@ func ceiling(ship_point: Vector3, clearance: float) -> float:
 ## where a body stepping off its middle comes down, past any other blocker top, or
 ## NONE when that is the sea; any other surface is its own.
 func footing(surface: int) -> int:
+	if _is_prop_top(surface):
+		if _gone[surface] == 1:
+			return NONE
+		return _highest_at_or_below(
+			_prop_feet[surface - _first_lid], _platforms.size() + _ramps.size()
+		)
 	if not _is_blocker_top(surface):
 		return surface
 	var middle := _area(surface).get_center()
@@ -239,12 +305,13 @@ func joins(ramp_surface_id: int) -> PackedInt32Array:
 
 
 ## What holds back a body [param body_height] tall with its feet at
-## [param ship_point], a circle of [param radius]: every blocker its height
-## overlaps, and every surface's edge too high above its feet to step onto but not
-## clear overhead — a deck over another is a slab, a deck over none the top of a
-## solid hull, a ramp a solid wedge. One contact per direction, the deepest.
+## [param ship_point], a circle of [param radius]: every blocker and crate — but the
+## crate [param except_prop] — its height overlaps, and every surface's edge too high
+## above its feet to step onto but not clear overhead — a deck over another is a
+## slab, a deck over none the top of a solid hull, a ramp a solid wedge. One contact
+## per direction, the deepest.
 func obstacle_contacts(
-	ship_point: Vector3, radius: float, body_height: float, step: float
+	ship_point: Vector3, radius: float, body_height: float, step: float, except_prop: int = NONE
 ) -> Array[Contact]:
 	var contacts: Array[Contact] = []
 	var point := Vector2(ship_point.x, ship_point.z)
@@ -284,6 +351,16 @@ func obstacle_contacts(
 			if is_ramp(surface) and closest == point
 			else _rect_contact(area, point, radius)
 		)
+		if contact != null:
+			contacts.append(contact)
+	for prop in _prop_radii.size():
+		var under_it := _prop_feet[prop]
+		if prop == except_prop or _gone[_first_lid + prop] == 1:
+			continue
+		if not _overlaps(feet, body_height, step, under_it.y, under_it.y + _prop_heights[prop]):
+			continue
+		var centre := Vector2(under_it.x, under_it.z)
+		var contact := _circle_contact(centre, _prop_radii[prop], point, radius)
 		if contact != null:
 			contacts.append(contact)
 	return _deepest_per_direction(contacts)
@@ -443,7 +520,8 @@ func clear_stretches(
 ## blocker — a wall, a funnel — no deck or stair still standing, and not the hull, a
 ## deck over none being solid all the way down. The gaps between walls and the
 ## openings a deck leaves over a stair hide nothing, so doorways and companionways are
-## seen through. The one answer to who sees whom (D13): the bots' view and the
+## seen through; nor does a crate or a railing, as neither stops a shove's line. The
+## one answer to who sees whom (D13): the bots' view and the
 ## first-person HUD's marks both ask it.
 func line_of_sight(from_point: Vector3, to_point: Vector3, pose: ShipPose) -> bool:
 	var start := Vector2(from_point.x, from_point.z)
@@ -641,12 +719,14 @@ func nearest_climb(feet: Vector3, pose: ShipPose, rules: BrawlRules, within: flo
 	return best
 
 
-## The highest of the first [param surfaces] surfaces under [param ship_point] at
-## or below its height; ties go to the lower number.
-func _highest_at_or_below(ship_point: Vector3, surfaces: int) -> int:
+## The highest of the first [param surfaces] surfaces — crates' lids last, but
+## [param except_prop]'s — under [param ship_point] at or below its height; ties go
+## to the lower number.
+func _highest_at_or_below(ship_point: Vector3, surfaces: int, except_prop: int = NONE) -> int:
 	var best := NONE
 	var best_height := -INF
-	for surface: int in _near(Rect2(Vector2(ship_point.x, ship_point.z), Vector2.ZERO)):
+	var point := Rect2(Vector2(ship_point.x, ship_point.z), Vector2.ZERO)
+	for surface: int in _with_lids(_near(point), ship_point, except_prop):
 		if surface >= surfaces:
 			break
 		if _gone[surface] == 1 or not _contains(surface, ship_point):
@@ -726,7 +806,7 @@ func _rail_contact(index: int, point: Vector2, radius: float) -> Contact:
 	var inside := (point - railing.from).dot(_rail_normals[index])
 	if absf(inside) >= radius:
 		return null
-	return Contact.new(_rail_normals[index], radius - inside)
+	return Contact.new(_rail_normals[index], radius - inside, index)
 
 
 ## Builds the index over every surface's area — a cylinder's by its square.
@@ -779,6 +859,24 @@ func _near(box: Rect2) -> PackedInt32Array:
 	return found
 
 
+## [param near] and after it, in number order, the lid of every crate standing over
+## [param ship_point]'s x/z but [param except_prop]; [param near] itself when there is
+## none, as there mostly is not.
+func _with_lids(near: PackedInt32Array, ship_point: Vector3, except_prop: int) -> PackedInt32Array:
+	var found := near
+	var copied := false
+	for prop in _prop_radii.size():
+		var lid := _first_lid + prop
+		if prop == except_prop or _gone[lid] == 1 or not _contains(lid, ship_point):
+			continue
+		if not copied:
+			# near may be a cell of the index itself: never add to it.
+			found = near.duplicate()
+			copied = true
+		found.append(lid)
+	return found
+
+
 ## Whether [param surface] is the top of a round blocker — a funnel, a mast: nothing
 ## a swimmer climbs onto.
 func _is_round_top(surface: int) -> bool:
@@ -802,6 +900,10 @@ func _area(surface: int) -> Rect2:
 
 
 func _contains(surface: int, ship_point: Vector3) -> bool:
+	if surface >= _first_lid:
+		var feet := _prop_feet[surface - _first_lid]
+		var reach := _prop_radii[surface - _first_lid]
+		return Vector2(ship_point.x - feet.x, ship_point.z - feet.z).length() <= reach
 	if is_ramp(surface):
 		return _ramps[surface - _platforms.size()].contains(ship_point.x, ship_point.z)
 	if _is_blocker_top(surface):
@@ -941,7 +1043,9 @@ static func _deepest_per_direction(contacts: Array[Contact]) -> Array[Contact]:
 		var merged := false
 		for other: Contact in kept:
 			if other.normal.is_equal_approx(contact.normal):
-				other.depth = maxf(other.depth, contact.depth)
+				if contact.depth > other.depth:
+					other.depth = contact.depth
+					other.railing = contact.railing
 				merged = true
 				break
 		if not merged:
