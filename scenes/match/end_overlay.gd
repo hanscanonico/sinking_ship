@@ -15,6 +15,7 @@ const LOCAL_COLOUR := Color(1.0, 0.85, 0.3)
 @onready var _table: GridContainer = %Table
 @onready var _seed: Label = %Seed
 @onready var _rematch: Button = %Rematch
+@onready var _hint: Label = $Panel/Box/Hint
 
 
 func _ready() -> void:
@@ -53,6 +54,18 @@ func show_results(
 	_seed.text = "Seed %d" % match_seed
 	show()
 	_rematch.grab_focus()
+
+
+## Words the hint line for the device [param prompts] says was used last. On a
+## pad rematch and pause share Start and rematch wins, so the hint names only the
+## rematch there; the Menu button is the way back.
+func show_prompts(prompts: InputPrompts) -> void:
+	var rematch := prompts.word(&"restart")
+	var menu := prompts.word(&"pause")
+	var hint := "%s — rematch" % rematch
+	if menu != rematch:
+		hint += "   ·   %s — menu" % menu
+	_hint.text = hint
 
 
 static func ordinal(place: int) -> String:

@@ -126,11 +126,11 @@ func test_knockback_follows_shove_direction() -> void:
 	var target := sim.state.seats[1]
 	assert_true(target.is_staggered())
 	assert_eq(target.last_hit_by, 0)
-	var sent := Vector2(target.vel.x, target.vel.z)
+	var sent := SimFixtures.sent(target)
 	assert_almost_eq(sent.length(), rules.knockback, 0.0001)
 	assert_almost_eq(sent.angle(), 0.0, 0.0001, "along the shover's facing")
 	var shover := sim.state.seats[0]
-	assert_almost_eq(shover.vel.x, -rules.recoil, 0.0001, "the shover rocks back")
+	assert_almost_eq(SimFixtures.sent(shover).x, -rules.recoil, 0.0001, "the shover rocks back")
 
 	# A body that is still staggered when the shove lands takes more.
 	var combo := SimFixtures.sim(2)
@@ -139,7 +139,7 @@ func test_knockback_follows_shove_direction() -> void:
 	combo.state.seats[1].stagger_ticks = 20
 	SimFixtures.step(combo, {0: _shove(0)})
 	SimFixtures.step(combo, {0: SimFixtures.frame(0)}, 3)
-	var again := Vector2(combo.state.seats[1].vel.x, combo.state.seats[1].vel.z)
+	var again := SimFixtures.sent(combo.state.seats[1])
 	assert_almost_eq(again.length(), rules.knockback * rules.restagger_mult, 0.0001)
 
 
@@ -155,8 +155,8 @@ func test_simultaneous_shoves_both_land() -> void:
 	assert_true(west.is_staggered() and east.is_staggered(), "both land")
 	assert_eq(west.last_hit_by, 1)
 	assert_eq(east.last_hit_by, 0)
-	assert_almost_eq(west.vel.x, -(rules.knockback + rules.recoil), 0.0001)
-	assert_almost_eq(east.vel.x, rules.knockback + rules.recoil, 0.0001)
+	assert_almost_eq(SimFixtures.sent(west).x, -(rules.knockback + rules.recoil), 0.0001)
+	assert_almost_eq(SimFixtures.sent(east).x, rules.knockback + rules.recoil, 0.0001)
 
 
 func test_staggered_seat_cannot_shove() -> void:

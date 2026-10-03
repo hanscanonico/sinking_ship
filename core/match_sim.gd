@@ -4,7 +4,7 @@ extends RefCounted
 ## InputFrame per seat is the only way anything happens (D3); snapshot() is the
 ## whole truth and from_snapshot() continues it exactly (D5).
 
-const SNAPSHOT_VERSION := 4
+const SNAPSHOT_VERSION := 5
 ## How many times a tick's contacts are resolved, at most. In one pass each contact
 ## is met where the body stood before it, so a body pushed two ways — into a corner,
 ## between a doorway's jambs, against a wall by a crowd — can end inside one wall or
@@ -25,6 +25,9 @@ var _stagger_ticks: int
 var _charge_threshold_ticks: int
 var _charge_full_ticks: int
 var _regen_delay_ticks: int
+var _hitstop_ticks: int
+var _hitstop_charged_ticks: int
+var _hitstop_braced_ticks: int
 
 
 func _init(match_config: MatchConfig) -> void:
@@ -41,6 +44,9 @@ func _init(match_config: MatchConfig) -> void:
 	_charge_threshold_ticks = Ticks.from_seconds(_rules.charge_threshold)
 	_charge_full_ticks = Ticks.from_seconds(_rules.charge_full)
 	_regen_delay_ticks = Ticks.from_seconds(_rules.stamina_regen_delay)
+	_hitstop_ticks = Ticks.from_seconds(_rules.hitstop)
+	_hitstop_charged_ticks = Ticks.from_seconds(_rules.hitstop_charged)
+	_hitstop_braced_ticks = Ticks.from_seconds(_rules.hitstop_braced)
 
 
 ## A new match: seats shuffled onto the layout's spawns by the match stream, each
@@ -120,6 +126,7 @@ func step(frames: Array[InputFrame]) -> Array[SimEvent]:
 		_forces(pose_now)
 		var feet_before := _move(tick, events)
 		_ground(tick, events, feet_before)
+		_thaw()
 		_shoves(tick, events)
 		_verdict(_water(pose_now, tick), tick, events)
 	state.tick += 1
@@ -149,10 +156,15 @@ func _take_frames(frames: Array[InputFrame], tick: int) -> void:
 		player.facing = InputFrame.yaw_angle(valid.look_yaw)
 
 
-## Button edges and shove phases.
+## Button edges and shove phases. A seat frozen in a hit-stop advances nothing,
+## its button edges included: the first tick after the stop reads its buttons
+## against those it held before it, so a press made in the stop and still held
+## counts then, and one let go inside the stop never happened.
 func _intent() -> void:
 	var candidates := _candidates()
 	for player: PlayerState in _live_seats():
+		if player.is_frozen():
+			continue
 		# A stagger — a hit's, or a hard landing's — takes the shove being readied,
 		# and its buttons are not read (D3). A charge is paid on release, so nothing
 		# was spent and nothing comes back.
@@ -232,9 +244,12 @@ func _fire(player: PlayerState, candidates: Array[ShoveResolver.Candidate]) -> v
 
 ## Who is braced this tick, and stamina: a brace holds while its button is, on the
 ## ground, idle, unstaggered and not exhausted, and spends as it holds; after
-## stamina_regen_delay without spending, stamina comes back.
+## stamina_regen_delay without spending, stamina comes back. A hit-stop holds a
+## seat's brace and stamina as they are.
 func _brace_and_stamina() -> void:
 	for player: PlayerState in _live_seats():
+		if player.is_frozen():
+			continue
 		player.bracing = (
 			player.last_buttons & InputFrame.BRACE != 0
 			and player.action == PlayerState.Action.IDLE
@@ -267,12 +282,15 @@ func _spend(player: PlayerState, amount: float) -> void:
 ## Walking, friction and gravity, as velocity. Gravity is the world's, turned
 ## into ship space by the pose; a grounded body feels its downhill part only once
 ## it has lost its grip — staggered, or idle on a deck steeper than the grip angle.
+## A body frozen in a hit-stop feels none of it, and its stagger waits.
 func _forces(pose_now: ShipPose) -> void:
 	var dt := Ticks.SECONDS_PER_TICK
 	var gravity := pose_now.ship_gravity(_rules.gravity)
 	var downhill := Vector2(gravity.x, gravity.z) * dt
 	var steep := pose_now.slope_deg() > _rules.grip_angle_deg
 	for player: PlayerState in _live_seats():
+		if player.is_frozen():
+			continue
 		if player.body == PlayerState.Body.AIRBORNE:
 			player.vel += gravity * dt
 			continue
@@ -461,8 +479,22 @@ func _ground(tick: int, events: Array[SimEvent], feet_before: PackedFloat64Array
 		events.append(SimEvent.landed(tick, player.seat, below, stagger))
 
 
+## Counts every hit-stop down. One that runs out hands its body the velocity it
+## held, to move with from the next tick.
+func _thaw() -> void:
+	for player: PlayerState in _live_seats():
+		if not player.is_frozen():
+			continue
+		player.hitstop -= 1
+		if not player.is_frozen():
+			player.vel = player.held_vel
+			player.held_vel = Vector3.ZERO
+
+
 ## Every active shove against the bodies as they stand now; all of this tick's
-## hits apply together, so simultaneous shoves both land.
+## hits apply together, so simultaneous shoves both land. A landed shove freezes
+## its shover and its target for a hit-stop, and the knockback and the recoil wait
+## for it to end.
 func _shoves(tick: int, events: Array[SimEvent]) -> void:
 	var attempts: Array[ShoveResolver.Attempt] = []
 	for player: PlayerState in _live_seats():
@@ -501,27 +533,38 @@ func _shoves(tick: int, events: Array[SimEvent]) -> void:
 	landed.resize(count)
 	var staggers := PackedByteArray()
 	staggers.resize(count)
+	var stops := PackedInt32Array()
+	stops.resize(count)
 	for hit: ShoveResolver.Hit in hits:
 		var target := state.seats[hit.target]
 		var shover := state.seats[hit.shover]
 		var speed := _knockback(shover)
+		var stop := _hitstop(shover)
 		if target.is_staggered():
 			speed *= _rules.restagger_mult
 		if _braced_against(target, shover, hit.direction):
 			speed *= 1.0 - _rules.brace_reduction
+			stop = _hitstop_braced_ticks
 		else:
 			staggers[hit.target] = 1
 		knock[hit.target] += hit.direction * speed
-		rock[hit.shover] -= hit.direction * _rules.recoil
+		# Every hit of one shove shares its direction: one shove landing on two
+		# bodies rocks its shover back once.
+		rock[hit.shover] = -hit.direction * _rules.recoil
 		landed[hit.shover] = 1
+		stops[hit.target] = maxi(stops[hit.target], stop)
+		stops[hit.shover] = maxi(stops[hit.shover], stop)
 		events.append(SimEvent.shove_landed(tick, hit.shover, hit.target))
 		if hit_by[hit.target] == -1:
 			hit_by[hit.target] = hit.shover
 	for player: PlayerState in _live_seats():
 		var seat := player.seat
+		if hit_by[seat] == -1 and landed[seat] == 0:
+			continue
 		if landed[seat] == 1:
 			player.shove_spent = true
-		var planar := Vector2(player.vel.x, player.vel.z)
+		var moving := player.held_vel if player.is_frozen() else player.vel
+		var planar := Vector2(moving.x, moving.z)
 		if hit_by[seat] != -1:
 			planar = knock[seat] + rock[seat]
 			player.last_hit_by = hit_by[seat]
@@ -529,9 +572,20 @@ func _shoves(tick: int, events: Array[SimEvent]) -> void:
 				player.stagger_ticks = _stagger_ticks
 				player.bracing = false
 				_enter(player, PlayerState.Action.IDLE)
-		elif landed[seat] == 1:
+		else:
 			planar += rock[seat]
-		player.vel = Vector3(planar.x, player.vel.y, planar.y)
+		_freeze(player, Vector3(planar.x, moving.y, planar.y), stops[seat])
+
+
+## Freezes [param player] for [param ticks] — a longer stop already running wins —
+## holding [param velocity] back until the stop ends; with no stop it moves at once.
+func _freeze(player: PlayerState, velocity: Vector3, ticks: int) -> void:
+	player.hitstop = maxi(player.hitstop, ticks)
+	if player.is_frozen():
+		player.held_vel = velocity
+		player.vel = Vector3.ZERO
+	else:
+		player.vel = velocity
 
 
 ## A quick shove's knockback, or a charged one's: from knockback at the threshold
@@ -539,11 +593,23 @@ func _shoves(tick: int, events: Array[SimEvent]) -> void:
 func _knockback(shover: PlayerState) -> float:
 	if not shover.is_charged():
 		return _rules.knockback
-	var weight := (
+	return lerpf(_rules.knockback, _rules.charged_knockback, _charge_weight(shover))
+
+
+## A quick shove's hit-stop, or a charged one's: longer the fuller the charge, as
+## its knockback is.
+func _hitstop(shover: PlayerState) -> int:
+	if not shover.is_charged():
+		return _hitstop_ticks
+	return roundi(lerpf(_hitstop_ticks, _hitstop_charged_ticks, _charge_weight(shover)))
+
+
+## How full [param shover]'s charge is: 0 at the threshold, 1 at a full charge.
+func _charge_weight(shover: PlayerState) -> float:
+	return (
 		float(shover.charge - _charge_threshold_ticks)
 		/ (_charge_full_ticks - _charge_threshold_ticks)
 	)
-	return lerpf(_rules.knockback, _rules.charged_knockback, weight)
 
 
 ## Whether [param target]'s brace takes the edge off [param shover]'s shove, sent
@@ -570,6 +636,8 @@ func _water(pose_now: ShipPose, tick: int) -> Array[PlayerState]:
 			player.out_cause = PlayerState.Cause.WATER
 			player.vel = Vector3.ZERO
 			player.stagger_ticks = 0
+			player.hitstop = 0
+			player.held_vel = Vector3.ZERO
 			player.bracing = false
 			_enter(player, PlayerState.Action.IDLE)
 			exits.append(player)

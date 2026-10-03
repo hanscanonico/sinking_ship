@@ -99,3 +99,14 @@ func test_every_move_names_a_clip_the_model_has() -> void:
 		assert_true(BrawlerAnimation.BLEND.has(move), "a blend for %s" % named)
 		assert_true(player.has_animation(BrawlerAnimation.CLIPS[move]), "%s's clip" % named)
 	model.free()
+
+
+func test_a_hit_stop_squashes_and_springs_back() -> void:
+	var held := BrawlerAnimation.squash(0.0)
+	assert_lt(held.y, 1.0, "shorter while the stop holds")
+	assert_gt(held.x, 1.0, "and wider")
+	assert_eq(held.x, held.z)
+	var halfway := BrawlerAnimation.squash(BrawlerAnimation.SQUASH_SECONDS * 0.5)
+	assert_between(halfway.y, held.y, 1.0, "springing back")
+	assert_eq(BrawlerAnimation.squash(BrawlerAnimation.SQUASH_SECONDS), Vector3.ONE, "and back")
+	assert_eq(BrawlerAnimation.squash(INF), Vector3.ONE, "never stopped, never squashed")

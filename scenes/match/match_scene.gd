@@ -27,6 +27,9 @@ var _observer: bool
 var _eye_seat := LOCAL_SEAT
 var _paused := false
 var _marks := BrawlMarks.new()
+var _dust := LandingDust.new()
+var _prompts := InputPrompts.new()
+var _kick: ViewKick
 
 @onready var _driver: SimDriver = $SimDriver
 @onready var _view: MatchView = $MatchView
@@ -43,6 +46,8 @@ func _ready() -> void:
 	_end.menu_requested.connect(menu_requested.emit)
 	_driver.stepped.connect(func(events: Array[SimEvent]) -> void: _stats.add(events))
 	add_child(_marks)
+	add_child(_dust)
+	add_child(_prompts)
 
 
 func _exit_tree() -> void:
@@ -59,6 +64,7 @@ func _process(delta: float) -> void:
 	_hud.show_snapshot(snapshot)
 	_hud.show_spectating(_spectating(snapshot, viewed))
 	_end.show_results(_stats, LOCAL_SEAT, _names, _config.match_seed)
+	_end.show_prompts(_prompts)
 	var mouse := Input.MOUSE_MODE_CAPTURED if _looking() else Input.MOUSE_MODE_VISIBLE
 	if Input.mouse_mode != mouse:
 		Input.mouse_mode = mouse
@@ -76,7 +82,9 @@ func _process(delta: float) -> void:
 		yaw = _local.yaw
 		pitch = _local.pitch
 	_view.look_out_of(viewed)
-	_eyes.look_from(_view.ship_to_world(), _view.seat_feet(viewed), yaw, pitch)
+	_kick.follow(snapshot, viewed, yaw)
+	var kick := _kick.advance(delta)
+	_eyes.look_from(_view.ship_to_world(), _view.seat_feet(viewed), yaw, pitch, kick)
 	_first_person_hud.show_view(snapshot, viewed, yaw, _eyes, _view)
 
 
@@ -135,6 +143,8 @@ func start(
 	_view.look_out_of(-1 if observer else _eye_seat)
 	_hud.setup(sim)
 	_marks.setup(_driver, _view, sim)
+	_dust.setup(_driver, _view)
+	_kick = ViewKick.new(settings.view_kick)
 	_eyes.setup(settings)
 	_first_person_hud.setup(sim, _names, not observer)
 	_observer_camera.whole_ship = observer and is_finite(observer_cut)
@@ -194,6 +204,12 @@ func _spectating(snapshot: Dictionary, viewed: int) -> String:
 		return ""
 	var whose := ("watching %s" if _observer else "through %s's eyes") % _names[viewed]
 	return (
-		"Overboard — %s of %d   ·   %s   ·   Q / E or d-pad to switch"
-		% [EndOverlay.ordinal(mine["place"]), seats.size(), whose]
+		"Overboard — %s of %d   ·   %s   ·   %s / %s to switch"
+		% [
+			EndOverlay.ordinal(mine["place"]),
+			seats.size(),
+			whose,
+			_prompts.word(&"spectate_previous"),
+			_prompts.word(&"spectate_next"),
+		]
 	)

@@ -38,6 +38,11 @@ var stamina_wait: int
 ## Run dry: no brace and no charge until stamina is full again.
 var exhausted: bool
 var stagger_ticks: int
+## Ticks left frozen in a hit-stop: the body holds still and nothing it does or
+## spends moves on, though its look still turns it (D12).
+var hitstop: int
+## The velocity a hit-stop holds back, handed back as the stop ends.
+var held_vel: Vector3
 ## The seat whose shove last landed on this one, until this body moves under its
 ## own input again; -1 otherwise.
 var last_hit_by: int = -1
@@ -68,6 +73,10 @@ func is_charged() -> bool:
 	return charge > 0
 
 
+func is_frozen() -> bool:
+	return hitstop > 0
+
+
 func to_dict() -> Dictionary:
 	return {
 		"seat": seat,
@@ -91,6 +100,8 @@ func to_dict() -> Dictionary:
 		"stamina_wait": stamina_wait,
 		"exhausted": exhausted,
 		"stagger": stagger_ticks,
+		"hitstop": hitstop,
+		"held_vel": held_vel,
 		"last_hit_by": last_hit_by,
 		"prev_buttons": prev_buttons,
 		"last_input": [last_move.x, last_move.y, last_look, last_buttons],
@@ -118,6 +129,8 @@ static func from_dict(entry: Dictionary) -> PlayerState:
 	player.stamina_wait = entry["stamina_wait"]
 	player.exhausted = entry["exhausted"]
 	player.stagger_ticks = entry["stagger"]
+	player.hitstop = entry["hitstop"]
+	player.held_vel = entry["held_vel"]
 	player.last_hit_by = entry["last_hit_by"]
 	player.prev_buttons = entry["prev_buttons"]
 	var last_input: Array = entry["last_input"]
