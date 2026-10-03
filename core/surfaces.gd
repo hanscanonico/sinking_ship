@@ -3,8 +3,8 @@ extends RefCounted
 ## The only door to spatial questions about the ship (D6, D13): what a body stands
 ## on within a step, how high a surface is under a point, where a falling body
 ## lands, what holds a body back in the deck plane, whether a shove's line is
-## blocked, whether a walk ends in a drop, whether a point is wet, and where a
-## swimmer climbs out of the sea. Surfaces are
+## blocked, whether one body's eyes see another's, whether a walk ends in a drop,
+## whether a point is wet, and where a swimmer climbs out of the sea. Surfaces are
 ## numbered platforms first, then ramps, then blocker tops, each in layout order. A
 ## blocker's top is stood on and landed on like a platform's; a wall is a blocker
 ## and its doorways are the gaps between walls. Nothing here assumes a size or a deck
@@ -72,6 +72,12 @@ var _rail_gone := PackedByteArray()
 ## What the last pose honoured said, so an unchanged one costs nothing.
 var _honoured_collapsed: Array[StringName] = []
 var _honoured_broken := PackedInt32Array()
+## Per surface, how low and how high it stands as something that hides what is
+## behind it: a blocker from its bottom to its top, a ramp from its base to its high
+## end, a deck at its height — or, a deck over none, from under the hull up.
+var _sight_low := PackedFloat64Array()
+var _sight_high := PackedFloat64Array()
+var _sight_areas: Array[Rect2] = []
 
 
 func _init(layout: ShipLayout) -> void:
@@ -94,6 +100,18 @@ func _init(layout: ShipLayout) -> void:
 	_index()
 	_gone.resize(count())
 	_rail_gone.resize(_railings.size())
+	for surface in count():
+		_sight_areas.append(_area(surface))
+		if is_ramp(surface):
+			var ramp := _ramps[surface - _platforms.size()]
+			_sight_low.append(ramp.base())
+			_sight_high.append(maxf(ramp.start_height, ramp.end_height))
+		elif _is_blocker_top(surface):
+			_sight_low.append(_blocker_of(surface).bottom)
+			_sight_high.append(_blocker_of(surface).top)
+		else:
+			_sight_low.append(_platform_bottoms[surface])
+			_sight_high.append(_platforms[surface].height)
 
 
 ## Takes [param pose]'s collapsed platforms and failed railings as the ship's until
@@ -418,6 +436,56 @@ func clear_stretches(
 	if reached < length:
 		clear.append(Vector2(reached, length))
 	return clear
+
+
+## Whether nothing stands between the eyes at [param from_point] and
+## [param to_point] (ship space) to hide one from the other under [param pose]: no
+## blocker — a wall, a funnel — no deck or stair still standing, and not the hull, a
+## deck over none being solid all the way down. The gaps between walls and the
+## openings a deck leaves over a stair hide nothing, so doorways and companionways are
+## seen through. The one answer to who sees whom (D13): the bots' view and the
+## first-person HUD's marks both ask it.
+func line_of_sight(from_point: Vector3, to_point: Vector3, pose: ShipPose) -> bool:
+	var start := Vector2(from_point.x, from_point.z)
+	var end := Vector2(to_point.x, to_point.z)
+	var low := minf(from_point.y, to_point.y)
+	var high := maxf(from_point.y, to_point.y)
+	var reach := Rect2(start, Vector2.ZERO).expand(end)
+	for surface in count():
+		if _sight_high[surface] <= low or _sight_low[surface] >= high:
+			continue
+		var area := _sight_areas[surface]
+		if not area.intersects(reach, true):
+			continue
+		if surface < _platforms.size():
+			if _platforms[surface].name in pose.collapsed:
+				continue
+			if _sight_low[surface] == _sight_high[surface]:
+				# A deck over another is a slab: the line is hidden where it crosses it.
+				var share := (_sight_high[surface] - from_point.y) / (to_point.y - from_point.y)
+				if area.has_point(start.lerp(end, share)):
+					return false
+				continue
+		var span := (
+			_segment_in_circle(start, end, _blocker_of(surface).centre, _blocker_of(surface).radius)
+			if _is_round_top(surface)
+			else _segment_in_rect(start, end, area)
+		)
+		if span.x > span.y:
+			continue
+		var first := from_point.lerp(to_point, span.x)
+		var last := from_point.lerp(to_point, span.y)
+		if is_ramp(surface):
+			# A stair is a solid wedge: hidden where the line runs under its slope.
+			for at: Vector3 in [first, last]:
+				if at.y < height_at(surface, at) and at.y > _sight_low[surface]:
+					return false
+		elif (
+			minf(first.y, last.y) < _sight_high[surface]
+			and maxf(first.y, last.y) > _sight_low[surface]
+		):
+			return false
+	return true
 
 
 ## Whether walking straight from [param from_point] (the feet) toward

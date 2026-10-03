@@ -45,7 +45,8 @@ class Portal:
 		ramp = ramp_index
 
 
-## Every dry zone reachable from one place, and the cheapest way to each.
+## Every dry zone reachable from one place, and the cheapest way to each: what one
+## search finds, for route_in and highest_in to read as often as they like.
 class Search:
 	## Per zone, the distance walked to reach it, or INF.
 	var cost := PackedFloat64Array()
@@ -53,6 +54,63 @@ class Search:
 	var came_by := PackedInt32Array()
 	## Per zone, the zone that portal was entered from, or NONE.
 	var came_from := PackedInt32Array()
+
+
+## The zones a search has still to settle, cheapest first, ties to the lower zone: a
+## binary heap of (cost, zone).
+class OpenSet:
+	var _costs := PackedFloat64Array()
+	var _zones := PackedInt32Array()
+
+	func is_empty() -> bool:
+		return _zones.is_empty()
+
+	func push(cost: float, zone: int) -> void:
+		var at := _zones.size()
+		_costs.append(cost)
+		_zones.append(zone)
+		while at > 0:
+			var parent := (at - 1) >> 1
+			var above := _costs[parent]
+			if above < cost or above == cost and _zones[parent] < zone:
+				break
+			_costs[at] = above
+			_zones[at] = _zones[parent]
+			at = parent
+		_costs[at] = cost
+		_zones[at] = zone
+
+	func pop() -> int:
+		var top := _zones[0]
+		var last := _zones.size() - 1
+		var cost := _costs[last]
+		var zone := _zones[last]
+		_costs.resize(last)
+		_zones.resize(last)
+		if last == 0:
+			return top
+		var at := 0
+		while true:
+			var child := at * 2 + 1
+			if child >= last:
+				break
+			var right := child + 1
+			if (
+				right < last
+				and (
+					_costs[right] < _costs[child]
+					or _costs[right] == _costs[child] and _zones[right] < _zones[child]
+				)
+			):
+				child = right
+			if cost < _costs[child] or cost == _costs[child] and zone < _zones[child]:
+				break
+			_costs[at] = _costs[child]
+			_zones[at] = _zones[child]
+			at = child
+		_costs[at] = cost
+		_zones[at] = zone
+		return top
 
 
 var _surfaces: Surfaces
@@ -72,6 +130,28 @@ var _ramp_portals: Array[PackedInt32Array] = []
 var _lead: float
 var _body_radius: float
 var _step: float
+## Per open deck, its platforms; empty for a room.
+var _zone_platforms: Array[PackedInt32Array] = []
+## Per platform, the rooms standing on it, in layout order: the only ones a body on it
+## can be in.
+var _platform_rooms: Array[PackedInt32Array] = []
+## What the last pose asked about says of each zone and portal, worked out the first
+## time it is asked — 0 not yet, 1 no, 2 yes — so a tick pays for each answer once,
+## however many bots share the graph.
+## A pose is a value: one handed in is never changed afterwards.
+var _pose_known: ShipPose
+var _flooded := PackedByteArray()
+var _doomed := PackedByteArray()
+var _portal_wet := PackedByteArray()
+## Per zone under that pose: how high it stands, and its floor's lowest corner; NAN
+## until asked.
+var _heights := PackedFloat64Array()
+var _lowest := PackedFloat64Array()
+## Per portal, what a search reads of it, laid out flat.
+var _portal_to := PackedInt32Array()
+var _portal_entry := PackedVector3Array()
+var _portal_exit := PackedVector3Array()
+var _portal_length := PackedFloat64Array()
 
 
 func _init(layout: ShipLayout, surfaces: Surfaces, rules: BrawlRules) -> void:
@@ -81,12 +161,40 @@ func _init(layout: ShipLayout, surfaces: Surfaces, rules: BrawlRules) -> void:
 	_body_radius = rules.body_radius
 	_step = rules.step_height
 	_lead = rules.body_radius * 2.0
+	for platform: ShipPlatform in layout.platforms:
+		var rooms := PackedInt32Array()
+		for room in layout.rooms.size():
+			if (
+				absf(layout.rooms[room].floor_height - platform.height) <= _step
+				and layout.rooms[room].area.intersects(platform.area, true)
+			):
+				rooms.append(room)
+		_platform_rooms.append(rooms)
 	_link_decks()
 	_out.resize(_zone_count)
+	_zone_platforms.resize(_zone_count)
 	for zone in _zone_count:
 		_out[zone] = PackedInt32Array()
+		_zone_platforms[zone] = PackedInt32Array()
+	for platform in _decks.size():
+		_zone_platforms[_decks[platform]].append(platform)
 	_add_ramps()
 	_add_doors(rules.body_height)
+	_flooded.resize(_zone_count)
+	_doomed.resize(_zone_count)
+	_heights.resize(_zone_count)
+	_lowest.resize(_zone_count)
+	_portal_wet.resize(_portals.size())
+	for portal: Portal in _portals:
+		_portal_to.append(portal.to_zone)
+		_portal_entry.append(portal.entry)
+		_portal_exit.append(portal.exit)
+		_portal_length.append(portal.entry.distance_to(portal.exit))
+
+
+## The Surfaces it asks.
+func surfaces() -> Surfaces:
+	return _surfaces
 
 
 func zone_count() -> int:
@@ -124,12 +232,10 @@ func zone_at(ship_point: Vector3, surface: int) -> int:
 ## Whether [param zone] is under the water: a room when the middle of its floor is,
 ## an open deck when the middle of every platform of it is.
 func flooded(zone: int, pose: ShipPose) -> bool:
-	if zone < _layout.rooms.size():
-		return _surfaces.wet(_room_middle(zone), pose)
-	for platform in _decks.size():
-		if _decks[platform] == zone and not _surfaces.flooded(platform, pose):
-			return false
-	return true
+	_know(pose)
+	if _flooded[zone] == 0:
+		_flooded[zone] = 2 if _is_flooded(zone, pose) else 1
+	return _flooded[zone] == 2
 
 
 ## Whether [param zone] is giving way or gone under [param pose]: an open deck every
@@ -138,40 +244,50 @@ func flooded(zone: int, pose: ShipPose) -> bool:
 func doomed(zone: int, pose: ShipPose) -> bool:
 	if zone < _layout.rooms.size() or pose.collapsing.is_empty() and pose.collapsed.is_empty():
 		return false
-	for platform in _decks.size():
-		if _decks[platform] != zone:
-			continue
-		var deck_name := _layout.platforms[platform].name
-		if not (deck_name in pose.collapsing or deck_name in pose.collapsed):
-			return false
-	return true
+	_know(pose)
+	if _doomed[zone] == 0:
+		_doomed[zone] = 2
+		for platform: int in _zone_platforms[zone]:
+			var deck_name := _layout.platforms[platform].name
+			if not (deck_name in pose.collapsing or deck_name in pose.collapsed):
+				_doomed[zone] = 1
+				break
+	return _doomed[zone] == 2
 
 
 ## How high [param zone] stands in the world under [param pose]: a room by the
 ## middle of its floor, an open deck by the highest middle of its platforms.
 func world_height(zone: int, pose: ShipPose) -> float:
-	if zone < _layout.rooms.size():
-		return pose.world_height(_room_middle(zone))
-	var highest := -INF
-	for platform in _decks.size():
-		if _decks[platform] == zone:
-			highest = maxf(highest, _surfaces.world_height(platform, pose))
-	return highest
+	_know(pose)
+	if is_nan(_heights[zone]):
+		if zone < _layout.rooms.size():
+			_heights[zone] = pose.world_height(_room_middle(zone))
+		else:
+			_heights[zone] = -INF
+			for platform: int in _zone_platforms[zone]:
+				_heights[zone] = maxf(_heights[zone], _surfaces.world_height(platform, pose))
+	return _heights[zone]
 
 
 ## How high the lowest corner of [param zone]'s floor stands in the world under
 ## [param pose] — of a room's area, or of every platform of an open deck.
 func lowest_world_height(zone: int, pose: ShipPose) -> float:
+	_know(pose)
+	if is_nan(_lowest[zone]):
+		_lowest[zone] = _floor_lowest(zone, pose)
+	return _lowest[zone]
+
+
+func _floor_lowest(zone: int, pose: ShipPose) -> float:
 	var areas: Array[Rect2] = []
 	var heights := PackedFloat64Array()
 	if zone < _layout.rooms.size():
 		areas.append(_layout.rooms[zone].area)
 		heights.append(_layout.rooms[zone].floor_height)
 	else:
-		for platform in _decks.size():
-			if _decks[platform] == zone:
-				areas.append(_layout.platforms[platform].area)
-				heights.append(_layout.platforms[platform].height)
+		for platform: int in _zone_platforms[zone]:
+			areas.append(_layout.platforms[platform].area)
+			heights.append(_layout.platforms[platform].height)
 	var lowest := INF
 	for index in areas.size():
 		var area := areas[index]
@@ -190,16 +306,18 @@ func lowest_world_height(zone: int, pose: ShipPose) -> float:
 ## when either end is nowhere, or when every way ends in or crosses a flooded zone or
 ## a portal with an end under water.
 func route(from_pos: Vector3, from_surface: int, goal: int, pose: ShipPose) -> Array[Portal]:
+	return route_in(search(from_pos, from_surface, pose), goal)
+
+
+## The portals to [param goal] in what [param found] found, in order: as route().
+func route_in(found: Search, goal: int) -> Array[Portal]:
 	var legs: Array[Portal] = []
-	if goal == NONE or from_surface == Surfaces.NONE:
-		return legs
-	var search := _search(from_pos, from_surface, pose)
-	if search.cost.is_empty() or search.cost[goal] == INF:
+	if goal == NONE or found.cost.is_empty() or found.cost[goal] == INF:
 		return legs
 	var zone := goal
-	while search.came_by[zone] != NONE:
-		legs.push_front(_portals[search.came_by[zone]])
-		zone = search.came_from[zone]
+	while found.came_by[zone] != NONE:
+		legs.push_front(_portals[found.came_by[zone]])
+		zone = found.came_from[zone]
 		if zone == NONE:
 			break
 	return legs
@@ -209,11 +327,15 @@ func route(from_pos: Vector3, from_surface: int, goal: int, pose: ShipPose) -> A
 ## [param from_surface] at [param from_pos] can reach without crossing a flooded one
 ## — its own included, unless it is giving way; NONE when it stands on nothing.
 func highest_reachable(from_pos: Vector3, from_surface: int, pose: ShipPose) -> int:
-	var search := _search(from_pos, from_surface, pose)
+	return highest_in(search(from_pos, from_surface, pose), pose)
+
+
+## The highest zone of those [param found] reaches, as highest_reachable().
+func highest_in(found: Search, pose: ShipPose) -> int:
 	var best := NONE
 	var best_height := -INF
-	for zone in search.cost.size():
-		if search.cost[zone] == INF or doomed(zone, pose):
+	for zone in found.cost.size():
+		if found.cost[zone] == INF or doomed(zone, pose):
 			continue
 		var height := world_height(zone, pose)
 		if height > best_height:
@@ -236,7 +358,8 @@ func steer(from_pos: Vector3, from_surface: int, goal: int, pose: ShipPose) -> P
 ## a point a body's width further along its axis than the body is, so the walk
 ## closes on the axis rather than circling a point; beside it, the middle of its near
 ## edge, so the body turns in rather than doubling back. On the leg's ramp, the point
-## past its far end.
+## past its far end; under it or behind its high end, out to its nearer side first, so
+## the walk to its foot runs along the stair rather than into it.
 func toward(leg: Portal, from_pos: Vector3, from_surface: int) -> Vector3:
 	var along := Vector3(leg.along.x, 0.0, leg.along.y)
 	var past := leg.exit + along * _lead
@@ -244,11 +367,16 @@ func toward(leg: Portal, from_pos: Vector3, from_surface: int) -> Vector3:
 		return past
 	var offset := Vector2(from_pos.x - leg.entry.x, from_pos.z - leg.entry.z)
 	var ahead := offset.dot(leg.along)
-	var lined_up := absf(offset.cross(leg.along)) <= maxf(leg.half_width - _body_radius, 0.0)
+	var aside := offset.cross(leg.along)
+	var lined_up := absf(aside) <= maxf(leg.half_width - _body_radius, 0.0)
 	if lined_up and absf(ahead) <= _lead:
 		return past
 	if ahead < 0.0:
 		return leg.entry + along * minf(ahead + _lead, 0.0)
+	if leg.ramp != NONE and ahead > _lead and absf(aside) < leg.half_width + _body_radius:
+		var side := leg.along.orthogonal() * (1.0 if aside >= 0.0 else -1.0)
+		var out := leg.entry + along * ahead
+		return out + Vector3(side.x, 0.0, side.y) * (leg.half_width + _lead)
 	return leg.entry
 
 
@@ -340,8 +468,10 @@ func _add(portal: Portal) -> int:
 ## else the platform's open deck.
 func _zone_on(platform: int, point: Vector2) -> int:
 	var feet := Vector3(point.x, _layout.platforms[platform].height, point.y)
-	var room := _layout.room_at(feet, _step)
-	return room if room != -1 else _decks[platform]
+	for room: int in _platform_rooms[platform]:
+		if _layout.rooms[room].holds(feet, _step):
+			return room
+	return _decks[platform]
 
 
 func _room_middle(room: int) -> Vector3:
@@ -349,74 +479,107 @@ func _room_middle(room: int) -> Vector3:
 	return Vector3(middle.x, _layout.rooms[room].floor_height, middle.y)
 
 
-## Dijkstra over the zones from where a body stands — a zone, or both ends of the
-## ramp it is on — never entering a flooded or doomed zone or going through a portal
-## with an end under water; ties go to the lower zone number.
-func _search(from_pos: Vector3, from_surface: int, pose: ShipPose) -> Search:
-	var search := Search.new()
-	search.cost.resize(_zone_count)
-	search.cost.fill(INF)
-	search.came_by.resize(_zone_count)
-	search.came_by.fill(NONE)
-	search.came_from.resize(_zone_count)
-	search.came_from.fill(NONE)
+## Dijkstra over the zones from where a body on [param from_surface] at
+## [param from_pos] stands — a zone, or both ends of the ramp it is on — never entering
+## a flooded or doomed zone or going through a portal with an end under water; ties go
+## to the lower zone number. Empty when it stands on nothing.
+func search(from_pos: Vector3, from_surface: int, pose: ShipPose) -> Search:
+	var found := Search.new()
+	var footing := _surfaces.footing(from_surface) if from_surface != Surfaces.NONE else NONE
+	if footing == Surfaces.NONE:
+		return found
+	_know(pose)
+	var cost := PackedFloat64Array()
+	cost.resize(_zone_count)
+	cost.fill(INF)
+	var came_by := PackedInt32Array()
+	came_by.resize(_zone_count)
+	came_by.fill(NONE)
+	var came_from := PackedInt32Array()
+	came_from.resize(_zone_count)
+	came_from.fill(NONE)
 	var arrived := PackedVector3Array()
 	arrived.resize(_zone_count)
 	var done := PackedByteArray()
 	done.resize(_zone_count)
-	var footing := _surfaces.footing(from_surface) if from_surface != Surfaces.NONE else NONE
-	if footing == Surfaces.NONE:
-		return search
+	var open := OpenSet.new()
 	if _surfaces.is_ramp(footing):
 		var ramp := footing - _surfaces.platform_count()
 		for end in 2:
 			var zone := _ramp_zones[ramp][end]
 			var portal := _ramp_portals[ramp][end]
 			var exit := _ramps[ramp].end_point(end)
-			if (
-				portal == NONE
-				or flooded(zone, pose)
-				or doomed(zone, pose)
-				or _surfaces.wet(exit, pose)
-			):
+			if portal == NONE or _closed(zone, pose) or _surfaces.wet(exit, pose):
 				continue
-			var cost := from_pos.distance_to(exit)
-			if cost < search.cost[zone]:
-				search.cost[zone] = cost
-				search.came_by[zone] = portal
+			var reached := from_pos.distance_to(exit)
+			if reached < cost[zone]:
+				cost[zone] = reached
+				came_by[zone] = portal
 				arrived[zone] = exit
+				open.push(reached, zone)
 	else:
 		var start := zone_at(from_pos, footing)
-		search.cost[start] = 0.0
+		cost[start] = 0.0
 		arrived[start] = from_pos
-	while true:
-		var zone := NONE
-		for index in _zone_count:
-			if done[index] == 1 or search.cost[index] == INF:
-				continue
-			if zone == NONE or search.cost[index] < search.cost[zone]:
-				zone = index
-		if zone == NONE:
-			break
+		open.push(0.0, start)
+	while not open.is_empty():
+		var zone := open.pop()
+		if done[zone] == 1:
+			continue
 		done[zone] = 1
 		for index: int in _out[zone]:
-			var portal := _portals[index]
-			var other := portal.to_zone
-			if done[other] == 1 or flooded(other, pose) or doomed(other, pose):
-				continue
-			if _surfaces.wet(portal.entry, pose) or _surfaces.wet(portal.exit, pose):
+			var other := _portal_to[index]
+			if done[other] == 1 or _closed(other, pose) or _wet(index, pose):
 				continue
 			var through := (
-				search.cost[zone]
-				+ arrived[zone].distance_to(portal.entry)
-				+ portal.entry.distance_to(portal.exit)
+				cost[zone] + arrived[zone].distance_to(_portal_entry[index]) + _portal_length[index]
 			)
-			if through < search.cost[other]:
-				search.cost[other] = through
-				search.came_by[other] = index
-				search.came_from[other] = zone
-				arrived[other] = portal.exit
-	return search
+			if through < cost[other]:
+				cost[other] = through
+				came_by[other] = index
+				came_from[other] = zone
+				arrived[other] = _portal_exit[index]
+				open.push(through, other)
+	found.cost = cost
+	found.came_by = came_by
+	found.came_from = came_from
+	return found
+
+
+## Whether [param zone] is flooded or giving way under [param pose]: never entered.
+func _closed(zone: int, pose: ShipPose) -> bool:
+	return flooded(zone, pose) or doomed(zone, pose)
+
+
+## Whether either end of the portal at [param index] is under water.
+func _wet(index: int, pose: ShipPose) -> bool:
+	_know(pose)
+	if _portal_wet[index] == 0:
+		var portal := _portals[index]
+		var wet := _surfaces.wet(portal.entry, pose) or _surfaces.wet(portal.exit, pose)
+		_portal_wet[index] = 2 if wet else 1
+	return _portal_wet[index] == 2
+
+
+## Forgets what an earlier pose said, when [param pose] is another.
+func _know(pose: ShipPose) -> void:
+	if pose == _pose_known:
+		return
+	_pose_known = pose
+	_flooded.fill(0)
+	_doomed.fill(0)
+	_portal_wet.fill(0)
+	_heights.fill(NAN)
+	_lowest.fill(NAN)
+
+
+func _is_flooded(zone: int, pose: ShipPose) -> bool:
+	if zone < _layout.rooms.size():
+		return _surfaces.wet(_room_middle(zone), pose)
+	for platform: int in _zone_platforms[zone]:
+		if not _surfaces.flooded(platform, pose):
+			return false
+	return true
 
 
 ## Whether two platforms stand at one height and their areas meet along an edge.

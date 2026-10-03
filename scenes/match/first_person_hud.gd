@@ -130,7 +130,7 @@ func _draw_hud() -> void:
 		_draw_cold_frame(me)
 		_draw_climb_prompt(me, pose)
 	_draw_readouts(me, pose.world_height(me["pos"]))
-	_draw_chevrons(me["pos"])
+	_draw_chevrons(me["pos"], pose)
 	_draw_windup_arcs(me["pos"])
 
 
@@ -274,9 +274,11 @@ func _draw_readouts(me: Dictionary, above_sea: float) -> void:
 
 
 ## A chevron in seat colour, ringed by its stamina, and the seat's name over every
-## other brawler within CHEVRON_RANGE that no blocker or deck hides from
-## [param my_pos] — never through a wall or a floor.
-func _draw_chevrons(my_pos: Vector3) -> void:
+## other brawler within CHEVRON_RANGE whose eyes [param my_pos]'s see under
+## [param pose] — Surfaces.line_of_sight, what the bots' view asks too: never through a
+## wall, a floor or the hull.
+func _draw_chevrons(my_pos: Vector3, pose: ShipPose) -> void:
+	var eye := Vector3.UP * FirstPersonCamera.EYE_HEIGHT
 	for entry: Dictionary in _snapshot["seats"]:
 		var seat: int = entry["seat"]
 		if seat == _seat or entry["out"]:
@@ -284,9 +286,7 @@ func _draw_chevrons(my_pos: Vector3) -> void:
 		var their_pos: Vector3 = entry["pos"]
 		if my_pos.distance_to(their_pos) > CHEVRON_RANGE:
 			continue
-		if _surfaces.blocked(my_pos, their_pos, _rules.body_height, _rules.step_height):
-			continue
-		if _deck_between(my_pos, their_pos):
+		if not _surfaces.line_of_sight(my_pos + eye, their_pos + eye, pose):
 			continue
 		var over := (
 			_view.seat_world_position(seat) + Vector3.UP * (_rules.body_height + CHEVRON_LIFT)
@@ -324,15 +324,6 @@ func _ring(centre: Vector2, entry: Dictionary) -> void:
 			RING_WIDTH,
 			true
 		)
-
-
-## Whether a deck hides [param b] from [param a]: they stand a storey or more apart
-## and either is indoors. Surfaces.blocked sees the walls between rooms, never the
-## deck between a room and the floor over it.
-func _deck_between(a: Vector3, b: Vector3) -> bool:
-	if absf(a.y - b.y) < _rules.body_height:
-		return false
-	return _ship.room_at(a, _rules.step_height) != -1 or _ship.room_at(b, _rules.step_height) != -1
 
 
 ## An arc at the screen's edge, toward each seat outside the field of view that

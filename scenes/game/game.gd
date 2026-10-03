@@ -176,8 +176,11 @@ func _problems(config: MatchConfig) -> PackedStringArray:
 	var found := config.problems()
 	if _args.capture_eye >= config.seats:
 		found.append("capture: no seat %d in a %d-seat match" % [_args.capture_eye, config.seats])
-	if not BotProfile.tiers().has(config.bot_tier):
+	var profile := BotProfile.for_tier(config.bot_tier)
+	if profile == null:
 		found.append("menu: no bot profile named %s under data/bots/" % config.bot_tier)
+	else:
+		found.append_array(profile.problems())
 	return found
 
 

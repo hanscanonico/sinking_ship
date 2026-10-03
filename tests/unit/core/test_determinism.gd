@@ -1,12 +1,12 @@
 extends GutTest
-## The golden match is seed 1701 with six seats, every one a bot — what
+## The golden match is seed 1701 with eight seats, every one a bot — what
 ## `make match SEED=1701` prints. Its transcript is recorded per platform (R6):
-##   make match SEED=1701 > tests/golden/golden_1701_6.<os>-<arch>.txt
+##   make match SEED=1701 > tests/golden/golden_1701_8.<os>-<arch>.txt
 
 const RunMatch := preload("res://tools/run_match.gd")
 
 const GOLDEN_SEED := 1701
-const GOLDEN_SEATS := 6
+const GOLDEN_SEATS := 8
 const MAX_TICKS := 300 * Ticks.RATE
 const RESUME_EVERY := 7
 

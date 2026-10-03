@@ -62,6 +62,16 @@ capture:
 		--capture="$(CAPTURE)" --capture-at=$(AT) $(if $(EYE),--capture-eye=$(EYE)) \
 		$(if $(CUT),--observer-cut=$(CUT))
 
+# `make arena SEEDS=200 [LOBBIES=normal,hard-easy]`: bots-only lobbies of the default
+# match, seeds 1…SEEDS each, headless, written up as docs/arena.md — the record SH7's
+# gates read. Rules live in tools/arena.gd. Progress goes to stderr.
+SEEDS ?= 200
+LOBBIES ?=
+arena:
+	$(call require-godot)
+	@set -o pipefail; $(GODOT) --headless --no-header --path . -s res://tools/arena.gd \
+		-- --seeds=$(SEEDS) $(if $(LOBBIES),--lobbies=$(LOBBIES)) | grep -v '^\[godot_ai'
+
 # The art against the data (D6) and the snapshots (D5): drawn platform tops,
 # every seat's model on its feet, no live sim object named under scenes/art.
 # Rules live in tools/art_lint.gd. Two frames per tick, so the view interpolates.
@@ -130,4 +140,4 @@ format-check:
 # whole suite.
 .NOTPARALLEL:
 
-.PHONY: import run match capture art-lint test verify check ship ship-check lint format format-check
+.PHONY: import run match capture arena art-lint test verify check ship ship-check lint format format-check

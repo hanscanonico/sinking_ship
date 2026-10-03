@@ -624,3 +624,45 @@ func test_nobody_climbs_onto_a_round_blocker_top() -> void:
 	var feet := Vector3(beside.x, sea - rules.swim_depth, beside.y)
 	assert_null(surfaces.climb_out(feet, Vector2(0.0, -1.0), pose, rules), "not up a funnel")
 	assert_null(surfaces.nearest_climb(feet, pose, rules, 10.0), "nor is it a way out")
+
+
+func test_line_of_sight_is_blocked_by_walls_not_by_doorways() -> void:
+	var eye := 1.6
+	var walled := Surfaces.new(_walled_layout())
+	var level := SimFixtures.sim(1).pose()
+	# Across the wall along x = 0: through its doorway, square or slanting, and not
+	# through the wall beside it — from either end.
+	var through: Array[Vector3] = [Vector3(-3.0, eye, 0.0), Vector3(3.0, eye, 0.0)]
+	var slanting: Array[Vector3] = [Vector3(-3.0, eye, -0.3), Vector3(3.0, eye, 0.3)]
+	var walled_off: Array[Vector3] = [Vector3(-3.0, eye, -2.0), Vector3(3.0, eye, -2.0)]
+	for pair: Array in [through, slanting]:
+		assert_true(walled.line_of_sight(pair[0], pair[1], level), "%s: the doorway" % [pair])
+		assert_true(walled.line_of_sight(pair[1], pair[0], level), "%s: back" % [pair])
+	assert_false(walled.line_of_sight(walled_off[0], walled_off[1], level), "the wall")
+	assert_false(walled.line_of_sight(walled_off[1], walled_off[0], level), "the wall, back")
+	var low_wall := Vector3(-1.0, 3.0, -2.0)
+	assert_true(walled.line_of_sight(low_wall, walled_off[1] + Vector3.UP * 1.5, level), "over")
+
+	# On the steamer: the main deck hides the lower deck under it, the opening over the
+	# forward companionway does not, nor does a deck once it has collapsed.
+	var layout := _steamer()
+	var surfaces := Surfaces.new(layout)
+	var calm := SimFixtures.sim(1, null, layout).pose()
+	var on_deck := Vector3(8.0, eye, 1.45)
+	assert_false(surfaces.line_of_sight(on_deck, Vector3(6.0, -2.6 + eye, 1.45), calm), "a deck")
+	assert_true(
+		surfaces.line_of_sight(on_deck, Vector3(12.6, -2.6 + eye, 1.45), calm), "down the stair"
+	)
+	var in_wheelhouse := Vector3(-2.5, 2.5 + eye, 0.0)
+	var on_bridge := Vector3(-2.5, 4.7 + eye, 0.0)
+	assert_false(surfaces.line_of_sight(in_wheelhouse, on_bridge, calm), "the bridge over it")
+	var gone := SimFixtures.sim(1, null, layout).pose()
+	gone.collapsed = [&"bridge"] as Array[StringName]
+	assert_true(surfaces.line_of_sight(in_wheelhouse, on_bridge, gone), "the bridge collapsed")
+	# From the poop deck's rail, a swimmer under the side is behind the hull; one well
+	# off it is in plain view.
+	var at_the_rail := Vector3(-17.0, 1.2 + eye, 4.0)
+	var under_the_side := Vector3(-17.0, -layout.freeboard + 0.15, 5.0)
+	assert_false(surfaces.line_of_sight(at_the_rail, under_the_side, calm), "the hull")
+	var off_the_side := Vector3(-17.0, -layout.freeboard + 0.15, 12.0)
+	assert_true(surfaces.line_of_sight(at_the_rail, off_the_side, calm), "the open sea")
