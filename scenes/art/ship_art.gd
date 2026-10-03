@@ -566,10 +566,12 @@ func _mast(mesh: ShipMesh, blocker: ShipBlocker, top: float) -> void:
 ## — from the deck above when that deck can fall.
 func _hang_lamp(room: ShipRoom, index: int, brass: Material) -> void:
 	var middle := room.area.get_center()
+	var ceiling := _space.ceiling(room, middle.x, middle.y)
 	var lamp := ShipLamp.new()
 	lamp.name = "Lamp%d" % index
-	lamp.position = Vector3(middle.x, _space.ceiling(room, middle.x, middle.y) - PLANK, middle.y)
+	lamp.position = Vector3(middle.x, ceiling - PLANK, middle.y)
 	lamp.visible = room.floor_height < cut_above
+	lamp.everywhere = is_finite(cut_above)
 	var roof := _space.roof(room, middle.x, middle.y)
 	var wreck: Node3D = _wrecks[roof] if roof != -1 else null
 	(wreck if wreck != null else self).add_child(lamp)
@@ -578,7 +580,12 @@ func _hang_lamp(room: ShipRoom, index: int, brass: Material) -> void:
 	glass.emission_enabled = true
 	glass.emission = ArtPalette.LAMP_GLASS
 	glass.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	lamp.setup(Vector3(middle.x, room.floor_height, middle.y), index * 1.7, glass, brass)
+	var area := room.area
+	var box := AABB(
+		Vector3(area.position.x, room.floor_height, area.position.y),
+		Vector3(area.size.x, ceiling - room.floor_height, area.size.y)
+	)
+	lamp.setup(box, index * 1.7, glass, brass)
 
 
 ## One material per finish: ship.gdshader, or its cut-away variant while
