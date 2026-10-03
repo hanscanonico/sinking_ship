@@ -59,23 +59,39 @@ func test_snapshot_continuation_is_exact() -> void:
 	# shove, stagger and fall in flight — a fall can be shorter than the stride,
 	# and where it lands differs by platform — a sim rebuilt from it must step to
 	# the same next second.
+	var golden_frames := func(tick: int) -> Array[InputFrame]:
+		var frames: Array[InputFrame] = []
+		for seat in config.seats:
+			frames.append(input_log.frame(tick, seat))
+		return frames
 	var covered := {"shove": false, "stagger": false, "airborne": false}
 	for start in range(snapshots.size() - 1):
 		if not _note_coverage(snapshots[start], covered) and start % RESUME_EVERY != 0:
 			continue
-		var resumed := MatchSim.from_snapshot(snapshots[start], config)
-		assert_eq(resumed.snapshot(), _without_events(snapshots[start]), "tick %d" % start)
-		for offset in range(1, mini(Ticks.RATE, snapshots.size() - 1 - start) + 1):
-			var tick := start + offset - 1
-			var frames: Array[InputFrame] = []
-			for seat in config.seats:
-				frames.append(input_log.frame(tick, seat))
-			resumed.step(frames)
-			if resumed.snapshot() != snapshots[start + offset]:
-				fail_test("continuation from tick %d diverged at tick %d" % [start, tick])
-				return
+		if not _continues(snapshots, start, config, golden_frames):
+			return
+	# On some platforms the golden match has no fall in flight at any tick, so a
+	# walk off the deck through the starboard railing's gap stands in for one.
+	var fall := SimFixtures.sim(2)
+	SimFixtures.place(fall, 1, Vector3(-10.0, 0.0, 0.0))
+	var gap := SimFixtures.rail_gap(SimFixtures.deck().platforms[0].area.end.y)
+	SimFixtures.place(fall, 0, Vector3(gap.x, 0.0, 3.0))
+	var walk: Array[InputFrame] = [SimFixtures.frame(0, Vector2.DOWN), SimFixtures.frame(1)]
+	var walked: Array[Dictionary] = [fall.snapshot()]
+	for _tick in 4 * Ticks.RATE:
+		if fall.is_over():
+			break
+		fall.step(walk)
+		walked.append(fall.snapshot())
+	var walk_frames := func(_tick: int) -> Array[InputFrame]: return walk
+	for start in range(walked.size() - 1):
+		if walked[start]["seats"][0]["state"] != PlayerState.Body.AIRBORNE:
+			continue
+		covered["airborne"] = true
+		if not _continues(walked, start, fall.config, walk_frames):
+			return
 	for field: String in covered:
-		assert_true(covered[field], "the golden match resumes from a %s in flight" % field)
+		assert_true(covered[field], "the match resumes from a %s in flight" % field)
 
 
 func test_golden_for_this_platform() -> void:
@@ -85,6 +101,23 @@ func test_golden_for_this_platform() -> void:
 		pending("no golden recorded for %s" % platform)
 		return
 	assert_eq(_golden()[1], FileAccess.get_file_as_string(path))
+
+
+## Rebuilds a sim from [param snapshots] at [param start] and steps it up to a
+## second on, fed [param frames_at] for each tick; false, failing the test, when
+## it leaves the recorded snapshots.
+func _continues(
+	snapshots: Array[Dictionary], start: int, config: MatchConfig, frames_at: Callable
+) -> bool:
+	var resumed := MatchSim.from_snapshot(snapshots[start], config)
+	assert_eq(resumed.snapshot(), _without_events(snapshots[start]), "tick %d" % start)
+	for offset in range(1, mini(Ticks.RATE, snapshots.size() - 1 - start) + 1):
+		var tick := start + offset - 1
+		resumed.step(frames_at.call(tick))
+		if resumed.snapshot() != snapshots[start + offset]:
+			fail_test("continuation from tick %d diverged at tick %d" % [start, tick])
+			return false
+	return true
 
 
 func _without_events(snapshot: Dictionary) -> Dictionary:
