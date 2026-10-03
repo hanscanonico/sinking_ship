@@ -29,6 +29,9 @@ var _player: AnimationPlayer
 var _model: Node3D
 var _colour: Color
 var _feet_ring: MeshInstance3D
+var _hat_node: Node3D
+## The clip for each move: the crew's, unless drawn as a seat's own arms.
+var _clips: Dictionary = BrawlerAnimation.CLIPS
 var _feet_material: StandardMaterial3D
 var _move: BrawlerAnimation.Move = BrawlerAnimation.Move.IDLE
 ## The stagger last drawn, so a renewed stagger replays its flinch once.
@@ -37,6 +40,8 @@ var _stagger := 0
 var _rest_scale := Vector3.ONE
 ## Seconds since the last hit-stop drawn ended; INF before the first.
 var _unsquashing := INF
+## Whether a hit-stop squashes the model: never a seat's own arms, held under its eye.
+var _squashes := true
 
 
 ## Builds [param seat_id]'s brawler at the rules' body size; [param local] puts a
@@ -55,12 +60,13 @@ func setup(seat_id: int, rules: BrawlRules, local: bool) -> void:
 	mesh.set_surface_override_material(0, _skin(_colour))
 	mesh.set_surface_override_material(1, _skin(ArtPalette.INK))
 	_player = _model.get_node("AnimationPlayer")
-	_player.play(BrawlerAnimation.CLIPS[_move])
+	_player.play(_clips[_move])
 
 	var head := BoneAttachment3D.new()
 	head.bone_name = HEAD_BONE
 	_model.get_node("Rig/Skeleton3D").add_child(head)
-	head.add_child(_hat((seat % Hat.size()) as Hat))
+	_hat_node = _hat((seat % Hat.size()) as Hat)
+	head.add_child(_hat_node)
 
 	_feet_material = _flat(_colour)
 	_feet_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
@@ -85,6 +91,32 @@ func setup(seat_id: int, rules: BrawlRules, local: bool) -> void:
 		add_child(arrow)
 
 
+## Draws only what a seat sees of itself (FirstPersonArms): no hat, no ring at its
+## feet, no shadow, no hit-stop squash, and [param clips] for its moves.
+func show_as_own_arms(clips: Dictionary) -> void:
+	_clips = clips
+	_squashes = false
+	_hat_node.visible = false
+	_feet_ring.visible = false
+	for node: Node in find_children("*", "GeometryInstance3D", true, false):
+		(node as GeometryInstance3D).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+
+
+## Where the mannequin's [param bone] is drawn, in the world.
+func bone_position(bone: StringName) -> Vector3:
+	var skeleton: Skeleton3D = _model.get_node("Rig/Skeleton3D")
+	return (
+		skeleton.global_transform * skeleton.get_bone_global_pose(skeleton.find_bone(bone)).origin
+	)
+
+
+## Shrinks the mannequin's [param bone] to nothing in this frame's pose, so what it
+## carries is not drawn.
+func collapse_bone(bone: StringName) -> void:
+	var skeleton: Skeleton3D = _model.get_node("Rig/Skeleton3D")
+	skeleton.set_bone_pose_scale(skeleton.find_bone(bone), Vector3.ONE * 0.001)
+
+
 ## The node the mannequin hangs from: its origin is the drawn feet.
 func model_root() -> Node3D:
 	return _model
@@ -100,14 +132,15 @@ func show_state(then: Dictionary, now: Dictionary, alpha: float) -> void:
 	var renewed: bool = now["stagger"] > _stagger
 	_stagger = now["stagger"]
 	if move != _move or renewed:
-		_player.play(BrawlerAnimation.CLIPS[move], BrawlerAnimation.BLEND[move])
+		_player.play(_clips[move], BrawlerAnimation.BLEND[move])
 		if renewed:
 			_player.seek(0.0, true)
 		_move = move
 	var frozen: bool = now["hitstop"] > 0
 	_player.speed_scale = 0.0 if frozen else BrawlerAnimation.rate(move, speed)
 	_unsquashing = 0.0 if frozen else _unsquashing + get_process_delta_time()
-	_model.scale = _rest_scale * BrawlerAnimation.squash(_unsquashing)
+	if _squashes:
+		_model.scale = _rest_scale * BrawlerAnimation.squash(_unsquashing)
 	var shoving: bool = (
 		now["action"] == PlayerState.Action.WINDUP or now["action"] == PlayerState.Action.ACTIVE
 	)

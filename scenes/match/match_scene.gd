@@ -38,8 +38,10 @@ var _kick: ViewKick
 @onready var _driver: SimDriver = $SimDriver
 @onready var _view: MatchView = $MatchView
 @onready var _greybox: ShipGreybox = $MatchView/Ship/Greybox
+@onready var _ship_art: ShipArt = $MatchView/Ship/ShipArt
 @onready var _observer_camera: ObserverCamera = $ObserverCamera
 @onready var _eyes: FirstPersonCamera = $FirstPersonCamera
+@onready var _arms: FirstPersonArms = $FirstPersonCamera/Arms
 @onready var _hud: Hud = $Hud
 @onready var _first_person_hud: FirstPersonHud = $FirstPersonHud
 @onready var _end: EndOverlay = $EndOverlay
@@ -93,6 +95,9 @@ func _process(delta: float) -> void:
 	_kick.follow(snapshot, viewed, yaw)
 	var kick := _kick.advance(delta)
 	_eyes.look_from(_view.ship_to_world(), _view.seat_feet(viewed), yaw, pitch, kick)
+	_arms.show_seat(
+		viewed, _driver.previous["seats"][viewed], snapshot["seats"][viewed], _driver.alpha
+	)
 	_first_person_hud.show_view(snapshot, viewed, yaw, _eyes, _view)
 
 
@@ -120,12 +125,14 @@ func _unhandled_input(event: InputEvent) -> void:
 ## on the local seat. The view is [param eye_seat]'s eyes, or the observer camera
 ## when [param observer] says so — which draws nothing of the ship at or above the
 ## ship-local height [param observer_cut] and frames the whole ship once it is finite.
+## [param greybox] draws the greybox in place of the dressed ship.
 func start(
 	config: MatchConfig,
 	autoplay: bool,
 	observer: bool = false,
 	eye_seat: int = LOCAL_SEAT,
-	observer_cut: float = INF
+	observer_cut: float = INF,
+	greybox: bool = false
 ) -> void:
 	_config = config
 	_observer = observer
@@ -147,6 +154,9 @@ func start(
 	_names = _seat_names(config.seats)
 	_driver.start(MatchRunner.new(sim, sources))
 	_greybox.cut_above = observer_cut if observer else INF
+	_ship_art.cut_above = _greybox.cut_above
+	_greybox.visible = greybox
+	_ship_art.visible = not greybox
 	_view.setup(_driver, sim, LOCAL_SEAT)
 	_view.look_out_of(-1 if observer else _eye_seat)
 	_hud.setup(sim)
@@ -154,6 +164,7 @@ func start(
 	_dust.setup(_driver, _view)
 	_kick = ViewKick.new(settings.view_kick)
 	_eyes.setup(settings)
+	_arms.setup(config.rules)
 	_first_person_hud.setup(sim, _names, not observer, _prompts)
 	_observer_camera.whole_ship = observer and is_finite(observer_cut)
 	_audio.setup(_driver, sim, _view, LOCAL_SEAT)
