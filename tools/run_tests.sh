@@ -8,8 +8,8 @@
 # test_*.gd files under tests/unit.
 #
 # Usage:  tools/run_tests.sh                    # the whole suite (.gutconfig.json)
-#         tools/run_tests.sh -gselect=test_water_level.gd
-#         tools/run_tests.sh -gselect=test_water_level.gd -gunit_test_name=maximum
+#         tools/run_tests.sh -gselect=test_sink_schedule.gd
+#         tools/run_tests.sh -gselect=test_sink_schedule.gd -gunit_test_name=timeline
 #
 # Any argument is handed to GUT verbatim, and the count check is skipped.
 # Narrow with -gselect (a filename substring), not -gtest: -gtest adds a script

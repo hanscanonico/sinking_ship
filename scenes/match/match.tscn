@@ -1,0 +1,143 @@
+[gd_scene load_steps=12 format=3]
+
+[ext_resource type="Script" path="res://scenes/match/match_scene.gd" id="1_scene"]
+[ext_resource type="Script" path="res://scenes/match/sim_driver.gd" id="2_driver"]
+[ext_resource type="Script" path="res://scenes/match/match_view.gd" id="3_view"]
+[ext_resource type="Script" path="res://scenes/match/ship_greybox.gd" id="4_greybox"]
+[ext_resource type="Script" path="res://scenes/match/camera_rig.gd" id="5_rig"]
+[ext_resource type="Script" path="res://scenes/match/hud.gd" id="6_hud"]
+[ext_resource type="Script" path="res://scenes/match/end_overlay.gd" id="7_end"]
+
+[sub_resource type="Environment" id="Environment_sky"]
+background_mode = 1
+background_color = Color(0.58, 0.7, 0.8, 1)
+ambient_light_source = 2
+ambient_light_color = Color(0.75, 0.8, 0.85, 1)
+ambient_light_energy = 0.55
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_water"]
+transparency = 1
+cull_mode = 2
+albedo_color = Color(0.08, 0.32, 0.5, 0.62)
+roughness = 0.2
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_water"]
+material = SubResource("StandardMaterial3D_water")
+size = Vector2(600, 600)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
+bg_color = Color(0.06, 0.09, 0.13, 0.85)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+content_margin_left = 28.0
+content_margin_top = 20.0
+content_margin_right = 28.0
+content_margin_bottom = 20.0
+
+[node name="Match" type="Node3D"]
+script = ExtResource("1_scene")
+
+[node name="Environment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_sky")
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.8660254, 0.38302222, -0.32139382, 0, 0.64278764, 0.76604444, 0.5, -0.66341394, 0.5566704, 0, 0, 0)
+shadow_enabled = true
+
+[node name="SimDriver" type="Node" parent="."]
+process_priority = -1
+script = ExtResource("2_driver")
+
+[node name="MatchView" type="Node3D" parent="."]
+script = ExtResource("3_view")
+
+[node name="Ship" type="Node3D" parent="MatchView"]
+
+[node name="Greybox" type="Node3D" parent="MatchView/Ship"]
+script = ExtResource("4_greybox")
+
+[node name="Water" type="MeshInstance3D" parent="."]
+cast_shadow = 0
+mesh = SubResource("PlaneMesh_water")
+
+[node name="CameraRig" type="Node3D" parent="."]
+script = ExtResource("5_rig")
+
+[node name="Camera3D" type="Camera3D" parent="CameraRig"]
+current = true
+fov = 50.0
+far = 800.0
+
+[node name="Hud" type="CanvasLayer" parent="."]
+script = ExtResource("6_hud")
+
+[node name="SeatsLeft" type="Label" parent="Hud"]
+unique_name_in_owner = true
+offset_left = 18.0
+offset_top = 12.0
+offset_right = 260.0
+offset_bottom = 44.0
+theme_override_font_sizes/font_size = 22
+
+[node name="Clock" type="Label" parent="Hud"]
+unique_name_in_owner = true
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -80.0
+offset_top = 12.0
+offset_right = 80.0
+offset_bottom = 44.0
+grow_horizontal = 2
+theme_override_font_sizes/font_size = 22
+horizontal_alignment = 1
+
+[node name="EndOverlay" type="CanvasLayer" parent="."]
+layer = 2
+script = ExtResource("7_end")
+
+[node name="Panel" type="PanelContainer" parent="EndOverlay"]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -280.0
+offset_top = -100.0
+offset_right = 280.0
+offset_bottom = 100.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
+
+[node name="Box" type="VBoxContainer" parent="EndOverlay/Panel"]
+alignment = 1
+theme_override_constants/separation = 14
+
+[node name="Title" type="Label" parent="EndOverlay/Panel/Box"]
+unique_name_in_owner = true
+theme_override_font_sizes/font_size = 38
+horizontal_alignment = 1
+
+[node name="Hint" type="Label" parent="EndOverlay/Panel/Box"]
+modulate = Color(1, 1, 1, 0.7)
+text = "R / Start — restart   ·   Esc / Back — quit"
+horizontal_alignment = 1
+
+[node name="Buttons" type="HBoxContainer" parent="EndOverlay/Panel/Box"]
+alignment = 1
+theme_override_constants/separation = 16
+
+[node name="Restart" type="Button" parent="EndOverlay/Panel/Box/Buttons"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(120, 0)
+focus_mode = 0
+text = "Restart"
+
+[node name="Quit" type="Button" parent="EndOverlay/Panel/Box/Buttons"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(120, 0)
+focus_mode = 0
+text = "Quit"

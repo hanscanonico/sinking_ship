@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="BotProfile" format=3]
+
+[ext_resource type="Script" path="res://ai/bot_profile.gd" id="1_vibjn"]
+
+[resource]
+script = ExtResource("1_vibjn")
+reaction_ticks = 7
+think_period = 4
+aim_error_deg = 12.0
+edge_margin_m = 1.2
