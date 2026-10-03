@@ -242,3 +242,23 @@ func test_walking_off_a_blocker_top_falls() -> void:
 		walker.pos.x, hatch.area.position.x - rules.body_radius + 0.0001, "clear of the hatch"
 	)
 	assert_gt(walker.stagger_ticks, 0, "staggered by the drop")
+
+
+func test_a_body_on_a_blocker_top_can_be_shoved_from_the_deck() -> void:
+	var rules := SimFixtures.rules()
+	var hatch := _blocker(ShipBlocker.Shape.BOX, Vector2(6.0, 0.0))
+	assert_not_null(hatch)
+	var middle := hatch.area.get_center()
+	# A body on the hatch at its forward edge; a shover on the main deck forward of
+	# it, facing aft, within a shove's reach.
+	var target := Vector3(hatch.area.end.x - rules.body_radius, hatch.top, middle.y)
+	var shover := Vector3(hatch.area.end.x + rules.body_radius + 0.1, 0.0, middle.y)
+	var gap := shover.x - target.x - rules.body_radius * 2.0
+	assert_lt(gap, rules.shove_reach, "in reach of each other")
+	var sim := _steamer_sim(2)
+	SimFixtures.place(sim, 0, shover, 180.0)
+	SimFixtures.place(sim, 1, target)
+	assert_eq(sim.state.seats[1].surface, _top_of(hatch), "the target stands on the hatch")
+	var frames := {0: SimFixtures.frame(0, Vector2.ZERO, SHOVE), 1: SimFixtures.frame(1)}
+	SimFixtures.step(sim, frames, 10)
+	assert_true(sim.state.seats[1].is_staggered(), "the shove lands on it")

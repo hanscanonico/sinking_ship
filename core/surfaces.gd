@@ -214,13 +214,17 @@ func railed(from_point: Vector3, to_point: Vector3, surface: int) -> bool:
 
 
 ## Whether a blocker stands across the straight line from [param from_point] to
-## [param to_point] (x/z) at the height of a body [param body_height] tall with its
-## feet at [param from_point] — what a shove cannot pass through.
+## [param to_point] (x/z) at the height of bodies [param body_height] tall with
+## their feet at either end — what a shove cannot pass through. A blocker stands
+## between them only where it rises into both, so one a body stands on top of never
+## shields it.
 func blocked(from_point: Vector3, to_point: Vector3, body_height: float, step: float) -> bool:
 	var start := Vector2(from_point.x, from_point.z)
 	var end := Vector2(to_point.x, to_point.z)
 	for blocker: ShipBlocker in _blockers:
 		if not _overlaps(from_point.y, body_height, step, blocker.bottom, blocker.top):
+			continue
+		if not _overlaps(to_point.y, body_height, step, blocker.bottom, blocker.top):
 			continue
 		if blocker.shape == ShipBlocker.Shape.CYLINDER:
 			var nearest := Geometry2D.get_closest_point_to_segment(blocker.centre, start, end)
