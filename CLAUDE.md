@@ -24,6 +24,8 @@ Design of record: `.lavish/sinking-ship-plan.html`
 make import                                     # once per fresh checkout or worktree
 make verify                                     # the merge gate: check, lint, format-check, test
 make test TEST=tests/unit/core/test_ticks.gd    # one test script
+make run                                        # play: you and five bots, windowed
+make match SEED=1701                            # one bots-only match, headless, as a transcript
 ```
 
 A fresh checkout fails `check` with phantom "not declared" errors until `make import` has
@@ -35,7 +37,9 @@ is the bar for done.
 
 - **`core/` is Node-free.** The simulation is plain GDScript classes; scenes render it.
   Nothing in `core/` or `ai/` may reference a `Node`, a scene, `get_node`, `get_tree`,
-  `SceneTree`, or anything under `scenes/`. `make check` enforces it.
+  `SceneTree`, anything under `scenes/`, or the engine's clocks and devices (`Time`, `OS`,
+  `Engine`, `Input`, `DisplayServer`) — count ticks, read `InputFrame`s. `make check`
+  enforces it.
 - **Seeded RNG only.** Thread a seeded `RandomNumberGenerator` through the sim; global
   `randf()`/`randi()`/`randomize()` in `core/` or `ai/` fails `make check`.
 - **Balance numbers live in `data/*.tres`**, never as constants in code.
