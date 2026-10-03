@@ -17,7 +17,7 @@ extends Node3D
 ## The walls under it stand. The match's own hazards are drawn the same way (SH10):
 ## any railing may break, so each is a node of its own, gone once broken; and every
 ## crate of the cargo is a wooden box under a node of its own, which MatchView places
-## (crates()).
+## (crates()), lit as the room it stands in or the open deck.
 
 const SHADER := preload("res://scenes/art/ship.gdshader")
 const CUT_SHADER := preload("res://scenes/art/ship_cut.gdshader")
@@ -94,8 +94,9 @@ var _floors := PackedFloat64Array()
 var _rails: Array[Node3D] = []
 ## Per platform name that can collapse, its own materials: Finish -> Material.
 var _flashes := {}
-## Per crate of the layout's cargo, the node it is drawn under.
+## Per crate of the layout's cargo, the node it is drawn under, and its own paints.
 var _crates: Array[Node3D] = []
+var _crate_paints: Array[Dictionary] = []
 
 
 ## Draws [param layout]; [param railing_height] and [param body_radius] are the
@@ -119,6 +120,7 @@ func build(
 	_rails.clear()
 	_flashes.clear()
 	_crates.clear()
+	_crate_paints.clear()
 	var materials := _materials(layout)
 	var mesh := _mesh()
 	# Each piece that can fall or fail gathers its faces apart, to commit under its node.
@@ -213,11 +215,26 @@ static func wrecked(platform: ShipPlatform, floor_height: float, fallen: float) 
 func _process(_delta: float) -> void:
 	if _smoke != null:
 		_smoke.emitting = _smoke.global_position.y > 0.0
+	for index in _crates.size():
+		_light_crate(index)
+
+
+## Takes crate [param index]'s paints as far indoors as the crate stands where
+## MatchView has put it — lamp-lit and out of the sun in a room, as the room's faces
+## are — so it goes from the one light to the other as it crosses a doorway.
+func _light_crate(index: int) -> void:
+	var prop := _space.layout.props[index]
+	var at := _crates[index].position
+	var half := prop.radius * CRATE_SIDE
+	var foot := Rect2(at.x - half, at.z - half, half * 2.0, half * 2.0)
+	var indoors := _space.indoors(foot, at.y + prop.height * 0.5)
+	for finish: int in PAINTS:
+		(_crate_paints[index][finish] as ShaderMaterial).set_shader_parameter("indoors", indoors)
 
 
 ## [param prop] as a crate: planked sides and lid in the crate paint, a batten round
-## its foot and its lid, under a node of its own at its underside — outdoors, where
-## the cargo stands.
+## its foot and its lid, under a node of its own at its underside — built outdoors,
+## where the cargo stands, in paints of its own that _light_crate() takes indoors.
 func _crate(prop: ShipProp, materials: Dictionary) -> Node3D:
 	var node := Node3D.new()
 	node.name = "Crate%d" % _crates.size()
@@ -232,7 +249,13 @@ func _crate(prop: ShipProp, materials: Dictionary) -> Node3D:
 	mesh.box(box, 0.0, prop.height, ShipPaints.crate, ShipMesh.SIDES | ShipMesh.TOP)
 	for band: float in [0.0, prop.height - CRATE_BATTEN]:
 		mesh.box(box.grow(CRATE_PROUD), band, band + CRATE_BATTEN, ShipPaints.frame, ShipMesh.SIDES)
-	mesh.commit(node, materials)
+	var paints := _own_paints(materials)
+	mesh.commit(node, paints)
+	# Off the outdoor layer, so a lamp reaches it once it slides into a room; the
+	# paints take no lamp while it stands outdoors.
+	for part: Node in node.get_children():
+		(part as MeshInstance3D).layers = 1
+	_crate_paints.append(paints)
 	return node
 
 

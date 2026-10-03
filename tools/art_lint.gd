@@ -14,7 +14,9 @@ extends SceneTree
 ##   model hangs from its body's feet — the posed ship carrying the interpolated
 ##   snapshot position — and the mannequin's soles stand on that root.
 ## - Cargo, through the same match: every crate is drawn at its underside as the
-##   interpolated snapshot has it, and not at all once it is lost.
+##   interpolated snapshot has it, and not at all once it is lost. And on every ship,
+##   a crate set down where its cargo stands outdoors and in the middle of each room
+##   is lit as it: a lamp may reach it, and it is as far indoors as where it stands.
 ## - The collapse: once a match's first collapse has fallen, nothing is drawn at a
 ##   collapsed platform's height wherever Surfaces, honouring that tick's pose, says
 ##   it is gone — the dressed deck lies wrecked below, as the rules have it.
@@ -150,7 +152,42 @@ func _check_ship(file: String, layout: ShipLayout) -> void:
 		)
 	for index in layout.ladders.size():
 		_check_ladder(faces, cells, "%s ladder %d" % [file, index], layout.ladders[index], layout)
+	_check_crate_light(file, layout, art)
 	art.free()
+
+
+## [param art]'s first crate set down where [param layout]'s cargo first stands, then
+## in the middle of each room: drawn off the outdoor layer, which no lamp lights, and
+## with its paints wholly outdoors at the first spot when that stands outdoors and
+## wholly indoors in a room.
+func _check_crate_light(file: String, layout: ShipLayout, art: ShipArt) -> void:
+	if layout.props.is_empty():
+		return
+	var prop := layout.props[0]
+	var space := ShipSpace.new(layout)
+	var spots: Array[Vector3] = [prop.pos]
+	var wanted := PackedFloat64Array([0.0 if space.outdoors(prop.pos + Vector3.UP * 0.1) else 1.0])
+	for room: ShipRoom in layout.rooms:
+		var middle := room.area.get_center()
+		spots.append(Vector3(middle.x, room.floor_height, middle.y))
+		wanted.append(1.0)
+	var crate := art.crates()[0]
+	var unlit := 1 << (ShipMesh.OUTDOOR_LAYER - 1)
+	for index in spots.size():
+		crate.position = spots[index]
+		art._process(0.0)
+		for part: Node in crate.get_children():
+			var drawn := part as MeshInstance3D
+			var paint := drawn.mesh.surface_get_material(0) as ShaderMaterial
+			var indoors: float = paint.get_shader_parameter("indoors")
+			_checks += 1
+			if drawn.layers & ~unlit == 0 or not is_equal_approx(indoors, wanted[index]):
+				_problems.append(
+					(
+						"art-lint: %s crate at %s: %s on layers %d, %.2f indoors for %.0f"
+						% [file, spots[index], drawn.name, drawn.layers, indoors, wanted[index]]
+					)
+				)
 
 
 ## Straight down the middle of [param ladder]'s rung line, ShipArt.LADDER_OUT

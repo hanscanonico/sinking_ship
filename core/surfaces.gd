@@ -145,10 +145,11 @@ func _init(layout: ShipLayout) -> void:
 ## ship.
 func honour(pose: ShipPose, broken := PackedInt32Array(), props: Array[PropState] = []) -> void:
 	# A pose is a value, never changed once handed in: the same one with the same
-	# broken spans masks what it last masked. The cargo honours many times a tick.
+	# broken spans masks what it last masked. The cargo honours many times a tick. A
+	# copy, so a caller's list edited in place is not the one compared.
 	if pose != _honoured_pose or broken != _honoured_by_match:
 		_honoured_pose = pose
-		_honoured_by_match = broken
+		_honoured_by_match = broken.duplicate()
 		var failed := pose.broken_railings.duplicate()
 		failed.append_array(broken)
 		_mask(pose.collapsed, failed)

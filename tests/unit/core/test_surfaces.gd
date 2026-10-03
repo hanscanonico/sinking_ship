@@ -609,6 +609,26 @@ func test_a_collapsed_deck_takes_its_ladder() -> void:
 	assert_null(surfaces.nearest_climb(feet, pose, rules, 10.0), "nor anywhere near")
 
 
+## honour keeps the broken spans it is handed, not the caller's list: the same list
+## edited in place between two calls, under the same pose, masks afresh.
+func test_honour_sees_a_broken_list_edited_in_place() -> void:
+	var rules := SimFixtures.rules()
+	var surfaces := Surfaces.new(SimFixtures.deck())
+	var pose := SimFixtures.sim(1).pose()
+	# A little into the flat deck's starboard span aft of the gap, span 2.
+	var into := SimFixtures.deck().platforms[0].area.end.y - rules.body_radius + 0.1
+	var starboard := Vector3(-8.0, 0.0, into)
+	var broken := PackedInt32Array()
+	surfaces.honour(pose, broken)
+	assert_eq(surfaces.rail_contacts(starboard, rules.body_radius, 0).size(), 1, "it stands")
+	broken.append(2)
+	surfaces.honour(pose, broken)
+	assert_true(surfaces.rail_contacts(starboard, rules.body_radius, 0).is_empty(), "broken")
+	broken.clear()
+	surfaces.honour(pose, broken)
+	assert_eq(surfaces.rail_contacts(starboard, rules.body_radius, 0).size(), 1, "whole again")
+
+
 func test_nobody_climbs_onto_a_round_blocker_top() -> void:
 	# The sea 0.4 m under the steamer's funnel top, everything else long under: a
 	# swimmer pressing into the funnel finds no way up it.

@@ -342,6 +342,38 @@ func test_a_push_takes_no_credit_from_a_fresh_shove() -> void:
 			assert_eq(credit, [-1, 0], "past the window, the crate's push")
 
 
+## Seat 0 staggered by crate 0 [since] ticks ago, which seat 1 had shoved; seat 1's shove
+## of the crate is now past credit_window, and the crate drifts back into seat 0:
+## within the window of the hit the push keeps seat 1's credit; past it, the crate's
+## alone.
+func test_a_push_keeps_its_crate_s_fresh_shover_credit() -> void:
+	var rules := _rules()
+	var window := Ticks.from_seconds(rules.credit_window)
+	for since: int in [0, window]:
+		var sim := _one_crate(2, Vector3(0.0, 0.0, -1.0))
+		SimFixtures.place(sim, 0, Vector3.ZERO)
+		SimFixtures.place(sim, 1, Vector3(-10.0, 0.0, 0.0))
+		var player := sim.state.seats[0]
+		player.stagger_ticks = Ticks.from_seconds(rules.stagger)
+		player.last_hit_by = 1
+		player.last_hit_crate = 0
+		player.last_hit_at = sim.state.tick - since
+		var crate := sim.state.props[0]
+		crate.shoved_by = 1
+		crate.shoved_at = sim.state.tick - window
+		crate.vel = Vector3(0.0, 0.0, rules.crate_impact_speed - 0.5)
+		for _tick in Ticks.RATE:
+			SimFixtures.step(sim)
+			if player.pos.z > 0.0:
+				break
+		assert_gt(player.pos.z, 0.0, "pushed along")
+		var credit := [player.last_hit_by, player.last_hit_crate]
+		if since < window:
+			assert_eq(credit, [1, 0], "the crate's hit, still seat 1's")
+		else:
+			assert_eq(credit, [-1, 0], "past the window, the crate's push alone")
+
+
 ## Seat 1 stands in the railing gap with a crate sliding at it; in one match seat 0
 ## has shoved the crate on its way, in the other nobody has.
 func test_an_exit_a_crate_causes_credits_the_crate_and_its_shover() -> void:

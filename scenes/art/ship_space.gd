@@ -36,6 +36,20 @@ func outdoors(point: Vector3) -> bool:
 	return true
 
 
+## The share (0…1) of [param area] (x/z) that stands in a room at [param height]:
+## what outdoors() says of a point, over a piece that moves between the two.
+func indoors(area: Rect2, height: float) -> float:
+	var inside := 0.0
+	for room: ShipRoom in layout.rooms:
+		var overlap := room.area.intersection(area)
+		if not overlap.has_area() or height < room.floor_height - INSIDE:
+			continue
+		var middle := overlap.get_center()
+		if height <= ceiling(room, middle.x, middle.y) + INSIDE:
+			inside += overlap.get_area()
+	return clampf(inside / area.get_area(), 0.0, 1.0)
+
+
 ## The underside of what roofs [param room] over (x, z): the lowest deck standing
 ## over its floor there, or OPEN_ROOM_HEIGHT above its floor where none does.
 func ceiling(room: ShipRoom, x: float, z: float) -> float:

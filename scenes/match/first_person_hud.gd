@@ -57,8 +57,9 @@ const BANNER_SECONDS := 4.0
 const BANNER_FONT_SIZE := 30
 
 var _schedule: SinkSchedule
-## Its own, honoured with the pose of the tick it draws: what a climb or a shove
-## meets is the ship as that pose has it, and the sim's stays the sim's.
+## Its own, honoured with the pose, broken railings and crates of the snapshot it
+## draws: what a climb, a shove or a look meets is the ship as that tick has it, and
+## the sim's stays the sim's.
 var _surfaces: Surfaces
 var _rules: BrawlRules
 var _ship: ShipLayout
@@ -115,7 +116,10 @@ func _draw_hud() -> void:
 		return
 	var tick: int = _snapshot["tick"]
 	var pose := _schedule.pose_at(tick)
-	_surfaces.honour(pose)
+	# As the snapshot has them: the railings the match has broken, and its crates.
+	_surfaces.honour(
+		pose, MatchState.broken_in(_snapshot["railing_hp"]), PropState.from_snapshot(_snapshot)
+	)
 	_draw_inclinometer(pose)
 	_draw_warnings(pose, tick)
 	_draw_phase(tick)
