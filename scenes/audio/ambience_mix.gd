@@ -29,6 +29,10 @@ const OPEN_HZ := 20000.0
 const ENCLOSED_HZ := 700.0
 const ENCLOSED_WIND_DB := -18.0
 const ENCLOSED_WET := 0.35
+## With the ears under the sea (SH5) the outside is heard through the water: muffled
+## to UNDER_HZ, and the wind down by UNDER_WIND_DB.
+const UNDER_HZ := 300.0
+const UNDER_WIND_DB := -30.0
 
 
 static func sea_db(above_sea: float) -> float:
@@ -39,9 +43,10 @@ static func sea_cutoff_hz(above_sea: float) -> float:
 	return _sweep(SEA_NEAR_HZ, SEA_FAR_HZ, _height(above_sea, SEA_FAR_M))
 
 
-static func wind_db(above_sea: float, enclosure: float) -> float:
+static func wind_db(above_sea: float, enclosure: float, under: bool = false) -> float:
 	var open := lerpf(WIND_LOW_DB, WIND_HIGH_DB, _height(above_sea, WIND_HIGH_M))
-	return open + ENCLOSED_WIND_DB * clampf(enclosure, 0.0, 1.0)
+	var ducked := open + ENCLOSED_WIND_DB * clampf(enclosure, 0.0, 1.0)
+	return ducked + UNDER_WIND_DB if under else ducked
 
 
 ## [param sink_rate] is how fast the ship is settling, metres a second.
@@ -57,8 +62,11 @@ static func enclosure(layout: ShipLayout, feet: Vector3, step: float) -> float:
 	return 1.0 if layout.room_at(feet, step) != -1 else 0.0
 
 
-## The cutoff of everything heard from outside, by how enclosed the listener is.
-static func outside_cutoff_hz(enclosure: float) -> float:
+## The cutoff of everything heard from outside, by how enclosed the listener is, or
+## whether its ears are [param under] the sea.
+static func outside_cutoff_hz(enclosure: float, under: bool = false) -> float:
+	if under:
+		return UNDER_HZ
 	return _sweep(OPEN_HZ, ENCLOSED_HZ, clampf(enclosure, 0.0, 1.0))
 
 

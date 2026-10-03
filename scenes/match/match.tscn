@@ -1,4 +1,4 @@
-[gd_scene load_steps=15 format=3]
+[gd_scene load_steps=16 format=3]
 
 [ext_resource type="Script" path="res://scenes/match/match_scene.gd" id="1_scene"]
 [ext_resource type="Script" path="res://scenes/match/sim_driver.gd" id="2_driver"]
@@ -13,6 +13,7 @@
 [ext_resource type="Script" path="res://scenes/audio/match_audio.gd" id="11_audio"]
 [ext_resource type="Script" path="res://scenes/art/ship_art.gd" id="12_ship_art"]
 [ext_resource type="Script" path="res://scenes/art/first_person_arms.gd" id="13_arms"]
+[ext_resource type="Script" path="res://scenes/match/underwater.gd" id="14_under"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
 bg_color = Color(0.06, 0.09, 0.13, 0.85)
@@ -60,6 +61,10 @@ script = ExtResource("9_eyes")
 
 [node name="Arms" type="Node3D" parent="FirstPersonCamera"]
 script = ExtResource("13_arms")
+
+[node name="Underwater" type="CanvasLayer" parent="."]
+layer = 0
+script = ExtResource("14_under")
 
 [node name="Hud" type="CanvasLayer" parent="."]
 script = ExtResource("6_hud")

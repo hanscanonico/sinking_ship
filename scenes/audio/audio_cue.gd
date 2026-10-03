@@ -22,6 +22,8 @@ enum Kind {
 	HORN,
 	## A deck giving way (SH6): as its collapse is telegraphed, and as it goes.
 	COLLAPSE,
+	## A swimmer's stroke through the water (SH5), where a walker's footfall would be.
+	STROKE,
 }
 ## What a footfall or a landing comes down on.
 enum Ground { WOOD, METAL, WET }

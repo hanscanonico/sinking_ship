@@ -124,7 +124,7 @@ func test_lone_bot_stays_dry_while_it_can() -> void:
 	var config := SimFixtures.config(1, load(SimFixtures.FLAT_SINKING), SEED)
 	var runner := _bots(config)
 	SimFixtures.place(runner.sim, 0, Vector3.ZERO)
-	runner.run(300 * Ticks.RATE)
+	var events := runner.run(300 * Ticks.RATE)
 	var bot := runner.sim.state.seats[0]
 	assert_true(bot.is_out(), "the sea takes everyone in the end")
 
@@ -138,8 +138,9 @@ func test_lone_bot_stays_dry_while_it_can() -> void:
 		for corner: Vector2 in [area.position, area.end, Vector2(area.position.x, area.end.y)]:
 			if not surfaces.wet(Vector3(corner.x, 0.0, corner.y), pose):
 				last_dry = tick
-	assert_eq(bot.out_cause, PlayerState.Cause.WATER)
-	assert_true(bot.surface != Surfaces.NONE, "it went under standing on the deck")
+	assert_eq(bot.out_cause, PlayerState.Cause.COLD)
+	var kinds := events.map(func(event: SimEvent) -> SimEvent.Kind: return event.kind)
+	assert_false(kinds.has(SimEvent.Kind.FELL), "the sea came up over the deck under it")
 	assert_gt(bot.out_tick, last_dry - Ticks.RATE, "it held out until the deck ran out")
 
 
@@ -362,3 +363,78 @@ func test_bot_avoids_the_low_rail_on_a_lurch_warning() -> void:
 	assert_gt(braced, Ticks.RATE, "braced through the swing")
 	assert_false(jumped, "and never jumped")
 	assert_false(sim.state.seats[0].is_out())
+
+
+## A seat that presses one way from a tick on, and stands still before it.
+class Pressing:
+	extends InputSource
+
+	var seat: int
+	var from_tick: int
+	var move: Vector2
+
+	func _init(pressing_seat: int, pressing_from: int, toward: Vector2) -> void:
+		seat = pressing_seat
+		from_tick = pressing_from
+		move = toward
+
+	func next_frame(tick: int) -> InputFrame:
+		var pressed := move if tick >= from_tick else Vector2.ZERO
+		return InputFrame.new(seat, tick, InputFrame.quantize(pressed))
+
+
+func test_swimming_bot_heads_for_a_climbable_edge() -> void:
+	# Three metres out from the flat deck's side, the deck 0.4 m out of the sea.
+	var config := SimFixtures.config(2, null, SEED, SimFixtures.low_deck(0.4))
+	var sim := MatchSim.create(config)
+	SimFixtures.place(sim, 1, Vector3(-10.0, 0.0, 0.0))
+	SimFixtures.swim(sim, 0, Vector3(0.0, 0.0, 7.0))
+	assert_lt(_first_move(sim, 0).y, 0.0, "it swims for the side")
+	var sources: Array[InputSource] = [BotInputSource.new(0, _profile(), config), InputSource.new()]
+	var events := MatchRunner.new(sim, sources).run(Ticks.from_seconds(config.rules.cold_meter))
+	var bot := sim.state.seats[0]
+	assert_eq(bot.body, PlayerState.Body.GROUNDED, "and climbs out before the cold takes it")
+	assert_eq(bot.surface, 0)
+	var kinds := events.map(func(event: SimEvent) -> SimEvent.Kind: return event.kind)
+	assert_true(kinds.has(SimEvent.Kind.CLIMBED_OUT))
+
+
+func test_swimming_bot_climbs_a_boarding_ladder() -> void:
+	# Over the steamer's side at the start, the main deck 3.4 m up: only the ladder
+	# reaches it.
+	var layout := SimFixtures.steamer()
+	var config := SimFixtures.config(2, load(SimFixtures.STEAMER_SINKING), SEED, layout)
+	var sim := MatchSim.create(config)
+	SimFixtures.place(sim, 1, Vector3(-17.0, 1.2, 0.0))
+	SimFixtures.swim(sim, 0, Vector3(5.0, 0.0, 8.0))
+	var sources: Array[InputSource] = [BotInputSource.new(0, _profile(), config), InputSource.new()]
+	MatchRunner.new(sim, sources).run(Ticks.from_seconds(config.rules.cold_meter + 3.0))
+	var bot := sim.state.seats[0]
+	assert_false(bot.is_out(), "the cold did not take it")
+	assert_eq(bot.body, PlayerState.Body.GROUNDED)
+	assert_eq(SimFixtures.name_of(layout, bot.surface), &"main deck", "up the ladder")
+
+
+func test_deck_bot_shoves_a_climber_back() -> void:
+	# Seat 0 swims beside the flat deck, 0.4 m out of the sea, and after a second
+	# presses in to climb out; the bot stands on the deck within its guard range.
+	var config := SimFixtures.config(2, null, SEED, SimFixtures.low_deck(0.4))
+	var sim := MatchSim.create(config)
+	SimFixtures.swim(sim, 0, Vector3(0.0, 0.0, 4.6))
+	SimFixtures.place(sim, 1, Vector3(0.0, 0.0, 2.4), 90.0)
+	var sources: Array[InputSource] = [
+		Pressing.new(0, Ticks.RATE, Vector2(0.0, -1.0)), BotInputSource.new(1, _profile(), config)
+	]
+	var runner := MatchRunner.new(sim, sources)
+	var knocked: Array[SimEvent] = []
+	var climbed := false
+	for _tick in 3 * Ticks.RATE:
+		for event: SimEvent in runner.step():
+			if event.kind == SimEvent.Kind.KNOCKED_BACK_IN:
+				knocked.append(event)
+			climbed = climbed or event.kind == SimEvent.Kind.CLIMBED_OUT and knocked.is_empty()
+		if not knocked.is_empty():
+			break
+	assert_false(climbed, "the climber never got up")
+	assert_eq(knocked.size(), 1, "the bot shoved it back in")
+	assert_eq([knocked[0].seat, knocked[0].credit], [0, 1])

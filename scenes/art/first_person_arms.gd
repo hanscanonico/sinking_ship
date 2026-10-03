@@ -8,7 +8,8 @@ extends Node3D
 ## as the crew is, by Brawler.show_state from the seat's two snapshot entries (D5),
 ## and drives nothing (D12). Bracing, which the crew shows as a crouch with the hands
 ## at the knees, shows here as the raised guard, a jump's spring as the fall it turns
-## into, and a hit-stop as the pose held unsquashed.
+## into, and a hit-stop as the pose held unsquashed. Swimming, the stroke keeps the
+## hands out of view, so the arms are hidden until a climb brings them up the edge.
 
 ## The bone the brawler hangs from, and where it is held in camera space.
 const CHEST_BONE := &"DEF-spine.003"
@@ -31,10 +32,11 @@ func setup(rules: BrawlRules) -> void:
 
 ## Poses [param seat]'s arms for the display moment [param alpha] of the way from
 ## [param then] to [param now], its entries in two snapshots; hidden once the seat
-## is out. Until it is first called — and so from the observer camera — nothing is
-## drawn.
+## is out, and while it swims without climbing. Until it is first called — and so
+## from the observer camera — nothing is drawn.
 func show_seat(seat: int, then: Dictionary, now: Dictionary, alpha: float) -> void:
-	visible = not now["out"]
+	var swimming: bool = now["state"] == PlayerState.Body.SWIMMING and now["climb"] == 0
+	visible = not now["out"] and not swimming
 	if not visible:
 		return
 	if _body == null or _body.seat != seat:

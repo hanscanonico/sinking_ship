@@ -89,6 +89,40 @@ extends Resource
 ## Seconds after spending before stamina starts to come back.
 @export var stamina_regen_delay: float
 
+@export_group("The sea")
+## How fast a swimmer moves, in m/s.
+@export var swim_speed: float
+## How far under the sea a floating swimmer's feet hang: its eye rides just above.
+@export var swim_depth: float
+## How hard the water slows a body that drops into it, in m/s²: a fall in dunks
+## it under before it floats back up.
+@export var dunk_drag: float
+## The speed the water floats a dunked body back up at, in m/s.
+@export var float_speed: float
+## Water shallower than this over the feet is wading, not swimming.
+@export var wade_depth: float
+## A swimmer finds its feet where the water over the bottom is shallower than this:
+## below wade_depth, so that a body at the waterline does not flicker between the two.
+@export var stand_depth: float
+## The fastest a body wades, in m/s.
+@export var wade_speed: float
+## Seconds of swimming a full cold meter holds.
+@export var cold_meter: float
+## Seconds of the cold meter regained per second out of the sea.
+@export var cold_regen: float
+## The highest a ledge may stand above the sea for a swimmer to climb onto it.
+@export var climb_reach: float
+## How long a climb out takes.
+@export var climb_time: float
+## How fast a swimmer goes up a ladder, in m/s; a ladder's climb never takes less
+## than climb_time.
+@export var ladder_speed: float
+## Seconds off the cold meter for a climber shoved back in.
+@export var climb_penalty: float
+## A shove that lands this long or longer before its target goes into the sea is
+## not credited with its going out.
+@export var credit_window: float
+
 
 ## Every reason these numbers cannot run a match; empty when they can.
 func problems() -> PackedStringArray:
@@ -116,6 +150,18 @@ func problems() -> PackedStringArray:
 		"stamina_max",
 		"stamina_regen",
 		"jump_height",
+		"swim_speed",
+		"swim_depth",
+		"dunk_drag",
+		"float_speed",
+		"wade_depth",
+		"stand_depth",
+		"wade_speed",
+		"cold_meter",
+		"cold_regen",
+		"climb_reach",
+		"climb_time",
+		"ladder_speed",
 	]:
 		if float(get(field)) <= 0.0:
 			found.append("brawl rules: %s must be positive" % field)
@@ -129,6 +175,8 @@ func problems() -> PackedStringArray:
 		"hitstop",
 		"hitstop_braced",
 		"jump_cost",
+		"climb_penalty",
+		"credit_window",
 	]:
 		if float(get(field)) < 0.0:
 			found.append("brawl rules: %s must not be negative" % field)
@@ -167,4 +215,13 @@ func problems() -> PackedStringArray:
 		found.append("brawl rules: charge_cost must not exceed stamina_max")
 	if jump_cost > stamina_max:
 		found.append("brawl rules: jump_cost must not exceed stamina_max")
+	# A swimmer's head rides above the sea, and wading is shallower than swimming.
+	if swim_depth >= body_height:
+		found.append("brawl rules: swim_depth must be below body_height")
+	if wade_depth >= swim_depth:
+		found.append("brawl rules: wade_depth must be below swim_depth")
+	if stand_depth > wade_depth:
+		found.append("brawl rules: stand_depth must not exceed wade_depth")
+	if wade_speed > walk_speed:
+		found.append("brawl rules: wade_speed must not exceed walk_speed")
 	return found

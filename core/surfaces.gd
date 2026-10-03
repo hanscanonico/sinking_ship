@@ -3,13 +3,14 @@ extends RefCounted
 ## The only door to spatial questions about the ship (D6, D13): what a body stands
 ## on within a step, how high a surface is under a point, where a falling body
 ## lands, what holds a body back in the deck plane, whether a shove's line is
-## blocked, whether a walk ends in a drop, and whether a point is wet. Surfaces are
+## blocked, whether a walk ends in a drop, whether a point is wet, and where a
+## swimmer climbs out of the sea. Surfaces are
 ## numbered platforms first, then ramps, then blocker tops, each in layout order. A
 ## blocker's top is stood on and landed on like a platform's; a wall is a blocker
 ## and its doorways are the gaps between walls. Nothing here assumes a size or a deck
 ## count, and nothing reads the layout's rooms. What still stands is the pose's to say
-## (D7): a collapsed platform and a failed railing are gone from every answer once
-## honour() has been handed a pose that says so.
+## (D7): a collapsed platform, its ladders and a failed railing are gone from every
+## answer once honour() has been handed a pose that says so.
 
 const NONE := -1
 ## The side of a cell of the spatial index, in metres. Rooms made the steamer's
@@ -34,12 +35,26 @@ class Contact:
 		depth = overlap
 
 
+## A way out of the sea: where the climb puts a swimmer's feet, standing, and on
+## which surface.
+class Climb:
+	var stand: Vector3
+	var surface: int
+
+	func _init(feet: Vector3, onto: int) -> void:
+		stand = feet
+		surface = onto
+
+
 var _platforms: Array[ShipPlatform] = []
 var _ramps: Array[ShipRamp] = []
 var _blockers: Array[ShipBlocker] = []
 var _railings: Array[ShipRailing] = []
 ## Per railing, the unit normal pointing onto its platform.
 var _rail_normals := PackedVector2Array()
+var _ladders: Array[ShipLadder] = []
+## Per ladder, the unit normal pointing onto its platform.
+var _ladder_normals := PackedVector2Array()
 ## Per platform, how low its sides reach: a deck over a lower one is a slab, and a
 ## deck over none is the top of the hull, solid all the way down.
 var _platform_bottoms := PackedFloat64Array()
@@ -64,6 +79,7 @@ func _init(layout: ShipLayout) -> void:
 	_ramps = layout.ramps.duplicate()
 	_blockers = layout.blockers.duplicate()
 	_railings = layout.railings.duplicate()
+	_ladders = layout.ladders.duplicate()
 	for platform: ShipPlatform in _platforms:
 		var bottom := -INF
 		for other: ShipPlatform in _platforms:
@@ -72,11 +88,9 @@ func _init(layout: ShipLayout) -> void:
 				break
 		_platform_bottoms.append(bottom)
 	for railing: ShipRailing in _railings:
-		var normal := (railing.to - railing.from).normalized().orthogonal()
-		var centre := _platforms[railing.platform].area.get_center()
-		if (centre - railing.from).dot(normal) < 0.0:
-			normal = -normal
-		_rail_normals.append(normal)
+		_rail_normals.append(_onto(railing.platform, railing.from, railing.to))
+	for ladder: ShipLadder in _ladders:
+		_ladder_normals.append(_onto(ladder.platform, ladder.from, ladder.to))
 	_index()
 	_gone.resize(count())
 	_rail_gone.resize(_railings.size())
@@ -455,6 +469,110 @@ func highest_platform(pose: ShipPose) -> int:
 	return best
 
 
+## Whether every surface still standing is more than [param depth] under the sea
+## under [param pose], all over: the ship is gone.
+func sunk(pose: ShipPose, depth: float) -> bool:
+	for surface in count():
+		if _gone[surface] == 1:
+			continue
+		var area := _area(surface)
+		for corner: Vector2 in [
+			area.position,
+			Vector2(area.end.x, area.position.y),
+			area.end,
+			Vector2(area.position.x, area.end.y)
+		]:
+			var at := Vector3(corner.x, 0.0, corner.y)
+			at.y = height_at(surface, at)
+			if pose.world_height(at) > -depth:
+				return false
+	return true
+
+
+## Where a swimmer with its feet at [param feet] gets out of the sea under
+## [param pose] pressing along [param toward] (a unit vector, x/z), a body as
+## [param rules] size it: up a standing ladder it is at, however high; else onto the surface
+## past an edge within a radius of its circle that holds it back and stands no more
+## than climb_reach above the sea — a railing never stops it. Either way the climb
+## ends with the circle on a surface a radius past that edge — a deck, a stair or a
+## box's top, never a round blocker's — under less than wade_depth of the sea, clear
+## of everything that would hold it back, with no wall across the way at that height.
+## Null when there is no way out there.
+func climb_out(feet: Vector3, toward: Vector2, pose: ShipPose, rules: BrawlRules) -> Climb:
+	var radius := rules.body_radius
+	var step := rules.step_height
+	var point := Vector2(feet.x, feet.z)
+	for index in _ladders.size():
+		var normal := _ladder_normals[index]
+		var ladder := _ladders[index]
+		if _gone[ladder.platform] == 1 or toward.dot(normal) <= 0.0:
+			continue
+		var at := Geometry2D.get_closest_point_to_segment(point, ladder.from, ladder.to)
+		if (at - point).dot(normal) <= 0.0 or point.distance_to(at) > radius * 2.0:
+			continue
+		var top := _platforms[ladder.platform].height
+		if top <= feet.y + step:
+			continue
+		var climb := _standing(feet, at + normal * radius * 2.0, top, pose, rules)
+		if climb != null:
+			return climb
+	var probe := point + toward * radius * 2.0
+	var limit := pose.sea_height(probe.x, probe.y) + rules.climb_reach
+	var ledge := landing(Vector3(probe.x, limit, probe.y))
+	if ledge == NONE or _contains(ledge, feet):
+		return null
+	var top := height_at(ledge, Vector3(probe.x, 0.0, probe.y))
+	if top <= feet.y + step:
+		return null
+	return _standing(feet, point + toward * radius * 3.0, top, pose, rules)
+
+
+## The way out of the sea nearest a swimmer with its feet at [param feet], within
+## [param within] across the water and with no wall across the swim: a ladder, or
+## the point of a surface nearest the swimmer — a ramp's, moved along it to the
+## waterline — when that point stands within climb_reach above the sea and no deeper
+## than wade_depth under it, and climb_out finds a way up there. A surface whose
+## nearest point is out of reach is passed over, even where another part of it is
+## not. Null when there is none.
+func nearest_climb(feet: Vector3, pose: ShipPose, rules: BrawlRules, within: float) -> Climb:
+	var point := Vector2(feet.x, feet.z)
+	var edges := PackedVector2Array()
+	var towards := PackedVector2Array()
+	for index in _ladders.size():
+		var ladder := _ladders[index]
+		if _gone[ladder.platform] == 1:
+			continue
+		var at := Geometry2D.get_closest_point_to_segment(point, ladder.from, ladder.to)
+		if (at - point).dot(_ladder_normals[index]) > 0.0:
+			edges.append(at)
+			towards.append(_ladder_normals[index])
+	var box := Rect2(point - Vector2(within, within), Vector2(within, within) * 2.0)
+	for surface: int in _near(box):
+		if _gone[surface] == 1 or _is_round_top(surface):
+			continue
+		var at := _waterline_point(surface, point, pose)
+		var above := height_at(surface, Vector3(at.x, 0.0, at.y)) - pose.sea_height(at.x, at.y)
+		if above < -rules.wade_depth or above > rules.climb_reach or at.is_equal_approx(point):
+			continue
+		edges.append(at)
+		towards.append((at - point).normalized())
+	var best: Climb = null
+	var best_distance := within
+	for index in edges.size():
+		var distance := point.distance_to(edges[index])
+		if distance >= best_distance:
+			continue
+		var touching := edges[index] - towards[index] * rules.body_radius
+		var from := Vector3(touching.x, feet.y, touching.y)
+		if blocked(feet, from, rules.body_height, rules.step_height):
+			continue
+		var climb := climb_out(from, towards[index], pose, rules)
+		if climb != null:
+			best = climb
+			best_distance = distance
+	return best
+
+
 ## The highest of the first [param surfaces] surfaces under [param ship_point] at
 ## or below its height; ties go to the lower number.
 func _highest_at_or_below(ship_point: Vector3, surfaces: int) -> int:
@@ -470,6 +588,53 @@ func _highest_at_or_below(ship_point: Vector3, surfaces: int) -> int:
 			best = surface
 			best_height = height
 	return best
+
+
+## The unit normal of the segment [param from]–[param to] along [param platform]'s
+## edge that points onto the platform.
+func _onto(platform: int, from: Vector2, to: Vector2) -> Vector2:
+	var normal := (to - from).normalized().orthogonal()
+	if (_platforms[platform].area.get_center() - from).dot(normal) < 0.0:
+		normal = -normal
+	return normal
+
+
+## A swimmer at [param feet] climbing up onto [param top] to stand at [param stand]
+## (x/z): on the surface there within a step, out of the sea under [param pose] as
+## far as wading, with nothing holding it back and no wall across the way at that
+## height; null when it cannot.
+func _standing(
+	feet: Vector3, stand: Vector2, top: float, pose: ShipPose, rules: BrawlRules
+) -> Climb:
+	var step := rules.step_height
+	var at := Vector3(stand.x, top, stand.y)
+	var surface := under(at, step)
+	if surface == NONE or _is_round_top(surface):
+		return null
+	at.y = height_at(surface, at)
+	if pose.sea_height(at.x, at.z) - at.y >= rules.wade_depth:
+		return null
+	if not obstacle_contacts(at, rules.body_radius, rules.body_height, step).is_empty():
+		return null
+	if blocked(Vector3(feet.x, at.y, feet.z), at, rules.body_height, step):
+		return null
+	return Climb.new(at, surface)
+
+
+## The point of [param surface] nearest [param point] (x/z) — on a ramp, moved along
+## it to where it meets the sea under [param pose], when it can.
+func _waterline_point(surface: int, point: Vector2, pose: ShipPose) -> Vector2:
+	var area := _area(surface)
+	var at := point.clamp(area.position, area.end)
+	if not is_ramp(surface):
+		return at
+	var ramp := _ramps[surface - _platforms.size()]
+	var axis := 0 if ramp.axis == ShipRamp.Axis.X else 1
+	var share := (
+		(pose.sea_height(at.x, at.y) - ramp.start_height) / (ramp.end_height - ramp.start_height)
+	)
+	at[axis] = area.position[axis] + area.size[axis] * clampf(share, 0.0, 1.0)
+	return at
 
 
 ## The first platform at [param height] whose area holds [param point] (x/z), or NONE.
@@ -544,6 +709,12 @@ func _near(box: Rect2) -> PackedInt32Array:
 		if found.is_empty() or found[found.size() - 1] != surface:
 			found.append(surface)
 	return found
+
+
+## Whether [param surface] is the top of a round blocker — a funnel, a mast: nothing
+## a swimmer climbs onto.
+func _is_round_top(surface: int) -> bool:
+	return _is_blocker_top(surface) and _blocker_of(surface).shape != ShipBlocker.Shape.BOX
 
 
 func _blocker_of(surface: int) -> ShipBlocker:

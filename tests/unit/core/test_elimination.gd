@@ -27,25 +27,31 @@ func _exits(events: Array[SimEvent]) -> Array[SimEvent]:
 	)
 
 
-func test_feet_below_the_plane_is_out() -> void:
+func test_standing_as_the_deck_floods_ends_in_the_cold() -> void:
 	var flooding := SimFixtures.scenario([[0.0, 0.0, 0.0, 0.0], [30.0, 2.0, 10.0, 0.0]])
 	var sim := SimFixtures.sim(2, flooding)
+	var rules := sim.config.rules
 	var at_the_bow := Vector3(14.0, 0.0, 0.0)
 	SimFixtures.place(sim, 0, at_the_bow)
 	SimFixtures.place(sim, 1, Vector3(-14.0, 0.0, 0.0))
-	var wet_from := -1
+	var deep_from := -1
 	for tick in 30 * Ticks.RATE:
-		if sim.surfaces.wet(at_the_bow, sim.schedule.pose_at(tick)):
-			wet_from = tick
+		var pose := sim.schedule.pose_at(tick)
+		if pose.sea_height(at_the_bow.x, at_the_bow.z) - at_the_bow.y >= rules.wade_depth:
+			deep_from = tick
 			break
-	assert_gt(wet_from, 0)
-	SimFixtures.step(sim, {}, wet_from)
-	assert_false(sim.state.seats[0].is_out(), "dry until the water reaches its feet")
-	var events := SimFixtures.step(sim)
+	assert_gt(deep_from, 0)
+	SimFixtures.step(sim, {}, deep_from)
 	var bow := sim.state.seats[0]
-	assert_true(bow.is_out(), "out the tick its feet are under")
-	assert_eq(bow.out_tick, wet_from)
-	assert_eq(bow.out_cause, PlayerState.Cause.WATER)
+	assert_eq(bow.body, PlayerState.Body.GROUNDED, "wading until the water is wade_depth deep")
+	var events := SimFixtures.step(sim)
+	assert_eq(bow.body, PlayerState.Body.SWIMMING, "swimming the tick it is")
+	assert_eq([events[0].kind, events[0].seat], [SimEvent.Kind.ENTERED_WATER, 0])
+	events = _until_out(sim, 0)
+	assert_eq(bow.out_cause, PlayerState.Cause.COLD)
+	assert_almost_eq(
+		bow.out_tick - deep_from, Ticks.from_seconds(rules.cold_meter), 1, "a meter of cold later"
+	)
 	assert_eq(bow.place, 2)
 	assert_false(sim.state.seats[1].is_out(), "the stern is still dry")
 	assert_eq(events[0].kind, SimEvent.Kind.SEAT_OUT)
@@ -100,7 +106,7 @@ func test_shove_credit_outlasts_the_stagger() -> void:
 	var events: Array[SimEvent] = []
 	var hit := false
 	var stagger_ended_on_deck := false
-	for tick in 120:
+	for tick in 300:
 		var buttons := InputFrame.SHOVE if tick == 0 else 0
 		var tap := {0: SimFixtures.frame(0, Vector2.ZERO, buttons)}
 		events.append_array(_exits(SimFixtures.step(sim, tap)))
@@ -131,3 +137,66 @@ func test_everyone_out_together_is_a_draw() -> void:
 	assert_eq(sim.state.winner(), -1)
 	var last := events.back() as SimEvent
 	assert_eq([last.kind, last.seat], [SimEvent.Kind.MATCH_ENDED, -1])
+
+
+## [param seats] seats all swimming in a sea that has closed over the flat deck,
+## with [param colds] left on their meters.
+func _after_the_plunge(colds: Array[float]) -> MatchSim:
+	var sunk := SimFixtures.scenario([[0.0, 5.0, 0.0, 0.0]])
+	var sim := SimFixtures.sim(colds.size(), sunk)
+	for seat in colds.size():
+		SimFixtures.swim(sim, seat, Vector3(-9.0 + 3.0 * seat, 0.0, 0.0))
+		sim.state.seats[seat].cold = colds[seat]
+	return sim
+
+
+func test_plunge_ties_rank_by_cold_left() -> void:
+	var sim := _after_the_plunge([2.0, 3.0, 1.0, 2.0])
+	var events := _exits(SimFixtures.step(sim))
+	var places: Array[int] = []
+	for player: PlayerState in sim.state.seats:
+		places.append(player.place)
+	assert_eq(places, [2, 1, 4, 2], "most cold left first; equal meters share a place")
+	assert_eq(sim.state.phase, MatchState.Phase.ENDED)
+	assert_eq(sim.state.winner(), 1)
+	assert_false(sim.state.seats[1].is_out(), "the warmest is the last one in")
+	for player: PlayerState in [sim.state.seats[0], sim.state.seats[2], sim.state.seats[3]]:
+		assert_eq(player.out_cause, PlayerState.Cause.COLD)
+	var last := events.back() as SimEvent
+	assert_eq([last.kind, last.seat], [SimEvent.Kind.MATCH_ENDED, 1])
+
+	var tied := _after_the_plunge([2.5, 1.0, 2.5])
+	SimFixtures.step(tied)
+	assert_eq(tied.state.winner(), -1, "the warmest tied: the sea wins")
+	assert_eq(
+		[tied.state.seats[0].place, tied.state.seats[1].place, tied.state.seats[2].place], [1, 3, 1]
+	)
+
+
+func test_out_credit_goes_to_last_shover_within_window() -> void:
+	var rules := SimFixtures.rules()
+	# Shoved through the railing's gap, the target swims until the cold takes it:
+	# the shove put it there, so the shover is credited.
+	var sim := SimFixtures.sim(3)
+	var gap := SimFixtures.rail_gap(SimFixtures.deck().platforms[0].area.end.y)
+	SimFixtures.place(sim, 0, Vector3(gap.x, 0.0, 2.6), 90.0)
+	SimFixtures.place(sim, 1, Vector3(gap.x, 0.0, 3.4), -90.0)
+	SimFixtures.place(sim, 2, Vector3(-10.0, 0.0, 0.0))
+	SimFixtures.step(sim, {0: SimFixtures.frame(0, Vector2.ZERO, InputFrame.SHOVE)})
+	SimFixtures.step(sim, {0: SimFixtures.frame(0)})
+	var events := _until_out(sim, 1)
+	assert_eq([events[0].seat, events[0].credit], [1, 0], "credited through the swim")
+
+	# Falling overboard, sent by seat 1's shove: credited when it landed less than
+	# credit_window before the fall in, not otherwise.
+	for landed_at: int in [0, -Ticks.from_seconds(rules.credit_window)]:
+		var falling := SimFixtures.sim(2)
+		SimFixtures.place(falling, 1, Vector3(-10.0, 0.0, 0.0))
+		_overboard(falling, 0, 6.0)
+		var body := falling.state.seats[0]
+		body.body = PlayerState.Body.AIRBORNE
+		body.last_hit_by = 1
+		body.last_hit_at = landed_at
+		events = _until_out(falling, 0)
+		var credit := 1 if landed_at == 0 else -1
+		assert_eq([events[0].seat, events[0].credit], [0, credit], "landed at tick %d" % landed_at)

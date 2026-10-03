@@ -11,6 +11,14 @@ extends RefCounted
 ## clip's speed times its length (Walk 1.33 s, Jog_Fwd 0.93 s), over two feet.
 const WALK_STRIDE := BrawlerAnimation.WALK_CLIP_SPEED * 1.333 / 2.0
 const RUN_STRIDE := BrawlerAnimation.RUN_CLIP_SPEED * 0.933 / 2.0
+## Metres a swimmer covers between strokes: about two a second at swim_speed.
+const SWIM_STROKE := 1.1
+## The moves that sound as they go, and the metres between their sounds.
+const STRIDES := {
+	BrawlerAnimation.Move.WALK: WALK_STRIDE,
+	BrawlerAnimation.Move.RUN: RUN_STRIDE,
+	BrawlerAnimation.Move.SWIM: SWIM_STROKE,
+}
 ## The quietest footfall, at a stroll; a full run is 1.
 const STEP_SOFT := 0.45
 ## A collapse's telegraph is the same wood giving way as the collapse, quieter.
@@ -99,8 +107,9 @@ func plan(previous: Dictionary, current: Dictionary) -> Array[AudioCue]:
 	return cues
 
 
-## A footfall each stride while the feet are drawn walking or running; a body
-## frozen in a hit-stop holds its stride without a sound.
+## A footfall each stride while the feet are drawn walking or running, and a stroke
+## each SWIM_STROKE while a swimmer is drawn swimming along; a body frozen in a
+## hit-stop holds its stride without a sound.
 func _footstep(entry: Dictionary, pose: ShipPose, tick: int, cues: Array[AudioCue]) -> void:
 	if entry["hitstop"] > 0:
 		return
@@ -108,14 +117,16 @@ func _footstep(entry: Dictionary, pose: ShipPose, tick: int, cues: Array[AudioCu
 	var vel: Vector3 = entry["vel"]
 	var speed := Vector2(vel.x, vel.z).length()
 	var move := BrawlerAnimation.move_for(entry, speed)
-	if entry["out"] or (move != BrawlerAnimation.Move.WALK and move != BrawlerAnimation.Move.RUN):
+	if entry["out"] or not STRIDES.has(move):
 		_stride[seat] = 0.5
 		return
-	var stride := RUN_STRIDE if move == BrawlerAnimation.Move.RUN else WALK_STRIDE
-	_stride[seat] += speed * Ticks.SECONDS_PER_TICK / stride
+	_stride[seat] += speed * Ticks.SECONDS_PER_TICK / STRIDES[move]
 	if _stride[seat] < 1.0:
 		return
 	_stride[seat] = fposmod(_stride[seat], 1.0)
+	if move == BrawlerAnimation.Move.SWIM:
+		cues.append(_at_seat(AudioCue.Kind.STROKE, tick, entry))
+		return
 	var cue := _at_seat(AudioCue.Kind.FOOTSTEP, tick, entry)
 	cue.gain = lerpf(STEP_SOFT, 1.0, clampf(speed / _walk_speed, 0.0, 1.0))
 	cue.ground = _ground(entry["surface"], entry["pos"], pose)
@@ -146,6 +157,8 @@ func _take_off(then: Dictionary, now: Dictionary, tick: int, cues: Array[AudioCu
 	cues.append(effort)
 
 
+## What [param event] sounds like. Going into the sea splashes, and a climber shoved
+## back in splashes heavy; an out by the cold is quiet — its splash was going in.
 func _from_event(event: Dictionary, now: Dictionary, pose: ShipPose, cues: Array[AudioCue]) -> void:
 	var tick: int = event["tick"]
 	var seat: int = event["seat"]
@@ -164,9 +177,12 @@ func _from_event(event: Dictionary, now: Dictionary, pose: ShipPose, cues: Array
 			cue.gain = lerpf(LANDING_SOFT, 1.0, heavy)
 			cue.ground = _ground(event["surface"], cue.position, pose)
 			cues.append(cue)
-		SimEvent.Kind.SEAT_OUT:
-			if event["cause"] == PlayerState.Cause.WATER:
-				cues.append(_at_seat(AudioCue.Kind.SPLASH, tick, now[seat]))
+		SimEvent.Kind.ENTERED_WATER:
+			cues.append(_at_seat(AudioCue.Kind.SPLASH, tick, now[seat]))
+		SimEvent.Kind.KNOCKED_BACK_IN:
+			var thrown := _at_seat(AudioCue.Kind.SPLASH, tick, now[seat])
+			thrown.heavy = true
+			cues.append(thrown)
 		SimEvent.Kind.MATCH_ENDED:
 			var won := seat == _local_seat and seat >= 0
 			cues.append(

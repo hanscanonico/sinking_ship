@@ -12,6 +12,8 @@ extends Resource
 @export var blockers: Array[ShipBlocker] = []
 ## Railing spans along platform edges; an edge with no span is open.
 @export var railings: Array[ShipRailing] = []
+## Boarding ladders: where a swimmer climbs up the side from the sea.
+@export var ladders: Array[ShipLadder] = []
 ## Where seats start, ship-local; the match stream shuffles who gets which.
 @export var spawns: Array[Vector3] = []
 ## Rooms by name, for the lint, the walk graph, the HUD and the greybox; no rule
@@ -63,6 +65,16 @@ func problems(seats: int) -> PackedStringArray:
 			and not platforms[railing.platform].edge_holds(railing.from, railing.to)
 		):
 			found.append("ship: a railing does not run along its platform's edge")
+	for ladder: ShipLadder in ladders:
+		if ladder == null or ladder.from.is_equal_approx(ladder.to):
+			found.append("ship: a ladder has no width")
+		elif ladder.platform < 0 or ladder.platform >= platforms.size():
+			found.append("ship: a ladder names platform %d" % ladder.platform)
+		elif (
+			platforms[ladder.platform] != null
+			and not platforms[ladder.platform].edge_holds(ladder.from, ladder.to)
+		):
+			found.append("ship: a ladder does not run along its platform's edge")
 	for room: ShipRoom in rooms:
 		if room == null or room.area.size.x <= 0.0 or room.area.size.y <= 0.0:
 			found.append("ship: a room has no area")

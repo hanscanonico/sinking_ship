@@ -26,6 +26,7 @@ static func quantized(snapshot: Dictionary) -> String:
 		var pos: Vector3 = entry["pos"]
 		var vel: Vector3 = entry["vel"]
 		var held: Vector3 = entry["held_vel"]
+		var climb_to: Vector3 = entry["climb_to"]
 		var fields: Array = [
 			entry["seat"],
 			entry["state"],
@@ -56,7 +57,13 @@ static func quantized(snapshot: Dictionary) -> String:
 			roundi(held.x * 100.0),
 			roundi(held.y * 100.0),
 			roundi(held.z * 100.0),
+			roundi(float(entry["cold"]) * 100.0),
+			entry["climb"],
+			roundi(climb_to.x * 1000.0),
+			roundi(climb_to.y * 1000.0),
+			roundi(climb_to.z * 1000.0),
 			entry["last_hit_by"],
+			entry["last_hit_at"],
 			entry["prev_buttons"],
 		]
 		fields.append_array(entry["last_input"])

@@ -13,10 +13,14 @@ extends RefCounted
 ## edges: a drop, or a railing gap, unless the target stands between the bot and it.
 ## On its reads, rolled each think, it charges a bracing target instead of tapping,
 ## and — unless it is climbing — braces, standing still and looking at it, against a
-## seat that could be winding up a shove that would land on it. It hears the sinking's
-## telegraphs as a player does, in the current pose: told of a lurch, it walks away
-## from the side the lurch will put down and, once the deck swings, braces if it can;
-## it leaves a deck that is giving way, and never routes onto one.
+## seat that could be winding up a shove that would land on it. A seat in the sea
+## within its guard range becomes its target — it guards the edge — and once that
+## seat climbs, the bot steps to the waterline to shove it back. In the sea it swims
+## for the nearest way out Surfaces finds, and climbs, deaf to the sinking. On deck it
+## hears the sinking's telegraphs as a player does, in the current pose: told of a
+## lurch, it walks away from the side the lurch will put down and, once the deck
+## swings, braces if it can; it leaves a deck that is giving way, and never routes
+## onto one.
 
 ## Directions probed around the bot for water and open edges.
 const PROBES := 8
@@ -49,6 +53,9 @@ var _reads_brace := false
 var _reads_charge := false
 ## Ticks this charge has been held for; 0 when not charging.
 var _charge_held := 0
+## In the sea, the way out it is swimming for, as the last think found it; null for
+## none.
+var _way_out: Surfaces.Climb
 var _charge_full_ticks: int
 
 
@@ -88,10 +95,15 @@ func decide(view: BotView, tick: int) -> InputFrame:
 	var reaction_s := _profile.reaction_ticks * Ticks.SECONDS_PER_TICK
 	var my_vel: Vector3 = me["vel"]
 	var now_pos := my_pos + Vector3(my_vel.x, 0.0, my_vel.z) * reaction_s
+	if me["state"] == PlayerState.Body.SWIMMING:
+		return _swim_out(me, now_pos, pose, tick)
 	if _think_in <= 0:
 		_think(seen, me, now_pos, pose)
 		_think_in = _profile.think_period
 	_think_in -= 1
+	var guarding := _swimmer_near(seen, my_pos)
+	if guarding != -1:
+		_target = guarding
 	var target := _entry(seen, _target)
 	if not target.is_empty() and target["out"]:
 		target = {}
@@ -102,10 +114,13 @@ func decide(view: BotView, tick: int) -> InputFrame:
 	# probes: a doorway is narrower than what the reaction lag would overshoot.
 	var now_zone := _walk_graph.zone_at(now_pos, my_surface)
 	var waypoint := _waypoint(now_pos, my_surface, now_zone, pose)
-	if not waypoint.is_empty():
+	if not waypoint.is_empty() and guarding == -1:
 		wish = Vector2(waypoint[0].x - now_pos.x, waypoint[0].z - now_pos.z).normalized()
 		wish = _clear_heading(now_pos, wish, PackedInt32Array(), PackedInt32Array())
-	elif not target.is_empty() and not (_seeking_high and _zone_of(target) != my_zone):
+	elif (
+		not target.is_empty()
+		and (guarding != -1 or not (_seeking_high and _zone_of(target) != my_zone))
+	):
 		var goal := _approach(my_pos, target["pos"], pose)
 		wish = Vector2(goal.x - my_pos.x, goal.z - my_pos.z)
 		wish = wish.normalized().rotated(_aim_offset)
@@ -149,6 +164,40 @@ func decide(view: BotView, tick: int) -> InputFrame:
 	return InputFrame.new(seat, tick, InputFrame.quantize(move), buttons, _look)
 
 
+## In the sea: nothing to press while a climb is under way; else straight for the
+## way out found at the last think — the nearest Surfaces knows of within the swim its
+## cold has left, with no wall across the water — looking where it swims. It presses
+## on into the edge that stops it, which is what starts the climb.
+func _swim_out(me: Dictionary, now_pos: Vector3, pose: ShipPose, tick: int) -> InputFrame:
+	if _think_in <= 0:
+		var cold_left: float = me["cold"]
+		_way_out = _surfaces.nearest_climb(now_pos, pose, _rules, cold_left * _rules.swim_speed)
+		_think_in = _profile.think_period
+	_think_in -= 1
+	_last_buttons = 0
+	if me["climb"] > 0 or _way_out == null:
+		return InputFrame.new(seat, tick, Vector2i.ZERO, 0, _look)
+	var stand := _way_out.stand
+	var wish := Vector2(stand.x - now_pos.x, stand.z - now_pos.z).normalized()
+	_turn_toward(wish)
+	return InputFrame.new(seat, tick, InputFrame.quantize(wish), 0, _look)
+
+
+## The nearest seat seen in the sea within guard_range_m of [param my_pos], or -1:
+## one there may climb out at the bot's feet.
+func _swimmer_near(seen: Dictionary, my_pos: Vector3) -> int:
+	var nearest := -1
+	var best := _profile.guard_range_m
+	for entry: Dictionary in seen["seats"]:
+		if entry["seat"] == seat or entry["state"] != PlayerState.Body.SWIMMING:
+			continue
+		var distance := my_pos.distance_to(entry["pos"])
+		if distance < best:
+			best = distance
+			nearest = entry["seat"]
+	return nearest
+
+
 ## A charge under way is held until it is full, then let go; otherwise a shove
 ## when one would land — a charge if the target braces and the read says so, else
 ## a tap — and failing that a brace against [param threat], if the read says so and
@@ -181,7 +230,7 @@ func _threat(seen: Dictionary, me: Dictionary) -> Dictionary:
 	var my_pos: Vector3 = me["pos"]
 	var mine := ShoveResolver.Candidate.new(seat, my_pos, _rules.body_radius, _rules.body_height)
 	for entry: Dictionary in seen["seats"]:
-		if entry["seat"] == seat or entry["out"]:
+		if entry["seat"] == seat or entry["state"] != PlayerState.Body.GROUNDED:
 			continue
 		var action: PlayerState.Action = entry["action"]
 		if action == PlayerState.Action.ACTIVE or action == PlayerState.Action.RECOVERY:
@@ -343,18 +392,21 @@ func _stair_ahead(my_surface: int, pose: ShipPose) -> Vector2:
 ## A unit vector away from every probe at edge_margin that is wet or past an open
 ## edge — walking there would drop off it — or zero when none is (or they cancel
 ## out). A probe past a railing of [param my_surface] is safe; one through a gap is
-## not, unless [param target] is lined up for a shove through it. On a stair whose
-## way on is [param stair_ahead], an open edge ahead of it is the stair's far end and
-## its sides, and is no danger.
+## not, unless [param target] is lined up for a shove through it — nor one into the
+## sea, when [param target] is climbing out of it there. On a stair whose way on is
+## [param stair_ahead], an open edge ahead of it is the stair's far end and its sides,
+## and is no danger.
 func _away_from_danger(
 	my_pos: Vector3, my_surface: int, pose: ShipPose, target: Dictionary, stair_ahead: Vector2
 ) -> Vector2:
 	var push := Vector2.ZERO
+	var guarding: bool = not target.is_empty() and target["climb"] > 0
 	for index in PROBES:
 		var direction := Vector2.from_angle(TAU * index / PROBES)
 		var probe := my_pos + Vector3(direction.x, 0.0, direction.y) * _profile.edge_margin_m
 		if _surfaces.wet(probe, pose):
-			push -= direction
+			if not (guarding and _lined_up(my_pos, probe, target)):
+				push -= direction
 		elif (
 			direction.dot(stair_ahead) <= 0.0
 			and _surfaces.drops(my_pos, probe, _rules.step_height)

@@ -36,6 +36,13 @@ func world_height(ship_point: Vector3) -> float:
 	return (transform * ship_point).y
 
 
+## The ship-local height the sea stands at over the ship-plane point
+## ([param x], [param z]): a point there is wet below it.
+func sea_height(x: float, z: float) -> float:
+	var basis := transform.basis
+	return -(basis.x.y * x + basis.z.y * z + transform.origin.y) / basis.y.y
+
+
 ## The world's downward pull of [param strength], in ship space: its x/z part is
 ## the deck's downhill, whichever way the ship leans.
 func ship_gravity(strength: float) -> Vector3:

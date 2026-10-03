@@ -75,6 +75,9 @@ const FILES := {
 	AudioCue.Kind.FLOOD: ["ship/flood_0.wav", "ship/flood_1.wav"],
 	AudioCue.Kind.HORN: ["ship/horn.wav"],
 	AudioCue.Kind.COLLAPSE: ["ship/collapse_0.wav"],
+	## Wet footfalls, slowed: a hand through the water.
+	AudioCue.Kind.STROKE:
+	["steps/wet_0.wav", "steps/wet_1.wav", "steps/wet_2.wav", "steps/wet_3.wav"],
 }
 ## How each kind carries: its level in dB; for a positional cue the distance it
 ## plays at that level ("near") and the farthest it is heard ("far"), in metres;
@@ -96,6 +99,7 @@ const CARRY := {
 	AudioCue.Kind.FLOOD: {"db": -2.0, "near": 12.0, "far": 100.0},
 	AudioCue.Kind.HORN: {"db": 0.0, "near": 60.0, "far": 400.0},
 	AudioCue.Kind.COLLAPSE: {"db": 0.0, "near": 10.0, "far": 80.0},
+	AudioCue.Kind.STROKE: {"db": -6.0, "near": 2.5, "far": 25.0, "pitch": 0.8},
 }
 
 var _streams := {}

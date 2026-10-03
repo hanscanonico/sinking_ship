@@ -2,7 +2,7 @@ extends GutTest
 ## The beds follow the water and the ship (D7): the sea swells and brightens as it
 ## nears, the wind blows harder higher up, the rush follows the sinking's pace, and
 ## a room — below deck or in the deckhouse — muffles the outside and rings with its
-## own reverb.
+## own reverb; the sea over the ears muffles it more.
 
 
 func test_the_sea_swells_and_brightens_as_it_nears() -> void:
@@ -29,6 +29,11 @@ func test_a_room_muffles_the_outside_and_rings() -> void:
 	assert_almost_eq(AmbienceMix.outside_cutoff_hz(1.0), AmbienceMix.ENCLOSED_HZ, 0.01)
 	assert_eq(AmbienceMix.reverb_wet(0.0), 0.0, "no reverb on open deck")
 	assert_gt(AmbienceMix.reverb_wet(1.0), 0.0)
+
+
+func test_under_the_sea_the_outside_is_muffled_and_the_wind_drops() -> void:
+	assert_lt(AmbienceMix.outside_cutoff_hz(0.0, true), AmbienceMix.ENCLOSED_HZ, "past a room's")
+	assert_lt(AmbienceMix.wind_db(-1.0, 0.0, true), AmbienceMix.wind_db(-1.0, 1.0), "past a room's")
 
 
 func test_feet_in_a_room_are_enclosed_and_open_deck_is_not() -> void:

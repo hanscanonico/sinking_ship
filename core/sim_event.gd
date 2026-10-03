@@ -16,19 +16,25 @@ enum Kind {
 	PLATFORM_COLLAPSED,
 	RAILING_BROKE,
 	PLUNGE_BEGAN,
+	ENTERED_WATER,
+	CLIMBED_OUT,
+	KNOCKED_BACK_IN,
 }
 
 var kind: Kind
 var tick: int
 ## SEAT_OUT: who went out. MATCH_ENDED: the winner, or -1 for a draw. VAULTED:
 ## who tipped over a railing. FELL: who went off an edge. LANDED: who came down.
-## SHOVE_LANDED: the shover. The sinking's events: -1.
+## SHOVE_LANDED: the shover. ENTERED_WATER: who started swimming. CLIMBED_OUT: who
+## stood up out of the sea. KNOCKED_BACK_IN: the climber a shove sent back. The
+## sinking's events: -1.
 var seat: int
 var place: int
 var cause: PlayerState.Cause = PlayerState.Cause.NONE
 ## SEAT_OUT: the seat whose shove last landed on the one going out, or -1.
+## KNOCKED_BACK_IN: the shover.
 var credit: int = -1
-## LANDED: the surface it came down on.
+## LANDED: the surface it came down on. CLIMBED_OUT: the surface it stands on.
 var surface: int = Surfaces.NONE
 ## LANDED: the ticks of stagger the drop cost.
 var stagger_ticks: int
@@ -96,6 +102,22 @@ static func sinking(event_tick: int, event: SinkEvent, telegraph: bool) -> SimEv
 	if event.kind == SinkEvent.Kind.RAILING_FAIL:
 		announced.railing = event.railing
 	return announced
+
+
+static func entered_water(event_tick: int, swimming_seat: int) -> SimEvent:
+	return SimEvent.new(Kind.ENTERED_WATER, event_tick, swimming_seat)
+
+
+static func climbed_out(event_tick: int, climbing_seat: int, on_surface: int) -> SimEvent:
+	var event := SimEvent.new(Kind.CLIMBED_OUT, event_tick, climbing_seat)
+	event.surface = on_surface
+	return event
+
+
+static func knocked_back_in(event_tick: int, climbing_seat: int, by: int) -> SimEvent:
+	var event := SimEvent.new(Kind.KNOCKED_BACK_IN, event_tick, climbing_seat)
+	event.credit = by
+	return event
 
 
 static func match_ended(event_tick: int, winner: int) -> SimEvent:

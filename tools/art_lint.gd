@@ -7,7 +7,9 @@ extends SceneTree
 ##   PLATFORM_TOLERANCE of each platform's height across its whole area; a face
 ##   within BLOCKER_TOLERANCE of every blocker's sides, its top, and a lintel's
 ##   underside; and over every ramp a stair whose top stands within half a riser
-##   (ShipArt.STEP_RISE) and PLATFORM_TOLERANCE of the ramp's height.
+##   (ShipArt.STEP_RISE) and PLATFORM_TOLERANCE of the ramp's height; and down
+##   every boarding ladder's rung line, a top within LADDER_TOLERANCE of its
+##   platform's height and a bottom at or under the waterline at rest.
 ## - Seats: through a bots-only match in the real match scene, every brawler's
 ##   model hangs from its body's feet — the posed ship carrying the interpolated
 ##   snapshot position — and the mannequin's soles stand on that root.
@@ -23,12 +25,13 @@ const ART_DIR := "res://scenes/art/"
 const SEED := 1701
 const SEATS := 8
 ## A match the default scenario's collapse comes in before it ends.
-const COLLAPSE_SEED := 8
+const COLLAPSE_SEED := 1
 ## Match time the seat check watches, at most.
 const SEAT_SECONDS := 90.0
 const PLATFORM_TOLERANCE := 0.02
 const BLOCKER_TOLERANCE := 0.05
 const RAMP_TOLERANCE := ShipArt.STEP_RISE * 0.5 + PLATFORM_TOLERANCE
+const LADDER_TOLERANCE := 0.05
 const SEAT_TOLERANCE := 0.001
 const SOLE_TOLERANCE := 0.02
 ## How far in from a platform's edges the samples start, and how many per side.
@@ -142,7 +145,53 @@ func _check_ship(file: String, layout: ShipLayout) -> void:
 		_check_blocker(
 			faces, cells, "%s blocker %d" % [file, index], layout.blockers[index], layout
 		)
+	for index in layout.ladders.size():
+		_check_ladder(faces, cells, "%s ladder %d" % [file, index], layout.ladders[index], layout)
 	art.free()
+
+
+## Straight down the middle of [param ladder]'s rung line, ShipArt.LADDER_OUT
+## outboard of its platform's edge: the highest face drawn there within
+## LADDER_TOLERANCE of the deck, and the lowest at or under the waterline at rest —
+## a swimmer finds it from the sea, and it leads all the way up.
+func _check_ladder(
+	faces: PackedVector3Array,
+	cells: Dictionary,
+	what: String,
+	ladder: ShipLadder,
+	layout: ShipLayout
+) -> void:
+	_checks += 1
+	var platform := layout.platforms[ladder.platform]
+	var outward := (ladder.to - ladder.from).normalized().orthogonal()
+	if (platform.area.get_center() - ladder.from).dot(outward) > 0.0:
+		outward = -outward
+	var middle := (ladder.from + ladder.to) * 0.5 + outward * ShipArt.LADDER_OUT
+	var top := _first_face(faces, cells, Vector3(middle.x, platform.height + 1.0, middle.y), -1.0)
+	var bottom := _first_face(faces, cells, Vector3(middle.x, -100.0, middle.y), 1.0)
+	if absf(top - platform.height) > LADDER_TOLERANCE:
+		_problems.append(
+			"art-lint: %s: drawn top %.1f cm off its deck" % [what, (top - platform.height) * 100.0]
+		)
+	if bottom > -layout.freeboard:
+		_problems.append(
+			"art-lint: %s: rungs stop %.2f m over the waterline" % [what, bottom + layout.freeboard]
+		)
+
+
+## The height of the first face drawn on the vertical line from [param from], going
+## up when [param way] is 1 and down when it is -1; [param from]'s own height when
+## nothing is.
+func _first_face(faces: PackedVector3Array, cells: Dictionary, from: Vector3, way: float) -> float:
+	var direction := Vector3.UP * way
+	var nearest := INF
+	for index: int in cells.get(Vector2i(floori(from.x / CELL), floori(from.z / CELL)), []):
+		var hit: Variant = Geometry3D.ray_intersects_triangle(
+			from, direction, faces[index], faces[index + 1], faces[index + 2]
+		)
+		if hit != null:
+			nearest = minf(nearest, ((hit as Vector3) - from).dot(direction))
+	return from.y if nearest == INF else from.y + nearest * way
 
 
 ## Whether, straight above or below each of [param points], a drawn face lies within

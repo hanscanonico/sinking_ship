@@ -11,6 +11,8 @@ const FALL := BrawlerAnimation.Move.FALL
 const BRACE := BrawlerAnimation.Move.BRACE
 const CHARGE := BrawlerAnimation.Move.CHARGE
 const JUMP := BrawlerAnimation.Move.JUMP
+const SWIM := BrawlerAnimation.Move.SWIM
+const CLIMB := BrawlerAnimation.Move.CLIMB
 
 
 func _entry(sim: MatchSim, seat: int = 0) -> Dictionary:
@@ -98,6 +100,18 @@ func test_a_jump_springs_up_then_falls_then_lands() -> void:
 	assert_eq(moves.slice(0, top).count(JUMP), top, "rising is the jump's own pose")
 	assert_eq(moves.slice(top, moves.size() - 1).count(FALL), moves.size() - 1 - top, "then falls")
 	assert_eq(moves.back(), IDLE, "and lands on its feet")
+
+
+func test_a_swimmer_swims_then_climbs_off_the_snapshot() -> void:
+	var sim := SimFixtures.sim(2, null, SimFixtures.low_deck(0.4))
+	SimFixtures.place(sim, 1, Vector3(-10.0, 0.0, 0.0))
+	SimFixtures.swim(sim, 0, Vector3(0.0, 0.0, 4.6))
+	var swimmer := _entry(sim)
+	assert_eq(_move(swimmer), SWIM)
+	swimmer["stagger"] = 5
+	assert_eq(_move(swimmer, 6.0), SWIM, "a shoved swimmer still swims")
+	SimFixtures.step(sim, {0: SimFixtures.frame(0, Vector2(0.0, -1.0))})
+	assert_eq(_move(_entry(sim)), CLIMB, "pressing into the deck's edge")
 
 
 func test_feet_walk_then_run_with_speed() -> void:

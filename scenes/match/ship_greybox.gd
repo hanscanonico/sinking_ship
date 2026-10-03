@@ -4,7 +4,8 @@ extends Node3D
 ## underside drawn as a ceiling where it stands over another, a hull block under
 ## every part of a platform that stands over none, a wedge for every ramp, a box or
 ## cylinder for every blocker — walls among them — a frame under every lintel, a
-## lamp marker in every room, and a top rail on posts along every railing span. Drawn
+## lamp marker in every room, a top rail on posts along every railing span, and a
+## ladder down the hull from every boarding ladder's edge. Drawn
 ## only — the sim never reads a mesh — and nothing is placed by hand. Nothing at or
 ## above [member cut_above] is drawn, so the observer can look inside. The sinking's
 ## events are drawn as MatchView hands them in: a deck about to give way flashes, a
@@ -43,6 +44,9 @@ const RAIL_THICKNESS := 0.08
 const POST_THICKNESS := 0.07
 ## Posts stand at both ends of a span and no farther apart than this.
 const POST_SPACING := 1.5
+const LADDER_COLOUR := Color(0.25, 0.22, 0.2)
+const LADDER_THICKNESS := 0.06
+const RUNG_SPACING := 0.35
 ## Size below which a leftover rectangle of hull is float noise, not hull.
 const SLIVER := 0.01
 ## A deck about to give way is lit this colour while its telegraph blinks.
@@ -132,6 +136,10 @@ func build(layout: ShipLayout, railing_height: float) -> void:
 			_rails.append(_railing(railing, deck_height, railing_height))
 		else:
 			_rails.append(null)
+	for ladder: ShipLadder in layout.ladders:
+		var deck := _decks[ladder.platform]
+		if deck != null:
+			_ladder(ladder, layout.platforms[ladder.platform], hull_depth, deck)
 
 
 ## Draws what the sinking's events have done, as MatchView hands them in: a
@@ -323,6 +331,34 @@ func _railing(railing: ShipRailing, deck_height: float, railing_height: float) -
 			rail
 		)
 	return rail
+
+
+## Two stiles and their rungs hanging just outboard of [param ladder]'s stretch of
+## [param platform]'s edge, from the deck down [param depth], hung from [param deck]
+## so they go with it when it collapses.
+func _ladder(ladder: ShipLadder, platform: ShipPlatform, depth: float, deck: Node3D) -> void:
+	var span := ladder.to - ladder.from
+	var outward := span.normalized().orthogonal()
+	if (platform.area.get_center() - ladder.from).dot(outward) > 0.0:
+		outward = -outward
+	var off := outward * LADDER_THICKNESS
+	var turn := Basis(Vector3.UP, -span.angle())
+	for end: Vector2 in [ladder.from + off, ladder.to + off]:
+		_box(
+			Vector3(LADDER_THICKNESS, depth, LADDER_THICKNESS),
+			Vector3(end.x, platform.height - depth * 0.5, end.y),
+			LADDER_COLOUR,
+			deck
+		)
+	var middle := (ladder.from + ladder.to) * 0.5 + off
+	for index in floori(depth / RUNG_SPACING):
+		var rung := _box(
+			Vector3(span.length(), LADDER_THICKNESS * 0.6, LADDER_THICKNESS * 0.6),
+			Vector3(middle.x, platform.height - RUNG_SPACING * (index + 1), middle.y),
+			LADDER_COLOUR,
+			deck
+		)
+		rung.basis = turn
 
 
 ## A box over [param footprint] (x/z) from [param bottom] to [param top], cut short

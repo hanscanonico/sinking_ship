@@ -4,13 +4,15 @@ extends CanvasLayer
 ## a crosshair that lights when ShoveResolver.would_hit says a shove now would land
 ## (D13), the inclinometer, the room or deck the seat stands in, the height above the
 ## sea, the stamina and cold slots, an arc at the screen's edge for a shove winding up
-## beside or behind, and a chevron, a stamina ring and a name over every brawler in
-## sight within CHEVRON_RANGE. The sinking is heard before it is seen: a flashing
-## chip over the crosshair for every telegraph running — a lurch, a deck giving way —
-## and a banner naming each phase as it begins. All of it reads the snapshot,
-## SinkSchedule's pose, Surfaces, the ship's rooms and the bodies as drawn (D5). From
-## the observer camera only the inclinometer, the sinking's chips and banner, and
-## where the watched seat stands show.
+## beside or behind, and a chevron, a ring and a name over every brawler in sight
+## within CHEVRON_RANGE — the ring its stamina, or its cold meter in the sea. In the
+## sea the cold meter also frames the screen as it empties, and a prompt says when
+## pressing on would climb out (Surfaces.climb_out). The sinking is heard before it is
+## seen: a flashing chip over the crosshair for every telegraph running — a lurch, a
+## deck giving way — and a banner naming each phase as it begins. All of it reads the
+## snapshot, SinkSchedule's pose, Surfaces, the ship's rooms and the bodies as drawn
+## (D5). From the observer camera only the inclinometer, the sinking's chips and
+## banner, and where the watched seat stands show.
 
 ## How far away a brawler still gets its chevron, in metres.
 const CHEVRON_RANGE := 15.0
@@ -29,6 +31,12 @@ const LOW := Color(1.0, 0.3, 0.25)
 const STAMINA := Color(0.55, 0.9, 0.45)
 ## Run dry, stamina stays red until it is full again.
 const EXHAUSTED := Color(0.95, 0.3, 0.25)
+const COLD := Color(0.55, 0.8, 1.0)
+## Under this share of a full meter, the cold slot and its ring turn red.
+const COLD_LOW := 0.35
+## The frame the emptying cold meter draws round the screen: its widest, in pixels.
+const FRAME_WIDTH := 60.0
+const FRAME := Color(0.75, 0.9, 1.0, 0.45)
 const AIM := Color(1.0, 1.0, 1.0, 0.75)
 const AIM_LIT := Color(1.0, 0.85, 0.3)
 const DIAL_RADIUS := 30.0
@@ -49,6 +57,8 @@ const BANNER_SECONDS := 4.0
 const BANNER_FONT_SIZE := 30
 
 var _schedule: SinkSchedule
+## Its own, honoured with the pose of the tick it draws: what a climb or a shove
+## meets is the ship as that pose has it, and the sim's stays the sim's.
 var _surfaces: Surfaces
 var _rules: BrawlRules
 var _ship: ShipLayout
@@ -78,7 +88,7 @@ func _ready() -> void:
 ## [param prompts] names the buttons a warning asks for.
 func setup(sim: MatchSim, names: PackedStringArray, eyes: bool, prompts: InputPrompts) -> void:
 	_schedule = sim.schedule
-	_surfaces = sim.surfaces
+	_surfaces = Surfaces.new(sim.config.ship)
 	_rules = sim.config.rules
 	_ship = sim.config.ship
 	_names = names
@@ -105,6 +115,7 @@ func _draw_hud() -> void:
 		return
 	var tick: int = _snapshot["tick"]
 	var pose := _schedule.pose_at(tick)
+	_surfaces.honour(pose)
 	_draw_inclinometer(pose)
 	_draw_warnings(pose, tick)
 	_draw_phase(tick)
@@ -115,6 +126,9 @@ func _draw_hud() -> void:
 	if not _eyes:
 		return
 	_draw_crosshair(ShoveResolver.would_hit(_snapshot, _seat, _rules, _surfaces))
+	if me["state"] == PlayerState.Body.SWIMMING:
+		_draw_cold_frame(me)
+		_draw_climb_prompt(me, pose)
 	_draw_readouts(me, pose.world_height(me["pos"]))
 	_draw_chevrons(me["pos"])
 	_draw_windup_arcs(me["pos"])
@@ -239,20 +253,23 @@ func _draw_where(feet: Vector3, surface: int) -> void:
 	_text(at, where.capitalize(), TEXT, READOUT_TEXT, HORIZONTAL_ALIGNMENT_LEFT)
 
 
-## Bottom left: metres from [param me]'s feet down to the sea, then the stamina and
-## cold slots — stamina filled from [param me], cold empty until SH5 fills it.
+## Bottom left: metres from [param me]'s feet down to the sea — or that it is in
+## it — then the stamina and cold slots, filled from [param me].
 func _draw_readouts(me: Dictionary, above_sea: float) -> void:
 	var at := Vector2(24.0, _canvas.size.y - 120.0)
 	var colour := LOW if above_sea < 1.0 else TEXT
-	_text(at, "%.1f m above the sea" % above_sea, colour, READOUT_TEXT, HORIZONTAL_ALIGNMENT_LEFT)
+	var height := "%.1f m above the sea" % above_sea
+	if me["state"] == PlayerState.Body.SWIMMING:
+		height = "In the sea"
+	_text(at, height, colour, READOUT_TEXT, HORIZONTAL_ALIGNMENT_LEFT)
 	for slot: String in ["Stamina", "Cold"]:
 		at.y += 30.0
 		_text(at, slot, Color(TEXT, 0.5), READOUT_TEXT, HORIZONTAL_ALIGNMENT_LEFT)
 		var bar := Rect2(at + Vector2(80.0, -13.0), Vector2(140.0, 14.0))
 		_canvas.draw_rect(bar, INK)
-		if slot == "Stamina":
-			var filled := Rect2(bar.position, Vector2(bar.size.x * _stamina(me), bar.size.y))
-			_canvas.draw_rect(filled, _stamina_colour(me))
+		var share := _stamina(me) if slot == "Stamina" else _cold(me)
+		var fill := _stamina_colour(me) if slot == "Stamina" else _cold_colour(me)
+		_canvas.draw_rect(Rect2(bar.position, Vector2(bar.size.x * share, bar.size.y)), fill)
 		_canvas.draw_rect(bar, Color(TEXT, 0.35), false, 1.5)
 
 
@@ -289,10 +306,12 @@ func _draw_chevrons(my_pos: Vector3) -> void:
 		_text(at + Vector2(0.0, -RING_RADIUS - 6.0), _names[seat], colour, READOUT_TEXT)
 
 
-## [param entry]'s stamina as a ring round [param centre], filled clockwise from the top.
+## [param entry]'s stamina — its cold meter in the sea — as a ring round
+## [param centre], filled clockwise from the top.
 func _ring(centre: Vector2, entry: Dictionary) -> void:
 	_canvas.draw_arc(centre, RING_RADIUS, 0.0, TAU, 32, INK, RING_WIDTH, true)
-	var share := _stamina(entry)
+	var swimming: bool = entry["state"] == PlayerState.Body.SWIMMING
+	var share := _cold(entry) if swimming else _stamina(entry)
 	if share > 0.0:
 		var top := -PI * 0.5
 		_canvas.draw_arc(
@@ -301,7 +320,7 @@ func _ring(centre: Vector2, entry: Dictionary) -> void:
 			top,
 			top + TAU * share,
 			32,
-			_stamina_colour(entry),
+			_cold_colour(entry) if swimming else _stamina_colour(entry),
 			RING_WIDTH,
 			true
 		)
@@ -361,6 +380,44 @@ func _text(
 	var left := at - Vector2(width * 0.5, 0.0) if align == HORIZONTAL_ALIGNMENT_CENTER else at
 	_canvas.draw_string_outline(_font, left, text, align, width, FONT_SIZE, 5, INK)
 	_canvas.draw_string(_font, left, text, align, width, FONT_SIZE, colour)
+
+
+## A frame round the screen, wider and more opaque the emptier [param me]'s cold
+## meter is.
+func _draw_cold_frame(me: Dictionary) -> void:
+	var empty := 1.0 - _cold(me)
+	var width := FRAME_WIDTH * empty
+	if width <= 0.0:
+		return
+	var size := _canvas.size
+	var colour := Color(FRAME, FRAME.a * empty)
+	for side: Rect2 in [
+		Rect2(0.0, 0.0, size.x, width),
+		Rect2(0.0, size.y - width, size.x, width),
+		Rect2(0.0, width, width, size.y - width * 2.0),
+		Rect2(size.x - width, width, width, size.y - width * 2.0),
+	]:
+		_canvas.draw_rect(side, colour)
+
+
+## Under the crosshair, while [param me] swims and pressing on where it looks would
+## start a climb out: the move-forward key by the layout's label, Z on AZERTY.
+func _draw_climb_prompt(me: Dictionary, pose: ShipPose) -> void:
+	if me["climb"] > 0 or me["stagger"] > 0:
+		return
+	if _surfaces.climb_out(me["pos"], Vector2.from_angle(_yaw), pose, _rules) == null:
+		return
+	var at := _canvas.size * 0.5 + Vector2(0.0, 70.0)
+	_text(at, "Hold %s to climb" % _prompts.word(&"move_up"), TEXT, READOUT_TEXT)
+
+
+## [param entry]'s cold meter, as a share of a full one.
+func _cold(entry: Dictionary) -> float:
+	return entry["cold"] / _rules.cold_meter
+
+
+func _cold_colour(entry: Dictionary) -> Color:
+	return LOW if _cold(entry) < COLD_LOW else COLD
 
 
 ## [param entry]'s stamina, as a share of the most there is.

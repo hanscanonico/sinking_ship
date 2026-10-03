@@ -12,3 +12,4 @@ turn_rate_deg = 720.0
 brace_read = 0.4
 charge_read = 0.6
 climb_margin_m = 0.6
+guard_range_m = 3.0

@@ -2,7 +2,7 @@ extends GutTest
 ## SpectateOrder is the single picker of whose eyes the view is in (D13): it reads
 ## who is dry from the snapshot and who is doing best from MatchStats.
 
-const WATER := PlayerState.Cause.WATER
+const COLD := PlayerState.Cause.COLD
 const LOCAL := 0
 
 
@@ -26,16 +26,16 @@ func test_spectates_the_best_placed_survivor() -> void:
 			[
 				SimEvent.shove_landed(10, 3, 1),
 				SimEvent.shove_landed(20, 2, LOCAL),
-				SimEvent.seat_out(30, LOCAL, 4, WATER, 2),
+				SimEvent.seat_out(30, LOCAL, 4, COLD, 2),
 			]
 		)
 	)
 	assert_eq(order.target(_snapshot(4, [LOCAL])), 2, "the knock-out leads")
 
-	stats.add([SimEvent.seat_out(50, 2, 3, WATER, 3)])
+	stats.add([SimEvent.seat_out(50, 2, 3, COLD, 3)])
 	assert_eq(order.target(_snapshot(4, [LOCAL, 2])), 3, "its eyes close: the next best")
 
-	stats.add([SimEvent.seat_out(70, 3, 2, WATER, -1), SimEvent.match_ended(70, 1)])
+	stats.add([SimEvent.seat_out(70, 3, 2, COLD, -1), SimEvent.match_ended(70, 1)])
 	assert_eq(order.target(_snapshot(4, [LOCAL, 2, 3])), 1, "the last one dry")
 	assert_eq(order.target(_snapshot(4, [LOCAL, 1, 2, 3])), 1, "held once nobody is dry")
 

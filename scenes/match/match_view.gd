@@ -121,7 +121,10 @@ func _process(_delta: float) -> void:
 		body.position = pos
 		body.rotation.y = -lerp_angle(then["facing"], now["facing"], alpha)
 		body.show_state(then, now, alpha)
-		var below := _surfaces.landing(pos)
+		# A swimmer stands on nothing: no ring tilted to a deck under the sea, no shadow.
+		var below := Surfaces.NONE
+		if now["state"] != PlayerState.Body.SWIMMING:
+			below = _surfaces.landing(pos)
 		body.show_ground(Vector3.UP if below == Surfaces.NONE else _ground_normal(below, pos))
 		if below != Surfaces.NONE:
 			var ground := _surfaces.height_at(below, pos)
