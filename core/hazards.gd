@@ -246,9 +246,10 @@ func _run_into_bodies(
 ## crate_restitution of the closing speed — the body sent away at crate_knockback at
 ## the least, held through a hit-stop, a front brace taking crate_brace_reduction off
 ## that; slower, it pushes the body and they go on together. A hit credits the crate,
-## and through it the seat that shoved it within credit_window; a push does the same
-## only over no other credit within credit_window — a crate drifting into a body a
-## seat has just shoved takes nothing from that seat.
+## and through it the seat that shoved it within credit_window — else the seat its own
+## hit within credit_window credited; a push does the same only over no other credit
+## within credit_window — a crate drifting into a body a seat has just shoved takes
+## nothing from that seat.
 func _collide(
 	crate: PropState,
 	player: PlayerState,
@@ -288,10 +289,11 @@ func _collide(
 	player.freeze(Vector3(body_planar.x, moving.y, body_planar.y), stop)
 	if not impact and _credited_elsewhere(player, crate.prop, tick):
 		return
-	player.last_hit_crate = crate.prop
-	player.last_hit_by = -1
 	if crate.shoved_by != -1 and tick - crate.shoved_at < _credit_window_ticks:
 		player.last_hit_by = crate.shoved_by
+	elif not _credited_to(player, crate.prop, tick):
+		player.last_hit_by = -1
+	player.last_hit_crate = crate.prop
 	player.last_hit_at = tick
 
 
@@ -301,6 +303,12 @@ func _credited_elsewhere(player: PlayerState, prop: int, tick: int) -> bool:
 	if tick - player.last_hit_at >= _credit_window_ticks or player.last_hit_crate == prop:
 		return false
 	return player.last_hit_by != -1 or player.last_hit_crate != -1
+
+
+## Whether [param player]'s last hit, within credit_window of [param tick], is the
+## crate [param prop]'s.
+func _credited_to(player: PlayerState, prop: int, tick: int) -> bool:
+	return tick - player.last_hit_at < _credit_window_ticks and player.last_hit_crate == prop
 
 
 ## What each crate stands on: a grounded one follows its surface within step_height

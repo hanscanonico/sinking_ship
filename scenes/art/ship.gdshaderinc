@@ -7,13 +7,17 @@
 // the piece's foot and UV.y the depth below its top, for bands of trim; UV2.x how
 // far into the face's rim the point lies; UV2.y whether it stands outdoors. An
 // indoor face never takes the sun, whatever the shadow map says, and takes only a
-// little of the sky's ambient — what the lamps leave dark stays dim, never black.
+// little of the sky's ambient — what the lamps leave dark stays dim, never black;
+// an outdoor face takes no lamp.
 
 uniform int finish = 0;
 uniform vec4 ink : source_color = vec4(0.137, 0.149, 0.18, 1.0);
 uniform float rim_strength = 0.6;
 // The share of the sky's ambient light an indoor face keeps.
 uniform float indoor_ambient = 0.35;
+// How far indoors (0…1) a piece that moves stands — a crate (ShipArt), built
+// outdoors: it takes its faces in as it crosses a doorway, never at once.
+uniform float indoors = 0.0;
 // The share of a lamp's light a face turned away from it still takes: what the
 // room's walls would bounce back.
 uniform float lamp_bounce = 0.35;
@@ -124,7 +128,7 @@ void vertex() {
 	ship_pos = VERTEX;
 	ship_normal = NORMAL;
 	bands = UV;
-	outdoor = UV2.y;
+	outdoor = UV2.y * (1.0 - indoors);
 }
 
 void fragment() {
@@ -165,6 +169,6 @@ void light() {
 	float facing = dot(NORMAL, LIGHT);
 	float lit = LIGHT_IS_DIRECTIONAL
 		? smoothstep(0.0, 0.12, facing) * outdoor
-		: mix(lamp_bounce, 1.0, smoothstep(-0.2, 0.55, facing));
+		: mix(lamp_bounce, 1.0, smoothstep(-0.2, 0.55, facing)) * (1.0 - outdoor);
 	DIFFUSE_LIGHT += LIGHT_COLOR * ATTENUATION * lit / PI;
 }
