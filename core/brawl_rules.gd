@@ -56,6 +56,15 @@ extends Resource
 ## Seconds of stagger on landing, per metre fallen.
 @export var fall_stagger_per_m: float
 
+@export_group("Jump")
+## How high a jump lifts the feet above where it left the ground, in metres: onto
+## a hatch, never over a railing.
+@export var jump_height: float
+## The share of ground_accel a jumper steers with in the air; 0…1.
+@export var air_control: float
+## Stamina a jump spends as it leaves the ground; a jump needs this much to start.
+@export var jump_cost: float
+
 @export_group("Brace, charge and stamina")
 ## The share of a shove's knockback a brace takes off, when the shove comes into
 ## its front arc and is not a full charge; 0…1.
@@ -106,6 +115,7 @@ func problems() -> PackedStringArray:
 		"charge_walk",
 		"stamina_max",
 		"stamina_regen",
+		"jump_height",
 	]:
 		if float(get(field)) <= 0.0:
 			found.append("brawl rules: %s must be positive" % field)
@@ -118,6 +128,7 @@ func problems() -> PackedStringArray:
 		"stamina_regen_delay",
 		"hitstop",
 		"hitstop_braced",
+		"jump_cost",
 	]:
 		if float(get(field)) < 0.0:
 			found.append("brawl rules: %s must not be negative" % field)
@@ -134,6 +145,11 @@ func problems() -> PackedStringArray:
 		found.append("brawl rules: step_height must be below body_height")
 	if brace_reduction < 0.0 or brace_reduction > 1.0:
 		found.append("brawl rules: brace_reduction must be within 0…1")
+	if air_control < 0.0 or air_control > 1.0:
+		found.append("brawl rules: air_control must be within 0…1")
+	# A railing must hold a jumper, so a perch keeps its defence.
+	if jump_height >= railing_height:
+		found.append("brawl rules: jump_height must be below railing_height")
 	# Compared in ticks, as the sim counts them: a threshold that rounds onto the
 	# windup would make every held tap a charge.
 	var threshold_ticks := Ticks.from_seconds(charge_threshold)
@@ -149,4 +165,6 @@ func problems() -> PackedStringArray:
 		found.append("brawl rules: charge_walk must not exceed walk_speed")
 	if charge_cost > stamina_max:
 		found.append("brawl rules: charge_cost must not exceed stamina_max")
+	if jump_cost > stamina_max:
+		found.append("brawl rules: jump_cost must not exceed stamina_max")
 	return found

@@ -162,7 +162,7 @@
 
     <!-- ============================== HERO ============================== -->
     <header class="sk-hero px-6 py-10 md:px-12">
-      <p class="sk-kicker opacity-80">Sinking Ship · design of record · rev 3 · MVP approved 2026-10-02 · first person and rooms 2026-10-03 · <b>shipped: SH1, SH2, SH3, SH8, SH14, SH9, SH4, SH3b, SH9b, SH15</b></p>
+      <p class="sk-kicker opacity-80">Sinking Ship · design of record · rev 3 · MVP approved 2026-10-02 · first person and rooms 2026-10-03 · <b>shipped: SH1, SH2, SH3, SH8, SH14, SH9, SH4, SH3b, SH9b, SH15, SH4b</b></p>
       <h1 class="text-3xl md:text-4xl font-black mt-2">Sinking Ship — last one dry wins</h1>
       <p class="mt-3 max-w-3xl opacity-90">
         A battle royale on a ship that is going down. Eight brawlers on a small coastal steamer,
@@ -248,7 +248,7 @@
           <ul class="text-sm mt-2 grid gap-1">
             <li><strong>Look</strong> (rev 3) — first person: the mouse or the right stick turns you,
             and you shove where you look.</li>
-            <li><strong>Move</strong> — analog, relative to where you look, no jump.</li>
+            <li><strong>Move</strong> — analog, relative to where you look; Space jumps (SH4b).</li>
             <li><strong>Shove</strong> — tap: quick and weak; hold (from SH4): a charged shove that
             breaks a brace.</li>
             <li><strong>Brace</strong> (from SH4) — plant your feet: shrugs off a shove from the front
@@ -375,7 +375,7 @@
             <li><strong>Collision from meshes or editor-painted colliders</strong>, and arbitrary 3D
             terrain. The ship is axis-aligned rectangles, ramps and upright cylinders in ship space
             (D6); a curved hull is drawn, not collided.</li>
-            <li><strong>Jumping, wall-climbing and full 3D capsule contact</strong> (D8).</li>
+            <li><strong>Wall-climbing and full 3D capsule contact</strong> (D8).</li>
             <li><strong>Jolt or GodotPhysics3D anywhere on the server.</strong></li>
             <li><strong>Lockstep and rollback netcode</strong> (D11). Not ruled out by (a) itself —
             (a) makes them possible — but by D4's choice not to chase cross-platform bit-identical
@@ -449,6 +449,8 @@
             below deck and in the superstructure</strong>: holds, an engine room and cabins under the
             main deck that flood first and force everyone upward, plus a saloon, cabins and the
             wheelhouse above, on a deeper hull with one or two lower decks and stairs.</li>
+            <li><strong>Jump</strong> (added 2026-10-03): <em>“I want to be able to move the character with
+            zqsd and space to jump”</em>.</li>
           </ul>
           <p class="text-sm mt-3 max-w-3xl"><strong>Interpretation — this plan's reading, not your
           words.</strong> "Any time" is read as: the moment the ship is breached and the pace at which
@@ -465,6 +467,10 @@
           because D7 keeps a single sea plane and a second level would need the hull to ride about 6 m
           out of the water. The rest of rev 3 — the observer camera kept as a tool, a level horizon,
           bots and walls — is this plan's design, flagged where it is a fork (Q15–Q17).</p>
+          <p class="text-sm mt-3 max-w-3xl"><strong>Interpretation of the jump given — this plan's
+          reading, not your words.</strong> ZQSD is the AZERTY label of the physical keys already bound
+          to move (WASD on QWERTY), so moving is unchanged; the jump on Space is a new verb, which
+          overrides D8's rejection of one (SH4b).</p>
         </div>
 
         <div class="card bg-base-100 border p-4 sk-locked">
@@ -670,20 +676,32 @@ var buttons: int</pre>
 
         <div class="card bg-base-100 border p-4 sk-locked">
           <div class="flex flex-wrap items-baseline gap-2">
-            <h3 class="font-black">D8 · Bodies are upright circles on surfaces; there is no jump</h3>
+            <h3 class="font-black">D8 · Bodies are upright circles on surfaces; a jump is a small vertical impulse from the ground</h3>
             <span class="badge badge-outline">locked</span>
           </div>
           <p class="text-sm mt-2 max-w-3xl">
             A brawler is a 0.4 m-radius circle in the deck plane with a height and a vertical state:
             <code>GROUNDED</code> on a surface, <code>AIRBORNE</code>, (from SH5)
             <code>SWIMMING</code>, or <code>OUT</code>. Height changes only by ramps, falls, a vault
-            over a railing and the water. There is no jump verb: it would double the geometry
-            questions (ledge catches, landings on narrow perches, shoves in mid-air) for a verb whose
-            main job — escaping a shove — brace does more legibly.
+            over a railing, a jump and the water. A jump (SH4b) is a press, never a hold, from the
+            ground — idle, its brace let go, unstaggered, not frozen in a hit-stop, with
+            <code>jump_cost</code> of stamina — that lifts the feet <code>jump_height</code> (0.9 m)
+            in ship space; gravity, the world's turned by the pose, brings them down and pulls a
+            jumper downhill as on the deck, and the air steers it only at <code>air_control</code> of
+            ground acceleration. D8 once refused it for the geometry questions it raises; each has a
+            rule. <em>Ledge catches:</em> there are none — a jumper lands on the highest surface under
+            its centre as its feet come down, and a deck, a stair or a lintel overhead stops its head
+            (<code>Surfaces.ceiling</code>). <em>Landings on narrow perches:</em> 0.9 m reaches the
+            0.8 m hatch and the low props and never tops a 1.0 m railing, which holds a jumper as it
+            holds any body in the air, so a railed perch keeps its defence; a jump's landing staggers
+            only for the drop below where it left. <em>Same tick:</em> a shove and a jump pressed together — the shove wins, and the seat stays on the ground. <em>Shoves in mid-air:</em> a shove reaches a body
+            whose feet are within a body height of its shover's, so a jump from the same deck never
+            escapes one, and a jumper hit in the air flies with the full knockback and no friction —
+            brace stays the legible defence.
           </p>
           <p class="text-sm mt-2 max-w-3xl"><strong>Rejected:</strong> capsules colliding in full
-          3D; a jump on a button as a later "feel" addition (it changes every perch's defence and is
-          an architecture change, not tuning).</p>
+          3D. A jump on a button was rejected here, as a later "feel" addition that changes every
+          perch's defence, until your 2026-10-03 given adopted it as the rule above (SH4b).</p>
         </div>
 
         <div class="card bg-base-100 border p-4 sk-locked">
@@ -1427,6 +1445,7 @@ flowchart LR
             <tr><td class="mono">grip_angle / slide_friction</td><td>14° / 4 m/s²</td><td>SH2</td><td>Free footing for the first half of the match; work after.</td></tr>
             <tr><td class="mono">vault_speed / railing_height</td><td>7.0 m/s / 1.0 m</td><td>SH2</td><td>A rail saves you unless you are pinned to it or shoved downhill.</td></tr>
             <tr><td class="mono">step_height / fall_stagger_per_m</td><td>0.35 m / 0.08 s per m</td><td>SH3</td><td>A drop off the boat deck costs 0.2 s.</td></tr>
+            <tr><td class="mono">jump_height / air_control / jump_cost</td><td>0.9 m / 0.1 / 10</td><td>SH4b</td><td>Onto the hatch, never over a rail; a little steering; about ten hops from full.</td></tr>
             <tr><td class="mono">brace_reduction / brace_arc / brace_drain</td><td>75% / ±70° / 20 per s</td><td>SH4</td><td>Five seconds of bracing from full.</td></tr>
             <tr><td class="mono">charge_threshold / charge_full / charged_knockback</td><td>0.20 s / 0.50 s / 11 m/s</td><td>SH4</td><td>A held tap is not a charge; full charge vaults a rail from ~4.5 m.</td></tr>
             <tr><td class="mono">charge_walk / charge_cost</td><td>2.0 m/s / 25</td><td>SH4</td><td>Charging is a visible commitment.</td></tr>
@@ -1533,9 +1552,10 @@ flowchart LR
             <table class="sk-table">
               <thead><tr><th>Action</th><th>Keyboard + mouse</th><th>Gamepad</th><th>Frame</th><th>From</th></tr></thead>
               <tbody>
-                <tr><td>Move</td><td>WASD / arrows</td><td>Left stick / d-pad</td><td class="mono">move</td><td>SH1</td></tr>
-                <tr><td>Shove (tap) · charge (hold)</td><td>Space or left click</td><td>A / Cross</td><td class="mono">SHOVE</td><td>SH1 · SH4</td></tr>
-                <tr><td>Brace (hold)</td><td>Shift or right click</td><td>RB / R1</td><td class="mono">BRACE</td><td>SH4</td></tr>
+                <tr><td>Move</td><td>WASD (ZQSD on AZERTY) / arrows</td><td>Left stick / d-pad</td><td class="mono">move</td><td>SH1</td></tr>
+                <tr><td>Jump</td><td>Space</td><td>A / Cross</td><td class="mono">JUMP</td><td>SH4b</td></tr>
+                <tr><td>Shove (tap) · charge (hold)</td><td>Left click or F</td><td>RT / R2 or X / Square</td><td class="mono">SHOVE</td><td>SH1 · SH4 · SH4b</td></tr>
+                <tr><td>Brace (hold)</td><td>Shift or right click</td><td>RB / R1 or LT / L2</td><td class="mono">BRACE</td><td>SH4 · SH4b</td></tr>
                 <tr><td>Look (turn and tilt your view)</td><td>Mouse</td><td>Right stick</td><td class="mono">look_yaw</td><td>SH9</td></tr>
                 <tr><td>Restart after a result</td><td>R</td><td>Start</td><td>—</td><td>SH1</td></tr>
                 <tr><td>Pause · menu (frees the mouse)</td><td>Esc</td><td>Start</td><td>—</td><td>SH8</td></tr>
@@ -1697,6 +1717,7 @@ sequenceDiagram
             <tr><td class="mono">SH3b</td><td>Below decks and rooms</td><td>L</td><td>Q15 · build the recommendation</td><td>…climb out of a flooding hold, through a cabin corridor and up a companionway.</td></tr>
             <tr><td class="mono">SH9</td><td>First person — look, move, shove, spectate</td><td>L</td><td>Q17 · build the recommendation</td><td>…play through your own eyes: turn with the mouse, shove where you look, spectate through survivors.</td></tr>
             <tr><td class="mono">SH4</td><td>Brace and the charged shove</td><td>M</td><td>Q2 · stop and ask</td><td>…brace a shove, and break a brace with a charge.</td></tr>
+            <tr><td class="mono">SH4b</td><td>Jump</td><td>M</td><td>—</td><td>…jump onto the hatch with Space, and still be held by a rail and reached by a shove.</td></tr>
             <tr><td class="mono">SH5</td><td>Overboard</td><td>M</td><td>Q1 · stop and ask</td><td>…survive a dunking and climb back — unless someone guards the edge.</td></tr>
             <tr><td class="mono">SH6</td><td>The sinking script</td><td>M</td><td>Q5, Q6 · build the recommendation</td><td>…ride lurches and a collapse to a guaranteed final plunge.</td></tr>
             <tr><td class="mono">SH7</td><td>Bots that brawl</td><td>M/L</td><td>Q4, Q16 · build the recommendation</td><td>…lose to hard bots, beat easy ones, read an arena report.</td></tr>
@@ -1839,7 +1860,7 @@ sequenceDiagram
             noses. Any seed with all six seats still in at 60 s will do — 4 when SH1 was
             recorded; in 1701 the local seat is shoved off at 0:32.5.</li>
             <li><strong><code>make run</code></strong>: WASD or the stick moves you relative to the
-            screen; Space or A shoves; a bot shoved off the side falls and is gone; going in shows
+            screen; Space or A shoves (left click, F, RT or X since SH4b, when Space and A became the jump); a bot shoved off the side falls and is gone; going in shows
             "Overboard — Nth of 6"; outlasting everyone shows "Last one dry!"; R or Start restarts
             on a fresh seed.</li>
           </ul>
@@ -2036,7 +2057,7 @@ sequenceDiagram
             <li><span class="sk-file">test_spectate.gd</span> — <code>test_spectates_the_best_placed_survivor</code>, <code>test_cycle_skips_seats_that_are_out</code>.</li>
             <li><span class="sk-file">tests/unit/ai/test_bot_brain.gd</span> gains <code>test_bot_looks_toward_its_target</code>, <code>test_bot_turn_rate_is_capped_by_its_profile</code>.</li>
             <li><code>make capture</code> still shows the whole ship from the observer camera; <code>make capture</code> with <code>--capture-eye=1</code> at 0:30 writes a first-person frame showing the crosshair and the inclinometer.</li>
-            <li><code>make run</code>: the mouse turns you and WASD moves relative to your view; Space shoves the bot in front of you; the horizon stays level while the deck tilts; going out moves your view into a survivor's eyes and Q/E cycles; <code>make run -- --observer</code> opens the observer view.</li>
+            <li><code>make run</code>: the mouse turns you and WASD moves relative to your view; Space (left click or F since SH4b) shoves the bot in front of you; the horizon stays level while the deck tilts; going out moves your view into a survivor's eyes and Q/E cycles; <code>make run -- --observer</code> opens the observer view.</li>
           </ul>
           <h4>Not in this milestone</h4>
           <ul class="sk-crosses text-sm">
@@ -2081,12 +2102,50 @@ sequenceDiagram
             <li><span class="sk-file">test_stamina.gd</span> — <code>test_regen_waits_for_the_delay</code>,
             <code>test_stamina_stays_in_range</code>.</li>
             <li><code>make run</code>: Shift (RB) roots you with a visible stance and a bot's quick
-            shove barely moves you; holding Space shows the glow and its release throws a braced
+            shove barely moves you; holding the shove (Space then; left click or F since SH4b) shows the glow and its release throws a braced
             bot over the rail; late on the steep deck, bracing holds you until the bar empties.</li>
           </ul>
           <h4>Not in this milestone</h4>
           <ul class="sk-crosses text-sm">
             <li>Dash, grab, a third button, swimming.</li>
+          </ul>
+        </div>
+
+        <!-- SH4b -->
+        <div class="card bg-base-100 border p-4 sk-ms" id="sh4b">
+          <div class="flex flex-wrap items-baseline gap-2">
+            <h3 class="font-black">SH4b · Jump <span class="badge badge-outline badge-sm">size M</span> <span class="badge badge-success badge-sm align-middle">shipped · #12</span></h3>
+          </div>
+          <p class="text-sm mt-2 max-w-3xl"><strong>Ships:</strong> your 2026-10-03 given — ZQSD moves,
+          Space jumps — as D8's new rule: a small vertical impulse from the ground.</p>
+          <p class="text-sm mt-2 max-w-3xl"><strong>Builds:</strong> a <code>JUMP</code> button in the
+          frame, the jump, a ceiling query in <code>Surfaces</code>, the rebinding and hints, a jump
+          pose and an effort cue; bots never press it.</p>
+          <h4>Respects</h4>
+          <p class="text-sm">D3, D5, D8, D12.</p>
+          <h4>Acceptance gates</h4>
+          <ul class="sk-gates text-sm">
+            <li><code>make verify</code> and <code>make art-lint</code> green; continuation exact from a
+            jump rising, at its apex and falling; the golden's exits unchanged.</li>
+            <li><span class="sk-file">test_jump.gd</span> — <code>test_a_jump_rises_to_its_height_and_lands</code>,
+            <code>test_holding_jump_does_not_hop_again</code>, <code>test_a_jump_does_not_clear_a_railing</code>,
+            <code>test_a_jump_reaches_the_hatch_top</code>, <code>test_a_jump_under_a_low_deck_stops_at_the_ceiling</code>,
+            <code>test_an_exhausted_seat_cannot_jump</code>, <code>test_a_jump_costs_stamina</code>,
+            <code>test_no_jump_while_bracing_charging_or_staggered</code>,
+            <code>test_a_shove_misses_feet_above_its_reach_and_hits_a_low_jumper</code>,
+            <code>test_a_jumper_shoved_in_the_air_flies_with_full_knockback</code>,
+            <code>test_jumping_on_a_steep_deck_does_not_escape_the_slide</code>,
+            <code>test_a_jump_landing_does_not_stagger</code>, <code>test_air_control_is_limited</code>,
+            <code>test_a_jump_continues_exactly_from_any_snapshot</code>.</li>
+            <li><span class="sk-file">test_cue_planner.gd</span> — <code>test_a_jump_makes_an_effort_and_a_landing</code>;
+            <span class="sk-file">test_brawler_animation.gd</span> — <code>test_a_jump_springs_up_then_falls_then_lands</code>;
+            <span class="sk-file">test_input_prompts.gd</span> — <code>test_the_controls_hint_reads_the_input_map</code>.</li>
+            <li><code>make run</code>: Space hops you onto the hatch and never over a rail; left click
+            or F shoves; the countdown names your keys — Z Q S D on AZERTY.</li>
+          </ul>
+          <h4>Not in this milestone</h4>
+          <ul class="sk-crosses text-sm">
+            <li>A double jump, wall-climbing, a ledge grab, crouch, sprint, bots that jump, a rebinding screen.</li>
           </ul>
         </div>
 
@@ -3449,7 +3508,7 @@ sequenceDiagram
             <li><strong>Compartments, air pockets or a flooding simulation</strong> anywhere: water inside
             a room is the same plane as outside (D7). Rooms themselves are in the MVP since rev 3
             (SH3b).</li>
-            <li><strong>A jump, wall-climbing</strong> (D8); grab or dash unless Q2 picks one.</li>
+            <li><strong>Wall-climbing</strong> (D8); grab or dash unless Q2 picks one.</li>
             <li><strong>A third-person or free camera for players</strong> — first person only (D14);
             the observer camera is a tool.</li>
             <li><strong>Doors that close</strong> (Q15), and <strong>seeing through walls</strong> — no

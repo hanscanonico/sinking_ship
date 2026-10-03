@@ -1,8 +1,8 @@
 class_name Hud
 extends CanvasLayer
-## Seats left, the match clock and the countdown, read from the latest snapshot;
-## and, once the local seat is out, whose eyes the view is in. The tilt is the
-## first-person HUD's inclinometer.
+## Seats left, the match clock and the countdown, read from the latest snapshot,
+## with what to press under the countdown; and, once the local seat is out, whose
+## eyes the view is in. The tilt is the first-person HUD's inclinometer.
 
 ## How long "Go!" stays up once the countdown is over.
 const GO_SECONDS := 0.8
@@ -13,6 +13,7 @@ var _countdown_ticks: int
 @onready var _clock: Label = %Clock
 @onready var _countdown: Label = %Countdown
 @onready var _spectating: Label = %Spectating
+@onready var _controls: Label = %Controls
 
 
 func setup(sim: MatchSim) -> void:
@@ -34,6 +35,12 @@ func show_snapshot(snapshot: Dictionary) -> void:
 func show_spectating(text: String) -> void:
 	_spectating.text = text
 	_spectating.visible = not text.is_empty()
+
+
+## [param text] under the countdown while it shows; empty hides it.
+func show_controls(text: String) -> void:
+	_controls.text = text
+	_controls.visible = _countdown.visible and not text.is_empty()
 
 
 ## Whole seconds left while the sim holds the brawl, then "Go!" for a moment.

@@ -13,7 +13,8 @@ extends RefCounted
 const SHOVE := 1
 ## Held; the seat braces for as long as it is.
 const BRACE := 2
-const RESERVED_3 := 4
+## Held; a jump is the sim's call, on the tick it is pressed.
+const JUMP := 4
 const AXIS_MAX := 127
 const YAW_STEPS := 65536
 

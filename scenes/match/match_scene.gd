@@ -64,6 +64,7 @@ func _process(delta: float) -> void:
 	var viewed := _order.target(snapshot)
 	_hud.show_snapshot(snapshot)
 	_hud.show_spectating(_spectating(snapshot, viewed))
+	_hud.show_controls(_prompts.controls() if _local != null else "")
 	_end.show_results(_stats, LOCAL_SEAT, _names, _config.match_seed)
 	_end.show_prompts(_prompts)
 	var mouse := Input.MOUSE_MODE_CAPTURED if _looking() else Input.MOUSE_MODE_VISIBLE

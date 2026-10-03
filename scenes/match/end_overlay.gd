@@ -10,18 +10,29 @@ signal menu_requested
 
 const HEADINGS: Array[String] = ["Place", "Seat", "Time dry", "Shoves landed", "Knock-outs"]
 const LOCAL_COLOUR := Color(1.0, 0.85, 0.3)
+## How long the buttons ignore presses once the results show: Space and pad A both
+## jump and accept, so a jump mashed as the match ends must not rematch unseen. A
+## press begun inside the guard does nothing when it is let go after it.
+const PRESS_GUARD_SECONDS := 0.7
+
+var _guard := Timer.new()
 
 @onready var _title: Label = %Title
 @onready var _table: GridContainer = %Table
 @onready var _seed: Label = %Seed
 @onready var _rematch: Button = %Rematch
 @onready var _hint: Label = $Panel/Box/Hint
+@onready var _menu: Button = %Menu
 
 
 func _ready() -> void:
 	hide()
 	_rematch.pressed.connect(rematch_requested.emit)
-	%Menu.pressed.connect(menu_requested.emit)
+	_menu.pressed.connect(menu_requested.emit)
+	_guard.one_shot = true
+	_guard.wait_time = PRESS_GUARD_SECONDS
+	_guard.timeout.connect(_accept_presses)
+	add_child(_guard)
 
 
 ## Shows [param stats] once they say the match has ended. [param names] labels
@@ -52,8 +63,10 @@ func show_results(
 		_cell(str(line.shoves_landed), colour)
 		_cell(str(line.knockouts), colour)
 	_seed.text = "Seed %d" % match_seed
+	_rematch.disabled = true
+	_menu.disabled = true
 	show()
-	_rematch.grab_focus()
+	_guard.start()
 
 
 ## Words the hint line for the device [param prompts] says was used last. On a
@@ -66,6 +79,13 @@ func show_prompts(prompts: InputPrompts) -> void:
 	if menu != rematch:
 		hint += "   ·   %s — menu" % menu
 	_hint.text = hint
+
+
+func _accept_presses() -> void:
+	_rematch.disabled = false
+	_menu.disabled = false
+	if visible:
+		_rematch.grab_focus()
 
 
 static func ordinal(place: int) -> String:
