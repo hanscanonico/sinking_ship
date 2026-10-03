@@ -19,6 +19,8 @@ const WET_ABOVE := 0.3
 ## LANDING_LOUD_TICKS or more lands at full.
 const LANDING_SOFT := 0.35
 const LANDING_LOUD_TICKS := 12
+## A jump's effort is the shove's grunt, this much quieter.
+const JUMP_EFFORT := 0.5
 ## The hull's strain is its change of trim and heel in degrees, plus SINK_STRAIN
 ## per metre it settles: a creak every CREAK_STRAIN of it, a groan every
 ## GROAN_STRAIN.
@@ -86,6 +88,7 @@ func plan(previous: Dictionary, current: Dictionary) -> Array[AudioCue]:
 		_footstep(entry, pose_now, tick, cues)
 		if then.has(seat):
 			_shove(then[seat], entry, tick, cues)
+			_take_off(then[seat], entry, tick, cues)
 	for event: Dictionary in current["events"]:
 		_from_event(event, now, pose_now, cues)
 	if current["phase"] == MatchState.Phase.LIVE:
@@ -130,6 +133,15 @@ func _shove(then: Dictionary, now: Dictionary, tick: int, cues: Array[AudioCue])
 			var whoosh := _at_seat(AudioCue.Kind.WHOOSH, tick, now)
 			whoosh.heavy = _full_charge(now)
 			cues.append(whoosh)
+
+
+## An effort as a body jumps; its landing is the LANDING event's thud.
+func _take_off(then: Dictionary, now: Dictionary, tick: int, cues: Array[AudioCue]) -> void:
+	if now["out"] or not now["jumped"] or then["jumped"]:
+		return
+	var effort := _at_seat(AudioCue.Kind.GRUNT, tick, now)
+	effort.gain = JUMP_EFFORT
+	cues.append(effort)
 
 
 func _from_event(event: Dictionary, now: Dictionary, pose: ShipPose, cues: Array[AudioCue]) -> void:

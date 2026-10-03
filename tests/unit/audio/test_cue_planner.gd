@@ -199,6 +199,27 @@ func test_landing_thud_scales_with_stagger() -> void:
 	assert_almost_eq(gains[4], 1.0, 0.0001, "and never past it")
 
 
+func test_a_jump_makes_an_effort_and_a_landing() -> void:
+	var sim := SimFixtures.sim(2)
+	SimFixtures.place(sim, 0, Vector3(-5.0, 0.0, 0.0))
+	SimFixtures.place(sim, 1, Vector3(5.0, 0.0, 0.0))
+	# Held the whole second: one jump, so one effort and one thud.
+	var rows: Array = []
+	for _tick in Ticks.RATE:
+		rows.append({0: SimFixtures.frame(0, Vector2.ZERO, InputFrame.JUMP)})
+	var heard := _play(_planner(sim, 1), sim, rows)
+	var efforts := _of(heard, GRUNT)
+	var thuds := _of(heard, LANDING)
+	assert_eq(efforts.size(), 1, "one effort as it leaves the deck")
+	assert_eq(efforts[0].tick, 1, "on the tick it jumped")
+	assert_almost_eq(efforts[0].gain, CuePlanner.JUMP_EFFORT, 0.0001, "softer than a shove's")
+	assert_true(efforts[0].positional, "another seat's jump sounds from where it is")
+	assert_eq(thuds.size(), 1, "one thud as it comes down")
+	assert_gt(thuds[0].tick, efforts[0].tick)
+	assert_almost_eq(thuds[0].gain, CuePlanner.LANDING_SOFT, 0.0001, "a jump lands soft")
+	assert_eq(_of(heard, AudioCue.Kind.FALL).size(), 0, "a jump is not a fall")
+
+
 func test_the_hull_groans_from_below_the_lower_deck() -> void:
 	var trimming := SimFixtures.scenario([[0.0, 0.0, 0.0, 0.0], [1.0, 0.0, 6.0, 0.0]])
 	var steamer := SimFixtures.steamer()

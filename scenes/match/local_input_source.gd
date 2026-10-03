@@ -39,6 +39,8 @@ func next_frame(tick: int) -> InputFrame:
 	var buttons := InputFrame.SHOVE if Input.is_action_pressed("shove") else 0
 	if Input.is_action_pressed("brace"):
 		buttons |= InputFrame.BRACE
+	if Input.is_action_pressed("jump"):
+		buttons |= InputFrame.JUMP
 	var look := InputFrame.quantize_yaw(yaw)
 	return InputFrame.new(_seat, tick, InputFrame.from_screen(stick, look), buttons, look)
 

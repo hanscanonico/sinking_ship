@@ -5,7 +5,21 @@ extends RefCounted
 
 ## SWIM and CLIMB have no state to read until SH5 adds one; their clips are chosen
 ## now so that milestone adds only the case in move_for().
-enum Move { IDLE, WALK, RUN, WINDUP, SHOVE, RECOVER, STAGGER, FALL, BRACE, CHARGE, SWIM, CLIMB }
+enum Move {
+	IDLE,
+	WALK,
+	RUN,
+	WINDUP,
+	SHOVE,
+	RECOVER,
+	STAGGER,
+	FALL,
+	BRACE,
+	CHARGE,
+	SWIM,
+	CLIMB,
+	JUMP,
+}
 
 ## Clips of the Universal Animation Library's mannequin, by move.
 const CLIPS := {
@@ -21,6 +35,7 @@ const CLIPS := {
 	Move.CHARGE: &"Punch_Enter",
 	Move.SWIM: &"Swim_Fwd",
 	Move.CLIMB: &"Crouch_Fwd",
+	Move.JUMP: &"Jump_Start",
 }
 ## How long the previous clip fades out, by move: a shove snaps into its pose so the
 ## telegraph lands on its tick, and recovery spends its whole window easing out.
@@ -37,6 +52,7 @@ const BLEND := {
 	Move.CHARGE: 0.1,
 	Move.SWIM: 0.2,
 	Move.CLIMB: 0.15,
+	Move.JUMP: 0.05,
 }
 ## Ship-plane speeds, m/s, above which the feet walk and then run.
 const WALK_FROM := 0.4
@@ -55,6 +71,9 @@ const SQUASH_SECONDS := 0.18
 ## across the deck.
 static func move_for(entry: Dictionary, speed: float) -> Move:
 	if entry["state"] == PlayerState.Body.AIRBORNE:
+		# A jump springs up off the ground and falls like any fall once it tops out.
+		if entry["jumped"] and (entry["vel"] as Vector3).y > 0.0:
+			return Move.JUMP
 		return Move.FALL
 	if entry["stagger"] > 0:
 		return Move.STAGGER

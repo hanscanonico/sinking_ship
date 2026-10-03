@@ -17,9 +17,12 @@ var vel: Vector3
 var facing: float
 var body: Body = Body.GROUNDED
 var surface: int = Surfaces.NONE
-## While airborne, the highest the feet have been since leaving a surface: a
-## landing staggers by the drop from here.
+## While airborne, the highest the feet have been since leaving a surface — or,
+## after a jump, the height it left from: a landing staggers by the drop from here.
 var fall_from: float
+## Whether this time in the air began with a jump: it steers a little, and its
+## landing forgives the jump's own height.
+var jumped: bool
 var action: Action = Action.IDLE
 ## Ticks spent in the current action phase.
 var action_ticks: int
@@ -90,6 +93,7 @@ func to_dict() -> Dictionary:
 		"surface": surface,
 		"state": body,
 		"fall_from": fall_from,
+		"jumped": jumped,
 		"action": action,
 		"action_ticks": action_ticks,
 		"shove_spent": shove_spent,
@@ -119,6 +123,7 @@ static func from_dict(entry: Dictionary) -> PlayerState:
 	player.surface = entry["surface"]
 	player.body = entry["state"]
 	player.fall_from = entry["fall_from"]
+	player.jumped = entry["jumped"]
 	player.action = entry["action"]
 	player.action_ticks = entry["action_ticks"]
 	player.shove_spent = entry["shove_spent"]

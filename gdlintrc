@@ -8,3 +8,7 @@
 # correctness benefit.
 disable:
 - class-definitions-order
+
+# Surfaces is the only door to spatial questions (D6), so every question the rules
+# ask of the ship is one of its public methods; it outgrows the default 20 by design.
+max-public-methods: 24

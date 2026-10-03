@@ -21,6 +21,14 @@ const PAD_BUTTONS := {
 	JOY_BUTTON_DPAD_LEFT: "d-pad left",
 	JOY_BUTTON_DPAD_RIGHT: "d-pad right",
 }
+const PAD_AXES := {
+	JOY_AXIS_LEFT_X: "Left stick",
+	JOY_AXIS_LEFT_Y: "Left stick",
+	JOY_AXIS_RIGHT_X: "Right stick",
+	JOY_AXIS_RIGHT_Y: "Right stick",
+	JOY_AXIS_TRIGGER_LEFT: "LT",
+	JOY_AXIS_TRIGGER_RIGHT: "RT",
+}
 const MOUSE_BUTTONS := {
 	MOUSE_BUTTON_LEFT: "Left click",
 	MOUSE_BUTTON_RIGHT: "Right click",
@@ -47,6 +55,36 @@ func word(action: StringName) -> String:
 	return word_for(InputMap.action_get_events(action), pad)
 
 
+## The hint line for play on the device last used.
+func controls() -> String:
+	return controls_for(pad)
+
+
+## Move, jump, shove and brace as the input map binds them, on the pad when
+## [param on_pad], else on the keyboard and mouse — the four keys of the move by
+## the layout's labels, so Z Q S D on AZERTY where QWERTY reads W A S D.
+static func controls_for(on_pad: bool) -> String:
+	var move := _word_of(&"move_up", on_pad)
+	if not on_pad:
+		var keys := PackedStringArray()
+		for action: StringName in [&"move_up", &"move_left", &"move_down", &"move_right"]:
+			keys.append(_word_of(action, on_pad))
+		move = " ".join(keys)
+	var hints := PackedStringArray()
+	for line: Array in [
+		[move, "move"],
+		[_word_of(&"jump", on_pad), "jump"],
+		[_word_of(&"shove", on_pad), "shove"],
+		[_word_of(&"brace", on_pad), "brace"],
+	]:
+		hints.append("%s — %s" % line)
+	return "   ·   ".join(hints)
+
+
+static func _word_of(action: StringName, on_pad: bool) -> String:
+	return word_for(InputMap.action_get_events(action), on_pad)
+
+
 ## The first of [param events] on the pad when [param on_pad], else on the
 ## keyboard or mouse, as a word; empty when that device has none.
 static func word_for(events: Array[InputEvent], on_pad: bool) -> String:
@@ -54,6 +92,9 @@ static func word_for(events: Array[InputEvent], on_pad: bool) -> String:
 		if on_pad and event is InputEventJoypadButton:
 			var button := (event as InputEventJoypadButton).button_index
 			return PAD_BUTTONS.get(button, "Button %d" % button)
+		if on_pad and event is InputEventJoypadMotion:
+			var axis := (event as InputEventJoypadMotion).axis
+			return PAD_AXES.get(axis, "Axis %d" % axis)
 		if not on_pad and event is InputEventKey:
 			var key := event as InputEventKey
 			var keycode := key.keycode

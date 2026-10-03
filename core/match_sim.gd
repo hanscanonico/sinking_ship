@@ -4,7 +4,7 @@ extends RefCounted
 ## InputFrame per seat is the only way anything happens (D3); snapshot() is the
 ## whole truth and from_snapshot() continues it exactly (D5).
 
-const SNAPSHOT_VERSION := 5
+const SNAPSHOT_VERSION := 6
 ## How many times a tick's contacts are resolved, at most. In one pass each contact
 ## is met where the body stood before it, so a body pushed two ways — into a corner,
 ## between a doorway's jambs, against a wall by a crowd — can end inside one wall or
@@ -121,7 +121,7 @@ func step(frames: Array[InputFrame]) -> Array[SimEvent]:
 		for player: PlayerState in state.seats:
 			player.prev_buttons = player.last_buttons
 	else:
-		_intent()
+		_intent(pose_now)
 		_brace_and_stamina()
 		_forces(pose_now)
 		var feet_before := _move(tick, events)
@@ -160,7 +160,7 @@ func _take_frames(frames: Array[InputFrame], tick: int) -> void:
 ## its button edges included: the first tick after the stop reads its buttons
 ## against those it held before it, so a press made in the stop and still held
 ## counts then, and one let go inside the stop never happened.
-func _intent() -> void:
+func _intent(pose_now: ShipPose) -> void:
 	var candidates := _candidates()
 	for player: PlayerState in _live_seats():
 		if player.is_frozen():
@@ -188,6 +188,33 @@ func _intent() -> void:
 			player.action = PlayerState.Action.WINDUP
 			player.action_ticks = 0
 			player.shove_spent = false
+		if pressed & InputFrame.JUMP:
+			_jump(player, pose_now)
+
+
+## A jump is a press, never a hold, from the ground: idle, its brace let go, and
+## with jump_cost of stamina to spend. It rises jump_height above where it left in
+## ship space, whatever the deck's tilt — never over a railing — and gravity, the
+## world's turned by the pose, brings it down, pulling it downhill as it falls.
+func _jump(player: PlayerState, pose_now: ShipPose) -> void:
+	if (
+		player.body != PlayerState.Body.GROUNDED
+		or player.action != PlayerState.Action.IDLE
+		or player.last_buttons & InputFrame.BRACE
+		or player.exhausted
+		or player.stamina < _rules.jump_cost
+	):
+		return
+	_spend(player, _rules.jump_cost)
+	# The take-off speed whose apex, stepped tick by tick as _forces and _move step
+	# it, is jump_height: v² − g·dt·v − 2·g·h = 0.
+	var fall := -pose_now.ship_gravity(_rules.gravity).y
+	var drop := fall * Ticks.SECONDS_PER_TICK
+	player.vel.y = (drop + sqrt(drop * drop + 8.0 * fall * _rules.jump_height)) * 0.5
+	player.body = PlayerState.Body.AIRBORNE
+	player.surface = Surfaces.NONE
+	player.fall_from = player.pos.y
+	player.jumped = true
 
 
 ## Tap or hold is read here, from ticks held (D3): a shove released after its
@@ -293,6 +320,7 @@ func _forces(pose_now: ShipPose) -> void:
 			continue
 		if player.body == PlayerState.Body.AIRBORNE:
 			player.vel += gravity * dt
+			_steer_in_air(player)
 			continue
 		var planar := Vector2(player.vel.x, player.vel.z)
 		var wish := Vector2(player.last_move) / InputFrame.AXIS_MAX * _rules.walk_speed
@@ -317,6 +345,18 @@ func _forces(pose_now: ShipPose) -> void:
 			if planar == wish:
 				player.last_hit_by = -1
 		player.vel = Vector3(planar.x, player.vel.y, planar.y)
+
+
+## A jumper steers toward its input at air_control of ground_accel, and keeps its
+## speed when it gives none; a fall, a vault or a jumper staggered by a shove flies
+## where it was sent.
+func _steer_in_air(player: PlayerState) -> void:
+	if not player.jumped or player.is_staggered() or player.last_move == Vector2i.ZERO:
+		return
+	var wish := Vector2(player.last_move) / InputFrame.AXIS_MAX * _rules.walk_speed
+	var rate := _rules.ground_accel * _rules.air_control * Ticks.SECONDS_PER_TICK
+	var planar := Vector2(player.vel.x, player.vel.z).move_toward(wish, rate)
+	player.vel = Vector3(planar.x, player.vel.y, planar.y)
 
 
 ## Integration, then contacts: blockers, then railings, then bodies pushing each
@@ -353,7 +393,22 @@ func _move(tick: int, events: Array[SimEvent]) -> PackedFloat64Array:
 				break
 			if not _bodies(live) and not held:
 				break
+	_ceilings(live, feet_before)
 	return feet_before
+
+
+## A rising body stops with its head against the lowest underside over it — a deck,
+## a stair, a lintel — and loses its upward speed. It is looked for from where the
+## feet stood before this tick's move, so a fast rise cannot pass through a deck.
+func _ceilings(live: Array[PlayerState], feet_before: PackedFloat64Array) -> void:
+	for player: PlayerState in live:
+		if player.body != PlayerState.Body.AIRBORNE or player.vel.y <= 0.0:
+			continue
+		var feet := Vector3(player.pos.x, feet_before[player.seat], player.pos.z)
+		var highest := surfaces.ceiling(feet, _rules.step_height) - _rules.body_height
+		if player.pos.y > highest:
+			player.pos.y = highest
+			player.vel.y = 0.0
 
 
 ## Whatever stops a body — a blocker, a wall, a deck edge too high to step onto —
@@ -448,7 +503,8 @@ func _hold(player: PlayerState, contact: Surfaces.Contact) -> void:
 
 ## What each body stands on. A grounded body follows its surface up and down
 ## within step_height; past an edge deeper than that it falls. A falling body lands
-## on the highest surface it comes down onto, staggered by the drop.
+## on the highest surface it comes down onto, staggered by the drop — a jump's by
+## the drop below where it left, so its own height costs nothing.
 func _ground(tick: int, events: Array[SimEvent], feet_before: PackedFloat64Array) -> void:
 	for player: PlayerState in _live_seats():
 		if player.body == PlayerState.Body.GROUNDED:
@@ -461,7 +517,8 @@ func _ground(tick: int, events: Array[SimEvent], feet_before: PackedFloat64Array
 				continue
 			player.pos.y = surfaces.height_at(surface, player.pos)
 			continue
-		player.fall_from = maxf(player.fall_from, player.pos.y)
+		if not player.jumped:
+			player.fall_from = maxf(player.fall_from, player.pos.y)
 		if player.vel.y > 0.0:
 			continue
 		var below := surfaces.landing(Vector3(player.pos.x, feet_before[player.seat], player.pos.z))
@@ -470,8 +527,10 @@ func _ground(tick: int, events: Array[SimEvent], feet_before: PackedFloat64Array
 		var ground := surfaces.height_at(below, player.pos)
 		if player.pos.y > ground:
 			continue
-		var stagger := Ticks.from_seconds((player.fall_from - ground) * _rules.fall_stagger_per_m)
+		var drop := maxf(player.fall_from - ground, 0.0)
+		var stagger := Ticks.from_seconds(drop * _rules.fall_stagger_per_m)
 		player.body = PlayerState.Body.GROUNDED
+		player.jumped = false
 		player.surface = below
 		player.pos.y = ground
 		player.vel.y = 0.0

@@ -10,6 +10,7 @@ const STAGGER := BrawlerAnimation.Move.STAGGER
 const FALL := BrawlerAnimation.Move.FALL
 const BRACE := BrawlerAnimation.Move.BRACE
 const CHARGE := BrawlerAnimation.Move.CHARGE
+const JUMP := BrawlerAnimation.Move.JUMP
 
 
 func _entry(sim: MatchSim, seat: int = 0) -> Dictionary:
@@ -77,8 +78,26 @@ func test_airborne_falls_whatever_else_holds() -> void:
 		"state": PlayerState.Body.AIRBORNE,
 		"stagger": 5,
 		"action": PlayerState.Action.ACTIVE,
+		"jumped": false,
+		"vel": Vector3(6.0, 1.0, 0.0),
 	}
 	assert_eq(_move(entry, 6.0), FALL)
+
+
+func test_a_jump_springs_up_then_falls_then_lands() -> void:
+	var sim := SimFixtures.sim(1)
+	SimFixtures.place(sim, 0, Vector3.ZERO)
+	SimFixtures.step(sim, {0: SimFixtures.frame(0, Vector2.ZERO, InputFrame.JUMP)})
+	var moves: Array[BrawlerAnimation.Move] = [_move(_entry(sim))]
+	while _entry(sim)["state"] == PlayerState.Body.AIRBORNE:
+		SimFixtures.step(sim, {0: SimFixtures.frame(0)})
+		moves.append(_move(_entry(sim)))
+	var top := moves.find(FALL)
+	assert_eq(moves[0], JUMP, "off the ground")
+	assert_gt(top, 1, "rising for a while")
+	assert_eq(moves.slice(0, top).count(JUMP), top, "rising is the jump's own pose")
+	assert_eq(moves.slice(top, moves.size() - 1).count(FALL), moves.size() - 1 - top, "then falls")
+	assert_eq(moves.back(), IDLE, "and lands on its feet")
 
 
 func test_feet_walk_then_run_with_speed() -> void:

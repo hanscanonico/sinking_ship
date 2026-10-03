@@ -124,6 +124,20 @@ func landing(ship_point: Vector3) -> int:
 	return _highest_at_or_below(ship_point, count())
 
 
+## How high a head rising from [param ship_point] may go: the lowest underside over
+## it — a deck's, a ramp's, a blocker's — more than [param clearance] above the
+## feet, or INF when nothing is. Anything nearer the feet than that is underfoot.
+func ceiling(ship_point: Vector3, clearance: float) -> float:
+	var lowest := INF
+	for surface: int in _near(Rect2(Vector2(ship_point.x, ship_point.z), Vector2.ZERO)):
+		if not _contains(surface, ship_point):
+			continue
+		var underside := _underside(surface)
+		if underside > ship_point.y + clearance:
+			lowest = minf(lowest, underside)
+	return lowest
+
+
 ## The platform or ramp a body on [param surface] walks on: a blocker top's is
 ## where a body stepping off its middle comes down, past any other blocker top, or
 ## NONE when that is the sea; any other surface is its own.
@@ -517,6 +531,16 @@ func _contains(surface: int, ship_point: Vector3) -> bool:
 			and point.y <= area.end.y
 		)
 	return _platforms[surface].contains(ship_point.x, ship_point.z)
+
+
+## How low [param surface] reaches: a deck is a slab at its height, a ramp a solid
+## wedge down to its base, a blocker stands on its bottom.
+func _underside(surface: int) -> float:
+	if is_ramp(surface):
+		return _ramps[surface - _platforms.size()].base()
+	if _is_blocker_top(surface):
+		return _blocker_of(surface).bottom
+	return _platforms[surface].height
 
 
 ## The middle of [param surface], at its height there.
