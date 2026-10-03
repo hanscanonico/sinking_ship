@@ -1,13 +1,15 @@
-[gd_scene load_steps=10 format=3]
+[gd_scene load_steps=12 format=3]
 
 [ext_resource type="Script" path="res://scenes/match/match_scene.gd" id="1_scene"]
 [ext_resource type="Script" path="res://scenes/match/sim_driver.gd" id="2_driver"]
 [ext_resource type="Script" path="res://scenes/match/match_view.gd" id="3_view"]
 [ext_resource type="Script" path="res://scenes/match/ship_greybox.gd" id="4_greybox"]
-[ext_resource type="Script" path="res://scenes/match/camera_rig.gd" id="5_rig"]
+[ext_resource type="Script" path="res://scenes/match/observer_camera.gd" id="5_rig"]
 [ext_resource type="Script" path="res://scenes/match/hud.gd" id="6_hud"]
 [ext_resource type="Script" path="res://scenes/match/end_overlay.gd" id="7_end"]
 [ext_resource type="PackedScene" path="res://scenes/art/sea_and_sky.tscn" id="8_sea"]
+[ext_resource type="Script" path="res://scenes/match/first_person_camera.gd" id="9_eyes"]
+[ext_resource type="Script" path="res://scenes/match/first_person_hud.gd" id="10_fp_hud"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
 bg_color = Color(0.06, 0.09, 0.13, 0.85)
@@ -21,6 +23,7 @@ content_margin_right = 28.0
 content_margin_bottom = 20.0
 
 [node name="Match" type="Node3D"]
+process_priority = 1
 script = ExtResource("1_scene")
 
 [node name="SeaAndSky" parent="." instance=ExtResource("8_sea")]
@@ -37,13 +40,16 @@ script = ExtResource("3_view")
 [node name="Greybox" type="Node3D" parent="MatchView/Ship"]
 script = ExtResource("4_greybox")
 
-[node name="CameraRig" type="Node3D" parent="."]
+[node name="ObserverCamera" type="Node3D" parent="."]
 script = ExtResource("5_rig")
 
-[node name="Camera3D" type="Camera3D" parent="CameraRig"]
-current = true
+[node name="Camera3D" type="Camera3D" parent="ObserverCamera"]
 fov = 50.0
 far = 800.0
+
+[node name="FirstPersonCamera" type="Camera3D" parent="."]
+far = 800.0
+script = ExtResource("9_eyes")
 
 [node name="Hud" type="CanvasLayer" parent="."]
 script = ExtResource("6_hud")
@@ -68,19 +74,6 @@ offset_bottom = 44.0
 grow_horizontal = 2
 theme_override_font_sizes/font_size = 22
 horizontal_alignment = 1
-
-[node name="Tilt" type="Label" parent="Hud"]
-unique_name_in_owner = true
-anchors_preset = 1
-anchor_left = 1.0
-anchor_right = 1.0
-offset_left = -300.0
-offset_top = 12.0
-offset_right = -18.0
-offset_bottom = 72.0
-grow_horizontal = 0
-theme_override_font_sizes/font_size = 22
-horizontal_alignment = 2
 
 [node name="Countdown" type="Label" parent="Hud"]
 unique_name_in_owner = true
@@ -120,6 +113,9 @@ theme_override_colors/font_outline_color = Color(0.06, 0.09, 0.13, 1)
 theme_override_constants/outline_size = 6
 theme_override_font_sizes/font_size = 22
 horizontal_alignment = 1
+
+[node name="FirstPersonHud" type="CanvasLayer" parent="."]
+script = ExtResource("10_fp_hud")
 
 [node name="EndOverlay" type="CanvasLayer" parent="."]
 layer = 2

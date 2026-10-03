@@ -159,7 +159,7 @@ func _nearest_face(faces: PackedVector3Array, point: Vector2, height: float) -> 
 func _check_seats() -> void:
 	var scene: MatchScene = (load(MATCH_SCENE) as PackedScene).instantiate()
 	root.add_child(scene)
-	scene.start(RunMatch.default_config(SEED, SEATS), true)
+	scene.start(RunMatch.default_config(SEED, SEATS), true, true)
 	var driver: SimDriver = scene.get_node("SimDriver")
 	var runner := driver.runner
 	var ship: Node3D = scene.get_node("MatchView/Ship")

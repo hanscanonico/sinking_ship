@@ -23,21 +23,25 @@ import:
 	$(GODOT) --headless --path . --import
 
 # One match's knobs, handed to the scene and tools/run_match.gd as user args:
-#   make run [SEED=] [SEATS=]          the game, windowed, from the menu they fill in
+#   make run [SEED=] [SEATS=] [ARGS=]  the game, windowed, from the menu they fill in;
+#       ARGS passes more user args, e.g. ARGS=--observer for the observer camera
 #   make match SEED=1701 [SEATS=] [SECONDS=]   bots only, headless, as a transcript
-#   make capture SEED=1701 AT=60 [SEATS=] [CAPTURE=path.png]
+#   make capture SEED=1701 AT=60 [SEATS=] [EYE=] [CAPTURE=path.png]
 #       a windowed bots-only match saved as a PNG at AT seconds of match time
-#       (or its end), then quit. Not part of verify: it needs a display.
+#       (or its end), then quit: from the observer camera, or through seat EYE's
+#       eyes. Not part of verify: it needs a display.
 SEED ?=
 SEATS ?=
 SECONDS ?=
 AT ?=
-CAPTURE ?= $(CURDIR)/captures/match_$(SEED)_$(AT).png
+EYE ?=
+ARGS ?=
+CAPTURE ?= $(CURDIR)/captures/match_$(SEED)_$(AT)$(if $(EYE),_eye$(EYE)).png
 match-args = $(if $(SEED),--seed=$(SEED)) $(if $(SEATS),--seats=$(SEATS))
 
 run:
 	$(call require-godot)
-	$(GODOT) --path . -- $(match-args)
+	$(GODOT) --path . -- $(match-args) $(ARGS)
 
 # The engine helper autoload prints one line of its own on every boot; it is
 # filtered so stdout is the transcript alone.
@@ -53,7 +57,7 @@ capture:
 	@test -n "$(AT)" || { echo "capture: AT=<seconds of match time> is required" >&2; exit 1; }
 	@mkdir -p "$(dir $(CAPTURE))"
 	$(GODOT) --path . --fixed-fps 30 -- $(match-args) --autoplay \
-		--capture="$(CAPTURE)" --capture-at=$(AT)
+		--capture="$(CAPTURE)" --capture-at=$(AT) $(if $(EYE),--capture-eye=$(EYE))
 
 # The art against the data (D6) and the snapshots (D5): drawn platform tops,
 # every seat's model on its feet, no live sim object named under scenes/art.

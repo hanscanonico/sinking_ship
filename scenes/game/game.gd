@@ -6,7 +6,9 @@ extends Node
 ## SimDriver; the pause is never sim state. User arguments are MatchArgs':
 ## --seed and --seats fill the menu in, --autoplay presses Play for a bot on the
 ## local seat, and --capture saves a frame — of the match, or of the menu when
-## nothing is autoplaying — and quits.
+## nothing is autoplaying — and quits. A match is seen through the local seat's
+## eyes (D14); the observer camera is a tool that only --observer and captures
+## reach, and --capture-eye takes a capture through a seat's eyes instead.
 
 const MATCH_DATA := "res://data/match/default.tres"
 const MATCH_SCENE := preload("res://scenes/match/match.tscn")
@@ -97,7 +99,10 @@ func _play(seats: int, tier: StringName, seed_text: String) -> void:
 		_match.menu_requested.connect(_to_menu)
 	_menu.hide()
 	_set_paused(false)
-	_match.start(config, _args.autoplay)
+	var capturing := not _args.capture_path.is_empty()
+	var observer := _args.observer or (capturing and _args.capture_eye < 0)
+	var eye := _args.capture_eye if capturing and _args.capture_eye >= 0 else MatchScene.LOCAL_SEAT
+	_match.start(config, _args.autoplay, observer, eye)
 
 
 func _rematch() -> void:
@@ -133,6 +138,8 @@ func _problems(config: MatchConfig) -> PackedStringArray:
 			]
 		)
 	var found := config.problems()
+	if _args.capture_eye >= config.seats:
+		found.append("capture: no seat %d in a %d-seat match" % [_args.capture_eye, config.seats])
 	if not BotProfile.tiers().has(config.bot_tier):
 		found.append("menu: no bot profile named %s under data/bots/" % config.bot_tier)
 	return found

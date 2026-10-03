@@ -86,19 +86,25 @@ static func sim(seats: int, sinking: SinkScenario = null, layout: ShipLayout = n
 	return MatchSim.create(config(seats, sinking, 1, layout))
 
 
-## Puts [param seat] standing at [param pos] (ship-local), facing
+## Puts [param seat] standing at [param pos] (ship-local), looking
 ## [param facing_deg] from the bow toward starboard, at rest.
 static func place(match_sim: MatchSim, seat: int, pos: Vector3, facing_deg: float = 0.0) -> void:
 	var player := match_sim.state.seats[seat]
 	player.pos = pos
 	player.vel = Vector3.ZERO
-	player.facing = deg_to_rad(facing_deg)
+	player.last_look = InputFrame.quantize_yaw(deg_to_rad(facing_deg))
+	player.facing = InputFrame.yaw_angle(player.last_look)
 	player.body = PlayerState.Body.GROUNDED
 	player.surface = match_sim.surfaces.under(pos, match_sim.config.rules.step_height)
 
 
-static func frame(seat: int, move: Vector2 = Vector2.ZERO, buttons: int = 0) -> InputFrame:
-	return InputFrame.new(seat, 0, InputFrame.quantize(move), buttons)
+## A frame looking [param look_deg] from the bow toward starboard.
+static func frame(
+	seat: int, move: Vector2 = Vector2.ZERO, buttons: int = 0, look_deg: float = 0.0
+) -> InputFrame:
+	return InputFrame.new(
+		seat, 0, InputFrame.quantize(move), buttons, InputFrame.quantize_yaw(deg_to_rad(look_deg))
+	)
 
 
 ## Steps [param ticks] ticks; [param frames] maps a seat to the frame it sends

@@ -4,7 +4,7 @@ extends RefCounted
 ## InputFrame per seat is the only way anything happens (D3); snapshot() is the
 ## whole truth and from_snapshot() continues it exactly (D5).
 
-const SNAPSHOT_VERSION := 2
+const SNAPSHOT_VERSION := 3
 
 var config: MatchConfig
 var schedule: SinkSchedule
@@ -51,7 +51,8 @@ static func create(match_config: MatchConfig) -> MatchSim:
 	for seat in match_config.seats:
 		var player := PlayerState.new(seat)
 		player.pos = spawns[order[seat]]
-		player.facing = Vector2(-player.pos.x, -player.pos.z).angle()
+		player.last_look = InputFrame.quantize_yaw(Vector2(-player.pos.x, -player.pos.z).angle())
+		player.facing = InputFrame.yaw_angle(player.last_look)
 		player.surface = sim.surfaces.under(player.pos, match_config.rules.step_height)
 		match_state.seats.append(player)
 	sim.state = match_state
@@ -128,18 +129,19 @@ func _take_frames(frames: Array[InputFrame], tick: int) -> void:
 			continue
 		var valid := frame.validated(player.seat, tick)
 		player.last_move = valid.move
-		player.last_aim = valid.aim
+		player.last_look = valid.look_yaw
 		player.last_buttons = valid.buttons
+		# A seat's facing is its look, by any amount, every tick (D14).
+		player.facing = InputFrame.yaw_angle(valid.look_yaw)
 
 
-## Button edges, shove phases and facing.
+## Button edges and shove phases.
 func _intent() -> void:
 	var candidates := _candidates()
-	var turn_step := deg_to_rad(_rules.turn_rate_deg) * Ticks.SECONDS_PER_TICK
 	for player: PlayerState in _live_seats():
 		if player.action != PlayerState.Action.IDLE:
 			player.action_ticks += 1
-			_advance_action(player)
+			_advance_action(player, candidates)
 		var pressed := player.last_buttons & ~player.prev_buttons
 		player.prev_buttons = player.last_buttons
 		if player.is_staggered():
@@ -152,29 +154,24 @@ func _intent() -> void:
 			player.action = PlayerState.Action.WINDUP
 			player.action_ticks = 0
 			player.shove_spent = false
-			player.facing = ShoveResolver.autoaim(
-				_candidate(player),
-				player.facing,
-				candidates,
-				_rules.shove_reach,
-				_rules.autoaim_cone_deg,
-				surfaces,
-				_rules.step_height
-			)
-		var aiming := (
-			player.action == PlayerState.Action.WINDUP or player.action == PlayerState.Action.ACTIVE
-		)
-		if player.last_move != Vector2i.ZERO and not aiming:
-			var wanted := Vector2(player.last_move).angle()
-			var turn := clampf(angle_difference(player.facing, wanted), -turn_step, turn_step)
-			player.facing = wrapf(player.facing + turn, -PI, PI)
 
 
-func _advance_action(player: PlayerState) -> void:
+## A shove goes where its shover looks as its active window starts, bent toward the
+## nearest target the autoaim cone holds — the shove, never the view (D14).
+func _advance_action(player: PlayerState, candidates: Array[ShoveResolver.Candidate]) -> void:
 	match player.action:
 		PlayerState.Action.WINDUP:
 			if player.action_ticks >= _windup_ticks:
 				_enter(player, PlayerState.Action.ACTIVE)
+				player.shove_facing = ShoveResolver.autoaim(
+					_candidate(player),
+					player.facing,
+					candidates,
+					_rules.shove_reach,
+					_rules.autoaim_cone_deg,
+					surfaces,
+					_rules.step_height
+				)
 		PlayerState.Action.ACTIVE:
 			if player.action_ticks >= _active_ticks:
 				_enter(player, PlayerState.Action.RECOVERY)
@@ -338,7 +335,10 @@ func _shoves(tick: int, events: Array[SimEvent]) -> void:
 		):
 			attempts.append(
 				ShoveResolver.Attempt.new(
-					player.seat, player.pos, _rules.body_radius, player.facing_vector()
+					player.seat,
+					player.pos,
+					_rules.body_radius,
+					Vector2.from_angle(player.shove_facing)
 				)
 			)
 	if attempts.is_empty():

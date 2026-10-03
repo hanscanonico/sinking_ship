@@ -1,8 +1,9 @@
 class_name MatchView
 extends Node3D
 ## Draws the match from two snapshots (D5): the ship root follows the interpolated
-## pose, and every seat is a Brawler with a blob shadow, placed in ship space. It
-## never moves a body itself, and never reads a live PlayerState.
+## pose, and every seat is a Brawler with a blob shadow, placed in ship space —
+## except the seat whose eyes the view is in, which is not drawn (D14). It never
+## moves a body itself, and never reads a live PlayerState.
 
 ## The seat colours now live in ArtPalette; this name stays for code outside the art.
 const SEAT_COLOURS: Array[Color] = ArtPalette.SEAT_COLOURS
@@ -17,6 +18,8 @@ var _schedule: SinkSchedule
 var _surfaces: Surfaces
 var _bodies: Array[Brawler] = []
 var _shadows: Array[MeshInstance3D] = []
+## The seat the camera looks out of, or -1 for none.
+var _eye_seat := -1
 
 @onready var _ship: Node3D = $Ship
 @onready var _greybox: ShipGreybox = $Ship/Greybox
@@ -41,9 +44,33 @@ func setup(driver: SimDriver, sim: MatchSim, local_seat: int) -> void:
 	_process(0.0)
 
 
+## Draws every seat but [param seat] from now on — the view is in its eyes — or
+## every seat when it is -1.
+func look_out_of(seat: int) -> void:
+	_eye_seat = seat
+	if seat != -1:
+		_bodies[seat].visible = false
+		_shadows[seat].visible = false
+
+
 ## Where [param seat] is drawn, in the world.
 func seat_world_position(seat: int) -> Vector3:
 	return _bodies[seat].global_position
+
+
+## Where [param seat]'s feet are drawn, in ship space.
+func seat_feet(seat: int) -> Vector3:
+	return _bodies[seat].position
+
+
+## The ship-plane facing [param seat] is drawn with.
+func seat_facing(seat: int) -> float:
+	return -_bodies[seat].rotation.y
+
+
+## Where the ship is drawn: ship space to the world.
+func ship_to_world() -> Transform3D:
+	return _ship.global_transform
 
 
 func _process(_delta: float) -> void:
@@ -62,7 +89,7 @@ func _process(_delta: float) -> void:
 		var then: Dictionary = seats_then[index]
 		var seat: int = now["seat"]
 		var body := _bodies[seat]
-		body.visible = not now["out"]
+		body.visible = not now["out"] and seat != _eye_seat
 		_shadows[seat].visible = false
 		if now["out"]:
 			continue
@@ -74,7 +101,7 @@ func _process(_delta: float) -> void:
 		body.show_ground(Vector3.UP if below == Surfaces.NONE else _ground_normal(below, pos))
 		if below != Surfaces.NONE:
 			var ground := _surfaces.height_at(below, pos)
-			_shadows[seat].visible = true
+			_shadows[seat].visible = body.visible
 			_shadows[seat].position = Vector3(pos.x, ground + SHADOW_LIFT, pos.z)
 
 

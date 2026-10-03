@@ -8,7 +8,6 @@ extends Resource
 @export var walk_speed: float
 @export var ground_accel: float
 @export var ground_friction: float
-@export var turn_rate_deg: float
 @export var body_radius: float
 @export var body_height: float
 @export var gravity: float
@@ -58,7 +57,6 @@ func problems() -> PackedStringArray:
 		"walk_speed",
 		"ground_accel",
 		"ground_friction",
-		"turn_rate_deg",
 		"body_radius",
 		"body_height",
 		"gravity",

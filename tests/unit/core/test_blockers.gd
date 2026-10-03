@@ -259,6 +259,6 @@ func test_a_body_on_a_blocker_top_can_be_shoved_from_the_deck() -> void:
 	SimFixtures.place(sim, 0, shover, 180.0)
 	SimFixtures.place(sim, 1, target)
 	assert_eq(sim.state.seats[1].surface, _top_of(hatch), "the target stands on the hatch")
-	var frames := {0: SimFixtures.frame(0, Vector2.ZERO, SHOVE), 1: SimFixtures.frame(1)}
+	var frames := {0: SimFixtures.frame(0, Vector2.ZERO, SHOVE, 180.0), 1: SimFixtures.frame(1)}
 	SimFixtures.step(sim, frames, 10)
 	assert_true(sim.state.seats[1].is_staggered(), "the shove lands on it")

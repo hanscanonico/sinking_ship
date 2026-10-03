@@ -6,9 +6,10 @@ extends RefCounted
 ## platform it can reach, where it holds unless that seat comes up too. It follows
 ## the walk graph there, turning round blockers; once there it walks at that seat —
 ## past the grip angle, round to its uphill side first, and not onto any other
-## surface — and shoves when it is in reach and cone. It keeps its edge margin from
-## the waterline and from open edges: a drop, or a railing gap, unless the target
-## stands between the bot and it.
+## surface — and shoves when it is in reach and cone. It looks at that seat while
+## it walks at it and the way it walks otherwise, turning no faster than its
+## profile's turn rate. It keeps its edge margin from the waterline and from open
+## edges: a drop, or a railing gap, unless the target stands between the bot and it.
 
 ## Directions probed around the bot for water and open edges.
 const PROBES := 8
@@ -28,6 +29,9 @@ var _seeking_high := false
 var _aim_offset := 0.0
 var _think_in := 0
 var _last_buttons := 0
+## The look this brain last sent, or -1 before its first: it turns from there no
+## faster than its profile's turn rate (D10).
+var _look := -1
 
 
 ## [param rng] is this seat's own stream, SeedStreams' (match seed, seat).
@@ -56,6 +60,8 @@ func decide(view: BotView, tick: int) -> InputFrame:
 		return InputFrame.new(seat, tick)
 	var my_pos: Vector3 = me["pos"]
 	var my_surface: int = me["surface"]
+	if _look == -1:
+		_look = InputFrame.quantize_yaw(me["facing"])
 	var pose := view.pose()
 	# The pose is current but the snapshot is reaction_ticks old: probe from where
 	# its own seen velocity has carried it since.
@@ -70,6 +76,7 @@ func decide(view: BotView, tick: int) -> InputFrame:
 	if not target.is_empty() and target["out"]:
 		target = {}
 	var wish := Vector2.ZERO
+	var watch := Vector2.ZERO
 	var waypoint := _walk_graph.steer(my_pos, my_surface, _goal, pose)
 	if not waypoint.is_empty():
 		wish = Vector2(waypoint[0].x - my_pos.x, waypoint[0].z - my_pos.z).normalized()
@@ -79,6 +86,8 @@ func decide(view: BotView, tick: int) -> InputFrame:
 		wish = Vector2(goal.x - my_pos.x, goal.z - my_pos.z)
 		wish = wish.normalized().rotated(_aim_offset)
 		wish = _clear_heading(my_pos, wish, PackedInt32Array([my_surface, target["surface"]]))
+		var target_pos: Vector3 = target["pos"]
+		watch = Vector2(target_pos.x - my_pos.x, target_pos.z - my_pos.z).rotated(_aim_offset)
 	var away := _away_from_danger(now_pos, my_surface, pose, target)
 	var move := wish
 	if away != Vector2.ZERO:
@@ -92,7 +101,8 @@ func decide(view: BotView, tick: int) -> InputFrame:
 	if _wants_shove(me, target) and not _last_buttons & InputFrame.SHOVE:
 		buttons = InputFrame.SHOVE
 	_last_buttons = buttons
-	return InputFrame.new(seat, tick, InputFrame.quantize(move), buttons)
+	_turn_toward(watch if watch != Vector2.ZERO else move)
+	return InputFrame.new(seat, tick, InputFrame.quantize(move), buttons, _look)
 
 
 ## Picks the nearest seat still in (ties to the lower seat), this choice's heading
@@ -219,6 +229,20 @@ func _wants_shove(me: Dictionary, target: Dictionary) -> bool:
 		_surfaces,
 		_rules.step_height
 	)
+
+
+## Turns the look toward [param heading] by at most the profile's turn rate in one
+## tick; no heading keeps it.
+func _turn_toward(heading: Vector2) -> void:
+	if heading == Vector2.ZERO:
+		return
+	var most := roundi(
+		_profile.turn_rate_deg / 360.0 * InputFrame.YAW_STEPS * Ticks.SECONDS_PER_TICK
+	)
+	var turn := posmod(InputFrame.quantize_yaw(heading.angle()) - _look, InputFrame.YAW_STEPS)
+	if turn * 2 > InputFrame.YAW_STEPS:
+		turn -= InputFrame.YAW_STEPS
+	_look = posmod(_look + clampi(turn, -most, most), InputFrame.YAW_STEPS)
 
 
 static func _entry(seen: Dictionary, wanted: int) -> Dictionary:

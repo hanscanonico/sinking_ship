@@ -24,7 +24,9 @@ func _shove_to_starboard(
 	var events: Array[SimEvent] = []
 	for tick in ticks:
 		var buttons := SHOVE if tick == 0 else 0
-		var frames := {0: SimFixtures.frame(0, Vector2.ZERO, buttons), 1: SimFixtures.frame(1)}
+		var frames := {
+			0: SimFixtures.frame(0, Vector2.ZERO, buttons, 90.0), 1: SimFixtures.frame(1)
+		}
 		events.append_array(SimFixtures.step(sim, frames))
 		if sim.is_over():
 			break
@@ -96,7 +98,9 @@ func test_quick_shove_when_pinned_vaults() -> void:
 	var vaulted_at := -1
 	for tick in 3 * Ticks.RATE:
 		var buttons := SHOVE if tick == 0 else 0
-		var frames := {0: SimFixtures.frame(0, Vector2.ZERO, buttons), 1: SimFixtures.frame(1)}
+		var frames := {
+			0: SimFixtures.frame(0, Vector2.ZERO, buttons, 90.0), 1: SimFixtures.frame(1)
+		}
 		var stepped := SimFixtures.step(sim, frames)
 		events.append_array(stepped)
 		if vaulted_at == -1 and not _vaults(stepped).is_empty():

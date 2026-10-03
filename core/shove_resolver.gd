@@ -135,3 +135,42 @@ static func autoaim(
 			best_gap = gap
 			best_facing = offset.angle()
 	return best_facing
+
+
+## Whether a shove [param seat] threw now, in [param snapshot], would land on
+## anyone: bent and resolved as the sim does both, against the bodies the snapshot
+## holds. The one answer the first-person crosshair asks (D13).
+static func would_hit(
+	snapshot: Dictionary, seat: int, rules: BrawlRules, surfaces: Surfaces
+) -> bool:
+	var candidates: Array[Candidate] = []
+	var shover: Candidate = null
+	var facing := 0.0
+	for entry: Dictionary in snapshot["seats"]:
+		if entry["out"]:
+			continue
+		var candidate := Candidate.new(
+			entry["seat"], entry["pos"], rules.body_radius, rules.body_height
+		)
+		candidates.append(candidate)
+		if entry["seat"] == seat:
+			shover = candidate
+			facing = entry["facing"]
+	if shover == null:
+		return false
+	var bent := autoaim(
+		shover,
+		facing,
+		candidates,
+		rules.shove_reach,
+		rules.autoaim_cone_deg,
+		surfaces,
+		rules.step_height
+	)
+	var attempts: Array[Attempt] = [
+		Attempt.new(seat, shover.pos, shover.radius, Vector2.from_angle(bent))
+	]
+	var hits := resolve(
+		attempts, candidates, rules.shove_reach, rules.shove_cone_deg, surfaces, rules.step_height
+	)
+	return not hits.is_empty()
