@@ -13,7 +13,10 @@ extends RefCounted
 ## edges: a drop, or a railing gap, unless the target stands between the bot and it.
 ## On its reads, rolled each think, it charges a bracing target instead of tapping,
 ## and — unless it is climbing — braces, standing still and looking at it, against a
-## seat that could be winding up a shove that would land on it.
+## seat that could be winding up a shove that would land on it. It hears the sinking's
+## telegraphs as a player does, in the current pose: told of a lurch, it walks away
+## from the side the lurch will put down and, once the deck swings, braces if it can;
+## it leaves a deck that is giving way, and never routes onto one.
 
 ## Directions probed around the bot for water and open edges.
 const PROBES := 8
@@ -79,6 +82,7 @@ func decide(view: BotView, tick: int) -> InputFrame:
 	if _look == -1:
 		_look = InputFrame.quantize_yaw(me["facing"])
 	var pose := view.pose()
+	_surfaces.honour(pose)
 	# The pose is current but the snapshot is reaction_ticks old: probe from where
 	# its own seen velocity has carried it since.
 	var reaction_s := _profile.reaction_ticks * Ticks.SECONDS_PER_TICK
@@ -113,7 +117,14 @@ func decide(view: BotView, tick: int) -> InputFrame:
 		)
 		var target_pos: Vector3 = target["pos"]
 		watch = Vector2(target_pos.x - my_pos.x, target_pos.z - my_pos.z).rotated(_aim_offset)
-	var away := _away_from_danger(now_pos, my_surface, pose, target)
+	var lurch := pose.lurch_warning if pose.lurch_warning != 0.0 else pose.lurch
+	var riding := lurch != 0.0 and not _climbing
+	if riding:
+		wish = _clear_heading(
+			now_pos, -ShipPose.low_side(lurch), PackedInt32Array(), PackedInt32Array()
+		)
+		watch = Vector2.ZERO
+	var away := _away_from_danger(now_pos, my_surface, pose, target, _stair_ahead(my_surface, pose))
 	var move := wish
 	if away != Vector2.ZERO:
 		var toward_danger := minf(wish.dot(away), 0.0)
@@ -128,6 +139,10 @@ func decide(view: BotView, tick: int) -> InputFrame:
 		# Rooted: stand still and look at the threat, whose shove the front arc takes.
 		var threat_pos: Vector3 = threat["pos"]
 		watch = Vector2(threat_pos.x - my_pos.x, threat_pos.z - my_pos.z)
+		move = Vector2.ZERO
+	if riding and pose.lurch != 0.0 and _charge_held == 0 and not me["exhausted"]:
+		# The deck is swinging: rooted, a brace holds where it would slide.
+		buttons = InputFrame.BRACE
 		move = Vector2.ZERO
 	_last_buttons = buttons
 	_turn_toward(watch if watch != Vector2.ZERO else move)
@@ -195,7 +210,8 @@ func _threat(seen: Dictionary, me: Dictionary) -> Dictionary:
 ## error from the bot's own stream, and the zone to make for: the highest zone it can
 ## reach once the water is within edge_margin of [param now_pos], while it climbs —
 ## from when the lowest corner of its own floor comes within climb_margin of the sea
-## until it arrives — or when the target's zone is flooded; else the target's.
+## until it arrives — while its own zone is giving way, or when the target's zone is
+## flooded or giving way; else the target's.
 func _think(seen: Dictionary, me: Dictionary, now_pos: Vector3, pose: ShipPose) -> void:
 	var my_pos: Vector3 = me["pos"]
 	_target = -1
@@ -225,7 +241,11 @@ func _think(seen: Dictionary, me: Dictionary, now_pos: Vector3, pose: ShipPose) 
 	_seeking_high = (
 		_water_near(now_pos, pose)
 		or _climbing
-		or target_zone != WalkGraph.NONE and _walk_graph.flooded(target_zone, pose)
+		or my_zone != WalkGraph.NONE and _walk_graph.doomed(my_zone, pose)
+		or (
+			target_zone != WalkGraph.NONE
+			and (_walk_graph.flooded(target_zone, pose) or _walk_graph.doomed(target_zone, pose))
+		)
 	)
 	if _seeking_high:
 		_goal = _walk_graph.highest_reachable(my_pos, me["surface"], pose)
@@ -306,12 +326,28 @@ func _clear_heading(
 	return wish
 
 
+## The way along the ramp the bot stands on when its route runs down it off a deck
+## giving way, else zero: fleeing, the stair's far end is the way off, not an edge to
+## back away from.
+func _stair_ahead(my_surface: int, pose: ShipPose) -> Vector2:
+	if (
+		_legs.is_empty()
+		or _legs[0].ramp == WalkGraph.NONE
+		or my_surface != _surfaces.ramp_surface(_legs[0].ramp)
+		or not _walk_graph.doomed(_legs[0].from_zone, pose)
+	):
+		return Vector2.ZERO
+	return _legs[0].along
+
+
 ## A unit vector away from every probe at edge_margin that is wet or past an open
 ## edge — walking there would drop off it — or zero when none is (or they cancel
 ## out). A probe past a railing of [param my_surface] is safe; one through a gap is
-## not, unless [param target] is lined up for a shove through it.
+## not, unless [param target] is lined up for a shove through it. On a stair whose
+## way on is [param stair_ahead], an open edge ahead of it is the stair's far end and
+## its sides, and is no danger.
 func _away_from_danger(
-	my_pos: Vector3, my_surface: int, pose: ShipPose, target: Dictionary
+	my_pos: Vector3, my_surface: int, pose: ShipPose, target: Dictionary, stair_ahead: Vector2
 ) -> Vector2:
 	var push := Vector2.ZERO
 	for index in PROBES:
@@ -320,7 +356,8 @@ func _away_from_danger(
 		if _surfaces.wet(probe, pose):
 			push -= direction
 		elif (
-			_surfaces.drops(my_pos, probe, _rules.step_height)
+			direction.dot(stair_ahead) <= 0.0
+			and _surfaces.drops(my_pos, probe, _rules.step_height)
 			and not _surfaces.railed(my_pos, probe, my_surface)
 			and not _lined_up(my_pos, probe, target)
 		):

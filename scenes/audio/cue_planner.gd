@@ -13,6 +13,8 @@ const WALK_STRIDE := BrawlerAnimation.WALK_CLIP_SPEED * 1.333 / 2.0
 const RUN_STRIDE := BrawlerAnimation.RUN_CLIP_SPEED * 0.933 / 2.0
 ## The quietest footfall, at a stroll; a full run is 1.
 const STEP_SOFT := 0.45
+## A collapse's telegraph is the same wood giving way as the collapse, quieter.
+const COLLAPSING_GAIN := 0.6
 ## Feet this close above the sea splash as they step, in metres.
 const WET_ABOVE := 0.3
 ## A landing that costs no stagger still thuds this loud; one that costs
@@ -170,6 +172,18 @@ func _from_event(event: Dictionary, now: Dictionary, pose: ShipPose, cues: Array
 			cues.append(
 				AudioCue.new(AudioCue.Kind.WIN_STING if won else AudioCue.Kind.LOSS_STING, tick)
 			)
+		SimEvent.Kind.SHIP_LURCHING:
+			var horn := AudioCue.new(AudioCue.Kind.HORN, tick)
+			horn.positional = true
+			horn.position = Vector3(_hull.get_center().x, 0.0, _hull.get_center().y)
+			cues.append(horn)
+		SimEvent.Kind.PLATFORM_COLLAPSING, SimEvent.Kind.PLATFORM_COLLAPSED:
+			var giving := AudioCue.new(AudioCue.Kind.COLLAPSE, tick)
+			giving.positional = true
+			giving.position = _platform_middle(event["platform"])
+			if event["kind"] == SimEvent.Kind.PLATFORM_COLLAPSING:
+				giving.gain = COLLAPSING_GAIN
+			cues.append(giving)
 
 
 ## The ship complains as it lists and settles: creaks round the listener as the
@@ -248,6 +262,16 @@ func _low_end(pose: ShipPose) -> Vector3:
 	var x := middle.x + signf(pose.trim_deg) * _hull.size.x * 0.5
 	var z := middle.y + signf(pose.heel_deg) * _hull.size.y * 0.25
 	return Vector3(x, _keel, z)
+
+
+## The middle of the first platform called [param platform_name], at its height:
+## where a deck giving way is heard from.
+func _platform_middle(platform_name: StringName) -> Vector3:
+	for platform: ShipPlatform in _layout.platforms:
+		if platform.name == platform_name:
+			var middle := platform.area.get_center()
+			return Vector3(middle.x, platform.height, middle.y)
+	return Vector3(_hull.get_center().x, 0.0, _hull.get_center().y)
 
 
 ## Whether [param entry]'s shove carries a full charge (SH4).

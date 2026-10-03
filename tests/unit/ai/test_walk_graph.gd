@@ -252,3 +252,24 @@ func test_path_avoids_flooded_platforms() -> void:
 	var flooded := _zones_on(graph.route(forward, ground, top, by_the_head))
 	assert_eq(flooded, [stern_perch, top], "flooded: round by the stern")
 	assert_true(graph.route(forward, ground, bow_perch, by_the_head).is_empty(), "never onto it")
+
+
+func test_routes_never_end_on_a_deck_giving_way() -> void:
+	var layout := SimFixtures.steamer()
+	var surfaces := Surfaces.new(layout)
+	var graph := _graph(layout, surfaces)
+	var bridge := graph.deck_of(SimFixtures.platform_named(layout, &"bridge"))
+	var boat_deck := SimFixtures.platform_named(layout, &"boat deck")
+	var from := Vector3(-5.0, 2.5, -2.0)
+	var scenario := SimFixtures.with_events(
+		SimFixtures.calm(), [SimFixtures.collapse(4.0, &"bridge", 2.0)]
+	)
+	var schedule := SinkSchedule.new(scenario, layout.freeboard, SeedStreams.derive(1, "sink"))
+	var standing := schedule.pose_at(0)
+	assert_eq(graph.highest_reachable(from, boat_deck, standing), bridge, "while it stands")
+	assert_false(graph.route(from, boat_deck, bridge, standing).is_empty())
+	for tick: int in [Ticks.from_seconds(3.0), Ticks.from_seconds(5.0)]:
+		var pose := schedule.pose_at(tick)
+		assert_true(graph.doomed(bridge, pose))
+		assert_ne(graph.highest_reachable(from, boat_deck, pose), bridge, "tick %d" % tick)
+		assert_true(graph.route(from, boat_deck, bridge, pose).is_empty(), "tick %d" % tick)

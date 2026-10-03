@@ -280,3 +280,37 @@ func test_cues_come_from_snapshots_and_events_only() -> void:
 	for index in source.size():
 		var found := live.search(source[index].get_slice("#", 0))
 		assert_null(found, "cue_planner.gd:%d names the live match" % (index + 1))
+
+
+func test_a_lurch_warning_sounds_the_horn_once() -> void:
+	# The horn is the telegraph: a second ahead of the swing, once per lurch.
+	var sim := SimFixtures.sim(
+		1, SimFixtures.with_events(SimFixtures.calm(), [SimFixtures.lurch(2.0, 15.0)])
+	)
+	var rows := []
+	rows.resize(3 * Ticks.RATE)
+	rows.fill({})
+	var horns := _of(_play(_planner(sim), sim, rows), AudioCue.Kind.HORN)
+	assert_eq(horns.size(), 1)
+	assert_eq(horns[0].tick, Ticks.from_seconds(1.0), "a second before the swing")
+
+
+func test_a_collapse_is_heard_before_it_happens() -> void:
+	var layout := SimFixtures.steamer()
+	var sim := SimFixtures.sim(
+		1,
+		SimFixtures.with_events(SimFixtures.calm(), [SimFixtures.collapse(4.0, &"bridge")]),
+		layout
+	)
+	SimFixtures.place(sim, 0, Vector3(-17.0, 1.2, 0.0))
+	var rows := []
+	rows.resize(5 * Ticks.RATE)
+	rows.fill({})
+	var giving := _of(_play(_planner(sim), sim, rows), AudioCue.Kind.COLLAPSE)
+	assert_eq(giving.size(), 2, "as it is telegraphed, and as it goes")
+	assert_eq(giving[0].tick, Ticks.from_seconds(1.0))
+	assert_eq(giving[1].tick, Ticks.from_seconds(4.0))
+	assert_lt(giving[0].gain, giving[1].gain, "the warning quieter than the crash")
+	for cue: AudioCue in giving:
+		assert_true(cue.positional)
+		assert_eq(cue.position, Vector3(-2.5, 4.7, 0.0), "from the bridge")

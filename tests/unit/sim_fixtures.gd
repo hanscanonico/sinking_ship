@@ -57,6 +57,72 @@ static func scenario(rows: Array, starts_at: float = 0.0) -> SinkScenario:
 	return made
 
 
+## A lurch at [param at] seconds swinging the heel by [param heel_deg] and back over
+## [param duration], telegraphed [param warning] ahead, unjittered.
+static func lurch(
+	at: float, heel_deg: float, duration: float = 3.0, warning: float = 1.0
+) -> SinkEvent:
+	var event := SinkEvent.new()
+	event.kind = SinkEvent.Kind.LURCH
+	event.at = at
+	event.heel_deg = heel_deg
+	event.duration = duration
+	event.warning = warning
+	return event
+
+
+## The platforms called [param platform] collapsing at [param at] seconds,
+## telegraphed [param warning] ahead, unjittered.
+static func collapse(at: float, platform: StringName, warning: float = 3.0) -> SinkEvent:
+	var event := SinkEvent.new()
+	event.kind = SinkEvent.Kind.COLLAPSE
+	event.at = at
+	event.platform = platform
+	event.warning = warning
+	return event
+
+
+## [param scenario] with [param events] and a cap at [param cap] seconds.
+static func with_events(
+	scenario: SinkScenario, events: Array[SinkEvent], cap: float = 0.0
+) -> SinkScenario:
+	scenario.events = events
+	scenario.cap = cap
+	return scenario
+
+
+## A point at every corner of every surface of [param layout] — platforms, the
+## ends of ramps, blocker tops — at its height there.
+static func surface_points(layout: ShipLayout) -> Array[Vector3]:
+	var points: Array[Vector3] = []
+	var feet: Array[Rect2] = []
+	var heights := PackedFloat64Array()
+	for platform: ShipPlatform in layout.platforms:
+		feet.append(platform.area)
+		heights.append(platform.height)
+	for blocker: ShipBlocker in layout.blockers:
+		var reach := Vector2(blocker.radius, blocker.radius)
+		var box := blocker.centre - reach
+		feet.append(
+			blocker.area if blocker.shape == ShipBlocker.Shape.BOX else Rect2(box, reach * 2.0)
+		)
+		heights.append(blocker.top)
+	for index in feet.size():
+		var area := feet[index]
+		for corner: Vector2 in [
+			area.position,
+			area.end,
+			Vector2(area.position.x, area.end.y),
+			Vector2(area.end.x, area.position.y),
+		]:
+			points.append(Vector3(corner.x, heights[index], corner.y))
+	for ramp: ShipRamp in layout.ramps:
+		for end in 2:
+			for corner: Vector2 in ramp.end_edge(end):
+				points.append(Vector3(corner.x, ramp.end_point(end).y, corner.y))
+	return points
+
+
 ## A ship that never moves.
 static func calm() -> SinkScenario:
 	return scenario([[0.0, 0.0, 0.0, 0.0]])

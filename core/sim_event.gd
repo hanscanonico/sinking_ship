@@ -3,13 +3,26 @@ extends RefCounted
 ## A typed hint of what happened on a tick. Presentation may announce or animate
 ## one; it never infers state from one — the snapshot is the truth (D5).
 
-enum Kind { SEAT_OUT, MATCH_ENDED, VAULTED, FELL, LANDED, SHOVE_LANDED }
+enum Kind {
+	SEAT_OUT,
+	MATCH_ENDED,
+	VAULTED,
+	FELL,
+	LANDED,
+	SHOVE_LANDED,
+	SHIP_LURCHING,
+	SHIP_LURCHED,
+	PLATFORM_COLLAPSING,
+	PLATFORM_COLLAPSED,
+	RAILING_BROKE,
+	PLUNGE_BEGAN,
+}
 
 var kind: Kind
 var tick: int
 ## SEAT_OUT: who went out. MATCH_ENDED: the winner, or -1 for a draw. VAULTED:
 ## who tipped over a railing. FELL: who went off an edge. LANDED: who came down.
-## SHOVE_LANDED: the shover.
+## SHOVE_LANDED: the shover. The sinking's events: -1.
 var seat: int
 var place: int
 var cause: PlayerState.Cause = PlayerState.Cause.NONE
@@ -21,6 +34,12 @@ var surface: int = Surfaces.NONE
 var stagger_ticks: int
 ## SHOVE_LANDED: the seat the shove hit.
 var target: int = -1
+## SHIP_LURCHING, SHIP_LURCHED: the heel the lurch swings by, signed as the pose's.
+var heel_deg: float
+## PLATFORM_COLLAPSING, PLATFORM_COLLAPSED: the name of the platforms giving way.
+var platform: StringName
+## RAILING_BROKE: the layout's railing, by index.
+var railing: int = -1
 
 
 func _init(event_kind: Kind, event_tick: int, event_seat: int) -> void:
@@ -60,6 +79,25 @@ static func shove_landed(event_tick: int, shover: int, hit: int) -> SimEvent:
 	return event
 
 
+## What the sinking announces of [param event] on [param event_tick]: its telegraph
+## starting when [param telegraph] says so, else its happening.
+static func sinking(event_tick: int, event: SinkEvent, telegraph: bool) -> SimEvent:
+	var kind := Kind.PLUNGE_BEGAN
+	match event.kind:
+		SinkEvent.Kind.LURCH:
+			kind = Kind.SHIP_LURCHING if telegraph else Kind.SHIP_LURCHED
+		SinkEvent.Kind.COLLAPSE:
+			kind = Kind.PLATFORM_COLLAPSING if telegraph else Kind.PLATFORM_COLLAPSED
+		SinkEvent.Kind.RAILING_FAIL:
+			kind = Kind.RAILING_BROKE
+	var announced := SimEvent.new(kind, event_tick, -1)
+	announced.heel_deg = event.heel_deg
+	announced.platform = event.platform
+	if event.kind == SinkEvent.Kind.RAILING_FAIL:
+		announced.railing = event.railing
+	return announced
+
+
 static func match_ended(event_tick: int, winner: int) -> SimEvent:
 	var event := SimEvent.new(Kind.MATCH_ENDED, event_tick, winner)
 	event.place = 1
@@ -77,4 +115,7 @@ func to_dict() -> Dictionary:
 		"surface": surface,
 		"stagger": stagger_ticks,
 		"target": target,
+		"heel": heel_deg,
+		"platform": platform,
+		"railing": railing,
 	}

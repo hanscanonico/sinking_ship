@@ -500,9 +500,11 @@ func test_falling_into_a_companionway_lands_on_the_stair() -> void:
 
 func test_room_floods_exactly_when_its_floor_is_under_the_sea() -> void:
 	# No compartments (D7): a body standing in a room goes out on the tick the sea
-	# plane passes its feet — whatever walls and doorways stand round it.
+	# plane passes its feet — whatever walls and doorways stand round it. Without the
+	# scenario's events: a lurch would slide the bodies off the points watched.
 	var layout := _steamer()
-	var sinking: SinkScenario = load(SimFixtures.STEAMER_SINKING)
+	var sinking: SinkScenario = load(SimFixtures.STEAMER_SINKING).duplicate()
+	sinking.events = []
 	var sim := SimFixtures.sim(3, sinking, layout)
 	var rooms := {0: Vector3(-2.0, -2.6, -3.5), 1: Vector3(-11.0, -2.6, 3.0)}
 	for seat: int in rooms:

@@ -5,8 +5,8 @@ extends RefCounted
 ## room. The edges are portals: the doorways in the rooms' walls and the ramps, so a
 ## path crosses a wall only through a doorway. A bot routes to a zone, then steers
 ## locally. What stands where, what a ramp joins and which points are wet it asks
-## Surfaces; it never routes into a flooded zone, nor through a portal with an end
-## under water.
+## Surfaces; it never routes into a flooded zone or one giving way, nor through a
+## portal with an end under water.
 
 const NONE := -1
 ## How far apart two platforms' edges may be and still meet: the data's rectangles
@@ -132,6 +132,21 @@ func flooded(zone: int, pose: ShipPose) -> bool:
 	return true
 
 
+## Whether [param zone] is giving way or gone under [param pose]: an open deck every
+## platform of which the pose has collapsing or collapsed. A room never is — its
+## floor stays when the deck over it goes.
+func doomed(zone: int, pose: ShipPose) -> bool:
+	if zone < _layout.rooms.size() or pose.collapsing.is_empty() and pose.collapsed.is_empty():
+		return false
+	for platform in _decks.size():
+		if _decks[platform] != zone:
+			continue
+		var deck_name := _layout.platforms[platform].name
+		if not (deck_name in pose.collapsing or deck_name in pose.collapsed):
+			return false
+	return true
+
+
 ## How high [param zone] stands in the world under [param pose]: a room by the
 ## middle of its floor, an open deck by the highest middle of its platforms.
 func world_height(zone: int, pose: ShipPose) -> float:
@@ -192,13 +207,13 @@ func route(from_pos: Vector3, from_surface: int, goal: int, pose: ShipPose) -> A
 
 ## The zone standing highest in the world (world_height) of those a body on
 ## [param from_surface] at [param from_pos] can reach without crossing a flooded one
-## — its own included; NONE when it stands on nothing.
+## — its own included, unless it is giving way; NONE when it stands on nothing.
 func highest_reachable(from_pos: Vector3, from_surface: int, pose: ShipPose) -> int:
 	var search := _search(from_pos, from_surface, pose)
 	var best := NONE
 	var best_height := -INF
 	for zone in search.cost.size():
-		if search.cost[zone] == INF:
+		if search.cost[zone] == INF or doomed(zone, pose):
 			continue
 		var height := world_height(zone, pose)
 		if height > best_height:
@@ -335,8 +350,8 @@ func _room_middle(room: int) -> Vector3:
 
 
 ## Dijkstra over the zones from where a body stands — a zone, or both ends of the
-## ramp it is on — never entering a flooded zone or going through a portal with an
-## end under water; ties go to the lower zone number.
+## ramp it is on — never entering a flooded or doomed zone or going through a portal
+## with an end under water; ties go to the lower zone number.
 func _search(from_pos: Vector3, from_surface: int, pose: ShipPose) -> Search:
 	var search := Search.new()
 	search.cost.resize(_zone_count)
@@ -358,7 +373,12 @@ func _search(from_pos: Vector3, from_surface: int, pose: ShipPose) -> Search:
 			var zone := _ramp_zones[ramp][end]
 			var portal := _ramp_portals[ramp][end]
 			var exit := _ramps[ramp].end_point(end)
-			if portal == NONE or flooded(zone, pose) or _surfaces.wet(exit, pose):
+			if (
+				portal == NONE
+				or flooded(zone, pose)
+				or doomed(zone, pose)
+				or _surfaces.wet(exit, pose)
+			):
 				continue
 			var cost := from_pos.distance_to(exit)
 			if cost < search.cost[zone]:
@@ -382,7 +402,7 @@ func _search(from_pos: Vector3, from_surface: int, pose: ShipPose) -> Search:
 		for index: int in _out[zone]:
 			var portal := _portals[index]
 			var other := portal.to_zone
-			if done[other] == 1 or flooded(other, pose):
+			if done[other] == 1 or flooded(other, pose) or doomed(other, pose):
 				continue
 			if _surfaces.wet(portal.entry, pose) or _surfaces.wet(portal.exit, pose):
 				continue

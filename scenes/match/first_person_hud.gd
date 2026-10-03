@@ -5,9 +5,12 @@ extends CanvasLayer
 ## (D13), the inclinometer, the room or deck the seat stands in, the height above the
 ## sea, the stamina and cold slots, an arc at the screen's edge for a shove winding up
 ## beside or behind, and a chevron, a stamina ring and a name over every brawler in
-## sight within CHEVRON_RANGE. All of it reads the snapshot, SinkSchedule's pose,
-## Surfaces, the ship's rooms and the bodies as drawn (D5). From the observer camera
-## only the inclinometer and where the watched seat stands show.
+## sight within CHEVRON_RANGE. The sinking is heard before it is seen: a flashing
+## chip over the crosshair for every telegraph running — a lurch, a deck giving way —
+## and a banner naming each phase as it begins. All of it reads the snapshot,
+## SinkSchedule's pose, Surfaces, the ship's rooms and the bodies as drawn (D5). From
+## the observer camera only the inclinometer, the sinking's chips and banner, and
+## where the watched seat stands show.
 
 ## How far away a brawler still gets its chevron, in metres.
 const CHEVRON_RANGE := 15.0
@@ -37,6 +40,13 @@ const ARC_HALF := 0.3
 ## How wide a line of text may run under a dial, and elsewhere.
 const DIAL_TEXT := 130.0
 const READOUT_TEXT := 240.0
+## A telegraph's chip: red, blinking BLINK_TICKS on and off.
+const WARNING := Color(1.0, 0.25, 0.2)
+const BLINK_TICKS := 6
+const CHIP_TEXT := 420.0
+## How long a phase's name stays up once it begins.
+const BANNER_SECONDS := 4.0
+const BANNER_FONT_SIZE := 30
 
 var _schedule: SinkSchedule
 var _surfaces: Surfaces
@@ -51,6 +61,7 @@ var _seat := -1
 var _yaw: float
 var _camera: Camera3D
 var _view: MatchView
+var _prompts: InputPrompts
 
 
 func _ready() -> void:
@@ -63,14 +74,16 @@ func _ready() -> void:
 	_canvas.draw.connect(_draw_hud)
 
 
-## [param eyes] is whether the view is a seat's eyes rather than the observer's.
-func setup(sim: MatchSim, names: PackedStringArray, eyes: bool) -> void:
+## [param eyes] is whether the view is a seat's eyes rather than the observer's;
+## [param prompts] names the buttons a warning asks for.
+func setup(sim: MatchSim, names: PackedStringArray, eyes: bool, prompts: InputPrompts) -> void:
 	_schedule = sim.schedule
 	_surfaces = sim.surfaces
 	_rules = sim.config.rules
 	_ship = sim.config.ship
 	_names = names
 	_eyes = eyes
+	_prompts = prompts
 	_snapshot = {}
 
 
@@ -90,8 +103,11 @@ func show_view(
 func _draw_hud() -> void:
 	if _snapshot.is_empty():
 		return
-	var pose := _schedule.pose_at(_snapshot["tick"])
+	var tick: int = _snapshot["tick"]
+	var pose := _schedule.pose_at(tick)
 	_draw_inclinometer(pose)
+	_draw_warnings(pose, tick)
+	_draw_phase(tick)
 	var me := _entry(_seat)
 	if me.is_empty() or me["out"]:
 		return
@@ -152,6 +168,48 @@ func _draw_dial(centre: Vector2, hull: PackedVector2Array, angle: float, colour:
 	_canvas.draw_polyline(drawn, colour, 2.5, true)
 	var mast := Vector2(0.0, -DIAL_RADIUS * 0.6).rotated(angle)
 	_canvas.draw_line(centre, centre + mast, colour, 2.0, true)
+
+
+## Over the crosshair, one chip per telegraph [param pose] runs — what a player who
+## cannot see the whole ship must not miss — blinking with [param tick].
+func _draw_warnings(pose: ShipPose, tick: int) -> void:
+	var warnings := PackedStringArray()
+	if pose.lurch_warning != 0.0:
+		var side := "STARBOARD" if pose.lurch_warning > 0.0 else "PORT"
+		warnings.append("LURCH TO %s — BRACE (%s)" % [side, _prompts.word(&"brace")])
+	for going: StringName in pose.collapsing:
+		warnings.append("THE %s IS GOING" % String(going).to_upper())
+	if warnings.is_empty() or tick / BLINK_TICKS % 2 == 1:
+		return
+	var at := Vector2(_canvas.size.x * 0.5, _canvas.size.y * 0.5 - 90.0)
+	for warning: String in warnings:
+		var chip := Rect2(at - Vector2(CHIP_TEXT * 0.5, 24.0), Vector2(CHIP_TEXT, 34.0))
+		_canvas.draw_rect(chip, INK)
+		_canvas.draw_rect(chip, WARNING, false, 2.5)
+		_text(at, warning, WARNING, CHIP_TEXT)
+		at.y -= 44.0
+
+
+## Under the clock, the name of the sinking's phase for BANNER_SECONDS after it
+## begins at or before [param tick].
+func _draw_phase(tick: int) -> void:
+	var phase := _schedule.phase_at(tick)
+	if phase == "" or phase == _schedule.phase_at(tick - Ticks.from_seconds(BANNER_SECONDS)):
+		return
+	var left := Vector2(_canvas.size.x * 0.5 - READOUT_TEXT, 110.0)
+	_canvas.draw_string_outline(
+		_font,
+		left,
+		phase,
+		HORIZONTAL_ALIGNMENT_CENTER,
+		READOUT_TEXT * 2.0,
+		BANNER_FONT_SIZE,
+		6,
+		INK
+	)
+	_canvas.draw_string(
+		_font, left, phase, HORIZONTAL_ALIGNMENT_CENTER, READOUT_TEXT * 2.0, BANNER_FONT_SIZE, TEXT
+	)
 
 
 ## A ring with four ticks at the centre of the view, lit while a shove now would land.

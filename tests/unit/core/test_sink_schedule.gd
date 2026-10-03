@@ -237,3 +237,37 @@ func test_steamer_floods_from_the_bottom_up() -> void:
 		]:
 			everything.append(Vector3(corner.x, blocker.top, corner.y))
 	assert_lte(_top(cap, everything), -0.5, "every surface 0.5 m under by 3:30")
+
+
+func test_steamer_meets_timeline() -> void:
+	# SH3b's timeline with SH6's events on it, on every seed's jitter: the lower deck
+	# under by 1:30, the fo'c'sle by 2:00, the poop deck the highest dry surface from
+	# the bridge's collapse on, and every surface at least 0.5 m under by the 3:30 cap.
+	var layout := SimFixtures.steamer()
+	var poop := SimFixtures.platform_named(layout, &"poop deck")
+	var lower := _corners(layout, &"")
+	var forecastle := _corners(layout, &"forecastle")
+	var everything := SimFixtures.surface_points(layout)
+	for seed_value in 10:
+		var schedule := SinkSchedule.new(
+			load(SimFixtures.STEAMER_SINKING),
+			layout.freeboard,
+			SeedStreams.derive(seed_value, "sink")
+		)
+		var surfaces := Surfaces.new(layout)
+		var at := "seed %d" % seed_value
+		assert_lt(_top(schedule.pose_at(Ticks.from_seconds(90.0)), lower), 0.0, at + ": lower deck")
+		assert_lt(_top(schedule.pose_at(Ticks.from_seconds(120.0)), forecastle), 0.0, at)
+		var collapse := -1
+		for scheduled: SinkSchedule.Scheduled in schedule.fired(schedule.cap_tick()):
+			if scheduled.event.kind == SinkEvent.Kind.COLLAPSE:
+				collapse = scheduled.at
+		assert_between(collapse, Ticks.from_seconds(132.0), Ticks.from_seconds(138.0), at)
+		for tick in range(collapse, schedule.cap_tick()):
+			var pose := schedule.pose_at(tick)
+			surfaces.honour(pose)
+			if surfaces.flooded(poop, pose):
+				break
+			assert_eq(surfaces.highest_platform(pose), poop, "%s: highest at tick %d" % [at, tick])
+		assert_eq(schedule.cap_tick(), Ticks.from_seconds(210.0), at + ": the cap is 3:30")
+		assert_lte(_top(schedule.pose_at(schedule.cap_tick()), everything), -0.5, at)

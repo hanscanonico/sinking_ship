@@ -15,6 +15,10 @@ const LOCAL_SEAT := 0
 ## The gaze through another seat's eyes, in degrees above the horizon: at a level
 ## gaze the deck within about 3 m of the feet is under the frame.
 const SPECTATE_PITCH_DEG := -10.0
+## The view's shake, 0…1 of a lurch's, as a lurch is telegraphed and as a deck
+## collapses.
+const LURCH_WARNING_SHAKE := 0.4
+const COLLAPSE_SHAKE := 0.6
 
 var _config: MatchConfig
 var _stats: MatchStats
@@ -46,6 +50,7 @@ func _ready() -> void:
 	_end.rematch_requested.connect(rematch_requested.emit)
 	_end.menu_requested.connect(menu_requested.emit)
 	_driver.stepped.connect(func(events: Array[SimEvent]) -> void: _stats.add(events))
+	_driver.stepped.connect(_shake_for_the_sinking)
 	add_child(_marks)
 	add_child(_dust)
 	add_child(_prompts)
@@ -149,7 +154,7 @@ func start(
 	_dust.setup(_driver, _view)
 	_kick = ViewKick.new(settings.view_kick)
 	_eyes.setup(settings)
-	_first_person_hud.setup(sim, _names, not observer)
+	_first_person_hud.setup(sim, _names, not observer, _prompts)
 	_observer_camera.whole_ship = observer and is_finite(observer_cut)
 	_audio.setup(_driver, sim, _view, LOCAL_SEAT)
 	_observer_camera.reset(_view.seat_world_position(_eye_seat), _deck_bounds(config.ship))
@@ -183,6 +188,20 @@ func is_over() -> bool:
 func set_paused(paused: bool) -> void:
 	_paused = paused
 	_driver.set_process(not paused)
+
+
+## The sinking is felt before it is seen (D12): a light shake as a lurch is
+## telegraphed, a full one as it swings, a lighter one as a deck gives way — read
+## from every stepped tick's events, so a hitch never eats one.
+func _shake_for_the_sinking(events: Array[SimEvent]) -> void:
+	for event: SimEvent in events:
+		match event.kind:
+			SimEvent.Kind.SHIP_LURCHING:
+				_kick.shake(LURCH_WARNING_SHAKE)
+			SimEvent.Kind.SHIP_LURCHED:
+				_kick.shake()
+			SimEvent.Kind.PLATFORM_COLLAPSED:
+				_kick.shake(COLLAPSE_SHAKE)
 
 
 ## Whether the local player's mouse and stick turn their look now: in play, and

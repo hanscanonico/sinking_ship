@@ -317,3 +317,48 @@ func test_lone_bot_climbs_out_before_its_floor_floods() -> void:
 		var bot := runner.sim.state.seats[0]
 		assert_false(bot.is_out(), "%s: still in when its floor floods" % layout.rooms[room].name)
 		assert_gte(bot.pos.y, 0.0, "%s: up out of the lower deck by then" % layout.rooms[room].name)
+
+
+func test_bot_leaves_the_bridge_on_the_collapse_warning() -> void:
+	var layout := SimFixtures.steamer()
+	var scenario := SimFixtures.with_events(
+		SimFixtures.calm(), [SimFixtures.collapse(5.0, &"bridge")]
+	)
+	var runner := _bots(SimFixtures.config(1, scenario, SEED, layout))
+	SimFixtures.place(runner.sim, 0, Vector3(-2.5, 4.7, 0.0))
+	var bridge := SimFixtures.platform_named(layout, &"bridge")
+	var bot := runner.sim.state.seats[0]
+	runner.run(Ticks.from_seconds(2.0))
+	assert_eq(bot.surface, bridge, "it holds the high ground until the warning")
+	runner.run(Ticks.from_seconds(3.0))
+	assert_ne(bot.surface, bridge, "off the bridge before it goes")
+	assert_true(bot.pos.y < 4.0, "down off the bridge's ramp too")
+	runner.run(Ticks.from_seconds(5.0))
+	assert_false(bot.is_out())
+
+
+func test_bot_avoids_the_low_rail_on_a_lurch_warning() -> void:
+	# Port goes down: a bot by the port rail walks to starboard while the lurch is
+	# telegraphed, and braces through the swing — never jumps.
+	var scenario := SimFixtures.with_events(
+		SimFixtures.tilted(2.0, 0.0), [SimFixtures.lurch(2.0, -20.0)]
+	)
+	var config := SimFixtures.config(1, scenario, SEED)
+	var sim := MatchSim.create(config)
+	SimFixtures.place(sim, 0, Vector3(0.0, 0.0, -2.5))
+	var source := BotInputSource.new(0, _profile(), config)
+	var start_z := sim.state.seats[0].pos.z
+	var braced := 0
+	var jumped := false
+	while sim.state.tick < Ticks.from_seconds(5.0):
+		source.observe(sim.snapshot(), sim.pose())
+		var frame := source.next_frame(sim.state.tick)
+		sim.step([frame])
+		if sim.pose().lurch != 0.0 and frame.is_held(InputFrame.BRACE):
+			braced += 1
+		jumped = jumped or frame.is_held(InputFrame.JUMP)
+		if sim.state.tick == Ticks.from_seconds(2.0):
+			assert_gt(sim.state.seats[0].pos.z, start_z + 0.5, "away from the port rail")
+	assert_gt(braced, Ticks.RATE, "braced through the swing")
+	assert_false(jumped, "and never jumped")
+	assert_false(sim.state.seats[0].is_out())

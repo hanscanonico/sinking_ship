@@ -6,7 +6,8 @@ extends Resource
 ## How far off an edge a railing's end may lie and still be on it.
 const EDGE := 0.001
 
-## What the deck is called, for people reading the data and the tests; no rule reads it.
+## What the deck is called, for people reading the data and the tests, and what a
+## scenario's collapse names it by (D7).
 @export var name: StringName
 ## The rectangle in the ship's x/z plane: position is its (x, z) minimum corner.
 @export var area: Rect2
