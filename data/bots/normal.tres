@@ -8,3 +8,4 @@ reaction_ticks = 7
 think_period = 4
 aim_error_deg = 12.0
 edge_margin_m = 1.2
+turn_rate_deg = 720.0

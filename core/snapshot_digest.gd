@@ -43,6 +43,7 @@ static func quantized(snapshot: Dictionary) -> String:
 			entry["action"],
 			entry["action_ticks"],
 			int(entry["shove_spent"]),
+			roundi(rad_to_deg(entry["shove_facing"]) * 100.0),
 			entry["stagger"],
 			entry["last_hit_by"],
 			entry["prev_buttons"],

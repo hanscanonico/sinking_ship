@@ -3,8 +3,8 @@ extends GutTest
 const SHOVE := InputFrame.SHOVE
 
 
-func _shove(seat: int) -> InputFrame:
-	return SimFixtures.frame(seat, Vector2.ZERO, SHOVE)
+func _shove(seat: int, look_deg: float = 0.0) -> InputFrame:
+	return SimFixtures.frame(seat, Vector2.ZERO, SHOVE, look_deg)
 
 
 ## Seat 0 at the origin facing the bow, seat 1 at [param target_pos]; seat 0
@@ -23,6 +23,65 @@ func _at(gap: float, angle_deg: float) -> Vector3:
 	var rules := SimFixtures.rules()
 	var along := Vector2.from_angle(deg_to_rad(angle_deg)) * (rules.body_radius * 2.0 + gap)
 	return Vector3(along.x, 0.0, along.y)
+
+
+func test_shove_goes_where_you_look() -> void:
+	# The body stands to starboard of the shover, which looks at it or away from it
+	# while walking every which way: the look, not the walk, aims the shove.
+	for move: Vector2 in [Vector2.ZERO, Vector2.RIGHT, Vector2.LEFT, Vector2.UP, Vector2.DOWN]:
+		for look_deg: float in [90.0, -90.0]:
+			var sim := SimFixtures.sim(2)
+			SimFixtures.place(sim, 0, Vector3.ZERO, 0.0)
+			SimFixtures.place(sim, 1, _at(0.2, 90.0))
+			var frames := {
+				0: SimFixtures.frame(0, move * 0.3, SHOVE, look_deg), 1: SimFixtures.frame(1)
+			}
+			SimFixtures.step(sim, frames, 6)
+			var hit := sim.state.seats[1].is_staggered()
+			if look_deg > 0.0:
+				assert_true(hit, "dead ahead of the look, walking %s" % move)
+			else:
+				assert_false(hit, "behind the look, walking %s" % move)
+
+
+func test_look_turns_any_amount_in_one_tick() -> void:
+	for look_deg: float in [179.0, -120.0, 90.0, 0.5, -179.9]:
+		var sim := SimFixtures.sim(1)
+		SimFixtures.place(sim, 0, Vector3.ZERO, 0.0)
+		var look := InputFrame.quantize_yaw(deg_to_rad(look_deg))
+		SimFixtures.step(sim, {0: SimFixtures.frame(0, Vector2.RIGHT, 0, look_deg)})
+		assert_eq(sim.state.seats[0].facing, InputFrame.yaw_angle(look), "%s° at once" % look_deg)
+	# Mid-shove too: the view is free, the shove keeps the facing it started with.
+	var sim := SimFixtures.sim(2)
+	SimFixtures.place(sim, 0, Vector3.ZERO, 0.0)
+	SimFixtures.place(sim, 1, _at(0.2, 0.0))
+	SimFixtures.step(sim, {0: _shove(0)}, 4)
+	assert_eq(sim.state.seats[0].action, PlayerState.Action.ACTIVE)
+	SimFixtures.step(sim, {0: _shove(0, 180.0)})
+	var behind := angle_difference(sim.state.seats[0].facing, PI)
+	assert_almost_eq(behind, 0.0, 0.0001, "looked behind in one tick")
+	assert_almost_eq(sim.state.seats[0].shove_facing, 0.0, 0.0001, "the shove stays aimed")
+	assert_true(sim.state.seats[1].is_staggered())
+
+
+func test_would_hit_matches_the_resolved_shove() -> void:
+	var rules := SimFixtures.rules()
+	var answers := {}
+	for look_deg: float in [0.0, 90.0, -150.0]:
+		for off_deg: float in [0.0, 20.0, -29.0, 35.0, 39.0, -41.0, 60.0, 180.0]:
+			for gap: float in [0.1, rules.shove_reach - 0.05, rules.shove_reach + 0.05]:
+				var sim := SimFixtures.sim(2)
+				SimFixtures.place(sim, 0, Vector3.ZERO, look_deg)
+				SimFixtures.place(sim, 1, _at(gap, look_deg + off_deg))
+				var asked := ShoveResolver.would_hit(sim.snapshot(), 0, rules, sim.surfaces)
+				SimFixtures.step(sim, {0: _shove(0, look_deg), 1: SimFixtures.frame(1)}, 6)
+				var landed := sim.state.seats[1].is_staggered()
+				assert_eq(asked, landed, "look %s°, %s° off, gap %.2f" % [look_deg, off_deg, gap])
+				answers[asked] = true
+	assert_eq(answers.size(), 2, "both answers came up")
+	# Nobody to hit, or a shover already out: no.
+	var alone := SimFixtures.sim(1)
+	assert_false(ShoveResolver.would_hit(alone.snapshot(), 0, rules, alone.surfaces))
 
 
 func test_windup_active_recovery_tick_counts() -> void:
@@ -84,7 +143,7 @@ func test_simultaneous_shoves_both_land() -> void:
 	var sim := SimFixtures.sim(2)
 	SimFixtures.place(sim, 0, Vector3(-0.6, 0.0, 0.0), 0.0)
 	SimFixtures.place(sim, 1, Vector3(0.6, 0.0, 0.0), 180.0)
-	SimFixtures.step(sim, {0: _shove(0), 1: _shove(1)}, 4)
+	SimFixtures.step(sim, {0: _shove(0), 1: _shove(1, 180.0)}, 4)
 	var west := sim.state.seats[0]
 	var east := sim.state.seats[1]
 	assert_true(west.is_staggered() and east.is_staggered(), "both land")
@@ -109,7 +168,7 @@ func test_staggered_seat_cannot_shove() -> void:
 	var duel := SimFixtures.sim(2)
 	SimFixtures.place(duel, 0, Vector3.ZERO, 0.0)
 	SimFixtures.place(duel, 1, _at(0.3, 0.0), 180.0)
-	SimFixtures.step(duel, {1: _shove(1)})
+	SimFixtures.step(duel, {1: _shove(1, 180.0)})
 	SimFixtures.step(duel, {0: _shove(0)}, 3)
 	assert_true(duel.state.seats[0].is_staggered())
 	assert_eq(duel.state.seats[0].action, PlayerState.Action.IDLE)

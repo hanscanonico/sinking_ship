@@ -1,15 +1,15 @@
-class_name Spectator
+class_name SpectateOrder
 extends RefCounted
-## Whom the camera follows: the local seat while it is dry; once it is out, the
-## best-placed dry seat by MatchStats, until Q / E or the d-pad picks another,
-## which it keeps until that one is out too. Who is dry is the snapshot's to say
-## (D5).
+## Whose eyes the view is in (D13, the single picker): the local seat's while it is
+## dry; once it is out, the best-placed dry seat's by MatchStats, until Q / E or the
+## d-pad cycles to another, which it keeps until that one is out too. Who is dry is
+## the snapshot's to say (D5).
 
 var _local: int
 var _stats: MatchStats
 ## The seat cycled to, or -1 to follow the best-placed.
 var _picked := -1
-## Who was followed last, held once nobody is dry.
+## Whose eyes were last chosen, held once nobody is dry.
 var _following: int
 
 
@@ -19,7 +19,7 @@ func _init(local_seat: int, stats: MatchStats) -> void:
 	_following = local_seat
 
 
-## The seat to follow in [param snapshot].
+## The seat whose eyes to look through in [param snapshot].
 func target(snapshot: Dictionary) -> int:
 	var dry := _dry(snapshot)
 	if dry.has(_local):

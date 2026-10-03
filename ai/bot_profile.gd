@@ -13,6 +13,8 @@ const DIRECTORY := "res://data/bots"
 @export var aim_error_deg: float
 ## How far a bot keeps from the waterline and the deck's open edges, in metres.
 @export var edge_margin_m: float
+## The fastest a bot turns its look, so that none turns faster than a person.
+@export var turn_rate_deg: float
 
 
 static func for_tier(tier: StringName) -> BotProfile:
@@ -39,4 +41,6 @@ func problems() -> PackedStringArray:
 		found.append("bot: aim_error_deg must not be negative")
 	if edge_margin_m < 0.0:
 		found.append("bot: edge_margin_m must not be negative")
+	if turn_rate_deg <= 0.0:
+		found.append("bot: turn_rate_deg must be positive")
 	return found

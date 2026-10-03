@@ -41,7 +41,7 @@ func test_bot_is_deterministic_per_seed() -> void:
 		for seat in config.seats:
 			var a := first.input_log.frame(tick, seat)
 			var b := second.input_log.frame(tick, seat)
-			if [a.move, a.buttons] != [b.move, b.buttons]:
+			if [a.move, a.look_yaw, a.buttons] != [b.move, b.look_yaw, b.buttons]:
 				fail_test("seat %d differs at tick %d" % [seat, tick])
 				return
 
@@ -141,3 +141,46 @@ func test_lone_bot_stays_dry_while_it_can() -> void:
 	assert_eq(bot.out_cause, PlayerState.Cause.WATER)
 	assert_true(bot.surface != Surfaces.NONE, "it went under standing on the deck")
 	assert_gt(bot.out_tick, last_dry - Ticks.RATE, "it held out until the deck ran out")
+
+
+## Every look [param seat]'s brain sends over [param ticks] ticks, shown the same
+## view of [param sim] each time, with [param profile]'s knobs.
+func _looks(sim: MatchSim, seat: int, profile: BotProfile, ticks: int) -> Array[int]:
+	var source := BotInputSource.new(seat, profile, sim.config)
+	var looks: Array[int] = []
+	for tick in ticks:
+		source.observe(sim.snapshot(), sim.pose())
+		looks.append(source.next_frame(tick).look_yaw)
+	return looks
+
+
+func test_bot_looks_toward_its_target() -> void:
+	var sim := SimFixtures.sim(2)
+	SimFixtures.place(sim, 0, Vector3(-4.0, 0.0, 1.0), 0.0)
+	SimFixtures.place(sim, 1, Vector3(-7.0, 0.0, -2.0))
+	var looks := _looks(sim, 0, _profile(), Ticks.RATE)
+	var toward := Vector2(-3.0, -3.0).angle()
+	var off := angle_difference(InputFrame.yaw_angle(looks[-1]), toward)
+	assert_lt(absf(off), deg_to_rad(_profile().aim_error_deg + 0.1), "it looks at its target")
+	assert_ne(looks[0], looks[-1], "having turned to do it")
+
+
+func test_bot_turn_rate_is_capped_by_its_profile() -> void:
+	# Its target is right behind it: half a turn to make.
+	for turn_rate_deg: float in [_profile().turn_rate_deg, 90.0]:
+		var profile: BotProfile = _profile().duplicate()
+		profile.turn_rate_deg = turn_rate_deg
+		var sim := SimFixtures.sim(2)
+		SimFixtures.place(sim, 0, Vector3.ZERO, 0.0)
+		SimFixtures.place(sim, 1, Vector3(-3.0, 0.0, 0.0))
+		var looks := _looks(sim, 0, profile, 3 * Ticks.RATE)
+		var most := turn_rate_deg / 360.0 * InputFrame.YAW_STEPS / Ticks.RATE
+		var fastest := 0
+		var previous := sim.state.seats[0].last_look
+		for look: int in looks:
+			var turn := posmod(look - previous, InputFrame.YAW_STEPS)
+			fastest = maxi(fastest, mini(turn, InputFrame.YAW_STEPS - turn))
+			previous = look
+		assert_almost_eq(float(fastest), most, 0.5, "%s°/s: never faster" % turn_rate_deg)
+		var behind := angle_difference(InputFrame.yaw_angle(looks[-1]), PI)
+		assert_lt(absf(behind), deg_to_rad(profile.aim_error_deg + 0.1), "and it gets there")

@@ -1,8 +1,10 @@
-class_name CameraRig
+class_name ObserverCamera
 extends Node3D
-## §7's fixed-yaw follow camera: elevated, looking across the beam, never rolling
-## with the ship, so the world stays level and the deck visibly tilts. Which side
-## it watches from is this setting and nothing else; inputs follow its yaw (D3).
+## The observer camera — a tool, not a feature (D14): SH1's elevated fixed-yaw rig,
+## looking across the beam, never rolling with the ship, so the world stays level
+## and the deck visibly tilts. Captures, QA (--observer) and the arena tools use
+## it; no menu reaches it. Which side it watches from is this setting and nothing
+## else.
 
 enum Beam { STARBOARD, PORT }
 
@@ -18,10 +20,13 @@ var _bounds := Rect2()
 @onready var _camera: Camera3D = $Camera3D
 
 
-## The camera's rotation about the world's up axis — what InputFrame.from_screen
-## turns a screen direction by.
+## The camera's rotation about the world's up axis.
 func yaw() -> float:
 	return 0.0 if side == Beam.STARBOARD else PI
+
+
+func make_current() -> void:
+	_camera.make_current()
 
 
 ## Snaps to [param target], to be followed inside [param bounds] (world x/z).
