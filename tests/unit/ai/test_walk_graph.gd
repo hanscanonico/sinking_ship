@@ -273,3 +273,140 @@ func test_routes_never_end_on_a_deck_giving_way() -> void:
 		assert_true(graph.doomed(bridge, pose))
 		assert_ne(graph.highest_reachable(from, boat_deck, pose), bridge, "tick %d" % tick)
 		assert_true(graph.route(from, boat_deck, bridge, pose).is_empty(), "tick %d" % tick)
+
+
+func test_route_leads_out_from_under_a_stair() -> void:
+	# Under the inner stair's head in the engine room, where bots used to stand pressing
+	# into it: the steer points take a body out to the stair's side, round to its foot,
+	# and up it into the deckhouse hall.
+	var layout := SimFixtures.steamer()
+	var surfaces := Surfaces.new(layout)
+	var graph := _graph(layout, surfaces)
+	var start := Vector3(-0.7, -2.6, -2.0)
+	assert_eq(graph.zone_at(start, surfaces.under(start, 0.1)), _room(layout, &"engine room"))
+	var hall := _room(layout, &"deckhouse hall")
+	var sim := SimFixtures.sim(2, null, layout)
+	SimFixtures.place(sim, 0, start)
+	SimFixtures.place(sim, 1, Vector3(-18.0, 1.2, 0.0))
+	var passed := _walk(sim, graph, hall, 10.0)
+	assert_eq(passed.back(), hall, "up in the deckhouse hall")
+
+
+## The cheapest way to every zone from [param from_pos], by the plainest Dijkstra
+## there is — every zone looked at for the cheapest each round — over the same
+## portals, rules and pose as the graph's own search.
+func _reference_costs(
+	graph: WalkGraph, surfaces: Surfaces, from_pos: Vector3, pose: ShipPose
+) -> PackedFloat64Array:
+	var cost := PackedFloat64Array()
+	cost.resize(graph.zone_count())
+	cost.fill(INF)
+	var arrived := PackedVector3Array()
+	arrived.resize(graph.zone_count())
+	var done := PackedByteArray()
+	done.resize(graph.zone_count())
+	var start := graph.zone_at(from_pos, surfaces.under(from_pos, 0.1))
+	cost[start] = 0.0
+	arrived[start] = from_pos
+	while true:
+		var zone := -1
+		for index in graph.zone_count():
+			if done[index] == 0 and cost[index] < INF and (zone == -1 or cost[index] < cost[zone]):
+				zone = index
+		if zone == -1:
+			return cost
+		done[zone] = 1
+		for portal: WalkGraph.Portal in graph.portals():
+			var other := portal.to_zone
+			if portal.from_zone != zone or done[other] == 1:
+				continue
+			if graph.flooded(other, pose) or graph.doomed(other, pose):
+				continue
+			if surfaces.wet(portal.entry, pose) or surfaces.wet(portal.exit, pose):
+				continue
+			var through := (
+				cost[zone]
+				+ arrived[zone].distance_to(portal.entry)
+				+ portal.entry.distance_to(portal.exit)
+			)
+			if through < cost[other]:
+				cost[other] = through
+				arrived[other] = portal.exit
+	return cost
+
+
+func test_one_search_finds_the_cheapest_routes_and_the_high_ground() -> void:
+	# One search a think: from it, every route and the highest zone are what a search
+	# per question used to give, and its costs are a plain Dijkstra's — dry, and with the
+	# lower deck flooding.
+	var layout := SimFixtures.steamer()
+	var surfaces := Surfaces.new(layout)
+	var graph := _graph(layout, surfaces)
+	var flooding := _pose(layout, SimFixtures.scenario([[0.0, layout.freeboard - 2.0, 4.0, 0.0]]))
+	for pose: ShipPose in [_pose(layout, SimFixtures.calm()), flooding]:
+		for start: Vector3 in [
+			Vector3(-10.5, 0.0, 2.5), Vector3(-2.0, -2.6, -3.5), Vector3(-17.0, 1.2, 0.0)
+		]:
+			var on := surfaces.under(start, 0.1)
+			var found := graph.search(start, on, pose)
+			var reference := _reference_costs(graph, surfaces, start, pose)
+			for zone in graph.zone_count():
+				assert_almost_eq(
+					found.cost[zone], reference[zone], 0.0001, "%s to %d" % [start, zone]
+				)
+				assert_eq(
+					graph.route_in(found, zone),
+					graph.route(start, on, zone, pose),
+					"route %d" % zone
+				)
+			assert_eq(graph.highest_in(found, pose), graph.highest_reachable(start, on, pose))
+
+
+func test_flood_answers_are_worked_out_afresh_for_each_pose() -> void:
+	# The graph keeps what a pose says of its zones for as long as it is asked about that
+	# pose: the next pose is never answered from the last one.
+	var layout := _two_way_layout()
+	var surfaces := Surfaces.new(layout)
+	var graph := _graph(layout, surfaces)
+	var bow_perch := graph.deck_of(SimFixtures.platform_named(layout, &"bow perch"))
+	var calm := _pose(layout, SimFixtures.calm())
+	var by_the_head := _pose(layout, SimFixtures.scenario([[0.0, 0.0, 10.0, 0.0]]))
+	for round in 2:
+		assert_false(graph.flooded(bow_perch, calm), "calm, round %d" % round)
+		assert_true(graph.flooded(bow_perch, by_the_head), "by the head, round %d" % round)
+		assert_gt(graph.world_height(bow_perch, calm), graph.world_height(bow_perch, by_the_head))
+		assert_gt(
+			graph.lowest_world_height(bow_perch, calm),
+			graph.lowest_world_height(bow_perch, by_the_head)
+		)
+
+
+func test_no_zones_meet_within_jump_height_so_bots_never_jump() -> void:
+	# A hop would be a portal between two zones whose platforms meet at an edge too high
+	# to step and low enough to jump: the steamer has none — its hatch is a perch inside
+	# one zone — so the graph has no hop to offer, and bots never press jump.
+	var rules := SimFixtures.rules()
+	var layout := SimFixtures.steamer()
+	var graph := _graph(layout, Surfaces.new(layout))
+	for first in layout.platforms.size():
+		for second in layout.platforms.size():
+			var a := layout.platforms[first]
+			var b := layout.platforms[second]
+			var rise := b.height - a.height
+			if rise <= rules.step_height or rise > rules.jump_height:
+				continue
+			if graph.deck_of(first) == graph.deck_of(second):
+				continue
+			assert_false(
+				a.area.grow(0.001).intersects(b.area), "%s meets %s a hop up" % [a.name, b.name]
+			)
+	var config := SimFixtures.config(8, load(SimFixtures.STEAMER_SINKING), 1701, layout)
+	var runner := MatchRunner.new(
+		MatchSim.create(config), BotInputSource.fill(config, load(SimFixtures.NORMAL_BOT))
+	)
+	runner.run(20 * Ticks.RATE)
+	for tick in range(runner.input_log.first_tick, runner.input_log.last_tick() + 1):
+		for seat in config.seats:
+			if runner.input_log.frame(tick, seat).is_held(InputFrame.JUMP):
+				fail_test("seat %d jumped at tick %d" % [seat, tick])
+				return

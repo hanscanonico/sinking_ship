@@ -4,22 +4,21 @@
 
 [resource]
 script = ExtResource("1_vibjn")
-difficulty = 1
-reaction_ticks = 7
-think_period = 4
-aim_error_deg = 12.0
-turn_rate_deg = 720.0
-brace_read = 0.4
-charge_read = 0.6
-lineup_weight = 0.6
+reaction_ticks = 12
+think_period = 6
+aim_error_deg = 25.0
+turn_rate_deg = 360.0
+brace_read = 0.1
+charge_read = 0.2
+lineup_weight = 0.2
 hunt_weight = 0.25
 wander_weight = 0.1
-edge_margin_m = 1.2
-king_of_hill_bias = 0.6
-mistake_rate = 0.05
+edge_margin_m = 2.0
+king_of_hill_bias = 0.3
+mistake_rate = 0.15
 mistake_seconds = 1.0
 climb_margin_m = 0.6
-guard_range_m = 3.0
+guard_range_m = 2.0
 ride_margin_m = 2.0
 hysteresis = 0.15
 eye_height_m = 1.6

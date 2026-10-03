@@ -1,0 +1,10 @@
+00:12.7 seat 4 out · cold · place 8
+00:24.4 seat 1 out · cold · place 7
+00:58.2 seat 5 out · cold · place 6
+01:04.9 seat 2 out · cold · place 5
+01:06.0 lurch coming · heel -15°
+01:07.0 lurched · heel -15°
+01:19.0 seat 3 out · cold · place 4
+01:19.1 seat 7 out · cold · place 3
+01:19.5 seat 6 out · cold · place 2
+winner seat 0 at 01:19.5 · digest ce0676655c45c840

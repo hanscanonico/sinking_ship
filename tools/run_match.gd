@@ -2,7 +2,7 @@ extends SceneTree
 ## `make match`: one bots-only match, headless, as fast as it runs, printed as a
 ## transcript — one line per exit, then the verdict and the digest.
 ##
-##   godot --headless --path . -s res://tools/run_match.gd -- --seed=1701 --seats=6
+##   godot --headless --path . -s res://tools/run_match.gd -- --seed=1701 --seats=8
 ##
 ## tests/unit/core/test_determinism.gd builds its golden match through these
 ## statics, so the golden files are exactly what this prints.
@@ -38,6 +38,11 @@ func _initialize() -> void:
 		args.seed_value if args.seed_value >= 0 else DEFAULT_SEED, args.seats
 	)
 	var problems := config.problems()
+	var profile := BotProfile.for_tier(config.bot_tier)
+	if profile == null:
+		problems.append("bot: no profile for the tier %s" % config.bot_tier)
+	else:
+		problems.append_array(profile.problems())
 	if not problems.is_empty():
 		printerr("\n".join(problems))
 		quit(1)

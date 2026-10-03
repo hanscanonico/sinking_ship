@@ -7,6 +7,13 @@ func _profile() -> BotProfile:
 	return load(SimFixtures.NORMAL_BOT)
 
 
+## The normal profile without its lapses: for what a bot does when it does not slip.
+func _steady() -> BotProfile:
+	var profile: BotProfile = _profile().duplicate()
+	profile.mistake_rate = 0.0
+	return profile
+
+
 ## A bots-only match on [param config]; the runner is the one loop (D13).
 func _bots(config: MatchConfig) -> MatchRunner:
 	return MatchRunner.new(MatchSim.create(config), BotInputSource.fill(config, _profile()))
@@ -122,7 +129,7 @@ func test_bot_finds_its_way_up_to_its_target() -> void:
 
 func test_lone_bot_stays_dry_while_it_can() -> void:
 	var config := SimFixtures.config(1, load(SimFixtures.FLAT_SINKING), SEED)
-	var runner := _bots(config)
+	var runner := MatchRunner.new(MatchSim.create(config), BotInputSource.fill(config, _steady()))
 	SimFixtures.place(runner.sim, 0, Vector3.ZERO)
 	var events := runner.run(300 * Ticks.RATE)
 	var bot := runner.sim.state.seats[0]
@@ -190,7 +197,7 @@ func test_bot_turn_rate_is_capped_by_its_profile() -> void:
 ## The normal profile with its reads forced: [param brace] and [param charge] are
 ## brace_read and charge_read.
 func _reading(brace: float, charge: float) -> BotProfile:
-	var profile: BotProfile = _profile().duplicate()
+	var profile: BotProfile = _steady().duplicate()
 	profile.brace_read = brace
 	profile.charge_read = charge
 	return profile
@@ -408,11 +415,18 @@ func test_swimming_bot_climbs_a_boarding_ladder() -> void:
 	SimFixtures.place(sim, 1, Vector3(-17.0, 1.2, 0.0))
 	SimFixtures.swim(sim, 0, Vector3(5.0, 0.0, 8.0))
 	var sources: Array[InputSource] = [BotInputSource.new(0, _profile(), config), InputSource.new()]
-	MatchRunner.new(sim, sources).run(Ticks.from_seconds(config.rules.cold_meter + 3.0))
+	var events := MatchRunner.new(sim, sources).run(
+		Ticks.from_seconds(config.rules.cold_meter + 3.0)
+	)
 	var bot := sim.state.seats[0]
 	assert_false(bot.is_out(), "the cold did not take it")
 	assert_eq(bot.body, PlayerState.Body.GROUNDED)
-	assert_eq(SimFixtures.name_of(layout, bot.surface), &"main deck", "up the ladder")
+	var climbed := events.filter(
+		func(event: SimEvent) -> bool: return event.kind == SimEvent.Kind.CLIMBED_OUT
+	)
+	assert_eq(climbed.size(), 1, "it climbed out once")
+	if not climbed.is_empty():
+		assert_eq(SimFixtures.name_of(layout, climbed[0].surface), &"main deck", "up the ladder")
 
 
 func test_deck_bot_shoves_a_climber_back() -> void:
@@ -438,3 +452,177 @@ func test_deck_bot_shoves_a_climber_back() -> void:
 	assert_false(climbed, "the climber never got up")
 	assert_eq(knocked.size(), 1, "the bot shoved it back in")
 	assert_eq([knocked[0].seat, knocked[0].credit], [0, 1])
+
+
+## Seat 0 a bot of [param profile], every other seat [param others] or standing still.
+func _with_bot(sim: MatchSim, profile: BotProfile, others: Array[InputSource] = []) -> Array:
+	var source := BotInputSource.new(0, profile, sim.config)
+	var sources: Array[InputSource] = [source]
+	for seat in range(1, sim.config.seats):
+		sources.append(others[seat - 1] if seat - 1 < others.size() else InputSource.new())
+	return [source, MatchRunner.new(sim, sources)]
+
+
+func test_lurch_far_from_the_low_side_keeps_place_and_target() -> void:
+	# Port goes down; the bot, five metres from the port side, is after a seat far aft.
+	# It carries on after it through the warning — no walk for the high side — and
+	# braces where it stands through the swing.
+	var scenario := SimFixtures.with_events(
+		SimFixtures.tilted(2.0, 0.0), [SimFixtures.lurch(2.0, -20.0)]
+	)
+	var sim := MatchSim.create(SimFixtures.config(2, scenario, SEED))
+	SimFixtures.place(sim, 0, Vector3(4.0, 0.0, 1.0), 180.0)
+	SimFixtures.place(sim, 1, Vector3(-12.0, 0.0, 1.0))
+	var made := _with_bot(sim, _steady())
+	var source: BotInputSource = made[0]
+	var runner: MatchRunner = made[1]
+	var bot := sim.state.seats[0]
+	var warned_at := Ticks.from_seconds(1.0)
+	var swing_at := Ticks.from_seconds(2.0)
+	runner.run(warned_at)
+	var x_warned := bot.pos.x
+	var braced := 0
+	while sim.state.tick < Ticks.from_seconds(5.0):
+		runner.step()
+		assert_eq(source.brain.target, 1, "its target, kept at %d" % sim.state.tick)
+		assert_almost_eq(bot.pos.z, 1.0, 0.5, "not off to the high side at %d" % sim.state.tick)
+		if sim.state.tick == swing_at:
+			assert_lt(bot.pos.x, x_warned - 1.0, "it went on after its target in the warning")
+		if sim.pose().lurch != 0.0 and bot.bracing:
+			braced += 1
+	assert_gt(braced, Ticks.RATE, "braced where it stood through the swing")
+	assert_false(bot.is_out())
+
+
+func test_bracing_bot_lets_go_to_step_back_from_the_edge() -> void:
+	var rules := SimFixtures.rules()
+	var layout: ShipLayout = SimFixtures.deck().duplicate()
+	layout.railings = []
+	# Seat 1 winds up at the bot, seat 0, from beside it; the bot stands half a metre
+	# from an open edge. Rooted in a brace it would stay there: it steps back instead.
+	var sim := MatchSim.create(SimFixtures.config(2, null, SEED, layout))
+	SimFixtures.place(sim, 0, Vector3(0.0, 0.0, 3.5), 180.0)
+	SimFixtures.place(sim, 1, Vector3(-(rules.body_radius * 2.0 + 0.3), 0.0, 3.5), 0.0)
+	SimFixtures.step(sim, {1: SimFixtures.frame(1, Vector2.ZERO, InputFrame.SHOVE)})
+	var source := BotInputSource.new(0, _reading(1.0, 0.0), sim.config)
+	source.observe(sim.snapshot(), sim.pose())
+	var frame := source.next_frame(sim.state.tick)
+	assert_eq(source.brain.intent, BotBrain.Intent.BRACE, "it read the windup")
+	assert_false(frame.is_held(InputFrame.BRACE), "but braces not at the edge")
+	assert_lt(frame.move_vector().y, 0.0, "it steps back from it")
+
+
+## A seat that braces every tick, looking astern (toward -x).
+class Bracing:
+	extends InputSource
+
+	var seat: int
+
+	func _init(bracing_seat: int) -> void:
+		seat = bracing_seat
+
+	func next_frame(tick: int) -> InputFrame:
+		return InputFrame.new(seat, tick, Vector2i.ZERO, InputFrame.BRACE, InputFrame.YAW_STEPS / 2)
+
+
+func test_bot_never_presses_a_shove_into_its_own_recovery() -> void:
+	# A braced seat in reach takes a tap without flying off, so the bot could shove it
+	# again at once — but its view of itself is reaction_ticks old. Tapping, or charging,
+	# no press it makes comes while it is still busy with its last: each one is heeded.
+	var rules := SimFixtures.rules()
+	for charge_read: float in [0.0, 1.0]:
+		var sim := SimFixtures.sim(2)
+		SimFixtures.place(sim, 0, Vector3.ZERO, 0.0)
+		SimFixtures.place(sim, 1, Vector3(rules.body_radius * 2.0 + 0.3, 0.0, 0.0), 180.0)
+		var others: Array[InputSource] = [Bracing.new(1)]
+		var made := _with_bot(sim, _reading(0.0, charge_read), others)
+		var runner: MatchRunner = made[1]
+		var bot := sim.state.seats[0]
+		var presses := 0
+		var unheeded := 0
+		var charged := false
+		for _tick in 4 * Ticks.RATE:
+			var busy := bot.action != PlayerState.Action.IDLE or bot.is_staggered()
+			var before := bot.last_buttons
+			runner.step()
+			if bot.last_buttons & InputFrame.SHOVE and not before & InputFrame.SHOVE:
+				presses += 1
+				unheeded += 1 if busy else 0
+			charged = charged or bot.action == PlayerState.Action.CHARGE
+		assert_gt(presses, 2, "charge read %s: it kept shoving" % charge_read)
+		assert_eq(unheeded, 0, "charge read %s: and every press was heeded" % charge_read)
+		assert_eq(charged, charge_read > 0.0, "charge read %s: charging on the read" % charge_read)
+
+
+func test_swimmer_swims_round_to_a_way_out_it_cannot_reach_straight() -> void:
+	# The sea 1.5 m under the main deck, the forward hold flooded: under the deck's
+	# overhang beside the hold, the hold's side stands across every straight swim to a
+	# way out. Round the overhang's edge, the starboard boarding ladder is one.
+	var layout := SimFixtures.steamer()
+	var rules := SimFixtures.rules()
+	var sinking := SimFixtures.scenario([[0.0, layout.freeboard - 1.5, 0.0, 0.0]])
+	var config := SimFixtures.config(2, sinking, SEED, layout)
+	var sim := MatchSim.create(config)
+	SimFixtures.place(sim, 1, Vector3(-17.0, 1.2, 0.0))
+	SimFixtures.swim(sim, 0, Vector3(6.0, 0.0, 4.4))
+	var swimmer := sim.state.seats[0]
+	var reach := swimmer.cold * rules.swim_speed
+	assert_null(
+		sim.surfaces.nearest_climb(swimmer.pos, sim.pose(), rules, reach), "no way straight out"
+	)
+	var runner: MatchRunner = _with_bot(sim, _profile())[1]
+	var events := runner.run(Ticks.from_seconds(rules.cold_meter + 2.0))
+	var climbed := events.filter(
+		func(event: SimEvent) -> bool: return event.kind == SimEvent.Kind.CLIMBED_OUT
+	)
+	assert_false(swimmer.is_out(), "the cold did not take it")
+	assert_eq(climbed.size(), 1, "it climbed out")
+
+
+func test_bot_is_not_pinned_in_the_bay_between_the_boat_deck_ramps() -> void:
+	# In the bay forward of the deckhouse, between the hatch and the starboard ramp up
+	# to the boat deck, its target up on the boat deck: it finds the ramp's foot.
+	var layout := SimFixtures.steamer()
+	var sim := SimFixtures.sim(2, null, layout)
+	SimFixtures.place(sim, 0, Vector3(5.0, 0.0, 1.5), 180.0)
+	SimFixtures.place(sim, 1, Vector3(1.0, 2.5, 2.5))
+	var boat_deck := SimFixtures.platform_named(layout, &"boat deck")
+	var runner: MatchRunner = _with_bot(sim, _steady())[1]
+	var reached := false
+	for _tick in 10 * Ticks.RATE:
+		runner.step()
+		if sim.state.seats[0].surface == boat_deck:
+			reached = true
+			break
+	assert_true(reached, "up on the boat deck")
+
+
+func test_bot_leaving_the_bridge_does_not_dither_at_the_ramp_foot() -> void:
+	# Off the bridge on its collapse warning, down its ramp to the boat deck: from the
+	# ramp's foot the bot keeps going one way, never back and forth.
+	var layout := SimFixtures.steamer()
+	var scenario := SimFixtures.with_events(
+		SimFixtures.calm(), [SimFixtures.collapse(5.0, &"bridge")]
+	)
+	var sim := MatchSim.create(SimFixtures.config(2, scenario, SEED, layout))
+	SimFixtures.place(sim, 0, Vector3(-2.5, 4.7, 0.0))
+	SimFixtures.place(sim, 1, Vector3(-17.5, 1.2, -2.5))
+	var runner: MatchRunner = _with_bot(sim, _steady())[1]
+	var bot := sim.state.seats[0]
+	var boat_deck := SimFixtures.platform_named(layout, &"boat deck")
+	while bot.surface != boat_deck and sim.state.tick < Ticks.from_seconds(6.0):
+		runner.step()
+	assert_eq(bot.surface, boat_deck, "down on the boat deck")
+	var reversals := 0
+	var last := Vector2.ZERO
+	var from := bot.pos
+	for _tick in 2 * Ticks.RATE:
+		runner.step()
+		var frame := runner.input_log.frame(sim.state.tick - 1, 0)
+		var move := frame.move_vector()
+		if move != Vector2.ZERO and last != Vector2.ZERO and move.dot(last) < 0.0:
+			reversals += 1
+		if move != Vector2.ZERO:
+			last = move
+	assert_lte(reversals, 1, "no dithering")
+	assert_gt(bot.pos.distance_to(from), 2.0, "it got clear of the ramp's foot")
