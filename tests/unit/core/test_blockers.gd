@@ -37,7 +37,7 @@ func test_box_stops_a_body() -> void:
 	var events := SimFixtures.step(sim, {0: SimFixtures.frame(0, Vector2.LEFT)}, 2 * Ticks.RATE)
 	var walker := sim.state.seats[0]
 	assert_eq(walker.body, PlayerState.Body.GROUNDED)
-	assert_eq(walker.surface, SimFixtures.platform_named(SimFixtures.steamer(), &"main deck"))
+	assert_eq(SimFixtures.name_of(SimFixtures.steamer(), walker.surface), &"main deck")
 	assert_almost_eq(walker.pos.x, hatch.area.end.x + rules.body_radius, 0.0001, "at its face")
 	assert_almost_eq(walker.pos.z, 0.0, 0.0001, "pushed straight back")
 	assert_almost_eq(walker.vel.x, 0.0, 0.0001, "no speed into it")
@@ -49,10 +49,12 @@ func test_cylinder_stops_a_body() -> void:
 	# The funnel on the boat deck, approached square from starboard.
 	var funnel := _blocker(ShipBlocker.Shape.CYLINDER, Vector2(-6.0, 0.0))
 	assert_not_null(funnel)
+	var layout := SimFixtures.steamer()
+	var boat_deck := layout.platforms[SimFixtures.platform_named(layout, &"boat deck")]
 	var reach := funnel.radius + rules.body_radius
 	var sim := _steamer_sim(2)
 	SimFixtures.place(
-		sim, 0, Vector3(funnel.centre.x, funnel.bottom, funnel.centre.y + reach + 0.5)
+		sim, 0, Vector3(funnel.centre.x, boat_deck.height, funnel.centre.y + reach + 0.5)
 	)
 	SimFixtures.step(sim, {0: SimFixtures.frame(0, Vector2.UP)}, 2 * Ticks.RATE)
 	var walker := sim.state.seats[0]
@@ -65,11 +67,10 @@ func test_cylinder_stops_a_body() -> void:
 func test_a_raised_deck_is_a_wall_from_the_deck_below() -> void:
 	var rules := SimFixtures.rules()
 	var layout := SimFixtures.steamer()
-	var main_deck := SimFixtures.platform_named(layout, &"main deck")
 	# Walked square into the after face of the forecastle, which stands taller than
 	# a body, and the forward face of the poop deck, which does not — each clear of
-	# its ramps. Neither is walked onto, under or off.
-	var faces := {&"forecastle": [Vector2.RIGHT, 2.5], &"poop deck": [Vector2.LEFT, 0.0]}
+	# its ramps and of the companionway openings. Neither is walked onto, under or off.
+	var faces := {&"forecastle": [Vector2.RIGHT, 3.5], &"poop deck": [Vector2.LEFT, 1.2]}
 	for deck_name: StringName in faces:
 		var deck := layout.platforms[SimFixtures.platform_named(layout, deck_name)]
 		var direction: Vector2 = faces[deck_name][0]
@@ -80,7 +81,9 @@ func test_a_raised_deck_is_a_wall_from_the_deck_below() -> void:
 		var walker := sim.state.seats[0]
 		assert_false(walker.is_out(), "%s: still aboard" % deck_name)
 		assert_eq(walker.body, PlayerState.Body.GROUNDED, "%s: never fell" % deck_name)
-		assert_eq(walker.surface, main_deck, "%s: on the main deck" % deck_name)
+		assert_eq(
+			SimFixtures.name_of(layout, walker.surface), &"main deck", "%s: on it" % deck_name
+		)
 		assert_almost_eq(
 			walker.pos.x,
 			face - direction.x * rules.body_radius,
@@ -94,9 +97,7 @@ func test_a_body_fits_between_the_hatch_and_the_boat_deck_ramps() -> void:
 	var rules := SimFixtures.rules()
 	var layout := SimFixtures.steamer()
 	var hatch := _blocker(ShipBlocker.Shape.BOX, Vector2(6.0, 0.0))
-	var deckhouse := _blocker(ShipBlocker.Shape.BOX, Vector2(0.0, 0.0))
 	assert_not_null(hatch)
-	assert_not_null(deckhouse)
 	# The lane between the hatch's starboard side and the inboard side of the ramp
 	# beside it, walked aft from forward of the hatch: the strip between the hatch and
 	# the deckhouse is never a pocket a body cannot leave.
@@ -106,6 +107,9 @@ func test_a_body_fits_between_the_hatch_and_the_boat_deck_ramps() -> void:
 			ramp_side = minf(ramp_side, ramp.area.position.y)
 	assert_gte(ramp_side - hatch.area.end.y, rules.body_radius * 2.0, "a body's width")
 	var lane := (hatch.area.end.y + ramp_side) * 0.5
+	# The deckhouse's forward wall, across the end of the lane.
+	var deckhouse := _blocker(ShipBlocker.Shape.BOX, Vector2(2.9, lane))
+	assert_not_null(deckhouse)
 	var sim := _steamer_sim(2)
 	SimFixtures.place(sim, 0, Vector3(hatch.area.end.x + 0.6, 0.0, lane))
 	SimFixtures.step(sim, {0: SimFixtures.frame(0, Vector2.LEFT)}, 3 * Ticks.RATE)
@@ -222,7 +226,6 @@ func test_a_body_lands_on_a_blocker_top() -> void:
 func test_walking_off_a_blocker_top_falls() -> void:
 	var rules := SimFixtures.rules()
 	var layout := SimFixtures.steamer()
-	var main_deck := SimFixtures.platform_named(layout, &"main deck")
 	var hatch := _blocker(ShipBlocker.Shape.BOX, Vector2(6.0, 0.0))
 	assert_not_null(hatch)
 	var sim := _steamer_sim(2)
@@ -238,7 +241,7 @@ func test_walking_off_a_blocker_top_falls() -> void:
 	if fell.is_empty() or landed.is_empty():
 		return
 	assert_gt(landed[0].tick, fell[0].tick)
-	assert_eq(landed[0].surface, main_deck, "on the main deck")
+	assert_eq(SimFixtures.name_of(layout, landed[0].surface), &"main deck", "on the main deck")
 	var walker := sim.state.seats[0]
 	assert_eq(walker.body, PlayerState.Body.GROUNDED)
 	assert_eq(walker.pos.y, 0.0, "on the main deck's planks")

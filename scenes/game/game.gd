@@ -8,7 +8,8 @@ extends Node
 ## local seat, and --capture saves a frame — of the match, or of the menu when
 ## nothing is autoplaying — and quits. A match is seen through the local seat's
 ## eyes (D14); the observer camera is a tool that only --observer and captures
-## reach, and --capture-eye takes a capture through a seat's eyes instead.
+## reach, and --capture-eye takes a capture through a seat's eyes instead;
+## --observer-cut cuts the observer's view of the ship away to show the inside.
 
 const MATCH_DATA := "res://data/match/default.tres"
 const MATCH_SCENE := preload("res://scenes/match/match.tscn")
@@ -102,7 +103,7 @@ func _play(seats: int, tier: StringName, seed_text: String) -> void:
 	var capturing := not _args.capture_path.is_empty()
 	var observer := _args.observer or (capturing and _args.capture_eye < 0)
 	var eye := _args.capture_eye if capturing and _args.capture_eye >= 0 else MatchScene.LOCAL_SEAT
-	_match.start(config, _args.autoplay, observer, eye)
+	_match.start(config, _args.autoplay, observer, eye, _args.observer_cut)
 
 
 func _rematch() -> void:

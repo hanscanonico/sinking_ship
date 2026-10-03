@@ -2,11 +2,12 @@ class_name FirstPersonHud
 extends CanvasLayer
 ## What the elevated view used to show at a glance, from a seat's eyes (D14, R10):
 ## a crosshair that lights when ShoveResolver.would_hit says a shove now would land
-## (D13), the inclinometer, the height above the sea, the stamina and cold slots,
-## an arc at the screen's edge for a shove winding up beside or behind, and a
-## chevron, a stamina ring and a name over every brawler in sight within
-## CHEVRON_RANGE. All of it reads the snapshot, SinkSchedule's pose, Surfaces and
-## the bodies as drawn (D5). From the observer camera only the inclinometer shows.
+## (D13), the inclinometer, the room or deck the seat stands in, the height above the
+## sea, the stamina and cold slots, an arc at the screen's edge for a shove winding up
+## beside or behind, and a chevron, a stamina ring and a name over every brawler in
+## sight within CHEVRON_RANGE. All of it reads the snapshot, SinkSchedule's pose,
+## Surfaces, the ship's rooms and the bodies as drawn (D5). From the observer camera
+## only the inclinometer and where the watched seat stands show.
 
 ## How far away a brawler still gets its chevron, in metres.
 const CHEVRON_RANGE := 15.0
@@ -40,6 +41,7 @@ const READOUT_TEXT := 240.0
 var _schedule: SinkSchedule
 var _surfaces: Surfaces
 var _rules: BrawlRules
+var _ship: ShipLayout
 var _names := PackedStringArray()
 var _eyes: bool
 var _canvas: Control
@@ -66,6 +68,7 @@ func setup(sim: MatchSim, names: PackedStringArray, eyes: bool) -> void:
 	_schedule = sim.schedule
 	_surfaces = sim.surfaces
 	_rules = sim.config.rules
+	_ship = sim.config.ship
 	_names = names
 	_eyes = eyes
 	_snapshot = {}
@@ -89,10 +92,11 @@ func _draw_hud() -> void:
 		return
 	var pose := _schedule.pose_at(_snapshot["tick"])
 	_draw_inclinometer(pose)
-	if not _eyes:
-		return
 	var me := _entry(_seat)
 	if me.is_empty() or me["out"]:
+		return
+	_draw_where(me["pos"], me["surface"])
+	if not _eyes:
 		return
 	_draw_crosshair(ShoveResolver.would_hit(_snapshot, _seat, _rules, _surfaces))
 	_draw_readouts(me, pose.world_height(me["pos"]))
@@ -164,6 +168,19 @@ func _draw_crosshair(lit: bool) -> void:
 		_canvas.draw_arc(centre, 16.0, 0.0, TAU, 32, colour, 2.5, true)
 
 
+## Bottom left, over the readouts: the name of the room [param feet] stand in, else
+## of the platform [param surface] is.
+func _draw_where(feet: Vector3, surface: int) -> void:
+	var where := ""
+	var room := _ship.room_at(feet, _rules.step_height)
+	if room != -1:
+		where = _ship.rooms[room].name
+	elif surface >= 0 and surface < _ship.platforms.size():
+		where = _ship.platforms[surface].name
+	var at := Vector2(24.0, _canvas.size.y - 150.0)
+	_text(at, where.capitalize(), TEXT, READOUT_TEXT, HORIZONTAL_ALIGNMENT_LEFT)
+
+
 ## Bottom left: metres from [param me]'s feet down to the sea, then the stamina and
 ## cold slots — stamina filled from [param me], cold empty until SH5 fills it.
 func _draw_readouts(me: Dictionary, above_sea: float) -> void:
@@ -182,8 +199,8 @@ func _draw_readouts(me: Dictionary, above_sea: float) -> void:
 
 
 ## A chevron in seat colour, ringed by its stamina, and the seat's name over every
-## other brawler within CHEVRON_RANGE that no blocker hides from [param my_pos] —
-## never through a wall.
+## other brawler within CHEVRON_RANGE that no blocker or deck hides from
+## [param my_pos] — never through a wall or a floor.
 func _draw_chevrons(my_pos: Vector3) -> void:
 	for entry: Dictionary in _snapshot["seats"]:
 		var seat: int = entry["seat"]
@@ -193,6 +210,8 @@ func _draw_chevrons(my_pos: Vector3) -> void:
 		if my_pos.distance_to(their_pos) > CHEVRON_RANGE:
 			continue
 		if _surfaces.blocked(my_pos, their_pos, _rules.body_height, _rules.step_height):
+			continue
+		if _deck_between(my_pos, their_pos):
 			continue
 		var over := (
 			_view.seat_world_position(seat) + Vector3.UP * (_rules.body_height + CHEVRON_LIFT)
@@ -228,6 +247,15 @@ func _ring(centre: Vector2, entry: Dictionary) -> void:
 			RING_WIDTH,
 			true
 		)
+
+
+## Whether a deck hides [param b] from [param a]: they stand a storey or more apart
+## and either is indoors. Surfaces.blocked sees the walls between rooms, never the
+## deck between a room and the floor over it.
+func _deck_between(a: Vector3, b: Vector3) -> bool:
+	if absf(a.y - b.y) < _rules.body_height:
+		return false
+	return _ship.room_at(a, _rules.step_height) != -1 or _ship.room_at(b, _rules.step_height) != -1
 
 
 ## An arc at the screen's edge, toward each seat outside the field of view that

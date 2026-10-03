@@ -13,6 +13,9 @@ enum Beam { STARBOARD, PORT }
 @export var distance: float = 24.0
 ## How quickly the rig closes on its target, per second.
 @export var follow_rate: float = 4.0
+## Whether the rig watches the middle of the decks rather than the target it is
+## handed: the cut-away's framing, which shows every room at once.
+var whole_ship := false
 
 ## The ship-plane box the rig's target stays inside.
 var _bounds := Rect2()
@@ -34,14 +37,19 @@ func reset(target: Vector3, bounds: Rect2) -> void:
 	_bounds = bounds
 	rotation = Vector3(-deg_to_rad(pitch_deg), yaw(), 0.0)
 	_camera.position = Vector3(0.0, 0.0, distance)
-	position = _clamped(target)
+	position = _aim(target)
 
 
 func follow(target: Vector3, delta: float) -> void:
-	position = position.lerp(_clamped(target), clampf(follow_rate * delta, 0.0, 1.0))
+	position = position.lerp(_aim(target), clampf(follow_rate * delta, 0.0, 1.0))
 
 
-func _clamped(target: Vector3) -> Vector3:
+## [param target] held inside the bounds, or their middle while it watches the whole
+## ship.
+func _aim(target: Vector3) -> Vector3:
+	if whole_ship:
+		var middle := _bounds.get_center()
+		return Vector3(middle.x, 0.0, middle.y)
 	return Vector3(
 		clampf(target.x, _bounds.position.x, _bounds.end.x),
 		maxf(target.y, 0.0),

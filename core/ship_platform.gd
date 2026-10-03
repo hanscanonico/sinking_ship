@@ -3,6 +3,9 @@ extends Resource
 ## A flat, standable rectangle in ship space (D6): x toward the bow, z to
 ## starboard, at a height above the main deck.
 
+## How far off an edge a railing's end may lie and still be on it.
+const EDGE := 0.001
+
 ## What the deck is called, for people reading the data and the tests; no rule reads it.
 @export var name: StringName
 ## The rectangle in the ship's x/z plane: position is its (x, z) minimum corner.
@@ -15,9 +18,11 @@ func contains(x: float, z: float) -> bool:
 
 
 ## Whether the segment from [param from] to [param to] (x/z) lies along one of
-## this platform's four edges.
+## this platform's four edges, to within float precision: an edge's end is its
+## corner plus its size, which single precision does not always land exactly.
 func edge_holds(from: Vector2, to: Vector2) -> bool:
-	if not contains(from.x, from.y) or not contains(to.x, to.y):
+	var reach := area.grow(EDGE)
+	if not reach.has_point(from) or not reach.has_point(to):
 		return false
 	for x: float in [area.position.x, area.end.x]:
 		if is_equal_approx(from.x, x) and is_equal_approx(to.x, x):

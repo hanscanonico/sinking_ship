@@ -33,6 +33,14 @@ static func platform_named(layout: ShipLayout, platform_name: StringName) -> int
 	return Surfaces.NONE
 
 
+## The name of [param layout]'s platform [param surface], or &"" for a ramp, a
+## blocker top or nothing: the main deck is several platforms of one name.
+static func name_of(layout: ShipLayout, surface: int) -> StringName:
+	if surface < 0 or surface >= layout.platforms.size():
+		return &""
+	return layout.platforms[surface].name
+
+
 ## A scenario from rows of [at, sink, trim_deg, heel_deg].
 static func scenario(rows: Array, starts_at: float = 0.0) -> SinkScenario:
 	var made := SinkScenario.new()

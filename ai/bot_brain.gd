@@ -1,18 +1,19 @@
 class_name BotBrain
 extends RefCounted
 ## A bot is a player (D10): it reads a BotView and answers an InputFrame, nothing
-## more. v0 makes for the surface its nearest seat stands on, or — once the water is
-## within its edge margin or that seat's platform is flooded — for the highest
-## platform it can reach, where it holds unless that seat comes up too. It follows
-## the walk graph there, turning round blockers; once there it walks at that seat —
-## past the grip angle, round to its uphill side first, and not onto any other
-## surface — and shoves when it is in reach and cone. It looks at that seat while
-## it walks at it and the way it walks otherwise, turning no faster than its
+## more. v0 makes for the zone its nearest seat stands in, or — once the water is
+## within its edge margin, the floor it stands on is within its climb margin of the
+## sea, or that seat's zone is flooded — for the highest zone it can reach, where it
+## holds unless that seat comes up too. It follows the walk graph there, through
+## doorways and up ramps, turning round blockers; once there it walks at that seat —
+## past the grip angle, round to its uphill side first, and not out of its own zone
+## or that seat's — and shoves when it is in reach and cone. It looks at that seat
+## while it walks at it and the way it walks otherwise, turning no faster than its
 ## profile's turn rate. It keeps its edge margin from the waterline and from open
 ## edges: a drop, or a railing gap, unless the target stands between the bot and it.
 ## On its reads, rolled each think, it charges a bracing target instead of tapping,
-## and braces, standing still and looking at it, against a seat that could be
-## winding up a shove that would land on it.
+## and — unless it is climbing — braces, standing still and looking at it, against a
+## seat that could be winding up a shove that would land on it.
 
 ## Directions probed around the bot for water and open edges.
 const PROBES := 8
@@ -25,10 +26,15 @@ var _surfaces: Surfaces
 var _walk_graph: WalkGraph
 var _rng: RandomNumberGenerator
 var _target := -1
-## The surface the bot is making for, or Surfaces.NONE.
-var _goal := Surfaces.NONE
-## Whether that is the high ground, rather than its target's surface.
+## The zone the bot is making for, or WalkGraph.NONE.
+var _goal := WalkGraph.NONE
+## The portals to it, as the last think found them; steered along until the next.
+var _legs: Array[WalkGraph.Portal] = []
+## Whether that is the high ground, rather than its target's zone.
 var _seeking_high := false
+## Whether it is climbing because its floor was about to flood: it climbs on until it
+## stands in the zone it was making for.
+var _climbing := false
 var _aim_offset := 0.0
 var _think_in := 0
 var _last_buttons := 0
@@ -87,15 +93,24 @@ func decide(view: BotView, tick: int) -> InputFrame:
 		target = {}
 	var wish := Vector2.ZERO
 	var watch := Vector2.ZERO
-	var waypoint := _walk_graph.steer(my_pos, my_surface, _goal, pose)
+	var my_zone := _zone_of(me)
+	# The route is followed from where the bot's seen velocity has carried it, as it
+	# probes: a doorway is narrower than what the reaction lag would overshoot.
+	var now_zone := _walk_graph.zone_at(now_pos, my_surface)
+	var waypoint := _waypoint(now_pos, my_surface, now_zone, pose)
 	if not waypoint.is_empty():
-		wish = Vector2(waypoint[0].x - my_pos.x, waypoint[0].z - my_pos.z).normalized()
-		wish = _clear_heading(my_pos, wish, PackedInt32Array())
-	elif not target.is_empty() and not (_seeking_high and target["surface"] != my_surface):
+		wish = Vector2(waypoint[0].x - now_pos.x, waypoint[0].z - now_pos.z).normalized()
+		wish = _clear_heading(now_pos, wish, PackedInt32Array(), PackedInt32Array())
+	elif not target.is_empty() and not (_seeking_high and _zone_of(target) != my_zone):
 		var goal := _approach(my_pos, target["pos"], pose)
 		wish = Vector2(goal.x - my_pos.x, goal.z - my_pos.z)
 		wish = wish.normalized().rotated(_aim_offset)
-		wish = _clear_heading(my_pos, wish, PackedInt32Array([my_surface, target["surface"]]))
+		wish = _clear_heading(
+			my_pos,
+			wish,
+			PackedInt32Array([my_surface, target["surface"]]),
+			PackedInt32Array([my_zone, _zone_of(target)])
+		)
 		var target_pos: Vector3 = target["pos"]
 		watch = Vector2(target_pos.x - my_pos.x, target_pos.z - my_pos.z).rotated(_aim_offset)
 	var away := _away_from_danger(now_pos, my_surface, pose, target)
@@ -121,7 +136,8 @@ func decide(view: BotView, tick: int) -> InputFrame:
 
 ## A charge under way is held until it is full, then let go; otherwise a shove
 ## when one would land — a charge if the target braces and the read says so, else
-## a tap — and failing that a brace against [param threat], if the read says so.
+## a tap — and failing that a brace against [param threat], if the read says so and
+## the bot is not climbing out of a flooding floor: rooted, it would drown there.
 func _buttons(me: Dictionary, target: Dictionary, threat: Dictionary) -> int:
 	if _charge_held > 0:
 		if _charge_held >= _charge_full_ticks:
@@ -134,7 +150,7 @@ func _buttons(me: Dictionary, target: Dictionary, threat: Dictionary) -> int:
 			_charge_held = 1
 			return InputFrame.SHOVE
 		return 0 if _last_buttons & InputFrame.SHOVE else InputFrame.SHOVE
-	if _reads_brace and not threat.is_empty() and not me["exhausted"]:
+	if _reads_brace and not _climbing and not threat.is_empty() and not me["exhausted"]:
 		return InputFrame.BRACE
 	return 0
 
@@ -176,9 +192,10 @@ func _threat(seen: Dictionary, me: Dictionary) -> Dictionary:
 
 
 ## Picks the nearest seat still in (ties to the lower seat), this choice's heading
-## error from the bot's own stream, and the surface to make for: the highest
-## platform it can reach once the water is within edge_margin of [param now_pos] or
-## the target's platform is flooded, else the target's.
+## error from the bot's own stream, and the zone to make for: the highest zone it can
+## reach once the water is within edge_margin of [param now_pos], while it climbs —
+## from when the lowest corner of its own floor comes within climb_margin of the sea
+## until it arrives — or when the target's zone is flooded; else the target's.
 func _think(seen: Dictionary, me: Dictionary, now_pos: Vector3, pose: ShipPose) -> void:
 	var my_pos: Vector3 = me["pos"]
 	_target = -1
@@ -194,15 +211,50 @@ func _think(seen: Dictionary, me: Dictionary, now_pos: Vector3, pose: ShipPose) 
 	_aim_offset = deg_to_rad(_rng.randf_range(-error, error))
 	_reads_brace = _rng.randf() < _profile.brace_read
 	_reads_charge = _rng.randf() < _profile.charge_read
-	var target_surface: int = _entry(seen, _target)["surface"] if _target != -1 else Surfaces.NONE
+	var target_zone := _zone_of(_entry(seen, _target)) if _target != -1 else WalkGraph.NONE
+	var my_zone := _zone_of(me)
+	if _climbing and my_zone == _goal and not _surfaces.is_ramp(me["surface"]):
+		_climbing = false
+	_climbing = (
+		_climbing
+		or (
+			my_zone != WalkGraph.NONE
+			and _walk_graph.lowest_world_height(my_zone, pose) < _profile.climb_margin_m
+		)
+	)
 	_seeking_high = (
 		_water_near(now_pos, pose)
-		or target_surface != Surfaces.NONE and _surfaces.flooded(target_surface, pose)
+		or _climbing
+		or target_zone != WalkGraph.NONE and _walk_graph.flooded(target_zone, pose)
 	)
 	if _seeking_high:
 		_goal = _walk_graph.highest_reachable(my_pos, me["surface"], pose)
 	else:
-		_goal = target_surface
+		_goal = target_zone
+	_legs = _walk_graph.route(my_pos, me["surface"], _goal, pose)
+
+
+## The next point on the way to the goal: past the portals already gone through, or
+## by a fresh route when the bot has strayed off the one it had; none when there is
+## no portal left to go through.
+func _waypoint(
+	my_pos: Vector3, my_surface: int, my_zone: int, pose: ShipPose
+) -> PackedVector3Array:
+	while not _legs.is_empty():
+		var leg := _legs[0]
+		var on_its_ramp := (
+			leg.ramp != WalkGraph.NONE and my_surface == _surfaces.ramp_surface(leg.ramp)
+		)
+		if on_its_ramp or my_zone == leg.from_zone:
+			break
+		if my_zone == leg.to_zone:
+			_legs.pop_front()
+			continue
+		_legs = _walk_graph.route(my_pos, my_surface, _goal, pose)
+		break
+	if _legs.is_empty():
+		return PackedVector3Array()
+	return PackedVector3Array([_walk_graph.toward(_legs[0], my_pos, my_surface)])
 
 
 ## Where to walk to reach [param target_pos]: straight at it, except past the
@@ -230,9 +282,11 @@ func _water_near(my_pos: Vector3, pose: ShipPose) -> bool:
 
 ## [param wish] turned as little as it can, a probe direction at a time either way,
 ## so that the next edge_margin of the walk neither runs into a blocker nor, when
-## [param keep_to] lists surfaces, steps onto any surface but those; unturned when
-## every way does.
-func _clear_heading(my_pos: Vector3, wish: Vector2, keep_to: PackedInt32Array) -> Vector2:
+## [param keep_to] lists surfaces, steps onto any surface but those or a platform of
+## the zones [param keep_zones]; unturned when every way does.
+func _clear_heading(
+	my_pos: Vector3, wish: Vector2, keep_to: PackedInt32Array, keep_zones: PackedInt32Array
+) -> Vector2:
 	if wish == Vector2.ZERO:
 		return wish
 	for turn: int in [0, 1, -1, 2, -2]:
@@ -241,7 +295,12 @@ func _clear_heading(my_pos: Vector3, wish: Vector2, keep_to: PackedInt32Array) -
 		if _surfaces.blocked(my_pos, ahead, _rules.body_height, _rules.step_height):
 			continue
 		var onto := _surfaces.under(ahead, _rules.step_height)
-		if not keep_to.is_empty() and onto != Surfaces.NONE and not onto in keep_to:
+		if (
+			not keep_to.is_empty()
+			and onto != Surfaces.NONE
+			and not onto in keep_to
+			and (_surfaces.is_ramp(onto) or not _walk_graph.zone_at(ahead, onto) in keep_zones)
+		):
 			continue
 		return heading
 	return wish
@@ -315,6 +374,14 @@ func _turn_toward(heading: Vector2) -> void:
 	if turn * 2 > InputFrame.YAW_STEPS:
 		turn -= InputFrame.YAW_STEPS
 	_look = posmod(_look + clampi(turn, -most, most), InputFrame.YAW_STEPS)
+
+
+## The walk graph's zone for the seat [param entry] describes; WalkGraph.NONE for
+## none.
+func _zone_of(entry: Dictionary) -> int:
+	if entry.is_empty():
+		return WalkGraph.NONE
+	return _walk_graph.zone_at(entry["pos"], entry["surface"])
 
 
 static func _entry(seen: Dictionary, wanted: int) -> Dictionary:

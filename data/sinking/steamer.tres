@@ -9,37 +9,37 @@ script = ExtResource("1_key")
 [sub_resource type="Resource" id="Keyframe_42"]
 script = ExtResource("1_key")
 at = 42.0
-sink = 0.15
+sink = 0.25
+trim_deg = 2.0
+
+[sub_resource type="Resource" id="Keyframe_87"]
+script = ExtResource("1_key")
+at = 87.0
+sink = 2.1
 trim_deg = 4.0
+heel_deg = -1.0
 
-[sub_resource type="Resource" id="Keyframe_62"]
+[sub_resource type="Resource" id="Keyframe_117"]
 script = ExtResource("1_key")
-at = 62.0
-sink = 0.75
-trim_deg = 12.0
-heel_deg = -2.0
-
-[sub_resource type="Resource" id="Keyframe_97"]
-script = ExtResource("1_key")
-at = 97.0
-sink = 1.0
-trim_deg = 13.0
+at = 117.0
+sink = 3.6
+trim_deg = 10.0
 heel_deg = -5.0
 
 [sub_resource type="Resource" id="Keyframe_157"]
 script = ExtResource("1_key")
 at = 157.0
-sink = 2.3
+sink = 4.3
 trim_deg = 15.0
 heel_deg = 4.0
 
 [sub_resource type="Resource" id="Keyframe_207"]
 script = ExtResource("1_key")
 at = 207.0
-sink = 12.5
+sink = 14.7
 trim_deg = 28.0
 
 [resource]
 script = ExtResource("2_scen")
 starts_at = 3.0
-keyframes = Array[ExtResource("1_key")]([SubResource("Keyframe_0"), SubResource("Keyframe_42"), SubResource("Keyframe_62"), SubResource("Keyframe_97"), SubResource("Keyframe_157"), SubResource("Keyframe_207")])
+keyframes = Array[ExtResource("1_key")]([SubResource("Keyframe_0"), SubResource("Keyframe_42"), SubResource("Keyframe_87"), SubResource("Keyframe_117"), SubResource("Keyframe_157"), SubResource("Keyframe_207")])

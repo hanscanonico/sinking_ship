@@ -4,8 +4,9 @@ extends Node3D
 ## bot when autoplaying), bots of the config's tier on the rest — seen through the
 ## local seat's eyes and, once it is out, through a survivor's (D14), with the
 ## results at its end. The observer camera stands in for the eyes only as a tool:
-## for --observer and captures. Rematch and menu go back to Game, which builds
-## every config through MatchConfig.from_menu (D13).
+## for --observer and captures, and it alone may cut the ship away to look inside.
+## Rematch and menu go back to Game, which builds every config through
+## MatchConfig.from_menu (D13).
 
 signal rematch_requested
 signal menu_requested
@@ -29,6 +30,7 @@ var _marks := BrawlMarks.new()
 
 @onready var _driver: SimDriver = $SimDriver
 @onready var _view: MatchView = $MatchView
+@onready var _greybox: ShipGreybox = $MatchView/Ship/Greybox
 @onready var _observer_camera: ObserverCamera = $ObserverCamera
 @onready var _eyes: FirstPersonCamera = $FirstPersonCamera
 @onready var _hud: Hud = $Hud
@@ -100,9 +102,14 @@ func _unhandled_input(event: InputEvent) -> void:
 
 ## Starts [param config]'s match from its first tick; [param autoplay] puts a bot
 ## on the local seat. The view is [param eye_seat]'s eyes, or the observer camera
-## when [param observer] says so.
+## when [param observer] says so — which draws nothing of the ship at or above the
+## ship-local height [param observer_cut] and frames the whole ship once it is finite.
 func start(
-	config: MatchConfig, autoplay: bool, observer: bool = false, eye_seat: int = LOCAL_SEAT
+	config: MatchConfig,
+	autoplay: bool,
+	observer: bool = false,
+	eye_seat: int = LOCAL_SEAT,
+	observer_cut: float = INF
 ) -> void:
 	_config = config
 	_observer = observer
@@ -123,12 +130,14 @@ func start(
 	_order = SpectateOrder.new(_eye_seat, _stats)
 	_names = _seat_names(config.seats)
 	_driver.start(MatchRunner.new(sim, sources))
+	_greybox.cut_above = observer_cut if observer else INF
 	_view.setup(_driver, sim, LOCAL_SEAT)
 	_view.look_out_of(-1 if observer else _eye_seat)
 	_hud.setup(sim)
 	_marks.setup(_driver, _view, sim)
 	_eyes.setup(settings)
 	_first_person_hud.setup(sim, _names, not observer)
+	_observer_camera.whole_ship = observer and is_finite(observer_cut)
 	_observer_camera.reset(_view.seat_world_position(_eye_seat), _deck_bounds(config.ship))
 	if observer:
 		_observer_camera.make_current()
