@@ -5,6 +5,7 @@ extends CanvasLayer
 ## Game turns them into a match through MatchConfig.from_menu (D13).
 
 signal play_requested(seats: int, tier: StringName, seed_text: String)
+signal settings_requested
 signal quit_requested
 
 @onready var _seats: OptionButton = %Seats
@@ -18,6 +19,7 @@ func _ready() -> void:
 	_play.pressed.connect(_on_play)
 	_seed.text_submitted.connect(func(_text: String) -> void: _on_play())
 	_seed.gui_input.connect(_leave_seed)
+	%Settings.pressed.connect(settings_requested.emit)
 	%QuitGame.pressed.connect(quit_requested.emit)
 
 

@@ -39,6 +39,7 @@ var _kick: ViewKick
 @onready var _hud: Hud = $Hud
 @onready var _first_person_hud: FirstPersonHud = $FirstPersonHud
 @onready var _end: EndOverlay = $EndOverlay
+@onready var _audio: MatchAudio = $Audio
 
 
 func _ready() -> void:
@@ -70,6 +71,7 @@ func _process(delta: float) -> void:
 		Input.mouse_mode = mouse
 	if _looking():
 		_local.look_by_stick(delta)
+	_audio.hear_through(-1 if _observer else viewed)
 	if _observer:
 		_observer_camera.follow(_view.seat_world_position(viewed), delta)
 		_first_person_hud.show_view(snapshot, viewed, 0.0, _eyes, _view)
@@ -148,6 +150,7 @@ func start(
 	_eyes.setup(settings)
 	_first_person_hud.setup(sim, _names, not observer)
 	_observer_camera.whole_ship = observer and is_finite(observer_cut)
+	_audio.setup(_driver, sim, _view, LOCAL_SEAT)
 	_observer_camera.reset(_view.seat_world_position(_eye_seat), _deck_bounds(config.ship))
 	if observer:
 		_observer_camera.make_current()
@@ -155,6 +158,13 @@ func start(
 		_eyes.make_current()
 	_end.hide()
 	print("match seed %d" % config.match_seed)
+
+
+## Takes up the settings screen's field of view, deck roll and view kick mid-match;
+## the look's sensitivity and invert-Y are read from the same settings as they turn.
+func apply_view(settings: ViewSettings) -> void:
+	_eyes.setup(settings)
+	_kick.set_strength(settings.view_kick)
 
 
 ## The latest snapshot.

@@ -1,0 +1,55 @@
+[gd_resource type="AudioBusLayout" format=3 uid="uid://cbvlhs0artct2"]
+
+[sub_resource type="AudioEffectReverb" id="AudioEffectReverb_room"]
+resource_name = "Reverb"
+room_size = 0.45
+damping = 0.6
+spread = 0.8
+hipass = 0.15
+wet = 0.0
+
+[sub_resource type="AudioEffectLowPassFilter" id="AudioEffectLowPassFilter_hull"]
+resource_name = "LowPassFilter"
+cutoff_hz = 20000.0
+
+[sub_resource type="AudioEffectLowPassFilter" id="AudioEffectLowPassFilter_sea"]
+resource_name = "LowPassFilter"
+cutoff_hz = 16000.0
+
+[resource]
+bus/1/name = &"Music"
+bus/1/solo = false
+bus/1/mute = false
+bus/1/bypass_fx = false
+bus/1/volume_db = 0.0
+bus/1/send = &"Master"
+bus/2/name = &"Effects"
+bus/2/solo = false
+bus/2/mute = false
+bus/2/bypass_fx = false
+bus/2/volume_db = 0.0
+bus/2/send = &"Master"
+bus/3/name = &"Room"
+bus/3/solo = false
+bus/3/mute = false
+bus/3/bypass_fx = false
+bus/3/volume_db = 0.0
+bus/3/send = &"Effects"
+bus/3/effect/0/effect = SubResource("AudioEffectReverb_room")
+bus/3/effect/0/enabled = false
+bus/4/name = &"Ambience"
+bus/4/solo = false
+bus/4/mute = false
+bus/4/bypass_fx = false
+bus/4/volume_db = 0.0
+bus/4/send = &"Effects"
+bus/4/effect/0/effect = SubResource("AudioEffectLowPassFilter_hull")
+bus/4/effect/0/enabled = true
+bus/5/name = &"Sea"
+bus/5/solo = false
+bus/5/mute = false
+bus/5/bypass_fx = false
+bus/5/volume_db = 0.0
+bus/5/send = &"Ambience"
+bus/5/effect/0/effect = SubResource("AudioEffectLowPassFilter_sea")
+bus/5/effect/0/enabled = true

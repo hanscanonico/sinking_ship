@@ -1,8 +1,11 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=8 format=3]
 
 [ext_resource type="Script" path="res://scenes/game/game.gd" id="1_game"]
 [ext_resource type="Script" path="res://scenes/game/main_menu.gd" id="2_menu"]
 [ext_resource type="Script" path="res://scenes/game/pause_menu.gd" id="3_pause"]
+[ext_resource type="PackedScene" path="res://scenes/game/settings_menu.tscn" id="4_settings"]
+[ext_resource type="Script" path="res://scenes/audio/music_player.gd" id="5_music"]
+[ext_resource type="Script" path="res://scenes/audio/ui_sounds.gd" id="6_ui_sounds"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
 bg_color = Color(0.06, 0.09, 0.13, 0.85)
@@ -100,14 +103,21 @@ theme_override_constants/separation = 16
 
 [node name="Play" type="Button" parent="MainMenu/Panel/Box/Buttons"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(140, 0)
-focus_neighbor_right = NodePath("../QuitGame")
+custom_minimum_size = Vector2(120, 0)
+focus_neighbor_right = NodePath("../Settings")
 text = "Play"
+
+[node name="Settings" type="Button" parent="MainMenu/Panel/Box/Buttons"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(120, 0)
+focus_neighbor_left = NodePath("../Play")
+focus_neighbor_right = NodePath("../QuitGame")
+text = "Settings"
 
 [node name="QuitGame" type="Button" parent="MainMenu/Panel/Box/Buttons"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(140, 0)
-focus_neighbor_left = NodePath("../Play")
+custom_minimum_size = Vector2(120, 0)
+focus_neighbor_left = NodePath("../Settings")
 text = "Quit"
 
 [node name="PauseMenu" type="CanvasLayer" parent="."]
@@ -149,6 +159,10 @@ horizontal_alignment = 1
 unique_name_in_owner = true
 text = "Resume"
 
+[node name="PauseSettings" type="Button" parent="PauseMenu/Panel/Box"]
+unique_name_in_owner = true
+text = "Settings"
+
 [node name="LeaveMatch" type="Button" parent="PauseMenu/Panel/Box"]
 unique_name_in_owner = true
 text = "Menu"
@@ -156,3 +170,11 @@ text = "Menu"
 [node name="QuitFromPause" type="Button" parent="PauseMenu/Panel/Box"]
 unique_name_in_owner = true
 text = "Quit"
+
+[node name="SettingsMenu" parent="." instance=ExtResource("4_settings")]
+
+[node name="Music" type="Node" parent="."]
+script = ExtResource("5_music")
+
+[node name="UiSounds" type="Node" parent="."]
+script = ExtResource("6_ui_sounds")
