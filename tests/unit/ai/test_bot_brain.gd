@@ -235,6 +235,31 @@ func test_bot_braces_against_a_facing_windup() -> void:
 	assert_eq(answers["spent"].buttons, 0, "a shove already thrown, no brace")
 
 
+func test_a_bot_climbing_out_does_not_brace() -> void:
+	var rules := SimFixtures.rules()
+	var layout := SimFixtures.steamer()
+	# Seat 0 winds up a shove that would land on the bot, seat 1, in the forward hold.
+	# With the hold's floor well above the sea the bot braces; with it within the
+	# climb margin it keeps climbing — rooted, it would drown there.
+	var bot_at := Vector3(9.0, -2.6, -2.0)
+	var shover_at := bot_at - Vector3(rules.body_radius * 2.0 + 0.3, 0.0, 0.0)
+	var floor_above_sea := {"dry": 1.8, "climbing": _profile().climb_margin_m * 0.5}
+	var braced := {}
+	for case: String in floor_above_sea:
+		var sink: float = layout.freeboard + bot_at.y - floor_above_sea[case]
+		var sinking := SimFixtures.scenario([[0.0, sink, 0.0, 0.0]])
+		var sim := SimFixtures.sim(2, sinking, layout)
+		SimFixtures.place(sim, 0, shover_at, 0.0)
+		SimFixtures.place(sim, 1, bot_at, 0.0)
+		SimFixtures.step(sim, {0: SimFixtures.frame(0, Vector2.ZERO, InputFrame.SHOVE)})
+		assert_eq(sim.state.seats[0].action, PlayerState.Action.WINDUP, case)
+		var source := BotInputSource.new(1, _reading(1.0, 0.0), sim.config)
+		source.observe(sim.snapshot(), sim.pose())
+		braced[case] = source.next_frame(sim.state.tick).is_held(InputFrame.BRACE)
+	assert_true(braced["dry"], "it braces on a dry floor")
+	assert_false(braced["climbing"], "climbing out, it does not stop to brace")
+
+
 func test_bot_charges_a_bracing_target() -> void:
 	var rules := SimFixtures.rules()
 	# The bot, seat 0, faces seat 1 in reach; seat 1 braces facing it.
@@ -256,3 +281,39 @@ func test_bot_charges_a_bracing_target() -> void:
 	assert_eq(held, Ticks.from_seconds(rules.charge_full), "held for a full charge")
 	assert_true(target.is_staggered(), "the charge broke the brace")
 	assert_almost_eq(Vector2(target.vel.x, target.vel.z).length(), rules.charged_knockback, 0.0001)
+
+
+func test_lone_bot_climbs_out_before_its_floor_floods() -> void:
+	# Alone on the steamer as it sinks, from the forward hold — the first room to flood
+	# — and from a cabin aft: the bot is out of the lower deck before the sea reaches
+	# the room it started in.
+	var layout := SimFixtures.steamer()
+	var sinking: SinkScenario = load(SimFixtures.STEAMER_SINKING)
+	for start: Vector3 in [Vector3(8.0, -2.6, -2.0), Vector3(-7.0, -2.6, 2.8)]:
+		var room := layout.room_at(start, 0.01)
+		assert_ne(room, -1, "%s is in a room" % start)
+		var config := SimFixtures.config(1, sinking, SEED, layout)
+		var runner := _bots(config)
+		SimFixtures.place(runner.sim, 0, start)
+		# The first tick any corner of that room's floor is under.
+		var area := layout.rooms[room].area
+		var corners: Array[Vector2] = [
+			area.position,
+			area.end,
+			Vector2(area.position.x, area.end.y),
+			Vector2(area.end.x, area.position.y)
+		]
+		var floods := -1
+		for tick in 150 * Ticks.RATE:
+			var pose := runner.sim.schedule.pose_at(tick)
+			for corner: Vector2 in corners:
+				if (
+					floods == -1
+					and runner.sim.surfaces.wet(Vector3(corner.x, -2.6, corner.y), pose)
+				):
+					floods = tick
+		assert_gt(floods, 0, "%s floods" % layout.rooms[room].name)
+		runner.run(floods)
+		var bot := runner.sim.state.seats[0]
+		assert_false(bot.is_out(), "%s: still in when its floor floods" % layout.rooms[room].name)
+		assert_gte(bot.pos.y, 0.0, "%s: up out of the lower deck by then" % layout.rooms[room].name)

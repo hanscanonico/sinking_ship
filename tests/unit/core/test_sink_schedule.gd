@@ -149,3 +149,91 @@ func test_highest_surface_migrates() -> void:
 		var highest := surfaces.highest_platform(pose)
 		assert_eq(highest, expected[at], "highest at %s s" % at)
 		assert_false(surfaces.flooded(highest, pose), "and dry at %s s" % at)
+
+
+## Every corner of every one of [param layout]'s platforms whose name is
+## [param deck_name], or of every platform below the main deck for &"".
+func _corners(layout: ShipLayout, deck_name: StringName) -> Array[Vector3]:
+	var corners: Array[Vector3] = []
+	for platform: ShipPlatform in layout.platforms:
+		var below := deck_name == &"" and platform.height < 0.0
+		if not below and platform.name != deck_name:
+			continue
+		var area := platform.area
+		for corner: Vector2 in [
+			area.position,
+			Vector2(area.end.x, area.position.y),
+			area.end,
+			Vector2(area.position.x, area.end.y)
+		]:
+			corners.append(Vector3(corner.x, platform.height, corner.y))
+	return corners
+
+
+## The highest world height, under [param pose], of [param points].
+func _top(pose: ShipPose, points: Array[Vector3]) -> float:
+	var top := -INF
+	for point: Vector3 in points:
+		top = maxf(top, pose.world_height(point))
+	return top
+
+
+func test_steamer_floods_from_the_bottom_up() -> void:
+	# The rev-3 timeline (§5): the lower deck floods first, from its forward end, so
+	# the match is a climb; the main deck and the forecastle go after it, and by the
+	# cap every surface is well under.
+	var layout := SimFixtures.steamer()
+	var surfaces := Surfaces.new(layout)
+	var schedule := SinkSchedule.new(
+		load(SimFixtures.STEAMER_SINKING), layout.freeboard, SeedStreams.derive(SEED, "sink")
+	)
+	var lower := _corners(layout, &"")
+	var main_deck := _corners(layout, &"main deck")
+	var forecastle := _corners(layout, &"forecastle")
+	assert_gt(lower.size(), 0, "the steamer has a lower deck")
+	# Its forward end: the middle of the lower deck's forward-most edge.
+	var forward_end := Vector3(-INF, 0.0, 0.0)
+	for platform: ShipPlatform in layout.platforms:
+		if platform.height < 0.0 and platform.area.end.x > forward_end.x:
+			var middle := platform.area.get_center().y
+			forward_end = Vector3(platform.area.end.x, platform.height, middle)
+	var calm_until := Ticks.from_seconds(45.0)
+	for tick in range(0, calm_until, Ticks.RATE):
+		assert_false(surfaces.wet(forward_end, schedule.pose_at(tick)), "calm at tick %d" % tick)
+	assert_true(
+		surfaces.wet(forward_end, schedule.pose_at(Ticks.from_seconds(50.0))),
+		"the lower deck wet at its forward end by 0:50"
+	)
+	var flooded_below := schedule.pose_at(Ticks.from_seconds(90.0))
+	assert_lt(_top(flooded_below, lower), 0.0, "the whole lower deck under by 1:30")
+	var dry_until := Ticks.from_seconds(90.0)
+	for tick in range(0, dry_until + 1, Ticks.RATE):
+		var pose := schedule.pose_at(tick)
+		for point: Vector3 in main_deck + forecastle:
+			assert_false(surfaces.wet(point, pose), "%s dry at tick %d" % [point, tick])
+	var two_minutes := schedule.pose_at(Ticks.from_seconds(120.0))
+	assert_lt(_top(two_minutes, forecastle), 0.0, "the forecastle under by 2:00")
+	# By the cap, every surface's every point is at least half a metre under.
+	var cap := schedule.pose_at(Ticks.from_seconds(210.0))
+	var everything: Array[Vector3] = []
+	for platform: ShipPlatform in layout.platforms:
+		everything.append_array(_corners(layout, platform.name))
+	for ramp: ShipRamp in layout.ramps:
+		for end in 2:
+			for corner: Vector2 in ramp.end_edge(end):
+				everything.append(Vector3(corner.x, ramp.end_point(end).y, corner.y))
+	for blocker: ShipBlocker in layout.blockers:
+		var reach := Vector2(blocker.radius, blocker.radius)
+		var foot := (
+			blocker.area
+			if blocker.shape == ShipBlocker.Shape.BOX
+			else Rect2(blocker.centre - reach, reach * 2.0)
+		)
+		for corner: Vector2 in [
+			foot.position,
+			foot.end,
+			Vector2(foot.position.x, foot.end.y),
+			Vector2(foot.end.x, foot.position.y)
+		]:
+			everything.append(Vector3(corner.x, blocker.top, corner.y))
+	assert_lte(_top(cap, everything), -0.5, "every surface 0.5 m under by 3:30")

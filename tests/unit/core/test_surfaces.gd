@@ -91,7 +91,7 @@ func test_step_height_picks_upper_or_lower() -> void:
 	high.y = surfaces.height_at(ramp, high)
 	assert_eq(surfaces.under(high, step), ramp, "standing on the ramp: the ramp")
 	# Where the boat deck stands over the main deck, the feet decide which.
-	var over := Vector3(-5.0, 0.0, 2.0)
+	var over := Vector3(-5.0, 0.0, -2.5)
 	assert_eq(surfaces.under(over, step), main_deck)
 	over.y = surfaces.height_at(boat_deck, over)
 	assert_eq(surfaces.under(over, step), boat_deck)
@@ -107,7 +107,7 @@ func test_walking_off_the_boat_deck_lands_on_the_main_deck() -> void:
 	var boat_deck := _platform(&"boat deck")
 	# Off its open after edge, abaft the funnel.
 	var edge := _steamer().platforms[boat_deck].area.position.x
-	var events := _walk_off(sim, Vector3(edge + 0.6, 2.5, 2.0), Vector2.LEFT)
+	var events := _walk_off(sim, Vector3(edge + 0.6, 2.5, -2.0), Vector2.LEFT)
 	var fell := _kinds(events, SimEvent.Kind.FELL)
 	var landed := _kinds(events, SimEvent.Kind.LANDED)
 	assert_eq(fell.size(), 1, "it fell once")
@@ -137,7 +137,7 @@ func test_landing_stagger_scales_with_the_drop() -> void:
 	# onto the main deck.
 	var falls := [
 		[
-			Vector3(poop_deck.area.end.x - 0.6, poop_deck.height, 0.0),
+			Vector3(poop_deck.area.end.x - 0.6, poop_deck.height, 1.2),
 			Vector2.RIGHT,
 			poop_deck.height
 		],
@@ -178,9 +178,10 @@ func test_a_fall_past_every_surface_reaches_the_sea() -> void:
 		highest = maxf(highest, platform.height)
 		lowest = minf(lowest, platform.height)
 	# Abeam of the bridge, just outboard of the main deck's railing, above every deck.
-	var start := Vector3(
-		-2.5, highest + 1.0, layout.platforms[_platform(&"main deck")].area.end.y + 0.5
-	)
+	var outboard := -INF
+	for platform: ShipPlatform in layout.platforms:
+		outboard = maxf(outboard, platform.area.end.y)
+	var start := Vector3(-2.5, highest + 1.0, outboard + 0.5)
 	assert_eq(surfaces.landing(start), Surfaces.NONE, "nothing under it at any height")
 	SimFixtures.place(sim, 0, start)
 	var faller := sim.state.seats[0]
@@ -203,6 +204,8 @@ func test_a_fall_past_every_surface_reaches_the_sea() -> void:
 func test_stern_down_scenario_floods_the_poop_deck_first() -> void:
 	var layout := _steamer()
 	var surfaces := Surfaces.new(layout)
+	var poop_deck := _platform(&"poop deck")
+	var forecastle := _platform(&"forecastle")
 	var bow_down: SinkScenario = load(SimFixtures.STEAMER_SINKING)
 	# The shipped scenario with its trim and heel signs flipped: by the stern, the
 	# other way over.
@@ -210,18 +213,316 @@ func test_stern_down_scenario_floods_the_poop_deck_first() -> void:
 	for keyframe: SinkKeyframe in bow_down.keyframes:
 		rows.append([keyframe.at, keyframe.sink, -keyframe.trim_deg, -keyframe.heel_deg])
 	var stern_down := SimFixtures.scenario(rows, bow_down.starts_at)
+	# Per scenario: the first platform under, and when each end deck goes under. The
+	# lower deck floods first either way (rev 3); which end deck follows is the sign.
 	var firsts := []
+	var ends := []
 	for scenario: SinkScenario in [stern_down, bow_down]:
 		var schedule := SinkSchedule.new(scenario, layout.freeboard, SeedStreams.derive(1, "sink"))
 		var first := Surfaces.NONE
+		var under := {poop_deck: -1, forecastle: -1}
 		for tick in 240 * Ticks.RATE:
 			var pose := schedule.pose_at(tick)
 			for platform in layout.platforms.size():
-				if surfaces.flooded(platform, pose):
+				if first == Surfaces.NONE and surfaces.flooded(platform, pose):
 					first = platform
-					break
-			if first != Surfaces.NONE:
-				break
+			for platform: int in under:
+				if under[platform] == -1 and surfaces.flooded(platform, pose):
+					under[platform] = tick
 		firsts.append(first)
-	assert_eq(firsts[0], _platform(&"poop deck"), "stern down: the poop deck goes first")
-	assert_eq(firsts[1], _platform(&"forecastle"), "bow down: the forecastle goes first")
+		ends.append(under)
+	for index in 2:
+		assert_ne(firsts[index], Surfaces.NONE)
+		if firsts[index] != Surfaces.NONE:
+			assert_lt(layout.platforms[firsts[index]].height, 0.0, "the lower deck goes first")
+	assert_lt(ends[0][poop_deck], ends[0][forecastle], "stern down: the poop deck before the bow")
+	assert_lt(ends[1][forecastle], ends[1][poop_deck], "bow down: the forecastle before the stern")
+	var stern_first := layout.platforms[firsts[0]].area.get_center().x
+	var bow_first := layout.platforms[firsts[1]].area.get_center().x
+	assert_lt(stern_first, bow_first, "and the lower deck floods from the end that goes down")
+
+
+## A deck 20 × 12 m with walls 0.2 m thick standing on it: one along x = 0 with a
+## doorway 1.1 m wide across z = 0, one along z = 3 from it to x = -6 making a
+## corner, and one along z = -3 with a slot 0.6 m wide — narrower than a body.
+func _walled_layout() -> ShipLayout:
+	var layout := ShipLayout.new()
+	layout.freeboard = 3.0
+	var deck := ShipPlatform.new()
+	deck.area = Rect2(-10.0, -6.0, 20.0, 12.0)
+	layout.platforms = [deck]
+	var blockers: Array[ShipBlocker] = []
+	for area: Rect2 in [
+		Rect2(-0.1, -6.0, 0.2, 5.45),
+		Rect2(-0.1, 0.55, 0.2, 5.45),
+		Rect2(-6.0, 2.9, 6.1, 0.2),
+		Rect2(-6.0, -3.1, 2.7, 0.2),
+		Rect2(-2.7, -3.1, 2.6, 0.2),
+	]:
+		var wall := ShipBlocker.new()
+		wall.area = area
+		wall.top = 2.5
+		blockers.append(wall)
+	layout.blockers = blockers
+	layout.spawns = [Vector3.ZERO, Vector3.ZERO, Vector3.ZERO]
+	return layout
+
+
+func _walled_sim(seats: int) -> MatchSim:
+	return SimFixtures.sim(seats, null, _walled_layout())
+
+
+## How far [param player]'s circle reaches into the deepest wall of [param layout].
+func _into_walls(layout: ShipLayout, player: PlayerState) -> float:
+	var deepest := 0.0
+	var point := Vector2(player.pos.x, player.pos.z)
+	for wall: ShipBlocker in layout.blockers:
+		var gap := point.distance_to(point.clamp(wall.area.position, wall.area.end))
+		deepest = maxf(deepest, SimFixtures.rules().body_radius - gap)
+	return deepest
+
+
+func test_stacked_floors_pick_the_one_underfoot() -> void:
+	var layout := _steamer()
+	var surfaces := Surfaces.new(layout)
+	var step := SimFixtures.rules().step_height
+	# Abaft the funnel, to port: a lower-deck cabin, the main deck over it (a deckhouse
+	# cabin's floor) and the boat deck over that, one above another.
+	var x := -5.0
+	var z := -2.5
+	var floors := {-2.6: &"lower deck", 0.0: &"main deck", 2.5: &"boat deck"}
+	for height: float in floors:
+		var surface := surfaces.under(Vector3(x, height, z), step)
+		assert_eq(SimFixtures.name_of(layout, surface), floors[height], "feet at %s" % height)
+	assert_eq(surfaces.under(Vector3(x, -1.3, z), step), Surfaces.NONE, "between: falling")
+	assert_eq(SimFixtures.name_of(layout, surfaces.landing(Vector3(x, -1.3, z))), &"lower deck")
+	assert_eq(SimFixtures.name_of(layout, surfaces.landing(Vector3(x, 1.0, z))), &"main deck")
+
+	# Three bodies standing one over another stay each on its own floor.
+	var sim := SimFixtures.sim(3, null, layout)
+	var heights: Array[float] = [-2.6, 0.0, 2.5]
+	for seat in 3:
+		SimFixtures.place(sim, seat, Vector3(x, heights[seat], z))
+	var events := SimFixtures.step(sim, {}, Ticks.RATE)
+	assert_true(events.is_empty(), "nothing happened")
+	for seat in 3:
+		var body := sim.state.seats[seat]
+		assert_eq(body.body, PlayerState.Body.GROUNDED)
+		assert_eq(body.pos, Vector3(x, heights[seat], z), "seat %d where it stood" % seat)
+		assert_eq(SimFixtures.name_of(layout, body.surface), floors[heights[seat]])
+
+
+func test_walls_stop_bodies_and_shoves() -> void:
+	var rules := SimFixtures.rules()
+	var layout := _walled_layout()
+	var face := -0.1 - rules.body_radius
+	# Slammed square into the wall by a quick shove: it stops at the wall's face — a
+	# wall is never vaulted.
+	var slam := _walled_sim(2)
+	SimFixtures.place(slam, 1, Vector3(-2.0, 0.0, 1.8))
+	SimFixtures.place(slam, 0, Vector3(-2.0 - rules.body_radius * 2.0 - 0.3, 0.0, 1.8), 0.0)
+	var events: Array[SimEvent] = []
+	for tick in 2 * Ticks.RATE:
+		var buttons := InputFrame.SHOVE if tick == 0 else 0
+		events.append_array(
+			SimFixtures.step(slam, {0: SimFixtures.frame(0, Vector2.ZERO, buttons)})
+		)
+	var target := slam.state.seats[1]
+	assert_true(_kinds(events, SimEvent.Kind.VAULTED).is_empty(), "no vault")
+	assert_eq(target.body, PlayerState.Body.GROUNDED)
+	assert_almost_eq(target.pos.x, face, 0.0001, "stopped at the wall's face")
+	assert_almost_eq(target.pos.z, 1.8, 0.0001, "on the line it came in on")
+
+	# A shove through the wall never lands; the same shove through the doorway does.
+	var lanes := {"through the wall": 1.8, "through the doorway": 0.0}
+	var hit := {}
+	for lane: String in lanes:
+		var sim := _walled_sim(2)
+		SimFixtures.place(sim, 0, Vector3(-0.6, 0.0, lanes[lane]), 0.0)
+		SimFixtures.place(sim, 1, Vector3(0.6, 0.0, lanes[lane]), 180.0)
+		SimFixtures.step(sim, {0: SimFixtures.frame(0, Vector2.ZERO, InputFrame.SHOVE)})
+		SimFixtures.step(sim, {0: SimFixtures.frame(0)}, 9)
+		hit[lane] = sim.state.seats[1].is_staggered()
+	assert_false(hit["through the wall"], "the wall takes the shove")
+	assert_true(hit["through the doorway"], "the doorway does not")
+
+	# Walked into a corner with a second body pressing behind: it comes to rest in
+	# the corner, against both walls and in neither, and so does its follower.
+	var corner := _walled_sim(2)
+	SimFixtures.place(corner, 0, Vector3(-2.0, 0.0, 1.5))
+	SimFixtures.place(corner, 1, Vector3(-2.8, 0.0, 0.9))
+	var into_corner := Vector2(1.0, 1.0)
+	var deepest := 0.0
+	for _tick in 3 * Ticks.RATE:
+		SimFixtures.step(
+			corner, {0: SimFixtures.frame(0, into_corner), 1: SimFixtures.frame(1, into_corner)}
+		)
+		for player: PlayerState in corner.state.seats:
+			deepest = maxf(deepest, _into_walls(layout, player))
+	var cornered := corner.state.seats[0]
+	assert_almost_eq(cornered.pos.x, face, 0.001, "against the wall along x")
+	assert_almost_eq(cornered.pos.z, 2.9 - rules.body_radius, 0.001, "against the wall along z")
+	assert_lt(deepest, 0.001, "no body was ever left inside a wall")
+
+	# Shoved at a slot narrower than itself, it never goes through.
+	var slot := _walled_sim(2)
+	SimFixtures.place(slot, 1, Vector3(-3.0, 0.0, -1.6))
+	SimFixtures.place(slot, 0, Vector3(-3.0, 0.0, -1.6 + rules.body_radius * 2.0 + 0.3), -90.0)
+	var nearest := INF
+	for tick in 2 * Ticks.RATE:
+		var buttons := InputFrame.SHOVE if tick == 0 else 0
+		SimFixtures.step(slot, {0: SimFixtures.frame(0, Vector2.UP * 0.6, buttons)})
+		nearest = minf(nearest, slot.state.seats[1].pos.z)
+	assert_lt(nearest, -2.5, "the shove sent it into the slot")
+	assert_gt(nearest, -2.9, "it never got past the slot's near side")
+
+
+## Two shovers landing on one staggered body send it at up to twice the restagger
+## knockback, two-thirds of a metre a tick at 30 Hz: more than a wall's half-thickness
+## and a body's radius together. Whatever its speed and however close it stood, it
+## stops at the wall's face on its own side.
+func test_a_stacked_shove_never_carries_a_body_through_a_wall() -> void:
+	var rules := SimFixtures.rules()
+	var face := -0.1 - rules.body_radius
+	var fastest := rules.knockback * rules.restagger_mult * 2.0
+	for gap: float in [0.0, 0.05, 0.1, 0.2, 0.3, 0.45]:
+		for speed: float in [rules.knockback, fastest * 0.75, fastest]:
+			var sim := _walled_sim(1)
+			SimFixtures.place(sim, 0, Vector3(face - gap, 0.0, 1.8))
+			var body := sim.state.seats[0]
+			body.vel = Vector3(speed, 0.0, 0.0)
+			body.stagger_ticks = Ticks.from_seconds(rules.stagger)
+			SimFixtures.step(sim, {}, Ticks.RATE)
+			var label := "%.2f m off the wall at %.1f m/s" % [gap, speed]
+			assert_almost_eq(body.pos.x, face, 0.0001, label + ": stopped at the face")
+			assert_eq(body.body, PlayerState.Body.GROUNDED, label)
+
+
+## A body slammed up a steep stair faster than it can climb — more than a step's
+## rise in one tick — is held on the stair where the rise runs out, never pushed out
+## of the stair's side or head: at the aft companionway's head, that is through the
+## hull.
+func test_a_body_slammed_up_a_stair_is_held_on_it() -> void:
+	var rules := SimFixtures.rules()
+	var fastest := rules.knockback * rules.restagger_mult * 2.0
+	for speed: float in [fastest * 0.6, fastest * 0.8, fastest]:
+		var sim := _steamer_sim()
+		SimFixtures.place(sim, 0, Vector3(-11.9, -0.77, 0.15))
+		var body := sim.state.seats[0]
+		assert_true(sim.surfaces.is_ramp(body.surface), "starts on the aft companionway")
+		body.vel = Vector3(-speed, 0.0, 0.0)
+		body.stagger_ticks = Ticks.from_seconds(rules.stagger)
+		var lowest := body.pos.y
+		var aftmost := body.pos.x
+		for _tick in Ticks.RATE:
+			SimFixtures.step(sim)
+			lowest = minf(lowest, body.pos.y)
+			aftmost = minf(aftmost, body.pos.x)
+		var label := "at %.1f m/s" % speed
+		assert_eq(body.body, PlayerState.Body.GROUNDED, label + ": still standing")
+		assert_gte(lowest, -0.77, label + ": never fell off the stair")
+		assert_gt(aftmost, -12.9, label + ": never into the hull's after wall")
+		assert_true(
+			sim.surfaces.is_ramp(body.surface) or body.pos.y == 0.0,
+			label + ": on the stair or the deck at its head"
+		)
+
+
+func test_doorway_passes_one_body_at_a_time() -> void:
+	var rules := SimFixtures.rules()
+	var layout := _walled_layout()
+	# Two bodies walk abreast at the doorway, one a little ahead: they go through one
+	# after the other, and neither is ever pushed into a jamb.
+	var sim := _walled_sim(2)
+	SimFixtures.place(sim, 0, Vector3(-2.6, 0.0, 0.25))
+	SimFixtures.place(sim, 1, Vector3(-3.2, 0.0, -0.25))
+	var deepest := 0.0
+	var both_in_it := 0
+	for _tick in 4 * Ticks.RATE:
+		var frames := {}
+		var in_doorway := 0
+		for player: PlayerState in sim.state.seats:
+			var through := player.pos.x > 1.5
+			frames[player.seat] = SimFixtures.frame(
+				player.seat, Vector2.ZERO if through else Vector2.RIGHT
+			)
+			if absf(player.pos.x) < rules.body_radius:
+				in_doorway += 1
+		if in_doorway > 1:
+			both_in_it += 1
+		SimFixtures.step(sim, frames)
+		for player: PlayerState in sim.state.seats:
+			deepest = maxf(deepest, _into_walls(layout, player))
+	assert_eq(both_in_it, 0, "one body in the doorway at a time")
+	assert_lt(deepest, 0.001, "neither was pushed into a jamb")
+	for player: PlayerState in sim.state.seats:
+		assert_gt(player.pos.x, 1.0, "seat %d went through" % player.seat)
+		assert_lte(absf(player.pos.z), 6.0)
+
+
+func test_falling_into_a_companionway_lands_on_the_stair() -> void:
+	var rules := SimFixtures.rules()
+	var layout := _steamer()
+	var surfaces := Surfaces.new(layout)
+	# The aft companionway: a stair rising aft out of the cabin corridor, under an
+	# opening in the main deck railed on three sides. A body pinned against the rail
+	# across the opening's forward end takes a quick shove aft, goes over the rail,
+	# and comes down on the stair below — not on the lower deck, not past it.
+	var stair := Surfaces.NONE
+	for ramp in layout.ramps.size():
+		if layout.ramps[ramp].area.has_point(Vector2(-11.5, 0.0)):
+			stair = surfaces.ramp_surface(ramp)
+	assert_ne(stair, Surfaces.NONE)
+	var rail_x := -10.25
+	var sim := SimFixtures.sim(3, null, layout)
+	SimFixtures.place(sim, 2, Vector3(-18.0, 1.2, 0.0))
+	SimFixtures.place(sim, 1, Vector3(rail_x + rules.body_radius, 0.0, 0.0), 0.0)
+	SimFixtures.place(sim, 0, Vector3(rail_x + rules.body_radius * 3.0 + 0.3, 0.0, 0.0), 180.0)
+	var events: Array[SimEvent] = []
+	for tick in 2 * Ticks.RATE:
+		var buttons := InputFrame.SHOVE if tick == 0 else 0
+		events.append_array(SimFixtures.step(sim, {0: SimFixtures.frame(0, Vector2.ZERO, buttons)}))
+		if not _kinds(events, SimEvent.Kind.LANDED).is_empty():
+			break
+	assert_eq(_kinds(events, SimEvent.Kind.VAULTED).size(), 1, "over the rail")
+	var landed := _kinds(events, SimEvent.Kind.LANDED)
+	assert_eq(landed.size(), 1, "and down")
+	if landed.is_empty():
+		return
+	assert_eq(landed[0].seat, 1)
+	assert_eq(landed[0].surface, stair, "on the stair")
+	var faller := sim.state.seats[1]
+	assert_eq(faller.body, PlayerState.Body.GROUNDED)
+	assert_almost_eq(faller.pos.y, surfaces.height_at(stair, faller.pos), 0.0001)
+	assert_lt(faller.pos.y, 0.0, "below the main deck")
+	assert_false(faller.is_out())
+
+
+func test_room_floods_exactly_when_its_floor_is_under_the_sea() -> void:
+	# No compartments (D7): a body standing in a room goes out on the tick the sea
+	# plane passes its feet — whatever walls and doorways stand round it.
+	var layout := _steamer()
+	var sinking: SinkScenario = load(SimFixtures.STEAMER_SINKING)
+	var sim := SimFixtures.sim(3, sinking, layout)
+	var rooms := {0: Vector3(-2.0, -2.6, -3.5), 1: Vector3(-11.0, -2.6, 3.0)}
+	for seat: int in rooms:
+		SimFixtures.place(sim, seat, rooms[seat])
+		assert_ne(layout.room_at(rooms[seat], 0.01), -1, "seat %d stands in a room" % seat)
+	SimFixtures.place(sim, 2, Vector3(-18.0, 1.2, 0.0))
+	var expected := {}
+	for tick in 150 * Ticks.RATE:
+		var pose := sim.schedule.pose_at(tick)
+		for seat: int in rooms:
+			if not expected.has(seat) and (pose.transform * rooms[seat]).y < 0.0:
+				expected[seat] = tick
+	assert_eq(expected.size(), 2, "both floors go under")
+	while not sim.is_over() and sim.state.tick < 150 * Ticks.RATE:
+		SimFixtures.step(sim)
+	for seat: int in rooms:
+		var body := sim.state.seats[seat]
+		assert_true(body.is_out(), "seat %d out" % seat)
+		assert_eq(body.out_cause, PlayerState.Cause.WATER)
+		assert_eq(
+			body.out_tick, expected.get(seat, -1), "seat %d out as its floor went under" % seat
+		)
+	assert_ne(expected[0], expected[1], "each room by its own floor's height, not the hull's")

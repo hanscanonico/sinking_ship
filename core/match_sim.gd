@@ -5,6 +5,12 @@ extends RefCounted
 ## whole truth and from_snapshot() continues it exactly (D5).
 
 const SNAPSHOT_VERSION := 4
+## How many times a tick's contacts are resolved, at most. In one pass each contact
+## is met where the body stood before it, so a body pushed two ways — into a corner,
+## between a doorway's jambs, against a wall by a crowd — can end inside one wall or
+## slip through a gap narrower than itself. Four passes settle a body wedged between
+## two walls and another body; they stop as soon as nothing moves.
+const CONTACT_PASSES := 4
 
 var config: MatchConfig
 var schedule: SinkSchedule
@@ -295,17 +301,103 @@ func _forces(pose_now: ShipPose) -> void:
 		player.vel = Vector3(planar.x, player.vel.y, planar.y)
 
 
-## Integration, then blockers, then railings, then bodies push each other apart,
-## pair by pair in seat order. Returns each seat's feet height before it moved.
+## Integration, then contacts: blockers, then railings, then bodies pushing each
+## other apart pair by pair in seat order, pass after pass until nothing moves.
+## Walls and rails have the last word — the last pass stops before bodies push — so
+## a crowd may end a tick pressed together, never inside a wall. Returns each seat's
+## feet height before it moved.
 func _move(tick: int, events: Array[SimEvent]) -> PackedFloat64Array:
 	var live := _live_seats()
 	var feet_before := PackedFloat64Array()
 	feet_before.resize(state.seats.size())
+	var came_from := PackedVector2Array()
+	came_from.resize(state.seats.size())
+	# A body that would cross more than its own radius in one move could land past a
+	# thin wall's middle and be pushed out of its far side — two shovers on one
+	# staggered body reach twice the restagger knockback, two-thirds of a metre a tick.
+	# So the tick's move is cut into as many equal steps as the fastest body needs to
+	# cross at most its radius in each, every step met by the contacts; at walking and
+	# single-shove speeds it is one step, the move exactly as it always was.
+	var steps := 1
 	for player: PlayerState in live:
 		feet_before[player.seat] = player.pos.y
-		player.pos += player.vel * Ticks.SECONDS_PER_TICK
-	_blockers(live, feet_before)
-	_railings(live, tick, events)
+		came_from[player.seat] = Vector2(player.pos.x, player.pos.z)
+		var reach := Vector2(player.vel.x, player.vel.z).length() * Ticks.SECONDS_PER_TICK
+		steps = maxi(steps, ceili(reach / _rules.body_radius))
+	var dt := Ticks.SECONDS_PER_TICK / steps
+	for _step in steps:
+		for player: PlayerState in live:
+			player.pos += player.vel * dt
+		for contact_pass in CONTACT_PASSES:
+			var held := _blockers(live, feet_before)
+			held = _railings(live, tick, events, came_from) or held
+			if contact_pass == CONTACT_PASSES - 1:
+				break
+			if not _bodies(live) and not held:
+				break
+	return feet_before
+
+
+## Whatever stops a body — a blocker, a wall, a deck edge too high to step onto —
+## pushes it back out in the deck plane and takes the velocity into it. It is met at
+## the height the feet stood at before this tick's move, so a fall lands on a deck
+## in _ground rather than being pushed off its edge. True when it moved anyone.
+func _blockers(live: Array[PlayerState], feet_before: PackedFloat64Array) -> bool:
+	var moved := false
+	for player: PlayerState in live:
+		var feet := Vector3(player.pos.x, feet_before[player.seat], player.pos.z)
+		var contacts := surfaces.obstacle_contacts(
+			feet, _rules.body_radius, _rules.body_height, _rules.step_height
+		)
+		for contact: Surfaces.Contact in contacts:
+			_hold(player, contact)
+			moved = true
+	return moved
+
+
+## A railing stops a grounded body crossing it slower than vault_speed — it loses
+## the velocity into the rail — and tips one at or above it over, into the air. In
+## the air, a body that came from a rail's side with its feet below the rail's top
+## is held the same way, unless it crosses at vault_speed or more: a vaulter is never
+## pulled back. True when it moved anyone.
+func _railings(
+	live: Array[PlayerState], tick: int, events: Array[SimEvent], came_from: PackedVector2Array
+) -> bool:
+	var moved := false
+	for player: PlayerState in live:
+		var airborne := player.body == PlayerState.Body.AIRBORNE
+		var contacts: Array[Surfaces.Contact]
+		if airborne:
+			contacts = surfaces.airborne_rail_contacts(
+				player.pos,
+				came_from[player.seat],
+				_rules.body_radius,
+				_rules.body_height,
+				_rules.railing_height
+			)
+		elif player.body == PlayerState.Body.GROUNDED:
+			contacts = surfaces.rail_contacts(player.pos, _rules.body_radius, player.surface)
+		for contact: Surfaces.Contact in contacts:
+			var planar := Vector2(player.vel.x, player.vel.z)
+			var into := -planar.dot(contact.normal)
+			if into >= _rules.vault_speed:
+				if airborne:
+					continue
+				player.body = PlayerState.Body.AIRBORNE
+				player.surface = Surfaces.NONE
+				player.fall_from = player.pos.y
+				player.vel.y = _rules.vault_lift
+				events.append(SimEvent.vaulted(tick, player.seat))
+				break
+			_hold(player, contact)
+			moved = true
+	return moved
+
+
+## Bodies whose heights overlap push each other apart, pair by pair in seat order,
+## each moving half the overlap. True when it moved anyone.
+func _bodies(live: Array[PlayerState]) -> bool:
+	var moved := false
 	var reach := _rules.body_radius * 2.0
 	for first in live.size():
 		for second in range(first + 1, live.size()):
@@ -321,41 +413,8 @@ func _move(tick: int, events: Array[SimEvent]) -> PackedFloat64Array:
 			var push := normal * ((reach - distance) * 0.5)
 			a.pos -= Vector3(push.x, 0.0, push.y)
 			b.pos += Vector3(push.x, 0.0, push.y)
-	return feet_before
-
-
-## Whatever stops a body — a blocker, a deck edge too high to step onto — pushes it
-## back out in the deck plane and takes the velocity into it. It is met at the
-## height the feet stood at before this tick's move, so a fall lands on a deck in
-## _ground rather than being pushed off its edge.
-func _blockers(live: Array[PlayerState], feet_before: PackedFloat64Array) -> void:
-	for player: PlayerState in live:
-		var feet := Vector3(player.pos.x, feet_before[player.seat], player.pos.z)
-		var contacts := surfaces.obstacle_contacts(
-			feet, _rules.body_radius, _rules.body_height, _rules.step_height
-		)
-		for contact: Surfaces.Contact in contacts:
-			_hold(player, contact)
-
-
-## A railing stops a grounded body crossing it slower than vault_speed — it loses
-## the velocity into the rail — and tips one at or above it over, into the air.
-func _railings(live: Array[PlayerState], tick: int, events: Array[SimEvent]) -> void:
-	for player: PlayerState in live:
-		if player.body != PlayerState.Body.GROUNDED:
-			continue
-		var contacts := surfaces.rail_contacts(player.pos, _rules.body_radius, player.surface)
-		for contact: Surfaces.Contact in contacts:
-			var planar := Vector2(player.vel.x, player.vel.z)
-			var into := -planar.dot(contact.normal)
-			if into >= _rules.vault_speed:
-				player.body = PlayerState.Body.AIRBORNE
-				player.surface = Surfaces.NONE
-				player.fall_from = player.pos.y
-				player.vel.y = _rules.vault_lift
-				events.append(SimEvent.vaulted(tick, player.seat))
-				break
-			_hold(player, contact)
+			moved = true
+	return moved
 
 
 ## Moves [param player] out of [param contact] in the deck plane and takes the

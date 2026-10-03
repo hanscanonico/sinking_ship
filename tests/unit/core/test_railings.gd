@@ -178,7 +178,7 @@ func _gap_start(gap: Vector2) -> float:
 func test_a_railing_guards_only_its_own_platform() -> void:
 	var layout := SimFixtures.steamer()
 	var surfaces := Surfaces.new(layout)
-	var main_deck := SimFixtures.platform_named(layout, &"main deck")
+	var main_deck := surfaces.under(Vector3(-13.0, 0.0, 4.9), SimFixtures.rules().step_height)
 	var poop_deck := SimFixtures.platform_named(layout, &"poop deck")
 	# From the poop deck's open forward corner, out over the main deck's starboard
 	# railing, which stands 1.2 m below.
@@ -213,3 +213,47 @@ func test_touching_spans_hold_a_body_once() -> void:
 	var player := sim.state.seats[0]
 	assert_almost_eq(player.pos.z, 4.0 - SimFixtures.rules().body_radius, 0.0001, "at the rail")
 	assert_almost_eq(player.vel.z, 0.0, 0.0001)
+
+
+func test_a_rail_holds_a_body_that_steps_off_beside_it() -> void:
+	# The steamer's starboard poop ramp runs beside the main deck's railing. A body
+	# walking off the ramp's outboard side is in the air, its feet below the rail's
+	# top, when it reaches the rail from the deck's side: the rail holds it, and it
+	# comes down on the main deck rather than going over into the sea.
+	var rules := SimFixtures.rules()
+	var layout := SimFixtures.steamer()
+	var surfaces := Surfaces.new(layout)
+	var ramp := surfaces.under(Vector3(-13.0, 0.8, 4.0), rules.step_height)
+	assert_true(surfaces.is_ramp(ramp), "it starts on the ramp")
+	var sim := SimFixtures.sim(2, null, layout)
+	SimFixtures.place(sim, 1, Vector3(-18.0, 1.2, -2.0))
+	SimFixtures.place(
+		sim, 0, Vector3(-13.0, surfaces.height_at(ramp, Vector3(-13.0, 0.0, 4.0)), 4.0)
+	)
+	var events := SimFixtures.step(sim, {0: SimFixtures.frame(0, Vector2.DOWN)}, 2 * Ticks.RATE)
+	var walker := sim.state.seats[0]
+	var fell := events.filter(
+		func(event: SimEvent) -> bool: return event.kind == SimEvent.Kind.FELL
+	)
+	assert_eq(fell.size(), 1, "it stepped off the ramp's side")
+	assert_true(_vaults(events).is_empty(), "walking pace never tips you over")
+	assert_false(walker.is_out(), "held, still aboard")
+	assert_eq(walker.body, PlayerState.Body.GROUNDED)
+	assert_eq(SimFixtures.name_of(layout, walker.surface), &"main deck")
+	assert_almost_eq(walker.pos.z, 5.0 - rules.body_radius, 0.0001, "against the rail")
+
+
+func test_a_rail_never_pulls_back_a_vaulter() -> void:
+	# In the air past the rail at vault speed, nothing holds it: over and into the sea.
+	var rules := SimFixtures.rules()
+	var sim := SimFixtures.sim(2)
+	SimFixtures.place(sim, 1, Vector3(-12.0, 0.0, 0.0))
+	var flier := sim.state.seats[0]
+	SimFixtures.place(sim, 0, Vector3(RAILED_X, 0.5, _pinned_z()))
+	flier.body = PlayerState.Body.AIRBORNE
+	flier.surface = Surfaces.NONE
+	flier.fall_from = 0.5
+	flier.vel = Vector3(0.0, 0.0, rules.vault_speed)
+	var events := SimFixtures.step(sim, {}, 2 * Ticks.RATE)
+	assert_true(flier.is_out(), "over the rail and into the sea")
+	assert_true(_vaults(events).is_empty(), "already in the air: no second vault")

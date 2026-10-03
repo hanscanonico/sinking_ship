@@ -15,7 +15,7 @@ func _init(seat: int, profile: BotProfile, config: MatchConfig) -> void:
 		profile,
 		config.rules,
 		surfaces,
-		WalkGraph.new(config.ship, surfaces, config.rules.body_radius),
+		WalkGraph.new(config.ship, surfaces, config.rules),
 		SeedStreams.derive(config.match_seed, seat)
 	)
 

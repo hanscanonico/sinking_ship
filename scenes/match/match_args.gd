@@ -2,11 +2,12 @@ class_name MatchArgs
 extends RefCounted
 ## The user arguments a match host takes after `--`:
 ##   --seed=N  --seats=N  --seconds=S  --autoplay  --capture=PATH  --capture-at=S
-##   --observer  --capture-eye=SEAT
+##   --observer  --capture-eye=SEAT  --observer-cut=M
 ## The game reads --seed and --seats as the menu's choices; --autoplay presses its
 ## Play, and without it --capture saves the menu. A capture is taken from the
 ## observer camera unless --capture-eye names the seat whose eyes it looks through;
-## --observer opens the observer camera for QA. No menu reaches either (D14).
+## --observer opens the observer camera for QA, and --observer-cut cuts its view of
+## the ship away to show the inside. No menu reaches any of them (D14).
 
 ## -1 when not given: the host picks one.
 var seed_value: int = -1
@@ -24,6 +25,10 @@ var capture_at: float = -1.0
 var observer: bool = false
 ## The seat a capture looks through the eyes of; -1 for the observer camera.
 var capture_eye: int = -1
+## The observer's cut-away: nothing of the ship standing at or above this
+## ship-local height is drawn, and the observer camera watches the whole ship rather
+## than one seat. INF draws everything.
+var observer_cut: float = INF
 
 
 static func parse(args: PackedStringArray) -> MatchArgs:
@@ -47,6 +52,8 @@ static func parse(args: PackedStringArray) -> MatchArgs:
 				parsed.observer = true
 			"--capture-eye":
 				parsed.capture_eye = value.to_int()
+			"--observer-cut":
+				parsed.observer_cut = value.to_float()
 			_:
 				push_warning("unknown argument %s" % arg)
 	return parsed

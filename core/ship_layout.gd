@@ -14,6 +14,18 @@ extends Resource
 @export var railings: Array[ShipRailing] = []
 ## Where seats start, ship-local; the match stream shuffles who gets which.
 @export var spawns: Array[Vector3] = []
+## Rooms by name, for the lint, the walk graph, the HUD and the greybox; no rule
+## reads them (D6).
+@export var rooms: Array[ShipRoom] = []
+
+
+## The index of the first room holding feet at [param ship_point] (ShipRoom.holds),
+## or -1 when it stands in none.
+func room_at(ship_point: Vector3, step: float) -> int:
+	for index in rooms.size():
+		if rooms[index].holds(ship_point, step):
+			return index
+	return -1
 
 
 ## Every reason this layout cannot host [param seats] seats; empty when it can.
@@ -51,6 +63,9 @@ func problems(seats: int) -> PackedStringArray:
 			and not platforms[railing.platform].edge_holds(railing.from, railing.to)
 		):
 			found.append("ship: a railing does not run along its platform's edge")
+	for room: ShipRoom in rooms:
+		if room == null or room.area.size.x <= 0.0 or room.area.size.y <= 0.0:
+			found.append("ship: a room has no area")
 	if spawns.size() < seats:
 		found.append("ship: %d spawns for %d seats" % [spawns.size(), seats])
 	return found

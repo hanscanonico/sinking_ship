@@ -79,7 +79,7 @@ func test_snapshot_continuation_is_exact() -> void:
 	SimFixtures.place(into_the_sea, 0, Vector3(gap.x, 0.0, 3.0))
 	var onto_a_deck := SimFixtures.sim(2, null, SimFixtures.steamer())
 	SimFixtures.place(onto_a_deck, 1, Vector3(5.0, 0.0, 4.2))
-	SimFixtures.place(onto_a_deck, 0, Vector3(-14.6, 1.2, 0.0))
+	SimFixtures.place(onto_a_deck, 0, Vector3(-14.6, 1.2, 1.2))
 	var walks := {into_the_sea: Vector2.DOWN, onto_a_deck: Vector2.RIGHT}
 	for fall: MatchSim in walks:
 		var walk: Array[InputFrame] = [

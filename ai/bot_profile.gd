@@ -19,6 +19,10 @@ const DIRECTORY := "res://data/bots"
 @export var brace_read: float
 ## The chance, rolled each think, that a bot answers a bracing target with a charge.
 @export var charge_read: float
+## The climb intent's weight: once the lowest corner of the floor it stands on — its
+## room, or its open deck — is less than this many metres above the sea, the bot
+## makes for the highest ground it can reach.
+@export var climb_margin_m: float
 
 
 static func for_tier(tier: StringName) -> BotProfile:
@@ -50,4 +54,6 @@ func problems() -> PackedStringArray:
 	for field: String in ["brace_read", "charge_read"]:
 		if float(get(field)) < 0.0 or float(get(field)) > 1.0:
 			found.append("bot: %s must be within 0…1" % field)
+	if climb_margin_m < 0.0:
+		found.append("bot: climb_margin_m must not be negative")
 	return found
