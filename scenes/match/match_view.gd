@@ -40,8 +40,8 @@ var _smoother := CorrectionSmoother.new(0.0)
 
 
 ## Draws [param sim]'s match as [param driver] steps it; [param local_seat] gets a
-## marker overhead, and each correction to its predicted body is drawn away over
-## [param correction_time] seconds (D12).
+## marker overhead (look_out_of), and each correction to its predicted body is drawn
+## away over [param correction_time] seconds (D12).
 func setup(driver: SimDriver, sim: MatchSim, local_seat: int, correction_time: float = 0.0) -> void:
 	if _driver != null:
 		_driver.corrected.disconnect(_on_corrected)
@@ -77,9 +77,12 @@ func setup(driver: SimDriver, sim: MatchSim, local_seat: int, correction_time: f
 
 
 ## Draws every seat but [param seat] from now on — the view is in its eyes — or
-## every seat when it is -1.
+## every seat when it is -1, the observer camera's view, the only one the local
+## seat's marker shows in: through a seat's eyes the first-person HUD names every
+## seat, and the marker would hang before them as a blank shape.
 func look_out_of(seat: int) -> void:
 	_eye_seat = seat
+	_bodies[_local_seat].show_marker(seat == -1)
 	if seat != -1:
 		_bodies[seat].visible = false
 		_shadows[seat].visible = false

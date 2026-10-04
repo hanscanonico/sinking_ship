@@ -122,6 +122,8 @@ var _model: Node3D
 var _colour: Color
 var _feet_disc: MeshInstance3D
 var _hat_node: MeshInstance3D
+## The marker over the local seat, or null on any other.
+var _marker: MeshInstance3D
 var _clothes: ShaderMaterial
 ## The clothes again on the mannequin's ball joints, with no outline, so the joints
 ## draw no seams through the cloth.
@@ -208,6 +210,13 @@ func setup(seat_id: int, rules: BrawlRules, local: bool) -> void:
 		arrow.rotation.z = PI
 		arrow.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		add_child(arrow)
+		_marker = arrow
+
+
+## Shows the marker overhead, on the local seat, or hides it.
+func show_marker(shown: bool) -> void:
+	if _marker != null:
+		_marker.visible = shown
 
 
 ## Draws only what a seat sees of itself (FirstPersonArms): no hat, no disc at its
