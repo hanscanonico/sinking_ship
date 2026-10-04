@@ -6,19 +6,21 @@ extends RefCounted
 ##   --net-sim=latency:MS,jitter:MS,loss:PERCENT
 ##   --server  --port=N  --bind=ADDRESS  --matches=N
 ##   --connect=ws://HOST:PORT  --create | --room=CODE  --name=NAME  --start-at=N
+##   --capture-screen=SCREEN
 ## The game reads --seed and --seats as the menu's choices; --autoplay presses its
 ## Play, and without it --capture saves the menu. A capture is taken from the
 ## observer camera unless --capture-eye names the seat whose eyes it looks through;
 ## --observer opens the observer camera for QA, and --observer-cut cuts its view of
 ## the ship away to show the inside; --greybox draws the greybox the rules' data
 ## makes in place of the dressed ship; --net-sim makes the wire between the local host
-## and the client lie about latency, jitter and loss (SH11). No menu reaches any of
-## them (D14). --server serves rooms over WebSocket, headless, on --port and --bind
-## (ServerRules' unless given), its matches' seeds drawn from --seed when given — its
-## rooms' codes never are — until --matches matches have finished (forever at 0);
-## --connect plays in a server's room, --create making one or --room joining one by
-## its code, as --name (SH12): a person at the keys (OnlinePlay, which checks every one
-## of them), or with --autoplay a bot, headless, whose creator starts the match once
+## and the client lie about latency, jitter and loss (SH11); --capture-screen stages a
+## screen for the capture: menu, settings (over the menu), pause or results. No menu
+## reaches any of them (D14). --server serves rooms over WebSocket, headless, on --port
+## and --bind (ServerRules' unless given), its matches' seeds drawn from --seed when
+## given — its rooms' codes never are — until --matches matches have finished (forever
+## at 0); --connect plays in a server's room, --create making one or --room joining one
+## by its code, as --name (SH12): a person at the keys (OnlinePlay, which checks every
+## one of them), or with --autoplay a bot, headless, whose creator starts the match once
 ## --start-at players are in.
 
 ## -1 when not given: the host picks one.
@@ -60,6 +62,8 @@ var room_code: String = ""
 var player_name: String = "Player"
 ## Players in the room created before its creator starts the match.
 var start_at: int = 1
+## The screen a capture shows over or instead of the match; empty for the match alone.
+var capture_screen: String = ""
 
 
 static func parse(args: PackedStringArray) -> MatchArgs:
@@ -87,6 +91,8 @@ static func parse(args: PackedStringArray) -> MatchArgs:
 				parsed.observer_cut = value.to_float()
 			"--greybox":
 				parsed.greybox = true
+			"--capture-screen":
+				parsed.capture_screen = value
 			"--net-sim":
 				var conditions := NetConditions.parse(value)
 				if conditions == null:

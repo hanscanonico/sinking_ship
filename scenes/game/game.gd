@@ -15,6 +15,7 @@ extends Node
 ## server's room with nobody at the keys (OnlineAutoplay); without --autoplay — or with a
 ## browser page's address naming a room — a person plays there (OnlinePlay). None of
 ## them opens a menu (SH12).
+## --capture-screen stages the settings, the pause menu or the results for a capture.
 ## The saved volumes and window apply as it boots; the settings screen opens from
 ## the main menu and the pause menu.
 
@@ -87,11 +88,15 @@ func _process(_delta: float) -> void:
 		return
 	if _match == null:
 		if not _args.autoplay:
+			if _args.capture_screen == "settings":
+				_settings.open()
 			_capture("the menu")
 		return
 	var snapshot := _match.current()
 	if _capture_due(snapshot):
 		_match.set_paused(true)
+		if _args.capture_screen == "pause":
+			_pause.open()
 		_capture(MatchTranscript.clock(snapshot["tick"]))
 
 
@@ -210,6 +215,9 @@ func _capture_due(snapshot: Dictionary) -> bool:
 ## Lets the view settle on what is showing, saves the frame and quits.
 func _capture(moment: String) -> void:
 	_capturing = true
+	# The results' buttons take presses only once their guard is over: show them so.
+	if _args.capture_screen == "results":
+		await get_tree().create_timer(EndOverlay.PRESS_GUARD_SECONDS).timeout
 	for _frame in CAPTURE_SETTLE_FRAMES:
 		await RenderingServer.frame_post_draw
 	var image := get_viewport().get_texture().get_image()

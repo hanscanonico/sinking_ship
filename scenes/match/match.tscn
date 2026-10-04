@@ -1,4 +1,4 @@
-[gd_scene load_steps=16 format=3]
+[gd_scene load_steps=15 format=3]
 
 [ext_resource type="Script" path="res://scenes/match/match_scene.gd" id="1_scene"]
 [ext_resource type="Script" path="res://scenes/match/sim_driver.gd" id="2_driver"]
@@ -14,17 +14,6 @@
 [ext_resource type="Script" path="res://scenes/art/ship_art.gd" id="12_ship_art"]
 [ext_resource type="Script" path="res://scenes/art/first_person_arms.gd" id="13_arms"]
 [ext_resource type="Script" path="res://scenes/match/underwater.gd" id="14_under"]
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
-bg_color = Color(0.06, 0.09, 0.13, 0.85)
-corner_radius_top_left = 8
-corner_radius_top_right = 8
-corner_radius_bottom_right = 8
-corner_radius_bottom_left = 8
-content_margin_left = 28.0
-content_margin_top = 20.0
-content_margin_right = 28.0
-content_margin_bottom = 20.0
 
 [node name="Match" type="Node3D"]
 process_priority = 1
@@ -171,7 +160,6 @@ offset_right = 280.0
 offset_bottom = 100.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
 
 [node name="Box" type="VBoxContainer" parent="EndOverlay/Panel"]
 alignment = 1
@@ -179,7 +167,7 @@ theme_override_constants/separation = 14
 
 [node name="Title" type="Label" parent="EndOverlay/Panel/Box"]
 unique_name_in_owner = true
-theme_override_font_sizes/font_size = 38
+theme_type_variation = &"TitleLabel"
 horizontal_alignment = 1
 
 [node name="Table" type="GridContainer" parent="EndOverlay/Panel/Box"]
@@ -205,9 +193,11 @@ theme_override_constants/separation = 16
 [node name="Rematch" type="Button" parent="EndOverlay/Panel/Box/Buttons"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(120, 0)
+theme_type_variation = &"GuardedButton"
 text = "Rematch"
 
 [node name="Menu" type="Button" parent="EndOverlay/Panel/Box/Buttons"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(120, 0)
+theme_type_variation = &"GuardedButton"
 text = "Menu"

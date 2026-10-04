@@ -3,7 +3,8 @@ extends CanvasLayer
 ## The results, once the match has ended: the local seat's verdict — "Last one
 ## dry!" or "Overboard — 4th of 6" — then every seat's place, time dry, shoves
 ## landed and knock-outs credited, all from MatchStats and so from the events
-## alone (D5), with rematch and back to the menu.
+## alone (D5), with rematch and back to the menu — on a plate over the world dimmed
+## under a scrim, the HUDs having stood down.
 
 signal rematch_requested
 signal menu_requested
@@ -26,7 +27,15 @@ var _guard := Timer.new()
 
 
 func _ready() -> void:
+	UiTheme.apply_to(self)
 	hide()
+	var scrim := ColorRect.new()
+	scrim.name = "Scrim"
+	scrim.color = UiTheme.SCRIM
+	scrim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	scrim.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(scrim)
+	move_child(scrim, 0)
 	_rematch.pressed.connect(rematch_requested.emit)
 	_menu.pressed.connect(menu_requested.emit)
 	_guard.one_shot = true
@@ -54,9 +63,9 @@ func show_results(
 		child.queue_free()
 	_table.columns = HEADINGS.size()
 	for heading in HEADINGS:
-		_cell(heading, Color(1.0, 1.0, 1.0, 0.6))
+		_cell(heading, UiTheme.MUTED)
 	for line: MatchStats.SeatStats in stats.standings():
-		var colour := LOCAL_COLOUR if line.seat == local_seat else Color.WHITE
+		var colour := LOCAL_COLOUR if line.seat == local_seat else UiTheme.TEXT
 		_cell(ordinal(line.place), colour)
 		_cell(names[line.seat], colour)
 		_cell(MatchTranscript.clock(line.dry_ticks), colour)

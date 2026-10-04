@@ -1,0 +1,70 @@
+extends GutTest
+## One theme for every screen (art pass III): each kind of control the menus offer
+## shows where the keys' or the pad's focus is — a ring, or a slider's lit grabber —
+## a disabled control looks it, and a button waiting out a press guard — the
+## results' — still reads as a button.
+
+const RINGED: Array[String] = ["Button", "OptionButton", "LineEdit", "CheckButton"]
+const FOCUSABLE: Array[String] = ["Button", "OptionButton", "LineEdit", "CheckButton", "HSlider"]
+
+
+func test_every_focusable_kind_shows_its_focus() -> void:
+	var theme := UiTheme.shared()
+	for type: String in RINGED:
+		var focus := theme.get_stylebox("focus", type) as StyleBoxFlat
+		assert_not_null(focus, "%s has a focus ring" % type)
+		if focus != null:
+			assert_gt(focus.border_width_top, 0, "%s: a ring that shows" % type)
+			assert_gt(focus.border_color.a, 0.5, "%s: and is not faint" % type)
+	assert_ne(
+		theme.get_icon("grabber_highlight", "HSlider"),
+		theme.get_icon("grabber", "HSlider"),
+		"a slider with the focus lights its grabber"
+	)
+	assert_ne(
+		theme.get_stylebox("grabber_area_highlight", "HSlider"),
+		theme.get_stylebox("grabber_area", "HSlider"),
+		"and its fill"
+	)
+
+
+func test_a_disabled_control_looks_disabled() -> void:
+	var theme := UiTheme.shared()
+	for type: String in ["Button", "OptionButton"]:
+		var disabled := theme.get_stylebox("disabled", type) as StyleBoxFlat
+		var normal := theme.get_stylebox("normal", type) as StyleBoxFlat
+		assert_ne(disabled, normal, "%s: not the plate of a live one" % type)
+		assert_lt(disabled.bg_color.a, normal.bg_color.a, "%s: no teak to press" % type)
+		var faint := theme.get_color("font_disabled_color", type).a
+		assert_lt(faint, theme.get_color("font_color", type).a * 0.5, "%s: faint type" % type)
+
+
+func test_a_guarded_button_reads_as_a_button() -> void:
+	var theme := UiTheme.shared()
+	assert_eq(theme.get_type_variation_base(UiTheme.GUARDED_BUTTON), &"Button")
+	assert_eq(
+		theme.get_stylebox("disabled", UiTheme.GUARDED_BUTTON),
+		theme.get_stylebox("normal", "Button"),
+		"the plate of a live button"
+	)
+	assert_gt(theme.get_color("font_disabled_color", UiTheme.GUARDED_BUTTON).a, 0.7, "legible")
+	var guarded := PackedStringArray()
+	var scene := (load("res://scenes/match/match.tscn") as PackedScene).get_state()
+	for node in scene.get_node_count():
+		for property in scene.get_node_property_count(node):
+			if scene.get_node_property_name(node, property) != &"theme_type_variation":
+				continue
+			if scene.get_node_property_value(node, property) == UiTheme.GUARDED_BUTTON:
+				guarded.append(scene.get_node_name(node))
+	assert_eq(guarded, PackedStringArray(["Rematch", "Menu"]), "the results' two buttons")
+
+
+func test_the_menus_controls_are_all_in_the_theme() -> void:
+	var game: Node = autofree(load("res://scenes/game/game.tscn").instantiate())
+	var kinds := {}
+	for control: Node in game.find_children("*", "Control"):
+		if (control as Control).focus_mode != Control.FOCUS_NONE:
+			kinds[control.get_class()] = true
+	assert_false(kinds.is_empty(), "the menus offer controls")
+	for kind: String in kinds:
+		assert_true(kind in FOCUSABLE, "%s is a kind the theme styles" % kind)

@@ -2,7 +2,9 @@ class_name MainMenu
 extends CanvasLayer
 ## Play vs bots: the seat counts the match data offers, every bot tier there is a
 ## profile for, and a seed — blank for a random one — handed on as they stand.
-## Game turns them into a match through MatchConfig.from_menu (D13).
+## Game turns them into a match through MatchConfig.from_menu (D13). It stands over
+## the ship at dusk (MenuBackdrop) under the wordmark in her livery: cream on a
+## boot-top red rule between brass lines.
 
 signal play_requested(seats: int, tier: StringName, seed_text: String)
 signal settings_requested
@@ -13,9 +15,17 @@ signal quit_requested
 @onready var _seed: LineEdit = %Seed
 @onready var _problem: Label = %Problem
 @onready var _play: Button = %Play
+@onready var _backdrop: MenuBackdrop = $Backdrop
 
 
 func _ready() -> void:
+	UiTheme.apply_to(self)
+	%Shade.texture = UiTheme.shade()
+	%TrimAbove.color = UiTheme.TRIM
+	%BootTop.color = UiTheme.RULE
+	%TrimBelow.color = UiTheme.TRIM
+	_backdrop.frame_beside($Panel)
+	visibility_changed.connect(func() -> void: _backdrop.run(visible))
 	_play.pressed.connect(_on_play)
 	_seed.text_submitted.connect(func(_text: String) -> void: _on_play())
 	_seed.gui_input.connect(_leave_seed)
@@ -24,8 +34,10 @@ func _ready() -> void:
 
 
 ## Offers [param match_rules]' seat counts and the tiers under data/bots/, with
-## [param seats], [param tier] and [param seed_text] chosen where offered.
+## [param seats], [param tier] and [param seed_text] chosen where offered, over
+## [param match_rules]' ship.
 func setup(match_rules: MatchRules, seats: int, tier: StringName, seed_text: String) -> void:
+	_backdrop.show_ship(match_rules)
 	_seats.clear()
 	for count in range(match_rules.min_seats, match_rules.max_seats + 1):
 		_seats.add_item(str(count), count)
