@@ -1,8 +1,8 @@
 # Arena — 2026-10-04
 
-Written by `make arena SEEDS=30` (tools/arena.gd) on MacBookAir10,1, Apple M1, in 50.0 minutes.
-Fewer seeds than the plan's 200: SEEDS is the knob, and 200 seeds a lobby would take about 334 minutes at this run's pace.
-Load average (1, 5, 15 min) at the start: 31,20 41,92 52,16; at the end: 46,23 48,40 54,01. The milliseconds are what this machine gave at that load: with a load above its 8 cores they are measured under load, not a reading of the budget.
+Written by `make arena SEEDS=30` (tools/arena.gd) on MacBookAir10,1, Apple M1, in 27.3 minutes.
+Fewer seeds than the plan's 200: SEEDS is the knob, and 200 seeds a lobby would take about 182 minutes at this run's pace.
+Load average (1, 5, 15 min) at the start: 30,73 58,16 74,79; at the end: 9,85 8,20 17,14. The milliseconds are what this machine gave at that load: with a load above its 8 cores they are measured under load, not a reading of the budget.
 The build has the hazards (SH10: cargo, railing damage) and the network seam (SH11: the MatchRunner a MatchHost serves); a lobby steps that MatchRunner itself, so the milliseconds are sim and bots, with no snapshots sent.
 A dated record: the next run supersedes this file whole. Each lobby plays the default match (data/match/default.tres) on seeds 1…N; match time is the transcript's clock, countdown included. A bot is idle on a tick when it is in, free to act, presses nothing and its feet move less than 5 mm; an opponent is in sight when no wall, deck or hull stands between their eyes (Surfaces.line_of_sight, the bots' and the HUD's question); dry means in and not in the sea. Everything but the milliseconds is the same on a rerun on the same build (D4).
 
@@ -12,69 +12,74 @@ The tick-cost targets are the SH7 review's and supersede the plan's "sim + bots 
 
 | Target | Measured | |
 |---|---|---|
-| Hard wins ≥ 75% of four-hard-four-easy lobbies | 93.3% | met |
-| No spawn slot wins more than 1.6× its fair share | 1.33× | met |
+| Hard wins ≥ 75% of four-hard-four-easy lobbies | 80.0% | met |
+| No spawn slot wins more than 1.6× its fair share | 2.13× | **missed** |
 | ≤ 10% of matches reach the plunge with three or more dry | 6.7% | met |
-| Median length 2:30–3:20 | 02:14 | **missed** |
-| Sim + bots p50 ≤ 2 ms and p99 ≤ 8 ms per tick at eight seats | p50 4.13 ms, p99 31.61 ms | **missed** |
-| Sim + bots p99 ≤ 16 ms per tick at sixteen seats | 42.06 ms | **missed** |
-| No bot idle more than 3 s with an opponent in sight within 6 m | 3.7 s (normal: seed 14 seat 2 at (-14.4, 1.2, -0.9), 03:15.2) | **missed** |
-| normal: ≤ 2 s a bot a match climbing out or fleeing on a dry ship, feet over a body's height above the sea | 0.04 s (longest 1.4 s, seed 27 seat 6) | met |
-| hard-easy: ≤ 2 s a bot a match climbing out or fleeing on a dry ship, feet over a body's height above the sea | 0.15 s (longest 1.7 s, seed 25 seat 5) | met |
-| sighted: ≤ 2 s a bot a match climbing out or fleeing on a dry ship, feet over a body's height above the sea | 0.05 s (longest 1.0 s, seed 2 seat 5) | met |
-| sixteen: ≤ 2 s a bot a match climbing out or fleeing on a dry ship, feet over a body's height above the sea | 0.06 s (longest 1.0 s, seed 10 seat 3) | met |
-| Win-share gap, omniscient minus sighted (R16, reported) | +0.0 points | — |
+| Median length 2:30–3:20 | 02:31 | met |
+| ≥ 70% of matches still on at the bridge collapse (SH7d's aim) | 83.3% | met |
+| Sim + bots p50 ≤ 2 ms and p99 ≤ 8 ms per tick at eight seats | p50 3.58 ms, p99 12.26 ms | **missed** |
+| Sim + bots p99 ≤ 16 ms per tick at sixteen seats | 16.62 ms | **missed** |
+| No bot idle more than 3 s with an opponent in sight within 6 m | 3.7 s (sixteen: seed 1 seat 14 at (-18.9, -4.5, 5.7), 01:40.2) | **missed** |
+| normal: ≤ 2 s a bot a match climbing out or fleeing on a dry ship, feet over a body's height above the sea | 0.02 s (longest 1.1 s, seed 18 seat 4) | met |
+| hard-easy: ≤ 2 s a bot a match climbing out or fleeing on a dry ship, feet over a body's height above the sea | 0.10 s (longest 1.6 s, seed 3 seat 3) | met |
+| sighted: ≤ 2 s a bot a match climbing out or fleeing on a dry ship, feet over a body's height above the sea | 0.03 s (longest 1.0 s, seed 8 seat 4) | met |
+| sixteen: ≤ 2 s a bot a match climbing out or fleeing on a dry ship, feet over a body's height above the sea | 0.04 s (longest 1.1 s, seed 2 seat 2) | met |
+| Win-share gap, omniscient minus sighted (R16, reported) | -6.7 points | — |
 
 ## Eight normal bots — the default match
 
-- Matches: 30 (seeds 1…30), 744 s of wall time.
-- Length: median 02:14, mean 02:18; draws 0.
+- Matches: 30 (seeds 1…30), 538 s of wall time.
+- Length: median 02:31, mean 02:36; draws 0.
 - Reached the plunge with three or more dry: 2 of 30 (6.7%).
-- Wins by spawn slot (fair share 12.5%): 0: 13.3%, 1: 13.3%, 2: 16.7%, 3: 13.3%, 4: 3.3%, 5: 16.7%, 6: 16.7%, 7: 6.7%.
+- Still on at the first collapse (the bridge): 25 of 30 (83.3%), 2.6 seats in on average; at the plunge: 13 of 30 (43.3%), 2.2 seats in.
+- Wins by spawn slot (fair share 12.5%): 0: 13.3%, 1: 3.3%, 2: 10.0%, 3: 13.3%, 4: 16.7%, 5: 10.0%, 6: 6.7%, 7: 26.7%.
 - Wins by tier: normal 100.0%.
-- Cargo: 0 exits credited to a crate; 37 railing sections broken, 1.2 a match.
-- Climbing out or fleeing on a dry ship, feet over a body's height above the sea: 0.04 s a bot a match; longest 1.4 s (seed 27 seat 6).
-- Longest idle streak: 14.2 s (seed 17 seat 4 at (-1.6, 2.5, 0.9), 02:47.9).
-- Longest idle streak with an opponent in sight within 6 m: 3.7 s (seed 14 seat 2 at (-14.4, 1.2, -0.9), 03:15.2).
-- Sim + bots per tick, 8 seats: p50 4.13 ms, p99 31.61 ms, mean 5.82 ms, worst 166.3 ms.
+- Cargo: 1 exits credited to a crate; 38 railing sections broken, 1.3 a match.
+- Climbing out or fleeing on a dry ship, feet over a body's height above the sea: 0.02 s a bot a match; longest 1.1 s (seed 18 seat 4).
+- Longest idle streak: 24.2 s (seed 16 seat 1 at (-16.0, 1.2, 0.5), 02:30.5).
+- Longest idle streak with an opponent in sight within 6 m: 3.7 s (seed 20 seat 7 at (-24.3, -6.6, -4.2), 02:27.0).
+- Sim + bots per tick, 8 seats: p50 3.58 ms, p99 12.26 ms, mean 3.72 ms, worst 130.7 ms.
 
 ## Four hard and four easy
 
-- Matches: 30 (seeds 1…30), 897 s of wall time.
-- Length: median 02:21, mean 02:21; draws 0.
-- Reached the plunge with three or more dry: 5 of 30 (16.7%).
-- Wins by spawn slot (fair share 12.5%): 0: 23.3%, 1: 13.3%, 2: 26.7%, 3: 10.0%, 4: 3.3%, 5: 13.3%, 6: 3.3%, 7: 6.7%.
-- Wins by tier: hard 93.3%, easy 6.7%.
-- Cargo: 1 exits credited to a crate; 42 railing sections broken, 1.4 a match.
-- Climbing out or fleeing on a dry ship, feet over a body's height above the sea: 0.15 s a bot a match; longest 1.7 s (seed 25 seat 5).
-- Longest idle streak: 9.7 s (seed 12 seat 0 at (-1.2, 4.7, -0.0), 01:05.4).
-- Longest idle streak with an opponent in sight within 6 m: 3.5 s (seed 12 seat 4 at (11.9, -4.2, -6.6), 00:44.8).
-- Sim + bots per tick, 8 seats: p50 4.76 ms, p99 32.04 ms, mean 6.86 ms, worst 245.1 ms.
+- Matches: 30 (seeds 1…30), 530 s of wall time.
+- Length: median 03:01, mean 02:55; draws 0.
+- Reached the plunge with three or more dry: 9 of 30 (30.0%).
+- Still on at the first collapse (the bridge): 27 of 30 (90.0%), 3.6 seats in on average; at the plunge: 25 of 30 (83.3%), 2.6 seats in.
+- Wins by spawn slot (fair share 12.5%): 0: 10.0%, 1: 16.7%, 2: 10.0%, 3: 6.7%, 4: 16.7%, 5: 30.0%, 6: 6.7%, 7: 3.3%.
+- Wins by tier: easy 20.0%, hard 80.0%.
+- Cargo: 3 exits credited to a crate; 32 railing sections broken, 1.1 a match.
+- Climbing out or fleeing on a dry ship, feet over a body's height above the sea: 0.10 s a bot a match; longest 1.6 s (seed 3 seat 3).
+- Longest idle streak: 3.8 s (seed 1 seat 2 at (-16.9, -5.2, 5.3), 00:46.6).
+- Longest idle streak with an opponent in sight within 6 m: 3.5 s (seed 19 seat 1 at (-16.9, 1.2, -4.2), 03:22.6).
+- Sim + bots per tick, 8 seats: p50 2.96 ms, p99 8.98 ms, mean 3.27 ms, worst 107.2 ms.
 
 ## Four sighted and four omniscient, all normal
 
-- Matches: 30 (seeds 1…30), 895 s of wall time.
-- Length: median 02:17, mean 02:25; draws 0.
-- Reached the plunge with three or more dry: 0 of 30 (0.0%).
-- Wins by spawn slot (fair share 12.5%): 0: 10.0%, 1: 6.7%, 2: 10.0%, 3: 20.0%, 4: 3.3%, 5: 20.0%, 6: 6.7%, 7: 23.3%.
+- Matches: 30 (seeds 1…30), 340 s of wall time.
+- Length: median 02:20, mean 02:27; draws 0.
+- Reached the plunge with three or more dry: 1 of 30 (3.3%).
+- Still on at the first collapse (the bridge): 17 of 30 (56.7%), 2.9 seats in on average; at the plunge: 11 of 30 (36.7%), 2.1 seats in.
+- Wins by spawn slot (fair share 12.5%): 0: 23.3%, 1: 16.7%, 2: 10.0%, 3: 20.0%, 4: 6.7%, 5: 6.7%, 6: 6.7%, 7: 10.0%.
 - Wins by tier: normal 100.0%.
-- Wins by sight: sighted 50.0%, omniscient 50.0%.
-- Cargo: 0 exits credited to a crate; 48 railing sections broken, 1.6 a match.
-- Climbing out or fleeing on a dry ship, feet over a body's height above the sea: 0.05 s a bot a match; longest 1.0 s (seed 2 seat 5).
-- Longest idle streak: 8.1 s (seed 13 seat 4 at (-2.4, 2.5, 1.4), 02:43.5).
-- Longest idle streak with an opponent in sight within 6 m: 3.6 s (seed 17 seat 0 at (11.8, -2.0, -8.2), 01:26.0).
-- Sim + bots per tick, 8 seats: p50 5.07 ms, p99 27.32 ms, mean 6.64 ms, worst 196.3 ms.
+- Wins by sight: sighted 53.3%, omniscient 46.7%.
+- Cargo: 0 exits credited to a crate; 50 railing sections broken, 1.7 a match.
+- Climbing out or fleeing on a dry ship, feet over a body's height above the sea: 0.03 s a bot a match; longest 1.0 s (seed 8 seat 4).
+- Longest idle streak: 5.3 s (seed 2 seat 7 at (-2.8, 4.7, -0.4), 02:13.9).
+- Longest idle streak with an opponent in sight within 6 m: 3.7 s (seed 20 seat 3 at (-21.5, -4.9, -5.1), 02:05.4).
+- Sim + bots per tick, 8 seats: p50 2.57 ms, p99 6.11 ms, mean 2.49 ms, worst 57.8 ms.
 
 ## Sixteen normal bots — timing only
 
-- Matches: 10 (seeds 1…10), 466 s of wall time.
-- Length: median 02:21, mean 02:16; draws 0.
+- Matches: 10 (seeds 1…10), 229 s of wall time.
+- Length: median 02:42, mean 02:35; draws 0.
 - Reached the plunge with three or more dry: 0 of 10 (0.0%).
-- Wins by spawn slot (fair share 6.2%): 0: 10.0%, 1: 0.0%, 2: 10.0%, 3: 0.0%, 4: 10.0%, 5: 0.0%, 6: 10.0%, 7: 10.0%, 8: 0.0%, 9: 0.0%, 10: 20.0%, 11: 10.0%, 12: 10.0%, 13: 0.0%, 14: 10.0%, 15: 0.0%.
+- Still on at the first collapse (the bridge): 8 of 10 (80.0%), 3.4 seats in on average; at the plunge: 6 of 10 (60.0%), 2.0 seats in.
+- Wins by spawn slot (fair share 6.2%): 0: 10.0%, 1: 0.0%, 2: 0.0%, 3: 30.0%, 4: 10.0%, 5: 10.0%, 6: 20.0%, 7: 0.0%, 8: 20.0%, 9: 0.0%, 10: 0.0%, 11: 0.0%, 12: 0.0%, 13: 0.0%, 14: 0.0%, 15: 0.0%.
 - Wins by tier: normal 100.0%.
-- Cargo: 0 exits credited to a crate; 23 railing sections broken, 2.3 a match.
-- Climbing out or fleeing on a dry ship, feet over a body's height above the sea: 0.06 s a bot a match; longest 1.0 s (seed 10 seat 3).
-- Longest idle streak: 21.1 s (seed 3 seat 5 at (-18.9, 1.2, -2.0), 02:30.2).
-- Longest idle streak with an opponent in sight within 6 m: 3.7 s (seed 4 seat 11 at (-25.3, -5.0, -4.2), 01:07.6).
-- Sim + bots per tick, 16 seats: p50 8.52 ms, p99 42.06 ms, mean 11.15 ms, worst 186.6 ms.
+- Cargo: 0 exits credited to a crate; 17 railing sections broken, 1.7 a match.
+- Climbing out or fleeing on a dry ship, feet over a body's height above the sea: 0.04 s a bot a match; longest 1.1 s (seed 2 seat 2).
+- Longest idle streak: 3.7 s (seed 1 seat 14 at (-18.9, -4.5, 5.7), 01:40.2).
+- Longest idle streak with an opponent in sight within 6 m: 3.7 s (seed 1 seat 14 at (-18.9, -4.5, 5.7), 01:40.2).
+- Sim + bots per tick, 16 seats: p50 4.44 ms, p99 16.62 ms, mean 4.82 ms, worst 108.7 ms.
 

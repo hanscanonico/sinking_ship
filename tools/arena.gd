@@ -32,6 +32,9 @@ const DRY_AT_PLUNGE_AT_MOST := 0.10
 const DRY_AT_PLUNGE_SEATS := 3
 const MEDIAN_FROM := 150.0
 const MEDIAN_TO := 200.0
+## The share of matches still on when the sinking's first platform collapses — the
+## steamer's bridge — that SH7d aims at: the sinking is the match, not its epilogue.
+const COLLAPSE_REACHED_AT_LEAST := 0.70
 ## Climbing out or fleeing on a dry ship — no platform under water at its middle — with
 ## the bot's feet over a body's height above the sea is running from nothing: on
 ## average a bot does it for at most this long a match (the SH7c review's gate).
@@ -69,6 +72,11 @@ class Tally:
 	var draws := 0
 	var dry_at_plunge := 0
 	var plunges := 0
+	## Matches still on when the first platform collapsed, and the seats in then and at
+	## the plunge, summed over the matches that saw it.
+	var collapses := 0
+	var in_at_collapse := 0
+	var in_at_plunge := 0
 	## Wins per spawn slot, per tier, per sightedness ("sighted"/"omniscient").
 	var slot_wins := {}
 	var tier_wins := {}
@@ -212,6 +220,7 @@ func _match(
 		eyes.append(BotProfile.for_tier(tier).eye_height_m)
 	var winner := -1
 	var ended := -1
+	var collapsed := false
 	while not runner.is_over():
 		var start := Time.get_ticks_usec()
 		var events := runner.step()
@@ -219,8 +228,13 @@ func _match(
 		for event: SimEvent in events:
 			if event.kind == SimEvent.Kind.PLUNGE_BEGAN:
 				tally.plunges += 1
+				tally.in_at_plunge += _in(runner.sim)
 				if _dry(runner.sim) >= DRY_AT_PLUNGE_SEATS:
 					tally.dry_at_plunge += 1
+			elif event.kind == SimEvent.Kind.PLATFORM_COLLAPSED and not collapsed:
+				collapsed = true
+				tally.collapses += 1
+				tally.in_at_collapse += _in(runner.sim)
 			elif event.kind == SimEvent.Kind.MATCH_ENDED:
 				winner = event.seat
 				ended = event.tick
@@ -282,6 +296,14 @@ func _match(
 
 static func _count(counts: Dictionary, key: Variant) -> void:
 	counts[key] = counts.get(key, 0) + 1
+
+
+## How many seats are in, in the sea or out of it.
+static func _in(sim: MatchSim) -> int:
+	var count := 0
+	for player: PlayerState in sim.state.seats:
+		count += 0 if player.is_out() else 1
+	return count
 
 
 ## How many seats are in and out of the sea.
@@ -479,6 +501,14 @@ func _targets(tallies: Array[Tally]) -> PackedStringArray:
 				median >= MEDIAN_FROM and median <= MEDIAN_TO
 			)
 		)
+		var collapse := _share(tally.collapses, tally.matches)
+		lines.append(
+			_row(
+				"≥ 70% of matches still on at the bridge collapse (SH7d's aim)",
+				"%.1f%%" % (collapse * 100.0),
+				collapse >= COLLAPSE_REACHED_AT_LEAST
+			)
+		)
 		var p50 := _percentile_ms(tally.tick_us, 0.5)
 		var p99 := _percentile_ms(tally.tick_us, 0.99)
 		lines.append(
@@ -572,6 +602,24 @@ func _lobby_lines(tally: Tally) -> PackedStringArray:
 				tally.dry_at_plunge,
 				tally.matches,
 				_share(tally.dry_at_plunge, tally.matches) * 100.0
+			]
+		)
+	)
+	lines.append(
+		(
+			(
+				"- Still on at the first collapse (the bridge): %d of %d (%.1f%%), %.1f seats in "
+				+ "on average; at the plunge: %d of %d (%.1f%%), %.1f seats in."
+			)
+			% [
+				tally.collapses,
+				tally.matches,
+				_share(tally.collapses, tally.matches) * 100.0,
+				_share(tally.in_at_collapse, tally.collapses),
+				tally.plunges,
+				tally.matches,
+				_share(tally.plunges, tally.matches) * 100.0,
+				_share(tally.in_at_plunge, tally.plunges)
 			]
 		)
 	)

@@ -20,6 +20,7 @@ const SHARES: Array[String] = [
 	"braced_exposure",
 	"crowd_aversion",
 	"late_margin_share",
+	"spar_until",
 	"refuge_from",
 	"perch_lead",
 ]
@@ -27,6 +28,7 @@ const NON_NEGATIVE: Array[String] = [
 	"aim_error_deg",
 	"edge_margin_m",
 	"late_hunt_gain",
+	"spar_margin_m",
 	"mistake_rate",
 	"mistake_seconds",
 	"climb_margin_m",
@@ -74,6 +76,13 @@ const NON_NEGATIVE: Array[String] = [
 ## margin it gives up — the last perches are fought for at their edges, not shared.
 @export var late_hunt_gain: float
 @export var late_margin_share: float
+## While the ship is level a bot spars: it charges nobody, holds a shove that would
+## send a seat at the water, an open drop or a railing it could go over within
+## spar_margin(), and lines up none at a drop nearer than that — a shove costs
+## position, not a life. The margin shrinks as the ship's platforms go under and is
+## gone once spar_until of them are: the sinking makes the fight a fight to the death.
+@export var spar_margin_m: float
+@export var spar_until: float
 ## How much a bot would rather go at whoever stands highest than at whoever stands
 ## nearest, 0…1.
 @export var king_of_hill_bias: float
@@ -148,6 +157,15 @@ func refuge_tilt(slope_deg: float) -> float:
 	if slope_deg >= refuge_lean_deg:
 		return refuge_tilt_deg
 	return refuge_tilt_deg * slope_deg / refuge_lean_deg
+
+
+## How far from the water, an open drop or a railing a bot keeps the seats it shoves
+## while the share [param under] of the ship's platforms is under water: spar_margin_m
+## with every deck dry, down to none once spar_until are under.
+func spar_margin(under: float) -> float:
+	if under >= spar_until:
+		return 0.0
+	return spar_margin_m * (1.0 - under / spar_until)
 
 
 ## The tier [param tier]'s profile, or null when there is none.

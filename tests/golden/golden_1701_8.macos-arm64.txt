@@ -1,13 +1,16 @@
-00:25.7 seat 0 out · cold · place 8
-00:38.9 seat 5 out · cold · place 7
-00:45.2 seat 3 out · cold · place 6
-01:05.0 seat 6 out · cold · place 5
+00:58.8 seat 3 out · cold · place 8
 01:06.0 lurch coming · heel -15°
 01:07.0 lurched · heel -15°
 01:08.9 railing 6 broke
 01:09.4 crate 2 lost
 01:10.1 crate 3 lost
-01:15.7 seat 1 out · cold · place 3
-01:15.7 seat 4 out · cold · place 3
-01:15.8 seat 7 out · cold · place 2
-winner seat 2 at 01:15.8 · digest 7ab5fc39fcdf0940
+01:29.8 seat 1 out · cold · place 7
+01:30.6 seat 4 out · cold · place 6
+01:43.0 crate 1 lost
+01:46.1 crate 0 lost
+01:56.1 railing 23 broke
+01:56.3 seat 5 out · cold · place 5
+01:59.7 seat 7 out · cold · place 4
+02:00.5 seat 6 out · cold · place 3
+02:00.9 seat 2 out · cold · place 2
+winner seat 0 at 02:00.9 · digest c8dc0d7676e9b06e

@@ -8,7 +8,8 @@ extends RefCounted
 ## and turns its look toward what matters, no faster than its turn rate. Urgent first:
 ##
 ## - SWIM_OUT, in the sea: for the nearest way out it can reach — round through open
-##   water when the hull or a wall stands across the straight swim — and up it.
+##   water when the hull or a wall stands across the straight swim, out of a flooded
+##   room by its doorways and stairs — and up it.
 ## - FLEE, its open deck giving way: for its refuge, down the stair off it if need be.
 ## - CLIMB_OUT, its floor — its room's lowest corner, or the open deck where it stands —
 ##   within climb_margin_m of the sea, or, once refuge_from of the ship is under water,
@@ -35,9 +36,10 @@ extends RefCounted
 ## under water, by late_hunt_gain: SEEK_HIGH — water within edge_margin_m and higher
 ## ground to reach, or nobody to go at — for the highest zone it can reach, where it
 ## goes at whoever comes up too; LINE_UP, its target within a shove's carry of the
-## water or an unrailed drop, weighed by lineup_weight — round to the far side of it,
-## then the shove that puts it over; HUNT — through the walk graph to its target's
-## zone, then at it, past the grip angle round to its uphill side first.
+## water or an unrailed drop and no nearer than its spar margin, weighed by
+## lineup_weight — round to the far side of it, then the shove that puts it over; HUNT
+## — through the walk graph to its target's zone, then at it, past the grip angle round
+## to its uphill side first.
 ##
 ## Its target is a seat it perceives and can reach, scored by nearness and, by
 ## king_of_hill_bias, by how high it stands — less so on a crowded perch — and by how
@@ -48,21 +50,18 @@ extends RefCounted
 ## (SH10); then it keeps edge_margin_m from water and open edges, a broken railing's
 ## among them — less late in the sinking, none toward its target lined up between it
 ## and one — and shoves whoever a shove from where it looks would land on, charging a
-## bracing one on its read; it presses only once its view shows its last press, so
-## what it sees of itself is never from before it. A bot that has stood still for two
-## thinks while walking, with nobody at hand moving to be holding it back, steps aside
-## — or, on an open deck making for a stair, goes round through the rooms beside it.
+## bracing one on its read. While the ship is level it spars: it charges nobody, and
+## shoves nobody it would send at the water, an open drop or a railing within its spar
+## margin. It presses only once its view shows its last press, so what it sees of
+## itself is never from before it. A bot that has stood still for two thinks while
+## walking, with nobody at hand moving to be holding it back, steps aside — or, on an
+## open deck making for a stair, goes round through the rooms beside it.
 ## Its stream also rolls, mistake_rate times a second, a lapse: mistake_seconds walking
 ## a heading of its choosing, neither bracing nor holding its shove for a line-up —
 ## still off the water, and off open drops too (and out of a crate's path) unless it is
 ## one of the share of its profile's lapses that are heedless.
 
 enum Intent { SEEK_HIGH, LINE_UP, HUNT, GUARD, BRACE, RECOVER, RIDE, CLIMB_OUT, FLEE, SWIM_OUT }
-
-## Directions probed around the bot for water and open edges.
-const PROBES := 8
-## How far apart the open-water points a swimmer tries for a way round are, in metres.
-const SWIM_LEG := 1.5
 
 
 ## What one tick's intent asks for: a walk, a look, buttons, whether open drops may be
@@ -112,6 +111,7 @@ var _reads_charge := false
 ## Ticks this charge has been held for; 0 when not charging.
 var _charge_held := 0
 var _charge_full_ticks: int
+var _windup_ticks: int
 ## The tick of its last shove press, -1 for none.
 var _pressed_at := -1
 ## A lapse under way: ticks of it left, the heading it walks, and whether it is
@@ -135,10 +135,8 @@ var _stalled_since := 0
 ## Whether, at the last think, water or an open edge stood within the edge margin
 ## plus the walk to the next think: until then, nothing nearer needs looking for.
 var _edges_near := true
-## In the sea, the way out it is swimming for and the open water it swims through on
-## the way, as the last think found them; null and INF for none.
-var _way_out: Surfaces.Climb
-var _swim_via := Vector3.INF
+## In the sea, where it swims for.
+var _swim: BotSwim
 ## The walks it has sent and the ticks it sent them on, for as long as its view lags:
 ## what it pressed and has yet to see itself do. A tick of -1 is none.
 var _sent_moves := PackedVector2Array()
@@ -153,6 +151,9 @@ var _pressing := 1.0
 ## How far ahead of its target it aims, as the last think found it: the share of where
 ## the target's seen velocity carries it over the bot's reaction time.
 var _lead := 0.0
+## How far from the water, an open drop or a railing it keeps whoever it shoves, as the
+## last think found the sinking (BotProfile.spar_margin).
+var _spar := 0.0
 
 
 ## [param rng] is this seat's own stream, SeedStreams' (match seed, seat).
@@ -173,8 +174,10 @@ func _init(
 	_walk_graph = walk_graph
 	_footing = BotFooting.new(surfaces, walk_graph, rules, profile.edge_margin_m)
 	_targeting = BotTargeting.new(bot_seat, profile, rules, _footing, walk_graph)
+	_swim = BotSwim.new(walk_graph, rules, profile.eye_height_m)
 	_rng = rng
 	_charge_full_ticks = Ticks.from_seconds(rules.charge_full)
+	_windup_ticks = Ticks.from_seconds(rules.shove_windup)
 	_sent_moves.resize(maxi(profile.reaction_ticks, 1))
 	_sent_ticks.resize(_sent_moves.size())
 	_sent_ticks.fill(-1)
@@ -233,7 +236,7 @@ func decide(view: BotView, tick: int) -> InputFrame:
 	if _charge_held > 0:
 		buttons = _hold_charge(seen, me)
 	elif not steer.hold_fire:
-		var shove := _shove(seen, me, mark, tick)
+		var shove := _shove(seen, me, mark, tick, pose)
 		if shove != 0:
 			buttons = shove
 	if steer.move != Vector2.ZERO and not _walking:
@@ -285,52 +288,23 @@ func _by_walks(me: Dictionary, seen_tick: int, reckoned: Vector3) -> Vector3:
 
 
 ## In the sea: nothing to press while a climb is under way; else for the way out the
-## last think found, through the open water on the way to it first, looking where it
-## swims. It presses on into the edge that stops it, which is what starts the climb.
+## last think found (BotSwim), through the open water or the portal on the way to it
+## first, looking where it swims. It presses on into the edge that stops it, which is
+## what starts the climb.
 func _swim_out(me: Dictionary, now_pos: Vector3, pose: ShipPose, tick: int) -> InputFrame:
 	if _think_in <= 0:
-		_find_way_out(me, now_pos, pose)
-		# With nowhere to climb out, the next look round can wait a second.
-		_think_in = _profile.think_period if _way_out != null else Ticks.RATE
+		_swim.find(me["cold"], now_pos, pose)
+		# With nowhere to make for, the next look round can wait a second.
+		_think_in = _profile.think_period if _swim.goal() != Vector3.INF else Ticks.RATE
 	_think_in -= 1
 	_last_buttons = 0
 	_charge_held = 0
-	if me["climb"] > 0 or _way_out == null:
+	var toward := _swim.goal()
+	if me["climb"] > 0 or toward == Vector3.INF:
 		return InputFrame.new(seat, tick, Vector2i.ZERO, 0, _look)
-	var toward := _way_out.stand if _swim_via == Vector3.INF else _swim_via
 	var wish := Vector2(toward.x - now_pos.x, toward.z - now_pos.z).normalized()
 	_turn_toward(wish)
 	return InputFrame.new(seat, tick, InputFrame.quantize(wish), 0, _look)
-
-
-## The nearest way out within the swim its cold has left, straight across the water;
-## failing that, the nearest by way of a point of open water a leg or a few off that
-## nothing hides from it — round the hull or a wall; failing that too, the nearest of
-## those within a whole cold meter's swim, so it keeps swimming while there is one.
-func _find_way_out(me: Dictionary, now_pos: Vector3, pose: ShipPose) -> void:
-	var reach: float = me["cold"] * _rules.swim_speed
-	_swim_via = Vector3.INF
-	_way_out = _surfaces.nearest_climb(now_pos, pose, _rules, reach)
-	if _way_out != null:
-		return
-	var eye := Vector3.UP * _profile.eye_height_m
-	for within: float in [reach, _rules.cold_meter * _rules.swim_speed]:
-		var best := INF
-		for ring in range(1, 4):
-			for index in PROBES:
-				var direction := Vector2.from_angle(TAU * index / PROBES)
-				var via := now_pos + Vector3(direction.x, 0.0, direction.y) * SWIM_LEG * ring
-				if not _surfaces.line_of_sight(now_pos + eye, via + eye, pose):
-					continue
-				var leg := now_pos.distance_to(via)
-				var climb := _surfaces.nearest_climb(via, pose, _rules, within - leg)
-				if climb == null or leg + via.distance_to(climb.stand) >= best:
-					continue
-				best = leg + via.distance_to(climb.stand)
-				_way_out = climb
-				_swim_via = via
-		if _way_out != null:
-			return
 
 
 ## Rolls this think's heading error, reads and lapse from the bot's own stream — the
@@ -380,15 +354,14 @@ func _think(seen: Dictionary, me: Dictionary, now_pos: Vector3, pose: ShipPose) 
 	target = _targeting.choose(seen, me, found, pose, highest, target)
 	var mark := _entry(seen, target)
 	var my_zone := _zone_of(me)
-	# A room floods from its lowest corner up; an open deck where the bot stands.
 	var feet := pose.world_height(my_pos)
-	var floor_height := feet
-	if _walk_graph.is_room(my_zone):
-		floor_height = _walk_graph.lowest_world_height(my_zone, pose)
-	# It climbs until it stands where it was making for — or, the ship not yet
-	# foundering, on a floor a body's height out of the sea's reach.
+	var floor_height := _walk_graph.floor_height(my_zone, my_pos, pose)
+	# It climbs until it stands where it was making for — off its feet, it stands
+	# nowhere — or, the ship not yet foundering, on a floor a body's height out of the
+	# sea's reach.
 	var clear := under < _profile.refuge_from and floor_height > _rules.body_height
-	if _climbing and (clear or my_zone == _goal and not _surfaces.is_ramp(my_surface)):
+	var there := my_zone != WalkGraph.NONE and my_zone == _goal
+	if _climbing and (clear or there and not _surfaces.is_ramp(my_surface)):
 		_climbing = false
 	_climbing = (
 		_climbing
@@ -417,6 +390,7 @@ func _think(seen: Dictionary, me: Dictionary, now_pos: Vector3, pose: ShipPose) 
 	# keener to go at someone than to keep its ground.
 	_footing.margin = _profile.edge_margin_m * (1.0 - _profile.late_margin_share * under)
 	_pressing = 1.0 + _profile.late_hunt_gain * under
+	_spar = _profile.spar_margin(under)
 	var walk := _rules.walk_speed * _profile.think_period * Ticks.SECONDS_PER_TICK
 	var reach := _profile.edge_margin_m + walk
 	_edges_near = (
@@ -486,7 +460,7 @@ func _arbitrate(
 		scores[Intent.SEEK_HIGH] = _profile.wander_weight
 	elif _zone_of(me) != highest and _footing.water_near(now_pos, pose):
 		scores[Intent.SEEK_HIGH] = 1.0
-	if _targeting.drop_way != Vector2.ZERO:
+	if _targeting.drop_way != Vector2.ZERO and _targeting.drop_distance >= _spar:
 		scores[Intent.LINE_UP] = (
 			_profile.lineup_weight
 			* (1.0 - 0.5 * _targeting.drop_distance / _targeting.carry)
@@ -787,8 +761,9 @@ func _keep_off_edges(
 ## A shove at whoever one would land on, its target first — weighed as things stood in
 ## its view, from where it looks now: a charge at a bracing one on the read, else a
 ## tap. Nothing while its view predates its last press, nor while it sees itself busy,
-## nor, when it minds its back, while another seat could land one on it.
-func _shove(seen: Dictionary, me: Dictionary, mark: Dictionary, tick: int) -> int:
+## nor, sparring, while it would send anyone at an edge (_spared), nor, when it minds
+## its back, while another seat could land one on it.
+func _shove(seen: Dictionary, me: Dictionary, mark: Dictionary, tick: int, pose: ShipPose) -> int:
 	if _last_buttons & InputFrame.SHOVE or seen["tick"] <= _pressed_at:
 		return 0
 	if me["action"] != PlayerState.Action.IDLE or me["stagger"] > 0:
@@ -804,15 +779,36 @@ func _shove(seen: Dictionary, me: Dictionary, mark: Dictionary, tick: int) -> in
 				break
 	if victim.is_empty():
 		return 0
+	if _spar > 0.0 and _spared(seen, my_pos, pose):
+		return 0
 	if _profile.minds_its_back:
 		var threat := _threat(seen, me)
 		if not threat.is_empty() and threat["seat"] != victim["seat"]:
 			# Another could be winding up behind it: a shove thrown now leaves it open.
 			return 0
 	_pressed_at = tick
-	if victim["bracing"] and _reads_charge:
+	# Sparring, it never charges: a charge sends a body over a railing from metres off.
+	if victim["bracing"] and _reads_charge and _spar == 0.0:
 		_charge_held = 1
 	return InputFrame.SHOVE
+
+
+## Whether a shove from [param my_pos], where the bot looks, would land on a seat in
+## [param seen] with the water, an open drop or a railing it could go over within the
+## spar margin the way the shove sends it — straight away from the bot — from where it
+## was seen, or from where its seen velocity carries it by the time the shove lands.
+func _spared(seen: Dictionary, my_pos: Vector3, pose: ShipPose) -> bool:
+	var lag := (_profile.reaction_ticks + _windup_ticks) * Ticks.SECONDS_PER_TICK
+	for entry: Dictionary in seen["seats"]:
+		if entry["seat"] == seat or not _lands(my_pos, entry):
+			continue
+		var seen_at: Vector3 = entry["pos"]
+		var vel: Vector3 = entry["vel"]
+		for at: Vector3 in [seen_at, seen_at + Vector3(vel.x, 0.0, vel.z) * lag]:
+			var way := Vector2(at.x - my_pos.x, at.z - my_pos.z).normalized()
+			if _footing.edge_toward(at, entry["surface"], way, _spar, pose, true) < INF:
+				return true
+	return false
 
 
 ## A charge under way: held until it is full, then let go — or let go at once once
