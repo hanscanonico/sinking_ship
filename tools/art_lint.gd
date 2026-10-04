@@ -24,6 +24,8 @@ extends SceneTree
 ## - Crew: the seats of a full match each wear their own hat and coat, so each reads
 ##   by its shape as well as its colour, and a brawler draws at most CREW_VERTICES
 ##   vertices, so a deck full of them stays cheap.
+## - The horizon: the sea (SeaAndSky) reaches past every camera's far plane in the
+##   match scene, so no view sees the sea's edge.
 
 const RunMatch := preload("res://tools/run_match.gd")
 const MATCH_SCENE := "res://scenes/match/match.tscn"
@@ -82,6 +84,7 @@ func _initialize() -> void:
 	await process_frame
 	_check_snapshot_only()
 	_check_crew()
+	_check_sea_reach()
 	for file: String in DirAccess.get_files_at(SHIPS_DIR):
 		if file.ends_with(".tres"):
 			_check_ship(file, load(SHIPS_DIR + file))
@@ -143,6 +146,20 @@ func _check_crew() -> void:
 				)
 			)
 		brawler.free()
+
+
+func _check_sea_reach() -> void:
+	var scene: Node = load(MATCH_SCENE).instantiate()
+	for camera: Camera3D in scene.find_children("*", "Camera3D"):
+		_checks += 1
+		if camera.far >= SeaAndSky.REACH:
+			_problems.append(
+				(
+					"art-lint: %s sees %.0f m, past the sea's %.0f m"
+					% [camera.name, camera.far, SeaAndSky.REACH]
+				)
+			)
+	scene.free()
 
 
 ## Every .gd under [param dir] and its subfolders, as paths relative to it.

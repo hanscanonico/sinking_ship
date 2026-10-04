@@ -1,15 +1,14 @@
 [gd_scene format=3]
 
+[ext_resource type="Script" path="res://scenes/art/sea_and_sky.gd" id="1_script"]
+[ext_resource type="Shader" path="res://scenes/art/sky.gdshader" id="2_sky"]
 [ext_resource type="Shader" path="res://scenes/art/water.gdshader" id="1_ct8oo"]
 
-[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_3583c"]
-sky_top_color = Color(0.16862746, 0.22745098, 0.40392157, 1)
-sky_horizon_color = Color(0.9137255, 0.627451, 0.47843137, 1)
-ground_bottom_color = Color(0.078431375, 0.13333334, 0.20784314, 1)
-ground_horizon_color = Color(0.42352942, 0.41568628, 0.52156866, 1)
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_sky"]
+shader = ExtResource("2_sky")
 
 [sub_resource type="Sky" id="Sky_ij4t3"]
-sky_material = SubResource("ProceduralSkyMaterial_3583c")
+sky_material = SubResource("ShaderMaterial_sky")
 
 [sub_resource type="Environment" id="Environment_bq482"]
 background_mode = 2
@@ -28,21 +27,17 @@ fog_light_color = Color(0.78039217, 0.6392157, 0.627451, 1)
 fog_sun_scatter = 0.15
 fog_density = 1.0
 fog_aerial_perspective = 0.4
+fog_sky_affect = 0.0
 fog_depth_curve = 1.6
 fog_depth_begin = 16.0
 fog_depth_end = 110.0
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_q08gq"]
-render_priority = 0
+render_priority = -1
 shader = ExtResource("1_ct8oo")
 
-[sub_resource type="PlaneMesh" id="PlaneMesh_x2ope"]
-material = SubResource("ShaderMaterial_q08gq")
-size = Vector2(240, 240)
-subdivide_width = 119
-subdivide_depth = 119
-
 [node name="SeaAndSky" type="Node3D" unique_id=1883936403]
+script = ExtResource("1_script")
 
 [node name="Environment" type="WorldEnvironment" parent="." unique_id=610082370]
 environment = SubResource("Environment_bq482")
@@ -57,4 +52,4 @@ directional_shadow_max_distance = 70.0
 
 [node name="Sea" type="MeshInstance3D" parent="." unique_id=1197457541]
 cast_shadow = 0
-mesh = SubResource("PlaneMesh_x2ope")
+material_override = SubResource("ShaderMaterial_q08gq")
