@@ -335,6 +335,30 @@ func _reference_costs(
 	return cost
 
 
+func test_detour_goes_round_through_the_deckhouse() -> void:
+	# From the pocket forward of the deckhouse, the starboard strip lies behind the side
+	# of the stair up to the boat deck: the way round is in at the deckhouse's forward
+	# doorway and out at one on its starboard side — never back out the way it came.
+	var layout := SimFixtures.steamer()
+	var surfaces := Surfaces.new(layout)
+	var graph := _graph(layout, surfaces)
+	var calm := _pose(layout, SimFixtures.calm())
+	var pocket := Vector3(3.4, 0.0, 1.5)
+	var strip := Vector3(1.5, 0.0, 4.2)
+	var deck := graph.zone_at(pocket, surfaces.under(pocket, SimFixtures.rules().step_height))
+	assert_eq(graph.zone_at(strip, surfaces.under(strip, 0.35)), deck, "one open deck")
+	var legs := graph.detour(pocket, surfaces.under(pocket, 0.35), strip, calm)
+	assert_gt(legs.size(), 1, "a way round")
+	if legs.size() < 2:
+		return
+	assert_eq(legs[0].from_zone, deck, "out of the deck")
+	assert_eq(legs[0].to_zone, _room(layout, &"saloon"), "into the saloon")
+	assert_eq(legs[-1].to_zone, deck, "back onto the deck")
+	assert_gt(legs[-1].exit.z, 3.0, "by a starboard doorway")
+	for leg: WalkGraph.Portal in legs:
+		assert_eq(leg.ramp, WalkGraph.NONE, "through doorways only")
+
+
 func test_one_search_finds_the_cheapest_routes_and_the_high_ground() -> void:
 	# One search a think: from it, every route and the highest zone are what a search
 	# per question used to give, and its costs are a plain Dijkstra's — dry, and with the

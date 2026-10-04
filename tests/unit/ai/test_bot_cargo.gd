@@ -1,7 +1,8 @@
 extends GutTest
-## Bots and the ship's loose cargo (SH10): a bot of a tier that dodges cargo steps out
-## of a sliding crate's path, as it sees the crate — through its delayed view, like
-## everything else (D10) — and the deck it feels under it now.
+## Bots and the ship's hazards (SH10): a bot of a tier that dodges cargo steps out of a
+## sliding crate's path, as it sees the crate — through its delayed view, like
+## everything else (D10) — and the deck it feels under it now; never off an open edge,
+## which a railing the match has broken is.
 
 
 ## What seat [param seat]'s brain, of [param profile] — normal when none is given —
@@ -60,3 +61,44 @@ func test_a_crate_seen_still_on_a_deck_tilted_past_its_grip_is_coming() -> void:
 	SimFixtures.place(sim, 1, Vector3(mark.x, 0.0, mark.y))
 	var move := _first_move(sim, 0).normalized()
 	assert_gt(move.dot(aside), 0.9, "out of the line the crate will slide down, its side")
+
+
+## Seat 0 alone, half a metre aft of [param bow_x] along the deck — at the flat deck's
+## bow end, unrailed, an open edge — and a crate sliding athwartships at it, its line
+## just aft of the bot: the side the bot would dodge to is toward the bow.
+func _crate_athwart(bow_x: float) -> Vector2:
+	var crates: Array[ShipProp] = [SimFixtures.crate(Vector3(bow_x - 0.8, 0.0, -2.5))]
+	var sim := SimFixtures.sim(1, null, SimFixtures.crated(crates))
+	SimFixtures.place(sim, 0, Vector3(bow_x - 0.5, 0.0, 0.0), 90.0)
+	sim.state.props[0].vel = Vector3(0.0, 0.0, 4.0)
+	return _first_move(sim, 0)
+
+
+func test_a_dodge_toward_an_open_edge_does_not_step_off_it() -> void:
+	var bow := SimFixtures.deck().platforms[0].area.end.x
+	var inboard := _crate_athwart(bow - 4.0)
+	assert_gt(inboard.normalized().x, 0.9, "clear of the edge: it dodges toward the bow")
+	# At the bow end, the same dodge would walk it off: edge-keeping has the last word.
+	var at_the_edge := _crate_athwart(bow)
+	assert_lt(at_the_edge.x, 0.0, "on the open edge: it does not step off, it backs off it")
+
+
+func test_a_bot_keeps_off_a_railing_span_the_match_has_broken() -> void:
+	var edge := SimFixtures.deck().platforms[0].area.end.y
+	var near := edge - BotProfile.for_tier(&"normal").edge_margin_m * 0.8
+	var sim := SimFixtures.sim(1)
+	SimFixtures.place(sim, 0, Vector3(-8.0, 0.0, near))
+	assert_eq(_first_move(sim, 0), Vector2.ZERO, "its railing between it and the sea: safe")
+
+	# The span beside it broken by the match — a vault, a crate — not by the sinking:
+	# its view's railings say so, its pose does not.
+	var span := -1
+	var railings := SimFixtures.deck().railings
+	for index in railings.size():
+		var railing := railings[index]
+		if is_equal_approx(railing.from.y, edge) and railing.from.x < -8.0 and railing.to.x > -8.0:
+			span = index
+	assert_ne(span, -1, "a span of the starboard railing beside the bot")
+	sim.state.railing_hp[span] = 0.0
+	assert_true(sim.pose().broken_railings.is_empty(), "the sinking has broken nothing")
+	assert_lt(_first_move(sim, 0).y, 0.0, "an open edge now: it backs off from it")

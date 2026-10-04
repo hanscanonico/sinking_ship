@@ -323,6 +323,79 @@ func route_in(found: Search, goal: int) -> Array[Portal]:
 	return legs
 
 
+## The portals of the shortest way from a body on [param from_surface] at
+## [param from_pos] on an open deck out of it into the rooms beside it, through their
+## doorways only, and back out onto that deck by another doorway — scored to
+## [param to_point] on it: round what stands between the two on the deck, a wall or a
+## stair's side. Empty when the body is in a room or on nothing, or no room joins its
+## deck twice.
+func detour(
+	from_pos: Vector3, from_surface: int, to_point: Vector3, pose: ShipPose
+) -> Array[Portal]:
+	var legs: Array[Portal] = []
+	var start := zone_at(from_pos, from_surface)
+	if start == NONE or start < _layout.rooms.size():
+		return legs
+	_know(pose)
+	var cost := PackedFloat64Array()
+	cost.resize(_zone_count)
+	cost.fill(INF)
+	var came_by := PackedInt32Array()
+	came_by.resize(_zone_count)
+	came_by.fill(NONE)
+	var arrived := PackedVector3Array()
+	arrived.resize(_zone_count)
+	# Per room, the doorway the way to it left the deck by: it never comes back by it.
+	var left_by := PackedVector3Array()
+	left_by.resize(_zone_count)
+	var done := PackedByteArray()
+	done.resize(_zone_count)
+	var open := OpenSet.new()
+	cost[start] = 0.0
+	arrived[start] = from_pos
+	open.push(0.0, start)
+	var best := INF
+	var best_portal := NONE
+	while not open.is_empty():
+		var zone := open.pop()
+		if done[zone] == 1:
+			continue
+		done[zone] = 1
+		for index: int in _out[zone]:
+			var other := _portal_to[index]
+			if _portals[index].ramp != NONE or _wet(index, pose):
+				continue
+			var through := (
+				cost[zone] + arrived[zone].distance_to(_portal_entry[index]) + _portal_length[index]
+			)
+			if other == start:
+				var total := through + _portal_exit[index].distance_to(to_point)
+				if (
+					zone != start
+					and total < best
+					and _portal_exit[index].distance_to(left_by[zone]) > _lead
+				):
+					best = total
+					best_portal = index
+				continue
+			if other >= _layout.rooms.size() or done[other] == 1 or _closed(other, pose):
+				continue
+			if through < cost[other]:
+				cost[other] = through
+				came_by[other] = index
+				arrived[other] = _portal_exit[index]
+				left_by[other] = _portal_entry[index] if zone == start else left_by[zone]
+				open.push(through, other)
+	if best_portal == NONE:
+		return legs
+	legs.append(_portals[best_portal])
+	var zone := _portals[best_portal].from_zone
+	while zone != start:
+		legs.push_front(_portals[came_by[zone]])
+		zone = _portals[came_by[zone]].from_zone
+	return legs
+
+
 ## The zone standing highest in the world (world_height) of those a body on
 ## [param from_surface] at [param from_pos] can reach without crossing a flooded one
 ## — its own included, unless it is giving way; NONE when it stands on nothing.
@@ -356,8 +429,9 @@ func steer(from_pos: Vector3, from_surface: int, goal: int, pose: ShipPose) -> P
 ## Where a body on [param from_surface] at [param from_pos] walks next to go through
 ## [param leg]. Lined up in front of it, a point just past it; further out in front,
 ## a point a body's width further along its axis than the body is, so the walk
-## closes on the axis rather than circling a point; beside it, the middle of its near
-## edge, so the body turns in rather than doubling back. On the leg's ramp, the point
+## closes on the axis rather than circling a point; just past it within its width, the
+## point past it too, never back to it; beside it, the middle of its near edge, so the
+## body turns in rather than doubling back. On the leg's ramp, the point
 ## past its far end; under it or behind its high end, out to its nearer side first, so
 ## the walk to its foot runs along the stair rather than into it.
 func toward(leg: Portal, from_pos: Vector3, from_surface: int) -> Vector3:
@@ -369,7 +443,8 @@ func toward(leg: Portal, from_pos: Vector3, from_surface: int) -> Vector3:
 	var ahead := offset.dot(leg.along)
 	var aside := offset.cross(leg.along)
 	var lined_up := absf(aside) <= maxf(leg.half_width - _body_radius, 0.0)
-	if lined_up and absf(ahead) <= _lead:
+	var through := ahead > 0.0 and absf(aside) < leg.half_width
+	if (lined_up or through) and absf(ahead) <= _lead:
 		return past
 	if ahead < 0.0:
 		return leg.entry + along * minf(ahead + _lead, 0.0)

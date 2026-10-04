@@ -1,19 +1,23 @@
-00:12.7 seat 4 out · cold · place 8
-00:24.4 seat 1 out · cold · place 7
-00:55.1 seat 6 out · cold · place 6
+00:38.5 seat 5 out · cold · place 8
+00:49.4 railing 3 broke
+00:51.6 seat 6 out · cold · place 7
+00:54.0 seat 2 out · cold · place 6
 01:06.0 lurch coming · heel -15°
 01:07.0 lurched · heel -15°
-01:08.8 seat 3 out · cold · place 5
 01:08.9 railing 6 broke
 01:09.4 crate 2 lost
 01:10.1 crate 3 lost
-01:18.3 seat 5 out · cold · place 4
-01:43.0 crate 1 lost
-01:46.1 crate 0 lost
-01:57.4 seat 2 out · cold · place 3
+01:46.1 crate 1 lost
+01:47.6 crate 0 lost
+01:48.5 seat 0 out · cold · place 5
 02:02.4 lurch coming · heel +20°
+02:03.1 seat 7 out · cold · place 4
 02:03.4 lurched · heel +20°
 02:13.7 bridge collapsing
 02:16.7 bridge collapsed
-02:23.8 seat 0 out · cold · place 2
-winner seat 7 at 02:23.8 · digest 9484654d641a5a94
+02:26.6 lurch coming · heel -16°
+02:27.6 lurched · heel -16°
+02:40.0 the plunge
+02:56.6 seat 4 out · cold · place 3
+03:02.8 seat 1 out · cold · place 2
+winner seat 3 at 03:02.8 · digest b49e33bbee0310aa

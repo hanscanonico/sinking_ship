@@ -30,7 +30,11 @@ const DRY_AT_PLUNGE_AT_MOST := 0.10
 const DRY_AT_PLUNGE_SEATS := 3
 const MEDIAN_FROM := 150.0
 const MEDIAN_TO := 200.0
-const P99_AT_MOST_MS := 2.0
+## The tick-cost gate the SH7 review set, superseding the plan's 2 ms p99 at eight
+## seats: sim + bots p50 and p99 at eight seats, p99 at sixteen.
+const P50_AT_MOST_MS := 2.0
+const P99_AT_MOST_MS := 8.0
+const P99_SIXTEEN_AT_MOST_MS := 16.0
 
 
 ## One lobby: who fills its seats, and how many of the seeds it plays.
@@ -86,6 +90,7 @@ func _initialize() -> void:
 			"--lobbies":
 				only = value.split(",", false)
 	var started := Time.get_ticks_msec()
+	var load_before := _load_average()
 	var tallies: Array[Tally] = []
 	for lobby: Lobby in _lobbies(seeds):
 		if not only.is_empty() and not lobby.key in only:
@@ -96,7 +101,7 @@ func _initialize() -> void:
 			return
 		tallies.append(tally)
 	var minutes := (Time.get_ticks_msec() - started) / 60000.0
-	var report := _report(tallies, seeds, minutes)
+	var report := _report(tallies, seeds, minutes, [load_before, _load_average()])
 	var file := FileAccess.open(REPORT, FileAccess.WRITE)
 	if file == null:
 		printerr("arena: cannot write %s" % REPORT)
@@ -299,7 +304,16 @@ static func _with_spawns(layout: ShipLayout, seats: int, rules: BrawlRules) -> S
 	return wider
 
 
-func _report(tallies: Array[Tally], seeds: int, minutes: float) -> String:
+## The machine's load averages over 1, 5 and 15 minutes, as the system reports them,
+## or "unknown" where it does not.
+static func _load_average() -> String:
+	var output: Array = []
+	if OS.execute("sysctl", ["-n", "vm.loadavg"], output) != 0 or output.is_empty():
+		return "unknown"
+	return str(output[0]).strip_edges().trim_prefix("{").trim_suffix("}").strip_edges()
+
+
+func _report(tallies: Array[Tally], seeds: int, minutes: float, loads: Array) -> String:
 	var lines := PackedStringArray()
 	lines.append("# Arena — %s" % Time.get_date_string_from_system())
 	lines.append("")
@@ -321,12 +335,32 @@ func _report(tallies: Array[Tally], seeds: int, minutes: float) -> String:
 		)
 	lines.append(
 		(
+			(
+				"Load average (1, 5, 15 min) at the start: %s; at the end: %s. The "
+				+ "milliseconds are what this machine gave at that load: with a load above its "
+				+ "%d cores they are measured under load, not a reading of the budget."
+			)
+			% [loads[0], loads[1], OS.get_processor_count()]
+		)
+	)
+	lines.append(
+		(
 			"A dated record: the next run supersedes this file whole. Each lobby plays the "
 			+ "default match (data/match/default.tres) on seeds 1…N; match time is the "
 			+ "transcript's clock, countdown included. A bot is idle on a tick when it is "
 			+ "in, free to act, presses nothing and its feet move less than 5 mm; dry means "
 			+ "in and not in the sea. Everything but the milliseconds is the same on a "
 			+ "rerun on the same build (D4)."
+		)
+	)
+	lines.append("")
+	lines.append(
+		(
+			"The tick-cost targets are the SH7 review's and supersede the plan's \"sim + bots "
+			+ 'p99 ≤ 2 ms at eight seats": that budget priced the sim, O(n²) in n ≤ 16 bodies; '
+			+ "bots that look through line of sight, route a walk graph and probe the edges "
+			+ "spend a few milliseconds on the ticks they think, which a 2 ms p99 leaves no "
+			+ "room for. 8 ms is a quarter of a 30 Hz tick, the rest left to drawing."
 		)
 	)
 	lines.append("")
@@ -380,12 +414,22 @@ func _targets(tallies: Array[Tally]) -> PackedStringArray:
 				median >= MEDIAN_FROM and median <= MEDIAN_TO
 			)
 		)
+		var p50 := _percentile_ms(tally.tick_us, 0.5)
 		var p99 := _percentile_ms(tally.tick_us, 0.99)
 		lines.append(
 			_row(
-				"Sim + bots p99 ≤ 2 ms per tick at eight seats",
+				"Sim + bots p50 ≤ 2 ms and p99 ≤ 8 ms per tick at eight seats",
+				"p50 %.2f ms, p99 %.2f ms" % [p50, p99],
+				p50 <= P50_AT_MOST_MS and p99 <= P99_AT_MOST_MS
+			)
+		)
+	if by_key.has("sixteen"):
+		var p99 := _percentile_ms(by_key["sixteen"].tick_us, 0.99)
+		lines.append(
+			_row(
+				"Sim + bots p99 ≤ 16 ms per tick at sixteen seats",
 				"%.2f ms" % p99,
-				p99 <= P99_AT_MOST_MS
+				p99 <= P99_SIXTEEN_AT_MOST_MS
 			)
 		)
 	var idle := 0
