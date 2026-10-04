@@ -12,9 +12,19 @@ const PITCH_LIMIT_DEG := 80.0
 var yaw: float
 ## Radians above the horizon: presentation only, never in a frame.
 var pitch: float
+## Whether a menu over the match has the keys, the pad and the mouse: the seat stands
+## still meanwhile — no move, no button, its look kept — and, once let go, no button
+## still down from the menu acts until it has been let go too.
+var held := false:
+	set(value):
+		if held and not value:
+			_unreleased = _buttons()
+		held = value
 
 var _seat: int
 var _settings: ViewSettings
+## The buttons down as the hold ended, each until it is let go.
+var _unreleased := 0
 
 
 func _init(seat: int, start_yaw: float, settings: ViewSettings) -> void:
@@ -35,14 +45,24 @@ func look_by_stick(delta: float) -> void:
 
 
 func next_frame(tick: int) -> InputFrame:
+	var look := InputFrame.quantize_yaw(yaw)
+	var buttons := _buttons()
+	if held:
+		_unreleased = buttons
+		return InputFrame.new(_seat, tick, Vector2i.ZERO, 0, look)
+	_unreleased &= buttons
+	buttons &= ~_unreleased
 	var stick := Input.get_vector("move_left", "move_right", "move_up", "move_down")
+	return InputFrame.new(_seat, tick, InputFrame.from_screen(stick, look), buttons, look)
+
+
+func _buttons() -> int:
 	var buttons := InputFrame.SHOVE if Input.is_action_pressed("shove") else 0
 	if Input.is_action_pressed("brace"):
 		buttons |= InputFrame.BRACE
 	if Input.is_action_pressed("jump"):
 		buttons |= InputFrame.JUMP
-	var look := InputFrame.quantize_yaw(yaw)
-	return InputFrame.new(_seat, tick, InputFrame.from_screen(stick, look), buttons, look)
+	return buttons
 
 
 ## Right turns toward starboard when looking at the bow; down looks down unless

@@ -110,7 +110,7 @@ PAGE="http://127.0.0.1:$WEB_PORT/"
 SERVER="ws://127.0.0.1:$WS_PORT"
 cat <<EOF
 serve-web-local: the page at $PAGE, the server at $SERVER (logs in $STATE/)
-  create a room:  ${PAGE}?create=1&name=Ada&server=$SERVER
-  join it:        ${PAGE}?room=CODE&name=Bea&server=$SERVER
+  play:           ${PAGE}?server=$SERVER  (Play online: a name, then Create a room)
+  join a room:    ${PAGE}?room=CODE&server=$SERVER  (or the room's Copy invite link)
   stop both:      make serve-web-local-stop
 EOF

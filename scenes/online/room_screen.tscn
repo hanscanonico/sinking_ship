@@ -1,0 +1,90 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scenes/online/room_screen.gd" id="1_room"]
+
+[node name="RoomScreen" type="CanvasLayer"]
+layer = 2
+visible = false
+script = ExtResource("1_room")
+
+[node name="Panel" type="PanelContainer" parent="."]
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 64.0
+offset_top = -48.0
+offset_right = 684.0
+offset_bottom = -48.0
+grow_vertical = 0
+
+[node name="Box" type="HBoxContainer" parent="Panel"]
+theme_override_constants/separation = 36
+
+[node name="Room" type="VBoxContainer" parent="Panel/Box"]
+custom_minimum_size = Vector2(300, 0)
+theme_override_constants/separation = 10
+
+[node name="Title" type="Label" parent="Panel/Box/Room"]
+theme_type_variation = &"TitleLabel"
+theme_override_font_sizes/font_size = 26
+text = "Your room"
+
+[node name="CodeHint" type="Label" parent="Panel/Box/Room"]
+theme_type_variation = &"HintLabel"
+text = "Friends join with this code"
+
+[node name="Code" type="Label" parent="Panel/Box/Room"]
+unique_name_in_owner = true
+theme_type_variation = &"CodeLabel"
+text = "ABCD"
+
+[node name="Copies" type="HBoxContainer" parent="Panel/Box/Room"]
+theme_override_constants/separation = 12
+
+[node name="CopyCode" type="Button" parent="Panel/Box/Room/Copies"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(110, 0)
+text = "Copy code"
+
+[node name="CopyInvite" type="Button" parent="Panel/Box/Room/Copies"]
+unique_name_in_owner = true
+visible = false
+text = "Copy invite link"
+
+[node name="Status" type="Label" parent="Panel/Box/Room"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(300, 0)
+autowrap_mode = 3
+
+[node name="Note" type="Label" parent="Panel/Box/Room"]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(300, 0)
+theme_type_variation = &"ProblemLabel"
+autowrap_mode = 3
+
+[node name="Buttons" type="HBoxContainer" parent="Panel/Box/Room"]
+theme_override_constants/separation = 16
+
+[node name="Start" type="Button" parent="Panel/Box/Room/Buttons"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(120, 0)
+text = "Start"
+
+[node name="Leave" type="Button" parent="Panel/Box/Room/Buttons"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(120, 0)
+text = "Leave room"
+
+[node name="Seats" type="VBoxContainer" parent="Panel/Box"]
+custom_minimum_size = Vector2(260, 0)
+theme_override_constants/separation = 6
+
+[node name="Aboard" type="Label" parent="Panel/Box/Seats"]
+unique_name_in_owner = true
+theme_type_variation = &"TitleLabel"
+theme_override_font_sizes/font_size = 22
+
+[node name="Rows" type="VBoxContainer" parent="Panel/Box/Seats"]
+unique_name_in_owner = true
+theme_override_constants/separation = 2

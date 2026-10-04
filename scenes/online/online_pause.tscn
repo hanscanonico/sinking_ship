@@ -1,0 +1,57 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scenes/online/online_pause.gd" id="1_pause"]
+
+[node name="OnlinePause" type="CanvasLayer"]
+layer = 3
+visible = false
+script = ExtResource("1_pause")
+
+[node name="Dim" type="ColorRect" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.4)
+
+[node name="Panel" type="PanelContainer" parent="."]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -170.0
+offset_top = -130.0
+offset_right = 170.0
+offset_bottom = 130.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Box" type="VBoxContainer" parent="Panel"]
+alignment = 1
+theme_override_constants/separation = 12
+
+[node name="Title" type="Label" parent="Panel/Box"]
+theme_type_variation = &"TitleLabel"
+text = "Still playing"
+horizontal_alignment = 1
+
+[node name="Note" type="Label" parent="Panel/Box"]
+custom_minimum_size = Vector2(276, 0)
+theme_type_variation = &"HintLabel"
+text = "An online match never pauses: it goes on while this is open."
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="Resume" type="Button" parent="Panel/Box"]
+unique_name_in_owner = true
+text = "Resume"
+
+[node name="Settings" type="Button" parent="Panel/Box"]
+unique_name_in_owner = true
+text = "Settings"
+
+[node name="LeaveMatch" type="Button" parent="Panel/Box"]
+unique_name_in_owner = true
+text = "Leave match"

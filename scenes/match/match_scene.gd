@@ -11,6 +11,8 @@ extends Node3D
 
 signal rematch_requested
 signal menu_requested
+## A browser let go of the mouse mid-match at the player's Esc, which this never hears.
+signal pointer_lost
 
 const LOCAL_SEAT := 0
 ## The gaze through another seat's eyes, in degrees above the horizon: at a level
@@ -33,11 +35,15 @@ var _observer: bool
 ## Whose eyes the view is in while that seat is dry: the local seat's, or a capture's.
 var _eye_seat := LOCAL_SEAT
 var _paused := false
-## The mouse let go mid-match without pausing: an online match never pauses.
+## Whether the match is played on a server: started by start_online.
+var _online := false
+## The mouse let go mid-match without pausing, a menu over the match having it, the keys
+## and the pad: an online match never pauses.
 var _mouse_freed := false
 var _marks := BrawlMarks.new()
 var _dust := LandingDust.new()
 var _prompts := InputPrompts.new()
+var _pointer := PointerCapture.new()
 var _kick: ViewKick
 
 @onready var _sea_and_sky: SeaAndSky = $SeaAndSky
@@ -63,6 +69,8 @@ func _ready() -> void:
 	add_child(_marks)
 	add_child(_dust)
 	add_child(_prompts)
+	add_child(_pointer)
+	_pointer.lost.connect(pointer_lost.emit)
 
 
 func _exit_tree() -> void:
@@ -82,9 +90,8 @@ func _process(delta: float) -> void:
 	_hud.show_controls(_prompts.controls() if _local != null else "")
 	_end.show_results(_stats, _local_seat, _names, _config.match_seed)
 	_end.show_prompts(_prompts)
-	var mouse := Input.MOUSE_MODE_CAPTURED if _looking() else Input.MOUSE_MODE_VISIBLE
-	if Input.mouse_mode != mouse:
-		Input.mouse_mode = mouse
+	_pointer.want(_looking())
+	_hold()
 	if _looking():
 		_local.look_by_stick(delta)
 	_audio.hear_through(-1 if _observer else viewed)
@@ -111,7 +118,7 @@ func _process(delta: float) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if _driver.client == null:
+	if _driver.client == null or _mouse_freed:
 		return
 	if event is InputEventMouseMotion:
 		if _looking():
@@ -171,12 +178,16 @@ func start(
 ## of it pauses.
 func start_online(played: PlayedMatch, local: LocalInputSource, names: PackedStringArray) -> void:
 	var seat := played.client.seat
+	_online = true
 	_begin(played, local, seat, names, false, seat, INF, false)
+	_end.offer_room()
 
 
-## Lets the mouse go, or takes it back, without pausing: the online match's Esc.
+## Lets the mouse go, or takes it back, without pausing: the online match's Esc. While
+## it is let go the match takes nothing of the keys, the pad or the mouse.
 func free_mouse(freed: bool) -> void:
 	_mouse_freed = freed
+	_hold()
 
 
 ## What both kinds of match start with: [param played] stepped from its first tick,
@@ -280,6 +291,13 @@ func _looking() -> bool:
 	return _local != null and not _paused and not _end.visible and not _mouse_freed
 
 
+## The local seat of a match on a server stands still while a menu over the match, or a
+## browser's "Click to play", has the keys, the pad and the mouse.
+func _hold() -> void:
+	if _local != null:
+		_local.held = _mouse_freed or (_online and _pointer.waiting())
+
+
 ## Every platform's area together, in the ship plane.
 func _deck_bounds(layout: ShipLayout) -> Rect2:
 	var bounds := layout.platforms[0].area
@@ -302,7 +320,8 @@ func _spectating(snapshot: Dictionary, viewed: int) -> String:
 	var mine: Dictionary = seats[_eye_seat]
 	if not mine["out"] or snapshot["phase"] == MatchState.Phase.ENDED:
 		return ""
-	var whose := ("watching %s" if _observer else "through %s's eyes") % _names[viewed]
+	var seat_name := _hud.fit_name(_names[viewed])
+	var whose := ("watching %s" if _observer else "through %s's eyes") % seat_name
 	return (
 		"Overboard — %s of %d   ·   %s   ·   %s / %s to switch"
 		% [

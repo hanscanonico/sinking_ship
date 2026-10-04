@@ -7,6 +7,8 @@ extends CanvasLayer
 
 ## How long "Go!" stays up once the countdown is over.
 const GO_SECONDS := 0.8
+## The widest the banner shows a seat's name, in pixels: a server's may be far longer.
+const NAME_WIDTH := 240.0
 
 var _countdown_ticks: int
 
@@ -45,6 +47,12 @@ func show_snapshot(snapshot: Dictionary) -> void:
 func show_spectating(text: String) -> void:
 	_spectating.text = text
 	_spectating.visible = not text.is_empty()
+
+
+## [param seat_name] as the banner along the bottom shows it.
+func fit_name(seat_name: String) -> String:
+	var font := _spectating.get_theme_font(&"font")
+	return UiTheme.fit(seat_name, font, _spectating.get_theme_font_size(&"font_size"), NAME_WIDTH)
 
 
 ## [param text] under the countdown while it shows; empty hides it.

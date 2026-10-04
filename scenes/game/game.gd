@@ -12,10 +12,13 @@ extends Node
 ## --observer-cut cuts the observer's view of the ship away to show the inside;
 ## --net-sim puts fake lag on the wire between the local host and the client.
 ## --server serves rooms instead (ServerLoop), and --connect with --autoplay plays in a
-## server's room with nobody at the keys (OnlineAutoplay); without --autoplay — or with a
-## browser page's address naming a room — a person plays there (OnlinePlay). None of
-## them opens a menu (SH12).
-## --capture-screen stages the settings, the pause menu or the results for a capture.
+## server's room with nobody at the keys (OnlineAutoplay); neither opens a menu (SH12).
+## Play online opens the Online screen (OnlineMenu) over the menu's backdrop, whose link
+## a person plays there (OnlinePlay); --connect without --autoplay — or a browser page's
+## address naming a room — opens it on that link, and plays it once the name is known.
+## --capture-screen stages the settings, the pause menu, the results, the Online screen,
+## a room — its players made up, no server asked — or the online pause over the match,
+## the settings opened from it or not, for a capture.
 ## The saved volumes and window apply as it boots; the settings screen opens from
 ## the main menu and the pause menu.
 
@@ -35,8 +38,11 @@ var _match: MatchScene
 var _seats: int
 var _tier: StringName
 var _capturing := false
+## The online play under way, from the Online screen; null when none is.
+var _online: OnlinePlay
 
 @onready var _menu: MainMenu = $MainMenu
+@onready var _online_menu: OnlineMenu = $OnlineMenu
 @onready var _pause: PauseMenu = $PauseMenu
 @onready var _settings: SettingsMenu = $SettingsMenu
 @onready var _music: MusicPlayer = $Music
@@ -55,10 +61,6 @@ func _ready() -> void:
 	# A capture keeps the window it was launched with, whatever the player saved.
 	if _args.capture_path.is_empty():
 		ViewSettings.local().apply_window()
-	var link := OnlineLink.for_launch(_args)
-	if link.wanted:
-		add_child(OnlinePlay.new(link))
-		return
 	_match_rules = load(MATCH_DATA)
 	var problems := _match_rules.problems()
 	if not problems.is_empty():
@@ -66,6 +68,7 @@ func _ready() -> void:
 		get_tree().quit(1)
 		return
 	_menu.play_requested.connect(_play)
+	_menu.online_requested.connect(_open_online)
 	_menu.settings_requested.connect(_settings.open)
 	_menu.quit_requested.connect(_quit)
 	_pause.resume_requested.connect(_set_paused.bind(false))
@@ -73,14 +76,22 @@ func _ready() -> void:
 	_pause.settings_requested.connect(_settings.open)
 	_pause.quit_requested.connect(_quit)
 	_settings.view_changed.connect(_on_view_changed)
+	_online_menu.play_requested.connect(_play_online)
+	_online_menu.back_requested.connect(_leave_online)
+	var link := OnlineLink.for_launch(_args)
+	_online_menu.page_server = link.server_url
 	var seats := _args.seats if _args.seats > 0 else _match_rules.seats
 	var seed_text := str(_args.seed_value) if _args.seed_value >= 0 else ""
 	_menu.setup(_match_rules, seats, _match_rules.bot_tier, seed_text)
 	if _args.autoplay:
 		_play.call_deferred(seats, _match_rules.bot_tier, seed_text)
+		return
+	_music.play_menu()
+	if link.wanted:
+		_open_online()
+		_online_menu.take_link(link)
 	else:
 		_menu.open()
-		_music.play_menu()
 
 
 func _process(_delta: float) -> void:
@@ -88,15 +99,23 @@ func _process(_delta: float) -> void:
 		return
 	if _match == null:
 		if not _args.autoplay:
-			if _args.capture_screen == "settings":
-				_settings.open()
+			match _args.capture_screen:
+				"settings":
+					_settings.open()
+				"online":
+					_open_online()
+				"room":
+					_stage_room()
 			_capture("the menu")
 		return
 	var snapshot := _match.current()
 	if _capture_due(snapshot):
 		_match.set_paused(true)
-		if _args.capture_screen == "pause":
-			_pause.open()
+		match _args.capture_screen:
+			"pause":
+				_pause.open()
+			"online-pause", "online-settings":
+				_stage_online_pause(_args.capture_screen == "online-settings")
 		_capture(MatchTranscript.clock(snapshot["tick"]))
 
 
@@ -173,6 +192,94 @@ func _quit() -> void:
 func _on_view_changed(settings: ViewSettings) -> void:
 	if _match != null:
 		_match.apply_view(settings)
+	if _online != null:
+		_online.apply_view(settings)
+
+
+## The Online screen over the menu's backdrop, saying [param note] and offering to
+## rejoin [param rejoin]'s room when they are not "".
+func _open_online(note: String = "", rejoin: String = "") -> void:
+	_online_menu.open(note, rejoin)
+	_menu.show_behind(_online_menu.panel())
+
+
+## Plays [param link], the Online screen waiting on it until the room shows.
+func _play_online(link: OnlineLink) -> void:
+	_drop_online()
+	_online = OnlinePlay.new(link)
+	_online.entered_room.connect(_on_entered_room)
+	_online.playing_changed.connect(_on_online_playing)
+	_online.settings = _settings
+	_online.ended.connect(_on_online_ended)
+	add_child(_online)
+	# Ahead of the settings screen, which so hears Esc before the online pause under it.
+	move_child(_online, _settings.get_index())
+	_online_menu.show_connecting()
+
+
+func _on_entered_room() -> void:
+	_online_menu.hide()
+	_menu.show_behind(_online.room_panel())
+
+
+func _on_online_playing(playing: bool) -> void:
+	if playing:
+		_online_menu.hide()
+		_menu.hide()
+		_music.play_match()
+	else:
+		_menu.show_behind(_online.room_panel())
+		_music.play_menu()
+
+
+func _on_online_ended(to_menu: bool, note: String, rejoin: String) -> void:
+	_drop_online()
+	_music.play_menu()
+	if to_menu:
+		_online_menu.hide()
+		_menu.open()
+	else:
+		_open_online(note, rejoin)
+
+
+## Back from the Online screen, giving up on whatever it was connecting to.
+func _leave_online() -> void:
+	_drop_online()
+	_online_menu.hide()
+	_menu.open()
+
+
+func _drop_online() -> void:
+	if _online == null:
+		return
+	_online.hang_up()
+	_online.queue_free()
+	_online = null
+
+
+## A room to capture, its players made up: a host, this player, a name as long as the
+## server takes, and the bots for the rest.
+func _stage_room() -> void:
+	var room: RoomScreen = OnlinePlay.ROOM_SCREEN.instantiate()
+	room.seats = _match_rules.seats
+	add_child(room)
+	var roster := RoomRoster.new()
+	roster.code = "KXRT"
+	roster.you = 1
+	for player: String in ["Ada", "Bea", "Bartholomew Fitz"]:
+		roster.players.append(RoomRoster.Player.new(player, player == "Ada", false))
+	room.show_room(roster)
+	_menu.show_behind(room.panel())
+
+
+## The online pause over the match, and the settings opened from it when
+## [param settings] says, to capture: no server asked.
+func _stage_online_pause(settings: bool) -> void:
+	var pause: OnlinePause = OnlinePlay.ONLINE_PAUSE.instantiate()
+	add_child(pause)
+	pause.open()
+	if settings:
+		_settings.open()
 
 
 func _set_paused(paused: bool) -> void:

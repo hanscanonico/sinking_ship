@@ -102,7 +102,7 @@ On the mini PC (`ssh mini-pc`), as the deploy user:
      by default).
 3. Deploy by hand once: `deploy/bin/deploy`. Then `curl -fsS
    http://127.0.0.1:8120/healthz`, and open `https://<hostname>/?create=1&name=Ada`
-   in a browser: the room's code shows, with "Host: press Enter to start".
+   in a browser: the room shows, its code large, with the host's Start button.
 
 ### The runner (optional)
 
