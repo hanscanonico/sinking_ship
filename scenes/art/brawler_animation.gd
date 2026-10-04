@@ -52,6 +52,112 @@ const BLEND := {
 	Move.CLIMB: 0.15,
 	Move.JUMP: 0.05,
 }
+## The poses laid over a clip (BrawlerPose), by move: a telegraph has to read in a
+## single frame from the front and the side, which no clip of the library does. A
+## wind-up coils — the shoulders turned away, both hands drawn back to the far hip,
+## the weight on the back foot, the head still on the target; a charge sets low and
+## wide, leaning in with the elbows back and the hands cocked, held; the shove
+## uncoils into a lunge, both arms straight out and the back leg driving; a brace
+## digs in low and wide behind raised forearms; a stagger throws the head and arms
+## back; a swimmer's crawl is stood up so the head and shoulders ride above the sea
+## its feet hang under; a climb reaches up the ladder hand over hand, looking up.
+const POSES := {
+	Move.WINDUP:
+	{
+		BrawlerPose.HIPS_AT: Vector3(0.0, -0.1, -0.12),
+		&"DEF-hips": Vector3(-4.0, -22.0, 0.0),
+		&"DEF-spine.001": Vector3(-8.0, -34.0, 0.0),
+		&"DEF-spine.003": Vector3(-12.0, -48.0, 0.0),
+		&"DEF-neck": Vector3(-2.0, -24.0, 0.0),
+		&"DEF-head": Vector3(10.0, -6.0, 0.0),
+		BrawlerPose.REACH_L: Vector3(-0.1, -0.24, 0.12),
+		BrawlerPose.REACH_R: Vector3(-0.26, -0.26, -0.06),
+		&"DEF-hand.L": Vector3(-0.6, 0.6, 0.5),
+		&"DEF-hand.R": Vector3(-0.3, 0.6, 0.7),
+		&"DEF-foot.L": Vector3(0.06, 0.0, 0.24),
+		&"DEF-foot.R": Vector3(-0.06, 0.0, -0.32),
+	},
+	Move.CHARGE:
+	{
+		BrawlerPose.HIPS_AT: Vector3(0.0, -0.22, 0.0),
+		&"DEF-hips": Vector3(12.0, -8.0, 0.0),
+		&"DEF-spine.001": Vector3(20.0, -10.0, 0.0),
+		&"DEF-spine.003": Vector3(28.0, -12.0, 0.0),
+		&"DEF-neck": Vector3(14.0, -6.0, 0.0),
+		&"DEF-head": Vector3(-4.0, 0.0, 0.0),
+		BrawlerPose.REACH_L: Vector3(0.2, -0.08, 0.08),
+		BrawlerPose.REACH_R: Vector3(-0.2, -0.08, 0.08),
+		&"DEF-hand.L": Vector3(0.0, 0.7, 0.7),
+		&"DEF-hand.R": Vector3(0.0, 0.7, 0.7),
+		&"DEF-foot.L": Vector3(0.14, 0.0, 0.26),
+		&"DEF-foot.R": Vector3(-0.14, 0.0, -0.26),
+	},
+	Move.SHOVE:
+	{
+		BrawlerPose.HIPS_AT: Vector3(0.0, -0.14, 0.22),
+		&"DEF-hips": Vector3(14.0, 8.0, 0.0),
+		&"DEF-spine.001": Vector3(22.0, 10.0, 0.0),
+		&"DEF-spine.003": Vector3(30.0, 12.0, 0.0),
+		&"DEF-neck": Vector3(14.0, 6.0, 0.0),
+		&"DEF-head": Vector3(4.0, 4.0, 0.0),
+		&"DEF-upper_arm.L": Vector3(0.14, 0.42, 1.0),
+		&"DEF-forearm.L": Vector3(0.04, 0.45, 1.0),
+		&"DEF-hand.L": Vector3(0.0, 1.0, 0.3),
+		&"DEF-upper_arm.R": Vector3(-0.14, 0.42, 1.0),
+		&"DEF-forearm.R": Vector3(-0.04, 0.45, 1.0),
+		&"DEF-hand.R": Vector3(0.0, 1.0, 0.3),
+		&"DEF-foot.L": Vector3(0.05, 0.0, 0.42),
+		&"DEF-foot.R": Vector3(-0.05, 0.0, -0.5),
+	},
+	Move.BRACE:
+	{
+		BrawlerPose.HIPS_AT: Vector3(0.0, -0.17, -0.02),
+		&"DEF-hips": Vector3(8.0, 0.0, 0.0),
+		&"DEF-spine.001": Vector3(12.0, 0.0, 0.0),
+		&"DEF-spine.003": Vector3(16.0, 0.0, 0.0),
+		&"DEF-neck": Vector3(5.0, 0.0, 0.0),
+		&"DEF-head": Vector3(18.0, 0.0, 0.0),
+		&"DEF-upper_arm.L": Vector3(0.45, -0.35, 0.8),
+		&"DEF-forearm.L": Vector3(-0.45, 0.85, 0.25),
+		&"DEF-upper_arm.R": Vector3(-0.45, -0.35, 0.8),
+		&"DEF-forearm.R": Vector3(0.45, 0.85, 0.25),
+		&"DEF-foot.L": Vector3(0.13, 0.0, 0.12),
+		&"DEF-foot.R": Vector3(-0.13, 0.0, -0.1),
+	},
+	Move.STAGGER:
+	{
+		BrawlerPose.HIPS_AT: Vector3(0.0, -0.05, -0.08),
+		&"DEF-hips": Vector3(-10.0, 0.0, 0.0),
+		&"DEF-spine.001": Vector3(-18.0, 0.0, 5.0),
+		&"DEF-spine.003": Vector3(-30.0, 6.0, 10.0),
+		&"DEF-neck": Vector3(-15.0, 0.0, 0.0),
+		&"DEF-head": Vector3(-26.0, 8.0, 8.0),
+		&"DEF-upper_arm.L": Vector3(0.9, 0.05, 0.35),
+		&"DEF-forearm.L": Vector3(0.6, 0.5, 0.6),
+		&"DEF-upper_arm.R": Vector3(-0.9, 0.05, 0.35),
+		&"DEF-forearm.R": Vector3(-0.6, 0.5, 0.6),
+		&"DEF-foot.L": Vector3(0.06, 0.0, 0.12),
+		&"DEF-foot.R": Vector3(-0.06, 0.0, -0.3),
+	},
+	Move.SWIM:
+	{
+		BrawlerPose.HIPS_AT: Vector3(0.0, 0.2, -0.05),
+		&"DEF-hips": Vector3(40.0, 0.0, 0.0),
+		&"DEF-spine.001": Vector3(42.0, 0.0, 0.0),
+		&"DEF-spine.003": Vector3(40.0, 0.0, 0.0),
+		&"DEF-neck": Vector3(10.0, 0.0, 0.0),
+		&"DEF-head": Vector3(-5.0, 0.0, 0.0),
+	},
+	Move.CLIMB:
+	{
+		&"DEF-spine.003": Vector3(12.0, 0.0, 0.0),
+		&"DEF-head": Vector3(-20.0, 0.0, 0.0),
+		BrawlerPose.REACH_L: Vector3(0.14, 0.5, 0.3),
+		BrawlerPose.REACH_R: Vector3(-0.14, 0.32, 0.32),
+		&"DEF-hand.L": Vector3(0.0, 0.4, 1.0),
+		&"DEF-hand.R": Vector3(0.0, 0.4, 1.0),
+	},
+}
 ## Ship-plane speeds, m/s, above which the feet walk and then run.
 const WALK_FROM := 0.4
 const RUN_FROM := 2.5

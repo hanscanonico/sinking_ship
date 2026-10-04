@@ -21,6 +21,9 @@ extends SceneTree
 ##   collapsed platform's height wherever Surfaces, honouring that tick's pose, says
 ##   it is gone — the dressed deck lies wrecked below, as the rules have it.
 ## - Snapshots only: no script anywhere under scenes/art names a live sim object.
+## - Crew: the seats of a full match each wear their own hat and coat, so each reads
+##   by its shape as well as its colour, and a brawler draws at most CREW_VERTICES
+##   vertices, so a deck full of them stays cheap.
 
 const RunMatch := preload("res://tools/run_match.gd")
 const MATCH_SCENE := "res://scenes/match/match.tscn"
@@ -39,6 +42,7 @@ const LADDER_TOLERANCE := 0.05
 const SEAT_TOLERANCE := 0.001
 const CRATE_TOLERANCE := 0.001
 const SOLE_TOLERANCE := 0.02
+const CREW_VERTICES := 9000
 ## How far in from a platform's edges the samples start, and how many per side.
 const SAMPLE_INSET := 0.1
 const SAMPLES_ALONG := 6
@@ -77,6 +81,7 @@ func _initialize() -> void:
 	# The root joins the tree only once the main loop runs.
 	await process_frame
 	_check_snapshot_only()
+	_check_crew()
 	for file: String in DirAccess.get_files_at(SHIPS_DIR):
 		if file.ends_with(".tres"):
 			_check_ship(file, load(SHIPS_DIR + file))
@@ -109,6 +114,35 @@ func _check_snapshot_only() -> void:
 						% [file, index + 1, found.get_string()]
 					)
 				)
+
+
+func _check_crew() -> void:
+	var rules := RunMatch.default_config(SEED).rules
+	var worn := {}
+	for seat in SEATS:
+		_checks += 1
+		var outfit := seat % Brawler.HATS.size()
+		var dress := Vector2i(Brawler.HATS[outfit], Brawler.COATS[outfit])
+		if worn.has(dress):
+			_problems.append("art-lint: seat %d dresses as seat %d" % [seat, worn[dress]])
+		worn[dress] = seat
+		var brawler := Brawler.new()
+		root.add_child(brawler)
+		brawler.setup(seat, rules, false)
+		var vertices := 0
+		for node: Node in brawler.find_children("*", "MeshInstance3D", true, false):
+			var mesh := (node as MeshInstance3D).mesh
+			for surface in mesh.get_surface_count():
+				var points: PackedVector3Array = mesh.surface_get_arrays(surface)[Mesh.ARRAY_VERTEX]
+				vertices += points.size()
+		if vertices > CREW_VERTICES:
+			_problems.append(
+				(
+					"art-lint: seat %d's brawler draws %d vertices, over %d"
+					% [seat, vertices, CREW_VERTICES]
+				)
+			)
+		brawler.free()
 
 
 ## Every .gd under [param dir] and its subfolders, as paths relative to it.

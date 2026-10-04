@@ -3,11 +3,10 @@ extends RefCounted
 ## The colours code-built art draws with. The sky and the light keep theirs in
 ## scenes/art/sea_and_sky.tscn and the sea in water.gdshader, tuned there by eye.
 
-## One per seat, from Okabe & Ito's colour-blind-safe set with its black traded for
-## white, which a dark-jointed body cannot wear, and its orange for Tol's wine,
-## which stays apart from vermillion and yellow at a distance. The first six differ
-## in hue family as well; seats four apart share a hat shape, and each such pair
-## stays apart under every common colour blindness.
+## One per seat, worn as its coat, from Okabe & Ito's colour-blind-safe set with its
+## black traded for white, which a dark-trousered body cannot wear, and its orange
+## for Tol's wine, which stays apart from vermillion and yellow at a distance. The
+## first six differ in hue family as well, and every seat wears its own hat.
 const SEAT_COLOURS: Array[Color] = [
 	Color("d55e00"),
 	Color("f0e442"),
@@ -18,12 +17,22 @@ const SEAT_COLOURS: Array[Color] = [
 	Color("0072b2"),
 	Color("6f1d46"),
 ]
-## Joints, hat bands and outlines: one dark for every seat, so the crew reads as a
-## set and the seat colour is the only thing that differs.
+## Eyes, hat bands and outlines: one dark for every seat, so the crew reads as a
+## set.
 const INK := Color("23262e")
-## The facing chevron while a shove winds up and lands.
+## The disc at a brawler's feet while a shove winds up and lands.
 const SHOVE_FLASH := Color(1.0, 1.0, 1.0)
 const MARKER := Color(1.0, 1.0, 1.0)
+## The crew's clothes (Brawler): the seat's colour is the coat, and everything else
+## a quiet neutral under it, so the seat still reads first at any range.
+const SKIN := Color("e2ae8a")
+const SHIRT := Color("ece6d6")
+const LEATHER := Color("4d3424")
+const STRAW := Color("dcc68e")
+const HAIR: Array[Color] = [Color("33241a"), Color("1c1b1f"), Color("9a4c25"), Color("8f8a82")]
+const TROUSERS: Array[Color] = [Color("3a3d46"), Color("564539"), Color("2c3447"), Color("6c6a64")]
+## A shove's hands as it winds up and lands.
+const HAND_FLASH := Color("ffd36e")
 
 ## The ship (ShipArt): a dark hull, red oxide below the boot line, so the foam line
 ## pops; warm deck planks lighter than most seat colours; white houses with teak
