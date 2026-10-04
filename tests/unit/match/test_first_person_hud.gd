@@ -82,3 +82,68 @@ func test_a_windup_wedge_keeps_off_the_hud_and_moves_smoothly() -> void:
 					assert_lt(moved, STEP, "%s %d° %s jumps %.0f px" % [size, degrees, part, moved])
 					assert_lt(absf(strength - last[part][1]), 0.05, "and fades smoothly")
 			last = parts
+
+
+## Two or three shoves winding up on one side, or behind, stand apart along their
+## edge — the same places for the same seats every frame — and still clear of the
+## rest of the HUD.
+func test_windup_wedges_on_one_edge_stand_apart() -> void:
+	for size: Vector2 in SIZES:
+		var hud: Array[Rect2] = [
+			Rect2(
+				size.x - FirstPersonHud.DIALS.x, 0.0, FirstPersonHud.DIALS.x, FirstPersonHud.DIALS.y
+			),
+			Rect2(0.0, 0.0, size.x, FirstPersonHud.CHEVRON_TOP),
+			FirstPersonHud.plate_rect(size),
+		]
+		for degrees: Array in [[60, 62], [-70, -70, -95], [175, 178], [-150, 170, 180], [80, 130]]:
+			var bearings := PackedFloat32Array()
+			for degree: int in degrees:
+				bearings.append(deg_to_rad(degree))
+			var roots := FirstPersonHud.wedges_apart(size, bearings)
+			assert_eq(roots, FirstPersonHud.wedges_apart(size, bearings), "the same every frame")
+			var shown: Array[Vector2] = []
+			for index in bearings.size():
+				var behind := FirstPersonHud.behind_share(bearings[index])
+				if behind < 1.0:
+					shown.append(roots[index * 2])
+				if behind > 0.0:
+					shown.append(roots[index * 2 + 1])
+			for one in shown.size():
+				var inward := FirstPersonHud.wedge_inward(size, shown[one])
+				for rect: Rect2 in hud:
+					var box := FirstPersonHud.wedge_box(shown[one], inward)
+					assert_false(box.intersects(rect), "%s %s over %s" % [size, degrees, rect])
+				for other in range(one + 1, shown.size()):
+					if FirstPersonHud.wedge_inward(size, shown[other]) != inward:
+						continue
+					assert_gt(
+						shown[one].distance_to(shown[other]),
+						FirstPersonHud.ARROW_HALF * 2.0 + 4.0,
+						"%s %s: two arrows on one edge stand apart" % [size, degrees]
+					)
+
+
+## A body over the eye's shoulder, its head by the camera's plane, puts its chevron
+## tens of thousands of pixels off the screen (seed 7 through seat 6's eyes at
+## 0:49.3, about here), where the renderer cannot always fill the triangle: it is
+## not drawn, and every chevron that is drawn, at every size it takes, can be
+## filled.
+func test_a_chevron_is_drawn_only_where_it_can_be_filled() -> void:
+	var off := Vector2(-58000.0, 39440.0)
+	var lost := FirstPersonHud.chevron_points(off, 0.8)
+	assert_true(Geometry2D.triangulate_polygon(lost).is_empty(), "out there it cannot be filled")
+	assert_false(FirstPersonHud.chevron_shows(off, SCREEN))
+	for size: Vector2 in SIZES:
+		var reach := Rect2(Vector2.ZERO, size).grow(FirstPersonHud.READOUT_TEXT)
+		var bad := 0
+		for x in range(int(reach.position.x), int(reach.end.x), 7):
+			for y in range(int(reach.position.y), int(reach.end.y), 7):
+				var at := Vector2(x, y) + Vector2(0.37, 0.61)
+				if not FirstPersonHud.chevron_shows(at, size):
+					continue
+				for shrink: float in [FirstPersonHud.FAR_SCALE, 0.8, 1.0]:
+					var points := FirstPersonHud.chevron_points(at, shrink)
+					if Geometry2D.triangulate_polygon(points).is_empty():
+						bad += 1
+		assert_eq(bad, 0, "%s: every chevron drawn can be filled" % size)

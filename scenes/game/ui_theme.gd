@@ -184,6 +184,8 @@ static func _build() -> Theme:
 		theme.set_color("font_pressed_color", type, TRIM.lightened(0.2))
 		theme.set_color("font_hover_pressed_color", type, TRIM.lightened(0.2))
 		theme.set_color("font_disabled_color", type, Color(TEXT, 0.35))
+	# A choice's arrow takes its type's colour, so a disabled one fades with it.
+	theme.set_constant("modulate_arrow", "OptionButton", 1)
 	theme.set_type_variation(GUARDED_BUTTON, "Button")
 	theme.set_stylebox("disabled", GUARDED_BUTTON, normal)
 	theme.set_color("font_disabled_color", GUARDED_BUTTON, Color(TEXT, 0.75))

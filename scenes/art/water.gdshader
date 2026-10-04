@@ -52,10 +52,13 @@ uniform float churn_radius = 7.0;
 uniform float churn_breadth = 0.45;
 uniform float churn = 0.0;
 // The ship's rooms seen from above (SeaAndSky.room_map): the lowest floor and the
-// highest ceiling over each cell, ship metres; and from the world to that map, x and
-// z to its UV and y to the ship's height. The sea in a room is under a ceiling and
-// takes no sky, glint or whitecap.
+// highest ceiling over each cell, ship metres; how far inside a room each cell's
+// middle stands, read between them so a wall runs where it stands
+// (SeaAndSky.room_edges); and from the world to those maps, x and z to their UV and y
+// to the ship's height. The sea in a room is under a ceiling and takes no sky, glint
+// or whitecap.
 uniform sampler2D rooms : hint_default_black, filter_nearest, repeat_disable;
+uniform sampler2D room_edges : hint_default_black, filter_linear, repeat_disable;
 uniform mat4 world_to_rooms = mat4(1.0);
 // From under the sea: the sky through the surface overhead, the sea mirrored by it
 // at a slant, and the fog the view under the sea has (Underwater sets it).
@@ -141,7 +144,8 @@ void fragment() {
 		float detail = 1.0 - smoothstep(detail_reach * 0.3, detail_reach, dist);
 		vec3 on_map = (world_to_rooms * vec4(world, 1.0)).xyz;
 		vec2 room = texture(rooms, on_map.xz).rg;
-		float sky_over = on_map.y > room.r && on_map.y < room.g ? 0.0 : 1.0;
+		bool in_room = texture(room_edges, on_map.xz).r > 0.0;
+		float sky_over = in_room && on_map.y > room.r && on_map.y < room.g ? 0.0 : 1.0;
 		float middle = mix(0.4, 1.0, detail);
 		middle *= 1.0 - smoothstep(detail_reach, detail_reach * 2.7, dist);
 
@@ -184,33 +188,47 @@ void fragment() {
 		glint = clamp(glint, 0.0, 1.0) * (1.0 - gloom * 0.5) * sky_over;
 		open = mix(open, dusk_dim(glint_colour.rgb), glint);
 
-		// Whitecaps and churn foam on the open sea only, never over a drowned deck's
-		// shallows.
+		// Whitecaps on the open sea only, never over a drowned deck's shallows.
 		float deep = smoothstep(1.0, 1.4, below);
 
 		// Sparse whitecaps: short crescents on the middle swell's crests where a slow
 		// drifting gust lifts them, so each breaks and fades on its own. The gust bends
 		// the crest line a little and widens the cap in its middle, tapering it to its
-		// tips; a soft painted edge.
+		// tips; a soft painted edge. Seen close they are spilling froth rather than
+		// a painted swoosh: softer edged and tipped, fading behind the crest, broken up
+		// inside, and smaller and fainter right by the eye.
 		vec2 crestwise = vec2(dot(world.xz, vec2(0.89, 0.45)), dot(world.xz, vec2(-0.45, 0.89)));
 		float gust = value_noise(crestwise * vec2(0.45, 0.12) + vec2(t * 0.08, -t * 0.05));
 		float bent = crestwise.y * 0.61 + t * 1.4 + (gust - 0.85) * 3.0;
-		// 0 on a crest's top, 1 down in the trough.
-		float off_crest = abs(fract(bent / 6.2832 + 0.25) - 0.5) * 2.0;
-		float whitecap = smoothstep(0.0, 0.015, (gust - 0.78) * 0.3 - off_crest) * detail * deep;
+		// 0 on a crest's top, ±0.5 down in the troughs either side.
+		float across = fract(bent / 6.2832 + 0.25) - 0.5;
+		float near = 1.0 - smoothstep(5.0, 45.0, dist);
+		float width = (gust - 0.78) * 0.3 * mix(0.6, 1.0, smoothstep(1.5, 6.0, dist));
+		float whitecap = smoothstep(0.0, 0.015 + 0.012 * near, width - abs(across) * 2.0);
+		// -1 at the cap's lip, 1 at its back: the back spills into broken froth.
+		float behind_crest = clamp(across * 2.0 / max(width, 1e-3), -1.0, 1.0);
+		float spilling = min(near * 1.5, 1.0) * smoothstep(-0.6, 0.6, behind_crest);
+		float spill = value_noise(world.xz * vec2(4.0, 7.0) + vec2(t * 0.5, -t * 0.35));
+		whitecap *= mix(1.0, smoothstep(0.3, 0.6, spill) * 0.8, spilling);
+		// Its tips, where the gust that lifts it dies away, thin out into the sea.
+		whitecap *= mix(1.0, smoothstep(0.004, 0.035, width), near);
+		whitecap *= mix(0.5, 1.0, smoothstep(1.5, 5.0, dist)) * detail * deep;
 
 		// The bow's churn: foam streaming along the stem line on the open water round
-		// where it meets the sea, ragged at its rim and finer toward it, never over the
-		// shallows of a drowned deck.
+		// where it meets the sea, ragged at its rim and finer toward it, thinning out
+		// over a drowned deck along a broken line rather than cut along its edge, and
+		// never over its see-through shallows.
 		vec2 from = world.xz - churn_centre;
 		vec2 stem = vec2(dot(from, churn_axis), dot(from, vec2(-churn_axis.y, churn_axis.x)));
 		float reach = length(stem / vec2(churn_radius, churn_radius * churn_breadth));
 		reach += (value_noise(world.xz * 0.7 + vec2(t * 0.1, 0.0)) - 0.5) * 0.8;
-		float churned = churn * deep * (1.0 - smoothstep(0.3, 1.0, reach));
+		float churned = churn * (1.0 - smoothstep(0.3, 1.0, reach));
 		float boil = value_noise(stem * vec2(4.0, 8.0) + vec2(t * 0.7, -t * 0.5));
 		float frothed = smoothstep(1.0 - churned * 0.22, 1.02 - churned * 0.22, boil);
 		float streamed = lace(stem * vec2(2.4, 6.0), t * 2.0, 0.045) * churned * detail;
-		whitecap = max(whitecap, max(frothed, streamed)) * sky_over;
+		float broken = (value_noise(world.xz * 0.9 + 3.0) - 0.5) * 0.8;
+		float over_deep = smoothstep(0.95, 2.0, below + broken);
+		whitecap = max(whitecap, max(frothed, streamed) * over_deep) * sky_over;
 		open = mix(open, foam_colour.rgb * foam_glow, whitecap);
 
 		// Stepped, so a drowning deck shows contour bands parallel to the waterline.

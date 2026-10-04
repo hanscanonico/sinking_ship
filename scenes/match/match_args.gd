@@ -6,7 +6,7 @@ extends RefCounted
 ##   --net-sim=latency:MS,jitter:MS,loss:PERCENT
 ##   --server  --port=N  --bind=ADDRESS  --matches=N
 ##   --connect=ws://HOST:PORT  --create | --room=CODE  --name=NAME  --start-at=N
-##   --capture-screen=SCREEN  --capture-from=X,Y,Z,YAW[,PITCH]
+##   --capture-screen=SCREEN  --capture-from=X,Y,Z,YAW[,PITCH]  --capture-sway=S
 ## The game reads --seed and --seats as the menu's choices; --autoplay presses its
 ## Play, and without it --capture saves the menu. A capture is taken from the
 ## observer camera unless --capture-eye names the seat whose eyes it looks through;
@@ -18,7 +18,8 @@ extends RefCounted
 ## Online screen), room (a room, its players made up), online-pause (the online pause
 ## over the match) or online-settings (the settings opened from it); --capture-from
 ## stands the capture's eyes on chosen feet in ship space, looking YAW degrees from the
-## bow toward starboard and PITCH above the horizon. No menu
+## bow toward starboard and PITCH above the horizon; --capture-sway holds the menu
+## backdrop's drift at S (-1…1, one end of its sway to the other). No menu
 ## reaches any of them (D14). --server serves rooms over WebSocket, headless, on --port
 ## and --bind (ServerRules' unless given), its matches' seeds drawn from --seed when
 ## given — its rooms' codes never are — until --matches matches have finished (forever
@@ -71,6 +72,8 @@ var capture_screen: String = ""
 ## Where a capture's eyes stand and look: x, y, z of the feet in ship space, yaw and
 ## pitch in degrees; empty for the seat's own.
 var capture_from := PackedFloat64Array()
+## Where a capture holds the menu backdrop's drift, -1…1; NAN to let it drift.
+var capture_sway := NAN
 
 
 static func parse(args: PackedStringArray) -> MatchArgs:
@@ -102,6 +105,8 @@ static func parse(args: PackedStringArray) -> MatchArgs:
 				parsed.capture_screen = value
 			"--capture-from":
 				parsed.capture_from = value.split_floats(",")
+			"--capture-sway":
+				parsed.capture_sway = value.to_float()
 			"--net-sim":
 				var conditions := NetConditions.parse(value)
 				if conditions == null:

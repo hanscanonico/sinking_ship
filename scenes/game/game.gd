@@ -18,7 +18,8 @@ extends Node
 ## address naming a room — opens it on that link, and plays it once the name is known.
 ## --capture-screen stages the settings, the pause menu, the results, the Online screen,
 ## a room — its players made up, no server asked — or the online pause over the match,
-## the settings opened from it or not, for a capture.
+## the settings opened from it or not, for a capture; --capture-sway holds the menu
+## backdrop's drift.
 ## The saved volumes and window apply as it boots; the settings screen opens from
 ## the main menu and the pause menu.
 
@@ -83,6 +84,8 @@ func _ready() -> void:
 	var seats := _args.seats if _args.seats > 0 else _match_rules.seats
 	var seed_text := str(_args.seed_value) if _args.seed_value >= 0 else ""
 	_menu.setup(_match_rules, seats, _match_rules.bot_tier, seed_text)
+	if not is_nan(_args.capture_sway):
+		_menu.hold_drift(_args.capture_sway)
 	if _args.autoplay:
 		_play.call_deferred(seats, _match_rules.bot_tier, seed_text)
 		return

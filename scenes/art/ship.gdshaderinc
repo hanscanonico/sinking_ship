@@ -82,6 +82,18 @@ uniform float cut_above = 1e6;
 uniform vec4 section_colour : source_color = vec4(0.2, 0.19, 0.2, 1.0);
 #endif
 
+#ifdef NEAR_FADE
+// The rooms' furnishings (ship_near.gdshader): a piece that fades (ShipMesh.fading)
+// starts to go within near_fade.y of the eye and is gone within near_fade.x —
+// screen-door, still opaque — by its nearest point, so a closed box goes whole rather
+// than open onto its culled inside; a long piece only within near_piece of that
+// point. Per vertex, CUSTOM0 is its piece's middle and 1 when it fades, CUSTOM1 its
+// half size.
+uniform vec2 near_fade = vec2(0.3, 0.6);
+uniform float near_piece = 0.4;
+varying float piece_near;
+#endif
+
 const int PLAIN = 0;
 const int DECK = 1;
 const int HULL = 2;
@@ -236,11 +248,24 @@ void vertex() {
 	ship_normal = NORMAL;
 	bands = UV;
 	outdoor = UV2.y * (1.0 - indoors);
+#ifdef NEAR_FADE
+	// The ship's placement is rigid: its inverse is its turn transposed.
+	vec3 eye = transpose(mat3(MODEL_MATRIX)) * (CAMERA_POSITION_WORLD - MODEL_MATRIX[3].xyz);
+	vec3 off = max(abs(eye - CUSTOM0.xyz) - CUSTOM1.xyz, 0.0);
+	piece_near = CUSTOM0.w > 0.5 ? length(off) : 1e6;
+#endif
 }
 
 void fragment() {
 #ifdef CUT_AWAY
 	if (ship_pos.y > cut_above) {
+		discard;
+	}
+#endif
+#ifdef NEAR_FADE
+	float shown = smoothstep(near_fade.x, near_fade.y, max(piece_near, length(VERTEX) - near_piece));
+	// Interleaved gradient noise: a screen-door threshold per pixel.
+	if (shown <= fract(52.9829189 * fract(dot(FRAGCOORD.xy, vec2(0.06711056, 0.00583715))))) {
 		discard;
 	}
 #endif

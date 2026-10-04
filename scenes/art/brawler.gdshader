@@ -27,6 +27,11 @@ uniform vec3 flash_colour : source_color = vec3(1.0);
 uniform float flash = 0.0;
 
 const float LINING_LIFT = 0.3;
+// The legs under a skirt take the sun's shadow of it as well as the lining's dark;
+// below the hem they are lifted by no brighter a colour than LEG_CAP, so a pale
+// coat's lining never lights pale legs in a dark room.
+const float LEG_LIFT = 0.45;
+const float LEG_CAP = 0.3;
 
 varying vec3 rest;
 varying float skirt;
@@ -50,18 +55,38 @@ vec3 face(vec3 base) {
 	if (rest.z < 0.045) {
 		return c;
 	}
-	// Whiskers under the eyes: a moustache drooping at its ends — level ones read as a
-	// grin up close — or a beard round the jaw.
-	float droop = 1.642 - 0.35 * max(p.x - 0.012, 0.0);
-	if (whiskers == 1 && p.x < 0.046 && abs(p.y - droop) < 0.0085) {
+	// The features are inked a little lighter than the outline, so the face stays
+	// a face rather than holes.
+	vec3 drawn = mix(base, ink, 0.6);
+	// A nose: its shaded side and its foot, under the eyes.
+	if (rest.x > 0.003 && rest.x < 0.008 && p.y > 1.652 && p.y < 1.682) {
+		c = drawn;
+	}
+	if (p.x < 0.011 && abs(p.y - 1.652) < 0.0025) {
+		c = drawn;
+	}
+	// A mouth, set straight: a curve either way reads as a grin or a scowl.
+	bool mouth = p.x < 0.017 && abs(p.y - 1.628) < 0.0022;
+	if (mouth) {
+		c = drawn;
+	}
+	// A moustache under the nose, parted and drooping to its tapered ends — level and
+	// wide, one reads as a grin up close — and with a beard round the jaw, clear of
+	// the lips.
+	float droop = 1.641 - 0.3 * max(p.x - 0.01, 0.0);
+	float taper = 0.008 * (1.0 - 0.5 * p.x / 0.036);
+	if (whiskers > 0 && p.x > 0.002 && p.x < 0.036 && abs(p.y - droop) < taper) {
 		c = hair;
 	}
-	// A beard round the jaw, clear of the mouth.
-	bool mouth = p.x < 0.02 && abs(p.y - 1.635) < 0.006;
-	if (whiskers == 2 && rest.y < 1.628 + 0.3 * p.x && !mouth) {
+	bool lips = p.x < 0.022 && abs(p.y - 1.629) < 0.006;
+	if (whiskers == 2 && rest.y < 1.62 + 0.4 * p.x && !lips) {
 		c = hair;
 	}
-	if (spot(p, vec2(0.033, 1.69), vec2(0.0115, 0.017)) > 0.5) {
+	// Eyes: an ink pupil in a pale ring, so they read in a brim's shade as well.
+	if (spot(p, vec2(0.032, 1.69), vec2(0.0145, 0.019)) > 0.5) {
+		c = mix(shirt, base, 0.35);
+	}
+	if (spot(p, vec2(0.03, 1.688), vec2(0.0095, 0.0145)) > 0.5) {
 		c = ink;
 	}
 	// Brows, tipped down toward the nose: a frown that reads from across a deck.
@@ -114,11 +139,14 @@ void fragment() {
 	vec3 c;
 	float glow = 0.0;
 	// The lining, inside a skirt and on the thighs under it, and the legs just below
-	// the hem stand in the skirt's shadow: lifted, so they read as cloth rather than
-	// a hole.
+	// the hem stand in the skirt's shadow: lifted by the lining's own colour — dark
+	// trousers would gain nothing from a lift in proportion to theirs — so they read
+	// as cloth rather than a hole.
+	vec3 lining = coat * 0.78;
+	vec3 shade = lining;
 	float lift = 0.0;
 	if (skirt > 2.5) {
-		c = coat * 0.78;
+		c = lining;
 		lift = LINING_LIFT;
 	} else if (skirt > 0.5) {
 		c = skirt > 1.93 ? coat * 0.78 : coat;
@@ -143,8 +171,12 @@ void fragment() {
 		// Under a skirt the thighs wear the coat's lining, so none shows through it.
 		bool under = garment == 2 || garment == 1 && rest.z < 0.0;
 		c = under && rest.y > skirt_hem ? coat * 0.78 : trousers;
-		// Fading out down the leg below the hem, as the skirt's shadow does.
-		lift = under ? LINING_LIFT * smoothstep(skirt_hem - 0.3, skirt_hem, rest.y) : 0.0;
+		// Fading out down the leg below the hem, as the skirt's shadow does, and only
+		// behind, where the tails hang: in front the legs stand clear of the hem.
+		float behind = rest.y > skirt_hem ? 1.0 : smoothstep(0.03, -0.03, rest.z);
+		float leg = rest.y > skirt_hem ? LINING_LIFT : LEG_LIFT;
+		lift = under ? leg * smoothstep(skirt_hem - 0.35, skirt_hem, rest.y) * behind : 0.0;
+		shade = rest.y > skirt_hem ? lining : min(lining, vec3(LEG_CAP));
 	} else {
 		// Boots, with a turned-down top.
 		c = rest.y > 0.145 ? leather * 1.25 : leather * 0.6;
@@ -153,5 +185,5 @@ void fragment() {
 	// without washing the hand out to a blank shape up close.
 	ALBEDO = mix(c, flash_colour, glow * 0.5);
 	ROUGHNESS = 0.8;
-	EMISSION = flash_colour * glow * 0.8 + c * lift;
+	EMISSION = flash_colour * glow * 0.8 + shade * lift;
 }

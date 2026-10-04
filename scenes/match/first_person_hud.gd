@@ -61,13 +61,17 @@ const DIAL_RADIUS := 30.0
 const RING_RADIUS := 13.0
 const RING_WIDTH := 3.0
 ## A windup wedge: how far along the screen's edge it spreads either side of its root
-## and how far in it fades; how far it keeps off the readouts' plate; its arrowhead's
-## length, half width and notch; and how far in from the edge the arrowhead's tip
-## sits, in pixels.
+## and how far in it fades; how far it keeps off the readouts' plate; how far apart
+## the wedges on one edge stand; the width of its bright line and of the dark keyline
+## under it, so it reads on a pale wall too; its arrowhead's length, half width and
+## notch; and how far in from the edge the arrowhead's tip sits, in pixels.
 const WEDGE_HALF := 120.0
 const WEDGE_DEPTH := 110.0
 const WEDGE_CLEAR := 12.0
+const WEDGE_SPREAD := 40.0
 const WEDGE_ALPHA := 0.9
+const WEDGE_LINE := 3.0
+const WEDGE_KEYLINE := 7.0
 const ARROW_LENGTH := 30.0
 const ARROW_HALF := 13.0
 const ARROW_NOTCH := 9.0
@@ -395,6 +399,8 @@ func _draw_chevrons(my_pos: Vector3, pose: ShipPose) -> void:
 			continue
 		var at := _camera.unproject_position(over)
 		at.y = maxf(at.y, CHEVRON_TOP)
+		if not chevron_shows(at, _canvas.size):
+			continue
 		var far := my_pos.distance_to(their_pos) / CHEVRON_RANGE
 		var shrink := lerpf(1.0, FAR_SCALE, far)
 		var alpha := 1.0 - smoothstep(FADE_FROM, 1.0, far)
@@ -411,13 +417,7 @@ func _chevron(at: Vector2, entry: Dictionary, shrink: float, alpha: float) -> vo
 	var ink := Color(INK, INK.a * alpha)
 	var radius := RING_RADIUS * shrink
 	_ring(at, entry, radius, alpha)
-	var chevron := PackedVector2Array(
-		[
-			at + Vector2(-9.0, -6.0) * shrink,
-			at + Vector2(9.0, -6.0) * shrink,
-			at + Vector2(0.0, 5.0) * shrink,
-		]
-	)
+	var chevron := chevron_points(at, shrink)
 	_canvas.draw_colored_polygon(chevron, colour)
 	chevron.append(chevron[0])
 	_canvas.draw_polyline(chevron, ink, 1.5, true)
@@ -425,6 +425,25 @@ func _chevron(at: Vector2, entry: Dictionary, shrink: float, alpha: float) -> vo
 	var font_size := roundi(FONT_SIZE * shrink)
 	var seat_name := UiTheme.fit(_names[seat], _font, font_size, READOUT_TEXT)
 	_text(name_at, seat_name, colour, READOUT_TEXT, HORIZONTAL_ALIGNMENT_CENTER, font_size, ink)
+
+
+## Whether a chevron at [param at] reaches onto a screen of [param size] — its name
+## spreads READOUT_TEXT wide — and so is drawn: a body over the eye's shoulder, its
+## head by the camera's plane, projects tens of thousands of pixels off, where the
+## chevron is never seen and too far out for its points to be told apart.
+static func chevron_shows(at: Vector2, size: Vector2) -> bool:
+	return Rect2(Vector2.ZERO, size).grow(READOUT_TEXT * 0.5).has_point(at)
+
+
+## The chevron's triangle at [param at], [param shrink] of its size.
+static func chevron_points(at: Vector2, shrink: float) -> PackedVector2Array:
+	return PackedVector2Array(
+		[
+			at + Vector2(-9.0, -6.0) * shrink,
+			at + Vector2(9.0, -6.0) * shrink,
+			at + Vector2(0.0, 5.0) * shrink,
+		]
+	)
 
 
 ## [param entry]'s stamina — its warmth in the sea — as a ring of [param radius]
@@ -446,12 +465,15 @@ func _ring(centre: Vector2, entry: Dictionary, radius: float, alpha: float) -> v
 ## [param my_pos] before its active window ends — its reach plus a walk through windup
 ## and active — in that seat's colour: on its side's edge while it is beside, fading
 ## into the bottom edge as it comes round behind. Wedges only ever warn of a shove on
-## the same level, so none stands on the top edge.
+## the same level, so none stands on the top edge. Several on one edge stand apart
+## (wedges_apart), in the order of their seats, so none hides another.
 func _draw_windup_wedges(my_pos: Vector3) -> void:
 	var reach := (
 		_rules.shove_reach + _rules.walk_speed * (_rules.shove_windup + _rules.shove_active)
 	)
 	var half_view := deg_to_rad(_camera.fov * 0.5)
+	var seats := PackedInt32Array()
+	var bearings := PackedFloat32Array()
 	for entry: Dictionary in _snapshot["seats"]:
 		if entry["seat"] == _seat or entry["out"]:
 			continue
@@ -467,12 +489,16 @@ func _draw_windup_wedges(my_pos: Vector3) -> void:
 		var bearing := angle_difference(_yaw, offset.angle())
 		if absf(bearing) <= half_view:
 			continue
-		var colour := ArtPalette.seat_colour(entry["seat"])
-		var behind := behind_share(bearing)
+		seats.append(entry["seat"])
+		bearings.append(bearing)
+	var roots := wedges_apart(_canvas.size, bearings)
+	for index in seats.size():
+		var colour := ArtPalette.seat_colour(seats[index])
+		var behind := behind_share(bearings[index])
 		if behind < 1.0:
-			_draw_wedge(wedge_on_side(_canvas.size, bearing), bearing, colour, 1.0 - behind)
+			_draw_wedge(roots[index * 2], bearings[index], colour, 1.0 - behind)
 		if behind > 0.0:
-			_draw_wedge(wedge_behind(_canvas.size, bearing), bearing, colour, behind)
+			_draw_wedge(roots[index * 2 + 1], bearings[index], colour, behind)
 
 
 ## A wedge of [param colour], [param strength] of its full brightness, fading in from
@@ -488,7 +514,9 @@ func _draw_wedge(root: Vector2, bearing: float, colour: Color, strength: float) 
 		_canvas.draw_primitive(
 			PackedVector2Array([end, root, deep]), PackedColorArray([clear, lit, clear]), []
 		)
-	_canvas.draw_line(root - along * WEDGE_HALF * 0.6, root + along * WEDGE_HALF * 0.6, lit, 3.0)
+	var line := along * WEDGE_HALF * 0.6
+	_canvas.draw_line(root - line, root + line, Color(INK, INK.a * strength), WEDGE_KEYLINE)
+	_canvas.draw_line(root - line, root + line, lit, WEDGE_LINE)
 	var direction := wedge_arrow(bearing)
 	var tip := root + inward * ARROW_IN
 	var base := tip - direction * ARROW_LENGTH
@@ -518,6 +546,54 @@ static func wedge_behind(size: Vector2, bearing: float) -> Vector2:
 	var off_astern := clampf((PI - absf(bearing)) / (PI - BEHIND_FROM), 0.0, 1.0)
 	var furthest := size.x * 0.5 - (plate_rect(size).end.x + WEDGE_CLEAR + WEDGE_HALF)
 	return Vector2(size.x * 0.5 + signf(bearing) * off_astern * furthest, size.y)
+
+
+## The roots of the wedges for shoves at [param bearings], on a screen of [param size]:
+## for each, its side's (wedge_on_side) then its bottom edge's (wedge_behind). The
+## parts that show on one edge (behind_share) stand WEDGE_SPREAD apart along it, or
+## as far as the edge leaves them, round the middle of where they would stand alone,
+## in the order the bearings come in — the seats' order, so each keeps its place
+## frame to frame.
+static func wedges_apart(size: Vector2, bearings: PackedFloat32Array) -> PackedVector2Array:
+	var roots := PackedVector2Array()
+	var edges := {-1.0: [], 1.0: [], 0.0: []}
+	for index in bearings.size():
+		roots.append(wedge_on_side(size, bearings[index]))
+		roots.append(wedge_behind(size, bearings[index]))
+		var behind := behind_share(bearings[index])
+		if behind < 1.0:
+			(edges[signf(bearings[index])] as Array).append(index * 2)
+		if behind > 0.0:
+			(edges[0.0] as Array).append(index * 2 + 1)
+	var plate := plate_rect(size)
+	# Along the sides, from under the dials down to over the plate; along the bottom,
+	# from past the plate to as far the other side.
+	var side := Vector2(DIALS.y + WEDGE_CLEAR + WEDGE_HALF, plate.position.y - WEDGE_CLEAR)
+	side.y -= WEDGE_HALF
+	var bottom := Vector2(plate.end.x + WEDGE_CLEAR + WEDGE_HALF, 0.0)
+	bottom.y = size.x - bottom.x
+	for edge: float in edges:
+		var placed: Array = edges[edge]
+		if placed.size() < 2:
+			continue
+		var axis := 0 if edge == 0.0 else 1
+		var span := bottom if edge == 0.0 else side
+		var spread := minf(WEDGE_SPREAD, (span.y - span.x) / (placed.size() - 1))
+		var middle := 0.0
+		for slot: int in placed:
+			middle += roots[slot][axis] / placed.size()
+		var reach := spread * (placed.size() - 1) * 0.5
+		middle = clampf(middle, span.x + reach, maxf(span.y - reach, span.x + reach))
+		for rank in placed.size():
+			var root := roots[placed[rank]]
+			root[axis] = middle - reach + spread * rank
+			roots[placed[rank]] = root
+	return roots
+
+
+## How far up from the bottom edge a wedge's arrow there reaches, in pixels.
+static func behind_arrow_reach() -> float:
+	return ARROW_IN + Vector2(ARROW_LENGTH, ARROW_HALF).length()
 
 
 ## How much of the wedge for a shove at [param bearing] stands on the bottom edge

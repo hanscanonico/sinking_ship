@@ -72,6 +72,11 @@ func show_behind(panel: Control) -> void:
 	show()
 
 
+## Holds the backdrop's drift at [param sway] (-1…1), for a capture.
+func hold_drift(sway: float) -> void:
+	_backdrop.hold_drift(sway)
+
+
 func show_problem(text: String) -> void:
 	_problem.text = text
 	_problem.show()

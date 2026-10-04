@@ -343,14 +343,11 @@ func _spectating(snapshot: Dictionary, viewed: int) -> String:
 	if not mine["out"] or snapshot["phase"] == MatchState.Phase.ENDED:
 		return ""
 	var seat_name := _hud.fit_name(_names[viewed])
-	var whose := ("watching %s" if _observer else "through %s's eyes") % seat_name
-	return (
-		"Overboard — %s of %d   ·   %s   ·   %s / %s to switch"
-		% [
-			EndOverlay.ordinal(mine["place"]),
-			seats.size(),
-			whose,
-			_prompts.word(&"spectate_previous"),
-			_prompts.word(&"spectate_next"),
-		]
+	var whose := Hud.whose_view(seat_name, viewed == _local_seat, _observer)
+	return Hud.spectating_text(
+		EndOverlay.ordinal(mine["place"]),
+		seats.size(),
+		whose,
+		_prompts.word(&"spectate_previous"),
+		_prompts.word(&"spectate_next")
 	)
