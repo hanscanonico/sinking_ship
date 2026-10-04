@@ -75,6 +75,19 @@ net-bench:
 		-- $(match-args) --net-sim=$(NET) $(if $(SECONDS),--seconds=$(SECONDS)) \
 		| grep -v '^\[godot_ai'
 
+# `make serve-local [WS_PORT=47923] [SEED=1701] [KILL=1]`: a --server and two headless
+# --autoplay clients in one room over real WebSockets on 127.0.0.1 (SH12); the server's log —
+# the match's transcript, tick times, round trips and snapshot bandwidth — is
+# printed. KILL=1 kills one client mid-match: its seat goes to a bot and the match
+# still finishes. Rules live in tools/serve_local.sh. Not part of verify: it runs a
+# whole match in real time.
+WS_PORT ?=
+KILL ?=
+serve-local:
+	$(call require-godot)
+	GODOT="$(GODOT)" tools/serve_local.sh $(if $(WS_PORT),--port=$(WS_PORT)) \
+		$(if $(SEED),--seed=$(SEED)) $(if $(KILL),--kill)
+
 # `make arena SEEDS=200 [LOBBIES=normal,hard-easy]`: bots-only lobbies of the default
 # match, seeds 1…SEEDS each, headless, written up as docs/arena.md — the record SH7's
 # gates read. Rules live in tools/arena.gd. Progress goes to stderr.
@@ -153,4 +166,4 @@ format-check:
 # whole suite.
 .NOTPARALLEL:
 
-.PHONY: import run match capture net-bench arena art-lint test verify check ship ship-check lint format format-check
+.PHONY: import run match capture net-bench serve-local arena art-lint test verify check ship ship-check lint format format-check

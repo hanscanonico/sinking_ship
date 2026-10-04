@@ -101,7 +101,7 @@ func _init(
 	_host = host_peer
 	seat = own_seat
 	_source = source
-	_codec = WireCodec.new(config.data_hash())
+	_codec = WireCodec.new(WireCodec.match_hash(config, net_rules))
 	var instant := wire.instant()
 	_lead_ticks = 0 if instant else _rules.lead_ticks()
 	_slack_ticks = 0 if instant else _rules.slack_ticks()

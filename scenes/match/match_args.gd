@@ -4,6 +4,8 @@ extends RefCounted
 ##   --seed=N  --seats=N  --seconds=S  --autoplay  --capture=PATH  --capture-at=S
 ##   --observer  --capture-eye=SEAT  --observer-cut=M  --greybox
 ##   --net-sim=latency:MS,jitter:MS,loss:PERCENT
+##   --server  --port=N  --bind=ADDRESS  --matches=N
+##   --connect=ws://HOST:PORT  --create | --room=CODE  --name=NAME  --start-at=N
 ## The game reads --seed and --seats as the menu's choices; --autoplay presses its
 ## Play, and without it --capture saves the menu. A capture is taken from the
 ## observer camera unless --capture-eye names the seat whose eyes it looks through;
@@ -11,7 +13,12 @@ extends RefCounted
 ## the ship away to show the inside; --greybox draws the greybox the rules' data
 ## makes in place of the dressed ship; --net-sim makes the wire between the local host
 ## and the client lie about latency, jitter and loss (SH11). No menu reaches any of
-## them (D14).
+## them (D14). --server serves rooms over WebSocket, headless, on --port and --bind
+## (ServerRules' unless given), its matches' seeds drawn from --seed when given — its
+## rooms' codes never are — until --matches matches have finished (forever at 0);
+## --connect plays in a server's room, --create making one or --room joining one by
+## its code, as --name, and its creator starts the match once --start-at players are
+## in (SH12) — headless and with --autoplay until the Online menu (SH12b).
 
 ## -1 when not given: the host picks one.
 var seed_value: int = -1
@@ -38,6 +45,20 @@ var greybox: bool = false
 ## What the loopback between the local host and the client pretends the wire does;
 ## nothing, unless --net-sim says.
 var net_sim := NetConditions.new()
+## Serve rooms instead of playing.
+var server: bool = false
+## 0 and "" when not given: ServerRules' port and address.
+var port: int = 0
+var bind_address: String = ""
+## Matches a server finishes before it quits; 0 for no end.
+var matches: int = 0
+## The server to play on; "" to play here.
+var connect_url: String = ""
+var create_room: bool = false
+var room_code: String = ""
+var player_name: String = "Player"
+## Players in the room created before its creator starts the match.
+var start_at: int = 1
 
 
 static func parse(args: PackedStringArray) -> MatchArgs:
@@ -73,6 +94,24 @@ static func parse(args: PackedStringArray) -> MatchArgs:
 					)
 				else:
 					parsed.net_sim = conditions
+			"--server":
+				parsed.server = true
+			"--port":
+				parsed.port = value.to_int()
+			"--bind":
+				parsed.bind_address = value
+			"--matches":
+				parsed.matches = value.to_int()
+			"--connect":
+				parsed.connect_url = value
+			"--create":
+				parsed.create_room = true
+			"--room":
+				parsed.room_code = value
+			"--name":
+				parsed.player_name = value
+			"--start-at":
+				parsed.start_at = value.to_int()
 			_:
 				push_warning("unknown argument %s" % arg)
 	return parsed

@@ -22,13 +22,19 @@ func _init(match_runner: MatchRunner, wire: Transport, net_rules: NetRules) -> v
 	runner = match_runner
 	_wire = wire
 	_rules = net_rules
-	_codec = WireCodec.new(runner.sim.config.data_hash())
+	_codec = WireCodec.new(WireCodec.match_hash(runner.sim.config, net_rules))
 
 
 ## Seats the client at [param peer] on [param buffer] — the source the runner was
 ## handed for that seat — or, with none, lets it watch.
 func admit(peer: int, buffer: SeatBuffer) -> void:
 	_clients[peer] = buffer
+
+
+## Stops serving [param peer], gone: nothing more of its is read, nor sent to it. Its
+## seat's source plays on — a ClientSeat hands it to a bot (SH12).
+func release(peer: int) -> void:
+	_clients.erase(peer)
 
 
 func is_over() -> bool:

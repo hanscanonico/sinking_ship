@@ -11,6 +11,8 @@ extends Node
 ## reach, and --capture-eye takes a capture through a seat's eyes instead;
 ## --observer-cut cuts the observer's view of the ship away to show the inside;
 ## --net-sim puts fake lag on the wire between the local host and the client.
+## --server serves rooms instead (ServerLoop), and --connect with --autoplay plays in a
+## server's room with nobody at the keys (OnlineAutoplay); neither opens a menu (SH12).
 ## The saved volumes and window apply as it boots; the settings screen opens from
 ## the main menu and the pause menu.
 
@@ -39,6 +41,14 @@ var _capturing := false
 
 func _ready() -> void:
 	_args = MatchArgs.parse(OS.get_cmdline_user_args())
+	if _args.server:
+		add_child(ServerLoop.new(_args))
+		return
+	if not _args.connect_url.is_empty():
+		if _args.autoplay:
+			add_child(OnlineAutoplay.new(_args))
+			return
+		push_warning("--connect plays with --autoplay until the Online menu (SH12b)")
 	_seeds.randomize()
 	AudioSettings.local().apply()
 	# A capture keeps the window it was launched with, whatever the player saved.

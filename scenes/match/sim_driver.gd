@@ -1,10 +1,10 @@
 class_name SimDriver
 extends Node
 ## The only thing in a scene that steps the match (D2): an accumulator that runs a
-## LoopbackMatch — the local host and this player's client over the wire between
-## them (SH11) — at 30 Hz however fast frames come, and keeps the client's last two
-## views for the scene to interpolate between. The scene reads the client's views,
-## never the host (D5).
+## PlayedMatch — a LoopbackMatch, the local host and this player's client over the
+## wire between them (SH11), or a RemoteMatch played from a server (SH12) — at 30 Hz
+## however fast frames come, and keeps the client's last two views for the scene to
+## interpolate between. The scene reads the client's views, never the host (D5).
 
 signal stepped(events: Array[SimEvent])
 ## The local seat's predicted body moved [param by] as the client caught up with
@@ -20,11 +20,11 @@ var current: Dictionary
 ## How far the display is from [member previous] to [member current], 0…1.
 var alpha: float
 
-var _played: LoopbackMatch
+var _played: PlayedMatch
 var _accumulator := 0.0
 
 
-func start(played: LoopbackMatch) -> void:
+func start(played: PlayedMatch) -> void:
 	_played = played
 	client = played.client
 	previous = client.view()

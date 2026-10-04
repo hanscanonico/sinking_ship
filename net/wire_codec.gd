@@ -1,8 +1,9 @@
 class_name WireCodec
 extends RefCounted
 ## The wire format (D11), one codec per match: every packet opens with the protocol
-## version and the first HASH_BYTES of the match's data hash, and a packet of
-## another version or another match's data is refused.
+## version, the first HASH_BYTES of the match's hash (match_hash) and its kind, and a
+## packet of another version or another match's hash is refused. The room protocol's kinds
+## (SH12) ride the same opening; RoomCodec reads what follows it.
 ##
 ## An input packet carries a seat's last few frames, the newest last, so a lost
 ## packet costs nothing while a later one arrives (D3's redundancy). A snapshot
@@ -14,7 +15,11 @@ extends RefCounted
 ## gains and they do not is pushed as an error here and lost on the wire, which
 ## test_wire_codec's round trip, walking the snapshot's own keys, fails on (R2).
 
-const PROTOCOL_VERSION := 1
+const PROTOCOL_VERSION := 2
+## The build of what plays a match — core/, ai/ and net/ — bumped by hand whenever a
+## change there would play the same data differently: part of every match's hash, so
+## two builds that would not agree are refused as other data.
+const SIM_BUILD := 1
 const HASH_BYTES := 8
 const LENGTH_QUANTUM := 0.001
 const SPEED_QUANTUM := 0.01
@@ -28,7 +33,12 @@ const COMPRESSION := FileAccess.COMPRESSION_ZSTD
 ## The most a snapshot unpacks to, so a forged size cannot ask for more.
 const MOST_BYTES := 1 << 20
 
-enum Kind { INPUT, SNAPSHOT }
+enum Kind {
+	INPUT, SNAPSHOT, HELLO, WELCOME, REFUSED, CREATE, JOIN, LEAVE, START, ROSTER, BEGIN, PING, PONG
+}
+## Why a packet is not one of this protocol and match: too short to tell or of no kind
+## there is, of another protocol version, or of another match's data.
+enum Mismatch { NONE, MALFORMED, VERSION, DATA }
 
 ## How a field travels. LENGTHS and SPEEDS are Vector3s; INTS a list of ints and
 ## AMOUNTS a PackedFloat64Array; SEATS, PROPS and EVENTS lists of records.
@@ -192,15 +202,26 @@ class Values:
 var _hash: PackedByteArray
 
 
-## A codec for the match whose MatchConfig.data_hash() is [param data_hash].
+## A codec for the match whose match_hash() is [param data_hash].
 func _init(data_hash: String) -> void:
 	_hash = data_hash.substr(0, HASH_BYTES * 2).hex_decode()
+
+
+## The hash both ends of [param config]'s match must share to play it alike: its data
+## (MatchConfig.data_hash), [param net_rules] and SIM_BUILD.
+static func match_hash(config: MatchConfig, net_rules: NetRules) -> String:
+	var described := PackedStringArray([str(SIM_BUILD), config.data_hash()])
+	for property: Dictionary in net_rules.get_property_list():
+		if property["usage"] & PROPERTY_USAGE_SCRIPT_VARIABLE:
+			var field: String = property["name"]
+			described.append("%s=%s" % [field, var_to_str(net_rules.get(field))])
+	return "|".join(described).sha256_text()
 
 
 ## The packet carrying [param frames], one seat's, for consecutive ticks, oldest
 ## first.
 func encode_inputs(frames: Array[InputFrame]) -> PackedByteArray:
-	var out := _header(Kind.INPUT)
+	var out := header(Kind.INPUT)
 	_put_int(out, frames[-1].tick if not frames.is_empty() else 0)
 	out.put_u8(frames.size())
 	for frame: InputFrame in frames:
@@ -215,7 +236,7 @@ func encode_inputs(frames: Array[InputFrame]) -> PackedByteArray:
 ## is not an input packet of this match and protocol.
 func decode_inputs(bytes: PackedByteArray, seat: int) -> Array[InputFrame]:
 	var frames: Array[InputFrame] = []
-	var reader := _open(bytes, Kind.INPUT)
+	var reader := open(bytes, Kind.INPUT)
 	if reader == null:
 		return frames
 	var newest := reader.integer()
@@ -241,7 +262,7 @@ func encode_snapshot(snapshot: Dictionary, ack: int, heard: int, early: int) -> 
 	_put_record(values, snapshot, SNAPSHOT_FIELDS)
 	var packed := values.ints.to_byte_array()
 	var squeezed := packed.compress(COMPRESSION)
-	var out := _header(Kind.SNAPSHOT)
+	var out := header(Kind.SNAPSHOT)
 	out.put_u32(packed.size())
 	out.put_u32(squeezed.size())
 	out.put_data(squeezed)
@@ -251,7 +272,7 @@ func encode_snapshot(snapshot: Dictionary, ack: int, heard: int, early: int) -> 
 ## The snapshot packet [param bytes] holds; null when it is not one of this match
 ## and protocol.
 func decode_snapshot(bytes: PackedByteArray) -> SnapshotPacket:
-	var reader := _open(bytes, Kind.SNAPSHOT)
+	var reader := open(bytes, Kind.SNAPSHOT)
 	if reader == null:
 		return null
 	var size := reader.u32()
@@ -274,11 +295,23 @@ func decode_snapshot(bytes: PackedByteArray) -> SnapshotPacket:
 
 ## What [param bytes] is, or -1 when it is no packet of this match and protocol.
 func kind_of(bytes: PackedByteArray) -> int:
-	if bytes.size() < 2 + HASH_BYTES or bytes[0] != PROTOCOL_VERSION:
-		return -1
-	if bytes.slice(1, 1 + HASH_BYTES) != _hash:
+	if mismatch(bytes) != Mismatch.NONE:
 		return -1
 	return bytes[1 + HASH_BYTES]
+
+
+## How [param bytes] opens against this protocol and match: NONE when it is one of
+## theirs. The version is read first, so any build can tell another's packet apart.
+func mismatch(bytes: PackedByteArray) -> Mismatch:
+	if bytes.size() < 2 + HASH_BYTES:
+		return Mismatch.MALFORMED
+	if bytes[0] != PROTOCOL_VERSION:
+		return Mismatch.VERSION
+	if bytes.slice(1, 1 + HASH_BYTES) != _hash:
+		return Mismatch.DATA
+	if bytes[1 + HASH_BYTES] >= Kind.size():
+		return Mismatch.MALFORMED
+	return Mismatch.NONE
 
 
 ## The finest a snapshot's [param key] under [param section] (&"snapshot",
@@ -351,7 +384,8 @@ static func _quantum_of(field: Field) -> float:
 	return 0.0
 
 
-func _header(kind: Kind) -> StreamPeerBuffer:
+## A packet of [param kind], opened: what follows is the caller's to put.
+func header(kind: Kind) -> StreamPeerBuffer:
 	var out := StreamPeerBuffer.new()
 	out.big_endian = false
 	out.put_u8(PROTOCOL_VERSION)
@@ -360,7 +394,9 @@ func _header(kind: Kind) -> StreamPeerBuffer:
 	return out
 
 
-func _open(bytes: PackedByteArray, kind: Kind) -> Reader:
+## A reader past the opening of [param bytes]; null when it is not a packet of
+## [param kind] of this match and protocol.
+func open(bytes: PackedByteArray, kind: Kind) -> Reader:
 	if kind_of(bytes) != kind:
 		return null
 	var reader := Reader.new(bytes)
