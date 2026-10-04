@@ -4,6 +4,7 @@ extends GutTest
 
 const VIEW_PATH := "user://test_view_settings.tres"
 const AUDIO_PATH := "user://test_audio_settings.tres"
+const SETTINGS_MENU := preload("res://scenes/game/settings_menu.tscn")
 
 
 func after_each() -> void:
@@ -46,7 +47,7 @@ func test_settings_round_trip_through_user_storage() -> void:
 
 
 func test_the_settings_screen_saves_as_it_closes() -> void:
-	var menu: SettingsMenu = autofree(load("res://scenes/game/settings_menu.tscn").instantiate())
+	var menu: SettingsMenu = autofree(SETTINGS_MENU.instantiate())
 	menu.audio_path = AUDIO_PATH
 	menu.view_path = VIEW_PATH
 	add_child(menu)
@@ -92,3 +93,100 @@ func test_fov_and_volume_are_clamped() -> void:
 	file.store_string("\n".join(kept).strip_edges() + "\nfov_deg = 170.0\n")
 	file.close()
 	assert_eq(ViewSettings.read(VIEW_PATH).fov_deg, ViewSettings.FOV_MAX)
+
+
+func test_graphics_are_this_machine_s_own_until_the_player_picks_them() -> void:
+	var view := ViewSettings.new()
+	assert_eq(view.quality, ViewSettings.AUTOMATIC)
+	assert_eq(view.render_scale, float(ViewSettings.AUTOMATIC))
+	assert_eq(view.graphics().preset, GraphicsQuality.automatic_preset())
+	assert_eq(view.render_scale_3d(), GraphicsQuality.automatic_scale())
+	assert_eq(GraphicsQuality.automatic_preset(), GraphicsQuality.DESKTOP_PRESET, "not a browser")
+	# Saved untouched, they stay the machine's: another screen may want another scale.
+	assert_eq(view.save(VIEW_PATH), OK)
+	assert_eq(ViewSettings.read(VIEW_PATH).quality, ViewSettings.AUTOMATIC)
+	assert_eq(ViewSettings.read(VIEW_PATH).render_scale, float(ViewSettings.AUTOMATIC))
+
+	view.quality = GraphicsQuality.Preset.HIGH
+	view.render_scale = 0.85
+	assert_eq(view.save(VIEW_PATH), OK)
+	var back := ViewSettings.read(VIEW_PATH)
+	assert_eq(back.graphics().preset, GraphicsQuality.Preset.HIGH, "the choice wins")
+	assert_almost_eq(back.render_scale_3d(), 0.85, 0.0001)
+
+
+func test_graphics_choices_are_held_to_what_there_is() -> void:
+	var view := ViewSettings.new()
+	view.quality = 7
+	assert_eq(view.quality, GraphicsQuality.Preset.HIGH)
+	view.quality = -4
+	assert_eq(view.quality, ViewSettings.AUTOMATIC)
+	view.render_scale = 0.2
+	assert_eq(view.render_scale, GraphicsQuality.SCALE_MIN)
+	view.render_scale = 1.6
+	assert_eq(view.render_scale, GraphicsQuality.SCALE_MAX)
+	view.render_scale = 0.0
+	assert_eq(view.render_scale, float(ViewSettings.AUTOMATIC))
+
+
+func test_the_graphics_page_picks_the_preset_and_the_render_scale() -> void:
+	# The instance the screen edits, held here and started from the machine's own,
+	# whatever this machine has saved.
+	var shared := ViewSettings.local()
+	shared.quality = ViewSettings.AUTOMATIC
+	shared.render_scale = ViewSettings.AUTOMATIC
+	var menu: SettingsMenu = autofree(SETTINGS_MENU.instantiate())
+	menu.audio_path = AUDIO_PATH
+	menu.view_path = VIEW_PATH
+	add_child(menu)
+	watch_signals(menu)
+	menu.open(SettingsMenu.Page.GRAPHICS)
+	assert_true(menu.get_node("%Graphics").visible)
+	assert_false(menu.get_node("%Sound").visible)
+	assert_false(menu.get_node("%Controls").visible)
+	assert_true((menu.get_node("%GraphicsTab") as Button).button_pressed)
+	assert_true(menu.get_node("%Fullscreen").has_focus(), "the page's first choice")
+
+	var quality: OptionButton = menu.get_node("%Quality")
+	assert_eq(quality.get_selected_id(), GraphicsQuality.automatic_preset(), "the machine's own")
+	assert_eq(quality.item_count, GraphicsQuality.Preset.size())
+	var low := quality.get_item_index(GraphicsQuality.Preset.LOW)
+	quality.select(low)
+	quality.item_selected.emit(low)
+	assert_signal_emitted(menu, "view_changed")
+	assert_eq(shared.quality, GraphicsQuality.Preset.LOW)
+	assert_eq(
+		menu.get_node("%QualityHint").text, GraphicsQuality.summary(GraphicsQuality.Preset.LOW)
+	)
+	assert_eq(shared.render_scale, float(ViewSettings.AUTOMATIC), "the scale left be")
+	(menu.get_node("%RenderScale") as HSlider).value = 60.0
+	assert_eq(menu.get_node("%RenderScaleValue").text, "60 %")
+	menu.close()
+	var saved := ViewSettings.read(VIEW_PATH)
+	assert_eq(saved.quality, GraphicsQuality.Preset.LOW)
+	assert_almost_eq(saved.render_scale, 0.6, 0.0001)
+
+
+func test_every_choice_on_every_page_takes_the_keys_and_the_pad() -> void:
+	var menu: SettingsMenu = autofree(SETTINGS_MENU.instantiate())
+	add_child(menu)
+	for tab: String in ["%SoundTab", "%ControlsTab", "%GraphicsTab"]:
+		assert_eq((menu.get_node(tab) as Control).focus_mode, Control.FOCUS_ALL, tab)
+	for page: String in ["%Sound", "%Controls", "%Graphics"]:
+		for control: Node in menu.get_node(page).find_children("*", "Range", true, true):
+			assert_eq((control as Control).focus_mode, Control.FOCUS_ALL, control.name)
+		for control: Node in menu.get_node(page).find_children("*", "BaseButton", true, true):
+			assert_eq((control as Control).focus_mode, Control.FOCUS_ALL, control.name)
+	menu.open()
+	(menu.get_node("%ControlsTab") as Button).pressed.emit()
+	assert_true(menu.get_node("%Controls").visible, "a tab shows its page")
+	assert_false(menu.get_node("%Sound").visible)
+
+
+func test_a_run_can_be_drawn_at_chosen_graphics_to_measure_them() -> void:
+	var args := MatchArgs.parse(PackedStringArray(["--quality=high", "--render-scale=0.6"]))
+	assert_eq(args.quality, GraphicsQuality.Preset.HIGH)
+	assert_almost_eq(args.render_scale, 0.6, 0.0001)
+	var unset := MatchArgs.parse(PackedStringArray())
+	assert_eq(unset.quality, ViewSettings.AUTOMATIC)
+	assert_eq(unset.render_scale, float(ViewSettings.AUTOMATIC))

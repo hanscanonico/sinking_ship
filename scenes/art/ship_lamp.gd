@@ -7,8 +7,9 @@ extends Node3D
 ## drawn world height is below zero. It reads only where the view has put the ship
 ## — presentation, never a rule (D12). Hung from a deck that has given way, it falls
 ## with it and goes out once the deck lies wrecked (ShipArt). Its globe glows
-## whoever looks, but it lights its room only while the eye that draws the frame
-## stands near it on its storey (relevant), fading in and out, so a frame pays only
+## whoever looks, but it lights its room only while ShipArt wants it lit — while the
+## eye that draws the frame stands near it on its storey (relevant), and can see into
+## its room as the graphics preset asks — fading in and out, so a frame pays only
 ## for the lamps it can see and none shines up or down through a deck. A hold's
 ## cargo lamp hangs lower under a tin shade, brighter close by and fading sooner, so
 ## it throws a pool of light on the floor under it; a furnace's fire is set in a
@@ -61,12 +62,14 @@ var burning := true
 ## Whether the lamp lights its room whatever eye draws the frame: the observer's
 ## cut-away, which looks down into every room at once.
 var everywhere := false
+## Whether the eye that draws the frame wants the lamp lighting its room (ShipArt
+## chooses): it fades up toward lit while it does, and down while it does not.
+var wanted := true
 
 var _kind := Kind.PENDANT
 ## From the lamp's node down to where it burns: what goes under the sea.
 var _drop := CORD
-## The room's box, ship space: its floor to its ceiling.
-var _room: AABB
+## The middle of its room's floor, ship space.
 var _floor: Vector3
 ## How far the lamp has faded up (0…1) toward lighting its room.
 var _presence := 1.0
@@ -78,8 +81,10 @@ var _light: OmniLight3D
 ## A fire's light out of its wall: null for a lamp.
 var _spot: SpotLight3D
 var _glass: StandardMaterial3D
-## The glow its glass was last given, so it is set only as it changes.
+## The glow its glass was last given, and the share of its full light its light was,
+## so each is set only as it changes.
 var _shown := -1.0
+var _energy := -1.0
 
 
 ## How bright a lamp burns, 0…1: [param lamp_height] and [param floor_height] are
@@ -140,7 +145,6 @@ func setup(
 	kind := Kind.PENDANT,
 	facing := Vector3.DOWN
 ) -> void:
-	_room = room
 	var middle := room.get_center()
 	_floor = Vector3(middle.x, room.position.y, middle.z)
 	_phase = phase
@@ -284,19 +288,17 @@ func _process(delta: float) -> void:
 		level *= flame(_clock + _phase)
 	if not burning:
 		level = 0.0
-	var camera := get_viewport().get_camera_3d()
-	var wanted := burning
-	if camera != null and not everywhere:
-		var eye := ship.global_transform.affine_inverse() * camera.global_position
-		wanted = relevant(eye, _room, burning)
-	_presence = move_toward(_presence, 1.0 if wanted else 0.0, delta / FADE)
+	var lit := burning and (everywhere or wanted)
+	_presence = move_toward(_presence, 1.0 if lit else 0.0, delta / FADE)
 	var energy := level * smoothstep(0.0, 1.0, _presence)
-	if _light != null:
-		_light.light_energy = (CARGO_ENERGY if _kind == Kind.CARGO else ENERGY) * energy
-		_light.visible = energy > 0.0
-	if _spot != null:
-		_spot.light_energy = FIRE_ENERGY * energy
-		_spot.visible = energy > 0.0
+	if energy != _energy:
+		_energy = energy
+		if _light != null:
+			_light.light_energy = (CARGO_ENERGY if _kind == Kind.CARGO else ENERGY) * energy
+			_light.visible = energy > 0.0
+		if _spot != null:
+			_spot.light_energy = FIRE_ENERGY * energy
+			_spot.visible = energy > 0.0
 	if level != _shown:
 		_shown = level
 		_glass.emission_energy_multiplier = level

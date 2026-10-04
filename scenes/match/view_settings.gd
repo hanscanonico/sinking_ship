@@ -1,12 +1,16 @@
 class_name ViewSettings
 extends Resource
-## How the local player's first-person view turns and frames (D14), and whether the
-## window fills the screen, with defaults. The settings screen saves them at PATH.
-## Presentation only: none of it is ever sent, and no rule reads it.
+## How the local player's first-person view turns and frames (D14), whether the
+## window fills the screen, and the graphics — the preset (GraphicsQuality) and the 3D
+## view's render scale, each this machine's own until the player picks one — with
+## defaults. The settings screen saves them at PATH. Presentation only: none of it is
+## ever sent, and no rule reads it.
 
 const PATH := "user://view_settings.tres"
 const FOV_MIN := 75.0
 const FOV_MAX := 110.0
+## A graphics choice the player has not made: the machine's own stands in.
+const AUTOMATIC := -1
 
 ## The one instance the game reads and the settings screen edits while either
 ## holds it, so a change reaches the look as it is made. Weak: a script's static
@@ -34,6 +38,20 @@ static var _shared: WeakRef
 	set(value):
 		view_kick = clampf(value, 0.0, 1.0)
 @export var fullscreen: bool = false
+## The graphics preset (GraphicsQuality.Preset), or AUTOMATIC until the player picks
+## one: then this machine's own (graphics()).
+@export var quality: int = AUTOMATIC:
+	set(value):
+		quality = clampi(value, AUTOMATIC, GraphicsQuality.Preset.HIGH)
+## The share of the window's pixels, across and down, the 3D view is drawn at, or
+## AUTOMATIC until the player picks one: then this screen's own (render_scale_3d()).
+@export var render_scale: float = AUTOMATIC:
+	set(value):
+		render_scale = (
+			float(AUTOMATIC)
+			if value <= 0.0
+			else clampf(value, GraphicsQuality.SCALE_MIN, GraphicsQuality.SCALE_MAX)
+		)
 
 
 ## The saved settings, or the defaults when none are saved.
@@ -64,3 +82,21 @@ func apply_window() -> void:
 	)
 	if DisplayServer.window_get_mode() != mode:
 		DisplayServer.window_set_mode(mode)
+
+
+## The preset the game draws with: the player's, or this machine's until they pick one.
+func graphics() -> GraphicsQuality:
+	return GraphicsQuality.of(
+		GraphicsQuality.automatic_preset() if quality == AUTOMATIC else quality
+	)
+
+
+## The render scale the game draws its 3D at: the player's, or this screen's until
+## they pick one.
+func render_scale_3d() -> float:
+	return GraphicsQuality.automatic_scale() if render_scale <= 0.0 else render_scale
+
+
+## Draws [param viewport] — the window's own — as the graphics settings say.
+func apply_graphics(viewport: Viewport) -> void:
+	graphics().apply_to(viewport, render_scale_3d())

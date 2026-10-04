@@ -1,13 +1,20 @@
 class_name SettingsMenu
 extends CanvasLayer
-## The settings screen, from the main menu or the pause menu: master, music and
-## effects volume, fullscreen, and the first-person view — mouse sensitivity,
-## invert Y, field of view, and the deck-roll and view-kick comfort sliders (D14, Q17,
-## R15). Each change applies as it is made; closing saves them under user://.
+## The settings screen, from the main menu or the pause menu, in three pages a row of
+## tabs over them picks: Sound — master, music and effects volume; Controls — the
+## first-person view's mouse sensitivity, invert Y, field of view, and the deck-roll
+## and view-kick comfort sliders (D14, Q17, R15); Graphics — fullscreen, the graphics
+## preset with a line on what it changes (GraphicsQuality), and the 3D view's render
+## scale, both this machine's own until the player picks them. Each change applies as
+## it is made; closing saves them under user://.
 
 signal closed
-## The first-person view changed: a match on screen should take it up.
+## The first-person view or the graphics changed: whatever is on screen should take
+## them up.
 signal view_changed(settings: ViewSettings)
+
+## The pages, in the tabs' order.
+enum Page { SOUND, CONTROLS, GRAPHICS }
 
 ## Where closing saves the choices; a test points them elsewhere.
 var audio_path := AudioSettings.PATH
@@ -27,6 +34,10 @@ var _opener: Control
 @onready var _fov: HSlider = %FieldOfView
 @onready var _deck_roll: HSlider = %DeckRoll
 @onready var _view_kick: HSlider = %ViewKick
+@onready var _quality: OptionButton = %Quality
+@onready var _render_scale: HSlider = %RenderScale
+@onready var _pages: Array[Control] = [%Sound, %Controls, %Graphics]
+@onready var _tabs: Array[Button] = [%SoundTab, %ControlsTab, %GraphicsTab]
 
 
 func _ready() -> void:
@@ -39,10 +50,21 @@ func _ready() -> void:
 	for slider: HSlider in [_sensitivity, _fov, _deck_roll, _view_kick]:
 		slider.value_changed.connect(_on_view)
 	_invert_y.toggled.connect(_on_view)
+	for preset: int in GraphicsQuality.Preset.values():
+		_quality.add_item(GraphicsQuality.title(preset), preset)
+	_quality.item_selected.connect(_on_quality)
+	_render_scale.min_value = GraphicsQuality.SCALE_MIN * 100.0
+	_render_scale.max_value = GraphicsQuality.SCALE_MAX * 100.0
+	_render_scale.value_changed.connect(_on_render_scale)
+	var tabs := ButtonGroup.new()
+	for page in _tabs.size():
+		_tabs[page].button_group = tabs
+		_tabs[page].pressed.connect(show_page.bind(page))
 	%Back.pressed.connect(close)
 
 
-func open() -> void:
+## Opens on [param page], the focus on its first choice.
+func open(page := Page.SOUND) -> void:
 	_audio = AudioSettings.local()
 	_view = ViewSettings.local()
 	_opener = get_viewport().gui_get_focus_owner()
@@ -55,9 +77,20 @@ func open() -> void:
 	_fov.set_value_no_signal(_view.fov_deg)
 	_deck_roll.set_value_no_signal(_view.deck_roll * 100.0)
 	_view_kick.set_value_no_signal(_view.view_kick * 100.0)
+	_quality.select(_quality.get_item_index(_view.graphics().preset))
+	_render_scale.set_value_no_signal(_view.render_scale_3d() * 100.0)
 	_show_values()
+	show_page(page)
 	show()
-	_master.grab_focus()
+	var first: Array[Control] = [_master, _sensitivity, _fullscreen]
+	first[page].grab_focus()
+
+
+## Shows [param page] under its tab, the other pages hidden.
+func show_page(page: Page) -> void:
+	for index in _pages.size():
+		_pages[index].visible = index == page
+		_tabs[index].set_pressed_no_signal(index == page)
 
 
 func close() -> void:
@@ -99,6 +132,20 @@ func _on_view(_value: Variant) -> void:
 	view_changed.emit(_view)
 
 
+## The player's choice of preset, and of render scale: each theirs from then on,
+## over this machine's own.
+func _on_quality(index: int) -> void:
+	_view.quality = _quality.get_item_id(index)
+	_show_values()
+	view_changed.emit(_view)
+
+
+func _on_render_scale(value: float) -> void:
+	_view.render_scale = value / 100.0
+	_show_values()
+	view_changed.emit(_view)
+
+
 func _show_values() -> void:
 	%MasterValue.text = "%d %%" % roundi(_master.value)
 	%MusicValue.text = "%d %%" % roundi(_music.value)
@@ -107,3 +154,5 @@ func _show_values() -> void:
 	%FieldOfViewValue.text = "%d°" % roundi(_fov.value)
 	%DeckRollValue.text = "level" if _deck_roll.value <= 0.0 else "%d %%" % roundi(_deck_roll.value)
 	%ViewKickValue.text = "off" if _view_kick.value <= 0.0 else "%d %%" % roundi(_view_kick.value)
+	%RenderScaleValue.text = "%d %%" % roundi(_render_scale.value)
+	%QualityHint.text = GraphicsQuality.summary(_quality.get_selected_id())

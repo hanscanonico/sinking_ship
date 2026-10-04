@@ -19,7 +19,8 @@ extends Node3D
 ## any railing may break, so each is a node of its own, gone once broken but for its
 ## remains, built the first time it breaks (few ever do); and every crate of the
 ## cargo is a wooden box under a node of its own, which MatchView places (crates()),
-## lit as the room it stands in or the open deck.
+## lit as the room it stands in or the open deck. Of the rooms' lamps, LampSight
+## chooses which light each frame, as the graphics preset allows (show_graphics).
 
 const SHADER := preload("res://scenes/art/ship.gdshader")
 const CUT_SHADER := preload("res://scenes/art/ship_cut.gdshader")
@@ -108,11 +109,19 @@ var _remains: Array[Node3D] = []
 ## Finish -> Material.
 var _wreckage: RailingRemains
 var _paints := {}
-## Per platform name that can collapse, its own materials: Finish -> Material.
+## Per platform name that can collapse, its own materials: Finish -> Material; and
+## the blink they were last given, so it is set only as it changes.
 var _flashes := {}
-## Per crate of the layout's cargo, the node it is drawn under, and its own paints.
+var _flashing := {}
+## Per crate of the layout's cargo, the node it is drawn under, and its own paints;
+## and where it stood and how far indoors it was when they were last told.
 var _crates: Array[Node3D] = []
 var _crate_paints: Array[Dictionary] = []
+var _crate_at := PackedVector3Array()
+var _crate_indoors := PackedFloat32Array()
+## Which of the rooms' lamps light, and the graphics preset it was last told of.
+var _lamp_sight: LampSight
+var _graphics := GraphicsQuality.of(GraphicsQuality.Preset.HIGH)
 
 
 ## Draws [param layout]; [param railing_height] and [param body_radius] are the
@@ -131,14 +140,19 @@ func build(
 		child.queue_free()
 	_space = ShipSpace.new(layout)
 	_dressing = RoomDressing.new(_space, cut_above)
+	_lamp_sight = LampSight.new(_space)
+	_lamp_sight.show_graphics(_graphics)
 	_smoke = null
 	_wrecks.clear()
 	_floors.clear()
 	_rails.clear()
 	_remains.clear()
 	_flashes.clear()
+	_flashing.clear()
 	_crates.clear()
 	_crate_paints.clear()
+	_crate_at.clear()
+	_crate_indoors.clear()
 	var materials := _materials(layout)
 	_paints = materials
 	var mesh := _mesh()
@@ -202,6 +216,16 @@ func build(
 		(pieces[node] as ShipMesh).commit(node, paints)
 	for prop: ShipProp in layout.props:
 		_crates.append(_crate(prop, materials))
+		_crate_at.append(Vector3(NAN, NAN, NAN))
+		_crate_indoors.append(NAN)
+
+
+## Lets as many of the rooms' lamps light at once as [param quality] allows, and only
+## those it allows: the nearest first.
+func show_graphics(quality: GraphicsQuality) -> void:
+	_graphics = quality
+	if _lamp_sight != null:
+		_lamp_sight.show_graphics(quality)
 
 
 ## Per crate of the layout's cargo, the node it is drawn under, its origin at the
@@ -222,6 +246,9 @@ func show_sinking(
 		return
 	for platform_name: StringName in _flashes:
 		var flash := 1.0 if lit and platform_name in collapsing else 0.0
+		if _flashing.get(platform_name, -1.0) == flash:
+			continue
+		_flashing[platform_name] = flash
 		for finish: int in PAINTS:
 			(_flashes[platform_name][finish] as ShaderMaterial).set_shader_parameter("flash", flash)
 	for index in _wrecks.size():
@@ -275,17 +302,27 @@ func _process(_delta: float) -> void:
 		_smoke.emitting = _smoke.global_position.y > 0.0
 	for index in _crates.size():
 		_light_crate(index)
+	var camera := get_viewport().get_camera_3d()
+	if camera != null and _lamp_sight != null:
+		_lamp_sight.choose(global_transform.affine_inverse() * camera.global_position)
 
 
 ## Takes crate [param index]'s paints as far indoors as the crate stands where
 ## MatchView has put it — lamp-lit and out of the sun in a room, as the room's faces
-## are — so it goes from the one light to the other as it crosses a doorway.
+## are — so it goes from the one light to the other as it crosses a doorway. Only as
+## it moves, and only as far as that changes it.
 func _light_crate(index: int) -> void:
-	var prop := _space.layout.props[index]
 	var at := _crates[index].position
+	if at == _crate_at[index]:
+		return
+	_crate_at[index] = at
+	var prop := _space.layout.props[index]
 	var half := prop.radius * CRATE_SIDE
 	var foot := Rect2(at.x - half, at.z - half, half * 2.0, half * 2.0)
 	var indoors := _space.indoors(foot, at.y + prop.height * 0.5)
+	if indoors == _crate_indoors[index]:
+		return
+	_crate_indoors[index] = indoors
 	for finish: int in PAINTS:
 		(_crate_paints[index][finish] as ShaderMaterial).set_shader_parameter("indoors", indoors)
 
@@ -873,6 +910,7 @@ func _hang_lamps(room: ShipRoom, index: int, brass: Material) -> void:
 			glass.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 			ShipLamp.fade_near(glass)
 		lamp.setup(box, index * 1.7 + number * 0.61, glass, brass, light.kind, light.facing)
+		_lamp_sight.add(lamp, index, box)
 
 
 ## One material per finish: ship.gdshader, or its cut-away variant while

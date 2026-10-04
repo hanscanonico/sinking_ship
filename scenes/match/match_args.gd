@@ -7,6 +7,7 @@ extends RefCounted
 ##   --server  --port=N  --bind=ADDRESS  --matches=N
 ##   --connect=ws://HOST:PORT  --create | --room=CODE  --name=NAME  --start-at=N
 ##   --capture-screen=SCREEN  --capture-from=X,Y,Z,YAW[,PITCH]  --capture-sway=S
+##   --quality=low|medium|high  --render-scale=F
 ## The game reads --seed and --seats as the menu's choices; --autoplay presses its
 ## Play, and without it --capture saves the menu. A capture is taken from the
 ## observer camera unless --capture-eye names the seat whose eyes it looks through;
@@ -14,19 +15,22 @@ extends RefCounted
 ## the ship away to show the inside; --greybox draws the greybox the rules' data
 ## makes in place of the dressed ship; --net-sim makes the wire between the local host
 ## and the client lie about latency, jitter and loss (SH11); --capture-screen stages a
-## screen for the capture: menu, settings (over the menu), pause, results, online (the
-## Online screen), room (a room, its players made up), online-pause (the online pause
-## over the match) or online-settings (the settings opened from it); --capture-from
+## screen for the capture: menu, settings (over the menu), graphics (the settings on
+## their Graphics page), pause, results, online (the Online screen), room (a room, its
+## players made up), online-pause (the online pause over the match) or online-settings
+## (the settings opened from it); --capture-from
 ## stands the capture's eyes on chosen feet in ship space, looking YAW degrees from the
 ## bow toward starboard and PITCH above the horizon; --capture-sway holds the menu
-## backdrop's drift at S (-1…1, one end of its sway to the other). No menu
-## reaches any of them (D14). --server serves rooms over WebSocket, headless, on --port
-## and --bind (ServerRules' unless given), its matches' seeds drawn from --seed when
-## given — its rooms' codes never are — until --matches matches have finished (forever
-## at 0); --connect plays in a server's room, --create making one or --room joining one
-## by its code, as --name (SH12): a person at the keys, the Online screen opened on them
-## (OnlineLink checks every one of them), or with --autoplay a bot, headless, whose
-## creator starts the match once --start-at players are in.
+## backdrop's drift at S (-1…1, one end of its sway to the other); --quality and
+## --render-scale draw this run as if the settings screen had chosen them, to measure
+## or capture a choice (make fps). No menu reaches any of them (D14). --server serves
+## rooms over WebSocket, headless, on --port and --bind (ServerRules' unless given),
+## its matches' seeds drawn from --seed when given — its rooms' codes never are — until
+## --matches matches have finished (forever at 0); --connect plays in a server's room,
+## --create making one or --room joining one by its code, as --name (SH12): a person at
+## the keys, the Online screen opened on them (OnlineLink checks every one of them), or
+## with --autoplay a bot, headless, whose creator starts the match once --start-at
+## players are in.
 
 ## -1 when not given: the host picks one.
 var seed_value: int = -1
@@ -74,6 +78,10 @@ var capture_screen: String = ""
 var capture_from := PackedFloat64Array()
 ## Where a capture holds the menu backdrop's drift, -1…1; NAN to let it drift.
 var capture_sway := NAN
+## The graphics preset and render scale this run draws with whatever is saved;
+## ViewSettings.AUTOMATIC when not given.
+var quality: int = ViewSettings.AUTOMATIC
+var render_scale: float = ViewSettings.AUTOMATIC
 
 
 static func parse(args: PackedStringArray) -> MatchArgs:
@@ -107,6 +115,12 @@ static func parse(args: PackedStringArray) -> MatchArgs:
 				parsed.capture_from = value.split_floats(",")
 			"--capture-sway":
 				parsed.capture_sway = value.to_float()
+			"--quality":
+				parsed.quality = GraphicsQuality.Preset.keys().find(value.to_upper())
+				if parsed.quality == ViewSettings.AUTOMATIC:
+					push_warning("--quality takes low, medium or high, not %s" % value)
+			"--render-scale":
+				parsed.render_scale = value.to_float()
 			"--net-sim":
 				var conditions := NetConditions.parse(value)
 				if conditions == null:

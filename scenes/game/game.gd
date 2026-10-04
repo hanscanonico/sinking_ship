@@ -16,12 +16,14 @@ extends Node
 ## Play online opens the Online screen (OnlineMenu) over the menu's backdrop, whose link
 ## a person plays there (OnlinePlay); --connect without --autoplay — or a browser page's
 ## address naming a room — opens it on that link, and plays it once the name is known.
-## --capture-screen stages the settings, the pause menu, the results, the Online screen,
-## a room — its players made up, no server asked — or the online pause over the match,
-## the settings opened from it or not, for a capture; --capture-sway holds the menu
-## backdrop's drift.
-## The saved volumes and window apply as it boots; the settings screen opens from
-## the main menu and the pause menu.
+## --capture-screen stages the settings — on their Graphics page for graphics —, the
+## pause menu, the results, the Online screen, a room — its players made up, no server
+## asked — or the online pause over the match, the settings opened from it or not, for
+## a capture; --capture-sway holds the menu backdrop's drift.
+## The saved volumes, window and graphics apply as it boots — --quality and
+## --render-scale stand in for the saved graphics for one run; the settings screen opens
+## from the main menu and the pause menu, and its changes reach the window, the menu's
+## backdrop and the match as they are made.
 
 const MATCH_DATA := "res://data/match/default.tres"
 const MATCH_SCENE := preload("res://scenes/match/match.tscn")
@@ -41,6 +43,8 @@ var _tier: StringName
 var _capturing := false
 ## The online play under way, from the Online screen; null when none is.
 var _online: OnlinePlay
+## The view settings, held so that what --quality and --render-scale choose holds all run.
+var _view: ViewSettings
 
 @onready var _menu: MainMenu = $MainMenu
 @onready var _online_menu: OnlineMenu = $OnlineMenu
@@ -59,9 +63,15 @@ func _ready() -> void:
 		return
 	_seeds.randomize()
 	AudioSettings.local().apply()
+	_view = ViewSettings.local()
 	# A capture keeps the window it was launched with, whatever the player saved.
 	if _args.capture_path.is_empty():
-		ViewSettings.local().apply_window()
+		_view.apply_window()
+	if _args.quality != ViewSettings.AUTOMATIC:
+		_view.quality = _args.quality
+	if _args.render_scale > 0.0:
+		_view.render_scale = _args.render_scale
+	_view.apply_graphics(get_viewport())
 	_match_rules = load(MATCH_DATA)
 	var problems := _match_rules.problems()
 	if not problems.is_empty():
@@ -105,6 +115,8 @@ func _process(_delta: float) -> void:
 			match _args.capture_screen:
 				"settings":
 					_settings.open()
+				"graphics":
+					_settings.open(SettingsMenu.Page.GRAPHICS)
 				"online":
 					_open_online()
 				"room":
@@ -195,6 +207,8 @@ func _quit() -> void:
 
 
 func _on_view_changed(settings: ViewSettings) -> void:
+	settings.apply_graphics(get_viewport())
+	_menu.show_graphics(settings)
 	if _match != null:
 		_match.apply_view(settings)
 	if _online != null:
