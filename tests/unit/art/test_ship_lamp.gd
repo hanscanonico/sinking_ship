@@ -58,3 +58,15 @@ func test_a_lamp_lights_nothing_through_the_deck_over_or_under_the_eye() -> void
 
 func test_a_wrecked_lamp_stays_out_wherever_the_eye_is() -> void:
 	assert_false(ShipLamp.relevant(Vector3(0.5, -1.0, 0.0), ENGINE_ROOM, false))
+
+
+func test_a_fire_wavers_but_never_dies_while_dry() -> void:
+	var lowest := 1.0
+	var highest := 0.0
+	for sample in SAMPLES:
+		var flame := ShipLamp.flame(sample / 30.0)
+		lowest = minf(lowest, flame)
+		highest = maxf(highest, flame)
+	assert_gte(lowest, 1.0 - ShipLamp.FIRE_WAVER)
+	assert_lte(highest, 1.0)
+	assert_gt(highest - lowest, ShipLamp.FIRE_WAVER * 0.5)

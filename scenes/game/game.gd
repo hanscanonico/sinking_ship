@@ -160,6 +160,8 @@ func _play(seats: int, tier: StringName, seed_text: String) -> void:
 	_match.start(
 		config, _args.autoplay, observer, eye, _args.observer_cut, _args.greybox, _args.net_sim
 	)
+	if capturing:
+		_match.stage_eyes(_args.capture_from)
 
 
 func _rematch() -> void:

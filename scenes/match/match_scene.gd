@@ -34,6 +34,9 @@ var _local_seat := LOCAL_SEAT
 var _observer: bool
 ## Whose eyes the view is in while that seat is dry: the local seat's, or a capture's.
 var _eye_seat := LOCAL_SEAT
+## A capture's eyes, standing apart from the seat they look through: feet x, y, z
+## in ship space, yaw and pitch in degrees (--capture-from); empty for the seat's own.
+var _staged := PackedFloat64Array()
 var _paused := false
 ## Whether the match is played on a server: started by start_online.
 var _online := false
@@ -103,16 +106,22 @@ func _process(delta: float) -> void:
 	# little below level, so the deck and its edges show under the horizon.
 	var yaw := _view.seat_facing(viewed)
 	var pitch := deg_to_rad(SPECTATE_PITCH_DEG)
+	var feet := _view.seat_feet(viewed)
 	if _local != null and viewed == _local_seat:
 		yaw = _local.yaw
 		pitch = _local.pitch
+	if _staged.size() >= 5:
+		feet = Vector3(_staged[0], _staged[1], _staged[2])
+		yaw = deg_to_rad(_staged[3])
+		pitch = deg_to_rad(_staged[4])
 	_view.look_out_of(viewed)
 	_kick.follow(snapshot, viewed, yaw)
 	var kick := _kick.advance(delta)
-	_eyes.look_from(_view.ship_to_world(), _view.seat_feet(viewed), yaw, pitch, kick)
-	_arms.show_seat(
-		viewed, _driver.previous["seats"][viewed], snapshot["seats"][viewed], _driver.alpha
-	)
+	_eyes.look_from(_view.ship_to_world(), feet, yaw, pitch, kick)
+	if _staged.is_empty():
+		_arms.show_seat(
+			viewed, _driver.previous["seats"][viewed], snapshot["seats"][viewed], _driver.alpha
+		)
 	_underwater.show_eye(_eyes.global_position)
 	_first_person_hud.show_view(snapshot, viewed, yaw, _eyes, _view)
 
@@ -181,6 +190,16 @@ func start_online(played: PlayedMatch, local: LocalInputSource, names: PackedStr
 	_online = true
 	_begin(played, local, seat, names, false, seat, INF, false)
 	_end.offer_room()
+
+
+## Stands a capture's eyes on [param at] — feet x, y, z in ship space, yaw and
+## pitch in degrees — whatever the seat they look through does; empty leaves them
+## the seat's own. The seat's arms are not drawn there.
+func stage_eyes(at: PackedFloat64Array) -> void:
+	_staged = at
+	if at.size() == 4:
+		_staged.append(SPECTATE_PITCH_DEG)
+	_arms.visible = at.is_empty()
 
 
 ## Lets the mouse go, or takes it back, without pausing: the online match's Esc. While

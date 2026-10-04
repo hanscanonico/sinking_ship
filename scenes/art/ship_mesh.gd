@@ -10,8 +10,9 @@ extends RefCounted
 ## than a few rooms. Each face's rim fades toward the crew's ink
 ## (ship.gdshaderinc), so a box reads bevelled.
 
-## What a face is painted with (ship.gdshaderinc's finishes, then the glass).
-enum Finish { PLAIN, DECK, HULL, HOUSE, CABIN, FUNNEL, GLASS_IN, GLASS_OUT }
+## What a face is painted with (ship.gdshaderinc's finishes, then the glass, then
+## the rooms' own: riveted steel and rough timber).
+enum Finish { PLAIN, DECK, HULL, HOUSE, CABIN, FUNNEL, GLASS_IN, GLASS_OUT, PLATE, ROUGH }
 
 ## The rims of a face: the edges at u = 0, u = 1, v = 0 and v = 1.
 const RIM_U0 := 1

@@ -296,6 +296,12 @@ static func outward(side: int) -> Vector2:
 ## Whether a box thicker than a wall stands on [param room]'s floor inside it: an
 ## engine, a boiler — machinery.
 func machinery_in(room: ShipRoom) -> bool:
+	return not machinery(room).is_empty()
+
+
+## The boxes thicker than a wall standing on [param room]'s floor inside it.
+func machinery(room: ShipRoom) -> Array[ShipBlocker]:
+	var found: Array[ShipBlocker] = []
 	for blocker: ShipBlocker in layout.blockers:
 		if (
 			blocker.shape == ShipBlocker.Shape.BOX
@@ -303,8 +309,8 @@ func machinery_in(room: ShipRoom) -> bool:
 			and absf(blocker.bottom - room.floor_height) < 0.05
 			and room.area.has_point(blocker.area.get_center())
 		):
-			return true
-	return false
+			found.append(blocker)
+	return found
 
 
 func _full_wall_of(blocker: ShipBlocker, room: ShipRoom) -> bool:

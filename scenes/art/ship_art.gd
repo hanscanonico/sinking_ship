@@ -7,8 +7,9 @@ extends Node3D
 ## painted inside under beamed ceilings, with wooden door frames; treads on every
 ## ramp; railings of stanchions and rails; a ladder down the hull side at every
 ## boarding ladder; a buff funnel with a black top and smoke, a mast; a tarpaulined
-## hatch where a thick box stands outdoors and an engine where one stands in a room;
-## glass, furniture and lifeboats (ShipFittings); and a ShipLamp in every room.
+## hatch where a thick box stands outdoors; glass, furniture and lifeboats
+## (ShipFittings); and each room's own lining, fittings — an engine where one stands
+## in a room — door signs and lamps (RoomDressing), the lamps ShipLamps.
 ## Drawn only — the sim never reads a mesh. The sinking's events are drawn as
 ## MatchView hands them in (show_sinking): every platform the scenario may collapse
 ## and every railing it may fail is built as a node of its own, so a deck about to
@@ -82,6 +83,8 @@ const PAINTS: Array[int] = [
 	ShipMesh.Finish.HOUSE,
 	ShipMesh.Finish.CABIN,
 	ShipMesh.Finish.FUNNEL,
+	ShipMesh.Finish.PLATE,
+	ShipMesh.Finish.ROUGH,
 ]
 
 ## Ship-local height: nothing of the ship above it is drawn — the observer's
@@ -89,6 +92,7 @@ const PAINTS: Array[int] = [
 var cut_above := INF
 
 var _space: ShipSpace
+var _dressing: RoomDressing
 var _smoke: CPUParticles3D
 ## Per platform, the node its deck hangs from — what falls when it collapses — or
 ## null when no event can collapse it.
@@ -125,6 +129,7 @@ func build(
 		remove_child(child)
 		child.queue_free()
 	_space = ShipSpace.new(layout)
+	_dressing = RoomDressing.new(_space, cut_above)
 	_smoke = null
 	_wrecks.clear()
 	_floors.clear()
@@ -167,14 +172,25 @@ func build(
 	for ladder: ShipLadder in layout.ladders:
 		var into: ShipMesh = pieces.get(_wrecks[ladder.platform], mesh)
 		_ladder(into, ladder, layout.platforms[ladder.platform], -layout.freeboard)
-	ShipFittings.new(_space, hull, body_radius).build(mesh)
+	var fittings := ShipFittings.new(_space, hull, body_radius)
+	fittings.build(mesh)
+	# Every furnishing stands in a room: its own mesh, which need not ask where it is.
+	var furnishings := ShipMesh.new(
+		func(_point: Vector3) -> bool: return false, _space.room_lines()
+	)
+	furnishings.cut_above = cut_above
+	var dressed := Node3D.new()
+	dressed.name = "Dressing"
+	add_child(dressed)
+	_dressing.build(furnishings, dressed, fittings.panes)
 	var brass := StandardMaterial3D.new()
 	brass.albedo_color = ArtPalette.BRASS
 	brass.diffuse_mode = BaseMaterial3D.DIFFUSE_TOON
 	brass.specular_mode = BaseMaterial3D.SPECULAR_DISABLED
 	for index in layout.rooms.size():
-		_hang_lamp(layout.rooms[index], index, brass)
+		_hang_lamps(layout.rooms[index], index, brass)
 	mesh.commit(self, materials)
+	furnishings.commit(dressed, materials)
 	for node: Node3D in pieces:
 		var deck := _wrecks.find(node)
 		if deck == -1:
@@ -336,17 +352,22 @@ func _deck(mesh: ShipMesh, platform: ShipPlatform, hidden: int) -> void:
 	if height >= cut_above:
 		return
 	var faces := (ShipMesh.TOP | ShipMesh.SIDES) & ~hidden
-	mesh.box(area, height - PLANK, height, ShipPaints.deck, faces)
+	_lined_box(mesh, area, height - PLANK, height, ShipPaints.deck, faces, ShipMesh.TOP)
 	if not _space.stands_over_a_platform(platform):
 		return
-	mesh.box(area, height - PLANK, height, ShipPaints.ceiling, ShipMesh.BOTTOM)
+	_lined_box(
+		mesh, area, height - PLANK, height, ShipPaints.ceiling, ShipMesh.BOTTOM, ShipMesh.BOTTOM
+	)
 	var x := ceilf((area.position.x + BEAM_WIDTH) / BEAM_SPACING) * BEAM_SPACING
+	var under := height - PLANK - BEAM_DEPTH
 	while x < area.end.x - BEAM_WIDTH:
+		var probe := Vector3(x, under - ShipMesh.PROBE, area.get_center().y)
+		var lining := _dressing.lining(probe, RoomDressing.Part.BEAM)
 		mesh.box(
 			Rect2(x - BEAM_WIDTH * 0.5, area.position.y, BEAM_WIDTH, area.size.y),
-			height - PLANK - BEAM_DEPTH,
+			under,
 			height - PLANK,
-			ShipPaints.beam,
+			ShipPaints.beam if lining == null else lining,
 			ShipMesh.BOTTOM | ShipMesh.POS_X | ShipMesh.NEG_X
 		)
 		x += BEAM_SPACING
@@ -495,8 +516,9 @@ func _bar(
 	)
 
 
-## A wall, a hatch, an engine, a funnel or a mast, by its shape and where it stands.
-## A blocker a deck rests on stops a plank short of its top, so the deck shows.
+## A wall, a hatch, a funnel or a mast, by its shape and where it stands — an
+## engine standing in a room is the room's own (RoomDressing). A blocker a deck rests
+## on stops a plank short of its top, so the deck shows.
 func _blocker(mesh: ShipMesh, blocker: ShipBlocker) -> void:
 	var top := blocker.top - (PLANK if _space.deck_on(blocker) else 0.0)
 	if blocker.shape == ShipBlocker.Shape.CYLINDER:
@@ -510,13 +532,133 @@ func _blocker(mesh: ShipMesh, blocker: ShipBlocker) -> void:
 	if _space.is_wall(blocker):
 		var deck := _space.deck_under(centre, blocker.bottom)
 		var foot := blocker.bottom if is_nan(deck) else deck
-		mesh.box(area, blocker.bottom, top, ShipPaints.wall, ShipMesh.ALL_FACES, foot, blocker.top)
+		_lined_box(
+			mesh,
+			area,
+			blocker.bottom,
+			top,
+			ShipPaints.wall,
+			ShipMesh.ALL_FACES,
+			ShipMesh.SIDES,
+			foot,
+			blocker.top
+		)
 		if not is_nan(deck) and blocker.bottom - deck > DOOR_FROM:
 			_door_frame(mesh, blocker, deck)
 	elif _space.outdoors(Vector3(centre.x, (blocker.bottom + top) * 0.5, centre.y)):
 		_hatch(mesh, area, blocker.bottom, top)
-	else:
-		_engine(mesh, area, blocker.bottom, top)
+
+
+## A box as ShipMesh.box() draws it in [param paint] — [param faces] of it — each
+## face cut where a room with a lining of its own (RoomDressing) begins or ends and at
+## the chunk lines (_lined_face); a piece of the faces [param lined] names that looks
+## into such a room takes its lining for what it is: a top its floor, a bottom its
+## ceiling, a side its wall.
+func _lined_box(
+	mesh: ShipMesh,
+	area: Rect2,
+	bottom: float,
+	top: float,
+	paint: ShipMesh.Paint,
+	faces: int,
+	lined: int,
+	foot := NAN,
+	head := NAN
+) -> void:
+	foot = bottom if is_nan(foot) else foot
+	head = top if is_nan(head) else head
+	var x0 := area.position.x
+	var x1 := area.end.x
+	var z0 := area.position.y
+	var z1 := area.end.y
+	var dx := Vector3(area.size.x, 0.0, 0.0)
+	var dy := Vector3(0.0, top - bottom, 0.0)
+	var dz := Vector3(0.0, 0.0, area.size.y)
+	var floor := RoomDressing.Part.FLOOR
+	var wall := RoomDressing.Part.WALL
+	# The faces as ShipMesh.box() lays them out, each with what it is to a room.
+	var sides := [
+		[ShipMesh.TOP, Vector3(x0, top, z0), dz, dx, floor],
+		[ShipMesh.BOTTOM, Vector3(x0, bottom, z0), dx, dz, RoomDressing.Part.OVERHEAD],
+		[ShipMesh.POS_X, Vector3(x1, bottom, z0), dy, dz, wall],
+		[ShipMesh.NEG_X, Vector3(x0, bottom, z0), dz, dy, wall],
+		[ShipMesh.POS_Z, Vector3(x0, bottom, z1), dx, dy, wall],
+		[ShipMesh.NEG_Z, Vector3(x0, bottom, z0), dy, dx, wall],
+	]
+	for side: Array in sides:
+		if faces & side[0]:
+			var part: int = side[4] if lined & side[0] else -1
+			_lined_face(mesh, side[1], side[2], side[3], paint, part, foot, head)
+
+
+## A face from [param origin] along [param u] and [param v] in [param paint], cut at
+## the lined rooms' edges (RoomDressing.lining_lines) and the chunk lines, each piece
+## in the lining for [param part] (-1 for none) of the room it looks into, if any; only
+## the whole face's edges rimmed. A face too narrow for ShipMesh to cut — a plank's
+## edge, a wall's top — so still lies in one chunk's mesh, never a sliver the length
+## of the deck that every lamp along it reaches.
+func _lined_face(
+	mesh: ShipMesh,
+	origin: Vector3,
+	u: Vector3,
+	v: Vector3,
+	paint: ShipMesh.Paint,
+	part: int,
+	foot: float,
+	head: float
+) -> void:
+	var normal := u.cross(v).normalized()
+	var narrow := minf(u.length(), v.length()) < ShipMesh.NARROW
+	var box := AABB(origin, Vector3.ZERO).expand(origin + u + v).grow(ShipMesh.PROBE)
+	if not narrow and (part == -1 or not _dressing.lined_near(box)):
+		mesh.face(origin, u, v, paint, ShipMesh.RIM_ALL, foot, head)
+		return
+	var u_cuts := _lining_cuts(origin, u)
+	var v_cuts := _lining_cuts(origin, v)
+	for i in u_cuts.size() - 1:
+		for j in v_cuts.size() - 1:
+			var at := origin + u * u_cuts[i] + v * v_cuts[j]
+			var piece_u := u * (u_cuts[i + 1] - u_cuts[i])
+			var piece_v := v * (v_cuts[j + 1] - v_cuts[j])
+			var probe := at + (piece_u + piece_v) * 0.5 + normal * ShipMesh.PROBE
+			var lining := null if part == -1 else _dressing.lining(probe, part)
+			var rims := (
+				(ShipMesh.RIM_U0 if i == 0 else 0)
+				| (ShipMesh.RIM_U1 if i == u_cuts.size() - 2 else 0)
+				| (ShipMesh.RIM_V0 if j == 0 else 0)
+				| (ShipMesh.RIM_V1 if j == v_cuts.size() - 2 else 0)
+			)
+			mesh.face(at, piece_u, piece_v, paint if lining == null else lining, rims, foot, head)
+
+
+## Where along [param edge] from [param origin] (fractions 0…1) a lined room's edge
+## or a chunk line (ShipMesh.CHUNK) crosses it — along x or z alone.
+func _lining_cuts(origin: Vector3, edge: Vector3) -> PackedFloat32Array:
+	var cuts := PackedFloat32Array([0.0])
+	var axis := -1
+	if absf(edge.x) > ShipMesh.SLIVER and is_zero_approx(edge.y) and is_zero_approx(edge.z):
+		axis = 0
+	elif absf(edge.z) > ShipMesh.SLIVER and is_zero_approx(edge.x) and is_zero_approx(edge.y):
+		axis = 1
+	if axis != -1:
+		var start := origin.x if axis == 0 else origin.z
+		var length := edge.x if axis == 0 else edge.z
+		var lines := _dressing.lining_lines(axis).duplicate()
+		var step := ShipMesh.CHUNK.x if axis == 0 else ShipMesh.CHUNK.z
+		var line := ceilf(minf(start, start + length) / step) * step
+		while line < maxf(start, start + length):
+			lines.append(line)
+			line += step
+		for at: float in lines:
+			var fraction := (at - start) / length
+			if (
+				fraction * absf(length) > ShipMesh.SLIVER
+				and (1.0 - fraction) * absf(length) > ShipMesh.SLIVER
+			):
+				cuts.append(fraction)
+	cuts.append(1.0)
+	cuts.sort()
+	return cuts
 
 
 ## Posts either side of the doorway under [param lintel], from the deck to its
@@ -585,49 +727,6 @@ func _hatch(mesh: ShipMesh, area: Rect2, bottom: float, top: float) -> void:
 			)
 		)
 		mesh.box(strap, top - 0.15, top + 0.01, ShipPaints.beam, ShipMesh.SIDES | ShipMesh.TOP)
-
-
-## An engine block: a plinth, a crankcase with a brass band, a row of cylinder heads,
-## and a steam pipe from them up to the deckhead and along it.
-func _engine(mesh: ShipMesh, area: Rect2, bottom: float, top: float) -> void:
-	mesh.box(area, bottom, top, ShipPaints.machine, ShipMesh.SIDES | ShipMesh.TOP)
-	mesh.box(area.grow(0.03), bottom, bottom + 0.18, ShipPaints.steel, ShipMesh.SIDES)
-	mesh.box(area.grow(0.02), top - 0.08, top, ShipPaints.brass, ShipMesh.SIDES)
-	var along_x := area.size.x >= area.size.y
-	var long := area.size.x if along_x else area.size.y
-	var short := area.size.y if along_x else area.size.x
-	var heads := maxi(1, floori(long / 0.8))
-	var radius := minf(0.28, short * 0.25)
-	var middle := area.get_center()
-	for head in heads:
-		var at := long * (head + 0.5) / heads
-		var centre := (
-			Vector2(area.position.x + at, middle.y)
-			if along_x
-			else Vector2(middle.x, area.position.y + at)
-		)
-		mesh.cylinder(centre, radius, top, top + 0.25, 12, ShipPaints.steel)
-		mesh.cylinder(centre, radius + 0.02, top + 0.08, top + 0.13, 12, ShipPaints.brass, false)
-	var deck := INF
-	for platform: ShipPlatform in _space.layout.platforms:
-		if platform.height > top and platform.contains(middle.x, middle.y):
-			deck = minf(deck, platform.height)
-	if deck == INF:
-		return
-	var pipe := deck - PLANK - BEAM_DEPTH - 0.08
-	var offset := short * 0.35
-	var run := (
-		Rect2(area.position.x, middle.y + offset - 0.05, area.size.x, 0.1)
-		if along_x
-		else Rect2(middle.x + offset - 0.05, area.position.y, 0.1, area.size.y)
-	)
-	mesh.box(run, pipe - 0.05, pipe + 0.05, ShipPaints.steel)
-	var riser := (
-		Rect2(area.position.x + long * 0.5 - 0.04, middle.y + offset - 0.04, 0.08, 0.08)
-		if along_x
-		else Rect2(middle.x + offset - 0.04, area.position.y + long * 0.5 - 0.04, 0.08, 0.08)
-	)
-	mesh.box(riser, top, pipe, ShipPaints.brass, ShipMesh.SIDES)
 
 
 ## A buff funnel with a black top and a rim, painted like the cabins where it passes
@@ -720,30 +819,42 @@ func _mast(mesh: ShipMesh, blocker: ShipBlocker, top: float) -> void:
 	add_child(light)
 
 
-## [param room]'s lamp, hung under the middle of its ceiling (the greybox's marker)
-## — from the deck above when that deck can fall.
-func _hang_lamp(room: ShipRoom, index: int, brass: Material) -> void:
+## [param room]'s lamps where RoomDressing.lights() puts them: a pendant hung under
+## the middle of its ceiling (the greybox's marker) — from the deck above when that
+## deck can fall — and a room's others the same way; a fire in its wall.
+func _hang_lamps(room: ShipRoom, index: int, brass: Material) -> void:
 	var middle := room.area.get_center()
 	var ceiling := _space.ceiling(room, middle.x, middle.y)
-	var lamp := ShipLamp.new()
-	lamp.name = "Lamp%d" % index
-	lamp.position = Vector3(middle.x, ceiling - PLANK, middle.y)
-	lamp.visible = room.floor_height < cut_above
-	lamp.everywhere = is_finite(cut_above)
-	var roof := _space.roof(room, middle.x, middle.y)
-	var wreck: Node3D = _wrecks[roof] if roof != -1 else null
-	(wreck if wreck != null else self).add_child(lamp)
-	var glass := StandardMaterial3D.new()
-	glass.albedo_color = ArtPalette.LAMP_GLASS
-	glass.emission_enabled = true
-	glass.emission = ArtPalette.LAMP_GLASS
-	glass.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	var area := room.area
 	var box := AABB(
 		Vector3(area.position.x, room.floor_height, area.position.y),
 		Vector3(area.size.x, ceiling - room.floor_height, area.size.y)
 	)
-	lamp.setup(box, index * 1.7, glass, brass)
+	var lights := _dressing.lights(room)
+	for number in lights.size():
+		var light := lights[number]
+		var lamp := ShipLamp.new()
+		lamp.name = "Lamp%d" % index if number == 0 else "Lamp%d_%d" % [index, number]
+		lamp.position = light.at
+		lamp.visible = room.floor_height < cut_above
+		lamp.everywhere = is_finite(cut_above)
+		var roof := _space.roof(room, light.at.x, light.at.z)
+		var wreck: Node3D = _wrecks[roof] if roof != -1 else null
+		if light.kind == ShipLamp.Kind.FIRE:
+			wreck = null
+		(wreck if wreck != null else self).add_child(lamp)
+		var glass := StandardMaterial3D.new()
+		glass.emission_enabled = true
+		if light.kind == ShipLamp.Kind.FIRE:
+			# Embers dark in their own right, glowing only as the fire burns.
+			glass.albedo_color = ArtPalette.EMBERS
+			glass.emission = ArtPalette.FIRE_GLOW
+			glass.specular_mode = BaseMaterial3D.SPECULAR_DISABLED
+		else:
+			glass.albedo_color = ArtPalette.LAMP_GLASS
+			glass.emission = ArtPalette.LAMP_GLASS
+			glass.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		lamp.setup(box, index * 1.7 + number * 0.61, glass, brass, light.kind, light.facing)
 
 
 ## One material per finish: ship.gdshader, or its cut-away variant while
@@ -769,6 +880,8 @@ func _materials(layout: ShipLayout) -> Dictionary:
 		)
 		if cut:
 			material.set_shader_parameter("cut_above", cut_above)
+		if paint == ShipMesh.Finish.PLATE:
+			material.set_shader_parameter("foot_colour", ArtPalette.BULKHEAD_FOOT)
 		materials[paint] = material
 	materials[ShipMesh.Finish.GLASS_IN] = _glass(false)
 	materials[ShipMesh.Finish.GLASS_OUT] = _glass(true)
