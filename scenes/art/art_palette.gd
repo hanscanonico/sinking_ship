@@ -122,6 +122,22 @@ const CABIN_CURTAINS: Array[Color] = [
 	Color("b07a4a")
 ]
 
+## The sinking's effects (SinkingFx): white water, a little cooler than the sea's
+## foam so it reads against it; steam whiter and thinner; the funnel's smoke as the
+## fires are drowned; dust off old timber; the cloud of a deck giving way, lit warm
+## by the low sun; dust sifting down indoors; bubbles.
+const SPRAY := Color(0.9, 0.95, 0.96, 0.9)
+const STEAM := Color(0.96, 0.96, 0.95, 0.6)
+const SMOKE_HEAVY := Color(0.17, 0.16, 0.16, 0.75)
+const DUST := Color(0.72, 0.66, 0.57, 0.85)
+const DUST_CLOUD := Color(0.74, 0.57, 0.42, 0.9)
+const SIFTING_DUST := Color(0.6, 0.53, 0.44, 0.8)
+const BUBBLE := Color(0.88, 0.96, 0.97, 0.85)
+## Floating wreckage: a lifebelt's bands, a deck chair's canvas.
+const FLOTSAM_LIFEBELT := Color("efe9dc")
+const LIFEBELT_BAND := Color("c1372b")
+const CHAIR_CANVAS := Color("3f6f8f")
+
 
 static func seat_colour(seat: int) -> Color:
 	return SEAT_COLOURS[seat % SEAT_COLOURS.size()]

@@ -45,6 +45,7 @@ var _online := false
 var _mouse_freed := false
 var _marks := BrawlMarks.new()
 var _dust := LandingDust.new()
+var _fx := SinkingFx.new()
 var _prompts := InputPrompts.new()
 var _pointer := PointerCapture.new()
 var _kick: ViewKick
@@ -71,6 +72,7 @@ func _ready() -> void:
 	_driver.stepped.connect(_shake_for_the_sinking)
 	add_child(_marks)
 	add_child(_dust)
+	add_child(_fx)
 	add_child(_prompts)
 	add_child(_pointer)
 	_pointer.lost.connect(pointer_lost.emit)
@@ -249,6 +251,7 @@ func _begin(
 	_hud.setup(sim)
 	_marks.setup(_driver, _view, sim)
 	_dust.setup(_driver, _view)
+	_fx.setup(_driver, _view, sim)
 	_kick = ViewKick.new(settings.view_kick)
 	_eyes.setup(settings)
 	_arms.setup(config.rules)
