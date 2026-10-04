@@ -544,6 +544,9 @@ func _railings(
 				_hazards.damage(
 					state, contact.railing, _rules.vault_damage, pose_now, tick, events, player.seat
 				)
+				# In the air it meets other railings than on its feet: where it stood clear
+				# before is no answer for it now.
+				clear.erase(player.seat)
 				break
 			_hold(player, contact)
 			moved = true

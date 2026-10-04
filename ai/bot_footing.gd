@@ -9,6 +9,9 @@ extends RefCounted
 ## Directions probed round the bot.
 const PROBES := 8
 
+## The PROBES directions, a turn's equal shares from +x.
+static var _probes := _directions()
+
 ## How far from water and open edges the bot keeps, in metres: its profile's
 ## edge_margin_m, or less once few dry decks are left to share.
 var margin: float
@@ -31,6 +34,18 @@ func _init(
 	_look_ahead = edge_margin
 
 
+## The probe direction [param index], of PROBES.
+static func probe(index: int) -> Vector2:
+	return _probes[index]
+
+
+static func _directions() -> PackedVector2Array:
+	var directions := PackedVector2Array()
+	for index in PROBES:
+		directions.append(Vector2.from_angle(TAU * index / PROBES))
+	return directions
+
+
 ## Away from [param dangers]: a unit vector when they lie to one side, shorter the
 ## more they balance out — a stair with a drop either side pushes only off the nearer.
 static func away(dangers: PackedVector2Array) -> Vector2:
@@ -51,8 +66,7 @@ func dangers(
 	heed_drops: bool = true
 ) -> PackedVector2Array:
 	var found := PackedVector2Array()
-	for index in PROBES:
-		var direction := Vector2.from_angle(TAU * index / PROBES)
+	for direction: Vector2 in _probes:
 		if danger_toward(my_pos, my_surface, pose, mark, stair_ahead, direction, heed_drops):
 			found.append(direction)
 	return found
@@ -89,27 +103,20 @@ func danger_toward(
 
 
 ## Whether any probe at [param reach] round [param my_pos] is wet or past an edge,
-## railed or not: the look further out that says whether the margin's probes are
-## worth making until the next think. A railing counts — a step along it may bring a
-## gap in it into the margin.
+## railed or not, even onto a deck beyond — a trench is an edge: the look further out
+## that says whether the margin's probes are worth making until the next think. A
+## railing counts — a step along it may bring a gap in it into the margin.
 func danger_within(my_pos: Vector3, pose: ShipPose, reach: float) -> bool:
-	for index in PROBES:
-		var direction := Vector2.from_angle(TAU * index / PROBES)
+	for direction: Vector2 in _probes:
 		var probe := my_pos + Vector3(direction.x, 0.0, direction.y) * reach
-		if _surfaces.wet(probe, pose):
-			return true
-		if (
-			_surfaces.under(probe, _rules.step_height) == Surfaces.NONE
-			and _surfaces.drops(my_pos, probe, _rules.step_height)
-		):
+		if _surfaces.wet(probe, pose) or _surfaces.drops(my_pos, probe, _rules.step_height):
 			return true
 	return false
 
 
 ## Whether any probe at the margin round [param my_pos] is wet.
 func water_near(my_pos: Vector3, pose: ShipPose) -> bool:
-	for index in PROBES:
-		var direction := Vector2.from_angle(TAU * index / PROBES)
+	for direction: Vector2 in _probes:
 		if _surfaces.wet(my_pos + Vector3(direction.x, 0.0, direction.y) * margin, pose):
 			return true
 	return false
@@ -191,7 +198,7 @@ func clear_heading(
 		ahead.y = feet_at(my_pos, ahead)
 		if _surfaces.blocked(my_pos, ahead, _rules.body_height, _rules.step_height):
 			continue
-		if walled(my_pos.lerp(ahead, 0.5)) or walled(ahead):
+		if walled(ahead) or walled(my_pos.lerp(ahead, 0.5)):
 			continue
 		var onto := _surfaces.under(ahead, _rules.step_height)
 		if (
@@ -203,21 +210,6 @@ func clear_heading(
 			continue
 		return heading
 	return wish
-
-
-## How far over a shove carrying [param carry] metres would put the seat
-## [param entry] describes: 1 with the water or an open drop right behind it, down to
-## 0 at the carry or past a railing; half that braced.
-func exposure(entry: Dictionary, carry: float, pose: ShipPose) -> float:
-	var behind := INF
-	for index in PROBES:
-		var direction := Vector2.from_angle(TAU * index / PROBES)
-		behind = minf(
-			behind, edge_toward(entry["pos"], entry["surface"], direction, carry, pose, false)
-		)
-	if behind == INF:
-		return 0.0
-	return (1.0 - behind / carry) * (0.5 if entry["bracing"] else 1.0)
 
 
 ## The share of the ship's platforms under water at their middle under [param pose].

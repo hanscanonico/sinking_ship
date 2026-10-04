@@ -266,3 +266,129 @@ func test_king_of_hill_targets_the_highest_seat() -> void:
 	assert_eq(targets[&"hard"], 2, "hard goes at whoever stands highest")
 	assert_eq(targets[&"normal"], 2, "so does normal")
 	assert_eq(targets[&"easy"], 1, "easy goes at whoever stands nearest")
+
+
+## Down by the head, with the foot of the boat deck's stairs a hand above the sea: the
+## bridge still stands highest, a seat waits up there, but a bot on the boat deck goes
+## down while the way aft is dry and makes for the poop deck, the end she rises by — it
+## is not left on an island the sea closes round.
+func test_a_bot_leaves_an_island_to_be_for_the_last_refuge() -> void:
+	var layout := SimFixtures.steamer()
+	var by_the_head := SimFixtures.scenario([[0.0, 2.5, 4.0, 0.0]])
+	var sim := SimFixtures.sim(2, by_the_head, layout)
+	SimFixtures.place(sim, 0, Vector3(-2.0, 2.5, 2.0), 0.0)
+	SimFixtures.place(sim, 1, Vector3(-2.5, 4.7, 0.0))
+	var graph := WalkGraph.new(layout, Surfaces.new(layout), SimFixtures.rules())
+	var poop_deck := graph.deck_of(SimFixtures.platform_named(layout, &"poop deck"))
+	var bridge := graph.deck_of(SimFixtures.platform_named(layout, &"bridge"))
+	var pose := sim.pose()
+	var found := graph.search(sim.state.seats[0].pos, sim.state.seats[0].surface, pose)
+	assert_eq(graph.highest_in(found, pose), bridge, "the bridge stands highest now")
+	var source := BotInputSource.new(0, _tier(&"normal"), sim.config)
+	var runner := _runner(sim, source)
+	var reached := false
+	for _tick in 30 * Ticks.RATE:
+		runner.step()
+		var bot := sim.state.seats[0]
+		if bot.body == PlayerState.Body.SWIMMING or bot.is_out():
+			break
+		if graph.zone_at(bot.pos, bot.surface) == poop_deck:
+			reached = true
+			break
+	var bot := sim.state.seats[0]
+	assert_true(reached, "it made the poop deck dry: at %s" % bot.pos)
+
+
+## Settled half a metre, the cabins' floor a hand above the sea: a bot in a starboard
+## cabin climbs out, its target on the bridge — out to the corridor, up the aft stair,
+## round its head and forward past the hatch, up the boat deck's stairs. It never turns
+## back down a stair it has come up, nor stalls at the foot of the next.
+func test_a_bot_climbing_out_from_below_decks_never_turns_back_on_a_stair() -> void:
+	var layout := SimFixtures.steamer()
+	var settled := SimFixtures.scenario([[0.0, 0.5, 0.0, 0.0]])
+	var sim := SimFixtures.sim(2, settled, layout)
+	SimFixtures.place(sim, 0, Vector3(-7.0, -2.6, 2.8))
+	SimFixtures.place(sim, 1, Vector3(-2.5, 4.7, 0.0))
+	var graph := WalkGraph.new(layout, Surfaces.new(layout), SimFixtures.rules())
+	var bridge := graph.deck_of(SimFixtures.platform_named(layout, &"bridge"))
+	var source := BotInputSource.new(0, _tier(&"normal"), sim.config)
+	var runner := _runner(sim, source)
+	var passed: Array[int] = []
+	var climbed := false
+	for _tick in 40 * Ticks.RATE:
+		runner.step()
+		climbed = climbed or source.brain.intent == BotBrain.Intent.CLIMB_OUT
+		var bot := sim.state.seats[0]
+		var zone := graph.zone_at(bot.pos, bot.surface)
+		if zone != WalkGraph.NONE and (passed.is_empty() or passed.back() != zone):
+			passed.append(zone)
+		if zone == bridge and not sim.surfaces.is_ramp(bot.surface):
+			break
+	assert_true(climbed, "it climbed out")
+	assert_eq(passed.back(), bridge, "it reached the bridge: at %s" % sim.state.seats[0].pos)
+	var again := passed.filter(func(zone: int) -> bool: return passed.count(zone) > 1)
+	assert_eq(again, [], "it never went back into a zone it had left: %s" % [passed])
+
+
+## Settled half a metre, the ship not yet foundering: a bot that climbs out of the
+## cabins stops climbing once up on the main deck, three metres out of the sea's reach,
+## and goes after its target there instead of on up to the bridge.
+func test_a_bot_out_of_the_seas_reach_stops_climbing() -> void:
+	var layout := SimFixtures.steamer()
+	var settled := SimFixtures.scenario([[0.0, 0.5, 0.0, 0.0]])
+	var sim := SimFixtures.sim(2, settled, layout)
+	SimFixtures.place(sim, 0, Vector3(-7.0, -2.6, 2.8))
+	SimFixtures.place(sim, 1, Vector3(-13.4, 0.0, 3.0))
+	var source := BotInputSource.new(0, _tier(&"normal"), sim.config)
+	var runner := _runner(sim, source)
+	var climbed := false
+	var nearest := INF
+	var highest := -INF
+	for _tick in 20 * Ticks.RATE:
+		runner.step()
+		climbed = climbed or source.brain.intent == BotBrain.Intent.CLIMB_OUT
+		nearest = minf(nearest, sim.state.seats[0].pos.distance_to(sim.state.seats[1].pos))
+		highest = maxf(highest, sim.state.seats[0].pos.y)
+	assert_true(climbed, "it climbed out")
+	assert_lt(nearest, 2.0, "it came at its target on the main deck")
+	assert_lt(highest, 2.0, "it never went on up to the boat deck")
+
+
+## On a dry, level ship the cabins' floor stands under a metre above the sea, and so
+## does the way out of them: that is no way going under. A bot down there with its
+## target on the main deck goes up after it, never climbing out for the bridge.
+func test_a_bot_below_decks_on_a_dry_ship_does_not_climb_out() -> void:
+	var layout := SimFixtures.steamer()
+	var sim := SimFixtures.sim(2, null, layout)
+	SimFixtures.place(sim, 0, Vector3(-7.0, -2.6, 2.8))
+	SimFixtures.place(sim, 1, Vector3(1.5, 0.0, -1.5))
+	var source := BotInputSource.new(0, _tier(&"normal"), sim.config)
+	var runner := _runner(sim, source)
+	var climbed := 0
+	for _tick in 10 * Ticks.RATE:
+		runner.step()
+		climbed += 1 if source.brain.intent == BotBrain.Intent.CLIMB_OUT else 0
+	assert_eq(climbed, 0, "ticks it spent climbing out")
+	assert_eq(source.brain.target, 1, "it went after its target")
+
+
+## In the alley between the hatch and the port stair up to the boat deck, its target on
+## the bridge: a bot walks along the stair's side to its foot and up — beside a stair
+## is not under it.
+func test_a_bot_beside_a_stair_walks_along_it_to_its_foot() -> void:
+	var layout := SimFixtures.steamer()
+	var graph := WalkGraph.new(layout, Surfaces.new(layout), SimFixtures.rules())
+	var boat_deck := graph.deck_of(SimFixtures.platform_named(layout, &"boat deck"))
+	for start: Vector3 in [Vector3(4.0, 0.0, -1.45), Vector3(5.5, 0.0, -1.45)]:
+		var sim := SimFixtures.sim(2, null, layout)
+		SimFixtures.place(sim, 0, start)
+		SimFixtures.place(sim, 1, Vector3(-2.5, 4.7, 0.0))
+		var runner := _runner(sim, BotInputSource.new(0, _tier(&"normal"), sim.config))
+		var up := false
+		for _tick in 10 * Ticks.RATE:
+			runner.step()
+			var bot := sim.state.seats[0]
+			if graph.zone_at(bot.pos, bot.surface) == boat_deck:
+				up = true
+				break
+		assert_true(up, "from %s it got up: at %s" % [start, sim.state.seats[0].pos])
