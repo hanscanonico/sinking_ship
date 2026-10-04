@@ -151,6 +151,74 @@ func test_lone_bot_stays_dry_while_it_can() -> void:
 	assert_gt(bot.out_tick, last_dry - Ticks.RATE, "it held out until the deck ran out")
 
 
+func test_a_lone_bot_stays_out_of_the_sea_from_every_spawn() -> void:
+	# Alone on the steamer as it starts to sink, the shipped normal bot — lapses and
+	# all — from each spawn: nobody to go at, so it makes for the high ground, round
+	# the boat deck's stairs and past the gaps in the railings. Within the first minute
+	# no floor it can reach floods but the hold's, which it climbs out of in time.
+	var layout := SimFixtures.steamer()
+	var sinking: SinkScenario = load(SimFixtures.STEAMER_SINKING)
+	for spawn: Vector3 in layout.spawns:
+		var runner := _bots(SimFixtures.config(1, sinking, SEED, layout))
+		SimFixtures.place(runner.sim, 0, spawn)
+		var entered := -1
+		for event: SimEvent in runner.run(60 * Ticks.RATE):
+			if event.kind == SimEvent.Kind.ENTERED_WATER and entered == -1:
+				entered = event.tick
+		assert_eq(entered, -1, "from %s: in the sea at tick %d" % [spawn, entered])
+
+
+func test_a_normal_bot_s_lapse_never_walks_it_into_the_sea() -> void:
+	# The normal bot lapsing half the time — a second's random walk every other second
+	# or so — on the flat deck as it sinks: its lapses keep off the water and the
+	# deck's open ends, so it holds out as long as a steady one, until the deck runs out.
+	var profile: BotProfile = _profile().duplicate()
+	profile.mistake_rate = 0.5
+	var config := SimFixtures.config(1, load(SimFixtures.FLAT_SINKING), SEED)
+	var runner := MatchRunner.new(MatchSim.create(config), BotInputSource.fill(config, profile))
+	SimFixtures.place(runner.sim, 0, Vector3.ZERO)
+	var events := runner.run(300 * Ticks.RATE)
+	var bot := runner.sim.state.seats[0]
+	var area := config.ship.platforms[0].area.grow(-_profile().edge_margin_m)
+	var last_dry := -1
+	for tick in 300 * Ticks.RATE:
+		var pose := runner.sim.schedule.pose_at(tick)
+		for corner: Vector2 in [area.position, area.end, Vector2(area.position.x, area.end.y)]:
+			if not runner.sim.surfaces.wet(Vector3(corner.x, 0.0, corner.y), pose):
+				last_dry = tick
+	var kinds := events.map(func(event: SimEvent) -> SimEvent.Kind: return event.kind)
+	assert_false(kinds.has(SimEvent.Kind.FELL), "no lapse walked it off the deck")
+	assert_eq(bot.out_cause, PlayerState.Cause.COLD)
+	assert_gt(bot.out_tick, last_dry - Ticks.RATE, "it held out until the deck ran out")
+
+
+func test_two_bots_in_the_pocket_by_the_boat_ramp_find_the_way_out() -> void:
+	# The bow going down, the sea a few metres forward: two bots in the pocket between
+	# the deckhouse's forward wall, the side of the starboard stair up to the boat deck
+	# and the hatch. The way up to the poop lies straight across the stair's side; the
+	# way out is round — through the deckhouse, or the long way about the hatch.
+	var layout := SimFixtures.steamer()
+	var sinking := SimFixtures.scenario([[0.0, 2.6, 7.0, -3.0], [30.0, 3.35, 10.0, -5.0]])
+	var sim := MatchSim.create(SimFixtures.config(2, sinking, SEED, layout))
+	var pocket := Vector3(3.4, 0.0, 1.5)
+	SimFixtures.place(sim, 0, pocket, 180.0)
+	SimFixtures.place(sim, 1, Vector3(3.5, 0.0, 0.6))
+	var config := sim.config
+	var sources: Array[InputSource] = [
+		BotInputSource.new(0, _steady(), config), BotInputSource.new(1, _steady(), config)
+	]
+	var events := MatchRunner.new(sim, sources).run(15 * Ticks.RATE)
+	for seat in 2:
+		var bot := sim.state.seats[seat]
+		assert_gt(_flat(bot.pos, pocket), 4.0, "seat %d got out of the pocket" % seat)
+	var kinds := events.map(func(event: SimEvent) -> SimEvent.Kind: return event.kind)
+	assert_false(kinds.has(SimEvent.Kind.ENTERED_WATER), "and neither went into the sea")
+
+
+static func _flat(a: Vector3, b: Vector3) -> float:
+	return Vector2(a.x - b.x, a.z - b.z).length()
+
+
 ## Every look [param seat]'s brain sends over [param ticks] ticks, shown the same
 ## view of [param sim] each time, with [param profile]'s knobs.
 func _looks(sim: MatchSim, seat: int, profile: BotProfile, ticks: int) -> Array[int]:

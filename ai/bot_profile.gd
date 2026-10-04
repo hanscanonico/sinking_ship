@@ -32,13 +32,32 @@ const DIRECTORY := "res://data/bots"
 @export var wander_weight: float
 ## How far a bot keeps from the waterline and the deck's open edges, in metres.
 @export var edge_margin_m: float
+## Late in the sinking a bot presses. Times the share of the ship's platforms under
+## water: how much more the hunt and the line-up score, and the share of its edge
+## margin it gives up — the last perches are fought for at their edges, not shared.
+@export var late_hunt_gain: float
+@export var late_margin_share: float
 ## How much a bot would rather go at whoever stands highest than at whoever stands
 ## nearest, 0…1.
 @export var king_of_hill_bias: float
+## How much less king_of_hill_bias counts once two or more stand on the highest ground
+## the bot can reach, 0…1: up there is a crowd, not a prize.
+@export var crowd_taper: float
+## How much a target counts for how far over a shove would put it — the water or an
+## open drop close behind it, unbraced — 0…1.
+@export var exposure_weight: float
+## How much less a target counts that another seat stands nearer than the bot, 0…1.
+@export var crowd_aversion: float
+## Whether a bot holds its shove while a seat other than its victim could land one on
+## it: a shove thrown then leaves its back open.
+@export var minds_its_back: bool
 ## How often, per second, a bot lapses: for mistake_seconds it walks a heading of
-## its own stream's choosing, heedless of the edges.
+## its own stream's choosing, still keeping off the water — and off open drops too,
+## but for the share heedless_lapses of its lapses, which may take it off an unrailed
+## edge or through a gap in a railing.
 @export var mistake_rate: float
 @export var mistake_seconds: float
+@export var heedless_lapses: float
 ## The climb intent's weight: once the lowest corner of the floor it stands on — its
 ## room, or its open deck — is less than this many metres above the sea, the bot
 ## makes for the highest ground it can reach.
@@ -101,12 +120,18 @@ func problems() -> PackedStringArray:
 		"hunt_weight",
 		"wander_weight",
 		"king_of_hill_bias",
+		"heedless_lapses",
+		"crowd_taper",
+		"exposure_weight",
+		"crowd_aversion",
+		"late_margin_share",
 	]:
 		if float(get(field)) < 0.0 or float(get(field)) > 1.0:
 			found.append("bot: %s must be within 0…1" % field)
 	for field: String in [
 		"aim_error_deg",
 		"edge_margin_m",
+		"late_hunt_gain",
 		"mistake_rate",
 		"mistake_seconds",
 		"climb_margin_m",

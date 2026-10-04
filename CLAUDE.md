@@ -28,7 +28,7 @@ Design of record: `.lavish/sinking-ship-plan.html` (rev 3)
 make import                                     # once per fresh checkout or worktree
 make verify                                     # the merge gate: check, lint, format-check, test
 make test TEST=tests/unit/core/test_ticks.gd    # one test script
-make run                                        # play: you and five bots, windowed
+make run                                        # play: you and seven bots, windowed
 make match SEED=1701                            # one bots-only match, headless, as a transcript
 make ship                                       # regenerate data/ships/steamer.tres from tools/gen_steamer.py
 ```

@@ -144,6 +144,111 @@ func test_hysteresis_prevents_dithering() -> void:
 	assert_gt(changes[0.0], 5, "without it, it dithers")
 
 
+func test_intent_hysteresis_holds_between_close_scores() -> void:
+	# The bot's target, by the open starboard edge, stands a body's width from it at one
+	# think and two at the next: lining the shove up scores just above going straight at
+	# it, then just below — by less than the hysteresis either way. The bot keeps the
+	# intent it chose; without hysteresis it swaps at every think.
+	var edge := _open_deck().platforms[0].area.end.y
+	var stride := SimFixtures.rules().body_radius * 2.0
+	var changes := {}
+	for hysteresis: float in [_tier(&"normal").hysteresis, 0.0]:
+		var profile: BotProfile = _tier(&"normal").duplicate()
+		profile.hysteresis = hysteresis
+		profile.mistake_rate = 0.0
+		profile.brace_read = 0.0
+		profile.lineup_weight = 0.3
+		var sim := MatchSim.create(SimFixtures.config(2, null, SEED, _open_deck()))
+		SimFixtures.place(sim, 0, Vector3(-3.0, 0.0, edge - 1.0))
+		SimFixtures.place(sim, 1, Vector3(0.0, 0.0, edge - 1.0))
+		var source := BotInputSource.new(0, profile, sim.config)
+		var intents := PackedInt32Array()
+		for tick in 3 * Ticks.RATE:
+			var snapshot := sim.snapshot().duplicate(true)
+			snapshot["tick"] = tick
+			var off := stride * 0.6 if tick / profile.think_period % 2 == 0 else stride * 1.6
+			snapshot["seats"][1]["pos"] = Vector3(0.0, 0.0, edge - off)
+			source.observe(snapshot, sim.pose())
+			source.next_frame(tick)
+			if intents.is_empty() or intents[-1] != source.brain.intent:
+				intents.append(source.brain.intent)
+		changes[hysteresis] = intents.size() - 1
+		var scored := [BotBrain.Intent.LINE_UP, BotBrain.Intent.HUNT]
+		assert_true(intents[0] in scored, "hysteresis %s: a scored intent" % hysteresis)
+	assert_eq(changes[_tier(&"normal").hysteresis], 0, "with hysteresis: one intent, kept")
+	assert_gt(changes[0.0], 5, "without it, it swaps back and forth")
+
+
+func test_a_bot_prefers_the_target_with_the_water_behind_it() -> void:
+	# On the open deck, all at one height: seat 2 a little nearer, in the middle of the
+	# deck; seat 1 a little farther, close by the starboard edge, the sea behind it.
+	# Nearness alone picks seat 2; a hard bot weighs what a shove would do, and picks 1.
+	var edge := _open_deck().platforms[0].area.end.y
+	var targets := {}
+	for weight: float in [0.0, _tier(&"hard").exposure_weight]:
+		var profile: BotProfile = _tier(&"hard").duplicate()
+		profile.exposure_weight = weight
+		var sim := MatchSim.create(SimFixtures.config(3, null, SEED, _open_deck()))
+		SimFixtures.place(sim, 0, Vector3(0.0, 0.0, 0.0))
+		SimFixtures.place(sim, 1, Vector3(0.0, 0.0, edge - 0.6))
+		SimFixtures.place(sim, 2, Vector3(-(edge - 1.0), 0.0, 0.0))
+		var source := BotInputSource.new(0, profile, sim.config)
+		source.observe(sim.snapshot(), sim.pose())
+		source.next_frame(sim.state.tick)
+		targets[weight] = source.brain.target
+	assert_eq(targets[0.0], 2, "by nearness: the one in the middle")
+	assert_eq(targets[_tier(&"hard").exposure_weight], 1, "weighing the shove: the one by the edge")
+
+
+func test_a_bot_does_not_commit_with_a_threat_at_its_back() -> void:
+	# The hard bot looks at seat 1 in reach; seat 2 stands right behind it, facing it.
+	# Minding its back, it holds the shove; with nobody behind it, it throws it.
+	var rules := SimFixtures.rules()
+	var gap := rules.body_radius * 2.0 + 0.3
+	var shoved := {}
+	for behind: float in [gap, 20.0]:
+		var profile: BotProfile = _tier(&"hard").duplicate()
+		profile.brace_read = 0.0
+		var sim := SimFixtures.sim(3)
+		SimFixtures.place(sim, 0, Vector3.ZERO, 0.0)
+		SimFixtures.place(sim, 1, Vector3(gap, 0.0, 0.0), 0.0)
+		SimFixtures.place(sim, 2, Vector3(-behind, 0.0, 0.0), 0.0)
+		var source := BotInputSource.new(0, profile, sim.config)
+		var pressed := false
+		for tick in Ticks.RATE:
+			source.observe(sim.snapshot(), sim.pose())
+			pressed = pressed or source.next_frame(sim.state.tick + tick).is_held(InputFrame.SHOVE)
+		shoved[behind] = pressed
+	assert_false(shoved[gap], "a threat at its back: it holds its shove")
+	assert_true(shoved[20.0], "nobody behind it: it shoves")
+
+
+func test_late_in_the_sinking_a_bot_presses_closer_to_the_water() -> void:
+	# The flat deck down by the head, the sea over its middle — every deck it has, under
+	# — and the bot's target standing a metre aft of the waterline. With its late
+	# margin the normal bot goes in closer to the water after it than without.
+	var trim := 5.0
+	var sinking := SimFixtures.scenario([[0.0, 3.0 + 2.0 * sin(deg_to_rad(trim)), trim, 0.0]])
+	var nearest := {}
+	for share: float in [0.0, _tier(&"normal").late_margin_share]:
+		var profile: BotProfile = _tier(&"normal").duplicate()
+		profile.mistake_rate = 0.0
+		profile.late_margin_share = share
+		var sim := SimFixtures.sim(2, sinking)
+		SimFixtures.place(sim, 0, Vector3(-8.0, 0.0, 0.0))
+		SimFixtures.place(sim, 1, Vector3(-3.2, 0.0, 1.0))
+		var runner := _runner(sim, BotInputSource.new(0, profile, sim.config))
+		nearest[share] = INF
+		for _tick in 5 * Ticks.RATE:
+			runner.step()
+			# How far up the deck from the sea its feet are, in metres.
+			var above := sim.pose().world_height(sim.state.seats[0].pos) / sin(deg_to_rad(trim))
+			nearest[share] = minf(nearest[share], above)
+	var late: float = nearest[_tier(&"normal").late_margin_share]
+	assert_lt(late, nearest[0.0] - 0.2, "late, it goes in closer to the water")
+	assert_gt(late, 0.0, "but not into it")
+
+
 func test_king_of_hill_targets_the_highest_seat() -> void:
 	# On the main deck abreast the boat deck: seat 1 two metres off on the main deck,
 	# seat 2 up on the boat deck, farther — both within earshot.
