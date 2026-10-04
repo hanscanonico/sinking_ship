@@ -229,6 +229,96 @@ func test_path_avoids_a_ramp_whose_foot_is_under() -> void:
 	)
 
 
+## Down by the head, the bridge stands highest now; were she to go on down that way,
+## the poop deck would: the end a ship rises by is the last refuge.
+func test_the_last_refuge_is_the_end_the_ship_rises_by() -> void:
+	var layout := SimFixtures.steamer()
+	var surfaces := Surfaces.new(layout)
+	var graph := _graph(layout, surfaces)
+	var bridge := graph.deck_of(SimFixtures.platform_named(layout, &"bridge"))
+	var poop_deck := graph.deck_of(SimFixtures.platform_named(layout, &"poop deck"))
+	var abaft := Vector3(-10.5, 0.0, 2.5)
+	var on := surfaces.under(abaft, SimFixtures.rules().step_height)
+	var by_the_head := _pose(layout, SimFixtures.scenario([[0.0, 0.0, 4.0, 0.0]]))
+	var found := graph.search(abaft, on, by_the_head)
+	assert_eq(graph.highest_in(found, by_the_head), bridge, "the bridge stands highest now")
+	assert_eq(graph.highest_in(found, by_the_head, 15.0), poop_deck, "leaned on, the poop deck")
+	var level := _pose(layout, SimFixtures.calm())
+	var all_of_it := graph.search(abaft, on, level)
+	assert_eq(
+		graph.highest_in(all_of_it, level, 15.0),
+		graph.highest_in(all_of_it, level),
+		"a level deck leans no way"
+	)
+
+
+## A deck with a perch either side, one height, each up its own stair: the deck leans
+## to neither by more than its heel, so which perch it rises by is a coin a heel
+## swinging across would flip.
+func _two_perch_layout() -> ShipLayout:
+	var layout := ShipLayout.new()
+	layout.freeboard = 3.0
+	var platforms: Array[ShipPlatform] = []
+	for row: Array in [
+		[&"deck", Rect2(-8.0, -12.0, 16.0, 24.0), 0.0],
+		[&"port perch", Rect2(-2.0, -10.0, 4.0, 4.0), 1.0],
+		[&"starboard perch", Rect2(-2.0, 6.0, 4.0, 4.0), 1.0],
+	]:
+		var platform := ShipPlatform.new()
+		platform.name = row[0]
+		platform.area = row[1]
+		platform.height = row[2]
+		platforms.append(platform)
+	layout.platforms = platforms
+	var ramps: Array[ShipRamp] = []
+	for area: Rect2 in [Rect2(2.0, -10.0, 3.0, 4.0), Rect2(2.0, 6.0, 3.0, 4.0)]:
+		var ramp := ShipRamp.new()
+		ramp.area = area
+		ramp.axis = ShipRamp.Axis.X
+		ramp.start_height = 1.0
+		ramp.end_height = 0.0
+		ramps.append(ramp)
+	layout.ramps = ramps
+	return layout
+
+
+## A refuge once made for holds while the heel swings across by a little, and through
+## a lurch however far: neither is the way she founders.
+func test_a_refuge_holds_through_a_heel_swinging_across() -> void:
+	var layout := _two_perch_layout()
+	var surfaces := Surfaces.new(layout)
+	var graph := _graph(layout, surfaces)
+	var normal := BotProfile.for_tier(&"normal")
+	var keep := normal.refuge_keep_m
+	var start := Vector3(-5.0, 0.0, 0.0)
+	var on := surfaces.under(start, SimFixtures.rules().step_height)
+	var refuges: Array[int] = []
+	for heel_deg: float in [0.3, -0.3]:
+		var pose := _pose(layout, SimFixtures.tilted(0.0, heel_deg))
+		var tilt := normal.refuge_tilt(pose.slope_deg())
+		refuges.append(graph.highest_in(graph.search(start, on, pose), pose, tilt))
+	assert_ne(refuges[0], refuges[1], "afresh, each heel has the other perch rise")
+	var swung := _pose(layout, SimFixtures.tilted(0.0, -0.3))
+	var found := graph.search(start, on, swung)
+	var tilt := normal.refuge_tilt(swung.slope_deg())
+	assert_eq(graph.highest_in(found, swung, tilt, refuges[0], keep), refuges[0], "kept")
+	var lurch := SimFixtures.with_events(
+		SimFixtures.tilted(0.0, 0.3), [SimFixtures.lurch(0.0, -15.0, 3.0, 0.0)]
+	)
+	var lurching := (
+		SinkSchedule.new(lurch, layout.freeboard, SeedStreams.derive(1, "sink")).pose_at(45)
+	)
+	assert_ne(lurching.lurch, 0.0, "a lurch is under way")
+	found = graph.search(start, on, lurching)
+	tilt = normal.refuge_tilt(lurching.slope_deg())
+	assert_eq(
+		graph.highest_in(found, lurching, tilt), refuges[1], "the lurch heels it the second way"
+	)
+	assert_eq(
+		graph.highest_in(found, lurching, tilt, refuges[0], keep), refuges[0], "kept through it"
+	)
+
+
 func test_path_avoids_flooded_platforms() -> void:
 	var layout := _two_way_layout()
 	var surfaces := Surfaces.new(layout)

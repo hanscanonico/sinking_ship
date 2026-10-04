@@ -207,11 +207,17 @@ func test_two_bots_in_the_pocket_by_the_boat_ramp_find_the_way_out() -> void:
 	var sources: Array[InputSource] = [
 		BotInputSource.new(0, _steady(), config), BotInputSource.new(1, _steady(), config)
 	]
-	var events := MatchRunner.new(sim, sources).run(15 * Ticks.RATE)
-	for seat in 2:
-		var bot := sim.state.seats[seat]
-		assert_gt(_flat(bot.pos, pocket), 4.0, "seat %d got out of the pocket" % seat)
-	var kinds := events.map(func(event: SimEvent) -> SimEvent.Kind: return event.kind)
+	var runner := MatchRunner.new(sim, sources)
+	var kinds: Array[SimEvent.Kind] = []
+	var out := false
+	while not out and runner.tick() < 15 * Ticks.RATE:
+		for event: SimEvent in runner.step():
+			kinds.append(event.kind)
+		out = true
+		for seat in 2:
+			out = out and _flat(sim.state.seats[seat].pos, pocket) > 4.0
+	assert_true(out, "both got out of the pocket")
+	# Up on the poop deck they may fight it out; on the way there, nobody went in.
 	assert_false(kinds.has(SimEvent.Kind.ENTERED_WATER), "and neither went into the sea")
 
 

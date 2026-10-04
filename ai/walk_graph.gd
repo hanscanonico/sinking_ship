@@ -201,6 +201,12 @@ func zone_count() -> int:
 	return _zone_count
 
 
+## Whether [param zone] is a room — walled, so it floods from its lowest corner up —
+## rather than an open deck.
+func is_room(zone: int) -> bool:
+	return zone >= 0 and zone < _layout.rooms.size()
+
+
 ## The zone of the open deck [param platform] belongs to.
 func deck_of(platform: int) -> int:
 	return _decks[platform]
@@ -276,6 +282,20 @@ func lowest_world_height(zone: int, pose: ShipPose) -> float:
 	if is_nan(_lowest[zone]):
 		_lowest[zone] = _floor_lowest(zone, pose)
 	return _lowest[zone]
+
+
+## How high [param zone] would stand were the deck tilted further by [param lean]: the
+## rise per metre of the ship plane, uphill. A room by the middle of its floor, an open
+## deck by the highest middle of its platforms, as world_height has them.
+func _leaned(zone: int, pose: ShipPose, lean: Vector2) -> float:
+	if is_room(zone):
+		var middle := _room_middle(zone)
+		return pose.world_height(middle) + lean.dot(Vector2(middle.x, middle.z))
+	var height := -INF
+	for platform: int in _zone_platforms[zone]:
+		var centre := _layout.platforms[platform].area.get_center()
+		height = maxf(height, _surfaces.world_height(platform, pose) + lean.dot(centre))
+	return height
 
 
 func _floor_lowest(zone: int, pose: ShipPose) -> float:
@@ -403,18 +423,40 @@ func highest_reachable(from_pos: Vector3, from_surface: int, pose: ShipPose) -> 
 	return highest_in(search(from_pos, from_surface, pose), pose)
 
 
-## The highest zone of those [param found] reaches, as highest_reachable().
-func highest_in(found: Search, pose: ShipPose) -> int:
+## The highest zone of those [param found] reaches, as highest_reachable() — or, by
+## [param more_deg], the highest were the deck tilted that many degrees further the way
+## [param pose] tilts it: the end a ship rises by as it founders by the other. While
+## [param found] reaches it, [param kept] stays the answer unless another would stand
+## more than [param keep_m] higher — and whatever would while a lurch swings the deck:
+## a lurch is a swing, not the way she founders.
+func highest_in(found: Search, pose: ShipPose, more_deg := 0.0, kept := NONE, keep_m := 0.0) -> int:
+	var gravity := pose.ship_gravity(1.0)
+	var lean := -Vector2(gravity.x, gravity.z).normalized() * tan(deg_to_rad(more_deg))
 	var best := NONE
 	var best_height := -INF
+	var kept_height := -INF
 	for zone in found.cost.size():
 		if found.cost[zone] == INF or doomed(zone, pose):
 			continue
-		var height := world_height(zone, pose)
+		var height := world_height(zone, pose) if more_deg == 0.0 else _leaned(zone, pose, lean)
+		if zone == kept:
+			kept_height = height
 		if height > best_height:
 			best = zone
 			best_height = height
+	if kept_height > -INF and (pose.lurch != 0.0 or best_height <= kept_height + keep_m):
+		return kept
 	return best
+
+
+## The portal along the stair [param ramp_surface] out by its end in [param zone], or
+## null when neither of its ends is in that zone: the way off it there.
+func way_off(ramp_surface: int, zone: int) -> Portal:
+	var ramp := ramp_surface - _surfaces.platform_count()
+	for end in 2:
+		if _ramp_zones[ramp][end] == zone and _ramp_portals[ramp][end] != NONE:
+			return _portals[_ramp_portals[ramp][end]]
+	return null
 
 
 ## Where a body on [param from_surface] at [param from_pos] walks next toward the
@@ -448,7 +490,7 @@ func toward(leg: Portal, from_pos: Vector3, from_surface: int) -> Vector3:
 		return past
 	if ahead < 0.0:
 		return leg.entry + along * minf(ahead + _lead, 0.0)
-	if leg.ramp != NONE and ahead > _lead and absf(aside) < leg.half_width + _body_radius:
+	if leg.ramp != NONE and ahead > _lead and absf(aside) < leg.half_width:
 		var side := leg.along.orthogonal() * (1.0 if aside >= 0.0 else -1.0)
 		var out := leg.entry + along * ahead
 		return out + Vector3(side.x, 0.0, side.y) * (leg.half_width + _lead)

@@ -54,3 +54,52 @@ func test_tiers_load_and_validate() -> void:
 		)
 	)
 	assert_null(BotProfile.for_tier(&"heroic"))
+
+
+## Every name problems() checks the range of is a knob's: a misspelt one would read as
+## 0 through get() and pass every range.
+func test_every_checked_name_is_a_knob() -> void:
+	var knobs := PackedStringArray()
+	for property: Dictionary in BotProfile.new().get_property_list():
+		knobs.append(property["name"])
+	for field: String in BotProfile.SHARES + BotProfile.NON_NEGATIVE:
+		assert_has(knobs, field, "%s is a knob" % field)
+
+
+## Each knob out of its range is named, alone.
+func test_each_knob_out_of_range_is_named() -> void:
+	var normal := BotProfile.for_tier(&"normal")
+	for field: String in BotProfile.SHARES:
+		for wrong: float in [-0.1, 1.1]:
+			var broken: BotProfile = normal.duplicate()
+			broken.set(field, wrong)
+			assert_eq(
+				broken.problems(),
+				PackedStringArray(["bot: %s must be within 0…1" % field]),
+				"%s at %s" % [field, wrong]
+			)
+	for field: String in BotProfile.NON_NEGATIVE:
+		var broken: BotProfile = normal.duplicate()
+		broken.set(field, -0.1)
+		assert_eq(
+			broken.problems(),
+			PackedStringArray(["bot: %s must not be negative" % field]),
+			"%s at -0.1" % field
+		)
+	var lonely: BotProfile = normal.duplicate()
+	lonely.crowd_seats = 0
+	assert_eq(lonely.problems(), PackedStringArray(["bot: crowd_seats must be at least 1"]))
+
+
+## The refuge leans only as the deck does: none on a level deck, in proportion up to
+## refuge_lean_deg, the whole refuge_tilt_deg from there.
+func test_the_refuge_leans_only_as_far_as_the_deck_does() -> void:
+	for tier: String in BotProfile.tiers():
+		var profile := BotProfile.for_tier(StringName(tier))
+		var full := profile.refuge_tilt_deg
+		var lean := profile.refuge_lean_deg
+		assert_gt(lean, 0.0, "%s: a level deck is told from a leaning one" % tier)
+		assert_eq(profile.refuge_tilt(0.0), 0.0, "%s: level, no lean" % tier)
+		assert_almost_eq(profile.refuge_tilt(lean * 0.5), full * 0.5, 1e-9, tier)
+		assert_eq(profile.refuge_tilt(lean), full, tier)
+		assert_eq(profile.refuge_tilt(lean * 4.0), full, tier)

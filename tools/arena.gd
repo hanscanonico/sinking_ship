@@ -20,7 +20,9 @@ const SIXTEEN_SEEDS := 10
 ## A bot counts as idle on a tick when it is in, on its feet or afloat, free to act,
 ## presses nothing and its feet move less than this, in metres.
 const STILL := 0.005
-## Idle with an opponent within this many metres is what the gate bounds.
+## Idle with an opponent in sight within this many metres — eye to eye, as the bots
+## and the HUD ask Surfaces.line_of_sight — is what the gate bounds: a body a deck
+## below, through the slab, is no fight being missed.
 const NEAR := 6.0
 const IDLE_BOUND_SECONDS := 3.0
 ## The plan's targets (SH7's card).
@@ -30,6 +32,10 @@ const DRY_AT_PLUNGE_AT_MOST := 0.10
 const DRY_AT_PLUNGE_SEATS := 3
 const MEDIAN_FROM := 150.0
 const MEDIAN_TO := 200.0
+## Climbing out or fleeing on a dry ship — no platform under water at its middle — with
+## the bot's feet over a body's height above the sea is running from nothing: on
+## average a bot does it for at most this long a match (the SH7c review's gate).
+const DRY_FLIGHT_AT_MOST_SECONDS := 2.0
 ## The tick-cost gate the SH7 review set, superseding the plan's 2 ms p99 at eight
 ## seats: sim + bots p50 and p99 at eight seats, p99 at sixteen.
 const P50_AT_MOST_MS := 2.0
@@ -77,6 +83,11 @@ class Tally:
 	## never the sinking's own failures (SH10).
 	var crate_exits := 0
 	var spans_broken := 0
+	## Ticks bots spent climbing out or fleeing on a dry ship, high above the sea, and
+	## the longest a bot did in one match.
+	var dry_flight_ticks := 0
+	var dry_flight_longest := 0
+	var dry_flight_where := ""
 
 
 func _initialize() -> void:
@@ -172,15 +183,20 @@ func _play(lobby: Lobby) -> Tally:
 		if not problems.is_empty():
 			printerr("\n".join(problems))
 			return null
-		_match(MatchRunner.new(MatchSim.create(config), sources), tally, seed_value)
+		_match(MatchRunner.new(MatchSim.create(config), sources), sources, tally, seed_value)
 		printerr("arena: %s seed %d" % [lobby.key, seed_value])
 	tally.wall_seconds = (Time.get_ticks_msec() - started) / 1000.0
 	return tally
 
 
-## Steps one match to its end, timing every tick, and adds it to [param tally].
-func _match(runner: MatchRunner, tally: Tally, seed_value: int) -> void:
+## Steps one match to its end, timing every tick, and adds it to [param tally]; the
+## bots' intents are read off [param sources].
+func _match(
+	runner: MatchRunner, sources: Array[InputSource], tally: Tally, seed_value: int
+) -> void:
 	var config := runner.sim.config
+	var fled := PackedInt32Array()
+	fled.resize(config.seats)
 	var slots := PackedInt32Array()
 	for player: PlayerState in runner.sim.state.seats:
 		slots.append(config.ship.spawns.find(player.pos))
@@ -191,6 +207,9 @@ func _match(runner: MatchRunner, tally: Tally, seed_value: int) -> void:
 	var before: Array[Vector3] = []
 	for player: PlayerState in runner.sim.state.seats:
 		before.append(player.pos)
+	var eyes := PackedFloat64Array()
+	for tier: StringName in tally.lobby.tiers:
+		eyes.append(BotProfile.for_tier(tier).eye_height_m)
 	var winner := -1
 	var ended := -1
 	while not runner.is_over():
@@ -211,10 +230,14 @@ func _match(runner: MatchRunner, tally: Tally, seed_value: int) -> void:
 				event.kind == SimEvent.Kind.RAILING_BROKE and (event.seat != -1 or event.prop != -1)
 			):
 				tally.spans_broken += 1
+		var dry_ship := _ship_dry(runner.sim)
 		for player: PlayerState in runner.sim.state.seats:
 			var seat := player.seat
 			var moved := Vector2(player.pos.x - before[seat].x, player.pos.z - before[seat].z)
 			before[seat] = player.pos
+			if dry_ship and _flees(sources[seat], player, runner.sim):
+				tally.dry_flight_ticks += 1
+				fled[seat] += 1
 			if player.is_out() or player.is_climbing() or player.is_frozen():
 				idle[seat] = 0
 				idle_near[seat] = 0
@@ -224,7 +247,7 @@ func _match(runner: MatchRunner, tally: Tally, seed_value: int) -> void:
 			)
 			idle[seat] = idle[seat] + 1 if still else 0
 			idle_near[seat] = (
-				idle_near[seat] + 1 if still and _opponent_near(runner.sim, player) else 0
+				idle_near[seat] + 1 if still and _opponent_near(runner.sim, player, eyes) else 0
 			)
 			var where := (
 				"seed %d seat %d at (%.1f, %.1f, %.1f), %s"
@@ -245,6 +268,10 @@ func _match(runner: MatchRunner, tally: Tally, seed_value: int) -> void:
 				tally.idle_near_where = where
 	tally.matches += 1
 	tally.lengths.append(ended / float(Ticks.RATE))
+	for seat in config.seats:
+		if fled[seat] > tally.dry_flight_longest:
+			tally.dry_flight_longest = fled[seat]
+			tally.dry_flight_where = "seed %d seat %d" % [seed_value, seat]
 	if winner == -1:
 		tally.draws += 1
 		return
@@ -266,9 +293,38 @@ static func _dry(sim: MatchSim) -> int:
 	return dry
 
 
-static func _opponent_near(sim: MatchSim, player: PlayerState) -> bool:
+## Whether no platform of the ship stands under water at its middle.
+static func _ship_dry(sim: MatchSim) -> bool:
+	var pose := sim.pose()
+	for platform in sim.surfaces.platform_count():
+		if sim.surfaces.flooded(platform, pose):
+			return false
+	return true
+
+
+## Whether the bot behind [param source], in, is climbing out or fleeing with
+## [param player]'s feet more than a body's height above the sea.
+static func _flees(source: InputSource, player: PlayerState, sim: MatchSim) -> bool:
+	var intent := (source as BotInputSource).brain.intent
+	return (
+		not player.is_out()
+		and (intent == BotBrain.Intent.CLIMB_OUT or intent == BotBrain.Intent.FLEE)
+		and sim.pose().world_height(player.pos) > sim.config.rules.body_height
+	)
+
+
+## Whether another seat in stands within NEAR of [param player] and in its sight: no
+## wall, deck or hull between their eyes, [param eyes] high by seat.
+static func _opponent_near(sim: MatchSim, player: PlayerState, eyes: PackedFloat64Array) -> bool:
+	var pose := sim.pose()
+	var eye := player.pos + Vector3.UP * eyes[player.seat]
 	for other: PlayerState in sim.state.seats:
-		if other != player and not other.is_out() and other.pos.distance_to(player.pos) < NEAR:
+		if (
+			other != player
+			and not other.is_out()
+			and other.pos.distance_to(player.pos) < NEAR
+			and sim.surfaces.line_of_sight(eye, other.pos + Vector3.UP * eyes[other.seat], pose)
+		):
 			return true
 	return false
 
@@ -345,10 +401,19 @@ func _report(tallies: Array[Tally], seeds: int, minutes: float, loads: Array) ->
 	)
 	lines.append(
 		(
+			"The build has the hazards (SH10: cargo, railing damage) and the network seam "
+			+ "(SH11: the MatchRunner a MatchHost serves); a lobby steps that MatchRunner "
+			+ "itself, so the milliseconds are sim and bots, with no snapshots sent."
+		)
+	)
+	lines.append(
+		(
 			"A dated record: the next run supersedes this file whole. Each lobby plays the "
 			+ "default match (data/match/default.tres) on seeds 1…N; match time is the "
 			+ "transcript's clock, countdown included. A bot is idle on a tick when it is "
-			+ "in, free to act, presses nothing and its feet move less than 5 mm; dry means "
+			+ "in, free to act, presses nothing and its feet move less than 5 mm; an "
+			+ "opponent is in sight when no wall, deck or hull stands between their eyes "
+			+ "(Surfaces.line_of_sight, the bots' and the HUD's question); dry means "
 			+ "in and not in the sea. Everything but the milliseconds is the same on a "
 			+ "rerun on the same build (D4)."
 		)
@@ -441,11 +506,29 @@ func _targets(tallies: Array[Tally]) -> PackedStringArray:
 	var seconds := idle / float(Ticks.RATE)
 	lines.append(
 		_row(
-			"No bot idle more than 3 s with an opponent within 6 m",
+			"No bot idle more than 3 s with an opponent in sight within 6 m",
 			"%.1f s (%s)" % [seconds, where],
 			seconds <= IDLE_BOUND_SECONDS
 		)
 	)
+	for tally: Tally in tallies:
+		var flight := _dry_flight(tally)
+		lines.append(
+			_row(
+				(
+					(
+						"%s: ≤ 2 s a bot a match climbing out or fleeing on a dry ship, "
+						+ "feet over a body's height above the sea"
+					)
+					% tally.lobby.key
+				),
+				(
+					"%.2f s (longest %.1f s, %s)"
+					% [flight, tally.dry_flight_longest / float(Ticks.RATE), tally.dry_flight_where]
+				),
+				flight <= DRY_FLIGHT_AT_MOST_SECONDS
+			)
+		)
 	if by_key.has("sighted"):
 		var tally: Tally = by_key["sighted"]
 		var gap := (
@@ -522,13 +605,26 @@ func _lobby_lines(tally: Tally) -> PackedStringArray:
 	)
 	lines.append(
 		(
+			(
+				"- Climbing out or fleeing on a dry ship, feet over a body's height above the "
+				+ "sea: %.2f s a bot a match; longest %.1f s (%s)."
+			)
+			% [
+				_dry_flight(tally),
+				tally.dry_flight_longest / float(Ticks.RATE),
+				tally.dry_flight_where
+			]
+		)
+	)
+	lines.append(
+		(
 			"- Longest idle streak: %.1f s (%s)."
 			% [tally.idle_longest / float(Ticks.RATE), tally.idle_where]
 		)
 	)
 	lines.append(
 		(
-			"- Longest idle streak with an opponent within 6 m: %.1f s (%s)."
+			"- Longest idle streak with an opponent in sight within 6 m: %.1f s (%s)."
 			% [tally.idle_near_longest / float(Ticks.RATE), tally.idle_near_where]
 		)
 	)
@@ -549,6 +645,13 @@ func _lobby_lines(tally: Tally) -> PackedStringArray:
 	)
 	lines.append("")
 	return lines
+
+
+## Seconds a bot of [param tally]'s lobby spent climbing out or fleeing on a dry ship,
+## high above the sea, a match, on average.
+static func _dry_flight(tally: Tally) -> float:
+	var bot_matches := tally.matches * tally.lobby.tiers.size()
+	return tally.dry_flight_ticks / float(Ticks.RATE) / bot_matches if bot_matches > 0 else 0.0
 
 
 static func _share(count: int, total: int) -> float:

@@ -5,6 +5,43 @@ extends Resource
 ## data/bots/*.tres, one file per tier.
 
 const DIRECTORY := "res://data/bots"
+## The knobs that are shares, 0…1, and those that must not be negative: what
+## problems() checks, each the name of one of the knobs below.
+const SHARES: Array[String] = [
+	"brace_read",
+	"charge_read",
+	"lineup_weight",
+	"hunt_weight",
+	"wander_weight",
+	"king_of_hill_bias",
+	"heedless_lapses",
+	"crowd_taper",
+	"exposure_weight",
+	"braced_exposure",
+	"crowd_aversion",
+	"late_margin_share",
+	"refuge_from",
+	"perch_lead",
+]
+const NON_NEGATIVE: Array[String] = [
+	"aim_error_deg",
+	"edge_margin_m",
+	"late_hunt_gain",
+	"mistake_rate",
+	"mistake_seconds",
+	"climb_margin_m",
+	"refuge_tilt_deg",
+	"refuge_lean_deg",
+	"refuge_keep_m",
+	"refuge_margin_m",
+	"guard_range_m",
+	"ride_margin_m",
+	"detour_after_s",
+	"hysteresis",
+	"eye_height_m",
+	"hearing_m",
+	"memory_seconds",
+]
 
 ## Where the tier stands among the others, easiest first: the order the menu lists
 ## them in.
@@ -40,17 +77,22 @@ const DIRECTORY := "res://data/bots"
 ## How much a bot would rather go at whoever stands highest than at whoever stands
 ## nearest, 0…1.
 @export var king_of_hill_bias: float
-## How much less king_of_hill_bias counts once two or more stand on the highest ground
-## the bot can reach, 0…1: up there is a crowd, not a prize.
+## How much less king_of_hill_bias counts once crowd_seats or more stand on the highest
+## ground the bot can reach, 0…1: up there is a crowd, not a prize.
 @export var crowd_taper: float
+@export var crowd_seats: int
 ## How much a target counts for how far over a shove would put it — the water or an
-## open drop close behind it, unbraced — 0…1.
+## open drop close behind it — 0…1, and the share of that which counts while it braces.
 @export var exposure_weight: float
+@export var braced_exposure: float
 ## How much less a target counts that another seat stands nearer than the bot, 0…1.
 @export var crowd_aversion: float
 ## Whether a bot holds its shove while a seat other than its victim could land one on
 ## it: a shove thrown then leaves its back open.
 @export var minds_its_back: bool
+## How long, in seconds, a bot making for a stair across an open deck goes without
+## headway before it goes round through the rooms beside the deck.
+@export var detour_after_s: float
 ## How often, per second, a bot lapses: for mistake_seconds it walks a heading of
 ## its own stream's choosing, still keeping off the water — and off open drops too,
 ## but for the share heedless_lapses of its lapses, which may take it off an unrailed
@@ -58,10 +100,27 @@ const DIRECTORY := "res://data/bots"
 @export var mistake_rate: float
 @export var mistake_seconds: float
 @export var heedless_lapses: float
-## The climb intent's weight: once the lowest corner of the floor it stands on — its
-## room, or its open deck — is less than this many metres above the sea, the bot
-## makes for the highest ground it can reach.
+## The climb intent's weight: once the floor it stands on — its room's lowest corner,
+## or the open deck where it stands — is less than this many metres above the sea, or,
+## once refuge_from of the ship is under water, a portal on its way to its refuge lower
+## than its feet is less than refuge_margin_m, the bot makes for its refuge.
 @export var climb_margin_m: float
+@export var refuge_margin_m: float
+## A bot's refuge, where it climbs out and flees to: the highest ground it can reach —
+## once the share refuge_from of the ship's platforms is under water, the highest were
+## the deck tilted refuge_tilt() further the way it leans, as a ship foundering by one
+## end rises by the other; a refuge once made for is kept through a lurch, and else
+## unless another would stand refuge_keep_m higher: a heel swinging across by a little
+## does not swap it.
+@export var refuge_tilt_deg: float
+@export var refuge_lean_deg: float
+@export var refuge_keep_m: float
+@export var refuge_from: float
+## Once it and its target stand on its perch — its refuge or the highest ground — how
+## far ahead of the target a bot aims, 0…1: this share of where the target's seen
+## velocity carries it over the bot's reaction time. The last perch is fought for, not
+## circled round.
+@export var perch_lead: float
 ## How near, in metres, a seat in the sea must be for the bot to make it its
 ## target and guard the edge against its climbing out.
 @export var guard_range_m: float
@@ -80,6 +139,15 @@ const DIRECTORY := "res://data/bots"
 @export var eye_height_m: float
 @export var hearing_m: float
 @export var memory_seconds: float
+
+
+## How many degrees further than it leans now a bot reckons a deck leaning
+## [param slope_deg] will tilt: refuge_tilt_deg once it leans refuge_lean_deg, in
+## proportion below — a level deck leans no way.
+func refuge_tilt(slope_deg: float) -> float:
+	if slope_deg >= refuge_lean_deg:
+		return refuge_tilt_deg
+	return refuge_tilt_deg * slope_deg / refuge_lean_deg
 
 
 ## The tier [param tier]'s profile, or null when there is none.
@@ -113,35 +181,21 @@ func problems() -> PackedStringArray:
 		found.append("bot: think_period must be at least 1")
 	if turn_rate_deg <= 0.0:
 		found.append("bot: turn_rate_deg must be positive")
-	for field: String in [
-		"brace_read",
-		"charge_read",
-		"lineup_weight",
-		"hunt_weight",
-		"wander_weight",
-		"king_of_hill_bias",
-		"heedless_lapses",
-		"crowd_taper",
-		"exposure_weight",
-		"crowd_aversion",
-		"late_margin_share",
-	]:
-		if float(get(field)) < 0.0 or float(get(field)) > 1.0:
+	if crowd_seats < 1:
+		found.append("bot: crowd_seats must be at least 1")
+	var knobs := PackedStringArray()
+	for property: Dictionary in get_property_list():
+		knobs.append(property["name"])
+	for field: String in SHARES + NON_NEGATIVE:
+		if not field in knobs:
+			found.append("bot: %s is no knob of a bot's" % field)
+		elif float(get(field)) < 0.0:
+			found.append(
+				(
+					"bot: %s must %s"
+					% [field, "be within 0…1" if field in SHARES else "not be negative"]
+				)
+			)
+		elif field in SHARES and float(get(field)) > 1.0:
 			found.append("bot: %s must be within 0…1" % field)
-	for field: String in [
-		"aim_error_deg",
-		"edge_margin_m",
-		"late_hunt_gain",
-		"mistake_rate",
-		"mistake_seconds",
-		"climb_margin_m",
-		"guard_range_m",
-		"ride_margin_m",
-		"hysteresis",
-		"eye_height_m",
-		"hearing_m",
-		"memory_seconds",
-	]:
-		if float(get(field)) < 0.0:
-			found.append("bot: %s must not be negative" % field)
 	return found

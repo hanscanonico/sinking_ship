@@ -232,6 +232,34 @@ func test_a_slow_crate_is_held_by_a_span() -> void:
 	assert_eq(crate.body, PropState.Body.GROUNDED)
 
 
+## Two crates sliding together into a span, too slowly to break it: the first is
+## moved by nothing but the railing's hold, and the second, close behind, meets it
+## where the railing left it, not where it slid to.
+func test_a_crate_meets_another_where_a_railing_held_it() -> void:
+	var rules := _rules()
+	var edge := SimFixtures.deck().platforms[0].area.end.y
+	var radius := _steamer_crate().radius
+	var first_at := Vector3(RAILED_X, 0.0, edge - radius - 0.03)
+	var crates: Array[ShipProp] = [
+		SimFixtures.crate(first_at), SimFixtures.crate(first_at - Vector3(0.0, 0.0, radius * 2.0))
+	]
+	var sim := SimFixtures.sim(1, null, SimFixtures.crated(crates))
+	SimFixtures.place(sim, 0, Vector3(10.0, 0.0, -2.0))
+	# A tick at rest first: a crate meets its deck's railings once it stands on the deck.
+	SimFixtures.step(sim)
+	var slide := Vector3(0.0, 0.0, rules.railing_break_speed - 0.5)
+	assert_gt(
+		slide.z * Ticks.SECONDS_PER_TICK, 0.03, "a tick's slide takes the first past the rail"
+	)
+	for crate: PropState in sim.state.props:
+		crate.vel = slide
+	SimFixtures.step(sim)
+	var first := sim.state.props[0]
+	var second := sim.state.props[1]
+	assert_almost_eq(first.pos.z, edge - radius, 0.0001, "the railing holds the first")
+	assert_almost_eq(second.pos.z, first.pos.z - radius * 2.0, 0.0001, "the second meets it there")
+
+
 ## A sim reset to a snapshot (MatchSim.restore) whose span is whole holds its crate
 ## at that span, though a crate broke it in the same sim ticks before: what a client's
 ## prediction does every snapshot. It goes on exactly as a sim rebuilt from the

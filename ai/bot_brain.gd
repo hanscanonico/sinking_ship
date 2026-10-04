@@ -9,11 +9,17 @@ extends RefCounted
 ##
 ## - SWIM_OUT, in the sea: for the nearest way out it can reach — round through open
 ##   water when the hull or a wall stands across the straight swim — and up it.
-## - FLEE, its open deck giving way: for the highest zone it can reach, down the stair
-##   off it if need be.
-## - CLIMB_OUT, the lowest corner of its floor within climb_margin_m of the sea and
-##   higher ground within reach: for the highest zone it can reach, until it stands
-##   there.
+## - FLEE, its open deck giving way: for its refuge, down the stair off it if need be.
+## - CLIMB_OUT, its floor — its room's lowest corner, or the open deck where it stands —
+##   within climb_margin_m of the sea, or, once refuge_from of the ship is under water,
+##   its way to its refuge dipping below its feet to within refuge_margin_m of it; and
+##   its refuge elsewhere: for its refuge, until it stands there — or, while less than
+##   refuge_from is under, on a floor a body's height above the sea. Its refuge is the
+##   highest zone it can reach; once refuge_from is under, the highest were the deck
+##   tilted further the way it leans, by as much as BotProfile.refuge_tilt says — the end
+##   the ship rises by, where the last dry deck will be — kept through a lurch, and else
+##   unless another would stand refuge_keep_m higher; so it goes there while the way is
+##   dry.
 ## - RIDE, a lurch telegraphed or under way: within ride_margin_m of the side it puts
 ##   down, away from it; else, once the deck swings, a brace where it stands while its
 ##   stamina lasts. Farther off, until the swing, it carries on with its target.
@@ -35,7 +41,9 @@ extends RefCounted
 ##
 ## Its target is a seat it perceives and can reach, scored by nearness and, by
 ## king_of_hill_bias, by how high it stands — less so on a crowded perch — and by how
-## far over a shove would put it and whether another is at it already. Whatever the
+## far over a shove would put it and whether another is at it already. With its target
+## on its perch — its refuge or the highest ground — it aims ahead of it by perch_lead
+## of where its seen velocity carries it: the last perch is fought for. Whatever the
 ## intent, every tick, a tier that dodges_cargo steps out of a sliding crate's path
 ## (SH10); then it keeps edge_margin_m from water and open edges, a broken railing's
 ## among them — less late in the sinking, none toward its target lined up between it
@@ -80,6 +88,8 @@ var _dodge: CargoDodge
 var _surfaces: Surfaces
 var _walk_graph: WalkGraph
 var _footing: BotFooting
+## Whom it goes at, and the drop behind its target.
+var _targeting: BotTargeting
 var _rng: RandomNumberGenerator
 ## The zone its intent makes for, or WalkGraph.NONE.
 var _goal := WalkGraph.NONE
@@ -88,6 +98,8 @@ var _legs: Array[WalkGraph.Portal] = []
 ## Whether it is climbing because its floor was about to flood: it climbs on until it
 ## stands in the zone it was making for.
 var _climbing := false
+## The refuge the ship's lean gave it at the last think, or WalkGraph.NONE.
+var _refuge := WalkGraph.NONE
 var _aim_offset := 0.0
 var _think_in := 0
 var _last_buttons := 0
@@ -102,13 +114,6 @@ var _charge_held := 0
 var _charge_full_ticks: int
 ## The tick of its last shove press, -1 for none.
 var _pressed_at := -1
-## How far a shove carries an unbraced body on a level deck, from the rules: how near a
-## drop a target must stand to be worth lining up.
-var _carry: float
-## The way from its target to the drop nearest it, and how far, as the last think
-## found them; zero for none.
-var _drop_way := Vector2.ZERO
-var _drop_distance := INF
 ## A lapse under way: ticks of it left, the heading it walks, and whether it is
 ## heedless of open drops.
 var _lapse := 0
@@ -138,13 +143,16 @@ var _swim_via := Vector3.INF
 ## what it pressed and has yet to see itself do. A tick of -1 is none.
 var _sent_moves := PackedVector2Array()
 var _sent_ticks := PackedInt32Array()
-## Where it keeps off the edges from this tick: _reckon by its walks, and past the
+## Where it keeps off the edges from this tick: reckoned by its walks, and past the
 ## grip angle by its seen velocity too — the same place on a deck that grips.
 var _edge_from := Vector3.ZERO
 var _edge_also := Vector3.ZERO
 ## What the hunt and line-up scores are multiplied by, as the last think found the
 ## sinking: 1 with every deck dry, more the more are under.
 var _pressing := 1.0
+## How far ahead of its target it aims, as the last think found it: the share of where
+## the target's seen velocity carries it over the bot's reaction time.
+var _lead := 0.0
 
 
 ## [param rng] is this seat's own stream, SeedStreams' (match seed, seat).
@@ -164,20 +172,12 @@ func _init(
 	_surfaces = surfaces
 	_walk_graph = walk_graph
 	_footing = BotFooting.new(surfaces, walk_graph, rules, profile.edge_margin_m)
+	_targeting = BotTargeting.new(bot_seat, profile, rules, _footing, walk_graph)
 	_rng = rng
 	_charge_full_ticks = Ticks.from_seconds(rules.charge_full)
 	_sent_moves.resize(maxi(profile.reaction_ticks, 1))
 	_sent_ticks.resize(_sent_moves.size())
 	_sent_ticks.fill(-1)
-	var knock := rules.knockback
-	var slowed := rules.stagger_friction * rules.stagger
-	if slowed >= knock:
-		_carry = knock * knock / (2.0 * rules.stagger_friction)
-	else:
-		_carry = (
-			(knock + knock - slowed) * 0.5 * rules.stagger
-			+ pow(knock - slowed, 2.0) / (2.0 * rules.ground_friction)
-		)
 
 
 func decide(view: BotView, tick: int) -> InputFrame:
@@ -196,8 +196,8 @@ func decide(view: BotView, tick: int) -> InputFrame:
 	# The route is followed from where its seen velocity carries it; the edges are kept
 	# from where its own walks have, which a turn toward one since cannot hide — and,
 	# past the grip angle, where it slides wherever it walks, from both.
-	var now_pos := _reckon(me, seen["tick"], false)
-	_edge_from = _reckon(me, seen["tick"], true)
+	var now_pos := _reckon(me)
+	_edge_from = _by_walks(me, seen["tick"], now_pos)
 	_edge_also = now_pos if pose.slope_deg() > _rules.grip_angle_deg else _edge_from
 	if me["state"] == PlayerState.Body.SWIMMING:
 		intent = Intent.SWIM_OUT
@@ -247,36 +247,41 @@ func decide(view: BotView, tick: int) -> InputFrame:
 	return frame
 
 
-## Where the bot stands now, from where its view, [param seen_tick]'s snapshot, shows
-## it: carried on by the velocity it was seen at — or, [param by_walks], on its feet
-## and free to walk, by the walks it has sent since, unless a wall or a railing stands
-## across them: it knows what it pressed, so a turn since is no surprise to it. Its
-## feet have risen or sunk with the walk, up a stair or onto the next deck.
-func _reckon(me: Dictionary, seen_tick: int, by_walks: bool) -> Vector3:
+## Where the bot stands now, from where its view shows it: carried on by the velocity
+## it was seen at. Its feet have risen or sunk with the walk, up a stair or onto the
+## next deck.
+func _reckon(me: Dictionary) -> Vector3:
 	var seen_pos: Vector3 = me["pos"]
 	var my_vel: Vector3 = me["vel"]
 	var reaction_s := _profile.reaction_ticks * Ticks.SECONDS_PER_TICK
 	var now_pos := seen_pos + Vector3(my_vel.x, 0.0, my_vel.z) * reaction_s
-	if (
-		by_walks
-		and me["state"] == PlayerState.Body.GROUNDED
-		and me["stagger"] == 0
-		and me["hitstop"] == 0
-	):
-		var walked := Vector2.ZERO
-		for index in _sent_ticks.size():
-			if _sent_ticks[index] >= seen_tick:
-				walked += _sent_moves[index]
-		walked *= _rules.walk_speed * Ticks.SECONDS_PER_TICK
-		var walked_to := seen_pos + Vector3(walked.x, 0.0, walked.y)
-		if not (
-			_surfaces.blocked(seen_pos, walked_to, _rules.body_height, _rules.step_height)
-			or _surfaces.railed(seen_pos, walked_to, me["surface"])
-		):
-			now_pos = walked_to
 	if me["surface"] != Surfaces.NONE:
 		now_pos.y = _footing.feet_at(seen_pos, now_pos)
 	return now_pos
+
+
+## Where the bot stands now — on its feet and free to walk — by the walks it has sent
+## since its view's [param seen_tick], unless a wall or a railing stands across them:
+## it knows what it pressed, so a turn since is no surprise to it. Otherwise where
+## [param reckoned] by its seen velocity.
+func _by_walks(me: Dictionary, seen_tick: int, reckoned: Vector3) -> Vector3:
+	if me["state"] != PlayerState.Body.GROUNDED or me["stagger"] != 0 or me["hitstop"] != 0:
+		return reckoned
+	var seen_pos: Vector3 = me["pos"]
+	var walked := Vector2.ZERO
+	for index in _sent_ticks.size():
+		if _sent_ticks[index] >= seen_tick:
+			walked += _sent_moves[index]
+	walked *= _rules.walk_speed * Ticks.SECONDS_PER_TICK
+	var walked_to := seen_pos + Vector3(walked.x, 0.0, walked.y)
+	if (
+		_surfaces.blocked(seen_pos, walked_to, _rules.body_height, _rules.step_height)
+		or _surfaces.railed(seen_pos, walked_to, me["surface"])
+	):
+		return reckoned
+	if me["surface"] != Surfaces.NONE:
+		walked_to.y = _footing.feet_at(seen_pos, walked_to)
+	return walked_to
 
 
 ## In the sea: nothing to press while a climb is under way; else for the way out the
@@ -364,23 +369,52 @@ func _think(seen: Dictionary, me: Dictionary, now_pos: Vector3, pose: ShipPose) 
 	for entry: Dictionary in seen["seats"]:
 		_others_at[entry["seat"]] = entry["pos"]
 	var found := _walk_graph.search(my_pos, my_surface, pose)
+	var under := _footing.flooded_share(pose)
 	var highest := _walk_graph.highest_in(found, pose)
-	_choose_target(seen, me, found, pose, highest)
+	# As the ship founders, the highest ground now is not where the last dry deck will be.
+	var refuge := highest
+	if under >= _profile.refuge_from:
+		var tilt := _profile.refuge_tilt(pose.slope_deg())
+		_refuge = _walk_graph.highest_in(found, pose, tilt, _refuge, _profile.refuge_keep_m)
+		refuge = _refuge
+	target = _targeting.choose(seen, me, found, pose, highest, target)
 	var mark := _entry(seen, target)
 	var my_zone := _zone_of(me)
-	if _climbing and my_zone == _goal and not _surfaces.is_ramp(my_surface):
+	# A room floods from its lowest corner up; an open deck where the bot stands.
+	var feet := pose.world_height(my_pos)
+	var floor_height := feet
+	if _walk_graph.is_room(my_zone):
+		floor_height = _walk_graph.lowest_world_height(my_zone, pose)
+	# It climbs until it stands where it was making for — or, the ship not yet
+	# foundering, on a floor a body's height out of the sea's reach.
+	var clear := under < _profile.refuge_from and floor_height > _rules.body_height
+	if _climbing and (clear or my_zone == _goal and not _surfaces.is_ramp(my_surface)):
 		_climbing = false
 	_climbing = (
 		_climbing
 		or (
 			my_zone != WalkGraph.NONE
-			and highest != my_zone
-			and _walk_graph.lowest_world_height(my_zone, pose) < _profile.climb_margin_m
+			and refuge != my_zone
+			and (
+				floor_height < _profile.climb_margin_m
+				or (
+					under >= _profile.refuge_from
+					and _going_under(_walk_graph.route_in(found, refuge), pose, feet)
+				)
+			)
 		)
 	)
+	# On the perch with its target, it presses: it aims where the target goes.
+	_lead = 0.0
+	if (
+		not mark.is_empty()
+		and my_zone != WalkGraph.NONE
+		and (my_zone == refuge or my_zone == highest)
+		and _zone_of(mark) == my_zone
+	):
+		_lead = _profile.perch_lead
 	# Late in the sinking, with few dry decks left, it presses: closer to the edges, and
 	# keener to go at someone than to keep its ground.
-	var under := _footing.flooded_share(pose)
 	_footing.margin = _profile.edge_margin_m * (1.0 - _profile.late_margin_share * under)
 	_pressing = 1.0 + _profile.late_hunt_gain * under
 	var walk := _rules.walk_speed * _profile.think_period * Ticks.SECONDS_PER_TICK
@@ -389,23 +423,23 @@ func _think(seen: Dictionary, me: Dictionary, now_pos: Vector3, pose: ShipPose) 
 		_footing.danger_within(_edge_from, pose, reach)
 		or _edge_also != _edge_from and _footing.danger_within(_edge_also, pose, reach)
 	)
-	_drop_way = Vector2.ZERO
-	_drop_distance = INF
-	if (
+	var lines_up := (
 		_profile.lineup_weight > _profile.hunt_weight
 		and not mark.is_empty()
 		and not mark.has(BotView.REMEMBERED)
-		and _flat(my_pos, mark["pos"]) < _carry * 2.0
-	):
-		_find_drop(mark, pose)
+		and _flat(my_pos, mark["pos"]) < _targeting.carry * 2.0
+	)
+	_targeting.find_drop(mark if lines_up else {}, pose)
 	var swimmer := _swimmer_near(seen, my_pos)
 	intent = _arbitrate(seen, me, mark, now_pos, pose, swimmer, highest)
 	if intent == Intent.GUARD:
 		target = swimmer
 	var kept_goal := _goal
 	match intent:
-		Intent.SEEK_HIGH, Intent.CLIMB_OUT, Intent.FLEE:
+		Intent.SEEK_HIGH:
 			_goal = highest
+		Intent.CLIMB_OUT, Intent.FLEE:
+			_goal = refuge
 		Intent.GUARD:
 			_goal = WalkGraph.NONE
 		_:
@@ -416,11 +450,11 @@ func _think(seen: Dictionary, me: Dictionary, now_pos: Vector3, pose: ShipPose) 
 	if _goal != kept_goal or legs.is_empty() or not _open(_legs, pose):
 		_legs = legs
 	if (
-		seen["tick"] - _stalled_since >= Ticks.RATE
+		seen["tick"] - _stalled_since >= Ticks.from_seconds(_profile.detour_after_s)
 		and not _legs.is_empty()
 		and _legs[0].ramp != WalkGraph.NONE
 	):
-		# No headway for a second on the way to a stair across its deck: round through
+		# No headway for a while on the way to a stair across its deck: round through
 		# the rooms beside it.
 		var way := _walk_graph.toward(_legs[0], now_pos, my_surface)
 		var round_by := _walk_graph.detour(now_pos, my_surface, way, pose)
@@ -452,9 +486,11 @@ func _arbitrate(
 		scores[Intent.SEEK_HIGH] = _profile.wander_weight
 	elif _zone_of(me) != highest and _footing.water_near(now_pos, pose):
 		scores[Intent.SEEK_HIGH] = 1.0
-	if _drop_way != Vector2.ZERO:
+	if _targeting.drop_way != Vector2.ZERO:
 		scores[Intent.LINE_UP] = (
-			_profile.lineup_weight * (1.0 - 0.5 * _drop_distance / _carry) * _pressing
+			_profile.lineup_weight
+			* (1.0 - 0.5 * _targeting.drop_distance / _targeting.carry)
+			* _pressing
 		)
 	if not mark.is_empty():
 		scores[Intent.HUNT] = _profile.hunt_weight * _pressing
@@ -496,78 +532,6 @@ func _urgent(
 	elif swimmer != -1:
 		urgent = Intent.GUARD
 	return urgent
-
-
-## The seat to go at: of those it perceives on their feet, in a zone it can reach,
-## scored by how near — against the nearest — and by king_of_hill_bias how high they
-## stand, against the lowest and the highest; that bias tapered by crowd_taper while
-## two or more stand in [param perch], the highest zone it can reach. By
-## exposure_weight, one within two shoves' carry scores by how far over a shove would
-## put it; by crowd_aversion, one nearer another seat than the bot scores less. Its
-## current target stays unless another beats it by the hysteresis; ties go to the
-## lower seat.
-func _choose_target(
-	seen: Dictionary, me: Dictionary, found: WalkGraph.Search, pose: ShipPose, perch: int
-) -> void:
-	var my_pos: Vector3 = me["pos"]
-	var candidates: Array[Dictionary] = []
-	var nearest := INF
-	var lowest := INF
-	var highest := -INF
-	for entry: Dictionary in seen["seats"]:
-		if entry["seat"] == seat or entry["out"] or entry["state"] == PlayerState.Body.SWIMMING:
-			continue
-		var zone := _zone_of(entry)
-		if zone != WalkGraph.NONE and (found.cost.is_empty() or found.cost[zone] == INF):
-			continue
-		candidates.append(entry)
-		var height := pose.world_height(entry["pos"])
-		nearest = minf(nearest, my_pos.distance_to(entry["pos"]))
-		lowest = minf(lowest, height)
-		highest = maxf(highest, height)
-	var bias := _profile.king_of_hill_bias
-	var on_perch := 0
-	for entry: Dictionary in candidates:
-		on_perch += 1 if perch != WalkGraph.NONE and _zone_of(entry) == perch else 0
-	if on_perch >= 2:
-		bias *= 1.0 - _profile.crowd_taper
-	var best := -1
-	var best_score := -INF
-	var kept_score := -INF
-	for entry: Dictionary in candidates:
-		var distance := my_pos.distance_to(entry["pos"])
-		var near := nearest / maxf(distance, _rules.body_radius)
-		var high := 1.0
-		if highest - lowest > _rules.step_height:
-			high = (pose.world_height(entry["pos"]) - lowest) / (highest - lowest)
-		var score := (1.0 - bias) * near + bias * high
-		if _profile.exposure_weight > 0.0 and distance < _carry * 2.0:
-			score += _profile.exposure_weight * _footing.exposure(entry, _carry, pose)
-		if _profile.crowd_aversion > 0.0 and _fought(seen, entry, distance):
-			score -= _profile.crowd_aversion
-		if score > best_score:
-			best = entry["seat"]
-			best_score = score
-		if entry["seat"] == target:
-			kept_score = score
-	if best != -1 and kept_score + _profile.hysteresis >= best_score:
-		return
-	target = best
-
-
-## Whether another seat stands nearer the seat [param entry] describes than the bot,
-## [param distance] off it, does: someone better placed is at it already.
-func _fought(seen: Dictionary, entry: Dictionary, distance: float) -> bool:
-	for other: Dictionary in seen["seats"]:
-		if (
-			other["seat"] != seat
-			and other["seat"] != entry["seat"]
-			and not other["out"]
-			and other["state"] != PlayerState.Body.SWIMMING
-			and other["pos"].distance_to(entry["pos"]) < distance
-		):
-			return true
-	return false
 
 
 func _steer(
@@ -621,18 +585,19 @@ func _hunt(
 func _line_up(
 	steer: Steer, me: Dictionary, mark: Dictionary, now_pos: Vector3, pose: ShipPose
 ) -> void:
-	if mark.is_empty() or _drop_way == Vector2.ZERO or _follow_route(steer, me, now_pos, pose):
+	var drop_way := _targeting.drop_way
+	if mark.is_empty() or drop_way == Vector2.ZERO or _follow_route(steer, me, now_pos, pose):
 		_hunt(steer, me, mark, now_pos, pose)
 		return
 	var my_pos: Vector3 = me["pos"]
 	var mark_pos: Vector3 = mark["pos"]
 	var from := Vector2(my_pos.x, my_pos.z)
 	var at := Vector2(mark_pos.x, mark_pos.z)
-	if absf((at - from).angle_to(_drop_way)) <= deg_to_rad(_rules.shove_cone_deg):
+	if absf((at - from).angle_to(drop_way)) <= deg_to_rad(_rules.shove_cone_deg):
 		_walk_at(steer, me, mark, pose)
 		return
 	var bearing := (from - at).angle()
-	var turn := clampf(angle_difference(bearing, (-_drop_way).angle()), -TAU / 6.0, TAU / 6.0)
+	var turn := clampf(angle_difference(bearing, (-drop_way).angle()), -TAU / 6.0, TAU / 6.0)
 	var standoff := _rules.body_radius * 2.0 + _rules.shove_reach
 	var point := at + Vector2.from_angle(bearing + turn) * standoff
 	steer.move = _footing.clear_heading(
@@ -718,6 +683,17 @@ func _follow_route(steer: Steer, me: Dictionary, now_pos: Vector3, pose: ShipPos
 	if waypoint.is_empty():
 		return false
 	var wish := Vector2(waypoint[0].x - now_pos.x, waypoint[0].z - now_pos.z).normalized()
+	# Down a stair the route does not take is into another zone, whose route is back up
+	# it: on one — as it sees itself or reckons — with the way on back across it, off it
+	# first by its end in the leg's zone.
+	var leg := _legs[0]
+	var stair: int = me["surface"] if _surfaces.is_ramp(me["surface"]) else my_surface
+	var on_its_own := leg.ramp != WalkGraph.NONE and stair == _surfaces.ramp_surface(leg.ramp)
+	if _surfaces.is_ramp(stair) and not on_its_own:
+		var off := _walk_graph.way_off(stair, leg.from_zone)
+		if off != null and wish.dot(off.along) < 0.0:
+			var past := _walk_graph.toward(off, now_pos, stair)
+			wish = Vector2(past.x - now_pos.x, past.z - now_pos.z).normalized()
 	steer.move = _footing.clear_heading(now_pos, wish, PackedInt32Array(), PackedInt32Array())
 	return true
 
@@ -729,6 +705,10 @@ func _walk_at(steer: Steer, me: Dictionary, mark: Dictionary, pose: ShipPose) ->
 		return
 	var my_pos: Vector3 = me["pos"]
 	var mark_pos: Vector3 = mark["pos"]
+	if not mark.has(BotView.REMEMBERED):
+		var mark_vel: Vector3 = mark["vel"]
+		var ahead := _lead * _profile.reaction_ticks * Ticks.SECONDS_PER_TICK
+		mark_pos += Vector3(mark_vel.x, 0.0, mark_vel.z) * ahead
 	var goal := _approach(my_pos, mark_pos, pose)
 	var wish := Vector2(goal.x - my_pos.x, goal.z - my_pos.z).normalized().rotated(_aim_offset)
 	steer.move = _footing.clear_heading(
@@ -766,12 +746,12 @@ func _keep_off_edges(
 	var headed := false
 	if move != Vector2.ZERO:
 		var heading := move.normalized()
-		for from: Vector3 in [now_pos, _edge_also]:
-			headed = (
-				headed
-				or _footing.danger_toward(
-					from, my_surface, pose, mark, stair_ahead, heading, heed_drops
-				)
+		headed = _footing.danger_toward(
+			now_pos, my_surface, pose, mark, stair_ahead, heading, heed_drops
+		)
+		if not headed and _edge_also != now_pos:
+			headed = _footing.danger_toward(
+				_edge_also, my_surface, pose, mark, stair_ahead, heading, heed_drops
 			)
 		var ahead := now_pos + Vector3(heading.x, 0.0, heading.y) * _footing.margin
 		if not headed and _surfaces.railed(now_pos, ahead, my_surface):
@@ -972,22 +952,6 @@ func _slipping(me: Dictionary, mark: Dictionary, now_pos: Vector3, pose: ShipPos
 	return away != Vector2.ZERO and away.dot(Vector2(gravity.x, gravity.z)) < 0.0
 
 
-## The way from [param mark] to the water or unrailed drop within a shove's carry of
-## it — every probe that meets one, the nearer the more — and how far the nearest is,
-## into _drop_way and _drop_distance; zero and INF for none.
-func _find_drop(mark: Dictionary, pose: ShipPose) -> void:
-	var way := Vector2.ZERO
-	for index in PROBES:
-		var direction := Vector2.from_angle(TAU * index / PROBES)
-		var distance := _footing.edge_toward(
-			mark["pos"], mark["surface"], direction, _carry, pose, false
-		)
-		if distance < INF:
-			way += direction * (1.0 - distance / _carry)
-			_drop_distance = minf(_drop_distance, distance)
-	_drop_way = way.normalized()
-
-
 ## The next point on the way to the goal: past the portals already gone through, or
 ## by a fresh route when the bot has strayed off the one it had; none when there is
 ## no portal left to go through.
@@ -1009,6 +973,19 @@ func _waypoint(
 	if _legs.is_empty():
 		return PackedVector3Array()
 	return PackedVector3Array([_walk_graph.toward(_legs[0], my_pos, my_surface)])
+
+
+## Whether a portal on [param legs] has an end lower than [param below] — how high
+## above the sea under [param pose] the bot's feet stand — and within refuge_margin_m
+## of the sea: the way dips toward the water and will be under before the bot is
+## through. A way along its own floor is that floor's to answer for.
+func _going_under(legs: Array[WalkGraph.Portal], pose: ShipPose, below: float) -> bool:
+	for leg: WalkGraph.Portal in legs:
+		for end: Vector3 in [leg.entry, leg.exit]:
+			var height := pose.world_height(end)
+			if height < below and height < _profile.refuge_margin_m:
+				return true
+	return false
 
 
 ## Whether [param legs] is a way still to take under [param pose]: not empty, and no
