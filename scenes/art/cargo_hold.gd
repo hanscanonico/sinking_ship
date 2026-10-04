@@ -284,7 +284,8 @@ func _hatch_beams(mesh: ShipMesh, room: ShipRoom) -> void:
 			continue
 		var under := blocker.bottom - ShipArt.PLANK
 		var low := under - ShipArt.BEAM_DEPTH - 0.06
-		var rim := area.grow(0.12)
+		# Kept to the hold: a timber past its bulkhead would show in the room beyond.
+		var rim := area.grow(0.12).intersection(room.area)
 		for edge: Rect2 in [
 			Rect2(rim.position, Vector2(rim.size.x, 0.12)),
 			Rect2(rim.position.x, area.end.y, rim.size.x, 0.12),

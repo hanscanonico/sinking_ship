@@ -20,7 +20,7 @@ static func build(hat: Brawler.Hat, colour: Color, hair: Color) -> ArrayMesh:
 			# A flat cap: a soft crown pulled forward over a short peak.
 			_dome(tool, Vector3(0.0, 0.18, 0.005), Vector3(0.105, 0.07, 0.13), 0.14, colour)
 			var peak := colour.darkened(0.25)
-			_box(tool, Vector3(0.0, 0.185, 0.12), Vector3(0.15, 0.014, 0.07), 0.3, peak)
+			_box(tool, Vector3(0.0, 0.198, 0.12), Vector3(0.15, 0.014, 0.065), 0.12, peak)
 		Brawler.Hat.SOUWESTER:
 			# Oilskin: a deep dome and a brim that runs down over the neck.
 			_dome(tool, Vector3(0.0, 0.165, -0.005), Vector3(0.105, 0.13, 0.118), -0.05, colour)
@@ -52,8 +52,8 @@ static func build(hat: Brawler.Hat, colour: Color, hair: Color) -> ArrayMesh:
 			# black peak.
 			_tube(tool, Vector3(0.0, 0.2, 0.0), 0.1, 0.1, 0.05, -0.05, colour.darkened(0.15))
 			_tube(tool, Vector3(0.0, 0.245, -0.004), 0.13, 0.1, 0.04, -0.05, colour)
-			var peak := Vector3(0.15, 0.012, 0.075)
-			_box(tool, Vector3(0.0, 0.18, 0.11), peak, 0.35, ArtPalette.INK)
+			var peak := Vector3(0.15, 0.012, 0.065)
+			_box(tool, Vector3(0.0, 0.192, 0.11), peak, 0.15, ArtPalette.INK)
 			var badge := Vector3(0.03, 0.025, 0.01)
 			_box(tool, Vector3(0.0, 0.205, 0.101), badge, 0.0, ArtPalette.BRASS)
 	tool.index()

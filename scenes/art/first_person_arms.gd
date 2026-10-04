@@ -8,17 +8,16 @@ extends Node3D
 ## seat's two snapshot entries (D5), and drives nothing (D12), but with poses of its
 ## own (POSES), framed for the eye: fists low at the bottom edge at rest or on the
 ## move, drawn up close in a wind-up and closer in a charge, thrust out in a shove,
-## a raised guard in a brace, flung up out of view in a stagger, a small
-## breaststroke low at the bottom edge in the sea, and one hand reaching high and
-## the other gripping low as a climb hauls the body up. A jump's spring shows as
-## the fall it turns into, and a hit-stop as the pose held unsquashed.
+## a raised guard in a brace, flung up out of view in a stagger, a breaststroke in
+## the sea — both hands thrust out together under the crosshair, then pulled apart
+## and down to the bottom edge — and one hand reaching high and the other gripping
+## low as a climb hauls the body up. A jump's spring shows as the fall it turns
+## into, and a hit-stop as the pose held unsquashed.
 
-## What the arms never cover, in pixels of a window as wide as the game first opens
-## (the arms scale with a window's width, the HUD's pixels do not): a zone round the
-## crosshair, its half size, and the readouts FirstPersonHud stacks at the bottom
-## left, from the room's name down to the cold slot, placed off the window's
-## bottom-left corner.
-const KEEP_CLEAR_WIDTH := 1152.0
+## What the arms never cover, in pixels of the HUD's canvas (which scales with the
+## window, as the arms do): a zone round the crosshair, its half size, and the
+## readouts FirstPersonHud stacks at the bottom left, from the room's name down to
+## the cold slot, placed off the canvas' bottom-left corner.
 const CROSSHAIR_CLEAR := Vector2(96.0, 72.0)
 const READOUTS_CLEAR := Rect2(16.0, -174.0, 252.0, 124.0)
 ## The bone the brawler hangs from, and where it is held in camera space: ahead of
@@ -93,17 +92,17 @@ const POSES := {
 	[
 		{
 			&"DEF-spine.003": UPRIGHT,
-			BrawlerPose.REACH_L: Vector3(0.082, 0.34, 0.42),
-			BrawlerPose.REACH_R: Vector3(-0.082, 0.34, 0.42),
-			&"DEF-hand.L": Vector3(0.0, 0.0, 1.0),
-			&"DEF-hand.R": Vector3(0.0, 0.0, 1.0),
+			BrawlerPose.REACH_L: Vector3(0.1, 0.42, 0.5),
+			BrawlerPose.REACH_R: Vector3(-0.1, 0.42, 0.5),
+			&"DEF-hand.L": Vector3(0.0, 0.1, 1.0),
+			&"DEF-hand.R": Vector3(0.0, 0.1, 1.0),
 		},
 		{
 			&"DEF-spine.003": UPRIGHT,
-			BrawlerPose.REACH_L: Vector3(0.138, 0.324, 0.28),
-			BrawlerPose.REACH_R: Vector3(-0.138, 0.324, 0.28),
-			&"DEF-hand.L": Vector3(0.5, 0.0, 1.0),
-			&"DEF-hand.R": Vector3(-0.5, 0.0, 1.0),
+			BrawlerPose.REACH_L: Vector3(0.11, 0.31, 0.34),
+			BrawlerPose.REACH_R: Vector3(-0.11, 0.31, 0.34),
+			&"DEF-hand.L": Vector3(0.2, 0.0, 1.0),
+			&"DEF-hand.R": Vector3(-0.2, 0.0, 1.0),
 		},
 	],
 	BrawlerAnimation.Move.CLIMB:

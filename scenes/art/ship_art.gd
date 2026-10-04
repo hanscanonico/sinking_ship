@@ -23,6 +23,7 @@ extends Node3D
 
 const SHADER := preload("res://scenes/art/ship.gdshader")
 const CUT_SHADER := preload("res://scenes/art/ship_cut.gdshader")
+const NEAR_SHADER := preload("res://scenes/art/ship_near.gdshader")
 const GLASS_SHADER := preload("res://scenes/art/glass.gdshader")
 
 ## A deck's planking: its top is the platform's height.
@@ -179,6 +180,7 @@ func build(
 		func(_point: Vector3) -> bool: return false, _space.room_lines()
 	)
 	furnishings.cut_above = cut_above
+	furnishings.fading = _dressing.overhead
 	var dressed := Node3D.new()
 	dressed.name = "Dressing"
 	add_child(dressed)
@@ -187,10 +189,11 @@ func build(
 	brass.albedo_color = ArtPalette.BRASS
 	brass.diffuse_mode = BaseMaterial3D.DIFFUSE_TOON
 	brass.specular_mode = BaseMaterial3D.SPECULAR_DISABLED
+	ShipLamp.fade_near(brass)
 	for index in layout.rooms.size():
 		_hang_lamps(layout.rooms[index], index, brass)
 	mesh.commit(self, materials)
-	furnishings.commit(dressed, materials)
+	furnishings.commit(dressed, _near_paints(materials))
 	for node: Node3D in pieces:
 		var deck := _wrecks.find(node)
 		if deck == -1:
@@ -340,6 +343,20 @@ func _own_paints(materials: Dictionary) -> Dictionary:
 	for finish: int in PAINTS:
 		own[finish] = (materials[finish] as ShaderMaterial).duplicate()
 	return own
+
+
+## [param materials] with each ship.gdshader paint in its variant that fades a piece
+## out near the eye (ship_near.gdshader), for the rooms' furnishings — but in the
+## observer's cut-away, which looks from afar.
+func _near_paints(materials: Dictionary) -> Dictionary:
+	if is_finite(cut_above):
+		return materials
+	var near := _own_paints(materials)
+	for finish: int in PAINTS:
+		var material := near[finish] as ShaderMaterial
+		material.shader = NEAR_SHADER
+		material.set_shader_parameter("near_fade", RoomDressing.NEAR_FADE)
+	return near
 
 
 ## Planks on [param platform], but for the edges in [param hidden] that lie on the
@@ -854,6 +871,7 @@ func _hang_lamps(room: ShipRoom, index: int, brass: Material) -> void:
 			glass.albedo_color = ArtPalette.LAMP_GLASS
 			glass.emission = ArtPalette.LAMP_GLASS
 			glass.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+			ShipLamp.fade_near(glass)
 		lamp.setup(box, index * 1.7 + number * 0.61, glass, brass, light.kind, light.facing)
 
 

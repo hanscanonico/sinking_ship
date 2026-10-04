@@ -120,6 +120,15 @@ static func flame(clock: float) -> float:
 	return 1.0 - FIRE_WAVER * roll
 
 
+## Fades [param material] out near the eye, screen-door, as the rooms' furnishings
+## over head height do (RoomDressing.NEAR_FADE): a lamp hangs where a jumping head
+## rises.
+static func fade_near(material: BaseMaterial3D) -> void:
+	material.distance_fade_mode = BaseMaterial3D.DISTANCE_FADE_PIXEL_DITHER
+	material.distance_fade_min_distance = RoomDressing.NEAR_FADE.x
+	material.distance_fade_max_distance = RoomDressing.NEAR_FADE.y
+
+
 ## Hangs the lamp of [param kind] from where it now stands in [param room] (its box,
 ## ship space) — a fire burns there instead, facing [param facing] out of its wall;
 ## [param phase] keeps lamps from flickering in step.
@@ -196,6 +205,7 @@ func _hang_cargo(brass: Material) -> void:
 	tin.diffuse_mode = BaseMaterial3D.DIFFUSE_TOON
 	tin.specular_mode = BaseMaterial3D.SPECULAR_DISABLED
 	tin.cull_mode = BaseMaterial3D.CULL_DISABLED
+	fade_near(tin)
 	var shade := CylinderMesh.new()
 	shade.top_radius = 0.05
 	shade.bottom_radius = 0.2

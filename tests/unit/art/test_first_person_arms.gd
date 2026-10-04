@@ -1,13 +1,17 @@
 extends GutTest
-## Your own arms, in every pose they take, stay clear of the crosshair and of the
-## readouts at the bottom left (FirstPersonArms' keep-clear zones) through the
-## first-person camera's lens: at the default field of view and the narrowest, on a
-## 16:9 and a 16:10 window.
+## Your own arms, in every pose they take and through a jump and a fall, stay clear
+## of the crosshair and of the readouts at the bottom left (FirstPersonArms'
+## keep-clear zones) through the first-person camera's lens: at the default field of
+## view and the narrowest, on the windows the game is checked on. The HUD's canvas
+## scales with the window (canvas_items, expand), so the zones scale with it.
 
 const SEAT := 4
-const WIDTH := FirstPersonArms.KEEP_CLEAR_WIDTH
-const VIEWS: Array[Vector2] = [
-	Vector2(WIDTH, WIDTH * 9.0 / 16.0), Vector2(WIDTH, WIDTH * 10.0 / 16.0)
+const WINDOWS: Array[Vector2] = [
+	Vector2(1152.0, 648.0), Vector2(1440.0, 900.0), Vector2(1920.0, 1080.0)
+]
+## The moves drawn by their clip alone, beside those FirstPersonArms poses.
+const CLIP_MOVES: Array[BrawlerAnimation.Move] = [
+	BrawlerAnimation.Move.FALL, BrawlerAnimation.Move.JUMP
 ]
 ## Along each arm, elbow to fingertips: the bones whose heads mark it.
 const JOINTS := {
@@ -44,7 +48,7 @@ func before_each() -> void:
 	_sizes.clear()
 	_labels.clear()
 	for fov: float in [ViewSettings.new().fov_deg, ViewSettings.FOV_MIN]:
-		for size: Vector2 in VIEWS:
+		for size: Vector2 in WINDOWS:
 			# As FirstPersonCamera frames it: the field of view across the width.
 			_lenses.append(
 				Projection.create_perspective(
@@ -57,7 +61,9 @@ func before_each() -> void:
 
 func test_the_arms_stay_clear_of_the_crosshair_and_the_readouts_in_every_pose() -> void:
 	var problems := {}
-	for move: BrawlerAnimation.Move in FirstPersonArms.POSES:
+	var moves: Array = FirstPersonArms.POSES.keys()
+	moves.append_array(CLIP_MOVES)
+	for move: BrawlerAnimation.Move in moves:
 		var entry := _as(move)
 		var watched := 0.0
 		while watched < SETTLE + WATCH:
@@ -94,6 +100,12 @@ func _as(move: BrawlerAnimation.Move) -> Dictionary:
 		BrawlerAnimation.Move.CLIMB:
 			entry["state"] = PlayerState.Body.SWIMMING
 			entry["climb"] = 10
+		BrawlerAnimation.Move.FALL:
+			entry["state"] = PlayerState.Body.AIRBORNE
+		BrawlerAnimation.Move.JUMP:
+			entry["state"] = PlayerState.Body.AIRBORNE
+			entry["jumped"] = true
+			entry["vel"] = Vector3(0.0, 3.0, 0.0)
 	assert_eq(BrawlerAnimation.move_for(entry, (entry["vel"] as Vector3).length()), move)
 	return entry
 
@@ -127,19 +139,31 @@ func _check_point(
 		return
 	for view in _lenses.size():
 		var size := _sizes[view]
+		var scale := _canvas_scale(size)
+		var canvas := size / scale
 		var crosshair := Rect2(
-			size * 0.5 - FirstPersonArms.CROSSHAIR_CLEAR, FirstPersonArms.CROSSHAIR_CLEAR * 2.0
+			canvas * 0.5 - FirstPersonArms.CROSSHAIR_CLEAR, FirstPersonArms.CROSSHAIR_CLEAR * 2.0
 		)
 		var readouts := FirstPersonArms.READOUTS_CLEAR
-		readouts.position.y += size.y
+		readouts.position.y += canvas.y
 		for offset: Vector3 in [
 			Vector3.ZERO, Vector3.LEFT, Vector3.RIGHT, Vector3.UP, Vector3.DOWN
 		]:
-			var at := _pixel(_lenses[view], size, point + offset * radius)
+			var at := _pixel(_lenses[view], size, point + offset * radius) / scale
 			for zone: Rect2 in [crosshair, readouts]:
 				var key := "%s %s %s" % [BrawlerAnimation.Move.keys()[move], bone, _labels[view]]
 				if zone.has_point(at) and not problems.has(key):
 					problems[key] = "%s at %s" % [key, at.round()]
+
+
+## How many of a window of [param size]'s pixels one of the HUD's canvas spans: the
+## canvas keeps the project's whole base size and expands the other way.
+func _canvas_scale(size: Vector2) -> float:
+	var base := Vector2(
+		ProjectSettings.get_setting("display/window/size/viewport_width"),
+		ProjectSettings.get_setting("display/window/size/viewport_height")
+	)
+	return minf(size.x / base.x, size.y / base.y)
 
 
 ## Where [param point], in the eye's space, is drawn on a window of [param size]

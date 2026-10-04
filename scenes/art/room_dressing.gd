@@ -32,6 +32,10 @@ const SALOON_AREA := 15.0
 ## How high over its floor anything standing out from a wall begins: nobody's head
 ## goes there but in a jump.
 const HEADROOM := 1.85
+## How near the eye what stands over HEADROOM is gone, and from how near it starts
+## to fade out (ship_near.gdshader, ShipLamp): a jumping head rises into it, and it
+## would fill the view.
+const NEAR_FADE := Vector2(0.3, 0.6)
 const PIPE_SIDES := 8
 ## A berth slung overhead: its length and its depth out from its wall.
 const BERTH := Vector2(1.9, 0.7)
@@ -211,6 +215,16 @@ static func _holds(space: ShipSpace, room: ShipRoom, point: Vector3) -> bool:
 	if point.y < room.floor_height - ShipSpace.INSIDE:
 		return false
 	return point.y <= space.ceiling(room, point.x, point.z) + ShipSpace.INSIDE
+
+
+## Whether [param piece] (ship space) stands wholly over HEADROOM in the room it is
+## in, where only a jumping head comes near it: it fades out near the eye
+## (NEAR_FADE). The rest stands flat on a wall or in a blocker's footprint.
+func overhead(piece: AABB) -> bool:
+	var room := room_at(_space, piece.get_center())
+	if room == -1:
+		return false
+	return piece.position.y >= _layout.rooms[room].floor_height + HEADROOM - ShipMesh.SLIVER
 
 
 ## The paint [param part] of the room ship point [param point] stands in takes, when
@@ -792,6 +806,8 @@ func _signs(mesh: ShipMesh, signs: Node3D, room: ShipRoom) -> void:
 			letters.double_sided = false
 			letters.alpha_cut = Label3D.ALPHA_CUT_DISCARD
 			letters.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			# Gone with its plate as a jumping eye comes near (NEAR_FADE).
+			letters.visibility_range_begin = (NEAR_FADE.x + NEAR_FADE.y) * 0.5
 			letters.basis = Basis.looking_at(-normal)
 			letters.position = centre + normal * 0.02
 			letters.visible = centre.y < _cut_above

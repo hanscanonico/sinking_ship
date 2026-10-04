@@ -27,8 +27,14 @@ const CHURN_RADIUS := 7.0
 const CHURN_TRIM_DEG := 10.0
 ## How far the stem reaches below the waterline of a level, unsunk ship (ShipHull).
 const STEM_DRAFT := 0.5
-## The side, in metres, of a cell of the rooms' map (room_map).
+## The side, in metres, of a cell of the rooms' maps (room_map, room_edges); how far
+## in or out of a room the edges' map tells apart; and how far past its walls it
+## takes a room to reach, so its corners, read between texels — which round a
+## corner by up to a quarter of a cell — keep in it: the sea by the hull gives up no
+## more of its sky than that, under the hull's own foam.
 const ROOM_CELL := 0.5
+const EDGE_REACH := 1.0
+const EDGE_GRACE := ROOM_CELL * 0.25
 
 var _end_tick := 0
 ## The stem, ship space: its head at the bow's deck, its foot under the waterline;
@@ -176,6 +182,8 @@ func _map_rooms(layout: ShipLayout) -> void:
 	)
 	_ship_to_world = Transform3D()
 	_water.set_shader_parameter(&"rooms", ImageTexture.create_from_image(room_map(layout)))
+	var edges := ImageTexture.create_from_image(room_edges(layout))
+	_water.set_shader_parameter(&"room_edges", edges)
 	_water.set_shader_parameter(&"world_to_rooms", _ship_to_rooms)
 
 
@@ -190,25 +198,59 @@ static func room_bounds(layout: ShipLayout) -> Rect2:
 
 
 ## The rooms seen from above, a cell of ROOM_CELL metres a texel over room_bounds():
-## red the lowest floor, green the highest ceiling (ShipSpace) of the rooms over the
-## cell's middle, so a point of the ship between the two stands in a room; both
-## zero where no room is.
+## red the lowest floor, green the highest ceiling (ShipSpace) of the rooms reaching
+## into the cell — of both sides where a wall runs through it, so the water in a room
+## by its wall never takes the sky — and both zero where no room is. A point of the
+## ship between the two, and in a room by room_edges(), stands in a room.
 static func room_map(layout: ShipLayout) -> Image:
 	var space := ShipSpace.new(layout)
 	var bounds := room_bounds(layout)
-	var size := Vector2i((bounds.size / ROOM_CELL).round())
+	var size := _cells(bounds)
 	var map := Image.create_empty(size.x, size.y, false, Image.FORMAT_RGF)
 	for row in size.y:
 		for column in size.x:
-			var at := bounds.position + (Vector2(column, row) + Vector2(0.5, 0.5)) * ROOM_CELL
+			var cell := Rect2(bounds.position + Vector2(column, row) * ROOM_CELL, Vector2.ONE)
+			cell.size *= ROOM_CELL
 			var span := Vector2(INF, -INF)
 			for room: ShipRoom in layout.rooms:
-				if room.area.has_point(at):
+				if room.area.intersects(cell):
+					var at := cell.get_center().clamp(room.area.position, room.area.end)
 					span.x = minf(span.x, room.floor_height)
 					span.y = maxf(span.y, space.ceiling(room, at.x, at.y))
 			if span.x < span.y:
 				map.set_pixel(column, row, Color(span.x, span.y, 0.0))
 	return map
+
+
+## How far inside the rooms each cell's middle of room_bounds() stands, in metres,
+## past EDGE_GRACE — less than nothing outside them, held within EDGE_REACH; half floats, which a
+## browser's GPU reads between texels. Read between the cells' middles, as the sea
+## reads it, a wall runs where it stands rather than along the cells', so no strip of
+## a room by its wall takes the sky, nor of the sea by the hull loses it.
+static func room_edges(layout: ShipLayout) -> Image:
+	var bounds := room_bounds(layout)
+	var size := _cells(bounds)
+	var edges := Image.create_empty(size.x, size.y, false, Image.FORMAT_RH)
+	for row in size.y:
+		for column in size.x:
+			var at := bounds.position + (Vector2(column, row) + Vector2(0.5, 0.5)) * ROOM_CELL
+			var inside := -EDGE_REACH
+			for room: ShipRoom in layout.rooms:
+				inside = maxf(inside, _inside(room.area, at))
+			edges.set_pixel(column, row, Color(minf(inside + EDGE_GRACE, EDGE_REACH), 0.0, 0.0))
+	return edges
+
+
+## How far [param at] stands inside [param area], less than nothing outside it —
+## off a corner as far as off the nearer of its walls' lines, so a corner read
+## between texels stays square.
+static func _inside(area: Rect2, at: Vector2) -> float:
+	var out := (area.position - at).max(at - area.end)
+	return -maxf(out.x, out.y)
+
+
+static func _cells(bounds: Rect2) -> Vector2i:
+	return Vector2i((bounds.size / ROOM_CELL).round())
 
 
 ## Where the segment from [param a] to [param b] crosses the sea plane, or NaNs.

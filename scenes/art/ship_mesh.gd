@@ -8,7 +8,9 @@ extends RefCounted
 ## one mesh per chunk: a lamp lights only the meshes its range reaches, and
 ## Compatibility lights a mesh with eight at most, so no indoor mesh spans more
 ## than a few rooms. Each face's rim fades toward the crew's ink
-## (ship.gdshaderinc), so a box reads bevelled.
+## (ship.gdshaderinc), so a box reads bevelled. A mesh told which pieces fade out
+## near the eye (fading) gives each vertex its piece's box, for the shader to fade
+## the piece by.
 
 ## What a face is painted with (ship.gdshaderinc's finishes, then the glass, then
 ## the rooms' own: riveted steel and rough timber).
@@ -69,11 +71,18 @@ class Batch:
 	var colours := PackedColorArray()
 	var uvs := PackedVector2Array()
 	var uv2s := PackedVector2Array()
+	## Per vertex when its mesh is fading: its piece's middle and 1 when the piece
+	## fades, else 0; and its piece's half size.
+	var pieces := PackedFloat32Array()
+	var halves := PackedFloat32Array()
 
 
 ## Ship-local height: a piece wholly at or above it is not drawn — the observer's
 ## cut-away; ship.gdshaderinc trims what straddles it.
 var cut_above := INF
+## (piece: AABB) -> bool, ship space, when set: whether a piece — what one call
+## draws, a box, a cylinder, a face — fades out near the eye (ship_near.gdshader).
+var fading := Callable()
 
 ## (point: Vector3) -> bool: whether a ship-space point stands outdoors.
 var _outdoors: Callable
@@ -85,6 +94,11 @@ var _batches := {}
 var _finishes := {}
 ## Whether the piece _batch_for() last placed stands outdoors.
 var _last_outdoors := true
+## While fading: how many calls deep the piece being drawn is, its box so far, and
+## the batches it has reached.
+var _depth := 0
+var _piece := AABB()
+var _reached: Array[Batch] = []
 
 
 ## [param outdoors] says whether a ship point is outdoors; [param room_cuts] holds,
@@ -113,6 +127,7 @@ func box(
 		return
 	foot = bottom if is_nan(foot) else foot
 	head = top if is_nan(head) else head
+	_open()
 	var x0 := area.position.x
 	var x1 := area.end.x
 	var z0 := area.position.y
@@ -132,6 +147,7 @@ func box(
 		face(Vector3(x0, bottom, z1), dx, dy, paint, RIM_ALL, foot, head)
 	if faces & NEG_Z:
 		face(Vector3(x0, bottom, z0), dy, dx, paint, RIM_ALL, foot, head)
+	_close()
 
 
 ## A box of [param size] placed by [param place] (its centre and turn), uncut, the
@@ -147,12 +163,14 @@ func turned_box(place: Transform3D, size: Vector3, paint: Paint, rims := RIM_ALL
 	var high := place * half
 	var foot := low.y
 	var head := high.y
+	_open()
 	quad(low, low + z, low + z + x, low + x, -b.y, paint, rims, foot, head)
 	quad(high, high - x, high - x - z, high - z, b.y, paint, rims, foot, head)
 	quad(low, low + y, low + y + z, low + z, -b.x, paint, rims, foot, head)
 	quad(high, high - z, high - z - y, high - y, b.x, paint, rims, foot, head)
 	quad(low, low + x, low + x + y, low + y, -b.z, paint, rims, foot, head)
 	quad(high, high - y, high - y - x, high - x, b.z, paint, rims, foot, head)
+	_close()
 
 
 ## A beam of [param section] from [param from] to [param to], uncut, its faces'
@@ -188,6 +206,7 @@ func cylinder(
 	cap := true
 ) -> void:
 	var heights := _between(_cuts[1], bottom, top)
+	_open()
 	for index in segments:
 		var a := TAU * index / segments
 		var b := TAU * (index + 1) / segments
@@ -215,6 +234,7 @@ func cylinder(
 			var a := TAU * index / segments
 			ring.append(Vector3(centre.x + cos(a) * radius, top, centre.y + sin(a) * radius))
 		polygon(ring, Vector3.UP, paint, bottom, top)
+	_close()
 
 
 ## A flat convex polygon [param ring] facing [param normal], its rim darkened.
@@ -226,6 +246,7 @@ func polygon(
 		middle += point
 	middle /= ring.size()
 	var count := ring.size()
+	_open()
 	for index in count:
 		var a := ring[index]
 		var b := ring[(index + 1) % count]
@@ -240,6 +261,7 @@ func polygon(
 			foot,
 			head
 		)
+	_close()
 
 
 ## A face from [param origin] along [param u] and [param v] — unless it is narrow,
@@ -253,6 +275,7 @@ func face(
 	var narrow := minf(u.length(), v.length()) < NARROW
 	var u_cuts := whole if narrow else _splits(origin, u)
 	var v_cuts := whole if narrow else _splits(origin, v)
+	_open()
 	for i in u_cuts.size() - 1:
 		for j in v_cuts.size() - 1:
 			var a := origin + u * u_cuts[i] + v * v_cuts[j]
@@ -266,6 +289,7 @@ func face(
 				| (rims & RIM_V1 if j == v_cuts.size() - 2 else 0)
 			)
 			quad(a, b, c, d, normal, paint, edges, foot, head)
+	_close()
 
 
 ## The four corners a (u0 v0), b (u1 v0), c (u1 v1), d (u0 v1) of one flat piece,
@@ -415,8 +439,16 @@ func commit(parent: Node3D, materials: Dictionary) -> void:
 		arrays[Mesh.ARRAY_COLOR] = batch.colours
 		arrays[Mesh.ARRAY_TEX_UV] = batch.uvs
 		arrays[Mesh.ARRAY_TEX_UV2] = batch.uv2s
+		var format := 0
+		if not batch.halves.is_empty():
+			arrays[Mesh.ARRAY_CUSTOM0] = batch.pieces
+			arrays[Mesh.ARRAY_CUSTOM1] = batch.halves
+			format = (
+				Mesh.ARRAY_CUSTOM_RGBA_FLOAT << Mesh.ARRAY_FORMAT_CUSTOM0_SHIFT
+				| Mesh.ARRAY_CUSTOM_RGB_FLOAT << Mesh.ARRAY_FORMAT_CUSTOM1_SHIFT
+			)
 		var mesh := ArrayMesh.new()
-		mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+		mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays, [], {}, format)
 		mesh.surface_set_material(0, materials[_finishes[key]])
 		var instance := MeshInstance3D.new()
 		instance.name = key.replace(" ", "_")
@@ -465,6 +497,42 @@ func _emit(
 		batch.colours.append(colour)
 		batch.uvs.append(uvs[index])
 		batch.uv2s.append(uv2s[index])
+	if not fading.is_valid():
+		return
+	if _reached.is_empty():
+		_piece = AABB(points[0], Vector3.ZERO)
+	for point: Vector3 in points:
+		_piece = _piece.expand(point)
+	if not batch in _reached:
+		_reached.append(batch)
+	if _depth == 0:
+		_seal()
+
+
+## Begins and ends a call that draws a piece out of several calls' faces: the
+## outermost seals it.
+func _open() -> void:
+	_depth += 1
+
+
+func _close() -> void:
+	_depth -= 1
+	if _depth == 0 and not _reached.is_empty():
+		_seal()
+
+
+## Gives every vertex of the piece just drawn its box, and whether it fades.
+func _seal() -> void:
+	var middle := _piece.get_center()
+	var half := _piece.size * 0.5
+	var fades := 1.0 if fading.call(_piece) else 0.0
+	var piece := PackedFloat32Array([middle.x, middle.y, middle.z, fades])
+	var size := PackedFloat32Array([half.x, half.y, half.z])
+	for batch: Batch in _reached:
+		for index in batch.vertices.size() - batch.halves.size() / 3:
+			batch.pieces.append_array(piece)
+			batch.halves.append_array(size)
+	_reached.clear()
 
 
 ## How far [param point] stands over [param foot] and under [param head], its

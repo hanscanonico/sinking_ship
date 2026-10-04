@@ -30,19 +30,20 @@ extends SceneTree
 ## - Snapshots only: no script anywhere under scenes/art names a live sim object.
 ## - Crew: the seats of a full match each wear their own hat and coat, so each reads
 ##   by its shape as well as its colour, and a brawler draws at most CREW_VERTICES
-##   vertices, so a deck full of them stays cheap.
+##   vertices, so a deck full of them stays cheap. Its painted front — shirt, tie,
+##   lapels — is skinned to the spine alone (Brawler.STEADY_ROWS), so no swing of the
+##   arms shears a narrow painted band into a zigzag.
 ## - The horizon: the sea (SeaAndSky) reaches past every camera's far plane in the
 ##   match scene, so no view sees the sea's edge.
-## - The rooms' furnishings (RoomDressing), on every ship: none stands more than
-##   FURNISHING_TOLERANCE into the space a body fills — within a body's radius of
-##   anywhere Surfaces lets its centre stand, from a step over what it stands on to its
-##   height over it — so nothing drawn at body height is something a body walks
-##   through: a table in the middle of a cabin fails, a lifebelt on its wall does not.
+## - The rooms' furnishings (RoomDressing), on every ship: none stands in the space a
+##   body fills, so nothing drawn at body height is something a body walks through
+##   (FurnishingCheck).
 ## - The sinking's effects (SinkingFx), through a whole match: their pools never
 ##   grow, nothing they place is ever off the map, and no wreckage floats over a
 ##   wadeable deck (tools/sinking_fx_check.gd).
 
 const RunMatch := preload("res://tools/run_match.gd")
+const FurnishingCheck := preload("res://tools/furnishing_check.gd")
 const MATCH_SCENE := "res://scenes/match/match.tscn"
 const SHIPS_DIR := "res://data/ships/"
 const ART_DIR := "res://scenes/art/"
@@ -74,18 +75,6 @@ const OPENING_INBOARD := 0.05
 const SEAT_TOLERANCE := 0.001
 const CRATE_TOLERANCE := 0.001
 const SOLE_TOLERANCE := 0.02
-## How far into the space a body fills a furnishing may stand: a wall fitting's
-## depth, clear of the mannequin's shoulders. The furnishings' faces are sampled
-## FURNISHING_STEP apart, and round each sample the centres tried stand on rings of
-## FURNISHING_RINGS shares of a body's reach, FURNISHING_SPOKES to a ring, on a grid of
-## FURNISHING_GRID.
-const FURNISHING_TOLERANCE := 0.12
-const FURNISHING_STEP := 0.08
-const FURNISHING_RINGS: Array[float] = [0.0, 0.6, 0.95]
-const FURNISHING_SPOKES := 10
-const FURNISHING_GRID := 0.05
-## The squares of the ship plane the heights a body may stand at are filed under.
-const FURNISHING_CELL := 1.0
 const CREW_VERTICES := 9000
 ## How far in from a platform's edges the samples start, and how many per side.
 const SAMPLE_INSET := 0.1
@@ -190,7 +179,41 @@ func _check_crew() -> void:
 					% [seat, vertices, CREW_VERTICES]
 				)
 			)
+		_check_painted_front(seat, brawler)
 		brawler.free()
+
+
+## Every point of [param brawler]'s painted front, well inside it (Brawler.STEADY_),
+## weighted to the spine bones alone; [param seat] names it.
+func _check_painted_front(seat: int, brawler: Brawler) -> void:
+	_checks += 1
+	var body: MeshInstance3D = brawler.find_child("Mannequin", true, false)
+	var arrays := body.mesh.surface_get_arrays(0)
+	var rest: PackedVector2Array = arrays[Mesh.ARRAY_TEX_UV]
+	var depth: PackedVector2Array = arrays[Mesh.ARRAY_TEX_UV2]
+	var bones: PackedInt32Array = arrays[Mesh.ARRAY_BONES]
+	var weights: PackedFloat32Array = arrays[Mesh.ARRAY_WEIGHTS]
+	var per := bones.size() / rest.size()
+	var heights: Array = Brawler.STEADY_ROWS.values()
+	var low: float = heights.min()
+	var high: float = heights.max()
+	for index in rest.size():
+		var front := (
+			absf(rest[index].x) < Brawler.STEADY_ACROSS
+			and rest[index].y > low
+			and rest[index].y < high
+			and depth[index].x > Brawler.STEADY_FADE
+			and depth[index].y == 0.0
+		)
+		if not front:
+			continue
+		for slot in per:
+			var bone := body.skin.get_bind_name(bones[index * per + slot])
+			if weights[index * per + slot] > 0.001 and not Brawler.STEADY_ROWS.has(bone):
+				_problems.append(
+					"art-lint: seat %d's painted front at %s rides %s" % [seat, rest[index], bone]
+				)
+				return
 
 
 func _check_sea_reach() -> void:
@@ -256,196 +279,10 @@ func _check_ship(file: String, layout: ShipLayout) -> void:
 	_check_false_floor(art, file, layout, rules)
 	_check_crate_light(file, layout, art)
 	_checks += 1
-	for problem in intrusions(layout, rules, furnishings(art)):
+	for problem in FurnishingCheck.intrusions(layout, rules, FurnishingCheck.furnishings(art)):
 		_problems.append("art-lint: %s: %s" % [file, problem])
 	art.free()
 	_check_open_spans(file, layout, rules)
-
-
-## Every face of the rooms' furnishings (RoomDressing) [param art] draws, under its
-## Dressing node, in the ship's space: their meshes and their signs' letters.
-static func furnishings(art: ShipArt) -> PackedVector3Array:
-	var faces := PackedVector3Array()
-	for node: Node in art.get_node("Dressing").get_children():
-		var place := (node as Node3D).transform
-		if node is MeshInstance3D:
-			for corner: Vector3 in (node as MeshInstance3D).mesh.get_faces():
-				faces.append(place * corner)
-		elif node is Label3D:
-			var box := (node as Label3D).get_aabb()
-			var corners: Array[Vector3] = [
-				box.position,
-				box.position + Vector3(box.size.x, 0.0, 0.0),
-				box.position + Vector3(box.size.x, box.size.y, 0.0),
-				box.position + Vector3(0.0, box.size.y, 0.0),
-			]
-			for index: int in [0, 1, 2, 0, 2, 3]:
-				faces.append(place * corners[index])
-	return faces
-
-
-## Where [param faces] stand more than FURNISHING_TOLERANCE into the space a body of
-## [param rules] fills on [param layout]: a point of them within a body's radius, less
-## the tolerance, of a centre Surfaces lets a body stand at, between a step over what
-## that body stands on and its height over it. A face inside a blocker, or wholly over
-## or under every body that could stand within reach of it, is passed over unsampled.
-## One line per face found so, at most a few.
-static func intrusions(
-	layout: ShipLayout, rules: BrawlRules, faces: PackedVector3Array
-) -> PackedStringArray:
-	var surfaces := Surfaces.new(layout)
-	var reach := rules.body_radius - FURNISHING_TOLERANCE
-	var bands := _standing_bands(layout, reach)
-	var standing := {}
-	var found := PackedStringArray()
-	for index in range(0, faces.size(), 3):
-		var triangle := faces.slice(index, index + 3)
-		if _inside_a_blocker(layout, triangle) or not _in_a_band(bands, triangle, rules):
-			continue
-		for point in _spread(triangle):
-			var feet := _body_round(surfaces, rules, standing, point, reach)
-			if feet.x == INF:
-				continue
-			var into := rules.body_radius - Vector2(point.x - feet.x, point.z - feet.z).length()
-			found.append(
-				"furnishing at %s stands %.2f m into a body standing at %s" % [point, into, feet]
-			)
-			break
-		if found.size() >= 5:
-			break
-	return found
-
-
-## Per FURNISHING_CELL square of the ship plane, the heights (low, high) a body's feet
-## may stand at within [param reach] of it: every platform, ramp and blocker top of
-## [param layout] whose area comes that near.
-static func _standing_bands(layout: ShipLayout, reach: float) -> Dictionary:
-	var bands := {}
-	var tops: Array[Array] = []
-	for platform: ShipPlatform in layout.platforms:
-		tops.append([platform.area, Vector2(platform.height, platform.height)])
-	for ramp: ShipRamp in layout.ramps:
-		var high := maxf(ramp.start_height, ramp.end_height)
-		tops.append([ramp.area, Vector2(ramp.base(), high)])
-	for blocker: ShipBlocker in layout.blockers:
-		var area := blocker.area
-		if blocker.shape == ShipBlocker.Shape.CYLINDER:
-			area = Rect2(
-				blocker.centre - Vector2.ONE * blocker.radius, Vector2.ONE * blocker.radius * 2.0
-			)
-		tops.append([area, Vector2(blocker.top, blocker.top)])
-	for top: Array in tops:
-		var area := (top[0] as Rect2).grow(reach)
-		var low := Vector2i((area.position / FURNISHING_CELL).floor())
-		var high := Vector2i((area.end / FURNISHING_CELL).floor())
-		for x in range(low.x, high.x + 1):
-			for z in range(low.y, high.y + 1):
-				var cell := Vector2i(x, z)
-				var heights: PackedVector2Array = bands.get(cell, PackedVector2Array())
-				heights.append(top[1])
-				bands[cell] = heights
-	return bands
-
-
-## Whether [param triangle] reaches the heights a body of [param rules] standing
-## within reach of it fills — over a step above its feet, under its head — on any of
-## [param bands] (_standing_bands).
-static func _in_a_band(bands: Dictionary, triangle: PackedVector3Array, rules: BrawlRules) -> bool:
-	var low := Vector3.INF
-	var high := -Vector3.INF
-	for corner: Vector3 in triangle:
-		low = low.min(corner)
-		high = high.max(corner)
-	var from := Vector2i((Vector2(low.x, low.z) / FURNISHING_CELL).floor())
-	var to := Vector2i((Vector2(high.x, high.z) / FURNISHING_CELL).floor())
-	for x in range(from.x, to.x + 1):
-		for z in range(from.y, to.y + 1):
-			for feet: Vector2 in bands.get(Vector2i(x, z), PackedVector2Array()):
-				if high.y >= feet.x + rules.step_height and low.y <= feet.y + rules.body_height:
-					return true
-	return false
-
-
-## Whether [param triangle] stands wholly inside one of [param layout]'s box
-## blockers, which hold every body a radius off: an engine's own faces.
-static func _inside_a_blocker(layout: ShipLayout, triangle: PackedVector3Array) -> bool:
-	for blocker: ShipBlocker in layout.blockers:
-		if blocker.shape != ShipBlocker.Shape.BOX:
-			continue
-		var area := blocker.area.grow(0.002)
-		var inside := true
-		for corner: Vector3 in triangle:
-			if (
-				not area.has_point(Vector2(corner.x, corner.z))
-				or corner.y < blocker.bottom - 0.002
-				or corner.y > blocker.top + 0.002
-			):
-				inside = false
-				break
-		if inside:
-			return true
-	return false
-
-
-## Points spread over [param triangle] no more than FURNISHING_STEP apart, its
-## corners among them.
-static func _spread(triangle: PackedVector3Array) -> PackedVector3Array:
-	var a := triangle[0]
-	var u := triangle[1] - a
-	var v := triangle[2] - a
-	var longest := maxf(u.length(), maxf(v.length(), (v - u).length()))
-	var steps := maxi(1, ceili(longest / FURNISHING_STEP))
-	var points := PackedVector3Array()
-	for i in steps + 1:
-		for j in steps + 1 - i:
-			points.append(a + u * (float(i) / steps) + v * (float(j) / steps))
-	return points
-
-
-## The feet of a body of [param rules] that Surfaces lets stand within [param reach]
-## of [param point] across the ship plane and whose height takes it in — over a step
-## above its feet and under its head — or Vector3.INF when none of the centres tried
-## does. [param standing] keeps, per grid centre, what stands under it (_stood_on).
-static func _body_round(
-	surfaces: Surfaces, rules: BrawlRules, standing: Dictionary, point: Vector3, reach: float
-) -> Vector3:
-	for ring: float in FURNISHING_RINGS:
-		var spokes := 1 if ring == 0.0 else FURNISHING_SPOKES
-		for spoke in spokes:
-			var turn := TAU * spoke / spokes
-			var at := Vector2(point.x, point.z) + Vector2(cos(turn), sin(turn)) * reach * ring
-			var cell := Vector2i(roundi(at.x / FURNISHING_GRID), roundi(at.y / FURNISHING_GRID))
-			var centre := Vector2(cell) * FURNISHING_GRID
-			if centre.distance_to(Vector2(point.x, point.z)) >= reach:
-				continue
-			if not standing.has(cell):
-				standing[cell] = _stood_on(surfaces, rules, centre)
-			for under: Vector2 in standing[cell]:
-				if point.y - under.x < rules.step_height:
-					continue
-				if point.y - under.x <= rules.body_height and under.y == 1.0:
-					return Vector3(centre.x, under.x, centre.y)
-				break
-	return Vector3.INF
-
-
-## Every surface Surfaces has under ship-plane point [param centre], from the top
-## down, as (its height there, 1 when a body of [param rules] stands on it there with
-## nothing holding it back, else 0).
-static func _stood_on(surfaces: Surfaces, rules: BrawlRules, centre: Vector2) -> PackedVector2Array:
-	var found := PackedVector2Array()
-	var probe := Vector3(centre.x, 1e4, centre.y)
-	while found.size() < 8:
-		var surface := surfaces.landing(probe)
-		if surface == Surfaces.NONE:
-			break
-		var feet := Vector3(centre.x, surfaces.height_at(surface, probe), centre.y)
-		var contacts := surfaces.obstacle_contacts(
-			feet, rules.body_radius, rules.body_height, rules.step_height
-		)
-		found.append(Vector2(feet.y, 1.0 if contacts.is_empty() else 0.0))
-		probe.y = feet.y - 0.01
-	return found
 
 
 ## Past each of [param layout]'s platforms' edges, wherever the rules have no stair

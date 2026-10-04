@@ -44,6 +44,11 @@ func test_a_disabled_control_looks_disabled() -> void:
 		assert_lt(disabled.bg_color.a, normal.bg_color.a, "%s: no teak to press" % type)
 		var faint := theme.get_color("font_disabled_color", type).a
 		assert_lt(faint, theme.get_color("font_color", type).a * 0.5, "%s: faint type" % type)
+	assert_eq(
+		theme.get_constant("modulate_arrow", "OptionButton"),
+		1,
+		"a choice's arrow fades with its type"
+	)
 
 
 func test_a_guarded_button_reads_as_a_button() -> void:

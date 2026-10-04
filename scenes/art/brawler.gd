@@ -72,6 +72,16 @@ const IRON_BELOW := 1.52
 const IRON_HEAD := 0.14
 const IRON_HANDS := 0.7
 const IRON_ABOVE := 0.16
+## The painted front — shirt, tie, lapels, buttons — rides the spine alone, its
+## share of each spine bone rising smoothly with height: the mannequin weights its
+## breastbone to the collarbones, which a raised arm swings, and its rows to the
+## spine bones in uneven shares, both of which shear a narrow painted band into a
+## zigzag. The front within STEADY_ACROSS of the middle and between the first and
+## last of STEADY_ROWS is weighted so, letting go of it over STEADY_FADE beyond, in
+## model units; the spine bones' shares run between STEADY_ROWS' heights.
+const STEADY_ACROSS := 0.09
+const STEADY_ROWS := {&"DEF-spine.001": 1.1, &"DEF-spine.002": 1.27, &"DEF-spine.003": 1.42}
+const STEADY_FADE := 0.05
 ## A coat's skirt, hanging from the hips: rings from the waist down to its hem, at
 ## SKIRT_HEMS of each coat that has one, opening at the front by as many radians
 ## either side of ahead as SKIRT_OPENINGS has from the waist to the hem — a jacket's
@@ -382,7 +392,7 @@ static func _body(source: ArrayMesh, skin: Skin, coat: Coat) -> ArrayMesh:
 	if _bodies.has(coat):
 		return _bodies[coat]
 	if _dressed.is_empty():
-		_dressed = _dress_body(source)
+		_dressed = _dress_body(source, skin)
 	var mesh := ArrayMesh.new()
 	for surface in _dressed.size():
 		var arrays: Array = _dressed[surface].duplicate(true)
@@ -394,12 +404,13 @@ static func _body(source: ArrayMesh, skin: Skin, coat: Coat) -> ArrayMesh:
 
 
 ## The surfaces of [param source], the mannequin, ironed and hung for clothes, with
-## where each point sits at rest written into their UVs for the clothes shader.
+## where each point sits at rest written into their UVs for the clothes shader and
+## its painted front steadied on the spine; [param skin] names its bones.
 ## The mannequin is jointed: its segments and the joint rings between them meet at
 ## rims, which stay put so no crack opens, and whose outline (in COLOR's alpha, as
 ## outline.gdshader reads it) grows in from nothing over OUTLINE_RINGS so no seam
 ## is inked across the cloth.
-static func _dress_body(source: ArrayMesh) -> Array[Array]:
+static func _dress_body(source: ArrayMesh, skin: Skin) -> Array[Array]:
 	var surfaces: Array[Array] = []
 	for surface in source.get_surface_count():
 		var arrays := source.surface_get_arrays(surface)
@@ -407,6 +418,7 @@ static func _dress_body(source: ArrayMesh) -> Array[Array]:
 		var rims := _rims(arrays[Mesh.ARRAY_INDEX], weld)
 		var inked := _inked(arrays[Mesh.ARRAY_INDEX], weld, rims)
 		_iron(arrays, weld, rims)
+		_steady_front(arrays, skin)
 		# Rest is read off the ironed body, so a painted edge runs straight across
 		# the triangles drawn instead of tearing along them.
 		var vertices: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
@@ -517,6 +529,56 @@ static func _iron(arrays: Array, weld: PackedInt32Array, rims: PackedByteArray) 
 		normals[index] = normals[index].normalized()
 	arrays[Mesh.ARRAY_VERTEX] = vertices
 	arrays[Mesh.ARRAY_NORMAL] = normals
+
+
+## Weights [param arrays]' front, a surface's, on the spine as STEADY_ROWS has it;
+## [param skin] names its bones. Every point is weighted by where it stands, so the
+## points two surfaces share keep moving together.
+static func _steady_front(arrays: Array, skin: Skin) -> void:
+	var vertices: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+	var bones: PackedInt32Array = arrays[Mesh.ARRAY_BONES]
+	var weights: PackedFloat32Array = arrays[Mesh.ARRAY_WEIGHTS]
+	var per := bones.size() / vertices.size()
+	var spine := PackedInt32Array()
+	var heights := PackedFloat32Array()
+	for bone: StringName in STEADY_ROWS:
+		spine.append(_bind(skin, bone))
+		heights.append(STEADY_ROWS[bone])
+	var low := heights[0]
+	var high := heights[heights.size() - 1]
+	for index in vertices.size():
+		var point := vertices[index]
+		var steady := (
+			(1.0 - smoothstep(STEADY_ACROSS, STEADY_ACROSS + STEADY_FADE, absf(point.x)))
+			* smoothstep(low - STEADY_FADE, low, point.y)
+			* (1.0 - smoothstep(high, high + STEADY_FADE, point.y))
+			* smoothstep(0.0, STEADY_FADE, point.z)
+		)
+		if steady <= 0.0:
+			continue
+		var shares := {}
+		for slot in per:
+			var bone := bones[index * per + slot]
+			shares[bone] = shares.get(bone, 0.0) + weights[index * per + slot] * (1.0 - steady)
+		for row in spine.size():
+			var below := heights[row - 1] if row > 0 else -INF
+			var above := heights[row + 1] if row < spine.size() - 1 else INF
+			var share := minf(
+				inverse_lerp(below, heights[row], point.y) if row > 0 else 1.0,
+				inverse_lerp(above, heights[row], point.y) if row < spine.size() - 1 else 1.0
+			)
+			shares[spine[row]] = shares.get(spine[row], 0.0) + clampf(share, 0.0, 1.0) * steady
+		var kept: Array = shares.keys()
+		kept.sort_custom(func(a: int, b: int) -> bool: return shares[a] > shares[b])
+		var total := 0.0
+		for slot in mini(per, kept.size()):
+			total += shares[kept[slot]]
+		for slot in per:
+			var held := slot < kept.size()
+			bones[index * per + slot] = kept[slot] if held else 0
+			weights[index * per + slot] = shares[kept[slot]] / total if held else 0.0
+	arrays[Mesh.ARRAY_BONES] = bones
+	arrays[Mesh.ARRAY_WEIGHTS] = weights
 
 
 ## Moves each of [param values] marked in [param ironed] [param amount] of the way to

@@ -3,7 +3,7 @@ extends GutTest
 ## furnishing check — a table in the middle of a cabin stands in a body's way, a plate
 ## flat on its wall does not, and nothing the dressing draws does.
 
-const ArtLint := preload("res://tools/art_lint.gd")
+const FurnishingCheck := preload("res://tools/furnishing_check.gd")
 const RunMatch := preload("res://tools/run_match.gd")
 
 var _layout: ShipLayout
@@ -90,7 +90,7 @@ func test_a_table_in_the_middle_of_a_cabin_stands_in_a_body_s_way() -> void:
 	var cabin := _room(&"aft port cabin")
 	var table := Rect2(cabin.area.get_center() - Vector2.ONE * 0.4, Vector2.ONE * 0.8)
 	var faces := _box(table, cabin.floor_height, cabin.floor_height + 0.75)
-	assert_false(ArtLint.intrusions(_layout, _rules, faces).is_empty())
+	assert_false(FurnishingCheck.intrusions(_layout, _rules, faces).is_empty())
 
 
 func test_a_plate_flat_on_a_cabin_wall_stands_in_nobody_s_way() -> void:
@@ -98,20 +98,20 @@ func test_a_plate_flat_on_a_cabin_wall_stands_in_nobody_s_way() -> void:
 	# The wall between it and the middle cabin, x -8.4, faces it at x -8.5.
 	var plate := Rect2(-8.58, -3.0, 0.08, 1.0)
 	var faces := _box(plate, cabin.floor_height + 0.4, cabin.floor_height + 1.6)
-	assert_eq(ArtLint.intrusions(_layout, _rules, faces), PackedStringArray())
+	assert_eq(FurnishingCheck.intrusions(_layout, _rules, faces), PackedStringArray())
 
 
 func test_a_shelf_over_head_height_stands_in_nobody_s_way() -> void:
 	var cabin := _room(&"aft port cabin")
 	var shelf := Rect2(-9.1, -3.0, 0.6, 1.0)
 	var faces := _box(shelf, cabin.floor_height + 1.85, cabin.floor_height + 2.1)
-	assert_eq(ArtLint.intrusions(_layout, _rules, faces), PackedStringArray())
+	assert_eq(FurnishingCheck.intrusions(_layout, _rules, faces), PackedStringArray())
 
 
 func test_nothing_the_dressing_draws_on_the_steamer_stands_in_a_body_s_way() -> void:
 	var art := ShipArt.new()
 	art.build(_layout, _rules.railing_height, _rules.body_radius)
-	var faces := ArtLint.furnishings(art)
+	var faces := FurnishingCheck.furnishings(art)
 	art.free()
 	assert_gt(faces.size(), 0)
-	assert_eq(ArtLint.intrusions(_layout, _rules, faces), PackedStringArray())
+	assert_eq(FurnishingCheck.intrusions(_layout, _rules, faces), PackedStringArray())
