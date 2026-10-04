@@ -29,6 +29,9 @@ var _stagger_ticks: int
 var _hitstop_ticks: int
 var _hitstop_braced_ticks: int
 var _credit_window_ticks: int
+## The railings the match has broken, as of this tick's step or the last break since:
+## the crates honour them many times a tick, and only a break changes them.
+var _broken := PackedInt32Array()
 
 
 func _init(config: MatchConfig, surfaces: Surfaces) -> void:
@@ -43,6 +46,7 @@ func _init(config: MatchConfig, surfaces: Surfaces) -> void:
 
 ## One tick of the cargo, in [param state], under [param pose].
 func step(state: MatchState, pose: ShipPose, tick: int, events: Array[SimEvent]) -> void:
+	_broken = state.broken_railings()
 	var crates: Array[PropState] = []
 	for crate: PropState in state.props:
 		if not crate.is_lost():
@@ -101,6 +105,7 @@ func damage(
 	if state.railing_hp[railing] > 0.0:
 		return false
 	events.append(SimEvent.railing_broke(tick, railing, by, by_crate))
+	_broken = state.broken_railings()
 	_stand(state, pose)
 	return true
 
@@ -145,13 +150,18 @@ func _move(
 	for _step in steps:
 		for crate: PropState in crates:
 			crate.pos += crate.vel * dt
+		# Each crate meets the others where they stand now, the earlier ones moved:
+		# Surfaces is told again whenever one has moved since it last was.
+		var moved := true
 		for _contact_pass in MatchSim.CONTACT_PASSES:
 			var held := false
 			for crate: PropState in crates:
-				# Each crate meets the others where they stand now, the earlier ones moved.
-				_stand(state, pose)
-				held = _blockers(crate, feet_before) or held
-				held = _railings(state, crate, came_from, pose, tick, events) or held
+				if moved:
+					_stand(state, pose)
+				var blocked := _blockers(crate, feet_before)
+				var railed := _railings(state, crate, came_from, pose, tick, events)
+				moved = blocked or railed
+				held = moved or held
 			if not held:
 				break
 	return feet_before
@@ -225,16 +235,17 @@ func _run_into_bodies(
 		var prop := _props[crate.prop]
 		var reach := prop.radius + _rules.body_radius
 		for player: PlayerState in state.seats:
+			# Out of reach first: the cheapest test, and most pairs fail it.
+			var offset := Vector2(player.pos.x - crate.pos.x, player.pos.z - crate.pos.z)
+			var distance := offset.length()
+			if distance >= reach:
+				continue
 			if player.is_out() or player.is_climbing() or player.body == PlayerState.Body.SWIMMING:
 				continue
 			if (
 				player.pos.y + _rules.step_height >= crate.pos.y + prop.height
 				or player.pos.y + _rules.body_height <= crate.pos.y
 			):
-				continue
-			var offset := Vector2(player.pos.x - crate.pos.x, player.pos.z - crate.pos.z)
-			var distance := offset.length()
-			if distance >= reach:
 				continue
 			var normal := offset / distance if distance > 0.0 else Vector2.RIGHT
 			_collide(crate, player, normal, reach - distance, tick, events)
@@ -349,4 +360,4 @@ func _sea(crates: Array[PropState], pose: ShipPose, tick: int, events: Array[Sim
 
 ## Hands Surfaces the railings the match has broken and where its crates stand.
 func _stand(state: MatchState, pose: ShipPose) -> void:
-	_surfaces.honour(pose, state.broken_railings(), state.props)
+	_surfaces.honour(pose, _broken, state.props)
