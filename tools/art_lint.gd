@@ -38,6 +38,9 @@ extends SceneTree
 ##   anywhere Surfaces lets its centre stand, from a step over what it stands on to its
 ##   height over it — so nothing drawn at body height is something a body walks
 ##   through: a table in the middle of a cabin fails, a lifebelt on its wall does not.
+## - The sinking's effects (SinkingFx), through a whole match: their pools never
+##   grow, nothing they place is ever off the map, and no wreckage floats over a
+##   wadeable deck (tools/sinking_fx_check.gd).
 
 const RunMatch := preload("res://tools/run_match.gd")
 const MATCH_SCENE := "res://scenes/match/match.tscn"
@@ -129,6 +132,9 @@ func _initialize() -> void:
 			_check_ship(file, load(SHIPS_DIR + file))
 	await _check_seats()
 	await _check_collapse()
+	var effects: Array = await SinkingFxCheck.check(root, COLLAPSE_SEED, SEATS)
+	_problems.append_array(effects[0])
+	_checks += effects[1]
 	if not _problems.is_empty():
 		printerr("\n".join(_problems))
 		printerr("art-lint: %d problem(s) in %d checks" % [_problems.size(), _checks])
