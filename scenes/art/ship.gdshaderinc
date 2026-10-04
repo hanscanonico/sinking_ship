@@ -48,6 +48,15 @@ uniform vec4 foot_colour : source_color = vec4(0.48, 0.32, 0.21, 1.0);
 uniform float trim_depth = 0.16;
 uniform float foot_height = 0.12;
 uniform float panel_width = 0.55;
+// HOUSE's plating: seams plate_height apart up from the foot, butts plate_width
+// apart along, a row of rivets over each seam, and grime: streaks of rust run down
+// from under the trim, and dirt gathers over the foot.
+uniform float plate_height = 0.8;
+uniform float plate_width = 1.7;
+uniform float rivet_spacing = 0.12;
+uniform float rivet_radius = 0.01;
+uniform vec4 grime_colour : source_color = vec4(0.45, 0.33, 0.25, 1.0);
+uniform float grime = 0.25;
 // FUNNEL: the black top.
 uniform vec4 top_colour : source_color = vec4(0.11, 0.11, 0.12, 1.0);
 uniform float top_depth = 1.3;
@@ -106,11 +115,40 @@ vec3 hull(vec3 base) {
 	return bands.y < riband_depth ? riband_colour.rgb : colour;
 }
 
+// Where a point stands along a wall: x along one facing z, z along one facing x.
+float wall_along() {
+	return abs(ship_normal.x) > 0.5 ? ship_pos.z : ship_pos.x;
+}
+
+// 1 on a rivet of the row riding [param over] above each seam of [param d], whose
+// rivets stand [param spacing] apart along [param along]; faded out once a rivet
+// would be smaller than a pixel.
+float rivets(float along, float d, float over) {
+	vec2 at = vec2((fract(along / rivet_spacing + 0.5) - 0.5) * rivet_spacing, d - over);
+	float fw = max(fwidth(along), 1e-5);
+	float dot_ = 1.0 - smoothstep(rivet_radius - fw, rivet_radius + fw, length(at));
+	return dot_ * clamp(rivet_radius * 2.0 / fw - 0.5, 0.0, 1.0);
+}
+
 vec3 house(vec3 base) {
 	if (bands.y < trim_depth) {
 		return trim_colour.rgb;
 	}
-	return bands.x < foot_height ? foot_colour.rgb : base;
+	if (bands.x < foot_height) {
+		return foot_colour.rgb;
+	}
+	float along = wall_along();
+	float seam_d = (fract(bands.x / plate_height + 0.5) - 0.5) * plate_height;
+	float butt_d = (fract(along / plate_width + 0.5) - 0.5) * plate_width;
+	float plating = max(line(seam_d, 0.006), 0.7 * line(butt_d, 0.005));
+	plating = max(plating, 0.8 * rivets(along, seam_d, 0.035));
+	float column = floor(along / 0.06);
+	float length_ = mix(0.3, 1.4, hash(vec2(column, 3.0)));
+	float streak = step(0.8, hash(vec2(column, 11.0)));
+	streak *= 1.0 - smoothstep(0.0, length_, bands.y - trim_depth);
+	float dirt = 1.0 - smoothstep(0.0, 0.4, bands.x - foot_height);
+	vec3 colour = mix(base, grime_colour.rgb, grime * max(streak * 0.6, dirt * 0.5));
+	return colour * (1.0 - 0.22 * plating);
 }
 
 vec3 cabin(vec3 base) {

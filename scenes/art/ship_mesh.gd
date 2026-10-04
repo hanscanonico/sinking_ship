@@ -133,8 +133,10 @@ func box(
 		face(Vector3(x0, bottom, z0), dy, dx, paint, RIM_ALL, foot, head)
 
 
-## A box of [param size] placed by [param place] (its centre and turn), uncut.
-func turned_box(place: Transform3D, size: Vector3, paint: Paint) -> void:
+## A box of [param size] placed by [param place] (its centre and turn), uncut, the
+## edges [param rims] names on each face darkened — none where a rim would not show,
+## a bevel too small or on a paint too dark to see.
+func turned_box(place: Transform3D, size: Vector3, paint: Paint, rims := RIM_ALL) -> void:
 	var half := size * 0.5
 	var b := place.basis
 	var x := b.x * size.x
@@ -144,12 +146,32 @@ func turned_box(place: Transform3D, size: Vector3, paint: Paint) -> void:
 	var high := place * half
 	var foot := low.y
 	var head := high.y
-	quad(low, low + z, low + z + x, low + x, -b.y, paint, RIM_ALL, foot, head)
-	quad(high, high - x, high - x - z, high - z, b.y, paint, RIM_ALL, foot, head)
-	quad(low, low + y, low + y + z, low + z, -b.x, paint, RIM_ALL, foot, head)
-	quad(high, high - z, high - z - y, high - y, b.x, paint, RIM_ALL, foot, head)
-	quad(low, low + x, low + x + y, low + y, -b.z, paint, RIM_ALL, foot, head)
-	quad(high, high - y, high - y - x, high - x, b.z, paint, RIM_ALL, foot, head)
+	quad(low, low + z, low + z + x, low + x, -b.y, paint, rims, foot, head)
+	quad(high, high - x, high - x - z, high - z, b.y, paint, rims, foot, head)
+	quad(low, low + y, low + y + z, low + z, -b.x, paint, rims, foot, head)
+	quad(high, high - z, high - z - y, high - y, b.x, paint, rims, foot, head)
+	quad(low, low + x, low + x + y, low + y, -b.z, paint, rims, foot, head)
+	quad(high, high - y, high - y - x, high - x, b.z, paint, rims, foot, head)
+
+
+## A beam of [param section] from [param from] to [param to], uncut, its faces'
+## [param rims] darkened (turned_box()).
+func beam(from: Vector3, to: Vector3, section: Vector2, paint: Paint, rims := RIM_ALL) -> void:
+	var length := from.distance_to(to)
+	if length < SLIVER:
+		return
+	var y := (to - from) / length
+	var x := y.cross(Vector3.UP)
+	if x.length_squared() < 0.01:
+		x = y.cross(Vector3.RIGHT)
+	x = x.normalized()
+	var z := x.cross(y).normalized()
+	turned_box(
+		Transform3D(Basis(x, y, z), (from + to) * 0.5),
+		Vector3(section.x, length, section.y),
+		paint,
+		rims
+	)
 
 
 ## An upright cylinder round [param centre] (x/z) from [param bottom] to [param top]
@@ -263,6 +285,21 @@ func quad(
 	var batch := _batch_for((a + c) * 0.5, normal, paint)
 	var outdoors: bool = _last_outdoors
 	var colour := paint.colour if outdoors else paint.colour_in
+	var flag := 1.0 if outdoors else 0.0
+	var clockwise := (b - a).cross(d - a).dot(normal) < 0.0
+	var normals := PackedVector3Array()
+	var uvs := PackedVector2Array()
+	var uv2s := PackedVector2Array()
+	if rims == 0:
+		var corners := PackedVector3Array([a, b, c, d])
+		for corner: Vector3 in corners:
+			uvs.append(_bands(corner, foot, head))
+			uv2s.append(Vector2(0.0, flag))
+		normals.resize(4)
+		normals.fill(normal)
+		var order := PackedInt32Array([0, 1, 2, 0, 2, 3] if clockwise else [0, 2, 1, 0, 3, 2])
+		_emit(batch, order, corners, normals, colour, uvs, uv2s)
+		return
 	var u_length := minf(a.distance_to(b), d.distance_to(c))
 	var v_length := minf(a.distance_to(d), b.distance_to(c))
 	var ru := minf(RIM, u_length / 3.0) / maxf(u_length, SLIVER)
@@ -282,29 +319,59 @@ func quad(
 	var columns := us.size()
 	var rows := vs.size()
 	var points := PackedVector3Array()
-	var weights := PackedFloat32Array()
 	for j in rows:
 		for i in columns:
-			points.append(a.lerp(b, us[i]).lerp(d.lerp(c, us[i]), vs[j]))
+			var point := a.lerp(b, us[i]).lerp(d.lerp(c, us[i]), vs[j])
 			var on_edge := (
 				(i == 0 and rims & RIM_U0)
 				or (i == columns - 1 and rims & RIM_U1)
 				or (j == 0 and rims & RIM_V0)
 				or (j == rows - 1 and rims & RIM_V1)
 			)
-			weights.append(1.0 if on_edge else 0.0)
-	var clockwise := (b - a).cross(d - a).dot(normal) < 0.0
+			points.append(point)
+			uvs.append(_bands(point, foot, head))
+			uv2s.append(Vector2(1.0 if on_edge else 0.0, flag))
+	normals.resize(points.size())
+	normals.fill(normal)
+	var order := PackedInt32Array()
 	for j in rows - 1:
 		for i in columns - 1:
 			var p00 := j * columns + i
 			var p10 := p00 + 1
 			var p01 := p00 + columns
 			var p11 := p01 + 1
-			var order := [p00, p10, p11, p00, p11, p01]
-			if not clockwise:
-				order = [p00, p11, p10, p00, p01, p11]
-			for index: int in order:
-				_append(batch, points[index], weights[index], normal, colour, outdoors, foot, head)
+			if clockwise:
+				order.append_array([p00, p10, p11, p00, p11, p01])
+			else:
+				order.append_array([p00, p11, p10, p00, p01, p11])
+	_emit(batch, order, points, normals, colour, uvs, uv2s)
+
+
+## One piece of a curved surface: [param corners] a, b, c, d as quad()'s, each
+## shaded by its own of [param normals], with no darkened rim; [param heads] holds
+## each corner's height for its paint's bands under the top, or is empty for none.
+func smooth_quad(
+	corners: PackedVector3Array,
+	normals: PackedVector3Array,
+	paint: Paint,
+	heads := PackedFloat32Array()
+) -> void:
+	var lowest := minf(minf(corners[0].y, corners[1].y), minf(corners[2].y, corners[3].y))
+	if lowest >= cut_above:
+		return
+	var facing := (normals[0] + normals[1] + normals[2] + normals[3]).normalized()
+	var batch := _batch_for((corners[0] + corners[2]) * 0.5, facing, paint)
+	var colour := paint.colour if _last_outdoors else paint.colour_in
+	var uvs := PackedVector2Array()
+	var uv2s := PackedVector2Array()
+	for index in 4:
+		var head := NAN if heads.is_empty() else heads[index]
+		uvs.append(_bands(corners[index], NAN, head))
+		uv2s.append(Vector2(0.0, 1.0 if _last_outdoors else 0.0))
+	var order := PackedInt32Array([0, 1, 2, 0, 2, 3])
+	if (corners[1] - corners[0]).cross(corners[3] - corners[0]).dot(facing) > 0.0:
+		order = PackedInt32Array([0, 2, 1, 0, 3, 2])
+	_emit(batch, order, corners, normals, colour, uvs, uv2s)
 
 
 ## A triangle of [param corners] facing [param normal], its corners' rim weights
@@ -320,13 +387,18 @@ func triangle(
 	if minf(corners[0].y, minf(corners[1].y, corners[2].y)) >= cut_above:
 		return
 	var batch := _batch_for((corners[0] + corners[1] + corners[2]) / 3.0, normal, paint)
-	var outdoors: bool = _last_outdoors
-	var colour := paint.colour if outdoors else paint.colour_in
-	var order := [0, 1, 2]
+	var colour := paint.colour if _last_outdoors else paint.colour_in
+	var normals := PackedVector3Array()
+	var uvs := PackedVector2Array()
+	var uv2s := PackedVector2Array()
+	for index in 3:
+		normals.append(normal)
+		uvs.append(_bands(corners[index], foot, head))
+		uv2s.append(Vector2(weights[index], 1.0 if _last_outdoors else 0.0))
+	var order := PackedInt32Array([0, 1, 2])
 	if (corners[1] - corners[0]).cross(corners[2] - corners[0]).dot(normal) > 0.0:
-		order = [0, 2, 1]
-	for index: int in order:
-		_append(batch, corners[index], weights[index], normal, colour, outdoors, foot, head)
+		order = PackedInt32Array([0, 2, 1])
+	_emit(batch, order, corners, normals, colour, uvs, uv2s)
 
 
 ## Every batch as a mesh instance under [param parent].
@@ -373,24 +445,31 @@ func _batch_for(middle: Vector3, normal: Vector3, paint: Paint) -> Batch:
 	return _batches[key]
 
 
-## One corner into [param batch]. Godot's front faces are wound clockwise.
-func _append(
+## The corners of [param points] into [param batch] in [param order], three to a
+## triangle, each with its own of [param normals], [param uvs] (its paint's bands)
+## and [param uv2s] (its rim weight, and 1 outdoors). Godot's front faces are wound
+## clockwise.
+func _emit(
 	batch: Batch,
-	point: Vector3,
-	weight: float,
-	normal: Vector3,
+	order: PackedInt32Array,
+	points: PackedVector3Array,
+	normals: PackedVector3Array,
 	colour: Color,
-	outdoors: bool,
-	foot: float,
-	head: float
+	uvs: PackedVector2Array,
+	uv2s: PackedVector2Array
 ) -> void:
-	batch.vertices.append(point)
-	batch.normals.append(normal)
-	batch.colours.append(colour)
-	batch.uvs.append(
-		Vector2(0.0 if is_nan(foot) else point.y - foot, 0.0 if is_nan(head) else head - point.y)
-	)
-	batch.uv2s.append(Vector2(weight, 1.0 if outdoors else 0.0))
+	for index in order:
+		batch.vertices.append(points[index])
+		batch.normals.append(normals[index])
+		batch.colours.append(colour)
+		batch.uvs.append(uvs[index])
+		batch.uv2s.append(uv2s[index])
+
+
+## How far [param point] stands over [param foot] and under [param head], its
+## paint's bands; 0 for either that is NAN.
+static func _bands(point: Vector3, foot: float, head: float) -> Vector2:
+	return Vector2(0.0 if is_nan(foot) else point.y - foot, 0.0 if is_nan(head) else head - point.y)
 
 
 ## Where along [param edge] (a fraction 0…1 of it, from [param origin]) a face is

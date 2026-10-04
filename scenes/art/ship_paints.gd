@@ -14,6 +14,8 @@ static var wall := ShipMesh.Paint.new(
 	FINISH.HOUSE, ArtPalette.HOUSE, FINISH.CABIN, ArtPalette.CABIN
 )
 static var teak := ShipMesh.Paint.new(FINISH.PLAIN, ArtPalette.TEAK)
+## Fresh wood where a rail has splintered.
+static var splinter := ShipMesh.Paint.new(FINISH.PLAIN, ArtPalette.SPLINTER)
 static var frame := ShipMesh.Paint.new(
 	FINISH.PLAIN, ArtPalette.TEAK, FINISH.PLAIN, ArtPalette.FRAME
 )
@@ -27,6 +29,7 @@ static var funnel := ShipMesh.Paint.new(
 static var mast := ShipMesh.Paint.new(FINISH.PLAIN, ArtPalette.MAST)
 static var dark := ShipMesh.Paint.new(FINISH.PLAIN, ArtPalette.FUNNEL_TOP)
 static var canvas := ShipMesh.Paint.new(FINISH.PLAIN, ArtPalette.CANVAS)
+static var rope := ShipMesh.Paint.new(FINISH.PLAIN, ArtPalette.ROPE)
 static var machine := ShipMesh.Paint.new(FINISH.PLAIN, ArtPalette.MACHINE)
 static var steel := ShipMesh.Paint.new(FINISH.PLAIN, ArtPalette.STEEL)
 static var brass := ShipMesh.Paint.new(FINISH.PLAIN, ArtPalette.BRASS)
