@@ -10,6 +10,8 @@
 // little of the sky's ambient — what the lamps leave dark stays dim, never black;
 // an outdoor face takes no lamp.
 
+#include "res://scenes/art/waterline.gdshaderinc"
+
 uniform int finish = 0;
 uniform vec4 ink : source_color = vec4(0.137, 0.149, 0.18, 1.0);
 uniform float rim_strength = 0.6;
@@ -151,12 +153,17 @@ void fragment() {
 	}
 	float rim = smoothstep(0.0, 1.0, UV2.x);
 	ALBEDO = mix(colour, ink.rgb, rim * rim_strength);
+	vec3 world_pos = (INV_VIEW_MATRIX * vec4(VERTEX, 1.0)).xyz;
+	vec3 world_normal = (INV_VIEW_MATRIX * vec4(NORMAL, 0.0)).xyz;
+	float lap;
+	ALBEDO = sea_waterline(ALBEDO, world_pos, world_normal, finish == HULL, TIME, lap);
 	ROUGHNESS = 1.0;
 	SPECULAR = 0.0;
 	AO = mix(indoor_ambient, 1.0, outdoor);
 	AO_LIGHT_AFFECT = 0.0;
 	ALBEDO = mix(ALBEDO, flash_colour.rgb, flash * flash_strength);
 	EMISSION = flash_colour.rgb * flash * flash_strength;
+	EMISSION += lap_colour.rgb * lap * 0.2;
 #ifdef CUT_AWAY
 	if (!FRONT_FACING) {
 		ALBEDO = vec3(0.0);

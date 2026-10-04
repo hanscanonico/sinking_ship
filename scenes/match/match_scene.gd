@@ -40,6 +40,7 @@ var _dust := LandingDust.new()
 var _prompts := InputPrompts.new()
 var _kick: ViewKick
 
+@onready var _sea_and_sky: SeaAndSky = $SeaAndSky
 @onready var _driver: SimDriver = $SimDriver
 @onready var _view: MatchView = $MatchView
 @onready var _greybox: ShipGreybox = $MatchView/Ship/Greybox
@@ -76,6 +77,7 @@ func _process(delta: float) -> void:
 	var snapshot := _driver.current
 	var viewed := _order.target(snapshot)
 	_hud.show_snapshot(snapshot)
+	_sea_and_sky.show_sinking(snapshot["tick"], _view.ship_to_world())
 	_hud.show_spectating(_spectating(snapshot, viewed))
 	_hud.show_controls(_prompts.controls() if _local != null else "")
 	_end.show_results(_stats, _local_seat, _names, _config.match_seed)
@@ -221,7 +223,8 @@ func _begin(
 	_eyes.setup(settings)
 	_arms.setup(config.rules)
 	_first_person_hud.setup(sim, _names, not observer, _prompts)
-	_underwater.setup($SeaAndSky/Environment as WorldEnvironment)
+	_sea_and_sky.setup(sim.schedule.cap_tick(), config.ship)
+	_underwater.setup(_sea_and_sky)
 	_observer_camera.whole_ship = observer and is_finite(observer_cut)
 	_audio.setup(_driver, sim, _view, _local_seat, _underwater)
 	_observer_camera.reset(_view.seat_world_position(_eye_seat), _deck_bounds(config.ship))
