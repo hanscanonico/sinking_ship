@@ -1,0 +1,10 @@
+# What the export stage needs is the project; none of this is it.
+.git
+.godot
+.claude
+.lavish
+bin
+build
+captures
+deploy/.env
+docs

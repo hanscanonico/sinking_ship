@@ -10,7 +10,12 @@
 # crash or a pulled cable would end it: her seat goes to a bot and the match still
 # finishes.
 #
+# With --exported, the exported builds play instead of the editor: the server is the
+# dedicated server export for this Mac (`make export-server-mac`, the same pack as the
+# Linux server's) and both clients the macOS app (`make export-mac`).
+#
 # Usage:  tools/serve_local.sh [--port=47923] [--seed=1701] [--kill] [--kill-after=20]
+#                              [--exported]
 #
 # Every engine runs headless under `timeout`, and each process this started is
 # killed by its PID as the script exits. The exit status is 0 only when the server
@@ -30,6 +35,7 @@ PORT=47923
 SEED=1701
 KILL=0
 KILL_AFTER=20
+EXPORTED=0
 # The longest any one engine may run: a match is about two and a half minutes.
 DEADLINE=420
 
@@ -39,12 +45,27 @@ for arg in "$@"; do
 	--seed=*) SEED="${arg#*=}" ;;
 	--kill) KILL=1 ;;
 	--kill-after=*) KILL_AFTER="${arg#*=}" ;;
+	--exported) EXPORTED=1 ;;
 	*)
 		echo "serve-local: unknown argument $arg" >&2
 		exit 2
 		;;
 	esac
 done
+
+# The engine and its leading arguments for the server, and for the clients.
+SERVER=("$GODOT" --path .)
+CLIENT=("$GODOT" --path .)
+if ((EXPORTED)); then
+	SERVER=("build/server-mac/SinkingShipServer.app/Contents/MacOS/Sinking Ship")
+	CLIENT=("build/mac/SinkingShip.app/Contents/MacOS/Sinking Ship")
+	for exported in "${SERVER[0]}" "${CLIENT[0]}"; do
+		if [[ ! -x "$exported" ]]; then
+			echo "serve-local: no $exported — make export-server-mac export-mac" >&2
+			exit 1
+		fi
+	done
+fi
 
 LOGS="$(mktemp -d)"
 URL="ws://127.0.0.1:$PORT"
@@ -58,12 +79,19 @@ cleanup() {
 }
 trap cleanup EXIT
 
-# Starts an engine headless with the user args after the name, its output in
-# $LOGS/<name>.log, and leaves its `timeout` wrapper's PID in $last.
+# Starts the engine $1 names (SERVER or CLIENT) headless with the user args after the
+# log's name $2, its output in $LOGS/<name>.log, and leaves its `timeout` wrapper's PID
+# in $last.
 launch() {
-	local name="$1"
-	shift
-	timeout "$DEADLINE" "$GODOT" --headless --no-header --path . --audio-driver Dummy \
+	local -a run
+	if [[ "$1" == SERVER ]]; then
+		run=("${SERVER[@]}")
+	else
+		run=("${CLIENT[@]}")
+	fi
+	local name="$2"
+	shift 2
+	timeout "$DEADLINE" "${run[@]}" --headless --no-header --audio-driver Dummy \
 		-- "$@" >"$LOGS/$name.log" 2>&1 &
 	last=$!
 	started+=("$last")
@@ -84,17 +112,18 @@ await_line() {
 }
 
 echo "serve-local: logs in $LOGS"
-launch server --server --port="$PORT" --seed="$SEED" --matches=1
+echo "serve-local: server ${SERVER[0]}, clients ${CLIENT[0]}"
+launch SERVER server --server --port="$PORT" --seed="$SEED" --matches=1
 server=$last
 await_line server "listening on" 60
 
-launch ada --connect="$URL" --create --name=Ada --autoplay --start-at=2
+launch CLIENT ada --connect="$URL" --create --name=Ada --autoplay --start-at=2
 await_line ada "in room [A-Z]{4}" 60
 code="$(grep -oE "in room [A-Z]{4}" "$LOGS/ada.log" | head -1 | awk '{print $3}')"
 lower="$(printf '%s' "$code" | tr '[:upper:]' '[:lower:]')"
 echo "serve-local: Ada made room $code; Bea joins it as $lower"
 
-launch bea --connect="$URL" --room="$lower" --name=Bea --autoplay
+launch CLIENT bea --connect="$URL" --room="$lower" --name=Bea --autoplay
 bea=$last
 
 if ((KILL)); then

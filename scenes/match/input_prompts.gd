@@ -108,8 +108,9 @@ static func word_for(events: Array[InputEvent], on_pad: bool) -> String:
 
 
 ## The key [param physical] types on the keyboard's layout — Q on QWERTY, A on
-## AZERTY — or itself where there is no layout to ask, as when headless.
+## AZERTY — or itself where there is no layout to ask: headless, or in a browser,
+## whose display server errors on the question.
 static func _on_this_layout(physical: Key) -> Key:
-	if DisplayServer.get_name() == "headless":
+	if DisplayServer.get_name() == "headless" or OS.has_feature("web"):
 		return physical
 	return DisplayServer.keyboard_get_keycode_from_physical(physical)

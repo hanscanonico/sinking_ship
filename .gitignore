@@ -6,6 +6,14 @@
 # git worktree shares no ignored files with the main checkout, so the usual fix
 # is to symlink bin/ across — and `bin/` would not match a symlink named `bin`.
 bin
+# …but for the deploy's own scripts, which follow the mini PC's `bin/deploy` pattern.
+!deploy/bin
+
+# The exports (`make export-*`) and serve-web-local's logs.
+build/
+
+# The deploy's secrets (deploy/.env.example lists them).
+deploy/.env
 
 # The Godot AI MCP plugin's installer drops a second copy of its licence at the
 # repo root; the vendored addon carries its own `addons/godot_ai/LICENSE`, which

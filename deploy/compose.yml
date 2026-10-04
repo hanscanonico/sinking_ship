@@ -1,0 +1,142 @@
+# The game on the mini PC (SH12): the dedicated server, the browser build, a reverse
+# proxy in front of both, and the Cloudflare Tunnel that is the only way in — no
+# port is open to the network. Values come from the gitignored deploy/.env
+# (deploy/.env.example lists them); deploy/README.md says how it is run, and
+# deploy/bin/deploy runs it.
+#
+# Untested: written on a machine without Docker.
+
+# Named explicitly so the project (networks, images) never depends on the
+# checkout's directory name.
+name: sinking_ship
+
+# Unbounded json-file logs are how the shared mini PC fills its disk.
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
+# What every service shares: no privileges to gain, and nothing writable but a /tmp
+# in memory.
+x-locked-down: &locked-down
+  restart: unless-stopped
+  logging: *logging
+  read_only: true
+  cap_drop: [ALL]
+  security_opt: ["no-new-privileges:true"]
+  tmpfs:
+    - /tmp
+
+# Both images come from deploy/Dockerfile's export stage, which checks Godot's
+# downloads against these sums.
+x-build-args: &build-args
+  GODOT_EDITOR_SHA512: ${GODOT_EDITOR_SHA512:?set in deploy/.env}
+  GODOT_TEMPLATES_SHA512: ${GODOT_TEMPLATES_SHA512:?set in deploy/.env}
+
+services:
+  server:
+    <<: *locked-down
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+      target: server
+      args: *build-args
+    # Named so bin/deploy can tag the image it replaces as :previous and roll back.
+    image: sinking_ship-server
+    # No ports: the proxy alone reaches it, on the game network. Distroless, so no
+    # healthcheck runs in it; bin/deploy opens a WebSocket to it through the proxy.
+    networks:
+      - game
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+          cpus: "2"
+
+  web:
+    <<: *locked-down
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+      target: web
+      args: *build-args
+    image: sinking_ship-web
+    networks:
+      - game
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/index.html"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 64m
+
+  proxy:
+    <<: *locked-down
+    image: nginxinc/nginx-unprivileged:1.27-alpine
+    volumes:
+      - ./proxy.conf:/etc/nginx/conf.d/default.conf:ro
+    networks:
+      - game
+      - edge
+    ports:
+      # Host-local only, for bin/deploy's checks and SSH-tunnel debugging. Ports
+      # 8070–8110 belong to sibling stacks on this machine.
+      - "127.0.0.1:8120:8080"
+    depends_on:
+      server:
+        condition: service_started
+      web:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/healthz"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 64m
+
+  cloudflared:
+    # Locked down as the others, untested: if this cloudflared will not start on a
+    # read-only root or without capabilities, its log says what it needed.
+    <<: *locked-down
+    # Pinned, as the sibling stacks pin it: bin/deploy never pulls, so a floating tag
+    # would freeze at whatever version was first pulled. Bump deliberately.
+    image: cloudflare/cloudflared:2026.9.3@sha256:072c067d25ccbe61d46e18f0d0723255f2bb5304f7317caa95b27031520ff92c
+    # The tunnel's public hostname must point at http://proxy:8080. `:-` rather than
+    # `:?` so the rest of the stack runs before the tunnel exists; bin/deploy leaves
+    # this service down while the token is empty.
+    command: tunnel --no-autoupdate run
+    environment:
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:-}
+    networks:
+      edge:
+        # The one address proxy.conf takes a client's address from.
+        ipv4_address: 10.247.47.6
+    depends_on:
+      proxy:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 128m
+
+networks:
+  # The server and the web build: no way out to the internet, and none in but the
+  # proxy.
+  game:
+    internal: true
+  # The proxy and cloudflared. Fixed, as proxy.conf trusts the client address
+  # cloudflared forwards from its address alone: cloudflared has .6, out of the range
+  # Docker hands out by itself (.1 to .3, the gateway .1), so nothing else takes it.
+  edge:
+    ipam:
+      config:
+        - subnet: 10.247.47.0/29
+          ip_range: 10.247.47.0/30
+          gateway: 10.247.47.1

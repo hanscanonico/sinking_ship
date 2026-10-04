@@ -13,6 +13,7 @@ config_version=5
 config/name="Sinking Ship"
 run/main_scene="res://scenes/game/game.tscn"
 config/features=PackedStringArray("4.7", "GL Compatibility")
+run/flush_stdout_on_print=true
 
 [autoload]
 
@@ -141,5 +142,6 @@ spectate_previous={
 
 renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"
+textures/vram_compression/import_etc2_astc=true
 limits/opengl/max_lights_per_object=16
 anti_aliasing/quality/msaa_3d=1

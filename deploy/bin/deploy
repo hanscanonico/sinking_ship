@@ -1,0 +1,141 @@
+#!/bin/bash
+# Deploy main to this machine: the game's Docker Compose stack (deploy/compose.yml).
+# Usage: deploy/bin/deploy [--no-pull]
+# DEPLOY_REF pins the commit to deploy; defaults to origin/main. Must be a
+# fast-forward of the current checkout. The deploy workflow — run by hand only — takes
+# the deploy lock, fast-forwards to the commit it was run on, then calls this with
+# --no-pull and DEPLOY_LOCK_HELD=1. Rolling back by hand: deploy/README.md.
+# A deploy restarts the game server: matches being played end with it.
+# Host dependencies: docker with the compose plugin, curl, jq, flock (util-linux).
+set -euo pipefail
+cd "$(dirname "$0")/../.."
+
+COMPOSE=(docker compose -f deploy/compose.yml)
+# The proxy's host-local port (compose.yml): the page, and the game under /ws.
+PROXY=http://127.0.0.1:8120
+# How long the stack may take to answer once it is up.
+WAIT_TIMEOUT=120
+# In the checkout rather than /tmp, so the runner service and a login shell lock the
+# same file even if one of them gets a private /tmp. build/ is gitignored.
+LOCK_FILE=build/deploy.lock
+
+if [ "${DEPLOY_LOCK_HELD:-}" != 1 ]; then
+	mkdir -p build
+	exec 9>>"$LOCK_FILE"
+	if ! flock -n 9; then
+		echo "Another deploy holds $LOCK_FILE; waiting for it to finish..." >&2
+		flock -w 900 9 || {
+			echo "Gave up waiting for $LOCK_FILE." >&2
+			exit 1
+		}
+	fi
+fi
+
+if [ "${1:-}" != "--no-pull" ]; then
+	git fetch origin
+	git merge --ff-only "${DEPLOY_REF:-origin/main}"
+	# Carry on with the version just fetched, still holding the lock (fd 9).
+	exec env DEPLOY_LOCK_HELD=1 deploy/bin/deploy --no-pull
+fi
+
+# Whether the stack answers through the proxy: the page, and a WebSocket handshake
+# with the game server (101), which then closes it for saying no hello.
+answers() {
+	curl -fsS -o /dev/null --max-time 5 "$PROXY/" || return 1
+	local status
+	status=$(curl --http1.1 -sS -o /dev/null -w '%{http_code}' --max-time 3 \
+		-H 'Connection: Upgrade' -H 'Upgrade: websocket' -H 'Sec-WebSocket-Version: 13' \
+		-H 'Sec-WebSocket-Key: c2lua2luZ3NoaXBjaGVjaw==' "$PROXY/ws" 2>/dev/null || true)
+	[ "$status" = 101 ]
+}
+
+# Prints the last $1 lines of the services named after it — or, unless a person reads
+# them at a terminal on this host, only where to read them. They hold players' display
+# names and room codes, and the deploy workflow's log is public.
+show_logs() {
+	local lines=$1
+	shift
+	if [ "${GITHUB_ACTIONS:-}" != true ] && [ -t 2 ]; then
+		"${COMPOSE[@]}" logs --tail "$lines" --no-color "$@" >&2 || true
+	else
+		echo "Logs kept off this output: on the host, run" \
+			"docker compose -f deploy/compose.yml logs --tail $lines $*" >&2
+	fi
+}
+
+await_answer() {
+	local waited=0
+	until answers; do
+		if ((waited >= WAIT_TIMEOUT)); then
+			return 1
+		fi
+		sleep 5
+		waited=$((waited + 5))
+	done
+}
+
+config=$("${COMPOSE[@]}" config --format json)
+project=$(jq -r '.name' <<<"$config")
+images=()
+for service in server web; do
+	images+=("$(jq -er ".services.$service.image" <<<"$config")")
+done
+
+# Rollback targets: the images serving right now, if the stack answers. Otherwise the
+# :previous tags from an earlier deploy stay as they are.
+if answers; then
+	for service in server web; do
+		running=$("${COMPOSE[@]}" ps -q "$service")
+		image=$(jq -er ".services.$service.image" <<<"$config")
+		docker image tag "$(docker inspect -f '{{.Image}}' "$running")" "${image%:*}:previous"
+	done
+fi
+
+"${COMPOSE[@]}" build server web
+
+rollback() {
+	for image in "${images[@]}"; do
+		if ! docker image inspect "${image%:*}:previous" >/dev/null 2>&1; then
+			echo "No ${image%:*}:previous to roll back to (first deploy?): leaving the stack." >&2
+			return
+		fi
+	done
+	echo "Rolling the server and the web build back to their :previous images." >&2
+	for image in "${images[@]}"; do
+		docker image tag "${image%:*}:previous" "$image"
+	done
+	"${COMPOSE[@]}" up -d --no-build server web proxy
+	if await_answer; then
+		echo "Rolled back: the previous images are serving again." >&2
+	else
+		echo "The previous images do not answer either: the stack needs a hand." >&2
+	fi
+}
+
+if ! "${COMPOSE[@]}" up -d --wait --wait-timeout "$WAIT_TIMEOUT" server web proxy ||
+	! await_answer; then
+	echo "The stack did not answer through the proxy within ${WAIT_TIMEOUT}s." >&2
+	"${COMPOSE[@]}" ps -a >&2 || true
+	show_logs 80 server web proxy
+	rollback
+	exit 1
+fi
+echo "Deployed: the page and the game answer on $PROXY."
+
+# The tunnel is brought up only once the stack answers, and a failure here fails the
+# deploy without rolling back a stack that works.
+if jq -e '(.services.cloudflared.environment.TUNNEL_TOKEN // "") | length > 0' \
+	<<<"$config" >/dev/null; then
+	if ! "${COMPOSE[@]}" up -d --wait --wait-timeout 60 cloudflared; then
+		echo "cloudflared did not start: the game is up but unreachable through the tunnel." >&2
+		show_logs 30 cloudflared
+		exit 1
+	fi
+else
+	echo "CLOUDFLARE_TUNNEL_TOKEN is empty in deploy/.env: running without cloudflared." >&2
+fi
+
+# Superseded images: only this project's dangling ones, since sibling stacks share
+# the daemon. :previous stays tagged as the next rollback target.
+docker image prune -f --filter "label=com.docker.compose.project=$project" >/dev/null ||
+	echo "Image prune failed; superseded images were not reclaimed." >&2

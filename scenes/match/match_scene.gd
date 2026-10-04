@@ -1,12 +1,13 @@
 class_name MatchScene
 extends Node3D
 ## One match of the config Game hands in — the local player on the first seat (a
-## bot when autoplaying), bots of the config's tier on the rest — seen through the
-## local seat's eyes and, once it is out, through a survivor's (D14), with the
-## results at its end. The observer camera stands in for the eyes only as a tool:
-## for --observer and captures, and it alone may cut the ship away to look inside.
-## Rematch and menu go back to Game, which builds every config through
-## MatchConfig.from_menu (D13).
+## bot when autoplaying), bots of the config's tier on the rest — or one played on a
+## server, the local player on the seat it gives (SH12) — seen through the local
+## seat's eyes and, once it is out, through a survivor's (D14), with the results at
+## its end. The observer camera stands in for the eyes only as a tool: for --observer
+## and captures, and it alone may cut the ship away to look inside. Rematch and menu
+## go back to whoever started it: Game, which builds every config through
+## MatchConfig.from_menu (D13), or OnlinePlay.
 
 signal rematch_requested
 signal menu_requested
@@ -26,10 +27,14 @@ var _order: SpectateOrder
 var _names := PackedStringArray()
 ## The local player's seat when a person plays it; null when a bot does.
 var _local: LocalInputSource
+## The seat whose win is "you won", and whose look the local player turns.
+var _local_seat := LOCAL_SEAT
 var _observer: bool
 ## Whose eyes the view is in while that seat is dry: the local seat's, or a capture's.
 var _eye_seat := LOCAL_SEAT
 var _paused := false
+## The mouse let go mid-match without pausing: an online match never pauses.
+var _mouse_freed := false
 var _marks := BrawlMarks.new()
 var _dust := LandingDust.new()
 var _prompts := InputPrompts.new()
@@ -73,7 +78,7 @@ func _process(delta: float) -> void:
 	_hud.show_snapshot(snapshot)
 	_hud.show_spectating(_spectating(snapshot, viewed))
 	_hud.show_controls(_prompts.controls() if _local != null else "")
-	_end.show_results(_stats, LOCAL_SEAT, _names, _config.match_seed)
+	_end.show_results(_stats, _local_seat, _names, _config.match_seed)
 	_end.show_prompts(_prompts)
 	var mouse := Input.MOUSE_MODE_CAPTURED if _looking() else Input.MOUSE_MODE_VISIBLE
 	if Input.mouse_mode != mouse:
@@ -89,7 +94,7 @@ func _process(delta: float) -> void:
 	# little below level, so the deck and its edges show under the horizon.
 	var yaw := _view.seat_facing(viewed)
 	var pitch := deg_to_rad(SPECTATE_PITCH_DEG)
-	if _local != null and viewed == LOCAL_SEAT:
+	if _local != null and viewed == _local_seat:
 		yaw = _local.yaw
 		pitch = _local.pitch
 	_view.look_out_of(viewed)
@@ -140,37 +145,74 @@ func start(
 	greybox: bool = false,
 	net_sim: NetConditions = null
 ) -> void:
-	_config = config
-	_observer = observer
-	_eye_seat = eye_seat
 	var profile := BotProfile.for_tier(config.bot_tier)
 	var net_rules := NetRules.load_default()
-	var settings := ViewSettings.local()
 	var played := -1
 	var served: Array[InputSource] = []
-	_local = null
+	var local: LocalInputSource = null
 	if config.humans > 0 and not autoplay:
-		_local = LocalInputSource.new(LOCAL_SEAT, 0.0, settings)
+		local = LocalInputSource.new(LOCAL_SEAT, 0.0, ViewSettings.local())
 		played = LOCAL_SEAT
 		served.append(null)
 	else:
 		served.append(BotInputSource.new(LOCAL_SEAT, profile, config))
 	served.append_array(BotInputSource.fill(config, profile, LOCAL_SEAT + 1))
 	var conditions := net_sim if net_sim != null else NetConditions.new()
-	_driver.start(LoopbackMatch.new(config, net_rules, conditions, played, _local, served))
+	var loopback := LoopbackMatch.new(config, net_rules, conditions, played, local, served)
+	var names := _seat_names(config.seats)
+	_begin(loopback, local, LOCAL_SEAT, names, observer, eye_seat, observer_cut, greybox)
+
+
+## Starts [param played] — a match on a server, RemoteMatch (SH12) — from its first
+## tick: the local player on its client's seat through [param local]'s keys, mouse
+## and pad, every seat named by [param names]. Seen through that seat's eyes; nothing
+## of it pauses.
+func start_online(played: PlayedMatch, local: LocalInputSource, names: PackedStringArray) -> void:
+	var seat := played.client.seat
+	_begin(played, local, seat, names, false, seat, INF, false)
+
+
+## Lets the mouse go, or takes it back, without pausing: the online match's Esc.
+func free_mouse(freed: bool) -> void:
+	_mouse_freed = freed
+
+
+## What both kinds of match start with: [param played] stepped from its first tick,
+## [param local] (null for a bot) on [param local_seat], seen through
+## [param eye_seat]'s eyes or the observer camera, as start() says.
+func _begin(
+	played: PlayedMatch,
+	local: LocalInputSource,
+	local_seat: int,
+	names: PackedStringArray,
+	observer: bool,
+	eye_seat: int,
+	observer_cut: float,
+	greybox: bool
+) -> void:
+	var config := played.client.config
+	_config = config
+	_observer = observer
+	_eye_seat = eye_seat
+	_local = local
+	_local_seat = local_seat
+	_mouse_freed = false
+	var settings := ViewSettings.local()
+	var net_rules := NetRules.load_default()
+	_driver.start(played)
 	if _local != null:
 		# The look starts where the match's first snapshot faces the seat.
-		_local.yaw = _driver.client.view()["seats"][LOCAL_SEAT]["facing"]
+		_local.yaw = _driver.client.view()["seats"][_local_seat]["facing"]
 	# The client's prediction: what the data, the ship and its sinking are.
 	var sim := _driver.client.sim
 	_stats = MatchStats.new(config.seats, config.countdown_ticks)
 	_order = SpectateOrder.new(_eye_seat, _stats)
-	_names = _seat_names(config.seats)
+	_names = names
 	_greybox.cut_above = observer_cut if observer else INF
 	_ship_art.cut_above = _greybox.cut_above
 	_greybox.visible = greybox
 	_ship_art.visible = not greybox
-	_view.setup(_driver, sim, LOCAL_SEAT, net_rules.correction_time)
+	_view.setup(_driver, sim, _local_seat, net_rules.correction_time)
 	_view.look_out_of(-1 if observer else _eye_seat)
 	_hud.setup(sim)
 	_marks.setup(_driver, _view, sim)
@@ -181,7 +223,7 @@ func start(
 	_first_person_hud.setup(sim, _names, not observer, _prompts)
 	_underwater.setup($SeaAndSky/Environment as WorldEnvironment)
 	_observer_camera.whole_ship = observer and is_finite(observer_cut)
-	_audio.setup(_driver, sim, _view, LOCAL_SEAT, _underwater)
+	_audio.setup(_driver, sim, _view, _local_seat, _underwater)
 	_observer_camera.reset(_view.seat_world_position(_eye_seat), _deck_bounds(config.ship))
 	if observer:
 		_observer_camera.make_current()
@@ -230,9 +272,9 @@ func _shake_for_the_sinking(events: Array[SimEvent]) -> void:
 
 
 ## Whether the local player's mouse and stick turn their look now: in play, and
-## neither paused nor at the results.
+## neither paused, at the results nor with the mouse let go.
 func _looking() -> bool:
-	return _local != null and not _paused and not _end.visible
+	return _local != null and not _paused and not _end.visible and not _mouse_freed
 
 
 ## Every platform's area together, in the ship plane.

@@ -75,18 +75,61 @@ net-bench:
 		-- $(match-args) --net-sim=$(NET) $(if $(SECONDS),--seconds=$(SECONDS)) \
 		| grep -v '^\[godot_ai'
 
-# `make serve-local [WS_PORT=47923] [SEED=1701] [KILL=1]`: a --server and two headless
-# --autoplay clients in one room over real WebSockets on 127.0.0.1 (SH12); the server's log —
-# the match's transcript, tick times, round trips and snapshot bandwidth — is
-# printed. KILL=1 kills one client mid-match: its seat goes to a bot and the match
-# still finishes. Rules live in tools/serve_local.sh. Not part of verify: it runs a
-# whole match in real time.
+# `make serve-local [WS_PORT=47923] [SEED=1701] [KILL=1] [EXPORTED=1]`: a --server and two
+# headless --autoplay clients in one room over real WebSockets on 127.0.0.1 (SH12); the
+# server's log — the match's transcript, tick times, round trips and snapshot bandwidth
+# — is printed. KILL=1 kills one client mid-match: its seat goes to a bot and the match
+# still finishes. EXPORTED=1 runs the exported builds instead of the editor: the
+# dedicated server export for this Mac (the Linux server's very pack) and the macOS
+# app as both clients, exporting them first. Rules live in tools/serve_local.sh. Not
+# part of verify: it runs a whole match in real time.
 WS_PORT ?=
 KILL ?=
-serve-local:
+EXPORTED ?=
+serve-local: $(if $(EXPORTED),export-server-mac export-mac)
 	$(call require-godot)
 	GODOT="$(GODOT)" tools/serve_local.sh $(if $(WS_PORT),--port=$(WS_PORT)) \
-		$(if $(SEED),--seed=$(SEED)) $(if $(KILL),--kill)
+		$(if $(SEED),--seed=$(SEED)) $(if $(KILL),--kill) $(if $(EXPORTED),--exported)
+
+# Release builds under build/, from export_presets.cfg (SH12):
+#   make export-server       the Linux dedicated server the deploy runs: headless, its
+#       visuals stripped and its audio left out
+#   make export-web          the browser build: single-threaded, so it needs no
+#       cross-origin isolation headers
+#   make export-mac          the macOS app, ad-hoc signed
+#   make export-server-mac   the dedicated server for this Mac, the same pack as the
+#       Linux one: what `make serve-local EXPORTED=1` and serve-web-local run
+# They need Godot's export templates for the engine's version installed, which CI has
+# not: none is part of verify. No export ships the godot_ai helper autoload (R11): the
+# plugin's export hook strips it from every pack, and every preset leaves addons/ out.
+define export-preset
+	$(call require-godot)
+	@mkdir -p "$(dir $(2))" && touch build/.gdignore
+	timeout 1200 $(GODOT) --headless --path . --export-release "$(1)" "$(2)"
+endef
+
+export-server:
+	$(call export-preset,Linux Server,build/server/sinking_ship_server.x86_64)
+
+export-web:
+	$(call export-preset,Web,build/web/index.html)
+
+export-mac:
+	$(call export-preset,macOS,build/mac/SinkingShip.app)
+
+export-server-mac:
+	$(call export-preset,macOS Server,build/server-mac/SinkingShipServer.app)
+
+# `make serve-web-local [WEB_PORT=47984] [WS_PORT=47985]`: the browser build over HTTP
+# and an exported server, both on 127.0.0.1 and left running, with the address to open
+# printed; `make serve-web-local-stop` stops both. Rules live in tools/serve_web_local.sh.
+WEB_PORT ?=
+serve-web-local: export-web export-server-mac
+	tools/serve_web_local.sh start $(if $(WEB_PORT),--web-port=$(WEB_PORT)) \
+		$(if $(WS_PORT),--ws-port=$(WS_PORT))
+
+serve-web-local-stop:
+	tools/serve_web_local.sh stop
 
 # `make sim-bench [SEED=] [SEATS=]`: one bots-only match recorded through the local
 # host, its input log replayed through a bare MatchSim, no bots, timed step by step,
@@ -175,4 +218,6 @@ format-check:
 # whole suite.
 .NOTPARALLEL:
 
-.PHONY: import run match capture net-bench sim-bench serve-local arena art-lint test verify check ship ship-check lint format format-check
+.PHONY: import run match capture net-bench sim-bench serve-local export-server export-web \
+	export-mac export-server-mac serve-web-local serve-web-local-stop arena art-lint test \
+	verify check ship ship-check lint format format-check

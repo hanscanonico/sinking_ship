@@ -228,7 +228,7 @@ func test_a_silent_connection_times_out() -> void:
 ## connection is closed. A player who only answers pings is still there.
 func test_a_silent_player_is_given_up() -> void:
 	var fixture := RoomFixtures.new(
-		RoomFixtures.rules_with({"silence_timeout": 2.0}), RoomFixtures.flat_rules()
+		RoomFixtures.rules_with({"silence_timeout": 3.0}), RoomFixtures.flat_rules()
 	)
 	var players := fixture.room_of(2)
 	players[0].start_match()
@@ -244,6 +244,79 @@ func test_a_silent_player_is_given_up() -> void:
 	fixture.beat(ServerRules.beats(fixture.rules.refusal_linger))
 	assert_eq(Array(fixture.end_of(players[1]).closed()), [RoomFixtures.SERVER_PEER])
 	assert_eq(fixture.server.connection_count(), 1)
+
+
+## A client's match may take a while to load (shaders compiled on a slow machine): its
+## silence is counted from the match's start, not from the last pong before it.
+func test_a_player_loading_the_match_is_not_given_up() -> void:
+	var fixture := RoomFixtures.new(
+		RoomFixtures.rules_with({"silence_timeout": 3.0}), RoomFixtures.flat_rules()
+	)
+	var silence := ServerRules.beats(fixture.rules.silence_timeout)
+	var players := fixture.room_of(2)
+	fixture.hush(players[1])
+	fixture.beat(silence / 2)
+	players[0].start_match()
+	fixture.beat()
+	var room := fixture.room(players[0])
+	fixture.beat(silence - 1)
+	assert_false(room.is_bot(1), "a whole silence_timeout from the start")
+	fixture.beat()
+	assert_true(room.is_bot(1), "and no longer")
+
+
+## A ping's stamp travels as a u32: once the server's count passes 2^32 the stamps
+## wrap, and a pong carrying one still answers its ping, so the server goes on pinging.
+func test_ping_stamps_wrap_with_the_wire() -> void:
+	var fixture := RoomFixtures.new()
+	fixture.server._pings = 0xFFFFFFFF
+	var end := fixture.raw_end()
+	fixture.hello(end)
+	var stamps: Array[int] = []
+	for _ping in 2:
+		var stamp := -1
+		for _beat in ServerRules.beats(fixture.rules.ping_interval) + 1:
+			fixture.beat()
+			stamp = _ping_stamp(fixture, end)
+			if stamp >= 0:
+				break
+		stamps.append(stamp)
+		end.send(RoomFixtures.SERVER_PEER, fixture.codec.encode_stamp(WireCodec.Kind.PONG, stamp))
+	assert_eq(stamps, [0, 1] as Array[int], "the count wraps, and the next ping comes")
+
+
+## A ping lost on the way — or its pong — is sent again once it has been out twice
+## ping_interval: a player who answers every ping that reaches them is never silent.
+func test_a_lost_ping_is_sent_again() -> void:
+	var fixture := RoomFixtures.new()
+	var end := fixture.raw_end()
+	fixture.hello(end)
+	end.send(RoomFixtures.SERVER_PEER, fixture.codec.encode_bare(WireCodec.Kind.CREATE))
+	fixture.beat()
+	var pings: Array[int] = []
+	for _beat in 2 * ServerRules.beats(fixture.rules.silence_timeout):
+		fixture.beat()
+		var stamp := _ping_stamp(fixture, end)
+		if stamp < 0:
+			continue
+		pings.append(stamp)
+		if pings.size() > 1:
+			end.send(
+				RoomFixtures.SERVER_PEER, fixture.codec.encode_stamp(WireCodec.Kind.PONG, stamp)
+			)
+	assert_gt(pings.size(), 2, "pinged again after the first went unanswered")
+	assert_false(fixture.logged("went silent"))
+	assert_eq(fixture.server.room_count(), 1, "the player is still in their room")
+
+
+## The stamp of a PING [param end] has been sent, or -1 when none came.
+static func _ping_stamp(fixture: RoomFixtures, end: LoopbackTransport) -> int:
+	var stamp := -1
+	for packet: Transport.Packet in end.receive():
+		var message := fixture.codec.decode(packet.bytes)
+		if message != null and message.kind == WireCodec.Kind.PING:
+			stamp = message.value
+	return stamp
 
 
 func test_a_client_that_stops_reading_is_dropped() -> void:

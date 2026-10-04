@@ -40,13 +40,8 @@ func _ready() -> void:
 		printerr("server: cannot listen on %s:%d — %s" % [address, port, error_string(error)])
 		get_tree().quit(1)
 		return
-	var secure := SecureDraws.new()
-	var seeds: Draws = secure
-	if _args.seed_value >= 0:
-		var seeded := RandomNumberGenerator.new()
-		seeded.seed = _args.seed_value
-		seeds = SeededDraws.new(seeded)
-	_rooms = RoomServer.new(_socket, rules, net_rules, match_rules, seeds, secure)
+	var draws := draws_for(_args.seed_value)
+	_rooms = RoomServer.new(_socket, rules, net_rules, match_rules, draws[0], draws[1])
 	_rooms.logged.connect(_say)
 	_rooms.match_finished.connect(_on_match_finished)
 	if _args.seed_value >= 0:
@@ -62,6 +57,18 @@ func _ready() -> void:
 			]
 		)
 	)
+
+
+## What a server draws its match seeds from and its room codes from, in that order:
+## codes from the system's CSPRNG whatever [param seed_value] says, seeds too unless it
+## is a seed (0 or more) asking for runs that repeat.
+static func draws_for(seed_value: int) -> Array[Draws]:
+	var secure := SecureDraws.new()
+	if seed_value < 0:
+		return [secure, secure]
+	var seeded := RandomNumberGenerator.new()
+	seeded.seed = seed_value
+	return [SeededDraws.new(seeded), secure]
 
 
 func _process(delta: float) -> void:

@@ -6,11 +6,12 @@ extends RefCounted
 ## tests and a --seed run, SecureDraws (scenes/online) draws codes on every server.
 
 
-## A number in [0, [param count]), each as likely as the others.
+## A number in [0, [param count]), each as likely as the others; -1 when nothing can
+## be drawn.
 func below(_count: int) -> int:
 	return 0
 
 
-## A number in [0, 2^32).
+## A number in [0, 2^32); -1 when nothing can be drawn.
 func u32() -> int:
 	return 0

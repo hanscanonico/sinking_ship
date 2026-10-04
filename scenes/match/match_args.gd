@@ -17,8 +17,9 @@ extends RefCounted
 ## (ServerRules' unless given), its matches' seeds drawn from --seed when given — its
 ## rooms' codes never are — until --matches matches have finished (forever at 0);
 ## --connect plays in a server's room, --create making one or --room joining one by
-## its code, as --name, and its creator starts the match once --start-at players are
-## in (SH12) — headless and with --autoplay until the Online menu (SH12b).
+## its code, as --name (SH12): a person at the keys (OnlinePlay, which checks every one
+## of them), or with --autoplay a bot, headless, whose creator starts the match once
+## --start-at players are in.
 
 ## -1 when not given: the host picks one.
 var seed_value: int = -1

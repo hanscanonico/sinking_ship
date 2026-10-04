@@ -34,6 +34,9 @@ enum Stage { HELLO, LOBBY, ROOM, LEAVING }
 
 ## The most round trips a connection keeps, oldest dropped first.
 const RTT_SAMPLES := 512
+## Codes drawn for one room before the server gives up on it: a free one comes at the
+## first draw but for a sliver of the time, unless the Draws are broken.
+const CODE_DRAWS := 16
 
 
 ## One client's connection.
@@ -56,8 +59,10 @@ class Connection:
 	## The beat the current second of its packets began at, and how many came in it.
 	var window_from: int
 	var window_packets := 0
-	## The last PING's stamp and when it went, in microseconds; -1 when none is out.
+	## The last PING's stamp, the beat it went at and when, in microseconds; -1 when
+	## none is out.
 	var ping_stamp := -1
+	var ping_beat := 0
 	var ping_usec := 0
 	var rtt_ms := PackedFloat64Array()
 
@@ -271,7 +276,12 @@ func _create(connection: Connection) -> void:
 	if _rooms.size() >= _rules.max_rooms:
 		_refuse(connection, RoomCodec.Refusal.SERVER_FULL)
 		return
-	var created := Room.new(_new_code(), _wire, _beat)
+	var code := _new_code()
+	if code.is_empty():
+		_say("no free room code drawn for %s" % _who(connection))
+		_refuse(connection, RoomCodec.Refusal.BUSY)
+		return
+	var created := Room.new(code, _wire, _beat)
 	_rooms[created.code] = created
 	_say("room %s created by %s" % [created.code, _who(connection)])
 	_seat(connection, created)
@@ -339,11 +349,21 @@ func _start(connection: Connection) -> void:
 	if not _may_build(connection):
 		_refuse(connection, RoomCodec.Refusal.BUSY)
 		return
-	var config := MatchConfig.from_rules(_match_rules, _seeds.u32())
+	var match_seed := _seeds.u32()
+	if match_seed < 0:
+		_say("room %s: no match seed drawn" % at.code)
+		_refuse(connection, RoomCodec.Refusal.BUSY)
+		return
+	_count_build(connection)
+	var config := MatchConfig.from_rules(_match_rules, match_seed)
 	var bots := BotInputSource.fill(config, BotProfile.for_tier(config.bot_tier))
 	at.start(config, _net, bots, _beat)
 	var players := PackedStringArray()
 	for player: Room.Member in at.members:
+		# Its silence counts from here: loading the match may take its client a while.
+		var member: Connection = _connections.get(player.peer)
+		if member != null:
+			member.heard = _beat
 		players.append("%s seat %d" % [player.name, player.seat])
 		var begin := _codec.encode_begin(config.match_seed, config.seats, player.seat)
 		_wire.send(player.peer, begin)
@@ -356,9 +376,9 @@ func _start(connection: Connection) -> void:
 	_send_rosters(at)
 
 
-## Whether a match may be built for [param connection] now, counted when it may: no
-## sooner than start_cooldown after its last, and no more than starts_per_second on
-## the whole server.
+## Whether a match may be built for [param connection] now: no sooner than
+## start_cooldown after its last, and no more than starts_per_second on the whole
+## server.
 func _may_build(connection: Connection) -> bool:
 	var cooldown := ServerRules.beats(_rules.start_cooldown)
 	if connection.started >= 0 and _beat - connection.started < cooldown:
@@ -366,11 +386,14 @@ func _may_build(connection: Connection) -> bool:
 	if _beat - _starts_from >= Ticks.RATE:
 		_starts_from = _beat
 		_starts = 0
-	if _starts >= _rules.starts_per_second:
-		return false
+	return _starts < _rules.starts_per_second
+
+
+## Counts a match built for [param connection] against both of _may_build's limits:
+## only once its seed is drawn, as a START refused before that built nothing.
+func _count_build(connection: Connection) -> void:
 	_starts += 1
 	connection.started = _beat
-	return true
 
 
 func _leave(connection: Connection) -> void:
@@ -425,7 +448,8 @@ func _keep_time() -> void:
 		if _beat - _full[peer] >= linger:
 			_full.erase(peer)
 			_wire.close(peer)
-	var pinging := _beat % ServerRules.beats(_rules.ping_interval) == 0
+	var ping_beats := ServerRules.beats(_rules.ping_interval)
+	var pinging := _beat % ping_beats == 0
 	for connection: Connection in _connections.values():
 		var waited := _beat - connection.since
 		if connection.stage == Stage.LEAVING:
@@ -445,7 +469,11 @@ func _keep_time() -> void:
 			_connections.erase(connection.peer)
 			_wire.close(connection.peer)
 			_leave_room(connection)
-		elif pinging and connection.ping_stamp == -1:
+		elif (
+			pinging
+			and (connection.ping_stamp == -1 or _beat - connection.ping_beat >= 2 * ping_beats)
+		):
+			# One out twice the interval was lost, or its pong was: a new one replaces it.
 			_ping(connection)
 	for waiting: Room in _rooms.values():
 		var idle := _beat - waiting.since
@@ -474,21 +502,26 @@ func _close_room(closing: Room, why: String) -> void:
 
 
 ## A code no room has: CODE_LENGTH letters of CODE_LETTERS from the codes' Draws,
-## drawn until one is free — a few draws at most, max_rooms being a sliver of the codes
-## there are.
+## drawn until one is free — max_rooms being a sliver of the codes there are — or ""
+## when the Draws cannot draw, or CODE_DRAWS codes were all taken.
 func _new_code() -> String:
-	while true:
+	for _draw in CODE_DRAWS:
 		var code := ""
 		for _letter in RoomCodec.CODE_LENGTH:
-			code += RoomCodec.CODE_LETTERS[_codes.below(RoomCodec.CODE_LETTERS.length())]
+			var drawn := _codes.below(RoomCodec.CODE_LETTERS.length())
+			if drawn < 0:
+				return ""
+			code += RoomCodec.CODE_LETTERS[drawn]
 		if not _rooms.has(code):
 			return code
 	return ""
 
 
 func _ping(connection: Connection) -> void:
-	_pings += 1
+	# The stamp travels as a u32: the count wraps with it, or no pong would match.
+	_pings = (_pings + 1) & 0xFFFFFFFF
 	connection.ping_stamp = _pings
+	connection.ping_beat = _beat
 	connection.ping_usec = Time.get_ticks_usec()
 	_wire.send(connection.peer, _codec.encode_stamp(WireCodec.Kind.PING, _pings))
 
