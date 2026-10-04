@@ -8,6 +8,7 @@ source and license.
 | `addons/gut/` (GUT, the test runner) | vendored addon — `addons/gut/LICENSE.md` | MIT |
 | `addons/godot_ai/` (the editor MCP bridge) | vendored addon — `addons/godot_ai/LICENSE` | MIT |
 | `assets/characters/quaternius_ual/AnimationLibrary_Godot_Standard.glb` and its `License.txt` — Universal Animation Library [Standard] by Quaternius: the mannequin every brawler wears and its 46 clips (6.7 MB) | https://quaternius.com/packs/universalanimationlibrary.html, downloaded from https://opengameart.org/content/universal-animation-library (`universal_animation_librarystandard.zip`, Godot folder only) | CC0 1.0 |
+| `assets/fonts/playfair_display.ttf` (`PlayfairDisplay[wght].ttf`, the variable roman, unmodified, 0.3 MB) — Playfair Display by Claus Eggers Sørensen: the menus' titles, buttons and wordmark (UiTheme); its licence is `assets/fonts/OFL.txt` | https://github.com/google/fonts/tree/main/ofl/playfairdisplay (commit `1e1aa08`) | SIL Open Font License 1.1 |
 
 ### Audio (`assets/audio/`)
 

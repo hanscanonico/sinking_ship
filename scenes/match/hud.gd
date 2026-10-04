@@ -2,7 +2,8 @@ class_name Hud
 extends CanvasLayer
 ## Seats left, the match clock and the countdown, read from the latest snapshot,
 ## with what to press under the countdown; and, once the local seat is out, whose
-## eyes the view is in. The tilt is the first-person HUD's inclinometer.
+## eyes the view is in — none of it over the results. The tilt is the first-person
+## HUD's inclinometer.
 
 ## How long "Go!" stays up once the countdown is over.
 const GO_SECONDS := 0.8
@@ -14,6 +15,12 @@ var _countdown_ticks: int
 @onready var _countdown: Label = %Countdown
 @onready var _spectating: Label = %Spectating
 @onready var _controls: Label = %Controls
+
+
+func _ready() -> void:
+	UiTheme.apply_to(self)
+	for label: Label in [_seats_left, _clock]:
+		label.theme_type_variation = UiTheme.HUD_LABEL
 
 
 func setup(sim: MatchSim) -> void:
@@ -28,6 +35,9 @@ func show_snapshot(snapshot: Dictionary) -> void:
 			left += 1
 	_seats_left.text = "Seats left %d / %d" % [left, seats.size()]
 	_clock.text = MatchTranscript.clock(snapshot["tick"])
+	var ended: bool = snapshot["phase"] == MatchState.Phase.ENDED
+	_seats_left.visible = not ended
+	_clock.visible = not ended
 	_show_countdown(snapshot["tick"])
 
 

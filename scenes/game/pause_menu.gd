@@ -12,6 +12,7 @@ signal quit_requested
 
 
 func _ready() -> void:
+	UiTheme.apply_to(self)
 	hide()
 	_resume.pressed.connect(resume_requested.emit)
 	%PauseSettings.pressed.connect(settings_requested.emit)

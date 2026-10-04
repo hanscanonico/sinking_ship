@@ -33,6 +33,12 @@ import:
 #       height to show the inside; ARGS passes more user args, e.g.
 #       ARGS=--net-sim=latency:120,jitter:20,loss:5. Not part of verify: it needs a
 #       display.
+#   make capture SCREEN=menu|settings [CAPTURE=]   the main menu, or the settings
+#       screen over it, with no match started (no AT)
+#   make capture SCREEN=pause AT=60 [EYE=]   the pause menu over the match at AT
+#   make capture SCREEN=results [EYE=]   the results once the match ends and their
+#       buttons take presses
+#   RES=1920x1080 on any of them opens the window at that size
 SEED ?=
 SEATS ?=
 SECONDS ?=
@@ -40,7 +46,9 @@ AT ?=
 EYE ?=
 CUT ?=
 ARGS ?=
-CAPTURE ?= $(CURDIR)/captures/match_$(SEED)_$(AT)$(if $(EYE),_eye$(EYE))$(if $(CUT),_cut$(CUT)).png
+SCREEN ?=
+RES ?=
+CAPTURE ?= $(CURDIR)/captures/match_$(SEED)_$(AT)$(if $(EYE),_eye$(EYE))$(if $(CUT),_cut$(CUT))$(if $(SCREEN),_$(SCREEN)).png
 match-args = $(if $(SEED),--seed=$(SEED)) $(if $(SEATS),--seats=$(SEATS))
 
 run:
@@ -56,13 +64,17 @@ match:
 
 # --fixed-fps steps one tick per drawn frame, so the capture lands on its exact
 # tick however fast the machine draws. A capture is silent: the Dummy driver.
+# SCREEN=menu or settings starts no match, so it neither autoplays nor takes AT.
+menu-screen = $(filter menu settings,$(SCREEN))
 capture:
 	$(call require-godot)
-	@test -n "$(AT)" || { echo "capture: AT=<seconds of match time> is required" >&2; exit 1; }
+	@test -n "$(AT)$(filter menu settings results,$(SCREEN))" || \
+		{ echo "capture: AT=<seconds of match time> is required" >&2; exit 1; }
 	@mkdir -p "$(dir $(CAPTURE))"
-	$(GODOT) --path . --audio-driver Dummy --fixed-fps 30 -- $(match-args) --autoplay \
-		--capture="$(CAPTURE)" --capture-at=$(AT) $(if $(EYE),--capture-eye=$(EYE)) \
-		$(if $(CUT),--observer-cut=$(CUT)) $(ARGS)
+	$(GODOT) --path . $(if $(RES),--resolution $(RES)) --audio-driver Dummy --fixed-fps 30 -- \
+		$(match-args) $(if $(menu-screen),,--autoplay) --capture="$(CAPTURE)" \
+		$(if $(AT),--capture-at=$(AT)) $(if $(EYE),--capture-eye=$(EYE)) \
+		$(if $(CUT),--observer-cut=$(CUT)) $(if $(SCREEN),--capture-screen=$(SCREEN)) $(ARGS)
 
 # `make net-bench [SEED=] [SEATS=] [SECONDS=] [NET=latency:120,jitter:20,loss:5]`: one
 # match headless, seat 0 played through the client over a loopback lying as NET says

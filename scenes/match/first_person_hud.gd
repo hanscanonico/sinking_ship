@@ -2,25 +2,40 @@ class_name FirstPersonHud
 extends CanvasLayer
 ## What the elevated view used to show at a glance, from a seat's eyes (D14, R10):
 ## a crosshair that lights when ShoveResolver.would_hit says a shove now would land
-## (D13), the inclinometer, the room or deck the seat stands in, the height above the
-## sea, the stamina and cold slots, an arc at the screen's edge for a shove winding up
-## beside or behind, and a chevron, a ring and a name over every brawler in sight
-## within CHEVRON_RANGE — the ring its stamina, or its cold meter in the sea. In the
-## sea the cold meter also frames the screen as it empties, and a prompt says when
-## pressing on would climb out (Surfaces.climb_out). The sinking is heard before it is
-## seen: a flashing chip over the crosshair for every telegraph running — a lurch, a
-## deck giving way — and a banner naming each phase as it begins. All of it reads the
-## snapshot, SinkSchedule's pose, Surfaces, the ship's rooms and the bodies as drawn
-## (D5). From the observer camera only the inclinometer, the sinking's chips and
-## banner, and where the watched seat stands show.
+## (D13), the inclinometer, the room or deck the seat stands in, the height above or
+## under the sea, the stamina and warmth slots on a plate of their own, a wedge at the
+## screen's edge pointing at a shove winding up beside or behind, and a chevron, a
+## ring and a name over every brawler in sight within CHEVRON_RANGE — the ring its
+## stamina, or its warmth in the sea — kept under the clock and faded off the dials.
+## In the sea frost grows in from the screen's edges as the warmth runs out, and a
+## prompt says when pressing on would climb out (Surfaces.climb_out). The sinking is
+## heard before it is seen: a flashing chip over the crosshair for every telegraph
+## running — a lurch, a deck giving way — and a banner naming each phase as it begins.
+## All of it reads the snapshot, SinkSchedule's pose, Surfaces, the ship's rooms and
+## the bodies as drawn (D5), and none of it stays up over the results. From the
+## observer camera only the inclinometer, the sinking's chips and banner, and where the
+## watched seat stands show.
 
+const FROST_SHADER := preload("res://scenes/match/frost.gdshader")
+## The frost's crystal texture: its side in pixels, and how many crystals across it.
+const CRYSTAL_SIZE := 512
+const CRYSTAL_CELLS := 9.0
 ## How far away a brawler still gets its chevron, in metres.
 const CHEVRON_RANGE := 15.0
 ## How far over the top of a body its chevron floats, in metres.
 const CHEVRON_LIFT := 0.5
-## The highest a chevron is drawn, in pixels from the top, clear of the clock: a
-## body at contact range keeps its chevron rather than losing it off the screen.
-const CHEVRON_TOP := 64.0
+## The highest a chevron is drawn, in pixels from the top: its name clears the clock
+## and the seats left, and a body at contact range keeps its chevron rather than
+## losing it off the screen.
+const CHEVRON_TOP := 90.0
+## A chevron at CHEVRON_RANGE is drawn this much of its size, and fades out over the
+## last share of the range past FADE_FROM.
+const FAR_SCALE := 0.65
+const FADE_FROM := 0.8
+## A chevron whose name — about NAME_HALF either side of it — reaches over the dials
+## is drawn this faint, so their reading stays clear.
+const UNDER_DIALS := 0.2
+const NAME_HALF := 36.0
 const FONT_SIZE := 18
 const TEXT := Color(1.0, 1.0, 1.0)
 const INK := Color(0.06, 0.09, 0.13, 0.9)
@@ -31,23 +46,41 @@ const LOW := Color(1.0, 0.3, 0.25)
 const STAMINA := Color(0.55, 0.9, 0.45)
 ## Run dry, stamina stays red until it is full again.
 const EXHAUSTED := Color(0.95, 0.3, 0.25)
-const COLD := Color(0.55, 0.8, 1.0)
-## Under this share of a full meter, the cold slot and its ring turn red.
+## The cold meter reads as warmth, lamp-warm until under COLD_LOW of a full meter,
+## then FREEZING.
+const WARM := ArtPalette.LAMP_LIGHT
+const FREEZING := Color(0.62, 0.85, 1.0)
 const COLD_LOW := 0.35
-## The frame the emptying cold meter draws round the screen: its widest, in pixels.
-const FRAME_WIDTH := 60.0
-const FRAME := Color(0.75, 0.9, 1.0, 0.45)
+## The plate behind the readouts, bottom left.
+const PLATE := Color(INK, 0.55)
+const PLATE_EDGE := Color(TEXT, 0.12)
 const AIM := Color(1.0, 1.0, 1.0, 0.75)
 const AIM_LIT := Color(1.0, 0.85, 0.3)
 const DIAL_RADIUS := 30.0
 ## A stamina ring round a chevron.
 const RING_RADIUS := 13.0
 const RING_WIDTH := 3.0
-## Half the width of a windup arc, in radians round the screen.
-const ARC_HALF := 0.3
+## A windup wedge: how far along the screen's edge it spreads either side of its root
+## and how far in it fades; how far it keeps off the readouts' plate; its arrowhead's
+## length, half width and notch; and how far in from the edge the arrowhead's tip
+## sits, in pixels.
+const WEDGE_HALF := 120.0
+const WEDGE_DEPTH := 110.0
+const WEDGE_CLEAR := 12.0
+const WEDGE_ALPHA := 0.9
+const ARROW_LENGTH := 30.0
+const ARROW_HALF := 13.0
+const ARROW_NOTCH := 9.0
+const ARROW_IN := 8.0
+## Past this bearing off the view's middle, in radians, a shove is behind: its wedge
+## fades from its side's edge into the bottom edge's, all of it there dead astern.
+const BEHIND_FROM := PI * 0.75
 ## How wide a line of text may run under a dial, and elsewhere.
 const DIAL_TEXT := 130.0
 const READOUT_TEXT := 240.0
+## Where the inclinometer's two dials and their readings sit, from the screen's top
+## right corner, in pixels.
+const DIALS := Vector2(285.0, 145.0)
 ## A telegraph's chip: red, blinking BLINK_TICKS on and off.
 const WARNING := Color(1.0, 0.25, 0.2)
 const BLINK_TICKS := 6
@@ -73,10 +106,28 @@ var _yaw: float
 var _camera: Camera3D
 var _view: MatchView
 var _prompts: InputPrompts
+var _frost: ColorRect
+var _plate := StyleBoxFlat.new()
 
 
 func _ready() -> void:
 	_font = ThemeDB.fallback_font
+	# Under the canvas, so the readouts stay legible through the frost.
+	_frost = ColorRect.new()
+	_frost.name = "Frost"
+	var frost := ShaderMaterial.new()
+	frost.shader = FROST_SHADER
+	frost.set_shader_parameter(&"crystals", _crystals())
+	_frost.material = frost
+	_frost.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_frost.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_frost.hide()
+	add_child(_frost)
+	_plate.bg_color = PLATE
+	_plate.border_color = PLATE_EDGE
+	_plate.set_border_width_all(1)
+	_plate.set_corner_radius_all(6)
+	_plate.anti_aliasing = true
 	_canvas = Control.new()
 	_canvas.name = "Canvas"
 	_canvas.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -108,11 +159,12 @@ func show_view(
 	_yaw = yaw
 	_camera = camera
 	_view = view
+	_show_frost()
 	_canvas.queue_redraw()
 
 
 func _draw_hud() -> void:
-	if _snapshot.is_empty():
+	if _over():
 		return
 	var tick: int = _snapshot["tick"]
 	var pose := _schedule.pose_at(tick)
@@ -131,11 +183,27 @@ func _draw_hud() -> void:
 		return
 	_draw_crosshair(ShoveResolver.would_hit(_snapshot, _seat, _rules, _surfaces))
 	if me["state"] == PlayerState.Body.SWIMMING:
-		_draw_cold_frame(me)
 		_draw_climb_prompt(me, pose)
 	_draw_readouts(me, pose.world_height(me["pos"]))
 	_draw_chevrons(me["pos"], pose)
-	_draw_windup_arcs(me["pos"])
+	_draw_windup_wedges(me["pos"])
+
+
+## Whether there is nothing to draw: no snapshot yet, or the results are up.
+func _over() -> bool:
+	return _snapshot.is_empty() or _snapshot["phase"] == MatchState.Phase.ENDED
+
+
+## Frost in from the screen's edges while the eyes swim, the further the emptier
+## their cold meter.
+func _show_frost() -> void:
+	var cold := 0.0
+	var me := {} if _over() or not _eyes else _entry(_seat)
+	if not me.is_empty() and not me["out"] and me["state"] == PlayerState.Body.SWIMMING:
+		cold = 1.0 - _cold(me)
+	_frost.visible = cold > 0.0
+	if _frost.visible:
+		(_frost.material as ShaderMaterial).set_shader_parameter(&"cold", cold)
 
 
 ## Two dials, top right: the heel as the hull seen from astern (starboard on the
@@ -244,8 +312,8 @@ func _draw_crosshair(lit: bool) -> void:
 		_canvas.draw_arc(centre, 16.0, 0.0, TAU, 32, colour, 2.5, true)
 
 
-## Bottom left, over the readouts: the name of the room [param feet] stand in, else
-## of the platform [param surface] is.
+## Bottom left, over the readouts and on their plate: the name of the room
+## [param feet] stand in, else of the platform [param surface] is.
 func _draw_where(feet: Vector3, surface: int) -> void:
 	var where := ""
 	var room := _ship.room_at(feet, _rules.step_height)
@@ -253,28 +321,56 @@ func _draw_where(feet: Vector3, surface: int) -> void:
 		where = _ship.rooms[room].name
 	elif surface >= 0 and surface < _ship.platforms.size():
 		where = _ship.platforms[surface].name
+	_draw_plate(not where.is_empty())
 	var at := Vector2(24.0, _canvas.size.y - 150.0)
 	_text(at, where.capitalize(), TEXT, READOUT_TEXT, HORIZONTAL_ALIGNMENT_LEFT)
 
 
-## Bottom left: metres from [param me]'s feet down to the sea — or that it is in
-## it — then the stamina and cold slots, filled from [param me].
+## Bottom left, behind what of the readouts shows — the place when [param named],
+## and from the eyes the rest of them — a dark plate, so they read over a bright deck.
+func _draw_plate(named: bool) -> void:
+	var rect := plate_rect(_canvas.size)
+	if not named:
+		rect = rect.grow_side(SIDE_TOP, -30.0)
+	if not _eyes:
+		rect.size.y = 32.0 if named else 0.0
+	if rect.size.y > 0.0:
+		_canvas.draw_style_box(_plate, rect)
+
+
+## The whole plate behind the readouts on a screen of [param size], bottom left.
+static func plate_rect(size: Vector2) -> Rect2:
+	return Rect2(12.0, size.y - 172.0, 252.0, 128.0)
+
+
+## Bottom left: metres from [param me]'s feet to the sea, above or under it — or
+## that it is in it — then the stamina and warmth slots, filled from [param me].
 func _draw_readouts(me: Dictionary, above_sea: float) -> void:
 	var at := Vector2(24.0, _canvas.size.y - 120.0)
 	var colour := LOW if above_sea < 1.0 else TEXT
-	var height := "%.1f m above the sea" % above_sea
+	var height := height_words(above_sea)
 	if me["state"] == PlayerState.Body.SWIMMING:
 		height = "In the sea"
 	_text(at, height, colour, READOUT_TEXT, HORIZONTAL_ALIGNMENT_LEFT)
-	for slot: String in ["Stamina", "Cold"]:
+	for slot: String in ["Stamina", "Warmth"]:
 		at.y += 30.0
-		_text(at, slot, Color(TEXT, 0.5), READOUT_TEXT, HORIZONTAL_ALIGNMENT_LEFT)
-		var bar := Rect2(at + Vector2(80.0, -13.0), Vector2(140.0, 14.0))
+		_text(at, slot, Color(TEXT, 0.6), READOUT_TEXT, HORIZONTAL_ALIGNMENT_LEFT)
+		var bar := Rect2(at + Vector2(88.0, -13.0), Vector2(140.0, 14.0))
 		_canvas.draw_rect(bar, INK)
 		var share := _stamina(me) if slot == "Stamina" else _cold(me)
 		var fill := _stamina_colour(me) if slot == "Stamina" else _cold_colour(me)
 		_canvas.draw_rect(Rect2(bar.position, Vector2(bar.size.x * share, bar.size.y)), fill)
 		_canvas.draw_rect(bar, Color(TEXT, 0.35), false, 1.5)
+
+
+## [param above_sea] metres from the feet to the sea, in words: above it, under it,
+## or at the waterline when it rounds to nothing.
+static func height_words(above_sea: float) -> String:
+	if absf(above_sea) < 0.05:
+		return "At the waterline"
+	if above_sea < 0.0:
+		return "%.1f m under the sea" % -above_sea
+	return "%.1f m above the sea" % above_sea
 
 
 ## A chevron in seat colour, ringed by its stamina, and the seat's name over every
@@ -299,47 +395,62 @@ func _draw_chevrons(my_pos: Vector3, pose: ShipPose) -> void:
 			continue
 		var at := _camera.unproject_position(over)
 		at.y = maxf(at.y, CHEVRON_TOP)
-		_ring(at, entry)
-		var colour := ArtPalette.seat_colour(seat)
-		var chevron := PackedVector2Array(
-			[at + Vector2(-9.0, -6.0), at + Vector2(9.0, -6.0), at + Vector2(0.0, 5.0)]
-		)
-		_canvas.draw_colored_polygon(chevron, colour)
-		chevron.append(chevron[0])
-		_canvas.draw_polyline(chevron, INK, 1.5, true)
-		_text(at + Vector2(0.0, -RING_RADIUS - 6.0), _names[seat], colour, READOUT_TEXT)
+		var far := my_pos.distance_to(their_pos) / CHEVRON_RANGE
+		var shrink := lerpf(1.0, FAR_SCALE, far)
+		var alpha := 1.0 - smoothstep(FADE_FROM, 1.0, far)
+		if at.x + NAME_HALF > _canvas.size.x - DIALS.x and at.y - RING_RADIUS < DIALS.y:
+			alpha *= UNDER_DIALS
+		_chevron(at, entry, shrink, alpha)
 
 
-## [param entry]'s stamina — its cold meter in the sea — as a ring round
-## [param centre], filled clockwise from the top.
-func _ring(centre: Vector2, entry: Dictionary) -> void:
-	_canvas.draw_arc(centre, RING_RADIUS, 0.0, TAU, 32, INK, RING_WIDTH, true)
+## [param entry]'s chevron at [param at], ringed by its stamina, under its seat's
+## name, drawn [param shrink] of its size and [param alpha] opaque.
+func _chevron(at: Vector2, entry: Dictionary, shrink: float, alpha: float) -> void:
+	var seat: int = entry["seat"]
+	var colour := Color(ArtPalette.seat_colour(seat), alpha)
+	var ink := Color(INK, INK.a * alpha)
+	var radius := RING_RADIUS * shrink
+	_ring(at, entry, radius, alpha)
+	var chevron := PackedVector2Array(
+		[
+			at + Vector2(-9.0, -6.0) * shrink,
+			at + Vector2(9.0, -6.0) * shrink,
+			at + Vector2(0.0, 5.0) * shrink,
+		]
+	)
+	_canvas.draw_colored_polygon(chevron, colour)
+	chevron.append(chevron[0])
+	_canvas.draw_polyline(chevron, ink, 1.5, true)
+	var name_at := at + Vector2(0.0, -radius - 6.0)
+	var font_size := roundi(FONT_SIZE * shrink)
+	_text(name_at, _names[seat], colour, READOUT_TEXT, HORIZONTAL_ALIGNMENT_CENTER, font_size, ink)
+
+
+## [param entry]'s stamina — its warmth in the sea — as a ring of [param radius]
+## round [param centre], filled clockwise from the top, [param alpha] opaque.
+func _ring(centre: Vector2, entry: Dictionary, radius: float, alpha: float) -> void:
+	_canvas.draw_arc(centre, radius, 0.0, TAU, 32, Color(INK, INK.a * alpha), RING_WIDTH, true)
 	var swimming: bool = entry["state"] == PlayerState.Body.SWIMMING
 	var share := _cold(entry) if swimming else _stamina(entry)
 	if share > 0.0:
 		var top := -PI * 0.5
+		var fill := _cold_colour(entry) if swimming else _stamina_colour(entry)
 		_canvas.draw_arc(
-			centre,
-			RING_RADIUS,
-			top,
-			top + TAU * share,
-			32,
-			_cold_colour(entry) if swimming else _stamina_colour(entry),
-			RING_WIDTH,
-			true
+			centre, radius, top, top + TAU * share, 32, Color(fill, alpha), RING_WIDTH, true
 		)
 
 
-## An arc at the screen's edge, toward each seat outside the field of view that
-## winds up, charges or throws a shove close enough to land on [param my_pos] before its
-## active window ends — its reach plus a walk through windup and active.
-func _draw_windup_arcs(my_pos: Vector3) -> void:
+## A wedge at the screen's edge with an arrow pointing out at each seat outside the
+## field of view that winds up, charges or throws a shove close enough to land on
+## [param my_pos] before its active window ends — its reach plus a walk through windup
+## and active — in that seat's colour: on its side's edge while it is beside, fading
+## into the bottom edge as it comes round behind. Wedges only ever warn of a shove on
+## the same level, so none stands on the top edge.
+func _draw_windup_wedges(my_pos: Vector3) -> void:
 	var reach := (
 		_rules.shove_reach + _rules.walk_speed * (_rules.shove_windup + _rules.shove_active)
 	)
 	var half_view := deg_to_rad(_camera.fov * 0.5)
-	var centre := _canvas.size * 0.5
-	var radius := minf(centre.x, centre.y) * 0.9
 	for entry: Dictionary in _snapshot["seats"]:
 		if entry["seat"] == _seat or entry["out"]:
 			continue
@@ -355,44 +466,99 @@ func _draw_windup_arcs(my_pos: Vector3) -> void:
 		var bearing := angle_difference(_yaw, offset.angle())
 		if absf(bearing) <= half_view:
 			continue
-		var around := bearing - PI * 0.5
 		var colour := ArtPalette.seat_colour(entry["seat"])
-		_canvas.draw_arc(centre, radius, around - ARC_HALF, around + ARC_HALF, 24, INK, 14.0, true)
-		_canvas.draw_arc(
-			centre, radius, around - ARC_HALF, around + ARC_HALF, 24, colour, 9.0, true
+		var behind := behind_share(bearing)
+		if behind < 1.0:
+			_draw_wedge(wedge_on_side(_canvas.size, bearing), bearing, colour, 1.0 - behind)
+		if behind > 0.0:
+			_draw_wedge(wedge_behind(_canvas.size, bearing), bearing, colour, behind)
+
+
+## A wedge of [param colour], [param strength] of its full brightness, fading in from
+## [param root] on the screen's edge with a bright line along it, and an arrowhead at
+## its root pointing toward the shove at [param bearing].
+func _draw_wedge(root: Vector2, bearing: float, colour: Color, strength: float) -> void:
+	var inward := wedge_inward(_canvas.size, root)
+	var along := inward.orthogonal().abs()
+	var lit := Color(colour, WEDGE_ALPHA * strength)
+	var clear := Color(colour, 0.0)
+	var deep := root + inward * WEDGE_DEPTH
+	for end: Vector2 in [root - along * WEDGE_HALF, root + along * WEDGE_HALF]:
+		_canvas.draw_primitive(
+			PackedVector2Array([end, root, deep]), PackedColorArray([clear, lit, clear]), []
 		)
+	_canvas.draw_line(root - along * WEDGE_HALF * 0.6, root + along * WEDGE_HALF * 0.6, lit, 3.0)
+	var direction := wedge_arrow(bearing)
+	var tip := root + inward * ARROW_IN
+	var base := tip - direction * ARROW_LENGTH
+	var side := direction.orthogonal() * ARROW_HALF
+	var arrow := PackedVector2Array(
+		[tip, base + side, base + direction * ARROW_NOTCH, base - side, tip]
+	)
+	_canvas.draw_polyline(arrow, Color(INK, INK.a * strength), 5.0, true)
+	arrow.remove_at(arrow.size() - 1)
+	_canvas.draw_colored_polygon(arrow, Color(colour, strength))
+
+
+## The root on its side's edge of the wedge for a shove [param bearing] off the view's
+## middle — positive to the right — on a screen of [param size]: mid-height while the
+## shove is beside, lower the further behind it comes, never down to the plate.
+static func wedge_on_side(size: Vector2, bearing: float) -> Vector2:
+	var round_behind := clampf(absf(bearing) / (PI * 0.5) - 1.0, 0.0, 1.0)
+	var lowest := plate_rect(size).position.y - WEDGE_CLEAR - WEDGE_HALF
+	var y := lerpf(size.y * 0.5, maxf(lowest, size.y * 0.5), round_behind)
+	return Vector2(size.x if bearing > 0.0 else 0.0, y)
+
+
+## The root on the bottom edge of the wedge for a shove [param bearing] off the view's
+## middle on a screen of [param size]: under the middle dead astern, toward the
+## shove's side the further round it is from there, never along the plate.
+static func wedge_behind(size: Vector2, bearing: float) -> Vector2:
+	var off_astern := clampf((PI - absf(bearing)) / (PI - BEHIND_FROM), 0.0, 1.0)
+	var furthest := size.x * 0.5 - (plate_rect(size).end.x + WEDGE_CLEAR + WEDGE_HALF)
+	return Vector2(size.x * 0.5 + signf(bearing) * off_astern * furthest, size.y)
+
+
+## How much of the wedge for a shove at [param bearing] stands on the bottom edge
+## rather than its side's: none until BEHIND_FROM, all of it dead astern.
+static func behind_share(bearing: float) -> float:
+	return smoothstep(BEHIND_FROM, PI, absf(bearing))
+
+
+## Which way a wedge's arrow points for a shove at [param bearing]: straight out to its
+## side while it is beside, turning down as it comes round behind — never up, as a
+## shove never comes from above.
+static func wedge_arrow(bearing: float) -> Vector2:
+	return Vector2(sin(bearing), maxf(-cos(bearing), 0.0)).normalized()
+
+
+## Into the screen of [param size] from the edge [param root] stands on.
+static func wedge_inward(size: Vector2, root: Vector2) -> Vector2:
+	if root.y == size.y:
+		return Vector2.UP
+	return Vector2.LEFT if root.x == size.x else Vector2.RIGHT
+
+
+## What a wedge rooted at [param root], fading in along [param inward], covers.
+static func wedge_box(root: Vector2, inward: Vector2) -> Rect2:
+	var along := inward.orthogonal().abs() * WEDGE_HALF
+	return Rect2(root - along, along * 2.0).expand(root + inward * WEDGE_DEPTH)
 
 
 ## [param text] on a baseline at [param at], centred in [param width] unless
-## [param align] says left.
+## [param align] says left, [param font_size] high and outlined in [param ink].
 func _text(
 	at: Vector2,
 	text: String,
 	colour: Color,
 	width: float,
-	align: HorizontalAlignment = HORIZONTAL_ALIGNMENT_CENTER
+	align: HorizontalAlignment = HORIZONTAL_ALIGNMENT_CENTER,
+	font_size: int = FONT_SIZE,
+	ink: Color = INK
 ) -> void:
 	var left := at - Vector2(width * 0.5, 0.0) if align == HORIZONTAL_ALIGNMENT_CENTER else at
-	_canvas.draw_string_outline(_font, left, text, align, width, FONT_SIZE, 5, INK)
-	_canvas.draw_string(_font, left, text, align, width, FONT_SIZE, colour)
-
-
-## A frame round the screen, wider and more opaque the emptier [param me]'s cold
-## meter is.
-func _draw_cold_frame(me: Dictionary) -> void:
-	var empty := 1.0 - _cold(me)
-	var width := FRAME_WIDTH * empty
-	if width <= 0.0:
-		return
-	var size := _canvas.size
-	var colour := Color(FRAME, FRAME.a * empty)
-	for side: Rect2 in [
-		Rect2(0.0, 0.0, size.x, width),
-		Rect2(0.0, size.y - width, size.x, width),
-		Rect2(0.0, width, width, size.y - width * 2.0),
-		Rect2(size.x - width, width, width, size.y - width * 2.0),
-	]:
-		_canvas.draw_rect(side, colour)
+	_canvas.draw_string_outline(_font, left, text, align, width, font_size, 5, ink)
+	_canvas.draw_string(_font, left, text, align, width, font_size, colour)
 
 
 ## Under the crosshair, while [param me] swims and pressing on where it looks would
@@ -406,13 +572,34 @@ func _draw_climb_prompt(me: Dictionary, pose: ShipPose) -> void:
 	_text(at, "Hold %s to climb" % _prompts.word(&"move_up"), TEXT, READOUT_TEXT)
 
 
+## The frost's crystals: the edges between the cells of a seamless cellular noise,
+## white on black.
+static func _crystals() -> NoiseTexture2D:
+	var cells := FastNoiseLite.new()
+	cells.noise_type = FastNoiseLite.TYPE_CELLULAR
+	cells.cellular_return_type = FastNoiseLite.RETURN_DISTANCE2_SUB
+	cells.frequency = CRYSTAL_CELLS / CRYSTAL_SIZE
+	var ramp := Gradient.new()
+	ramp.offsets = PackedFloat32Array([0.0, 0.76, 0.93])
+	ramp.colors = PackedColorArray([Color.BLACK, Color.BLACK, Color.WHITE])
+	var texture := NoiseTexture2D.new()
+	texture.width = CRYSTAL_SIZE
+	texture.height = CRYSTAL_SIZE
+	texture.seamless = true
+	texture.invert = true
+	texture.generate_mipmaps = true
+	texture.color_ramp = ramp
+	texture.noise = cells
+	return texture
+
+
 ## [param entry]'s cold meter, as a share of a full one.
 func _cold(entry: Dictionary) -> float:
 	return entry["cold"] / _rules.cold_meter
 
 
 func _cold_colour(entry: Dictionary) -> Color:
-	return LOW if _cold(entry) < COLD_LOW else COLD
+	return FREEZING if _cold(entry) < COLD_LOW else WARM
 
 
 ## [param entry]'s stamina, as a share of the most there is.

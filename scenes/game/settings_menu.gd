@@ -30,6 +30,7 @@ var _opener: Control
 
 
 func _ready() -> void:
+	UiTheme.apply_to(self)
 	hide()
 	_master.value_changed.connect(_on_volume)
 	_music.value_changed.connect(_on_volume)

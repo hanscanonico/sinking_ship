@@ -6,17 +6,7 @@
 [ext_resource type="PackedScene" path="res://scenes/game/settings_menu.tscn" id="4_settings"]
 [ext_resource type="Script" path="res://scenes/audio/music_player.gd" id="5_music"]
 [ext_resource type="Script" path="res://scenes/audio/ui_sounds.gd" id="6_ui_sounds"]
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
-bg_color = Color(0.06, 0.09, 0.13, 0.85)
-corner_radius_top_left = 8
-corner_radius_top_right = 8
-corner_radius_bottom_right = 8
-corner_radius_bottom_left = 8
-content_margin_left = 28.0
-content_margin_top = 20.0
-content_margin_right = 28.0
-content_margin_bottom = 20.0
+[ext_resource type="Script" path="res://scenes/game/menu_backdrop.gd" id="7_backdrop"]
 
 [node name="Game" type="Node"]
 script = ExtResource("1_game")
@@ -25,42 +15,81 @@ script = ExtResource("1_game")
 visible = false
 script = ExtResource("2_menu")
 
-[node name="Backdrop" type="ColorRect" parent="MainMenu"]
+[node name="Backdrop" type="TextureRect" parent="MainMenu"]
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0.08, 0.32, 0.5, 1)
+mouse_filter = 2
+expand_mode = 1
+script = ExtResource("7_backdrop")
 
-[node name="Panel" type="PanelContainer" parent="MainMenu"]
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -220.0
-offset_top = -200.0
-offset_right = 220.0
-offset_bottom = 200.0
+[node name="Shade" type="TextureRect" parent="MainMenu"]
+unique_name_in_owner = true
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
+mouse_filter = 2
+expand_mode = 1
+
+[node name="Wordmark" type="VBoxContainer" parent="MainMenu"]
+offset_left = 64.0
+offset_top = 40.0
+offset_right = 64.0
+offset_bottom = 40.0
+mouse_filter = 2
+theme_override_constants/separation = 4
+
+[node name="Title" type="Label" parent="MainMenu/Wordmark"]
+theme_type_variation = &"WordmarkLabel"
+text = "Sinking Ship"
+uppercase = true
+
+[node name="Livery" type="VBoxContainer" parent="MainMenu/Wordmark"]
+mouse_filter = 2
+theme_override_constants/separation = 2
+
+[node name="TrimAbove" type="ColorRect" parent="MainMenu/Wordmark/Livery"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 2)
+mouse_filter = 2
+
+[node name="BootTop" type="ColorRect" parent="MainMenu/Wordmark/Livery"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 7)
+mouse_filter = 2
+
+[node name="TrimBelow" type="ColorRect" parent="MainMenu/Wordmark/Livery"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 2)
+mouse_filter = 2
+
+[node name="Tagline" type="Label" parent="MainMenu/Wordmark"]
+theme_type_variation = &"TaglineLabel"
+text = "A brawl aboard a sinking steamer"
+uppercase = true
+
+[node name="Panel" type="PanelContainer" parent="MainMenu"]
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 64.0
+offset_top = -48.0
+offset_right = 484.0
+offset_bottom = -48.0
+grow_vertical = 0
 
 [node name="Box" type="VBoxContainer" parent="MainMenu/Panel"]
 alignment = 1
 theme_override_constants/separation = 14
 
-[node name="Title" type="Label" parent="MainMenu/Panel/Box"]
-theme_override_font_sizes/font_size = 44
-text = "Sinking Ship"
-horizontal_alignment = 1
-
 [node name="Subtitle" type="Label" parent="MainMenu/Panel/Box"]
-modulate = Color(1, 1, 1, 0.7)
-theme_override_font_sizes/font_size = 22
+theme_type_variation = &"TitleLabel"
+theme_override_font_sizes/font_size = 26
 text = "Play vs bots"
-horizontal_alignment = 1
 
 [node name="Choices" type="GridContainer" parent="MainMenu/Panel/Box"]
 theme_override_constants/h_separation = 18
@@ -138,20 +167,19 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -140.0
-offset_top = -120.0
-offset_right = 140.0
-offset_bottom = 120.0
+offset_left = -150.0
+offset_top = -130.0
+offset_right = 150.0
+offset_bottom = 130.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
 
 [node name="Box" type="VBoxContainer" parent="PauseMenu/Panel"]
 alignment = 1
 theme_override_constants/separation = 12
 
 [node name="Title" type="Label" parent="PauseMenu/Panel/Box"]
-theme_override_font_sizes/font_size = 38
+theme_type_variation = &"TitleLabel"
 text = "Paused"
 horizontal_alignment = 1
 
