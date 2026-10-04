@@ -232,6 +232,34 @@ func test_a_slow_crate_is_held_by_a_span() -> void:
 	assert_eq(crate.body, PropState.Body.GROUNDED)
 
 
+## A sim reset to a snapshot (MatchSim.restore) whose span is whole holds its crate
+## at that span, though a crate broke it in the same sim ticks before: what a client's
+## prediction does every snapshot. It goes on exactly as a sim rebuilt from the
+## snapshot does.
+func test_a_restored_crate_meets_the_spans_its_snapshot_has() -> void:
+	var rules := _rules()
+	var edge := SimFixtures.deck().platforms[0].area.end.y
+	var radius := _steamer_crate().radius
+	var used := _one_crate(1, Vector3(RAILED_X, 0.0, edge - radius - 0.1))
+	SimFixtures.place(used, 0, Vector3(10.0, 0.0, -2.0))
+	used.state.props[0].vel = Vector3(0.0, 0.0, rules.railing_break_speed - 0.5)
+	var whole := used.snapshot()
+	used.state.props[0].vel = Vector3(0.0, 0.0, 4.0)
+	var events := SimFixtures.step(used, {}, Ticks.RATE)
+	assert_eq(_of(events, SimEvent.Kind.RAILING_BROKE).size(), 1, "the used sim's crate broke it")
+	used.restore(whole)
+	var rebuilt := MatchSim.from_snapshot(whole, used.config)
+	for tick in Ticks.RATE:
+		SimFixtures.step(used)
+		SimFixtures.step(rebuilt)
+		if used.snapshot() != rebuilt.snapshot():
+			fail_test("the reset sim left the rebuilt one %d ticks after the reset" % (tick + 1))
+			return
+	var crate := used.state.props[0]
+	assert_almost_eq(crate.pos.z, edge - radius, 0.0001, "held at the span")
+	assert_eq(crate.body, PropState.Body.GROUNDED)
+
+
 ## Seat 0 standing idle, seat 1 braced and looking at the crate: both staggered, the
 ## brace halving the knockback and shortening the stop.
 func test_a_brace_halves_a_crate_s_knockback_but_does_not_stop_it() -> void:

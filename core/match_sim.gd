@@ -134,22 +134,24 @@ func step(frames: Array[InputFrame]) -> Array[SimEvent]:
 	if is_over():
 		return events
 	var tick := state.tick
-	_take_frames(frames, tick)
+	# Nobody goes out before _water: one list of the seats still in serves until then.
+	var live := _live_seats()
+	_take_frames(frames, tick, live)
 	var pose_now := schedule.pose_at(tick)
 	_sinking_events(pose_now, tick, events)
 	if tick < config.countdown_ticks:
 		for player: PlayerState in state.seats:
 			player.prev_buttons = player.last_buttons
 	else:
-		_intent(pose_now)
-		_brace_and_stamina()
-		_forces(pose_now)
-		var feet_before := _move(pose_now, tick, events)
-		_ground(tick, events, feet_before)
-		_thaw()
+		_intent(live, pose_now)
+		_brace_and_stamina(live)
+		_forces(live, pose_now)
+		var feet_before := _move(live, pose_now, tick, events)
+		_ground(live, tick, events, feet_before)
+		_thaw(live)
 		_hazards.step(state, pose_now, tick, events)
-		_shoves(tick, events)
-		var exits := _water(pose_now, tick, events, feet_before)
+		_shoves(live, tick, events)
+		var exits := _water(live, pose_now, tick, events, feet_before)
 		_sea_settles(pose_now, tick, exits)
 		_verdict(exits, tick, events)
 	state.tick += 1
@@ -174,17 +176,17 @@ func _live_seats() -> Array[PlayerState]:
 	return live
 
 
-## The seats still in that move as bodies do: all but the climbers.
-func _moving_seats() -> Array[PlayerState]:
+## The seats of [param live] that move as bodies do: all but the climbers.
+func _moving_seats(live: Array[PlayerState]) -> Array[PlayerState]:
 	var moving: Array[PlayerState] = []
-	for player: PlayerState in _live_seats():
+	for player: PlayerState in live:
 		if not player.is_climbing():
 			moving.append(player)
 	return moving
 
 
-func _take_frames(frames: Array[InputFrame], tick: int) -> void:
-	for player: PlayerState in _live_seats():
+func _take_frames(frames: Array[InputFrame], tick: int, live: Array[PlayerState]) -> void:
+	for player: PlayerState in live:
 		var frame: InputFrame = frames[player.seat] if player.seat < frames.size() else null
 		if frame == null:
 			continue
@@ -200,9 +202,8 @@ func _take_frames(frames: Array[InputFrame], tick: int) -> void:
 ## its button edges included: the first tick after the stop reads its buttons
 ## against those it held before it, so a press made in the stop and still held
 ## counts then, and one let go inside the stop never happened.
-func _intent(pose_now: ShipPose) -> void:
-	var candidates := _candidates()
-	for player: PlayerState in _live_seats():
+func _intent(live: Array[PlayerState], pose_now: ShipPose) -> void:
+	for player: PlayerState in live:
 		if player.is_frozen():
 			continue
 		# A stagger — a hit's, or a hard landing's — takes the shove being readied,
@@ -215,7 +216,7 @@ func _intent(pose_now: ShipPose) -> void:
 			_enter(player, PlayerState.Action.IDLE)
 		if player.action != PlayerState.Action.IDLE:
 			player.action_ticks += 1
-			_advance_action(player, candidates)
+			_advance_action(player, live)
 		var pressed := player.last_buttons & ~player.prev_buttons
 		player.prev_buttons = player.last_buttons
 		if player.is_staggered():
@@ -260,23 +261,23 @@ func _jump(player: PlayerState, pose_now: ShipPose) -> void:
 ## Tap or hold is read here, from ticks held (D3): a shove released after its
 ## windup fires as a quick shove; one still held at charge_threshold becomes a
 ## charge, which fires, paid for, when it is let go.
-func _advance_action(player: PlayerState, candidates: Array[ShoveResolver.Candidate]) -> void:
+func _advance_action(player: PlayerState, live: Array[PlayerState]) -> void:
 	var held := player.last_buttons & InputFrame.SHOVE != 0
 	match player.action:
 		PlayerState.Action.WINDUP:
 			if held and player.action_ticks >= _charge_threshold_ticks:
 				if player.exhausted or player.stamina < _rules.charge_cost:
-					_fire(player, candidates)
+					_fire(player, live)
 				else:
 					player.charge = player.action_ticks
 					_enter(player, PlayerState.Action.CHARGE)
 			elif not held and player.action_ticks >= _windup_ticks:
-				_fire(player, candidates)
+				_fire(player, live)
 		PlayerState.Action.CHARGE:
 			player.charge = mini(player.charge + 1, _charge_full_ticks)
 			if not held:
 				_spend(player, _rules.charge_cost)
-				_fire(player, candidates)
+				_fire(player, live)
 		PlayerState.Action.ACTIVE:
 			if player.action_ticks >= _active_ticks:
 				_enter(player, PlayerState.Action.RECOVERY)
@@ -294,14 +295,14 @@ func _enter(player: PlayerState, action: PlayerState.Action) -> void:
 
 
 ## Every shove's active window starts here, quick or charged: it goes where its
-## shover looks now, bent toward the nearest target the autoaim cone holds — the
-## shove, never the view (D14).
-func _fire(player: PlayerState, candidates: Array[ShoveResolver.Candidate]) -> void:
+## shover looks now, bent toward the nearest target the autoaim cone holds among
+## [param live] — the shove, never the view (D14).
+func _fire(player: PlayerState, live: Array[PlayerState]) -> void:
 	_enter(player, PlayerState.Action.ACTIVE)
 	player.shove_facing = ShoveResolver.autoaim(
 		_candidate(player),
 		player.facing,
-		candidates,
+		_candidates(live),
 		_rules.shove_reach,
 		_rules.autoaim_cone_deg,
 		surfaces,
@@ -313,8 +314,8 @@ func _fire(player: PlayerState, candidates: Array[ShoveResolver.Candidate]) -> v
 ## ground, idle, unstaggered and not exhausted, and spends as it holds; after
 ## stamina_regen_delay without spending, stamina comes back. A hit-stop holds a
 ## seat's brace and stamina as they are.
-func _brace_and_stamina() -> void:
-	for player: PlayerState in _live_seats():
+func _brace_and_stamina(live: Array[PlayerState]) -> void:
+	for player: PlayerState in live:
 		if player.is_frozen():
 			continue
 		player.bracing = (
@@ -351,12 +352,12 @@ func _spend(player: PlayerState, amount: float) -> void:
 ## it has lost its grip — staggered, or idle on a deck steeper than the grip angle.
 ## Wading slows a walk; swimming is _swim's. A body frozen in a hit-stop feels none
 ## of it, and its stagger waits.
-func _forces(pose_now: ShipPose) -> void:
+func _forces(live: Array[PlayerState], pose_now: ShipPose) -> void:
 	var dt := Ticks.SECONDS_PER_TICK
 	var gravity := pose_now.ship_gravity(_rules.gravity)
 	var downhill := Vector2(gravity.x, gravity.z) * dt
 	var steep := pose_now.slope_deg() > _rules.grip_angle_deg
-	for player: PlayerState in _live_seats():
+	for player: PlayerState in live:
 		if player.is_frozen():
 			continue
 		if player.body == PlayerState.Body.AIRBORNE:
@@ -411,8 +412,10 @@ func _steer_in_air(player: PlayerState) -> void:
 ## a crowd may end a tick pressed together, never inside a wall. A climber is where
 ## its climb has it, and takes no part. Returns each seat's feet height before it
 ## moved.
-func _move(pose_now: ShipPose, tick: int, events: Array[SimEvent]) -> PackedFloat64Array:
-	var live := _moving_seats()
+func _move(
+	live_seats: Array[PlayerState], pose_now: ShipPose, tick: int, events: Array[SimEvent]
+) -> PackedFloat64Array:
+	var live := _moving_seats(live_seats)
 	var feet_before := PackedFloat64Array()
 	feet_before.resize(state.seats.size())
 	var came_from := PackedVector2Array()
@@ -430,12 +433,17 @@ func _move(pose_now: ShipPose, tick: int, events: Array[SimEvent]) -> PackedFloa
 		var reach := Vector2(player.vel.x, player.vel.z).length() * Ticks.SECONDS_PER_TICK
 		steps = maxi(steps, ceili(reach / _rules.body_radius))
 	var dt := Ticks.SECONDS_PER_TICK / steps
+	# Where each body last met no blocker, and no railing: nothing that holds a body
+	# moves while bodies do, and a railing only breaks, so a body still there meets
+	# nothing again and is not asked.
+	var clear_of_blockers: Dictionary[int, Vector3] = {}
+	var clear_of_railings: Dictionary[int, Vector3] = {}
 	for _step in steps:
 		for player: PlayerState in live:
 			player.pos += player.vel * dt
 		for contact_pass in CONTACT_PASSES:
-			var held := _blockers(live, feet_before, pose_now)
-			held = _railings(live, pose_now, tick, events, came_from) or held
+			var held := _blockers(live, feet_before, pose_now, clear_of_blockers)
+			held = _railings(live, pose_now, tick, events, came_from, clear_of_railings) or held
 			if contact_pass == CONTACT_PASSES - 1:
 				break
 			if not _bodies(live) and not held:
@@ -462,12 +470,18 @@ func _ceilings(live: Array[PlayerState], feet_before: PackedFloat64Array) -> voi
 ## pushes it back out in the deck plane and takes the velocity into it. It is met at
 ## the height the feet stood at before this tick's move, so a fall lands on a deck
 ## in _ground rather than being pushed off its edge. A swimmer steps as a swimmer
-## does (_swim_step). True when it moved anyone.
+## does (_swim_step). A body still where [param clear] last found it held by nothing
+## is not asked again. True when it moved anyone.
 func _blockers(
-	live: Array[PlayerState], feet_before: PackedFloat64Array, pose_now: ShipPose
+	live: Array[PlayerState],
+	feet_before: PackedFloat64Array,
+	pose_now: ShipPose,
+	clear: Dictionary[int, Vector3]
 ) -> bool:
 	var moved := false
 	for player: PlayerState in live:
+		if clear.get(player.seat) == player.pos:
+			continue
 		var feet := Vector3(player.pos.x, feet_before[player.seat], player.pos.z)
 		var step := _rules.step_height
 		if player.body == PlayerState.Body.SWIMMING:
@@ -475,6 +489,8 @@ func _blockers(
 		var contacts := surfaces.obstacle_contacts(
 			feet, _rules.body_radius, _rules.body_height, step
 		)
+		if contacts.is_empty():
+			clear[player.seat] = player.pos
 		for contact: Surfaces.Contact in contacts:
 			_hold(player, contact)
 			moved = true
@@ -485,17 +501,21 @@ func _blockers(
 ## the velocity into the rail — and tips one at or above it over, into the air,
 ## damaging the span by vault_damage (Hazards.damage). In the air, a body that came
 ## from a rail's side with its feet below the rail's top is held the same way, unless
-## it crosses at vault_speed or more: a vaulter is never pulled back. True when it
+## it crosses at vault_speed or more: a vaulter is never pulled back. A body still
+## where [param clear] last found it held by none is not asked again. True when it
 ## moved anyone.
 func _railings(
 	live: Array[PlayerState],
 	pose_now: ShipPose,
 	tick: int,
 	events: Array[SimEvent],
-	came_from: PackedVector2Array
+	came_from: PackedVector2Array,
+	clear: Dictionary[int, Vector3]
 ) -> bool:
 	var moved := false
 	for player: PlayerState in live:
+		if clear.get(player.seat) == player.pos:
+			continue
 		var airborne := player.body == PlayerState.Body.AIRBORNE
 		var contacts: Array[Surfaces.Contact]
 		if airborne:
@@ -508,6 +528,8 @@ func _railings(
 			)
 		elif player.body == PlayerState.Body.GROUNDED:
 			contacts = surfaces.rail_contacts(player.pos, _rules.body_radius, player.surface)
+		if contacts.is_empty():
+			clear[player.seat] = player.pos
 		for contact: Surfaces.Contact in contacts:
 			var planar := Vector2(player.vel.x, player.vel.z)
 			var into := -planar.dot(contact.normal)
@@ -533,13 +555,16 @@ func _railings(
 func _bodies(live: Array[PlayerState]) -> bool:
 	var moved := false
 	var reach := _rules.body_radius * 2.0
+	var height := _rules.body_height
 	for first in live.size():
 		for second in range(first + 1, live.size()):
 			var a := live[first]
 			var b := live[second]
-			if absf(a.pos.y - b.pos.y) >= _rules.body_height:
+			var a_pos := a.pos
+			var b_pos := b.pos
+			if absf(a_pos.y - b_pos.y) >= height:
 				continue
-			var offset := Vector2(b.pos.x - a.pos.x, b.pos.z - a.pos.z)
+			var offset := Vector2(b_pos.x - a_pos.x, b_pos.z - a_pos.z)
 			var distance := offset.length()
 			if distance >= reach:
 				continue
@@ -567,8 +592,10 @@ func _hold(player: PlayerState, contact: Surfaces.Contact) -> void:
 ## on the highest surface it comes down onto, staggered by the drop — a jump's by
 ## the drop below where it left, so its own height costs nothing. A swimmer's height
 ## is the water's (_water).
-func _ground(tick: int, events: Array[SimEvent], feet_before: PackedFloat64Array) -> void:
-	for player: PlayerState in _live_seats():
+func _ground(
+	live: Array[PlayerState], tick: int, events: Array[SimEvent], feet_before: PackedFloat64Array
+) -> void:
+	for player: PlayerState in live:
 		if player.body == PlayerState.Body.SWIMMING:
 			continue
 		if player.body == PlayerState.Body.GROUNDED:
@@ -604,8 +631,8 @@ func _ground(tick: int, events: Array[SimEvent], feet_before: PackedFloat64Array
 
 ## Counts every hit-stop down. One that runs out hands its body the velocity it
 ## held, to move with from the next tick.
-func _thaw() -> void:
-	for player: PlayerState in _live_seats():
+func _thaw(live: Array[PlayerState]) -> void:
+	for player: PlayerState in live:
 		if not player.is_frozen():
 			continue
 		player.hitstop -= 1
@@ -619,9 +646,9 @@ func _thaw() -> void:
 ## freezes its shover and its target for a hit-stop, and the knockback and the
 ## recoil wait for it to end; a crate takes its share of the knockback at once
 ## (Hazards.shove), and its shover rocks and stops as for a body.
-func _shoves(tick: int, events: Array[SimEvent]) -> void:
+func _shoves(live: Array[PlayerState], tick: int, events: Array[SimEvent]) -> void:
 	var attempts: Array[ShoveResolver.Attempt] = []
-	for player: PlayerState in _live_seats():
+	for player: PlayerState in live:
 		if (
 			player.action == PlayerState.Action.ACTIVE
 			and not player.shove_spent
@@ -639,7 +666,7 @@ func _shoves(tick: int, events: Array[SimEvent]) -> void:
 		return
 	var hits := ShoveResolver.resolve(
 		attempts,
-		_candidates(),
+		_candidates(live),
 		_rules.shove_reach,
 		_rules.shove_cone_deg,
 		surfaces,
@@ -695,7 +722,7 @@ func _shoves(tick: int, events: Array[SimEvent]) -> void:
 		rock[hit.shover] = -hit.direction * _rules.recoil
 		landed[hit.shover] = 1
 		stops[hit.shover] = maxi(stops[hit.shover], _hitstop(shover))
-	for player: PlayerState in _live_seats():
+	for player: PlayerState in live:
 		var seat := player.seat
 		if hit_by[seat] == -1 and landed[seat] == 0:
 			continue
@@ -832,11 +859,15 @@ func _swim_step(feet: Vector3, sea: float) -> float:
 ## frozen in a hit-stop holds its meter, and neither falls in, stands, climbs nor
 ## settles until the stop ends. Returns who went out.
 func _water(
-	pose_now: ShipPose, tick: int, events: Array[SimEvent], feet_before: PackedFloat64Array
+	live: Array[PlayerState],
+	pose_now: ShipPose,
+	tick: int,
+	events: Array[SimEvent],
+	feet_before: PackedFloat64Array
 ) -> Array[PlayerState]:
 	var dt := Ticks.SECONDS_PER_TICK
 	var exits: Array[PlayerState] = []
-	for player: PlayerState in _live_seats():
+	for player: PlayerState in live:
 		if player.is_frozen():
 			continue
 		if player.body != PlayerState.Body.SWIMMING:
@@ -1049,9 +1080,9 @@ func _verdict(exits: Array[PlayerState], tick: int, events: Array[SimEvent]) -> 
 	events.append(SimEvent.match_ended(tick, winner))
 
 
-func _candidates() -> Array[ShoveResolver.Candidate]:
+func _candidates(live: Array[PlayerState]) -> Array[ShoveResolver.Candidate]:
 	var candidates: Array[ShoveResolver.Candidate] = []
-	for player: PlayerState in _live_seats():
+	for player: PlayerState in live:
 		candidates.append(_candidate(player))
 	return candidates
 
