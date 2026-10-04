@@ -124,6 +124,9 @@ func _initialize() -> void:
 	var effects: Array = await SinkingFxCheck.check(root, COLLAPSE_SEED, SEATS)
 	_problems.append_array(effects[0])
 	_checks += effects[1]
+	var overhead: Array = await OverheadCheck.check(root, SEED, SEATS)
+	_problems.append_array(overhead[0])
+	_checks += overhead[1]
 	if not _problems.is_empty():
 		printerr("\n".join(_problems))
 		printerr("art-lint: %d problem(s) in %d checks" % [_problems.size(), _checks])
