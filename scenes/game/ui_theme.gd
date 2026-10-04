@@ -1,10 +1,10 @@
 class_name UiTheme
 extends RefCounted
 ## The one look of every screen over the game — the main menu, the pause menu, the
-## settings and the results — in the ship's livery (ArtPalette): hull-dark plates
-## edged in brass, cream type, varnished-teak buttons, a brass ring round whatever the
-## keys or the pad have reached, and Playfair Display (assets/fonts, OFL) for titles
-## and buttons. Every screen takes it with apply_to(): a CanvasLayer hands no theme
+## settings, the results and the online screens — in the ship's livery (ArtPalette):
+## hull-dark plates edged in brass, cream type, varnished-teak buttons, a brass ring
+## round whatever the keys or the pad have reached, and Playfair Display (assets/fonts,
+## OFL) for titles and buttons. Every screen takes it with apply_to(): a CanvasLayer hands no theme
 ## down, so each layer's own Controls carry it.
 
 ## The Label variations a screen opts into with theme_type_variation.
@@ -12,6 +12,13 @@ const TITLE := &"TitleLabel"
 const WORDMARK := &"WordmarkLabel"
 const TAGLINE := &"TaglineLabel"
 const HUD_LABEL := &"HudLabel"
+## A room's code, large enough to read out across a room; a line of muted help under a
+## field; and what is wrong, or what went wrong, in a short sentence.
+const CODE_LABEL := &"CodeLabel"
+const HINT_LABEL := &"HintLabel"
+const PROBLEM_LABEL := &"ProblemLabel"
+## The Button variation of one letter of a room code being picked.
+const CODE_SLOT := &"CodeSlot"
 ## The Button variation of a button that waits out a press guard disabled — the
 ## results': it still reads as a button, only not yet lit, where every other disabled
 ## control looks it.
@@ -32,9 +39,15 @@ const BUTTON_FONT_SIZE := 19
 const TITLE_FONT_SIZE := 40
 const WORDMARK_FONT_SIZE := 84
 const TAGLINE_FONT_SIZE := 18
+const CODE_FONT_SIZE := 60
+const CODE_SLOT_FONT_SIZE := 28
+const HINT_FONT_SIZE := 14
+## What is wrong, in the brass's warm light: read at once on the hull-dark plate.
+const PROBLEM := Color(1.0, 0.72, 0.2)
 ## The switch a CheckButton draws, and a slider's grabber, in pixels.
 const SWITCH := Vector2i(40, 22)
 const GRABBER := 18
+const ELLIPSIS := "…"
 
 static var _shared: Theme
 
@@ -52,6 +65,28 @@ static func apply_to(layer: CanvasLayer) -> void:
 	for child: Node in layer.get_children():
 		if child is Control:
 			(child as Control).theme = shared()
+
+
+## [param text] — a name a server sent, as long as it likes — within [param width]
+## pixels of [param font] at [param font_size]: whole when it fits, else as much of its
+## start as fits before an ellipsis.
+static func fit(text: String, font: Font, font_size: int, width: float) -> String:
+	if _width(text, font, font_size) <= width:
+		return text
+	# The longest start that fits with the ellipsis: none always does, all never.
+	var kept := 0
+	var over := text.length()
+	while over - kept > 1:
+		var middle := (kept + over) >> 1
+		if _width(text.left(middle) + ELLIPSIS, font, font_size) <= width:
+			kept = middle
+		else:
+			over = middle
+	return text.left(kept).rstrip(" ") + ELLIPSIS
+
+
+static func _width(text: String, font: Font, font_size: int) -> float:
+	return font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
 
 
 ## Playfair Display at [param weight], 400 to 900.
@@ -111,6 +146,17 @@ static func _build() -> Theme:
 	theme.set_type_variation(HUD_LABEL, "Label")
 	theme.set_color("font_outline_color", HUD_LABEL, OUTLINE)
 	theme.set_constant("outline_size", HUD_LABEL, 6)
+	theme.set_type_variation(CODE_LABEL, "Label")
+	theme.set_font("font", CODE_LABEL, _serif(900, 10))
+	theme.set_font_size("font_size", CODE_LABEL, CODE_FONT_SIZE)
+	theme.set_color("font_color", CODE_LABEL, TRIM.lightened(0.45))
+	theme.set_color("font_outline_color", CODE_LABEL, OUTLINE)
+	theme.set_constant("outline_size", CODE_LABEL, 8)
+	theme.set_type_variation(HINT_LABEL, "Label")
+	theme.set_color("font_color", HINT_LABEL, MUTED)
+	theme.set_font_size("font_size", HINT_LABEL, HINT_FONT_SIZE)
+	theme.set_type_variation(PROBLEM_LABEL, "Label")
+	theme.set_color("font_color", PROBLEM_LABEL, PROBLEM)
 
 	var focus := _flat(Color.TRANSPARENT, TRIM.lightened(0.35), 2, 6)
 	focus.draw_center = false
@@ -141,6 +187,9 @@ static func _build() -> Theme:
 	theme.set_type_variation(GUARDED_BUTTON, "Button")
 	theme.set_stylebox("disabled", GUARDED_BUTTON, normal)
 	theme.set_color("font_disabled_color", GUARDED_BUTTON, Color(TEXT, 0.75))
+	theme.set_type_variation(CODE_SLOT, "Button")
+	theme.set_font("font", CODE_SLOT, _serif(800))
+	theme.set_font_size("font_size", CODE_SLOT, CODE_SLOT_FONT_SIZE)
 
 	var popup := _flat(PLATE, TRIM.darkened(0.2), 1, 3)
 	_margins(popup, 6.0, 6.0)

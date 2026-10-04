@@ -1,4 +1,4 @@
-[gd_scene load_steps=8 format=3]
+[gd_scene load_steps=9 format=3]
 
 [ext_resource type="Script" path="res://scenes/game/game.gd" id="1_game"]
 [ext_resource type="Script" path="res://scenes/game/main_menu.gd" id="2_menu"]
@@ -7,6 +7,7 @@
 [ext_resource type="Script" path="res://scenes/audio/music_player.gd" id="5_music"]
 [ext_resource type="Script" path="res://scenes/audio/ui_sounds.gd" id="6_ui_sounds"]
 [ext_resource type="Script" path="res://scenes/game/menu_backdrop.gd" id="7_backdrop"]
+[ext_resource type="PackedScene" path="res://scenes/online/online_menu.tscn" id="8_online"]
 
 [node name="Game" type="Node"]
 script = ExtResource("1_game")
@@ -86,10 +87,19 @@ grow_vertical = 0
 alignment = 1
 theme_override_constants/separation = 14
 
-[node name="Subtitle" type="Label" parent="MainMenu/Panel/Box"]
+[node name="Header" type="HBoxContainer" parent="MainMenu/Panel/Box"]
+theme_override_constants/separation = 16
+
+[node name="Subtitle" type="Label" parent="MainMenu/Panel/Box/Header"]
+size_flags_horizontal = 3
 theme_type_variation = &"TitleLabel"
 theme_override_font_sizes/font_size = 26
 text = "Play vs bots"
+
+[node name="Online" type="Button" parent="MainMenu/Panel/Box/Header"]
+unique_name_in_owner = true
+size_flags_vertical = 4
+text = "Play online"
 
 [node name="Choices" type="GridContainer" parent="MainMenu/Panel/Box"]
 theme_override_constants/h_separation = 18
@@ -148,6 +158,8 @@ unique_name_in_owner = true
 custom_minimum_size = Vector2(120, 0)
 focus_neighbor_left = NodePath("../Settings")
 text = "Quit"
+
+[node name="OnlineMenu" parent="." instance=ExtResource("8_online")]
 
 [node name="PauseMenu" type="CanvasLayer" parent="."]
 layer = 3

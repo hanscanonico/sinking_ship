@@ -14,14 +14,16 @@ extends RefCounted
 ## the ship away to show the inside; --greybox draws the greybox the rules' data
 ## makes in place of the dressed ship; --net-sim makes the wire between the local host
 ## and the client lie about latency, jitter and loss (SH11); --capture-screen stages a
-## screen for the capture: menu, settings (over the menu), pause or results. No menu
+## screen for the capture: menu, settings (over the menu), pause, results, online (the
+## Online screen), room (a room, its players made up), online-pause (the online pause
+## over the match) or online-settings (the settings opened from it). No menu
 ## reaches any of them (D14). --server serves rooms over WebSocket, headless, on --port
 ## and --bind (ServerRules' unless given), its matches' seeds drawn from --seed when
 ## given — its rooms' codes never are — until --matches matches have finished (forever
 ## at 0); --connect plays in a server's room, --create making one or --room joining one
-## by its code, as --name (SH12): a person at the keys (OnlinePlay, which checks every
-## one of them), or with --autoplay a bot, headless, whose creator starts the match once
-## --start-at players are in.
+## by its code, as --name (SH12): a person at the keys, the Online screen opened on them
+## (OnlineLink checks every one of them), or with --autoplay a bot, headless, whose
+## creator starts the match once --start-at players are in.
 
 ## -1 when not given: the host picks one.
 var seed_value: int = -1

@@ -1,0 +1,102 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scenes/online/online_menu.gd" id="1_online"]
+[ext_resource type="Script" path="res://scenes/online/code_picker.gd" id="2_code"]
+
+[node name="OnlineMenu" type="CanvasLayer"]
+layer = 2
+visible = false
+script = ExtResource("1_online")
+
+[node name="Panel" type="PanelContainer" parent="."]
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 64.0
+offset_top = -48.0
+offset_right = 484.0
+offset_bottom = -48.0
+grow_vertical = 0
+
+[node name="Box" type="VBoxContainer" parent="Panel"]
+alignment = 1
+theme_override_constants/separation = 14
+
+[node name="Title" type="Label" parent="Panel/Box"]
+theme_type_variation = &"TitleLabel"
+theme_override_font_sizes/font_size = 26
+text = "Play online"
+
+[node name="Choices" type="GridContainer" parent="Panel/Box"]
+theme_override_constants/h_separation = 18
+theme_override_constants/v_separation = 8
+columns = 2
+
+[node name="NameLabel" type="Label" parent="Panel/Box/Choices"]
+text = "Name"
+
+[node name="Name" type="LineEdit" parent="Panel/Box/Choices"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(300, 0)
+size_flags_horizontal = 3
+placeholder_text = "your name"
+
+[node name="NameRuleGap" type="Control" parent="Panel/Box/Choices"]
+mouse_filter = 2
+
+[node name="NameRule" type="Label" parent="Panel/Box/Choices"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(300, 0)
+theme_type_variation = &"HintLabel"
+autowrap_mode = 3
+
+[node name="ServerLabel" type="Label" parent="Panel/Box/Choices"]
+unique_name_in_owner = true
+text = "Server"
+
+[node name="Server" type="LineEdit" parent="Panel/Box/Choices"]
+unique_name_in_owner = true
+size_flags_horizontal = 3
+placeholder_text = "ws://host:port"
+
+[node name="CodeLabel" type="Label" parent="Panel/Box/Choices"]
+text = "Room code"
+
+[node name="CodeRow" type="HBoxContainer" parent="Panel/Box/Choices"]
+theme_override_constants/separation = 14
+
+[node name="Code" type="HBoxContainer" parent="Panel/Box/Choices/CodeRow"]
+unique_name_in_owner = true
+theme_override_constants/separation = 6
+script = ExtResource("2_code")
+
+[node name="Join" type="Button" parent="Panel/Box/Choices/CodeRow"]
+unique_name_in_owner = true
+size_flags_horizontal = 3
+size_flags_vertical = 4
+text = "Join"
+
+[node name="Status" type="Label" parent="Panel/Box"]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(380, 0)
+autowrap_mode = 3
+
+[node name="Buttons" type="HBoxContainer" parent="Panel/Box"]
+theme_override_constants/separation = 16
+
+[node name="Create" type="Button" parent="Panel/Box/Buttons"]
+unique_name_in_owner = true
+size_flags_horizontal = 3
+text = "Create a room"
+
+[node name="Rejoin" type="Button" parent="Panel/Box/Buttons"]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(110, 0)
+text = "Rejoin"
+
+[node name="Back" type="Button" parent="Panel/Box/Buttons"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(110, 0)
+text = "Back"

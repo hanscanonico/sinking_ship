@@ -190,3 +190,95 @@ func test_the_native_flags_are_checked_the_same() -> void:
 	assert_false(
 		OnlineLink.from_args(MatchArgs.parse(PackedStringArray(["--seed=1701"])), _rules).wanted
 	)
+
+
+## A page asking for nothing online still has a server: the one its Online screen plays
+## on.
+func test_a_page_names_its_own_server_for_the_online_screen() -> void:
+	var link := OnlineLink.from_page("", "https:", "ship.example.org", _rules)
+	assert_false(link.wanted)
+	assert_eq(link.server_url, "wss://ship.example.org/ws")
+	assert_eq(OnlineLink.from_page("", "file:", "", _rules).server_url, "", "none off the web")
+	assert_false(OnlineLink.from_page("?room=ABCD", "https:", "s.example", _rules).named)
+	assert_true(OnlineLink.from_page("?room=ABCD&name=Bea", "https:", "s.example", _rules).named)
+	var named := OnlineLink.from_page(
+		"?server=ws://127.0.0.1:47985", "http:", "127.0.0.1:47984", _rules
+	)
+	assert_false(named.wanted, "a server alone opens the menu")
+	assert_eq(named.server_url, "ws://127.0.0.1:47985", "to play there")
+	var elsewhere := OnlineLink.from_page(
+		"?server=wss://eve.example.net/ws", "https:", "ship.example.org", _rules
+	)
+	assert_eq(elsewhere.server_url, "wss://ship.example.org/ws", "on the page's host alone")
+
+
+## A page naming a server that is not one: a link that asks to play says so, and the
+## Online screen still plays on the page's own server — never on none.
+func test_a_page_naming_a_bad_server_keeps_its_own() -> void:
+	for query: String in [
+		"?server=javascript:alert(1)",
+		"?server=",
+		"?room=ABCD&server=http://ship.example.org/ws",
+		"?create=1&name=Ada&server=ws://",
+		"?room=ABCD&server=wss://" + "a".repeat(OnlineLink.MAX_URL),
+	]:
+		var link := OnlineLink.from_page(query, "https:", "ship.example.org", _rules)
+		assert_eq(link.server_url, "wss://ship.example.org/ws", query.left(60))
+	var wanted := OnlineLink.from_page(
+		"?room=ABCD&server=javascript:alert(1)", "https:", "ship.example.org", _rules
+	)
+	assert_eq(wanted.problems, PackedStringArray(["The server must be a ws:// or wss:// address."]))
+
+
+## What the Online screen makes is checked as every link is.
+func test_the_online_screen_links_are_checked_the_same() -> void:
+	var made := OnlineLink.from_menu("ws://127.0.0.1:47923", false, "kxrt", " Bea ", _rules)
+	assert_eq(made.problems, PackedStringArray())
+	assert_true(made.wanted and made.named)
+	assert_eq(made.room, "KXRT")
+	assert_eq(made.player_name, "Bea")
+	var creating := OnlineLink.from_menu("ws://127.0.0.1:47923", true, "KXRT", "Bea", _rules)
+	assert_eq(creating.problems, PackedStringArray(), "a code beside Create is no problem")
+	assert_eq(creating.room, "")
+	for bad: Array in [
+		["http://127.0.0.1:47923", true, "", "Bea"],
+		["ws://127.0.0.1:47923", false, "KXR", "Bea"],
+		["ws://127.0.0.1:47923", false, "KXRT", "<b>"],
+	]:
+		assert_false(
+			OnlineLink.from_menu(bad[0], bad[1], bad[2], bad[3], _rules).problems.is_empty()
+		)
+
+
+## The name rule the player is shown is the one the server holds names to.
+func test_the_name_rule_is_the_servers() -> void:
+	var rule := OnlineLink.name_rule(_rules)
+	assert_string_contains(rule, str(_rules.name_length))
+	for mark: String in ServerRules.NAME_PUNCTUATION.strip_edges():
+		assert_string_contains(rule, mark)
+		assert_eq(_rules.clean_name("A" + mark + "B"), "A" + mark + "B", "%s is taken" % mark)
+
+
+## An invite brings a friend to the room on the page's server — and names it only when it
+## is not the page's own — and never carries a name: whoever opens it chooses theirs.
+func test_an_invite_names_the_room_and_never_the_player() -> void:
+	assert_eq(
+		OnlineLink.invite("https:", "ship.example.org", "/", "wss://ship.example.org/ws", "KXRT"),
+		"https://ship.example.org/?room=KXRT"
+	)
+	var local := OnlineLink.invite(
+		"http:", "127.0.0.1:47984", "/index.html", "ws://127.0.0.1:47985", "KXRT"
+	)
+	assert_eq(
+		local, "http://127.0.0.1:47984/index.html?room=KXRT&server=ws%3A%2F%2F127.0.0.1%3A47985"
+	)
+	var back := OnlineLink.from_page(local.get_slice("?", 1), "http:", "127.0.0.1:47984", _rules)
+	assert_eq(back.problems, PackedStringArray(), "it plays back")
+	assert_eq(back.room, "KXRT")
+	assert_eq(back.server_url, "ws://127.0.0.1:47985")
+	assert_false(back.named, "and asks the friend's name")
+	assert_eq(
+		OnlineLink.invite("https:", "s.example", "/a/../<x>", "wss://s.example/ws", "KXRT"),
+		"https://s.example/?room=KXRT",
+		"a path that is not plain is left out"
+	)

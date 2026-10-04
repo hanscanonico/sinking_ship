@@ -2,7 +2,7 @@ class_name OnlineAutoplay
 extends Node
 ## `--connect=ws://HOST:PORT --create|--room=CODE --name=NAME --autoplay`: a player on
 ## a server with nobody at the keys (SH12), what `make serve-local` runs. It goes
-## through RoomClient as the Online menu will: says hello, creates a room or joins one
+## through RoomClient as the Online screen does: says hello, creates a room or joins one
 ## by its code, and — the room's creator — starts the match once --start-at players are
 ## in. A bot plays its seat from the client, sampled as a player's hands would be, and
 ## a SimDriver steps the match as the scene's does. It prints what happens to it, and

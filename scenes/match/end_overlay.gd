@@ -3,8 +3,9 @@ extends CanvasLayer
 ## The results, once the match has ended: the local seat's verdict — "Last one
 ## dry!" or "Overboard — 4th of 6" — then every seat's place, time dry, shoves
 ## landed and knock-outs credited, all from MatchStats and so from the events
-## alone (D5), with rematch and back to the menu — on a plate over the world dimmed
-## under a scrim, the HUDs having stood down.
+## alone (D5), with rematch and back to the menu — or, online, back to the room and
+## leave (offer_room) — on a plate over the world dimmed under a scrim, the HUDs having
+## stood down.
 
 signal rematch_requested
 signal menu_requested
@@ -15,8 +16,13 @@ const LOCAL_COLOUR := Color(1.0, 0.85, 0.3)
 ## jump and accept, so a jump mashed as the match ends must not rematch unseen. A
 ## press begun inside the guard does nothing when it is let go after it.
 const PRESS_GUARD_SECONDS := 0.7
+## The widest a seat's name is shown, in pixels: a server's may be far longer.
+const NAME_WIDTH := 200.0
 
 var _guard := Timer.new()
+## What the two buttons do, as the hint words them.
+var _first_word := "rematch"
+var _second_word := "menu"
 
 @onready var _title: Label = %Title
 @onready var _table: GridContainer = %Table
@@ -67,7 +73,13 @@ func show_results(
 	for line: MatchStats.SeatStats in stats.standings():
 		var colour := LOCAL_COLOUR if line.seat == local_seat else UiTheme.TEXT
 		_cell(ordinal(line.place), colour)
-		_cell(names[line.seat], colour)
+		var name_cell := _cell(names[line.seat], colour)
+		name_cell.text = UiTheme.fit(
+			name_cell.text,
+			name_cell.get_theme_font(&"font"),
+			name_cell.get_theme_font_size(&"font_size"),
+			NAME_WIDTH
+		)
 		_cell(MatchTranscript.clock(line.dry_ticks), colour)
 		_cell(str(line.shoves_landed), colour)
 		_cell(str(line.knockouts), colour)
@@ -78,15 +90,24 @@ func show_results(
 	_guard.start()
 
 
+## Online, a match's end leads back to its room or out of it: the rematch's button and
+## key go back to the room, the menu's leave.
+func offer_room() -> void:
+	_first_word = "back to the room"
+	_second_word = "leave"
+	_rematch.text = "Back to the room"
+	_menu.text = "Leave"
+
+
 ## Words the hint line for the device [param prompts] says was used last. On a
 ## pad rematch and pause share Start and rematch wins, so the hint names only the
 ## rematch there; the Menu button is the way back.
 func show_prompts(prompts: InputPrompts) -> void:
 	var rematch := prompts.word(&"restart")
 	var menu := prompts.word(&"pause")
-	var hint := "%s — rematch" % rematch
+	var hint := "%s — %s" % [rematch, _first_word]
 	if menu != rematch:
-		hint += "   ·   %s — menu" % menu
+		hint += "   ·   %s — %s" % [menu, _second_word]
 	_hint.text = hint
 
 
@@ -104,9 +125,10 @@ static func ordinal(place: int) -> String:
 	return "%d%s" % [place, suffix]
 
 
-func _cell(text: String, colour: Color) -> void:
+func _cell(text: String, colour: Color) -> Label:
 	var label := Label.new()
 	label.text = text
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.add_theme_color_override("font_color", colour)
 	_table.add_child(label)
+	return label

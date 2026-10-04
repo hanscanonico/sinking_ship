@@ -9,6 +9,7 @@ extends RefCounted
 ## is hostile input: the query is bounded, a code must be code letters, a name one the
 ## server takes, and a server a ws:// or wss:// address with a plain host, a port and
 ## a path. Whatever is wrong is a problem to show the player, never a connection made.
+## The Online screen makes its links here too (from_menu), from what the player typed.
 
 ## Where the reverse proxy in front of a deployed server upgrades to its WebSocket.
 const SERVER_PATH := "/ws"
@@ -29,11 +30,16 @@ const PATH_PUNCTUATION := "/._~-"
 
 ## Whether this launch asks to play online at all.
 var wanted := false
+## The server to play on. A page's own server even when it asks for nothing online, or
+## names a server that is not one: the server the Online screen plays on in a browser.
 var server_url := ""
 var create := false
 ## The room to join, upper case; "" when creating one.
 var room := ""
 var player_name := ""
+## Whether the link itself names the player; a page's that does not plays under
+## "Player" unless the Online screen knows the player's name.
+var named := false
 ## What is wrong with the link, for the player: empty when it can be played.
 var problems := PackedStringArray()
 
@@ -58,13 +64,27 @@ static func from_args(args: MatchArgs, rules: ServerRules) -> OnlineLink:
 	link.wanted = not args.connect_url.is_empty()
 	if not link.wanted:
 		return link
+	link.named = true
 	link._check(args.connect_url, args.create_room, args.room_code, args.player_name, rules)
+	return link
+
+
+## The link the Online screen makes of what the player chose: [param creating] a room,
+## or joining [param code]'s, on [param server] as [param display_name].
+static func from_menu(
+	server: String, creating: bool, code: String, display_name: String, rules: ServerRules
+) -> OnlineLink:
+	var link := OnlineLink.new()
+	link.wanted = true
+	link.named = true
+	link._check(server, creating, "" if creating else code, display_name, rules)
 	return link
 
 
 ## The link a page's address makes: [param query] is its `location.search`, and
 ## [param page_protocol] and [param page_host] its `location.protocol` and `location.host`
-## — where the server is unless the query says. Wanted once the query names any of KEYS.
+## — where the server is unless the query says. Wanted once the query names any of KEYS
+## but the server: a page naming a server alone opens on the menu, to play there.
 static func from_page(
 	query: String, page_protocol: String, page_host: String, rules: ServerRules
 ) -> OnlineLink:
@@ -81,21 +101,62 @@ static func from_page(
 		if values.has(key):
 			link.problems.append("The address names %s more than once." % key)
 		values[key] = _decoded(pair.substr(pair.find("=") + 1)) if pair.contains("=") else ""
-	link.wanted = not values.is_empty()
+	link.wanted = not values.is_empty() and values.keys() != ["server"]
+	var own := _page_server(page_protocol, page_host)
+	if not is_server_url(own):
+		own = ""
+	# A server on another host is left unfollowed rather than refused: a link anyone
+	# can share must not send its visitors to someone else's server.
+	var server: String = values.get("server", own)
+	if is_server_url(server) and not _may_name(server, page_host):
+		server = own
 	if not link.wanted:
+		link.server_url = server if is_server_url(server) else own
 		return link
 	var create_value: String = values.get("create", "")
 	if values.has("create") and create_value != "1":
 		link.problems.append("create takes 1, as in create=1.")
-	# A server on another host is left unfollowed rather than refused: a link anyone
-	# can share must not send its visitors to someone else's server.
-	var server: String = values.get("server", "")
-	if not values.has("server") or (is_server_url(server) and not _may_name(server, page_host)):
-		server = _page_server(page_protocol, page_host)
+	link.named = values.has("name")
 	link._check(
 		server, values.has("create"), values.get("room", ""), values.get("name", "Player"), rules
 	)
+	# A server named wrong is the link's problem; the Online screen still has the page's.
+	if link.server_url.is_empty():
+		link.server_url = own
 	return link
+
+
+## The address that brings a friend to room [param code] on [param server]: the page's
+## own — [param page_protocol], [param page_host] and [param page_path] as its location
+## says — with the code, and the server when it is not the page's own. Never a name:
+## whoever opens it chooses their own.
+static func invite(
+	page_protocol: String, page_host: String, page_path: String, server: String, code: String
+) -> String:
+	var path := page_path if page_path.begins_with("/") and _is_path(page_path) else "/"
+	var url := "%s//%s%s?room=%s" % [page_protocol, page_host, path, code]
+	if server != _page_server(page_protocol, page_host):
+		url += "&server=" + server.uri_encode()
+	return url
+
+
+## This page's invite to room [param code] on [param server]: in a browser alone.
+static func page_invite(server: String, code: String) -> String:
+	return invite(
+		str(JavaScriptBridge.eval("window.location.protocol", true)),
+		str(JavaScriptBridge.eval("window.location.host", true)),
+		str(JavaScriptBridge.eval("window.location.pathname", true)),
+		server,
+		code
+	)
+
+
+## What a display name may be, as the player is told it: ServerRules.clean_name's rule.
+static func name_rule(rules: ServerRules) -> String:
+	var marks := PackedStringArray()
+	for mark: String in ServerRules.NAME_PUNCTUATION.strip_edges():
+		marks.append(mark)
+	return "1 to %d letters, digits, spaces or %s" % [rules.name_length, " ".join(marks)]
 
 
 ## Whether [param url] is a server this reaches: ws:// or wss:// in lower case, a host
@@ -222,9 +283,4 @@ func _check(
 			)
 	player_name = rules.clean_name(display_name)
 	if player_name.is_empty():
-		problems.append(
-			(
-				"A name is 1 to %d letters, digits, spaces or %s."
-				% [rules.name_length, ServerRules.NAME_PUNCTUATION.strip_edges()]
-			)
-		)
+		problems.append("A name is %s." % name_rule(rules))

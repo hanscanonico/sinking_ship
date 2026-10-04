@@ -423,7 +423,8 @@ func _chevron(at: Vector2, entry: Dictionary, shrink: float, alpha: float) -> vo
 	_canvas.draw_polyline(chevron, ink, 1.5, true)
 	var name_at := at + Vector2(0.0, -radius - 6.0)
 	var font_size := roundi(FONT_SIZE * shrink)
-	_text(name_at, _names[seat], colour, READOUT_TEXT, HORIZONTAL_ALIGNMENT_CENTER, font_size, ink)
+	var seat_name := UiTheme.fit(_names[seat], _font, font_size, READOUT_TEXT)
+	_text(name_at, seat_name, colour, READOUT_TEXT, HORIZONTAL_ALIGNMENT_CENTER, font_size, ink)
 
 
 ## [param entry]'s stamina — its warmth in the sea — as a ring of [param radius]

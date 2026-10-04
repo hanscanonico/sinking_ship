@@ -33,8 +33,9 @@ import:
 #       height to show the inside; ARGS passes more user args, e.g.
 #       ARGS=--net-sim=latency:120,jitter:20,loss:5. Not part of verify: it needs a
 #       display.
-#   make capture SCREEN=menu|settings [CAPTURE=]   the main menu, or the settings
-#       screen over it, with no match started (no AT)
+#   make capture SCREEN=menu|settings|online|room [CAPTURE=]   the main menu, the
+#       settings screen over it, the Online screen, or a room — its players made up,
+#       no server asked — with no match started (no AT)
 #   make capture SCREEN=pause AT=60 [EYE=]   the pause menu over the match at AT
 #   make capture SCREEN=results [EYE=]   the results once the match ends and their
 #       buttons take presses
@@ -64,11 +65,12 @@ match:
 
 # --fixed-fps steps one tick per drawn frame, so the capture lands on its exact
 # tick however fast the machine draws. A capture is silent: the Dummy driver.
-# SCREEN=menu or settings starts no match, so it neither autoplays nor takes AT.
-menu-screen = $(filter menu settings,$(SCREEN))
+# SCREEN=menu, settings, online or room starts no match, so it neither autoplays nor
+# takes AT; pause, online-pause and online-settings stand over the match at AT.
+menu-screen = $(filter menu settings online room,$(SCREEN))
 capture:
 	$(call require-godot)
-	@test -n "$(AT)$(filter menu settings results,$(SCREEN))" || \
+	@test -n "$(AT)$(filter menu settings online room results,$(SCREEN))" || \
 		{ echo "capture: AT=<seconds of match time> is required" >&2; exit 1; }
 	@mkdir -p "$(dir $(CAPTURE))"
 	$(GODOT) --path . $(if $(RES),--resolution $(RES)) --audio-driver Dummy --fixed-fps 30 -- \
@@ -102,6 +104,17 @@ serve-local: $(if $(EXPORTED),export-server-mac export-mac)
 	$(call require-godot)
 	GODOT="$(GODOT)" tools/serve_local.sh $(if $(WS_PORT),--port=$(WS_PORT)) \
 		$(if $(SEED),--seed=$(SEED)) $(if $(KILL),--kill) $(if $(EXPORTED),--exported)
+
+# `make online-e2e [WS_PORT=47931] [SEED=1701]`: two people online through the game's own
+# screens on 127.0.0.1 (SH12) — a --server and two headless games driven as hands would
+# drive them: Play online, a name, Create; the code typed and Join; Start; the match
+# played to its results; Back to the room; Leave room. Each player's steps and the
+# server's log are printed. Rules live in tools/online_e2e.sh and tools/online_e2e.gd.
+# Not part of verify: it runs a whole match in real time.
+online-e2e:
+	$(call require-godot)
+	GODOT="$(GODOT)" tools/online_e2e.sh $(if $(WS_PORT),--port=$(WS_PORT)) \
+		$(if $(SEED),--seed=$(SEED))
 
 # Release builds under build/, from export_presets.cfg (SH12):
 #   make export-server       the Linux dedicated server the deploy runs: headless, its
@@ -230,6 +243,6 @@ format-check:
 # whole suite.
 .NOTPARALLEL:
 
-.PHONY: import run match capture net-bench sim-bench serve-local export-server export-web \
-	export-mac export-server-mac serve-web-local serve-web-local-stop arena art-lint test \
-	verify check ship ship-check lint format format-check
+.PHONY: import run match capture net-bench sim-bench serve-local online-e2e export-server \
+	export-web export-mac export-server-mac serve-web-local serve-web-local-stop arena \
+	art-lint test verify check ship ship-check lint format format-check
