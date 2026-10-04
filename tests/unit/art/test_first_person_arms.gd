@@ -19,6 +19,12 @@ const JOINTS := {
 	&"R": [&"DEF-forearm.R", &"DEF-hand.R", &"DEF-f_middle.01.R", &"DEF-f_middle.03.R"],
 }
 const THUMBS: Array[StringName] = [&"DEF-thumb.03.L", &"DEF-thumb.03.R"]
+const HANDS: Array[StringName] = [&"DEF-hand.L", &"DEF-hand.R"]
+const WINDUP := BrawlerAnimation.Move.WINDUP
+const BRACE := BrawlerAnimation.Move.BRACE
+const STAGGER := BrawlerAnimation.Move.STAGGER
+## How far, in pixels, a stagger flings each hand from its wind-up and brace places.
+const FLUNG := 180.0
 ## How far the sleeve (round the forearm) and the hand stand out from their bones
 ## with the outline, in metres, and how many points are checked along each bone.
 const SLEEVE := 0.055
@@ -73,6 +79,39 @@ func test_the_arms_stay_clear_of_the_crosshair_and_the_readouts_in_every_pose() 
 			await get_tree().process_frame
 			watched += _arms.get_process_delta_time()
 	assert_eq(problems.size(), 0, "\n".join(PackedStringArray(problems.values())))
+
+
+## Your own stagger reads at a glance apart from a wind-up and a brace, both of which
+## hold the fists up in the middle — from the very hit-stop the shove lands with, out
+## of a brace: knocked aside, each hand is flung FLUNG pixels or more out of where
+## either holds it, and one stays in view, at the default field of view.
+func test_a_stagger_flings_the_hands_out_of_the_windup_and_the_brace() -> void:
+	var lens := _lenses[0]
+	var size := _sizes[0]
+	var held := {}
+	for move: BrawlerAnimation.Move in [WINDUP, BRACE, STAGGER]:
+		var entry := _as(move)
+		if move == STAGGER:
+			entry["hitstop"] = Ticks.from_seconds(SimFixtures.rules().hitstop)
+		var watched := 0.0
+		while watched < SETTLE:
+			_arms.show_seat(SEAT, entry, entry, 1.0)
+			await get_tree().process_frame
+			watched += _arms.get_process_delta_time()
+		var body: Brawler = _arms.get_node("Body")
+		var hands := PackedVector2Array()
+		for hand: StringName in HANDS:
+			hands.append(_pixel(lens, size, _eye.to_local(body.bone_position(hand))))
+		held[move] = hands
+	var seen := 0
+	for hand in HANDS.size():
+		for move: BrawlerAnimation.Move in [WINDUP, BRACE]:
+			var apart: float = held[STAGGER][hand].distance_to(held[move][hand])
+			var named: String = BrawlerAnimation.Move.keys()[move]
+			assert_gt(apart, FLUNG, "%s %.0f px from its %s place" % [HANDS[hand], apart, named])
+		if Rect2(Vector2.ZERO, size).has_point(held[STAGGER][hand]):
+			seen += 1
+	assert_gt(seen, 0, "a hand flung out stays in view: %s" % held[STAGGER])
 
 
 ## The seat's snapshot entry as it stands still in [param move].

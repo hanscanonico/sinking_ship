@@ -22,7 +22,7 @@ const CRYSTAL_SIZE := 512
 const CRYSTAL_CELLS := 9.0
 ## How far away a brawler still gets its chevron, in metres.
 const CHEVRON_RANGE := 15.0
-## How far over the top of a body its chevron floats, in metres.
+## How far over the top of a body, hat and all, its chevron floats, in metres.
 const CHEVRON_LIFT := 0.5
 ## The highest a chevron is drawn, in pixels from the top: its name clears the clock
 ## and the seats left, and a body at contact range keeps its chevron rather than
@@ -36,6 +36,21 @@ const FADE_FROM := 0.8
 ## is drawn this faint, so their reading stays clear.
 const UNDER_DIALS := 0.2
 const NAME_HALF := 36.0
+## Plates that would overlap stand apart: the nearer where it is and the further
+## lifted clear over it, PLATE_GAP pixels apart, with a leader line down to where it
+## would stand once lifted more than LEADER_FROM; one that would be lifted into the
+## top band stays put, faded to STACKED_FADE. A plate keeps its rank over another
+## until that body comes RANK_HOLD metres nearer, so the two never trade places
+## frame by frame.
+const PLATE_GAP := 4.0
+const LEADER_FROM := 6.0
+const STACKED_FADE := 0.3
+const RANK_HOLD := 0.75
+## A body so near that its head stands up into the top band would wear its plate
+## pulled down over its hat: the plate stands beside the head instead, HEAD_CLEAR
+## pixels off the hat's brim, which spans HAT_HALF metres either side of the head.
+const HEAD_CLEAR := 10.0
+const HAT_HALF := 0.2
 const FONT_SIZE := 18
 const TEXT := Color(1.0, 1.0, 1.0)
 const INK := Color(0.06, 0.09, 0.13, 0.9)
@@ -112,6 +127,8 @@ var _view: MatchView
 var _prompts: InputPrompts
 var _frost: ColorRect
 var _plate := StyleBoxFlat.new()
+## Per seat, whether its plate stood where it would, unlifted, last frame.
+var _plate_kept := PackedByteArray()
 
 
 func _ready() -> void:
@@ -151,6 +168,8 @@ func setup(sim: MatchSim, names: PackedStringArray, eyes: bool, prompts: InputPr
 	_eyes = eyes
 	_prompts = prompts
 	_snapshot = {}
+	_plate_kept.resize(sim.config.seats)
+	_plate_kept.fill(0)
 
 
 ## Draws the HUD of [param seat]'s eyes over [param snapshot], looking along the
@@ -380,33 +399,117 @@ static func height_words(above_sea: float) -> String:
 ## A chevron in seat colour, ringed by its stamina, and the seat's name over every
 ## other brawler within CHEVRON_RANGE whose eyes [param my_pos]'s see under
 ## [param pose] — Surfaces.line_of_sight, what the bots' view asks too: never through a
-## wall, a floor or the hull.
+## wall, a floor or the hull — over its hat, laid out so none overlaps another.
 func _draw_chevrons(my_pos: Vector3, pose: ShipPose) -> void:
 	var eye := Vector3.UP * FirstPersonCamera.EYE_HEIGHT
+	var entries: Array[Dictionary] = []
+	var anchors := PackedVector2Array()
+	var ranks := PackedFloat32Array()
 	for entry: Dictionary in _snapshot["seats"]:
 		var seat: int = entry["seat"]
 		if seat == _seat or entry["out"]:
 			continue
 		var their_pos: Vector3 = entry["pos"]
-		if my_pos.distance_to(their_pos) > CHEVRON_RANGE:
+		var distance := my_pos.distance_to(their_pos)
+		if distance > CHEVRON_RANGE:
 			continue
 		if not _surfaces.line_of_sight(my_pos + eye, their_pos + eye, pose):
 			continue
-		var over := (
-			_view.seat_world_position(seat) + Vector3.UP * (_rules.body_height + CHEVRON_LIFT)
-		)
+		var top := _view.seat_world_position(seat) + Vector3.UP * Brawler.headgear(seat, _rules)
+		var over := top + Vector3.UP * CHEVRON_LIFT
 		if _camera.is_position_behind(over):
 			continue
 		var at := _camera.unproject_position(over)
-		at.y = maxf(at.y, CHEVRON_TOP)
+		if at.y < CHEVRON_TOP:
+			at = _beside_head(top, Vector2(at.x, CHEVRON_TOP))
 		if not chevron_shows(at, _canvas.size):
 			continue
-		var far := my_pos.distance_to(their_pos) / CHEVRON_RANGE
+		entries.append(entry)
+		anchors.append(at)
+		ranks.append(distance - (RANK_HOLD if _plate_kept[seat] == 1 else 0.0))
+	var order := range(entries.size())
+	order.sort_custom(func(a: int, b: int) -> bool: return ranks[a] < ranks[b])
+	var boxes: Array[Rect2] = []
+	for index: int in order:
+		var far := my_pos.distance_to(entries[index]["pos"]) / CHEVRON_RANGE
+		boxes.append(_plate_box(anchors[index], entries[index]["seat"], lerpf(1.0, FAR_SCALE, far)))
+	var lifts := plates_apart(boxes, CHEVRON_TOP + RING_RADIUS)
+	for rank in order.size():
+		var index: int = order[rank]
+		var entry := entries[index]
+		var at := anchors[index]
+		var far := my_pos.distance_to(entry["pos"]) / CHEVRON_RANGE
 		var shrink := lerpf(1.0, FAR_SCALE, far)
 		var alpha := 1.0 - smoothstep(FADE_FROM, 1.0, far)
-		if at.x + NAME_HALF > _canvas.size.x - DIALS.x and at.y - RING_RADIUS < DIALS.y:
+		var lift := lifts[rank]
+		if lift < 0.0:
+			lift = 0.0
+			alpha *= STACKED_FADE
+		_plate_kept[entry["seat"]] = 1 if lift == 0.0 else 0
+		var lifted := at - Vector2(0.0, lift)
+		if lifted.x + NAME_HALF > _canvas.size.x - DIALS.x and lifted.y - RING_RADIUS < DIALS.y:
 			alpha *= UNDER_DIALS
-		_chevron(at, entry, shrink, alpha)
+		if lift > LEADER_FROM:
+			_leader(lifted + Vector2(0.0, RING_RADIUS * shrink), at, entry["seat"], alpha)
+		_chevron(lifted, entry, shrink, alpha)
+
+
+## Where a plate pulled down to [param at], under the top band, stands clear of the
+## head whose hat tops out at [param top] in the world: where it is, if the head is
+## under it; else beside the head, to its right unless that runs off the screen.
+func _beside_head(top: Vector3, at: Vector2) -> Vector2:
+	var head := _camera.unproject_position(top)
+	if head.y > at.y + RING_RADIUS + HEAD_CLEAR:
+		return at
+	var brim := absf(_camera.unproject_position(top + _camera.global_basis.x * HAT_HALF).x - head.x)
+	var aside := brim + NAME_HALF + HEAD_CLEAR
+	var x := head.x + aside
+	if x + NAME_HALF > _canvas.size.x:
+		x = head.x - aside
+	return Vector2(x, at.y)
+
+
+## The box [param seat]'s plate takes with its chevron at [param at], drawn
+## [param shrink] of its size: its name over its ring.
+func _plate_box(at: Vector2, seat: int, shrink: float) -> Rect2:
+	var radius := RING_RADIUS * shrink
+	var font_size := roundi(FONT_SIZE * shrink)
+	var seat_name := UiTheme.fit(_names[seat], _font, font_size, READOUT_TEXT)
+	var wide := maxf(_font.get_string_size(seat_name, 0, -1, font_size).x, radius * 2.0)
+	var high := radius * 2.0 + 6.0 + _font.get_height(font_size)
+	return Rect2(at.x - wide * 0.5, at.y + radius - high, wide, high)
+
+
+## How far up each plate in [param boxes] is lifted — the boxes where each would
+## stand, nearest first — so none overlaps another: the nearest where it is, each
+## further one lifted just clear over every nearer one it would meet, its bottom no
+## higher than [param highest]; one with no room under that stays where it is, and
+## its lift is -1.
+static func plates_apart(boxes: Array[Rect2], highest: float) -> PackedFloat32Array:
+	var lifts := PackedFloat32Array()
+	lifts.resize(boxes.size())
+	for index in boxes.size():
+		var box := boxes[index]
+		var moved := true
+		while moved:
+			moved = false
+			for nearer in index:
+				var placed := boxes[nearer]
+				placed.position.y -= maxf(lifts[nearer], 0.0)
+				if box.grow(PLATE_GAP * 0.5).intersects(placed.grow(PLATE_GAP * 0.5)):
+					box.position.y = placed.position.y - PLATE_GAP - box.size.y
+					moved = true
+		lifts[index] = boxes[index].position.y - box.position.y
+		if box.end.y < highest and lifts[index] > 0.0:
+			lifts[index] = -1.0
+	return lifts
+
+
+## A thin line in [param seat]'s colour from a lifted plate's ring at [param from]
+## down to where it would stand, [param to].
+func _leader(from: Vector2, to: Vector2, seat: int, alpha: float) -> void:
+	_canvas.draw_line(from, to, Color(INK, INK.a * alpha), 3.0, true)
+	_canvas.draw_line(from, to, Color(ArtPalette.seat_colour(seat), alpha), 1.5, true)
 
 
 ## [param entry]'s chevron at [param at], ringed by its stamina, under its seat's

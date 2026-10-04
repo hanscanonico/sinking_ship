@@ -147,3 +147,44 @@ func test_a_chevron_is_drawn_only_where_it_can_be_filled() -> void:
 					if Geometry2D.triangulate_polygon(points).is_empty():
 						bad += 1
 		assert_eq(bad, 0, "%s: every chevron drawn can be filled" % size)
+
+
+## Plates that would overlap — several bodies lined up in view — stand apart: the
+## nearest where it is, each further one lifted clear over the nearer, the same way
+## every frame; plates already apart stay put.
+func test_overlapping_plates_stand_apart_the_nearest_unmoved() -> void:
+	var piled: Array[Rect2] = [
+		Rect2(500.0, 200.0, 60.0, 45.0),
+		Rect2(510.0, 205.0, 50.0, 40.0),
+		Rect2(490.0, 210.0, 70.0, 40.0),
+		Rect2(530.0, 190.0, 40.0, 30.0),
+	]
+	var lifts := FirstPersonHud.plates_apart(piled, 0.0)
+	assert_eq(lifts, FirstPersonHud.plates_apart(piled, 0.0), "the same every frame")
+	assert_eq(lifts[0], 0.0, "the nearest stays where it is")
+	for one in piled.size():
+		assert_gte(lifts[one], 0.0, "lifted, never pushed down")
+		var box := piled[one]
+		box.position.y -= lifts[one]
+		for other in range(one + 1, piled.size()):
+			var next := piled[other]
+			next.position.y -= lifts[other]
+			assert_false(box.intersects(next), "plates %d and %d overlap" % [one, other])
+	var apart: Array[Rect2] = [Rect2(100.0, 200.0, 60.0, 40.0), Rect2(400.0, 200.0, 60.0, 40.0)]
+	assert_eq(FirstPersonHud.plates_apart(apart, 0.0), PackedFloat32Array([0.0, 0.0]))
+	var cramped := FirstPersonHud.plates_apart(piled, 220.0)
+	assert_eq(cramped[1], -1.0, "no room over the nearest under the top band: it stays put")
+
+
+## A plate floats over the brawler's own hat: a top hat or a bobble stands taller
+## than the crown, a cap does not.
+func test_a_plate_stands_over_the_hat() -> void:
+	var rules := SimFixtures.rules()
+	for seat in Brawler.HATS.size():
+		var top := Brawler.headgear(seat, rules)
+		assert_gte(top, rules.body_height, "never under the crown")
+		match Brawler.HATS[seat]:
+			Brawler.Hat.TOP:
+				assert_gt(top, rules.body_height + 0.12, "a top hat stands tall")
+			Brawler.Hat.CAP:
+				assert_almost_eq(top, rules.body_height, 0.01, "a cap sits on the crown")

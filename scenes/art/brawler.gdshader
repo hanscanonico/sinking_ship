@@ -25,6 +25,12 @@ uniform int whiskers = 0;
 // The hands' glow as a shove winds up and lands, 0…1.
 uniform vec3 flash_colour : source_color = vec3(1.0);
 uniform float flash = 0.0;
+// A shove coming, 0…1: a wind-up's warmth, rising through a charge to 1 when it is
+// full. It lights the body's edge — never its middle, which keeps the seat's colour
+// — and the forearms, from ember toward white-hot, beating faster as it rises.
+uniform vec3 heat_colour : source_color = vec3(1.0, 0.42, 0.08);
+uniform vec3 heat_core : source_color = vec3(1.0, 0.94, 0.76);
+uniform float heat = 0.0;
 
 const float LINING_LIFT = 0.3;
 // The legs under a skirt take the sun's shadow of it as well as the lining's dark;
@@ -32,6 +38,14 @@ const float LINING_LIFT = 0.3;
 // coat's lining never lights pale legs in a dark room.
 const float LEG_LIFT = 0.45;
 const float LEG_CAP = 0.3;
+// The heat's rim: how tightly it hugs the edge, how bright it burns, and its beat
+// from a wind-up's to a full charge's, in radians a second. The forearms glow from
+// FOREARM_FROM out to the cuff.
+const float RIM_POWER = 2.5;
+const float RIM_GLOW = 2.2;
+const float BEAT_SLOW = 9.0;
+const float BEAT_FAST = 24.0;
+const float FOREARM_FROM = 0.5;
 
 varying vec3 rest;
 varying float skirt;
@@ -138,6 +152,7 @@ void fragment() {
 	float ax = abs(rest.x);
 	vec3 c;
 	float glow = 0.0;
+	float forearm = 0.0;
 	// The lining, inside a skirt and on the thighs under it, and the legs just below
 	// the hem stand in the skirt's shadow: lifted by the lining's own colour — dark
 	// trousers would gain nothing from a lift in proportion to theirs — so they read
@@ -152,6 +167,7 @@ void fragment() {
 		c = skirt > 1.93 ? coat * 0.78 : coat;
 	} else if (ax > 0.22 && rest.y > 1.25) {
 		// The arm: a sleeve, a cuff — the jersey's rib or the shirt's — and a hand.
+		forearm = smoothstep(FOREARM_FROM, 0.745, ax);
 		if (ax > 0.745) {
 			c = skin;
 			glow = flash;
@@ -186,4 +202,10 @@ void fragment() {
 	ALBEDO = mix(c, flash_colour, glow * 0.5);
 	ROUGHNESS = 0.8;
 	EMISSION = flash_colour * glow * 0.8 + shade * lift;
+	if (heat > 0.0) {
+		float beat = 0.8 + 0.2 * sin(TIME * mix(BEAT_SLOW, BEAT_FAST, heat));
+		float edge = pow(1.0 - clamp(dot(NORMAL, VIEW), 0.0, 1.0), RIM_POWER);
+		vec3 burn = mix(heat_colour, heat_core, heat * heat * max(edge, forearm));
+		EMISSION += burn * (edge * RIM_GLOW + forearm) * heat * beat;
+	}
 }
