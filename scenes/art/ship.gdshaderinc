@@ -60,6 +60,20 @@ uniform float grime = 0.25;
 // FUNNEL: the black top.
 uniform vec4 top_colour : source_color = vec4(0.11, 0.11, 0.12, 1.0);
 uniform float top_depth = 1.3;
+// PLATE (an engine room's steel): on a wall, plates bulkhead_plate (along, up) with a
+// rivet row over each seam and a dark kick (foot_colour) at the foot; underfoot,
+// checker plate — raised lugs in alternate directions, lugs apart — in plates of
+// tread_plate; overhead, plain plating.
+uniform vec2 bulkhead_plate = vec2(1.2, 0.9);
+uniform float kick_height = 0.16;
+uniform float lugs = 0.055;
+uniform vec2 tread_plate = vec2(1.8, 1.2);
+// ROUGH (a hold's timber): unpainted boards, rough_board wide on a wall and
+// rough_floor wide underfoot and overhead, butted every rough_length, uneven in
+// tone, with dark gaps between them.
+uniform float rough_board = 0.2;
+uniform float rough_floor = 0.26;
+uniform float rough_length = 4.4;
 
 #ifdef CUT_AWAY
 // The observer's cut-away: nothing above it is drawn, and the inside of whatever
@@ -74,6 +88,8 @@ const int HULL = 2;
 const int HOUSE = 3;
 const int CABIN = 4;
 const int FUNNEL = 5;
+const int PLATE = 8;
+const int ROUGH = 9;
 
 varying vec3 ship_pos;
 varying vec3 ship_normal;
@@ -164,6 +180,57 @@ vec3 cabin(vec3 base) {
 	return base;
 }
 
+// How much of a pattern repeating every [param period] along [param d] still shows: 0
+// once a repeat is narrower than a few pixels, so a fine pattern fades to its mean
+// colour with distance rather than shimmering.
+float shows(float d, float period) {
+	return 1.0 - smoothstep(0.15, 0.5, fwidth(d) / period);
+}
+
+vec3 plate(vec3 base) {
+	if (ship_normal.y > 0.5) {
+		vec2 cell = floor(ship_pos.xz / lugs);
+		vec2 f = fract(ship_pos.xz / lugs) - 0.5;
+		f = mod(cell.x + cell.y, 2.0) > 0.5 ? vec2(f.x + f.y, f.x - f.y) : vec2(f.x - f.y, f.x + f.y);
+		float lug = 1.0 - smoothstep(0.8, 1.0, abs(f.x) / 0.5 + abs(f.y) / 0.14);
+		vec3 colour = base * (0.9 + 0.3 * lug * shows(ship_pos.x, lugs));
+		vec2 seam = (fract(ship_pos.xz / tread_plate + 0.5) - 0.5) * tread_plate;
+		return colour * (1.0 - 0.35 * max(line(seam.x, 0.006), line(seam.y, 0.006)));
+	}
+	if (ship_normal.y < -0.5) {
+		vec2 seam = (fract(ship_pos.xz / bulkhead_plate.xx + 0.5) - 0.5) * bulkhead_plate.x;
+		return base * (1.0 - 0.25 * max(line(seam.x, 0.006), line(seam.y, 0.006)));
+	}
+	if (bands.x < kick_height) {
+		return foot_colour.rgb;
+	}
+	float along = wall_along();
+	float seam_d = (fract((bands.x - kick_height) / bulkhead_plate.y + 0.5) - 0.5) * bulkhead_plate.y;
+	float butt_d = (fract(along / bulkhead_plate.x + 0.5) - 0.5) * bulkhead_plate.x;
+	float plating = max(line(seam_d, 0.006), 0.8 * line(butt_d, 0.006));
+	plating = max(plating, 0.8 * rivets(along, seam_d, 0.035));
+	plating = max(plating, 0.8 * rivets(bands.x, butt_d, 0.035));
+	float dirt = 1.0 - smoothstep(0.0, 0.5, bands.x - kick_height);
+	return base * (1.0 - 0.3 * plating) * (1.0 - 0.18 * dirt);
+}
+
+vec3 rough(vec3 base) {
+	bool flat_ = abs(ship_normal.y) > 0.5;
+	float width = flat_ ? rough_floor : rough_board;
+	float across = flat_ ? ship_pos.z : ship_pos.y;
+	float along = flat_ ? ship_pos.x : wall_along();
+	float row = floor(across / width);
+	float gap = (fract(across / width) - 0.5) * width;
+	float run = along / rough_length + hash(vec2(row, 5.0));
+	float piece = floor(run);
+	float butt = (fract(run) - 0.5) * rough_length;
+	float tone = mix(0.78, 1.12, hash(vec2(row, piece)));
+	float grain = 0.92 + 0.08 * sin(along * 8.0 + hash(vec2(piece, row)) * 30.0 + sin(across * 27.0) * 2.0);
+	vec3 colour = base * tone * mix(1.0, grain, shows(across, width));
+	float seam = max(line(abs(gap) - width * 0.5, 0.012), line(abs(butt) - rough_length * 0.5, 0.008));
+	return mix(colour, seam_colour.rgb * 0.55, seam * 0.9);
+}
+
 void vertex() {
 	ship_pos = VERTEX;
 	ship_normal = NORMAL;
@@ -188,6 +255,10 @@ void fragment() {
 		colour = cabin(colour);
 	} else if (finish == FUNNEL && bands.y < top_depth) {
 		colour = top_colour.rgb;
+	} else if (finish == PLATE) {
+		colour = plate(colour);
+	} else if (finish == ROUGH) {
+		colour = rough(colour);
 	}
 	float rim = smoothstep(0.0, 1.0, UV2.x);
 	ALBEDO = mix(colour, ink.rgb, rim * rim_strength);

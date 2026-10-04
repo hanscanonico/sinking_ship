@@ -73,6 +73,54 @@ const LAMP_GLASS := Color("ffe2a8")
 const LAMP_LIGHT := Color("ffc47a")
 ## A deck about to give way blinks toward this (the greybox's flash).
 const COLLAPSE_FLASH := Color(1.0, 0.2, 0.1)
+## The rooms below the passenger decks and the wheelhouse (RoomDressing). An engine
+## room of grey-green riveted steel over a black kick, checker plate underfoot, its
+## engine a lighter green than its walls, picked out in bright steel and brass, and
+## black boilers whose fires glow orange; a hold of rough, unpainted timber and
+## stowed cargo paler than the deck crates; lower-deck cabins in their own
+## blankets and curtains; a wheelhouse panelled in varnished teak.
+const BULKHEAD := Color("74826f")
+const BULKHEAD_FOOT := Color("2b2f2d")
+const BULKHEAD_OVERHEAD := Color("7f8a7c")
+const CHECKER_PLATE := Color("6a6e70")
+const ENGINE := Color("557563")
+const BRIGHT_STEEL := Color("b5bcc0")
+const BOILER := Color("34383a")
+const GAUGE_FACE := Color("efe8d6")
+const FIRE_GLOW := Color("ff7a1e")
+const EMBERS := Color("2a1410")
+const FIRE_LIGHT := Color("ff8c3c")
+const HOLD_WALL := Color("ad8f68")
+const HOLD_FLOOR := Color("957756")
+const HOLD_OVERHEAD := Color("9c8061")
+const HOLD_FRAME := Color("6e5236")
+const STOWED_CRATE := Color("ab8656")
+const STENCIL := Color("3b2d22")
+const SACKING := Color("bda478")
+const LAMP_SHADE := Color("3f4a45")
+const PANELLING := Color("7d5232")
+const ENAMEL := Color("f0ebdd")
+const LIFEBELT := Color("cf3b2b")
+const FIRE_BUCKET := Color("b5302a")
+const MIRROR := Color("a7b8bf")
+const CHART := Color("e3d8b8")
+## Per lower-deck cabin, in turn: its blanket and its porthole curtains.
+const CABIN_BLANKETS: Array[Color] = [
+	Color("41557a"),
+	Color("7a2e2a"),
+	Color("4f6a45"),
+	Color("8a6838"),
+	Color("5b4a6e"),
+	Color("2f5c5c")
+]
+const CABIN_CURTAINS: Array[Color] = [
+	Color("9c3d33"),
+	Color("3f5b7d"),
+	Color("a8874a"),
+	Color("5c7350"),
+	Color("8a4a6a"),
+	Color("b07a4a")
+]
 
 
 static func seat_colour(seat: int) -> Color:

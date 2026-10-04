@@ -37,6 +37,49 @@ static var upholstery := ShipMesh.Paint.new(FINISH.PLAIN, ArtPalette.UPHOLSTERY)
 static var blanket := ShipMesh.Paint.new(FINISH.PLAIN, ArtPalette.BLANKET)
 static var linen := ShipMesh.Paint.new(FINISH.PLAIN, ArtPalette.LINEN)
 static var crate := ShipMesh.Paint.new(FINISH.PLAIN, ArtPalette.CRATE)
+## The rooms' linings (RoomDressing): walls white outside as every wall is, and
+## inside riveted grey-green steel in an engine room, rough timber in a hold and
+## varnished panelling in a wheelhouse; checker plate and rough boards underfoot;
+## plating and boards overhead, on steel or timber beams.
+static var bulkhead := ShipMesh.Paint.new(
+	FINISH.HOUSE, ArtPalette.HOUSE, FINISH.PLATE, ArtPalette.BULKHEAD
+)
+static var hold_wall := ShipMesh.Paint.new(
+	FINISH.HOUSE, ArtPalette.HOUSE, FINISH.ROUGH, ArtPalette.HOLD_WALL
+)
+static var panelling := ShipMesh.Paint.new(
+	FINISH.HOUSE, ArtPalette.HOUSE, FINISH.CABIN, ArtPalette.PANELLING
+)
+static var checker_plate := ShipMesh.Paint.new(
+	FINISH.DECK, ArtPalette.DECK, FINISH.PLATE, ArtPalette.CHECKER_PLATE
+)
+static var hold_floor := ShipMesh.Paint.new(
+	FINISH.DECK, ArtPalette.DECK, FINISH.ROUGH, ArtPalette.HOLD_FLOOR
+)
+static var steel_overhead := ShipMesh.Paint.new(
+	FINISH.PLAIN, ArtPalette.CEILING, FINISH.PLATE, ArtPalette.BULKHEAD_OVERHEAD
+)
+static var hold_overhead := ShipMesh.Paint.new(
+	FINISH.PLAIN, ArtPalette.CEILING, FINISH.ROUGH, ArtPalette.HOLD_OVERHEAD
+)
+static var steel_beam := ShipMesh.Paint.new(
+	FINISH.PLAIN, ArtPalette.BEAM, FINISH.PLAIN, ArtPalette.STEEL
+)
+static var hold_frame := ShipMesh.Paint.new(FINISH.PLAIN, ArtPalette.HOLD_FRAME)
+## What a room's furnishings are made of (RoomDressing).
+static var engine := ShipMesh.Paint.new(FINISH.PLAIN, ArtPalette.ENGINE)
+static var bright_steel := ShipMesh.Paint.new(FINISH.PLAIN, ArtPalette.BRIGHT_STEEL)
+static var boiler := ShipMesh.Paint.new(FINISH.PLATE, ArtPalette.BOILER)
+static var gauge := ShipMesh.Paint.new(FINISH.PLAIN, ArtPalette.GAUGE_FACE)
+static var stowed := ShipMesh.Paint.new(FINISH.PLAIN, ArtPalette.STOWED_CRATE)
+static var stencil := ShipMesh.Paint.new(FINISH.PLAIN, ArtPalette.STENCIL)
+static var sacking := ShipMesh.Paint.new(FINISH.PLAIN, ArtPalette.SACKING)
+static var enamel := ShipMesh.Paint.new(FINISH.PLAIN, ArtPalette.ENAMEL)
+static var lifebelt := ShipMesh.Paint.new(FINISH.PLAIN, ArtPalette.LIFEBELT)
+static var fire_bucket := ShipMesh.Paint.new(FINISH.PLAIN, ArtPalette.FIRE_BUCKET)
+static var mirror := ShipMesh.Paint.new(FINISH.PLAIN, ArtPalette.MIRROR)
+static var chart := ShipMesh.Paint.new(FINISH.PLAIN, ArtPalette.CHART)
+static var leather := ShipMesh.Paint.new(FINISH.PLAIN, ArtPalette.LEATHER)
 ## Glass seen from inside a room, and from outside it.
 static var glass_in := ShipMesh.Paint.new(FINISH.GLASS_IN, Color.WHITE)
 static var glass_out := ShipMesh.Paint.new(FINISH.GLASS_OUT, Color.WHITE)

@@ -9,13 +9,35 @@ extends Node3D
 ## with it and goes out once the deck lies wrecked (ShipArt). Its globe glows
 ## whoever looks, but it lights its room only while the eye that draws the frame
 ## stands near it on its storey (relevant), fading in and out, so a frame pays only
-## for the lamps it can see and none shines up or down through a deck.
+## for the lamps it can see and none shines up or down through a deck. A hold's
+## cargo lamp hangs lower under a tin shade, brighter close by and fading sooner, so
+## it throws a pool of light on the floor under it; a furnace's fire is set in a
+## wall, unswung, and throws its light out of the wall alone, never through it,
+## wavering as a fire does. Each is one light, so a mesh still meets few enough.
 
-## From the ceiling to the middle of the globe, in metres.
+## What the lamp is: a room's pendant globe, a hold's shaded cargo lamp, or a fire.
+enum Kind { PENDANT, CARGO, FIRE }
+
+## From the ceiling to the middle of the globe, in metres: a pendant's, and a cargo
+## lamp's.
 const CORD := 0.3
+const CARGO_CORD := 0.5
 const GLOBE_RADIUS := 0.09
 const RANGE := 4.6
 const ENERGY := 1.5
+## A cargo lamp's light: how bright, and how fast it fades with distance.
+const CARGO_ENERGY := 2.6
+const CARGO_ATTENUATION := 2.2
+## A fire's light out of its wall: how far, how wide and how bright; and how much it
+## wavers, how often.
+const FIRE_RANGE := 3.2
+const FIRE_ANGLE := 50.0
+const FIRE_ENERGY := 3.5
+const FIRE_WAVER := 0.3
+const FIRE_RATE := 7.0
+## A fire's glowing mouth (width, height), standing this far proud of its wall.
+const MOUTH := Vector2(0.42, 0.26)
+const MOUTH_PROUD := 0.045
 ## How hard the cord pulls back toward plumb, and how fast a swing dies, per second.
 const STIFFNESS := 26.0
 const DAMPING := 1.4
@@ -40,6 +62,9 @@ var burning := true
 ## cut-away, which looks down into every room at once.
 var everywhere := false
 
+var _kind := Kind.PENDANT
+## From the lamp's node down to where it burns: what goes under the sea.
+var _drop := CORD
 ## The room's box, ship space: its floor to its ceiling.
 var _room: AABB
 var _floor: Vector3
@@ -50,7 +75,11 @@ var _swing := Vector3.ZERO
 var _clock := 0.0
 var _phase := 0.0
 var _light: OmniLight3D
+## A fire's light out of its wall: null for a lamp.
+var _spot: SpotLight3D
 var _glass: StandardMaterial3D
+## The glow its glass was last given, so it is set only as it changes.
+var _shown := -1.0
 
 
 ## How bright a lamp burns, 0…1: [param lamp_height] and [param floor_height] are
@@ -83,14 +112,39 @@ static func relevant(eye: Vector3, room: AABB, burning: bool) -> bool:
 	return across <= REACH and absf(eye.y - nearest.y) <= STOREY_MARGIN
 
 
-## Hangs the lamp from where it now stands, under the middle of [param room] (its
-## box, ship space); [param phase] keeps lamps from flickering in step.
-func setup(room: AABB, phase: float, glass: StandardMaterial3D, brass: Material) -> void:
+## How bright a fire burns at [param clock] seconds, 0…1 of its full light: it
+## wavers by up to FIRE_WAVER, changing its mind FIRE_RATE times a second.
+static func flame(clock: float) -> float:
+	var moment := floorf(clock * FIRE_RATE)
+	var roll := fposmod(sin(moment * 78.233 + 12.9898) * 43758.5453, 1.0)
+	return 1.0 - FIRE_WAVER * roll
+
+
+## Hangs the lamp of [param kind] from where it now stands in [param room] (its box,
+## ship space) — a fire burns there instead, facing [param facing] out of its wall;
+## [param phase] keeps lamps from flickering in step.
+func setup(
+	room: AABB,
+	phase: float,
+	glass: StandardMaterial3D,
+	brass: Material,
+	kind := Kind.PENDANT,
+	facing := Vector3.DOWN
+) -> void:
 	_room = room
 	var middle := room.get_center()
 	_floor = Vector3(middle.x, room.position.y, middle.z)
 	_phase = phase
 	_glass = glass
+	_kind = kind
+	if kind == Kind.FIRE:
+		_drop = 0.0
+		_burn(facing)
+		return
+	if kind == Kind.CARGO:
+		_drop = CARGO_CORD
+		_hang_cargo(brass)
+		return
 	var cord := CylinderMesh.new()
 	cord.top_radius = 0.008
 	cord.bottom_radius = 0.008
@@ -122,9 +176,86 @@ func setup(room: AABB, phase: float, glass: StandardMaterial3D, brass: Material)
 	_light.omni_range = RANGE
 	_light.omni_attenuation = 1.2
 	_light.shadow_enabled = false
-	# Outdoor faces of the ship are lit by the sky alone, so no lamp shows through a wall.
-	_light.light_cull_mask &= ~(1 << (ShipMesh.OUTDOOR_LAYER - 1))
+	_unlit_outdoors(_light)
 	add_child(_light)
+
+
+## A cargo lamp: a brass cord down to a tin shade over its globe and a wire cage
+## round it, its light bright under it and soon fading.
+func _hang_cargo(brass: Material) -> void:
+	var cord := CylinderMesh.new()
+	cord.top_radius = 0.008
+	cord.bottom_radius = 0.008
+	cord.height = CARGO_CORD - GLOBE_RADIUS
+	cord.radial_segments = 4
+	cord.rings = 1
+	cord.material = brass
+	_part(cord, -(CARGO_CORD - GLOBE_RADIUS) * 0.5)
+	var tin := StandardMaterial3D.new()
+	tin.albedo_color = ArtPalette.LAMP_SHADE
+	tin.diffuse_mode = BaseMaterial3D.DIFFUSE_TOON
+	tin.specular_mode = BaseMaterial3D.SPECULAR_DISABLED
+	tin.cull_mode = BaseMaterial3D.CULL_DISABLED
+	var shade := CylinderMesh.new()
+	shade.top_radius = 0.05
+	shade.bottom_radius = 0.2
+	shade.height = 0.12
+	shade.radial_segments = 14
+	shade.rings = 1
+	shade.cap_top = false
+	shade.cap_bottom = false
+	shade.material = tin
+	_part(shade, -CARGO_CORD + GLOBE_RADIUS * 0.4)
+	var globe := SphereMesh.new()
+	globe.radius = GLOBE_RADIUS
+	globe.height = GLOBE_RADIUS * 2.0
+	globe.radial_segments = 12
+	globe.rings = 6
+	globe.material = _glass
+	_part(globe, -CARGO_CORD)
+	var cage := CylinderMesh.new()
+	cage.top_radius = GLOBE_RADIUS + 0.015
+	cage.bottom_radius = GLOBE_RADIUS + 0.015
+	cage.height = 0.012
+	cage.radial_segments = 10
+	cage.rings = 1
+	cage.material = brass
+	_part(cage, -CARGO_CORD - GLOBE_RADIUS * 0.4)
+	_light = OmniLight3D.new()
+	_light.position = Vector3(0.0, -CARGO_CORD - GLOBE_RADIUS, 0.0)
+	_light.light_color = ArtPalette.LAMP_LIGHT
+	_light.light_specular = 0.0
+	_light.omni_range = RANGE
+	_light.omni_attenuation = CARGO_ATTENUATION
+	_unlit_outdoors(_light)
+	add_child(_light)
+
+
+## A fire: its glowing mouth proud of its wall and its light thrown out along
+## [param facing], which the lamp turns to face; a spot no wider than a half-space
+## leaves the wall behind it, and whatever stands beyond, dark.
+func _burn(facing: Vector3) -> void:
+	basis = Basis.looking_at(facing)
+	var mouth := BoxMesh.new()
+	mouth.size = Vector3(MOUTH.x, MOUTH.y, 0.01)
+	mouth.material = _glass
+	var part := _part(mouth, 0.0)
+	part.position.z = -MOUTH_PROUD
+	_spot = SpotLight3D.new()
+	_spot.position = Vector3(0.0, 0.0, -MOUTH_PROUD - 0.05)
+	_spot.light_color = ArtPalette.FIRE_LIGHT
+	_spot.light_specular = 0.0
+	_spot.spot_range = FIRE_RANGE
+	_spot.spot_angle = FIRE_ANGLE
+	_spot.spot_angle_attenuation = 0.8
+	_spot.spot_attenuation = 1.0
+	_unlit_outdoors(_spot)
+	add_child(_spot)
+
+
+## Outdoor faces of the ship are lit by the sky alone, so no lamp shows through a wall.
+static func _unlit_outdoors(light: Light3D) -> void:
+	light.light_cull_mask &= ~(1 << (ShipMesh.OUTDOOR_LAYER - 1))
 
 
 func _process(delta: float) -> void:
@@ -132,12 +263,15 @@ func _process(delta: float) -> void:
 	if ship == null:
 		return
 	_clock += delta
-	var down := (ship.global_basis.inverse() * Vector3.DOWN).normalized()
-	_swing += ((down - _hang) * STIFFNESS - _swing * DAMPING) * delta
-	_hang = (_hang + _swing * delta).normalized()
-	basis = Basis(Quaternion(Vector3.DOWN, _hang))
-	var lamp_height := (global_transform * Vector3(0.0, -CORD, 0.0)).y
+	if _kind != Kind.FIRE:
+		var down := (ship.global_basis.inverse() * Vector3.DOWN).normalized()
+		_swing += ((down - _hang) * STIFFNESS - _swing * DAMPING) * delta
+		_hang = (_hang + _swing * delta).normalized()
+		basis = Basis(Quaternion(Vector3.DOWN, _hang))
+	var lamp_height := (global_transform * Vector3(0.0, -_drop, 0.0)).y
 	var level := glow(lamp_height, (ship.global_transform * _floor).y, _clock + _phase)
+	if _kind == Kind.FIRE:
+		level *= flame(_clock + _phase)
 	if not burning:
 		level = 0.0
 	var camera := get_viewport().get_camera_3d()
@@ -147,14 +281,21 @@ func _process(delta: float) -> void:
 		wanted = relevant(eye, _room, burning)
 	_presence = move_toward(_presence, 1.0 if wanted else 0.0, delta / FADE)
 	var energy := level * smoothstep(0.0, 1.0, _presence)
-	_light.light_energy = ENERGY * energy
-	_light.visible = energy > 0.0
-	_glass.emission_energy_multiplier = level
+	if _light != null:
+		_light.light_energy = (CARGO_ENERGY if _kind == Kind.CARGO else ENERGY) * energy
+		_light.visible = energy > 0.0
+	if _spot != null:
+		_spot.light_energy = FIRE_ENERGY * energy
+		_spot.visible = energy > 0.0
+	if level != _shown:
+		_shown = level
+		_glass.emission_energy_multiplier = level
 
 
-func _part(mesh: PrimitiveMesh, drop: float) -> void:
+func _part(mesh: PrimitiveMesh, drop: float) -> MeshInstance3D:
 	var part := MeshInstance3D.new()
 	part.mesh = mesh
 	part.position.y = drop
 	part.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(part)
+	return part

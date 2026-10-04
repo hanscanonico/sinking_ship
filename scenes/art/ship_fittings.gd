@@ -3,7 +3,8 @@ extends RefCounted
 ## What a ship's rooms and decks are fitted with (ShipArt), placed by rules on the
 ## layout, never by hand: glass in every outside wall — a brass-ringed porthole
 ## below the deck the hull reaches, a framed window above — shown both inside and
-## out; furniture by the kind of room its shape says it is; and lifeboats on davits
+## out; banquettes in a saloon and a berth in a cabin, by the kind of room
+## RoomDressing says it is (it furnishes the rest); and lifeboats on davits
 ## under a high deck's open edge. Furniture stands within a body's radius of a wall,
 ## where no body's centre ever goes, and only where the floor is clear: a prop the
 ## rules cannot see never stands in anyone's way.
@@ -24,14 +25,7 @@ const GLASS_PROUD := 0.012
 ## A porthole in the hull stands this far off its curved plating.
 const HULL_GLASS_PROUD := 0.03
 const FRAME_PROUD := 0.01
-## A room narrower than CORRIDOR has no furniture; one below the main deck this big
-## is a hold and takes cargo; one above it this big is a saloon and takes banquettes;
-## the others a berth, and the highest room, if small, a helm.
-const CORRIDOR := 1.8
-const HOLD_AREA := 40.0
-const SALOON_AREA := 15.0
 const PROP_GAP := 0.03
-const CARGO_SPACING := 1.2
 ## Lifeboats hang beside the open long edge of a deck that stands at least this high
 ## over the deck beneath it.
 const LIFEBOAT_HEADROOM := 2.4
@@ -67,6 +61,9 @@ var _layout: ShipLayout
 var _hull: ShipHull
 ## How deep furniture stands out from a wall: the body radius.
 var _depth: float
+## Every pane of glass, as seen from inside its room: [room, centre, normal into the
+## room, whether a porthole].
+var panes: Array[Array] = []
 
 
 func _init(space: ShipSpace, hull: ShipHull, body_radius: float) -> void:
@@ -77,12 +74,9 @@ func _init(space: ShipSpace, hull: ShipHull, body_radius: float) -> void:
 
 
 func build(mesh: ShipMesh) -> void:
-	var top_floor := -INF
-	for room: ShipRoom in _layout.rooms:
-		top_floor = maxf(top_floor, room.floor_height)
 	for room: ShipRoom in _layout.rooms:
 		_windows(mesh, room)
-		_furnish(mesh, room, room.floor_height >= top_floor)
+		_furnish(mesh, room)
 	_lifeboats(mesh)
 
 
@@ -116,6 +110,7 @@ func _windows(mesh: ShipMesh, room: ShipRoom) -> void:
 				continue
 			var inner := on_line - outward * (half + GLASS_PROUD)
 			_pane(mesh, Vector3(inner.x, height, inner.y), -normal, in_hull, ShipPaints.glass_in)
+			panes.append([room, Vector3(inner.x, height, inner.y), -normal, in_hull])
 			var outer := on_line + outward * (half + GLASS_PROUD)
 			var out_normal := normal
 			if in_hull:
@@ -192,20 +187,14 @@ func _pane(
 		)
 
 
-## A room's furniture, by what kind of room its shape says it is.
-func _furnish(mesh: ShipMesh, room: ShipRoom, top_room: bool) -> void:
-	var size := room.area.size
-	if minf(size.x, size.y) < CORRIDOR or _space.machinery_in(room):
+## A passenger room's furniture, by what kind of room RoomDressing says it is.
+func _furnish(mesh: ShipMesh, room: ShipRoom) -> void:
+	var kind := RoomDressing.kind_of(_space, room)
+	if kind != RoomDressing.Kind.SALOON and kind != RoomDressing.Kind.CABIN:
 		return
-	var area := size.x * size.y
 	var runs := _space.wall_runs(room)
 	runs.sort_custom(func(a: Array, b: Array) -> bool: return a[2] - a[1] > b[2] - b[1])
-	if top_room and area < SALOON_AREA:
-		_helm(mesh, room, runs)
-	elif room.floor_height < 0.0 and area >= HOLD_AREA:
-		for run: Array in runs:
-			_cargo(mesh, room, run)
-	elif room.floor_height >= 0.0 and area >= SALOON_AREA:
+	if kind == RoomDressing.Kind.SALOON:
 		for run: Array in runs:
 			_banquette(mesh, room, run)
 	else:
@@ -264,84 +253,6 @@ func _banquette(mesh: ShipMesh, room: ShipRoom, run: Array) -> void:
 	mesh.box(cushion, floor + 0.28, floor + 0.42, ShipPaints.upholstery, faces)
 	var back := _along(room, run, start + 0.02, end - 0.02, 0.0, PROP_GAP + 0.1)
 	mesh.box(back, floor + 0.42, floor + 0.85, ShipPaints.upholstery, faces)
-
-
-## Crates and barrels against the wall along [param run], a crate stacked here and
-## there.
-func _cargo(mesh: ShipMesh, room: ShipRoom, run: Array) -> void:
-	var floor := room.floor_height
-	var size := _depth - PROP_GAP
-	var slots := floori((run[2] - run[1]) / CARGO_SPACING)
-	for slot in slots:
-		var at: float = run[1] + 0.2 + slot * CARGO_SPACING
-		var spot := _along(room, run, at, at + size, PROP_GAP, _depth)
-		if not _space.clear(spot, floor, floor + size * 2.0):
-			continue
-		if slot % 3 == 1:
-			var centre := spot.get_center()
-			var radius := size * 0.45
-			mesh.cylinder(centre, radius, floor, floor + 0.55, 10, ShipPaints.frame)
-			for hoop: float in [0.12, 0.43]:
-				mesh.cylinder(
-					centre,
-					radius + 0.01,
-					floor + hoop - 0.02,
-					floor + hoop + 0.02,
-					10,
-					ShipPaints.steel,
-					false
-				)
-			continue
-		mesh.box(spot, floor, floor + size, ShipPaints.crate, ShipMesh.SIDES | ShipMesh.TOP)
-		if slot % 3 == 0:
-			var middle := spot.get_center()
-			mesh.turned_box(
-				Transform3D(
-					Basis(Vector3.UP, 0.25), Vector3(middle.x, floor + size * 1.4, middle.y)
-				),
-				Vector3.ONE * size * 0.8,
-				ShipPaints.crate
-			)
-
-
-## A ship's wheel on its pedestal and a brass binnacle, against the forward wall.
-func _helm(mesh: ShipMesh, room: ShipRoom, runs: Array) -> void:
-	var floor := room.floor_height
-	for run: Array in runs:
-		if run[0] != 1:
-			continue
-		var middle: float = (run[1] + run[2]) * 0.5
-		var post := _along(room, run, middle - 0.07, middle + 0.07, 0.15, 0.29)
-		if not _space.clear(post, floor, floor + 1.4):
-			return
-		mesh.box(post, floor, floor + 0.95, ShipPaints.frame, ShipMesh.SIDES | ShipMesh.TOP)
-		var at := _space.on_side(room, 1, middle, run[3] + 0.32)
-		var hub := Vector3(at.x, floor + 1.05, at.y)
-		var normal := Vector3.LEFT
-		var right := normal.cross(Vector3.UP).normalized()
-		var inner := PackedVector3Array()
-		var outer := PackedVector3Array()
-		for index in 16:
-			var spoke := right * cos(TAU * index / 16) + Vector3.UP * sin(TAU * index / 16)
-			inner.append(hub + spoke * 0.28)
-			outer.append(hub + spoke * 0.34)
-		for index in 16:
-			var next := (index + 1) % 16
-			mesh.quad(
-				inner[index], inner[next], outer[next], outer[index], normal, ShipPaints.frame
-			)
-		for angle: float in [0.0, PI / 4.0, PI / 2.0, PI * 0.75]:
-			mesh.turned_box(
-				Transform3D(Basis(Vector3.RIGHT, angle), hub),
-				Vector3(0.03, 0.74, 0.03),
-				ShipPaints.frame
-			)
-		var binnacle := _along(room, run, middle + 0.45, middle + 0.75, 0.05, _depth)
-		if _space.clear(binnacle, floor, floor + 1.2):
-			var centre := binnacle.get_center()
-			mesh.cylinder(centre, 0.13, floor, floor + 1.0, 12, ShipPaints.brass)
-			mesh.cylinder(centre, 0.1, floor + 1.0, floor + 1.12, 12, ShipPaints.dark)
-		return
 
 
 ## Lifeboats on davits beside the open long edges of every deck standing high
