@@ -103,3 +103,21 @@ func test_the_refuge_leans_only_as_far_as_the_deck_does() -> void:
 		assert_almost_eq(profile.refuge_tilt(lean * 0.5), full * 0.5, 1e-9, tier)
 		assert_eq(profile.refuge_tilt(lean), full, tier)
 		assert_eq(profile.refuge_tilt(lean * 4.0), full, tier)
+
+
+## A bot spars only while the ship is level: its whole spar margin with every deck dry,
+## less as they go under, none once spar_until of them are — and none at all for a
+## spar_until of nothing.
+func test_the_spar_margin_fades_as_the_ship_goes_under() -> void:
+	for tier: String in BotProfile.tiers():
+		var profile := BotProfile.for_tier(StringName(tier))
+		var full := profile.spar_margin_m
+		var until := profile.spar_until
+		assert_gt(until, 0.0, "%s: it spars until some of the ship is under" % tier)
+		assert_eq(profile.spar_margin(0.0), full, "%s: dry, the whole margin" % tier)
+		assert_almost_eq(profile.spar_margin(until * 0.5), full * 0.5, 1e-9, tier)
+		assert_eq(profile.spar_margin(until), 0.0, "%s: from spar_until, none" % tier)
+		assert_eq(profile.spar_margin(1.0), 0.0, tier)
+	var never: BotProfile = BotProfile.for_tier(&"normal").duplicate()
+	never.spar_until = 0.0
+	assert_eq(never.spar_margin(0.0), 0.0, "spar_until 0: it never spars")

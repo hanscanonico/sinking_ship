@@ -6,7 +6,7 @@ extends RefCounted
 ## path crosses a wall only through a doorway. A bot routes to a zone, then steers
 ## locally. What stands where, what a ramp joins and which points are wet it asks
 ## Surfaces; it never routes into a flooded zone or one giving way, nor through a
-## portal with an end under water.
+## portal with an end under water — but for a swimmer's way ashore, which swims them.
 
 const NONE := -1
 ## How far apart two platforms' edges may be and still meet: the data's rectangles
@@ -284,6 +284,15 @@ func lowest_world_height(zone: int, pose: ShipPose) -> float:
 	return _lowest[zone]
 
 
+## How high above the sea the floor under a body at [param at] in [param zone] stands
+## under [param pose], as the sea comes for it: a room floods from its lowest corner up,
+## an open deck where the body stands.
+func floor_height(zone: int, at: Vector3, pose: ShipPose) -> float:
+	if is_room(zone):
+		return lowest_world_height(zone, pose)
+	return pose.world_height(at)
+
+
 ## How high [param zone] would stand were the deck tilted further by [param lean]: the
 ## rise per metre of the ship plane, uphill. A room by the middle of its floor, an open
 ## deck by the highest middle of its platforms, as world_height has them.
@@ -459,6 +468,22 @@ func way_off(ramp_surface: int, zone: int) -> Portal:
 	return null
 
 
+## The portals of the shortest swim from a swimmer at [param from_pos] over
+## [param bottom] — through flooded zones and portals under water, never a zone giving
+## way — to the nearest zone not flooded: out of a flooded room by its doorways and
+## stairs. Empty when it swims over nothing, or over a zone not flooded itself, or no
+## such zone is reached.
+func way_ashore(from_pos: Vector3, bottom: int, pose: ShipPose) -> Array[Portal]:
+	var found := search(from_pos, bottom, pose, true)
+	var nearest := NONE
+	for zone in found.cost.size():
+		if found.cost[zone] == INF or flooded(zone, pose) or doomed(zone, pose):
+			continue
+		if nearest == NONE or found.cost[zone] < found.cost[nearest]:
+			nearest = zone
+	return route_in(found, nearest)
+
+
 ## Where a body on [param from_surface] at [param from_pos] walks next toward the
 ## zone [param goal]: one point, or none when there is no portal to go through.
 func steer(from_pos: Vector3, from_surface: int, goal: int, pose: ShipPose) -> PackedVector3Array:
@@ -598,9 +623,10 @@ func _room_middle(room: int) -> Vector3:
 
 ## Dijkstra over the zones from where a body on [param from_surface] at
 ## [param from_pos] stands — a zone, or both ends of the ramp it is on — never entering
-## a flooded or doomed zone or going through a portal with an end under water; ties go
-## to the lower zone number. Empty when it stands on nothing.
-func search(from_pos: Vector3, from_surface: int, pose: ShipPose) -> Search:
+## a doomed zone, nor, unless it may [param swim], a flooded one or going through a
+## portal with an end under water; ties go to the lower zone number. Empty when it
+## stands on nothing.
+func search(from_pos: Vector3, from_surface: int, pose: ShipPose, swim := false) -> Search:
 	var found := Search.new()
 	var footing := _surfaces.footing(from_surface) if from_surface != Surfaces.NONE else NONE
 	if footing == Surfaces.NONE:
@@ -626,7 +652,9 @@ func search(from_pos: Vector3, from_surface: int, pose: ShipPose) -> Search:
 			var zone := _ramp_zones[ramp][end]
 			var portal := _ramp_portals[ramp][end]
 			var exit := _ramps[ramp].end_point(end)
-			if portal == NONE or _closed(zone, pose) or _surfaces.wet(exit, pose):
+			if portal == NONE or doomed(zone, pose):
+				continue
+			if not swim and (flooded(zone, pose) or _surfaces.wet(exit, pose)):
 				continue
 			var reached := from_pos.distance_to(exit)
 			if reached < cost[zone]:
@@ -646,7 +674,9 @@ func search(from_pos: Vector3, from_surface: int, pose: ShipPose) -> Search:
 		done[zone] = 1
 		for index: int in _out[zone]:
 			var other := _portal_to[index]
-			if done[other] == 1 or _closed(other, pose) or _wet(index, pose):
+			if done[other] == 1 or doomed(other, pose):
+				continue
+			if not swim and (flooded(other, pose) or _wet(index, pose)):
 				continue
 			var through := (
 				cost[zone] + arrived[zone].distance_to(_portal_entry[index]) + _portal_length[index]

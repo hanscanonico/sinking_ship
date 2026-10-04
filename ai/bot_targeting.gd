@@ -45,7 +45,8 @@ func _init(
 
 
 ## The seat to go at, [param kept] the one it goes at now: of those it perceives on
-## their feet, in a zone it can reach, scored by how near — against the nearest — and
+## their feet, in a zone it can reach — but a room whose floor stands within
+## climb_margin_m of the sea — scored by how near — against the nearest — and
 ## by king_of_hill_bias how high they stand, against the lowest and the highest; that
 ## bias tapered by crowd_taper while crowd_seats or more stand in [param perch], the highest
 ## zone it can reach. By exposure_weight, one within two shoves' carry scores by how far
@@ -67,6 +68,12 @@ func choose(
 			continue
 		var zone := _zone_of(entry)
 		if zone != WalkGraph.NONE and (found.cost.is_empty() or found.cost[zone] == INF):
+			continue
+		# Not down into a room the sea is about to take: the bot would climb out of it.
+		if (
+			_walk_graph.is_room(zone)
+			and _walk_graph.floor_height(zone, entry["pos"], pose) < _profile.climb_margin_m
+		):
 			continue
 		candidates.append(entry)
 		var height := pose.world_height(entry["pos"])

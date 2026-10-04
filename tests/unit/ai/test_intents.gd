@@ -27,11 +27,14 @@ func _runner(sim: MatchSim, bot: BotInputSource) -> MatchRunner:
 
 func test_lineup_puts_the_target_between_bot_and_water() -> void:
 	# The target stands a metre from the starboard edge; the hard bot comes up beside it,
-	# along the edge — a shove from there would only push it along the deck.
+	# along the edge — a shove from there would only push it along the deck. It spars no
+	# more, as once the ship founders.
 	var sim := MatchSim.create(SimFixtures.config(2, null, SEED, _open_deck()))
 	SimFixtures.place(sim, 0, Vector3(-3.0, 0.0, 3.0), 0.0)
 	SimFixtures.place(sim, 1, Vector3(0.0, 0.0, 3.0))
-	var source := BotInputSource.new(0, _tier(&"hard"), sim.config)
+	var profile: BotProfile = _tier(&"hard").duplicate()
+	profile.spar_margin_m = 0.0
+	var source := BotInputSource.new(0, profile, sim.config)
 	var runner := _runner(sim, source)
 	var lined_up := false
 	var landed := Vector2.ZERO
@@ -148,7 +151,8 @@ func test_intent_hysteresis_holds_between_close_scores() -> void:
 	# The bot's target, by the open starboard edge, stands a body's width from it at one
 	# think and two at the next: lining the shove up scores just above going straight at
 	# it, then just below — by less than the hysteresis either way. The bot keeps the
-	# intent it chose; without hysteresis it swaps at every think.
+	# intent it chose; without hysteresis it swaps at every think. It spars no more, so a
+	# drop that near is one to line up.
 	var edge := _open_deck().platforms[0].area.end.y
 	var stride := SimFixtures.rules().body_radius * 2.0
 	var changes := {}
@@ -158,6 +162,7 @@ func test_intent_hysteresis_holds_between_close_scores() -> void:
 		profile.mistake_rate = 0.0
 		profile.brace_read = 0.0
 		profile.lineup_weight = 0.3
+		profile.spar_margin_m = 0.0
 		var sim := MatchSim.create(SimFixtures.config(2, null, SEED, _open_deck()))
 		SimFixtures.place(sim, 0, Vector3(-3.0, 0.0, edge - 1.0))
 		SimFixtures.place(sim, 1, Vector3(0.0, 0.0, edge - 1.0))
@@ -392,3 +397,139 @@ func test_a_bot_beside_a_stair_walks_along_it_to_its_foot() -> void:
 				up = true
 				break
 		assert_true(up, "from %s it got up: at %s" % [start, sim.state.seats[0].pos])
+
+
+## Settled half a metre, the cabins' floor a hand above the sea: a bot in a starboard
+## cabin, its target still in a port one and a third seat on the bridge. It climbs out
+## once, and up on the main deck — out of the sea's reach, so it climbs no further — it
+## does not go back down after its target into rooms the sea is about to take.
+func test_a_bot_that_climbed_out_does_not_go_back_down_after_its_target() -> void:
+	var layout := SimFixtures.steamer()
+	var settled := SimFixtures.scenario([[0.0, 0.5, 0.0, 0.0]])
+	var sim := SimFixtures.sim(3, settled, layout)
+	SimFixtures.place(sim, 0, Vector3(-7.0, -2.6, 2.8))
+	SimFixtures.place(sim, 1, Vector3(-7.0, -2.6, -2.8))
+	SimFixtures.place(sim, 2, Vector3(-2.5, 4.7, 0.0))
+	var source := BotInputSource.new(0, _tier(&"normal"), sim.config)
+	var runner := _runner(sim, source)
+	var climbs := 0
+	var climbing := false
+	var up := false
+	var back_down := false
+	for _tick in 30 * Ticks.RATE:
+		runner.step()
+		var now := source.brain.intent == BotBrain.Intent.CLIMB_OUT
+		climbs += 1 if now and not climbing else 0
+		climbing = now
+		var bot := sim.state.seats[0]
+		up = up or bot.pos.y >= 0.0
+		back_down = back_down or up and bot.pos.y < -2.0
+	assert_true(up, "it climbed out: at %s" % sim.state.seats[0].pos)
+	assert_eq(climbs, 1, "times it set off climbing out")
+	assert_false(back_down, "it never went back down below decks")
+
+
+## On a dry, level ship the cabins stand out of the sea's reach: a bot on the main deck
+## that hears its target in the cabin under it goes down after it and fights it there.
+func test_on_a_dry_ship_a_bot_goes_below_decks_after_its_target() -> void:
+	var layout := SimFixtures.steamer()
+	var sim := SimFixtures.sim(2, null, layout)
+	SimFixtures.place(sim, 0, Vector3(-7.0, 0.0, 3.5))
+	SimFixtures.place(sim, 1, Vector3(-7.0, -2.6, 2.8))
+	var source := BotInputSource.new(0, _tier(&"normal"), sim.config)
+	var runner := _runner(sim, source)
+	var nearest := INF
+	for _tick in 20 * Ticks.RATE:
+		runner.step()
+		nearest = minf(nearest, sim.state.seats[0].pos.distance_to(sim.state.seats[1].pos))
+	assert_eq(source.brain.target, 1, "it went after its target")
+	assert_lt(nearest, 1.5, "and came at it below decks")
+
+
+## Settled half a metre, a bot climbing out of a cabin is knocked off its feet before
+## it is out: in the air it stands in no zone, which is not where it was making for —
+## it climbs on, without ever letting go, until it is out of the sea's reach.
+func test_a_bot_knocked_off_its_feet_climbing_out_climbs_on() -> void:
+	var layout := SimFixtures.steamer()
+	var settled := SimFixtures.scenario([[0.0, 0.5, 0.0, 0.0]])
+	var sim := SimFixtures.sim(2, settled, layout)
+	SimFixtures.place(sim, 0, Vector3(-7.0, -2.6, 2.8))
+	SimFixtures.place(sim, 1, Vector3(-2.5, 4.7, 0.0))
+	var source := BotInputSource.new(0, _tier(&"normal"), sim.config)
+	var runner := _runner(sim, source)
+	var bot := sim.state.seats[0]
+	while source.brain.intent != BotBrain.Intent.CLIMB_OUT and sim.state.tick < Ticks.RATE:
+		runner.step()
+	assert_eq(source.brain.intent, BotBrain.Intent.CLIMB_OUT, "it set off climbing out")
+	bot.body = PlayerState.Body.AIRBORNE
+	bot.surface = Surfaces.NONE
+	bot.vel.y = 6.0
+	var let_go := 0
+	var out_of_reach := SimFixtures.rules().body_height
+	while sim.pose().world_height(bot.pos) <= out_of_reach and sim.state.tick < 5 * Ticks.RATE:
+		runner.step()
+		let_go += 0 if source.brain.intent == BotBrain.Intent.CLIMB_OUT else 1
+	assert_gt(sim.pose().world_height(bot.pos), out_of_reach, "it got out: at %s" % bot.pos)
+	assert_eq(let_go, 0, "ticks it was not climbing out on the way")
+
+
+## On a level ship a bot spars: its target a metre from the railing, it holds the shove
+## that would send it at the rail and over, and throws the one that sends it along the
+## deck — and with no spar margin it throws both.
+func test_on_a_level_ship_a_bot_spars() -> void:
+	var rules := SimFixtures.rules()
+	var gap := rules.body_radius * 2.0 + 0.3
+	var target_at := Vector3(-6.0, 0.0, 3.0)
+	var shoved := {}
+	for spar: float in [2.5, 0.0]:
+		# From inboard, at the railing behind it; from aft, along the deck.
+		for from_deg: float in [90.0, 0.0]:
+			var profile: BotProfile = _tier(&"normal").duplicate()
+			profile.brace_read = 0.0
+			profile.mistake_rate = 0.0
+			profile.spar_margin_m = spar
+			profile.spar_until = 0.5
+			var sim := SimFixtures.sim(2)
+			var way := Vector2.from_angle(deg_to_rad(from_deg)) * gap
+			SimFixtures.place(sim, 0, target_at - Vector3(way.x, 0.0, way.y), from_deg)
+			SimFixtures.place(sim, 1, target_at)
+			var source := BotInputSource.new(0, profile, sim.config)
+			var pressed := false
+			for tick in Ticks.RATE:
+				source.observe(sim.snapshot(), sim.pose())
+				pressed = (
+					pressed or source.next_frame(sim.state.tick + tick).is_held(InputFrame.SHOVE)
+				)
+			shoved[[spar, from_deg]] = pressed
+	assert_false(shoved[[2.5, 90.0]], "sparring: no shove at the railing")
+	assert_true(shoved[[2.5, 0.0]], "sparring: a shove along the deck")
+	assert_true(shoved[[0.0, 90.0]], "no spar margin: the shove at the railing")
+	assert_true(shoved[[0.0, 0.0]], "no spar margin: the shove along the deck")
+
+
+## Sparring, a bot answers a brace with a tap, never a charge — a charge sends a body
+## over a railing from metres off; with no spar margin it charges it on its read.
+func test_a_sparring_bot_does_not_charge_a_brace() -> void:
+	var rules := SimFixtures.rules()
+	var gap := rules.body_radius * 2.0 + 0.3
+	var held := {}
+	for spar: float in [2.5, 0.0]:
+		var profile: BotProfile = _tier(&"hard").duplicate()
+		profile.brace_read = 0.0
+		profile.charge_read = 1.0
+		profile.spar_margin_m = spar
+		profile.spar_until = 0.5
+		var sim := SimFixtures.sim(2)
+		SimFixtures.place(sim, 0, Vector3(-gap, 0.0, 0.0), 0.0)
+		SimFixtures.place(sim, 1, Vector3.ZERO, 180.0)
+		sim.state.seats[1].bracing = true
+		var source := BotInputSource.new(0, profile, sim.config)
+		var run := 0
+		held[spar] = 0
+		for tick in Ticks.RATE:
+			source.observe(sim.snapshot(), sim.pose())
+			var pressed := source.next_frame(sim.state.tick + tick).is_held(InputFrame.SHOVE)
+			run = run + 1 if pressed else 0
+			held[spar] = maxi(held[spar], run)
+	assert_eq(held[2.5], 1, "sparring: a tap")
+	assert_gt(held[0.0], 1, "no spar margin: a charge, held")

@@ -269,11 +269,13 @@ func test_bot_turn_rate_is_capped_by_its_profile() -> void:
 
 
 ## The normal profile with its reads forced: [param brace] and [param charge] are
-## brace_read and charge_read.
+## brace_read and charge_read. It spars no more, as once the ship founders: a charge is
+## a charge.
 func _reading(brace: float, charge: float) -> BotProfile:
 	var profile: BotProfile = _steady().duplicate()
 	profile.brace_read = brace
 	profile.charge_read = charge
+	profile.spar_margin_m = 0.0
 	return profile
 
 
@@ -505,13 +507,16 @@ func test_swimming_bot_climbs_a_boarding_ladder() -> void:
 
 func test_deck_bot_shoves_a_climber_back() -> void:
 	# Seat 0 swims beside the flat deck, 0.4 m out of the sea, and after a second
-	# presses in to climb out; the bot stands on the deck within its guard range.
+	# presses in to climb out; the bot stands on the deck within its guard range. It
+	# spars no more, as once the ship founders: a sparring bot lets a climber up.
 	var config := SimFixtures.config(2, null, SEED, SimFixtures.low_deck(0.4))
 	var sim := MatchSim.create(config)
 	SimFixtures.swim(sim, 0, Vector3(0.0, 0.0, 4.6))
 	SimFixtures.place(sim, 1, Vector3(0.0, 0.0, 2.4), 90.0)
+	var profile: BotProfile = _profile().duplicate()
+	profile.spar_margin_m = 0.0
 	var sources: Array[InputSource] = [
-		Pressing.new(0, Ticks.RATE, Vector2(0.0, -1.0)), BotInputSource.new(1, _profile(), config)
+		Pressing.new(0, Ticks.RATE, Vector2(0.0, -1.0)), BotInputSource.new(1, profile, config)
 	]
 	var runner := MatchRunner.new(sim, sources)
 	var knocked: Array[SimEvent] = []
