@@ -12,7 +12,9 @@ extends Node
 ## --observer-cut cuts the observer's view of the ship away to show the inside;
 ## --net-sim puts fake lag on the wire between the local host and the client.
 ## --server serves rooms instead (ServerLoop), and --connect with --autoplay plays in a
-## server's room with nobody at the keys (OnlineAutoplay); neither opens a menu (SH12).
+## server's room with nobody at the keys (OnlineAutoplay); without --autoplay — or with a
+## browser page's address naming a room — a person plays there (OnlinePlay). None of
+## them opens a menu (SH12).
 ## The saved volumes and window apply as it boots; the settings screen opens from
 ## the main menu and the pause menu.
 
@@ -44,16 +46,18 @@ func _ready() -> void:
 	if _args.server:
 		add_child(ServerLoop.new(_args))
 		return
-	if not _args.connect_url.is_empty():
-		if _args.autoplay:
-			add_child(OnlineAutoplay.new(_args))
-			return
-		push_warning("--connect plays with --autoplay until the Online menu (SH12b)")
+	if not _args.connect_url.is_empty() and _args.autoplay:
+		add_child(OnlineAutoplay.new(_args))
+		return
 	_seeds.randomize()
 	AudioSettings.local().apply()
 	# A capture keeps the window it was launched with, whatever the player saved.
 	if _args.capture_path.is_empty():
 		ViewSettings.local().apply_window()
+	var link := OnlineLink.for_launch(_args)
+	if link.wanted:
+		add_child(OnlinePlay.new(link))
+		return
 	_match_rules = load(MATCH_DATA)
 	var problems := _match_rules.problems()
 	if not problems.is_empty():

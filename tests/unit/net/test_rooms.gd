@@ -9,6 +9,29 @@ extends GutTest
 const ACTING_BEATS := 8 * Ticks.RATE
 
 
+## Draws that cannot draw.
+class Failing:
+	extends Draws
+
+	func below(_count: int) -> int:
+		return -1
+
+	func u32() -> int:
+		return -1
+
+
+## Draws whose first seed cannot be drawn, and every one after it can.
+class FailingOnce:
+	extends Draws
+	var _failed := false
+
+	func u32() -> int:
+		if _failed:
+			return 1701
+		_failed = true
+		return -1
+
+
 ## A walk to starboard on every tick.
 class Walking:
 	extends InputSource
@@ -99,6 +122,71 @@ static func _codes_and_seeds(seeds_seed: int, letters_seed: int) -> Array[Packed
 		codes.append(creator.roster.code)
 		seeds.append(str(fixture.room(creator).host.runner.sim.config.match_seed))
 	return [codes, seeds]
+
+
+## Draws that always come up the same: the second room's code is never free, and the
+## server gives it up rather than drawing forever.
+func test_a_code_never_free_is_given_up() -> void:
+	var fixture := RoomFixtures.new(null, null, null, Draws.new())
+	var first := fixture.connect_client("First")
+	var second := fixture.connect_client("Second")
+	var busy := RoomFixtures.refusals(second)
+	fixture.beat()
+	first.create_room()
+	fixture.beat()
+	second.create_room()
+	fixture.beat()
+	assert_eq(fixture.server.room_count(), 1)
+	assert_eq(busy, [RoomCodec.Refusal.BUSY] as Array[int], "told to try later")
+	assert_eq(second.state, RoomClient.State.LOBBY)
+	assert_true(fixture.logged("no free room code"))
+
+
+## Draws that cannot draw — SecureDraws without its bytes — make no room at all.
+func test_no_room_without_a_code_drawn() -> void:
+	var fixture := RoomFixtures.new(null, null, null, Failing.new())
+	var creator := fixture.connect_client("Creator")
+	var busy := RoomFixtures.refusals(creator)
+	fixture.beat()
+	creator.create_room()
+	fixture.beat()
+	assert_eq(fixture.server.room_count(), 0)
+	assert_eq(busy, [RoomCodec.Refusal.BUSY] as Array[int])
+	assert_eq(creator.state, RoomClient.State.LOBBY)
+
+
+## Nor a match without a seed drawn: its START is refused, and the room waits on.
+func test_no_match_without_a_seed_drawn() -> void:
+	var fixture := RoomFixtures.new(null, RoomFixtures.flat_rules(), null, null, Failing.new())
+	var host := fixture.room_of(1)[0]
+	var busy := RoomFixtures.refusals(host)
+	host.start_match()
+	fixture.beat()
+	assert_eq(busy, [RoomCodec.Refusal.BUSY] as Array[int])
+	assert_eq(fixture.room(host).phase, Room.Phase.WAITING)
+	assert_eq(host.state, RoomClient.State.ROOM)
+
+
+## A START whose seed could not be drawn built nothing, so it costs the host none of
+## its start_cooldown: the next START, once a seed comes, begins the match.
+func test_a_seed_not_drawn_costs_no_cooldown() -> void:
+	var seeds := FailingOnce.new()
+	var fixture := RoomFixtures.new(
+		RoomFixtures.rules_with({"start_cooldown": 5.0}),
+		RoomFixtures.flat_rules(),
+		null,
+		null,
+		seeds
+	)
+	var host := fixture.room_of(1)[0]
+	var busy := RoomFixtures.refusals(host)
+	host.start_match()
+	fixture.beat()
+	assert_eq(busy, [RoomCodec.Refusal.BUSY] as Array[int], "no seed the first time")
+	host.start_match()
+	fixture.beat()
+	assert_eq(busy.size(), 1, "the second START is not held to the cooldown")
+	assert_eq(host.state, RoomClient.State.PLAYING)
 
 
 func test_empty_seats_are_filled_by_bots() -> void:

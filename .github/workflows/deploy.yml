@@ -1,0 +1,56 @@
+# MANUAL ONLY. This workflow runs when someone with write access presses "Run
+# workflow" (workflow_dispatch), and on nothing else — never add a push,
+# pull_request or schedule trigger. This repository is public and the job runs on
+# a self-hosted runner on the home mini PC: a trigger anyone can cause would run
+# code there. deploy/README.md says how the runner is registered and what else
+# keeps it safe.
+#
+# It deploys main as it stands: the runner's checkout is fast-forwarded to the
+# commit the run was started on, and deploy/bin/deploy builds and swaps the stack,
+# rolling back if it does not answer.
+name: deploy
+
+on:
+  workflow_dispatch:
+
+# One deploy at a time, never cancelled: a deploy killed mid-swap can leave the
+# stack half up.
+concurrency:
+  group: deploy-sinking-ship
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy to the mini PC
+    # Main only, and only by the repository's owner: a re-run keeps the first run's
+    # actor, so whoever pressed this run's button (triggering_actor) must be them too.
+    if: >-
+      github.ref == 'refs/heads/main'
+      && github.actor == github.repository_owner
+      && github.triggering_actor == github.repository_owner
+    # The runner is registered with this label alone (deploy/bin/setup_runner), not
+    # the default `self-hosted`, so no other workflow lands on it by accident.
+    runs-on: [sinking-ship-prod]
+    timeout-minutes: 45
+    steps:
+      # Fast-forward before running deploy/bin/deploy, so the script that runs is the
+      # commit's own (and exists at all on the first deploy). The job token
+      # authenticates the fetch: the runner service must not depend on the host's
+      # own git credential. The deploy lock, shared with a deploy by hand, is taken
+      # before the checkout moves and handed to the script through fd 9.
+      - name: Deploy the commit on the host
+        working-directory: /home/mini-pc/Documents/sinking_ship
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p build
+          exec 9>>build/deploy.lock
+          flock -w 900 9
+          git -c credential.helper= \
+              -c 'credential.helper=!f() { echo username=x-access-token; echo "password=$GITHUB_TOKEN"; }; f' \
+              fetch origin
+          git merge --ff-only "$GITHUB_SHA"
+          DEPLOY_LOCK_HELD=1 deploy/bin/deploy --no-pull

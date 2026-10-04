@@ -44,8 +44,9 @@ const NAME_PUNCTUATION := " -_.'"
 ## How long a client may stay in no room, and a room wait for its match.
 @export var lobby_timeout: float
 @export var idle_room_timeout: float
-## How long a player in a room may send neither an input nor a pong: past it the
-## client is gone however its socket looks, and its seat is a bot's.
+## How long a player in a room may send neither an input nor a pong — counted again
+## from its match's start — past which the client is gone however its socket looks,
+## and its seat is a bot's. At least two ping_intervals and a second.
 @export var silence_timeout: float
 ## How long a finished match keeps sending its last snapshot before its room goes back
 ## to waiting.
@@ -118,9 +119,10 @@ func problems() -> PackedStringArray:
 	]:
 		if beats(float(get(field))) < 1:
 			found.append("server: %s must be at least a tick" % field)
-	# A player in a waiting room is heard from only through the pongs it answers.
-	if silence_timeout <= ping_interval:
-		found.append("server: silence_timeout must be longer than ping_interval")
+	# A player in a waiting room is heard from only through the pongs it answers, at most
+	# a ping_interval apart plus the round trip.
+	if silence_timeout < 2.0 * ping_interval + 1.0:
+		found.append("server: silence_timeout must be at least 2 × ping_interval + 1 s")
 	# A name travels behind one length byte, and a roster lists its players in one.
 	if name_length > 0xFF:
 		found.append("server: name_length must be at most 255")

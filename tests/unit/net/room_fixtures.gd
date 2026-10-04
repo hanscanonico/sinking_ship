@@ -31,9 +31,15 @@ var _next_peer := SERVER_PEER + 1
 
 ## A server held to [param server_rules] — the shipped ones when null — serving
 ## [param served]' matches — the default match's when null — over a server end of
-## [param server_end_kind], a LoopbackTransport or one of its kind.
+## [param server_end_kind], a LoopbackTransport or one of its kind, drawing room codes
+## from [param codes] and match seeds from [param match_seeds] — [member letters] and
+## [member seeds] when null.
 func _init(
-	server_rules: ServerRules = null, served: MatchRules = null, server_end_kind: GDScript = null
+	server_rules: ServerRules = null,
+	served: MatchRules = null,
+	server_end_kind: GDScript = null,
+	codes: Draws = null,
+	match_seeds: Draws = null
 ) -> void:
 	rules = server_rules if server_rules != null else ServerRules.load_default()
 	match_rules = served if served != null else load(MATCH_DATA)
@@ -46,8 +52,8 @@ func _init(
 		rules,
 		NetRules.load_default(),
 		match_rules,
-		SeededDraws.new(seeds),
-		SeededDraws.new(letters)
+		match_seeds if match_seeds != null else SeededDraws.new(seeds),
+		codes if codes != null else SeededDraws.new(letters)
 	)
 	server.logged.connect(_hear)
 	codec = RoomCodec.new(RoomServer.data_hash(match_rules, NetRules.load_default()))

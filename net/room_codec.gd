@@ -23,7 +23,8 @@ const BOT_FLAG := 2
 ## Why the server refused a client something. VERSION to NOT_READING end the
 ## connection (ends_connection); the rest leave the client where it was, but for one
 ## that comes before WELCOME: SERVER_FULL, a server holding all the connections it may.
-## BUSY: the server builds no more matches just now; START again later.
+## BUSY: the server makes no more rooms or matches just now; CREATE or START again
+## later.
 enum Refusal {
 	VERSION,
 	DATA,
