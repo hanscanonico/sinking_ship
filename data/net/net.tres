@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="NetRules" format=3]
+
+[ext_resource type="Script" path="res://net/net_rules.gd" id="1_netru"]
+
+[resource]
+script = ExtResource("1_netru")
+snapshot_interval = 1
+interp_delay = 0.1
+input_redundancy = 4
+lead_buffer = 0.033
+lead_slack = 0.067
+prediction_cap = 0.5
+trust_limit = 1.0
+correction_time = 0.1

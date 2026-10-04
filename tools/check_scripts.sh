@@ -164,19 +164,24 @@ done <"$queue"
 if (($# == 0)); then
 	# The simulation layers, as far as they exist yet: grep on a missing
 	# directory would print an error and still pass, so only real ones are read.
+	# net/ — the host, the client and the wire (SH11) — is held to the same rules,
+	# but may read Time: it times what it does, and SH12's server keeps time.
 	sim_dirs=()
-	for dir in core ai; do
-		[[ -d "$dir" ]] && sim_dirs+=("$dir")
+	clock_free_dirs=()
+	for dir in core ai net; do
+		[[ -d "$dir" ]] || continue
+		sim_dirs+=("$dir")
+		[[ "$dir" == net ]] || clock_free_dirs+=("$dir")
 	done
 
 	if ((${#sim_dirs[@]})); then
-		# The simulation/presentation split: nothing under core/ or ai/ may reach
+		# The simulation/presentation split: nothing under core/, ai/ or net/ may reach
 		# for a Node, a scene or the tree. The pattern matches only spellings that
 		# can mean nothing else — the bare word "Node" is prose in comments, and a
 		# lint that cries wolf gets switched off.
 		layering="$(grep -rnE 'get_node\(|get_tree\(|\bSceneTree\b|\.tscn|res://scenes/|extends Node' "${sim_dirs[@]}" --include='*.gd' || true)"
 		if [[ -n "$layering" ]]; then
-			echo "check: core/ and ai/ are Node-free — the sim may not reach into the scene tree" >&2
+			echo "check: core/, ai/ and net/ are Node-free — the sim may not reach into the scene tree" >&2
 			printf '%s\n' "$layering" >&2
 			failed=$((failed + 1))
 		fi
@@ -187,17 +192,23 @@ if (($# == 0)); then
 		# through.
 		global_rng="$(grep -rnE '(^|[^.A-Za-z_])(randf|randf_range|randi|randi_range|randomize)\(' "${sim_dirs[@]}" --include='*.gd' || true)"
 		if [[ -n "$global_rng" ]]; then
-			echo "check: core/ and ai/ are RNG-free — roll a seeded rng, never the global one" >&2
+			echo "check: core/, ai/ and net/ are RNG-free — roll a seeded rng, never the global one" >&2
 			printf '%s\n' "$global_rng" >&2
 			failed=$((failed + 1))
 		fi
 
 		# The tick is the only clock, and a frame the only input (D1, D2): the
-		# engine's clocks and devices are out of reach of the sim and the bots.
-		# The word boundary is what lets InputFrame and BotInputSource through.
-		engine="$(grep -rnE '\b(Time|OS|Engine|Input|DisplayServer)\.' "${sim_dirs[@]}" --include='*.gd' || true)"
+		# engine's clocks and devices are out of reach of the sim and the bots —
+		# and of net/, but for Time. The word boundary is what lets InputFrame and
+		# BotInputSource through.
+		engine="$(
+			{
+				grep -rnE '\b(OS|Engine|Input|DisplayServer)\.' "${sim_dirs[@]}" --include='*.gd'
+				((${#clock_free_dirs[@]})) && grep -rnE '\bTime\.' "${clock_free_dirs[@]}" --include='*.gd'
+			} || true
+		)"
 		if [[ -n "$engine" ]]; then
-			echo "check: core/ and ai/ are clock- and device-free — count ticks, read InputFrames" >&2
+			echo "check: core/ and ai/ are clock- and device-free, net/ device-free — count ticks, read InputFrames" >&2
 			printf '%s\n' "$engine" >&2
 			failed=$((failed + 1))
 		fi
@@ -207,7 +218,7 @@ if (($# == 0)); then
 		# stream. The prefix catches every AudioStream* class and its players.
 		audio="$(grep -rnE '\bAudio(Server|Stream)' "${sim_dirs[@]}" --include='*.gd' || true)"
 		if [[ -n "$audio" ]]; then
-			echo "check: core/ and ai/ are silent — sound is played under scenes/ from events" >&2
+			echo "check: core/, ai/ and net/ are silent — sound is played under scenes/ from events" >&2
 			printf '%s\n' "$audio" >&2
 			failed=$((failed + 1))
 		fi

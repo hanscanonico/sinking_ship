@@ -90,8 +90,15 @@ static func create(match_config: MatchConfig) -> MatchSim:
 
 ## The match continued from [param snapshot], which [param match_config] started.
 static func from_snapshot(snapshot: Dictionary, match_config: MatchConfig) -> MatchSim:
-	assert(snapshot["v"] == SNAPSHOT_VERSION, "snapshot version %s" % snapshot["v"])
 	var sim := MatchSim.new(match_config)
+	sim.restore(snapshot)
+	return sim
+
+
+## Resets this match to [param snapshot], one of its own: what from_snapshot continues
+## from, without building the ship again — a client predicting does it every snapshot.
+func restore(snapshot: Dictionary) -> void:
+	assert(snapshot["v"] == SNAPSHOT_VERSION, "snapshot version %s" % snapshot["v"])
 	var match_state := MatchState.new()
 	match_state.tick = snapshot["tick"]
 	match_state.phase = snapshot["phase"]
@@ -102,9 +109,8 @@ static func from_snapshot(snapshot: Dictionary, match_config: MatchConfig) -> Ma
 		match_state.seats.append(PlayerState.from_dict(entry))
 	match_state.props = PropState.from_snapshot(snapshot)
 	match_state.railing_hp = (snapshot["railing_hp"] as PackedFloat64Array).duplicate()
-	sim.state = match_state
-	sim.surfaces.honour(sim.pose(), match_state.broken_railings(), match_state.props)
-	return sim
+	state = match_state
+	surfaces.honour(pose(), match_state.broken_railings(), match_state.props)
 
 
 func snapshot() -> Dictionary:

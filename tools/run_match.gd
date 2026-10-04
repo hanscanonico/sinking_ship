@@ -1,6 +1,7 @@
 extends SceneTree
-## `make match`: one bots-only match, headless, as fast as it runs, printed as a
-## transcript — one line per exit, then the verdict and the digest.
+## `make match`: one bots-only match, headless, as fast as it runs, served by the
+## local host the game plays through (SH11), printed as a transcript — one line per
+## exit, then the verdict and the digest.
 ##
 ##   godot --headless --path . -s res://tools/run_match.gd -- --seed=1701 --seats=8
 ##
@@ -23,12 +24,17 @@ static func bots_only(config: MatchConfig) -> MatchRunner:
 	)
 
 
-## Steps [param runner] to the end of its match, or to [param max_ticks].
-static func transcript(runner: MatchRunner, max_ticks: int) -> String:
+## [param config]'s bots-only match on a MatchHost, with nobody connected.
+static func served(config: MatchConfig) -> MatchHost:
+	return MatchHost.new(bots_only(config), Transport.new(), NetRules.load_default())
+
+
+## Steps [param host] to the end of its match, or to [param max_ticks].
+static func transcript(host: MatchHost, max_ticks: int) -> String:
 	var told := MatchTranscript.new()
-	while not runner.is_over() and runner.tick() < max_ticks:
-		told.add(runner.step())
-	told.finish(runner)
+	while not host.is_over() and host.tick() < max_ticks:
+		told.add(host.step())
+	told.finish(host.runner)
 	return told.text()
 
 
@@ -47,5 +53,5 @@ func _initialize() -> void:
 		printerr("\n".join(problems))
 		quit(1)
 		return
-	printraw(transcript(bots_only(config), Ticks.from_seconds(args.seconds)))
+	printraw(transcript(served(config), Ticks.from_seconds(args.seconds)))
 	quit()

@@ -43,7 +43,7 @@ func setup(driver: SimDriver, view: MatchView) -> void:
 func _on_stepped(events: Array[SimEvent]) -> void:
 	for event: SimEvent in events:
 		if event.kind == SimEvent.Kind.RAILING_BROKE:
-			var config := _driver.runner.sim.config
+			var config := _driver.client.config
 			var middle := config.ship.railing_middle(
 				event.railing, config.rules.railing_height * 0.5
 			)

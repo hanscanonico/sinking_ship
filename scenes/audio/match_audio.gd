@@ -102,7 +102,7 @@ func hear_through(seat: int) -> void:
 # camera was put this frame.
 func _process(delta: float) -> void:
 	var camera := get_viewport().get_camera_3d()
-	if _driver == null or _driver.runner == null or camera == null:
+	if _driver == null or _driver.client == null or camera == null:
 		return
 	_listener.global_transform = camera.global_transform
 	# The sea is the world plane (D7), so the ears' height is their distance to it.

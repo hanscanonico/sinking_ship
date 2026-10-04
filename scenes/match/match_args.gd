@@ -3,12 +3,15 @@ extends RefCounted
 ## The user arguments a match host takes after `--`:
 ##   --seed=N  --seats=N  --seconds=S  --autoplay  --capture=PATH  --capture-at=S
 ##   --observer  --capture-eye=SEAT  --observer-cut=M  --greybox
+##   --net-sim=latency:MS,jitter:MS,loss:PERCENT
 ## The game reads --seed and --seats as the menu's choices; --autoplay presses its
 ## Play, and without it --capture saves the menu. A capture is taken from the
 ## observer camera unless --capture-eye names the seat whose eyes it looks through;
 ## --observer opens the observer camera for QA, and --observer-cut cuts its view of
 ## the ship away to show the inside; --greybox draws the greybox the rules' data
-## makes in place of the dressed ship. No menu reaches any of them (D14).
+## makes in place of the dressed ship; --net-sim makes the wire between the local host
+## and the client lie about latency, jitter and loss (SH11). No menu reaches any of
+## them (D14).
 
 ## -1 when not given: the host picks one.
 var seed_value: int = -1
@@ -32,6 +35,9 @@ var capture_eye: int = -1
 var observer_cut: float = INF
 ## The greybox instead of the dressed ship: a QA tool, never a player's view.
 var greybox: bool = false
+## What the loopback between the local host and the client pretends the wire does;
+## nothing, unless --net-sim says.
+var net_sim := NetConditions.new()
 
 
 static func parse(args: PackedStringArray) -> MatchArgs:
@@ -59,6 +65,14 @@ static func parse(args: PackedStringArray) -> MatchArgs:
 				parsed.observer_cut = value.to_float()
 			"--greybox":
 				parsed.greybox = true
+			"--net-sim":
+				var conditions := NetConditions.parse(value)
+				if conditions == null:
+					push_warning(
+						"--net-sim takes latency:MS,jitter:MS,loss:PERCENT, not %s" % value
+					)
+				else:
+					parsed.net_sim = conditions
 			_:
 				push_warning("unknown argument %s" % arg)
 	return parsed

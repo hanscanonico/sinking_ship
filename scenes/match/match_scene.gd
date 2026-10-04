@@ -66,7 +66,7 @@ func _exit_tree() -> void:
 # Runs after MatchView (the scene's process_priority), so the eyes sit on the bodies
 # as drawn this frame.
 func _process(delta: float) -> void:
-	if _driver.runner == null:
+	if _driver.client == null:
 		return
 	var snapshot := _driver.current
 	var viewed := _order.target(snapshot)
@@ -104,7 +104,7 @@ func _process(delta: float) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if _driver.runner == null:
+	if _driver.client == null:
 		return
 	if event is InputEventMouseMotion:
 		if _looking():
@@ -123,43 +123,54 @@ func _unhandled_input(event: InputEvent) -> void:
 	get_viewport().set_input_as_handled()
 
 
-## Starts [param config]'s match from its first tick; [param autoplay] puts a bot
-## on the local seat. The view is [param eye_seat]'s eyes, or the observer camera
-## when [param observer] says so — which draws nothing of the ship at or above the
-## ship-local height [param observer_cut] and frames the whole ship once it is finite.
-## [param greybox] draws the greybox in place of the dressed ship.
+## Starts [param config]'s match from its first tick, served by a local host and
+## seen through a client over a loopback that lies as [param net_sim] says — not at
+## all, without it (SH11). [param autoplay] puts a bot on the local seat: the host's,
+## as every bot is (D10), so the client only watches and the match is the one
+## `make match` plays for the seed. The view is [param eye_seat]'s eyes, or the
+## observer camera when [param observer] says so — which draws nothing of the ship at
+## or above the ship-local height [param observer_cut] and frames the whole ship once
+## it is finite. [param greybox] draws the greybox in place of the dressed ship.
 func start(
 	config: MatchConfig,
 	autoplay: bool,
 	observer: bool = false,
 	eye_seat: int = LOCAL_SEAT,
 	observer_cut: float = INF,
-	greybox: bool = false
+	greybox: bool = false,
+	net_sim: NetConditions = null
 ) -> void:
 	_config = config
 	_observer = observer
 	_eye_seat = eye_seat
 	var profile := BotProfile.for_tier(config.bot_tier)
-	var sim := MatchSim.create(config)
+	var net_rules := NetRules.load_default()
 	var settings := ViewSettings.local()
-	var sources: Array[InputSource] = []
+	var played := -1
+	var served: Array[InputSource] = []
 	_local = null
 	if config.humans > 0 and not autoplay:
-		var facing: float = sim.snapshot()["seats"][LOCAL_SEAT]["facing"]
-		_local = LocalInputSource.new(LOCAL_SEAT, facing, settings)
-		sources.append(_local)
+		_local = LocalInputSource.new(LOCAL_SEAT, 0.0, settings)
+		played = LOCAL_SEAT
+		served.append(null)
 	else:
-		sources.append(BotInputSource.new(LOCAL_SEAT, profile, config))
-	sources.append_array(BotInputSource.fill(config, profile, LOCAL_SEAT + 1))
+		served.append(BotInputSource.new(LOCAL_SEAT, profile, config))
+	served.append_array(BotInputSource.fill(config, profile, LOCAL_SEAT + 1))
+	var conditions := net_sim if net_sim != null else NetConditions.new()
+	_driver.start(LoopbackMatch.new(config, net_rules, conditions, played, _local, served))
+	if _local != null:
+		# The look starts where the match's first snapshot faces the seat.
+		_local.yaw = _driver.client.view()["seats"][LOCAL_SEAT]["facing"]
+	# The client's prediction: what the data, the ship and its sinking are.
+	var sim := _driver.client.sim
 	_stats = MatchStats.new(config.seats, config.countdown_ticks)
 	_order = SpectateOrder.new(_eye_seat, _stats)
 	_names = _seat_names(config.seats)
-	_driver.start(MatchRunner.new(sim, sources))
 	_greybox.cut_above = observer_cut if observer else INF
 	_ship_art.cut_above = _greybox.cut_above
 	_greybox.visible = greybox
 	_ship_art.visible = not greybox
-	_view.setup(_driver, sim, LOCAL_SEAT)
+	_view.setup(_driver, sim, LOCAL_SEAT, net_rules.correction_time)
 	_view.look_out_of(-1 if observer else _eye_seat)
 	_hud.setup(sim)
 	_marks.setup(_driver, _view, sim)
