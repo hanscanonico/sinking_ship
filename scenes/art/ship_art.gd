@@ -15,9 +15,10 @@ extends Node3D
 ## give way blinks red, then falls onto the floor beneath with its ceiling, beams,
 ## railings, ladders and the lamp of the room under it, and a failed railing is gone.
 ## The walls under it stand. The match's own hazards are drawn the same way (SH10):
-## any railing may break, so each is a node of its own, gone once broken; and every
-## crate of the cargo is a wooden box under a node of its own, which MatchView places
-## (crates()), lit as the room it stands in or the open deck.
+## any railing may break, so each is a node of its own, gone once broken but for its
+## remains, built the first time it breaks (few ever do); and every crate of the
+## cargo is a wooden box under a node of its own, which MatchView places (crates()),
+## lit as the room it stands in or the open deck.
 
 const SHADER := preload("res://scenes/art/ship.gdshader")
 const CUT_SHADER := preload("res://scenes/art/ship_cut.gdshader")
@@ -30,11 +31,15 @@ const BOOT_ABOVE := 0.35
 ## The tallest a stair's step rises: the stair's top stands within half of it of
 ## the ramp's height everywhere.
 const STEP_RISE := 0.22
+## A stringer stands STRINGER_PROUD over the ramp's slope, past the treads' corners
+## (half a riser), so it closes the stair's side.
 const STRINGER_WIDTH := 0.05
-const STRINGER_DEPTH := 0.26
-const STRINGER_PROUD := 0.07
-## A stringer stops short of each end of its stair by this much.
+const STRINGER_DEPTH := 0.3
+const STRINGER_PROUD := 0.13
+## A stringer stops short of each end of its stair by this much; the treads run this
+## far into it.
 const STRINGER_SHORT := 0.15
+const STRINGER_TUCK := 0.015
 const BEAM_SPACING := 1.0
 const BEAM_WIDTH := 0.1
 const BEAM_DEPTH := 0.12
@@ -90,8 +95,14 @@ var _smoke: CPUParticles3D
 var _wrecks: Array[Node3D] = []
 ## Per platform, the height of the floor beneath its middle: where it lands.
 var _floors := PackedFloat64Array()
-## Per railing, the node it hangs from when an event can fail it, or null.
+## Per railing, the node it hangs from when an event can fail it, or null, and the
+## node its remains hang from, shown once it is broken — null until it first is.
 var _rails: Array[Node3D] = []
+var _remains: Array[Node3D] = []
+## What draws a broken span's remains, and the ship's paints they are drawn in:
+## Finish -> Material.
+var _wreckage: RailingRemains
+var _paints := {}
 ## Per platform name that can collapse, its own materials: Finish -> Material.
 var _flashes := {}
 ## Per crate of the layout's cargo, the node it is drawn under, and its own paints.
@@ -118,10 +129,12 @@ func build(
 	_wrecks.clear()
 	_floors.clear()
 	_rails.clear()
+	_remains.clear()
 	_flashes.clear()
 	_crates.clear()
 	_crate_paints.clear()
 	var materials := _materials(layout)
+	_paints = materials
 	var mesh := _mesh()
 	# Each piece that can fall or fail gathers its faces apart, to commit under its node.
 	var pieces := {}
@@ -131,24 +144,30 @@ func build(
 		_wrecks.append(_piece(pieces, platform.name in falls, "Deck%d" % index, self))
 		if _wrecks[index] != null and not _flashes.has(platform.name):
 			_flashes[platform.name] = _own_paints(materials)
-	ShipHull.new(_space).build(mesh)
+	var hull := ShipHull.new(_space, railing_height)
+	hull.build(mesh)
 	for index in layout.platforms.size():
-		_deck(pieces.get(_wrecks[index], mesh), layout.platforms[index])
+		var platform := layout.platforms[index]
+		_deck(pieces.get(_wrecks[index], mesh), platform, hull.hidden_faces(platform))
 	for ramp: ShipRamp in layout.ramps:
 		_stairs(mesh, ramp)
 	for blocker: ShipBlocker in layout.blockers:
 		_blocker(mesh, blocker)
+	var cap := Vector2(RAIL_WIDTH, RAIL_DEPTH)
+	_wreckage = RailingRemains.new(layout, railing_height, cap, Vector2.ONE * MID_RAIL, POST)
 	for index in layout.railings.size():
 		var railing := layout.railings[index]
 		var wreck := _wrecks[railing.platform]
 		var on: Node3D = wreck if wreck != null else self
 		_rails.append(_piece(pieces, index in fails, "Railing%d" % index, on))
 		var into: ShipMesh = pieces.get(_rails[index], pieces.get(wreck, mesh))
-		_railing(into, railing, layout.platforms[railing.platform].height, railing_height)
+		_railing(into, index, railing_height)
+		hull.staff(into, railing)
+		_remains.append(null)
 	for ladder: ShipLadder in layout.ladders:
 		var into: ShipMesh = pieces.get(_wrecks[ladder.platform], mesh)
 		_ladder(into, ladder, layout.platforms[ladder.platform], -layout.freeboard)
-	ShipFittings.new(_space, body_radius).build(mesh)
+	ShipFittings.new(_space, hull, body_radius).build(mesh)
 	var brass := StandardMaterial3D.new()
 	brass.albedo_color = ArtPalette.BRASS
 	brass.diffuse_mode = BaseMaterial3D.DIFFUSE_TOON
@@ -176,7 +195,7 @@ func crates() -> Array[Node3D]:
 ## platform named in [param collapsing] blinks red while [param lit]; one named in
 ## [param fallen] lies that far (0…1) down toward its wreck on the floor beneath,
 ## and the lamp it carries is out once it is down; a railing in
-## [param broken_railings] is gone.
+## [param broken_railings] is gone, but for its remains (RailingRemains).
 func show_sinking(
 	collapsing: Array[StringName], fallen: Dictionary, broken_railings: PackedInt32Array, lit: bool
 ) -> void:
@@ -197,8 +216,28 @@ func show_sinking(
 			if child is ShipLamp:
 				(child as ShipLamp).burning = down < 1.0
 	for index in _rails.size():
-		if _rails[index] != null:
-			_rails[index].visible = not index in broken_railings
+		if _rails[index] == null:
+			continue
+		var broken := index in broken_railings
+		_rails[index].visible = not broken
+		if broken and _remains[index] == null:
+			_remains[index] = _remains_of(index)
+		if _remains[index] != null:
+			_remains[index].visible = broken
+
+
+## Railing [param index]'s remains (RailingRemains) under a node of their own beside
+## the span's, in the paints of the deck it stands on.
+func _remains_of(index: int) -> Node3D:
+	var on := _rails[index].get_parent() as Node3D
+	var node := Node3D.new()
+	node.name = "Railing%dRemains" % index
+	on.add_child(node)
+	var mesh := _mesh()
+	_wreckage.build(mesh, index)
+	var deck := _wrecks.find(on)
+	mesh.commit(node, _paints if deck == -1 else _flashes[_space.layout.platforms[deck].name])
+	return node
 
 
 ## Where [param platform]'s deck is drawn [param fallen] of the way (0…1) down from
@@ -287,15 +326,17 @@ func _own_paints(materials: Dictionary) -> Dictionary:
 	return own
 
 
-## Planks on [param platform]; under one that roofs another, a painted ceiling on
-## beams. A deck at or above the cut-away is not drawn at all, ceiling and all, so
-## the observer looks into the rooms under it (as the greybox).
-func _deck(mesh: ShipMesh, platform: ShipPlatform) -> void:
+## Planks on [param platform], but for the edges in [param hidden] that lie on the
+## hull's skin; under one that roofs another, a painted ceiling on beams. A deck at
+## or above the cut-away is not drawn at all, ceiling and all, so the observer looks
+## into the rooms under it (as the greybox).
+func _deck(mesh: ShipMesh, platform: ShipPlatform, hidden: int) -> void:
 	var area := platform.area
 	var height := platform.height
 	if height >= cut_above:
 		return
-	mesh.box(area, height - PLANK, height, ShipPaints.deck, ShipMesh.TOP | ShipMesh.SIDES)
+	var faces := (ShipMesh.TOP | ShipMesh.SIDES) & ~hidden
+	mesh.box(area, height - PLANK, height, ShipPaints.deck, faces)
 	if not _space.stands_over_a_platform(platform):
 		return
 	mesh.box(area, height - PLANK, height, ShipPaints.ceiling, ShipMesh.BOTTOM)
@@ -321,13 +362,17 @@ func _stairs(mesh: ShipMesh, ramp: ShipRamp) -> void:
 	var climb := ramp.end_height - ramp.start_height
 	var steps := maxi(2, ceili(absf(climb) / STEP_RISE - 0.001))
 	var base := ramp.base()
+	# The treads stop inside the stringers, so no face of theirs shares a stringer's plane.
+	var tuck := STRINGER_WIDTH - STRINGER_TUCK
 	for step in steps:
 		var from := run * step / steps
 		var length := run / steps
 		var tread := (
-			Rect2(area.position.x + from, area.position.y, length, area.size.y)
+			Rect2(area.position.x + from, area.position.y + tuck, length, area.size.y - tuck * 2.0)
 			if along_x
-			else Rect2(area.position.x, area.position.y + from, area.size.x, length)
+			else Rect2(
+				area.position.x + tuck, area.position.y + from, area.size.x - tuck * 2.0, length
+			)
 		)
 		var middle := tread.get_center()
 		var top := ramp.height_at(middle.x, middle.y)
@@ -348,13 +393,17 @@ func _stairs(mesh: ShipMesh, ramp: ShipRamp) -> void:
 		mesh.turned_box(Transform3D(turn, at), size, ShipPaints.frame)
 
 
-## Stanchions along [param railing], a teak cap rail at the rules' height and a
-## middle rail.
-func _railing(mesh: ShipMesh, railing: ShipRailing, deck: float, height: float) -> void:
+## Stanchions along railing [param index], a teak cap rail at the rules'
+## [param height] and a middle rail. Where another span carries the rails on, or
+## closes a corner along x, they stop at the post rather than run past it, so no two
+## rails overlap in one plane.
+func _railing(mesh: ShipMesh, index: int, height: float) -> void:
+	var railing := _space.layout.railings[index]
+	var deck := _space.layout.platforms[railing.platform].height
 	var span := railing.to - railing.from
 	var posts := maxi(1, ceili(span.length() / POST_SPACING))
-	for index in posts + 1:
-		var at := railing.from + span * (float(index) / posts)
+	for post in posts + 1:
+		var at := railing.from + span * (float(post) / posts)
 		mesh.box(
 			Rect2(at - Vector2.ONE * POST * 0.5, Vector2.ONE * POST),
 			deck,
@@ -362,10 +411,34 @@ func _railing(mesh: ShipMesh, railing: ShipRailing, deck: float, height: float) 
 			ShipPaints.white,
 			ShipMesh.SIDES
 		)
+	var ends := Vector2(_overhang(index, railing.from), _overhang(index, railing.to))
 	var cap := Vector2(RAIL_WIDTH, RAIL_DEPTH)
-	_bar(mesh, railing.from, railing.to, deck + height - RAIL_DEPTH * 0.5, cap, ShipPaints.teak)
+	var top := deck + height - RAIL_DEPTH * 0.5
+	_bar(mesh, railing.from, railing.to, top, cap, ShipPaints.teak, ends)
 	var middle := Vector2.ONE * MID_RAIL
-	_bar(mesh, railing.from, railing.to, deck + height * 0.5, middle, ShipPaints.white)
+	_bar(mesh, railing.from, railing.to, deck + height * 0.5, middle, ShipPaints.white, ends)
+
+
+## 1 when railing [param index]'s rails run past its end at [param point] by half
+## their width — a free end, or the span along x at a corner — 0 when they stop at
+## it.
+func _overhang(index: int, point: Vector2) -> float:
+	var layout := _space.layout
+	var railing := layout.railings[index]
+	var along_x := is_equal_approx(railing.from.y, railing.to.y)
+	for other_index in layout.railings.size():
+		var other := layout.railings[other_index]
+		var level := layout.platforms[other.platform].height
+		if (
+			other_index == index
+			or not is_equal_approx(level, layout.platforms[railing.platform].height)
+		):
+			continue
+		if not (other.from.is_equal_approx(point) or other.to.is_equal_approx(point)):
+			continue
+		if along_x == is_equal_approx(other.from.y, other.to.y) or not along_x:
+			return 0.0
+	return 1.0
 
 
 ## A ladder hung outboard of [param ladder]'s stretch of [param platform]'s edge:
@@ -388,25 +461,36 @@ func _ladder(mesh: ShipMesh, ladder: ShipLadder, platform: ShipPlatform, waterli
 
 
 ## A bar from [param from] to [param to] (x/z) centred at [param height], of
-## [param section] (width, depth), its ends running past by half its width.
+## [param section] (width, depth), its ends running past by half its width times
+## [param ends] (at from, at to).
 func _bar(
 	mesh: ShipMesh,
 	from: Vector2,
 	to: Vector2,
 	height: float,
 	section: Vector2,
-	paint: ShipMesh.Paint
+	paint: ShipMesh.Paint,
+	ends := Vector2.ONE
 ) -> void:
 	var span := to - from
 	var half := section * 0.5
+	var along := span.normalized()
+	var start := from - along * half.x * ends.x
+	var end := to + along * half.x * ends.y
 	if is_zero_approx(span.x) or is_zero_approx(span.y):
-		var area := Rect2(from, Vector2.ZERO).expand(to).grow(half.x)
+		var area := Rect2(start, Vector2.ZERO).expand(end)
+		area = area.grow_individual(
+			half.x * absf(along.y),
+			half.x * absf(along.x),
+			half.x * absf(along.y),
+			half.x * absf(along.x)
+		)
 		mesh.box(area, height - half.y, height + half.y, paint)
 		return
-	var middle := (from + to) * 0.5
+	var middle := (start + end) * 0.5
 	mesh.turned_box(
 		Transform3D(Basis(Vector3.UP, -span.angle()), Vector3(middle.x, height, middle.y)),
-		Vector3(span.length() + section.x, section.y, section.x),
+		Vector3(start.distance_to(end), section.y, section.x),
 		paint
 	)
 
@@ -444,14 +528,24 @@ func _door_frame(mesh: ShipMesh, lintel: ShipBlocker, deck: float) -> void:
 	var wall := area.size.y if along_x else area.size.x
 	var thickness := wall + FRAME_PROUD * 2.0
 	var head := lintel.bottom + FRAME_WIDTH
+	var posts: Array[Rect2] = []
 	for end: float in [0.0, 1.0]:
-		var post := Rect2()
 		if along_x:
 			var x := lerpf(area.position.x, area.end.x, end)
-			post = Rect2(x - FRAME_WIDTH * 0.5, middle.y - thickness * 0.5, FRAME_WIDTH, thickness)
+			posts.append(
+				Rect2(x - FRAME_WIDTH * 0.5, middle.y - thickness * 0.5, FRAME_WIDTH, thickness)
+			)
 		else:
 			var z := lerpf(area.position.y, area.end.y, end)
-			post = Rect2(middle.x - thickness * 0.5, z - FRAME_WIDTH * 0.5, thickness, FRAME_WIDTH)
+			posts.append(
+				Rect2(middle.x - thickness * 0.5, z - FRAME_WIDTH * 0.5, thickness, FRAME_WIDTH)
+			)
+	# A lintel whose ends stand past the deck under it heads no doorway: it is a
+	# deck's edge over open space, as the forecastle's over the hold.
+	for post: Rect2 in posts:
+		if not is_equal_approx(_space.deck_under(post.get_center(), lintel.bottom), deck):
+			return
+	for post: Rect2 in posts:
 		mesh.box(post, deck, head, ShipPaints.frame, ShipMesh.SIDES)
 	for side: float in [-1.0, 1.0]:
 		var face := (wall + FRAME_PROUD) * 0.5 * side - FRAME_PROUD * 0.5
@@ -681,14 +775,14 @@ func _materials(layout: ShipLayout) -> Dictionary:
 	return materials
 
 
-## Glass seen from inside shows the sky; from outside it glows with the lamp.
+## Glass seen from inside shows the sky; from outside it reflects the sky over the
+## lamp's glow.
 func _glass(outside: bool) -> ShaderMaterial:
 	var material := ShaderMaterial.new()
 	material.shader = GLASS_SHADER
 	if outside:
-		material.set_shader_parameter("above_colour", ArtPalette.LAMP_LIGHT)
-		material.set_shader_parameter("high_colour", ArtPalette.LAMP_LIGHT)
-		material.set_shader_parameter("strength", 1.1)
+		material.set_shader_parameter("outside", true)
+		material.set_shader_parameter("glow_colour", ArtPalette.LAMP_LIGHT)
 	if is_finite(cut_above):
 		material.set_shader_parameter("cut_above", cut_above)
 	return material

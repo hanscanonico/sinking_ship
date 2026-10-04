@@ -9,7 +9,14 @@ extends SceneTree
 ##   underside; and over every ramp a stair whose top stands within half a riser
 ##   (ShipArt.STEP_RISE) and PLATFORM_TOLERANCE of the ramp's height; and down
 ##   every boarding ladder's rung line, a top within LADDER_TOLERANCE of its
-##   platform's height and a bottom at or under the waterline at rest.
+##   platform's height and a bottom at or under the waterline at rest. And past
+##   every platform's edge, wherever the rules have no floor near its height, no
+##   drawn face looks like one: straight down through the heights a body could step
+##   down to or jump up onto from that deck, the first face met never faces up — the
+##   lifeboats beside an open edge, and the hull's ends all the way out past the end
+##   railings. And through every railing span, broken, the opening it leaves stands
+##   open as drawn: nothing across it between a step over its deck and a body's
+##   height, from its line out to a body's breadth past it.
 ## - Seats: through a bots-only match in the real match scene, every brawler's
 ##   model hangs from its body's feet — the posed ship carrying the interpolated
 ##   snapshot position — and the mannequin's soles stand on that root.
@@ -41,6 +48,21 @@ const PLATFORM_TOLERANCE := 0.02
 const BLOCKER_TOLERANCE := 0.05
 const RAMP_TOLERANCE := ShipArt.STEP_RISE * 0.5 + PLATFORM_TOLERANCE
 const LADDER_TOLERANCE := 0.05
+## How far past a platform's edge the false-floor probes stand, how far apart along
+## it, and how near upright a face must turn to read as floor; past an edge that
+## ends the decks, probes stand BEYOND_STEP apart out to END_BEYOND, past the stem
+## and the counter.
+const BEYOND: Array[float] = [0.25, 0.6, 1.0]
+const BEYOND_STEP := 0.5
+const END_BEYOND := 6.0
+const FLOOR_FACING := 0.7
+## Through a broken railing span: probes stand OPENING_STEP apart along it, at least
+## OPENING_INSET in from its ends where the posts it shares and its remains stand,
+## at heights OPENING_RISE apart; they start OPENING_INBOARD inboard of its line.
+const OPENING_STEP := 0.4
+const OPENING_INSET := 0.6
+const OPENING_RISE := 0.15
+const OPENING_INBOARD := 0.05
 const SEAT_TOLERANCE := 0.001
 const CRATE_TOLERANCE := 0.001
 const SOLE_TOLERANCE := 0.02
@@ -208,8 +230,223 @@ func _check_ship(file: String, layout: ShipLayout) -> void:
 		)
 	for index in layout.ladders.size():
 		_check_ladder(faces, cells, "%s ladder %d" % [file, index], layout.ladders[index], layout)
+	_check_false_floor(art, file, layout, rules)
 	_check_crate_light(file, layout, art)
 	art.free()
+	_check_open_spans(file, layout, rules)
+
+
+## Past each of [param layout]'s platforms' edges, wherever the rules have no stair
+## and no platform within a step down or a jump up of it, the highest face
+## [param art] shows in that band, straight down, does not face up: nothing drawn
+## looks like deck a body could stand on where the rules have none (D6).
+func _check_false_floor(art: ShipArt, file: String, layout: ShipLayout, rules: BrawlRules) -> void:
+	var faces := _ship_faces(art, true)
+	var cells := _file_faces(faces)
+	var ends := Vector2(INF, -INF)
+	for platform: ShipPlatform in layout.platforms:
+		ends = Vector2(minf(ends.x, platform.area.position.x), maxf(ends.y, platform.area.end.x))
+	for index in layout.platforms.size():
+		var platform := layout.platforms[index]
+		var low := platform.height - rules.step_height
+		var high := platform.height + rules.jump_height
+		_checks += 1
+		for point in _beyond(platform.area, ends):
+			if _floor_near(layout, point, low, high):
+				continue
+			var facing := _top_facing(faces, cells, Vector3(point.x, high, point.y), low)
+			if facing > FLOOR_FACING:
+				_problems.append(
+					(
+						"art-lint: %s platform %d: drawn floor past its edge at %s"
+						% [file, index, point]
+					)
+				)
+				break
+
+
+## [param layout] dressed with every railing breakable, then each span broken in
+## turn: through the opening it leaves, from a step over its deck up to a body's
+## height, no face is drawn across its line or out to a body's breadth past it —
+## across it, or straight down over it — neither the hull, its ends, the fittings,
+## its neighbours nor its own remains: the gap the rules leave open is open as drawn
+## (D6).
+func _check_open_spans(file: String, layout: ShipLayout, rules: BrawlRules) -> void:
+	var art := ShipArt.new()
+	root.add_child(art)
+	var none: Array[StringName] = []
+	var every := PackedInt32Array(range(layout.railings.size()))
+	art.build(layout, rules.railing_height, rules.body_radius, none, every)
+	var spans := PackedInt32Array()
+	var faces := _ship_faces(art, false, spans)
+	var cells := _file_faces(faces)
+	var breadth := rules.body_radius * 2.0
+	for index in layout.railings.size():
+		_checks += 1
+		art.show_sinking(none, {}, PackedInt32Array([index]), false)
+		var remains := _ship_faces(
+			art.find_child("Railing%dRemains" % index, true, false) as Node3D
+		)
+		var railing := layout.railings[index]
+		var platform := layout.platforms[railing.platform]
+		var along := (railing.to - railing.from).normalized()
+		var outward := along.orthogonal()
+		if (platform.area.get_center() - railing.from).dot(outward) > 0.0:
+			outward = -outward
+		var low := platform.height + rules.step_height
+		var high := platform.height + rules.body_height
+		var segments: Array[PackedVector3Array] = []
+		for point in _along_span(railing):
+			var height := low
+			while height <= high + 0.001:
+				var from := point - outward * OPENING_INBOARD
+				var to := point + outward * breadth
+				segments.append(
+					PackedVector3Array(
+						[Vector3(from.x, height, from.y), Vector3(to.x, height, to.y)]
+					)
+				)
+				height += OPENING_RISE
+			var out := OPENING_STEP * 0.25
+			while out <= breadth:
+				var over := point + outward * out
+				segments.append(
+					PackedVector3Array(
+						[Vector3(over.x, high, over.y), Vector3(over.x, low, over.y)]
+					)
+				)
+				out += OPENING_STEP * 0.5
+		for segment: PackedVector3Array in segments:
+			if _blocked(faces, cells, spans, index, remains, segment):
+				_problems.append(
+					(
+						"art-lint: %s railing %d: drawn face across its opening, broken, on %s"
+						% [file, index, segment]
+					)
+				)
+				break
+	art.free()
+
+
+## Points along [param railing]'s line OPENING_STEP apart, OPENING_INSET in from
+## its ends — its middle alone when it is too short for more.
+func _along_span(railing: ShipRailing) -> PackedVector2Array:
+	var length := railing.from.distance_to(railing.to)
+	var inset := minf(OPENING_INSET, length * 0.5)
+	var count := floori((length - inset * 2.0) / OPENING_STEP)
+	var points := PackedVector2Array()
+	for step in count + 1:
+		var share := 0.5 if count == 0 else (inset + (length - inset * 2.0) * step / count) / length
+		points.append(railing.from.lerp(railing.to, share))
+	return points
+
+
+## Whether [param segment] (from, to) crosses a face of [param faces] — but those of
+## span [param broken], per [param spans] — or one of [param remains].
+func _blocked(
+	faces: PackedVector3Array,
+	cells: Dictionary,
+	spans: PackedInt32Array,
+	broken: int,
+	remains: PackedVector3Array,
+	segment: PackedVector3Array
+) -> bool:
+	var from := segment[0]
+	var to := segment[1]
+	for index in range(0, remains.size(), 3):
+		var hit: Variant = Geometry3D.segment_intersects_triangle(
+			from, to, remains[index], remains[index + 1], remains[index + 2]
+		)
+		if hit != null:
+			return true
+	var low := Vector2i(floori(minf(from.x, to.x) / CELL), floori(minf(from.z, to.z) / CELL))
+	var high := Vector2i(floori(maxf(from.x, to.x) / CELL), floori(maxf(from.z, to.z) / CELL))
+	for x in range(low.x, high.x + 1):
+		for z in range(low.y, high.y + 1):
+			for index: int in cells.get(Vector2i(x, z), []):
+				if spans[index / 3] == broken:
+					continue
+				var hit: Variant = Geometry3D.segment_intersects_triangle(
+					from, to, faces[index], faces[index + 1], faces[index + 2]
+				)
+				if hit != null:
+					return true
+	return false
+
+
+## Points of the ship plane BEYOND [param area]'s edges, BEYOND_STEP apart along each
+## — and out to END_BEYOND past an edge on [param ends], the decks' x range.
+func _beyond(area: Rect2, ends: Vector2) -> PackedVector2Array:
+	var points := PackedVector2Array()
+	var far := BEYOND.duplicate()
+	var reach := BEYOND[BEYOND.size() - 1] + BEYOND_STEP
+	while reach <= END_BEYOND:
+		far.append(reach)
+		reach += BEYOND_STEP
+	for reach_out: float in far:
+		for side in 4:
+			if reach_out > BEYOND[BEYOND.size() - 1]:
+				var x := area.end.x if side == 1 else area.position.x
+				if side % 2 == 0 or not is_equal_approx(x, ends.y if side == 1 else ends.x):
+					continue
+			var along_x := side % 2 == 0
+			var length := area.size.x if along_x else area.size.y
+			var count := maxi(1, floori(length / BEYOND_STEP))
+			for step in count + 1:
+				var share := (
+					lerpf(SAMPLE_INSET, length - SAMPLE_INSET, float(step) / count) / length
+				)
+				var at := (
+					area.position
+					+ area.size * (Vector2(share, 0.0) if along_x else Vector2(0.0, share))
+				)
+				match side:
+					0:
+						points.append(Vector2(at.x, area.position.y - reach_out))
+					1:
+						points.append(Vector2(area.end.x + reach_out, at.y))
+					2:
+						points.append(Vector2(at.x, area.end.y + reach_out))
+					3:
+						points.append(Vector2(area.position.x - reach_out, at.y))
+	return points
+
+
+## Whether a platform of [param layout] stands over [param point] between
+## [param low] and [param high], or any ramp does: a stair is floor the rules have,
+## its stringers and all.
+func _floor_near(layout: ShipLayout, point: Vector2, low: float, high: float) -> bool:
+	for platform: ShipPlatform in layout.platforms:
+		if (
+			platform.contains(point.x, point.y)
+			and platform.height >= low
+			and platform.height <= high
+		):
+			return true
+	for ramp: ShipRamp in layout.ramps:
+		if ramp.contains(point.x, point.y):
+			return true
+	return false
+
+
+## How far up (its normal's y) the highest face straight under [param from] and over
+## [param low] faces; -1 when there is none.
+func _top_facing(faces: PackedVector3Array, cells: Dictionary, from: Vector3, low: float) -> float:
+	var highest := -INF
+	var facing := -1.0
+	for index: int in cells.get(Vector2i(floori(from.x / CELL), floori(from.z / CELL)), []):
+		var a := faces[index]
+		var b := faces[index + 1]
+		var c := faces[index + 2]
+		var hit: Variant = Geometry3D.ray_intersects_triangle(from, Vector3.DOWN, a, b, c)
+		if hit == null:
+			continue
+		var height := (hit as Vector3).y
+		if height >= low and height > highest:
+			highest = height
+			# Godot's front faces wind clockwise: their normal is the cross reversed.
+			facing = -(b - a).cross(c - a).normalized().y
+	return facing
 
 
 ## [param art]'s first crate set down where [param layout]'s cargo first stands, then
@@ -372,14 +609,32 @@ func _check_blocker(
 		)
 
 
-## Every triangle drawn under [param art], in its (ship) space.
-func _ship_faces(art: Node3D) -> PackedVector3Array:
+## Every triangle drawn under [param art], in the ship's space — those shown now
+## alone when [param shown] says so. Into [param spans], when given, per triangle the
+## railing span it is drawn under (ShipArt's "Railing<n>" nodes), or -1.
+func _ship_faces(art: Node3D, shown := false, spans := PackedInt32Array()) -> PackedVector3Array:
 	var faces := PackedVector3Array()
+	var ship := art
+	while ship != null and not ship is ShipArt:
+		ship = ship.get_parent() as Node3D
+	var span_name := RegEx.create_from_string("^Railing(\\d+)$")
 	for node: Node in art.find_children("*", "MeshInstance3D", true, false):
 		var mesh_instance := node as MeshInstance3D
-		var to_ship := art.global_transform.affine_inverse() * mesh_instance.global_transform
-		for corner: Vector3 in mesh_instance.mesh.get_faces():
+		if shown and not mesh_instance.is_visible_in_tree():
+			continue
+		var span := -1
+		var up := mesh_instance.get_parent()
+		while up != null and up != ship:
+			var found := span_name.search(up.name)
+			if found != null:
+				span = found.get_string(1).to_int()
+			up = up.get_parent()
+		var to_ship := ship.global_transform.affine_inverse() * mesh_instance.global_transform
+		var corners := mesh_instance.mesh.get_faces()
+		for corner: Vector3 in corners:
 			faces.append(to_ship * corner)
+		for _triangle in corners.size() / 3:
+			spans.append(span)
 	return faces
 
 
