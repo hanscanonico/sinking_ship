@@ -176,3 +176,19 @@ func to_dict() -> Dictionary:
 		"railing": railing,
 		"prop": prop,
 	}
+
+
+## The event [param entry] — a to_dict() of one, as a snapshot carries it — again.
+static func from_dict(entry: Dictionary) -> SimEvent:
+	var event := SimEvent.new(entry["kind"], entry["tick"], entry["seat"])
+	event.place = entry["place"]
+	event.cause = entry["cause"]
+	event.credit = entry["credit"]
+	event.surface = entry["surface"]
+	event.stagger_ticks = entry["stagger"]
+	event.target = entry["target"]
+	event.heel_deg = entry["heel"]
+	event.platform = entry["platform"]
+	event.railing = entry["railing"]
+	event.prop = entry["prop"]
+	return event

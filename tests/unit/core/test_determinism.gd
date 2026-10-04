@@ -11,10 +11,11 @@ const MAX_TICKS := 300 * Ticks.RATE
 const RESUME_EVERY := 7
 
 
-## Runs the golden match to its end; returns the runner and its transcript.
+## Runs the golden match to its end, served as `make match` serves it; returns the
+## runner and its transcript.
 func _golden() -> Array:
-	var runner := RunMatch.bots_only(RunMatch.default_config(GOLDEN_SEED, GOLDEN_SEATS))
-	return [runner, RunMatch.transcript(runner, MAX_TICKS)]
+	var host := RunMatch.served(RunMatch.default_config(GOLDEN_SEED, GOLDEN_SEATS))
+	return [host.runner, RunMatch.transcript(host, MAX_TICKS)]
 
 
 func test_same_seed_twice_in_process() -> void:
@@ -276,3 +277,51 @@ func _note_coverage(snapshot: Dictionary, covered: Dictionary) -> bool:
 		fresh = fresh or not covered[field]
 		covered[field] = true
 	return fresh
+
+
+## A client resets one sim to snapshot after snapshot (MatchSim.restore). Restored to
+## a snapshot after running well past it — the bridge down, railings broken that the
+## snapshot has whole — a sim goes on exactly as the match went on from there: the
+## steamer, eight bots, the bridge going early and two railings broken by hand.
+func test_restore_on_a_used_sim_continues_exactly() -> void:
+	var sinking: SinkScenario = load(SimFixtures.STEAMER_SINKING).duplicate()
+	var bridge := SimFixtures.collapse(0.0, &"bridge", 1.0)
+	SimFixtures.with_events(sinking, [bridge] as Array[SinkEvent])
+	var config := SimFixtures.config(8, sinking, GOLDEN_SEED, SimFixtures.steamer())
+	var bots := BotInputSource.fill(config, load(SimFixtures.NORMAL_BOT))
+	var runner := MatchRunner.new(MatchSim.create(config), bots)
+	var truth := {runner.tick(): runner.snapshot}
+	var broken_at := 4 * Ticks.RATE
+	while runner.tick() < 14 * Ticks.RATE and not runner.is_over():
+		if runner.tick() == broken_at:
+			runner.sim.state.railing_hp[0] = 0.0
+			runner.sim.state.railing_hp[7] = 0.0
+		runner.step()
+		truth[runner.tick()] = runner.snapshot
+	var end := runner.tick()
+	var used := MatchSim.create(config)
+	var collapse_at := used.schedule.fired(end)[0].at as int
+	var differ := ""
+	for at: int in [Ticks.RATE, 5 * Ticks.RATE, 8 * Ticks.RATE]:
+		# Broken in the used sim alone: restore must mend it.
+		used.state.railing_hp[3] = 0.0
+		while used.state.tick < at + 5 * Ticks.RATE:
+			used.step(_row(runner.input_log, used.state.tick, config.seats))
+		assert_true(used.pose().collapsed.has(&"bridge"), "the used sim lost the bridge")
+		assert_true(used.state.broken_railings().has(3), "and railing 3")
+		var broken := MatchState.broken_in(truth[at]["railing_hp"])
+		assert_eq(broken.has(0), at > broken_at, "tick %d: as the match had railing 0" % at)
+		used.restore(truth[at])
+		for tick in range(at, mini(at + 2 * Ticks.RATE, end)):
+			used.step(_row(runner.input_log, tick, config.seats))
+			if differ.is_empty() and used.snapshot() != truth[tick + 1]:
+				differ = "restored to %d, it left the match at %d" % [at, tick + 1]
+	assert_lt(Ticks.RATE, collapse_at, "the first restore is to a ship with its bridge")
+	assert_eq(differ, "", "every continuation is the match's")
+
+
+func _row(log: InputLog, tick: int, seats: int) -> Array[InputFrame]:
+	var row: Array[InputFrame] = []
+	for seat in seats:
+		row.append(log.frame(tick, seat))
+	return row

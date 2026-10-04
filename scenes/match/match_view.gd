@@ -29,6 +29,10 @@ var _shadows: Array[MeshInstance3D] = []
 var _crates: Array[Node3D] = []
 ## The seat the camera looks out of, or -1 for none.
 var _eye_seat := -1
+## The seat this player plays: drawn where its prediction has it, but for a
+## correction being drawn away.
+var _local_seat := -1
+var _smoother := CorrectionSmoother.new(0.0)
 
 @onready var _ship: Node3D = $Ship
 @onready var _greybox: ShipGreybox = $Ship/Greybox
@@ -36,9 +40,15 @@ var _eye_seat := -1
 
 
 ## Draws [param sim]'s match as [param driver] steps it; [param local_seat] gets a
-## marker overhead.
-func setup(driver: SimDriver, sim: MatchSim, local_seat: int) -> void:
+## marker overhead, and each correction to its predicted body is drawn away over
+## [param correction_time] seconds (D12).
+func setup(driver: SimDriver, sim: MatchSim, local_seat: int, correction_time: float = 0.0) -> void:
+	if _driver != null:
+		_driver.corrected.disconnect(_on_corrected)
 	_driver = driver
+	_driver.corrected.connect(_on_corrected)
+	_local_seat = local_seat
+	_smoother = CorrectionSmoother.new(correction_time)
 	_schedule = sim.schedule
 	_surfaces = sim.surfaces
 	var ship := sim.config.ship
@@ -100,9 +110,14 @@ func ship_to_world() -> Transform3D:
 	return _ship.global_transform
 
 
-func _process(_delta: float) -> void:
+func _on_corrected(by: Vector3) -> void:
+	_smoother.absorb(by)
+
+
+func _process(delta: float) -> void:
 	if _driver == null or _driver.current.is_empty():
 		return
+	_smoother.advance(delta)
 	var previous := _driver.previous
 	var current := _driver.current
 	var alpha := _driver.alpha
@@ -125,6 +140,8 @@ func _process(_delta: float) -> void:
 		if now["out"]:
 			continue
 		var pos: Vector3 = (then["pos"] as Vector3).lerp(now["pos"], alpha)
+		if seat == _local_seat:
+			pos += _smoother.offset
 		body.position = pos
 		body.rotation.y = -lerp_angle(then["facing"], now["facing"], alpha)
 		body.show_state(then, now, alpha)

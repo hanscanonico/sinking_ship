@@ -55,6 +55,9 @@ const LIVE: PackedStringArray = [
 	"MatchSim",
 	"MatchState",
 	"MatchRunner",
+	"MatchHost",
+	"MatchClient",
+	"LoopbackMatch",
 	"SimDriver",
 	"InputSource",
 	"BotView",
@@ -389,7 +392,7 @@ func _check_seats() -> void:
 	root.add_child(scene)
 	scene.start(RunMatch.default_config(SEED, SEATS), true, true)
 	var driver: SimDriver = scene.get_node("SimDriver")
-	var runner := driver.runner
+	var client := driver.client
 	var ship: Node3D = scene.get_node("MatchView/Ship")
 	var brawlers: Array[Brawler] = []
 	for child: Node in ship.get_children():
@@ -400,16 +403,16 @@ func _check_seats() -> void:
 		_problems.append("art-lint: %d brawlers drawn for %d seats" % [brawlers.size(), SEATS])
 	var crates: Array[Node3D] = (scene.get_node("MatchView/Ship/ShipArt") as ShipArt).crates()
 	_checks += 1
-	if crates.size() != runner.sim.config.ship.props.size():
+	if crates.size() != client.config.ship.props.size():
 		_problems.append(
 			(
 				"art-lint: %d crates drawn for %d props"
-				% [crates.size(), runner.sim.config.ship.props.size()]
+				% [crates.size(), client.config.ship.props.size()]
 			)
 		)
 	var misses := {}
 	var crates_moved := false
-	while not runner.is_over() and runner.tick() < Ticks.from_seconds(SEAT_SECONDS):
+	while not client.is_over() and driver.current["tick"] < Ticks.from_seconds(SEAT_SECONDS):
 		await process_frame
 		crates_moved = _check_cargo(ship, driver, crates, misses) or crates_moved
 		var seats_then: Array = driver.previous["seats"]
@@ -426,7 +429,7 @@ func _check_seats() -> void:
 			if off > SEAT_TOLERANCE and not misses.has(brawler.seat):
 				misses[brawler.seat] = (
 					"art-lint: seat %d's model hangs %.1f mm off its feet at tick %d"
-					% [brawler.seat, off * 1000.0, runner.tick()]
+					% [brawler.seat, off * 1000.0, driver.current["tick"]]
 				)
 	_checks += 1
 	if not crates_moved:
@@ -500,22 +503,24 @@ func _check_collapse() -> void:
 	var scene: MatchScene = (load(MATCH_SCENE) as PackedScene).instantiate()
 	root.add_child(scene)
 	scene.start(RunMatch.default_config(COLLAPSE_SEED), true, true)
-	# The lint steps the match itself, then hands the driver where it got to.
+	# The lint steps the match itself, paused, until the tick the view shows has the
+	# collapse fallen, then shows it. The client's sim stands at the newest snapshot,
+	# never behind the view: what has collapsed by the view's tick has there too.
 	scene.set_paused(true)
 	var driver: SimDriver = scene.get_node("SimDriver")
-	var runner := driver.runner
-	var sim := runner.sim
+	var sim := driver.client.sim
+	var shown := func() -> ShipPose: return sim.schedule.pose_at(driver.current["tick"])
 	_checks += 1
-	while not runner.is_over() and sim.pose().collapsed.is_empty():
-		runner.step()
+	while not driver.client.is_over() and (shown.call() as ShipPose).collapsed.is_empty():
+		driver.step()
 	for _tick in Ticks.from_seconds(MatchView.FALL_SECONDS) + 1:
-		runner.step()
-	var collapsed := sim.pose().collapsed
+		driver.step()
+	var collapsed := (shown.call() as ShipPose).collapsed
 	if collapsed.is_empty():
 		_problems.append("art-lint: seed %d ends before anything collapses" % COLLAPSE_SEED)
 		scene.queue_free()
 		return
-	driver.start(runner)
+	driver.previous = driver.current
 	await process_frame
 	var faces := _ship_faces(scene.get_node("MatchView/Ship/ShipArt"))
 	var cells := _file_faces(faces)

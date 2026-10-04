@@ -26,11 +26,13 @@ import:
 #   make run [SEED=] [SEATS=] [ARGS=]  the game, windowed, from the menu they fill in;
 #       ARGS passes more user args, e.g. ARGS=--observer for the observer camera
 #   make match SEED=1701 [SEATS=] [SECONDS=]   bots only, headless, as a transcript
-#   make capture SEED=1701 AT=60 [SEATS=] [EYE=] [CUT=0] [CAPTURE=path.png]
+#   make capture SEED=1701 AT=60 [SEATS=] [EYE=] [CUT=0] [CAPTURE=path.png] [ARGS=]
 #       a windowed bots-only match saved as a PNG at AT seconds of match time
 #       (or its end), then quit: from the observer camera, or through seat EYE's
 #       eyes; CUT cuts the observer's view of the ship away at and above that
-#       height to show the inside. Not part of verify: it needs a display.
+#       height to show the inside; ARGS passes more user args, e.g.
+#       ARGS=--net-sim=latency:120,jitter:20,loss:5. Not part of verify: it needs a
+#       display.
 SEED ?=
 SEATS ?=
 SECONDS ?=
@@ -60,7 +62,18 @@ capture:
 	@mkdir -p "$(dir $(CAPTURE))"
 	$(GODOT) --path . --audio-driver Dummy --fixed-fps 30 -- $(match-args) --autoplay \
 		--capture="$(CAPTURE)" --capture-at=$(AT) $(if $(EYE),--capture-eye=$(EYE)) \
-		$(if $(CUT),--observer-cut=$(CUT))
+		$(if $(CUT),--observer-cut=$(CUT)) $(ARGS)
+
+# `make net-bench [SEED=] [SEATS=] [SECONDS=] [NET=latency:120,jitter:20,loss:5]`: one
+# match headless, seat 0 played through the client over a loopback lying as NET says
+# (NET= for the offline game's honest wire), timed beat by beat: ticks re-run, the
+# client's and the host's time, packet sizes (R7). Rules live in tools/net_bench.gd.
+NET ?= latency:120,jitter:20,loss:5
+net-bench:
+	$(call require-godot)
+	@set -o pipefail; $(GODOT) --headless --no-header --path . -s res://tools/net_bench.gd \
+		-- $(match-args) --net-sim=$(NET) $(if $(SECONDS),--seconds=$(SECONDS)) \
+		| grep -v '^\[godot_ai'
 
 # `make arena SEEDS=200 [LOBBIES=normal,hard-easy]`: bots-only lobbies of the default
 # match, seeds 1…SEEDS each, headless, written up as docs/arena.md — the record SH7's
@@ -140,4 +153,4 @@ format-check:
 # whole suite.
 .NOTPARALLEL:
 
-.PHONY: import run match capture arena art-lint test verify check ship ship-check lint format format-check
+.PHONY: import run match capture net-bench arena art-lint test verify check ship ship-check lint format format-check

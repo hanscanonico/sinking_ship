@@ -9,7 +9,8 @@ extends Node
 ## nothing is autoplaying — and quits. A match is seen through the local seat's
 ## eyes (D14); the observer camera is a tool that only --observer and captures
 ## reach, and --capture-eye takes a capture through a seat's eyes instead;
-## --observer-cut cuts the observer's view of the ship away to show the inside.
+## --observer-cut cuts the observer's view of the ship away to show the inside;
+## --net-sim puts fake lag on the wire between the local host and the client.
 ## The saved volumes and window apply as it boots; the settings screen opens from
 ## the main menu and the pause menu.
 
@@ -118,7 +119,9 @@ func _play(seats: int, tier: StringName, seed_text: String) -> void:
 	var capturing := not _args.capture_path.is_empty()
 	var observer := _args.observer or (capturing and _args.capture_eye < 0)
 	var eye := _args.capture_eye if capturing and _args.capture_eye >= 0 else MatchScene.LOCAL_SEAT
-	_match.start(config, _args.autoplay, observer, eye, _args.observer_cut, _args.greybox)
+	_match.start(
+		config, _args.autoplay, observer, eye, _args.observer_cut, _args.greybox, _args.net_sim
+	)
 
 
 func _rematch() -> void:
