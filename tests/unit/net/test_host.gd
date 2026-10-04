@@ -29,7 +29,7 @@ func _host(seats: int = 2, rules: NetRules = null) -> MatchHost:
 	var runner := MatchRunner.new(MatchSim.create(config), sources)
 	var host := MatchHost.new(runner, host_end, _rules)
 	host.admit(CLIENT_PEER, buffer)
-	_codec = WireCodec.new(config.data_hash())
+	_codec = WireCodec.new(WireCodec.match_hash(config, _rules))
 	return host
 
 

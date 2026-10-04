@@ -1,5 +1,5 @@
 class_name LoopbackMatch
-extends RefCounted
+extends PlayedMatch
 ## A match served and played in one process (SH11): a MatchHost, and one MatchClient
 ## joined to it by a LoopbackTransport that lies as NetConditions say. The offline
 ## game is this with no lie at all, so playing alone and playing online are one code
@@ -11,7 +11,6 @@ const HOST_PEER := 0
 const CLIENT_PEER := 1
 
 var host: MatchHost
-var client: MatchClient
 var clock := NetClock.new()
 
 

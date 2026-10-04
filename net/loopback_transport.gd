@@ -17,6 +17,8 @@ var _links := {}
 ## Packets on their way here: [arrives_at, order sent in, Packet], unsorted.
 var _in_flight: Array[Array] = []
 var _queued := 0
+var _opened := PackedInt32Array()
+var _closed := PackedInt32Array()
 
 
 func _init(
@@ -32,6 +34,19 @@ func _init(
 static func link(a: LoopbackTransport, b: LoopbackTransport) -> void:
 	a._links[b.peer] = b
 	b._links[a.peer] = a
+	a._opened.append(b.peer)
+	b._opened.append(a.peer)
+
+
+## Parts [param a] and [param b], each told the other has gone. What is already on
+## its way still arrives, as a closing socket delivers what was sent before it closed.
+static func unlink(a: LoopbackTransport, b: LoopbackTransport) -> void:
+	if not a._links.has(b.peer):
+		return
+	a._links.erase(b.peer)
+	b._links.erase(a.peer)
+	a._closed.append(b.peer)
+	b._closed.append(a.peer)
 
 
 func send(to_peer: int, bytes: PackedByteArray) -> void:
@@ -49,6 +64,24 @@ func send(to_peer: int, bytes: PackedByteArray) -> void:
 
 func instant() -> bool:
 	return _conditions.latency == 0.0 and _conditions.jitter == 0.0 and _conditions.loss == 0.0
+
+
+func opened() -> PackedInt32Array:
+	var peers := _opened
+	_opened = PackedInt32Array()
+	return peers
+
+
+func closed() -> PackedInt32Array:
+	var peers := _closed
+	_closed = PackedInt32Array()
+	return peers
+
+
+func close(to_peer: int) -> void:
+	var other: LoopbackTransport = _links.get(to_peer)
+	if other != null:
+		unlink(self, other)
 
 
 func receive() -> Array[Packet]:

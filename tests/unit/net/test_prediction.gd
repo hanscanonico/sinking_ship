@@ -190,7 +190,8 @@ func test_a_snapshot_without_some_seats_keeps_them() -> void:
 	var partial := host.snapshot()
 	var listed: Array[Dictionary] = [partial["seats"][0], partial["seats"][2]]
 	partial["seats"] = listed
-	host_end.send(1, WireCodec.new(config.data_hash()).encode_snapshot(partial, -1, -1, 0))
+	var codec := WireCodec.new(WireCodec.match_hash(config, NetRules.load_default()))
+	host_end.send(1, codec.encode_snapshot(partial, -1, -1, 0))
 	for _beat in 10:
 		client.sample()
 		client.step()
@@ -218,7 +219,8 @@ func test_a_snapshot_past_the_frames_sampled_is_a_correction() -> void:
 	SimFixtures.place(host, 0, was + Vector3(2.0, 0.0, 1.0))
 	for _tick in 5:
 		host.step([])
-	host_end.send(1, WireCodec.new(config.data_hash()).encode_snapshot(host.snapshot(), -1, -1, 0))
+	var codec := WireCodec.new(WireCodec.match_hash(config, NetRules.load_default()))
+	host_end.send(1, codec.encode_snapshot(host.snapshot(), -1, -1, 0))
 	client.sample()
 	client.step()
 	assert_eq(client.sim.state.tick, 5, "the prediction leapt to the snapshot")
