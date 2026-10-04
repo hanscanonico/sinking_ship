@@ -121,7 +121,7 @@ func _initialize() -> void:
 			_check_ship(file, load(SHIPS_DIR + file))
 	await _check_seats()
 	await _check_collapse()
-	var effects: Array = await SinkingFxCheck.check(root, COLLAPSE_SEED, SEATS)
+	var effects: Array = await SinkingFxCheck.check(root, SinkingFxCheck.SEED, SEATS)
 	_problems.append_array(effects[0])
 	_checks += effects[1]
 	var overhead: Array = await OverheadCheck.check(root, SEED, SEATS)
