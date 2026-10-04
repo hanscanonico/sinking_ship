@@ -104,6 +104,14 @@ const LIFEBELT := Color("cf3b2b")
 const FIRE_BUCKET := Color("b5302a")
 const MIRROR := Color("a7b8bf")
 const CHART := Color("e3d8b8")
+## The forecastle's steel deck plating, outboard of its planking.
+const BOW_PLATE := Color("6b4a3d")
+## The jack flown at the bow and the ensign at the stern.
+const JACK := Color("2c3e78")
+const ENSIGN := Color("b8322a")
+## A funnel's steel casing where it passes through a cabin; a saloon's curtains.
+const CASING := Color("bdb6a4")
+const SALOON_CURTAIN := Color("a8823f")
 ## Per lower-deck cabin, in turn: its blanket and its porthole curtains.
 const CABIN_BLANKETS: Array[Color] = [
 	Color("41557a"),

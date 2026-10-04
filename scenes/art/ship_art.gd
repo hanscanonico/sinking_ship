@@ -42,6 +42,12 @@ const STRINGER_PROUD := 0.13
 ## far into it.
 const STRINGER_SHORT := 0.15
 const STRINGER_TUCK := 0.015
+## A deck stair's side panel, SKIRT_INSET inside its edge; its kick board's height,
+## and the battens over it, every SKIRT_BATTEN, SKIRT_PROUD of it.
+const SKIRT_INSET := 0.01
+const SKIRT_KICK := 0.1
+const SKIRT_BATTEN := 0.8
+const SKIRT_PROUD := 0.02
 const BEAM_SPACING := 1.0
 const BEAM_WIDTH := 0.1
 const BEAM_DEPTH := 0.12
@@ -66,9 +72,11 @@ const STILE := 0.06
 const FUNNEL_FROM := 0.5
 const FUNNEL_SEGMENTS := 20
 const MAST_SEGMENTS := 10
-## A collapsed deck comes to rest this far above the floor beneath, tipped this far
-## about the ship's length — the greybox's decks fall the same way.
-const WRECK_LIFT := 0.35
+## A collapsed deck comes to rest with its top this far above the floor beneath — its
+## planks' and beams' depth, lying on the floor — tipping up to this far about the
+## ship's length as it falls: the greybox's decks fall the same way. Drawn, it breaks
+## up as it lands (DeckWreck).
+const WRECK_LIFT := PLANK + BEAM_DEPTH
 const WRECK_TILT := 0.25
 ## A crate is drawn a square whose half-side is this share of its circle's radius:
 ## its corners stand a little proud of the circle, its sides a little inside it.
@@ -98,6 +106,8 @@ var _smoke: CPUParticles3D
 ## Per platform, the node its deck hangs from — what falls when it collapses — or
 ## null when no event can collapse it.
 var _wrecks: Array[Node3D] = []
+## Per platform, how its deck breaks up as it falls (DeckWreck), or null.
+var _breakups: Array[DeckWreck] = []
 ## Per platform, the height of the floor beneath its middle: where it lands.
 var _floors := PackedFloat64Array()
 ## Per railing, the node it hangs from when an event can fail it, or null, and the
@@ -108,6 +118,8 @@ var _remains: Array[Node3D] = []
 ## Finish -> Material.
 var _wreckage: RailingRemains
 var _paints := {}
+## Per room, a box holding all of it (_rooms_boxed): outside them all is outdoors.
+var _room_boxes: Array[AABB] = []
 ## Per platform name that can collapse, its own materials: Finish -> Material.
 var _flashes := {}
 ## Per crate of the layout's cargo, the node it is drawn under, and its own paints.
@@ -130,16 +142,19 @@ func build(
 		remove_child(child)
 		child.queue_free()
 	_space = ShipSpace.new(layout)
+	_rooms_boxed()
 	_dressing = RoomDressing.new(_space, cut_above)
 	_smoke = null
 	_wrecks.clear()
+	_breakups.clear()
 	_floors.clear()
 	_rails.clear()
 	_remains.clear()
 	_flashes.clear()
 	_crates.clear()
 	_crate_paints.clear()
-	var materials := _materials(layout)
+	var hull := ShipHull.new(_space, railing_height)
+	var materials := _materials(layout, hull.bow_sweep())
 	_paints = materials
 	var mesh := _mesh()
 	# Each piece that can fall or fail gathers its faces apart, to commit under its node.
@@ -150,11 +165,15 @@ func build(
 		_wrecks.append(_piece(pieces, platform.name in falls, "Deck%d" % index, self))
 		if _wrecks[index] != null and not _flashes.has(platform.name):
 			_flashes[platform.name] = _own_paints(materials)
-	var hull := ShipHull.new(_space, railing_height)
 	hull.build(mesh)
 	for index in layout.platforms.size():
 		var platform := layout.platforms[index]
-		_deck(pieces.get(_wrecks[index], mesh), platform, hull.hidden_faces(platform))
+		_breakups.append(null)
+		if _wrecks[index] == null:
+			_deck(mesh, platform, hull.hidden_faces(platform))
+			continue
+		_breakups[index] = DeckWreck.new(_space, platform, _dressing)
+		_breakups[index].build(_wrecks[index], self, pieces, _mesh)
 	for ramp: ShipRamp in layout.ramps:
 		_stairs(mesh, ramp)
 	for blocker: ShipBlocker in layout.blockers:
@@ -231,6 +250,7 @@ func show_sinking(
 		var platform := _space.layout.platforms[index]
 		var down: float = fallen.get(platform.name, 0.0)
 		wreck.transform = wrecked(platform, _floors[index], down)
+		_breakups[index].show(down)
 		for child: Node in wreck.get_children():
 			if child is ShipLamp:
 				(child as ShipLamp).burning = down < 1.0
@@ -261,12 +281,12 @@ func _remains_of(index: int) -> Node3D:
 
 ## Where [param platform]'s deck is drawn [param fallen] of the way (0…1) down from
 ## its place to its wreck: dropped, faster as it goes, to WRECK_LIFT above
-## [param floor_height] and tipped about its middle.
+## [param floor_height], tipping about its middle on the way and lying level once down.
 static func wrecked(platform: ShipPlatform, floor_height: float, fallen: float) -> Transform3D:
 	var middle := platform.area.get_center()
 	var pivot := Vector3(middle.x, platform.height, middle.y)
-	var drop := (platform.height - floor_height - WRECK_LIFT) * fallen * fallen
-	var tilt := Basis(Vector3.RIGHT, WRECK_TILT * fallen)
+	var drop := maxf(platform.height - floor_height - WRECK_LIFT, 0.0) * fallen * fallen
+	var tilt := Basis(Vector3.RIGHT, WRECK_TILT * sin(PI * fallen))
 	return Transform3D(tilt, pivot - tilt * pivot + Vector3.DOWN * drop)
 
 
@@ -307,6 +327,7 @@ func _crate(prop: ShipProp, materials: Dictionary) -> Node3D:
 	mesh.box(box, 0.0, prop.height, ShipPaints.crate, ShipMesh.SIDES | ShipMesh.TOP)
 	for band: float in [0.0, prop.height - CRATE_BATTEN]:
 		mesh.box(box.grow(CRATE_PROUD), band, band + CRATE_BATTEN, ShipPaints.frame, ShipMesh.SIDES)
+	_crate_marks(mesh, half, prop.height)
 	var paints := _own_paints(materials)
 	mesh.commit(node, paints)
 	# Off the outdoor layer, so a lamp reaches it once it slides into a room; the
@@ -317,11 +338,67 @@ func _crate(prop: ShipProp, materials: Dictionary) -> Node3D:
 	return node
 
 
+## A crate's slats, stencils and lashing, none further out than its battens: two
+## slats up each side between them, a stencilled mark on two sides, and a rope
+## lashed round it and over its lid, [param half] its half side, [param height] tall.
+func _crate_marks(mesh: ShipMesh, half: float, height: float) -> void:
+	var low := CRATE_BATTEN
+	var high := height - CRATE_BATTEN
+	for side in 4:
+		var normal := [Vector3.RIGHT, Vector3.BACK, Vector3.LEFT, Vector3.FORWARD][side] as Vector3
+		var right := normal.cross(Vector3.UP)
+		var face := normal * half
+		for slat: float in [-0.45, 0.45]:
+			var middle := face + right * half * slat + Vector3.UP * (low + high) * 0.5
+			var place := Transform3D(
+				Basis(right, Vector3.UP, normal), middle + normal * CRATE_PROUD * 0.5
+			)
+			mesh.turned_box(place, Vector3(0.07, high - low, CRATE_PROUD), ShipPaints.frame, 0)
+		if side % 2 == 1:
+			var mark := face + normal * 0.002 + Vector3.UP * height * 0.5 - right * half * 0.05
+			RoomDressing.panel(
+				mesh, mark, right, Vector2(half * 0.3, 0.06), normal, ShipPaints.stencil, 0
+			)
+			var line := mark - Vector3.UP * 0.11
+			RoomDressing.panel(
+				mesh, line, right, Vector2(half * 0.2, 0.015), normal, ShipPaints.stencil, 0
+			)
+	var rope := CRATE_PROUD * 1.4
+	for along_x: bool in [true, false]:
+		var lash := Rect2(-half - rope, -0.02, (half + rope) * 2.0, 0.04)
+		if not along_x:
+			lash = Rect2(-0.02, -half - rope, 0.04, (half + rope) * 2.0)
+		mesh.box(lash, 0.0, height + 0.012, ShipPaints.rope, ShipMesh.SIDES | ShipMesh.TOP)
+
+
 ## The faces of the ship, gathered for one commit.
 func _mesh() -> ShipMesh:
-	var mesh := ShipMesh.new(_space.outdoors, _space.room_lines())
+	var mesh := ShipMesh.new(_outdoors, _space.room_lines())
 	mesh.cut_above = cut_above
 	return mesh
+
+
+## Whether ship point [param point] stands outdoors, as ShipSpace.outdoors says —
+## asked only where the point stands in some room's box; outside every one it does.
+func _outdoors(point: Vector3) -> bool:
+	for box: AABB in _room_boxes:
+		if box.has_point(point):
+			return _space.outdoors(point)
+	return true
+
+
+## Per room, a box holding all of it: its area and floor, up to the highest deck over
+## any of it or its open height, grown by ShipSpace.INSIDE and a little more.
+func _rooms_boxed() -> void:
+	_room_boxes.clear()
+	for room: ShipRoom in _space.layout.rooms:
+		var top := room.floor_height + ShipSpace.OPEN_ROOM_HEIGHT
+		for platform: ShipPlatform in _space.layout.platforms:
+			if platform.height > room.floor_height and platform.area.intersects(room.area):
+				top = maxf(top, platform.height)
+		var foot := Vector3(room.area.position.x, room.floor_height, room.area.position.y)
+		var size := Vector3(room.area.size.x, top - room.floor_height, room.area.size.y)
+		_room_boxes.append(AABB(foot, size).grow(ShipSpace.INSIDE + ShipSpace.SLIVER))
 
 
 ## When [param apart], a node named [param piece_name] under [param parent] with a
@@ -429,6 +506,57 @@ func _stairs(mesh: ShipMesh, ramp: ShipRamp) -> void:
 		var offset := (width - STRINGER_WIDTH) * 0.5 * side
 		var at := middle + (Vector3(0.0, 0.0, offset) if along_x else Vector3(offset, 0.0, 0.0))
 		mesh.turned_box(Transform3D(turn, at), size, ShipPaints.frame)
+	if _space.outdoors(Vector3(centre.x, base + 0.5, centre.y)):
+		for side: float in [-1.0, 1.0]:
+			_skirt(mesh, ramp, side)
+
+
+## The side of [param ramp] on [param side] (-1 its least z or x, 1 its greatest)
+## closed under its stringer — the rules hold a stair solid — by a white panel over a
+## teak kick board, battened every SKIRT_BATTEN.
+func _skirt(mesh: ShipMesh, ramp: ShipRamp, side: float) -> void:
+	var along_x := ramp.axis == ShipRamp.Axis.X
+	var area := ramp.area
+	var base := ramp.base()
+	var climb := absf(ramp.end_height - ramp.start_height)
+	# From the stair's foot to its head along it.
+	var ends := Vector2(area.position.y, area.end.y)
+	if along_x:
+		ends = Vector2(area.position.x, area.end.x)
+	if ramp.start_height > ramp.end_height:
+		ends = Vector2(ends.y, ends.x)
+	var edge := area.end if side > 0.0 else area.position
+	var line := (edge.y if along_x else edge.x) - side * SKIRT_INSET
+	var out := Vector3(0.0, 0.0, side) if along_x else Vector3(side, 0.0, 0.0)
+	var on_line := func(share: float, height: float) -> Vector3:
+		var along := lerpf(ends.x, ends.y, share)
+		return Vector3(along, height, line) if along_x else Vector3(line, height, along)
+	var under := STRINGER_DEPTH - STRINGER_PROUD
+	var ring := PackedVector3Array(
+		[
+			on_line.call(under / climb, base),
+			on_line.call(1.0, base),
+			on_line.call(1.0, base + climb - under)
+		]
+	)
+	mesh.polygon(ring, out, ShipPaints.white, base, NAN)
+	var lift := out * SKIRT_PROUD * 0.5
+	var kick_from: Vector3 = on_line.call((under + SKIRT_KICK) / climb, base + SKIRT_KICK * 0.5)
+	var kick_to: Vector3 = on_line.call(1.0, base + SKIRT_KICK * 0.5)
+	mesh.beam(kick_from + lift, kick_to + lift, Vector2(SKIRT_PROUD, SKIRT_KICK), ShipPaints.teak)
+	var run := absf(ends.y - ends.x)
+	var right := Vector3.RIGHT if along_x else Vector3.BACK
+	var count := floori(run / SKIRT_BATTEN)
+	for index in range(1, count + 1):
+		var share := 1.0 - index * SKIRT_BATTEN / run
+		var head := share * climb - under
+		if head < SKIRT_KICK + 0.15:
+			continue
+		var middle: Vector3 = on_line.call(share, base + (SKIRT_KICK + head) * 0.5) + lift
+		var batten := Vector3(0.05, head - SKIRT_KICK, SKIRT_PROUD)
+		mesh.turned_box(
+			Transform3D(Basis(right, Vector3.UP, out), middle), batten, ShipPaints.teak, 0
+		)
 
 
 ## Stanchions along railing [param index], a teak cap rail at the rules'
@@ -876,8 +1004,9 @@ func _hang_lamps(room: ShipRoom, index: int, brass: Material) -> void:
 
 
 ## One material per finish: ship.gdshader, or its cut-away variant while
-## [member cut_above] is finite, and the glass.
-func _materials(layout: ShipLayout) -> Dictionary:
+## [member cut_above] is finite, its deck's planks closing on the stem as [param bow]
+## says (ShipHull.bow_sweep), and the glass.
+func _materials(layout: ShipLayout, bow: Vector4) -> Dictionary:
 	var cut := is_finite(cut_above)
 	var materials := {}
 	for paint: int in PAINTS:
@@ -891,6 +1020,8 @@ func _materials(layout: ShipLayout) -> Dictionary:
 		material.set_shader_parameter("boot_height", BOOT_ABOVE - layout.freeboard)
 		material.set_shader_parameter("top_colour", ArtPalette.FUNNEL_TOP)
 		material.set_shader_parameter("flash_colour", ArtPalette.COLLAPSE_FLASH)
+		material.set_shader_parameter("bow", bow)
+		material.set_shader_parameter("bow_plate", ArtPalette.BOW_PLATE)
 		var cabin := paint == ShipMesh.Finish.CABIN
 		material.set_shader_parameter("trim_colour", ArtPalette.FRAME if cabin else ArtPalette.TEAK)
 		material.set_shader_parameter(

@@ -98,6 +98,11 @@ const ANCHOR_OFF := 0.06
 const STAFF_HEIGHT := 1.8
 const STAFF_HEEL := 0.25
 const STAFF_RADIUS := 0.035
+## A staff's flag: the jack at the bow, the ensign at the stern (length, depth).
+const FLAG := Vector2(0.5, 0.32)
+## The fore deck's planks close on the stem over at most this many half breadths aft
+## of its end (bow_sweep()).
+const SWEEP := 2.5
 const SLIVER := ShipSpace.SLIVER
 
 var _space: ShipSpace
@@ -590,9 +595,21 @@ func _ring_normals(rings: Array[PackedVector3Array], inside: float) -> Array[Pac
 	return normals
 
 
+## Where the fore deck's planking closes on the stem (ship.gdshaderinc's DECK bow):
+## from the start of the run at the decks' fore end — at most SWEEP half breadths
+## aft of it — to the stem head, over the half breadth at the end; w 1.
+func bow_sweep() -> Vector4:
+	var start := _span.y - SWEEP * _fore_edge
+	for run: Array in _run_list:
+		if is_equal_approx(run[1], _span.y):
+			start = maxf(start, run[0])
+	return Vector4(start, _span.y + _bow_lead, _fore_edge, 1.0)
+
+
 ## The jackstaff over the bow or the ensign staff over the stern, when
 ## [param railing] spans the decks' end across the centreline: stepped just
-## outboard of its posts, over the end falling away, so it goes with the span.
+## outboard of its posts, over the end falling away, so it goes with the span; a
+## jack or an ensign at its head.
 func staff(mesh: ShipMesh, railing: ShipRailing) -> void:
 	for fore: bool in [false, true]:
 		var end := _span.y if fore else _span.x
@@ -605,6 +622,13 @@ func staff(mesh: ShipMesh, railing: ShipRailing) -> void:
 		var at := Vector2(end + away * (ShipArt.POST * 0.5 + STAFF_RADIUS), 0.0)
 		var top := deck + _rail + STAFF_HEIGHT
 		mesh.cylinder(at, STAFF_RADIUS, deck - STAFF_HEEL, top, 6, ShipPaints.white)
+		var flag := ShipPaints.jack if fore else ShipPaints.ensign
+		var luff := Vector3(at.x, top - 0.05, 0.0)
+		var fly := Vector3.BACK * FLAG.x
+		var drop := Vector3.DOWN * FLAG.y
+		for facing: float in [-1.0, 1.0]:
+			var normal := Vector3.RIGHT * facing
+			mesh.quad(luff, luff + fly, luff + fly + drop, luff + drop, normal, flag, 0)
 
 
 ## Teak toe rails along the sheer of the run from [param from] to [param to], on
@@ -635,8 +659,9 @@ func _toe_rails(mesh: ShipMesh, from: float, to: float, shape: Vector4) -> void:
 
 ## Where one run of the loft meets the next at the same station: on each side, the
 ## band between the two sections up to the lower deck line — facing the narrower
-## side — and, above that, the taller run's break face up to its deck. Never a whole
-## section: that would wall off a room the two runs share.
+## side — and, above that, the taller run's break face up to its deck, plated and
+## painted as a house is (ShipFittings fits it out). Never a whole section: that
+## would wall off a room the two runs share.
 func _step(
 	mesh: ShipMesh,
 	aft: PackedVector3Array,
@@ -696,9 +721,9 @@ func _step(
 		Vector3(at, bottom, taller.x),
 		Vector3(0.0, 0.0, taller.y - taller.x) if facing.x < 0.0 else Vector3(0.0, height, 0.0),
 		Vector3(0.0, height, 0.0) if facing.x < 0.0 else Vector3(0.0, 0.0, taller.y - taller.x),
-		ShipPaints.hull,
+		ShipPaints.wall,
 		ShipMesh.RIM_ALL,
-		NAN,
+		bottom,
 		maxf(aft_top, fore_top)
 	)
 

@@ -26,7 +26,9 @@ extends SceneTree
 ##   is lit as it: a lamp may reach it, and it is as far indoors as where it stands.
 ## - The collapse: once a match's first collapse has fallen, nothing is drawn at a
 ##   collapsed platform's height wherever Surfaces, honouring that tick's pose, says
-##   it is gone — the dressed deck lies wrecked below, as the rules have it.
+##   it is gone — the dressed deck lies wrecked below, as the rules have it — and
+##   nothing of its wreck stands more than a step over the floor the rules land a
+##   body on there (tools/wreck_check.gd).
 ## - Snapshots only: no script anywhere under scenes/art names a live sim object.
 ## - Crew: the seats of a full match each wear their own hat and coat, so each reads
 ##   by its shape as well as its colour, and a brawler draws at most CREW_VERTICES
@@ -909,4 +911,8 @@ func _check_collapse() -> void:
 					% [index, platform.name, nearest * 100.0]
 				)
 			)
+	var art := scene.get_node("MatchView/Ship/ShipArt") as ShipArt
+	var wrecks := WreckCheck.check(art, layout, sim.config.rules, sim.surfaces, collapsed)
+	_problems.append_array(wrecks[0])
+	_checks += wrecks[1]
 	scene.queue_free()
