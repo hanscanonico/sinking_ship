@@ -1,17 +1,11 @@
-// A grain of the sinking's effects (SinkingFx): a particle turned to face the eye,
-// its picture tinted by the particle's colour. It fades out as it nears the eye,
-// from clear_to in to clear_from, so nothing it draws stands in the eye's face. And
-// the sea plane (y = 0) cuts it: drawn after the sea, which writes no depth, a grain
-// fallen under it would show over it from above, and one over it through it from
-// below; the part on the eye's far side of the plane is not drawn.
+// A soft grain of the sinking's effects (SinkingFx) — dust, a bubble: a particle
+// turned to face the eye, its picture tinted by the particle's colour.
 shader_type spatial;
 render_mode unshaded, blend_mix, depth_draw_opaque, cull_back;
 
-uniform sampler2D grain : source_color, filter_linear_mipmap, repeat_disable;
-uniform float clear_from = 0.9;
-uniform float clear_to = 3.0;
+#include "res://scenes/match/fx_grain.gdshaderinc"
 
-varying float height;
+uniform sampler2D grain : source_color, filter_linear_mipmap, repeat_disable;
 
 void vertex() {
 	// Facing the eye, turned by the particle's angle, at the particle's scale.
@@ -40,10 +34,10 @@ void vertex() {
 }
 
 void fragment() {
-	if ((height < 0.0) != (INV_VIEW_MATRIX[3].y < 0.0)) {
+	if (past_the_sea(height, INV_VIEW_MATRIX[3].y)) {
 		discard;
 	}
 	vec4 tint = texture(grain, UV) * COLOR;
-	ALBEDO = tint.rgb;
-	ALPHA = tint.a * smoothstep(clear_from, clear_to, length(VERTEX));
+	ALBEDO = tint.rgb * glow;
+	ALPHA = tint.a * near_fade(VERTEX);
 }

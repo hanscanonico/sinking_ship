@@ -21,24 +21,39 @@ const PLUNGE_BOOST := 1.6
 ## deckhouses; the sheet a lurch slaps up the low side; a splash, by how hard the
 ## body came down.
 const SPRAY_RISE := Vector2(0.6, 1.6)
-const PLUNGE_RISE := 6.0
+const PLUNGE_RISE := 4.5
 const LURCH_RISE := 2.4
 const SPLASH_RISE := Vector2(0.5, 1.2)
 ## A splash under a deck stops this far short of its underside, in metres.
 const SPLASH_HEADROOM := 0.1
-## The sea breaking over the sides in the plunge leans back over the deck this much,
-## blown across it.
-const PLUNGE_LEAN := 0.7
+## The sea breaking over the sides in the plunge leans back over the deck this much:
+## a band along the side, not a field across the deck.
+const PLUNGE_LEAN := 0.3
 ## In the plunge, the sea breaks over a deck's edge from SWALLOW.x under it to
 ## SWALLOW.y over it, in metres, every SWALLOW_TICKS.
-const SWALLOW := Vector2(-2.0, 1.5)
+const SWALLOW := Vector2(-0.8, 0.8)
 const SWALLOW_TICKS := 24
 ## The funnel's smoke in the plunge bends over toward the ship's high end this much.
-const SMOKE_BEND := 1.4
+const SMOKE_BEND := 2.5
 ## Once the plunge has begun, air blasts out of every opening and vent still over the
 ## sea, one every VENT_TICKS, round them all BLASTS times.
 const VENT_TICKS := 9
 const BLASTS := 3
+## All through the plunge: spray rains over the ship, harder over its first
+## RAIN_GATHER seconds; loose gear slides down the decks every SLIDE_TICKS; and every
+## ASTERN_TICKS air blown out of the hull boils up on the sea off the stern and brings
+## a piece of wreckage up with it, from CLEAR_ASTERN to ASTERN metres aft of it or up
+## to ASTERN along its quarters, from QUARTER to QUARTER + ASTERN_SPREAD out from its
+## side.
+const RAIN_GATHER := 8.0
+const SLIDE_TICKS := 75
+const ASTERN_TICKS := 50
+const CLEAR_ASTERN := 3.0
+const ASTERN := 14.0
+const QUARTER := 4.0
+const ASTERN_SPREAD := 10.0
+## How far round a boil astern spreads, and for how long, in metres and seconds.
+const ASTERN_BOIL := Vector2(2.0, 3.0)
 ## A piece of wreckage comes down on the sea this far outboard of every deck.
 const OVERBOARD := 1.2
 ## How long each sheet of spray a lurch slaps up the low side is, in metres.
@@ -152,7 +167,8 @@ func plan(previous: Dictionary, current: Dictionary) -> Array[FxCue]:
 	var pose_then := _schedule.pose_at(previous["tick"])
 	var pose_now := _schedule.pose_at(tick)
 	var fired := _schedule.fired(tick)
-	var plunging := _plunging(fired)
+	var plunged := _plunged_at(fired)
+	var plunging := plunged >= 0
 	var boost := PLUNGE_BOOST if plunging else 1.0
 	for event: Dictionary in current["events"]:
 		_from_event(event, previous, current, pose_now, cues)
@@ -167,6 +183,7 @@ func plan(previous: Dictionary, current: Dictionary) -> Array[FxCue]:
 	if plunging:
 		_swallowing(pose_now, tick, cues)
 		_gone(pose_then, pose_now, tick, cues)
+		_plunge_going_on(pose_now, tick - plunged, tick, cues)
 	return cues
 
 
@@ -216,8 +233,7 @@ func _from_event(
 			if not is_nan(_funnel.x):
 				cues.append(FxCue.new(FxCue.Kind.BELCH, tick, _funnel))
 			_venting = 0
-			var downhill := pose.ship_gravity(1.0)
-			_slides(Vector3(downhill.x, 0.0, downhill.z).normalized(), pose, tick, cues)
+			_slides(_downhill(pose), pose, tick, cues)
 
 
 ## Where the sea crosses each deck still standing: white water along the line, and
@@ -228,8 +244,7 @@ func _waterlines(
 	pose_then: ShipPose, pose_now: ShipPose, tick: int, plunging: bool, cues: Array[FxCue]
 ) -> void:
 	var boost := PLUNGE_BOOST if plunging else 1.0
-	var downhill := pose_now.ship_gravity(1.0)
-	var uphill := -Vector3(downhill.x, 0.0, downhill.z).normalized()
+	var uphill := -_downhill(pose_now)
 	for index in _layout.platforms.size():
 		var platform := _layout.platforms[index]
 		if platform.name in pose_now.collapsed or not _crossing(platform, pose_now):
@@ -384,9 +399,7 @@ func _smoke_level(tick: int, plunging: bool, pose: ShipPose, cues: Array[FxCue])
 	var smoke := FxCue.new(FxCue.Kind.SMOKE, tick, _funnel)
 	smoke.strength = level
 	if plunging:
-		var downhill := pose.ship_gravity(1.0)
-		var uphill := -Vector3(downhill.x, 0.0, downhill.z).normalized()
-		smoke.toward = (Vector3.UP + uphill * SMOKE_BEND).normalized()
+		smoke.toward = (Vector3.UP - _downhill(pose) * SMOKE_BEND).normalized()
 	cues.append(smoke)
 
 
@@ -404,6 +417,48 @@ func _blast(pose: ShipPose, tick: int, cues: Array[FxCue]) -> void:
 		vent.toward = _blast_ways[index]
 		cues.append(vent)
 		return
+
+
+## All through the plunge, [param since] ticks in: spray raining over the ship from
+## where the sea breaks over it, gathering, until it has all gone under; loose gear
+## sliding on down the decks; and air boiling up off the stern with wreckage.
+func _plunge_going_on(pose: ShipPose, since: int, tick: int, cues: Array[FxCue]) -> void:
+	if not _sunk(pose):
+		var rain := FxCue.new(FxCue.Kind.RAIN, tick)
+		rain.strength = clampf(Ticks.to_seconds(since) / RAIN_GATHER, 0.25, 1.0)
+		cues.append(rain)
+	if since > 0 and since % SLIDE_TICKS == 0:
+		_slides(_downhill(pose), pose, tick, cues)
+	if since % ASTERN_TICKS == 0:
+		_astern(pose, since / ASTERN_TICKS, tick, cues)
+
+
+## The [param turn]th boil of air off the stern in the plunge, and the wreckage it
+## brings up: on the sea astern, or off a quarter, side by side in turn, spread
+## round so no two come up in the same place.
+func _astern(pose: ShipPose, turn: int, tick: int, cues: Array[FxCue]) -> void:
+	var side := 1.0 if turn % 2 == 0 else -1.0
+	var along := fposmod(turn * 0.618, 1.0)
+	var out := fposmod(turn * 0.382, 1.0)
+	var half := _hull.size.y * 0.5
+	var stern := _hull.position.x
+	var at := Vector3(stern - lerpf(CLEAR_ASTERN, ASTERN, along * 2.0), 0.0, side * half * out)
+	if along >= 0.5:
+		at = Vector3(
+			stern + ASTERN * (along * 2.0 - 1.0), 0.0, side * (half + QUARTER + ASTERN_SPREAD * out)
+		)
+	at.z += _centre.z
+	at.y = pose.sea_height(at.x, at.z)
+	var boil := FxCue.new(FxCue.Kind.BUBBLES, tick, at)
+	boil.on_sea = true
+	boil.radius = ASTERN_BOIL.x
+	boil.seconds = ASTERN_BOIL.y
+	cues.append(boil)
+	var piece := FxCue.new(FxCue.Kind.FLOTSAM, tick, at)
+	piece.piece = (turn % FxCue.Piece.size()) as FxCue.Piece
+	piece.toward = Vector3(at.x - _centre.x, 0.0, at.z - _centre.z).normalized()
+	piece.on_sea = true
+	cues.append(piece)
 
 
 ## Once every deck still standing is under, a boil where the ship went down and its
@@ -481,6 +536,12 @@ func _swallowing(pose: ShipPose, tick: int, cues: Array[FxCue]) -> void:
 			sheet.rise = PLUNGE_RISE
 			sheet.toward = Vector3(0.0, 2.0, -side * PLUNGE_LEAN).normalized()
 			cues.append(sheet)
+
+
+## Down the decks under [param pose], in the ship plane, unit.
+static func _downhill(pose: ShipPose) -> Vector3:
+	var downhill := pose.ship_gravity(1.0)
+	return Vector3(downhill.x, 0.0, downhill.z).normalized()
 
 
 ## How many sheets of spray run the ship's length.
@@ -697,12 +758,13 @@ static func _first_wet(area: Rect2, height: float, pose: ShipPose) -> bool:
 	return false
 
 
-## Whether the plunge is among the events [param fired] by now.
-static func _plunging(fired: Array[SinkSchedule.Scheduled]) -> bool:
+## The tick the plunge began, if it is among the events [param fired] by now; -1
+## if not.
+static func _plunged_at(fired: Array[SinkSchedule.Scheduled]) -> int:
 	for scheduled: SinkSchedule.Scheduled in fired:
 		if scheduled.event.kind == SinkEvent.Kind.PLUNGE:
-			return true
-	return false
+			return scheduled.at
+	return -1
 
 
 ## Whether every deck still standing has its middle under the sea.

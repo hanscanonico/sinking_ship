@@ -141,6 +141,12 @@ const DUST := Color(0.72, 0.66, 0.57, 0.85)
 const DUST_CLOUD := Color(0.74, 0.57, 0.42, 0.9)
 const SIFTING_DUST := Color(0.6, 0.53, 0.44, 0.8)
 const BUBBLE := Color(0.88, 0.96, 0.97, 0.85)
+## The toon billows' shade sides: steam's turned from the low sun takes the dusk
+## sky's lilac, never a grey; the funnel's smoke is warm where the sun catches it and
+## near black in its shade.
+const STEAM_SHADE := Color(0.66, 0.66, 0.84)
+const SMOKE_LIT := Color(0.32, 0.25, 0.23)
+const SMOKE_SHADE := Color(0.13, 0.12, 0.14)
 ## Floating wreckage: a lifebelt's bands, a deck chair's canvas.
 const FLOTSAM_LIFEBELT := Color("efe9dc")
 const LIFEBELT_BAND := Color("c1372b")

@@ -3,10 +3,12 @@ extends Node3D
 ## The sinking as seen (D12). Every step the SimDriver takes, FxPlanner turns the two
 ## snapshots and the pose into cues, and they play here where the ship is drawn
 ## (MatchView.ship_to_world), the sea being the world plane y = 0 (D7): white water
-## where the sea meets and climbs the decks, splashes, air blown out of flooding
-## rooms, steam from the machinery and the funnel's smoke thickening, dust and
-## splinters as a deck gives way and its bits raining on the decks round (DeckDebris),
-## wreckage floating off (Flotsam), and soaked planks drying (DeckWetness).
+## where the sea meets and climbs the decks — streaks thrown up and downwind, lace
+## lying on the planks — splashes, air blown out of flooding rooms, billows of steam
+## from the machinery and the funnel's smoke thickening, dust and splinters as a deck
+## gives way and its bits raining on the decks round (DeckDebris), wreckage floating
+## off (Flotsam), soaked planks drying (DeckWetness), and what shows round the eye
+## wherever it looks (FxAroundEye).
 ##
 ## Near the eye an effect never stands between the player and a fight: within HUSHED
 ## of it, it is low, small and see-through — a thin line of foam at the feet tells the
@@ -16,7 +18,7 @@ extends Node3D
 ## what runs winds down; a new match clears it all. Nothing it does reaches the sim.
 
 ## How many emitters of each kind, and how many grains each draws at most.
-const BURSTS := 12
+const BURSTS := 10
 const WASHES := 3
 const FOAMS := 2
 const DUSTS := 4
@@ -25,17 +27,17 @@ const CHUNK_FALLS := 2
 const PLUMES := 3
 const BOILS := 3
 const BURST_GRAINS := 20
-const WASH_GRAINS := 48
-const FOAM_GRAINS := 64
+const WASH_GRAINS := 40
+const FOAM_GRAINS := 40
 const DUST_GRAINS := 22
 const CLOUD_GRAINS := 44
 const SIFT_GRAINS := 72
 const SPLINTER_GRAINS := 16
 const CHUNK_GRAINS := 10
-const PLUME_GRAINS := 30
+const PLUME_GRAINS := 10
 const BOIL_GRAINS := 32
 const SMOKE_GRAINS := 28
-const BELCH_GRAINS := 24
+const BELCH_GRAINS := 16
 ## Every grain the pools can draw at once.
 const GRAIN_BUDGET := (
 	BURSTS * BURST_GRAINS
@@ -50,6 +52,7 @@ const GRAIN_BUDGET := (
 	+ BOILS * BOIL_GRAINS
 	+ SMOKE_GRAINS
 	+ BELCH_GRAINS
+	+ FxAroundEye.GRAINS
 )
 ## A burst further than FAR from the eye is not played, nor one further than BEHIND
 ## behind it; nor one within NEAR of it, which would fill the view.
@@ -59,8 +62,9 @@ const NEAR := 1.0
 ## Within HUSHED of the eye white water climbs no higher than KNEE over the floor
 ## under the eye (FirstPersonCamera.EYE_HEIGHT below it) — to LEAST_TOP over the sea,
 ## for an eye in the sea — and its grains are specks covering at most a SPECK-sided
-## square; any grain bigger than that is at most HUSHED_ALPHA as opaque as it would
-## be. Past HUSHED an effect eases into its full self over HUSH_EASE.
+## square, a streak no longer than SPECK end to end; any grain bigger than that is
+## at most HUSHED_ALPHA as opaque as it would be. Past HUSHED an effect eases into
+## its full self over HUSH_EASE.
 const HUSHED := 8.0
 const HUSH_EASE := 2.0
 const KNEE := 0.45
@@ -86,17 +90,20 @@ const WISP_SECONDS := 6.0
 const SOAK := 2.5
 ## The wet decks' overlay stands this far over the planks.
 const WET_LIFT := 0.004
-## Grain sizes, in metres.
-const DROPLET := 0.32
-const WASH_DROPLET := 0.38
-const FLECK := 0.19
+## Grain sizes, in metres: a streak of white water's, the side of a square as big as
+## it, STREAK_ASPECT times as long as it is wide; a patch of lace foam's, across and
+## along.
+const DROPLET := 0.22
+const WASH_DROPLET := 0.2
+const STREAK_ASPECT := 5.0
+const LACE := Vector2(0.5, 0.5)
 const DUST_PUFF := 0.9
 const CLOUD_PUFF := 2.0
 ## A streak of dust sifting down, across and along: thin enough that, grown, it
 ## covers no more than a SPECK would.
 const MOTE := Vector2(0.036, 0.32)
-const STEAM_PUFF := 1.0
-const SMOKE_PUFF := 1.3
+const STEAM_PUFF := 2.0
+const SMOKE_PUFF := 1.8
 const BUBBLE := 0.16
 const SPLINTER := Vector3(0.025, 0.025, 0.2)
 const CHUNK := Vector3(1.2, 0.1, 0.22)
@@ -104,13 +111,17 @@ const CHUNK := Vector3(1.2, 0.1, 0.22)
 const FOAM_LIFT := 0.05
 ## The funnel's smoke, bent over in the plunge, is blown this much harder along the
 ## way it leaves the funnel.
-const BENT_WIND := 2.5
+const BENT_WIND := 4.5
 ## Rising white water leans up the deck the sea climbs this much, and spreads over
 ## this much of it, either side of the waterline, at least and at most.
 const CLIMB_LEAN := 0.4
 const WASH_BREADTH := Vector2(0.18, 0.68)
 ## The most shafts a room's ceiling sifts its dust down in.
 const SHAFTS := 8
+## Water streams down a deck for as long as the plunge goes on sending gear sliding,
+## down a run this long at least, in metres.
+const RUNNEL_LEAST := 1.0
+const RUNNEL_HOLD := FxPlanner.SLIDE_TICKS * Ticks.SECONDS_PER_TICK
 
 const WET_SHADER := preload("res://scenes/match/wet_deck.gdshader")
 
@@ -123,6 +134,9 @@ var _planner: FxPlanner
 var _wetness: DeckWetness
 var _flotsam: Flotsam
 var _debris: DeckDebris
+var _around: FxAroundEye
+## The billows' materials, lit by the scene's sun.
+var _billows: Array[ShaderMaterial] = []
 var _bursts: Array[CPUParticles3D] = []
 var _next_burst := 0
 ## White water along the waterlines: WASHES rising, then FOAMS low; and the seconds
@@ -144,6 +158,9 @@ var _shafts := PackedVector3Array()
 var _shaken: Array[FxCue] = []
 var _shaken_left := PackedFloat32Array()
 var _sifting := -1
+## Whether the eye stands in a room this step: what falls round it out on deck does
+## not fall through the decks over it.
+var _eye_indoors := false
 var _splinters: Array[CPUParticles3D] = []
 var _next_splinters := 0
 var _chunks: Array[CPUParticles3D] = []
@@ -175,30 +192,31 @@ var _next_wet := 0
 
 # Built as it joins the tree: a scene instanced and freed unshown builds none of it.
 func _ready() -> void:
-	var clump := FxGrains.clump()
-	var droplet := FxGrains.billboard(DROPLET, clump)
-	for _index in BURSTS:
-		var burst := _emitter(BURST_GRAINS, droplet, true)
+	var streak := FxGrains.streak()
+	var droplet := FxGrains.streaks(DROPLET, STREAK_ASPECT, streak)
+	for index in BURSTS:
+		var burst := _emitter(BURST_GRAINS, droplet, true, "Burst%d" % index)
 		FxGrains.water(burst, 1.0)
 		_bursts.append(burst)
-	var wash_droplet := FxGrains.billboard(WASH_DROPLET, clump)
-	for _index in WASHES:
-		var wash := _emitter(WASH_GRAINS, wash_droplet, false)
-		FxGrains.water(wash, 0.8)
+	var wash_droplet := FxGrains.streaks(WASH_DROPLET, STREAK_ASPECT, streak)
+	for index in WASHES:
+		var wash := _emitter(WASH_GRAINS, wash_droplet, false, "Wash%d" % index)
+		FxGrains.water(wash, 0.7)
 		wash.emission_shape = CPUParticles3D.EMISSION_SHAPE_BOX
 		wash.direction = Vector3(0.0, 1.0, CLIMB_LEAN).normalized()
-		wash.spread = 25.0
+		wash.spread = 20.0
 		_white.append(wash)
-	var fleck := FxGrains.billboard(FLECK, clump, FxGrains.SPECK_CLEAR)
-	for _index in FOAMS:
-		var foam := _emitter(FOAM_GRAINS, fleck, false)
+	var lace := FxGrains.lace()
+	var patch := FxGrains.laces(LACE, lace)
+	for index in FOAMS:
+		var foam := _emitter(FOAM_GRAINS, patch, false, "Foam%d" % index)
 		FxGrains.foam(foam)
 		_white.append(foam)
 	_white_left.resize(WASHES + FOAMS)
 	_offers.resize(WASHES + FOAMS)
 	var puff := FxGrains.billboard(DUST_PUFF, FxGrains.puff())
-	for _index in DUSTS:
-		var dust := _emitter(DUST_GRAINS, puff, true)
+	for index in DUSTS:
+		var dust := _emitter(DUST_GRAINS, puff, true, "Dust%d" % index)
 		dust.emission_shape = CPUParticles3D.EMISSION_SHAPE_SPHERE
 		dust.direction = Vector3.UP
 		dust.spread = 180.0
@@ -208,30 +226,39 @@ func _ready() -> void:
 		dust.scale_amount_curve = FxGrains.growth(0.6, 2.2)
 		dust.color_ramp = FxGrains.fade(ArtPalette.DUST, 0.12)
 		_dusts.append(dust)
-	_billow = _emitter(CLOUD_GRAINS, FxGrains.billboard(CLOUD_PUFF, FxGrains.puff()), true)
+	var cloud := FxGrains.billboard(CLOUD_PUFF, FxGrains.puff())
+	_billow = _emitter(CLOUD_GRAINS, cloud, true, "Cloud")
 	FxGrains.cloud(_billow)
 	var mote := FxGrains.billboard(MOTE.x, FxGrains.puff(), FxGrains.SPECK_CLEAR)
 	mote.size = MOTE
-	_sift = _emitter(SIFT_GRAINS, mote, true)
+	_sift = _emitter(SIFT_GRAINS, mote, true, "Sift")
 	FxGrains.sifting(_sift)
 	_shafts.resize(SHAFTS)
 	var splinter := FxGrains.shaded(SPLINTER, ArtPalette.SPLINTER)
-	for _index in SPLINTER_BURSTS:
-		_splinters.append(_emitter(SPLINTER_GRAINS, splinter, true))
+	for index in SPLINTER_BURSTS:
+		_splinters.append(_emitter(SPLINTER_GRAINS, splinter, true, "Splinters%d" % index))
 	var chunk := FxGrains.shaded(CHUNK, ArtPalette.DECK)
-	for _index in CHUNK_FALLS:
-		var falling := _emitter(CHUNK_GRAINS, chunk, true)
+	for index in CHUNK_FALLS:
+		var falling := _emitter(CHUNK_GRAINS, chunk, true, "Chunks%d" % index)
 		# Wreckage coming down throws a shadow a body under it, looking away, sees.
 		falling.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 		_chunks.append(falling)
-	var steam := FxGrains.billboard(STEAM_PUFF, FxGrains.puff(), FxGrains.STEAM_CLEAR)
-	for _index in PLUMES:
-		var plume := _emitter(PLUME_GRAINS, steam, false)
+	var billow := FxGrains.shape(FxGrains.BILLOW_SIZE, FxGrains.BILLOW_BLOBS)
+	var steam := FxGrains.billows(
+		STEAM_PUFF,
+		billow,
+		ArtPalette.STEAM,
+		ArtPalette.STEAM_SHADE,
+		FxGrains.STEAM_GLOW,
+		FxGrains.STEAM_CLEAR
+	)
+	for index in PLUMES:
+		var plume := _emitter(PLUME_GRAINS, steam, false, "Steam%d" % index)
 		FxGrains.plume(plume)
 		_plumes.append(plume)
-	var bubble := FxGrains.billboard(BUBBLE, FxGrains.blob())
-	for _index in BOILS:
-		var boil := _emitter(BOIL_GRAINS, bubble, false)
+	var bubble := FxGrains.billboard(BUBBLE, FxGrains.blob(), FxGrains.CLEAR, FxGrains.BUBBLE_GLOW)
+	for index in BOILS:
+		var boil := _emitter(BOIL_GRAINS, bubble, false, "Boil%d" % index)
 		FxGrains.boil(boil)
 		_boils.append(boil)
 	_plume_at.resize(PLUMES)
@@ -240,11 +267,18 @@ func _ready() -> void:
 	_plume_wisps.resize(PLUMES)
 	_boil_full.resize(BOILS)
 	_boil_wisps.resize(BOILS)
-	var smoke := FxGrains.billboard(SMOKE_PUFF, FxGrains.puff())
-	_smoke = _emitter(SMOKE_GRAINS, smoke, false)
+	var smoke := FxGrains.billows(
+		SMOKE_PUFF, billow, ArtPalette.SMOKE_LIT, ArtPalette.SMOKE_SHADE, 1.0, FxGrains.CLEAR
+	)
+	_billows.append(steam.material)
+	_billows.append(smoke.material)
+	_smoke = _emitter(SMOKE_GRAINS, smoke, false, "Smoke")
 	FxGrains.funnel_smoke(_smoke)
-	_belch = _emitter(BELCH_GRAINS, smoke, true)
+	_belch = _emitter(BELCH_GRAINS, smoke, true, "Belch")
 	FxGrains.funnel_smoke(_belch)
+	_around = FxAroundEye.new(streak)
+	_around.name = "AroundEye"
+	add_child(_around)
 	_flotsam = Flotsam.new()
 	_flotsam.name = "Flotsam"
 	add_child(_flotsam)
@@ -258,8 +292,11 @@ func _ready() -> void:
 
 
 ## Shows the sinking of [param sim]'s match as [param driver] steps it, where
-## [param view] draws the ship, from a clean start.
-func setup(driver: SimDriver, view: MatchView, sim: MatchSim) -> void:
+## [param view] draws the ship, lit from [param sun] (toward it, in the world), from
+## a clean start.
+func setup(driver: SimDriver, view: MatchView, sim: MatchSim, sun: Vector3) -> void:
+	for material: ShaderMaterial in _billows:
+		material.set_shader_parameter(&"sun", sun)
 	if _driver != null:
 		_driver.stepped.disconnect(_on_stepped)
 	_driver = driver
@@ -297,12 +334,15 @@ func clear() -> void:
 	_next_wet = 0
 	_flotsam.clear()
 	_debris.clear()
+	_around.clear()
 
 
 ## Plays [param cues] — FxPlanner's — with the ship drawn at [param ship], as seen
 ## by [param camera] (none: seen from everywhere) from the room [param eye_room], by
 ## index in the layout, or from none.
 func play(cues: Array[FxCue], ship: Transform3D, camera: Camera3D, eye_room := -1) -> void:
+	_decks.transform = ship
+	_eye_indoors = eye_room >= 0
 	_offered.fill(0)
 	for index in cues.size():
 		var cue := cues[index]
@@ -316,6 +356,9 @@ func play(cues: Array[FxCue], ship: Transform3D, camera: Camera3D, eye_room := -
 		if _shaken_left[eye_room] > 0.0:
 			_sifting = eye_room
 			_sift_room(_shaken[eye_room], ship)
+	if _sifting >= 0 and _sift.emitting:
+		# Shaken down from a ceiling that heels on through the lurch.
+		_place_sift(_shaken[_sifting], ship)
 	for slot in _offered[0]:
 		_lay_wash(_white[slot], _offers[slot], cues, ship)
 		_white_left[slot] = WASH_HOLD
@@ -413,6 +456,7 @@ func _process(delta: float) -> void:
 			_white[index].emitting = false
 	for room in _shaken_left.size():
 		_shaken_left[room] -= delta
+	_around.advance(delta)
 	_advance_plumes(ship, delta, get_viewport().get_camera_3d())
 	_advance_boils(delta)
 	if not is_nan(_funnel.x):
@@ -454,6 +498,8 @@ func _play(cue: FxCue, ship: Transform3D, camera: Camera3D) -> void:
 			if camera != null and at.distance_to(camera.global_position) < RAIN_SEEN:
 				eye = ship.affine_inverse() * camera.global_position
 				looking = _looking(ship, camera)
+				if not _eye_indoors:
+					_around.drift(at, camera)
 			_debris.rain(cue.position, cue.radius, eye, looking)
 		FxCue.Kind.SLIDE:
 			if camera != null:
@@ -463,7 +509,9 @@ func _play(cue: FxCue, ship: Transform3D, camera: Camera3D) -> void:
 				var feet := eye.y - FirstPersonCamera.EYE_HEIGHT
 				if deck.has_point(Vector2(eye.x, eye.z)) and absf(feet - cue.position.y) < 0.6:
 					var downhill := Vector2(cue.toward.x, cue.toward.z)
-					_debris.slide(deck, cue.position.y, downhill, eye, _looking(ship, camera))
+					var looking := _looking(ship, camera)
+					var run := _debris.slide(deck, cue.position.y, downhill, eye, looking)
+					_stream(run, cue.position.y, downhill, ship)
 		FxCue.Kind.SPLINTERS:
 			if _seen(at, 2.0, camera):
 				_splinter(at, cue.strength)
@@ -487,6 +535,12 @@ func _play(cue: FxCue, ship: Transform3D, camera: Camera3D) -> void:
 			_belch.global_position = at + Vector3.UP * 0.3
 			_belch.restart()
 			_belch.emitting = true
+		FxCue.Kind.RAIN:
+			# Round a first-person eye out on deck only: the observer looks on from
+			# outside.
+			var first_person := _view == null or _view.eye_seat() >= 0
+			if camera != null and first_person and not _eye_indoors:
+				_around.rain(camera, cue.strength, WASH_HOLD)
 
 
 ## Whether a burst of [param radius] at [param at] is worth playing to
@@ -505,10 +559,26 @@ func _seen(
 	return ahead >= 0.0 or distance - radius <= behind
 
 
-## The way [param camera] looks, in the ship plane of a ship drawn at [param ship].
+## The way [param camera] looks, in the ship plane of a ship drawn at [param ship]:
+## looking straight up or down, toward the bow (+x).
 static func _looking(ship: Transform3D, camera: Camera3D) -> Vector2:
 	var ahead := ship.basis.inverse() * -camera.global_basis.z
-	return Vector2(ahead.x, ahead.z).normalized()
+	var level := Vector2(ahead.x, ahead.z)
+	return level.normalized() if level.length_squared() > 0.0001 else Vector2.RIGHT
+
+
+## Water streaming down the clear [param run] gear slides down (DeckDebris.slide)
+## the deck at [param height], along [param downhill] (ship plane, unit), on a ship
+## drawn at [param ship]; and the planks it runs over soaked.
+func _stream(run: Vector3, height: float, downhill: Vector2, ship: Transform3D) -> void:
+	if run.z < RUNNEL_LEAST:
+		return
+	var start := Vector3(run.x, height + FOAM_LIFT, run.y)
+	var way := Vector3(downhill.x, 0.0, downhill.y)
+	var planks := ship.basis.y.normalized()
+	_around.runnel(ship * start, ship.basis * way, planks, run.z, RUNNEL_HOLD)
+	if _wetness != null:
+		_wetness.soak(start + way * run.z * 0.5, run.z * 0.5)
 
 
 ## White water or air thrown out from [param at] — or along to [param to], a sheet —
@@ -532,12 +602,14 @@ func _water_burst(
 		shows = shown(nearest_on(at, to, eye).distance_to(eye))
 		top = lerpf(minf(rise, maxf(knee(eye) - at.y, LEAST_TOP)), rise, shows)
 	var depth := lerpf(0.08, 0.35, shows)
-	var grain := lerpf(SPECK, DROPLET * FxGrains.WATER_GROWN * (1.2 + strength), shows)
+	# A grain is a streak along its flight, measured end to end: a grown one's length.
+	var streak := DROPLET * sqrt(STREAK_ASPECT) * FxGrains.WATER_GROWN
+	var grain := lerpf(SPECK, streak * (1.2 + strength), shows)
 	var direction := toward
-	burst.gravity = Vector3.DOWN * Flotsam.GRAVITY
+	burst.gravity = Vector3.DOWN * Flotsam.GRAVITY + FxGrains.downwind()
 	if kind == FxCue.Kind.VENT:
 		var force := lerpf(0.4, 1.0, strength) * lerpf(0.4, 1.0, shows)
-		grain = lerpf(SPECK, DROPLET * FxGrains.WATER_GROWN * (1.3 + strength * 0.6), shows)
+		grain = lerpf(SPECK, streak * (1.3 + strength * 0.6), shows)
 		burst.lifetime = 0.75
 		direction = (toward + Vector3.UP * 0.35).normalized()
 		burst.spread = 16.0
@@ -569,7 +641,7 @@ func _water_burst(
 	burst.global_transform = Transform3D(basis, (at + to) * 0.5)
 	burst.color = Color(1.0, 1.0, 1.0, lerpf(SPECK_ALPHA, 1.0, shows))
 	burst.direction = basis.transposed() * direction
-	burst.scale_amount_max = grain / (DROPLET * FxGrains.WATER_GROWN)
+	burst.scale_amount_max = grain / streak
 	burst.scale_amount_min = minf(0.6, burst.scale_amount_max)
 	burst.restart()
 	burst.emitting = true
@@ -650,15 +722,17 @@ func _lay_wash(wash: CPUParticles3D, offer: Vector4, cues: Array[FxCue], ship: T
 	wash.global_transform = Transform3D(Basis(along, Vector3.UP, across), (line[0] + line[1]) * 0.5)
 	var breadth := lerpf(WASH_BREADTH.x, WASH_BREADTH.y, cue.strength)
 	wash.emission_box_extents = Vector3(length * 0.5, 0.02, breadth)
-	wash.initial_velocity_min = 1.0 + cue.strength
-	wash.initial_velocity_max = 2.0 + cue.strength * 3.0
-	wash.scale_amount_max = 1.2 + cue.strength * 1.2
+	# A churning band along the line: thrown up hardly a metre, the harder the sea
+	# climbs the higher.
+	wash.initial_velocity_min = 0.8 + cue.strength
+	wash.initial_velocity_max = 1.5 + cue.strength * 2.0
+	wash.scale_amount_max = 1.0 + cue.strength
 	wash.emitting = true
 
 
-## Low foam along the share of a waterline [param offer] holds, near the eye: flecks
-## sliding up the planks the way the sea climbs, never off them past the knee — the
-## broader and faster the harder the sea climbs.
+## Low foam along the share of a waterline [param offer] holds, near the eye: lace
+## lying flat on the planks, sliding up them the way the sea climbs — the broader and
+## faster the harder the sea climbs.
 func _lay_foam(foam: CPUParticles3D, offer: Vector4, cues: Array[FxCue], ship: Transform3D) -> void:
 	var cue := cues[int(offer.x)]
 	var line := _line(offer, cues, ship)
@@ -674,8 +748,8 @@ func _lay_foam(foam: CPUParticles3D, offer: Vector4, cues: Array[FxCue], ship: T
 	var middle := (line[0] + line[1]) * 0.5 + planks * FOAM_LIFT
 	foam.global_transform = Transform3D(Basis(along, planks, across), middle)
 	foam.emission_box_extents = Vector3(length * 0.5, 0.01, 0.15 + cue.strength * 0.55)
-	foam.initial_velocity_min = 0.3
-	foam.initial_velocity_max = 0.6 + cue.strength * 1.4
+	foam.initial_velocity_min = 0.15
+	foam.initial_velocity_max = 0.3 + cue.strength * 0.6
 	foam.emitting = true
 
 
@@ -725,11 +799,17 @@ func _sift_room(cue: FxCue, ship: Transform3D) -> void:
 			_shafts[count] = Vector3(x, -0.05, z)
 			count += 1
 	_sift.emission_points = _shafts.slice(0, count)
-	_sift.global_transform = Transform3D(ship.basis, ship * cue.position)
-	_sift.direction = ship.basis.transposed() * Vector3.DOWN
+	_place_sift(cue, ship)
 	_sift.lifetime = clampf(cue.radius / 0.7, 2.0, 5.0)
 	_sift.restart()
 	_sift.emitting = true
+
+
+## The sifting dust under the ceiling [param cue] names, on a ship drawn at
+## [param ship], falling straight down.
+func _place_sift(cue: FxCue, ship: Transform3D) -> void:
+	_sift.global_transform = Transform3D(ship.basis, ship * cue.position)
+	_sift.direction = ship.basis.transposed() * Vector3.DOWN
 
 
 func _splinter(at: Vector3, strength: float) -> void:
@@ -776,9 +856,9 @@ func _start_plume(cue: FxCue, ship: Transform3D, camera: Camera3D) -> void:
 	_plume_full[index] = cue.seconds
 	_plume_wisps[index] = WISP_SECONDS
 	var plume := _plumes[index]
-	plume.initial_velocity_min = 2.5 + cue.strength * 1.5
-	plume.initial_velocity_max = 4.0 + cue.strength * 2.5
-	plume.scale_amount_max = 1.3 + cue.strength
+	plume.initial_velocity_min = 0.8 + cue.strength * 0.5
+	plume.initial_velocity_max = 1.3 + cue.strength * 0.8
+	plume.scale_amount_max = 1.0 + cue.strength * 0.5
 	plume.emitting = _place_plume(index, ship, camera)
 
 
@@ -793,9 +873,9 @@ func _advance_plumes(ship: Transform3D, delta: float, camera: Camera3D) -> void:
 		if _plume_full[index] > 0.0:
 			_plume_full[index] -= delta
 			if _plume_full[index] <= 0.0:
-				plume.initial_velocity_min = 0.6
-				plume.initial_velocity_max = 1.2
-				plume.scale_amount_max = 1.0
+				plume.initial_velocity_min = 0.4
+				plume.initial_velocity_max = 0.8
+				plume.scale_amount_max = 0.8
 			continue
 		_plume_wisps[index] -= delta
 		if _plume_wisps[index] <= 0.0:
@@ -859,16 +939,17 @@ static func _quietest(full: PackedFloat32Array, wisps: PackedFloat32Array) -> in
 
 
 ## The funnel's smoke at [param level], 0…1: none before the sinking is under way,
-## then thicker, darker, faster and higher; leaving the funnel [param way] (world),
-## and bent over along it when it leans.
+## then thicker, darker, bigger, faster and higher — a thin wisp of small billows at
+## first; leaving the funnel [param way] (world), and bent over along it when it
+## leans.
 func _show_smoke(level: float, way: Vector3) -> void:
 	_smoke_level = level
 	_smoke.gravity = FxGrains.WIND + Vector3(way.x, 0.0, way.z) * BENT_WIND
 	_smoke.color = Color(1.0, 1.0, 1.0, clampf(level * 1.4, 0.0, 1.0))
 	_smoke.initial_velocity_min = 1.3 + level * 1.2
 	_smoke.initial_velocity_max = 2.0 + level * 2.0
-	_smoke.scale_amount_min = 0.8 + level * 0.6
-	_smoke.scale_amount_max = 1.2 + level * 1.2
+	_smoke.scale_amount_min = 0.3 + level * 1.1
+	_smoke.scale_amount_max = 0.5 + level * 1.9
 
 
 func _on_landed(at: Vector3, strength: float) -> void:
@@ -937,20 +1018,15 @@ func _emitters() -> Array[CPUParticles3D]:
 	all.append_array(_boils)
 	all.append(_smoke)
 	all.append(_belch)
+	all.append_array(_around.emitters())
 	return all
 
 
-## A pool's emitter of [param grains] grains of [param mesh], in the world.
-func _emitter(grains: int, mesh: Mesh, one_shot: bool) -> CPUParticles3D:
-	var emitter := CPUParticles3D.new()
-	emitter.amount = grains
-	emitter.mesh = mesh
-	emitter.one_shot = one_shot
-	emitter.explosiveness = 0.9 if one_shot else 0.0
-	emitter.randomness = 0.5
-	emitter.local_coords = false
-	emitter.emitting = false
-	emitter.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+## A pool's emitter of [param grains] grains of [param mesh], in the world, named
+## [param called].
+func _emitter(grains: int, mesh: Mesh, one_shot: bool, called: String) -> CPUParticles3D:
+	var emitter := FxGrains.emitter(grains, mesh, one_shot)
+	emitter.name = called
 	emitter.visibility_range_end = FAR + 30.0
 	add_child(emitter)
 	return emitter

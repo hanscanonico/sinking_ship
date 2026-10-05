@@ -14,7 +14,8 @@ extends RefCounted
 ## which way it leaves the funnel. BELCH: the funnel coughing. CLOUD: the dust of a
 ## deck giving way, billowing up and drifting off. SIFT: dust shaken down from a
 ## room's ceiling. DEBRIS: bits of wreckage thrown up to rain on the decks round.
-## SLIDE: loose gear sent sliding down a deck.
+## SLIDE: loose gear sent sliding down a deck. RAIN: spray blown over the ship from
+## where the sea breaks over it, raining down, for this step.
 enum Kind {
 	SPRAY,
 	WASH,
@@ -32,6 +33,7 @@ enum Kind {
 	SIFT,
 	DEBRIS,
 	SLIDE,
+	RAIN,
 }
 ## What a FLOTSAM piece is.
 enum Piece { PLANK, CRATE, CHAIR, LIFEBELT }

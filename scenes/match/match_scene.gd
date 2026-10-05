@@ -251,7 +251,7 @@ func _begin(
 	_hud.setup(sim)
 	_marks.setup(_driver, _view, sim)
 	_dust.setup(_driver, _view)
-	_fx.setup(_driver, _view, sim)
+	_fx.setup(_driver, _view, sim, _sea_and_sky.sun())
 	_kick = ViewKick.new(settings.view_kick)
 	_eyes.setup(settings)
 	_arms.setup(config.rules)
