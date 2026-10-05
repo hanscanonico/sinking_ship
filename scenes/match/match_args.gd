@@ -2,7 +2,7 @@ class_name MatchArgs
 extends RefCounted
 ## The user arguments a match host takes after `--`:
 ##   --seed=N  --seats=N  --seconds=S  --autoplay  --capture=PATH  --capture-at=S
-##   --observer  --capture-eye=SEAT  --observer-cut=M  --greybox
+##   --observer  --capture-eye=SEAT  --observer-cut=M  --observer-cells  --greybox
 ##   --net-sim=latency:MS,jitter:MS,loss:PERCENT
 ##   --server  --port=N  --bind=ADDRESS  --matches=N
 ##   --connect=ws://HOST:PORT  --create | --room=CODE  --name=NAME  --start-at=N
@@ -11,8 +11,9 @@ extends RefCounted
 ## The game reads --seed and --seats as the menu's choices; --autoplay presses its
 ## Play, and without it --capture saves the menu. A capture is taken from the
 ## observer camera unless --capture-eye names the seat whose eyes it looks through;
-## --observer opens the observer camera for QA, and --observer-cut cuts its view of
-## the ship away to show the inside; --greybox draws the greybox the rules' data
+## --observer opens the observer camera for QA, --observer-cut cuts its view of
+## the ship away to show the inside, and --observer-cells draws the ship's cells over
+## it, every one named, framing the whole ship; --greybox draws the greybox the rules' data
 ## makes in place of the dressed ship; --net-sim makes the wire between the local host
 ## and the client lie about latency, jitter and loss (SH11); --capture-screen stages a
 ## screen for the capture: menu, settings (over the menu), graphics (the settings on
@@ -52,6 +53,9 @@ var capture_eye: int = -1
 ## ship-local height is drawn, and the observer camera watches the whole ship rather
 ## than one seat. INF draws everything.
 var observer_cut: float = INF
+## The ship's cells drawn over the observer's view (CellOverlay): a tool, never a
+## player's view.
+var observer_cells: bool = false
 ## The greybox instead of the dressed ship: a QA tool, never a player's view.
 var greybox: bool = false
 ## What the loopback between the local host and the client pretends the wire does;
@@ -107,6 +111,8 @@ static func parse(args: PackedStringArray) -> MatchArgs:
 				parsed.capture_eye = value.to_int()
 			"--observer-cut":
 				parsed.observer_cut = value.to_float()
+			"--observer-cells":
+				parsed.observer_cells = true
 			"--greybox":
 				parsed.greybox = true
 			"--capture-screen":

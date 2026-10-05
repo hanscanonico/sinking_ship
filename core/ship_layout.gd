@@ -21,6 +21,9 @@ extends Resource
 ## Rooms by name, for the lint, the walk graph, the HUD and the greybox; no rule
 ## reads them (D6).
 @export var rooms: Array[ShipRoom] = []
+## The physics' view of the same hull (§5b.2): sections, cells, walls, openings and
+## mass; null on a ship the physics does not float. No rule reads it yet (D13).
+@export var structure: ShipStructure
 
 
 ## The index of the first room holding feet at [param ship_point] (ShipRoom.holds),
@@ -94,4 +97,6 @@ func problems(seats: int) -> PackedStringArray:
 			found.append_array(prop.problems())
 	if spawns.size() < seats:
 		found.append("ship: %d spawns for %d seats" % [spawns.size(), seats])
+	if structure != null:
+		found.append_array(structure.problems())
 	return found

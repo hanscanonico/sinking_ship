@@ -176,6 +176,8 @@ func _play(seats: int, tier: StringName, seed_text: String) -> void:
 	)
 	if capturing:
 		_match.stage_eyes(_args.capture_from)
+	if observer and _args.observer_cells:
+		_match.show_cells()
 
 
 func _rematch() -> void:

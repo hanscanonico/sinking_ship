@@ -5,10 +5,10 @@
 **Sinking Ship** (working title) — a first-person 3D battle-royale survival brawl on a
 sinking ship with rooms, in Godot 4.7 and typed GDScript. Bots first; online play later.
 
-Design of record: `.lavish/sinking-ship-plan.html` (rev 3)
+Design of record: `.lavish/sinking-ship-plan.html` (rev 4)
 
 - `sinking-ship-plan.html` — the MVP (SH1–SH15 plus SH3b, SH9b, SH14b) and the destination
-  (SH16–SH23). The match is
+  (SH16–SH35). The match is
   a Node-free 30 Hz sim in `core/` that scenes only draw (D1, D2); every seat — human, bot,
   remote — enters as one quantized `InputFrame` per tick (D3); same seed + same input log ⇒
   same digest on the same build (D4); `from_snapshot(snapshot())` continues exactly and

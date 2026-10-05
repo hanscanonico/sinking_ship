@@ -1,0 +1,36 @@
+[gd_resource type="Resource" script_class="SeaPhysics" format=3]
+
+[ext_resource type="Script" path="res://core/sinking/sea_physics.gd" id="1_sea"]
+
+[resource]
+script = ExtResource("1_sea")
+gravity = 9.81
+sea_density = 1025.0
+air_density = 1.2
+air_pressure = 101325.0
+discharge = 0.6
+permeability_accommodation = 0.95
+permeability_machinery = 0.85
+permeability_cargo = 0.7
+permeability_stores = 0.6
+permeability_void = 0.95
+permeability_bunker = 0.5
+permeability_open_well = 1.0
+steel_density = 7850.0
+seabed_contacts = 10
+seabed_sink = 0.2
+seabed_friction = 0.4
+step_min = 0.05
+step_max = 10.0
+step_list_deg = 0.5
+step_trim_deg = 0.2
+step_sink = 0.05
+stand_limit_deg = 35.0
+lurch_rate_deg = 2.0
+lurch_warning = 1.0
+flooding = false
+attitude = false
+air = false
+failures = false
+capsized_movement = false
+breaking = false
