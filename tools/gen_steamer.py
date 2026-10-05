@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Writes the steamer's layout, data/ships/steamer.tres.
+"""Writes the steamer's layout and structure, data/ships/steamer.tres.
 
-The layout is generated: change the ship here, then `make ship`. `make ship-check`
-(part of `make verify`) fails when the committed .tres is not what this writes, so a
-hand edit to the .tres is caught. The sim reads only the .tres (D6).
+The layout and structure are generated: change the ship here, then `make ship`.
+`make ship-check` (part of `make verify`) fails when the committed .tres is not what
+this writes, so a hand edit to the .tres is caught. The sim reads only the .tres (D6).
 
 Ship-local metres: x toward the bow, z to starboard, y up, origin on the main deck
 amidships. The numbers that shape the rooms are the constants and calls below:
