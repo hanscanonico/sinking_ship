@@ -32,6 +32,12 @@ const NAME_FONT := 22
 const NAME_PIXEL := 0.0009
 const NAME_OUTLINE := 9
 const VOID_NAME := 0.8
+## Cells narrower than this along the hull, in metres, side by side on one deck, stand
+## their names this share of their height above and below their middles in turn; two
+## faces nearer than TOUCH meet.
+const NARROW := 4.0
+const STAGGER := 0.25
+const TOUCH := 0.01
 const INK := Color(0.04, 0.06, 0.09)
 ## Drawn after the ship's transparent faces and the sea: tints, then edges, then
 ## names over them.
@@ -93,7 +99,44 @@ func _name_spots(structure: ShipStructure) -> PackedVector3Array:
 		var share := float(along.find(cells.find(cell)) + 1) / (along.size() + 1)
 		spot.x = lerpf(stretch.x, stretch.y, share)
 		spots.append(spot)
+	# Narrow cells side by side on one deck — the deckhouse's rooms — take turns
+	# standing their names low and high, aft to fore, so two names never run into one.
+	var order := range(cells.size())
+	order.sort_custom(func(a: int, b: int) -> bool: return cells[a].low.x < cells[b].low.x)
+	var raised := {}
+	for index: int in order:
+		var cell := cells[index]
+		var aft := _narrow_beside(cells, cell, true)
+		if aft == -1 and _narrow_beside(cells, cell, false) == -1:
+			continue
+		raised[index] = aft != -1 and not raised.get(aft, false)
+		var spot := spots[index]
+		spot.y = lerpf(cell.low.y, cell.high.y, 0.5 + (STAGGER if raised[index] else -STAGGER))
+		spots[index] = spot
 	return spots
+
+
+## The index of the cell of [param cells] narrower than NARROW that stands beside
+## [param cell] on its deck — aft of it when [param aft], else fore — when [param cell]
+## is narrow too; -1 when none does.
+func _narrow_beside(cells: Array[FloodCell], cell: FloodCell, aft: bool) -> int:
+	if cell.high.x - cell.low.x >= NARROW:
+		return -1
+	for index in cells.size():
+		var other := cells[index]
+		var meets := (
+			absf(other.high.x - cell.low.x) < TOUCH
+			if aft
+			else absf(other.low.x - cell.high.x) < TOUCH
+		)
+		if (
+			meets
+			and other.high.x - other.low.x < NARROW
+			and absf(other.low.y - cell.low.y) < TOUCH
+			and absf(other.high.y - cell.high.y) < TOUCH
+		):
+			return index
+	return -1
 
 
 ## The twelve edges of the box from [param low] to [param high], end to end.
