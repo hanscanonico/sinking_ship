@@ -147,3 +147,92 @@ func test_a_chevron_is_drawn_only_where_it_can_be_filled() -> void:
 					if Geometry2D.triangulate_polygon(points).is_empty():
 						bad += 1
 		assert_eq(bad, 0, "%s: every chevron drawn can be filled" % size)
+
+
+## Plates that would overlap — several bodies lined up in view — stand apart: the
+## nearest where it is, each further one lifted clear over the nearer, the same way
+## every frame; plates already apart stay put.
+func test_overlapping_plates_stand_apart_the_nearest_unmoved() -> void:
+	var piled: Array[Rect2] = [
+		Rect2(500.0, 200.0, 60.0, 45.0),
+		Rect2(510.0, 205.0, 50.0, 40.0),
+		Rect2(490.0, 210.0, 70.0, 40.0),
+		Rect2(530.0, 190.0, 40.0, 30.0),
+	]
+	var lifts := FirstPersonHud.plates_apart(piled, 0.0)
+	assert_eq(lifts, FirstPersonHud.plates_apart(piled, 0.0), "the same every frame")
+	assert_eq(lifts[0], 0.0, "the nearest stays where it is")
+	for one in piled.size():
+		assert_gte(lifts[one], 0.0, "lifted, never pushed down")
+		var box := piled[one]
+		box.position.y -= lifts[one]
+		for other in range(one + 1, piled.size()):
+			var next := piled[other]
+			next.position.y -= lifts[other]
+			assert_false(box.intersects(next), "plates %d and %d overlap" % [one, other])
+	var apart: Array[Rect2] = [Rect2(100.0, 200.0, 60.0, 40.0), Rect2(400.0, 200.0, 60.0, 40.0)]
+	assert_eq(FirstPersonHud.plates_apart(apart, 0.0), PackedFloat32Array([0.0, 0.0]))
+	var cramped := FirstPersonHud.plates_apart(piled, 220.0)
+	assert_eq(cramped[1], -1.0, "no room over the nearest under the top band: it stays put")
+
+
+## Plates at fractional pixels — what a projected head and a scaled font give —
+## settle too: a Rect2 rounds to float32, and a plate lifted to exactly the gap over
+## a nearer one could still meet it at the edge and be lifted to the same place for
+## ever, hanging the HUD's draw. Two such pairs, then a seeded spread of crowds.
+func test_plates_at_fractional_pixels_settle_apart() -> void:
+	var pairs: Array = [
+		[
+			Rect2(540.455383301, 318.057281494, 45.964611053, 34.484596252),
+			Rect2(550.888183594, 354.417633057, 31.510826111, 37.908370972)
+		],
+		[
+			Rect2(503.450134277, 499.379119873, 53.647544861, 40.651897430),
+			Rect2(546.594360352, 476.208923340, 38.051544189, 48.448776245)
+		],
+	]
+	for pair: Array in pairs:
+		var boxes: Array[Rect2] = []
+		boxes.assign(pair)
+		_assert_apart(boxes, FirstPersonHud.plates_apart(boxes, 0.0))
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 7
+	for crowd in 300:
+		var boxes: Array[Rect2] = []
+		for plate in 8:
+			var at := Vector2(rng.randf_range(400.0, 600.0), rng.randf_range(100.0, 500.0))
+			boxes.append(
+				Rect2(at, Vector2(rng.randf_range(30.0, 90.0), rng.randf_range(30.0, 50.0)))
+			)
+		_assert_apart(boxes, FirstPersonHud.plates_apart(boxes, 0.0))
+
+
+## Every plate of [param boxes] lifted by [param lifts] clears every other by the
+## gap; none here is pushed into the top band, so none is left stacked.
+func _assert_apart(boxes: Array[Rect2], lifts: PackedFloat32Array) -> void:
+	var overlaps := 0
+	var half := FirstPersonHud.PLATE_GAP * 0.5
+	for one in boxes.size():
+		assert_gte(lifts[one], 0.0, "plate %d has room to rise" % one)
+		var box := boxes[one]
+		box.position.y -= lifts[one]
+		for other in range(one + 1, boxes.size()):
+			var next := boxes[other]
+			next.position.y -= lifts[other]
+			if box.grow(half).intersects(next.grow(half)):
+				overlaps += 1
+	assert_eq(overlaps, 0, "%s lifted by %s" % [boxes, lifts])
+
+
+## A plate floats over the brawler's own hat: a top hat or a bobble stands taller
+## than the crown, a cap does not.
+func test_a_plate_stands_over_the_hat() -> void:
+	var rules := SimFixtures.rules()
+	for seat in Brawler.HATS.size():
+		var top := Brawler.headgear(seat, rules)
+		assert_gte(top, rules.body_height, "never under the crown")
+		match Brawler.HATS[seat]:
+			Brawler.Hat.TOP:
+				assert_gt(top, rules.body_height + 0.12, "a top hat stands tall")
+			Brawler.Hat.CAP:
+				assert_almost_eq(top, rules.body_height, 0.01, "a cap sits on the crown")

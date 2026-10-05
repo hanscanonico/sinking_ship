@@ -33,6 +33,14 @@ const HAIR: Array[Color] = [Color("33241a"), Color("1c1b1f"), Color("9a4c25"), C
 const TROUSERS: Array[Color] = [Color("3a3d46"), Color("564539"), Color("2c3447"), Color("6c6a64")]
 ## A shove's hands as it winds up and lands.
 const HAND_FLASH := Color("ffd36e")
+## A shove coming: the body's edge, its outline and a charge's sparks, ember at a
+## wind-up and toward white-hot at a full charge.
+const CHARGE := Color("ff6a14")
+const CHARGE_CORE := Color("fff0c2")
+## A brace's scuffs on the deck at the feet: dark wood dust, and the pale grain the
+## boots tear up.
+const SCUFF := Color("2b1d14")
+const SCUFF_DUST := Color("e9d3a8")
 
 ## The ship (ShipArt): a dark hull, red oxide below the boot line, so the foam line
 ## pops; warm deck planks lighter than most seat colours; white houses with teak

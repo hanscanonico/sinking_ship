@@ -109,15 +109,51 @@ const FLASH_FADE := 0.15
 ## A seat's own hands glow this much of that, under its eye: enough to feel the
 ## shove land, not so much that the hands wash out to a blank shape.
 const OWN_GLOW := 0.5
+## A shove coming, as its heat (brawler.gdshader): a wind-up's — enough to read
+## across a deck — rising through a charge to 1 when it is full, and cooling over
+## FLASH_FADE once the shove has landed. Its outline turns from ink to the heat's
+## colour by a wind-up's heat — a saturated ember that holds against a sunlit deck as
+## a paler one would not — widens with the distance by HEAT_REACH a metre at full
+## heat, in model units, so the edge stays a line on the screen out to the far side of
+## the deck, and throbs as the charge comes full, from BEAT_FROM.
+const WINDUP_HEAT := 0.4
+const HEAT_REACH := 0.006
+const BEAT_FROM := 0.7
+## The disc at the feet warms this much toward the heat's colour at full heat.
+const DISC_HEAT := 0.85
+## Two bodies nearer than CLINCH_RANGE may reach into each other. A hand —
+## CLINCH_HAND long past the wrist — reaching toward the other between CLINCH_LOW and
+## CLINCH_HIGH over the feet, and within CLINCH_WIDE of the line between them, stops
+## at the other's front: its chest, CLINCH_CHEST from its middle, or the fists it
+## holds up ahead of it, as far as halfway between them. In metres. The hand meets
+## the other only where its chest stands: the band is over the other's feet as well,
+## so a body up or down a stair is reached past. However near the other, the arm
+## reaches CLINCH_FOLD out from the shoulder at the least, never folded back onto it.
+const CLINCH_RANGE := 1.4
+## The moves whose arms reach out from the body: a shove, as it eases back, and a brace.
+const REACHING: Array[BrawlerAnimation.Move] = [
+	BrawlerAnimation.Move.SHOVE, BrawlerAnimation.Move.RECOVER, BrawlerAnimation.Move.BRACE
+]
+const CLINCH_CHEST := 0.17
+const CLINCH_HAND := 0.1
+const CLINCH_LOW := 0.75
+const CLINCH_HIGH := 1.8
+const CLINCH_WIDE := 0.4
+const CLINCH_FOLD := 0.18
 
 ## The mannequin's surfaces dressed for clothes, and the mesh for each coat — with
 ## or without a skirt — built once and shared by every seat wearing it.
 static var _dressed: Array[Array] = []
 static var _bodies := {}
 static var _disc_texture: GradientTexture2D
+## The mannequin's crown and the head bone's height at rest, in its units, and per
+## hat how high it stands over the soles as a share of the crown: read once.
+static var _mannequin := Vector2.ZERO
+static var _headgear := {}
 
 var seat: int
 var _player: AnimationPlayer
+var _skeleton: Skeleton3D
 var _model: Node3D
 var _colour: Color
 var _feet_disc: MeshInstance3D
@@ -132,10 +168,22 @@ var _joints: ShaderMaterial
 var _clips: Dictionary = BrawlerAnimation.CLIPS
 var _poses: BrawlerPose
 var _feet_material: StandardMaterial3D
+## The outlines of the body and of the hat, which a shove coming lights.
+var _outlines: Array[ShaderMaterial] = []
+## A charge's sparks and speed lines, on the chest; null on a seat's own arms.
+var _charge: BrawlerCharge
+## The rules' ticks at which a held shove becomes a charge and is full, and a
+## charge's walk, m/s.
+var _charge_from: int
+var _charge_full: int
+var _charge_walk: float
 var _move: BrawlerAnimation.Move = BrawlerAnimation.Move.IDLE
 ## Seconds since the move drawn began.
 var _since := 0.0
 var _glow := 0.0
+## The heat drawn now, and at the moment the last shove landed.
+var _heat := 0.0
+var _landed_heat := 0.0
 ## Whether the disc shows a shove, as it was last coloured.
 var _shoving := false
 ## The stagger last drawn, so a renewed stagger replays its flinch once.
@@ -146,6 +194,9 @@ var _rest_scale := Vector3.ONE
 var _unsquashing := INF
 ## Whether a hit-stop squashes the model: never a seat's own arms, held under its eye.
 var _squashes := true
+## Whether a hit-stop holds the pose: never a seat's own arms, which take a
+## stagger's recoil the moment the shove lands.
+var _freezes := true
 ## How much of the glow the hands show: OWN_GLOW on a seat's own arms.
 var _glow_scale := 1.0
 
@@ -155,11 +206,15 @@ var _glow_scale := 1.0
 func setup(seat_id: int, rules: BrawlRules, local: bool) -> void:
 	seat = seat_id
 	_colour = ArtPalette.seat_colour(seat)
+	_charge_from = Ticks.from_seconds(rules.charge_threshold)
+	_charge_full = Ticks.from_seconds(rules.charge_full)
+	_charge_walk = rules.charge_walk
 	var outfit := seat % HATS.size()
 	_model = MODEL.instantiate()
 	_model.name = "Model"
 	add_child(_model)
 	var skeleton: Skeleton3D = _model.get_node("Rig/Skeleton3D")
+	_skeleton = skeleton
 	var mesh: MeshInstance3D = skeleton.get_node("Mannequin")
 	var crown := mesh.get_aabb().end.y
 	_rest_scale = Vector3.ONE * (rules.body_height / crown)
@@ -184,6 +239,13 @@ func setup(seat_id: int, rules: BrawlRules, local: bool) -> void:
 	_hat_node.mesh = BrawlerHat.build(HATS[outfit], _colour, ArtPalette.HAIR[HAIR[outfit]])
 	_hat_node.material_override = _painted()
 	head.add_child(_hat_node)
+	var hat_outline := (_hat_node.material_override as StandardMaterial3D).next_pass
+	_outlines = [_clothes.next_pass as ShaderMaterial, hat_outline as ShaderMaterial]
+
+	_charge = BrawlerCharge.new()
+	_charge.name = "Charge"
+	_charge.setup(skeleton)
+	skeleton.add_child(_charge)
 
 	if _disc_texture == null:
 		_disc_texture = _soft_disc()
@@ -213,6 +275,23 @@ func setup(seat_id: int, rules: BrawlRules, local: bool) -> void:
 		_marker = arrow
 
 
+## How high [param seat]'s brawler stands, hat and all, at rest, in metres: the
+## rules' body height, or the top of a hat standing taller than the crown.
+static func headgear(seat: int, rules: BrawlRules) -> float:
+	var hat := HATS[seat % HATS.size()]
+	if not _headgear.has(hat):
+		if _mannequin == Vector2.ZERO:
+			var model := MODEL.instantiate()
+			var skeleton: Skeleton3D = model.get_node("Rig/Skeleton3D")
+			var crown := (skeleton.get_node("Mannequin") as MeshInstance3D).get_aabb().end.y
+			var head := skeleton.get_bone_global_rest(skeleton.find_bone(HEAD_BONE)).origin.y
+			_mannequin = Vector2(crown, head)
+			model.free()
+		var top := BrawlerHat.build(hat, Color.WHITE, Color.WHITE).get_aabb().end.y
+		_headgear[hat] = maxf(_mannequin.y + top, _mannequin.x) / _mannequin.x
+	return rules.body_height * _headgear[hat]
+
+
 ## Shows the marker overhead, on the local seat, or hides it.
 func show_marker(shown: bool) -> void:
 	if _marker != null:
@@ -220,16 +299,19 @@ func show_marker(shown: bool) -> void:
 
 
 ## Draws only what a seat sees of itself (FirstPersonArms): no hat, no disc at its
-## feet, no shadow, no hit-stop squash, a dimmer glow, a finer outline, and
-## [param clips] and [param poses] (as BrawlerAnimation.POSES, the elbows bending
-## as [param elbows] has) for its moves.
+## feet, no sparks, no shadow, no hit-stop squash or hold, a dimmer glow, a finer
+## outline, and [param clips] and [param poses] (as BrawlerAnimation.POSES, the
+## elbows bending as [param elbows] has) for its moves.
 func show_as_own_arms(clips: Dictionary, poses: Dictionary, elbows: Array[Vector3]) -> void:
 	_clips = clips
-	_poses = BrawlerPose.new(_model.get_node("Rig/Skeleton3D"), poses, elbows)
+	_poses = BrawlerPose.new(_skeleton, poses, elbows)
 	_squashes = false
+	_freezes = false
 	_glow_scale = OWN_GLOW
 	_hat_node.visible = false
 	_feet_disc.visible = false
+	_charge.queue_free()
+	_charge = null
 	(_clothes.next_pass as ShaderMaterial).set_shader_parameter("width", OWN_OUTLINE)
 	for node: Node in find_children("*", "GeometryInstance3D", true, false):
 		(node as GeometryInstance3D).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
@@ -237,17 +319,31 @@ func show_as_own_arms(clips: Dictionary, poses: Dictionary, elbows: Array[Vector
 
 ## Where the mannequin's [param bone] is drawn, in the world.
 func bone_position(bone: StringName) -> Vector3:
-	var skeleton: Skeleton3D = _model.get_node("Rig/Skeleton3D")
-	return (
-		skeleton.global_transform * skeleton.get_bone_global_pose(skeleton.find_bone(bone)).origin
-	)
+	var pose := _skeleton.get_bone_global_pose(_skeleton.find_bone(bone))
+	return _skeleton.global_transform * pose.origin
+
+
+## Lands the hands of each of [param bodies] that is drawn on any other standing
+## within CLINCH_RANGE of it — the seat [param eye_seat] looks out of among them,
+## though it is not drawn — rather than through it, once every one is posed for the
+## frame: an arm reaching past the other's front, its chest or its raised guard, is
+## bent to stop the wrist there; two guards meet halfway.
+static func keep_apart(bodies: Array[Brawler], eye_seat: int) -> void:
+	for body: Brawler in bodies:
+		if not body.visible or body._move not in REACHING:
+			continue
+		for other: Brawler in bodies:
+			if other == body or not (other.visible or other.seat == eye_seat):
+				continue
+			var apart := other.position - body.position
+			if absf(apart.y) < CLINCH_HIGH and Vector2(apart.x, apart.z).length() < CLINCH_RANGE:
+				body._keep_hands_off(other)
 
 
 ## Shrinks the mannequin's [param bone] to nothing in this frame's pose, so what it
 ## carries is not drawn.
 func collapse_bone(bone: StringName) -> void:
-	var skeleton: Skeleton3D = _model.get_node("Rig/Skeleton3D")
-	skeleton.set_bone_pose_scale(skeleton.find_bone(bone), Vector3.ONE * 0.001)
+	_skeleton.set_bone_pose_scale(_skeleton.find_bone(bone), Vector3.ONE * 0.001)
 
 
 ## The node the mannequin hangs from: its origin is the drawn feet.
@@ -273,7 +369,7 @@ func show_state(then: Dictionary, now: Dictionary, alpha: float) -> void:
 		_move = move
 		_since = 0.0
 	var frozen: bool = now["hitstop"] > 0
-	var held := 0.0 if frozen else delta
+	var held := 0.0 if frozen and _freezes else delta
 	_since += held
 	_player.speed_scale = 0.0 if frozen else BrawlerAnimation.rate(move, speed)
 	_player.advance(delta)
@@ -283,14 +379,14 @@ func show_state(then: Dictionary, now: Dictionary, alpha: float) -> void:
 	if _squashes:
 		_model.scale = _rest_scale * BrawlerAnimation.squash(_unsquashing)
 	_show_hands(move)
+	var charge: float = lerpf(then["charge"], now["charge"], alpha)
+	_show_heat(move, BrawlerCharge.filled(charge, _charge_from, _charge_full), now, speed)
 	var shoving: bool = (
 		now["action"] == PlayerState.Action.WINDUP or now["action"] == PlayerState.Action.ACTIVE
 	)
 	if shoving != _shoving:
 		_shoving = shoving
-		var feet_colour := ArtPalette.SHOVE_FLASH if shoving else _colour
-		feet_colour.a = DISC_SHOVING_ALPHA if shoving else DISC_ALPHA
-		_feet_material.albedo_color = feet_colour
+		_colour_disc()
 
 
 ## Lays the disc on ground whose up is [param normal], in the space the brawler is
@@ -331,6 +427,114 @@ func _show_hands(move: BrawlerAnimation.Move) -> void:
 		_joints.set_shader_parameter("flash", glow)
 
 
+## Lights the body's edge, its outline, its forearms and the disc at its feet as a
+## shove comes — held at a wind-up's heat, rising as a charge fills to [param fill]
+## (of the seat's snapshot entry [param now]), cooling once the shove lands — and
+## streams a charge's sparks, with speed lines once it walks at [param speed].
+func _show_heat(move: BrawlerAnimation.Move, fill: float, now: Dictionary, speed: float) -> void:
+	var charged: bool = now["charge"] > 0
+	var heat := 0.0
+	match move:
+		BrawlerAnimation.Move.WINDUP:
+			heat = WINDUP_HEAT
+		BrawlerAnimation.Move.CHARGE, BrawlerAnimation.Move.SHOVE:
+			heat = lerpf(WINDUP_HEAT, 1.0, fill) if charged else WINDUP_HEAT
+			_landed_heat = heat
+		BrawlerAnimation.Move.RECOVER:
+			heat = _landed_heat * maxf(0.0, 1.0 - _since / FLASH_FADE)
+	heat *= _glow_scale
+	if _charge != null:
+		var charging := move == BrawlerAnimation.Move.CHARGE
+		_charge.visible = charging or move == BrawlerAnimation.Move.SHOVE and charged
+		if _charge.visible:
+			_charge.show_charge(fill, clampf(speed / _charge_walk, 0.0, 1.0) if charging else 0.0)
+	if heat == _heat:
+		return
+	_heat = heat
+	_clothes.set_shader_parameter("heat", heat)
+	_joints.set_shader_parameter("heat", heat)
+	var edge := ArtPalette.INK.lerp(ArtPalette.CHARGE, minf(heat / WINDUP_HEAT, 1.0))
+	for outline: ShaderMaterial in _outlines:
+		outline.set_shader_parameter("ink", edge)
+		outline.set_shader_parameter("reach", HEAT_REACH * heat)
+		outline.set_shader_parameter("beat", smoothstep(BEAT_FROM, 1.0, heat))
+	_colour_disc()
+
+
+## The disc at the feet: the seat's colour, white while a shove winds up and lands,
+## warming with the heat.
+func _colour_disc() -> void:
+	var colour := ArtPalette.SHOVE_FLASH if _shoving else _colour
+	colour = colour.lerp(ArtPalette.CHARGE, _heat * DISC_HEAT)
+	colour.a = DISC_SHOVING_ALPHA if _shoving or _heat > 0.0 else DISC_ALPHA
+	_feet_material.albedo_color = colour
+
+
+## Bends each arm reaching past [param other]'s front so the wrist stops at it,
+## along the arm's reach from the shoulder.
+func _keep_hands_off(other: Brawler) -> void:
+	var up := global_basis.y.normalized()
+	var toward := other.global_position - global_position
+	var rise := toward.dot(up)
+	toward -= up * rise
+	var apart := toward.length()
+	if apart <= 0.0:
+		return
+	toward /= apart
+	var front := maxf(minf(other._guard(-toward) + CLINCH_HAND, apart * 0.5), CLINCH_CHEST)
+	var to_world := _skeleton.global_transform
+	for arm in BrawlerPose.ARM_LIMBS:
+		var shoulder := to_world * _poses.shoulder(arm)
+		var wrist := to_world * _poses.wrist(arm)
+		var landing := _landing(
+			shoulder - global_position,
+			wrist - global_position,
+			toward,
+			up,
+			apart - front - CLINCH_HAND,
+			rise
+		)
+		if landing < 1.0:
+			_poses.reach_arm(arm, to_world.affine_inverse() * shoulder.lerp(wrist, landing))
+
+
+## How far ahead of the middle of the body, along [param toward], its wrists reach.
+func _guard(toward: Vector3) -> float:
+	var reach := 0.0
+	for arm in BrawlerPose.ARM_LIMBS:
+		var wrist := _skeleton.global_transform * _poses.wrist(arm) - global_position
+		reach = maxf(reach, wrist.dot(toward))
+	return reach
+
+
+## How far along a reach from [param from] to [param to] — both from the body's
+## feet, [param up] its up — the wrist comes to [param limit] along [param toward],
+## when the reach ends past it in the band CLINCH_LOW to CLINCH_HIGH high, over these
+## feet and over the other's, [param rise] higher, and within CLINCH_WIDE across; 1
+## when it ends short of it or out of the band; never nearer the shoulder than
+## CLINCH_FOLD.
+static func _landing(
+	from: Vector3, to: Vector3, toward: Vector3, up: Vector3, limit: float, rise: float
+) -> float:
+	var depth := to.dot(toward)
+	var height := to.dot(up)
+	var across := (to - toward * depth - up * height).length()
+	if depth <= limit or across > CLINCH_WIDE or not _in_clinch_band(height):
+		return 1.0
+	if not _in_clinch_band(height - rise):
+		return 1.0
+	var least := minf(CLINCH_FOLD / from.distance_to(to), 1.0)
+	var start := from.dot(toward)
+	if start >= limit:
+		return least
+	return maxf((limit - start) / (depth - start), least)
+
+
+## Whether a wrist [param height] over a body's feet is in the band a clinch meets.
+static func _in_clinch_band(height: float) -> bool:
+	return height >= CLINCH_LOW and height <= CLINCH_HIGH
+
+
 ## The clothes for outfit [param outfit], its coat in the seat's colour.
 func _dress(outfit: int) -> ShaderMaterial:
 	var material := ShaderMaterial.new()
@@ -347,6 +551,8 @@ func _dress(outfit: int) -> ShaderMaterial:
 	material.set_shader_parameter("skirt_hem", SKIRT_HEMS.get(COATS[outfit], SKIRT_WAIST_HEIGHT))
 	material.set_shader_parameter("whiskers", WHISKERS[outfit])
 	material.set_shader_parameter("flash_colour", ArtPalette.HAND_FLASH)
+	material.set_shader_parameter("heat_colour", ArtPalette.CHARGE)
+	material.set_shader_parameter("heat_core", ArtPalette.CHARGE_CORE)
 	material.next_pass = _outline()
 	return material
 

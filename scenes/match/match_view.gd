@@ -157,6 +157,7 @@ func _process(delta: float) -> void:
 			var ground := _surfaces.height_at(below, pos)
 			_shadows[seat].visible = body.visible
 			_shadows[seat].position = Vector3(pos.x, ground + SHADOW_LIFT, pos.z)
+	Brawler.keep_apart(_bodies, _eye_seat)
 
 
 ## Hands the ship drawn what the schedule's events have done by [param tick] —

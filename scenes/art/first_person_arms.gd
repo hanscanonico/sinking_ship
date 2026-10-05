@@ -8,11 +8,13 @@ extends Node3D
 ## seat's two snapshot entries (D5), and drives nothing (D12), but with poses of its
 ## own (POSES), framed for the eye: fists low at the bottom edge at rest or on the
 ## move, drawn up close in a wind-up and closer in a charge, thrust out in a shove,
-## a raised guard in a brace, flung up out of view in a stagger, a breaststroke in
-## the sea — both hands thrust out together under the crosshair, then pulled apart
-## and down to the bottom edge — and one hand reaching high and the other gripping
-## low as a climb hauls the body up. A jump's spring shows as the fall it turns
-## into, and a hit-stop as the pose held unsquashed.
+## a raised guard in a brace, knocked aside in a stagger — the left arm flung down
+## and back out of view, the right flung out to the screen's edge, its hand open and
+## tipped back — a breaststroke in the sea — both hands thrust out together under the
+## crosshair, then pulled apart and down to the bottom edge — and one hand reaching
+## high and the other gripping low as a climb hauls the body up. A jump's spring
+## shows as the fall it turns into; a hit-stop never squashes the arms nor holds
+## them, so a stagger's recoil comes the moment the shove lands.
 
 ## What the arms never cover, in pixels of the HUD's canvas (which scales with the
 ## window, as the arms do): a zone round the crosshair, its half size, and the
@@ -26,8 +28,10 @@ const CHEST_BONE := &"DEF-spine.003"
 const CHEST := Vector3(0.0, -0.55, -0.2)
 ## The brawler is drawn facing +x; the camera looks down its own -z.
 const TURN := PI * 0.5
-## The fists of a shove's wind-up clip, for the guard a brace raises here.
+## The fists of a shove's wind-up clip, for the guard a brace raises here, and the
+## open hands of a shove's, for a stagger's flung hand.
 const BRACE_CLIP := &"Punch_Enter"
+const STAGGER_CLIP := &"Push"
 ## The elbows hang straight down, so the sleeves rise steeply from the bottom edge
 ## rather than slanting in across the readouts.
 const ELBOWS: Array[Vector3] = [Vector3(0.1, -1.0, 0.0), Vector3(-0.1, -1.0, 0.0)]
@@ -83,10 +87,10 @@ const POSES := {
 	BrawlerAnimation.Move.STAGGER:
 	{
 		&"DEF-spine.003": UPRIGHT,
-		BrawlerPose.REACH_L: Vector3(0.3, 0.75, -0.23),
-		BrawlerPose.REACH_R: Vector3(-0.3, 0.75, -0.23),
-		&"DEF-hand.L": Vector3(0.3, 1.0, -0.3),
-		&"DEF-hand.R": Vector3(-0.3, 1.0, -0.3),
+		BrawlerPose.REACH_L: Vector3(0.3, 0.15, -0.05),
+		BrawlerPose.REACH_R: Vector3(-0.27, 0.5, 0.16),
+		&"DEF-hand.L": Vector3(0.6, -0.2, -0.3),
+		&"DEF-hand.R": Vector3(-1.0, 0.6, 0.3),
 	},
 	BrawlerAnimation.Move.SWIM:
 	[
@@ -144,6 +148,7 @@ func show_seat(seat: int, then: Dictionary, now: Dictionary, alpha: float) -> vo
 		_body.setup(seat, _rules, false)
 		var clips := BrawlerAnimation.CLIPS.duplicate()
 		clips[BrawlerAnimation.Move.BRACE] = BRACE_CLIP
+		clips[BrawlerAnimation.Move.STAGGER] = STAGGER_CLIP
 		clips[BrawlerAnimation.Move.JUMP] = clips[BrawlerAnimation.Move.FALL]
 		_body.show_as_own_arms(clips, POSES, ELBOWS)
 		_body.rotation.y = TURN

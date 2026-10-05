@@ -22,6 +22,7 @@ const REACH_R := &"reach.R"
 ## The mannequin faces +z.
 const AHEAD := Vector3(0.0, 0.0, 1.0)
 const CHEST := &"DEF-spine.003"
+const CHEST_SLOT := 3
 ## Every bone a pose may name, parents before children.
 const BONES: Array[StringName] = [
 	&"DEF-hips",
@@ -200,6 +201,36 @@ func apply(delta: float) -> void:
 			_chest_at = chest.origin
 
 
+## Where arm [param arm]'s shoulder (0 left, 1 right) is drawn now, in the
+## skeleton's space.
+func shoulder(arm: int) -> Vector3:
+	return _skeleton.get_bone_global_pose(_bones[LIMBS[arm]]).origin
+
+
+## Where arm [param arm]'s wrist (0 left, 1 right) is drawn now, in the skeleton's
+## space.
+func wrist(arm: int) -> Vector3:
+	return _skeleton.get_bone_global_pose(_bones[LIMBS[arm] + 2]).origin
+
+
+## Bends arm [param arm] (0 left, 1 right) over what the clip and the pose drew, so
+## its wrist reaches [param to], in the skeleton's space, the elbow bending as a
+## pose's reach bends it. The next apply() draws the arm afresh.
+func reach_arm(arm: int, to: Vector3) -> void:
+	var slot := LIMBS[arm]
+	var chest := _turn(_bones[CHEST_SLOT]) * _rest_turn[CHEST_SLOT].inverse()
+	var root := shoulder(arm)
+	var middle := _bend(arm, root, to, chest * _elbows[arm])
+	_aim(slot, middle - root)
+	_aim(slot + 1, _end(arm, root, to) - middle)
+
+
+## Turns the bone in [param slot] to point [param way], in the skeleton's space.
+func _aim(slot: int, way: Vector3) -> void:
+	var turn := Quaternion(_rest_aim[slot], way.normalized()) * _rest_turn[slot]
+	_skeleton.set_bone_pose_rotation(_bones[slot], _turn(_parents[slot]).inverse() * turn)
+
+
 func _turn(bone: int) -> Quaternion:
 	return _skeleton.get_bone_global_pose(bone).basis.get_rotation_quaternion()
 
@@ -221,18 +252,33 @@ func _limb_aim(slot: int, values: PackedVector3Array) -> Vector3:
 	if limb < ARM_LIMBS:
 		end = _chest_at + _chest_turn * values[upper_slot]
 		pole = _chest_turn * _elbows[limb]
+	var middle := _bend(limb, root, end, pole)
+	if slot == upper_slot:
+		return (middle - root).normalized()
+	return (_end(limb, root, end) - middle).normalized()
+
+
+## Where limb [param limb]'s end stands reaching from [param root] toward
+## [param end]: no further than the limb is long, nor nearer than it folds.
+func _end(limb: int, root: Vector3, end: Vector3) -> Vector3:
+	var shortest := absf(_upper[limb] - _lower[limb]) + 0.01
+	var length := clampf(root.distance_to(end), shortest, (_upper[limb] + _lower[limb]) * 0.999)
+	return root + (end - root).normalized() * length
+
+
+## Where limb [param limb]'s middle joint stands as it reaches from [param root]
+## toward [param end], bending toward [param pole]: the upper and lower bones in the
+## plane through the three.
+func _bend(limb: int, root: Vector3, end: Vector3, pole: Vector3) -> Vector3:
 	var upper := _upper[limb]
 	var lower := _lower[limb]
-	var reach := end - root
-	var length := clampf(reach.length(), absf(upper - lower) + 0.01, (upper + lower) * 0.999)
-	var along := reach.normalized()
+	var reached := _end(limb, root, end)
+	var length := root.distance_to(reached)
+	var along := (reached - root) / length
 	var bend := (pole - along * along.dot(pole)).normalized()
 	var cos_root := (upper * upper + length * length - lower * lower) / (2.0 * upper * length)
 	var root_angle := acos(clampf(cos_root, -1.0, 1.0))
-	var middle := root + (along * cos(root_angle) + bend * sin(root_angle)) * upper
-	if slot == upper_slot:
-		return (middle - root).normalized()
-	return (root + along * length - middle).normalized()
+	return root + (along * cos(root_angle) + bend * sin(root_angle)) * upper
 
 
 func _compile(key: int, pose: Dictionary) -> void:
