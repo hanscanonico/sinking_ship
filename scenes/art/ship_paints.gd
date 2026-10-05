@@ -22,11 +22,15 @@ static var frame := ShipMesh.Paint.new(
 ## Treads are planked like the deck, a shade darker, so a stair reads as wood.
 static var tread := ShipMesh.Paint.new(FINISH.DECK, ArtPalette.TREAD)
 static var white := ShipMesh.Paint.new(FINISH.PLAIN, ArtPalette.HOUSE)
-## A funnel: buff with a black top outside, cabin paint where it passes through one.
+## A funnel: buff with a black top outside, a riveted steel casing where it passes
+## through a cabin.
 static var funnel := ShipMesh.Paint.new(
-	FINISH.FUNNEL, ArtPalette.FUNNEL, FINISH.CABIN, ArtPalette.CABIN
+	FINISH.FUNNEL, ArtPalette.FUNNEL, FINISH.PLATE, ArtPalette.CASING
 )
 static var mast := ShipMesh.Paint.new(FINISH.PLAIN, ArtPalette.MAST)
+## A staff's flag: the jack at the bow, the ensign at the stern.
+static var jack := ShipMesh.Paint.new(FINISH.PLAIN, ArtPalette.JACK)
+static var ensign := ShipMesh.Paint.new(FINISH.PLAIN, ArtPalette.ENSIGN)
 static var dark := ShipMesh.Paint.new(FINISH.PLAIN, ArtPalette.FUNNEL_TOP)
 static var canvas := ShipMesh.Paint.new(FINISH.PLAIN, ArtPalette.CANVAS)
 static var rope := ShipMesh.Paint.new(FINISH.PLAIN, ArtPalette.ROPE)

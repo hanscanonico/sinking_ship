@@ -34,6 +34,14 @@ uniform vec4 seam_colour : source_color = vec4(0.25, 0.17, 0.11, 1.0);
 uniform float plank_width = 0.16;
 uniform float plank_length = 3.6;
 uniform float seam_width = 0.012;
+// DECK at the bow (when bow.w is 1): forward of bow.x the rows close on the stem head
+// at bow.y from bow.z either side of the centreline, so the forecastle's planking runs
+// to a point at the stem inside a darker margin plank margin_plank wide; outboard of
+// it the deck is plated steel, bow_plate, in plates bow_plate_size.
+uniform vec4 bow = vec4(0.0);
+uniform float margin_plank = 0.24;
+uniform vec4 bow_plate : source_color = vec4(0.4, 0.3, 0.26, 1.0);
+uniform float bow_plate_size = 1.2;
 // HULL: red oxide below the boot line, a pale riband under the sheer, and the
 // plating's strakes as faint lines.
 uniform vec4 bottom_colour : source_color = vec4(0.557, 0.169, 0.133, 1.0);
@@ -119,15 +127,43 @@ float line(float d, float half) {
 	return (1.0 - smoothstep(half - fw, half + fw, abs(d))) * clamp(half * 2.0 / fw - 0.5, 0.0, 1.0);
 }
 
+// 1 on a rivet of the row riding [param over] above each seam of [param d], whose
+// rivets stand [param spacing] apart along [param along]; faded out once a rivet
+// would be smaller than a pixel.
+float rivets(float along, float d, float over) {
+	vec2 at = vec2((fract(along / rivet_spacing + 0.5) - 0.5) * rivet_spacing, d - over);
+	float fw = max(fwidth(along), 1e-5);
+	float dot_ = 1.0 - smoothstep(rivet_radius - fw, rivet_radius + fw, length(at));
+	return dot_ * clamp(rivet_radius * 2.0 / fw - 0.5, 0.0, 1.0);
+}
+
+// Steel deck plating: plates bow_plate_size square, seams riveted.
+vec3 plated() {
+	vec2 seam = (fract(ship_pos.xz / bow_plate_size + 0.5) - 0.5) * bow_plate_size;
+	float plating = max(line(seam.x, 0.006), line(seam.y, 0.006));
+	plating = max(plating, 0.8 * rivets(ship_pos.z, seam.x, 0.03));
+	return bow_plate.rgb * (1.0 - 0.3 * plating);
+}
+
 vec3 planks(vec3 base) {
-	float row = floor(ship_pos.z / plank_width);
-	float across = (fract(ship_pos.z / plank_width) - 0.5) * plank_width;
+	float z = ship_pos.z;
+	float margin = 0.0;
+	if (bow.w > 0.5 && ship_pos.x > bow.x) {
+		float share = clamp((ship_pos.x - bow.x) / (bow.y - bow.x), 0.0, 0.95);
+		z *= 1.0 / (1.0 - share * share);
+		if (abs(z) > bow.z) {
+			return plated();
+		}
+		margin = step(bow.z - margin_plank, abs(z));
+	}
+	float row = floor(z / plank_width);
+	float across = (fract(z / plank_width) - 0.5) * plank_width;
 	float along = ship_pos.x / plank_length + hash(vec2(row, 7.0));
 	float piece = floor(along);
 	float butt = (fract(along) - 0.5) * plank_length;
 	float tone = mix(0.86, 1.1, hash(vec2(row, piece)));
 	float grain = 0.96 + 0.04 * sin(ship_pos.x * 7.0 + hash(vec2(piece, row)) * 40.0 + sin(ship_pos.z * 31.0));
-	vec3 colour = base * tone * grain;
+	vec3 colour = base * tone * grain * (1.0 - 0.28 * margin);
 	float seam = max(
 		line(abs(across) - plank_width * 0.5, seam_width),
 		line(abs(butt) - plank_length * 0.5, seam_width)
@@ -146,16 +182,6 @@ vec3 hull(vec3 base) {
 // Where a point stands along a wall: x along one facing z, z along one facing x.
 float wall_along() {
 	return abs(ship_normal.x) > 0.5 ? ship_pos.z : ship_pos.x;
-}
-
-// 1 on a rivet of the row riding [param over] above each seam of [param d], whose
-// rivets stand [param spacing] apart along [param along]; faded out once a rivet
-// would be smaller than a pixel.
-float rivets(float along, float d, float over) {
-	vec2 at = vec2((fract(along / rivet_spacing + 0.5) - 0.5) * rivet_spacing, d - over);
-	float fw = max(fwidth(along), 1e-5);
-	float dot_ = 1.0 - smoothstep(rivet_radius - fw, rivet_radius + fw, length(at));
-	return dot_ * clamp(rivet_radius * 2.0 / fw - 0.5, 0.0, 1.0);
 }
 
 vec3 house(vec3 base) {

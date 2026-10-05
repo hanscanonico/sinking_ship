@@ -8,14 +8,15 @@ extends RefCounted
 ## bulkhead with their fires glowing and their steam pipes overhead; a hold of rough
 ## timber, framed up its hull sides, its cargo stowed on a tween deck overhead under
 ## a net, lit by shaded cargo lamps; lower-deck cabins, each a little different, with
-## a berth slung overhead, a washstand, a locker and curtains at the portholes; a
-## corridor with handrails, a lifebelt and fire buckets; a wheelhouse panelled in
-## teak with its wheel, binnacle, telegraph and chart against its walls; and over
-## every doorway out of a corridor, an engine room or a hold, a plate naming the room
-## beyond as the HUD does. Between a step over the floor and a body's height, where a
-## body walks, nothing it draws stands out from a wall further than a fitting's depth
-## — the rest stands in a blocker's footprint or over HEADROOM — and art-lint holds it
-## to that.
+## a berth slung overhead, a washstand, a locker and curtains at the portholes, and
+## the deckhouse's narrow cabins and saloon (CabinDressing, with the cabins' wall
+## fittings); a corridor with handrails, a lifebelt and fire buckets; a wheelhouse
+## panelled in teak with its wheel, binnacle, telegraph and chart against its walls;
+## and over every doorway out of a corridor, an engine room or a hold, a plate naming
+## the room beyond as the HUD does. Between a step over the floor and a body's
+## height, where a body walks, nothing it draws stands out from a wall further than a
+## fitting's depth — the rest stands in a blocker's footprint or over HEADROOM — and
+## art-lint holds it to that.
 
 ## What a room is, by its shape and where it stands.
 enum Kind { PASSAGE, CUDDY, ENGINE, HOLD, STEERAGE, HELM, SALOON, CABIN }
@@ -134,6 +135,7 @@ var _lines: Array[PackedFloat32Array] = [PackedFloat32Array(), PackedFloat32Arra
 var _cut_above: float
 var _engine: EngineRoom
 var _hold: CargoHold
+var _cabins: CabinDressing
 
 
 ## Reads [param space]'s rooms; no sign at or over [param cut_above], the observer's
@@ -144,6 +146,7 @@ func _init(space: ShipSpace, cut_above := INF) -> void:
 	_cut_above = cut_above
 	_engine = EngineRoom.new(space)
 	_hold = CargoHold.new(space)
+	_cabins = CabinDressing.new(space)
 	for room: ShipRoom in _layout.rooms:
 		var kind := kind_of(space, room)
 		_kinds.append(kind)
@@ -284,9 +287,10 @@ func lights(room: ShipRoom) -> Array[Light]:
 
 ## Every room's furnishings, into [param mesh]; its door signs' letters under
 ## [param signs]. [param panes] are ShipFittings' glass, each [room, centre, normal
-## into the room, whether a porthole].
+## into the room, whether a porthole, its half size].
 func build(mesh: ShipMesh, signs: Node3D, panes: Array[Array]) -> void:
 	var cabin := 0
+	var cuddy := 0
 	for index in _layout.rooms.size():
 		var room := _layout.rooms[index]
 		var glass: Array[Array] = []
@@ -305,6 +309,11 @@ func build(mesh: ShipMesh, signs: Node3D, panes: Array[Array]) -> void:
 				cabin += 1
 			Kind.HELM:
 				_helm(mesh, room, glass)
+			Kind.CUDDY:
+				_cabins.cuddy(mesh, room, cuddy, glass)
+				cuddy += 1
+			Kind.SALOON:
+				_cabins.saloon(mesh, room, glass)
 		if _kinds[index] in [Kind.ENGINE, Kind.HOLD, Kind.PASSAGE]:
 			_signs(mesh, signs, room)
 
@@ -363,25 +372,25 @@ func _cabin(mesh: ShipMesh, room: ShipRoom, number: int, glass: Array[Array]) ->
 	var wash := stand.end_by(hull)
 	var by_door := stand.to - 0.4
 	if wash == stand.from:
-		_washstand(mesh, stand, wash + 0.45)
+		CabinDressing.washstand(mesh, stand, wash + 0.45)
 	else:
-		_washstand(mesh, stand, wash - 0.45)
+		CabinDressing.washstand(mesh, stand, wash - 0.45)
 		by_door = stand.from + 0.4
-	_locker(mesh, stand, by_door)
+	CabinDressing.locker(mesh, stand, by_door)
 	for pane: Array in glass:
-		_curtains(mesh, pane[1], pane[2], curtain)
+		CabinDressing.curtains(mesh, pane[1], pane[2], curtain)
 	match number % 3:
 		0:
 			for wall: Wall in around:
 				if wall.side == door and wall.length() >= 0.8:
-					_luggage_shelf(mesh, wall)
+					CabinDressing.luggage_shelf(mesh, wall)
 					break
 		1:
 			var free := berth.to - 0.5 if berth.end_by(hull) == berth.from else berth.from + 0.5
-			_picture(mesh, berth, free)
+			CabinDressing.picture(mesh, berth, free)
 		2:
 			var away := -0.7 if berth.end_by(hull) > berth.middle() else 0.7
-			_coat(mesh, berth, berth.middle() + away, blanket)
+			CabinDressing.coat(mesh, berth, berth.middle() + away, blanket)
 
 
 ## The room of [param space], by index, through the gap [param gap] along
@@ -452,96 +461,6 @@ func _berth(mesh: ShipMesh, wall: Wall, end: float, blanket: ShipMesh.Paint) -> 
 		var ceiling := _space.ceiling(wall.room, hook.x, hook.z) - ShipArt.PLANK
 		var chain := Vector2.ONE * 0.016
 		mesh.beam(hook, Vector3(hook.x, ceiling, hook.z), chain, ShipPaints.steel, 0)
-
-
-## A washstand flat on [param wall] at [param along]: a cabinet under a marble top
-## with a white basin let into it, a brass tap and a jug, a towel on a rail, and a
-## mirror over it.
-func _washstand(mesh: ShipMesh, wall: Wall, along: float) -> void:
-	var floor := wall.floor
-	var cabinet := wall.rect(along - 0.25, along + 0.25, 0.0, 0.08)
-	block(mesh, cabinet, floor + 0.25, floor + 0.86, ShipPaints.frame, ShipMesh.RIM_ALL)
-	for side: float in [-1.0, 1.0]:
-		var door := wall.at(along + side * 0.12, 0.55, 0.082)
-		panel(mesh, door, wall.right, Vector2(0.1, 0.24), wall.normal, ShipPaints.teak, 0)
-	var marble := wall.rect(along - 0.28, along + 0.28, 0.0, 0.1)
-	block(mesh, marble, floor + 0.86, floor + 0.9, ShipPaints.enamel)
-	var bowl := wall.at(along, 0.905, 0.05)
-	disc(mesh, bowl, Vector3.UP, 0.045, ShipPaints.mirror, 8)
-	var tap := wall.at(along, 0.97, 0.03)
-	mesh.turned_box(wall.place(tap), Vector3(0.03, 0.12, 0.04), ShipPaints.brass, 0)
-	var jug := wall.at(along + 0.17, 0.9, 0.05)
-	mesh.cylinder(Vector2(jug.x, jug.z), 0.045, jug.y, jug.y + 0.2, 8, ShipPaints.enamel, false)
-	var mirror := wall.at(along, 1.55, 0.012)
-	panel(mesh, mirror, wall.right, Vector2(0.2, 0.25), wall.normal, ShipPaints.frame)
-	var glass := mirror + wall.normal * 0.006
-	panel(mesh, glass, wall.right, Vector2(0.16, 0.21), wall.normal, ShipPaints.mirror)
-	var rail := wall.at(along - 0.27, 0.75, 0.05)
-	mesh.beam(rail, rail - wall.right * 0.25, Vector2.ONE * 0.015, ShipPaints.brass, 0)
-	var towel := wall.at(along - 0.4, 0.62, 0.052)
-	panel(mesh, towel, wall.right, Vector2(0.1, 0.13), wall.normal, ShipPaints.linen, 0)
-
-
-## A tall locker flat on [param wall] at [param along]: two panelled doors, louvred
-## at the top, and a brass knob.
-func _locker(mesh: ShipMesh, wall: Wall, along: float) -> void:
-	var body := wall.rect(along - 0.3, along + 0.3, 0.0, 0.08)
-	block(mesh, body, wall.floor, wall.floor + 1.9, ShipPaints.frame, ShipMesh.RIM_ALL)
-	for side: float in [-1.0, 1.0]:
-		var door := wall.at(along + side * 0.14, 0.95, 0.083)
-		panel(mesh, door, wall.right, Vector2(0.12, 0.85), wall.normal, ShipPaints.teak)
-		for slat in 5:
-			var louvre := wall.at(along + side * 0.14, 1.5 + slat * 0.06, 0.088)
-			panel(mesh, louvre, wall.right, Vector2(0.09, 0.008), wall.normal, ShipPaints.dark, 0)
-	var knob := wall.at(along + 0.03, 1.0, 0.095)
-	mesh.turned_box(wall.place(knob), Vector3.ONE * 0.03, ShipPaints.brass, 0)
-
-
-## Curtains drawn back either side of the glass centred on [param centre] facing
-## [param normal] into its room, under a brass rod, in [param paint].
-func _curtains(mesh: ShipMesh, centre: Vector3, normal: Vector3, paint: ShipMesh.Paint) -> void:
-	var right := normal.cross(Vector3.UP).normalized()
-	var rod := centre + Vector3.UP * 0.3 + normal * 0.04
-	mesh.beam(rod - right * 0.38, rod + right * 0.38, Vector2.ONE * 0.016, ShipPaints.brass, 0)
-	for side: float in [-1.0, 1.0]:
-		for fold in 3:
-			var at := centre + right * side * (0.24 + fold * 0.045) + Vector3.UP * 0.02
-			var proud := 0.025 + 0.015 * (fold % 2)
-			panel(mesh, at + normal * proud, right, Vector2(0.024, 0.27), normal, paint, 0)
-
-
-## A shelf over the doorway in [param wall], over head height, with a suitcase on it.
-func _luggage_shelf(mesh: ShipMesh, wall: Wall) -> void:
-	var middle := wall.middle()
-	var low := wall.floor + 2.1
-	block(
-		mesh, wall.rect(middle - 0.35, middle + 0.35, 0.0, 0.3), low, low + 0.03, ShipPaints.frame
-	)
-	var suitcase := wall.rect(middle - 0.24, middle + 0.24, 0.04, 0.27)
-	block(mesh, suitcase, low + 0.03, low + 0.21, ShipPaints.upholstery, ShipMesh.RIM_ALL)
-	block(mesh, suitcase.grow(0.006), low + 0.1, low + 0.13, ShipPaints.dark)
-
-
-## A framed picture flat on [param wall] at [param along]: a seascape, a band of
-## sky over a band of sea, in a dark frame.
-func _picture(mesh: ShipMesh, wall: Wall, along: float) -> void:
-	var centre := wall.at(along, 1.45, 0.012)
-	panel(mesh, centre, wall.right, Vector2(0.24, 0.18), wall.normal, ShipPaints.frame)
-	var sky := centre + wall.normal * 0.004 + Vector3.UP * 0.06
-	panel(mesh, sky, wall.right, Vector2(0.2, 0.08), wall.normal, ShipPaints.chart)
-	var sea := centre + wall.normal * 0.004 - Vector3.UP * 0.08
-	panel(mesh, sea, wall.right, Vector2(0.2, 0.06), wall.normal, ShipPaints.mirror)
-
-
-## A coat with a collar of [param paint] hanging flat from a hook on [param wall] at
-## [param along].
-func _coat(mesh: ShipMesh, wall: Wall, along: float, paint: ShipMesh.Paint) -> void:
-	var hook := wall.at(along, 1.75, 0.03)
-	mesh.turned_box(wall.place(hook), Vector3(0.03, 0.06, 0.06), ShipPaints.brass, 0)
-	var coat := wall.at(along, 1.33, 0.05)
-	panel(mesh, coat, wall.right, Vector2(0.2, 0.38), wall.normal, ShipPaints.leather)
-	var collar := wall.at(along, 1.66, 0.06)
-	panel(mesh, collar, wall.right, Vector2(0.12, 0.06), wall.normal, paint)
 
 
 ## The corridor's own: a handrail along each long wall, sloping up its stairs; a
@@ -665,10 +584,10 @@ func _helm(mesh: ShipMesh, room: ShipRoom, glass: Array[Array]) -> void:
 			_wheel_wall(mesh, wall)
 		elif wall.side == 3:
 			_chart_wall(mesh, wall)
-	var half := ShipFittings.WINDOW_SIZE * 0.5 + Vector2.ONE * (ShipFittings.WINDOW_FRAME + 0.05)
 	for pane: Array in glass:
 		if pane[3]:
 			continue
+		var half: Vector2 = pane[4] + Vector2.ONE * (ShipFittings.WINDOW_FRAME + 0.05)
 		var centre: Vector3 = pane[1]
 		var normal: Vector3 = pane[2]
 		var right := normal.cross(Vector3.UP).normalized()
@@ -689,8 +608,9 @@ func _helm(mesh: ShipMesh, room: ShipRoom, glass: Array[Array]) -> void:
 
 
 ## The wheelhouse's forward wall: the wheel on its steering box, the binnacle to one
-## side of it with its compensating spheres, the telegraph to the other, a clock over
-## the wheel and voice pipes in the corners.
+## side of it with its compensating spheres beside its hood, the telegraph to the
+## other, a clock over the wheel and voice pipes either side of it, clear of the
+## windows by the corners.
 func _wheel_wall(mesh: ShipMesh, wall: Wall) -> void:
 	var middle := wall.middle()
 	var floor := wall.floor
@@ -698,15 +618,17 @@ func _wheel_wall(mesh: ShipMesh, wall: Wall) -> void:
 	block(mesh, steering, floor, floor + 0.92, ShipPaints.frame, ShipMesh.RIM_ALL)
 	block(mesh, steering.grow(0.005), floor + 0.8, floor + 0.85, ShipPaints.brass)
 	wheel(mesh, wall.at(middle, 1.0, 0.085), wall.normal, 0.32, 0.022, 8, ShipPaints.teak)
-	var binnacle := middle - 0.74
+	var binnacle := middle - 0.51
 	_half_column(mesh, wall, binnacle, 0.09, Vector2(0.0, 1.0), ShipPaints.teak)
 	_half_column(mesh, wall, binnacle, 0.1, Vector2(1.0, 1.2), ShipPaints.brass)
 	_half_column(mesh, wall, binnacle, 0.08, Vector2(1.2, 1.28), ShipPaints.brass)
 	_half_column(mesh, wall, binnacle, 0.045, Vector2(1.28, 1.36), ShipPaints.brass)
+	# The spheres hug its hood, over the dado rail and the windows' sills and clear of the
+	# window's surround and the wheel's handles either side.
 	for side: float in [-1.0, 1.0]:
-		var sphere := wall.at(binnacle + side * 0.19, 1.1, 0.05)
-		disc(mesh, sphere, wall.normal, 0.065, ShipPaints.dark, 10)
-	var telegraph := middle + 0.74
+		var sphere := wall.at(binnacle + side * 0.13, 1.26, 0.05)
+		disc(mesh, sphere, wall.normal, 0.05, ShipPaints.dark, 10)
+	var telegraph := middle + 0.5
 	_half_column(mesh, wall, telegraph, 0.06, Vector2(0.0, 1.02), ShipPaints.brass)
 	var dial := wall.at(telegraph, 1.2, 0.07)
 	disc(mesh, dial, wall.normal, 0.16, ShipPaints.enamel, 14)
@@ -719,8 +641,8 @@ func _wheel_wall(mesh: ShipMesh, wall: Wall) -> void:
 	var clock := wall.at(middle, 1.75, 0.02)
 	disc(mesh, clock, wall.normal, 0.11, ShipPaints.enamel, 12)
 	ring(mesh, clock + wall.normal * 0.004, wall.normal, 0.1, 0.13, ShipPaints.brass, 12)
-	for corner: float in [wall.from + 0.1, wall.to - 0.1]:
-		var pipe := wall.at(corner, 1.3, 0.04)
+	for beside: float in [middle - 0.2, middle + 0.2]:
+		var pipe := wall.at(beside, 1.3, 0.04)
 		var ceiling := _space.ceiling(wall.room, pipe.x, pipe.z) - ShipArt.PLANK
 		pipe(mesh, pipe, Vector3(pipe.x, ceiling, pipe.z), 0.025, ShipPaints.brass)
 		var mouth := Vector2(pipe.x, pipe.z)

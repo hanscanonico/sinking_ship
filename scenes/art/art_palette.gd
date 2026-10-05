@@ -33,6 +33,14 @@ const HAIR: Array[Color] = [Color("33241a"), Color("1c1b1f"), Color("9a4c25"), C
 const TROUSERS: Array[Color] = [Color("3a3d46"), Color("564539"), Color("2c3447"), Color("6c6a64")]
 ## A shove's hands as it winds up and lands.
 const HAND_FLASH := Color("ffd36e")
+## A shove coming: the body's edge, its outline and a charge's sparks, ember at a
+## wind-up and toward white-hot at a full charge.
+const CHARGE := Color("ff6a14")
+const CHARGE_CORE := Color("fff0c2")
+## A brace's scuffs on the deck at the feet: dark wood dust, and the pale grain the
+## boots tear up.
+const SCUFF := Color("2b1d14")
+const SCUFF_DUST := Color("e9d3a8")
 
 ## The ship (ShipArt): a dark hull, red oxide below the boot line, so the foam line
 ## pops; warm deck planks lighter than most seat colours; white houses with teak
@@ -104,6 +112,14 @@ const LIFEBELT := Color("cf3b2b")
 const FIRE_BUCKET := Color("b5302a")
 const MIRROR := Color("a7b8bf")
 const CHART := Color("e3d8b8")
+## The forecastle's steel deck plating, outboard of its planking.
+const BOW_PLATE := Color("6b4a3d")
+## The jack flown at the bow and the ensign at the stern.
+const JACK := Color("2c3e78")
+const ENSIGN := Color("b8322a")
+## A funnel's steel casing where it passes through a cabin; a saloon's curtains.
+const CASING := Color("bdb6a4")
+const SALOON_CURTAIN := Color("a8823f")
 ## Per lower-deck cabin, in turn: its blanket and its porthole curtains.
 const CABIN_BLANKETS: Array[Color] = [
 	Color("41557a"),
@@ -133,6 +149,12 @@ const DUST := Color(0.72, 0.66, 0.57, 0.85)
 const DUST_CLOUD := Color(0.74, 0.57, 0.42, 0.9)
 const SIFTING_DUST := Color(0.6, 0.53, 0.44, 0.8)
 const BUBBLE := Color(0.88, 0.96, 0.97, 0.85)
+## The toon billows' shade sides: steam's turned from the low sun takes the dusk
+## sky's lilac, never a grey; the funnel's smoke is warm where the sun catches it and
+## near black in its shade.
+const STEAM_SHADE := Color(0.66, 0.66, 0.84)
+const SMOKE_LIT := Color(0.32, 0.25, 0.23)
+const SMOKE_SHADE := Color(0.13, 0.12, 0.14)
 ## Floating wreckage: a lifebelt's bands, a deck chair's canvas.
 const FLOTSAM_LIFEBELT := Color("efe9dc")
 const LIFEBELT_BAND := Color("c1372b")
