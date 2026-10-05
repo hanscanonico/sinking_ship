@@ -60,7 +60,7 @@ const MIST_DAMPING := 24.0
 const MIST_STOPS := 0.5
 const MIST_SINK := 0.3
 const MIST_DRIFT := 2.0
-const MIST_GROWN := Vector3(0.8, 1.6, 0.5)
+const MIST_GROWN := Vector3(0.8, 1.6, 1.0)
 ## Foam spreading on the sea grows this much over its life.
 const FROTH_GROWN := Vector2(0.7, 1.8)
 ## Where the funnel's smoke drifts, as ShipArt's does; white water flies downwind

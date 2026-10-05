@@ -330,6 +330,34 @@ func test_the_strike_throws_from_emitters_the_bursts_after_it_never_take() -> vo
 		assert_eq(sheets[index].global_transform, placed[index], "never thrown again")
 
 
+func test_a_spurt_falls_back_whole_before_its_emitter_spurts_again() -> void:
+	# Seed 30's gash, the biggest there is, spurts highest and longest.
+	var sim := MatchSim.create(RunMatch.default_config(30))
+	var planner := FxPlanner.new(sim.config, sim.surfaces, sim.schedule)
+	var fx: SinkingFx = add_child_autofree(SinkingFx.new())
+	var afloat := Transform3D(Basis(), Vector3.UP * sim.config.ship.freeboard)
+	var struck := sim.schedule.hit_tick()
+	fx.play(planner.plan(_at(sim, struck), _holed(sim, struck)), afloat, null)
+	# Each spurt emitter's place and the tick it last spurted from there, and for how long.
+	var placed := {}
+	var spurted := 0
+	var previous := _at(sim, struck + 1)
+	for tick in range(struck + 2, struck + Ticks.from_seconds(GashPlanner.GASH_SECONDS) + 2):
+		var current := _at(sim, tick)
+		fx.play(planner.plan(previous, current), afloat, null)
+		previous = current
+		for spurt: CPUParticles3D in _going(fx, "Spurt"):
+			var was: Array = placed.get(spurt.name, [])
+			if not was.is_empty() and was[0] == spurt.global_transform:
+				continue
+			if not was.is_empty():
+				var aloft := Ticks.from_seconds(was[2])
+				assert_gte(tick - was[1], aloft, "%s spurted again mid-air" % spurt.name)
+			placed[spurt.name] = [spurt.global_transform, tick, spurt.lifetime]
+			spurted += 1
+	assert_gt(spurted, GashFx.SPURTS, "every spurt emitter was taken again")
+
+
 func test_the_strike_s_mist_climbs_over_her_rail_and_its_foam_lies_on_the_sea_thinning() -> void:
 	# Seed 37's gash runs 0.75 to 0.86 m under the sea all along.
 	var sim := MatchSim.create(RunMatch.default_config(37))

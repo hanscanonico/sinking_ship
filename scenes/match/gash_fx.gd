@@ -8,9 +8,10 @@ extends Node3D
 ## throws the white water as it throws all of it, the mist is see-through and the foam
 ## lies flat on the sea.
 
-## How many emitters of each, and how many grains each draws at most.
+## How many emitters of each, and how many grains each draws at most: as many spurts
+## as come up GashPlanner.GASH_TICKS apart while one, up to 2 s aloft, falls back.
 const STRIKES := 8
-const SPURTS := 2
+const SPURTS := 4
 const MISTS := 6
 const FROTHS := 3
 const STRIKE_GRAINS := 60
