@@ -371,6 +371,14 @@ func _check_panes(file: String, layout: ShipLayout, rules: BrawlRules) -> void:
 				and absf(opening.centre[along] - inside[along]) <= PANE_TOLERANCE
 				and absf(opening.centre.y - inside.y) <= PANE_TOLERANCE
 			):
+				if found != -1:
+					_problems.append(
+						(
+							"art-lint: %s: a pane at %s fits both openings %s and %s"
+							% [file, inside, glass[found].name, opening.name]
+						)
+					)
+					break
 				found = index
 		if found == -1:
 			_problems.append(

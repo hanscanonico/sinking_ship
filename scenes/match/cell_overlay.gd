@@ -46,10 +46,13 @@ const EDGE_PRIORITY := 11
 const NAME_PRIORITY := 12
 
 
-## Draws every cell of [param structure], replacing what was drawn before.
+## Draws every cell of [param structure], replacing what was drawn before; nothing for
+## a ship with none.
 func build(structure: ShipStructure) -> void:
 	for child: Node in get_children():
 		child.queue_free()
+	if structure == null:
+		return
 	var edges := SurfaceTool.new()
 	edges.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var tints := SurfaceTool.new()
