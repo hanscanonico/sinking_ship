@@ -1,14 +1,13 @@
 extends GutTest
-## SH6's scheduled events: lurches, collapses, failing railings, the plunge and the
-## hard cap, all pure in (scenario, seed, tick) (D7) and none of them snapshot state
-## (D5).
-
-const SEEDS := 10
+## The scheduled events of an authored sinking — SH6's script, kept as a fixture for
+## the mechanics it exercises (§5b.4): lurches, collapses, failing railings and the
+## plunge, all pure in (scenario, tick) (D7) and none of them snapshot state (D5); and,
+## the cap gone, the cold settling a match once she is under and everyone swims.
 
 
 func _steamer_schedule(seed_value: int, scenario: SinkScenario = null) -> SinkSchedule:
 	return SinkSchedule.new(
-		scenario if scenario != null else load(SimFixtures.STEAMER_SINKING),
+		scenario if scenario != null else load(SimFixtures.STEAMER_SCRIPT),
 		SimFixtures.steamer().freeboard,
 		SeedStreams.derive(seed_value, "sink")
 	)
@@ -39,7 +38,7 @@ func _top(layout: ShipLayout, pose: ShipPose) -> float:
 ## listing and lurching the other way. The steamer's mast stands forward and tall,
 ## so a stern going down lifts it: the mirror sinks deeper to put it under.
 func _mirrored() -> SinkScenario:
-	var steamer: SinkScenario = load(SimFixtures.STEAMER_SINKING)
+	var steamer: SinkScenario = load(SimFixtures.STEAMER_SCRIPT)
 	var mirror: SinkScenario = steamer.duplicate(true)
 	for keyframe: SinkKeyframe in mirror.keyframes:
 		keyframe.trim_deg = -keyframe.trim_deg
@@ -71,29 +70,6 @@ func test_events_are_pure_in_seed_and_tick() -> void:
 	for tick: int in ticks:
 		assert_eq(_kinds(second.events_at(tick)), told[tick][0], "events at %d" % tick)
 		assert_eq(second.pose_at(tick).transform, told[tick][1], "pose at %d" % tick)
-	var other := _steamer_schedule(1702)
-	var moved := false
-	for index in _all(first).size():
-		moved = moved or _all(first)[index].at != _all(other)[index].at
-	assert_true(moved, "another seed moves the events")
-
-
-func test_jitter_stays_within_bounds() -> void:
-	var scenario: SinkScenario = load(SimFixtures.STEAMER_SINKING)
-	var start := Ticks.from_seconds(scenario.starts_at)
-	var seen := {}
-	for seed_value in 50:
-		var schedule := _steamer_schedule(seed_value)
-		var placed := _all(schedule)
-		assert_eq(placed.size(), scenario.events.size())
-		for index in placed.size():
-			var event := scenario.events[index]
-			var authored := start + Ticks.from_seconds(event.at)
-			var bound := Ticks.from_seconds(event.jitter)
-			assert_between(placed[index].at, authored - bound, authored + bound)
-			assert_eq(placed[index].at - placed[index].warned_at, Ticks.from_seconds(event.warning))
-			seen[placed[index].at - authored] = true
-	assert_gt(seen.size(), 10, "the jitter varies from seed to seed")
 
 
 func test_telegraph_comes_first_then_the_event() -> void:
@@ -318,56 +294,40 @@ func test_failed_railing_stops_holding() -> void:
 	)
 
 
-func test_every_surface_is_under_by_the_cap() -> void:
-	var layout := SimFixtures.steamer()
-	for seed_value in SEEDS:
-		var schedule := _steamer_schedule(seed_value)
-		assert_eq(schedule.cap_tick(), Ticks.from_seconds(210.0), "the cap is 3:30")
-		var top := _top(layout, schedule.pose_at(schedule.cap_tick()))
-		assert_lte(top, -0.5, "seed %d: every surface 0.5 m under" % seed_value)
-
-
-func test_cap_puts_everyone_left_out_together() -> void:
-	var lifted := SimFixtures.tilted(0.0, 0.0)
-	var sim := SimFixtures.sim(3, SimFixtures.with_events(lifted, [], 2.0))
-	var events := SimFixtures.step(sim, {}, 3 * Ticks.RATE)
-	assert_true(sim.is_over())
-	var cap := Ticks.from_seconds(2.0)
-	for player: PlayerState in sim.state.seats:
-		assert_eq([player.out_tick, player.place], [cap, 1], "seat %d" % player.seat)
-	assert_eq(events.back().kind, SimEvent.Kind.MATCH_ENDED)
-	assert_eq(events.back().seat, -1, "a draw: the sea wins")
-
-
-func test_the_cap_settles_swimmers_by_cold() -> void:
+func test_the_cold_settles_swimmers_once_every_surface_is_under() -> void:
 	var rules := SimFixtures.rules()
-	var cap := Ticks.from_seconds(2.0)
-	# One seat still on deck, two swimming: the deck's is the lone warmest — at the cap
-	# nobody has to be swimming — and the swimmers place by the cold they have left.
-	var sim := SimFixtures.sim(3, SimFixtures.with_events(SimFixtures.calm(), [], 2.0))
-	SimFixtures.swim(sim, 1, Vector3(0.0, 0.0, 8.0))
-	SimFixtures.swim(sim, 2, Vector3(0.0, 0.0, -8.0))
+	# Three swimmers over a deck sunk far under: the lone warmest wins, and the others
+	# place by the cold they have left, all on the one tick the cold settles it.
+	var under := SimFixtures.scenario([[0.0, 20.0, 0.0, 0.0]])
+	var sim := SimFixtures.sim(3, under)
+	for seat: int in 3:
+		SimFixtures.swim(sim, seat, Vector3(-6.0 + 6.0 * seat, 0.0, 0.0))
 	sim.state.seats[1].cold = rules.cold_meter - 0.5
 	sim.state.seats[2].cold = rules.cold_meter - 1.0
-	var events := SimFixtures.step(sim, {}, 3 * Ticks.RATE)
+	var events := SimFixtures.step(sim)
 	assert_true(sim.is_over())
 	assert_eq(events.back().kind, SimEvent.Kind.MATCH_ENDED)
 	assert_eq(events.back().seat, 0, "the lone warmest wins")
 	for seat: int in [1, 2]:
 		var player := sim.state.seats[seat]
-		assert_eq([player.out_tick, player.out_cause], [cap, PlayerState.Cause.COLD])
+		assert_eq([player.out_tick, player.out_cause], [0, PlayerState.Cause.COLD])
 	assert_eq([sim.state.seats[1].place, sim.state.seats[2].place], [2, 3], "warmer places higher")
-
 	# Two swimmers as warm as each other and warmer than the third: a draw.
-	var tied := SimFixtures.sim(3, SimFixtures.with_events(SimFixtures.calm(), [], 2.0))
+	var tied := SimFixtures.sim(3, under)
 	for seat: int in 3:
-		SimFixtures.swim(tied, seat, Vector3(-6.0 + 6.0 * seat, 0.0, 8.0))
+		SimFixtures.swim(tied, seat, Vector3(-6.0 + 6.0 * seat, 0.0, 0.0))
 	tied.state.seats[2].cold = rules.cold_meter - 1.0
-	var ended := SimFixtures.step(tied, {}, 3 * Ticks.RATE)
+	var ended := SimFixtures.step(tied)
 	assert_true(tied.is_over())
 	assert_eq(ended.back().seat, -1, "a tie for the warmest is the sea's")
 	var places := tied.state.seats.map(func(player: PlayerState) -> int: return player.place)
 	assert_eq(places, [1, 1, 3])
+	# One still on a deck that stands: nothing settles it.
+	var standing := SimFixtures.sim(3, SimFixtures.calm())
+	SimFixtures.swim(standing, 1, Vector3(0.0, 0.0, 8.0))
+	SimFixtures.swim(standing, 2, Vector3(0.0, 0.0, -8.0))
+	SimFixtures.step(standing)
+	assert_false(standing.is_over(), "no cap: the deck's seat is still in")
 
 
 func test_a_climb_whose_deck_collapses_drops_the_climber_back_in() -> void:
@@ -396,7 +356,7 @@ func test_a_climb_whose_deck_collapses_drops_the_climber_back_in() -> void:
 	assert_false(climber.is_out())
 
 
-func test_mirrored_scenario_also_ends_by_its_cap() -> void:
+func test_mirrored_scenario_also_goes_under() -> void:
 	var layout := SimFixtures.steamer()
 	var mirror := _mirrored()
 	var schedule := SinkSchedule.new(mirror, layout.freeboard, SeedStreams.derive(7, "sink"))
@@ -413,7 +373,7 @@ func test_mirrored_scenario_also_ends_by_its_cap() -> void:
 	var stern := Vector3(-18.0, 1.2, 0.0)
 	var late := schedule.pose_at(Ticks.from_seconds(200.0))
 	assert_gt(late.world_height(bow), late.world_height(stern), "stern down")
-	assert_lte(_top(layout, schedule.pose_at(schedule.cap_tick())), -0.5, "all under")
+	assert_lte(_top(layout, schedule.pose_at(schedule.end_tick())), -0.5, "all under")
 	var sim := MatchSim.create(SimFixtures.config(3, mirror, 7, layout))
 	SimFixtures.place(sim, 0, Vector3(16.0, 1.8, 0.0))
 	SimFixtures.place(sim, 1, Vector3(-2.0, 2.5, 0.0))
@@ -423,7 +383,9 @@ func test_mirrored_scenario_also_ends_by_its_cap() -> void:
 		for event: SimEvent in SimFixtures.step(sim):
 			collapsed = collapsed or event.kind == SimEvent.Kind.PLATFORM_COLLAPSED
 	assert_true(collapsed, "the bridge went")
-	assert_lte(sim.state.tick, schedule.cap_tick() + 1, "over by its cap")
+	# Under at its end, every seat swims and the cold settles it within its meter.
+	var settled := schedule.end_tick() + Ticks.from_seconds(SimFixtures.rules().cold_meter) + 1
+	assert_lte(sim.state.tick, settled, "over once she is under")
 
 
 ## Resumed from a snapshot taken in a lurch's telegraph, mid-lurch, on the collapse

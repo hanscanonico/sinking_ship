@@ -23,7 +23,7 @@ const STRIDES := {
 const STEP_SOFT := 0.45
 ## A collapse's telegraph is the same wood giving way as the collapse, quieter.
 const COLLAPSING_GAIN := 0.6
-## Feet this close above the sea splash as they step, in metres.
+## Feet this close above the water they are in splash as they step, in metres.
 const WET_ABOVE := 0.3
 ## A landing that costs no stagger still thuds this loud; one that costs
 ## LANDING_LOUD_TICKS or more lands at full.
@@ -337,7 +337,7 @@ func _at_seat(kind: AudioCue.Kind, tick: int, entry: Dictionary) -> AudioCue:
 
 
 func _ground(surface: int, feet: Vector3, pose: ShipPose) -> AudioCue.Ground:
-	if pose.world_height(feet) < WET_ABOVE:
+	if pose.world_height(feet) - pose.water_level(feet) < WET_ABOVE:
 		return AudioCue.Ground.WET
 	# Planks are the platforms, numbered first; every surface after them — a stair
 	# or a crate's lid — rings as metal.

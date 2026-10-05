@@ -46,7 +46,7 @@ func test_entering_the_sea_starts_swimming() -> void:
 	for _tick in 2 * Ticks.RATE:
 		SimFixtures.step(sim)
 		deepest = minf(deepest, swimmer.pos.y)
-	var sea := sim.pose().sea_height(swimmer.pos.x, swimmer.pos.z)
+	var sea := sim.pose().water_height(swimmer.pos)
 	assert_almost_eq(swimmer.pos.y, sea - rules.swim_depth, 0.0001, "feet swim_depth under")
 	assert_eq(swimmer.vel, Vector3.ZERO, "afloat")
 	assert_lt(deepest, sea - rules.swim_depth - 0.2, "dunked on the way in")
@@ -133,7 +133,7 @@ func test_a_climber_can_be_shoved_back() -> void:
 		climber.cold, cold - rules.climb_penalty, 0.0001, "climb_penalty colder, held in the stop"
 	)
 	SimFixtures.step(sim, {0: SimFixtures.frame(0), 1: SimFixtures.frame(1)}, Ticks.RATE)
-	var sea := sim.pose().sea_height(climber.pos.x, climber.pos.z)
+	var sea := sim.pose().water_height(climber.pos)
 	assert_lt(climber.pos.y, sea, "back in the sea")
 	assert_gt(climber.pos.z, 4.0, "off the edge it was climbing")
 
@@ -299,5 +299,5 @@ func test_a_swimmer_under_a_flooding_deck_stays_inside_the_hull() -> void:
 		assert_gt(swimmer.pos.z, -4.7 + rules.body_radius - 0.001, "never through the hull")
 		assert_lte(swimmer.pos.y + rules.body_height, 0.0001, "its head under the deck")
 	assert_eq(swimmer.body, PlayerState.Body.SWIMMING)
-	var sea := sim.pose().sea_height(swimmer.pos.x, swimmer.pos.z)
+	var sea := sim.pose().water_height(swimmer.pos)
 	assert_lt(swimmer.pos.y + rules.body_height, sea, "the sea closed over its head")

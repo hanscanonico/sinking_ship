@@ -1041,6 +1041,11 @@ func _hang_lamps(room: ShipRoom, index: int, brass: Material) -> void:
 		_lamp_sight.add(lamp, index, box)
 
 
+## The materials the ship is drawn with, one per finish, for what is drawn beside it.
+func paints() -> Dictionary:
+	return _paints
+
+
 ## One material per finish: ship.gdshader, or its cut-away variant while
 ## [member cut_above] is finite, its deck's planks closing on the stem as [param bow]
 ## says (ShipHull.bow_sweep), and the glass.

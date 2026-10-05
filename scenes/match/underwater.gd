@@ -1,13 +1,14 @@
 class_name Underwater
 extends CanvasLayer
-## The view from under the sea (SH5): while the eye is below the sea plane — a dunk,
-## a wave of the list, the plunge — the fog draws in, a tint brighter toward the
-## surface and darker below lies over the view, with shafts of light slanting down
-## (underwater.gdshader), the surface overhead is a bright wobbling ceiling
-## (water.gdshader), motes drift past and the brawler's breath bubbles up. The fog
-## is thin enough that the hull stays a dark shape some way off. Presentation only
-## (D12): it reads where the eye is drawn and nothing else. is_under() is the one
-## answer anything else that changes under the sea asks.
+## The view from under the water (SH5): while the eye is below the water it is in —
+## the sea, or a flooded cell's own (SH26) — a dunk, a cabin filling over its head,
+## the plunge — the fog draws in, a tint brighter toward the surface and darker below
+## lies over the view, with shafts of light slanting down (underwater.gdshader), the
+## surface overhead is a bright wobbling ceiling (water.gdshader), motes drift past and
+## the brawler's breath bubbles up. The fog is thin enough that the hull stays a dark
+## shape some way off. Presentation only (D12): it reads where the eye is drawn and how
+## far over its water that is, and nothing else. is_under() is the one answer anything
+## else that changes under the water asks.
 
 const OVERLAY := preload("res://scenes/match/underwater.gdshader")
 const FOG := Color(0.04, 0.2, 0.28)
@@ -35,6 +36,8 @@ var _overlay: ShaderMaterial
 var _motes: CPUParticles3D
 var _bubbles: CPUParticles3D
 var _under := false
+## How far the eye stood over its water when last shown.
+var _over_water := 0.0
 
 
 func _ready() -> void:
@@ -99,12 +102,13 @@ func show_graphics(quality: GraphicsQuality) -> void:
 	_below.glow_enabled = quality.glow
 
 
-## Under the sea or not, by the eye at [param eye] in the world: the sea is the
-## world plane y = 0.
-func show_eye(eye: Vector3) -> void:
-	var under := eye.y < 0.0
+## Under the water or not, by the eye at [param eye] in the world standing
+## [param above] over the water it is in (MatchView.above_water): below 0, under it.
+func show_eye(eye: Vector3, above: float) -> void:
+	var under := above < 0.0
 	# Placed before they start, so the motes fill in round the eye, not where it
 	# last went under.
+	_over_water = above
 	if under:
 		_follow(eye)
 	if under != _under:
@@ -129,7 +133,7 @@ func _follow(eye: Vector3) -> void:
 	_overlay.set_shader_parameter(&"eye_up", basis.y)
 	_overlay.set_shader_parameter(&"eye_back", basis.z)
 	_overlay.set_shader_parameter(&"eye_tan", Vector2(across, across * size.y / size.x))
-	_overlay.set_shader_parameter(&"depth", -eye.y)
+	_overlay.set_shader_parameter(&"depth", -_over_water)
 	_motes.global_position = eye - basis.z * MOTE_AHEAD
 	_bubbles.global_position = eye - basis.z * BREATH.x + Vector3.DOWN * BREATH.y
 

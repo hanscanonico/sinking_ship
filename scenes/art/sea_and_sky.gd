@@ -1,10 +1,11 @@
 class_name SeaAndSky
 extends Node3D
 ## The sea and the dusk over it (sea_and_sky.tscn). The sea is drawn on the world
-## plane y = 0, the only water the rules know (D7): a fine grid round the eye that
-## steps after it a whole cell at a time, so its ripple never swims, ringed by a
-## skirt that widens out past the far plane, so the sea meets the sky at the
-## horizon wherever the eye stands. As the sinking advances the dusk dims a little
+## plane y = 0, the sea outside her (D7) — leaving out her cells, whose water
+## InnerWater draws at each one's own level — as a fine grid round the eye that steps
+## after it a whole cell at a time, so its ripple never swims, ringed by a skirt that
+## widens out past the far plane, so the sea meets the sky at the horizon wherever the
+## eye stands. As the sinking advances the dusk dims a little
 ## and the sea churns where the bow meets it (show_sinking): read off the snapshot's
 ## tick and the ship as drawn, presentation only (D5).
 
@@ -107,10 +108,13 @@ func water() -> ShaderMaterial:
 
 ## Dims the dusk toward [param end_tick], the tick the sinking ends by (none when
 ## not positive), churns the sea at [param layout]'s bow and keeps the open sea's sky,
-## glint and whitecaps off the water in its rooms, from now on.
+## glint and whitecaps off the water in its rooms, and the sea out of her cells whose
+## water is drawn as their own (InnerWater), from now on.
 func setup(end_tick: int, layout: ShipLayout) -> void:
 	_end_tick = end_tick
 	_map_rooms(layout)
+	if layout.structure != null:
+		_mask_cells(InnerWater.boxes(layout.structure))
 	var bounds := layout.platforms[0].area
 	var top := -INF
 	for platform: ShipPlatform in layout.platforms:
@@ -141,6 +145,7 @@ func show_sinking(tick: int, ship_to_world: Transform3D) -> void:
 	if ship_to_world != _ship_to_world:
 		_ship_to_world = ship_to_world
 		_water.set_shader_parameter(&"world_to_rooms", _ship_to_rooms * ship_to_world.inverse())
+		_water.set_shader_parameter(&"world_to_ship", ship_to_world.affine_inverse())
 
 
 func _show_gloom(gloom: float) -> void:
@@ -194,6 +199,24 @@ func _map_rooms(layout: ShipLayout) -> void:
 	var edges := ImageTexture.create_from_image(room_edges(layout))
 	_water.set_shader_parameter(&"room_edges", edges)
 	_water.set_shader_parameter(&"world_to_rooms", _ship_to_rooms)
+
+
+## Leaves the sea out of [param boxes] (ship space), and the box round them all.
+func _mask_cells(boxes: Array[AABB]) -> void:
+	var lows := PackedVector4Array()
+	var highs := PackedVector4Array()
+	var around := AABB()
+	for box: AABB in boxes:
+		if box.size == Vector3.ZERO:
+			continue
+		lows.append(Vector4(box.position.x, box.position.y, box.position.z, 0.0))
+		highs.append(Vector4(box.end.x, box.end.y, box.end.z, 0.0))
+		around = box if lows.size() == 1 else around.merge(box)
+	_water.set_shader_parameter(&"cell_low", lows)
+	_water.set_shader_parameter(&"cell_high", highs)
+	_water.set_shader_parameter(&"cell_count", lows.size())
+	_water.set_shader_parameter(&"cells_low", around.position)
+	_water.set_shader_parameter(&"cells_high", around.end)
 
 
 ## What the rooms' map covers, ship x/z: every room and a cell of nothing round

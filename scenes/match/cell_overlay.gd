@@ -5,7 +5,9 @@ extends Node3D
 ## player's view (D14). A cell people walk in has solid edges and a tint in its kind's
 ## colour; a void nobody walks in, grey dashed edges and none. Drawn over everything,
 ## so the cells under the decks and inside the hull show through them, each set a
-## little inside its box, so no edge lies along a deck or a wall.
+## little inside its box, so no edge lies along a deck or a wall. Each cell's water
+## (SH26) fills its box to its level, sea-blue, voids' too, as the pose has it
+## (show_water).
 
 ## Per FloodCell.Kind, the colour of a cell people walk in; VOID's is a void's.
 const KIND_COLOURS: Array[Color] = [
@@ -44,6 +46,13 @@ const INK := Color(0.04, 0.06, 0.09)
 const TINT_PRIORITY := 10
 const EDGE_PRIORITY := 11
 const NAME_PRIORITY := 12
+## A cell's water: its colour, and drawn over the tints, under the edges.
+const WATER := Color(0.12, 0.45, 0.85, 0.42)
+const WATER_PRIORITY := 10
+
+## Per cell, its water, a box filled to its level.
+var _water: Array[MeshInstance3D] = []
+var _structure: ShipStructure
 
 
 ## Draws every cell of [param structure], replacing what was drawn before; nothing for
@@ -51,6 +60,8 @@ const NAME_PRIORITY := 12
 func build(structure: ShipStructure) -> void:
 	for child: Node in get_children():
 		child.queue_free()
+	_water.clear()
+	_structure = structure
 	if structure == null:
 		return
 	var edges := SurfaceTool.new()
@@ -74,6 +85,31 @@ func build(structure: ShipStructure) -> void:
 		_name(cell, names[index], colour, walked)
 	_add_mesh(edges, EDGE_PRIORITY)
 	_add_mesh(tints, TINT_PRIORITY)
+	for cell: FloodCell in structure.cells:
+		var unit := SurfaceTool.new()
+		unit.begin(Mesh.PRIMITIVE_TRIANGLES)
+		_box_faces(unit, Vector3.ZERO, Vector3.ONE, WATER)
+		var water := _add_mesh(unit, WATER_PRIORITY)
+		water.visible = false
+		_water.append(water)
+
+
+## Fills each cell's box to the level its water stands at under [param pose].
+func show_water(pose: ShipPose) -> void:
+	if _structure == null:
+		return
+	for index in _water.size():
+		var cell := _structure.cells[index]
+		var low := cell.low + Vector3.ONE * INSET
+		var high := cell.high - Vector3.ONE * INSET
+		var inside := Vector3((cell.low.x + cell.high.x) * 0.5, cell.low.y, 0.0)
+		inside.z = (cell.low.z + cell.high.z) * 0.5
+		var level := pose.water_height(inside) if pose.cell_at(inside) == index else cell.low.y
+		var top := minf(level, high.y)
+		_water[index].visible = top > low.y
+		_water[index].transform = Transform3D(
+			Basis.from_scale(Vector3(high.x - low.x, maxf(top - low.y, 0.001), high.z - low.z)), low
+		)
 
 
 ## Per cell of [param structure], where its name stands: its middle, but that the
@@ -220,7 +256,7 @@ func _name(cell: FloodCell, spot: Vector3, colour: Color, walked: bool) -> void:
 
 ## [param tool]'s triangles as one mesh drawn over everything, unlit, both sides, its
 ## vertex colours its paint, after what [param priority] says.
-func _add_mesh(tool: SurfaceTool, priority: int) -> void:
+func _add_mesh(tool: SurfaceTool, priority: int) -> MeshInstance3D:
 	var material := StandardMaterial3D.new()
 	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	material.vertex_color_use_as_albedo = true
@@ -234,3 +270,4 @@ func _add_mesh(tool: SurfaceTool, priority: int) -> void:
 	drawn.material_override = material
 	drawn.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(drawn)
+	return drawn

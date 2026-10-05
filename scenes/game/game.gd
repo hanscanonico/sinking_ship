@@ -150,6 +150,8 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _play(seats: int, tier: StringName, seed_text: String) -> void:
 	var config := MatchConfig.from_menu(_match_rules, seats, tier, seed_text, _seeds)
+	if config != null:
+		config.scenario = _args.struck(config.scenario)
 	var problems := _problems(config)
 	if not problems.is_empty():
 		if _args.autoplay:

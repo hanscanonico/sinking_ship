@@ -26,9 +26,24 @@ const LIVE := (
 )
 
 
-## The default match of [param seed_value]: the steamer and its sinking.
+## The default match of [param seed_value] on SH6's script — the fixture whose lurches,
+## collapse, trim and plunge the effects of a sinking are shown against (§5b.4).
 func _sim(seed_value: int = 1701) -> MatchSim:
-	return MatchSim.create(RunMatch.default_config(seed_value))
+	var config := RunMatch.default_config(seed_value)
+	config.scenario = load(SimFixtures.STEAMER_SCRIPT)
+	return MatchSim.create(config)
+
+
+## The default match of [param seed_value] struck by the first hit its sinking stream
+## draws, as given — [param wider] times as wide — the strike's effects for that gash,
+## whatever the must-sink rule would make of it.
+func _struck(seed_value: int, wider: float = 1.0) -> MatchSim:
+	var config := RunMatch.default_config(seed_value)
+	var given: SinkScenario = config.scenario.duplicate()
+	given.explicit_hit = IcebergHit.draw(given.hit, SeedStreams.derive(seed_value, "sink"))
+	given.explicit_hit.width *= wider
+	config.scenario = given
+	return MatchSim.create(config)
 
 
 func _planner(sim: MatchSim) -> FxPlanner:
@@ -202,7 +217,9 @@ func test_a_body_going_in_splashes_harder_the_harder_it_falls() -> void:
 	var into: Array[SimEvent] = [SimEvent.entered_water(tick, 2)]
 	# In the sea alongside, under the open sky.
 	var now := _at(sim, tick, into).duplicate(true)
-	now["seats"][2]["pos"] = Vector3(0.0, sim.schedule.pose_at(tick).sea_height(0.0, 7.0), 7.0)
+	now["seats"][2]["pos"] = Vector3(
+		0.0, sim.schedule.pose_at(tick).water_height(Vector3(0.0, 0.0, 7.0)), 7.0
+	)
 	var soft: FxCue = _of(_planner(sim).plan(stepping, now), FxCue.Kind.SPLASH)[0]
 	var hard: FxCue = _of(_planner(sim).plan(falling, now), FxCue.Kind.SPLASH)[0]
 	assert_eq(soft.seat, 2)
@@ -220,9 +237,9 @@ func test_a_splash_below_decks_stays_under_the_deck_over_it() -> void:
 	# A moment the sea stands in the corridor well under the main deck over it.
 	var tick := 0
 	var sea := INF
-	while tick < sim.schedule.cap_tick():
+	while tick < sim.schedule.end_tick():
 		tick += 5
-		sea = sim.schedule.pose_at(tick).sea_height(middle.x, middle.y)
+		sea = sim.schedule.pose_at(tick).water_height(Vector3(middle.x, 0.0, middle.y))
 		if sea > -1.0 and sea < -0.3:
 			break
 	assert_lt(sea, -0.3, "the corridor floods")
@@ -241,14 +258,14 @@ func test_a_splash_below_decks_stays_under_the_deck_over_it() -> void:
 func test_the_funnel_smokes_thicker_and_belches_as_the_plunge_begins() -> void:
 	var sim := _sim()
 	var planner := _planner(sim)
-	var cues := _sink(planner, sim, 0, sim.schedule.cap_tick(), SCAN_STRIDE)
+	var cues := _sink(planner, sim, 0, sim.schedule.end_tick(), SCAN_STRIDE)
 	var smoke := _of(cues, FxCue.Kind.SMOKE)
 	assert_gt(smoke.size(), 5, "in steps")
 	for index in range(1, smoke.size()):
 		assert_gte(smoke[index].strength, smoke[index - 1].strength, "never thinner")
 	assert_eq(smoke[0].strength, 0.0, "none extra before the sinking")
-	var fired_at := sim.schedule.cap_tick()
-	for scheduled: SinkSchedule.Scheduled in sim.schedule.fired(sim.schedule.cap_tick()):
+	var fired_at := sim.schedule.end_tick()
+	for scheduled: SinkSchedule.Scheduled in sim.schedule.fired(sim.schedule.end_tick()):
 		if scheduled.event.kind == SinkEvent.Kind.PLUNGE:
 			fired_at = scheduled.at
 	for puff: FxCue in smoke:
@@ -266,7 +283,7 @@ func test_the_funnel_smokes_thicker_and_belches_as_the_plunge_begins() -> void:
 
 func test_steam_vents_as_the_sea_reaches_the_engine_room_and_drowns_its_engine() -> void:
 	var sim := _sim()
-	var cues := _sink(_planner(sim), sim, 0, sim.schedule.cap_tick(), SCAN_STRIDE)
+	var cues := _sink(_planner(sim), sim, 0, sim.schedule.end_tick(), SCAN_STRIDE)
 	var steam := _of(cues, FxCue.Kind.STEAM)
 	assert_gt(steam.size(), 2)
 	var first := steam[0]
@@ -289,7 +306,7 @@ func test_steam_vents_as_the_sea_reaches_the_engine_room_and_drowns_its_engine()
 
 func test_bubbles_and_air_come_up_as_decks_and_rooms_flood() -> void:
 	var sim := _sim()
-	var cues := _sink(_planner(sim), sim, 0, sim.schedule.cap_tick(), SCAN_STRIDE)
+	var cues := _sink(_planner(sim), sim, 0, sim.schedule.end_tick(), SCAN_STRIDE)
 	assert_gt(_of(cues, FxCue.Kind.BUBBLES).size(), 3, "over each deck going under")
 	var vents := _of(cues, FxCue.Kind.VENT)
 	assert_gt(vents.size(), 0, "air out of the rooms as they flood")
@@ -302,7 +319,7 @@ func test_bubbles_and_air_come_up_as_decks_and_rooms_flood() -> void:
 
 func test_wreckage_off_a_flooding_deck_comes_up_beside_the_hull() -> void:
 	var sim := _sim()
-	var cues := _sink(_planner(sim), sim, 0, sim.schedule.cap_tick(), SCAN_STRIDE)
+	var cues := _sink(_planner(sim), sim, 0, sim.schedule.end_tick(), SCAN_STRIDE)
 	var risen := _of(cues, FLOTSAM).filter(func(cue: FxCue) -> bool: return cue.position == cue.end)
 	assert_gt(risen.size(), 0, "loose gear floats off as decks flood")
 	for piece: FxCue in risen:
@@ -340,7 +357,7 @@ func test_the_plunge_breaks_over_the_sides_blasts_air_out_and_sends_gear_sliding
 func test_the_plunge_rains_spray_slides_gear_and_boils_up_wreckage_astern() -> void:
 	var sim := _sim()
 	var plunge := -1
-	for scheduled: SinkSchedule.Scheduled in sim.schedule.fired(sim.schedule.cap_tick()):
+	for scheduled: SinkSchedule.Scheduled in sim.schedule.fired(sim.schedule.end_tick()):
 		if scheduled.event.kind == SinkEvent.Kind.PLUNGE:
 			plunge = scheduled.at
 	assert_gt(plunge, 0, "the golden match plunges")
@@ -383,7 +400,7 @@ func test_the_plunge_rains_spray_slides_gear_and_boils_up_wreckage_astern() -> v
 func test_the_iceberg_strikes_its_gash_with_white_water_mist_and_foam() -> void:
 	# Seed 38 strikes her starboard side from x -12.2 to -5.9 m, just over the sea at its
 	# after end and 1.5 m under it at its forward end.
-	var sim := _sim(38)
+	var sim := _struck(38)
 	var planner := _planner(sim)
 	var damage := sim.schedule.damage()
 	var struck := sim.schedule.hit_tick()
@@ -459,7 +476,7 @@ func test_the_iceberg_strikes_its_gash_with_white_water_mist_and_foam() -> void:
 func test_the_mist_off_a_deep_gash_climbs_over_her_rail() -> void:
 	# Seed 37 strikes her starboard side from x -10.0 to -0.6 m, 0.75 to 0.86 m under
 	# the sea all along: no sheet of it throws its white water up past her deck.
-	var sim := _sim(37)
+	var sim := _struck(37)
 	var cues := _strike(_planner(sim), sim)
 	var rail := sim.config.ship.freeboard + sim.config.rules.railing_height
 	for sheet: FxCue in _of(cues, STRIKE):
@@ -473,9 +490,10 @@ func test_the_mist_off_a_deep_gash_climbs_over_her_rail() -> void:
 
 
 func test_a_bigger_gash_strikes_harder_higher_and_thicker() -> void:
-	# Seed 30's gash lets the sea in through 3.6 m², seed 22's through 0.005 m².
-	var big_sim := _sim(30)
-	var small_sim := _sim(22)
+	# Seed 30's gash, half as wide again, lets the sea in through over 3.6 m², seed 22's
+	# through 0.005 m².
+	var big_sim := _struck(30, 1.5)
+	var small_sim := _struck(22)
 	var big := _strike(_planner(big_sim), big_sim)
 	var small := _strike(_planner(small_sim), small_sim)
 	assert_gt(big_sim.schedule.damage().area(), small_sim.schedule.damage().area() * 100.0)

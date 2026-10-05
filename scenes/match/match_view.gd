@@ -23,6 +23,7 @@ const FALL_SECONDS := 0.5
 var _driver: SimDriver
 var _schedule: SinkSchedule
 var _surfaces: Surfaces
+var _structure: ShipStructure
 var _bodies: Array[Brawler] = []
 var _shadows: Array[MeshInstance3D] = []
 ## Per crate of the layout's cargo, the node the ship drawn draws it under.
@@ -33,6 +34,9 @@ var _eye_seat := -1
 ## correction being drawn away.
 var _local_seat := -1
 var _smoother := CorrectionSmoother.new(0.0)
+## The water inside her, at each cell's level (InnerWater); null without a physical
+## sinking.
+var _inner: InnerWater
 
 @onready var _ship: Node3D = $Ship
 @onready var _greybox: ShipGreybox = $Ship/Greybox
@@ -51,6 +55,7 @@ func setup(driver: SimDriver, sim: MatchSim, local_seat: int, correction_time: f
 	_smoother = CorrectionSmoother.new(correction_time)
 	_schedule = sim.schedule
 	_surfaces = sim.surfaces
+	_structure = sim.config.ship.structure
 	var ship := sim.config.ship
 	var rules := sim.config.rules
 	if _greybox.visible:
@@ -108,6 +113,29 @@ func seat_facing(seat: int) -> float:
 	return -_bodies[seat].rotation.y
 
 
+## Draws the water inside her in [param sea]'s material, when her sinking is the
+## physics': each cell's at its own level, her watertight doors, and the pours between.
+func flood_with(sea: ShaderMaterial) -> void:
+	if _inner != null:
+		_inner.queue_free()
+		_inner = null
+	if _schedule.timeline() == null:
+		return
+	_inner = InnerWater.new()
+	_inner.name = "InnerWater"
+	_ship.add_child(_inner)
+	var paints: Dictionary = {} if _greybox.visible else _art.paints()
+	_inner.setup(_structure, _schedule.passages(), sea, paints)
+
+
+## How far the world point [param eye] stands above the water it is in — its cell's,
+## or the sea's — as the ship is drawn and her water now stands; below 0, under it.
+func above_water(eye: Vector3) -> float:
+	var pose := _schedule.pose_at(_driver.current["tick"])
+	var ship_point := _ship.global_transform.affine_inverse() * eye
+	return eye.y - pose.water_level(ship_point)
+
+
 ## Where the ship is drawn: ship space to the world.
 func ship_to_world() -> Transform3D:
 	return _ship.global_transform
@@ -124,9 +152,11 @@ func _process(delta: float) -> void:
 	var previous := _driver.previous
 	var current := _driver.current
 	var alpha := _driver.alpha
-	_ship.transform = (_schedule.pose_at(previous["tick"]).transform.interpolate_with(
-		_schedule.pose_at(current["tick"]).transform, alpha
-	))
+	var pose_then := _schedule.pose_at(previous["tick"])
+	var pose_now := _schedule.pose_at(current["tick"])
+	_ship.transform = pose_then.transform.interpolate_with(pose_now.transform, alpha)
+	if _inner != null:
+		_inner.show_water(pose_then, pose_now, alpha)
 	_show_sinking(
 		lerpf(previous["tick"], current["tick"], alpha), MatchState.broken_in(current["railing_hp"])
 	)

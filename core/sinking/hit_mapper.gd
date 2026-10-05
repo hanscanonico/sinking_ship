@@ -1,13 +1,16 @@
 class_name HitMapper
 extends RefCounted
 ## Maps an iceberg hit onto a ship (§5b.1): the gash, a straight line along her shell
-## within her hit zone, becomes one thin opening to the sea for each cell it crosses
-## within its bite — a gash biting less deep than a side void is wide opens only the
-## void — each bigger or smaller than its share of the gash by a factor from the bands,
-## as real damage is uneven; the watertight walls next to its ends are weakened; then,
-## from the same stream and in a fixed order, the watertight doors that will jam open
-## and the openings that were left open. Pure in (hit, ship, bands, stream), and only
-## +, −, ×, ÷ run on 64-bit floats here (D4, R21).
+## within her hit zone, becomes one thin opening for each cell it crosses within its
+## bite for least_run or more — to the sea from the cell at her shell, and from a cell
+## behind that one into it: a gash biting less deep than a side void is wide opens only
+## the void, a deeper one holes the void's inner wall too — each bigger or smaller than
+## its share of the gash by a factor from the bands, as real damage is uneven; the
+## watertight walls next to its ends are weakened; then, from the same stream and in a
+## fixed order, the watertight doors that will jam open and the openings that were left
+## open. An explicit hit draws nothing: every share is even and it names its own doors
+## and openings. Pure in (hit, ship, bands, stream), and only +, −, ×, ÷ run on 64-bit
+## floats here (D4, R21).
 
 ## A stretch of the gash shorter than this is nothing, in metres.
 const SLIVER := 1e-6
@@ -27,6 +30,22 @@ static func map(
 		var ends := _gash(hit, structure, bands, sink_stream, damage)
 		_weaken(structure, bands.weakens_within, ends, damage)
 	_fittings(structure, sink_stream, damage)
+	return damage
+
+
+## What explicit [param hit] does to [param structure], weakening walls as [param bands]
+## say: no draw — every cell's share of the gash even — and its own jammed doors and
+## openings left open.
+static func map_explicit(hit: IcebergHit, structure: ShipStructure, bands: HitBands) -> HitDamage:
+	var damage := HitDamage.new()
+	damage.from_x = maxf(hit.start_x, structure.hit_zone_x.x)
+	damage.to_x = minf(hit.end_x(), structure.hit_zone_x.y)
+	damage.weakened_to = bands.weakened_to
+	if damage.to_x - damage.from_x > SLIVER:
+		var ends := _gash(hit, structure, bands, null, damage)
+		_weaken(structure, bands.weakens_within, ends, damage)
+	damage.jammed = hit.jammed.duplicate()
+	damage.left_open = hit.left_open.duplicate()
 	return damage
 
 
@@ -60,7 +79,11 @@ static func _gash(
 	var count := structure.cells.size()
 	var runs := PackedFloat64Array()
 	runs.resize(count)
-	# Per cell, the least and the most x, y and z of the gash in it.
+	# Per cell, the cell at her shell its hole opens into, or -1 for the sea; and the
+	# least and the most x, y and z of the gash in it.
+	var into := PackedInt32Array()
+	into.resize(count)
+	into.fill(-1)
 	var reach: Array[PackedFloat64Array] = []
 	for _cell in count:
 		reach.append(PackedFloat64Array([INF, INF, INF, -INF, -INF, -INF]))
@@ -86,6 +109,7 @@ static func _gash(
 		ends[4] = y_b
 		ends[5] = shell
 		var inner := shell - hit.side * hit.bite
+		var outer := -1
 		for cell_index in count:
 			var cell := structure.cells[cell_index]
 			var inside := middle > cell.low.x and middle < cell.high.x
@@ -95,19 +119,29 @@ static func _gash(
 			runs[cell_index] += b - a
 			# Where the gash breaks into the cell: her shell, or the cell's side nearest it.
 			var z := clampf(shell, cell.low.z, cell.high.z)
+			if z == shell:
+				outer = cell_index
+			elif into[cell_index] == -1:
+				into[cell_index] = -2
 			_extend(reach[cell_index], a, y_a, z)
 			_extend(reach[cell_index], b, y_b, z)
+		for cell_index in count:
+			if into[cell_index] == -2:
+				into[cell_index] = outer
 	if not ends.is_empty():
 		damage.trace.append(Vector3(ends[3], ends[4], ends[5]))
 	for cell_index in count:
-		if runs[cell_index] > SLIVER:
-			var unevenness := sink_stream.randf_range(bands.unevenness.x, bands.unevenness.y)
+		if runs[cell_index] >= maxf(bands.least_run, SLIVER):
+			var unevenness := 1.0
+			if sink_stream != null:
+				unevenness = sink_stream.randf_range(bands.unevenness.x, bands.unevenness.y)
 			var share := hit.width * runs[cell_index] * unevenness
-			damage.openings.append(
-				_opening(
-					structure.cells[cell_index].name, reach[cell_index], share, runs[cell_index]
-				)
+			var hole := _opening(
+				structure.cells[cell_index].name, reach[cell_index], share, runs[cell_index]
 			)
+			if into[cell_index] >= 0:
+				hole.joins[1] = structure.cells[into[cell_index]].name
+			damage.openings.append(hole)
 	return ends
 
 

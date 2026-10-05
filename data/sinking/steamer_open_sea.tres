@@ -1,87 +1,7 @@
 [gd_resource type="Resource" script_class="SinkScenario" format=3]
 
-[ext_resource type="Script" path="res://core/sink_keyframe.gd" id="1_key"]
 [ext_resource type="Script" path="res://core/sink_scenario.gd" id="2_scen"]
-[ext_resource type="Script" path="res://core/sink_event.gd" id="3_event"]
 [ext_resource type="Script" path="res://core/sinking/hit_bands.gd" id="4_hit"]
-
-[sub_resource type="Resource" id="Keyframe_0"]
-script = ExtResource("1_key")
-phase = "Calm"
-
-[sub_resource type="Resource" id="Keyframe_42"]
-script = ExtResource("1_key")
-at = 42.0
-sink = 0.25
-trim_deg = 2.0
-phase = "The flooding below"
-
-[sub_resource type="Resource" id="Keyframe_87"]
-script = ExtResource("1_key")
-at = 87.0
-sink = 2.1
-trim_deg = 4.0
-heel_deg = -1.0
-phase = "By the head"
-
-[sub_resource type="Resource" id="Keyframe_117"]
-script = ExtResource("1_key")
-at = 117.0
-sink = 3.6
-trim_deg = 10.0
-heel_deg = -5.0
-phase = "The list"
-
-[sub_resource type="Resource" id="Keyframe_157"]
-script = ExtResource("1_key")
-at = 157.0
-sink = 4.3
-trim_deg = 15.0
-heel_deg = 4.0
-phase = "The plunge"
-
-[sub_resource type="Resource" id="Keyframe_207"]
-script = ExtResource("1_key")
-at = 207.0
-sink = 14.7
-trim_deg = 28.0
-
-[sub_resource type="Resource" id="Event_lurch_1"]
-script = ExtResource("3_event")
-at = 62.0
-jitter = 3.0
-warning = 1.0
-heel_deg = -15.0
-duration = 3.0
-
-[sub_resource type="Resource" id="Event_lurch_2"]
-script = ExtResource("3_event")
-at = 121.0
-jitter = 3.0
-warning = 1.0
-heel_deg = 20.0
-duration = 3.0
-
-[sub_resource type="Resource" id="Event_bridge"]
-script = ExtResource("3_event")
-kind = 1
-at = 132.0
-jitter = 3.0
-warning = 3.0
-platform = &"bridge"
-
-[sub_resource type="Resource" id="Event_lurch_3"]
-script = ExtResource("3_event")
-at = 147.0
-jitter = 3.0
-warning = 1.0
-heel_deg = -16.0
-duration = 3.0
-
-[sub_resource type="Resource" id="Event_plunge"]
-script = ExtResource("3_event")
-kind = 3
-at = 157.0
 
 [sub_resource type="Resource" id="Hit"]
 script = ExtResource("4_hit")
@@ -93,14 +13,18 @@ depth = Vector2(-0.5, 1.8)
 width = Vector2(0.002, 0.2)
 bite = Vector2(0.2, 2)
 unevenness = Vector2(0.5, 1.5)
+least_run = 0.1
 weakens_within = 1.0
 weakened_to = 0.5
 
 [resource]
 script = ExtResource("2_scen")
 starts_at = 3.0
-keyframes = Array[ExtResource("1_key")]([SubResource("Keyframe_0"), SubResource("Keyframe_42"), SubResource("Keyframe_87"), SubResource("Keyframe_117"), SubResource("Keyframe_157"), SubResource("Keyframe_207")])
-events = Array[ExtResource("3_event")]([SubResource("Event_lurch_1"), SubResource("Event_lurch_2"), SubResource("Event_bridge"), SubResource("Event_lurch_3"), SubResource("Event_plunge")])
-cap = 207.0
 hit = SubResource("Hit")
 sea_depth = 200.0
+clock = 1.0
+bake_cap = 19800.0
+quick_redraws = 8
+bakes = 3
+rungs = 6
+spare_deck = 0.0

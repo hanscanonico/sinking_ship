@@ -7,20 +7,31 @@ const RunMatch := preload("res://tools/run_match.gd")
 
 const GOLDEN_SEED := 1701
 const GOLDEN_SEATS := 8
-const MAX_TICKS := 300 * Ticks.RATE
+## `make match`'s STOP (MatchArgs): no match is capped, the tool stops one still on.
+const MAX_TICKS := 900 * Ticks.RATE
 const RESUME_EVERY := 7
+
+## The golden match, played once for every test that only reads it (_golden).
+static var _played: Array = []
 
 
 ## Runs the golden match to its end, served as `make match` serves it; returns the
-## runner and its transcript.
-func _golden() -> Array:
-	var host := RunMatch.served(RunMatch.default_config(GOLDEN_SEED, GOLDEN_SEATS))
-	return [host.runner, RunMatch.transcript(host, MAX_TICKS)]
+## runner and its transcript — played afresh when [param fresh], else the one played
+## first. From SH26 it lasts minutes (the sinking is the physics'), so it is played once
+## for the suite, and once more where a second run is the point.
+func _golden(fresh: bool = false) -> Array:
+	if fresh or _played.is_empty():
+		var host := RunMatch.served(RunMatch.default_config(GOLDEN_SEED, GOLDEN_SEATS))
+		var played := [host.runner, RunMatch.transcript(host, MAX_TICKS)]
+		if not fresh:
+			_played = played
+		return played
+	return _played
 
 
 func test_same_seed_twice_in_process() -> void:
 	var first := _golden()
-	var second := _golden()
+	var second := _golden(true)
 	var runner: MatchRunner = first[0]
 	assert_true(runner.is_over(), "the golden match ends")
 	assert_ne(runner.digest.hex(), "")
@@ -284,7 +295,7 @@ func _note_coverage(snapshot: Dictionary, covered: Dictionary) -> bool:
 ## snapshot has whole — a sim goes on exactly as the match went on from there: the
 ## steamer, eight bots, the bridge going early and two railings broken by hand.
 func test_restore_on_a_used_sim_continues_exactly() -> void:
-	var sinking: SinkScenario = load(SimFixtures.STEAMER_SINKING).duplicate()
+	var sinking: SinkScenario = load(SimFixtures.STEAMER_SCRIPT).duplicate()
 	var bridge := SimFixtures.collapse(0.0, &"bridge", 1.0)
 	SimFixtures.with_events(sinking, [bridge] as Array[SinkEvent])
 	var config := SimFixtures.config(8, sinking, GOLDEN_SEED, SimFixtures.steamer())

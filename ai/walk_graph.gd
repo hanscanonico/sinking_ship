@@ -275,22 +275,24 @@ func world_height(zone: int, pose: ShipPose) -> float:
 	return _heights[zone]
 
 
-## How high the lowest corner of [param zone]'s floor stands in the world under
-## [param pose] — of a room's area, or of every platform of an open deck.
-func lowest_world_height(zone: int, pose: ShipPose) -> float:
+## How high the lowest corner of [param zone]'s floor stands above the water it is in
+## under [param pose] — its cell's, or the sea's — of a room's area, or of every
+## platform of an open deck: a room behind a shut door stays dry as the sea outside
+## rises past its floor, and is seen to flood as its own water rises.
+func lowest_above_water(zone: int, pose: ShipPose) -> float:
 	_know(pose)
 	if is_nan(_lowest[zone]):
 		_lowest[zone] = _floor_lowest(zone, pose)
 	return _lowest[zone]
 
 
-## How high above the sea the floor under a body at [param at] in [param zone] stands
-## under [param pose], as the sea comes for it: a room floods from its lowest corner up,
-## an open deck where the body stands.
+## How high above its water the floor under a body at [param at] in [param zone]
+## stands under [param pose], as the water comes for it: a room floods from its lowest
+## corner up, an open deck where the body stands.
 func floor_height(zone: int, at: Vector3, pose: ShipPose) -> float:
 	if is_room(zone):
-		return lowest_world_height(zone, pose)
-	return pose.world_height(at)
+		return lowest_above_water(zone, pose)
+	return pose.above_water(at)
 
 
 ## How high [param zone] would stand were the deck tilted further by [param lean]: the
@@ -326,7 +328,7 @@ func _floor_lowest(zone: int, pose: ShipPose) -> float:
 			area.end,
 			Vector2(area.position.x, area.end.y)
 		]:
-			lowest = minf(lowest, pose.world_height(Vector3(corner.x, heights[index], corner.y)))
+			lowest = minf(lowest, pose.above_water(Vector3(corner.x, heights[index], corner.y)))
 	return lowest
 
 
@@ -698,12 +700,19 @@ func _closed(zone: int, pose: ShipPose) -> bool:
 	return flooded(zone, pose) or doomed(zone, pose)
 
 
-## Whether either end of the portal at [param index] is under water.
+## Whether the portal at [param index] is closed: either end under water, or a
+## doorway a watertight door is shut across (Surfaces.blocked) — the routes a shut door
+## changes (§5b.2).
 func _wet(index: int, pose: ShipPose) -> bool:
 	_know(pose)
 	if _portal_wet[index] == 0:
 		var portal := _portals[index]
 		var wet := _surfaces.wet(portal.entry, pose) or _surfaces.wet(portal.exit, pose)
+		if not wet and portal.ramp == NONE:
+			var through := Vector3(portal.along.x, 0.0, portal.along.y) * _body_radius
+			wet = _surfaces.blocked(
+				portal.entry - through, portal.exit + through, _step * 2.0, _step
+			)
 		_portal_wet[index] = 2 if wet else 1
 	return _portal_wet[index] == 2
 

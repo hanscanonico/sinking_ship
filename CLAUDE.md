@@ -13,14 +13,16 @@ Design of record: `.lavish/sinking-ship-plan.html` (rev 4)
   remote — enters as one quantized `InputFrame` per tick (D3); same seed + same input log ⇒
   same digest on the same build (D4); `from_snapshot(snapshot())` continues exactly and
   presentation reads snapshots only (D5); the ship is data in ship space, never mesh
-  collision, and `Surfaces` is the only door to spatial questions (D6); the sinking is a pure
-  function of (scenario, seed, tick) — bow-down is one scenario value, never a rule — and
-  `SinkSchedule` is the only water authority (D7); bots are players reading a delayed
-  `BotView` (D10); online will be server-authoritative snapshots with client re-simulation
-  (D11); `ShoveResolver` takes positions as data and `MatchRunner` is the one loop (D13);
-  the game is first person and the elevated camera is only the observer tool (D14); rooms
-  are thin wall blockers with door openings, floors at negative heights and steep stairs as
-  ramps, and water inside a room is the sea plane (D6, D7).
+  collision, carries its structure — hull sections, cells, walls, openings, mass, strength —
+  and `Surfaces` is the only door to spatial questions (D6); the sinking is physics baked
+  from a seeded hit — a pure function of (ship, scenario, seed), nothing on a clock, no end
+  or side assumed — and `SinkSchedule` is the only water authority, answering per cell from
+  the timeline (D7); bots are players reading a delayed `BotView` (D10); online will be
+  server-authoritative snapshots with client re-simulation (D11); `ShoveResolver` takes
+  positions as data and `MatchRunner` is the one loop (D13); the game is first person and
+  the elevated camera is only the observer tool (D14); rooms are thin wall blockers with
+  door openings, floors at negative heights and steep stairs as ramps, and the water inside
+  the ship is per cell (D6, D7).
 
 ## Commands
 

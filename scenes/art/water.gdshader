@@ -1,5 +1,6 @@
-// The sea, drawn on the world plane y = 0 — the only water the rules know (D7) —
-// out to the horizon (SeaAndSky). Its ripple (sea_ripple.gdshaderinc) averages to
+// The sea, drawn on the world plane y = 0 out to the horizon (SeaAndSky), and the
+// water inside her, each cell's at its own level (InnerWater, D7) — the sea leaves
+// out her cells' boxes, where theirs is drawn instead. Its ripple (sea_ripple.gdshaderinc) averages to
 // the plane, so the drawn waterline never strays from the one the sim tests; the
 // swell is shading only. Colour comes from how far below the surface the opaque
 // scene lies: lacy foam where the hull, a flooded deck or a body cuts the plane,
@@ -63,6 +64,17 @@ uniform float churn = 0.0;
 uniform sampler2D rooms : hint_default_black, filter_nearest, repeat_disable;
 uniform sampler2D room_edges : hint_default_black, filter_linear, repeat_disable;
 uniform mat4 world_to_rooms = mat4(1.0);
+// The boxes of her cells whose water is drawn as their own (InnerWater.boxes), ship
+// metres, with the box round them all; and from the world to her ship space. The sea
+// draws nothing inside one. A cell's own water is indoors: under a deck, it takes no
+// sky, glint or whitecap.
+uniform mat4 world_to_ship = mat4(1.0);
+uniform vec4 cell_low[16];
+uniform vec4 cell_high[16];
+uniform int cell_count = 0;
+uniform vec3 cells_low = vec3(0.0);
+uniform vec3 cells_high = vec3(0.0);
+uniform bool indoors = false;
 // From under the sea: the sky through the surface overhead, the sea mirrored by it
 // at a slant, and the fog the view under the sea has (Underwater sets it).
 uniform vec4 window_colour : source_color = vec4(0.58, 0.86, 0.8, 1.0);
@@ -123,7 +135,27 @@ vec3 ceiling(float t, vec3 look, float dist) {
 	return mix(colour, under_fog_colour.rgb, fog);
 }
 
+// Whether the world point [at] lies in one of her cells' boxes.
+bool in_cells(vec3 at) {
+	vec3 ship = (world_to_ship * vec4(at, 1.0)).xyz;
+	if (any(lessThan(ship, cells_low)) || any(greaterThan(ship, cells_high))) {
+		return false;
+	}
+	for (int i = 0; i < 16; i++) {
+		if (i >= cell_count) {
+			break;
+		}
+		if (all(greaterThan(ship, cell_low[i].xyz)) && all(lessThan(ship, cell_high[i].xyz))) {
+			return true;
+		}
+	}
+	return false;
+}
+
 void fragment() {
+	if (cell_count > 0 && in_cells(world)) {
+		discard;
+	}
 	float t = TIME * SEA_RIPPLE_SPEED;
 	vec3 to_frag = world - CAMERA_POSITION_WORLD;
 	float dist = length(to_frag);
@@ -153,7 +185,7 @@ void fragment() {
 		vec3 on_map = (world_to_rooms * vec4(world, 1.0)).xyz;
 		vec2 room = texture(rooms, on_map.xz).rg;
 		bool in_room = texture(room_edges, on_map.xz).r > 0.0;
-		float sky_over = in_room && on_map.y > room.r && on_map.y < room.g ? 0.0 : 1.0;
+		float sky_over = indoors || in_room && on_map.y > room.r && on_map.y < room.g ? 0.0 : 1.0;
 		float middle = mix(0.4, 1.0, 1.0 - smoothstep(detail_reach * 0.3, detail_reach, dist));
 		middle *= 1.0 - smoothstep(detail_reach, detail_reach * 2.7, dist);
 

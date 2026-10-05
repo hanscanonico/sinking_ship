@@ -141,7 +141,7 @@ func _init(config: MatchConfig, surfaces: Surfaces, schedule: SinkSchedule) -> v
 	_space = ShipSpace.new(_layout)
 	_railing_height = config.rules.railing_height
 	_start_tick = Ticks.from_seconds(config.scenario.starts_at)
-	_end_tick = schedule.cap_tick()
+	_end_tick = schedule.end_tick()
 	_hull = _layout.platforms[0].area
 	for platform: ShipPlatform in _layout.platforms:
 		_hull = _hull.merge(platform.area)
@@ -170,8 +170,8 @@ func plan(previous: Dictionary, current: Dictionary) -> Array[FxCue]:
 	var pose_then := _schedule.pose_at(previous["tick"])
 	var pose_now := _schedule.pose_at(tick)
 	var fired := _schedule.fired(tick)
-	var plunged := _plunged_at(fired)
-	var plunging := plunged >= 0
+	var plunged := _schedule.plunge_tick()
+	var plunging := plunged >= 0 and plunged <= tick
 	var boost := PLUNGE_BOOST if plunging else 1.0
 	for event: Dictionary in current["events"]:
 		_from_event(event, previous, current, pose_now, cues)
@@ -312,7 +312,7 @@ func _floods(
 			var side := ShipPose.low_side(pose_now.heel_deg).y
 			var low := Vector3(0.0, 0.0, side) if side != 0.0 else _side_of(over)
 			var out := _overboard(over, low)
-			out.y = pose_now.sea_height(out.x, out.z)
+			out.y = pose_now.water_height(out)
 			var afloat := FxCue.new(FxCue.Kind.FLOTSAM, tick, out)
 			afloat.piece = FxCue.Piece.CHAIR if index % 2 == 0 else FxCue.Piece.LIFEBELT
 			afloat.toward = low
@@ -322,7 +322,7 @@ func _floods(
 		var room := _layout.rooms[index]
 		var middle := room.area.get_center()
 		var floor := Vector3(middle.x, room.floor_height, middle.y)
-		if pose_now.world_height(floor) >= 0.0 or pose_then.world_height(floor) < 0.0:
+		if not _surfaces.wet(floor, pose_now) or _surfaces.wet(floor, pose_then):
 			continue
 		for opening in _openings[index].size():
 			var vent := FxCue.new(FxCue.Kind.VENT, tick, _openings[index][opening])
@@ -342,7 +342,7 @@ func _machinery(pose_then: ShipPose, pose_now: ShipPose, tick: int, cues: Array[
 		var reached := _first_wet(room.area, room.floor_height, pose_now)
 		if reached and not _first_wet(room.area, room.floor_height, pose_then):
 			_steam(_vents[index], STEAM_FIRST, 0.6, tick, cues)
-		if pose_now.world_height(machine) < 0.0 and pose_then.world_height(machine) >= 0.0:
+		if _surfaces.wet(machine, pose_now) and not _surfaces.wet(machine, pose_then):
 			_steam(_vents[index], STEAM_DROWNED, 1.0, tick, cues)
 			if not is_nan(_funnel.x):
 				_steam(PackedVector3Array([_funnel]), STEAM_DROWNED, 1.0, tick, cues)
@@ -417,7 +417,7 @@ func _blast(pose: ShipPose, tick: int, cues: Array[FxCue]) -> void:
 	while _venting < _blasts.size() * BLASTS:
 		var index := _venting % _blasts.size()
 		_venting += 1
-		if pose.world_height(_blasts[index]) < 0.0:
+		if _surfaces.wet(_blasts[index], pose):
 			continue
 		var vent := FxCue.new(FxCue.Kind.VENT, tick, _blasts[index])
 		vent.toward = _blast_ways[index]
@@ -454,7 +454,7 @@ func _astern(pose: ShipPose, turn: int, tick: int, cues: Array[FxCue]) -> void:
 			stern + ASTERN * (along * 2.0 - 1.0), 0.0, side * (half + QUARTER + ASTERN_SPREAD * out)
 		)
 	at.z += _centre.z
-	at.y = pose.sea_height(at.x, at.z)
+	at.y = pose.water_height(at)
 	var boil := FxCue.new(FxCue.Kind.BUBBLES, tick, at)
 	boil.on_sea = true
 	boil.radius = ASTERN_BOIL.x
@@ -732,7 +732,7 @@ func _overboard(from: Vector3, outward: Vector3) -> Vector3:
 ## How high over the sea at ship point [param point] white water may climb before
 ## the underside of whatever stands over it stops it: INF under the open sky.
 func _headroom(point: Vector3, pose: ShipPose) -> float:
-	var sea := pose.sea_height(point.x, point.z)
+	var sea := pose.water_height(point)
 	var over := _surfaces.ceiling(Vector3(point.x, sea, point.z), 0.0)
 	return over if over == INF else maxf(over - sea - SPLASH_HEADROOM, 0.0)
 
@@ -751,26 +751,18 @@ func _underside(platform: ShipPlatform) -> Vector3:
 	return Vector3(middle.x, platform.height - ShipArt.PLANK, middle.y)
 
 
-## Whether the sea has reached any corner of [param area] at [param height].
-static func _first_wet(area: Rect2, height: float, pose: ShipPose) -> bool:
+## Whether the water has reached any corner of [param area] at [param height]: its
+## cell's, or the sea's (Surfaces.wet).
+func _first_wet(area: Rect2, height: float, pose: ShipPose) -> bool:
 	for corner: Vector2 in [
 		area.position,
 		Vector2(area.end.x, area.position.y),
 		area.end,
 		Vector2(area.position.x, area.end.y)
 	]:
-		if pose.world_height(Vector3(corner.x, height, corner.y)) < 0.0:
+		if _surfaces.wet(Vector3(corner.x, height, corner.y), pose):
 			return true
 	return false
-
-
-## The tick the plunge began, if it is among the events [param fired] by now; -1
-## if not.
-static func _plunged_at(fired: Array[SinkSchedule.Scheduled]) -> int:
-	for scheduled: SinkSchedule.Scheduled in fired:
-		if scheduled.event.kind == SinkEvent.Kind.PLUNGE:
-			return scheduled.at
-	return -1
 
 
 ## Whether every deck still standing has its middle under the sea.

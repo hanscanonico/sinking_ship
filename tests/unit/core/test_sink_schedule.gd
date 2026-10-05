@@ -114,22 +114,43 @@ func test_scenario_sign_decides_which_end_floods() -> void:
 	)
 
 
-func test_ship_is_level_until_the_scenario_starts() -> void:
-	var starts_at := 10.0
-	var schedule := _schedule(
-		SimFixtures.scenario([[0.0, 0.0, 0.0, 0.0], [20.0, 3.0, 10.0, 5.0]], starts_at)
-	)
-	var level := schedule.pose_at(0).transform
-	var start := Ticks.from_seconds(starts_at)
-	for tick in range(0, start + 1):
+func test_ship_is_level_until_the_hit() -> void:
+	# The physics' sinking (SH26): at rest, level and dry inside until the iceberg
+	# strikes; after it she settles deeper, level — no trim or list until SH27 — with
+	# water in the cells the gash opens, and the doors the ship shuts shutting.
+	var layout := SimFixtures.steamer()
+	var config := SimFixtures.config(2, load(SimFixtures.STEAMER_SINKING), SEED, layout)
+	var schedule := config.schedule()
+	var hit := schedule.hit_tick()
+	assert_gt(hit, 0, "struck after the start")
+	var resting := schedule.pose_at(0)
+	for tick: int in [0, hit / 2, hit]:
 		var pose := schedule.pose_at(tick)
-		assert_eq(pose.transform, level, "tick %d" % tick)
+		assert_eq(pose.transform, resting.transform, "tick %d" % tick)
 		assert_eq([pose.sink, pose.trim_deg, pose.heel_deg], [0.0, 0.0, 0.0])
-	assert_eq(level.origin.y, SimFixtures.deck().freeboard, "unsunk at the freeboard")
-	var moving := schedule.pose_at(start + 1)
-	assert_gt(moving.sink, 0.0)
-	assert_gt(moving.trim_deg, 0.0)
-	assert_gt(moving.heel_deg, 0.0)
+		for cell in layout.structure.cells.size():
+			var box := layout.structure.cells[cell]
+			var floor_point := Vector3((box.low.x + box.high.x) * 0.5, box.low.y, 0.0)
+			assert_almost_eq(pose.water_height(floor_point), box.low.y, 1e-6, "%s dry" % box.name)
+	assert_almost_eq(resting.transform.origin.y, layout.freeboard, 0.01, "at her freeboard")
+	var later := schedule.pose_at(hit + Ticks.from_seconds(120.0))
+	assert_gt(later.sink, 0.0, "deeper once holed")
+	assert_eq(later.transform.basis, Basis.IDENTITY, "and level")
+	var wet := 0
+	for cell in layout.structure.cells.size():
+		if (
+			later.levels[cell]
+			> layout.structure.cells[cell].low.y + later.transform.origin.y + 0.01
+		):
+			wet += 1
+	assert_gt(wet, 0, "water in her cells")
+	var doors := later.doors_shut.keys()
+	assert_false(doors.is_empty(), "the ship shut her watertight doors")
+	for door: StringName in doors:
+		assert_eq(later.doors_shut[door], 1.0, "%s shut by 2 min" % door)
+		assert_almost_eq(
+			schedule.pose_at(hit + Ticks.from_seconds(10.0)).doors_shut[door], 0.5, 0.01
+		)
 
 
 func test_highest_surface_migrates() -> void:
@@ -137,7 +158,7 @@ func test_highest_surface_migrates() -> void:
 	# ground moves aft from the bridge to the poop deck.
 	var layout := SimFixtures.steamer()
 	var schedule := SinkSchedule.new(
-		load(SimFixtures.STEAMER_SINKING), layout.freeboard, SeedStreams.derive(SEED, "sink")
+		load(SimFixtures.STEAMER_SCRIPT), layout.freeboard, SeedStreams.derive(SEED, "sink")
 	)
 	var surfaces := Surfaces.new(layout)
 	var expected := {
@@ -149,125 +170,3 @@ func test_highest_surface_migrates() -> void:
 		var highest := surfaces.highest_platform(pose)
 		assert_eq(highest, expected[at], "highest at %s s" % at)
 		assert_false(surfaces.flooded(highest, pose), "and dry at %s s" % at)
-
-
-## Every corner of every one of [param layout]'s platforms whose name is
-## [param deck_name], or of every platform below the main deck for &"".
-func _corners(layout: ShipLayout, deck_name: StringName) -> Array[Vector3]:
-	var corners: Array[Vector3] = []
-	for platform: ShipPlatform in layout.platforms:
-		var below := deck_name == &"" and platform.height < 0.0
-		if not below and platform.name != deck_name:
-			continue
-		var area := platform.area
-		for corner: Vector2 in [
-			area.position,
-			Vector2(area.end.x, area.position.y),
-			area.end,
-			Vector2(area.position.x, area.end.y)
-		]:
-			corners.append(Vector3(corner.x, platform.height, corner.y))
-	return corners
-
-
-## The highest world height, under [param pose], of [param points].
-func _top(pose: ShipPose, points: Array[Vector3]) -> float:
-	var top := -INF
-	for point: Vector3 in points:
-		top = maxf(top, pose.world_height(point))
-	return top
-
-
-func test_steamer_floods_from_the_bottom_up() -> void:
-	# The rev-3 timeline (§5): the lower deck floods first, from its forward end, so
-	# the match is a climb; the main deck and the forecastle go after it, and by the
-	# cap every surface is well under.
-	var layout := SimFixtures.steamer()
-	var surfaces := Surfaces.new(layout)
-	var schedule := SinkSchedule.new(
-		load(SimFixtures.STEAMER_SINKING), layout.freeboard, SeedStreams.derive(SEED, "sink")
-	)
-	var lower := _corners(layout, &"")
-	var main_deck := _corners(layout, &"main deck")
-	var forecastle := _corners(layout, &"forecastle")
-	assert_gt(lower.size(), 0, "the steamer has a lower deck")
-	# Its forward end: the middle of the lower deck's forward-most edge.
-	var forward_end := Vector3(-INF, 0.0, 0.0)
-	for platform: ShipPlatform in layout.platforms:
-		if platform.height < 0.0 and platform.area.end.x > forward_end.x:
-			var middle := platform.area.get_center().y
-			forward_end = Vector3(platform.area.end.x, platform.height, middle)
-	var calm_until := Ticks.from_seconds(45.0)
-	for tick in range(0, calm_until, Ticks.RATE):
-		assert_false(surfaces.wet(forward_end, schedule.pose_at(tick)), "calm at tick %d" % tick)
-	assert_true(
-		surfaces.wet(forward_end, schedule.pose_at(Ticks.from_seconds(50.0))),
-		"the lower deck wet at its forward end by 0:50"
-	)
-	var flooded_below := schedule.pose_at(Ticks.from_seconds(90.0))
-	assert_lt(_top(flooded_below, lower), 0.0, "the whole lower deck under by 1:30")
-	var dry_until := Ticks.from_seconds(90.0)
-	for tick in range(0, dry_until + 1, Ticks.RATE):
-		var pose := schedule.pose_at(tick)
-		for point: Vector3 in main_deck + forecastle:
-			assert_false(surfaces.wet(point, pose), "%s dry at tick %d" % [point, tick])
-	var two_minutes := schedule.pose_at(Ticks.from_seconds(120.0))
-	assert_lt(_top(two_minutes, forecastle), 0.0, "the forecastle under by 2:00")
-	# By the cap, every surface's every point is at least half a metre under.
-	var cap := schedule.pose_at(Ticks.from_seconds(210.0))
-	var everything: Array[Vector3] = []
-	for platform: ShipPlatform in layout.platforms:
-		everything.append_array(_corners(layout, platform.name))
-	for ramp: ShipRamp in layout.ramps:
-		for end in 2:
-			for corner: Vector2 in ramp.end_edge(end):
-				everything.append(Vector3(corner.x, ramp.end_point(end).y, corner.y))
-	for blocker: ShipBlocker in layout.blockers:
-		var reach := Vector2(blocker.radius, blocker.radius)
-		var foot := (
-			blocker.area
-			if blocker.shape == ShipBlocker.Shape.BOX
-			else Rect2(blocker.centre - reach, reach * 2.0)
-		)
-		for corner: Vector2 in [
-			foot.position,
-			foot.end,
-			Vector2(foot.position.x, foot.end.y),
-			Vector2(foot.end.x, foot.position.y)
-		]:
-			everything.append(Vector3(corner.x, blocker.top, corner.y))
-	assert_lte(_top(cap, everything), -0.5, "every surface 0.5 m under by 3:30")
-
-
-func test_steamer_meets_timeline() -> void:
-	# SH3b's timeline with SH6's events on it, on every seed's jitter: the lower deck
-	# under by 1:30, the fo'c'sle by 2:00, the poop deck the highest dry surface from
-	# the bridge's collapse on, and every surface at least 0.5 m under by the 3:30 cap.
-	var layout := SimFixtures.steamer()
-	var poop := SimFixtures.platform_named(layout, &"poop deck")
-	var lower := _corners(layout, &"")
-	var forecastle := _corners(layout, &"forecastle")
-	var everything := SimFixtures.surface_points(layout)
-	for seed_value in 10:
-		var schedule := SinkSchedule.new(
-			load(SimFixtures.STEAMER_SINKING),
-			layout.freeboard,
-			SeedStreams.derive(seed_value, "sink")
-		)
-		var surfaces := Surfaces.new(layout)
-		var at := "seed %d" % seed_value
-		assert_lt(_top(schedule.pose_at(Ticks.from_seconds(90.0)), lower), 0.0, at + ": lower deck")
-		assert_lt(_top(schedule.pose_at(Ticks.from_seconds(120.0)), forecastle), 0.0, at)
-		var collapse := -1
-		for scheduled: SinkSchedule.Scheduled in schedule.fired(schedule.cap_tick()):
-			if scheduled.event.kind == SinkEvent.Kind.COLLAPSE:
-				collapse = scheduled.at
-		assert_between(collapse, Ticks.from_seconds(132.0), Ticks.from_seconds(138.0), at)
-		for tick in range(collapse, schedule.cap_tick()):
-			var pose := schedule.pose_at(tick)
-			surfaces.honour(pose)
-			if surfaces.flooded(poop, pose):
-				break
-			assert_eq(surfaces.highest_platform(pose), poop, "%s: highest at tick %d" % [at, tick])
-		assert_eq(schedule.cap_tick(), Ticks.from_seconds(210.0), at + ": the cap is 3:30")
-		assert_lte(_top(schedule.pose_at(schedule.cap_tick()), everything), -0.5, at)

@@ -4,9 +4,9 @@ extends Resource
 ## same ship-local metres — the outline of everything enclosed, cut across in
 ## sections; the cells water and air fill; the watertight walls; every opening
 ## between two cells or a cell and the outside; and her mass and where it sits.
-## Generated with the layout (tools/gen_steamer.py). No rule reads it yet (D13): the
-## match's hit is mapped onto it (HitMapper), and `make ship-check` proves she floats
-## on it, level, where she is said to.
+## Generated with the layout (tools/gen_steamer.py). The sinking physics reads it
+## (SinkStepper, D13); `make ship-check` proves she floats on it, level, where she is
+## said to, and founders on her sure hit.
 
 ## Where the intact ship floats, level, and the bottom of her hull.
 @export var waterline_y: float
@@ -30,6 +30,9 @@ extends Resource
 ## Where along her (x) and up her shell (y) an iceberg's gash can be at all.
 @export var hit_zone_x: Vector2
 @export var hit_zone_y: Vector2
+## The must-sink rule's last rung (§5b.1): a hit, with every watertight door and
+## porthole shut, that `make ship-check` proves sinks her within the bake's cap.
+@export var sure_hit: IcebergHit
 
 
 ## The index of the cell called [param cell_name], or -1.
@@ -123,4 +126,6 @@ func problems() -> PackedStringArray:
 		found.append("structure: damping must not be negative")
 	if hit_zone_x.y <= hit_zone_x.x or hit_zone_y.y <= hit_zone_y.x:
 		found.append("structure: the hit zone must run from its least to its most")
+	if sure_hit == null or sure_hit.length <= 0.0 or sure_hit.width <= 0.0:
+		found.append("structure: she needs a sure hit that opens something")
 	return found

@@ -29,11 +29,13 @@ extends SceneTree
 ##   interpolated snapshot has it, and not at all once it is lost. And on every ship,
 ##   a crate set down where its cargo stands outdoors and in the middle of each room
 ##   is lit as it: a lamp may reach it, and it is as far indoors as where it stands.
-## - The collapse: once a match's first collapse has fallen, nothing is drawn at a
-##   collapsed platform's height wherever Surfaces, honouring that tick's pose, says
-##   it is gone — the dressed deck lies wrecked below, as the rules have it — and
-##   nothing of its wreck stands more than a step over the floor the rules land a
-##   body on there (tools/wreck_check.gd).
+## - The collapse: once a match's first collapse has fallen — on SH6's script, the
+##   fixture the mechanics keep (§5b.4): from SH26 no match times one, and the funnel
+##   bringing the bridge down is SH31's — nothing is drawn at a collapsed platform's
+##   height wherever Surfaces, honouring that tick's pose, says it is gone — the
+##   dressed deck lies wrecked below, as the rules have it — and nothing of its wreck
+##   stands more than a step over the floor the rules land a body on there
+##   (tools/wreck_check.gd).
 ## - Snapshots only: no script anywhere under scenes/art names a live sim object.
 ## - Crew: the seats of a full match each wear their own hat and coat, so each reads
 ##   by its shape as well as its colour, and a brawler draws at most CREW_VERTICES
@@ -56,8 +58,9 @@ const SHIPS_DIR := "res://data/ships/"
 const ART_DIR := "res://scenes/art/"
 const SEED := 1701
 const SEATS := 8
-## A match the default scenario's collapse comes in before it ends.
-const COLLAPSE_SEED := 40
+## A match the script's collapse comes in before it ends, on the script.
+const COLLAPSE_SEED := 1
+const SCRIPT := "res://tests/fixtures/sinking/steamer.tres"
 ## Match time the seat check watches, at most.
 const SEAT_SECONDS := 90.0
 const PLATFORM_TOLERANCE := 0.02
@@ -971,7 +974,9 @@ func _sole(model: Node3D) -> float:
 func _check_collapse() -> void:
 	var scene: MatchScene = (load(MATCH_SCENE) as PackedScene).instantiate()
 	root.add_child(scene)
-	scene.start(RunMatch.default_config(COLLAPSE_SEED), true, true)
+	var config := RunMatch.default_config(COLLAPSE_SEED)
+	config.scenario = load(SCRIPT)
+	scene.start(config, true, true)
 	# The lint steps the match itself, paused, until the tick the view shows has the
 	# collapse fallen, then shows it. The client's sim stands at the newest snapshot,
 	# never behind the view: what has collapsed by the view's tick has there too.

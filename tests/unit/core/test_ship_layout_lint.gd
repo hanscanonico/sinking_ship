@@ -146,42 +146,48 @@ func test_poop_deck_has_two_routes() -> void:
 	assert_gt(poop_decks, 0, "the steamer has a poop deck")
 
 
-## The perches of [param layout] under [param scenario] with fewer than two routes
-## and no collapse of theirs scheduled, by name. A perch is a platform that, at some
-## second of the sinking, is the highest one standing and dry.
+## The perches of [param layout] under [param scenario]'s sinking with fewer than two
+## routes, by name. A perch is a platform that, at some second of the sinking, is the
+## highest one standing and dry.
 func _lone_perches(layout: ShipLayout, scenario: SinkScenario) -> Array[StringName]:
 	var surfaces := Surfaces.new(layout)
 	var graph := _graph(layout, surfaces)
 	var routes := _routes(layout, surfaces, graph)
-	var schedule := SinkSchedule.new(scenario, layout.freeboard, SeedStreams.derive(1, "sink"))
-	var collapsing: Array[StringName] = []
-	for event: SinkEvent in scenario.events:
-		if event.kind == SinkEvent.Kind.COLLAPSE:
-			collapsing.append(event.platform)
+	var schedule := SinkSchedule.new(
+		scenario, layout.freeboard, SeedStreams.derive(1, "sink"), layout.structure
+	)
 	var lone: Array[StringName] = []
-	for tick in range(0, Ticks.from_seconds(scenario.starts_at + scenario.cap), Ticks.RATE):
+	for tick in range(0, schedule.end_tick(), Ticks.RATE):
 		var pose := schedule.pose_at(tick)
 		surfaces.honour(pose)
 		var perch := surfaces.highest_platform(pose)
 		if perch == Surfaces.NONE or surfaces.flooded(perch, pose):
 			continue
 		var perch_name := layout.platforms[perch].name
-		if routes[graph.deck_of(perch)] < 2 and not perch_name in collapsing:
-			if not perch_name in lone:
-				lone.append(perch_name)
+		if routes[graph.deck_of(perch)] < 2 and not perch_name in lone:
+			lone.append(perch_name)
 	return lone
 
 
-func test_single_route_perches_collapse() -> void:
-	# §5: the only single-route perch is one with a scheduled collapse — the steamer's
-	# bridge, the high ground until its roof gives way.
+func test_no_single_route_perch() -> void:
+	# Q6, from SH26: nothing times a perch's fall any more, so every perch the sinking
+	# leaves highest has two ways up — the steamer's bridge, its stair and its ladder
+	# side by side down its forward face.
 	var layout := SimFixtures.steamer()
-	var scenario: SinkScenario = load(SimFixtures.STEAMER_SINKING)
+	var scenario: SinkScenario = load(SimFixtures.STEAMER_SINKING).duplicate()
+	scenario.explicit_hit = load("res://tests/fixtures/sinking/hits/fast.tres")
 	assert_eq(_lone_perches(layout, scenario), [] as Array[StringName])
-	var held: SinkScenario = scenario.duplicate()
-	held.events = []
+	var one_way: ShipLayout = layout.duplicate()
+	var ramps: Array[ShipRamp] = []
+	for ramp: ShipRamp in layout.ramps:
+		if not (is_equal_approx(ramp.start_height, 4.7) and ramp.area.position.y > 0.0):
+			ramps.append(ramp)
+	assert_eq(ramps.size(), layout.ramps.size() - 1, "the bridge has its ladder")
+	one_way.ramps = ramps
 	assert_eq(
-		_lone_perches(layout, held), [&"bridge"] as Array[StringName], "without it, the rule bites"
+		_lone_perches(one_way, scenario),
+		[&"bridge"] as Array[StringName],
+		"without it, the rule bites"
 	)
 
 

@@ -1,8 +1,10 @@
 extends GutTest
 ## The match's iceberg hit (§5b.1, D4): drawn first off the sinking stream from its
-## scenario's bands, a pure function of (ship, scenario, seed); its gash one opening to
-## the sea per cell of the steamer it crosses within its bite, where it crosses; and the
-## doors that jam and the portholes left open drawn at their rates.
+## scenario's bands, a pure function of (ship, scenario, seed); its gash one opening per
+## cell of the steamer it crosses within its bite, where it crosses — to the sea from
+## the cell at her shell, into that cell from one behind it; and the doors that jam and
+## the portholes left open drawn at their rates. Each seed's first draw, as a match
+## draws it before the must-sink rule (test_must_sink.gd) has its say.
 
 const SEED := 1701
 const SPREAD_SEEDS := 200
@@ -31,12 +33,31 @@ func _scenario() -> SinkScenario:
 	return _sinking
 
 
-## The steamer's schedule on [param seed_value], struck as her match strikes it.
-func _schedule(seed_value: int) -> SinkSchedule:
-	var layout := _steamer()
-	return SinkSchedule.new(
-		_scenario(), layout.freeboard, SeedStreams.derive(seed_value, "sink"), layout.structure
-	)
+## The first hit her match on a seed draws, and what it does to her.
+class Struck:
+	var _hit: IcebergHit
+	var _damage: HitDamage
+	var _tick: int
+
+	func _init(scenario: SinkScenario, structure: ShipStructure, seed_value: int) -> void:
+		var stream := SeedStreams.derive(seed_value, "sink")
+		_hit = IcebergHit.draw(scenario.hit, stream)
+		_damage = HitMapper.map(_hit, structure, scenario.hit, stream)
+		_tick = Ticks.from_seconds(scenario.starts_at + _hit.moment)
+
+	func hit() -> IcebergHit:
+		return _hit
+
+	func damage() -> HitDamage:
+		return _damage
+
+	func hit_tick() -> int:
+		return _tick
+
+
+## The steamer's first draw on [param seed_value].
+func _schedule(seed_value: int) -> Struck:
+	return Struck.new(_scenario(), _steamer().structure, seed_value)
 
 
 ## A hit given by hand on the steamer's [param side] side from [param from] to
@@ -68,10 +89,10 @@ func _opened(damage: HitDamage) -> Array[StringName]:
 	return cells
 
 
-## Everything the hit and its damage hold, as one line.
-func _told(schedule: SinkSchedule) -> String:
-	var hit := schedule.hit()
-	var damage := schedule.damage()
+## Everything the hit and its damage hold — a first draw's or a match's — as one line.
+func _told(schedule: Variant) -> String:
+	var hit: IcebergHit = schedule.hit()
+	var damage: HitDamage = schedule.damage()
 	var told := PackedStringArray()
 	for value: Variant in [
 		schedule.hit_tick(),
@@ -101,29 +122,23 @@ func test_hit_is_pure_in_ship_scenario_and_seed() -> void:
 	for seed_value: int in [1, 2, 3, SEED]:
 		var first := _told(_schedule(seed_value))
 		assert_eq(_told(_schedule(seed_value)), first, "seed %d again" % seed_value)
+		seen[first] = seed_value
+	assert_eq(seen.size(), 4, "every seed strikes her somewhere of its own")
+	for seed_value: int in [2, SEED]:
 		var config := SimFixtures.config(8, _scenario(), seed_value, _steamer())
 		var sim := MatchSim.create(config)
-		assert_eq(_told(sim.schedule), first, "seed %d in its match" % seed_value)
+		var again := SimFixtures.config(8, _scenario(), seed_value, _steamer())
+		var played := _told(sim.schedule)
+		assert_eq(_told(MatchSim.create(again).schedule), played, "seed %d's match" % seed_value)
 		# Restoring takes the hit as it was; continuing from a snapshot strikes it alike.
 		var hit := sim.schedule.hit()
 		sim.restore(sim.snapshot())
 		assert_same(sim.schedule.hit(), hit, "seed %d: restoring draws nothing" % seed_value)
 		var continued := MatchSim.from_snapshot(sim.snapshot(), config)
-		assert_eq(_told(continued.schedule), first, "seed %d continued" % seed_value)
-		seen[first] = seed_value
-	assert_eq(seen.size(), 4, "every seed strikes her somewhere of its own")
-	# Drawn first (D4): the script's jitter, drawn after it, moves none of it.
-	var layout := _steamer()
-	var scriptless: SinkScenario = _scenario().duplicate()
-	var no_events: Array[SinkEvent] = []
-	scriptless.events = no_events
-	var alone := SinkSchedule.new(
-		scriptless, layout.freeboard, SeedStreams.derive(SEED, "sink"), layout.structure
-	)
-	assert_eq(_told(alone), _told(_schedule(SEED)), "struck before any jitter is drawn")
+		assert_same(continued.schedule, sim.schedule, "seed %d continued, unbaked" % seed_value)
 	# Without a hit in the scenario, or a ship to strike, nothing is struck.
-	var unstruck: SinkScenario = _scenario().duplicate()
-	unstruck.hit = null
+	var layout := _steamer()
+	var unstruck: SinkScenario = load(SimFixtures.STEAMER_SCRIPT)
 	for schedule: SinkSchedule in [
 		SinkSchedule.new(
 			unstruck, layout.freeboard, SeedStreams.derive(SEED, "sink"), layout.structure
@@ -180,8 +195,11 @@ func test_hit_stays_inside_its_bands() -> void:
 				strays.append("seed %d: %s out of her hit zone" % [seed_value, opening.name])
 			if opening.area <= 0.0 or opening.area > most:
 				strays.append("seed %d: %s more than its share" % [seed_value, opening.name])
-			if opening.kind != ShipOpening.Kind.GASH or opening.joins[1] != ShipOpening.SEA:
-				strays.append("seed %d: %s is no gash to the sea" % [seed_value, opening.name])
+			var into := opening.joins[1]
+			if opening.kind != ShipOpening.Kind.GASH or into == opening.joins[0]:
+				strays.append("seed %d: %s is no gash" % [seed_value, opening.name])
+			elif into != ShipOpening.SEA and structure.cell_named(into) == -1:
+				strays.append("seed %d: %s opens into nothing" % [seed_value, opening.name])
 	assert_eq(strays, PackedStringArray())
 
 
@@ -236,8 +254,24 @@ func test_gash_opens_only_the_cells_it_crosses() -> void:
 func test_shallow_bite_opens_the_side_void_not_the_hold() -> void:
 	var shallow := _opened(_mapped(_hit(1, 6.0, 10.0, 0.3, 0.3)))
 	assert_eq(shallow, [&"hold_wing_s"] as Array[StringName])
-	var deep := _opened(_mapped(_hit(1, 6.0, 10.0, 0.3, 1.5)))
-	assert_eq(deep, [&"hold_bilge", &"hold_wing_s"] as Array[StringName], "through the void")
+	var deep := _mapped(_hit(1, 6.0, 10.0, 0.3, 1.5))
+	assert_eq(
+		_opened(deep), [&"hold_bilge", &"hold_wing_s"] as Array[StringName], "through the void"
+	)
+	# The bilge's hole is in the void's inner wall: it opens into the void, not the sea.
+	assert_eq(deep.openings[0].joins[1], &"hold_wing_s", "the bilge holed into the void")
+	assert_eq(deep.openings[1].joins[1], ShipOpening.SEA, "the void holed to the sea")
+
+
+## A cell the gash runs through for less than the bands' least run is not holed.
+func test_a_sliver_of_a_run_opens_nothing() -> void:
+	var bands := _scenario().hit
+	assert_gt(bands.least_run, 0.0, "the bands keep slivers out")
+	# Into the engine room's bilge for 5 cm past the hold's after bulkhead.
+	var sliver := _mapped(_hit(1, 4.0 - 0.05, 10.0, 1.0, 1.0))
+	assert_false(_opened(sliver).has(&"engine_bilge"), "5 cm into a cell holes nothing")
+	var run := _mapped(_hit(1, 4.0 - 0.5, 10.0, 1.0, 1.0))
+	assert_true(_opened(run).has(&"engine_bilge"), "half a metre does")
 
 
 func test_hit_above_the_waterline_opens_nothing_below_it() -> void:
@@ -292,7 +326,7 @@ func _assert_binomial(count: int, mean: float, variance: float, what: String) ->
 
 
 func test_the_transcript_tells_the_hit_first() -> void:
-	var schedule := _schedule(SEED)
+	var schedule := SimFixtures.config(8, _scenario(), SEED, _steamer()).schedule()
 	var told := MatchTranscript.new()
 	told.add([SimEvent.seat_out(Ticks.RATE, 3, 8, PlayerState.Cause.COLD, -1)] as Array[SimEvent])
 	told.hit(schedule)
@@ -303,7 +337,11 @@ func test_the_transcript_tells_the_hit_first() -> void:
 	)
 	assert_string_starts_with(lines[0], expected, "the hit first, whenever it is told")
 	assert_string_ends_with(lines[0], "%.3f m²" % schedule.damage().area())
-	assert_string_starts_with(lines[1], "00:01.0 seat 3 out")
+	var choice := schedule.choice()
+	assert_string_starts_with(
+		lines[1], "must %d thrown · %d bakes · " % [choice.thrown, choice.bakes], "then the rule"
+	)
+	assert_string_starts_with(lines[2], "00:01.0 seat 3 out")
 	var unstruck := MatchTranscript.new()
 	unstruck.hit(SinkSchedule.new(_scenario(), _steamer().freeboard, SeedStreams.derive(1, "sink")))
 	assert_eq(unstruck.text(), "\n", "a match without a hit tells none")

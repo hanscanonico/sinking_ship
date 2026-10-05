@@ -13,6 +13,8 @@ extends SceneTree
 const RunMatch := preload("res://tools/run_match.gd")
 
 const REPORT := "res://docs/arena.md"
+## The match time a match still on is stopped at, unfinished, unless --stop says.
+const STOP_SECONDS := 900.0
 const DEFAULT_SEEDS := 200
 ## The lobby that times sixteen seats plays this many seeds at most: it measures
 ## headroom, nothing else.
@@ -70,6 +72,8 @@ class Tally:
 	var matches := 0
 	var lengths := PackedFloat64Array()
 	var draws := 0
+	## Matches still on at STOP, stopped there unfinished: a tool's limit, never a rule.
+	var unfinished := 0
 	var dry_at_plunge := 0
 	var plunges := 0
 	## Matches still on when the first platform collapsed, and the seats in then and at
@@ -98,6 +102,9 @@ class Tally:
 	var dry_flight_where := ""
 
 
+var _stop_ticks := Ticks.from_seconds(STOP_SECONDS)
+
+
 func _initialize() -> void:
 	var seeds := DEFAULT_SEEDS
 	var only := PackedStringArray()
@@ -108,6 +115,8 @@ func _initialize() -> void:
 				seeds = value.to_int()
 			"--lobbies":
 				only = value.split(",", false)
+			"--stop":
+				_stop_ticks = Ticks.from_seconds(MatchArgs.clock_seconds(value))
 	var started := Time.get_ticks_msec()
 	var load_before := _load_average()
 	var tallies: Array[Tally] = []
@@ -221,7 +230,7 @@ func _match(
 	var winner := -1
 	var ended := -1
 	var collapsed := false
-	while not runner.is_over():
+	while not runner.is_over() and runner.tick() < _stop_ticks:
 		var start := Time.get_ticks_usec()
 		var events := runner.step()
 		tally.tick_us.append(Time.get_ticks_usec() - start)
@@ -281,6 +290,9 @@ func _match(
 				tally.idle_near_longest = idle_near[seat]
 				tally.idle_near_where = where
 	tally.matches += 1
+	if not runner.is_over():
+		tally.unfinished += 1
+		return
 	tally.lengths.append(ended / float(Ticks.RATE))
 	for seat in config.seats:
 		if fled[seat] > tally.dry_flight_longest:
@@ -591,8 +603,14 @@ func _lobby_lines(tally: Tally) -> PackedStringArray:
 	)
 	lines.append(
 		(
-			"- Length: median %s, mean %s; draws %d."
-			% [_clock(_median(tally.lengths)), _clock(_mean(tally.lengths)), tally.draws]
+			"- Length: median %s, mean %s; draws %d; still on at %s and stopped: %d."
+			% [
+				_clock(_median(tally.lengths)),
+				_clock(_mean(tally.lengths)),
+				tally.draws,
+				_clock(_stop_ticks / float(Ticks.RATE)),
+				tally.unfinished
+			]
 		)
 	)
 	lines.append(

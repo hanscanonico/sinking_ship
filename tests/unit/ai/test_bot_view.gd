@@ -69,7 +69,7 @@ func test_view_lags_by_reaction_ticks() -> void:
 func test_view_has_no_future_schedule() -> void:
 	# Two steamer matches on one seed, one with a lurch telegraphed at 25 s: until the
 	# telegraph, bots that cannot read the schedule's future play them alike.
-	var calm: SinkScenario = load(SimFixtures.STEAMER_SINKING)
+	var calm: SinkScenario = load(SimFixtures.STEAMER_SCRIPT)
 	var lurching: SinkScenario = calm.duplicate()
 	var events: Array[SinkEvent] = []
 	events.assign(calm.events)
@@ -103,9 +103,12 @@ func test_view_shows_no_hit_before_it_happens() -> void:
 	# Two steamer matches on one seed, one struck by the iceberg and one not: until it
 	# strikes, bots play them alike — none acts on a hit to come — and a bot sees the
 	# strike only once its delayed snapshot reaches the tick it happened on.
-	var struck: SinkScenario = load(SimFixtures.STEAMER_SINKING)
+	# Struck by the seed's first draw, given: it strikes early.
+	var struck: SinkScenario = load(SimFixtures.STEAMER_SINKING).duplicate()
+	struck.explicit_hit = IcebergHit.draw(struck.hit, SeedStreams.derive(EARLY_HIT_SEED, "sink"))
 	var unstruck: SinkScenario = struck.duplicate()
 	unstruck.hit = null
+	unstruck.explicit_hit = null
 	var delay := _profile().reaction_ticks
 	var struck_at := -1
 	var logs: Array[InputLog] = []

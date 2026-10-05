@@ -1,13 +1,18 @@
 class_name MatchTranscript
 extends RefCounted
 ## A match told as text: first its iceberg hit — when, which side, along where and
-## the area it opens — then one line per exit, per sinking event, per railing broken
-## and per crate lost, and one for the end:
+## the area it opens — and how the must-sink rule came to it; then one line per exit,
+## per sinking event — the physics' flooding, filling and spilling cells and her going —
+## per railing broken and per crate lost; one for the end; and where her sinking stood
+## then, in physics time, and how its bake ends:
 ##   hit 00:21.4 · starboard · x 5.2…9.0 m · 0.034 m²
+##   must 8 thrown · 2 bakes · rung 3
 ##   00:52.3 seat 4 out · cold · place 6
+##   01:02.1 hold_bilge flooding
 ##   01:31.0 seat 1 out · cold · place 5 · credit crate 2
-##   02:12.4 bridge collapsing
 ##   winner seat 2 at 02:21.0 · digest 9f3c…
+##   sinking at the end: physics 0:02:18 · sea 1.21 m up her · hold_bilge full · hold 0.3 m
+##   bake: gone at 0:09:12
 ## What `make match` prints and what the golden files hold. Seats are sim seat ids.
 
 const CAUSES := {PlayerState.Cause.NONE: "none", PlayerState.Cause.COLD: "cold"}
@@ -28,6 +33,11 @@ func hit(schedule: SinkSchedule) -> void:
 	if schedule.hit() == null:
 		return
 	var damage := schedule.damage()
+	var choice := schedule.choice()
+	var came := (
+		"sure hit" if choice.sure else ("rung %d" % choice.rung if choice.rung > 0 else "drawn")
+	)
+	_lines.insert(0, "must %d thrown · %d bakes · %s" % [choice.thrown, choice.bakes, came])
 	_lines.insert(
 		0,
 		(
@@ -75,6 +85,14 @@ func add(events: Array[SimEvent]) -> void:
 				_lines.append("%s crate %d lost" % [clock(event.tick), event.prop])
 			SimEvent.Kind.PLUNGE_BEGAN:
 				_lines.append("%s the plunge" % clock(event.tick))
+			SimEvent.Kind.CELL_FLOODING:
+				_lines.append("%s %s flooding" % [clock(event.tick), event.cell])
+			SimEvent.Kind.CELL_FULL:
+				_lines.append("%s %s full" % [clock(event.tick), event.cell])
+			SimEvent.Kind.WATER_SPILLING:
+				_lines.append("%s water through %s" % [clock(event.tick), event.cell])
+			SimEvent.Kind.SHIP_GONE:
+				_lines.append("%s she is gone" % clock(event.tick))
 
 
 ## " · credit crate n" for an exit a crate is credited with — " shoved by seat s"
@@ -99,6 +117,47 @@ func finish(runner: MatchRunner) -> void:
 		_lines.append(
 			"winner seat %d at %s · digest %s" % [_ended.seat, clock(_ended.tick), digest]
 		)
+	_sinking(runner.sim)
+
+
+## Physics time as h:mm:ss, from whole seconds.
+static func physics_clock(seconds: float) -> String:
+	var whole := int(seconds)
+	return "%d:%02d:%02d" % [whole / 3600, whole / 60 % 60, whole % 60]
+
+
+## Where [param sim]'s sinking stood when the match ended or stopped — how long the
+## physics had run, how far the sea had risen up her and the water over each wet cell's
+## floor — and how its bake ends, past what the match played.
+func _sinking(sim: MatchSim) -> void:
+	var timeline := sim.schedule.timeline()
+	if timeline == null:
+		return
+	var tick := _ended.tick if _ended != null else sim.state.tick
+	var since := (
+		Ticks.to_seconds(maxi(tick - sim.schedule.hit_tick(), 0)) * sim.config.scenario.clock
+	)
+	var pose := sim.schedule.pose_at(tick)
+	var line := (
+		"sinking at the end: physics %s · sea %.2f m up her" % [physics_clock(since), pose.sink]
+	)
+	var structure := sim.config.ship.structure
+	for cell: FloodCell in structure.cells:
+		var floor_point := Vector3(
+			(cell.low.x + cell.high.x) * 0.5, cell.low.y, (cell.low.z + cell.high.z) * 0.5
+		)
+		var depth := pose.water_height(floor_point) - cell.low.y
+		if depth >= cell.high.y - cell.low.y:
+			line += " · %s full" % cell.name
+		elif depth >= SinkTimeline.FIRST_WATER:
+			line += " · %s %.2f m" % [cell.name, depth]
+	_lines.append(line)
+	var ends := {
+		SinkTimeline.End.GONE: "gone at %s" % physics_clock(timeline.gone_at),
+		SinkTimeline.End.AFLOAT: "afloat from %s" % physics_clock(timeline.length()),
+		SinkTimeline.End.CAPPED: "afloat at the cap, %s" % physics_clock(timeline.length()),
+	}
+	_lines.append("bake: %s" % ends[timeline.end])
 
 
 func text() -> String:

@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="PinnedSeeds" format=3]
+
+[ext_resource type="Script" path="res://tests/fixtures/pinned_seeds.gd" id="1_pinned"]
+
+[resource]
+script = ExtResource("1_pinned")
+seeds = Dictionary[StringName, int]({
+&"two_compartments_and_open_ports": 29
+})

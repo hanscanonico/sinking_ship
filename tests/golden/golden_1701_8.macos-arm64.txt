@@ -1,18 +1,50 @@
-hit 00:37.9 · starboard · x 7.6…9.3 m · 0.057 m²
-00:58.8 seat 3 out · cold · place 8
-01:03.2 lurch coming · heel -15°
-01:04.2 lurched · heel -15°
-01:06.2 railing 6 broke
-01:06.6 crate 2 lost
-01:07.4 crate 3 lost
-01:20.1 seat 6 out · cold · place 7
-01:30.8 seat 4 out · cold · place 6
-01:43.1 crate 1 lost
-01:46.1 crate 0 lost
-01:50.3 seat 0 out · cold · place 5
-02:03.9 lurch coming · heel +20°
-02:04.9 lurched · heel +20°
-02:05.2 seat 5 out · cold · place 4
-02:07.3 seat 1 out · cold · place 3
-02:08.7 seat 2 out · cold · place 2
-winner seat 7 at 02:08.7 · digest 2ab1e8657cfd3c6f
+hit 00:33.6 · starboard · x -19.0…6.0 m · 3.900 m²
+must 8 thrown · 2 bakes · sure hit
+00:17.1 seat 2 out · cold · place 8
+00:34.6 aft_peak flooding
+00:34.6 aft_bilge flooding
+00:34.6 engine_bilge flooding
+00:34.6 hold_wing_s flooding
+00:41.3 seat 4 out · cold · place 7
+00:41.6 hold_bilge flooding
+01:28.6 aft_bilge full
+01:28.6 engine_bilge full
+01:31.6 aft_cabins flooding
+01:31.6 engine_room flooding
+02:19.1 seat 5 out · cold · place 6
+03:32.4 crate 3 lost
+04:47.6 hold_bilge full
+04:49.6 hold flooding
+05:40.6 hold_wing_p flooding
+07:27.6 water through over_bulkhead_hold_to_hold_wing_s
+08:02.1 seat 3 out · cold · place 5
+08:20.6 the plunge
+08:21.6 water through stair_aft_cabins_sky
+08:21.6 water through stair_hold_sky
+08:22.6 water through stair_engine_room_deckhouse_hall
+08:22.6 aft_peak full
+08:25.6 saloon flooding
+08:27.6 deckhouse_hall flooding
+08:32.6 deckhouse_cabins flooding
+08:35.6 water through over_bulkhead_hold_to_hold
+08:35.6 water through over_bulkhead_hold_to_hold_wing_p
+08:35.6 poop_space flooding
+08:38.0 crate 0 lost
+08:38.0 crate 1 lost
+08:39.6 aft_cabins full
+08:40.6 hold_wing_s full
+08:41.6 engine_room full
+08:41.6 hold full
+08:41.8 crate 2 lost
+08:42.6 hold_fwd_top flooding
+08:45.5 seat 6 out · cold · place 4
+08:45.6 saloon full
+08:45.6 wheelhouse flooding
+08:46.6 she is gone
+08:46.9 seat 0 out · cold · place 3
+08:47.6 deckhouse_hall full
+08:47.6 wheelhouse full
+08:48.5 seat 1 out · cold · place 2
+winner seat 7 at 08:48.5 · digest bf09d28baf4ae310
+sinking at the end: physics 0:08:14 · sea 13.99 m up her · aft_peak full · poop_space 0.45 m · aft_bilge full · aft_cabins full · engine_bilge full · engine_room full · hold_bilge full · hold full · hold_wing_p full · hold_wing_s full · hold_fwd_top 0.54 m · deckhouse_cabins 2.16 m · deckhouse_hall full · saloon full · wheelhouse full
+bake: gone at 0:08:13

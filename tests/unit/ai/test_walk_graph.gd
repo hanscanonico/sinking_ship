@@ -490,8 +490,8 @@ func test_flood_answers_are_worked_out_afresh_for_each_pose() -> void:
 		assert_true(graph.flooded(bow_perch, by_the_head), "by the head, round %d" % round)
 		assert_gt(graph.world_height(bow_perch, calm), graph.world_height(bow_perch, by_the_head))
 		assert_gt(
-			graph.lowest_world_height(bow_perch, calm),
-			graph.lowest_world_height(bow_perch, by_the_head)
+			graph.lowest_above_water(bow_perch, calm),
+			graph.lowest_above_water(bow_perch, by_the_head)
 		)
 
 

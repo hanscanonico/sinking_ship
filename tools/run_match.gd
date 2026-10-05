@@ -1,7 +1,10 @@
 extends SceneTree
 ## `make match`: one bots-only match, headless, as fast as it runs, served by the
-## local host the game plays through (SH11), printed as a transcript — its iceberg
-## hit, one line per exit, then the verdict and the digest.
+## local host the game plays through (SH11), printed as a transcript — its iceberg hit
+## and how the must-sink rule came to it, one line per exit and per thing the physics
+## does, then the verdict and the digest, and where the sinking stood at the end and
+## how its bake ends. STOP= (--stop) stops a match still on then, unfinished; the bake's
+## time goes to stderr, as it is the machine's, not the match's.
 ##
 ##   godot --headless --path . -s res://tools/run_match.gd -- --seed=1701 --seats=8
 ##
@@ -44,6 +47,7 @@ func _initialize() -> void:
 	var config := default_config(
 		args.seed_value if args.seed_value >= 0 else DEFAULT_SEED, args.seats
 	)
+	config.scenario = args.struck(config.scenario)
 	var problems := config.problems()
 	var profile := BotProfile.for_tier(config.bot_tier)
 	if profile == null:
@@ -54,5 +58,8 @@ func _initialize() -> void:
 		printerr("\n".join(problems))
 		quit(1)
 		return
+	var started := Time.get_ticks_usec()
+	config.schedule()
+	printerr("bake %.2f s" % ((Time.get_ticks_usec() - started) / 1e6))
 	printraw(transcript(served(config), Ticks.from_seconds(args.seconds)))
 	quit()

@@ -266,8 +266,13 @@ func test_the_hull_groans_from_below_the_lower_deck() -> void:
 
 
 func test_the_iceberg_booms_from_its_gash_and_the_hull_groans_under_it() -> void:
-	# Seed 38 strikes her starboard side from x -12.2 to -5.9 m.
-	var sim := MatchSim.create(RunMatch.default_config(38))
+	# Seed 38's first draw strikes her starboard side from x -12.2 to -5.9 m: given.
+	var config := RunMatch.default_config(38)
+	config.scenario = config.scenario.duplicate()
+	config.scenario.explicit_hit = IcebergHit.draw(
+		config.scenario.hit, SeedStreams.derive(38, "sink")
+	)
+	var sim := MatchSim.create(config)
 	var damage := sim.schedule.damage()
 	var struck := sim.schedule.hit_tick()
 	var before := sim.snapshot().duplicate(true)

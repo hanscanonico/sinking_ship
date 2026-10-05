@@ -103,7 +103,10 @@ func test_a_body_fits_between_the_hatch_and_the_boat_deck_ramps() -> void:
 	# the deckhouse is never a pocket a body cannot leave.
 	var ramp_side := INF
 	for ramp: ShipRamp in layout.ramps:
-		if ramp.area.position.y >= hatch.area.end.y and ramp.area.position.x < hatch.area.end.x:
+		var beside := (
+			ramp.area.position.x < hatch.area.end.x and ramp.area.end.x > hatch.area.position.x
+		)
+		if ramp.area.position.y >= hatch.area.end.y and beside:
 			ramp_side = minf(ramp_side, ramp.area.position.y)
 	assert_gte(ramp_side - hatch.area.end.y, rules.body_radius * 2.0, "a body's width")
 	var lane := (hatch.area.end.y + ramp_side) * 0.5

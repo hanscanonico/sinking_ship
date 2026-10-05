@@ -1,8 +1,11 @@
 extends GutTest
 ## `make ship-check`'s float check, on every ship under data/ships/ with a structure:
-## intact, she floats level at her stated waterline (§5b.2). The tolerances are est.
+## intact, she floats level at her stated waterline (§5b.2); and she founders on her
+## sure hit within the bake's cap of every scenario of hers (§5b.1). The tolerances are
+## est.
 
 const SHIPS := "res://data/ships"
+const SCENARIOS := "res://data/sinking"
 ## Displacement against mass, as a share; draught in metres; trim and list in degrees.
 const DISPLACEMENT := 0.01
 const DRAUGHT := 0.02
@@ -63,3 +66,34 @@ func test_intact_steamer_floats_level_at_her_waterline() -> void:
 		assert_almost_eq(list, 0.0, LEVEL_DEG, "%s: no list" % file)
 		assert_gt(gm, 0.0, "%s: a list rights itself" % file)
 	assert_gt(checked, 0, "a ship to float")
+
+
+func test_she_founders_on_her_sure_hit() -> void:
+	var sea := SeaPhysics.load_default()
+	var checked := 0
+	for file: String in DirAccess.get_files_at(SHIPS):
+		if not file.ends_with(".tres"):
+			continue
+		var layout: ShipLayout = load("%s/%s" % [SHIPS, file])
+		var structure := layout.structure
+		if structure == null:
+			continue
+		var stem := file.get_basename()
+		for scenario_file: String in DirAccess.get_files_at(SCENARIOS):
+			if not scenario_file.begins_with(stem + "_"):
+				continue
+			var scenario: SinkScenario = load("%s/%s" % [SCENARIOS, scenario_file])
+			checked += 1
+			var damage := HitMapper.map_explicit(structure.sure_hit, structure, scenario.hit)
+			var stepper := SinkStepper.new(structure, damage, sea)
+			var timeline := SinkTimeline.bake(stepper, sea, scenario.bake_cap)
+			gut.p(
+				(
+					"%s in %s: her sure hit opens %.3f m², gone at %.0f s of a %.0f s cap"
+					% [file, scenario_file, damage.area(), timeline.gone_at, scenario.bake_cap]
+				)
+			)
+			assert_true(
+				timeline.is_gone(), "%s founders on her sure hit in %s" % [file, scenario_file]
+			)
+	assert_gt(checked, 0, "a ship and a scenario to sink her in")

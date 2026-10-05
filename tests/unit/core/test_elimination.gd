@@ -37,7 +37,7 @@ func test_standing_as_the_deck_floods_ends_in_the_cold() -> void:
 	var deep_from := -1
 	for tick in 30 * Ticks.RATE:
 		var pose := sim.schedule.pose_at(tick)
-		if pose.sea_height(at_the_bow.x, at_the_bow.z) - at_the_bow.y >= rules.wade_depth:
+		if pose.water_height(at_the_bow) - at_the_bow.y >= rules.wade_depth:
 			deep_from = tick
 			break
 	assert_gt(deep_from, 0)
