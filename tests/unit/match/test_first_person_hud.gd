@@ -207,16 +207,19 @@ func test_plates_at_fractional_pixels_settle_apart() -> void:
 		_assert_apart(boxes, FirstPersonHud.plates_apart(boxes, 0.0))
 
 
-## Every plate of [param boxes] lifted by [param lifts] clears every other.
+## Every plate of [param boxes] lifted by [param lifts] clears every other by the
+## gap; none here is pushed into the top band, so none is left stacked.
 func _assert_apart(boxes: Array[Rect2], lifts: PackedFloat32Array) -> void:
 	var overlaps := 0
+	var half := FirstPersonHud.PLATE_GAP * 0.5
 	for one in boxes.size():
+		assert_gte(lifts[one], 0.0, "plate %d has room to rise" % one)
 		var box := boxes[one]
 		box.position.y -= lifts[one]
 		for other in range(one + 1, boxes.size()):
 			var next := boxes[other]
 			next.position.y -= lifts[other]
-			if box.intersects(next):
+			if box.grow(half).intersects(next.grow(half)):
 				overlaps += 1
 	assert_eq(overlaps, 0, "%s lifted by %s" % [boxes, lifts])
 
