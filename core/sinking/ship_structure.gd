@@ -4,8 +4,9 @@ extends Resource
 ## same ship-local metres — the outline of everything enclosed, cut across in
 ## sections; the cells water and air fill; the watertight walls; every opening
 ## between two cells or a cell and the outside; and her mass and where it sits.
-## Generated with the layout (tools/gen_steamer.py). No rule reads it yet (D13):
-## `make ship-check` proves she floats on it, level, where she is said to.
+## Generated with the layout (tools/gen_steamer.py). No rule reads it yet (D13): the
+## match's hit is mapped onto it (HitMapper), and `make ship-check` proves she floats
+## on it, level, where she is said to.
 
 ## Where the intact ship floats, level, and the bottom of her hull.
 @export var waterline_y: float
@@ -26,14 +27,28 @@ extends Resource
 @export var heave_damping: float
 @export var roll_damping: float
 @export var pitch_damping: float
+## Where along her (x) and up her shell (y) an iceberg's gash can be at all.
+@export var hit_zone_x: Vector2
+@export var hit_zone_y: Vector2
 
 
 ## The index of the cell called [param cell_name], or -1.
 func cell_named(cell_name: StringName) -> int:
 	for index in cells.size():
-		if cells[index].name == cell_name:
+		if cells[index] != null and cells[index].name == cell_name:
 			return index
 	return -1
+
+
+## The section standing for the hull at [param x], or null past her ends.
+func section_at(x: float) -> HullSection:
+	for section: HullSection in sections:
+		if section == null:
+			continue
+		var half := section.length * 0.5
+		if x >= section.x - half and x < section.x + half:
+			return section
+	return null
 
 
 ## Her whole weight, in kilograms.
@@ -106,4 +121,6 @@ func problems() -> PackedStringArray:
 		found.append("structure: radii of gyration must be positive, added mass not negative")
 	if heave_damping < 0.0 or roll_damping < 0.0 or pitch_damping < 0.0:
 		found.append("structure: damping must not be negative")
+	if hit_zone_x.y <= hit_zone_x.x or hit_zone_y.y <= hit_zone_y.x:
+		found.append("structure: the hit zone must run from its least to its most")
 	return found

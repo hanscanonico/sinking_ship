@@ -253,6 +253,8 @@ func _from_event(event: Dictionary, now: Dictionary, pose: ShipPose, cues: Array
 			horn.positional = true
 			horn.position = Vector3(_hull.get_center().x, 0.0, _hull.get_center().y)
 			cues.append(horn)
+		SimEvent.Kind.HOLED:
+			_holed(tick, cues)
 		SimEvent.Kind.PLATFORM_COLLAPSING, SimEvent.Kind.PLATFORM_COLLAPSED:
 			var giving := AudioCue.new(AudioCue.Kind.COLLAPSE, tick)
 			giving.positional = true
@@ -260,6 +262,23 @@ func _from_event(event: Dictionary, now: Dictionary, pose: ShipPose, cues: Array
 			if event["kind"] == SimEvent.Kind.PLATFORM_COLLAPSING:
 				giving.gain = COLLAPSING_GAIN
 			cues.append(giving)
+
+
+## The iceberg striking: a boom from the middle of the gash SinkSchedule has her
+## struck with, and the hull groaning from the keel under it.
+func _holed(tick: int, cues: Array[AudioCue]) -> void:
+	var damage := _schedule.damage()
+	if damage == null or damage.trace.is_empty():
+		return
+	var gash := damage.trace[damage.trace.size() / 2]
+	var boom := AudioCue.new(AudioCue.Kind.HOLED, tick)
+	boom.positional = true
+	boom.position = gash
+	cues.append(boom)
+	var groan := AudioCue.new(AudioCue.Kind.GROAN, tick)
+	groan.positional = true
+	groan.position = Vector3(gash.x, _keel, gash.z * 0.5)
+	cues.append(groan)
 
 
 ## The ship complains as it lists and settles: creaks round the listener as the

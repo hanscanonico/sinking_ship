@@ -1,7 +1,7 @@
 extends SceneTree
 ## `make match`: one bots-only match, headless, as fast as it runs, served by the
-## local host the game plays through (SH11), printed as a transcript — one line per
-## exit, then the verdict and the digest.
+## local host the game plays through (SH11), printed as a transcript — its iceberg
+## hit, one line per exit, then the verdict and the digest.
 ##
 ##   godot --headless --path . -s res://tools/run_match.gd -- --seed=1701 --seats=8
 ##
@@ -32,6 +32,7 @@ static func served(config: MatchConfig) -> MatchHost:
 ## Steps [param host] to the end of its match, or to [param max_ticks].
 static func transcript(host: MatchHost, max_ticks: int) -> String:
 	var told := MatchTranscript.new()
+	told.hit(host.runner.sim.schedule)
 	while not host.is_over() and host.tick() < max_ticks:
 		told.add(host.step())
 	told.finish(host.runner)

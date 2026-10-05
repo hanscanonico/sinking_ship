@@ -4,6 +4,8 @@ extends GutTest
 ## perceived the rest for a while, and the pose now — never the schedule's future.
 
 const SEED := 1701
+## A seed whose iceberg strikes the steamer early: 13.3 s in.
+const EARLY_HIT_SEED := 37
 ## Eyes and hearing are a person's: the first-person camera's eye, six metres.
 const EYE := 1.6
 const HEARING := 6.0
@@ -95,6 +97,49 @@ func test_view_has_no_future_schedule() -> void:
 	var view := BotView.new(0, _profile(), Surfaces.new(SimFixtures.steamer()))
 	for property: Dictionary in view.get_property_list():
 		assert_ne(property["class_name"], &"SinkSchedule", property["name"])
+
+
+func test_view_shows_no_hit_before_it_happens() -> void:
+	# Two steamer matches on one seed, one struck by the iceberg and one not: until it
+	# strikes, bots play them alike — none acts on a hit to come — and a bot sees the
+	# strike only once its delayed snapshot reaches the tick it happened on.
+	var struck: SinkScenario = load(SimFixtures.STEAMER_SINKING)
+	var unstruck: SinkScenario = struck.duplicate()
+	unstruck.hit = null
+	var delay := _profile().reaction_ticks
+	var struck_at := -1
+	var logs: Array[InputLog] = []
+	for scenario: SinkScenario in [struck, unstruck]:
+		var config := SimFixtures.config(6, scenario, EARLY_HIT_SEED, SimFixtures.steamer())
+		var bots := BotInputSource.fill(config, _profile())
+		var runner := MatchRunner.new(MatchSim.create(config), bots)
+		if scenario == unstruck:
+			runner.run(struck_at)
+			logs.append(runner.input_log)
+			continue
+		struck_at = runner.sim.schedule.hit_tick()
+		assert_between(struck_at, 0, 15 * Ticks.RATE, "the seed's iceberg strikes early")
+		var view := (bots[0] as BotInputSource).view
+		var seen_at := -1
+		while seen_at == -1 and runner.tick() <= struck_at + delay + 1:
+			runner.step()
+			for event: Dictionary in view.snapshot()["events"]:
+				if event["kind"] == SimEvent.Kind.HOLED:
+					seen_at = runner.tick()
+		# The snapshot after the hit's tick carries it; the view is delay ticks behind.
+		assert_eq(seen_at, struck_at + 1 + delay, "seen as it happened, reaction_ticks late")
+		logs.append(runner.input_log)
+	for tick in range(logs[0].first_tick, struck_at):
+		for seat in 6:
+			var a := logs[0].frame(tick, seat)
+			var b := logs[1].frame(tick, seat)
+			if [a.move, a.look_yaw, a.buttons] != [b.move, b.look_yaw, b.buttons]:
+				fail_test("seat %d acted on the hit to come at tick %d" % [seat, tick])
+				return
+	# And the view holds nothing that could tell where or when: no hit, no damage.
+	var view := BotView.new(0, _profile(), Surfaces.new(SimFixtures.steamer()))
+	for property: Dictionary in view.get_property_list():
+		assert_false(property["class_name"] in [&"IcebergHit", &"HitDamage"], property["name"])
 
 
 func test_view_hides_bodies_behind_walls() -> void:

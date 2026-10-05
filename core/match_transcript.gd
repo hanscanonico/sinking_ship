@@ -1,7 +1,9 @@
 class_name MatchTranscript
 extends RefCounted
-## A match told as text, one line per exit, per sinking event, per railing broken and
-## per crate lost, and one for the end:
+## A match told as text: first its iceberg hit — when, which side, along where and
+## the area it opens — then one line per exit, per sinking event, per railing broken
+## and per crate lost, and one for the end:
+##   hit 00:21.4 · starboard · x 5.2…9.0 m · 0.034 m²
 ##   00:52.3 seat 4 out · cold · place 6
 ##   01:31.0 seat 1 out · cold · place 5 · credit crate 2
 ##   02:12.4 bridge collapsing
@@ -19,6 +21,26 @@ var _ended: SimEvent
 static func clock(tick: int) -> String:
 	var tenths := tick * 10 / Ticks.RATE
 	return "%02d:%02d.%d" % [tenths / 600, tenths / 10 % 60, tenths % 10]
+
+
+## The hit [param schedule] strikes, as the first line; none for a match without one.
+func hit(schedule: SinkSchedule) -> void:
+	if schedule.hit() == null:
+		return
+	var damage := schedule.damage()
+	_lines.insert(
+		0,
+		(
+			"hit %s · %s · x %.1f…%.1f m · %.3f m²"
+			% [
+				clock(schedule.hit_tick()),
+				schedule.hit().side_name(),
+				damage.from_x,
+				damage.to_x,
+				damage.area()
+			]
+		)
+	)
 
 
 func add(events: Array[SimEvent]) -> void:

@@ -376,6 +376,63 @@ func test_the_plunge_rains_spray_slides_gear_and_boils_up_wreckage_astern() -> v
 		assert_lt(piece.position.x, middle, "aft, where the stern still stands out of it")
 
 
+func test_the_iceberg_sprays_along_its_gash_and_boils_over_it_where_it_runs_deep() -> void:
+	# Seed 38 strikes her starboard side from x -12.2 to -5.9 m, just over the sea at its
+	# after end and 1.5 m under it at its forward end.
+	var sim := _sim(38)
+	var planner := _planner(sim)
+	var damage := sim.schedule.damage()
+	var struck := sim.schedule.hit_tick()
+	var structure := sim.config.ship.structure
+	var waterline := structure.waterline_y
+	var quiet := _sink(planner, sim, struck - Ticks.RATE, struck + Ticks.RATE)
+	assert_eq(_of(quiet, SPRAY).size(), 0, "nothing shows a strike nobody announced")
+	var holed := SimEvent.holed(struck)
+	var cues := planner.plan(_at(sim, struck), _at(sim, struck + 1, [holed]))
+	var sheets := _of(cues, SPRAY)
+	assert_gt(sheets.size(), 1, "sheets along the gash")
+	var aft: FxCue = sheets[0]
+	var fore: FxCue = sheets[0]
+	for sheet: FxCue in sheets:
+		for end: Vector3 in [sheet.position, sheet.end]:
+			assert_between(end.x, damage.from_x - 0.01, damage.to_x + 0.01, "along the gash")
+			var shell := structure.section_at(end.x).shell_at(maxf(end.y, waterline), 1)
+			assert_gt(end.z, shell, "out of her starboard side, over the sea")
+			assert_gte(end.y, waterline - 0.001, "never under it")
+		assert_gt(sheet.toward.y, 0.5, "thrown up")
+		assert_gt(sheet.toward.z, 0.0, "and out")
+		if sheet.position.y < waterline + 0.001:
+			assert_true(sheet.on_sea, "from the sea where the gash runs under it")
+		aft = sheet if sheet.position.x < aft.position.x else aft
+		fore = sheet if sheet.position.x > fore.position.x else fore
+	assert_gt(aft.rise, fore.rise, "higher where the gash runs shallow")
+	var boils := _of(cues, FxCue.Kind.BUBBLES)
+	assert_gt(boils.size(), 0, "the sea boils over the deep stretch")
+	for boil: FxCue in boils:
+		assert_true(boil.on_sea)
+		assert_gt(boil.position.x, (damage.from_x + damage.to_x) * 0.5, "over its deep end")
+	var after := _sink(planner, sim, struck + 1, struck + Ticks.from_seconds(10.0))
+	var churns := _of(after, WASH)
+	assert_gt(churns.size(), 0, "the sea churns white against her over it")
+	for churn: FxCue in churns:
+		assert_true(churn.on_sea)
+		assert_eq(churn.toward, Vector3.BACK, "leaning out from her starboard side")
+		for end: Vector3 in [churn.position, churn.end]:
+			assert_between(end.x, damage.from_x - 0.01, damage.to_x + 0.01, "along the gash")
+		assert_lt(churn.tick, struck + Ticks.from_seconds(FxPlanner.GASH_SECONDS) + 2)
+	assert_gt(churns[0].strength, churns[-1].strength, "dying down")
+	var bursts := _of(after, SPRAY)
+	assert_gt(bursts.size(), 5, "bursting on along it as it dies down")
+	var moved := 0
+	for index in bursts.size():
+		var burst: FxCue = bursts[index]
+		assert_between(burst.position.x, damage.from_x - 0.01, damage.to_x + 0.01)
+		assert_lt(burst.tick, struck + Ticks.from_seconds(FxPlanner.GASH_SECONDS) + 2)
+		if index > 0 and absf(burst.position.x - bursts[index - 1].position.x) > 0.5:
+			moved += 1
+	assert_gt(moved, bursts.size() * 3 / 4, "somewhere new each time")
+
+
 func test_effects_come_from_snapshots_and_the_pose_only() -> void:
 	var config := RunMatch.default_config(1701)
 	var runner := RunMatch.bots_only(config)

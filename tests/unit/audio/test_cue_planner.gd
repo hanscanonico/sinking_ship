@@ -265,6 +265,34 @@ func test_the_hull_groans_from_below_the_lower_deck() -> void:
 	assert_lt(groans[0].position.y, lowest, "from under the lowest deck")
 
 
+func test_the_iceberg_booms_from_its_gash_and_the_hull_groans_under_it() -> void:
+	# Seed 38 strikes her starboard side from x -12.2 to -5.9 m.
+	var sim := MatchSim.create(RunMatch.default_config(38))
+	var damage := sim.schedule.damage()
+	var struck := sim.schedule.hit_tick()
+	var before := sim.snapshot().duplicate(true)
+	before["tick"] = struck
+	before["phase"] = MatchState.Phase.LIVE
+	var after := before.duplicate(true)
+	after["tick"] = struck + 1
+	var planner := _planner(sim)
+	assert_eq(_of(planner.plan(before, after), AudioCue.Kind.HOLED).size(), 0, "unannounced")
+	after["events"] = [SimEvent.holed(struck).to_dict()]
+	var heard := planner.plan(before, after)
+	var booms := _of(heard, AudioCue.Kind.HOLED)
+	assert_eq(booms.size(), 1, "one boom")
+	assert_true(booms[0].positional)
+	assert_between(booms[0].position.x, damage.from_x, damage.to_x, "from the gash")
+	assert_gt(booms[0].position.z, 0.0, "on her struck side")
+	var groans := _of(heard, GROAN)
+	assert_eq(groans.size(), 1, "the hull groans with it")
+	assert_almost_eq(groans[0].position.x, booms[0].position.x, 0.001, "under the gash")
+	var lowest := INF
+	for platform: ShipPlatform in sim.config.ship.platforms:
+		lowest = minf(lowest, platform.height)
+	assert_lt(groans[0].position.y, lowest, "from under her lowest deck")
+
+
 func test_cues_come_from_snapshots_and_events_only() -> void:
 	var config := RunMatch.default_config(1701)
 	var runner := RunMatch.bots_only(config)

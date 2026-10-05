@@ -112,6 +112,7 @@ func start(config: MatchConfig, net_rules: NetRules, bots: Array[InputSource], b
 	wire.sent_packets.clear()
 	step_usec.clear()
 	transcript = MatchTranscript.new()
+	transcript.hit(host.runner.sim.schedule)
 	phase = Phase.PLAYING
 	since = beat
 

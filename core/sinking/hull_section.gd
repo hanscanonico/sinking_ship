@@ -12,6 +12,21 @@ extends Resource
 @export var outline: PackedVector2Array
 
 
+## The z of the outline's outermost point at height [param y] on [param side] — 1 for
+## starboard, -1 for port: where her shell stands there; NAN where the outline does not
+## reach that height.
+func shell_at(y: float, side: int) -> float:
+	var outermost := -INF
+	for index in outline.size():
+		var a := outline[index]
+		var b := outline[(index + 1) % outline.size()]
+		if a.y == b.y or (a.y - y) * (b.y - y) > 0.0:
+			continue
+		var z := a.x + (float(b.x) - a.x) * (y - a.y) / (float(b.y) - a.y)
+		outermost = maxf(outermost, z * side)
+	return outermost * side if outermost > -INF else NAN
+
+
 ## Every reason this section cannot be read; empty when it can.
 func problems() -> PackedStringArray:
 	var found := PackedStringArray()

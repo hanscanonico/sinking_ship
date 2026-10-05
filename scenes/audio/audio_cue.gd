@@ -30,6 +30,8 @@ enum Kind {
 	THUD,
 	## A railing span breaking (SH6's failure, SH10's damage).
 	CRACK,
+	## The iceberg striking the hull: a boom through her plates, from the gash.
+	HOLED,
 }
 ## What a footfall or a landing comes down on.
 enum Ground { WOOD, METAL, WET }

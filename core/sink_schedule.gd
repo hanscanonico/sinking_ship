@@ -1,9 +1,10 @@
 class_name SinkSchedule
 extends RefCounted
-## The one water authority (D7, D13): the ship's pose at any tick, and which of the
-## scenario's events have fired, for whichever SinkScenario the match carries.
-## Built once per match; after that it is a pure function of (scenario, seed,
-## tick) — nothing a player does moves it, and it is never stored in a snapshot.
+## The one water authority (D7, D13): the ship's pose at any tick, which of the
+## scenario's events have fired, and the iceberg hit — where it struck and when — for
+## whichever SinkScenario the match carries. Built once per match; after that it is a
+## pure function of (ship, scenario, seed, tick) — nothing a player does moves it, and
+## it is never stored in a snapshot (D5).
 
 
 ## One of the scenario's events, placed on this match's ticks.
@@ -35,23 +36,45 @@ var _keyframes: Array[SinkKeyframe] = []
 ## In the scenario's order.
 var _events: Array[Scheduled] = []
 var _cap_tick := -1
+var _hit: IcebergHit
+var _damage: HitDamage
+var _hit_tick := -1
 
 
 ## [param sink_stream] is the sinking stream, SeedStreams' (match seed, "sink"),
-## and this is the only place it is drawn (D4): one draw per event, in the
-## scenario's order, whatever its bound.
-func _init(scenario: SinkScenario, freeboard: float, sink_stream: RandomNumberGenerator) -> void:
+## and this is the only place it is drawn (D4): first the scenario's hit, struck on
+## [param structure] — the hit, then its unevenness, the doors that jam and the
+## openings left open (HitMapper) — then one draw per event, in the scenario's order,
+## whatever its bound. Without a structure — the menu's backdrop, the script's own
+## tests — no hit is struck.
+func _init(
+	scenario: SinkScenario,
+	freeboard: float,
+	sink_stream: RandomNumberGenerator,
+	structure: ShipStructure = null
+) -> void:
 	_freeboard = freeboard
 	_pivot = scenario.pivot
 	_start_tick = Ticks.from_seconds(scenario.starts_at)
 	_keyframes = scenario.keyframes.duplicate()
 	for keyframe: SinkKeyframe in _keyframes:
 		_keyframe_ticks.append(Ticks.from_seconds(keyframe.at))
+	if scenario.hit != null and structure != null:
+		_hit = IcebergHit.draw(scenario.hit, sink_stream)
+		_damage = HitMapper.map(_hit, structure, scenario.hit, sink_stream)
+		_hit_tick = _start_tick + Ticks.from_seconds(_hit.moment)
 	for event: SinkEvent in scenario.events:
 		var shift := sink_stream.randf_range(-event.jitter, event.jitter)
 		_events.append(Scheduled.new(event, _start_tick + Ticks.from_seconds(event.at + shift)))
 	if scenario.cap > 0.0:
 		_cap_tick = _start_tick + Ticks.from_seconds(scenario.cap)
+
+
+## The schedule of [param config]'s match: its scenario on its ship, off its own
+## sinking stream.
+static func for_match(config: MatchConfig) -> SinkSchedule:
+	var sink_stream := SeedStreams.derive(config.match_seed, "sink")
+	return new(config.scenario, config.ship.freeboard, sink_stream, config.ship.structure)
 
 
 func pose_at(tick: int) -> ShipPose:
@@ -91,10 +114,12 @@ func fired(tick: int) -> Array[Scheduled]:
 	return found
 
 
-## What the sinking announces on [param tick]: every telegraph that starts, then
-## every event that happens, each in the scenario's order.
+## What the sinking announces on [param tick]: the iceberg striking, then every
+## telegraph that starts, then every event that happens, each in the scenario's order.
 func events_at(tick: int) -> Array[SimEvent]:
 	var found: Array[SimEvent] = []
+	if tick == _hit_tick:
+		found.append(SimEvent.holed(tick))
 	for scheduled: Scheduled in _events:
 		if scheduled.warned_at == tick and scheduled.warned_at < scheduled.at:
 			found.append(SimEvent.sinking(tick, scheduled.event, true))
@@ -107,6 +132,22 @@ func events_at(tick: int) -> Array[SimEvent]:
 ## The tick by which every surface is under and the match ends, or -1 for none.
 func cap_tick() -> int:
 	return _cap_tick
+
+
+## The match's iceberg hit as drawn, or null for none.
+func hit() -> IcebergHit:
+	return _hit
+
+
+## What the hit does to the ship — its gash and the fittings it finds — or null for
+## none.
+func damage() -> HitDamage:
+	return _damage
+
+
+## The tick the iceberg strikes, or -1 for none.
+func hit_tick() -> int:
+	return _hit_tick
 
 
 ## The name of the phase the sinking is in at [param tick]: the last keyframe's

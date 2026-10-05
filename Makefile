@@ -193,6 +193,16 @@ arena:
 	@set -o pipefail; $(GODOT) --headless --no-header --path . -s res://tools/arena.gd \
 		-- --seeds=$(SEEDS) $(if $(LOBBIES),--lobbies=$(LOBBIES)) | grep -v '^\[godot_ai'
 
+# `make hits SHIP=steamer SEEDS=200`: the spread of SHIP's iceberg hits over seeds
+# 1…SEEDS, each struck as her match on that seed strikes it — sides, places, the cells
+# opened, areas, moments, the walls weakened, the doors jammed and the openings left
+# open. Headless; no match is played. Rules live in tools/hits.gd.
+SHIP ?= steamer
+hits:
+	$(call require-godot)
+	@set -o pipefail; $(GODOT) --headless --no-header --path . -s res://tools/hits.gd \
+		-- --ship=$(SHIP) --seeds=$(SEEDS) | grep -v '^\[godot_ai'
+
 # The art against the data (D6) and the snapshots (D5): drawn platform tops,
 # every seat's model on its feet, no live sim object named under scenes/art.
 # Rules live in tools/art_lint.gd. Two frames per tick, so the view interpolates.
@@ -266,4 +276,4 @@ format-check:
 
 .PHONY: import run match capture net-bench sim-bench serve-local online-e2e export-server \
 	export-web export-mac export-server-mac serve-web-local serve-web-local-stop fps arena \
-	art-lint test verify check ship ship-check lint format format-check
+	hits art-lint test verify check ship ship-check lint format format-check

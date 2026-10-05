@@ -17,6 +17,12 @@ extends Resource
 ## still in then goes out together. 0 leaves the match uncapped — only test
 ## fixtures do.
 @export var cap: float
+## The bands the match's iceberg hit is drawn from (§5b.1); null for none — the flat
+## deck and the test fixtures. The hit is struck and announced, and the ship still
+## sinks on the keyframes above: nothing yet lets its gash move the water.
+@export var hit: HitBands
+## How deep the sea is under her, in metres.
+@export var sea_depth: float
 
 
 ## Every reason this scenario cannot run; empty when it can.
@@ -41,4 +47,8 @@ func problems() -> PackedStringArray:
 		found.append_array(event.problems())
 	if cap < 0.0:
 		found.append("sinking: the cap must not be negative")
+	if hit != null:
+		found.append_array(hit.problems())
+	if sea_depth < 0.0:
+		found.append("sinking: the sea's depth must not be negative")
 	return found

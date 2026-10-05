@@ -2,7 +2,7 @@ extends GutTest
 
 const SCENE := preload("res://scenes/art/sea_and_sky.tscn")
 const STEAMER := "res://data/ships/steamer.tres"
-const STEAMER_SINKING := "res://data/sinking/steamer.tres"
+const STEAMER_SINKING := "res://data/sinking/steamer_open_sea.tres"
 
 var _layout: ShipLayout
 var _sea: SeaAndSky

@@ -7,7 +7,7 @@ const RULES := "res://data/rules/brawl.tres"
 const FLAT_DECK := "res://data/ships/flat_deck.tres"
 const FLAT_SINKING := "res://data/sinking/flat.tres"
 const STEAMER := "res://data/ships/steamer.tres"
-const STEAMER_SINKING := "res://data/sinking/steamer.tres"
+const STEAMER_SINKING := "res://data/sinking/steamer_open_sea.tres"
 const NORMAL_BOT := "res://data/bots/normal.tres"
 ## A frame's look when none is given: step() sends the seat's own look instead.
 const KEEP_LOOK := -1
