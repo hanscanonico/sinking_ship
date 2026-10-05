@@ -131,6 +131,29 @@ func test_two_tanks_level_in_100_s() -> void:
 	assert_almost_eq(stepper.head(0, state.water[0]), 700.0 / 150.0, 1e-9, "at the shared level")
 
 
+func test_a_doorway_half_under_levels_without_a_slosh_at_a_30_s_step() -> void:
+	# The lower side's water stands inside the doorway, so its flow has no closed form
+	# over the step (an orifice under it, a weir over it): only the levelling cap keeps
+	# a 30 s step from throwing the water past the level and back (R22).
+	var tanks: Array[FloodCell] = [
+		_cell(&"big", Vector3(0.0, 0.0, 0.0), Vector3(10.0, 10.0, 10.0)),
+		_cell(&"small", Vector3(10.0, 0.0, 0.0), Vector3(15.0, 10.0, 10.0)),
+	]
+	var doorway := _opening(
+		&"doorway", [&"big", &"small"], Vector3(10.0, 1.05, 5.0), Vector3(0.0, 2.1, 1.1)
+	)
+	var structure := _barge(BROAD, BROAD, -20.0, 20.0, 10.0, tanks, [doorway])
+	var stepper := SinkStepper.new(structure, HitDamage.new(), _sea())
+	var state := _filled(stepper, [6.0, 0.5])
+	for _step in 10:
+		state = stepper.step(state, 30.0)
+		var difference := stepper.head(0, state.water[0]) - stepper.head(1, state.water[1])
+		assert_gte(difference, -1e-9, "never past the level, at %s s" % state.seconds)
+	var level := (6.0 * 100.0 + 0.5 * 50.0) / 150.0
+	assert_almost_eq(stepper.head(0, state.water[0]), level, 1e-9, "level and still")
+	assert_almost_eq(stepper.head(1, state.water[1]), level, 1e-9, "on both sides")
+
+
 func test_tank_fills_from_the_sea_in_the_closed_form_time() -> void:
 	var tank: Array[FloodCell] = [_cell(&"tank", Vector3(0.0, 0.0, 0.0), Vector3(10.0, 10.0, 10.0))]
 	var hole := _opening(
