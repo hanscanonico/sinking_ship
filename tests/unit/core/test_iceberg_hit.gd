@@ -112,10 +112,18 @@ func test_hit_is_pure_in_ship_scenario_and_seed() -> void:
 		assert_eq(_told(continued.schedule), first, "seed %d continued" % seed_value)
 		seen[first] = seed_value
 	assert_eq(seen.size(), 4, "every seed strikes her somewhere of its own")
+	# Drawn first (D4): the script's jitter, drawn after it, moves none of it.
+	var layout := _steamer()
+	var scriptless: SinkScenario = _scenario().duplicate()
+	var no_events: Array[SinkEvent] = []
+	scriptless.events = no_events
+	var alone := SinkSchedule.new(
+		scriptless, layout.freeboard, SeedStreams.derive(SEED, "sink"), layout.structure
+	)
+	assert_eq(_told(alone), _told(_schedule(SEED)), "struck before any jitter is drawn")
 	# Without a hit in the scenario, or a ship to strike, nothing is struck.
 	var unstruck: SinkScenario = _scenario().duplicate()
 	unstruck.hit = null
-	var layout := _steamer()
 	for schedule: SinkSchedule in [
 		SinkSchedule.new(
 			unstruck, layout.freeboard, SeedStreams.derive(SEED, "sink"), layout.structure
