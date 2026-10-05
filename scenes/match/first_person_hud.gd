@@ -365,7 +365,7 @@ func _draw_plate(named: bool) -> void:
 	var rect := plate_rect(_canvas.size)
 	if not named:
 		rect = rect.grow_side(SIDE_TOP, -30.0)
-	if not _eyes:
+	if not _eyes or flying:
 		rect.size.y = 32.0 if named else 0.0
 	if rect.size.y > 0.0:
 		_canvas.draw_style_box(_plate, rect)
