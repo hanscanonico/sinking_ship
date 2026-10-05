@@ -39,12 +39,13 @@ const float LINING_LIFT = 0.3;
 const float LEG_LIFT = 0.45;
 const float LEG_CAP = 0.3;
 // The heat's rim: how tightly it hugs the edge, how bright it burns, and its beat
-// from a wind-up's to a full charge's, in radians a second. The forearms glow from
+// from a wind-up's to a full charge's, in radians a second — at most about 2.7 Hz,
+// under the 3 a flash keeps to, and in step with the outline's. The forearms glow from
 // FOREARM_FROM out to the cuff.
 const float RIM_POWER = 2.5;
 const float RIM_GLOW = 2.2;
 const float BEAT_SLOW = 9.0;
-const float BEAT_FAST = 24.0;
+const float BEAT_FAST = 17.0;
 const float FOREARM_FROM = 0.5;
 
 varying vec3 rest;

@@ -14,7 +14,8 @@ uniform float reach = 0.0;
 // How strongly the edge throbs brighter, 0…1: a full charge's.
 uniform float beat = 0.0;
 
-const float BEAT_RATE = 22.0;
+// The throb's rate, in radians a second: about 2.7 Hz, under the 3 a flash keeps to.
+const float BEAT_RATE = 17.0;
 const float BEAT_BRIGHT = 0.7;
 
 void vertex() {

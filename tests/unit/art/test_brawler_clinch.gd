@@ -6,6 +6,7 @@ extends GutTest
 ## reached for as any other.
 
 const ARMS: Array[StringName] = [&"DEF-hand.L", &"DEF-hand.R"]
+const SHOULDERS: Array[StringName] = [&"DEF-upper_arm.L", &"DEF-upper_arm.R"]
 
 var _ship: Node3D
 var _rules: BrawlRules
@@ -65,6 +66,33 @@ func test_the_body_the_view_looks_out_of_is_reached_for_too() -> void:
 	Brawler.keep_apart([shover, eyes] as Array[Brawler], 1)
 	var chest := _rules.body_radius * 2.0 - Brawler.CLINCH_CHEST - Brawler.CLINCH_HAND
 	assert_lte(_reach(shover, Vector3.RIGHT), chest + 0.01, "on the chest under the eye, not in it")
+
+
+## Drawn nearer than their chests allow — a frame of a pass-by — an arm stays out,
+## bent, rather than folded onto its shoulder or aimed at nothing.
+func test_a_body_nearer_than_its_chest_keeps_its_arms_out() -> void:
+	for apart: float in [0.05, 0.2, 0.4]:
+		var shover := _body(0, Vector3.ZERO, 0.0)
+		var other := _body(1, Vector3(apart, 0.0, 0.0), PI)
+		await _pose(shover, PlayerState.Action.ACTIVE)
+		Brawler.keep_apart([shover, other] as Array[Brawler], -1)
+		for arm in ARMS.size():
+			var wrist := shover.bone_position(ARMS[arm])
+			assert_true(wrist.is_finite(), "%.2f m apart: arm %d is drawn" % [apart, arm])
+			var reach := wrist.distance_to(shover.bone_position(SHOULDERS[arm]))
+			assert_gt(reach, 0.15, "%.2f m apart: arm %d stays out" % [apart, arm])
+		shover.free()
+		other.free()
+
+
+## A body up a stair, its chest over the hands' reach, is reached past as posed.
+func test_a_body_up_a_stair_is_reached_past() -> void:
+	var shover := _body(0, Vector3.ZERO, 0.0)
+	var other := _body(1, Vector3(_rules.body_radius * 2.0, 1.0, 0.0), PI)
+	await _pose(shover, PlayerState.Action.ACTIVE)
+	var wrists := [shover.bone_position(ARMS[0]), shover.bone_position(ARMS[1])]
+	Brawler.keep_apart([shover, other] as Array[Brawler], -1)
+	assert_eq([shover.bone_position(ARMS[0]), shover.bone_position(ARMS[1])], wrists)
 
 
 func _body(seat: int, at: Vector3, facing: float) -> Brawler:

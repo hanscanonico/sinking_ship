@@ -125,7 +125,10 @@ const DISC_HEAT := 0.85
 ## CLINCH_HAND long past the wrist — reaching toward the other between CLINCH_LOW and
 ## CLINCH_HIGH over the feet, and within CLINCH_WIDE of the line between them, stops
 ## at the other's front: its chest, CLINCH_CHEST from its middle, or the fists it
-## holds up ahead of it, as far as halfway between them. In metres.
+## holds up ahead of it, as far as halfway between them. In metres. The hand meets
+## the other only where its chest stands: the band is over the other's feet as well,
+## so a body up or down a stair is reached past. However near the other, the arm
+## reaches CLINCH_FOLD out from the shoulder at the least, never folded back onto it.
 const CLINCH_RANGE := 1.4
 ## The moves whose arms reach out from the body: a shove, as it eases back, and a brace.
 const REACHING: Array[BrawlerAnimation.Move] = [
@@ -136,6 +139,7 @@ const CLINCH_HAND := 0.1
 const CLINCH_LOW := 0.75
 const CLINCH_HIGH := 1.8
 const CLINCH_WIDE := 0.4
+const CLINCH_FOLD := 0.18
 
 ## The mannequin's surfaces dressed for clothes, and the mesh for each coat — with
 ## or without a skirt — built once and shared by every seat wearing it.
@@ -471,7 +475,8 @@ func _colour_disc() -> void:
 func _keep_hands_off(other: Brawler) -> void:
 	var up := global_basis.y.normalized()
 	var toward := other.global_position - global_position
-	toward -= up * toward.dot(up)
+	var rise := toward.dot(up)
+	toward -= up * rise
 	var apart := toward.length()
 	if apart <= 0.0:
 		return
@@ -486,7 +491,8 @@ func _keep_hands_off(other: Brawler) -> void:
 			wrist - global_position,
 			toward,
 			up,
-			apart - front - CLINCH_HAND
+			apart - front - CLINCH_HAND,
+			rise
 		)
 		if landing < 1.0:
 			_poses.reach_arm(arm, to_world.affine_inverse() * shoulder.lerp(wrist, landing))
@@ -503,20 +509,30 @@ func _guard(toward: Vector3) -> float:
 
 ## How far along a reach from [param from] to [param to] — both from the body's
 ## feet, [param up] its up — the wrist comes to [param limit] along [param toward],
-## when the reach ends past it in the band CLINCH_LOW to CLINCH_HIGH high and within
-## CLINCH_WIDE across; 1 when it ends short of it or out of the band.
+## when the reach ends past it in the band CLINCH_LOW to CLINCH_HIGH high, over these
+## feet and over the other's, [param rise] higher, and within CLINCH_WIDE across; 1
+## when it ends short of it or out of the band; never nearer the shoulder than
+## CLINCH_FOLD.
 static func _landing(
-	from: Vector3, to: Vector3, toward: Vector3, up: Vector3, limit: float
+	from: Vector3, to: Vector3, toward: Vector3, up: Vector3, limit: float, rise: float
 ) -> float:
 	var depth := to.dot(toward)
 	var height := to.dot(up)
 	var across := (to - toward * depth - up * height).length()
-	if depth <= limit or height < CLINCH_LOW or height > CLINCH_HIGH or across > CLINCH_WIDE:
+	if depth <= limit or across > CLINCH_WIDE or not _in_clinch_band(height):
 		return 1.0
+	if not _in_clinch_band(height - rise):
+		return 1.0
+	var least := minf(CLINCH_FOLD / from.distance_to(to), 1.0)
 	var start := from.dot(toward)
 	if start >= limit:
-		return 0.0
-	return (limit - start) / (depth - start)
+		return least
+	return maxf((limit - start) / (depth - start), least)
+
+
+## Whether a wrist [param height] over a body's feet is in the band a clinch meets.
+static func _in_clinch_band(height: float) -> bool:
+	return height >= CLINCH_LOW and height <= CLINCH_HIGH
 
 
 ## The clothes for outfit [param outfit], its coat in the seat's colour.

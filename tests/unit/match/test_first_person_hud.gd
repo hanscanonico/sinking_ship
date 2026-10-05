@@ -176,6 +176,51 @@ func test_overlapping_plates_stand_apart_the_nearest_unmoved() -> void:
 	assert_eq(cramped[1], -1.0, "no room over the nearest under the top band: it stays put")
 
 
+## Plates at fractional pixels — what a projected head and a scaled font give —
+## settle too: a Rect2 rounds to float32, and a plate lifted to exactly the gap over
+## a nearer one could still meet it at the edge and be lifted to the same place for
+## ever, hanging the HUD's draw. Two such pairs, then a seeded spread of crowds.
+func test_plates_at_fractional_pixels_settle_apart() -> void:
+	var pairs: Array = [
+		[
+			Rect2(540.455383301, 318.057281494, 45.964611053, 34.484596252),
+			Rect2(550.888183594, 354.417633057, 31.510826111, 37.908370972)
+		],
+		[
+			Rect2(503.450134277, 499.379119873, 53.647544861, 40.651897430),
+			Rect2(546.594360352, 476.208923340, 38.051544189, 48.448776245)
+		],
+	]
+	for pair: Array in pairs:
+		var boxes: Array[Rect2] = []
+		boxes.assign(pair)
+		_assert_apart(boxes, FirstPersonHud.plates_apart(boxes, 0.0))
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 7
+	for crowd in 300:
+		var boxes: Array[Rect2] = []
+		for plate in 8:
+			var at := Vector2(rng.randf_range(400.0, 600.0), rng.randf_range(100.0, 500.0))
+			boxes.append(
+				Rect2(at, Vector2(rng.randf_range(30.0, 90.0), rng.randf_range(30.0, 50.0)))
+			)
+		_assert_apart(boxes, FirstPersonHud.plates_apart(boxes, 0.0))
+
+
+## Every plate of [param boxes] lifted by [param lifts] clears every other.
+func _assert_apart(boxes: Array[Rect2], lifts: PackedFloat32Array) -> void:
+	var overlaps := 0
+	for one in boxes.size():
+		var box := boxes[one]
+		box.position.y -= lifts[one]
+		for other in range(one + 1, boxes.size()):
+			var next := boxes[other]
+			next.position.y -= lifts[other]
+			if box.intersects(next):
+				overlaps += 1
+	assert_eq(overlaps, 0, "%s lifted by %s" % [boxes, lifts])
+
+
 ## A plate floats over the brawler's own hat: a top hat or a bobble stands taller
 ## than the crown, a cap does not.
 func test_a_plate_stands_over_the_hat() -> void:

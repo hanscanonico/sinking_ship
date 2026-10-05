@@ -41,8 +41,9 @@ const NAME_HALF := 36.0
 ## would stand once lifted more than LEADER_FROM; one that would be lifted into the
 ## top band stays put, faded to STACKED_FADE. A plate keeps its rank over another
 ## until that body comes RANK_HOLD metres nearer, so the two never trade places
-## frame by frame.
+## frame by frame. A lifted plate clears by PLATE_SLACK over the gap.
 const PLATE_GAP := 4.0
+const PLATE_SLACK := 0.5
 const LEADER_FROM := 6.0
 const STACKED_FADE := 0.3
 const RANK_HOLD := 0.75
@@ -129,6 +130,8 @@ var _frost: ColorRect
 var _plate := StyleBoxFlat.new()
 ## Per seat, whether its plate stood where it would, unlifted, last frame.
 var _plate_kept := PackedByteArray()
+## This frame's plates' ranks, nearest first once sorted (_nearer).
+var _ranks := PackedFloat32Array()
 
 
 func _ready() -> void:
@@ -170,6 +173,10 @@ func setup(sim: MatchSim, names: PackedStringArray, eyes: bool, prompts: InputPr
 	_snapshot = {}
 	_plate_kept.resize(sim.config.seats)
 	_plate_kept.fill(0)
+	# Each hat's height is read off its mesh once; read them now, not on the first
+	# frame a plate shows.
+	for seat in sim.config.seats:
+		Brawler.headgear(seat, _rules)
 
 
 ## Draws the HUD of [param seat]'s eyes over [param snapshot], looking along the
@@ -404,7 +411,7 @@ func _draw_chevrons(my_pos: Vector3, pose: ShipPose) -> void:
 	var eye := Vector3.UP * FirstPersonCamera.EYE_HEIGHT
 	var entries: Array[Dictionary] = []
 	var anchors := PackedVector2Array()
-	var ranks := PackedFloat32Array()
+	_ranks.clear()
 	for entry: Dictionary in _snapshot["seats"]:
 		var seat: int = entry["seat"]
 		if seat == _seat or entry["out"]:
@@ -426,9 +433,9 @@ func _draw_chevrons(my_pos: Vector3, pose: ShipPose) -> void:
 			continue
 		entries.append(entry)
 		anchors.append(at)
-		ranks.append(distance - (RANK_HOLD if _plate_kept[seat] == 1 else 0.0))
+		_ranks.append(distance - (RANK_HOLD if _plate_kept[seat] == 1 else 0.0))
 	var order := range(entries.size())
-	order.sort_custom(func(a: int, b: int) -> bool: return ranks[a] < ranks[b])
+	order.sort_custom(_nearer)
 	var boxes: Array[Rect2] = []
 	for index: int in order:
 		var far := my_pos.distance_to(entries[index]["pos"]) / CHEVRON_RANGE
@@ -452,6 +459,11 @@ func _draw_chevrons(my_pos: Vector3, pose: ShipPose) -> void:
 		if lift > LEADER_FROM:
 			_leader(lifted + Vector2(0.0, RING_RADIUS * shrink), at, entry["seat"], alpha)
 		_chevron(lifted, entry, shrink, alpha)
+
+
+## Whether plate [param a] ranks nearer than plate [param b] this frame.
+func _nearer(a: int, b: int) -> bool:
+	return _ranks[a] < _ranks[b]
 
 
 ## Where a plate pulled down to [param at], under the top band, stands clear of the
@@ -485,19 +497,24 @@ func _plate_box(at: Vector2, seat: int, shrink: float) -> Rect2:
 ## further one lifted just clear over every nearer one it would meet, its bottom no
 ## higher than [param highest]; one with no room under that stays where it is, and
 ## its lift is -1.
+## A plate only ever rises, and once over a nearer one it never meets it again, so
+## index + 1 passes settle it; each lift clears by PLATE_SLACK more than the gap, so
+## a Rect2's float rounding never leaves two plates meeting at the very edge.
 static func plates_apart(boxes: Array[Rect2], highest: float) -> PackedFloat32Array:
 	var lifts := PackedFloat32Array()
 	lifts.resize(boxes.size())
 	for index in boxes.size():
 		var box := boxes[index]
 		var moved := true
-		while moved:
+		var passes := 0
+		while moved and passes <= index:
 			moved = false
+			passes += 1
 			for nearer in index:
 				var placed := boxes[nearer]
 				placed.position.y -= maxf(lifts[nearer], 0.0)
 				if box.grow(PLATE_GAP * 0.5).intersects(placed.grow(PLATE_GAP * 0.5)):
-					box.position.y = placed.position.y - PLATE_GAP - box.size.y
+					box.position.y = placed.position.y - PLATE_GAP - PLATE_SLACK - box.size.y
 					moved = true
 		lifts[index] = boxes[index].position.y - box.position.y
 		if box.end.y < highest and lifts[index] > 0.0:
