@@ -44,7 +44,7 @@ static var _shared: WeakRef
 	set(value):
 		quality = clampi(value, AUTOMATIC, GraphicsQuality.Preset.HIGH)
 ## The share of the window's pixels, across and down, the 3D view is drawn at, or
-## AUTOMATIC until the player picks one: then this screen's own (render_scale_3d()).
+## AUTOMATIC until the player picks one: then the preset's own (render_scale_3d()).
 @export var render_scale: float = AUTOMATIC:
 	set(value):
 		render_scale = (
@@ -52,6 +52,11 @@ static var _shared: WeakRef
 			if value <= 0.0
 			else clampf(value, GraphicsQuality.SCALE_MIN, GraphicsQuality.SCALE_MAX)
 		)
+## A preset and a render scale for this run alone, over quality and render_scale
+## (--quality, --render-scale), or AUTOMATIC: never saved, and set aside the moment the
+## player picks their own.
+var run_quality: int = AUTOMATIC
+var run_render_scale: float = AUTOMATIC
 
 
 ## The saved settings, or the defaults when none are saved.
@@ -84,17 +89,19 @@ func apply_window() -> void:
 		DisplayServer.window_set_mode(mode)
 
 
-## The preset the game draws with: the player's, or this machine's until they pick one.
+## The preset the game draws with: this run's, else the player's, else this
+## machine's until they pick one.
 func graphics() -> GraphicsQuality:
-	return GraphicsQuality.of(
-		GraphicsQuality.automatic_preset() if quality == AUTOMATIC else quality
-	)
+	var chosen := run_quality if run_quality != AUTOMATIC else quality
+	return GraphicsQuality.of(GraphicsQuality.automatic_preset() if chosen == AUTOMATIC else chosen)
 
 
-## The render scale the game draws its 3D at: the player's, or this screen's until
-## they pick one.
+## The render scale the game draws its 3D at: this run's, else the player's, else the
+## preset's until they pick one.
 func render_scale_3d() -> float:
-	return GraphicsQuality.automatic_scale() if render_scale <= 0.0 else render_scale
+	if run_render_scale > 0.0:
+		return run_render_scale
+	return graphics().render_scale if render_scale <= 0.0 else render_scale
 
 
 ## Draws [param viewport] — the window's own — as the graphics settings say.

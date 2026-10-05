@@ -43,7 +43,8 @@ var _tier: StringName
 var _capturing := false
 ## The online play under way, from the Online screen; null when none is.
 var _online: OnlinePlay
-## The view settings, held so that what --quality and --render-scale choose holds all run.
+## The view settings, held so that what --quality and --render-scale choose holds all
+## run, never saved.
 var _view: ViewSettings
 
 @onready var _menu: MainMenu = $MainMenu
@@ -67,10 +68,8 @@ func _ready() -> void:
 	# A capture keeps the window it was launched with, whatever the player saved.
 	if _args.capture_path.is_empty():
 		_view.apply_window()
-	if _args.quality != ViewSettings.AUTOMATIC:
-		_view.quality = _args.quality
-	if _args.render_scale > 0.0:
-		_view.render_scale = _args.render_scale
+	_view.run_quality = _args.quality
+	_view.run_render_scale = _args.render_scale
 	_view.apply_graphics(get_viewport())
 	_match_rules = load(MATCH_DATA)
 	var problems := _match_rules.problems()

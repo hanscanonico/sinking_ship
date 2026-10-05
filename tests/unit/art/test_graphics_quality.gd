@@ -25,7 +25,18 @@ func test_high_is_the_look_as_tuned() -> void:
 		)
 	)
 	assert_eq(high.sea_detail, 1.0)
-	assert_false(high.lamp_sight)
+	assert_gte(high.lamps, 999, "every lamp near the eye")
+	assert_eq(high.render_scale, 1.0)
+
+
+func test_the_desktop_default_draws_every_lamp_at_full_resolution() -> void:
+	var default := GraphicsQuality.of(GraphicsQuality.DESKTOP_PRESET)
+	var high := GraphicsQuality.of(GraphicsQuality.Preset.HIGH)
+	assert_eq(default.lamps, high.lamps, "no room near the eye goes unlit")
+	assert_eq(default.render_scale, 1.0, "on every screen, a Retina panel's too")
+	assert_eq(
+		GraphicsQuality.of(GraphicsQuality.Preset.LOW).render_scale, GraphicsQuality.SCALE_MIN
+	)
 
 
 func test_each_cheaper_preset_costs_no_more() -> void:
@@ -39,8 +50,8 @@ func test_each_cheaper_preset_costs_no_more() -> void:
 		assert_lte(cheaper.shadow_filter, dearer.shadow_filter)
 		assert_lte(cheaper.sea_detail, dearer.sea_detail)
 		assert_lte(cheaper.lamps, dearer.lamps)
+		assert_lte(cheaper.render_scale, dearer.render_scale)
 		assert_false(cheaper.glow and not dearer.glow)
-		assert_false(dearer.lamp_sight and not cheaper.lamp_sight)
 
 
 func test_a_preset_out_of_range_is_held_to_the_ones_there_are() -> void:

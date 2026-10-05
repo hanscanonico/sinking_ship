@@ -8,8 +8,8 @@ extends Node3D
 ## — presentation, never a rule (D12). Hung from a deck that has given way, it falls
 ## with it and goes out once the deck lies wrecked (ShipArt). Its globe glows
 ## whoever looks, but it lights its room only while ShipArt wants it lit — while the
-## eye that draws the frame stands near it on its storey (relevant), and can see into
-## its room as the graphics preset asks — fading in and out, so a frame pays only
+## eye that draws the frame stands near it on its storey (relevant), in sight of its
+## room or within the graphics preset's limit (LampSight) — fading in and out, so a frame pays only
 ## for the lamps it can see and none shines up or down through a deck. A hold's
 ## cargo lamp hangs lower under a tin shade, brighter close by and fading sooner, so
 ## it throws a pool of light on the floor under it; a furnace's fire is set in a

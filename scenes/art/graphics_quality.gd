@@ -3,10 +3,11 @@ extends RefCounted
 ## How much a frame of the art may cost: one of three presets the settings screen
 ## offers (Settings → Graphics), each a row of PRESETS. HIGH is the look as it was
 ## tuned, whatever it costs; MEDIUM the same look at a price most machines pay at
-## 60 fps, the desktop's default; LOW runs everywhere, the browser's default. The
-## 3D view's render scale is chosen beside it (ViewSettings): neither reaches the
-## HUD or the menus, which the window draws at its own resolution. Presentation
-## only: no rule reads any of it, and a server builds none of what it drives.
+## 60 fps, the desktop's default; LOW runs everywhere, the browser's default. Each
+## brings the 3D view's render scale until the player picks one beside it
+## (ViewSettings): neither reaches the HUD or the menus, which the window draws at its
+## own resolution. Presentation only: no rule reads any of it, and a server builds
+## none of what it drives.
 
 enum Preset { LOW, MEDIUM, HIGH }
 
@@ -21,16 +22,18 @@ enum Preset { LOW, MEDIUM, HIGH }
 ##   sea_detail: the share (0…1) of its full reach (water.gdshader's detail_reach,
 ##       150 m) the sea's fine detail — its finest swell, streaks, sparkle, whitecaps
 ##       and foam — is drawn to, fading out as much sooner; past it, none is worked out;
-##   lamps: the most room lamps lit at once, nearest first (LampSight);
-##   lamp_sight: whether only the lamps of the rooms the eye can see into light.
+##   lamps: the most room lamps lit at once but for those of the rooms the eye can
+##       see into, which always light (LampSight);
+##   render_scale: the share of the window's pixels, across and down, the 3D view is
+##       drawn at until the player picks one.
 const PRESETS := {
 	Preset.LOW:
 	{
 		"name": "Low",
 		"summary":
 		(
-			"Short, hard sun shadows, the sea's fine detail close by only, the four"
-			+ " nearest lamps in sight, no smoothing of edges and no glow."
+			"Half the 3D resolution, short hard sun shadows, the sea's fine detail close"
+			+ " by only, few lamps behind walls, no smoothing of edges and no glow."
 		),
 		"msaa": Viewport.MSAA_DISABLED,
 		"glow": false,
@@ -40,7 +43,7 @@ const PRESETS := {
 		"shadow_filter": RenderingServer.SHADOW_QUALITY_HARD,
 		"sea_detail": 0.4,
 		"lamps": 4,
-		"lamp_sight": true,
+		"render_scale": 0.5,
 	},
 	Preset.MEDIUM:
 	{
@@ -48,7 +51,7 @@ const PRESETS := {
 		"summary":
 		(
 			"Sun shadows over the whole ship, the sea's fine detail to the middle"
-			+ " distance, the eight nearest lamps in sight, smoothed edges and glow."
+			+ " distance, every lamp nearby, smoothed edges and glow."
 		),
 		"msaa": Viewport.MSAA_2X,
 		"glow": true,
@@ -57,8 +60,8 @@ const PRESETS := {
 		"shadow_size": 4096,
 		"shadow_filter": RenderingServer.SHADOW_QUALITY_SOFT_LOW,
 		"sea_detail": 0.6,
-		"lamps": 8,
-		"lamp_sight": true,
+		"lamps": 999,
+		"render_scale": 1.0,
 	},
 	Preset.HIGH:
 	{
@@ -76,16 +79,13 @@ const PRESETS := {
 		"shadow_filter": RenderingServer.SHADOW_QUALITY_SOFT_LOW,
 		"sea_detail": 1.0,
 		"lamps": 999,
-		"lamp_sight": false,
+		"render_scale": 1.0,
 	},
 }
 ## The automatic choice, until the player makes one: the browser's preset and the
-## desktop's; and the render scale of a screen of two or more pixels to a point (a
-## Retina panel): one 3D pixel to a point, as a standard screen draws, not four.
+## desktop's.
 const WEB_PRESET := Preset.LOW
 const DESKTOP_PRESET := Preset.MEDIUM
-const HIDPI := 2.0
-const HIDPI_SCALE := 0.5
 ## The render scales the settings screen offers.
 const SCALE_MIN := 0.5
 const SCALE_MAX := 1.0
@@ -99,7 +99,7 @@ var shadow_size: int
 var shadow_filter: RenderingServer.ShadowQuality
 var sea_detail: float
 var lamps: int
-var lamp_sight: bool
+var render_scale: float
 
 
 ## [param chosen]'s knobs: a Preset, held to the ones there are.
@@ -119,7 +119,7 @@ static func of(chosen: int) -> GraphicsQuality:
 	quality.shadow_filter = row["shadow_filter"]
 	quality.sea_detail = row["sea_detail"]
 	quality.lamps = row["lamps"]
-	quality.lamp_sight = row["lamp_sight"]
+	quality.render_scale = row["render_scale"]
 	return quality
 
 
@@ -135,12 +135,6 @@ static func summary(chosen: int) -> String:
 ## The preset a player who has not chosen one gets on this machine.
 static func automatic_preset() -> Preset:
 	return WEB_PRESET if OS.has_feature("web") else DESKTOP_PRESET
-
-
-## The render scale a player who has not chosen one gets on this screen.
-static func automatic_scale() -> float:
-	var screen := DisplayServer.window_get_current_screen()
-	return HIDPI_SCALE if DisplayServer.screen_get_scale(screen) >= HIDPI else 1.0
 
 
 ## Draws [param viewport]'s 3D at [param scale] of its pixels across and down, as

@@ -174,7 +174,7 @@ sim-bench:
 # 10th percentile of the samples after the first 8, and the load average. A window the
 # system is not drawing idles at a flat ~145 fps: such a run prints NOT DRAWING and fails.
 # Rules live in tools/fps.sh. Not part of verify: it needs a display, and the machine to
-# itself.
+# itself — an agent takes /tmp/sinking_ship_window.lock around it, as around a capture.
 fps:
 	GODOT="$(GODOT)" tools/fps.sh $(if $(SEED),--seed=$(SEED)) $(if $(SEATS),--seats=$(SEATS)) \
 		$(if $(SECONDS),--seconds=$(SECONDS)) $(if $(RES),--resolution=$(RES)) \

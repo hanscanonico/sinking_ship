@@ -136,12 +136,16 @@ func _on_view(_value: Variant) -> void:
 ## over this machine's own.
 func _on_quality(index: int) -> void:
 	_view.quality = _quality.get_item_id(index)
+	_view.run_quality = ViewSettings.AUTOMATIC
+	# A scale left to the preset follows it.
+	_render_scale.set_value_no_signal(_view.render_scale_3d() * 100.0)
 	_show_values()
 	view_changed.emit(_view)
 
 
 func _on_render_scale(value: float) -> void:
 	_view.render_scale = value / 100.0
+	_view.run_render_scale = ViewSettings.AUTOMATIC
 	_show_values()
 	view_changed.emit(_view)
 

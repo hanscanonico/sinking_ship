@@ -220,8 +220,8 @@ func build(
 		_crate_indoors.append(NAN)
 
 
-## Lets as many of the rooms' lamps light at once as [param quality] allows, and only
-## those it allows: the nearest first.
+## Lets the rooms' lamps light as [param quality] allows: every room in sight, and
+## those out of sight within its limit, nearest first (LampSight).
 func show_graphics(quality: GraphicsQuality) -> void:
 	_graphics = quality
 	if _lamp_sight != null:
