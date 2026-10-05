@@ -123,6 +123,54 @@ func test_whole_the_deck_still_shows_its_top_all_over_its_area() -> void:
 			assert_true(hit, "the whole deck's top over %s" % at)
 
 
+func test_whole_the_deck_shows_its_beams_wall_to_wall_as_any_deck_does() -> void:
+	var art := _art(0.0)
+	var points := _shown(art, _deck(art))
+	var under := _bridge.height - ShipArt.PLANK - ShipArt.BEAM_DEPTH
+	var undersides := PackedVector3Array()
+	for index in range(0, points.size(), 3):
+		var face := [points[index], points[index + 1], points[index + 2]]
+		if face.all(func(corner: Vector3) -> bool: return is_equal_approx(corner.y, under)):
+			undersides.append_array(PackedVector3Array(face))
+	var area := _bridge.area
+	# Where ShipArt beams a deck that stands whole: every BEAM_SPACING along it.
+	var x := ceilf((area.position.x + ShipArt.BEAM_WIDTH) / ShipArt.BEAM_SPACING)
+	x *= ShipArt.BEAM_SPACING
+	var beams := 0
+	while x < area.end.x - ShipArt.BEAM_WIDTH:
+		beams += 1
+		for j in 9:
+			var z := lerpf(area.position.y + 0.25, area.end.y - 0.25, j / 8.0)
+			var from := Vector3(x, under - 1.0, z)
+			var hit := false
+			for index in range(0, undersides.size(), 3):
+				var found: Variant = Geometry3D.ray_intersects_triangle(
+					from,
+					Vector3.UP,
+					undersides[index],
+					undersides[index + 1],
+					undersides[index + 2]
+				)
+				hit = hit or found != null
+			assert_true(hit, "a beam under the whole deck at x %.2f, z %.2f" % [x, z])
+		x += ShipArt.BEAM_SPACING
+	assert_gt(beams, 1, "the bridge deck is beamed more than once")
+
+
+func test_falling_the_forward_shards_carry_no_beams() -> void:
+	var art := _art(0.3)
+	var lowest := INF
+	for name: String in ["Shard1", "Shard2"]:
+		var shard := _deck(art).find_child(name, false, false) as Node3D
+		for child: Node in shard.find_children("*", "MeshInstance3D", true, false):
+			if _visible_up_to(child, shard):
+				for corner: Vector3 in (child as MeshInstance3D).mesh.get_faces():
+					lowest = minf(lowest, corner.y)
+	assert_true(
+		lowest >= _bridge.height - ShipArt.PLANK - 0.005, "torn off its beams: %.3f" % lowest
+	)
+
+
 func test_the_torn_wall_tops_stay_under_the_fallen_deck_s_height() -> void:
 	var art := _art(1.0)
 	var torn := art.find_child("Torn", true, false) as Node3D

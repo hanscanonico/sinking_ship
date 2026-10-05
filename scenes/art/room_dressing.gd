@@ -608,8 +608,9 @@ func _helm(mesh: ShipMesh, room: ShipRoom, glass: Array[Array]) -> void:
 
 
 ## The wheelhouse's forward wall: the wheel on its steering box, the binnacle to one
-## side of it with its compensating spheres, the telegraph to the other, a clock over
-## the wheel and voice pipes either side of it, clear of the windows by the corners.
+## side of it with its compensating spheres beside its hood, the telegraph to the
+## other, a clock over the wheel and voice pipes either side of it, clear of the
+## windows by the corners.
 func _wheel_wall(mesh: ShipMesh, wall: Wall) -> void:
 	var middle := wall.middle()
 	var floor := wall.floor
@@ -617,14 +618,16 @@ func _wheel_wall(mesh: ShipMesh, wall: Wall) -> void:
 	block(mesh, steering, floor, floor + 0.92, ShipPaints.frame, ShipMesh.RIM_ALL)
 	block(mesh, steering.grow(0.005), floor + 0.8, floor + 0.85, ShipPaints.brass)
 	wheel(mesh, wall.at(middle, 1.0, 0.085), wall.normal, 0.32, 0.022, 8, ShipPaints.teak)
-	var binnacle := middle - 0.55
+	var binnacle := middle - 0.51
 	_half_column(mesh, wall, binnacle, 0.09, Vector2(0.0, 1.0), ShipPaints.teak)
 	_half_column(mesh, wall, binnacle, 0.1, Vector2(1.0, 1.2), ShipPaints.brass)
 	_half_column(mesh, wall, binnacle, 0.08, Vector2(1.2, 1.28), ShipPaints.brass)
 	_half_column(mesh, wall, binnacle, 0.045, Vector2(1.28, 1.36), ShipPaints.brass)
+	# The spheres hug its hood, over the dado rail and the windows' sills and clear of the
+	# window's surround and the wheel's handles either side.
 	for side: float in [-1.0, 1.0]:
-		var sphere := wall.at(binnacle + side * 0.19, 1.0, 0.05)
-		disc(mesh, sphere, wall.normal, 0.065, ShipPaints.dark, 10)
+		var sphere := wall.at(binnacle + side * 0.13, 1.26, 0.05)
+		disc(mesh, sphere, wall.normal, 0.05, ShipPaints.dark, 10)
 	var telegraph := middle + 0.5
 	_half_column(mesh, wall, telegraph, 0.06, Vector2(0.0, 1.02), ShipPaints.brass)
 	var dial := wall.at(telegraph, 1.2, 0.07)

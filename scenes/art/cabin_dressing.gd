@@ -10,6 +10,8 @@ extends RefCounted
 ## and how finely a wall is searched for a clear stretch.
 const GLASS_CLEAR := 0.45
 const CLEAR_STEP := 0.2
+## How far apart a berth's chain's links stand.
+const CHAIN_LINK := 0.045
 
 var _space: ShipSpace
 
@@ -124,17 +126,65 @@ static func picture(mesh: ShipMesh, wall: RoomDressing.Wall, along: float) -> vo
 	)
 
 
-## A coat with a collar of [param paint] hanging flat from a hook on [param wall] at
-## [param along].
+## A coat with a collar of [param paint] hanging from a hook on [param wall] at
+## [param along]: narrow at the collar, its shoulders sloping and its skirt flaring
+## to the hem, with some depth to it, its sleeves hanging at its sides and a row of
+## buttons down its front.
 static func coat(
 	mesh: ShipMesh, wall: RoomDressing.Wall, along: float, paint: ShipMesh.Paint
 ) -> void:
 	var hook := wall.at(along, 1.75, 0.03)
 	mesh.turned_box(wall.place(hook), Vector3(0.03, 0.06, 0.06), ShipPaints.brass, 0)
-	var coat := wall.at(along, 1.33, 0.05)
-	RoomDressing.panel(mesh, coat, wall.right, Vector2(0.2, 0.38), wall.normal, ShipPaints.leather)
-	var collar := wall.at(along, 1.66, 0.06)
-	RoomDressing.panel(mesh, collar, wall.right, Vector2(0.12, 0.06), wall.normal, paint)
+	# Its outline, (along, height) from the hook's foot, and how far out its back and
+	# its front stand.
+	var outline: Array[Vector2] = [
+		Vector2(-0.07, 1.71),
+		Vector2(0.07, 1.71),
+		Vector2(0.18, 1.62),
+		Vector2(0.22, 0.98),
+		Vector2(-0.22, 0.98),
+		Vector2(-0.18, 1.62),
+	]
+	var back := 0.02
+	var front := 0.075
+	var face := PackedVector3Array()
+	for point: Vector2 in outline:
+		face.append(wall.at(along + point.x, point.y, front))
+	mesh.polygon(face, wall.normal, ShipPaints.leather, wall.floor + 0.98, NAN)
+	for index in outline.size():
+		var a := outline[index]
+		var b := outline[(index + 1) % outline.size()]
+		var out := Vector2(b.y - a.y, a.x - b.x).normalized()
+		if out.dot(a + b - Vector2(0.0, 2.69)) < 0.0:
+			out = -out
+		mesh.quad(
+			wall.at(along + a.x, a.y, front),
+			wall.at(along + b.x, b.y, front),
+			wall.at(along + b.x, b.y, back),
+			wall.at(along + a.x, a.y, back),
+			wall.right * out.x + Vector3.UP * out.y,
+			ShipPaints.leather,
+			0
+		)
+	for side: float in [-1.0, 1.0]:
+		var shoulder := wall.at(along + side * 0.17, 1.6, front)
+		var cuff := wall.at(along + side * 0.2, 1.12, front)
+		var hang := (cuff - shoulder).normalized()
+		var across := hang.cross(wall.normal).normalized()
+		var sleeve := Transform3D(Basis(across, hang, wall.normal), (shoulder + cuff) * 0.5)
+		var length := shoulder.distance_to(cuff)
+		mesh.turned_box(sleeve, Vector3(0.08, length, 0.05), ShipPaints.leather)
+		var band := Transform3D(sleeve.basis, cuff - hang * 0.03)
+		mesh.turned_box(band, Vector3(0.085, 0.05, 0.055), paint, 0)
+	var opening := wall.at(along, 1.32, front + 0.002)
+	RoomDressing.panel(
+		mesh, opening, wall.right, Vector2(0.004, 0.34), wall.normal, ShipPaints.dark, 0
+	)
+	for button in 3:
+		var at := wall.at(along + 0.035, 1.5 - button * 0.14, front + 0.004)
+		RoomDressing.disc(mesh, at, wall.normal, 0.013, ShipPaints.brass, 6)
+	var collar := wall.at(along, 1.66, front + 0.003)
+	RoomDressing.panel(mesh, collar, wall.right, Vector2(0.1, 0.05), wall.normal, paint)
 
 
 ## A cabin too narrow for furniture, the [param number]th: a berth folded up flat on
@@ -245,10 +295,24 @@ func _folded_berth(
 			mesh, strap, wall.right, Vector2(0.025, 0.12), wall.normal, ShipPaints.leather, 0
 		)
 		var end := middle + side * (quarter * 2.0 - 0.05)
-		var chain := Vector2.ONE * 0.014
-		mesh.beam(wall.at(end, 1.1, 0.06), wall.at(end, 1.62, 0.012), chain, ShipPaints.steel, 0)
+		chain(mesh, wall.at(end, 1.1, 0.06), wall.at(end, 1.62, 0.012), wall.normal)
 	var bedding := wall.rect(a + 0.04, b - 0.04, 0.0, 0.09)
 	RoomDressing.block(mesh, bedding, high, high + 0.08, blanket, ShipMesh.RIM_ALL)
+
+
+## A chain from [param from] to [param to], its links each turned a quarter from the
+## last, the first flat to a wall facing [param normal].
+static func chain(mesh: ShipMesh, from: Vector3, to: Vector3, normal: Vector3) -> void:
+	var length := from.distance_to(to)
+	var count := maxi(2, roundi(length / CHAIN_LINK))
+	var along := (to - from) / length
+	var flat := along.cross(normal).normalized()
+	var edge := along.cross(flat).normalized()
+	for link in count:
+		var at := from.lerp(to, (link + 0.5) / count)
+		var size := Vector3(0.022, length / count + 0.012, 0.006)
+		var turn := Basis(flat, along, edge) if link % 2 == 0 else Basis(edge, along, flat)
+		mesh.turned_box(Transform3D(turn, at), size, ShipPaints.steel, 0)
 
 
 ## A luggage rack over head height on [param wall] about [param along]: a shelf on two

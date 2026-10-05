@@ -59,9 +59,10 @@ func _init(space: ShipSpace, platform: ShipPlatform, dressing: RoomDressing) -> 
 	_depth = ShipArt.PLANK + (ShipArt.BEAM_DEPTH if _ceiled else 0.0)
 
 
-## The deck drawn in pieces: its shards and rim under [param wreck], and what it leaves
-## when it falls — splinters, loose planks, the torn ends on [param walls] — hidden
-## till then; each piece's faces into a mesh of its own, made by [param new_mesh]
+## The deck drawn in pieces: its shards and rim under [param wreck] — the rim carrying,
+## while the deck stands, what of its beams the after shard does not — and what it
+## leaves when it falls — splinters, loose planks, the torn ends on [param walls] —
+## hidden till then; each piece's faces into a mesh of its own, made by [param new_mesh]
 ## (() -> ShipMesh) and filed in [param pieces] under its node. All of it is built up
 ## front: meshes added to the scene as the deck falls stall the renderer for good.
 func build(wreck: Node3D, walls: Node3D, pieces: Dictionary, new_mesh: Callable) -> void:
@@ -103,6 +104,8 @@ func build(wreck: Node3D, walls: Node3D, pieces: Dictionary, new_mesh: Callable)
 		_breaks.append(breaks)
 	for strip: Rect2 in _frame(area, inner):
 		(pieces[_rim] as ShipMesh).box(strip, height - ShipArt.PLANK, height, ShipPaints.deck, top)
+	if _ceiled:
+		_whole_beams(pieces[_rim], after)
 	# Clear of the walls wherever a shard comes to rest.
 	var within := inner.grow_individual(-0.01, -GAP, -0.06, -GAP)
 	for index in _shards.size():
@@ -370,6 +373,31 @@ static func _jut(
 	mesh.turned_box(
 		place, Vector3(width * (0.7 + 0.6 * absf(_jag(count + 2))), 0.03, reach), paint, 0
 	)
+
+
+## The beams a whole deck has wall to wall, as ShipArt beams any deck, but for what
+## of them lies under [param after] — the after shard carries that as it falls; the
+## rest, the forward shards' share and the after one's ends, is torn off with the rim.
+func _whole_beams(mesh: ShipMesh, after: PackedVector2Array) -> void:
+	var area := _platform.area
+	var under := _platform.height - ShipArt.PLANK
+	var x := ceilf((area.position.x + ShipArt.BEAM_WIDTH) / ShipArt.BEAM_SPACING)
+	x *= ShipArt.BEAM_SPACING
+	while x < area.end.x - ShipArt.BEAM_WIDTH:
+		var probe := Vector3(x, under - ShipArt.BEAM_DEPTH - ShipMesh.PROBE, area.get_center().y)
+		var lining := _dressing.lining(probe, RoomDressing.Part.BEAM)
+		var paint := ShipPaints.beam if lining == null else lining
+		var spans: Array[Vector2] = [Vector2(area.position.y, area.end.y)]
+		var carried := _beam_span(after, x)
+		if carried.y - carried.x > 0.2:
+			spans = [Vector2(area.position.y, carried.x), Vector2(carried.y, area.end.y)]
+		for span: Vector2 in spans:
+			var beam := Rect2(
+				x - ShipArt.BEAM_WIDTH * 0.5, span.x, ShipArt.BEAM_WIDTH, span.y - span.x
+			)
+			var faces := ShipMesh.BOTTOM | ShipMesh.POS_X | ShipMesh.NEG_X
+			mesh.box(beam, under - ShipArt.BEAM_DEPTH, under, paint, faces)
+		x += ShipArt.BEAM_SPACING
 
 
 ## The rim of [param area] outside [param inner], as four strips.

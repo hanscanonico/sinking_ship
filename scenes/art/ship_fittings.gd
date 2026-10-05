@@ -73,7 +73,7 @@ const VENT := Vector2(0.24, 0.17)
 ## The bow's chain cable: its links on edge this far apart; and the ship's bell's
 ## bracket over its deck.
 const CHAIN_LINK := 0.25
-const BELL := 2.6
+const BELL := 2.65
 
 var _space: ShipSpace
 var _layout: ShipLayout

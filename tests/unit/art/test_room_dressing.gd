@@ -115,3 +115,100 @@ func test_nothing_the_dressing_draws_on_the_steamer_stands_in_a_body_s_way() -> 
 	art.free()
 	assert_gt(faces.size(), 0)
 	assert_eq(FurnishingCheck.intrusions(_layout, _rules, faces), PackedStringArray())
+
+
+## The binnacle's two spheres on the wheelhouse's forward wall, as (along, height over
+## the floor, radius): from the dark discs the dressed ship draws in front of it.
+func _spheres(art: ShipArt, wall: RoomDressing.Wall) -> Array[Vector3]:
+	var points := PackedVector3Array()
+	for child: Node in art.find_children("*", "MeshInstance3D", true, false):
+		var mesh := (child as MeshInstance3D).mesh
+		if not mesh is ArrayMesh:
+			continue
+		var arrays := mesh.surface_get_arrays(0)
+		if arrays[Mesh.ARRAY_COLOR] == null:
+			continue
+		var vertices: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+		var colours: PackedColorArray = arrays[Mesh.ARRAY_COLOR]
+		for index in vertices.size():
+			var point := vertices[index]
+			var out := (point - wall.at(0.0, 0.0)).dot(wall.normal)
+			var along := point.dot(wall.right)
+			var high := point.y - wall.floor
+			if not colours[index].is_equal_approx(ArtPalette.FUNNEL_TOP):
+				continue
+			if out > 0.0 and out < 0.15 and along > wall.from and along < wall.to and high < 2.0:
+				points.append(Vector3(along, high, 0.0))
+	var alongs: Array[float] = []
+	for point: Vector3 in points:
+		alongs.append(point.x)
+	alongs.sort()
+	var split := 0.0
+	var widest := 0.0
+	for index in alongs.size() - 1:
+		if alongs[index + 1] - alongs[index] > widest:
+			widest = alongs[index + 1] - alongs[index]
+			split = (alongs[index] + alongs[index + 1]) * 0.5
+	var found: Array[Vector3] = []
+	for left: bool in [true, false]:
+		var box := Rect2()
+		var first := true
+		for point: Vector3 in points:
+			if (point.x < split) == left:
+				box = (
+					Rect2(point.x, point.y, 0.0, 0.0)
+					if first
+					else box.expand(Vector2(point.x, point.y))
+				)
+				first = false
+		found.append(Vector3(box.get_center().x, box.get_center().y, box.size.x * 0.5))
+	return found
+
+
+## Whether a disc at [param centre] of [param radius] keeps [param gap] clear of the
+## segment [param a]…[param b].
+func _clear_of(centre: Vector2, radius: float, a: Vector2, b: Vector2, gap: float) -> bool:
+	return Geometry2D.get_closest_point_to_segment(centre, a, b).distance_to(centre) > radius + gap
+
+
+func test_the_binnacle_s_spheres_stand_clear_of_rail_windows_and_wheel() -> void:
+	var room := _room(&"wheelhouse")
+	var wall: RoomDressing.Wall = null
+	for each: RoomDressing.Wall in RoomDressing.walls(_space, room):
+		if each.side == 1:
+			wall = each
+	var art := ShipArt.new()
+	art.build(_layout, _rules.railing_height, _rules.body_radius)
+	var spheres := _spheres(art, wall)
+	art.free()
+	var fittings := ShipFittings.new(_space, ShipHull.new(_space, _rules.railing_height), 0.3)
+	fittings.build(ShipMesh.new(_space.outdoors, _space.room_lines()))
+	# The cabin finish's dado rail (ship.gdshaderinc), 0.95 m up and 0.07 deep; the wheel
+	# (RoomDressing.wheel) round its hub 1 m up, handles 0.09 past a 0.32 rim, 0.022 thick.
+	var rail := Vector2(0.915, 0.985)
+	var hub := Vector2(wall.middle(), 1.0)
+	for sphere: Vector3 in spheres:
+		var centre := Vector2(sphere.x, sphere.y)
+		var radius := sphere.z
+		assert_almost_eq(radius, 0.05, 0.02, "a sphere, not stray dark faces")
+		var low := centre.y - radius
+		var high := centre.y + radius
+		assert_true(low > rail.y or high < rail.x, "clear of the dado rail: %s" % centre)
+		for pane: Array in fittings.panes:
+			if pane[0] != room or not (pane[2] as Vector3).is_equal_approx(wall.normal):
+				continue
+			var half: Vector2 = pane[4] + Vector2.ONE * (ShipFittings.WINDOW_FRAME + 0.05)
+			var middle := Vector2((pane[1] as Vector3).dot(wall.right), pane[1].y - wall.floor)
+			# Its surround, and the sill under it.
+			var surround := Rect2(middle - half, half * 2.0).grow_individual(0.0, 0.05, 0.0, 0.0)
+			var near := Rect2(centre - Vector2.ONE * radius, Vector2.ONE * radius * 2.0)
+			assert_false(surround.intersects(near), "clear of the window at %s" % middle)
+		var from_hub := centre.distance_to(hub)
+		assert_true(
+			from_hub + radius < 0.32 - 0.033 or from_hub - radius > 0.32 + 0.011,
+			"clear of the wheel's rim: %s" % centre
+		)
+		for spoke in 8:
+			var out := Vector2(cos(PI * spoke / 8), sin(PI * spoke / 8)) * 0.41
+			assert_true(_clear_of(centre, radius, hub - out, hub + out, 0.011), "of a handle")
+	assert_eq(spheres.size(), 2, "two spheres")
