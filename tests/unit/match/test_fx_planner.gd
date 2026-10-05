@@ -8,6 +8,10 @@ const RunMatch := preload("res://tools/run_match.gd")
 const WASH := FxCue.Kind.WASH
 const SPRAY := FxCue.Kind.SPRAY
 const FLOTSAM := FxCue.Kind.FLOTSAM
+const STRIKE := FxCue.Kind.STRIKE
+const MIST := FxCue.Kind.MIST
+const FROTH := FxCue.Kind.FROTH
+const SPURT := FxCue.Kind.SPURT
 ## A whole sinking is scanned this many ticks a step: what the planner shows as a
 ## deck or a room goes under is the same at any pace.
 const SCAN_STRIDE := 10
@@ -376,7 +380,7 @@ func test_the_plunge_rains_spray_slides_gear_and_boils_up_wreckage_astern() -> v
 		assert_lt(piece.position.x, middle, "aft, where the stern still stands out of it")
 
 
-func test_the_iceberg_sprays_along_its_gash_and_boils_over_it_where_it_runs_deep() -> void:
+func test_the_iceberg_strikes_its_gash_with_white_water_mist_and_foam() -> void:
 	# Seed 38 strikes her starboard side from x -12.2 to -5.9 m, just over the sea at its
 	# after end and 1.5 m under it at its forward end.
 	var sim := _sim(38)
@@ -386,11 +390,12 @@ func test_the_iceberg_sprays_along_its_gash_and_boils_over_it_where_it_runs_deep
 	var structure := sim.config.ship.structure
 	var waterline := structure.waterline_y
 	var quiet := _sink(planner, sim, struck - Ticks.RATE, struck + Ticks.RATE)
-	assert_eq(_of(quiet, SPRAY).size(), 0, "nothing shows a strike nobody announced")
-	var holed := SimEvent.holed(struck)
-	var cues := planner.plan(_at(sim, struck), _at(sim, struck + 1, [holed]))
-	var sheets := _of(cues, SPRAY)
+	for kind: FxCue.Kind in [SPURT, STRIKE, MIST, FROTH]:
+		assert_eq(_of(quiet, kind).size(), 0, "nothing shows a strike nobody announced")
+	var cues := _strike(planner, sim)
+	var sheets := _of(cues, STRIKE)
 	assert_gt(sheets.size(), 1, "sheets along the gash")
+	assert_eq(_of(cues, SPRAY).size(), 0, "thrown from the strike's own emitters")
 	var aft: FxCue = sheets[0]
 	var fore: FxCue = sheets[0]
 	for sheet: FxCue in sheets:
@@ -406,31 +411,101 @@ func test_the_iceberg_sprays_along_its_gash_and_boils_over_it_where_it_runs_deep
 		aft = sheet if sheet.position.x < aft.position.x else aft
 		fore = sheet if sheet.position.x > fore.position.x else fore
 	assert_gt(aft.rise, fore.rise, "higher where the gash runs shallow")
+	var mists := _of(cues, MIST)
+	assert_gt(mists.size(), 0, "mist billows up off it")
+	var froths := _of(cues, FROTH)
+	assert_gt(froths.size(), 0, "foam spreads on the sea along it")
+	var covered := 0.0
+	for line: FxCue in mists + froths:
+		assert_true(line.on_sea)
+		for end: Vector3 in [line.position, line.end]:
+			assert_between(end.x, damage.from_x - 0.01, damage.to_x + 0.01, "along the gash")
+			assert_almost_eq(end.y, waterline, 0.001, "at her waterline")
+			assert_gt(end.z, structure.section_at(end.x).shell_at(waterline, 1), "outboard")
+		if line.kind == FROTH:
+			covered += absf(line.end.x - line.position.x)
+			assert_eq(line.seconds, GashPlanner.GASH_SECONDS, "for the gash's seconds")
+			assert_eq(line.toward, Vector3.BACK, "drifting off her starboard side")
+	assert_almost_eq(covered, damage.trace[-1].x - damage.trace[0].x, 0.01, "all of it")
 	var boils := _of(cues, FxCue.Kind.BUBBLES)
 	assert_gt(boils.size(), 0, "the sea boils over the deep stretch")
 	for boil: FxCue in boils:
 		assert_true(boil.on_sea)
 		assert_gt(boil.position.x, (damage.from_x + damage.to_x) * 0.5, "over its deep end")
+
 	var after := _sink(planner, sim, struck + 1, struck + Ticks.from_seconds(10.0))
-	var churns := _of(after, WASH)
-	assert_gt(churns.size(), 0, "the sea churns white against her over it")
-	for churn: FxCue in churns:
-		assert_true(churn.on_sea)
-		assert_eq(churn.toward, Vector3.BACK, "leaning out from her starboard side")
-		for end: Vector3 in [churn.position, churn.end]:
-			assert_between(end.x, damage.from_x - 0.01, damage.to_x + 0.01, "along the gash")
-		assert_lt(churn.tick, struck + Ticks.from_seconds(FxPlanner.GASH_SECONDS) + 2)
-	assert_gt(churns[0].strength, churns[-1].strength, "dying down")
-	var bursts := _of(after, SPRAY)
-	assert_gt(bursts.size(), 5, "bursting on along it as it dies down")
+	for kind: FxCue.Kind in [STRIKE, MIST, FROTH, WASH]:
+		assert_eq(_of(after, kind).size(), 0, "the strike is not struck again, nor churned")
+	var bursts := _of(after, SPURT)
+	var seconds := Ticks.from_seconds(GashPlanner.GASH_SECONDS)
+	assert_eq(bursts.size(), seconds / GashPlanner.GASH_TICKS, "a burst every GASH_TICKS")
+	var first_second := bursts.filter(
+		func(burst: FxCue) -> bool: return burst.tick <= struck + 1 + Ticks.RATE
+	)
+	assert_gt(_thrown(sheets), _thrown(first_second) * 3.0, "the strike throws by far the most")
 	var moved := 0
 	for index in bursts.size():
 		var burst: FxCue = bursts[index]
 		assert_between(burst.position.x, damage.from_x - 0.01, damage.to_x + 0.01)
-		assert_lt(burst.tick, struck + Ticks.from_seconds(FxPlanner.GASH_SECONDS) + 2)
-		if index > 0 and absf(burst.position.x - bursts[index - 1].position.x) > 0.5:
-			moved += 1
+		assert_lte(burst.tick, struck + 1 + seconds)
+		if index > 0:
+			assert_lt(burst.strength, bursts[index - 1].strength + 0.3, "dying down")
+			if absf(burst.position.x - bursts[index - 1].position.x) > 0.5:
+				moved += 1
+	assert_gt(bursts[0].rise, bursts[-1].rise * 3.0, "and dying away")
 	assert_gt(moved, bursts.size() * 3 / 4, "somewhere new each time")
+
+
+func test_the_mist_off_a_deep_gash_climbs_over_her_rail() -> void:
+	# Seed 37 strikes her starboard side from x -10.0 to -0.6 m, 0.75 to 0.86 m under
+	# the sea all along: no sheet of it throws its white water up past her deck.
+	var sim := _sim(37)
+	var cues := _strike(_planner(sim), sim)
+	var rail := sim.config.ship.freeboard + sim.config.rules.railing_height
+	for sheet: FxCue in _of(cues, STRIKE):
+		assert_true(sheet.on_sea, "the whole gash runs under the sea")
+	var mists := _of(cues, MIST)
+	assert_gt(mists.size(), 1)
+	for mist: FxCue in mists:
+		assert_gt(mist.rise, rail, "seen over her rail, from her deck and her far end")
+		assert_gt(mist.toward.y, 0.7, "up her side")
+		assert_gt(mist.toward.z, 0.0, "leaning off it")
+
+
+func test_a_bigger_gash_strikes_harder_higher_and_thicker() -> void:
+	# Seed 30's gash lets the sea in through 3.6 m², seed 22's through 0.005 m².
+	var big_sim := _sim(30)
+	var small_sim := _sim(22)
+	var big := _strike(_planner(big_sim), big_sim)
+	var small := _strike(_planner(small_sim), small_sim)
+	assert_gt(big_sim.schedule.damage().area(), small_sim.schedule.damage().area() * 100.0)
+	assert_lt(GashPlanner.size(small_sim.schedule.damage().area()), 0.05, "a scrape")
+	assert_eq(GashPlanner.size(big_sim.schedule.damage().area()), 1.0, "the worst there is")
+	assert_gt(_of(big, STRIKE).size(), _of(small, STRIKE).size() * 3, "far more white water")
+	assert_gt(_highest(_of(big, STRIKE)), _highest(_of(small, STRIKE)) * 1.8, "far higher")
+	assert_gt(_of(big, STRIKE)[0].strength, _of(small, STRIKE)[0].strength * 1.5, "harder")
+	assert_gt(_of(big, MIST).size(), _of(small, MIST).size(), "more mist")
+	assert_gt(_highest(_of(big, MIST)), _highest(_of(small, MIST)) * 1.2, "billowing higher")
+	assert_gt(_of(big, FROTH)[0].strength, _of(small, FROTH)[0].strength, "thicker foam")
+	var sizes := PackedFloat32Array()
+	for area: float in [0.001, 0.005, 0.03, 0.5, 3.0, 10.0]:
+		sizes.append(GashPlanner.size(area))
+	for index in range(1, sizes.size()):
+		assert_gte(sizes[index], sizes[index - 1], "never smaller for a bigger gash")
+
+
+## The cues of the step [param planner] takes as [param sim]'s iceberg strikes.
+func _strike(planner: FxPlanner, sim: MatchSim) -> Array[FxCue]:
+	var struck := sim.schedule.hit_tick()
+	return planner.plan(_at(sim, struck), _at(sim, struck + 1, [SimEvent.holed(struck)]))
+
+
+## The highest any of [param cues] climbs over the sea.
+func _highest(cues: Array[FxCue]) -> float:
+	var highest := 0.0
+	for cue: FxCue in cues:
+		highest = maxf(highest, cue.rise)
+	return highest
 
 
 func test_effects_come_from_snapshots_and_the_pose_only() -> void:
@@ -469,7 +544,12 @@ func test_effects_come_from_snapshots_and_the_pose_only() -> void:
 
 	var live := RegEx.create_from_string(LIVE)
 	for file: String in [
-		"fx_planner.gd", "fx_cue.gd", "flotsam.gd", "deck_wetness.gd", "deck_debris.gd"
+		"fx_planner.gd",
+		"gash_planner.gd",
+		"fx_cue.gd",
+		"flotsam.gd",
+		"deck_wetness.gd",
+		"deck_debris.gd"
 	]:
 		var source := FileAccess.get_file_as_string("res://scenes/match/" + file).split("\n")
 		for index in source.size():

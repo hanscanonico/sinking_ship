@@ -89,28 +89,6 @@ const SMOKE_STEPS := 12.0
 ## How far a falling body comes down, in m/s, that splashes hardest.
 const SPLASH_FALL := 6.0
 const SPLASH_LEAST := 0.35
-## The iceberg's strike (HOLED): the berg grinding along her throws white water up
-## all along the gash, at once, and the sea churns white against her over it for
-## GASH_SECONDS, dying down, with bursts somewhere new along it every GASH_TICKS —
-## thrown up where it runs near or over the sea, spitting up through the boil where it
-## runs deep. A gash GASH_DEEP or more under the sea throws up the least — STRIKE_LEAST
-## of the most as it strikes, CHURN_LEAST of the churn — one at the sea or over it the
-## most: up to GASH_RISE over the sea, at least and at most, in sheets no longer than
-## GASH_SHEET, from GASH_OFF outboard of her shell, in metres; the churn runs in up to
-## CHURNS stretches. The sea boils over a gash deeper than GASH_BOILS, in up to
-## BOILS_ALONG places along it, and spits up to SPITS over it, at least and at most.
-const GASH_SECONDS := 7.0
-const GASH_TICKS := 5
-const GASH_DEEP := 1.2
-const STRIKE_LEAST := 0.5
-const CHURN_LEAST := 0.4
-const GASH_RISE := Vector2(2.0, 6.0)
-const GASH_SHEET := 2.5
-const GASH_OFF := 0.25
-const CHURNS := 3
-const GASH_BOILS := 0.3
-const BOILS_ALONG := 3
-const SPITS := Vector2(0.5, 1.4)
 ## A deck's corners round its edge, as shares of its area from its least corner.
 const _CORNERS: Array[Vector3] = [
 	Vector3(0.0, 0.0, 0.0), Vector3(1.0, 0.0, 0.0), Vector3(1.0, 0.0, 1.0), Vector3(0.0, 0.0, 1.0)
@@ -119,9 +97,8 @@ const _CORNERS: Array[Vector3] = [
 var _layout: ShipLayout
 var _surfaces: Surfaces
 var _schedule: SinkSchedule
-## The ship's structure, where the gash's line on her shell is read against her
-## waterline; null for a ship without one.
-var _structure: ShipStructure
+## The iceberg's strike, as it shows (D13).
+var _gash: GashPlanner
 var _space: ShipSpace
 var _railing_height: float
 var _start_tick: int
@@ -145,8 +122,6 @@ var _floated := PackedByteArray()
 var _smoke := -1.0
 ## Whether the smoke was last told bent over by the plunge.
 var _bent := false
-## The tick the iceberg struck, as its HOLED event told it, or -1 before it.
-var _struck := -1
 ## Every opening and machinery vent, and its outward; and how far round them the
 ## plunge's blasts have come, -1 before it.
 var _blasts := PackedVector3Array()
@@ -162,7 +137,7 @@ func _init(config: MatchConfig, surfaces: Surfaces, schedule: SinkSchedule) -> v
 	_layout = config.ship
 	_surfaces = surfaces
 	_schedule = schedule
-	_structure = config.ship.structure
+	_gash = GashPlanner.new(schedule, config.ship.structure)
 	_space = ShipSpace.new(_layout)
 	_railing_height = config.rules.railing_height
 	_start_tick = Ticks.from_seconds(config.scenario.starts_at)
@@ -200,7 +175,7 @@ func plan(previous: Dictionary, current: Dictionary) -> Array[FxCue]:
 	var boost := PLUNGE_BOOST if plunging else 1.0
 	for event: Dictionary in current["events"]:
 		_from_event(event, previous, current, pose_now, cues)
-	_gash_bursts(tick, cues)
+	_gash.bursts(tick, cues)
 	_waterlines(pose_then, pose_now, tick, plunging, cues)
 	_floods(pose_then, pose_now, tick, boost, cues)
 	_machinery(pose_then, pose_now, tick, cues)
@@ -264,144 +239,7 @@ func _from_event(
 			_venting = 0
 			_slides(_downhill(pose), pose, tick, cues)
 		SimEvent.Kind.HOLED:
-			_strike(tick, cues)
-
-
-## The iceberg striking: along the gash SinkSchedule has her struck with, a sheet of
-## white water thrown up and out over each stretch of it — the higher the shallower it
-## runs — and the sea boiling over it where it runs deep.
-func _strike(tick: int, cues: Array[FxCue]) -> void:
-	var damage := _schedule.damage()
-	if damage == null or damage.trace.size() < 2 or _structure == null:
-		return
-	_struck = tick
-	var trace := damage.trace
-	var length := 0.0
-	for index in trace.size() - 1:
-		var from := trace[index]
-		var to := trace[index + 1]
-		var pieces := ceili(from.distance_to(to) / GASH_SHEET)
-		for piece in pieces:
-			var a := from.lerp(to, float(piece) / pieces)
-			var b := from.lerp(to, float(piece + 1) / pieces)
-			# Uneven, as the gash is: no two sheets alike.
-			var wobble := 0.8 + 0.2 * sin((length + a.x) * 2.3)
-			length += a.distance_to(b)
-			var middle := (a + b) * 0.5
-			var strength := maxf(_gash_strength(middle), STRIKE_LEAST) * wobble
-			var sheet := _gash_spray(middle, strength, tick)
-			sheet.position = _gash_out(a, sheet.on_sea)
-			sheet.end = _gash_out(b, sheet.on_sea)
-			cues.append(sheet)
-	for place in BOILS_ALONG:
-		var at := _along(trace, (place + 0.5) / BOILS_ALONG)
-		var depth := _structure.waterline_y - at.y
-		if depth < GASH_BOILS or (length < GASH_SHEET * 2.0 and place != BOILS_ALONG / 2):
-			continue
-		var boil := FxCue.new(FxCue.Kind.BUBBLES, tick, _at_waterline(at, 0.6))
-		boil.on_sea = true
-		boil.radius = clampf(length / BOILS_ALONG * 0.5, 0.8, 2.5)
-		boil.seconds = GASH_SECONDS * clampf(depth / GASH_DEEP, 0.5, 1.0)
-		boil.strength = 1.0
-		cues.append(boil)
-
-
-## For GASH_SECONDS after the strike, dying down: the sea churning white against her
-## along the gash, and every GASH_TICKS a burst somewhere new along it — white water
-## thrown up where it runs shallow, the boil spitting where it runs deep.
-func _gash_bursts(tick: int, cues: Array[FxCue]) -> void:
-	var since := tick - _struck
-	if _struck < 0 or since <= 0:
-		return
-	if since > Ticks.from_seconds(GASH_SECONDS):
-		_struck = -1
-		return
-	var trace := _schedule.damage().trace
-	var fading := 1.0 - float(since) / Ticks.from_seconds(GASH_SECONDS)
-	_churn(trace, fading, tick, cues)
-	if since % GASH_TICKS != 0:
-		return
-	var turn := since / GASH_TICKS
-	var at := _along(trace, fposmod(turn * 0.618034 + 0.15, 1.0))
-	var strength := _gash_strength(at)
-	var burst := _gash_spray(at, maxf(strength, 0.2) * fading, tick)
-	if strength <= 0.0:
-		# Air bursting up through the boil: spits on the sea.
-		burst.rise = lerpf(SPITS.x, SPITS.y, fposmod(turn * 0.382, 1.0)) * fading
-		burst.toward = Vector3.UP
-	cues.append(burst)
-
-
-## The sea churning white against her along [param trace], the gash, in up to CHURNS
-## stretches, [param fading] as hard as it first churns: harder where it runs shallow.
-func _churn(trace: PackedVector3Array, fading: float, tick: int, cues: Array[FxCue]) -> void:
-	var stretches := clampi(ceili(_length(trace) / (GASH_SHEET * 2.0)), 1, CHURNS)
-	for index in stretches:
-		var a := _along(trace, float(index) / stretches)
-		var b := _along(trace, float(index + 1) / stretches)
-		var wash := FxCue.new(FxCue.Kind.WASH, tick, _at_waterline(a, GASH_OFF))
-		wash.end = _at_waterline(b, GASH_OFF)
-		wash.toward = Vector3(0.0, 0.0, signf(a.z))
-		wash.strength = fading * maxf(_gash_strength((a + b) * 0.5), CHURN_LEAST)
-		wash.on_sea = true
-		cues.append(wash)
-
-
-## How hard the gash throws water up at [param point], on it: 1 at the sea or over it,
-## nothing GASH_DEEP under.
-func _gash_strength(point: Vector3) -> float:
-	return clampf(1.0 - (_structure.waterline_y - point.y) / GASH_DEEP, 0.0, 1.0)
-
-
-## White water thrown up and out of the gash at [param point], on it, [param strength]
-## hard: from her shell where it runs over the sea, from the sea outboard of her where
-## it runs under it.
-func _gash_spray(point: Vector3, strength: float, tick: int) -> FxCue:
-	var under := point.y < _structure.waterline_y
-	var spray := FxCue.new(FxCue.Kind.SPRAY, tick, _gash_out(point, under))
-	spray.on_sea = under
-	spray.strength = clampf(strength, 0.0, 1.0)
-	spray.rise = lerpf(GASH_RISE.x, GASH_RISE.y, spray.strength)
-	spray.toward = Vector3(0.0, 2.0, signf(point.z)).normalized()
-	return spray
-
-
-## Where white water leaves the gash at [param point], on it: GASH_OFF outboard of her
-## shell there, or of the sea against her shell over it where the point, or the stretch
-## it is thrown from, [param under] the sea, runs under it.
-func _gash_out(point: Vector3, under: bool) -> Vector3:
-	if under or point.y < _structure.waterline_y:
-		return _at_waterline(point, GASH_OFF)
-	return point + Vector3(0.0, 0.0, signf(point.z) * GASH_OFF)
-
-
-## The sea against her shell over [param point] of the gash, [param off] outboard of it.
-func _at_waterline(point: Vector3, off: float) -> Vector3:
-	var side := signf(point.z)
-	var waterline := _structure.waterline_y
-	var section := _structure.section_at(point.x)
-	var shell := section.shell_at(waterline, int(side)) if section != null else NAN
-	var z := point.z if is_nan(shell) else shell
-	return Vector3(point.x, waterline, z + side * off)
-
-
-## How long the line through [param points] is.
-static func _length(points: PackedVector3Array) -> float:
-	var total := 0.0
-	for index in points.size() - 1:
-		total += points[index].distance_to(points[index + 1])
-	return total
-
-
-## The point [param share] of the way along the line through [param points].
-static func _along(points: PackedVector3Array, share: float) -> Vector3:
-	var left := _length(points) * share
-	for index in points.size() - 1:
-		var step := points[index].distance_to(points[index + 1])
-		if left <= step and step > 0.0:
-			return points[index].lerp(points[index + 1], left / step)
-		left -= step
-	return points[points.size() - 1]
+			_gash.strike(tick, cues)
 
 
 ## Where the sea crosses each deck still standing: white water along the line, and

@@ -7,8 +7,8 @@ extends Node3D
 ## lying on the planks — splashes, air blown out of flooding rooms, billows of steam
 ## from the machinery and the funnel's smoke thickening, dust and splinters as a deck
 ## gives way and its bits raining on the decks round (DeckDebris), wreckage floating
-## off (Flotsam), soaked planks drying (DeckWetness), and what shows round the eye
-## wherever it looks (FxAroundEye).
+## off (Flotsam), soaked planks drying (DeckWetness), the iceberg's strike (GashFx),
+## and what shows round the eye wherever it looks (FxAroundEye).
 ##
 ## Near the eye an effect never stands between the player and a fight: within HUSHED
 ## of it, it is low, small and see-through — a thin line of foam at the feet tells the
@@ -53,6 +53,7 @@ const GRAIN_BUDGET := (
 	+ SMOKE_GRAINS
 	+ BELCH_GRAINS
 	+ FxAroundEye.GRAINS
+	+ GashFx.GRAINS
 )
 ## A burst further than FAR from the eye is not played, nor one further than BEHIND
 ## behind it; nor one within NEAR of it, which would fill the view.
@@ -135,6 +136,7 @@ var _wetness: DeckWetness
 var _flotsam: Flotsam
 var _debris: DeckDebris
 var _around: FxAroundEye
+var _gash: GashFx
 ## The billows' materials, lit by the scene's sun.
 var _billows: Array[ShaderMaterial] = []
 var _bursts: Array[CPUParticles3D] = []
@@ -279,6 +281,9 @@ func _ready() -> void:
 	_around = FxAroundEye.new(streak)
 	_around.name = "AroundEye"
 	add_child(_around)
+	_gash = GashFx.new(billow)
+	_gash.name = "Gash"
+	add_child(_gash)
 	_flotsam = Flotsam.new()
 	_flotsam.name = "Flotsam"
 	add_child(_flotsam)
@@ -297,6 +302,7 @@ func _ready() -> void:
 func setup(driver: SimDriver, view: MatchView, sim: MatchSim, sun: Vector3) -> void:
 	for material: ShaderMaterial in _billows:
 		material.set_shader_parameter(&"sun", sun)
+	_gash.lit_from(sun)
 	if _driver != null:
 		_driver.stepped.disconnect(_on_stepped)
 	_driver = driver
@@ -335,6 +341,7 @@ func clear() -> void:
 	_flotsam.clear()
 	_debris.clear()
 	_around.clear()
+	_gash.clear()
 
 
 ## Plays [param cues] — FxPlanner's — with the ship drawn at [param ship], as seen
@@ -457,6 +464,7 @@ func _process(delta: float) -> void:
 	for room in _shaken_left.size():
 		_shaken_left[room] -= delta
 	_around.advance(delta)
+	_gash.advance(ship, delta)
 	_advance_plumes(ship, delta, get_viewport().get_camera_3d())
 	_advance_boils(delta)
 	if not is_nan(_funnel.x):
@@ -472,7 +480,7 @@ func _play(cue: FxCue, ship: Transform3D, camera: Camera3D) -> void:
 		at.y = 0.0
 	var toward := (ship.basis * cue.toward).normalized()
 	match cue.kind:
-		FxCue.Kind.SPRAY, FxCue.Kind.SPLASH, FxCue.Kind.VENT:
+		FxCue.Kind.SPRAY, FxCue.Kind.SPLASH, FxCue.Kind.VENT, FxCue.Kind.STRIKE, FxCue.Kind.SPURT:
 			if cue.seat >= 0 and cue.seat == _view.eye_seat():
 				return
 			if cue.kind == FxCue.Kind.SPRAY and _wetness != null:
@@ -481,7 +489,15 @@ func _play(cue: FxCue, ship: Transform3D, camera: Camera3D) -> void:
 			if cue.on_sea:
 				to.y = 0.0
 			if _seen((at + to) * 0.5, maxf(at.distance_to(to) * 0.5, 1.0), camera):
-				_water_burst(cue.kind, at, to, toward, cue.strength, cue.rise, camera)
+				var burst := _burst_for(cue.kind)
+				_water_burst(burst, cue.kind, at, to, toward, cue.strength, cue.rise, camera)
+		FxCue.Kind.MIST:
+			# It hangs for seconds: one behind the eye is there when it turns round.
+			var middle := (at + ship * cue.end) * 0.5
+			if _seen(middle, at.distance_to(middle) + cue.rise, camera, FAR, FAR):
+				_gash.mist(cue, ship, camera)
+		FxCue.Kind.FROTH:
+			_gash.froth(cue, ship)
 		FxCue.Kind.DUST:
 			if _seen(at, cue.radius * 2.0, camera):
 				_dust(at, cue.radius, cue.strength, camera)
@@ -581,10 +597,23 @@ func _stream(run: Vector3, height: float, downhill: Vector2, ship: Transform3D) 
 		_wetness.soak(start + way * run.z * 0.5, run.z * 0.5)
 
 
-## White water or air thrown out from [param at] — or along to [param to], a sheet —
-## [param toward], climbing [param rise] over where it starts; near the eye low,
-## small and faint.
+## The emitter a burst of [param kind] is thrown from: the iceberg's strike's and its
+## spurts' from their own (GashFx), every other from the pool of bursts.
+func _burst_for(kind: FxCue.Kind) -> CPUParticles3D:
+	if kind == FxCue.Kind.STRIKE:
+		return _gash.sheet()
+	if kind == FxCue.Kind.SPURT:
+		return _gash.spurt()
+	var burst := _bursts[_next_burst]
+	_next_burst = (_next_burst + 1) % BURSTS
+	return burst
+
+
+## White water or air thrown out of [param burst] from [param at] — or along to
+## [param to], a sheet — [param toward], climbing [param rise] over where it starts;
+## near the eye low, small and faint.
 func _water_burst(
+	burst: CPUParticles3D,
 	kind: FxCue.Kind,
 	at: Vector3,
 	to: Vector3,
@@ -593,8 +622,6 @@ func _water_burst(
 	rise: float,
 	camera: Camera3D
 ) -> void:
-	var burst := _bursts[_next_burst]
-	_next_burst = (_next_burst + 1) % BURSTS
 	var shows := 1.0
 	var top := rise
 	if camera != null:
@@ -602,8 +629,8 @@ func _water_burst(
 		shows = shown(nearest_on(at, to, eye).distance_to(eye))
 		top = lerpf(minf(rise, maxf(knee(eye) - at.y, LEAST_TOP)), rise, shows)
 	var depth := lerpf(0.08, 0.35, shows)
-	# A grain is a streak along its flight, measured end to end: a grown one's length.
-	var streak := DROPLET * sqrt(STREAK_ASPECT) * FxGrains.WATER_GROWN
+	# A grain at its biggest, measured along its flight: a streak end to end, a drop across.
+	var streak := (burst.mesh as QuadMesh).size.y * burst.scale_amount_curve.max_value
 	var grain := lerpf(SPECK, streak * (1.2 + strength), shows)
 	var direction := toward
 	burst.gravity = Vector3.DOWN * Flotsam.GRAVITY + FxGrains.downwind()
@@ -627,7 +654,7 @@ func _water_burst(
 		burst.initial_velocity_min = speed * 0.45
 		burst.initial_velocity_max = speed
 		burst.lifetime = clampf(2.0 * speed / Flotsam.GRAVITY, 0.5, 2.0)
-		burst.spread = 22.0 if kind == FxCue.Kind.SPRAY else 30.0
+		burst.spread = 30.0 if kind == FxCue.Kind.SPLASH else 22.0
 	var length := at.distance_to(to)
 	var basis := Basis()
 	if length > 0.05:
@@ -956,7 +983,8 @@ func _on_landed(at: Vector3, strength: float) -> void:
 	var camera := get_viewport().get_camera_3d()
 	if _seen(at, 1.0, camera):
 		var rise := lerpf(FxPlanner.SPLASH_RISE.x, FxPlanner.SPLASH_RISE.y, strength) * 0.7
-		_water_burst(FxCue.Kind.SPLASH, at, at, Vector3.UP, strength * 0.6, rise, camera)
+		var burst := _burst_for(FxCue.Kind.SPLASH)
+		_water_burst(burst, FxCue.Kind.SPLASH, at, at, Vector3.UP, strength * 0.6, rise, camera)
 
 
 ## An overlay per deck DeckWetness tracks, just over its planks, in the deck's own
@@ -1019,6 +1047,7 @@ func _emitters() -> Array[CPUParticles3D]:
 	all.append(_smoke)
 	all.append(_belch)
 	all.append_array(_around.emitters())
+	all.append_array(_gash.emitters())
 	return all
 
 

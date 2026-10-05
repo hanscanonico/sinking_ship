@@ -26,12 +26,13 @@ import:
 #   make run [SEED=] [SEATS=] [ARGS=]  the game, windowed, from the menu they fill in;
 #       ARGS passes more user args, e.g. ARGS=--observer for the observer camera
 #   make match SEED=1701 [SEATS=] [SECONDS=]   bots only, headless, as a transcript
-#   make capture SEED=1701 AT=60 [SEATS=] [EYE=] [CUT=0] [CELLS=1] [CAPTURE=path.png] [ARGS=]
+#   make capture SEED=1701 AT=60 [SEATS=] [EYE=] [CUT=0] [CELLS=1] [SIDE=port] [CAPTURE=] [ARGS=]
 #       a windowed bots-only match saved as a PNG at AT seconds of match time
 #       (or its end), then quit: from the observer camera, or through seat EYE's
 #       eyes; CUT cuts the observer's view of the ship away at and above that
 #       height to show the inside; CELLS draws the ship's cells over the observer's
-#       view, every one named; ARGS passes more user args, e.g.
+#       view, every one named; SIDE=port watches her from her port side rather
+#       than her starboard; ARGS passes more user args, e.g.
 #       ARGS=--net-sim=latency:120,jitter:20,loss:5. Not part of verify: it needs a
 #       display.
 #   make capture SCREEN=menu|settings|graphics|online|room [CAPTURE=]   the main menu,
@@ -49,6 +50,7 @@ AT ?=
 EYE ?=
 CUT ?=
 CELLS ?=
+SIDE ?=
 ARGS ?=
 SCREEN ?=
 RES ?=
@@ -81,6 +83,7 @@ capture:
 		$(match-args) $(if $(menu-screen),,--autoplay) --capture="$(CAPTURE)" \
 		$(if $(AT),--capture-at=$(AT)) $(if $(EYE),--capture-eye=$(EYE)) \
 		$(if $(CUT),--observer-cut=$(CUT)) $(if $(CELLS),--observer-cells) \
+		$(if $(SIDE),--observer-side=$(SIDE)) \
 		$(if $(SCREEN),--capture-screen=$(SCREEN)) $(ARGS)
 
 # `make net-bench [SEED=] [SEATS=] [SECONDS=] [NET=latency:120,jitter:20,loss:5]`: one

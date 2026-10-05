@@ -265,6 +265,107 @@ func test_effects_near_the_eye_are_low_small_and_faint() -> void:
 	)
 
 
+func test_the_strike_near_the_eye_is_low_small_and_faint() -> void:
+	var fx: SinkingFx = add_child_autofree(SinkingFx.new())
+	var camera: Camera3D = add_child_autofree(Camera3D.new())
+	camera.global_position = Vector3(0.0, FirstPersonCamera.EYE_HEIGHT, 0.0)
+	var eye := camera.global_position
+	var gash: Array[FxCue.Kind] = [
+		FxCue.Kind.STRIKE, FxCue.Kind.SPURT, FxCue.Kind.MIST, FxCue.Kind.FROTH
+	]
+	for kind: FxCue.Kind in gash:
+		for distance: float in [1.6, 3.0, 5.0, 7.5]:
+			var cue := _gash_cue(kind, Vector3(0.4, 0.0, -distance))
+			var played := _played(fx, [cue], camera)
+			var name := "%s %.1f m off" % [FxCue.Kind.keys()[kind], distance]
+			assert_eq(played.size(), 1, name + " plays")
+			var emitter := played[0]
+			var faint := _near_opacity(emitter) <= SinkingFx.HUSHED_ALPHA + EPSILON
+			if kind == FxCue.Kind.STRIKE or kind == FxCue.Kind.SPURT:
+				var top := emitter.global_position.y + _climb(emitter)
+				var under := maxf(SinkingFx.knee(eye), SinkingFx.LEAST_TOP)
+				assert_lte(top, under + EPSILON, name + ": under the knees")
+				assert_true(_grain(emitter) <= SinkingFx.SPECK + EPSILON or faint, name)
+			elif kind == FxCue.Kind.MIST:
+				assert_true(faint, name + ": see-through")
+			else:
+				assert_true(_lying(emitter), name + ": lying on the sea")
+				assert_almost_eq(emitter.global_basis.y, Vector3.UP, Vector3.ONE * EPSILON, name)
+				assert_lte(emitter.global_position.y + _climb(emitter), SinkingFx.KNEE, name)
+				assert_lte(_opacity(emitter), SinkingFx.SPECK_ALPHA + EPSILON, name)
+	# Away from the eye, all of itself.
+	var off := _played(fx, [_gash_cue(FxCue.Kind.MIST, Vector3(0.4, 0.0, -20.0))], camera)
+	assert_eq(off[0].color.a, 1.0, "a mist out of reach of a fight stands out whole")
+
+
+func test_the_strike_throws_from_emitters_the_bursts_after_it_never_take() -> void:
+	var sim := MatchSim.create(RunMatch.default_config(38))
+	var planner := FxPlanner.new(sim.config, sim.surfaces, sim.schedule)
+	var fx: SinkingFx = add_child_autofree(SinkingFx.new())
+	var afloat := Transform3D(Basis(), Vector3.UP * sim.config.ship.freeboard)
+	var struck := sim.schedule.hit_tick()
+	var strike := planner.plan(_at(sim, struck), _holed(sim, struck))
+	fx.play(strike, afloat, null)
+	var sheets := _going(fx, "Strike")
+	var thrown := strike.filter(func(cue: FxCue) -> bool: return cue.kind == FxCue.Kind.STRIKE)
+	assert_gt(thrown.size(), 1)
+	assert_eq(sheets.size(), thrown.size(), "a sheet of the strike from each of its own")
+	var placed: Array[Transform3D] = []
+	for sheet: CPUParticles3D in sheets:
+		placed.append(sheet.global_transform)
+	var previous := _at(sim, struck + 1)
+	for tick in range(struck + 2, struck + Ticks.from_seconds(GashPlanner.GASH_SECONDS)):
+		var current := _at(sim, tick)
+		var cues := planner.plan(previous, current)
+		previous = current
+		# And a storm of spray on top of the bursts after it, round the ship.
+		for index in 3:
+			var spray := FxCue.new(FxCue.Kind.SPRAY, tick, Vector3(tick % 20 - 10.0, 0.0, index))
+			spray.on_sea = true
+			spray.rise = 1.0
+			cues.append(spray)
+		fx.play(cues, afloat, null)
+	for index in sheets.size():
+		assert_true(sheets[index].emitting, "still going")
+		assert_eq(sheets[index].global_transform, placed[index], "never thrown again")
+
+
+func test_the_strike_s_mist_climbs_over_her_rail_and_its_foam_lies_on_the_sea_thinning() -> void:
+	# Seed 37's gash runs 0.75 to 0.86 m under the sea all along.
+	var sim := MatchSim.create(RunMatch.default_config(37))
+	var planner := FxPlanner.new(sim.config, sim.surfaces, sim.schedule)
+	var fx: SinkingFx = add_child_autofree(SinkingFx.new())
+	var afloat := Transform3D(Basis(), Vector3.UP * sim.config.ship.freeboard)
+	var damage := sim.schedule.damage()
+	var struck := sim.schedule.hit_tick()
+	fx.play(planner.plan(_at(sim, struck), _holed(sim, struck)), afloat, null)
+	var rail := sim.config.ship.freeboard + sim.config.rules.railing_height
+	var mists := _going(fx, "Mist")
+	assert_gt(mists.size(), 1, "mist all along it")
+	for mist: CPUParticles3D in mists:
+		var on_ship := afloat.affine_inverse() * mist.global_position
+		assert_between(on_ship.x, damage.from_x, damage.to_x, "off the gash")
+		assert_between(mist.global_position.y, 0.0, 1.0, "from the sea")
+		assert_gt(_billowing(mist), rail + 1.0, "billowing up well over her rail")
+	var froths := _going(fx, "Froth")
+	assert_gt(froths.size(), 0, "foam on the sea along it")
+	var thick := PackedFloat32Array()
+	for froth: CPUParticles3D in froths:
+		assert_true(_lying(froth))
+		assert_almost_eq(froth.global_basis.y, Vector3.UP, Vector3.ONE * EPSILON, "on the sea")
+		assert_between(froth.global_position.y, 0.0, 0.1, "lying on it")
+		var on_ship := afloat.affine_inverse() * froth.global_position
+		assert_between(on_ship.x, damage.from_x, damage.to_x, "along the gash")
+		thick.append(froth.color.a)
+	fx._gash.advance(afloat, GashPlanner.GASH_SECONDS * 0.6)
+	for index in froths.size():
+		assert_true(froths[index].emitting, "lying there for the gash's seconds")
+		assert_lt(froths[index].color.a, thick[index] * 0.8, "thinning out")
+	fx._gash.advance(afloat, GashPlanner.GASH_SECONDS * 0.5)
+	for froth: CPUParticles3D in froths:
+		assert_false(froth.emitting, "and gone")
+
+
 func test_dust_sifts_from_the_ceiling_as_it_heels() -> void:
 	var fx: SinkingFx = add_child_autofree(SinkingFx.new())
 	var camera: Camera3D = add_child_autofree(Camera3D.new())
@@ -440,6 +541,58 @@ func _at(sim: MatchSim, tick: int) -> Dictionary:
 	return snapshot
 
 
+## [param sim]'s snapshot of the step after the iceberg struck at [param tick].
+func _holed(sim: MatchSim, tick: int) -> Dictionary:
+	var snapshot := _at(sim, tick + 1)
+	snapshot["events"] = [SimEvent.holed(tick).to_dict()]
+	return snapshot
+
+
+## A cue of the iceberg's strike, of [param kind], along 2 m of the sea from
+## [param at], at its biggest.
+func _gash_cue(kind: FxCue.Kind, at: Vector3) -> FxCue:
+	var cue := FxCue.new(kind, 0, at)
+	cue.end = at + Vector3(2.0, 0.0, 0.0)
+	cue.on_sea = true
+	cue.rise = GashPlanner.MIST_RISE.y
+	cue.seconds = GashPlanner.GASH_SECONDS
+	cue.toward = Vector3(0.0, 2.0, 1.0).normalized()
+	if kind == FxCue.Kind.FROTH:
+		cue.toward = Vector3.BACK
+	return cue
+
+
+## The emitters of [param fx] going whose names begin [param called].
+func _going(fx: SinkingFx, called: String) -> Array[CPUParticles3D]:
+	return fx.emitters().filter(
+		func(emitter: CPUParticles3D) -> bool:
+			return emitter.emitting and emitter.name.begins_with(called)
+	)
+
+
+## The highest the top of a billow of [param emitter] climbs, in the world: its
+## fastest one flown as CPUParticles3D flies it — pulled, and slowed by its damping
+## over its life — swelling as it goes.
+func _billowing(emitter: CPUParticles3D) -> float:
+	var step := 1.0 / 60.0
+	var where := emitter.global_position + Vector3.UP * emitter.emission_box_extents.y
+	var velocity := emitter.global_basis * emitter.direction.normalized()
+	velocity *= emitter.initial_velocity_max
+	var size := (emitter.mesh as QuadMesh).size.y * emitter.scale_amount_max
+	var top := 0.0
+	for frame in roundi(emitter.lifetime / step):
+		var age := frame * step / emitter.lifetime
+		var damping := emitter.damping_min
+		if emitter.damping_curve != null:
+			damping *= emitter.damping_curve.sample(age)
+		velocity += emitter.gravity * step
+		var speed := maxf(velocity.length() - damping * step, 0.0)
+		velocity = velocity.normalized() * speed
+		where += velocity * step
+		top = maxf(top, where.y + size * emitter.scale_amount_curve.sample(age) * 0.5)
+	return top
+
+
 ## The platform whose edge ship point [param point] stands on.
 func _platform_at(layout: ShipLayout, point: Vector3) -> ShipPlatform:
 	for platform: ShipPlatform in layout.platforms:
@@ -473,10 +626,11 @@ func _assert_hushed(fx: SinkingFx, eye: Vector3, planks: Vector3) -> int:
 			var flat := absf(emitter.global_basis.y.normalized().dot(planks))
 			assert_almost_eq(flat, 1.0, EPSILON, "flat on the planks")
 			assert_lte(_opacity(emitter), SinkingFx.SPECK_ALPHA + EPSILON, "and see-through")
-		elif emitter.name.begins_with("Burst") and near and _on_sea(emitter):
-			var top := emitter.global_position.y + _climb(emitter)
-			var under := maxf(SinkingFx.knee(eye), SinkingFx.LEAST_TOP)
-			assert_lte(top, under + EPSILON, "spray near the eye under its knees")
+		elif _thrown_up(emitter):
+			if near and _on_sea(emitter):
+				var top := emitter.global_position.y + _climb(emitter)
+				var under := maxf(SinkingFx.knee(eye), SinkingFx.LEAST_TOP)
+				assert_lte(top, under + EPSILON, "spray near the eye under its knees")
 		elif emitter.name == "Rain":
 			var faint := _near_opacity(emitter) <= SinkingFx.HUSHED_ALPHA + EPSILON
 			var specks := _grain(emitter) <= SinkingFx.SPECK + EPSILON
@@ -493,6 +647,14 @@ func _threads(sheet: Image) -> PackedByteArray:
 		for along in sheet.get_width():
 			threads.append(1 if sheet.get_pixel(along, down).a > 0.5 else 0)
 	return threads
+
+
+## Whether [param emitter] throws white water or air up: a burst, or the iceberg's.
+func _thrown_up(emitter: CPUParticles3D) -> bool:
+	var called := String(emitter.name)
+	return (
+		called.begins_with("Burst") or called.begins_with("Strike") or called.begins_with("Spurt")
+	)
 
 
 ## Whether [param emitter] throws white water up off the sea, not air out of a door.
@@ -537,7 +699,9 @@ func _climb(emitter: CPUParticles3D) -> float:
 func _grain(emitter: CPUParticles3D) -> float:
 	var grown := 1.0
 	if emitter.scale_amount_curve != null:
-		grown = emitter.scale_amount_curve.sample(1.0)
+		# Its biggest at any age: white water grows as it flies, the strike's dwindles.
+		for age in 11:
+			grown = maxf(grown, emitter.scale_amount_curve.sample(age / 10.0))
 	var size := _side(emitter)
 	if emitter.particle_flag_align_y and emitter.mesh is QuadMesh:
 		size = (emitter.mesh as QuadMesh).size.y

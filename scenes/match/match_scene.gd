@@ -211,6 +211,13 @@ func stage_eyes(at: PackedFloat64Array) -> void:
 	_arms.visible = at.is_empty()
 
 
+## Has the observer camera watch from her [param side] (--observer-side): a tool, as
+## it is.
+func watch_from(side: ObserverCamera.Beam) -> void:
+	_observer_camera.side = side
+	_observer_camera.reset(_view.seat_world_position(_eye_seat), _deck_bounds(_config.ship))
+
+
 ## Draws the ship's cells over the observer's view, named, and frames the whole ship
 ## (--observer-cells): a tool, as the observer camera is.
 func show_cells() -> void:

@@ -153,6 +153,9 @@ const BUBBLE := Color(0.88, 0.96, 0.97, 0.85)
 ## sky's lilac, never a grey; the funnel's smoke is warm where the sun catches it and
 ## near black in its shade.
 const STEAM_SHADE := Color(0.66, 0.66, 0.84)
+## Spray mist's billows turned from the sun: the sea's cool blue-grey, so it reads as
+## white water, not as steam.
+const SPRAY_SHADE := Color(0.72, 0.82, 0.88)
 const SMOKE_LIT := Color(0.32, 0.25, 0.23)
 const SMOKE_SHADE := Color(0.13, 0.12, 0.14)
 ## Floating wreckage: a lifebelt's bands, a deck chair's canvas.
