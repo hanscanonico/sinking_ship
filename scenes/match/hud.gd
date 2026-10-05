@@ -79,10 +79,12 @@ func fit_name(seat_name: String) -> String:
 	return UiTheme.fit(seat_name, font, _spectating.get_theme_font_size(&"font_size"), NAME_WIDTH)
 
 
-## [param text] under the countdown while it shows; empty hides it.
-func show_controls(text: String) -> void:
-	_controls.text = text
-	_controls.visible = _countdown.visible and not text.is_empty()
+## [param prompts]' hint line for play under the countdown while it shows, read only
+## then; null hides it.
+func show_controls(prompts: InputPrompts) -> void:
+	_controls.visible = _countdown.visible and prompts != null
+	if _controls.visible:
+		_controls.text = prompts.controls()
 
 
 ## Centres the spectating line over the bottom edge, as spectating_box() has it on

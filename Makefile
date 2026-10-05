@@ -33,9 +33,10 @@ import:
 #       height to show the inside; ARGS passes more user args, e.g.
 #       ARGS=--net-sim=latency:120,jitter:20,loss:5. Not part of verify: it needs a
 #       display.
-#   make capture SCREEN=menu|settings|online|room [CAPTURE=]   the main menu, the
-#       settings screen over it, the Online screen, or a room — its players made up,
-#       no server asked — with no match started (no AT)
+#   make capture SCREEN=menu|settings|graphics|online|room [CAPTURE=]   the main menu,
+#       the settings screen over it — on its Graphics page for graphics —, the Online
+#       screen, or a room — its players made up, no server asked — with no match
+#       started (no AT)
 #   make capture SCREEN=pause AT=60 [EYE=]   the pause menu over the match at AT
 #   make capture SCREEN=results [EYE=]   the results once the match ends and their
 #       buttons take presses
@@ -65,12 +66,13 @@ match:
 
 # --fixed-fps steps one tick per drawn frame, so the capture lands on its exact
 # tick however fast the machine draws. A capture is silent: the Dummy driver.
-# SCREEN=menu, settings, online or room starts no match, so it neither autoplays nor
-# takes AT; pause, online-pause and online-settings stand over the match at AT.
-menu-screen = $(filter menu settings online room,$(SCREEN))
+# SCREEN=menu, settings, graphics, online or room starts no match, so it neither
+# autoplays nor takes AT; pause, online-pause and online-settings stand over the match
+# at AT.
+menu-screen = $(filter menu settings graphics online room,$(SCREEN))
 capture:
 	$(call require-godot)
-	@test -n "$(AT)$(filter menu settings online room results,$(SCREEN))" || \
+	@test -n "$(AT)$(filter menu settings graphics online room results,$(SCREEN))" || \
 		{ echo "capture: AT=<seconds of match time> is required" >&2; exit 1; }
 	@mkdir -p "$(dir $(CAPTURE))"
 	$(GODOT) --path . $(if $(RES),--resolution $(RES)) --audio-driver Dummy --fixed-fps 30 -- \
@@ -165,6 +167,19 @@ sim-bench:
 	@set -o pipefail; $(GODOT) --headless --no-header --path . -s res://tools/sim_bench.gd \
 		-- $(match-args) | grep -v '^\[godot_ai'
 
+# `make fps [SEED=4] [SEATS=8] [SECONDS=40] [RES=1440x900] [ARGS=]`: a bots-only match in
+# a window, V-Sync off and always on top, a bot at the local seat's eyes (ARGS=--observer
+# for the observer camera; ARGS=--quality=high or --render-scale=1 to try a setting), its
+# frame rate summed up from the engine's own once-a-second --print-fps: the median and the
+# 10th percentile of the samples after the first 8, and the load average. A window the
+# system is not drawing idles at a flat ~145 fps: such a run prints NOT DRAWING and fails.
+# Rules live in tools/fps.sh. Not part of verify: it needs a display, and the machine to
+# itself — an agent takes /tmp/sinking_ship_window.lock around it, as around a capture.
+fps:
+	GODOT="$(GODOT)" tools/fps.sh $(if $(SEED),--seed=$(SEED)) $(if $(SEATS),--seats=$(SEATS)) \
+		$(if $(SECONDS),--seconds=$(SECONDS)) $(if $(RES),--resolution=$(RES)) \
+		$(if $(ARGS),-- $(ARGS))
+
 # `make arena SEEDS=200 [LOBBIES=normal,hard-easy]`: bots-only lobbies of the default
 # match, seeds 1…SEEDS each, headless, written up as docs/arena.md — the record SH7's
 # gates read. Rules live in tools/arena.gd. Progress goes to stderr.
@@ -244,5 +259,5 @@ format-check:
 .NOTPARALLEL:
 
 .PHONY: import run match capture net-bench sim-bench serve-local online-e2e export-server \
-	export-web export-mac export-server-mac serve-web-local serve-web-local-stop arena \
+	export-web export-mac export-server-mac serve-web-local serve-web-local-stop fps arena \
 	art-lint test verify check ship ship-check lint format format-check

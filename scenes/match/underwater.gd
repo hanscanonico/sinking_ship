@@ -94,6 +94,11 @@ func setup(sea_and_sky: SeaAndSky) -> void:
 	_show_under(false)
 
 
+## Glows under the sea as [param quality] has the dusk glow above it.
+func show_graphics(quality: GraphicsQuality) -> void:
+	_below.glow_enabled = quality.glow
+
+
 ## Under the sea or not, by the eye at [param eye] in the world: the sea is the
 ## world plane y = 0.
 func show_eye(eye: Vector3) -> void:

@@ -4,12 +4,15 @@ extends TextureRect
 ## by POSE_SECONDS, dressed as a match draws her (ShipArt) on the match's sea and sky,
 ## seen from a camera drifting slowly about her quarter, framed in the room the screens
 ## over her leave her to their right. A world of its own, silent, rendered at the
-## window's own resolution however the UI is scaled. Nothing of it exists until the
-## menu first shows — a server or a headless client never builds it — and it is
+## window's own resolution however the UI is scaled or the 3D view's render scale is
+## set, and to the graphics preset as a match is (show_graphics). Nothing of it exists
+## until the menu first shows — a server or a headless client never builds it — and it is
 ## stopped, not freed, while a match runs: dressing her again costs seconds, a hitch on
 ## every return to the menu, where keeping her costs some megabytes.
 
 const SEA_AND_SKY := preload("res://scenes/art/sea_and_sky.tscn")
+## Her render scale, whatever the settings': one pixel of her for every pixel.
+const RENDER_SCALE := 1.0
 ## The moment of the default sinking she is posed at, in match seconds.
 const POSE_SECONDS := 100.0
 ## Where the camera looks from, round the ship's middle: the bearing off her bow and
@@ -132,8 +135,6 @@ func _process(delta: float) -> void:
 func _build() -> void:
 	_viewport = SubViewport.new()
 	_viewport.own_world_3d = true
-	# As the project's own view draws (rendering/anti_aliasing/quality/msaa_3d).
-	_viewport.msaa_3d = Viewport.MSAA_2X
 	add_child(_viewport)
 	_sea_and_sky = SEA_AND_SKY.instantiate()
 	_viewport.add_child(_sea_and_sky)
@@ -150,6 +151,18 @@ func _build() -> void:
 	texture = _viewport.get_texture()
 	get_window().size_changed.connect(_fit)
 	resized.connect(_frame)
+	show_graphics(ViewSettings.local())
+
+
+## Draws her as [param settings]' graphics say, but always at the window's full
+## resolution: the game's first picture, which needs no frame rate to spare.
+func show_graphics(settings: ViewSettings) -> void:
+	if _viewport == null:
+		return
+	var quality := settings.graphics()
+	quality.apply_to(_viewport, RENDER_SCALE)
+	_sea_and_sky.show_graphics(quality)
+	_art.show_graphics(quality)
 
 
 ## One pixel of her render for every pixel of the window, which the UI's scaling

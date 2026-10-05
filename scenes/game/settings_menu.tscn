@@ -36,15 +36,39 @@ theme_type_variation = &"TitleLabel"
 text = "Settings"
 horizontal_alignment = 1
 
-[node name="Choices" type="GridContainer" parent="Panel/Box"]
+[node name="Tabs" type="HBoxContainer" parent="Panel/Box"]
+alignment = 1
+theme_override_constants/separation = 10
+
+[node name="SoundTab" type="Button" parent="Panel/Box/Tabs"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(130, 0)
+toggle_mode = true
+text = "Sound"
+
+[node name="ControlsTab" type="Button" parent="Panel/Box/Tabs"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(130, 0)
+toggle_mode = true
+text = "Controls"
+
+[node name="GraphicsTab" type="Button" parent="Panel/Box/Tabs"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(130, 0)
+toggle_mode = true
+text = "Graphics"
+
+[node name="Sound" type="GridContainer" parent="Panel/Box"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 216)
 theme_override_constants/h_separation = 18
 theme_override_constants/v_separation = 10
 columns = 3
 
-[node name="MasterLabel" type="Label" parent="Panel/Box/Choices"]
+[node name="MasterLabel" type="Label" parent="Panel/Box/Sound"]
 text = "Master volume"
 
-[node name="Master" type="HSlider" parent="Panel/Box/Choices"]
+[node name="Master" type="HSlider" parent="Panel/Box/Sound"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(200, 0)
 size_flags_horizontal = 3
@@ -53,16 +77,16 @@ min_value = 0.0
 max_value = 100.0
 step = 5.0
 
-[node name="MasterValue" type="Label" parent="Panel/Box/Choices"]
+[node name="MasterValue" type="Label" parent="Panel/Box/Sound"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(64, 0)
 modulate = Color(1, 1, 1, 0.7)
 horizontal_alignment = 2
 
-[node name="MusicLabel" type="Label" parent="Panel/Box/Choices"]
+[node name="MusicLabel" type="Label" parent="Panel/Box/Sound"]
 text = "Music"
 
-[node name="Music" type="HSlider" parent="Panel/Box/Choices"]
+[node name="Music" type="HSlider" parent="Panel/Box/Sound"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(200, 0)
 size_flags_horizontal = 3
@@ -71,16 +95,16 @@ min_value = 0.0
 max_value = 100.0
 step = 5.0
 
-[node name="MusicValue" type="Label" parent="Panel/Box/Choices"]
+[node name="MusicValue" type="Label" parent="Panel/Box/Sound"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(64, 0)
 modulate = Color(1, 1, 1, 0.7)
 horizontal_alignment = 2
 
-[node name="EffectsLabel" type="Label" parent="Panel/Box/Choices"]
+[node name="EffectsLabel" type="Label" parent="Panel/Box/Sound"]
 text = "Effects"
 
-[node name="Effects" type="HSlider" parent="Panel/Box/Choices"]
+[node name="Effects" type="HSlider" parent="Panel/Box/Sound"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(200, 0)
 size_flags_horizontal = 3
@@ -89,25 +113,23 @@ min_value = 0.0
 max_value = 100.0
 step = 5.0
 
-[node name="EffectsValue" type="Label" parent="Panel/Box/Choices"]
+[node name="EffectsValue" type="Label" parent="Panel/Box/Sound"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(64, 0)
 modulate = Color(1, 1, 1, 0.7)
 horizontal_alignment = 2
 
-[node name="FullscreenLabel" type="Label" parent="Panel/Box/Choices"]
-text = "Fullscreen"
-
-[node name="Fullscreen" type="CheckButton" parent="Panel/Box/Choices"]
+[node name="Controls" type="GridContainer" parent="Panel/Box"]
 unique_name_in_owner = true
-size_flags_horizontal = 0
+custom_minimum_size = Vector2(0, 216)
+theme_override_constants/h_separation = 18
+theme_override_constants/v_separation = 10
+columns = 3
 
-[node name="FullscreenSpacer" type="Control" parent="Panel/Box/Choices"]
-
-[node name="SensitivityLabel" type="Label" parent="Panel/Box/Choices"]
+[node name="SensitivityLabel" type="Label" parent="Panel/Box/Controls"]
 text = "Mouse sensitivity"
 
-[node name="Sensitivity" type="HSlider" parent="Panel/Box/Choices"]
+[node name="Sensitivity" type="HSlider" parent="Panel/Box/Controls"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(200, 0)
 size_flags_horizontal = 3
@@ -116,25 +138,25 @@ min_value = 0.02
 max_value = 0.5
 step = 0.01
 
-[node name="SensitivityValue" type="Label" parent="Panel/Box/Choices"]
+[node name="SensitivityValue" type="Label" parent="Panel/Box/Controls"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(64, 0)
 modulate = Color(1, 1, 1, 0.7)
 horizontal_alignment = 2
 
-[node name="InvertYLabel" type="Label" parent="Panel/Box/Choices"]
+[node name="InvertYLabel" type="Label" parent="Panel/Box/Controls"]
 text = "Invert Y"
 
-[node name="InvertY" type="CheckButton" parent="Panel/Box/Choices"]
+[node name="InvertY" type="CheckButton" parent="Panel/Box/Controls"]
 unique_name_in_owner = true
 size_flags_horizontal = 0
 
-[node name="InvertYSpacer" type="Control" parent="Panel/Box/Choices"]
+[node name="InvertYSpacer" type="Control" parent="Panel/Box/Controls"]
 
-[node name="FieldOfViewLabel" type="Label" parent="Panel/Box/Choices"]
+[node name="FieldOfViewLabel" type="Label" parent="Panel/Box/Controls"]
 text = "Field of view"
 
-[node name="FieldOfView" type="HSlider" parent="Panel/Box/Choices"]
+[node name="FieldOfView" type="HSlider" parent="Panel/Box/Controls"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(200, 0)
 size_flags_horizontal = 3
@@ -143,16 +165,16 @@ min_value = 75.0
 max_value = 110.0
 step = 1.0
 
-[node name="FieldOfViewValue" type="Label" parent="Panel/Box/Choices"]
+[node name="FieldOfViewValue" type="Label" parent="Panel/Box/Controls"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(64, 0)
 modulate = Color(1, 1, 1, 0.7)
 horizontal_alignment = 2
 
-[node name="DeckRollLabel" type="Label" parent="Panel/Box/Choices"]
+[node name="DeckRollLabel" type="Label" parent="Panel/Box/Controls"]
 text = "Roll with the deck"
 
-[node name="DeckRoll" type="HSlider" parent="Panel/Box/Choices"]
+[node name="DeckRoll" type="HSlider" parent="Panel/Box/Controls"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(200, 0)
 size_flags_horizontal = 3
@@ -161,16 +183,16 @@ min_value = 0.0
 max_value = 100.0
 step = 5.0
 
-[node name="DeckRollValue" type="Label" parent="Panel/Box/Choices"]
+[node name="DeckRollValue" type="Label" parent="Panel/Box/Controls"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(64, 0)
 modulate = Color(1, 1, 1, 0.7)
 horizontal_alignment = 2
 
-[node name="ViewKickLabel" type="Label" parent="Panel/Box/Choices"]
+[node name="ViewKickLabel" type="Label" parent="Panel/Box/Controls"]
 text = "View kick"
 
-[node name="ViewKick" type="HSlider" parent="Panel/Box/Choices"]
+[node name="ViewKick" type="HSlider" parent="Panel/Box/Controls"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(200, 0)
 size_flags_horizontal = 3
@@ -179,11 +201,65 @@ min_value = 0.0
 max_value = 100.0
 step = 5.0
 
-[node name="ViewKickValue" type="Label" parent="Panel/Box/Choices"]
+[node name="ViewKickValue" type="Label" parent="Panel/Box/Controls"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(64, 0)
 modulate = Color(1, 1, 1, 0.7)
 horizontal_alignment = 2
+
+[node name="Graphics" type="VBoxContainer" parent="Panel/Box"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 216)
+theme_override_constants/separation = 14
+
+[node name="GraphicsChoices" type="GridContainer" parent="Panel/Box/Graphics"]
+theme_override_constants/h_separation = 18
+theme_override_constants/v_separation = 10
+columns = 3
+
+[node name="FullscreenLabel" type="Label" parent="Panel/Box/Graphics/GraphicsChoices"]
+text = "Fullscreen"
+
+[node name="Fullscreen" type="CheckButton" parent="Panel/Box/Graphics/GraphicsChoices"]
+unique_name_in_owner = true
+size_flags_horizontal = 0
+
+[node name="FullscreenSpacer" type="Control" parent="Panel/Box/Graphics/GraphicsChoices"]
+
+[node name="QualityLabel" type="Label" parent="Panel/Box/Graphics/GraphicsChoices"]
+text = "Quality"
+
+[node name="Quality" type="OptionButton" parent="Panel/Box/Graphics/GraphicsChoices"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(200, 0)
+size_flags_horizontal = 3
+
+[node name="QualitySpacer" type="Control" parent="Panel/Box/Graphics/GraphicsChoices"]
+
+[node name="RenderScaleLabel" type="Label" parent="Panel/Box/Graphics/GraphicsChoices"]
+text = "Render scale"
+
+[node name="RenderScale" type="HSlider" parent="Panel/Box/Graphics/GraphicsChoices"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(200, 0)
+size_flags_horizontal = 3
+size_flags_vertical = 4
+min_value = 50.0
+max_value = 100.0
+step = 5.0
+value = 100.0
+
+[node name="RenderScaleValue" type="Label" parent="Panel/Box/Graphics/GraphicsChoices"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(64, 0)
+modulate = Color(1, 1, 1, 0.7)
+horizontal_alignment = 2
+
+[node name="QualityHint" type="Label" parent="Panel/Box/Graphics"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(456, 0)
+theme_type_variation = &"HintLabel"
+autowrap_mode = 3
 
 [node name="Back" type="Button" parent="Panel/Box"]
 unique_name_in_owner = true

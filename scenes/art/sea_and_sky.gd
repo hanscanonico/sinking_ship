@@ -124,6 +124,15 @@ func setup(end_tick: int, layout: ShipLayout) -> void:
 	_stern = Vector3(bounds.position.x, top, middle)
 
 
+## Draws the sun's shadows, the dusk's glow and the sea's fine detail as
+## [param quality] says.
+func show_graphics(quality: GraphicsQuality) -> void:
+	_sun.directional_shadow_mode = quality.shadow_mode
+	_sun.directional_shadow_max_distance = quality.shadow_distance
+	_dusk.glow_enabled = quality.glow
+	_water.set_shader_parameter(&"fine_share", quality.sea_detail)
+
+
 ## Shows the sinking at [param tick] with the ship drawn at [param ship_to_world].
 func show_sinking(tick: int, ship_to_world: Transform3D) -> void:
 	var progress := clampf(float(tick) / _end_tick, 0.0, 1.0) if _end_tick > 0 else 0.0

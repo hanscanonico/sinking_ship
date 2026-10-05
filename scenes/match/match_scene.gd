@@ -92,9 +92,10 @@ func _process(delta: float) -> void:
 	_hud.show_snapshot(snapshot)
 	_sea_and_sky.show_sinking(snapshot["tick"], _view.ship_to_world())
 	_hud.show_spectating(_spectating(snapshot, viewed))
-	_hud.show_controls(_prompts.controls() if _local != null else "")
+	_hud.show_controls(_prompts if _local != null else null)
 	_end.show_results(_stats, _local_seat, _names, _config.match_seed)
-	_end.show_prompts(_prompts)
+	if _end.visible:
+		_end.show_prompts(_prompts)
 	_pointer.want(_looking())
 	_hold()
 	if _looking():
@@ -258,6 +259,7 @@ func _begin(
 	_first_person_hud.setup(sim, _names, not observer, _prompts)
 	_sea_and_sky.setup(sim.schedule.cap_tick(), config.ship)
 	_underwater.setup(_sea_and_sky)
+	_show_graphics(settings.graphics())
 	_observer_camera.whole_ship = observer and is_finite(observer_cut)
 	_audio.setup(_driver, sim, _view, _local_seat, _underwater)
 	_observer_camera.reset(_view.seat_world_position(_eye_seat), _deck_bounds(config.ship))
@@ -269,11 +271,13 @@ func _begin(
 	print("match seed %d" % config.match_seed)
 
 
-## Takes up the settings screen's field of view, deck roll and view kick mid-match;
-## the look's sensitivity and invert-Y are read from the same settings as they turn.
+## Takes up the settings screen's field of view, deck roll, view kick and graphics
+## mid-match; the look's sensitivity and invert-Y are read from the same settings as
+## they turn.
 func apply_view(settings: ViewSettings) -> void:
 	_eyes.setup(settings)
 	_kick.set_strength(settings.view_kick)
+	_show_graphics(settings.graphics())
 
 
 ## The latest snapshot.
@@ -318,6 +322,13 @@ func _looking() -> bool:
 func _hold() -> void:
 	if _local != null:
 		_local.held = _mouse_freed or (_online and _pointer.waiting())
+
+
+## Draws the sea, the sky and the ship as [param quality] says.
+func _show_graphics(quality: GraphicsQuality) -> void:
+	_sea_and_sky.show_graphics(quality)
+	_underwater.show_graphics(quality)
+	_ship_art.show_graphics(quality)
 
 
 ## Every platform's area together, in the ship plane.

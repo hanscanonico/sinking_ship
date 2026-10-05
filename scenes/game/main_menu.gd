@@ -77,6 +77,11 @@ func hold_drift(sway: float) -> void:
 	_backdrop.hold_drift(sway)
 
 
+## Draws the backdrop as [param settings]' graphics now say.
+func show_graphics(settings: ViewSettings) -> void:
+	_backdrop.show_graphics(settings)
+
+
 func show_problem(text: String) -> void:
 	_problem.text = text
 	_problem.show()

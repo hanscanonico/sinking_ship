@@ -13,6 +13,8 @@ const FULL_WALL := 1.9
 ## A margin round a room's box when judging whether a point stands in it.
 const INSIDE := 0.02
 const SLIVER := 0.01
+## Per side (0 to 3), its unit vector out of the room, ship plane (outward()).
+const OUTWARD: Array[Vector2] = [Vector2.UP, Vector2.RIGHT, Vector2.DOWN, Vector2.LEFT]
 
 var layout: ShipLayout
 
@@ -289,8 +291,7 @@ func on_side(room: ShipRoom, side: int, distance: float, depth: float) -> Vector
 
 ## A side's unit vector out of the room, in the ship plane.
 static func outward(side: int) -> Vector2:
-	var directions: Array[Vector2] = [Vector2.UP, Vector2.RIGHT, Vector2.DOWN, Vector2.LEFT]
-	return directions[side]
+	return OUTWARD[side]
 
 
 ## Whether a box thicker than a wall stands on [param room]'s floor inside it: an
