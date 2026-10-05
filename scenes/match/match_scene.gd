@@ -22,6 +22,10 @@ const SPECTATE_PITCH_DEG := -10.0
 ## collapses.
 const LURCH_WARNING_SHAKE := 0.4
 const COLLAPSE_SHAKE := 0.6
+## The observer's framing of the cells: lower and further off than its own, so the
+## cells stacked under the decks stand apart and the ship shows end to end.
+const CELLS_PITCH_DEG := 25.0
+const CELLS_DISTANCE := 33.0
 
 var _config: MatchConfig
 var _stats: MatchStats
@@ -49,6 +53,8 @@ var _fx := SinkingFx.new()
 var _prompts := InputPrompts.new()
 var _pointer := PointerCapture.new()
 var _kick: ViewKick
+## The ship's cells over the observer's view, once show_cells() asks for them.
+var _cells: CellOverlay
 
 @onready var _sea_and_sky: SeaAndSky = $SeaAndSky
 @onready var _driver: SimDriver = $SimDriver
@@ -203,6 +209,19 @@ func stage_eyes(at: PackedFloat64Array) -> void:
 	if at.size() == 4:
 		_staged.append(SPECTATE_PITCH_DEG)
 	_arms.visible = at.is_empty()
+
+
+## Draws the ship's cells over the observer's view, named, and frames the whole ship
+## (--observer-cells): a tool, as the observer camera is.
+func show_cells() -> void:
+	if _cells == null:
+		_cells = CellOverlay.new()
+		_view.get_node("Ship").add_child(_cells)
+	_cells.build(_config.ship.structure)
+	_observer_camera.pitch_deg = CELLS_PITCH_DEG
+	_observer_camera.distance = CELLS_DISTANCE
+	_observer_camera.whole_ship = true
+	_observer_camera.reset(Vector3.ZERO, _deck_bounds(_config.ship))
 
 
 ## Lets the mouse go, or takes it back, without pausing: the online match's Esc. While

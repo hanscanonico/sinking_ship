@@ -17,6 +17,11 @@ extends SceneTree
 ##   railings. And through every railing span, broken, the opening it leaves stands
 ##   open as drawn: nothing across it between a step over its deck and a body's
 ##   height, from its line out to a body's breadth past it.
+## - The hull against the structure (§5b.2), on every ship that has one: every point
+##   of every section's outline below the sheer within HULL_TOLERANCE of a drawn face,
+##   across the outline there; and every pane of glass the art sets in an outside wall
+##   is a porthole or a window of the structure, and every porthole and window is a
+##   pane, within PANE_TOLERANCE along the wall.
 ## - Seats: through a bots-only match in the real match scene, every brawler's
 ##   model hangs from its body's feet — the posed ship carrying the interpolated
 ##   snapshot position — and the mannequin's soles stand on that root.
@@ -59,6 +64,10 @@ const PLATFORM_TOLERANCE := 0.02
 const BLOCKER_TOLERANCE := 0.05
 const RAMP_TOLERANCE := ShipArt.STEP_RISE * 0.5 + PLATFORM_TOLERANCE
 const LADDER_TOLERANCE := 0.05
+## How far the drawn hull may stand from a section's outline (est.), and a pane from
+## its opening.
+const HULL_TOLERANCE := 0.05
+const PANE_TOLERANCE := 0.05
 ## How far past a platform's edge the false-floor probes stand, how far apart along
 ## it, and how near upright a face must turn to read as floor; past an edge that
 ## ends the decks, probes stand BEYOND_STEP apart out to END_BEYOND, past the stem
@@ -281,6 +290,9 @@ func _check_ship(file: String, layout: ShipLayout) -> void:
 		)
 	for index in layout.ladders.size():
 		_check_ladder(faces, cells, "%s ladder %d" % [file, index], layout.ladders[index], layout)
+	if layout.structure != null:
+		_check_hull(faces, cells, file, layout)
+		_check_panes(file, layout, rules)
 	_check_false_floor(art, file, layout, rules)
 	_check_crate_light(file, layout, art)
 	_checks += 1
@@ -288,6 +300,93 @@ func _check_ship(file: String, layout: ShipLayout) -> void:
 		_problems.append("art-lint: %s: %s" % [file, problem])
 	art.free()
 	_check_open_spans(file, layout, rules)
+
+
+## Each section of [param layout]'s structure below the sheer — the hull's, not a
+## deckhouse's — against the drawn faces: at the middle of each stretch of its
+## outline, a face within HULL_TOLERANCE of it straight out of the outline there. The
+## worst miss per ship is the check's.
+func _check_hull(
+	faces: PackedVector3Array, cells: Dictionary, file: String, layout: ShipLayout
+) -> void:
+	var space := ShipSpace.new(layout)
+	var worst := 0.0
+	var worst_at := Vector3.ZERO
+	for section: HullSection in layout.structure.sections:
+		_checks += 1
+		var shape := space.envelope(section.x)
+		var sheer := INF if shape.x == INF else maxf(shape.z, shape.w)
+		var outline := section.outline
+		for index in outline.size():
+			var from := outline[index]
+			var to := outline[(index + 1) % outline.size()]
+			if maxf(from.y, to.y) >= sheer - SAMPLE_INSET or from.distance_to(to) < SAMPLE_INSET:
+				continue
+			var middle := (from + to) * 0.5
+			# Counter-clockwise in (z, y): out of the outline is the stretch turned right.
+			var out := Vector3(0.0, -(to.x - from.x), to.y - from.y).normalized()
+			var at := Vector3(section.x, middle.y, middle.x)
+			var off := _nearest_face(faces, cells, at, out)
+			if off > worst:
+				worst = off
+				worst_at = at
+	if worst > HULL_TOLERANCE:
+		_problems.append(
+			(
+				"art-lint: %s hull: drawn %.1f cm off its section at %s"
+				% [file, worst * 100.0, worst_at]
+			)
+		)
+
+
+## Every pane of glass ShipFittings sets in an outside wall of [param layout] against
+## its structure's portholes (in the hull) and windows (above it): each pane one of
+## them on its side of the wall, its middle within PANE_TOLERANCE along the wall and
+## up it, and each of them one pane.
+func _check_panes(file: String, layout: ShipLayout, rules: BrawlRules) -> void:
+	var space := ShipSpace.new(layout)
+	var fittings := ShipFittings.new(
+		space, ShipHull.new(space, rules.railing_height), rules.body_radius
+	)
+	fittings.build(ShipMesh.new(func(_point: Vector3) -> bool: return false, space.room_lines()))
+	var glass: Array[ShipOpening] = []
+	for opening: ShipOpening in layout.structure.openings:
+		if opening.kind in [ShipOpening.Kind.PORTHOLE, ShipOpening.Kind.WINDOW]:
+			glass.append(opening)
+	var matched := {}
+	for pane: Array in fittings.panes:
+		_checks += 1
+		var inside: Vector3 = pane[1]
+		var into: Vector3 = pane[2]
+		var kind := ShipOpening.Kind.PORTHOLE if pane[3] else ShipOpening.Kind.WINDOW
+		var across := 0 if absf(into.x) > 0.5 else 2
+		var found := -1
+		for index in glass.size():
+			var opening := glass[index]
+			var along := 2 - across
+			if (
+				opening.kind == kind
+				and opening.facing() == across
+				and (opening.centre - inside).dot(into) < 0.0
+				and absf(opening.centre[along] - inside[along]) <= PANE_TOLERANCE
+				and absf(opening.centre.y - inside.y) <= PANE_TOLERANCE
+			):
+				found = index
+		if found == -1:
+			_problems.append(
+				"art-lint: %s: a pane at %s is no opening of the structure" % [file, inside]
+			)
+		else:
+			matched[found] = matched.get(found, 0) + 1
+	for index in glass.size():
+		_checks += 1
+		if matched.get(index, 0) != 1:
+			_problems.append(
+				(
+					"art-lint: %s: opening %s is %d panes drawn, not one"
+					% [file, glass[index].name, matched.get(index, 0)]
+				)
+			)
 
 
 ## Past each of [param layout]'s platforms' edges, wherever the rules have no stair
