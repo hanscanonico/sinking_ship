@@ -1008,6 +1008,7 @@ ballast = weight - sum(m[1] for m in MASS)
 ballast_x = (weight * along / displaced - sum(m[1] * m[2][0] for m in MASS)) / ballast
 ballast_z = (weight * across / displaced - sum(m[1] * m[2][2] for m in MASS)) / ballast
 assert ballast > 0, "she is heavier than she floats"
+assert cell_at(ballast_x, BALLAST_Y, ballast_z), "her solved ballast must lie in one of her cells"
 MASS.append(("ballast", round(ballast, 1), (round(ballast_x, 4), BALLAST_Y, round(ballast_z, 4)),
              (round(ballast_x - BALLAST_REACH, 4), round(ballast_x + BALLAST_REACH, 4))))
 # How her mass turns, the water moving with her, and how her motions die away (est.).
