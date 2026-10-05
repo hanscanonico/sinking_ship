@@ -7,6 +7,13 @@ const SEEDS := 200
 ## The raw census's seeds the quick check is held to: each hit it throws out is baked
 ## to show she floats on it.
 const RAW_SEEDS := 60
+## Explicit hits the bake sinks her on: her sure hit (empty) and the fixtures'.
+const SINKING_HITS: Array[String] = [
+	"",
+	"res://tests/fixtures/sinking/hits/fast.tres",
+	"res://tests/fixtures/sinking/hits/show.tres",
+	"res://tests/fixtures/sinking/hits/late.tres",
+]
 
 var _structure: ShipStructure
 var _scenario: SinkScenario
@@ -62,6 +69,13 @@ func test_quick_check_never_throws_out_a_hit_the_bake_sinks() -> void:
 			sunk.append("seed %d" % seed_value)
 	assert_gt(thrown, 0, "the quick check throws hits out")
 	assert_eq(sunk, PackedStringArray(), "and never one the bake sinks")
+	# A level ship sinks on almost no raw draw, so the census alone would pass a quick
+	# check that threw out every hit: hits the bake is known to sink must pass it too.
+	for path: String in SINKING_HITS:
+		var hit: IcebergHit = load(path) if not path.is_empty() else _structure.sure_hit
+		assert_true(SimFixtures.bake(hit).is_gone(), "%s: the bake sinks her" % path)
+		var damage := HitMapper.map_explicit(hit, _structure, _scenario.hit)
+		assert_true(_founders(damage), "%s: and the quick check keeps it" % path)
 
 
 func test_redraws_stay_within_their_bound() -> void:
