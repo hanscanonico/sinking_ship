@@ -79,6 +79,7 @@ func _ready() -> void:
 	add_child(_marks)
 	add_child(_dust)
 	add_child(_fx)
+	add_child(FxWarmUp.new(_fx.emitters()))
 	add_child(_prompts)
 	add_child(_pointer)
 	_pointer.lost.connect(pointer_lost.emit)
