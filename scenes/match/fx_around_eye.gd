@@ -5,7 +5,8 @@ extends Node3D
 ## over the ship raining down before the eye in the plunge; the grit of a deck giving
 ## way blowing past from behind; water streaming down the planks before it. Each is
 ## one emitter of fixed size, told where every step that wants it and falling quiet
-## once none does. Near the eye they are specks or lie flat on the planks.
+## once none does. Near the eye they are specks, lie flat on the planks or fade
+## out, and the rain keeps clear of the crosshair.
 
 ## Grains each draws at most.
 const RAIN_GRAINS := 80
@@ -15,21 +16,30 @@ const RUNNEL_GRAINS := 32
 const GRAINS := RAIN_GRAINS + DRIFT_GRAINS + RUNNEL_GRAINS
 ## A raindrop of spray, as big as a square this many metres across, this many times
 ## as long as it is wide; a speck of drifting grit; a runnel of water, across and
-## along.
-const RAINDROP := 0.2
-const RAIN_ASPECT := 8.0
+## along, its lace drawn out this many times along its flow.
+const RAINDROP := 0.3
+const RAIN_ASPECT := 9.0
 const GRIT := 0.2
 const RUNNEL := Vector2(0.22, 0.9)
+const RUNNEL_DRAWN := 3.0
 ## Spray rains out of a box this far ahead of the eye, over it and upwind of it,
-## this big either way (across, up, ahead), in metres, blown along the wind and
-## falling this steeply; this opaque at the plunge's start and once it has gathered,
-## no more than a speck of white water near the eye may be.
-const RAIN_AHEAD := 6.0
-const RAIN_OVER := 3.5
+## this big either way (across, up, ahead), in metres — beyond any opponent close
+## enough to fight — blown along the wind and falling this steeply; this opaque at
+## the plunge's start and once it has gathered, and this bright: pale and
+## see-through against the sky, never a glare of white.
+const RAIN_AHEAD := 13.0
+const RAIN_OVER := 4.0
 const RAIN_UPWIND := 4.0
-const RAIN_BOX := Vector3(6.0, 1.5, 5.0)
+const RAIN_BOX := Vector3(9.0, 2.0, 4.0)
 const RAIN_FALL := 0.7
-const RAIN_ALPHA := Vector2(0.4, SinkingFx.SPECK_ALPHA)
+const RAIN_ALPHA := Vector2(0.2, 0.4)
+const RAIN_GLOW := 1.0
+## A drop blown nearer the eye than the far end of HUSHED's ease fades from there,
+## gone by the near end — a long streak near the eye is never drawn whole — and none
+## is drawn within this share of the screen's height of the crosshair, fading in over
+## as much again.
+const RAIN_CLEAR := Vector2(5.0, SinkingFx.HUSHED + SinkingFx.HUSH_EASE)
+const RAIN_CROSSHAIR := 0.1
 ## Grit blows past overhead from a box this far behind the eye and over it, this
 ## big, for this long, settling into view ahead: specks, as anything this near the
 ## eye must be, and gone nearer the eye than GRIT_CLEAR.
@@ -52,10 +62,14 @@ var _drift_left := 0.0
 var _runnel_left := 0.0
 
 
-## Draws its spray in [param streak]'s shape and its runnels in [param lace]'s
-## (FxGrains.streak, FxGrains.lace).
-func _init(streak: Texture2D, lace: Texture2D) -> void:
-	var drop := FxGrains.streaks(RAINDROP, RAIN_ASPECT, streak, FxGrains.SPECK_CLEAR)
+## Draws its spray in [param streak]'s shape (FxGrains.streak).
+func _init(streak: Texture2D) -> void:
+	var drop := FxGrains.streaks(RAINDROP, RAIN_ASPECT, streak)
+	var material := drop.material as ShaderMaterial
+	material.set_shader_parameter(&"clear_from", RAIN_CLEAR.x)
+	material.set_shader_parameter(&"clear_to", RAIN_CLEAR.y)
+	material.set_shader_parameter(&"crosshair", RAIN_CROSSHAIR)
+	material.set_shader_parameter(&"glow", RAIN_GLOW)
 	_rain = _emitter(RAIN_GRAINS, drop, "Rain")
 	FxGrains.spray_rain(_rain)
 	_rain.emission_box_extents = RAIN_BOX
@@ -63,7 +77,8 @@ func _init(streak: Texture2D, lace: Texture2D) -> void:
 	_drift = _emitter(DRIFT_GRAINS, speck, "Drift")
 	FxGrains.drift(_drift)
 	_drift.emission_box_extents = DRIFT_BOX
-	_runnel = _emitter(RUNNEL_GRAINS, FxGrains.laces(RUNNEL, lace), "Runnel")
+	var streaming := FxGrains.laces(RUNNEL, FxGrains.lace(RUNNEL_DRAWN))
+	_runnel = _emitter(RUNNEL_GRAINS, streaming, "Runnel")
 	FxGrains.runnel(_runnel)
 
 
@@ -120,6 +135,8 @@ func runnel(
 
 ## Nothing going, and nothing asked for.
 func clear() -> void:
+	for emitter: CPUParticles3D in emitters():
+		emitter.emitting = false
 	_rain_left = 0.0
 	_drift_left = 0.0
 	_runnel_left = 0.0

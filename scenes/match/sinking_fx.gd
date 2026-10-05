@@ -62,8 +62,9 @@ const NEAR := 1.0
 ## Within HUSHED of the eye white water climbs no higher than KNEE over the floor
 ## under the eye (FirstPersonCamera.EYE_HEIGHT below it) — to LEAST_TOP over the sea,
 ## for an eye in the sea — and its grains are specks covering at most a SPECK-sided
-## square; any grain bigger than that is at most HUSHED_ALPHA as opaque as it would
-## be. Past HUSHED an effect eases into its full self over HUSH_EASE.
+## square, a streak no longer than SPECK end to end; any grain bigger than that is
+## at most HUSHED_ALPHA as opaque as it would be. Past HUSHED an effect eases into
+## its full self over HUSH_EASE.
 const HUSHED := 8.0
 const HUSH_EASE := 2.0
 const KNEE := 0.45
@@ -248,7 +249,7 @@ func _ready() -> void:
 		billow,
 		ArtPalette.STEAM,
 		ArtPalette.STEAM_SHADE,
-		FxGrains.WHITE_GLOW,
+		FxGrains.STEAM_GLOW,
 		FxGrains.STEAM_CLEAR
 	)
 	for index in PLUMES:
@@ -275,7 +276,7 @@ func _ready() -> void:
 	FxGrains.funnel_smoke(_smoke)
 	_belch = _emitter(BELCH_GRAINS, smoke, true, "Belch")
 	FxGrains.funnel_smoke(_belch)
-	_around = FxAroundEye.new(streak, lace)
+	_around = FxAroundEye.new(streak)
 	_around.name = "AroundEye"
 	add_child(_around)
 	_flotsam = Flotsam.new()
@@ -601,12 +602,14 @@ func _water_burst(
 		shows = shown(nearest_on(at, to, eye).distance_to(eye))
 		top = lerpf(minf(rise, maxf(knee(eye) - at.y, LEAST_TOP)), rise, shows)
 	var depth := lerpf(0.08, 0.35, shows)
-	var grain := lerpf(SPECK, DROPLET * FxGrains.WATER_GROWN * (1.2 + strength), shows)
+	# A grain is a streak along its flight, measured end to end: a grown one's length.
+	var streak := DROPLET * sqrt(STREAK_ASPECT) * FxGrains.WATER_GROWN
+	var grain := lerpf(SPECK, streak * (1.2 + strength), shows)
 	var direction := toward
 	burst.gravity = Vector3.DOWN * Flotsam.GRAVITY + FxGrains.downwind()
 	if kind == FxCue.Kind.VENT:
 		var force := lerpf(0.4, 1.0, strength) * lerpf(0.4, 1.0, shows)
-		grain = lerpf(SPECK, DROPLET * FxGrains.WATER_GROWN * (1.3 + strength * 0.6), shows)
+		grain = lerpf(SPECK, streak * (1.3 + strength * 0.6), shows)
 		burst.lifetime = 0.75
 		direction = (toward + Vector3.UP * 0.35).normalized()
 		burst.spread = 16.0
@@ -638,7 +641,7 @@ func _water_burst(
 	burst.global_transform = Transform3D(basis, (at + to) * 0.5)
 	burst.color = Color(1.0, 1.0, 1.0, lerpf(SPECK_ALPHA, 1.0, shows))
 	burst.direction = basis.transposed() * direction
-	burst.scale_amount_max = grain / (DROPLET * FxGrains.WATER_GROWN)
+	burst.scale_amount_max = grain / streak
 	burst.scale_amount_min = minf(0.6, burst.scale_amount_max)
 	burst.restart()
 	burst.emitting = true

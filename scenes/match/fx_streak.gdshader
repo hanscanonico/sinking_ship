@@ -1,6 +1,7 @@
 // A streak of white water (SinkingFx): a shaped grain stretched along the way it
 // flies — the particle's y, which CPUParticles3D aligns with its velocity — and
-// turned about it to face the eye. It draws in to a fleck as it slows and falls.
+// turned about it to face the eye. It draws in to a fleck as it slows and falls;
+// spray raining round the eye keeps clear of the crosshair.
 shader_type spatial;
 render_mode unshaded, blend_mix, depth_draw_opaque, cull_disabled;
 
@@ -9,6 +10,9 @@ render_mode unshaded, blend_mix, depth_draw_opaque, cull_disabled;
 uniform sampler2D grain : hint_default_white, filter_linear_mipmap, repeat_disable;
 // How long a streak is, as a share of its first length, when its life ends.
 uniform float fleck = 0.35;
+// None drawn within this share of the screen's height of its middle — the
+// crosshair — fading in over as much again; 0 for drawn everywhere.
+uniform float crosshair = 0.0;
 
 void vertex() {
 	float scale = length(MODEL_MATRIX[1].xyz);
@@ -39,4 +43,8 @@ void fragment() {
 	float cover = shape_edge(texture(grain, UV).a, 0.5);
 	ALBEDO = COLOR.rgb * glow;
 	ALPHA = COLOR.a * cover * near_fade(VERTEX);
+	if (crosshair > 0.0) {
+		vec2 off = (SCREEN_UV - 0.5) * vec2(VIEWPORT_SIZE.x / VIEWPORT_SIZE.y, 1.0);
+		ALPHA *= smoothstep(crosshair, crosshair * 2.0, length(off));
+	}
 }

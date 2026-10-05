@@ -244,8 +244,10 @@ func test_effects_near_the_eye_are_low_small_and_faint() -> void:
 					var top := emitter.global_position.y + _climb(emitter)
 					var under := maxf(SinkingFx.knee(eye), SinkingFx.LEAST_TOP)
 					assert_lte(top, under + EPSILON, name + ": under the knees")
-				var faint := _opacity(emitter) <= SinkingFx.HUSHED_ALPHA + EPSILON
+				var faint := _near_opacity(emitter) <= SinkingFx.HUSHED_ALPHA + EPSILON
 				assert_true(_grain(emitter) <= SinkingFx.SPECK + EPSILON or faint, name)
+				if kind == FxCue.Kind.RAIN:
+					assert_gt(_crosshair(emitter), 0.0, name + ": clear of the crosshair")
 	# Dust shaken down from the ceiling of the room the eye is in, all across it.
 	var sift := FxCue.new(FxCue.Kind.SIFT, 0, Vector3(0.0, 2.6, 0.0))
 	sift.end = Vector3(1.7, 0.0, 3.3)
@@ -254,7 +256,7 @@ func test_effects_near_the_eye_are_low_small_and_faint() -> void:
 	var sifting := _played(fx, [sift], camera, 4)
 	assert_eq(sifting.size(), 1, "dust sifts down in the eye's room")
 	for emitter: CPUParticles3D in sifting:
-		var faint := _opacity(emitter) <= SinkingFx.HUSHED_ALPHA + EPSILON
+		var faint := _near_opacity(emitter) <= SinkingFx.HUSHED_ALPHA + EPSILON
 		assert_true(_grain(emitter) <= SinkingFx.SPECK + EPSILON or faint, "in specks")
 	assert_eq(_played(fx, [sift], camera, 5).size(), 0, "none from a room the eye is not in")
 	var rain := FxCue.new(FxCue.Kind.RAIN, 0)
@@ -321,6 +323,53 @@ func test_water_streams_down_the_deck_before_the_eye_lying_on_the_planks() -> vo
 	assert_almost_eq(runnel.global_basis.z, Vector3.FORWARD, Vector3.ONE * EPSILON, "downhill")
 	var on_ship := afloat.affine_inverse() * runnel.global_position
 	assert_true(promenade.contains(on_ship.x, on_ship.z), "on the deck the eye stands on")
+
+
+func test_every_grain_of_lace_shows_its_own_piece_of_one_sheet() -> void:
+	var sheet := FxGrains.lace().get_image()
+	var threads := _threads(sheet)
+	var width := sheet.get_width()
+	var height := sheet.get_height()
+	# A sheet whose threads run on off every edge — no round patch cut out of a square.
+	var edges := [0, 0, 0, 0]
+	for along in width:
+		edges[0] += threads[along]
+		edges[1] += threads[(height - 1) * width + along]
+	for down in height:
+		edges[2] += threads[down * width]
+		edges[3] += threads[down * width + width - 1]
+	for edge: int in edges:
+		assert_gt(edge, 0, "threads run off every edge of the sheet")
+	var patch := FxGrains.laces(SinkingFx.LACE, FxGrains.lace())
+	var window: Vector2 = (patch.material as ShaderMaterial).get_shader_parameter(&"window")
+	assert_lt(window.x, 1.0, "a grain shows a piece of the sheet, not all of it")
+	assert_lt(window.y, 1.0)
+
+
+func test_water_streaming_down_the_planks_runs_in_threads_along_its_flow() -> void:
+	var sheet := FxGrains.lace(FxAroundEye.RUNNEL_DRAWN).get_image()
+	var threads := _threads(sheet)
+	var width := sheet.get_width()
+	var across := 0
+	var along := 0
+	for down in sheet.get_height():
+		for at in width - 1:
+			across += absi(threads[down * width + at + 1] - threads[down * width + at])
+	for at in width:
+		for down in sheet.get_height() - 1:
+			along += absi(threads[(down + 1) * width + at] - threads[down * width + at])
+	assert_gt(across, along * 2, "a line across the flow crosses far more threads")
+
+
+func test_the_eye_s_effects_stop_when_cleared() -> void:
+	var around: FxAroundEye = add_child_autofree(FxAroundEye.new(FxGrains.streak()))
+	var camera: Camera3D = add_child_autofree(Camera3D.new())
+	around.rain(camera, 1.0, 5.0)
+	around.drift(Vector3(0.0, 0.0, -10.0), camera)
+	around.runnel(Vector3.ZERO, Vector3.FORWARD, Vector3.UP, 4.0, 5.0)
+	around.clear()
+	for emitter: CPUParticles3D in around.emitters():
+		assert_false(emitter.emitting, emitter.name)
 
 
 func test_a_splash_climbs_no_higher_than_its_cue_lets_it() -> void:
@@ -429,9 +478,21 @@ func _assert_hushed(fx: SinkingFx, eye: Vector3, planks: Vector3) -> int:
 			var under := maxf(SinkingFx.knee(eye), SinkingFx.LEAST_TOP)
 			assert_lte(top, under + EPSILON, "spray near the eye under its knees")
 		elif emitter.name == "Rain":
-			assert_lte(_grain(emitter), SinkingFx.SPECK + EPSILON, "spray rains in specks")
+			var faint := _near_opacity(emitter) <= SinkingFx.HUSHED_ALPHA + EPSILON
+			var specks := _grain(emitter) <= SinkingFx.SPECK + EPSILON
+			assert_true(specks or faint, "spray rains near the eye in specks, or faint")
 			assert_lte(_opacity(emitter), SinkingFx.SPECK_ALPHA + EPSILON, "see-through ones")
+			assert_gt(_crosshair(emitter), 0.0, "clear of the crosshair")
 	return foams
+
+
+## Per pixel of the lace [param sheet], row by row, 1 where a thread is drawn whole.
+func _threads(sheet: Image) -> PackedByteArray:
+	var threads := PackedByteArray()
+	for down in sheet.get_height():
+		for along in sheet.get_width():
+			threads.append(1 if sheet.get_pixel(along, down).a > 0.5 else 0)
+	return threads
 
 
 ## Whether [param emitter] throws white water up off the sea, not air out of a door.
@@ -470,13 +531,36 @@ func _climb(emitter: CPUParticles3D) -> float:
 	return start + maxf(flight, 0.0) + top
 
 
-## How big a grain of [param emitter] grows, at most: the side of a square covering
-## as much as it does, in metres.
+## How big a grain of [param emitter] grows, at most, in metres: a streak drawn out
+## along its flight, end to end; any other, the side of a square covering as much as
+## it does.
 func _grain(emitter: CPUParticles3D) -> float:
 	var grown := 1.0
 	if emitter.scale_amount_curve != null:
 		grown = emitter.scale_amount_curve.sample(1.0)
-	return _side(emitter) * emitter.scale_amount_max * grown
+	var size := _side(emitter)
+	if emitter.particle_flag_align_y and emitter.mesh is QuadMesh:
+		size = (emitter.mesh as QuadMesh).size.y
+	return size * emitter.scale_amount_max * grown
+
+
+## How opaque a grain of [param emitter] is drawn at most anywhere within HUSHED of
+## the eye, its material fading it out as it nears (fx_grain.gdshaderinc).
+func _near_opacity(emitter: CPUParticles3D) -> float:
+	var material := emitter.mesh.surface_get_material(0) as ShaderMaterial
+	if material == null:
+		return _opacity(emitter)
+	var from: float = material.get_shader_parameter(&"clear_from")
+	var to: float = material.get_shader_parameter(&"clear_to")
+	return _opacity(emitter) * smoothstep(from, to, SinkingFx.HUSHED)
+
+
+## How far round the crosshair [param emitter]'s grains keep clear, as a share of the
+## screen's height; 0 for none.
+func _crosshair(emitter: CPUParticles3D) -> float:
+	var material := emitter.mesh.surface_get_material(0) as ShaderMaterial
+	var clear: Variant = material.get_shader_parameter(&"crosshair") if material else null
+	return clear if clear is float else 0.0
 
 
 ## Whether [param emitter]'s grains lie flat in its plane.

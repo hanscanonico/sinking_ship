@@ -12,32 +12,22 @@ const FIELD_SPREAD := 4.0
 ## A streak of spray, on a picture of STREAK_SIZE pixels: a small round head (x, y,
 ## radius, in pixels) drawn out to the tip of a long tail.
 const STREAK_SIZE := Vector2i(16, 64)
-const STREAK_HEAD := Vector3(8.0, 7.0, 4.8)
-const STREAK_TIP := Vector3(8.6, 60.0, 0.5)
-## A patch of lace foam: white threads LACE_THREAD pixels thick where the cells round
-## LACE_CELLS meet, within LACE_REACH of its middle, the outermost cells left open.
-const LACE_SIZE := Vector2i(32, 32)
-const LACE_CELLS: Array[Vector2] = [
-	Vector2(10.7, 5.5),
-	Vector2(20.5, 3.2),
-	Vector2(17.1, 12.0),
-	Vector2(2.7, 16.2),
-	Vector2(3.1, 3.7),
-	Vector2(13.7, 25.8),
-	Vector2(19.8, 29.4),
-	Vector2(30.3, 2.4),
-	Vector2(26.8, 9.7),
-	Vector2(10.4, 18.6),
-	Vector2(24.8, 22.0),
-	Vector2(26.2, 29.3),
-	Vector2(2.8, 24.0),
-	Vector2(16.5, 19.5),
-	Vector2(8.6, 11.4),
-	Vector2(23.5, 15.3),
-	Vector2(7.6, 29.6),
-]
-const LACE_THREAD := 0.8
-const LACE_REACH := 14.5
+const STREAK_HEAD := Vector3(8.0, 6.0, 3.6)
+const STREAK_TIP := Vector3(8.3, 60.0, 1.1)
+## A sheet of lace foam, LACE_SIZE pixels, that tiles: white threads where the
+## cells of a jittered grid LACE_GRID cells a side meet, from LACE_THREAD.x to .y
+## pixels thick, swelling and thinning along them, as LACE_SEED lays them; its field
+## LACE_SPREAD pixels deep either side of a thread's edge, sharper than a shape's, so
+## a grain can wear its threads away by degrees; the broad noise a grain's ragged
+## outline follows, LACE_NOISE cells a side.
+const LACE_SIZE := Vector2i(64, 64)
+const LACE_GRID := 7
+const LACE_THREAD := Vector2(0.3, 1.2)
+const LACE_SPREAD := 2.0
+const LACE_SEED := 4817
+const LACE_NOISE := 4
+## How many metres of foam the whole sheet of lace spans, either way.
+const LACE_SHEET := 1.0
 ## A billow: bumps heaped on a broad foot, as blobs — the middle (x, y) and radius
 ## (z), in pixels — on a picture of BILLOW_SIZE pixels.
 const BILLOW_SIZE := Vector2i(32, 32)
@@ -65,15 +55,22 @@ const SPRAY_WIND := 3.0
 const CLEAR := 6.0
 const STEAM_CLEAR := 9.0
 const SPECK_CLEAR := 2.0
-## White water and steam drawn this much brighter than their colour, so they stay
+## White water drawn this much brighter than its colour, so it stays
 ## white through the tonemap as the sea's foam does; foam lying on the planks, in
 ## their light and shade, a little less; bubbles breaking on the sea, as its foam.
 const WHITE_GLOW := 3.2
+## Steam, a little brighter than its colour: its sunlit side white, its shade side
+## the dusk's lilac, never both blown out to one white.
+const STEAM_GLOW := 1.3
 const LACE_GLOW := 1.7
 const BUBBLE_GLOW := 2.4
 ## Grit blown off a falling deck a little brighter than its colour, so its warm tan
 ## holds against the dusk.
 const GRIT_GLOW := 1.4
+## How opaque foam on the planks is, and water streaming down them: see-through
+## enough that the patches overlapping run together into one band.
+const FOAM_OPACITY := 0.42
+const RUNNEL_OPACITY := 0.38
 ## How opaque the funnel's smoke is: dark, darker than the sky behind it.
 const SMOKE_OPACITY := 0.9
 ## Particles are drawn after the sea, which otherwise covers what stands on it.
@@ -83,6 +80,9 @@ const GRAIN_SHADER := preload("res://scenes/match/fx_grain.gdshader")
 const STREAK_SHADER := preload("res://scenes/match/fx_streak.gdshader")
 const LACE_SHADER := preload("res://scenes/match/fx_lace.gdshader")
 const BILLOW_SHADER := preload("res://scenes/match/fx_billow.gdshader")
+
+## The sheets of lace built so far, by how far their cells are drawn out.
+static var _laces := {}
 
 
 ## White water thrown up and falling back, blown downwind, its grains living
@@ -113,7 +113,7 @@ static func foam(emitter: CPUParticles3D) -> void:
 	emitter.scale_amount_min = 0.6
 	emitter.scale_amount_max = 1.0
 	emitter.scale_amount_curve = growth(0.7, FLECK_GROWN)
-	emitter.color_ramp = held(Color(ArtPalette.SPRAY, 0.6))
+	emitter.color_ramp = held(Color(ArtPalette.SPRAY, FOAM_OPACITY))
 
 
 ## Water streaming down the planks along the emitter's z: runnels of lace drawn out
@@ -129,7 +129,7 @@ static func runnel(emitter: CPUParticles3D) -> void:
 	emitter.scale_amount_min = 0.6
 	emitter.scale_amount_max = 1.0
 	emitter.scale_amount_curve = growth(0.8, 1.1)
-	emitter.color_ramp = held(Color(ArtPalette.SPRAY, 0.5))
+	emitter.color_ramp = held(Color(ArtPalette.SPRAY, RUNNEL_OPACITY))
 
 
 ## Spray blown across the sky and falling: fine streaks driven down the wind.
@@ -300,9 +300,13 @@ static func streaks(
 	return _quad(size, _material(STREAK_SHADER, picture, clear, WHITE_GLOW))
 
 
-## Lace foam lying flat in its emitter's x–z plane, [param size] along x and z.
+## Lace foam lying flat in its emitter's x–z plane, [param size] along x and z, each
+## grain its own piece of the sheet [param picture] (lace()), as much of it as
+## LACE_SHEET metres of it hold.
 static func laces(size: Vector2, picture: Texture2D) -> QuadMesh:
-	var quad := _quad(size, _material(LACE_SHADER, picture, SPECK_CLEAR, LACE_GLOW))
+	var material := _material(LACE_SHADER, picture, SPECK_CLEAR, LACE_GLOW)
+	material.set_shader_parameter(&"window", size / LACE_SHEET)
+	var quad := _quad(size, material)
 	quad.orientation = PlaneMesh.FACE_Y
 	return quad
 
@@ -400,33 +404,65 @@ static func streak() -> ImageTexture:
 	return ImageTexture.create_from_image(picture)
 
 
-## The picture of a patch of lace foam, its threads' distance field in alpha, as
-## shape() holds it.
-static func lace() -> ImageTexture:
+## The sheet of lace foam a grain shows a piece of (fx_lace.gdshader), its cells
+## drawn out [param drawn] times along its height — water streaming that way pulls
+## its threads out along its flow. Alpha holds the threads' distance field
+## (LACE_SPREAD); red, the broad noise a grain's ragged outline follows. Built once
+## for each [param drawn].
+static func lace(drawn: float = 1.0) -> ImageTexture:
+	if _laces.has(drawn):
+		return _laces[drawn]
+	var rng := RandomNumberGenerator.new()
+	rng.seed = LACE_SEED
 	var size := LACE_SIZE
-	var middle := Vector2(size) * 0.5
+	# Laid out on a sheet [param drawn] times shorter, then drawn out to its height.
+	var laid := Vector2(size.x, size.y / drawn)
+	var grid := Vector2i(LACE_GRID, maxi(roundi(LACE_GRID / drawn), 2))
+	var cell := laid / Vector2(grid)
+	# One point a cell, anywhere in it but its very rim.
+	var points := PackedVector2Array()
+	for row in grid.y:
+		for column in grid.x:
+			var jitter := Vector2(rng.randf_range(0.1, 0.9), rng.randf_range(0.1, 0.9))
+			points.append((Vector2(column, row) + jitter) * cell)
+	var outline := _noise(rng)
+	var swell := _noise(rng)
 	var picture := Image.create_empty(size.x, size.y, false, Image.FORMAT_RGBA8)
 	for y in size.y:
 		for x in size.x:
-			var at := Vector2(x + 0.5, y + 0.5)
+			var at := Vector2(x + 0.5, (y + 0.5) / drawn)
+			var home := Vector2i(floori(at.x / cell.x), floori(at.y / cell.y))
 			var nearest := INF
 			var next := INF
-			for cell: Vector2 in LACE_CELLS:
-				var gap := at.distance_to(cell)
-				if gap < nearest:
-					next = nearest
-					nearest = gap
-				elif gap < next:
-					next = gap
+			for row in range(-2, 3):
+				for column in range(-2, 3):
+					var over := home + Vector2i(column, row)
+					var wrapped := Vector2i(posmod(over.x, grid.x), posmod(over.y, grid.y))
+					var shift := Vector2(over - wrapped) * cell
+					var gap := at.distance_to(points[wrapped.y * grid.x + wrapped.x] + shift)
+					if gap < nearest:
+						next = nearest
+						nearest = gap
+					elif gap < next:
+						next = gap
+			var uv := at / laid
+			var thread := lerpf(LACE_THREAD.x, LACE_THREAD.y, _sample(swell, uv))
 			# A thread runs where two cells meet: half their difference is how far off it.
-			var inside := minf(
-				LACE_THREAD - (next - nearest) * 0.5, LACE_REACH - at.distance_to(middle)
-			)
+			var inside := thread - (next - nearest) * 0.5
 			picture.set_pixel(
-				x, y, Color(0.5, 0.5, 1.0, clampf(0.5 + inside / FIELD_SPREAD * 0.5, 0.0, 1.0))
+				x,
+				y,
+				Color(
+					_sample(outline, uv),
+					0.5,
+					1.0,
+					clampf(0.5 + inside / LACE_SPREAD * 0.5, 0.0, 1.0)
+				)
 			)
 	picture.generate_mipmaps()
-	return ImageTexture.create_from_image(picture)
+	var sheet := ImageTexture.create_from_image(picture)
+	_laces[drawn] = sheet
+	return sheet
 
 
 ## A grain's scale over its life, from [param born] to [param grown].
@@ -479,6 +515,30 @@ static func _quad(size: Vector2, material: ShaderMaterial) -> QuadMesh:
 	quad.size = size
 	quad.material = material
 	return quad
+
+
+## A broad noise that tiles: LACE_NOISE cells a side of [param rng]'s values, 0…1.
+static func _noise(rng: RandomNumberGenerator) -> PackedFloat32Array:
+	var values := PackedFloat32Array()
+	for index in LACE_NOISE * LACE_NOISE:
+		values.append(rng.randf())
+	return values
+
+
+## [param noise] (_noise) at [param uv], 0…1 either way, eased between its cells and
+## wrapping round.
+static func _sample(noise: PackedFloat32Array, uv: Vector2) -> float:
+	var at := uv * LACE_NOISE - Vector2(0.5, 0.5)
+	var corner := Vector2i(floori(at.x), floori(at.y))
+	var part := at - Vector2(corner)
+	part = part * part * (Vector2(3.0, 3.0) - part * 2.0)
+	var value := func(column: int, row: int) -> float:
+		return noise[posmod(row, LACE_NOISE) * LACE_NOISE + posmod(column, LACE_NOISE)]
+	var low := lerpf(value.call(corner.x, corner.y), value.call(corner.x + 1, corner.y), part.x)
+	var high := lerpf(
+		value.call(corner.x, corner.y + 1), value.call(corner.x + 1, corner.y + 1), part.x
+	)
+	return lerpf(low, high, part.y)
 
 
 static func _radial(falloff: Gradient) -> GradientTexture2D:
