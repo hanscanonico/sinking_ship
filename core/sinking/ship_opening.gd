@@ -6,7 +6,8 @@ extends Resource
 ## space, flat across one axis. Ship-local metres (D6).
 
 ## OPEN joins two cells of one space with nothing between them: the hold and the
-## space under the forecastle over it.
+## space under the forecastle over it. GASH is the iceberg's, to the sea: never in a
+## ship's data, made by HitMapper for the cells a hit crosses.
 enum Kind {
 	DOOR,
 	WATERTIGHT_DOOR,
@@ -20,6 +21,7 @@ enum Kind {
 	VENT,
 	FREEING_PORT,
 	OPEN,
+	GASH,
 }
 enum Start { OPEN, SHUT }
 

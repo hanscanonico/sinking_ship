@@ -26,12 +26,13 @@ import:
 #   make run [SEED=] [SEATS=] [ARGS=]  the game, windowed, from the menu they fill in;
 #       ARGS passes more user args, e.g. ARGS=--observer for the observer camera
 #   make match SEED=1701 [SEATS=] [SECONDS=]   bots only, headless, as a transcript
-#   make capture SEED=1701 AT=60 [SEATS=] [EYE=] [CUT=0] [CELLS=1] [CAPTURE=path.png] [ARGS=]
+#   make capture SEED=1701 AT=60 [SEATS=] [EYE=] [CUT=0] [CELLS=1] [SIDE=port] [CAPTURE=] [ARGS=]
 #       a windowed bots-only match saved as a PNG at AT seconds of match time
 #       (or its end), then quit: from the observer camera, or through seat EYE's
 #       eyes; CUT cuts the observer's view of the ship away at and above that
 #       height to show the inside; CELLS draws the ship's cells over the observer's
-#       view, every one named; ARGS passes more user args, e.g.
+#       view, every one named; SIDE=port watches her from her port side rather
+#       than her starboard; ARGS passes more user args, e.g.
 #       ARGS=--net-sim=latency:120,jitter:20,loss:5. Not part of verify: it needs a
 #       display.
 #   make capture SCREEN=menu|settings|graphics|online|room [CAPTURE=]   the main menu,
@@ -49,6 +50,7 @@ AT ?=
 EYE ?=
 CUT ?=
 CELLS ?=
+SIDE ?=
 ARGS ?=
 SCREEN ?=
 RES ?=
@@ -81,6 +83,7 @@ capture:
 		$(match-args) $(if $(menu-screen),,--autoplay) --capture="$(CAPTURE)" \
 		$(if $(AT),--capture-at=$(AT)) $(if $(EYE),--capture-eye=$(EYE)) \
 		$(if $(CUT),--observer-cut=$(CUT)) $(if $(CELLS),--observer-cells) \
+		$(if $(SIDE),--observer-side=$(SIDE)) \
 		$(if $(SCREEN),--capture-screen=$(SCREEN)) $(ARGS)
 
 # `make net-bench [SEED=] [SEATS=] [SECONDS=] [NET=latency:120,jitter:20,loss:5]`: one
@@ -193,6 +196,16 @@ arena:
 	@set -o pipefail; $(GODOT) --headless --no-header --path . -s res://tools/arena.gd \
 		-- --seeds=$(SEEDS) $(if $(LOBBIES),--lobbies=$(LOBBIES)) | grep -v '^\[godot_ai'
 
+# `make hits SHIP=steamer SEEDS=200`: the spread of SHIP's iceberg hits over seeds
+# 1…SEEDS, each struck as her match on that seed strikes it — sides, places, the cells
+# opened, areas, moments, the walls weakened, the doors jammed and the openings left
+# open. Headless; no match is played. Rules live in tools/hits.gd.
+SHIP ?= steamer
+hits:
+	$(call require-godot)
+	@set -o pipefail; $(GODOT) --headless --no-header --path . -s res://tools/hits.gd \
+		-- --ship=$(SHIP) --seeds=$(SEEDS) | grep -v '^\[godot_ai'
+
 # The art against the data (D6) and the snapshots (D5): drawn platform tops,
 # every seat's model on its feet, no live sim object named under scenes/art.
 # Rules live in tools/art_lint.gd. Two frames per tick, so the view interpolates.
@@ -266,4 +279,4 @@ format-check:
 
 .PHONY: import run match capture net-bench sim-bench serve-local online-e2e export-server \
 	export-web export-mac export-server-mac serve-web-local serve-web-local-stop fps arena \
-	art-lint test verify check ship ship-check lint format format-check
+	hits art-lint test verify check ship ship-check lint format format-check

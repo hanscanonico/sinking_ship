@@ -2298,6 +2298,8 @@ added_mass = 1
 heave_damping = 0.5
 roll_damping = 0.08
 pitch_damping = 0.5
+hit_zone_x = Vector2(-19.5, 19.5)
+hit_zone_y = Vector2(-5.2, -0.2)
 
 [resource]
 script = ExtResource("5_layout")

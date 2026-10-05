@@ -36,9 +36,7 @@ var _credit_window_ticks: int
 func _init(match_config: MatchConfig) -> void:
 	config = match_config
 	_rules = config.rules
-	schedule = SinkSchedule.new(
-		config.scenario, config.ship.freeboard, SeedStreams.derive(config.match_seed, "sink")
-	)
+	schedule = SinkSchedule.for_match(config)
 	surfaces = Surfaces.new(config.ship)
 	_hazards = Hazards.new(config, surfaces)
 	_windup_ticks = Ticks.from_seconds(_rules.shove_windup)

@@ -1,7 +1,8 @@
 class_name SimEvent
 extends RefCounted
 ## A typed hint of what happened on a tick. Presentation may announce or animate
-## one; it never infers state from one — the snapshot is the truth (D5).
+## one; it never infers state from one — the snapshot is the truth (D5). HOLED is the
+## iceberg striking: where, the match's SinkSchedule says.
 
 enum Kind {
 	SEAT_OUT,
@@ -21,6 +22,7 @@ enum Kind {
 	KNOCKED_BACK_IN,
 	CRATE_HIT,
 	CRATE_LOST,
+	HOLED,
 }
 
 var kind: Kind
@@ -115,6 +117,11 @@ static func sinking(event_tick: int, event: SinkEvent, telegraph: bool) -> SimEv
 	if event.kind == SinkEvent.Kind.RAILING_FAIL:
 		announced.railing = event.railing
 	return announced
+
+
+## The iceberg striking the ship on [param event_tick].
+static func holed(event_tick: int) -> SimEvent:
+	return SimEvent.new(Kind.HOLED, event_tick, -1)
 
 
 static func entered_water(event_tick: int, swimming_seat: int) -> SimEvent:

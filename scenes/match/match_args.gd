@@ -3,6 +3,7 @@ extends RefCounted
 ## The user arguments a match host takes after `--`:
 ##   --seed=N  --seats=N  --seconds=S  --autoplay  --capture=PATH  --capture-at=S
 ##   --observer  --capture-eye=SEAT  --observer-cut=M  --observer-cells  --greybox
+##   --observer-side=starboard|port
 ##   --net-sim=latency:MS,jitter:MS,loss:PERCENT
 ##   --server  --port=N  --bind=ADDRESS  --matches=N
 ##   --connect=ws://HOST:PORT  --create | --room=CODE  --name=NAME  --start-at=N
@@ -13,7 +14,8 @@ extends RefCounted
 ## observer camera unless --capture-eye names the seat whose eyes it looks through;
 ## --observer opens the observer camera for QA, --observer-cut cuts its view of
 ## the ship away to show the inside, and --observer-cells draws the ship's cells over
-## it, every one named, framing the whole ship; --greybox draws the greybox the rules' data
+## it, every one named, framing the whole ship; --observer-side has it watch from her
+## port side rather than her starboard; --greybox draws the greybox the rules' data
 ## makes in place of the dressed ship; --net-sim makes the wire between the local host
 ## and the client lie about latency, jitter and loss (SH11); --capture-screen stages a
 ## screen for the capture: menu, settings (over the menu), graphics (the settings on
@@ -56,6 +58,8 @@ var observer_cut: float = INF
 ## The ship's cells drawn over the observer's view (CellOverlay): a tool, never a
 ## player's view.
 var observer_cells: bool = false
+## Which side of her the observer camera watches from.
+var observer_side := ObserverCamera.Beam.STARBOARD
 ## The greybox instead of the dressed ship: a QA tool, never a player's view.
 var greybox: bool = false
 ## What the loopback between the local host and the client pretends the wire does;
@@ -113,6 +117,11 @@ static func parse(args: PackedStringArray) -> MatchArgs:
 				parsed.observer_cut = value.to_float()
 			"--observer-cells":
 				parsed.observer_cells = true
+			"--observer-side":
+				parsed.observer_side = ObserverCamera.Beam.keys().find(value.to_upper())
+				if parsed.observer_side < 0:
+					push_warning("--observer-side takes starboard or port, not %s" % value)
+					parsed.observer_side = ObserverCamera.Beam.STARBOARD
 			"--greybox":
 				parsed.greybox = true
 			"--capture-screen":

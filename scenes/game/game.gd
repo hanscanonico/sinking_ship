@@ -176,6 +176,8 @@ func _play(seats: int, tier: StringName, seed_text: String) -> void:
 	)
 	if capturing:
 		_match.stage_eyes(_args.capture_from)
+	if observer:
+		_match.watch_from(_args.observer_side)
 	if observer and _args.observer_cells:
 		_match.show_cells()
 

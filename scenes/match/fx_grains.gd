@@ -26,7 +26,7 @@ const LACE_THREAD := Vector2(0.3, 1.2)
 const LACE_SPREAD := 2.0
 const LACE_SEED := 4817
 const LACE_NOISE := 4
-## How many metres of foam the whole sheet of lace spans, either way.
+## How many metres of foam the whole sheet of lace spans, either way, on the planks.
 const LACE_SHEET := 1.0
 ## A billow: bumps heaped on a broad foot, as blobs — the middle (x, y) and radius
 ## (z), in pixels — on a picture of BILLOW_SIZE pixels.
@@ -45,6 +45,24 @@ const BILLOW_BLOBS: Array[Vector3] = [
 const WATER_GROWN := 1.2
 const FLECK_GROWN := 1.15
 const FOAM_SPREAD := 5.0
+## A drop of white water out of the gash is this much of its first size by the
+## time it slows over the top of its arc, STRUCK_TOP of the way through its life, and
+## this much at its end.
+const STRUCK_SLOWED := 0.4
+const STRUCK_TOP := 0.45
+const STRUCK_FALLEN := 0.25
+## Spray mist is thrown up hard and brought to a stop, slowing this hard, in m/s²,
+## over the first MIST_STOPS of its life; then it hangs, settling this hard and
+## drifting off downwind this hard. Its billows swell from this much of their size to
+## this much as it stops, then shrink away to this much, this opaque all the while.
+const MIST_OPACITY := 0.9
+const MIST_DAMPING := 24.0
+const MIST_STOPS := 0.5
+const MIST_SINK := 0.3
+const MIST_DRIFT := 2.0
+const MIST_GROWN := Vector3(0.8, 1.6, 1.0)
+## Foam spreading on the sea grows this much over its life.
+const FROTH_GROWN := Vector2(0.7, 1.8)
 ## Where the funnel's smoke drifts, as ShipArt's does; white water flies downwind
 ## with this much of a push, in m/s².
 const WIND := Vector3(-0.45, 0.1, 0.12)
@@ -68,9 +86,11 @@ const BUBBLE_GLOW := 2.4
 ## holds against the dusk.
 const GRIT_GLOW := 1.4
 ## How opaque foam on the planks is, and water streaming down them: see-through
-## enough that the patches overlapping run together into one band.
+## enough that the patches overlapping run together into one band; foam on the sea a
+## little more, to stand out on it from the deck.
 const FOAM_OPACITY := 0.42
 const RUNNEL_OPACITY := 0.38
+const FROTH_OPACITY := 0.6
 ## How opaque the funnel's smoke is: dark, darker than the sky behind it.
 const SMOKE_OPACITY := 0.9
 ## Particles are drawn after the sea, which otherwise covers what stands on it.
@@ -98,6 +118,51 @@ static func water(emitter: CPUParticles3D, lifetime: float) -> void:
 	emitter.color_ramp = held(ArtPalette.SPRAY)
 
 
+## White water burst up out of the gash: round drops shrinking as they slow over the
+## top of their arc, thinning out as they fall back.
+static func struck(emitter: CPUParticles3D) -> void:
+	water(emitter, 1.0)
+	emitter.particle_flag_align_y = false
+	emitter.angle_max = 360.0
+	var dwindling := Curve.new()
+	dwindling.add_point(Vector2(0.0, 1.0))
+	dwindling.add_point(Vector2(STRUCK_TOP, STRUCK_SLOWED))
+	dwindling.add_point(Vector2(1.0, STRUCK_FALLEN))
+	emitter.scale_amount_curve = dwindling
+	var thinning := Gradient.new()
+	thinning.set_color(0, Color(ArtPalette.SPRAY, 0.0))
+	thinning.set_color(1, Color(ArtPalette.SPRAY, 0.0))
+	thinning.add_point(0.03, ArtPalette.SPRAY)
+	thinning.add_point(STRUCK_TOP, Color(ArtPalette.SPRAY, ArtPalette.SPRAY.a * 0.75))
+	emitter.color_ramp = thinning
+
+
+## Spray mist: billows thrown up along the emitter's direction and brought to a stop,
+## then hanging and drifting off downwind as they shrink away.
+static func mist(emitter: CPUParticles3D) -> void:
+	emitter.lifetime = 2.2
+	emitter.explosiveness = 0.9
+	emitter.emission_shape = CPUParticles3D.EMISSION_SHAPE_BOX
+	emitter.spread = 14.0
+	emitter.gravity = downwind().normalized() * MIST_DRIFT + Vector3.DOWN * MIST_SINK
+	emitter.damping_min = MIST_DAMPING
+	emitter.damping_max = MIST_DAMPING
+	var stopping := Curve.new()
+	stopping.add_point(Vector2(0.0, 1.0))
+	stopping.add_point(Vector2(MIST_STOPS, 1.0))
+	stopping.add_point(Vector2(MIST_STOPS + 0.05, 0.0))
+	emitter.damping_curve = stopping
+	emitter.angle_max = 360.0
+	emitter.scale_amount_min = 0.6
+	var swelling := Curve.new()
+	swelling.max_value = MIST_GROWN.y
+	swelling.add_point(Vector2(0.0, MIST_GROWN.x))
+	swelling.add_point(Vector2(MIST_STOPS, MIST_GROWN.y))
+	swelling.add_point(Vector2(1.0, MIST_GROWN.z))
+	emitter.scale_amount_curve = swelling
+	emitter.color_ramp = held(Color(Color.WHITE, MIST_OPACITY))
+
+
 ## Foam: patches of lace sliding over the planks along the emitter's z, lying in
 ## its plane, turned every way.
 static func foam(emitter: CPUParticles3D) -> void:
@@ -114,6 +179,15 @@ static func foam(emitter: CPUParticles3D) -> void:
 	emitter.scale_amount_max = 1.0
 	emitter.scale_amount_curve = growth(0.7, FLECK_GROWN)
 	emitter.color_ramp = held(Color(ArtPalette.SPRAY, FOAM_OPACITY))
+
+
+## Foam on the sea: patches of lace drifting off along the emitter's z, lying on it,
+## spreading as they go.
+static func froth(emitter: CPUParticles3D) -> void:
+	foam(emitter)
+	emitter.lifetime = 2.8
+	emitter.scale_amount_curve = growth(FROTH_GROWN.x, FROTH_GROWN.y)
+	emitter.color_ramp = held(Color(ArtPalette.SPRAY, FROTH_OPACITY))
 
 
 ## Water streaming down the planks along the emitter's z: runnels of lace drawn out
@@ -302,10 +376,10 @@ static func streaks(
 
 ## Lace foam lying flat in its emitter's x–z plane, [param size] along x and z, each
 ## grain its own piece of the sheet [param picture] (lace()), as much of it as
-## LACE_SHEET metres of it hold.
-static func laces(size: Vector2, picture: Texture2D) -> QuadMesh:
+## [param sheet] metres of it hold.
+static func laces(size: Vector2, picture: Texture2D, sheet: float = LACE_SHEET) -> QuadMesh:
 	var material := _material(LACE_SHADER, picture, SPECK_CLEAR, LACE_GLOW)
-	material.set_shader_parameter(&"window", size / LACE_SHEET)
+	material.set_shader_parameter(&"window", size / sheet)
 	var quad := _quad(size, material)
 	quad.orientation = PlaneMesh.FACE_Y
 	return quad

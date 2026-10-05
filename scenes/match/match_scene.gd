@@ -79,6 +79,7 @@ func _ready() -> void:
 	add_child(_marks)
 	add_child(_dust)
 	add_child(_fx)
+	add_child(FxWarmUp.new(_fx.emitters()))
 	add_child(_prompts)
 	add_child(_pointer)
 	_pointer.lost.connect(pointer_lost.emit)
@@ -211,6 +212,13 @@ func stage_eyes(at: PackedFloat64Array) -> void:
 	_arms.visible = at.is_empty()
 
 
+## Has the observer camera watch from her [param side] (--observer-side): a tool, as
+## it is.
+func watch_from(side: ObserverCamera.Beam) -> void:
+	_observer_camera.side = side
+	_observer_camera.reset(_view.seat_world_position(_eye_seat), _deck_bounds(_config.ship))
+
+
 ## Draws the ship's cells over the observer's view, named, and frames the whole ship
 ## (--observer-cells): a tool, as the observer camera is.
 func show_cells() -> void:
@@ -316,15 +324,15 @@ func set_paused(paused: bool) -> void:
 	_driver.set_process(not paused)
 
 
-## The sinking is felt before it is seen (D12): a light shake as a lurch is
-## telegraphed, a full one as it swings, a lighter one as a deck gives way — read
-## from every stepped tick's events, so a hitch never eats one.
+## The sinking is felt before it is seen (D12): a full shake as the iceberg strikes,
+## a light one as a lurch is telegraphed, a full one as it swings, a lighter one as a
+## deck gives way — read from every stepped tick's events, so a hitch never eats one.
 func _shake_for_the_sinking(events: Array[SimEvent]) -> void:
 	for event: SimEvent in events:
 		match event.kind:
 			SimEvent.Kind.SHIP_LURCHING:
 				_kick.shake(LURCH_WARNING_SHAKE)
-			SimEvent.Kind.SHIP_LURCHED:
+			SimEvent.Kind.SHIP_LURCHED, SimEvent.Kind.HOLED:
 				_kick.shake()
 			SimEvent.Kind.PLATFORM_COLLAPSED:
 				_kick.shake(COLLAPSE_SHAKE)

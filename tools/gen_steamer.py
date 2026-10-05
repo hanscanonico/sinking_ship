@@ -1014,6 +1014,10 @@ MASS.append(("ballast", round(ballast, 1), (round(ballast_x, 4), BALLAST_Y, roun
 # How her mass turns, the water moving with her, and how her motions die away (est.).
 MOTION = [("roll_radius", 3.8), ("pitch_radius", 10.0), ("added_mass", 1.0),
           ("heave_damping", 0.5), ("roll_damping", 0.08), ("pitch_damping", 0.5)]
+# Where along her and up her shell an iceberg's gash can be at all (est.): clear of her
+# stem and her counter, from 0.2 m under the main deck down to 0.2 m over her keel.
+HIT_ZONE_X = (-19.5, 19.5)
+HIT_ZONE_Y = (KEEL + 0.2, -0.2)
 
 def vec3(v):
     return "Vector3(%s, %s, %s)" % tuple(num(c) for c in v)
@@ -1080,7 +1084,9 @@ sub("Structure", "9_structure", [
     ("waterline_y", num(WATERLINE)), ("keel_y", num(KEEL)),
     ("sections", arr("10_section", section_ids)), ("cells", arr("11_cell", cell_ids)),
     ("walls", arr("12_wall", wall_ids)), ("openings", arr("13_opening", opening_ids)),
-    ("mass", arr("14_mass", mass_ids))] + [(k, num(v)) for k, v in MOTION])
+    ("mass", arr("14_mass", mass_ids))] + [(k, num(v)) for k, v in MOTION] + [
+    ("hit_zone_x", "Vector2(%s, %s)" % (num(HIT_ZONE_X[0]), num(HIT_ZONE_X[1]))),
+    ("hit_zone_y", "Vector2(%s, %s)" % (num(HIT_ZONE_Y[0]), num(HIT_ZONE_Y[1])))])
 
 head = """[gd_resource type="Resource" script_class="ShipLayout" format=3]
 

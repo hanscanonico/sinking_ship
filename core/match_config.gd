@@ -86,6 +86,8 @@ func problems() -> PackedStringArray:
 	found.append_array(rules.problems())
 	found.append_array(ship.problems(seats))
 	found.append_array(scenario.problems())
+	if scenario.hit != null and ship.structure == null:
+		found.append("match: the sinking's iceberg hit needs a ship with a structure")
 	return found
 
 

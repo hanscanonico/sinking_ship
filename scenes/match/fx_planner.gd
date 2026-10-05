@@ -97,6 +97,8 @@ const _CORNERS: Array[Vector3] = [
 var _layout: ShipLayout
 var _surfaces: Surfaces
 var _schedule: SinkSchedule
+## The iceberg's strike, as it shows (D13).
+var _gash: GashPlanner
 var _space: ShipSpace
 var _railing_height: float
 var _start_tick: int
@@ -135,6 +137,7 @@ func _init(config: MatchConfig, surfaces: Surfaces, schedule: SinkSchedule) -> v
 	_layout = config.ship
 	_surfaces = surfaces
 	_schedule = schedule
+	_gash = GashPlanner.new(schedule, config.ship.structure)
 	_space = ShipSpace.new(_layout)
 	_railing_height = config.rules.railing_height
 	_start_tick = Ticks.from_seconds(config.scenario.starts_at)
@@ -172,6 +175,7 @@ func plan(previous: Dictionary, current: Dictionary) -> Array[FxCue]:
 	var boost := PLUNGE_BOOST if plunging else 1.0
 	for event: Dictionary in current["events"]:
 		_from_event(event, previous, current, pose_now, cues)
+	_gash.bursts(tick, cues)
 	_waterlines(pose_then, pose_now, tick, plunging, cues)
 	_floods(pose_then, pose_now, tick, boost, cues)
 	_machinery(pose_then, pose_now, tick, cues)
@@ -234,6 +238,8 @@ func _from_event(
 				cues.append(FxCue.new(FxCue.Kind.BELCH, tick, _funnel))
 			_venting = 0
 			_slides(_downhill(pose), pose, tick, cues)
+		SimEvent.Kind.HOLED:
+			_gash.strike(tick, cues)
 
 
 ## Where the sea crosses each deck still standing: white water along the line, and

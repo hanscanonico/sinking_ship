@@ -97,3 +97,16 @@ func test_seat_count_bounds() -> void:
 	)
 	narrow.max_seats = 3
 	assert_eq(narrow.problems().size(), 1, "inverted bounds are refused")
+
+
+func test_a_sinking_with_an_iceberg_hit_needs_a_ship_with_a_structure() -> void:
+	var struck: SinkScenario = load(SimFixtures.STEAMER_SINKING)
+	var steamer := MatchConfig.new(1, 2, SimFixtures.rules(), SimFixtures.steamer(), struck)
+	assert_eq(steamer.problems(), PackedStringArray(), "her own hit strikes her")
+	var flat := MatchConfig.new(1, 2, SimFixtures.rules(), SimFixtures.deck(), struck)
+	assert_null(flat.ship.structure, "the flat deck has no structure")
+	assert_eq(
+		flat.problems(),
+		PackedStringArray(["match: the sinking's iceberg hit needs a ship with a structure"]),
+		"a hit with nothing to strike is refused, not struck silently nowhere"
+	)

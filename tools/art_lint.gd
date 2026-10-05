@@ -57,7 +57,7 @@ const ART_DIR := "res://scenes/art/"
 const SEED := 1701
 const SEATS := 8
 ## A match the default scenario's collapse comes in before it ends.
-const COLLAPSE_SEED := 42
+const COLLAPSE_SEED := 40
 ## Match time the seat check watches, at most.
 const SEAT_SECONDS := 90.0
 const PLATFORM_TOLERANCE := 0.02
