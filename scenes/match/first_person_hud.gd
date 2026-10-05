@@ -14,7 +14,7 @@ extends CanvasLayer
 ## All of it reads the snapshot, SinkSchedule's pose, Surfaces, the ship's rooms and
 ## the bodies as drawn (D5), and none of it stays up over the results. From the
 ## observer camera only the inclinometer, the sinking's chips and banner, and where the
-## watched seat stands show.
+## watched seat stands show; from the free camera, too.
 
 const FROST_SHADER := preload("res://scenes/match/frost.gdshader")
 ## The frost's crystal texture: its side in pixels, and how many crystals across it.
@@ -118,6 +118,9 @@ var _rules: BrawlRules
 var _ship: ShipLayout
 var _names := PackedStringArray()
 var _eyes: bool
+## Whether the view is the free camera rather than the seat's eyes: drawn as the
+## observer's is.
+var flying := false
 var _canvas: Control
 var _font: Font
 var _snapshot: Dictionary
@@ -209,7 +212,7 @@ func _draw_hud() -> void:
 	if me.is_empty() or me["out"]:
 		return
 	_draw_where(me["pos"], me["surface"])
-	if not _eyes:
+	if not _eyes or flying:
 		return
 	_draw_crosshair(ShoveResolver.would_hit(_snapshot, _seat, _rules, _surfaces))
 	if me["state"] == PlayerState.Body.SWIMMING:
@@ -228,7 +231,7 @@ func _over() -> bool:
 ## their cold meter.
 func _show_frost() -> void:
 	var cold := 0.0
-	var me := {} if _over() or not _eyes else _entry(_seat)
+	var me := {} if _over() or not _eyes or flying else _entry(_seat)
 	if not me.is_empty() and not me["out"] and me["state"] == PlayerState.Body.SWIMMING:
 		cold = 1.0 - _cold(me)
 	_frost.visible = cold > 0.0
