@@ -7,8 +7,11 @@ extends RefCounted
 
 const RunMatch := preload("res://tools/run_match.gd")
 const MATCH_SCENE := "res://scenes/match/match.tscn"
-## The ticks stepped a frame as the sinking's effects are watched through the
-## collapse check's match, which runs on through the plunge, to its end.
+## A match that runs on through the collapse and the plunge to its end, so every
+## effect of the sinking is watched.
+const SEED := 7
+## The ticks stepped a frame as the sinking's effects are watched through the match,
+## to its end.
 const EFFECTS_TICKS_PER_FRAME := 4
 
 
@@ -42,17 +45,10 @@ static func check(root: Window, match_seed: int, seats: int) -> Array:
 			if not emitter.global_position.is_finite() and not lost.has(emitter.name):
 				lost[emitter.name] = driver.current["tick"]
 		var pose := sim.schedule.pose_at(driver.current["tick"])
-		var to_ship := view.ship_to_world().affine_inverse()
-		for piece: Vector3 in fx.afloat():
-			afloat += 1
-			var on_ship := to_ship * piece
-			for index in layout.platforms.size():
-				var platform := layout.platforms[index]
-				if not platform.area.has_point(Vector2(on_ship.x, on_ship.z)):
-					continue
-				var deck := Vector3(on_ship.x, platform.height, on_ship.z)
-				if pose.world_height(deck) > -wade and not rafts.has(index):
-					rafts[index] = driver.current["tick"]
+		afloat += fx.afloat().size()
+		for index: int in rafts_over(fx.afloat(), view.ship_to_world(), layout, pose, wade):
+			if not rafts.has(index):
+				rafts[index] = driver.current["tick"]
 	checks += 1
 	if fx.find_children("*", "", true, false).size() != nodes:
 		problems.append("art-lint: the sinking's effects grew their pools through a match")
@@ -76,3 +72,23 @@ static func check(root: Window, match_seed: int, seats: int) -> Array:
 	# The last check: the scene goes before the lint quits, or its pools leak.
 	await root.get_tree().process_frame
 	return [problems, checks]
+
+
+## The decks of [param layout], by index, that any piece of wreckage afloat at
+## [param afloat] (world) floats over while the sea stands less than [param wade]
+## over them under [param pose] — shallow enough to wade on — on the ship drawn at
+## [param ship].
+static func rafts_over(
+	afloat: PackedVector3Array, ship: Transform3D, layout: ShipLayout, pose: ShipPose, wade: float
+) -> PackedInt32Array:
+	var found := PackedInt32Array()
+	var to_ship := ship.affine_inverse()
+	for piece: Vector3 in afloat:
+		var on_ship := to_ship * piece
+		for index in layout.platforms.size():
+			var platform := layout.platforms[index]
+			if index in found or not platform.area.has_point(Vector2(on_ship.x, on_ship.z)):
+				continue
+			if pose.world_height(Vector3(on_ship.x, platform.height, on_ship.z)) > -wade:
+				found.append(index)
+	return found

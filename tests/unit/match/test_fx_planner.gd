@@ -333,6 +333,49 @@ func test_the_plunge_breaks_over_the_sides_blasts_air_out_and_sends_gear_sliding
 		assert_false(_over_a_deck(sim.config.ship, sheet.end), "all of it")
 
 
+func test_the_plunge_rains_spray_slides_gear_and_boils_up_wreckage_astern() -> void:
+	var sim := _sim()
+	var plunge := -1
+	for scheduled: SinkSchedule.Scheduled in sim.schedule.fired(sim.schedule.cap_tick()):
+		if scheduled.event.kind == SinkEvent.Kind.PLUNGE:
+			plunge = scheduled.at
+	assert_gt(plunge, 0, "the golden match plunges")
+	var span := Ticks.from_seconds(6.0)
+	var cues := _sink(_planner(sim), sim, plunge - Ticks.RATE, plunge + span)
+	var rain := _of(cues, FxCue.Kind.RAIN)
+	assert_eq(rain.size(), span + 1, "spray rains over the ship all through the plunge")
+	assert_eq(rain[0].tick, plunge, "from its start")
+	assert_lt(rain[0].strength, rain[-1].strength, "gathering")
+	assert_between(rain[0].strength, 0.0, 1.0)
+	var slid := {}
+	for slide: FxCue in _of(cues, FxCue.Kind.SLIDE):
+		slid[slide.tick] = true
+	assert_eq(slid.size(), span / FxPlanner.SLIDE_TICKS, "gear goes on sliding down the decks")
+	var boils := _of(cues, FxCue.Kind.BUBBLES).filter(
+		func(cue: FxCue) -> bool: return cue.radius == FxPlanner.ASTERN_BOIL.x
+	)
+	assert_eq(boils.size(), span / FxPlanner.ASTERN_TICKS + 1, "air boiling up off the stern")
+	var risen: Array[FxCue] = []
+	for boil: FxCue in boils:
+		for piece: FxCue in _of(cues, FLOTSAM):
+			if piece.position == boil.position and piece.end == boil.position:
+				risen.append(piece)
+	assert_eq(risen.size(), boils.size(), "each bringing a piece of wreckage up")
+	var stern := INF
+	var middle := 0.0
+	for platform: ShipPlatform in sim.config.ship.platforms:
+		stern = minf(stern, platform.area.position.x)
+	for platform: ShipPlatform in sim.config.ship.platforms:
+		middle = maxf(middle, platform.area.end.x)
+	middle = (stern + middle) * 0.5
+	for piece: FxCue in boils + risen:
+		var pose := sim.schedule.pose_at(piece.tick)
+		assert_true(piece.on_sea)
+		assert_almost_eq(pose.world_height(piece.position), 0.0, 0.001, "on the sea")
+		assert_false(_over_a_deck(sim.config.ship, piece.position), "never over a deck")
+		assert_lt(piece.position.x, middle, "aft, where the stern still stands out of it")
+
+
 func test_effects_come_from_snapshots_and_the_pose_only() -> void:
 	var config := RunMatch.default_config(1701)
 	var runner := RunMatch.bots_only(config)
