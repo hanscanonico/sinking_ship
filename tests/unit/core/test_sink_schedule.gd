@@ -115,9 +115,9 @@ func test_scenario_sign_decides_which_end_floods() -> void:
 
 
 func test_ship_is_level_until_the_hit() -> void:
-	# The physics' sinking (SH26): at rest, level and dry inside until the iceberg
-	# strikes; after it she settles deeper, level — no trim or list until SH27 — with
-	# water in the cells the gash opens, and the doors the ship shuts shutting.
+	# The physics' sinking: at rest, level and dry inside until the iceberg strikes;
+	# after it she settles deeper and leans as her water lies (SH27), with water in the
+	# cells the gash opens, and the doors the ship shuts shutting.
 	var layout := SimFixtures.steamer()
 	var config := SimFixtures.config(2, load(SimFixtures.STEAMER_SINKING), SEED, layout)
 	var schedule := config.schedule()
@@ -135,13 +135,19 @@ func test_ship_is_level_until_the_hit() -> void:
 	assert_almost_eq(resting.transform.origin.y, layout.freeboard, 0.01, "at her freeboard")
 	var later := schedule.pose_at(hit + Ticks.from_seconds(120.0))
 	assert_gt(later.sink, 0.0, "deeper once holed")
-	assert_eq(later.transform.basis, Basis.IDENTITY, "and level")
+	assert_ne(later.transform.basis, Basis.IDENTITY, "and leaning as her water lies")
 	var wet := 0
 	for cell in layout.structure.cells.size():
-		if (
-			later.levels[cell]
-			> layout.structure.cells[cell].low.y + later.transform.origin.y + 0.01
-		):
+		var box := layout.structure.cells[cell]
+		var lowest := INF
+		for corner in 4:
+			var at := Vector3(
+				box.high.x if corner & 1 else box.low.x,
+				box.low.y,
+				box.high.z if corner & 2 else box.low.z
+			)
+			lowest = minf(lowest, later.world_height(at))
+		if later.levels[cell] > lowest + 0.01:
 			wet += 1
 	assert_gt(wet, 0, "water in her cells")
 	var doors := later.doors_shut.keys()
@@ -170,3 +176,61 @@ func test_highest_surface_migrates() -> void:
 		var highest := surfaces.highest_platform(pose)
 		assert_eq(highest, expected[at], "highest at %s s" % at)
 		assert_false(surfaces.flooded(highest, pose), "and dry at %s s" % at)
+
+
+func test_phase_is_named_from_where_she_stands() -> void:
+	# Struck forward and sinking by the head: holed, then flooding as a cell takes
+	# water, then by the head once her trim passes its mark — each from her pose then.
+	var layout := SimFixtures.steamer()
+	var scenario: SinkScenario = load(SimFixtures.STEAMER_SINKING).duplicate()
+	scenario.explicit_hit = SimFixtures.explicit_hit(1, 4.0, 19.0, 1.0, 0.1, 1.5)
+	scenario.explicit_hit.moment = 20.0
+	var schedule := SinkSchedule.new(
+		scenario, layout.freeboard, SeedStreams.derive(SEED, "sink"), layout.structure
+	)
+	var named := PackedStringArray()
+	var tick := 0
+	while tick < schedule.end_tick():
+		var phase := schedule.phase_at(tick)
+		if named.is_empty() or named[named.size() - 1] != phase:
+			named.append(phase)
+		var pose := schedule.pose_at(tick)
+		if phase == "By the head":
+			assert_gte(pose.trim_deg, SinkSchedule.TRIMMED_DEG, "tick %d: trimmed" % tick)
+		# Tick by tick round the hit, every second after.
+		tick += 1 if tick < schedule.hit_tick() + Ticks.RATE else Ticks.RATE
+	assert_eq(named[0], "", "nothing before the hit")
+	assert_eq(named[1], "Holed", "then holed")
+	assert_eq(named[2], "Flooding", "then flooding")
+	assert_true("By the head" in named, "and by the head: %s" % named)
+	assert_false("By the stern" in named, "never by the stern")
+
+
+func test_a_physics_lurch_is_warned_before_it_swings() -> void:
+	# Struck forward and sinking by the head, she loses her stability and lurches over
+	# as her deck goes under, warned a second or more ahead — the horn players hear, the
+	# warning bots read (D10) — and the pose names the lurch while it is telegraphed and
+	# while it swings.
+	var layout := SimFixtures.steamer()
+	var scenario: SinkScenario = load(SimFixtures.STEAMER_SINKING).duplicate()
+	scenario.explicit_hit = SimFixtures.explicit_hit(1, 4.0, 19.0, 1.0, 0.1, 1.5)
+	var schedule := SinkSchedule.new(
+		scenario, layout.freeboard, SeedStreams.derive(SEED, "sink"), layout.structure
+	)
+	var warned := -1
+	var lurched := -1
+	var heel := 0.0
+	for tick in schedule.end_tick():
+		for event: SimEvent in schedule.events_at(tick):
+			if event.kind == SimEvent.Kind.SHIP_LURCHING and warned == -1:
+				warned = tick
+			elif event.kind == SimEvent.Kind.SHIP_LURCHED and lurched == -1:
+				lurched = tick
+				heel = event.heel_deg
+		if lurched != -1:
+			break
+	assert_gt(lurched, 0, "she lurches")
+	assert_gte(lurched - warned, Ticks.from_seconds(1.0), "warned a second ahead or more")
+	assert_ne(heel, 0.0, "by so many degrees")
+	assert_eq(schedule.pose_at(lurched - 1).lurch_warning, heel, "the pose telegraphs it")
+	assert_eq(schedule.pose_at(lurched).lurch, heel, "and names it as it swings")

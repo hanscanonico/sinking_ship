@@ -295,20 +295,6 @@ func floor_height(zone: int, at: Vector3, pose: ShipPose) -> float:
 	return pose.above_water(at)
 
 
-## How high [param zone] would stand were the deck tilted further by [param lean]: the
-## rise per metre of the ship plane, uphill. A room by the middle of its floor, an open
-## deck by the highest middle of its platforms, as world_height has them.
-func _leaned(zone: int, pose: ShipPose, lean: Vector2) -> float:
-	if is_room(zone):
-		var middle := _room_middle(zone)
-		return pose.world_height(middle) + lean.dot(Vector2(middle.x, middle.z))
-	var height := -INF
-	for platform: int in _zone_platforms[zone]:
-		var centre := _layout.platforms[platform].area.get_center()
-		height = maxf(height, _surfaces.world_height(platform, pose) + lean.dot(centre))
-	return height
-
-
 func _floor_lowest(zone: int, pose: ShipPose) -> float:
 	var areas: Array[Rect2] = []
 	var heights := PackedFloat64Array()
@@ -434,29 +420,17 @@ func highest_reachable(from_pos: Vector3, from_surface: int, pose: ShipPose) -> 
 	return highest_in(search(from_pos, from_surface, pose), pose)
 
 
-## The highest zone of those [param found] reaches, as highest_reachable() — or, by
-## [param more_deg], the highest were the deck tilted that many degrees further the way
-## [param pose] tilts it: the end a ship rises by as it founders by the other. While
-## [param found] reaches it, [param kept] stays the answer unless another would stand
-## more than [param keep_m] higher — and whatever would while a lurch swings the deck:
-## a lurch is a swing, not the way she founders.
-func highest_in(found: Search, pose: ShipPose, more_deg := 0.0, kept := NONE, keep_m := 0.0) -> int:
-	var gravity := pose.ship_gravity(1.0)
-	var lean := -Vector2(gravity.x, gravity.z).normalized() * tan(deg_to_rad(more_deg))
+## The highest zone of those [param found] reaches, as highest_reachable().
+func highest_in(found: Search, pose: ShipPose) -> int:
 	var best := NONE
 	var best_height := -INF
-	var kept_height := -INF
 	for zone in found.cost.size():
 		if found.cost[zone] == INF or doomed(zone, pose):
 			continue
-		var height := world_height(zone, pose) if more_deg == 0.0 else _leaned(zone, pose, lean)
-		if zone == kept:
-			kept_height = height
+		var height := world_height(zone, pose)
 		if height > best_height:
 			best = zone
 			best_height = height
-	if kept_height > -INF and (pose.lurch != 0.0 or best_height <= kept_height + keep_m):
-		return kept
 	return best
 
 

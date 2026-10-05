@@ -5,7 +5,9 @@ extends RefCounted
 ## iceberg striking: where, the match's SinkSchedule says. CELL_FLOODING, CELL_FULL,
 ## WATER_SPILLING and SHIP_GONE are the physics' (SinkTimeline): a cell takes its first
 ## water or is full, water first passes an opening over a low wall or down a stair, and
-## she is wholly under; the physics announces PLUNGE_BEGAN too, as her deck goes under.
+## she is wholly under; the physics announces PLUNGE_BEGAN too, as her deck goes under,
+## SHIP_LURCHING and SHIP_LURCHED by §5b.4's lurch rule, and BOATS_USELESS as one side's
+## lifeboats stand too high to lower — a label, never a rule.
 
 enum Kind {
 	SEAT_OUT,
@@ -30,6 +32,7 @@ enum Kind {
 	CELL_FULL,
 	WATER_SPILLING,
 	SHIP_GONE,
+	BOATS_USELESS,
 }
 
 var kind: Kind
@@ -63,6 +66,7 @@ var platform: StringName
 ## RAILING_BROKE: the layout's railing, by index.
 var railing: int = -1
 ## CELL_FLOODING, CELL_FULL: the cell, by name. WATER_SPILLING: the opening.
+## BOATS_USELESS: the side, port or starboard.
 var cell: StringName
 
 
@@ -134,13 +138,23 @@ static func holed(event_tick: int) -> SimEvent:
 
 
 ## What the physics announces at [param event_tick]: [param physics_kind], a
-## SinkTimeline.Kind, naming [param named].
-static func physics(event_tick: int, physics_kind: int, named: StringName) -> SimEvent:
+## SinkTimeline.Kind, naming [param named]; a lurch swinging her by [param heel].
+static func physics(
+	event_tick: int, physics_kind: int, named: StringName, heel: float = 0.0
+) -> SimEvent:
 	var kinds: Array[Kind] = [
-		Kind.CELL_FLOODING, Kind.CELL_FULL, Kind.WATER_SPILLING, Kind.SHIP_GONE, Kind.PLUNGE_BEGAN
+		Kind.CELL_FLOODING,
+		Kind.CELL_FULL,
+		Kind.WATER_SPILLING,
+		Kind.SHIP_GONE,
+		Kind.PLUNGE_BEGAN,
+		Kind.SHIP_LURCHING,
+		Kind.SHIP_LURCHED,
+		Kind.BOATS_USELESS,
 	]
 	var event := SimEvent.new(kinds[physics_kind], event_tick, -1)
 	event.cell = named
+	event.heel_deg = heel
 	return event
 
 

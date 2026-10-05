@@ -1,52 +1,15 @@
-hit 00:33.6 · starboard · x -19.0…6.0 m · 3.900 m²
-must 8 thrown · 2 bakes · sure hit
+hit 00:23.7 · port · x 13.0…19.5 m · 0.029 m²
+must 4 thrown · 2 bakes · drawn
 00:17.1 seat 2 out · cold · place 8
-00:34.6 aft_peak flooding
-00:34.6 aft_bilge flooding
-00:34.6 engine_bilge flooding
-00:34.6 hold_wing_s flooding
-00:41.3 seat 4 out · cold · place 7
-00:41.6 hold_bilge flooding
-01:28.6 aft_bilge full
-01:28.6 aft_cabins flooding
-01:28.6 engine_bilge full
-01:28.6 engine_room flooding
-01:47.0 crate 3 lost
-02:17.9 seat 7 out · cold · place 6
-03:59.6 water through over_bulkhead_hold_to_hold
-03:59.6 water through over_bulkhead_hold_to_hold_wing_p
-03:59.6 water through over_bulkhead_hold_to_hold_wing_s
-04:05.6 hold_wing_p flooding
-04:11.6 hold flooding
-04:28.6 hold_bilge full
-04:47.6 the plunge
-04:48.6 water through stair_aft_cabins_sky
-04:48.6 water through stair_engine_room_deckhouse_hall
-04:48.6 water through stair_hold_sky
-04:51.6 aft_peak full
-04:51.6 saloon flooding
-04:53.6 deckhouse_hall flooding
-04:54.4 crate 2 lost
-04:56.6 aft_cabins full
-04:56.6 deckhouse_cabins flooding
-04:58.3 seat 0 out · cold · place 5
-04:59.5 seat 5 out · cold · place 4
-05:01.6 poop_space flooding
-05:05.0 crate 0 lost
-05:05.0 crate 1 lost
-05:08.6 hold_wing_s full
-05:09.6 engine_room full
-05:09.6 hold full
-05:09.6 hold_fwd_top flooding
-05:11.6 wheelhouse flooding
-05:11.6 she is gone
-05:12.6 hold_fwd_top full
-05:12.6 saloon full
-05:13.6 deckhouse_cabins full
-05:13.6 deckhouse_hall full
-05:13.6 wheelhouse full
-05:13.7 seat 1 out · cold · place 2
-05:13.7 seat 3 out · cold · place 2
-winner seat 6 at 05:13.7 · digest bf308f290cf8c0d1
-sinking at the end: physics 0:04:40 · sea 13.96 m up her · aft_peak full · poop_space 0.38 m · aft_bilge full · aft_cabins full · engine_bilge full · engine_room full · hold_bilge full · hold full · hold_wing_p full · hold_wing_s full · hold_fwd_top full · deckhouse_cabins full · deckhouse_hall full · saloon full · wheelhouse full
-bake: gone at 0:04:38
+00:46.4 forepeak flooding
+00:54.0 seat 0 out · cold · place 7
+00:56.4 hold_bilge flooding
+02:09.2 railing 13 broke
+02:12.1 seat 4 out · cold · place 6
+02:13.9 seat 6 out · cold · place 5
+02:39.3 seat 5 out · cold · place 4
+05:48.7 railing 39 broke
+06:01.2 seat 3 out · cold · place 3
+unfinished at 15:00.0 · digest bd82fdadccb5b6a2
+sinking at the end: physics 0:14:36 · sea 0.14 m up her · trim +1.2° · list -0.0° · aft_bilge_p 1.98 m · aft_bilge_s 1.97 m · engine_bilge_p 2.16 m · engine_bilge_s 2.15 m · hold_bilge 0.32 m · hold_wing_p 2.35 m · hold_wing_s 2.34 m · forepeak 0.80 m
+bake: gone at 2:07:37 · trim +89.9° · list -17.9°

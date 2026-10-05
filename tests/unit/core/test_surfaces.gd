@@ -524,15 +524,26 @@ func test_room_is_wet_when_its_cell_water_is_above_its_floor() -> void:
 			cabin_under_the_sea = tick
 	assert_gt(hold_wet, 0, "the hold's water rises over its floor")
 	assert_gt(cabin_under_the_sea, 0, "the after cabins' floor goes under the sea outside")
+	# She trims as she floods (SH27): bodies slide, and the cabins' floor dips under the
+	# sea outside and may rise again — each judged where it stands on its tick.
 	var swam := {}
+	var dry_under_the_sea := false
 	while sim.state.tick < maxi(hold_wet, cabin_under_the_sea) + Ticks.RATE and not sim.is_over():
 		for event: SimEvent in _kinds(SimFixtures.step(sim), SimEvent.Kind.ENTERED_WATER):
 			swam[event.seat] = event.tick
-	assert_almost_eq(swam.get(0, -1), hold_wet, 3, "seat 0 swam as its cell's water rose")
-	assert_false(swam.has(1), "seat 1 stands dry in its cell, under the sea outside")
-	var pose := sim.pose()
-	assert_false(sim.surfaces.wet(rooms[1], pose), "its cell holds no water")
-	assert_lt(pose.world_height(rooms[1]), 0.0, "though the sea stands over its floor")
+			if event.seat == 0:
+				var feet := sim.state.seats[0].pos
+				assert_gte(
+					sim.pose().water_height(feet) - feet.y,
+					wade - 0.05,
+					"seat 0 swam as its cell's water rose over its feet"
+				)
+		var cabin := sim.state.seats[1].pos
+		if sim.pose().world_height(cabin) < -wade and not sim.surfaces.wet(cabin, sim.pose()):
+			dry_under_the_sea = true
+	assert_true(swam.has(0), "seat 0 swam in the flooding hold")
+	assert_false(swam.has(1), "seat 1 stands dry in its cell")
+	assert_true(dry_under_the_sea, "while its floor stood under the sea outside")
 
 
 func test_a_ladder_climbs_out_of_reach_and_only_where_it_hangs() -> void:

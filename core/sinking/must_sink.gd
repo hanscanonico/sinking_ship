@@ -39,12 +39,13 @@ static func choose(
 ) -> Choice:
 	var choice := Choice.new()
 	var hull := LevelHull.new(structure.sections)
+	var motion := ShipMotion.new(structure, sea, hull.height_of(_own(structure, sea)))
 	var bands := scenario.hit
 	while true:
 		choice.hit = IcebergHit.draw(bands, sink_stream)
 		choice.damage = HitMapper.map(choice.hit, structure, bands, sink_stream)
 		choice.draws += 1
-		if not founders(structure, choice.damage, hull, sea, scenario.spare_deck):
+		if not founders(structure, choice.damage, hull, sea, scenario.spare_deck, motion):
 			choice.thrown += 1
 			if choice.thrown >= scenario.quick_redraws:
 				break
@@ -59,7 +60,7 @@ static func choose(
 		weighted.jammed = choice.damage.jammed.duplicate()
 		weighted.left_open = choice.damage.left_open.duplicate()
 		var damage := HitMapper.map_explicit(weighted, structure, bands)
-		if founders(structure, damage, hull, sea, scenario.spare_deck):
+		if founders(structure, damage, hull, sea, scenario.spare_deck, motion):
 			var tried := Choice.new()
 			tried.hit = weighted
 			tried.damage = damage
@@ -109,28 +110,41 @@ static func _accepts(
 ## flooded to the sea and then each cell that would overflow from those in turn — over
 ## the bottom of any opening left open, from a flooded cell or the sea — she founders:
 ## no level of the sea holds her, or she floats with less than [param spare] of dry
-## deck, or unstable (GM, less what her loose water costs, not above 0). Only a hit she
-## floats on, stable, with deck to spare is ever thrown out: the bake would leave her
-## afloat too.
+## main deck, or unstable (GM, less what her loose water costs, not above 0). With the
+## attitude stage on she floats trimmed and listed by where that water sits — the trim
+## and list her lift's stiffness (ShipMotion, [param motion]) gives the turn the water
+## puts on her, to first order — and each opening and her deck's corners are judged at
+## that attitude. Only a hit she floats on, stable, with deck to spare is ever thrown
+## out: the bake would leave her afloat too.
 static func founders(
-	structure: ShipStructure, damage: HitDamage, hull: LevelHull, sea: SeaPhysics, spare: float
+	structure: ShipStructure,
+	damage: HitDamage,
+	hull: LevelHull,
+	sea: SeaPhysics,
+	spare: float,
+	motion: ShipMotion = null
 ) -> bool:
+	if sea.attitude and motion == null:
+		motion = ShipMotion.new(structure, sea, hull.height_of(_own(structure, sea)))
 	var count := structure.cells.size()
 	var flooded := PackedByteArray()
 	flooded.resize(count)
 	for opening: ShipOpening in damage.openings:
 		flooded[structure.cell_named(opening.joins[0])] = 1
 	var ways := _ways(structure, damage)
-	var own := structure.total_mass() / sea.sea_density
+	var own := _own(structure, sea)
 	var level := INF
+	var tilt := PackedFloat64Array([0.0, 0.0, 0.0])
 	var changed := true
 	while changed:
 		level = _level(structure, sea, hull, flooded, own)
 		if is_inf(level):
 			return true
+		if motion != null:
+			tilt = _tilt(structure, sea, motion, flooded, level)
 		changed = false
 		for way: Array in ways:
-			if way[2] >= level:
+			if _clearance(way[2], tilt, motion, level) >= 0.0:
 				continue
 			var first: int = way[0]
 			var second: int = way[1]
@@ -139,13 +153,100 @@ static func founders(
 			if first_wet != second_wet:
 				flooded[second if first_wet else first] = 1
 				changed = true
+	for cell: FloodCell in structure.cells:
+		if cell.high.y != SinkTimeline.MAIN_DECK:
+			continue
+		for corner in 4:
+			var x := float(cell.low.x if corner & 1 == 0 else cell.high.x)
+			var z := float(cell.low.z if corner & 2 == 0 else cell.high.z)
+			var deck := PackedFloat64Array([x, cell.high.y, z, x, cell.high.y, z])
+			if _clearance(deck, tilt, motion, level) < spare:
+				return true
 	if level > -spare:
 		return true
 	return _stability(structure, sea, flooded, level) <= 0.0
 
 
+## Her own weight as a volume of sea.
+static func _own(structure: ShipStructure, sea: SeaPhysics) -> float:
+	return structure.total_mass() / sea.sea_density
+
+
+## How far the lowest of [param corners] — the least and greatest corners of a
+## rectangle, x, y, z each — stands over the sea at [param level], turned by
+## [param tilt] (_tilt) about her centre of mass; level without [param motion].
+static func _clearance(
+	corners: PackedFloat64Array, tilt: PackedFloat64Array, motion: ShipMotion, level: float
+) -> float:
+	if motion == null:
+		return corners[1] - level
+	var centre := motion.centre()
+	var lowest := INF
+	for corner in 4:
+		var x := corners[0 if corner & 1 == 0 else 3] - centre[0]
+		var z := corners[2 if corner & 2 == 0 else 5] - centre[2]
+		lowest = minf(lowest, corners[1] + tilt[1] * x - tilt[2] * z)
+	return lowest + tilt[0] - level
+
+
+## The rise, pitch — bow up — and roll — starboard down — in radians, by which she
+## floats with every [param flooded] cell flooded to the sea standing [param level] up
+## her: her lift less those cells' water and less their surfaces, its push on her and
+## its stiffness (ShipMotion) solved once — to first order, since she floats level
+## when nothing is flooded.
+static func _tilt(
+	structure: ShipStructure,
+	sea: SeaPhysics,
+	motion: ShipMotion,
+	flooded: PackedByteArray,
+	level: float
+) -> PackedFloat64Array:
+	var upright := Attitude.level()
+	var lift := motion.lift_under(upright, level)
+	var centre := motion.centre()
+	var volume := lift[ShipMotion.Lift.VOLUME]
+	var moment := PackedFloat64Array(
+		[
+			volume * lift[ShipMotion.Lift.X],
+			volume * lift[ShipMotion.Lift.Y],
+			volume * lift[ShipMotion.Lift.Z],
+		]
+	)
+	for index in flooded.size():
+		if flooded[index] == 0:
+			continue
+		var cell := structure.cells[index]
+		var water := _water(cell, sea, level)
+		if water <= 0.0:
+			continue
+		var top := minf(level, cell.high.y)
+		volume -= water
+		moment[0] -= water * (float(cell.low.x) + cell.high.x) * 0.5
+		moment[1] -= water * (float(cell.low.y) + top) * 0.5
+		moment[2] -= water * (float(cell.low.z) + cell.high.z) * 0.5
+		if level >= cell.high.y:
+			continue
+		# Its surface is no longer her waterplane: the sea's, not hers.
+		var share := cell.permeability_in(sea) * cell.shape
+		var x0 := float(cell.low.x) - centre[0]
+		var x1 := float(cell.high.x) - centre[0]
+		var z0 := float(cell.low.z) - centre[2]
+		var z1 := float(cell.high.z) - centre[2]
+		var plan := (x1 - x0) * (z1 - z0) * share
+		lift[ShipMotion.Lift.AREA] -= plan
+		lift[ShipMotion.Lift.AHEAD] -= plan * (x0 + x1) * 0.5
+		lift[ShipMotion.Lift.ABEAM] -= plan * (z0 + z1) * 0.5
+		lift[ShipMotion.Lift.AHEAD_AHEAD] -= plan * (x0 * x0 + x0 * x1 + x1 * x1) / 3.0
+		lift[ShipMotion.Lift.AHEAD_ABEAM] -= plan * (x0 + x1) * (z0 + z1) * 0.25
+		lift[ShipMotion.Lift.ABEAM_ABEAM] -= plan * (z0 * z0 + z0 * z1 + z1 * z1) / 3.0
+	lift[ShipMotion.Lift.VOLUME] = volume
+	for axis in 3:
+		lift[ShipMotion.Lift.X + axis] = moment[axis] / volume
+	return motion.rest_turn(upright, lift)
+
+
 ## Every opening of [param structure] water can pass after [param damage]: its two
-## sides — a cell, or SinkStepper.OUTSIDE — and the height of its bottom. A door the
+## sides — a cell, or SinkStepper.OUTSIDE — and its least and greatest corners. A door the
 ## ship shuts is shut, but one that jammed.
 static func _ways(structure: ShipStructure, damage: HitDamage) -> Array[Array]:
 	var ways: Array[Array] = []
@@ -160,8 +261,18 @@ static func _ways(structure: ShipStructure, damage: HitDamage) -> Array[Array]:
 		for place: StringName in opening.joins:
 			var cell := structure.cell_named(place)
 			sides.append(cell if cell != -1 else SinkStepper.OUTSIDE)
-		var bottom := opening.centre.y - opening.size.y * 0.5
-		ways.append([sides[0], sides[1], bottom])
+		var half := opening.size * 0.5
+		var corners := PackedFloat64Array(
+			[
+				opening.centre.x - half.x,
+				opening.centre.y - half.y,
+				opening.centre.z - half.z,
+				opening.centre.x + half.x,
+				opening.centre.y + half.y,
+				opening.centre.z + half.z,
+			]
+		)
+		ways.append([sides[0], sides[1], corners])
 	return ways
 
 

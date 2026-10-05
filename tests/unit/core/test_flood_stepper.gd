@@ -2,7 +2,9 @@ extends GutTest
 ## §5b.4 layer 1: SinkStepper against closed forms — two tanks levelling through an
 ## orifice, a tank filling from the sea, a spill over a sill, a box barge with its
 ## middle flooded — and the bake's two promises: water is never made or lost, and the
-## same hit bakes the same timeline twice.
+## same hit bakes the same timeline twice. The flows are checked with the attitude stage
+## off (§5b.3: the stages keep earlier tests meaningful), so the barge they float in
+## stays level; the barge and the steamer turn as the physics turns them.
 
 const SEA_DENSITY := 1025.0
 ## A barge so broad the water in her tanks barely moves the sea up her.
@@ -11,6 +13,13 @@ const BROAD := 1000.0
 
 func _sea() -> SeaPhysics:
 	return SeaPhysics.load_default()
+
+
+## The sea's constants with the attitude stage off: water moves, and she only heaves.
+func _flows() -> SeaPhysics:
+	var flows: SeaPhysics = SeaPhysics.load_default().duplicate()
+	flows.attitude = false
+	return flows
 
 
 ## A cell called [param cell_name], a box from [param low] to [param high], all of it
@@ -89,7 +98,7 @@ func _two_tanks() -> SinkStepper:
 		&"orifice", [&"big", &"small"], Vector3(10.0, 0.5, 5.0), Vector3(0.0, 1.0, 0.5)
 	)
 	var structure := _barge(BROAD, BROAD, -20.0, 20.0, 10.0, tanks, [orifice])
-	return SinkStepper.new(structure, HitDamage.new(), _sea())
+	return SinkStepper.new(structure, HitDamage.new(), _flows())
 
 
 func _filled(stepper: SinkStepper, heads: Array[float]) -> FloodState:
@@ -160,7 +169,7 @@ func test_tank_fills_from_the_sea_in_the_closed_form_time() -> void:
 		&"hole", [&"tank", ShipOpening.SEA], Vector3(0.0, 0.5, 5.0), Vector3(0.0, 1.0, 0.25)
 	)
 	var structure := _barge(BROAD, BROAD, -2.0, 20.0, 8.0, tank, [hole])
-	var stepper := SinkStepper.new(structure, HitDamage.new(), _sea())
+	var stepper := SinkStepper.new(structure, HitDamage.new(), _flows())
 	var state := _filled(stepper, [1.0])
 	var sea := state.sea
 	assert_almost_eq(sea, 6.0, 1e-6, "the sea 5 m over the tank's water")
@@ -284,7 +293,7 @@ func test_spill_over_a_sill_matches_the_weir_law() -> void:
 	)
 	gap.kind = ShipOpening.Kind.OVER_WALL
 	var structure := _barge(BROAD, BROAD, -20.0, 20.0, 10.0, cells, [gap])
-	var stepper := SinkStepper.new(structure, HitDamage.new(), _sea())
+	var stepper := SinkStepper.new(structure, HitDamage.new(), _flows())
 	for depth: float in [0.1, 0.4, 1.2]:
 		var state := _filled(stepper, [2.0 + depth, 0.0])
 		var seconds := 0.01
@@ -329,7 +338,8 @@ func test_bake_is_pure_in_its_inputs() -> void:
 
 func test_box_barge_with_its_middle_flooded_settles_to_6_25_m() -> void:
 	# 40 m long, 8 m wide, 10 m deep, floating 5 m deep; the middle 8 m holed at the
-	# keel: lost buoyancy puts her 5 × 40 / 32 = 6.25 m deep.
+	# keel: lost buoyancy puts her 5 × 40 / 32 = 6.25 m deep — to the 10 µm her heave
+	# has left in it when she lies still, level, the hole in her middle.
 	var middle: Array[FloodCell] = [
 		_cell(&"middle", Vector3(-4.0, -10.0, -4.0), Vector3(4.0, 0.0, 4.0))
 	]
@@ -340,6 +350,11 @@ func test_box_barge_with_its_middle_flooded_settles_to_6_25_m() -> void:
 	var stepper := SinkStepper.new(structure, HitDamage.new(), _sea())
 	var timeline := SinkTimeline.bake(stepper, _sea(), 3600.0)
 	assert_eq(timeline.end, SinkTimeline.End.AFLOAT, "she floats once the water stops")
-	var sea := timeline.seas[timeline.count() - 1]
-	assert_almost_eq(sea - -10.0, 6.25, 1e-6, "6.25 m deep")
-	assert_almost_eq(timeline.heads[timeline.count() - 1], sea, 1e-6, "flooded to the sea")
+	var last := timeline.count() - 1
+	var sea := timeline.seas[last]
+	assert_almost_eq(sea - -10.0, 6.25, 1e-5, "6.25 m deep")
+	assert_almost_eq(timeline.heads[last], sea, 1e-5, "flooded to the sea")
+	var rotation := timeline.rotations.slice(last * 9, last * 9 + 9)
+	assert_lt(Attitude.squareness(rotation), 1e-12, "square")
+	for index in 9:
+		assert_almost_eq(rotation[index], Attitude.level()[index], 1e-12, "level, entry %d" % index)

@@ -3,7 +3,10 @@
 // of the sky's ambient, never the sun — so a dark room's water stays dark but for the
 // lamps' glints on its wobbling surface. Over a floor just under it, see-through to the
 // planks; deeper, the sea's own deep; where it meets a wall, a body or anything standing
-// in it, the sea's lap of foam and lace. Seen from under it, a dim ceiling.
+// in it, the sea's lap of foam and lace. Seen from under it, a dim ceiling. Its sheet
+// is level with the world, turned against her lean (CellSurface), and drawn only inside
+// its cell's box, in ship metres: so it piles into the box's low corner and never pokes
+// through a deck, a wall or her side.
 shader_type spatial;
 render_mode blend_mix, depth_draw_never, cull_disabled;
 
@@ -24,6 +27,12 @@ uniform float lamp_bounce = 0.35;
 // How bright a lamp's glint on it is, and how tight.
 uniform float glint = 0.9;
 uniform float glint_tightness = 70.0;
+
+// The world to her ship space, as drawn this frame (InnerWater), and the box this sheet's
+// cell stands in there.
+uniform mat4 world_to_ship = mat4(1.0);
+instance uniform vec3 clip_low = vec3(0.0);
+instance uniform vec3 clip_high = vec3(0.0);
 
 uniform sampler2D depth_texture : hint_depth_texture, filter_nearest, repeat_disable;
 
@@ -56,6 +65,10 @@ void vertex() {
 }
 
 void fragment() {
+	vec3 ship = (world_to_ship * vec4(world, 1.0)).xyz;
+	if (any(lessThan(ship, clip_low)) || any(greaterThan(ship, clip_high))) {
+		discard;
+	}
 	float t = TIME;
 	// A slow wobble of the surface: what turns a lamp's glint on it about.
 	vec2 slope = vec2(

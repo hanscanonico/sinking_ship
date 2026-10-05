@@ -226,11 +226,17 @@ func test_gash_opens_only_the_cells_it_crosses() -> void:
 	assert_eq(
 		_opened(_mapped(_hit(-1, 6.0, 10.0, 0.3, 0.3))), [&"hold_wing_p"] as Array[StringName]
 	)
-	# Aft, under the cabins' floor: the bilge, never the cabins over it.
-	assert_eq(_opened(_mapped(_hit(1, -10.0, -5.0, 1.0, 1.0))), [&"aft_bilge"] as Array[StringName])
+	# Aft, under the cabins' floor: the bilge's starboard half, never the cabins over it
+	# nor the half across the centre girder.
+	assert_eq(
+		_opened(_mapped(_hit(1, -10.0, -5.0, 1.0, 1.0))), [&"aft_bilge_s"] as Array[StringName]
+	)
+	assert_eq(
+		_opened(_mapped(_hit(-1, -10.0, -5.0, 1.0, 1.0))), [&"aft_bilge_p"] as Array[StringName]
+	)
 	# Across the engine room's after bulkhead: the bilges either side of it.
 	var across := _mapped(_hit(1, -6.0, -1.0, 1.0, 1.0))
-	assert_eq(_opened(across), [&"aft_bilge", &"engine_bilge"] as Array[StringName])
+	assert_eq(_opened(across), [&"aft_bilge_s", &"engine_bilge_s"] as Array[StringName])
 	assert_eq(across.weakened, [] as Array[StringName], "both its ends stand clear of a wall")
 	# Ending just short of the hold's after bulkhead weakens it, and nothing else.
 	var short := _mapped(_hit(1, -1.0, 3.5, 1.0, 1.0))
@@ -269,9 +275,9 @@ func test_a_sliver_of_a_run_opens_nothing() -> void:
 	assert_gt(bands.least_run, 0.0, "the bands keep slivers out")
 	# Into the engine room's bilge for 5 cm past the hold's after bulkhead.
 	var sliver := _mapped(_hit(1, 4.0 - 0.05, 10.0, 1.0, 1.0))
-	assert_false(_opened(sliver).has(&"engine_bilge"), "5 cm into a cell holes nothing")
+	assert_false(_opened(sliver).has(&"engine_bilge_s"), "5 cm into a cell holes nothing")
 	var run := _mapped(_hit(1, 4.0 - 0.5, 10.0, 1.0, 1.0))
-	assert_true(_opened(run).has(&"engine_bilge"), "half a metre does")
+	assert_true(_opened(run).has(&"engine_bilge_s"), "half a metre does")
 
 
 func test_hit_above_the_waterline_opens_nothing_below_it() -> void:

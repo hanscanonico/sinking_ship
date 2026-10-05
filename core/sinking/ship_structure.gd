@@ -3,7 +3,8 @@ extends Resource
 ## The physics' view of a ship (§5b.2, D6): the same hull as its ShipLayout, in the
 ## same ship-local metres — the outline of everything enclosed, cut across in
 ## sections; the cells water and air fill; the watertight walls; every opening
-## between two cells or a cell and the outside; and her mass and where it sits.
+## between two cells or a cell and the outside; her mass and where it sits; and her
+## fittings.
 ## Generated with the layout (tools/gen_steamer.py). The sinking physics reads it
 ## (SinkStepper, D13); `make ship-check` proves she floats on it, level, where she is
 ## said to, and founders on her sure hit.
@@ -27,6 +28,8 @@ extends Resource
 @export var heave_damping: float
 @export var roll_damping: float
 @export var pitch_damping: float
+## What she carries that the sinking acts on: her lifeboats (SH27).
+@export var fittings: Array[ShipFitting] = []
 ## Where along her (x) and up her shell (y) an iceberg's gash can be at all.
 @export var hit_zone_x: Vector2
 @export var hit_zone_y: Vector2
@@ -120,6 +123,11 @@ func problems() -> PackedStringArray:
 			found.append("structure: a mass item is missing")
 			continue
 		found.append_array(item.problems())
+	for fitting: ShipFitting in fittings:
+		if fitting == null:
+			found.append("structure: a fitting is missing")
+			continue
+		found.append_array(fitting.problems())
 	if roll_radius <= 0.0 or pitch_radius <= 0.0 or added_mass < 0.0:
 		found.append("structure: radii of gyration must be positive, added mass not negative")
 	if heave_damping < 0.0 or roll_damping < 0.0 or pitch_damping < 0.0:

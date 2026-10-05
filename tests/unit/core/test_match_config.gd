@@ -70,7 +70,9 @@ func test_blank_seed_is_random_and_recorded() -> void:
 	assert_eq(replayed.match_seed, config.match_seed)
 	var first := _played(config)
 	var second := _played(replayed)
-	assert_true(first.is_over(), "the drawn match ends")
+	# From SH27 a drawn hit may sink her over hours, and two seats left may spar on a
+	# deck still near level past the ten minutes played: played alike all the same.
+	assert_true(first.is_over() or first.tick() >= Ticks.from_seconds(600.0), "played out")
 	assert_eq(second.digest.hex(), first.digest.hex())
 	assert_eq(second.snapshot, first.snapshot)
 

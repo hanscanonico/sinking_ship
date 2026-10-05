@@ -1,0 +1,34 @@
+[gd_resource type="Resource" script_class="WreckHull" format=3]
+
+[ext_resource type="Script" path="res://tests/fixtures/wrecks/wreck_hull.gd" id="1_wreck"]
+[ext_resource type="Script" path="res://core/sinking/flood_cell.gd" id="2_cell"]
+[ext_resource type="Script" path="res://core/sinking/ship_opening.gd" id="3_opening"]
+
+[sub_resource type="Resource" id="Cell_deep_tanks_s"]
+script = ExtResource("2_cell")
+name = &"deep_tanks_s"
+low = Vector3(-5, -7.5, 9.2)
+high = Vector3(25, 0.5, 13.7)
+permeability = 0.95
+
+[sub_resource type="Resource" id="Opening_hole"]
+script = ExtResource("3_opening")
+name = &"hole_deep_tanks_s"
+kind = 12
+joins = Array[StringName]([&"deep_tanks_s", &"sea"])
+centre = Vector3(10, -4, 13.7)
+size = Vector3(2.83, 2.83, 0)
+area = 8.0
+
+[resource]
+script = ExtResource("1_wreck")
+name = &"andrea_doria"
+length = 120.0
+beam = 27.4
+depth = 15.0
+draught = 9.0
+centre_height = 10.85
+cells = Array[ExtResource("2_cell")]([SubResource("Cell_deep_tanks_s")])
+openings = Array[ExtResource("3_opening")]([SubResource("Opening_hole")])
+boat_limit_deg = 15.0
+notes = "Andrea Doria, struck by Stockholm on 25 July 1956. Beam 27.4 m (source). Box length 120 m: her 212 m overall at a block coefficient near 0.57 (est.), so the box displaces about 30 000 t at a 9.0 m draught (est.: she was light at the end of her voyage). Depth 15 m to her bulkhead deck (est.). Weight 10.85 m over her keel: GM 0.6 m (est.: the research reports her low on stability with her fuel tanks empty). Her starboard deep tanks, empty, 30 m long and 4.5 m deep inboard of her side, from 1.5 m to 9.5 m over her keel (est.), opened to the sea by an 8 m² hole 5 m under her waterline (est.: Stockholm's bow went 9 m into her). Only the tanks: what listed her past 30° over the hours, the water spreading through her decks, is not modelled here. Lifeboats useless on the high side past 15° (her davits' rating, research)."

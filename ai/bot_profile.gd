@@ -32,8 +32,8 @@ const NON_NEGATIVE: Array[String] = [
 	"mistake_rate",
 	"mistake_seconds",
 	"climb_margin_m",
-	"refuge_tilt_deg",
-	"refuge_lean_deg",
+	"refuge_window_s",
+	"refuge_rise_s",
 	"refuge_keep_m",
 	"refuge_margin_m",
 	"guard_range_m",
@@ -116,13 +116,13 @@ const NON_NEGATIVE: Array[String] = [
 @export var climb_margin_m: float
 @export var refuge_margin_m: float
 ## A bot's refuge, where it climbs out and flees to: the highest ground it can reach —
-## once the share refuge_from of the ship's platforms is under water, the highest were
-## the deck tilted refuge_tilt() further the way it leans, as a ship foundering by one
-## end rises by the other; a refuge once made for is kept through a lurch, and else
-## unless another would stand refuge_keep_m higher: a heel swinging across by a little
-## does not swap it.
-@export var refuge_tilt_deg: float
-@export var refuge_lean_deg: float
+## once the share refuge_from of the ship's platforms is under water, the highest less
+## refuge_rise_s seconds of how fast it has seen the water under each come up over its
+## last refuge_window_s (BotRefuge); a refuge once made for is kept through a lurch, and
+## else unless another would stand refuge_keep_m higher: a heel swinging across by a
+## little does not swap it.
+@export var refuge_window_s: float
+@export var refuge_rise_s: float
 @export var refuge_keep_m: float
 @export var refuge_from: float
 ## Once it and its target stand on its perch — its refuge or the highest ground — how
@@ -148,15 +148,6 @@ const NON_NEGATIVE: Array[String] = [
 @export var eye_height_m: float
 @export var hearing_m: float
 @export var memory_seconds: float
-
-
-## How many degrees further than it leans now a bot reckons a deck leaning
-## [param slope_deg] will tilt: refuge_tilt_deg once it leans refuge_lean_deg, in
-## proportion below — a level deck leans no way.
-func refuge_tilt(slope_deg: float) -> float:
-	if slope_deg >= refuge_lean_deg:
-		return refuge_tilt_deg
-	return refuge_tilt_deg * slope_deg / refuge_lean_deg
 
 
 ## How far from the water, an open drop or a railing a bot keeps the seats it shoves

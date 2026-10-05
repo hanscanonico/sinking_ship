@@ -11,8 +11,9 @@ extends RefCounted
 ##   01:02.1 hold_bilge flooding
 ##   01:31.0 seat 1 out · cold · place 5 · credit crate 2
 ##   winner seat 2 at 02:21.0 · digest 9f3c…
-##   sinking at the end: physics 0:02:18 · sea 1.21 m up her · hold_bilge full · hold 0.3 m
-##   bake: gone at 0:09:12
+##   sinking at the end: physics 0:02:18 · sea 1.21 m up her · trim +2.1° · list -0.4° ·
+##     hold_bilge full · hold 0.3 m
+##   bake: gone at 0:09:12 · trim +31.0° · list +3.2°
 ## What `make match` prints and what the golden files hold. Seats are sim seat ids.
 
 const CAUSES := {PlayerState.Cause.NONE: "none", PlayerState.Cause.COLD: "cold"}
@@ -93,6 +94,8 @@ func add(events: Array[SimEvent]) -> void:
 				_lines.append("%s water through %s" % [clock(event.tick), event.cell])
 			SimEvent.Kind.SHIP_GONE:
 				_lines.append("%s she is gone" % clock(event.tick))
+			SimEvent.Kind.BOATS_USELESS:
+				_lines.append("%s %s boats useless" % [clock(event.tick), event.cell])
 
 
 ## " · credit crate n" for an exit a crate is credited with — " shoved by seat s"
@@ -139,7 +142,8 @@ func _sinking(sim: MatchSim) -> void:
 	)
 	var pose := sim.schedule.pose_at(tick)
 	var line := (
-		"sinking at the end: physics %s · sea %.2f m up her" % [physics_clock(since), pose.sink]
+		"sinking at the end: physics %s · sea %.2f m up her · trim %+.1f° · list %+.1f°"
+		% [physics_clock(since), pose.sink, pose.trim_deg, pose.heel_deg]
 	)
 	var structure := sim.config.ship.structure
 	for cell: FloodCell in structure.cells:
@@ -157,7 +161,15 @@ func _sinking(sim: MatchSim) -> void:
 		SinkTimeline.End.AFLOAT: "afloat from %s" % physics_clock(timeline.length()),
 		SinkTimeline.End.CAPPED: "afloat at the cap, %s" % physics_clock(timeline.length()),
 	}
-	_lines.append("bake: %s" % ends[timeline.end])
+	# How she stood as she went — or as the bake ended — read off her pose then.
+	var last := sim.schedule.gone_tick() if timeline.is_gone() else sim.schedule.end_tick()
+	var going := sim.schedule.pose_at(last)
+	_lines.append(
+		(
+			"bake: %s · trim %+.1f° · list %+.1f°"
+			% [ends[timeline.end], going.trim_deg, going.heel_deg]
+		)
+	)
 
 
 func text() -> String:

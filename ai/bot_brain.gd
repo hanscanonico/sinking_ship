@@ -16,11 +16,10 @@ extends RefCounted
 ##   its way to its refuge dipping below its feet to within refuge_margin_m of it; and
 ##   its refuge elsewhere: for its refuge, until it stands there — or, while less than
 ##   refuge_from is under, on a floor a body's height above the sea. Its refuge is the
-##   highest zone it can reach; once refuge_from is under, the highest were the deck
-##   tilted further the way it leans, by as much as BotProfile.refuge_tilt says — the end
-##   the ship rises by, where the last dry deck will be — kept through a lurch, and else
-##   unless another would stand refuge_keep_m higher; so it goes there while the way is
-##   dry.
+##   highest zone it can reach; once refuge_from is under, the highest marked down by
+##   how fast it has seen the water under each come up (BotRefuge) — the present and
+##   what it has seen, never her lean carried on — kept through a lurch, and else unless
+##   another would stand refuge_keep_m higher; so it goes there while the way is dry.
 ## - RIDE, a lurch telegraphed or under way: within ride_margin_m of the side it puts
 ##   down, away from it; else, once the deck swings, a brace where it stands while its
 ##   stamina lasts. Farther off, until the swing, it carries on with its target.
@@ -97,8 +96,9 @@ var _legs: Array[WalkGraph.Portal] = []
 ## Whether it is climbing because its floor was about to flood: it climbs on until it
 ## stands in the zone it was making for.
 var _climbing := false
-## The refuge the ship's lean gave it at the last think, or WalkGraph.NONE.
+## The refuge it chose at the last think, or WalkGraph.NONE, and what chooses it.
 var _refuge := WalkGraph.NONE
+var _refuges: BotRefuge
 var _aim_offset := 0.0
 var _think_in := 0
 var _last_buttons := 0
@@ -175,6 +175,7 @@ func _init(
 	_footing = BotFooting.new(surfaces, walk_graph, rules, profile.edge_margin_m)
 	_targeting = BotTargeting.new(bot_seat, profile, rules, _footing, walk_graph)
 	_swim = BotSwim.new(walk_graph, rules, profile.eye_height_m)
+	_refuges = BotRefuge.new(walk_graph, profile)
 	_rng = rng
 	_charge_full_ticks = Ticks.from_seconds(rules.charge_full)
 	_windup_ticks = Ticks.from_seconds(rules.shove_windup)
@@ -345,11 +346,10 @@ func _think(seen: Dictionary, me: Dictionary, now_pos: Vector3, pose: ShipPose) 
 	var found := _walk_graph.search(my_pos, my_surface, pose)
 	var under := _footing.flooded_share(pose)
 	var highest := _walk_graph.highest_in(found, pose)
-	# As the ship founders, the highest ground now is not where the last dry deck will be.
+	# As the ship founders, the highest ground now may be where the water comes fastest.
 	var refuge := highest
 	if under >= _profile.refuge_from:
-		var tilt := _profile.refuge_tilt(pose.slope_deg())
-		_refuge = _walk_graph.highest_in(found, pose, tilt, _refuge, _profile.refuge_keep_m)
+		_refuge = _refuges.choose(found, pose, seen["tick"], _refuge)
 		refuge = _refuge
 	target = _targeting.choose(seen, me, found, pose, highest, target)
 	var mark := _entry(seen, target)

@@ -1,9 +1,10 @@
 class_name FirstPersonCamera
 extends Camera3D
-## A seat's eyes (D14): 1.6 m above its drawn feet, turned by its look and a pitch
-## that only ever lives here. The horizon stays level while the deck tilts round it
-## unless ViewSettings' deck roll asks for some of the list (Q17); the field of view
-## is horizontal, so a wider window shows more to the sides, not less above.
+## A seat's eyes (D14): 1.6 m above its drawn feet along the world's up, turned by its
+## look and a pitch that only ever lives here. The horizon stays level while the deck
+## tilts round it unless ViewSettings' deck roll asks for some of the list (Q17); the
+## field of view is horizontal, so a wider window shows more to the sides, not less
+## above.
 
 const EYE_HEIGHT := 1.6
 ## Close enough that a wall a body is pinned against (its radius away) is never cut.
@@ -35,5 +36,5 @@ func look_from(
 	)
 	global_transform = Transform3D(
 		level.slerp(rolled, _deck_roll) * Basis.from_euler(kick),
-		ship_to_world * (feet + Vector3.UP * EYE_HEIGHT)
+		ship_to_world * feet + Vector3.UP * EYE_HEIGHT
 	)

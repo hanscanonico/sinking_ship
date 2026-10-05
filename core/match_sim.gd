@@ -151,7 +151,13 @@ func step(frames: Array[InputFrame]) -> Array[SimEvent]:
 		_shoves(live, tick, events)
 		var exits := _water(live, pose_now, tick, events, feet_before)
 		var settled := MatchVerdict.settled_by_the_sea(
-			_live_seats(), pose_now, tick, schedule.gone_tick(), surfaces, _rules.wade_depth
+			_live_seats(),
+			pose_now,
+			tick,
+			schedule.gone_tick(),
+			schedule.unsupported_tick(),
+			surfaces,
+			_rules.wade_depth
 		)
 		for player: PlayerState in settled:
 			_out(player, tick)

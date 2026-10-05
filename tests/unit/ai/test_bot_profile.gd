@@ -91,18 +91,13 @@ func test_each_knob_out_of_range_is_named() -> void:
 	assert_eq(lonely.problems(), PackedStringArray(["bot: crowd_seats must be at least 1"]))
 
 
-## The refuge leans only as the deck does: none on a level deck, in proportion up to
-## refuge_lean_deg, the whole refuge_tilt_deg from there.
-func test_the_refuge_leans_only_as_far_as_the_deck_does() -> void:
+## The refuge reads what the bot has seen over a window of its own, and marks a zone
+## down by the water it saw rise there (BotRefuge): neither is ever nothing.
+func test_the_refuge_reads_a_window_of_what_was_seen() -> void:
 	for tier: String in BotProfile.tiers():
 		var profile := BotProfile.for_tier(StringName(tier))
-		var full := profile.refuge_tilt_deg
-		var lean := profile.refuge_lean_deg
-		assert_gt(lean, 0.0, "%s: a level deck is told from a leaning one" % tier)
-		assert_eq(profile.refuge_tilt(0.0), 0.0, "%s: level, no lean" % tier)
-		assert_almost_eq(profile.refuge_tilt(lean * 0.5), full * 0.5, 1e-9, tier)
-		assert_eq(profile.refuge_tilt(lean), full, tier)
-		assert_eq(profile.refuge_tilt(lean * 4.0), full, tier)
+		assert_gt(profile.refuge_window_s, 0.0, "%s: a window to compare across" % tier)
+		assert_gt(profile.refuge_rise_s, 0.0, "%s: a rise seen counts" % tier)
 
 
 ## A bot spars only while the ship is level: its whole spar margin with every deck dry,

@@ -273,13 +273,14 @@ func test_king_of_hill_targets_the_highest_seat() -> void:
 	assert_eq(targets[&"easy"], 1, "easy goes at whoever stands nearest")
 
 
-## Down by the head, with the foot of the boat deck's stairs a hand above the sea: the
-## bridge still stands highest, a seat waits up there, but a bot on the boat deck goes
-## down while the way aft is dry and makes for the poop deck, the end she rises by — it
-## is not left on an island the sea closes round.
+## Down by the head and seen going further, with the foot of the boat deck's stairs a
+## hand above the sea: the bridge still stands highest, a seat waits up there, but a bot
+## on the boat deck that has watched the water come up forward goes down while the way
+## aft is dry and makes for the poop deck, the end she rises by — it is not left on an
+## island the sea closes round.
 func test_a_bot_leaves_an_island_to_be_for_the_last_refuge() -> void:
 	var layout := SimFixtures.steamer()
-	var by_the_head := SimFixtures.scenario([[0.0, 2.5, 4.0, 0.0]])
+	var by_the_head := SimFixtures.scenario([[0.0, 2.5, 4.0, 0.0], [10.0, 2.5, 8.0, 0.0]])
 	var sim := SimFixtures.sim(2, by_the_head, layout)
 	SimFixtures.place(sim, 0, Vector3(-2.0, 2.5, 2.0), 0.0)
 	SimFixtures.place(sim, 1, Vector3(-2.5, 4.7, 0.0))
