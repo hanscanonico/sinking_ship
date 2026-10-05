@@ -20,6 +20,22 @@ func test_the_line_names_whose_view_it_is() -> void:
 	assert_eq(Hud.whose_view("You", true, true), "watching you")
 
 
+func test_the_line_says_how_into_the_free_camera_and_back() -> void:
+	assert_eq(
+		Hud.spectating_text("3rd", 8, "through Bot 3's eyes", "Q", "E", "C"),
+		"Overboard — 3rd of 8   ·   through Bot 3's eyes\nQ / E to switch   ·   C free camera"
+	)
+	assert_eq(
+		Hud.spectating_text("3rd", 8, "through Bot 3's eyes", "Q", "E", "C", true),
+		"Overboard — 3rd of 8   ·   free camera\nQ / E to switch   ·   C eyes"
+	)
+	assert_eq(
+		Hud.spectating_text("3rd", 8, "watching Bot 3", "Q", "E"),
+		"Overboard — 3rd of 8   ·   watching Bot 3\nQ / E to switch",
+		"no free camera from the observer's"
+	)
+
+
 ## The longest name the line shows — clipped to Hud.NAME_WIDTH as the HUD clips it, in
 ## the font the HUD draws it in — with the keyboard's or the pad's prompts still fits
 ## each line in the box, and the box stands clear of the plate and of every arrow a
@@ -33,9 +49,16 @@ func test_the_line_fits_clear_of_the_plate_and_the_wedges() -> void:
 	for pad: bool in [false, true]:
 		var previous := InputPrompts.word_for(InputMap.action_get_events(&"spectate_previous"), pad)
 		var next := InputPrompts.word_for(InputMap.action_get_events(&"spectate_next"), pad)
+		var free := InputPrompts.word_for(InputMap.action_get_events(&"spectate_free"), pad)
 		for observer: bool in [false, true]:
 			var whose := Hud.whose_view(widest, false, observer)
-			lines.append_array(Hud.spectating_text("16th", 16, whose, previous, next).split("\n"))
+			var key := "" if observer else free
+			lines.append_array(
+				Hud.spectating_text("16th", 16, whose, previous, next, key).split("\n")
+			)
+		lines.append_array(
+			Hud.spectating_text("16th", 16, "", previous, next, free, true).split("\n")
+		)
 	var height := 0.0
 	for line: String in lines:
 		var width := font.get_string_size(line, HORIZONTAL_ALIGNMENT_LEFT, -1, FONT_SIZE).x

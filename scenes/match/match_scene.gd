@@ -55,6 +55,8 @@ var _pointer := PointerCapture.new()
 var _kick: ViewKick
 ## The ship's cells over the observer's view, once show_cells() asks for them.
 var _cells: CellOverlay
+## The free camera the local seat may fly once it is out, in place of a seat's eyes.
+var _free := FreeCamera.new()
 
 @onready var _sea_and_sky: SeaAndSky = $SeaAndSky
 @onready var _driver: SimDriver = $SimDriver
@@ -103,14 +105,19 @@ func _process(delta: float) -> void:
 	_end.show_results(_stats, _local_seat, _names, _config.match_seed)
 	if _end.visible:
 		_end.show_prompts(_prompts)
-	_pointer.want(_looking())
+	_free.keep(_can_fly(snapshot))
+	_pointer.want(_looking() or _flying())
 	_hold()
-	if _looking():
+	if _looking() and not _free.active:
 		_local.look_by_stick(delta)
-	_audio.hear_through(-1 if _observer else viewed)
+	_audio.hear_through(-1 if _observer or _free.active else viewed)
+	_first_person_hud.flying = _free.active
 	if _observer:
 		_observer_camera.follow(_view.seat_world_position(viewed), delta)
 		_first_person_hud.show_view(snapshot, viewed, 0.0, _eyes, _view)
+		return
+	if _free.active:
+		_fly(snapshot, viewed, delta)
 		return
 	# Another seat's pitch never leaves its client, so its gaze is fixed (D14): a
 	# little below level, so the deck and its edges show under the horizon.
@@ -128,6 +135,7 @@ func _process(delta: float) -> void:
 	_kick.follow(snapshot, viewed, yaw)
 	var kick := _kick.advance(delta)
 	_eyes.look_from(_view.ship_to_world(), feet, yaw, pitch, kick)
+	_arms.visible = _staged.is_empty()
 	if _staged.is_empty():
 		_arms.show_seat(
 			viewed, _driver.previous["seats"][viewed], snapshot["seats"][viewed], _driver.alpha
@@ -140,16 +148,22 @@ func _unhandled_input(event: InputEvent) -> void:
 	if _driver.client == null or _mouse_freed:
 		return
 	if event is InputEventMouseMotion:
-		if _looking():
+		if _flying():
+			_free.look_by_mouse((event as InputEventMouseMotion).screen_relative)
+		elif _looking():
 			_local.look_by_mouse((event as InputEventMouseMotion).screen_relative)
 		return
 	if _end.visible and event.is_action_pressed("restart"):
 		rematch_requested.emit()
 	elif _end.visible and event.is_action_pressed("pause"):
 		menu_requested.emit()
+	elif event.is_action_pressed("spectate_free") and _can_fly(_driver.current):
+		_toggle_free()
 	elif event.is_action_pressed("spectate_next"):
+		_free.leave()
 		_order.cycle(_driver.current, 1)
 	elif event.is_action_pressed("spectate_previous"):
+		_free.leave()
 		_order.cycle(_driver.current, -1)
 	else:
 		return
@@ -281,6 +295,8 @@ func _begin(
 	_dust.setup(_driver, _view)
 	_fx.setup(_driver, _view, sim, _sea_and_sky.sun())
 	_kick = ViewKick.new(settings.view_kick)
+	_free = FreeCamera.new(settings)
+	_free.set_bounds(_deck_bounds(config.ship))
 	_eyes.setup(settings)
 	_arms.setup(config.rules)
 	_first_person_hud.setup(sim, _names, not observer, _prompts)
@@ -344,6 +360,41 @@ func _looking() -> bool:
 	return _local != null and not _paused and not _end.visible and not _mouse_freed
 
 
+## Whether the free camera turns and flies now: flown, and neither paused, at the
+## results nor with the mouse let go.
+func _flying() -> bool:
+	return _free.active and not _paused and not _end.visible and not _mouse_freed
+
+
+## Whether the free camera may be flown in [param snapshot]: the eye seat out while the
+## match goes on, the eyes being a seat's (not the observer's).
+func _can_fly(snapshot: Dictionary) -> bool:
+	var mine: Dictionary = snapshot["seats"][_eye_seat]
+	return not _observer and mine["out"] and snapshot["phase"] != MatchState.Phase.ENDED
+
+
+## Into the free camera, behind and over the seat whose eyes the view was in and
+## looking where they did; or back into those eyes.
+func _toggle_free() -> void:
+	_free.toggle(true)
+	if _free.active:
+		var viewed := _order.target(_driver.current)
+		var head := _view.seat_world_position(viewed) + Vector3.UP * FirstPersonCamera.EYE_HEIGHT
+		_free.start(head, -_eyes.global_basis.z)
+
+
+## The view from the free camera: every seat drawn, nobody's arms, and the HUD as the
+## observer's, of [param viewed] — the seat last watched.
+func _fly(snapshot: Dictionary, viewed: int, delta: float) -> void:
+	if _flying():
+		_free.fly_by_input(delta)
+	_view.look_out_of(-1)
+	_arms.visible = false
+	_eyes.global_transform = _free.transform()
+	_underwater.show_eye(_eyes.global_position)
+	_first_person_hud.show_view(snapshot, viewed, 0.0, _eyes, _view)
+
+
 ## The local seat of a match on a server stands still while a menu over the match, or a
 ## browser's "Click to play", has the keys, the pad and the mouse.
 func _hold() -> void:
@@ -387,5 +438,7 @@ func _spectating(snapshot: Dictionary, viewed: int) -> String:
 		seats.size(),
 		whose,
 		_prompts.word(&"spectate_previous"),
-		_prompts.word(&"spectate_next")
+		_prompts.word(&"spectate_next"),
+		"" if _observer else _prompts.word(&"spectate_free"),
+		_free.active
 	)

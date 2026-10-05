@@ -12,6 +12,8 @@ const NAME_WIDTH := 130.0
 ## How far the spectating line keeps off the readouts' plate either side of it and
 ## off a shove's wedge on the bottom edge under it (FirstPersonHud), in pixels.
 const SPECTATING_CLEAR := 12.0
+## Whose view the spectating line names from the free camera: nobody's.
+const FREE_VIEW := "free camera"
 
 var _countdown_ticks: int
 
@@ -58,13 +60,26 @@ static func whose_view(name: String, own: bool, observer: bool) -> String:
 
 ## The spectating line: the local seat's [param place] of [param seats] and
 ## [param whose] view it is (whose_view) over what switches the view, [param previous]
-## and [param next] — the prompts on a line of their own, as long as a pad's are.
+## and [param next] — the prompts on a line of their own, as long as a pad's are —
+## and, when [param free_key] names one, the key into the free camera, or back out of
+## it to the eyes while [param free] says the view is the free camera.
 static func spectating_text(
-	place: String, seats: int, whose: String, previous: String, next: String
+	place: String,
+	seats: int,
+	whose: String,
+	previous: String,
+	next: String,
+	free_key := "",
+	free := false
 ) -> String:
-	return (
+	if free:
+		whose = FREE_VIEW
+	var text := (
 		"Overboard — %s of %d   ·   %s\n%s / %s to switch" % [place, seats, whose, previous, next]
 	)
+	if not free_key.is_empty():
+		text += "   ·   %s %s" % [free_key, "eyes" if free else "free camera"]
+	return text
 
 
 ## [param text] along the bottom of the screen; empty hides it.

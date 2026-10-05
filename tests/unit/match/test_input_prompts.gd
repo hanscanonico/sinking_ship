@@ -35,6 +35,20 @@ func test_the_hints_read_the_input_map() -> void:
 	assert_eq(words[&"spectate_next"], ["E", "d-pad right"])
 
 
+func test_c_and_y_switch_to_the_free_camera_and_nothing_else() -> void:
+	var free := InputMap.action_get_events(&"spectate_free")
+	assert_eq(InputPrompts.word_for(free, false), "C")
+	assert_eq(InputPrompts.word_for(free, true), "Y")
+	for action: StringName in InputMap.get_actions():
+		if action == &"spectate_free" or String(action).begins_with("ui_"):
+			continue
+		for event: InputEvent in free:
+			assert_false(
+				_binds(InputMap.action_get_events(action), event),
+				"%s does not share the free camera's %s" % [action, event.as_text()]
+			)
+
+
 func test_space_jumps_and_the_shove_moves_to_click_f_and_the_triggers() -> void:
 	var jump := InputMap.action_get_events(&"jump")
 	var shove := InputMap.action_get_events(&"shove")
