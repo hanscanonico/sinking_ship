@@ -113,3 +113,25 @@ func test_the_match_settles_once_she_leans_past_what_it_follows() -> void:
 	assert_gt(verdict, 0, "a draw")
 	assert_string_starts_with(lines[verdict - 1], "%s she lies " % MatchTranscript.clock(over))
 	assert_string_ends_with(lines[verdict - 1], "° over · the match follows her no further")
+
+
+func test_a_lone_seat_match_runs_until_it_goes_out() -> void:
+	var config := _fast_config(4)
+	config.seats = 1
+	var sim := MatchSim.create(config)
+	var bound := sim.schedule.gone_tick() + Ticks.from_seconds(SETTLED_WITHIN)
+	var ended: Array[SimEvent] = []
+	var events := SimFixtures.step(sim)
+	assert_false(sim.is_over(), "one seat left is not a match won")
+	while not sim.is_over() and sim.state.tick <= bound:
+		events.append_array(SimFixtures.step(sim))
+	for event: SimEvent in events:
+		if event.kind == SimEvent.Kind.MATCH_ENDED:
+			ended.append(event)
+	assert_true(sim.is_over(), "the lone seat goes out, at the latest by the cold")
+	assert_eq(sim.state.phase, MatchState.Phase.ENDED)
+	assert_eq(ended.size(), 1, "the match ends once")
+	if ended.size() == 1:
+		assert_eq(ended[0].tick, sim.state.seats[0].out_tick, "on the tick it goes out")
+		assert_eq(ended[0].seat, -1, "with nobody left to win")
+	assert_eq(sim.state.winner(), -1)
