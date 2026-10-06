@@ -257,15 +257,11 @@ func frame_at(seconds: float) -> int:
 	return low
 
 
-## The first kept state in which her up stands more than [param degrees] from the
-## world's, or -1 for never: its up component read against the cosine of the limit as
-## the series sine of its complement, so every platform finds the same state (R21).
-func first_past(degrees: float) -> int:
-	var upright := Attitude.sine_of_degrees(90.0 - degrees)
-	for frame in count():
-		if rotations[frame * 9 + 4] < upright:
-			return frame
-	return -1
+## The up component of her up — the cosine of how far she stands from upright —
+## [param weight] of the way from kept state [param frame] to [param next], read
+## between them as blend reads them, in 64 bits and with square roots alone (R21).
+func up_between(frame: int, next: int, weight: float) -> float:
+	return _rotation(blended(frame, next, weight))[4]
 
 
 ## Whether she was wholly under before it ended.

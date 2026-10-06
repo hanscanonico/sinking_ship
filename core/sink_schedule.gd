@@ -202,7 +202,7 @@ func _passes_upright(frame: int) -> int:
 	while high - low > 1:
 		var middle := (low + high) >> 1
 		var weight := _weight(frame - 1, middle)
-		if Basis(_timeline.blend(frame - 1, frame, weight)).y.y < _upright:
+		if _timeline.up_between(frame - 1, frame, weight) < _upright:
 			high = middle
 		else:
 			low = middle

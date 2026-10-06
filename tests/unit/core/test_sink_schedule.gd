@@ -236,18 +236,57 @@ func test_a_physics_lurch_is_warned_before_it_swings() -> void:
 	assert_eq(schedule.pose_at(lurched).lurch, heel, "and names it as it swings")
 
 
+## A schedule of the steamer, struck by the fast explicit hit, playing [param timeline]
+## as though it came baked, under the shipped physics but for a match that follows her
+## to [param supported_deg].
+func _playing(timeline: SinkTimeline, supported_deg: float) -> SinkSchedule:
+	var layout := SimFixtures.steamer()
+	var scenario: SinkScenario = load(SimFixtures.STEAMER_SINKING).duplicate()
+	scenario.explicit_hit = load("res://tests/fixtures/sinking/hits/fast.tres")
+	var sea: SeaPhysics = SeaPhysics.load_default().duplicate()
+	sea.supported_deg = supported_deg
+	var stream := SeedStreams.derive(SEED, "sink")
+	var choice := MustSink.replay(layout.structure, scenario, stream, timeline)
+	return SinkSchedule.new(scenario, layout.freeboard, stream, layout.structure, sea, choice)
+
+
+## A timeline by hand: a kept state at each of [param rows], [seconds, up] — the up
+## component of her up, turned about her length alone.
+func _leaning(rows: Array) -> SinkTimeline:
+	var made := SinkTimeline.new()
+	for row: Array in rows:
+		var up: float = row[1]
+		var side := sqrt(1.0 - up * up)
+		var rotation := PackedFloat64Array([1.0, 0.0, 0.0, 0.0, up, -side, 0.0, side, up])
+		made.times.append(row[0])
+		made.seas.append(0.0)
+		made.rotations.append_array(rotation)
+		made._quaternions.append_array(SinkTimeline.quaternion_of(rotation))
+	return made
+
+
 func test_the_support_limit_is_read_through_the_series() -> void:
-	# §5b.3's interim rule fires on the first kept state whose up component falls below
-	# the cosine of the limit as the series sine of its complement (R21): a state on
-	# that value is still supported, the next number below it is not.
+	# §5b.3's interim rule fires on the first tick her up component falls below the
+	# cosine of the limit as the series sine of its complement (R21): a state on that
+	# value is still supported, the next number below it is not. A tick apart, so no
+	# tick lies between them to read.
 	var limit := Attitude.sine_of_degrees(90.0 - 45.0)
 	var below := limit - 1e-16
 	assert_lt(below, limit, "a 64-bit number under the series value")
-	var timeline := SinkTimeline.new()
+	var rows := []
 	for up: float in [1.0, 0.9, limit, below, 0.5]:
-		timeline.times.append(float(timeline.times.size()) * 10.0)
-		var side := sqrt(1.0 - up * up)
-		timeline.rotations.append_array([1.0, 0.0, 0.0, 0.0, up, -side, 0.0, side, up])
-	assert_eq(timeline.first_past(45.0), 3, "the state just past the series value")
-	assert_eq(timeline.first_past(80.0), -1, "never past a wider limit")
-	assert_eq(timeline.first_past(5.0), 1, "past a narrower one sooner")
+		rows.append([rows.size() / float(Ticks.RATE), up])
+	var timeline := _leaning(rows)
+	var schedule := _playing(timeline, 45.0)
+	assert_eq(schedule.unsupported_tick(), schedule.hit_tick() + 3, "just past the series")
+	assert_eq(_playing(timeline, 80.0).unsupported_tick(), -1, "never past a wider limit")
+	var sooner := _playing(timeline, 5.0)
+	assert_eq(sooner.unsupported_tick(), sooner.hit_tick() + 1, "past a narrower one sooner")
+
+
+func test_the_support_limit_is_found_between_kept_states() -> void:
+	# 40° then 50° about one axis, 0.9 s apart: blended, she stands at 45° halfway, 13.5
+	# ticks on, so the first tick past it is the 14th — no kept state's.
+	var timeline := _leaning([[0.0, cos(deg_to_rad(40.0))], [0.9, cos(deg_to_rad(50.0))]])
+	var schedule := _playing(timeline, 45.0)
+	assert_eq(schedule.unsupported_tick(), schedule.hit_tick() + 14, "between the two")
