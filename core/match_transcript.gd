@@ -134,6 +134,8 @@ func add(events: Array[SimEvent]) -> void:
 						% [clock(event.tick), event.seat, event.cell]
 					)
 				)
+			SimEvent.Kind.GROUNDED:
+				_lines.append("%s she touches the bottom" % clock(event.tick))
 
 
 ## " · credit crate n" for an exit a crate is credited with — " shoved by seat s"
@@ -147,20 +149,9 @@ static func _crate_credit(event: SimEvent) -> String:
 	return line
 
 
-## The closing line: the verdict, or where the match was stopped, and the digest — told
-## first, for a match that ended as she leaned past what a match follows (§5b.3's
-## interim rule), how far over she lay then.
+## The closing line: the verdict, or where the match was stopped, and the digest.
 func finish(runner: MatchRunner) -> void:
 	var digest := runner.digest.hex().substr(0, DIGEST_LENGTH)
-	var schedule := runner.sim.schedule
-	if _ended != null and _ended.tick == schedule.unsupported_tick():
-		var up := schedule.pose_at(_ended.tick).transform.basis.y.y
-		_lines.append(
-			(
-				"%s she lies %.0f° over · the match follows her no further"
-				% [clock(_ended.tick), rad_to_deg(acos(clampf(up, -1.0, 1.0)))]
-			)
-		)
 	if _ended == null:
 		_lines.append("unfinished at %s · digest %s" % [clock(runner.tick()), digest])
 	elif _ended.seat == -1:
@@ -235,6 +226,7 @@ func _sinking(sim: MatchSim) -> void:
 		SinkTimeline.End.GONE: "gone at %s" % physics_clock(timeline.gone_at),
 		SinkTimeline.End.AFLOAT: "afloat from %s" % physics_clock(timeline.length()),
 		SinkTimeline.End.CAPPED: "afloat at the cap, %s" % physics_clock(timeline.length()),
+		SinkTimeline.End.AGROUND: "aground from %s" % physics_clock(timeline.length()),
 	}
 	# How she stood as she went — or as the bake ended — read off her pose then.
 	var last := sim.schedule.gone_tick() if timeline.is_gone() else sim.schedule.end_tick()

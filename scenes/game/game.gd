@@ -123,7 +123,7 @@ func _ready() -> void:
 	_online_menu.page_server = link.server_url
 	var seats := _args.seats if _args.seats > 0 else _match_rules.seats
 	var seed_text := str(_args.seed_value) if _args.seed_value >= 0 else ""
-	_menu.setup(_match_rules, _args.ship_name, seats, _match_rules.bot_tier, seed_text)
+	_menu.setup(_match_rules, _args.ship(), seats, _match_rules.bot_tier, seed_text)
 	if not is_nan(_args.capture_sway):
 		_menu.hold_drift(_args.capture_sway)
 	if _args.autoplay:

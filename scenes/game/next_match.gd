@@ -18,7 +18,7 @@ func _init(match_rules: MatchRules, args: MatchArgs, seeds: RandomNumberGenerato
 	_rules = match_rules
 	_args = args
 	_seeds = seeds
-	_ship = args.ship_name if not args.ship_name.is_empty() else Fleet.name_of(match_rules.ship)
+	_ship = args.ship() if not args.ship().is_empty() else Fleet.name_of(match_rules.ship)
 
 
 ## Draws the next match on [param ship_name] of the Fleet: one drawn ahead on another

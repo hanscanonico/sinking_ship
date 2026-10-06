@@ -59,12 +59,9 @@ must 1 thrown · 5 bakes · sure hit
 02:43.2 poop_space full
 02:43.4 wheelhouse full
 02:43.6 deckhouse_hall full
-02:44.1 hatch_hold gave way
-02:44.3 seat 1 out · cold · place 3
-02:44.3 seat 3 out · cold · place 1
-02:44.3 seat 6 out · cold · place 2
-02:44.3 she lies 45° over · the match follows her no further
-draw at 02:44.3 · digest 7057a08db88245dc
-sinking at the end of the match: physics 0:02:07 (= match time, Q20 deferred) · seen 79% · sea 7.40 m up her · trim -29.5° · list +35.7° · aft_peak 11.11 m · poop_space full · aft_bilge_p full · aft_bilge_s full · aft_cabins 8.21 m · engine_bilge_p full · engine_bilge_s full · engine_room 7.75 m · hold_bilge 5.23 m · hold 2.83 m · hold_wing_s 6.33 m · deckhouse_cabins full · deckhouse_hall full · saloon 5.62 m · wheelhouse full
+02:43.6 seat 3 out · cold · place 3
+02:44.0 seat 6 out · cold · place 2
+winner seat 1 at 02:44.0 · digest 2a16249d2b810672
+sinking at the end of the match: physics 0:02:06 (= match time, Q20 deferred) · seen 79% · sea 7.25 m up her · trim -28.8° · list +35.5° · aft_peak 11.06 m · poop_space full · aft_bilge_p full · aft_bilge_s full · aft_cabins 8.14 m · engine_bilge_p full · engine_bilge_s full · engine_room 7.59 m · hold_bilge 5.19 m · hold 2.55 m · hold_wing_s 6.25 m · deckhouse_cabins full · deckhouse_hall full · saloon 5.38 m · wheelhouse full
 not played: gone at 0:02:40 · trim -84.7° · list -4.8° · founders by the stern · fast · port boats useless · starboard boats useless · lights out · funnel fell
 bending peak 0.05 of strength, x +1.5 m, sagging

@@ -223,6 +223,7 @@ func _bands_section(
 		["founders onto her side", [L.ONTO_HER_SIDE], false],
 		["heavy list (≥ 15° for ≥ 5 min afloat)", [L.HEAVY_LIST], false],
 		["capsizes (rolled past 90°)", [L.CAPSIZED], false],
+		["comes to rest aground, part of her dry (a coast's, SH32)", [L.AGROUND], false],
 		["gone within 20 min of physics", [L.FAST], false],
 		["lights out — her generator stopped for good before she went", [L.LIGHTS_OUT], false],
 		["funnel fell before she went", [L.FUNNEL_FELL], false],
@@ -372,7 +373,7 @@ func _rule_section(chosen: Array[Dictionary]) -> PackedStringArray:
 	var afloat := 0
 	for entry: Dictionary in chosen:
 		var choice: MustSink.Choice = entry["choice"]
-		if not choice.timeline.is_gone():
+		if not MustSink.played(choice.timeline.end):
 			afloat += 1
 		again += choice.draws - 1
 		thrown += choice.thrown

@@ -4,7 +4,9 @@ extends RefCounted
 ## from its low corner up to, not including, its high one, so a deck's top belongs to
 ## the space over it — and inside her hull there, where the box pokes outside its
 ## curve. The helper behind ShipPose's water and so behind Surfaces.wet (D13): a point
-## in no cell is outside her, in the sea's water. Ship-local metres.
+## in no cell is outside her, in the sea's water. Ship-local metres — or, framed along
+## another of her axes as up (Faces), that face's: each box turned with the frame, so
+## its floor and ceiling are along that up.
 
 const NONE := -1
 ## Water this shallow over a cell's floor, in metres, is none: the cell is dry.
@@ -25,15 +27,26 @@ var _poking := PackedByteArray()
 var _inside_port := PackedFloat64Array()
 var _inside_starboard := PackedFloat64Array()
 var _structure: ShipStructure
+## From the frame's points to ship-local ones, and whether it is any other than hers.
+var _to_ship := Basis.IDENTITY
+var _framed := false
 
 
-func _init(structure: ShipStructure) -> void:
+## [param structure]'s cells, read in the frame [param to_ship] takes to ship space.
+func _init(structure: ShipStructure, to_ship := Basis.IDENTITY) -> void:
 	_structure = structure
+	_to_ship = to_ship
+	_framed = to_ship != Basis.IDENTITY
+	var to_frame := to_ship.transposed()
 	for cell: FloodCell in structure.cells:
-		_low.append(cell.low)
-		_high.append(cell.high)
+		var a := to_frame * cell.low
+		var b := to_frame * cell.high
+		var low := a.min(b)
+		var high := a.max(b)
+		_low.append(low)
+		_high.append(high)
 		_poking.append(1 if cell.shape < 1.0 else 0)
-		var box := AABB(cell.low, cell.high - cell.low)
+		var box := AABB(low, high - low)
 		_bounds = box if _low.size() == 1 else _bounds.merge(box)
 		_inside_port.append(_surely_inside(cell, -1))
 		_inside_starboard.append(_surely_inside(cell, 1))
@@ -70,8 +83,9 @@ func cell_at(ship_point: Vector3) -> int:
 		if ship_point.z < low.z or ship_point.z >= high.z:
 			continue
 		if _poking[index] == 1:
-			var inside := _inside_starboard[index] if ship_point.z >= 0.0 else _inside_port[index]
-			if absf(ship_point.z) > inside and not _in_hull(ship_point):
+			var ship := _to_ship * ship_point if _framed else ship_point
+			var inside := _inside_starboard[index] if ship.z >= 0.0 else _inside_port[index]
+			if absf(ship.z) > inside and not _in_hull(ship):
 				continue
 		return index
 	return NONE
@@ -84,6 +98,11 @@ func floor_of(cell: int) -> float:
 
 func ceiling_of(cell: int) -> float:
 	return _high[cell].y
+
+
+## These cells framed with [param to_ship] taking the frame's points to ship space.
+func framed(to_ship: Basis) -> CellMap:
+	return CellMap.new(_structure, to_ship)
 
 
 ## Cell [param cell]'s box.

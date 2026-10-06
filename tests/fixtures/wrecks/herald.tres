@@ -1,0 +1,52 @@
+[gd_resource type="Resource" script_class="WreckHull" format=3]
+
+[ext_resource type="Script" path="res://tests/fixtures/wrecks/wreck_hull.gd" id="1_wreck"]
+[ext_resource type="Script" path="res://core/sinking/flood_cell.gd" id="2_cell"]
+[ext_resource type="Script" path="res://core/sinking/ship_opening.gd" id="3_opening"]
+
+[sub_resource type="Resource" id="Cell_car_deck"]
+script = ExtResource("2_cell")
+name = &"car_deck"
+low = Vector3(-50, -0.2, -11.35)
+high = Vector3(50, 4.8, 11.35)
+permeability = 0.9
+
+[sub_resource type="Resource" id="Cell_below"]
+script = ExtResource("2_cell")
+name = &"below"
+low = Vector3(-50, -5.7, -11.35)
+high = Vector3(50, -0.2, 11.35)
+permeability = 0.85
+
+[sub_resource type="Resource" id="Opening_bow"]
+script = ExtResource("3_opening")
+name = &"bow_doors"
+kind = 12
+joins = Array[StringName]([&"car_deck", &"sea"])
+centre = Vector3(50, 0.5, 0)
+size = Vector3(0, 6, 6)
+area = 36.0
+
+[sub_resource type="Resource" id="Opening_stairs"]
+script = ExtResource("3_opening")
+name = &"stairs"
+kind = 4
+joins = Array[StringName]([&"below", &"car_deck"])
+centre = Vector3(0, -0.2, 0)
+size = Vector3(5, 0, 4)
+area = 20.0
+
+[resource]
+script = ExtResource("1_wreck")
+name = &"herald"
+length = 110.0
+beam = 22.7
+depth = 11.0
+draught = 5.7
+centre_height = 8.9
+cells = Array[ExtResource("2_cell")]([SubResource("Cell_car_deck"), SubResource("Cell_below")])
+openings = Array[ExtResource("3_opening")]([SubResource("Opening_bow"), SubResource("Opening_stairs")])
+boat_limit_deg = 15.0
+sea_depth = 15.0
+roll_damping = 0.5
+notes = "Herald of Free Enterprise (capsized 6 March 1987): beam 22.7 m (source); a box 110 m long at a 5.7 m draught, 11 m deep to her vehicle deck's ceiling (est.), weight 8.9 m over her keel (GM 1.5 m, est.). Her vehicle deck from 0.2 m under her waterline — her bow wave over the sill of her open bow doors at 18 knots (est.) — to 4.8 m over it, open at her bow through 6 x 6 m (est.); her hull under it open to it through a 20 m2 stair (est.). On a bottom 15 m down (est.: she lay on a sandbank in about 10 m). Roll damping 0.5 of critical (est.)."

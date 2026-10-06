@@ -26,6 +26,9 @@ var left_open: Array[StringName] = []
 ## scenario's band (SinkScenario.wave_height) — 0 for a still sea. What her open wells
 ## ship (ShippedWater).
 var wave_height := 0.0
+## How deep the sea is under her, in metres (SinkScenario.sea_depth): where the bottom
+## she can come to rest on lies (Seabed, SH32).
+var sea_depth := INF
 
 
 ## The area the gash lets the sea in through, all its openings together, in m².

@@ -49,6 +49,12 @@ extends Resource
 @export var vault_lift: float
 ## How high a railing stands above its platform.
 @export var railing_height: float
+## A face tilted further than this from level is no floor (§5b.3, SH32): between it and
+## the angle where the face beside it becomes one, nobody walks.
+@export var stand_limit_deg: float
+## In that band a brace holds its body where it is up to this tilt; anyone else slides
+## into the corner (D8, est.).
+@export var brace_holds_to: float
 
 @export_group("Levels and falls")
 ## The most a body steps up or down without a ramp; a drop deeper than this is a fall.
@@ -238,6 +244,10 @@ func problems() -> PackedStringArray:
 		found.append("brawl rules: grip_angle_deg must be within 0…90")
 	elif gravity * sin(deg_to_rad(grip_angle_deg)) <= slide_friction:
 		found.append("brawl rules: slide_friction must be below the pull at the grip angle")
+	if stand_limit_deg <= grip_angle_deg or brace_holds_to < stand_limit_deg:
+		found.append("brawl rules: the grip angle, stand limit and brace's hold must rise")
+	elif brace_holds_to >= 90.0:
+		found.append("brawl rules: brace_holds_to must be under 90")
 	if step_height >= body_height:
 		found.append("brawl rules: step_height must be below body_height")
 	if brace_reduction < 0.0 or brace_reduction > 1.0:

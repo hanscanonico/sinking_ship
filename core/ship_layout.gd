@@ -6,6 +6,9 @@ extends Resource
 
 ## Height of the main deck above the sea when the ship is level and unsunk.
 @export var freeboard: float
+## How far under its top a deck's underside stands: the floor of a ship upside down
+## (§5b.3, SH32).
+@export var deck_thickness: float
 @export var platforms: Array[ShipPlatform] = []
 ## The stairs between platforms; which platforms a ramp joins is where its ends lie.
 @export var ramps: Array[ShipRamp] = []

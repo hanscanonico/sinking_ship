@@ -874,6 +874,7 @@ head = """[gd_resource type="Resource" script_class="ShipLayout" format=3]
 [ext_resource type="Script" path="res://core/sinking/girder_strength.gd" id="17_strength"]
 """
 res = ["[resource]", 'script = ExtResource("5_layout")', "freeboard = " + num(FREEBOARD),
+       "deck_thickness = " + num(2 * T),
        "platforms = " + arr("1_plat", platforms),
        "ramps = " + arr("2_ramp", ramps),
        "blockers = " + arr("3_block", blockers),

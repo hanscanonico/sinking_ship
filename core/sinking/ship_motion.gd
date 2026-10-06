@@ -10,9 +10,10 @@ extends RefCounted
 ## waterplane, her water's found by turning her a little each way — with her inertia,
 ## the water moving with her and her damping (ShipStructure), solved for where she is
 ## heading, so a long step settles her rather than overshooting, and a capsize carries
-## on from where she was. Only +, −, ×, ÷ and square roots on 64-bit floats run here
-## (D4, R21). Ship-local metres, seconds; forces as volumes of sea, moments as volumes
-## times metres.
+## on from where she was. In shallow water the bottom pushes back on her lowest points
+## and drags on them as they slide (Seabed, SH32). Only +, −, ×, ÷ and square roots on
+## 64-bit floats run here (D4, R21). Ship-local metres, seconds; forces as volumes of
+## sea, moments as volumes times metres.
 
 ## How far she is turned to learn how her water's push changes, in radians.
 const NUDGE := 1e-3
@@ -67,11 +68,13 @@ var _plan: float
 ## Where a section's outline crosses the sea's line, along the line then z and y, while
 ## it is cut: more than two only where the line crosses a deckhouse too.
 var _crossings := PackedFloat64Array()
+## The bottom under her, or null where the sea is too deep for her to reach it.
+var _seabed: Seabed
 
 
 ## The motion of [param structure] under [param sea], resting intact with the sea
-## [param rest] up her, level.
-func _init(structure: ShipStructure, sea: SeaPhysics, rest: float) -> void:
+## [param rest] up her, level, over a bottom [param depth] under the still sea.
+func _init(structure: ShipStructure, sea: SeaPhysics, rest: float, depth := INF) -> void:
 	_g = sea.gravity
 	for section: HullSection in structure.sections:
 		_x.append(section.x)
@@ -100,11 +103,26 @@ func _init(structure: ShipStructure, sea: SeaPhysics, rest: float) -> void:
 	var stiffness := _stiffness(Attitude.level(), resting)
 	for axis in 3:
 		_resting.append(absf(stiffness[axis * 4]))
+	if depth < INF:
+		var points := PackedFloat64Array()
+		for section in _x.size():
+			var from := _corner_first[section]
+			for index in _corner_count[section]:
+				points.append_array(
+					[_x[section], _corners[from + index * 2 + 1], _corners[from + index * 2]]
+				)
+		_seabed = Seabed.new(depth, _own, sea, points, _centre)
 
 
 ## Her centre of mass, x, y, z.
 func centre() -> PackedFloat64Array:
 	return _centre
+
+
+## Whether her hull rests on the bottom with her rotation [param rotation] and the sea
+## [param sea] up her.
+func grounded(rotation: PackedFloat64Array, sea: float) -> bool:
+	return _seabed != null and _seabed.touches(rotation, sea_at(rotation, 0.0) - sea)
 
 
 ## How far the highest point of her outline stands over the sea standing [param sea] up
@@ -165,6 +183,14 @@ func move(state: FloodState, next: FloodState, boxes: Array[TiltedBox], seconds:
 		]
 	)
 	var rates := PackedFloat64Array([state.heave_rate, state.pitch_rate, state.roll_rate])
+	var ground := PackedFloat64Array()
+	ground.resize(Seabed.Pressed.SIZE)
+	if _seabed != null:
+		ground = _seabed.press(rotation, rise, rates, _g)
+	for index in 3:
+		push[index] += ground[Seabed.Pressed.PUSH + index]
+	for index in 9:
+		stiffness[index] += ground[Seabed.Pressed.STIFFNESS + index]
 	# (inertia + step × damping + step² × stiffness) × rates after = inertia × rates
 	# before + step × push: the implicit step.
 	var system := PackedFloat64Array()
@@ -173,8 +199,13 @@ func move(state: FloodState, next: FloodState, boxes: Array[TiltedBox], seconds:
 	given.resize(3)
 	for row in 3:
 		for column in 3:
-			system[row * 3 + column] = seconds * seconds * stiffness[row * 3 + column]
+			system[row * 3 + column] = (
+				seconds * seconds * stiffness[row * 3 + column]
+				+ seconds * ground[Seabed.Pressed.DAMPING + row * 3 + column]
+			)
 		var damping := 2.0 * _damping[row] * sqrt(_resting[row] * inertia[row])
+		var held_by := ground[Seabed.Pressed.STIFFNESS + row * 4]
+		damping += 2.0 * Seabed.DAMPING * sqrt(held_by * inertia[row])
 		if row == 0:
 			damping += 0.5 * _drag * _plan * absf(rates[0])
 		system[row * 4] += inertia[row] + seconds * damping

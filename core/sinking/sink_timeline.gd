@@ -15,9 +15,11 @@ extends RefCounted
 ## like the ship's: baked from (ship, scenario, seed), or received from the host with
 ## its digest, and never in a snapshot (D5). SinkSchedule reads it.
 
-## How a bake ends (§5b.1): she is gone — wholly under the sea and still going down;
-## the water has stopped coming in and she floats still; or the cap came first.
-enum End { GONE, AFLOAT, CAPPED }
+## How a bake ends (§5b.1): she is gone — wholly under the sea and still going down, or
+## wholly under on the bottom; the water has stopped coming in and she floats still,
+## upright; the cap came first; or she rests on the bottom with part of her still dry
+## (SH32), the water stopped or the cap come.
+enum End { GONE, AFLOAT, CAPPED, AGROUND }
 ## What the physics announces: a cell takes its first water, a cell is full, water
 ## first passes over a low wall or down a stair or hatch, she is gone, her main deck
 ## goes under the sea — the plunge begins, her last minutes —, a lurch is coming, she
@@ -26,7 +28,8 @@ enum End { GONE, AFLOAT, CAPPED }
 ## SinkFailures): an opening or a wall's panel starts to leak, or gives way; a funnel
 ## creaks — the warning of its fall — and falls; her generator stops, or runs again; she
 ## is dark, nothing lighting her; a cell's water reaches its lamps; her hull creaks, its
-## bending past stressed_share of its strength.
+## bending past stressed_share of its strength; and her hull first touches the bottom
+## (Seabed, SH32).
 enum Kind {
 	FLOODING,
 	FULL,
@@ -47,6 +50,7 @@ enum Kind {
 	LIGHTS_OUT,
 	SHORTED,
 	HULL_STRESSED,
+	GROUNDED,
 }
 ## A cell's water this far over its floor, in metres, is its first.
 const FIRST_WATER := 0.01
@@ -60,7 +64,7 @@ const PER_METRE := 1e3
 const PER_UNIT := 1e6
 const PER_DEGREE := 1e6
 const PAGE_STATES := 256
-const FORMAT := 3
+const FORMAT := 4
 const MOST_BYTES := 1 << 24
 const COMPRESSION := FileAccess.COMPRESSION_ZSTD
 ## How the four quaternion components and a state's other numbers lie in a page.
@@ -305,13 +309,6 @@ func frame_at(seconds: float) -> int:
 		else:
 			high = middle
 	return low
-
-
-## The up component of her up — the cosine of how far she stands from upright —
-## [param weight] of the way from kept state [param frame] to [param next], read
-## between them as blend reads them, in 64 bits and with square roots alone (R21).
-func up_between(frame: int, next: int, weight: float) -> float:
-	return _rotation(blended(frame, next, weight))[4]
 
 
 ## Whether she was wholly under before it ended.

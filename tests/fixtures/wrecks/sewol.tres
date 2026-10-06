@@ -1,0 +1,53 @@
+[gd_resource type="Resource" script_class="WreckHull" format=3]
+
+[ext_resource type="Script" path="res://tests/fixtures/wrecks/wreck_hull.gd" id="1_wreck"]
+[ext_resource type="Script" path="res://core/sinking/flood_cell.gd" id="2_cell"]
+[ext_resource type="Script" path="res://core/sinking/ship_opening.gd" id="3_opening"]
+
+[sub_resource type="Resource" id="Cell_car_deck"]
+script = ExtResource("2_cell")
+name = &"car_deck"
+low = Vector3(-55, -0.3, -11)
+high = Vector3(55, 6.5, 11)
+permeability = 0.9
+
+[sub_resource type="Resource" id="Cell_below"]
+script = ExtResource("2_cell")
+name = &"below"
+low = Vector3(-55, -5.8, -11)
+high = Vector3(55, -0.3, 11)
+permeability = 0.9
+leak_area = 0.002
+
+[sub_resource type="Resource" id="Opening_door"]
+script = ExtResource("3_opening")
+name = &"stern_opening"
+kind = 12
+joins = Array[StringName]([&"car_deck", &"sea"])
+centre = Vector3(-55, 1.0, 0)
+size = Vector3(0, 4, 8)
+area = 32.0
+
+[sub_resource type="Resource" id="Opening_seams"]
+script = ExtResource("3_opening")
+name = &"deck_seams"
+kind = 8
+joins = Array[StringName]([&"below", &"car_deck"])
+centre = Vector3(0, -0.3, 0)
+size = Vector3(1, 0, 1)
+area = 0.05
+
+[resource]
+script = ExtResource("1_wreck")
+name = &"sewol"
+length = 110.0
+beam = 22.0
+depth = 13.0
+draught = 5.8
+centre_height = 9.45
+cells = Array[ExtResource("2_cell")]([SubResource("Cell_car_deck"), SubResource("Cell_below")])
+openings = Array[ExtResource("3_opening")]([SubResource("Opening_door"), SubResource("Opening_seams")])
+boat_limit_deg = 15.0
+roll_damping = 0.5
+sealed = Array[StringName]([&"below"])
+notes = "Sewol-like (Sewol, sank 16 April 2014): beam 22 m (source); a box 110 m long — her 146 m overall at a block coefficient near 0.6 (est.) — at a 5.8 m draught (est.), 13 m deep to her upper car deck's ceiling (est.). Weight 9.45 m over her keel: GM 0.4 m (est.: the inquiry found her stability far under the rule after her refit, with cargo carried high). Her car deck runs from 0.3 m under her waterline — standing for the list and the doors her turn put under (est.) — to 6.5 m over it, open to the sea at her stern through an 8 x 4 m opening (est.); her hull under it is shut fast, its air leaking through 0.002 m2 of seams and its water coming up from the car deck through 0.05 m2 of deck seams (est.). She rolls over faster here than she did: she took about 100 min to turn over, then floated bottom-up for about 50 h (research); the bands are est.: past 120 degrees within 5 min, then afloat upside down for hours. Roll damping 0.5 of critical (est.: a flat side driven broadside)."

@@ -227,3 +227,37 @@ func test_a_client_draws_the_hosts_hit_again_from_its_origin() -> void:
 	forged.origin[MustSink.Origin.DRAWS] += 1
 	var stream := SeedStreams.derive(seeds[0], "sink")
 	assert_null(MustSink.replay(_structure, _scenario, stream, forged), "another hit: refused")
+
+
+func test_a_hull_afloat_upside_down_at_the_cap_is_drawn_again() -> void:
+	# Upside down on air still leaking she is not gone (§5b.1): the bake follows her on
+	# to the cap rather than calling her afloat, and a match draws such a hit again.
+	var wreck: WreckHull = load("res://tests/fixtures/wrecks/sewol.tres")
+	var sea := SeaPhysics.load_default()
+	var bake := SinkBake.new(SinkStepper.new(wreck.structure(), HitDamage.new(), sea), sea, 1800.0)
+	var timeline := bake.timeline()
+	assert_lt(timeline.rotations[(timeline.count() - 1) * 9 + 4], 0.0, "upside down at the cap")
+	assert_eq(timeline.end, SinkTimeline.End.CAPPED, "followed to the cap")
+	assert_false(MustSink.played(timeline.end), "drawn again")
+	assert_false(MustSink.played(SinkTimeline.End.AFLOAT), "as afloat upright is")
+	assert_true(MustSink.played(SinkTimeline.End.GONE), "gone, she is played")
+	assert_true(MustSink.played(SinkTimeline.End.AGROUND), "and aground on a coast (Q21)")
+
+
+func test_a_coast_match_hit_brings_her_to_rest_on_the_bottom() -> void:
+	# In a coast's shallow water (SH32) a match's hit sinks her onto the bottom: gone
+	# there, or aground with part of her dry — a wreck the match plays on (Q21).
+	var scenario := Fleet.setting(&"steamer_coast")
+	var aground := 0
+	for seed_value in range(1, 6):
+		var stream := SeedStreams.derive(seed_value, "sink")
+		var choice := MustSink.choose(_structure, scenario, stream, SeaPhysics.load_default())
+		var timeline := choice.timeline
+		assert_true(MustSink.played(timeline.end), "seed %d: played" % seed_value)
+		var touched := false
+		for event: SinkTimeline.Event in timeline.events:
+			touched = touched or event.kind == SinkTimeline.Kind.GROUNDED
+		assert_true(touched, "seed %d: on the bottom" % seed_value)
+		if timeline.end == SinkTimeline.End.AGROUND:
+			aground += 1
+	assert_gt(aground, 0, "some of her rest with part of her dry")

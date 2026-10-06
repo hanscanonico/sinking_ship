@@ -23,10 +23,12 @@ import:
 	$(GODOT) --headless --path . --import
 
 # One match's knobs, handed to the scene and tools/run_match.gd as user args:
-#   make run [SEED=] [SEATS=] [SHIP=] [ARGS=]  the game, windowed, from the menu they fill
-#       in; SHIP picks a ship of the fleet by name (trawler), the default data's when
-#       blank; ARGS passes more user args, e.g. ARGS=--observer for the observer camera;
-#       SEATS=1 plays alone, no bots, until you go out
+#   make run [SEED=] [SEATS=] [SHIP=] [SCENARIO=] [ARGS=]  the game, windowed, from the menu
+#       they fill in; SHIP picks a ship of the fleet by name (trawler), the default data's
+#       when blank; SCENARIO one of a ship's scenarios by name (steamer_coast: her coast's
+#       shallow water, SH32), played on her; ARGS passes more user args, e.g.
+#       ARGS=--observer for the observer camera; SEATS=1 plays alone, no bots, until you
+#       go out
 #   make match SEED=1701 [SEATS=] [SHIP=] [STOP=15:00] [HIT=]   bots only, headless, as a
 #       transcript; STOP is the match time the tool stops at and reports unfinished — a
 #       tool's limit, never a rule of the match; HIT=path/to/hit.tres strikes her with
@@ -58,6 +60,7 @@ import:
 SEED ?=
 SEATS ?=
 SHIP ?=
+SCENARIO ?=
 SECONDS ?=
 STOP ?=
 HIT ?=
@@ -73,7 +76,7 @@ PHYS ?=
 JUMP ?=
 CAPTURE ?= $(CURDIR)/captures/match_$(SEED)_$(AT)$(if $(PHYS),phys$(subst :,-,$(PHYS)))$(if $(EYE),_eye$(EYE))$(if $(CUT),_cut$(CUT))$(if $(CELLS),_cells)$(if $(SCREEN),_$(SCREEN)).png
 match-args = $(if $(SEED),--seed=$(SEED)) $(if $(SEATS),--seats=$(SEATS)) $(if $(SHIP),--ship=$(SHIP)) \
-	$(if $(HIT),--hit=$(HIT))
+	$(if $(SCENARIO),--scenario=$(SCENARIO)) $(if $(HIT),--hit=$(HIT))
 
 run:
 	$(call require-godot)
@@ -206,9 +209,12 @@ fps:
 		$(if $(SECONDS),--seconds=$(SECONDS)) $(if $(RES),--resolution=$(RES)) \
 		$(if $(ARGS),-- $(ARGS))
 
-# `make arena SEEDS=200 [LOBBIES=normal,hard-easy] [STOP=15:00]`: bots-only lobbies of
-# the default match, seeds 1…SEEDS each, headless, written up as docs/arena.md — the
-# record SH7's gates read; a match still on at STOP is stopped and counted unfinished.
+# `make arena SEEDS=200 [LOBBIES=normal,hard-easy] [STOP=15:00] [SCENARIO=]`: bots-only
+# lobbies of the default match, seeds 1…SEEDS each, headless, written up as
+# docs/arena.md — the record SH7's gates read; a match still on at STOP is stopped and
+# counted unfinished. SCENARIO plays one of a ship's scenarios on her instead
+# (steamer_coast), written up as docs/arena_SCENARIO.md with how long matches on a wreck
+# at rest with dry footing run (Q21).
 # Rules live in tools/arena.gd. Progress goes to stderr.
 SEEDS ?= 200
 LOBBIES ?=
@@ -216,6 +222,7 @@ arena:
 	$(call require-godot)
 	@set -o pipefail; $(GODOT) --headless --no-header --path . -s res://tools/arena.gd \
 		-- --seeds=$(SEEDS) $(if $(LOBBIES),--lobbies=$(LOBBIES)) $(if $(STOP),--stop=$(STOP)) \
+		$(if $(SCENARIO),--scenario=$(SCENARIO)) \
 		| grep -v '^\[godot_ai'
 
 # `make hits SHIP=steamer SEEDS=200`: the spread of SHIP's iceberg hits over seeds

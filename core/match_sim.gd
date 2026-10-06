@@ -4,24 +4,19 @@ extends RefCounted
 ## InputFrame per seat is the only way anything happens (D3); snapshot() is the
 ## whole truth and from_snapshot() continues it exactly (D5).
 
-const SNAPSHOT_VERSION := 8
-## How many times a tick's contacts are resolved, at most. In one pass each contact
-## is met where the body stood before it, so a body pushed two ways — into a corner,
-## between a doorway's jambs, against a wall by a crowd — can end inside one wall or
-## slip through a gap narrower than itself. Four passes settle a body wedged between
-## two walls and another body; they stop as soon as nothing moves.
-const CONTACT_PASSES := 4
-## How far apart a swimmer looks for a ceiling along the way it swims, out to where its
-## circle reaches next (_headroom): half the thinnest lintel, so none slips between.
-const DUCK_LOOK := 0.1
+const SNAPSHOT_VERSION := 9
 
 var config: MatchConfig
 var schedule: SinkSchedule
+## Her own Surfaces, the frame of her decks (D6): what presentation asks.
 var surfaces: Surfaces
+## Every face of her as a surface, frame by frame (SH32).
+var faces: Faces
 var state: MatchState
 
 var _rules: BrawlRules
 var _hazards: Hazards
+var _movement: Movement
 var _windup_ticks: int
 var _active_ticks: int
 var _recovery_ticks: int
@@ -32,7 +27,6 @@ var _regen_delay_ticks: int
 var _hitstop_ticks: int
 var _hitstop_charged_ticks: int
 var _hitstop_braced_ticks: int
-var _climb_ticks: int
 var _credit_window_ticks: int
 
 
@@ -41,7 +35,15 @@ func _init(match_config: MatchConfig) -> void:
 	_rules = config.rules
 	schedule = config.schedule()
 	surfaces = Surfaces.new(config.ship)
+	faces = Faces.new(
+		config.ship,
+		surfaces,
+		schedule.damage(),
+		_rules.brace_holds_to,
+		SeaPhysics.load_default().capsized_movement
+	)
 	_hazards = Hazards.new(config, surfaces)
+	_movement = Movement.new(_rules, faces, _hazards)
 	_windup_ticks = Ticks.from_seconds(_rules.shove_windup)
 	_active_ticks = Ticks.from_seconds(_rules.shove_active)
 	_recovery_ticks = Ticks.from_seconds(_rules.shove_recovery)
@@ -52,7 +54,6 @@ func _init(match_config: MatchConfig) -> void:
 	_hitstop_ticks = Ticks.from_seconds(_rules.hitstop)
 	_hitstop_charged_ticks = Ticks.from_seconds(_rules.hitstop_charged)
 	_hitstop_braced_ticks = Ticks.from_seconds(_rules.hitstop_braced)
-	_climb_ticks = Ticks.from_seconds(_rules.climb_time)
 	_credit_window_ticks = Ticks.from_seconds(_rules.credit_window)
 
 
@@ -110,6 +111,7 @@ func restore(snapshot: Dictionary) -> void:
 		match_state.seats.append(PlayerState.from_dict(entry))
 	match_state.props = PropState.from_snapshot(snapshot)
 	match_state.railing_hp = (snapshot["railing_hp"] as PackedFloat64Array).duplicate()
+	match_state.up = snapshot["up"]
 	state = match_state
 	surfaces.honour(pose(), match_state.broken_railings(), match_state.props)
 
@@ -140,32 +142,30 @@ func step(frames: Array[InputFrame]) -> Array[SimEvent]:
 	_take_frames(frames, tick, live)
 	var pose_now := schedule.pose_at(tick)
 	_sinking_events(pose_now, tick, events)
+	# From here to the tick's end every body's points are in the frame of the faces that
+	# are floors (Movement.face), and so is the pose every rule reads.
+	var framed := _movement.face(state, pose_now, tick, events)
 	if tick < config.countdown_ticks:
 		for player: PlayerState in state.seats:
 			player.prev_buttons = player.last_buttons
 	else:
-		_intent(live, pose_now)
+		_intent(live, framed)
 		_brace_and_stamina(live)
-		_forces(live, pose_now)
-		var feet_before := _move(live, pose_now, tick, events)
-		_ground(live, tick, events, feet_before)
+		_movement.forces(live, framed)
+		var feet_before := _movement.move(state, live, framed, tick, events)
+		_movement.ground(live, tick, events, feet_before)
 		_thaw(live)
 		_hazards.step(state, pose_now, tick, events)
 		_shoves(live, tick, events)
-		var exits := _water(live, pose_now, tick, events, feet_before)
+		var exits := _water(live, framed, tick, events, feet_before)
 		var settled := MatchVerdict.settled_by_the_sea(
-			_live_seats(),
-			pose_now,
-			tick,
-			schedule.gone_tick(),
-			schedule.unsupported_tick(),
-			surfaces,
-			_rules.wade_depth
+			_live_seats(), framed, tick, schedule.gone_tick(), _here(), _rules.wade_depth
 		)
 		for player: PlayerState in settled:
 			_out(player, tick)
 			exits.append(player)
 		MatchVerdict.place(state, exits, tick, events)
+	_movement.unface(state)
 	state.tick += 1
 	if state.phase == MatchState.Phase.COUNTDOWN and state.tick >= config.countdown_ticks:
 		state.phase = MatchState.Phase.LIVE
@@ -180,21 +180,17 @@ func _sinking_events(pose_now: ShipPose, tick: int, events: Array[SimEvent]) -> 
 	events.append_array(schedule.events_at(tick))
 
 
+## The Surfaces of the frame the tick stands in (Movement.face).
+func _here() -> Surfaces:
+	return _movement.surfaces()
+
+
 func _live_seats() -> Array[PlayerState]:
 	var live: Array[PlayerState] = []
 	for player: PlayerState in state.seats:
 		if not player.is_out():
 			live.append(player)
 	return live
-
-
-## The seats of [param live] that move as bodies do: all but the climbers.
-func _moving_seats(live: Array[PlayerState]) -> Array[PlayerState]:
-	var moving: Array[PlayerState] = []
-	for player: PlayerState in live:
-		if not player.is_climbing():
-			moving.append(player)
-	return moving
 
 
 func _take_frames(frames: Array[InputFrame], tick: int, live: Array[PlayerState]) -> void:
@@ -246,9 +242,10 @@ func _intent(live: Array[PlayerState], pose_now: ShipPose) -> void:
 
 
 ## A jump is a press, never a hold, from the ground: idle, its brace let go, and
-## with jump_cost of stamina to spend. It rises jump_height above where it left in
-## ship space, whatever the deck's tilt — never over a railing — and gravity, the
-## world's turned by the pose, brings it down, pulling it downhill as it falls.
+## with jump_cost of stamina to spend. It goes up along the world's up (D8) until its
+## feet are jump_height above where it left along the frame's — whatever the face's
+## tilt, never over a railing — and gravity, the world's turned by the pose, brings it
+## down where it rose, on its way across the face as it was walking.
 func _jump(player: PlayerState, pose_now: ShipPose) -> void:
 	if (
 		player.body != PlayerState.Body.GROUNDED
@@ -259,11 +256,15 @@ func _jump(player: PlayerState, pose_now: ShipPose) -> void:
 	):
 		return
 	_spend(player, _rules.jump_cost)
-	# The take-off speed whose apex, stepped tick by tick as _forces and _move step
-	# it, is jump_height: v² − g·dt·v − 2·g·h = 0.
-	var fall := -pose_now.ship_gravity(_rules.gravity).y
+	# The take-off speed up the frame whose apex, stepped tick by tick as Movement's forces
+	# and move step it, is jump_height: v² − g·dt·v − 2·g·h = 0; along the world's up,
+	# gravity's own way back, it carries the share across the face that goes with it.
+	var gravity := pose_now.ship_gravity(_rules.gravity)
+	var fall := -gravity.y
 	var drop := fall * Ticks.SECONDS_PER_TICK
-	player.vel.y = (drop + sqrt(drop * drop + 8.0 * fall * _rules.jump_height)) * 0.5
+	var rise := (drop + sqrt(drop * drop + 8.0 * fall * _rules.jump_height)) * 0.5
+	player.vel += Vector3(gravity.x * rise / gravity.y, 0.0, gravity.z * rise / gravity.y)
+	player.vel.y = rise
 	player.body = PlayerState.Body.AIRBORNE
 	player.surface = Surfaces.NONE
 	player.fall_from = player.pos.y
@@ -317,7 +318,7 @@ func _fire(player: PlayerState, live: Array[PlayerState]) -> void:
 		_candidates(live),
 		_rules.shove_reach,
 		_rules.autoaim_cone_deg,
-		surfaces,
+		_here(),
 		_rules.step_height
 	)
 
@@ -357,291 +358,6 @@ func _spend(player: PlayerState, amount: float) -> void:
 	player.stamina_wait = _regen_delay_ticks
 	if player.stamina == 0.0:
 		player.exhausted = true
-
-
-## Walking, friction and gravity, as velocity. Gravity is the world's, turned
-## into ship space by the pose; a grounded body feels its downhill part only once
-## it has lost its grip — staggered, or idle on a deck steeper than the grip angle.
-## Wading slows a walk; swimming is _swim's. A body frozen in a hit-stop feels none
-## of it, and its stagger waits.
-func _forces(live: Array[PlayerState], pose_now: ShipPose) -> void:
-	var dt := Ticks.SECONDS_PER_TICK
-	var gravity := pose_now.ship_gravity(_rules.gravity)
-	var downhill := Vector2(gravity.x, gravity.z) * dt
-	var steep := pose_now.slope_deg() > _rules.grip_angle_deg
-	for player: PlayerState in live:
-		if player.is_frozen():
-			continue
-		if player.body == PlayerState.Body.AIRBORNE:
-			player.vel += gravity * dt
-			_steer_in_air(player)
-			continue
-		if player.body == PlayerState.Body.SWIMMING:
-			_swim(player, pose_now)
-			continue
-		var planar := Vector2(player.vel.x, player.vel.z)
-		var wish := Vector2(player.last_move) / InputFrame.AXIS_MAX * _rules.walk_speed
-		if player.action == PlayerState.Action.CHARGE:
-			wish = wish.limit_length(_rules.charge_walk)
-		elif player.bracing:
-			wish = Vector2.ZERO
-		if surfaces.wet(player.pos, pose_now):
-			wish = wish.limit_length(_rules.wade_speed)
-		# A brace is rooted: the deck past the grip angle does not pull it.
-		var pulled := steep and not player.bracing
-		if player.is_staggered():
-			planar = (planar + downhill).move_toward(Vector2.ZERO, _rules.stagger_friction * dt)
-			player.stagger_ticks -= 1
-		elif wish == Vector2.ZERO and pulled:
-			planar = (planar + downhill).move_toward(Vector2.ZERO, _rules.slide_friction * dt)
-		else:
-			if pulled:
-				planar += downhill
-			var rate := _rules.ground_accel if wish != Vector2.ZERO else _rules.ground_friction
-			planar = planar.move_toward(wish, rate * dt)
-			# The shove is spent once the body moves as its own input says; until then
-			# a slide that outlasts the stagger is still the shover's.
-			if planar == wish:
-				player.forget_hit()
-		player.vel = Vector3(planar.x, player.vel.y, planar.y)
-
-
-## A jumper steers toward its input at air_control of ground_accel, and keeps its
-## speed when it gives none; a fall, a vault or a jumper staggered by a shove flies
-## where it was sent.
-func _steer_in_air(player: PlayerState) -> void:
-	if not player.jumped or player.is_staggered() or player.last_move == Vector2i.ZERO:
-		return
-	var wish := Vector2(player.last_move) / InputFrame.AXIS_MAX * _rules.walk_speed
-	var rate := _rules.ground_accel * _rules.air_control * Ticks.SECONDS_PER_TICK
-	var planar := Vector2(player.vel.x, player.vel.z).move_toward(wish, rate)
-	player.vel = Vector3(planar.x, player.vel.y, planar.y)
-
-
-## Integration, then contacts: blockers, then railings, then bodies pushing each
-## other apart pair by pair in seat order, pass after pass until nothing moves.
-## Walls and rails have the last word — the last pass stops before bodies push — so
-## a crowd may end a tick pressed together, never inside a wall. A climber is where
-## its climb has it, and takes no part. Returns each seat's feet height before it
-## moved.
-func _move(
-	live_seats: Array[PlayerState], pose_now: ShipPose, tick: int, events: Array[SimEvent]
-) -> PackedFloat64Array:
-	var live := _moving_seats(live_seats)
-	var feet_before := PackedFloat64Array()
-	feet_before.resize(state.seats.size())
-	var came_from := PackedVector2Array()
-	came_from.resize(state.seats.size())
-	# A body that would cross more than its own radius in one move could land past a
-	# thin wall's middle and be pushed out of its far side — two shovers on one
-	# staggered body reach twice the restagger knockback, two-thirds of a metre a tick.
-	# So the tick's move is cut into as many equal steps as the fastest body needs to
-	# cross at most its radius in each, every step met by the contacts; at walking and
-	# single-shove speeds it is one step, the move exactly as it always was.
-	var steps := 1
-	for player: PlayerState in live:
-		feet_before[player.seat] = player.pos.y
-		came_from[player.seat] = Vector2(player.pos.x, player.pos.z)
-		var reach := Vector2(player.vel.x, player.vel.z).length() * Ticks.SECONDS_PER_TICK
-		steps = maxi(steps, ceili(reach / _rules.body_radius))
-	var dt := Ticks.SECONDS_PER_TICK / steps
-	# Where each body last met no blocker, and no railing: nothing that holds a body
-	# moves while bodies do, and a railing only breaks, so a body still there meets
-	# nothing again and is not asked.
-	var clear_of_blockers: Dictionary[int, Vector3] = {}
-	var clear_of_railings: Dictionary[int, Vector3] = {}
-	for _step in steps:
-		for player: PlayerState in live:
-			player.pos += player.vel * dt
-		for contact_pass in CONTACT_PASSES:
-			var held := _blockers(live, feet_before, pose_now, clear_of_blockers)
-			held = _railings(live, pose_now, tick, events, came_from, clear_of_railings) or held
-			if contact_pass == CONTACT_PASSES - 1:
-				break
-			if not _bodies(live) and not held:
-				break
-	_ceilings(live, feet_before)
-	return feet_before
-
-
-## A rising body stops with its head against the lowest underside over it — a deck,
-## a stair, a lintel — and loses its upward speed. It is looked for from where the
-## feet stood before this tick's move, so a fast rise cannot pass through a deck.
-func _ceilings(live: Array[PlayerState], feet_before: PackedFloat64Array) -> void:
-	for player: PlayerState in live:
-		if player.body != PlayerState.Body.AIRBORNE or player.vel.y <= 0.0:
-			continue
-		var feet := Vector3(player.pos.x, feet_before[player.seat], player.pos.z)
-		var highest := surfaces.ceiling(feet, _rules.step_height) - _rules.body_height
-		if player.pos.y > highest:
-			player.pos.y = highest
-			player.vel.y = 0.0
-
-
-## Whatever stops a body — a blocker, a wall, a deck edge too high to step onto —
-## pushes it back out in the deck plane and takes the velocity into it. It is met at
-## the height the feet stood at before this tick's move, so a fall lands on a deck
-## in _ground rather than being pushed off its edge. A swimmer steps as a swimmer
-## does (_swim_step). A body still where [param clear] last found it held by nothing
-## is not asked again. True when it moved anyone.
-func _blockers(
-	live: Array[PlayerState],
-	feet_before: PackedFloat64Array,
-	pose_now: ShipPose,
-	clear: Dictionary[int, Vector3]
-) -> bool:
-	var moved := false
-	for player: PlayerState in live:
-		if clear.get(player.seat) == player.pos:
-			continue
-		var feet := Vector3(player.pos.x, feet_before[player.seat], player.pos.z)
-		var step := _rules.step_height
-		if player.body == PlayerState.Body.SWIMMING:
-			step = _swim_step(feet, pose_now.water_height(feet))
-		var contacts := surfaces.obstacle_contacts(
-			feet, _rules.body_radius, _rules.body_height, step
-		)
-		if contacts.is_empty():
-			clear[player.seat] = player.pos
-		for contact: Surfaces.Contact in contacts:
-			_hold(player, contact)
-			moved = true
-	return moved
-
-
-## A railing stops a grounded body crossing it slower than vault_speed — it loses
-## the velocity into the rail — and tips one at or above it over, into the air,
-## damaging the span by vault_damage (Hazards.damage). In the air, a body that came
-## from a rail's side with its feet below the rail's top is held the same way, unless
-## it crosses at vault_speed or more: a vaulter is never pulled back. A body still
-## where [param clear] last found it held by none is not asked again. True when it
-## moved anyone.
-func _railings(
-	live: Array[PlayerState],
-	pose_now: ShipPose,
-	tick: int,
-	events: Array[SimEvent],
-	came_from: PackedVector2Array,
-	clear: Dictionary[int, Vector3]
-) -> bool:
-	var moved := false
-	for player: PlayerState in live:
-		if clear.get(player.seat) == player.pos:
-			continue
-		var airborne := player.body == PlayerState.Body.AIRBORNE
-		var contacts: Array[Surfaces.Contact]
-		if airborne:
-			contacts = surfaces.airborne_rail_contacts(
-				player.pos,
-				came_from[player.seat],
-				_rules.body_radius,
-				_rules.body_height,
-				_rules.railing_height
-			)
-		elif player.body == PlayerState.Body.GROUNDED:
-			contacts = surfaces.rail_contacts(player.pos, _rules.body_radius, player.surface)
-		if contacts.is_empty():
-			clear[player.seat] = player.pos
-		for contact: Surfaces.Contact in contacts:
-			var planar := Vector2(player.vel.x, player.vel.z)
-			var into := -planar.dot(contact.normal)
-			if into >= _rules.vault_speed:
-				if airborne:
-					continue
-				player.body = PlayerState.Body.AIRBORNE
-				player.surface = Surfaces.NONE
-				player.fall_from = player.pos.y
-				player.vel.y = _rules.vault_lift
-				events.append(SimEvent.vaulted(tick, player.seat))
-				_hazards.damage(
-					state, contact.railing, _rules.vault_damage, pose_now, tick, events, player.seat
-				)
-				# In the air it meets other railings than on its feet: where it stood clear
-				# before is no answer for it now.
-				clear.erase(player.seat)
-				break
-			_hold(player, contact)
-			moved = true
-	return moved
-
-
-## Bodies whose heights overlap push each other apart, pair by pair in seat order,
-## each moving half the overlap. True when it moved anyone.
-func _bodies(live: Array[PlayerState]) -> bool:
-	var moved := false
-	var reach := _rules.body_radius * 2.0
-	var height := _rules.body_height
-	for first in live.size():
-		for second in range(first + 1, live.size()):
-			var a := live[first]
-			var b := live[second]
-			var a_pos := a.pos
-			var b_pos := b.pos
-			if absf(a_pos.y - b_pos.y) >= height:
-				continue
-			var offset := Vector2(b_pos.x - a_pos.x, b_pos.z - a_pos.z)
-			var distance := offset.length()
-			if distance >= reach:
-				continue
-			var normal := offset / distance if distance > 0.0 else Vector2.RIGHT
-			var push := normal * ((reach - distance) * 0.5)
-			a.pos -= Vector3(push.x, 0.0, push.y)
-			b.pos += Vector3(push.x, 0.0, push.y)
-			moved = true
-	return moved
-
-
-## Moves [param player] out of [param contact] in the deck plane and takes the
-## velocity into it.
-func _hold(player: PlayerState, contact: Surfaces.Contact) -> void:
-	player.pos += Vector3(contact.normal.x, 0.0, contact.normal.y) * contact.depth
-	var planar := Vector2(player.vel.x, player.vel.z)
-	var into := -planar.dot(contact.normal)
-	if into > 0.0:
-		planar += contact.normal * into
-		player.vel = Vector3(planar.x, player.vel.y, planar.y)
-
-
-## What each body stands on. A grounded body follows its surface up and down
-## within step_height; past an edge deeper than that it falls. A falling body lands
-## on the highest surface it comes down onto, staggered by the drop — a jump's by
-## the drop below where it left, so its own height costs nothing. A swimmer's height
-## is the water's (_water).
-func _ground(
-	live: Array[PlayerState], tick: int, events: Array[SimEvent], feet_before: PackedFloat64Array
-) -> void:
-	for player: PlayerState in live:
-		if player.body == PlayerState.Body.SWIMMING:
-			continue
-		if player.body == PlayerState.Body.GROUNDED:
-			var surface := surfaces.under(player.pos, _rules.step_height)
-			player.surface = surface
-			if surface == Surfaces.NONE:
-				player.body = PlayerState.Body.AIRBORNE
-				player.fall_from = player.pos.y
-				events.append(SimEvent.fell(tick, player.seat))
-				continue
-			player.pos.y = surfaces.height_at(surface, player.pos)
-			continue
-		if not player.jumped:
-			player.fall_from = maxf(player.fall_from, player.pos.y)
-		if player.vel.y > 0.0:
-			continue
-		var below := surfaces.landing(Vector3(player.pos.x, feet_before[player.seat], player.pos.z))
-		if below == Surfaces.NONE:
-			continue
-		var ground := surfaces.height_at(below, player.pos)
-		if player.pos.y > ground:
-			continue
-		var drop := maxf(player.fall_from - ground, 0.0)
-		var stagger := Ticks.from_seconds(drop * _rules.fall_stagger_per_m)
-		player.body = PlayerState.Body.GROUNDED
-		player.jumped = false
-		player.surface = below
-		player.pos.y = ground
-		player.vel.y = 0.0
-		player.stagger_ticks = maxi(player.stagger_ticks, stagger)
-		events.append(SimEvent.landed(tick, player.seat, below, stagger))
 
 
 ## Counts every hit-stop down. One that runs out hands its body the velocity it
@@ -684,7 +400,7 @@ func _shoves(live: Array[PlayerState], tick: int, events: Array[SimEvent]) -> vo
 		_candidates(live),
 		_rules.shove_reach,
 		_rules.shove_cone_deg,
-		surfaces,
+		_here(),
 		_rules.step_height
 	)
 	var count := state.seats.size()
@@ -728,7 +444,7 @@ func _shoves(live: Array[PlayerState], tick: int, events: Array[SimEvent]) -> vo
 		_hazards.candidates(state, count),
 		_rules.shove_reach,
 		_rules.shove_cone_deg,
-		surfaces,
+		_here(),
 		_rules.step_height
 	)
 	for hit: ShoveResolver.Hit in crate_hits:
@@ -796,110 +512,11 @@ func _braced_against(target: PlayerState, shover: PlayerState, direction: Vector
 	return target.braced_against(direction, _rules.brace_arc_deg)
 
 
-## A swimmer moves across the sea at swim_speed, without control while staggered.
-## A body above the sea falls into it; in it, the water takes a dive's speed and
-## floats it back to where it rests (_rest_at). A climber hangs where its climb has
-## it (_water).
-func _swim(player: PlayerState, pose_now: ShipPose) -> void:
-	if player.is_climbing():
-		return
-	var dt := Ticks.SECONDS_PER_TICK
-	var planar := Vector2(player.vel.x, player.vel.z)
-	if player.is_staggered():
-		planar = planar.move_toward(Vector2.ZERO, _rules.stagger_friction * dt)
-		player.stagger_ticks -= 1
-	else:
-		var wish := Vector2(player.last_move) / InputFrame.AXIS_MAX * _rules.swim_speed
-		planar = planar.move_toward(wish, _rules.ground_accel * dt)
-	var rise := player.vel.y
-	if surfaces.wet(player.pos, pose_now):
-		var rest := _rest_at(player.pos, player.pos.y, pose_now, _heading(player))
-		var toward := signf(rest - player.pos.y)
-		rise = move_toward(rise, toward * _rules.float_speed, _rules.dunk_drag * dt)
-	else:
-		rise -= _rules.gravity * dt
-	player.vel = Vector3(planar.x, rise, planar.y)
-
-
-## Where a swimmer's feet rest at [param feet]'s x/z, coming from
-## [param feet_before]'s height and swimming [param heading]: swim_depth under the
-## water it is in — its cell's, so it surfaces in a pocket (SH29) — or on the bottom
-## there when that is higher.
-func _rest_at(feet: Vector3, feet_before: float, pose_now: ShipPose, heading: Vector2) -> float:
-	var sea := pose_now.water_height(feet)
-	var bottom := _bottom(feet, feet_before, sea)
-	var rest := maxf(sea - _rules.swim_depth, bottom)
-	return minf(rest, _headroom(feet, feet_before, heading, sea, bottom))
-
-
-## The highest a swimmer's feet at [param feet]'s x/z, coming from
-## [param feet_before]'s height, may rest: a body's height under the lowest deck over
-## its head (Surfaces.ceiling) — and, swimming [param heading], under the lowest along
-## the way to where its circle reaches next, so it ducks under a lintel or a deck's
-## edge it swims into: through a flooded doorway into the next cell, to surface there.
-## Not under one it floats over — wade_depth under its water at [param sea] — nor one
-## too low for a body over [param bottom]. Under a deck the sea is filling, it stays
-## under that deck as the water closes over its head; a head pressed into the deck — by
-## as little as its feet's height rounds up, CLEARANCE_SLACK under it — would be pushed
-## out sideways by it, through a wall or the hull.
-func _headroom(
-	feet: Vector3, feet_before: float, heading: Vector2, sea: float, bottom: float
-) -> float:
-	var from := Vector3(feet.x, feet_before, feet.z)
-	var body := _rules.body_height + Surfaces.CLEARANCE_SLACK
-	var room := surfaces.ceiling(from, _rules.step_height) - body
-	if heading == Vector2.ZERO:
-		return room
-	var reach := _rules.body_radius + _rules.swim_speed * Ticks.SECONDS_PER_TICK
-	var looks := ceili(reach / DUCK_LOOK)
-	for look in range(1, looks + 1):
-		var ahead := from + Vector3(heading.x, 0.0, heading.y) * (reach * look / looks)
-		var over := surfaces.ceiling(ahead, _rules.step_height)
-		if over > sea - _rules.wade_depth and over - body >= bottom:
-			room = minf(room, over - body)
-	return room
-
-
-## The way a swimmer presses, x/z, a unit vector — none while it presses none or is
-## staggered.
-func _heading(player: PlayerState) -> Vector2:
-	if player.is_staggered():
-		return Vector2.ZERO
-	return Vector2(player.last_move).normalized()
-
-
-## The height of the sea's bottom under a swimmer at [param feet] that came from
-## [param feet_before]'s height: the surface it would come down on — within a
-## swimmer's step over its feet (_swim_step), so a ramp it swims up carries it and a
-## flooded deck it swims over lifts it — when that is under [param sea]; -INF
-## otherwise. A surface above the sea is never its bottom: a climber shoved back
-## falls past the edge it was climbing.
-func _bottom(feet: Vector3, feet_before: float, sea: float) -> float:
-	var from := Vector3(feet.x, maxf(feet.y, feet_before), feet.z)
-	from.y += _swim_step(from, sea)
-	var bottom := surfaces.landing(from)
-	if bottom == Surfaces.NONE:
-		return -INF
-	var height := surfaces.height_at(bottom, feet)
-	return height if height < sea else -INF
-
-
-## How far up a swimmer with its feet at [param feet] steps: over any edge it can
-## float across, as high as wade_depth under [param sea], but never so high that its
-## head would meet a deck over it; a step_height at the least. A deck's edge it swims
-## onto stands below its head and a deck it swims under above it, within a step: the
-## first is no wall to someone swimming in from deeper water, the second no floor.
-func _swim_step(feet: Vector3, sea: float) -> float:
-	var clearance := _rules.body_height - _rules.step_height
-	var overhead := surfaces.ceiling(feet, clearance) - _rules.body_height
-	return maxf(_rules.step_height, minf(sea - _rules.wade_depth, overhead) - feet.y)
-
-
 ## The water is a countdown (SH5). A body whose feet go wade_depth into the sea, or
-## that falls into it, swims. A swimmer comes to rest (_come_to_rest), stands up
-## where the bottom rises within stand_depth of the sea, and climbs out where it can
-## (_start_climb) — onto a dry face in a pocket as onto a deck edge; while it swims and
-## does not climb, its cold meter drains — at pocket_cold_rate of the open water's with
+## that falls into it, swims. A swimmer comes to rest (Movement.come_to_rest), stands
+## up where the bottom rises within stand_depth of the sea, and climbs out where it can
+## (Movement.start_climb) — onto a dry face in a pocket as onto a deck edge; while it
+## swims and does not climb, its cold meter drains — at pocket_cold_rate of the open water's with
 ## its head in trapped air (Q22) — and it is out when that is empty. Out of the sea the
 ## meter refills at cold_regen. A seat frozen in a hit-stop holds its meter, and
 ## neither falls in, stands, climbs nor settles until the stop ends. Returns who went
@@ -917,23 +534,23 @@ func _water(
 		if player.is_frozen():
 			continue
 		if player.body != PlayerState.Body.SWIMMING:
-			if not _in_the_sea(player, pose_now):
+			if not _movement.in_the_sea(player, pose_now):
 				player.cold = minf(player.cold + _rules.cold_regen * dt, _rules.cold_meter)
 				continue
 			_fall_in(player, tick, events)
 		if player.is_climbing():
-			_climb(player, tick, events)
+			_movement.climb(player, tick, events)
 			continue
-		_come_to_rest(player, feet_before[player.seat], pose_now)
-		var ground := surfaces.under(player.pos, _rules.step_height)
+		_movement.come_to_rest(player, feet_before[player.seat], pose_now)
+		var ground := _here().under(player.pos, _rules.step_height)
 		if (
 			ground != Surfaces.NONE
-			and surfaces.wet(player.pos, pose_now)
-			and _sea_over(ground, player.pos, pose_now) < _rules.stand_depth
+			and _here().wet(player.pos, pose_now)
+			and _movement.sea_over(ground, player.pos, pose_now) < _rules.stand_depth
 		):
-			_stand(player, ground, tick, events)
+			_movement.stand(player, ground, tick, events)
 			continue
-		_start_climb(player, pose_now)
+		_movement.start_climb(player, pose_now)
 		if player.is_climbing():
 			continue
 		var head := player.pos + Vector3.UP * _rules.head_height()
@@ -943,22 +560,6 @@ func _water(
 			_out(player, tick)
 			exits.append(player)
 	return exits
-
-
-## Whether [param player], not swimming, is in the sea: in the air, its feet under
-## it over a bottom wade_depth deep or more — it lands on a shallower one; on a
-## surface, wade_depth under it or more.
-func _in_the_sea(player: PlayerState, pose_now: ShipPose) -> bool:
-	if player.body == PlayerState.Body.AIRBORNE:
-		var sea := pose_now.water_height(player.pos)
-		var depth := sea - _bottom(player.pos, player.pos.y, sea)
-		return surfaces.wet(player.pos, pose_now) and depth >= _rules.wade_depth
-	return _sea_over(player.surface, player.pos, pose_now) >= _rules.wade_depth
-
-
-## How deep the sea stands over [param surface] under [param feet]'s x/z.
-func _sea_over(surface: int, feet: Vector3, pose_now: ShipPose) -> float:
-	return pose_now.water_height(feet) - surfaces.height_at(surface, feet)
 
 
 ## Into the sea: whatever [param player] was readying is dropped, and a shove or a
@@ -973,80 +574,6 @@ func _fall_in(player: PlayerState, tick: int, events: Array[SimEvent]) -> void:
 	if tick - player.last_hit_at >= _credit_window_ticks:
 		player.forget_hit()
 	events.append(SimEvent.entered_water(tick, player.seat))
-
-
-## After this tick's move: on the bottom, if it went under it; at rest, if it rose
-## to it, or sank onto it no faster than the water floats a body.
-func _come_to_rest(player: PlayerState, feet_before: float, pose_now: ShipPose) -> void:
-	var sea := pose_now.water_height(player.pos)
-	var bottom := _bottom(player.pos, feet_before, sea)
-	var headroom := _headroom(player.pos, feet_before, _heading(player), sea, bottom)
-	var rest := minf(maxf(sea - _rules.swim_depth, bottom), headroom)
-	var rise := player.vel.y
-	if player.pos.y < bottom:
-		player.pos.y = bottom
-		rise = maxf(rise, 0.0)
-	var speed := _rules.float_speed
-	var risen := rise > 0.0 and player.pos.y >= rest
-	var settled := (
-		rise <= 0.0
-		and rise >= -speed
-		and player.pos.y <= rest
-		and player.pos.y >= rest - speed * Ticks.SECONDS_PER_TICK
-	)
-	if risen or settled:
-		player.pos.y = rest
-		rise = 0.0
-	player.vel.y = rise
-
-
-## A swimmer pressing toward a way out that Surfaces finds (climb_out) starts up it:
-## climb_time, or longer up a ladder at ladder_speed.
-func _start_climb(player: PlayerState, pose_now: ShipPose) -> void:
-	if player.is_staggered() or player.last_move == Vector2i.ZERO:
-		return
-	var climb := surfaces.climb_out(
-		player.pos, Vector2(player.last_move).normalized(), pose_now, _rules
-	)
-	if climb == null:
-		return
-	var rise := climb.stand.y - pose_now.water_height(climb.stand)
-	player.climb_left = maxi(_climb_ticks, Ticks.from_seconds(rise / _rules.ladder_speed))
-	player.climb_to = climb.stand
-	player.vel = Vector3.ZERO
-	player.jumped = false
-
-
-## A climb rises an equal share of the rest of the way each tick, hanging at the
-## edge, and steps over it at walk_speed at the end, to stand where it was going.
-## Where that is gone — the deck collapsed under it — the climber lets go, back into
-## the sea.
-func _climb(player: PlayerState, tick: int, events: Array[SimEvent]) -> void:
-	var ground := surfaces.under(player.climb_to, _rules.step_height)
-	if ground == Surfaces.NONE:
-		player.climb_left = 0
-		return
-	player.pos.y += (player.climb_to.y - player.pos.y) / player.climb_left
-	var across := Vector2(player.climb_to.x - player.pos.x, player.climb_to.z - player.pos.z)
-	var later := _rules.walk_speed * Ticks.SECONDS_PER_TICK * (player.climb_left - 1)
-	var stride := across.limit_length(maxf(across.length() - later, 0.0))
-	player.pos += Vector3(stride.x, 0.0, stride.y)
-	player.climb_left -= 1
-	if player.climb_left == 0:
-		_stand(player, ground, tick, events)
-
-
-## Out of the sea, standing on [param surface]: the shove or the crate that put it
-## there no longer counts.
-func _stand(player: PlayerState, surface: int, tick: int, events: Array[SimEvent]) -> void:
-	player.body = PlayerState.Body.GROUNDED
-	player.surface = surface
-	player.pos.y = surfaces.height_at(surface, player.pos)
-	player.vel.y = 0.0
-	player.jumped = false
-	player.climb_left = 0
-	player.forget_hit()
-	events.append(SimEvent.climbed_out(tick, player.seat, surface))
 
 
 ## A shove landing on a climber sends it back into the sea, colder by climb_penalty.

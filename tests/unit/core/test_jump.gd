@@ -353,11 +353,12 @@ func test_a_jumper_shoved_in_the_air_flies_with_full_knockback() -> void:
 	assert_lt(_planar(jumper.vel).length(), rules.knockback, "the deck's friction takes over")
 
 
-func test_jumping_on_a_steep_deck_does_not_escape_the_slide() -> void:
+func test_a_jump_goes_up_the_worlds_up() -> void:
 	var rules := _rules()
-	# Past the grip angle an idle body slides; one that jumps from beside it is pulled
-	# downhill all the way through the air with no friction, so it comes down
-	# farther downhill and faster than the one that stayed.
+	# A jump rises along the world's up, not the deck's (D8, SH32): from rest on a deck
+	# past the grip angle it comes down where it left — the deck's pull across it in the
+	# air undoes the lean of its take-off — while the body beside it that stayed slid
+	# on downhill; a jump never carries a body uphill.
 	var sim := SimFixtures.sim(2, SimFixtures.tilted(rules.grip_angle_deg + 8.0, 0.0))
 	SimFixtures.place(sim, 0, Vector3(0.0, 0.0, -2.0))
 	SimFixtures.place(sim, 1, Vector3(0.0, 0.0, 2.0))
@@ -365,13 +366,16 @@ func test_jumping_on_a_steep_deck_does_not_escape_the_slide() -> void:
 	var jumper := sim.state.seats[1]
 	var slider := sim.state.seats[0]
 	SimFixtures.step(sim, {1: SimFixtures.frame(1, Vector2.ZERO, JUMP)})
+	assert_lt(_planar(jumper.vel).dot(downhill), 0.0, "it leaves leaning up the deck")
+	var flown := 1
 	while jumper.body == AIRBORNE:
 		SimFixtures.step(sim, {0: SimFixtures.frame(0), 1: SimFixtures.frame(1)})
+		flown += 1
 	var slid := _planar(slider.pos - Vector3(0.0, 0.0, -2.0)).dot(downhill)
 	var flew := _planar(jumper.pos - Vector3(0.0, 0.0, 2.0)).dot(downhill)
-	assert_gt(slid, 0.0, "the idle body slid")
-	assert_gt(flew, slid, "the jumper came down farther downhill")
-	assert_gt(_planar(jumper.vel).dot(downhill), _planar(slider.vel).dot(downhill), "and faster")
+	assert_gt(flown, 3, "it flew a while")
+	assert_gt(slid, 0.1, "the idle body slid")
+	assert_almost_eq(flew, 0.0, 0.15, "the jumper came down where it left, to a tick")
 
 
 func test_a_jump_landing_does_not_stagger() -> void:

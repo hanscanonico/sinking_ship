@@ -6,30 +6,28 @@ extends RefCounted
 
 
 ## The seats of [param live] the sea puts out on [param tick], in seat order: on the
-## tick she is gone ([param gone_tick]), whoever is still inside her goes out with her,
-## and on the tick she leans past what a match follows ([param unsupported_tick],
-## §5b.3's interim rule until SH32) everyone left does; and once every surface still
-## standing is [param wade_depth] under the sea, as [param surfaces] has it under
-## [param pose_now], and every seat left swims — when nothing but the cold can change —
-## they all go out by the cold, but for the one with the most cold left when it has the
-## most alone. A tie for the most is a draw, the sea's; the places go by the cold they
-## had left (place).
+## tick she is gone ([param gone_tick]), whoever is still inside her goes out with her;
+## and once every surface still standing is [param wade_depth] under the sea, as
+## [param surfaces] has it under [param pose_now], and every seat left swims — when
+## nothing but the cold can change — they all go out by the cold, but for the one with
+## the most cold left when it has the most alone. A tie for the most is a draw, the
+## sea's; the places go by the cold they had left (place). Nothing else ends a match:
+## on a wreck that keeps dry footing — on her side on the bottom, or upside down on her
+## air — it goes on until one seat is left, however long (Q21). The match follows her
+## through any attitude (SH32), so [param pose_now] and [param surfaces] are the frame
+## the tick stands in.
 static func settled_by_the_sea(
 	live: Array[PlayerState],
 	pose_now: ShipPose,
 	tick: int,
 	gone_tick: int,
-	unsupported_tick: int,
 	surfaces: Surfaces,
 	wade_depth: float
 ) -> Array[PlayerState]:
 	var going: Array[PlayerState] = []
 	var left: Array[PlayerState] = []
 	for player: PlayerState in live:
-		if (
-			tick == unsupported_tick
-			or (tick == gone_tick and pose_now.cell_at(player.pos) != CellMap.NONE)
-		):
+		if tick == gone_tick and pose_now.cell_at(player.pos) != CellMap.NONE:
 			going.append(player)
 		else:
 			left.append(player)

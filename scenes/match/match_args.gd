@@ -1,7 +1,8 @@
 class_name MatchArgs
 extends RefCounted
 ## The user arguments a match host takes after `--`:
-##   --seed=N  --seats=N  --ship=NAME  --stop=MM:SS  --hit=PATH  --autoplay  --capture=PATH
+##   --seed=N  --seats=N  --ship=NAME  --scenario=NAME  --stop=MM:SS  --hit=PATH  --autoplay
+##   --capture=PATH
 ##   --capture-at=S
 ##   --observer  --capture-eye=SEAT  --observer-cut=M  --observer-cells  --greybox
 ##   --observer-side=starboard|port
@@ -11,7 +12,8 @@ extends RefCounted
 ##   --capture-screen=SCREEN  --capture-from=X,Y,Z,YAW[,PITCH]  --capture-sway=S
 ##   --quality=low|medium|high  --render-scale=F  --bake-budget=MS  --phys=H:MM:SS  --jump
 ## The game reads --seed, --seats and --ship as the menu's choices — --ship a ship of
-## the Fleet, by name, played in her open-sea scenario; --stop (or --seconds, in
+## the Fleet, by name, played in her open-sea scenario, or in --scenario's, one of hers
+## (steamer_coast, whose ship it names when --ship does not); --stop (or --seconds, in
 ## seconds) is the match time a headless run is stopped at and reported unfinished — a
 ## tool's limit, never a rule of the match; --hit strikes her with the explicit hit
 ## the IcebergHit at PATH is, past the must-sink rule (§5b.1), so a tool can play a
@@ -53,6 +55,9 @@ var seed_value: int = -1
 var seats: int = 0
 ## A ship of the Fleet, by name; empty when not given: the match data's.
 var ship_name: StringName = &""
+## One of a ship's scenarios of the Fleet, by name (steamer_coast); empty when not
+## given: her open sea's.
+var scenario_name: StringName = &""
 ## How much match time a headless run may take before it stops, unfinished (STOP=,
 ## est. 15:00).
 var seconds: float = 900.0
@@ -123,26 +128,56 @@ static func clock_seconds(text: String) -> float:
 	return seconds
 
 
-## [param scenario] struck by the explicit hit --hit names, or itself without one.
+## The ship of the Fleet the match is played on: --ship's, else --scenario's, else
+## empty for the match data's.
+func ship() -> StringName:
+	return ship_name if not ship_name.is_empty() else Fleet.ship_of(scenario_name)
+
+
+## The match's sinking: [param scenario] — or the one --scenario names in its place —
+## struck by the explicit hit --hit names, or as it is without one.
 func struck(scenario: SinkScenario) -> SinkScenario:
+	var setting := scenario if scenario_name.is_empty() else _setting()
 	if hit_path.is_empty():
-		return scenario
-	var given: SinkScenario = scenario.duplicate()
+		return setting
+	var given: SinkScenario = setting.duplicate()
 	given.explicit_hit = _hit()
 	return given
 
 
-## What is wrong with the arguments for a match: a --ship the Fleet has not, a --hit
-## that names no IcebergHit.
+## What is wrong with the arguments for a match: a --ship the Fleet has not, a
+## --scenario that is not one of its ship's, a --hit that names no IcebergHit.
 func problems() -> PackedStringArray:
 	var found := PackedStringArray()
 	if not ship_name.is_empty() and Fleet.layout(ship_name) == null:
 		found.append(
 			"--ship: no ship called %s; the fleet has %s" % [ship_name, ", ".join(Fleet.names())]
 		)
+	if (
+		not scenario_name.is_empty()
+		and (
+			_setting() == null
+			or (
+				not String(scenario_name).begins_with("res://")
+				and Fleet.ship_of(scenario_name) != ship()
+			)
+		)
+	):
+		found.append("--scenario: %s is no scenario of %s" % [scenario_name, ship()])
 	if not hit_path.is_empty() and _hit() == null:
 		found.append("--hit: %s is not an IcebergHit" % hit_path)
 	return found
+
+
+## --scenario's sinking: one of the Fleet's by name, or a test fixture's by its
+## res:// path — an authored roll (tests/fixtures/sinking/rolling_over.tres) a capture
+## stages her on to look at her faces (SH32), never a match's.
+func _setting() -> SinkScenario:
+	if not String(scenario_name).begins_with("res://"):
+		return Fleet.setting(scenario_name)
+	if not ResourceLoader.exists(scenario_name):
+		return null
+	return load(scenario_name) as SinkScenario
 
 
 func _hit() -> IcebergHit:
@@ -162,6 +197,8 @@ static func parse(args: PackedStringArray) -> MatchArgs:
 				parsed.seats = value.to_int()
 			"--ship":
 				parsed.ship_name = StringName(value)
+			"--scenario":
+				parsed.scenario_name = StringName(value)
 			"--seconds":
 				parsed.seconds = value.to_float()
 			"--stop":

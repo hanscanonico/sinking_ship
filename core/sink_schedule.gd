@@ -57,12 +57,10 @@ var _events: Array[Scheduled] = []
 var _hit: IcebergHit
 var _damage: HitDamage
 var _hit_tick := -1
-## The physics' sinking: how the hit was chosen, the bake, the match tick of each of
-## its kept seconds, her cells, and the doors the ship shuts with the seconds each
-## takes.
+## The physics' sinking: how the hit was chosen, the bake, her cells, and the doors the
+## ship shuts with the seconds each takes.
 var _choice: MustSink.Choice
 var _timeline: SinkTimeline
-var _frame_ticks := PackedInt32Array()
 var _cells: CellMap
 var _doors: Array[StringName] = []
 var _door_times := PackedFloat64Array()
@@ -75,14 +73,12 @@ var _physics_events: Array[SimEvent] = []
 var _gone_tick := -1
 var _plunge_tick := -1
 ## Her centre of mass, which she turns about; the physics' lurches — the ticks each is
-## warned, swings and is over, and the list it swings her by; the tick she passes the
-## attitude a match follows, or -1, and that attitude's cosine; the tick a cell first
-## takes water, or -1; and the tick the water stopped with her afloat, or -1.
+## warned, swings and is over, and the list it swings her by; the tick a cell first
+## takes water, or -1; the tick the water stopped with her afloat, or -1; and the tick
+## she first touches the bottom, or -1.
 var _pivot_of_mass := Vector3.ZERO
 var _lurch_ticks := PackedInt32Array()
 var _lurch_heels := PackedFloat64Array()
-var _unsupported_tick := -1
-var _upright := 1.0
 var _flooding_tick := -1
 var _afloat_tick := -1
 ## What has given way, in the timeline's order: each failure's tick, what it names and
@@ -91,6 +87,7 @@ var _failed_ticks := PackedInt32Array()
 var _failed_names: Array[StringName] = []
 var _failed_states := PackedByteArray()
 var _falls: Array[FunnelFall] = []
+var _aground_tick := -1
 
 
 ## [param sink_stream] is the sinking stream, SeedStreams' (match seed, "sink"),
@@ -143,10 +140,6 @@ func _init(
 	_passages.append_array(_damage.openings)
 	if physics.failures:
 		_failing = SinkFailures.shut(structure, _damage)
-	# The limit's cosine as the series sine of its complement, so every platform finds
-	# the same tick (R21).
-	_upright = Attitude.sine_of_degrees(90.0 - physics.supported_deg)
-	_index()
 	for event: SinkTimeline.Event in _timeline.events:
 		var tick := _tick_of(event.seconds)
 		_physics_events.append(SimEvent.physics(tick, event.kind, event.name, event.heel_deg))
@@ -167,6 +160,8 @@ func _init(
 				_failed_states.append(2 if event.kind == SinkTimeline.Kind.GAVE_WAY else 1)
 			SinkTimeline.Kind.FUNNEL_FALLING:
 				_falls.append(_fall_of(structure, event, tick))
+			SinkTimeline.Kind.GROUNDED:
+				_aground_tick = tick
 	if _timeline.gone_at >= 0.0:
 		_gone_tick = _tick_of(_timeline.gone_at)
 	if _timeline.end == SinkTimeline.End.AFLOAT:
@@ -234,34 +229,6 @@ func _tick_of(seconds: float) -> int:
 ## page of the timeline is due at a client (TimelineStream).
 func physics_tick(seconds: float) -> int:
 	return _tick_of(seconds) if _timeline != null else -1
-
-
-## Places each kept state of the timeline not yet placed on its tick — all of them at
-## once, or those of a page that has just come from the host — and finds the tick she
-## first stands further from upright than a match follows her.
-func _index() -> void:
-	for frame in range(_frame_ticks.size(), _timeline.count()):
-		_frame_ticks.append(_tick_of(_timeline.times[frame]))
-		if _unsupported_tick == -1 and _timeline.rotations[frame * 9 + 4] < _upright:
-			_unsupported_tick = _passes_upright(frame)
-
-
-## The first tick she stands past the attitude a match follows, read between kept state
-## [param frame] — the first past it — and the one before, as the pose reads between
-## them: where a state the compaction dropped would have put it.
-func _passes_upright(frame: int) -> int:
-	if frame == 0:
-		return _frame_ticks[0]
-	var low := _frame_ticks[frame - 1]
-	var high := _frame_ticks[frame]
-	while high - low > 1:
-		var middle := (low + high) >> 1
-		var weight := _weight(frame - 1, middle)
-		if _timeline.up_between(frame - 1, frame, weight) < _upright:
-			high = middle
-		else:
-			low = middle
-	return high
 
 
 ## The physics second after the hit match tick [param tick] stands at: Ticks' answer,
@@ -433,15 +400,6 @@ func plunge_tick() -> int:
 	return _plunge_tick
 
 
-## The tick she first stands further from upright than a match follows her
-## (SeaPhysics.supported_deg, §5b.3's interim rule until SH32), or -1 for never: on it
-## the match settles, everyone left going out together.
-func unsupported_tick() -> int:
-	if _timeline != null and _frame_ticks.size() < _timeline.count():
-		_index()
-	return _unsupported_tick
-
-
 ## How the match's hit was chosen and baked, or null without a physical sinking.
 func choice() -> MustSink.Choice:
 	return _choice
@@ -490,8 +448,9 @@ func hit_tick() -> int:
 ## The name of the phase the sinking is in at [param tick], or "" before it has one.
 ## The physics' is named from where she stands then (§5b.4): Holed until a cell takes
 ## water, then Flooding; Listing, By the head or By the stern once she leans past their
-## marks; Capsizing past its list; Afloat once the water has stopped. An authored
-## fixture's is the last keyframe's by then that names one.
+## marks; Capsizing past its list; Aground once she has touched the bottom; Afloat once
+## the water has stopped. An authored fixture's is the last keyframe's by then that names
+## one.
 func phase_at(tick: int) -> String:
 	if _timeline != null:
 		return _physical_phase(tick)
@@ -510,6 +469,11 @@ func _physical_phase(tick: int) -> String:
 		return ""
 	if _afloat_tick != -1 and tick >= _afloat_tick:
 		return "Afloat"
+	return "Aground" if _aground_tick != -1 and tick >= _aground_tick else _leaning_phase(tick)
+
+
+## The phase [param tick] has from how she leans — or else from her water.
+func _leaning_phase(tick: int) -> String:
 	var pose := _physical(tick)
 	var listing := absf(pose.heel_deg) / LISTING_DEG
 	var trimmed := absf(pose.trim_deg) / TRIMMED_DEG

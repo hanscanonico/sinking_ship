@@ -52,6 +52,14 @@ static func choose(
 	return choosing.choice()
 
 
+## Whether a match plays a bake that ends [param end]: she is gone within the cap, or —
+## a coast scenario's wreck — rests on the bottom with part of her dry, where the match
+## goes on until one seat is left (Q21). Afloat — upright, or upside down on air still
+## leaking at the cap — it draws again.
+static func played(end: SinkTimeline.End) -> bool:
+	return end == SinkTimeline.End.GONE or end == SinkTimeline.End.AGROUND
+
+
 ## [param scenario]'s explicit hit on [param structure], baked as given under
 ## [param sea]: past the rule, so it may leave her afloat.
 static func given(structure: ShipStructure, scenario: SinkScenario, sea: SeaPhysics) -> Choice:
@@ -220,7 +228,7 @@ class Choosing:
 				_draw()
 			Stage.BAKING:
 				_drawn.bakes += 1
-				if _bake.end() == SinkTimeline.End.GONE:
+				if MustSink.played(_bake.end()):
 					_finish(_drawn)
 				elif _drawn.bakes >= _scenario.bakes:
 					_to_rungs()
@@ -231,7 +239,7 @@ class Choosing:
 				_next_rung()
 			Stage.BAKING_RUNG:
 				_tried.bakes += 1
-				if _bake.end() == SinkTimeline.End.GONE:
+				if MustSink.played(_bake.end()):
 					_tried.bakes += _drawn.bakes
 					_tried.rung = _rung
 					_finish(_tried)
@@ -301,6 +309,7 @@ class Choosing:
 		_stage = Stage.SURE
 
 	func _start(damage: HitDamage) -> void:
+		damage.sea_depth = _scenario.sea_depth
 		_bake = SinkBake.new(SinkStepper.new(_structure, damage, _sea), _sea, _scenario.bake_cap)
 
 	## Ends the rule on [param chosen]: its bake made its timeline — compacted only now,

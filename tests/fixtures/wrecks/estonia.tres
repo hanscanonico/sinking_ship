@@ -1,0 +1,52 @@
+[gd_resource type="Resource" script_class="WreckHull" format=3]
+
+[ext_resource type="Script" path="res://tests/fixtures/wrecks/wreck_hull.gd" id="1_wreck"]
+[ext_resource type="Script" path="res://core/sinking/flood_cell.gd" id="2_cell"]
+[ext_resource type="Script" path="res://core/sinking/ship_opening.gd" id="3_opening"]
+
+[sub_resource type="Resource" id="Cell_car_deck"]
+script = ExtResource("2_cell")
+name = &"car_deck"
+low = Vector3(-55, -0.3, -11)
+high = Vector3(55, 6.5, 11)
+permeability = 0.9
+
+[sub_resource type="Resource" id="Cell_below"]
+script = ExtResource("2_cell")
+name = &"below"
+low = Vector3(-55, -6.3, -11)
+high = Vector3(55, -0.3, 11)
+permeability = 0.9
+leak_area = 0.005
+
+[sub_resource type="Resource" id="Opening_door"]
+script = ExtResource("3_opening")
+name = &"stern_opening"
+kind = 12
+joins = Array[StringName]([&"car_deck", &"sea"])
+centre = Vector3(-55, 1.0, 0)
+size = Vector3(0, 4, 8)
+area = 32.0
+
+[sub_resource type="Resource" id="Opening_seams"]
+script = ExtResource("3_opening")
+name = &"stair"
+kind = 5
+joins = Array[StringName]([&"below", &"car_deck"])
+centre = Vector3(0, -0.3, 0)
+size = Vector3(2, 0, 1)
+area = 2.0
+
+[resource]
+script = ExtResource("1_wreck")
+name = &"estonia"
+length = 110.0
+beam = 22.0
+depth = 13.0
+draught = 6.3
+centre_height = 8.6
+cells = Array[ExtResource("2_cell")]([SubResource("Cell_car_deck"), SubResource("Cell_below")])
+openings = Array[ExtResource("3_opening")]([SubResource("Opening_door"), SubResource("Opening_seams")])
+boat_limit_deg = 15.0
+roll_damping = 2.0
+notes = "Estonia-like (Estonia, sank 28 September 1994): the Sewol-like box (est.) — 110 m long, beam 22 m, 13 m deep, at a 6.3 m draught — but her weight 8.6 m over her keel (GM 0.95 m, est.), her hull under the car deck open to it through a 2 m2 stair and breathing through its air pipe to her upper deck, and her roll damped at 2.0 of critical (est.: she lay over for over half an hour before she went, research), so the water coming down into her lower hull pushes its air out of the pipe as she rolls. Her bow visor's opening stands as an 8 x 4 m opening at her car deck's end, from 0.3 m under her waterline (est.). Band est.: she rolls slowly, vents, and is gone soon after she is over."

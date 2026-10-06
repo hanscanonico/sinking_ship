@@ -51,7 +51,7 @@ func _initialize() -> void:
 		quit(1)
 		return
 	var config := default_config(
-		args.seed_value if args.seed_value >= 0 else DEFAULT_SEED, args.seats, args.ship_name
+		args.seed_value if args.seed_value >= 0 else DEFAULT_SEED, args.seats, args.ship()
 	)
 	config.scenario = args.struck(config.scenario)
 	var problems := config.problems()

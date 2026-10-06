@@ -3,10 +3,11 @@ extends Node3D
 ## Draws the match from two snapshots (D5): the ship root follows the interpolated
 ## pose, the ship drawn — dressed, or the greybox — the sinking's events as of the
 ## same moment, read off the schedule here and handed in, and every seat is a
-## Brawler with a blob shadow, placed in ship space — except the seat whose eyes the
-## view is in, which is not drawn (D14) — and every crate of the cargo is placed where
-## the snapshots have it, hidden once lost (SH10). It never moves a body itself, and
-## never reads a live PlayerState.
+## Brawler with a blob shadow, placed in ship space and standing up the frame of the
+## faces the match stands on (Faces, SH32) — except the seat whose eyes the view is in,
+## which is not drawn (D14) — and every crate of the cargo is placed where the snapshots
+## have it, hidden once lost (SH10). It never moves a body itself, and never reads a
+## live PlayerState.
 
 ## The seat colours now live in ArtPalette; this name stays for code outside the art.
 const SEAT_COLOURS: Array[Color] = ArtPalette.SEAT_COLOURS
@@ -22,10 +23,12 @@ const FALL_SECONDS := 0.5
 
 var _driver: SimDriver
 var _schedule: SinkSchedule
-var _surfaces: Surfaces
+var _faces: Faces
 var _structure: ShipStructure
 var _rooms: Array[ShipRoom] = []
 var _bodies: Array[Brawler] = []
+## Per seat, the facing it is drawn with, in its face's plane.
+var _facings := PackedFloat64Array()
 var _shadows: Array[MeshInstance3D] = []
 ## Per crate of the layout's cargo, the node the ship drawn draws it under.
 var _crates: Array[Node3D] = []
@@ -55,7 +58,7 @@ func setup(driver: SimDriver, sim: MatchSim, local_seat: int, correction_time: f
 	_local_seat = local_seat
 	_smoother = CorrectionSmoother.new(correction_time)
 	_schedule = sim.schedule
-	_surfaces = sim.surfaces
+	_faces = sim.faces
 	_structure = sim.config.ship.structure
 	_rooms = sim.config.ship.rooms
 	var ship := sim.config.ship
@@ -78,6 +81,7 @@ func setup(driver: SimDriver, sim: MatchSim, local_seat: int, correction_time: f
 		shadow.queue_free()
 	_bodies.clear()
 	_shadows.clear()
+	_facings.resize(sim.config.seats)
 	for seat in sim.config.seats:
 		_add_seat(seat, rules, seat == local_seat)
 	_process(0.0)
@@ -122,9 +126,9 @@ func seat_feet(seat: int) -> Vector3:
 	return _bodies[seat].position
 
 
-## The ship-plane facing [param seat] is drawn with.
+## The facing [param seat] is drawn with, in the plane of the faces it stands on.
 func seat_facing(seat: int) -> float:
-	return -_bodies[seat].rotation.y
+	return _facings[seat]
 
 
 ## Draws the water inside her in [param sea]'s material, when her sinking is the
@@ -183,6 +187,12 @@ func _process(delta: float) -> void:
 	_show_cargo(previous["props"], current["props"], alpha)
 	var seats_then: Array = previous["seats"]
 	var seats_now: Array = current["seats"]
+	# Bodies stand up the frame the match stands in now; across a change of frame they
+	# are drawn in the new one, facing as it has them.
+	var up: int = current["up"]
+	var turned: bool = up != previous["up"]
+	var to_ship := Faces.to_ship(up)
+	var here := _faces.surfaces(up)
 	for index in seats_now.size():
 		var now: Dictionary = seats_now[index]
 		var then: Dictionary = seats_then[index]
@@ -195,18 +205,24 @@ func _process(delta: float) -> void:
 		var pos: Vector3 = (then["pos"] as Vector3).lerp(now["pos"], alpha)
 		if seat == _local_seat:
 			pos += _smoother.offset
-		body.position = pos
-		body.rotation.y = -lerp_angle(then["facing"], now["facing"], alpha)
+		_facings[seat] = (
+			now["facing"] if turned else lerp_angle(then["facing"], now["facing"], alpha)
+		)
+		body.transform = Transform3D(to_ship * Basis(Vector3.UP, -_facings[seat]), pos)
 		body.show_state(then, now, alpha)
 		# A swimmer stands on nothing: no ring tilted to a deck under the sea, no shadow.
+		var feet := to_ship.transposed() * pos
 		var below := Surfaces.NONE
 		if now["state"] != PlayerState.Body.SWIMMING:
-			below = _surfaces.landing(pos)
-		body.show_ground(Vector3.UP if below == Surfaces.NONE else _ground_normal(below, pos))
+			below = here.landing(feet)
+		var normal := Vector3.UP if below == Surfaces.NONE else _ground_normal(here, below, feet)
+		body.show_ground(to_ship * normal)
 		if below != Surfaces.NONE:
-			var ground := _surfaces.height_at(below, pos)
+			var ground := here.height_at(below, feet)
 			_shadows[seat].visible = body.visible
-			_shadows[seat].position = Vector3(pos.x, ground + SHADOW_LIFT, pos.z)
+			_shadows[seat].transform = Transform3D(
+				to_ship, to_ship * Vector3(feet.x, ground + SHADOW_LIFT, feet.z)
+			)
 	Brawler.keep_apart(_bodies, _eye_seat)
 
 
@@ -246,16 +262,16 @@ func _show_cargo(then: Array, now: Array, alpha: float) -> void:
 		_crates[index].position = (then[index]["pos"] as Vector3).lerp(entry["pos"], alpha)
 
 
-## The up of [param surface] under [param pos], in ship space, from its heights a
-## short step either side.
-func _ground_normal(surface: int, pos: Vector3) -> Vector3:
+## The up of [param surface] of [param here] under [param pos], in that Surfaces'
+## frame, from its heights a short step either side.
+func _ground_normal(here: Surfaces, surface: int, pos: Vector3) -> Vector3:
 	var along_x := (
-		_surfaces.height_at(surface, pos + Vector3.RIGHT * SLOPE_PROBE)
-		- _surfaces.height_at(surface, pos + Vector3.LEFT * SLOPE_PROBE)
+		here.height_at(surface, pos + Vector3.RIGHT * SLOPE_PROBE)
+		- here.height_at(surface, pos + Vector3.LEFT * SLOPE_PROBE)
 	)
 	var along_z := (
-		_surfaces.height_at(surface, pos + Vector3.BACK * SLOPE_PROBE)
-		- _surfaces.height_at(surface, pos + Vector3.FORWARD * SLOPE_PROBE)
+		here.height_at(surface, pos + Vector3.BACK * SLOPE_PROBE)
+		- here.height_at(surface, pos + Vector3.FORWARD * SLOPE_PROBE)
 	)
 	return Vector3(-along_x, 2.0 * SLOPE_PROBE, -along_z).normalized()
 
