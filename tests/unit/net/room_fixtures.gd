@@ -10,6 +10,9 @@ const SERVER_PEER := 1
 const MATCH_DATA := "res://data/match/default.tres"
 const SEED := 1701
 const LETTERS_SEED := 1702
+## Seats in a flat-deck room's match: a few, so a room's players all have one and bots
+## take the rest. Not the ship's fewest — that is one, a lone seat playing alone.
+const FLAT_SEATS := 4
 
 var clock := NetClock.new()
 var rules: ServerRules
@@ -59,11 +62,11 @@ func _init(
 	codec = RoomCodec.new(RoomServer.data_hash(match_rules, NetRules.load_default()))
 
 
-## The default match's rules on the flat deck: its ship's fewest seats, no countdown,
-## and [param sinking] — the flat deck's own scenario, afloat, when null.
+## The default match's rules on the flat deck: FLAT_SEATS seats, no countdown, and
+## [param sinking] — the flat deck's own scenario, afloat, when null.
 static func flat_rules(sinking: SinkScenario = null) -> MatchRules:
 	var flat: MatchRules = load(MATCH_DATA).duplicate()
-	flat.seats = flat.ship.min_seats
+	flat.seats = FLAT_SEATS
 	flat.countdown = 0.0
 	flat.ship = SimFixtures.deck()
 	flat.sinking = sinking if sinking != null else load(SimFixtures.FLAT_SINKING)

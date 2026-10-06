@@ -151,6 +151,15 @@ func test_a_ship_is_named_and_struck_in_her_own_sea() -> void:
 	assert_ne(trawler.data_hash(), default.data_hash())
 
 
+func test_the_menu_takes_a_lone_seat() -> void:
+	var config := MatchConfig.from_menu(_rules(), 1, &"normal", "1", _seeds(1))
+	assert_not_null(config, "one seat can start: you alone, no bots")
+	if config != null:
+		assert_eq(config.seats, 1)
+		assert_eq(config.humans, 1, "and that seat is the local human")
+		assert_eq(config.problems(), PackedStringArray())
+
+
 func test_a_sinking_with_an_iceberg_hit_needs_a_ship_with_a_structure() -> void:
 	var struck: SinkScenario = load(SimFixtures.STEAMER_SINKING)
 	var steamer := MatchConfig.new(1, 4, SimFixtures.rules(), SimFixtures.steamer(), struck)

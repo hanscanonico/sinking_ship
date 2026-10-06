@@ -308,8 +308,8 @@ spawns = [
     (-2.0, 0, -1.5), (-2.0, 0, 1.5), (0.0, 0, 0.0), (2.0, 0, -2.4), (2.0, 0, 2.4), (5.0, 0, 0.0),
     (9.0, UPPER, -1.0), (-11.5, 0, 0.0),
 ]
-# The seats a match on her takes (est.): the steamer's 4–8 — SH21's bounds start here.
-SEATS = (4, 8)
+# The seats a match on her takes (est.): the steamer's 1–8 — SH21's bounds start here.
+SEATS = (1, 8)
 
 def arr(script, ids):
     return "Array[ExtResource(\"%s\")]([%s])" % (script, ", ".join('SubResource("%s")' % i for i in ids))

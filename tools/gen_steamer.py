@@ -313,8 +313,9 @@ spawns = [
     (1.5, 0, -1.5), (-2.5, 0, 2.2),
     (-17.5, 1.2, -2.5), (-5, 0, -4.3), (6.5, 0, 4.2),
 ]
-# The seats a match on her takes: the menu's 4–8 since SH8, hers from SH30.
-SEATS = (4, 8)
+# The seats a match on her takes: the menu's 4–8 since SH8, hers from SH30; one plays
+# alone, no bots.
+SEATS = (1, 8)
 
 def arr(script, ids):
     return "Array[ExtResource(\"%s\")]([%s])" % (script, ", ".join('SubResource("%s")' % i for i in ids))

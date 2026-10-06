@@ -25,7 +25,8 @@ import:
 # One match's knobs, handed to the scene and tools/run_match.gd as user args:
 #   make run [SEED=] [SEATS=] [SHIP=] [ARGS=]  the game, windowed, from the menu they fill
 #       in; SHIP picks a ship of the fleet by name (trawler), the default data's when
-#       blank; ARGS passes more user args, e.g. ARGS=--observer for the observer camera
+#       blank; ARGS passes more user args, e.g. ARGS=--observer for the observer camera;
+#       SEATS=1 plays alone, no bots, until you go out
 #   make match SEED=1701 [SEATS=] [SHIP=] [STOP=15:00] [HIT=]   bots only, headless, as a
 #       transcript; STOP is the match time the tool stops at and reports unfinished — a
 #       tool's limit, never a rule of the match; HIT=path/to/hit.tres strikes her with

@@ -67,6 +67,8 @@ func show_results(
 	var mine := stats.seats[local_seat]
 	if stats.winner == local_seat:
 		_title.text = "Last one dry!"
+	elif stats.seats.size() == 1 and stats.ended_tick != unsupported_tick:
+		_title.text = "Overboard — you stayed dry %s" % MatchTranscript.clock(mine.dry_ticks)
 	elif stats.winner == -1 and mine.place == 1:
 		_title.text = (
 			"She lies too far over — the match ends here"
