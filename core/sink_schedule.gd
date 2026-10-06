@@ -4,11 +4,13 @@ extends RefCounted
 ## cell, which watertight doors are shut, what the sinking has announced, and the
 ## iceberg hit — where it struck and when. A physical scenario's sinking is baked once,
 ## at match start, from the hit the must-sink rule chose (MustSink) or the explicit one
-## the scenario gives: SinkStepper run in the steps it chooses to the end (SinkTimeline),
-## read between its steps — her attitude turned from one kept rotation to the next, the
-## sea and each cell's water carried between them — her trim and heel read off it for
-## the HUD and every reader, its lurches warned, and the phase she is in named from where
-## she stands. An authored fixture plays its keyframes and events. Either
+## the scenario gives — or received baked, from the host (D11): SinkBake's timeline
+## (SinkTimeline), read between its kept states — her attitude blended from one to the
+## next as the timeline blends it, the sea and each cell's water carried between them —
+## her trim and heel read off it for the HUD and every reader, its lurches warned, and
+## the phase she is in named from where she stands. Its physics seconds become match
+## ticks once, through the scenario's clock and Ticks (D2). An authored fixture plays
+## its keyframes and events. Either
 ## way, once built it is a pure function of (ship, scenario, seed, tick) — nothing a
 ## player does moves it, and it is never stored in a snapshot (D5).
 
@@ -67,16 +69,15 @@ var _clock := 1.0
 var _physics_events: Array[SimEvent] = []
 var _gone_tick := -1
 var _plunge_tick := -1
-## Per kept step, its rotation as the world turns her; her centre of mass, which she
-## turns about; the physics' lurches — the ticks each is warned, swings and is over, and
-## the list it swings her by; the tick she passes the attitude a match follows, or -1;
-## the tick a cell first takes water, or -1; and the tick the water stopped with her
-## afloat, or -1.
-var _turns: Array[Quaternion] = []
+## Her centre of mass, which she turns about; the physics' lurches — the ticks each is
+## warned, swings and is over, and the list it swings her by; the tick she passes the
+## attitude a match follows, or -1, and that attitude's cosine; the tick a cell first
+## takes water, or -1; and the tick the water stopped with her afloat, or -1.
 var _pivot_of_mass := Vector3.ZERO
 var _lurch_ticks := PackedInt32Array()
 var _lurch_heels := PackedFloat64Array()
 var _unsupported_tick := -1
+var _upright := 1.0
 var _flooding_tick := -1
 var _afloat_tick := -1
 
@@ -85,13 +86,15 @@ var _afloat_tick := -1
 ## and this is the only place it is drawn (D4): the must-sink rule draws every hit it
 ## tries from it, on [param structure] — the hit, then its unevenness, the doors that
 ## jam and the openings left open — before the accepted bake, under [param sea]'s
-## physics. Without a structure — the menu's backdrop — no hit is struck.
+## physics; or, given [param chosen] — a bake already made, or received — it draws and
+## bakes nothing. Without a structure — the menu's backdrop — no hit is struck.
 func _init(
 	scenario: SinkScenario,
 	freeboard: float,
 	sink_stream: RandomNumberGenerator,
 	structure: ShipStructure = null,
-	sea: SeaPhysics = null
+	sea: SeaPhysics = null,
+	chosen: MustSink.Choice = null
 ) -> void:
 	_freeboard = freeboard
 	_pivot = scenario.pivot
@@ -108,7 +111,9 @@ func _init(
 	var physics := sea if sea != null else SeaPhysics.load_default()
 	var centre := structure.mass_centre()
 	_pivot_of_mass = Vector3(centre[0], centre[1], centre[2])
-	if scenario.explicit_hit != null:
+	if chosen != null:
+		_choice = chosen
+	elif scenario.explicit_hit != null:
 		_choice = MustSink.given(structure, scenario, physics)
 	else:
 		_choice = MustSink.choose(structure, scenario, sink_stream, physics)
@@ -125,12 +130,10 @@ func _init(
 		if opening.starts == ShipOpening.Start.OPEN or opening.name in _damage.left_open:
 			_passages.append(opening)
 	_passages.append_array(_damage.openings)
-	for frame in _timeline.count():
-		_frame_ticks.append(_tick_of(_timeline.times[frame]))
-		_turns.append(_turn_of(frame).get_rotation_quaternion())
-	var unsupported := _timeline.first_past(physics.supported_deg)
-	if unsupported != -1:
-		_unsupported_tick = _frame_ticks[unsupported]
+	# The limit's cosine as the series sine of its complement, so every platform finds
+	# the same tick (R21).
+	_upright = Attitude.sine_of_degrees(90.0 - physics.supported_deg)
+	_index()
 	for event: SinkTimeline.Event in _timeline.events:
 		var tick := _tick_of(event.seconds)
 		_physics_events.append(SimEvent.physics(tick, event.kind, event.name, event.heel_deg))
@@ -151,17 +154,75 @@ func _init(
 		_afloat_tick = end_tick()
 
 
-## The schedule of [param config]'s match: its scenario on its ship, off its own
-## sinking stream.
+## The schedule of [param config]'s match: its scenario on its ship, its sinking as
+## the config has it baked or received (MatchConfig.sinking).
 static func for_match(config: MatchConfig) -> SinkSchedule:
 	var sink_stream := SeedStreams.derive(config.match_seed, "sink")
-	return new(config.scenario, config.ship.freeboard, sink_stream, config.ship.structure)
+	return new(
+		config.scenario,
+		config.ship.freeboard,
+		sink_stream,
+		config.ship.structure,
+		null,
+		config.sinking()
+	)
 
 
 ## The match tick [param seconds] of physics after the hit is, through the scenario's
 ## clock (Q20, deferred) and Ticks, the one conversion.
 func _tick_of(seconds: float) -> int:
 	return _hit_tick + Ticks.from_seconds(seconds / _clock)
+
+
+## The match tick [param seconds] of physics after the hit, or -1 without a physical
+## sinking: where a tool jumps to a moment of the sinking (MatchJump), and by which a
+## page of the timeline is due at a client (TimelineStream).
+func physics_tick(seconds: float) -> int:
+	return _tick_of(seconds) if _timeline != null else -1
+
+
+## Places each kept state of the timeline not yet placed on its tick — all of them at
+## once, or those of a page that has just come from the host — and finds the tick she
+## first stands further from upright than a match follows her.
+func _index() -> void:
+	for frame in range(_frame_ticks.size(), _timeline.count()):
+		_frame_ticks.append(_tick_of(_timeline.times[frame]))
+		if _unsupported_tick == -1 and _timeline.rotations[frame * 9 + 4] < _upright:
+			_unsupported_tick = _passes_upright(frame)
+
+
+## The first tick she stands past the attitude a match follows, read between kept state
+## [param frame] — the first past it — and the one before, as the pose reads between
+## them: where a state the compaction dropped would have put it.
+func _passes_upright(frame: int) -> int:
+	if frame == 0:
+		return _frame_ticks[0]
+	var low := _frame_ticks[frame - 1]
+	var high := _frame_ticks[frame]
+	while high - low > 1:
+		var middle := (low + high) >> 1
+		var weight := _weight(frame - 1, middle)
+		if _timeline.up_between(frame - 1, frame, weight) < _upright:
+			high = middle
+		else:
+			low = middle
+	return high
+
+
+## The physics second after the hit match tick [param tick] stands at: Ticks' answer,
+## through the scenario's clock — the one mapping, read the other way.
+func _seconds_at(tick: int) -> float:
+	return Ticks.to_seconds(tick - _hit_tick) * _clock
+
+
+## How far, 0…1, [param tick]'s physics second stands from kept state [param frame] to
+## the next.
+func _weight(frame: int, tick: int) -> float:
+	var next := mini(frame + 1, _timeline.count() - 1)
+	var span := _timeline.times[next] - _timeline.times[frame]
+	if span <= 0.0:
+		return 0.0
+	return clampf((_seconds_at(tick) - _timeline.times[frame]) / span, 0.0, 1.0)
 
 
 func pose_at(tick: int) -> ShipPose:
@@ -194,31 +255,27 @@ func pose_at(tick: int) -> ShipPose:
 	return pose
 
 
-## The pose the bake has at [param tick], read between the two kept steps either side
-## of it: her rotation turned from one to the other the short way round, the sea's
-## height up her and every cell's water carried between them; at rest before the hit and
-## as last kept after the end. She turns about her centre of mass, which keeps its place
-## across the world, and stands as high as the sea up her says — at rest at her
-## freeboard, as an authored pose does. Her trim and heel are read off the rotation.
+## The pose the bake has at [param tick], read between the two kept states either side
+## of its physics second: her rotation blended from one to the other
+## (SinkTimeline.blend), the sea's height up her and every cell's water carried between
+## them; at rest before the hit and as last kept after the end. She turns about her
+## centre of mass, which keeps its place across the world, and stands as high as the
+## sea up her says — at rest at her freeboard, as an authored pose does. Her trim and
+## heel are read off the rotation.
 func _physical(tick: int) -> ShipPose:
-	var last := _frame_ticks.size() - 1
 	var frame := 0
 	var weight := 0.0
-	if tick >= _frame_ticks[last]:
-		frame = last
-	elif tick > _hit_tick:
-		frame = _frame_ticks.bsearch(tick, false) - 1
-		var span := _frame_ticks[frame + 1] - _frame_ticks[frame]
-		weight = float(tick - _frame_ticks[frame]) / span if span > 0 else 1.0
-	var next := mini(frame + 1, last)
+	if tick > _hit_tick:
+		frame = _timeline.frame_at(_seconds_at(tick))
+		weight = _weight(frame, tick)
+	var next := mini(frame + 1, _timeline.count() - 1)
 	var sea := lerpf(_timeline.seas[frame], _timeline.seas[next], weight)
-	var turn := Basis(_turns[frame].slerp(_turns[next], weight))
+	var turn := Basis(_timeline.blend(frame, next, weight))
 	var sink := sea - _timeline.rest
 	var origin := turn * -_pivot_of_mass + _pivot_of_mass
 	origin.y = _freeboard - sink
-	var trim_deg := rad_to_deg(atan2(-turn.x.y, turn.x.x))
-	var heel_deg := rad_to_deg(atan2(turn.y.z, turn.z.z))
-	var pose := ShipPose.new(sink, trim_deg, heel_deg, Transform3D(turn, origin))
+	var leans := leans_of(turn)
+	var pose := ShipPose.new(sink, leans[0], leans[1], Transform3D(turn, origin))
 	pose.cells = _cells
 	var count := _timeline.cells
 	pose.levels.resize(count)
@@ -228,7 +285,7 @@ func _physical(tick: int) -> ShipPose:
 		)
 		pose.levels[cell] = head + origin.y
 	if tick >= _hit_tick:
-		var seconds := Ticks.to_seconds(tick - _hit_tick) * _clock
+		var seconds := _seconds_at(tick)
 		for door in _doors.size():
 			pose.doors_shut[_doors[door]] = 1.0 - SinkStepper.open_share(_door_times[door], seconds)
 	for lurch in _lurch_heels.size():
@@ -239,10 +296,12 @@ func _physical(tick: int) -> ShipPose:
 	return pose
 
 
-## Kept step [param frame]'s rotation as a Basis: the world's axes of her ship's.
-func _turn_of(frame: int) -> Basis:
-	var r := _timeline.rotations.slice(frame * 9, frame * 9 + 9)
-	return Basis(Vector3(r[0], r[3], r[6]), Vector3(r[1], r[4], r[7]), Vector3(r[2], r[5], r[8]))
+## Her trim and heel in degrees — positive bow down and starboard down — under
+## [param turn], the world's axes of her ship's: the one reading of a physics attitude's
+## leans, for a pose and for every label read off a timeline (OutcomeClassifier).
+static func leans_of(turn: Basis) -> PackedFloat64Array:
+	var trim := rad_to_deg(atan2(-turn.x.y, turn.x.x))
+	return PackedFloat64Array([trim, rad_to_deg(atan2(turn.y.z, turn.z.z))])
 
 
 ## Every event of an authored scenario that has happened by [param tick], in its order.
@@ -276,7 +335,7 @@ func events_at(tick: int) -> Array[SimEvent]:
 ## fixture's last keyframe. What was the cap, before the physics (§5b.4).
 func end_tick() -> int:
 	if _timeline != null:
-		return _frame_ticks[_frame_ticks.size() - 1]
+		return _tick_of(_timeline.length())
 	if _keyframes.is_empty():
 		return -1
 	return _start_tick + _keyframe_ticks[_keyframe_ticks.size() - 1]
@@ -298,6 +357,8 @@ func plunge_tick() -> int:
 ## (SeaPhysics.supported_deg, §5b.3's interim rule until SH32), or -1 for never: on it
 ## the match settles, everyone left going out together.
 func unsupported_tick() -> int:
+	if _timeline != null and _frame_ticks.size() < _timeline.count():
+		_index()
 	return _unsupported_tick
 
 

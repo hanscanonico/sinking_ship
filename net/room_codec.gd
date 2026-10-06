@@ -4,11 +4,12 @@ extends RefCounted
 ## says HELLO with its display name, then CREATEs a room, JOINs one by its code,
 ## STARTs the match as the room's host, or LEAVEs; the server answers WELCOME, or
 ## REFUSED with a reason, sends the room's ROSTER whenever it changes and, as a match
-## begins, BEGIN with its seed, its seat count and the client's seat. PING and PONG
-## time the round trip. Every packet is read as hostile, the server's too: decode()
-## answers null for anything that is not exactly one message of this protocol and
-## match, text travels as printable ASCII only, and every seat or place a message names
-## is one it has.
+## begins, BEGIN with its seed, its seat count, the client's seat and the digest of
+## the sinking's timeline the server baked — then that timeline, a TIMELINE packet a
+## section, its header first (SinkTimeline, D11). PING and PONG time the round trip.
+## Every packet is read as hostile, the server's too: decode() answers null for
+## anything that is not exactly one message of this protocol and match, text travels
+## as printable ASCII only, and every seat or place a message names is one it has.
 
 const CODE_LENGTH := 4
 ## A room code's letters: I and O left out, so none reads as 1 or 0.
@@ -19,10 +20,14 @@ const LAST_PRINTABLE := 0x7E
 const NOBODY := 0xFF
 const HOST_FLAG := 1
 const BOT_FLAG := 2
+## A timeline's digest's bytes (SHA-256): all zero in a BEGIN for a match with none.
+const DIGEST_BYTES := 32
 
-## Why the server refused a client something. VERSION to NOT_READING end the
+## Why the server refused a client something. VERSION to TIMELINE end the
 ## connection (ends_connection); the rest leave the client where it was, but for one
 ## that comes before WELCOME: SERVER_FULL, a server holding all the connections it may.
+## TIMELINE is the client's own: the server's timeline was not what its digest said, or
+## not a hit this end can draw, so the client hangs up rather than play it.
 ## BUSY: the server makes no more rooms or matches just now; CREATE or START again
 ## later.
 enum Refusal {
@@ -34,6 +39,7 @@ enum Refusal {
 	ATTEMPTS,
 	FLOOD,
 	NOT_READING,
+	TIMELINE,
 	SERVER_FULL,
 	NO_ROOM,
 	ROOM_FULL,
@@ -49,10 +55,13 @@ enum Refusal {
 class Message:
 	extends RefCounted
 	var kind: WireCodec.Kind
-	## HELLO's display name; JOIN's code as typed.
+	## HELLO's display name; JOIN's code as typed; BEGIN's timeline digest, hex, "" for
+	## none.
 	var text := ""
-	## REFUSED's reason, BEGIN's seed, PING's and PONG's stamp.
+	## REFUSED's reason, BEGIN's seed, PING's and PONG's stamp, TIMELINE's section.
 	var value := 0
+	## TIMELINE's section's bytes.
+	var bytes := PackedByteArray()
 	## BEGIN's seat count, and the seat it gives the client.
 	var seats := 0
 	var seat := -1
@@ -120,11 +129,27 @@ func encode_stamp(kind: WireCodec.Kind, stamp: int) -> PackedByteArray:
 	return out.data_array
 
 
-func encode_begin(match_seed: int, seats: int, seat: int) -> PackedByteArray:
+## BEGIN: [param timeline_digest] is the digest of the sinking's timeline, hex
+## (SinkTimeline.digest), "" for a match with none.
+func encode_begin(
+	match_seed: int, seats: int, seat: int, timeline_digest: String = ""
+) -> PackedByteArray:
 	var out := wire.header(WireCodec.Kind.BEGIN)
 	out.put_u32(match_seed & 0xFFFFFFFF)
 	out.put_u8(seats)
 	out.put_u8(seat)
+	var digest := timeline_digest.hex_decode()
+	digest.resize(DIGEST_BYTES)
+	out.put_data(digest)
+	return out.data_array
+
+
+## Section [param section] of the sinking's timeline — 0 its header — [param bytes].
+func encode_timeline(section: int, bytes: PackedByteArray) -> PackedByteArray:
+	var out := wire.header(WireCodec.Kind.TIMELINE)
+	out.put_u32(section)
+	out.put_u32(bytes.size())
+	out.put_data(bytes)
 	return out.data_array
 
 
@@ -165,8 +190,14 @@ func decode(bytes: PackedByteArray) -> Message:
 			message.value = reader.u32()
 			message.seats = reader.byte()
 			message.seat = reader.byte()
+			var digest := reader.bytes(DIGEST_BYTES)
+			if digest.count(0) < DIGEST_BYTES:
+				message.text = digest.hex_encode()
 			if message.seat >= message.seats:
 				return null
+		WireCodec.Kind.TIMELINE:
+			message.value = reader.u32()
+			message.bytes = reader.bytes(reader.u32())
 		WireCodec.Kind.ROSTER:
 			message.roster = _roster(reader)
 	return message if reader.finished() else null

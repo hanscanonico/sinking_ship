@@ -27,83 +27,270 @@ class Choice:
 	## The fallback's rung that was baked, 0 for none; and whether the sure hit was.
 	var rung := 0
 	var sure := false
+	## Whether it came baked from the host (replay): drawn again here, never baked.
+	var received := false
+
+
+## Where a timeline's origin (SinkTimeline.origin) keeps each count of its Choice, and
+## the hit's moment, start and width, each as a 64-bit float's bits.
+enum Origin { DRAWS, THROWN, BAKES, RUNG, SURE, MOMENT, START, WIDTH }
 
 
 ## The hit [param structure]'s match under [param scenario] plays, drawn from
-## [param sink_stream], with [param sea]'s physics.
+## [param sink_stream], with [param sea]'s physics: Choosing run straight through.
 static func choose(
 	structure: ShipStructure,
 	scenario: SinkScenario,
 	sink_stream: RandomNumberGenerator,
 	sea: SeaPhysics
 ) -> Choice:
-	var choice := Choice.new()
-	var hull := LevelHull.new(structure.sections)
-	var motion := ShipMotion.new(structure, sea, hull.height_of(_own(structure, sea)))
-	var bands := scenario.hit
-	while true:
-		choice.hit = IcebergHit.draw(bands, sink_stream)
-		choice.damage = HitMapper.map(choice.hit, structure, bands, sink_stream)
-		choice.draws += 1
-		if not founders(structure, choice.damage, hull, sea, scenario.spare_deck, motion):
-			choice.thrown += 1
-			if choice.thrown >= scenario.quick_redraws:
-				break
-			continue
-		if _accepts(choice, structure, scenario, sea):
-			return choice
-		if choice.bakes >= scenario.bakes:
-			break
-	var weighted := choice.hit
-	for rung in range(1, scenario.rungs + 1):
-		weighted = heavier(weighted, structure, rung)
-		weighted.jammed = choice.damage.jammed.duplicate()
-		weighted.left_open = choice.damage.left_open.duplicate()
-		var damage := HitMapper.map_explicit(weighted, structure, bands)
-		if founders(structure, damage, hull, sea, scenario.spare_deck, motion):
-			var tried := Choice.new()
-			tried.hit = weighted
-			tried.damage = damage
-			if _accepts(tried, structure, scenario, sea):
-				tried.draws = choice.draws
-				tried.thrown = choice.thrown
-				tried.bakes += choice.bakes
-				tried.rung = rung
-				return tried
-			choice.bakes += tried.bakes
-			break
-	var sure: IcebergHit = structure.sure_hit.duplicate()
-	sure.moment = choice.hit.moment
-	var last := Choice.new()
-	last.hit = sure
-	last.damage = HitMapper.map_explicit(sure, structure, bands)
-	_accepts(last, structure, scenario, sea)
-	last.draws = choice.draws
-	last.thrown = choice.thrown
-	last.bakes += choice.bakes
-	last.sure = true
-	return last
+	var choosing := Choosing.new(structure, scenario, sink_stream, sea)
+	choosing.work(1 << 62)
+	return choosing.choice()
 
 
 ## [param scenario]'s explicit hit on [param structure], baked as given under
 ## [param sea]: past the rule, so it may leave her afloat.
 static func given(structure: ShipStructure, scenario: SinkScenario, sea: SeaPhysics) -> Choice:
+	var choosing := Choosing.new(structure, scenario, null, sea)
+	choosing.work(1 << 62)
+	return choosing.choice()
+
+
+## The Choice [param timeline] — baked by the host, with its origin — was baked from,
+## drawn again here from [param sink_stream] as the host drew it, but never baked or
+## quick-checked: the hits it drew, then the fallback's rungs or the sure hit as the
+## origin says, the doors and openings with them. Null when the hit drawn is not the
+## one the origin names: a client that cannot draw the host's hit does not play its
+## timeline (D4, D11).
+static func replay(
+	structure: ShipStructure,
+	scenario: SinkScenario,
+	sink_stream: RandomNumberGenerator,
+	timeline: SinkTimeline
+) -> Choice:
 	var choice := Choice.new()
-	choice.hit = scenario.explicit_hit
+	choice.timeline = timeline
+	choice.received = true
 	var bands := scenario.hit if scenario.hit != null else HitBands.new()
-	choice.damage = HitMapper.map_explicit(choice.hit, structure, bands)
-	_accepts(choice, structure, scenario, sea)
+	if scenario.explicit_hit != null:
+		choice.hit = scenario.explicit_hit
+		choice.damage = HitMapper.map_explicit(choice.hit, structure, bands)
+		return choice
+	var origin := timeline.origin
+	if origin.size() != Origin.size() or origin[Origin.DRAWS] < 1:
+		return null
+	for _draw in origin[Origin.DRAWS]:
+		choice.hit = IcebergHit.draw(bands, sink_stream)
+		choice.damage = HitMapper.map(choice.hit, structure, bands, sink_stream)
+	choice.draws = origin[Origin.DRAWS]
+	choice.thrown = origin[Origin.THROWN]
+	choice.bakes = origin[Origin.BAKES]
+	choice.rung = origin[Origin.RUNG]
+	choice.sure = origin[Origin.SURE] == 1
+	var drawn := choice.hit
+	if choice.sure:
+		choice.hit = structure.sure_hit.duplicate()
+		choice.hit.moment = drawn.moment
+		choice.damage = HitMapper.map_explicit(choice.hit, structure, bands)
+	elif choice.rung > 0:
+		var weighted := drawn
+		for rung in range(1, choice.rung + 1):
+			weighted = heavier(weighted, structure, rung)
+		weighted.jammed = choice.damage.jammed.duplicate()
+		weighted.left_open = choice.damage.left_open.duplicate()
+		choice.hit = weighted
+		choice.damage = HitMapper.map_explicit(weighted, structure, bands)
+	if origin.slice(Origin.MOMENT) != _hit_bits(choice.hit):
+		return null
 	return choice
 
 
-## Bakes [param choice]'s hit into it; whether she is gone by the cap.
-static func _accepts(
-	choice: Choice, structure: ShipStructure, scenario: SinkScenario, sea: SeaPhysics
-) -> bool:
-	var stepper := SinkStepper.new(structure, choice.damage, sea)
-	choice.timeline = SinkTimeline.bake(stepper, sea, scenario.bake_cap)
-	choice.bakes += 1
-	return choice.timeline.is_gone()
+## [param choice]'s counts and its hit's moment, start and width, as a timeline's
+## origin keeps them.
+static func origin_of(choice: Choice) -> PackedInt64Array:
+	var origin := PackedInt64Array(
+		[choice.draws, choice.thrown, choice.bakes, choice.rung, 1 if choice.sure else 0]
+	)
+	origin.append_array(_hit_bits(choice.hit))
+	return origin
+
+
+static func _hit_bits(hit: IcebergHit) -> PackedInt64Array:
+	var numbers := PackedFloat64Array([hit.moment, hit.start_x, hit.width]).to_byte_array()
+	return numbers.to_int64_array()
+
+
+## The must-sink rule a slice at a time (R20): work() takes as many of the bakes' steps
+## as it is given, so a scene can spread the rule across frames, and choose() runs it
+## straight through — the same draws and bakes either way, in the same order. Draw a
+## hit; throw it out when the quick check finds her afloat; bake the one that passes,
+## and draw again while the bake leaves her afloat, within quick_redraws and bakes; then
+## the fallback's rungs, the first the quick check founders on baked; then the sure hit,
+## with every door and porthole shut. An explicit hit is baked once, as given.
+class Choosing:
+	enum Stage { DRAWING, BAKING, RUNGS, BAKING_RUNG, SURE, BAKING_SURE, GIVEN, DONE }
+
+	var _structure: ShipStructure
+	var _scenario: SinkScenario
+	var _stream: RandomNumberGenerator
+	var _sea: SeaPhysics
+	var _bands: HitBands
+	var _hull: LevelHull
+	var _motion: ShipMotion
+	var _stage := Stage.DRAWING
+	## The draws' Choice, the fallback's being baked, and the one chosen once done.
+	var _drawn := Choice.new()
+	var _tried: Choice
+	var _chosen: Choice
+	var _weighted: IcebergHit
+	var _rung := 0
+	var _bake: SinkBake
+	## The steps every bake has taken so far.
+	var _steps := 0
+
+	## The rule for [param structure] under [param scenario], drawing from
+	## [param sink_stream] — none for an explicit hit — with [param sea]'s physics.
+	func _init(
+		structure: ShipStructure,
+		scenario: SinkScenario,
+		sink_stream: RandomNumberGenerator,
+		sea: SeaPhysics
+	) -> void:
+		_structure = structure
+		_scenario = scenario
+		_stream = sink_stream
+		_sea = sea
+		_bands = scenario.hit if scenario.hit != null else HitBands.new()
+		_hull = LevelHull.new(structure.sections)
+		if scenario.explicit_hit != null:
+			_drawn.hit = scenario.explicit_hit
+			_drawn.damage = HitMapper.map_explicit(_drawn.hit, structure, _bands)
+			_start(_drawn.damage)
+			_stage = Stage.GIVEN
+			return
+		var own := structure.total_mass() / sea.sea_density
+		_motion = ShipMotion.new(structure, sea, _hull.height_of(own))
+
+	## Goes on for up to [param steps] of the bakes' steps; whether it is done.
+	func work(steps: int) -> bool:
+		var left := steps
+		while _stage != Stage.DONE and left > 0:
+			if _bake != null:
+				var before := _bake.steps()
+				_bake.run(left)
+				left -= _bake.steps() - before
+				_steps += _bake.steps() - before
+				if not _bake.is_done():
+					break
+			_advance()
+		return _stage == Stage.DONE
+
+	func is_done() -> bool:
+		return _stage == Stage.DONE
+
+	## The steps its bakes have taken so far.
+	func steps() -> int:
+		return _steps
+
+	## What it chose, once done; null before.
+	func choice() -> Choice:
+		return _chosen
+
+	## Moves on from where the rule stands — a bake just over, or a draw to make — to
+	## the next bake, or to its end.
+	func _advance() -> void:
+		match _stage:
+			Stage.DRAWING:
+				_draw()
+			Stage.BAKING:
+				_drawn.bakes += 1
+				if _bake.end() == SinkTimeline.End.GONE:
+					_finish(_drawn)
+				elif _drawn.bakes >= _scenario.bakes:
+					_to_rungs()
+				else:
+					_bake = null
+					_stage = Stage.DRAWING
+			Stage.RUNGS:
+				_next_rung()
+			Stage.BAKING_RUNG:
+				_tried.bakes += 1
+				if _bake.end() == SinkTimeline.End.GONE:
+					_tried.bakes += _drawn.bakes
+					_tried.rung = _rung
+					_finish(_tried)
+				else:
+					_drawn.bakes += _tried.bakes
+					_stage = Stage.SURE
+			Stage.SURE:
+				_tried = Choice.new()
+				_tried.hit = _structure.sure_hit.duplicate()
+				_tried.hit.moment = _drawn.hit.moment
+				_tried.damage = HitMapper.map_explicit(_tried.hit, _structure, _bands)
+				_start(_tried.damage)
+				_stage = Stage.BAKING_SURE
+			Stage.BAKING_SURE:
+				_tried.bakes += 1 + _drawn.bakes
+				_tried.sure = true
+				_finish(_tried)
+			Stage.GIVEN:
+				_drawn.bakes += 1
+				_finish(_drawn)
+
+	## Draws a hit: thrown out at once where the quick check finds her afloat — on to the
+	## fallback once quick_redraws are — else baked.
+	func _draw() -> void:
+		_drawn.hit = IcebergHit.draw(_bands, _stream)
+		_drawn.damage = HitMapper.map(_drawn.hit, _structure, _bands, _stream)
+		_drawn.draws += 1
+		var spare := _scenario.spare_deck
+		if MustSink.founders(_structure, _drawn.damage, _hull, _sea, spare, _motion):
+			_start(_drawn.damage)
+			_stage = Stage.BAKING
+			return
+		_drawn.thrown += 1
+		if _drawn.thrown >= _scenario.quick_redraws:
+			_to_rungs()
+
+	func _to_rungs() -> void:
+		_bake = null
+		_weighted = _drawn.hit
+		_rung = 0
+		_stage = Stage.RUNGS
+
+	## The next rung heavier, baked once the quick check says she founders on it; past
+	## the last rung, the sure hit.
+	func _next_rung() -> void:
+		while _rung < _scenario.rungs:
+			_rung += 1
+			_weighted = MustSink.heavier(_weighted, _structure, _rung)
+			_weighted.jammed = _drawn.damage.jammed.duplicate()
+			_weighted.left_open = _drawn.damage.left_open.duplicate()
+			var damage := HitMapper.map_explicit(_weighted, _structure, _bands)
+			var spare := _scenario.spare_deck
+			if MustSink.founders(_structure, damage, _hull, _sea, spare, _motion):
+				_tried = Choice.new()
+				_tried.hit = _weighted
+				_tried.damage = damage
+				_start(damage)
+				_stage = Stage.BAKING_RUNG
+				return
+		_stage = Stage.SURE
+
+	func _start(damage: HitDamage) -> void:
+		_bake = SinkBake.new(SinkStepper.new(_structure, damage, _sea), _sea, _scenario.bake_cap)
+
+	## Ends the rule on [param chosen]: its bake made its timeline — compacted only now,
+	## for the one bake kept — stamped with how it was come by.
+	func _finish(chosen: Choice) -> void:
+		chosen.draws = _drawn.draws
+		chosen.thrown = _drawn.thrown
+		chosen.timeline = _bake.timeline()
+		chosen.timeline.origin = MustSink.origin_of(chosen)
+		_chosen = chosen
+		_bake = null
+		_stage = Stage.DONE
 
 
 ## The quick check (§5b.1), without the bake: whether, with every cell the gash opens

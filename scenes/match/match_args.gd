@@ -8,7 +8,7 @@ extends RefCounted
 ##   --server  --port=N  --bind=ADDRESS  --matches=N
 ##   --connect=ws://HOST:PORT  --create | --room=CODE  --name=NAME  --start-at=N
 ##   --capture-screen=SCREEN  --capture-from=X,Y,Z,YAW[,PITCH]  --capture-sway=S
-##   --quality=low|medium|high  --render-scale=F
+##   --quality=low|medium|high  --render-scale=F  --bake-budget=MS  --phys=H:MM:SS  --jump
 ## The game reads --seed and --seats as the menu's choices; --stop (or --seconds, in
 ## seconds) is the match time a headless run is stopped at and reported unfinished — a
 ## tool's limit, never a rule of the match; --hit strikes her with the explicit hit
@@ -24,13 +24,19 @@ extends RefCounted
 ## and the client lie about latency, jitter and loss (SH11); --capture-screen stages a
 ## screen for the capture: menu, settings (over the menu), graphics (the settings on
 ## their Graphics page), pause, results, online (the Online screen), room (a room, its
-## players made up), online-pause (the online pause over the match) or online-settings
-## (the settings opened from it); --capture-from
-## stands the capture's eyes on chosen feet in ship space, looking YAW degrees from the
-## bow toward starboard and PITCH above the horizon; --capture-sway holds the menu
+## players made up), online-pause (the online pause over the match), online-settings
+## (the settings opened from it) or hold (the countdown held for a slow bake, its bar
+## half way); --capture-from stands the capture's eyes on chosen feet in ship space,
+## looking YAW degrees from the bow toward starboard and PITCH above the horizon;
+## --capture-sway holds the menu
 ## backdrop's drift at S (-1…1, one end of its sway to the other); --quality and
 ## --render-scale draw this run as if the settings screen had chosen them, to measure
-## or capture a choice (make fps). No menu reaches any of them (D14). --server serves
+## or capture a choice (make fps); --bake-budget gives a held countdown's sinking that
+## many milliseconds of each frame to bake in, to measure the hold or show it (R20);
+## --phys takes a capture at that moment of physics time after the hit rather than at
+## --capture-at's match time, and with --jump the match starts a little before it —
+## every seat on what is dry then (MatchJump) — rather than hours of brawl before it.
+## No menu reaches any of them (D14). --server serves
 ## rooms over WebSocket, headless, on --port and --bind (ServerRules' unless given),
 ## its matches' seeds drawn from --seed when given — its rooms' codes never are — until
 ## --matches matches have finished (forever at 0); --connect plays in a server's room,
@@ -97,6 +103,12 @@ var capture_sway := NAN
 ## ViewSettings.AUTOMATIC when not given.
 var quality: int = ViewSettings.AUTOMATIC
 var render_scale: float = ViewSettings.AUTOMATIC
+## Milliseconds of each frame a held countdown's bake may take; 0 for the game's own.
+var bake_budget_ms := 0.0
+## The moment of the sinking a capture is taken at, in physics seconds after the hit;
+## -1 for none. Whether the match jumps there rather than plays there.
+var phys_seconds := -1.0
+var jump := false
 
 
 ## The seconds [param text] says: mm:ss, h:mm:ss or plain seconds.
@@ -178,6 +190,12 @@ static func parse(args: PackedStringArray) -> MatchArgs:
 					push_warning("--quality takes low, medium or high, not %s" % value)
 			"--render-scale":
 				parsed.render_scale = value.to_float()
+			"--bake-budget":
+				parsed.bake_budget_ms = value.to_float()
+			"--phys":
+				parsed.phys_seconds = clock_seconds(value)
+			"--jump":
+				parsed.jump = true
 			"--net-sim":
 				var conditions := NetConditions.parse(value)
 				if conditions == null:

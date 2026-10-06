@@ -4,7 +4,8 @@ extends SceneTree
 ## and how the must-sink rule came to it, one line per exit and per thing the physics
 ## does, then the verdict and the digest, and where the sinking stood at the end and
 ## how its bake ends. STOP= (--stop) stops a match still on then, unfinished; the bake's
-## time goes to stderr, as it is the machine's, not the match's.
+## time and the timeline's size go to stderr, as the time is the machine's, not the
+## match's.
 ##
 ##   godot --headless --path . -s res://tools/run_match.gd -- --seed=1701 --seats=8
 ##
@@ -60,7 +61,14 @@ func _initialize() -> void:
 		quit(1)
 		return
 	var started := Time.get_ticks_usec()
-	config.schedule()
-	printerr("bake %.2f s" % ((Time.get_ticks_usec() - started) / 1e6))
+	var timeline := config.schedule().timeline()
+	var took := (Time.get_ticks_usec() - started) / 1e6
+	if timeline != null:
+		printerr(
+			(
+				"bake %.2f s · %d steps · %d of %d states kept · %.1f kB"
+				% [took, timeline.steps, timeline.count(), timeline.states, timeline.size() / 1e3]
+			)
+		)
 	printraw(transcript(served(config), Ticks.from_seconds(args.seconds)))
 	quit()

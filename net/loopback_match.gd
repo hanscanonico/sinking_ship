@@ -16,14 +16,16 @@ var clock := NetClock.new()
 
 ## [param config]'s match, the client playing [param seat] with [param source] — or
 ## only watching when it is -1 — and the host running [param sources], one per seat
-## by id, the client's seat's left null.
+## by id, the client's seat's left null; both from the match's first tick, or from
+## [param from], the snapshot a tool jumped it to (MatchJump).
 func _init(
 	config: MatchConfig,
 	net_rules: NetRules,
 	conditions: NetConditions,
 	seat: int,
 	source: InputSource,
-	sources: Array[InputSource]
+	sources: Array[InputSource],
+	from: Dictionary = {}
 ) -> void:
 	var host_end := _end(HOST_PEER, config, conditions)
 	var client_end := _end(CLIENT_PEER, config, conditions)
@@ -33,9 +35,10 @@ func _init(
 	if seat >= 0:
 		buffer = SeatBuffer.new(seat)
 		served[seat] = buffer
-	host = MatchHost.new(MatchRunner.new(MatchSim.create(config), served), host_end, net_rules)
+	var sim := MatchSim.create(config) if from.is_empty() else MatchSim.from_snapshot(from, config)
+	host = MatchHost.new(MatchRunner.new(sim, served), host_end, net_rules)
 	host.admit(CLIENT_PEER, buffer)
-	client = MatchClient.new(config, net_rules, client_end, HOST_PEER, seat, source)
+	client = MatchClient.new(config, net_rules, client_end, HOST_PEER, seat, source, from)
 
 
 ## One beat: the client samples and sends, the host takes it in and steps, the

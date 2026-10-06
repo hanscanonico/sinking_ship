@@ -3,7 +3,8 @@ extends RefCounted
 ## The wire format (D11), one codec per match: every packet opens with the protocol
 ## version, the first HASH_BYTES of the match's hash (match_hash) and its kind, and a
 ## packet of another version or another match's hash is refused. The room protocol's kinds
-## (SH12) ride the same opening; RoomCodec reads what follows it.
+## (SH12) ride the same opening — the sinking's timeline among them (SH28) —; RoomCodec
+## reads what follows it.
 ##
 ## An input packet carries a seat's last few frames, the newest last, so a lost
 ## packet costs nothing while a later one arrives (D3's redundancy). A snapshot
@@ -15,11 +16,11 @@ extends RefCounted
 ## gains and they do not is pushed as an error here and lost on the wire, which
 ## test_wire_codec's round trip, walking the snapshot's own keys, fails on (R2).
 
-const PROTOCOL_VERSION := 3
+const PROTOCOL_VERSION := 4
 ## The build of what plays a match — core/, ai/ and net/ — bumped by hand whenever a
 ## change there would play the same data differently: part of every match's hash, so
 ## two builds that would not agree are refused as other data.
-const SIM_BUILD := 2
+const SIM_BUILD := 3
 const HASH_BYTES := 8
 const LENGTH_QUANTUM := 0.001
 const SPEED_QUANTUM := 0.01
@@ -34,7 +35,20 @@ const COMPRESSION := FileAccess.COMPRESSION_ZSTD
 const MOST_BYTES := 1 << 20
 
 enum Kind {
-	INPUT, SNAPSHOT, HELLO, WELCOME, REFUSED, CREATE, JOIN, LEAVE, START, ROSTER, BEGIN, PING, PONG
+	INPUT,
+	SNAPSHOT,
+	HELLO,
+	WELCOME,
+	REFUSED,
+	CREATE,
+	JOIN,
+	LEAVE,
+	START,
+	ROSTER,
+	BEGIN,
+	PING,
+	PONG,
+	TIMELINE,
 }
 ## Why a packet is not one of this protocol and match: too short to tell or of no kind
 ## there is, of another protocol version, or of another match's data.

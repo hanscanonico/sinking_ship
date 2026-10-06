@@ -86,14 +86,16 @@ var _view: Dictionary
 ## A client of [param match_config], whose host is [param host_peer] on
 ## [param wire], playing [param own_seat] with the frames [param source] makes — or
 ## only watching when that seat is -1. It starts from the match's first tick, which
-## the config alone decides.
+## the config alone decides — or from [param from], the snapshot a tool jumped the
+## match to (MatchJump), as its host does.
 func _init(
 	match_config: MatchConfig,
 	net_rules: NetRules,
 	wire: Transport,
 	host_peer: int,
 	own_seat: int,
-	source: InputSource
+	source: InputSource,
+	from: Dictionary = {}
 ) -> void:
 	config = match_config
 	_rules = net_rules
@@ -106,7 +108,7 @@ func _init(
 	_lead_ticks = 0 if instant else _rules.lead_ticks()
 	_slack_ticks = 0 if instant else _rules.slack_ticks()
 	_interp_ticks = 0 if instant else _rules.interp_ticks()
-	sim = MatchSim.create(config)
+	sim = MatchSim.create(config) if from.is_empty() else MatchSim.from_snapshot(from, config)
 	_watch = ContactWatch.new(config, sim.schedule)
 	_sampled = sim.state.tick
 	_reset_from = _sampled
