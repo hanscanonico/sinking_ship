@@ -1,7 +1,7 @@
 class_name MatchArgs
 extends RefCounted
 ## The user arguments a match host takes after `--`:
-##   --seed=N  --seats=N  --seconds=S  --autoplay  --capture=PATH  --capture-at=S
+##   --seed=N  --seats=N  --stop=MM:SS  --hit=PATH  --autoplay  --capture=PATH  --capture-at=S
 ##   --observer  --capture-eye=SEAT  --observer-cut=M  --observer-cells  --greybox
 ##   --observer-side=starboard|port
 ##   --net-sim=latency:MS,jitter:MS,loss:PERCENT
@@ -9,7 +9,11 @@ extends RefCounted
 ##   --connect=ws://HOST:PORT  --create | --room=CODE  --name=NAME  --start-at=N
 ##   --capture-screen=SCREEN  --capture-from=X,Y,Z,YAW[,PITCH]  --capture-sway=S
 ##   --quality=low|medium|high  --render-scale=F
-## The game reads --seed and --seats as the menu's choices; --autoplay presses its
+## The game reads --seed and --seats as the menu's choices; --stop (or --seconds, in
+## seconds) is the match time a headless run is stopped at and reported unfinished — a
+## tool's limit, never a rule of the match; --hit strikes her with the explicit hit
+## the IcebergHit at PATH is, past the must-sink rule (§5b.1), so a tool can play a
+## chosen sinking; --autoplay presses its
 ## Play, and without it --capture saves the menu. A capture is taken from the
 ## observer camera unless --capture-eye names the seat whose eyes it looks through;
 ## --observer opens the observer camera for QA, --observer-cut cuts its view of
@@ -39,8 +43,11 @@ extends RefCounted
 var seed_value: int = -1
 ## 0 when not given: the match data's seat count.
 var seats: int = 0
-## How much match time a headless run may take before it stops.
-var seconds: float = 300.0
+## How much match time a headless run may take before it stops, unfinished (STOP=,
+## est. 15:00).
+var seconds: float = 900.0
+## An explicit hit's .tres to strike her with; empty for the match's own.
+var hit_path: String = ""
 ## A bot plays the local seat, and nobody waits at the menu.
 var autoplay: bool = false
 var capture_path: String = ""
@@ -92,6 +99,37 @@ var quality: int = ViewSettings.AUTOMATIC
 var render_scale: float = ViewSettings.AUTOMATIC
 
 
+## The seconds [param text] says: mm:ss, h:mm:ss or plain seconds.
+static func clock_seconds(text: String) -> float:
+	var seconds := 0.0
+	for part: String in text.split(":"):
+		seconds = seconds * 60.0 + part.to_float()
+	return seconds
+
+
+## [param scenario] struck by the explicit hit --hit names, or itself without one.
+func struck(scenario: SinkScenario) -> SinkScenario:
+	if hit_path.is_empty():
+		return scenario
+	var given: SinkScenario = scenario.duplicate()
+	given.explicit_hit = _hit()
+	return given
+
+
+## What is wrong with the arguments for a match: a --hit that names no IcebergHit.
+func problems() -> PackedStringArray:
+	var found := PackedStringArray()
+	if not hit_path.is_empty() and _hit() == null:
+		found.append("--hit: %s is not an IcebergHit" % hit_path)
+	return found
+
+
+func _hit() -> IcebergHit:
+	if not ResourceLoader.exists(hit_path):
+		return null
+	return load(hit_path) as IcebergHit
+
+
 static func parse(args: PackedStringArray) -> MatchArgs:
 	var parsed := MatchArgs.new()
 	for arg: String in args:
@@ -103,6 +141,10 @@ static func parse(args: PackedStringArray) -> MatchArgs:
 				parsed.seats = value.to_int()
 			"--seconds":
 				parsed.seconds = value.to_float()
+			"--stop":
+				parsed.seconds = clock_seconds(value)
+			"--hit":
+				parsed.hit_path = value
 			"--autoplay":
 				parsed.autoplay = true
 			"--capture":

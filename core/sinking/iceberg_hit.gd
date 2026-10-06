@@ -1,28 +1,34 @@
 class_name IcebergHit
-extends RefCounted
+extends Resource
 ## The iceberg scraping one side of her, once a match (§5b.1): when, which side,
 ## where the gash starts and how far forward it runs, how far under her waterline
 ## each end of it is, how wide it would be as one even slit, and how deep it bites
-## inboard. Drawn from the sinking stream before anything else is (D4), so it is a pure
-## function of (scenario, seed); HitMapper turns it into what it opens on a ship.
-## Ship-local metres (D6).
+## inboard. A match's is drawn from the sinking stream before anything else is (D4), so
+## it is a pure function of (scenario, seed); an explicit one — a ship's sure hit, a
+## test's, a tool's HIT= — is data, and says itself which doors jam and which openings
+## were left open. HitMapper turns either into what it opens on a ship. Ship-local
+## metres (D6).
 
 ## The stream's bits that make the width's place on its log scale.
 const WIDTH_BITS := 32
 
 ## Seconds after the scenario's start.
-var moment: float
+@export var moment: float
 ## 1 for her starboard side (+z), -1 for her port side.
-var side: int
-var start_x: float
-var length: float
+@export var side: int = 1
+@export var start_x: float
+@export var length: float
 ## Metres under her waterline at the gash's start and at its end; below 0, above it.
-var depth_start: float
-var depth_end: float
+@export var depth_start: float
+@export var depth_end: float
 ## Metres: the gash as one even slit.
-var width: float
+@export var width: float
 ## Metres inboard from her shell.
-var bite: float
+@export var bite: float
+## An explicit hit's watertight doors that jam open and openings that were left open,
+## by name; a drawn hit's are drawn (HitMapper).
+@export var jammed: Array[StringName] = []
+@export var left_open: Array[StringName] = []
 
 
 ## A hit drawn from [param bands] off [param sink_stream], in a fixed order: moment,

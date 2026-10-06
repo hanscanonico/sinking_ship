@@ -3,7 +3,7 @@ extends Resource
 ## The physics' constants, the same for every ship (§5b.2): the sea, the air, how
 ## much of each kind of cell water can fill, the step's limits, and the stages of the
 ## physics, each switched on by the milestone that builds it. The numbers live in
-## data/physics/sea.tres. No rule reads them yet (D13).
+## data/physics/sea.tres. SinkStepper reads them (D13).
 
 const PATH := "res://data/physics/sea.tres"
 
@@ -14,6 +14,15 @@ const PATH := "res://data/physics/sea.tres"
 @export var air_pressure: float
 ## The share of the ideal flow a real opening passes.
 @export var discharge: float
+## A cell filled to its ceiling keeps a thin imaginary surface over it, this share of
+## its floor, so the push of the water behind it passes on (§5b.1).
+@export var full_surface: float
+## How hard a hull going down broadside is dragged by the water: the drag coefficient
+## of her waterplane, est.
+@export var sink_drag: float
+## How far under the sea, in metres, the top of a hull that has gone is followed before
+## the bake stops: past where anything of her is seen or stood on.
+@export var gone_depth: float
 ## The share of a cell water can fill, by FloodCell.Kind, where the cell states none.
 @export var permeability_accommodation: float
 @export var permeability_machinery: float
@@ -76,6 +85,8 @@ func problems() -> PackedStringArray:
 		found.append("sea: gravity, densities and pressure must be positive")
 	if discharge <= 0.0 or discharge > 1.0:
 		found.append("sea: discharge must be within 0…1")
+	if full_surface <= 0.0 or full_surface > 1.0 or sink_drag <= 0.0 or gone_depth <= 0.0:
+		found.append("sea: a full cell's surface, the drag and the depth gone must be positive")
 	for kind: int in FloodCell.Kind.values():
 		var share := permeability(kind)
 		if share <= 0.0 or share > 1.0:

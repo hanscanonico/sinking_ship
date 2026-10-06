@@ -1,13 +1,16 @@
 class_name SinkSchedule
 extends RefCounted
-## The one water authority (D7, D13): the ship's pose at any tick, which of the
-## scenario's events have fired, and the iceberg hit — where it struck and when — for
-## whichever SinkScenario the match carries. Built once per match; after that it is a
-## pure function of (ship, scenario, seed, tick) — nothing a player does moves it, and
-## it is never stored in a snapshot (D5).
+## The one water authority (D7, D13): the ship's pose at any tick, the water in every
+## cell, which watertight doors are shut, what the sinking has announced, and the
+## iceberg hit — where it struck and when. A physical scenario's sinking is baked once,
+## at match start, from the hit the must-sink rule chose (MustSink) or the explicit one
+## the scenario gives: SinkStepper run in one-second steps to the end (SinkTimeline),
+## read between its seconds. An authored fixture plays its keyframes and events. Either
+## way, once built it is a pure function of (ship, scenario, seed, tick) — nothing a
+## player does moves it, and it is never stored in a snapshot (D5).
 
 
-## One of the scenario's events, placed on this match's ticks.
+## One of an authored scenario's events, placed on this match's ticks.
 class Scheduled:
 	var event: SinkEvent
 	## The tick its telegraph starts: at, for what is not telegraphed.
@@ -35,23 +38,38 @@ var _keyframe_ticks: PackedInt32Array = PackedInt32Array()
 var _keyframes: Array[SinkKeyframe] = []
 ## In the scenario's order.
 var _events: Array[Scheduled] = []
-var _cap_tick := -1
 var _hit: IcebergHit
 var _damage: HitDamage
 var _hit_tick := -1
+## The physics' sinking: how the hit was chosen, the bake, the match tick of each of
+## its kept seconds, her cells, and the doors the ship shuts with the seconds each
+## takes.
+var _choice: MustSink.Choice
+var _timeline: SinkTimeline
+var _frame_ticks := PackedInt32Array()
+var _cells: CellMap
+var _doors: Array[StringName] = []
+var _door_times := PackedFloat64Array()
+var _passages: Array[ShipOpening] = []
+var _clock := 1.0
+## What the physics announces, on its ticks, in the timeline's order; and the tick she
+## is gone, or -1.
+var _physics_events: Array[SimEvent] = []
+var _gone_tick := -1
+var _plunge_tick := -1
 
 
 ## [param sink_stream] is the sinking stream, SeedStreams' (match seed, "sink"),
-## and this is the only place it is drawn (D4): first the scenario's hit, struck on
-## [param structure] — the hit, then its unevenness, the doors that jam and the
-## openings left open (HitMapper) — then one draw per event, in the scenario's order,
-## whatever its bound. Without a structure — the menu's backdrop, the script's own
-## tests — no hit is struck.
+## and this is the only place it is drawn (D4): the must-sink rule draws every hit it
+## tries from it, on [param structure] — the hit, then its unevenness, the doors that
+## jam and the openings left open — before the accepted bake, under [param sea]'s
+## physics. Without a structure — the menu's backdrop — no hit is struck.
 func _init(
 	scenario: SinkScenario,
 	freeboard: float,
 	sink_stream: RandomNumberGenerator,
-	structure: ShipStructure = null
+	structure: ShipStructure = null,
+	sea: SeaPhysics = null
 ) -> void:
 	_freeboard = freeboard
 	_pivot = scenario.pivot
@@ -59,15 +77,38 @@ func _init(
 	_keyframes = scenario.keyframes.duplicate()
 	for keyframe: SinkKeyframe in _keyframes:
 		_keyframe_ticks.append(Ticks.from_seconds(keyframe.at))
-	if scenario.hit != null and structure != null:
-		_hit = IcebergHit.draw(scenario.hit, sink_stream)
-		_damage = HitMapper.map(_hit, structure, scenario.hit, sink_stream)
-		_hit_tick = _start_tick + Ticks.from_seconds(_hit.moment)
 	for event: SinkEvent in scenario.events:
-		var shift := sink_stream.randf_range(-event.jitter, event.jitter)
-		_events.append(Scheduled.new(event, _start_tick + Ticks.from_seconds(event.at + shift)))
-	if scenario.cap > 0.0:
-		_cap_tick = _start_tick + Ticks.from_seconds(scenario.cap)
+		_events.append(Scheduled.new(event, _start_tick + Ticks.from_seconds(event.at)))
+		if event.kind == SinkEvent.Kind.PLUNGE and _plunge_tick == -1:
+			_plunge_tick = _events.back().at
+	if structure == null or not scenario.is_physical():
+		return
+	var physics := sea if sea != null else SeaPhysics.load_default()
+	if scenario.explicit_hit != null:
+		_choice = MustSink.given(structure, scenario, physics)
+	else:
+		_choice = MustSink.choose(structure, scenario, sink_stream, physics)
+	_hit = _choice.hit
+	_damage = _choice.damage
+	_timeline = _choice.timeline
+	_hit_tick = _start_tick + Ticks.from_seconds(_hit.moment)
+	_clock = scenario.clock
+	_cells = CellMap.new(structure)
+	for opening: ShipOpening in structure.openings:
+		if opening.shuts_at_hit and not opening.name in _damage.jammed:
+			_doors.append(opening.name)
+			_door_times.append(opening.shut_time)
+		if opening.starts == ShipOpening.Start.OPEN or opening.name in _damage.left_open:
+			_passages.append(opening)
+	_passages.append_array(_damage.openings)
+	for frame in _timeline.count():
+		_frame_ticks.append(_tick_of(frame * _timeline.step))
+	for event: SinkTimeline.Event in _timeline.events:
+		_physics_events.append(SimEvent.physics(_tick_of(event.seconds), event.kind, event.name))
+		if event.kind == SinkTimeline.Kind.PLUNGING:
+			_plunge_tick = _tick_of(event.seconds)
+	if _timeline.gone_at >= 0.0:
+		_gone_tick = _tick_of(_timeline.gone_at)
 
 
 ## The schedule of [param config]'s match: its scenario on its ship, off its own
@@ -77,7 +118,15 @@ static func for_match(config: MatchConfig) -> SinkSchedule:
 	return new(config.scenario, config.ship.freeboard, sink_stream, config.ship.structure)
 
 
+## The match tick [param seconds] of physics after the hit is, through the scenario's
+## clock (Q20, deferred) and Ticks, the one conversion.
+func _tick_of(seconds: float) -> int:
+	return _hit_tick + Ticks.from_seconds(seconds / _clock)
+
+
 func pose_at(tick: int) -> ShipPose:
+	if _timeline != null:
+		return _physical(tick)
 	var pose := _keyframed(tick)
 	var swing := 0.0
 	for scheduled: Scheduled in _events:
@@ -105,7 +154,45 @@ func pose_at(tick: int) -> ShipPose:
 	return pose
 
 
-## Every event that has happened by [param tick], in the scenario's order.
+## The pose the bake has at [param tick]: level, the sea where it stands up her and
+## every cell's water, read between the two kept seconds either side of it; at rest
+## before the hit and as last kept after the end.
+func _physical(tick: int) -> ShipPose:
+	var frame := 0
+	var weight := 0.0
+	var last := _frame_ticks.size() - 1
+	if tick >= _frame_ticks[last]:
+		frame = last
+	elif tick > _hit_tick:
+		frame = clampi((tick - _hit_tick) * last / maxi(_frame_ticks[last] - _hit_tick, 1), 0, last)
+		while frame > 0 and _frame_ticks[frame] > tick:
+			frame -= 1
+		while _frame_ticks[frame + 1] <= tick:
+			frame += 1
+		weight = float(tick - _frame_ticks[frame]) / (_frame_ticks[frame + 1] - _frame_ticks[frame])
+	var next := mini(frame + 1, last)
+	var sea := lerpf(_timeline.seas[frame], _timeline.seas[next], weight)
+	# Level, sunk as far as the sea has risen up her from where she rests: at rest she
+	# stands at her freeboard, as an authored pose does.
+	var sink := sea - _timeline.rest
+	var origin := Vector3(0.0, _freeboard - sink, 0.0)
+	var pose := ShipPose.new(sink, 0.0, 0.0, Transform3D(Basis.IDENTITY, origin))
+	pose.cells = _cells
+	var count := _timeline.cells
+	pose.levels.resize(count)
+	for cell in count:
+		var head := lerpf(
+			_timeline.heads[frame * count + cell], _timeline.heads[next * count + cell], weight
+		)
+		pose.levels[cell] = head + origin.y
+	if tick >= _hit_tick:
+		var seconds := Ticks.to_seconds(tick - _hit_tick) * _clock
+		for door in _doors.size():
+			pose.doors_shut[_doors[door]] = 1.0 - SinkStepper.open_share(_door_times[door], seconds)
+	return pose
+
+
+## Every event of an authored scenario that has happened by [param tick], in its order.
 func fired(tick: int) -> Array[Scheduled]:
 	var found: Array[Scheduled] = []
 	for scheduled: Scheduled in _events:
@@ -120,6 +207,9 @@ func events_at(tick: int) -> Array[SimEvent]:
 	var found: Array[SimEvent] = []
 	if tick == _hit_tick:
 		found.append(SimEvent.holed(tick))
+	for event: SimEvent in _physics_events:
+		if event.tick == tick:
+			found.append(event)
 	for scheduled: Scheduled in _events:
 		if scheduled.warned_at == tick and scheduled.warned_at < scheduled.at:
 			found.append(SimEvent.sinking(tick, scheduled.event, true))
@@ -129,9 +219,43 @@ func events_at(tick: int) -> Array[SimEvent]:
 	return found
 
 
-## The tick by which every surface is under and the match ends, or -1 for none.
-func cap_tick() -> int:
-	return _cap_tick
+## The tick the sinking ends on: the bake's last kept second, or an authored
+## fixture's last keyframe. What was the cap, before the physics (§5b.4).
+func end_tick() -> int:
+	if _timeline != null:
+		return _frame_ticks[_frame_ticks.size() - 1]
+	if _keyframes.is_empty():
+		return -1
+	return _start_tick + _keyframe_ticks[_keyframe_ticks.size() - 1]
+
+
+## The tick she is wholly under the sea and going down, or -1 when she never is: an
+## authored fixture, or an explicit hit she floats on.
+func gone_tick() -> int:
+	return _gone_tick
+
+
+## The tick the plunge begins — her main deck under the sea, or an authored fixture's
+## PLUNGE — or -1 for never.
+func plunge_tick() -> int:
+	return _plunge_tick
+
+
+## How the match's hit was chosen and baked, or null without a physical sinking.
+func choice() -> MustSink.Choice:
+	return _choice
+
+
+## The openings water can pass after the hit, as the physics has them (SinkStepper):
+## those that start open or were left open, and the gash's — a door the ship shuts,
+## while the pose has it open. Empty without a physical sinking.
+func passages() -> Array[ShipOpening]:
+	return _passages
+
+
+## The bake, or null without a physical sinking.
+func timeline() -> SinkTimeline:
+	return _timeline
 
 
 ## The match's iceberg hit as drawn, or null for none.

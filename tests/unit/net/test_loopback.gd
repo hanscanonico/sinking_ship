@@ -82,7 +82,7 @@ func test_every_event_crosses_a_lossy_wire() -> void:
 	var played := LoopbackMatch.new(config, NetRules.load_default(), lag, -1, null, bots)
 	var raised: Array[String] = []
 	var reached: Array[String] = []
-	var until := 20 * Ticks.RATE
+	var until := 30 * Ticks.RATE
 	while played.host.tick() < until + Ticks.RATE:
 		played.clock.advance(Ticks.SECONDS_PER_TICK)
 		played.client.sample()

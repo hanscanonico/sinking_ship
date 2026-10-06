@@ -71,8 +71,6 @@ const RUNG := 0.04
 const STILE := 0.06
 ## A cylinder this wide or wider is a funnel; a thinner one is a mast.
 const FUNNEL_FROM := 0.5
-const FUNNEL_SEGMENTS := 20
-const MAST_SEGMENTS := 10
 ## A collapsed deck comes to rest with its top this far above the floor beneath — its
 ## planks' and beams' depth, lying on the floor — tipping up to this far about the
 ## ship's length as it falls: the greybox's decks fall the same way. Drawn, it breaks
@@ -139,13 +137,15 @@ var _graphics := GraphicsQuality.of(GraphicsQuality.Preset.HIGH)
 ## Draws [param layout]; [param railing_height] and [param body_radius] are the
 ## rules' — how high every railing stands, and how near a wall a body's centre
 ## comes. [param falls] names the platforms the scenario can collapse and
-## [param fails] the railings, by index, it can fail.
+## [param fails] the railings, by index, it can fail; [param open_ports] are the middles
+## of the portholes the hit left open, drawn open (ShipFittings).
 func build(
 	layout: ShipLayout,
 	railing_height: float,
 	body_radius: float,
 	falls: Array[StringName] = [],
-	fails := PackedInt32Array()
+	fails := PackedInt32Array(),
+	open_ports := PackedVector3Array()
 ) -> void:
 	for child: Node in get_children():
 		remove_child(child)
@@ -206,7 +206,7 @@ func build(
 	for ladder: ShipLadder in layout.ladders:
 		var into: ShipMesh = pieces.get(_wrecks[ladder.platform], mesh)
 		_ladder(into, ladder, layout.platforms[ladder.platform], -layout.freeboard)
-	var fittings := ShipFittings.new(_space, hull, body_radius)
+	var fittings := ShipFittings.new(_space, hull, body_radius, open_ports)
 	fittings.build(mesh)
 	# Every furnishing stands in a room: its own mesh, which need not ask where it is.
 	var furnishings := ShipMesh.new(
@@ -705,9 +705,9 @@ func _blocker(mesh: ShipMesh, blocker: ShipBlocker) -> void:
 	var top := blocker.top - (PLANK if _space.deck_on(blocker) else 0.0)
 	if blocker.shape == ShipBlocker.Shape.CYLINDER:
 		if blocker.radius >= FUNNEL_FROM:
-			_funnel(mesh, blocker, top)
+			_smoke = DeckWorks.funnel(mesh, blocker, top, self)
 		else:
-			_mast(mesh, blocker, top)
+			DeckWorks.mast(mesh, blocker, top, self)
 		return
 	var area := blocker.area
 	var centre := area.get_center()
@@ -728,7 +728,7 @@ func _blocker(mesh: ShipMesh, blocker: ShipBlocker) -> void:
 		if not is_nan(deck) and blocker.bottom - deck > DOOR_FROM:
 			_door_frame(mesh, blocker, deck)
 	elif _space.outdoors(Vector3(centre.x, (blocker.bottom + top) * 0.5, centre.y)):
-		_hatch(mesh, area, blocker.bottom, top)
+		DeckWorks.hatch(mesh, area, blocker.bottom, top)
 
 
 ## A box as ShipMesh.box() draws it in [param paint] — [param faces] of it — each
@@ -891,116 +891,6 @@ func _door_frame(mesh: ShipMesh, lintel: ShipBlocker, deck: float) -> void:
 		mesh.box(strip, lintel.bottom, head, ShipPaints.frame)
 
 
-## A wooden coaming under a tarpaulin drawn over its top and lashed with battens.
-func _hatch(mesh: ShipMesh, area: Rect2, bottom: float, top: float) -> void:
-	mesh.box(area, bottom, top - 0.1, ShipPaints.teak, ShipMesh.SIDES | ShipMesh.TOP)
-	mesh.box(area.grow(0.03), top - 0.16, top, ShipPaints.canvas, ShipMesh.SIDES | ShipMesh.TOP)
-	mesh.box(area.grow(0.05), top - 0.15, top - 0.11, ShipPaints.beam, ShipMesh.SIDES)
-	var along_x := area.size.x >= area.size.y
-	var long := area.size.x if along_x else area.size.y
-	var bands := maxi(2, floori(long / 1.2))
-	for band in bands:
-		var at := long * (band + 0.5) / bands
-		var strap := (
-			Rect2(area.position.x + at - 0.03, area.position.y - 0.04, 0.06, area.size.y + 0.08)
-			if along_x
-			else Rect2(
-				area.position.x - 0.04, area.position.y + at - 0.03, area.size.x + 0.08, 0.06
-			)
-		)
-		mesh.box(strap, top - 0.15, top + 0.01, ShipPaints.beam, ShipMesh.SIDES | ShipMesh.TOP)
-
-
-## A buff funnel with a black top and a rim, painted like the cabins where it passes
-## through one, and smoke from its top.
-func _funnel(mesh: ShipMesh, blocker: ShipBlocker, top: float) -> void:
-	var centre := blocker.centre
-	mesh.cylinder(centre, blocker.radius, blocker.bottom, top, FUNNEL_SEGMENTS, ShipPaints.funnel)
-	var rim := blocker.radius + 0.04
-	mesh.cylinder(centre, rim, top - 0.12, top, FUNNEL_SEGMENTS, ShipPaints.dark, false)
-	_smoke = CPUParticles3D.new()
-	_smoke.name = "Smoke"
-	_smoke.position = Vector3(centre.x, top + 0.1, centre.y)
-	_smoke.amount = 26
-	_smoke.lifetime = 5.0
-	_smoke.preprocess = 5.0
-	_smoke.local_coords = false
-	_smoke.emission_shape = CPUParticles3D.EMISSION_SHAPE_SPHERE
-	_smoke.emission_sphere_radius = blocker.radius * 0.5
-	_smoke.direction = Vector3.UP
-	_smoke.spread = 10.0
-	_smoke.initial_velocity_min = 1.2
-	_smoke.initial_velocity_max = 1.8
-	_smoke.gravity = Vector3(-0.45, 0.1, 0.12)
-	_smoke.damping_min = 0.2
-	_smoke.damping_max = 0.3
-	_smoke.scale_amount_min = 0.8
-	_smoke.scale_amount_max = 1.2
-	var grow := Curve.new()
-	grow.add_point(Vector2(0.0, 0.5))
-	grow.add_point(Vector2(1.0, 2.6))
-	_smoke.scale_amount_curve = grow
-	var fade := Gradient.new()
-	fade.set_color(0, Color(ArtPalette.SMOKE, 0.0))
-	fade.set_color(1, Color(ArtPalette.SMOKE, 0.0))
-	fade.add_point(0.15, ArtPalette.SMOKE)
-	_smoke.color_ramp = fade
-	var puff := QuadMesh.new()
-	puff.size = Vector2.ONE * blocker.radius * 1.4
-	var material := StandardMaterial3D.new()
-	material.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
-	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	material.vertex_color_use_as_albedo = true
-	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	material.albedo_texture = _puff_texture()
-	puff.material = material
-	_smoke.mesh = puff
-	_smoke.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	_smoke.visible = not is_finite(cut_above)
-	add_child(_smoke)
-
-
-## A soft round puff, white at its heart and clear at its edge.
-func _puff_texture() -> GradientTexture2D:
-	var falloff := Gradient.new()
-	falloff.set_color(0, Color(1.0, 1.0, 1.0, 1.0))
-	falloff.set_color(1, Color(1.0, 1.0, 1.0, 0.0))
-	var texture := GradientTexture2D.new()
-	texture.gradient = falloff
-	texture.fill = GradientTexture2D.FILL_RADIAL
-	texture.fill_from = Vector2(0.5, 0.5)
-	texture.fill_to = Vector2(1.0, 0.5)
-	texture.width = 64
-	texture.height = 64
-	return texture
-
-
-## A mast with a crosstree near its head and a masthead light.
-func _mast(mesh: ShipMesh, blocker: ShipBlocker, top: float) -> void:
-	var centre := blocker.centre
-	mesh.cylinder(centre, blocker.radius, blocker.bottom, top, MAST_SEGMENTS, ShipPaints.mast)
-	var yard := top - (top - blocker.bottom) * 0.22
-	var crosstree := Rect2(centre.x - 0.08, centre.y - 1.4, 0.16, 2.8)
-	mesh.box(crosstree, yard, yard + 0.12, ShipPaints.dark)
-	var bulb := SphereMesh.new()
-	bulb.radius = 0.08
-	bulb.height = 0.16
-	bulb.radial_segments = 8
-	bulb.rings = 4
-	var glow := StandardMaterial3D.new()
-	glow.emission_enabled = true
-	glow.emission = Color(1.0, 0.95, 0.85)
-	glow.emission_energy_multiplier = 2.0
-	bulb.material = glow
-	var light := MeshInstance3D.new()
-	light.name = "MastheadLight"
-	light.mesh = bulb
-	light.position = Vector3(centre.x + blocker.radius + 0.08, yard - 0.4, centre.y)
-	light.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	light.visible = light.position.y < cut_above
-	add_child(light)
-
-
 ## [param room]'s lamps where RoomDressing.lights() puts them: a pendant hung under
 ## the middle of its ceiling (the greybox's marker) — from the deck above when that
 ## deck can fall — and a room's others the same way; a fire in its wall.
@@ -1039,6 +929,11 @@ func _hang_lamps(room: ShipRoom, index: int, brass: Material) -> void:
 			ShipLamp.fade_near(glass)
 		lamp.setup(box, index * 1.7 + number * 0.61, glass, brass, light.kind, light.facing)
 		_lamp_sight.add(lamp, index, box)
+
+
+## The materials the ship is drawn with, one per finish, for what is drawn beside it.
+func paints() -> Dictionary:
+	return _paints
 
 
 ## One material per finish: ship.gdshader, or its cut-away variant while

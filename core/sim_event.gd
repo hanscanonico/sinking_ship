@@ -2,7 +2,10 @@ class_name SimEvent
 extends RefCounted
 ## A typed hint of what happened on a tick. Presentation may announce or animate
 ## one; it never infers state from one — the snapshot is the truth (D5). HOLED is the
-## iceberg striking: where, the match's SinkSchedule says.
+## iceberg striking: where, the match's SinkSchedule says. CELL_FLOODING, CELL_FULL,
+## WATER_SPILLING and SHIP_GONE are the physics' (SinkTimeline): a cell takes its first
+## water or is full, water first passes an opening over a low wall or down a stair, and
+## she is wholly under; the physics announces PLUNGE_BEGAN too, as her deck goes under.
 
 enum Kind {
 	SEAT_OUT,
@@ -23,6 +26,10 @@ enum Kind {
 	CRATE_HIT,
 	CRATE_LOST,
 	HOLED,
+	CELL_FLOODING,
+	CELL_FULL,
+	WATER_SPILLING,
+	SHIP_GONE,
 }
 
 var kind: Kind
@@ -55,6 +62,8 @@ var heel_deg: float
 var platform: StringName
 ## RAILING_BROKE: the layout's railing, by index.
 var railing: int = -1
+## CELL_FLOODING, CELL_FULL: the cell, by name. WATER_SPILLING: the opening.
+var cell: StringName
 
 
 func _init(event_kind: Kind, event_tick: int, event_seat: int) -> void:
@@ -124,6 +133,17 @@ static func holed(event_tick: int) -> SimEvent:
 	return SimEvent.new(Kind.HOLED, event_tick, -1)
 
 
+## What the physics announces at [param event_tick]: [param physics_kind], a
+## SinkTimeline.Kind, naming [param named].
+static func physics(event_tick: int, physics_kind: int, named: StringName) -> SimEvent:
+	var kinds: Array[Kind] = [
+		Kind.CELL_FLOODING, Kind.CELL_FULL, Kind.WATER_SPILLING, Kind.SHIP_GONE, Kind.PLUNGE_BEGAN
+	]
+	var event := SimEvent.new(kinds[physics_kind], event_tick, -1)
+	event.cell = named
+	return event
+
+
 static func entered_water(event_tick: int, swimming_seat: int) -> SimEvent:
 	return SimEvent.new(Kind.ENTERED_WATER, event_tick, swimming_seat)
 
@@ -182,6 +202,7 @@ func to_dict() -> Dictionary:
 		"platform": platform,
 		"railing": railing,
 		"prop": prop,
+		"cell": cell,
 	}
 
 
@@ -198,4 +219,5 @@ static func from_dict(entry: Dictionary) -> SimEvent:
 	event.platform = entry["platform"]
 	event.railing = entry["railing"]
 	event.prop = entry["prop"]
+	event.cell = entry["cell"]
 	return event

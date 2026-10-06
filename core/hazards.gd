@@ -350,7 +350,7 @@ func _ground(crates: Array[PropState], feet_before: PackedFloat64Array) -> void:
 ## A crate with the sea wade_depth or more over its underside floats off: lost.
 func _sea(crates: Array[PropState], pose: ShipPose, tick: int, events: Array[SimEvent]) -> void:
 	for crate: PropState in crates:
-		if pose.sea_height(crate.pos.x, crate.pos.z) - crate.pos.y < _rules.wade_depth:
+		if pose.water_height(crate.pos) - crate.pos.y < _rules.wade_depth:
 			continue
 		crate.body = PropState.Body.LOST
 		crate.surface = Surfaces.NONE

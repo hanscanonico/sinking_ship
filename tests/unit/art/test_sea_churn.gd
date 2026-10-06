@@ -79,7 +79,7 @@ func test_the_churn_is_finite_over_the_whole_sinking() -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 1701
 	var schedule := SinkSchedule.new(load(STEAMER_SINKING), _layout.freeboard, rng)
-	var end := schedule.cap_tick()
+	var end := schedule.end_tick()
 	_sea.setup(end, _layout)
 	for tick in range(0, end + 60, 15):
 		_sea.show_sinking(tick, schedule.pose_at(tick).transform)

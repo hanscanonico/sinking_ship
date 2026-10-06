@@ -354,7 +354,7 @@ func _think(seen: Dictionary, me: Dictionary, now_pos: Vector3, pose: ShipPose) 
 	target = _targeting.choose(seen, me, found, pose, highest, target)
 	var mark := _entry(seen, target)
 	var my_zone := _zone_of(me)
-	var feet := pose.world_height(my_pos)
+	var feet := pose.above_water(my_pos)
 	var floor_height := _walk_graph.floor_height(my_zone, my_pos, pose)
 	# It climbs until it stands where it was making for — off its feet, it stands
 	# nowhere — or, the ship not yet foundering, on a floor a body's height out of the
@@ -972,13 +972,13 @@ func _waypoint(
 
 
 ## Whether a portal on [param legs] has an end lower than [param below] — how high
-## above the sea under [param pose] the bot's feet stand — and within refuge_margin_m
-## of the sea: the way dips toward the water and will be under before the bot is
-## through. A way along its own floor is that floor's to answer for.
+## above its water under [param pose] the bot's feet stand — and within
+## refuge_margin_m of its own water: the way dips toward the water and will be under
+## before the bot is through. A way along its own floor is that floor's to answer for.
 func _going_under(legs: Array[WalkGraph.Portal], pose: ShipPose, below: float) -> bool:
 	for leg: WalkGraph.Portal in legs:
 		for end: Vector3 in [leg.entry, leg.exit]:
-			var height := pose.world_height(end)
+			var height := pose.above_water(end)
 			if height < below and height < _profile.refuge_margin_m:
 				return true
 	return false

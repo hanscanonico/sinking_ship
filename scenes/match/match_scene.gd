@@ -100,6 +100,8 @@ func _process(delta: float) -> void:
 	var viewed := _order.target(snapshot)
 	_hud.show_snapshot(snapshot)
 	_sea_and_sky.show_sinking(snapshot["tick"], _view.ship_to_world())
+	if _cells != null:
+		_cells.show_water(_driver.client.sim.schedule.pose_at(snapshot["tick"]))
 	_hud.show_spectating(_spectating(snapshot, viewed))
 	_hud.show_controls(_prompts if _local != null else null)
 	_end.show_results(_stats, _local_seat, _names, _config.match_seed)
@@ -140,7 +142,7 @@ func _process(delta: float) -> void:
 		_arms.show_seat(
 			viewed, _driver.previous["seats"][viewed], snapshot["seats"][viewed], _driver.alpha
 		)
-	_underwater.show_eye(_eyes.global_position)
+	_underwater.show_eye(_eyes.global_position, _view.above_water(_eyes.global_position))
 	_first_person_hud.show_view(snapshot, viewed, yaw, _eyes, _view)
 
 
@@ -300,8 +302,9 @@ func _begin(
 	_eyes.setup(settings)
 	_arms.setup(config.rules)
 	_first_person_hud.setup(sim, _names, not observer, _prompts)
-	_sea_and_sky.setup(sim.schedule.cap_tick(), config.ship)
+	_sea_and_sky.setup(sim.schedule.end_tick(), config.ship)
 	_underwater.setup(_sea_and_sky)
+	_view.flood_with(_sea_and_sky.water())
 	_show_graphics(settings.graphics())
 	_observer_camera.whole_ship = observer and is_finite(observer_cut)
 	_audio.setup(_driver, sim, _view, _local_seat, _underwater)
@@ -391,7 +394,7 @@ func _fly(snapshot: Dictionary, viewed: int, delta: float) -> void:
 	_view.look_out_of(-1)
 	_arms.visible = false
 	_eyes.global_transform = _free.transform()
-	_underwater.show_eye(_eyes.global_position)
+	_underwater.show_eye(_eyes.global_position, _view.above_water(_eyes.global_position))
 	_first_person_hud.show_view(snapshot, viewed, 0.0, _eyes, _view)
 
 

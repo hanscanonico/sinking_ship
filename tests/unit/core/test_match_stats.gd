@@ -84,8 +84,12 @@ func test_stats_come_from_events_only() -> void:
 
 	# A played match: the stats fed while it ran equal the stats rebuilt from its
 	# events alone, they agree with the final snapshot, and the sim's live fields
-	# can change under them without moving a number.
-	var runner := RunMatch.bots_only(RunMatch.default_config(1701, 6))
+	# can change under them without moving a number. Struck by the fast hit, so she is
+	# gone, and the match over, within minutes.
+	var config := RunMatch.default_config(1701, 6)
+	config.scenario = config.scenario.duplicate()
+	config.scenario.explicit_hit = load("res://tests/fixtures/sinking/hits/fast.tres")
+	var runner := RunMatch.bots_only(config)
 	var live := MatchStats.new(6, runner.sim.config.countdown_ticks)
 	var events: Array[SimEvent] = []
 	while not runner.is_over():

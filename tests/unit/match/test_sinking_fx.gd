@@ -180,14 +180,17 @@ func test_a_waterline_is_split_where_it_passes_near_the_eye() -> void:
 
 
 func test_white_water_near_the_eye_stays_under_the_knees() -> void:
-	var sim := MatchSim.create(RunMatch.default_config(WALKED_SEED))
+	# Walked through SH6's script, the fixture whose decks go under within minutes.
+	var config := RunMatch.default_config(WALKED_SEED)
+	config.scenario = load(SimFixtures.STEAMER_SCRIPT)
+	var sim := MatchSim.create(config)
 	var planner := FxPlanner.new(sim.config, sim.surfaces, sim.schedule)
 	var fx: SinkingFx = add_child_autofree(SinkingFx.new())
 	var camera: Camera3D = add_child_autofree(Camera3D.new())
 	var layout := sim.config.ship
 	var foamed := 0
 	var stride := Ticks.from_seconds(WALK_EVERY)
-	for tick in range(Ticks.from_seconds(60.0), sim.schedule.cap_tick(), stride):
+	for tick in range(Ticks.from_seconds(60.0), sim.schedule.end_tick(), stride):
 		var cues := planner.plan(_at(sim, tick - 1), _at(sim, tick))
 		var pose := sim.schedule.pose_at(tick)
 		for wash: FxCue in cues.filter(

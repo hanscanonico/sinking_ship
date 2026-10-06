@@ -7,9 +7,11 @@ extends RefCounted
 
 const RunMatch := preload("res://tools/run_match.gd")
 const MATCH_SCENE := "res://scenes/match/match.tscn"
-## A match that runs on through the collapse and the plunge to its end, so every
-## effect of the sinking is watched.
+## A match that runs on through her going down to its end, so every effect of the
+## sinking is watched: struck by an explicit hit that has her gone in minutes, as a
+## tool's HIT= strikes her.
 const SEED := 7
+const FAST_HIT := "res://tests/fixtures/sinking/hits/fast.tres"
 ## The ticks stepped a frame as the sinking's effects are watched through the match,
 ## to its end.
 const EFFECTS_TICKS_PER_FRAME := 4
@@ -22,7 +24,10 @@ static func check(root: Window, match_seed: int, seats: int) -> Array:
 	var checks := 0
 	var scene: MatchScene = (load(MATCH_SCENE) as PackedScene).instantiate()
 	root.add_child(scene)
-	scene.start(RunMatch.default_config(match_seed, seats), true, true)
+	var config := RunMatch.default_config(match_seed, seats)
+	config.scenario = config.scenario.duplicate()
+	config.scenario.explicit_hit = load(FAST_HIT)
+	scene.start(config, true, true)
 	scene.set_paused(true)
 	var driver: SimDriver = scene.get_node("SimDriver")
 	var view: MatchView = scene.get_node("MatchView")

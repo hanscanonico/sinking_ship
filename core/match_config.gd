@@ -16,6 +16,10 @@ var countdown_ticks: int
 var humans: int
 ## A BotProfile under data/bots/, by file name.
 var bot_tier: StringName
+## Its sinking, baked once from the ship, the scenario and the seed (schedule()): match
+## data every MatchSim of this match shares, so a sim resumed from a snapshot never
+## bakes it again (D5).
+var _schedule: SinkSchedule
 
 
 func _init(
@@ -74,6 +78,13 @@ static func from_menu(
 	)
 	config.bot_tier = tier
 	return config
+
+
+## The match's sinking (SinkSchedule.for_match), built on first asking.
+func schedule() -> SinkSchedule:
+	if _schedule == null:
+		_schedule = SinkSchedule.for_match(self)
+	return _schedule
 
 
 ## Every reason this match cannot start; empty when it can.

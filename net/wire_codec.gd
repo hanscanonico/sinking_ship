@@ -15,11 +15,11 @@ extends RefCounted
 ## gains and they do not is pushed as an error here and lost on the wire, which
 ## test_wire_codec's round trip, walking the snapshot's own keys, fails on (R2).
 
-const PROTOCOL_VERSION := 2
+const PROTOCOL_VERSION := 3
 ## The build of what plays a match — core/, ai/ and net/ — bumped by hand whenever a
 ## change there would play the same data differently: part of every match's hash, so
 ## two builds that would not agree are refused as other data.
-const SIM_BUILD := 1
+const SIM_BUILD := 2
 const HASH_BYTES := 8
 const LENGTH_QUANTUM := 0.001
 const SPEED_QUANTUM := 0.01
@@ -131,6 +131,7 @@ const EVENT_FIELDS := [
 	["platform", Field.NAME],
 	["railing", Field.INT],
 	["prop", Field.INT],
+	["cell", Field.NAME],
 ]
 
 

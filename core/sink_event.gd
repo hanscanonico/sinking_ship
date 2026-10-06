@@ -1,8 +1,8 @@
 class_name SinkEvent
 extends Resource
-## One scheduled event of a sinking (D7): when it happens, how far the sinking
-## stream may move it, how long it is telegraphed, and what it does. Which side a
-## lurch puts down and which platform gives way are its own numbers, never a rule.
+## One scheduled event of an authored sinking — a test fixture's (D7): when it
+## happens, how long it is telegraphed, and what it does. Which side a lurch puts down
+## and which platform gives way are its own numbers, never a rule.
 
 ## LURCH: the heel swings out by heel_deg and back over duration, so every body
 ## past the grip angle slides with the deck. COLLAPSE: every platform called
@@ -12,10 +12,8 @@ extends Resource
 enum Kind { LURCH, COLLAPSE, RAILING_FAIL, PLUNGE }
 
 @export var kind: Kind
-## Seconds after the scenario's start, before jitter.
+## Seconds after the scenario's start.
 @export var at: float
-## The most the sinking stream moves it, either way, in seconds.
-@export var jitter: float
 ## LURCH, COLLAPSE: seconds it is telegraphed before it happens. Nothing else is.
 @export var warning: float
 ## LURCH: the heel added at the height of the swing, signed — positive puts
@@ -32,8 +30,8 @@ enum Kind { LURCH, COLLAPSE, RAILING_FAIL, PLUNGE }
 ## Every reason this event cannot run; empty when it can.
 func problems() -> PackedStringArray:
 	var found := PackedStringArray()
-	if at < 0.0 or jitter < 0.0 or warning < 0.0:
-		found.append("sinking: an event's time, jitter and warning must not be negative")
+	if at < 0.0 or warning < 0.0:
+		found.append("sinking: an event's time and warning must not be negative")
 	if kind == Kind.LURCH and duration <= 0.0:
 		found.append("sinking: a lurch must take some time")
 	if kind == Kind.COLLAPSE and platform == &"":

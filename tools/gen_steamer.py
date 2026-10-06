@@ -186,7 +186,13 @@ ramp("poop_starboard", -14, 3.1, 3, 1.4, 0, 1.2, 0)
 ramp("boat_port", 3, -3.4, 6, 1.5, 0, 2.5, 0)
 ramp("boat_starboard", 3, 1.9, 6, 1.5, 0, 2.5, 0)
 ramp("forecastle", 9, -0.8, 3, 1.6, 0, 0, 1.8)
-ramp("bridge", -1, -0.7, 3, 1.4, 0, 4.7, 2.5)
+# The bridge's two ways up (Q6): from SH26 nothing times the bridge's fall, so it is a
+# perch like any other and needs two routes — two stairs, one to port and one to
+# starboard, side by side down its forward face, each as steep and as wide as the one
+# stair it had; a steep ladder on the starboard side of the wheelhouse would stand at
+# the boat deck's open edge.
+ramp("bridge", -1, -1.5, 3, 1.4, 0, 4.7, 2.5)
+ramp("bridge_starboard", -1, 0.1, 3, 1.4, 0, 4.7, 2.5)
 ramp("aft_companionway", -12.85, -0.55, 3.2, 1.1, 0, 0, LOWER)
 ramp("inner_stair", -1.25, -1.6, 1.1, 3.2, 1, 0, LOWER)
 ramp("forward_companionway", 9.0, 0.9, 3.2, 1.1, 0, 0, LOWER)
@@ -307,9 +313,9 @@ def arr(script, ids):
     return "Array[ExtResource(\"%s\")]([%s])" % (script, ", ".join('SubResource("%s")' % i for i in ids))
 
 # --- The structure (§5b.2): the physics' view of the same hull — its sections, its
-# cells, its watertight walls, its openings and its mass. No rule reads it yet (D13);
-# `make ship-check` floats her on it, level, at her waterline. Numbers marked est. are
-# starting values, tuned when the physics first reads them.
+# cells, its watertight walls, its openings and its mass, which the sinking physics
+# reads; `make ship-check` floats her on it, level, at her waterline, and sinks her on
+# her sure hit. Numbers marked est. are starting values, tuned as the physics reads them.
 FREEBOARD = 3.4
 WATERLINE = -FREEBOARD
 POOP_DECK = plat_geo[POOP][4]
@@ -810,6 +816,19 @@ for x0, x1, z0, z1 in STAIR_HOLES:
             ((x0 + x1) * 0.5, 0, (z0 + z1) * 0.5), (x1 - x0, 0, z1 - z0), starts="OPEN")
 opening("hatch_hold", "HATCH", "hold", SKY, ((HATCH[0] + HATCH[1]) * 0.5, 0, (HATCH[2] + HATCH[3]) * 0.5),
         (HATCH[1] - HATCH[0], 0, HATCH[3] - HATCH[2]), starts="SHUT", collapse_head=1.0)
+# The deck breaks' fittings, where the art sets them (ShipFittings._fit_break, with its
+# numbers): the forecastle's after face has a weathertight door either side of its
+# stair into the space under it, shut (est.: gives way under 2 m of water, as a fire
+# door); the poop's forward face, too low for a door, louvred vents either side of a
+# lifebelt, always open.
+BREAK_DOOR, VENT_HALF = (0.72, 1.5), (0.24, 0.17)
+for tag, z in [("p", -2.425), ("s", 3.0)]:
+    opening("door_hold_fwd_top_" + tag, "DOOR", "hold_fwd_top", SKY,
+            (12, 0.06 + BREAK_DOOR[1] * 0.5, z), (0, BREAK_DOOR[1], BREAK_DOOR[0]),
+            starts="SHUT", collapse_head=2.0)
+for tag, z in [("p", -1.647), ("s", 1.647)]:
+    opening("vent_poop_space_" + tag, "VENT", "poop_space", SKY, (-14, 0.6, z),
+            (0, VENT_HALF[1] * 2, VENT_HALF[0] * 2), starts="OPEN")
 top_box = cell_box("hold_fwd_top")
 opening("open_hold_fwd_top", "OPEN", "hold", "hold_fwd_top",
         ((top_box[0] + top_box[1]) * 0.5, 0, 0), (top_box[1] - top_box[0], 0, top_box[5] - top_box[4]),
@@ -1018,6 +1037,13 @@ MOTION = [("roll_radius", 3.8), ("pitch_radius", 10.0), ("added_mass", 1.0),
 # stem and her counter, from 0.2 m under the main deck down to 0.2 m over her keel.
 HIT_ZONE_X = (-19.5, 19.5)
 HIT_ZONE_Y = (KEEL + 0.2, -0.2)
+# The must-sink rule's last rung (§5b.1, est.): a 25 m gash down her starboard side
+# from her after peak to the hold, 1.2 m under her waterline, 150 mm as one even slit
+# and biting 1.5 m in, every door and porthole shut — the plan's 20 m from the cabins
+# leaves her afloat with the deck just clear, held up by her two peaks. `make
+# ship-check` proves she founders on it within the bake's cap.
+SURE_HIT = [("start_x", -19), ("length", 25), ("depth_start", 1.2), ("depth_end", 1.2),
+            ("width", 0.15), ("bite", 1.5)]
 
 def vec3(v):
     return "Vector3(%s, %s, %s)" % tuple(num(c) for c in v)
@@ -1086,7 +1112,8 @@ sub("Structure", "9_structure", [
     ("walls", arr("12_wall", wall_ids)), ("openings", arr("13_opening", opening_ids)),
     ("mass", arr("14_mass", mass_ids))] + [(k, num(v)) for k, v in MOTION] + [
     ("hit_zone_x", "Vector2(%s, %s)" % (num(HIT_ZONE_X[0]), num(HIT_ZONE_X[1]))),
-    ("hit_zone_y", "Vector2(%s, %s)" % (num(HIT_ZONE_Y[0]), num(HIT_ZONE_Y[1])))])
+    ("hit_zone_y", "Vector2(%s, %s)" % (num(HIT_ZONE_Y[0]), num(HIT_ZONE_Y[1]))),
+    ("sure_hit", 'SubResource("%s")' % sub("Sure_hit", "15_hit", [(k, num(v)) for k, v in SURE_HIT]))])
 
 head = """[gd_resource type="Resource" script_class="ShipLayout" format=3]
 
@@ -1104,6 +1131,7 @@ head = """[gd_resource type="Resource" script_class="ShipLayout" format=3]
 [ext_resource type="Script" path="res://core/sinking/ship_wall.gd" id="12_wall"]
 [ext_resource type="Script" path="res://core/sinking/ship_opening.gd" id="13_opening"]
 [ext_resource type="Script" path="res://core/sinking/mass_item.gd" id="14_mass"]
+[ext_resource type="Script" path="res://core/sinking/iceberg_hit.gd" id="15_hit"]
 """
 res = ["[resource]", 'script = ExtResource("5_layout")', "freeboard = " + num(FREEBOARD),
        "platforms = " + arr("1_plat", platforms),

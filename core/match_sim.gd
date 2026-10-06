@@ -36,7 +36,7 @@ var _credit_window_ticks: int
 func _init(match_config: MatchConfig) -> void:
 	config = match_config
 	_rules = config.rules
-	schedule = SinkSchedule.for_match(config)
+	schedule = config.schedule()
 	surfaces = Surfaces.new(config.ship)
 	_hazards = Hazards.new(config, surfaces)
 	_windup_ticks = Ticks.from_seconds(_rules.shove_windup)
@@ -150,8 +150,13 @@ func step(frames: Array[InputFrame]) -> Array[SimEvent]:
 		_hazards.step(state, pose_now, tick, events)
 		_shoves(live, tick, events)
 		var exits := _water(live, pose_now, tick, events, feet_before)
-		_sea_settles(pose_now, tick, exits)
-		_verdict(exits, tick, events)
+		var settled := MatchVerdict.settled_by_the_sea(
+			_live_seats(), pose_now, tick, schedule.gone_tick(), surfaces, _rules.wade_depth
+		)
+		for player: PlayerState in settled:
+			_out(player, tick)
+			exits.append(player)
+		MatchVerdict.place(state, exits, tick, events)
 	state.tick += 1
 	if state.phase == MatchState.Phase.COUNTDOWN and state.tick >= config.countdown_ticks:
 		state.phase = MatchState.Phase.LIVE
@@ -483,7 +488,7 @@ func _blockers(
 		var feet := Vector3(player.pos.x, feet_before[player.seat], player.pos.z)
 		var step := _rules.step_height
 		if player.body == PlayerState.Body.SWIMMING:
-			step = _swim_step(feet, pose_now.sea_height(feet.x, feet.z))
+			step = _swim_step(feet, pose_now.water_height(feet))
 		var contacts := surfaces.obstacle_contacts(
 			feet, _rules.body_radius, _rules.body_height, step
 		)
@@ -810,7 +815,7 @@ func _swim(player: PlayerState, pose_now: ShipPose) -> void:
 ## [param feet_before]'s height: swim_depth under the sea, or on the bottom there
 ## when that is higher.
 func _rest_at(feet: Vector3, feet_before: float, pose_now: ShipPose) -> float:
-	var sea := pose_now.sea_height(feet.x, feet.z)
+	var sea := pose_now.water_height(feet)
 	var rest := maxf(sea - _rules.swim_depth, _bottom(feet, feet_before, sea))
 	return minf(rest, _headroom(feet, feet_before))
 
@@ -903,7 +908,7 @@ func _water(
 ## surface, wade_depth under it or more.
 func _in_the_sea(player: PlayerState, pose_now: ShipPose) -> bool:
 	if player.body == PlayerState.Body.AIRBORNE:
-		var sea := pose_now.sea_height(player.pos.x, player.pos.z)
+		var sea := pose_now.water_height(player.pos)
 		var depth := sea - _bottom(player.pos, player.pos.y, sea)
 		return surfaces.wet(player.pos, pose_now) and depth >= _rules.wade_depth
 	return _sea_over(player.surface, player.pos, pose_now) >= _rules.wade_depth
@@ -911,7 +916,7 @@ func _in_the_sea(player: PlayerState, pose_now: ShipPose) -> bool:
 
 ## How deep the sea stands over [param surface] under [param feet]'s x/z.
 func _sea_over(surface: int, feet: Vector3, pose_now: ShipPose) -> float:
-	return pose_now.sea_height(feet.x, feet.z) - surfaces.height_at(surface, feet)
+	return pose_now.water_height(feet) - surfaces.height_at(surface, feet)
 
 
 ## Into the sea: whatever [param player] was readying is dropped, and a shove or a
@@ -931,7 +936,7 @@ func _fall_in(player: PlayerState, tick: int, events: Array[SimEvent]) -> void:
 ## After this tick's move: on the bottom, if it went under it; at rest, if it rose
 ## to it, or sank onto it no faster than the water floats a body.
 func _come_to_rest(player: PlayerState, feet_before: float, pose_now: ShipPose) -> void:
-	var sea := pose_now.sea_height(player.pos.x, player.pos.z)
+	var sea := pose_now.water_height(player.pos)
 	var bottom := _bottom(player.pos, feet_before, sea)
 	var rest := minf(maxf(sea - _rules.swim_depth, bottom), _headroom(player.pos, feet_before))
 	var rise := player.vel.y
@@ -962,7 +967,7 @@ func _start_climb(player: PlayerState, pose_now: ShipPose) -> void:
 	)
 	if climb == null:
 		return
-	var rise := climb.stand.y - pose_now.sea_height(climb.stand.x, climb.stand.z)
+	var rise := climb.stand.y - pose_now.water_height(climb.stand)
 	player.climb_left = maxi(_climb_ticks, Ticks.from_seconds(rise / _rules.ladder_speed))
 	player.climb_to = climb.stand
 	player.vel = Vector3.ZERO
@@ -1019,66 +1024,6 @@ func _out(player: PlayerState, tick: int) -> void:
 	player.bracing = false
 	player.climb_left = 0
 	_enter(player, PlayerState.Action.IDLE)
-
-
-## The sea settles it (§5): at the scenario's cap, or once every surface still
-## standing is wade_depth under the sea and every seat still in swims — when nothing
-## but the cold can change — they all go out by the cold, adding to [param exits],
-## but for the one with the most cold left when it has the most alone. A tie for the
-## most is a draw, the sea's; the verdict places the rest by the cold they had left.
-func _sea_settles(pose_now: ShipPose, tick: int, exits: Array[PlayerState]) -> void:
-	var live := _live_seats()
-	if live.size() < 2:
-		return
-	if schedule.cap_tick() == -1 or tick < schedule.cap_tick():
-		for player: PlayerState in live:
-			if player.body != PlayerState.Body.SWIMMING:
-				return
-		if not surfaces.sunk(pose_now, _rules.wade_depth):
-			return
-	var most := 0.0
-	var warmest := 0
-	for player: PlayerState in live:
-		if player.cold > most:
-			most = player.cold
-			warmest = 0
-		if player.cold == most:
-			warmest += 1
-	for player: PlayerState in live:
-		if warmest > 1 or player.cold != most:
-			_out(player, tick)
-			exits.append(player)
-
-
-## Seats out on the same tick share a place, unless their cold meters differ: more
-## cold left places higher. One or none left ends the match.
-func _verdict(exits: Array[PlayerState], tick: int, events: Array[SimEvent]) -> void:
-	if exits.is_empty():
-		return
-	var remaining := state.remaining()
-	for player: PlayerState in exits:
-		var warmer := 0
-		for other: PlayerState in exits:
-			if other.cold > player.cold:
-				warmer += 1
-		player.place = remaining + 1 + warmer
-		events.append(
-			SimEvent.seat_out(
-				tick,
-				player.seat,
-				player.place,
-				player.out_cause,
-				player.last_hit_by,
-				player.last_hit_crate
-			)
-		)
-	if remaining > 1:
-		return
-	state.phase = MatchState.Phase.ENDED
-	var winner := state.winner()
-	if winner != -1:
-		state.seats[winner].place = 1
-	events.append(SimEvent.match_ended(tick, winner))
 
 
 func _candidates(live: Array[PlayerState]) -> Array[ShoveResolver.Candidate]:

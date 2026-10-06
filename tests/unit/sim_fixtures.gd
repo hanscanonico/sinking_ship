@@ -5,12 +5,69 @@ extends RefCounted
 
 const RULES := "res://data/rules/brawl.tres"
 const FLAT_DECK := "res://data/ships/flat_deck.tres"
-const FLAT_SINKING := "res://data/sinking/flat.tres"
+const FLAT_SINKING := "res://tests/fixtures/sinking/flat.tres"
 const STEAMER := "res://data/ships/steamer.tres"
+## The steamer's sinking a match plays: the physics, from a drawn hit.
 const STEAMER_SINKING := "res://data/sinking/steamer_open_sea.tres"
+## The script SH6 sank her on, kept as a fixture for the mechanics it exercises —
+## lurches, collapses, slides — which the physics does not yet make (§5b.4).
+const STEAMER_SCRIPT := "res://tests/fixtures/sinking/steamer.tres"
 const NORMAL_BOT := "res://data/bots/normal.tres"
 ## A frame's look when none is given: step() sends the seat's own look instead.
 const KEEP_LOOK := -1
+
+## The steamer's match hits on seeds 1, 2, …, as the must-sink rule chose them: worked
+## out once for every suite that reads them (match_hits).
+static var _match_hits: Array[MustSink.Choice] = []
+
+
+## The steamer's match hits on seeds 1…[param count], as her matches choose them
+## (MustSink) — bakes alone, no match played (§5b.4).
+static func match_hits(count: int) -> Array[MustSink.Choice]:
+	var scenario: SinkScenario = load(STEAMER_SINKING)
+	var structure := steamer().structure
+	var sea := SeaPhysics.load_default()
+	while _match_hits.size() < count:
+		var stream := SeedStreams.derive(_match_hits.size() + 1, "sink")
+		_match_hits.append(MustSink.choose(structure, scenario, stream, sea))
+	return _match_hits.slice(0, count)
+
+
+## The explicit hit on the steamer's [param side] side from [param from] to [param to]
+## along her, [param depth] under her waterline, [param width] as one even slit, biting
+## [param bite] in, with the doors [param jammed] and the openings [param left_open].
+static func explicit_hit(
+	side: int,
+	from: float,
+	to: float,
+	depth: float,
+	width: float,
+	bite: float,
+	jammed: Array[StringName] = [],
+	left_open: Array[StringName] = []
+) -> IcebergHit:
+	var hit := IcebergHit.new()
+	hit.side = side
+	hit.start_x = from
+	hit.length = to - from
+	hit.depth_start = depth
+	hit.depth_end = depth
+	hit.width = width
+	hit.bite = bite
+	hit.jammed = jammed
+	hit.left_open = left_open
+	return hit
+
+
+## The bake of explicit [param hit] on the steamer, its area scaled by [param scale].
+static func bake(hit: IcebergHit, scale: float = 1.0) -> SinkTimeline:
+	var struck: IcebergHit = hit.duplicate()
+	struck.width = hit.width * scale
+	var structure := steamer().structure
+	var scenario: SinkScenario = load(STEAMER_SINKING)
+	var sea := SeaPhysics.load_default()
+	var damage := HitMapper.map_explicit(struck, structure, scenario.hit)
+	return SinkTimeline.bake(SinkStepper.new(structure, damage, sea), sea, scenario.bake_cap)
 
 
 static func rules() -> BrawlRules:
@@ -97,12 +154,9 @@ static func collapse(at: float, platform: StringName, warning: float = 3.0) -> S
 	return event
 
 
-## [param scenario] with [param events] and a cap at [param cap] seconds.
-static func with_events(
-	scenario: SinkScenario, events: Array[SinkEvent], cap: float = 0.0
-) -> SinkScenario:
+## [param scenario] with [param events].
+static func with_events(scenario: SinkScenario, events: Array[SinkEvent]) -> SinkScenario:
 	scenario.events = events
-	scenario.cap = cap
 	return scenario
 
 
@@ -202,7 +256,7 @@ static func sent(player: PlayerState) -> Vector2:
 static func swim(match_sim: MatchSim, seat: int, pos: Vector3, facing_deg: float = 0.0) -> void:
 	place(match_sim, seat, pos, facing_deg)
 	var player := match_sim.state.seats[seat]
-	var sea := match_sim.pose().sea_height(pos.x, pos.z)
+	var sea := match_sim.pose().water_height(pos)
 	player.pos.y = sea - match_sim.config.rules.swim_depth
 	player.body = PlayerState.Body.SWIMMING
 	player.surface = Surfaces.NONE

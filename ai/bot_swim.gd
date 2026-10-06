@@ -70,7 +70,7 @@ func find(cold: float, now_pos: Vector3, pose: ShipPose) -> void:
 		if way_out != null:
 			return
 	# What it swims over: the floor or the stair under the sea where it is.
-	var sea := Vector3(now_pos.x, pose.sea_height(now_pos.x, now_pos.z), now_pos.z)
+	var sea := Vector3(now_pos.x, pose.water_height(now_pos), now_pos.z)
 	var bottom := _surfaces.landing(sea)
 	var legs := _walk_graph.way_ashore(now_pos, bottom, pose)
 	if not legs.is_empty():

@@ -192,7 +192,7 @@ func _dress() -> void:
 	_ship.transform = schedule.pose_at(tick).transform
 	# The sea as a match has it at that moment: the dusk's gloom, the churn at her
 	# bow, and none of the sky on the water in her rooms.
-	_sea_and_sky.setup(schedule.cap_tick(), layout)
+	_sea_and_sky.setup(schedule.end_tick(), layout)
 	_sea_and_sky.show_sinking(tick, _ship.transform)
 	var bounds := layout.platforms[0].area
 	for platform: ShipPlatform in layout.platforms:

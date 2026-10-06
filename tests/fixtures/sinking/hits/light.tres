@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="IcebergHit" format=3]
+
+[ext_resource type="Script" path="res://core/sinking/iceberg_hit.gd" id="1_hit"]
+
+[resource]
+script = ExtResource("1_hit")
+moment = 20.0
+side = 1
+start_x = 6.0
+length = 3.0
+depth_start = 0.5
+depth_end = 0.5
+width = 0.01
+bite = 0.4

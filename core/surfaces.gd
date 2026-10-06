@@ -114,6 +114,8 @@ var _level_rects := PackedByteArray()
 ## stands on it and nothing else there, but for a crate.
 var _floors: Array[PackedInt32Array] = []
 var _floor_clearances: Array[PackedFloat64Array] = []
+## The watertight doors, as far shut as the last pose honoured has them.
+var _doors: DoorLeaves
 
 
 func _init(layout: ShipLayout) -> void:
@@ -155,19 +157,21 @@ func _init(layout: ShipLayout) -> void:
 		_level_rects.append(0 if is_ramp(surface) or _is_round_top(surface) else 1)
 	_index_floors()
 	_stand_props([])
+	_doors = DoorLeaves.new(layout.structure)
 
 
-## Takes [param pose]'s collapsed platforms and failed railings as the ship's until
-## the next pose, with the railings [param broken] by the match and its crates where
-## [param props] has them: whoever asks about a tick hands its pose here first. Holds
-## nothing it is not handed, so a match resumed from a snapshot stands on the same
-## ship.
+## Takes [param pose]'s collapsed platforms, failed railings and shut watertight
+## doors as the ship's until the next pose, with the railings [param broken] by the
+## match and its crates where [param props] has them: whoever asks about a tick hands
+## its pose here first. Holds nothing it is not handed, so a match resumed from a
+## snapshot stands on the same ship.
 func honour(pose: ShipPose, broken := PackedInt32Array(), props: Array[PropState] = []) -> void:
 	# A pose is a value, never changed once handed in: the same one with the same
 	# broken spans masks what it last masked. The cargo honours many times a tick. A
 	# copy, so a caller's list edited in place is not the one compared.
 	if pose != _honoured_pose or broken != _honoured_by_match:
 		_honoured_pose = pose
+		_doors.honour(pose)
 		_honoured_by_match = broken.duplicate()
 		var failed := pose.broken_railings.duplicate()
 		failed.append_array(broken)
@@ -435,6 +439,7 @@ func obstacle_contacts(
 		var contact := PlaneShapes.circle_contact(centre, _prop_radii[prop], point, radius)
 		if contact != null:
 			contacts.append(contact)
+	contacts.append_array(_doors.contacts(point, reach_up, head, radius))
 	return PlaneShapes.deepest_per_direction(contacts)
 
 
@@ -541,6 +546,9 @@ func railed(from_point: Vector3, to_point: Vector3, surface: int) -> bool:
 func blocked(from_point: Vector3, to_point: Vector3, body_height: float, step: float) -> bool:
 	var start := Vector2(from_point.x, from_point.z)
 	var end := Vector2(to_point.x, to_point.z)
+	var feet := minf(from_point.y, to_point.y)
+	if _doors.crossed(start, end, feet + step, maxf(from_point.y, to_point.y) + body_height):
+		return true
 	for surface: int in _near(Rect2(start, Vector2.ZERO).expand(end)):
 		if not _is_blocker_top(surface):
 			continue
@@ -604,6 +612,8 @@ func line_of_sight(from_point: Vector3, to_point: Vector3, pose: ShipPose) -> bo
 	var end := Vector2(to_point.x, to_point.z)
 	var low := minf(from_point.y, to_point.y)
 	var high := maxf(from_point.y, to_point.y)
+	if _doors.crossed(start, end, low, high):
+		return false
 	var reach := Rect2(start, Vector2.ZERO).expand(end)
 	for surface in count():
 		if _tops[surface] <= low or _bottoms[surface] >= high:
@@ -660,9 +670,11 @@ func drops(from_point: Vector3, to_point: Vector3, step: float) -> bool:
 	return false
 
 
-## Flooded is geometry (D7): below the sea plane under the schedule's pose.
+## Flooded is geometry (D7): below the water [param ship_point] is in under the
+## schedule's pose — its cell's, found by the pose's CellMap, or the sea's outside her.
 func wet(ship_point: Vector3, pose: ShipPose) -> bool:
-	return pose.world_height(ship_point) < 0.0
+	var height := pose.world_height(ship_point)
+	return height < pose.highest_water() and height < pose.water_level(ship_point)
 
 
 ## Whether [param surface] is under the water at its middle.
@@ -738,7 +750,7 @@ func climb_out(feet: Vector3, toward: Vector2, pose: ShipPose, rules: BrawlRules
 		if climb != null:
 			return climb
 	var probe := point + toward * radius * 2.0
-	var limit := pose.sea_height(probe.x, probe.y) + rules.climb_reach
+	var limit := pose.water_height(feet) + rules.climb_reach
 	var ledge := landing(Vector3(probe.x, limit, probe.y))
 	if ledge == NONE or _contains(ledge, feet):
 		return null
@@ -768,11 +780,12 @@ func nearest_climb(feet: Vector3, pose: ShipPose, rules: BrawlRules, within: flo
 			edges.append(at)
 			towards.append(_ladder_normals[index])
 	var box := Rect2(point - Vector2(within, within), Vector2(within, within) * 2.0)
+	var water := pose.water_height(feet)
 	for surface: int in _near(box):
 		if _gone[surface] == 1 or _is_round_top(surface):
 			continue
-		var at := _waterline_point(surface, point, pose)
-		var above := height_at(surface, Vector3(at.x, 0.0, at.y)) - pose.sea_height(at.x, at.y)
+		var at := _waterline_point(surface, point, water)
+		var above := height_at(surface, Vector3(at.x, 0.0, at.y)) - water
 		if above < -rules.wade_depth or above > rules.climb_reach or at.is_equal_approx(point):
 			continue
 		edges.append(at)
@@ -834,7 +847,7 @@ func _standing(
 	if surface == NONE or _is_round_top(surface):
 		return null
 	at.y = height_at(surface, at)
-	if pose.sea_height(at.x, at.z) - at.y >= rules.wade_depth:
+	if pose.water_height(at) - at.y >= rules.wade_depth:
 		return null
 	if not obstacle_contacts(at, rules.body_radius, rules.body_height, step).is_empty():
 		return null
@@ -844,17 +857,15 @@ func _standing(
 
 
 ## The point of [param surface] nearest [param point] (x/z) — on a ramp, moved along
-## it to where it meets the sea under [param pose], when it can.
-func _waterline_point(surface: int, point: Vector2, pose: ShipPose) -> Vector2:
+## it to where it meets the water at [param water], when it can.
+func _waterline_point(surface: int, point: Vector2, water: float) -> Vector2:
 	var area := _area(surface)
 	var at := point.clamp(area.position, area.end)
 	if not is_ramp(surface):
 		return at
 	var ramp := _ramps[surface - _platforms.size()]
 	var axis := 0 if ramp.axis == ShipRamp.Axis.X else 1
-	var share := (
-		(pose.sea_height(at.x, at.y) - ramp.start_height) / (ramp.end_height - ramp.start_height)
-	)
+	var share := (water - ramp.start_height) / (ramp.end_height - ramp.start_height)
 	at[axis] = area.position[axis] + area.size[axis] * clampf(share, 0.0, 1.0)
 	return at
 

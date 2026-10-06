@@ -150,6 +150,8 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _play(seats: int, tier: StringName, seed_text: String) -> void:
 	var config := MatchConfig.from_menu(_match_rules, seats, tier, seed_text, _seeds)
+	if config != null:
+		config.scenario = _args.struck(config.scenario)
 	var problems := _problems(config)
 	if not problems.is_empty():
 		if _args.autoplay:
@@ -325,6 +327,7 @@ func _problems(config: MatchConfig) -> PackedStringArray:
 			]
 		)
 	var found := config.problems()
+	found.append_array(_args.problems())
 	if _args.capture_eye >= config.seats:
 		found.append("capture: no seat %d in a %d-seat match" % [_args.capture_eye, config.seats])
 	var profile := BotProfile.for_tier(config.bot_tier)

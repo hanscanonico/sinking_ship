@@ -157,7 +157,7 @@ func test_a_lone_bot_stays_out_of_the_sea_from_every_spawn() -> void:
 	# the boat deck's stairs and past the gaps in the railings. Within the first minute
 	# no floor it can reach floods but the hold's, which it climbs out of in time.
 	var layout := SimFixtures.steamer()
-	var sinking: SinkScenario = load(SimFixtures.STEAMER_SINKING)
+	var sinking: SinkScenario = load(SimFixtures.STEAMER_SCRIPT)
 	for spawn: Vector3 in layout.spawns:
 		var runner := _bots(SimFixtures.config(1, sinking, SEED, layout))
 		SimFixtures.place(runner.sim, 0, spawn)
@@ -372,7 +372,7 @@ func test_lone_bot_climbs_out_before_its_floor_floods() -> void:
 	# — and from a cabin aft: the bot is out of the lower deck before the sea reaches
 	# the room it started in.
 	var layout := SimFixtures.steamer()
-	var sinking: SinkScenario = load(SimFixtures.STEAMER_SINKING)
+	var sinking: SinkScenario = load(SimFixtures.STEAMER_SCRIPT)
 	for start: Vector3 in [Vector3(8.0, -2.6, -2.0), Vector3(-7.0, -2.6, 2.8)]:
 		var room := layout.room_at(start, 0.01)
 		assert_ne(room, -1, "%s is in a room" % start)
