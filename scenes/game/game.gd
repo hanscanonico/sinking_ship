@@ -64,9 +64,9 @@ var _online: OnlinePlay
 var _view: ViewSettings
 ## The tick a capture is due at, past a --phys moment; -1 for --capture-at's.
 var _capture_tick := -1
-## The next blank-seed match's config, its seed drawn ahead so its sinking can be made
+## The next blank-seed match, its seed drawn ahead so its sinking can be made
 ## on the menu; the match held for its sinking, and how it will start.
-var _upcoming: MatchConfig
+var _upcoming: NextMatch
 var _holding: MatchConfig
 var _baker := SinkingBaker.new()
 var _hold := BakeHold.new()
@@ -101,6 +101,7 @@ func _ready() -> void:
 		push_error("\n".join(problems))
 		get_tree().quit(1)
 		return
+	_upcoming = NextMatch.new(_match_rules, _args, _seeds)
 	add_child(_baker)
 	add_child(_hold)
 	_baker.baked.connect(_on_baked)
@@ -188,12 +189,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _play(seats: int, tier: StringName, seed_text: String) -> void:
-	var typed := seed_text.strip_edges()
-	if typed.is_empty():
-		typed = str(_next().match_seed)
-	var config := MatchConfig.from_menu(_match_rules, seats, tier, typed, _seeds)
-	if config != null:
-		config.scenario = _args.struck(config.scenario)
+	var config := _upcoming.chosen(seats, tier, seed_text)
 	var problems := _problems(config)
 	if not problems.is_empty():
 		if _args.autoplay:
@@ -204,8 +200,7 @@ func _play(seats: int, tier: StringName, seed_text: String) -> void:
 		return
 	_seats = seats
 	_tier = tier
-	if config.share_sinking(_upcoming):
-		_upcoming = null
+	_upcoming.take(config)
 	_menu.hide()
 	if config.bake_some(0):
 		_start(config)
@@ -219,18 +214,10 @@ func _play(seats: int, tier: StringName, seed_text: String) -> void:
 	_baker.bake(config, _args.bake_budget_ms if _args.bake_budget_ms > 0.0 else HOLD_BAKE_MS)
 
 
-## The next blank-seed match, its seed drawn now if it was not yet.
-func _next() -> MatchConfig:
-	if _upcoming == null:
-		_upcoming = MatchConfig.from_rules(_match_rules, _seeds.randi())
-		_upcoming.scenario = _args.struck(_upcoming.scenario)
-	return _upcoming
-
-
 ## Bakes the next blank-seed match's sinking on, gently, while nothing plays.
 func _bake_upcoming() -> void:
-	if _baker.baking() == null and not _next().bake_some(0):
-		_baker.bake(_upcoming, MENU_BAKE_MS)
+	if _baker.baking() == null and not _upcoming.config().bake_some(0):
+		_baker.bake(_upcoming.config(), MENU_BAKE_MS)
 
 
 func _on_baked(config: MatchConfig) -> void:
