@@ -70,6 +70,16 @@ func pose() -> ShipPose:
 	return _pose
 
 
+## How many seats are still in the match in the delayed snapshot: the HUD's "Seats
+## left", which every player reads on screen, not a sighting.
+func seats_left() -> int:
+	var left := 0
+	for entry: Dictionary in _snapshots[0]["seats"]:
+		if not entry["out"]:
+			left += 1
+	return left
+
+
 func _perceive(delayed: Dictionary) -> Dictionary:
 	var me := {}
 	for entry: Dictionary in delayed["seats"]:

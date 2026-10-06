@@ -108,8 +108,9 @@ static func abeam(rotation: PackedFloat64Array, x: float, y: float, z: float) ->
 	return rotation[6] * x + rotation[7] * y + rotation[8] * z
 
 
-## The sine of [param degrees], within a right angle either way: a power series, so a
-## limit in degrees from the data is read without a sine.
+## The sine of [param degrees], within a right angle either way: its power series to
+## the fifteenth power, always the same eight terms in the same order, so a limit in
+## degrees from the data is read inside the bake without a sine (R21).
 static func sine_of_degrees(degrees: float) -> float:
 	var x := degrees * PI / 180.0
 	var term := x

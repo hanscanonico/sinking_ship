@@ -277,7 +277,8 @@ func test_king_of_hill_targets_the_highest_seat() -> void:
 ## hand above the sea: the bridge still stands highest, a seat waits up there, but a bot
 ## on the boat deck that has watched the water come up forward goes down while the way
 ## aft is dry and makes for the poop deck, the end she rises by — it is not left on an
-## island the sea closes round.
+## island the sea closes round. The two seats stand for a full match: neither is down
+## to hunting the last seats left.
 func test_a_bot_leaves_an_island_to_be_for_the_last_refuge() -> void:
 	var layout := SimFixtures.steamer()
 	var by_the_head := SimFixtures.scenario([[0.0, 2.5, 4.0, 0.0], [10.0, 2.5, 8.0, 0.0]])
@@ -290,7 +291,9 @@ func test_a_bot_leaves_an_island_to_be_for_the_last_refuge() -> void:
 	var pose := sim.pose()
 	var found := graph.search(sim.state.seats[0].pos, sim.state.seats[0].surface, pose)
 	assert_eq(graph.highest_in(found, pose), bridge, "the bridge stands highest now")
-	var source := BotInputSource.new(0, _tier(&"normal"), sim.config)
+	var profile: BotProfile = _tier(&"normal").duplicate()
+	profile.hunt_at_seats = 0
+	var source := BotInputSource.new(0, profile, sim.config)
 	var runner := _runner(sim, source)
 	var reached := false
 	for _tick in 30 * Ticks.RATE:
@@ -474,63 +477,98 @@ func test_a_bot_knocked_off_its_feet_climbing_out_climbs_on() -> void:
 	assert_eq(let_go, 0, "ticks it was not climbing out on the way")
 
 
-## On a level ship a bot spars: its target a metre from the railing, it holds the shove
-## that would send it at the rail and over, and throws the one that sends it along the
-## deck — and with no spar margin it throws both.
+## On a level ship, early on, a bot spars: its target a metre from the railing, it
+## holds the shove that would send it at the rail and over, and throws the one that
+## sends it along the deck — and with no spar margin it throws both.
 func test_on_a_level_ship_a_bot_spars() -> void:
+	for from_deg: float in [90.0, 0.0]:
+		var label := "from inboard" if from_deg == 90.0 else "along the deck"
+		assert_eq(_spar_shoves(2.5, from_deg, 3, 0.0), from_deg == 0.0, "sparring: " + label)
+		assert_true(_spar_shoves(0.0, from_deg, 3, 0.0), "no spar margin: " + label)
+
+
+## A level ship that stays level does not hold the bots sparring: spar_for_s after the
+## match went live, with nothing flooded, the shove at the railing is thrown.
+func test_a_bot_spars_no_more_once_the_match_has_gone_on() -> void:
+	var spar_for := _tier(&"normal").spar_for_s
+	assert_false(_spar_shoves(2.5, 90.0, 3, spar_for * 0.5), "halfway: still sparring")
+	assert_true(_spar_shoves(2.5, 90.0, 3, spar_for), "from spar_for_s: the shove at the rail")
+
+
+## Down to the last two seats on a dry, level ship, the opening's spar margin counts for
+## nothing: the shove toward the water is thrown.
+func test_the_last_two_seats_fight_to_the_death() -> void:
+	assert_true(_spar_shoves(2.5, 90.0, 2, 0.0), "two left: the shove at the railing")
+
+
+## Whether the normal bot, a gap behind its target a metre from the railing — coming
+## from [param from_deg], 90 from inboard — throws a shove within a second, with a spar
+## margin of [param spar], [param seats] seats in the match — any third well off down
+## the deck — and [param live_s] seconds of it gone.
+func _spar_shoves(spar: float, from_deg: float, seats: int, live_s: float) -> bool:
 	var rules := SimFixtures.rules()
 	var gap := rules.body_radius * 2.0 + 0.3
 	var target_at := Vector3(-6.0, 0.0, 3.0)
-	var shoved := {}
-	for spar: float in [2.5, 0.0]:
-		# From inboard, at the railing behind it; from aft, along the deck.
-		for from_deg: float in [90.0, 0.0]:
-			var profile: BotProfile = _tier(&"normal").duplicate()
-			profile.brace_read = 0.0
-			profile.mistake_rate = 0.0
-			profile.spar_margin_m = spar
-			profile.spar_until = 0.5
-			var sim := SimFixtures.sim(2)
-			var way := Vector2.from_angle(deg_to_rad(from_deg)) * gap
-			SimFixtures.place(sim, 0, target_at - Vector3(way.x, 0.0, way.y), from_deg)
-			SimFixtures.place(sim, 1, target_at)
-			var source := BotInputSource.new(0, profile, sim.config)
-			var pressed := false
-			for tick in Ticks.RATE:
-				source.observe(sim.snapshot(), sim.pose())
-				pressed = (
-					pressed or source.next_frame(sim.state.tick + tick).is_held(InputFrame.SHOVE)
-				)
-			shoved[[spar, from_deg]] = pressed
-	assert_false(shoved[[2.5, 90.0]], "sparring: no shove at the railing")
-	assert_true(shoved[[2.5, 0.0]], "sparring: a shove along the deck")
-	assert_true(shoved[[0.0, 90.0]], "no spar margin: the shove at the railing")
-	assert_true(shoved[[0.0, 0.0]], "no spar margin: the shove along the deck")
+	var profile: BotProfile = _tier(&"normal").duplicate()
+	profile.brace_read = 0.0
+	profile.mistake_rate = 0.0
+	profile.spar_margin_m = spar
+	profile.spar_until = 0.5
+	var sim := SimFixtures.sim(seats)
+	var way := Vector2.from_angle(deg_to_rad(from_deg)) * gap
+	SimFixtures.place(sim, 0, target_at - Vector3(way.x, 0.0, way.y), from_deg)
+	SimFixtures.place(sim, 1, target_at)
+	if seats > 2:
+		SimFixtures.place(sim, 2, Vector3(10.0, 0.0, -3.0))
+	var source := BotInputSource.new(0, profile, sim.config)
+	var pressed := _go_live_for(source, sim, live_s)
+	for tick in Ticks.RATE:
+		source.observe(sim.snapshot(), sim.pose())
+		pressed = pressed or source.next_frame(sim.state.tick + tick).is_held(InputFrame.SHOVE)
+	return pressed
+
+
+## [param source]'s bot sees [param sim] go live, then [param live_s] seconds on —
+## the clock moved, nobody moved: whether it shoved as it went live.
+func _go_live_for(source: BotInputSource, sim: MatchSim, live_s: float) -> bool:
+	source.observe(sim.snapshot(), sim.pose())
+	var pressed := source.next_frame(sim.state.tick).is_held(InputFrame.SHOVE)
+	sim.state.tick += Ticks.from_seconds(live_s)
+	return pressed
 
 
 ## Sparring, a bot answers a brace with a tap, never a charge — a charge sends a body
-## over a railing from metres off; with no spar margin it charges it on its read.
+## over a railing from metres off; with no spar margin it charges it on its read, and
+## so it does down to the last two seats.
 func test_a_sparring_bot_does_not_charge_a_brace() -> void:
+	assert_eq(_longest_press(2.5, 3), 1, "sparring: a tap")
+	assert_gt(_longest_press(0.0, 3), 1, "no spar margin: a charge, held")
+	assert_gt(_longest_press(2.5, 2), 1, "two left: a charge, held")
+
+
+## The most ticks running the hard bot holds its shove against a bracing seat facing it,
+## over a second, with a spar margin of [param spar] and [param seats] seats in the
+## match — any third well off down the deck.
+func _longest_press(spar: float, seats: int) -> int:
 	var rules := SimFixtures.rules()
 	var gap := rules.body_radius * 2.0 + 0.3
-	var held := {}
-	for spar: float in [2.5, 0.0]:
-		var profile: BotProfile = _tier(&"hard").duplicate()
-		profile.brace_read = 0.0
-		profile.charge_read = 1.0
-		profile.spar_margin_m = spar
-		profile.spar_until = 0.5
-		var sim := SimFixtures.sim(2)
-		SimFixtures.place(sim, 0, Vector3(-gap, 0.0, 0.0), 0.0)
-		SimFixtures.place(sim, 1, Vector3.ZERO, 180.0)
-		sim.state.seats[1].bracing = true
-		var source := BotInputSource.new(0, profile, sim.config)
-		var run := 0
-		held[spar] = 0
-		for tick in Ticks.RATE:
-			source.observe(sim.snapshot(), sim.pose())
-			var pressed := source.next_frame(sim.state.tick + tick).is_held(InputFrame.SHOVE)
-			run = run + 1 if pressed else 0
-			held[spar] = maxi(held[spar], run)
-	assert_eq(held[2.5], 1, "sparring: a tap")
-	assert_gt(held[0.0], 1, "no spar margin: a charge, held")
+	var profile: BotProfile = _tier(&"hard").duplicate()
+	profile.brace_read = 0.0
+	profile.charge_read = 1.0
+	profile.spar_margin_m = spar
+	profile.spar_until = 0.5
+	var sim := SimFixtures.sim(seats)
+	SimFixtures.place(sim, 0, Vector3(-gap, 0.0, 0.0), 0.0)
+	SimFixtures.place(sim, 1, Vector3.ZERO, 180.0)
+	if seats > 2:
+		SimFixtures.place(sim, 2, Vector3(10.0, 0.0, -3.0))
+	sim.state.seats[1].bracing = true
+	var source := BotInputSource.new(0, profile, sim.config)
+	var run := 0
+	var held := 0
+	for tick in Ticks.RATE:
+		source.observe(sim.snapshot(), sim.pose())
+		var pressed := source.next_frame(sim.state.tick + tick).is_held(InputFrame.SHOVE)
+		run = run + 1 if pressed else 0
+		held = maxi(held, run)
+	return held

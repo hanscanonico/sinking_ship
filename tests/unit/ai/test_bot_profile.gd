@@ -89,6 +89,9 @@ func test_each_knob_out_of_range_is_named() -> void:
 	var lonely: BotProfile = normal.duplicate()
 	lonely.crowd_seats = 0
 	assert_eq(lonely.problems(), PackedStringArray(["bot: crowd_seats must be at least 1"]))
+	var eager: BotProfile = normal.duplicate()
+	eager.hunt_at_seats = -1
+	assert_eq(eager.problems(), PackedStringArray(["bot: hunt_at_seats must not be negative"]))
 
 
 ## The refuge reads what the bot has seen over a window of its own, and marks a zone
@@ -109,10 +112,32 @@ func test_the_spar_margin_fades_as_the_ship_goes_under() -> void:
 		var full := profile.spar_margin_m
 		var until := profile.spar_until
 		assert_gt(until, 0.0, "%s: it spars until some of the ship is under" % tier)
-		assert_eq(profile.spar_margin(0.0), full, "%s: dry, the whole margin" % tier)
-		assert_almost_eq(profile.spar_margin(until * 0.5), full * 0.5, 1e-9, tier)
-		assert_eq(profile.spar_margin(until), 0.0, "%s: from spar_until, none" % tier)
-		assert_eq(profile.spar_margin(1.0), 0.0, tier)
+		assert_eq(profile.spar_margin(0.0, 0.0), full, "%s: dry, the whole margin" % tier)
+		assert_almost_eq(profile.spar_margin(until * 0.5, 0.0), full * 0.5, 1e-9, tier)
+		assert_eq(profile.spar_margin(until, 0.0), 0.0, "%s: from spar_until, none" % tier)
+		assert_eq(profile.spar_margin(1.0, 0.0), 0.0, tier)
 	var never: BotProfile = BotProfile.for_tier(&"normal").duplicate()
 	never.spar_until = 0.0
-	assert_eq(never.spar_margin(0.0), 0.0, "spar_until 0: it never spars")
+	assert_eq(never.spar_margin(0.0, 0.0), 0.0, "spar_until 0: it never spars")
+
+
+## A bot spars only while the match is young too: its whole margin as it goes live,
+## half of it halfway through spar_for_s, none from spar_for_s on with nothing flooded
+## — and the nearer of the two fades counts.
+func test_the_spar_margin_fades_as_the_match_goes_on() -> void:
+	for tier: String in BotProfile.tiers():
+		var profile := BotProfile.for_tier(StringName(tier))
+		var full := profile.spar_margin_m
+		var spar_for := profile.spar_for_s
+		assert_gt(spar_for, 0.0, "%s: it spars for a while from going live" % tier)
+		assert_almost_eq(profile.spar_margin(0.0, spar_for * 0.5), full * 0.5, 1e-9, tier)
+		assert_eq(profile.spar_margin(0.0, spar_for), 0.0, "%s: from spar_for_s, none" % tier)
+		assert_eq(profile.spar_margin(0.0, spar_for * 4.0), 0.0, tier)
+		var under := profile.spar_until * 0.25
+		assert_almost_eq(
+			profile.spar_margin(under, spar_for * 0.5), full * 0.5, 1e-9, "%s: the nearer" % tier
+		)
+		assert_almost_eq(
+			profile.spar_margin(profile.spar_until * 0.75, spar_for * 0.5), full * 0.25, 1e-9, tier
+		)
+		assert_gte(profile.hunt_at_seats, 2, "%s: the last two hunt each other" % tier)

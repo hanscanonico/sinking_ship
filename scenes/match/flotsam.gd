@@ -4,8 +4,10 @@ extends Node3D
 ## thrown from the ship onto the sea, then floating low in it, rocking, and drifting
 ## slowly away from the hull. Small and low — a few centimetres of each stand out
 ## of the water — so none reads as a raft; the rules have none, and nothing here is
-## a surface (D6): drawn only. At most CAP pieces: once every one is out, the one
-## out longest is thrown again.
+## a surface (D6): drawn only. A piece over a deck that comes back up toward the sea
+## as she rights goes under before the deck is shallow enough to wade on, so none is
+## ever left on the sea over a floor the rules stand a body on. At most CAP pieces:
+## once every one is out, the one out longest is thrown again.
 
 signal landed(at: Vector3, strength: float)
 
@@ -29,6 +31,12 @@ const TURN := 0.25
 const SPLASH_SPEED := 8.0
 ## Metres from the eye past which a piece is not drawn.
 const FAR := 160.0
+## A piece goes under once the deck beneath it stands less than this much deeper
+## than wading depth under the sea — a margin for the deck rising between two
+## looks — sinking this far in this many seconds, then gone.
+const UNDER_LEAD := 0.15
+const SINK_DEPTH := 0.4
+const SINK_SECONDS := 0.6
 ## A plank, a crate, a deck chair and a lifebelt, as FxCue.Piece numbers them; the
 ## crate's lid and battens, and how far each kind stands out of the water.
 const PLANK := Vector3(1.1, 0.07, 0.16)
@@ -44,7 +52,7 @@ const TOP_RIM := 0.0
 const SIDE_RIM := 0.55
 const UNDER_RIM := 1.0
 
-enum State { IDLE, FLYING, AFLOAT }
+enum State { IDLE, FLYING, AFLOAT, SINKING }
 
 const SHADER := preload("res://scenes/match/flotsam.gdshader")
 
@@ -61,6 +69,10 @@ var _away := PackedVector2Array()
 ## Seconds since it was thrown.
 var _age := PackedFloat32Array()
 var _rng := RandomNumberGenerator.new()
+## The decks a piece may come to float over, and how far under the sea one must
+## stand for a piece to stay afloat over it.
+var _decks: Array[ShipPlatform] = []
+var _shallow := 0.0
 
 
 func _init() -> void:
@@ -109,6 +121,31 @@ func throw(piece: FxCue.Piece, from: Vector3, to: Vector3, away: Vector2) -> voi
 	_away[index] = away.normalized() if away != Vector2.ZERO else Vector2.RIGHT
 
 
+## Floats over the decks of [param layout], which a body wades on within
+## [param wade] of the sea, from a clean start.
+func setup(layout: ShipLayout, wade: float) -> void:
+	_decks = layout.platforms
+	_shallow = wade + UNDER_LEAD
+	clear()
+
+
+## Sends under every piece afloat over a deck that stands less than wading depth
+## and UNDER_LEAD under the sea with the ship at [param ship] (ship to world).
+func go_under_shallows(ship: Transform3D) -> void:
+	var to_ship := ship.affine_inverse()
+	for index in CAP:
+		if _state[index] != State.AFLOAT:
+			continue
+		var on_ship := to_ship * _pieces[index].position
+		for deck: ShipPlatform in _decks:
+			if not deck.area.has_point(Vector2(on_ship.x, on_ship.z)):
+				continue
+			if (ship * Vector3(on_ship.x, deck.height, on_ship.z)).y > -_shallow:
+				_state[index] = State.SINKING
+				_age[index] = 0.0
+				break
+
+
 ## Every piece gone.
 func clear() -> void:
 	for index in CAP:
@@ -124,6 +161,8 @@ func advance(delta: float) -> void:
 				_fly(index, delta)
 			State.AFLOAT:
 				_float(index, delta)
+			State.SINKING:
+				_sink(index, delta)
 
 
 ## Where every piece afloat is, in the world.
@@ -179,6 +218,16 @@ func _float(index: int, delta: float) -> void:
 	drawn.transform = Transform3D(
 		Basis(Vector3.UP, _yaw[index]) * tilt, drawn.position + drift * delta
 	)
+
+
+func _sink(index: int, delta: float) -> void:
+	_age[index] += delta
+	var drawn := _pieces[index]
+	if _age[index] >= SINK_SECONDS:
+		_state[index] = State.IDLE
+		drawn.visible = false
+		return
+	drawn.position.y -= SINK_DEPTH / SINK_SECONDS * delta
 
 
 ## A piece not out, or else the one out longest.

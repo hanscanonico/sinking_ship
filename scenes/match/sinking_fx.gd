@@ -128,6 +128,7 @@ const WET_SHADER := preload("res://scenes/match/wet_deck.gdshader")
 
 var _driver: SimDriver
 var _view: MatchView
+var _schedule: SinkSchedule
 ## The ship's layout, and the step a room's floor is told from the deck by.
 var _layout: ShipLayout
 var _step := 0.0
@@ -307,8 +308,10 @@ func setup(driver: SimDriver, view: MatchView, sim: MatchSim, sun: Vector3) -> v
 		_driver.stepped.disconnect(_on_stepped)
 	_driver = driver
 	_view = view
+	_schedule = sim.schedule
 	_layout = sim.config.ship
 	_step = sim.config.rules.step_height
+	_flotsam.setup(sim.config.ship, sim.config.rules.wade_depth)
 	_planner = FxPlanner.new(sim.config, sim.surfaces, sim.schedule)
 	var falls: Array[StringName] = []
 	for event: SinkEvent in sim.config.scenario.events:
@@ -439,6 +442,10 @@ func _on_stepped(_events: Array[SimEvent]) -> void:
 		var feet: Vector3 = _driver.current["seats"][_view.eye_seat()]["pos"]
 		eye_room = _layout.room_at(feet, _step)
 	play(cues, ship, get_viewport().get_camera_3d(), eye_room)
+	# Against the ship as stepped, not as last drawn: a deck righting under a piece
+	# sends it under before the deck is wadeable.
+	var pose := _schedule.pose_at(_driver.current["tick"])
+	_flotsam.go_under_shallows(_view.global_transform * pose.transform)
 	if _wet_overlays.is_empty():
 		return
 	# One deck a step, round them all in turn, so no step pays for them all.
