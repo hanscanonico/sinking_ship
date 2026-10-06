@@ -45,3 +45,4 @@ detour_after_s = 1.0
 eye_height_m = 1.6
 hearing_m = 6.0
 memory_seconds = 3.0
+dark_sight_m = 5.0

@@ -28,8 +28,11 @@ extends Resource
 @export var heave_damping: float
 @export var roll_damping: float
 @export var pitch_damping: float
-## What she carries that the sinking acts on: her lifeboats (SH27).
+## What she carries that the sinking acts on: her lifeboats (SH27), her funnels, her
+## generator and her pumps (SH31).
 @export var fittings: Array[ShipFitting] = []
+## How much bending her hull carries (SH31); null for a hull nobody measures.
+@export var strength: GirderStrength
 ## Where along her (x) and up her shell (y) an iceberg's gash can be at all.
 @export var hit_zone_x: Vector2
 @export var hit_zone_y: Vector2
@@ -128,6 +131,11 @@ func problems() -> PackedStringArray:
 			found.append("structure: a fitting is missing")
 			continue
 		found.append_array(fitting.problems())
+		for named: StringName in [fitting.cell] + fitting.emergency_cells:
+			if not named.is_empty() and cell_named(named) == -1:
+				found.append("structure: fitting %s names no cell %s" % [fitting.name, named])
+	if strength != null:
+		found.append_array(strength.problems())
 	if roll_radius <= 0.0 or pitch_radius <= 0.0 or added_mass < 0.0:
 		found.append("structure: radii of gyration must be positive, added mass not negative")
 	if heave_damping < 0.0 or roll_damping < 0.0 or pitch_damping < 0.0:

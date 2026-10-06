@@ -33,12 +33,15 @@ extends Resource
 ## The most simulated seconds a bake runs: past it, a hit still afloat is afloat.
 @export var bake_cap: float
 ## The must-sink rule's bounds (§5b.1): hits the quick check may throw out, bakes
-## before the fallback, and the fallback's rungs; and the dry deck, in metres, the
-## quick check needs to spare to throw a hit out.
+## before the fallback, and the fallback's rungs; the dry deck, in metres, the quick
+## check needs to spare to throw a hit out; and from SH31 the share of each failure's
+## head at which it lets water through what can give way — under 1, since its still,
+## first-order picture of her misses the heads and lists the bake passes through.
 @export var quick_redraws: int
 @export var bakes: int
 @export var rungs: int
 @export var spare_deck: float
+@export var quick_failing: float = 1.0
 
 
 ## Whether a match's sea is drawn: a band of waves, not a still sea.
@@ -89,4 +92,6 @@ func problems() -> PackedStringArray:
 		found.append("sinking: the physics needs a clock and a bake's cap")
 	if quick_redraws < 0 or bakes < 0 or rungs < 0 or spare_deck < 0.0:
 		found.append("sinking: the must-sink rule's bounds must not be negative")
+	if quick_failing <= 0.0 or quick_failing > 1.0:
+		found.append("sinking: the quick check's share of a failure's head must be within 0…1")
 	return found

@@ -107,6 +107,31 @@ func add(events: Array[SimEvent]) -> void:
 				_lines.append("%s air trapped in %s" % [clock(event.tick), event.cell])
 			SimEvent.Kind.AIR_VENTED:
 				_lines.append("%s air let out of %s" % [clock(event.tick), event.cell])
+			SimEvent.Kind.OPENING_LEAKING:
+				_lines.append("%s %s leaking" % [clock(event.tick), event.cell])
+			SimEvent.Kind.OPENING_GAVE_WAY:
+				_lines.append("%s %s gave way" % [clock(event.tick), event.cell])
+			SimEvent.Kind.FUNNEL_STRAINING:
+				_lines.append("%s %s creaking" % [clock(event.tick), event.cell])
+			SimEvent.Kind.FUNNEL_FALLING:
+				_lines.append("%s %s falling" % [clock(event.tick), event.cell])
+			SimEvent.Kind.POWER_LOST:
+				_lines.append("%s %s stopped" % [clock(event.tick), event.cell])
+			SimEvent.Kind.POWER_BACK:
+				_lines.append("%s %s running again" % [clock(event.tick), event.cell])
+			SimEvent.Kind.LIGHTS_OUT:
+				_lines.append("%s lights out" % clock(event.tick))
+			SimEvent.Kind.LAMPS_DROWNED:
+				_lines.append("%s %s lamps drowned" % [clock(event.tick), event.cell])
+			SimEvent.Kind.HULL_STRESSED:
+				_lines.append("%s hull creaking" % clock(event.tick))
+			SimEvent.Kind.KNOCKED_DOWN:
+				_lines.append(
+					(
+						"%s seat %d knocked down by the %s"
+						% [clock(event.tick), event.seat, event.cell]
+					)
+				)
 
 
 ## " · credit crate n" for an exit a crate is credited with — " shoved by seat s"
@@ -219,6 +244,20 @@ func _sinking(sim: MatchSim) -> void:
 			"%s: %s · trim %+.1f° · list %+.1f° · %s"
 			% [played, ends[timeline.end], going.trim_deg, going.heel_deg, labels]
 		)
+	)
+	_lines.append(bending(timeline))
+
+
+## How far [param timeline]'s bending came toward her strength at its worst, where along
+## her, and which way it bent her (HullGirder).
+static func bending(timeline: SinkTimeline) -> String:
+	return (
+		"bending peak %.2f of strength, x %+.1f m, %s"
+		% [
+			absf(timeline.bending),
+			timeline.bending_x,
+			"hogging" if timeline.bending >= 0.0 else "sagging",
+		]
 	)
 
 

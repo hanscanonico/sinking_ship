@@ -39,7 +39,9 @@ func _begun(fixture: RoomFixtures, player: RoomClient) -> MatchConfig:
 
 
 func test_client_plays_the_hosts_timeline() -> void:
-	var fixture := RoomFixtures.new()
+	# Every page due at once — its lead longer than any sinking — so the whole of it is
+	# here to play, however many pages it runs to.
+	var fixture := RoomFixtures.new(RoomFixtures.rules_with({"timeline_lead": 1e6}))
 	var player := fixture.room_of(1)[0]
 	var config := _begun(fixture, player)
 	assert_not_null(config, "the match began")

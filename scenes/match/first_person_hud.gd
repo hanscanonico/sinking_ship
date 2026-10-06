@@ -298,6 +298,9 @@ func _draw_warnings(pose: ShipPose, tick: int) -> void:
 		warnings.append("LURCH TO %s — BRACE (%s)" % [side, _prompts.word(&"brace")])
 	for going: StringName in pose.collapsing:
 		warnings.append("THE %s IS GOING" % String(going).to_upper())
+	for fall: FunnelFall in pose.falls:
+		if tick < fall.falls_at:
+			warnings.append("THE %s IS STRAINING" % String(fall.fitting.name).to_upper())
 	if warnings.is_empty() or tick / BLINK_TICKS % 2 == 1:
 		return
 	var at := Vector2(_canvas.size.x * 0.5, _canvas.size.y * 0.5 - 90.0)

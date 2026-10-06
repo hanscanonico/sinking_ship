@@ -6,18 +6,23 @@ extends GutTest
 const ANDREA_DORIA := "res://tests/fixtures/wrecks/andrea_doria.tres"
 const LUSITANIA := "res://tests/fixtures/wrecks/lusitania.tres"
 const STOCKHOLM := "res://tests/fixtures/wrecks/stockholm.tres"
+const COSTA_CONCORDIA := "res://tests/fixtures/wrecks/costa_concordia.tres"
+const EMPRESS := "res://tests/fixtures/wrecks/empress_of_ireland.tres"
 const MARGINS: Array[float] = [0.9, 1.0, 1.1]
 ## Bakes run this long at most, in physics seconds.
 const CAP := 7200.0
 
 
-## [param path]'s wreck baked alone, every hole [param scale] times as big.
-func _bake(path: String, scale: float) -> SinkTimeline:
+## [param path]'s wreck baked alone, every hole [param scale] times as big — and with
+## [param ports_shut] every porthole shut.
+func _bake(path: String, scale: float, ports_shut := false) -> SinkTimeline:
 	var wreck: WreckHull = load(path)
 	var structure := wreck.structure()
 	for opening: ShipOpening in structure.openings:
 		if opening.kind == ShipOpening.Kind.GASH:
 			opening.area *= scale
+		if ports_shut and opening.kind == ShipOpening.Kind.PORTHOLE:
+			opening.starts = ShipOpening.Start.SHUT
 	var sea := SeaPhysics.load_default()
 	return SinkTimeline.bake(SinkStepper.new(structure, HitDamage.new(), sea), sea, CAP)
 
@@ -79,3 +84,44 @@ func test_stockholm_bow_damage_survives() -> void:
 		assert_between(bow - wreck.draught, 0.0, 1.5, "× %s: by the head, under 1.5 m" % scale)
 		assert_gt(BoxBarge.trim_deg(rotation), 0.0, "× %s: bow down" % scale)
 		assert_lt(absf(BoxBarge.heel_deg(rotation)), 3.0, "× %s: under 3° of list" % scale)
+
+
+func test_costa_concordia_blackout_within_5_min() -> void:
+	# The rock opens her engine rooms and their switchboards: her generators drown, and
+	# with no emergency power to carry the load she is dark within five minutes.
+	for scale: float in MARGINS:
+		var timeline := _bake(COSTA_CONCORDIA, scale)
+		var dark := _first(timeline, SinkTimeline.Kind.LIGHTS_OUT, &"")
+		assert_between(dark, 0.0, 300.0, "× %s: dark within 5 min" % scale)
+
+
+func test_empress_ports_open_against_ports_shut() -> void:
+	# Her sidescuttles left open, she lists 15–20° to starboard within 5 min, her lights go
+	# by 6 min, she is on her side — past 80° — between 8 and 12 min and gone between 12
+	# and 20; the same hit with every porthole shut leaves her afloat, 2.5–3 m deeper
+	# amidships, listing under 10°.
+	var wreck: WreckHull = load(EMPRESS)
+	for scale: float in MARGINS:
+		var open := _bake(EMPRESS, scale)
+		var most := 0.0
+		var on_side := -1.0
+		for frame in open.count():
+			var heel := BoxBarge.heel_deg(_rotation(open, frame))
+			if open.times[frame] <= 300.0:
+				most = maxf(most, heel)
+			if on_side < 0.0 and absf(heel) >= 80.0:
+				on_side = open.times[frame]
+		assert_between(most, 15.0, 20.0, "× %s: 15–20° to starboard within 5 min" % scale)
+		var dark := _first(open, SinkTimeline.Kind.LIGHTS_OUT, &"")
+		assert_between(dark, 0.0, 360.0, "× %s: dark by 6 min" % scale)
+		assert_between(on_side, 480.0, 720.0, "× %s: on her side at 8–12 min" % scale)
+		assert_true(open.is_gone(), "× %s: gone" % scale)
+		assert_between(open.gone_at, 720.0, 1200.0, "× %s: at 12–20 min" % scale)
+		var shut := _bake(EMPRESS, scale, true)
+		assert_eq(shut.end, SinkTimeline.End.AFLOAT, "× %s, ports shut: afloat" % scale)
+		var last := shut.count() - 1
+		var rotation := _rotation(shut, last)
+		var deeper := BoxBarge.draught_at(rotation, shut.seas[last], 0.0, -wreck.draught)
+		deeper -= wreck.draught
+		assert_between(deeper, 2.5, 3.0, "× %s, ports shut: 2.5–3 m deeper" % scale)
+		assert_lt(absf(BoxBarge.heel_deg(rotation)), 10.0, "× %s, ports shut: under 10°" % scale)

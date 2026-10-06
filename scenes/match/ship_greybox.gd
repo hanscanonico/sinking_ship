@@ -71,6 +71,12 @@ var _rails: Array[Node3D] = []
 ## Per crate of the layout's cargo, the node its box hangs from at its underside.
 var _crates: Array[Node3D] = []
 var _flash: StandardMaterial3D
+## Per room's lamp marker, its glow and the cell it hangs in (SH31): lit as the pose has
+## the cell; and per funnel the sinking can fell, by name, the node its cylinder hangs
+## from.
+var _glows: Array[StandardMaterial3D] = []
+var _glow_cells := PackedInt32Array()
+var _funnels := {}
 
 
 ## [param railing_height] is the rules' — how high every railing stands.
@@ -82,6 +88,9 @@ func build(layout: ShipLayout, railing_height: float) -> void:
 	_floors.clear()
 	_rails.clear()
 	_crates.clear()
+	_glows.clear()
+	_glow_cells.clear()
+	_funnels.clear()
 	_flash = _material(FLASH_COLOUR)
 	_flash.emission_enabled = true
 	_flash.emission = FLASH_COLOUR
@@ -191,6 +200,34 @@ func show_sinking(
 			_rails[index].visible = not index in broken_railings
 
 
+## Lights each room's marker as [param pose] has its cell lit (ShipPose.lit): warm on
+## her generator, a dim red on her emergency power, dark on nothing.
+func show_power(pose: ShipPose) -> void:
+	if pose.lit.is_empty():
+		return
+	for index in _glows.size():
+		if _glow_cells[index] == CellMap.NONE:
+			continue
+		var lit := pose.lit[_glow_cells[index]]
+		var glow := _glows[index]
+		glow.emission_enabled = lit != ShipPower.Power.DARK
+		glow.emission = (
+			ArtPalette.EMERGENCY_GLASS if lit == ShipPower.Power.EMERGENCY else LAMP_COLOUR
+		)
+		glow.emission_energy_multiplier = (
+			ShipLamp.EMERGENCY_GLOW if lit == ShipPower.Power.EMERGENCY else 1.0
+		)
+
+
+## Turns each funnel [param falls] names about its foot as far as it has gone by
+## [param tick] (FunnelArt).
+func show_falls(falls: Array[FunnelFall], tick: float) -> void:
+	for fall: FunnelFall in falls:
+		var node: Node3D = _funnels.get(fall.fitting.name)
+		if node != null:
+			node.transform = FunnelArt.turned(fall, tick)
+
+
 ## Whether some lower platform lies under [param platform] — a deck on a house
 ## stands on that house, not on a hull of its own.
 func _stands_over_a_platform(platform: ShipPlatform, layout: ShipLayout) -> bool:
@@ -284,7 +321,15 @@ func _blocker(blocker: ShipBlocker) -> void:
 	var instance := MeshInstance3D.new()
 	instance.mesh = cylinder
 	instance.position = Vector3(blocker.centre.x, (blocker.bottom + top) * 0.5, blocker.centre.y)
-	add_child(instance)
+	var felled := FunnelArt.fitting_of(_layout, blocker)
+	if felled == null:
+		add_child(instance)
+		return
+	var funnel := Node3D.new()
+	funnel.name = "Funnel_%s" % felled.name
+	add_child(funnel)
+	funnel.add_child(instance)
+	_funnels[felled.name] = funnel
 
 
 ## Under a lintel — a thin box blocker standing clear of the deck beneath it — a
@@ -336,6 +381,10 @@ func _lamp(room: ShipRoom, layout: ShipLayout) -> void:
 	var glow: StandardMaterial3D = (lamp.mesh as BoxMesh).material
 	glow.emission_enabled = true
 	glow.emission = LAMP_COLOUR
+	_glows.append(glow)
+	var cells := CellMap.new(layout.structure) if layout.structure != null else null
+	var at := Vector3(middle.x, ceiling - LAMP_DROP, middle.y)
+	_glow_cells.append(cells.cell_at(at) if cells != null else CellMap.NONE)
 
 
 ## The top rail along [param railing]'s span and posts under it, standing on a

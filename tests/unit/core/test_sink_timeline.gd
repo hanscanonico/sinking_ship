@@ -153,8 +153,11 @@ func test_events_keep_their_exact_times() -> void:
 
 
 func test_the_step_lands_on_each_ceiling_it_reaches() -> void:
+	# With the failures stage off: a wall's panel giving way just under a ceiling pours in
+	# faster than LAND_TRIES guesses close on (SH31).
 	var level: SeaPhysics = _sea.duplicate()
 	level.attitude = false
+	level.failures = false
 	var bake := _bake(FAST_HIT, level)
 	bake.run(1 << 62)
 	# Level, each cell's ceiling stays put: how far its water is from full is read off
@@ -176,12 +179,23 @@ func test_the_step_lands_on_each_ceiling_it_reaches() -> void:
 
 func test_every_warning_comes_before_its_event() -> void:
 	var lurches := 0
+	var falls := 0
 	var timelines: Array[SinkTimeline] = [_bake(STEEP_HIT).timeline()]
 	for choice: MustSink.Choice in SimFixtures.match_hits(12):
 		timelines.append(choice.timeline)
 	for timeline: SinkTimeline in timelines:
 		for event: SinkTimeline.Event in timeline.events:
 			assert_lte(event.warned, event.seconds, "warned no later than it happens")
+			if event.kind == SinkTimeline.Kind.FUNNEL_FALLING:
+				# A funnel's fall, at its creak (SH31): never less than fall_warning ahead.
+				falls += 1
+				assert_lte(event.warned, maxf(event.seconds - _sea.fall_warning, 0.0))
+				var creaked := false
+				for warning: SinkTimeline.Event in timeline.events:
+					if warning.kind == SinkTimeline.Kind.FUNNEL_STRAINING:
+						creaked = creaked or warning.seconds == event.warned
+				assert_true(creaked, "its creak at its warning's second")
+				continue
 			if event.kind != SinkTimeline.Kind.LURCHED:
 				assert_eq(event.warned, event.seconds, "nothing else is warned of")
 				continue
@@ -194,6 +208,7 @@ func test_every_warning_comes_before_its_event() -> void:
 					told = told or warning.heel_deg == event.heel_deg
 			assert_true(told, "a lurch coming at its warning's second")
 	assert_gt(lurches, 0, "lurches among them")
+	assert_gt(falls, 0, "and funnels' falls")
 
 
 func test_bytes_round_trip_exactly() -> void:

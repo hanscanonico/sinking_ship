@@ -7,7 +7,9 @@ extends Resource
 
 ## OPEN joins two cells of one space with nothing between them: the hold and the
 ## space under the forecastle over it. GASH is the iceberg's, to the sea: never in a
-## ship's data, made by HitMapper for the cells a hit crosses.
+## ship's data, made by HitMapper for the cells a hit crosses. PANEL is a watertight
+## wall's where it parts two cells: never in a ship's data either, made by SinkFailures
+## from her walls, shut until it leaks or gives way (SH31).
 enum Kind {
 	DOOR,
 	WATERTIGHT_DOOR,
@@ -22,6 +24,7 @@ enum Kind {
 	FREEING_PORT,
 	OPEN,
 	GASH,
+	PANEL,
 }
 enum Start { OPEN, SHUT }
 
@@ -47,13 +50,14 @@ const SKY := &"sky"
 ## Whether the ship shuts it at the hit, and the seconds that takes.
 @export var shuts_at_hit: bool
 @export var shut_time: float
-## Heads of water across it, in metres, at which it starts to leak and gives way; 0
-## for never.
+## Heads of water across it, in metres, at which, shut, it starts to leak and gives way;
+## 0 for never (SinkFailures, SH31).
 @export var leak_head: float
 @export var collapse_head: float
 ## What it passes, in m², once it leaks.
 @export var leak_area: float
-## A hinged door's: the cell it swings open into; empty for none.
+## A hinged door's: the cell it swings open into; empty for none. Water pushing it that
+## way opens it at its leak head; against it, it holds to its collapse head.
 @export var opens_toward: StringName
 
 
@@ -93,4 +97,15 @@ func problems() -> PackedStringArray:
 		found.append("structure: opening %s's flip chance must be within 0…1" % name)
 	if shut_time < 0.0 or leak_head < 0.0 or collapse_head < 0.0 or leak_area < 0.0:
 		found.append("structure: opening %s's times, heads and areas must not be negative" % name)
+	if collapse_head > 0.0 and leak_head > collapse_head:
+		found.append("structure: opening %s must leak before it gives way" % name)
+	if not opens_toward.is_empty() and not opens_toward in joins:
+		found.append(
+			"structure: opening %s opens into %s, which it does not join" % [name, opens_toward]
+		)
 	return found
+
+
+## Whether, shut, it can leak or give way.
+func can_fail() -> bool:
+	return leak_head > 0.0 or collapse_head > 0.0

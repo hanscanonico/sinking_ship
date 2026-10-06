@@ -38,6 +38,8 @@ func _bake(damage: HitDamage, scale: float) -> SinkTimeline:
 	scaled.wave_height = damage.wave_height
 	scaled.jammed = damage.jammed
 	scaled.left_open = damage.left_open
+	scaled.weakened = damage.weakened
+	scaled.weakened_to = damage.weakened_to
 	for opening: ShipOpening in damage.openings:
 		var hole: ShipOpening = opening.duplicate()
 		hole.area = opening.area * scale
@@ -78,6 +80,8 @@ func _with_shut(damage: HitDamage, opening_name: StringName) -> HitDamage:
 	var shut := HitDamage.new()
 	shut.wave_height = damage.wave_height
 	shut.jammed = damage.jammed
+	shut.weakened = damage.weakened
+	shut.weakened_to = damage.weakened_to
 	shut.left_open = damage.left_open.duplicate()
 	shut.left_open.erase(opening_name)
 	shut.openings = damage.openings

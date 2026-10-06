@@ -11,7 +11,7 @@ const SEEDS := 40
 const RAW_SEEDS := 60
 ## A seed whose first draw the quick check throws out: with one throw allowed and no
 ## rung, the rule falls straight to the sure hit.
-const SURE_SEED := 1
+const SURE_SEED := 6
 ## Explicit hits the bake sinks her on: her sure hit (empty) and the fixtures'.
 const SINKING_HITS: Array[String] = [
 	"",
@@ -34,7 +34,8 @@ func before_all() -> void:
 
 
 func _founders(damage: HitDamage) -> bool:
-	return MustSink.founders(_structure, damage, _hull, _sea, _scenario.spare_deck)
+	var failing := _scenario.quick_failing
+	return MustSink.founders(_structure, damage, _hull, _sea, _scenario.spare_deck, failing)
 
 
 ## A light hit: a short slit into the hold's starboard side void alone.

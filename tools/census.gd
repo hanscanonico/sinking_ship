@@ -9,8 +9,9 @@ extends SceneTree
 ## fallback's rungs with the holes they make. Each label's share (OutcomeClassifier)
 ## stands beside its band, which nothing gates on yet (R24); then the hit → gone times,
 ## the share of each sinking MATCHES bots-only matches saw (R33, Q20), how long each
-## cell's air pockets last (SH29), and what the bakes cost on this machine, at its load
-## average, against §5b.4's budgets, with the timelines' sizes. Progress goes to stderr.
+## cell's air pockets last (SH29), what gave way and the worst bending against her
+## strength (SH31), and what the bakes cost on this machine, at its load average,
+## against §5b.4's budgets, with the timelines' sizes. Progress goes to stderr.
 ## Another ship's census goes to docs/census_SHIP.md, beside the default ship's.
 ##
 ##   godot --headless --path . -s res://tools/census.gd -- --ship=steamer --seeds=200
@@ -100,7 +101,10 @@ func _raw(structure: ShipStructure, scenario: SinkScenario, seeds: int) -> Array
 		var hit := IcebergHit.draw(scenario.hit, stream)
 		var damage := HitMapper.map(hit, structure, scenario.hit, stream)
 		damage.wave_height = scenario.draw_wave_height(stream)
-		var founders := MustSink.founders(structure, damage, hull, sea, scenario.spare_deck)
+		var spare := scenario.spare_deck
+		var founders := MustSink.founders(
+			structure, damage, hull, sea, spare, scenario.quick_failing
+		)
 		var started := Time.get_ticks_usec()
 		var bake := SinkBake.new(SinkStepper.new(structure, damage, sea), sea, scenario.bake_cap)
 		var timeline := bake.timeline()
@@ -110,6 +114,7 @@ func _raw(structure: ShipStructure, scenario: SinkScenario, seeds: int) -> Array
 			. append(
 				{
 					"labels": OutcomeClassifier.labels(timeline),
+					"bending": timeline.bending,
 					"thrown": not founders,
 					"seconds": took,
 					"steps": timeline.steps,
@@ -179,6 +184,7 @@ func _written(
 	lines.append_array(_rungs_section(chosen))
 	lines.append_array(_gone_section(chosen, seen))
 	lines.append_array(_pockets_section(chosen))
+	lines.append_array(_failures_section(raw, chosen))
 	lines.append_array(_cost_section(raw, chosen))
 	return "\n".join(lines) + "\n"
 
@@ -218,6 +224,8 @@ func _bands_section(
 		["heavy list (≥ 15° for ≥ 5 min afloat)", [L.HEAVY_LIST], false],
 		["capsizes (rolled past 90°)", [L.CAPSIZED], false],
 		["gone within 20 min of physics", [L.FAST], false],
+		["lights out — her generator stopped for good before she went", [L.LIGHTS_OUT], false],
+		["funnel fell before she went", [L.FUNNEL_FELL], false],
 	]
 	for row: Array in rows:
 		var raw_count := _counted(raw_labels, row[1], row[2])
@@ -253,6 +261,84 @@ func _bands_section(
 			+ " then is no capsize. The founders rows read how she stands as she goes, so a"
 			+ " hull that capsized is counted by the end she goes with unless she goes on her"
 			+ " side; founders upright leaves the capsized out, its two sub-rows keep them."
+		)
+	)
+	lines.append("")
+	return lines
+
+
+## What gave way in the match census's sinkings before she went (SinkFailures, SH31) —
+## in how many a watertight door, a wall's panel, a hatch, a hinged door, a window, a
+## porthole (her funnels and generator are bands) — and her bending's worst against her
+## strength, raw and match: the median, the 95th percentile and the most of each seed's
+## peak, which §5b.4 holds under 1 on the small ships (HullStressed at stressed_share).
+func _failures_section(raw: Array[Dictionary], chosen: Array[Dictionary]) -> PackedStringArray:
+	var kinds := {
+		"a watertight door": [ShipOpening.Kind.WATERTIGHT_DOOR],
+		"a wall's panel": [ShipOpening.Kind.PANEL],
+		"a hatch": [ShipOpening.Kind.HATCH],
+		"a door, hinged": [ShipOpening.Kind.DOOR],
+		"a window": [ShipOpening.Kind.WINDOW],
+		"a porthole": [ShipOpening.Kind.PORTHOLE],
+	}
+	var kind_of := {}
+	for opening: ShipOpening in _structure.openings:
+		kind_of[opening.name] = opening.kind
+	for panel: ShipOpening in SinkFailures.panels(_structure):
+		kind_of[panel.name] = panel.kind
+	var counts := {}
+	var bendings := PackedFloat64Array()
+	var stressed := 0
+	for entry: Dictionary in chosen:
+		var timeline: SinkTimeline = entry["choice"].timeline
+		var gone := timeline.gone_at if timeline.is_gone() else INF
+		var seen := {}
+		for event: SinkTimeline.Event in timeline.events:
+			if event.seconds > gone:
+				continue
+			if event.kind == SinkTimeline.Kind.GAVE_WAY:
+				for row: String in kinds:
+					if kind_of.get(event.name, -1) in kinds[row]:
+						seen[row] = true
+			elif event.kind == SinkTimeline.Kind.HULL_STRESSED:
+				seen["stressed"] = true
+		for row: String in seen:
+			counts[row] = counts.get(row, 0) + 1
+		stressed += 1 if seen.has("stressed") else 0
+		bendings.append(absf(timeline.bending))
+	var lines := PackedStringArray()
+	lines.append("## What gave way, and her bending (match census; SH31)")
+	lines.append("")
+	lines.append("| Gave way before she went | Sinkings | Share |")
+	lines.append("|---|---|---|")
+	for row: String in kinds:
+		var count: int = counts.get(row, 0)
+		lines.append("| %s | %d | %s |" % [row, count, _share(count, chosen.size())])
+	lines.append("")
+	var raw_bendings := PackedFloat64Array()
+	for entry: Dictionary in raw:
+		raw_bendings.append(absf(entry["bending"]))
+	lines.append("| Peak bending against her strength | p50 | p95 | most | under 1 in every seed |")
+	lines.append("|---|---|---|---|---|")
+	for row: Array in [["raw census", raw_bendings], ["match census", bendings]]:
+		var values: PackedFloat64Array = row[1]
+		var most := 0.0
+		for value: float in values:
+			most = maxf(most, value)
+		lines.append(
+			(
+				"| %s | %.3f | %.3f | %.3f | %s |"
+				% [row[0], _at(values, 0.5), _at(values, 0.95), most, "yes" if most < 1.0 else "NO"]
+			)
+		)
+	lines.append("")
+	lines.append(
+		(
+			(
+				"The hull creaked — her bending past %.0f%% of her strength — in %d of %d sinkings;"
+				+ " nothing breaks her before SH33."
+			)
+			% [SeaPhysics.load_default().stressed_share * 100.0, stressed, chosen.size()]
 		)
 	)
 	lines.append("")

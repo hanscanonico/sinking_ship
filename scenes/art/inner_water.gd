@@ -12,7 +12,9 @@ extends Node3D
 ## a burst at the opening a pocket's air goes out by as it goes free, and the water under
 ## a pocket glowing faintly with the sea's light coming up through it — lighting the
 ## pocket's ceiling round an eye inside it, so a swimmer surfacing there sees air under
-## a ceiling over water rather than a black room.
+## a ceiling over water rather than a black room; from SH31, what is shut until it fails
+## pours once the pose has it given way — a thin trickle while it only leaks — and a
+## watertight door that burst has no leaf left.
 ## Presentation only (D5): it reads the poses it is handed and the openings water can
 ## pass, and moves no water. It lives in ship space, under the drawn ship.
 
@@ -37,6 +39,8 @@ const OFF_WALL := 0.12
 const OFF_SHELL := 0.4
 ## The furthest a pour is thrown out from its opening as it falls, in metres.
 const MOST_THROW := 1.6
+## How much of its width a leaking opening's trickle is drawn.
+const TRICKLE := 0.12
 ## A watertight door's leaf: how thick, of the doorway's wall.
 const LEAF := 0.06
 ## The air a cell blows out through an opening as its water reaches the top: a burst
@@ -91,9 +95,10 @@ var _leaves := {}
 var _leaf_widths := {}
 ## The openings water can pass, and a pour per opening, hidden while it does not —
 ## and a second across the first, for water falling through a hole in a deck, so it
-## is seen from every side. Per opening, worked out once: its two sides' cells (-1 for
-## the sea) and floors, its box, and whether water through it is drawn pouring and
-## blowing air — never through the gash, a deck's gaps or a leak.
+## is seen from every side; none yet for one shut until it fails (_pour_for). Per
+## opening, worked out once: its two sides' cells (-1 for the sea) and floors, its box,
+## and whether water through it is drawn pouring and blowing air — never through the
+## gash, a deck's gaps or a leak.
 var _passages: Array[ShipOpening] = []
 var _pours: Array[MeshInstance3D] = []
 var _crossings: Array[MeshInstance3D] = []
@@ -103,6 +108,8 @@ var _sides := PackedInt32Array()
 var _floors := PackedFloat64Array()
 var _spans: Array[AABB] = []
 var _drawn := PackedByteArray()
+## Per opening, 1 where it is shut until it fails (SinkSchedule.failing).
+var _shut := PackedByteArray()
 ## Per opening, the world levels of its two sides' water last drawn: a side reaching
 ## its top blows its air out.
 var _last_heads: Array[Vector2] = []
@@ -187,12 +194,14 @@ static func _shared(structure: ShipStructure, cell: FloodCell, axis: int, at: fl
 
 ## Draws the water in [param structure], round [param rooms] where her cells poke out
 ## of her (boxes), with [param sea]'s material, pouring through [param passages] — the
-## openings water can pass after the hit — and its doors' leaves in [param paints]
+## openings water can pass after the hit — and through [param failing] once each has
+## given way (SinkSchedule.failing), and its doors' leaves in [param paints]
 ## (ShipArt.paints), none without them.
 func setup(
 	structure: ShipStructure,
 	rooms: Array[ShipRoom],
 	passages: Array[ShipOpening],
+	failing: Array[ShipOpening],
 	sea: ShaderMaterial,
 	paints: Dictionary
 ) -> void:
@@ -216,7 +225,12 @@ func setup(
 		for opening: ShipOpening in structure.openings:
 			if opening.shuts_at_hit:
 				_leaf(opening, paints)
-	_passages = passages
+	_passages = passages.duplicate()
+	_passages.append_array(failing)
+	_shut.resize(_passages.size())
+	_shut.fill(0)
+	for index in range(passages.size(), _passages.size()):
+		_shut[index] = 1
 	_pours.clear()
 	_crossings.clear()
 	_landings.clear()
@@ -227,10 +241,11 @@ func setup(
 	_drawn.clear()
 	var unseen := [ShipOpening.Kind.GASH, ShipOpening.Kind.FLOOR_GAPS, ShipOpening.Kind.LEAK]
 	for opening: ShipOpening in _passages:
-		_pours.append(_pour())
-		var round := opening.kind == ShipOpening.Kind.PORTHOLE
-		_crossings.append(_pour() if opening.facing() == 1 or round else null)
-		_landings.append(_froth())
+		_pours.append(null)
+		_crossings.append(null)
+		_landings.append(null)
+		if _shut[_pours.size() - 1] == 0:
+			_pour_for(_pours.size() - 1)
 		_last_heads.append(Vector2(-INF, -INF))
 		for place: StringName in opening.joins:
 			var cell := structure.cell_named(place)
@@ -298,10 +313,14 @@ func show_water(then: ShipPose, now: ShipPose, alpha: float) -> void:
 			then.doors_shut.get(door, 0.0), now.doors_shut.get(door, 0.0), alpha
 		)
 		var leaf: Node3D = _leaves[door]
-		leaf.visible = shut > 0.0
+		leaf.visible = shut > 0.0 and now.opened.get(door, 0) < 2
 		if shut > 0.0:
 			leaf.position = _slide(door) * (shut - 1.0)
 	for index in _passages.size():
+		if _pours[index] == null:
+			if now.opened.get(_passages[index].name, 0) == 0:
+				continue
+			_pour_for(index)
 		_show_pour(index, levels, now)
 	_show_pockets(now, levels)
 	for burst in BURSTS:
@@ -309,6 +328,17 @@ func show_water(then: ShipPose, now: ShipPose, alpha: float) -> void:
 			var under := _burst_cells[burst]
 			var level := (0.0 if under == -1 else levels[under]) + FROTH_LIFT
 			_bursts[burst].position = _at_height(_burst_at[burst], level)
+
+
+## Makes opening [param index]'s pour, its crossing — through a floor or a porthole —
+## and its landing: for what is shut until it fails, once it first does, so a ship of
+## many panels and ports draws only those that have gone.
+func _pour_for(index: int) -> void:
+	var opening := _passages[index]
+	_pours[index] = _pour()
+	if opening.facing() == 1 or opening.kind == ShipOpening.Kind.PORTHOLE:
+		_crossings[index] = _pour()
+	_landings[index] = _froth()
 
 
 ## The world height cell [param cell]'s water stands at under [param pose]: its box's
@@ -434,6 +464,13 @@ func _show_pour(index: int, levels: PackedFloat64Array, pose: ShipPose) -> void:
 		crossing.visible = false
 	var axis := opening.facing()
 	var open := 1.0 - float(pose.doors_shut.get(opening.name, 0.0))
+	var failed: int = pose.opened.get(opening.name, 0)
+	if failed == 2:
+		open = 1.0
+	elif failed == 1:
+		open = maxf(open if _shut[index] == 0 else 0.0, TRICKLE)
+	elif _shut[index] == 1:
+		open = 0.0
 	var high := 0 if heights[0] >= heights[1] else 1
 	var low := 1 - high
 	# The floor of the lower side under the opening, as high as it stands in the world.

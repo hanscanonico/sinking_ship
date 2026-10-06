@@ -44,6 +44,7 @@ const NON_NEGATIVE: Array[String] = [
 	"eye_height_m",
 	"hearing_m",
 	"memory_seconds",
+	"dark_sight_m",
 ]
 
 ## Where the tier stands among the others, easiest first: the order the menu lists
@@ -151,10 +152,12 @@ const NON_NEGATIVE: Array[String] = [
 @export var hysteresis: float
 ## A bot sees a body only where no wall, deck or hull stands between their eyes, and
 ## hears one within hearing_m through anything; it remembers where it last saw or
-## heard one for memory_seconds.
+## heard one for memory_seconds. Where either stands in a cell nothing lights (SH31), it
+## sees no farther than dark_sight_m, so the dark is as fair to it as to a player.
 @export var eye_height_m: float
 @export var hearing_m: float
 @export var memory_seconds: float
+@export var dark_sight_m: float
 
 
 ## How far from the water, an open drop or a railing a bot keeps the seats it shoves

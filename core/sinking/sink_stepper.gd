@@ -20,9 +20,11 @@ extends RefCounted
 ## her lift is her weight, or goes down once no height of the sea holds her. She chooses
 ## her own step (advance). With the air stage on (SH29) a cell whose air is trapped
 ## (SinkAir) pushes back on the water coming in by its pocket's pressure, and its head is
-## always solved for the step, as a stiff cell's is. Only +, −, ×, ÷ and square roots on
-## 64-bit floats run here (D4, R21). Ship-local metres, seconds; heights along the
-## world's up from her origin, as the sea's (Hydrostatics.Sea).
+## always solved for the step, as a stiff cell's is. With the failures stage on (SH31)
+## what can give way is shut until it does, and each step ends failing what it brought
+## to a threshold (SinkFailures). Only +, −, ×, ÷ and square roots on 64-bit floats run
+## here (D4, R21). Ship-local metres, seconds; heights along the world's up from her
+## origin, as the sea's (Hydrostatics.Sea).
 
 ## The other side of an opening to the sea or the sky: the water outside her.
 const OUTSIDE := -1
@@ -98,6 +100,10 @@ var _lifeboats: Array[ShipFitting] = []
 var _air: SinkAir
 ## What the sea brings over her open wells' edges (ShippedWater).
 var _shipped: ShippedWater
+## What gives way, with the failures stage on; and how far each opening's failure has
+## opened it in the step begun (FloodState.opened).
+var _failures: SinkFailures
+var _opened := PackedFloat64Array()
 var _g: float
 var _discharge: float
 
@@ -129,19 +135,20 @@ func _init(structure: ShipStructure, damage: HitDamage, sea: SeaPhysics) -> void
 	_area.resize(_boxes.size())
 	var openings: Array[ShipOpening] = structure.openings.duplicate()
 	openings.append_array(damage.openings)
+	if sea.failures:
+		_failures = SinkFailures.new(structure, damage, sea, _motion, _air)
 	for opening: ShipOpening in openings:
 		if opening.starts == ShipOpening.Start.SHUT and not opening.name in damage.left_open:
 			continue
 		_compile(structure, opening, damage)
-	for cell in _boxes.size():
-		var touching := PackedInt32Array()
-		var widest := 0.0
-		for index in _names.size():
-			if _first[index] == cell or _second[index] == cell:
-				touching.append(index)
-				widest += _flow_area[index]
-		_touching.append(touching)
-		_widest.append(widest)
+	if _failures != null:
+		# Shut until they fail: after every other opening, so those keep their order.
+		for opening: ShipOpening in SinkFailures.shut(structure, damage):
+			_compile(structure, opening, damage, true)
+	_touching.resize(_boxes.size())
+	_widest.resize(_boxes.size())
+	_opened.resize(_names.size())
+	_touch(_opened)
 	_air.close(_touching)
 	_held.resize(_boxes.size())
 	for fitting: ShipFitting in structure.fittings:
@@ -158,10 +165,13 @@ func start() -> FloodState:
 	for cell in _area.size():
 		state.heads.append(_floor[cell])
 	state.moved.resize(_names.size())
+	state.opened.resize(_names.size())
 	state.sea = _rest
 	state.next_step = _sea.step_min
 	state.above = above(state)
 	_air.start(state)
+	if _failures != null:
+		_failures.start(state)
 	return state
 
 
@@ -220,6 +230,8 @@ func above(state: FloodState) -> float:
 ## The state [param seconds] of physics after [param state].
 func step(state: FloodState, seconds: float) -> FloodState:
 	_turn(state.rotation)
+	if state.opened != _opened:
+		_touch(state.opened)
 	_air.begin(state, seconds)
 	_shipped.begin(state.rotation, state.sea)
 	var next := state.copy()
@@ -267,18 +279,19 @@ func step(state: FloodState, seconds: float) -> FloodState:
 	next.steps = state.steps + 1
 	if _motion == null:
 		next.sea = _settled(state.sea, _own_volume + next.total(), seconds)
-		_air.settle(next)
-		return next
-	var ceilings := _ceiling.duplicate()
-	_motion.move(state, next, _boxes, seconds)
-	_turn(next.rotation)
-	for cell in _boxes.size():
-		if full_held[cell] == 1:
-			# Its push rides with its ceiling as she turns.
-			next.heads[cell] += _ceiling[cell] - ceilings[cell]
-		else:
-			next.heads[cell] = head(cell, next.water[cell])
+	else:
+		var ceilings := _ceiling.duplicate()
+		_motion.move(state, next, _boxes, seconds)
+		_turn(next.rotation)
+		for cell in _boxes.size():
+			if full_held[cell] == 1:
+				# Its push rides with its ceiling as she turns.
+				next.heads[cell] += _ceiling[cell] - ceilings[cell]
+			else:
+				next.heads[cell] = head(cell, next.water[cell])
 	_air.settle(next)
+	if _failures != null:
+		_failures.follow(state, next, seconds, self)
 	return next
 
 
@@ -310,6 +323,24 @@ func _turn(rotation: PackedFloat64Array) -> void:
 			_bottom[index] = middle - reach
 			_top[index] = middle + reach
 			_size[index] = _flow_area[index] / (reach * 2.0)
+
+
+## Each cell's openings water can pass — every one but those shut until they fail and
+## not yet opened by [param opened] (FloodState.opened) — in her openings' order, and
+## their whole area: what the step sweeps and solves, and its air passes.
+func _touch(opened: PackedFloat64Array) -> void:
+	_opened = opened
+	for cell in _boxes.size():
+		var touching := PackedInt32Array()
+		var widest := 0.0
+		for index in _names.size():
+			if _first[index] != cell and _second[index] != cell:
+				continue
+			if _shut_time[index] >= 0.0 or opened[index] > 0.0:
+				touching.append(index)
+				widest += _flow_area[index]
+		_touching[cell] = touching
+		_widest[cell] = widest
 
 
 ## Gives [param side] — a cell, or the sea's account — [param amount] m³ of [param
@@ -356,7 +387,7 @@ func _hold_stiff(
 			var bottom := _bottom[index]
 			if own <= bottom and beyond <= bottom:
 				continue
-			var share := open_share(_shut_time[index], state.seconds)
+			var share := open_share(_shut_time[index], state.seconds, _opened[index])
 			var across := absf(maxf(beyond, bottom) - maxf(own, bottom))
 			passes += _flow_area[index] * share * sqrt(minf(across, STIFF_HEAD) / STIFF_HEAD)
 			# Squeezed air moves water however level the two stand.
@@ -747,6 +778,11 @@ func highest_top(cell: int) -> float:
 	return _air.highest_top(cell)
 
 
+## What gives way in her, or null without the failures stage.
+func failures() -> SinkFailures:
+	return _failures
+
+
 ## The physics second the last door the ship shuts is shut.
 func last_door() -> float:
 	var last := 0.0
@@ -781,15 +817,23 @@ func sill_of(index: int) -> float:
 
 ## How open, 0…1, an opening is [param seconds] after the hit: one the ship shuts in
 ## [param shut_time] slides shut evenly, one that jammed or that is not shut — 0 —
-## stays as it is. The schedule's doors and the physics' read this one answer.
-static func open_share(shut_time: float, seconds: float) -> float:
-	if shut_time <= 0.0:
+## stays as it is, one shut from the start — under 0 — stays shut; and none is less
+## open than a failure has made it, [param opened] (FloodState.opened). The schedule's
+## doors and the physics' read this one answer.
+static func open_share(shut_time: float, seconds: float, opened := 0.0) -> float:
+	if shut_time < 0.0:
+		return opened
+	if shut_time == 0.0:
 		return 1.0
-	return clampf(1.0 - seconds / shut_time, 0.0, 1.0)
+	return maxf(clampf(1.0 - seconds / shut_time, 0.0, 1.0), opened)
 
 
-## Adds [param opening] of [param structure] to the openings water can pass.
-func _compile(structure: ShipStructure, opening: ShipOpening, damage: HitDamage) -> void:
+## Adds [param opening] of [param structure] to the openings water can pass — one
+## [param shut] until it fails, with the failures stage on — watched for failing once it
+## can fail and is shut, or is a door the ship shuts and did not jam (SinkFailures).
+func _compile(
+	structure: ShipStructure, opening: ShipOpening, damage: HitDamage, shut := false
+) -> void:
 	var sides := PackedInt32Array()
 	for place: StringName in opening.joins:
 		sides.append(
@@ -818,10 +862,13 @@ func _compile(structure: ShipStructure, opening: ShipOpening, damage: HitDamage)
 	_second.append(sides[1])
 	_in_floor.append(1 if floor_hole else 0)
 	var shuts := opening.shuts_at_hit and not opening.name in damage.jammed
-	_shut_time.append(opening.shut_time if shuts else 0.0)
+	var shut_time := -1.0 if shut else (opening.shut_time if shuts else 0.0)
+	_shut_time.append(shut_time)
 	var axis := opening.facing()
 	var facing := _side(structure, sides, axis, opening) if axis >= 0 else 0.0
-	_air.add_opening(sides[0], sides[1], _shut_time[_shut_time.size() - 1], axis, facing)
+	_air.add_opening(sides[0], sides[1], shut_time, axis, facing)
+	if _failures != null and opening.can_fail() and shut_time != 0.0:
+		_failures.watch(_names.size() - 1, opening, Vector2i(sides[0], sides[1]), shut_time)
 
 
 ## Which way along ship [param axis] the first of [param sides] lies from
@@ -865,7 +912,7 @@ func _transfer(
 	var bottom := _bottom[index]
 	if first_head <= bottom and second_head <= bottom:
 		return 0.0
-	var share := open_share(_shut_time[index], since)
+	var share := open_share(_shut_time[index], since, _opened[index])
 	if share <= 0.0:
 		return 0.0
 	var size := _size[index] * share
@@ -873,6 +920,9 @@ func _transfer(
 	var second_lift := _air.lift(second, first, heads)
 	first_head += first_lift
 	second_head += second_lift
+	if first_head <= bottom and second_head <= bottom:
+		# A pocket's suction holds both pushes under the sill.
+		return 0.0
 	if _in_floor[index] == 1:
 		# Over the hole, water stands no lower than the hole.
 		second_head = maxf(second_head, bottom)

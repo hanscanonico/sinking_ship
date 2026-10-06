@@ -2,8 +2,9 @@ class_name SinkTimeline
 extends RefCounted
 ## The baked sinking (§5b.4, D7): what SinkBake made of the stepper's run from the hit to
 ## the end — states where the sinking needs them, each its physics second, where the sea
-## stands up her, her attitude, the head of every cell's water and the pressure of every
-## cell's pocket — and every event at its exact second, a lurch with its warning. Kept
+## stands up her, her attitude, the head of every cell's water, the pressure of every
+## cell's pocket and what lights every cell — and every event at its exact second, a
+## lurch and a funnel's fall with their warnings; and the worst her bending came to. Kept
 ## compact: a state its neighbours, read between (blend, pocket), reproduce within
 ## keep_level of water, keep_turn_deg of attitude and keep_air of a pocket's pressure
 ## (SeaPhysics, est.) is dropped, but never one an event happens at. What stays
@@ -21,9 +22,31 @@ enum End { GONE, AFLOAT, CAPPED }
 ## first passes over a low wall or down a stair or hatch, she is gone, her main deck
 ## goes under the sea — the plunge begins, her last minutes —, a lurch is coming, she
 ## lurches (§5b.4's lurch rule), one side's lifeboats are useless (§5b.1), a cell's air
-## is trapped, and a pocket's air is let out (SinkAir).
+## is trapped, and a pocket's air is let out (SinkAir); then what gives way (SH31,
+## SinkFailures): an opening or a wall's panel starts to leak, or gives way; a funnel
+## creaks — the warning of its fall — and falls; her generator stops, or runs again; she
+## is dark, nothing lighting her; a cell's water reaches its lamps; her hull creaks, its
+## bending past stressed_share of its strength.
 enum Kind {
-	FLOODING, FULL, SPILLING, GONE, PLUNGING, LURCHING, LURCHED, BOATS_USELESS, TRAPPED, VENTED
+	FLOODING,
+	FULL,
+	SPILLING,
+	GONE,
+	PLUNGING,
+	LURCHING,
+	LURCHED,
+	BOATS_USELESS,
+	TRAPPED,
+	VENTED,
+	LEAKING,
+	GAVE_WAY,
+	FUNNEL_STRAINING,
+	FUNNEL_FALLING,
+	POWER_LOST,
+	POWER_BACK,
+	LIGHTS_OUT,
+	SHORTED,
+	HULL_STRESSED,
 }
 ## A cell's water this far over its floor, in metres, is its first.
 const FIRST_WATER := 0.01
@@ -37,7 +60,7 @@ const PER_METRE := 1e3
 const PER_UNIT := 1e6
 const PER_DEGREE := 1e6
 const PAGE_STATES := 256
-const FORMAT := 2
+const FORMAT := 3
 const MOST_BYTES := 1 << 24
 const COMPRESSION := FileAccess.COMPRESSION_ZSTD
 ## How the four quaternion components and a state's other numbers lie in a page.
@@ -48,15 +71,19 @@ const QUATERNION := 4
 class Event:
 	var seconds: float
 	var kind: Kind
-	## The cell, or for SPILLING the opening, it names; for BOATS_USELESS the side,
-	## &"port" or &"starboard"; nothing else names one.
+	## The cell, or for SPILLING, LEAKING and GAVE_WAY the opening, it names; for
+	## BOATS_USELESS the side, &"port" or &"starboard"; for a funnel's, the funnel; for
+	## POWER_LOST and POWER_BACK, her generator; nothing else names one.
 	var name: StringName
 	## LURCHING, LURCHED: the list the lurch swings her by, in degrees, positive
-	## starboard down; LURCHED: the seconds it lasts.
+	## starboard down; LURCHED: the seconds it lasts; FUNNEL_FALLING: the seconds the fall
+	## takes; HULL_STRESSED: the share of her strength, positive hogging.
 	var heel_deg: float
 	var lasts: float
 	## The second it was warned of: its own for what nothing warns of.
 	var warned: float
+	## FUNNEL_STRAINING, FUNNEL_FALLING: the way it falls, in her deck's plane, x then z.
+	var along := Vector2.ZERO
 
 	func _init(
 		at: float, event_kind: Kind, event_name: StringName, heel: float = 0.0, length := 0.0
@@ -81,8 +108,14 @@ var seas := PackedFloat64Array()
 var rotations := PackedFloat64Array()
 var heads := PackedFloat64Array()
 var pockets := PackedFloat64Array()
+## Per state kept, as heads are, what lights each cell (ShipPower.Power).
+var lits := PackedByteArray()
 ## In the order they happen.
 var events: Array[Event] = []
+## The worst her bending came to, as a share of her strength — positive hogging,
+## negative sagging — and where along her (HullGirder).
+var bending := 0.0
+var bending_x := 0.0
 var end := End.CAPPED
 ## The physics second she was wholly under, or -1 for never.
 var gone_at := -1.0
@@ -124,6 +157,8 @@ static func made(bake: SinkBake, level: float, turn_deg: float, air: float) -> S
 	timeline.rest = roundi(bake.rest() * PER_METRE) / PER_METRE
 	timeline.steps = bake.steps()
 	timeline.states = bake.times().size()
+	timeline.bending = roundi(bake.bending() * PER_UNIT) / PER_UNIT
+	timeline.bending_x = roundi(bake.bending_x() * PER_METRE) / PER_METRE
 	# Every number as its integers say it, so the timeline baked here and the one a
 	# client reads back from its bytes are one (D11).
 	for event: Event in timeline.events:
@@ -131,6 +166,9 @@ static func made(bake: SinkBake, level: float, turn_deg: float, air: float) -> S
 		event.warned = _seconds_of(_microseconds(event.warned))
 		event.lasts = _seconds_of(_microseconds(event.lasts))
 		event.heel_deg = roundi(event.heel_deg * PER_DEGREE) / PER_DEGREE
+		event.along = Vector2(
+			roundi(event.along.x * PER_UNIT) / PER_UNIT, roundi(event.along.y * PER_UNIT) / PER_UNIT
+		)
 	var held := _held_states(bake)
 	var kept := _kept(bake, held, timeline.events, level, turn_deg, air)
 	var width := timeline._width()
@@ -172,6 +210,8 @@ static func opened(header: PackedByteArray) -> SinkTimeline:
 	timeline.states = reader.integer()
 	timeline._length = _seconds_of(reader.integer())
 	timeline._total = reader.integer()
+	timeline.bending = reader.integer() / PER_UNIT
+	timeline.bending_x = reader.integer() / PER_METRE
 	for _value in reader.count():
 		timeline.origin.append(reader.integer())
 	var names: Array[StringName] = []
@@ -188,6 +228,8 @@ static func opened(header: PackedByteArray) -> SinkTimeline:
 		event.warned = _seconds_of(at - reader.integer())
 		event.heel_deg = reader.integer() / PER_DEGREE
 		event.lasts = _seconds_of(reader.integer())
+		var along_x := reader.integer() / PER_UNIT
+		event.along = Vector2(along_x, reader.integer() / PER_UNIT)
 		timeline.events.append(event)
 	for _page in reader.count():
 		timeline._claims.append(reader.bytes(32))
@@ -275,6 +317,12 @@ func up_between(frame: int, next: int, weight: float) -> float:
 ## Whether she was wholly under before it ended.
 func is_gone() -> bool:
 	return end == End.GONE
+
+
+## What lights cell [param cell] at kept state [param frame] (ShipPower.Power): it
+## changes only at a state an event is kept at, so a state's holds until the next's.
+func lit(frame: int, cell: int) -> int:
+	return lits[frame * cells + cell]
 
 
 ## Cell [param cell]'s pocket's pressure [param weight] of the way from kept state
@@ -372,7 +420,7 @@ func add_page(bytes: PackedByteArray) -> bool:
 
 
 func _width() -> int:
-	return 2 + QUATERNION + cells * 2
+	return 2 + QUATERNION + cells * 3
 
 
 ## Fills the readable numbers from the integers, from state [param from] on.
@@ -392,6 +440,8 @@ func _decode(from: int) -> void:
 			heads.append(_held[at + 2 + QUATERNION + cell] / PER_METRE)
 		for cell in cells:
 			pockets.append(_held[at + 2 + QUATERNION + cells + cell] / PER_METRE)
+		for cell in cells:
+			lits.append(_held[at + 2 + QUATERNION + cells * 2 + cell])
 
 
 func _header_bytes(pages: Array[PackedByteArray]) -> PackedByteArray:
@@ -405,6 +455,8 @@ func _header_bytes(pages: Array[PackedByteArray]) -> PackedByteArray:
 	writer.integer(states)
 	writer.integer(_microseconds(_length))
 	writer.integer(_total)
+	writer.integer(roundi(bending * PER_UNIT))
+	writer.integer(roundi(bending_x * PER_METRE))
 	writer.integer(origin.size())
 	for value: int in origin:
 		writer.integer(value)
@@ -426,6 +478,8 @@ func _header_bytes(pages: Array[PackedByteArray]) -> PackedByteArray:
 		writer.integer(seconds - _microseconds(event.warned))
 		writer.integer(roundi(event.heel_deg * PER_DEGREE))
 		writer.integer(_microseconds(event.lasts))
+		writer.integer(roundi(event.along.x * PER_UNIT))
+		writer.integer(roundi(event.along.y * PER_UNIT))
 	writer.integer(pages.size())
 	for page: PackedByteArray in pages:
 		writer.raw(_sha256(page))
@@ -457,6 +511,7 @@ static func _held_states(bake: SinkBake) -> PackedInt64Array:
 	var rotations := bake.rotations()
 	var all_heads := bake.heads()
 	var all_pockets := bake.pockets()
+	var all_lits := bake.lits()
 	var cells_in := bake.cells()
 	var before := PackedFloat64Array([1.0, 0.0, 0.0, 0.0])
 	for state in times.size():
@@ -473,6 +528,8 @@ static func _held_states(bake: SinkBake) -> PackedInt64Array:
 			held.append(roundi(all_heads[state * cells_in + cell] * PER_METRE))
 		for cell in cells_in:
 			held.append(roundi(all_pockets[state * cells_in + cell] * PER_METRE))
+		for cell in cells_in:
+			held.append(all_lits[state * cells_in + cell])
 	return held
 
 
@@ -499,7 +556,7 @@ static func _kept(
 	var at_event := {}
 	for event: Event in kept_events:
 		at_event[_microseconds(event.seconds)] = true
-	var width := 2 + QUATERNION + bake.cells() * 2
+	var width := 2 + QUATERNION + bake.cells() * 3
 	for state in count_of:
 		if at_event.has(held[state * width]):
 			pinned[state] = 1
@@ -557,7 +614,7 @@ class Fit:
 		var half := Attitude.sine_of_degrees(turn_deg * 0.25)
 		_close = 1.0 - 2.0 * half * half
 		var rotations := bake.rotations()
-		var width := 2 + QUATERNION + _cells * 2
+		var width := 2 + QUATERNION + _cells * 3
 		for state in bake.times().size():
 			var at := state * width
 			_times.append(SinkTimeline._seconds_of(held[at]))

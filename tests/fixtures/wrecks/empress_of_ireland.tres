@@ -1,0 +1,561 @@
+[gd_resource type="Resource" script_class="WreckHull" format=3]
+
+[ext_resource type="Script" path="res://tests/fixtures/wrecks/wreck_hull.gd" id="1_wreck"]
+[ext_resource type="Script" path="res://core/sinking/flood_cell.gd" id="2_cell"]
+[ext_resource type="Script" path="res://core/sinking/ship_opening.gd" id="3_opening"]
+[ext_resource type="Script" path="res://core/sinking/ship_fitting.gd" id="4_fitting"]
+
+[sub_resource type="Resource" id="Cell_bunker_s"]
+script = ExtResource("2_cell")
+name = &"bunker_s"
+low = Vector3(-28, -8, 8)
+high = Vector3(28, 0.5, 10)
+kind = 5
+permeability = 0.5
+
+[sub_resource type="Resource" id="Cell_bunker_p"]
+script = ExtResource("2_cell")
+name = &"bunker_p"
+low = Vector3(-28, -8, -10)
+high = Vector3(28, 0.5, -8)
+kind = 5
+permeability = 0.5
+
+[sub_resource type="Resource" id="Cell_boiler_rooms"]
+script = ExtResource("2_cell")
+name = &"boiler_rooms"
+low = Vector3(-28, -8, -8)
+high = Vector3(28, 0.5, 8)
+kind = 1
+permeability = 0.85
+
+[sub_resource type="Resource" id="Cell_engine_room"]
+script = ExtResource("2_cell")
+name = &"engine_room"
+low = Vector3(-48, -8, -10)
+high = Vector3(-28, 0.5, 10)
+kind = 1
+permeability = 0.85
+rooms = Array[StringName]([&"engine room"])
+
+[sub_resource type="Resource" id="Cell_hold_aft"]
+script = ExtResource("2_cell")
+name = &"hold_aft"
+low = Vector3(-67.5, -8, -10)
+high = Vector3(-48, 0.5, 10)
+kind = 2
+permeability = 0.7
+
+[sub_resource type="Resource" id="Cell_hold_fwd"]
+script = ExtResource("2_cell")
+name = &"hold_fwd"
+low = Vector3(28, -8, -10)
+high = Vector3(67.5, 0.5, 10)
+kind = 2
+permeability = 0.7
+
+[sub_resource type="Resource" id="Cell_decks_s"]
+script = ExtResource("2_cell")
+name = &"decks_s"
+low = Vector3(-67.5, 0.5, 0)
+high = Vector3(67.5, 5, 10)
+permeability = 0.95
+rooms = Array[StringName]([&"cabins starboard"])
+
+[sub_resource type="Resource" id="Cell_decks_p"]
+script = ExtResource("2_cell")
+name = &"decks_p"
+low = Vector3(-67.5, 0.5, -10)
+high = Vector3(67.5, 5, 0)
+permeability = 0.95
+rooms = Array[StringName]([&"cabins port"])
+
+[sub_resource type="Resource" id="Opening_hole_bunker_s"]
+script = ExtResource("3_opening")
+name = &"hole_bunker_s"
+kind = 12
+joins = Array[StringName]([&"bunker_s", &"sea"])
+centre = Vector3(0, -3, 10)
+size = Vector3(4.3, 7.6, 0)
+area = 32.0
+
+[sub_resource type="Resource" id="Opening_breach_boiler_rooms"]
+script = ExtResource("3_opening")
+name = &"breach_boiler_rooms"
+kind = 12
+joins = Array[StringName]([&"bunker_s", &"boiler_rooms"])
+centre = Vector3(0, -3, 8)
+size = Vector3(4.3, 7.6, 0)
+area = 5.0
+
+[sub_resource type="Resource" id="Opening_passage_decks"]
+script = ExtResource("3_opening")
+name = &"passage_decks"
+joins = Array[StringName]([&"decks_s", &"decks_p"])
+centre = Vector3(0, 2.75, 0)
+size = Vector3(6, 4.5, 0)
+
+[sub_resource type="Resource" id="Opening_hatch_hold_aft"]
+script = ExtResource("3_opening")
+name = &"hatch_hold_aft"
+kind = 4
+joins = Array[StringName]([&"hold_aft", &"decks_s"])
+centre = Vector3(-56, 0.5, 4)
+size = Vector3(4, 0, 4)
+
+[sub_resource type="Resource" id="Opening_hatch_hold_aft_p"]
+script = ExtResource("3_opening")
+name = &"hatch_hold_aft_p"
+kind = 4
+joins = Array[StringName]([&"hold_aft", &"decks_p"])
+centre = Vector3(-56, 0.5, -4)
+size = Vector3(4, 0, 4)
+
+[sub_resource type="Resource" id="Opening_hatch_hold_fwd"]
+script = ExtResource("3_opening")
+name = &"hatch_hold_fwd"
+kind = 4
+joins = Array[StringName]([&"hold_fwd", &"decks_s"])
+centre = Vector3(46, 0.5, 4)
+size = Vector3(4, 0, 4)
+
+[sub_resource type="Resource" id="Opening_hatch_hold_fwd_p"]
+script = ExtResource("3_opening")
+name = &"hatch_hold_fwd_p"
+kind = 4
+joins = Array[StringName]([&"hold_fwd", &"decks_p"])
+centre = Vector3(46, 0.5, -4)
+size = Vector3(4, 0, 4)
+
+[sub_resource type="Resource" id="Opening_skylight_engine"]
+script = ExtResource("3_opening")
+name = &"skylight_engine"
+kind = 4
+joins = Array[StringName]([&"engine_room", &"decks_s"])
+centre = Vector3(-35, 0.5, 2)
+size = Vector3(4, 0, 4)
+
+[sub_resource type="Resource" id="Opening_port_s1"]
+script = ExtResource("3_opening")
+name = &"port_s1"
+kind = 2
+joins = Array[StringName]([&"decks_s", &"sea"])
+centre = Vector3(-60.0, 0.9, 10)
+size = Vector3(0.32, 0.32, 0)
+area = 0.04
+collapse_head = 8.0
+
+[sub_resource type="Resource" id="Opening_port_s2"]
+script = ExtResource("3_opening")
+name = &"port_s2"
+kind = 2
+joins = Array[StringName]([&"decks_s", &"sea"])
+centre = Vector3(-53.684, 0.9, 10)
+size = Vector3(0.32, 0.32, 0)
+area = 0.04
+collapse_head = 8.0
+
+[sub_resource type="Resource" id="Opening_port_s3"]
+script = ExtResource("3_opening")
+name = &"port_s3"
+kind = 2
+joins = Array[StringName]([&"decks_s", &"sea"])
+centre = Vector3(-47.368, 0.9, 10)
+size = Vector3(0.32, 0.32, 0)
+area = 0.04
+collapse_head = 8.0
+
+[sub_resource type="Resource" id="Opening_port_s4"]
+script = ExtResource("3_opening")
+name = &"port_s4"
+kind = 2
+joins = Array[StringName]([&"decks_s", &"sea"])
+centre = Vector3(-41.053, 0.9, 10)
+size = Vector3(0.32, 0.32, 0)
+area = 0.04
+collapse_head = 8.0
+
+[sub_resource type="Resource" id="Opening_port_s5"]
+script = ExtResource("3_opening")
+name = &"port_s5"
+kind = 2
+joins = Array[StringName]([&"decks_s", &"sea"])
+centre = Vector3(-34.737, 0.9, 10)
+size = Vector3(0.32, 0.32, 0)
+area = 0.04
+collapse_head = 8.0
+
+[sub_resource type="Resource" id="Opening_port_s6"]
+script = ExtResource("3_opening")
+name = &"port_s6"
+kind = 2
+joins = Array[StringName]([&"decks_s", &"sea"])
+centre = Vector3(-28.421, 0.9, 10)
+size = Vector3(0.32, 0.32, 0)
+area = 0.04
+collapse_head = 8.0
+
+[sub_resource type="Resource" id="Opening_port_s7"]
+script = ExtResource("3_opening")
+name = &"port_s7"
+kind = 2
+joins = Array[StringName]([&"decks_s", &"sea"])
+centre = Vector3(-22.105, 0.9, 10)
+size = Vector3(0.32, 0.32, 0)
+area = 0.04
+collapse_head = 8.0
+
+[sub_resource type="Resource" id="Opening_port_s8"]
+script = ExtResource("3_opening")
+name = &"port_s8"
+kind = 2
+joins = Array[StringName]([&"decks_s", &"sea"])
+centre = Vector3(-15.789, 0.9, 10)
+size = Vector3(0.32, 0.32, 0)
+area = 0.04
+collapse_head = 8.0
+
+[sub_resource type="Resource" id="Opening_port_s9"]
+script = ExtResource("3_opening")
+name = &"port_s9"
+kind = 2
+joins = Array[StringName]([&"decks_s", &"sea"])
+centre = Vector3(-9.474, 0.9, 10)
+size = Vector3(0.32, 0.32, 0)
+area = 0.04
+collapse_head = 8.0
+
+[sub_resource type="Resource" id="Opening_port_s10"]
+script = ExtResource("3_opening")
+name = &"port_s10"
+kind = 2
+joins = Array[StringName]([&"decks_s", &"sea"])
+centre = Vector3(-3.158, 0.9, 10)
+size = Vector3(0.32, 0.32, 0)
+area = 0.04
+collapse_head = 8.0
+
+[sub_resource type="Resource" id="Opening_port_s11"]
+script = ExtResource("3_opening")
+name = &"port_s11"
+kind = 2
+joins = Array[StringName]([&"decks_s", &"sea"])
+centre = Vector3(3.158, 0.9, 10)
+size = Vector3(0.32, 0.32, 0)
+area = 0.04
+collapse_head = 8.0
+
+[sub_resource type="Resource" id="Opening_port_s12"]
+script = ExtResource("3_opening")
+name = &"port_s12"
+kind = 2
+joins = Array[StringName]([&"decks_s", &"sea"])
+centre = Vector3(9.474, 0.9, 10)
+size = Vector3(0.32, 0.32, 0)
+area = 0.04
+collapse_head = 8.0
+
+[sub_resource type="Resource" id="Opening_port_s13"]
+script = ExtResource("3_opening")
+name = &"port_s13"
+kind = 2
+joins = Array[StringName]([&"decks_s", &"sea"])
+centre = Vector3(15.789, 0.9, 10)
+size = Vector3(0.32, 0.32, 0)
+area = 0.04
+collapse_head = 8.0
+
+[sub_resource type="Resource" id="Opening_port_s14"]
+script = ExtResource("3_opening")
+name = &"port_s14"
+kind = 2
+joins = Array[StringName]([&"decks_s", &"sea"])
+centre = Vector3(22.105, 0.9, 10)
+size = Vector3(0.32, 0.32, 0)
+area = 0.04
+collapse_head = 8.0
+
+[sub_resource type="Resource" id="Opening_port_s15"]
+script = ExtResource("3_opening")
+name = &"port_s15"
+kind = 2
+joins = Array[StringName]([&"decks_s", &"sea"])
+centre = Vector3(28.421, 0.9, 10)
+size = Vector3(0.32, 0.32, 0)
+area = 0.04
+collapse_head = 8.0
+
+[sub_resource type="Resource" id="Opening_port_s16"]
+script = ExtResource("3_opening")
+name = &"port_s16"
+kind = 2
+joins = Array[StringName]([&"decks_s", &"sea"])
+centre = Vector3(34.737, 0.9, 10)
+size = Vector3(0.32, 0.32, 0)
+area = 0.04
+collapse_head = 8.0
+
+[sub_resource type="Resource" id="Opening_port_s17"]
+script = ExtResource("3_opening")
+name = &"port_s17"
+kind = 2
+joins = Array[StringName]([&"decks_s", &"sea"])
+centre = Vector3(41.053, 0.9, 10)
+size = Vector3(0.32, 0.32, 0)
+area = 0.04
+collapse_head = 8.0
+
+[sub_resource type="Resource" id="Opening_port_s18"]
+script = ExtResource("3_opening")
+name = &"port_s18"
+kind = 2
+joins = Array[StringName]([&"decks_s", &"sea"])
+centre = Vector3(47.368, 0.9, 10)
+size = Vector3(0.32, 0.32, 0)
+area = 0.04
+collapse_head = 8.0
+
+[sub_resource type="Resource" id="Opening_port_s19"]
+script = ExtResource("3_opening")
+name = &"port_s19"
+kind = 2
+joins = Array[StringName]([&"decks_s", &"sea"])
+centre = Vector3(53.684, 0.9, 10)
+size = Vector3(0.32, 0.32, 0)
+area = 0.04
+collapse_head = 8.0
+
+[sub_resource type="Resource" id="Opening_port_s20"]
+script = ExtResource("3_opening")
+name = &"port_s20"
+kind = 2
+joins = Array[StringName]([&"decks_s", &"sea"])
+centre = Vector3(60.0, 0.9, 10)
+size = Vector3(0.32, 0.32, 0)
+area = 0.04
+collapse_head = 8.0
+
+[sub_resource type="Resource" id="Opening_port_p1"]
+script = ExtResource("3_opening")
+name = &"port_p1"
+kind = 2
+joins = Array[StringName]([&"decks_p", &"sea"])
+centre = Vector3(-60.0, 0.9, -10)
+size = Vector3(0.32, 0.32, 0)
+area = 0.04
+collapse_head = 8.0
+
+[sub_resource type="Resource" id="Opening_port_p2"]
+script = ExtResource("3_opening")
+name = &"port_p2"
+kind = 2
+joins = Array[StringName]([&"decks_p", &"sea"])
+centre = Vector3(-53.684, 0.9, -10)
+size = Vector3(0.32, 0.32, 0)
+area = 0.04
+collapse_head = 8.0
+
+[sub_resource type="Resource" id="Opening_port_p3"]
+script = ExtResource("3_opening")
+name = &"port_p3"
+kind = 2
+joins = Array[StringName]([&"decks_p", &"sea"])
+centre = Vector3(-47.368, 0.9, -10)
+size = Vector3(0.32, 0.32, 0)
+area = 0.04
+collapse_head = 8.0
+
+[sub_resource type="Resource" id="Opening_port_p4"]
+script = ExtResource("3_opening")
+name = &"port_p4"
+kind = 2
+joins = Array[StringName]([&"decks_p", &"sea"])
+centre = Vector3(-41.053, 0.9, -10)
+size = Vector3(0.32, 0.32, 0)
+area = 0.04
+collapse_head = 8.0
+
+[sub_resource type="Resource" id="Opening_port_p5"]
+script = ExtResource("3_opening")
+name = &"port_p5"
+kind = 2
+joins = Array[StringName]([&"decks_p", &"sea"])
+centre = Vector3(-34.737, 0.9, -10)
+size = Vector3(0.32, 0.32, 0)
+area = 0.04
+collapse_head = 8.0
+
+[sub_resource type="Resource" id="Opening_port_p6"]
+script = ExtResource("3_opening")
+name = &"port_p6"
+kind = 2
+joins = Array[StringName]([&"decks_p", &"sea"])
+centre = Vector3(-28.421, 0.9, -10)
+size = Vector3(0.32, 0.32, 0)
+area = 0.04
+collapse_head = 8.0
+
+[sub_resource type="Resource" id="Opening_port_p7"]
+script = ExtResource("3_opening")
+name = &"port_p7"
+kind = 2
+joins = Array[StringName]([&"decks_p", &"sea"])
+centre = Vector3(-22.105, 0.9, -10)
+size = Vector3(0.32, 0.32, 0)
+area = 0.04
+collapse_head = 8.0
+
+[sub_resource type="Resource" id="Opening_port_p8"]
+script = ExtResource("3_opening")
+name = &"port_p8"
+kind = 2
+joins = Array[StringName]([&"decks_p", &"sea"])
+centre = Vector3(-15.789, 0.9, -10)
+size = Vector3(0.32, 0.32, 0)
+area = 0.04
+collapse_head = 8.0
+
+[sub_resource type="Resource" id="Opening_port_p9"]
+script = ExtResource("3_opening")
+name = &"port_p9"
+kind = 2
+joins = Array[StringName]([&"decks_p", &"sea"])
+centre = Vector3(-9.474, 0.9, -10)
+size = Vector3(0.32, 0.32, 0)
+area = 0.04
+collapse_head = 8.0
+
+[sub_resource type="Resource" id="Opening_port_p10"]
+script = ExtResource("3_opening")
+name = &"port_p10"
+kind = 2
+joins = Array[StringName]([&"decks_p", &"sea"])
+centre = Vector3(-3.158, 0.9, -10)
+size = Vector3(0.32, 0.32, 0)
+area = 0.04
+collapse_head = 8.0
+
+[sub_resource type="Resource" id="Opening_port_p11"]
+script = ExtResource("3_opening")
+name = &"port_p11"
+kind = 2
+joins = Array[StringName]([&"decks_p", &"sea"])
+centre = Vector3(3.158, 0.9, -10)
+size = Vector3(0.32, 0.32, 0)
+area = 0.04
+collapse_head = 8.0
+
+[sub_resource type="Resource" id="Opening_port_p12"]
+script = ExtResource("3_opening")
+name = &"port_p12"
+kind = 2
+joins = Array[StringName]([&"decks_p", &"sea"])
+centre = Vector3(9.474, 0.9, -10)
+size = Vector3(0.32, 0.32, 0)
+area = 0.04
+collapse_head = 8.0
+
+[sub_resource type="Resource" id="Opening_port_p13"]
+script = ExtResource("3_opening")
+name = &"port_p13"
+kind = 2
+joins = Array[StringName]([&"decks_p", &"sea"])
+centre = Vector3(15.789, 0.9, -10)
+size = Vector3(0.32, 0.32, 0)
+area = 0.04
+collapse_head = 8.0
+
+[sub_resource type="Resource" id="Opening_port_p14"]
+script = ExtResource("3_opening")
+name = &"port_p14"
+kind = 2
+joins = Array[StringName]([&"decks_p", &"sea"])
+centre = Vector3(22.105, 0.9, -10)
+size = Vector3(0.32, 0.32, 0)
+area = 0.04
+collapse_head = 8.0
+
+[sub_resource type="Resource" id="Opening_port_p15"]
+script = ExtResource("3_opening")
+name = &"port_p15"
+kind = 2
+joins = Array[StringName]([&"decks_p", &"sea"])
+centre = Vector3(28.421, 0.9, -10)
+size = Vector3(0.32, 0.32, 0)
+area = 0.04
+collapse_head = 8.0
+
+[sub_resource type="Resource" id="Opening_port_p16"]
+script = ExtResource("3_opening")
+name = &"port_p16"
+kind = 2
+joins = Array[StringName]([&"decks_p", &"sea"])
+centre = Vector3(34.737, 0.9, -10)
+size = Vector3(0.32, 0.32, 0)
+area = 0.04
+collapse_head = 8.0
+
+[sub_resource type="Resource" id="Opening_port_p17"]
+script = ExtResource("3_opening")
+name = &"port_p17"
+kind = 2
+joins = Array[StringName]([&"decks_p", &"sea"])
+centre = Vector3(41.053, 0.9, -10)
+size = Vector3(0.32, 0.32, 0)
+area = 0.04
+collapse_head = 8.0
+
+[sub_resource type="Resource" id="Opening_port_p18"]
+script = ExtResource("3_opening")
+name = &"port_p18"
+kind = 2
+joins = Array[StringName]([&"decks_p", &"sea"])
+centre = Vector3(47.368, 0.9, -10)
+size = Vector3(0.32, 0.32, 0)
+area = 0.04
+collapse_head = 8.0
+
+[sub_resource type="Resource" id="Opening_port_p19"]
+script = ExtResource("3_opening")
+name = &"port_p19"
+kind = 2
+joins = Array[StringName]([&"decks_p", &"sea"])
+centre = Vector3(53.684, 0.9, -10)
+size = Vector3(0.32, 0.32, 0)
+area = 0.04
+collapse_head = 8.0
+
+[sub_resource type="Resource" id="Opening_port_p20"]
+script = ExtResource("3_opening")
+name = &"port_p20"
+kind = 2
+joins = Array[StringName]([&"decks_p", &"sea"])
+centre = Vector3(60.0, 0.9, -10)
+size = Vector3(0.32, 0.32, 0)
+area = 0.04
+collapse_head = 8.0
+
+[sub_resource type="Resource" id="Fitting_generator"]
+script = ExtResource("4_fitting")
+kind = 2
+name = &"dynamos"
+list_limit_deg = 25.0
+trim_limit_deg = 12.0
+base = Vector3(-20, -6.5, 0)
+drowns_at = 1.0
+recovers_deg = 3.0
+cell = &"boiler_rooms"
+
+[resource]
+script = ExtResource("1_wreck")
+name = &"empress_of_ireland"
+length = 135.0
+beam = 20.0
+depth = 13.0
+draught = 8.0
+centre_height = 7.3
+cells = Array[ExtResource("2_cell")]([SubResource("Cell_bunker_s"), SubResource("Cell_bunker_p"), SubResource("Cell_boiler_rooms"), SubResource("Cell_engine_room"), SubResource("Cell_hold_aft"), SubResource("Cell_hold_fwd"), SubResource("Cell_decks_s"), SubResource("Cell_decks_p")])
+openings = Array[ExtResource("3_opening")]([SubResource("Opening_hole_bunker_s"), SubResource("Opening_breach_boiler_rooms"), SubResource("Opening_passage_decks"), SubResource("Opening_hatch_hold_aft"), SubResource("Opening_hatch_hold_aft_p"), SubResource("Opening_hatch_hold_fwd"), SubResource("Opening_hatch_hold_fwd_p"), SubResource("Opening_skylight_engine"), SubResource("Opening_port_s1"), SubResource("Opening_port_s2"), SubResource("Opening_port_s3"), SubResource("Opening_port_s4"), SubResource("Opening_port_s5"), SubResource("Opening_port_s6"), SubResource("Opening_port_s7"), SubResource("Opening_port_s8"), SubResource("Opening_port_s9"), SubResource("Opening_port_s10"), SubResource("Opening_port_s11"), SubResource("Opening_port_s12"), SubResource("Opening_port_s13"), SubResource("Opening_port_s14"), SubResource("Opening_port_s15"), SubResource("Opening_port_s16"), SubResource("Opening_port_s17"), SubResource("Opening_port_s18"), SubResource("Opening_port_s19"), SubResource("Opening_port_s20"), SubResource("Opening_port_p1"), SubResource("Opening_port_p2"), SubResource("Opening_port_p3"), SubResource("Opening_port_p4"), SubResource("Opening_port_p5"), SubResource("Opening_port_p6"), SubResource("Opening_port_p7"), SubResource("Opening_port_p8"), SubResource("Opening_port_p9"), SubResource("Opening_port_p10"), SubResource("Opening_port_p11"), SubResource("Opening_port_p12"), SubResource("Opening_port_p13"), SubResource("Opening_port_p14"), SubResource("Opening_port_p15"), SubResource("Opening_port_p16"), SubResource("Opening_port_p17"), SubResource("Opening_port_p18"), SubResource("Opening_port_p19"), SubResource("Opening_port_p20")])
+fittings = Array[ExtResource("4_fitting")]([SubResource("Fitting_generator")])
+boat_limit_deg = 15.0
+notes = "Empress of Ireland, struck by Storstad in the St Lawrence on 29 May 1914 and gone in 14 minutes, lying on her starboard side (sources). Beam 20 m (source, 19.8). Box length 135 m: her 167.6 m overall at a block coefficient near 0.8 of it (est.), at an 8.0 m draught (est.). Depth 13 m from her keel to her upper deck (est.). Weight 7.3 m over her keel: GM about 0.87 m (est.). Storstad's bow opened a hole about 4.3 m wide and 7.6 m tall (source: 14 by 25 ft) into her starboard coal bunker, here 32 m2 3 m under her waterline, the bunker 2 m deep inboard and half full of coal (permeability 0.5), as is the port one, and through its inner wall 5.0 m2 into her two boiler rooms between them, one space 56 m long to 0.5 m over her waterline (est.). Fore and aft of them her engine room and her holds, and over all of them her cabins, a starboard and a port half joined amidships, 0.5 to 5 m over her waterline, the holds and the engine room open to them by hatches and a skylight (est.). Each side has 20 sidescuttles of 0.04 m2, 0.9 m over her waterline (est.) — left open on a warm night (source), shut for the other bake. Her dynamos stand at the after end of the boiler rooms on their floor (est.), drowned under 1 m of water or stopped past 25 degrees of list (est., SOLAS-based), with no emergency power (est.)."

@@ -15,9 +15,11 @@ extends Resource
 @export var draught: float
 @export var centre_height: float
 ## The spaces the damage opened and the holes it made, in her ship space: x toward
-## the bow from amidships, z to starboard, y up from her waterline (BoxBarge).
+## the bow from amidships, z to starboard, y up from her waterline (BoxBarge); and what
+## the sinking fails aboard her — her generator (SH31).
 @export var cells: Array[FloodCell] = []
 @export var openings: Array[ShipOpening] = []
+@export var fittings: Array[ShipFitting] = []
 ## The list past which the high side's lifeboats are useless, in degrees.
 @export var boat_limit_deg: float
 ## Where every number comes from, est. or a source.
@@ -42,4 +44,6 @@ func structure() -> ShipStructure:
 		barge.openings.append(opening.duplicate())
 	barge.lifeboat(1, boat_limit_deg)
 	barge.lifeboat(-1, boat_limit_deg)
+	for fitting: ShipFitting in fittings:
+		barge.fittings.append(fitting.duplicate())
 	return barge.structure()

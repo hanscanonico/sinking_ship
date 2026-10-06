@@ -4,21 +4,24 @@ extends RefCounted
 ## the physics chooses (SinkStepper.advance) but cut short to land where a cell's water
 ## reaches its ceiling, the sill of an opening it spills over or — with the air stage on
 ## — the top of the last opening its air had, so those events stand at their own seconds
-## and a pocket traps the air it had then; to the end — she is gone, or the water has
-## stopped coming in and she lies still — or the bake's cap. Every state and every event,
-## a lurch with its warning, go into the timeline it makes (SinkTimeline). It runs a
-## slice at a time — run() takes the steps it is allowed — so a scene can spread it
-## across frames (R20): a bake run in slices is the bake run straight through, step for
-## step, and the stepper stays state in, state out.
+## and a pocket traps the air it had then — and, with the failures stage on, where
+## anything reaches the threshold it gives way at (SinkFailures), so it gives way at its
+## own second too; to the end — she is gone, or the water has stopped coming in and she
+## lies still — or the bake's cap. Every state and every event, a lurch and a funnel's
+## fall with their warnings, and the worst her bending came to go into the timeline it
+## makes (SinkTimeline). It runs a slice at a time — run() takes the steps it is
+## allowed — so a scene can spread it across frames (R20): a bake run in slices is the
+## bake run straight through, step for step, and the stepper stays state in, state out.
 
 ## A level this close to a ceiling or a sill, in metres, has reached it: the
 ## timeline's millimetre. A landing its first guess misses is guessed again, by false
 ## position, at most LAND_TRIES times in all, once per ceiling or sill.
 const REACHED := 1e-3
 const LAND_TRIES := 4
-## Less than this many m³ a second passing anywhere, and no door still moving: the
-## water has stopped coming in (est.: a litre a second, under 20 t in the bake's whole
-## cap, where sinking her within it takes hundreds).
+## Less than this many m³ a second of her water changing anywhere, and no door still
+## moving: the water has stopped coming in — or her pumps lift out what still does
+## (SH31) — (est.: a litre a second, under 20 t in the bake's whole cap, where sinking
+## her within it takes hundreds).
 const STILL := 1e-3
 ## Slower than this she lies still: m/s of heave, radians a second of pitch and roll
 ## (est.: a millimetre and a twentieth of a degree in a quarter of an hour).
@@ -35,13 +38,15 @@ var _done := false
 var _end := SinkTimeline.End.CAPPED
 var _gone_at := -1.0
 ## Every state, the hit's first: its physics second, the sea up her, her rotation (nine
-## numbers), and every cell's head, water and pocket's pressure (SinkStepper.pressures).
+## numbers), and every cell's head, water, pocket's pressure (SinkStepper.pressures) and
+## what lights it (FloodState.lit).
 var _times := PackedFloat64Array()
 var _seas := PackedFloat64Array()
 var _rotations := PackedFloat64Array()
 var _heads := PackedFloat64Array()
 var _waters := PackedFloat64Array()
 var _pockets := PackedFloat64Array()
+var _lits := PackedByteArray()
 var _events: Array[SinkTimeline.Event] = []
 var _cells := 0
 var _wet := PackedByteArray()
@@ -53,8 +58,12 @@ var _plunged := false
 var _lurches: Lurches
 var _boats: Array[ShipFitting] = []
 var _useless := PackedByteArray()
+## What gives way, with the failures stage on; and its events (Failures).
+var _failures: SinkFailures
+var _failing: Failures
 ## Per ceiling and sill — every cell's ceiling, then every opening's sill, then with the
-## air stage on every cell's highest opening top — how far under it the water stood at
+## air stage on every cell's highest opening top, then with the failures stage on every
+## threshold of what can give way (SinkFailures.gaps) — how far under it the water stood at
 ## the last state, and 1 once it was ever under it by more than REACHED; and 1 once a
 ## step has landed on it, or for a sill no step lands on.
 var _gaps := PackedFloat64Array()
@@ -68,6 +77,7 @@ func _init(stepper: SinkStepper, sea: SeaPhysics, cap: float) -> void:
 	_stepper = stepper
 	_sea = sea
 	_cap = cap
+	_failures = stepper.failures()
 	_state = stepper.start()
 	_cells = _state.water.size()
 	_keep(_state)
@@ -79,9 +89,11 @@ func _init(stepper: SinkStepper, sea: SeaPhysics, cap: float) -> void:
 	_under.resize(_gaps.size())
 	_landed.resize(_gaps.size())
 	# Water passing any other kind of opening is never news — as though it had spilled
-	# — and no step lands on its sill: only the timeline's events are landed on.
+	# — and no step lands on its sill: only the timeline's events are landed on. One shut
+	# until it fails is news as it gives way.
 	for index in _names.size():
-		if not _spills(stepper.opening_kind(index)):
+		var watched := _failures != null and _failures.watches(index)
+		if not _spills(stepper.opening_kind(index)) or watched:
 			_spilled[index] = 1
 			_landed[_cells + index] = 1
 	_note_under()
@@ -89,6 +101,8 @@ func _init(stepper: SinkStepper, sea: SeaPhysics, cap: float) -> void:
 	_lurches = Lurches.new(sea)
 	_boats = stepper.lifeboats()
 	_useless.resize(_boats.size())
+	if _failures != null:
+		_failing = Failures.new(stepper, sea)
 	_done = _state.seconds >= _cap
 
 
@@ -155,6 +169,10 @@ func pockets() -> PackedFloat64Array:
 	return _pockets
 
 
+func lits() -> PackedByteArray:
+	return _lits
+
+
 func cells() -> int:
 	return _cells
 
@@ -177,6 +195,16 @@ func rest() -> float:
 	return _stepper.rest()
 
 
+## The worst her bending came to, a share of her strength — positive hogging — and
+## where along her (FloodState.bending): 0 where nobody measured it.
+func bending() -> float:
+	return _failing.bending if _failing != null else 0.0
+
+
+func bending_x() -> float:
+	return _failing.bending_x if _failing != null else 0.0
+
+
 ## One step, landed where a ceiling or a sill comes within it, and what it brought.
 func _take() -> void:
 	var before := _state
@@ -185,10 +213,8 @@ func _take() -> void:
 	var seconds := state.seconds - before.seconds
 	_keep(state)
 	var at := state.seconds
-	var passed := 0.0
 	for index in _names.size():
 		var moved := absf(state.moved[index])
-		passed += moved
 		var reached := _under[_cells + index] == 1 and _gaps[_cells + index] <= REACHED
 		if _spilled[index] == 0 and (moved > 0.0 or reached):
 			_spilled[index] = 1
@@ -222,6 +248,9 @@ func _take() -> void:
 			_useless[boat] = 1
 			var side := &"starboard" if _boats[boat].side == 1 else &"port"
 			_events.append(SinkTimeline.Event.new(at, SinkTimeline.Kind.BOATS_USELESS, side))
+	if _failing != null:
+		_failures.measure(state)
+		_failing.follow(before, state)
 	if state.sea > SinkTimeline.MAIN_DECK and not _plunged:
 		_plunged = true
 		_events.append(SinkTimeline.Event.new(at, SinkTimeline.Kind.PLUNGING, &""))
@@ -231,13 +260,15 @@ func _take() -> void:
 		_events.append(SinkTimeline.Event.new(at, SinkTimeline.Kind.GONE, &""))
 	if _gone_at >= 0.0 and -above >= _sea.gone_depth:
 		_end = SinkTimeline.End.GONE
-	elif _gone_at < 0.0 and passed < STILL * seconds and at >= _doors_move_until:
+	elif _gone_at < 0.0 and _changed(before, state) < STILL * seconds and at >= _doors_move_until:
 		if _lies_still(state):
 			_end = SinkTimeline.End.AFLOAT
 	_done = _end != SinkTimeline.End.CAPPED or at >= _cap
 	if _done:
 		_lurches.close(state)
 		_events = _merged(_events, _lurches.events)
+		if _failing != null:
+			_events = _merged(_events, _failing.events)
 
 
 ## The state after [param state]: the step SinkStepper.advance chooses, or — where it
@@ -304,6 +335,8 @@ func _gaps_of(state: FloodState) -> PackedFloat64Array:
 	if _sea.air:
 		for cell in _cells:
 			gaps.append(_stepper.highest_top(cell) - state.heads[cell])
+	if _failures != null:
+		gaps.append_array(_failures.gaps(state, _stepper))
 	return gaps
 
 
@@ -333,6 +366,24 @@ func _keep(state: FloodState) -> void:
 	_heads.append_array(state.heads)
 	_waters.append_array(state.water)
 	_pockets.append_array(_stepper.pressures(state))
+	_lits.append_array(state.lit if not state.lit.is_empty() else _lit_throughout())
+
+
+## How much water [param after]'s cells hold more or less than [param before]'s, all of
+## them together, in m³.
+func _changed(before: FloodState, after: FloodState) -> float:
+	var changed := 0.0
+	for cell in _cells:
+		changed += absf(after.water[cell] - before.water[cell])
+	return changed
+
+
+## What lights each cell without the failures stage: everything, as before SH31.
+func _lit_throughout() -> PackedByteArray:
+	var lit := PackedByteArray()
+	lit.resize(_cells)
+	lit.fill(ShipPower.Power.MAIN)
+	return lit
 
 
 ## Whether [param state] lies still: neither rising nor falling, pitching nor rolling,
@@ -431,3 +482,103 @@ class Lurches:
 		events.append(lurch)
 		_from = -1.0
 		_lost_at = -1.0
+
+
+## What gives way (SinkFailures), followed step by step: an opening or a wall's panel
+## starting to leak, and giving way; a funnel's fall, warned at its creak — the last time
+## it began to creak while it stood, creak_share of the way to a limit of its stays — and
+## never less than fall_warning seconds ahead, the bake placing the warning where the
+## creak comes later or never; her generator stopping and running again, and her going
+## dark; a cell's water reaching its lamps; and her hull creaking once its bending passes
+## stressed_share of its strength, with the worst it came to.
+class Failures:
+	var events: Array[SinkTimeline.Event] = []
+	## The worst share of her strength her bending came to, and where along her.
+	var bending := 0.0
+	var bending_x := 0.0
+	var _stepper: SinkStepper
+	var _funnels: FunnelStays
+	var _generator: StringName
+	var _warning: float
+	var _stressed: float
+	var _creaked := false
+	## Per funnel, the second it last began to creak while standing, or -1 for not now.
+	var _creak_at := PackedFloat64Array()
+
+	func _init(stepper: SinkStepper, sea: SeaPhysics) -> void:
+		_stepper = stepper
+		_funnels = stepper.failures().funnels()
+		var generator := stepper.failures().power().generator()
+		_generator = generator.name if generator != null else &""
+		_warning = sea.fall_warning
+		_stressed = sea.stressed_share
+		_creak_at.resize(_funnels.fittings().size())
+		_creak_at.fill(-1.0)
+
+	## Follows the step from [param before] to [param after].
+	func follow(before: FloodState, after: FloodState) -> void:
+		var at := after.seconds
+		var names := _stepper.opening_names()
+		for index in names.size():
+			var opened := after.opened[index]
+			if opened == before.opened[index]:
+				continue
+			var kind := SinkTimeline.Kind.GAVE_WAY
+			if opened < SinkFailures.GAVE_WAY:
+				kind = SinkTimeline.Kind.LEAKING
+			_add(SinkTimeline.Event.new(at, kind, names[index]))
+		for funnel in _creak_at.size():
+			if before.fallen[funnel] == 0 and after.fallen[funnel] == 1:
+				_fall(funnel, after)
+			elif after.fallen[funnel] == 0 and _funnels.strained(after, funnel):
+				if _creak_at[funnel] < 0.0:
+					_creak_at[funnel] = at
+			else:
+				_creak_at[funnel] = -1.0
+		if before.power == ShipPower.Power.MAIN and after.power != ShipPower.Power.MAIN:
+			_add(SinkTimeline.Event.new(at, SinkTimeline.Kind.POWER_LOST, _generator))
+		elif before.power != ShipPower.Power.MAIN and after.power == ShipPower.Power.MAIN:
+			_add(SinkTimeline.Event.new(at, SinkTimeline.Kind.POWER_BACK, _generator))
+		if before.power != ShipPower.Power.DARK and after.power == ShipPower.Power.DARK:
+			_add(SinkTimeline.Event.new(at, SinkTimeline.Kind.LIGHTS_OUT, &""))
+		for cell in after.shorted.size():
+			if before.shorted[cell] == 0 and after.shorted[cell] == 1:
+				_add(
+					SinkTimeline.Event.new(at, SinkTimeline.Kind.SHORTED, _stepper.cell_name(cell))
+				)
+		if absf(after.bending) > absf(bending):
+			bending = after.bending
+			bending_x = after.bending_x
+		if not _creaked and absf(after.bending) >= _stressed:
+			_creaked = true
+			_add(SinkTimeline.Event.new(at, SinkTimeline.Kind.HULL_STRESSED, &"", after.bending))
+
+	## Funnel [param funnel] let go at [param state]: its creak, then its fall, along the
+	## world's down there, as long as it takes.
+	func _fall(funnel: int, state: FloodState) -> void:
+		var fitting := _funnels.fittings()[funnel]
+		var at := state.seconds
+		var warned := at - _warning
+		if _creak_at[funnel] >= 0.0 and _creak_at[funnel] < warned:
+			warned = _creak_at[funnel]
+		warned = maxf(warned, 0.0)
+		var toward := FunnelStays.toward(state)
+		var creak := SinkTimeline.Event.new(
+			warned, SinkTimeline.Kind.FUNNEL_STRAINING, fitting.name, 0.0, at - warned
+		)
+		creak.along = toward
+		_add(creak)
+		var falling := SinkTimeline.Event.new(
+			at, SinkTimeline.Kind.FUNNEL_FALLING, fitting.name, 0.0, fitting.fall_time
+		)
+		falling.warned = warned
+		falling.along = toward
+		_add(falling)
+		_creak_at[funnel] = -1.0
+
+	## Adds [param event] after every one at or before its second.
+	func _add(event: SinkTimeline.Event) -> void:
+		var at := events.size()
+		while at > 0 and events[at - 1].seconds > event.seconds:
+			at -= 1
+		events.insert(at, event)

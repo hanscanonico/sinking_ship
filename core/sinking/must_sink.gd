@@ -264,7 +264,8 @@ class Choosing:
 		_drawn.damage.wave_height = _wave_height
 		_drawn.draws += 1
 		var spare := _scenario.spare_deck
-		if MustSink.founders(_structure, _drawn.damage, _hull, _sea, spare, _motion):
+		var failing := _scenario.quick_failing
+		if MustSink.founders(_structure, _drawn.damage, _hull, _sea, spare, failing, _motion):
 			_start(_drawn.damage)
 			_stage = Stage.BAKING
 			return
@@ -289,7 +290,8 @@ class Choosing:
 			var damage := HitMapper.map_explicit(_weighted, _structure, _bands)
 			damage.wave_height = _wave_height
 			var spare := _scenario.spare_deck
-			if MustSink.founders(_structure, damage, _hull, _sea, spare, _motion):
+			var failing := _scenario.quick_failing
+			if MustSink.founders(_structure, damage, _hull, _sea, spare, failing, _motion):
 				_tried = Choice.new()
 				_tried.hit = _weighted
 				_tried.damage = damage
@@ -321,14 +323,18 @@ class Choosing:
 ## attitude stage on she floats trimmed and listed by where that water sits — the trim
 ## and list her lift's stiffness (ShipMotion, [param motion]) gives the turn the water
 ## puts on her, to first order — and each opening and her deck's corners are judged at
-## that attitude. Only a hit she floats on, stable, with deck to spare is ever thrown
-## out: the bake would leave her afloat too.
+## that attitude. With the failures stage on (SH31) a shut door, hatch, porthole or
+## window that can fail, and every panel of her watertight walls, passes water once it
+## stands under [param failing] of the least head it leaks or gives way at
+## (SinkFailures), as the physics would let it through. Only a hit she floats on,
+## stable, with deck to spare is ever thrown out: the bake would leave her afloat too.
 static func founders(
 	structure: ShipStructure,
 	damage: HitDamage,
 	hull: LevelHull,
 	sea: SeaPhysics,
 	spare: float,
+	failing: float,
 	motion: ShipMotion = null
 ) -> bool:
 	if sea.attitude and motion == null:
@@ -338,7 +344,7 @@ static func founders(
 	flooded.resize(count)
 	for opening: ShipOpening in damage.openings:
 		flooded[structure.cell_named(opening.joins[0])] = 1
-	var ways := _ways(structure, damage)
+	var ways := _ways(structure, damage, failing if sea.failures else 0.0)
 	var own := _own(structure, sea)
 	var level := INF
 	var tilt := PackedFloat64Array([0.0, 0.0, 0.0])
@@ -351,7 +357,7 @@ static func founders(
 			tilt = _tilt(structure, sea, motion, flooded, level)
 		changed = false
 		for way: Array in ways:
-			if _clearance(way[2], tilt, motion, level) >= 0.0:
+			if _clearance(way[2], tilt, motion, level) >= -way[3]:
 				continue
 			var first: int = way[0]
 			var second: int = way[1]
@@ -453,17 +459,31 @@ static func _tilt(
 
 
 ## Every opening of [param structure] water can pass after [param damage]: its two
-## sides — a cell, or SinkStepper.OUTSIDE — and its least and greatest corners. A door the
-## ship shuts is shut, but one that jammed.
-static func _ways(structure: ShipStructure, damage: HitDamage) -> Array[Array]:
+## sides — a cell, or SinkStepper.OUTSIDE — its least and greatest corners, and the depth
+## of water over its foot it passes under: none for one open. A door the ship shuts is
+## shut, but one that jammed; while [param failing] is over 0, a shut one and her walls'
+## panels pass under that share of the least head each leaks or gives way at.
+static func _ways(structure: ShipStructure, damage: HitDamage, failing: float) -> Array[Array]:
 	var ways: Array[Array] = []
 	var openings: Array[ShipOpening] = structure.openings.duplicate()
 	openings.append_array(damage.openings)
+	if failing > 0.0:
+		openings.append_array(SinkFailures.panels(structure))
 	for opening: ShipOpening in openings:
-		if opening.starts == ShipOpening.Start.SHUT and not opening.name in damage.left_open:
-			continue
-		if opening.shuts_at_hit and not opening.name in damage.jammed:
-			continue
+		var shut := (
+			opening.starts == ShipOpening.Start.SHUT and not opening.name in damage.left_open
+		)
+		shut = shut or opening.shuts_at_hit and not opening.name in damage.jammed
+		var under := 0.0
+		if shut:
+			var kept := SinkFailures.kept_share(structure, damage, opening)
+			under = opening.collapse_head * kept if opening.collapse_head > 0.0 else INF
+			var hinged := not opening.opens_toward.is_empty()
+			if opening.leak_head > 0.0 and (opening.leak_area > 0.0 or hinged):
+				under = minf(under, opening.leak_head)
+			if failing <= 0.0 or is_inf(under):
+				continue
+			under *= failing
 		var sides: Array[int] = []
 		for place: StringName in opening.joins:
 			var cell := structure.cell_named(place)
@@ -479,7 +499,7 @@ static func _ways(structure: ShipStructure, damage: HitDamage) -> Array[Array]:
 				opening.centre.z + half.z,
 			]
 		)
-		ways.append([sides[0], sides[1], corners])
+		ways.append([sides[0], sides[1], corners, under])
 	return ways
 
 

@@ -1,7 +1,8 @@
 class_name PinnedSeeds
 extends Resource
-## Our ships' pinned seeds (§5b.4), by name — the steamer's, and from SH30 the
-## trawler's open_hatch: a seed whose match hit on her — after the must-sink rule — sits
+## Our ships' pinned seeds (§5b.4), by name — the steamer's, from SH30 the trawler's
+## open_hatch, from SH31 the steamer's door_gives_way, funnel_on_the_bridge and
+## lights_out_early: a seed whose match hit on her — after the must-sink rule — sits
 ## far from every threshold, re-baked with its hole's area × 0.9 and × 1.1 to the same
 ## outcome, so a Mac and Linux agree on it.
 

@@ -131,6 +131,18 @@ var _crate_at := PackedVector3Array()
 var _crate_indoors := PackedFloat32Array()
 ## Which of the rooms' lamps light, and the graphics preset it was last told of.
 var _lamp_sight: LampSight
+## Every room's lamp, the cell it hangs in — CellMap.NONE for a ship without cells —
+## and where it burns: what the sinking's lit state and water reach (show_power).
+var _lamps: Array[ShipLamp] = []
+var _lamp_cells := PackedInt32Array()
+var _lamp_at := PackedVector3Array()
+## Per funnel the sinking can fell, by its fitting's name, the node its standing part
+## hangs from, turned about its foot as it falls (show_falls).
+var _funnels := {}
+## Whether a funnel has come down: its smoke has stopped.
+var _felled := false
+## The glass the sinking can break (BrokenGlass).
+var _broken_glass: BrokenGlass
 var _graphics := GraphicsQuality.of(GraphicsQuality.Preset.HIGH)
 
 
@@ -167,6 +179,11 @@ func build(
 	_crate_paints.clear()
 	_crate_at.clear()
 	_crate_indoors.clear()
+	_lamps.clear()
+	_lamp_cells.clear()
+	_lamp_at.clear()
+	_funnels.clear()
+	_felled = false
 	var hull := ShipHull.new(_space, railing_height)
 	var materials := _materials(layout, hull.bow_sweep())
 	_paints = materials
@@ -191,7 +208,7 @@ func build(
 	for ramp: ShipRamp in layout.ramps:
 		_stairs(mesh, ramp)
 	for blocker: ShipBlocker in layout.blockers:
-		_blocker(mesh, blocker)
+		_blocker(mesh, blocker, pieces)
 	var cap := Vector2(RAIL_WIDTH, RAIL_DEPTH)
 	_wreckage = RailingRemains.new(layout, railing_height, cap, Vector2.ONE * MID_RAIL, POST)
 	for index in layout.railings.size():
@@ -208,6 +225,7 @@ func build(
 		_ladder(into, ladder, layout.platforms[ladder.platform], -layout.freeboard)
 	var fittings := ShipFittings.new(_space, hull, body_radius, open_ports)
 	fittings.build(mesh, self, materials)
+	_broken_glass = BrokenGlass.new(layout, fittings.panes, self, materials)
 	# Every furnishing stands in a room: its own mesh, which need not ask where it is.
 	var furnishings := ShipMesh.new(
 		func(_point: Vector3) -> bool: return false, _space.room_lines()
@@ -223,8 +241,9 @@ func build(
 	brass.diffuse_mode = BaseMaterial3D.DIFFUSE_TOON
 	brass.specular_mode = BaseMaterial3D.SPECULAR_DISABLED
 	ShipLamp.fade_near(brass)
+	var cells := CellMap.new(layout.structure) if layout.structure != null else null
 	for index in layout.rooms.size():
-		_hang_lamps(layout.rooms[index], index, brass)
+		_hang_lamps(layout.rooms[index], index, brass, cells)
 	mesh.commit(self, materials)
 	furnishings.commit(dressed, _near_paints(materials))
 	for node: Node3D in pieces:
@@ -292,6 +311,35 @@ func show_sinking(
 			_remains[index].visible = broken
 
 
+## Lights each room's lamp as [param pose] has its cell lit — on her generator, her
+## emergency power or nothing (ShipPose.lit) — and puts out each fire the water of its
+## cell has reached; shows the glass the pose has broken (BrokenGlass). A pose without
+## cells leaves them lit.
+func show_power(pose: ShipPose) -> void:
+	if pose.lit.is_empty():
+		return
+	for index in _lamps.size():
+		var cell := _lamp_cells[index]
+		if cell == CellMap.NONE:
+			continue
+		var lamp := _lamps[index]
+		lamp.power = pose.lit[cell]
+		lamp.drowned = pose.levels[cell] >= pose.world_height(_lamp_at[index])
+	if _broken_glass != null:
+		_broken_glass.show(pose)
+
+
+## Turns each funnel [param falls] (ShipPose.falls) names about its foot as far as it has
+## gone by [param tick], fractional, as the view interpolates: a lean as it creaks, then
+## its fall toward its low side, faster as it goes (FunnelArt).
+func show_falls(falls: Array[FunnelFall], tick: float) -> void:
+	for fall: FunnelFall in falls:
+		var node: Node3D = _funnels.get(fall.fitting.name)
+		if node != null:
+			node.transform = FunnelArt.turned(fall, tick)
+			_felled = _felled or FunnelArt.down(fall, tick)
+
+
 ## Railing [param index]'s remains (RailingRemains) under a node of their own beside
 ## the span's, in the paints of the deck it stands on.
 func _remains_of(index: int) -> Node3D:
@@ -319,7 +367,7 @@ static func wrecked(platform: ShipPlatform, floor_height: float, fallen: float) 
 
 func _process(_delta: float) -> void:
 	if _smoke != null:
-		_smoke.emitting = _smoke.global_position.y > 0.0
+		_smoke.emitting = _smoke.global_position.y > 0.0 and not _felled
 	for index in _crates.size():
 		_light_crate(index)
 	var camera := get_viewport().get_camera_3d()
@@ -700,11 +748,18 @@ func _bar(
 
 ## A wall, a hatch, a funnel or a mast, by its shape and where it stands — an
 ## engine standing in a room is the room's own (RoomDressing). A blocker a deck rests
-## on stops a plank short of its top, so the deck shows.
-func _blocker(mesh: ShipMesh, blocker: ShipBlocker) -> void:
+## on stops a plank short of its top, so the deck shows. A funnel the sinking can fell
+## stands over its foot on a piece of its own among [param pieces], its smoke with it.
+func _blocker(mesh: ShipMesh, blocker: ShipBlocker, pieces: Dictionary) -> void:
 	var top := blocker.top - (PLANK if _space.deck_on(blocker) else 0.0)
 	if blocker.shape == ShipBlocker.Shape.CYLINDER:
-		if blocker.radius >= FUNNEL_FROM:
+		var felled := FunnelArt.fitting_of(_space.layout, blocker)
+		if blocker.radius >= FUNNEL_FROM and felled != null:
+			var node := _piece(pieces, true, "Funnel_%s" % felled.name, self)
+			_funnels[felled.name] = node
+			_smoke = FunnelArt.split(mesh, pieces[node], blocker, felled, top, self)
+			_smoke.reparent(node, false)
+		elif blocker.radius >= FUNNEL_FROM:
 			_smoke = DeckWorks.funnel(mesh, blocker, top, self)
 		else:
 			DeckWorks.mast(mesh, blocker, top, self)
@@ -893,8 +948,9 @@ func _door_frame(mesh: ShipMesh, lintel: ShipBlocker, deck: float) -> void:
 
 ## [param room]'s lamps where RoomDressing.lights() puts them: a pendant hung under
 ## the middle of its ceiling (the greybox's marker) — from the deck above when that
-## deck can fall — and a room's others the same way; a fire in its wall.
-func _hang_lamps(room: ShipRoom, index: int, brass: Material) -> void:
+## deck can fall — and a room's others the same way; a fire in its wall. Each is lit as
+## the cell it hangs in, of [param cells] (show_power).
+func _hang_lamps(room: ShipRoom, index: int, brass: Material, cells: CellMap) -> void:
 	var middle := room.area.get_center()
 	var ceiling := _space.ceiling(room, middle.x, middle.y)
 	var area := room.area
@@ -927,8 +983,11 @@ func _hang_lamps(room: ShipRoom, index: int, brass: Material) -> void:
 			glass.emission = ArtPalette.LAMP_GLASS
 			glass.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 			ShipLamp.fade_near(glass)
-		lamp.setup(box, index * 1.7 + number * 0.61, glass, brass, light.kind, light.facing)
+		lamp.setup(index * 1.7 + number * 0.61, glass, brass, light.kind, light.facing)
 		_lamp_sight.add(lamp, index, box)
+		_lamps.append(lamp)
+		_lamp_cells.append(cells.cell_at(light.at) if cells != null else CellMap.NONE)
+		_lamp_at.append(light.at)
 
 
 ## The materials the ship is drawn with, one per finish, for what is drawn beside it.

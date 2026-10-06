@@ -41,8 +41,9 @@ var _capacity := PackedFloat64Array()
 var _leaks := PackedFloat64Array()
 var _touching: Array[PackedInt32Array] = []
 ## Per opening, in the stepper's order: its sides, the seconds it takes to shut from the
-## hit (0 for one that stays as it is), the ship axis it is flat across and which way
-## along it its first side lies (1 or -1); and at the attitude last turned to its top,
+## hit (0 for one that stays as it is, under 0 for one shut until it fails), the ship
+## axis it is flat across and which way along it its first side lies (1 or -1); and at
+## the attitude last turned to its top,
 ## and the way air passes it — 1 up from its first side only, -1 up from its second
 ## only, 0 either way.
 var _first := PackedInt32Array()
@@ -307,12 +308,14 @@ func _free(state: FloodState) -> PackedByteArray:
 
 
 ## Whether [param cell]'s air passes opening [param index] into [param other] at
-## [param state]: the opening not shut, its top at or over the cell's water; through a
-## flat one only rising — from over it, only into air standing under it, the sea or
-## the other cell's water under its top; and on the other side the sea, the sky or a
-## cell not full.
+## [param state]: the opening not shut — nor only leaking — its top at or over the
+## cell's water; through a flat one only rising — from over it, only into air standing
+## under it, the sea or the other cell's water under its top; and on the other side the
+## sea, the sky or a cell not full.
 func _reaches(cell: int, other: int, index: int, state: FloodState) -> bool:
-	if SinkStepper.open_share(_shut_time[index], state.seconds) <= 0.0:
+	# Through what only weeps — a seal leaking (SinkFailures) — no air goes free.
+	var given := state.opened[index] if state.opened[index] >= SinkFailures.GAVE_WAY else 0.0
+	if SinkStepper.open_share(_shut_time[index], state.seconds, given) <= 0.0:
 		return false
 	var top := _top[index]
 	if state.heads[cell] > top:

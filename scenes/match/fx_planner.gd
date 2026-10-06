@@ -97,8 +97,9 @@ const _CORNERS: Array[Vector3] = [
 var _layout: ShipLayout
 var _surfaces: Surfaces
 var _schedule: SinkSchedule
-## The iceberg's strike, as it shows (D13).
+## The iceberg's strike, as it shows (D13), and what gives way (SH31).
 var _gash: GashPlanner
+var _failures: FailureFx
 var _space: ShipSpace
 var _railing_height: float
 var _start_tick: int
@@ -138,6 +139,7 @@ func _init(config: MatchConfig, surfaces: Surfaces, schedule: SinkSchedule) -> v
 	_surfaces = surfaces
 	_schedule = schedule
 	_gash = GashPlanner.new(schedule, config.ship.structure)
+	_failures = FailureFx.new(config.ship.structure, schedule)
 	_space = ShipSpace.new(_layout)
 	_railing_height = config.rules.railing_height
 	_start_tick = Ticks.from_seconds(config.scenario.starts_at)
@@ -176,6 +178,7 @@ func plan(previous: Dictionary, current: Dictionary) -> Array[FxCue]:
 	for event: Dictionary in current["events"]:
 		_from_event(event, previous, current, pose_now, cues)
 	_gash.bursts(tick, cues)
+	_failures.plan(previous, current, pose_now, cues)
 	_waterlines(pose_then, pose_now, tick, plunging, cues)
 	_floods(pose_then, pose_now, tick, cues)
 	_machinery(pose_then, pose_now, tick, cues)

@@ -2,10 +2,12 @@ class_name ShipLamp
 extends Node3D
 ## A room's practical lamp (SH14b), hung at the room's lamp marker. It swings as a
 ## damped pendulum toward the world's down, so a list leaves it plumb and a lurch
-## sets it rocking, and it flickers out as the room floods: the sea is the world
-## plane y = 0 (D7), so the room's floor and the lamp are wet exactly when their
-## drawn world height is below zero. It reads only where the view has put the ship
-## — presentation, never a rule (D12). Hung from a deck that has given way, it falls
+## sets it rocking, and it burns as what powers its cell does (SH31, ShipArt tells it:
+## [member power], the pose's lit state, D7): full on her generator, dim and red on her
+## emergency power, out with neither or once the water in its cell has reached it —
+## flickering a moment as it drops from one to the next. A fire is no lamp: it burns
+## until the water in its cell reaches it ([member drowned]). It reads only what the
+## view hands it — presentation, never a rule (D12). Hung from a deck that has given way, it falls
 ## with it and goes out once the deck lies wrecked (ShipArt). Its globe glows
 ## whoever looks, but it lights its room only while ShipArt wants it lit — while the
 ## eye that draws the frame stands near it on its storey (relevant), in sight of its
@@ -43,14 +45,12 @@ const MOUTH_PROUD := 0.045
 ## How hard the cord pulls back toward plumb, and how fast a swing dies, per second.
 const STIFFNESS := 26.0
 const DAMPING := 1.4
-## How many times a second a failing lamp may change its mind.
+## How many times a second a failing lamp may change its mind, and for how many seconds
+## after its power drops it flickers between the two.
 const FLICKER_RATE := 9.0
-## The brightness a flicker drops to, rather than out.
-const BROWNOUT := 0.12
-## The share of moments a failing lamp is dimmed: with the sea at its room's floor,
-## and with the sea at the lamp itself.
-const FAILING_FROM := 0.15
-const FAILING_TO := 0.8
+const FAILING := 0.8
+## How bright a lamp burns on her emergency power, as a share of its full light.
+const EMERGENCY_GLOW := 0.35
 ## How far across the ship plane from its room an eye still has the lamp lit, and
 ## how far above its ceiling or below its floor: a stair's head, never the deck over.
 const REACH := 8.0
@@ -60,6 +60,10 @@ const FADE := 0.3
 
 ## False once the lamp is wrecked: it stays out whatever the water does.
 var burning := true
+## What powers its cell now (ShipPower.Power), and for a fire whether the water in its
+## cell has reached it; ShipArt sets both from the pose.
+var power: int = ShipPower.Power.MAIN
+var drowned := false
 ## Whether the lamp lights its room whatever eye draws the frame: the observer's
 ## cut-away, which looks down into every room at once.
 var everywhere := false
@@ -68,16 +72,16 @@ var everywhere := false
 var wanted := true
 
 var _kind := Kind.PENDANT
-## From the lamp's node down to where it burns: what goes under the sea.
-var _drop := CORD
-## The middle of its room's floor, ship space.
-var _floor: Vector3
 ## How far the lamp has faded up (0…1) toward lighting its room.
 var _presence := 1.0
 var _hang := Vector3.DOWN
 var _swing := Vector3.ZERO
 var _clock := 0.0
 var _phase := 0.0
+## What powered it before [member power] last changed, and how many seconds ago that was.
+var _was: int = ShipPower.Power.MAIN
+var _shown_power: int = ShipPower.Power.MAIN
+var _since := INF
 var _light: OmniLight3D
 ## A fire's light out of its wall: null for a lamp.
 var _spot: SpotLight3D
@@ -88,21 +92,28 @@ var _shown := -1.0
 var _energy := -1.0
 
 
-## How bright a lamp burns, 0…1: [param lamp_height] and [param floor_height] are
-## the world heights of the lamp and of its room's floor under it, and
-## [param clock] a running time in seconds. Lit while the floor is dry, out once
-## the lamp is under, and in between flickering — dimmed more of the time the
-## nearer the water climbs to it.
-static func glow(lamp_height: float, floor_height: float, clock: float) -> float:
-	if lamp_height <= 0.0:
-		return 0.0
-	if floor_height >= 0.0:
-		return 1.0
-	var risen := clampf(-floor_height / maxf(lamp_height - floor_height, 0.01), 0.0, 1.0)
-	var failing := lerpf(FAILING_FROM, FAILING_TO, risen)
+## How bright a lamp burns, 0…1, on [param power] (ShipPower.Power) — full on her
+## generator, EMERGENCY_GLOW on her emergency power, out on neither — [param since]
+## seconds after it dropped from [param was]: for FAILING seconds it flickers between
+## the two, holding the old less of the time as they pass; [param clock] a running
+## time in seconds.
+static func glow(power: int, was: int, since: float, clock: float) -> float:
+	var now := _brightness(power)
+	var before := _brightness(was)
+	if since >= FAILING or before <= now:
+		return now
 	var moment := floorf(clock * FLICKER_RATE)
 	var roll := fposmod(sin(moment * 12.9898 + 78.233) * 43758.5453, 1.0)
-	return BROWNOUT if roll < failing else 1.0
+	return before if roll > since / FAILING else now
+
+
+static func _brightness(power: int) -> float:
+	match power:
+		ShipPower.Power.MAIN:
+			return 1.0
+		ShipPower.Power.EMERGENCY:
+			return EMERGENCY_GLOW
+	return 0.0
 
 
 ## Whether a lamp lights [param room] (its box, ship space) for an eye at
@@ -135,28 +146,23 @@ static func fade_near(material: BaseMaterial3D) -> void:
 	material.distance_fade_max_distance = RoomDressing.NEAR_FADE.y
 
 
-## Hangs the lamp of [param kind] from where it now stands in [param room] (its box,
-## ship space) — a fire burns there instead, facing [param facing] out of its wall;
-## [param phase] keeps lamps from flickering in step.
+## Hangs the lamp of [param kind] from where it now stands — a fire burns there
+## instead, facing [param facing] out of its wall; [param phase] keeps lamps from
+## flickering in step.
 func setup(
-	room: AABB,
 	phase: float,
 	glass: StandardMaterial3D,
 	brass: Material,
 	kind := Kind.PENDANT,
 	facing := Vector3.DOWN
 ) -> void:
-	var middle := room.get_center()
-	_floor = Vector3(middle.x, room.position.y, middle.z)
 	_phase = phase
 	_glass = glass
 	_kind = kind
 	if kind == Kind.FIRE:
-		_drop = 0.0
 		_burn(facing)
 		return
 	if kind == Kind.CARGO:
-		_drop = CARGO_CORD
 		_hang_cargo(brass)
 		return
 	var cord := CylinderMesh.new()
@@ -283,10 +289,15 @@ func _process(delta: float) -> void:
 		_swing += ((down - _hang) * STIFFNESS - _swing * DAMPING) * delta
 		_hang = (_hang + _swing * delta).normalized()
 		basis = Basis(Quaternion(Vector3.DOWN, _hang))
-	var lamp_height := (global_transform * Vector3(0.0, -_drop, 0.0)).y
-	var level := glow(lamp_height, (ship.global_transform * _floor).y, _clock + _phase)
+	if power != _shown_power:
+		_was = _shown_power
+		_shown_power = power
+		_since = 0.0
+		_tint(power)
+	_since += delta
+	var level := glow(power, _was, _since, _clock + _phase)
 	if _kind == Kind.FIRE:
-		level *= flame(_clock + _phase)
+		level = 0.0 if drowned else flame(_clock + _phase)
 	if not burning:
 		level = 0.0
 	var lit := burning and (everywhere or wanted)
@@ -303,6 +314,17 @@ func _process(delta: float) -> void:
 	if level != _shown:
 		_shown = level
 		_glass.emission_energy_multiplier = level
+
+
+## A lamp on her emergency power burns red, on her generator its own warm light.
+func _tint(now: int) -> void:
+	if _kind == Kind.FIRE:
+		return
+	var emergency := now == ShipPower.Power.EMERGENCY
+	var colour := ArtPalette.EMERGENCY_LIGHT if emergency else ArtPalette.LAMP_LIGHT
+	if _light != null:
+		_light.light_color = colour
+	_glass.emission = ArtPalette.EMERGENCY_GLASS if emergency else ArtPalette.LAMP_GLASS
 
 
 func _part(mesh: PrimitiveMesh, drop: float) -> MeshInstance3D:

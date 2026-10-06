@@ -16,6 +16,7 @@
 [ext_resource type="Script" path="res://core/sinking/mass_item.gd" id="14_mass"]
 [ext_resource type="Script" path="res://core/sinking/iceberg_hit.gd" id="15_hit"]
 [ext_resource type="Script" path="res://core/sinking/ship_fitting.gd" id="16_fitting"]
+[ext_resource type="Script" path="res://core/sinking/girder_strength.gd" id="17_strength"]
 
 [sub_resource type="Resource" id="Platform_main_deck"]
 script = ExtResource("1_plat")
@@ -1303,7 +1304,9 @@ at = -13
 span = Vector2(-5, 5)
 bottom = -5.4
 top = 0
-collapse_head = 4
+collapse_head = 8.1
+leak_head = 6.75
+leak_area = 0.002
 cells = Array[StringName]([&"aft_peak", &"aft_bilge_p", &"aft_bilge_s", &"aft_cabins"])
 
 [sub_resource type="Resource" id="Wall_bulkhead_engine"]
@@ -1313,7 +1316,9 @@ at = -3
 span = Vector2(-5, 5)
 bottom = -5.4
 top = 0
-collapse_head = 4
+collapse_head = 8.1
+leak_head = 6.75
+leak_area = 0.002
 cells = Array[StringName]([&"aft_bilge_p", &"aft_bilge_s", &"aft_cabins", &"engine_bilge_p", &"engine_bilge_s", &"engine_room"])
 
 [sub_resource type="Resource" id="Wall_bulkhead_hold"]
@@ -1323,7 +1328,9 @@ at = 4
 span = Vector2(-5, 5)
 bottom = -5.4
 top = -0.5
-collapse_head = 4
+collapse_head = 7.35
+leak_head = 6.125
+leak_area = 0.002
 cells = Array[StringName]([&"engine_bilge_p", &"engine_bilge_s", &"engine_room", &"hold_bilge", &"hold", &"hold_wing_p", &"hold_wing_s"])
 
 [sub_resource type="Resource" id="Wall_collision"]
@@ -1333,7 +1340,9 @@ at = 15
 span = Vector2(-4, 4)
 bottom = -5.4
 top = 1.8
-collapse_head = 8
+collapse_head = 10.8
+leak_head = 9
+leak_area = 0.002
 cells = Array[StringName]([&"hold_bilge", &"hold", &"hold_wing_p", &"hold_wing_s", &"hold_fwd_top", &"forepeak"])
 
 [sub_resource type="Resource" id="Wall_hold_side_p"]
@@ -1344,7 +1353,9 @@ at = -3.8
 span = Vector2(4, 15)
 bottom = -5.4
 top = 0
-collapse_head = 2
+collapse_head = 5.94
+leak_head = 4.95
+leak_area = 0.002
 cells = Array[StringName]([&"hold_bilge", &"hold", &"hold_wing_p"])
 
 [sub_resource type="Resource" id="Wall_hold_side_s"]
@@ -1355,7 +1366,9 @@ at = 3.8
 span = Vector2(4, 15)
 bottom = -5.4
 top = 0
-collapse_head = 2
+collapse_head = 5.94
+leak_head = 4.95
+leak_area = 0.002
 cells = Array[StringName]([&"hold_bilge", &"hold", &"hold_wing_s"])
 
 [sub_resource type="Resource" id="Wall_centre_girder"]
@@ -1366,7 +1379,7 @@ at = 0
 span = Vector2(-13, 4)
 bottom = -5.4
 top = -2.9
-collapse_head = 4
+collapse_head = 3.75
 cells = Array[StringName]([&"aft_bilge_p", &"aft_bilge_s", &"engine_bilge_p", &"engine_bilge_s"])
 
 [sub_resource type="Resource" id="Opening_wtd_hold"]
@@ -1381,6 +1394,7 @@ shuts_at_hit = true
 shut_time = 20
 leak_head = 2.6
 collapse_head = 4
+leak_area = 0.005
 
 [sub_resource type="Resource" id="Opening_wtd_engine"]
 script = ExtResource("13_opening")
@@ -1394,6 +1408,7 @@ shuts_at_hit = true
 shut_time = 20
 leak_head = 2.6
 collapse_head = 4
+leak_area = 0.005
 
 [sub_resource type="Resource" id="Opening_door_saloon_sky_0"]
 script = ExtResource("13_opening")
@@ -1535,7 +1550,9 @@ joins = Array[StringName]([&"hold", &"sky"])
 centre = Vector3(6, 0, 0)
 size = Vector3(4, 0, 2)
 starts = 1
+leak_head = 0.3
 collapse_head = 1
+leak_area = 0.05
 
 [sub_resource type="Resource" id="Opening_door_hold_fwd_top_p"]
 script = ExtResource("13_opening")
@@ -1544,7 +1561,9 @@ joins = Array[StringName]([&"hold_fwd_top", &"sky"])
 centre = Vector3(12, 0.81, -2.425)
 size = Vector3(0, 1.5, 0.72)
 starts = 1
+leak_head = 1
 collapse_head = 2
+leak_area = 0.01
 
 [sub_resource type="Resource" id="Opening_door_hold_fwd_top_s"]
 script = ExtResource("13_opening")
@@ -1553,7 +1572,9 @@ joins = Array[StringName]([&"hold_fwd_top", &"sky"])
 centre = Vector3(12, 0.81, 3)
 size = Vector3(0, 1.5, 0.72)
 starts = 1
+leak_head = 1
 collapse_head = 2
+leak_area = 0.01
 
 [sub_resource type="Resource" id="Opening_vent_poop_space_p"]
 script = ExtResource("13_opening")
@@ -1703,7 +1724,9 @@ centre = Vector3(4.95, -1.15, -4.9974)
 size = Vector3(0.32, 0.32, 0)
 area = 0.0804
 starts = 1
-collapse_head = 15
+leak_head = 4
+collapse_head = 8
+leak_area = 0.0005
 
 [sub_resource type="Resource" id="Opening_port_hold_wing_p_p2"]
 script = ExtResource("13_opening")
@@ -1714,7 +1737,9 @@ centre = Vector3(6.25, -1.15, -4.924)
 size = Vector3(0.32, 0.32, 0)
 area = 0.0804
 starts = 1
-collapse_head = 15
+leak_head = 4
+collapse_head = 8
+leak_area = 0.0005
 
 [sub_resource type="Resource" id="Opening_port_hold_wing_p_p3"]
 script = ExtResource("13_opening")
@@ -1725,7 +1750,9 @@ centre = Vector3(7.55, -1.15, -4.8199)
 size = Vector3(0.32, 0.32, 0)
 area = 0.0804
 starts = 1
-collapse_head = 15
+leak_head = 4
+collapse_head = 8
+leak_area = 0.0005
 
 [sub_resource type="Resource" id="Opening_port_hold_wing_p_p4"]
 script = ExtResource("13_opening")
@@ -1736,7 +1763,9 @@ centre = Vector3(8.85, -1.15, -4.7159)
 size = Vector3(0.32, 0.32, 0)
 area = 0.0804
 starts = 1
-collapse_head = 15
+leak_head = 4
+collapse_head = 8
+leak_area = 0.0005
 
 [sub_resource type="Resource" id="Opening_port_hold_wing_p_p5"]
 script = ExtResource("13_opening")
@@ -1747,7 +1776,9 @@ centre = Vector3(10.15, -1.15, -4.6118)
 size = Vector3(0.32, 0.32, 0)
 area = 0.0804
 starts = 1
-collapse_head = 15
+leak_head = 4
+collapse_head = 8
+leak_area = 0.0005
 
 [sub_resource type="Resource" id="Opening_port_hold_wing_p_p6"]
 script = ExtResource("13_opening")
@@ -1758,7 +1789,9 @@ centre = Vector3(11.45, -1.15, -4.5077)
 size = Vector3(0.32, 0.32, 0)
 area = 0.0804
 starts = 1
-collapse_head = 15
+leak_head = 4
+collapse_head = 8
+leak_area = 0.0005
 
 [sub_resource type="Resource" id="Opening_port_hold_wing_p_p7"]
 script = ExtResource("13_opening")
@@ -1769,7 +1802,9 @@ centre = Vector3(12.75, -1.15, -4)
 size = Vector3(0.32, 0.32, 0)
 area = 0.0804
 starts = 1
-collapse_head = 15
+leak_head = 4
+collapse_head = 8
+leak_area = 0.0005
 
 [sub_resource type="Resource" id="Opening_port_hold_wing_p_p8"]
 script = ExtResource("13_opening")
@@ -1780,7 +1815,9 @@ centre = Vector3(14.05, -1.15, -4)
 size = Vector3(0.32, 0.32, 0)
 area = 0.0804
 starts = 1
-collapse_head = 15
+leak_head = 4
+collapse_head = 8
+leak_area = 0.0005
 
 [sub_resource type="Resource" id="Opening_port_hold_wing_s_s1"]
 script = ExtResource("13_opening")
@@ -1791,7 +1828,9 @@ centre = Vector3(4.95, -1.15, 4.9974)
 size = Vector3(0.32, 0.32, 0)
 area = 0.0804
 starts = 1
-collapse_head = 15
+leak_head = 4
+collapse_head = 8
+leak_area = 0.0005
 
 [sub_resource type="Resource" id="Opening_port_hold_wing_s_s2"]
 script = ExtResource("13_opening")
@@ -1802,7 +1841,9 @@ centre = Vector3(6.25, -1.15, 4.924)
 size = Vector3(0.32, 0.32, 0)
 area = 0.0804
 starts = 1
-collapse_head = 15
+leak_head = 4
+collapse_head = 8
+leak_area = 0.0005
 
 [sub_resource type="Resource" id="Opening_port_hold_wing_s_s3"]
 script = ExtResource("13_opening")
@@ -1813,7 +1854,9 @@ centre = Vector3(7.55, -1.15, 4.8199)
 size = Vector3(0.32, 0.32, 0)
 area = 0.0804
 starts = 1
-collapse_head = 15
+leak_head = 4
+collapse_head = 8
+leak_area = 0.0005
 
 [sub_resource type="Resource" id="Opening_port_hold_wing_s_s4"]
 script = ExtResource("13_opening")
@@ -1824,7 +1867,9 @@ centre = Vector3(8.85, -1.15, 4.7159)
 size = Vector3(0.32, 0.32, 0)
 area = 0.0804
 starts = 1
-collapse_head = 15
+leak_head = 4
+collapse_head = 8
+leak_area = 0.0005
 
 [sub_resource type="Resource" id="Opening_port_hold_wing_s_s5"]
 script = ExtResource("13_opening")
@@ -1835,7 +1880,9 @@ centre = Vector3(10.15, -1.15, 4.6118)
 size = Vector3(0.32, 0.32, 0)
 area = 0.0804
 starts = 1
-collapse_head = 15
+leak_head = 4
+collapse_head = 8
+leak_area = 0.0005
 
 [sub_resource type="Resource" id="Opening_port_hold_wing_s_s6"]
 script = ExtResource("13_opening")
@@ -1846,7 +1893,9 @@ centre = Vector3(11.45, -1.15, 4.5077)
 size = Vector3(0.32, 0.32, 0)
 area = 0.0804
 starts = 1
-collapse_head = 15
+leak_head = 4
+collapse_head = 8
+leak_area = 0.0005
 
 [sub_resource type="Resource" id="Opening_port_hold_wing_s_s7"]
 script = ExtResource("13_opening")
@@ -1857,7 +1906,9 @@ centre = Vector3(12.75, -1.15, 4)
 size = Vector3(0.32, 0.32, 0)
 area = 0.0804
 starts = 1
-collapse_head = 15
+leak_head = 4
+collapse_head = 8
+leak_area = 0.0005
 
 [sub_resource type="Resource" id="Opening_port_hold_wing_s_s8"]
 script = ExtResource("13_opening")
@@ -1868,7 +1919,9 @@ centre = Vector3(14.05, -1.15, 4)
 size = Vector3(0.32, 0.32, 0)
 area = 0.0804
 starts = 1
-collapse_head = 15
+leak_head = 4
+collapse_head = 8
+leak_area = 0.0005
 
 [sub_resource type="Resource" id="Opening_port_engine_room_p1"]
 script = ExtResource("13_opening")
@@ -1880,7 +1933,9 @@ size = Vector3(0.32, 0.32, 0)
 area = 0.0804
 starts = 1
 flip_chance = 0.25
-collapse_head = 15
+leak_head = 4
+collapse_head = 8
+leak_area = 0.0005
 
 [sub_resource type="Resource" id="Opening_port_engine_room_p2"]
 script = ExtResource("13_opening")
@@ -1892,7 +1947,9 @@ size = Vector3(0.32, 0.32, 0)
 area = 0.0804
 starts = 1
 flip_chance = 0.25
-collapse_head = 15
+leak_head = 4
+collapse_head = 8
+leak_area = 0.0005
 
 [sub_resource type="Resource" id="Opening_port_engine_room_p3"]
 script = ExtResource("13_opening")
@@ -1904,7 +1961,9 @@ size = Vector3(0.32, 0.32, 0)
 area = 0.0804
 starts = 1
 flip_chance = 0.25
-collapse_head = 15
+leak_head = 4
+collapse_head = 8
+leak_area = 0.0005
 
 [sub_resource type="Resource" id="Opening_port_engine_room_p4"]
 script = ExtResource("13_opening")
@@ -1916,7 +1975,9 @@ size = Vector3(0.32, 0.32, 0)
 area = 0.0804
 starts = 1
 flip_chance = 0.25
-collapse_head = 15
+leak_head = 4
+collapse_head = 8
+leak_area = 0.0005
 
 [sub_resource type="Resource" id="Opening_port_engine_room_p5"]
 script = ExtResource("13_opening")
@@ -1928,7 +1989,9 @@ size = Vector3(0.32, 0.32, 0)
 area = 0.0804
 starts = 1
 flip_chance = 0.25
-collapse_head = 15
+leak_head = 4
+collapse_head = 8
+leak_area = 0.0005
 
 [sub_resource type="Resource" id="Opening_port_engine_room_s1"]
 script = ExtResource("13_opening")
@@ -1940,7 +2003,9 @@ size = Vector3(0.32, 0.32, 0)
 area = 0.0804
 starts = 1
 flip_chance = 0.25
-collapse_head = 15
+leak_head = 4
+collapse_head = 8
+leak_area = 0.0005
 
 [sub_resource type="Resource" id="Opening_port_engine_room_s2"]
 script = ExtResource("13_opening")
@@ -1952,7 +2017,9 @@ size = Vector3(0.32, 0.32, 0)
 area = 0.0804
 starts = 1
 flip_chance = 0.25
-collapse_head = 15
+leak_head = 4
+collapse_head = 8
+leak_area = 0.0005
 
 [sub_resource type="Resource" id="Opening_port_engine_room_s3"]
 script = ExtResource("13_opening")
@@ -1964,7 +2031,9 @@ size = Vector3(0.32, 0.32, 0)
 area = 0.0804
 starts = 1
 flip_chance = 0.25
-collapse_head = 15
+leak_head = 4
+collapse_head = 8
+leak_area = 0.0005
 
 [sub_resource type="Resource" id="Opening_port_engine_room_s4"]
 script = ExtResource("13_opening")
@@ -1976,7 +2045,9 @@ size = Vector3(0.32, 0.32, 0)
 area = 0.0804
 starts = 1
 flip_chance = 0.25
-collapse_head = 15
+leak_head = 4
+collapse_head = 8
+leak_area = 0.0005
 
 [sub_resource type="Resource" id="Opening_port_engine_room_s5"]
 script = ExtResource("13_opening")
@@ -1988,7 +2059,9 @@ size = Vector3(0.32, 0.32, 0)
 area = 0.0804
 starts = 1
 flip_chance = 0.25
-collapse_head = 15
+leak_head = 4
+collapse_head = 8
+leak_area = 0.0005
 
 [sub_resource type="Resource" id="Opening_port_aft_cabins_p1"]
 script = ExtResource("13_opening")
@@ -2000,7 +2073,9 @@ size = Vector3(0.32, 0.32, 0)
 area = 0.0804
 starts = 1
 flip_chance = 0.25
-collapse_head = 15
+leak_head = 4
+collapse_head = 8
+leak_area = 0.0005
 
 [sub_resource type="Resource" id="Opening_port_aft_cabins_p2"]
 script = ExtResource("13_opening")
@@ -2012,7 +2087,9 @@ size = Vector3(0.32, 0.32, 0)
 area = 0.0804
 starts = 1
 flip_chance = 0.25
-collapse_head = 15
+leak_head = 4
+collapse_head = 8
+leak_area = 0.0005
 
 [sub_resource type="Resource" id="Opening_port_aft_cabins_p3"]
 script = ExtResource("13_opening")
@@ -2024,7 +2101,9 @@ size = Vector3(0.32, 0.32, 0)
 area = 0.0804
 starts = 1
 flip_chance = 0.25
-collapse_head = 15
+leak_head = 4
+collapse_head = 8
+leak_area = 0.0005
 
 [sub_resource type="Resource" id="Opening_port_aft_cabins_p4"]
 script = ExtResource("13_opening")
@@ -2036,7 +2115,9 @@ size = Vector3(0.32, 0.32, 0)
 area = 0.0804
 starts = 1
 flip_chance = 0.25
-collapse_head = 15
+leak_head = 4
+collapse_head = 8
+leak_area = 0.0005
 
 [sub_resource type="Resource" id="Opening_port_aft_cabins_p5"]
 script = ExtResource("13_opening")
@@ -2048,7 +2129,9 @@ size = Vector3(0.32, 0.32, 0)
 area = 0.0804
 starts = 1
 flip_chance = 0.25
-collapse_head = 15
+leak_head = 4
+collapse_head = 8
+leak_area = 0.0005
 
 [sub_resource type="Resource" id="Opening_port_aft_cabins_p6"]
 script = ExtResource("13_opening")
@@ -2060,7 +2143,9 @@ size = Vector3(0.32, 0.32, 0)
 area = 0.0804
 starts = 1
 flip_chance = 0.25
-collapse_head = 15
+leak_head = 4
+collapse_head = 8
+leak_area = 0.0005
 
 [sub_resource type="Resource" id="Opening_port_aft_cabins_p7"]
 script = ExtResource("13_opening")
@@ -2072,7 +2157,9 @@ size = Vector3(0.32, 0.32, 0)
 area = 0.0804
 starts = 1
 flip_chance = 0.25
-collapse_head = 15
+leak_head = 4
+collapse_head = 8
+leak_area = 0.0005
 
 [sub_resource type="Resource" id="Opening_port_aft_cabins_s1"]
 script = ExtResource("13_opening")
@@ -2084,7 +2171,9 @@ size = Vector3(0.32, 0.32, 0)
 area = 0.0804
 starts = 1
 flip_chance = 0.25
-collapse_head = 15
+leak_head = 4
+collapse_head = 8
+leak_area = 0.0005
 
 [sub_resource type="Resource" id="Opening_port_aft_cabins_s2"]
 script = ExtResource("13_opening")
@@ -2096,7 +2185,9 @@ size = Vector3(0.32, 0.32, 0)
 area = 0.0804
 starts = 1
 flip_chance = 0.25
-collapse_head = 15
+leak_head = 4
+collapse_head = 8
+leak_area = 0.0005
 
 [sub_resource type="Resource" id="Opening_port_aft_cabins_s3"]
 script = ExtResource("13_opening")
@@ -2108,7 +2199,9 @@ size = Vector3(0.32, 0.32, 0)
 area = 0.0804
 starts = 1
 flip_chance = 0.25
-collapse_head = 15
+leak_head = 4
+collapse_head = 8
+leak_area = 0.0005
 
 [sub_resource type="Resource" id="Opening_port_aft_cabins_s4"]
 script = ExtResource("13_opening")
@@ -2120,7 +2213,9 @@ size = Vector3(0.32, 0.32, 0)
 area = 0.0804
 starts = 1
 flip_chance = 0.25
-collapse_head = 15
+leak_head = 4
+collapse_head = 8
+leak_area = 0.0005
 
 [sub_resource type="Resource" id="Opening_port_aft_cabins_s5"]
 script = ExtResource("13_opening")
@@ -2132,7 +2227,9 @@ size = Vector3(0.32, 0.32, 0)
 area = 0.0804
 starts = 1
 flip_chance = 0.25
-collapse_head = 15
+leak_head = 4
+collapse_head = 8
+leak_area = 0.0005
 
 [sub_resource type="Resource" id="Opening_port_aft_cabins_s6"]
 script = ExtResource("13_opening")
@@ -2144,7 +2241,9 @@ size = Vector3(0.32, 0.32, 0)
 area = 0.0804
 starts = 1
 flip_chance = 0.25
-collapse_head = 15
+leak_head = 4
+collapse_head = 8
+leak_area = 0.0005
 
 [sub_resource type="Resource" id="Opening_port_aft_cabins_s7"]
 script = ExtResource("13_opening")
@@ -2156,7 +2255,9 @@ size = Vector3(0.32, 0.32, 0)
 area = 0.0804
 starts = 1
 flip_chance = 0.25
-collapse_head = 15
+leak_head = 4
+collapse_head = 8
+leak_area = 0.0005
 
 [sub_resource type="Resource" id="Opening_window_saloon_p1"]
 script = ExtResource("13_opening")
@@ -2423,6 +2524,52 @@ side = 1
 x = -2
 list_limit_deg = 15
 
+[sub_resource type="Resource" id="Fitting_funnel"]
+script = ExtResource("16_fitting")
+kind = 1
+name = &"funnel"
+x = -6
+list_limit_deg = 28
+trim_limit_deg = 15
+base = Vector3(-6, 2.5, 0)
+height = 5
+radius = 0.9
+fall_time = 1.2
+crushes = Array[StringName]([&"bridge"])
+
+[sub_resource type="Resource" id="Fitting_generator"]
+script = ExtResource("16_fitting")
+kind = 2
+name = &"generator"
+x = 1.25
+list_limit_deg = 25
+trim_limit_deg = 12
+base = Vector3(1.25, -2.6, 2.6)
+drowns_at = 1
+recovers_deg = 3
+emergency_minutes = 30
+emergency_cells = Array[StringName]([&"saloon", &"deckhouse_hall", &"wheelhouse"])
+cell = &"engine_room"
+
+[sub_resource type="Resource" id="Fitting_bilge_pump_p"]
+script = ExtResource("16_fitting")
+kind = 3
+name = &"bilge_pump_p"
+cell = &"engine_bilge_p"
+rate = 0.025
+
+[sub_resource type="Resource" id="Fitting_bilge_pump_s"]
+script = ExtResource("16_fitting")
+kind = 3
+name = &"bilge_pump_s"
+cell = &"engine_bilge_s"
+rate = 0.025
+
+[sub_resource type="Resource" id="Strength"]
+script = ExtResource("17_strength")
+hog = 120000000
+sag = 110000000
+
 [sub_resource type="Resource" id="Sure_hit"]
 script = ExtResource("15_hit")
 start_x = -19
@@ -2447,7 +2594,8 @@ added_mass = 1
 heave_damping = 0.5
 roll_damping = 0.08
 pitch_damping = 0.5
-fittings = Array[ExtResource("16_fitting")]([SubResource("Fitting_lifeboat_port"), SubResource("Fitting_lifeboat_starboard")])
+fittings = Array[ExtResource("16_fitting")]([SubResource("Fitting_lifeboat_port"), SubResource("Fitting_lifeboat_starboard"), SubResource("Fitting_funnel"), SubResource("Fitting_generator"), SubResource("Fitting_bilge_pump_p"), SubResource("Fitting_bilge_pump_s")])
+strength = SubResource("Strength")
 hit_zone_x = Vector2(-19.5, 19.5)
 hit_zone_y = Vector2(-5.2, -0.2)
 sure_hit = SubResource("Sure_hit")

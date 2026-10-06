@@ -28,3 +28,4 @@ quick_redraws = 8
 bakes = 3
 rungs = 6
 spare_deck = 0.0
+quick_failing = 0.75
