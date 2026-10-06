@@ -477,9 +477,11 @@ func _solve_together(
 			)
 			if _air.members(cell).size() > 1:
 				# Its pocket's pressure moves the water at every opening the pocket's
-				# cells touch: every other surplus by nudging.
+				# cells touch: every surplus it reaches (SinkAir.reached) by nudging —
+				# any other stands as it was, to the last bit.
+				var reached := _air.reached(cell)
 				for row in count:
-					if row == column:
+					if row == column or reached[held[row]] == 0:
 						continue
 					var other := held[row]
 					var nudged := _surplus(

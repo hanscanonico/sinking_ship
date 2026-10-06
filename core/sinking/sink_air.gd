@@ -172,6 +172,21 @@ func members(cell: int) -> PackedInt32Array:
 	return _members[_pocket[cell]] if _pocket[cell] != -1 else PackedInt32Array()
 
 
+## Per cell, 1 where the water's flow can move with the pressure of [param cell]'s
+## pocket in the step begun: a cell of the pocket, or one an opening joins to one of
+## them. Every other cell's flows stand as they were.
+func reached(cell: int) -> PackedByteArray:
+	var found := PackedByteArray()
+	found.resize(_boxes.size())
+	for member: int in members(cell):
+		found[member] = 1
+		for index: int in _touching[member]:
+			var other := _second[index] if _first[index] == member else _first[index]
+			if other != OUTSIDE:
+				found[other] = 1
+	return found
+
+
 ## How far over [param cell]'s water its pocket's pressure stands, in metres of sea,
 ## across an opening to [param other] — none to a cell of the same pocket — with the
 ## cells' heads at [param heads]: what lifts its water's push.
