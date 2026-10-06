@@ -7,8 +7,10 @@ extends Node3D
 ## so the cells under the decks and inside the hull show through them, each set a
 ## little inside its box, so no edge lies along a deck or a wall. Each cell's water
 ## (SH26) fills its box to its level, sea-blue, voids' too, as the pose has it
-## (show_water): a bright line along its top, and its depth under its name, so two
-## cells at two levels read apart at a glance.
+## (show_water) — level with the world however she leans (SH27), its surface a bright
+## sheet and a bright line where it meets the walls (cell_water.gdshader) — and its
+## depth at its deepest under its name, so two cells at two levels read apart at a
+## glance.
 
 ## Per FloodCell.Kind, the colour of a cell people walk in; VOID's is a void's.
 const KIND_COLOURS: Array[Color] = [
@@ -47,17 +49,17 @@ const INK := Color(0.04, 0.06, 0.09)
 const TINT_PRIORITY := 10
 const EDGE_PRIORITY := 11
 const NAME_PRIORITY := 12
-## A cell's water: its colour, the line along its top and how thick, drawn over the
-## tints, under the edges.
-const WATER := Color(0.1, 0.5, 1.0, 0.55)
-const LEVEL := Color(0.62, 0.96, 1.0, 0.95)
-const LEVEL_THICK := 0.05
+## A cell's water (cell_water.gdshader), drawn over the tints, under the edges; how far
+## past its box its walls reach, so none is clipped away along its own face.
+const WATER_SHADER := preload("res://scenes/match/cell_water.gdshader")
 const WATER_PRIORITY := 10
+const CLEAR := 0.01
 
-## Per cell, its water, a box filled to its level, the line along its top, its name and
-## the name's words.
+## Per cell, its water — the box drawn to its level, and its surface — its name and
+## the name's words; and the material they share.
 var _water: Array[MeshInstance3D] = []
 var _levels: Array[MeshInstance3D] = []
+var _material: ShaderMaterial
 var _names: Array[Label3D] = []
 var _words := PackedStringArray()
 var _structure: ShipStructure
@@ -96,50 +98,68 @@ func build(structure: ShipStructure) -> void:
 		_name(cell, names[index], colour, walked)
 	_add_mesh(edges, EDGE_PRIORITY)
 	_add_mesh(tints, TINT_PRIORITY)
+	_material = ShaderMaterial.new()
+	_material.shader = WATER_SHADER
+	_material.render_priority = WATER_PRIORITY
 	for cell: FloodCell in structure.cells:
-		var unit := SurfaceTool.new()
-		unit.begin(Mesh.PRIMITIVE_TRIANGLES)
-		_box_faces(unit, Vector3.ZERO, Vector3.ONE, WATER)
-		var water := _add_mesh(unit, WATER_PRIORITY)
-		water.visible = false
+		var box := _inside(cell)
+		var walls := BoxMesh.new()
+		walls.size = box.size
+		var water := _water_mesh(walls, box.grow(CLEAR), false)
+		water.position = box.get_center()
 		_water.append(water)
-		var line := SurfaceTool.new()
-		line.begin(Mesh.PRIMITIVE_TRIANGLES)
-		_box_faces(line, Vector3.ZERO, Vector3.ONE, LEVEL)
-		var level := _add_mesh(line, WATER_PRIORITY)
-		level.visible = false
-		_levels.append(level)
+		_levels.append(_water_mesh(CellSurface.sheet(), box, true))
 
 
-## Fills each cell's box to the level its water stands at under [param pose].
-func show_water(pose: ShipPose) -> void:
+## Fills each cell's box to the world height its water stands at under [param pose],
+## on the ship drawn at [param drawn].
+func show_water(pose: ShipPose, drawn: Transform3D) -> void:
 	if _structure == null:
 		return
+	_material.set_shader_parameter(&"world_to_ship", drawn.affine_inverse())
+	var level_basis := drawn.basis.inverse().orthonormalized()
 	for index in _water.size():
 		var cell := _structure.cells[index]
-		var low := cell.low + Vector3.ONE * INSET
-		var high := cell.high - Vector3.ONE * INSET
-		var inside := Vector3((cell.low.x + cell.high.x) * 0.5, cell.low.y, 0.0)
-		inside.z = (cell.low.z + cell.high.z) * 0.5
-		var level := pose.water_height(inside) if pose.cell_at(inside) == index else cell.low.y
-		var top := minf(level, high.y)
-		var wet := top > low.y
+		var box := _inside(cell)
+		var level := pose.levels[index] if index < pose.levels.size() else -INF
+		var reach := CellSurface.reach(drawn, box)
+		var wet := level > reach.x
 		_water[index].visible = wet
-		_water[index].transform = Transform3D(
-			Basis.from_scale(Vector3(high.x - low.x, maxf(top - low.y, 0.001), high.z - low.z)), low
-		)
-		_levels[index].visible = wet
-		var line := Vector3(high.x - low.x, LEVEL_THICK, high.z - low.z)
-		var under := Vector3(low.x, top - LEVEL_THICK * 0.5, low.z)
-		_levels[index].transform = Transform3D(Basis.from_scale(line), under)
+		_water[index].set_instance_shader_parameter(&"level", level if wet else 0.0)
+		var surface := _levels[index]
+		surface.visible = wet and level < reach.y
+		if surface.visible:
+			surface.transform = CellSurface.placed(drawn, level_basis, box, level)
+		var whole := CellSurface.reach(drawn, AABB(cell.low, cell.high - cell.low))
 		var depth := ""
-		if level >= cell.high.y - CellMap.DRY:
+		if level >= whole.y - CellMap.DRY:
 			depth = "\nfull"
-		elif level > cell.low.y + CellMap.DRY:
-			depth = "\n%.2f m" % (level - cell.low.y)
+		elif level > whole.x + CellMap.DRY:
+			depth = "\n%.2f m" % (level - whole.x)
 		var text := _words[index] + depth
 		if _names[index].text != text:
 			_names[index].text = text
+
+
+## [param cell]'s box as drawn, INSET inside its own.
+static func _inside(cell: FloodCell) -> AABB:
+	var low := cell.low + Vector3.ONE * INSET
+	return AABB(low, cell.high - Vector3.ONE * INSET - low)
+
+
+## [param mesh] in the water's material, drawn only inside [param clip] — the surface
+## all bright when [param surface] — hidden until shown.
+func _water_mesh(mesh: Mesh, clip: AABB, surface: bool) -> MeshInstance3D:
+	var drawn := MeshInstance3D.new()
+	drawn.mesh = mesh
+	drawn.material_override = _material
+	drawn.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	drawn.set_instance_shader_parameter(&"clip_low", clip.position)
+	drawn.set_instance_shader_parameter(&"clip_high", clip.end)
+	drawn.set_instance_shader_parameter(&"surface", surface)
+	drawn.visible = false
+	add_child(drawn)
+	return drawn
 
 
 ## Per cell of [param structure], where its name stands: its middle, but that the

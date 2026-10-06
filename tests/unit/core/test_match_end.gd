@@ -9,6 +9,9 @@ extends GutTest
 
 const RunMatch := preload("res://tools/run_match.gd")
 const FAST_HIT := "res://tests/fixtures/sinking/hits/fast.tres"
+## A wide gash forward: by the head she stands past 45° a minute and more before she
+## is gone.
+const STEEP_HIT := "res://tests/fixtures/sinking/hits/steep.tres"
 
 const SEEDS := 200
 const SEATS := 8
@@ -17,11 +20,12 @@ const SEATS := 8
 const SETTLED_WITHIN := 30.0
 
 
-## The default match on [param seed_value], struck by the explicit fast hit.
-func _fast_config(seed_value: int) -> MatchConfig:
+## The default match on [param seed_value], struck by the explicit hit at [param path] —
+## the fast one unless told.
+func _fast_config(seed_value: int, path: String = FAST_HIT) -> MatchConfig:
 	var config := RunMatch.default_config(seed_value, SEATS)
 	var given: SinkScenario = config.scenario.duplicate()
-	given.explicit_hit = load(FAST_HIT)
+	given.explicit_hit = load(path)
 	config.scenario = given
 	return config
 
@@ -70,11 +74,11 @@ func test_a_body_inside_her_as_she_goes_is_out_with_her() -> void:
 
 
 func test_the_match_settles_once_she_leans_past_what_it_follows() -> void:
-	var config := _fast_config(3)
+	var config := _fast_config(3, STEEP_HIT)
 	config.seats = 3
 	var sim := MatchSim.create(config)
 	var over := sim.schedule.unsupported_tick()
-	assert_gt(over, 0, "the fast hit leans her past 45°")
+	assert_gt(over, 0, "the steep hit leans her past 45°")
 	assert_lt(over, sim.schedule.gone_tick(), "before she is gone")
 	# The tick before: three on her decks, each with a different cold left.
 	sim.state.tick = over - 1

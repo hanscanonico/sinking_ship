@@ -172,7 +172,8 @@ func _lone_perches(layout: ShipLayout, scenario: SinkScenario) -> Array[StringNa
 func test_no_single_route_perch() -> void:
 	# Q6, from SH26: nothing times a perch's fall any more, so every perch the sinking
 	# leaves highest has two ways up — the steamer's bridge, its two stairs
-	# side by side down its forward face.
+	# side by side down its forward face; from SH27, by the stern, her forecastle, its
+	# two stairs.
 	var layout := SimFixtures.steamer()
 	var scenario: SinkScenario = load(SimFixtures.STEAMER_SINKING).duplicate()
 	scenario.explicit_hit = load("res://tests/fixtures/sinking/hits/fast.tres")

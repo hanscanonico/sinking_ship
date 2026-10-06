@@ -186,6 +186,11 @@ ramp("poop_starboard", -14, 3.1, 3, 1.4, 0, 1.2, 0)
 ramp("boat_port", 3, -3.4, 6, 1.5, 0, 2.5, 0)
 ramp("boat_starboard", 3, 1.9, 6, 1.5, 0, 2.5, 0)
 ramp("forecastle", 9, -0.8, 3, 1.6, 0, 0, 1.8)
+# The forecastle's second way up (Q6): from SH27 a sinking by the stern leaves her bow
+# highest, so the forecastle is a perch like the bridge — a second stair to starboard,
+# as steep and as wide, outboard of the forward companionway's rail, clear of the
+# cargo stowed to port.
+ramp("forecastle_starboard", 9, 2.3, 3, 1.6, 0, 0, 1.8)
 # The bridge's two ways up (Q6): from SH26 nothing times the bridge's fall, so it is a
 # perch like any other and needs two routes — two stairs, one to port and one to
 # starboard, side by side down its forward face, each as steep and as wide as the one

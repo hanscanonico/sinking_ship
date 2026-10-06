@@ -8,11 +8,12 @@ extends RefCounted
 ## The seats of [param live] the sea puts out on [param tick], in seat order: on the
 ## tick she is gone ([param gone_tick]), whoever is still inside her goes out with her,
 ## and on the tick she leans past what a match follows ([param unsupported_tick],
-## §5b.3's interim rule until SH32) everyone left does; and once every surface still standing is [param wade_depth] under the sea, as
-## [param surfaces] has it under [param pose_now], and every seat left swims — when
-## nothing but the cold can change — they all go out by the cold, but for the one with
-## the most cold left when it has the most alone. A tie for the most is a draw, the
-## sea's; the places go by the cold they had left (place).
+## §5b.3's interim rule until SH32) everyone left does; and once every surface still
+## standing is [param wade_depth] under the sea, as [param surfaces] has it under
+## [param pose_now], and every seat left swims — when nothing but the cold can change —
+## they all go out by the cold, but for the one with the most cold left when it has the
+## most alone. A tie for the most is a draw, the sea's; the places go by the cold they
+## had left (place).
 static func settled_by_the_sea(
 	live: Array[PlayerState],
 	pose_now: ShipPose,
@@ -25,8 +26,9 @@ static func settled_by_the_sea(
 	var going: Array[PlayerState] = []
 	var left: Array[PlayerState] = []
 	for player: PlayerState in live:
-		if tick == unsupported_tick or (
-			tick == gone_tick and pose_now.cell_at(player.pos) != CellMap.NONE
+		if (
+			tick == unsupported_tick
+			or (tick == gone_tick and pose_now.cell_at(player.pos) != CellMap.NONE)
 		):
 			going.append(player)
 		else:

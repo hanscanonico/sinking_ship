@@ -11,15 +11,16 @@ extends RefCounted
 ## step — a full one, whose only surface is the thin one over its ceiling, or one whose
 ## openings would empty or fill it many times over within it — has its head solved for
 ## the step instead, one backward step of its level, so the push of the water behind a
-## chain of full cells passes straight through it whatever the step's length; the sea
-## is an account, so water is never made or lost. With the attitude stage on (SH27) she
-## heaves, pitches and rolls under her water's weight (ShipMotion), each cell's water
-## level with the world (TiltedBox) and every opening's corners turned into world
-## heights each step; without it she settles level to where her lift is her weight, or
-## goes down once no height of the sea holds her. She chooses her own step (advance).
-## Every cell vents (air is SH29). Only +, −, ×, ÷ and square roots on 64-bit floats run
-## here (D4, R21). Ship-local metres, seconds; heights along the world's up from her
-## origin, as the sea's (Hydrostatics.Sea).
+## chain of full cells passes straight through it whatever the step's length, and where
+## that solve does not close the cells go back to the capped sweep; the sea is an
+## account, so water is never made or lost, and no cell gives more than it holds. With
+## the attitude stage on (SH27) she heaves, pitches and rolls under her water's weight
+## (ShipMotion), each cell's water level with the world (TiltedBox) and every opening's
+## corners turned into world heights each step; without it she settles level to where
+## her lift is her weight, or goes down once no height of the sea holds her. She chooses
+## her own step (advance). Every cell vents (air is SH29). Only +, −, ×, ÷ and square
+## roots on 64-bit floats run here (D4, R21). Ship-local metres, seconds; heights along
+## the world's up from her origin, as the sea's (Hydrostatics.Sea).
 
 ## The other side of an opening to the sea or the sky: the water outside her.
 const OUTSIDE := -1
@@ -226,6 +227,12 @@ func step(state: FloodState, seconds: float) -> FloodState:
 			next.moved[index] = 0.0
 			continue
 		var amount := _transfer(index, heads, sea, state.seconds, seconds)
+		# A held cell gives no more than it holds: its neighbours' caps may have kept
+		# back some of what its solve counted on coming in.
+		var giver := first if amount > 0.0 else second
+		if giver != OUTSIDE and _held[giver] == 1:
+			var holds := maxf(next.water[giver], 0.0)
+			amount = clampf(amount, -holds, holds)
 		next.moved[index] = amount
 		if amount == 0.0:
 			continue
@@ -303,7 +310,9 @@ func _give_to(side: int, amount: float, state: FloodState, heads: PackedFloat64A
 ## solved for a step of [param seconds] from [param state], the sea at [param sea]: a
 ## cell alone by [method _balanced], cells that hold each other together by
 ## [method _solve_together]. A full cell next to a held one is held too, however level
-## it stands: it passes on what that one asks of it. Gives the cells it holds.
+## it stands: it passes on what that one asks of it. Cells whose solve together does not
+## close are let go, their heads where their water stands: the capped sweep moves their
+## water this step, as it does every other cell's. Gives the cells it holds.
 func _hold_stiff(
 	state: FloodState, heads: PackedFloat64Array, sea: float, seconds: float
 ) -> PackedInt32Array:
@@ -346,9 +355,15 @@ func _hold_stiff(
 			heads[group[0]] = _balanced(
 				group[0], state.water[group[0]], heads, sea, state.seconds, seconds
 			)
-		else:
-			_solve_together(group, state, heads, sea, seconds)
-	return held
+		elif not _solve_together(group, state, heads, sea, seconds):
+			for cell: int in group:
+				_held[cell] = 0
+				heads[cell] = head(cell, state.water[cell])
+	var kept := PackedInt32Array()
+	for cell: int in held:
+		if _held[cell] == 1:
+			kept.append(cell)
+	return kept
 
 
 ## [param held] cut into groups that hold each other: cells joined, directly or along
@@ -384,10 +399,11 @@ func _groups(held: PackedInt32Array, heads: PackedFloat64Array) -> Array[PackedI
 ## lifts its water to that head — by Newton's method on all of them at once, the
 ## slopes measured by nudging each head, every step halved until it brings the largest
 ## surplus down: one held cell's head pins its neighbour's, so a pair joined wide under
-## water moves as one, which solving them in turn would only creep towards.
+## water moves as one, which solving them in turn would only creep towards. Whether every
+## surplus came within SURPLUS_TOLERANCE.
 func _solve_together(
 	held: PackedInt32Array, state: FloodState, heads: PackedFloat64Array, sea: float, seconds: float
-) -> void:
+) -> bool:
 	var count := held.size()
 	var since := state.seconds
 	var rows := PackedInt32Array()
@@ -406,7 +422,7 @@ func _solve_together(
 	started.resize(count)
 	for _try in NEWTON_TRIES:
 		if worst <= SURPLUS_TOLERANCE:
-			return
+			return true
 		slopes.fill(0.0)
 		for column in count:
 			var cell := held[column]
@@ -451,7 +467,8 @@ func _solve_together(
 		if not improved:
 			for row in count:
 				heads[held[row]] = started[row]
-			return
+			return false
+	return worst <= SURPLUS_TOLERANCE
 
 
 ## Every held cell's surplus (_surplus) at the heads in [param heads].

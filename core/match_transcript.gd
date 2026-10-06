@@ -131,7 +131,8 @@ static func physics_clock(seconds: float) -> String:
 
 ## Where [param sim]'s sinking stood when the match ended or stopped — how long the
 ## physics had run, how far the sea had risen up her and the water over each wet cell's
-## floor — and how its bake ends, past what the match played.
+## lowest corner, level with the world — and how its bake ends, past what the match
+## played.
 func _sinking(sim: MatchSim) -> void:
 	var timeline := sim.schedule.timeline()
 	if timeline == null:
@@ -146,15 +147,23 @@ func _sinking(sim: MatchSim) -> void:
 		% [physics_clock(since), pose.sink, pose.trim_deg, pose.heel_deg]
 	)
 	var structure := sim.config.ship.structure
-	for cell: FloodCell in structure.cells:
-		var floor_point := Vector3(
-			(cell.low.x + cell.high.x) * 0.5, cell.low.y, (cell.low.z + cell.high.z) * 0.5
-		)
-		var depth := pose.water_height(floor_point) - cell.low.y
-		if depth >= cell.high.y - cell.low.y:
+	for index in structure.cells.size():
+		var cell := structure.cells[index]
+		var lowest := INF
+		var highest := -INF
+		for corner in 8:
+			var point := Vector3(
+				cell.high.x if corner & 1 else cell.low.x,
+				cell.high.y if corner & 2 else cell.low.y,
+				cell.high.z if corner & 4 else cell.low.z
+			)
+			lowest = minf(lowest, pose.world_height(point))
+			highest = maxf(highest, pose.world_height(point))
+		var level := pose.levels[index]
+		if level >= highest:
 			line += " · %s full" % cell.name
-		elif depth >= SinkTimeline.FIRST_WATER:
-			line += " · %s %.2f m" % [cell.name, depth]
+		elif level - lowest >= SinkTimeline.FIRST_WATER:
+			line += " · %s %.2f m" % [cell.name, level - lowest]
 	_lines.append(line)
 	var ends := {
 		SinkTimeline.End.GONE: "gone at %s" % physics_clock(timeline.gone_at),

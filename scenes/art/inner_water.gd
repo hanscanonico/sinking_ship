@@ -5,11 +5,11 @@ extends Node3D
 ## inside its cell (CellSurface) — in the sea's colours, lit as the room it stands in is
 ## (inner_water.gdshader) — the watertight doors the ship slides shut at the hit, water
 ## pouring through an opening wherever one side's water stands over its bottom and
-## higher than the other side's, falling along the world's down (spill.gdshader), boiling into froth where it lands, and
-## air blown out of an opening as the water reaches its top, bursting the surface in
-## bubbles there (froth.gdshader). Presentation only (D5): it reads the poses it is
-## handed and the openings water can pass, and moves no water. It lives in ship space,
-## under the drawn ship.
+## higher than the other side's, falling along the world's down (spill.gdshader),
+## boiling into froth where it lands, and air blown out of an opening as the water
+## reaches its top, bursting the surface in bubbles there (froth.gdshader).
+## Presentation only (D5): it reads the poses it is handed and the openings water can
+## pass, and moves no water. It lives in ship space, under the drawn ship.
 
 ## How far a cell's water stands in from a face of its box at her side or an outside
 ## wall — inside the wall's thickness, never out past the hull.
@@ -247,7 +247,7 @@ func _at_height(point: Vector3, height: float) -> Vector3:
 ## A cell's surface over [param box] (CellSurface), told the box it is clipped to.
 func _surface(box: AABB) -> MeshInstance3D:
 	var surface := MeshInstance3D.new()
-	surface.mesh = CellSurface.sheet(box)
+	surface.mesh = CellSurface.sheet()
 	surface.material_override = _water
 	surface.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	surface.set_instance_shader_parameter(&"clip_low", box.position)
