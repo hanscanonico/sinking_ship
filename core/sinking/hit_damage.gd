@@ -22,6 +22,10 @@ var weakened_to := 1.0
 ## that start shut but were left open — a porthole — each in her openings' order.
 var jammed: Array[StringName] = []
 var left_open: Array[StringName] = []
+## The sea she is struck in: its waves' height, in metres, drawn once a match from the
+## scenario's band (SinkScenario.wave_height) — 0 for a still sea. What her open wells
+## ship (ShippedWater).
+var wave_height := 0.0
 
 
 ## The area the gash lets the sea in through, all its openings together, in m².

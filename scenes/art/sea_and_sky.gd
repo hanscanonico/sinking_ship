@@ -114,7 +114,7 @@ func setup(end_tick: int, layout: ShipLayout) -> void:
 	_end_tick = end_tick
 	_map_rooms(layout)
 	if layout.structure != null:
-		_mask_cells(InnerWater.boxes(layout.structure))
+		_mask_cells(InnerWater.boxes(layout.structure, layout.rooms))
 	var bounds := layout.platforms[0].area
 	var top := -INF
 	for platform: ShipPlatform in layout.platforms:

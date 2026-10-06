@@ -391,6 +391,8 @@ static func _with_spawns(layout: ShipLayout, seats: int, rules: BrawlRules) -> S
 				spawns.append(beside)
 				break
 	wider.spawns.assign(spawns)
+	# A tool's stretch past the seats she takes, as the spawns are.
+	wider.max_seats = maxi(wider.max_seats, seats)
 	return wider
 
 

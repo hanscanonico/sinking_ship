@@ -23,6 +23,9 @@ const INSET := 0.15
 ## drawn: not on a dry floor, where it would fight the planks, nor in a full cell, which
 ## has no surface.
 const SHOWS := 0.02
+## A cell's shape at or over which its box counts as inside her: her generator rounds a
+## box the hull's curve barely touches to just under 1 (the steamer's lower rooms).
+const WHOLE := 0.999
 ## The least difference across an opening that is drawn pouring, in metres, and the
 ## difference at which a pour is a solid sheet.
 const POURS := 0.03
@@ -123,15 +126,21 @@ var _pocket_light: OmniLight3D
 
 
 ## The boxes of [param structure]'s cells whose water is drawn — every cell wholly
-## inside her, where people go: a room's, the deckhouse's — each standing in by INSET
-## from any face no other cell's box shares, so its water ends inside the wall there;
-## a zero box for a cell whose water is not drawn — a void, a peak — in her cells'
-## order.
-static func boxes(structure: ShipStructure) -> Array[AABB]:
+## inside her, where people go: a room's, the deckhouse's, an open well's deck — each
+## standing in by INSET from any face no other cell's box shares, so its water ends
+## inside the wall there; a cell whose box pokes out of her, round its [param rooms]
+## only (_round_rooms), so neither its water nor the sea's mask (SeaAndSky) reaches past
+## her shell; a zero box for a cell whose water is not drawn — a void, a peak — in her
+## cells' order.
+static func boxes(structure: ShipStructure, rooms: Array[ShipRoom]) -> Array[AABB]:
 	var found: Array[AABB] = []
 	for cell: FloodCell in structure.cells:
-		if cell.shape < 1.0 and cell.rooms.is_empty():
+		var open := cell.kind == FloodCell.Kind.OPEN_WELL
+		if cell.shape < 1.0 and cell.rooms.is_empty() and not open:
 			found.append(AABB())
+			continue
+		if cell.shape < WHOLE and not open:
+			found.append(_round_rooms(cell, rooms))
 			continue
 		var low := cell.low
 		var high := cell.high
@@ -142,6 +151,20 @@ static func boxes(structure: ShipStructure) -> Array[AABB]:
 				high[axis] -= INSET
 		found.append(AABB(low, high - low))
 	return found
+
+
+## The part of [param cell]'s box over the floors of its rooms among [param rooms]:
+## their areas together, from the lowest floor to the cell's top. A room's area runs
+## out to the middle of its walls, so its water already ends inside them.
+static func _round_rooms(cell: FloodCell, rooms: Array[ShipRoom]) -> AABB:
+	var area := Rect2()
+	var floor_y := INF
+	for room: ShipRoom in rooms:
+		if room.name in cell.rooms:
+			area = room.area if floor_y == INF else area.merge(room.area)
+			floor_y = minf(floor_y, room.floor_height)
+	var low := Vector3(area.position.x, floor_y, area.position.y)
+	return AABB(low, Vector3(area.end.x, cell.high.y, area.end.y) - low)
 
 
 ## Whether another of [param structure]'s cells has a face on the plane where
@@ -162,11 +185,16 @@ static func _shared(structure: ShipStructure, cell: FloodCell, axis: int, at: fl
 	return false
 
 
-## Draws the water in [param structure] with [param sea]'s material, pouring through
-## [param passages] — the openings water can pass after the hit — and its doors' leaves
-## in [param paints] (ShipArt.paints), none without them.
+## Draws the water in [param structure], round [param rooms] where her cells poke out
+## of her (boxes), with [param sea]'s material, pouring through [param passages] — the
+## openings water can pass after the hit — and its doors' leaves in [param paints]
+## (ShipArt.paints), none without them.
 func setup(
-	structure: ShipStructure, passages: Array[ShipOpening], sea: ShaderMaterial, paints: Dictionary
+	structure: ShipStructure,
+	rooms: Array[ShipRoom],
+	passages: Array[ShipOpening],
+	sea: ShaderMaterial,
+	paints: Dictionary
 ) -> void:
 	for child: Node in get_children():
 		child.queue_free()
@@ -176,10 +204,12 @@ func setup(
 	_water.shader = WATER_SHADER
 	for colour: StringName in COLOURS:
 		_water.set_shader_parameter(colour, sea.get_shader_parameter(colour))
-	_boxes = boxes(structure)
+	_boxes = boxes(structure, rooms)
 	_surfaces.clear()
-	for box: AABB in _boxes:
-		_surfaces.append(null if box.size == Vector3.ZERO else _surface(box))
+	for cell in _boxes.size():
+		var box := _boxes[cell]
+		var under_sky := structure.cells[cell].kind == FloodCell.Kind.OPEN_WELL
+		_surfaces.append(null if box.size == Vector3.ZERO else _surface(box, under_sky))
 	_leaves.clear()
 	_leaf_widths.clear()
 	if not paints.is_empty():
@@ -295,14 +325,16 @@ func _at_height(point: Vector3, height: float) -> Vector3:
 	return point + _up * (height - (_ship * point).y)
 
 
-## A cell's surface over [param box] (CellSurface), told the box it is clipped to.
-func _surface(box: AABB) -> MeshInstance3D:
+## A cell's surface over [param box] (CellSurface), told the box it is clipped to and
+## whether it lies [param under_sky], as an open well's does, lit by the sun.
+func _surface(box: AABB, under_sky: bool) -> MeshInstance3D:
 	var surface := MeshInstance3D.new()
 	surface.mesh = CellSurface.sheet()
 	surface.material_override = _water
 	surface.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	surface.set_instance_shader_parameter(&"clip_low", box.position)
 	surface.set_instance_shader_parameter(&"clip_high", box.end)
+	surface.set_instance_shader_parameter(&"outdoor", 1.0 if under_sky else 0.0)
 	surface.visible = false
 	add_child(surface)
 	return surface

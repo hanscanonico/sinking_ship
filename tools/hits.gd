@@ -28,14 +28,12 @@ func _initialize() -> void:
 				ship = value
 			"--seeds":
 				seeds = value.to_int()
-	var layout_path := "res://data/ships/%s.tres" % ship
-	var scenario_path := "res://data/sinking/%s_open_sea.tres" % ship
-	if not ResourceLoader.exists(layout_path) or not ResourceLoader.exists(scenario_path):
-		printerr("hits: no %s with %s" % [layout_path, scenario_path])
+	var layout := Fleet.layout(ship)
+	var scenario := Fleet.scenario(ship)
+	if layout == null:
+		printerr("hits: no ship called %s; the fleet has %s" % [ship, ", ".join(Fleet.names())])
 		quit(1)
 		return
-	var layout: ShipLayout = load(layout_path)
-	var scenario: SinkScenario = load(scenario_path)
 	var problems := scenario.problems()
 	if layout.structure == null or scenario.hit == null:
 		problems.append("hits: %s has no structure, or her scenario no hit" % ship)

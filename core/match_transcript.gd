@@ -29,7 +29,8 @@ static func clock(tick: int) -> String:
 	return "%02d:%02d.%d" % [tenths / 600, tenths / 10 % 60, tenths % 10]
 
 
-## The hit [param schedule] strikes, as the first line; none for a match without one.
+## The hit [param schedule] strikes, as the first line — and the sea's waves, where it
+## has them; none for a match without one.
 func hit(schedule: SinkSchedule) -> void:
 	if schedule.hit() == null:
 		return
@@ -42,16 +43,22 @@ func hit(schedule: SinkSchedule) -> void:
 	_lines.insert(
 		0,
 		(
-			"hit %s · %s · x %.1f…%.1f m · %.3f m²"
+			"hit %s · %s · x %.1f…%.1f m · %.3f m²%s"
 			% [
 				clock(schedule.hit_tick()),
 				schedule.hit().side_name(),
 				damage.from_x,
 				damage.to_x,
-				damage.area()
+				damage.area(),
+				sea_state(damage)
 			]
 		)
 	)
+
+
+## " · sea 1.1 m" for a hit struck in waves 1.1 m high; nothing for a still sea.
+static func sea_state(damage: HitDamage) -> String:
+	return " · sea %.1f m" % damage.wave_height if damage.wave_height > 0.0 else ""
 
 
 func add(events: Array[SimEvent]) -> void:

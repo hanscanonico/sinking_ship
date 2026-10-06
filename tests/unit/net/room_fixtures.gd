@@ -59,11 +59,11 @@ func _init(
 	codec = RoomCodec.new(RoomServer.data_hash(match_rules, NetRules.load_default()))
 
 
-## The default match's rules on the flat deck: its fewest seats, no countdown, and
-## [param sinking] — the flat deck's own scenario, afloat, when null.
+## The default match's rules on the flat deck: its ship's fewest seats, no countdown,
+## and [param sinking] — the flat deck's own scenario, afloat, when null.
 static func flat_rules(sinking: SinkScenario = null) -> MatchRules:
 	var flat: MatchRules = load(MATCH_DATA).duplicate()
-	flat.seats = flat.min_seats
+	flat.seats = flat.ship.min_seats
 	flat.countdown = 0.0
 	flat.ship = SimFixtures.deck()
 	flat.sinking = sinking if sinking != null else load(SimFixtures.FLAT_SINKING)

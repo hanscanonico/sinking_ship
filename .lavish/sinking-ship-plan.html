@@ -174,7 +174,7 @@
 
     <!-- ============================== HERO ============================== -->
     <header class="sk-hero px-6 py-10 md:px-12">
-      <p class="sk-kicker opacity-80">Sinking Ship · design of record · rev 4 (for review) · MVP approved 2026-10-02 · first person and rooms 2026-10-03 · the sinking as physics 2026-10-05 · <b>shipped: SH1, SH2, SH3, SH8, SH14, SH9, SH4, SH3b, SH9b, SH15, SH4b, SH6, SH14b, SH5, SH7, SH10, SH11, SH12 (the mini PC gate is owed), SH24, SH25, SH26, SH27, SH28, SH29</b></p>
+      <p class="sk-kicker opacity-80">Sinking Ship · design of record · rev 4 (for review) · MVP approved 2026-10-02 · first person and rooms 2026-10-03 · the sinking as physics 2026-10-05 · <b>shipped: SH1, SH2, SH3, SH8, SH14, SH9, SH4, SH3b, SH9b, SH15, SH4b, SH6, SH14b, SH5, SH7, SH10, SH11, SH12 (the mini PC gate is owed), SH24, SH25, SH26, SH27, SH28, SH29, SH30</b></p>
       <h1 class="text-3xl md:text-4xl font-black mt-2">Sinking Ship — last one dry wins</h1>
       <p class="mt-3 max-w-3xl opacity-90">
         A battle royale on a ship that is going down. Eight brawlers on a small coastal steamer,
@@ -4359,7 +4359,7 @@ sequenceDiagram
         <!-- SH30 -->
         <div class="card bg-base-100 border p-4 sk-ms" id="sh30">
           <div class="flex flex-wrap items-baseline gap-2">
-            <h3 class="font-black">SH30 · A second small boat — the trawler <span class="badge badge-outline badge-sm">size M</span> <span class="badge badge-ghost badge-sm align-middle">proposed</span> <span class="badge badge-sm align-middle" style="background:var(--sk-deep); color:white; border:0;">post-MVP</span> <span class="badge badge-outline badge-sm align-middle">rev 4</span></h3>
+            <h3 class="font-black">SH30 · A second small boat — the trawler <span class="badge badge-outline badge-sm">size M</span> <span class="badge badge-success badge-sm align-middle">shipped · #47</span> <span class="badge badge-sm align-middle" style="background:var(--sk-deep); color:white; border:0;">post-MVP</span> <span class="badge badge-outline badge-sm align-middle">rev 4</span></h3>
           </div>
           <p class="text-sm mt-2 max-w-3xl"><strong>Ships:</strong> a 30 m trawler with three compartments for quick, crowded matches: the same physics, her own data — her compartments, wall tops, fish hatch, deck door, skylight, freeing ports, watertight door, mass and strength (§5b.2) — and a ship picker in the menu (the steamer stays the default).</p>
           <p class="text-sm mt-1 max-w-3xl"><strong>Waits on:</strong> nothing.</p>
@@ -4376,7 +4376,7 @@ sequenceDiagram
           <ul class="sk-gates text-sm">
             <li><code>make verify</code> green; golden unchanged (the steamer's match does not change).</li>
             <li><code>make ship-check</code> floats the trawler level at her waterline; both lints green on her.</li>
-            <li>Pinned seed (layer 3): <code>open_hatch</code> (capsizes within 5 min of the hatch going under). Explicit hits, validation only: <code>light_hit</code>, and <code>everything_shut</code> (open_hatch's hit with every opening shut: it survives, or goes after 30 min — the research's small-boat pair).</li>
+            <li>Pinned seed (layer 3): <code>open_hatch</code> — <em>reworded 2026-10-06 by your decision</em>: with the hatch open she founders sooner, by the head; the same hit with only the hatch shut lays her on her side or capsizes her. The original wording (capsizes within 5 min of the hatch going under) is not what her physics does: her hatch drains the deck's water into a hold low on her centreline, which steadies her, and over 200 seeds every capsize had the hatch shut. Shipped water was added to the model the same day (<code>ShippedWater</code>: a weir between an open well's edges and a sea raised by a seeded <code>wave_height</code> drawn from the sinking stream after the hit; still seas and ships with no sea state bake as before), so her working deck does hold water above the sea; a Gaul-type loss would need a high, enclosed space the hatch feeds, which her design has not. Explicit hits, validation only: <code>light_hit</code>, and <code>everything_shut</code> (open_hatch's hit with every opening shut: it survives, or goes after 30 min — the research's small-boat pair).</li>
             <li><code>make census SHIP=trawler SEEDS=200</code>: her raw and match bands; 0 breaks; afloat 0% in the match census; <code>make ship-check</code> proves she founders on her <code>sure_hit</code>.</li>
             <li><code>make run</code>: pick the trawler; eight brawlers on her working deck as she floods.</li>
           </ul>
@@ -5584,9 +5584,11 @@ sequenceDiagram
             <li><strong>Accounts, persistent stats, leaderboards, ranked play, matchmaking</strong>
             beyond room codes; text or voice chat.</li>
             <li><strong>Physics-driven gameplay bodies</strong> — ragdolls, tumbling debris (§2).</li>
-            <li><strong>What the physics leaves out</strong> (rev 4): waves and water pumped in and out by
-            them, sloshing (each cell's water is flat), the ship's own speed, drift, pieces colliding with
-            each other, mud, implosion at depth, brittle fracture, fire.</li>
+            <li><strong>What the physics leaves out</strong> (rev 4): wave-by-wave motion (since
+            2026-10-06 a declared sea state enters only as a mean seaway shipping green water over an
+            open well's edges — SH30, your decision), sloshing (each cell's water is flat), the ship's own
+            speed, drift, pieces colliding with each other, mud, implosion at depth, brittle fracture,
+            fire.</li>
             <li><strong>A second hit in one match</strong>, and authored sinking scenarios in a match — they
             remain test fixtures only (Q10).</li>
             <li><strong>Wall-climbing</strong> (D8); grab or dash unless Q2 picks one.</li>

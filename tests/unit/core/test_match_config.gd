@@ -1,7 +1,7 @@
 extends GutTest
 ## MatchConfig.from_menu is the UI's only route into a match (D13): the menu's
-## seats, tier and seed become a config, a blank seed is drawn once and recorded,
-## and a seat count the match data does not offer is refused.
+## ship, seats, tier and seed become a config, a blank seed is drawn once and
+## recorded, and a ship the Fleet has not or a seat count she does not take is refused.
 
 const RunMatch := preload("res://tools/run_match.gd")
 
@@ -81,31 +81,79 @@ func test_blank_seed_is_random_and_recorded() -> void:
 
 func test_seat_count_bounds() -> void:
 	var match_rules := _rules()
+	var ship := match_rules.ship
 	var seeds := _seeds(1)
-	for seats in range(match_rules.min_seats, match_rules.max_seats + 1):
+	for seats in range(ship.min_seats, ship.max_seats + 1):
 		var config := MatchConfig.from_menu(match_rules, seats, &"normal", "", seeds)
 		assert_eq(config.seats, seats)
 		assert_eq(config.problems(), PackedStringArray(), "%d seats can start" % seats)
-	assert_null(MatchConfig.from_menu(match_rules, match_rules.min_seats - 1, &"normal", "", seeds))
-	assert_null(MatchConfig.from_menu(match_rules, match_rules.max_seats + 1, &"normal", "", seeds))
+	assert_null(MatchConfig.from_menu(match_rules, ship.min_seats - 1, &"normal", "", seeds))
+	assert_null(MatchConfig.from_menu(match_rules, ship.max_seats + 1, &"normal", "", seeds))
 
-	# The bounds are the data's, not the menu's: move them and the refusals move.
+	# The bounds are the ship's data, not the menu's: move them and the refusals move.
 	var narrow: MatchRules = match_rules.duplicate()
-	narrow.min_seats = 6
-	narrow.max_seats = 6
+	narrow.ship = ship.duplicate()
+	narrow.ship.min_seats = 6
+	narrow.ship.max_seats = 6
 	assert_null(MatchConfig.from_menu(narrow, 5, &"normal", "", seeds))
 	assert_not_null(MatchConfig.from_menu(narrow, 6, &"normal", "", seeds))
 	narrow.seats = 7
 	assert_eq(
-		narrow.problems(), PackedStringArray(["match: seats must be within min_seats…max_seats"])
+		narrow.problems(),
+		PackedStringArray(["match: seats must be within the ship's min_seats…max_seats"])
 	)
-	narrow.max_seats = 3
-	assert_eq(narrow.problems().size(), 1, "inverted bounds are refused")
+	var config := MatchConfig.from_rules(narrow, 1)
+	assert_eq(
+		config.problems(),
+		PackedStringArray(["ship: 7 seats, where she takes 6 to 6"]),
+		"a match outside its ship's bounds cannot start"
+	)
+	narrow.ship.max_seats = 3
+	assert_true(
+		MatchConfig.from_rules(narrow, 1).problems().has(
+			"ship: min_seats must be at least 1 and at most max_seats"
+		),
+		"inverted bounds are refused"
+	)
+
+
+func test_seat_bounds_follow_the_ship() -> void:
+	# SH30 starts SH21's bounds: each ship states the seats she takes, and the menu's
+	# choices are hers.
+	var match_rules := _rules()
+	var seeds := _seeds(1)
+	for ship_name: String in Fleet.names():
+		var ship := Fleet.layout(ship_name)
+		assert_gte(ship.min_seats, 1, "%s takes a seat" % ship_name)
+		assert_gte(ship.spawns.size(), ship.max_seats, "%s has a spawn for every seat" % ship_name)
+		for seats in range(ship.min_seats, ship.max_seats + 1):
+			var config := MatchConfig.from_menu(match_rules, seats, &"normal", "", seeds, ship_name)
+			assert_eq(config.ship, ship, "the menu's %s" % ship_name)
+			assert_eq(config.problems(), PackedStringArray(), "%s, %d seats" % [ship_name, seats])
+		assert_null(
+			MatchConfig.from_menu(match_rules, ship.max_seats + 1, &"normal", "", seeds, ship_name)
+		)
+	assert_null(MatchConfig.from_menu(match_rules, 6, &"normal", "", seeds, &"ark"), "no ark")
+
+
+func test_a_ship_is_named_and_struck_in_her_own_sea() -> void:
+	var match_rules := _rules()
+	assert_eq(Fleet.names(), PackedStringArray(["steamer", "trawler"]), "the fleet is data/ships/")
+	assert_eq(Fleet.name_of(match_rules.ship), &"steamer", "the steamer stays the default")
+	var trawler := MatchConfig.from_rules(match_rules, 1701, 0, &"trawler")
+	assert_eq(trawler.ship, load("res://data/ships/trawler.tres"))
+	assert_eq(trawler.scenario, load("res://data/sinking/trawler_open_sea.tres"))
+	assert_eq(trawler.seats, match_rules.seats, "the rest is the match data's")
+	assert_eq(trawler.problems(), PackedStringArray())
+	var steamer := MatchConfig.from_rules(match_rules, 1701, 0, &"steamer")
+	var default := MatchConfig.from_rules(match_rules, 1701)
+	assert_eq(steamer.data_hash(), default.data_hash(), "naming the default is the default")
+	assert_ne(trawler.data_hash(), default.data_hash())
 
 
 func test_a_sinking_with_an_iceberg_hit_needs_a_ship_with_a_structure() -> void:
 	var struck: SinkScenario = load(SimFixtures.STEAMER_SINKING)
-	var steamer := MatchConfig.new(1, 2, SimFixtures.rules(), SimFixtures.steamer(), struck)
+	var steamer := MatchConfig.new(1, 4, SimFixtures.rules(), SimFixtures.steamer(), struck)
 	assert_eq(steamer.problems(), PackedStringArray(), "her own hit strikes her")
 	var flat := MatchConfig.new(1, 2, SimFixtures.rules(), SimFixtures.deck(), struck)
 	assert_null(flat.ship.structure, "the flat deck has no structure")

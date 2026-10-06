@@ -1,6 +1,7 @@
 extends GutTest
 ## A tool's --hit strikes her with the IcebergHit it names, and a path that names none
-## is a problem the match host stops on rather than a match played on its own hit.
+## is a problem the match host stops on rather than a match played on its own hit; a
+## --ship names a ship of the Fleet, and one it has not is a problem too.
 
 const SCENARIO := "res://data/sinking/steamer_open_sea.tres"
 const FAST_HIT := "res://tests/fixtures/sinking/hits/fast.tres"
@@ -35,3 +36,16 @@ func test_a_resource_that_is_no_hit_is_a_problem() -> void:
 	var problems: PackedStringArray = _struck(SCENARIO)[1]
 	assert_eq(problems.size(), 1)
 	assert_string_contains(problems[0], "steamer_open_sea.tres is not an IcebergHit")
+
+
+func test_a_ship_is_named() -> void:
+	var args := MatchArgs.parse(PackedStringArray(["--ship=trawler"]))
+	assert_eq(args.ship_name, &"trawler")
+	assert_eq(args.problems(), PackedStringArray())
+	assert_eq(MatchArgs.parse(PackedStringArray()).ship_name, &"", "the match data's when none")
+
+
+func test_a_ship_the_fleet_has_not_is_a_problem() -> void:
+	var problems := MatchArgs.parse(PackedStringArray(["--ship=ark"])).problems()
+	assert_eq(problems.size(), 1)
+	assert_string_contains(problems[0], "no ship called ark")

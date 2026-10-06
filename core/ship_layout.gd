@@ -16,11 +16,19 @@ extends Resource
 @export var ladders: Array[ShipLadder] = []
 ## Where seats start, ship-local; the match stream shuffles who gets which.
 @export var spawns: Array[Vector3] = []
+## The seats a match on her takes, fewest to most: the menu offers these (SH30, the
+## start of SH21's bounds).
+@export var min_seats: int
+@export var max_seats: int
 ## The loose cargo (SH10), where each crate starts; the match moves them.
 @export var props: Array[ShipProp] = []
 ## Rooms by name, for the lint, the walk graph, the HUD and the greybox; no rule
 ## reads them (D6).
 @export var rooms: Array[ShipRoom] = []
+## Whether the dressed art (ShipArt) draws her: her generator cut her sections from
+## its loft, and `make art-lint` holds the two together. A ship lofted any other way
+## is drawn as the greybox her data makes (SH30). No rule reads it.
+@export var dressed: bool = true
 ## The physics' view of the same hull (§5b.2): sections, cells, walls, openings and
 ## mass; null on a ship the physics does not float. No rule reads it yet (D13).
 @export var structure: ShipStructure
@@ -95,6 +103,10 @@ func problems(seats: int) -> PackedStringArray:
 			found.append("ship: a prop is missing")
 		else:
 			found.append_array(prop.problems())
+	if min_seats < 1 or max_seats < min_seats:
+		found.append("ship: min_seats must be at least 1 and at most max_seats")
+	elif seats < min_seats or seats > max_seats:
+		found.append("ship: %d seats, where she takes %d to %d" % [seats, min_seats, max_seats])
 	if spawns.size() < seats:
 		found.append("ship: %d spawns for %d seats" % [spawns.size(), seats])
 	if structure != null:

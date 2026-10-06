@@ -236,10 +236,16 @@ func test_no_sealed_room() -> void:
 		var layout: ShipLayout = layouts[path]
 		var surfaces := Surfaces.new(layout)
 		var graph := _graph(layout, surfaces)
+		# Level, every cell of hers dry: a deck under her waterline is dry inside her
+		# (the trawler's lower deck, rev 4).
 		var level := (
-			SinkSchedule
-			. new(SimFixtures.calm(), layout.freeboard, SeedStreams.derive(1, "sink"))
-			. pose_at(0)
+			HeldPose.flooded(layout, -layout.freeboard, {})
+			if layout.structure != null
+			else (
+				SinkSchedule
+				. new(SimFixtures.calm(), layout.freeboard, SeedStreams.derive(1, "sink"))
+				. pose_at(0)
+			)
 		)
 		var main_deck := _main_deck(layout)
 		assert_ne(main_deck, Surfaces.NONE, "%s: a main deck" % path)

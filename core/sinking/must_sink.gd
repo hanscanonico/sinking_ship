@@ -2,7 +2,8 @@ class_name MustSink
 extends RefCounted
 ## Every match's hit sinks her (§5b.1, your answer to Q18): the hit a match plays is
 ## chosen before it starts, all from the sinking stream in a fixed order. Draw a hit —
-## the gash, then the doors that jam and the openings left open; throw it out at once
+## the gash, then the doors that jam and the openings left open, and after the first
+## hit's, once, the sea's wave height where the scenario has waves; throw it out at once
 ## when the quick check finds her afloat with dry deck to spare and stable; bake the one
 ## that passes, and draw again while the bake leaves her afloat; at most quick_redraws
 ## thrown out and bakes baked. Then a fixed fallback, drawing nothing: the last hit made
@@ -11,7 +12,7 @@ extends RefCounted
 ## every door and porthole shut. This chooses where she is struck and never what
 ## happens after: every draw comes before the accepted bake (D4), so the sinking stays
 ## a pure function of (ship, scenario, seed). An explicit hit bypasses it: baked as
-## given (given()), it may leave her afloat.
+## given (given()), in a still sea, it may leave her afloat.
 
 
 ## What was chosen, and how it was come by.
@@ -32,8 +33,10 @@ class Choice:
 
 
 ## Where a timeline's origin (SinkTimeline.origin) keeps each count of its Choice, and
-## the hit's moment, start and width, each as a 64-bit float's bits.
-enum Origin { DRAWS, THROWN, BAKES, RUNG, SURE, MOMENT, START, WIDTH }
+## the hit's moment, start and width and the sea's wave height, each as a 64-bit
+## float's bits — a still sea's origin ends at the width, so it reads as it did before
+## there were waves.
+enum Origin { DRAWS, THROWN, BAKES, RUNG, SURE, MOMENT, START, WIDTH, WAVE_HEIGHT }
 
 
 ## The hit [param structure]'s match under [param scenario] plays, drawn from
@@ -78,11 +81,14 @@ static func replay(
 		choice.damage = HitMapper.map_explicit(choice.hit, structure, bands)
 		return choice
 	var origin := timeline.origin
-	if origin.size() != Origin.size() or origin[Origin.DRAWS] < 1:
+	if origin.size() < Origin.WAVE_HEIGHT or origin[Origin.DRAWS] < 1:
 		return null
-	for _draw in origin[Origin.DRAWS]:
+	var wave_height := 0.0
+	for draw in origin[Origin.DRAWS]:
 		choice.hit = IcebergHit.draw(bands, sink_stream)
 		choice.damage = HitMapper.map(choice.hit, structure, bands, sink_stream)
+		if draw == 0:
+			wave_height = scenario.draw_wave_height(sink_stream)
 	choice.draws = origin[Origin.DRAWS]
 	choice.thrown = origin[Origin.THROWN]
 	choice.bakes = origin[Origin.BAKES]
@@ -101,24 +107,30 @@ static func replay(
 		weighted.left_open = choice.damage.left_open.duplicate()
 		choice.hit = weighted
 		choice.damage = HitMapper.map_explicit(weighted, structure, bands)
-	if origin.slice(Origin.MOMENT) != _hit_bits(choice.hit):
+	choice.damage.wave_height = wave_height
+	if origin.slice(Origin.MOMENT) != _hit_bits(choice):
 		return null
 	return choice
 
 
-## [param choice]'s counts and its hit's moment, start and width, as a timeline's
-## origin keeps them.
+## [param choice]'s counts, its hit's moment, start and width and its sea's wave
+## height, as a timeline's origin keeps them.
 static func origin_of(choice: Choice) -> PackedInt64Array:
 	var origin := PackedInt64Array(
 		[choice.draws, choice.thrown, choice.bakes, choice.rung, 1 if choice.sure else 0]
 	)
-	origin.append_array(_hit_bits(choice.hit))
+	origin.append_array(_hit_bits(choice))
 	return origin
 
 
-static func _hit_bits(hit: IcebergHit) -> PackedInt64Array:
-	var numbers := PackedFloat64Array([hit.moment, hit.start_x, hit.width]).to_byte_array()
-	return numbers.to_int64_array()
+## [param choice]'s hit's moment, start and width, then its sea's wave height but for a
+## still sea's, as 64-bit floats' bits.
+static func _hit_bits(choice: Choice) -> PackedInt64Array:
+	var hit := choice.hit
+	var numbers := PackedFloat64Array([hit.moment, hit.start_x, hit.width])
+	if choice.damage.wave_height != 0.0:
+		numbers.append(choice.damage.wave_height)
+	return numbers.to_byte_array().to_int64_array()
 
 
 ## The must-sink rule a slice at a time (R20): work() takes as many of the bakes' steps
@@ -145,6 +157,9 @@ class Choosing:
 	var _chosen: Choice
 	var _weighted: IcebergHit
 	var _rung := 0
+	## The sea's wave height, drawn after the first hit's draws: every hit's damage is
+	## struck in it.
+	var _wave_height := 0.0
 	var _bake: SinkBake
 	## The steps every bake has taken so far.
 	var _steps := 0
@@ -228,6 +243,7 @@ class Choosing:
 				_tried.hit = _structure.sure_hit.duplicate()
 				_tried.hit.moment = _drawn.hit.moment
 				_tried.damage = HitMapper.map_explicit(_tried.hit, _structure, _bands)
+				_tried.damage.wave_height = _wave_height
 				_start(_tried.damage)
 				_stage = Stage.BAKING_SURE
 			Stage.BAKING_SURE:
@@ -243,6 +259,9 @@ class Choosing:
 	func _draw() -> void:
 		_drawn.hit = IcebergHit.draw(_bands, _stream)
 		_drawn.damage = HitMapper.map(_drawn.hit, _structure, _bands, _stream)
+		if _drawn.draws == 0:
+			_wave_height = _scenario.draw_wave_height(_stream)
+		_drawn.damage.wave_height = _wave_height
 		_drawn.draws += 1
 		var spare := _scenario.spare_deck
 		if MustSink.founders(_structure, _drawn.damage, _hull, _sea, spare, _motion):
@@ -268,6 +287,7 @@ class Choosing:
 			_weighted.jammed = _drawn.damage.jammed.duplicate()
 			_weighted.left_open = _drawn.damage.left_open.duplicate()
 			var damage := HitMapper.map_explicit(_weighted, _structure, _bands)
+			damage.wave_height = _wave_height
 			var spare := _scenario.spare_deck
 			if MustSink.founders(_structure, damage, _hull, _sea, spare, _motion):
 				_tried = Choice.new()

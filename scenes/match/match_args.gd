@@ -1,7 +1,8 @@
 class_name MatchArgs
 extends RefCounted
 ## The user arguments a match host takes after `--`:
-##   --seed=N  --seats=N  --stop=MM:SS  --hit=PATH  --autoplay  --capture=PATH  --capture-at=S
+##   --seed=N  --seats=N  --ship=NAME  --stop=MM:SS  --hit=PATH  --autoplay  --capture=PATH
+##   --capture-at=S
 ##   --observer  --capture-eye=SEAT  --observer-cut=M  --observer-cells  --greybox
 ##   --observer-side=starboard|port
 ##   --net-sim=latency:MS,jitter:MS,loss:PERCENT
@@ -9,7 +10,8 @@ extends RefCounted
 ##   --connect=ws://HOST:PORT  --create | --room=CODE  --name=NAME  --start-at=N
 ##   --capture-screen=SCREEN  --capture-from=X,Y,Z,YAW[,PITCH]  --capture-sway=S
 ##   --quality=low|medium|high  --render-scale=F  --bake-budget=MS  --phys=H:MM:SS  --jump
-## The game reads --seed and --seats as the menu's choices; --stop (or --seconds, in
+## The game reads --seed, --seats and --ship as the menu's choices — --ship a ship of
+## the Fleet, by name, played in her open-sea scenario; --stop (or --seconds, in
 ## seconds) is the match time a headless run is stopped at and reported unfinished — a
 ## tool's limit, never a rule of the match; --hit strikes her with the explicit hit
 ## the IcebergHit at PATH is, past the must-sink rule (§5b.1), so a tool can play a
@@ -49,6 +51,8 @@ extends RefCounted
 var seed_value: int = -1
 ## 0 when not given: the match data's seat count.
 var seats: int = 0
+## A ship of the Fleet, by name; empty when not given: the match data's.
+var ship_name: StringName = &""
 ## How much match time a headless run may take before it stops, unfinished (STOP=,
 ## est. 15:00).
 var seconds: float = 900.0
@@ -128,9 +132,14 @@ func struck(scenario: SinkScenario) -> SinkScenario:
 	return given
 
 
-## What is wrong with the arguments for a match: a --hit that names no IcebergHit.
+## What is wrong with the arguments for a match: a --ship the Fleet has not, a --hit
+## that names no IcebergHit.
 func problems() -> PackedStringArray:
 	var found := PackedStringArray()
+	if not ship_name.is_empty() and Fleet.layout(ship_name) == null:
+		found.append(
+			"--ship: no ship called %s; the fleet has %s" % [ship_name, ", ".join(Fleet.names())]
+		)
 	if not hit_path.is_empty() and _hit() == null:
 		found.append("--hit: %s is not an IcebergHit" % hit_path)
 	return found
@@ -151,6 +160,8 @@ static func parse(args: PackedStringArray) -> MatchArgs:
 				parsed.seed_value = value.to_int()
 			"--seats":
 				parsed.seats = value.to_int()
+			"--ship":
+				parsed.ship_name = StringName(value)
 			"--seconds":
 				parsed.seconds = value.to_float()
 			"--stop":

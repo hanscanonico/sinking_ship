@@ -1,8 +1,9 @@
 class_name ShipGreybox
 extends Node3D
 ## Meshes generated from the ShipLayout (D6): a plank top on every platform, its
-## underside drawn as a ceiling where it stands over another, a hull block under
-## every part of a platform that stands over none, a wedge for every ramp, a box or
+## underside drawn as a ceiling where it stands over another, her hull — the shell her
+## structure's sections enclose (GreyboxHull), or without one a hull block under
+## every part of a platform that stands over none —, a wedge for every ramp, a box or
 ## cylinder for every blocker — walls among them — a frame under every lintel, a
 ## lamp marker in every room, a top rail on posts along every railing span, and a
 ## ladder down the hull from every boarding ladder's edge. Drawn
@@ -16,36 +17,37 @@ extends Node3D
 ## How far the hull block reaches below the waterline of a level, unsunk ship.
 const HULL_DRAFT := 2.0
 const PLANK_THICKNESS := 0.06
-const DECK_COLOUR := Color(0.62, 0.5, 0.36)
-const HULL_COLOUR := Color(0.32, 0.3, 0.3)
+const DECK_COLOUR := ArtPalette.DECK
+const HULL_COLOUR := ArtPalette.HULL
 ## The underside of a deck that is another's ceiling.
-const CEILING_COLOUR := Color(0.42, 0.4, 0.37)
+const CEILING_COLOUR := ArtPalette.CEILING
 const CEILING_THICKNESS := 0.04
-## The forward edge of each platform, so which end is the bow reads at a glance.
+## The forward edge of each platform, so which end is the bow reads at a glance — on a
+## ship with no hull of her data's to show it.
 const BOW_COLOUR := Color(0.75, 0.2, 0.15)
 const BOW_STRIP := 0.6
-const RAMP_COLOUR := Color(0.5, 0.36, 0.22)
+const RAMP_COLOUR := ArtPalette.TREAD
 ## Boxes read as houses, walls and hatches, cylinders as funnels and masts.
-const BOX_COLOUR := Color(0.86, 0.84, 0.76)
-const CYLINDER_COLOUR := Color(0.2, 0.18, 0.18)
+const BOX_COLOUR := ArtPalette.HOUSE
+const CYLINDER_COLOUR := ArtPalette.FUNNEL_TOP
 ## The posts either side of a doorway, under its lintel.
-const FRAME_COLOUR := Color(0.36, 0.26, 0.16)
+const FRAME_COLOUR := ArtPalette.FRAME
 const FRAME_WIDTH := 0.1
 ## How much thicker than its wall a door frame stands.
 const FRAME_PROUD := 0.04
 ## A room's lamp: a glowing marker hanging under the middle of its ceiling (SH14b
 ## lights it).
-const LAMP_COLOUR := Color(1.0, 0.85, 0.45)
+const LAMP_COLOUR := ArtPalette.LAMP_GLASS
 const LAMP_SIZE := 0.25
 const LAMP_DROP := 0.3
 ## A room's ceiling height when no deck stands over its middle.
 const OPEN_ROOM_HEIGHT := 2.5
-const RAIL_COLOUR := Color(0.85, 0.83, 0.78)
+const RAIL_COLOUR := ArtPalette.HOUSE
 const RAIL_THICKNESS := 0.08
 const POST_THICKNESS := 0.07
 ## Posts stand at both ends of a span and no farther apart than this.
 const POST_SPACING := 1.5
-const LADDER_COLOUR := Color(0.25, 0.22, 0.2)
+const LADDER_COLOUR := ArtPalette.STEEL
 const LADDER_THICKNESS := 0.06
 const RUNG_SPACING := 0.35
 ## Size below which a leftover rectangle of hull is float noise, not hull.
@@ -85,17 +87,23 @@ func build(layout: ShipLayout, railing_height: float) -> void:
 	_flash.emission = FLASH_COLOUR
 	var hull_depth := layout.freeboard + HULL_DRAFT
 	var space := ShipSpace.new(layout)
+	if layout.structure != null:
+		var hull := GreyboxHull.new()
+		hull.cut_above = cut_above
+		add_child(hull)
+		hull.build(layout)
 	for platform: ShipPlatform in layout.platforms:
 		var area := platform.area
 		var centre := area.get_center()
 		_floors.append(space.floor_beneath(platform))
-		for part: Rect2 in _over_nothing(platform, layout):
-			_solid(
-				part,
-				platform.height - PLANK_THICKNESS - hull_depth,
-				platform.height - PLANK_THICKNESS,
-				HULL_COLOUR
-			)
+		if layout.structure == null:
+			for part: Rect2 in _over_nothing(platform, layout):
+				_solid(
+					part,
+					platform.height - PLANK_THICKNESS - hull_depth,
+					platform.height - PLANK_THICKNESS,
+					HULL_COLOUR
+				)
 		if platform.height >= cut_above:
 			_decks.append(null)
 			continue
@@ -108,7 +116,7 @@ func build(layout: ShipLayout, railing_height: float) -> void:
 			DECK_COLOUR,
 			deck
 		)
-		if not _continues_forward(platform, layout):
+		if layout.structure == null and not _continues_forward(platform, layout):
 			_box(
 				Vector3(BOW_STRIP, PLANK_THICKNESS, area.size.y),
 				Vector3(
@@ -305,14 +313,21 @@ func _door_frame(blocker: ShipBlocker, layout: ShipLayout) -> void:
 		_solid(post, deck, blocker.bottom, FRAME_COLOUR)
 
 
-## A glowing marker under the middle of [param room]'s ceiling: the lowest deck over
-## its middle, or OPEN_ROOM_HEIGHT above its floor when none is.
+## A glowing marker under the middle of [param room]'s ceiling: the lowest deck or roof
+## over its middle, or OPEN_ROOM_HEIGHT above its floor when none is.
 func _lamp(room: ShipRoom, layout: ShipLayout) -> void:
 	var middle := room.area.get_center()
 	var ceiling := room.floor_height + OPEN_ROOM_HEIGHT
 	for platform: ShipPlatform in layout.platforms:
 		if platform.height > room.floor_height and platform.contains(middle.x, middle.y):
 			ceiling = minf(ceiling, platform.height)
+	for blocker: ShipBlocker in layout.blockers:
+		if (
+			blocker.shape == ShipBlocker.Shape.BOX
+			and blocker.bottom > room.floor_height
+			and blocker.area.has_point(middle)
+		):
+			ceiling = minf(ceiling, blocker.bottom)
 	var lamp := _box(
 		Vector3(LAMP_SIZE, LAMP_SIZE, LAMP_SIZE),
 		Vector3(middle.x, ceiling - LAMP_DROP, middle.y),

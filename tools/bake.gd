@@ -1,5 +1,5 @@
 extends SceneTree
-## `make bake SEED=1701 [HIT=path.tres]`: the sinking of a seed's match alone, no match
+## `make bake SEED=1701 [SHIP=] [HIT=path.tres]`: the sinking of a seed's match alone, no match
 ## played (§5b.4) — the hit the must-sink rule chose for it (or the explicit one HIT=
 ## gives), the doors the ship shuts and the openings left open, how the rule came to
 ## it, then every event of the bake in physics time, h:mm:ss, how she ends and the
@@ -18,12 +18,15 @@ const LEANING: Array[SinkTimeline.Kind] = [
 
 func _initialize() -> void:
 	var args := MatchArgs.parse(OS.get_cmdline_user_args())
+	if not args.problems().is_empty():
+		printerr("\n".join(args.problems()))
+		quit(1)
+		return
 	var config := RunMatch.default_config(
-		args.seed_value if args.seed_value >= 0 else RunMatch.DEFAULT_SEED
+		args.seed_value if args.seed_value >= 0 else RunMatch.DEFAULT_SEED, 0, args.ship_name
 	)
 	config.scenario = args.struck(config.scenario)
 	var problems := config.problems()
-	problems.append_array(args.problems())
 	if config.ship.structure == null or not config.scenario.is_physical():
 		problems.append("bake: the match's ship and scenario have no physics to bake")
 	if not problems.is_empty():
@@ -45,7 +48,7 @@ static func _hit_lines(config: MatchConfig, choice: MustSink.Choice) -> PackedSt
 	var hit := choice.hit
 	var damage := choice.damage
 	var structure := config.ship.structure
-	var ship := config.ship.resource_path.get_file().get_basename()
+	var ship := Fleet.name_of(config.ship)
 	var lines := PackedStringArray()
 	lines.append(
 		(
@@ -57,7 +60,7 @@ static func _hit_lines(config: MatchConfig, choice: MustSink.Choice) -> PackedSt
 		lines
 		. append(
 			(
-				"hit %s · x %.1f…%.1f m · %.1f…%.1f m under · %.3f m² · bite %.1f m"
+				"hit %s · x %.1f…%.1f m · %.1f…%.1f m under · %.3f m² · bite %.1f m%s"
 				% [
 					hit.side_name(),
 					damage.from_x,
@@ -66,6 +69,7 @@ static func _hit_lines(config: MatchConfig, choice: MustSink.Choice) -> PackedSt
 					hit.depth_end,
 					damage.area(),
 					hit.bite,
+					MatchTranscript.sea_state(damage),
 				]
 			)
 		)
