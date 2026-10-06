@@ -1,12 +1,13 @@
 class_name SinkSchedule
 extends RefCounted
-## The one water authority (D7, D13): the ship's pose at any tick, the water in every
-## cell, which watertight doors are shut, what the sinking has announced, and the
-## iceberg hit — where it struck and when. A physical scenario's sinking is baked once,
-## at match start, from the hit the must-sink rule chose (MustSink) or the explicit one
-## the scenario gives — or received baked, from the host (D11): SinkBake's timeline
-## (SinkTimeline), read between its kept states — her attitude blended from one to the
-## next as the timeline blends it, the sea and each cell's water carried between them —
+## The one water-and-air authority (D7, D13): the ship's pose at any tick, the water in
+## every cell and the air trapped over it, which watertight doors are shut, what the
+## sinking has announced, and the iceberg hit — where it struck and when. A physical
+## scenario's sinking is baked once, at match start, from the hit the must-sink rule
+## chose (MustSink) or the explicit one the scenario gives — or received baked, from the
+## host (D11): SinkBake's timeline (SinkTimeline), read between its kept states — her
+## attitude blended from one to the next as the timeline blends it, the sea, each cell's
+## water and each cell's pocket carried between them —
 ## her trim and heel read off it for the HUD and every reader, its lurches warned, and
 ## the phase she is in named from where she stands. Its physics seconds become match
 ## ticks once, through the scenario's clock and Ticks (D2). An authored fixture plays
