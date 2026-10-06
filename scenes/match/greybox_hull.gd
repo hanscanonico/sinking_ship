@@ -2,7 +2,8 @@ class_name GreyboxHull
 extends Node3D
 ## The greybox's hull, drawn from her data (D6, SH30): the shell her structure's
 ## sections enclose — each cut across her from her keel up either side to her sheer —
-## lofted from section to section along each run of one sheer and closed at her ends,
+## lofted from section to section along each run of one sheer, flat across her stern
+## and closed onto her centreline at her stem,
 ## in the dressed hull's paint (ship.gdshader's HULL: red oxide under the boot line, a
 ## pale riband under the sheer, the sea's lap along her waterline); the inside of a
 ## bulwark standing over a deck as a house's side; her deck plating out to the shell
@@ -51,8 +52,6 @@ func build(layout: ShipLayout) -> void:
 	for side in 2:
 		_loft_shell(sections, sides, side)
 	_close_end(sections[0], sides[0], sides[1], -1.0)
-	var last := sections.size() - 1
-	_close_end(sections[last], sides[last * 2], sides[last * 2 + 1], 1.0)
 	for index in sections.size():
 		_bulwarks(layout, sections[index], sides[index * 2], sides[index * 2 + 1])
 	_plate_decks(layout)
@@ -123,8 +122,17 @@ func _loft_shell(sections: Array[HullSection], sides: Array[PackedVector2Array],
 		)
 		if next_differs:
 			xs.append(section.x + section.length * 0.5)
-			lines.append(line)
+			lines.append(line if index < sections.size() - 1 else _stem(line))
 	_loft(xs, lines, side)
+
+
+## [param line] closed onto her centreline: the stem her forward end comes to, where her
+## sections stop as a cut across her.
+static func _stem(line: PackedVector2Array) -> PackedVector2Array:
+	var closed := PackedVector2Array()
+	for point: Vector2 in line:
+		closed.append(Vector2(0.0, point.y))
+	return closed
 
 
 static func _sheer_of(line: PackedVector2Array) -> float:
@@ -251,9 +259,14 @@ func _plate_decks(layout: ShipLayout) -> void:
 			var x0 := section.x - section.length * 0.5
 			var x1 := section.x + section.length * 0.5
 			# Halfway to each neighbour plated alike, its own width out to its stretch's
-			# end where none is: the plating meets in the middle of each pair.
+			# end where none is: the plating meets in the middle of each pair — and closes
+			# to her stem, as her shell does, past her last section's middle.
 			var mid_aft := _between(aft, top)
-			var mid_fore := _between(top, fore)
+			var mid_fore := (
+				_between(top, fore)
+				if index < sections.size() - 1
+				else PackedFloat64Array([top[0], 0.0, 0.0])
+			)
 			_plate(x0, mid_aft, section.x, top, y)
 			_plate(section.x, top, x1, mid_fore, y)
 
