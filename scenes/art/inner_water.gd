@@ -123,14 +123,15 @@ var _pocket_light: OmniLight3D
 
 
 ## The boxes of [param structure]'s cells whose water is drawn — every cell wholly
-## inside her, where people go: a room's, the deckhouse's — each standing in by INSET
-## from any face no other cell's box shares, so its water ends inside the wall there;
-## a zero box for a cell whose water is not drawn — a void, a peak — in her cells'
-## order.
+## inside her, where people go: a room's, the deckhouse's, an open well's deck — each
+## standing in by INSET from any face no other cell's box shares, so its water ends
+## inside the wall there; a zero box for a cell whose water is not drawn — a void, a
+## peak — in her cells' order.
 static func boxes(structure: ShipStructure) -> Array[AABB]:
 	var found: Array[AABB] = []
 	for cell: FloodCell in structure.cells:
-		if cell.shape < 1.0 and cell.rooms.is_empty():
+		var open := cell.kind == FloodCell.Kind.OPEN_WELL
+		if cell.shape < 1.0 and cell.rooms.is_empty() and not open:
 			found.append(AABB())
 			continue
 		var low := cell.low
@@ -178,8 +179,10 @@ func setup(
 		_water.set_shader_parameter(colour, sea.get_shader_parameter(colour))
 	_boxes = boxes(structure)
 	_surfaces.clear()
-	for box: AABB in _boxes:
-		_surfaces.append(null if box.size == Vector3.ZERO else _surface(box))
+	for cell in _boxes.size():
+		var box := _boxes[cell]
+		var under_sky := structure.cells[cell].kind == FloodCell.Kind.OPEN_WELL
+		_surfaces.append(null if box.size == Vector3.ZERO else _surface(box, under_sky))
 	_leaves.clear()
 	_leaf_widths.clear()
 	if not paints.is_empty():
@@ -295,14 +298,16 @@ func _at_height(point: Vector3, height: float) -> Vector3:
 	return point + _up * (height - (_ship * point).y)
 
 
-## A cell's surface over [param box] (CellSurface), told the box it is clipped to.
-func _surface(box: AABB) -> MeshInstance3D:
+## A cell's surface over [param box] (CellSurface), told the box it is clipped to and
+## whether it lies [param under_sky], as an open well's does, lit by the sun.
+func _surface(box: AABB, under_sky: bool) -> MeshInstance3D:
 	var surface := MeshInstance3D.new()
 	surface.mesh = CellSurface.sheet()
 	surface.material_override = _water
 	surface.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	surface.set_instance_shader_parameter(&"clip_low", box.position)
 	surface.set_instance_shader_parameter(&"clip_high", box.end)
+	surface.set_instance_shader_parameter(&"outdoor", 1.0 if under_sky else 0.0)
 	surface.visible = false
 	add_child(surface)
 	return surface

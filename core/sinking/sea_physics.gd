@@ -31,6 +31,11 @@ const PATH := "res://data/physics/sea.tres"
 @export var permeability_void: float
 @export var permeability_bunker: float
 @export var permeability_open_well: float
+## Green water over an open well's edge (ShippedWater), est.: the share of the ideal
+## weir flow that comes over, and how far over the still sea a crest stands — and under
+## it a trough — as a share of the wave height.
+@export var shipping_discharge: float
+@export var wave_reach: float
 ## In kg/m³.
 @export var steel_density: float
 ## The seabed: this many contacts hold her weight sunk this far into it, in metres,
@@ -98,6 +103,8 @@ func problems() -> PackedStringArray:
 		found.append("sea: gravity, densities and pressure must be positive")
 	if discharge <= 0.0 or discharge > 1.0:
 		found.append("sea: discharge must be within 0…1")
+	if shipping_discharge <= 0.0 or shipping_discharge > 1.0 or wave_reach < 0.0:
+		found.append("sea: green water needs a discharge within 0…1 and a reach not negative")
 	if full_surface <= 0.0 or full_surface > 1.0 or sink_drag <= 0.0 or gone_depth <= 0.0:
 		found.append("sea: a full cell's surface, the drag and the depth gone must be positive")
 	for kind: int in FloodCell.Kind.values():

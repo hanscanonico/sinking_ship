@@ -22,6 +22,7 @@ script = ExtResource("2_scen")
 starts_at = 3.0
 hit = SubResource("Hit")
 sea_depth = 200.0
+wave_height = Vector2(0.5, 1.5)
 clock = 1.0
 bake_cap = 19800.0
 quick_redraws = 8

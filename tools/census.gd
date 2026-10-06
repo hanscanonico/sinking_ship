@@ -89,8 +89,8 @@ func _initialize() -> void:
 	quit()
 
 
-## Each seed's first hit, baked as drawn: its labels, whether the quick check would
-## have thrown it out, its bake's seconds and steps.
+## Each seed's first hit, baked as drawn in the sea drawn after it: its labels, whether
+## the quick check would have thrown it out, its bake's seconds and steps.
 func _raw(structure: ShipStructure, scenario: SinkScenario, seeds: int) -> Array[Dictionary]:
 	var sea := SeaPhysics.load_default()
 	var hull := LevelHull.new(structure.sections)
@@ -99,6 +99,7 @@ func _raw(structure: ShipStructure, scenario: SinkScenario, seeds: int) -> Array
 		var stream := SeedStreams.derive(seed_value, "sink")
 		var hit := IcebergHit.draw(scenario.hit, stream)
 		var damage := HitMapper.map(hit, structure, scenario.hit, stream)
+		damage.wave_height = scenario.draw_wave_height(stream)
 		var founders := MustSink.founders(structure, damage, hull, sea, scenario.spare_deck)
 		var started := Time.get_ticks_usec()
 		var bake := SinkBake.new(SinkStepper.new(structure, damage, sea), sea, scenario.bake_cap)

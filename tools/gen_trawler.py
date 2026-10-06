@@ -538,6 +538,12 @@ CELLS = [
     ("working_deck", -3, 7, 0, BULWARK, -BEAM, BEAM, "OPEN_WELL", None),
 ]
 KINDS = ["ACCOMMODATION", "MACHINERY", "CARGO", "STORES", "VOID", "BUNKER", "OPEN_WELL"]
+# Where the sea comes over the working deck in a seaway (green water, ShippedWater): the
+# tops of her bulwarks, uncut, along both sides of the well — the deckhouse and the
+# fo'c'sle close its ends, standing over them. Each edge its two ends.
+SHIPPING_EDGES = {
+    "working_deck": [((-3, BULWARK, side * BEAM), (7, BULWARK, side * BEAM)) for side in (-1, 1)],
+}
 # Air leaks out through rivets, seams and vents: 10⁻³ m² per 1 000 m³ (est.).
 AIR_LEAK = 1e-6
 
@@ -749,6 +755,9 @@ for name, x0, x1, y0, y1, z0, z1, kind, permeability in CELLS:
         f.append(("rooms", names(inner)))
     # Three figures of it: num()'s four places would round a small cell's leak to none.
     f.append(("leak_area", ("%.8f" % float("%.3g" % (inside * AIR_LEAK))).rstrip("0")))
+    if name in SHIPPING_EDGES:
+        ends = [num(c) for edge in SHIPPING_EDGES[name] for end in edge for c in end]
+        f.append(("shipping_edges", "PackedVector3Array(%s)" % ", ".join(ends)))
     cell_ids.append(sub("Cell_" + name, "11_cell", f))
 wall_ids = []
 for name, axis, at, span, bottom_y, top, collapse, parts in walls:

@@ -20,6 +20,10 @@ enum Kind { ACCOMMODATION, MACHINERY, CARGO, STORES, VOID, BUNKER, OPEN_WELL }
 @export var rooms: Array[StringName] = []
 ## The area its air leaks out through — rivets, seams, vents — in m².
 @export var leak_area: float
+## An open well's edges the sea can come over (ShippedWater) — a bulwark's top, a cut
+## in it — each a straight stretch given by its two ends, in pairs; none for a cell the
+## sea comes into only through its openings.
+@export var shipping_edges := PackedVector3Array()
 
 
 ## The space inside the hull it holds, in m³: its box less what pokes outside.
@@ -45,4 +49,8 @@ func problems() -> PackedStringArray:
 		found.append("structure: cell %s's shape must be within 0…1" % name)
 	if leak_area < 0.0:
 		found.append("structure: cell %s's leak area must not be negative" % name)
+	if shipping_edges.size() % 2 == 1:
+		found.append("structure: cell %s's shipping edges must come in pairs of ends" % name)
+	if not shipping_edges.is_empty() and kind != Kind.OPEN_WELL:
+		found.append("structure: only an open well has edges the sea comes over, not %s" % name)
 	return found

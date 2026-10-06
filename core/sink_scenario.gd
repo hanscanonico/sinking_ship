@@ -25,6 +25,9 @@ extends Resource
 @export var explicit_hit: IcebergHit
 ## How deep the sea is under her, in metres.
 @export var sea_depth: float
+## The band the sea's wave height is drawn from, in metres, once a match (MustSink):
+## what her open wells ship (ShippedWater). Zero for a still sea, which draws nothing.
+@export var wave_height: Vector2
 ## Physics seconds per match second: one to one for now (Q20, deferred).
 @export var clock: float = 1.0
 ## The most simulated seconds a bake runs: past it, a hit still afloat is afloat.
@@ -36,6 +39,19 @@ extends Resource
 @export var bakes: int
 @export var rungs: int
 @export var spare_deck: float
+
+
+## Whether a match's sea is drawn: a band of waves, not a still sea.
+func has_waves() -> bool:
+	return wave_height != Vector2.ZERO
+
+
+## The sea's wave height for a match, drawn from [param sink_stream] when it has waves —
+## nothing drawn, and 0, for a still sea.
+func draw_wave_height(sink_stream: RandomNumberGenerator) -> float:
+	if not has_waves():
+		return 0.0
+	return sink_stream.randf_range(wave_height.x, wave_height.y)
 
 
 ## Whether the physics plays this scenario, rather than its keyframes.
@@ -67,6 +83,8 @@ func problems() -> PackedStringArray:
 		found.append_array(hit.problems())
 	if sea_depth < 0.0:
 		found.append("sinking: the sea's depth must not be negative")
+	if wave_height.x < 0.0 or wave_height.y < wave_height.x:
+		found.append("sinking: the waves' band must run up from 0 or more")
 	if is_physical() and (clock <= 0.0 or bake_cap <= 0.0):
 		found.append("sinking: the physics needs a clock and a bake's cap")
 	if quick_redraws < 0 or bakes < 0 or rungs < 0 or spare_deck < 0.0:

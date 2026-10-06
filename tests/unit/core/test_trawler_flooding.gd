@@ -35,6 +35,7 @@ func _match_hit(seed_name: StringName) -> MustSink.Choice:
 ## state the physics stepped through kept.
 func _bake(damage: HitDamage, scale: float) -> SinkTimeline:
 	var scaled := HitDamage.new()
+	scaled.wave_height = damage.wave_height
 	scaled.jammed = damage.jammed
 	scaled.left_open = damage.left_open
 	for opening: ShipOpening in damage.openings:
@@ -75,6 +76,7 @@ func _under(timeline: SinkTimeline, opening: ShipOpening) -> float:
 ## [param damage] with [param opening_name] shut as her data has it, not left open.
 func _with_shut(damage: HitDamage, opening_name: StringName) -> HitDamage:
 	var shut := HitDamage.new()
+	shut.wave_height = damage.wave_height
 	shut.jammed = damage.jammed
 	shut.left_open = damage.left_open.duplicate()
 	shut.left_open.erase(opening_name)
@@ -83,11 +85,12 @@ func _with_shut(damage: HitDamage, opening_name: StringName) -> HitDamage:
 
 
 func test_open_hatch_takes_her_down_by_the_head_and_sooner() -> void:
-	# Her fish hatch left open: once the sea stands over it, the hold under it fills from
+	# Her fish hatch left open: once water stands over it, the hold under it fills from
 	# the well, and its weight forward takes her down by the head, sooner than the same
-	# hit with only the hatch shut, which lays her on her side. The well's water stands at
-	# the sea's level — no waves ship water onto her deck (§5b.1) — so the hatch lets the
-	# sea in only once the sea has reached it, and she founders rather than capsizes.
+	# hit with only the hatch shut, which lays her on her side. What her seaway ships over
+	# her low bulwark (ShippedWater) the hatch lets down into the hold, low and amidships,
+	# rather than leaving it loose on the low side of her deck — so she founders rather
+	# than capsizes.
 	var choice := _match_hit(&"open_hatch")
 	assert_has(choice.damage.left_open, &"fish_hatch", "her fish hatch left open")
 	var battened := _with_shut(choice.damage, &"fish_hatch")
@@ -110,12 +113,14 @@ func test_open_hatch_takes_her_down_by_the_head_and_sooner() -> void:
 
 func test_everything_shut_she_survives_or_goes_slowly() -> void:
 	# Validation only: open_hatch's hit with every opening shut — her hatch battened, her
-	# portholes shut and her watertight door shut at the hit — leaves her afloat, or
-	# going after half an hour (§5b.4, the research's small-boat pair).
-	var shut: IcebergHit = _match_hit(&"open_hatch").hit.duplicate()
+	# portholes shut and her watertight door shut at the hit — in the same sea leaves her
+	# afloat, or going after half an hour (§5b.4, the research's small-boat pair).
+	var choice := _match_hit(&"open_hatch")
+	var shut: IcebergHit = choice.hit.duplicate()
 	shut.jammed = []
 	shut.left_open = []
 	var damage := HitMapper.map_explicit(shut, _structure, _scenario.hit)
+	damage.wave_height = choice.damage.wave_height
 	for scale: float in MARGINS:
 		var timeline := _bake(damage, scale)
 		assert_true(
@@ -126,8 +131,10 @@ func test_everything_shut_she_survives_or_goes_slowly() -> void:
 
 func test_light_hit_ends_afloat() -> void:
 	# Validation only: no match draws it (the must-sink rule throws it out). A scrape
-	# along her fo'c'sle over her waterline: it opens her, and the sea never reaches it.
+	# along her fo'c'sle over her waterline, in the roughest sea her matches draw: it
+	# opens her, and the sea never reaches it.
 	var damage := HitMapper.map_explicit(load(LIGHT), _structure, _scenario.hit)
+	damage.wave_height = _scenario.wave_height.y
 	for scale: float in MARGINS:
 		var timeline := _bake(damage, scale)
 		assert_eq(timeline.end, SinkTimeline.End.AFLOAT, "afloat, × %s" % scale)

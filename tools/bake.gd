@@ -60,7 +60,7 @@ static func _hit_lines(config: MatchConfig, choice: MustSink.Choice) -> PackedSt
 		lines
 		. append(
 			(
-				"hit %s · x %.1f…%.1f m · %.1f…%.1f m under · %.3f m² · bite %.1f m"
+				"hit %s · x %.1f…%.1f m · %.1f…%.1f m under · %.3f m² · bite %.1f m%s"
 				% [
 					hit.side_name(),
 					damage.from_x,
@@ -69,6 +69,7 @@ static func _hit_lines(config: MatchConfig, choice: MustSink.Choice) -> PackedSt
 					hit.depth_end,
 					damage.area(),
 					hit.bite,
+					MatchTranscript.sea_state(damage),
 				]
 			)
 		)

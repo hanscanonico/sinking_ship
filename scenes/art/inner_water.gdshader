@@ -7,7 +7,8 @@
 // is level with the world, turned against her lean (CellSurface), and drawn only inside
 // its cell's box, in ship metres: so it piles into the box's low corner and never pokes
 // through a deck, a wall or her side. Under a pocket (SH29) it glows faintly, the sea's
-// light coming up through it, the only light a sealed space under water has.
+// light coming up through it, the only light a sealed space under water has. On an open
+// well's deck, under the sky, the sun and the sky's whole ambient light it instead.
 shader_type spatial;
 render_mode blend_mix, depth_draw_never, cull_disabled;
 
@@ -35,6 +36,8 @@ uniform mat4 world_to_ship = mat4(1.0);
 instance uniform vec3 clip_low = vec3(0.0);
 instance uniform vec3 clip_high = vec3(0.0);
 instance uniform float pocket_glow = 0.0;
+// 1 for an open well's water, under the open sky; 0 under a deck.
+instance uniform float outdoor = 0.0;
 
 uniform sampler2D depth_texture : hint_depth_texture, filter_nearest, repeat_disable;
 
@@ -83,7 +86,7 @@ void fragment() {
 	) - 0.5) * 0.5;
 	vec3 up = normalize(vec3(-slope.x * 0.35, 1.0, -slope.y * 0.35));
 	NORMAL = normalize((VIEW_MATRIX * vec4(up, 0.0)).xyz) * (FRONT_FACING ? 1.0 : -1.0);
-	AO = indoor_ambient;
+	AO = mix(indoor_ambient, 1.0, outdoor);
 	AO_LIGHT_AFFECT = 0.0;
 	ROUGHNESS = 1.0;
 	if (!FRONT_FACING) {
@@ -126,12 +129,12 @@ void fragment() {
 }
 
 void light() {
-	// Lamps only, as an indoor face (ship.gdshaderinc): the sun never reaches it.
-	if (!LIGHT_IS_DIRECTIONAL) {
-		float facing = dot(NORMAL, LIGHT);
-		float lit = mix(lamp_bounce, 1.0, smoothstep(-0.2, 0.55, facing));
-		DIFFUSE_LIGHT += LIGHT_COLOR * ATTENUATION * lit / PI;
-		float shine = pow(max(dot(reflect(-LIGHT, NORMAL), VIEW), 0.0), glint_tightness);
-		SPECULAR_LIGHT += LIGHT_COLOR * ATTENUATION * smoothstep(0.35, 0.6, shine) * glint;
-	}
+	// Lamps only, as an indoor face (ship.gdshaderinc): the sun never reaches it — but
+	// for an open well's, which the sun lights and no lamp does.
+	float facing = dot(NORMAL, LIGHT);
+	float sunlit = LIGHT_IS_DIRECTIONAL ? outdoor : 1.0 - outdoor;
+	float lit = mix(lamp_bounce, 1.0, smoothstep(-0.2, 0.55, facing)) * sunlit;
+	DIFFUSE_LIGHT += LIGHT_COLOR * ATTENUATION * lit / PI;
+	float shine = pow(max(dot(reflect(-LIGHT, NORMAL), VIEW), 0.0), glint_tightness);
+	SPECULAR_LIGHT += LIGHT_COLOR * ATTENUATION * smoothstep(0.35, 0.6, shine) * glint * sunlit;
 }

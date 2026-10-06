@@ -894,6 +894,7 @@ high = Vector3(7, 1, 3.75)
 kind = 6
 shape = 0.9997
 leak_area = 0.000075
+shipping_edges = PackedVector3Array(-3, 1, -3.75, 7, 1, -3.75, -3, 1, 3.75, 7, 1, 3.75)
 
 [sub_resource type="Resource" id="Wall_bulkhead_aft"]
 script = ExtResource("12_wall")
