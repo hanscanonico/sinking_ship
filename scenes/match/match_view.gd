@@ -24,6 +24,7 @@ var _driver: SimDriver
 var _schedule: SinkSchedule
 var _surfaces: Surfaces
 var _structure: ShipStructure
+var _rooms: Array[ShipRoom] = []
 var _bodies: Array[Brawler] = []
 var _shadows: Array[MeshInstance3D] = []
 ## Per crate of the layout's cargo, the node the ship drawn draws it under.
@@ -56,6 +57,7 @@ func setup(driver: SimDriver, sim: MatchSim, local_seat: int, correction_time: f
 	_schedule = sim.schedule
 	_surfaces = sim.surfaces
 	_structure = sim.config.ship.structure
+	_rooms = sim.config.ship.rooms
 	var ship := sim.config.ship
 	var rules := sim.config.rules
 	if _greybox.visible:
@@ -137,7 +139,7 @@ func flood_with(sea: ShaderMaterial) -> void:
 	_inner.name = "InnerWater"
 	_ship.add_child(_inner)
 	var paints: Dictionary = {} if _greybox.visible else _art.paints()
-	_inner.setup(_structure, _schedule.passages(), sea, paints)
+	_inner.setup(_structure, _rooms, _schedule.passages(), sea, paints)
 
 
 ## How far the world point [param eye] stands above the water it is in — its cell's,
