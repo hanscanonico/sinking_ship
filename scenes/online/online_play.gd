@@ -58,6 +58,7 @@ const REFUSALS := {
 	RoomCodec.Refusal.ATTEMPTS: "Too many tries at room codes: wait a minute and try again.",
 	RoomCodec.Refusal.FLOOD: "This game sent the server too much at once and was let go.",
 	RoomCodec.Refusal.NOT_READING: "This game fell behind the server and was let go.",
+	RoomCodec.Refusal.TIMELINE: "The server's sinking did not check out: this game left it.",
 	RoomCodec.Refusal.SERVER_FULL: "The server is full: try again later.",
 	RoomCodec.Refusal.NO_ROOM: "No room has that code: check it with the room's host.",
 	RoomCodec.Refusal.ROOM_FULL: "That room is full.",

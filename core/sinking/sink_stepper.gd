@@ -660,6 +660,11 @@ func ceiling_of(cell: int) -> float:
 	return _ceiling[cell]
 
 
+## The water [param cell] holds full, at any attitude, in m³.
+func capacity_of(cell: int) -> float:
+	return _capacity[cell]
+
+
 ## The physics second the last door the ship shuts is shut.
 func last_door() -> float:
 	var last := 0.0
@@ -680,6 +685,16 @@ func opening_names() -> Array[StringName]:
 
 func opening_kind(index: int) -> ShipOpening.Kind:
 	return _kinds[index] as ShipOpening.Kind
+
+
+## Opening [param index]'s two sides, each a cell or OUTSIDE, and its sill: its bottom's
+## height at the attitude last turned to.
+func opening_sides(index: int) -> Vector2i:
+	return Vector2i(_first[index], _second[index])
+
+
+func sill_of(index: int) -> float:
+	return _bottom[index]
 
 
 ## How open, 0…1, an opening is [param seconds] after the hit: one the ship shuts in

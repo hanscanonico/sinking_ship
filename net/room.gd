@@ -35,6 +35,9 @@ var host: MatchHost
 ## out.
 var wire: SharedTransport
 var transcript: MatchTranscript
+## The match's sinking timeline on its way to the players (TimelineStream); null for a
+## match with none.
+var stream: TimelineStream
 ## The server beat the room last changed at: what idles it, or ends its linger.
 var since: int
 ## Microseconds each tick of the match took to step, bots, sim and snapshots.
@@ -146,6 +149,7 @@ func reopen(beat: int) -> void:
 	for player: Member in members:
 		player.seat = -1
 	host = null
+	stream = null
 	_seats.clear()
 	phase = Phase.WAITING
 	since = beat

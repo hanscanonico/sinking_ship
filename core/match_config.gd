@@ -18,8 +18,11 @@ var humans: int
 var bot_tier: StringName
 ## Its sinking, baked once from the ship, the scenario and the seed (schedule()): match
 ## data every MatchSim of this match shares, so a sim resumed from a snapshot never
-## bakes it again (D5).
+## bakes it again (D5). The must-sink rule's bake may run a slice at a time first
+## (bake_some, R20), or come baked from the host (receive_sinking, D11).
 var _schedule: SinkSchedule
+var _choosing: MustSink.Choosing
+var _received: MustSink.Choice
 
 
 func _init(
@@ -85,6 +88,59 @@ func schedule() -> SinkSchedule:
 	if _schedule == null:
 		_schedule = SinkSchedule.for_match(self)
 	return _schedule
+
+
+## How its hit was chosen and baked: received from the host, or the must-sink rule run
+## to its end — straight through, or on from where bake_some left it; null for a match
+## the physics does not sink.
+func sinking() -> MustSink.Choice:
+	if _received != null:
+		return _received
+	bake_some(1 << 62)
+	return _choosing.choice() if _choosing != null else null
+
+
+## Runs the must-sink rule's bakes on by up to [param steps] steps (MustSink.Choosing),
+## so a scene can spread them across frames; whether they are over — at once for a
+## match with nothing to bake.
+func bake_some(steps: int) -> bool:
+	if _received != null or ship.structure == null or not scenario.is_physical():
+		return true
+	if _choosing == null:
+		var sink_stream := SeedStreams.derive(match_seed, "sink")
+		var sea := SeaPhysics.load_default()
+		_choosing = MustSink.Choosing.new(ship.structure, scenario, sink_stream, sea)
+	return _choosing.work(steps)
+
+
+## The steps its bakes have taken so far, for a scene's progress.
+func bake_steps() -> int:
+	return _choosing.steps() if _choosing != null else 0
+
+
+## Takes [param other]'s sinking, baked or under way, when it is this match's too — the
+## same ship, scenario and seed make the same sinking (D7) — and none is under way
+## here; whether it took it.
+func share_sinking(other: MatchConfig) -> bool:
+	if other == null or _choosing != null or _received != null or _schedule != null:
+		return false
+	if other.ship != ship or other.scenario != scenario or other.match_seed != match_seed:
+		return false
+	_choosing = other._choosing
+	_received = other._received
+	return _choosing != null or _received != null
+
+
+## Plays [param timeline], the host's, with the hit it was baked from drawn again here
+## (MustSink.replay) — never baked here (D11); false, and nothing taken, when this end
+## cannot draw that hit.
+func receive_sinking(timeline: SinkTimeline) -> bool:
+	var sink_stream := SeedStreams.derive(match_seed, "sink")
+	var chosen := MustSink.replay(ship.structure, scenario, sink_stream, timeline)
+	if chosen == null:
+		return false
+	_received = chosen
+	return true
 
 
 ## Every reason this match cannot start; empty when it can.

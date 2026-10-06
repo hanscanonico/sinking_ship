@@ -6,6 +6,9 @@ extends GutTest
 const RunMatch := preload("res://tools/run_match.gd")
 
 const DEFAULT_MATCH := "res://data/match/default.tres"
+## Seconds of match time a match is played for at most: a match has no cap, and the
+## drawn one below ends at 15:28.7, two bots sparring a long while.
+const PLAYED_FOR := 1200.0
 
 
 func _rules() -> MatchRules:
@@ -18,10 +21,11 @@ func _seeds(seed_value: int) -> RandomNumberGenerator:
 	return seeds
 
 
-## [param config]'s match played out by bots, as the headless tools play it.
+## [param config]'s match played out by bots, as the headless tools play it — for at
+## most PLAYED_FOR of match time: a match has no cap, and two bots can spar a while.
 func _played(config: MatchConfig) -> MatchRunner:
 	var runner := RunMatch.bots_only(config)
-	for _tick in Ticks.from_seconds(600.0):
+	for _tick in Ticks.from_seconds(PLAYED_FOR):
 		if runner.is_over():
 			break
 		runner.step()

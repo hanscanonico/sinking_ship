@@ -11,9 +11,9 @@ extends RefCounted
 ##   01:02.1 hold_bilge flooding
 ##   01:31.0 seat 1 out · cold · place 5 · credit crate 2
 ##   winner seat 2 at 02:21.0 · digest 9f3c…
-##   sinking at the end: physics 0:02:18 · sea 1.21 m up her · trim +2.1° · list -0.4° ·
-##     hold_bilge full · hold 0.3 m
-##   bake: gone at 0:09:12 · trim +31.0° · list +3.2°
+##   sinking at the end of the match: physics 0:02:18 (= match time, Q20 deferred) ·
+##     seen 25% · sea 1.21 m up her · trim +2.1° · list -0.4° · hold_bilge full · hold 0.3 m
+##   not played: gone at 0:09:12 · trim +31.0° · list +3.2° · founders by the head · fast
 ## What `make match` prints and what the golden files hold. Seats are sim seat ids.
 
 const CAUSES := {PlayerState.Cause.NONE: "none", PlayerState.Cause.COLD: "cold"}
@@ -141,9 +141,10 @@ static func physics_clock(seconds: float) -> String:
 
 
 ## Where [param sim]'s sinking stood when the match ended or stopped — how long the
-## physics had run, how far the sea had risen up her and the water over each wet cell's
-## lowest corner, level with the world — and how its bake ends, past what the match
-## played.
+## physics had run, and through the scenario's clock what share of the whole sinking
+## the match saw (R33), how far the sea had risen up her and the water over each wet
+## cell's lowest corner, level with the world — and how its bake ends, past what the
+## match played, with the labels read off it (OutcomeClassifier).
 func _sinking(sim: MatchSim) -> void:
 	var timeline := sim.schedule.timeline()
 	if timeline == null:
@@ -153,9 +154,25 @@ func _sinking(sim: MatchSim) -> void:
 		Ticks.to_seconds(maxi(tick - sim.schedule.hit_tick(), 0)) * sim.config.scenario.clock
 	)
 	var pose := sim.schedule.pose_at(tick)
+	var whole := timeline.gone_at if timeline.is_gone() else timeline.length()
+	var clocked := (
+		"= match time, Q20 deferred"
+		if sim.config.scenario.clock == 1.0
+		else "× %s of match time" % sim.config.scenario.clock
+	)
 	var line := (
-		"sinking at the end: physics %s · sea %.2f m up her · trim %+.1f° · list %+.1f°"
-		% [physics_clock(since), pose.sink, pose.trim_deg, pose.heel_deg]
+		(
+			"sinking at the end of the match: physics %s (%s) · seen %.0f%% · sea %.2f m up her"
+			+ " · trim %+.1f° · list %+.1f°"
+		)
+		% [
+			physics_clock(since),
+			clocked,
+			minf(since / whole, 1.0) * 100.0,
+			pose.sink,
+			pose.trim_deg,
+			pose.heel_deg,
+		]
 	)
 	var structure := sim.config.ship.structure
 	for index in structure.cells.size():
@@ -184,10 +201,12 @@ func _sinking(sim: MatchSim) -> void:
 	# How she stood as she went — or as the bake ended — read off her pose then.
 	var last := sim.schedule.gone_tick() if timeline.is_gone() else sim.schedule.end_tick()
 	var going := sim.schedule.pose_at(last)
+	var played := "not played" if since < whole else "played to the end"
+	var labels := OutcomeClassifier.told(OutcomeClassifier.labels(timeline))
 	_lines.append(
 		(
-			"bake: %s · trim %+.1f° · list %+.1f°"
-			% [ends[timeline.end], going.trim_deg, going.heel_deg]
+			"%s: %s · trim %+.1f° · list %+.1f° · %s"
+			% [played, ends[timeline.end], going.trim_deg, going.heel_deg, labels]
 		)
 	)
 

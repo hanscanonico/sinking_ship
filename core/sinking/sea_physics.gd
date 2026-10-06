@@ -54,6 +54,11 @@ const PATH := "res://data/physics/sea.tres"
 ## this many seconds ahead.
 @export var lurch_rate_deg: float
 @export var lurch_warning: float
+## The timeline keeps a state only where its neighbours, read between, would miss its
+## water or her height in the sea by more than keep_level metres, or her attitude by
+## more than keep_turn_deg degrees (§5b.4, est.).
+@export var keep_level: float
+@export var keep_turn_deg: float
 ## The stages of the physics (§5b.3), each off until its milestone switches it on.
 @export var flooding: bool
 @export var attitude: bool
@@ -106,4 +111,6 @@ func problems() -> PackedStringArray:
 		found.append("sea: the supported attitude must be within 0…180°")
 	if lurch_rate_deg <= 0.0 or lurch_warning < 0.0:
 		found.append("sea: a lurch needs a rate and a warning")
+	if keep_level < 0.0 or keep_turn_deg < 0.0 or keep_turn_deg >= 90.0:
+		found.append("sea: the timeline's tolerances must not be negative, nor its turn reach 90°")
 	return found

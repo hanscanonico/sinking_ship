@@ -3,7 +3,9 @@ extends GutTest
 ## quick-checks, bakes, draws again within its bounds and falls back on heavier hits and
 ## her sure hit — bakes alone, no match played (§5b.4). Explicit hits bypass it.
 
-const SEEDS := 200
+## The match hits the gate bakes; `make census` bakes 200, in every PR that changes the
+## physics or a ship's data (§5b.4).
+const SEEDS := 40
 ## The raw census's seeds the quick check is held to: each hit it throws out is baked
 ## to show she floats on it.
 const RAW_SEEDS := 60

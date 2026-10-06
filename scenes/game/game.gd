@@ -19,11 +19,17 @@ extends Node
 ## --capture-screen stages the settings — on their Graphics page for graphics —, the
 ## pause menu, the results, the Online screen, a room — its players made up, no server
 ## asked — or the online pause over the match, the settings opened from it or not, for
-## a capture; --capture-sway holds the menu backdrop's drift.
+## a capture, or catches the countdown held for a slow bake (hold); --capture-sway holds
+## the menu backdrop's drift.
 ## The saved volumes, window and graphics apply as it boots — --quality and
 ## --render-scale stand in for the saved graphics for one run; the settings screen opens
 ## from the main menu and the pause menu, and its changes reach the window, the menu's
 ## backdrop and the match as they are made.
+## A match's sinking is made before it starts, never during play (R20): the next
+## blank-seed match's is baked a slice a frame while the menu or the results show (its
+## seed drawn ahead), and one not yet made when Play is pressed holds the countdown —
+## its first number, with a bar, over the backdrop — until it is (BakeHold);
+## --bake-budget sets the held bake's slice of each frame, to measure or show the hold.
 
 const MATCH_DATA := "res://data/match/default.tres"
 const MATCH_SCENE := preload("res://scenes/match/match.tscn")
@@ -31,6 +37,16 @@ const MATCH_SCENE := preload("res://scenes/match/match.tscn")
 const CAPTURE_SETTLE_FRAMES := 3
 ## Frames between silencing everything and quitting, for the mixer to let go.
 const QUIT_SETTLE_FRAMES := 4
+## The slice of each frame a sinking's bakes may take, in milliseconds: on the menu,
+## where it must not show, and holding the countdown, where little else is drawn.
+const MENU_BAKE_MS := 4.0
+const HOLD_BAKE_MS := 12.0
+## A capture that jumps to a moment of the sinking starts this many seconds before it,
+## so what the sinking shows — spray at the waterlines, wreckage out on the sea, wet
+## decks — has settled into it rather than starting.
+const JUMP_LEAD := 15.0
+## A capture of a held countdown is taken once its bar is this far on.
+const HOLD_CAPTURED_AT := 0.5
 
 var _args: MatchArgs
 var _match_rules: MatchRules
@@ -46,6 +62,14 @@ var _online: OnlinePlay
 ## The view settings, held so that what --quality and --render-scale choose holds all
 ## run, never saved.
 var _view: ViewSettings
+## The tick a capture is due at, past a --phys moment; -1 for --capture-at's.
+var _capture_tick := -1
+## The next blank-seed match's config, its seed drawn ahead so its sinking can be made
+## on the menu; the match held for its sinking, and how it will start.
+var _upcoming: MatchConfig
+var _holding: MatchConfig
+var _baker := SinkingBaker.new()
+var _hold := BakeHold.new()
 
 @onready var _menu: MainMenu = $MainMenu
 @onready var _online_menu: OnlineMenu = $OnlineMenu
@@ -77,6 +101,9 @@ func _ready() -> void:
 		push_error("\n".join(problems))
 		get_tree().quit(1)
 		return
+	add_child(_baker)
+	add_child(_hold)
+	_baker.baked.connect(_on_baked)
 	_menu.play_requested.connect(_play)
 	_menu.online_requested.connect(_open_online)
 	_menu.settings_requested.connect(_settings.open)
@@ -106,8 +133,20 @@ func _ready() -> void:
 		_menu.open()
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
+	# A server, or a headless client of one, never reaches the menu's matches.
+	if _match_rules == null:
+		return
+	if _holding != null:
+		_hold.advance(delta, _baker.progress())
+	elif _online == null and (_match == null or _match.is_over()):
+		_bake_upcoming()
 	if _args.capture_path.is_empty() or _capturing:
+		return
+	if _holding != null:
+		if _args.capture_screen == "hold" and _hold.visible:
+			if _baker.progress() >= HOLD_CAPTURED_AT:
+				_capture("the held countdown")
 		return
 	if _match == null:
 		if not _args.autoplay:
@@ -149,7 +188,10 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _play(seats: int, tier: StringName, seed_text: String) -> void:
-	var config := MatchConfig.from_menu(_match_rules, seats, tier, seed_text, _seeds)
+	var typed := seed_text.strip_edges()
+	if typed.is_empty():
+		typed = str(_next().match_seed)
+	var config := MatchConfig.from_menu(_match_rules, seats, tier, typed, _seeds)
 	if config != null:
 		config.scenario = _args.struck(config.scenario)
 	var problems := _problems(config)
@@ -162,6 +204,46 @@ func _play(seats: int, tier: StringName, seed_text: String) -> void:
 		return
 	_seats = seats
 	_tier = tier
+	if config.share_sinking(_upcoming):
+		_upcoming = null
+	_menu.hide()
+	if config.bake_some(0):
+		_start(config)
+		return
+	_holding = config
+	_hold.begin(Ticks.to_seconds(config.countdown_ticks))
+	# Over the menu's backdrop, the ship at rest; an autoplay never dressed it, and
+	# dressing it now would stall the very frames the hold keeps moving.
+	if not _args.autoplay:
+		_menu.show_behind(_hold.beside())
+	_baker.bake(config, _args.bake_budget_ms if _args.bake_budget_ms > 0.0 else HOLD_BAKE_MS)
+
+
+## The next blank-seed match, its seed drawn now if it was not yet.
+func _next() -> MatchConfig:
+	if _upcoming == null:
+		_upcoming = MatchConfig.from_rules(_match_rules, _seeds.randi())
+		_upcoming.scenario = _args.struck(_upcoming.scenario)
+	return _upcoming
+
+
+## Bakes the next blank-seed match's sinking on, gently, while nothing plays.
+func _bake_upcoming() -> void:
+	if _baker.baking() == null and not _next().bake_some(0):
+		_baker.bake(_upcoming, MENU_BAKE_MS)
+
+
+func _on_baked(config: MatchConfig) -> void:
+	if config != _holding:
+		return
+	_holding = null
+	_hold.hide()
+	_start(config)
+
+
+## Starts [param config]'s match, its sinking made.
+func _start(config: MatchConfig) -> void:
+	_baker.stop()
 	if _match == null:
 		_match = MATCH_SCENE.instantiate()
 		add_child(_match)
@@ -173,8 +255,20 @@ func _play(seats: int, tier: StringName, seed_text: String) -> void:
 	var capturing := not _args.capture_path.is_empty()
 	var observer := _args.observer or (capturing and _args.capture_eye < 0)
 	var eye := _args.capture_eye if capturing and _args.capture_eye >= 0 else MatchScene.LOCAL_SEAT
+	var jump_to := -1
+	if _args.phys_seconds >= 0.0:
+		_capture_tick = config.schedule().physics_tick(_args.phys_seconds)
+		if _args.jump:
+			jump_to = maxi(_capture_tick - Ticks.from_seconds(JUMP_LEAD), 0)
 	_match.start(
-		config, _args.autoplay, observer, eye, _args.observer_cut, _args.greybox, _args.net_sim
+		config,
+		_args.autoplay,
+		observer,
+		eye,
+		_args.observer_cut,
+		_args.greybox,
+		_args.net_sim,
+		jump_to
 	)
 	if capturing:
 		_match.stage_eyes(_args.capture_from)
@@ -341,6 +435,8 @@ func _problems(config: MatchConfig) -> PackedStringArray:
 func _capture_due(snapshot: Dictionary) -> bool:
 	if snapshot["phase"] == MatchState.Phase.ENDED:
 		return true
+	if _capture_tick >= 0:
+		return snapshot["tick"] >= _capture_tick
 	return _args.capture_at >= 0.0 and snapshot["tick"] >= Ticks.from_seconds(_args.capture_at)
 
 

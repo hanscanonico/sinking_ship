@@ -56,6 +56,12 @@ const NAME_PUNCTUATION := " -_.'"
 @export var ping_interval: float
 ## How often the server logs each room's tick time, round trips and bandwidth.
 @export var log_interval: float
+## The sinking's timeline on its way to a room's players (TimelineStream, D11): each
+## page out this far in match time before the match first reads it, and beyond that
+## no more than this many bytes a beat, so the first minutes are there before the
+## countdown ends and a long timeline never floods a connection.
+@export var timeline_lead: float
+@export var timeline_bytes_per_beat: int
 
 
 static func load_default() -> ServerRules:
@@ -101,6 +107,7 @@ func problems() -> PackedStringArray:
 		"packet_bytes",
 		"packets_per_second",
 		"outbound_backlog",
+		"timeline_bytes_per_beat",
 	]:
 		if int(get(field)) < 1:
 			found.append("server: %s must be at least 1" % field)
@@ -116,6 +123,7 @@ func problems() -> PackedStringArray:
 		"refusal_linger",
 		"ping_interval",
 		"log_interval",
+		"timeline_lead",
 	]:
 		if beats(float(get(field))) < 1:
 			found.append("server: %s must be at least a tick" % field)

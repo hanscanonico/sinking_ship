@@ -9,6 +9,12 @@ extends RefCounted
 ## RemoteMatch a SimDriver steps, the server's snapshots routed to it from here.
 ## poll() reads the wire: call it every frame, a match on or not.
 ##
+## A match the physics sinks begins only once the server's timeline has come as far as
+## its first page, its header checked against the digest BEGIN carried and each page
+## against the digest its header claims: this end plays the server's sinking and never
+## bakes one (D11). A timeline that does not check out, or whose hit this end cannot
+## draw again, is refused — TIMELINE — and the connection let go.
+##
 ## A packet of another protocol version or another match's data is the server's
 ## refusal of this client, and closes it with VERSION or DATA; so is any refusal before
 ## the server's WELCOME.
@@ -44,6 +50,11 @@ var _config: MatchConfig
 var _seat := -1
 ## The playing match's share of the wire; null while none is played.
 var _share: SharedTransport
+## The digest BEGIN gave the match's timeline, "" for none; the timeline as far as it
+## has come; and whether [signal began] has gone out.
+var _digest := ""
+var _timeline: SinkTimeline
+var _begun := false
 
 
 ## A client over [param wire] of [param match_rules]' matches, played to
@@ -144,6 +155,8 @@ func _read(packet: Transport.Packet) -> void:
 			roster_changed.emit(roster)
 		WireCodec.Kind.BEGIN:
 			_begin(message)
+		WireCodec.Kind.TIMELINE:
+			_take_timeline(message)
 		WireCodec.Kind.SNAPSHOT:
 			if _share != null:
 				_share.deliver(packet)
@@ -172,6 +185,34 @@ func _begin(message: RoomCodec.Message) -> void:
 	_config = MatchConfig.from_rules(_match_rules, message.value, seats)
 	_seat = message.seat
 	state = State.PLAYING
+	_digest = message.text
+	_timeline = null
+	_begun = _digest.is_empty()
+	if _begun:
+		began.emit(_config, _seat)
+
+
+## Takes a section of the match's timeline: its header, checked against BEGIN's digest,
+## or its next page, checked against the header's claim; the match begins once the first
+## page is in and its hit drawn again here. Anything else is refused.
+func _take_timeline(message: RoomCodec.Message) -> void:
+	if state != State.PLAYING or _digest.is_empty():
+		return
+	if _timeline == null:
+		var header := message.bytes
+		if message.value != 0 or SinkTimeline.digest_claimed(header) != _digest:
+			_refused(RoomCodec.Refusal.TIMELINE)
+			return
+		_timeline = SinkTimeline.opened(header)
+	elif message.value != _timeline.sections().size() or not _timeline.add_page(message.bytes):
+		_refused(RoomCodec.Refusal.TIMELINE)
+		return
+	if _begun or (_timeline.count() == 0 and _timeline.total() > 0):
+		return
+	if not _config.receive_sinking(_timeline):
+		_refused(RoomCodec.Refusal.TIMELINE)
+		return
+	_begun = true
 	began.emit(_config, _seat)
 
 

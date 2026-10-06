@@ -39,10 +39,16 @@ import:
 #       watches her from her port side rather than her starboard; ARGS passes more
 #       user args, e.g. ARGS=--net-sim=latency:120,jitter:20,loss:5. Not part of
 #       verify: it needs a display.
+#   make capture SEED=1701 PHYS=1:04:40 [JUMP=1] [EYE=] [CUT=] [CELLS=1] [SIDE=]
+#       at that moment of the sinking, in physics time after the hit, in place of AT;
+#       JUMP=1 bakes, seeks the timeline there and starts the match JUMP's lead before
+#       it, every seat on whatever is dry then — no hours of brawl first (§5b.4)
 #   make capture SCREEN=menu|settings|graphics|online|room [CAPTURE=]   the main menu,
 #       the settings screen over it — on its Graphics page for graphics —, the Online
 #       screen, or a room — its players made up, no server asked — with no match
 #       started (no AT)
+#   make capture SCREEN=hold [SEED=] [ARGS=--bake-budget=1]   the countdown held for a
+#       bake still running (R20), its bar half way; a slow slice budget makes one hold
 #   make capture SCREEN=pause AT=60 [EYE=]   the pause menu over the match at AT
 #   make capture SCREEN=results [EYE=]   the results once the match ends and their
 #       buttons take presses
@@ -60,7 +66,9 @@ SIDE ?=
 ARGS ?=
 SCREEN ?=
 RES ?=
-CAPTURE ?= $(CURDIR)/captures/match_$(SEED)_$(AT)$(if $(EYE),_eye$(EYE))$(if $(CUT),_cut$(CUT))$(if $(CELLS),_cells)$(if $(SCREEN),_$(SCREEN)).png
+PHYS ?=
+JUMP ?=
+CAPTURE ?= $(CURDIR)/captures/match_$(SEED)_$(AT)$(if $(PHYS),phys$(subst :,-,$(PHYS)))$(if $(EYE),_eye$(EYE))$(if $(CUT),_cut$(CUT))$(if $(CELLS),_cells)$(if $(SCREEN),_$(SCREEN)).png
 match-args = $(if $(SEED),--seed=$(SEED)) $(if $(SEATS),--seats=$(SEATS)) $(if $(HIT),--hit=$(HIT))
 
 run:
@@ -83,12 +91,13 @@ match:
 menu-screen = $(filter menu settings graphics online room,$(SCREEN))
 capture:
 	$(call require-godot)
-	@test -n "$(AT)$(filter menu settings graphics online room results,$(SCREEN))" || \
-		{ echo "capture: AT=<seconds of match time> is required" >&2; exit 1; }
+	@test -n "$(AT)$(PHYS)$(filter menu settings graphics online room results hold,$(SCREEN))" || \
+		{ echo "capture: AT=<seconds of match time> or PHYS=<h:mm:ss of physics> is required" >&2; exit 1; }
 	@mkdir -p "$(dir $(CAPTURE))"
 	$(GODOT) --path . $(if $(RES),--resolution $(RES)) --audio-driver Dummy --fixed-fps 30 -- \
 		$(match-args) $(if $(menu-screen),,--autoplay) --capture="$(CAPTURE)" \
-		$(if $(AT),--capture-at=$(AT)) $(if $(EYE),--capture-eye=$(EYE)) \
+		$(if $(AT),--capture-at=$(AT)) $(if $(PHYS),--phys=$(PHYS)) $(if $(JUMP),--jump) \
+		$(if $(EYE),--capture-eye=$(EYE)) \
 		$(if $(CUT),--observer-cut=$(CUT)) $(if $(CELLS),--observer-cells) \
 		$(if $(SIDE),--observer-side=$(SIDE)) \
 		$(if $(SCREEN),--capture-screen=$(SCREEN)) $(ARGS)
@@ -215,6 +224,28 @@ hits:
 	@set -o pipefail; $(GODOT) --headless --no-header --path . -s res://tools/hits.gd \
 		-- --ship=$(SHIP) --seeds=$(SEEDS) | grep -v '^\[godot_ai'
 
+# `make bake SEED=1701 [HIT=path.tres]`: a seed's sinking alone, no match played (§5b.4):
+# the hit the must-sink rule chose (or HIT='s), how it came to it, every event of the
+# bake in physics time, how she ends and her labels, and what the bake cost and the
+# timeline weighs. Headless. Rules live in tools/bake.gd.
+bake:
+	$(call require-godot)
+	@set -o pipefail; $(GODOT) --headless --no-header --path . -s res://tools/bake.gd \
+		-- $(match-args) | grep -v '^\[godot_ai'
+
+# `make census SHIP=steamer SEEDS=200 [MATCHES=20]`: the outcome census (§5b.4), written to
+# docs/census.md — each seed's first hit baked as drawn (raw) and as the must-sink rule
+# chose it (match), every label's share beside its band, the rule's redraws, bakes and
+# fallback rungs with the holes they make, hit → gone, the share of each sinking MATCHES
+# bots-only matches saw (R33), and the bakes' cost against §5b.4's budgets. Minutes, not
+# part of verify: run it in every PR that changes the physics or a ship's data. Progress
+# goes to stderr. Rules live in tools/census.gd.
+MATCHES ?= 20
+census:
+	$(call require-godot)
+	@set -o pipefail; $(GODOT) --headless --no-header --path . -s res://tools/census.gd \
+		-- --ship=$(SHIP) --seeds=$(SEEDS) --matches=$(MATCHES) | grep -v '^\[godot_ai'
+
 # The art against the data (D6) and the snapshots (D5): drawn platform tops,
 # every seat's model on its feet, no live sim object named under scenes/art.
 # Rules live in tools/art_lint.gd. Two frames per tick, so the view interpolates.
@@ -289,4 +320,4 @@ format-check:
 
 .PHONY: import run match capture net-bench sim-bench serve-local online-e2e export-server \
 	export-web export-mac export-server-mac serve-web-local serve-web-local-stop fps arena \
-	hits art-lint test verify check ship ship-check lint format format-check
+	hits bake census art-lint test verify check ship ship-check lint format format-check

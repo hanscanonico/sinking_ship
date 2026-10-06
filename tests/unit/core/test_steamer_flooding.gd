@@ -22,7 +22,9 @@ func before_all() -> void:
 	_scenario = load(SimFixtures.STEAMER_SINKING)
 
 
-## [param damage] baked with every hole of its gash [param scale] times as big.
+## [param damage] baked with every hole of its gash [param scale] times as big, every
+## state the physics stepped through kept: two bakes alike up to a moment keep their
+## steps alike up to it.
 func _bake(damage: HitDamage, scale: float) -> SinkTimeline:
 	var scaled := HitDamage.new()
 	scaled.jammed = damage.jammed
@@ -32,7 +34,7 @@ func _bake(damage: HitDamage, scale: float) -> SinkTimeline:
 		hole.area = opening.area * scale
 		scaled.openings.append(hole)
 	var stepper := SinkStepper.new(_structure, scaled, _sea)
-	return SinkTimeline.bake(stepper, _sea, _scenario.bake_cap)
+	return SinkBake.new(stepper, _sea, _scenario.bake_cap).uncompacted()
 
 
 ## Explicit [param hit] on the steamer, mapped as a tool's HIT= maps it.
@@ -308,15 +310,15 @@ func test_water_spills_over_the_low_hold_wall() -> void:
 		var timeline := _bake(_damage(load(FAST)), scale)
 		var spilled := _first(timeline, SinkTimeline.Kind.SPILLING, &"over_bulkhead_hold_to_hold")
 		assert_gt(spilled, 0.0, "× %s: water passes over it" % scale)
-		# The step that spilled left one side's water over the top, higher than the
-		# other's: a weir, not a doorway.
+		# The step lands where one side's water reaches the top (SinkBake), higher than
+		# the other's: a weir, not a doorway.
 		var frame := timeline.frame_at(spilled)
 		var hold := _head(timeline, frame, &"hold")
 		var engine := _head(timeline, frame, &"engine_room")
 		assert_gt(
 			maxf(hold, engine),
-			_bottom(timeline, frame, gap),
-			"× %s: water over its top as it spills" % scale
+			_bottom(timeline, frame, gap) - SinkBake.REACHED,
+			"× %s: water at its top as it spills" % scale
 		)
 		assert_ne(hold, engine, "× %s: higher on one side" % scale)
 

@@ -27,3 +27,5 @@ finished_linger = 3.0
 refusal_linger = 1.0
 ping_interval = 1.0
 log_interval = 10.0
+timeline_lead = 120.0
+timeline_bytes_per_beat = 8192

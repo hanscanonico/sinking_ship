@@ -2,8 +2,9 @@ extends GutTest
 ## Every match ends (§5b.1). There is no cap on a match: it ends by the brawl or, once
 ## she is gone, by the cold, and every match's hit sinks her. So every match ending
 ## comes to three things, and none of them plays a match that lasts hours (§5b.4):
-## every match hit founders within the bake's cap — bakes alone, 200 seeds, the ones
-## test_must_sink.gd reads; a match on an explicit fast hit ends by the brawl or the
+## every match hit founders within the bake's cap — bakes alone, the seeds
+## test_must_sink.gd reads (`make census` bakes 200 in every PR that changes the
+## physics); a match on an explicit fast hit ends by the brawl or the
 ## cold; a body inside her as she goes is out with her; and until SH32 a match does not
 ## follow her past the attitude it supports (§5b.3's interim rule).
 
@@ -13,7 +14,7 @@ const FAST_HIT := "res://tests/fixtures/sinking/hits/fast.tres"
 ## is gone.
 const STEEP_HIT := "res://tests/fixtures/sinking/hits/steep.tres"
 
-const SEEDS := 200
+const SEEDS := 40
 const SEATS := 8
 ## Once she is gone and everyone swims, the cold meter (4 s) settles it: well within
 ## this many seconds.

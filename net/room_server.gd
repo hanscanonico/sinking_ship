@@ -358,6 +358,12 @@ func _start(connection: Connection) -> void:
 	var config := MatchConfig.from_rules(_match_rules, match_seed)
 	var bots := BotInputSource.fill(config, BotProfile.for_tier(config.bot_tier))
 	at.start(config, _net, bots, _beat)
+	# The server bakes the sinking; its players receive it, checked against its digest.
+	var schedule := at.host.runner.sim.schedule
+	var digest := ""
+	if schedule.timeline() != null:
+		at.stream = TimelineStream.new(schedule, _rules)
+		digest = schedule.timeline().digest()
 	var players := PackedStringArray()
 	for player: Room.Member in at.members:
 		# Its silence counts from here: loading the match may take its client a while.
@@ -365,7 +371,7 @@ func _start(connection: Connection) -> void:
 		if member != null:
 			member.heard = _beat
 		players.append("%s seat %d" % [player.name, player.seat])
-		var begin := _codec.encode_begin(config.match_seed, config.seats, player.seat)
+		var begin := _codec.encode_begin(config.match_seed, config.seats, player.seat, digest)
 		_wire.send(player.peer, begin)
 	_say(
 		(
@@ -426,6 +432,7 @@ func _step_room(stepped: Room) -> void:
 	match stepped.phase:
 		Room.Phase.PLAYING:
 			stepped.step(_beat)
+			_send_timeline(stepped)
 			if stepped.phase == Room.Phase.FINISHED:
 				_say("room %s: match over at tick %d" % [stepped.code, stepped.host.tick()])
 				for line: String in stepped.transcript.text().strip_edges().split("\n"):
@@ -438,6 +445,19 @@ func _step_room(stepped: Room) -> void:
 				_say("room %s: waiting for its host again" % stepped.code)
 				_send_rosters(stepped)
 				match_finished.emit(stepped.code)
+
+
+## The sections of [param playing]'s timeline due on its match's tick, to every player
+## still there (TimelineStream).
+func _send_timeline(playing: Room) -> void:
+	if playing.stream == null or playing.stream.is_done():
+		return
+	for section: int in playing.stream.due(playing.host.tick()):
+		var bytes := _codec.encode_timeline(section, playing.stream.section(section))
+		for player: Room.Member in playing.present():
+			_wire.send(player.peer, bytes)
+	if playing.stream.is_done():
+		_say("room %s: the sinking's timeline sent" % playing.code)
 
 
 ## Timeouts, backlogs, pings, idle rooms and the periodic log.

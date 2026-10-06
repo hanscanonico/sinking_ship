@@ -182,6 +182,8 @@ func _unhandled_input(event: InputEvent) -> void:
 ## observer camera when [param observer] says so — which draws nothing of the ship at
 ## or above the ship-local height [param observer_cut] and frames the whole ship once
 ## it is finite. [param greybox] draws the greybox in place of the dressed ship.
+## [param jump_to], a tool's, starts the match at that tick instead, every seat on what
+## is dry then (MatchJump); -1 starts it at its first.
 func start(
 	config: MatchConfig,
 	autoplay: bool,
@@ -189,7 +191,8 @@ func start(
 	eye_seat: int = LOCAL_SEAT,
 	observer_cut: float = INF,
 	greybox: bool = false,
-	net_sim: NetConditions = null
+	net_sim: NetConditions = null,
+	jump_to: int = -1
 ) -> void:
 	var profile := BotProfile.for_tier(config.bot_tier)
 	var net_rules := NetRules.load_default()
@@ -204,7 +207,8 @@ func start(
 		served.append(BotInputSource.new(LOCAL_SEAT, profile, config))
 	served.append_array(BotInputSource.fill(config, profile, LOCAL_SEAT + 1))
 	var conditions := net_sim if net_sim != null else NetConditions.new()
-	var loopback := LoopbackMatch.new(config, net_rules, conditions, played, local, served)
+	var from := MatchJump.snapshot(config, jump_to) if jump_to >= 0 else {}
+	var loopback := LoopbackMatch.new(config, net_rules, conditions, played, local, served, from)
 	var names := _seat_names(config.seats)
 	_begin(loopback, local, LOCAL_SEAT, names, observer, eye_seat, observer_cut, greybox)
 
