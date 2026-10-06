@@ -74,6 +74,14 @@ const VENT := Vector2(0.24, 0.17)
 ## bracket over its deck.
 const CHAIN_LINK := 0.25
 const BELL := 2.65
+## A porthole the hit left open (§5b.1): its glass swung in on its hinge this far, in
+## radians; and how near, in metres along her and up, an open porthole's opening
+## stands to the porthole drawn for it.
+const SWUNG := 1.2
+const PORT_NEAR := 0.3
+## The share of an open porthole's round its view out takes, inside the band of its
+## bore through the wall.
+const BORE_SHOWN := 0.78
 
 var _space: ShipSpace
 var _layout: ShipLayout
@@ -84,13 +92,20 @@ var _depth: float
 ## Every pane of glass, as seen from inside its room: [room, centre, normal into the
 ## room, whether a porthole, its half size].
 var panes: Array[Array] = []
+## The middles of the portholes the hit left open: drawn open, their glass swung in.
+var _open_ports := PackedVector3Array()
 
 
-func _init(space: ShipSpace, hull: ShipHull, body_radius: float) -> void:
+## [param open_ports] are the middles of the portholes the hit left open, none for a
+## ship not yet struck.
+func _init(
+	space: ShipSpace, hull: ShipHull, body_radius: float, open_ports := PackedVector3Array()
+) -> void:
 	_space = space
 	_layout = space.layout
 	_hull = hull
 	_depth = body_radius
+	_open_ports = open_ports
 
 
 func build(mesh: ShipMesh) -> void:
@@ -336,8 +351,13 @@ func _windows(mesh: ShipMesh, room: ShipRoom) -> void:
 			var size := sizes[index]
 			var inner := on_line - outward * (half + GLASS_PROUD)
 			var inside := Vector3(inner.x, height, inner.y)
+			var open := in_hull and _left_open(inside)
 			if in_hull and kind == RoomDressing.Kind.HOLD:
 				_deadlight(mesh, inside, -normal)
+			elif open:
+				_pane(mesh, inside, -normal, true, ShipPaints.glass_in, size, false)
+				_bore(mesh, inside, -normal)
+				_swung(mesh, inside, -normal)
 			else:
 				_pane(mesh, inside, -normal, in_hull, ShipPaints.glass_in, size)
 			panes.append([room, inside, -normal, in_hull, size * 0.5])
@@ -349,7 +369,84 @@ func _windows(mesh: ShipMesh, room: ShipRoom) -> void:
 				outer.y = outward.y * _hull.breadth(outer.x, height, hull_side)
 				outer += Vector2(out_normal.x, out_normal.z) * HULL_GLASS_PROUD
 			var at := Vector3(outer.x, height, outer.y)
-			_pane(mesh, at, out_normal, in_hull, ShipPaints.glass_out, size)
+			_pane(mesh, at, out_normal, in_hull, ShipPaints.glass_out, size, not open)
+			if open:
+				_disc(mesh, at + out_normal * FRAME_PROUD, out_normal, ShipPaints.dark)
+
+
+## Whether the porthole drawn at [param inside] is one the hit left open: an open
+## porthole's middle stands by it along her and up, on her side it is on.
+func _left_open(inside: Vector3) -> bool:
+	for port: Vector3 in _open_ports:
+		var near := absf(port.x - inside.x) < PORT_NEAR and absf(port.y - inside.y) < PORT_NEAR
+		if near and signf(port.z) == signf(inside.z):
+			return true
+	return false
+
+
+## The bore of an open porthole whose ring stands at [param centre], facing
+## [param normal] into the room: what is seen out of it — the sky over the sea, or the
+## sea (the glass's view out) — inside the dark band of its tube through the wall.
+func _bore(mesh: ShipMesh, centre: Vector3, normal: Vector3) -> void:
+	_disc(mesh, centre, normal, ShipPaints.glass_in)
+	var right := normal.cross(Vector3.UP).normalized()
+	var band := centre + normal * 0.004
+	for index in PORTHOLE_SEGMENTS:
+		var next := (index + 1) % PORTHOLE_SEGMENTS
+		var spokes: Array[Vector3] = []
+		for at: int in [index, next]:
+			var angle := TAU * at / PORTHOLE_SEGMENTS
+			spokes.append(right * cos(angle) + Vector3.UP * sin(angle))
+		mesh.quad(
+			band + spokes[0] * PORTHOLE_RADIUS * BORE_SHOWN,
+			band + spokes[1] * PORTHOLE_RADIUS * BORE_SHOWN,
+			band + spokes[1] * PORTHOLE_RADIUS,
+			band + spokes[0] * PORTHOLE_RADIUS,
+			normal,
+			ShipPaints.dark,
+			0
+		)
+
+
+## A round of [param paint] the porthole's size at [param centre], facing
+## [param normal].
+func _disc(mesh: ShipMesh, centre: Vector3, normal: Vector3, paint: ShipMesh.Paint) -> void:
+	var right := normal.cross(Vector3.UP).normalized()
+	var round := PackedVector3Array()
+	for index in PORTHOLE_SEGMENTS:
+		var angle := TAU * index / PORTHOLE_SEGMENTS
+		round.append(centre + (right * cos(angle) + Vector3.UP * sin(angle)) * PORTHOLE_RADIUS)
+	mesh.polygon(round, normal, paint, centre.y - PORTHOLE_RADIUS, NAN)
+
+
+## An open porthole's glass, in its own brass rim, swung in on its hinge from the
+## porthole at [param centre] facing [param normal] into the room.
+func _swung(mesh: ShipMesh, centre: Vector3, normal: Vector3) -> void:
+	var right := normal.cross(Vector3.UP).normalized()
+	var hinge := centre + right * (PORTHOLE_RADIUS + PORTHOLE_RING) + normal * FRAME_PROUD
+	var turn := Basis(Vector3.UP, -SWUNG)
+	var swung := turn * normal
+	var glass := PackedVector3Array()
+	var rim := PackedVector3Array()
+	for index in PORTHOLE_SEGMENTS:
+		var angle := TAU * index / PORTHOLE_SEGMENTS
+		var spoke := right * cos(angle) + Vector3.UP * sin(angle)
+		glass.append(hinge + turn * (centre + spoke * PORTHOLE_RADIUS - hinge))
+		var outer := centre + spoke * (PORTHOLE_RADIUS + PORTHOLE_RING * 0.6)
+		rim.append(hinge + turn * (outer - hinge))
+	mesh.polygon(glass, swung, ShipPaints.glass_in, centre.y - PORTHOLE_RADIUS, NAN)
+	mesh.polygon(glass, -swung, ShipPaints.glass_out, centre.y - PORTHOLE_RADIUS, NAN)
+	for index in PORTHOLE_SEGMENTS:
+		var next := (index + 1) % PORTHOLE_SEGMENTS
+		mesh.quad(
+			glass[index],
+			glass[next],
+			rim[next],
+			rim[index],
+			swung,
+			ShipPaints.brass,
+			ShipMesh.RIM_V0
+		)
 
 
 ## The stretches (from, to) along [param run] of [param room]'s walls with no stair
@@ -394,14 +491,16 @@ func _deadlight(mesh: ShipMesh, centre: Vector3, normal: Vector3) -> void:
 
 
 ## A porthole (round, brass-ringed) or a window (square, wooden frame) centred on
-## [param centre], facing [param normal].
+## [param centre], facing [param normal]; a porthole with no glass in its ring unless
+## [param glazed].
 func _pane(
 	mesh: ShipMesh,
 	centre: Vector3,
 	normal: Vector3,
 	porthole: bool,
 	glass: ShipMesh.Paint,
-	size := WINDOW_SIZE
+	size := WINDOW_SIZE,
+	glazed := true
 ) -> void:
 	var right := normal.cross(Vector3.UP).normalized()
 	var up := right.cross(normal).normalized()
@@ -414,7 +513,8 @@ func _pane(
 			var spoke := right * cos(angle) + up * sin(angle)
 			ring.append(centre + spoke * PORTHOLE_RADIUS)
 			outer.append(centre + spoke * (PORTHOLE_RADIUS + PORTHOLE_RING) + lift)
-		mesh.polygon(ring, normal, glass, centre.y - PORTHOLE_RADIUS, NAN)
+		if glazed:
+			mesh.polygon(ring, normal, glass, centre.y - PORTHOLE_RADIUS, NAN)
 		for index in PORTHOLE_SEGMENTS:
 			var next := (index + 1) % PORTHOLE_SEGMENTS
 			mesh.quad(

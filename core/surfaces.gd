@@ -673,7 +673,8 @@ func drops(from_point: Vector3, to_point: Vector3, step: float) -> bool:
 ## Flooded is geometry (D7): below the water [param ship_point] is in under the
 ## schedule's pose — its cell's, found by the pose's CellMap, or the sea's outside her.
 func wet(ship_point: Vector3, pose: ShipPose) -> bool:
-	return pose.world_height(ship_point) < pose.water_level(ship_point)
+	var height := pose.world_height(ship_point)
+	return height < pose.highest_water() and height < pose.water_level(ship_point)
 
 
 ## Whether [param surface] is under the water at its middle.

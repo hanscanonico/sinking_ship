@@ -150,8 +150,13 @@ func step(frames: Array[InputFrame]) -> Array[SimEvent]:
 		_hazards.step(state, pose_now, tick, events)
 		_shoves(live, tick, events)
 		var exits := _water(live, pose_now, tick, events, feet_before)
-		_sea_settles(pose_now, tick, exits)
-		_verdict(exits, tick, events)
+		var settled := MatchVerdict.settled_by_the_sea(
+			_live_seats(), pose_now, tick, schedule.gone_tick(), surfaces, _rules.wade_depth
+		)
+		for player: PlayerState in settled:
+			_out(player, tick)
+			exits.append(player)
+		MatchVerdict.place(state, exits, tick, events)
 	state.tick += 1
 	if state.phase == MatchState.Phase.COUNTDOWN and state.tick >= config.countdown_ticks:
 		state.phase = MatchState.Phase.LIVE
@@ -1019,71 +1024,6 @@ func _out(player: PlayerState, tick: int) -> void:
 	player.bracing = false
 	player.climb_left = 0
 	_enter(player, PlayerState.Action.IDLE)
-
-
-## The sea settles it (§5b.1): on the tick she is gone, whoever is still inside her
-## goes out with her; and once every surface still standing is wade_depth under the
-## sea and every seat still in swims — when nothing but the cold can change — they all
-## go out by the cold, adding to [param exits], but for the one with the most cold left
-## when it has the most alone. A tie for the most is a draw, the sea's; the verdict
-## places the rest by the cold they had left.
-func _sea_settles(pose_now: ShipPose, tick: int, exits: Array[PlayerState]) -> void:
-	if tick == schedule.gone_tick():
-		for player: PlayerState in _live_seats():
-			if pose_now.cell_at(player.pos) != CellMap.NONE:
-				_out(player, tick)
-				exits.append(player)
-	var live := _live_seats()
-	if live.size() < 2:
-		return
-	for player: PlayerState in live:
-		if player.body != PlayerState.Body.SWIMMING:
-			return
-	if not surfaces.sunk(pose_now, _rules.wade_depth):
-		return
-	var most := 0.0
-	var warmest := 0
-	for player: PlayerState in live:
-		if player.cold > most:
-			most = player.cold
-			warmest = 0
-		if player.cold == most:
-			warmest += 1
-	for player: PlayerState in live:
-		if warmest > 1 or player.cold != most:
-			_out(player, tick)
-			exits.append(player)
-
-
-## Seats out on the same tick share a place, unless their cold meters differ: more
-## cold left places higher. One or none left ends the match.
-func _verdict(exits: Array[PlayerState], tick: int, events: Array[SimEvent]) -> void:
-	if exits.is_empty():
-		return
-	var remaining := state.remaining()
-	for player: PlayerState in exits:
-		var warmer := 0
-		for other: PlayerState in exits:
-			if other.cold > player.cold:
-				warmer += 1
-		player.place = remaining + 1 + warmer
-		events.append(
-			SimEvent.seat_out(
-				tick,
-				player.seat,
-				player.place,
-				player.out_cause,
-				player.last_hit_by,
-				player.last_hit_crate
-			)
-		)
-	if remaining > 1:
-		return
-	state.phase = MatchState.Phase.ENDED
-	var winner := state.winner()
-	if winner != -1:
-		state.seats[winner].place = 1
-	events.append(SimEvent.match_ended(tick, winner))
 
 
 func _candidates(live: Array[PlayerState]) -> Array[ShoveResolver.Candidate]:

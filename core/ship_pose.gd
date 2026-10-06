@@ -32,6 +32,8 @@ var lurch_warning: float
 ## The heel the lurch under way swings by at its height, signed; 0 for none. Its
 ## part of the swing is already in heel_deg.
 var lurch: float
+## The highest water, worked out on first asking (highest_water).
+var _highest := NAN
 
 
 func _init(
@@ -55,6 +57,15 @@ func cell_at(ship_point: Vector3) -> int:
 	return cells.cell_at(ship_point)
 
 
+## The highest any water in or around her stands in the world: no point over it is wet.
+func highest_water() -> float:
+	if is_nan(_highest):
+		_highest = 0.0
+		for level: float in levels:
+			_highest = maxf(_highest, level)
+	return _highest
+
+
 ## The world height of the water [param ship_point] is in: its cell's, or the sea's.
 func water_level(ship_point: Vector3) -> float:
 	var cell := cell_at(ship_point)
@@ -65,12 +76,16 @@ func water_level(ship_point: Vector3) -> float:
 ## point there is wet below it. An answer at every attitude, for the sea outside her
 ## and the water in each of her cells alike.
 func water_height(ship_point: Vector3) -> float:
+	return height_of(water_level(ship_point), ship_point)
+
+
+## The ship-local height over [param ship_point]'s x/z of water standing at world height
+## [param level] — a cell's from [member levels], or the sea's 0.
+func height_of(level: float, ship_point: Vector3) -> float:
 	var basis := transform.basis
 	var x := ship_point.x
 	var z := ship_point.z
-	return (
-		-(basis.x.y * x + basis.z.y * z + transform.origin.y - water_level(ship_point)) / basis.y.y
-	)
+	return -(basis.x.y * x + basis.z.y * z + transform.origin.y - level) / basis.y.y
 
 
 ## How far [param ship_point] stands above the water under it, in world metres — its

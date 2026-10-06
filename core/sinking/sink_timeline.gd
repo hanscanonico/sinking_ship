@@ -72,6 +72,10 @@ static func bake(
 	var names := stepper.opening_names()
 	var spilled := PackedByteArray()
 	spilled.resize(names.size())
+	# Water passing any other kind of opening is never news: as though it had spilled.
+	for index in names.size():
+		if not _spills(stepper.opening_kind(index)):
+			spilled[index] = 1
 	var top := stepper.top()
 	var doors_move_until := stepper.last_door()
 	var plunged := false
@@ -84,7 +88,7 @@ static func bake(
 		for index in names.size():
 			var moved := absf(state.moved[index])
 			passed += moved
-			if moved > 0.0 and spilled[index] == 0 and _spills(stepper.opening_kind(index)):
+			if moved > 0.0 and spilled[index] == 0:
 				spilled[index] = 1
 				timeline.events.append(Event.new(at, Kind.SPILLING, names[index]))
 		for cell in timeline.cells:

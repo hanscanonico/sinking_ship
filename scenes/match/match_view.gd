@@ -68,7 +68,7 @@ func setup(driver: SimDriver, sim: MatchSim, local_seat: int, correction_time: f
 				falls.append(event.platform)
 		# Any railing may break (SH10), not only those the scenario fails.
 		var fails := PackedInt32Array(range(ship.railings.size()))
-		_art.build(ship, rules.railing_height, rules.body_radius, falls, fails)
+		_art.build(ship, rules.railing_height, rules.body_radius, falls, fails, _open_ports())
 		_crates = _art.crates()
 	for body: Brawler in _bodies:
 		body.queue_free()
@@ -79,6 +79,18 @@ func setup(driver: SimDriver, sim: MatchSim, local_seat: int, correction_time: f
 	for seat in sim.config.seats:
 		_add_seat(seat, rules, seat == local_seat)
 	_process(0.0)
+
+
+## The middles of the portholes the match's hit left open: drawn open.
+func _open_ports() -> PackedVector3Array:
+	var found := PackedVector3Array()
+	var damage := _schedule.damage()
+	if damage == null or _structure == null:
+		return found
+	for opening: ShipOpening in _structure.openings:
+		if opening.kind == ShipOpening.Kind.PORTHOLE and opening.name in damage.left_open:
+			found.append(opening.centre)
+	return found
 
 
 ## Draws every seat but [param seat] from now on — the view is in its eyes — or

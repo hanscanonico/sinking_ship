@@ -9,7 +9,7 @@ extends RefCounted
 var seconds := 0.0
 var steps := 0
 ## Per cell, in her cells' order, the water in it, in m³, and how high it stands
-## (SinkStepper.head).
+## (SinkStepper.head) — for a full cell the step held, the head it pushed with.
 var water := PackedFloat64Array()
 var heads := PackedFloat64Array()
 ## The height of the sea up her: where a level sea stands in ship space.

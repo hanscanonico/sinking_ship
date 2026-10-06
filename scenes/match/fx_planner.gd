@@ -177,7 +177,7 @@ func plan(previous: Dictionary, current: Dictionary) -> Array[FxCue]:
 		_from_event(event, previous, current, pose_now, cues)
 	_gash.bursts(tick, cues)
 	_waterlines(pose_then, pose_now, tick, plunging, cues)
-	_floods(pose_then, pose_now, tick, boost, cues)
+	_floods(pose_then, pose_now, tick, cues)
 	_machinery(pose_then, pose_now, tick, cues)
 	_collapses(pose_now, fired, tick, cues)
 	_funnel_going(pose_then, pose_now, tick, cues)
@@ -288,26 +288,26 @@ func _waterlines(
 			cues.append(spray)
 
 
-## As the sea reaches the middle of a deck: bubbles over it, and whatever was
-## loose on it, if it stands outdoors, comes up the first time beside the hull on the
-## low side, where the sea came over — never across a still dry rail; as it reaches
-## the middle of a room's floor, air blows out of every opening of the room.
-func _floods(
-	pose_then: ShipPose, pose_now: ShipPose, tick: int, boost: float, cues: Array[FxCue]
-) -> void:
+## As the sea reaches the middle of a deck that stands outdoors: bubbles over it,
+## and whatever was loose on it comes up the first time beside the hull on the low
+## side, where the sea came over — never across a still dry rail. Under a deck the air
+## the water drives out is InnerWater's: a burst on the water at the opening the water
+## reaches the top of, never grains thrown about the room.
+func _floods(pose_then: ShipPose, pose_now: ShipPose, tick: int, cues: Array[FxCue]) -> void:
 	for index in _layout.platforms.size():
 		if not _surfaces.flooded(index, pose_now) or _surfaces.flooded(index, pose_then):
 			continue
 		var platform := _layout.platforms[index]
 		var middle := platform.area.get_center()
 		var over := Vector3(middle.x, platform.height, middle.y)
+		if not _space.outdoors(over + Vector3.UP * 0.5):
+			continue
 		var bubbles := FxCue.new(FxCue.Kind.BUBBLES, tick, over)
 		bubbles.on_sea = true
 		bubbles.radius = minf(platform.area.size.x, platform.area.size.y) * 0.5
 		bubbles.seconds = BUBBLES_SECONDS
 		cues.append(bubbles)
-		var loose := platform.area.get_area() > 4.0 and _space.outdoors(over + Vector3.UP * 0.5)
-		if loose and _floated[index] == 0:
+		if platform.area.get_area() > 4.0 and _floated[index] == 0:
 			_floated[index] = 1
 			var side := ShipPose.low_side(pose_now.heel_deg).y
 			var low := Vector3(0.0, 0.0, side) if side != 0.0 else _side_of(over)
@@ -318,17 +318,6 @@ func _floods(
 			afloat.toward = low
 			afloat.on_sea = true
 			cues.append(afloat)
-	for index in _layout.rooms.size():
-		var room := _layout.rooms[index]
-		var middle := room.area.get_center()
-		var floor := Vector3(middle.x, room.floor_height, middle.y)
-		if not _surfaces.wet(floor, pose_now) or _surfaces.wet(floor, pose_then):
-			continue
-		for opening in _openings[index].size():
-			var vent := FxCue.new(FxCue.Kind.VENT, tick, _openings[index][opening])
-			vent.toward = _outwards[index][opening]
-			vent.strength = clampf(0.6 * boost, 0.0, 1.0)
-			cues.append(vent)
 
 
 ## Steam from a machinery room's vents as the sea first reaches its floor, and

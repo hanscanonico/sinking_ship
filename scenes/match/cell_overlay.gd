@@ -7,7 +7,8 @@ extends Node3D
 ## so the cells under the decks and inside the hull show through them, each set a
 ## little inside its box, so no edge lies along a deck or a wall. Each cell's water
 ## (SH26) fills its box to its level, sea-blue, voids' too, as the pose has it
-## (show_water).
+## (show_water): a bright line along its top, and its depth under its name, so two
+## cells at two levels read apart at a glance.
 
 ## Per FloodCell.Kind, the colour of a cell people walk in; VOID's is a void's.
 const KIND_COLOURS: Array[Color] = [
@@ -46,12 +47,19 @@ const INK := Color(0.04, 0.06, 0.09)
 const TINT_PRIORITY := 10
 const EDGE_PRIORITY := 11
 const NAME_PRIORITY := 12
-## A cell's water: its colour, and drawn over the tints, under the edges.
-const WATER := Color(0.12, 0.45, 0.85, 0.42)
+## A cell's water: its colour, the line along its top and how thick, drawn over the
+## tints, under the edges.
+const WATER := Color(0.1, 0.5, 1.0, 0.55)
+const LEVEL := Color(0.62, 0.96, 1.0, 0.95)
+const LEVEL_THICK := 0.05
 const WATER_PRIORITY := 10
 
-## Per cell, its water, a box filled to its level.
+## Per cell, its water, a box filled to its level, the line along its top, its name and
+## the name's words.
 var _water: Array[MeshInstance3D] = []
+var _levels: Array[MeshInstance3D] = []
+var _names: Array[Label3D] = []
+var _words := PackedStringArray()
 var _structure: ShipStructure
 
 
@@ -61,6 +69,9 @@ func build(structure: ShipStructure) -> void:
 	for child: Node in get_children():
 		child.queue_free()
 	_water.clear()
+	_levels.clear()
+	_names.clear()
+	_words.clear()
 	_structure = structure
 	if structure == null:
 		return
@@ -92,6 +103,12 @@ func build(structure: ShipStructure) -> void:
 		var water := _add_mesh(unit, WATER_PRIORITY)
 		water.visible = false
 		_water.append(water)
+		var line := SurfaceTool.new()
+		line.begin(Mesh.PRIMITIVE_TRIANGLES)
+		_box_faces(line, Vector3.ZERO, Vector3.ONE, LEVEL)
+		var level := _add_mesh(line, WATER_PRIORITY)
+		level.visible = false
+		_levels.append(level)
 
 
 ## Fills each cell's box to the level its water stands at under [param pose].
@@ -106,10 +123,23 @@ func show_water(pose: ShipPose) -> void:
 		inside.z = (cell.low.z + cell.high.z) * 0.5
 		var level := pose.water_height(inside) if pose.cell_at(inside) == index else cell.low.y
 		var top := minf(level, high.y)
-		_water[index].visible = top > low.y
+		var wet := top > low.y
+		_water[index].visible = wet
 		_water[index].transform = Transform3D(
 			Basis.from_scale(Vector3(high.x - low.x, maxf(top - low.y, 0.001), high.z - low.z)), low
 		)
+		_levels[index].visible = wet
+		var line := Vector3(high.x - low.x, LEVEL_THICK, high.z - low.z)
+		var under := Vector3(low.x, top - LEVEL_THICK * 0.5, low.z)
+		_levels[index].transform = Transform3D(Basis.from_scale(line), under)
+		var depth := ""
+		if level >= cell.high.y - CellMap.DRY:
+			depth = "\nfull"
+		elif level > cell.low.y + CellMap.DRY:
+			depth = "\n%.2f m" % (level - cell.low.y)
+		var text := _words[index] + depth
+		if _names[index].text != text:
+			_names[index].text = text
 
 
 ## Per cell of [param structure], where its name stands: its middle, but that the
@@ -237,6 +267,8 @@ func _name(cell: FloodCell, spot: Vector3, colour: Color, walked: bool) -> void:
 	# Its first word over the rest, so names side by side stay narrow.
 	var words := String(cell.name).split("_")
 	label.text = "\n".join([words[0], " ".join(words.slice(1))]) if words.size() > 1 else words[0]
+	_names.append(label)
+	_words.append(label.text)
 	label.position = spot
 	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	label.fixed_size = true

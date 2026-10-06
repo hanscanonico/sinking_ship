@@ -10,11 +10,20 @@ const NONE := -1
 ## Water this shallow over a cell's floor, in metres, is none: the cell is dry.
 const DRY := 0.01
 
+## How long a slot along her is, in metres: a point is tried only against the cells
+## whose boxes reach into its slot, in her cells' order, past a box round them all.
+const SLOT := 1.0
+
 var _low := PackedVector3Array()
 var _high := PackedVector3Array()
+var _bounds := AABB()
+var _slots: Array[PackedInt32Array] = []
 ## Per cell, 1 where its box pokes outside her hull, so a point in it is checked
-## against her shell.
+## against her shell — but for one no further out to port or starboard than her shell
+## stands anywhere along the box, which is inside it for sure.
 var _poking := PackedByteArray()
+var _inside_port := PackedFloat64Array()
+var _inside_starboard := PackedFloat64Array()
 var _structure: ShipStructure
 
 
@@ -24,6 +33,17 @@ func _init(structure: ShipStructure) -> void:
 		_low.append(cell.low)
 		_high.append(cell.high)
 		_poking.append(1 if cell.shape < 1.0 else 0)
+		var box := AABB(cell.low, cell.high - cell.low)
+		_bounds = box if _low.size() == 1 else _bounds.merge(box)
+		_inside_port.append(_surely_inside(cell, -1))
+		_inside_starboard.append(_surely_inside(cell, 1))
+	for slot in ceili(_bounds.size.x / SLOT):
+		var from := _bounds.position.x + slot * SLOT
+		var reaching := PackedInt32Array()
+		for index in _low.size():
+			if _low[index].x < from + SLOT and _high[index].x > from:
+				reaching.append(index)
+		_slots.append(reaching)
 
 
 ## How many cells there are.
@@ -33,7 +53,14 @@ func count() -> int:
 
 ## The index of the cell [param ship_point] lies in, or NONE outside every one.
 func cell_at(ship_point: Vector3) -> int:
-	for index in _low.size():
+	var from := _bounds.position
+	var to := _bounds.end
+	if ship_point.x < from.x or ship_point.x >= to.x or ship_point.y < from.y:
+		return NONE
+	if ship_point.y >= to.y or ship_point.z < from.z or ship_point.z >= to.z:
+		return NONE
+	var slot := mini(floori((ship_point.x - from.x) / SLOT), _slots.size() - 1)
+	for index: int in _slots[slot]:
 		var low := _low[index]
 		var high := _high[index]
 		if ship_point.x < low.x or ship_point.x >= high.x:
@@ -42,8 +69,10 @@ func cell_at(ship_point: Vector3) -> int:
 			continue
 		if ship_point.z < low.z or ship_point.z >= high.z:
 			continue
-		if _poking[index] == 1 and not _in_hull(ship_point):
-			continue
+		if _poking[index] == 1:
+			var inside := _inside_starboard[index] if ship_point.z >= 0.0 else _inside_port[index]
+			if absf(ship_point.z) > inside and not _in_hull(ship_point):
+				continue
 		return index
 	return NONE
 
@@ -51,6 +80,39 @@ func cell_at(ship_point: Vector3) -> int:
 ## The height of cell [param cell]'s floor.
 func floor_of(cell: int) -> float:
 	return _low[cell].y
+
+
+## How far to [param side] (-1 port, 1 starboard) of her middle line a point of
+## [param cell]'s box is inside her shell wherever along and up the box it stands: the
+## least breadth of every section reaching into the box, at the box's foot and top and
+## at each corner of its outline between; nothing, where the box leaves the outline.
+func _surely_inside(cell: FloodCell, side: int) -> float:
+	if cell.shape >= 1.0:
+		return INF
+	var least := INF
+	var spans: Array[Vector2] = []
+	for section: HullSection in _structure.sections:
+		var half := section.length * 0.5
+		if section.x + half <= cell.low.x or section.x - half >= cell.high.x:
+			continue
+		spans.append(Vector2(section.x - half, section.x + half))
+		var heights := PackedFloat64Array([cell.low.y, cell.high.y])
+		for corner: Vector2 in section.outline:
+			if corner.y > cell.low.y and corner.y < cell.high.y:
+				heights.append(corner.y)
+		for height: float in heights:
+			var shell := section.shell_at(height, side)
+			if is_nan(shell):
+				return -INF
+			least = minf(least, shell * side)
+	# Somewhere along the box no section stands: outside her there.
+	spans.sort()
+	var reached := cell.low.x
+	for span: Vector2 in spans:
+		if span.x > reached:
+			return -INF
+		reached = maxf(reached, span.y)
+	return least if reached >= cell.high.x else -INF
 
 
 ## Whether [param ship_point] stands inside her shell's outline at its x and height.

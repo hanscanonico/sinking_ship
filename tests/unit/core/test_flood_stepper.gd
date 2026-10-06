@@ -172,6 +172,104 @@ func test_tank_fills_from_the_sea_in_the_closed_form_time() -> void:
 	assert_almost_eq(stepper.head(0, state.water[0]), state.sea, 1e-6, "to the sea's level")
 
 
+## The seconds a 100 m² tank takes, at a step of [param seconds], to stand within a
+## centimetre of the sea at [param sea_height]: it fills through a stack of 2 m tanks
+## full to their ceilings under it, the sea coming into the lowest through a 2 m² hole and
+## each passing it on through a square hole of the next of [param holes] m² in its
+## ceiling.
+func _filled_through_full(holes: Array[float], sea_height: float, seconds: float) -> float:
+	var tanks: Array[FloodCell] = []
+	var openings: Array[ShipOpening] = [
+		_opening(
+			&"hole", [&"tank_0", ShipOpening.SEA], Vector3(0.0, 0.5, 5.0), Vector3(0.0, 1.0, 2.0)
+		)
+	]
+	var heads: Array[float] = []
+	for index in holes.size():
+		var ceiling := 2.0 * (index + 1)
+		tanks.append(
+			_cell(
+				StringName("tank_%d" % index),
+				Vector3(0.0, ceiling - 2.0, 0.0),
+				Vector3(10.0, ceiling, 10.0)
+			)
+		)
+		var side := sqrt(holes[index])
+		var joins: Array[StringName] = [
+			StringName("tank_%d" % index), StringName("tank_%d" % (index + 1))
+		]
+		openings.append(
+			_opening(
+				StringName("floor_%d" % index),
+				joins,
+				Vector3(5.0, ceiling, 5.0),
+				Vector3(side, 0.0, side)
+			)
+		)
+		heads.append(ceiling)
+	var top := 2.0 * holes.size()
+	var last := holes.size()
+	tanks.append(
+		_cell(StringName("tank_%d" % last), Vector3(0.0, top, 0.0), Vector3(10.0, 40.0, 10.0))
+	)
+	heads.append(top)
+	var structure := _barge(BROAD, BROAD, -2.0, 60.0, sea_height + 2.0, tanks, openings)
+	var stepper := SinkStepper.new(structure, HitDamage.new(), _sea())
+	var state := _filled(stepper, heads)
+	assert_almost_eq(state.sea, sea_height, 1e-3, "the sea where the barge floats")
+	while state.seconds < 1000.0 and stepper.head(last, state.water[last]) < state.sea - 0.01:
+		state = stepper.step(state, seconds)
+	return state.seconds
+
+
+## The seconds a 100 m² tank takes to rise from [param start] m under the sea to
+## [param end] m under it through orifices of [param areas] m² one after another. They
+## pass one flow q = 0.6 aᵢ √(2g Δᵢ), so their heads add: Δ = q² Σ 1/aᵢ² / (0.6² 2g) —
+## one orifice a with 1/a² = Σ 1/aᵢ². The tank rises dh/dt = q / 100, so √Δ falls
+## evenly: t = 2 × 100 (√start − √end) / (0.6 a √(2g)).
+static func _series_time(areas: Array[float], start: float, end: float) -> float:
+	var inverse := 0.0
+	for area: float in areas:
+		inverse += 1.0 / (area * area)
+	var area := 1.0 / sqrt(inverse)
+	return 2.0 * 100.0 * (sqrt(start) - sqrt(end)) / (0.6 * area * sqrt(2.0 * 9.81))
+
+
+func test_tank_fills_through_a_full_tank_in_the_series_orifice_time() -> void:
+	# The full tank has no surface to rise: the push of the sea passes straight through
+	# it (§5b.1), as through one orifice of the two in series, at the bake's 1 s step.
+	var expected := _series_time([2.0, 25.0], 4.0, 0.01)
+	assert_almost_eq(expected, 71.7, 0.05)
+	var at_a_second := _filled_through_full([25.0], 6.0, 1.0)
+	assert_almost_eq(at_a_second, expected, expected * 0.05, "71.7 s ± 5% at a 1 s step")
+	var at_a_tenth := _filled_through_full([25.0], 6.0, 0.1)
+	assert_almost_eq(at_a_tenth, expected, expected * 0.05, "and at a tenth of one")
+
+
+func test_tank_fills_through_a_chain_of_full_tanks_in_the_series_orifice_time() -> void:
+	# The sea, two full tanks one over the other, and the tank filling over them.
+	var expected := _series_time([2.0, 4.0, 4.0], 4.0, 0.01)
+	assert_almost_eq(expected, 87.6, 0.05)
+	var at_a_second := _filled_through_full([4.0, 4.0], 8.0, 1.0)
+	assert_almost_eq(at_a_second, expected, expected * 0.05, "87.6 s ± 5% at a 1 s step")
+
+
+func test_sure_hit_sinks_her_alike_at_a_second_and_a_twentieth() -> void:
+	# The flooding converges at the bake's step: a twentieth of it changes when she is
+	# gone by under a tenth.
+	var structure: ShipStructure = SimFixtures.steamer().structure
+	var scenario: SinkScenario = load(SimFixtures.STEAMER_SINKING)
+	var damage := HitMapper.map_explicit(structure.sure_hit, structure, scenario.hit)
+	var gone := PackedFloat64Array()
+	for seconds: float in [1.0, 0.05]:
+		var timeline := SinkTimeline.bake(
+			SinkStepper.new(structure, damage, _sea()), _sea(), scenario.bake_cap, seconds
+		)
+		assert_true(timeline.is_gone(), "gone at a %s s step" % seconds)
+		gone.append(timeline.gone_at)
+	assert_almost_eq(gone[0], gone[1], gone[1] * 0.1, "gone at 1 s within 10% of 0.05 s")
+
+
 func test_spill_over_a_sill_matches_the_weir_law() -> void:
 	var cells: Array[FloodCell] = [
 		_cell(&"upstream", Vector3(0.0, 0.0, 0.0), Vector3(400.0, 5.0, 400.0)),

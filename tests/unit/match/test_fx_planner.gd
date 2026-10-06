@@ -304,13 +304,13 @@ func test_steam_vents_as_the_sea_reaches_the_engine_room_and_drowns_its_engine()
 		assert_gt(plume.seconds, 0.0)
 
 
-func test_bubbles_and_air_come_up_as_decks_and_rooms_flood() -> void:
+func test_bubbles_come_up_as_decks_flood() -> void:
+	# The air a flooding room blows out is drawn on its water (InnerWater), never
+	# thrown about the room as grains.
 	var sim := _sim()
 	var cues := _sink(_planner(sim), sim, 0, sim.schedule.end_tick(), SCAN_STRIDE)
 	assert_gt(_of(cues, FxCue.Kind.BUBBLES).size(), 3, "over each deck going under")
-	var vents := _of(cues, FxCue.Kind.VENT)
-	assert_gt(vents.size(), 0, "air out of the rooms as they flood")
-	for vent: FxCue in vents:
+	for vent: FxCue in _of(cues, FxCue.Kind.VENT):
 		assert_almost_eq(vent.toward.length(), 1.0, 0.001)
 	var floated := _of(cues, FLOTSAM)
 	for piece: FxCue in floated:

@@ -9,31 +9,45 @@ const GOLDEN_SEED := 1701
 const GOLDEN_SEATS := 8
 ## `make match`'s STOP (MatchArgs): no match is capped, the tool stops one still on.
 const MAX_TICKS := 900 * Ticks.RATE
+## The golden match's opening — past the hit, into the flooding — where the checks
+## that play it again stop: twice in process, its replay, its continuation. The golden
+## transcript alone takes it to its end.
+const CHECKED_TICKS := 100 * Ticks.RATE
 const RESUME_EVERY := 7
 
-## The golden match, played once for every test that only reads it (_golden).
+## The golden match, played once for every test that only reads it (_golden), and its
+## opening, the same (_opening).
 static var _played: Array = []
+static var _opened: Array = []
 
 
 ## Runs the golden match to its end, served as `make match` serves it; returns the
-## runner and its transcript — played afresh when [param fresh], else the one played
-## first. From SH26 it lasts minutes (the sinking is the physics'), so it is played once
-## for the suite, and once more where a second run is the point.
-func _golden(fresh: bool = false) -> Array:
-	if fresh or _played.is_empty():
+## runner and its transcript. From SH26 it lasts minutes (the sinking is the physics'),
+## so it is played once for the suite.
+func _golden() -> Array:
+	if _played.is_empty():
 		var host := RunMatch.served(RunMatch.default_config(GOLDEN_SEED, GOLDEN_SEATS))
-		var played := [host.runner, RunMatch.transcript(host, MAX_TICKS)]
-		if not fresh:
-			_played = played
-		return played
+		_played = [host.runner, RunMatch.transcript(host, MAX_TICKS)]
 	return _played
 
 
+## The golden match served as `_golden` serves it, stopped at CHECKED_TICKS; the one
+## played first unless [param fresh].
+func _opening(fresh: bool = false) -> Array:
+	if fresh or _opened.is_empty():
+		var host := RunMatch.served(RunMatch.default_config(GOLDEN_SEED, GOLDEN_SEATS))
+		var played := [host.runner, RunMatch.transcript(host, CHECKED_TICKS)]
+		if not fresh:
+			_opened = played
+		return played
+	return _opened
+
+
 func test_same_seed_twice_in_process() -> void:
-	var first := _golden()
-	var second := _golden(true)
+	var first := _opening()
+	var second := _opening(true)
 	var runner: MatchRunner = first[0]
-	assert_true(runner.is_over(), "the golden match ends")
+	assert_eq(runner.tick(), CHECKED_TICKS, "played to the check's stop")
 	assert_ne(runner.digest.hex(), "")
 	assert_eq(second[0].digest.hex(), runner.digest.hex())
 	assert_eq(second[1], first[1])
@@ -41,7 +55,7 @@ func test_same_seed_twice_in_process() -> void:
 
 
 func test_replay_from_log_matches_digest() -> void:
-	var played: MatchRunner = _golden()[0]
+	var played: MatchRunner = _opening()[0]
 	var config := played.sim.config
 	assert_true(played.input_log.matches(config))
 	var replay := MatchRunner.new(MatchSim.create(config), played.input_log.replay_sources())
@@ -58,13 +72,13 @@ func test_replay_from_log_matches_digest() -> void:
 
 
 func test_snapshot_continuation_is_exact() -> void:
-	var played: MatchRunner = _golden()[0]
+	var played: MatchRunner = _opening()[0]
 	var input_log := played.input_log
 	var config := played.sim.config
 	# Re-run the match from its log, keeping every snapshot.
 	var replay := MatchRunner.new(MatchSim.create(config), input_log.replay_sources())
 	var snapshots: Array[Dictionary] = [replay.snapshot]
-	while not replay.is_over():
+	while not replay.is_over() and replay.tick() < played.tick():
 		replay.step()
 		snapshots.append(replay.snapshot)
 	# From every RESUME_EVERY-th snapshot, and from the first snapshot with each
@@ -247,6 +261,7 @@ func test_golden_for_this_platform() -> void:
 	if not FileAccess.file_exists(path):
 		pending("no golden recorded for %s" % platform)
 		return
+	assert_true((_golden()[0] as MatchRunner).is_over(), "the golden match ends")
 	assert_eq(_golden()[1], FileAccess.get_file_as_string(path))
 
 
