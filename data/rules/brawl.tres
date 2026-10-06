@@ -54,6 +54,7 @@ stand_depth = 0.15
 wade_speed = 3.0
 cold_meter = 4.0
 cold_regen = 0.5
+pocket_cold_rate = 0.25
 climb_reach = 0.6
 climb_time = 0.5
 ladder_speed = 1.5

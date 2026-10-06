@@ -6,7 +6,8 @@
 // in it, the sea's lap of foam and lace. Seen from under it, a dim ceiling. Its sheet
 // is level with the world, turned against her lean (CellSurface), and drawn only inside
 // its cell's box, in ship metres: so it piles into the box's low corner and never pokes
-// through a deck, a wall or her side.
+// through a deck, a wall or her side. Under a pocket (SH29) it glows faintly, the sea's
+// light coming up through it, the only light a sealed space under water has.
 shader_type spatial;
 render_mode blend_mix, depth_draw_never, cull_disabled;
 
@@ -33,6 +34,7 @@ uniform float glint_tightness = 70.0;
 uniform mat4 world_to_ship = mat4(1.0);
 instance uniform vec3 clip_low = vec3(0.0);
 instance uniform vec3 clip_high = vec3(0.0);
+instance uniform float pocket_glow = 0.0;
 
 uniform sampler2D depth_texture : hint_depth_texture, filter_nearest, repeat_disable;
 
@@ -87,6 +89,7 @@ void fragment() {
 	if (!FRONT_FACING) {
 		ALBEDO = deep_colour.rgb * 0.8;
 		ALPHA = 0.85;
+		EMISSION = shallow_colour.rgb * pocket_glow;
 	} else {
 		float depth = texture(depth_texture, SCREEN_UV).r;
 #if CURRENT_RENDERER == RENDERER_COMPATIBILITY
@@ -117,6 +120,8 @@ void fragment() {
 		}
 		ALBEDO = colour;
 		ALPHA = alpha;
+		// Brighter along the drifting streaks, as light through a moving surface is.
+		EMISSION = shallow_colour.rgb * pocket_glow * (0.6 + 0.8 * streak);
 	}
 }
 

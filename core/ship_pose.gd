@@ -15,6 +15,10 @@ var transform: Transform3D
 ## (§5b.1). Empty for a ship without cells or an authored fixture: inside her the water
 ## is then the sea's.
 var levels := PackedFloat64Array()
+## Per cell, as [member levels] is, the pressure of the air trapped in it — its pocket
+## (SinkAir) — in metres of sea over nothing, or 0 where its air is free. Empty where
+## [member levels] is.
+var pockets := PackedFloat64Array()
 var cells: CellMap
 ## The watertight doors the ship is shutting or has shut, by name: how far shut, 0…1.
 ## A door not here stands open.
@@ -66,6 +70,16 @@ func highest_water() -> float:
 	return _highest
 
 
+## Whether [param ship_point] is in trapped air: over the water of a cell whose air is a
+## pocket (Q22: a head there is in a pocket, and the cold comes slower). The helper
+## behind Surfaces' answers on the water, as water_level is (D13).
+func in_pocket(ship_point: Vector3) -> bool:
+	var cell := cell_at(ship_point)
+	if cell == CellMap.NONE or pockets.is_empty() or pockets[cell] <= 0.0:
+		return false
+	return world_height(ship_point) > levels[cell]
+
+
 ## The world height of the water [param ship_point] is in: its cell's, or the sea's.
 func water_level(ship_point: Vector3) -> float:
 	var cell := cell_at(ship_point)
@@ -73,10 +87,20 @@ func water_level(ship_point: Vector3) -> float:
 
 
 ## The ship-local height the water [param ship_point] is in stands at over its x/z: a
-## point there is wet below it. An answer at every attitude, for the sea outside her
-## and the water in each of her cells alike.
+## point there is wet below it. Its free surface: in a cell that is full, the surface
+## over its ceiling — the water of the cell over it, so a swimmer under a flooded hold's
+## open top rises into the pocket over it (SH29) — or the sea's, where no cell is. An
+## answer at every attitude, for the sea outside her and the water in each of her cells
+## alike.
 func water_height(ship_point: Vector3) -> float:
-	return height_of(water_level(ship_point), ship_point)
+	var at := ship_point
+	var cell := cell_at(at)
+	while cell != CellMap.NONE:
+		at.y = cells.ceiling_of(cell)
+		if levels[cell] < world_height(at):
+			return height_of(levels[cell], ship_point)
+		cell = cells.cell_at(at)
+	return height_of(0.0, ship_point)
 
 
 ## The ship-local height over [param ship_point]'s x/z of water standing at world height

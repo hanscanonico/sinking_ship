@@ -55,10 +55,15 @@ const PATH := "res://data/physics/sea.tres"
 @export var lurch_rate_deg: float
 @export var lurch_warning: float
 ## The timeline keeps a state only where its neighbours, read between, would miss its
-## water or her height in the sea by more than keep_level metres, or her attitude by
-## more than keep_turn_deg degrees (§5b.4, est.).
+## water or her height in the sea by more than keep_level metres, her attitude by more
+## than keep_turn_deg degrees, or a pocket's pressure by more than keep_air metres of
+## sea — or whether a cell holds one at all (§5b.4, est.).
 @export var keep_level: float
 @export var keep_turn_deg: float
+@export var keep_air: float
+## A pocket holding less air than this, in m³ at the atmosphere's pressure, is gone:
+## its cell's water moves as though its air were free (§5b.1, est.).
+@export var pocket_least: float
 ## The stages of the physics (§5b.3), each off until its milestone switches it on.
 @export var flooding: bool
 @export var attitude: bool
@@ -111,6 +116,8 @@ func problems() -> PackedStringArray:
 		found.append("sea: the supported attitude must be within 0…180°")
 	if lurch_rate_deg <= 0.0 or lurch_warning < 0.0:
 		found.append("sea: a lurch needs a rate and a warning")
-	if keep_level < 0.0 or keep_turn_deg < 0.0 or keep_turn_deg >= 90.0:
+	if keep_level < 0.0 or keep_turn_deg < 0.0 or keep_turn_deg >= 90.0 or keep_air < 0.0:
 		found.append("sea: the timeline's tolerances must not be negative, nor its turn reach 90°")
+	if pocket_least <= 0.0:
+		found.append("sea: the least air a pocket holds must be positive")
 	return found

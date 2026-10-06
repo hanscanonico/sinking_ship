@@ -23,14 +23,21 @@ extends Resource
 ## Where every number comes from, est. or a source.
 @export_multiline var notes: String
 
+## Each space the damage opened breathes through an air pipe this big, in m², up to her
+## deck (est.): her tanks and compartments had them, so the sea fills each to its own
+## level, as the sources tell it, rather than squeezing air trapped in it (SH29).
+const AIR_PIPE := 0.01
+
 
 ## Her structure, as BoxBarge builds it: level at her draught, her lifeboats both sides;
-## its cells and holes her own copies, free to change.
+## its cells and holes her own copies, free to change, each cell with its air pipe.
 func structure() -> ShipStructure:
 	var barge := BoxBarge.new(length, beam, depth, draught, centre_height)
 	barge.section_length = length / 40.0
 	for cell: FloodCell in cells:
 		barge.cells.append(cell.duplicate())
+		var middle := (cell.low + cell.high) * 0.5
+		barge.vent(cell.name, Vector3(middle.x, barge.keel() + depth, middle.z), AIR_PIPE)
 	for opening: ShipOpening in openings:
 		barge.openings.append(opening.duplicate())
 	barge.lifeboat(1, boat_limit_deg)

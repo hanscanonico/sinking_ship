@@ -67,6 +67,20 @@ func hole(cell_name: StringName, centre: Vector3, area: float, in_bottom := fals
 	openings.append(made)
 
 
+## A vent of [param area] m² from cell [param cell_name] to the sky, a square in its
+## ceiling at [param centre]: its air goes free through it while its water stands under it.
+func vent(cell_name: StringName, centre: Vector3, area: float) -> void:
+	var made := ShipOpening.new()
+	made.name = StringName("vent_%s_%d" % [cell_name, openings.size()])
+	made.kind = ShipOpening.Kind.VENT
+	made.joins = [cell_name, ShipOpening.SKY]
+	made.centre = centre
+	var side := sqrt(area)
+	made.size = Vector3(side, 0.0, side)
+	made.area = area
+	openings.append(made)
+
+
 ## A lifeboat on [param side], useless past [param limit_deg] of list.
 func lifeboat(side: int, limit_deg: float) -> void:
 	var made := ShipFitting.new()

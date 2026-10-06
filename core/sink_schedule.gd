@@ -1,12 +1,13 @@
 class_name SinkSchedule
 extends RefCounted
-## The one water authority (D7, D13): the ship's pose at any tick, the water in every
-## cell, which watertight doors are shut, what the sinking has announced, and the
-## iceberg hit — where it struck and when. A physical scenario's sinking is baked once,
-## at match start, from the hit the must-sink rule chose (MustSink) or the explicit one
-## the scenario gives — or received baked, from the host (D11): SinkBake's timeline
-## (SinkTimeline), read between its kept states — her attitude blended from one to the
-## next as the timeline blends it, the sea and each cell's water carried between them —
+## The one water-and-air authority (D7, D13): the ship's pose at any tick, the water in
+## every cell and the air trapped over it, which watertight doors are shut, what the
+## sinking has announced, and the iceberg hit — where it struck and when. A physical
+## scenario's sinking is baked once, at match start, from the hit the must-sink rule
+## chose (MustSink) or the explicit one the scenario gives — or received baked, from the
+## host (D11): SinkBake's timeline (SinkTimeline), read between its kept states — her
+## attitude blended from one to the next as the timeline blends it, the sea, each cell's
+## water and each cell's pocket carried between them —
 ## her trim and heel read off it for the HUD and every reader, its lurches warned, and
 ## the phase she is in named from where she stands. Its physics seconds become match
 ## ticks once, through the scenario's clock and Ticks (D2). An authored fixture plays
@@ -258,10 +259,11 @@ func pose_at(tick: int) -> ShipPose:
 ## The pose the bake has at [param tick], read between the two kept states either side
 ## of its physics second: her rotation blended from one to the other
 ## (SinkTimeline.blend), the sea's height up her and every cell's water carried between
-## them; at rest before the hit and as last kept after the end. She turns about her
-## centre of mass, which keeps its place across the world, and stands as high as the
-## sea up her says — at rest at her freeboard, as an authored pose does. Her trim and
-## heel are read off the rotation.
+## them, and every cell's pocket as the timeline reads it (SinkTimeline.pocket); at
+## rest before the hit and as last kept after the end. She turns about her centre of
+## mass, which keeps its place across the world, and stands as high as the sea up her
+## says — at rest at her freeboard, as an authored pose does. Her trim and heel are read
+## off the rotation.
 func _physical(tick: int) -> ShipPose:
 	var frame := 0
 	var weight := 0.0
@@ -279,11 +281,13 @@ func _physical(tick: int) -> ShipPose:
 	pose.cells = _cells
 	var count := _timeline.cells
 	pose.levels.resize(count)
+	pose.pockets.resize(count)
 	for cell in count:
 		var head := lerpf(
 			_timeline.heads[frame * count + cell], _timeline.heads[next * count + cell], weight
 		)
 		pose.levels[cell] = head + origin.y
+		pose.pockets[cell] = _timeline.pocket(frame, next, weight, cell)
 	if tick >= _hit_tick:
 		var seconds := _seconds_at(tick)
 		for door in _doors.size():

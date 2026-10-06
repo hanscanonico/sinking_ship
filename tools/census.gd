@@ -8,9 +8,9 @@ extends SceneTree
 ## 0% by construction, and it records how often a hit was drawn again, the bakes, and the
 ## fallback's rungs with the holes they make. Each label's share (OutcomeClassifier)
 ## stands beside its band, which nothing gates on yet (R24); then the hit → gone times,
-## the share of each sinking MATCHES bots-only matches saw (R33, Q20), and what the bakes
-## cost on this machine against §5b.4's budgets, with the timelines' sizes. Progress
-## goes to stderr.
+## the share of each sinking MATCHES bots-only matches saw (R33, Q20), how long each
+## cell's air pockets last (SH29), and what the bakes cost on this machine, at its load
+## average, against §5b.4's budgets, with the timelines' sizes. Progress goes to stderr.
 ##
 ##   godot --headless --path . -s res://tools/census.gd -- --ship=steamer --seeds=200
 
@@ -167,6 +167,7 @@ func _written(
 	lines.append_array(_rule_section(chosen))
 	lines.append_array(_rungs_section(chosen))
 	lines.append_array(_gone_section(chosen, seen))
+	lines.append_array(_pockets_section(chosen))
 	lines.append_array(_cost_section(raw, chosen))
 	return "\n".join(lines) + "\n"
 
@@ -197,7 +198,8 @@ func _bands_section(
 	lines.append("|---|---|---|---|---|")
 	var bands: Dictionary = BANDS.get(ship, {})
 	var rows := [
-		["survives", [L.AFLOAT], false],
+		["survives", [L.AFLOAT, L.AFLOAT_UPSIDE_DOWN], false],
+		["— afloat upside down, on her leaking air", [L.AFLOAT_UPSIDE_DOWN], false],
 		["founders upright, by the head or the stern", [L.BY_THE_HEAD, L.BY_THE_STERN], true],
 		["— gone by the head, capsized or not", [L.BY_THE_HEAD], false],
 		["— gone by the stern, capsized or not", [L.BY_THE_STERN], false],
@@ -463,6 +465,93 @@ func _gone_section(chosen: Array[Dictionary], seen: PackedFloat64Array) -> Packe
 	return lines
 
 
+## The air pockets the accepted bakes trapped (SinkAir), cell by cell: in how many
+## sinkings one formed there, how long each lasted — from its air trapped to the pocket
+## gone, cut where she went — and how it ended: let out as its cell's air went free, leaked
+## away or squeezed out, or still held as she went.
+func _pockets_section(chosen: Array[Dictionary]) -> PackedStringArray:
+	var lasted: Array[PackedFloat64Array] = []
+	var sinkings := PackedInt32Array()
+	var ends := PackedInt32Array()
+	for cell in _structure.cells.size():
+		lasted.append(PackedFloat64Array())
+	sinkings.resize(_structure.cells.size())
+	ends.resize(_structure.cells.size() * 3)
+	for entry: Dictionary in chosen:
+		var timeline: SinkTimeline = entry["choice"].timeline
+		var end := timeline.gone_at if timeline.is_gone() else timeline.length()
+		var vented := {}
+		for event: SinkTimeline.Event in timeline.events:
+			if event.kind == SinkTimeline.Kind.VENTED:
+				vented["%s@%d" % [event.name, roundi(event.seconds * SinkTimeline.PER_SECOND)]] = true
+		for cell in timeline.cells:
+			var named := _structure.cells[cell].name
+			var from := -1.0
+			var formed := false
+			for frame in range(1, timeline.count()):
+				var at := timeline.times[frame]
+				var held := timeline.pockets[frame * timeline.cells + cell] > 0.0
+				var was := timeline.pockets[(frame - 1) * timeline.cells + cell] > 0.0
+				if held and not was and at < end:
+					from = at
+					formed = true
+				elif was and not held and from >= 0.0:
+					lasted[cell].append(minf(at, end) - from)
+					var key := "%s@%d" % [named, roundi(at * SinkTimeline.PER_SECOND)]
+					ends[cell * 3 + (0 if vented.has(key) else 1)] += 1
+					from = -1.0
+			if from >= 0.0:
+				lasted[cell].append(end - from)
+				ends[cell * 3 + 2] += 1
+			if formed:
+				sinkings[cell] += 1
+	var lines := PackedStringArray()
+	lines.append("## How long the air pockets last (match census, physics time; SH29)")
+	lines.append("")
+	lines.append(
+		(
+			"A pocket is a cell's air trapped under its ceiling after the hit (SinkAir): from"
+			+ " then until it is gone, cut where she went. Its leak is the cell's leak area"
+			+ " (10⁻³ m² per 1 000 m³, est.); a pocket also goes as its cell's air is let out"
+			+ " — blown out — or as the water squeezes it to nothing."
+		)
+	)
+	lines.append("")
+	lines.append(
+		(
+			"| Cell | Sinkings with one | Pockets | Lasted: p50 · p90 · most"
+			+ " | Blown out · leaked or squeezed out · held as she went |"
+		)
+	)
+	lines.append("|---|---|---|---|---|")
+	for cell in _structure.cells.size():
+		if lasted[cell].is_empty():
+			continue
+		var times := lasted[cell]
+		times.sort()
+		(
+			lines
+			. append(
+				(
+					"| %s | %s | %d | %s · %s · %s | %d · %d · %d |"
+					% [
+						_structure.cells[cell].name,
+						_share(sinkings[cell], chosen.size()),
+						times.size(),
+						MatchTranscript.physics_clock(_at(times, 0.5)),
+						MatchTranscript.physics_clock(_at(times, 0.9)),
+						MatchTranscript.physics_clock(_at(times, 1.0)),
+						ends[cell * 3],
+						ends[cell * 3 + 1],
+						ends[cell * 3 + 2],
+					]
+				)
+			)
+		)
+	lines.append("")
+	return lines
+
+
 func _cost_section(raw: Array[Dictionary], chosen: Array[Dictionary]) -> PackedStringArray:
 	var one := PackedFloat64Array()
 	var steps := PackedFloat64Array()
@@ -483,6 +572,16 @@ func _cost_section(raw: Array[Dictionary], chosen: Array[Dictionary]) -> PackedS
 	var every := SinkBake.new(stepper, sea, _scenario.bake_cap)
 	var lines := PackedStringArray()
 	lines.append("## What it costs (this machine, %s)" % OS.get_processor_name())
+	lines.append("")
+	lines.append(
+		(
+			(
+				"Load average when measured: %s. The cost lines depend on the machine's load;"
+				+ " the plan's R20 budgets are judged on a quiet machine."
+			)
+			% _load_average()
+		)
+	)
 	lines.append("")
 	lines.append("| Budget (§5b.4, est.) | Measured | Against it |")
 	lines.append("|---|---|---|")
@@ -554,6 +653,22 @@ func _cost_section(raw: Array[Dictionary], chosen: Array[Dictionary]) -> PackedS
 		)
 	)
 	return lines
+
+
+## The OS's 1, 5 and 15 minute load averages at the end of the run, "unknown" where it
+## keeps none we can read.
+static func _load_average() -> String:
+	var text := ""
+	if FileAccess.file_exists("/proc/loadavg"):
+		text = FileAccess.get_file_as_string("/proc/loadavg")
+	else:
+		var output: Array = []
+		if OS.execute("sysctl", ["-n", "vm.loadavg"], output) == 0 and not output.is_empty():
+			text = str(output[0]).replace("{", "").replace("}", "")
+	var fields := text.strip_edges().split(" ", false)
+	if fields.size() < 3:
+		return "unknown"
+	return "%s · %s · %s (1 · 5 · 15 min)" % [fields[0], fields[1], fields[2]]
 
 
 static func _mean(values: PackedFloat64Array) -> float:

@@ -113,11 +113,13 @@ func test_rolling_past_her_beam_ends_capsizes_her() -> void:
 			as Array[OutcomeClassifier.Outcome]
 		)
 	)
+	# Capped floating bottom up: held up by the air she trapped, still leaking (§5b.1) —
+	# not a survival a match keeps, but its own label.
 	var afloat := _timeline([[0.0, 0.0, 0.0], [300.0, 0.0, -150.0]], SinkTimeline.End.CAPPED)
 	assert_eq(
 		OutcomeClassifier.labels(afloat),
 		(
-			[OutcomeClassifier.Outcome.AFLOAT, OutcomeClassifier.Outcome.CAPSIZED]
+			[OutcomeClassifier.Outcome.CAPSIZED, OutcomeClassifier.Outcome.AFLOAT_UPSIDE_DOWN]
 			as Array[OutcomeClassifier.Outcome]
 		),
 		"upside down"

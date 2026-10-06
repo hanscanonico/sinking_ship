@@ -110,6 +110,10 @@ extends Resource
 @export var cold_meter: float
 ## Seconds of the cold meter regained per second out of the sea.
 @export var cold_regen: float
+## The share of the open water's rate the cold meter drains at while a swimmer's head is
+## in trapped air — a pocket under a ceiling (Q22, est. a quarter: the 4 s meter lasts
+## 16 s there). It never refills while swimming, so every match still ends.
+@export var pocket_cold_rate: float
 ## The highest a ledge may stand above the sea for a swimmer to climb onto it.
 @export var climb_reach: float
 ## How long a climb out takes.
@@ -148,6 +152,12 @@ extends Resource
 @export var crate_damage: float
 
 
+## How far over its feet a swimmer's head is reckoned, for whether it is in trapped air
+## (Q22): halfway from the waterline it floats at, swim_depth, to the top of its head.
+func head_height() -> float:
+	return (swim_depth + body_height) * 0.5
+
+
 ## Every reason these numbers cannot run a match; empty when they can.
 func problems() -> PackedStringArray:
 	var found := PackedStringArray()
@@ -183,6 +193,7 @@ func problems() -> PackedStringArray:
 		"wade_speed",
 		"cold_meter",
 		"cold_regen",
+		"pocket_cold_rate",
 		"climb_reach",
 		"climb_time",
 		"ladder_speed",
@@ -254,6 +265,8 @@ func problems() -> PackedStringArray:
 		found.append("brawl rules: wade_depth must be below swim_depth")
 	if stand_depth > wade_depth:
 		found.append("brawl rules: stand_depth must not exceed wade_depth")
+	if pocket_cold_rate > 1.0:
+		found.append("brawl rules: pocket_cold_rate must not exceed the open water's 1")
 	if wade_speed > walk_speed:
 		found.append("brawl rules: wade_speed must not exceed walk_speed")
 	return found

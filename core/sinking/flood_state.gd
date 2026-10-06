@@ -11,6 +11,9 @@ var steps := 0
 ## (SinkStepper.head) — for a full cell the step held, the head it pushed with.
 var water := PackedFloat64Array()
 var heads := PackedFloat64Array()
+## Per cell, the air trapped in it as the m³ it would fill at the atmosphere's
+## pressure, or SinkAir.FREE where its air is free (SinkAir).
+var air := PackedFloat64Array()
 ## The height of the sea up her: how far along the world's up from her origin it
 ## stands (Hydrostatics.Sea).
 var sea := 0.0
@@ -50,6 +53,7 @@ func copy() -> FloodState:
 	made.steps = steps
 	made.water = water.duplicate()
 	made.heads = heads.duplicate()
+	made.air = air.duplicate()
 	made.sea = sea
 	made.rotation = rotation.duplicate()
 	made.heave_rate = heave_rate

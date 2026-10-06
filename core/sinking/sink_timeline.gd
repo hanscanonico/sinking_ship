@@ -2,10 +2,11 @@ class_name SinkTimeline
 extends RefCounted
 ## The baked sinking (§5b.4, D7): what SinkBake made of the stepper's run from the hit to
 ## the end — states where the sinking needs them, each its physics second, where the sea
-## stands up her, her attitude and the head of every cell's water — and every event at
-## its exact second, a lurch with its warning. Kept compact: a state its neighbours,
-## read between (blend), reproduce within keep_level of water and keep_turn_deg of
-## attitude (SeaPhysics, est.) is dropped, but never one an event happens at. What stays
+## stands up her, her attitude, the head of every cell's water and the pressure of every
+## cell's pocket — and every event at its exact second, a lurch with its warning. Kept
+## compact: a state its neighbours, read between (blend, pocket), reproduce within
+## keep_level of water, keep_turn_deg of attitude and keep_air of a pocket's pressure
+## (SeaPhysics, est.) is dropped, but never one an event happens at. What stays
 ## is held as integers — microseconds, millimetres, and millionths of a unit
 ## quaternion's components (about a ten-thousandth of a degree) — each a difference from
 ## the one before, in pages compressed one by one behind a header, so a client can play
@@ -19,8 +20,11 @@ enum End { GONE, AFLOAT, CAPPED }
 ## What the physics announces: a cell takes its first water, a cell is full, water
 ## first passes over a low wall or down a stair or hatch, she is gone, her main deck
 ## goes under the sea — the plunge begins, her last minutes —, a lurch is coming, she
-## lurches (§5b.4's lurch rule), and one side's lifeboats are useless (§5b.1).
-enum Kind { FLOODING, FULL, SPILLING, GONE, PLUNGING, LURCHING, LURCHED, BOATS_USELESS }
+## lurches (§5b.4's lurch rule), one side's lifeboats are useless (§5b.1), a cell's air
+## is trapped, and a pocket's air is let out (SinkAir).
+enum Kind {
+	FLOODING, FULL, SPILLING, GONE, PLUNGING, LURCHING, LURCHED, BOATS_USELESS, TRAPPED, VENTED
+}
 ## A cell's water this far over its floor, in metres, is its first.
 const FIRST_WATER := 0.01
 ## Her main deck's height: ship space's origin stands on it (D6).
@@ -33,7 +37,7 @@ const PER_METRE := 1e3
 const PER_UNIT := 1e6
 const PER_DEGREE := 1e6
 const PAGE_STATES := 256
-const FORMAT := 1
+const FORMAT := 2
 const MOST_BYTES := 1 << 24
 const COMPRESSION := FileAccess.COMPRESSION_ZSTD
 ## How the four quaternion components and a state's other numbers lie in a page.
@@ -68,12 +72,15 @@ class Event:
 ## How many cells each state has.
 var cells := 0
 ## Per state kept, from the hit on: its physics second; the sea's height up her; her
-## rotation (Attitude), nine numbers; then every cell's head in her cells' order. While
-## a timeline's pages are still coming, only those that came.
+## rotation (Attitude), nine numbers; then every cell's head in her cells' order; then
+## every cell's pocket's pressure in metres of sea over nothing, 0 where it holds none
+## (SinkStepper.pressures). While a timeline's pages are still coming, only those that
+## came.
 var times := PackedFloat64Array()
 var seas := PackedFloat64Array()
 var rotations := PackedFloat64Array()
 var heads := PackedFloat64Array()
+var pockets := PackedFloat64Array()
 ## In the order they happen.
 var events: Array[Event] = []
 var end := End.CAPPED
@@ -106,8 +113,9 @@ static func bake(stepper: SinkStepper, sea: SeaPhysics, cap: float) -> SinkTimel
 
 
 ## The timeline [param bake] made, a state dropped where its neighbours reproduce it
-## within [param level] metres and [param turn_deg] degrees — none dropped at 0.
-static func made(bake: SinkBake, level: float, turn_deg: float) -> SinkTimeline:
+## within [param level] metres, [param turn_deg] degrees and [param air] metres of a
+## pocket's pressure — none dropped at 0.
+static func made(bake: SinkBake, level: float, turn_deg: float, air: float) -> SinkTimeline:
 	var timeline := SinkTimeline.new()
 	timeline.cells = bake.cells()
 	timeline.events = bake.events()
@@ -124,7 +132,7 @@ static func made(bake: SinkBake, level: float, turn_deg: float) -> SinkTimeline:
 		event.lasts = _seconds_of(_microseconds(event.lasts))
 		event.heel_deg = roundi(event.heel_deg * PER_DEGREE) / PER_DEGREE
 	var held := _held_states(bake)
-	var kept := _kept(bake, held, timeline.events, level, turn_deg)
+	var kept := _kept(bake, held, timeline.events, level, turn_deg, air)
 	var width := timeline._width()
 	for state: int in kept:
 		timeline._held.append_array(held.slice(state * width, state * width + width))
@@ -269,6 +277,14 @@ func is_gone() -> bool:
 	return end == End.GONE
 
 
+## Cell [param cell]'s pocket's pressure [param weight] of the way from kept state
+## [param frame] to [param next]: carried between them where both hold one, else as
+## [param frame] has it — a pocket comes or goes at a state kept: the one way of reading
+## it between states.
+func pocket(frame: int, next: int, weight: float, cell: int) -> float:
+	return _pocket_between(pockets[frame * cells + cell], pockets[next * cells + cell], weight)
+
+
 ## Her rotation [param weight] of the way from kept state [param frame] to
 ## [param next]: the two quaternions blended and made a unit again — what the
 ## compaction holds every dropped state to, so the one way of reading between states.
@@ -356,7 +372,7 @@ func add_page(bytes: PackedByteArray) -> bool:
 
 
 func _width() -> int:
-	return 2 + QUATERNION + cells
+	return 2 + QUATERNION + cells * 2
 
 
 ## Fills the readable numbers from the integers, from state [param from] on.
@@ -374,6 +390,8 @@ func _decode(from: int) -> void:
 		rotations.append_array(_rotation(q))
 		for cell in cells:
 			heads.append(_held[at + 2 + QUATERNION + cell] / PER_METRE)
+		for cell in cells:
+			pockets.append(_held[at + 2 + QUATERNION + cells + cell] / PER_METRE)
 
 
 func _header_bytes(pages: Array[PackedByteArray]) -> PackedByteArray:
@@ -438,6 +456,7 @@ static func _held_states(bake: SinkBake) -> PackedInt64Array:
 	var seas := bake.seas()
 	var rotations := bake.rotations()
 	var all_heads := bake.heads()
+	var all_pockets := bake.pockets()
 	var cells_in := bake.cells()
 	var before := PackedFloat64Array([1.0, 0.0, 0.0, 0.0])
 	for state in times.size():
@@ -452,17 +471,25 @@ static func _held_states(bake: SinkBake) -> PackedInt64Array:
 			held.append(roundi(q[part] * PER_UNIT))
 		for cell in cells_in:
 			held.append(roundi(all_heads[state * cells_in + cell] * PER_METRE))
+		for cell in cells_in:
+			held.append(roundi(all_pockets[state * cells_in + cell] * PER_METRE))
 	return held
 
 
 ## The states of [param bake] to keep, in order: the first, the last, every one an event
 ## happens at, and in between as few as reproduce the rest — each dropped state's sea,
-## and each cell's water both up her and against the sea, within [param level] metres
-## and its rotation within [param turn_deg] degrees of its kept neighbours' [param held]
-## values read between them. Each stretch
+## and each cell's water both up her and against the sea, within [param level] metres,
+## its rotation within [param turn_deg] degrees, and each cell's pocket — held or not as
+## it is — within [param air] metres, of its kept neighbours' [param held] values read
+## between them. Each stretch
 ## runs as far as it holds: doubled while it does, then halved back to the last that did.
 static func _kept(
-	bake: SinkBake, held: PackedInt64Array, kept_events: Array[Event], level: float, turn_deg: float
+	bake: SinkBake,
+	held: PackedInt64Array,
+	kept_events: Array[Event],
+	level: float,
+	turn_deg: float,
+	air: float
 ) -> PackedInt32Array:
 	var count_of := bake.times().size()
 	var pinned := PackedByteArray()
@@ -472,11 +499,11 @@ static func _kept(
 	var at_event := {}
 	for event: Event in kept_events:
 		at_event[_microseconds(event.seconds)] = true
-	var width := 2 + QUATERNION + bake.cells()
+	var width := 2 + QUATERNION + bake.cells() * 2
 	for state in count_of:
 		if at_event.has(held[state * width]):
 			pinned[state] = 1
-	var fit := Fit.new(bake, held, level, turn_deg)
+	var fit := Fit.new(bake, held, level, turn_deg, air)
 	var kept := PackedInt32Array([0])
 	var from := 0
 	while from < count_of - 1:
@@ -505,25 +532,32 @@ class Fit:
 	var _times := PackedFloat64Array()
 	var _true_seas: PackedFloat64Array
 	var _true_heads: PackedFloat64Array
+	var _true_pockets: PackedFloat64Array
 	var _true_turns := PackedFloat64Array()
 	var _seas := PackedFloat64Array()
 	var _heads := PackedFloat64Array()
+	var _pockets := PackedFloat64Array()
 	var _turns := PackedFloat64Array()
 	var _cells: int
 	var _level: float
+	var _air: float
 	## The cosine of half the turn allowed: two unit quaternions closer than it in their
 	## dot product are within the turn.
 	var _close: float
 
-	func _init(bake: SinkBake, held: PackedInt64Array, level: float, turn_deg: float) -> void:
+	func _init(
+		bake: SinkBake, held: PackedInt64Array, level: float, turn_deg: float, air: float
+	) -> void:
 		_cells = bake.cells()
 		_true_seas = bake.seas()
 		_true_heads = bake.heads()
+		_true_pockets = bake.pockets()
 		_level = level
+		_air = air
 		var half := Attitude.sine_of_degrees(turn_deg * 0.25)
 		_close = 1.0 - 2.0 * half * half
 		var rotations := bake.rotations()
-		var width := 2 + QUATERNION + _cells
+		var width := 2 + QUATERNION + _cells * 2
 		for state in bake.times().size():
 			var at := state * width
 			_times.append(SinkTimeline._seconds_of(held[at]))
@@ -534,6 +568,8 @@ class Fit:
 			_turns.append_array(SinkTimeline._unit(q))
 			for cell in _cells:
 				_heads.append(held[at + 2 + QUATERNION + cell] / PER_METRE)
+			for cell in _cells:
+				_pockets.append(held[at + 2 + QUATERNION + _cells + cell] / PER_METRE)
 			var truth := SinkTimeline.quaternion_of(rotations.slice(state * 9, state * 9 + 9))
 			_true_turns.append_array(truth)
 
@@ -558,7 +594,21 @@ class Fit:
 				# Up her, and in the world: her height in the sea moves the water with her.
 				if absf(off) > _level or absf(off - sea_off) > _level:
 					return false
+				var pocket := SinkTimeline._pocket_between(
+					_pockets[from * _cells + cell], _pockets[to * _cells + cell], weight
+				)
+				var truth := _true_pockets[state * _cells + cell]
+				if (pocket > 0.0) != (truth > 0.0) or absf(pocket - truth) > _air:
+					return false
 		return true
+
+
+## A pocket's pressure [param weight] of the way from [param from] to [param to], as
+## pocket() reads it.
+static func _pocket_between(from: float, to: float, weight: float) -> float:
+	if from > 0.0 and to > 0.0:
+		return from + (to - from) * weight
+	return from
 
 
 ## Quaternion [param frame] of [param first] blended [param weight] of the way to

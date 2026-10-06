@@ -6,8 +6,9 @@ extends RefCounted
 ## WATER_SPILLING and SHIP_GONE are the physics' (SinkTimeline): a cell takes its first
 ## water or is full, water first passes an opening over a low wall or down a stair, and
 ## she is wholly under; the physics announces PLUNGE_BEGAN too, as her deck goes under,
-## SHIP_LURCHING and SHIP_LURCHED by §5b.4's lurch rule, and BOATS_USELESS as one side's
-## lifeboats stand too high to lower — a label, never a rule.
+## SHIP_LURCHING and SHIP_LURCHED by §5b.4's lurch rule, BOATS_USELESS as one side's
+## lifeboats stand too high to lower — a label, never a rule — and AIR_TRAPPED and
+## AIR_VENTED as a cell's air is trapped under its ceiling and a pocket's air let out.
 
 enum Kind {
 	SEAT_OUT,
@@ -33,6 +34,8 @@ enum Kind {
 	WATER_SPILLING,
 	SHIP_GONE,
 	BOATS_USELESS,
+	AIR_TRAPPED,
+	AIR_VENTED,
 }
 
 var kind: Kind
@@ -151,6 +154,8 @@ static func physics(
 		Kind.SHIP_LURCHING,
 		Kind.SHIP_LURCHED,
 		Kind.BOATS_USELESS,
+		Kind.AIR_TRAPPED,
+		Kind.AIR_VENTED,
 	]
 	var event := SimEvent.new(kinds[physics_kind], event_tick, -1)
 	event.cell = named

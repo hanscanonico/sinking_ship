@@ -11,6 +11,9 @@ const SNAPSHOT_VERSION := 8
 ## slip through a gap narrower than itself. Four passes settle a body wedged between
 ## two walls and another body; they stop as soon as nothing moves.
 const CONTACT_PASSES := 4
+## How far apart a swimmer looks for a ceiling along the way it swims, out to where its
+## circle reaches next (_headroom): half the thinnest lintel, so none slips between.
+const DUCK_LOOK := 0.1
 
 var config: MatchConfig
 var schedule: SinkSchedule
@@ -810,7 +813,8 @@ func _swim(player: PlayerState, pose_now: ShipPose) -> void:
 		planar = planar.move_toward(wish, _rules.ground_accel * dt)
 	var rise := player.vel.y
 	if surfaces.wet(player.pos, pose_now):
-		var toward := signf(_rest_at(player.pos, player.pos.y, pose_now) - player.pos.y)
+		var rest := _rest_at(player.pos, player.pos.y, pose_now, _heading(player))
+		var toward := signf(rest - player.pos.y)
 		rise = move_toward(rise, toward * _rules.float_speed, _rules.dunk_drag * dt)
 	else:
 		rise -= _rules.gravity * dt
@@ -818,22 +822,50 @@ func _swim(player: PlayerState, pose_now: ShipPose) -> void:
 
 
 ## Where a swimmer's feet rest at [param feet]'s x/z, coming from
-## [param feet_before]'s height: swim_depth under the sea, or on the bottom there
-## when that is higher.
-func _rest_at(feet: Vector3, feet_before: float, pose_now: ShipPose) -> float:
+## [param feet_before]'s height and swimming [param heading]: swim_depth under the
+## water it is in — its cell's, so it surfaces in a pocket (SH29) — or on the bottom
+## there when that is higher.
+func _rest_at(feet: Vector3, feet_before: float, pose_now: ShipPose, heading: Vector2) -> float:
 	var sea := pose_now.water_height(feet)
-	var rest := maxf(sea - _rules.swim_depth, _bottom(feet, feet_before, sea))
-	return minf(rest, _headroom(feet, feet_before))
+	var bottom := _bottom(feet, feet_before, sea)
+	var rest := maxf(sea - _rules.swim_depth, bottom)
+	return minf(rest, _headroom(feet, feet_before, heading, sea, bottom))
 
 
 ## The highest a swimmer's feet at [param feet]'s x/z, coming from
 ## [param feet_before]'s height, may rest: a body's height under the lowest deck over
-## its head (Surfaces.ceiling). Under a deck the sea is filling, it stays under that
-## deck as the water closes over its head; a head pressed into the deck would be
-## pushed out sideways by it — through a wall or the hull.
-func _headroom(feet: Vector3, feet_before: float) -> float:
+## its head (Surfaces.ceiling) — and, swimming [param heading], under the lowest along
+## the way to where its circle reaches next, so it ducks under a lintel or a deck's
+## edge it swims into: through a flooded doorway into the next cell, to surface there.
+## Not under one it floats over — wade_depth under its water at [param sea] — nor one
+## too low for a body over [param bottom]. Under a deck the sea is filling, it stays
+## under that deck as the water closes over its head; a head pressed into the deck — by
+## as little as its feet's height rounds up, CLEARANCE_SLACK under it — would be pushed
+## out sideways by it, through a wall or the hull.
+func _headroom(
+	feet: Vector3, feet_before: float, heading: Vector2, sea: float, bottom: float
+) -> float:
 	var from := Vector3(feet.x, feet_before, feet.z)
-	return surfaces.ceiling(from, _rules.step_height) - _rules.body_height
+	var body := _rules.body_height + Surfaces.CLEARANCE_SLACK
+	var room := surfaces.ceiling(from, _rules.step_height) - body
+	if heading == Vector2.ZERO:
+		return room
+	var reach := _rules.body_radius + _rules.swim_speed * Ticks.SECONDS_PER_TICK
+	var looks := ceili(reach / DUCK_LOOK)
+	for look in range(1, looks + 1):
+		var ahead := from + Vector3(heading.x, 0.0, heading.y) * (reach * look / looks)
+		var over := surfaces.ceiling(ahead, _rules.step_height)
+		if over > sea - _rules.wade_depth and over - body >= bottom:
+			room = minf(room, over - body)
+	return room
+
+
+## The way a swimmer presses, x/z, a unit vector — none while it presses none or is
+## staggered.
+func _heading(player: PlayerState) -> Vector2:
+	if player.is_staggered():
+		return Vector2.ZERO
+	return Vector2(player.last_move).normalized()
 
 
 ## The height of the sea's bottom under a swimmer at [param feet] that came from
@@ -866,10 +898,12 @@ func _swim_step(feet: Vector3, sea: float) -> float:
 ## The water is a countdown (SH5). A body whose feet go wade_depth into the sea, or
 ## that falls into it, swims. A swimmer comes to rest (_come_to_rest), stands up
 ## where the bottom rises within stand_depth of the sea, and climbs out where it can
-## (_start_climb); while it swims and does not climb, its cold meter drains, and it
-## is out when that is empty. Out of the sea the meter refills at cold_regen. A seat
-## frozen in a hit-stop holds its meter, and neither falls in, stands, climbs nor
-## settles until the stop ends. Returns who went out.
+## (_start_climb) — onto a dry face in a pocket as onto a deck edge; while it swims and
+## does not climb, its cold meter drains — at pocket_cold_rate of the open water's with
+## its head in trapped air (Q22) — and it is out when that is empty. Out of the sea the
+## meter refills at cold_regen. A seat frozen in a hit-stop holds its meter, and
+## neither falls in, stands, climbs nor settles until the stop ends. Returns who went
+## out.
 func _water(
 	live: Array[PlayerState],
 	pose_now: ShipPose,
@@ -902,7 +936,9 @@ func _water(
 		_start_climb(player, pose_now)
 		if player.is_climbing():
 			continue
-		player.cold = maxf(player.cold - dt, 0.0)
+		var head := player.pos + Vector3.UP * _rules.head_height()
+		var rate := _rules.pocket_cold_rate if pose_now.in_pocket(head) else 1.0
+		player.cold = maxf(player.cold - dt * rate, 0.0)
 		if player.cold == 0.0:
 			_out(player, tick)
 			exits.append(player)
@@ -944,7 +980,8 @@ func _fall_in(player: PlayerState, tick: int, events: Array[SimEvent]) -> void:
 func _come_to_rest(player: PlayerState, feet_before: float, pose_now: ShipPose) -> void:
 	var sea := pose_now.water_height(player.pos)
 	var bottom := _bottom(player.pos, feet_before, sea)
-	var rest := minf(maxf(sea - _rules.swim_depth, bottom), _headroom(player.pos, feet_before))
+	var headroom := _headroom(player.pos, feet_before, _heading(player), sea, bottom)
+	var rest := minf(maxf(sea - _rules.swim_depth, bottom), headroom)
 	var rise := player.vel.y
 	if player.pos.y < bottom:
 		player.pos.y = bottom

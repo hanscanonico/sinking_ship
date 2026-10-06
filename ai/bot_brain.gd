@@ -172,7 +172,7 @@ func _init(
 	_walk_graph = walk_graph
 	_footing = BotFooting.new(surfaces, walk_graph, rules, profile.edge_margin_m)
 	_targeting = BotTargeting.new(bot_seat, profile, rules, _footing, walk_graph)
-	_swim = BotSwim.new(walk_graph, rules, profile.eye_height_m)
+	_swim = BotSwim.new(walk_graph, rules, profile)
 	_refuges = BotRefuge.new(walk_graph, profile)
 	_pacing = BotPacing.new(profile)
 	_rng = rng

@@ -2,10 +2,14 @@
 // lands, white water boiling outward in a patch of the sea's lace as long as it pours;
 // and where a cell's water reaches the top of an opening, the air it blows out of it
 // breaking the surface in a burst of bubbles — rings that spread and pop and a froth
-// that thins out after them. Lit as the water under it is (inner_water.gdshader): by a
-// room's lamps, or the sun where it is open to the sky; never glowing.
+// that thins out after them; and over a pocket whose air leaks (SH29), small bubbles
+// popping on the water over the leak as long as it leaks, riding the sea's ripple
+// where that water is the sea. Lit as the water under it is (inner_water.gdshader): by
+// a room's lamps, or the sun where it is open to the sky; never glowing.
 shader_type spatial;
 render_mode blend_mix, depth_draw_never, cull_disabled;
+
+#include "res://scenes/art/sea_ripple.gdshaderinc"
 
 uniform vec4 foam_colour : source_color = vec4(0.97, 1.0, 0.99, 1.0);
 uniform vec4 water_colour : source_color = vec4(0.1, 0.46, 0.53, 1.0);
@@ -17,6 +21,8 @@ instance uniform float strength = 1.0;
 // boils as long as the pour does.
 instance uniform float burst = -1.0;
 instance uniform float outdoor = 0.0;
+// A pocket's leak rather than a pour's landing or a burst.
+instance uniform bool leaking = false;
 uniform float indoor_ambient = 0.35;
 uniform float lamp_bounce = 0.35;
 
@@ -53,13 +59,24 @@ float bubbles(vec2 p, float size, float t) {
 	return ring * (1.0 - life) * step(0.35, hash(id + 4.2));
 }
 
+void vertex() {
+	// On the sea, up and down with its ripple, as the sea is drawn.
+	vec3 at = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
+	VERTEX.y += sea_ripple(at.xz, TIME) * outdoor;
+}
+
 void fragment() {
 	vec2 at = UV * extent;
 	vec2 off = (UV - 0.5) * 2.0;
 	float from_middle = length(off) + (value_noise(at * 2.5 + TIME * 0.3) - 0.5) * 0.5;
 	float t = TIME;
 	float cover = 0.0;
-	if (burst < 0.0) {
+	if (leaking) {
+		// Small bubbles rising to pop over the leak, thickest over it.
+		float fizz = bubbles(at, 0.22, t * 1.3) + bubbles(at + 3.7, 0.3, t * 0.9);
+		float foam = lace(at * 4.0, t * 1.5, 0.15) * 0.5;
+		cover = min(fizz + foam, 1.0) * (1.0 - smoothstep(0.15, 0.9, from_middle)) * strength;
+	} else if (burst < 0.0) {
 		// Boiling out from where it lands, thinning toward a ragged rim.
 		float boil = lace(at * 2.6 - off * t * 0.8, t * 2.0, 0.12);
 		boil = max(boil, smoothstep(0.55, 0.8, value_noise(at * 5.0 + vec2(t * 1.3, -t))));

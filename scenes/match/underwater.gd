@@ -103,9 +103,11 @@ func show_graphics(quality: GraphicsQuality) -> void:
 
 
 ## Under the water or not, by the eye at [param eye] in the world standing
-## [param above] over the water it is in (MatchView.above_water): below 0, under it.
-func show_eye(eye: Vector3, above: float) -> void:
+## [param above] over the water it is in (MatchView.above_water): below 0, under it —
+## inside one of her cells when [param indoors], where no sunlight slants down.
+func show_eye(eye: Vector3, above: float, indoors := false) -> void:
 	var under := above < 0.0
+	_overlay.set_shader_parameter(&"indoors", 1.0 if indoors else 0.0)
 	# Placed before they start, so the motes fill in round the eye, not where it
 	# last went under.
 	_over_water = above
