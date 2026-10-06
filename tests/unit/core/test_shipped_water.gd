@@ -217,6 +217,18 @@ func test_the_sea_is_drawn_once_after_the_first_hits_draws() -> void:
 	assert_not_null(client, "a client draws her hit again")
 	if client != null:
 		assert_eq(client.damage.wave_height, drawn, "and her sea")
+	# An origin whose sea is not the one her stream draws is refused, as is one that
+	# leaves her sea out.
+	var forged := origin.duplicate()
+	forged[MustSink.Origin.WAVE_HEIGHT] = (
+		PackedFloat64Array([drawn + 0.25]).to_byte_array().to_int64_array()[0]
+	)
+	for kept: PackedInt64Array in [forged, origin.slice(0, MustSink.Origin.WAVE_HEIGHT)]:
+		choice.timeline.origin = kept
+		assert_null(
+			MustSink.replay(structure, scenario, SeedStreams.derive(SEED, "sink"), choice.timeline),
+			"a client refuses an origin of %d with another sea" % kept.size()
+		)
 
 
 func test_a_still_sea_draws_nothing() -> void:
