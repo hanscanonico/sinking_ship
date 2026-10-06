@@ -3,7 +3,8 @@ extends SceneTree
 ## snapshots only (D5). Headless; run with --fixed-fps so match time advances one
 ## tick per two frames however fast the machine draws.
 ##
-## - The ship (ShipArt), on every ship in data/ships: an upward face within
+## - The ship (ShipArt), on every ship in data/ships it dresses (ShipLayout.dressed; the
+##   greybox draws the rest): an upward face within
 ##   PLATFORM_TOLERANCE of each platform's height across its whole area; a face
 ##   within BLOCKER_TOLERANCE of every blocker's sides, its top, and a lintel's
 ##   underside; and over every ramp a stair whose top stands within half a riser
@@ -132,7 +133,9 @@ func _initialize() -> void:
 	_check_sea_reach()
 	for file: String in DirAccess.get_files_at(SHIPS_DIR):
 		if file.ends_with(".tres"):
-			_check_ship(file, load(SHIPS_DIR + file))
+			var layout: ShipLayout = load(SHIPS_DIR + file)
+			if layout.dressed:
+				_check_ship(file, layout)
 	await _check_seats()
 	await _check_collapse()
 	var effects: Array = await SinkingFxCheck.check(root, SinkingFxCheck.SEED, SEATS)

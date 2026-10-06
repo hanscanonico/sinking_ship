@@ -16,9 +16,10 @@ const DEFAULT_MATCH := "res://data/match/default.tres"
 const DEFAULT_SEED := 1701
 
 
-## The default match; [param seats] overrides its seat count when positive.
-static func default_config(seed_value: int, seats: int = 0) -> MatchConfig:
-	return MatchConfig.from_rules(load(DEFAULT_MATCH), seed_value, seats)
+## The default match; [param seats] overrides its seat count when positive, and
+## [param ship_name] its ship when given (MatchConfig.from_rules).
+static func default_config(seed_value: int, seats: int = 0, ship_name := &"") -> MatchConfig:
+	return MatchConfig.from_rules(load(DEFAULT_MATCH), seed_value, seats, ship_name)
 
 
 ## [param config] with every seat a bot of its tier.
@@ -45,12 +46,15 @@ static func transcript(host: MatchHost, max_ticks: int) -> String:
 
 func _initialize() -> void:
 	var args := MatchArgs.parse(OS.get_cmdline_user_args())
+	if not args.problems().is_empty():
+		printerr("\n".join(args.problems()))
+		quit(1)
+		return
 	var config := default_config(
-		args.seed_value if args.seed_value >= 0 else DEFAULT_SEED, args.seats
+		args.seed_value if args.seed_value >= 0 else DEFAULT_SEED, args.seats, args.ship_name
 	)
 	config.scenario = args.struck(config.scenario)
 	var problems := config.problems()
-	problems.append_array(args.problems())
 	var profile := BotProfile.for_tier(config.bot_tier)
 	if profile == null:
 		problems.append("bot: no profile for the tier %s" % config.bot_tier)

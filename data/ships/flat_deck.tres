@@ -34,3 +34,5 @@ freeboard = 3.0
 platforms = Array[ExtResource("1_4q0u8")]([SubResource("Resource_ffieq")])
 railings = Array[ExtResource("3_r4il5")]([SubResource("Resource_rp1af"), SubResource("Resource_rp2fw"), SubResource("Resource_rs1af"), SubResource("Resource_rs2fw")])
 spawns = Array[Vector3]([Vector3(-10.5, 0, -2), Vector3(-3.5, 0, -2), Vector3(3.5, 0, -2), Vector3(10.5, 0, -2), Vector3(-10.5, 0, 2), Vector3(-3.5, 0, 2), Vector3(3.5, 0, 2), Vector3(10.5, 0, 2)])
+min_seats = 1
+max_seats = 8

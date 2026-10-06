@@ -180,7 +180,7 @@ func _refused(reason: int) -> void:
 ## Takes up the match BEGIN announces, when it is one this client's data can play.
 func _begin(message: RoomCodec.Message) -> void:
 	var seats := message.seats
-	if seats < _match_rules.min_seats or seats > _match_rules.max_seats:
+	if seats < _match_rules.ship.min_seats or seats > _match_rules.ship.max_seats:
 		return
 	_config = MatchConfig.from_rules(_match_rules, message.value, seats)
 	_seat = message.seat

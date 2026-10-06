@@ -53,6 +53,8 @@ func _walk(sim: MatchSim, graph: WalkGraph, goal: int, seconds: float) -> Array[
 func _two_way_layout() -> ShipLayout:
 	var layout := ShipLayout.new()
 	layout.freeboard = 1.0
+	layout.min_seats = 1
+	layout.max_seats = 1
 	var platforms: Array[ShipPlatform] = []
 	for row: Array in [
 		[&"ground", Rect2(-16.0, -6.0, 32.0, 12.0), 0.0],

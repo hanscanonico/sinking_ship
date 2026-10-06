@@ -106,6 +106,13 @@ theme_override_constants/h_separation = 18
 theme_override_constants/v_separation = 10
 columns = 2
 
+[node name="ShipLabel" type="Label" parent="MainMenu/Panel/Box/Choices"]
+text = "Ship"
+
+[node name="Ship" type="OptionButton" parent="MainMenu/Panel/Box/Choices"]
+unique_name_in_owner = true
+size_flags_horizontal = 3
+
 [node name="SeatsLabel" type="Label" parent="MainMenu/Panel/Box/Choices"]
 text = "Seats"
 

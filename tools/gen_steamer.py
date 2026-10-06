@@ -313,6 +313,8 @@ spawns = [
     (1.5, 0, -1.5), (-2.5, 0, 2.2),
     (-17.5, 1.2, -2.5), (-5, 0, -4.3), (6.5, 0, 4.2),
 ]
+# The seats a match on her takes: the menu's 4–8 since SH8, hers from SH30.
+SEATS = (4, 8)
 
 def arr(script, ids):
     return "Array[ExtResource(\"%s\")]([%s])" % (script, ", ".join('SubResource("%s")' % i for i in ids))
@@ -1229,6 +1231,7 @@ res = ["[resource]", 'script = ExtResource("5_layout")', "freeboard = " + num(FR
        "railings = " + arr("4_rail", railings),
        "ladders = " + arr("7_ladder", ladders),
        "spawns = Array[Vector3]([%s])" % ", ".join("Vector3(%s, %s, %s)" % tuple(num(c) for c in s) for s in spawns),
+       "min_seats = %d" % SEATS[0], "max_seats = %d" % SEATS[1],
        "props = " + arr("8_prop", props),
        "rooms = " + arr("6_room", rooms),
        'structure = SubResource("Structure")']

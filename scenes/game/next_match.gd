@@ -4,24 +4,36 @@ extends RefCounted
 ## by --hit as every match the game plays is, so its sinking can be baked while the menu
 ## or the results show (R20). A Play with a blank seed takes it, and the sinking made of
 ## it so far; whatever happens to that sinking, the match after draws a seed of its own,
-## so a blank seed is never played twice.
+## so a blank seed is never played twice. It is drawn on the ship the menu picks.
 
 var _rules: MatchRules
 var _args: MatchArgs
 var _seeds: RandomNumberGenerator
 var _config: MatchConfig
+## The ship of the Fleet the menu picks, by name: --ship's, else the data's.
+var _ship: StringName
 
 
 func _init(match_rules: MatchRules, args: MatchArgs, seeds: RandomNumberGenerator) -> void:
 	_rules = match_rules
 	_args = args
 	_seeds = seeds
+	_ship = args.ship_name if not args.ship_name.is_empty() else Fleet.name_of(match_rules.ship)
+
+
+## Draws the next match on [param ship_name] of the Fleet: one drawn ahead on another
+## ship is dropped, its sinking with it.
+func aim(ship_name: StringName) -> void:
+	if ship_name == _ship:
+		return
+	_ship = ship_name
+	_config = null
 
 
 ## The next blank-seed match, its seed drawn now if it was not yet.
 func config() -> MatchConfig:
 	if _config == null:
-		_config = MatchConfig.from_rules(_rules, _seeds.randi())
+		_config = MatchConfig.from_rules(_rules, _seeds.randi(), 0, _ship)
 		_config.scenario = _args.struck(_config.scenario)
 	return _config
 
@@ -34,7 +46,7 @@ func chosen(seats: int, tier: StringName, seed_text: String) -> MatchConfig:
 	var next: MatchConfig = config() if typed.is_empty() else null
 	if next != null:
 		typed = str(next.match_seed)
-	var made := MatchConfig.from_menu(_rules, seats, tier, typed, _seeds)
+	var made := MatchConfig.from_menu(_rules, seats, tier, typed, _seeds, _ship)
 	if made != null:
 		made.scenario = next.scenario if next != null else _args.struck(made.scenario)
 	return made

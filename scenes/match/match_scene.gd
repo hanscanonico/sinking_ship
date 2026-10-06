@@ -182,7 +182,8 @@ func _unhandled_input(event: InputEvent) -> void:
 ## `make match` plays for the seed. The view is [param eye_seat]'s eyes, or the
 ## observer camera when [param observer] says so — which draws nothing of the ship at
 ## or above the ship-local height [param observer_cut] and frames the whole ship once
-## it is finite. [param greybox] draws the greybox in place of the dressed ship.
+## it is finite. [param greybox] draws the greybox in place of the dressed ship, as a
+## ship the dressed art does not draw always is (ShipLayout.dressed).
 ## [param jump_to], a tool's, starts the match at that tick instead, every seat on what
 ## is dry then (MatchJump); -1 starts it at its first.
 func start(
@@ -295,8 +296,8 @@ func _begin(
 	_names = names
 	_greybox.cut_above = observer_cut if observer else INF
 	_ship_art.cut_above = _greybox.cut_above
-	_greybox.visible = greybox
-	_ship_art.visible = not greybox
+	_greybox.visible = greybox or not config.ship.dressed
+	_ship_art.visible = not _greybox.visible
 	_view.setup(_driver, sim, _local_seat, net_rules.correction_time)
 	_view.look_out_of(-1 if observer else _eye_seat)
 	_hud.setup(sim)

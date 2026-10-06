@@ -11,6 +11,7 @@ extends SceneTree
 ## the share of each sinking MATCHES bots-only matches saw (R33, Q20), how long each
 ## cell's air pockets last (SH29), and what the bakes cost on this machine, at its load
 ## average, against §5b.4's budgets, with the timelines' sizes. Progress goes to stderr.
+## Another ship's census goes to docs/census_SHIP.md, beside the default ship's.
 ##
 ##   godot --headless --path . -s res://tools/census.gd -- --ship=steamer --seeds=200
 
@@ -19,6 +20,7 @@ const DEFAULT_SHIP := "steamer"
 const DEFAULT_SEEDS := 200
 const DEFAULT_MATCHES := 20
 const OUT := "res://docs/census.md"
+const SHIP_OUT := "res://docs/census_%s.md"
 ## How long a measuring match may run before it is stopped, as `make arena` stops one.
 const MATCH_STOP := 900.0
 ## §5b.4's bands per ship, raw census, in percent (est.): [low, high]; and its budgets.
@@ -31,12 +33,21 @@ const BANDS := {
 		"capsizes (rolled past 90°)": [5, 20],
 		"gone within 20 min of physics": [10, 30],
 	},
+	"trawler":
+	{
+		"survives": [15, 35],
+		"founders upright, by the head or the stern": [15, 35],
+		"heavy list (≥ 15° for ≥ 5 min afloat)": [10, 30],
+		"capsizes (rolled past 90°)": [25, 50],
+		"gone within 20 min of physics": [30, 60],
+	},
 }
 const BAKE_BUDGET := 2.4
 const MATCH_BAKES_BUDGET := 5.0
 const SIZE_BUDGET := 200000
 const L := OutcomeClassifier.Outcome
 
+var _ship: StringName
 var _structure: ShipStructure
 var _scenario: SinkScenario
 
@@ -54,25 +65,24 @@ func _initialize() -> void:
 				seeds = value.to_int()
 			"--matches":
 				matches = value.to_int()
-	var layout_path := "res://data/ships/%s.tres" % ship
-	var scenario_path := "res://data/sinking/%s_open_sea.tres" % ship
-	if not ResourceLoader.exists(layout_path) or not ResourceLoader.exists(scenario_path):
-		printerr("census: no %s with %s" % [layout_path, scenario_path])
+	var layout := Fleet.layout(ship)
+	var scenario := Fleet.scenario(ship)
+	if layout == null:
+		printerr("census: no ship called %s; the fleet has %s" % [ship, ", ".join(Fleet.names())])
 		quit(1)
 		return
-	var layout: ShipLayout = load(layout_path)
-	var scenario: SinkScenario = load(scenario_path)
 	if layout.structure == null or scenario.hit == null or seeds < 1:
 		printerr("census: %s needs a structure, a hit's bands and SEEDS of 1 or more" % ship)
 		quit(1)
 		return
+	_ship = StringName(ship)
 	_structure = layout.structure
 	_scenario = scenario
 	var raw := _raw(layout.structure, scenario, seeds)
 	var chosen := _matches(layout.structure, scenario, seeds)
 	var seen := _seen(chosen, mini(matches, seeds))
 	var text := _written(ship, seeds, raw, chosen, seen)
-	var file := FileAccess.open(OUT, FileAccess.WRITE)
+	var file := FileAccess.open(OUT if ship == DEFAULT_SHIP else SHIP_OUT % ship, FileAccess.WRITE)
 	file.store_string(text)
 	file.close()
 	printraw(text)
@@ -128,7 +138,7 @@ func _matches(structure: ShipStructure, scenario: SinkScenario, seeds: int) -> A
 func _seen(chosen: Array[Dictionary], count: int) -> PackedFloat64Array:
 	var shares := PackedFloat64Array()
 	for index in count:
-		var config := RunMatch.default_config(chosen[index]["seed"])
+		var config := RunMatch.default_config(chosen[index]["seed"], 0, _ship)
 		var host := RunMatch.served(config)
 		var stop := Ticks.from_seconds(MATCH_STOP)
 		while not host.is_over() and host.tick() < stop:

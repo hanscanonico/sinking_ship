@@ -1,18 +1,22 @@
 class_name MainMenu
 extends CanvasLayer
-## Play vs bots: the seat counts the match data offers, every bot tier there is a
-## profile for, and a seed — blank for a random one — handed on as they stand.
+## Play vs bots: every ship of the Fleet, the seat counts the picked one takes, every
+## bot tier there is a profile for, and a seed — blank for a random one — handed on as
+## they stand.
 ## Game turns them into a match through MatchConfig.from_menu (D13). Beside it, Play
 ## online opens the Online screen (SH12). It stands over the ship at dusk
 ## (MenuBackdrop) under the wordmark in her livery: cream on a boot-top red rule
 ## between brass lines — and the online screens stand over the same, its own panel put
 ## away (show_behind).
 
-signal play_requested(seats: int, tier: StringName, seed_text: String)
+signal play_requested(ship: StringName, seats: int, tier: StringName, seed_text: String)
+## The picker has moved to [param ship], by name.
+signal ship_picked(ship: StringName)
 signal online_requested
 signal settings_requested
 signal quit_requested
 
+@onready var _ship: OptionButton = %Ship
 @onready var _seats: OptionButton = %Seats
 @onready var _tier: OptionButton = %Tier
 @onready var _seed: LineEdit = %Seed
@@ -31,6 +35,7 @@ func _ready() -> void:
 	_backdrop.frame_beside(_panel)
 	visibility_changed.connect(func() -> void: _backdrop.run(visible))
 	_play.pressed.connect(_on_play)
+	_ship.item_selected.connect(_on_ship_picked)
 	_seed.text_submitted.connect(func(_text: String) -> void: _on_play())
 	_seed.gui_input.connect(leave_field.bind(_seed))
 	%Online.pressed.connect(online_requested.emit)
@@ -38,16 +43,20 @@ func _ready() -> void:
 	%QuitGame.pressed.connect(quit_requested.emit)
 
 
-## Offers [param match_rules]' seat counts and the tiers under data/bots/, with
-## [param seats], [param tier] and [param seed_text] chosen where offered, over
+## Offers the Fleet's ships, the seat counts the picked one takes and the tiers under
+## data/bots/, with [param ship], [param seats], [param tier] and [param seed_text]
+## chosen where offered — [param match_rules]' ship and seat count where not —, over
 ## [param match_rules]' ship.
-func setup(match_rules: MatchRules, seats: int, tier: StringName, seed_text: String) -> void:
+func setup(
+	match_rules: MatchRules, ship: StringName, seats: int, tier: StringName, seed_text: String
+) -> void:
 	_backdrop.show_ship(match_rules)
-	_seats.clear()
-	for count in range(match_rules.min_seats, match_rules.max_seats + 1):
-		_seats.add_item(str(count), count)
-	var seat_index := _seats.get_item_index(seats)
-	_seats.select(seat_index if seat_index != -1 else _seats.get_item_index(match_rules.seats))
+	_ship.clear()
+	for offered: String in Fleet.names():
+		_ship.add_item(offered)
+		if offered == ship or (ship.is_empty() and offered == Fleet.name_of(match_rules.ship)):
+			_ship.select(_ship.item_count - 1)
+	_offer_seats(seats, match_rules.seats)
 	_tier.clear()
 	for offered: String in BotProfile.tiers():
 		_tier.add_item(offered)
@@ -104,6 +113,32 @@ static func leave_field(event: InputEvent, field: LineEdit) -> void:
 	field.accept_event()
 
 
+## The ship picked, by name; empty when none is.
+func picked_ship() -> StringName:
+	return StringName(_ship.get_item_text(_ship.selected)) if _ship.selected != -1 else &""
+
+
+## The seat counts the picked ship takes, [param seats] chosen where she takes it, else
+## [param otherwise], else her fewest.
+func _offer_seats(seats: int, otherwise: int) -> void:
+	_seats.clear()
+	var layout := Fleet.layout(picked_ship())
+	if layout == null:
+		return
+	for count in range(layout.min_seats, layout.max_seats + 1):
+		_seats.add_item(str(count), count)
+	var seat_index := _seats.get_item_index(seats)
+	if seat_index == -1:
+		seat_index = maxi(_seats.get_item_index(otherwise), 0)
+	_seats.select(seat_index)
+
+
+func _on_ship_picked(_index: int) -> void:
+	var seats := _seats.get_selected_id()
+	_offer_seats(seats, seats)
+	ship_picked.emit(picked_ship())
+
+
 func _on_play() -> void:
 	var tier := StringName(_tier.get_item_text(_tier.selected)) if _tier.selected != -1 else &""
-	play_requested.emit(_seats.get_selected_id(), tier, _seed.text)
+	play_requested.emit(picked_ship(), _seats.get_selected_id(), tier, _seed.text)

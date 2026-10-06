@@ -70,6 +70,17 @@ func _in_hull(structure: ShipStructure, point: Vector3) -> bool:
 	return false
 
 
+## The floor of [param layout]'s cell [param index] under [param under]: the highest
+## of its rooms' there, or its box's bottom.
+func _floor_of(layout: ShipLayout, index: int, under: float) -> float:
+	var cell := layout.structure.cells[index]
+	var highest := float(cell.low.y)
+	for room: ShipRoom in layout.rooms:
+		if room.name in cell.rooms and room.floor_height < under:
+			highest = maxf(highest, room.floor_height)
+	return highest
+
+
 func test_the_steamer_has_a_structure() -> void:
 	assert_true(_structured().has(SimFixtures.STEAMER), "the steamer has a structure")
 
@@ -234,10 +245,13 @@ func test_every_wall_top_is_at_or_under_the_deck_above() -> void:
 		var structure := layout.structure
 		for wall: ShipWall in structure.walls:
 			# The deck above: the lowest one over the wall higher than every floor of
-			# the cells it parts.
+			# the cells it parts — a cell's own, or the highest of its rooms' under the
+			# wall's top where a floor stands inside it (the trawler's compartments,
+			# keel to deck).
 			var floors := -INF
 			for cell_name: StringName in wall.cells:
-				floors = maxf(floors, structure.cells[structure.cell_named(cell_name)].low.y)
+				var cell := structure.cell_named(cell_name)
+				floors = maxf(floors, _floor_of(layout, cell, wall.top))
 			var steps := maxi(1, ceili((wall.span.y - wall.span.x) / ALONG_WALL))
 			for step in steps + 1:
 				var along := lerpf(wall.span.x + TOUCH, wall.span.y - TOUCH, float(step) / steps)
