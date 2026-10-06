@@ -9,8 +9,8 @@ const TRAWLER := "res://data/ships/trawler.tres"
 const TRAWLER_SINKING := "res://data/sinking/trawler_open_sea.tres"
 const LIGHT := "res://tests/fixtures/sinking/hits/trawler_light.tres"
 const MARGINS: Array[float] = [0.9, 1.0, 1.1]
-## open_hatch: she capsizes within this many seconds of her fish hatch going under.
-const CAPSIZED_WITHIN := 300.0
+## open_hatch: she goes at least this many seconds sooner than with her hatch shut.
+const SOONER_BY := 60.0
 ## everything_shut: she survives the hit, or goes no sooner than this after it.
 const SHUT_HOLDS := 1800.0
 
@@ -72,35 +72,40 @@ func _under(timeline: SinkTimeline, opening: ShipOpening) -> float:
 	return INF
 
 
-## The first moment [param timeline] has her rolled past her beam ends, as
-## OutcomeClassifier reads a capsize; INF for never.
-func _capsized(timeline: SinkTimeline) -> float:
-	for frame in timeline.count():
-		var leans := OutcomeClassifier.leans_at(timeline, frame)
-		if (
-			absf(leans[0]) < OutcomeClassifier.ON_END_DEG
-			and absf(leans[1]) > OutcomeClassifier.CAPSIZED_DEG
-		):
-			return timeline.times[frame]
-	return INF
+## [param damage] with [param opening_name] shut as her data has it, not left open.
+func _with_shut(damage: HitDamage, opening_name: StringName) -> HitDamage:
+	var shut := HitDamage.new()
+	shut.jammed = damage.jammed
+	shut.left_open = damage.left_open.duplicate()
+	shut.left_open.erase(opening_name)
+	shut.openings = damage.openings
+	return shut
 
 
-func test_open_hatch_capsizes_within_5_minutes_of_the_hatch_going_under() -> void:
-	# Her fish hatch left open: once the sea has the well and the hatch under it, the hold
-	# under it fills from the deck, its loose water and the well's roll her over (§5b.4).
+func test_open_hatch_takes_her_down_by_the_head_and_sooner() -> void:
+	# Her fish hatch left open: once the sea stands over it, the hold under it fills from
+	# the well, and its weight forward takes her down by the head, sooner than the same
+	# hit with only the hatch shut, which lays her on her side. The well's water stands at
+	# the sea's level — no waves ship water onto her deck (§5b.1) — so the hatch lets the
+	# sea in only once the sea has reached it, and she founders rather than capsizes.
 	var choice := _match_hit(&"open_hatch")
 	assert_has(choice.damage.left_open, &"fish_hatch", "her fish hatch left open")
+	var battened := _with_shut(choice.damage, &"fish_hatch")
 	var hatch := _opening(&"fish_hatch")
 	for scale: float in MARGINS:
-		var timeline := _bake(choice.damage, scale)
+		var opened := _bake(choice.damage, scale)
+		var shut := _bake(battened, scale)
 		var what := "× %s" % scale
-		assert_has(OutcomeClassifier.labels(timeline), OutcomeClassifier.Outcome.CAPSIZED, what)
-		var under := _under(timeline, hatch)
-		var capsized := _capsized(timeline)
-		assert_lt(under, INF, what + ": her hatch goes under")
-		assert_between(
-			capsized - under, 0.0, CAPSIZED_WITHIN, what + ": she capsizes within 5 min of it"
+		var labels := OutcomeClassifier.labels(opened)
+		assert_has(labels, OutcomeClassifier.Outcome.BY_THE_HEAD, what + ": open, by the head")
+		assert_does_not_have(labels, OutcomeClassifier.Outcome.CAPSIZED, what)
+		assert_lt(_under(opened, hatch), opened.gone_at, what + ": her hatch goes under first")
+		assert_has(
+			OutcomeClassifier.labels(shut),
+			OutcomeClassifier.Outcome.ONTO_HER_SIDE,
+			what + ": shut, onto her side"
 		)
+		assert_lt(opened.gone_at + SOONER_BY, shut.gone_at, what + ": open, gone sooner than shut")
 
 
 func test_everything_shut_she_survives_or_goes_slowly() -> void:

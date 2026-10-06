@@ -8,7 +8,7 @@ seeds = Dictionary[StringName, int]({
 &"bow_down_slow": 18,
 &"fwd_pocket": 36,
 &"heavy_list": 51,
-&"open_hatch": 45,
+&"open_hatch": 100,
 &"stern_down": 25,
 &"two_compartments_and_open_ports": 29
 })

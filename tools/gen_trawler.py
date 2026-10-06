@@ -671,10 +671,10 @@ for tag, side in [("p", -1), ("s", 1)]:
             (PORTHOLE_RADIUS * 2, PORTHOLE_RADIUS * 2, 0), area=round(math.pi * PORTHOLE_RADIUS ** 2, 4),
             starts="SHUT", flip_chance=0.25, collapse_head=15.0)
 
-# Mass (est.): where her weight sits — about 385 t, her GM about 0.5 m, the low end of
-# the research's 0.5–1.0 m for a 30 m trawler (the plan's first guess 0.6). Her ballast
-# is what the generator settles: as heavy as she must be to float at her waterline, and
-# where along and across her it puts her weight over her lift, so she floats there level.
+# Mass (est.): where her weight sits — about 385 t, her GM about 0.6 m, the plan's, within
+# the research's 0.5–1.0 m for a 30 m trawler. Her ballast is what the generator settles:
+# as heavy as she must be to float at her waterline, and where along and across her it
+# puts her weight over her lift, so she floats there level.
 with open("data/physics/sea.tres") as sea_file:
     SEA_DENSITY = float(re.search(r"^sea_density = (\S+)$", sea_file.read(), re.M).group(1))
 displaced = along = across = 0.0
@@ -686,7 +686,7 @@ for x, length, outline in sections:
         along += area * length * x
         across += area * length * z
 MASS = [  # (name, kg, centre, (from x, to x))
-    ("hull steel", 180e3, (-0.5, -0.45, 0.0), (-15, 15)),
+    ("hull steel", 180e3, (-0.5, -0.65, 0.0), (-15, 15)),
     ("engine and gearbox", 35e3, (-8.9, -1.6, 0.0), (-10, -7.8)),
     ("fuel", 25e3, (-6.5, -3.4, 0.0), (-10, -3)),
     ("deckhouse and wheelhouse", 25e3, (-6.5, 1.8, 0.0), (-10, -3)),
