@@ -79,6 +79,8 @@ A pocket is a cell's air trapped under its ceiling after the hit (SinkAir): from
 
 ## What it costs (this machine, Apple M1)
 
+Load average when measured: 4.5–8 (other agents running). The cost lines depend on the machine's load; the plan's R20 budgets are judged on a quiet machine.
+
 | Budget (§5b.4, est.) | Measured | Against it |
 |---|---|---|
 | one bake: p95 under 2.4 s | p50 1.34 · p95 4.55 · most 6.05 s | over |

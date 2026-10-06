@@ -9,9 +9,8 @@ extends SceneTree
 ## fallback's rungs with the holes they make. Each label's share (OutcomeClassifier)
 ## stands beside its band, which nothing gates on yet (R24); then the hit → gone times,
 ## the share of each sinking MATCHES bots-only matches saw (R33, Q20), how long each
-## cell's air pockets last (SH29), and what the bakes
-## cost on this machine against §5b.4's budgets, with the timelines' sizes. Progress
-## goes to stderr.
+## cell's air pockets last (SH29), and what the bakes cost on this machine, at its load
+## average, against §5b.4's budgets, with the timelines' sizes. Progress goes to stderr.
 ##
 ##   godot --headless --path . -s res://tools/census.gd -- --ship=steamer --seeds=200
 
@@ -574,6 +573,16 @@ func _cost_section(raw: Array[Dictionary], chosen: Array[Dictionary]) -> PackedS
 	var lines := PackedStringArray()
 	lines.append("## What it costs (this machine, %s)" % OS.get_processor_name())
 	lines.append("")
+	lines.append(
+		(
+			(
+				"Load average when measured: %s. The cost lines depend on the machine's load;"
+				+ " the plan's R20 budgets are judged on a quiet machine."
+			)
+			% _load_average()
+		)
+	)
+	lines.append("")
 	lines.append("| Budget (§5b.4, est.) | Measured | Against it |")
 	lines.append("|---|---|---|")
 	(
@@ -644,6 +653,22 @@ func _cost_section(raw: Array[Dictionary], chosen: Array[Dictionary]) -> PackedS
 		)
 	)
 	return lines
+
+
+## The OS's 1, 5 and 15 minute load averages at the end of the run, "unknown" where it
+## keeps none we can read.
+static func _load_average() -> String:
+	var text := ""
+	if FileAccess.file_exists("/proc/loadavg"):
+		text = FileAccess.get_file_as_string("/proc/loadavg")
+	else:
+		var output: Array = []
+		if OS.execute("sysctl", ["-n", "vm.loadavg"], output) == 0 and not output.is_empty():
+			text = str(output[0]).replace("{", "").replace("}", "")
+	var fields := text.strip_edges().split(" ", false)
+	if fields.size() < 3:
+		return "unknown"
+	return "%s · %s · %s (1 · 5 · 15 min)" % [fields[0], fields[1], fields[2]]
 
 
 static func _mean(values: PackedFloat64Array) -> float:
