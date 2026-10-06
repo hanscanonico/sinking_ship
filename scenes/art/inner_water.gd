@@ -9,7 +9,10 @@ extends Node3D
 ## boiling into froth where it lands, and air blown out of an opening as the water
 ## reaches its top, bursting the surface in bubbles there (froth.gdshader) — and, from
 ## SH29, a pocket's air: small bubbles rising to the water over a pocket where it leaks,
-## and a burst at the opening a pocket's air goes out by as it goes free.
+## a burst at the opening a pocket's air goes out by as it goes free, and the water under
+## a pocket glowing faintly with the sea's light coming up through it — lighting the
+## pocket's ceiling round an eye inside it, so a swimmer surfacing there sees air under
+## a ceiling over water rather than a black room.
 ## Presentation only (D5): it reads the poses it is handed and the openings water can
 ## pass, and moves no water. It lives in ship space, under the drawn ship.
 
@@ -48,6 +51,14 @@ const LEAK := 1.2
 const LEAKS := 6
 const VENTS := 0.1
 const VENT_BURST := 2.4
+## The water under a pocket: how much of the sea's shallow colour it gives off, and the
+## light it casts up into the pocket round an eye there — its colour, energy, and reach
+## as a share of the cell's longer side, within POCKET_REACH.
+const POCKET_GLOW := 0.3
+const POCKET_LIGHT := Color(0.42, 0.78, 0.82)
+const POCKET_ENERGY := 0.65
+const POCKET_SPAN := 0.8
+const POCKET_REACH := Vector2(3.0, 8.0)
 ## The froth where a pour lands: how far out along its fall it spreads, at the least
 ## and at a full flood, and how much wider than the pour; and how far over the water it
 ## lies, so the water's own surface never hides it.
@@ -105,6 +116,10 @@ var _next_burst := 0
 ## drawn, -1 for none.
 var _leaks: Array[MeshInstance3D] = []
 var _airs := PackedFloat64Array()
+## Per cell, the glow its water was last given; and the light cast up into the pocket
+## an eye is in.
+var _glows := PackedFloat32Array()
+var _pocket_light: OmniLight3D
 
 
 ## The boxes of [param structure]'s cells whose water is drawn — every cell wholly
@@ -209,6 +224,18 @@ func setup(
 		_leaks.append(leak)
 	_airs.resize(structure.cells.size())
 	_airs.fill(-1.0)
+	_glows.resize(structure.cells.size())
+	_glows.fill(0.0)
+	_pocket_light = OmniLight3D.new()
+	_pocket_light.light_color = POCKET_LIGHT
+	_pocket_light.light_energy = POCKET_ENERGY
+	_pocket_light.light_specular = 0.3
+	_pocket_light.omni_attenuation = 1.0
+	_pocket_light.shadow_enabled = false
+	# Inside her only, as a room's lamps are (ShipLamp): never on her outdoor faces.
+	_pocket_light.light_cull_mask &= ~(1 << (ShipMesh.OUTDOOR_LAYER - 1))
+	_pocket_light.visible = false
+	add_child(_pocket_light)
 	set_process(false)
 
 
@@ -522,10 +549,19 @@ func _blow(index: int, levels: PackedFloat64Array, top: float, opening: ShipOpen
 ## a burst at the opening of each that has just gone free with air to blow out.
 func _show_pockets(pose: ShipPose, levels: PackedFloat64Array) -> void:
 	var leak := 0
+	var lit := -1
+	var camera := get_viewport().get_camera_3d() if is_inside_tree() else null
+	var eye_cell := pose.cell_at(to_local(camera.global_position)) if camera != null else -1
 	for cell in _airs.size():
 		var low := _structure.cells[cell].low
 		var box := AABB(low, _structure.cells[cell].high - low)
 		var held := cell < pose.pockets.size() and pose.pockets[cell] > 0.0
+		var glow := POCKET_GLOW if held else 0.0
+		if _surfaces[cell] != null and _glows[cell] != glow:
+			_surfaces[cell].set_instance_shader_parameter(&"pocket_glow", glow)
+			_glows[cell] = glow
+		if held and cell == eye_cell:
+			lit = cell
 		if not held:
 			if _airs[cell] >= VENTS:
 				_vent(cell, levels, pose)
@@ -544,6 +580,15 @@ func _show_pockets(pose: ShipPose, levels: PackedFloat64Array) -> void:
 		leak += 1
 	for unused in range(leak, LEAKS):
 		_leaks[unused].visible = false
+	_pocket_light.visible = lit != -1
+	if lit != -1:
+		var low := _structure.cells[lit].low
+		var box := AABB(low, _structure.cells[lit].high - low)
+		var middle := box.get_center()
+		middle.y = box.position.y
+		_pocket_light.position = _at_height(middle, levels[lit] + FROTH_LIFT)
+		var reach := maxf(box.size.x, box.size.z) * POCKET_SPAN
+		_pocket_light.omni_range = clampf(reach, POCKET_REACH.x, POCKET_REACH.y)
 
 
 ## Bursts the air of [param cell]'s pocket out as it goes free, its cells' water at world
