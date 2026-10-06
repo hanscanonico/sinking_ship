@@ -51,9 +51,16 @@ func _ready() -> void:
 
 
 ## Shows [param stats] once they say the match has ended. [param names] labels
-## each seat; [param match_seed] is printed so the match can be typed back in.
+## each seat; [param match_seed] is printed so the match can be typed back in. A draw
+## on [param unsupported_tick] — the tick she leans past what a match follows
+## (SinkSchedule.unsupported_tick, §5b.3's interim rule) — is hers, not the sea's:
+## everyone left went out together standing dry.
 func show_results(
-	stats: MatchStats, local_seat: int, names: PackedStringArray, match_seed: int
+	stats: MatchStats,
+	local_seat: int,
+	names: PackedStringArray,
+	match_seed: int,
+	unsupported_tick: int = -1
 ) -> void:
 	if visible or not stats.ended:
 		return
@@ -61,7 +68,11 @@ func show_results(
 	if stats.winner == local_seat:
 		_title.text = "Last one dry!"
 	elif stats.winner == -1 and mine.place == 1:
-		_title.text = "The sea wins — nobody stays dry"
+		_title.text = (
+			"She lies too far over — the match ends here"
+			if stats.ended_tick == unsupported_tick
+			else "The sea wins — nobody stays dry"
+		)
 	else:
 		_title.text = "Overboard — %s of %d" % [ordinal(mine.place), stats.seats.size()]
 	for child in _table.get_children():

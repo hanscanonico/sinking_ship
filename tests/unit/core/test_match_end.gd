@@ -88,7 +88,8 @@ func test_the_match_settles_once_she_leans_past_what_it_follows() -> void:
 		sim.state.seats[seat].cold = 1.0 + seat
 	var outs: Array[SimEvent] = []
 	var ended: SimEvent = null
-	for event: SimEvent in SimFixtures.step(sim, {}, 2):
+	var events := SimFixtures.step(sim, {}, 2)
+	for event: SimEvent in events:
 		if event.kind == SimEvent.Kind.SEAT_OUT:
 			outs.append(event)
 		elif event.kind == SimEvent.Kind.MATCH_ENDED:
@@ -98,3 +99,16 @@ func test_the_match_settles_once_she_leans_past_what_it_follows() -> void:
 		assert_eq(event.tick, over, "on the tick she passes it")
 		assert_eq(event.place, 3 - event.seat, "the warmest placed first")
 	assert_not_null(ended, "and the match is over")
+	# The transcript says why, just before its verdict.
+	var told := MatchTranscript.new()
+	told.add(events)
+	var bots := BotInputSource.fill(config, BotProfile.for_tier(config.bot_tier))
+	told.finish(MatchRunner.new(sim, bots))
+	var lines := told.text().split("\n")
+	var verdict := -1
+	for index in lines.size():
+		if lines[index].begins_with("draw at "):
+			verdict = index
+	assert_gt(verdict, 0, "a draw")
+	assert_string_starts_with(lines[verdict - 1], "%s she lies " % MatchTranscript.clock(over))
+	assert_string_ends_with(lines[verdict - 1], "° over · the match follows her no further")
