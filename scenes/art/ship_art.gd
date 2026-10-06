@@ -207,7 +207,7 @@ func build(
 		var into: ShipMesh = pieces.get(_wrecks[ladder.platform], mesh)
 		_ladder(into, ladder, layout.platforms[ladder.platform], -layout.freeboard)
 	var fittings := ShipFittings.new(_space, hull, body_radius, open_ports)
-	fittings.build(mesh)
+	fittings.build(mesh, self, materials)
 	# Every furnishing stands in a room: its own mesh, which need not ask where it is.
 	var furnishings := ShipMesh.new(
 		func(_point: Vector3) -> bool: return false, _space.room_lines()

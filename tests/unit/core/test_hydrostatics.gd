@@ -180,3 +180,36 @@ func test_section_cut_works_upside_down() -> void:
 	var on_side := Hydrostatics.cut_section(section, Hydrostatics.Sea.new(0.0, 0.0, 1.0, 0.0))
 	assert_almost_eq(on_side.volume, (2.0 * 2.0 + 1.0) * 2.0, EXACT, "her port half")
 	assert_lt(on_side.z, 0.0, "to port")
+
+
+func test_tilted_box_water_matches_the_cut_at_random_attitudes() -> void:
+	# A cell's water (TiltedBox) at random attitudes, and near level where its spreads
+	# grow narrow: the volume under a surface and its centre as the box cut by that
+	# surface has them, and the height for that volume back where it was.
+	var rng := RandomNumberGenerator.new()
+	rng.seed = SEED
+	var low := Vector3(4.0, -2.5, -3.75)
+	var high := Vector3(15.0, 0.0, 3.75)
+	var capacity := 11.0 * 2.5 * 7.5
+	var box := TiltedBox.new(low, high, capacity, 1.0)
+	for attitude in 300:
+		var spread: float = [1.0, 0.2, 1e-4, 1e-7][attitude % 4]
+		var up := Vector3(rng.randf_range(-spread, spread), 1.0, rng.randf_range(-spread, spread))
+		if attitude % 4 == 0:
+			up = Vector3(rng.randf_range(-1, 1), rng.randf_range(-1, 1), rng.randf_range(-1, 1))
+		var length := sqrt(float(up.x) * up.x + float(up.y) * up.y + float(up.z) * up.z)
+		var ux := float(up.x) / length
+		var uy := float(up.y) / length
+		var uz := float(up.z) / length
+		box.turn(ux, uy, uz)
+		var height := rng.randf_range(box.bottom(), box.top())
+		var cut := Hydrostatics.cut_box(
+			low.x, high.x, low.y, high.y, low.z, high.z, Hydrostatics.Sea.new(ux, uy, uz, height)
+		)
+		var water := box.volume(height)
+		assert_almost_eq(water, cut.volume, capacity * 1e-9, "volume, attitude %d" % attitude)
+		assert_almost_eq(box.height(water), height, 1e-7, "height back, attitude %d" % attitude)
+		if cut.volume > capacity * 1e-3:
+			var centre := box.centre(height)
+			var off := Vector3(centre[0] - cut.x, centre[1] - cut.y, centre[2] - cut.z)
+			assert_lt(off.length(), 1e-6, "centre, attitude %d" % attitude)

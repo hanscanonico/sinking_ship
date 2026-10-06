@@ -1,0 +1,35 @@
+[gd_resource type="Resource" script_class="WreckHull" format=3]
+
+[ext_resource type="Script" path="res://tests/fixtures/wrecks/wreck_hull.gd" id="1_wreck"]
+[ext_resource type="Script" path="res://core/sinking/flood_cell.gd" id="2_cell"]
+[ext_resource type="Script" path="res://core/sinking/ship_opening.gd" id="3_opening"]
+
+[sub_resource type="Resource" id="Cell_bow"]
+script = ExtResource("2_cell")
+name = &"bow"
+low = Vector3(38, -7.6, -10.5)
+high = Vector3(48, 4.4, 10.5)
+permeability = 0.95
+shape = 0.35
+
+[sub_resource type="Resource" id="Opening_hole"]
+script = ExtResource("3_opening")
+name = &"hole_bow"
+kind = 12
+joins = Array[StringName]([&"bow", &"sea"])
+centre = Vector3(48, -2, 0)
+size = Vector3(0, 3.16, 3.16)
+area = 10.0
+
+[resource]
+script = ExtResource("1_wreck")
+name = &"stockholm"
+length = 96.0
+beam = 21.0
+depth = 12.0
+draught = 7.6
+centre_height = 7.44
+cells = Array[ExtResource("2_cell")]([SubResource("Cell_bow")])
+openings = Array[ExtResource("3_opening")]([SubResource("Opening_hole")])
+boat_limit_deg = 15.0
+notes = "Stockholm, after the collision of 25 July 1956. Beam 21 m (source). Box length 96 m: her 160 m overall at a block coefficient near 0.6 (est.), at a 7.6 m draught (est.). Depth 12 m (est.). Weight 7.44 m over her keel: GM 1.2 m (est.). Her bow forward of her collision wall, 10 m of it (est.), crushed open to the sea through 10 m² (est.); the fine bow holds 0.35 of its box (est.)."

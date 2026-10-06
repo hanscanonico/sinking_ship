@@ -229,9 +229,12 @@ func test_path_avoids_a_ramp_whose_foot_is_under() -> void:
 	)
 
 
-## Down by the head, the bridge stands highest now; were she to go on down that way,
-## the poop deck would: the end a ship rises by is the last refuge.
-func test_the_last_refuge_is_the_end_the_ship_rises_by() -> void:
+## Down by the head, the bridge stands highest now. Seen settling further by the head
+## over its window, the water under the bridge and the decks forward of it has come up
+## faster than under the poop deck, and the bot marks them down by what it saw: the
+## poop deck is its refuge — read off what it has seen, never her lean carried on. A
+## level ship seen settling evenly keeps the highest ground.
+func test_the_refuge_is_marked_down_by_the_water_seen_rising() -> void:
 	var layout := SimFixtures.steamer()
 	var surfaces := Surfaces.new(layout)
 	var graph := _graph(layout, surfaces)
@@ -239,16 +242,37 @@ func test_the_last_refuge_is_the_end_the_ship_rises_by() -> void:
 	var poop_deck := graph.deck_of(SimFixtures.platform_named(layout, &"poop deck"))
 	var abaft := Vector3(-10.5, 0.0, 2.5)
 	var on := surfaces.under(abaft, SimFixtures.rules().step_height)
-	var by_the_head := _pose(layout, SimFixtures.scenario([[0.0, 0.0, 4.0, 0.0]]))
-	var found := graph.search(abaft, on, by_the_head)
-	assert_eq(graph.highest_in(found, by_the_head), bridge, "the bridge stands highest now")
-	assert_eq(graph.highest_in(found, by_the_head, 15.0), poop_deck, "leaned on, the poop deck")
-	var level := _pose(layout, SimFixtures.calm())
-	var all_of_it := graph.search(abaft, on, level)
+	var normal := BotProfile.for_tier(&"normal")
+	var settling := SinkSchedule.new(
+		SimFixtures.scenario([[0.0, 0.0, 2.0, 0.0], [10.0, 1.5, 7.0, 0.0]]),
+		layout.freeboard,
+		SeedStreams.derive(1, "sink")
+	)
+	var refuge := BotRefuge.new(graph, normal)
+	var then := settling.pose_at(0)
+	refuge.choose(graph.search(abaft, on, then), then, 0, WalkGraph.NONE)
+	var now := settling.pose_at(Ticks.from_seconds(10.0))
+	var found := graph.search(abaft, on, now)
+	assert_eq(graph.highest_in(found, now), bridge, "the bridge stands highest now")
 	assert_eq(
-		graph.highest_in(all_of_it, level, 15.0),
-		graph.highest_in(all_of_it, level),
-		"a level deck leans no way"
+		refuge.choose(found, now, Ticks.from_seconds(10.0), WalkGraph.NONE),
+		poop_deck,
+		"the water seen rising, the poop deck"
+	)
+	var even := SinkSchedule.new(
+		SimFixtures.scenario([[0.0, 0.0, 0.0, 0.0], [10.0, 0.6, 0.0, 0.0]]),
+		layout.freeboard,
+		SeedStreams.derive(1, "sink")
+	)
+	var level := BotRefuge.new(graph, normal)
+	var first := even.pose_at(0)
+	level.choose(graph.search(abaft, on, first), first, 0, WalkGraph.NONE)
+	var last := even.pose_at(Ticks.from_seconds(10.0))
+	var all_of_it := graph.search(abaft, on, last)
+	assert_eq(
+		level.choose(all_of_it, last, Ticks.from_seconds(10.0), WalkGraph.NONE),
+		graph.highest_in(all_of_it, last),
+		"settling evenly, the highest ground"
 	)
 
 
@@ -289,34 +313,32 @@ func test_a_refuge_holds_through_a_heel_swinging_across() -> void:
 	var surfaces := Surfaces.new(layout)
 	var graph := _graph(layout, surfaces)
 	var normal := BotProfile.for_tier(&"normal")
-	var keep := normal.refuge_keep_m
 	var start := Vector3(-5.0, 0.0, 0.0)
 	var on := surfaces.under(start, SimFixtures.rules().step_height)
 	var refuges: Array[int] = []
-	for heel_deg: float in [0.3, -0.3]:
+	for heel_deg: float in [3.0, -3.0]:
 		var pose := _pose(layout, SimFixtures.tilted(0.0, heel_deg))
-		var tilt := normal.refuge_tilt(pose.slope_deg())
-		refuges.append(graph.highest_in(graph.search(start, on, pose), pose, tilt))
-	assert_ne(refuges[0], refuges[1], "afresh, each heel has the other perch rise")
+		var afresh := BotRefuge.new(graph, normal)
+		refuges.append(afresh.choose(graph.search(start, on, pose), pose, 0, WalkGraph.NONE))
+	assert_ne(refuges[0], refuges[1], "afresh, each heel has the other perch higher")
+	var refuge := BotRefuge.new(graph, normal)
 	var swung := _pose(layout, SimFixtures.tilted(0.0, -0.3))
 	var found := graph.search(start, on, swung)
-	var tilt := normal.refuge_tilt(swung.slope_deg())
-	assert_eq(graph.highest_in(found, swung, tilt, refuges[0], keep), refuges[0], "kept")
+	assert_eq(refuge.choose(found, swung, 0, refuges[0]), refuges[0], "kept")
 	var lurch := SimFixtures.with_events(
-		SimFixtures.tilted(0.0, 0.3), [SimFixtures.lurch(0.0, -15.0, 3.0, 0.0)]
+		SimFixtures.tilted(0.0, 3.0), [SimFixtures.lurch(0.0, -15.0, 3.0, 0.0)]
 	)
 	var lurching := (
 		SinkSchedule.new(lurch, layout.freeboard, SeedStreams.derive(1, "sink")).pose_at(45)
 	)
 	assert_ne(lurching.lurch, 0.0, "a lurch is under way")
 	found = graph.search(start, on, lurching)
-	tilt = normal.refuge_tilt(lurching.slope_deg())
 	assert_eq(
-		graph.highest_in(found, lurching, tilt), refuges[1], "the lurch heels it the second way"
+		BotRefuge.new(graph, normal).choose(found, lurching, 45, WalkGraph.NONE),
+		refuges[1],
+		"the lurch heels it the second way"
 	)
-	assert_eq(
-		graph.highest_in(found, lurching, tilt, refuges[0], keep), refuges[0], "kept through it"
-	)
+	assert_eq(refuge.choose(found, lurching, 45, refuges[0]), refuges[0], "kept through it")
 
 
 func test_path_avoids_flooded_platforms() -> void:

@@ -862,7 +862,12 @@ func _nearest_face(
 func _check_seats() -> void:
 	var scene: MatchScene = (load(MATCH_SCENE) as PackedScene).instantiate()
 	root.add_child(scene)
-	scene.start(RunMatch.default_config(SEED, SEATS), true, true)
+	# Struck by the fast hit, as the effects' check is: she trims and lists within the
+	# seconds watched, so the crates slide (SH27: seed 1701's own hit sinks her slowly).
+	var config := RunMatch.default_config(SEED, SEATS)
+	config.scenario = config.scenario.duplicate()
+	config.scenario.explicit_hit = load(SinkingFxCheck.FAST_HIT)
+	scene.start(config, true, true)
 	var driver: SimDriver = scene.get_node("SimDriver")
 	var client := driver.client
 	var ship: Node3D = scene.get_node("MatchView/Ship")

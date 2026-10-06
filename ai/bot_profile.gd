@@ -29,11 +29,12 @@ const NON_NEGATIVE: Array[String] = [
 	"edge_margin_m",
 	"late_hunt_gain",
 	"spar_margin_m",
+	"spar_for_s",
 	"mistake_rate",
 	"mistake_seconds",
 	"climb_margin_m",
-	"refuge_tilt_deg",
-	"refuge_lean_deg",
+	"refuge_window_s",
+	"refuge_rise_s",
 	"refuge_keep_m",
 	"refuge_margin_m",
 	"guard_range_m",
@@ -81,8 +82,14 @@ const NON_NEGATIVE: Array[String] = [
 ## spar_margin(), and lines up none at a drop nearer than that — a shove costs
 ## position, not a life. The margin shrinks as the ship's platforms go under and is
 ## gone once spar_until of them are: the sinking makes the fight a fight to the death.
+## It shrinks as the match goes on too, gone spar_for_s seconds after it went live,
+## so a ship that stays level does not hold the last seats sparring for ever.
 @export var spar_margin_m: float
 @export var spar_until: float
+@export var spar_for_s: float
+## Down to this many seats left in the match — as the HUD counts them for every
+## player — a bot spars no more and presses as hard as late in the sinking.
+@export var hunt_at_seats: int
 ## How much a bot would rather go at whoever stands highest than at whoever stands
 ## nearest, 0…1.
 @export var king_of_hill_bias: float
@@ -116,13 +123,13 @@ const NON_NEGATIVE: Array[String] = [
 @export var climb_margin_m: float
 @export var refuge_margin_m: float
 ## A bot's refuge, where it climbs out and flees to: the highest ground it can reach —
-## once the share refuge_from of the ship's platforms is under water, the highest were
-## the deck tilted refuge_tilt() further the way it leans, as a ship foundering by one
-## end rises by the other; a refuge once made for is kept through a lurch, and else
-## unless another would stand refuge_keep_m higher: a heel swinging across by a little
-## does not swap it.
-@export var refuge_tilt_deg: float
-@export var refuge_lean_deg: float
+## once the share refuge_from of the ship's platforms is under water, the highest less
+## refuge_rise_s seconds of how fast it has seen the water under each come up over its
+## last refuge_window_s (BotRefuge); a refuge once made for is kept through a lurch, and
+## else unless another would stand refuge_keep_m higher: a heel swinging across by a
+## little does not swap it.
+@export var refuge_window_s: float
+@export var refuge_rise_s: float
 @export var refuge_keep_m: float
 @export var refuge_from: float
 ## Once it and its target stand on its perch — its refuge or the highest ground — how
@@ -150,22 +157,15 @@ const NON_NEGATIVE: Array[String] = [
 @export var memory_seconds: float
 
 
-## How many degrees further than it leans now a bot reckons a deck leaning
-## [param slope_deg] will tilt: refuge_tilt_deg once it leans refuge_lean_deg, in
-## proportion below — a level deck leans no way.
-func refuge_tilt(slope_deg: float) -> float:
-	if slope_deg >= refuge_lean_deg:
-		return refuge_tilt_deg
-	return refuge_tilt_deg * slope_deg / refuge_lean_deg
-
-
 ## How far from the water, an open drop or a railing a bot keeps the seats it shoves
-## while the share [param under] of the ship's platforms is under water: spar_margin_m
-## with every deck dry, down to none once spar_until are under.
-func spar_margin(under: float) -> float:
-	if under >= spar_until:
+## while the share [param under] of the ship's platforms is under water,
+## [param live_s] seconds after the match went live: spar_margin_m with every deck dry
+## as it goes live, down to none once spar_until are under or spar_for_s has gone by,
+## whichever is nearer.
+func spar_margin(under: float, live_s: float) -> float:
+	if under >= spar_until or live_s >= spar_for_s:
 		return 0.0
-	return spar_margin_m * (1.0 - under / spar_until)
+	return spar_margin_m * minf(1.0 - under / spar_until, 1.0 - live_s / spar_for_s)
 
 
 ## The tier [param tier]'s profile, or null when there is none.
@@ -201,6 +201,8 @@ func problems() -> PackedStringArray:
 		found.append("bot: turn_rate_deg must be positive")
 	if crowd_seats < 1:
 		found.append("bot: crowd_seats must be at least 1")
+	if hunt_at_seats < 0:
+		found.append("bot: hunt_at_seats must not be negative")
 	var knobs := PackedStringArray()
 	for property: Dictionary in get_property_list():
 		knobs.append(property["name"])

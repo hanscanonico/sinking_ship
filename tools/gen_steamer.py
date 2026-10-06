@@ -186,6 +186,11 @@ ramp("poop_starboard", -14, 3.1, 3, 1.4, 0, 1.2, 0)
 ramp("boat_port", 3, -3.4, 6, 1.5, 0, 2.5, 0)
 ramp("boat_starboard", 3, 1.9, 6, 1.5, 0, 2.5, 0)
 ramp("forecastle", 9, -0.8, 3, 1.6, 0, 0, 1.8)
+# The forecastle's second way up (Q6): from SH27 a sinking by the stern leaves her bow
+# highest, so the forecastle is a perch like the bridge — a second stair to starboard,
+# as steep and as wide, outboard of the forward companionway's rail, clear of the
+# cargo stowed to port.
+ramp("forecastle_starboard", 9, 2.3, 3, 1.6, 0, 0, 1.8)
 # The bridge's two ways up (Q6): from SH26 nothing times the bridge's fall, so it is a
 # perch like any other and needs two routes — two stairs, one to port and one to
 # starboard, side by side down its forward face, each as steep and as wide as the one
@@ -636,7 +641,44 @@ def section_outline(x):
             outline.append(point)
     if outline[-1] == outline[0]:
         outline.pop()
-    return outline
+    return simplified(outline, OUTLINE_TOLERANCE)
+
+# The physics cuts every section by the sea at every step of a bake (§5b.1), so each
+# outline keeps only the drawn hull's points it needs to stay within this of the rest
+# (est.): its corners, and enough of the bilge's curve.
+OUTLINE_TOLERANCE = 0.01
+
+def simplified(outline, tolerance):
+    """Douglas–Peucker on a closed outline: split at its first point and the point
+    farthest from it, each half keeping the point farthest from its chord while that is
+    more than tolerance off it."""
+    def far(a, b, chain):
+        best, at = -1.0, None
+        dz, dy = b[0] - a[0], b[1] - a[1]
+        length = math.hypot(dz, dy)
+        for k, p in enumerate(chain):
+            if length > 0.0:
+                off = abs(dz * (p[1] - a[1]) - dy * (p[0] - a[0])) / length
+            else:
+                off = math.hypot(p[0] - a[0], p[1] - a[1])
+            if off > best:
+                best, at = off, k
+        return best, at
+
+    def keep(a, b, chain):
+        if not chain:
+            return []
+        off, at = far(a, b, chain)
+        if off <= tolerance:
+            return []
+        return keep(a, chain[at], chain[:at]) + [chain[at]] + keep(chain[at], b, chain[at + 1:])
+
+    start = outline[0]
+    split = max(range(len(outline)), key=lambda k: math.hypot(outline[k][0] - start[0],
+                                                             outline[k][1] - start[1]))
+    first, second = outline[1:split], outline[split + 1:]
+    return ([start] + keep(start, outline[split], first) + [outline[split]]
+            + keep(outline[split], start, second))
 
 sections = []  # (x, length, outline)
 for a, b in zip(SECTION_BREAKS, SECTION_BREAKS[1:]):
@@ -696,9 +738,11 @@ HOLD_SIDE = 3.8
 CELLS = [
     ("aft_peak", X_AFT, -13, KEEL, 0, -BEAM, BEAM, "VOID", None),
     ("poop_space", X_AFT, -14, 0, POOP_DECK, -4.5, 4.5, "STORES", None),
-    ("aft_bilge", -13, -3, KEEL, LOWER, -BEAM, BEAM, "VOID", None),
+    ("aft_bilge_p", -13, -3, KEEL, LOWER, -BEAM, 0, "VOID", None),
+    ("aft_bilge_s", -13, -3, KEEL, LOWER, 0, BEAM, "VOID", None),
     ("aft_cabins", -13, -3, LOWER, 0, -BEAM, BEAM, "ACCOMMODATION", None),
-    ("engine_bilge", -3, 4, KEEL, LOWER, -BEAM, BEAM, "VOID", None),
+    ("engine_bilge_p", -3, 4, KEEL, LOWER, -BEAM, 0, "VOID", None),
+    ("engine_bilge_s", -3, 4, KEEL, LOWER, 0, BEAM, "VOID", None),
     ("engine_room", -3, 4, LOWER, 0, -BEAM, BEAM, "MACHINERY", None),
     ("hold_bilge", 4, 15, KEEL, LOWER, -HOLD_SIDE, HOLD_SIDE, "VOID", None),
     ("hold", 4, 15, LOWER, 0, -HOLD_SIDE, HOLD_SIDE, "CARGO", 0.95),  # empty: 0.95
@@ -736,6 +780,14 @@ BULKHEADS = [
 ]
 # The hold's side walls, along it: (name, z, top, collapse head est.) — leaky.
 HOLD_WALLS = [("hold_side_p", -HOLD_SIDE, 0.0, 2.0), ("hold_side_s", HOLD_SIDE, 0.0, 2.0)]
+# Her centre girder, along her keel under the after and engine rooms' floors from the
+# after bulkhead to the hold's, 2.5 m high (est.): it parts each bilge's bottom into a
+# port and a starboard half, so a gash floods the half on its side — the weight on one
+# side, its loose water half as wide (the plan's lengthwise wall in a wide cell, R23) —
+# until the water tops it and spills across. Limber holes through it leak est.
+# 0.005 m² a bilge.
+GIRDER = ("centre_girder", 0.0, KEEL + 2.5, 4.0)
+LIMBER_HOLES = 0.005
 
 def parted(axis, at, y0, y1, along0, along1):
     """The cells with a face on the plane where axis (0 x, 2 z) is at, overlapping
@@ -758,6 +810,8 @@ for name, x, top, collapse in BULKHEADS:
 for name, z, top, collapse in HOLD_WALLS:
     span = (4, 15)
     walls.append((name, "ALONG", z, span, KEEL, top, collapse, parted(2, z, KEEL, top, *span)))
+name, z, top, collapse = GIRDER
+walls.append((name, "ALONG", z, (-13, 4), KEEL, top, collapse, parted(2, z, KEEL, top, -13, 4)))
 
 # Openings: (name, kind, joins, centre, size, fields). size is the rectangle's extent
 # along x, y and z, zero across the axis it is flat on.
@@ -836,10 +890,23 @@ opening("open_hold_fwd_top", "OPEN", "hold", "hold_fwd_top",
 
 # The lower-deck floors are not watertight: est. 0.6 m² of gaps between each and its
 # bilge. The hold's side walls leak est. 0.02 m² into it.
-for room_cell, bilge in [("aft_cabins", "aft_bilge"), ("engine_room", "engine_bilge"), ("hold", "hold_bilge")]:
-    b = cell_box(room_cell)
-    opening("floor_" + room_cell, "FLOOR_GAPS", bilge, room_cell, ((b[0] + b[1]) * 0.5, LOWER, (b[4] + b[5]) * 0.5),
-            (b[1] - b[0], 0, b[5] - b[4]), area=0.6, starts="OPEN")
+for room_cell, bilges in [("aft_cabins", ["aft_bilge_p", "aft_bilge_s"]),
+                          ("engine_room", ["engine_bilge_p", "engine_bilge_s"]), ("hold", ["hold_bilge"])]:
+    for bilge in bilges:
+        b = cell_box(bilge)
+        tag = "_" + bilge[-1] if len(bilges) > 1 else ""
+        opening("floor_" + room_cell + tag, "FLOOR_GAPS", bilge, room_cell,
+                ((b[0] + b[1]) * 0.5, LOWER, (b[4] + b[5]) * 0.5), (b[1] - b[0], 0, b[5] - b[4]),
+                area=round(0.6 / len(bilges), 4), starts="OPEN")
+    if len(bilges) > 1:
+        b = cell_box(bilges[0])
+        girder_top = GIRDER[2]
+        opening("limber_" + room_cell, "LEAK", bilges[0], bilges[1],
+                ((b[0] + b[1]) * 0.5, (b[2] + girder_top) * 0.5, 0.0), (b[1] - b[0], girder_top - b[2], 0),
+                area=LIMBER_HOLES, starts="OPEN")
+        opening("over_girder_" + room_cell, "OVER_WALL", bilges[0], bilges[1],
+                ((b[0] + b[1]) * 0.5, (girder_top + b[3]) * 0.5, 0.0), (b[1] - b[0], b[3] - girder_top, 0),
+                starts="OPEN")
 for wing, z in [("hold_wing_p", -HOLD_SIDE), ("hold_wing_s", HOLD_SIDE)]:
     b = cell_box("hold")
     opening("leak_" + wing, "LEAK", wing, "hold", ((b[0] + b[1]) * 0.5, (b[2] + b[3]) * 0.5, z),
@@ -1033,6 +1100,9 @@ MASS.append(("ballast", round(ballast, 1), (round(ballast_x, 4), BALLAST_Y, roun
 # How her mass turns, the water moving with her, and how her motions die away (est.).
 MOTION = [("roll_radius", 3.8), ("pitch_radius", 10.0), ("added_mass", 1.0),
           ("heave_damping", 0.5), ("roll_damping", 0.08), ("pitch_damping", 0.5)]
+# Her lifeboats (§5b.2): one a side on the deckhouse roof's davits, where the art hangs
+# them, each useless on the high side past a list of 15° — old davits (est.).
+LIFEBOATS = [("lifeboat_port", -1, -2.0, 15.0), ("lifeboat_starboard", 1, -2.0, 15.0)]
 # Where along her and up her shell an iceberg's gash can be at all (est.): clear of her
 # stem and her counter, from 0.2 m under the main deck down to 0.2 m over her keel.
 HIT_ZONE_X = (-19.5, 19.5)
@@ -1106,11 +1176,17 @@ for name, kg, centre, along in MASS:
     mass_ids.append(sub("Mass_" + name.replace(" ", "_"), "14_mass", [
         ("name", '&"%s"' % name), ("mass", num(kg)), ("centre", vec3(centre)),
         ("along", "Vector2(%s, %s)" % (num(along[0]), num(along[1])))]))
+fitting_ids = []
+for name, side, x, limit in LIFEBOATS:
+    fitting_ids.append(sub("Fitting_" + name, "16_fitting", [
+        ("name", '&"%s"' % name), ("side", str(side)), ("x", num(x)),
+        ("list_limit_deg", num(limit))]))
 sub("Structure", "9_structure", [
     ("waterline_y", num(WATERLINE)), ("keel_y", num(KEEL)),
     ("sections", arr("10_section", section_ids)), ("cells", arr("11_cell", cell_ids)),
     ("walls", arr("12_wall", wall_ids)), ("openings", arr("13_opening", opening_ids)),
     ("mass", arr("14_mass", mass_ids))] + [(k, num(v)) for k, v in MOTION] + [
+    ("fittings", arr("16_fitting", fitting_ids)),
     ("hit_zone_x", "Vector2(%s, %s)" % (num(HIT_ZONE_X[0]), num(HIT_ZONE_X[1]))),
     ("hit_zone_y", "Vector2(%s, %s)" % (num(HIT_ZONE_Y[0]), num(HIT_ZONE_Y[1]))),
     ("sure_hit", 'SubResource("%s")' % sub("Sure_hit", "15_hit", [(k, num(v)) for k, v in SURE_HIT]))])
@@ -1132,6 +1208,7 @@ head = """[gd_resource type="Resource" script_class="ShipLayout" format=3]
 [ext_resource type="Script" path="res://core/sinking/ship_opening.gd" id="13_opening"]
 [ext_resource type="Script" path="res://core/sinking/mass_item.gd" id="14_mass"]
 [ext_resource type="Script" path="res://core/sinking/iceberg_hit.gd" id="15_hit"]
+[ext_resource type="Script" path="res://core/sinking/ship_fitting.gd" id="16_fitting"]
 """
 res = ["[resource]", 'script = ExtResource("5_layout")', "freeboard = " + num(FREEBOARD),
        "platforms = " + arr("1_plat", platforms),

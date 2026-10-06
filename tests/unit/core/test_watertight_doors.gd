@@ -46,8 +46,10 @@ func test_a_shutting_door_pushes_a_body_to_the_side_its_centre_is_on() -> void:
 		SimFixtures.place(sim, 1, Vector3(-17.0, 1.2, 0.0))
 		SimFixtures.step(sim, {}, Ticks.from_seconds(20.0) + 1)
 		var body := sim.state.seats[0]
-		assert_almost_eq(
-			(body.pos.x - WALL_X) * side, rules.body_radius, 0.02, "side %s: out of its way" % side
+		# Pushed out of the leaf's path to its own side — and, the deck trimming as she
+		# floods (SH27), free to slide on along it.
+		assert_gte(
+			(body.pos.x - WALL_X) * side, rules.body_radius - 0.02, "side %s: out of its way" % side
 		)
 		# Shut, it holds: walking at it, the body stays on its side.
 		var through := SimFixtures.frame(0, Vector2(-side, 0.0))

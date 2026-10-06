@@ -101,10 +101,12 @@ func _process(delta: float) -> void:
 	_hud.show_snapshot(snapshot)
 	_sea_and_sky.show_sinking(snapshot["tick"], _view.ship_to_world())
 	if _cells != null:
-		_cells.show_water(_driver.client.sim.schedule.pose_at(snapshot["tick"]))
+		var pose := _driver.client.sim.schedule.pose_at(snapshot["tick"])
+		_cells.show_water(pose, _view.ship_to_world())
 	_hud.show_spectating(_spectating(snapshot, viewed))
 	_hud.show_controls(_prompts if _local != null else null)
-	_end.show_results(_stats, _local_seat, _names, _config.match_seed)
+	var over := _driver.client.sim.schedule.unsupported_tick()
+	_end.show_results(_stats, _local_seat, _names, _config.match_seed, over)
 	if _end.visible:
 		_end.show_prompts(_prompts)
 	_free.keep(_can_fly(snapshot))

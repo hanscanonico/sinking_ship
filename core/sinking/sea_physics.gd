@@ -47,6 +47,9 @@ const PATH := "res://data/physics/sea.tres"
 @export var step_sink: float
 ## A face steeper than this, in degrees, is not a floor.
 @export var stand_limit_deg: float
+## The most a match follows her, in degrees from upright: past it movement cannot
+## follow her until SH32, and the match settles (§5b.3's interim rule).
+@export var supported_deg: float
 ## A lurch: the list changing faster than this, in degrees a second, warned at least
 ## this many seconds ahead.
 @export var lurch_rate_deg: float
@@ -99,6 +102,8 @@ func problems() -> PackedStringArray:
 		found.append("sea: a step's limits must be positive")
 	if stand_limit_deg <= 0.0 or stand_limit_deg >= 90.0:
 		found.append("sea: the stand limit must be within 0…90°")
+	if supported_deg <= 0.0 or supported_deg > 180.0:
+		found.append("sea: the supported attitude must be within 0…180°")
 	if lurch_rate_deg <= 0.0 or lurch_warning < 0.0:
 		found.append("sea: a lurch needs a rate and a warning")
 	return found

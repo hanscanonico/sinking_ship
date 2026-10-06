@@ -164,6 +164,20 @@ func test_view_hides_bodies_behind_walls() -> void:
 	assert_eq(_seats_in(_view_of(open)), [0, 1, 2, 3])
 
 
+## The seats left are the HUD's count, every player's: a seat hidden behind the wall
+## still counts, one out does not.
+func test_view_counts_the_seats_left_as_the_hud_does() -> void:
+	var sim := _sim(4)
+	SimFixtures.place(sim, 0, Vector3(-8.0, 0.0, -3.0))
+	SimFixtures.place(sim, 1, Vector3(8.0, 0.0, -3.0))
+	SimFixtures.place(sim, 2, Vector3(-8.0, 0.0, 5.0))
+	SimFixtures.place(sim, 3, Vector3(-6.0, 0.0, -3.0))
+	sim.state.seats[3].body = PlayerState.Body.OUT
+	var view := _view_of(sim)
+	assert_does_not_have(_seats_in(view), 1, "seat 1 is behind the wall")
+	assert_eq(view.seats_left(), 3, "and still in: three left")
+
+
 func test_view_hears_bodies_within_six_metres_through_walls() -> void:
 	assert_eq(_profile().hearing_m, HEARING)
 	assert_eq(_profile().eye_height_m, EYE)

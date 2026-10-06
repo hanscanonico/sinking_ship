@@ -166,6 +166,35 @@ func test_wreckage_afloat_over_a_deck_shallow_enough_to_wade_on_is_caught() -> v
 	assert_eq(off.size(), 0, "and outboard of every deck, nothing to stand on")
 
 
+func test_wreckage_over_a_deck_that_rights_out_of_the_sea_goes_under() -> void:
+	var layout := SimFixtures.steamer()
+	var wade := 0.3
+	var flotsam: Flotsam = add_child_autofree(Flotsam.new())
+	flotsam.setup(layout, wade)
+	var middle := layout.platforms[0].area.get_center()
+	# Listed with the main deck well under the sea, a piece comes down over it.
+	var drowned := Transform3D(Basis(), Vector3.DOWN * 3.0)
+	var over := drowned * Vector3(middle.x, 0.0, middle.y)
+	flotsam.throw(FxCue.Piece.CRATE, over + Vector3.UP * 2.0, over, Vector2.DOWN)
+	for _frame in 60:
+		flotsam.advance(1.0 / 30.0)
+		flotsam.go_under_shallows(drowned)
+	assert_eq(flotsam.afloat().size(), 1, "afloat over a deck well under the sea")
+	# She rights until the deck comes up within wading depth of the sea.
+	var righted := Transform3D(Basis(), Vector3.DOWN * 0.2)
+	flotsam.go_under_shallows(righted)
+	var pose := ShipPose.new(0.2, 0.0, 0.0, righted)
+	assert_eq(
+		SinkingFxCheck.rafts_over(flotsam.afloat(), righted, layout, pose, wade).size(),
+		0,
+		"nothing left afloat over a deck shallow enough to wade on"
+	)
+	assert_eq(flotsam.count(), 1, "it sinks out as it goes")
+	for _frame in ceili(Flotsam.SINK_SECONDS * 30.0) + 1:
+		flotsam.advance(1.0 / 30.0)
+	assert_eq(flotsam.count(), 0, "then it is gone")
+
+
 func test_a_waterline_is_split_where_it_passes_near_the_eye() -> void:
 	var eye := Vector3(0.0, 1.6, 0.0)
 	var reach := SinkingFx.HUSHED

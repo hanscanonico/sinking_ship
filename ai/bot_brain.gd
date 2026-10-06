@@ -16,11 +16,10 @@ extends RefCounted
 ##   its way to its refuge dipping below its feet to within refuge_margin_m of it; and
 ##   its refuge elsewhere: for its refuge, until it stands there — or, while less than
 ##   refuge_from is under, on a floor a body's height above the sea. Its refuge is the
-##   highest zone it can reach; once refuge_from is under, the highest were the deck
-##   tilted further the way it leans, by as much as BotProfile.refuge_tilt says — the end
-##   the ship rises by, where the last dry deck will be — kept through a lurch, and else
-##   unless another would stand refuge_keep_m higher; so it goes there while the way is
-##   dry.
+##   highest zone it can reach; once refuge_from is under, the highest marked down by
+##   how fast it has seen the water under each come up (BotRefuge) — the present and
+##   what it has seen, never her lean carried on — kept through a lurch, and else unless
+##   another would stand refuge_keep_m higher; so it goes there while the way is dry.
 ## - RIDE, a lurch telegraphed or under way: within ride_margin_m of the side it puts
 ##   down, away from it; else, once the deck swings, a brace where it stands while its
 ##   stamina lasts. Farther off, until the swing, it carries on with its target.
@@ -50,10 +49,11 @@ extends RefCounted
 ## (SH10); then it keeps edge_margin_m from water and open edges, a broken railing's
 ## among them — less late in the sinking, none toward its target lined up between it
 ## and one — and shoves whoever a shove from where it looks would land on, charging a
-## bracing one on its read. While the ship is level it spars: it charges nobody, and
-## shoves nobody it would send at the water, an open drop or a railing within its spar
-## margin. It presses only once its view shows its last press, so what it sees of
-## itself is never from before it. A bot that has stood still for two thinks while
+## bracing one on its read. While the ship is level and the match young it spars: it
+## charges nobody, and shoves nobody it would send at the water, an open drop or a
+## railing within its spar margin; down to the last seats left, none (BotPacing). It
+## presses only once its view shows its last press, so what it sees of itself is never
+## from before it. A bot that has stood still for two thinks while
 ## walking, with nobody at hand moving to be holding it back, steps aside — or, on an
 ## open deck making for a stair, goes round through the rooms beside it.
 ## Its stream also rolls, mistake_rate times a second, a lapse: mistake_seconds walking
@@ -97,8 +97,9 @@ var _legs: Array[WalkGraph.Portal] = []
 ## Whether it is climbing because its floor was about to flood: it climbs on until it
 ## stands in the zone it was making for.
 var _climbing := false
-## The refuge the ship's lean gave it at the last think, or WalkGraph.NONE.
+## The refuge it chose at the last think, or WalkGraph.NONE, and what chooses it.
 var _refuge := WalkGraph.NONE
+var _refuges: BotRefuge
 var _aim_offset := 0.0
 var _think_in := 0
 var _last_buttons := 0
@@ -145,15 +146,12 @@ var _sent_ticks := PackedInt32Array()
 ## grip angle by its seen velocity too — the same place on a deck that grips.
 var _edge_from := Vector3.ZERO
 var _edge_also := Vector3.ZERO
-## What the hunt and line-up scores are multiplied by, as the last think found the
-## sinking: 1 with every deck dry, more the more are under.
-var _pressing := 1.0
+## How hard it fights, as the last think found the match: how much it presses and its
+## spar margin.
+var _pacing: BotPacing
 ## How far ahead of its target it aims, as the last think found it: the share of where
 ## the target's seen velocity carries it over the bot's reaction time.
 var _lead := 0.0
-## How far from the water, an open drop or a railing it keeps whoever it shoves, as the
-## last think found the sinking (BotProfile.spar_margin).
-var _spar := 0.0
 
 
 ## [param rng] is this seat's own stream, SeedStreams' (match seed, seat).
@@ -175,6 +173,8 @@ func _init(
 	_footing = BotFooting.new(surfaces, walk_graph, rules, profile.edge_margin_m)
 	_targeting = BotTargeting.new(bot_seat, profile, rules, _footing, walk_graph)
 	_swim = BotSwim.new(walk_graph, rules, profile.eye_height_m)
+	_refuges = BotRefuge.new(walk_graph, profile)
+	_pacing = BotPacing.new(profile)
 	_rng = rng
 	_charge_full_ticks = Ticks.from_seconds(rules.charge_full)
 	_windup_ticks = Ticks.from_seconds(rules.shove_windup)
@@ -213,7 +213,7 @@ func decide(view: BotView, tick: int) -> InputFrame:
 		# Where it last saw its target, and nobody there: time to think again.
 		_think_in = 0
 	if _think_in <= 0:
-		_think(seen, me, now_pos, pose)
+		_think(seen, me, now_pos, pose, view.seats_left())
 		# After the first, each seat thinks on its own beat: never every bot at once.
 		_think_in = _profile.think_period - (seat % _profile.think_period if first else 0)
 		mark = _entry(seen, target)
@@ -310,7 +310,9 @@ func _swim_out(me: Dictionary, now_pos: Vector3, pose: ShipPose, tick: int) -> I
 ## Rolls this think's heading error, reads and lapse from the bot's own stream — the
 ## same draws, in the same order, every think — then picks its target, its intent and
 ## the route to the intent's goal.
-func _think(seen: Dictionary, me: Dictionary, now_pos: Vector3, pose: ShipPose) -> void:
+func _think(
+	seen: Dictionary, me: Dictionary, now_pos: Vector3, pose: ShipPose, seats_left: int
+) -> void:
 	var my_pos: Vector3 = me["pos"]
 	var my_surface: int = me["surface"]
 	var error := _profile.aim_error_deg
@@ -345,11 +347,10 @@ func _think(seen: Dictionary, me: Dictionary, now_pos: Vector3, pose: ShipPose) 
 	var found := _walk_graph.search(my_pos, my_surface, pose)
 	var under := _footing.flooded_share(pose)
 	var highest := _walk_graph.highest_in(found, pose)
-	# As the ship founders, the highest ground now is not where the last dry deck will be.
+	# As the ship founders, the highest ground now may be where the water comes fastest.
 	var refuge := highest
 	if under >= _profile.refuge_from:
-		var tilt := _profile.refuge_tilt(pose.slope_deg())
-		_refuge = _walk_graph.highest_in(found, pose, tilt, _refuge, _profile.refuge_keep_m)
+		_refuge = _refuges.choose(found, pose, seen["tick"], _refuge)
 		refuge = _refuge
 	target = _targeting.choose(seen, me, found, pose, highest, target)
 	var mark := _entry(seen, target)
@@ -389,8 +390,7 @@ func _think(seen: Dictionary, me: Dictionary, now_pos: Vector3, pose: ShipPose) 
 	# Late in the sinking, with few dry decks left, it presses: closer to the edges, and
 	# keener to go at someone than to keep its ground.
 	_footing.margin = _profile.edge_margin_m * (1.0 - _profile.late_margin_share * under)
-	_pressing = 1.0 + _profile.late_hunt_gain * under
-	_spar = _profile.spar_margin(under)
+	_pacing.pace(seen, under, seats_left)
 	var walk := _rules.walk_speed * _profile.think_period * Ticks.SECONDS_PER_TICK
 	var reach := _profile.edge_margin_m + walk
 	_edges_near = (
@@ -460,14 +460,14 @@ func _arbitrate(
 		scores[Intent.SEEK_HIGH] = _profile.wander_weight
 	elif _zone_of(me) != highest and _footing.water_near(now_pos, pose):
 		scores[Intent.SEEK_HIGH] = 1.0
-	if _targeting.drop_way != Vector2.ZERO and _targeting.drop_distance >= _spar:
+	if _targeting.drop_way != Vector2.ZERO and _targeting.drop_distance >= _pacing.spar:
 		scores[Intent.LINE_UP] = (
 			_profile.lineup_weight
 			* (1.0 - 0.5 * _targeting.drop_distance / _targeting.carry)
-			* _pressing
+			* _pacing.pressing
 		)
 	if not mark.is_empty():
-		scores[Intent.HUNT] = _profile.hunt_weight * _pressing
+		scores[Intent.HUNT] = _profile.hunt_weight * _pacing.pressing
 	var kept := intent
 	if kept != Intent.SEEK_HIGH and kept != Intent.LINE_UP and kept != Intent.HUNT:
 		kept = Intent.SEEK_HIGH
@@ -779,7 +779,7 @@ func _shove(seen: Dictionary, me: Dictionary, mark: Dictionary, tick: int, pose:
 				break
 	if victim.is_empty():
 		return 0
-	if _spar > 0.0 and _spared(seen, my_pos, pose):
+	if _pacing.spar > 0.0 and _spared(seen, my_pos, pose):
 		return 0
 	if _profile.minds_its_back:
 		var threat := _threat(seen, me)
@@ -788,7 +788,7 @@ func _shove(seen: Dictionary, me: Dictionary, mark: Dictionary, tick: int, pose:
 			return 0
 	_pressed_at = tick
 	# Sparring, it never charges: a charge sends a body over a railing from metres off.
-	if victim["bracing"] and _reads_charge and _spar == 0.0:
+	if victim["bracing"] and _reads_charge and _pacing.spar == 0.0:
 		_charge_held = 1
 	return InputFrame.SHOVE
 
@@ -806,7 +806,7 @@ func _spared(seen: Dictionary, my_pos: Vector3, pose: ShipPose) -> bool:
 		var vel: Vector3 = entry["vel"]
 		for at: Vector3 in [seen_at, seen_at + Vector3(vel.x, 0.0, vel.z) * lag]:
 			var way := Vector2(at.x - my_pos.x, at.z - my_pos.z).normalized()
-			if _footing.edge_toward(at, entry["surface"], way, _spar, pose, true) < INF:
+			if _footing.edge_toward(at, entry["surface"], way, _pacing.spar, pose, true) < INF:
 				return true
 	return false
 

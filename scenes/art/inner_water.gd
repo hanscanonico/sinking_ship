@@ -1,21 +1,22 @@
 class_name InnerWater
 extends Node3D
 ## The water inside her (§5b.1, D7), drawn as the sinking has it at the moment drawn:
-## each cell's at its own level — in the sea's colours, lit as the room it stands in is
+## each cell's at its own level, level with the world however she leans and drawn only
+## inside its cell (CellSurface) — in the sea's colours, lit as the room it stands in is
 ## (inner_water.gdshader) — the watertight doors the ship slides shut at the hit, water
 ## pouring through an opening wherever one side's water stands over its bottom and
-## higher than the other side's (spill.gdshader), boiling into froth where it lands, and
-## air blown out of an opening as the water reaches its top, bursting the surface in
-## bubbles there (froth.gdshader). Presentation only (D5): it reads the poses it is
-## handed and the openings water can pass, and moves no water. It lives in ship space,
-## under the drawn ship.
+## higher than the other side's, falling along the world's down (spill.gdshader),
+## boiling into froth where it lands, and air blown out of an opening as the water
+## reaches its top, bursting the surface in bubbles there (froth.gdshader).
+## Presentation only (D5): it reads the poses it is handed and the openings water can
+## pass, and moves no water. It lives in ship space, under the drawn ship.
 
 ## How far a cell's water stands in from a face of its box at her side or an outside
 ## wall — inside the wall's thickness, never out past the hull.
 const INSET := 0.15
-## How deep over its floor and how far under its ceiling a cell's water is drawn: not on
-## a dry floor, where it would fight the planks, nor in a full cell, which has no
-## surface.
+## How deep over its lowest corner and how far under its highest a cell's water is
+## drawn: not on a dry floor, where it would fight the planks, nor in a full cell, which
+## has no surface.
 const SHOWS := 0.02
 ## The least difference across an opening that is drawn pouring, in metres, and the
 ## difference at which a pour is a solid sheet.
@@ -55,16 +56,20 @@ var _water: ShaderMaterial
 var _boxes: Array[AABB] = []
 ## Per cell, its surface, or null for a cell whose water is not drawn.
 var _surfaces: Array[MeshInstance3D] = []
+## The ship as drawn at the moment last shown — her rotation and place, the poses'
+## between them — the world's up in her axes, and a basis that lays a sheet level with
+## the world in her space.
+var _ship := Transform3D.IDENTITY
+var _up := Vector3.UP
+var _level := Basis.IDENTITY
 ## Per watertight door the ship shuts, its leaf, by name, and the width it slides.
 var _leaves := {}
 var _leaf_widths := {}
-## Per cell, the point over whose x/z its water's height is read.
-var _middles := PackedVector3Array()
 ## The openings water can pass, and a pour per opening, hidden while it does not —
 ## and a second across the first, for water falling through a hole in a deck, so it
 ## is seen from every side. Per opening, worked out once: its two sides' cells (-1 for
-## the sea) and floors, its bottom and top, and whether water through it is drawn
-## pouring and blowing air — never through the gash, a deck's gaps or a leak.
+## the sea) and floors, its box, and whether water through it is drawn pouring and
+## blowing air — never through the gash, a deck's gaps or a leak.
 var _passages: Array[ShipOpening] = []
 var _pours: Array[MeshInstance3D] = []
 var _crossings: Array[MeshInstance3D] = []
@@ -72,16 +77,17 @@ var _crossings: Array[MeshInstance3D] = []
 var _landings: Array[MeshInstance3D] = []
 var _sides := PackedInt32Array()
 var _floors := PackedFloat64Array()
-var _bottoms := PackedFloat64Array()
-var _tops := PackedFloat64Array()
+var _spans: Array[AABB] = []
 var _drawn := PackedByteArray()
-## Per opening, the heads of its two sides last drawn: a side reaching its top blows
-## its air out.
+## Per opening, the world levels of its two sides' water last drawn: a side reaching
+## its top blows its air out.
 var _last_heads: Array[Vector2] = []
-## The bursts of air on the water: each one's froth, the cell it breaks the water of,
-## and its seconds gone, or a negative number while it is not bursting.
+## The bursts of air on the water: each one's froth, the cell it breaks the water of and
+## the point in her it lies over, and its seconds gone, or a negative number while it is
+## not bursting.
 var _bursts: Array[MeshInstance3D] = []
 var _burst_cells := PackedInt32Array()
+var _burst_at := PackedVector3Array()
 var _burst_ages := PackedFloat32Array()
 var _next_burst := 0
 
@@ -142,12 +148,8 @@ func setup(
 		_water.set_shader_parameter(colour, sea.get_shader_parameter(colour))
 	_boxes = boxes(structure)
 	_surfaces.clear()
-	_middles.clear()
-	for index in _boxes.size():
-		var box := _boxes[index]
+	for box: AABB in _boxes:
 		_surfaces.append(null if box.size == Vector3.ZERO else _surface(box))
-		var cell := structure.cells[index]
-		_middles.append((cell.low + cell.high) * 0.5)
 	_leaves.clear()
 	_leaf_widths.clear()
 	if not paints.is_empty():
@@ -161,8 +163,7 @@ func setup(
 	_last_heads.clear()
 	_sides.clear()
 	_floors.clear()
-	_bottoms.clear()
-	_tops.clear()
+	_spans.clear()
 	_drawn.clear()
 	var unseen := [ShipOpening.Kind.GASH, ShipOpening.Kind.FLOOR_GAPS, ShipOpening.Kind.LEAK]
 	for opening: ShipOpening in _passages:
@@ -175,37 +176,44 @@ func setup(
 			var cell := structure.cell_named(place)
 			_sides.append(cell)
 			_floors.append(-INF if cell == -1 else structure.cells[cell].low.y)
-		_bottoms.append(opening.centre.y - opening.size.y * 0.5)
-		_tops.append(opening.centre.y + opening.size.y * 0.5)
+		_spans.append(AABB(opening.centre - opening.size * 0.5, opening.size))
 		_drawn.append(0 if opening.kind in unseen else 1)
 	_bursts.clear()
 	_burst_cells.clear()
+	_burst_at.clear()
 	_burst_ages.clear()
 	for _burst in BURSTS:
 		_bursts.append(_froth())
 		_burst_cells.append(-1)
+		_burst_at.append(Vector3.ZERO)
 		_burst_ages.append(-1.0)
 	set_process(false)
 
 
-## Shows the water [param alpha] of the way from [param then] to [param now].
+## Shows the water [param alpha] of the way from [param then] to [param now], on the
+## ship drawn between them as MatchView draws her.
 func show_water(then: ShipPose, now: ShipPose, alpha: float) -> void:
 	if _structure == null:
 		return
-	var heads := PackedFloat64Array()
-	heads.resize(_middles.size())
-	for cell in _middles.size():
-		var head := lerpf(_head(then, cell), _head(now, cell), alpha)
-		heads[cell] = head
+	_ship = then.transform.interpolate_with(now.transform, alpha)
+	_level = _ship.basis.inverse().orthonormalized()
+	_up = _level * Vector3.UP
+	_water.set_shader_parameter(&"world_to_ship", _ship.affine_inverse())
+	var levels := PackedFloat64Array()
+	levels.resize(_surfaces.size())
+	for cell in _surfaces.size():
+		var level := lerpf(_level_of(then, cell), _level_of(now, cell), alpha)
+		levels[cell] = level
 		var surface := _surfaces[cell]
 		if surface == null:
 			continue
 		var box := _boxes[cell]
-		var showing := head > box.position.y + SHOWS and head < box.end.y - SHOWS
+		var reach := CellSurface.reach(_ship, box)
+		var showing := level > reach.x + SHOWS and level < reach.y - SHOWS
 		if surface.visible != showing:
 			surface.visible = showing
 		if showing:
-			surface.position.y = head
+			surface.transform = CellSurface.placed(_ship, _level, box, level)
 	for door: StringName in _leaves:
 		var shut: float = lerpf(
 			then.doors_shut.get(door, 0.0), now.doors_shut.get(door, 0.0), alpha
@@ -214,31 +222,36 @@ func show_water(then: ShipPose, now: ShipPose, alpha: float) -> void:
 		leaf.visible = shut > 0.0
 		if shut > 0.0:
 			leaf.position = _slide(door) * (shut - 1.0)
-	var sea := lerpf(then.height_of(0.0, Vector3.ZERO), now.height_of(0.0, Vector3.ZERO), alpha)
 	for index in _passages.size():
-		_show_pour(index, heads, sea, now)
+		_show_pour(index, levels, now)
 	for burst in BURSTS:
 		if _burst_ages[burst] >= 0.0:
-			_bursts[burst].position.y = heads[_burst_cells[burst]] + FROTH_LIFT
+			var level := levels[_burst_cells[burst]] + FROTH_LIFT
+			_bursts[burst].position = _at_height(_burst_at[burst], level)
 
 
-## The ship-local height cell [param cell]'s water stands at under [param pose]: its
-## floor, dry, for a pose that keeps no cells.
-func _head(pose: ShipPose, cell: int) -> float:
+## The world height cell [param cell]'s water stands at under [param pose]: its box's
+## lowest corner's, dry, for a pose that keeps no cells.
+func _level_of(pose: ShipPose, cell: int) -> float:
 	if pose.levels.is_empty():
-		return _structure.cells[cell].low.y
-	return pose.height_of(pose.levels[cell], _middles[cell])
+		return pose.world_height(_structure.cells[cell].low)
+	return pose.levels[cell]
 
 
-## A cell's surface over [param box]: flat, its wobble the shader's.
+## [param point] in her moved along the world's up to world height [param height] on
+## the ship as drawn.
+func _at_height(point: Vector3, height: float) -> Vector3:
+	return point + _up * (height - (_ship * point).y)
+
+
+## A cell's surface over [param box] (CellSurface), told the box it is clipped to.
 func _surface(box: AABB) -> MeshInstance3D:
-	var plane := PlaneMesh.new()
-	plane.size = Vector2(box.size.x, box.size.z)
 	var surface := MeshInstance3D.new()
-	surface.mesh = plane
+	surface.mesh = CellSurface.sheet()
 	surface.material_override = _water
 	surface.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	surface.position = Vector3(box.get_center().x, box.position.y, box.get_center().z)
+	surface.set_instance_shader_parameter(&"clip_low", box.position)
+	surface.set_instance_shader_parameter(&"clip_high", box.end)
 	surface.visible = false
 	add_child(surface)
 	return surface
@@ -305,24 +318,26 @@ func _pour() -> MeshInstance3D:
 	return pour
 
 
-## Shows the pour through passage [param index], the cells' heads [param heads] and
-## the sea at [param sea], under [param pose]: a sheet from where the water leaves the
-## higher side to where it meets the lower, or the floor there; and air blown out of
-## the side whose water has just reached the opening's top.
-func _show_pour(index: int, heads: PackedFloat64Array, sea: float, pose: ShipPose) -> void:
+## Shows the pour through passage [param index], the cells' water at world heights
+## [param levels] and the sea at 0, under [param pose]: a sheet from where the water
+## leaves the higher side to where it meets the lower, or the floor there, falling along
+## the world's down; and air blown out of the side whose water has just reached the
+## opening's top.
+func _show_pour(index: int, levels: PackedFloat64Array, pose: ShipPose) -> void:
 	var opening := _passages[index]
 	var sides := PackedInt32Array([_sides[index * 2], _sides[index * 2 + 1]])
-	var levels := PackedFloat64Array()
+	var heights := PackedFloat64Array()
 	for side: int in sides:
-		levels.append(sea if side == -1 else heads[side])
-	var top := _tops[index]
-	var bottom := _bottoms[index]
+		heights.append(0.0 if side == -1 else levels[side])
+	var span := CellSurface.reach(_ship, _spans[index])
+	var bottom := span.x
+	var top := span.y
 	if _drawn[index] == 1:
-		_blow(index, levels, top, opening)
+		_blow(index, heights, top, opening)
 	var pour := _pours[index]
 	var crossing := _crossings[index]
 	var landing := _landings[index]
-	if _drawn[index] == 0 or maxf(levels[0], levels[1]) <= bottom + SHOWS:
+	if _drawn[index] == 0 or maxf(heights[0], heights[1]) <= bottom + SHOWS:
 		# Dry, or never drawn pouring: nothing to do but keep it hidden.
 		if pour.visible:
 			pour.visible = false
@@ -334,16 +349,19 @@ func _show_pour(index: int, heads: PackedFloat64Array, sea: float, pose: ShipPos
 	landing.visible = false
 	if crossing != null:
 		crossing.visible = false
-	var floors := PackedFloat64Array([_floors[index * 2], _floors[index * 2 + 1]])
 	var axis := opening.facing()
 	var open := 1.0 - float(pose.doors_shut.get(opening.name, 0.0))
-	var high := 0 if levels[0] >= levels[1] else 1
+	var high := 0 if heights[0] >= heights[1] else 1
 	var low := 1 - high
-	var drop := levels[high] - maxf(levels[low], floors[low])
-	if open <= 0.0 or levels[high] <= bottom + SHOWS or levels[high] - levels[low] < POURS:
+	# The floor of the lower side under the opening, as high as it stands in the world.
+	var under := opening.centre
+	under.y = _floors[index * 2 + low]
+	var floor_under := -INF if sides[low] == -1 else (_ship * under).y
+	var drop := heights[high] - maxf(heights[low], floor_under)
+	if open <= 0.0 or heights[high] <= bottom + SHOWS or heights[high] - heights[low] < POURS:
 		return
-	var from := minf(levels[high], top)
-	var to := maxf(levels[low], floors[low])
+	var from := minf(heights[high], top)
+	var to := maxf(heights[low], floor_under)
 	var strength := clampf(drop / FLOOD, 0.15, 1.0)
 	var centre := opening.centre
 	var width := 0.0
@@ -354,7 +372,7 @@ func _show_pour(index: int, heads: PackedFloat64Array, sea: float, pose: ShipPos
 		# side is over it, down the hole's longer way.
 		if not _over(sides[high], opening.centre.y):
 			return
-		from = opening.centre.y
+		from = (_ship * centre).y
 		var long := 0 if opening.size.x >= opening.size.z else 2
 		width = opening.size[long]
 		across[long] = 1.0
@@ -373,30 +391,38 @@ func _show_pour(index: int, heads: PackedFloat64Array, sea: float, pose: ShipPos
 	# Through a wall it leaves at the speed the head over it drives and arcs on into the
 	# lower side as it falls: thrown 2 √(head × fall) out, a jet from a porthole under
 	# the sea, barely a lip off a weir. Pouring in through a deck from the open sky, the
-	# sky lights it.
+	# sky lights it. It falls along the world's down, its sheet and its landing turned
+	# level with the world.
 	var thrown := 0.0
 	if axis != 1:
-		var head := maxf(levels[high] - (from + maxf(bottom, levels[low])) * 0.5, 0.0)
+		var head := maxf(heights[high] - (from + maxf(bottom, heights[low])) * 0.5, 0.0)
 		thrown = minf(2.0 * sqrt(head * tall), MOST_THROW)
+	var short := opening.size[int(normal.abs().max_axis_index())]
+	across = _flat(across)
+	normal = _flat(normal)
 	var outdoor := 1.0 if axis == 1 and sides[high] == -1 else 0.0
-	var middle := Vector3(centre.x, (from + to) * 0.5, centre.z)
-	var falling := Basis(across * width, Vector3.UP * tall, normal)
+	var middle := _at_height(centre, (from + to) * 0.5)
+	var falling := Basis(across * width, _up * tall, normal)
 	_hang(pour, falling, middle, strength, Vector3(0.0, 0.0, thrown), outdoor)
-	var lands := Vector3(centre.x, to + FROTH_LIFT, centre.z) + normal * thrown
+	var lands := _at_height(centre + normal * thrown, to + FROTH_LIFT)
 	var spread := lerpf(LANDING.x, LANDING.y, strength)
-	var patch := Basis(across * (width + LANDING_WIDER), Vector3.UP, normal * spread)
+	var patch := Basis(across * (width + LANDING_WIDER), _up, normal * spread)
 	if crossing != null and axis == 1:
-		var short := opening.size[int(normal.abs().max_axis_index())]
-		var through := Basis(normal * short, Vector3.UP * tall, across)
+		var through := Basis(normal * short, _up * tall, across)
 		_hang(crossing, through, middle, strength, Vector3.ZERO, outdoor)
 		var wide := short + LANDING_WIDER
-		patch = Basis(across * (width + LANDING_WIDER), Vector3.UP, normal * wide)
+		patch = Basis(across * (width + LANDING_WIDER), _up, normal * wide)
 	elif crossing != null:
 		# A round jet: a second sheet edge-on to the first, arcing out the same way, so
 		# it has a body seen from beside it too.
-		var edge_on := Basis(normal * width, Vector3.UP * tall, across)
+		var edge_on := Basis(normal * width, _up * tall, across)
 		_hang(crossing, edge_on, middle, strength, Vector3(thrown / width, 0.0, 0.0), outdoor)
 	_lay(landing, patch, lands, strength, -1.0)
+
+
+## [param direction] in her laid level with the world, a unit long.
+func _flat(direction: Vector3) -> Vector3:
+	return (direction - _up * direction.dot(_up)).normalized()
 
 
 ## Hangs [param pour] as [param basis] at [param middle], pouring as hard as
@@ -443,7 +469,7 @@ func _middle(side: int, axis: int) -> float:
 
 
 ## Bursts the air out of [param opening] (passage [param index]) on the water of a
-## side whose water, at [param levels], has just reached its [param top] since last
+## side whose water, at world heights [param levels], has just reached its [param top] since last
 ## drawn: bubbles breaking its surface beside the opening.
 func _blow(index: int, levels: PackedFloat64Array, top: float, opening: ShipOpening) -> void:
 	var last := _last_heads[index]
@@ -458,10 +484,10 @@ func _blow(index: int, levels: PackedFloat64Array, top: float, opening: ShipOpen
 		var axis := opening.facing()
 		if axis != 1:
 			at[axis] += signf(_middle(cell, axis) - at[axis]) * BURST_IN
-		at.y = levels[side] + FROTH_LIFT
-		var flat := Basis.from_scale(Vector3(BURST, 1.0, BURST))
-		_lay(_bursts[burst], flat, at, 1.0, 0.0)
+		var flat := _level * Basis.from_scale(Vector3(BURST, 1.0, BURST))
+		_lay(_bursts[burst], flat, _at_height(at, levels[side] + FROTH_LIFT), 1.0, 0.0)
 		_burst_cells[burst] = cell
+		_burst_at[burst] = at
 		_burst_ages[burst] = 0.0
 		set_process(true)
 

@@ -4,10 +4,20 @@ extends RefCounted
 ## cell, which watertight doors are shut, what the sinking has announced, and the
 ## iceberg hit — where it struck and when. A physical scenario's sinking is baked once,
 ## at match start, from the hit the must-sink rule chose (MustSink) or the explicit one
-## the scenario gives: SinkStepper run in one-second steps to the end (SinkTimeline),
-## read between its seconds. An authored fixture plays its keyframes and events. Either
+## the scenario gives: SinkStepper run in the steps it chooses to the end (SinkTimeline),
+## read between its steps — her attitude turned from one kept rotation to the next, the
+## sea and each cell's water carried between them — her trim and heel read off it for
+## the HUD and every reader, its lurches warned, and the phase she is in named from where
+## she stands. An authored fixture plays its keyframes and events. Either
 ## way, once built it is a pure function of (ship, scenario, seed, tick) — nothing a
 ## player does moves it, and it is never stored in a snapshot (D5).
+
+## The phases the physics names, from where she stands (§5b.4): past these many degrees
+## of list she is capsizing, past these listing; past these of trim she is by the head
+## or the stern — whichever lean is the more of its own mark (est.).
+const CAPSIZING_DEG := 30.0
+const LISTING_DEG := 5.0
+const TRIMMED_DEG := 2.0
 
 
 ## One of an authored scenario's events, placed on this match's ticks.
@@ -57,6 +67,18 @@ var _clock := 1.0
 var _physics_events: Array[SimEvent] = []
 var _gone_tick := -1
 var _plunge_tick := -1
+## Per kept step, its rotation as the world turns her; her centre of mass, which she
+## turns about; the physics' lurches — the ticks each is warned, swings and is over, and
+## the list it swings her by; the tick she passes the attitude a match follows, or -1;
+## the tick a cell first takes water, or -1; and the tick the water stopped with her
+## afloat, or -1.
+var _turns: Array[Quaternion] = []
+var _pivot_of_mass := Vector3.ZERO
+var _lurch_ticks := PackedInt32Array()
+var _lurch_heels := PackedFloat64Array()
+var _unsupported_tick := -1
+var _flooding_tick := -1
+var _afloat_tick := -1
 
 
 ## [param sink_stream] is the sinking stream, SeedStreams' (match seed, "sink"),
@@ -84,6 +106,8 @@ func _init(
 	if structure == null or not scenario.is_physical():
 		return
 	var physics := sea if sea != null else SeaPhysics.load_default()
+	var centre := structure.mass_centre()
+	_pivot_of_mass = Vector3(centre[0], centre[1], centre[2])
 	if scenario.explicit_hit != null:
 		_choice = MustSink.given(structure, scenario, physics)
 	else:
@@ -102,13 +126,29 @@ func _init(
 			_passages.append(opening)
 	_passages.append_array(_damage.openings)
 	for frame in _timeline.count():
-		_frame_ticks.append(_tick_of(frame * _timeline.step))
+		_frame_ticks.append(_tick_of(_timeline.times[frame]))
+		_turns.append(_turn_of(frame).get_rotation_quaternion())
+	var unsupported := _timeline.first_past(physics.supported_deg)
+	if unsupported != -1:
+		_unsupported_tick = _frame_ticks[unsupported]
 	for event: SinkTimeline.Event in _timeline.events:
-		_physics_events.append(SimEvent.physics(_tick_of(event.seconds), event.kind, event.name))
-		if event.kind == SinkTimeline.Kind.PLUNGING:
-			_plunge_tick = _tick_of(event.seconds)
+		var tick := _tick_of(event.seconds)
+		_physics_events.append(SimEvent.physics(tick, event.kind, event.name, event.heel_deg))
+		match event.kind:
+			SinkTimeline.Kind.PLUNGING:
+				_plunge_tick = tick
+			SinkTimeline.Kind.FLOODING:
+				_flooding_tick = tick if _flooding_tick == -1 else _flooding_tick
+			SinkTimeline.Kind.LURCHING:
+				_lurch_ticks.append(tick)
+			SinkTimeline.Kind.LURCHED:
+				_lurch_ticks.append(tick)
+				_lurch_ticks.append(tick + Ticks.from_seconds(event.lasts / _clock))
+				_lurch_heels.append(event.heel_deg)
 	if _timeline.gone_at >= 0.0:
 		_gone_tick = _tick_of(_timeline.gone_at)
+	if _timeline.end == SinkTimeline.End.AFLOAT:
+		_afloat_tick = end_tick()
 
 
 ## The schedule of [param config]'s match: its scenario on its ship, off its own
@@ -154,29 +194,31 @@ func pose_at(tick: int) -> ShipPose:
 	return pose
 
 
-## The pose the bake has at [param tick]: level, the sea where it stands up her and
-## every cell's water, read between the two kept seconds either side of it; at rest
-## before the hit and as last kept after the end.
+## The pose the bake has at [param tick], read between the two kept steps either side
+## of it: her rotation turned from one to the other the short way round, the sea's
+## height up her and every cell's water carried between them; at rest before the hit and
+## as last kept after the end. She turns about her centre of mass, which keeps its place
+## across the world, and stands as high as the sea up her says — at rest at her
+## freeboard, as an authored pose does. Her trim and heel are read off the rotation.
 func _physical(tick: int) -> ShipPose:
+	var last := _frame_ticks.size() - 1
 	var frame := 0
 	var weight := 0.0
-	var last := _frame_ticks.size() - 1
 	if tick >= _frame_ticks[last]:
 		frame = last
 	elif tick > _hit_tick:
-		frame = clampi((tick - _hit_tick) * last / maxi(_frame_ticks[last] - _hit_tick, 1), 0, last)
-		while frame > 0 and _frame_ticks[frame] > tick:
-			frame -= 1
-		while _frame_ticks[frame + 1] <= tick:
-			frame += 1
-		weight = float(tick - _frame_ticks[frame]) / (_frame_ticks[frame + 1] - _frame_ticks[frame])
+		frame = _frame_ticks.bsearch(tick, false) - 1
+		var span := _frame_ticks[frame + 1] - _frame_ticks[frame]
+		weight = float(tick - _frame_ticks[frame]) / span if span > 0 else 1.0
 	var next := mini(frame + 1, last)
 	var sea := lerpf(_timeline.seas[frame], _timeline.seas[next], weight)
-	# Level, sunk as far as the sea has risen up her from where she rests: at rest she
-	# stands at her freeboard, as an authored pose does.
+	var turn := Basis(_turns[frame].slerp(_turns[next], weight))
 	var sink := sea - _timeline.rest
-	var origin := Vector3(0.0, _freeboard - sink, 0.0)
-	var pose := ShipPose.new(sink, 0.0, 0.0, Transform3D(Basis.IDENTITY, origin))
+	var origin := turn * -_pivot_of_mass + _pivot_of_mass
+	origin.y = _freeboard - sink
+	var trim_deg := rad_to_deg(atan2(-turn.x.y, turn.x.x))
+	var heel_deg := rad_to_deg(atan2(turn.y.z, turn.z.z))
+	var pose := ShipPose.new(sink, trim_deg, heel_deg, Transform3D(turn, origin))
 	pose.cells = _cells
 	var count := _timeline.cells
 	pose.levels.resize(count)
@@ -189,7 +231,18 @@ func _physical(tick: int) -> ShipPose:
 		var seconds := Ticks.to_seconds(tick - _hit_tick) * _clock
 		for door in _doors.size():
 			pose.doors_shut[_doors[door]] = 1.0 - SinkStepper.open_share(_door_times[door], seconds)
+	for lurch in _lurch_heels.size():
+		if tick >= _lurch_ticks[lurch * 3] and tick < _lurch_ticks[lurch * 3 + 1]:
+			pose.lurch_warning = _lurch_heels[lurch]
+		elif tick >= _lurch_ticks[lurch * 3 + 1] and tick < _lurch_ticks[lurch * 3 + 2]:
+			pose.lurch = _lurch_heels[lurch]
 	return pose
+
+
+## Kept step [param frame]'s rotation as a Basis: the world's axes of her ship's.
+func _turn_of(frame: int) -> Basis:
+	var r := _timeline.rotations.slice(frame * 9, frame * 9 + 9)
+	return Basis(Vector3(r[0], r[3], r[6]), Vector3(r[1], r[4], r[7]), Vector3(r[2], r[5], r[8]))
 
 
 ## Every event of an authored scenario that has happened by [param tick], in its order.
@@ -241,6 +294,13 @@ func plunge_tick() -> int:
 	return _plunge_tick
 
 
+## The tick she first stands further from upright than a match follows her
+## (SeaPhysics.supported_deg, §5b.3's interim rule until SH32), or -1 for never: on it
+## the match settles, everyone left going out together.
+func unsupported_tick() -> int:
+	return _unsupported_tick
+
+
 ## How the match's hit was chosen and baked, or null without a physical sinking.
 func choice() -> MustSink.Choice:
 	return _choice
@@ -274,9 +334,14 @@ func hit_tick() -> int:
 	return _hit_tick
 
 
-## The name of the phase the sinking is in at [param tick]: the last keyframe's
-## by then that names one, or "" before any does.
+## The name of the phase the sinking is in at [param tick], or "" before it has one.
+## The physics' is named from where she stands then (§5b.4): Holed until a cell takes
+## water, then Flooding; Listing, By the head or By the stern once she leans past their
+## marks; Capsizing past its list; Afloat once the water has stopped. An authored
+## fixture's is the last keyframe's by then that names one.
 func phase_at(tick: int) -> String:
+	if _timeline != null:
+		return _physical_phase(tick)
 	var elapsed := tick - _start_tick
 	var phase := ""
 	for index in _keyframes.size():
@@ -285,6 +350,23 @@ func phase_at(tick: int) -> String:
 		if _keyframes[index].phase != "":
 			phase = _keyframes[index].phase
 	return phase
+
+
+func _physical_phase(tick: int) -> String:
+	if tick < _hit_tick:
+		return ""
+	if _afloat_tick != -1 and tick >= _afloat_tick:
+		return "Afloat"
+	var pose := _physical(tick)
+	var listing := absf(pose.heel_deg) / LISTING_DEG
+	var trimmed := absf(pose.trim_deg) / TRIMMED_DEG
+	if absf(pose.heel_deg) >= CAPSIZING_DEG:
+		return "Capsizing"
+	if listing >= 1.0 and listing >= trimmed:
+		return "Listing"
+	if trimmed >= 1.0:
+		return "By the head" if pose.trim_deg > 0.0 else "By the stern"
+	return "Flooding" if _flooding_tick != -1 and tick >= _flooding_tick else "Holed"
 
 
 ## The keyframes' pose at [param tick], before any event.

@@ -11,8 +11,9 @@ extends RefCounted
 ##   01:02.1 hold_bilge flooding
 ##   01:31.0 seat 1 out · cold · place 5 · credit crate 2
 ##   winner seat 2 at 02:21.0 · digest 9f3c…
-##   sinking at the end: physics 0:02:18 · sea 1.21 m up her · hold_bilge full · hold 0.3 m
-##   bake: gone at 0:09:12
+##   sinking at the end: physics 0:02:18 · sea 1.21 m up her · trim +2.1° · list -0.4° ·
+##     hold_bilge full · hold 0.3 m
+##   bake: gone at 0:09:12 · trim +31.0° · list +3.2°
 ## What `make match` prints and what the golden files hold. Seats are sim seat ids.
 
 const CAUSES := {PlayerState.Cause.NONE: "none", PlayerState.Cause.COLD: "cold"}
@@ -93,6 +94,8 @@ func add(events: Array[SimEvent]) -> void:
 				_lines.append("%s water through %s" % [clock(event.tick), event.cell])
 			SimEvent.Kind.SHIP_GONE:
 				_lines.append("%s she is gone" % clock(event.tick))
+			SimEvent.Kind.BOATS_USELESS:
+				_lines.append("%s %s boats useless" % [clock(event.tick), event.cell])
 
 
 ## " · credit crate n" for an exit a crate is credited with — " shoved by seat s"
@@ -106,9 +109,20 @@ static func _crate_credit(event: SimEvent) -> String:
 	return line
 
 
-## The closing line: the verdict, or where the match was stopped, and the digest.
+## The closing line: the verdict, or where the match was stopped, and the digest — told
+## first, for a match that ended as she leaned past what a match follows (§5b.3's
+## interim rule), how far over she lay then.
 func finish(runner: MatchRunner) -> void:
 	var digest := runner.digest.hex().substr(0, DIGEST_LENGTH)
+	var schedule := runner.sim.schedule
+	if _ended != null and _ended.tick == schedule.unsupported_tick():
+		var up := schedule.pose_at(_ended.tick).transform.basis.y.y
+		_lines.append(
+			(
+				"%s she lies %.0f° over · the match follows her no further"
+				% [clock(_ended.tick), rad_to_deg(acos(clampf(up, -1.0, 1.0)))]
+			)
+		)
 	if _ended == null:
 		_lines.append("unfinished at %s · digest %s" % [clock(runner.tick()), digest])
 	elif _ended.seat == -1:
@@ -128,7 +142,8 @@ static func physics_clock(seconds: float) -> String:
 
 ## Where [param sim]'s sinking stood when the match ended or stopped — how long the
 ## physics had run, how far the sea had risen up her and the water over each wet cell's
-## floor — and how its bake ends, past what the match played.
+## lowest corner, level with the world — and how its bake ends, past what the match
+## played.
 func _sinking(sim: MatchSim) -> void:
 	var timeline := sim.schedule.timeline()
 	if timeline == null:
@@ -139,25 +154,42 @@ func _sinking(sim: MatchSim) -> void:
 	)
 	var pose := sim.schedule.pose_at(tick)
 	var line := (
-		"sinking at the end: physics %s · sea %.2f m up her" % [physics_clock(since), pose.sink]
+		"sinking at the end: physics %s · sea %.2f m up her · trim %+.1f° · list %+.1f°"
+		% [physics_clock(since), pose.sink, pose.trim_deg, pose.heel_deg]
 	)
 	var structure := sim.config.ship.structure
-	for cell: FloodCell in structure.cells:
-		var floor_point := Vector3(
-			(cell.low.x + cell.high.x) * 0.5, cell.low.y, (cell.low.z + cell.high.z) * 0.5
-		)
-		var depth := pose.water_height(floor_point) - cell.low.y
-		if depth >= cell.high.y - cell.low.y:
+	for index in structure.cells.size():
+		var cell := structure.cells[index]
+		var lowest := INF
+		var highest := -INF
+		for corner in 8:
+			var point := Vector3(
+				cell.high.x if corner & 1 else cell.low.x,
+				cell.high.y if corner & 2 else cell.low.y,
+				cell.high.z if corner & 4 else cell.low.z
+			)
+			lowest = minf(lowest, pose.world_height(point))
+			highest = maxf(highest, pose.world_height(point))
+		var level := pose.levels[index]
+		if level >= highest:
 			line += " · %s full" % cell.name
-		elif depth >= SinkTimeline.FIRST_WATER:
-			line += " · %s %.2f m" % [cell.name, depth]
+		elif level - lowest >= SinkTimeline.FIRST_WATER:
+			line += " · %s %.2f m" % [cell.name, level - lowest]
 	_lines.append(line)
 	var ends := {
 		SinkTimeline.End.GONE: "gone at %s" % physics_clock(timeline.gone_at),
 		SinkTimeline.End.AFLOAT: "afloat from %s" % physics_clock(timeline.length()),
 		SinkTimeline.End.CAPPED: "afloat at the cap, %s" % physics_clock(timeline.length()),
 	}
-	_lines.append("bake: %s" % ends[timeline.end])
+	# How she stood as she went — or as the bake ended — read off her pose then.
+	var last := sim.schedule.gone_tick() if timeline.is_gone() else sim.schedule.end_tick()
+	var going := sim.schedule.pose_at(last)
+	_lines.append(
+		(
+			"bake: %s · trim %+.1f° · list %+.1f°"
+			% [ends[timeline.end], going.trim_deg, going.heel_deg]
+		)
+	)
 
 
 func text() -> String:

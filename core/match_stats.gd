@@ -34,6 +34,8 @@ class SeatStats:
 
 var seats: Array[SeatStats] = []
 var ended: bool
+## The tick the match ended on; -1 before then.
+var ended_tick: int = -1
 ## The last seat dry once the match has ended; -1 before then, or for a draw.
 var winner: int = -1
 
@@ -67,6 +69,7 @@ func add(events: Array[SimEvent]) -> void:
 					seats[event.credit].knockouts += 1
 			SimEvent.Kind.MATCH_ENDED:
 				ended = true
+				ended_tick = event.tick
 				winner = event.seat
 				if winner != -1:
 					seats[winner].place = event.place

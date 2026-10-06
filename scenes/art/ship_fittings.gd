@@ -108,11 +108,14 @@ func _init(
 	_open_ports = open_ports
 
 
-func build(mesh: ShipMesh) -> void:
+## Fits the ship out into [param mesh]; her lifeboats, which swing as she lists, hung
+## apart from it under [param ship] (Lifeboat) in [param paints] (ShipArt.paints) — or,
+## without a ship, the davits alone.
+func build(mesh: ShipMesh, ship: Node3D = null, paints := {}) -> void:
 	for room: ShipRoom in _layout.rooms:
 		_windows(mesh, room)
 		_furnish(mesh, room)
-	_lifeboats(mesh)
+	_lifeboats(mesh, ship, paints)
 	for found: Array in breaks(_space):
 		_fit_break(mesh, found)
 	_ground_tackle(mesh)
@@ -632,8 +635,10 @@ func _banquette(mesh: ShipMesh, room: ShipRoom, run: Array) -> void:
 
 
 ## Lifeboats on davits beside the open long edges of every deck standing high
-## enough over the deck beneath, where the air beyond the edge is open.
-func _lifeboats(mesh: ShipMesh) -> void:
+## enough over the deck beneath, where the air beyond the edge is open: the davits in
+## [param mesh], each run of boats with their falls hung under [param ship] from the line
+## through the davits' heads.
+func _lifeboats(mesh: ShipMesh, ship: Node3D, paints: Dictionary) -> void:
 	for index in _layout.platforms.size():
 		var platform := _layout.platforms[index]
 		var area := platform.area
@@ -654,12 +659,21 @@ func _lifeboats(mesh: ShipMesh) -> void:
 			if not _open(reach, keel):
 				continue
 			var count := floori(area.size.x / LIFEBOAT_SPACING)
+			var no_rooms: Array[PackedFloat32Array] = [
+				PackedFloat32Array(), PackedFloat32Array(), PackedFloat32Array()
+			]
+			var hung := ShipMesh.new(func(_point: Vector3) -> bool: return true, no_rooms)
+			var pivot := Vector3.ZERO
 			for boat in count:
 				var at := area.position.x + area.size.x * (boat + 0.5) / count
-				_boat(mesh, Vector3(at, keel, middle))
+				_boat(hung, Vector3(at, keel, middle))
 				for end: float in [-1.0, 1.0]:
 					var davit := at + end * (LIFEBOAT_LENGTH * 0.5 - 0.35)
-					_davit(mesh, davit, edge, middle, platform.height, side)
+					pivot = _davit(mesh, hung, davit, edge, middle, platform.height, side)
+			if ship != null:
+				var run := Lifeboat.new()
+				ship.add_child(run)
+				run.setup(int(side), pivot, hung, paints, _layout)
 
 
 ## Whether nothing of the ship stands in [param area] at or above [param height]: no
@@ -815,9 +829,12 @@ func _boat_quad(
 
 
 ## A radial davit at [param x]: a white post off the deck's edge at [param edge],
-## curving out over the boat's middle at [param middle], a block at its head and
-## its fall down to a block on the boat's gunwale.
-func _davit(mesh: ShipMesh, x: float, edge: float, middle: float, deck: float, side: float) -> void:
+## curving out over the boat's middle at [param middle], a block at its head — these
+## in [param mesh] — and its fall down to a block on the boat's gunwale, in
+## [param hung] with the boat; where its head stands.
+func _davit(
+	mesh: ShipMesh, hung: ShipMesh, x: float, edge: float, middle: float, deck: float, side: float
+) -> Vector3:
 	var post := edge + side * (DAVIT * 0.5 + 0.02)
 	var radius := absf(middle - post)
 	var section := Vector2.ONE * DAVIT
@@ -835,5 +852,6 @@ func _davit(mesh: ShipMesh, x: float, edge: float, middle: float, deck: float, s
 	mesh.turned_box(Transform3D(Basis.IDENTITY, head), BLOCK, ShipPaints.dark, 0)
 	var gunwale := deck + LIFEBOAT_LIFT + LIFEBOAT_DEPTH + BOAT_SHEER * 0.6
 	var hook := Vector3(x, gunwale + BLOCK.y * 0.5 + RIDGE, middle)
-	mesh.beam(head, hook, Vector2.ONE * FALL, ShipPaints.rope, 0)
-	mesh.turned_box(Transform3D(Basis.IDENTITY, hook), BLOCK, ShipPaints.dark, 0)
+	hung.beam(head, hook, Vector2.ONE * FALL, ShipPaints.rope, 0)
+	hung.turned_box(Transform3D(Basis.IDENTITY, hook), BLOCK, ShipPaints.dark, 0)
+	return head
