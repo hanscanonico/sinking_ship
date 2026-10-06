@@ -5,7 +5,7 @@ extends Resource
 ## sections; the cells water and air fill; the watertight walls; every opening
 ## between two cells or a cell and the outside; her mass and where it sits; and her
 ## fittings.
-## Generated with the layout (tools/gen_steamer.py). The sinking physics reads it
+## Generated with the layout (tools/gen_NAME.py). The sinking physics reads it
 ## (SinkStepper, D13); `make ship-check` proves she floats on it, level, where she is
 ## said to, and founders on her sure hit.
 
