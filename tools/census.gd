@@ -186,8 +186,10 @@ func _bands_section(
 	lines.append(
 		(
 			"The raw census bakes each seed's first drawn hit as drawn, past the quick check;"
-			+ " the match census bakes the hit the must-sink rule chose (§5b.1). The match"
-			+ " census drops the survivors, so its other shares rise in proportion (§5b.4)."
+			+ " the match census bakes the hit the must-sink rule chose (§5b.1). §5b.4"
+			+ " expects the match census's other shares to rise in proportion as it drops the"
+			+ " survivors, but where she survived a seed's first hit the rule bakes another,"
+			+ " so a share can fall as well as rise."
 		)
 	)
 	lines.append("")
@@ -197,8 +199,8 @@ func _bands_section(
 	var rows := [
 		["survives", [L.AFLOAT], false],
 		["founders upright, by the head or the stern", [L.BY_THE_HEAD, L.BY_THE_STERN], true],
-		["— by the head", [L.BY_THE_HEAD], false],
-		["— by the stern", [L.BY_THE_STERN], false],
+		["— gone by the head, capsized or not", [L.BY_THE_HEAD], false],
+		["— gone by the stern, capsized or not", [L.BY_THE_STERN], false],
 		["founders onto her side", [L.ONTO_HER_SIDE], false],
 		["heavy list (≥ 15° for ≥ 5 min afloat)", [L.HEAVY_LIST], false],
 		["capsizes (rolled past 90°)", [L.CAPSIZED], false],
@@ -230,6 +232,16 @@ func _bands_section(
 			)
 		)
 	lines.append("| breaks | 0 | 0 | 0 in 500 | in — no breaking stage yet (SH33) |")
+	lines.append("")
+	lines.append(
+		(
+			"Capsizes counts a roll past 90° only while her trim is under 45°: stood further on"
+			+ " end she has no list to speak of (the lurch rule's reading, §5b.4), so a roll"
+			+ " then is no capsize. The founders rows read how she stands as she goes, so a"
+			+ " hull that capsized is counted by the end she goes with unless she goes on her"
+			+ " side; founders upright leaves the capsized out, its two sub-rows keep them."
+		)
+	)
 	lines.append("")
 	return lines
 
