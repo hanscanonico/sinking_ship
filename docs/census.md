@@ -4,20 +4,22 @@ Written by `make census SHIP=steamer SEEDS=200` (tools/census.gd): bakes alone, 
 
 ## Each label's share against its band
 
-The raw census bakes each seed's first drawn hit as drawn, past the quick check; the match census bakes the hit the must-sink rule chose (§5b.1). The match census drops the survivors, so its other shares rise in proportion (§5b.4).
+The raw census bakes each seed's first drawn hit as drawn, past the quick check; the match census bakes the hit the must-sink rule chose (§5b.1). §5b.4 expects the match census's other shares to rise in proportion as it drops the survivors, but where she survived a seed's first hit the rule bakes another, so a share can fall as well as rise.
 
 | Label | Raw census | Match census | Band (raw, est.) | Raw against it |
 |---|---|---|---|---|
 | survives | 72.5% (145) | 0.0% (0) | 20–40% | over |
 | — afloat upside down, on her leaking air | 0.0% (0) | 0.0% (0) | — |  |
 | founders upright, by the head or the stern | 21.0% (42) | 75.5% (151) | 30–55% | under |
-| — by the head | 16.5% (33) | 54.5% (109) | — |  |
-| — by the stern | 11.0% (22) | 45.5% (91) | — |  |
+| — gone by the head, capsized or not | 16.5% (33) | 54.5% (109) | — |  |
+| — gone by the stern, capsized or not | 11.0% (22) | 45.5% (91) | — |  |
 | founders onto her side | 0.0% (0) | 0.0% (0) | — |  |
 | heavy list (≥ 15° for ≥ 5 min afloat) | 15.0% (30) | 5.0% (10) | 15–35% | in |
 | capsizes (rolled past 90°) | 6.5% (13) | 24.5% (49) | 5–20% | in |
 | gone within 20 min of physics | 7.0% (14) | 31.5% (63) | 10–30% | under |
 | breaks | 0 | 0 | 0 in 500 | in — no breaking stage yet (SH33) |
+
+Capsizes counts a roll past 90° only while her trim is under 45°: stood further on end she has no list to speak of (the lurch rule's reading, §5b.4), so a roll then is no capsize. The founders rows read how she stands as she goes, so a hull that capsized is counted by the end she goes with unless she goes on her side; founders upright leaves the capsized out, its two sub-rows keep them.
 
 ## The must-sink rule, per match
 
@@ -79,8 +81,8 @@ A pocket is a cell's air trapped under its ceiling after the hit (SinkAir): from
 
 | Budget (§5b.4, est.) | Measured | Against it |
 |---|---|---|
-| one bake: p95 under 2.4 s | p50 1.13 · p95 4.35 · most 5.44 s | over |
-| a match's bakes: p95 under 5.0 s | p50 3.82 · p95 7.67 · most 8.74 s | over |
+| one bake: p95 under 2.4 s | p50 1.34 · p95 4.55 · most 6.05 s | over |
+| a match's bakes: p95 under 5.0 s | p50 4.08 · p95 8.77 · most 11.63 s | over |
 | the longest timeline under 200 kB | p50 15.5 · p95 19.8 · most 21.9 kB | in |
 
 Steps a bake: p50 976 · p95 2025 · most 2708. The longest sinking (gone at 5:25:28) keeps 294 of 2647 states, 10.9 kB; with every state kept, 25.3 kB.
