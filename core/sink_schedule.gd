@@ -125,13 +125,12 @@ func _init(
 		if opening.starts == ShipOpening.Start.OPEN or opening.name in _damage.left_open:
 			_passages.append(opening)
 	_passages.append_array(_damage.openings)
-	var upright := cos(deg_to_rad(physics.supported_deg))
 	for frame in _timeline.count():
 		_frame_ticks.append(_tick_of(_timeline.times[frame]))
-		var turn := _turn_of(frame)
-		_turns.append(turn.get_rotation_quaternion())
-		if _unsupported_tick == -1 and turn.y.y < upright:
-			_unsupported_tick = _frame_ticks[frame]
+		_turns.append(_turn_of(frame).get_rotation_quaternion())
+	var unsupported := _timeline.first_past(physics.supported_deg)
+	if unsupported != -1:
+		_unsupported_tick = _frame_ticks[unsupported]
 	for event: SinkTimeline.Event in _timeline.events:
 		var tick := _tick_of(event.seconds)
 		_physics_events.append(SimEvent.physics(tick, event.kind, event.name, event.heel_deg))

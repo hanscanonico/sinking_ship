@@ -234,3 +234,20 @@ func test_a_physics_lurch_is_warned_before_it_swings() -> void:
 	assert_ne(heel, 0.0, "by so many degrees")
 	assert_eq(schedule.pose_at(lurched - 1).lurch_warning, heel, "the pose telegraphs it")
 	assert_eq(schedule.pose_at(lurched).lurch, heel, "and names it as it swings")
+
+
+func test_the_support_limit_is_read_through_the_series() -> void:
+	# §5b.3's interim rule fires on the first kept state whose up component falls below
+	# the cosine of the limit as the series sine of its complement (R21): a state on
+	# that value is still supported, the next number below it is not.
+	var limit := Attitude.sine_of_degrees(90.0 - 45.0)
+	var below := limit - 1e-16
+	assert_lt(below, limit, "a 64-bit number under the series value")
+	var timeline := SinkTimeline.new()
+	for up: float in [1.0, 0.9, limit, below, 0.5]:
+		timeline.times.append(float(timeline.times.size()) * 10.0)
+		var side := sqrt(1.0 - up * up)
+		timeline.rotations.append_array([1.0, 0.0, 0.0, 0.0, up, -side, 0.0, side, up])
+	assert_eq(timeline.first_past(45.0), 3, "the state just past the series value")
+	assert_eq(timeline.first_past(80.0), -1, "never past a wider limit")
+	assert_eq(timeline.first_past(5.0), 1, "past a narrower one sooner")
