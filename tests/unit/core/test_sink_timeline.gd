@@ -1,6 +1,6 @@
 extends GutTest
 ## The baked timeline (§5b.4, SH28): a pure function of (ship, scenario, seed); its
-## compaction within keep_level and keep_turn_deg of the bake; its events at their own
+## compaction within keep_level, keep_turn_deg and keep_air of the bake; its events at their own
 ## seconds, each warned before it happens; its bytes read back exactly; and its digest
 ## moved by any byte. Bakes alone, no match played.
 
@@ -48,18 +48,20 @@ func _truth(bake: SinkBake, state: int) -> PackedFloat64Array:
 
 
 ## [param timeline] read at [param seconds] of physics, as SinkSchedule reads it between
-## two kept states: the sea, every cell's head, and her rotation.
+## two kept states: the sea, every cell's head, her rotation, and every cell's pocket.
 func _read(timeline: SinkTimeline, seconds: float) -> Array:
 	var frame := timeline.frame_at(seconds)
 	var next := mini(frame + 1, timeline.count() - 1)
 	var span := timeline.times[next] - timeline.times[frame]
 	var weight := clampf((seconds - timeline.times[frame]) / span, 0.0, 1.0) if span > 0.0 else 0.0
 	var heads := PackedFloat64Array()
+	var pockets := PackedFloat64Array()
 	for cell in timeline.cells:
 		var a := timeline.heads[frame * timeline.cells + cell]
 		heads.append(lerpf(a, timeline.heads[next * timeline.cells + cell], weight))
+		pockets.append(timeline.pocket(frame, next, weight, cell))
 	var sea := lerpf(timeline.seas[frame], timeline.seas[next], weight)
-	return [sea, heads, timeline.blended(frame, next, weight)]
+	return [sea, heads, timeline.blended(frame, next, weight), pockets]
 
 
 func test_timeline_is_pure_in_ship_scenario_and_seed() -> void:
@@ -89,17 +91,29 @@ func test_compaction_stays_within_tolerance() -> void:
 	assert_eq(every.count(), bake.times().size(), "the uncompacted keeps them all")
 	var turn := _sea.keep_turn_deg + 1e-3
 	var level := _sea.keep_level + 1e-6
-	var worst := Vector2.ZERO
+	var air := _sea.keep_air + 1.0 / SinkTimeline.PER_METRE
+	var worst := Vector3.ZERO
+	var pockets := 0
 	for state in bake.times().size():
-		var read := _read(timeline, bake.times()[state])
+		# At the microsecond the timeline holds it at: a pocket comes or goes on a kept
+		# state's very second.
+		var at := roundi(bake.times()[state] * SinkTimeline.PER_SECOND) / SinkTimeline.PER_SECOND
+		var read := _read(timeline, at)
 		worst.x = maxf(worst.x, absf(read[0] - bake.seas()[state]))
 		for cell in bake.cells():
 			var off: float = read[1][cell] - bake.heads()[state * bake.cells() + cell]
 			# Up her, and in the world, where her height in the sea carries it too.
 			worst.x = maxf(worst.x, maxf(absf(off), absf(off - read[0] + bake.seas()[state])))
+			var truth := bake.pockets()[state * bake.cells() + cell]
+			var pocket: float = read[3][cell]
+			assert_eq(pocket > 0.0, truth > 0.0, "a pocket where the bake has one")
+			worst.z = maxf(worst.z, absf(pocket - truth))
+			pockets += 1 if truth > 0.0 else 0
 		worst.y = maxf(worst.y, _degrees_apart(read[2], _truth(bake, state)))
 	assert_lte(worst.x, level, "every state's water within keep_level")
 	assert_lte(worst.y, turn, "every state's attitude within keep_turn_deg")
+	assert_gt(pockets, 0, "air trapped on the way")
+	assert_lte(worst.z, air, "every pocket's pressure within keep_air")
 	# Between the states too, against the uncompacted read the same way: no step.
 	var seconds := 0.0
 	var between := Vector2.ZERO

@@ -2,13 +2,14 @@ class_name SinkBake
 extends RefCounted
 ## The bake (§5b.1, §5b.4, D7): SinkStepper run once from the hit, each step as long as
 ## the physics chooses (SinkStepper.advance) but cut short to land where a cell's water
-## reaches its ceiling or the sill of an opening it spills over, so those events stand at
-## their own seconds; to the end — she is gone, or the water has stopped coming in and
-## she lies still — or the bake's cap. Every state and every event, a lurch with its
-## warning, go into the timeline it makes (SinkTimeline). It runs a slice at a time —
-## run() takes the steps it is allowed — so a scene can spread it across frames (R20):
-## a bake run in slices is the bake run straight through, step for step, and the stepper
-## stays state in, state out.
+## reaches its ceiling, the sill of an opening it spills over or — with the air stage on
+## — the top of the last opening its air had, so those events stand at their own seconds
+## and a pocket traps the air it had then; to the end — she is gone, or the water has
+## stopped coming in and she lies still — or the bake's cap. Every state and every event,
+## a lurch with its warning, go into the timeline it makes (SinkTimeline). It runs a
+## slice at a time — run() takes the steps it is allowed — so a scene can spread it
+## across frames (R20): a bake run in slices is the bake run straight through, step for
+## step, and the stepper stays state in, state out.
 
 ## A level this close to a ceiling or a sill, in metres, has reached it: the
 ## timeline's millimetre. A landing its first guess misses is guessed again, by false
@@ -34,12 +35,13 @@ var _done := false
 var _end := SinkTimeline.End.CAPPED
 var _gone_at := -1.0
 ## Every state, the hit's first: its physics second, the sea up her, her rotation (nine
-## numbers), and every cell's head and water.
+## numbers), and every cell's head, water and pocket's pressure (SinkStepper.pressures).
 var _times := PackedFloat64Array()
 var _seas := PackedFloat64Array()
 var _rotations := PackedFloat64Array()
 var _heads := PackedFloat64Array()
 var _waters := PackedFloat64Array()
+var _pockets := PackedFloat64Array()
 var _events: Array[SinkTimeline.Event] = []
 var _cells := 0
 var _wet := PackedByteArray()
@@ -51,9 +53,10 @@ var _plunged := false
 var _lurches: Lurches
 var _boats: Array[ShipFitting] = []
 var _useless := PackedByteArray()
-## Per ceiling and sill — every cell's ceiling, then every opening's sill — how far
-## under it the water stood at the last state, and 1 once it was ever under it by more
-## than REACHED; and 1 once a step has landed on it, or for a sill no step lands on.
+## Per ceiling and sill — every cell's ceiling, then every opening's sill, then with the
+## air stage on every cell's highest opening top — how far under it the water stood at
+## the last state, and 1 once it was ever under it by more than REACHED; and 1 once a
+## step has landed on it, or for a sill no step lands on.
 var _gaps := PackedFloat64Array()
 var _under := PackedByteArray()
 var _landed := PackedByteArray()
@@ -116,18 +119,18 @@ func seconds() -> float:
 func timeline() -> SinkTimeline:
 	if _timeline == null:
 		run(1 << 62)
-		_timeline = SinkTimeline.made(self, _sea.keep_level, _sea.keep_turn_deg)
+		_timeline = SinkTimeline.made(self, _sea.keep_level, _sea.keep_turn_deg, _sea.keep_air)
 	return _timeline
 
 
 ## The same bake with every state kept: what the compaction is held to.
 func uncompacted() -> SinkTimeline:
 	run(1 << 62)
-	return SinkTimeline.made(self, 0.0, 0.0)
+	return SinkTimeline.made(self, 0.0, 0.0, 0.0)
 
 
 ## What the bake kept, for SinkTimeline to make itself from: every state's second, sea,
-## rotation and heads, and how many cells each has.
+## rotation, heads and pockets, and how many cells each has.
 func times() -> PackedFloat64Array:
 	return _times
 
@@ -146,6 +149,10 @@ func heads() -> PackedFloat64Array:
 
 func waters() -> PackedFloat64Array:
 	return _waters
+
+
+func pockets() -> PackedFloat64Array:
+	return _pockets
 
 
 func cells() -> int:
@@ -197,6 +204,17 @@ func _take() -> void:
 			_full[cell] = 1
 			_events.append(
 				SinkTimeline.Event.new(at, SinkTimeline.Kind.FULL, _stepper.cell_name(cell))
+			)
+		# A pocket at the state before this one, and at this one (_keep).
+		var held := _pockets[_pockets.size() - _cells * 2 + cell] > 0.0
+		var holds := _pockets[_pockets.size() - _cells + cell] > 0.0
+		if holds and not held:
+			_events.append(
+				SinkTimeline.Event.new(at, SinkTimeline.Kind.TRAPPED, _stepper.cell_name(cell))
+			)
+		elif held and state.air[cell] < 0.0:
+			_events.append(
+				SinkTimeline.Event.new(at, SinkTimeline.Kind.VENTED, _stepper.cell_name(cell))
 			)
 	_lurches.follow(before, state, seconds)
 	for boat in _boats.size():
@@ -283,6 +301,9 @@ func _gaps_of(state: FloodState) -> PackedFloat64Array:
 		var sides := _stepper.opening_sides(index)
 		var high := maxf(_level(state, sides.x), _level(state, sides.y))
 		gaps[_cells + index] = _stepper.sill_of(index) - high
+	if _sea.air:
+		for cell in _cells:
+			gaps.append(_stepper.highest_top(cell) - state.heads[cell])
 	return gaps
 
 
@@ -311,6 +332,7 @@ func _keep(state: FloodState) -> void:
 	_rotations.append_array(state.rotation)
 	_heads.append_array(state.heads)
 	_waters.append_array(state.water)
+	_pockets.append_array(_stepper.pressures(state))
 
 
 ## Whether [param state] lies still: neither rising nor falling, pitching nor rolling,

@@ -96,6 +96,10 @@ func add(events: Array[SimEvent]) -> void:
 				_lines.append("%s she is gone" % clock(event.tick))
 			SimEvent.Kind.BOATS_USELESS:
 				_lines.append("%s %s boats useless" % [clock(event.tick), event.cell])
+			SimEvent.Kind.AIR_TRAPPED:
+				_lines.append("%s air trapped in %s" % [clock(event.tick), event.cell])
+			SimEvent.Kind.AIR_VENTED:
+				_lines.append("%s air let out of %s" % [clock(event.tick), event.cell])
 
 
 ## " · credit crate n" for an exit a crate is credited with — " shoved by seat s"

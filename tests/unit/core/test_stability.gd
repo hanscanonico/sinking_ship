@@ -37,7 +37,8 @@ func _settled(stepper: SinkStepper, state: FloodState, kept: Array[FloodState] =
 
 func test_bow_room_flooded_trims_the_barge_to_7_41_and_3_70_m() -> void:
 	# 20 m long, 12 m wide, 10 m deep, floating 5 m deep with her weight 4 m over her
-	# keel; the 1.5 m room at her bow holed at the keel. The wall-sided equilibrium —
+	# keel; the 1.5 m room at her bow holed at the keel, a hatch on deck letting its air
+	# out. The wall-sided equilibrium —
 	# the lift of what stays dry under a trimmed waterline straight over her weight —
 	# puts her bow 7.39 m and her stern 3.70 m deep (est. dimensions: the plan names the
 	# answer, not the barge).
@@ -45,6 +46,7 @@ func test_bow_room_flooded_trims_the_barge_to_7_41_and_3_70_m() -> void:
 	barge.section_length = 0.5
 	barge.cell(&"bow_room", Vector3(8.5, -5.0, -6.0), Vector3(10.0, 5.0, 6.0))
 	barge.hole(&"bow_room", Vector3(9.25, -5.0, 0.0), 1.0, true)
+	barge.vent(&"bow_room", Vector3(9.25, 5.0, 0.0), 1.0)
 	var structure := barge.structure()
 	var stepper := SinkStepper.new(structure, HitDamage.new(), _sea())
 	var timeline := SinkTimeline.bake(stepper, _sea(), SETTLE)

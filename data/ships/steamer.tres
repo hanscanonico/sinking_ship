@@ -1137,7 +1137,7 @@ low = Vector3(-22.26, -5.4, -5)
 high = Vector3(-13, 0, 5)
 kind = 4
 shape = 0.5867
-leak_area = 0.0003
+leak_area = 0.000293
 
 [sub_resource type="Resource" id="Cell_poop_space"]
 script = ExtResource("11_cell")
@@ -1146,7 +1146,7 @@ low = Vector3(-22.26, 0, -4.5)
 high = Vector3(-14, 1.2, 4.5)
 kind = 3
 shape = 0.7261
-leak_area = 0.0001
+leak_area = 0.0000648
 
 [sub_resource type="Resource" id="Cell_aft_bilge_p"]
 script = ExtResource("11_cell")
@@ -1155,7 +1155,7 @@ low = Vector3(-13, -5.4, -5)
 high = Vector3(-3, -2.6, 0)
 kind = 4
 shape = 0.8926
-leak_area = 0.0001
+leak_area = 0.000125
 
 [sub_resource type="Resource" id="Cell_aft_bilge_s"]
 script = ExtResource("11_cell")
@@ -1164,7 +1164,7 @@ low = Vector3(-13, -5.4, 0)
 high = Vector3(-3, -2.6, 5)
 kind = 4
 shape = 0.8926
-leak_area = 0.0001
+leak_area = 0.000125
 
 [sub_resource type="Resource" id="Cell_aft_cabins"]
 script = ExtResource("11_cell")
@@ -1173,7 +1173,7 @@ low = Vector3(-13, -2.6, -5)
 high = Vector3(-3, 0, 5)
 shape = 0.9999
 rooms = Array[StringName]([&"cabin corridor", &"aft port cabin", &"middle port cabin", &"forward port cabin", &"aft starboard cabin", &"middle starboard cabin", &"forward starboard cabin"])
-leak_area = 0.0003
+leak_area = 0.00026
 
 [sub_resource type="Resource" id="Cell_engine_bilge_p"]
 script = ExtResource("11_cell")
@@ -1182,7 +1182,7 @@ low = Vector3(-3, -5.4, -5)
 high = Vector3(4, -2.6, 0)
 kind = 4
 shape = 0.8944
-leak_area = 0.0001
+leak_area = 0.0000876
 
 [sub_resource type="Resource" id="Cell_engine_bilge_s"]
 script = ExtResource("11_cell")
@@ -1191,7 +1191,7 @@ low = Vector3(-3, -5.4, 0)
 high = Vector3(4, -2.6, 5)
 kind = 4
 shape = 0.8944
-leak_area = 0.0001
+leak_area = 0.0000876
 
 [sub_resource type="Resource" id="Cell_engine_room"]
 script = ExtResource("11_cell")
@@ -1201,7 +1201,7 @@ high = Vector3(4, 0, 5)
 kind = 1
 shape = 0.9999
 rooms = Array[StringName]([&"engine room"])
-leak_area = 0.0002
+leak_area = 0.000182
 
 [sub_resource type="Resource" id="Cell_hold_bilge"]
 script = ExtResource("11_cell")
@@ -1210,7 +1210,7 @@ low = Vector3(4, -5.4, -3.8)
 high = Vector3(15, -2.6, 3.8)
 kind = 4
 shape = 0.9393
-leak_area = 0.0002
+leak_area = 0.00022
 
 [sub_resource type="Resource" id="Cell_hold"]
 script = ExtResource("11_cell")
@@ -1221,7 +1221,7 @@ kind = 2
 permeability = 0.95
 shape = 1
 rooms = Array[StringName]([&"forward hold"])
-leak_area = 0.0002
+leak_area = 0.000217
 
 [sub_resource type="Resource" id="Cell_hold_wing_p"]
 script = ExtResource("11_cell")
@@ -1230,7 +1230,7 @@ low = Vector3(4, -5.4, -5)
 high = Vector3(15, 0, -3.8)
 kind = 4
 shape = 0.4121
-leak_area = 0
+leak_area = 0.0000294
 
 [sub_resource type="Resource" id="Cell_hold_wing_s"]
 script = ExtResource("11_cell")
@@ -1239,7 +1239,7 @@ low = Vector3(4, -5.4, 3.8)
 high = Vector3(15, 0, 5)
 kind = 4
 shape = 0.4121
-leak_area = 0
+leak_area = 0.0000294
 
 [sub_resource type="Resource" id="Cell_hold_fwd_top"]
 script = ExtResource("11_cell")
@@ -1249,7 +1249,7 @@ high = Vector3(15, 1.8, 3.8)
 kind = 2
 permeability = 0.95
 shape = 1
-leak_area = 0
+leak_area = 0.000041
 
 [sub_resource type="Resource" id="Cell_forepeak"]
 script = ExtResource("11_cell")
@@ -1258,7 +1258,7 @@ low = Vector3(15, -5.4, -4)
 high = Vector3(22.41, 1.8, 4)
 kind = 4
 shape = 0.6518
-leak_area = 0.0003
+leak_area = 0.000278
 
 [sub_resource type="Resource" id="Cell_deckhouse_cabins"]
 script = ExtResource("11_cell")
@@ -1267,7 +1267,7 @@ low = Vector3(-7, 0, -3.4)
 high = Vector3(-3.4, 2.5, 3.4)
 shape = 1
 rooms = Array[StringName]([&"deckhouse cabin 1", &"deckhouse cabin 2", &"deckhouse cabin 3", &"deckhouse cabin 4"])
-leak_area = 0.0001
+leak_area = 0.0000612
 
 [sub_resource type="Resource" id="Cell_deckhouse_hall"]
 script = ExtResource("11_cell")
@@ -1276,7 +1276,7 @@ low = Vector3(-3.4, 0, -3.4)
 high = Vector3(0, 2.5, 3.4)
 shape = 1
 rooms = Array[StringName]([&"deckhouse hall"])
-leak_area = 0.0001
+leak_area = 0.0000578
 
 [sub_resource type="Resource" id="Cell_saloon"]
 script = ExtResource("11_cell")
@@ -1285,7 +1285,7 @@ low = Vector3(0, 0, -3.4)
 high = Vector3(3, 2.5, 3.4)
 shape = 1
 rooms = Array[StringName]([&"saloon"])
-leak_area = 0.0001
+leak_area = 0.000051
 
 [sub_resource type="Resource" id="Cell_wheelhouse"]
 script = ExtResource("11_cell")
@@ -1294,7 +1294,7 @@ low = Vector3(-4, 2.5, -1.5)
 high = Vector3(-1, 4.7, 1.5)
 shape = 1
 rooms = Array[StringName]([&"wheelhouse"])
-leak_area = 0
+leak_area = 0.0000198
 
 [sub_resource type="Resource" id="Wall_bulkhead_aft"]
 script = ExtResource("12_wall")
@@ -1570,6 +1570,24 @@ kind = 9
 joins = Array[StringName]([&"poop_space", &"sky"])
 centre = Vector3(-14, 0.6, 1.647)
 size = Vector3(0, 0.34, 0.48)
+
+[sub_resource type="Resource" id="Opening_pipe_forepeak"]
+script = ExtResource("13_opening")
+name = &"pipe_forepeak"
+kind = 9
+joins = Array[StringName]([&"forepeak", &"sky"])
+centre = Vector3(18, 1.8, 0)
+size = Vector3(0.09, 0, 0.09)
+area = 0.008
+
+[sub_resource type="Resource" id="Opening_pipe_aft_peak"]
+script = ExtResource("13_opening")
+name = &"pipe_aft_peak"
+kind = 9
+joins = Array[StringName]([&"aft_peak", &"poop_space"])
+centre = Vector3(-16, 0, 0)
+size = Vector3(0.09, 0, 0.09)
+area = 0.008
 
 [sub_resource type="Resource" id="Opening_open_hold_fwd_top"]
 script = ExtResource("13_opening")
@@ -2421,7 +2439,7 @@ keel_y = -5.4
 sections = Array[ExtResource("10_section")]([SubResource("Section_0"), SubResource("Section_1"), SubResource("Section_2"), SubResource("Section_3"), SubResource("Section_4"), SubResource("Section_5"), SubResource("Section_6"), SubResource("Section_7"), SubResource("Section_8"), SubResource("Section_9"), SubResource("Section_10"), SubResource("Section_11"), SubResource("Section_12"), SubResource("Section_13"), SubResource("Section_14"), SubResource("Section_15"), SubResource("Section_16"), SubResource("Section_17"), SubResource("Section_18"), SubResource("Section_19"), SubResource("Section_20"), SubResource("Section_21"), SubResource("Section_22"), SubResource("Section_23"), SubResource("Section_24"), SubResource("Section_25"), SubResource("Section_26"), SubResource("Section_27")])
 cells = Array[ExtResource("11_cell")]([SubResource("Cell_aft_peak"), SubResource("Cell_poop_space"), SubResource("Cell_aft_bilge_p"), SubResource("Cell_aft_bilge_s"), SubResource("Cell_aft_cabins"), SubResource("Cell_engine_bilge_p"), SubResource("Cell_engine_bilge_s"), SubResource("Cell_engine_room"), SubResource("Cell_hold_bilge"), SubResource("Cell_hold"), SubResource("Cell_hold_wing_p"), SubResource("Cell_hold_wing_s"), SubResource("Cell_hold_fwd_top"), SubResource("Cell_forepeak"), SubResource("Cell_deckhouse_cabins"), SubResource("Cell_deckhouse_hall"), SubResource("Cell_saloon"), SubResource("Cell_wheelhouse")])
 walls = Array[ExtResource("12_wall")]([SubResource("Wall_bulkhead_aft"), SubResource("Wall_bulkhead_engine"), SubResource("Wall_bulkhead_hold"), SubResource("Wall_collision"), SubResource("Wall_hold_side_p"), SubResource("Wall_hold_side_s"), SubResource("Wall_centre_girder")])
-openings = Array[ExtResource("13_opening")]([SubResource("Opening_wtd_hold"), SubResource("Opening_wtd_engine"), SubResource("Opening_door_saloon_sky_0"), SubResource("Opening_door_deckhouse_hall_sky_0"), SubResource("Opening_door_saloon_sky_1"), SubResource("Opening_door_deckhouse_hall_sky_1"), SubResource("Opening_door_saloon_sky_2"), SubResource("Opening_door_deckhouse_hall_saloon_0"), SubResource("Opening_door_deckhouse_cabins_deckhouse_hall_0"), SubResource("Opening_door_deckhouse_cabins_deckhouse_hall_1"), SubResource("Opening_door_deckhouse_cabins_deckhouse_hall_2"), SubResource("Opening_door_deckhouse_cabins_deckhouse_hall_3"), SubResource("Opening_door_wheelhouse_sky_0"), SubResource("Opening_door_wheelhouse_sky_1"), SubResource("Opening_over_bulkhead_hold_to_hold"), SubResource("Opening_over_bulkhead_hold_to_hold_wing_p"), SubResource("Opening_over_bulkhead_hold_to_hold_wing_s"), SubResource("Opening_stair_aft_cabins_sky"), SubResource("Opening_stair_engine_room_deckhouse_hall"), SubResource("Opening_stair_hold_sky"), SubResource("Opening_hatch_hold"), SubResource("Opening_door_hold_fwd_top_p"), SubResource("Opening_door_hold_fwd_top_s"), SubResource("Opening_vent_poop_space_p"), SubResource("Opening_vent_poop_space_s"), SubResource("Opening_open_hold_fwd_top"), SubResource("Opening_floor_aft_cabins_p"), SubResource("Opening_floor_aft_cabins_s"), SubResource("Opening_limber_aft_cabins"), SubResource("Opening_over_girder_aft_cabins"), SubResource("Opening_floor_engine_room_p"), SubResource("Opening_floor_engine_room_s"), SubResource("Opening_limber_engine_room"), SubResource("Opening_over_girder_engine_room"), SubResource("Opening_floor_hold"), SubResource("Opening_leak_hold_wing_p"), SubResource("Opening_leak_hold_wing_s"), SubResource("Opening_port_hold_wing_p_p1"), SubResource("Opening_port_hold_wing_p_p2"), SubResource("Opening_port_hold_wing_p_p3"), SubResource("Opening_port_hold_wing_p_p4"), SubResource("Opening_port_hold_wing_p_p5"), SubResource("Opening_port_hold_wing_p_p6"), SubResource("Opening_port_hold_wing_p_p7"), SubResource("Opening_port_hold_wing_p_p8"), SubResource("Opening_port_hold_wing_s_s1"), SubResource("Opening_port_hold_wing_s_s2"), SubResource("Opening_port_hold_wing_s_s3"), SubResource("Opening_port_hold_wing_s_s4"), SubResource("Opening_port_hold_wing_s_s5"), SubResource("Opening_port_hold_wing_s_s6"), SubResource("Opening_port_hold_wing_s_s7"), SubResource("Opening_port_hold_wing_s_s8"), SubResource("Opening_port_engine_room_p1"), SubResource("Opening_port_engine_room_p2"), SubResource("Opening_port_engine_room_p3"), SubResource("Opening_port_engine_room_p4"), SubResource("Opening_port_engine_room_p5"), SubResource("Opening_port_engine_room_s1"), SubResource("Opening_port_engine_room_s2"), SubResource("Opening_port_engine_room_s3"), SubResource("Opening_port_engine_room_s4"), SubResource("Opening_port_engine_room_s5"), SubResource("Opening_port_aft_cabins_p1"), SubResource("Opening_port_aft_cabins_p2"), SubResource("Opening_port_aft_cabins_p3"), SubResource("Opening_port_aft_cabins_p4"), SubResource("Opening_port_aft_cabins_p5"), SubResource("Opening_port_aft_cabins_p6"), SubResource("Opening_port_aft_cabins_p7"), SubResource("Opening_port_aft_cabins_s1"), SubResource("Opening_port_aft_cabins_s2"), SubResource("Opening_port_aft_cabins_s3"), SubResource("Opening_port_aft_cabins_s4"), SubResource("Opening_port_aft_cabins_s5"), SubResource("Opening_port_aft_cabins_s6"), SubResource("Opening_port_aft_cabins_s7"), SubResource("Opening_window_saloon_p1"), SubResource("Opening_window_saloon_f1"), SubResource("Opening_window_saloon_f2"), SubResource("Opening_window_saloon_s1"), SubResource("Opening_window_deckhouse_hall_p1"), SubResource("Opening_window_deckhouse_hall_s1"), SubResource("Opening_window_deckhouse_cabins_p1"), SubResource("Opening_window_deckhouse_cabins_p2"), SubResource("Opening_window_deckhouse_cabins_a1"), SubResource("Opening_window_deckhouse_cabins_a2"), SubResource("Opening_window_deckhouse_cabins_a3"), SubResource("Opening_window_deckhouse_cabins_s1"), SubResource("Opening_window_deckhouse_cabins_s2"), SubResource("Opening_window_deckhouse_cabins_a4"), SubResource("Opening_window_wheelhouse_a1"), SubResource("Opening_window_wheelhouse_a2")])
+openings = Array[ExtResource("13_opening")]([SubResource("Opening_wtd_hold"), SubResource("Opening_wtd_engine"), SubResource("Opening_door_saloon_sky_0"), SubResource("Opening_door_deckhouse_hall_sky_0"), SubResource("Opening_door_saloon_sky_1"), SubResource("Opening_door_deckhouse_hall_sky_1"), SubResource("Opening_door_saloon_sky_2"), SubResource("Opening_door_deckhouse_hall_saloon_0"), SubResource("Opening_door_deckhouse_cabins_deckhouse_hall_0"), SubResource("Opening_door_deckhouse_cabins_deckhouse_hall_1"), SubResource("Opening_door_deckhouse_cabins_deckhouse_hall_2"), SubResource("Opening_door_deckhouse_cabins_deckhouse_hall_3"), SubResource("Opening_door_wheelhouse_sky_0"), SubResource("Opening_door_wheelhouse_sky_1"), SubResource("Opening_over_bulkhead_hold_to_hold"), SubResource("Opening_over_bulkhead_hold_to_hold_wing_p"), SubResource("Opening_over_bulkhead_hold_to_hold_wing_s"), SubResource("Opening_stair_aft_cabins_sky"), SubResource("Opening_stair_engine_room_deckhouse_hall"), SubResource("Opening_stair_hold_sky"), SubResource("Opening_hatch_hold"), SubResource("Opening_door_hold_fwd_top_p"), SubResource("Opening_door_hold_fwd_top_s"), SubResource("Opening_vent_poop_space_p"), SubResource("Opening_vent_poop_space_s"), SubResource("Opening_pipe_forepeak"), SubResource("Opening_pipe_aft_peak"), SubResource("Opening_open_hold_fwd_top"), SubResource("Opening_floor_aft_cabins_p"), SubResource("Opening_floor_aft_cabins_s"), SubResource("Opening_limber_aft_cabins"), SubResource("Opening_over_girder_aft_cabins"), SubResource("Opening_floor_engine_room_p"), SubResource("Opening_floor_engine_room_s"), SubResource("Opening_limber_engine_room"), SubResource("Opening_over_girder_engine_room"), SubResource("Opening_floor_hold"), SubResource("Opening_leak_hold_wing_p"), SubResource("Opening_leak_hold_wing_s"), SubResource("Opening_port_hold_wing_p_p1"), SubResource("Opening_port_hold_wing_p_p2"), SubResource("Opening_port_hold_wing_p_p3"), SubResource("Opening_port_hold_wing_p_p4"), SubResource("Opening_port_hold_wing_p_p5"), SubResource("Opening_port_hold_wing_p_p6"), SubResource("Opening_port_hold_wing_p_p7"), SubResource("Opening_port_hold_wing_p_p8"), SubResource("Opening_port_hold_wing_s_s1"), SubResource("Opening_port_hold_wing_s_s2"), SubResource("Opening_port_hold_wing_s_s3"), SubResource("Opening_port_hold_wing_s_s4"), SubResource("Opening_port_hold_wing_s_s5"), SubResource("Opening_port_hold_wing_s_s6"), SubResource("Opening_port_hold_wing_s_s7"), SubResource("Opening_port_hold_wing_s_s8"), SubResource("Opening_port_engine_room_p1"), SubResource("Opening_port_engine_room_p2"), SubResource("Opening_port_engine_room_p3"), SubResource("Opening_port_engine_room_p4"), SubResource("Opening_port_engine_room_p5"), SubResource("Opening_port_engine_room_s1"), SubResource("Opening_port_engine_room_s2"), SubResource("Opening_port_engine_room_s3"), SubResource("Opening_port_engine_room_s4"), SubResource("Opening_port_engine_room_s5"), SubResource("Opening_port_aft_cabins_p1"), SubResource("Opening_port_aft_cabins_p2"), SubResource("Opening_port_aft_cabins_p3"), SubResource("Opening_port_aft_cabins_p4"), SubResource("Opening_port_aft_cabins_p5"), SubResource("Opening_port_aft_cabins_p6"), SubResource("Opening_port_aft_cabins_p7"), SubResource("Opening_port_aft_cabins_s1"), SubResource("Opening_port_aft_cabins_s2"), SubResource("Opening_port_aft_cabins_s3"), SubResource("Opening_port_aft_cabins_s4"), SubResource("Opening_port_aft_cabins_s5"), SubResource("Opening_port_aft_cabins_s6"), SubResource("Opening_port_aft_cabins_s7"), SubResource("Opening_window_saloon_p1"), SubResource("Opening_window_saloon_f1"), SubResource("Opening_window_saloon_f2"), SubResource("Opening_window_saloon_s1"), SubResource("Opening_window_deckhouse_hall_p1"), SubResource("Opening_window_deckhouse_hall_s1"), SubResource("Opening_window_deckhouse_cabins_p1"), SubResource("Opening_window_deckhouse_cabins_p2"), SubResource("Opening_window_deckhouse_cabins_a1"), SubResource("Opening_window_deckhouse_cabins_a2"), SubResource("Opening_window_deckhouse_cabins_a3"), SubResource("Opening_window_deckhouse_cabins_s1"), SubResource("Opening_window_deckhouse_cabins_s2"), SubResource("Opening_window_deckhouse_cabins_a4"), SubResource("Opening_window_wheelhouse_a1"), SubResource("Opening_window_wheelhouse_a2")])
 mass = Array[ExtResource("14_mass")]([SubResource("Mass_hull_steel"), SubResource("Mass_engine_and_boiler"), SubResource("Mass_coal"), SubResource("Mass_deckhouse"), SubResource("Mass_wheelhouse_and_bridge"), SubResource("Mass_funnel"), SubResource("Mass_mast_and_rigging"), SubResource("Mass_lifeboats_and_davits"), SubResource("Mass_cabin_fittings"), SubResource("Mass_deckhouse_fittings"), SubResource("Mass_stores_and_water"), SubResource("Mass_ground_tackle"), SubResource("Mass_ballast")])
 roll_radius = 3.8
 pitch_radius = 10

@@ -6,7 +6,10 @@ extends RefCounted
 ## Her leans are read as SinkSchedule reads them (leans_of), at the states the timeline
 ## kept.
 
-## AFLOAT: the water stopped, or the cap came, with her afloat (survives). Gone, she
+## AFLOAT: the water stopped, or the cap came, with her afloat (survives) — or
+## AFLOAT_UPSIDE_DOWN, past her beam ends and held up by the air she trapped, which is
+## still leaking (§5b.1: she counts as gone only once it has leaked and she is under; a
+## match draws such a hit again). Gone, she
 ## founders BY_THE_HEAD or BY_THE_STERN as the trim she goes with is the larger lean, or
 ## ONTO_HER_SIDE as the list is; CAPSIZED: she rolled past her beam ends on the way.
 ## Stood further on end than ON_END_DEG of trim she has no list to speak of — the lurch
@@ -24,6 +27,7 @@ enum Outcome {
 	FAST,
 	PORT_BOATS_USELESS,
 	STARBOARD_BOATS_USELESS,
+	AFLOAT_UPSIDE_DOWN,
 }
 
 ## The census's own marks (§5b.4's table, est.): a heavy list, and a fast sinking.
@@ -42,6 +46,7 @@ const NAMES := {
 	Outcome.FAST: "fast",
 	Outcome.PORT_BOATS_USELESS: "port boats useless",
 	Outcome.STARBOARD_BOATS_USELESS: "starboard boats useless",
+	Outcome.AFLOAT_UPSIDE_DOWN: "afloat upside down",
 }
 
 
@@ -66,6 +71,8 @@ static func labels(timeline: SinkTimeline) -> Array[Outcome]:
 			found[Outcome.BY_THE_HEAD if leans[0] > 0.0 else Outcome.BY_THE_STERN] = true
 		if timeline.gone_at <= FAST_SECONDS:
 			found[Outcome.FAST] = true
+	elif timeline.rotations[(timeline.count() - 1) * 9 + 4] < 0.0:
+		found[Outcome.AFLOAT_UPSIDE_DOWN] = true
 	else:
 		found[Outcome.AFLOAT] = true
 	for event: SinkTimeline.Event in timeline.events:

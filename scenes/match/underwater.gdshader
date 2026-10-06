@@ -1,7 +1,8 @@
 // The tint over the view from under the sea (Underwater): brighter and greener
 // looking up toward the surface and the nearer it the eye is, darker looking down,
-// with shafts of light slanting down from the surface. The direction each pixel
-// looks along comes from the eye's axes and field of view.
+// with shafts of light slanting down from the surface — none inside her, where no sun
+// reaches the water over a flooded hold or up into a pocket (SH29). The direction each
+// pixel looks along comes from the eye's axes and field of view.
 shader_type canvas_item;
 
 uniform vec3 eye_right = vec3(1.0, 0.0, 0.0);
@@ -12,6 +13,8 @@ uniform vec2 eye_tan = vec2(1.0, 0.56);
 // Metres the eye is under the surface, and over which the light from above fades.
 uniform float depth = 0.0;
 uniform float light_depth = 14.0;
+// 1 with the eye inside one of her cells, 0 out in the sea.
+uniform float indoors = 0.0;
 // The way the shafts run: down, slanted away from the sun.
 uniform vec3 shaft_axis = vec3(-0.3, -0.9, -0.3);
 uniform vec4 deep_tint : source_color = vec4(0.03, 0.15, 0.27, 0.5);
@@ -36,7 +39,7 @@ float value_noise(vec2 p) {
 void fragment() {
 	vec2 ndc = UV * 2.0 - 1.0;
 	vec3 look = normalize(eye_right * ndc.x * eye_tan.x - eye_up * ndc.y * eye_tan.y - eye_back);
-	float near = exp(-depth / light_depth);
+	float near = exp(-depth / light_depth) * (1.0 - indoors * 0.7);
 	vec4 tint = mix(deep_tint, lit_tint, smoothstep(-0.6, 0.9, look.y) * near);
 	// Lines along the axis, so they fan out from where it vanishes overhead; patterned
 	// by which way round the axis a pixel looks, sampled on a circle so no seam shows.
@@ -47,6 +50,7 @@ void fragment() {
 	float rays = value_noise(round_axis * 6.0 + vec2(TIME * 0.11, 0.0));
 	rays *= value_noise(round_axis * 11.0 + vec2(3.0, -TIME * 0.07));
 	float shaft = smoothstep(0.15, 0.4, rays) * smoothstep(0.1, 0.9, -dot(look, axis)) * near;
+	shaft *= 1.0 - indoors;
 	tint.rgb = mix(tint.rgb, shaft_colour.rgb, shaft * 0.6);
 	tint.a = mix(tint.a, 0.6, shaft * 0.45);
 	COLOR = tint;

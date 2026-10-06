@@ -144,7 +144,8 @@ func _process(delta: float) -> void:
 		_arms.show_seat(
 			viewed, _driver.previous["seats"][viewed], snapshot["seats"][viewed], _driver.alpha
 		)
-	_underwater.show_eye(_eyes.global_position, _view.above_water(_eyes.global_position))
+	var eye := _eyes.global_position
+	_underwater.show_eye(eye, _view.above_water(eye), _view.indoors(eye))
 	_first_person_hud.show_view(snapshot, viewed, yaw, _eyes, _view)
 
 
@@ -400,7 +401,8 @@ func _fly(snapshot: Dictionary, viewed: int, delta: float) -> void:
 	_view.look_out_of(-1)
 	_arms.visible = false
 	_eyes.global_transform = _free.transform()
-	_underwater.show_eye(_eyes.global_position, _view.above_water(_eyes.global_position))
+	var eye := _eyes.global_position
+	_underwater.show_eye(eye, _view.above_water(eye), _view.indoors(eye))
 	_first_person_hud.show_view(snapshot, viewed, 0.0, _eyes, _view)
 
 

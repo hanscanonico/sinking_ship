@@ -148,6 +148,12 @@ func above_water(eye: Vector3) -> float:
 	return eye.y - pose.water_level(ship_point)
 
 
+## Whether [param eye], in the world, is inside one of her cells.
+func indoors(eye: Vector3) -> bool:
+	var pose := _schedule.pose_at(_driver.current["tick"])
+	return pose.cell_at(_ship.global_transform.affine_inverse() * eye) != CellMap.NONE
+
+
 ## Where the ship is drawn: ship space to the world.
 func ship_to_world() -> Transform3D:
 	return _ship.global_transform

@@ -144,6 +144,10 @@ static func _told(event: SinkTimeline.Event) -> String:
 			return "lurched %+.0f° over %.1f s" % [event.heel_deg, event.lasts]
 		SinkTimeline.Kind.BOATS_USELESS:
 			return "%s boats useless" % event.name
+		SinkTimeline.Kind.TRAPPED:
+			return "air trapped in %s" % event.name
+		SinkTimeline.Kind.VENTED:
+			return "air let out of %s" % event.name
 	return "she is gone"
 
 

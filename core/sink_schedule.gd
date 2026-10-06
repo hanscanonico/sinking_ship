@@ -258,10 +258,11 @@ func pose_at(tick: int) -> ShipPose:
 ## The pose the bake has at [param tick], read between the two kept states either side
 ## of its physics second: her rotation blended from one to the other
 ## (SinkTimeline.blend), the sea's height up her and every cell's water carried between
-## them; at rest before the hit and as last kept after the end. She turns about her
-## centre of mass, which keeps its place across the world, and stands as high as the
-## sea up her says — at rest at her freeboard, as an authored pose does. Her trim and
-## heel are read off the rotation.
+## them, and every cell's pocket as the timeline reads it (SinkTimeline.pocket); at
+## rest before the hit and as last kept after the end. She turns about her centre of
+## mass, which keeps its place across the world, and stands as high as the sea up her
+## says — at rest at her freeboard, as an authored pose does. Her trim and heel are read
+## off the rotation.
 func _physical(tick: int) -> ShipPose:
 	var frame := 0
 	var weight := 0.0
@@ -279,11 +280,13 @@ func _physical(tick: int) -> ShipPose:
 	pose.cells = _cells
 	var count := _timeline.cells
 	pose.levels.resize(count)
+	pose.pockets.resize(count)
 	for cell in count:
 		var head := lerpf(
 			_timeline.heads[frame * count + cell], _timeline.heads[next * count + cell], weight
 		)
 		pose.levels[cell] = head + origin.y
+		pose.pockets[cell] = _timeline.pocket(frame, next, weight, cell)
 	if tick >= _hit_tick:
 		var seconds := _seconds_at(tick)
 		for door in _doors.size():

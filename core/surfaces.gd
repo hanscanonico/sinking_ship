@@ -726,7 +726,10 @@ func sunk(pose: ShipPose, depth: float) -> bool:
 ## [param pose] pressing along [param toward] (a unit vector, x/z), a body as
 ## [param rules] size it: up a standing ladder it is at, however high; else onto the surface
 ## past an edge within a radius of its circle that holds it back and stands no more
-## than climb_reach above the sea — a railing never stops it. Either way the climb
+## than climb_reach above the water it swims in — a railing never stops it, a deck over
+## its head too low to stand up under does: in a pocket it climbs onto a dry face inside
+## it (Q22), never up through the ceiling or out over a wall under it. Either way the
+## climb
 ## ends with the circle on a surface a radius past that edge — a deck, a stair or a
 ## box's top, never a round blocker's — under less than wade_depth of the sea, clear
 ## of everything that would hold it back, with no wall across the way at that height.
@@ -755,7 +758,7 @@ func climb_out(feet: Vector3, toward: Vector2, pose: ShipPose, rules: BrawlRules
 	if ledge == NONE or _contains(ledge, feet):
 		return null
 	var top := height_at(ledge, Vector3(probe.x, 0.0, probe.y))
-	if top <= feet.y + step:
+	if top <= feet.y + step or top + rules.body_height > ceiling(feet, step):
 		return null
 	return _standing(feet, point + toward * radius * 3.0, top, pose, rules)
 

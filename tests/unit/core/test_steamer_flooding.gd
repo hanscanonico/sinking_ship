@@ -1,6 +1,6 @@
 extends GutTest
 ## §5b.4 layer 3, the steamer: pinned seeds' match hits — bow_down_slow, stern_down,
-## heavy_list and two_compartments_and_open_ports — and explicit hits, each baked alone
+## heavy_list, two_compartments_and_open_ports and fwd_pocket — and explicit hits, each baked alone
 ## and again with its holes' area × 0.9 and × 1.1 to the same outcome, so the seeds sit
 ## far from every threshold and a Mac and Linux agree (R21). Outcomes are labels and
 ## bands, never exact times.
@@ -338,3 +338,30 @@ func test_water_runs_down_a_stairwell() -> void:
 			"× %s: into the cabins under it" % scale
 		)
 		assert_gt(ran, 0.0, "× %s: and through the inner stair" % scale)
+
+
+func test_fwd_pocket_traps_the_air_under_the_forecastle_till_she_goes() -> void:
+	# Down by the head, her hold full to its top: the air in the space under the
+	# forecastle is trapped over it (SH29) long before she goes and holds — never let out,
+	# losing only what its seams leak, a matter of hours — till she is gone.
+	var top := _structure.cell_named(&"hold_fwd_top")
+	for scale: float in MARGINS:
+		var timeline := _pinned(&"fwd_pocket", scale)
+		var what := "× %s" % scale
+		assert_eq(timeline.end, SinkTimeline.End.GONE, what + ": gone")
+		assert_true(OutcomeClassifier.Outcome.BY_THE_HEAD in OutcomeClassifier.labels(timeline))
+		var trapped := _first(timeline, SinkTimeline.Kind.TRAPPED, &"hold_fwd_top")
+		assert_gte(trapped, 0.0, what + ": its air trapped")
+		assert_gt(
+			timeline.gone_at - trapped, 600.0, what + ": ten minutes and more before she goes"
+		)
+		assert_eq(
+			_first(timeline, SinkTimeline.Kind.VENTED, &"hold_fwd_top"), -1.0, what + ": held"
+		)
+		for frame in range(timeline.frame_at(trapped), timeline.frame_at(timeline.gone_at)):
+			var pocket := timeline.pockets[frame * timeline.cells + top]
+			if pocket <= 0.0:
+				assert_gt(
+					pocket, 0.0, "%s: still a pocket at %.0f s" % [what, timeline.times[frame]]
+				)
+				break

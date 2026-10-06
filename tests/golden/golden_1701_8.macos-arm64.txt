@@ -12,4 +12,4 @@ must 4 thrown · 2 bakes · drawn
 03:12.3 seat 6 out · cold · place 2
 winner seat 1 at 03:12.3 · digest 0771a3770a51b028
 sinking at the end of the match: physics 0:02:48 (= match time, Q20 deferred) · seen 2% · sea 0.03 m up her · trim +0.2° · list -0.0° · hold_bilge 0.08 m · forepeak 0.15 m
-not played: gone at 2:07:33 · trim +89.9° · list -41.1° · founders by the head · starboard boats useless
+not played: gone at 2:08:14 · trim +89.5° · list -61.7° · founders by the head · starboard boats useless

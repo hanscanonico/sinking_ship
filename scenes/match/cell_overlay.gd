@@ -10,7 +10,8 @@ extends Node3D
 ## (show_water) — level with the world however she leans (SH27), its surface a bright
 ## sheet and a bright line where it meets the walls (cell_water.gdshader) — and its
 ## depth at its deepest under its name, so two cells at two levels read apart at a
-## glance.
+## glance. A cell whose air is trapped (SH29) is filled pale over its water, and its
+## pocket's pressure — metres of sea over the atmosphere's — stands under its depth.
 
 ## Per FloodCell.Kind, the colour of a cell people walk in; VOID's is a void's.
 const KIND_COLOURS: Array[Color] = [
@@ -59,6 +60,9 @@ const CLEAR := 0.01
 ## the name's words; and the material they share.
 var _water: Array[MeshInstance3D] = []
 var _levels: Array[MeshInstance3D] = []
+var _airs: Array[MeshInstance3D] = []
+## The atmosphere's pressure as metres of sea, which a pocket's is read over.
+var _atmosphere := 0.0
 var _material: ShaderMaterial
 var _names: Array[Label3D] = []
 var _words := PackedStringArray()
@@ -72,6 +76,7 @@ func build(structure: ShipStructure) -> void:
 		child.queue_free()
 	_water.clear()
 	_levels.clear()
+	_airs.clear()
 	_names.clear()
 	_words.clear()
 	_structure = structure
@@ -109,6 +114,12 @@ func build(structure: ShipStructure) -> void:
 		water.position = box.get_center()
 		_water.append(water)
 		_levels.append(_water_mesh(CellSurface.sheet(), box, true))
+		var air := _water_mesh(walls, box.grow(CLEAR), false)
+		air.position = box.get_center()
+		air.set_instance_shader_parameter(&"air", true)
+		_airs.append(air)
+	var sea := SeaPhysics.load_default()
+	_atmosphere = sea.air_pressure / (sea.sea_density * sea.gravity)
 
 
 ## Fills each cell's box to the world height its water stands at under [param pose],
@@ -136,6 +147,12 @@ func show_water(pose: ShipPose, drawn: Transform3D) -> void:
 			depth = "\nfull"
 		elif level > whole.x + CellMap.DRY:
 			depth = "\n%.2f m" % (level - whole.x)
+		var pocket := pose.pockets[index] if index < pose.pockets.size() else 0.0
+		var air := _airs[index]
+		air.visible = pocket > 0.0 and level < reach.y
+		if air.visible:
+			air.set_instance_shader_parameter(&"level", maxf(level, reach.x))
+			depth += "\npocket %+.2f m" % (pocket - _atmosphere)
 		var text := _words[index] + depth
 		if _names[index].text != text:
 			_names[index].text = text

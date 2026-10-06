@@ -2,9 +2,10 @@ extends GutTest
 ## §5b.4 layer 1: SinkStepper against closed forms — two tanks levelling through an
 ## orifice, a tank filling from the sea, a spill over a sill, a box barge with its
 ## middle flooded — and the bake's two promises: water is never made or lost, and the
-## same hit bakes the same timeline twice. The flows are checked with the attitude stage
-## off (§5b.3: the stages keep earlier tests meaningful), so the barge they float in
-## stays level; the barge and the steamer turn as the physics turns them.
+## same hit bakes the same timeline twice. The flows are checked with the attitude and
+## air stages off (§5b.3: the stages keep earlier tests meaningful), so the barge they
+## float in stays level and its tanks fill as though open to the sky — their air is
+## test_air's; the barge and the steamer turn as the physics turns them.
 
 const SEA_DENSITY := 1025.0
 ## A barge so broad the water in her tanks barely moves the sea up her.
@@ -19,11 +20,19 @@ func _sea() -> SeaPhysics:
 	return SeaPhysics.load_default()
 
 
-## The sea's constants with the attitude stage off: water moves, and she only heaves.
+## The sea's constants with the attitude and air stages off: water moves, every cell's
+## air goes free, and she only heaves.
 func _flows() -> SeaPhysics:
-	var flows: SeaPhysics = SeaPhysics.load_default().duplicate()
+	var flows: SeaPhysics = _without_air()
 	flows.attitude = false
 	return flows
+
+
+## The sea's constants with the air stage off.
+func _without_air() -> SeaPhysics:
+	var without: SeaPhysics = SeaPhysics.load_default().duplicate()
+	without.air = false
+	return without
 
 
 ## The sea's constants with the physics held to a step of [param seconds].
@@ -235,7 +244,7 @@ func _filled_through_full(holes: Array[float], sea_height: float, seconds: float
 	)
 	heads.append(top)
 	var structure := _barge(BROAD, BROAD, -2.0, 60.0, sea_height + 2.0, tanks, openings)
-	var stepper := SinkStepper.new(structure, HitDamage.new(), _sea())
+	var stepper := SinkStepper.new(structure, HitDamage.new(), _without_air())
 	var state := _filled(stepper, heads)
 	assert_almost_eq(state.sea, sea_height, 1e-3, "the sea where the barge floats")
 	while state.seconds < 1000.0 and stepper.head(last, state.water[last]) < state.sea - 0.01:
@@ -391,15 +400,19 @@ func test_bake_is_pure_in_its_inputs() -> void:
 
 func test_box_barge_with_its_middle_flooded_settles_to_6_25_m() -> void:
 	# 40 m long, 8 m wide, 10 m deep, floating 5 m deep; the middle 8 m holed at the
-	# keel: lost buoyancy puts her 5 × 40 / 32 = 6.25 m deep — to the 10 µm her heave
-	# has left in it when she lies still, level, the hole in her middle.
+	# keel, a hatch on deck letting its air out: lost buoyancy puts her 5 × 40 / 32 =
+	# 6.25 m deep — to the 10 µm her heave has left in it when she lies still, level, the
+	# hole in her middle.
 	var middle: Array[FloodCell] = [
 		_cell(&"middle", Vector3(-4.0, -10.0, -4.0), Vector3(4.0, 0.0, 4.0))
 	]
 	var hole := _opening(
 		&"hole", [&"middle", ShipOpening.SEA], Vector3(0.0, -10.0, 0.0), Vector3(1.0, 0.0, 1.0)
 	)
-	var structure := _barge(40.0, 8.0, -10.0, 0.0, 5.0, middle, [hole], 10)
+	var hatch := _opening(
+		&"hatch", [&"middle", ShipOpening.SKY], Vector3(0.0, 0.0, 0.0), Vector3(1.0, 0.0, 1.0)
+	)
+	var structure := _barge(40.0, 8.0, -10.0, 0.0, 5.0, middle, [hole, hatch], 10)
 	var stepper := SinkStepper.new(structure, HitDamage.new(), _sea())
 	var timeline := SinkTimeline.bake(stepper, _sea(), 3600.0)
 	assert_eq(timeline.end, SinkTimeline.End.AFLOAT, "she floats once the water stops")

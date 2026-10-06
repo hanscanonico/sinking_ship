@@ -77,9 +77,18 @@ func cell_at(ship_point: Vector3) -> int:
 	return NONE
 
 
-## The height of cell [param cell]'s floor.
+## The height of cell [param cell]'s floor, and of its ceiling.
 func floor_of(cell: int) -> float:
 	return _low[cell].y
+
+
+func ceiling_of(cell: int) -> float:
+	return _high[cell].y
+
+
+## Cell [param cell]'s box.
+func box_of(cell: int) -> AABB:
+	return AABB(_low[cell], _high[cell] - _low[cell])
 
 
 ## How far to [param side] (-1 port, 1 starboard) of her middle line a point of

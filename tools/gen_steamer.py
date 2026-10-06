@@ -883,6 +883,17 @@ for tag, z in [("p", -2.425), ("s", 3.0)]:
 for tag, z in [("p", -1.647), ("s", 1.647)]:
     opening("vent_poop_space_" + tag, "VENT", "poop_space", SKY, (-14, 0.6, z),
             (0, VENT_HALF[1] * 2, VENT_HALF[0] * 2), starts="OPEN")
+# The peaks are tanks, and a tank breathes through an air pipe to the deck over it (est.
+# a 100 mm pipe): a gash floods a peak to the sea's level rather than leaving its air
+# trapped under the deck (SH29) — the forepeak's pipe on the forecastle, the after
+# peak's up into the poop space, which its vents let out.
+AIR_PIPE = 0.008
+peak = cell_box("forepeak")
+opening("pipe_forepeak", "VENT", "forepeak", SKY, (18.0, peak[3], 0.0), (0.09, 0, 0.09),
+        area=AIR_PIPE, starts="OPEN")
+peak = cell_box("aft_peak")
+opening("pipe_aft_peak", "VENT", "aft_peak", "poop_space", (-16.0, peak[3], 0.0), (0.09, 0, 0.09),
+        area=AIR_PIPE, starts="OPEN")
 top_box = cell_box("hold_fwd_top")
 opening("open_hold_fwd_top", "OPEN", "hold", "hold_fwd_top",
         ((top_box[0] + top_box[1]) * 0.5, 0, 0), (top_box[1] - top_box[0], 0, top_box[5] - top_box[4]),
@@ -1139,7 +1150,8 @@ for name, x0, x1, y0, y1, z0, z1, kind, permeability in CELLS:
     f.append(("shape", num(min(inside / box_volume, 1.0))))
     if inner:
         f.append(("rooms", names(inner)))
-    f.append(("leak_area", num(inside * AIR_LEAK)))
+    # Three figures of it: num()'s four places would round a small cell's leak to none.
+    f.append(("leak_area", ("%.8f" % float("%.3g" % (inside * AIR_LEAK))).rstrip("0")))
     cell_ids.append(sub("Cell_" + name, "11_cell", f))
 wall_ids = []
 for name, axis, at, span, bottom, top, collapse, parts in walls:

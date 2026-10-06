@@ -7,7 +7,9 @@ extends Node3D
 ## pouring through an opening wherever one side's water stands over its bottom and
 ## higher than the other side's, falling along the world's down (spill.gdshader),
 ## boiling into froth where it lands, and air blown out of an opening as the water
-## reaches its top, bursting the surface in bubbles there (froth.gdshader).
+## reaches its top, bursting the surface in bubbles there (froth.gdshader) — and, from
+## SH29, a pocket's air: small bubbles rising to the water over a pocket where it leaks,
+## and a burst at the opening a pocket's air goes out by as it goes free.
 ## Presentation only (D5): it reads the poses it is handed and the openings water can
 ## pass, and moves no water. It lives in ship space, under the drawn ship.
 
@@ -38,6 +40,14 @@ const BURST := 1.4
 const BURST_SECONDS := 2.2
 const BURSTS := 4
 const BURST_IN := 0.4
+## A pocket leaking its air (SinkAir): bubbles popping on the water over its cell's top,
+## this wide, as many pockets at once at most.
+## A pocket gone with at least VENTS metres of air over its water went free — blown out,
+## a burst VENT_BURST wide — rather than leaking or being squeezed away.
+const LEAK := 1.2
+const LEAKS := 6
+const VENTS := 0.1
+const VENT_BURST := 2.4
 ## The froth where a pour lands: how far out along its fall it spreads, at the least
 ## and at a full flood, and how much wider than the pour; and how far over the water it
 ## lies, so the water's own surface never hides it.
@@ -82,7 +92,8 @@ var _drawn := PackedByteArray()
 ## Per opening, the world levels of its two sides' water last drawn: a side reaching
 ## its top blows its air out.
 var _last_heads: Array[Vector2] = []
-## The bursts of air on the water: each one's froth, the cell it breaks the water of and
+## The bursts of air on the water: each one's froth, the cell it breaks the water of — -1
+## for the sea — and
 ## the point in her it lies over, and its seconds gone, or a negative number while it is
 ## not bursting.
 var _bursts: Array[MeshInstance3D] = []
@@ -90,6 +101,10 @@ var _burst_cells := PackedInt32Array()
 var _burst_at := PackedVector3Array()
 var _burst_ages := PackedFloat32Array()
 var _next_burst := 0
+## The pockets' leaks' froths; and per cell, how much air stood over its water when last
+## drawn, -1 for none.
+var _leaks: Array[MeshInstance3D] = []
+var _airs := PackedFloat64Array()
 
 
 ## The boxes of [param structure]'s cells whose water is drawn — every cell wholly
@@ -187,6 +202,13 @@ func setup(
 		_burst_cells.append(-1)
 		_burst_at.append(Vector3.ZERO)
 		_burst_ages.append(-1.0)
+	_leaks.clear()
+	for _leak in LEAKS:
+		var leak := _froth()
+		leak.set_instance_shader_parameter(&"leaking", true)
+		_leaks.append(leak)
+	_airs.resize(structure.cells.size())
+	_airs.fill(-1.0)
 	set_process(false)
 
 
@@ -224,9 +246,11 @@ func show_water(then: ShipPose, now: ShipPose, alpha: float) -> void:
 			leaf.position = _slide(door) * (shut - 1.0)
 	for index in _passages.size():
 		_show_pour(index, levels, now)
+	_show_pockets(now, levels)
 	for burst in BURSTS:
 		if _burst_ages[burst] >= 0.0:
-			var level := levels[_burst_cells[burst]] + FROTH_LIFT
+			var under := _burst_cells[burst]
+			var level := (0.0 if under == -1 else levels[under]) + FROTH_LIFT
 			_bursts[burst].position = _at_height(_burst_at[burst], level)
 
 
@@ -486,10 +510,79 @@ func _blow(index: int, levels: PackedFloat64Array, top: float, opening: ShipOpen
 			at[axis] += signf(_middle(cell, axis) - at[axis]) * BURST_IN
 		var flat := _level * Basis.from_scale(Vector3(BURST, 1.0, BURST))
 		_lay(_bursts[burst], flat, _at_height(at, levels[side] + FROTH_LIFT), 1.0, 0.0)
+		_bursts[burst].set_instance_shader_parameter(&"outdoor", 0.0)
 		_burst_cells[burst] = cell
 		_burst_at[burst] = at
 		_burst_ages[burst] = 0.0
 		set_process(true)
+
+
+## The pockets [param pose] has, its cells' water at world heights [param levels]:
+## bubbles over each one that leaks into water standing over the middle of its top, and
+## a burst at the opening of each that has just gone free with air to blow out.
+func _show_pockets(pose: ShipPose, levels: PackedFloat64Array) -> void:
+	var leak := 0
+	for cell in _airs.size():
+		var low := _structure.cells[cell].low
+		var box := AABB(low, _structure.cells[cell].high - low)
+		var held := cell < pose.pockets.size() and pose.pockets[cell] > 0.0
+		if not held:
+			if _airs[cell] >= VENTS:
+				_vent(cell, levels, pose)
+			_airs[cell] = -1.0
+			continue
+		_airs[cell] = CellSurface.reach(_ship, box).y - levels[cell]
+		var top := box.get_center()
+		top.y = box.end.y
+		var over := pose.water_level(top + Vector3.UP * CellMap.DRY)
+		if leak >= LEAKS or _structure.cells[cell].leak_area <= 0.0 or over <= (_ship * top).y:
+			continue
+		var flat := _level * Basis.from_scale(Vector3(LEAK, 1.0, LEAK))
+		var outside := pose.cell_at(top + Vector3.UP * CellMap.DRY) == CellMap.NONE
+		_lay(_leaks[leak], flat, _at_height(top, over + FROTH_LIFT), 1.0, 0.0)
+		_leaks[leak].set_instance_shader_parameter(&"outdoor", 1.0 if outside else 0.0)
+		leak += 1
+	for unused in range(leak, LEAKS):
+		_leaks[unused].visible = false
+
+
+## Bursts the air of [param cell]'s pocket out as it goes free, its cells' water at world
+## heights [param levels] under [param pose]: on the water at the top of the opening of
+## its not shut that stands highest, over whichever side's water stands higher there.
+func _vent(cell: int, levels: PackedFloat64Array, pose: ShipPose) -> void:
+	var best := -1
+	var highest := -INF
+	for index in _passages.size():
+		if _sides[index * 2] != cell and _sides[index * 2 + 1] != cell:
+			continue
+		if pose.doors_shut.get(_passages[index].name, 0.0) >= 1.0:
+			continue
+		var top := CellSurface.reach(_ship, _spans[index]).y
+		if top > highest:
+			best = index
+			highest = top
+	if best == -1:
+		return
+	var opening := _passages[best]
+	var beyond := _sides[best * 2 + 1] if _sides[best * 2] == cell else _sides[best * 2]
+	var beyond_level := 0.0 if beyond == -1 else levels[beyond]
+	var under := cell if levels[cell] >= beyond_level else beyond
+	var level := maxf(levels[cell], beyond_level)
+	# On the water the air comes up through, clear of the wall or the shell it is in.
+	var at := opening.centre
+	var axis := opening.facing()
+	if axis != 1:
+		var out := signf(_middle(cell, axis) - at[axis]) * (1.0 if under == cell else -1.0)
+		at[axis] += out * VENT_BURST * 0.4
+	var burst := _next_burst
+	_next_burst = (_next_burst + 1) % BURSTS
+	var flat := _level * Basis.from_scale(Vector3(VENT_BURST, 1.0, VENT_BURST))
+	_lay(_bursts[burst], flat, _at_height(at, level + FROTH_LIFT), 1.0, 0.0)
+	_bursts[burst].set_instance_shader_parameter(&"outdoor", 1.0 if under == -1 else 0.0)
+	_burst_cells[burst] = under
+	_burst_at[burst] = at
+	_burst_ages[burst] = 0.0
+	set_process(true)
 
 
 ## A patch of froth lying on the water (froth.gdshader), hidden till laid.

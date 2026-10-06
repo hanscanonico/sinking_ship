@@ -301,3 +301,170 @@ func test_a_swimmer_under_a_flooding_deck_stays_inside_the_hull() -> void:
 	assert_eq(swimmer.body, PlayerState.Body.SWIMMING)
 	var sea := sim.pose().water_height(swimmer.pos)
 	assert_lt(swimmer.pos.y + rules.body_height, sea, "the sea closed over its head")
+
+
+## The steamer level with the sea a metre over her main deck: her hold, its bilge and
+## wings and her forepeak full; under the forecastle the air trapped in the space over
+## the hold, its water 0.2 m over the hold's open top, its air 0.8 m of sea over the
+## atmosphere's (SH29); her engine room flooding, its air free; seat 1 dry on the bridge.
+func _bow_under() -> MatchSim:
+	var layout := SimFixtures.steamer()
+	var sim := SimFixtures.sim(2, null, layout)
+	var full := [1.0]
+	var pose := (
+		HeldPose
+		. flooded(
+			layout,
+			1.0,
+			{
+				&"hold": full,
+				&"hold_bilge": full,
+				&"hold_wing_p": full,
+				&"hold_wing_s": full,
+				&"forepeak": full,
+				&"hold_fwd_top": [0.2, 0.8],
+				&"engine_room": [-1.0],
+			}
+		)
+	)
+	HeldPose.hold(sim, pose)
+	SimFixtures.place(sim, 1, Vector3(-2.5, 4.7, 0.0))
+	return sim
+
+
+## Whether [param player]'s head is in trapped air under [param sim]'s pose.
+func _breathes_pocket_air(sim: MatchSim, player: PlayerState) -> bool:
+	return sim.pose().in_pocket(player.pos + Vector3.UP * _rules().head_height())
+
+
+func test_swimmer_surfaces_in_a_pocket() -> void:
+	# Deep in the flooded hold under the forecastle, it floats up through the hold's open
+	# top into the pocket over it and rests at that water, not the sea's.
+	var rules := _rules()
+	var sim := _bow_under()
+	SimFixtures.swim(sim, 0, Vector3(13.5, 0.0, 0.0))
+	var swimmer := sim.state.seats[0]
+	swimmer.pos.y = -2.4
+	swimmer.cold = 100.0
+	SimFixtures.step(sim, {}, 3 * Ticks.RATE)
+	assert_eq(swimmer.body, PlayerState.Body.SWIMMING)
+	assert_almost_eq(swimmer.pos.y, 0.2 - rules.swim_depth, 0.0001, "afloat at the pocket's water")
+	assert_true(_breathes_pocket_air(sim, swimmer), "its head in the trapped air")
+	assert_lt(swimmer.pos.y + rules.body_height, 1.8, "under the forecastle deck")
+
+
+func test_swimmer_waits_in_a_pocket_longer_than_the_cold_meter() -> void:
+	var rules := _rules()
+	var sim := _bow_under()
+	SimFixtures.swim(sim, 0, Vector3(13.5, 0.0, 0.0))
+	var swimmer := sim.state.seats[0]
+	SimFixtures.step(sim, {}, Ticks.from_seconds(rules.cold_meter + 1.0))
+	assert_false(swimmer.is_out(), "a full meter and more, still in")
+	var lasts := rules.cold_meter / rules.pocket_cold_rate
+	assert_almost_eq(lasts, 16.0, 1e-9, "the 4 s meter lasts 16 s there")
+	var outs: Array[SimEvent] = []
+	for _tick in Ticks.from_seconds(lasts):
+		outs.append_array(_kinds(SimFixtures.step(sim), SimEvent.Kind.SEAT_OUT))
+		if swimmer.is_out():
+			break
+	assert_true(swimmer.is_out(), "but the cold takes it in the end")
+	assert_eq(swimmer.out_cause, PlayerState.Cause.COLD)
+	assert_almost_eq(swimmer.out_tick, Ticks.from_seconds(lasts), 1, "at the pocket rate")
+
+
+func test_pocket_rate_applies_only_with_the_head_in_trapped_air() -> void:
+	# Four swimmers, a second each: in the pocket, under the flooded hold's deck, in the
+	# engine room's free air over its water, and in the open sea.
+	var rules := _rules()
+	var places := {
+		"in the pocket": Vector3(13.5, 0.0, 0.0),
+		"under the hold's deck": Vector3(7.0, -1.9, 0.0),
+		"in free air over the engine room's water": Vector3(-2.0, -2.0, 3.0),
+		"in the open sea": Vector3(0.0, 0.0, 8.0),
+	}
+	for place: String in places:
+		var sim := _bow_under()
+		SimFixtures.swim(sim, 0, places[place])
+		var swimmer := sim.state.seats[0]
+		# Under a full cell's deck its head is pressed against the deck, under water.
+		swimmer.pos.y = minf(swimmer.pos.y, places[place].y)
+		SimFixtures.step(sim, {}, Ticks.RATE)
+		var rate := rules.pocket_cold_rate if place == "in the pocket" else 1.0
+		assert_eq(swimmer.body, PlayerState.Body.SWIMMING, place)
+		assert_eq(_breathes_pocket_air(sim, swimmer), place == "in the pocket", place)
+		assert_almost_eq(
+			rules.cold_meter - swimmer.cold, rate, 0.0001, "%s: %s a second" % [place, rate]
+		)
+
+
+func test_swimmer_crosses_a_flooded_doorway_to_the_next_pocket() -> void:
+	# The sea 2.4 m over her main deck: the deckhouse's rooms flooded over their door
+	# lintels, 2.1 m up, each trapping the air between them and its ceiling. From the
+	# hall's pocket a swimmer ducks under the saloon door's lintel and surfaces in the
+	# saloon's.
+	var rules := _rules()
+	var layout := SimFixtures.steamer()
+	var sim := SimFixtures.sim(2, null, layout)
+	var rooms := {}
+	for room: StringName in [&"deckhouse_hall", &"saloon", &"deckhouse_cabins"]:
+		rooms[room] = [2.25, 0.15]
+	HeldPose.hold(sim, HeldPose.flooded(layout, 2.4, rooms))
+	SimFixtures.place(sim, 1, Vector3(-2.5, 4.7, 0.0))
+	SimFixtures.swim(sim, 0, Vector3(-1.5, 0.0, 2.15))
+	var swimmer := sim.state.seats[0]
+	swimmer.cold = 100.0
+	# Under the ceiling, as it would float up to it.
+	swimmer.pos.y = 0.5
+	SimFixtures.step(sim, {}, Ticks.RATE)
+	var cells := sim.pose().cells
+	var structure := layout.structure
+	assert_eq(cells.cell_at(swimmer.pos), structure.cell_named(&"deckhouse_hall"))
+	assert_true(_breathes_pocket_air(sim, swimmer), "in the hall's pocket")
+	var lowest := swimmer.pos.y
+	var press := {0: SimFixtures.frame(0, Vector2.RIGHT)}
+	for _tick in 2 * Ticks.RATE:
+		SimFixtures.step(sim, press)
+		lowest = minf(lowest, swimmer.pos.y)
+	SimFixtures.step(sim, {}, Ticks.RATE)
+	assert_eq(swimmer.body, PlayerState.Body.SWIMMING)
+	assert_gt(swimmer.pos.x, rules.body_radius, "through the doorway")
+	assert_eq(cells.cell_at(swimmer.pos), structure.cell_named(&"saloon"), "in the saloon")
+	assert_lte(lowest + rules.body_height, 2.1, "ducked under the lintel")
+	assert_true(_breathes_pocket_air(sim, swimmer), "surfaced in the saloon's pocket")
+
+
+func test_swimmer_climbs_onto_a_dry_face_in_a_pocket() -> void:
+	# The deckhouse hall's air held as a pocket by the pose, its water half a metre deep,
+	# and a bench in it 0.75 m up — test data: the steamer upright has no dry face in a
+	# pocket, an upturned hull's old floors are its (SH32). A swimmer beside the bench
+	# climbs onto it as onto a deck edge, stands dry there, and its meter refills.
+	var rules := _rules()
+	var layout: ShipLayout = SimFixtures.steamer().duplicate()
+	layout.platforms = layout.platforms.duplicate()
+	var bench := ShipPlatform.new()
+	bench.name = &"bench"
+	bench.area = Rect2(-3.0, -3.0, 1.0, 1.0)
+	bench.height = 0.75
+	layout.platforms.append(bench)
+	var sim := SimFixtures.sim(2, null, layout)
+	HeldPose.hold(sim, HeldPose.flooded(layout, 2.4, {&"deckhouse_hall": [0.5, 1.9]}))
+	SimFixtures.place(sim, 1, Vector3(-2.5, 4.7, 0.0))
+	SimFixtures.swim(sim, 0, Vector3(-2.5, 0.0, -1.5))
+	var swimmer := sim.state.seats[0]
+	swimmer.cold = 2.0
+	# Its feet on the hall's floor, the water too shallow to float it.
+	swimmer.pos.y = 0.0
+	SimFixtures.step(sim, {}, Ticks.RATE / 2)
+	assert_eq(swimmer.body, PlayerState.Body.SWIMMING)
+	assert_true(_breathes_pocket_air(sim, swimmer), "in the hall's pocket")
+	var climbed := _kinds(
+		SimFixtures.step(sim, {0: SimFixtures.frame(0, TOWARD_PORT)}, Ticks.RATE),
+		SimEvent.Kind.CLIMBED_OUT
+	)
+	assert_eq(climbed.size(), 1, "climbed out")
+	assert_eq(swimmer.body, PlayerState.Body.GROUNDED)
+	assert_eq(SimFixtures.name_of(layout, swimmer.surface), &"bench", "onto the bench")
+	assert_almost_eq(swimmer.pos.y, 0.75, 0.0001, "standing dry over the pocket's water")
+	var cold := swimmer.cold
+	SimFixtures.step(sim, {}, Ticks.RATE)
+	assert_almost_eq(swimmer.cold, cold + rules.cold_regen, 0.0001, "refilling as on any deck")

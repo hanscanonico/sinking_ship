@@ -255,3 +255,17 @@ func test_every_wall_top_is_at_or_under_the_deck_above() -> void:
 					)
 				)
 				assert_ne(deck, INF, "%s: a deck over %s at (%.2f, %.2f)" % [path, wall.name, x, z])
+
+
+func test_every_cell_leaks_its_air() -> void:
+	# A pocket loses its air through its cell's rivets and seams, by construction (est.
+	# 10⁻³ m² per 1 000 m³, §5b.1): every cell has a leak, none rounded away to nothing,
+	# or a pocket there would hold its air for ever (SH29).
+	var layouts := _structured()
+	for path: String in layouts:
+		var structure := (layouts[path] as ShipLayout).structure
+		for cell: FloodCell in structure.cells:
+			var per_volume := cell.leak_area / cell.volume()
+			assert_almost_eq(
+				per_volume, 1e-6, 1e-8, "%s: %s's leak by its volume" % [path, cell.name]
+			)
