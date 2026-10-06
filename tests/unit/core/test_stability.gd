@@ -117,14 +117,14 @@ func test_wall_sided_righting_arm() -> void:
 func test_negative_stability_falls_to_the_loll_angle_on_the_seeded_side() -> void:
 	# 40 by 10 by 6 m, 3 m deep, her weight 4.5 m over her keel: GM -0.22 m. Upright she
 	# is unstable; nudged either way she lolls to tan φ = √(-2 GM / BM), 21.7°, on that
-	# side — the side a seeded stream picks.
+	# side — the side a seeded stream picks first, then the other.
 	var rng := RandomNumberGenerator.new()
 	rng.seed = SEED
 	var bm := 10.0 * 10.0 / (12.0 * 3.0)
 	var gm := 1.5 + bm - 4.5
 	var loll := rad_to_deg(atan(sqrt(-2.0 * gm / bm)))
-	for _round in 2:
-		var side := 1.0 if rng.randf() < 0.5 else -1.0
+	var first := 1.0 if rng.randf() < 0.5 else -1.0
+	for side: float in [first, -first]:
 		var barge := BoxBarge.new(40.0, 10.0, 6.0, 3.0, 4.5)
 		barge.section_length = 2.0
 		var stepper := SinkStepper.new(barge.structure(), HitDamage.new(), _sea())
@@ -156,6 +156,14 @@ func test_rotation_stays_square_through_a_full_roll() -> void:
 	for index in 9:
 		assert_almost_eq(rotation[index], level[index], 1e-9, "back upright, entry %d" % index)
 	assert_eq(rotation[6], 0.0, "her bow never swings off its heading")
+	# Each turn leaves her a hair off square, as rounding does; squaring brings her back:
+	# skewed far past what rounding ever leaves, she is square again in one call.
+	var skewed := Attitude.rolled(Attitude.pitched(Attitude.level(), 0.2), 0.3)
+	skewed[1] += 1e-6
+	skewed[4] *= 1.0 + 1e-6
+	skewed[8] -= 1e-6
+	assert_gt(Attitude.squareness(skewed), 1e-7, "skewed off square")
+	assert_lt(Attitude.squareness(Attitude.squared(skewed)), 1e-15, "squared back")
 
 
 func test_a_capsize_keeps_its_history() -> void:
