@@ -138,8 +138,9 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
-	# A server, or a headless client of one, never reaches the menu's matches.
-	if _match_rules == null:
+	# A server, a headless client of one, or a boot stopped on bad arguments never
+	# reaches the menu's matches.
+	if _upcoming == null:
 		return
 	if _holding != null:
 		_hold.advance(delta, _baker.progress())
