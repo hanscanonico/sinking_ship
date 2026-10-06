@@ -171,7 +171,7 @@ func _lone_perches(layout: ShipLayout, scenario: SinkScenario) -> Array[StringNa
 
 func test_no_single_route_perch() -> void:
 	# Q6, from SH26: nothing times a perch's fall any more, so every perch the sinking
-	# leaves highest has two ways up — the steamer's bridge, its stair and its ladder
+	# leaves highest has two ways up — the steamer's bridge, its two stairs
 	# side by side down its forward face.
 	var layout := SimFixtures.steamer()
 	var scenario: SinkScenario = load(SimFixtures.STEAMER_SINKING).duplicate()
@@ -182,7 +182,7 @@ func test_no_single_route_perch() -> void:
 	for ramp: ShipRamp in layout.ramps:
 		if not (is_equal_approx(ramp.start_height, 4.7) and ramp.area.position.y > 0.0):
 			ramps.append(ramp)
-	assert_eq(ramps.size(), layout.ramps.size() - 1, "the bridge has its ladder")
+	assert_eq(ramps.size(), layout.ramps.size() - 1, "the bridge has its starboard stair")
 	one_way.ramps = ramps
 	assert_eq(
 		_lone_perches(one_way, scenario),

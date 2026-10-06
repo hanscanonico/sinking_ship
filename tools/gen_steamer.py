@@ -187,12 +187,12 @@ ramp("boat_port", 3, -3.4, 6, 1.5, 0, 2.5, 0)
 ramp("boat_starboard", 3, 1.9, 6, 1.5, 0, 2.5, 0)
 ramp("forecastle", 9, -0.8, 3, 1.6, 0, 0, 1.8)
 # The bridge's two ways up (Q6): from SH26 nothing times the bridge's fall, so it is a
-# perch like any other and needs two routes — its stair to port and a ladder to
+# perch like any other and needs two routes — two stairs, one to port and one to
 # starboard, side by side down its forward face, each as steep and as wide as the one
-# stair it had; on the starboard side of the wheelhouse a steep ladder would stand at
+# stair it had; a steep ladder on the starboard side of the wheelhouse would stand at
 # the boat deck's open edge.
 ramp("bridge", -1, -1.5, 3, 1.4, 0, 4.7, 2.5)
-ramp("bridge_ladder", -1, 0.1, 3, 1.4, 0, 4.7, 2.5)
+ramp("bridge_starboard", -1, 0.1, 3, 1.4, 0, 4.7, 2.5)
 ramp("aft_companionway", -12.85, -0.55, 3.2, 1.1, 0, 0, LOWER)
 ramp("inner_stair", -1.25, -1.6, 1.1, 3.2, 1, 0, LOWER)
 ramp("forward_companionway", 9.0, 0.9, 3.2, 1.1, 0, 0, LOWER)

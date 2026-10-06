@@ -49,6 +49,7 @@ func _initialize() -> void:
 	)
 	config.scenario = args.struck(config.scenario)
 	var problems := config.problems()
+	problems.append_array(args.problems())
 	var profile := BotProfile.for_tier(config.bot_tier)
 	if profile == null:
 		problems.append("bot: no profile for the tier %s" % config.bot_tier)
