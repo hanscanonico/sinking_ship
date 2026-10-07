@@ -493,9 +493,10 @@ func _inverted(timeline: SinkTimeline) -> float:
 
 func test_capsize_upside_down_floats_on_her_air_then_goes() -> void:
 	# Holed low along her starboard bilges: she lists for over an hour, rolls past her
-	# beam ends and floats over on them, 100–140°, on the air her plated floors keep in
-	# her port bilges and the air in her after spaces — 18½–20 min of it on end,
-	# measured — until it leaks and she goes, by the head, within the bake's cap (SH32).
+	# beam ends and floats over on them — 143°, easing back to 90° — on the air her
+	# plated floors keep in her port bilges and the air in her after spaces — 18½–20 min
+	# of it on end, measured — until it leaks and she goes, by the head, within the
+	# bake's cap (SH32).
 	for scale: float in MARGINS:
 		var timeline := _pinned(&"capsize_upside_down", scale)
 		var what := "× %s" % scale
