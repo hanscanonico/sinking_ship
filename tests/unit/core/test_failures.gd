@@ -4,10 +4,10 @@ extends GutTest
 ## opens with the flow at its leak head and holds against it; a collapse is one-way; a
 ## funnel falls past a limit of its stays along the world's down, and on a roof too light
 ## for it collapses the roof; the generator's cell flooding puts her lights out, her
-## emergency power first; and her generator, stopped by a list, runs again only once she
-## is back within its margin. Box barges broad and deep enough that their tanks' water
-## barely moves the sea up them, with the attitude and air stages off where the heads are
-## the point (§5b.3).
+## emergency power first; her generator, stopped by a list, runs again only once she
+## is back within its margin; and her pumps lift water only while it runs. Box barges
+## broad and deep enough that their tanks' water barely moves the sea up them, with the
+## attitude and air stages off where the heads are the point (§5b.3).
 
 ## Heads across a door within this of its marks once the bake lands on them — the
 ## timeline's millimetre, and its rounding — in metres.
@@ -322,4 +322,58 @@ func test_power_has_hysteresis() -> void:
 	var emergency := ShipPower.Power.EMERGENCY
 	assert_eq(
 		powers, PackedInt32Array([main, emergency, emergency, main]), "off past it, on 3° back"
+	)
+
+
+## [param structure] with a pump in its generator's room lifting [param rate] m³ a second.
+func _pumped(structure: ShipStructure, rate: float) -> ShipStructure:
+	var pump := ShipFitting.new()
+	pump.kind = ShipFitting.Kind.PUMP
+	pump.name = &"pump"
+	pump.cell = &"engine_room"
+	pump.rate = rate
+	structure.fittings.append(pump)
+	return structure
+
+
+func test_pumps_run_only_on_main_power() -> void:
+	# Her pump lifts its rate while her generator runs; stopped by a list, it lifts
+	# nothing — not on her emergency power, nor once that is spent.
+	for minutes: float in [30.0, 0.0]:
+		var structure := _pumped(_powered_barge(minutes), 0.05)
+		var power := ShipPower.new(structure, _sea())
+		var state := FloodState.new()
+		state.heads = PackedFloat64Array([-100.0])
+		power.start(state)
+		var room := float(structure.cell_named(&"engine_room"))
+		var what := "%s min" % minutes
+		assert_eq(power.pumping(state), PackedFloat64Array([room, 0.05]), what + ": it pumps")
+		var listed := state.copy()
+		listed.rotation = Attitude.rolled(Attitude.level(), deg_to_rad(30.0))
+		power.follow(state, listed, 1.0)
+		assert_ne(listed.power, ShipPower.Power.MAIN, what + ": her generator stopped")
+		assert_eq(power.pumping(listed), PackedFloat64Array(), what + ": and her pump with it")
+
+
+func test_a_pump_beats_a_hole_while_its_generator_runs() -> void:
+	# A hole a pump lifts faster than it lets water in — 0.05 m² under 3 m of sea, about
+	# 0.23 m³ a second, against 0.5 — never floods the generator: its lights stay on;
+	# without the pump the room floods and drowns it.
+	var sea := _sea()
+	var pumped := SinkBake.new(
+		SinkStepper.new(_pumped(_powered_barge(0.0), 0.5), HitDamage.new(), sea), sea, 3600.0
+	)
+	pumped.run(1 << 62)
+	assert_eq(_when(pumped, SinkTimeline.Kind.POWER_LOST, &"generator"), -1.0, "never drowned")
+	var heads := pumped.heads()
+	var deepest := -INF
+	for head: float in heads:
+		deepest = maxf(deepest, head)
+	assert_lt(deepest, -3.0 + 0.5, "the water kept under its drowning depth")
+	var unpumped := SinkBake.new(
+		SinkStepper.new(_powered_barge(0.0), HitDamage.new(), sea), sea, 3600.0
+	)
+	unpumped.run(1 << 62)
+	assert_gt(
+		_when(unpumped, SinkTimeline.Kind.POWER_LOST, &"generator"), 0.0, "unpumped, it drowns"
 	)

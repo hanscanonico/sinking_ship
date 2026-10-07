@@ -3,7 +3,8 @@ extends GutTest
 ## a box whose weight lies along it as its lift does carries no bending; a load in the
 ## middle of a girder held up evenly bends it by PL/8 there; a load at one end, held up
 ## by a lift that grows toward it as a trimmed box's does, bends it by 4PL/27 a third
-## of the way along from it — two-thirds of the way from the other end (Rawson & Tupper).
+## of the way along from it — two-thirds of the way from the other end (Rawson & Tupper);
+## and what no lift meets is taken off along her, so her ends carry none.
 
 ## A girder cut into this many stations, and the share its moments come within.
 const STATIONS := 300
@@ -82,3 +83,26 @@ func test_load_at_one_end_gives_4pl_over_27_at_two_thirds() -> void:
 	assert_almost_eq(absf(moments[worst]), expected, expected * WITHIN, "4PL/27")
 	var from_far_end := bounds[STATIONS] - bounds[worst]
 	assert_almost_eq(from_far_end, length * 2.0 / 3.0, length / STATIONS, "two-thirds along")
+
+
+func test_a_load_no_lift_meets_leaves_her_ends_free() -> void:
+	# A load her lift does not meet — she is moving, not at rest — is taken off along her:
+	# spread as evenly as her weight it only moves her as one and bends no station; a lone
+	# load at her bow leaves neither end carrying any.
+	var length := 40.0
+	var load := 100.0
+	var bounds := _bounds(length, STATIONS)
+	var even := PackedFloat64Array()
+	for station in STATIONS:
+		even.append(load / STATIONS)
+	var worst := 0.0
+	for moment: float in HullGirder.moments(bounds, even):
+		worst = maxf(worst, absf(moment))
+	assert_almost_eq(worst, 0.0, load * length * 1e-9, "even, no bending anywhere")
+	var at_bow := PackedFloat64Array()
+	at_bow.resize(STATIONS)
+	at_bow[STATIONS - 1] = load
+	var moments := HullGirder.moments(bounds, at_bow)
+	assert_almost_eq(moments[0], 0.0, load * length * 1e-9, "none at her stern")
+	assert_almost_eq(moments[STATIONS], 0.0, load * length * 1e-9, "nor at her bow")
+	assert_gt(absf(moments[STATIONS / 2]), load * length * 0.01, "but bending between")
