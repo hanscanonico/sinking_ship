@@ -218,8 +218,8 @@ func test_costa_concordia_rests_at_60_to_85_on_a_30_m_ledge() -> void:
 		)
 		if timeline.end != SinkTimeline.End.AGROUND or heel < 60.0 or heel > 85.0:
 			# The physics as built (§5b.1): a flat bottom, where she lay on a sloping ledge,
-			# and a box hull with her weight held over one place — her two engine rooms'
-			# water leaves her afloat at a few degrees. Measured, not asserted.
+			# and a box hull with her weight held over one place — the water in her engine
+			# rooms leaves her afloat, near upright. Measured, not asserted.
 			pending(
 				(
 					"× %s: ends %s at %.0f° (wanted aground at 60–85° on a 30 m ledge)"
