@@ -145,27 +145,34 @@ func test_empress_ports_open_against_ports_shut() -> void:
 
 
 func test_herald_lurches_then_rests_on_her_side_in_15_m() -> void:
-	# Her vehicle deck floods through her open bow doors: she lurches and goes past 90°
-	# within 1–3 min of the water reaching her deck, and comes to rest on her side on the
-	# bottom 15 m down, 85–95° over with part of her out of the water.
+	# Her vehicle deck floods through her open bow doors: she lurches 25° within 10 s of
+	# the water reaching her deck, goes past 90° within 1–3 min of it, and comes to rest
+	# on her side on the bottom 15 m down, 85–95° over with part of her out of the water.
 	for scale: float in MARGINS:
 		var timeline := _bake(HERALD, scale)
 		var wet := _first(timeline, SinkTimeline.Kind.FLOODING, &"car_deck")
 		var over := _past(timeline, 90.0)
 		assert_gt(over, wet, "× %s: she goes over" % scale)
-		assert_between(over - wet, 0.0, 180.0, "× %s: past 90° within 3 min of the water" % scale)
+		assert_between(over - wet, 60.0, 180.0, "× %s: past 90° 1–3 min after the water" % scale)
 		assert_gt(_first(timeline, SinkTimeline.Kind.LURCHED, &""), wet, "× %s: lurching" % scale)
+		var lurch := _past(timeline, 25.0) - wet
 		var last := timeline.count() - 1
 		var heel := absf(BoxBarge.heel_deg(_rotation(timeline, last)))
-		if timeline.end != SinkTimeline.End.AGROUND or heel < 85.0 or heel > 95.0:
+		var rests := timeline.end == SinkTimeline.End.AGROUND and heel >= 85.0 and heel <= 95.0
+		if lurch > 10.0 or not rests:
 			# The physics as built (§5b.1): a box hull, her centre of mass held over one
-			# place, on a flat bottom. Rolling past 90° she has too little under her side
-			# to reach 15 m, so she rolls on to lie upside down — in shallower water her
-			# bilge grounds at 20–35° and she rights on it. Measured, not asserted.
+			# place, on a flat bottom. Her car deck's water sinks her as fast as it lists
+			# her, so the lurch takes about a minute; rolling past 90° she has too little
+			# under her side to reach 15 m, so she rolls on to lie upside down — in
+			# shallower water her bilge grounds at 20–35° and she rights on it. Measured,
+			# not asserted.
 			pending(
 				(
-					"× %s: ends %s at %.0f° (wanted aground at 85–95° in 15 m)"
-					% [scale, SinkTimeline.End.keys()[timeline.end], heel]
+					(
+						"× %s: 25° %.0f s after the water (wanted 10 s at most); ends %s at %.0f°"
+						% [scale, lurch, SinkTimeline.End.keys()[timeline.end], heel]
+					)
+					+ " (wanted aground at 85–95° in 15 m)"
 				)
 			)
 
