@@ -38,3 +38,23 @@ func test_bots_play_on_her_side() -> void:
 		if player.body == PlayerState.Body.GROUNDED:
 			standing += 1
 	assert_gt(standing, 0, "on their feet on her faces")
+
+
+func test_a_bot_reads_crates_still_aboard_off_her_decks() -> void:
+	# A match jumped to a moment she lies on her side has its crates where they were
+	# stowed until its first tick breaks them loose (MatchJump, Hazards): the faces she
+	# turns up have no crates, and the bot reading that snapshot thinks on.
+	var config := SimFixtures.config(4, SimFixtures.tilted(0.0, 90.0), 5, SimFixtures.steamer())
+	var tick := config.countdown_ticks + Ticks.RATE
+	var snapshot := MatchJump.snapshot(config, tick)
+	assert_ne(snapshot["up"], Faces.Up.DECK, "she lies on a face but her decks")
+	var aboard := 0
+	for crate: PropState in PropState.from_snapshot(snapshot):
+		if not crate.is_lost():
+			aboard += 1
+	assert_gt(aboard, 0, "her crates still aboard")
+	var bot := BotInputSource.new(0, load(SimFixtures.NORMAL_BOT), config)
+	bot.observe(snapshot, config.schedule().pose_at(tick))
+	var frame := bot.next_frame(tick)
+	assert_not_null(frame, "it decides")
+	assert_eq(frame.seat, 0)

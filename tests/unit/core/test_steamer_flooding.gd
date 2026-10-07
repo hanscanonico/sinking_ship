@@ -109,7 +109,7 @@ func _opening(opening_name: StringName) -> ShipOpening:
 
 func test_two_compartments_and_open_ports_ends_gone() -> void:
 	var seed_value := PinnedSeeds.seed_named(&"two_compartments_and_open_ports")
-	var choice: MustSink.Choice = SimFixtures.match_hits(seed_value)[seed_value - 1]
+	var choice := SimFixtures.match_hit(seed_value)
 	var walls := PackedFloat64Array()
 	for wall: ShipWall in _structure.walls:
 		if wall.axis == ShipWall.Axis.ACROSS:
@@ -132,7 +132,7 @@ func test_two_compartments_and_open_ports_ends_gone() -> void:
 ## [param scale] times as big.
 func _pinned(seed_name: StringName, scale: float) -> SinkTimeline:
 	var seed_value := PinnedSeeds.seed_named(seed_name)
-	var choice: MustSink.Choice = SimFixtures.match_hits(seed_value)[seed_value - 1]
+	var choice := SimFixtures.match_hit(seed_value)
 	return _bake(choice.damage, scale)
 
 

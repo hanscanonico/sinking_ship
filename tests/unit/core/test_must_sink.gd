@@ -9,9 +9,11 @@ const SEEDS := 40
 ## The raw census's seeds the quick check is held to: each hit it throws out is baked
 ## to show she floats on it.
 const RAW_SEEDS := 60
-## A seed whose first draw the quick check throws out: with one throw allowed and no
-## rung, the rule falls straight to the sure hit.
+## A seed whose first draw the quick check throws out: with one throw allowed the rule
+## goes straight to the fallback — a rung it takes, or with no rung the sure hit.
 const SURE_SEED := 6
+## Raw seeds whose first draw the bake sinks after hours listed toward its gash.
+const LISTING_SEEDS: Array[int] = [13, 35, 45]
 ## Explicit hits the bake sinks her on: her sure hit (empty) and the fixtures'.
 const SINKING_HITS: Array[String] = [
 	"",
@@ -24,6 +26,7 @@ var _structure: ShipStructure
 var _scenario: SinkScenario
 var _sea: SeaPhysics
 var _hull: LevelHull
+var _fallen: MustSink.Choice
 
 
 func before_all() -> void:
@@ -36,6 +39,22 @@ func before_all() -> void:
 func _founders(damage: HitDamage) -> bool:
 	var failing := _scenario.quick_failing
 	return MustSink.founders(_structure, damage, _hull, _sea, _scenario.spare_deck, failing)
+
+
+## The steamer's scenario with one throw allowed.
+func _one_throw() -> SinkScenario:
+	var scenario: SinkScenario = _scenario.duplicate()
+	scenario.quick_redraws = 1
+	return scenario
+
+
+## SURE_SEED's choice with one throw allowed: its first draw thrown out, a rung of the
+## fallback taken.
+func _fallen_back() -> MustSink.Choice:
+	if _fallen == null:
+		var stream := SeedStreams.derive(SURE_SEED, "sink")
+		_fallen = MustSink.choose(_structure, _one_throw(), stream, _sea)
+	return _fallen
 
 
 ## A light hit: a short slit into the hold's starboard side void alone.
@@ -58,6 +77,18 @@ func test_quick_check_throws_out_a_hit_she_floats_on() -> void:
 	assert_false(damage.openings.is_empty(), "the light hit holes her")
 	assert_false(_founders(damage), "thrown out at once")
 	assert_eq(SimFixtures.bake(_light()).end, SinkTimeline.End.AFLOAT, "and she floats on it")
+
+
+func test_quick_check_keeps_a_hit_she_lists_toward_until_she_founders() -> void:
+	# Raw draws whose gash floods one wing of her hold: the far wing waits on its leak
+	# while she lies listed toward the gash for an hour and more, her deck awash, and the
+	# bake has her gone by the head hours on. At the end of the spread she floats level
+	# with deck to spare; the quick check keeps them all the same.
+	for seed_value: int in LISTING_SEEDS:
+		var stream := SeedStreams.derive(seed_value, "sink")
+		var hit := IcebergHit.draw(_scenario.hit, stream)
+		var damage := HitMapper.map(hit, _structure, _scenario.hit, stream)
+		assert_true(_founders(damage), "seed %d: kept" % seed_value)
 
 
 func test_quick_check_never_throws_out_a_hit_the_bake_sinks() -> void:
@@ -97,15 +128,21 @@ func test_redraws_stay_within_their_bound() -> void:
 
 
 func test_fallback_makes_the_last_hit_heavier_until_she_founders() -> void:
+	# The match hits that took a rung, and a seed made to take one: a quick check that
+	# keeps every hit the bake may sink leaves the fallback few to take.
+	var chosen: Array[MustSink.Choice] = SimFixtures.match_hits(SEEDS)
+	var seeds := range(1, SEEDS + 1)
+	chosen.append(_fallen_back())
+	seeds.append(SURE_SEED)
 	var found := 0
-	for index in SEEDS:
-		var choice: MustSink.Choice = SimFixtures.match_hits(SEEDS)[index]
+	for index in chosen.size():
+		var choice := chosen[index]
 		if choice.rung == 0:
 			continue
 		found += 1
 		# Its last draw, as drawn, then heavier rung by rung: twice the width each, its
 		# reach one cell further, and only the rung it took passes the quick check.
-		var stream := SeedStreams.derive(index + 1, "sink")
+		var stream := SeedStreams.derive(seeds[index], "sink")
 		var drawn: IcebergHit = null
 		for _draw in choice.draws:
 			drawn = IcebergHit.draw(_scenario.hit, stream)
@@ -119,7 +156,9 @@ func test_fallback_makes_the_last_hit_heavier_until_she_founders() -> void:
 			heavier.jammed = choice.damage.jammed
 			heavier.left_open = choice.damage.left_open
 			var damage := HitMapper.map_explicit(heavier, _structure, _scenario.hit)
-			assert_eq(_founders(damage), rung == choice.rung, "seed %d rung %d" % [index + 1, rung])
+			assert_eq(
+				_founders(damage), rung == choice.rung, "seed %d rung %d" % [seeds[index], rung]
+			)
 		assert_almost_eq(choice.hit.width, heavier.width, 1e-12, "the rung it took is baked")
 		if found >= 3:
 			break
@@ -193,21 +232,20 @@ func _struck(choice: MustSink.Choice) -> Array:
 
 
 func test_a_client_draws_the_hosts_hit_again_from_its_origin() -> void:
-	# The match hits as drawn, a fallback's rung among them, then a rule left no draw
+	# The match hits as drawn, then a rule left a fallback's rung, then one left no draw
 	# but the sure hit: each drawn again from its timeline's origin alone, never baked.
 	var chosen: Array[MustSink.Choice] = SimFixtures.match_hits(SEEDS)
 	var seeds := range(1, SEEDS + 1)
-	var bare: SinkScenario = _scenario.duplicate()
-	bare.quick_redraws = 1
-	bare.rungs = 0
-	var sure := MustSink.choose(_structure, bare, SeedStreams.derive(SURE_SEED, "sink"), _sea)
-	assert_true(sure.sure, "seed %d: the sure hit, with no rung to take" % SURE_SEED)
 	var scenarios: Array[SinkScenario] = []
 	for _seed in SEEDS:
 		scenarios.append(_scenario)
-	chosen.append(sure)
-	seeds.append(SURE_SEED)
-	scenarios.append(bare)
+	var bare := _one_throw()
+	bare.rungs = 0
+	var sure := MustSink.choose(_structure, bare, SeedStreams.derive(SURE_SEED, "sink"), _sea)
+	assert_true(sure.sure, "seed %d: the sure hit, with no rung to take" % SURE_SEED)
+	chosen.append_array([_fallen_back(), sure])
+	seeds.append_array([SURE_SEED, SURE_SEED])
+	scenarios.append_array([_one_throw(), bare])
 	var rungs := 0
 	for index in chosen.size():
 		var host := chosen[index]

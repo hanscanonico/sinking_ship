@@ -31,12 +31,53 @@ must 1 thrown · 5 bakes · sure hit
 01:55.4 engine_bilge_p full
 02:05.3 seat 7 out · cold · place 5
 02:25.1 seat 1 out · cold · place 4
-02:43.9 poop_space flooding
-02:53.2 seat 3 out · cold · place 3
-03:03.9 aft_peak full
-03:21.5 water through stair_aft_cabins_sky
-03:44.6 seat 6 out · cold · place 2
-winner seat 5 at 03:44.6 · digest ce9e77cbe76e6ccd
-sinking at the end of the match: physics 0:03:07 (= match time, Q20 deferred) · seen 73% · sea 2.37 m up her · trim -6.0° · list +4.6° · aft_peak 7.04 m · poop_space 0.49 m · aft_bilge_p full · aft_bilge_s full · aft_cabins 1.44 m · engine_bilge_p full · engine_bilge_s full · engine_room 1.01 m · hold_bilge 2.72 m · hold 0.18 m · hold_wing_s 3.47 m
-not played: gone at 0:04:15 · trim -85.9° · list -11.5° · founders by the stern · fast · port boats useless · lights out · funnel fell
+02:36.2 poop_space flooding
+02:51.2 aft_peak full
+03:20.3 water through stair_aft_cabins_sky
+03:54.0 railing 6 broke
+03:54.3 deckhouse_hall flooding
+03:55.2 deckhouse_cabins flooding
+03:56.7 saloon flooding
+04:00.1 seat 6 out · cold · place 3
+04:01.4 water through over_bulkhead_hold_to_hold_wing_s
+04:02.5 the plunge
+04:03.1 air trapped in aft_cabins
+04:03.1 aft_cabins lamps drowned
+04:03.8 generator stopped
+04:04.0 funnel creaking
+04:04.8 wtd_engine leaking
+04:08.0 crate 0 lost
+04:08.1 funnel falling
+04:08.6 water through stair_engine_room_deckhouse_hall
+04:08.7 crate 1 lost
+04:09.9 wheelhouse flooding
+04:12.9 lurch coming · heel +10°
+04:13.1 deckhouse_cabins lamps drowned
+04:13.9 lurched · heel +10°
+04:16.6 air trapped in poop_space
+04:16.7 hatch_hold leaking
+04:16.7 deckhouse_hall lamps drowned
+04:17.0 wheelhouse lamps drowned
+04:17.4 poop_space full
+04:17.7 deckhouse_cabins full
+04:17.8 water through over_bulkhead_hold_to_hold
+04:17.9 saloon lamps drowned
+04:18.3 window_deckhouse_cabins_p1 gave way
+04:18.3 window_deckhouse_cabins_p2 gave way
+04:18.3 window_deckhouse_cabins_a1 gave way
+04:18.3 window_deckhouse_cabins_a2 gave way
+04:18.3 window_deckhouse_cabins_a3 gave way
+04:18.3 window_deckhouse_cabins_s1 gave way
+04:18.3 window_deckhouse_cabins_s2 gave way
+04:18.3 window_deckhouse_cabins_a4 gave way
+04:19.0 engine_room lamps drowned
+04:19.2 deckhouse_hall full
+04:19.3 wheelhouse full
+04:19.3 hatch_hold gave way
+04:20.2 lurch coming · heel +1°
+04:20.6 water through stair_hold_sky
+04:21.0 seat 3 out · cold · place 2
+winner seat 5 at 04:21.0 · digest 203b39497543c3d9
+sinking at the end of the match: physics 0:03:43 (= match time, Q20 deferred) · seen 88% · sea 8.04 m up her · trim -30.4° · list +38.7° · aft_peak full · poop_space full · aft_bilge_p full · aft_bilge_s full · aft_cabins 8.66 m · engine_bilge_p full · engine_bilge_s full · engine_room 7.45 m · hold_bilge 6.88 m · hold 3.77 m · hold_wing_s 6.46 m · deckhouse_cabins full · deckhouse_hall full · saloon 6.39 m · wheelhouse full
+not played: gone at 0:04:12 · trim -86.0° · list -11.8° · founders by the stern · fast · port boats useless · lights out · funnel fell
 bending peak 0.05 of strength, x +1.5 m, sagging

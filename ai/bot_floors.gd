@@ -31,6 +31,20 @@ func graph(up: int) -> WalkGraph:
 	return _graphs[up]
 
 
+## Stands the frame [param up]'s Surfaces as a player sees them in [param seen], under
+## [param pose] read in that frame: on her decks with the railings the snapshot has
+## broken and its crates; the faces she turns up have neither (Faces), whatever a
+## snapshot jumped onto one still holds (MatchJump).
+func honour(up: int, pose: ShipPose, seen: Dictionary) -> void:
+	var surfaces := graph(up).surfaces()
+	if up == Faces.Up.DECK:
+		surfaces.honour(
+			pose, MatchState.broken_in(seen["railing_hp"]), PropState.from_snapshot(seen)
+		)
+	else:
+		surfaces.honour(pose)
+
+
 ## [param pose] as the frame [param up] reads it (Faces.framed).
 func framed(pose: ShipPose, up: int) -> ShipPose:
 	return _faces.framed(pose, up)

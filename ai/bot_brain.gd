@@ -194,7 +194,7 @@ func decide(view: BotView, tick: int) -> InputFrame:
 	_stand_on(view.up())
 	var pose := view.pose()
 	# As a player sees them, for the footing's probes too: broken railings, crates.
-	_surfaces.honour(pose, MatchState.broken_in(seen["railing_hp"]), PropState.from_snapshot(seen))
+	_floors.honour(_up, pose, seen)
 	# The route is followed from where its seen velocity carries it; the edges are kept
 	# from where its own walks have, which a turn toward one since cannot hide — and,
 	# past the grip angle, where it slides wherever it walks, from both.

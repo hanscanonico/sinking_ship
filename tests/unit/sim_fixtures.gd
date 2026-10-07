@@ -19,6 +19,8 @@ const KEEP_LOOK := -1
 ## The steamer's match hits on seeds 1, 2, …, as the must-sink rule chose them: worked
 ## out once for every suite that reads them (match_hits).
 static var _match_hits: Array[MustSink.Choice] = []
+## Those past the last match_hits has worked out, by seed: one asked alone.
+static var _lone_hits: Dictionary[int, MustSink.Choice] = {}
 
 
 ## The steamer's match hits on seeds 1…[param count], as her matches choose them
@@ -31,6 +33,20 @@ static func match_hits(count: int) -> Array[MustSink.Choice]:
 		var stream := SeedStreams.derive(_match_hits.size() + 1, "sink")
 		_match_hits.append(MustSink.choose(structure, scenario, stream, sea))
 	return _match_hits.slice(0, count)
+
+
+## The steamer's match hit on seed [param seed_value], as match_hits has it — worked out
+## alone, not with every seed before it, where match_hits has not reached it.
+static func match_hit(seed_value: int) -> MustSink.Choice:
+	if seed_value <= _match_hits.size():
+		return _match_hits[seed_value - 1]
+	if not _lone_hits.has(seed_value):
+		var scenario: SinkScenario = load(STEAMER_SINKING)
+		var stream := SeedStreams.derive(seed_value, "sink")
+		_lone_hits[seed_value] = MustSink.choose(
+			steamer().structure, scenario, stream, SeaPhysics.load_default()
+		)
+	return _lone_hits[seed_value]
 
 
 ## The explicit hit on the steamer's [param side] side from [param from] to [param to]
