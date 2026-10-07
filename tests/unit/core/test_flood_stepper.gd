@@ -432,3 +432,53 @@ func test_box_barge_with_its_middle_flooded_settles_to_6_25_m() -> void:
 	assert_lt(Attitude.squareness(rotation), 1e-12, "square")
 	for index in 9:
 		assert_almost_eq(rotation[index], Attitude.level()[index], 1e-12, "level, entry %d" % index)
+
+
+func test_box_barge_flooded_over_a_shallow_bottom_rests_on_it() -> void:
+	# The barge above over a bottom 5.8 m under the still sea, shallower than the 6.25 m
+	# her lost buoyancy would put her (Seabed, SH32): she comes down onto it level, the
+	# bottom takes the 115 m³ of weight her lift no longer holds — on her twenty keel
+	# corners, each pushed back 800 m³ for a metre sunk into it, so by 7 mm — and she
+	# rests there with her deck dry: aground, the match's to play (Q21).
+	var damage := HitDamage.new()
+	damage.sea_depth = 5.8
+	var stepper := SinkStepper.new(_middle_holed_barge(), damage, _sea())
+	var timeline := SinkTimeline.bake(stepper, _sea(), 3600.0)
+	assert_eq(timeline.end, SinkTimeline.End.AGROUND, "at rest on the bottom, her deck dry")
+	var touched := false
+	for event: SinkTimeline.Event in timeline.events:
+		touched = touched or event.kind == SinkTimeline.Kind.GROUNDED
+	assert_true(touched, "she touches the bottom")
+	var last := timeline.count() - 1
+	assert_between(timeline.seas[last] - -10.0, 5.8, 5.81, "her keel on it, millimetres in")
+	var rotation := timeline.rotations.slice(last * 9, last * 9 + 9)
+	for index in 9:
+		assert_almost_eq(rotation[index], Attitude.level()[index], 1e-6, "level, entry %d" % index)
+
+
+func test_a_bottom_out_of_her_reach_changes_nothing() -> void:
+	# A bottom deeper than she ever reaches pushes on nothing: her bake over it is her
+	# bake over no bottom at all, state for state (D4).
+	var digests: Array[String] = []
+	for depth: float in [INF, 200.0]:
+		var damage := HitDamage.new()
+		damage.sea_depth = depth
+		var stepper := SinkStepper.new(_middle_holed_barge(), damage, _sea())
+		digests.append(SinkTimeline.bake(stepper, _sea(), 3600.0).digest())
+	assert_eq(digests[0], digests[1], "the same bake")
+
+
+## The barge of test_box_barge_with_its_middle_flooded_settles_to_6_25_m: 40 m long,
+## 8 m wide, 10 m deep, floating 5 m deep, her middle 8 m holed at the keel and
+## breathing through a hatch on deck.
+func _middle_holed_barge() -> ShipStructure:
+	var middle: Array[FloodCell] = [
+		_cell(&"middle", Vector3(-4.0, -10.0, -4.0), Vector3(4.0, 0.0, 4.0))
+	]
+	var hole := _opening(
+		&"hole", [&"middle", ShipOpening.SEA], Vector3(0.0, -10.0, 0.0), Vector3(1.0, 0.0, 1.0)
+	)
+	var hatch := _opening(
+		&"hatch", [&"middle", ShipOpening.SKY], Vector3(0.0, 0.0, 0.0), Vector3(1.0, 0.0, 1.0)
+	)
+	return _barge(40.0, 8.0, -10.0, 0.0, 5.0, middle, [hole, hatch], 10)

@@ -201,3 +201,38 @@ func test_brace_holds_up_to_the_band_top() -> void:
 	SimFixtures.step(past, {0: brace}, 2 * Ticks.RATE)
 	assert_eq(past.state.up, Faces.Up.PORT, "the wall is the floor")
 	assert_almost_eq(past.state.seats[0].pos.z, STARBOARD_FACE, 1e-4, "it fell onto it")
+
+
+func test_a_match_continues_exactly_as_she_turns_onto_another_face() -> void:
+	# She rolls from upright onto her side and on over (D5): the frame the match stands in
+	# is in its snapshot, so a sim rebuilt from any snapshot on the way goes on exactly as
+	# the match did — through the turn from her decks to her wall, and from her wall to
+	# the undersides of her decks.
+	var rolling := SimFixtures.scenario(
+		[[0.0, -10.0, 0.0, 0.0], [2.0, -10.0, 0.0, 90.0], [4.0, -10.0, 0.0, 180.0]]
+	)
+	var layout := _room()
+	layout.spawns.append(Vector3(2.0, FLOOR, 1.0))
+	var sim := MatchSim.create(SimFixtures.config(2, rolling, 1, layout))
+	SimFixtures.place(sim, 0, Vector3(-2.0, FLOOR, -1.0))
+	SimFixtures.place(sim, 1, Vector3(2.0, FLOOR, 1.0))
+	var frames := func(tick: int) -> Array[InputFrame]:
+		return [
+			SimFixtures.frame(0, Vector2(1.0, 0.0), 0, 0.0),
+			SimFixtures.frame(1, Vector2.ZERO, InputFrame.BRACE if tick < 45 else 0, 0.0),
+		]
+	var played: Array[Dictionary] = [sim.snapshot()]
+	for tick in 5 * Ticks.RATE:
+		sim.step(frames.call(tick))
+		played.append(sim.snapshot())
+	var ups := {}
+	for snapshot: Dictionary in played:
+		ups[snapshot["up"]] = true
+	assert_eq(ups.keys(), [Faces.Up.DECK, Faces.Up.PORT, Faces.Up.KEEL], "deck, wall, under")
+	for start in range(0, played.size() - 1, 3):
+		var resumed := MatchSim.from_snapshot(played[start], sim.config)
+		for offset in range(1, mini(Ticks.RATE / 2, played.size() - 1 - start) + 1):
+			resumed.step(frames.call(start + offset - 1))
+			if resumed.snapshot() != played[start + offset]:
+				fail_test("from tick %d it left the match at %d" % [start, start + offset])
+				return
