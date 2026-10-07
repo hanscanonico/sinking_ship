@@ -2,10 +2,11 @@ extends SceneTree
 ## `make bake SEED=1701 [SHIP=] [HIT=path.tres]`: the sinking of a seed's match alone, no match
 ## played (§5b.4) — the hit the must-sink rule chose for it (or the explicit one HIT=
 ## gives), the doors the ship shuts and the openings left open, how the rule came to
-## it, then every event of the bake in physics time, h:mm:ss, how she ends and the
-## labels read off it (OutcomeClassifier), and what the bake cost and the timeline
-## weighs, compacted and with every state kept. Everything is asked of the match's
-## config and schedule (D13); only the cost is this machine's.
+## it, then every event of the bake in physics time, h:mm:ss, how she ends, the labels
+## read off it (OutcomeClassifier) and the worst her bending came to (HullGirder), and
+## what the bake cost and the timeline weighs, compacted and with every state kept.
+## Everything is asked of the match's config and schedule (D13); only the cost is this
+## machine's.
 ##
 ##   godot --headless --path . -s res://tools/bake.gd -- --seed=1701
 
