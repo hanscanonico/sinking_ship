@@ -206,8 +206,10 @@ func test_a_cut_cell_splits_its_water_by_volume() -> void:
 		state.rotation = Attitude.pitched(state.rotation, deg_to_rad(pitched_deg))
 		stepper.pressures(state)
 		var water := 300.0
+		var trapped := 50.0
 		state.water[0] = water
 		state.heads[0] = stepper.head(0, water)
+		state.air[0] = trapped
 		var piece := BakePiece.new(stepper, sea, state, 0)
 		piece.hinge = 0
 		var breaking := HullBreak.of(structure, HitDamage.new(), sea)
@@ -220,6 +222,14 @@ func test_a_cut_cell_splits_its_water_by_volume() -> void:
 		else:
 			assert_lt(aft / water, 0.4, "by the head, less aft of the cut")
 		assert_almost_eq(parts[0].state.heads[0], state.heads[0], 1e-6, "at its own level")
+		# Its trapped air the same way: by the room each half has over its water.
+		var aft_air := parts[0].state.air[0]
+		var fore_air := parts[1].state.air[0]
+		assert_almost_eq(aft_air + fore_air, trapped, 1e-9, "no air made or lost")
+		if pitched_deg == 0.0:
+			assert_almost_eq(aft_air / trapped, 0.4, 1e-9, "level, by the halves' room")
+		else:
+			assert_gt(aft_air / trapped, 0.4, "by the head, more room aft of the cut")
 
 
 func test_three_pieces_at_most() -> void:
@@ -376,13 +386,12 @@ func test_continuation_is_exact_across_a_break() -> void:
 	assert_eq(sim.pose().standing.size(), 2, "she has parted by its end")
 	for start: int in [0, Ticks.RATE - 1, Ticks.RATE, Ticks.RATE + 1, 2 * Ticks.RATE]:
 		var resumed := MatchSim.from_snapshot(played[start], config)
+		var diverged := -1
 		for at in range(start, played.size() - 1):
 			resumed.step(scene.call(at))
-		var got := resumed.snapshot()
-		got.erase("events")
-		var expected := played[played.size() - 1].duplicate()
-		expected.erase("events")
-		assert_eq(got, expected, "resumed %d ticks in" % start)
+			if diverged == -1 and resumed.snapshot() != played[at + 1]:
+				diverged = at
+		assert_eq(diverged, -1, "resumed %d ticks in, every tick the same, events and all" % start)
 
 
 func test_the_weak_hull_breaks_in_two_on_her_pinned_seed() -> void:
