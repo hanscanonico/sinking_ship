@@ -181,7 +181,14 @@ static func _told(event: SinkTimeline.Event) -> String:
 			return "hull creaking · bending %.2f of her strength" % absf(event.heel_deg)
 		SinkTimeline.Kind.GROUNDED:
 			return "she touches the bottom"
-	return "she is gone"
+		SinkTimeline.Kind.HINGING:
+			return (
+				"hull hinging at %s · bending %.2f of its strength · %.0f s"
+				% [event.name, absf(event.heel_deg), event.lasts]
+			)
+		SinkTimeline.Kind.PARTED:
+			return "hull parts at %s · piece %d" % [event.name, event.piece]
+	return "she is gone" if event.name.is_empty() else "%s is gone" % event.name
 
 
 ## What the bake cost here, and what the timeline weighs: compacted, as it travels, and
@@ -191,8 +198,8 @@ static func _cost_lines(
 ) -> PackedStringArray:
 	var timeline := choice.timeline
 	var sea := SeaPhysics.load_default()
-	var stepper := SinkStepper.new(config.ship.structure, choice.damage, sea)
-	var every := SinkBake.new(stepper, sea, config.scenario.bake_cap).uncompacted()
+	var structure := config.ship.structure
+	var every := SinkBake.of(structure, choice.damage, sea, config.scenario.bake_cap).uncompacted()
 	return PackedStringArray(
 		[
 			(

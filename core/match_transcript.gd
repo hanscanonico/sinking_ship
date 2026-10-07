@@ -94,7 +94,7 @@ func add(events: Array[SimEvent]) -> void:
 			SimEvent.Kind.CRATE_LOST:
 				_lines.append("%s crate %d lost" % [clock(event.tick), event.prop])
 			SimEvent.Kind.PLUNGE_BEGAN:
-				_lines.append("%s the plunge" % clock(event.tick))
+				_lines.append("%s the plunge%s" % [clock(event.tick), _of_piece(event)])
 			SimEvent.Kind.CELL_FLOODING:
 				_lines.append("%s %s flooding" % [clock(event.tick), event.cell])
 			SimEvent.Kind.CELL_FULL:
@@ -102,7 +102,7 @@ func add(events: Array[SimEvent]) -> void:
 			SimEvent.Kind.WATER_SPILLING:
 				_lines.append("%s water through %s" % [clock(event.tick), event.cell])
 			SimEvent.Kind.SHIP_GONE:
-				_lines.append("%s she is gone" % clock(event.tick))
+				_lines.append("%s %s is gone" % [clock(event.tick), _gone_name(event)])
 			SimEvent.Kind.BOATS_USELESS:
 				_lines.append("%s %s boats useless" % [clock(event.tick), event.cell])
 			SimEvent.Kind.AIR_TRAPPED:
@@ -135,7 +135,21 @@ func add(events: Array[SimEvent]) -> void:
 					)
 				)
 			SimEvent.Kind.GROUNDED:
-				_lines.append("%s she touches the bottom" % clock(event.tick))
+				_lines.append("%s she touches the bottom%s" % [clock(event.tick), _of_piece(event)])
+			SimEvent.Kind.HULL_HINGING:
+				_lines.append("%s her hull hinging at %s" % [clock(event.tick), event.cell])
+			SimEvent.Kind.HULL_PARTED:
+				_lines.append("%s her hull parts at %s" % [clock(event.tick), event.cell])
+
+
+## Whose a physics event of the whole ship is once she has broken (SH33): " of piece n",
+## or nothing for the whole ship; and who is gone, "she" or "piece n".
+static func _of_piece(event: SimEvent) -> String:
+	return "" if event.cell.is_empty() else " of %s" % event.cell
+
+
+static func _gone_name(event: SimEvent) -> String:
+	return "she" if event.cell.is_empty() else String(event.cell)
 
 
 ## " · credit crate n" for an exit a crate is credited with — " shoved by seat s"

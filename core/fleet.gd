@@ -4,9 +4,13 @@ extends RefCounted
 ## data/ships/NAME.tres, struck in her open-sea scenario data/sinking/NAME_open_sea.tres
 ## — or in another of hers, data/sinking/NAME_SETTING.tres, a coast's shallow water
 ## (SH32). The menu's ship picker, --ship, --scenario and the tools' SHIP= and SCENARIO=
-## all ask here (D13); the match data names the default (MatchRules).
+## all ask here (D13); the match data names the default (MatchRules). A test-only ship
+## (SH33) — a variant of one of the fleet's, NAME_VARIANT, under tests/fixtures/ships —
+## plays by name, struck in her ship's open sea, and is never among names(): the menu
+## never offers one.
 
 const SHIPS := "res://data/ships"
+const TEST_SHIPS := "res://tests/fixtures/ships/%s.tres"
 const SCENARIOS := "res://data/sinking/%s.tres"
 const OPEN_SEA := "res://data/sinking/%s_open_sea.tres"
 
@@ -22,18 +26,29 @@ static func names() -> PackedStringArray:
 	return found
 
 
-## The ship called [param ship_name]; null when the fleet has none.
+## The ship called [param ship_name] — of the fleet, or a test-only one; null when there
+## is none.
 static func layout(ship_name: StringName) -> ShipLayout:
-	if not names().has(String(ship_name)):
-		return null
-	return load("%s/%s.tres" % [SHIPS, ship_name]) as ShipLayout
+	if names().has(String(ship_name)):
+		return load("%s/%s.tres" % [SHIPS, ship_name]) as ShipLayout
+	if _tested(ship_name):
+		return load(TEST_SHIPS % ship_name) as ShipLayout
+	return null
 
 
-## Her open-sea scenario; null when the fleet has no ship called [param ship_name].
+## Her open-sea scenario — a test-only ship's, her ship's; null when there is no ship
+## called [param ship_name].
 static func scenario(ship_name: StringName) -> SinkScenario:
-	if not names().has(String(ship_name)):
-		return null
-	return load(OPEN_SEA % ship_name) as SinkScenario
+	if names().has(String(ship_name)):
+		return load(OPEN_SEA % ship_name) as SinkScenario
+	if _tested(ship_name):
+		return load(OPEN_SEA % ship_of(ship_name)) as SinkScenario
+	return null
+
+
+## Whether [param ship_name] is a test-only ship: a variant of a ship of the fleet's.
+static func _tested(ship_name: StringName) -> bool:
+	return not ship_of(ship_name).is_empty() and ResourceLoader.exists(TEST_SHIPS % ship_name)
 
 
 ## The scenario called [param scenario_name] — one of a ship's of the fleet, its name

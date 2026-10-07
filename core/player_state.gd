@@ -10,6 +10,9 @@ enum Action { IDLE, WINDUP, ACTIVE, RECOVERY, CHARGE }
 enum Cause { NONE, COLD }
 
 var seat: int
+## The piece of her hull it is on (Pieces, SH33): 0, the whole ship, until she breaks.
+## Its points are in that piece's space — her ship space, where that piece stands.
+var piece: int
 ## Ship-local; y is the feet's height above the main deck.
 var pos: Vector3
 var vel: Vector3
@@ -124,6 +127,7 @@ func freeze(velocity: Vector3, ticks: int) -> void:
 func to_dict() -> Dictionary:
 	return {
 		"seat": seat,
+		"piece": piece,
 		"out": is_out(),
 		"place": place,
 		"out_tick": out_tick,
@@ -160,6 +164,7 @@ func to_dict() -> Dictionary:
 
 static func from_dict(entry: Dictionary) -> PlayerState:
 	var player := PlayerState.new(entry["seat"])
+	player.piece = entry["piece"]
 	player.place = entry["place"]
 	player.out_tick = entry["out_tick"]
 	player.out_cause = entry["out_cause"]

@@ -9,7 +9,8 @@ extends Resource
 ## space under the forecastle over it. GASH is the iceberg's, to the sea: never in a
 ## ship's data, made by HitMapper for the cells a hit crosses. PANEL is a watertight
 ## wall's where it parts two cells: never in a ship's data either, made by SinkFailures
-## from her walls, shut until it leaks or gives way (SH31).
+## from her walls, shut until it leaks or gives way (SH31). TORN is a broken hull's cut
+## face, to the sea: made by PieceStructure for each cell the cut opens (SH33).
 enum Kind {
 	DOOR,
 	WATERTIGHT_DOOR,
@@ -25,6 +26,7 @@ enum Kind {
 	OPEN,
 	GASH,
 	PANEL,
+	TORN,
 }
 enum Start { OPEN, SHUT }
 

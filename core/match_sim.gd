@@ -2,9 +2,12 @@ class_name MatchSim
 extends RefCounted
 ## The match, as a Node-free fixed-tick simulation (D1, D2). step() with one
 ## InputFrame per seat is the only way anything happens (D3); snapshot() is the
-## whole truth and from_snapshot() continues it exactly (D5).
+## whole truth and from_snapshot() continues it exactly (D5). Once she breaks (SH33) a
+## tick runs piece by piece of her (Pieces), aft to fore: the bodies on each move, shove
+## and swim in that piece's space and frame, under its pose; a body that leaves its
+## piece in the air or the sea over another is carried across through the world.
 
-const SNAPSHOT_VERSION := 9
+const SNAPSHOT_VERSION := 10
 
 var config: MatchConfig
 var schedule: SinkSchedule
@@ -12,11 +15,17 @@ var schedule: SinkSchedule
 var surfaces: Surfaces
 ## Every face of her as a surface, frame by frame (SH32).
 var faces: Faces
+## Her pieces, the whole ship first (SH33).
+var pieces: Pieces
 var state: MatchState
 
 var _rules: BrawlRules
+## The hazards and the movement of the piece the tick stands on now, and per piece
+## each, made the first time a tick stands on it.
 var _hazards: Hazards
 var _movement: Movement
+var _hazards_of: Dictionary[int, Hazards] = {}
+var _movements: Dictionary[int, Movement] = {}
 var _windup_ticks: int
 var _active_ticks: int
 var _recovery_ticks: int
@@ -38,8 +47,17 @@ func _init(match_config: MatchConfig) -> void:
 	faces = Faces.new(
 		config.ship, surfaces, _rules.brace_holds_to, SeaPhysics.load_default().capsized_movement
 	)
-	_hazards = Hazards.new(config, surfaces)
+	pieces = Pieces.new(
+		config.ship,
+		schedule,
+		faces,
+		_rules.brace_holds_to,
+		SeaPhysics.load_default().capsized_movement
+	)
+	_hazards = Hazards.new(config, surfaces, 0, pieces)
 	_movement = Movement.new(_rules, faces, _hazards)
+	_hazards_of[0] = _hazards
+	_movements[0] = _movement
 	_windup_ticks = Ticks.from_seconds(_rules.shove_windup)
 	_active_ticks = Ticks.from_seconds(_rules.shove_active)
 	_recovery_ticks = Ticks.from_seconds(_rules.shove_recovery)
@@ -82,6 +100,9 @@ static func create(match_config: MatchConfig) -> MatchSim:
 	match_state.props = PropState.from_layout(match_config.ship)
 	match_state.railing_hp.resize(match_config.ship.railings.size())
 	match_state.railing_hp.fill(match_config.rules.railing_hp)
+	match_state.up.resize(sim.pieces.count())
+	for piece in range(1, match_state.up.size()):
+		match_state.up[piece] = -1
 	sim.state = match_state
 	return sim
 
@@ -107,9 +128,9 @@ func restore(snapshot: Dictionary) -> void:
 		match_state.seats.append(PlayerState.from_dict(entry))
 	match_state.props = PropState.from_snapshot(snapshot)
 	match_state.railing_hp = (snapshot["railing_hp"] as PackedFloat64Array).duplicate()
-	match_state.up = snapshot["up"]
+	match_state.up = PackedInt32Array(snapshot["up"])
 	state = match_state
-	surfaces.honour(pose(), match_state.broken_railings(), match_state.props)
+	_honour(pose())
 
 
 func snapshot() -> Dictionary:
@@ -138,30 +159,49 @@ func step(frames: Array[InputFrame]) -> Array[SimEvent]:
 	_take_frames(frames, tick, live)
 	var pose_now := schedule.pose_at(tick)
 	_sinking_events(pose_now, tick, events)
-	# From here to the tick's end every body's points are in the frame of the faces that
-	# are floors (Movement.face), and so is the pose every rule reads.
-	var framed := _movement.face(state, pose_now, tick, events)
-	if tick < config.countdown_ticks:
-		for player: PlayerState in state.seats:
-			player.prev_buttons = player.last_buttons
-	else:
-		_intent(live, framed)
-		_brace_and_stamina(live)
-		_movement.forces(live, framed)
-		var feet_before := _movement.move(state, live, framed, tick, events)
-		_movement.ground(live, tick, events, feet_before)
-		_thaw(live)
-		_hazards.step(state, pose_now, tick, events)
-		_shoves(live, tick, events)
-		var exits := _water(live, framed, tick, events, feet_before)
-		var settled := MatchVerdict.settled_by_the_sea(
-			_live_seats(), framed, tick, schedule.gone_tick(), _here(), _rules.wade_depth
-		)
-		for player: PlayerState in settled:
+	_rehome(pose_now, tick, events)
+	var playing := tick >= config.countdown_ticks
+	var exits: Array[PlayerState] = []
+	var going: Array[PlayerState] = []
+	var framed_of: Dictionary[int, ShipPose] = {}
+	for piece: int in pose_now.standing:
+		_stand_on(piece)
+		var here := _on(live, piece)
+		# From here to the piece's turn's end the points of every body on it are in the
+		# frame of its faces that are floors (Movement.face), and so is the pose every rule
+		# reads.
+		var framed := _movement.face(state, pose_now.of_piece(piece), tick, events)
+		framed_of[piece] = framed
+		if not playing:
+			for player: PlayerState in state.seats:
+				if player.piece == piece:
+					player.prev_buttons = player.last_buttons
+		else:
+			_intent(here, framed)
+			_brace_and_stamina(here)
+			_movement.forces(here, framed)
+			var feet_before := _movement.move(state, here, framed, tick, events)
+			_movement.ground(here, tick, events, feet_before)
+			_thaw(here)
+			_hazards.step(state, pose_now, tick, events)
+			_shoves(here, tick, events)
+			exits.append_array(_water(here, framed, tick, events, feet_before))
+			var gone_tick := schedule.piece_gone_tick(piece)
+			going.append_array(
+				MatchVerdict.gone_with(_on(_live_seats(), piece), framed, tick, gone_tick)
+			)
+		_movement.unface(state)
+	if playing:
+		_carry(pose_now, live)
+		var left: Array[PlayerState] = []
+		for player: PlayerState in _live_seats():
+			if not player in going:
+				left.append(player)
+		going.append_array(MatchVerdict.by_the_cold(left, _sunk.bind(pose_now.standing, framed_of)))
+		for player: PlayerState in going:
 			_out(player, tick)
 			exits.append(player)
 		MatchVerdict.place(state, exits, tick, events)
-	_movement.unface(state)
 	state.tick += 1
 	if state.phase == MatchState.Phase.COUNTDOWN and state.tick >= config.countdown_ticks:
 		state.phase = MatchState.Phase.LIVE
@@ -172,8 +212,108 @@ func step(frames: Array[InputFrame]) -> Array[SimEvent]:
 ## surface — with the railings the match has broken and its crates where they are,
 ## and the sinking's telegraphs and events for this tick go out.
 func _sinking_events(pose_now: ShipPose, tick: int, events: Array[SimEvent]) -> void:
-	surfaces.honour(pose_now, state.broken_railings(), state.props)
+	_honour(pose_now)
 	events.append_array(schedule.events_at(tick))
+
+
+## Every piece she stands in under [param pose_now] honours it (Pieces.honour).
+func _honour(pose_now: ShipPose) -> void:
+	for piece: int in pose_now.standing:
+		pieces.honour(piece, pose_now, state.broken_railings(), state.props)
+
+
+## The tick's rules stand on piece [param piece]: its movement and hazards, made the
+## first time.
+func _stand_on(piece: int) -> void:
+	if not _movements.has(piece):
+		var deck := pieces.faces(piece).surfaces(Faces.Up.DECK)
+		_hazards_of[piece] = Hazards.new(config, deck, piece, pieces)
+		_movements[piece] = Movement.new(_rules, pieces.faces(piece), _hazards_of[piece], piece)
+	_movement = _movements[piece]
+	_hazards = _hazards_of[piece]
+
+
+## The seats of [param seats] on piece [param piece].
+static func _on(seats: Array[PlayerState], piece: int) -> Array[PlayerState]:
+	var found: Array[PlayerState] = []
+	for player: PlayerState in seats:
+		if player.piece == piece:
+			found.append(player)
+	return found
+
+
+## Every seat on a piece that has broken by this tick goes to the piece of it under it
+## (Pieces) — the aft one where it stands aft of the cut, torn ends and all — and each
+## piece new by this tick stands in the frame of the piece it broke from. A body
+## standing keeps its footing where the new piece has a floor under it, and falls where
+## the deck is torn away; a climber lets go.
+func _rehome(pose_now: ShipPose, tick: int, events: Array[SimEvent]) -> void:
+	var standing := pose_now.standing
+	for piece: int in standing:
+		var from := piece
+		while state.up[from] == -1:
+			from = schedule.parent_of(from)
+		state.up[piece] = state.up[from]
+	for player: PlayerState in state.seats:
+		if player.piece in standing:
+			continue
+		while not player.piece in standing:
+			var aft := _children_of(player.piece)
+			var x := player.pos.x
+			player.piece = aft if x < schedule.span_of(aft).y else aft + 1
+		player.climb_left = 0
+		if player.body != PlayerState.Body.GROUNDED:
+			continue
+		var up: int = state.up[player.piece]
+		var feet := Faces.to_frame(up) * player.pos
+		player.surface = pieces.faces(player.piece).surfaces(up).under(feet, _rules.step_height)
+		if player.surface == Surfaces.NONE:
+			player.body = PlayerState.Body.AIRBORNE
+			player.jumped = false
+			player.fall_from = feet.y
+			events.append(SimEvent.fell(tick, player.seat))
+
+
+## The first of the two pieces [param piece] broke into, the aft one; the fore one is
+## the next.
+func _children_of(piece: int) -> int:
+	for other in pieces.count():
+		if schedule.parent_of(other) == piece:
+			return other
+	return -1
+
+
+## Every body of [param live] in the air or the sea that has left its piece's stretch and
+## is over another piece's, carried across into that piece through the world (Pieces.carry).
+func _carry(pose_now: ShipPose, live: Array[PlayerState]) -> void:
+	var standing := pose_now.standing
+	if standing.size() == 1:
+		return
+	for player: PlayerState in live:
+		var loose := (
+			player.body == PlayerState.Body.AIRBORNE or player.body == PlayerState.Body.SWIMMING
+		)
+		if (
+			not loose
+			or player.is_climbing()
+			or pieces.piece_at(standing, player.pos.x) == player.piece
+		):
+			continue
+		var world := pose_now.of_piece(player.piece).transform * player.pos
+		for other: int in standing:
+			var there := pose_now.of_piece(other).transform.affine_inverse() * world
+			if other != player.piece and pieces.piece_at(standing, there.x) == other:
+				Pieces.carry(player, player.piece, other, pose_now)
+				break
+
+
+## Whether every surface still standing on every piece of [param standing] is wade_depth
+## under the sea, each read in the frame its tick stood in, [param framed_of] its pose.
+func _sunk(standing: PackedInt32Array, framed_of: Dictionary[int, ShipPose]) -> bool:
+	for piece: int in standing:
+		if not _movements[piece].surfaces().sunk(framed_of[piece], _rules.wade_depth):
+			return false
+	return true
 
 
 ## The Surfaces of the frame the tick stands in (Movement.face).

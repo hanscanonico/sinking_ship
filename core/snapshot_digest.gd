@@ -24,9 +24,10 @@ static func quantized(snapshot: Dictionary) -> String:
 			str(snapshot["tick"]),
 			str(snapshot["phase"]),
 			str(snapshot["rng"]),
-			str(snapshot["up"]),
+			_joined(snapshot["up"]),
 		]
 	)
+	var pieces: bool = snapshot["up"].size() > 1
 	for entry: Dictionary in snapshot["seats"]:
 		var pos: Vector3 = entry["pos"]
 		var vel: Vector3 = entry["vel"]
@@ -73,6 +74,8 @@ static func quantized(snapshot: Dictionary) -> String:
 			entry["prev_buttons"],
 		]
 		fields.append_array(entry["last_input"])
+		if pieces:
+			fields.append(entry["piece"])
 		parts.append(_joined(fields))
 	for entry: Dictionary in snapshot["props"]:
 		var pos: Vector3 = entry["pos"]

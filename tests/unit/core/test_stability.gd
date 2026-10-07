@@ -26,9 +26,9 @@ func _settled(stepper: SinkStepper, state: FloodState, kept: Array[FloodState] =
 		state = stepper.advance(state)
 		kept.append(state)
 		var still := (
-			absf(state.heave_rate) < SinkBake.STILL_RISE
-			and absf(state.pitch_rate) < SinkBake.STILL_TURN
-			and absf(state.roll_rate) < SinkBake.STILL_TURN
+			absf(state.heave_rate) < BakePiece.STILL_RISE
+			and absf(state.pitch_rate) < BakePiece.STILL_TURN
+			and absf(state.roll_rate) < BakePiece.STILL_TURN
 		)
 		if still and state.seconds > 60.0:
 			break

@@ -10,7 +10,8 @@ extends RefCounted
 ## bending moment, positive hogging — her middle up, her ends down — and what she does
 ## not bring to rest by her ends, moving as she is, is taken off along her evenly
 ## (moments). Each station's moment over her strength (GirderStrength) is all that
-## decides a break: the worst share is reported, and from SH33 one at 1 starts a hinge.
+## decides a break: the worst share is reported, and from SH33 one at a weak spot of hers
+## at 1 of what the spot keeps starts a hinge there (HullBreak, share_at).
 ## Only +, −, ×, ÷ on 64-bit floats run here (D4, R21). Loads as volumes of sea,
 ## moments as volumes of sea times metres; ship-local metres.
 
@@ -28,8 +29,10 @@ var _shares := PackedFloat64Array()
 ## Her strength hogging and sagging, as volumes of sea times metres.
 var _hog: float
 var _sag: float
-## Each section's lift, filled by ShipMotion each time she is measured.
+## Each section's lift, filled by ShipMotion each time she is measured; and the moment at
+## each station's ends then.
 var _lift := PackedFloat64Array()
+var _moments := PackedFloat64Array()
 
 
 ## [param structure]'s hull under [param sea], moving as [param motion] moves her.
@@ -79,6 +82,7 @@ func measure(state: FloodState) -> void:
 	for station in loads.size():
 		loads[station] = (loads[station] - _lift[station]) * across
 	var bending := moments(_bounds, loads)
+	_moments = bending
 	var worst := 0.0
 	var where := 0.0
 	for at in bending.size():
@@ -88,6 +92,21 @@ func measure(state: FloodState) -> void:
 			where = _bounds[at]
 	state.bending = worst
 	state.bending_x = where
+
+
+## The bending at [param x] along her at the state last measured, as a share of
+## [param kept] of her strength there — positive hogging (SH33, HullBreak): the moment
+## read straight between the ends of the station it falls in.
+func share_at(x: float, kept: float) -> float:
+	var station := 0
+	var last := _bounds.size() - 2
+	while station < last and _bounds[station + 1] < x:
+		station += 1
+	var low := _bounds[station]
+	var span := _bounds[station + 1] - low
+	var weight := clampf((x - low) / span, 0.0, 1.0)
+	var moment := _moments[station] + (_moments[station + 1] - _moments[station]) * weight
+	return moment / (_hog * kept) if moment >= 0.0 else moment / (_sag * kept)
 
 
 ## The bending moment at each of [param bounds] — the ends of stations aft to fore —

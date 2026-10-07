@@ -93,7 +93,7 @@ func test_the_match_follows_her_onto_another_face() -> void:
 	for seat in 3:
 		SimFixtures.place(sim, seat, Vector3(-2.0 + seat * 2.0, 2.5, 0.0))
 	var events := SimFixtures.step(sim, {}, 2)
-	assert_ne(sim.state.up, Faces.Up.DECK, "the match stands on another face of her")
+	assert_ne(sim.state.up[0], Faces.Up.DECK, "the match stands on another face of her")
 	for event: SimEvent in events:
 		assert_ne(event.kind, SimEvent.Kind.SEAT_OUT, "nobody goes out as she turns")
 	for seat in 3:

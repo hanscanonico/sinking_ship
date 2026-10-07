@@ -310,7 +310,7 @@ class Choosing:
 
 	func _start(damage: HitDamage) -> void:
 		damage.sea_depth = _scenario.sea_depth
-		_bake = SinkBake.new(SinkStepper.new(_structure, damage, _sea), _sea, _scenario.bake_cap)
+		_bake = SinkBake.of(_structure, damage, _sea, _scenario.bake_cap)
 
 	## Ends the rule on [param chosen]: its bake made its timeline — compacted only now,
 	## for the one bake kept — stamped with how it was come by.

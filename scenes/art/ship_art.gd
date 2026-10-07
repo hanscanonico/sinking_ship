@@ -98,6 +98,10 @@ const PAINTS: Array[int] = [
 ## Ship-local height: nothing of the ship above it is drawn — the observer's
 ## cut-away (--observer-cut). INF draws everything. Set it before build().
 var cut_above := INF
+## The stretch along her this art draws, from aft to fore: one piece of a broken hull
+## (PieceClip, SH33) — its rooms' lamps alone hung, its funnel's smoke alone rising — or
+## all of her. Set it before build(); show_span() moves it after.
+var span := Vector2(-INF, INF)
 
 var _space: ShipSpace
 var _dressing: RoomDressing
@@ -117,6 +121,8 @@ var _remains: Array[Node3D] = []
 ## Finish -> Material.
 var _wreckage: RailingRemains
 var _paints := {}
+## The furnishings' paints (_near_paints).
+var _near := {}
 ## Per room, a box holding all of it (_rooms_boxed): outside them all is outdoors.
 var _room_boxes: Array[AABB] = []
 ## Per platform name that can collapse, its own materials: Finish -> Material; and
@@ -131,10 +137,9 @@ var _crate_at := PackedVector3Array()
 var _crate_indoors := PackedFloat32Array()
 ## Which of the rooms' lamps light, and the graphics preset it was last told of.
 var _lamp_sight: LampSight
-## Every room's lamp, the cell it hangs in — CellMap.NONE for a ship without cells —
-## and where it burns: what the sinking's lit state and water reach (show_power).
+## Every room's lamp, and where it burns: what the sinking's lit state and water reach
+## through the cell it hangs in (show_power).
 var _lamps: Array[ShipLamp] = []
-var _lamp_cells := PackedInt32Array()
 var _lamp_at := PackedVector3Array()
 ## Per funnel the sinking can fell, by its fitting's name, the node its standing part
 ## hangs from, turned about its foot as it falls (show_falls).
@@ -180,7 +185,6 @@ func build(
 	_crate_at.clear()
 	_crate_indoors.clear()
 	_lamps.clear()
-	_lamp_cells.clear()
 	_lamp_at.clear()
 	_funnels.clear()
 	_felled = false
@@ -241,11 +245,12 @@ func build(
 	brass.diffuse_mode = BaseMaterial3D.DIFFUSE_TOON
 	brass.specular_mode = BaseMaterial3D.SPECULAR_DISABLED
 	ShipLamp.fade_near(brass)
-	var cells := CellMap.new(layout.structure) if layout.structure != null else null
 	for index in layout.rooms.size():
-		_hang_lamps(layout.rooms[index], index, brass, cells)
+		if PieceClip.holds(span, layout.rooms[index].area.get_center().x):
+			_hang_lamps(layout.rooms[index], index, brass)
 	mesh.commit(self, materials)
-	furnishings.commit(dressed, _near_paints(materials))
+	_near = _near_paints(materials)
+	furnishings.commit(dressed, _near)
 	for node: Node3D in pieces:
 		var deck := _wrecks.find(node)
 		if deck == -1:
@@ -264,6 +269,16 @@ func show_graphics(quality: GraphicsQuality) -> void:
 	_graphics = quality
 	if _lamp_sight != null:
 		_lamp_sight.show_graphics(quality)
+
+
+## Keeps it to the stretch [param kept] along her from now: a piece's, its torn ends torn
+## back once it has broken away (MatchView).
+func show_span(kept: Vector2) -> void:
+	span = kept
+	var materials: Array[Dictionary] = [_paints, _near]
+	for own: Dictionary in _flashes.values():
+		materials.append(own)
+	PieceClip.show(materials, span)
 
 
 ## Per crate of the layout's cargo, the node it is drawn under, its origin at the
@@ -319,7 +334,8 @@ func show_power(pose: ShipPose) -> void:
 	if pose.lit.is_empty():
 		return
 	for index in _lamps.size():
-		var cell := _lamp_cells[index]
+		# The cell it hangs in as the pose has her cells — a piece's own, once she breaks.
+		var cell := pose.cell_at(_lamp_at[index])
 		if cell == CellMap.NONE:
 			continue
 		var lamp := _lamps[index]
@@ -367,7 +383,10 @@ static func wrecked(platform: ShipPlatform, floor_height: float, fallen: float) 
 
 func _process(_delta: float) -> void:
 	if _smoke != null:
-		_smoke.emitting = _smoke.global_position.y > 0.0 and not _felled
+		var aboard := PieceClip.holds(
+			span, (global_transform.affine_inverse() * _smoke.global_position).x
+		)
+		_smoke.emitting = _smoke.global_position.y > 0.0 and not _felled and aboard
 	for index in _crates.size():
 		_light_crate(index)
 	var camera := get_viewport().get_camera_3d()
@@ -516,7 +535,7 @@ func _near_paints(materials: Dictionary) -> Dictionary:
 	var near := _own_paints(materials)
 	for finish: int in PAINTS:
 		var material := near[finish] as ShaderMaterial
-		material.shader = NEAR_SHADER
+		material.shader = PieceClip.NEAR_SHADER if PieceClip.cuts(span) else NEAR_SHADER
 		material.set_shader_parameter("near_fade", RoomDressing.NEAR_FADE)
 	return near
 
@@ -949,8 +968,8 @@ func _door_frame(mesh: ShipMesh, lintel: ShipBlocker, deck: float) -> void:
 ## [param room]'s lamps where RoomDressing.lights() puts them: a pendant hung under
 ## the middle of its ceiling (the greybox's marker) — from the deck above when that
 ## deck can fall — and a room's others the same way; a fire in its wall. Each is lit as
-## the cell it hangs in, of [param cells] (show_power).
-func _hang_lamps(room: ShipRoom, index: int, brass: Material, cells: CellMap) -> void:
+## the cell it hangs in, the pose's (show_power).
+func _hang_lamps(room: ShipRoom, index: int, brass: Material) -> void:
 	var middle := room.area.get_center()
 	var ceiling := _space.ceiling(room, middle.x, middle.y)
 	var area := room.area
@@ -986,7 +1005,6 @@ func _hang_lamps(room: ShipRoom, index: int, brass: Material, cells: CellMap) ->
 		lamp.setup(index * 1.7 + number * 0.61, glass, brass, light.kind, light.facing)
 		_lamp_sight.add(lamp, index, box)
 		_lamps.append(lamp)
-		_lamp_cells.append(cells.cell_at(light.at) if cells != null else CellMap.NONE)
 		_lamp_at.append(light.at)
 
 
@@ -1003,7 +1021,7 @@ func _materials(layout: ShipLayout, bow: Vector4) -> Dictionary:
 	var materials := {}
 	for paint: int in PAINTS:
 		var material := ShaderMaterial.new()
-		material.shader = CUT_SHADER if cut else SHADER
+		material.shader = PieceClip.shader_for(span, cut, CUT_SHADER if cut else SHADER)
 		material.set_shader_parameter("finish", paint)
 		material.set_shader_parameter("ink", ArtPalette.INK)
 		material.set_shader_parameter("seam_colour", ArtPalette.DECK_SEAM)
@@ -1026,6 +1044,8 @@ func _materials(layout: ShipLayout, bow: Vector4) -> Dictionary:
 		materials[paint] = material
 	materials[ShipMesh.Finish.GLASS_IN] = _glass(false)
 	materials[ShipMesh.Finish.GLASS_OUT] = _glass(true)
+	if PieceClip.cuts(span):
+		PieceClip.show([materials], span)
 	return materials
 
 

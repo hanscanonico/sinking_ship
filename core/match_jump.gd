@@ -13,7 +13,9 @@ extends RefCounted
 const APART := 0.9
 
 
-## The snapshot of [param config]'s match jumped to [param tick].
+## The snapshot of [param config]'s match jumped to [param tick]: once she has broken
+## (SH33), each seat on the piece of her its spawn stands over — the aft one, where it
+## stands in a gap between two — on that piece's own floors.
 static func snapshot(config: MatchConfig, tick: int) -> Dictionary:
 	var sim := MatchSim.create(config)
 	var state := sim.state
@@ -21,33 +23,53 @@ static func snapshot(config: MatchConfig, tick: int) -> Dictionary:
 	if tick >= config.countdown_ticks:
 		state.phase = MatchState.Phase.LIVE
 	var pose := sim.schedule.pose_at(tick)
-	var up := sim.faces.up_at(pose, Faces.Up.DECK)
-	state.up = up
-	var framed := sim.faces.framed(pose, up)
-	var surfaces := sim.faces.surfaces(up, framed)
-	if up == Faces.Up.DECK:
-		surfaces.honour(pose, state.broken_railings(), state.props)
-	else:
-		surfaces.honour(framed)
 	var step := config.rules.step_height
-	var floors := sim.faces.layout(up).platforms
-	var dry := _dry_platforms(floors, surfaces, framed, step)
-	var into := Faces.to_frame(up)
-	var placed := 0
+	var placed := {}
+	var dry_of := {}
 	for player: PlayerState in state.seats:
+		var piece := sim.pieces.piece_at(pose.standing, player.pos.x)
+		if piece == -1:
+			piece = _aft_of(sim.schedule, pose.standing, player.pos.x)
+		player.piece = piece
+		var faces := sim.pieces.faces(piece)
+		var own := pose.of_piece(piece)
+		var up := faces.up_at(own, Faces.Up.DECK)
+		var framed := faces.framed(own, up)
+		var surfaces := faces.surfaces(up, framed)
+		if not dry_of.has(piece):
+			state.up[piece] = up
+			if up == Faces.Up.DECK:
+				sim.pieces.honour(piece, pose, state.broken_railings(), state.props)
+			else:
+				surfaces.honour(framed)
+			dry_of[piece] = _dry_platforms(faces.layout(up).platforms, surfaces, framed, step)
+			placed[piece] = 0
+		var floors := faces.layout(up).platforms
+		var dry: PackedInt32Array = dry_of[piece]
+		var into := Faces.to_frame(up)
 		var feet := into * player.pos
 		if not (_dry(surfaces, framed, feet, step) or dry.is_empty()):
-			var platform := floors[dry[placed % dry.size()]]
+			var at: int = placed[piece]
+			var platform := floors[dry[at % dry.size()]]
 			var centre := platform.area.get_center()
-			var along := (placed / dry.size()) * APART
+			var along := (at / dry.size()) * APART
 			var x := clampf(centre.x + along, platform.area.position.x, platform.area.end.x)
 			feet = Vector3(x, platform.height, centre.y)
 			player.last_look = InputFrame.quantize_yaw(Vector2(-feet.x, -feet.z).angle())
 			player.facing = InputFrame.yaw_angle(player.last_look)
-			placed += 1
+			placed[piece] = at + 1
 		player.surface = surfaces.under(feet, step)
 		player.pos = Faces.to_ship(up) * feet
 	return sim.snapshot()
+
+
+## Of [param standing], the piece whose span holds [param x] along her, torn ends and
+## all.
+static func _aft_of(schedule: SinkSchedule, standing: PackedInt32Array, x: float) -> int:
+	for piece: int in standing:
+		if x <= schedule.span_of(piece).y:
+			return piece
+	return standing[standing.size() - 1]
 
 
 ## Whether a body's feet at [param feet] stand on a surface the sea has not reached.

@@ -14,6 +14,9 @@ extends RefCounted
 ## the band where nobody walks: a body that braces holds where it is, up to
 ## brace_holds_to; anyone else slides down it into the corner and rests there, free to
 ## move along the corner, never away from it.
+##
+## Once she has broken (SH33) a Movement moves the bodies on one piece of her (Pieces):
+## in the frame of that piece's own faces, its points in that piece's space.
 
 ## How many times a tick's contacts are resolved, at most. In one pass each contact
 ## is met where the body stood before it, so a body pushed two ways — into a corner,
@@ -28,32 +31,39 @@ const DUCK_LOOK := 0.1
 var _rules: BrawlRules
 var _hazards: Hazards
 var _faces: Faces
+## The piece of her whose bodies it moves: 0, the whole ship, until she breaks.
+var _piece: int
 ## The Surfaces of the frame the tick stands in.
 var _surfaces: Surfaces
 var _climb_ticks: int
 
 
-func _init(rules: BrawlRules, faces: Faces, hazards: Hazards) -> void:
+func _init(rules: BrawlRules, faces: Faces, hazards: Hazards, piece := 0) -> void:
 	_rules = rules
 	_faces = faces
+	_piece = piece
 	_surfaces = faces.surfaces(Faces.Up.DECK)
 	_hazards = hazards
 	_climb_ticks = Ticks.from_seconds(rules.climb_time)
 
 
-## Stands [param state]'s match on the faces that are floors under [param pose] for the
-## tick [param tick]: in the frame Faces finds up, every seat's points turned into it —
-## a body standing as it turns to another loses its footing, its fall measured from
-## there, and a climb lets go. Returns the pose as that frame reads it.
+## Stands [param state]'s match on the faces of its piece that are floors under
+## [param pose] — the piece's — for the tick [param tick]: in the frame Faces finds up,
+## the points of every seat on the piece turned into it — a body standing as it turns to
+## another loses its footing, its fall measured from there, and a climb lets go. Returns
+## the pose as that frame reads it.
 func face(state: MatchState, pose: ShipPose, tick: int, events: Array[SimEvent]) -> ShipPose:
-	var up := _faces.up_at(pose, state.up)
+	var was: int = state.up[_piece]
+	var up := _faces.up_at(pose, was)
 	var framed := _faces.framed(pose, up)
 	_surfaces = _faces.surfaces(up, framed)
 	if up != Faces.Up.DECK:
 		_surfaces.honour(framed)
-	var turned := up != state.up
-	var middle := Faces.axis(state.up) * _rules.body_height * 0.5
+	var turned := up != was
+	var middle := Faces.axis(was) * _rules.body_height * 0.5
 	for player: PlayerState in state.seats:
+		if player.piece != _piece:
+			continue
 		var reseated := turned and not player.is_out()
 		if reseated:
 			player.pos += middle
@@ -61,17 +71,19 @@ func face(state: MatchState, pose: ShipPose, tick: int, events: Array[SimEvent])
 			Faces.into(player, up)
 		if reseated:
 			_reseat(player, tick, events)
-	state.up = up
+	state.up[_piece] = up
 	return framed
 
 
-## Every seat's points back from the tick's frame into ship space, as a snapshot keeps
-## them (D5).
+## The points of every seat on its piece back from the tick's frame into the piece's
+## space, as a snapshot keeps them (D5).
 func unface(state: MatchState) -> void:
-	if state.up == Faces.Up.DECK:
+	var up: int = state.up[_piece]
+	if up == Faces.Up.DECK:
 		return
 	for player: PlayerState in state.seats:
-		Faces.out_of(player, state.up)
+		if player.piece == _piece:
+			Faces.out_of(player, up)
 
 
 ## The Surfaces of the frame the tick stands in: what every rule of the tick asks.
@@ -332,7 +344,13 @@ func _railings(
 				player.vel.y = _rules.vault_lift
 				events.append(SimEvent.vaulted(tick, player.seat))
 				_hazards.damage(
-					state, contact.railing, _rules.vault_damage, pose_now, tick, events, player.seat
+					state,
+					_hazards.rail(contact.railing),
+					_rules.vault_damage,
+					pose_now,
+					tick,
+					events,
+					player.seat
 				)
 				# In the air it meets other railings than on its feet: where it stood clear
 				# before is no answer for it now.

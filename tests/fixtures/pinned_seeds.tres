@@ -6,6 +6,8 @@
 script = ExtResource("1_pinned")
 seeds = Dictionary[StringName, int]({
 &"bow_down_slow": 18,
+&"breaks_in_three": 3,
+&"breaks_in_two": 2,
 &"capsize_inverted": 15,
 &"capsize_upside_down": 34,
 &"door_gives_way": 11,

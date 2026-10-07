@@ -107,9 +107,11 @@ func _process(_delta: float) -> void:
 		var scuff := _scuffs[seat]
 		var feet := _view.seat_feet(seat)
 		var was_shown := scuff.visible
-		# Scuffed planks are her decks': on any other face (SH32) a brace leaves none.
+		# Scuffed planks are her decks': on any other face (SH32), or once she has broken
+		# (SH33), a brace leaves none.
 		scuff.visible = (
-			current["up"] == Faces.Up.DECK
+			now["piece"] == 0
+			and MatchState.up_of(current, now) == Faces.Up.DECK
 			and seat != _view.eye_seat()
 			and scuffed(now, feet, _surfaces, pose)
 		)

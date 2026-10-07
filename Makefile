@@ -25,7 +25,7 @@ import:
 # One match's knobs, handed to the scene and tools/run_match.gd as user args:
 #   make run [SEED=] [SEATS=] [SHIP=] [SCENARIO=] [ARGS=]  the game, windowed, from the menu
 #       they fill in; SHIP picks a ship of the fleet by name (trawler), the default data's
-#       when blank; SCENARIO one of a ship's scenarios by name (steamer_coast: her coast's
+#       when blank, or a test-only one the menu never lists (steamer_weak, SH33); SCENARIO one of a ship's scenarios by name (steamer_coast: her coast's
 #       shallow water, SH32), played on her; ARGS passes more user args, e.g.
 #       ARGS=--observer for the observer camera; SEATS=1 plays alone, no bots, until you
 #       go out
@@ -286,11 +286,16 @@ verify: check ship-check lint format-check test
 # generator writes, so a hand edit to a .tres cannot drift from it, and then floats every
 # ship with a structure: intact, level at her stated waterline — and proves she founders
 # on her sure hit, the must-sink rule's last rung, within the bake's cap of each of her
-# scenarios (tests/unit/core/test_ship_check.gd).
+# scenarios (tests/unit/core/test_ship_check.gd). The steamer's generator writes her
+# test-only weak hull too (SH33), tests/fixtures/ships/steamer_weak.tres, held to it the
+# same way.
 GENERATED = $(patsubst tools/gen_%.py,%,$(wildcard tools/gen_*.py))
+WEAK_HULL = tests/fixtures/ships/steamer_weak.tres
 ship:
 	@for ship in $(if $(SHIP),$(SHIP),$(GENERATED)); do \
 		python3 tools/gen_$$ship.py data/ships/$$ship.tres || exit 1; done
+	@if [ -z "$(SHIP)" ] || [ "$(SHIP)" = steamer ]; then \
+		python3 tools/gen_steamer.py $(WEAK_HULL) --weak; fi
 
 ship-check:
 	@for ship in $(GENERATED); do \
@@ -298,6 +303,9 @@ ship-check:
 		&& cmp -s "$$out" data/ships/$$ship.tres; status=$$?; rm -f "$$out"; \
 		test $$status -eq 0 || { echo "ship-check: data/ships/$$ship.tres differs from tools/gen_$$ship.py — run make ship SHIP=$$ship" >&2; exit 1; }; \
 	done
+	@out=$$(mktemp) && python3 tools/gen_steamer.py "$$out" --weak >/dev/null \
+		&& cmp -s "$$out" $(WEAK_HULL); status=$$?; rm -f "$$out"; \
+		test $$status -eq 0 || { echo "ship-check: $(WEAK_HULL) differs from tools/gen_steamer.py --weak — run make ship SHIP=steamer" >&2; exit 1; }
 	GODOT="$(GODOT)" tools/run_tests.sh -gselect=test_ship_check.gd
 
 # Every .gd file that is actually ours: skips the engine cache, vendored addons,

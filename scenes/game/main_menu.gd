@@ -52,7 +52,11 @@ func setup(
 ) -> void:
 	_backdrop.show_ship(match_rules)
 	_ship.clear()
-	for offered: String in Fleet.names():
+	var ships := Fleet.names()
+	# A test-only ship (Fleet, SH33) is offered only when asked for by name.
+	if not ship.is_empty() and not ships.has(String(ship)) and Fleet.layout(ship) != null:
+		ships.append(String(ship))
+	for offered: String in ships:
 		_ship.add_item(offered)
 		if offered == ship or (ship.is_empty() and offered == Fleet.name_of(match_rules.ship)):
 			_ship.select(_ship.item_count - 1)

@@ -73,9 +73,19 @@ const PATH := "res://data/physics/sea.tres"
 @export var fall_warning: float
 @export var stressed_share: float
 @export var lamp_drop: float
+## Breaking (§5b.1, SH33, est.): a weak spot whose bending reaches its strength starts a
+## hinge, and over hinge_seconds the hinge falls to keeping hinge_keeps of that strength;
+## still overloaded then, the pieces part there. Never more than most_pieces, none
+## shorter than shortest_piece of her length. Each piece's decks are torn back tear metres
+## from the cut, past which nothing stands.
+@export var hinge_keeps: float
+@export var hinge_seconds: float
+@export var most_pieces: int
+@export var shortest_piece: float
+@export var tear: float
 ## The stages of the physics (§5b.3), each off until its milestone switches it on:
-## bending is measured and reported from SH31, and breaks the hull only once breaking is
-## on (SH33).
+## bending is measured and reported from SH31, and breaks the hull at its weak spots
+## once breaking is on (SH33).
 @export var flooding: bool
 @export var attitude: bool
 @export var air: bool
@@ -134,4 +144,8 @@ func problems() -> PackedStringArray:
 		found.append("sea: a creak comes at a share of a limit within 0…1")
 	if fall_warning < 0.0 or lamp_drop < 0.0:
 		found.append("sea: a fall's warning and a lamp's drop must not be negative")
+	if hinge_keeps <= 0.0 or hinge_keeps >= 1.0 or hinge_seconds <= 0.0:
+		found.append("sea: a hinge keeps a share of its strength within 0…1, over a time")
+	if most_pieces < 1 or shortest_piece <= 0.0 or shortest_piece >= 0.5 or tear < 0.0:
+		found.append("sea: pieces need a most, a shortest share under half, and a tear")
 	return found

@@ -184,7 +184,7 @@ func test_water_on_a_wide_deck_heels_her_more_than_in_a_narrow_tank() -> void:
 		state.heads[0] = stepper.head(0, 40.0)
 		while state.seconds < SETTLE:
 			state = stepper.advance(state)
-			if absf(state.roll_rate) < SinkBake.STILL_TURN and state.seconds > 60.0:
+			if absf(state.roll_rate) < BakePiece.STILL_TURN and state.seconds > 60.0:
 				break
 		heels.append(BoxBarge.heel_deg(state.rotation))
 	assert_gt(heels[1], 0.0, "the tank: heeled to the weight's side")

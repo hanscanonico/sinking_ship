@@ -151,6 +151,23 @@ func test_a_ship_is_named_and_struck_in_her_own_sea() -> void:
 	assert_ne(trawler.data_hash(), default.data_hash())
 
 
+func test_the_weak_hull_plays_by_name_and_is_never_in_the_fleet() -> void:
+	# SH33: the steamer's test-only weak hull plays as `--ship=steamer_weak`, struck in her
+	# own open sea — and the menu, which offers the fleet, never lists her.
+	assert_false(Fleet.names().has("steamer_weak"), "the fleet never lists her")
+	var weak := MatchConfig.from_rules(_rules(), 1701, 0, &"steamer_weak")
+	assert_eq(weak.ship, load("res://tests/fixtures/ships/steamer_weak.tres"))
+	assert_eq(weak.scenario, load("res://data/sinking/steamer_open_sea.tres"), "the steamer's sea")
+	assert_eq(weak.problems(), PackedStringArray())
+	assert_eq(Fleet.name_of(weak.ship), &"steamer_weak")
+	var strength := weak.ship.structure.strength
+	var steamer: ShipLayout = load("res://data/ships/steamer.tres")
+	assert_lt(strength.hog, steamer.structure.strength.hog, "her strength divided down")
+	assert_gt(strength.weak.size(), 0, "with the weak spots she breaks at")
+	assert_eq(steamer.structure.strength.weak.size(), 0, "the steamer has none")
+	assert_null(Fleet.layout(&"trawler_weak"), "no weak hull of a ship that has none")
+
+
 func test_the_menu_takes_a_lone_seat() -> void:
 	var config := MatchConfig.from_menu(_rules(), 1, &"normal", "1", _seeds(1))
 	assert_not_null(config, "one seat can start: you alone, no bots")
