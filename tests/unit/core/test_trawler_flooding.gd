@@ -25,15 +25,18 @@ func before_all() -> void:
 	_scenario = load(TRAWLER_SINKING)
 
 
-## [param seed_name]'s match hit on her, as the must-sink rule chooses it.
-func _match_hit(seed_name: StringName) -> MustSink.Choice:
+## [param seed_name]'s match hit on her, as the must-sink rule chooses it under
+## [param sea], her own constants when none.
+func _match_hit(seed_name: StringName, sea: SeaPhysics = null) -> MustSink.Choice:
 	var stream := SeedStreams.derive(PinnedSeeds.seed_named(seed_name), "sink")
-	return MustSink.choose(_structure, _scenario, stream, _sea)
+	return MustSink.choose(_structure, _scenario, stream, sea if sea != null else _sea)
 
 
 ## [param damage] baked with every hole of its gash [param scale] times as big, every
-## state the physics stepped through kept.
-func _bake(damage: HitDamage, scale: float) -> SinkTimeline:
+## state the physics stepped through kept — under [param sea], her own constants when
+## none.
+func _bake(damage: HitDamage, scale: float, sea: SeaPhysics = null) -> SinkTimeline:
+	var physics := sea if sea != null else _sea
 	var scaled := HitDamage.new()
 	scaled.wave_height = damage.wave_height
 	scaled.jammed = damage.jammed
@@ -44,8 +47,8 @@ func _bake(damage: HitDamage, scale: float) -> SinkTimeline:
 		var hole: ShipOpening = opening.duplicate()
 		hole.area = opening.area * scale
 		scaled.openings.append(hole)
-	var stepper := SinkStepper.new(_structure, scaled, _sea)
-	return SinkBake.new(stepper, _sea, _scenario.bake_cap).uncompacted()
+	var stepper := SinkStepper.new(_structure, scaled, physics)
+	return SinkBake.new(stepper, physics, _scenario.bake_cap).uncompacted()
 
 
 ## The opening of hers called [param opening_name].
@@ -94,14 +97,18 @@ func test_open_hatch_takes_her_down_by_the_head_and_sooner() -> void:
 	# hit with only the hatch shut, which lays her on her side. What her seaway ships over
 	# her low bulwark (ShippedWater) the hatch lets down into the hold, low and amidships,
 	# rather than leaving it loose on the low side of her deck — so she founders rather
-	# than capsizes.
-	var choice := _match_hit(&"open_hatch")
+	# than capsizes. With the failures stage off, as SH30 pinned it: from SH31 her
+	# bulkheads, linings and hatch give way as she lies over, and with them on no match
+	# hit in 200 that leaves her hatch open lays her on her side with it shut.
+	var holding: SeaPhysics = _sea.duplicate()
+	holding.failures = false
+	var choice := _match_hit(&"open_hatch", holding)
 	assert_has(choice.damage.left_open, &"fish_hatch", "her fish hatch left open")
 	var battened := _with_shut(choice.damage, &"fish_hatch")
 	var hatch := _opening(&"fish_hatch")
 	for scale: float in MARGINS:
-		var opened := _bake(choice.damage, scale)
-		var shut := _bake(battened, scale)
+		var opened := _bake(choice.damage, scale, holding)
+		var shut := _bake(battened, scale, holding)
 		var what := "× %s" % scale
 		var labels := OutcomeClassifier.labels(opened)
 		assert_has(labels, OutcomeClassifier.Outcome.BY_THE_HEAD, what + ": open, by the head")
