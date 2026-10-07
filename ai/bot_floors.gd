@@ -5,9 +5,10 @@ extends RefCounted
 ## on her decks; on any other face, the faces turned up then (Faces) — built the first
 ## time a bot stands in that frame, and asked of the frame's own Surfaces. Her faces are
 ## square to her axes, so the floors of the moment change only as the frame does: the
-## graph is rebuilt then, not every tick, and not between. "Down" is the pose's, read in
-## that frame (Faces.framed). Shared by the bots of one match, as the walk graph is:
-## each answers only for the pose it is handed.
+## graph is rebuilt then, and when a watertight door's leaf moves in the pose a bot
+## reads (D10) — not every tick, and not between. "Down" is the pose's, read in that
+## frame (Faces.framed). Shared by the bots of one match, as the walk graph is: each
+## answers only for the pose it is handed.
 
 var _deck: WalkGraph
 var _rules: BrawlRules
@@ -19,15 +20,18 @@ var _graphs: Dictionary[int, WalkGraph] = {}
 func _init(deck: WalkGraph, config: MatchConfig) -> void:
 	_deck = deck
 	_rules = config.rules
-	_faces = Faces.new(config.ship, deck.surfaces(), null, _rules.brace_holds_to, true)
+	_faces = Faces.new(config.ship, deck.surfaces(), _rules.brace_holds_to, true)
 
 
-## The walk graph of the frame [param up] (Faces.Up), over that frame's Surfaces.
-func graph(up: int) -> WalkGraph:
+## The walk graph of the frame [param up] (Faces.Up), over that frame's Surfaces with
+## the watertight doors' leaves where [param pose] has them (Faces.surfaces) — the pose
+## a bot reads, not the sinking's own; without one, as last built.
+func graph(up: int, pose: ShipPose = null) -> WalkGraph:
 	if up == Faces.Up.DECK:
 		return _deck
-	if not _graphs.has(up):
-		_graphs[up] = WalkGraph.new(_faces.layout(up), _faces.surfaces(up), _rules)
+	var surfaces := _faces.surfaces(up, pose)
+	if not _graphs.has(up) or _graphs[up].surfaces() != surfaces:
+		_graphs[up] = WalkGraph.new(_faces.layout(up), surfaces, _rules)
 	return _graphs[up]
 
 
@@ -36,7 +40,7 @@ func graph(up: int) -> WalkGraph:
 ## broken and its crates; the faces she turns up have neither (Faces), whatever a
 ## snapshot jumped onto one still holds (MatchJump).
 func honour(up: int, pose: ShipPose, seen: Dictionary) -> void:
-	var surfaces := graph(up).surfaces()
+	var surfaces := graph(up, pose).surfaces()
 	if up == Faces.Up.DECK:
 		surfaces.honour(
 			pose, MatchState.broken_in(seen["railing_hp"]), PropState.from_snapshot(seen)

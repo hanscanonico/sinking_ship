@@ -23,7 +23,8 @@ extends Resource
 ## A hit given rather than drawn — a test's, a tool's HIT= — which bypasses the
 ## must-sink rule (§5b.1); null for a match's own.
 @export var explicit_hit: IcebergHit
-## How deep the sea is under her, in metres.
+## How deep the sea is under her, in metres: deeper than 0 for the physics, whose
+## seabed stands there (Seabed).
 @export var sea_depth: float
 ## The band the sea's wave height is drawn from, in metres, once a match (MustSink):
 ## what her open wells ship (ShippedWater). Zero for a still sea, which draws nothing.
@@ -86,6 +87,8 @@ func problems() -> PackedStringArray:
 		found.append_array(hit.problems())
 	if sea_depth < 0.0:
 		found.append("sinking: the sea's depth must not be negative")
+	elif is_physical() and sea_depth == 0.0:
+		found.append("sinking: the physics needs a sea deeper than 0")
 	if wave_height.x < 0.0 or wave_height.y < wave_height.x:
 		found.append("sinking: the waves' band must run up from 0 or more")
 	if is_physical() and (clock <= 0.0 or bake_cap <= 0.0):

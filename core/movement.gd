@@ -48,7 +48,7 @@ func _init(rules: BrawlRules, faces: Faces, hazards: Hazards) -> void:
 func face(state: MatchState, pose: ShipPose, tick: int, events: Array[SimEvent]) -> ShipPose:
 	var up := _faces.up_at(pose, state.up)
 	var framed := _faces.framed(pose, up)
-	_surfaces = _faces.surfaces(up)
+	_surfaces = _faces.surfaces(up, framed)
 	if up != Faces.Up.DECK:
 		_surfaces.honour(framed)
 	var turned := up != state.up

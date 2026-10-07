@@ -9,7 +9,10 @@ extends RefCounted
 ## hole. Each frame's ship is a layout of her solids as boxes, its floors slabs over
 ## them, asked through a Surfaces of its own — the same door, its searches run along
 ## that axis. Her own layout is the frame of her decks, unchanged. Stairs are floors
-## only there, and railings, ladders and crates stand only there.
+## only there, and railings, ladders and crates stand only there. The watertight doors
+## she shuts at the hit stand in every other frame as they do on her decks (DoorLeaves):
+## each leaf a box as far across its doorway as the pose has it, none once it has given
+## way.
 ##
 ## The frame changes only once the floor it has tilts past brace_holds_to — the top of
 ## the band where nobody walks (BrawlRules) — and then to the axis nearest up: a ship
@@ -37,21 +40,23 @@ var _deck: Surfaces
 ## whether a match turns from her decks at all (SeaPhysics.capsized_movement).
 var _keep_deg: float
 var _turns: bool
-## Her solids in ship space, as boxes: her decks as slabs, her blockers, her hull's
-## plates and the leaves of the watertight doors the ship shuts.
+## Her solids in ship space, as boxes: her decks as slabs, her blockers and her hull's
+## plates.
 var _solids: Array[AABB] = []
-## Per frame, built the first time it is asked for: its Surfaces and its cells.
+## The watertight doors the ship shuts at the hit, in her structure's order.
+var _doors: Array[ShipOpening] = []
+## Per frame, built the first time it is asked for: its Surfaces and its layout, built
+## again when a leaf has moved, and how far each door was shut in them; its cells.
 var _surfaces: Dictionary[int, Surfaces] = {}
+var _layouts: Dictionary[int, ShipLayout] = {}
+var _shut: Dictionary[int, PackedFloat64Array] = {}
 var _cells: Dictionary[int, CellMap] = {}
 
 
 ## The faces of [param layout], whose own frame [param deck] answers for, with the
-## watertight doors shut across their doorways that the ship shuts after the hit that
-## did [param damage] — every one it did not jam; none without a hit. A frame keeps to
-## [param keep_deg] of tilt; without [param turns] a match stands on her decks.
-func _init(
-	layout: ShipLayout, deck: Surfaces, damage: HitDamage, keep_deg: float, turns: bool
-) -> void:
+## watertight doors the ship shuts at the hit. A frame keeps to [param keep_deg] of
+## tilt; without [param turns] a match stands on her decks.
+func _init(layout: ShipLayout, deck: Surfaces, keep_deg: float, turns: bool) -> void:
 	_layout = layout
 	_deck = deck
 	_keep_deg = keep_deg
@@ -76,16 +81,12 @@ func _init(
 				Vector3(area.size.x, blocker.top - blocker.bottom, area.size.y)
 			)
 		)
-	if layout.structure != null:
-		_hull(layout.structure)
-	if damage == null:
+	if layout.structure == null:
 		return
+	_hull(layout.structure)
 	for door: ShipOpening in layout.structure.openings:
-		if not door.shuts_at_hit or door.name in damage.jammed:
-			continue
-		var size := door.size
-		size[door.facing()] = LEAF
-		_solids.append(AABB(door.centre - size * 0.5, size))
+		if door.shuts_at_hit:
+			_doors.append(door)
 
 
 ## The frame a match on her stands in under [param pose], having stood in
@@ -164,20 +165,39 @@ func framed(pose: ShipPose, up: int) -> ShipPose:
 	return made
 
 
-## The Surfaces of the frame [param up]: her own for her decks', else her solids'.
-func surfaces(up: int) -> Surfaces:
+## The Surfaces of the frame [param up]: her own for her decks', else her solids' and
+## the watertight doors' leaves as far across as [param pose] has them
+## (DoorLeaves.shut_in) — built again only once a leaf has moved; without a pose, as last
+## built. A jammed door, or one before the hit, the pose has open.
+func surfaces(up: int, pose: ShipPose = null) -> Surfaces:
 	if up == Up.DECK:
 		return _deck
-	if not _surfaces.has(up):
-		_surfaces[up] = Surfaces.new(layout(up))
+	if pose == null and _surfaces.has(up):
+		return _surfaces[up]
+	var shut := PackedFloat64Array()
+	for door: ShipOpening in _doors:
+		shut.append(0.0 if pose == null else DoorLeaves.shut_in(pose, door.name))
+	if not _surfaces.has(up) or _shut[up] != shut:
+		_shut[up] = shut
+		_layouts[up] = _framed_layout(up, shut)
+		_surfaces[up] = Surfaces.new(_layouts[up])
 	return _surfaces[up]
 
 
-## Her layout in the frame [param up]: her own for her decks', else each solid a box
-## blocker in that frame and its top a slab of a floor over it — nothing else.
+## Her layout in the frame [param up]: her own for her decks', else that of the frame's
+## Surfaces as last built (surfaces).
 func layout(up: int) -> ShipLayout:
 	if up == Up.DECK:
 		return _layout
+	surfaces(up)
+	return _layouts[up]
+
+
+## Her layout in the frame [param up], each door [param shut] that far: each solid a box
+## blocker in that frame and its top a slab of a floor over it, then each door's leaf
+## (DoorLeaves.leaf) a box blocker, there or not — numbered after every solid, so that
+## no surface's number moves with a leaf — and nothing else.
+func _framed_layout(up: int, shut: PackedFloat64Array) -> ShipLayout:
 	var made := ShipLayout.new()
 	made.freeboard = _layout.freeboard
 	made.deck_thickness = _layout.deck_thickness
@@ -185,23 +205,30 @@ func layout(up: int) -> ShipLayout:
 	made.max_seats = _layout.max_seats
 	var turn := to_frame(up)
 	for solid: AABB in _solids:
-		var a := turn * solid.position
-		var b := turn * solid.end
-		var low := a.min(b)
-		var high := a.max(b)
-		var area := Rect2(low.x, low.z, high.x - low.x, high.z - low.z)
-		var blocker := ShipBlocker.new()
-		blocker.shape = ShipBlocker.Shape.BOX
-		blocker.area = area
-		blocker.bottom = low.y
-		blocker.top = high.y
+		var blocker := _blocker(turn, solid)
 		made.blockers.append(blocker)
 		var top := ShipPlatform.new()
-		top.area = area
-		top.height = high.y
+		top.area = blocker.area
+		top.height = blocker.top
 		top.slab = true
 		made.platforms.append(top)
+	for door in _doors.size():
+		made.blockers.append(_blocker(turn, DoorLeaves.leaf(_doors[door], shut[door], LEAF)))
 	return made
+
+
+## [param box], in ship space, as a box blocker in the frame [param turn] takes it to.
+static func _blocker(turn: Basis, box: AABB) -> ShipBlocker:
+	var a := turn * box.position
+	var b := turn * box.end
+	var low := a.min(b)
+	var high := a.max(b)
+	var blocker := ShipBlocker.new()
+	blocker.shape = ShipBlocker.Shape.BOX
+	blocker.area = Rect2(low.x, low.z, high.x - low.x, high.z - low.z)
+	blocker.bottom = low.y
+	blocker.top = high.y
+	return blocker
 
 
 ## Moves [param player]'s points from ship space into the frame [param up]'s.

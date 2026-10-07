@@ -36,11 +36,7 @@ func _init(match_config: MatchConfig) -> void:
 	schedule = config.schedule()
 	surfaces = Surfaces.new(config.ship)
 	faces = Faces.new(
-		config.ship,
-		surfaces,
-		schedule.damage(),
-		_rules.brace_holds_to,
-		SeaPhysics.load_default().capsized_movement
+		config.ship, surfaces, _rules.brace_holds_to, SeaPhysics.load_default().capsized_movement
 	)
 	_hazards = Hazards.new(config, surfaces)
 	_movement = Movement.new(_rules, faces, _hazards)
@@ -241,11 +237,11 @@ func _intent(live: Array[PlayerState], pose_now: ShipPose) -> void:
 			_jump(player, pose_now)
 
 
-## A jump is a press, never a hold, from the ground: idle, its brace let go, and
-## with jump_cost of stamina to spend. It goes up along the world's up (D8) until its
-## feet are jump_height above where it left along the frame's — whatever the face's
-## tilt, never over a railing — and gravity, the world's turned by the pose, brings it
-## down where it rose, on its way across the face as it was walking.
+## A jump is a press, never a hold, from the ground gravity holds it to: idle, its brace
+## let go, and with jump_cost of stamina to spend. It goes up along the world's up
+## (D8) until its feet are jump_height above where it left along the frame's — whatever
+## the face's tilt, never over a railing — and gravity, the world's turned by the pose,
+## brings it down where it rose, on its way across the face as it was walking.
 func _jump(player: PlayerState, pose_now: ShipPose) -> void:
 	if (
 		player.body != PlayerState.Body.GROUNDED
@@ -253,6 +249,7 @@ func _jump(player: PlayerState, pose_now: ShipPose) -> void:
 		or player.last_buttons & InputFrame.BRACE
 		or player.exhausted
 		or player.stamina < _rules.jump_cost
+		or pose_now.ship_gravity(_rules.gravity).y >= 0.0
 	):
 		return
 	_spend(player, _rules.jump_cost)

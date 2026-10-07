@@ -58,3 +58,41 @@ func test_a_bot_reads_crates_still_aboard_off_her_decks() -> void:
 	var frame := bot.next_frame(tick)
 	assert_not_null(frame, "it decides")
 	assert_eq(frame.seat, 0)
+
+
+func test_a_bots_frame_has_the_watertight_doors_its_pose_shows() -> void:
+	# Upside down, each of the steamer's watertight doors stands in the bots' frame as the
+	# pose they read has it (D10), as in the match's own: shut, a walk through its doorway
+	# is blocked; given way, or not yet shut, it is open — every surface keeping its
+	# number.
+	var config := SimFixtures.config(4, SimFixtures.tilted(0.0, 180.0), 1, SimFixtures.steamer())
+	var floors := BotInputSource.floors_of(config)
+	var sim := MatchSim.create(config)
+	var turn := Faces.to_frame(Faces.Up.KEEL)
+	var step := config.rules.step_height
+	var doors := 0
+	for door: ShipOpening in config.ship.structure.openings:
+		if not door.shuts_at_hit:
+			continue
+		doors += 1
+		var across := Vector3.ZERO
+		across[door.facing()] = 0.5
+		var head := Vector3(0.0, door.size.y * 0.5, 0.0)
+		var from := turn * (door.centre + head - across)
+		var to := turn * (door.centre + head + across)
+		var tall := door.size.y * 0.5
+		var counts := {}
+		# [doors_shut, opened, blocked].
+		for row: Array in [[0.0, 0, false], [1.0, 0, true], [1.0, 2, false]]:
+			var told := "%s shut %s, opened %s" % [door.name, row[0], row[1]]
+			var pose := sim.pose()
+			pose.doors_shut[door.name] = row[0]
+			pose.opened[door.name] = row[1]
+			var framed := floors.framed(pose, Faces.Up.KEEL)
+			var bots := floors.graph(Faces.Up.KEEL, framed).surfaces()
+			assert_eq(bots.blocked(from, to, tall, step), row[2], "the bots' frame: " + told)
+			var match_frame := sim.faces.surfaces(Faces.Up.KEEL, framed)
+			assert_eq(match_frame.blocked(from, to, tall, step), row[2], "the match's: " + told)
+			counts[bots.count()] = true
+		assert_eq(counts.size(), 1, "%s: no surface's number moves with its leaf" % door.name)
+	assert_gt(doors, 0, "she has watertight doors")

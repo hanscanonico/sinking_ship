@@ -171,3 +171,17 @@ func test_a_sinking_with_an_iceberg_hit_needs_a_ship_with_a_structure() -> void:
 		PackedStringArray(["match: the sinking's iceberg hit needs a ship with a structure"]),
 		"a hit with nothing to strike is refused, not struck silently nowhere"
 	)
+
+
+func test_a_physical_sinking_needs_a_sea_under_her() -> void:
+	# The physics stands her seabed sea_depth under her waterline (Seabed): left at 0,
+	# she would bake aground from her first state.
+	var struck: SinkScenario = load(SimFixtures.STEAMER_SINKING).duplicate()
+	assert_eq(struck.problems(), PackedStringArray(), "her own sinking has a sea")
+	struck.sea_depth = 0.0
+	assert_eq(
+		struck.problems(), PackedStringArray(["sinking: the physics needs a sea deeper than 0"])
+	)
+	var authored := SimFixtures.calm()
+	assert_eq(authored.sea_depth, 0.0, "an authored sinking has no seabed")
+	assert_eq(authored.problems(), PackedStringArray(), "and needs none")

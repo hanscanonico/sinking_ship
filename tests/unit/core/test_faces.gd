@@ -13,6 +13,30 @@ const DECK := 2.5
 const PORT_FACE := -2.9
 const STARBOARD_FACE := 2.9
 const DOOR := 0.55
+## The watertight door the ship shuts across that doorway, in _doored_room.
+const WTD := &"wtd_room"
+
+
+## The room held at [param heel_deg] of list, its watertight door WTD shut from the
+## first tick — or given way, [param given] — as a sinking's pose has it (SinkSchedule).
+class DoorPose:
+	extends SinkSchedule
+	var door: StringName
+	var gave_way: bool
+
+	func _init(heel_deg: float, freeboard: float, door_name: StringName, given: bool) -> void:
+		var stream := RandomNumberGenerator.new()
+		stream.seed = 1701
+		super(SimFixtures.tilted(0.0, heel_deg), freeboard, stream)
+		door = door_name
+		gave_way = given
+
+	func pose_at(tick: int) -> ShipPose:
+		var pose: ShipPose = super(tick)
+		pose.doors_shut[door] = 1.0
+		if gave_way:
+			pose.opened[door] = 2
+		return pose
 
 
 ## The room: platforms at FLOOR and DECK, 0.2 m walls between them.
@@ -44,16 +68,35 @@ func _room() -> ShipLayout:
 	return layout
 
 
-## A match of [param seats] on the room held at [param heel_deg] of list — starboard
-## down — and [param trim_deg] of trim, its body placed on the floor at [param at].
-func _held(heel_deg: float, at: Vector3, trim_deg: float = 0.0) -> MatchSim:
-	var sim := SimFixtures.sim(1, SimFixtures.tilted(trim_deg, heel_deg), _room())
+## The room with a watertight door the ship shuts at the hit, WTD, in its starboard
+## doorway.
+func _doored_room() -> ShipLayout:
+	var layout := _room()
+	var door := ShipOpening.new()
+	door.name = WTD
+	door.kind = ShipOpening.Kind.WATERTIGHT_DOOR
+	door.centre = Vector3(0.0, (FLOOR + DECK) * 0.5, STARBOARD_FACE + 0.1)
+	door.size = Vector3(DOOR * 2.0, DECK - FLOOR, 0.0)
+	door.shuts_at_hit = true
+	layout.structure = ShipStructure.new()
+	layout.structure.openings.append(door)
+	return layout
+
+
+## A match of [param seats] on the room — or [param layout] — held at [param heel_deg]
+## of list — starboard down — and [param trim_deg] of trim, its body placed on the floor
+## at [param at].
+func _held(
+	heel_deg: float, at: Vector3, trim_deg: float = 0.0, layout: ShipLayout = null
+) -> MatchSim:
+	var room := layout if layout != null else _room()
+	var sim := SimFixtures.sim(1, SimFixtures.tilted(trim_deg, heel_deg), room)
 	SimFixtures.place(sim, 0, at)
 	return sim
 
 
 func _faces(layout: ShipLayout) -> Faces:
-	return Faces.new(layout, Surfaces.new(layout), null, SimFixtures.rules().brace_holds_to, true)
+	return Faces.new(layout, Surfaces.new(layout), SimFixtures.rules().brace_holds_to, true)
 
 
 func test_wall_is_a_floor_past_55_degrees_of_roll() -> void:
@@ -236,3 +279,40 @@ func test_a_match_continues_exactly_as_she_turns_onto_another_face() -> void:
 			if resumed.snapshot() != played[start + offset]:
 				fail_test("from tick %d it left the match at %d" % [start, start + offset])
 				return
+
+
+func test_a_door_that_gave_way_is_open_on_any_face() -> void:
+	# Upside down, the room's watertight door stands across its doorway as the pose has
+	# it, as on her decks (DoorLeaves): a body walking through is stopped by it shut and
+	# passes once it has given way.
+	var rules := SimFixtures.rules()
+	var reached := {}
+	for gave_way: bool in [false, true]:
+		var layout := _doored_room()
+		var sim := _held(180.0, Vector3(0.0, FLOOR, 0.0), 0.0, layout)
+		sim.schedule = DoorPose.new(180.0, layout.freeboard, WTD, gave_way)
+		SimFixtures.step(sim, {}, 3 * Ticks.RATE)
+		assert_eq(sim.state.up, Faces.Up.KEEL, "she is upside down")
+		var toward_starboard := SimFixtures.frame(0, Vector2(0.0, -1.0), 0, 0.0)
+		SimFixtures.step(sim, {0: toward_starboard}, 2 * Ticks.RATE)
+		reached[gave_way] = sim.state.seats[0].pos.z
+	var leaf := STARBOARD_FACE + 0.1 - Faces.LEAF * 0.5
+	assert_almost_eq(reached[false], leaf - rules.body_radius, 1e-3, "held back by the leaf")
+	assert_gt(reached[true], STARBOARD_FACE + 0.2, "through the doorway it gave way in")
+
+
+func test_no_jump_off_a_face_the_world_turned_under_it() -> void:
+	# Kept on her decks however far over she goes (capsized_movement off), a body on her
+	# floor rolled 120° has the world's up under it: no take-off, no stamina spent.
+	var sea := SeaPhysics.load_default()
+	var turns := sea.capsized_movement
+	sea.capsized_movement = false
+	var sim := _held(120.0, Vector3(-2.0, FLOOR, 0.0))
+	sea.capsized_movement = turns
+	var body := sim.state.seats[0]
+	var stamina := body.stamina
+	SimFixtures.step(sim, {0: SimFixtures.frame(0, Vector2.ZERO, InputFrame.JUMP)})
+	assert_eq(sim.state.up, Faces.Up.DECK, "still on her decks")
+	assert_false(body.jumped, "it does not take off")
+	assert_eq(body.stamina, stamina, "nothing spent")
+	assert_true(body.vel.is_finite(), "nothing thrown")

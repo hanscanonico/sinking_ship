@@ -24,7 +24,7 @@ static func snapshot(config: MatchConfig, tick: int) -> Dictionary:
 	var up := sim.faces.up_at(pose, Faces.Up.DECK)
 	state.up = up
 	var framed := sim.faces.framed(pose, up)
-	var surfaces := sim.faces.surfaces(up)
+	var surfaces := sim.faces.surfaces(up, framed)
 	if up == Faces.Up.DECK:
 		surfaces.honour(pose, state.broken_railings(), state.props)
 	else:

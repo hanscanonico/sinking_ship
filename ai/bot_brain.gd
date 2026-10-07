@@ -191,8 +191,8 @@ func decide(view: BotView, tick: int) -> InputFrame:
 	var first := _look == -1
 	if first:
 		_look = InputFrame.quantize_yaw(me["facing"])
-	_stand_on(view.up())
 	var pose := view.pose()
+	_stand_on(view.up(), pose)
 	# As a player sees them, for the footing's probes too: broken railings, crates.
 	_floors.honour(_up, pose, seen)
 	# The route is followed from where its seen velocity carries it; the edges are kept
@@ -249,13 +249,13 @@ func decide(view: BotView, tick: int) -> InputFrame:
 	return frame
 
 
-## Finds its way on the floors of the frame [param up] (BotFloors) from now: a new
-## frame's walk graph, and all that reads it, with every way it was going dropped.
-func _stand_on(up: int) -> void:
-	if up == _up:
+## Finds its way on the floors of the frame [param up] under [param pose] (BotFloors)
+## from now: a new walk graph, and all that reads it, with every way it was going dropped.
+func _stand_on(up: int, pose: ShipPose = null) -> void:
+	if up == _up and _floors.graph(up, pose) == _walk_graph:
 		return
 	_up = up
-	_walk_graph = _floors.graph(up)
+	_walk_graph = _floors.graph(up, pose)
 	_surfaces = _walk_graph.surfaces()
 	_footing = BotFooting.new(_surfaces, _walk_graph, _rules, _profile.edge_margin_m)
 	_targeting = BotTargeting.new(seat, _profile, _rules, _footing, _walk_graph)
