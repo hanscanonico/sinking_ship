@@ -41,3 +41,4 @@ heel_deg = 180.0
 script = ExtResource("2_scen")
 starts_at = 5.0
 keyframes = Array[ExtResource("1_key")]([SubResource("Key_level"), SubResource("Key_band"), SubResource("Key_band_held"), SubResource("Key_side"), SubResource("Key_side_held"), SubResource("Key_over")])
+sea_depth = 200.0

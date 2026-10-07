@@ -142,12 +142,13 @@ func setup(end_tick: int, layout: ShipLayout, sea_depth: float = INF) -> void:
 
 
 ## The bottom [param depth] under the still sea, drawn while it is shallower than
-## BOTTOM_SHOWN: where a coast's wreck comes to rest.
+## BOTTOM_SHOWN: where a coast's wreck comes to rest. None for a depth not given — an
+## authored fixture's 0, which would lay the sand on the sea itself.
 func _lay_bottom(depth: float) -> void:
 	if _bottom != null:
 		_bottom.queue_free()
 		_bottom = null
-	if depth >= BOTTOM_SHOWN:
+	if depth <= 0.0 or depth >= BOTTOM_SHOWN:
 		return
 	var plane := PlaneMesh.new()
 	plane.size = Vector2.ONE * BOTTOM_SIZE
