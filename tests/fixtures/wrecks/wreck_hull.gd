@@ -22,6 +22,16 @@ extends Resource
 @export var fittings: Array[ShipFitting] = []
 ## The list past which the high side's lifeboats are useless, in degrees.
 @export var boat_limit_deg: float
+## How deep the sea is under her, in metres (SH32): where she can come to rest; INF for
+## water deeper than she reaches.
+@export var sea_depth := INF
+## How fast her roll dies away, as a share of critical (BoxBarge's 0.08 unless her
+## notes say otherwise): a flat side driven broadside through the water as she goes over
+## is damped far harder than a small roll is.
+@export var roll_damping := 0.08
+## Her cells shut fast, with no air pipe: their air is trapped once their openings are
+## under, and leaks only through their seams (FloodCell.leak_area).
+@export var sealed: Array[StringName] = []
 ## Where every number comes from, est. or a source.
 @export_multiline var notes: String
 
@@ -32,12 +42,15 @@ const AIR_PIPE := 0.01
 
 
 ## Her structure, as BoxBarge builds it: level at her draught, her lifeboats both sides;
-## its cells and holes her own copies, free to change, each cell with its air pipe.
+## its cells and holes her own copies, free to change, each cell but a sealed one with
+## its air pipe.
 func structure() -> ShipStructure:
 	var barge := BoxBarge.new(length, beam, depth, draught, centre_height)
 	barge.section_length = length / 40.0
 	for cell: FloodCell in cells:
 		barge.cells.append(cell.duplicate())
+		if cell.name in sealed:
+			continue
 		var middle := (cell.low + cell.high) * 0.5
 		barge.vent(cell.name, Vector3(middle.x, barge.keel() + depth, middle.z), AIR_PIPE)
 	for opening: ShipOpening in openings:
@@ -46,4 +59,6 @@ func structure() -> ShipStructure:
 	barge.lifeboat(-1, boat_limit_deg)
 	for fitting: ShipFitting in fittings:
 		barge.fittings.append(fitting.duplicate())
-	return barge.structure()
+	var made := barge.structure()
+	made.roll_damping = roll_damping
+	return made

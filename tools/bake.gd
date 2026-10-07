@@ -13,7 +13,10 @@ extends SceneTree
 const RunMatch := preload("res://tools/run_match.gd")
 ## The events whose lines say how she leans then.
 const LEANING: Array[SinkTimeline.Kind] = [
-	SinkTimeline.Kind.LURCHED, SinkTimeline.Kind.PLUNGING, SinkTimeline.Kind.GONE
+	SinkTimeline.Kind.LURCHED,
+	SinkTimeline.Kind.PLUNGING,
+	SinkTimeline.Kind.GONE,
+	SinkTimeline.Kind.GROUNDED,
 ]
 
 
@@ -24,7 +27,7 @@ func _initialize() -> void:
 		quit(1)
 		return
 	var config := RunMatch.default_config(
-		args.seed_value if args.seed_value >= 0 else RunMatch.DEFAULT_SEED, 0, args.ship_name
+		args.seed_value if args.seed_value >= 0 else RunMatch.DEFAULT_SEED, 0, args.ship()
 	)
 	config.scenario = args.struck(config.scenario)
 	var problems := config.problems()
@@ -122,6 +125,7 @@ static func _event_lines(timeline: SinkTimeline) -> PackedStringArray:
 		SinkTimeline.End.GONE: "gone, followed down past where anything of her is seen",
 		SinkTimeline.End.AFLOAT: "afloat, the water stopped",
 		SinkTimeline.End.CAPPED: "afloat at the cap",
+		SinkTimeline.End.AGROUND: "aground, at rest on the bottom with part of her dry",
 	}
 	lines.append(
 		(
@@ -175,6 +179,8 @@ static func _told(event: SinkTimeline.Event) -> String:
 			return "%s lamps drowned" % event.name
 		SinkTimeline.Kind.HULL_STRESSED:
 			return "hull creaking · bending %.2f of her strength" % absf(event.heel_deg)
+		SinkTimeline.Kind.GROUNDED:
+			return "she touches the bottom"
 	return "she is gone"
 
 

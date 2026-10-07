@@ -11,8 +11,9 @@ extends RefCounted
 ## AIR_VENTED as a cell's air is trapped under its ceiling and a pocket's air let out;
 ## from SH31 what gives way: an opening or a wall's panel starts to leak, or gives way,
 ## a funnel creaks and falls, her generator stops or runs again, her lights go out, a
-## cell's water drowns its lamps, her hull creaks under its bending. KNOCKED_DOWN is a
-## rule's: a falling funnel landing on a body (Hazards, D12).
+## cell's water drowns its lamps, her hull creaks under its bending; and from SH32
+## GROUNDED as her hull first touches the bottom. KNOCKED_DOWN is a rule's: a falling
+## funnel landing on a body (Hazards, D12).
 
 enum Kind {
 	SEAT_OUT,
@@ -50,6 +51,7 @@ enum Kind {
 	LAMPS_DROWNED,
 	HULL_STRESSED,
 	KNOCKED_DOWN,
+	GROUNDED,
 }
 
 var kind: Kind
@@ -182,6 +184,7 @@ static func physics(
 		Kind.LIGHTS_OUT,
 		Kind.LAMPS_DROWNED,
 		Kind.HULL_STRESSED,
+		Kind.GROUNDED,
 	]
 	var event := SimEvent.new(kinds[physics_kind], event_tick, -1)
 	event.cell = named

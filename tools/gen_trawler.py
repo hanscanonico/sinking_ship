@@ -527,15 +527,20 @@ def hull_in(x0, x1, y0, y1, z0, z1):
 # out at them (the Gaul's deck).
 CELLS = [
     ("engine_wing_p", X_AFT, -3, KEEL, 0, -BEAM, -LINING, "VOID", None),
-    ("engine_room", X_AFT, -3, KEEL, 0, -LINING, LINING, "MACHINERY", None),
+    ("engine_room", X_AFT, -3, LOWER, 0, -LINING, LINING, "MACHINERY", None),
     ("engine_wing_s", X_AFT, -3, KEEL, 0, LINING, BEAM, "VOID", None),
     ("hold_wing_p", -3, 7, KEEL, 0, -BEAM, -HOLD_LINING, "VOID", None),
-    ("fish_hold", -3, 7, KEEL, 0, -HOLD_LINING, HOLD_LINING, "CARGO", 0.9),  # empty of fish: 0.90
+    ("fish_hold", -3, 7, LOWER, 0, -HOLD_LINING, HOLD_LINING, "CARGO", 0.9),  # empty of fish: 0.90
     ("hold_wing_s", -3, 7, KEEL, 0, HOLD_LINING, BEAM, "VOID", None),
-    ("fore", 7, X_FORE, KEEL, UPPER, -BEAM, BEAM, "ACCOMMODATION", None),
+    ("fore", 7, X_FORE, 0, UPPER, -BEAM, BEAM, "ACCOMMODATION", None),
     ("deckhouse", -10 - T, -3, 0, UPPER, -3.55 - T, 3.55 + T, "ACCOMMODATION", None),
     ("wheelhouse", -8 - T, -4 + T, UPPER, WHEEL_TOP, -1.8 - T, 1.8 + T, "ACCOMMODATION", None),
     ("working_deck", -3, 7, 0, BULWARK, -BEAM, BEAM, "OPEN_WELL", None),
+    # Under the lower deck's plates, a bilge the length of each compartment, nobody's (as
+    # the steamer's, §5b.2); under the crew mess's floor, her stores.
+    ("engine_bilge", X_AFT, -3, KEEL, LOWER, -LINING, LINING, "VOID", None),
+    ("hold_bilge", -3, 7, KEEL, LOWER, -HOLD_LINING, HOLD_LINING, "VOID", None),
+    ("fore_stores", 7, X_FORE, KEEL, 0, -BEAM, BEAM, "ACCOMMODATION", None),
 ]
 KINDS = ["ACCOMMODATION", "MACHINERY", "CARGO", "STORES", "VOID", "BUNKER", "OPEN_WELL"]
 # Where the sea comes over the working deck in a seaway (green water, ShippedWater): the
@@ -560,11 +565,12 @@ def cell_box(name):
 # and the linings along her, leaky (est.): (name, z, from x, to x, top, collapse head),
 # each from the deck's end over it. A head across a wall is the water's over the foot
 # of each panel of it (SinkFailures): est., a bulkhead is built for the head from her
-# keel to her deck, starts to leak at 1.25× it by WALL_LEAK and gives way at 1.5× it; a
-# lining — the side tanks' steel inner skin, leaking through its LEAK — gives way at the
-# same 1.5×, so a wing flooded to the sea holds it; a wall the hit ended beside at half.
+# keel to her deck and gives way at 2.25× it — a small ship's short, stiff panels —,
+# starting to leak by WALL_LEAK at five sixths of that; a lining — the side tanks' steel
+# inner skin, leaking through its LEAK — gives way at 1.5× it, so a wing flooded to the
+# sea holds it; a wall the hit ended beside at half.
 BUILT_FOR = 0.0 - KEEL
-BULKHEADS = [("bulkhead_aft", -3, 0.0, 1.5 * BUILT_FOR), ("bulkhead_fwd", 7, 0.0, 1.5 * BUILT_FOR)]
+BULKHEADS = [("bulkhead_aft", -3, 0.0, 2.25 * BUILT_FOR), ("bulkhead_fwd", 7, 0.0, 2.25 * BUILT_FOR)]
 WALL_LEAK = 0.002
 LININGS = [("engine_lining_p", -LINING, -14.4, -3, 0.0, 1.5 * BUILT_FOR),
            ("engine_lining_s", LINING, -14.4, -3, 0.0, 1.5 * BUILT_FOR),
@@ -637,8 +643,8 @@ for axis, at, d0, d1, foot, sill in doorways:
                 centre, size, starts="OPEN")
 
 # Holes in her decks: the stairs — water on a floor runs down them — and the fish
-# hatch, battened, left open one time in three (est.), its tarpaulin's seams weeping
-# 0.05 m² under 0.3 m of water and giving way under 1 m.
+# hatch, battened, left open one time in three (est.), its cover's seams weeping
+# 0.01 m² under 1 m of water and giving way under 3 m.
 for tag, (x0, x1, z0, z1) in zip(["p", "s"], ENGINE_STAIRS):
     opening("stair_engine_room_deckhouse_" + tag, "STAIRWELL", "engine_room", "deckhouse",
             ((x0 + x1) * 0.5, 0, (z0 + z1) * 0.5), (x1 - x0, 0, z1 - z0), starts="OPEN")
@@ -647,8 +653,8 @@ opening("stair_deckhouse_wheelhouse", "STAIRWELL", "deckhouse", "wheelhouse",
         ((x0 + x1) * 0.5, UPPER, (z0 + z1) * 0.5), (x1 - x0, 0, z1 - z0), starts="OPEN")
 x0, x1, z0, z1 = FISH_HATCH
 opening("fish_hatch", "HATCH", "fish_hold", "working_deck", ((x0 + x1) * 0.5, 0, (z0 + z1) * 0.5),
-        (x1 - x0, 0, z1 - z0), starts="SHUT", flip_chance=0.3, leak_head=0.3, collapse_head=1.0,
-        leak_area=0.05)
+        (x1 - x0, 0, z1 - z0), starts="SHUT", flip_chance=0.3, leak_head=1.0, collapse_head=3.0,
+        leak_area=0.01)
 # The engine room's skylight, under its casing on the aft deck: always open (0.5 m²).
 x0, x1, z0, z1 = SKYLIGHT
 opening("skylight", "VENT", "engine_room", SKY, ((x0 + x1) * 0.5, 0, (z0 + z1) * 0.5),
@@ -675,6 +681,15 @@ for wing, inner, pipe_x in [("engine_wing_p", "engine_room", -12.0), ("engine_wi
     over = cell_at(pipe_x, w[3] + 0.01, (w[4] + w[5]) * 0.5)
     opening("pipe_" + wing, "VENT", wing, over, (pipe_x, w[3], (w[4] + w[5]) * 0.5), (0.09, 0, 0.09),
             area=AIR_PIPE, starts="OPEN")
+# The lower deck's plates are not watertight (est., as the steamer's): 0.3 m² of gaps
+# between each and the bilge under it. The mess's floor is a plated deck over her
+# stores, tight but for its scuttle's seams, 0.05 m² (est.): the stores keep their air
+# as the mess floods, and a capsized hull floats on it (§5b.4).
+for below, above, y, gaps in [("engine_bilge", "engine_room", LOWER, 0.3),
+                              ("hold_bilge", "fish_hold", LOWER, 0.3), ("fore_stores", "fore", 0.0, 0.05)]:
+    b = cell_box(below)
+    opening("floor_" + above, "FLOOR_GAPS", below, above, ((b[0] + b[1]) * 0.5, y, (b[4] + b[5]) * 0.5),
+            (b[1] - b[0], 0, b[5] - b[4]), area=gaps, starts="OPEN")
 well = cell_box("working_deck")
 opening("open_working_deck", "OPEN", "working_deck", SKY,
         ((well[0] + well[1]) * 0.5, well[3], (well[4] + well[5]) * 0.5),
@@ -874,6 +889,7 @@ head = """[gd_resource type="Resource" script_class="ShipLayout" format=3]
 [ext_resource type="Script" path="res://core/sinking/girder_strength.gd" id="17_strength"]
 """
 res = ["[resource]", 'script = ExtResource("5_layout")', "freeboard = " + num(FREEBOARD),
+       "deck_thickness = " + num(2 * T),
        "platforms = " + arr("1_plat", platforms),
        "ramps = " + arr("2_ramp", ramps),
        "blockers = " + arr("3_block", blockers),

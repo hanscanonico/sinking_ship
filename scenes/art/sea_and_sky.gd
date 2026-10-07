@@ -28,6 +28,11 @@ const CHURN_RADIUS := 7.0
 const CHURN_TRIM_DEG := 10.0
 ## How far the stem reaches below the waterline of a level, unsunk ship (ShipHull).
 const STEM_DRAFT := 0.5
+## A bottom shallower than this, in metres, is drawn: a coast's (SH32), where she can
+## come to rest; and it is drawn this wide round the eye, stepping after it as the sea
+## does.
+const BOTTOM_SHOWN := 60.0
+const BOTTOM_SIZE := 600.0
 ## The side, in metres, of a cell of the rooms' maps (room_map, room_edges); how far
 ## in or out of a room the edges' map tells apart; and how far past its walls it
 ## takes a room to reach, so its corners, read between texels — which round a
@@ -58,6 +63,8 @@ var _churn_axis := Vector2.RIGHT
 ## last drawn, so the sea is told where the rooms are only when it moves.
 var _ship_to_rooms := Transform3D()
 var _ship_to_world := Transform3D()
+## The bottom under a coast's shallow water, or null in the open sea.
+var _bottom: MeshInstance3D
 
 @onready var _world: WorldEnvironment = $Environment
 @onready var _sun: DirectionalLight3D = $Sun
@@ -84,6 +91,10 @@ func _process(_delta: float) -> void:
 	if camera != null:
 		var eye := camera.global_position
 		_sea.global_position = Vector3(snappedf(eye.x, CELL), 0.0, snappedf(eye.z, CELL))
+		if _bottom != null:
+			_bottom.global_position = Vector3(
+				snappedf(eye.x, CELL), _bottom.global_position.y, snappedf(eye.z, CELL)
+			)
 
 
 ## The world's environment, which Underwater swaps while the eye is under the sea.
@@ -109,9 +120,11 @@ func water() -> ShaderMaterial:
 ## Dims the dusk toward [param end_tick], the tick the sinking ends by (none when
 ## not positive), churns the sea at [param layout]'s bow and keeps the open sea's sky,
 ## glint and whitecaps off the water in its rooms, and the sea out of her cells whose
-## water is drawn as their own (InnerWater), from now on.
-func setup(end_tick: int, layout: ShipLayout) -> void:
+## water is drawn as their own (InnerWater), from now on; under a sea
+## [param sea_depth] deep, the bottom when it is a coast's.
+func setup(end_tick: int, layout: ShipLayout, sea_depth: float = INF) -> void:
 	_end_tick = end_tick
+	_lay_bottom(sea_depth)
 	_map_rooms(layout)
 	if layout.structure != null:
 		_mask_cells(InnerWater.boxes(layout.structure, layout.rooms))
@@ -126,6 +139,29 @@ func setup(end_tick: int, layout: ShipLayout) -> void:
 	_stem_head = Vector3(bounds.end.x, top, middle)
 	_stem_foot = Vector3(bounds.end.x, -layout.freeboard - STEM_DRAFT, middle)
 	_stern = Vector3(bounds.position.x, top, middle)
+
+
+## The bottom [param depth] under the still sea, drawn while it is shallower than
+## BOTTOM_SHOWN: where a coast's wreck comes to rest. None for a depth not given — an
+## authored fixture's 0, which would lay the sand on the sea itself.
+func _lay_bottom(depth: float) -> void:
+	if _bottom != null:
+		_bottom.queue_free()
+		_bottom = null
+	if depth <= 0.0 or depth >= BOTTOM_SHOWN:
+		return
+	var plane := PlaneMesh.new()
+	plane.size = Vector2.ONE * BOTTOM_SIZE
+	var sand := StandardMaterial3D.new()
+	sand.albedo_color = ArtPalette.SEABED
+	sand.roughness = 1.0
+	plane.material = sand
+	_bottom = MeshInstance3D.new()
+	_bottom.name = "Bottom"
+	_bottom.mesh = plane
+	_bottom.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(_bottom)
+	_bottom.global_position = Vector3(0.0, -depth, 0.0)
 
 
 ## Draws the sun's shadows, the dusk's glow and the sea's fine detail as

@@ -52,6 +52,14 @@ static func choose(
 	return choosing.choice()
 
 
+## Whether a match plays a bake that ends [param end]: she is gone within the cap, or —
+## a coast scenario's wreck — rests on the bottom with part of her dry, where the match
+## goes on until one seat is left (Q21). Afloat — upright, or upside down on air still
+## leaking at the cap — it draws again.
+static func played(end: SinkTimeline.End) -> bool:
+	return end == SinkTimeline.End.GONE or end == SinkTimeline.End.AGROUND
+
+
 ## [param scenario]'s explicit hit on [param structure], baked as given under
 ## [param sea]: past the rule, so it may leave her afloat.
 static func given(structure: ShipStructure, scenario: SinkScenario, sea: SeaPhysics) -> Choice:
@@ -220,7 +228,7 @@ class Choosing:
 				_draw()
 			Stage.BAKING:
 				_drawn.bakes += 1
-				if _bake.end() == SinkTimeline.End.GONE:
+				if MustSink.played(_bake.end()):
 					_finish(_drawn)
 				elif _drawn.bakes >= _scenario.bakes:
 					_to_rungs()
@@ -231,7 +239,7 @@ class Choosing:
 				_next_rung()
 			Stage.BAKING_RUNG:
 				_tried.bakes += 1
-				if _bake.end() == SinkTimeline.End.GONE:
+				if MustSink.played(_bake.end()):
 					_tried.bakes += _drawn.bakes
 					_tried.rung = _rung
 					_finish(_tried)
@@ -301,6 +309,7 @@ class Choosing:
 		_stage = Stage.SURE
 
 	func _start(damage: HitDamage) -> void:
+		damage.sea_depth = _scenario.sea_depth
 		_bake = SinkBake.new(SinkStepper.new(_structure, damage, _sea), _sea, _scenario.bake_cap)
 
 	## Ends the rule on [param chosen]: its bake made its timeline — compacted only now,
@@ -326,8 +335,12 @@ class Choosing:
 ## that attitude. With the failures stage on (SH31) a shut door, hatch, porthole or
 ## window that can fail, and every panel of her watertight walls, passes water once it
 ## stands under [param failing] of the least head it leaks or gives way at
-## (SinkFailures), as the physics would let it through. Only a hit she floats on,
-## stable, with deck to spare is ever thrown out: the bake would leave her afloat too.
+## (SinkFailures), as the physics would let it through. A leak — a limber hole, a hold's
+## side wall — floods its cell over hours where the rest floods in minutes: the water
+## spreads first by every other way, then by the leaks too, and she is judged at every
+## state it passes through — listed toward her gash while the far side waits on its leak,
+## as much as at the end. Only a hit she floats on, stable, with deck to spare at every
+## one of them is ever thrown out: the bake would leave her afloat too.
 static func founders(
 	structure: ShipStructure,
 	damage: HitDamage,
@@ -346,26 +359,43 @@ static func founders(
 		flooded[structure.cell_named(opening.joins[0])] = 1
 	var ways := _ways(structure, damage, failing if sea.failures else 0.0)
 	var own := _own(structure, sea)
-	var level := INF
 	var tilt := PackedFloat64Array([0.0, 0.0, 0.0])
-	var changed := true
-	while changed:
-		level = _level(structure, sea, hull, flooded, own)
-		if is_inf(level):
-			return true
-		if motion != null:
-			tilt = _tilt(structure, sea, motion, flooded, level)
-		changed = false
-		for way: Array in ways:
-			if _clearance(way[2], tilt, motion, level) >= -way[3]:
-				continue
-			var first: int = way[0]
-			var second: int = way[1]
-			var first_wet := first == SinkStepper.OUTSIDE or flooded[first] == 1
-			var second_wet := second == SinkStepper.OUTSIDE or flooded[second] == 1
-			if first_wet != second_wet:
-				flooded[second if first_wet else first] = 1
-				changed = true
+	for leaks: bool in [false, true]:
+		var changed := true
+		while changed:
+			var level := _level(structure, sea, hull, flooded, own)
+			if is_inf(level):
+				return true
+			if motion != null:
+				tilt = _tilt(structure, sea, motion, flooded, level)
+			if _short(structure, sea, flooded, level, tilt, motion, spare):
+				return true
+			changed = false
+			for way: Array in ways:
+				if (way[4] and not leaks) or _clearance(way[2], tilt, motion, level) >= -way[3]:
+					continue
+				var first: int = way[0]
+				var second: int = way[1]
+				var first_wet := first == SinkStepper.OUTSIDE or flooded[first] == 1
+				var second_wet := second == SinkStepper.OUTSIDE or flooded[second] == 1
+				if first_wet != second_wet:
+					flooded[second if first_wet else first] = 1
+					changed = true
+	return false
+
+
+## Whether she founders floating with every [param flooded] cell flooded to the sea at
+## [param level], turned by [param tilt] (_tilt): less than [param spare] of her main
+## deck dry, or unstable.
+static func _short(
+	structure: ShipStructure,
+	sea: SeaPhysics,
+	flooded: PackedByteArray,
+	level: float,
+	tilt: PackedFloat64Array,
+	motion: ShipMotion,
+	spare: float
+) -> bool:
 	for cell: FloodCell in structure.cells:
 		if cell.high.y != SinkTimeline.MAIN_DECK:
 			continue
@@ -459,10 +489,11 @@ static func _tilt(
 
 
 ## Every opening of [param structure] water can pass after [param damage]: its two
-## sides — a cell, or SinkStepper.OUTSIDE — its least and greatest corners, and the depth
-## of water over its foot it passes under: none for one open. A door the ship shuts is
-## shut, but one that jammed; while [param failing] is over 0, a shut one and her walls'
-## panels pass under that share of the least head each leaks or gives way at.
+## sides — a cell, or SinkStepper.OUTSIDE — its least and greatest corners, the depth
+## of water over its foot it passes under — none for one open — and whether it is a leak.
+## A door the ship shuts is shut, but one that jammed; while [param failing] is over 0, a
+## shut one and her walls' panels pass under that share of the least head each leaks or
+## gives way at.
 static func _ways(structure: ShipStructure, damage: HitDamage, failing: float) -> Array[Array]:
 	var ways: Array[Array] = []
 	var openings: Array[ShipOpening] = structure.openings.duplicate()
@@ -499,7 +530,7 @@ static func _ways(structure: ShipStructure, damage: HitDamage, failing: float) -
 				opening.centre.z + half.z,
 			]
 		)
-		ways.append([sides[0], sides[1], corners, under])
+		ways.append([sides[0], sides[1], corners, under, opening.kind == ShipOpening.Kind.LEAK])
 	return ways
 
 

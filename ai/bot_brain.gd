@@ -84,6 +84,9 @@ var _profile: BotProfile
 var _rules: BrawlRules
 ## Its way out of a sliding crate's path (SH10).
 var _dodge: CargoDodge
+## The floors of the frame it stands in (BotFloors, SH32), and that frame's.
+var _floors: BotFloors
+var _up := -1
 var _surfaces: Surfaces
 var _walk_graph: WalkGraph
 var _footing: BotFooting
@@ -160,20 +163,15 @@ func _init(
 	profile: BotProfile,
 	rules: BrawlRules,
 	cargo: Array[ShipProp],
-	surfaces: Surfaces,
-	walk_graph: WalkGraph,
+	floors: BotFloors,
 	rng: RandomNumberGenerator
 ) -> void:
 	seat = bot_seat
 	_profile = profile
 	_rules = rules
 	_dodge = CargoDodge.new(profile, rules, cargo)
-	_surfaces = surfaces
-	_walk_graph = walk_graph
-	_footing = BotFooting.new(surfaces, walk_graph, rules, profile.edge_margin_m)
-	_targeting = BotTargeting.new(bot_seat, profile, rules, _footing, walk_graph)
-	_swim = BotSwim.new(walk_graph, rules, profile)
-	_refuges = BotRefuge.new(walk_graph, profile)
+	_floors = floors
+	_stand_on(Faces.Up.DECK)
 	_pacing = BotPacing.new(profile)
 	_rng = rng
 	_charge_full_ticks = Ticks.from_seconds(rules.charge_full)
@@ -194,8 +192,9 @@ func decide(view: BotView, tick: int) -> InputFrame:
 	if first:
 		_look = InputFrame.quantize_yaw(me["facing"])
 	var pose := view.pose()
+	_stand_on(view.up(), pose)
 	# As a player sees them, for the footing's probes too: broken railings, crates.
-	_surfaces.honour(pose, MatchState.broken_in(seen["railing_hp"]), PropState.from_snapshot(seen))
+	_floors.honour(_up, pose, seen)
 	# The route is followed from where its seen velocity carries it; the edges are kept
 	# from where its own walks have, which a turn toward one since cannot hide — and,
 	# past the grip angle, where it slides wherever it walks, from both.
@@ -248,6 +247,24 @@ func decide(view: BotView, tick: int) -> InputFrame:
 	_sent_moves[tick % _sent_moves.size()] = frame.move_vector()
 	_sent_ticks[tick % _sent_ticks.size()] = tick
 	return frame
+
+
+## Finds its way on the floors of the frame [param up] under [param pose] (BotFloors)
+## from now: a new walk graph, and all that reads it, with every way it was going dropped.
+func _stand_on(up: int, pose: ShipPose = null) -> void:
+	if up == _up and _floors.graph(up, pose) == _walk_graph:
+		return
+	_up = up
+	_walk_graph = _floors.graph(up, pose)
+	_surfaces = _walk_graph.surfaces()
+	_footing = BotFooting.new(_surfaces, _walk_graph, _rules, _profile.edge_margin_m)
+	_targeting = BotTargeting.new(seat, _profile, _rules, _footing, _walk_graph)
+	_swim = BotSwim.new(_walk_graph, _rules, _profile)
+	_refuges = BotRefuge.new(_walk_graph, _profile)
+	_legs.clear()
+	_goal = WalkGraph.NONE
+	_refuge = WalkGraph.NONE
+	_climbing = false
 
 
 ## Where the bot stands now, from where its view shows it: carried on by the velocity

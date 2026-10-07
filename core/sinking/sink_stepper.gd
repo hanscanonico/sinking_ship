@@ -121,7 +121,7 @@ func _init(structure: ShipStructure, damage: HitDamage, sea: SeaPhysics) -> void
 	_air = SinkAir.new(sea)
 	_shipped = ShippedWater.new(structure, damage.wave_height, sea)
 	if sea.attitude:
-		_motion = ShipMotion.new(structure, sea, _rest)
+		_motion = ShipMotion.new(structure, sea, _rest, damage.sea_depth)
 	for cell: FloodCell in structure.cells:
 		var plan := (float(cell.high.x) - cell.low.x) * (float(cell.high.z) - cell.low.z)
 		var area := plan * cell.permeability_in(sea) * cell.shape
@@ -781,6 +781,12 @@ func highest_top(cell: int) -> float:
 ## What gives way in her, or null without the failures stage.
 func failures() -> SinkFailures:
 	return _failures
+
+
+## Whether [param state]'s hull rests on the bottom (Seabed); never without the
+## attitude stage.
+func grounded(state: FloodState) -> bool:
+	return _motion != null and _motion.grounded(state.rotation, state.sea)
 
 
 ## The physics second the last door the ship shuts is shut.

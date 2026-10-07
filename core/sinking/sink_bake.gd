@@ -6,12 +6,14 @@ extends RefCounted
 ## — the top of the last opening its air had, so those events stand at their own seconds
 ## and a pocket traps the air it had then — and, with the failures stage on, where
 ## anything reaches the threshold it gives way at (SinkFailures), so it gives way at its
-## own second too; to the end — she is gone, or the water has stopped coming in and she
-## lies still — or the bake's cap. Every state and every event, a lurch and a funnel's
-## fall with their warnings, and the worst her bending came to go into the timeline it
-## makes (SinkTimeline). It runs a slice at a time — run() takes the steps it is
-## allowed — so a scene can spread it across frames (R20): a bake run in slices is the
-## bake run straight through, step for step, and the stepper stays state in, state out.
+## own second too; to the end — she is gone, wholly under and going down or on the
+## bottom, or the water has stopped coming in and she lies still, upright or aground —
+## or the bake's cap, which finds her aground where she rests on the bottom. Every state
+## and every event, a lurch and a funnel's fall with their warnings, and the worst her
+## bending came to go into the timeline it makes (SinkTimeline). It runs a slice at a
+## time — run() takes the steps it is allowed — so a scene can spread it across frames
+## (R20): a bake run in slices is the bake run straight through, step for step, and the
+## stepper stays state in, state out.
 
 ## A level this close to a ceiling or a sill, in metres, has reached it: the
 ## timeline's millimetre. A landing its first guess misses is guessed again, by false
@@ -55,6 +57,7 @@ var _names: Array[StringName] = []
 var _spilled := PackedByteArray()
 var _doors_move_until := 0.0
 var _plunged := false
+var _grounded := false
 var _lurches: Lurches
 var _boats: Array[ShipFitting] = []
 var _useless := PackedByteArray()
@@ -255,15 +258,23 @@ func _take() -> void:
 		_plunged = true
 		_events.append(SinkTimeline.Event.new(at, SinkTimeline.Kind.PLUNGING, &""))
 	var above := state.above
+	var grounded := _stepper.grounded(state)
+	if grounded and not _grounded:
+		_grounded = true
+		_events.append(SinkTimeline.Event.new(at, SinkTimeline.Kind.GROUNDED, &""))
 	if _gone_at < 0.0 and above < 0.0:
 		_gone_at = at
 		_events.append(SinkTimeline.Event.new(at, SinkTimeline.Kind.GONE, &""))
-	if _gone_at >= 0.0 and -above >= _sea.gone_depth:
+	if _gone_at >= 0.0 and (-above >= _sea.gone_depth or above < 0.0 and grounded):
 		_end = SinkTimeline.End.GONE
 	elif _gone_at < 0.0 and _changed(before, state) < STILL * seconds and at >= _doors_move_until:
-		if _lies_still(state):
-			_end = SinkTimeline.End.AFLOAT
+		# Upside down she floats on air still leaking: followed on, to whether it lets
+		# her go under within the cap (§5b.1).
+		if _lies_still(state) and (grounded or state.rotation[4] > 0.0):
+			_end = SinkTimeline.End.AGROUND if grounded else SinkTimeline.End.AFLOAT
 	_done = _end != SinkTimeline.End.CAPPED or at >= _cap
+	if _done and _end == SinkTimeline.End.CAPPED and grounded:
+		_end = SinkTimeline.End.AGROUND
 	if _done:
 		_lurches.close(state)
 		_events = _merged(_events, _lurches.events)

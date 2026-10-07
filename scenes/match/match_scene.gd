@@ -33,6 +33,8 @@ var _order: SpectateOrder
 var _names := PackedStringArray()
 ## The local player's seat when a person plays it; null when a bot does.
 var _local: LocalInputSource
+## The face the local seat's look was last in (Faces.Up): its look turns as it changes.
+var _local_up: int = Faces.Up.DECK
 ## The seat whose win is "you won", and whose look the local player turns.
 var _local_seat := LOCAL_SEAT
 var _observer: bool
@@ -105,13 +107,15 @@ func _process(delta: float) -> void:
 		_cells.show_water(pose, _view.ship_to_world())
 	_hud.show_spectating(_spectating(snapshot, viewed))
 	_hud.show_controls(_prompts if _local != null else null)
-	var over := _driver.client.sim.schedule.unsupported_tick()
-	_end.show_results(_stats, _local_seat, _names, _config.match_seed, over)
+	_end.show_results(_stats, _local_seat, _names, _config.match_seed)
 	if _end.visible:
 		_end.show_prompts(_prompts)
 	_free.keep(_can_fly(snapshot))
 	_pointer.want(_looking() or _flying())
 	_hold()
+	if _local != null and snapshot["up"] != _local_up:
+		_local.turn_face(_local_up, snapshot["up"], _view.ship_to_world().basis)
+		_local_up = snapshot["up"]
 	if _looking() and not _free.active:
 		_local.look_by_stick(delta)
 	_audio.hear_through(-1 if _observer or _free.active else viewed)
@@ -138,7 +142,7 @@ func _process(delta: float) -> void:
 	_view.look_out_of(viewed)
 	_kick.follow(snapshot, viewed, yaw)
 	var kick := _kick.advance(delta)
-	_eyes.look_from(_view.ship_to_world(), feet, yaw, pitch, kick)
+	_eyes.look_from(_view.ship_to_world(), feet, yaw, pitch, kick, snapshot["up"])
 	_arms.visible = _staged.is_empty()
 	if _staged.is_empty():
 		_arms.show_seat(
@@ -289,6 +293,7 @@ func _begin(
 	if _local != null:
 		# The look starts where the match's first snapshot faces the seat.
 		_local.yaw = _driver.client.view()["seats"][_local_seat]["facing"]
+		_local_up = _driver.client.view()["up"]
 	# The client's prediction: what the data, the ship and its sinking are.
 	var sim := _driver.client.sim
 	_stats = MatchStats.new(config.seats, config.countdown_ticks)
@@ -310,7 +315,7 @@ func _begin(
 	_eyes.setup(settings)
 	_arms.setup(config.rules)
 	_first_person_hud.setup(sim, _names, not observer, _prompts)
-	_sea_and_sky.setup(sim.schedule.end_tick(), config.ship)
+	_sea_and_sky.setup(sim.schedule.end_tick(), config.ship, config.scenario.sea_depth)
 	_underwater.setup(_sea_and_sky)
 	_view.flood_with(_sea_and_sky.water())
 	_show_graphics(settings.graphics())

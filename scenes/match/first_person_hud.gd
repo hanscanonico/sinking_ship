@@ -110,6 +110,9 @@ const BANNER_SECONDS := 4.0
 const BANNER_FONT_SIZE := 30
 
 var _schedule: SinkSchedule
+## Her faces frame by frame (Faces): what the crosshair, the climb prompt and the
+## wedges ask once the match stands on a face but her decks.
+var _faces: Faces
 ## Its own, honoured with the pose, broken railings and crates of the snapshot it
 ## draws: what a climb, a shove or a look meets is the ship as that tick has it, and
 ## the sim's stays the sim's.
@@ -168,6 +171,7 @@ func _ready() -> void:
 func setup(sim: MatchSim, names: PackedStringArray, eyes: bool, prompts: InputPrompts) -> void:
 	_schedule = sim.schedule
 	_surfaces = Surfaces.new(sim.config.ship)
+	_faces = sim.faces
 	_rules = sim.config.rules
 	_ship = sim.config.ship
 	_names = names
@@ -211,15 +215,22 @@ func _draw_hud() -> void:
 	var me := _entry(_seat)
 	if me.is_empty() or me["out"]:
 		return
-	_draw_where(me["pos"], me["surface"])
+	# On a face but her decks the bodies' moves and looks are in its frame, and so are
+	# the crosshair's, the climb's and the wedges' answers (Faces).
+	var up: int = _snapshot["up"]
+	var decks := up == Faces.Up.DECK
+	_draw_where(me["pos"], me["surface"] if decks else Surfaces.NONE)
 	if not _eyes or flying:
 		return
-	_draw_crosshair(ShoveResolver.would_hit(_snapshot, _seat, _rules, _surfaces))
+	var framed := Faces.framed_snapshot(_snapshot)
+	var here := _surfaces if decks else _faces.surfaces(up)
+	_draw_crosshair(ShoveResolver.would_hit(framed, _seat, _rules, here))
+	var mine: Dictionary = framed["seats"][_seat]
 	if me["state"] == PlayerState.Body.SWIMMING:
-		_draw_climb_prompt(me, pose)
+		_draw_climb_prompt(mine, here, _faces.framed(pose, up))
 	_draw_readouts(me, pose.world_height(me["pos"]))
 	_draw_chevrons(me["pos"], pose)
-	_draw_windup_wedges(me["pos"])
+	_draw_windup_wedges(mine["pos"], framed["seats"])
 
 
 ## Whether there is nothing to draw: no snapshot yet, or the results are up.
@@ -593,14 +604,14 @@ func _ring(centre: Vector2, entry: Dictionary, radius: float, alpha: float) -> v
 ## into the bottom edge as it comes round behind. Wedges only ever warn of a shove on
 ## the same level, so none stands on the top edge. Several on one edge stand apart
 ## (wedges_apart), in the order of their seats, so none hides another.
-func _draw_windup_wedges(my_pos: Vector3) -> void:
+func _draw_windup_wedges(my_pos: Vector3, entries: Array) -> void:
 	var reach := (
 		_rules.shove_reach + _rules.walk_speed * (_rules.shove_windup + _rules.shove_active)
 	)
 	var half_view := deg_to_rad(_camera.fov * 0.5)
 	var seats := PackedInt32Array()
 	var bearings := PackedFloat32Array()
-	for entry: Dictionary in _snapshot["seats"]:
+	for entry: Dictionary in entries:
 		if entry["seat"] == _seat or entry["out"]:
 			continue
 		var action: PlayerState.Action = entry["action"]
@@ -765,11 +776,12 @@ func _text(
 
 
 ## Under the crosshair, while [param me] swims and pressing on where it looks would
-## start a climb out: the move-forward key by the layout's label, Z on AZERTY.
-func _draw_climb_prompt(me: Dictionary, pose: ShipPose) -> void:
+## start a climb out, as [param here] finds one under [param pose] in the frame [param me]
+## is in: the move-forward key by the layout's label, Z on AZERTY.
+func _draw_climb_prompt(me: Dictionary, here: Surfaces, pose: ShipPose) -> void:
 	if me["climb"] > 0 or me["stagger"] > 0:
 		return
-	if _surfaces.climb_out(me["pos"], Vector2.from_angle(_yaw), pose, _rules) == null:
+	if here.climb_out(me["pos"], Vector2.from_angle(_yaw), pose, _rules) == null:
 		return
 	var at := _canvas.size * 0.5 + Vector2(0.0, 70.0)
 	_text(at, "Hold %s to climb" % _prompts.word(&"move_up"), TEXT, READOUT_TEXT)

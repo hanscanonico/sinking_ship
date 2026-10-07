@@ -38,12 +38,32 @@ func _init(structure: ShipStructure) -> void:
 		_shut.append(0.0)
 
 
-## Takes how far [param pose] has each door shut — none, where it has given way
-## (ShipPose.opened).
+## Takes how far [param pose] has each door shut (shut_in).
 func honour(pose: ShipPose) -> void:
 	for door in _names.size():
-		var gone: bool = pose.opened.get(_names[door], 0) >= 2
-		_shut[door] = 0.0 if gone else pose.doors_shut.get(_names[door], 0.0)
+		_shut[door] = shut_in(pose, _names[door])
+
+
+## How far [param pose] has the door called [param door] shut — none where it has given
+## way (ShipPose.opened).
+static func shut_in(pose: ShipPose, door: StringName) -> float:
+	if pose.opened.get(door, 0) >= 2:
+		return 0.0
+	return pose.doors_shut.get(door, 0.0)
+
+
+## [param door]'s leaf [param shut] of the way across its doorway as a box
+## [param thickness] thick in ship space: from the jamb it slides from, from its sill to
+## its head.
+static func leaf(door: ShipOpening, shut: float, thickness: float) -> AABB:
+	var axis := door.facing()
+	var along := 2 if axis == 0 else 0
+	var low := door.centre - door.size * 0.5
+	var size := door.size
+	low[axis] = door.centre[axis] - thickness * 0.5
+	size[axis] = thickness
+	size[along] = door.size[along] * shut
+	return AABB(low, size)
 
 
 ## What the leaves hold back a circle of [param radius] at [param point] (x/z) with

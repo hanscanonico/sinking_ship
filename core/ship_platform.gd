@@ -12,6 +12,10 @@ const EDGE := 0.001
 ## The rectangle in the ship's x/z plane: position is its (x, z) minimum corner.
 @export var area: Rect2
 @export var height: float
+## A slab, its underside at its height whatever stands under it: a face of the ship
+## turned to a floor (Faces), whose solid is a blocker of its own. Else a deck over
+## none is the top of the hull, solid all the way down (Surfaces).
+@export var slab: bool
 
 
 func contains(x: float, z: float) -> bool:

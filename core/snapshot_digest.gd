@@ -20,7 +20,12 @@ func hex() -> String:
 
 static func quantized(snapshot: Dictionary) -> String:
 	var parts := PackedStringArray(
-		[str(snapshot["tick"]), str(snapshot["phase"]), str(snapshot["rng"])]
+		[
+			str(snapshot["tick"]),
+			str(snapshot["phase"]),
+			str(snapshot["rng"]),
+			str(snapshot["up"]),
+		]
 	)
 	for entry: Dictionary in snapshot["seats"]:
 		var pos: Vector3 = entry["pos"]

@@ -10,7 +10,9 @@ extends RefCounted
 ## current pose, the water with it. What a player sees on screen, never the
 ## schedule's future (Q16, R16). The cargo and the railings' hits left (SH10) come
 ## through as the delayed snapshot has them: for the MVP every crate is seen, walls or
-## not, and only bodies are looked for, heard and remembered.
+## not, and only bodies are looked for, heard and remembered. A bot thinks in the frame
+## of the faces the match stood on then (Faces, SH32): the snapshot it reads has its
+## bodies' points there, and the pose reads in it — "down" is the pose's.
 
 ## Marks a seat's entry that is a memory: where it was last perceived, not where it is.
 const REMEMBERED := "remembered"
@@ -24,6 +26,7 @@ var _memory_ticks: int
 ## A body out of earshot is looked at once this many ticks — a think's worth — and
 ## between looks is where the last one saw it.
 var _look_every: int
+var _floors: BotFloors
 var _surfaces: Surfaces
 var _snapshots: Array[Dictionary] = []
 var _pose: ShipPose
@@ -38,7 +41,7 @@ var _memory := {}
 var _memory_tick := {}
 
 
-func _init(seat: int, profile: BotProfile, surfaces: Surfaces) -> void:
+func _init(seat: int, profile: BotProfile, floors: BotFloors) -> void:
 	_seat = seat
 	_delay = profile.reaction_ticks
 	_eye = profile.eye_height_m
@@ -46,7 +49,8 @@ func _init(seat: int, profile: BotProfile, surfaces: Surfaces) -> void:
 	_dark_sight = profile.dark_sight_m
 	_memory_ticks = Ticks.from_seconds(profile.memory_seconds)
 	_look_every = profile.think_period
-	_surfaces = surfaces
+	_floors = floors
+	_surfaces = floors.surfaces()
 
 
 func push(latest: Dictionary, pose_at_latest: ShipPose) -> void:
@@ -61,17 +65,24 @@ func is_empty() -> bool:
 
 
 ## The delayed snapshot — the oldest one held while the ring is still filling — with
-## only the seats the bot perceives in it, and the ones it remembers.
+## only the seats the bot perceives in it, and the ones it remembers, their points in
+## its frame (Faces.framed_snapshot).
 func snapshot() -> Dictionary:
 	var delayed := _snapshots[0]
 	if delayed["tick"] != _perceived_tick:
-		_perceived = _perceive(delayed)
+		_perceived = Faces.framed_snapshot(_perceive(delayed))
 		_perceived_tick = delayed["tick"]
 	return _perceived
 
 
+## The pose now, read in the frame of the delayed snapshot.
 func pose() -> ShipPose:
-	return _pose
+	return _floors.framed(_pose, up())
+
+
+## The frame the delayed snapshot stood in (Faces.Up).
+func up() -> int:
+	return _snapshots[0]["up"]
 
 
 ## How many seats are still in the match in the delayed snapshot: the HUD's "Seats
@@ -132,10 +143,11 @@ func _sees(me: Dictionary, entry: Dictionary, tick: int) -> bool:
 	# Spread over the period, so that every bot does not look at every body at once.
 	var offset := (seat + _seat) % _look_every
 	_look_due[seat] = tick + _look_every - posmod(tick - offset, _look_every)
+	var eye := Faces.axis(up()) * _eye
 	var my_pos: Vector3 = me["pos"]
 	var their_pos: Vector3 = entry["pos"]
-	var mine := my_pos + Vector3.UP * _eye
-	var theirs := their_pos + Vector3.UP * _eye
+	var mine := my_pos + eye
+	var theirs := their_pos + eye
 	var dark := (
 		_pose.lit_at(mine) == ShipPower.Power.DARK or _pose.lit_at(theirs) == ShipPower.Power.DARK
 	)

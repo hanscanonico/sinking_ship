@@ -1,9 +1,9 @@
 extends GutTest
-## §5b.4 layer 3, the trawler (SH30): her pinned seed's match hit — open_hatch — and the
-## explicit hits light_hit and everything_shut, the research's small-boat pair, each
-## baked alone and again with its holes' area × 0.9 and × 1.1 to the same outcome, so
-## the seed sits far from every threshold and a Mac and Linux agree (R21). Outcomes are
-## labels and bands, never exact times.
+## §5b.4 layer 3, the trawler (SH30): her pinned seeds' match hits — open_hatch, from
+## SH32 capsize_inverted — and the explicit hits light_hit and everything_shut, the
+## research's small-boat pair, each baked alone and again with its holes' area × 0.9
+## and × 1.1 to the same outcome, so the seeds sit far from every threshold and a Mac
+## and Linux agree (R21). Outcomes are labels and bands, never exact times.
 
 const TRAWLER := "res://data/ships/trawler.tres"
 const TRAWLER_SINKING := "res://data/sinking/trawler_open_sea.tres"
@@ -13,6 +13,10 @@ const MARGINS: Array[float] = [0.9, 1.0, 1.1]
 const SOONER_BY := 60.0
 ## everything_shut: she survives the hit, or goes no sooner than this after it.
 const SHUT_HOLDS := 1800.0
+## capsize_inverted: she rolls past this, in degrees.
+const ROLLS_PAST := 150.0
+## capsize_inverted: she floats upside down at least this many seconds on end.
+const FLOATS_INVERTED := 60.0
 
 var _structure: ShipStructure
 var _sea: SeaPhysics
@@ -25,18 +29,15 @@ func before_all() -> void:
 	_scenario = load(TRAWLER_SINKING)
 
 
-## [param seed_name]'s match hit on her, as the must-sink rule chooses it under
-## [param sea], her own constants when none.
-func _match_hit(seed_name: StringName, sea: SeaPhysics = null) -> MustSink.Choice:
+## [param seed_name]'s match hit on her, as the must-sink rule chooses it.
+func _match_hit(seed_name: StringName) -> MustSink.Choice:
 	var stream := SeedStreams.derive(PinnedSeeds.seed_named(seed_name), "sink")
-	return MustSink.choose(_structure, _scenario, stream, sea if sea != null else _sea)
+	return MustSink.choose(_structure, _scenario, stream, _sea)
 
 
 ## [param damage] baked with every hole of its gash [param scale] times as big, every
-## state the physics stepped through kept — under [param sea], her own constants when
-## none.
-func _bake(damage: HitDamage, scale: float, sea: SeaPhysics = null) -> SinkTimeline:
-	var physics := sea if sea != null else _sea
+## state the physics stepped through kept.
+func _bake(damage: HitDamage, scale: float) -> SinkTimeline:
 	var scaled := HitDamage.new()
 	scaled.wave_height = damage.wave_height
 	scaled.jammed = damage.jammed
@@ -47,8 +48,8 @@ func _bake(damage: HitDamage, scale: float, sea: SeaPhysics = null) -> SinkTimel
 		var hole: ShipOpening = opening.duplicate()
 		hole.area = opening.area * scale
 		scaled.openings.append(hole)
-	var stepper := SinkStepper.new(_structure, scaled, physics)
-	return SinkBake.new(stepper, physics, _scenario.bake_cap).uncompacted()
+	var stepper := SinkStepper.new(_structure, scaled, _sea)
+	return SinkBake.new(stepper, _sea, _scenario.bake_cap).uncompacted()
 
 
 ## The opening of hers called [param opening_name].
@@ -94,30 +95,31 @@ func _with_shut(damage: HitDamage, opening_name: StringName) -> HitDamage:
 func test_open_hatch_takes_her_down_by_the_head_and_sooner() -> void:
 	# Her fish hatch left open: once water stands over it, the hold under it fills from
 	# the well, and its weight forward takes her down by the head, sooner than the same
-	# hit with only the hatch shut, which lays her on her side. What her seaway ships over
-	# her low bulwark (ShippedWater) the hatch lets down into the hold, low and amidships,
-	# rather than leaving it loose on the low side of her deck — so she founders rather
-	# than capsizes. With the failures stage off, as SH30 pinned it: from SH31 her
-	# bulkheads, linings and hatch give way as she lies over, and with them on no match
-	# hit in 200 that leaves her hatch open lays her on her side with it shut.
-	var holding: SeaPhysics = _sea.duplicate()
-	holding.failures = false
-	var choice := _match_hit(&"open_hatch", holding)
+	# hit with only the hatch shut, which lays her on her side or capsizes her. What her
+	# seaway ships over her low bulwark (ShippedWater) the hatch lets down into the hold,
+	# low and amidships, rather than leaving it loose on the low side of her deck — so
+	# she founders rather than capsizes. With her failures on (SH31) no match hit in 200
+	# that leaves her hatch open lays her on her side with it shut; on this one she rolls
+	# over before she goes.
+	var choice := _match_hit(&"open_hatch")
 	assert_has(choice.damage.left_open, &"fish_hatch", "her fish hatch left open")
 	var battened := _with_shut(choice.damage, &"fish_hatch")
 	var hatch := _opening(&"fish_hatch")
 	for scale: float in MARGINS:
-		var opened := _bake(choice.damage, scale, holding)
-		var shut := _bake(battened, scale, holding)
+		var opened := _bake(choice.damage, scale)
+		var shut := _bake(battened, scale)
 		var what := "× %s" % scale
 		var labels := OutcomeClassifier.labels(opened)
 		assert_has(labels, OutcomeClassifier.Outcome.BY_THE_HEAD, what + ": open, by the head")
 		assert_does_not_have(labels, OutcomeClassifier.Outcome.CAPSIZED, what)
 		assert_lt(_under(opened, hatch), opened.gone_at, what + ": her hatch goes under first")
-		assert_has(
-			OutcomeClassifier.labels(shut),
-			OutcomeClassifier.Outcome.ONTO_HER_SIDE,
-			what + ": shut, onto her side"
+		var over := OutcomeClassifier.labels(shut)
+		assert_true(
+			(
+				OutcomeClassifier.Outcome.ONTO_HER_SIDE in over
+				or OutcomeClassifier.Outcome.CAPSIZED in over
+			),
+			what + ": shut, onto her side or over"
 		)
 		assert_lt(opened.gone_at + SOONER_BY, shut.gone_at, what + ": open, gone sooner than shut")
 
@@ -153,3 +155,39 @@ func test_light_hit_ends_afloat() -> void:
 		var heel := rad_to_deg(asin(timeline.rotations[last * 9 + 7]))
 		assert_lt(absf(heel), 7.0, "listing under 7°, × %s" % scale)
 		assert_lt(timeline.seas[last], SinkTimeline.MAIN_DECK, "her deck clear, × %s" % scale)
+
+
+## The longest [param timeline] floats upside down on end before she is gone, in seconds,
+## and the most she rolls meanwhile, in degrees: past her beam ends and not stood on
+## end, as OutcomeClassifier reads a capsize.
+func _inverted(timeline: SinkTimeline) -> Vector2:
+	var gone := timeline.gone_at if timeline.is_gone() else timeline.length()
+	var most := Vector2.ZERO
+	var since := -1.0
+	for frame in timeline.frame_at(gone) + 1:
+		var leans := OutcomeClassifier.leans_at(timeline, frame)
+		var on_end := absf(leans[0]) >= OutcomeClassifier.ON_END_DEG
+		if on_end or absf(leans[1]) <= OutcomeClassifier.CAPSIZED_DEG:
+			since = -1.0
+			continue
+		if since < 0.0:
+			since = timeline.times[frame]
+		most.x = maxf(most.x, timeline.times[frame] - since)
+		most.y = maxf(most.y, absf(leans[1]))
+	return most
+
+
+func test_capsize_inverted_floats_upside_down_then_goes() -> void:
+	# Holed in her port hold wing and her stores, a fo'c'sle porthole left open: she lists
+	# to port, the sea comes in over her low side and she rolls past 150° in under a
+	# minute, floating upside down on the air kept in her hold, its bilge, her starboard
+	# wings and her stores under the mess's plated floor — 1½–7 min of it on end,
+	# measured — until it leaks and she goes under within the bake's cap (SH32).
+	var choice := _match_hit(&"capsize_inverted")
+	for scale: float in MARGINS:
+		var timeline := _bake(choice.damage, scale)
+		var what := "× %s" % scale
+		assert_eq(timeline.end, SinkTimeline.End.GONE, what + ": gone within the cap")
+		var inverted := _inverted(timeline)
+		assert_gt(inverted.y, ROLLS_PAST, what + ": past 150°")
+		assert_gte(inverted.x, FLOATS_INVERTED, what + ": upside down a minute and more")

@@ -1,0 +1,44 @@
+[gd_resource type="Resource" script_class="SinkScenario" format=3]
+
+[ext_resource type="Script" path="res://core/sink_keyframe.gd" id="1_key"]
+[ext_resource type="Script" path="res://core/sink_scenario.gd" id="2_scen"]
+
+[sub_resource type="Resource" id="Key_level"]
+script = ExtResource("1_key")
+sink = -6.0
+
+[sub_resource type="Resource" id="Key_band"]
+script = ExtResource("1_key")
+at = 20.0
+sink = -6.0
+heel_deg = 45.0
+
+[sub_resource type="Resource" id="Key_band_held"]
+script = ExtResource("1_key")
+at = 40.0
+sink = -6.0
+heel_deg = 45.0
+
+[sub_resource type="Resource" id="Key_side"]
+script = ExtResource("1_key")
+at = 60.0
+sink = -6.0
+heel_deg = 90.0
+
+[sub_resource type="Resource" id="Key_side_held"]
+script = ExtResource("1_key")
+at = 80.0
+sink = -6.0
+heel_deg = 90.0
+
+[sub_resource type="Resource" id="Key_over"]
+script = ExtResource("1_key")
+at = 100.0
+sink = -6.0
+heel_deg = 180.0
+
+[resource]
+script = ExtResource("2_scen")
+starts_at = 5.0
+keyframes = Array[ExtResource("1_key")]([SubResource("Key_level"), SubResource("Key_band"), SubResource("Key_band_held"), SubResource("Key_side"), SubResource("Key_side_held"), SubResource("Key_over")])
+sea_depth = 200.0

@@ -17,6 +17,9 @@ var seats: Array[PlayerState] = []
 var props: Array[PropState] = []
 ## Per railing of the layout, the hits it has left; a span at 0 is broken (SH10).
 var railing_hp := PackedFloat64Array()
+## Which of her axes the match stands on as up (Faces.Up, SH32): whose faces are floors,
+## and the frame every seat's facing, look and move are in.
+var up: int = Faces.Up.DECK
 ## The last stepped tick's events: hints for presentation, not state.
 var events: Array[SimEvent] = []
 
@@ -72,5 +75,6 @@ func to_dict(version: int) -> Dictionary:
 		"seats": seat_entries,
 		"props": prop_entries,
 		"railing_hp": railing_hp.duplicate(),
+		"up": up,
 		"events": event_entries,
 	}

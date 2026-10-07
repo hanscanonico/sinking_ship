@@ -56,10 +56,7 @@ func test_client_plays_the_hosts_timeline() -> void:
 	assert_eq(schedule.hit_tick(), host.hit_tick(), "struck when the server strikes her")
 	assert_eq(schedule.hit().start_x, host.hit().start_x, "where it strikes her")
 	assert_eq(schedule.damage().area(), host.damage().area(), "and as hard")
-	assert_eq(
-		[schedule.gone_tick(), schedule.unsupported_tick(), schedule.end_tick()],
-		[host.gone_tick(), host.unsupported_tick(), host.end_tick()]
-	)
+	assert_eq([schedule.gone_tick(), schedule.end_tick()], [host.gone_tick(), host.end_tick()])
 	var tick := 0
 	while tick <= host.end_tick():
 		var mine := schedule.pose_at(tick)

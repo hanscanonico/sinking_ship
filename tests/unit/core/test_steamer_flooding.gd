@@ -1,7 +1,8 @@
 extends GutTest
 ## §5b.4 layer 3, the steamer: pinned seeds' match hits — bow_down_slow, stern_down,
-## heavy_list, two_compartments_and_open_ports, fwd_pocket and from SH31 door_gives_way,
-## funnel_on_the_bridge and lights_out_early — and explicit hits, each baked alone
+## heavy_list, two_compartments_and_open_ports, fwd_pocket, from SH31 door_gives_way,
+## funnel_on_the_bridge and lights_out_early, from SH32 capsize_upside_down and on her
+## coast on_her_side — and explicit hits, each baked alone
 ## and again with its holes' area × 0.9 and × 1.1 to the same outcome, so the seeds sit
 ## far from every threshold and a Mac and Linux agree (R21). Outcomes are labels and
 ## bands, never exact times.
@@ -11,6 +12,13 @@ const FAST := "res://tests/fixtures/sinking/hits/fast.tres"
 const MARGINS: Array[float] = [0.9, 1.0, 1.1]
 ## Water this far over a floor, in metres, is water.
 const WET := 0.01
+## capsize_upside_down: she floats upside down at least this many seconds on end.
+const FLOATS_INVERTED := 60.0
+## on_her_side: at rest, part of her stands at least this far over the sea, in metres.
+const DRY_FOOTING := 1.0
+## fwd_pocket: her last minute, in seconds before she is gone, when what holds the pocket
+## may give way.
+const LAST_MINUTE := 60.0
 
 var _structure: ShipStructure
 var _sea: SeaPhysics
@@ -25,20 +33,20 @@ func before_all() -> void:
 
 ## [param damage] baked with every hole of its gash [param scale] times as big, every
 ## state the physics stepped through kept: two bakes alike up to a moment keep their
-## steps alike up to it. Under [param sea], her own constants when none.
-func _bake(damage: HitDamage, scale: float, sea: SeaPhysics = null) -> SinkTimeline:
-	var physics := sea if sea != null else _sea
+## steps alike up to it.
+func _bake(damage: HitDamage, scale: float) -> SinkTimeline:
 	var scaled := HitDamage.new()
 	scaled.jammed = damage.jammed
 	scaled.left_open = damage.left_open
 	scaled.weakened = damage.weakened
 	scaled.weakened_to = damage.weakened_to
+	scaled.sea_depth = damage.sea_depth
 	for opening: ShipOpening in damage.openings:
 		var hole: ShipOpening = opening.duplicate()
 		hole.area = opening.area * scale
 		scaled.openings.append(hole)
-	var stepper := SinkStepper.new(_structure, scaled, physics)
-	return SinkBake.new(stepper, physics, _scenario.bake_cap).uncompacted()
+	var stepper := SinkStepper.new(_structure, scaled, _sea)
+	return SinkBake.new(stepper, _sea, _scenario.bake_cap).uncompacted()
 
 
 ## Explicit [param hit] on the steamer, mapped as a tool's HIT= maps it.
@@ -101,7 +109,7 @@ func _opening(opening_name: StringName) -> ShipOpening:
 
 func test_two_compartments_and_open_ports_ends_gone() -> void:
 	var seed_value := PinnedSeeds.seed_named(&"two_compartments_and_open_ports")
-	var choice: MustSink.Choice = SimFixtures.match_hits(seed_value)[seed_value - 1]
+	var choice := SimFixtures.match_hit(seed_value)
 	var walls := PackedFloat64Array()
 	for wall: ShipWall in _structure.walls:
 		if wall.axis == ShipWall.Axis.ACROSS:
@@ -121,11 +129,11 @@ func test_two_compartments_and_open_ports_ends_gone() -> void:
 
 
 ## [param seed_value]'s match hit — after the must-sink rule — baked with its holes
-## [param scale] times as big, under [param sea] (_bake).
-func _pinned(seed_name: StringName, scale: float, sea: SeaPhysics = null) -> SinkTimeline:
+## [param scale] times as big.
+func _pinned(seed_name: StringName, scale: float) -> SinkTimeline:
 	var seed_value := PinnedSeeds.seed_named(seed_name)
-	var choice: MustSink.Choice = SimFixtures.match_hits(seed_value)[seed_value - 1]
-	return _bake(choice.damage, scale, sea)
+	var choice := SimFixtures.match_hit(seed_value)
+	return _bake(choice.damage, scale)
 
 
 ## [param timeline]'s list and trim at kept step [param frame], in degrees: starboard
@@ -344,18 +352,14 @@ func test_water_runs_down_a_stairwell() -> void:
 		assert_gt(ran, 0.0, "× %s: and through the inner stair" % scale)
 
 
-func test_fwd_pocket_traps_the_air_under_the_forecastle_till_she_goes() -> void:
+func test_fwd_pocket_traps_the_air_under_the_forecastle_till_her_last_minute() -> void:
 	# Down by the head, her hold full to its top: the air in the space under the
-	# forecastle is trapped over it (SH29) long before she goes and holds — never let out,
-	# losing only what its seams leak, a matter of hours — till she is gone. With the
-	# failures stage off, as SH29 pinned it: from SH31 the forecastle's doors and the
-	# collision bulkhead give way under the head of the hold beside them and let it out —
-	# in 60 seeds no match hit keeps it with it on.
+	# forecastle is trapped over it (SH29) long before she goes and holds — losing only
+	# what its seams leak, a matter of hours — until her last minute, when its doors and
+	# the collision bulkhead give way under the plunge (SH31) and let it out.
 	var top := _structure.cell_named(&"hold_fwd_top")
-	var holding: SeaPhysics = _sea.duplicate()
-	holding.failures = false
 	for scale: float in MARGINS:
-		var timeline := _pinned(&"fwd_pocket", scale, holding)
+		var timeline := _pinned(&"fwd_pocket", scale)
 		var what := "× %s" % scale
 		assert_eq(timeline.end, SinkTimeline.End.GONE, what + ": gone")
 		assert_true(OutcomeClassifier.Outcome.BY_THE_HEAD in OutcomeClassifier.labels(timeline))
@@ -364,10 +368,10 @@ func test_fwd_pocket_traps_the_air_under_the_forecastle_till_she_goes() -> void:
 		assert_gt(
 			timeline.gone_at - trapped, 600.0, what + ": ten minutes and more before she goes"
 		)
-		assert_eq(
-			_first(timeline, SinkTimeline.Kind.VENTED, &"hold_fwd_top"), -1.0, what + ": held"
-		)
-		for frame in range(timeline.frame_at(trapped), timeline.frame_at(timeline.gone_at)):
+		var held := timeline.gone_at - LAST_MINUTE
+		var vented := _first(timeline, SinkTimeline.Kind.VENTED, &"hold_fwd_top")
+		assert_true(vented < 0.0 or vented >= held, what + ": held till her last minute")
+		for frame in range(timeline.frame_at(trapped), timeline.frame_at(held)):
 			var pocket := timeline.pockets[frame * timeline.cells + top]
 			if pocket <= 0.0:
 				assert_gt(
@@ -467,3 +471,66 @@ func test_lights_out_early_puts_her_dark_long_before_she_goes() -> void:
 		var minutes := generator.emergency_minutes * 60.0
 		assert_almost_eq(off, minutes, 1e-3, what + ": dark once its minutes are spent")
 		assert_lt(dark, timeline.gone_at - 600.0, what + ": ten minutes and more before she goes")
+
+
+## The longest [param timeline] floats upside down on end before she is gone, in seconds:
+## past her beam ends and not stood on end, as OutcomeClassifier reads a capsize.
+func _inverted(timeline: SinkTimeline) -> float:
+	var gone := timeline.gone_at if timeline.is_gone() else timeline.length()
+	var longest := 0.0
+	var since := -1.0
+	for frame in timeline.frame_at(gone) + 1:
+		var leans := OutcomeClassifier.leans_at(timeline, frame)
+		var on_end := absf(leans[0]) >= OutcomeClassifier.ON_END_DEG
+		if on_end or absf(leans[1]) <= OutcomeClassifier.CAPSIZED_DEG:
+			since = -1.0
+			continue
+		if since < 0.0:
+			since = timeline.times[frame]
+		longest = maxf(longest, timeline.times[frame] - since)
+	return longest
+
+
+func test_capsize_upside_down_floats_on_her_air_then_goes() -> void:
+	# Holed low along her starboard bilges: she lists for over an hour, rolls past her
+	# beam ends and floats over on them — 143°, easing back to 90° — on the air her
+	# plated floors keep in her port bilges and the air in her after spaces — 18½–20 min
+	# of it on end, measured — until it leaks and she goes, by the head, within the
+	# bake's cap (SH32).
+	for scale: float in MARGINS:
+		var timeline := _pinned(&"capsize_upside_down", scale)
+		var what := "× %s" % scale
+		assert_eq(timeline.end, SinkTimeline.End.GONE, what + ": gone within the cap")
+		assert_has(OutcomeClassifier.labels(timeline), OutcomeClassifier.Outcome.CAPSIZED, what)
+		assert_gte(_inverted(timeline), FLOATS_INVERTED, what + ": upside down a minute and more")
+
+
+## How high her highest cell corner stands over the sea at [param timeline]'s kept step
+## [param frame], in metres.
+func _freeboard(timeline: SinkTimeline, frame: int) -> float:
+	var highest := -INF
+	for cell: FloodCell in _structure.cells:
+		for corner in 8:
+			var point := Vector3(
+				cell.high.x if corner & 1 else cell.low.x,
+				cell.high.y if corner & 2 else cell.low.y,
+				cell.high.z if corner & 4 else cell.low.z
+			)
+			highest = maxf(highest, _up_height(timeline, frame, point))
+	return highest - timeline.seas[frame]
+
+
+func test_on_her_side_comes_to_rest_aground_with_part_of_her_dry() -> void:
+	# On her coast, 6 m of water under her (SH32): holed in her after peak and her
+	# starboard after bilge, she lists slowly for well over an hour, lies over and comes
+	# to rest on her starboard bilge on the bottom, 65° over, her high side 4½ m out of
+	# the water, measured — a wreck with dry footing, which the match plays on (Q21).
+	var coast := Fleet.setting(&"steamer_coast")
+	var stream := SeedStreams.derive(PinnedSeeds.seed_named(&"on_her_side"), "sink")
+	var choice := MustSink.choose(_structure, coast, stream, _sea)
+	for scale: float in MARGINS:
+		var timeline := _bake(choice.damage, scale)
+		var what := "× %s" % scale
+		assert_eq(timeline.end, SinkTimeline.End.AGROUND, what + ": at rest on the bottom")
+		var last := timeline.count() - 1
+		assert_gt(_freeboard(timeline, last), DRY_FOOTING, what + ": part of her dry")

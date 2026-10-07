@@ -13,6 +13,8 @@ extends SceneTree
 const RunMatch := preload("res://tools/run_match.gd")
 
 const REPORT := "res://docs/arena.md"
+## Where a run on one of the Fleet's scenarios is written (--scenario, SH32).
+const SCENARIO_REPORT := "res://docs/arena_%s.md"
 ## The match time a match still on is stopped at, unfinished, unless --stop says.
 const STOP_SECONDS := 900.0
 const DEFAULT_SEEDS := 200
@@ -100,9 +102,17 @@ class Tally:
 	var dry_flight_ticks := 0
 	var dry_flight_longest := 0
 	var dry_flight_where := ""
+	## Matches still on once she came to rest aground with part of her dry (a coast's
+	## wreck, Q21), the match time each was then played on the wreck, and how many of
+	## them were still on at STOP.
+	var on_wrecks := PackedFloat64Array()
+	var wrecks_unfinished := 0
 
 
 var _stop_ticks := Ticks.from_seconds(STOP_SECONDS)
+## The scenario of the Fleet every lobby plays (--scenario), on its ship; empty for the
+## default match's.
+var _scenario: StringName = &""
 
 
 func _initialize() -> void:
@@ -117,6 +127,15 @@ func _initialize() -> void:
 				only = value.split(",", false)
 			"--stop":
 				_stop_ticks = Ticks.from_seconds(MatchArgs.clock_seconds(value))
+			"--scenario":
+				_scenario = StringName(value)
+	if not _scenario.is_empty() and Fleet.setting(_scenario) == null:
+		printerr("arena: no scenario called %s" % _scenario)
+		quit(1)
+		return
+	if not _scenario.is_empty() and only.is_empty():
+		# A scenario's run reports how matches play on it, not the lobbies' balance.
+		only = PackedStringArray(["normal"])
 	var started := Time.get_ticks_msec()
 	var load_before := _load_average()
 	var tallies: Array[Tally] = []
@@ -130,9 +149,10 @@ func _initialize() -> void:
 		tallies.append(tally)
 	var minutes := (Time.get_ticks_msec() - started) / 60000.0
 	var report := _report(tallies, seeds, minutes, [load_before, _load_average()])
-	var file := FileAccess.open(REPORT, FileAccess.WRITE)
+	var path := REPORT if _scenario.is_empty() else SCENARIO_REPORT % _scenario
+	var file := FileAccess.open(path, FileAccess.WRITE)
 	if file == null:
-		printerr("arena: cannot write %s" % REPORT)
+		printerr("arena: cannot write %s" % path)
 		quit(1)
 		return
 	file.store_string(report)
@@ -181,12 +201,16 @@ func _play(lobby: Lobby) -> Tally:
 	tally.lobby = lobby
 	var started := Time.get_ticks_msec()
 	for seed_value in range(1, lobby.seeds + 1):
-		var config := RunMatch.default_config(seed_value, lobby.tiers.size())
+		var config := RunMatch.default_config(
+			seed_value, lobby.tiers.size(), Fleet.ship_of(_scenario)
+		)
+		if not _scenario.is_empty():
+			config.scenario = Fleet.setting(_scenario)
 		if lobby.tiers.size() > config.ship.spawns.size():
 			config.ship = _with_spawns(config.ship, lobby.tiers.size(), config.rules)
 		var problems := config.problems()
 		var sources: Array[InputSource] = []
-		var walk_graph := WalkGraph.new(config.ship, Surfaces.new(config.ship), config.rules)
+		var floors := BotInputSource.floors_of(config)
 		for seat in lobby.tiers.size():
 			var profile := BotProfile.for_tier(lobby.tiers[seat])
 			if profile == null:
@@ -196,7 +220,7 @@ func _play(lobby: Lobby) -> Tally:
 			if not lobby.sighted[seat]:
 				profile = profile.duplicate()
 				profile.hearing_m = INF
-			sources.append(BotInputSource.new(seat, profile, config, walk_graph))
+			sources.append(BotInputSource.new(seat, profile, config, floors))
 		if not problems.is_empty():
 			printerr("\n".join(problems))
 			return null
@@ -290,6 +314,7 @@ func _match(
 				tally.idle_near_longest = idle_near[seat]
 				tally.idle_near_where = where
 	tally.matches += 1
+	_tally_wreck(runner, tally)
 	if not runner.is_over():
 		tally.unfinished += 1
 		return
@@ -304,6 +329,22 @@ func _match(
 	_count(tally.slot_wins, slots[winner])
 	_count(tally.tier_wins, tally.lobby.tiers[winner])
 	_count(tally.sight_wins, "sighted" if tally.lobby.sighted[winner] else "omniscient")
+
+
+## Into [param tally], when [param runner]'s ship came to rest aground with part of her
+## dry before its match ended or was stopped (Q21): how long it went on on the wreck, and
+## whether it was still on at STOP.
+static func _tally_wreck(runner: MatchRunner, tally: Tally) -> void:
+	var schedule := runner.sim.schedule
+	var timeline := schedule.timeline()
+	if timeline == null or timeline.end != SinkTimeline.End.AGROUND:
+		return
+	var rested := schedule.end_tick()
+	if runner.tick() <= rested:
+		return
+	tally.on_wrecks.append((runner.tick() - rested) / float(Ticks.RATE))
+	if not runner.is_over():
+		tally.wrecks_unfinished += 1
 
 
 static func _count(counts: Dictionary, key: Variant) -> void:
@@ -411,10 +452,29 @@ func _report(tallies: Array[Tally], seeds: int, minutes: float, loads: Array) ->
 	lines.append("")
 	lines.append(
 		(
-			"Written by `make arena SEEDS=%d` (tools/arena.gd) on %s, %s, in %.1f minutes."
-			% [seeds, OS.get_model_name(), OS.get_processor_name(), minutes]
+			"Written by `make arena SEEDS=%d%s` (tools/arena.gd) on %s, %s, in %.1f minutes."
+			% [
+				seeds,
+				"" if _scenario.is_empty() else " SCENARIO=%s" % _scenario,
+				OS.get_model_name(),
+				OS.get_processor_name(),
+				minutes
+			]
 		)
 	)
+	if not _scenario.is_empty():
+		lines.append(
+			(
+				(
+					"Every lobby here plays the default match's rules on %s's %s scenario "
+					% [Fleet.ship_of(_scenario), _scenario]
+				)
+				+ (
+					"(data/sinking/%s.tres), in place of the open sea the rest of this says."
+					% _scenario
+				)
+			)
+		)
 	if seeds < DEFAULT_SEEDS:
 		lines.append(
 			(
@@ -615,6 +675,28 @@ func _lobby_lines(tally: Tally) -> PackedStringArray:
 			]
 		)
 	)
+	if not _scenario.is_empty():
+		(
+			lines
+			. append(
+				(
+					(
+						"- On %s's wreck, at rest aground with part of her dry (Q21: on until one "
+						+ "is left): %d of %d matches still on when she came to rest; played on her "
+						+ "then for a median %s, the longest %s; still on at %s and stopped: %d."
+					)
+					% [
+						_scenario,
+						tally.on_wrecks.size(),
+						tally.matches,
+						_clock(_median(tally.on_wrecks)),
+						_clock(_most(tally.on_wrecks)),
+						_clock(_stop_ticks / float(Ticks.RATE)),
+						tally.wrecks_unfinished,
+					]
+				)
+			)
+		)
 	lines.append(
 		(
 			"- Reached the plunge with three or more dry: %d of %d (%.1f%%)."
@@ -733,6 +815,13 @@ static func _median(values: PackedFloat64Array) -> float:
 	sorted.sort()
 	var middle := sorted.size() / 2
 	return sorted[middle] if sorted.size() % 2 == 1 else (sorted[middle - 1] + sorted[middle]) * 0.5
+
+
+static func _most(values: PackedFloat64Array) -> float:
+	var most := 0.0
+	for value: float in values:
+		most = maxf(most, value)
+	return most
 
 
 static func _mean(values: PackedFloat64Array) -> float:

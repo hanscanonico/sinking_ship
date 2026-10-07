@@ -916,8 +916,11 @@ opening("open_hold_fwd_top", "OPEN", "hold", "hold_fwd_top",
         ((top_box[0] + top_box[1]) * 0.5, 0, 0), (top_box[1] - top_box[0], 0, top_box[5] - top_box[4]),
         starts="OPEN")
 
-# The lower-deck floors are not watertight: est. 0.6 m² of gaps between each and its
-# bilge. The hold's side walls leak est. 0.02 m² into it.
+# The lower-deck floors are not watertight: est. 0.05 m² of gaps between each and its
+# bilge — a plated floor over the bilge, tight but for its limbers and sounding
+# pipes, so a bilge keeps its air as the room over it floods (a capsized hull floats
+# on it, §5b.4). The hold's side walls leak est. 0.02 m² into it.
+FLOOR_GAPS = 0.05
 for room_cell, bilges in [("aft_cabins", ["aft_bilge_p", "aft_bilge_s"]),
                           ("engine_room", ["engine_bilge_p", "engine_bilge_s"]), ("hold", ["hold_bilge"])]:
     for bilge in bilges:
@@ -925,7 +928,7 @@ for room_cell, bilges in [("aft_cabins", ["aft_bilge_p", "aft_bilge_s"]),
         tag = "_" + bilge[-1] if len(bilges) > 1 else ""
         opening("floor_" + room_cell + tag, "FLOOR_GAPS", bilge, room_cell,
                 ((b[0] + b[1]) * 0.5, LOWER, (b[4] + b[5]) * 0.5), (b[1] - b[0], 0, b[5] - b[4]),
-                area=round(0.6 / len(bilges), 4), starts="OPEN")
+                area=round(FLOOR_GAPS / len(bilges), 4), starts="OPEN")
     if len(bilges) > 1:
         b = cell_box(bilges[0])
         girder_top = GIRDER[2]
@@ -1118,7 +1121,8 @@ MASS = [  # (name, kg, centre, (from x, to x))
     ("stores and water", 20e3, (-16.0, -2.5, 0.0), (-19, -13)),
     ("ground tackle", 8e3, (17.0, 0.5, 0.0), (15, 20)),
 ]
-BALLAST_Y = KEEL + 0.4
+# Its centre 1.8 m over her keel (est.): her GM about 1.2 m, the plan's (§5b.2).
+BALLAST_Y = KEEL + 1.8
 BALLAST_REACH = 8.0  # either side of its centre
 weight = displaced * SEA_DENSITY
 ballast = weight - sum(m[1] for m in MASS)
@@ -1281,6 +1285,7 @@ head = """[gd_resource type="Resource" script_class="ShipLayout" format=3]
 [ext_resource type="Script" path="res://core/sinking/girder_strength.gd" id="17_strength"]
 """
 res = ["[resource]", 'script = ExtResource("5_layout")', "freeboard = " + num(FREEBOARD),
+       "deck_thickness = " + num(2 * T),
        "platforms = " + arr("1_plat", platforms),
        "ramps = " + arr("2_ramp", ramps),
        "blockers = " + arr("3_block", blockers),

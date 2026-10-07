@@ -23,7 +23,9 @@ env:
 jobs:
   verify:
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    # A guard against a hung engine, not a budget: the suite bakes whole sinkings
+    # and now runs past 30 minutes on a hosted runner (SH31 on main, SH32).
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
 

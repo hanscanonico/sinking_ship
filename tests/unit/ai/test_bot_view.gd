@@ -40,7 +40,7 @@ func _sim(seats: int) -> MatchSim:
 
 ## Seat 0's view of [param sim], shown its snapshot once.
 func _view_of(sim: MatchSim) -> BotView:
-	var view := BotView.new(0, _profile(), Surfaces.new(sim.config.ship))
+	var view := BotView.new(0, _profile(), BotInputSource.floors_of(sim.config))
 	view.push(sim.snapshot(), sim.pose())
 	return view
 
@@ -94,7 +94,11 @@ func test_view_has_no_future_schedule() -> void:
 				fail_test("seat %d acted on the future at tick %d" % [seat, tick])
 				return
 	# And the view holds nothing that could tell it: no schedule, only a pose.
-	var view := BotView.new(0, _profile(), Surfaces.new(SimFixtures.steamer()))
+	var view := BotView.new(
+		0,
+		_profile(),
+		BotInputSource.floors_of(SimFixtures.config(4, null, 1, SimFixtures.steamer()))
+	)
 	for property: Dictionary in view.get_property_list():
 		assert_ne(property["class_name"], &"SinkSchedule", property["name"])
 
@@ -140,7 +144,11 @@ func test_view_shows_no_hit_before_it_happens() -> void:
 				fail_test("seat %d acted on the hit to come at tick %d" % [seat, tick])
 				return
 	# And the view holds nothing that could tell where or when: no hit, no damage.
-	var view := BotView.new(0, _profile(), Surfaces.new(SimFixtures.steamer()))
+	var view := BotView.new(
+		0,
+		_profile(),
+		BotInputSource.floors_of(SimFixtures.config(4, null, 1, SimFixtures.steamer()))
+	)
 	for property: Dictionary in view.get_property_list():
 		assert_false(property["class_name"] in [&"IcebergHit", &"HitDamage"], property["name"])
 
@@ -201,7 +209,7 @@ func test_view_remembers_last_seen_for_three_seconds() -> void:
 	var seen_at := Vector3(-8.0, 0.0, 5.0) + Vector3(-HEARING, 0.0, 0.0)
 	SimFixtures.place(sim, 1, seen_at)
 	var hidden_at := Vector3(8.0, 0.0, -3.0)
-	var view := BotView.new(0, _profile(), Surfaces.new(sim.config.ship))
+	var view := BotView.new(0, _profile(), BotInputSource.floors_of(sim.config))
 	var moved: int = sim.snapshot()["tick"] + Ticks.RATE
 	var memory := Ticks.from_seconds(_profile().memory_seconds)
 	var last_fresh := -1
@@ -246,7 +254,7 @@ func test_view_in_the_dark_sees_no_farther_than_its_dark_sight() -> void:
 		pose.cells = CellMap.new(structure)
 		pose.levels = PackedFloat64Array([-100.0])
 		pose.lit = PackedByteArray([lit])
-		var view := BotView.new(0, profile, Surfaces.new(sim.config.ship))
+		var view := BotView.new(0, profile, BotInputSource.floors_of(sim.config))
 		view.push(sim.snapshot(), pose)
 		seen[lit] = _seats_in(view)
 	assert_eq(seen[ShipPower.Power.DARK], [0, 1], "in the dark, 3 m and not 6 m")

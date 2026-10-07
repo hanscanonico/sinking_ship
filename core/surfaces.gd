@@ -1076,6 +1076,8 @@ func _underside(surface: int) -> float:
 ## height, and a deck over none is the top of the hull, solid all the way down.
 func _platform_bottom(platform: int) -> float:
 	var deck := _platforms[platform]
+	if deck.slab:
+		return deck.height
 	for other: ShipPlatform in _platforms:
 		if other.height < deck.height and other.area.intersects(deck.area):
 			return deck.height

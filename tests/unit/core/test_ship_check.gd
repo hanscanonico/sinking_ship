@@ -1,8 +1,8 @@
 extends GutTest
 ## `make ship-check`'s float check, on every ship under data/ships/ with a structure:
 ## intact, she floats level at her stated waterline (§5b.2); and she founders on her
-## sure hit within the bake's cap of every scenario of hers (§5b.1). The tolerances are
-## est.
+## sure hit within the bake's cap of every scenario of hers (§5b.1) — onto the bottom of
+## a coast's (SH32). The tolerances are est.
 
 const SHIPS := "res://data/ships"
 const SCENARIOS := "res://data/sinking"
@@ -85,15 +85,26 @@ func test_she_founders_on_her_sure_hit() -> void:
 			var scenario: SinkScenario = load("%s/%s" % [SCENARIOS, scenario_file])
 			checked += 1
 			var damage := HitMapper.map_explicit(structure.sure_hit, structure, scenario.hit)
+			damage.sea_depth = scenario.sea_depth
 			var stepper := SinkStepper.new(structure, damage, sea)
 			var timeline := SinkTimeline.bake(stepper, sea, scenario.bake_cap)
 			gut.p(
 				(
-					"%s in %s: her sure hit opens %.3f m², gone at %.0f s of a %.0f s cap"
-					% [file, scenario_file, damage.area(), timeline.gone_at, scenario.bake_cap]
+					"%s in %s: her sure hit opens %.3f m², %s at %.0f s of a %.0f s cap"
+					% [
+						file,
+						scenario_file,
+						damage.area(),
+						SinkTimeline.End.keys()[timeline.end],
+						timeline.length(),
+						scenario.bake_cap
+					]
 				)
 			)
+			# On a coast she founders onto the bottom: gone, or aground with part of her
+			# dry — what a match plays (MustSink.played, Q21).
 			assert_true(
-				timeline.is_gone(), "%s founders on her sure hit in %s" % [file, scenario_file]
+				MustSink.played(timeline.end),
+				"%s founders on her sure hit in %s" % [file, scenario_file]
 			)
 	assert_gt(checked, 0, "a ship and a scenario to sink her in")

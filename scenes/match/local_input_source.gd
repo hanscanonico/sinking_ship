@@ -8,7 +8,8 @@ extends InputSource
 
 const PITCH_LIMIT_DEG := 80.0
 
-## Ship-plane radians from the bow toward starboard, as the player turned it.
+## Radians in the plane of the face the seat stands on (Faces, D3), from its frame's x
+## toward its z — on her decks, from the bow toward starboard — as the player turned it.
 var yaw: float
 ## Radians above the horizon: presentation only, never in a frame.
 var pitch: float
@@ -63,6 +64,17 @@ func _buttons() -> int:
 	if Input.is_action_pressed("jump"):
 		buttons |= InputFrame.JUMP
 	return buttons
+
+
+## Carries the look from the plane of the faces of [param from] to those of [param to]
+## (Faces.Up), the ship turned by [param ship_basis]: it looks the same way across the
+## world, in the new face's plane — the one rotation the input source owes as the face
+## changes (D3).
+func turn_face(from: int, to: int, ship_basis: Basis) -> void:
+	var across := ship_basis.orthonormalized()
+	var world := across * Faces.to_ship(from) * Vector3(cos(yaw), 0.0, sin(yaw))
+	var ahead := Faces.to_frame(to) * (across.transposed() * world)
+	yaw = atan2(ahead.z, ahead.x)
 
 
 ## Right turns toward starboard when looking at the bow; down looks down unless

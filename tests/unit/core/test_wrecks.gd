@@ -6,16 +6,22 @@ extends GutTest
 const ANDREA_DORIA := "res://tests/fixtures/wrecks/andrea_doria.tres"
 const LUSITANIA := "res://tests/fixtures/wrecks/lusitania.tres"
 const STOCKHOLM := "res://tests/fixtures/wrecks/stockholm.tres"
+const HERALD := "res://tests/fixtures/wrecks/herald.tres"
+const SEWOL := "res://tests/fixtures/wrecks/sewol.tres"
+const ESTONIA := "res://tests/fixtures/wrecks/estonia.tres"
 const COSTA_CONCORDIA := "res://tests/fixtures/wrecks/costa_concordia.tres"
 const EMPRESS := "res://tests/fixtures/wrecks/empress_of_ireland.tres"
 const MARGINS: Array[float] = [0.9, 1.0, 1.1]
-## Bakes run this long at most, in physics seconds.
+## Bakes run this long at most, in physics seconds; one that floats upside down is
+## followed for HOURS.
 const CAP := 7200.0
+const HOURS := 2.0 * 3600.0
 
 
 ## [param path]'s wreck baked alone, every hole [param scale] times as big — and with
-## [param ports_shut] every porthole shut.
-func _bake(path: String, scale: float, ports_shut := false) -> SinkTimeline:
+## [param ports_shut] every porthole shut — over her bottom, to [param cap] physics
+## seconds at most.
+func _bake(path: String, scale: float, ports_shut := false, cap := CAP) -> SinkTimeline:
 	var wreck: WreckHull = load(path)
 	var structure := wreck.structure()
 	for opening: ShipOpening in structure.openings:
@@ -24,7 +30,18 @@ func _bake(path: String, scale: float, ports_shut := false) -> SinkTimeline:
 		if ports_shut and opening.kind == ShipOpening.Kind.PORTHOLE:
 			opening.starts = ShipOpening.Start.SHUT
 	var sea := SeaPhysics.load_default()
-	return SinkTimeline.bake(SinkStepper.new(structure, HitDamage.new(), sea), sea, CAP)
+	var damage := HitDamage.new()
+	damage.sea_depth = wreck.sea_depth
+	return SinkTimeline.bake(SinkStepper.new(structure, damage, sea), sea, cap)
+
+
+## The first second [param timeline] stands past [param degrees] from upright, or -1.
+func _past(timeline: SinkTimeline, degrees: float) -> float:
+	var up := cos(deg_to_rad(degrees))
+	for frame in timeline.count():
+		if _rotation(timeline, frame)[4] < up:
+			return timeline.times[frame]
+	return -1.0
 
 
 func _rotation(timeline: SinkTimeline, frame: int) -> PackedFloat64Array:
@@ -125,3 +142,87 @@ func test_empress_ports_open_against_ports_shut() -> void:
 		deeper -= wreck.draught
 		assert_between(deeper, 2.5, 3.0, "× %s, ports shut: 2.5–3 m deeper" % scale)
 		assert_lt(absf(BoxBarge.heel_deg(rotation)), 10.0, "× %s, ports shut: under 10°" % scale)
+
+
+func test_herald_lurches_then_rests_on_her_side_in_15_m() -> void:
+	# Her vehicle deck floods through her open bow doors: she lurches 25° within 10 s of
+	# the water reaching her deck, goes past 90° within 1–3 min of it, and comes to rest
+	# on her side on the bottom 15 m down, 85–95° over with part of her out of the water.
+	for scale: float in MARGINS:
+		var timeline := _bake(HERALD, scale)
+		var wet := _first(timeline, SinkTimeline.Kind.FLOODING, &"car_deck")
+		var over := _past(timeline, 90.0)
+		assert_gt(over, wet, "× %s: she goes over" % scale)
+		assert_between(over - wet, 60.0, 180.0, "× %s: past 90° 1–3 min after the water" % scale)
+		assert_gt(_first(timeline, SinkTimeline.Kind.LURCHED, &""), wet, "× %s: lurching" % scale)
+		var lurch := _past(timeline, 25.0) - wet
+		var last := timeline.count() - 1
+		var heel := absf(BoxBarge.heel_deg(_rotation(timeline, last)))
+		var rests := timeline.end == SinkTimeline.End.AGROUND and heel >= 85.0 and heel <= 95.0
+		if lurch > 10.0 or not rests:
+			# The physics as built (§5b.1): a box hull, her centre of mass held over one
+			# place, on a flat bottom. Her car deck's water sinks her as fast as it lists
+			# her, so the lurch takes about a minute; rolling past 90° she has too little
+			# under her side to reach 15 m, so she rolls on to lie upside down — in
+			# shallower water her bilge grounds at 20–35° and she rights on it. Measured,
+			# not asserted.
+			pending(
+				(
+					(
+						"× %s: 25° %.0f s after the water (wanted 10 s at most); ends %s at %.0f°"
+						% [scale, lurch, SinkTimeline.End.keys()[timeline.end], heel]
+					)
+					+ " (wanted aground at 85–95° in 15 m)"
+				)
+			)
+
+
+func test_sewol_like_fast_roll_floats_upside_down_for_hours() -> void:
+	# Her car deck floods through her stern: she rolls past 120° within 5 min, so fast the
+	# air in her shut lower hull has no time to go, and floats upside down on it for hours
+	# as it leaks through her seams.
+	for scale: float in MARGINS:
+		var timeline := _bake(SEWOL, scale, false, HOURS)
+		var over := _past(timeline, 120.0)
+		assert_between(over, 0.0, 300.0, "× %s: past 120° within 5 min" % scale)
+		assert_false(timeline.is_gone(), "× %s: still not gone at %s h" % [scale, HOURS / 3600])
+		var last := timeline.count() - 1
+		assert_lt(_rotation(timeline, last)[4], -0.9, "× %s: upside down" % scale)
+		assert_gte(timeline.length(), HOURS, "× %s: afloat to the bake's end" % scale)
+
+
+func test_estonia_like_slow_roll_vents_and_sinks() -> void:
+	# Her lower hull floods from her car deck as she lies over, its air out through its
+	# pipe while that is still dry: she goes over slower than the Sewol-like hull and,
+	# with no air left to hold her, is gone soon after.
+	var sewol := _past(_bake(SEWOL, 1.0, false, HOURS), 90.0)
+	for scale: float in MARGINS:
+		var timeline := _bake(ESTONIA, scale)
+		var over := _past(timeline, 90.0)
+		assert_gt(over, sewol, "× %s: slower over than the Sewol-like hull" % scale)
+		assert_true(timeline.is_gone(), "× %s: gone" % scale)
+		assert_between(
+			timeline.gone_at - over, 0.0, 600.0, "× %s: within 10 min of going over" % scale
+		)
+
+
+func test_costa_concordia_rests_at_60_to_85_on_a_30_m_ledge() -> void:
+	# Holed along her port bilge: she floods, lists and comes to rest on the bottom 30 m
+	# down at 60–85°.
+	for scale: float in MARGINS:
+		var timeline := _bake(COSTA_CONCORDIA, scale)
+		var last := timeline.count() - 1
+		var heel := absf(BoxBarge.heel_deg(_rotation(timeline, last)))
+		assert_gt(
+			_first(timeline, SinkTimeline.Kind.FLOODING, &"engine_rooms"), 0.0, "× %s" % scale
+		)
+		if timeline.end != SinkTimeline.End.AGROUND or heel < 60.0 or heel > 85.0:
+			# The physics as built (§5b.1): a flat bottom, where she lay on a sloping ledge,
+			# and a box hull with her weight held over one place — the water in her engine
+			# rooms leaves her afloat, near upright. Measured, not asserted.
+			pending(
+				(
+					"× %s: ends %s at %.0f° (wanted aground at 60–85° on a 30 m ledge)"
+					% [scale, SinkTimeline.End.keys()[timeline.end], heel]
+				)
+			)

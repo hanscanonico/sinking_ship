@@ -42,6 +42,9 @@ const CHARGE_CORE := Color("fff0c2")
 const SCUFF := Color("2b1d14")
 const SCUFF_DUST := Color("e9d3a8")
 
+## A coast's bottom (SH32): grey-green sand, dull under the sea's tint.
+const SEABED := Color("5e5a45")
+
 ## The ship (ShipArt): a dark hull, red oxide below the boot line, so the foam line
 ## pops; warm deck planks lighter than most seat colours; white houses with teak
 ## trim outside, cream cabins over a dark panelled dado inside; a buff funnel with a

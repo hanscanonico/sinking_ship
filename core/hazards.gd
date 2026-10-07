@@ -53,15 +53,22 @@ func _init(config: MatchConfig, surfaces: Surfaces) -> void:
 
 
 ## One tick of the cargo, in [param state], under [param pose] — and before it, every
-## funnel landing.
+## funnel landing. Once the match stands on any face but her decks (Faces), she has
+## rolled past where cargo stays stowed: what is still aboard breaks loose into the sea.
 func step(state: MatchState, pose: ShipPose, tick: int, events: Array[SimEvent]) -> void:
-	_strike(state, pose, tick, events)
+	# A funnel's strip lies on her decks: off them (SH32) its landing strikes nobody, and
+	# the bodies' points are in another frame's.
+	if state.up == Faces.Up.DECK:
+		_strike(state, pose, tick, events)
 	_broken = state.broken_railings()
 	var crates: Array[PropState] = []
 	for crate: PropState in state.props:
 		if not crate.is_lost():
 			crates.append(crate)
 	if crates.is_empty():
+		return
+	if state.up != Faces.Up.DECK:
+		_lose(crates, tick, events)
 		return
 	_forces(crates, pose)
 	var feet_before := _move(state, crates, pose, tick, events)
@@ -164,7 +171,7 @@ func _forces(crates: Array[PropState], pose: ShipPose) -> void:
 ## Integration, then contacts — blockers, walls, deck edges and the other crates,
 ## then railings — crate by crate, pass after pass until nothing moves, the tick cut
 ## into steps so that no crate crosses more than its radius in one, as bodies' moves
-## are (MatchSim._move). Returns each crate's underside height before it moved.
+## are (Movement.move). Returns each crate's underside height before it moved.
 func _move(
 	state: MatchState, crates: Array[PropState], pose: ShipPose, tick: int, events: Array[SimEvent]
 ) -> PackedFloat64Array:
@@ -185,7 +192,7 @@ func _move(
 		# Each crate meets the others where they stand now, the earlier ones moved:
 		# Surfaces is told again whenever one has moved since it last was.
 		var moved := true
-		for _contact_pass in MatchSim.CONTACT_PASSES:
+		for _contact_pass in Movement.CONTACT_PASSES:
 			var held := false
 			for crate: PropState in crates:
 				if moved:
@@ -381,9 +388,16 @@ func _ground(crates: Array[PropState], feet_before: PackedFloat64Array) -> void:
 
 ## A crate with the sea wade_depth or more over its underside floats off: lost.
 func _sea(crates: Array[PropState], pose: ShipPose, tick: int, events: Array[SimEvent]) -> void:
+	var floated: Array[PropState] = []
 	for crate: PropState in crates:
-		if pose.water_height(crate.pos) - crate.pos.y < _rules.wade_depth:
-			continue
+		if pose.water_height(crate.pos) - crate.pos.y >= _rules.wade_depth:
+			floated.append(crate)
+	_lose(floated, tick, events)
+
+
+## [param crates] gone into the sea.
+func _lose(crates: Array[PropState], tick: int, events: Array[SimEvent]) -> void:
+	for crate: PropState in crates:
 		crate.body = PropState.Body.LOST
 		crate.surface = Surfaces.NONE
 		crate.vel = Vector3.ZERO

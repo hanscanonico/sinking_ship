@@ -3,13 +3,13 @@ extends RefCounted
 ## A match begun at a moment of its sinking rather than at its first tick — a tool's,
 ## never a rule (`make capture … PHYS= JUMP=1`, §5b.4), and valid because the sinking
 ## never depends on play (D7, Q19). It is the match MatchSim.create starts, moved on to
-## that tick and live, every seat stood on dry footing then: on its own spawn where that
-## is dry, else on the dry platforms, highest in the world first, each taking its turn,
-## a body's width apart along it. Nothing else of the time before is made up: railings
-## whole, crates as loaded. A snapshot (D5), which a host and its client start from as
-## from any other.
+## that tick and live, standing on whichever of her faces are floors then (Faces, from
+## her decks), every seat stood on dry footing: on its own spawn where that is dry, else
+## on the dry floors, highest in the world first, each taking its turn, a body's width
+## apart along it. Nothing else of the time before is made up: railings whole, crates as
+## loaded. A snapshot (D5), which a host and its client start from as from any other.
 
-## Seats sharing one platform stand this far apart along her, in metres.
+## Seats sharing one floor stand this far apart along her, in metres.
 const APART := 0.9
 
 
@@ -21,24 +21,32 @@ static func snapshot(config: MatchConfig, tick: int) -> Dictionary:
 	if tick >= config.countdown_ticks:
 		state.phase = MatchState.Phase.LIVE
 	var pose := sim.schedule.pose_at(tick)
-	var surfaces := sim.surfaces
-	surfaces.honour(pose, state.broken_railings(), state.props)
+	var up := sim.faces.up_at(pose, Faces.Up.DECK)
+	state.up = up
+	var framed := sim.faces.framed(pose, up)
+	var surfaces := sim.faces.surfaces(up, framed)
+	if up == Faces.Up.DECK:
+		surfaces.honour(pose, state.broken_railings(), state.props)
+	else:
+		surfaces.honour(framed)
 	var step := config.rules.step_height
-	var dry := _dry_platforms(config.ship, surfaces, pose, step)
+	var floors := sim.faces.layout(up).platforms
+	var dry := _dry_platforms(floors, surfaces, framed, step)
+	var into := Faces.to_frame(up)
 	var placed := 0
 	for player: PlayerState in state.seats:
-		if _dry(surfaces, pose, player.pos, step) or dry.is_empty():
-			continue
-		var platform := config.ship.platforms[dry[placed % dry.size()]]
-		var centre := platform.area.get_center()
-		var along := (placed / dry.size()) * APART
-		var x := clampf(centre.x + along, platform.area.position.x, platform.area.end.x)
-		player.pos = Vector3(x, platform.height, centre.y)
-		player.last_look = InputFrame.quantize_yaw(Vector2(-player.pos.x, -player.pos.z).angle())
-		player.facing = InputFrame.yaw_angle(player.last_look)
-		placed += 1
-	for player: PlayerState in state.seats:
-		player.surface = surfaces.under(player.pos, step)
+		var feet := into * player.pos
+		if not (_dry(surfaces, framed, feet, step) or dry.is_empty()):
+			var platform := floors[dry[placed % dry.size()]]
+			var centre := platform.area.get_center()
+			var along := (placed / dry.size()) * APART
+			var x := clampf(centre.x + along, platform.area.position.x, platform.area.end.x)
+			feet = Vector3(x, platform.height, centre.y)
+			player.last_look = InputFrame.quantize_yaw(Vector2(-feet.x, -feet.z).angle())
+			player.facing = InputFrame.yaw_angle(player.last_look)
+			placed += 1
+		player.surface = surfaces.under(feet, step)
+		player.pos = Faces.to_ship(up) * feet
 	return sim.snapshot()
 
 
@@ -48,15 +56,15 @@ static func _dry(surfaces: Surfaces, pose: ShipPose, feet: Vector3, step: float)
 	return under != Surfaces.NONE and not surfaces.wet(feet, pose)
 
 
-## [param layout]'s platforms whose middles stand dry under [param pose] and hold a
+## The floors of [param floors] whose middles stand dry under [param pose] and hold a
 ## body there, the highest in the world first, the lower number first between two as
 ## high.
 static func _dry_platforms(
-	layout: ShipLayout, surfaces: Surfaces, pose: ShipPose, step: float
+	floors: Array[ShipPlatform], surfaces: Surfaces, pose: ShipPose, step: float
 ) -> PackedInt32Array:
 	var found: Array[Vector2] = []
-	for index in layout.platforms.size():
-		var platform := layout.platforms[index]
+	for index in floors.size():
+		var platform := floors[index]
 		var centre := platform.area.get_center()
 		var feet := Vector3(centre.x, platform.height, centre.y)
 		if _dry(surfaces, pose, feet, step) and surfaces.under(feet, step) == index:

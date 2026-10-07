@@ -19,7 +19,8 @@ extends RefCounted
 ## STARBOARD_BOATS_USELESS: that side's lifeboats past their list limit. LIGHTS_OUT:
 ## her generator stopped for good — flooded, or tilted past its limits and never back —
 ## before she was gone, leaving her at most her emergency power; FUNNEL_FELL: a funnel
-## came down before she was gone (SH31).
+## came down before she was gone (SH31). AGROUND: at rest on the bottom with part of
+## her dry (SH32) — a coast's wreck, which a match plays.
 enum Outcome {
 	AFLOAT,
 	BY_THE_HEAD,
@@ -33,6 +34,7 @@ enum Outcome {
 	AFLOAT_UPSIDE_DOWN,
 	LIGHTS_OUT,
 	FUNNEL_FELL,
+	AGROUND,
 }
 
 ## The census's own marks (§5b.4's table, est.): a heavy list, and a fast sinking.
@@ -54,6 +56,7 @@ const NAMES := {
 	Outcome.AFLOAT_UPSIDE_DOWN: "afloat upside down",
 	Outcome.LIGHTS_OUT: "lights out",
 	Outcome.FUNNEL_FELL: "funnel fell",
+	Outcome.AGROUND: "aground",
 }
 
 
@@ -78,6 +81,8 @@ static func labels(timeline: SinkTimeline) -> Array[Outcome]:
 			found[Outcome.BY_THE_HEAD if leans[0] > 0.0 else Outcome.BY_THE_STERN] = true
 		if timeline.gone_at <= FAST_SECONDS:
 			found[Outcome.FAST] = true
+	elif timeline.end == SinkTimeline.End.AGROUND:
+		found[Outcome.AGROUND] = true
 	elif timeline.rotations[(timeline.count() - 1) * 9 + 4] < 0.0:
 		found[Outcome.AFLOAT_UPSIDE_DOWN] = true
 	else:
