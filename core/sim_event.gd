@@ -8,7 +8,11 @@ extends RefCounted
 ## she is wholly under; the physics announces PLUNGE_BEGAN too, as her deck goes under,
 ## SHIP_LURCHING and SHIP_LURCHED by §5b.4's lurch rule, BOATS_USELESS as one side's
 ## lifeboats stand too high to lower — a label, never a rule — and AIR_TRAPPED and
-## AIR_VENTED as a cell's air is trapped under its ceiling and a pocket's air let out.
+## AIR_VENTED as a cell's air is trapped under its ceiling and a pocket's air let out;
+## from SH31 what gives way: an opening or a wall's panel starts to leak, or gives way,
+## a funnel creaks and falls, her generator stops or runs again, her lights go out, a
+## cell's water drowns its lamps, her hull creaks under its bending. KNOCKED_DOWN is a
+## rule's: a falling funnel landing on a body (Hazards, D12).
 
 enum Kind {
 	SEAT_OUT,
@@ -36,6 +40,16 @@ enum Kind {
 	BOATS_USELESS,
 	AIR_TRAPPED,
 	AIR_VENTED,
+	OPENING_LEAKING,
+	OPENING_GAVE_WAY,
+	FUNNEL_STRAINING,
+	FUNNEL_FALLING,
+	POWER_LOST,
+	POWER_BACK,
+	LIGHTS_OUT,
+	LAMPS_DROWNED,
+	HULL_STRESSED,
+	KNOCKED_DOWN,
 }
 
 var kind: Kind
@@ -45,7 +59,8 @@ var tick: int
 ## SHOVE_LANDED: the shover. ENTERED_WATER: who started swimming. CLIMBED_OUT: who
 ## stood up out of the sea. KNOCKED_BACK_IN: the climber a shove sent back.
 ## CRATE_HIT: the seat a crate ran into. RAILING_BROKE: the seat whose vault broke
-## the span, or -1. The sinking's events and CRATE_LOST: -1.
+## the span, or -1. KNOCKED_DOWN: the seat a funnel landed on. The sinking's events and
+## CRATE_LOST: -1.
 var seat: int
 var place: int
 var cause: PlayerState.Cause = PlayerState.Cause.NONE
@@ -68,8 +83,10 @@ var heel_deg: float
 var platform: StringName
 ## RAILING_BROKE: the layout's railing, by index.
 var railing: int = -1
-## CELL_FLOODING, CELL_FULL: the cell, by name. WATER_SPILLING: the opening.
-## BOATS_USELESS: the side, port or starboard.
+## CELL_FLOODING, CELL_FULL, LAMPS_DROWNED: the cell, by name. WATER_SPILLING,
+## OPENING_LEAKING, OPENING_GAVE_WAY: the opening, or the wall's panel. BOATS_USELESS:
+## the side, port or starboard. FUNNEL_STRAINING, FUNNEL_FALLING, KNOCKED_DOWN: the
+## funnel. POWER_LOST, POWER_BACK: her generator.
 var cell: StringName
 
 
@@ -156,6 +173,15 @@ static func physics(
 		Kind.BOATS_USELESS,
 		Kind.AIR_TRAPPED,
 		Kind.AIR_VENTED,
+		Kind.OPENING_LEAKING,
+		Kind.OPENING_GAVE_WAY,
+		Kind.FUNNEL_STRAINING,
+		Kind.FUNNEL_FALLING,
+		Kind.POWER_LOST,
+		Kind.POWER_BACK,
+		Kind.LIGHTS_OUT,
+		Kind.LAMPS_DROWNED,
+		Kind.HULL_STRESSED,
 	]
 	var event := SimEvent.new(kinds[physics_kind], event_tick, -1)
 	event.cell = named
@@ -185,6 +211,13 @@ static func railing_broke(event_tick: int, broken: int, by: int, by_crate: int) 
 	var event := SimEvent.new(Kind.RAILING_BROKE, event_tick, by)
 	event.railing = broken
 	event.prop = by_crate
+	return event
+
+
+## [param funnel] landing on [param struck_seat] (Hazards).
+static func knocked_down(event_tick: int, struck_seat: int, funnel: StringName) -> SimEvent:
+	var event := SimEvent.new(Kind.KNOCKED_DOWN, event_tick, struck_seat)
+	event.cell = funnel
 	return event
 
 

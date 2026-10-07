@@ -1,6 +1,7 @@
 extends GutTest
 ## §5b.4 layer 3, the steamer: pinned seeds' match hits — bow_down_slow, stern_down,
-## heavy_list, two_compartments_and_open_ports and fwd_pocket — and explicit hits, each baked alone
+## heavy_list, two_compartments_and_open_ports, fwd_pocket and from SH31 door_gives_way,
+## funnel_on_the_bridge and lights_out_early — and explicit hits, each baked alone
 ## and again with its holes' area × 0.9 and × 1.1 to the same outcome, so the seeds sit
 ## far from every threshold and a Mac and Linux agree (R21). Outcomes are labels and
 ## bands, never exact times.
@@ -24,17 +25,20 @@ func before_all() -> void:
 
 ## [param damage] baked with every hole of its gash [param scale] times as big, every
 ## state the physics stepped through kept: two bakes alike up to a moment keep their
-## steps alike up to it.
-func _bake(damage: HitDamage, scale: float) -> SinkTimeline:
+## steps alike up to it. Under [param sea], her own constants when none.
+func _bake(damage: HitDamage, scale: float, sea: SeaPhysics = null) -> SinkTimeline:
+	var physics := sea if sea != null else _sea
 	var scaled := HitDamage.new()
 	scaled.jammed = damage.jammed
 	scaled.left_open = damage.left_open
+	scaled.weakened = damage.weakened
+	scaled.weakened_to = damage.weakened_to
 	for opening: ShipOpening in damage.openings:
 		var hole: ShipOpening = opening.duplicate()
 		hole.area = opening.area * scale
 		scaled.openings.append(hole)
-	var stepper := SinkStepper.new(_structure, scaled, _sea)
-	return SinkBake.new(stepper, _sea, _scenario.bake_cap).uncompacted()
+	var stepper := SinkStepper.new(_structure, scaled, physics)
+	return SinkBake.new(stepper, physics, _scenario.bake_cap).uncompacted()
 
 
 ## Explicit [param hit] on the steamer, mapped as a tool's HIT= maps it.
@@ -117,11 +121,11 @@ func test_two_compartments_and_open_ports_ends_gone() -> void:
 
 
 ## [param seed_value]'s match hit — after the must-sink rule — baked with its holes
-## [param scale] times as big.
-func _pinned(seed_name: StringName, scale: float) -> SinkTimeline:
+## [param scale] times as big, under [param sea] (_bake).
+func _pinned(seed_name: StringName, scale: float, sea: SeaPhysics = null) -> SinkTimeline:
 	var seed_value := PinnedSeeds.seed_named(seed_name)
 	var choice: MustSink.Choice = SimFixtures.match_hits(seed_value)[seed_value - 1]
-	return _bake(choice.damage, scale)
+	return _bake(choice.damage, scale, sea)
 
 
 ## [param timeline]'s list and trim at kept step [param frame], in degrees: starboard
@@ -343,10 +347,15 @@ func test_water_runs_down_a_stairwell() -> void:
 func test_fwd_pocket_traps_the_air_under_the_forecastle_till_she_goes() -> void:
 	# Down by the head, her hold full to its top: the air in the space under the
 	# forecastle is trapped over it (SH29) long before she goes and holds — never let out,
-	# losing only what its seams leak, a matter of hours — till she is gone.
+	# losing only what its seams leak, a matter of hours — till she is gone. With the
+	# failures stage off, as SH29 pinned it: from SH31 the forecastle's doors and the
+	# collision bulkhead give way under the head of the hold beside them and let it out —
+	# in 60 seeds no match hit keeps it with it on.
 	var top := _structure.cell_named(&"hold_fwd_top")
+	var holding: SeaPhysics = _sea.duplicate()
+	holding.failures = false
 	for scale: float in MARGINS:
-		var timeline := _pinned(&"fwd_pocket", scale)
+		var timeline := _pinned(&"fwd_pocket", scale, holding)
 		var what := "× %s" % scale
 		assert_eq(timeline.end, SinkTimeline.End.GONE, what + ": gone")
 		assert_true(OutcomeClassifier.Outcome.BY_THE_HEAD in OutcomeClassifier.labels(timeline))
@@ -365,3 +374,96 @@ func test_fwd_pocket_traps_the_air_under_the_forecastle_till_she_goes() -> void:
 					pocket, 0.0, "%s: still a pocket at %.0f s" % [what, timeline.times[frame]]
 				)
 				break
+
+
+## Every [param kind] event of [param timeline] before she is gone, its name's prefix
+## [param prefix].
+func _before_gone(
+	timeline: SinkTimeline, kind: SinkTimeline.Kind, prefix: String
+) -> Array[SinkTimeline.Event]:
+	var found: Array[SinkTimeline.Event] = []
+	for event: SinkTimeline.Event in timeline.events:
+		if event.seconds <= timeline.gone_at and event.kind == kind:
+			if String(event.name).begins_with(prefix):
+				found.append(event)
+	return found
+
+
+func test_door_gives_way_bursts_a_watertight_door_before_she_goes() -> void:
+	# The water behind a shut watertight door climbs to its collapse head: it weeps
+	# first, then bursts — once — before she is gone (SH31).
+	for scale: float in MARGINS:
+		var timeline := _pinned(&"door_gives_way", scale)
+		var what := "× %s" % scale
+		var bursts := _before_gone(timeline, SinkTimeline.Kind.GAVE_WAY, "wtd_")
+		assert_eq(bursts.size(), 1, what + ": one watertight door bursts")
+		if bursts.is_empty():
+			continue
+		var door := bursts[0]
+		var weeps := _first(timeline, SinkTimeline.Kind.LEAKING, door.name)
+		assert_between(weeps, 0.0, door.seconds, what + ": weeping first")
+		assert_lt(door.seconds, timeline.gone_at, what + ": before she goes")
+
+
+func test_funnel_on_the_bridge_falls_forward_onto_the_wheelhouse_roof() -> void:
+	# Down by the head past her funnel's stays' 15° of trim, it falls toward her bow —
+	# onto the wheelhouse roof, the bridge, which collapses under it — before she goes.
+	var layout := SimFixtures.steamer()
+	var surfaces := Surfaces.new(layout)
+	var funnel: ShipFitting
+	for fitting: ShipFitting in _structure.fittings:
+		if fitting.kind == ShipFitting.Kind.FUNNEL:
+			funnel = fitting
+	for scale: float in MARGINS:
+		var timeline := _pinned(&"funnel_on_the_bridge", scale)
+		var what := "× %s" % scale
+		var falls := _before_gone(timeline, SinkTimeline.Kind.FUNNEL_FALLING, "funnel")
+		assert_eq(falls.size(), 1, what + ": the funnel falls before she goes")
+		if falls.is_empty():
+			continue
+		var falling := falls[0]
+		assert_gt(falling.along.x, 0.9, what + ": toward her bow")
+		var frame := timeline.frame_at(falling.seconds)
+		assert_gte(_trim(timeline, frame), funnel.trim_limit_deg - 0.1, what + ": past its trim")
+		var fall := FunnelFall.new(funnel, falling.along, 0, 0, 1)
+		assert_eq(fall.lands_on(layout, surfaces), [&"bridge"], what + ": onto the bridge")
+
+
+func test_lights_out_early_puts_her_dark_long_before_she_goes() -> void:
+	# Her generator stops in her first half — her list or trim past its limit — and the
+	# engine room goes dark at once, on no emergency power, while the saloon burns dim on
+	# it; it runs again once she is back within its margin, and stops again. Once the
+	# emergency minutes are spent — counted while the generator does not run — nothing
+	# lights her, ten minutes and more before she goes (SH31).
+	var engine := _structure.cell_named(&"engine_room")
+	var saloon := _structure.cell_named(&"saloon")
+	var generator: ShipFitting
+	for fitting: ShipFitting in _structure.fittings:
+		if fitting.kind == ShipFitting.Kind.GENERATOR:
+			generator = fitting
+	for scale: float in MARGINS:
+		var timeline := _pinned(&"lights_out_early", scale)
+		var what := "× %s" % scale
+		var stopped := _first(timeline, SinkTimeline.Kind.POWER_LOST, generator.name)
+		assert_between(stopped, 0.0, timeline.gone_at * 0.5, what + ": in her first half")
+		var frame := timeline.frame_at(stopped)
+		assert_eq(timeline.lit(frame, engine), ShipPower.Power.DARK, what + ": engine room dark")
+		assert_eq(timeline.lit(frame, saloon), ShipPower.Power.EMERGENCY, what + ": saloon dim")
+		assert_eq(timeline.lit(frame - 1, engine), ShipPower.Power.MAIN, what + ": lit till then")
+		var dark := _first(timeline, SinkTimeline.Kind.LIGHTS_OUT, &"")
+		var off := 0.0
+		var since := -1.0
+		var backs := 0
+		for event: SinkTimeline.Event in timeline.events:
+			if event.seconds > dark:
+				break
+			if event.kind == SinkTimeline.Kind.POWER_LOST:
+				since = event.seconds
+			elif event.kind == SinkTimeline.Kind.POWER_BACK:
+				off += event.seconds - since
+				backs += 1
+		off += dark - since
+		assert_gt(backs, 0, what + ": running again within its margin")
+		var minutes := generator.emergency_minutes * 60.0
+		assert_almost_eq(off, minutes, 1e-3, what + ": dark once its minutes are spent")
+		assert_lt(dark, timeline.gone_at - 600.0, what + ": ten minutes and more before she goes")

@@ -1,0 +1,49 @@
+[gd_resource type="Resource" script_class="WreckHull" format=3]
+
+[ext_resource type="Script" path="res://tests/fixtures/wrecks/wreck_hull.gd" id="1_wreck"]
+[ext_resource type="Script" path="res://core/sinking/flood_cell.gd" id="2_cell"]
+[ext_resource type="Script" path="res://core/sinking/ship_opening.gd" id="3_opening"]
+[ext_resource type="Script" path="res://core/sinking/ship_fitting.gd" id="4_fitting"]
+
+[sub_resource type="Resource" id="Cell_engine_rooms"]
+script = ExtResource("2_cell")
+name = &"engine_rooms"
+low = Vector3(-40, -8.2, -17.75)
+high = Vector3(13, 5.8, 17.75)
+kind = 1
+permeability = 0.85
+rooms = Array[StringName]([&"engine rooms"])
+
+[sub_resource type="Resource" id="Opening_hole"]
+script = ExtResource("3_opening")
+name = &"hole_engine_rooms"
+kind = 12
+joins = Array[StringName]([&"engine_rooms", &"sea"])
+centre = Vector3(-13.5, -4, -17.75)
+size = Vector3(7.07, 7.07, 0)
+area = 50.0
+
+[sub_resource type="Resource" id="Fitting_generator"]
+script = ExtResource("4_fitting")
+kind = 2
+name = &"generator"
+list_limit_deg = 25.0
+trim_limit_deg = 12.0
+base = Vector3(-13.5, -6.7, 0)
+drowns_at = 1.0
+recovers_deg = 3.0
+cell = &"engine_rooms"
+
+[resource]
+script = ExtResource("1_wreck")
+name = &"costa_concordia"
+length = 195.0
+beam = 35.5
+depth = 14.0
+draught = 8.2
+centre_height = 14.0
+cells = Array[ExtResource("2_cell")]([SubResource("Cell_engine_rooms")])
+openings = Array[ExtResource("3_opening")]([SubResource("Opening_hole")])
+fittings = Array[ExtResource("4_fitting")]([SubResource("Fitting_generator")])
+boat_limit_deg = 20.0
+notes = "Costa Concordia, aground off Giglio on 13 January 2012. Beam 35.5 m and draught 8.2 m (source). Box length 195 m: her 290 m overall at a block coefficient near 0.67 (est.). Depth 14 m to her bulkhead deck (est.). Weight 14.0 m over her keel: GM about 2.9 m (est.: a cruise ship's weight rides high in her superstructure). The rock opened a gash about 53 m long on her port side (source) into five compartments, her engine rooms and their switchboards among them: here one space 53 m long, the full beam, from her keel to her bulkhead deck, machinery's permeability, opened by 50 m² 4 m under her waterline (est.: the gash's area was never published). Her generators stand on the tank top 1.5 m over her keel and drown under 1 m of water (est.); her emergency generator failed to carry the load, so no emergency power (est.). Blackout within 5 minutes (her inquiry: the lights failed within minutes of the impact). Lifeboats useless on the high side past 20° (modern rules)."

@@ -222,3 +222,32 @@ func test_view_remembers_last_seen_for_three_seconds() -> void:
 	assert_gt(last_fresh, 0, "it saw seat 1")
 	assert_lte(last_fresh, moved, "and stopped seeing it once it went behind the wall")
 	assert_eq(last_held - last_fresh, memory, "it remembered for three seconds, and no longer")
+
+
+func test_view_in_the_dark_sees_no_farther_than_its_dark_sight() -> void:
+	# The whole deck one cell nothing lights (SH31): a bot sees a body no farther than its
+	# dark sight — past it and past its hearing, not at all — and lit, as far as its eyes go.
+	var profile: BotProfile = _profile().duplicate()
+	profile.hearing_m = 1.0
+	profile.dark_sight_m = 4.0
+	var sim := MatchSim.create(SimFixtures.config(3, null, SEED))
+	SimFixtures.place(sim, 0, Vector3(-10.0, 0.0, 0.0))
+	SimFixtures.place(sim, 1, Vector3(-7.0, 0.0, 0.0))
+	SimFixtures.place(sim, 2, Vector3(-4.0, 0.0, 0.0))
+	var hold := FloodCell.new()
+	hold.low = Vector3(-15.0, -1.0, -6.0)
+	hold.high = Vector3(15.0, 3.0, 6.0)
+	var structure := ShipStructure.new()
+	var cells: Array[FloodCell] = [hold]
+	structure.cells = cells
+	var seen := {}
+	for lit: int in [ShipPower.Power.DARK, ShipPower.Power.EMERGENCY]:
+		var pose := sim.pose()
+		pose.cells = CellMap.new(structure)
+		pose.levels = PackedFloat64Array([-100.0])
+		pose.lit = PackedByteArray([lit])
+		var view := BotView.new(0, profile, Surfaces.new(sim.config.ship))
+		view.push(sim.snapshot(), pose)
+		seen[lit] = _seats_in(view)
+	assert_eq(seen[ShipPower.Power.DARK], [0, 1], "in the dark, 3 m and not 6 m")
+	assert_eq(seen[ShipPower.Power.EMERGENCY], [0, 1, 2], "in a dim light, both")

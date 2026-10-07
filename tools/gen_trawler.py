@@ -558,10 +558,18 @@ def cell_box(name):
 
 # Her two watertight walls across her, to her deck: (name, x, top, collapse head est.);
 # and the linings along her, leaky (est.): (name, z, from x, to x, top, collapse head),
-# each from the deck's end over it.
-BULKHEADS = [("bulkhead_aft", -3, 0.0, 5.0), ("bulkhead_fwd", 7, 0.0, 5.0)]
-LININGS = [("engine_lining_p", -LINING, -14.4, -3, 0.0, 2.0), ("engine_lining_s", LINING, -14.4, -3, 0.0, 2.0),
-           ("hold_lining_p", -HOLD_LINING, -3, 7, 0.0, 2.0), ("hold_lining_s", HOLD_LINING, -3, 7, 0.0, 2.0)]
+# each from the deck's end over it. A head across a wall is the water's over the foot
+# of each panel of it (SinkFailures): est., a bulkhead is built for the head from her
+# keel to her deck, starts to leak at 1.25× it by WALL_LEAK and gives way at 1.5× it; a
+# lining — the side tanks' steel inner skin, leaking through its LEAK — gives way at the
+# same 1.5×, so a wing flooded to the sea holds it; a wall the hit ended beside at half.
+BUILT_FOR = 0.0 - KEEL
+BULKHEADS = [("bulkhead_aft", -3, 0.0, 1.5 * BUILT_FOR), ("bulkhead_fwd", 7, 0.0, 1.5 * BUILT_FOR)]
+WALL_LEAK = 0.002
+LININGS = [("engine_lining_p", -LINING, -14.4, -3, 0.0, 1.5 * BUILT_FOR),
+           ("engine_lining_s", LINING, -14.4, -3, 0.0, 1.5 * BUILT_FOR),
+           ("hold_lining_p", -HOLD_LINING, -3, 7, 0.0, 1.5 * BUILT_FOR),
+           ("hold_lining_s", HOLD_LINING, -3, 7, 0.0, 1.5 * BUILT_FOR)]
 WING_LEAK = 0.002
 
 def parted(axis, at, y0, y1, along0, along1):
@@ -593,7 +601,8 @@ def opening(name, kind, a, b, centre, size, **fields):
 
 # Doorways: open, as Q15 built them, from over their sills; in a watertight wall, a
 # watertight door, shut by the ship at the hit over 10 s and jammed open one time in
-# seven (est.), giving way under 4 m of water. A doorway into a house over the working
+# seven (est.), weeping 0.005 m² round its seals under the 2.2 m of the engine room it
+# closes and giving way under 4 m of water. A doorway into a house over the working
 # deck opens onto the well up to its bulwarks and onto the sky above them: one opening
 # for each.
 watertight = {(w[2], cell) for w in walls if w[1] == "ACROSS" for cell in w[7]}
@@ -620,14 +629,16 @@ for axis, at, d0, d1, foot, sill in doorways:
         size = (0, y1 - y0, d1 - d0) if axis == 0 else (d1 - d0, y1 - y0, 0)
         if axis == 0 and (at, a) in watertight and (at, b) in watertight:
             opening("wtd_engine", "WATERTIGHT_DOOR", a, b, centre, size, starts="OPEN",
-                    shuts_at_hit=True, shut_time=10.0, flip_chance=0.15, collapse_head=4.0)
+                    shuts_at_hit=True, shut_time=10.0, flip_chance=0.15, leak_head=0.0 - LOWER,
+                    collapse_head=4.0, leak_area=0.005)
             continue
         tag = "door_%s_%s" % (a, b or SKY)
         opening("%s_%d" % (tag, sum(1 for o in openings if o[0].startswith(tag))), "DOOR", a, b,
                 centre, size, starts="OPEN")
 
 # Holes in her decks: the stairs — water on a floor runs down them — and the fish
-# hatch, battened, left open one time in three (est.), giving way under 1 m of water.
+# hatch, battened, left open one time in three (est.), its tarpaulin's seams weeping
+# 0.05 m² under 0.3 m of water and giving way under 1 m.
 for tag, (x0, x1, z0, z1) in zip(["p", "s"], ENGINE_STAIRS):
     opening("stair_engine_room_deckhouse_" + tag, "STAIRWELL", "engine_room", "deckhouse",
             ((x0 + x1) * 0.5, 0, (z0 + z1) * 0.5), (x1 - x0, 0, z1 - z0), starts="OPEN")
@@ -636,7 +647,8 @@ opening("stair_deckhouse_wheelhouse", "STAIRWELL", "deckhouse", "wheelhouse",
         ((x0 + x1) * 0.5, UPPER, (z0 + z1) * 0.5), (x1 - x0, 0, z1 - z0), starts="OPEN")
 x0, x1, z0, z1 = FISH_HATCH
 opening("fish_hatch", "HATCH", "fish_hold", "working_deck", ((x0 + x1) * 0.5, 0, (z0 + z1) * 0.5),
-        (x1 - x0, 0, z1 - z0), starts="SHUT", flip_chance=0.3, collapse_head=1.0)
+        (x1 - x0, 0, z1 - z0), starts="SHUT", flip_chance=0.3, leak_head=0.3, collapse_head=1.0,
+        leak_area=0.05)
 # The engine room's skylight, under its casing on the aft deck: always open (0.5 m²).
 x0, x1, z0, z1 = SKYLIGHT
 opening("skylight", "VENT", "engine_room", SKY, ((x0 + x1) * 0.5, 0, (z0 + z1) * 0.5),
@@ -668,14 +680,15 @@ opening("open_working_deck", "OPEN", "working_deck", SKY,
         ((well[0] + well[1]) * 0.5, well[3], (well[4] + well[5]) * 0.5),
         (well[1] - well[0], 0, well[5] - well[4]), starts="OPEN")
 # A porthole either side of the crew mess, in the fo'c'sle's shell: shut, left open one
-# time in four (est.).
+# time in four (est.); shut, its gasket weeps 0.0005 m² under 4 m of water and its glass
+# breaks under 8 m (est., as the steamer's).
 PORTHOLE_RADIUS = 0.16
 PORTHOLE_AT = (9.0, 1.2)
 for tag, side in [("p", -1), ("s", 1)]:
     skin = round(breadth(*PORTHOLE_AT), 4)
     opening("port_fore_%s1" % tag, "PORTHOLE", "fore", SEA, (PORTHOLE_AT[0], PORTHOLE_AT[1], side * skin),
             (PORTHOLE_RADIUS * 2, PORTHOLE_RADIUS * 2, 0), area=round(math.pi * PORTHOLE_RADIUS ** 2, 4),
-            starts="SHUT", flip_chance=0.25, collapse_head=15.0)
+            starts="SHUT", flip_chance=0.25, leak_head=4.0, collapse_head=8.0, leak_area=0.0005)
 
 # Mass (est.): where her weight sits — about 385 t, her GM about 0.6 m, the plan's, within
 # the research's 0.5–1.0 m for a 30 m trawler. Her ballast is what the generator settles:
@@ -718,6 +731,19 @@ MOTION = [("roll_radius", 3.0), ("pitch_radius", 7.5), ("added_mass", 1.0),
 # A liferaft either side on the deckhouse's roof, useless on the high side past a list
 # of 20° — modern rules (§5b.2).
 LIFEBOATS = [("liferaft_port", -1, -6.0, 20.0), ("liferaft_starboard", 1, -6.0, 20.0)]
+# What the sinking fails (§5b.1, est.): her exhaust stack, 3.7 m over the deckhouse roof,
+# stayed to 30° of list and 15° of trim, down in 1 s, crushing nothing it lands on; her
+# generator beside her engine, drowned by 0.8 m of water over its foot, stopped past 25°
+# of list or 12° of trim (SOLAS-based) and running again 3° back within both, its
+# emergency power lighting the galley and the wheelhouse for 30 minutes; a bilge pump in
+# her engine room, 0.03 m³/s while it runs.
+FUNNEL = dict(name="stack", base=(-9.3, UPPER, 0.0), height=6.0 - UPPER, radius=0.3, list=30.0,
+              trim=15.0, fall=1.0, crushes=[])
+GENERATOR = dict(name="generator", cell="engine_room", base=(-8.9, LOWER, 1.6), drowns=0.8,
+                 list=25.0, trim=12.0, recovers=3.0, minutes=30.0, emergency=["deckhouse", "wheelhouse"])
+PUMPS = [("bilge_pump", "engine_room", 0.03)]
+# The bending her hull carries (research est.: she cannot break), in N·m.
+STRENGTH = (66e6, 60e6)
 # Where along her and up her shell an iceberg's gash can be at all (est.): clear of her
 # stem and her transom, from 0.2 m under her deck down to 0.2 m over her keel.
 HIT_ZONE_X = (-14.5, 14.5)
@@ -765,8 +791,10 @@ for name, axis, at, span, bottom_y, top, collapse, parts in walls:
     if axis == "ALONG":
         f.append(("axis", "1"))
     f += [("at", num(at)), ("span", "Vector2(%s, %s)" % (num(span[0]), num(span[1]))),
-          ("bottom", num(bottom_y)), ("top", num(top)), ("collapse_head", num(collapse)),
-          ("cells", names(parts))]
+          ("bottom", num(bottom_y)), ("top", num(top)), ("collapse_head", num(collapse))]
+    if axis == "ACROSS":
+        f += [("leak_head", num(collapse / 1.5 * 1.25)), ("leak_area", num(WALL_LEAK))]
+    f.append(("cells", names(parts)))
     wall_ids.append(sub("Wall_" + name, "12_wall", f))
 OPENING_KINDS = ["DOOR", "WATERTIGHT_DOOR", "PORTHOLE", "WINDOW", "STAIRWELL", "HATCH", "OVER_WALL",
                  "FLOOR_GAPS", "LEAK", "VENT", "FREEING_PORT", "OPEN"]
@@ -784,7 +812,7 @@ for name, kind, joins, centre, size, fields in openings:
         f.append(("flip_chance", num(fields["flip_chance"])))
     if fields.get("shuts_at_hit"):
         f.append(("shuts_at_hit", "true"))
-    for key in ["shut_time", "collapse_head"]:
+    for key in ["shut_time", "leak_head", "collapse_head", "leak_area"]:
         if fields.get(key):
             f.append((key, num(fields[key])))
     opening_ids.append(sub("Opening_" + name, "13_opening", f))
@@ -798,12 +826,29 @@ for name, side, x, limit in LIFEBOATS:
     fitting_ids.append(sub("Fitting_" + name, "16_fitting", [
         ("name", '&"%s"' % name), ("side", str(side)), ("x", num(x)),
         ("list_limit_deg", num(limit))]))
+fitting_ids.append(sub("Fitting_" + FUNNEL["name"], "16_fitting", [
+    ("kind", "1"), ("name", '&"%s"' % FUNNEL["name"]), ("x", num(FUNNEL["base"][0])),
+    ("list_limit_deg", num(FUNNEL["list"])), ("trim_limit_deg", num(FUNNEL["trim"])),
+    ("base", vec3(FUNNEL["base"])), ("height", num(FUNNEL["height"])),
+    ("radius", num(FUNNEL["radius"])), ("fall_time", num(FUNNEL["fall"]))]))
+fitting_ids.append(sub("Fitting_" + GENERATOR["name"], "16_fitting", [
+    ("kind", "2"), ("name", '&"%s"' % GENERATOR["name"]), ("x", num(GENERATOR["base"][0])),
+    ("list_limit_deg", num(GENERATOR["list"])), ("trim_limit_deg", num(GENERATOR["trim"])),
+    ("base", vec3(GENERATOR["base"])), ("drowns_at", num(GENERATOR["drowns"])),
+    ("recovers_deg", num(GENERATOR["recovers"])),
+    ("emergency_minutes", num(GENERATOR["minutes"])),
+    ("emergency_cells", names(GENERATOR["emergency"])), ("cell", '&"%s"' % GENERATOR["cell"])]))
+for name, cell, rate in PUMPS:
+    fitting_ids.append(sub("Fitting_" + name, "16_fitting", [
+        ("kind", "3"), ("name", '&"%s"' % name), ("cell", '&"%s"' % cell), ("rate", num(rate))]))
 sub("Structure", "9_structure", [
     ("waterline_y", num(WATERLINE)), ("keel_y", num(KEEL)),
     ("sections", arr("10_section", section_ids)), ("cells", arr("11_cell", cell_ids)),
     ("walls", arr("12_wall", wall_ids)), ("openings", arr("13_opening", opening_ids)),
     ("mass", arr("14_mass", mass_ids))] + [(k, num(v)) for k, v in MOTION] + [
     ("fittings", arr("16_fitting", fitting_ids)),
+    ("strength", 'SubResource("%s")' % sub("Strength", "17_strength", [
+        ("hog", num(STRENGTH[0])), ("sag", num(STRENGTH[1]))])),
     ("hit_zone_x", "Vector2(%s, %s)" % (num(HIT_ZONE_X[0]), num(HIT_ZONE_X[1]))),
     ("hit_zone_y", "Vector2(%s, %s)" % (num(HIT_ZONE_Y[0]), num(HIT_ZONE_Y[1]))),
     ("sure_hit", 'SubResource("%s")' % sub("Sure_hit", "15_hit", [(k, num(v)) for k, v in SURE_HIT]))])
@@ -826,6 +871,7 @@ head = """[gd_resource type="Resource" script_class="ShipLayout" format=3]
 [ext_resource type="Script" path="res://core/sinking/mass_item.gd" id="14_mass"]
 [ext_resource type="Script" path="res://core/sinking/iceberg_hit.gd" id="15_hit"]
 [ext_resource type="Script" path="res://core/sinking/ship_fitting.gd" id="16_fitting"]
+[ext_resource type="Script" path="res://core/sinking/girder_strength.gd" id="17_strength"]
 """
 res = ["[resource]", 'script = ExtResource("5_layout")', "freeboard = " + num(FREEBOARD),
        "platforms = " + arr("1_plat", platforms),

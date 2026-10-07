@@ -16,6 +16,7 @@
 [ext_resource type="Script" path="res://core/sinking/mass_item.gd" id="14_mass"]
 [ext_resource type="Script" path="res://core/sinking/iceberg_hit.gd" id="15_hit"]
 [ext_resource type="Script" path="res://core/sinking/ship_fitting.gd" id="16_fitting"]
+[ext_resource type="Script" path="res://core/sinking/girder_strength.gd" id="17_strength"]
 
 [sub_resource type="Resource" id="Platform_working_deck"]
 script = ExtResource("1_plat")
@@ -903,7 +904,9 @@ at = -3
 span = Vector2(-3.75, 3.75)
 bottom = -4.2
 top = 0
-collapse_head = 5
+collapse_head = 6.3
+leak_head = 5.25
+leak_area = 0.002
 cells = Array[StringName]([&"engine_wing_p", &"engine_room", &"engine_wing_s", &"hold_wing_p", &"fish_hold", &"hold_wing_s"])
 
 [sub_resource type="Resource" id="Wall_bulkhead_fwd"]
@@ -913,7 +916,9 @@ at = 7
 span = Vector2(-3.75, 3.75)
 bottom = -4.2
 top = 0
-collapse_head = 5
+collapse_head = 6.3
+leak_head = 5.25
+leak_area = 0.002
 cells = Array[StringName]([&"hold_wing_p", &"fish_hold", &"hold_wing_s", &"fore"])
 
 [sub_resource type="Resource" id="Wall_engine_lining_p"]
@@ -924,7 +929,7 @@ at = -2.8
 span = Vector2(-14.4, -3)
 bottom = -4.2
 top = 0
-collapse_head = 2
+collapse_head = 6.3
 cells = Array[StringName]([&"engine_wing_p", &"engine_room"])
 
 [sub_resource type="Resource" id="Wall_engine_lining_s"]
@@ -935,7 +940,7 @@ at = 2.8
 span = Vector2(-14.4, -3)
 bottom = -4.2
 top = 0
-collapse_head = 2
+collapse_head = 6.3
 cells = Array[StringName]([&"engine_room", &"engine_wing_s"])
 
 [sub_resource type="Resource" id="Wall_hold_lining_p"]
@@ -946,7 +951,7 @@ at = -2.4
 span = Vector2(-3, 7)
 bottom = -4.2
 top = 0
-collapse_head = 2
+collapse_head = 6.3
 cells = Array[StringName]([&"hold_wing_p", &"fish_hold"])
 
 [sub_resource type="Resource" id="Wall_hold_lining_s"]
@@ -957,7 +962,7 @@ at = 2.4
 span = Vector2(-3, 7)
 bottom = -4.2
 top = 0
-collapse_head = 2
+collapse_head = 6.3
 cells = Array[StringName]([&"fish_hold", &"hold_wing_s"])
 
 [sub_resource type="Resource" id="Opening_wtd_engine"]
@@ -970,7 +975,9 @@ size = Vector3(0, 2.1, 1.1)
 flip_chance = 0.15
 shuts_at_hit = true
 shut_time = 10
+leak_head = 2.2
 collapse_head = 4
+leak_area = 0.005
 
 [sub_resource type="Resource" id="Opening_door_deckhouse_sky_0"]
 script = ExtResource("13_opening")
@@ -1054,7 +1061,9 @@ centre = Vector3(2, 0, 0)
 size = Vector3(2, 0, 1.8)
 starts = 1
 flip_chance = 0.3
+leak_head = 0.3
 collapse_head = 1
+leak_area = 0.05
 
 [sub_resource type="Resource" id="Opening_skylight"]
 script = ExtResource("13_opening")
@@ -1202,7 +1211,9 @@ size = Vector3(0.32, 0.32, 0)
 area = 0.0804
 starts = 1
 flip_chance = 0.25
-collapse_head = 15
+leak_head = 4
+collapse_head = 8
+leak_area = 0.0005
 
 [sub_resource type="Resource" id="Opening_port_fore_s1"]
 script = ExtResource("13_opening")
@@ -1214,7 +1225,9 @@ size = Vector3(0.32, 0.32, 0)
 area = 0.0804
 starts = 1
 flip_chance = 0.25
-collapse_head = 15
+leak_head = 4
+collapse_head = 8
+leak_area = 0.0005
 
 [sub_resource type="Resource" id="Mass_hull_steel"]
 script = ExtResource("14_mass")
@@ -1293,6 +1306,44 @@ side = 1
 x = -6
 list_limit_deg = 20
 
+[sub_resource type="Resource" id="Fitting_stack"]
+script = ExtResource("16_fitting")
+kind = 1
+name = &"stack"
+x = -9.3
+list_limit_deg = 30
+trim_limit_deg = 15
+base = Vector3(-9.3, 2.3, 0)
+height = 3.7
+radius = 0.3
+fall_time = 1
+
+[sub_resource type="Resource" id="Fitting_generator"]
+script = ExtResource("16_fitting")
+kind = 2
+name = &"generator"
+x = -8.9
+list_limit_deg = 25
+trim_limit_deg = 12
+base = Vector3(-8.9, -2.2, 1.6)
+drowns_at = 0.8
+recovers_deg = 3
+emergency_minutes = 30
+emergency_cells = Array[StringName]([&"deckhouse", &"wheelhouse"])
+cell = &"engine_room"
+
+[sub_resource type="Resource" id="Fitting_bilge_pump"]
+script = ExtResource("16_fitting")
+kind = 3
+name = &"bilge_pump"
+cell = &"engine_room"
+rate = 0.03
+
+[sub_resource type="Resource" id="Strength"]
+script = ExtResource("17_strength")
+hog = 66000000
+sag = 60000000
+
 [sub_resource type="Resource" id="Sure_hit"]
 script = ExtResource("15_hit")
 start_x = -10
@@ -1317,7 +1368,8 @@ added_mass = 1
 heave_damping = 0.5
 roll_damping = 0.08
 pitch_damping = 0.5
-fittings = Array[ExtResource("16_fitting")]([SubResource("Fitting_liferaft_port"), SubResource("Fitting_liferaft_starboard")])
+fittings = Array[ExtResource("16_fitting")]([SubResource("Fitting_liferaft_port"), SubResource("Fitting_liferaft_starboard"), SubResource("Fitting_stack"), SubResource("Fitting_generator"), SubResource("Fitting_bilge_pump")])
+strength = SubResource("Strength")
 hit_zone_x = Vector2(-14.5, 14.5)
 hit_zone_y = Vector2(-4, -0.2)
 sure_hit = SubResource("Sure_hit")

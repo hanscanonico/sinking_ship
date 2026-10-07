@@ -65,9 +65,9 @@ func setup(driver: SimDriver, sim: MatchSim, local_seat: int, correction_time: f
 		_crates = _greybox.crates()
 	else:
 		var falls: Array[StringName] = []
-		for event: SinkEvent in sim.config.scenario.events:
-			if event.kind == SinkEvent.Kind.COLLAPSE:
-				falls.append(event.platform)
+		for scheduled: SinkSchedule.Scheduled in _schedule.scheduled():
+			if scheduled.event.kind == SinkEvent.Kind.COLLAPSE:
+				falls.append(scheduled.event.platform)
 		# Any railing may break (SH10), not only those the scenario fails.
 		var fails := PackedInt32Array(range(ship.railings.size()))
 		_art.build(ship, rules.railing_height, rules.body_radius, falls, fails, _open_ports())
@@ -139,7 +139,7 @@ func flood_with(sea: ShaderMaterial) -> void:
 	_inner.name = "InnerWater"
 	_ship.add_child(_inner)
 	var paints: Dictionary = {} if _greybox.visible else _art.paints()
-	_inner.setup(_structure, _rooms, _schedule.passages(), sea, paints)
+	_inner.setup(_structure, _rooms, _schedule.passages(), _schedule.failing(), sea, paints)
 
 
 ## How far the world point [param eye] stands above the water it is in — its cell's,
@@ -214,7 +214,8 @@ func _process(delta: float) -> void:
 ## fractional, as the view interpolates between two snapshots: the platforms whose
 ## collapse is telegraphed and whether the blink is lit now, how far (0…1) each
 ## collapsed platform has fallen, by name, and the failed railings — with them those
-## the match has [param broken].
+## the match has [param broken] — and, dressed, what lights each cell, the glass broken
+## and how far each funnel has fallen (SH31).
 func _show_sinking(tick: float, broken: PackedInt32Array) -> void:
 	var now := floori(tick)
 	var pose := _schedule.pose_at(now)
@@ -228,8 +229,12 @@ func _show_sinking(tick: float, broken: PackedInt32Array) -> void:
 	gone.append_array(broken)
 	if _greybox.visible:
 		_greybox.show_sinking(pose.collapsing, fallen, gone, lit)
+		_greybox.show_power(pose)
+		_greybox.show_falls(pose.falls, tick)
 	else:
 		_art.show_sinking(pose.collapsing, fallen, gone, lit)
+		_art.show_power(pose)
+		_art.show_falls(pose.falls, tick)
 
 
 ## Each crate [param alpha] of the way from where [param then] has it to where

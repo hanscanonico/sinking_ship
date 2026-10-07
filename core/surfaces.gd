@@ -114,8 +114,10 @@ var _level_rects := PackedByteArray()
 ## stands on it and nothing else there, but for a crate.
 var _floors: Array[PackedInt32Array] = []
 var _floor_clearances: Array[PackedFloat64Array] = []
-## The watertight doors, as far shut as the last pose honoured has them.
+## The watertight doors, as far shut as the last pose honoured has them; and her
+## funnels, lying where the last one has them fallen.
 var _doors: DoorLeaves
+var _fallen: FallenFunnels
 
 
 func _init(layout: ShipLayout) -> void:
@@ -158,6 +160,7 @@ func _init(layout: ShipLayout) -> void:
 	_index_floors()
 	_stand_props([])
 	_doors = DoorLeaves.new(layout.structure)
+	_fallen = FallenFunnels.new(layout)
 
 
 ## Takes [param pose]'s collapsed platforms, failed railings and shut watertight
@@ -172,6 +175,9 @@ func honour(pose: ShipPose, broken := PackedInt32Array(), props: Array[PropState
 	if pose != _honoured_pose or broken != _honoured_by_match:
 		_honoured_pose = pose
 		_doors.honour(pose)
+		if _fallen.honour(pose):
+			for surface in range(_first_top, _first_lid):
+				_tops[surface] = _fallen.top_of(surface - _first_top, _blocker_of(surface).top)
 		_honoured_by_match = broken.duplicate()
 		var failed := pose.broken_railings.duplicate()
 		failed.append_array(broken)
@@ -440,6 +446,7 @@ func obstacle_contacts(
 		if contact != null:
 			contacts.append(contact)
 	contacts.append_array(_doors.contacts(point, reach_up, head, radius))
+	contacts.append_array(_fallen.contacts(point, reach_up, head, radius))
 	return PlaneShapes.deepest_per_direction(contacts)
 
 
@@ -546,8 +553,9 @@ func railed(from_point: Vector3, to_point: Vector3, surface: int) -> bool:
 func blocked(from_point: Vector3, to_point: Vector3, body_height: float, step: float) -> bool:
 	var start := Vector2(from_point.x, from_point.z)
 	var end := Vector2(to_point.x, to_point.z)
-	var feet := minf(from_point.y, to_point.y)
-	if _doors.crossed(start, end, feet + step, maxf(from_point.y, to_point.y) + body_height):
+	var feet := minf(from_point.y, to_point.y) + step
+	var head := maxf(from_point.y, to_point.y) + body_height
+	if _doors.crossed(start, end, feet, head) or _fallen.crossed(start, end, feet, head):
 		return true
 	for surface: int in _near(Rect2(start, Vector2.ZERO).expand(end)):
 		if not _is_blocker_top(surface):
@@ -612,7 +620,7 @@ func line_of_sight(from_point: Vector3, to_point: Vector3, pose: ShipPose) -> bo
 	var end := Vector2(to_point.x, to_point.z)
 	var low := minf(from_point.y, to_point.y)
 	var high := maxf(from_point.y, to_point.y)
-	if _doors.crossed(start, end, low, high):
+	if _doors.crossed(start, end, low, high) or _fallen.crossed(start, end, low, high):
 		return false
 	var reach := Rect2(start, Vector2.ZERO).expand(end)
 	for surface in count():

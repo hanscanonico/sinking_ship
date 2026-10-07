@@ -69,3 +69,5 @@ railing_hp = 3.0
 railing_break_speed = 2.5
 vault_damage = 1.0
 crate_damage = 3.0
+struck_knockback = 7.0
+struck_stagger = 1.5

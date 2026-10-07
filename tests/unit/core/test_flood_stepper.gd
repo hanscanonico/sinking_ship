@@ -325,13 +325,21 @@ func test_no_cell_gives_more_than_it_holds_at_the_longest_step() -> void:
 
 func test_the_shipped_step_sinks_her_as_a_second_does() -> void:
 	# The step the physics chooses reaches step_max while little changes: on twenty match
-	# hits she is gone within a tenth of when the bake held to a second has her gone.
+	# hits she is gone within a tenth of when the bake held to a second has her gone. With
+	# the failures stage off, the hits chosen under it too: a door or a wall's panel the
+	# water stands just under the head of, as a list lingers, may give way at one step and
+	# not the other — a threshold, which no step converges across (R21); the failures' own
+	# landing is test_failures'.
 	var structure: ShipStructure = SimFixtures.steamer().structure
 	var scenario: SinkScenario = load(SimFixtures.STEAMER_SINKING)
+	var chosen: SeaPhysics = _sea().duplicate()
+	chosen.failures = false
 	var second := _held_at(1.0)
+	second.failures = false
 	var off := PackedStringArray()
 	for index in MATCH_SEEDS:
-		var choice: MustSink.Choice = SimFixtures.match_hits(MATCH_SEEDS)[index]
+		var stream := SeedStreams.derive(index + 1, "sink")
+		var choice := MustSink.choose(structure, scenario, stream, chosen)
 		var held := SinkTimeline.bake(
 			SinkStepper.new(structure, choice.damage, second), second, scenario.bake_cap
 		)

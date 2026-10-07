@@ -255,6 +255,18 @@ func _from_event(event: Dictionary, now: Dictionary, pose: ShipPose, cues: Array
 			cues.append(horn)
 		SimEvent.Kind.HOLED:
 			_holed(tick, cues)
+		SimEvent.Kind.FUNNEL_STRAINING, SimEvent.Kind.FUNNEL_FALLING:
+			_funnel(event, tick, pose, cues)
+		SimEvent.Kind.OPENING_GAVE_WAY:
+			var bursting := AudioCue.new(AudioCue.Kind.CRACK, tick)
+			bursting.positional = true
+			bursting.position = _failing_at(event["cell"])
+			bursting.heavy = true
+			cues.append(bursting)
+		SimEvent.Kind.KNOCKED_DOWN:
+			var struck := _at_seat(AudioCue.Kind.IMPACT, tick, now[seat])
+			struck.heavy = true
+			cues.append(struck)
 		SimEvent.Kind.PLATFORM_COLLAPSING, SimEvent.Kind.PLATFORM_COLLAPSED:
 			var giving := AudioCue.new(AudioCue.Kind.COLLAPSE, tick)
 			giving.positional = true
@@ -262,6 +274,32 @@ func _from_event(event: Dictionary, now: Dictionary, pose: ShipPose, cues: Array
 			if event["kind"] == SimEvent.Kind.PLATFORM_COLLAPSING:
 				giving.gain = COLLAPSING_GAIN
 			cues.append(giving)
+
+
+## A funnel creaking as its stays strain — the creak players hear and bots read (D10) —
+## and groaning as it goes, from its top.
+func _funnel(event: Dictionary, tick: int, pose: ShipPose, cues: Array[AudioCue]) -> void:
+	for fall: FunnelFall in pose.falls:
+		if fall.fitting.name != event["cell"]:
+			continue
+		var straining: bool = event["kind"] == SimEvent.Kind.FUNNEL_STRAINING
+		var cue := AudioCue.new(AudioCue.Kind.CREAK if straining else AudioCue.Kind.GROAN, tick)
+		cue.positional = true
+		cue.position = fall.fitting.base + Vector3.UP * fall.fitting.height
+		cue.heavy = not straining
+		cues.append(cue)
+
+
+## Where the opening called [param named] stands — one shut until it fails, or a door
+## the ship shuts — or her middle when it is neither.
+func _failing_at(named: StringName) -> Vector3:
+	var openings := _schedule.failing().duplicate()
+	if _layout.structure != null:
+		openings.append_array(_layout.structure.openings)
+	for opening: ShipOpening in openings:
+		if opening.name == named:
+			return opening.centre
+	return Vector3(_hull.get_center().x, 0.0, _hull.get_center().y)
 
 
 ## The iceberg striking: a boom from the middle of the gash SinkSchedule has her

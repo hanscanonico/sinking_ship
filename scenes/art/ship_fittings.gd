@@ -377,6 +377,29 @@ func _windows(mesh: ShipMesh, room: ShipRoom) -> void:
 				_disc(mesh, at + out_normal * FRAME_PROUD, out_normal, ShipPaints.dark)
 
 
+## Which of [param glass] — a structure's windows and portholes, by index — [param pane]
+## (one of panes) is: those of its kind, flat across the wall it is set in, beyond it
+## from inside, within [param near] of it along the wall and up it.
+static func openings_of(pane: Array, glass: Array[ShipOpening], near: float) -> PackedInt32Array:
+	var inside: Vector3 = pane[1]
+	var into: Vector3 = pane[2]
+	var kind := ShipOpening.Kind.PORTHOLE if pane[3] else ShipOpening.Kind.WINDOW
+	var across := 0 if absf(into.x) > 0.5 else 2
+	var along := 2 - across
+	var found := PackedInt32Array()
+	for index in glass.size():
+		var opening := glass[index]
+		if (
+			opening.kind == kind
+			and opening.facing() == across
+			and (opening.centre - inside).dot(into) < 0.0
+			and absf(opening.centre[along] - inside[along]) <= near
+			and absf(opening.centre.y - inside.y) <= near
+		):
+			found.append(index)
+	return found
+
+
 ## Whether the porthole drawn at [param inside] is one the hit left open: an open
 ## porthole's middle stands by it along her and up, on her side it is on.
 func _left_open(inside: Vector3) -> bool:

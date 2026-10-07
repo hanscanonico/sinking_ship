@@ -20,9 +20,21 @@ var levels := PackedFloat64Array()
 ## [member levels] is.
 var pockets := PackedFloat64Array()
 var cells: CellMap
+## Per cell, as [member levels] is, what lights it (ShipPower.Power): 2 her generator,
+## 1 her emergency power, 0 nothing — dark. Empty where [member levels] is: lit
+## throughout, as before the physics (SH31).
+var lit := PackedByteArray()
 ## The watertight doors the ship is shutting or has shut, by name: how far shut, 0…1.
 ## A door not here stands open.
 var doors_shut: Dictionary[StringName, float] = {}
+## What has failed (SinkFailures), by name — an opening, or a watertight wall's panel:
+## 1 leaking, 2 given way, for good. One not here holds as it was built.
+var opened: Dictionary[StringName, int] = {}
+## Her funnels' falls (FunnelFall) by this tick: those warned of — creaking, falling or
+## down — never one still to come (D10); and of them those that have landed, lying where
+## they fell (FallenFunnels).
+var falls: Array[FunnelFall] = []
+var felled: Array[FunnelFall] = []
 ## What an authored fixture's events have done by this tick, and what they telegraph
 ## now — derived from (scenario, tick) like the rest of the pose, never stored (D5).
 ## The platforms, by name, that have collapsed: no longer surfaces.
@@ -78,6 +90,15 @@ func in_pocket(ship_point: Vector3) -> bool:
 	if cell == CellMap.NONE or pockets.is_empty() or pockets[cell] <= 0.0:
 		return false
 	return world_height(ship_point) > levels[cell]
+
+
+## What lights [param ship_point] (ShipPower.Power): its cell's lamps' power, or —
+## outside her, on her open decks — the sky's, as her generator's.
+func lit_at(ship_point: Vector3) -> int:
+	var cell := cell_at(ship_point)
+	if cell == CellMap.NONE or lit.is_empty():
+		return ShipPower.Power.MAIN
+	return lit[cell]
 
 
 ## The world height of the water [param ship_point] is in: its cell's, or the sea's.

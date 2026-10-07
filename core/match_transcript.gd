@@ -3,8 +3,9 @@ extends RefCounted
 ## A match told as text: first its iceberg hit — when, which side, along where and
 ## the area it opens — and how the must-sink rule came to it; then one line per exit,
 ## per sinking event — the physics' flooding, filling and spilling cells and her going —
-## per railing broken and per crate lost; one for the end; and where her sinking stood
-## then, in physics time, and how its bake ends:
+## per railing broken, per crate lost and per seat a falling funnel knocks down; one for
+## the end; and where her sinking stood then, in physics time, how its bake ends and the
+## worst her bending came to:
 ##   hit 00:21.4 · starboard · x 5.2…9.0 m · 0.034 m²
 ##   must 8 thrown · 2 bakes · rung 3
 ##   00:52.3 seat 4 out · cold · place 6
@@ -14,6 +15,7 @@ extends RefCounted
 ##   sinking at the end of the match: physics 0:02:18 (= match time, Q20 deferred) ·
 ##     seen 25% · sea 1.21 m up her · trim +2.1° · list -0.4° · hold_bilge full · hold 0.3 m
 ##   not played: gone at 0:09:12 · trim +31.0° · list +3.2° · founders by the head · fast
+##   bending peak 0.05 of strength, x +1.5 m, sagging
 ## What `make match` prints and what the golden files hold. Seats are sim seat ids.
 
 const CAUSES := {PlayerState.Cause.NONE: "none", PlayerState.Cause.COLD: "cold"}
@@ -107,6 +109,31 @@ func add(events: Array[SimEvent]) -> void:
 				_lines.append("%s air trapped in %s" % [clock(event.tick), event.cell])
 			SimEvent.Kind.AIR_VENTED:
 				_lines.append("%s air let out of %s" % [clock(event.tick), event.cell])
+			SimEvent.Kind.OPENING_LEAKING:
+				_lines.append("%s %s leaking" % [clock(event.tick), event.cell])
+			SimEvent.Kind.OPENING_GAVE_WAY:
+				_lines.append("%s %s gave way" % [clock(event.tick), event.cell])
+			SimEvent.Kind.FUNNEL_STRAINING:
+				_lines.append("%s %s creaking" % [clock(event.tick), event.cell])
+			SimEvent.Kind.FUNNEL_FALLING:
+				_lines.append("%s %s falling" % [clock(event.tick), event.cell])
+			SimEvent.Kind.POWER_LOST:
+				_lines.append("%s %s stopped" % [clock(event.tick), event.cell])
+			SimEvent.Kind.POWER_BACK:
+				_lines.append("%s %s running again" % [clock(event.tick), event.cell])
+			SimEvent.Kind.LIGHTS_OUT:
+				_lines.append("%s lights out" % clock(event.tick))
+			SimEvent.Kind.LAMPS_DROWNED:
+				_lines.append("%s %s lamps drowned" % [clock(event.tick), event.cell])
+			SimEvent.Kind.HULL_STRESSED:
+				_lines.append("%s hull creaking" % clock(event.tick))
+			SimEvent.Kind.KNOCKED_DOWN:
+				_lines.append(
+					(
+						"%s seat %d knocked down by the %s"
+						% [clock(event.tick), event.seat, event.cell]
+					)
+				)
 
 
 ## " · credit crate n" for an exit a crate is credited with — " shoved by seat s"
@@ -219,6 +246,20 @@ func _sinking(sim: MatchSim) -> void:
 			"%s: %s · trim %+.1f° · list %+.1f° · %s"
 			% [played, ends[timeline.end], going.trim_deg, going.heel_deg, labels]
 		)
+	)
+	_lines.append(bending(timeline))
+
+
+## How far [param timeline]'s bending came toward her strength at its worst, where along
+## her, and which way it bent her (HullGirder).
+static func bending(timeline: SinkTimeline) -> String:
+	return (
+		"bending peak %.2f of strength, x %+.1f m, %s"
+		% [
+			absf(timeline.bending),
+			timeline.bending_x,
+			"hogging" if timeline.bending >= 0.0 else "sagging",
+		]
 	)
 
 

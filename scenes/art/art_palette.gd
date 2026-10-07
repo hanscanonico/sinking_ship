@@ -76,9 +76,11 @@ const BLANKET := Color("41557a")
 const LINEN := Color("e9e4d6")
 const CRATE := Color("9c7a4c")
 const SMOKE := Color(0.29, 0.28, 0.28, 0.55)
-## A room lamp's glass and its light.
+## A room lamp's glass and its light; on her emergency power (SH31), a dim red.
 const LAMP_GLASS := Color("ffe2a8")
 const LAMP_LIGHT := Color("ffc47a")
+const EMERGENCY_GLASS := Color("ff6a4a")
+const EMERGENCY_LIGHT := Color("e2492e")
 ## A deck about to give way blinks toward this (the greybox's flash).
 const COLLAPSE_FLASH := Color(1.0, 0.2, 0.1)
 ## The rooms below the passenger decks and the wheelhouse (RoomDressing). An engine

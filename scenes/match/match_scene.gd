@@ -353,15 +353,18 @@ func set_paused(paused: bool) -> void:
 
 ## The sinking is felt before it is seen (D12): a full shake as the iceberg strikes,
 ## a light one as a lurch is telegraphed, a full one as it swings, a lighter one as a
-## deck gives way — read from every stepped tick's events, so a hitch never eats one.
+## deck gives way or a funnel comes down; a light one as something bursts or the hull
+## creaks — read from every stepped tick's events, so a hitch never eats one.
 func _shake_for_the_sinking(events: Array[SimEvent]) -> void:
 	for event: SimEvent in events:
 		match event.kind:
-			SimEvent.Kind.SHIP_LURCHING:
+			SimEvent.Kind.SHIP_LURCHING, SimEvent.Kind.OPENING_GAVE_WAY:
+				_kick.shake(LURCH_WARNING_SHAKE)
+			SimEvent.Kind.HULL_STRESSED, SimEvent.Kind.FUNNEL_STRAINING:
 				_kick.shake(LURCH_WARNING_SHAKE)
 			SimEvent.Kind.SHIP_LURCHED, SimEvent.Kind.HOLED:
 				_kick.shake()
-			SimEvent.Kind.PLATFORM_COLLAPSED:
+			SimEvent.Kind.PLATFORM_COLLAPSED, SimEvent.Kind.KNOCKED_DOWN:
 				_kick.shake(COLLAPSE_SHAKE)
 
 

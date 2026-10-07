@@ -69,11 +69,23 @@ const PATH := "res://data/physics/sea.tres"
 ## A pocket holding less air than this, in m³ at the atmosphere's pressure, is gone:
 ## its cell's water moves as though its air were free (§5b.1, est.).
 @export var pocket_least: float
-## The stages of the physics (§5b.3), each off until its milestone switches it on.
+## Things that give way (§5b.1, est.): a funnel creaks once she stands this share of the
+## way to a limit of its stays, and its fall is warned at least fall_warning seconds
+## ahead; the hull creaks once its bending reaches this share of its strength; a cell's
+## lamps hang this far under its ceiling, in metres, and once its water reaches them its
+## lights are out for good.
+@export var creak_share: float
+@export var fall_warning: float
+@export var stressed_share: float
+@export var lamp_drop: float
+## The stages of the physics (§5b.3), each off until its milestone switches it on:
+## bending is measured and reported from SH31, and breaks the hull only once breaking is
+## on (SH33).
 @export var flooding: bool
 @export var attitude: bool
 @export var air: bool
 @export var failures: bool
+@export var bending: bool
 @export var capsized_movement: bool
 @export var breaking: bool
 
@@ -127,4 +139,8 @@ func problems() -> PackedStringArray:
 		found.append("sea: the timeline's tolerances must not be negative, nor its turn reach 90°")
 	if pocket_least <= 0.0:
 		found.append("sea: the least air a pocket holds must be positive")
+	if creak_share <= 0.0 or creak_share >= 1.0 or stressed_share <= 0.0 or stressed_share >= 1.0:
+		found.append("sea: a creak comes at a share of a limit within 0…1")
+	if fall_warning < 0.0 or lamp_drop < 0.0:
+		found.append("sea: a fall's warning and a lamp's drop must not be negative")
 	return found

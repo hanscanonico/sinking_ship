@@ -37,6 +37,24 @@ var sea_given := 0.0
 ## Per opening the stepper moves water through, in its order, what passed in the step
 ## that led here: positive from its first side to its second.
 var moved := PackedFloat64Array()
+## What has given way (SinkFailures, SH31): per opening, in the stepper's order, how far
+## a failure has opened it — 0 for none, its leak's share of its area once it leaks, 1
+## once it has given way, for good; and per funnel, 1 once it has fallen.
+var opened := PackedFloat64Array()
+var fallen := PackedByteArray()
+## Her lights (ShipPower): whether her generator runs, her emergency power does or
+## neither (ShipPower.Power); whether the sea has drowned the generator, for good; the
+## seconds her emergency power has left, under 0 once spent; per cell, 1 once its water
+## has reached its lamps, for good; and per cell what lights it now (ShipPower.Power).
+var power := 0
+var drowned := false
+var battery := 0.0
+var shorted := PackedByteArray()
+var lit := PackedByteArray()
+## Her bending at the station worst off against its strength (HullGirder): the share
+## of that strength, positive hogging, negative sagging, and where along her.
+var bending := 0.0
+var bending_x := 0.0
 
 
 ## The total of her cells' water, in m³.
@@ -64,4 +82,13 @@ func copy() -> FloodState:
 	made.above = above
 	made.sea_given = sea_given
 	made.moved = moved.duplicate()
+	made.opened = opened.duplicate()
+	made.fallen = fallen.duplicate()
+	made.power = power
+	made.drowned = drowned
+	made.battery = battery
+	made.shorted = shorted.duplicate()
+	made.lit = lit.duplicate()
+	made.bending = bending
+	made.bending_x = bending_x
 	return made

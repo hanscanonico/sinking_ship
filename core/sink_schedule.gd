@@ -9,9 +9,12 @@ extends RefCounted
 ## attitude blended from one to the next as the timeline blends it, the sea, each cell's
 ## water and each cell's pocket carried between them —
 ## her trim and heel read off it for the HUD and every reader, its lurches warned, and
-## the phase she is in named from where she stands. Its physics seconds become match
-## ticks once, through the scenario's clock and Ticks (D2). An authored fixture plays
-## its keyframes and events. Either
+## the phase she is in named from where she stands; what lights each cell, what has given
+## way, and her funnels' falls (SH31) — a funnel landing on a roof too light for it
+## collapses it, and breaks the railings it lands across, as the authored collapses and
+## railing failures did (place_falls). Its physics seconds become match ticks once,
+## through the scenario's clock and Ticks (D2). An authored fixture plays its keyframes
+## and events. Either
 ## way, once built it is a pure function of (ship, scenario, seed, tick) — nothing a
 ## player does moves it, and it is never stored in a snapshot (D5).
 
@@ -64,6 +67,7 @@ var _cells: CellMap
 var _doors: Array[StringName] = []
 var _door_times := PackedFloat64Array()
 var _passages: Array[ShipOpening] = []
+var _failing: Array[ShipOpening] = []
 var _clock := 1.0
 ## What the physics announces, on its ticks, in the timeline's order; and the tick she
 ## is gone, or -1.
@@ -81,6 +85,12 @@ var _unsupported_tick := -1
 var _upright := 1.0
 var _flooding_tick := -1
 var _afloat_tick := -1
+## What has given way, in the timeline's order: each failure's tick, what it names and
+## how far it has gone (ShipPose.opened); and her funnels' falls, in the same order.
+var _failed_ticks := PackedInt32Array()
+var _failed_names: Array[StringName] = []
+var _failed_states := PackedByteArray()
+var _falls: Array[FunnelFall] = []
 
 
 ## [param sink_stream] is the sinking stream, SeedStreams' (match seed, "sink"),
@@ -131,6 +141,8 @@ func _init(
 		if opening.starts == ShipOpening.Start.OPEN or opening.name in _damage.left_open:
 			_passages.append(opening)
 	_passages.append_array(_damage.openings)
+	if physics.failures:
+		_failing = SinkFailures.shut(structure, _damage)
 	# The limit's cosine as the series sine of its complement, so every platform finds
 	# the same tick (R21).
 	_upright = Attitude.sine_of_degrees(90.0 - physics.supported_deg)
@@ -149,6 +161,12 @@ func _init(
 				_lurch_ticks.append(tick)
 				_lurch_ticks.append(tick + Ticks.from_seconds(event.lasts / _clock))
 				_lurch_heels.append(event.heel_deg)
+			SinkTimeline.Kind.LEAKING, SinkTimeline.Kind.GAVE_WAY:
+				_failed_ticks.append(tick)
+				_failed_names.append(event.name)
+				_failed_states.append(2 if event.kind == SinkTimeline.Kind.GAVE_WAY else 1)
+			SinkTimeline.Kind.FUNNEL_FALLING:
+				_falls.append(_fall_of(structure, event, tick))
 	if _timeline.gone_at >= 0.0:
 		_gone_tick = _tick_of(_timeline.gone_at)
 	if _timeline.end == SinkTimeline.End.AFLOAT:
@@ -156,10 +174,11 @@ func _init(
 
 
 ## The schedule of [param config]'s match: its scenario on its ship, its sinking as
-## the config has it baked or received (MatchConfig.sinking).
+## the config has it baked or received (MatchConfig.sinking), its funnels' falls placed on
+## her decks (place_falls).
 static func for_match(config: MatchConfig) -> SinkSchedule:
 	var sink_stream := SeedStreams.derive(config.match_seed, "sink")
-	return new(
+	var schedule := new(
 		config.scenario,
 		config.ship.freeboard,
 		sink_stream,
@@ -167,6 +186,41 @@ static func for_match(config: MatchConfig) -> SinkSchedule:
 		null,
 		config.sinking()
 	)
+	schedule.place_falls(config.ship, config.rules.railing_height)
+	return schedule
+
+
+## Places what each funnel's fall does on [param layout] as the authored collapses and
+## railing failures were placed: the roofs too light for it that it lands on collapse
+## on its landing tick, telegraphed from its creak, and the railings it lands across,
+## [param railing_height] tall, fail then — what lies under it Surfaces' to say.
+func place_falls(layout: ShipLayout, railing_height: float) -> void:
+	if _falls.is_empty():
+		return
+	var surfaces := Surfaces.new(layout)
+	for fall: FunnelFall in _falls:
+		for platform_name: StringName in fall.lands_on(layout, surfaces):
+			var collapse := SinkEvent.new()
+			collapse.kind = SinkEvent.Kind.COLLAPSE
+			collapse.platform = platform_name
+			collapse.warning = Ticks.to_seconds(fall.lands_at - fall.warned_at)
+			_events.append(Scheduled.new(collapse, fall.lands_at))
+		for railing: int in fall.crosses(surfaces, railing_height):
+			var failing := SinkEvent.new()
+			failing.kind = SinkEvent.Kind.RAILING_FAIL
+			failing.railing = railing
+			_events.append(Scheduled.new(failing, fall.lands_at))
+
+
+## The fall [param event] — a FUNNEL_FALLING on [param tick] — places of the funnel of
+## [param structure] it names: creaking from its warning, landing its fall's time on.
+func _fall_of(structure: ShipStructure, event: SinkTimeline.Event, tick: int) -> FunnelFall:
+	var funnel: ShipFitting
+	for fitting: ShipFitting in structure.fittings:
+		if fitting.name == event.name:
+			funnel = fitting
+	var lands := _tick_of(event.seconds + event.lasts)
+	return FunnelFall.new(funnel, event.along, _tick_of(event.warned), tick, lands)
 
 
 ## The match tick [param seconds] of physics after the hit is, through the scenario's
@@ -228,8 +282,21 @@ func _weight(frame: int, tick: int) -> float:
 
 func pose_at(tick: int) -> ShipPose:
 	if _timeline != null:
-		return _physical(tick)
+		var physical := _physical(tick)
+		_happened(physical, tick)
+		return physical
 	var pose := _keyframed(tick)
+	var swing := _happened(pose, tick)
+	if swing != 0.0:
+		pose.heel_deg += swing
+		pose.transform = _transform(pose.sink, pose.trim_deg, pose.heel_deg)
+	return pose
+
+
+## What the scheduled events have done to [param pose] by [param tick] — the telegraphs
+## running, the collapses and railing failures that have happened — and the heel the
+## lurch under way adds to it, which it gives.
+func _happened(pose: ShipPose, tick: int) -> float:
 	var swing := 0.0
 	for scheduled: Scheduled in _events:
 		var event := scheduled.event
@@ -250,10 +317,7 @@ func pose_at(tick: int) -> ShipPose:
 				pose.collapsed.append(event.platform)
 			SinkEvent.Kind.RAILING_FAIL:
 				pose.broken_railings.append(event.railing)
-	if swing != 0.0:
-		pose.heel_deg += swing
-		pose.transform = _transform(pose.sink, pose.trim_deg, pose.heel_deg)
-	return pose
+	return swing
 
 
 ## The pose the bake has at [param tick], read between the two kept states either side
@@ -282,12 +346,23 @@ func _physical(tick: int) -> ShipPose:
 	var count := _timeline.cells
 	pose.levels.resize(count)
 	pose.pockets.resize(count)
+	pose.lit.resize(count)
 	for cell in count:
 		var head := lerpf(
 			_timeline.heads[frame * count + cell], _timeline.heads[next * count + cell], weight
 		)
 		pose.levels[cell] = head + origin.y
 		pose.pockets[cell] = _timeline.pocket(frame, next, weight, cell)
+		pose.lit[cell] = _timeline.lit(frame, cell)
+	for failed in _failed_ticks.size():
+		if _failed_ticks[failed] > tick:
+			break
+		pose.opened[_failed_names[failed]] = _failed_states[failed]
+	for fall: FunnelFall in _falls:
+		if fall.warned_at <= tick:
+			pose.falls.append(fall)
+		if fall.lands_at <= tick:
+			pose.felled.append(fall)
 	if tick >= _hit_tick:
 		var seconds := _seconds_at(tick)
 		for door in _doors.size():
@@ -308,7 +383,8 @@ static func leans_of(turn: Basis) -> PackedFloat64Array:
 	return PackedFloat64Array([trim, rad_to_deg(atan2(turn.y.z, turn.z.z))])
 
 
-## Every event of an authored scenario that has happened by [param tick], in its order.
+## Every event of an authored scenario, and every collapse and railing failure a funnel's
+## fall brings (place_falls), that has happened by [param tick], in its order.
 func fired(tick: int) -> Array[Scheduled]:
 	var found: Array[Scheduled] = []
 	for scheduled: Scheduled in _events:
@@ -376,6 +452,18 @@ func choice() -> MustSink.Choice:
 ## while the pose has it open. Empty without a physical sinking.
 func passages() -> Array[ShipOpening]:
 	return _passages
+
+
+## What is shut until it fails, with the failures stage on (SinkFailures.shut): water
+## passes it while the pose has it leaking or given way (ShipPose.opened).
+func failing() -> Array[ShipOpening]:
+	return _failing
+
+
+## Every event of an authored scenario, and every collapse and railing failure a funnel's
+## fall brings (place_falls), whenever it happens: what a scene builds for.
+func scheduled() -> Array[Scheduled]:
+	return _events
 
 
 ## The bake, or null without a physical sinking.

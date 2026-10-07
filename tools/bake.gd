@@ -2,10 +2,11 @@ extends SceneTree
 ## `make bake SEED=1701 [SHIP=] [HIT=path.tres]`: the sinking of a seed's match alone, no match
 ## played (§5b.4) — the hit the must-sink rule chose for it (or the explicit one HIT=
 ## gives), the doors the ship shuts and the openings left open, how the rule came to
-## it, then every event of the bake in physics time, h:mm:ss, how she ends and the
-## labels read off it (OutcomeClassifier), and what the bake cost and the timeline
-## weighs, compacted and with every state kept. Everything is asked of the match's
-## config and schedule (D13); only the cost is this machine's.
+## it, then every event of the bake in physics time, h:mm:ss, how she ends, the labels
+## read off it (OutcomeClassifier) and the worst her bending came to (HullGirder), and
+## what the bake cost and the timeline weighs, compacted and with every state kept.
+## Everything is asked of the match's config and schedule (D13); only the cost is this
+## machine's.
 ##
 ##   godot --headless --path . -s res://tools/bake.gd -- --seed=1701
 
@@ -129,6 +130,7 @@ static func _event_lines(timeline: SinkTimeline) -> PackedStringArray:
 		)
 	)
 	lines.append("outcome " + OutcomeClassifier.told(OutcomeClassifier.labels(timeline)))
+	lines.append(MatchTranscript.bending(timeline))
 	return lines
 
 
@@ -152,6 +154,27 @@ static func _told(event: SinkTimeline.Event) -> String:
 			return "air trapped in %s" % event.name
 		SinkTimeline.Kind.VENTED:
 			return "air let out of %s" % event.name
+		SinkTimeline.Kind.LEAKING:
+			return "%s leaking" % event.name
+		SinkTimeline.Kind.GAVE_WAY:
+			return "%s gave way" % event.name
+		SinkTimeline.Kind.FUNNEL_STRAINING:
+			return "%s creaking" % event.name
+		SinkTimeline.Kind.FUNNEL_FALLING:
+			return (
+				"%s falling · toward x %+.2f z %+.2f · %.1f s"
+				% [event.name, event.along.x, event.along.y, event.lasts]
+			)
+		SinkTimeline.Kind.POWER_LOST:
+			return "%s stopped" % event.name
+		SinkTimeline.Kind.POWER_BACK:
+			return "%s running again" % event.name
+		SinkTimeline.Kind.LIGHTS_OUT:
+			return "lights out"
+		SinkTimeline.Kind.SHORTED:
+			return "%s lamps drowned" % event.name
+		SinkTimeline.Kind.HULL_STRESSED:
+			return "hull creaking · bending %.2f of her strength" % absf(event.heel_deg)
 	return "she is gone"
 
 

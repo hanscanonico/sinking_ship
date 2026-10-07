@@ -150,6 +150,11 @@ extends Resource
 @export var vault_damage: float
 ## What a crate at railing_break_speed or more takes off a span.
 @export var crate_damage: float
+## A falling funnel landing on a body (Hazards, SH31): the speed it sends it out of the
+## strip it lands across, in m/s, and the seconds it is staggered — knocked down; no
+## brace takes anything off a funnel.
+@export var struck_knockback: float
+@export var struck_stagger: float
 
 
 ## How far over its feet a swimmer's head is reckoned, for whether it is in trapped air
@@ -202,6 +207,8 @@ func problems() -> PackedStringArray:
 		"crate_knockback",
 		"railing_hp",
 		"railing_break_speed",
+		"struck_knockback",
+		"struck_stagger",
 	]:
 		if float(get(field)) <= 0.0:
 			found.append("brawl rules: %s must be positive" % field)

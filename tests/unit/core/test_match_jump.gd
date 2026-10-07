@@ -4,9 +4,11 @@ extends GutTest
 ## match like any other from there, continued exactly from its own snapshot (D5).
 
 const RunMatch := preload("res://tools/run_match.gd")
-const SEED := 1701
+## A seed whose match sinks her slowly by the head (from SH31 the golden 1701 falls back
+## to her sure hit, gone in minutes).
+const SEED := 1
 ## Physics seconds after the hit: well into her slow sinking, her bow low.
-const PHYS := 7560.0
+const PHYS := 5400.0
 
 
 func test_seats_stand_dry_at_the_moment_jumped_to() -> void:

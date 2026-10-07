@@ -16,7 +16,10 @@ extends RefCounted
 ## rule's reading (§5b.4) — so a roll then is neither a list nor a capsize, and she goes
 ## by an end. HEAVY_LIST: listed HEAVY_LIST_DEG or more for HEAVY_LIST_SECONDS together
 ## while afloat. FAST: gone within FAST_SECONDS of physics. PORT_BOATS_USELESS,
-## STARBOARD_BOATS_USELESS: that side's lifeboats past their list limit.
+## STARBOARD_BOATS_USELESS: that side's lifeboats past their list limit. LIGHTS_OUT:
+## her generator stopped for good — flooded, or tilted past its limits and never back —
+## before she was gone, leaving her at most her emergency power; FUNNEL_FELL: a funnel
+## came down before she was gone (SH31).
 enum Outcome {
 	AFLOAT,
 	BY_THE_HEAD,
@@ -28,6 +31,8 @@ enum Outcome {
 	PORT_BOATS_USELESS,
 	STARBOARD_BOATS_USELESS,
 	AFLOAT_UPSIDE_DOWN,
+	LIGHTS_OUT,
+	FUNNEL_FELL,
 }
 
 ## The census's own marks (§5b.4's table, est.): a heavy list, and a fast sinking.
@@ -47,6 +52,8 @@ const NAMES := {
 	Outcome.PORT_BOATS_USELESS: "port boats useless",
 	Outcome.STARBOARD_BOATS_USELESS: "starboard boats useless",
 	Outcome.AFLOAT_UPSIDE_DOWN: "afloat upside down",
+	Outcome.LIGHTS_OUT: "lights out",
+	Outcome.FUNNEL_FELL: "funnel fell",
 }
 
 
@@ -75,10 +82,19 @@ static func labels(timeline: SinkTimeline) -> Array[Outcome]:
 		found[Outcome.AFLOAT_UPSIDE_DOWN] = true
 	else:
 		found[Outcome.AFLOAT] = true
+	var dark := false
 	for event: SinkTimeline.Event in timeline.events:
+		if event.seconds <= gone_at and event.kind == SinkTimeline.Kind.POWER_LOST:
+			dark = true
+		elif event.seconds <= gone_at and event.kind == SinkTimeline.Kind.POWER_BACK:
+			dark = false
 		if event.kind == SinkTimeline.Kind.BOATS_USELESS:
 			var port := event.name == &"port"
 			found[Outcome.PORT_BOATS_USELESS if port else Outcome.STARBOARD_BOATS_USELESS] = true
+		elif event.kind == SinkTimeline.Kind.FUNNEL_FALLING and event.seconds <= gone_at:
+			found[Outcome.FUNNEL_FELL] = true
+	if dark:
+		found[Outcome.LIGHTS_OUT] = true
 	var made: Array[Outcome] = []
 	for label: Outcome in Outcome.values():
 		if found.has(label):

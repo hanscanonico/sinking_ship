@@ -19,8 +19,14 @@ extends RefCounted
 ## railing_break_speed or more by crate_damage; a span with no hits left is broken,
 ## gone from Surfaces like a failed one, and holds nothing.
 ##
+## A funnel falling (SH31) knocks down every body in the strip it lands across on the
+## tick it lands (FunnelFall, from the pose): sent out of it to the side its centre is
+## on at struck_knockback, staggered struck_stagger and held through a hit-stop, as a
+## crate's impact is (D12) — no brace takes anything off it. What it lands on and the
+## railings it breaks are the pose's (SinkSchedule.place_falls).
+##
 ## MatchSim steps the crates once a tick, after the bodies have moved, landed and
-## thawed and before the shoves (§4).
+## thawed and before the shoves (§4); a funnel lands first.
 
 var _rules: BrawlRules
 var _props: Array[ShipProp] = []
@@ -29,6 +35,7 @@ var _stagger_ticks: int
 var _hitstop_ticks: int
 var _hitstop_braced_ticks: int
 var _credit_window_ticks: int
+var _struck_ticks: int
 ## The railings the match has broken, as of this tick's step or the last break since:
 ## the crates honour them many times a tick, and only a break changes them.
 var _broken := PackedInt32Array()
@@ -42,10 +49,13 @@ func _init(config: MatchConfig, surfaces: Surfaces) -> void:
 	_hitstop_ticks = Ticks.from_seconds(_rules.hitstop)
 	_hitstop_braced_ticks = Ticks.from_seconds(_rules.hitstop_braced)
 	_credit_window_ticks = Ticks.from_seconds(_rules.credit_window)
+	_struck_ticks = Ticks.from_seconds(_rules.struck_stagger)
 
 
-## One tick of the cargo, in [param state], under [param pose].
+## One tick of the cargo, in [param state], under [param pose] — and before it, every
+## funnel landing.
 func step(state: MatchState, pose: ShipPose, tick: int, events: Array[SimEvent]) -> void:
+	_strike(state, pose, tick, events)
 	_broken = state.broken_railings()
 	var crates: Array[PropState] = []
 	for crate: PropState in state.props:
@@ -60,6 +70,28 @@ func step(state: MatchState, pose: ShipPose, tick: int, events: Array[SimEvent])
 	_ground(crates, feet_before)
 	_sea(crates, pose, tick, events)
 	_stand(state, pose)
+
+
+## Every body on board — not out, climbing or swimming — in the strip of a funnel
+## landing on [param tick] knocked down, seat by seat in ascending order.
+func _strike(state: MatchState, pose: ShipPose, tick: int, events: Array[SimEvent]) -> void:
+	for fall: FunnelFall in pose.falls:
+		if fall.lands_at != tick:
+			continue
+		var base := Vector2(fall.fitting.base.x, fall.fitting.base.z)
+		for player: PlayerState in state.seats:
+			if player.is_out() or player.is_climbing() or player.body == PlayerState.Body.SWIMMING:
+				continue
+			if not fall.covers(player.pos, _rules.body_radius):
+				continue
+			var off := Vector2(player.pos.x, player.pos.z) - base
+			var aside := Vector2(fall.along.y, -fall.along.x)
+			var away := aside * (1.0 if off.dot(aside) >= 0.0 else -1.0) * _rules.struck_knockback
+			var moving := player.held_vel if player.is_frozen() else player.vel
+			player.stagger_ticks = maxi(player.stagger_ticks, _struck_ticks)
+			player.bracing = false
+			player.freeze(Vector3(away.x, moving.y, away.y), _hitstop_ticks)
+			events.append(SimEvent.knocked_down(tick, player.seat, fall.fitting.name))
 
 
 ## The crates still on board as a shove may land on them, numbered from

@@ -363,29 +363,15 @@ func _check_panes(file: String, layout: ShipLayout, rules: BrawlRules) -> void:
 	for pane: Array in fittings.panes:
 		_checks += 1
 		var inside: Vector3 = pane[1]
-		var into: Vector3 = pane[2]
-		var kind := ShipOpening.Kind.PORTHOLE if pane[3] else ShipOpening.Kind.WINDOW
-		var across := 0 if absf(into.x) > 0.5 else 2
-		var found := -1
-		for index in glass.size():
-			var opening := glass[index]
-			var along := 2 - across
-			if (
-				opening.kind == kind
-				and opening.facing() == across
-				and (opening.centre - inside).dot(into) < 0.0
-				and absf(opening.centre[along] - inside[along]) <= PANE_TOLERANCE
-				and absf(opening.centre.y - inside.y) <= PANE_TOLERANCE
-			):
-				if found != -1:
-					_problems.append(
-						(
-							"art-lint: %s: a pane at %s fits both openings %s and %s"
-							% [file, inside, glass[found].name, opening.name]
-						)
-					)
-					break
-				found = index
+		var fits := ShipFittings.openings_of(pane, glass, PANE_TOLERANCE)
+		var found := fits[0] if not fits.is_empty() else -1
+		if fits.size() > 1:
+			_problems.append(
+				(
+					"art-lint: %s: a pane at %s fits both openings %s and %s"
+					% [file, inside, glass[fits[0]].name, glass[fits[1]].name]
+				)
+			)
 		if found == -1:
 			_problems.append(
 				"art-lint: %s: a pane at %s is no opening of the structure" % [file, inside]

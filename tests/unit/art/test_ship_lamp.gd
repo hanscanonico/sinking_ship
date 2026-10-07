@@ -2,31 +2,42 @@ extends GutTest
 
 ## A minute of a lamp's clock, sampled finer than it flickers.
 const SAMPLES := 1800
+const MAIN := ShipPower.Power.MAIN
+const EMERGENCY := ShipPower.Power.EMERGENCY
+const DARK := ShipPower.Power.DARK
 
 
-func _dimmed(lamp_height: float, floor_height: float) -> int:
-	var dimmed := 0
+func test_a_lamp_burns_steady_while_its_cell_is_lit() -> void:
 	for sample in SAMPLES:
-		if ShipLamp.glow(lamp_height, floor_height, sample / 30.0) < 1.0:
-			dimmed += 1
-	return dimmed
+		assert_eq(ShipLamp.glow(MAIN, MAIN, sample / 30.0, sample / 30.0), 1.0)
 
 
-func test_a_lamp_burns_steady_while_its_room_is_dry() -> void:
-	assert_eq(_dimmed(2.4, 0.1), 0)
-
-
-func test_a_lamp_is_out_once_the_sea_is_over_it() -> void:
+func test_a_lamp_is_out_once_nothing_lights_its_cell() -> void:
 	for sample in SAMPLES:
-		assert_eq(ShipLamp.glow(-0.01, -2.2, sample / 30.0), 0.0)
+		var since := ShipLamp.FAILING + sample / 30.0
+		assert_eq(ShipLamp.glow(DARK, MAIN, since, sample / 30.0), 0.0)
 
 
-func test_a_flooding_room_s_lamp_flickers_more_as_the_sea_climbs_to_it() -> void:
-	var water_at_the_floor := _dimmed(2.1, -0.05)
-	var water_near_the_lamp := _dimmed(0.2, -1.9)
-	assert_gt(water_at_the_floor, 0)
-	assert_lt(water_near_the_lamp, SAMPLES)
-	assert_gt(water_near_the_lamp, water_at_the_floor * 2)
+func test_emergency_power_burns_dimmer() -> void:
+	var dim := ShipLamp.glow(EMERGENCY, MAIN, ShipLamp.FAILING, 0.0)
+	assert_eq(dim, ShipLamp.EMERGENCY_GLOW)
+	assert_between(dim, 0.05, 0.6, "dim, never out")
+
+
+func test_a_lamp_flickers_as_its_power_drops_then_settles() -> void:
+	# For FAILING seconds it flickers between its old light and its new, holding the old
+	# less of the time as they pass; coming back up, it comes on at once.
+	var early := 0
+	var late := 0
+	for sample in SAMPLES:
+		var clock := sample / 30.0
+		if ShipLamp.glow(DARK, MAIN, ShipLamp.FAILING * 0.1, clock) > 0.0:
+			early += 1
+		if ShipLamp.glow(DARK, MAIN, ShipLamp.FAILING * 0.9, clock) > 0.0:
+			late += 1
+	assert_gt(early, late * 2, "flickering on less as it fails")
+	assert_gt(late, 0, "but flickering")
+	assert_eq(ShipLamp.glow(MAIN, DARK, 0.0, 0.0), 1.0, "back up at once")
 
 
 ## Rooms of the steamer, floor to ceiling: three on the lower deck, the saloon over

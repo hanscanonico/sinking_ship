@@ -20,7 +20,7 @@ const PROTOCOL_VERSION := 4
 ## The build of what plays a match — core/, ai/ and net/ — bumped by hand whenever a
 ## change there would play the same data differently: part of every match's hash, so
 ## two builds that would not agree are refused as other data.
-const SIM_BUILD := 4
+const SIM_BUILD := 5
 const HASH_BYTES := 8
 const LENGTH_QUANTUM := 0.001
 const SPEED_QUANTUM := 0.01

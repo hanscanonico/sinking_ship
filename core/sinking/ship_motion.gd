@@ -314,8 +314,12 @@ func _stiffness(rotation: PackedFloat64Array, lift: PackedFloat64Array) -> Packe
 ## highest point of her outline stands over the sea — under it when negative; and her
 ## waterplane — each section's chord along the sea swept along her as a strip — its
 ## area and, about her centre of mass along the world's forward and athwartships axes,
-## its first moments and its second.
-func lift_under(rotation: PackedFloat64Array, sea: float) -> PackedFloat64Array:
+## its first moments and its second. Each section's own share of the volume goes into
+## [param by_section] when it has a place for each (HullGirder).
+func lift_under(
+	rotation: PackedFloat64Array, sea: float, by_section := PackedFloat64Array()
+) -> PackedFloat64Array:
+	var shares := by_section.size() == _x.size()
 	var ux := rotation[3]
 	var uy := rotation[4]
 	var uz := rotation[5]
@@ -338,11 +342,15 @@ func lift_under(rotation: PackedFloat64Array, sea: float) -> PackedFloat64Array:
 			low = minf(low, off)
 			high = maxf(high, off)
 		highest = maxf(highest, high - level)
+		if shares:
+			by_section[section] = 0.0
 		if low > level:
 			continue
 		if high <= level:
 			var whole := _whole[section * 3]
 			var piece := whole * 0.5 * _length[section]
+			if shares:
+				by_section[section] = piece
 			volume += piece
 			mx += piece * x
 			mz += piece * _whole[section * 3 + 1] / (3.0 * whole)
@@ -409,6 +417,8 @@ func lift_under(rotation: PackedFloat64Array, sea: float) -> PackedFloat64Array:
 		sum_y += (last_y + first_y) * closing
 		if twice > EPSILON:
 			var part := twice * 0.5 * _length[section]
+			if shares:
+				by_section[section] = part
 			volume += part
 			mx += part * x
 			mz += part * sum_z / (3.0 * twice)
