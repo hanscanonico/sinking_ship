@@ -815,12 +815,12 @@ leak_area = 0.0000176
 [sub_resource type="Resource" id="Cell_engine_room"]
 script = ExtResource("11_cell")
 name = &"engine_room"
-low = Vector3(-15, -4.2, -2.8)
+low = Vector3(-15, -2.2, -2.8)
 high = Vector3(-3, 0, 2.8)
 kind = 1
-shape = 0.8454
+shape = 0.9954
 rooms = Array[StringName]([&"engine room"])
-leak_area = 0.000239
+leak_area = 0.000147
 
 [sub_resource type="Resource" id="Cell_engine_wing_s"]
 script = ExtResource("11_cell")
@@ -843,13 +843,13 @@ leak_area = 0.0000297
 [sub_resource type="Resource" id="Cell_fish_hold"]
 script = ExtResource("11_cell")
 name = &"fish_hold"
-low = Vector3(-3, -4.2, -2.4)
+low = Vector3(-3, -2.2, -2.4)
 high = Vector3(7, 0, 2.4)
 kind = 2
 permeability = 0.9
-shape = 0.9191
+shape = 1
 rooms = Array[StringName]([&"fish hold"])
-leak_area = 0.000185
+leak_area = 0.000106
 
 [sub_resource type="Resource" id="Cell_hold_wing_s"]
 script = ExtResource("11_cell")
@@ -863,11 +863,11 @@ leak_area = 0.0000297
 [sub_resource type="Resource" id="Cell_fore"]
 script = ExtResource("11_cell")
 name = &"fore"
-low = Vector3(7, -4.2, -3.75)
+low = Vector3(7, 0, -3.75)
 high = Vector3(15, 2.3, 3.75)
-shape = 0.4828
+shape = 0.7028
 rooms = Array[StringName]([&"crew mess"])
-leak_area = 0.000188
+leak_area = 0.000097
 
 [sub_resource type="Resource" id="Cell_deckhouse"]
 script = ExtResource("11_cell")
@@ -897,6 +897,32 @@ shape = 0.9997
 leak_area = 0.000075
 shipping_edges = PackedVector3Array(-3, 1, -3.75, 7, 1, -3.75, -3, 1, 3.75, 7, 1, 3.75)
 
+[sub_resource type="Resource" id="Cell_engine_bilge"]
+script = ExtResource("11_cell")
+name = &"engine_bilge"
+low = Vector3(-15, -4.2, -2.8)
+high = Vector3(-3, -2.2, 2.8)
+kind = 4
+shape = 0.6803
+leak_area = 0.0000914
+
+[sub_resource type="Resource" id="Cell_hold_bilge"]
+script = ExtResource("11_cell")
+name = &"hold_bilge"
+low = Vector3(-3, -4.2, -2.4)
+high = Vector3(7, -2.2, 2.4)
+kind = 4
+shape = 0.83
+leak_area = 0.0000797
+
+[sub_resource type="Resource" id="Cell_fore_stores"]
+script = ExtResource("11_cell")
+name = &"fore_stores"
+low = Vector3(7, -4.2, -3.75)
+high = Vector3(15, 0, 3.75)
+shape = 0.3623
+leak_area = 0.0000913
+
 [sub_resource type="Resource" id="Wall_bulkhead_aft"]
 script = ExtResource("12_wall")
 name = &"bulkhead_aft"
@@ -904,10 +930,10 @@ at = -3
 span = Vector2(-3.75, 3.75)
 bottom = -4.2
 top = 0
-collapse_head = 6.3
-leak_head = 5.25
+collapse_head = 9.45
+leak_head = 7.875
 leak_area = 0.002
-cells = Array[StringName]([&"engine_wing_p", &"engine_room", &"engine_wing_s", &"hold_wing_p", &"fish_hold", &"hold_wing_s"])
+cells = Array[StringName]([&"engine_wing_p", &"engine_room", &"engine_wing_s", &"hold_wing_p", &"fish_hold", &"hold_wing_s", &"engine_bilge", &"hold_bilge"])
 
 [sub_resource type="Resource" id="Wall_bulkhead_fwd"]
 script = ExtResource("12_wall")
@@ -916,10 +942,10 @@ at = 7
 span = Vector2(-3.75, 3.75)
 bottom = -4.2
 top = 0
-collapse_head = 6.3
-leak_head = 5.25
+collapse_head = 9.45
+leak_head = 7.875
 leak_area = 0.002
-cells = Array[StringName]([&"hold_wing_p", &"fish_hold", &"hold_wing_s", &"fore"])
+cells = Array[StringName]([&"hold_wing_p", &"fish_hold", &"hold_wing_s", &"hold_bilge", &"fore_stores"])
 
 [sub_resource type="Resource" id="Wall_engine_lining_p"]
 script = ExtResource("12_wall")
@@ -930,7 +956,7 @@ span = Vector2(-14.4, -3)
 bottom = -4.2
 top = 0
 collapse_head = 6.3
-cells = Array[StringName]([&"engine_wing_p", &"engine_room"])
+cells = Array[StringName]([&"engine_wing_p", &"engine_room", &"engine_bilge"])
 
 [sub_resource type="Resource" id="Wall_engine_lining_s"]
 script = ExtResource("12_wall")
@@ -941,7 +967,7 @@ span = Vector2(-14.4, -3)
 bottom = -4.2
 top = 0
 collapse_head = 6.3
-cells = Array[StringName]([&"engine_room", &"engine_wing_s"])
+cells = Array[StringName]([&"engine_room", &"engine_wing_s", &"engine_bilge"])
 
 [sub_resource type="Resource" id="Wall_hold_lining_p"]
 script = ExtResource("12_wall")
@@ -952,7 +978,7 @@ span = Vector2(-3, 7)
 bottom = -4.2
 top = 0
 collapse_head = 6.3
-cells = Array[StringName]([&"hold_wing_p", &"fish_hold"])
+cells = Array[StringName]([&"hold_wing_p", &"fish_hold", &"hold_bilge"])
 
 [sub_resource type="Resource" id="Wall_hold_lining_s"]
 script = ExtResource("12_wall")
@@ -963,7 +989,7 @@ span = Vector2(-3, 7)
 bottom = -4.2
 top = 0
 collapse_head = 6.3
-cells = Array[StringName]([&"fish_hold", &"hold_wing_s"])
+cells = Array[StringName]([&"fish_hold", &"hold_wing_s", &"hold_bilge"])
 
 [sub_resource type="Resource" id="Opening_wtd_engine"]
 script = ExtResource("13_opening")
@@ -1061,9 +1087,9 @@ centre = Vector3(2, 0, 0)
 size = Vector3(2, 0, 1.8)
 starts = 1
 flip_chance = 0.3
-leak_head = 0.3
-collapse_head = 1
-leak_area = 0.05
+leak_head = 1
+collapse_head = 3
+leak_area = 0.01
 
 [sub_resource type="Resource" id="Opening_skylight"]
 script = ExtResource("13_opening")
@@ -1126,8 +1152,8 @@ script = ExtResource("13_opening")
 name = &"leak_engine_wing_p"
 kind = 8
 joins = Array[StringName]([&"engine_wing_p", &"engine_room"])
-centre = Vector3(-9, -2.1, -2.8)
-size = Vector3(12, 4.2, 0)
+centre = Vector3(-9, -1.1, -2.8)
+size = Vector3(12, 2.2, 0)
 area = 0.002
 
 [sub_resource type="Resource" id="Opening_pipe_engine_wing_p"]
@@ -1144,8 +1170,8 @@ script = ExtResource("13_opening")
 name = &"leak_engine_wing_s"
 kind = 8
 joins = Array[StringName]([&"engine_wing_s", &"engine_room"])
-centre = Vector3(-9, -2.1, 2.8)
-size = Vector3(12, 4.2, 0)
+centre = Vector3(-9, -1.1, 2.8)
+size = Vector3(12, 2.2, 0)
 area = 0.002
 
 [sub_resource type="Resource" id="Opening_pipe_engine_wing_s"]
@@ -1162,8 +1188,8 @@ script = ExtResource("13_opening")
 name = &"leak_hold_wing_p"
 kind = 8
 joins = Array[StringName]([&"hold_wing_p", &"fish_hold"])
-centre = Vector3(2, -2.1, -2.4)
-size = Vector3(10, 4.2, 0)
+centre = Vector3(2, -1.1, -2.4)
+size = Vector3(10, 2.2, 0)
 area = 0.002
 
 [sub_resource type="Resource" id="Opening_pipe_hold_wing_p"]
@@ -1180,8 +1206,8 @@ script = ExtResource("13_opening")
 name = &"leak_hold_wing_s"
 kind = 8
 joins = Array[StringName]([&"hold_wing_s", &"fish_hold"])
-centre = Vector3(2, -2.1, 2.4)
-size = Vector3(10, 4.2, 0)
+centre = Vector3(2, -1.1, 2.4)
+size = Vector3(10, 2.2, 0)
 area = 0.002
 
 [sub_resource type="Resource" id="Opening_pipe_hold_wing_s"]
@@ -1192,6 +1218,33 @@ joins = Array[StringName]([&"hold_wing_s", &"working_deck"])
 centre = Vector3(2, 0, 3.075)
 size = Vector3(0.09, 0, 0.09)
 area = 0.008
+
+[sub_resource type="Resource" id="Opening_floor_engine_room"]
+script = ExtResource("13_opening")
+name = &"floor_engine_room"
+kind = 7
+joins = Array[StringName]([&"engine_bilge", &"engine_room"])
+centre = Vector3(-9, -2.2, 0)
+size = Vector3(12, 0, 5.6)
+area = 0.3
+
+[sub_resource type="Resource" id="Opening_floor_fish_hold"]
+script = ExtResource("13_opening")
+name = &"floor_fish_hold"
+kind = 7
+joins = Array[StringName]([&"hold_bilge", &"fish_hold"])
+centre = Vector3(2, -2.2, 0)
+size = Vector3(10, 0, 4.8)
+area = 0.3
+
+[sub_resource type="Resource" id="Opening_floor_fore"]
+script = ExtResource("13_opening")
+name = &"floor_fore"
+kind = 7
+joins = Array[StringName]([&"fore_stores", &"fore"])
+centre = Vector3(11, 0, 0)
+size = Vector3(8, 0, 7.5)
+area = 0.05
 
 [sub_resource type="Resource" id="Opening_open_working_deck"]
 script = ExtResource("13_opening")
@@ -1358,9 +1411,9 @@ script = ExtResource("9_structure")
 waterline_y = -1.2
 keel_y = -4.2
 sections = Array[ExtResource("10_section")]([SubResource("Section_0"), SubResource("Section_1"), SubResource("Section_2"), SubResource("Section_3"), SubResource("Section_4"), SubResource("Section_5"), SubResource("Section_6"), SubResource("Section_7"), SubResource("Section_8"), SubResource("Section_9"), SubResource("Section_10"), SubResource("Section_11"), SubResource("Section_12"), SubResource("Section_13"), SubResource("Section_14"), SubResource("Section_15"), SubResource("Section_16"), SubResource("Section_17"), SubResource("Section_18"), SubResource("Section_19")])
-cells = Array[ExtResource("11_cell")]([SubResource("Cell_engine_wing_p"), SubResource("Cell_engine_room"), SubResource("Cell_engine_wing_s"), SubResource("Cell_hold_wing_p"), SubResource("Cell_fish_hold"), SubResource("Cell_hold_wing_s"), SubResource("Cell_fore"), SubResource("Cell_deckhouse"), SubResource("Cell_wheelhouse"), SubResource("Cell_working_deck")])
+cells = Array[ExtResource("11_cell")]([SubResource("Cell_engine_wing_p"), SubResource("Cell_engine_room"), SubResource("Cell_engine_wing_s"), SubResource("Cell_hold_wing_p"), SubResource("Cell_fish_hold"), SubResource("Cell_hold_wing_s"), SubResource("Cell_fore"), SubResource("Cell_deckhouse"), SubResource("Cell_wheelhouse"), SubResource("Cell_working_deck"), SubResource("Cell_engine_bilge"), SubResource("Cell_hold_bilge"), SubResource("Cell_fore_stores")])
 walls = Array[ExtResource("12_wall")]([SubResource("Wall_bulkhead_aft"), SubResource("Wall_bulkhead_fwd"), SubResource("Wall_engine_lining_p"), SubResource("Wall_engine_lining_s"), SubResource("Wall_hold_lining_p"), SubResource("Wall_hold_lining_s")])
-openings = Array[ExtResource("13_opening")]([SubResource("Opening_wtd_engine"), SubResource("Opening_door_deckhouse_sky_0"), SubResource("Opening_door_deckhouse_working_deck_0"), SubResource("Opening_door_deckhouse_sky_1"), SubResource("Opening_door_wheelhouse_sky_0"), SubResource("Opening_door_wheelhouse_sky_1"), SubResource("Opening_door_working_deck_fore_0"), SubResource("Opening_door_fore_sky_0"), SubResource("Opening_stair_engine_room_deckhouse_p"), SubResource("Opening_stair_engine_room_deckhouse_s"), SubResource("Opening_stair_deckhouse_wheelhouse"), SubResource("Opening_fish_hatch"), SubResource("Opening_skylight"), SubResource("Opening_freeing_port_p1"), SubResource("Opening_freeing_port_p2"), SubResource("Opening_freeing_port_p3"), SubResource("Opening_freeing_port_s1"), SubResource("Opening_freeing_port_s2"), SubResource("Opening_freeing_port_s3"), SubResource("Opening_leak_engine_wing_p"), SubResource("Opening_pipe_engine_wing_p"), SubResource("Opening_leak_engine_wing_s"), SubResource("Opening_pipe_engine_wing_s"), SubResource("Opening_leak_hold_wing_p"), SubResource("Opening_pipe_hold_wing_p"), SubResource("Opening_leak_hold_wing_s"), SubResource("Opening_pipe_hold_wing_s"), SubResource("Opening_open_working_deck"), SubResource("Opening_port_fore_p1"), SubResource("Opening_port_fore_s1")])
+openings = Array[ExtResource("13_opening")]([SubResource("Opening_wtd_engine"), SubResource("Opening_door_deckhouse_sky_0"), SubResource("Opening_door_deckhouse_working_deck_0"), SubResource("Opening_door_deckhouse_sky_1"), SubResource("Opening_door_wheelhouse_sky_0"), SubResource("Opening_door_wheelhouse_sky_1"), SubResource("Opening_door_working_deck_fore_0"), SubResource("Opening_door_fore_sky_0"), SubResource("Opening_stair_engine_room_deckhouse_p"), SubResource("Opening_stair_engine_room_deckhouse_s"), SubResource("Opening_stair_deckhouse_wheelhouse"), SubResource("Opening_fish_hatch"), SubResource("Opening_skylight"), SubResource("Opening_freeing_port_p1"), SubResource("Opening_freeing_port_p2"), SubResource("Opening_freeing_port_p3"), SubResource("Opening_freeing_port_s1"), SubResource("Opening_freeing_port_s2"), SubResource("Opening_freeing_port_s3"), SubResource("Opening_leak_engine_wing_p"), SubResource("Opening_pipe_engine_wing_p"), SubResource("Opening_leak_engine_wing_s"), SubResource("Opening_pipe_engine_wing_s"), SubResource("Opening_leak_hold_wing_p"), SubResource("Opening_pipe_hold_wing_p"), SubResource("Opening_leak_hold_wing_s"), SubResource("Opening_pipe_hold_wing_s"), SubResource("Opening_floor_engine_room"), SubResource("Opening_floor_fish_hold"), SubResource("Opening_floor_fore"), SubResource("Opening_open_working_deck"), SubResource("Opening_port_fore_p1"), SubResource("Opening_port_fore_s1")])
 mass = Array[ExtResource("14_mass")]([SubResource("Mass_hull_steel"), SubResource("Mass_engine_and_gearbox"), SubResource("Mass_fuel"), SubResource("Mass_deckhouse_and_wheelhouse"), SubResource("Mass_winch_and_fishing_gear"), SubResource("Mass_mast_and_rigging"), SubResource("Mass_fish_hold_insulation_and_ice"), SubResource("Mass_stores_and_water"), SubResource("Mass_ballast")])
 roll_radius = 3
 pitch_radius = 7.5

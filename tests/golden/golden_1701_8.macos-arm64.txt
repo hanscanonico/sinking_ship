@@ -4,64 +4,39 @@ must 1 thrown · 5 bakes · sure hit
 00:37.3 engine_bilge_s flooding
 00:37.3 hold_wing_s flooding
 00:37.5 aft_peak flooding
-00:38.6 lurch coming · heel +11°
-00:39.6 lurched · heel +11°
+00:38.5 lurch coming · heel +16°
+00:39.5 lurched · heel +16°
 00:40.2 aft_bilge_p flooding
 00:41.5 hold_bilge flooding
-00:44.9 port boats useless
-00:48.7 seat 4 out · cold · place 8
-01:01.7 aft_cabins flooding
-01:01.7 engine_room flooding
-01:01.9 water through over_girder_aft_cabins
-01:07.4 water through over_girder_engine_room
-01:07.4 engine_bilge_p flooding
-01:14.8 seat 7 out · cold · place 7
-01:17.7 hold flooding
-01:18.1 seat 5 out · cold · place 6
-01:32.6 railing 40 broke
-01:33.2 railing 12 broke
-01:33.5 crate 3 lost
-01:37.8 aft_bilge_s full
-01:48.4 seat 0 out · cold · place 5
-01:49.7 aft_bilge_p full
-01:57.1 engine_bilge_s full
-02:04.2 engine_bilge_p full
-02:10.9 water through stair_aft_cabins_sky
-02:10.9 poop_space flooding
-02:17.5 railing 5 broke
-02:17.6 generator stopped
-02:19.8 deckhouse_cabins flooding
-02:19.8 deckhouse_hall flooding
-02:21.3 saloon flooding
-02:21.5 air trapped in aft_peak
-02:26.3 aft_cabins lamps drowned
-02:26.6 air trapped in aft_cabins
-02:27.6 the plunge
-02:27.7 funnel creaking
-02:27.9 water through over_bulkhead_hold_to_hold_wing_s
-02:31.6 crate 0 lost
-02:32.2 funnel falling
-02:32.2 crate 1 lost
-02:32.8 wheelhouse flooding
-02:32.9 seat 2 out · cold · place 4
-02:33.2 water through stair_engine_room_deckhouse_hall
-02:33.4 railing 8 broke
-02:35.3 water through over_bulkhead_hold_to_hold
-02:36.2 deckhouse_cabins lamps drowned
-02:36.5 crate 2 lost
-02:39.0 engine_room lamps drowned
-02:40.5 deckhouse_hall lamps drowned
-02:40.9 wheelhouse lamps drowned
-02:41.4 hatch_hold leaking
-02:41.6 deckhouse_cabins full
-02:42.0 saloon lamps drowned
-02:42.5 air trapped in poop_space
-02:43.2 poop_space full
-02:43.4 wheelhouse full
-02:43.6 deckhouse_hall full
-02:43.6 seat 3 out · cold · place 3
-02:44.0 seat 6 out · cold · place 2
-winner seat 1 at 02:44.0 · digest 2a16249d2b810672
-sinking at the end of the match: physics 0:02:06 (= match time, Q20 deferred) · seen 79% · sea 7.25 m up her · trim -28.8° · list +35.5° · aft_peak 11.06 m · poop_space full · aft_bilge_p full · aft_bilge_s full · aft_cabins 8.14 m · engine_bilge_p full · engine_bilge_s full · engine_room 7.59 m · hold_bilge 5.19 m · hold 2.55 m · hold_wing_s 6.25 m · deckhouse_cabins full · deckhouse_hall full · saloon 5.38 m · wheelhouse full
-not played: gone at 0:02:40 · trim -84.7° · list -4.8° · founders by the stern · fast · port boats useless · starboard boats useless · lights out · funnel fell
+00:43.2 port boats useless
+00:49.4 seat 4 out · cold · place 8
+00:53.8 generator stopped
+00:54.8 engine_bilge_p flooding
+00:59.1 railing 40 broke
+01:01.1 water through over_girder_aft_cabins
+01:01.1 aft_cabins flooding
+01:01.1 engine_room flooding
+01:01.4 railing 13 broke
+01:01.7 crate 2 lost
+01:03.2 water through over_girder_engine_room
+01:09.5 hold flooding
+01:11.7 seat 2 out · cold · place 7
+01:13.0 railing 37 broke
+01:15.8 crate 3 lost
+01:17.6 generator running again
+01:33.9 aft_bilge_s full
+01:38.3 seat 0 out · cold · place 6
+01:42.6 aft_bilge_p full
+01:55.0 engine_bilge_s full
+01:55.4 engine_bilge_p full
+02:05.3 seat 7 out · cold · place 5
+02:25.1 seat 1 out · cold · place 4
+02:43.9 poop_space flooding
+02:53.2 seat 3 out · cold · place 3
+03:03.9 aft_peak full
+03:21.5 water through stair_aft_cabins_sky
+03:44.6 seat 6 out · cold · place 2
+winner seat 5 at 03:44.6 · digest ce9e77cbe76e6ccd
+sinking at the end of the match: physics 0:03:07 (= match time, Q20 deferred) · seen 73% · sea 2.37 m up her · trim -6.0° · list +4.6° · aft_peak 7.04 m · poop_space 0.49 m · aft_bilge_p full · aft_bilge_s full · aft_cabins 1.44 m · engine_bilge_p full · engine_bilge_s full · engine_room 1.01 m · hold_bilge 2.72 m · hold 0.18 m · hold_wing_s 3.47 m
+not played: gone at 0:04:15 · trim -85.9° · list -11.5° · founders by the stern · fast · port boats useless · lights out · funnel fell
 bending peak 0.05 of strength, x +1.5 m, sagging

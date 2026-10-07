@@ -1625,7 +1625,7 @@ kind = 7
 joins = Array[StringName]([&"aft_bilge_p", &"aft_cabins"])
 centre = Vector3(-8, -2.6, -2.5)
 size = Vector3(10, 0, 5)
-area = 0.3
+area = 0.025
 
 [sub_resource type="Resource" id="Opening_floor_aft_cabins_s"]
 script = ExtResource("13_opening")
@@ -1634,7 +1634,7 @@ kind = 7
 joins = Array[StringName]([&"aft_bilge_s", &"aft_cabins"])
 centre = Vector3(-8, -2.6, 2.5)
 size = Vector3(10, 0, 5)
-area = 0.3
+area = 0.025
 
 [sub_resource type="Resource" id="Opening_limber_aft_cabins"]
 script = ExtResource("13_opening")
@@ -1660,7 +1660,7 @@ kind = 7
 joins = Array[StringName]([&"engine_bilge_p", &"engine_room"])
 centre = Vector3(0.5, -2.6, -2.5)
 size = Vector3(7, 0, 5)
-area = 0.3
+area = 0.025
 
 [sub_resource type="Resource" id="Opening_floor_engine_room_s"]
 script = ExtResource("13_opening")
@@ -1669,7 +1669,7 @@ kind = 7
 joins = Array[StringName]([&"engine_bilge_s", &"engine_room"])
 centre = Vector3(0.5, -2.6, 2.5)
 size = Vector3(7, 0, 5)
-area = 0.3
+area = 0.025
 
 [sub_resource type="Resource" id="Opening_limber_engine_room"]
 script = ExtResource("13_opening")
@@ -1695,7 +1695,7 @@ kind = 7
 joins = Array[StringName]([&"hold_bilge", &"hold"])
 centre = Vector3(9.5, -2.6, 0)
 size = Vector3(11, 0, 7.6)
-area = 0.6
+area = 0.05
 
 [sub_resource type="Resource" id="Opening_leak_hold_wing_p"]
 script = ExtResource("13_opening")
@@ -2507,7 +2507,7 @@ along = Vector2(15, 20)
 script = ExtResource("14_mass")
 name = &"ballast"
 mass = 109948.4
-centre = Vector3(8.0603, -5, -0.0036)
+centre = Vector3(8.0603, -3.6, -0.0036)
 along = Vector2(0.0603, 16.0603)
 
 [sub_resource type="Resource" id="Fitting_lifeboat_port"]
