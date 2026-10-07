@@ -669,7 +669,9 @@ func _vent(cell: int, levels: PackedFloat64Array, pose: ShipPose) -> void:
 	for index in _passages.size():
 		if _sides[index * 2] != cell and _sides[index * 2 + 1] != cell:
 			continue
-		if pose.doors_shut.get(_passages[index].name, 0.0) >= 1.0:
+		var passage := _passages[index].name
+		var shut: bool = _shut[index] == 1 or pose.doors_shut.get(passage, 0.0) >= 1.0
+		if shut and pose.opened.get(passage, 0) < 2:
 			continue
 		var top := CellSurface.reach(_ship, _spans[index]).y
 		if top > highest:

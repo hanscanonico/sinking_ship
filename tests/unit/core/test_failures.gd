@@ -37,8 +37,11 @@ func _flows() -> SeaPhysics:
 
 ## Two tanks side by side in a broad barge, the first holed to the sea at its floor and
 ## filling toward [param sea_over_floor] over it, the second dry behind a shut door that
-## swings open into [param opens_toward] — none for a door that slides.
-func _tanks(sea_over_floor: float, opens_toward := &"") -> SinkStepper:
+## swings open into [param opens_toward] — none for a door that slides — and gives way
+## at [param collapse_head], never at 0.
+func _tanks(
+	sea_over_floor: float, opens_toward := &"", collapse_head := COLLAPSE_HEAD
+) -> SinkStepper:
 	var barge := BoxBarge.new(1000.0, 1000.0, 40.0, sea_over_floor, 10.0)
 	barge.section_length = 250.0
 	barge.cell(&"wet", Vector3(0.0, FLOOR, 0.0), Vector3(10.0, 0.0, 10.0))
@@ -52,7 +55,7 @@ func _tanks(sea_over_floor: float, opens_toward := &"") -> SinkStepper:
 	door.size = Vector3(0.0, 2.0, 1.0)
 	door.starts = ShipOpening.Start.SHUT
 	door.leak_head = LEAK_HEAD
-	door.collapse_head = COLLAPSE_HEAD
+	door.collapse_head = collapse_head
 	door.leak_area = 0.005
 	door.opens_toward = opens_toward
 	barge.openings.append(door)
@@ -109,6 +112,16 @@ func test_door_leaks_then_collapses_at_its_heads() -> void:
 			weeping = heads[state * 2 + 1] - FLOOR
 	assert_gt(weeping, 0.0, "a leak passes water")
 	assert_lt(weeping, 0.5, "but little")
+
+
+func test_a_door_that_never_gives_way_still_leaks_at_its_head() -> void:
+	# No collapse head: 5 m stand across it in the end, yet it only weeps from 1 m.
+	var bake := SinkBake.new(_tanks(5.0, &"", 0.0), _flows(), 7200.0)
+	bake.run(1 << 62)
+	var leaks := _when(bake, SinkTimeline.Kind.LEAKING, &"door")
+	assert_gt(leaks, 0.0, "it leaks")
+	assert_almost_eq(_across_at(bake, leaks), LEAK_HEAD, LANDED, "at its leak head")
+	assert_eq(_when(bake, SinkTimeline.Kind.GAVE_WAY, &"door"), -1.0, "and never gives way")
 
 
 func test_hinged_door_opens_with_the_flow_and_holds_against_it() -> void:

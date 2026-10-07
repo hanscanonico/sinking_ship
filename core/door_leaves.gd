@@ -38,10 +38,12 @@ func _init(structure: ShipStructure) -> void:
 		_shut.append(0.0)
 
 
-## Takes how far [param pose] has each door shut.
+## Takes how far [param pose] has each door shut — none, where it has given way
+## (ShipPose.opened).
 func honour(pose: ShipPose) -> void:
 	for door in _names.size():
-		_shut[door] = pose.doors_shut.get(_names[door], 0.0)
+		var gone: bool = pose.opened.get(_names[door], 0) >= 2
+		_shut[door] = 0.0 if gone else pose.doors_shut.get(_names[door], 0.0)
 
 
 ## What the leaves hold back a circle of [param radius] at [param point] (x/z) with

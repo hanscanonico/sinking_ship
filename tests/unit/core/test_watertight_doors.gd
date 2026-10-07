@@ -70,3 +70,29 @@ func test_a_shut_door_hides_and_stops_a_shove() -> void:
 	sim.surfaces.honour(shut)
 	assert_true(sim.surfaces.blocked(before, behind, rules.body_height, rules.step_height))
 	assert_false(sim.surfaces.line_of_sight(before + eyes, behind + eyes, shut))
+
+
+func test_a_door_given_way_neither_holds_a_body_nor_hides_a_shove() -> void:
+	var sim := _sim(2)
+	var rules := SimFixtures.rules()
+	var before := Vector3(WALL_X - 0.6, -2.6, 0.0)
+	var behind := Vector3(WALL_X + 0.6, -2.6, 0.0)
+	var eyes := Vector3.UP * 1.6
+	var later := sim.schedule.hit_tick() + Ticks.from_seconds(30.0)
+	var shut := sim.schedule.pose_at(later)
+	assert_eq(shut.doors_shut.get(&"wtd_engine", 0.0), 1.0, "shut")
+	sim.surfaces.honour(shut)
+	assert_true(sim.surfaces.blocked(before, behind, rules.body_height, rules.step_height))
+	assert_false(sim.surfaces.line_of_sight(before + eyes, behind + eyes, shut))
+	var burst := sim.schedule.pose_at(later)
+	burst.opened[&"wtd_engine"] = 2
+	sim.surfaces.honour(burst)
+	assert_false(sim.surfaces.blocked(before, behind, rules.body_height, rules.step_height))
+	assert_true(sim.surfaces.line_of_sight(before + eyes, behind + eyes, burst))
+	var weeping := sim.schedule.pose_at(later)
+	weeping.opened[&"wtd_engine"] = 1
+	sim.surfaces.honour(weeping)
+	assert_true(
+		sim.surfaces.blocked(before, behind, rules.body_height, rules.step_height),
+		"a leaking door still holds"
+	)

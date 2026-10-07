@@ -124,8 +124,9 @@ func watch(index: int, opening: ShipOpening, sides: Vector2i, shut_time: float) 
 	var kept := kept_share(_structure, _damage, opening)
 	_index.append(index)
 	_shut_time.append(shut_time)
-	_leak.append(minf(opening.leak_head, opening.collapse_head * kept))
-	_collapse.append(opening.collapse_head * kept)
+	var collapse := opening.collapse_head * kept
+	_leak.append(minf(opening.leak_head, collapse) if collapse > 0.0 else opening.leak_head)
+	_collapse.append(collapse)
 	_leak_share.append(minf(opening.leak_area / opening.flow_area(), 1.0))
 	var toward := 0
 	if not opening.opens_toward.is_empty():
