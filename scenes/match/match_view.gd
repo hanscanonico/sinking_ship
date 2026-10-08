@@ -6,8 +6,9 @@ extends Node3D
 ## Brawler with a blob shadow, placed in ship space and standing up the frame of the
 ## faces the match stands on (Faces, SH32) — except the seat whose eyes the view is in,
 ## which is not drawn (D14) — and every crate of the cargo is placed where the snapshots
-## have it, hidden once lost (SH10). It never moves a body itself, and never reads a
-## live PlayerState.
+## have it, hidden once lost (SH10). Once she has broken (SH33) a seat stands in the space
+## of its piece, where that piece's pose has it in the world. It never moves a body
+## itself, and never reads a live PlayerState.
 
 ## The seat colours now live in ArtPalette; this name stays for code outside the art.
 const SEAT_COLOURS: Array[Color] = ArtPalette.SEAT_COLOURS
@@ -24,6 +25,11 @@ const FALL_SECONDS := 0.5
 var _driver: SimDriver
 var _schedule: SinkSchedule
 var _faces: Faces
+var _pieces: Pieces
+## Per seat, where it is drawn in its piece's space — its feet — and that piece's place
+## in the world as drawn this frame.
+var _feet := PackedVector3Array()
+var _worlds: Array[Transform3D] = []
 var _structure: ShipStructure
 var _rooms: Array[ShipRoom] = []
 var _bodies: Array[Brawler] = []
@@ -41,6 +47,11 @@ var _smoother := CorrectionSmoother.new(0.0)
 ## The water inside her, at each cell's level (InnerWater); null without a physical
 ## sinking.
 var _inner: InnerWater
+## Once she breaks (SH33), every piece of her drawn: the first by the ship's own node, art
+## and water, kept to its stretch — her aftmost piece, _aft; the rest beside it.
+var _broken := false
+var _aft := 0
+var _drawn_pieces: ShipPieces
 
 @onready var _ship: Node3D = $Ship
 @onready var _greybox: ShipGreybox = $Ship/Greybox
@@ -59,22 +70,32 @@ func setup(driver: SimDriver, sim: MatchSim, local_seat: int, correction_time: f
 	_smoother = CorrectionSmoother.new(correction_time)
 	_schedule = sim.schedule
 	_faces = sim.faces
+	_pieces = sim.pieces
 	_structure = sim.config.ship.structure
 	_rooms = sim.config.ship.rooms
 	var ship := sim.config.ship
 	var rules := sim.config.rules
+	var leaves := ShipPieces.leaves_of(_schedule)
+	_broken = not leaves.is_empty()
+	_aft = leaves[0] if _broken else 0
+	var falls: Array[StringName] = []
+	for scheduled: SinkSchedule.Scheduled in _schedule.scheduled():
+		if scheduled.event.kind == SinkEvent.Kind.COLLAPSE:
+			falls.append(scheduled.event.platform)
+	# Any railing may break (SH10), not only those the scenario fails.
+	var fails := PackedInt32Array(range(ship.railings.size()))
 	if _greybox.visible:
-		_greybox.build(ship, rules.railing_height)
+		_greybox.build(_pieces.layout(leaves[0]) if _broken else ship, rules.railing_height)
 		_crates = _greybox.crates()
 	else:
-		var falls: Array[StringName] = []
-		for scheduled: SinkSchedule.Scheduled in _schedule.scheduled():
-			if scheduled.event.kind == SinkEvent.Kind.COLLAPSE:
-				falls.append(scheduled.event.platform)
-		# Any railing may break (SH10), not only those the scenario fails.
-		var fails := PackedInt32Array(range(ship.railings.size()))
+		_art.span = ShipPieces.first_span(_schedule)
 		_art.build(ship, rules.railing_height, rules.body_radius, falls, fails, _open_ports())
 		_crates = _art.crates()
+	if _drawn_pieces == null:
+		_drawn_pieces = ShipPieces.new()
+		_drawn_pieces.name = "Pieces"
+		add_child(_drawn_pieces)
+	_drawn_pieces.setup(sim, _ship, _art, _greybox, falls, fails, _open_ports())
 	for body: Brawler in _bodies:
 		body.queue_free()
 	for shadow: MeshInstance3D in _shadows:
@@ -82,6 +103,8 @@ func setup(driver: SimDriver, sim: MatchSim, local_seat: int, correction_time: f
 	_bodies.clear()
 	_shadows.clear()
 	_facings.resize(sim.config.seats)
+	_feet.resize(sim.config.seats)
+	_worlds.resize(sim.config.seats)
 	for seat in sim.config.seats:
 		_add_seat(seat, rules, seat == local_seat)
 	_process(0.0)
@@ -121,9 +144,16 @@ func seat_world_position(seat: int) -> Vector3:
 	return _bodies[seat].global_position
 
 
-## Where [param seat]'s feet are drawn, in ship space.
+## Where [param seat]'s feet are drawn, in the space of its piece of her: her ship space
+## while she is whole.
 func seat_feet(seat: int) -> Vector3:
-	return _bodies[seat].position
+	return _feet[seat]
+
+
+## Where [param seat]'s piece of her is drawn: its space to the world (ship_to_world while
+## she is whole).
+func seat_to_world(seat: int) -> Transform3D:
+	return _worlds[seat]
 
 
 ## The facing [param seat] is drawn with, in the plane of the faces it stands on.
@@ -142,6 +172,9 @@ func flood_with(sea: ShaderMaterial) -> void:
 	_inner = InnerWater.new()
 	_inner.name = "InnerWater"
 	_ship.add_child(_inner)
+	if _broken:
+		_drawn_pieces.flood_with(sea, _inner)
+		return
 	var paints: Dictionary = {} if _greybox.visible else _art.paints()
 	_inner.setup(_structure, _rooms, _schedule.passages(), _schedule.failing(), sea, paints)
 
@@ -149,20 +182,40 @@ func flood_with(sea: ShaderMaterial) -> void:
 ## How far the world point [param eye] stands above the water it is in — its cell's,
 ## or the sea's — as the ship is drawn and her water now stands; below 0, under it.
 func above_water(eye: Vector3) -> float:
-	var pose := _schedule.pose_at(_driver.current["tick"])
-	var ship_point := _ship.global_transform.affine_inverse() * eye
+	var pose := _eye_pose()
+	var ship_point := _eye_world().affine_inverse() * eye
 	return eye.y - pose.water_level(ship_point)
 
 
 ## Whether [param eye], in the world, is inside one of her cells.
 func indoors(eye: Vector3) -> bool:
+	return _eye_pose().cell_at(_eye_world().affine_inverse() * eye) != CellMap.NONE
+
+
+## The pose of the piece of her the eyes are on, and where it is drawn: the whole ship's
+## for the observer.
+func _eye_pose() -> ShipPose:
 	var pose := _schedule.pose_at(_driver.current["tick"])
-	return pose.cell_at(_ship.global_transform.affine_inverse() * eye) != CellMap.NONE
+	return pose if _eye_seat == -1 else pose.of_piece(_driver.current["seats"][_eye_seat]["piece"])
+
+
+func _eye_world() -> Transform3D:
+	return _ship.global_transform if _eye_seat == -1 else _worlds[_eye_seat]
 
 
 ## Where the ship is drawn: ship space to the world.
 func ship_to_world() -> Transform3D:
 	return _ship.global_transform
+
+
+## The node the [param at]th piece she ends in is drawn under, and where it is drawn
+## (ShipPieces): the ship's own for the first, and for a hull that never breaks.
+func piece_node(at: int) -> Node3D:
+	return _drawn_pieces.holder(at) if _broken else _ship
+
+
+func piece_to_world(at: int) -> Transform3D:
+	return piece_node(at).global_transform
 
 
 func _on_corrected(by: Vector3) -> void:
@@ -178,37 +231,54 @@ func _process(delta: float) -> void:
 	var alpha := _driver.alpha
 	var pose_then := _schedule.pose_at(previous["tick"])
 	var pose_now := _schedule.pose_at(current["tick"])
-	_ship.transform = pose_then.transform.interpolate_with(pose_now.transform, alpha)
-	if _inner != null:
+	_ship.transform = pose_then.of_piece(_aft).transform.interpolate_with(
+		pose_now.of_piece(_aft).transform, alpha
+	)
+	if _inner != null and not _broken:
 		_inner.show_water(pose_then, pose_now, alpha)
 	_show_sinking(
-		lerpf(previous["tick"], current["tick"], alpha), MatchState.broken_in(current["railing_hp"])
+		lerpf(previous["tick"], current["tick"], alpha),
+		MatchState.broken_in(current["railing_hp"]),
+		pose_then,
+		alpha
 	)
 	_show_cargo(previous["props"], current["props"], alpha)
 	var seats_then: Array = previous["seats"]
 	var seats_now: Array = current["seats"]
-	# Bodies stand up the frame the match stands in now; across a change of frame they
-	# are drawn in the new one, facing as it has them.
-	var up: int = current["up"]
-	var turned: bool = up != previous["up"]
-	var to_ship := Faces.to_ship(up)
-	var here := _faces.surfaces(up)
+	# Bodies stand up the frame the match stands in now on their piece; across a change of
+	# frame — or of piece — they are drawn in the new one, facing as it has them.
 	for index in seats_now.size():
 		var now: Dictionary = seats_now[index]
 		var then: Dictionary = seats_then[index]
 		var seat: int = now["seat"]
+		var piece: int = now["piece"]
+		var up := MatchState.up_of(current, now)
+		var moved: bool = piece != then["piece"]
+		var turned := moved or up != MatchState.up_of(previous, then)
+		var to_ship := Faces.to_ship(up)
+		var here := (_faces if piece == 0 else _pieces.faces(piece)).surfaces(up)
+		var world := _ship.transform
+		if piece != 0:
+			world = pose_then.of_piece(piece).transform.interpolate_with(
+				pose_now.of_piece(piece).transform, alpha
+			)
+		_worlds[seat] = world
 		var body := _bodies[seat]
 		body.visible = not now["out"] and seat != _eye_seat
 		_shadows[seat].visible = false
 		if now["out"]:
 			continue
-		var pos: Vector3 = (then["pos"] as Vector3).lerp(now["pos"], alpha)
+		var pos: Vector3 = now["pos"] if moved else (then["pos"] as Vector3).lerp(now["pos"], alpha)
 		if seat == _local_seat:
 			pos += _smoother.offset
+		_feet[seat] = pos
 		_facings[seat] = (
 			now["facing"] if turned else lerp_angle(then["facing"], now["facing"], alpha)
 		)
-		body.transform = Transform3D(to_ship * Basis(Vector3.UP, -_facings[seat]), pos)
+		var placed := (
+			_ship.transform.affine_inverse() * world if piece != 0 else Transform3D.IDENTITY
+		)
+		body.transform = placed * Transform3D(to_ship * Basis(Vector3.UP, -_facings[seat]), pos)
 		body.show_state(then, now, alpha)
 		# A swimmer stands on nothing: no ring tilted to a deck under the sea, no shadow.
 		var feet := to_ship.transposed() * pos
@@ -216,12 +286,13 @@ func _process(delta: float) -> void:
 		if now["state"] != PlayerState.Body.SWIMMING:
 			below = here.landing(feet)
 		var normal := Vector3.UP if below == Surfaces.NONE else _ground_normal(here, below, feet)
-		body.show_ground(to_ship * normal)
+		body.show_ground(placed.basis * (to_ship * normal))
 		if below != Surfaces.NONE:
 			var ground := here.height_at(below, feet)
 			_shadows[seat].visible = body.visible
-			_shadows[seat].transform = Transform3D(
-				to_ship, to_ship * Vector3(feet.x, ground + SHADOW_LIFT, feet.z)
+			_shadows[seat].transform = (
+				placed
+				* Transform3D(to_ship, to_ship * Vector3(feet.x, ground + SHADOW_LIFT, feet.z))
 			)
 	Brawler.keep_apart(_bodies, _eye_seat)
 
@@ -231,8 +302,9 @@ func _process(delta: float) -> void:
 ## collapse is telegraphed and whether the blink is lit now, how far (0…1) each
 ## collapsed platform has fallen, by name, and the failed railings — with them those
 ## the match has [param broken] — and, dressed, what lights each cell, the glass broken
-## and how far each funnel has fallen (SH31).
-func _show_sinking(tick: float, broken: PackedInt32Array) -> void:
+## and how far each funnel has fallen (SH31). A hull that breaks has each piece drawn as
+## its own pose has it, [param then] the pose [param alpha] of the way from (ShipPieces).
+func _show_sinking(tick: float, broken: PackedInt32Array, then: ShipPose, alpha: float) -> void:
 	var now := floori(tick)
 	var pose := _schedule.pose_at(now)
 	var fallen := {}
@@ -243,7 +315,9 @@ func _show_sinking(tick: float, broken: PackedInt32Array) -> void:
 	var lit := now / BLINK_TICKS % 2 == 0
 	var gone := pose.broken_railings.duplicate()
 	gone.append_array(broken)
-	if _greybox.visible:
+	if _broken:
+		_drawn_pieces.show_pieces(then, pose, alpha, tick, pose.collapsing, fallen, gone, lit)
+	elif _greybox.visible:
 		_greybox.show_sinking(pose.collapsing, fallen, gone, lit)
 		_greybox.show_power(pose)
 		_greybox.show_falls(pose.falls, tick)

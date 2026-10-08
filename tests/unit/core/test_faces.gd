@@ -116,7 +116,7 @@ func test_wall_is_a_floor_past_55_degrees_of_roll() -> void:
 	var sim := _held(60.0, Vector3(-2.0, FLOOR, 0.0))
 	SimFixtures.step(sim, {}, 3 * Ticks.RATE)
 	var body := sim.state.seats[0]
-	assert_eq(sim.state.up, Faces.Up.PORT, "the match stands on her port-facing faces")
+	assert_eq(sim.state.up[0], Faces.Up.PORT, "the match stands on her port-facing faces")
 	assert_eq(body.body, PlayerState.Body.GROUNDED, "on its feet")
 	assert_almost_eq(body.pos.z, STARBOARD_FACE, 1e-4, "its feet on the starboard wall")
 	assert_gt(body.pos.y, FLOOR + rules.body_radius - 1e-4, "off the deck beside it")
@@ -173,7 +173,7 @@ func test_upside_down_deck_underside_is_a_floor() -> void:
 	var sim := _held(180.0, Vector3(-2.0, FLOOR, 0.0))
 	SimFixtures.step(sim, {}, 3 * Ticks.RATE)
 	var body := sim.state.seats[0]
-	assert_eq(sim.state.up, Faces.Up.KEEL, "she is upside down")
+	assert_eq(sim.state.up[0], Faces.Up.KEEL, "she is upside down")
 	assert_eq(body.body, PlayerState.Body.GROUNDED, "standing")
 	assert_almost_eq(body.pos.y, DECK - 0.2, 1e-4, "on the deck's underside")
 	var head := sim.pose().world_height(body.pos + Vector3.DOWN * rules.body_height)
@@ -217,7 +217,7 @@ func test_body_slides_into_the_corner() -> void:
 	var sim := _held(45.0, Vector3(-2.0, FLOOR, -1.0))
 	SimFixtures.step(sim, {}, 3 * Ticks.RATE)
 	var body := sim.state.seats[0]
-	assert_eq(sim.state.up, Faces.Up.DECK, "still on her deck in the band")
+	assert_eq(sim.state.up[0], Faces.Up.DECK, "still on her deck in the band")
 	assert_eq(body.body, PlayerState.Body.GROUNDED, "on its feet")
 	assert_almost_eq(body.pos.z, STARBOARD_FACE - rules.body_radius, 1e-3, "in the corner")
 	assert_almost_eq(body.vel.length(), 0.0, 1e-3, "at rest there")
@@ -242,7 +242,7 @@ func test_brace_holds_up_to_the_band_top() -> void:
 	# Past the band's top the brace holds nothing: the wall is the floor.
 	var past := _held(rules.brace_holds_to + 1.0, start)
 	SimFixtures.step(past, {0: brace}, 2 * Ticks.RATE)
-	assert_eq(past.state.up, Faces.Up.PORT, "the wall is the floor")
+	assert_eq(past.state.up[0], Faces.Up.PORT, "the wall is the floor")
 	assert_almost_eq(past.state.seats[0].pos.z, STARBOARD_FACE, 1e-4, "it fell onto it")
 
 
@@ -270,7 +270,7 @@ func test_a_match_continues_exactly_as_she_turns_onto_another_face() -> void:
 		played.append(sim.snapshot())
 	var ups := {}
 	for snapshot: Dictionary in played:
-		ups[snapshot["up"]] = true
+		ups[snapshot["up"][0]] = true
 	assert_eq(ups.keys(), [Faces.Up.DECK, Faces.Up.PORT, Faces.Up.KEEL], "deck, wall, under")
 	for start in range(0, played.size() - 1, 3):
 		var resumed := MatchSim.from_snapshot(played[start], sim.config)
@@ -292,7 +292,7 @@ func test_a_door_that_gave_way_is_open_on_any_face() -> void:
 		var sim := _held(180.0, Vector3(0.0, FLOOR, 0.0), 0.0, layout)
 		sim.schedule = DoorPose.new(180.0, layout.freeboard, WTD, gave_way)
 		SimFixtures.step(sim, {}, 3 * Ticks.RATE)
-		assert_eq(sim.state.up, Faces.Up.KEEL, "she is upside down")
+		assert_eq(sim.state.up[0], Faces.Up.KEEL, "she is upside down")
 		var toward_starboard := SimFixtures.frame(0, Vector2(0.0, -1.0), 0, 0.0)
 		SimFixtures.step(sim, {0: toward_starboard}, 2 * Ticks.RATE)
 		reached[gave_way] = sim.state.seats[0].pos.z
@@ -312,7 +312,7 @@ func test_no_jump_off_a_face_the_world_turned_under_it() -> void:
 	var body := sim.state.seats[0]
 	var stamina := body.stamina
 	SimFixtures.step(sim, {0: SimFixtures.frame(0, Vector2.ZERO, InputFrame.JUMP)})
-	assert_eq(sim.state.up, Faces.Up.DECK, "still on her decks")
+	assert_eq(sim.state.up[0], Faces.Up.DECK, "still on her decks")
 	assert_false(body.jumped, "it does not take off")
 	assert_eq(body.stamina, stamina, "nothing spent")
 	assert_true(body.vel.is_finite(), "nothing thrown")

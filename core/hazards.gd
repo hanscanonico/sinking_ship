@@ -26,11 +26,18 @@ extends RefCounted
 ## railings it breaks are the pose's (SinkSchedule.place_falls).
 ##
 ## MatchSim steps the crates once a tick, after the bodies have moved, landed and
-## thawed and before the shoves (§4); a funnel lands first.
+## thawed and before the shoves (§4); a funnel lands first. Once she has broken (SH33)
+## there are hazards per piece of her (Pieces): each the crates over its stretch, the
+## bodies on it and its railings, numbered among its own — a span's hits are hers.
 
 var _rules: BrawlRules
 var _props: Array[ShipProp] = []
 var _surfaces: Surfaces
+## The piece of her these are, and her pieces; null for a ship that never breaks.
+var _piece := 0
+var _pieces: Pieces
+## Per crate, 1 while it is over this piece's stretch, as of this tick's step.
+var _aboard := PackedByteArray()
 var _stagger_ticks: int
 var _hitstop_ticks: int
 var _hitstop_braced_ticks: int
@@ -41,10 +48,16 @@ var _struck_ticks: int
 var _broken := PackedInt32Array()
 
 
-func _init(config: MatchConfig, surfaces: Surfaces) -> void:
+## The hazards of [param config]'s ship asked of [param surfaces] — or of piece
+## [param piece] of [param pieces], its decks' own.
+func _init(config: MatchConfig, surfaces: Surfaces, piece := 0, pieces: Pieces = null) -> void:
 	_rules = config.rules
 	_props = config.ship.props
 	_surfaces = surfaces
+	_piece = piece
+	_pieces = pieces
+	_aboard.resize(_props.size())
+	_aboard.fill(1)
 	_stagger_ticks = Ticks.from_seconds(_rules.stagger)
 	_hitstop_ticks = Ticks.from_seconds(_rules.hitstop)
 	_hitstop_braced_ticks = Ticks.from_seconds(_rules.hitstop_braced)
@@ -52,31 +65,42 @@ func _init(config: MatchConfig, surfaces: Surfaces) -> void:
 	_struck_ticks = Ticks.from_seconds(_rules.struck_stagger)
 
 
-## One tick of the cargo, in [param state], under [param pose] — and before it, every
-## funnel landing. Once the match stands on any face but her decks (Faces), she has
-## rolled past where cargo stays stowed: what is still aboard breaks loose into the sea.
+## One tick of the cargo, in [param state], under [param pose] — the whole ship's — and
+## before it, every funnel landing. Once the match stands on any face but its decks
+## (Faces), the piece has rolled past where cargo stays stowed: what is still aboard
+## breaks loose into the sea.
 func step(state: MatchState, pose: ShipPose, tick: int, events: Array[SimEvent]) -> void:
+	var here := pose.of_piece(_piece)
 	# A funnel's strip lies on her decks: off them (SH32) its landing strikes nobody, and
 	# the bodies' points are in another frame's.
-	if state.up == Faces.Up.DECK:
-		_strike(state, pose, tick, events)
+	if state.up[_piece] == Faces.Up.DECK:
+		_strike(state, here, tick, events)
 	_broken = state.broken_railings()
 	var crates: Array[PropState] = []
 	for crate: PropState in state.props:
-		if not crate.is_lost():
+		if _pieces != null and _pieces.count() > 1:
+			var over := _pieces.piece_at(pose.standing, crate.pos.x)
+			_aboard[crate.prop] = 1 if over == _piece else 0
+		if not crate.is_lost() and _aboard[crate.prop] == 1:
 			crates.append(crate)
 	if crates.is_empty():
 		return
-	if state.up != Faces.Up.DECK:
+	if state.up[_piece] != Faces.Up.DECK:
 		_lose(crates, tick, events)
 		return
-	_forces(crates, pose)
+	_forces(crates, here)
 	var feet_before := _move(state, crates, pose, tick, events)
 	_run_into_bodies(state, crates, tick, events)
 	_stand(state, pose)
 	_ground(crates, feet_before)
-	_sea(crates, pose, tick, events)
+	_sea(crates, here, tick, events)
 	_stand(state, pose)
+
+
+## The railing of hers that railing [param railing] of the Surfaces these are asked of
+## is (Pieces.rail).
+func rail(railing: int) -> int:
+	return railing if _pieces == null else _pieces.rail(_piece, railing)
 
 
 ## Every body on board — not out, climbing or swimming — in the strip of a funnel
@@ -87,6 +111,8 @@ func _strike(state: MatchState, pose: ShipPose, tick: int, events: Array[SimEven
 			continue
 		var base := Vector2(fall.fitting.base.x, fall.fitting.base.z)
 		for player: PlayerState in state.seats:
+			if player.piece != _piece:
+				continue
 			if player.is_out() or player.is_climbing() or player.body == PlayerState.Body.SWIMMING:
 				continue
 			if not fall.covers(player.pos, _rules.body_radius):
@@ -101,12 +127,12 @@ func _strike(state: MatchState, pose: ShipPose, tick: int, events: Array[SimEven
 			events.append(SimEvent.knocked_down(tick, player.seat, fall.fitting.name))
 
 
-## The crates still on board as a shove may land on them, numbered from
-## [param first]: crate n is candidate first + n.
+## The crates still on board — over this piece, as of this tick's step — as a shove may
+## land on them, numbered from [param first]: crate n is candidate first + n.
 func candidates(state: MatchState, first: int) -> Array[ShoveResolver.Candidate]:
 	var found: Array[ShoveResolver.Candidate] = []
 	for crate: PropState in state.props:
-		if not crate.is_lost():
+		if not crate.is_lost() and _aboard[crate.prop] == 1:
 			var prop := _props[crate.prop]
 			found.append(
 				ShoveResolver.Candidate.new(first + crate.prop, crate.pos, prop.radius, prop.height)
@@ -244,7 +270,14 @@ func _railings(
 		if (
 			into >= _rules.railing_break_speed
 			and damage(
-				state, contact.railing, _rules.crate_damage, pose, tick, events, -1, crate.prop
+				state,
+				rail(contact.railing),
+				_rules.crate_damage,
+				pose,
+				tick,
+				events,
+				-1,
+				crate.prop
 			)
 		):
 			continue
@@ -274,6 +307,8 @@ func _run_into_bodies(
 		var prop := _props[crate.prop]
 		var reach := prop.radius + _rules.body_radius
 		for player: PlayerState in state.seats:
+			if player.piece != _piece:
+				continue
 			# Out of reach first: the cheapest test, and most pairs fail it.
 			var offset := Vector2(player.pos.x - crate.pos.x, player.pos.z - crate.pos.z)
 			var distance := offset.length()
@@ -406,4 +441,7 @@ func _lose(crates: Array[PropState], tick: int, events: Array[SimEvent]) -> void
 
 ## Hands Surfaces the railings the match has broken and where its crates stand.
 func _stand(state: MatchState, pose: ShipPose) -> void:
-	_surfaces.honour(pose, _broken, state.props)
+	if _pieces == null:
+		_surfaces.honour(pose, _broken, state.props)
+	else:
+		_pieces.honour(_piece, pose, _broken, state.props)

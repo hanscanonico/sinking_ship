@@ -12,7 +12,10 @@ extends RefCounted
 ## through as the delayed snapshot has them: for the MVP every crate is seen, walls or
 ## not, and only bodies are looked for, heard and remembered. A bot thinks in the frame
 ## of the faces the match stood on then (Faces, SH32): the snapshot it reads has its
-## bodies' points there, and the pose reads in it — "down" is the pose's.
+## bodies' points there, and the pose reads in it — "down" is the pose's. Once she has
+## broken (SH33) it thinks on the piece of her it stood on then: its pose, its frame,
+## its floors (BotFloors.footing), every body it perceives carried into that piece's
+## space as it stands now (Pieces.seen_from).
 
 ## Marks a seat's entry that is a memory: where it was last perceived, not where it is.
 const REMEMBERED := "remembered"
@@ -27,7 +30,6 @@ var _memory_ticks: int
 ## between looks is where the last one saw it.
 var _look_every: int
 var _floors: BotFloors
-var _surfaces: Surfaces
 var _snapshots: Array[Dictionary] = []
 var _pose: ShipPose
 ## The delayed snapshot as perceived, and the tick it is of.
@@ -50,7 +52,6 @@ func _init(seat: int, profile: BotProfile, floors: BotFloors) -> void:
 	_memory_ticks = Ticks.from_seconds(profile.memory_seconds)
 	_look_every = profile.think_period
 	_floors = floors
-	_surfaces = floors.surfaces()
 
 
 func push(latest: Dictionary, pose_at_latest: ShipPose) -> void:
@@ -66,23 +67,43 @@ func is_empty() -> bool:
 
 ## The delayed snapshot — the oldest one held while the ring is still filling — with
 ## only the seats the bot perceives in it, and the ones it remembers, their points in
-## its frame (Faces.framed_snapshot).
+## the space of its piece and its frame (Pieces.seen_from, Faces.framed_snapshot).
 func snapshot() -> Dictionary:
 	var delayed := _snapshots[0]
 	if delayed["tick"] != _perceived_tick:
-		_perceived = Faces.framed_snapshot(_perceive(delayed))
+		var seen := Pieces.seen_from(delayed, _piece(), _pose)
+		_perceived = Faces.framed_snapshot(_perceive(seen), _frame())
 		_perceived_tick = delayed["tick"]
 	return _perceived
 
 
-## The pose now, read in the frame of the delayed snapshot.
+## The pose now, its piece's, read in the frame of the delayed snapshot.
 func pose() -> ShipPose:
 	return _floors.framed(_pose, up())
 
 
-## The frame the delayed snapshot stood in (Faces.Up).
+## What the bot stood on in the delayed snapshot: its piece and that piece's frame
+## (BotFloors.footing) — on a ship that never breaks, the frame (Faces.Up).
 func up() -> int:
-	return _snapshots[0]["up"]
+	return BotFloors.footing(_piece(), _frame())
+
+
+## The piece of her the bot stood on in the delayed snapshot, and the frame it stood in.
+func _piece() -> int:
+	var me := _me(_snapshots[0])
+	return me["piece"] if not me.is_empty() else 0
+
+
+func _frame() -> int:
+	return _snapshots[0]["up"][_piece()]
+
+
+## The bot's own entry in [param snapshot], or none.
+func _me(snapshot_of: Dictionary) -> Dictionary:
+	for entry: Dictionary in snapshot_of["seats"]:
+		if entry["seat"] == _seat:
+			return entry
+	return {}
 
 
 ## How many seats are still in the match in the delayed snapshot: the HUD's "Seats
@@ -96,10 +117,7 @@ func seats_left() -> int:
 
 
 func _perceive(delayed: Dictionary) -> Dictionary:
-	var me := {}
-	for entry: Dictionary in delayed["seats"]:
-		if entry["seat"] == _seat:
-			me = entry
+	var me := _me(delayed)
 	if me.is_empty():
 		return delayed
 	var tick: int = delayed["tick"]
@@ -143,14 +161,15 @@ func _sees(me: Dictionary, entry: Dictionary, tick: int) -> bool:
 	# Spread over the period, so that every bot does not look at every body at once.
 	var offset := (seat + _seat) % _look_every
 	_look_due[seat] = tick + _look_every - posmod(tick - offset, _look_every)
-	var eye := Faces.axis(up()) * _eye
+	var eye := Faces.axis(_frame()) * _eye
 	var my_pos: Vector3 = me["pos"]
 	var their_pos: Vector3 = entry["pos"]
 	var mine := my_pos + eye
 	var theirs := their_pos + eye
+	var own := _pose.of_piece(_piece())
 	var dark := (
-		_pose.lit_at(mine) == ShipPower.Power.DARK or _pose.lit_at(theirs) == ShipPower.Power.DARK
+		own.lit_at(mine) == ShipPower.Power.DARK or own.lit_at(theirs) == ShipPower.Power.DARK
 	)
 	if dark and my_pos.distance_to(their_pos) > _dark_sight:
 		return false
-	return _surfaces.line_of_sight(mine, theirs, _pose)
+	return _floors.surfaces(_piece()).line_of_sight(mine, theirs, own)

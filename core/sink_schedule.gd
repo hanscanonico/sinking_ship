@@ -12,13 +12,19 @@ extends RefCounted
 ## the phase she is in named from where she stands; what lights each cell, what has given
 ## way, and her funnels' falls (SH31) — a funnel landing on a roof too light for it
 ## collapses it, and breaks the railings it lands across, as the authored collapses and
-## railing failures did (place_falls). Its physics seconds become match ticks once,
+## railing failures did (place_falls). A hull that breaks (SH33) has a pose per piece:
+## each piece of her the bake followed is her structure cut to its stretch
+## (PieceStructure), turning about its own centre of mass, which keeps the place across the
+## world it had under the pose of the piece it broke from as it broke; its cells' water
+## and air are the timeline's for the piece of her they were part of then. Its physics
+## seconds become match ticks once,
 ## through the scenario's clock and Ticks (D2). An authored fixture plays its keyframes
 ## and events. Either
 ## way, once built it is a pure function of (ship, scenario, seed, tick) — nothing a
 ## player does moves it, and it is never stored in a snapshot (D5).
 
-## The phases the physics names, from where she stands (§5b.4): past these many degrees
+## The phases the physics names, from where she stands (§5b.4) — Breaking while a hinge
+## forms in her (SH33) — past these many degrees
 ## of list she is capsizing, past these listing; past these of trim she is by the head
 ## or the stern — whichever lean is the more of its own mark (est.).
 const CAPSIZING_DEG := 30.0
@@ -72,11 +78,22 @@ var _clock := 1.0
 var _physics_events: Array[SimEvent] = []
 var _gone_tick := -1
 var _plunge_tick := -1
-## Her centre of mass, which she turns about; the physics' lurches — the ticks each is
-## warned, swings and is over, and the list it swings her by; the tick a cell first
-## takes water, or -1; the tick the water stopped with her afloat, or -1; and the tick
-## she first touches the bottom, or -1.
-var _pivot_of_mass := Vector3.ZERO
+## Per piece of her (SinkTimeline.spans): its structure, its cells, its centre of mass,
+## the place across the world that centre keeps (its pivot's while she is whole), every
+## one of its cells' place among the timeline's — a leaf's that it was part of — and the
+## tick it goes, -1 for never; and per hinge, the tick it started and the tick it parted
+## the piece — or its time ran out, for one that held — and the piece it formed in.
+var _structures: Array[ShipStructure] = []
+var _piece_cells: Array[CellMap] = []
+var _pivots := PackedVector3Array()
+var _anchors := PackedVector3Array()
+var _cell_of: Array[PackedInt32Array] = []
+var _gone_ticks := PackedInt32Array()
+var _hinge_ticks := PackedInt32Array()
+var _hinge_pieces := PackedInt32Array()
+## The physics' lurches — the ticks each is warned, swings and is over, and the list it
+## swings her by; the tick a cell first takes water, or -1; the tick the water stopped
+## with her afloat, or -1; and the tick she first touches the bottom, or -1.
 var _lurch_ticks := PackedInt32Array()
 var _lurch_heels := PackedFloat64Array()
 var _flooding_tick := -1
@@ -117,8 +134,6 @@ func _init(
 	if structure == null or not scenario.is_physical():
 		return
 	var physics := sea if sea != null else SeaPhysics.load_default()
-	var centre := structure.mass_centre()
-	_pivot_of_mass = Vector3(centre[0], centre[1], centre[2])
 	if chosen != null:
 		_choice = chosen
 	elif scenario.explicit_hit != null:
@@ -131,6 +146,7 @@ func _init(
 	_hit_tick = _start_tick + Ticks.from_seconds(_hit.moment)
 	_clock = scenario.clock
 	_cells = CellMap.new(structure)
+	_cut(structure)
 	for opening: ShipOpening in structure.openings:
 		if opening.shuts_at_hit and not opening.name in _damage.jammed:
 			_doors.append(opening.name)
@@ -162,10 +178,61 @@ func _init(
 				_falls.append(_fall_of(structure, event, tick))
 			SinkTimeline.Kind.GROUNDED:
 				_aground_tick = tick
+			SinkTimeline.Kind.GONE:
+				_gone_ticks[event.piece] = tick
+			SinkTimeline.Kind.HINGING:
+				_hinge_ticks.append_array([tick, tick + Ticks.from_seconds(event.lasts / _clock)])
+				_hinge_pieces.append(event.piece)
+			SinkTimeline.Kind.PARTED:
+				_hinge_ticks[_hinge_pieces.rfind(event.piece) * 2 + 1] = tick
 	if _timeline.gone_at >= 0.0:
 		_gone_tick = _tick_of(_timeline.gone_at)
 	if _timeline.end == SinkTimeline.End.AFLOAT:
 		_afloat_tick = end_tick()
+
+
+## Every piece of her the timeline has, cut from [param structure] (PieceStructure): its
+## structure, cells and centre of mass, where each of its cells' numbers lie in the
+## timeline — the first leaf of it that has the cell — and where across the world its
+## centre keeps its place: under the pose of the piece it broke from at the second it did.
+func _cut(structure: ShipStructure) -> void:
+	var leaves := _timeline.leaves
+	var firsts := PackedInt32Array()
+	var first := 0
+	for count_of: int in _timeline.leaf_cells:
+		firsts.append(first)
+		first += count_of
+	for piece in _timeline.parents.size():
+		var span := _timeline.span_of(piece)
+		var made := structure if piece == 0 else PieceStructure.cut(structure, span.x, span.y)
+		_structures.append(made)
+		_piece_cells.append(_cells if piece == 0 else CellMap.new(made))
+		var centre := made.mass_centre()
+		_pivots.append(Vector3(centre[0], centre[1], centre[2]))
+		_gone_ticks.append(-1)
+	for piece in _structures.size():
+		var span := _timeline.span_of(piece)
+		var at := PackedInt32Array()
+		for cell: FloodCell in _structures[piece].cells:
+			for leaf in leaves.size():
+				var leaf_span := _timeline.span_of(leaves[leaf])
+				var index := _structures[leaves[leaf]].cell_named(cell.name)
+				if leaf_span.x >= span.x and leaf_span.y <= span.y and index != -1:
+					at.append(firsts[leaf] + index)
+					break
+		_cell_of.append(at)
+		if piece == 0:
+			_anchors.append(_pivots[0])
+			continue
+		var born := _timeline.born[piece]
+		var frame := _timeline.frame_at(born)
+		var next := mini(frame + 1, _timeline.count() - 1)
+		var length := _timeline.times[next] - _timeline.times[frame]
+		var weight := (
+			clampf((born - _timeline.times[frame]) / length, 0.0, 1.0) if length > 0.0 else 0.0
+		)
+		var parent := _piece_pose(_timeline.parents[piece], frame, next, weight, born)
+		_anchors.append(parent.transform * _pivots[piece])
 
 
 ## The schedule of [param config]'s match: its scenario on its ship, its sinking as
@@ -251,6 +318,7 @@ func pose_at(tick: int) -> ShipPose:
 	if _timeline != null:
 		var physical := _physical(tick)
 		_happened(physical, tick)
+		physical.share_with_pieces()
 		return physical
 	var pose := _keyframed(tick)
 	var swing := _happened(pose, tick)
@@ -302,25 +370,13 @@ func _physical(tick: int) -> ShipPose:
 		frame = _timeline.frame_at(_seconds_at(tick))
 		weight = _weight(frame, tick)
 	var next := mini(frame + 1, _timeline.count() - 1)
-	var sea := lerpf(_timeline.seas[frame], _timeline.seas[next], weight)
-	var turn := Basis(_timeline.blend(frame, next, weight))
-	var sink := sea - _timeline.rest
-	var origin := turn * -_pivot_of_mass + _pivot_of_mass
-	origin.y = _freeboard - sink
-	var leans := leans_of(turn)
-	var pose := ShipPose.new(sink, leans[0], leans[1], Transform3D(turn, origin))
-	pose.cells = _cells
-	var count := _timeline.cells
-	pose.levels.resize(count)
-	pose.pockets.resize(count)
-	pose.lit.resize(count)
-	for cell in count:
-		var head := lerpf(
-			_timeline.heads[frame * count + cell], _timeline.heads[next * count + cell], weight
-		)
-		pose.levels[cell] = head + origin.y
-		pose.pockets[cell] = _timeline.pocket(frame, next, weight, cell)
-		pose.lit[cell] = _timeline.lit(frame, cell)
+	var seconds := _seconds_at(tick) if tick > _hit_tick else 0.0
+	var pose := _piece_pose(0, frame, next, weight, seconds)
+	if _structures.size() > 1:
+		pose.standing = _timeline.pieces_at(seconds)
+		for piece in _structures.size():
+			var own := pose if piece == 0 else _piece_pose(piece, frame, next, weight, seconds)
+			pose.pieces.append(own)
 	for failed in _failed_ticks.size():
 		if _failed_ticks[failed] > tick:
 			break
@@ -331,7 +387,6 @@ func _physical(tick: int) -> ShipPose:
 		if fall.lands_at <= tick:
 			pose.felled.append(fall)
 	if tick >= _hit_tick:
-		var seconds := _seconds_at(tick)
 		for door in _doors.size():
 			pose.doors_shut[_doors[door]] = 1.0 - SinkStepper.open_share(_door_times[door], seconds)
 	for lurch in _lurch_heels.size():
@@ -340,6 +395,53 @@ func _physical(tick: int) -> ShipPose:
 		elif tick >= _lurch_ticks[lurch * 3 + 1] and tick < _lurch_ticks[lurch * 3 + 2]:
 			pose.lurch = _lurch_heels[lurch]
 	return pose
+
+
+## Piece [param piece]'s pose [param weight] of the way from kept state [param frame] to
+## [param next], [param seconds] of physics after the hit (_physical): where the piece of
+## her standing then that it is part of — or, once it has broken, the first it broke
+## into — stands, with its rotation and sea, turned about its centre of mass, which keeps
+## its place across the world, as high as the sea up it says; its own cells' water and air
+## as the timeline has them.
+func _piece_pose(piece: int, frame: int, next: int, weight: float, seconds: float) -> ShipPose:
+	var standing := _standing(piece, seconds)
+	var leaf := _timeline.leaf_of(standing)
+	var sea := lerpf(_timeline.sea_of(frame, leaf), _timeline.sea_of(next, leaf), weight)
+	var turn := Basis(_timeline.blend(frame, next, weight, leaf))
+	var sink := sea - _timeline.rest
+	var origin := turn * -_pivots[standing] + _anchors[standing]
+	origin.y = _freeboard - sink
+	var leans := leans_of(turn)
+	var pose := ShipPose.new(sink, leans[0], leans[1], Transform3D(turn, origin))
+	pose.cells = _piece_cells[piece]
+	var cells := _cell_of[piece]
+	var count := _timeline.cells
+	pose.levels.resize(cells.size())
+	pose.pockets.resize(cells.size())
+	pose.lit.resize(cells.size())
+	for cell in cells.size():
+		var at := cells[cell]
+		var head := lerpf(
+			_timeline.heads[frame * count + at], _timeline.heads[next * count + at], weight
+		)
+		pose.levels[cell] = head + origin.y
+		pose.pockets[cell] = _timeline.pocket(frame, next, weight, at)
+		pose.lit[cell] = _timeline.lit(frame, at)
+	return pose
+
+
+## The piece of her standing [param seconds] after the hit that piece [param piece] is
+## part of — itself, or a piece it broke from that had not broken by then — or, once it
+## has broken by then, the first it broke into: whose place in the world it has.
+func _standing(piece: int, seconds: float) -> int:
+	var at := piece
+	while _timeline.born[at] > seconds:
+		at = _timeline.parents[at]
+	var first := _timeline.parents.find(at)
+	while first != -1 and _timeline.born[first] < seconds:
+		at = first
+		first = _timeline.parents.find(at)
+	return at
 
 
 ## Her trim and heel in degrees — positive bow down and starboard down — under
@@ -392,6 +494,35 @@ func end_tick() -> int:
 ## authored fixture, or an explicit hit she floats on.
 func gone_tick() -> int:
 	return _gone_tick
+
+
+## The tick piece [param piece] of her (SinkTimeline.spans) is wholly under the sea and
+## going down, or -1 when it never is: what puts out whoever is still in it then — the
+## whole ship's, gone_tick, without a physical sinking.
+func piece_gone_tick(piece: int) -> int:
+	return _gone_ticks[piece] if not _gone_ticks.is_empty() else _gone_tick
+
+
+## Her structure cut to piece [param piece] of her (PieceStructure): her own for the whole
+## ship.
+func structure_of(piece: int) -> ShipStructure:
+	return _structures[piece]
+
+
+## How many pieces of her the timeline has (SinkTimeline.spans): 1 while she does not
+## break, or without a physical sinking.
+func piece_count() -> int:
+	return maxi(_structures.size(), 1)
+
+
+## Where piece [param piece] runs along her, and the piece it broke from
+## (SinkTimeline.span_of, SinkTimeline.parents).
+func span_of(piece: int) -> Vector2:
+	return _timeline.span_of(piece) if _timeline != null else Vector2(-INF, INF)
+
+
+func parent_of(piece: int) -> int:
+	return _timeline.parents[piece] if _timeline != null else -1
 
 
 ## The tick the plunge begins — her main deck under the sea, or an authored fixture's
@@ -467,6 +598,9 @@ func phase_at(tick: int) -> String:
 func _physical_phase(tick: int) -> String:
 	if tick < _hit_tick:
 		return ""
+	for hinge in range(0, _hinge_ticks.size(), 2):
+		if tick >= _hinge_ticks[hinge] and tick < _hinge_ticks[hinge + 1]:
+			return "Breaking"
 	if _afloat_tick != -1 and tick >= _afloat_tick:
 		return "Afloat"
 	return "Aground" if _aground_tick != -1 and tick >= _aground_tick else _leaning_phase(tick)

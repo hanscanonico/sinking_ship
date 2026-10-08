@@ -48,6 +48,12 @@ var lurch_warning: float
 ## The heel the lurch under way swings by at its height, signed; 0 for none. Its
 ## part of the swing is already in heel_deg.
 var lurch: float
+## A hull that breaks (SH33): per piece of her (SinkTimeline.spans) its own pose — where
+## it stands in the world, its own cells' water and air; this pose itself the whole
+## ship's, the first — and the pieces she is in at this tick, aft to fore. Empty, and
+## the whole ship alone, for a hull that never breaks.
+var pieces: Array[ShipPose] = []
+var standing := PackedInt32Array([0])
 ## The highest water, worked out on first asking (highest_water).
 var _highest := NAN
 
@@ -59,6 +65,31 @@ func _init(
 	trim_deg = pose_trim_deg
 	heel_deg = pose_heel_deg
 	transform = ship_to_world
+
+
+## The pose of piece [param piece] of her: this one, while she is whole.
+func of_piece(piece: int) -> ShipPose:
+	return self if pieces.is_empty() else pieces[piece]
+
+
+## Hands every piece's pose what is the whole ship's at this tick: what has failed and
+## fallen, the doors shut, the platforms collapsed and collapsing, the railings failed —
+## numbered as her layout numbers them, which a piece's own layout does not (Pieces.honour)
+## — and the lurch.
+func share_with_pieces() -> void:
+	for piece: ShipPose in pieces:
+		if piece == self:
+			continue
+		piece.doors_shut = doors_shut
+		piece.opened = opened
+		piece.falls = falls
+		piece.felled = felled
+		piece.collapsed = collapsed
+		piece.collapsing = collapsing
+		piece.broken_railings = broken_railings
+		piece.lurch_warning = lurch_warning
+		piece.lurch = lurch
+		piece.standing = standing
 
 
 func world_height(ship_point: Vector3) -> float:

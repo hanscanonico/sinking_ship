@@ -214,6 +214,11 @@ func power() -> ShipPower:
 	return _power
 
 
+## Her hull as a girder, or null where nothing measures her bending.
+func girder() -> HullGirder:
+	return _girder
+
+
 ## The head across every watched opening at [param state], [param stepper] turned to
 ## it: each side's push — the sea's outside — lifted by its pocket's as the stepper's
 ## flow is and no lower than its sill, its first's less its second's; none dry on both

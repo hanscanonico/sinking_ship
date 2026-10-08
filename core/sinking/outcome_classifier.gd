@@ -20,7 +20,9 @@ extends RefCounted
 ## her generator stopped for good — flooded, or tilted past its limits and never back —
 ## before she was gone, leaving her at most her emergency power; FUNNEL_FELL: a funnel
 ## came down before she was gone (SH31). AGROUND: at rest on the bottom with part of
-## her dry (SH32) — a coast's wreck, which a match plays.
+## her dry (SH32) — a coast's wreck, which a match plays. BROKE_IN_TWO, BROKE_IN_THREE:
+## her hull parted at its weak spots into so many pieces (SH33); every other label is
+## read off the piece she was before she broke and, after, her aftmost piece.
 enum Outcome {
 	AFLOAT,
 	BY_THE_HEAD,
@@ -35,6 +37,8 @@ enum Outcome {
 	LIGHTS_OUT,
 	FUNNEL_FELL,
 	AGROUND,
+	BROKE_IN_TWO,
+	BROKE_IN_THREE,
 }
 
 ## The census's own marks (§5b.4's table, est.): a heavy list, and a fast sinking.
@@ -57,6 +61,8 @@ const NAMES := {
 	Outcome.LIGHTS_OUT: "lights out",
 	Outcome.FUNNEL_FELL: "funnel fell",
 	Outcome.AGROUND: "aground",
+	Outcome.BROKE_IN_TWO: "broke in two",
+	Outcome.BROKE_IN_THREE: "broke in three",
 }
 
 
@@ -83,7 +89,7 @@ static func labels(timeline: SinkTimeline) -> Array[Outcome]:
 			found[Outcome.FAST] = true
 	elif timeline.end == SinkTimeline.End.AGROUND:
 		found[Outcome.AGROUND] = true
-	elif timeline.rotations[(timeline.count() - 1) * 9 + 4] < 0.0:
+	elif timeline.rotation_of(timeline.count() - 1, timeline.leaf_of(0))[4] < 0.0:
 		found[Outcome.AFLOAT_UPSIDE_DOWN] = true
 	else:
 		found[Outcome.AFLOAT] = true
@@ -100,6 +106,10 @@ static func labels(timeline: SinkTimeline) -> Array[Outcome]:
 			found[Outcome.FUNNEL_FELL] = true
 	if dark:
 		found[Outcome.LIGHTS_OUT] = true
+	if timeline.leaves.size() == 2:
+		found[Outcome.BROKE_IN_TWO] = true
+	elif timeline.leaves.size() == 3:
+		found[Outcome.BROKE_IN_THREE] = true
 	var made: Array[Outcome] = []
 	for label: Outcome in Outcome.values():
 		if found.has(label):
@@ -145,9 +155,10 @@ static func told(labels_of: Array[Outcome]) -> String:
 	return " · ".join(words)
 
 
-## Her trim and heel at kept state [param frame], in degrees (SinkSchedule.leans_of).
+## Her trim and heel at kept state [param frame], in degrees (SinkSchedule.leans_of): her
+## aftmost piece's once she has broken (SinkTimeline.leaf_of).
 static func leans_at(timeline: SinkTimeline, frame: int) -> PackedFloat64Array:
-	var r := timeline.rotations.slice(frame * 9, frame * 9 + 9)
+	var r := timeline.rotation_of(frame, timeline.leaf_of(0))
 	var turn := Basis(
 		Vector3(r[0], r[3], r[6]), Vector3(r[1], r[4], r[7]), Vector3(r[2], r[5], r[8])
 	)

@@ -113,12 +113,15 @@ var _schedule: SinkSchedule
 ## Her faces frame by frame (Faces): what the crosshair, the climb prompt and the
 ## wedges ask once the match stands on a face but her decks.
 var _faces: Faces
+## Her pieces (SH33), its own as its Surfaces are: once she has broken, the eyes'
+## piece's faces and Surfaces answer for it, and every body is read in its space
+## (Pieces.seen_from).
+var _pieces: Pieces
 ## Its own, honoured with the pose, broken railings and crates of the snapshot it
 ## draws: what a climb, a shove or a look meets is the ship as that tick has it, and
 ## the sim's stays the sim's.
 var _surfaces: Surfaces
 var _rules: BrawlRules
-var _ship: ShipLayout
 var _names := PackedStringArray()
 var _eyes: bool
 ## Whether the view is the free camera rather than the seat's eyes: drawn as the
@@ -172,8 +175,14 @@ func setup(sim: MatchSim, names: PackedStringArray, eyes: bool, prompts: InputPr
 	_schedule = sim.schedule
 	_surfaces = Surfaces.new(sim.config.ship)
 	_faces = sim.faces
+	_pieces = Pieces.new(
+		sim.config.ship,
+		sim.schedule,
+		sim.faces,
+		sim.config.rules.brace_holds_to,
+		SeaPhysics.load_default().capsized_movement
+	)
 	_rules = sim.config.rules
-	_ship = sim.config.ship
 	_names = names
 	_eyes = eyes
 	_prompts = prompts
@@ -204,32 +213,42 @@ func _draw_hud() -> void:
 	if _over():
 		return
 	var tick: int = _snapshot["tick"]
-	var pose := _schedule.pose_at(tick)
+	var whole := _schedule.pose_at(tick)
+	var me := _entry(_seat)
+	var piece: int = me["piece"] if not me.is_empty() else 0
+	var pose := whole.of_piece(piece)
 	# As the snapshot has them: the railings the match has broken, and its crates.
-	_surfaces.honour(
-		pose, MatchState.broken_in(_snapshot["railing_hp"]), PropState.from_snapshot(_snapshot)
-	)
+	var broken := MatchState.broken_in(_snapshot["railing_hp"])
+	var props := PropState.from_snapshot(_snapshot)
+	var deck := _surfaces
+	if piece == 0:
+		_surfaces.honour(whole, broken, props)
+	else:
+		_pieces.honour(piece, whole, broken, props)
+		deck = _pieces.faces(piece).surfaces(Faces.Up.DECK)
 	_draw_inclinometer(pose)
 	_draw_warnings(pose, tick)
 	_draw_phase(tick)
-	var me := _entry(_seat)
 	if me.is_empty() or me["out"]:
 		return
 	# On a face but her decks the bodies' moves and looks are in its frame, and so are
-	# the crosshair's, the climb's and the wedges' answers (Faces).
-	var up: int = _snapshot["up"]
+	# the crosshair's, the climb's and the wedges' answers (Faces); on a piece of her, in
+	# its space.
+	var up := MatchState.up_of(_snapshot, me)
 	var decks := up == Faces.Up.DECK
-	_draw_where(me["pos"], me["surface"] if decks else Surfaces.NONE)
+	var faces := _faces if piece == 0 else _pieces.faces(piece)
+	var seen := Pieces.seen_from(_snapshot, piece, whole)
+	_draw_where(faces.layout(Faces.Up.DECK), me["pos"], me["surface"] if decks else Surfaces.NONE)
 	if not _eyes or flying:
 		return
-	var framed := Faces.framed_snapshot(_snapshot)
-	var here := _surfaces if decks else _faces.surfaces(up)
+	var framed := Faces.framed_snapshot(seen, up)
+	var here := deck if decks else faces.surfaces(up)
 	_draw_crosshair(ShoveResolver.would_hit(framed, _seat, _rules, here))
 	var mine: Dictionary = framed["seats"][_seat]
 	if me["state"] == PlayerState.Body.SWIMMING:
-		_draw_climb_prompt(mine, here, _faces.framed(pose, up))
+		_draw_climb_prompt(mine, here, faces.framed(pose, up))
 	_draw_readouts(me, pose.world_height(me["pos"]))
-	_draw_chevrons(me["pos"], pose)
+	_draw_chevrons(seen, deck, me["pos"], pose)
 	_draw_windup_wedges(mine["pos"], framed["seats"])
 
 
@@ -361,13 +380,13 @@ func _draw_crosshair(lit: bool) -> void:
 
 ## Bottom left, over the readouts and on their plate: the name of the room
 ## [param feet] stand in, else of the platform [param surface] is.
-func _draw_where(feet: Vector3, surface: int) -> void:
+func _draw_where(layout: ShipLayout, feet: Vector3, surface: int) -> void:
 	var where := ""
-	var room := _ship.room_at(feet, _rules.step_height)
+	var room := layout.room_at(feet, _rules.step_height)
 	if room != -1:
-		where = _ship.rooms[room].name
-	elif surface >= 0 and surface < _ship.platforms.size():
-		where = _ship.platforms[surface].name
+		where = layout.rooms[room].name
+	elif surface >= 0 and surface < layout.platforms.size():
+		where = layout.platforms[surface].name
 	_draw_plate(not where.is_empty())
 	var at := Vector2(24.0, _canvas.size.y - 150.0)
 	_text(at, where.capitalize(), TEXT, READOUT_TEXT, HORIZONTAL_ALIGNMENT_LEFT)
@@ -424,12 +443,12 @@ static func height_words(above_sea: float) -> String:
 ## other brawler within CHEVRON_RANGE whose eyes [param my_pos]'s see under
 ## [param pose] — Surfaces.line_of_sight, what the bots' view asks too: never through a
 ## wall, a floor or the hull — over its hat, laid out so none overlaps another.
-func _draw_chevrons(my_pos: Vector3, pose: ShipPose) -> void:
+func _draw_chevrons(seen: Dictionary, deck: Surfaces, my_pos: Vector3, pose: ShipPose) -> void:
 	var eye := Vector3.UP * FirstPersonCamera.EYE_HEIGHT
 	var entries: Array[Dictionary] = []
 	var anchors := PackedVector2Array()
 	_ranks.clear()
-	for entry: Dictionary in _snapshot["seats"]:
+	for entry: Dictionary in seen["seats"]:
 		var seat: int = entry["seat"]
 		if seat == _seat or entry["out"]:
 			continue
@@ -437,7 +456,7 @@ func _draw_chevrons(my_pos: Vector3, pose: ShipPose) -> void:
 		var distance := my_pos.distance_to(their_pos)
 		if distance > CHEVRON_RANGE:
 			continue
-		if not _surfaces.line_of_sight(my_pos + eye, their_pos + eye, pose):
+		if not deck.line_of_sight(my_pos + eye, their_pos + eye, pose):
 			continue
 		var top := _view.seat_world_position(seat) + Vector3.UP * Brawler.headgear(seat, _rules)
 		var over := top + Vector3.UP * CHEVRON_LIFT

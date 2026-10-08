@@ -1,10 +1,14 @@
 class_name SinkTimeline
 extends RefCounted
 ## The baked sinking (§5b.4, D7): what SinkBake made of the stepper's run from the hit to
-## the end — states where the sinking needs them, each its physics second, where the sea
-## stands up her, her attitude, the head of every cell's water, the pressure of every
-## cell's pocket and what lights every cell — and every event at its exact second, a
-## lurch and a funnel's fall with their warnings; and the worst her bending came to. Kept
+## the end — states where the sinking needs them, each its physics second, and per piece
+## of her hull that never broke (a leaf: the whole ship, while she does not break; from
+## SH33 the two or three she broke into) where the sea stands up it and its attitude, then
+## the head of every leaf's every cell's water, the pressure of every cell's pocket and what
+## lights every cell — a leaf's numbers before it broke away being those of the piece it was
+## part of then — and every event at its exact second, a lurch and a funnel's fall with
+## their warnings, each the piece's it happened to; where along her each piece runs, what
+## it broke from and when; and the worst her bending came to. Kept
 ## compact: a state its neighbours, read between (blend, pocket), reproduce within
 ## keep_level of water, keep_turn_deg of attitude and keep_air of a pocket's pressure
 ## (SeaPhysics, est.) is dropped, but never one an event happens at. What stays
@@ -29,7 +33,8 @@ enum End { GONE, AFLOAT, CAPPED, AGROUND }
 ## creaks — the warning of its fall — and falls; her generator stops, or runs again; she
 ## is dark, nothing lighting her; a cell's water reaches its lamps; her hull creaks, its
 ## bending past stressed_share of its strength; and her hull first touches the bottom
-## (Seabed, SH32).
+## (Seabed, SH32); then a hinge starts at a weak spot, and her hull parts there (SH33,
+## HullBreak).
 enum Kind {
 	FLOODING,
 	FULL,
@@ -51,6 +56,8 @@ enum Kind {
 	SHORTED,
 	HULL_STRESSED,
 	GROUNDED,
+	HINGING,
+	PARTED,
 }
 ## A cell's water this far over its floor, in metres, is its first.
 const FIRST_WATER := 0.01
@@ -64,11 +71,13 @@ const PER_METRE := 1e3
 const PER_UNIT := 1e6
 const PER_DEGREE := 1e6
 const PAGE_STATES := 256
-const FORMAT := 4
+const FORMAT := 5
 const MOST_BYTES := 1 << 24
 const COMPRESSION := FileAccess.COMPRESSION_ZSTD
-## How the four quaternion components and a state's other numbers lie in a page.
+## How the four quaternion components and a state's other numbers lie in a page: per
+## leaf, the sea up it and its quaternion.
 const QUATERNION := 4
+const POSE := 1 + QUATERNION
 
 
 ## One thing the physics did, at its second.
@@ -81,13 +90,16 @@ class Event:
 	var name: StringName
 	## LURCHING, LURCHED: the list the lurch swings her by, in degrees, positive
 	## starboard down; LURCHED: the seconds it lasts; FUNNEL_FALLING: the seconds the fall
-	## takes; HULL_STRESSED: the share of her strength, positive hogging.
+	## takes; HULL_STRESSED, HINGING: the share of her strength, positive hogging; PARTED:
+	## the share of what the hinge kept. HINGING: the seconds the hinge takes to run.
 	var heel_deg: float
 	var lasts: float
 	## The second it was warned of: its own for what nothing warns of.
 	var warned: float
 	## FUNNEL_STRAINING, FUNNEL_FALLING: the way it falls, in her deck's plane, x then z.
 	var along := Vector2.ZERO
+	## The piece of her it happened to (spans): 0 for the whole ship.
+	var piece := 0
 
 	func _init(
 		at: float, event_kind: Kind, event_name: StringName, heel: float = 0.0, length := 0.0
@@ -100,13 +112,23 @@ class Event:
 		warned = at
 
 
-## How many cells each state has.
+## How many cells each state has, every leaf's together, leaf by leaf.
 var cells := 0
-## Per state kept, from the hit on: its physics second; the sea's height up her; her
-## rotation (Attitude), nine numbers; then every cell's head in her cells' order; then
-## every cell's pocket's pressure in metres of sea over nothing, 0 where it holds none
-## (SinkStepper.pressures). While a timeline's pages are still coming, only those that
-## came.
+## Every piece of her the bake followed, the whole ship first, each break's two after the
+## piece it broke (SinkBake.spans): past the whole ship, where each runs along her, from
+## then to, in ship-local metres; and for every piece the piece it broke from — -1 for the
+## whole ship — and the physics second it did. The leaves, the pieces that never broke, in
+## order, and how many cells each has (PieceStructure.cut: its cells' order).
+var spans := PackedFloat64Array()
+var parents := PackedInt32Array([-1])
+var born := PackedFloat64Array([0.0])
+var leaves := PackedInt32Array([0])
+var leaf_cells := PackedInt32Array()
+## Per state kept, from the hit on: its physics second; per leaf the sea's height up it
+## and its rotation (Attitude), nine numbers; then every cell's head, leaf by leaf, each
+## leaf's cells in their order; then every cell's pocket's pressure in metres of sea over
+## nothing, 0 where it holds none (SinkStepper.pressures). While a timeline's pages are
+## still coming, only those that came.
 var times := PackedFloat64Array()
 var seas := PackedFloat64Array()
 var rotations := PackedFloat64Array()
@@ -132,9 +154,10 @@ var states := 0
 ## empty until the must-sink rule or a given hit says.
 var origin := PackedInt64Array()
 
-## Per state kept, its rotation as a unit quaternion, w x y z.
+## Per state kept, per leaf, its rotation as a unit quaternion, w x y z.
 var _quaternions := PackedFloat64Array()
-## The integers: per state its microsecond, millimetres of sea, quaternion and heads.
+## The integers: per state its microsecond, per leaf millimetres of sea and its
+## quaternion, then every cell's heads, pockets and lights.
 var _held := PackedInt64Array()
 var _length := 0.0
 var _total := 0
@@ -163,6 +186,16 @@ static func made(bake: SinkBake, level: float, turn_deg: float, air: float) -> S
 	timeline.states = bake.times().size()
 	timeline.bending = roundi(bake.bending() * PER_UNIT) / PER_UNIT
 	timeline.bending_x = roundi(bake.bending_x() * PER_METRE) / PER_METRE
+	var spans_of := bake.spans()
+	for at in range(2, spans_of.size()):
+		timeline.spans.append(roundi(spans_of[at] * PER_METRE) / PER_METRE)
+	timeline.parents = bake.parents()
+	timeline.born = PackedFloat64Array()
+	for second: float in bake.born():
+		timeline.born.append(_seconds_of(_microseconds(second)))
+	timeline.leaves = bake.leaves()
+	for leaf: int in timeline.leaves:
+		timeline.leaf_cells.append(bake.cells_of(leaf))
 	# Every number as its integers say it, so the timeline baked here and the one a
 	# client reads back from its bytes are one (D11).
 	for event: Event in timeline.events:
@@ -199,7 +232,8 @@ static func from_bytes(bytes: PackedByteArray) -> SinkTimeline:
 
 
 ## A timeline from its [param header] alone (sections()[0]), its pages to come
-## (add_page); null when it is not one.
+## (add_page); null when it is not one — among its pieces past the whole ship, each break's
+## two after the piece it broke, and no piece broken twice.
 static func opened(header: PackedByteArray) -> SinkTimeline:
 	var reader := Reader.new(_unpacked(header))
 	var timeline := SinkTimeline.new()
@@ -216,6 +250,30 @@ static func opened(header: PackedByteArray) -> SinkTimeline:
 	timeline._total = reader.integer()
 	timeline.bending = reader.integer() / PER_UNIT
 	timeline.bending_x = reader.integer() / PER_METRE
+	var pieces := reader.count()
+	timeline.parents = PackedInt32Array([-1])
+	timeline.born = PackedFloat64Array([0.0])
+	for piece in range(1, pieces):
+		timeline.spans.append(reader.integer() / PER_METRE)
+		timeline.spans.append(reader.integer() / PER_METRE)
+		var parent := reader.integer()
+		if parent < 0 or parent >= piece:
+			return null
+		timeline.parents.append(parent)
+		timeline.born.append(_seconds_of(reader.integer()))
+	for piece in range(1, pieces, 2):
+		var parent := timeline.parents[piece]
+		if piece + 1 >= pieces or timeline.parents[piece + 1] != parent:
+			return null
+		if timeline.parents.count(parent) != 2:
+			return null
+	timeline.leaves = timeline._leaves()
+	var leaf_total := 0
+	for _leaf in timeline.leaves.size():
+		timeline.leaf_cells.append(reader.count())
+		leaf_total += timeline.leaf_cells[timeline.leaf_cells.size() - 1]
+	if leaf_total != timeline.cells:
+		return null
 	for _value in reader.count():
 		timeline.origin.append(reader.integer())
 	var names: Array[StringName] = []
@@ -234,6 +292,9 @@ static func opened(header: PackedByteArray) -> SinkTimeline:
 		event.lasts = _seconds_of(reader.integer())
 		var along_x := reader.integer() / PER_UNIT
 		event.along = Vector2(along_x, reader.integer() / PER_UNIT)
+		event.piece = reader.integer()
+		if event.piece < 0 or event.piece >= pieces:
+			return null
 		timeline.events.append(event)
 	for _page in reader.count():
 		timeline._claims.append(reader.bytes(32))
@@ -330,17 +391,70 @@ func pocket(frame: int, next: int, weight: float, cell: int) -> float:
 	return _pocket_between(pockets[frame * cells + cell], pockets[next * cells + cell], weight)
 
 
-## Her rotation [param weight] of the way from kept state [param frame] to
-## [param next]: the two quaternions blended and made a unit again — what the
+## Leaf [param leaf]'s rotation [param weight] of the way from kept state [param frame]
+## to [param next]: the two quaternions blended and made a unit again — what the
 ## compaction holds every dropped state to, so the one way of reading between states.
-func blend(frame: int, next: int, weight: float) -> Quaternion:
-	var q := blended(frame, next, weight)
+func blend(frame: int, next: int, weight: float, leaf := 0) -> Quaternion:
+	var q := blended(frame, next, weight, leaf)
 	return Quaternion(q[1], q[2], q[3], q[0])
 
 
 ## The same blend, as four 64-bit numbers, w x y z.
-func blended(frame: int, next: int, weight: float) -> PackedFloat64Array:
-	return _blended(_quaternions, frame, _quaternions, next, weight)
+func blended(frame: int, next: int, weight: float, leaf := 0) -> PackedFloat64Array:
+	var count := leaves.size()
+	return _blended(_quaternions, frame * count + leaf, _quaternions, next * count + leaf, weight)
+
+
+## The sea up leaf [param leaf] at kept state [param frame].
+func sea_of(frame: int, leaf := 0) -> float:
+	return seas[frame * leaves.size() + leaf]
+
+
+## Leaf [param leaf]'s rotation at kept state [param frame], nine numbers (Attitude).
+func rotation_of(frame: int, leaf := 0) -> PackedFloat64Array:
+	var at := (frame * leaves.size() + leaf) * 9
+	return rotations.slice(at, at + 9)
+
+
+## The place in [member leaves] of the leaf piece [param piece] is, or of the first leaf
+## that broke from it: the leaf whose numbers it had while it stood.
+func leaf_of(piece: int) -> int:
+	var at := piece
+	while not at in leaves:
+		at = parents.find(at)
+	return leaves.find(at)
+
+
+## Where piece [param piece] runs along her, from then to; the whole ship's past both
+## ends.
+func span_of(piece: int) -> Vector2:
+	if piece == 0:
+		return Vector2(-INF, INF)
+	return Vector2(spans[(piece - 1) * 2], spans[(piece - 1) * 2 + 1])
+
+
+## The pieces she is in at physics second [param seconds], aft to fore: each piece
+## standing that has broken from the piece before it by then and not itself broken.
+func pieces_at(seconds: float) -> PackedInt32Array:
+	var found := PackedInt32Array([0])
+	for piece in range(1, parents.size()):
+		if born[piece] > seconds:
+			continue
+		var parent := found.find(parents[piece])
+		if parent != -1:
+			found.remove_at(parent)
+			found.insert(parent, piece + 1)
+			found.insert(parent, piece)
+	return found
+
+
+## The pieces that never broke, in order: every one no piece broke from.
+func _leaves() -> PackedInt32Array:
+	var found := PackedInt32Array()
+	for piece in parents.size():
+		if not piece in parents:
+			found.append(piece)
+	return found
 
 
 ## The SHA-256 of every byte it is made of (digest_of).
@@ -417,28 +531,31 @@ func add_page(bytes: PackedByteArray) -> bool:
 
 
 func _width() -> int:
-	return 2 + QUATERNION + cells * 3
+	return 1 + leaves.size() * POSE + cells * 3
 
 
 ## Fills the readable numbers from the integers, from state [param from] on.
 func _decode(from: int) -> void:
 	var width := _width()
+	var first_cell := 1 + leaves.size() * POSE
 	for state in range(from, _held.size() / width):
 		var at := state * width
 		times.append(_seconds_of(_held[at]))
-		seas.append(_held[at + 1] / PER_METRE)
-		var q := PackedFloat64Array()
-		for part in QUATERNION:
-			q.append(_held[at + 2 + part] / PER_UNIT)
-		q = _unit(q)
-		_quaternions.append_array(q)
-		rotations.append_array(_rotation(q))
+		for leaf in leaves.size():
+			var pose := at + 1 + leaf * POSE
+			seas.append(_held[pose] / PER_METRE)
+			var q := PackedFloat64Array()
+			for part in QUATERNION:
+				q.append(_held[pose + 1 + part] / PER_UNIT)
+			q = _unit(q)
+			_quaternions.append_array(q)
+			rotations.append_array(_rotation(q))
 		for cell in cells:
-			heads.append(_held[at + 2 + QUATERNION + cell] / PER_METRE)
+			heads.append(_held[at + first_cell + cell] / PER_METRE)
 		for cell in cells:
-			pockets.append(_held[at + 2 + QUATERNION + cells + cell] / PER_METRE)
+			pockets.append(_held[at + first_cell + cells + cell] / PER_METRE)
 		for cell in cells:
-			lits.append(_held[at + 2 + QUATERNION + cells * 2 + cell])
+			lits.append(_held[at + first_cell + cells * 2 + cell])
 
 
 func _header_bytes(pages: Array[PackedByteArray]) -> PackedByteArray:
@@ -454,6 +571,14 @@ func _header_bytes(pages: Array[PackedByteArray]) -> PackedByteArray:
 	writer.integer(_total)
 	writer.integer(roundi(bending * PER_UNIT))
 	writer.integer(roundi(bending_x * PER_METRE))
+	writer.integer(parents.size())
+	for piece in range(1, parents.size()):
+		writer.integer(roundi(spans[(piece - 1) * 2] * PER_METRE))
+		writer.integer(roundi(spans[(piece - 1) * 2 + 1] * PER_METRE))
+		writer.integer(parents[piece])
+		writer.integer(_microseconds(born[piece]))
+	for count_of: int in leaf_cells:
+		writer.integer(count_of)
 	writer.integer(origin.size())
 	for value: int in origin:
 		writer.integer(value)
@@ -477,6 +602,7 @@ func _header_bytes(pages: Array[PackedByteArray]) -> PackedByteArray:
 		writer.integer(_microseconds(event.lasts))
 		writer.integer(roundi(event.along.x * PER_UNIT))
 		writer.integer(roundi(event.along.y * PER_UNIT))
+		writer.integer(event.piece)
 	writer.integer(pages.size())
 	for page: PackedByteArray in pages:
 		writer.raw(_sha256(page))
@@ -499,8 +625,8 @@ func _page_bytes(page: int) -> PackedByteArray:
 	return _packed(writer.bytes)
 
 
-## Every state of [param bake] as the integers it is kept as, its quaternion turned
-## the same way round as the one before it.
+## Every state of [param bake] as the integers it is kept as, each leaf's quaternion
+## turned the same way round as its one before it.
 static func _held_states(bake: SinkBake) -> PackedInt64Array:
 	var held := PackedInt64Array()
 	var times := bake.times()
@@ -510,17 +636,23 @@ static func _held_states(bake: SinkBake) -> PackedInt64Array:
 	var all_pockets := bake.pockets()
 	var all_lits := bake.lits()
 	var cells_in := bake.cells()
-	var before := PackedFloat64Array([1.0, 0.0, 0.0, 0.0])
+	var count := bake.leaves().size()
+	var befores: Array[PackedFloat64Array] = []
+	for _leaf in count:
+		befores.append(PackedFloat64Array([1.0, 0.0, 0.0, 0.0]))
 	for state in times.size():
 		held.append(_microseconds(times[state]))
-		held.append(roundi(seas[state] * PER_METRE))
-		var q := quaternion_of(rotations.slice(state * 9, state * 9 + 9))
-		if q[0] * before[0] + q[1] * before[1] + q[2] * before[2] + q[3] * before[3] < 0.0:
+		for leaf in count:
+			var at := state * count + leaf
+			held.append(roundi(seas[at] * PER_METRE))
+			var q := quaternion_of(rotations.slice(at * 9, at * 9 + 9))
+			var before := befores[leaf]
+			if q[0] * before[0] + q[1] * before[1] + q[2] * before[2] + q[3] * before[3] < 0.0:
+				for part in QUATERNION:
+					q[part] = -q[part]
+			befores[leaf] = q
 			for part in QUATERNION:
-				q[part] = -q[part]
-		before = q
-		for part in QUATERNION:
-			held.append(roundi(q[part] * PER_UNIT))
+				held.append(roundi(q[part] * PER_UNIT))
 		for cell in cells_in:
 			held.append(roundi(all_heads[state * cells_in + cell] * PER_METRE))
 		for cell in cells_in:
@@ -553,7 +685,7 @@ static func _kept(
 	var at_event := {}
 	for event: Event in kept_events:
 		at_event[_microseconds(event.seconds)] = true
-	var width := 2 + QUATERNION + bake.cells() * 3
+	var width := 1 + bake.leaves().size() * POSE + bake.cells() * 3
 	for state in count_of:
 		if at_event.has(held[state * width]):
 			pinned[state] = 1
@@ -592,7 +724,9 @@ class Fit:
 	var _heads := PackedFloat64Array()
 	var _pockets := PackedFloat64Array()
 	var _turns := PackedFloat64Array()
+	var _leaf_cells := PackedInt32Array()
 	var _cells: int
+	var _leaves: int
 	var _level: float
 	var _air: float
 	## The cosine of half the turn allowed: two unit quaternions closer than it in their
@@ -603,45 +737,64 @@ class Fit:
 		bake: SinkBake, held: PackedInt64Array, level: float, turn_deg: float, air: float
 	) -> void:
 		_cells = bake.cells()
+		_leaves = bake.leaves().size()
 		_true_seas = bake.seas()
 		_true_heads = bake.heads()
 		_true_pockets = bake.pockets()
 		_level = level
 		_air = air
+		for leaf: int in bake.leaves():
+			_leaf_cells.append(bake.cells_of(leaf))
 		var half := Attitude.sine_of_degrees(turn_deg * 0.25)
 		_close = 1.0 - 2.0 * half * half
 		var rotations := bake.rotations()
-		var width := 2 + QUATERNION + _cells * 3
+		var first_cell := 1 + _leaves * POSE
+		var width := first_cell + _cells * 3
 		for state in bake.times().size():
 			var at := state * width
 			_times.append(SinkTimeline._seconds_of(held[at]))
-			_seas.append(held[at + 1] / PER_METRE)
-			var q := PackedFloat64Array()
-			for part in QUATERNION:
-				q.append(held[at + 2 + part] / PER_UNIT)
-			_turns.append_array(SinkTimeline._unit(q))
+			for leaf in _leaves:
+				var pose := at + 1 + leaf * POSE
+				_seas.append(held[pose] / PER_METRE)
+				var q := PackedFloat64Array()
+				for part in QUATERNION:
+					q.append(held[pose + 1 + part] / PER_UNIT)
+				_turns.append_array(SinkTimeline._unit(q))
+				var true_at := (state * _leaves + leaf) * 9
+				_true_turns.append_array(
+					SinkTimeline.quaternion_of(rotations.slice(true_at, true_at + 9))
+				)
 			for cell in _cells:
-				_heads.append(held[at + 2 + QUATERNION + cell] / PER_METRE)
+				_heads.append(held[at + first_cell + cell] / PER_METRE)
 			for cell in _cells:
-				_pockets.append(held[at + 2 + QUATERNION + _cells + cell] / PER_METRE)
-			var truth := SinkTimeline.quaternion_of(rotations.slice(state * 9, state * 9 + 9))
-			_true_turns.append_array(truth)
+				_pockets.append(held[at + first_cell + _cells + cell] / PER_METRE)
 
 	func holds(from: int, to: int) -> bool:
 		var span := _times[to] - _times[from]
 		for state in range(from + 1, to):
 			var weight := (_times[state] - _times[from]) / span if span > 0.0 else 1.0
-			var sea := _seas[from] + (_seas[to] - _seas[from]) * weight
-			if absf(sea - _true_seas[state]) > _level:
-				return false
-			var q := SinkTimeline._blended(_turns, from, _turns, to, weight)
-			var dot := 0.0
-			for part in QUATERNION:
-				dot += q[part] * _true_turns[state * QUATERNION + part]
-			if absf(dot) < _close:
-				return false
-			var sea_off := sea - _true_seas[state]
+			var sea_offs := PackedFloat64Array()
+			for leaf in _leaves:
+				var a := from * _leaves + leaf
+				var b := to * _leaves + leaf
+				var here := state * _leaves + leaf
+				var sea := _seas[a] + (_seas[b] - _seas[a]) * weight
+				if absf(sea - _true_seas[here]) > _level:
+					return false
+				var q := SinkTimeline._blended(_turns, a, _turns, b, weight)
+				var dot := 0.0
+				for part in QUATERNION:
+					dot += q[part] * _true_turns[here * QUATERNION + part]
+				if absf(dot) < _close:
+					return false
+				sea_offs.append(sea - _true_seas[here])
+			var leaf_of := 0
+			var leaf_ends := _leaf_cells[0]
 			for cell in _cells:
+				while cell >= leaf_ends:
+					leaf_of += 1
+					leaf_ends += _leaf_cells[leaf_of]
+				var sea_off := sea_offs[leaf_of]
 				var a := _heads[from * _cells + cell]
 				var off := a + (_heads[to * _cells + cell] - a) * weight
 				off -= _true_heads[state * _cells + cell]

@@ -33,6 +33,7 @@ const BANDS := {
 		"heavy list (≥ 15° for ≥ 5 min afloat)": [15, 35],
 		"capsizes (rolled past 90°)": [5, 20],
 		"gone within 20 min of physics": [10, 30],
+		"breaks (in two or three, SH33)": [0, 0],
 	},
 	"trawler":
 	{
@@ -41,6 +42,7 @@ const BANDS := {
 		"heavy list (≥ 15° for ≥ 5 min afloat)": [10, 30],
 		"capsizes (rolled past 90°)": [25, 50],
 		"gone within 20 min of physics": [30, 60],
+		"breaks (in two or three, SH33)": [0, 0],
 	},
 }
 const BAKE_BUDGET := 2.4
@@ -106,7 +108,7 @@ func _raw(structure: ShipStructure, scenario: SinkScenario, seeds: int) -> Array
 			structure, damage, hull, sea, spare, scenario.quick_failing
 		)
 		var started := Time.get_ticks_usec()
-		var bake := SinkBake.new(SinkStepper.new(structure, damage, sea), sea, scenario.bake_cap)
+		var bake := SinkBake.of(structure, damage, sea, scenario.bake_cap)
 		var timeline := bake.timeline()
 		var took := (Time.get_ticks_usec() - started) / 1e6
 		(
@@ -227,6 +229,7 @@ func _bands_section(
 		["gone within 20 min of physics", [L.FAST], false],
 		["lights out — her generator stopped for good before she went", [L.LIGHTS_OUT], false],
 		["funnel fell before she went", [L.FUNNEL_FELL], false],
+		["breaks (in two or three, SH33)", [L.BROKE_IN_TWO, L.BROKE_IN_THREE], false],
 	]
 	for row: Array in rows:
 		var raw_count := _counted(raw_labels, row[1], row[2])
@@ -253,7 +256,6 @@ func _bands_section(
 				)
 			)
 		)
-	lines.append("| breaks | 0 | 0 | 0 in 500 | in — no breaking stage yet (SH33) |")
 	lines.append("")
 	lines.append(
 		(
@@ -337,7 +339,7 @@ func _failures_section(raw: Array[Dictionary], chosen: Array[Dictionary]) -> Pac
 		(
 			(
 				"The hull creaked — her bending past %.0f%% of her strength — in %d of %d sinkings;"
-				+ " nothing breaks her before SH33."
+				+ " she breaks only at a weak spot of hers, past its share of it (SH33)."
 			)
 			% [SeaPhysics.load_default().stressed_share * 100.0, stressed, chosen.size()]
 		)
@@ -666,8 +668,7 @@ func _cost_section(raw: Array[Dictionary], chosen: Array[Dictionary]) -> PackedS
 		if longest == null or choice.timeline.length() > longest.timeline.length():
 			longest = choice
 	var sea := SeaPhysics.load_default()
-	var stepper := SinkStepper.new(_structure, longest.damage, sea)
-	var every := SinkBake.new(stepper, sea, _scenario.bake_cap)
+	var every := SinkBake.of(_structure, longest.damage, sea, _scenario.bake_cap)
 	var lines := PackedStringArray()
 	lines.append("## What it costs (this machine, %s)" % OS.get_processor_name())
 	lines.append("")

@@ -241,11 +241,10 @@ static func out_of(player: PlayerState, up: int) -> void:
 	_turned(player, to_ship(up))
 
 
-## [param snapshot] with its seats' points in the frame it stands in (its "up"): what
-## a reader that asks that frame's Surfaces about them reads — a bot's view, the HUD's
-## crosshair. Itself when it stands on her decks.
-static func framed_snapshot(snapshot: Dictionary) -> Dictionary:
-	var up: int = snapshot["up"]
+## [param snapshot] with its seats' points in the frame [param up] — the one a seat of it
+## stands in (MatchState.up_of): what a reader that asks that frame's Surfaces about them
+## reads — a bot's view, the HUD's crosshair. Itself on her decks.
+static func framed_snapshot(snapshot: Dictionary, up: int) -> Dictionary:
 	if up == Up.DECK:
 		return snapshot
 	var turn := to_frame(up)

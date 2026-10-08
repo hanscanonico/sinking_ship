@@ -17,9 +17,11 @@ var seats: Array[PlayerState] = []
 var props: Array[PropState] = []
 ## Per railing of the layout, the hits it has left; a span at 0 is broken (SH10).
 var railing_hp := PackedFloat64Array()
-## Which of her axes the match stands on as up (Faces.Up, SH32): whose faces are floors,
-## and the frame every seat's facing, look and move are in.
-var up: int = Faces.Up.DECK
+## Per piece of her (Pieces, SH33; the whole ship alone while she does not break), which
+## of its axes the match stands on there as up (Faces.Up, SH32): whose faces are floors,
+## and the frame the facing, look and move of every seat on it are in; -1 for a piece she
+## has not broken into yet.
+var up := PackedInt32Array([Faces.Up.DECK])
 ## The last stepped tick's events: hints for presentation, not state.
 var events: Array[SimEvent] = []
 
@@ -40,6 +42,12 @@ func winner() -> int:
 		if not player.is_out():
 			return player.seat
 	return -1
+
+
+## The frame the seat of [param entry] — a seat of [param snapshot] — stands in: its
+## piece's (Faces.Up).
+static func up_of(snapshot: Dictionary, entry: Dictionary) -> int:
+	return snapshot["up"][entry["piece"]]
 
 
 ## The railings, by index, that the match has broken.
@@ -75,6 +83,6 @@ func to_dict(version: int) -> Dictionary:
 		"seats": seat_entries,
 		"props": prop_entries,
 		"railing_hp": railing_hp.duplicate(),
-		"up": up,
+		"up": Array(up),
 		"events": event_entries,
 	}

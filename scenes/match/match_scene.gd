@@ -55,8 +55,9 @@ var _fx := SinkingFx.new()
 var _prompts := InputPrompts.new()
 var _pointer := PointerCapture.new()
 var _kick: ViewKick
-## The ship's cells over the observer's view, once show_cells() asks for them.
-var _cells: CellOverlay
+## The ship's cells over the observer's view, once show_cells() asks for them: one per
+## piece she ends in once she breaks (SH33), each drawn on its piece.
+var _cells: Array[CellOverlay] = []
 ## The free camera the local seat may fly once it is out, in place of a seat's eyes.
 var _free := FreeCamera.new()
 
@@ -102,9 +103,12 @@ func _process(delta: float) -> void:
 	var viewed := _order.target(snapshot)
 	_hud.show_snapshot(snapshot)
 	_sea_and_sky.show_sinking(snapshot["tick"], _view.ship_to_world())
-	if _cells != null:
+	if not _cells.is_empty():
 		var pose := _driver.client.sim.schedule.pose_at(snapshot["tick"])
-		_cells.show_water(pose, _view.ship_to_world())
+		var leaves := ShipPieces.leaves_of(_driver.client.sim.schedule)
+		for at in _cells.size():
+			var piece := leaves[at] if not leaves.is_empty() else 0
+			_cells[at].show_water(pose.of_piece(piece), _view.piece_to_world(at))
 	_hud.show_spectating(_spectating(snapshot, viewed))
 	_hud.show_controls(_prompts if _local != null else null)
 	_end.show_results(_stats, _local_seat, _names, _config.match_seed)
@@ -113,9 +117,10 @@ func _process(delta: float) -> void:
 	_free.keep(_can_fly(snapshot))
 	_pointer.want(_looking() or _flying())
 	_hold()
-	if _local != null and snapshot["up"] != _local_up:
-		_local.turn_face(_local_up, snapshot["up"], _view.ship_to_world().basis)
-		_local_up = snapshot["up"]
+	var local_up := _up_of(snapshot, _local_seat)
+	if _local != null and local_up != _local_up:
+		_local.turn_face(_local_up, local_up, _view.seat_to_world(_local_seat).basis)
+		_local_up = local_up
 	if _looking() and not _free.active:
 		_local.look_by_stick(delta)
 	_audio.hear_through(-1 if _observer or _free.active else viewed)
@@ -142,7 +147,8 @@ func _process(delta: float) -> void:
 	_view.look_out_of(viewed)
 	_kick.follow(snapshot, viewed, yaw)
 	var kick := _kick.advance(delta)
-	_eyes.look_from(_view.ship_to_world(), feet, yaw, pitch, kick, snapshot["up"])
+	var world := _view.seat_to_world(viewed) if _staged.is_empty() else _view.ship_to_world()
+	_eyes.look_from(world, feet, yaw, pitch, kick, _up_of(snapshot, viewed))
 	_arms.visible = _staged.is_empty()
 	if _staged.is_empty():
 		_arms.show_seat(
@@ -250,10 +256,15 @@ func watch_from(side: ObserverCamera.Beam) -> void:
 ## Draws the ship's cells over the observer's view, named, and frames the whole ship
 ## (--observer-cells): a tool, as the observer camera is.
 func show_cells() -> void:
-	if _cells == null:
-		_cells = CellOverlay.new()
-		_view.get_node("Ship").add_child(_cells)
-	_cells.build(_config.ship.structure)
+	if _cells.is_empty():
+		var schedule := _driver.client.sim.schedule
+		var leaves := ShipPieces.leaves_of(schedule)
+		for at in maxi(leaves.size(), 1):
+			var overlay := CellOverlay.new()
+			_view.piece_node(at).add_child(overlay)
+			var drawn := _config.ship.structure if leaves.is_empty() else null
+			overlay.build(drawn if drawn != null else schedule.structure_of(leaves[at]))
+			_cells.append(overlay)
 	_observer_camera.pitch_deg = CELLS_PITCH_DEG
 	_observer_camera.distance = CELLS_DISTANCE
 	_observer_camera.whole_ship = true
@@ -293,7 +304,7 @@ func _begin(
 	if _local != null:
 		# The look starts where the match's first snapshot faces the seat.
 		_local.yaw = _driver.client.view()["seats"][_local_seat]["facing"]
-		_local_up = _driver.client.view()["up"]
+		_local_up = _up_of(_driver.client.view(), _local_seat)
 	# The client's prediction: what the data, the ship and its sinking are.
 	var sim := _driver.client.sim
 	_stats = MatchStats.new(config.seats, config.countdown_ticks)
@@ -358,17 +369,20 @@ func set_paused(paused: bool) -> void:
 
 ## The sinking is felt before it is seen (D12): a full shake as the iceberg strikes,
 ## a light one as a lurch is telegraphed, a full one as it swings, a lighter one as a
-## deck gives way or a funnel comes down; a light one as something bursts or the hull
-## creaks — read from every stepped tick's events, so a hitch never eats one.
+## deck gives way, a funnel comes down or her hull parts (SH33); a light one as something
+## bursts, the hull creaks or a hinge starts in it — read from every stepped tick's
+## events, so a hitch never eats one.
 func _shake_for_the_sinking(events: Array[SimEvent]) -> void:
 	for event: SimEvent in events:
 		match event.kind:
 			SimEvent.Kind.SHIP_LURCHING, SimEvent.Kind.OPENING_GAVE_WAY:
 				_kick.shake(LURCH_WARNING_SHAKE)
-			SimEvent.Kind.HULL_STRESSED, SimEvent.Kind.FUNNEL_STRAINING:
+			SimEvent.Kind.HULL_STRESSED, SimEvent.Kind.FUNNEL_STRAINING, SimEvent.Kind.HULL_HINGING:
 				_kick.shake(LURCH_WARNING_SHAKE)
 			SimEvent.Kind.SHIP_LURCHED, SimEvent.Kind.HOLED:
 				_kick.shake()
+			SimEvent.Kind.HULL_PARTED:
+				_kick.shake(COLLAPSE_SHAKE)
 			SimEvent.Kind.PLATFORM_COLLAPSED, SimEvent.Kind.KNOCKED_DOWN:
 				_kick.shake(COLLAPSE_SHAKE)
 
@@ -383,6 +397,14 @@ func _looking() -> bool:
 ## results nor with the mouse let go.
 func _flying() -> bool:
 	return _free.active and not _paused and not _end.visible and not _mouse_freed
+
+
+## The frame [param seat] of [param snapshot] stands in (MatchState.up_of): its piece's;
+## her decks' for no seat.
+static func _up_of(snapshot: Dictionary, seat: int) -> int:
+	if seat < 0 or seat >= snapshot["seats"].size():
+		return snapshot["up"][0]
+	return MatchState.up_of(snapshot, snapshot["seats"][seat])
 
 
 ## Whether the free camera may be flown in [param snapshot]: the eye seat out while the

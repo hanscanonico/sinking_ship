@@ -20,7 +20,7 @@ The raw census bakes each seed's first drawn hit as drawn, past the quick check;
 | gone within 20 min of physics | 8.0% (16) | 26.0% (52) | 10–30% | under |
 | lights out — her generator stopped for good before she went | 44.5% (89) | 100.0% (200) | — |  |
 | funnel fell before she went | 45.0% (90) | 100.0% (200) | — |  |
-| breaks | 0 | 0 | 0 in 500 | in — no breaking stage yet (SH33) |
+| breaks (in two or three, SH33) | 0.0% (0) | 0.0% (0) | 0–0% | in |
 
 Capsizes counts a roll past 90° only while her trim is under 45°: stood further on end she has no list to speak of (the lurch rule's reading, §5b.4), so a roll then is no capsize. The founders rows read how she stands as she goes, so a hull that capsized is counted by the end she goes with unless she goes on her side; founders upright leaves the capsized out, its two sub-rows keep them.
 
@@ -95,7 +95,7 @@ A pocket is a cell's air trapped under its ceiling after the hit (SinkAir): from
 | raw census | 0.060 | 0.189 | 0.220 | yes |
 | match census | 0.070 | 0.191 | 0.220 | yes |
 
-The hull creaked — her bending past 80% of her strength — in 0 of 200 sinkings; nothing breaks her before SH33.
+The hull creaked — her bending past 80% of her strength — in 0 of 200 sinkings; she breaks only at a weak spot of hers, past its share of it (SH33).
 
 ## What it costs (this machine, Apple M1)
 

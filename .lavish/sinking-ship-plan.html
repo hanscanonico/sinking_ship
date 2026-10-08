@@ -174,7 +174,7 @@
 
     <!-- ============================== HERO ============================== -->
     <header class="sk-hero px-6 py-10 md:px-12">
-      <p class="sk-kicker opacity-80">Sinking Ship · design of record · rev 4 (for review) · MVP approved 2026-10-02 · first person and rooms 2026-10-03 · the sinking as physics 2026-10-05 · <b>shipped: SH1, SH2, SH3, SH8, SH14, SH9, SH4, SH3b, SH9b, SH15, SH4b, SH6, SH14b, SH5, SH7, SH10, SH11, SH12 (the mini PC gate is owed), SH24, SH25, SH26, SH27, SH28, SH29, SH30, SH31, SH32</b></p>
+      <p class="sk-kicker opacity-80">Sinking Ship · design of record · rev 4 (for review) · MVP approved 2026-10-02 · first person and rooms 2026-10-03 · the sinking as physics 2026-10-05 · <b>shipped: SH1, SH2, SH3, SH8, SH14, SH9, SH4, SH3b, SH9b, SH15, SH4b, SH6, SH14b, SH5, SH7, SH10, SH11, SH12 (the mini PC gate is owed), SH24, SH25, SH26, SH27, SH28, SH29, SH30, SH31, SH32, SH33</b></p>
       <h1 class="text-3xl md:text-4xl font-black mt-2">Sinking Ship — last one dry wins</h1>
       <p class="mt-3 max-w-3xl opacity-90">
         A battle royale on a ship that is going down. Eight brawlers on a small coastal steamer,
@@ -4396,7 +4396,7 @@ sequenceDiagram
           <h4>Builds</h4>
           <ul class="sk-checks text-sm">
             <li>Openings shut → leaking → collapsed at their leak and collapse heads (FLOODSTAND and IMO values, est. where untested); hinged doors directional; a collapse one-way and an event the step lands on; watertight walls as panels that can give way, weaker where the hit ended beside them.</li>
-            <li>The funnel: falls past its tilt limits, when its base goes under, or beside a hinge; along the world's down; a telegraphed strip with a creak at 80% of a limit (est.); bodies in the strip are knocked down; landing on the wheelhouse roof collapses it (the old <code>COLLAPSE</code>, now physical); landing on railings breaks them.</li>
+            <li>The funnel: falls past its tilt limits, when its base goes under, or beside a hinge <em>(not built as of SH33, 2026-10-08 — recorded debt)</em>; along the world's down; a telegraphed strip with a creak at 80% of a limit (est.); bodies in the strip are knocked down; landing on the wheelhouse roof collapses it (the old <code>COLLAPSE</code>, now physical); landing on railings breaks them.</li>
             <li>Power: the generator's cell and tilt limits with hysteresis; emergency power for its minutes; the lit state per cell in the timeline; lamps follow it instead of their own wetness; in an unlit cell a bot's sight range shortens. Pumps with power.</li>
             <li>Bending: load per station → shear → bending moment against strength; the ratio reported, <code>HullStressed</code> at 0.8; cannot break (stage switch).</li>
             <li>The must-sink rule now judges bakes with failures; its tests and the match census rerun.</li>
@@ -4456,7 +4456,7 @@ sequenceDiagram
         <!-- SH33 -->
         <div class="card bg-base-100 border p-4 sk-ms" id="sh33">
           <div class="flex flex-wrap items-baseline gap-2">
-            <h3 class="font-black">SH33 · Breaking into pieces <span class="badge badge-outline badge-sm">size L</span> <span class="badge badge-ghost badge-sm align-middle">proposed</span> <span class="badge badge-sm align-middle" style="background:var(--sk-deep); color:white; border:0;">post-MVP</span> <span class="badge badge-outline badge-sm align-middle">rev 4</span></h3>
+            <h3 class="font-black">SH33 · Breaking into pieces <span class="badge badge-outline badge-sm">size L</span> <span class="badge badge-success badge-sm align-middle">shipped · #51</span> <span class="badge badge-sm align-middle" style="background:var(--sk-deep); color:white; border:0;">post-MVP</span> <span class="badge badge-outline badge-sm align-middle">rev 4</span></h3>
           </div>
           <p class="text-sm mt-2 max-w-3xl"><strong>Ships:</strong> when the bending moment passes the hull's strength, she hinges and parts into two or three pieces, each with its own attitude; a player belongs to the piece under them. On the steamer and the trawler this never happens — the census proves it — so a test-only weak hull shows it in play.</p>
           <p class="text-sm mt-1 max-w-3xl"><strong>Waits on:</strong> nothing.</p>
@@ -4475,7 +4475,7 @@ sequenceDiagram
           <ul class="sk-gates text-sm">
             <li><code>make verify</code> green; continuation exact across a break; golden regenerated.</li>
             <li><span class="sk-file">test_breaking.gd</span> — <code>test_ratio_under_one_never_breaks</code>, <code>test_the_first_station_past_one_is_where_she_breaks</code>, <code>test_each_piece_keeps_its_cells_and_mass</code>, <code>test_a_cut_cell_splits_its_water_by_volume</code>, <code>test_three_pieces_at_most</code>, <code>test_body_belongs_to_the_piece_under_it</code>.</li>
-            <li>Census (layer 3): the steamer and the trawler never break in 500 seeds; the weak hull breaks in two on one pinned seed and, with a second weak spot, in three on another.</li>
+            <li>Census (layer 3): the steamer and the trawler never break in 500 seeds; the weak hull breaks in two on one pinned seed and, with a second weak spot, in three on another. <em>2026-10-08, shipped with recorded debt by your decision:</em> neither real ship has a weak spot, so neither can break by construction — a 500-seed probe of first drawn hits shows 0 breaks and a worst bending ratio of 0.22 (steamer) / 0.08 (trawler); the weak hull carries both weak spots at once (aft_joint, midships_joint) and breaks in two on seed 2 (a drawn hit) and in three on seed 3, which is her sure-hit fallback — every drawn three-way break so far leaves a piece afloat and is drawn again. <strong>Debt:</strong> the funnel does not yet fall when a hinge forms beside it (§5b.1 and SH31's card say it should; SH31 deferred it here) — for SH34 or a fix PR; retune the weak hull so a drawn hit breaks in three and every piece goes; crates on pieces other than the aft one vanish from the art but stay physical; effects and audio for bodies on other pieces use the aft piece's transform; no shoves across pieces; the greybox shows each piece's torn layout before the break; "ride the stern piece as the bow goes" has no pinned seed where the bow goes first (a human QA gate); fps on a broken hull unmeasured (R28).</li>
             <li>The must-sink tests rerun with breaking: a hit that leaves any piece afloat at the cap is drawn again.</li>
             <li><code>make capture</code> on the weak hull shows two pieces.</li>
             <li><code>make run SHIP=steamer_weak</code>: ride the stern piece as the bow goes.</li>

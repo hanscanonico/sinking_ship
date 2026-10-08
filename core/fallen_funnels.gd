@@ -38,11 +38,16 @@ static func stands_on(fitting: ShipFitting, blocker: ShipBlocker) -> bool:
 	return round and fitting.base.y >= blocker.bottom and fitting.base.y < blocker.top
 
 
-## Takes the falls [param pose] has landed; whether they differ from those it had.
+## Takes the falls [param pose] has landed of its funnels — a piece of her has its own
+## (Pieces, SH33) —; whether they differ from those it had.
 func honour(pose: ShipPose) -> bool:
-	if pose.felled == _down:
+	var down: Array[FunnelFall] = []
+	for fall: FunnelFall in pose.felled:
+		if fall.fitting in _funnels:
+			down.append(fall)
+	if down == _down:
 		return false
-	_down = pose.felled.duplicate()
+	_down = down
 	return true
 
 

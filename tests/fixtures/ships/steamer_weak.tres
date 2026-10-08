@@ -1,0 +1,2631 @@
+[gd_resource type="Resource" script_class="ShipLayout" format=3]
+
+[ext_resource type="Script" path="res://core/ship_platform.gd" id="1_plat"]
+[ext_resource type="Script" path="res://core/ship_ramp.gd" id="2_ramp"]
+[ext_resource type="Script" path="res://core/ship_blocker.gd" id="3_block"]
+[ext_resource type="Script" path="res://core/ship_railing.gd" id="4_rail"]
+[ext_resource type="Script" path="res://core/ship_layout.gd" id="5_layout"]
+[ext_resource type="Script" path="res://core/ship_room.gd" id="6_room"]
+[ext_resource type="Script" path="res://core/ship_ladder.gd" id="7_ladder"]
+[ext_resource type="Script" path="res://core/ship_prop.gd" id="8_prop"]
+[ext_resource type="Script" path="res://core/sinking/ship_structure.gd" id="9_structure"]
+[ext_resource type="Script" path="res://core/sinking/hull_section.gd" id="10_section"]
+[ext_resource type="Script" path="res://core/sinking/flood_cell.gd" id="11_cell"]
+[ext_resource type="Script" path="res://core/sinking/ship_wall.gd" id="12_wall"]
+[ext_resource type="Script" path="res://core/sinking/ship_opening.gd" id="13_opening"]
+[ext_resource type="Script" path="res://core/sinking/mass_item.gd" id="14_mass"]
+[ext_resource type="Script" path="res://core/sinking/iceberg_hit.gd" id="15_hit"]
+[ext_resource type="Script" path="res://core/sinking/ship_fitting.gd" id="16_fitting"]
+[ext_resource type="Script" path="res://core/sinking/girder_strength.gd" id="17_strength"]
+[ext_resource type="Script" path="res://core/sinking/weak_spot.gd" id="18_weak"]
+
+[sub_resource type="Resource" id="Platform_main_deck"]
+script = ExtResource("1_plat")
+name = &"main deck"
+area = Rect2(-14, -5, 26, 3.4)
+
+[sub_resource type="Resource" id="Platform_poop_deck"]
+script = ExtResource("1_plat")
+name = &"poop deck"
+area = Rect2(-20, -4.5, 6, 9)
+height = 1.2
+
+[sub_resource type="Resource" id="Platform_forecastle"]
+script = ExtResource("1_plat")
+name = &"forecastle"
+area = Rect2(12, -4, 8, 8)
+height = 1.8
+
+[sub_resource type="Resource" id="Platform_boat_deck"]
+script = ExtResource("1_plat")
+name = &"boat deck"
+area = Rect2(-7, -3.4, 10, 6.8)
+height = 2.5
+
+[sub_resource type="Resource" id="Platform_bridge"]
+script = ExtResource("1_plat")
+name = &"bridge"
+area = Rect2(-4, -1.5, 3, 3)
+height = 4.7
+
+[sub_resource type="Resource" id="Platform_main_deck_starboard"]
+script = ExtResource("1_plat")
+name = &"main deck"
+area = Rect2(-14, 2, 26, 3)
+
+[sub_resource type="Resource" id="Platform_main_deck_aft"]
+script = ExtResource("1_plat")
+name = &"main deck"
+area = Rect2(-14, -1.6, 1.15, 3.6)
+
+[sub_resource type="Resource" id="Platform_main_deck_aft_port"]
+script = ExtResource("1_plat")
+name = &"main deck"
+area = Rect2(-12.85, -1.6, 2.6, 1.05)
+
+[sub_resource type="Resource" id="Platform_main_deck_aft_starboard"]
+script = ExtResource("1_plat")
+name = &"main deck"
+area = Rect2(-12.85, 0.55, 2.6, 1.45)
+
+[sub_resource type="Resource" id="Platform_main_deck_waist"]
+script = ExtResource("1_plat")
+name = &"main deck"
+area = Rect2(-10.25, -1.6, 9, 3.6)
+
+[sub_resource type="Resource" id="Platform_main_deck_hall"]
+script = ExtResource("1_plat")
+name = &"main deck"
+area = Rect2(-1.25, 1, 1.1, 1)
+
+[sub_resource type="Resource" id="Platform_main_deck_forward"]
+script = ExtResource("1_plat")
+name = &"main deck"
+area = Rect2(-0.15, -1.6, 9.15, 3.6)
+
+[sub_resource type="Resource" id="Platform_main_deck_bow"]
+script = ExtResource("1_plat")
+name = &"main deck"
+area = Rect2(9, -1.6, 3, 2.5)
+
+[sub_resource type="Resource" id="Platform_lower_deck"]
+script = ExtResource("1_plat")
+name = &"lower deck"
+area = Rect2(-13, -4.8, 17, 9.6)
+height = -2.6
+
+[sub_resource type="Resource" id="Platform_hold"]
+script = ExtResource("1_plat")
+name = &"lower deck"
+area = Rect2(4, -3.8, 11, 7.6)
+height = -2.6
+
+[sub_resource type="Resource" id="Ramp_poop_port"]
+script = ExtResource("2_ramp")
+area = Rect2(-14, -4.5, 3, 1.4)
+start_height = 1.2
+
+[sub_resource type="Resource" id="Ramp_poop_starboard"]
+script = ExtResource("2_ramp")
+area = Rect2(-14, 3.1, 3, 1.4)
+start_height = 1.2
+
+[sub_resource type="Resource" id="Ramp_boat_port"]
+script = ExtResource("2_ramp")
+area = Rect2(3, -3.4, 6, 1.5)
+start_height = 2.5
+
+[sub_resource type="Resource" id="Ramp_boat_starboard"]
+script = ExtResource("2_ramp")
+area = Rect2(3, 1.9, 6, 1.5)
+start_height = 2.5
+
+[sub_resource type="Resource" id="Ramp_forecastle"]
+script = ExtResource("2_ramp")
+area = Rect2(9, -0.8, 3, 1.6)
+end_height = 1.8
+
+[sub_resource type="Resource" id="Ramp_forecastle_starboard"]
+script = ExtResource("2_ramp")
+area = Rect2(9, 2.3, 3, 1.6)
+end_height = 1.8
+
+[sub_resource type="Resource" id="Ramp_bridge"]
+script = ExtResource("2_ramp")
+area = Rect2(-1, -1.5, 3, 1.4)
+start_height = 4.7
+end_height = 2.5
+
+[sub_resource type="Resource" id="Ramp_bridge_starboard"]
+script = ExtResource("2_ramp")
+area = Rect2(-1, 0.1, 3, 1.4)
+start_height = 4.7
+end_height = 2.5
+
+[sub_resource type="Resource" id="Ramp_aft_companionway"]
+script = ExtResource("2_ramp")
+area = Rect2(-12.85, -0.55, 3.2, 1.1)
+end_height = -2.6
+
+[sub_resource type="Resource" id="Ramp_inner_stair"]
+script = ExtResource("2_ramp")
+area = Rect2(-1.25, -1.6, 1.1, 3.2)
+axis = 1
+end_height = -2.6
+
+[sub_resource type="Resource" id="Ramp_forward_companionway"]
+script = ExtResource("2_ramp")
+area = Rect2(9, 0.9, 3.2, 1.1)
+end_height = -2.6
+
+[sub_resource type="Resource" id="Blocker_funnel"]
+script = ExtResource("3_block")
+shape = 1
+centre = Vector2(-6, 0)
+radius = 0.9
+top = 7.5
+
+[sub_resource type="Resource" id="Blocker_mast"]
+script = ExtResource("3_block")
+shape = 1
+centre = Vector2(16, 0)
+radius = 0.2
+bottom = 1.8
+top = 11
+
+[sub_resource type="Resource" id="Blocker_hatch"]
+script = ExtResource("3_block")
+area = Rect2(4, -1, 4, 2)
+top = 0.8
+
+[sub_resource type="Resource" id="Blocker_forecastle_break"]
+script = ExtResource("3_block")
+area = Rect2(12, -4, 0.2, 8)
+top = 1.8
+
+[sub_resource type="Resource" id="Blocker_hull_aft"]
+script = ExtResource("3_block")
+area = Rect2(-13.1, -4.9, 0.2, 9.8)
+bottom = -2.6
+top = 0
+
+[sub_resource type="Resource" id="Blocker_hull_port"]
+script = ExtResource("3_block")
+area = Rect2(-13.1, -4.9, 17.2, 0.2)
+bottom = -2.6
+top = 0
+
+[sub_resource type="Resource" id="Blocker_hull_starboard"]
+script = ExtResource("3_block")
+area = Rect2(-13.1, 4.7, 17.2, 0.2)
+bottom = -2.6
+top = 0
+
+[sub_resource type="Resource" id="Blocker_hold_port"]
+script = ExtResource("3_block")
+area = Rect2(3.9, -3.9, 8.1, 0.2)
+bottom = -2.6
+top = 0
+
+[sub_resource type="Resource" id="Blocker_hold_starboard"]
+script = ExtResource("3_block")
+area = Rect2(3.9, 3.7, 8.1, 0.2)
+bottom = -2.6
+top = 0
+
+[sub_resource type="Resource" id="Blocker_hold_port_forward"]
+script = ExtResource("3_block")
+area = Rect2(12, -3.9, 3.1, 0.2)
+bottom = -2.6
+top = 1.8
+
+[sub_resource type="Resource" id="Blocker_hold_starboard_forward"]
+script = ExtResource("3_block")
+area = Rect2(12, 3.7, 3.1, 0.2)
+bottom = -2.6
+top = 1.8
+
+[sub_resource type="Resource" id="Blocker_hold_forward"]
+script = ExtResource("3_block")
+area = Rect2(14.9, -3.9, 0.2, 7.8)
+bottom = -2.6
+top = 1.8
+
+[sub_resource type="Resource" id="Blocker_bulkhead_hold_0"]
+script = ExtResource("3_block")
+area = Rect2(3.9, -4.9, 0.2, 4.35)
+bottom = -2.6
+top = 0
+
+[sub_resource type="Resource" id="Blocker_bulkhead_hold_1"]
+script = ExtResource("3_block")
+area = Rect2(3.9, 0.55, 0.2, 4.35)
+bottom = -2.6
+top = 0
+
+[sub_resource type="Resource" id="Blocker_bulkhead_hold_lintel_0"]
+script = ExtResource("3_block")
+area = Rect2(3.9, -0.55, 0.2, 1.1)
+bottom = -0.5
+top = 0
+
+[sub_resource type="Resource" id="Blocker_bulkhead_engine_0"]
+script = ExtResource("3_block")
+area = Rect2(-3.1, -4.9, 0.2, 4.35)
+bottom = -2.6
+top = 0
+
+[sub_resource type="Resource" id="Blocker_bulkhead_engine_1"]
+script = ExtResource("3_block")
+area = Rect2(-3.1, 0.55, 0.2, 4.35)
+bottom = -2.6
+top = 0
+
+[sub_resource type="Resource" id="Blocker_bulkhead_engine_lintel_0"]
+script = ExtResource("3_block")
+area = Rect2(-3.1, -0.55, 0.2, 1.1)
+bottom = -0.5
+top = 0
+
+[sub_resource type="Resource" id="Blocker_engine"]
+script = ExtResource("3_block")
+area = Rect2(0, -1.2, 2.5, 2.4)
+bottom = -2.6
+top = -0.8
+
+[sub_resource type="Resource" id="Blocker_corridor_port_0"]
+script = ExtResource("3_block")
+area = Rect2(-13.1, -0.8, 3.5, 0.2)
+bottom = -2.6
+top = 0
+
+[sub_resource type="Resource" id="Blocker_corridor_port_1"]
+script = ExtResource("3_block")
+area = Rect2(-8.5, -0.8, 0.9, 0.2)
+bottom = -2.6
+top = 0
+
+[sub_resource type="Resource" id="Blocker_corridor_port_2"]
+script = ExtResource("3_block")
+area = Rect2(-6.5, -0.8, 1.6, 0.2)
+bottom = -2.6
+top = 0
+
+[sub_resource type="Resource" id="Blocker_corridor_port_3"]
+script = ExtResource("3_block")
+area = Rect2(-3.8, -0.8, 0.9, 0.2)
+bottom = -2.6
+top = 0
+
+[sub_resource type="Resource" id="Blocker_corridor_port_lintel_0"]
+script = ExtResource("3_block")
+area = Rect2(-9.6, -0.8, 1.1, 0.2)
+bottom = -0.5
+top = 0
+
+[sub_resource type="Resource" id="Blocker_corridor_port_lintel_1"]
+script = ExtResource("3_block")
+area = Rect2(-7.6, -0.8, 1.1, 0.2)
+bottom = -0.5
+top = 0
+
+[sub_resource type="Resource" id="Blocker_corridor_port_lintel_2"]
+script = ExtResource("3_block")
+area = Rect2(-4.9, -0.8, 1.1, 0.2)
+bottom = -0.5
+top = 0
+
+[sub_resource type="Resource" id="Blocker_corridor_starboard_0"]
+script = ExtResource("3_block")
+area = Rect2(-13.1, 0.6, 3.5, 0.2)
+bottom = -2.6
+top = 0
+
+[sub_resource type="Resource" id="Blocker_corridor_starboard_1"]
+script = ExtResource("3_block")
+area = Rect2(-8.5, 0.6, 0.9, 0.2)
+bottom = -2.6
+top = 0
+
+[sub_resource type="Resource" id="Blocker_corridor_starboard_2"]
+script = ExtResource("3_block")
+area = Rect2(-6.5, 0.6, 1.6, 0.2)
+bottom = -2.6
+top = 0
+
+[sub_resource type="Resource" id="Blocker_corridor_starboard_3"]
+script = ExtResource("3_block")
+area = Rect2(-3.8, 0.6, 0.9, 0.2)
+bottom = -2.6
+top = 0
+
+[sub_resource type="Resource" id="Blocker_corridor_starboard_lintel_0"]
+script = ExtResource("3_block")
+area = Rect2(-9.6, 0.6, 1.1, 0.2)
+bottom = -0.5
+top = 0
+
+[sub_resource type="Resource" id="Blocker_corridor_starboard_lintel_1"]
+script = ExtResource("3_block")
+area = Rect2(-7.6, 0.6, 1.1, 0.2)
+bottom = -0.5
+top = 0
+
+[sub_resource type="Resource" id="Blocker_corridor_starboard_lintel_2"]
+script = ExtResource("3_block")
+area = Rect2(-4.9, 0.6, 1.1, 0.2)
+bottom = -0.5
+top = 0
+
+[sub_resource type="Resource" id="Blocker_cabins_port_aft"]
+script = ExtResource("3_block")
+area = Rect2(-8.5, -4.9, 0.2, 4.3)
+bottom = -2.6
+top = 0
+
+[sub_resource type="Resource" id="Blocker_cabins_starboard_aft"]
+script = ExtResource("3_block")
+area = Rect2(-8.5, 0.6, 0.2, 4.3)
+bottom = -2.6
+top = 0
+
+[sub_resource type="Resource" id="Blocker_cabins_port_forward"]
+script = ExtResource("3_block")
+area = Rect2(-5.8, -4.9, 0.2, 4.3)
+bottom = -2.6
+top = 0
+
+[sub_resource type="Resource" id="Blocker_cabins_starboard_forward"]
+script = ExtResource("3_block")
+area = Rect2(-5.8, 0.6, 0.2, 4.3)
+bottom = -2.6
+top = 0
+
+[sub_resource type="Resource" id="Blocker_deckhouse_aft"]
+script = ExtResource("3_block")
+area = Rect2(-7, -3.4, 0.2, 6.8)
+top = 2.5
+
+[sub_resource type="Resource" id="Blocker_deckhouse_forward_0"]
+script = ExtResource("3_block")
+area = Rect2(2.8, -3.4, 0.2, 2.85)
+top = 2.5
+
+[sub_resource type="Resource" id="Blocker_deckhouse_forward_1"]
+script = ExtResource("3_block")
+area = Rect2(2.8, 0.55, 0.2, 2.85)
+top = 2.5
+
+[sub_resource type="Resource" id="Blocker_deckhouse_forward_lintel_0"]
+script = ExtResource("3_block")
+area = Rect2(2.8, -0.55, 0.2, 1.1)
+bottom = 2.1
+top = 2.5
+
+[sub_resource type="Resource" id="Blocker_deckhouse_port_0"]
+script = ExtResource("3_block")
+area = Rect2(-7, -3.4, 5.6, 0.2)
+top = 2.5
+
+[sub_resource type="Resource" id="Blocker_deckhouse_port_1"]
+script = ExtResource("3_block")
+area = Rect2(-0.3, -3.4, 1.3, 0.2)
+top = 2.5
+
+[sub_resource type="Resource" id="Blocker_deckhouse_port_2"]
+script = ExtResource("3_block")
+area = Rect2(2.1, -3.4, 0.9, 0.2)
+top = 2.5
+
+[sub_resource type="Resource" id="Blocker_deckhouse_port_lintel_0"]
+script = ExtResource("3_block")
+area = Rect2(-1.4, -3.4, 1.1, 0.2)
+bottom = 2.1
+top = 2.5
+
+[sub_resource type="Resource" id="Blocker_deckhouse_port_lintel_1"]
+script = ExtResource("3_block")
+area = Rect2(1, -3.4, 1.1, 0.2)
+bottom = 2.1
+top = 2.5
+
+[sub_resource type="Resource" id="Blocker_deckhouse_starboard_0"]
+script = ExtResource("3_block")
+area = Rect2(-7, 3.2, 5.6, 0.2)
+top = 2.5
+
+[sub_resource type="Resource" id="Blocker_deckhouse_starboard_1"]
+script = ExtResource("3_block")
+area = Rect2(-0.3, 3.2, 1.3, 0.2)
+top = 2.5
+
+[sub_resource type="Resource" id="Blocker_deckhouse_starboard_2"]
+script = ExtResource("3_block")
+area = Rect2(2.1, 3.2, 0.9, 0.2)
+top = 2.5
+
+[sub_resource type="Resource" id="Blocker_deckhouse_starboard_lintel_0"]
+script = ExtResource("3_block")
+area = Rect2(-1.4, 3.2, 1.1, 0.2)
+bottom = 2.1
+top = 2.5
+
+[sub_resource type="Resource" id="Blocker_deckhouse_starboard_lintel_1"]
+script = ExtResource("3_block")
+area = Rect2(1, 3.2, 1.1, 0.2)
+bottom = 2.1
+top = 2.5
+
+[sub_resource type="Resource" id="Blocker_saloon_aft_0"]
+script = ExtResource("3_block")
+area = Rect2(-0.1, -3.4, 0.2, 5)
+top = 2.5
+
+[sub_resource type="Resource" id="Blocker_saloon_aft_1"]
+script = ExtResource("3_block")
+area = Rect2(-0.1, 2.7, 0.2, 0.7)
+top = 2.5
+
+[sub_resource type="Resource" id="Blocker_saloon_aft_lintel_0"]
+script = ExtResource("3_block")
+area = Rect2(-0.1, 1.6, 0.2, 1.1)
+bottom = 2.1
+top = 2.5
+
+[sub_resource type="Resource" id="Blocker_hall_aft_0"]
+script = ExtResource("3_block")
+area = Rect2(-3.5, -3.4, 0.2, 0.4)
+top = 2.5
+
+[sub_resource type="Resource" id="Blocker_hall_aft_1"]
+script = ExtResource("3_block")
+area = Rect2(-3.5, -1.9, 0.2, 0.55)
+top = 2.5
+
+[sub_resource type="Resource" id="Blocker_hall_aft_2"]
+script = ExtResource("3_block")
+area = Rect2(-3.5, -0.25, 0.2, 0.5)
+top = 2.5
+
+[sub_resource type="Resource" id="Blocker_hall_aft_3"]
+script = ExtResource("3_block")
+area = Rect2(-3.5, 1.35, 0.2, 0.55)
+top = 2.5
+
+[sub_resource type="Resource" id="Blocker_hall_aft_4"]
+script = ExtResource("3_block")
+area = Rect2(-3.5, 3, 0.2, 0.4)
+top = 2.5
+
+[sub_resource type="Resource" id="Blocker_hall_aft_lintel_0"]
+script = ExtResource("3_block")
+area = Rect2(-3.5, -3, 0.2, 1.1)
+bottom = 2.1
+top = 2.5
+
+[sub_resource type="Resource" id="Blocker_hall_aft_lintel_1"]
+script = ExtResource("3_block")
+area = Rect2(-3.5, -1.35, 0.2, 1.1)
+bottom = 2.1
+top = 2.5
+
+[sub_resource type="Resource" id="Blocker_hall_aft_lintel_2"]
+script = ExtResource("3_block")
+area = Rect2(-3.5, 0.25, 0.2, 1.1)
+bottom = 2.1
+top = 2.5
+
+[sub_resource type="Resource" id="Blocker_hall_aft_lintel_3"]
+script = ExtResource("3_block")
+area = Rect2(-3.5, 1.9, 0.2, 1.1)
+bottom = 2.1
+top = 2.5
+
+[sub_resource type="Resource" id="Blocker_deckhouse_cabins_port"]
+script = ExtResource("3_block")
+area = Rect2(-7, -1.75, 3.7, 0.2)
+top = 2.5
+
+[sub_resource type="Resource" id="Blocker_deckhouse_cabins_middle"]
+script = ExtResource("3_block")
+area = Rect2(-7, -0.1, 3.7, 0.2)
+top = 2.5
+
+[sub_resource type="Resource" id="Blocker_deckhouse_cabins_starboard"]
+script = ExtResource("3_block")
+area = Rect2(-7, 1.55, 3.7, 0.2)
+top = 2.5
+
+[sub_resource type="Resource" id="Blocker_wheelhouse_aft"]
+script = ExtResource("3_block")
+area = Rect2(-4, -1.5, 0.2, 3)
+bottom = 2.5
+top = 4.7
+
+[sub_resource type="Resource" id="Blocker_wheelhouse_forward"]
+script = ExtResource("3_block")
+area = Rect2(-1.2, -1.5, 0.2, 3)
+bottom = 2.5
+top = 4.7
+
+[sub_resource type="Resource" id="Blocker_wheelhouse_port_0"]
+script = ExtResource("3_block")
+area = Rect2(-4, -1.5, 0.95, 0.2)
+bottom = 2.5
+top = 4.7
+
+[sub_resource type="Resource" id="Blocker_wheelhouse_port_1"]
+script = ExtResource("3_block")
+area = Rect2(-1.95, -1.5, 0.95, 0.2)
+bottom = 2.5
+top = 4.7
+
+[sub_resource type="Resource" id="Blocker_wheelhouse_port_lintel_0"]
+script = ExtResource("3_block")
+area = Rect2(-3.05, -1.5, 1.1, 0.2)
+bottom = 4.6
+top = 4.7
+
+[sub_resource type="Resource" id="Blocker_wheelhouse_starboard_0"]
+script = ExtResource("3_block")
+area = Rect2(-4, 1.3, 0.95, 0.2)
+bottom = 2.5
+top = 4.7
+
+[sub_resource type="Resource" id="Blocker_wheelhouse_starboard_1"]
+script = ExtResource("3_block")
+area = Rect2(-1.95, 1.3, 0.95, 0.2)
+bottom = 2.5
+top = 4.7
+
+[sub_resource type="Resource" id="Blocker_wheelhouse_starboard_lintel_0"]
+script = ExtResource("3_block")
+area = Rect2(-3.05, 1.3, 1.1, 0.2)
+bottom = 4.6
+top = 4.7
+
+[sub_resource type="Resource" id="Railing_main_port_aft_0"]
+script = ExtResource("4_rail")
+from = Vector2(-14, -5)
+to = Vector2(-10.5, -5)
+
+[sub_resource type="Resource" id="Railing_main_port_aft_1"]
+script = ExtResource("4_rail")
+from = Vector2(-10.5, -5)
+to = Vector2(-7, -5)
+
+[sub_resource type="Resource" id="Railing_main_port_aft_2"]
+script = ExtResource("4_rail")
+from = Vector2(-7, -5)
+to = Vector2(-3.5, -5)
+
+[sub_resource type="Resource" id="Railing_main_port_aft_3"]
+script = ExtResource("4_rail")
+from = Vector2(-3.5, -5)
+to = Vector2(0, -5)
+
+[sub_resource type="Resource" id="Railing_main_port_aft_4"]
+script = ExtResource("4_rail")
+from = Vector2(0, -5)
+to = Vector2(3.5, -5)
+
+[sub_resource type="Resource" id="Railing_main_port_fwd_0"]
+script = ExtResource("4_rail")
+from = Vector2(5.5, -5)
+to = Vector2(8.5, -5)
+
+[sub_resource type="Resource" id="Railing_main_port_fwd_1"]
+script = ExtResource("4_rail")
+from = Vector2(8.5, -5)
+to = Vector2(12, -5)
+
+[sub_resource type="Resource" id="Railing_main_starboard_aft_0"]
+script = ExtResource("4_rail")
+platform = 5
+from = Vector2(-14, 5)
+to = Vector2(-10.5, 5)
+
+[sub_resource type="Resource" id="Railing_main_starboard_aft_1"]
+script = ExtResource("4_rail")
+platform = 5
+from = Vector2(-10.5, 5)
+to = Vector2(-7, 5)
+
+[sub_resource type="Resource" id="Railing_main_starboard_aft_2"]
+script = ExtResource("4_rail")
+platform = 5
+from = Vector2(-7, 5)
+to = Vector2(-3.5, 5)
+
+[sub_resource type="Resource" id="Railing_main_starboard_aft_3"]
+script = ExtResource("4_rail")
+platform = 5
+from = Vector2(-3.5, 5)
+to = Vector2(0, 5)
+
+[sub_resource type="Resource" id="Railing_main_starboard_aft_4"]
+script = ExtResource("4_rail")
+platform = 5
+from = Vector2(0, 5)
+to = Vector2(3.5, 5)
+
+[sub_resource type="Resource" id="Railing_main_starboard_fwd_0"]
+script = ExtResource("4_rail")
+platform = 5
+from = Vector2(5.5, 5)
+to = Vector2(8.5, 5)
+
+[sub_resource type="Resource" id="Railing_main_starboard_fwd_1"]
+script = ExtResource("4_rail")
+platform = 5
+from = Vector2(8.5, 5)
+to = Vector2(12, 5)
+
+[sub_resource type="Resource" id="Railing_main_aft_port"]
+script = ExtResource("4_rail")
+from = Vector2(-14, -5)
+to = Vector2(-14, -4.5)
+
+[sub_resource type="Resource" id="Railing_main_aft_starboard"]
+script = ExtResource("4_rail")
+platform = 5
+from = Vector2(-14, 4.5)
+to = Vector2(-14, 5)
+
+[sub_resource type="Resource" id="Railing_main_fwd_port"]
+script = ExtResource("4_rail")
+from = Vector2(12, -5)
+to = Vector2(12, -4)
+
+[sub_resource type="Resource" id="Railing_main_fwd_starboard"]
+script = ExtResource("4_rail")
+platform = 5
+from = Vector2(12, 4)
+to = Vector2(12, 5)
+
+[sub_resource type="Resource" id="Railing_poop_aft_0"]
+script = ExtResource("4_rail")
+platform = 1
+from = Vector2(-20, -4.5)
+to = Vector2(-20, -1.5)
+
+[sub_resource type="Resource" id="Railing_poop_aft_1"]
+script = ExtResource("4_rail")
+platform = 1
+from = Vector2(-20, -1.5)
+to = Vector2(-20, 1.5)
+
+[sub_resource type="Resource" id="Railing_poop_aft_2"]
+script = ExtResource("4_rail")
+platform = 1
+from = Vector2(-20, 1.5)
+to = Vector2(-20, 4.5)
+
+[sub_resource type="Resource" id="Railing_poop_port_0"]
+script = ExtResource("4_rail")
+platform = 1
+from = Vector2(-20, -4.5)
+to = Vector2(-17, -4.5)
+
+[sub_resource type="Resource" id="Railing_poop_port_1"]
+script = ExtResource("4_rail")
+platform = 1
+from = Vector2(-17, -4.5)
+to = Vector2(-14, -4.5)
+
+[sub_resource type="Resource" id="Railing_poop_starboard_0"]
+script = ExtResource("4_rail")
+platform = 1
+from = Vector2(-20, 4.5)
+to = Vector2(-17, 4.5)
+
+[sub_resource type="Resource" id="Railing_poop_starboard_1"]
+script = ExtResource("4_rail")
+platform = 1
+from = Vector2(-17, 4.5)
+to = Vector2(-14, 4.5)
+
+[sub_resource type="Resource" id="Railing_forecastle_fwd_0"]
+script = ExtResource("4_rail")
+platform = 2
+from = Vector2(20, -4)
+to = Vector2(20, -1.5)
+
+[sub_resource type="Resource" id="Railing_forecastle_fwd_1"]
+script = ExtResource("4_rail")
+platform = 2
+from = Vector2(20, -1.5)
+to = Vector2(20, 1)
+
+[sub_resource type="Resource" id="Railing_forecastle_fwd_2"]
+script = ExtResource("4_rail")
+platform = 2
+from = Vector2(20, 1)
+to = Vector2(20, 4)
+
+[sub_resource type="Resource" id="Railing_forecastle_port_0"]
+script = ExtResource("4_rail")
+platform = 2
+from = Vector2(12, -4)
+to = Vector2(14.5, -4)
+
+[sub_resource type="Resource" id="Railing_forecastle_port_1"]
+script = ExtResource("4_rail")
+platform = 2
+from = Vector2(14.5, -4)
+to = Vector2(17, -4)
+
+[sub_resource type="Resource" id="Railing_forecastle_port_2"]
+script = ExtResource("4_rail")
+platform = 2
+from = Vector2(17, -4)
+to = Vector2(20, -4)
+
+[sub_resource type="Resource" id="Railing_forecastle_starboard_0"]
+script = ExtResource("4_rail")
+platform = 2
+from = Vector2(12, 4)
+to = Vector2(14.5, 4)
+
+[sub_resource type="Resource" id="Railing_forecastle_starboard_1"]
+script = ExtResource("4_rail")
+platform = 2
+from = Vector2(14.5, 4)
+to = Vector2(17, 4)
+
+[sub_resource type="Resource" id="Railing_forecastle_starboard_2"]
+script = ExtResource("4_rail")
+platform = 2
+from = Vector2(17, 4)
+to = Vector2(20, 4)
+
+[sub_resource type="Resource" id="Railing_aft_companionway_port"]
+script = ExtResource("4_rail")
+platform = 7
+from = Vector2(-12.85, -0.55)
+to = Vector2(-10.25, -0.55)
+
+[sub_resource type="Resource" id="Railing_aft_companionway_starboard"]
+script = ExtResource("4_rail")
+platform = 8
+from = Vector2(-12.85, 0.55)
+to = Vector2(-10.25, 0.55)
+
+[sub_resource type="Resource" id="Railing_aft_companionway_forward"]
+script = ExtResource("4_rail")
+platform = 9
+from = Vector2(-10.25, -0.55)
+to = Vector2(-10.25, 0.55)
+
+[sub_resource type="Resource" id="Railing_inner_stair_aft"]
+script = ExtResource("4_rail")
+platform = 9
+from = Vector2(-1.25, -1.6)
+to = Vector2(-1.25, 1)
+
+[sub_resource type="Resource" id="Railing_inner_stair_forward"]
+script = ExtResource("4_rail")
+platform = 11
+from = Vector2(-0.15, -1.6)
+to = Vector2(-0.15, 1)
+
+[sub_resource type="Resource" id="Railing_inner_stair_starboard"]
+script = ExtResource("4_rail")
+platform = 10
+from = Vector2(-1.25, 1)
+to = Vector2(-0.15, 1)
+
+[sub_resource type="Resource" id="Railing_forward_companionway_port"]
+script = ExtResource("4_rail")
+platform = 12
+from = Vector2(9, 0.9)
+to = Vector2(12, 0.9)
+
+[sub_resource type="Resource" id="Railing_forward_companionway_starboard"]
+script = ExtResource("4_rail")
+platform = 5
+from = Vector2(9, 2)
+to = Vector2(12, 2)
+
+[sub_resource type="Resource" id="Ladder_port"]
+script = ExtResource("7_ladder")
+from = Vector2(1, -5)
+to = Vector2(2.2, -5)
+
+[sub_resource type="Resource" id="Ladder_starboard"]
+script = ExtResource("7_ladder")
+platform = 5
+from = Vector2(1, 5)
+to = Vector2(2.2, 5)
+
+[sub_resource type="Resource" id="Prop_hatch_aft"]
+script = ExtResource("8_prop")
+pos = Vector3(5.2, 0.8, -0.45)
+radius = 0.45
+height = 0.8
+mass = 200
+grip_angle_deg = 8
+friction = 2.5
+
+[sub_resource type="Resource" id="Prop_hatch_forward"]
+script = ExtResource("8_prop")
+pos = Vector3(6.8, 0.8, 0.45)
+radius = 0.45
+height = 0.8
+mass = 200
+grip_angle_deg = 8
+friction = 2.5
+
+[sub_resource type="Resource" id="Prop_forward_inboard"]
+script = ExtResource("8_prop")
+pos = Vector3(10, 0, -2.4)
+radius = 0.45
+height = 0.8
+mass = 200
+grip_angle_deg = 8
+friction = 2.5
+
+[sub_resource type="Resource" id="Prop_forward_outboard"]
+script = ExtResource("8_prop")
+pos = Vector3(11, 0, -3.6)
+radius = 0.45
+height = 0.8
+mass = 200
+grip_angle_deg = 8
+friction = 2.5
+
+[sub_resource type="Resource" id="Room_forward_hold"]
+script = ExtResource("6_room")
+name = &"forward hold"
+area = Rect2(4, -3.8, 11, 7.6)
+floor_height = -2.6
+
+[sub_resource type="Resource" id="Room_engine_room"]
+script = ExtResource("6_room")
+name = &"engine room"
+area = Rect2(-3, -4.8, 7, 9.6)
+floor_height = -2.6
+
+[sub_resource type="Resource" id="Room_cabin_corridor"]
+script = ExtResource("6_room")
+name = &"cabin corridor"
+area = Rect2(-13, -0.7, 10, 1.4)
+floor_height = -2.6
+
+[sub_resource type="Resource" id="Room_cabin_port_aft"]
+script = ExtResource("6_room")
+name = &"aft port cabin"
+area = Rect2(-13, -4.8, 4.6, 4.1)
+floor_height = -2.6
+
+[sub_resource type="Resource" id="Room_cabin_port_middle"]
+script = ExtResource("6_room")
+name = &"middle port cabin"
+area = Rect2(-8.4, -4.8, 2.7, 4.1)
+floor_height = -2.6
+
+[sub_resource type="Resource" id="Room_cabin_port_forward"]
+script = ExtResource("6_room")
+name = &"forward port cabin"
+area = Rect2(-5.7, -4.8, 2.7, 4.1)
+floor_height = -2.6
+
+[sub_resource type="Resource" id="Room_cabin_starboard_aft"]
+script = ExtResource("6_room")
+name = &"aft starboard cabin"
+area = Rect2(-13, 0.7, 4.6, 4.1)
+floor_height = -2.6
+
+[sub_resource type="Resource" id="Room_cabin_starboard_middle"]
+script = ExtResource("6_room")
+name = &"middle starboard cabin"
+area = Rect2(-8.4, 0.7, 2.7, 4.1)
+floor_height = -2.6
+
+[sub_resource type="Resource" id="Room_cabin_starboard_forward"]
+script = ExtResource("6_room")
+name = &"forward starboard cabin"
+area = Rect2(-5.7, 0.7, 2.7, 4.1)
+floor_height = -2.6
+
+[sub_resource type="Resource" id="Room_saloon"]
+script = ExtResource("6_room")
+name = &"saloon"
+area = Rect2(0, -3.3, 2.9, 6.6)
+
+[sub_resource type="Resource" id="Room_deckhouse_hall"]
+script = ExtResource("6_room")
+name = &"deckhouse hall"
+area = Rect2(-3.4, -3.3, 3.4, 6.6)
+
+[sub_resource type="Resource" id="Room_deckhouse_cabin_1"]
+script = ExtResource("6_room")
+name = &"deckhouse cabin 1"
+area = Rect2(-6.9, -3.3, 3.5, 1.65)
+
+[sub_resource type="Resource" id="Room_deckhouse_cabin_2"]
+script = ExtResource("6_room")
+name = &"deckhouse cabin 2"
+area = Rect2(-6.9, -1.65, 3.5, 1.65)
+
+[sub_resource type="Resource" id="Room_deckhouse_cabin_3"]
+script = ExtResource("6_room")
+name = &"deckhouse cabin 3"
+area = Rect2(-6.9, 0, 3.5, 1.65)
+
+[sub_resource type="Resource" id="Room_deckhouse_cabin_4"]
+script = ExtResource("6_room")
+name = &"deckhouse cabin 4"
+area = Rect2(-6.9, 1.65, 3.5, 1.65)
+
+[sub_resource type="Resource" id="Room_wheelhouse"]
+script = ExtResource("6_room")
+name = &"wheelhouse"
+area = Rect2(-3.9, -1.4, 2.8, 2.8)
+floor_height = 2.5
+
+[sub_resource type="Resource" id="Section_0"]
+script = ExtResource("10_section")
+x = -21.13
+length = 2.26
+outline = PackedVector2Array(0, -2.9096, 1.012, -2.8787, 1.6185, -2.8335, 2.3679, -2.7541, 3.7462, -2.5492, 3.734, -2.4125, 3.6135, -1.962, 3.3943, -1.5552, 3.1638, -1.3002, 3.0861, -1.2269, 2.6603, -0.9525, 2.1154, -0.7514, 1.4597, -0.6141, 0.8766, -0.5439, 0, -0.507, -0.8766, -0.5439, -1.4597, -0.6141, -2.1154, -0.7514, -2.4927, -0.8879, -2.6603, -0.9525, -3.0861, -1.2269, -3.3943, -1.5552, -3.6135, -1.962, -3.734, -2.4125, -3.7462, -2.5492, -2.3679, -2.7541, -1.6185, -2.8335, -1.012, -2.8787)
+
+[sub_resource type="Resource" id="Section_1"]
+script = ExtResource("10_section")
+x = -19
+length = 2
+outline = PackedVector2Array(0, -3.2425, 3.6655, -3.1766, 3.9062, -2.8629, 4.378, -2.5492, 4.4466, -1.8672, 4.4821, -1.1404, 4.5, 1.2, -4.5, 1.2, -4.4963, -0.3795, -4.4821, -1.1404, -4.4466, -1.8672, -4.378, -2.5492, -4.1372, -2.8629, -3.6655, -3.1766)
+
+[sub_resource type="Resource" id="Section_2"]
+script = ExtResource("10_section")
+x = -17
+length = 2
+outline = PackedVector2Array(0, -5.4, 0.8215, -5.3519, 1.1513, -5.2082, 1.2846, -5.0897, 1.3889, -4.9711, 1.5705, -4.644, 1.7098, -4.2317, 1.8149, -3.7402, 2.9287, -3.4584, 4.2646, -3.1766, 4.378, -2.5492, 4.4466, -1.8672, 4.4821, -1.1404, 4.4963, -0.3795, 4.5, 1.2, -4.5, 1.2, -4.4963, -0.3795, -4.4821, -1.1404, -4.4466, -1.8672, -4.378, -2.5492, -4.2646, -3.1766, -3.1508, -3.4584, -1.8149, -3.7402, -1.7098, -4.2317, -1.5705, -4.644, -1.3889, -4.9711, -1.2555, -5.0897, -1.1513, -5.2082, -0.8215, -5.3519)
+
+[sub_resource type="Resource" id="Section_3"]
+script = ExtResource("10_section")
+x = -15
+length = 2
+outline = PackedVector2Array(0, -5.4, 1.7047, -5.3519, 1.9095, -5.28, 2.2166, -5.2082, 2.4528, -5.0897, 2.6742, -4.9711, 3.0238, -4.644, 3.292, -4.2317, 3.4937, -3.7402, 3.8223, -3.4584, 4.2646, -3.1766, 4.378, -2.5492, 4.4466, -1.8672, 4.4821, -1.1404, 4.4963, -0.3795, 4.5, 1.2, -4.5, 1.2, -4.4963, -0.3795, -4.4821, -1.1404, -4.4466, -1.8672, -4.378, -2.5492, -4.2646, -3.1766, -3.936, -3.4584, -3.4937, -3.7402, -3.292, -4.2317, -3.0238, -4.644, -2.6742, -4.9711, -2.2166, -5.2082, -2.0119, -5.28, -1.7047, -5.3519)
+
+[sub_resource type="Resource" id="Section_4"]
+script = ExtResource("10_section")
+x = -13.5
+length = 1
+outline = PackedVector2Array(0, -5.4, 3.4357, -5.3606, 3.7011, -4.6971, 3.9265, -4.4441, 3.9667, -4.3436, 4.143, -4.042, 4.4098, -3.4525, 4.5523, -2.928, 4.6044, -2.5095, 4.6465, -1.7592, 4.7643, -1.2923, 4.7692, -1.132, 4.9101, -0.6509, 5, 0, -5, 0, -4.9101, -0.6509, -4.9052, -0.8112, -4.7643, -1.2923, -4.7643, -1.4479, -4.6465, -1.9149, -4.6465, -2.0635, -4.6044, -2.5095, -4.5576, -2.649, -4.5055, -3.0675, -4.4542, -3.1959, -4.3584, -3.5809, -4.1028, -4.1425, -3.9265, -4.4441, -3.8928, -4.5285, -3.6674, -4.7815, -3.4357, -5.3606)
+
+[sub_resource type="Resource" id="Section_5"]
+script = ExtResource("10_section")
+x = -12
+length = 2
+outline = PackedVector2Array(0, -5.4, 3.9157, -5.3606, 4.833, -3.0675, 5, -2.5095, 5, 0, -5, 0, -5, -2.5095, -4.833, -3.0675, -3.9157, -5.3606)
+
+[sub_resource type="Resource" id="Section_6"]
+script = ExtResource("10_section")
+x = -10
+length = 2
+outline = PackedVector2Array(0, -5.4, 3.9157, -5.3606, 4.2887, -4.4441, 4.5506, -4.042, 4.7385, -3.5809, 5, -2.5095, 5, 0, -5, 0, -5, -2.5095, -4.7385, -3.5809, -4.5506, -4.042, -4.2887, -4.4441, -3.9157, -5.3606)
+
+[sub_resource type="Resource" id="Section_7"]
+script = ExtResource("10_section")
+x = -8
+length = 2
+outline = PackedVector2Array(0, -5.4, 3.9157, -5.3606, 4.2887, -4.4441, 4.5506, -4.042, 4.7385, -3.5809, 5, -2.5095, 5, 0, -5, 0, -5, -2.5095, -4.7385, -3.5809, -4.5506, -4.042, -4.2887, -4.4441, -3.9157, -5.3606)
+
+[sub_resource type="Resource" id="Section_8"]
+script = ExtResource("10_section")
+x = -6.25
+length = 1.5
+outline = PackedVector2Array(0, -5.4, 3.9157, -5.3606, 4.2887, -4.4441, 4.5506, -4.042, 4.7385, -3.5809, 5, -2.5095, 5, 0, 3.4, 0, 3.4, 2.5, -3.4, 2.5, -3.4, 0, -5, 0, -5, -2.5095, -4.7385, -3.5809, -4.5506, -4.042, -4.2887, -4.4441, -3.9157, -5.3606)
+
+[sub_resource type="Resource" id="Section_9"]
+script = ExtResource("10_section")
+x = -4.75
+length = 1.5
+outline = PackedVector2Array(0, -5.4, 3.9157, -5.3606, 4.2887, -4.4441, 4.5506, -4.042, 4.7385, -3.5809, 5, -2.5095, 5, 0, 3.4, 0, 3.4, 2.5, -3.4, 2.5, -3.4, 0, -5, 0, -5, -2.5095, -4.7385, -3.5809, -4.5506, -4.042, -4.2887, -4.4441, -3.9157, -5.3606)
+
+[sub_resource type="Resource" id="Section_10"]
+script = ExtResource("10_section")
+x = -3.7
+length = 0.6
+outline = PackedVector2Array(0, -5.4, 3.9157, -5.3606, 4.2887, -4.4441, 4.5506, -4.042, 4.7385, -3.5809, 5, -2.5095, 5, 0, 3.4, 0, 3.4, 2.5, 1.5, 2.5, 1.5, 4.7, -1.5, 4.7, -1.5, 2.5, -3.4, 2.5, -3.4, 0, -5, 0, -5, -2.5095, -4.7385, -3.5809, -4.5506, -4.042, -4.2887, -4.4441, -3.9157, -5.3606)
+
+[sub_resource type="Resource" id="Section_11"]
+script = ExtResource("10_section")
+x = -3.2
+length = 0.4
+outline = PackedVector2Array(0, -5.4, 3.9157, -5.3606, 4.2887, -4.4441, 4.5506, -4.042, 4.7385, -3.5809, 5, -2.5095, 5, 0, 3.4, 0, 3.4, 2.5, 1.5, 2.5, 1.5, 4.7, -1.5, 4.7, -1.5, 2.5, -3.4, 2.5, -3.4, 0, -5, 0, -5, -2.5095, -4.7385, -3.5809, -4.5506, -4.042, -4.2887, -4.4441, -3.9157, -5.3606)
+
+[sub_resource type="Resource" id="Section_12"]
+script = ExtResource("10_section")
+x = -2
+length = 2
+outline = PackedVector2Array(0, -5.4, 3.9157, -5.3606, 4.2887, -4.4441, 4.5506, -4.042, 4.7385, -3.5809, 5, -2.5095, 5, 0, 3.4, 0, 3.4, 2.5, 1.5, 2.5, 1.5, 4.7, -1.5, 4.7, -1.5, 2.5, -3.4, 2.5, -3.4, 0, -5, 0, -5, -2.5095, -4.7385, -3.5809, -4.5506, -4.042, -4.2887, -4.4441, -3.9157, -5.3606)
+
+[sub_resource type="Resource" id="Section_13"]
+script = ExtResource("10_section")
+x = -0.5
+length = 1
+outline = PackedVector2Array(0, -5.4, 3.9157, -5.3606, 4.2887, -4.4441, 4.5506, -4.042, 4.7385, -3.5809, 5, -2.5095, 5, 0, 3.4, 0, 3.4, 2.5, -3.4, 2.5, -3.4, 0, -5, 0, -5, -2.5095, -4.7385, -3.5809, -4.5506, -4.042, -4.2887, -4.4441, -3.9157, -5.3606)
+
+[sub_resource type="Resource" id="Section_14"]
+script = ExtResource("10_section")
+x = 0.75
+length = 1.5
+outline = PackedVector2Array(0, -5.4, 3.9157, -5.3606, 4.2887, -4.4441, 4.5506, -4.042, 4.7385, -3.5809, 5, -2.5095, 5, 0, 3.4, 0, 3.4, 2.5, -3.4, 2.5, -3.4, 0, -5, 0, -5, -2.5095, -4.7385, -3.5809, -4.5506, -4.042, -4.2887, -4.4441, -3.9157, -5.3606)
+
+[sub_resource type="Resource" id="Section_15"]
+script = ExtResource("10_section")
+x = 2.25
+length = 1.5
+outline = PackedVector2Array(0, -5.4, 3.9157, -5.3606, 4.2887, -4.4441, 4.5506, -4.042, 4.7385, -3.5809, 5, -2.5095, 5, 0, 3.4, 0, 3.4, 2.5, -3.4, 2.5, -3.4, 0, -5, 0, -5, -2.5095, -4.7385, -3.5809, -4.5506, -4.042, -4.2887, -4.4441, -3.9157, -5.3606)
+
+[sub_resource type="Resource" id="Section_16"]
+script = ExtResource("10_section")
+x = 3.5
+length = 1
+outline = PackedVector2Array(0, -5.4, 3.9157, -5.3606, 4.2887, -4.4441, 4.5506, -4.042, 4.7385, -3.5809, 5, -2.5095, 5, 0, -5, 0, -5, -2.5095, -4.7385, -3.5809, -4.5506, -4.042, -4.2887, -4.4441, -3.9157, -5.3606)
+
+[sub_resource type="Resource" id="Section_17"]
+script = ExtResource("10_section")
+x = 5
+length = 2
+outline = PackedVector2Array(0, -5.4, 2.9957, -5.3606, 3.0428, -5.2431, 3.3033, -5.1461, 3.9393, -4.7815, 4.2887, -4.4441, 4.5506, -4.042, 4.7385, -3.5809, 4.8644, -3.0675, 4.9406, -2.5095, 4.9801, -1.9149, 5, 0, -5, 0, -4.9801, -1.9149, -4.9406, -2.5095, -4.8644, -3.0675, -4.7385, -3.5809, -4.5506, -4.042, -4.2887, -4.4441, -3.9393, -4.7815, -3.4838, -5.0491, -3.2233, -5.1461, -3.0428, -5.2431, -2.9957, -5.3606)
+
+[sub_resource type="Resource" id="Section_18"]
+script = ExtResource("10_section")
+x = 7
+length = 2
+outline = PackedVector2Array(0, -5.4, 2.9157, -5.3606, 2.9628, -5.2431, 3.7423, -4.7815, 4.0742, -4.4441, 4.3231, -4.042, 4.5016, -3.5809, 4.6212, -3.0675, 4.6936, -2.5095, 4.7426, -1.9149, 4.947, -0.6509, 5, 0, -5, 0, -4.947, -0.6509, -4.7426, -1.9149, -4.6936, -2.5095, -4.6212, -3.0675, -4.5016, -3.5809, -4.3231, -4.042, -4.0742, -4.4441, -3.7423, -4.7815, -3.1466, -5.1461, -2.9628, -5.2431, -2.9157, -5.3606)
+
+[sub_resource type="Resource" id="Section_19"]
+script = ExtResource("10_section")
+x = 9
+length = 2
+outline = PackedVector2Array(0, -5.4, 2.9157, -5.3606, 2.9628, -5.2431, 3.1006, -5.0491, 3.506, -4.7815, 3.8169, -4.4441, 4.05, -4.042, 4.2173, -3.5809, 4.3293, -3.0675, 4.4575, -1.9149, 4.6498, -1.2923, 4.8838, -0.6509, 5, 0, -5, 0, -4.8838, -0.6509, -4.6498, -1.2923, -4.4575, -1.9149, -4.3293, -3.0675, -4.2173, -3.5809, -4.05, -4.042, -3.8169, -4.4441, -3.6625, -4.6128, -3.506, -4.7815, -3.1006, -5.0491, -2.9628, -5.2431, -2.9157, -5.3606)
+
+[sub_resource type="Resource" id="Section_20"]
+script = ExtResource("10_section")
+x = 11
+length = 2
+outline = PackedVector2Array(0, -5.4, 2.9157, -5.3606, 3.0404, -5.0491, 3.5596, -4.4441, 3.777, -4.042, 3.9329, -3.5809, 4.0375, -3.0675, 4.1725, -1.9149, 4.461, -1.2923, 4.8206, -0.6509, 5, 0, -5, 0, -4.8206, -0.6509, -4.461, -1.2923, -4.1725, -1.9149, -4.0375, -3.0675, -3.9329, -3.5809, -3.777, -4.042, -3.5596, -4.4441, -3.0404, -5.0491, -2.9157, -5.3606)
+
+[sub_resource type="Resource" id="Section_21"]
+script = ExtResource("10_section")
+x = 12.75
+length = 1.5
+outline = PackedVector2Array(0, -5.4, 2.921, -5.3475, 3.2299, -4.5753, 3.4309, -4.1255, 3.8702, -2.9745, 4, -2.2901, 4, 1.8, -4, 1.8, -4, -2.2901, -3.8702, -2.9745, -3.4309, -4.1255, -3.2299, -4.5753, -2.921, -5.3475)
+
+[sub_resource type="Resource" id="Section_22"]
+script = ExtResource("10_section")
+x = 14.25
+length = 1.5
+outline = PackedVector2Array(0, -5.4, 2.921, -5.3475, 3.2299, -4.5753, 3.4309, -4.1255, 3.8702, -2.9745, 4, -2.2901, 4, 1.8, -4, 1.8, -4, -2.2901, -3.8702, -2.9745, -3.4309, -4.1255, -3.2299, -4.5753, -2.921, -5.3475)
+
+[sub_resource type="Resource" id="Section_23"]
+script = ExtResource("10_section")
+x = 15.8333
+length = 1.6667
+outline = PackedVector2Array(0, -5.4, 2.041, -5.3475, 2.1677, -5.2561, 2.1939, -5.1908, 2.5053, -5.0399, 3.0394, -4.5753, 3.3556, -4.1255, 3.5814, -3.5893, 3.7866, -2.9745, 3.8915, -2.2901, 3.9525, -1.546, 3.9841, -0.7532, 4, 1.8, -4, 1.8, -3.9841, -0.7532, -3.9525, -1.546, -3.8915, -2.2901, -3.7866, -2.9745, -3.5814, -3.5893, -3.3556, -4.1255, -3.0394, -4.5753, -2.6216, -4.9321, -2.3102, -5.083, -2.0672, -5.2822, -2.041, -5.3475)
+
+[sub_resource type="Resource" id="Section_24"]
+script = ExtResource("10_section")
+x = 17.5
+length = 1.6667
+outline = PackedVector2Array(0, -5.4, 1.0486, -5.3475, 1.6594, -5.1908, 2.1844, -4.9321, 2.6227, -4.5753, 2.9644, -4.1255, 3.2006, -3.5893, 3.7664, -2.4612, 3.8347, -2.2901, 3.9334, -1.732, 3.9841, -0.7532, 4, 1.8, -4, 1.8, -3.9967, 0.0769, -3.9841, -0.7532, -3.9525, -1.546, -3.8538, -2.1041, -3.8347, -2.2901, -3.5857, -2.8034, -3.5174, -2.9745, -3.2006, -3.5893, -2.9644, -4.1255, -2.6227, -4.5753, -2.1844, -4.9321, -1.6594, -5.1908, -1.0486, -5.3475)
+
+[sub_resource type="Resource" id="Section_25"]
+script = ExtResource("10_section")
+x = 19.1667
+length = 1.6667
+outline = PackedVector2Array(0, -5.4, 0.5261, -5.3475, 1.0016, -5.1908, 1.4724, -4.9321, 1.8952, -4.5753, 2.2348, -4.1255, 2.4608, -3.5893, 2.7804, -2.9745, 3.2147, -2.2901, 3.5493, -1.546, 3.8275, -0.8192, 3.9943, 0.0078, 4, 1.8, -4, 1.8, -3.9967, 0.0769, -3.8469, -0.7532, -3.5493, -1.546, -3.2147, -2.2901, -2.7804, -2.9745, -2.4608, -3.5893, -2.2348, -4.1255, -1.8952, -4.5753, -1.4724, -4.9321, -1.0016, -5.1908, -0.5686, -5.3345)
+
+[sub_resource type="Resource" id="Section_26"]
+script = ExtResource("10_section")
+x = 20.6025
+length = 1.205
+outline = PackedVector2Array(0, -5.3119, 0.2517, -5.1908, 0.6379, -4.9321, 1.0171, -4.5753, 1.3319, -4.1255, 1.7656, -2.9745, 2.0238, -2.4904, 2.1139, -2.2901, 2.2473, -1.8193, 2.3465, -1.1947, 2.3192, -0.7532, 2.3345, -0.6567, 2.3092, -0.5469, 2.2686, -0.1725, 2.0942, 0.0769, 2.061, 0.1947, 1.9897, 0.2347, 1.7811, 0.488, 1.4891, 0.584, 1.3565, 0.6776, 0.9348, 0.7755, 0.8763, 0.8051, 0, 0.9581, -0.8763, 0.8051, -0.9348, 0.7755, -1.3565, 0.6776, -1.4891, 0.584, -1.7811, 0.488, -1.9897, 0.2347, -2.061, 0.1947, -2.0942, 0.0769, -2.2686, -0.1725, -2.3092, -0.5469, -2.3345, -0.6567, -2.3192, -0.7532, -2.3465, -1.1947, -2.2473, -1.8193, -2.1139, -2.2901, -2.0238, -2.4904, -1.7656, -2.9745, -1.3319, -4.1255, -1.0171, -4.5753, -0.6379, -4.9321, -0.2517, -5.1908)
+
+[sub_resource type="Resource" id="Section_27"]
+script = ExtResource("10_section")
+x = 21.8075
+length = 1.205
+outline = PackedVector2Array(0, -4.6828, 0.1043, -4.5753, 0.3833, -4.1255, 0.55, -3.5893, 0.6493, -2.9745, 0.76, -2.5261, 0.7953, -2.2901, 0.7495, -1.9937, 0.5738, -1.546, 0.4128, -1.3097, 0.3047, -1.2173, 0.2128, -1.1095, 0, -0.946, -0.2128, -1.1095, -0.3047, -1.2173, -0.4128, -1.3097, -0.5738, -1.546, -0.7495, -1.9937, -0.7953, -2.2901, -0.76, -2.5261, -0.6493, -2.9745, -0.55, -3.5893, -0.3833, -4.1255, -0.1043, -4.5753)
+
+[sub_resource type="Resource" id="Cell_aft_peak"]
+script = ExtResource("11_cell")
+name = &"aft_peak"
+low = Vector3(-22.26, -5.4, -5)
+high = Vector3(-13, 0, 5)
+kind = 4
+shape = 0.5867
+leak_area = 0.000293
+
+[sub_resource type="Resource" id="Cell_poop_space"]
+script = ExtResource("11_cell")
+name = &"poop_space"
+low = Vector3(-22.26, 0, -4.5)
+high = Vector3(-14, 1.2, 4.5)
+kind = 3
+shape = 0.7261
+leak_area = 0.0000648
+
+[sub_resource type="Resource" id="Cell_aft_bilge_p"]
+script = ExtResource("11_cell")
+name = &"aft_bilge_p"
+low = Vector3(-13, -5.4, -5)
+high = Vector3(-3, -2.6, 0)
+kind = 4
+shape = 0.8926
+leak_area = 0.000125
+
+[sub_resource type="Resource" id="Cell_aft_bilge_s"]
+script = ExtResource("11_cell")
+name = &"aft_bilge_s"
+low = Vector3(-13, -5.4, 0)
+high = Vector3(-3, -2.6, 5)
+kind = 4
+shape = 0.8926
+leak_area = 0.000125
+
+[sub_resource type="Resource" id="Cell_aft_cabins"]
+script = ExtResource("11_cell")
+name = &"aft_cabins"
+low = Vector3(-13, -2.6, -5)
+high = Vector3(-3, 0, 5)
+shape = 0.9999
+rooms = Array[StringName]([&"cabin corridor", &"aft port cabin", &"middle port cabin", &"forward port cabin", &"aft starboard cabin", &"middle starboard cabin", &"forward starboard cabin"])
+leak_area = 0.00026
+
+[sub_resource type="Resource" id="Cell_engine_bilge_p"]
+script = ExtResource("11_cell")
+name = &"engine_bilge_p"
+low = Vector3(-3, -5.4, -5)
+high = Vector3(4, -2.6, 0)
+kind = 4
+shape = 0.8944
+leak_area = 0.0000876
+
+[sub_resource type="Resource" id="Cell_engine_bilge_s"]
+script = ExtResource("11_cell")
+name = &"engine_bilge_s"
+low = Vector3(-3, -5.4, 0)
+high = Vector3(4, -2.6, 5)
+kind = 4
+shape = 0.8944
+leak_area = 0.0000876
+
+[sub_resource type="Resource" id="Cell_engine_room"]
+script = ExtResource("11_cell")
+name = &"engine_room"
+low = Vector3(-3, -2.6, -5)
+high = Vector3(4, 0, 5)
+kind = 1
+shape = 0.9999
+rooms = Array[StringName]([&"engine room"])
+leak_area = 0.000182
+
+[sub_resource type="Resource" id="Cell_hold_bilge"]
+script = ExtResource("11_cell")
+name = &"hold_bilge"
+low = Vector3(4, -5.4, -3.8)
+high = Vector3(15, -2.6, 3.8)
+kind = 4
+shape = 0.9393
+leak_area = 0.00022
+
+[sub_resource type="Resource" id="Cell_hold"]
+script = ExtResource("11_cell")
+name = &"hold"
+low = Vector3(4, -2.6, -3.8)
+high = Vector3(15, 0, 3.8)
+kind = 2
+permeability = 0.95
+shape = 1
+rooms = Array[StringName]([&"forward hold"])
+leak_area = 0.000217
+
+[sub_resource type="Resource" id="Cell_hold_wing_p"]
+script = ExtResource("11_cell")
+name = &"hold_wing_p"
+low = Vector3(4, -5.4, -5)
+high = Vector3(15, 0, -3.8)
+kind = 4
+shape = 0.4121
+leak_area = 0.0000294
+
+[sub_resource type="Resource" id="Cell_hold_wing_s"]
+script = ExtResource("11_cell")
+name = &"hold_wing_s"
+low = Vector3(4, -5.4, 3.8)
+high = Vector3(15, 0, 5)
+kind = 4
+shape = 0.4121
+leak_area = 0.0000294
+
+[sub_resource type="Resource" id="Cell_hold_fwd_top"]
+script = ExtResource("11_cell")
+name = &"hold_fwd_top"
+low = Vector3(12, 0, -3.8)
+high = Vector3(15, 1.8, 3.8)
+kind = 2
+permeability = 0.95
+shape = 1
+leak_area = 0.000041
+
+[sub_resource type="Resource" id="Cell_forepeak"]
+script = ExtResource("11_cell")
+name = &"forepeak"
+low = Vector3(15, -5.4, -4)
+high = Vector3(22.41, 1.8, 4)
+kind = 4
+shape = 0.6518
+leak_area = 0.000278
+
+[sub_resource type="Resource" id="Cell_deckhouse_cabins"]
+script = ExtResource("11_cell")
+name = &"deckhouse_cabins"
+low = Vector3(-7, 0, -3.4)
+high = Vector3(-3.4, 2.5, 3.4)
+shape = 1
+rooms = Array[StringName]([&"deckhouse cabin 1", &"deckhouse cabin 2", &"deckhouse cabin 3", &"deckhouse cabin 4"])
+leak_area = 0.0000612
+
+[sub_resource type="Resource" id="Cell_deckhouse_hall"]
+script = ExtResource("11_cell")
+name = &"deckhouse_hall"
+low = Vector3(-3.4, 0, -3.4)
+high = Vector3(0, 2.5, 3.4)
+shape = 1
+rooms = Array[StringName]([&"deckhouse hall"])
+leak_area = 0.0000578
+
+[sub_resource type="Resource" id="Cell_saloon"]
+script = ExtResource("11_cell")
+name = &"saloon"
+low = Vector3(0, 0, -3.4)
+high = Vector3(3, 2.5, 3.4)
+shape = 1
+rooms = Array[StringName]([&"saloon"])
+leak_area = 0.000051
+
+[sub_resource type="Resource" id="Cell_wheelhouse"]
+script = ExtResource("11_cell")
+name = &"wheelhouse"
+low = Vector3(-4, 2.5, -1.5)
+high = Vector3(-1, 4.7, 1.5)
+shape = 1
+rooms = Array[StringName]([&"wheelhouse"])
+leak_area = 0.0000198
+
+[sub_resource type="Resource" id="Wall_bulkhead_aft"]
+script = ExtResource("12_wall")
+name = &"bulkhead_aft"
+at = -13
+span = Vector2(-5, 5)
+bottom = -5.4
+top = 0
+collapse_head = 8.1
+leak_head = 6.75
+leak_area = 0.002
+cells = Array[StringName]([&"aft_peak", &"aft_bilge_p", &"aft_bilge_s", &"aft_cabins"])
+
+[sub_resource type="Resource" id="Wall_bulkhead_engine"]
+script = ExtResource("12_wall")
+name = &"bulkhead_engine"
+at = -3
+span = Vector2(-5, 5)
+bottom = -5.4
+top = 0
+collapse_head = 8.1
+leak_head = 6.75
+leak_area = 0.002
+cells = Array[StringName]([&"aft_bilge_p", &"aft_bilge_s", &"aft_cabins", &"engine_bilge_p", &"engine_bilge_s", &"engine_room"])
+
+[sub_resource type="Resource" id="Wall_bulkhead_hold"]
+script = ExtResource("12_wall")
+name = &"bulkhead_hold"
+at = 4
+span = Vector2(-5, 5)
+bottom = -5.4
+top = -0.5
+collapse_head = 7.35
+leak_head = 6.125
+leak_area = 0.002
+cells = Array[StringName]([&"engine_bilge_p", &"engine_bilge_s", &"engine_room", &"hold_bilge", &"hold", &"hold_wing_p", &"hold_wing_s"])
+
+[sub_resource type="Resource" id="Wall_collision"]
+script = ExtResource("12_wall")
+name = &"collision"
+at = 15
+span = Vector2(-4, 4)
+bottom = -5.4
+top = 1.8
+collapse_head = 10.8
+leak_head = 9
+leak_area = 0.002
+cells = Array[StringName]([&"hold_bilge", &"hold", &"hold_wing_p", &"hold_wing_s", &"hold_fwd_top", &"forepeak"])
+
+[sub_resource type="Resource" id="Wall_hold_side_p"]
+script = ExtResource("12_wall")
+name = &"hold_side_p"
+axis = 1
+at = -3.8
+span = Vector2(4, 15)
+bottom = -5.4
+top = 0
+collapse_head = 5.94
+leak_head = 4.95
+leak_area = 0.002
+cells = Array[StringName]([&"hold_bilge", &"hold", &"hold_wing_p"])
+
+[sub_resource type="Resource" id="Wall_hold_side_s"]
+script = ExtResource("12_wall")
+name = &"hold_side_s"
+axis = 1
+at = 3.8
+span = Vector2(4, 15)
+bottom = -5.4
+top = 0
+collapse_head = 5.94
+leak_head = 4.95
+leak_area = 0.002
+cells = Array[StringName]([&"hold_bilge", &"hold", &"hold_wing_s"])
+
+[sub_resource type="Resource" id="Wall_centre_girder"]
+script = ExtResource("12_wall")
+name = &"centre_girder"
+axis = 1
+at = 0
+span = Vector2(-13, 4)
+bottom = -5.4
+top = -2.9
+collapse_head = 3.75
+cells = Array[StringName]([&"aft_bilge_p", &"aft_bilge_s", &"engine_bilge_p", &"engine_bilge_s"])
+
+[sub_resource type="Resource" id="Opening_wtd_hold"]
+script = ExtResource("13_opening")
+name = &"wtd_hold"
+kind = 1
+joins = Array[StringName]([&"engine_room", &"hold"])
+centre = Vector3(4, -1.55, 0)
+size = Vector3(0, 2.1, 1.1)
+flip_chance = 0.1
+shuts_at_hit = true
+shut_time = 20
+leak_head = 2.6
+collapse_head = 4
+leak_area = 0.005
+
+[sub_resource type="Resource" id="Opening_wtd_engine"]
+script = ExtResource("13_opening")
+name = &"wtd_engine"
+kind = 1
+joins = Array[StringName]([&"aft_cabins", &"engine_room"])
+centre = Vector3(-3, -1.55, 0)
+size = Vector3(0, 2.1, 1.1)
+flip_chance = 0.1
+shuts_at_hit = true
+shut_time = 20
+leak_head = 2.6
+collapse_head = 4
+leak_area = 0.005
+
+[sub_resource type="Resource" id="Opening_door_saloon_sky_0"]
+script = ExtResource("13_opening")
+name = &"door_saloon_sky_0"
+joins = Array[StringName]([&"saloon", &"sky"])
+centre = Vector3(3, 1.05, 0)
+size = Vector3(0, 2.1, 1.1)
+
+[sub_resource type="Resource" id="Opening_door_deckhouse_hall_sky_0"]
+script = ExtResource("13_opening")
+name = &"door_deckhouse_hall_sky_0"
+joins = Array[StringName]([&"deckhouse_hall", &"sky"])
+centre = Vector3(-0.85, 1.05, -3.4)
+size = Vector3(1.1, 2.1, 0)
+
+[sub_resource type="Resource" id="Opening_door_saloon_sky_1"]
+script = ExtResource("13_opening")
+name = &"door_saloon_sky_1"
+joins = Array[StringName]([&"saloon", &"sky"])
+centre = Vector3(1.55, 1.05, -3.4)
+size = Vector3(1.1, 2.1, 0)
+
+[sub_resource type="Resource" id="Opening_door_deckhouse_hall_sky_1"]
+script = ExtResource("13_opening")
+name = &"door_deckhouse_hall_sky_1"
+joins = Array[StringName]([&"deckhouse_hall", &"sky"])
+centre = Vector3(-0.85, 1.05, 3.4)
+size = Vector3(1.1, 2.1, 0)
+
+[sub_resource type="Resource" id="Opening_door_saloon_sky_2"]
+script = ExtResource("13_opening")
+name = &"door_saloon_sky_2"
+joins = Array[StringName]([&"saloon", &"sky"])
+centre = Vector3(1.55, 1.05, 3.4)
+size = Vector3(1.1, 2.1, 0)
+
+[sub_resource type="Resource" id="Opening_door_deckhouse_hall_saloon_0"]
+script = ExtResource("13_opening")
+name = &"door_deckhouse_hall_saloon_0"
+joins = Array[StringName]([&"deckhouse_hall", &"saloon"])
+centre = Vector3(0, 1.05, 2.15)
+size = Vector3(0, 2.1, 1.1)
+
+[sub_resource type="Resource" id="Opening_door_deckhouse_cabins_deckhouse_hall_0"]
+script = ExtResource("13_opening")
+name = &"door_deckhouse_cabins_deckhouse_hall_0"
+joins = Array[StringName]([&"deckhouse_cabins", &"deckhouse_hall"])
+centre = Vector3(-3.4, 1.05, -2.45)
+size = Vector3(0, 2.1, 1.1)
+
+[sub_resource type="Resource" id="Opening_door_deckhouse_cabins_deckhouse_hall_1"]
+script = ExtResource("13_opening")
+name = &"door_deckhouse_cabins_deckhouse_hall_1"
+joins = Array[StringName]([&"deckhouse_cabins", &"deckhouse_hall"])
+centre = Vector3(-3.4, 1.05, -0.8)
+size = Vector3(0, 2.1, 1.1)
+
+[sub_resource type="Resource" id="Opening_door_deckhouse_cabins_deckhouse_hall_2"]
+script = ExtResource("13_opening")
+name = &"door_deckhouse_cabins_deckhouse_hall_2"
+joins = Array[StringName]([&"deckhouse_cabins", &"deckhouse_hall"])
+centre = Vector3(-3.4, 1.05, 0.8)
+size = Vector3(0, 2.1, 1.1)
+
+[sub_resource type="Resource" id="Opening_door_deckhouse_cabins_deckhouse_hall_3"]
+script = ExtResource("13_opening")
+name = &"door_deckhouse_cabins_deckhouse_hall_3"
+joins = Array[StringName]([&"deckhouse_cabins", &"deckhouse_hall"])
+centre = Vector3(-3.4, 1.05, 2.45)
+size = Vector3(0, 2.1, 1.1)
+
+[sub_resource type="Resource" id="Opening_door_wheelhouse_sky_0"]
+script = ExtResource("13_opening")
+name = &"door_wheelhouse_sky_0"
+joins = Array[StringName]([&"wheelhouse", &"sky"])
+centre = Vector3(-2.5, 3.55, -1.5)
+size = Vector3(1.1, 2.1, 0)
+
+[sub_resource type="Resource" id="Opening_door_wheelhouse_sky_1"]
+script = ExtResource("13_opening")
+name = &"door_wheelhouse_sky_1"
+joins = Array[StringName]([&"wheelhouse", &"sky"])
+centre = Vector3(-2.5, 3.55, 1.5)
+size = Vector3(1.1, 2.1, 0)
+
+[sub_resource type="Resource" id="Opening_over_bulkhead_hold_to_hold"]
+script = ExtResource("13_opening")
+name = &"over_bulkhead_hold_to_hold"
+kind = 6
+joins = Array[StringName]([&"engine_room", &"hold"])
+centre = Vector3(4, -0.25, 0)
+size = Vector3(0, 0.5, 7.6)
+
+[sub_resource type="Resource" id="Opening_over_bulkhead_hold_to_hold_wing_p"]
+script = ExtResource("13_opening")
+name = &"over_bulkhead_hold_to_hold_wing_p"
+kind = 6
+joins = Array[StringName]([&"engine_room", &"hold_wing_p"])
+centre = Vector3(4, -0.25, -4.4)
+size = Vector3(0, 0.5, 1.2)
+
+[sub_resource type="Resource" id="Opening_over_bulkhead_hold_to_hold_wing_s"]
+script = ExtResource("13_opening")
+name = &"over_bulkhead_hold_to_hold_wing_s"
+kind = 6
+joins = Array[StringName]([&"engine_room", &"hold_wing_s"])
+centre = Vector3(4, -0.25, 4.4)
+size = Vector3(0, 0.5, 1.2)
+
+[sub_resource type="Resource" id="Opening_stair_aft_cabins_sky"]
+script = ExtResource("13_opening")
+name = &"stair_aft_cabins_sky"
+kind = 4
+joins = Array[StringName]([&"aft_cabins", &"sky"])
+centre = Vector3(-11.55, 0, 0)
+size = Vector3(2.6, 0, 1.1)
+
+[sub_resource type="Resource" id="Opening_stair_engine_room_deckhouse_hall"]
+script = ExtResource("13_opening")
+name = &"stair_engine_room_deckhouse_hall"
+kind = 4
+joins = Array[StringName]([&"engine_room", &"deckhouse_hall"])
+centre = Vector3(-0.7, 0, -0.3)
+size = Vector3(1.1, 0, 2.6)
+
+[sub_resource type="Resource" id="Opening_stair_hold_sky"]
+script = ExtResource("13_opening")
+name = &"stair_hold_sky"
+kind = 4
+joins = Array[StringName]([&"hold", &"sky"])
+centre = Vector3(10.5, 0, 1.45)
+size = Vector3(3, 0, 1.1)
+
+[sub_resource type="Resource" id="Opening_hatch_hold"]
+script = ExtResource("13_opening")
+name = &"hatch_hold"
+kind = 5
+joins = Array[StringName]([&"hold", &"sky"])
+centre = Vector3(6, 0, 0)
+size = Vector3(4, 0, 2)
+starts = 1
+leak_head = 0.3
+collapse_head = 1
+leak_area = 0.05
+
+[sub_resource type="Resource" id="Opening_door_hold_fwd_top_p"]
+script = ExtResource("13_opening")
+name = &"door_hold_fwd_top_p"
+joins = Array[StringName]([&"hold_fwd_top", &"sky"])
+centre = Vector3(12, 0.81, -2.425)
+size = Vector3(0, 1.5, 0.72)
+starts = 1
+leak_head = 1
+collapse_head = 2
+leak_area = 0.01
+
+[sub_resource type="Resource" id="Opening_door_hold_fwd_top_s"]
+script = ExtResource("13_opening")
+name = &"door_hold_fwd_top_s"
+joins = Array[StringName]([&"hold_fwd_top", &"sky"])
+centre = Vector3(12, 0.81, 3)
+size = Vector3(0, 1.5, 0.72)
+starts = 1
+leak_head = 1
+collapse_head = 2
+leak_area = 0.01
+
+[sub_resource type="Resource" id="Opening_vent_poop_space_p"]
+script = ExtResource("13_opening")
+name = &"vent_poop_space_p"
+kind = 9
+joins = Array[StringName]([&"poop_space", &"sky"])
+centre = Vector3(-14, 0.6, -1.647)
+size = Vector3(0, 0.34, 0.48)
+
+[sub_resource type="Resource" id="Opening_vent_poop_space_s"]
+script = ExtResource("13_opening")
+name = &"vent_poop_space_s"
+kind = 9
+joins = Array[StringName]([&"poop_space", &"sky"])
+centre = Vector3(-14, 0.6, 1.647)
+size = Vector3(0, 0.34, 0.48)
+
+[sub_resource type="Resource" id="Opening_pipe_forepeak"]
+script = ExtResource("13_opening")
+name = &"pipe_forepeak"
+kind = 9
+joins = Array[StringName]([&"forepeak", &"sky"])
+centre = Vector3(18, 1.8, 0)
+size = Vector3(0.09, 0, 0.09)
+area = 0.008
+
+[sub_resource type="Resource" id="Opening_pipe_aft_peak"]
+script = ExtResource("13_opening")
+name = &"pipe_aft_peak"
+kind = 9
+joins = Array[StringName]([&"aft_peak", &"poop_space"])
+centre = Vector3(-16, 0, 0)
+size = Vector3(0.09, 0, 0.09)
+area = 0.008
+
+[sub_resource type="Resource" id="Opening_open_hold_fwd_top"]
+script = ExtResource("13_opening")
+name = &"open_hold_fwd_top"
+kind = 11
+joins = Array[StringName]([&"hold", &"hold_fwd_top"])
+centre = Vector3(13.5, 0, 0)
+size = Vector3(3, 0, 7.6)
+
+[sub_resource type="Resource" id="Opening_floor_aft_cabins_p"]
+script = ExtResource("13_opening")
+name = &"floor_aft_cabins_p"
+kind = 7
+joins = Array[StringName]([&"aft_bilge_p", &"aft_cabins"])
+centre = Vector3(-8, -2.6, -2.5)
+size = Vector3(10, 0, 5)
+area = 0.025
+
+[sub_resource type="Resource" id="Opening_floor_aft_cabins_s"]
+script = ExtResource("13_opening")
+name = &"floor_aft_cabins_s"
+kind = 7
+joins = Array[StringName]([&"aft_bilge_s", &"aft_cabins"])
+centre = Vector3(-8, -2.6, 2.5)
+size = Vector3(10, 0, 5)
+area = 0.025
+
+[sub_resource type="Resource" id="Opening_limber_aft_cabins"]
+script = ExtResource("13_opening")
+name = &"limber_aft_cabins"
+kind = 8
+joins = Array[StringName]([&"aft_bilge_p", &"aft_bilge_s"])
+centre = Vector3(-8, -4.15, 0)
+size = Vector3(10, 2.5, 0)
+area = 0.005
+
+[sub_resource type="Resource" id="Opening_over_girder_aft_cabins"]
+script = ExtResource("13_opening")
+name = &"over_girder_aft_cabins"
+kind = 6
+joins = Array[StringName]([&"aft_bilge_p", &"aft_bilge_s"])
+centre = Vector3(-8, -2.75, 0)
+size = Vector3(10, 0.3, 0)
+
+[sub_resource type="Resource" id="Opening_floor_engine_room_p"]
+script = ExtResource("13_opening")
+name = &"floor_engine_room_p"
+kind = 7
+joins = Array[StringName]([&"engine_bilge_p", &"engine_room"])
+centre = Vector3(0.5, -2.6, -2.5)
+size = Vector3(7, 0, 5)
+area = 0.025
+
+[sub_resource type="Resource" id="Opening_floor_engine_room_s"]
+script = ExtResource("13_opening")
+name = &"floor_engine_room_s"
+kind = 7
+joins = Array[StringName]([&"engine_bilge_s", &"engine_room"])
+centre = Vector3(0.5, -2.6, 2.5)
+size = Vector3(7, 0, 5)
+area = 0.025
+
+[sub_resource type="Resource" id="Opening_limber_engine_room"]
+script = ExtResource("13_opening")
+name = &"limber_engine_room"
+kind = 8
+joins = Array[StringName]([&"engine_bilge_p", &"engine_bilge_s"])
+centre = Vector3(0.5, -4.15, 0)
+size = Vector3(7, 2.5, 0)
+area = 0.005
+
+[sub_resource type="Resource" id="Opening_over_girder_engine_room"]
+script = ExtResource("13_opening")
+name = &"over_girder_engine_room"
+kind = 6
+joins = Array[StringName]([&"engine_bilge_p", &"engine_bilge_s"])
+centre = Vector3(0.5, -2.75, 0)
+size = Vector3(7, 0.3, 0)
+
+[sub_resource type="Resource" id="Opening_floor_hold"]
+script = ExtResource("13_opening")
+name = &"floor_hold"
+kind = 7
+joins = Array[StringName]([&"hold_bilge", &"hold"])
+centre = Vector3(9.5, -2.6, 0)
+size = Vector3(11, 0, 7.6)
+area = 0.05
+
+[sub_resource type="Resource" id="Opening_leak_hold_wing_p"]
+script = ExtResource("13_opening")
+name = &"leak_hold_wing_p"
+kind = 8
+joins = Array[StringName]([&"hold_wing_p", &"hold"])
+centre = Vector3(9.5, -1.3, -3.8)
+size = Vector3(11, 2.6, 0)
+area = 0.02
+
+[sub_resource type="Resource" id="Opening_leak_hold_wing_s"]
+script = ExtResource("13_opening")
+name = &"leak_hold_wing_s"
+kind = 8
+joins = Array[StringName]([&"hold_wing_s", &"hold"])
+centre = Vector3(9.5, -1.3, 3.8)
+size = Vector3(11, 2.6, 0)
+area = 0.02
+
+[sub_resource type="Resource" id="Opening_port_hold_wing_p_p1"]
+script = ExtResource("13_opening")
+name = &"port_hold_wing_p_p1"
+kind = 2
+joins = Array[StringName]([&"hold_wing_p", &"sea"])
+centre = Vector3(4.95, -1.15, -4.9974)
+size = Vector3(0.32, 0.32, 0)
+area = 0.0804
+starts = 1
+leak_head = 4
+collapse_head = 8
+leak_area = 0.0005
+
+[sub_resource type="Resource" id="Opening_port_hold_wing_p_p2"]
+script = ExtResource("13_opening")
+name = &"port_hold_wing_p_p2"
+kind = 2
+joins = Array[StringName]([&"hold_wing_p", &"sea"])
+centre = Vector3(6.25, -1.15, -4.924)
+size = Vector3(0.32, 0.32, 0)
+area = 0.0804
+starts = 1
+leak_head = 4
+collapse_head = 8
+leak_area = 0.0005
+
+[sub_resource type="Resource" id="Opening_port_hold_wing_p_p3"]
+script = ExtResource("13_opening")
+name = &"port_hold_wing_p_p3"
+kind = 2
+joins = Array[StringName]([&"hold_wing_p", &"sea"])
+centre = Vector3(7.55, -1.15, -4.8199)
+size = Vector3(0.32, 0.32, 0)
+area = 0.0804
+starts = 1
+leak_head = 4
+collapse_head = 8
+leak_area = 0.0005
+
+[sub_resource type="Resource" id="Opening_port_hold_wing_p_p4"]
+script = ExtResource("13_opening")
+name = &"port_hold_wing_p_p4"
+kind = 2
+joins = Array[StringName]([&"hold_wing_p", &"sea"])
+centre = Vector3(8.85, -1.15, -4.7159)
+size = Vector3(0.32, 0.32, 0)
+area = 0.0804
+starts = 1
+leak_head = 4
+collapse_head = 8
+leak_area = 0.0005
+
+[sub_resource type="Resource" id="Opening_port_hold_wing_p_p5"]
+script = ExtResource("13_opening")
+name = &"port_hold_wing_p_p5"
+kind = 2
+joins = Array[StringName]([&"hold_wing_p", &"sea"])
+centre = Vector3(10.15, -1.15, -4.6118)
+size = Vector3(0.32, 0.32, 0)
+area = 0.0804
+starts = 1
+leak_head = 4
+collapse_head = 8
+leak_area = 0.0005
+
+[sub_resource type="Resource" id="Opening_port_hold_wing_p_p6"]
+script = ExtResource("13_opening")
+name = &"port_hold_wing_p_p6"
+kind = 2
+joins = Array[StringName]([&"hold_wing_p", &"sea"])
+centre = Vector3(11.45, -1.15, -4.5077)
+size = Vector3(0.32, 0.32, 0)
+area = 0.0804
+starts = 1
+leak_head = 4
+collapse_head = 8
+leak_area = 0.0005
+
+[sub_resource type="Resource" id="Opening_port_hold_wing_p_p7"]
+script = ExtResource("13_opening")
+name = &"port_hold_wing_p_p7"
+kind = 2
+joins = Array[StringName]([&"hold_wing_p", &"sea"])
+centre = Vector3(12.75, -1.15, -4)
+size = Vector3(0.32, 0.32, 0)
+area = 0.0804
+starts = 1
+leak_head = 4
+collapse_head = 8
+leak_area = 0.0005
+
+[sub_resource type="Resource" id="Opening_port_hold_wing_p_p8"]
+script = ExtResource("13_opening")
+name = &"port_hold_wing_p_p8"
+kind = 2
+joins = Array[StringName]([&"hold_wing_p", &"sea"])
+centre = Vector3(14.05, -1.15, -4)
+size = Vector3(0.32, 0.32, 0)
+area = 0.0804
+starts = 1
+leak_head = 4
+collapse_head = 8
+leak_area = 0.0005
+
+[sub_resource type="Resource" id="Opening_port_hold_wing_s_s1"]
+script = ExtResource("13_opening")
+name = &"port_hold_wing_s_s1"
+kind = 2
+joins = Array[StringName]([&"hold_wing_s", &"sea"])
+centre = Vector3(4.95, -1.15, 4.9974)
+size = Vector3(0.32, 0.32, 0)
+area = 0.0804
+starts = 1
+leak_head = 4
+collapse_head = 8
+leak_area = 0.0005
+
+[sub_resource type="Resource" id="Opening_port_hold_wing_s_s2"]
+script = ExtResource("13_opening")
+name = &"port_hold_wing_s_s2"
+kind = 2
+joins = Array[StringName]([&"hold_wing_s", &"sea"])
+centre = Vector3(6.25, -1.15, 4.924)
+size = Vector3(0.32, 0.32, 0)
+area = 0.0804
+starts = 1
+leak_head = 4
+collapse_head = 8
+leak_area = 0.0005
+
+[sub_resource type="Resource" id="Opening_port_hold_wing_s_s3"]
+script = ExtResource("13_opening")
+name = &"port_hold_wing_s_s3"
+kind = 2
+joins = Array[StringName]([&"hold_wing_s", &"sea"])
+centre = Vector3(7.55, -1.15, 4.8199)
+size = Vector3(0.32, 0.32, 0)
+area = 0.0804
+starts = 1
+leak_head = 4
+collapse_head = 8
+leak_area = 0.0005
+
+[sub_resource type="Resource" id="Opening_port_hold_wing_s_s4"]
+script = ExtResource("13_opening")
+name = &"port_hold_wing_s_s4"
+kind = 2
+joins = Array[StringName]([&"hold_wing_s", &"sea"])
+centre = Vector3(8.85, -1.15, 4.7159)
+size = Vector3(0.32, 0.32, 0)
+area = 0.0804
+starts = 1
+leak_head = 4
+collapse_head = 8
+leak_area = 0.0005
+
+[sub_resource type="Resource" id="Opening_port_hold_wing_s_s5"]
+script = ExtResource("13_opening")
+name = &"port_hold_wing_s_s5"
+kind = 2
+joins = Array[StringName]([&"hold_wing_s", &"sea"])
+centre = Vector3(10.15, -1.15, 4.6118)
+size = Vector3(0.32, 0.32, 0)
+area = 0.0804
+starts = 1
+leak_head = 4
+collapse_head = 8
+leak_area = 0.0005
+
+[sub_resource type="Resource" id="Opening_port_hold_wing_s_s6"]
+script = ExtResource("13_opening")
+name = &"port_hold_wing_s_s6"
+kind = 2
+joins = Array[StringName]([&"hold_wing_s", &"sea"])
+centre = Vector3(11.45, -1.15, 4.5077)
+size = Vector3(0.32, 0.32, 0)
+area = 0.0804
+starts = 1
+leak_head = 4
+collapse_head = 8
+leak_area = 0.0005
+
+[sub_resource type="Resource" id="Opening_port_hold_wing_s_s7"]
+script = ExtResource("13_opening")
+name = &"port_hold_wing_s_s7"
+kind = 2
+joins = Array[StringName]([&"hold_wing_s", &"sea"])
+centre = Vector3(12.75, -1.15, 4)
+size = Vector3(0.32, 0.32, 0)
+area = 0.0804
+starts = 1
+leak_head = 4
+collapse_head = 8
+leak_area = 0.0005
+
+[sub_resource type="Resource" id="Opening_port_hold_wing_s_s8"]
+script = ExtResource("13_opening")
+name = &"port_hold_wing_s_s8"
+kind = 2
+joins = Array[StringName]([&"hold_wing_s", &"sea"])
+centre = Vector3(14.05, -1.15, 4)
+size = Vector3(0.32, 0.32, 0)
+area = 0.0804
+starts = 1
+leak_head = 4
+collapse_head = 8
+leak_area = 0.0005
+
+[sub_resource type="Resource" id="Opening_port_engine_room_p1"]
+script = ExtResource("13_opening")
+name = &"port_engine_room_p1"
+kind = 2
+joins = Array[StringName]([&"engine_room", &"sea"])
+centre = Vector3(-2.1, -1.15, -5)
+size = Vector3(0.32, 0.32, 0)
+area = 0.0804
+starts = 1
+flip_chance = 0.25
+leak_head = 4
+collapse_head = 8
+leak_area = 0.0005
+
+[sub_resource type="Resource" id="Opening_port_engine_room_p2"]
+script = ExtResource("13_opening")
+name = &"port_engine_room_p2"
+kind = 2
+joins = Array[StringName]([&"engine_room", &"sea"])
+centre = Vector3(-0.8, -1.15, -5)
+size = Vector3(0.32, 0.32, 0)
+area = 0.0804
+starts = 1
+flip_chance = 0.25
+leak_head = 4
+collapse_head = 8
+leak_area = 0.0005
+
+[sub_resource type="Resource" id="Opening_port_engine_room_p3"]
+script = ExtResource("13_opening")
+name = &"port_engine_room_p3"
+kind = 2
+joins = Array[StringName]([&"engine_room", &"sea"])
+centre = Vector3(0.5, -1.15, -5)
+size = Vector3(0.32, 0.32, 0)
+area = 0.0804
+starts = 1
+flip_chance = 0.25
+leak_head = 4
+collapse_head = 8
+leak_area = 0.0005
+
+[sub_resource type="Resource" id="Opening_port_engine_room_p4"]
+script = ExtResource("13_opening")
+name = &"port_engine_room_p4"
+kind = 2
+joins = Array[StringName]([&"engine_room", &"sea"])
+centre = Vector3(1.8, -1.15, -5)
+size = Vector3(0.32, 0.32, 0)
+area = 0.0804
+starts = 1
+flip_chance = 0.25
+leak_head = 4
+collapse_head = 8
+leak_area = 0.0005
+
+[sub_resource type="Resource" id="Opening_port_engine_room_p5"]
+script = ExtResource("13_opening")
+name = &"port_engine_room_p5"
+kind = 2
+joins = Array[StringName]([&"engine_room", &"sea"])
+centre = Vector3(3.1, -1.15, -5)
+size = Vector3(0.32, 0.32, 0)
+area = 0.0804
+starts = 1
+flip_chance = 0.25
+leak_head = 4
+collapse_head = 8
+leak_area = 0.0005
+
+[sub_resource type="Resource" id="Opening_port_engine_room_s1"]
+script = ExtResource("13_opening")
+name = &"port_engine_room_s1"
+kind = 2
+joins = Array[StringName]([&"engine_room", &"sea"])
+centre = Vector3(-2.1, -1.15, 5)
+size = Vector3(0.32, 0.32, 0)
+area = 0.0804
+starts = 1
+flip_chance = 0.25
+leak_head = 4
+collapse_head = 8
+leak_area = 0.0005
+
+[sub_resource type="Resource" id="Opening_port_engine_room_s2"]
+script = ExtResource("13_opening")
+name = &"port_engine_room_s2"
+kind = 2
+joins = Array[StringName]([&"engine_room", &"sea"])
+centre = Vector3(-0.8, -1.15, 5)
+size = Vector3(0.32, 0.32, 0)
+area = 0.0804
+starts = 1
+flip_chance = 0.25
+leak_head = 4
+collapse_head = 8
+leak_area = 0.0005
+
+[sub_resource type="Resource" id="Opening_port_engine_room_s3"]
+script = ExtResource("13_opening")
+name = &"port_engine_room_s3"
+kind = 2
+joins = Array[StringName]([&"engine_room", &"sea"])
+centre = Vector3(0.5, -1.15, 5)
+size = Vector3(0.32, 0.32, 0)
+area = 0.0804
+starts = 1
+flip_chance = 0.25
+leak_head = 4
+collapse_head = 8
+leak_area = 0.0005
+
+[sub_resource type="Resource" id="Opening_port_engine_room_s4"]
+script = ExtResource("13_opening")
+name = &"port_engine_room_s4"
+kind = 2
+joins = Array[StringName]([&"engine_room", &"sea"])
+centre = Vector3(1.8, -1.15, 5)
+size = Vector3(0.32, 0.32, 0)
+area = 0.0804
+starts = 1
+flip_chance = 0.25
+leak_head = 4
+collapse_head = 8
+leak_area = 0.0005
+
+[sub_resource type="Resource" id="Opening_port_engine_room_s5"]
+script = ExtResource("13_opening")
+name = &"port_engine_room_s5"
+kind = 2
+joins = Array[StringName]([&"engine_room", &"sea"])
+centre = Vector3(3.1, -1.15, 5)
+size = Vector3(0.32, 0.32, 0)
+area = 0.0804
+starts = 1
+flip_chance = 0.25
+leak_head = 4
+collapse_head = 8
+leak_area = 0.0005
+
+[sub_resource type="Resource" id="Opening_port_aft_cabins_p1"]
+script = ExtResource("13_opening")
+name = &"port_aft_cabins_p1"
+kind = 2
+joins = Array[StringName]([&"aft_cabins", &"sea"])
+centre = Vector3(-12, -1.15, -5)
+size = Vector3(0.32, 0.32, 0)
+area = 0.0804
+starts = 1
+flip_chance = 0.25
+leak_head = 4
+collapse_head = 8
+leak_area = 0.0005
+
+[sub_resource type="Resource" id="Opening_port_aft_cabins_p2"]
+script = ExtResource("13_opening")
+name = &"port_aft_cabins_p2"
+kind = 2
+joins = Array[StringName]([&"aft_cabins", &"sea"])
+centre = Vector3(-10.7, -1.15, -5)
+size = Vector3(0.32, 0.32, 0)
+area = 0.0804
+starts = 1
+flip_chance = 0.25
+leak_head = 4
+collapse_head = 8
+leak_area = 0.0005
+
+[sub_resource type="Resource" id="Opening_port_aft_cabins_p3"]
+script = ExtResource("13_opening")
+name = &"port_aft_cabins_p3"
+kind = 2
+joins = Array[StringName]([&"aft_cabins", &"sea"])
+centre = Vector3(-9.4, -1.15, -5)
+size = Vector3(0.32, 0.32, 0)
+area = 0.0804
+starts = 1
+flip_chance = 0.25
+leak_head = 4
+collapse_head = 8
+leak_area = 0.0005
+
+[sub_resource type="Resource" id="Opening_port_aft_cabins_p4"]
+script = ExtResource("13_opening")
+name = &"port_aft_cabins_p4"
+kind = 2
+joins = Array[StringName]([&"aft_cabins", &"sea"])
+centre = Vector3(-7.7, -1.15, -5)
+size = Vector3(0.32, 0.32, 0)
+area = 0.0804
+starts = 1
+flip_chance = 0.25
+leak_head = 4
+collapse_head = 8
+leak_area = 0.0005
+
+[sub_resource type="Resource" id="Opening_port_aft_cabins_p5"]
+script = ExtResource("13_opening")
+name = &"port_aft_cabins_p5"
+kind = 2
+joins = Array[StringName]([&"aft_cabins", &"sea"])
+centre = Vector3(-6.4, -1.15, -5)
+size = Vector3(0.32, 0.32, 0)
+area = 0.0804
+starts = 1
+flip_chance = 0.25
+leak_head = 4
+collapse_head = 8
+leak_area = 0.0005
+
+[sub_resource type="Resource" id="Opening_port_aft_cabins_p6"]
+script = ExtResource("13_opening")
+name = &"port_aft_cabins_p6"
+kind = 2
+joins = Array[StringName]([&"aft_cabins", &"sea"])
+centre = Vector3(-5, -1.15, -5)
+size = Vector3(0.32, 0.32, 0)
+area = 0.0804
+starts = 1
+flip_chance = 0.25
+leak_head = 4
+collapse_head = 8
+leak_area = 0.0005
+
+[sub_resource type="Resource" id="Opening_port_aft_cabins_p7"]
+script = ExtResource("13_opening")
+name = &"port_aft_cabins_p7"
+kind = 2
+joins = Array[StringName]([&"aft_cabins", &"sea"])
+centre = Vector3(-3.7, -1.15, -5)
+size = Vector3(0.32, 0.32, 0)
+area = 0.0804
+starts = 1
+flip_chance = 0.25
+leak_head = 4
+collapse_head = 8
+leak_area = 0.0005
+
+[sub_resource type="Resource" id="Opening_port_aft_cabins_s1"]
+script = ExtResource("13_opening")
+name = &"port_aft_cabins_s1"
+kind = 2
+joins = Array[StringName]([&"aft_cabins", &"sea"])
+centre = Vector3(-12, -1.15, 5)
+size = Vector3(0.32, 0.32, 0)
+area = 0.0804
+starts = 1
+flip_chance = 0.25
+leak_head = 4
+collapse_head = 8
+leak_area = 0.0005
+
+[sub_resource type="Resource" id="Opening_port_aft_cabins_s2"]
+script = ExtResource("13_opening")
+name = &"port_aft_cabins_s2"
+kind = 2
+joins = Array[StringName]([&"aft_cabins", &"sea"])
+centre = Vector3(-10.7, -1.15, 5)
+size = Vector3(0.32, 0.32, 0)
+area = 0.0804
+starts = 1
+flip_chance = 0.25
+leak_head = 4
+collapse_head = 8
+leak_area = 0.0005
+
+[sub_resource type="Resource" id="Opening_port_aft_cabins_s3"]
+script = ExtResource("13_opening")
+name = &"port_aft_cabins_s3"
+kind = 2
+joins = Array[StringName]([&"aft_cabins", &"sea"])
+centre = Vector3(-9.4, -1.15, 5)
+size = Vector3(0.32, 0.32, 0)
+area = 0.0804
+starts = 1
+flip_chance = 0.25
+leak_head = 4
+collapse_head = 8
+leak_area = 0.0005
+
+[sub_resource type="Resource" id="Opening_port_aft_cabins_s4"]
+script = ExtResource("13_opening")
+name = &"port_aft_cabins_s4"
+kind = 2
+joins = Array[StringName]([&"aft_cabins", &"sea"])
+centre = Vector3(-7.7, -1.15, 5)
+size = Vector3(0.32, 0.32, 0)
+area = 0.0804
+starts = 1
+flip_chance = 0.25
+leak_head = 4
+collapse_head = 8
+leak_area = 0.0005
+
+[sub_resource type="Resource" id="Opening_port_aft_cabins_s5"]
+script = ExtResource("13_opening")
+name = &"port_aft_cabins_s5"
+kind = 2
+joins = Array[StringName]([&"aft_cabins", &"sea"])
+centre = Vector3(-6.4, -1.15, 5)
+size = Vector3(0.32, 0.32, 0)
+area = 0.0804
+starts = 1
+flip_chance = 0.25
+leak_head = 4
+collapse_head = 8
+leak_area = 0.0005
+
+[sub_resource type="Resource" id="Opening_port_aft_cabins_s6"]
+script = ExtResource("13_opening")
+name = &"port_aft_cabins_s6"
+kind = 2
+joins = Array[StringName]([&"aft_cabins", &"sea"])
+centre = Vector3(-5, -1.15, 5)
+size = Vector3(0.32, 0.32, 0)
+area = 0.0804
+starts = 1
+flip_chance = 0.25
+leak_head = 4
+collapse_head = 8
+leak_area = 0.0005
+
+[sub_resource type="Resource" id="Opening_port_aft_cabins_s7"]
+script = ExtResource("13_opening")
+name = &"port_aft_cabins_s7"
+kind = 2
+joins = Array[StringName]([&"aft_cabins", &"sea"])
+centre = Vector3(-3.7, -1.15, 5)
+size = Vector3(0.32, 0.32, 0)
+area = 0.0804
+starts = 1
+flip_chance = 0.25
+leak_head = 4
+collapse_head = 8
+leak_area = 0.0005
+
+[sub_resource type="Resource" id="Opening_window_saloon_p1"]
+script = ExtResource("13_opening")
+name = &"window_saloon_p1"
+kind = 3
+joins = Array[StringName]([&"saloon", &"sky"])
+centre = Vector3(0.55, 1.45, -3.4)
+size = Vector3(0.55, 0.6, 0)
+starts = 1
+collapse_head = 2
+
+[sub_resource type="Resource" id="Opening_window_saloon_f1"]
+script = ExtResource("13_opening")
+name = &"window_saloon_f1"
+kind = 3
+joins = Array[StringName]([&"saloon", &"sky"])
+centre = Vector3(3, 1.45, -1.225)
+size = Vector3(0, 0.6, 0.55)
+starts = 1
+collapse_head = 2
+
+[sub_resource type="Resource" id="Opening_window_saloon_f2"]
+script = ExtResource("13_opening")
+name = &"window_saloon_f2"
+kind = 3
+joins = Array[StringName]([&"saloon", &"sky"])
+centre = Vector3(3, 1.45, 1.225)
+size = Vector3(0, 0.6, 0.55)
+starts = 1
+collapse_head = 2
+
+[sub_resource type="Resource" id="Opening_window_saloon_s1"]
+script = ExtResource("13_opening")
+name = &"window_saloon_s1"
+kind = 3
+joins = Array[StringName]([&"saloon", &"sky"])
+centre = Vector3(0.55, 1.45, 3.4)
+size = Vector3(0.55, 0.6, 0)
+starts = 1
+collapse_head = 2
+
+[sub_resource type="Resource" id="Opening_window_deckhouse_hall_p1"]
+script = ExtResource("13_opening")
+name = &"window_deckhouse_hall_p1"
+kind = 3
+joins = Array[StringName]([&"deckhouse_hall", &"sky"])
+centre = Vector3(-2.35, 1.45, -3.4)
+size = Vector3(0.55, 0.6, 0)
+starts = 1
+collapse_head = 2
+
+[sub_resource type="Resource" id="Opening_window_deckhouse_hall_s1"]
+script = ExtResource("13_opening")
+name = &"window_deckhouse_hall_s1"
+kind = 3
+joins = Array[StringName]([&"deckhouse_hall", &"sky"])
+centre = Vector3(-2.35, 1.45, 3.4)
+size = Vector3(0.55, 0.6, 0)
+starts = 1
+collapse_head = 2
+
+[sub_resource type="Resource" id="Opening_window_deckhouse_cabins_p1"]
+script = ExtResource("13_opening")
+name = &"window_deckhouse_cabins_p1"
+kind = 3
+joins = Array[StringName]([&"deckhouse_cabins", &"sky"])
+centre = Vector3(-5.8, 1.45, -3.4)
+size = Vector3(0.55, 0.6, 0)
+starts = 1
+collapse_head = 2
+
+[sub_resource type="Resource" id="Opening_window_deckhouse_cabins_p2"]
+script = ExtResource("13_opening")
+name = &"window_deckhouse_cabins_p2"
+kind = 3
+joins = Array[StringName]([&"deckhouse_cabins", &"sky"])
+centre = Vector3(-4.5, 1.45, -3.4)
+size = Vector3(0.55, 0.6, 0)
+starts = 1
+collapse_head = 2
+
+[sub_resource type="Resource" id="Opening_window_deckhouse_cabins_a1"]
+script = ExtResource("13_opening")
+name = &"window_deckhouse_cabins_a1"
+kind = 3
+joins = Array[StringName]([&"deckhouse_cabins", &"sky"])
+centre = Vector3(-7, 1.45, -2.475)
+size = Vector3(0, 0.6, 0.55)
+starts = 1
+collapse_head = 2
+
+[sub_resource type="Resource" id="Opening_window_deckhouse_cabins_a2"]
+script = ExtResource("13_opening")
+name = &"window_deckhouse_cabins_a2"
+kind = 3
+joins = Array[StringName]([&"deckhouse_cabins", &"sky"])
+centre = Vector3(-7, 1.45, -0.825)
+size = Vector3(0, 0.6, 0.55)
+starts = 1
+collapse_head = 2
+
+[sub_resource type="Resource" id="Opening_window_deckhouse_cabins_a3"]
+script = ExtResource("13_opening")
+name = &"window_deckhouse_cabins_a3"
+kind = 3
+joins = Array[StringName]([&"deckhouse_cabins", &"sky"])
+centre = Vector3(-7, 1.45, 0.825)
+size = Vector3(0, 0.6, 0.55)
+starts = 1
+collapse_head = 2
+
+[sub_resource type="Resource" id="Opening_window_deckhouse_cabins_s1"]
+script = ExtResource("13_opening")
+name = &"window_deckhouse_cabins_s1"
+kind = 3
+joins = Array[StringName]([&"deckhouse_cabins", &"sky"])
+centre = Vector3(-5.8, 1.45, 3.4)
+size = Vector3(0.55, 0.6, 0)
+starts = 1
+collapse_head = 2
+
+[sub_resource type="Resource" id="Opening_window_deckhouse_cabins_s2"]
+script = ExtResource("13_opening")
+name = &"window_deckhouse_cabins_s2"
+kind = 3
+joins = Array[StringName]([&"deckhouse_cabins", &"sky"])
+centre = Vector3(-4.5, 1.45, 3.4)
+size = Vector3(0.55, 0.6, 0)
+starts = 1
+collapse_head = 2
+
+[sub_resource type="Resource" id="Opening_window_deckhouse_cabins_a4"]
+script = ExtResource("13_opening")
+name = &"window_deckhouse_cabins_a4"
+kind = 3
+joins = Array[StringName]([&"deckhouse_cabins", &"sky"])
+centre = Vector3(-7, 1.45, 2.475)
+size = Vector3(0, 0.6, 0.55)
+starts = 1
+collapse_head = 2
+
+[sub_resource type="Resource" id="Opening_window_wheelhouse_a1"]
+script = ExtResource("13_opening")
+name = &"window_wheelhouse_a1"
+kind = 3
+joins = Array[StringName]([&"wheelhouse", &"sky"])
+centre = Vector3(-4, 3.95, -0.65)
+size = Vector3(0, 0.6, 0.55)
+starts = 1
+collapse_head = 2
+
+[sub_resource type="Resource" id="Opening_window_wheelhouse_a2"]
+script = ExtResource("13_opening")
+name = &"window_wheelhouse_a2"
+kind = 3
+joins = Array[StringName]([&"wheelhouse", &"sky"])
+centre = Vector3(-4, 3.95, 0.65)
+size = Vector3(0, 0.6, 0.55)
+starts = 1
+collapse_head = 2
+
+[sub_resource type="Resource" id="Mass_hull_steel"]
+script = ExtResource("14_mass")
+name = &"hull steel"
+mass = 260000
+centre = Vector3(-0.5, -1.8, 0)
+along = Vector2(-20, 20)
+
+[sub_resource type="Resource" id="Mass_engine_and_boiler"]
+script = ExtResource("14_mass")
+name = &"engine and boiler"
+mass = 55000
+centre = Vector3(1.2, -2, 0)
+along = Vector2(0, 2.5)
+
+[sub_resource type="Resource" id="Mass_coal"]
+script = ExtResource("14_mass")
+name = &"coal"
+mass = 35000
+centre = Vector3(-1, -4, 0)
+along = Vector2(-3, 1)
+
+[sub_resource type="Resource" id="Mass_deckhouse"]
+script = ExtResource("14_mass")
+name = &"deckhouse"
+mass = 38000
+centre = Vector3(-2, 1.6, 0)
+along = Vector2(-7, 3)
+
+[sub_resource type="Resource" id="Mass_wheelhouse_and_bridge"]
+script = ExtResource("14_mass")
+name = &"wheelhouse and bridge"
+mass = 8000
+centre = Vector3(-2.5, 3.6, 0)
+along = Vector2(-4, -1)
+
+[sub_resource type="Resource" id="Mass_funnel"]
+script = ExtResource("14_mass")
+name = &"funnel"
+mass = 6000
+centre = Vector3(-6, 3.8, 0)
+along = Vector2(-6.9, -5.1)
+
+[sub_resource type="Resource" id="Mass_mast_and_rigging"]
+script = ExtResource("14_mass")
+name = &"mast and rigging"
+mass = 3000
+centre = Vector3(16, 6, 0)
+along = Vector2(15.8, 16.2)
+
+[sub_resource type="Resource" id="Mass_lifeboats_and_davits"]
+script = ExtResource("14_mass")
+name = &"lifeboats and davits"
+mass = 5000
+centre = Vector3(-2, 3, 0)
+along = Vector2(-5, 1)
+
+[sub_resource type="Resource" id="Mass_cabin_fittings"]
+script = ExtResource("14_mass")
+name = &"cabin fittings"
+mass = 20000
+centre = Vector3(-7, -1.5, 0)
+along = Vector2(-13, -3)
+
+[sub_resource type="Resource" id="Mass_deckhouse_fittings"]
+script = ExtResource("14_mass")
+name = &"deckhouse fittings"
+mass = 8000
+centre = Vector3(-2, 1, 0)
+along = Vector2(-7, 3)
+
+[sub_resource type="Resource" id="Mass_stores_and_water"]
+script = ExtResource("14_mass")
+name = &"stores and water"
+mass = 20000
+centre = Vector3(-16, -2.5, 0)
+along = Vector2(-19, -13)
+
+[sub_resource type="Resource" id="Mass_ground_tackle"]
+script = ExtResource("14_mass")
+name = &"ground tackle"
+mass = 8000
+centre = Vector3(17, 0.5, 0)
+along = Vector2(15, 20)
+
+[sub_resource type="Resource" id="Mass_ballast"]
+script = ExtResource("14_mass")
+name = &"ballast"
+mass = 109948.4
+centre = Vector3(8.0603, -3.6, -0.0036)
+along = Vector2(0.0603, 16.0603)
+
+[sub_resource type="Resource" id="Fitting_lifeboat_port"]
+script = ExtResource("16_fitting")
+name = &"lifeboat_port"
+side = -1
+x = -2
+list_limit_deg = 15
+
+[sub_resource type="Resource" id="Fitting_lifeboat_starboard"]
+script = ExtResource("16_fitting")
+name = &"lifeboat_starboard"
+side = 1
+x = -2
+list_limit_deg = 15
+
+[sub_resource type="Resource" id="Fitting_funnel"]
+script = ExtResource("16_fitting")
+kind = 1
+name = &"funnel"
+x = -6
+list_limit_deg = 28
+trim_limit_deg = 15
+base = Vector3(-6, 2.5, 0)
+height = 5
+radius = 0.9
+fall_time = 1.2
+crushes = Array[StringName]([&"bridge"])
+
+[sub_resource type="Resource" id="Fitting_generator"]
+script = ExtResource("16_fitting")
+kind = 2
+name = &"generator"
+x = 1.25
+list_limit_deg = 25
+trim_limit_deg = 12
+base = Vector3(1.25, -2.6, 2.6)
+drowns_at = 1
+recovers_deg = 3
+emergency_minutes = 30
+emergency_cells = Array[StringName]([&"saloon", &"deckhouse_hall", &"wheelhouse"])
+cell = &"engine_room"
+
+[sub_resource type="Resource" id="Fitting_bilge_pump_p"]
+script = ExtResource("16_fitting")
+kind = 3
+name = &"bilge_pump_p"
+cell = &"engine_bilge_p"
+rate = 0.025
+
+[sub_resource type="Resource" id="Fitting_bilge_pump_s"]
+script = ExtResource("16_fitting")
+kind = 3
+name = &"bilge_pump_s"
+cell = &"engine_bilge_s"
+rate = 0.025
+
+[sub_resource type="Resource" id="Weak_aft_joint"]
+script = ExtResource("18_weak")
+name = &"aft_joint"
+x = -8
+share = 0.2
+
+[sub_resource type="Resource" id="Weak_midships_joint"]
+script = ExtResource("18_weak")
+name = &"midships_joint"
+x = 2
+share = 0.3
+
+[sub_resource type="Resource" id="Strength"]
+script = ExtResource("17_strength")
+hog = 15000000
+sag = 13750000
+weak = Array[ExtResource("18_weak")]([SubResource("Weak_aft_joint"), SubResource("Weak_midships_joint")])
+
+[sub_resource type="Resource" id="Sure_hit"]
+script = ExtResource("15_hit")
+start_x = -19
+length = 25
+depth_start = 1.2
+depth_end = 1.2
+width = 0.15
+bite = 1.5
+
+[sub_resource type="Resource" id="Structure"]
+script = ExtResource("9_structure")
+waterline_y = -3.4
+keel_y = -5.4
+sections = Array[ExtResource("10_section")]([SubResource("Section_0"), SubResource("Section_1"), SubResource("Section_2"), SubResource("Section_3"), SubResource("Section_4"), SubResource("Section_5"), SubResource("Section_6"), SubResource("Section_7"), SubResource("Section_8"), SubResource("Section_9"), SubResource("Section_10"), SubResource("Section_11"), SubResource("Section_12"), SubResource("Section_13"), SubResource("Section_14"), SubResource("Section_15"), SubResource("Section_16"), SubResource("Section_17"), SubResource("Section_18"), SubResource("Section_19"), SubResource("Section_20"), SubResource("Section_21"), SubResource("Section_22"), SubResource("Section_23"), SubResource("Section_24"), SubResource("Section_25"), SubResource("Section_26"), SubResource("Section_27")])
+cells = Array[ExtResource("11_cell")]([SubResource("Cell_aft_peak"), SubResource("Cell_poop_space"), SubResource("Cell_aft_bilge_p"), SubResource("Cell_aft_bilge_s"), SubResource("Cell_aft_cabins"), SubResource("Cell_engine_bilge_p"), SubResource("Cell_engine_bilge_s"), SubResource("Cell_engine_room"), SubResource("Cell_hold_bilge"), SubResource("Cell_hold"), SubResource("Cell_hold_wing_p"), SubResource("Cell_hold_wing_s"), SubResource("Cell_hold_fwd_top"), SubResource("Cell_forepeak"), SubResource("Cell_deckhouse_cabins"), SubResource("Cell_deckhouse_hall"), SubResource("Cell_saloon"), SubResource("Cell_wheelhouse")])
+walls = Array[ExtResource("12_wall")]([SubResource("Wall_bulkhead_aft"), SubResource("Wall_bulkhead_engine"), SubResource("Wall_bulkhead_hold"), SubResource("Wall_collision"), SubResource("Wall_hold_side_p"), SubResource("Wall_hold_side_s"), SubResource("Wall_centre_girder")])
+openings = Array[ExtResource("13_opening")]([SubResource("Opening_wtd_hold"), SubResource("Opening_wtd_engine"), SubResource("Opening_door_saloon_sky_0"), SubResource("Opening_door_deckhouse_hall_sky_0"), SubResource("Opening_door_saloon_sky_1"), SubResource("Opening_door_deckhouse_hall_sky_1"), SubResource("Opening_door_saloon_sky_2"), SubResource("Opening_door_deckhouse_hall_saloon_0"), SubResource("Opening_door_deckhouse_cabins_deckhouse_hall_0"), SubResource("Opening_door_deckhouse_cabins_deckhouse_hall_1"), SubResource("Opening_door_deckhouse_cabins_deckhouse_hall_2"), SubResource("Opening_door_deckhouse_cabins_deckhouse_hall_3"), SubResource("Opening_door_wheelhouse_sky_0"), SubResource("Opening_door_wheelhouse_sky_1"), SubResource("Opening_over_bulkhead_hold_to_hold"), SubResource("Opening_over_bulkhead_hold_to_hold_wing_p"), SubResource("Opening_over_bulkhead_hold_to_hold_wing_s"), SubResource("Opening_stair_aft_cabins_sky"), SubResource("Opening_stair_engine_room_deckhouse_hall"), SubResource("Opening_stair_hold_sky"), SubResource("Opening_hatch_hold"), SubResource("Opening_door_hold_fwd_top_p"), SubResource("Opening_door_hold_fwd_top_s"), SubResource("Opening_vent_poop_space_p"), SubResource("Opening_vent_poop_space_s"), SubResource("Opening_pipe_forepeak"), SubResource("Opening_pipe_aft_peak"), SubResource("Opening_open_hold_fwd_top"), SubResource("Opening_floor_aft_cabins_p"), SubResource("Opening_floor_aft_cabins_s"), SubResource("Opening_limber_aft_cabins"), SubResource("Opening_over_girder_aft_cabins"), SubResource("Opening_floor_engine_room_p"), SubResource("Opening_floor_engine_room_s"), SubResource("Opening_limber_engine_room"), SubResource("Opening_over_girder_engine_room"), SubResource("Opening_floor_hold"), SubResource("Opening_leak_hold_wing_p"), SubResource("Opening_leak_hold_wing_s"), SubResource("Opening_port_hold_wing_p_p1"), SubResource("Opening_port_hold_wing_p_p2"), SubResource("Opening_port_hold_wing_p_p3"), SubResource("Opening_port_hold_wing_p_p4"), SubResource("Opening_port_hold_wing_p_p5"), SubResource("Opening_port_hold_wing_p_p6"), SubResource("Opening_port_hold_wing_p_p7"), SubResource("Opening_port_hold_wing_p_p8"), SubResource("Opening_port_hold_wing_s_s1"), SubResource("Opening_port_hold_wing_s_s2"), SubResource("Opening_port_hold_wing_s_s3"), SubResource("Opening_port_hold_wing_s_s4"), SubResource("Opening_port_hold_wing_s_s5"), SubResource("Opening_port_hold_wing_s_s6"), SubResource("Opening_port_hold_wing_s_s7"), SubResource("Opening_port_hold_wing_s_s8"), SubResource("Opening_port_engine_room_p1"), SubResource("Opening_port_engine_room_p2"), SubResource("Opening_port_engine_room_p3"), SubResource("Opening_port_engine_room_p4"), SubResource("Opening_port_engine_room_p5"), SubResource("Opening_port_engine_room_s1"), SubResource("Opening_port_engine_room_s2"), SubResource("Opening_port_engine_room_s3"), SubResource("Opening_port_engine_room_s4"), SubResource("Opening_port_engine_room_s5"), SubResource("Opening_port_aft_cabins_p1"), SubResource("Opening_port_aft_cabins_p2"), SubResource("Opening_port_aft_cabins_p3"), SubResource("Opening_port_aft_cabins_p4"), SubResource("Opening_port_aft_cabins_p5"), SubResource("Opening_port_aft_cabins_p6"), SubResource("Opening_port_aft_cabins_p7"), SubResource("Opening_port_aft_cabins_s1"), SubResource("Opening_port_aft_cabins_s2"), SubResource("Opening_port_aft_cabins_s3"), SubResource("Opening_port_aft_cabins_s4"), SubResource("Opening_port_aft_cabins_s5"), SubResource("Opening_port_aft_cabins_s6"), SubResource("Opening_port_aft_cabins_s7"), SubResource("Opening_window_saloon_p1"), SubResource("Opening_window_saloon_f1"), SubResource("Opening_window_saloon_f2"), SubResource("Opening_window_saloon_s1"), SubResource("Opening_window_deckhouse_hall_p1"), SubResource("Opening_window_deckhouse_hall_s1"), SubResource("Opening_window_deckhouse_cabins_p1"), SubResource("Opening_window_deckhouse_cabins_p2"), SubResource("Opening_window_deckhouse_cabins_a1"), SubResource("Opening_window_deckhouse_cabins_a2"), SubResource("Opening_window_deckhouse_cabins_a3"), SubResource("Opening_window_deckhouse_cabins_s1"), SubResource("Opening_window_deckhouse_cabins_s2"), SubResource("Opening_window_deckhouse_cabins_a4"), SubResource("Opening_window_wheelhouse_a1"), SubResource("Opening_window_wheelhouse_a2")])
+mass = Array[ExtResource("14_mass")]([SubResource("Mass_hull_steel"), SubResource("Mass_engine_and_boiler"), SubResource("Mass_coal"), SubResource("Mass_deckhouse"), SubResource("Mass_wheelhouse_and_bridge"), SubResource("Mass_funnel"), SubResource("Mass_mast_and_rigging"), SubResource("Mass_lifeboats_and_davits"), SubResource("Mass_cabin_fittings"), SubResource("Mass_deckhouse_fittings"), SubResource("Mass_stores_and_water"), SubResource("Mass_ground_tackle"), SubResource("Mass_ballast")])
+roll_radius = 3.8
+pitch_radius = 10
+added_mass = 1
+heave_damping = 0.5
+roll_damping = 0.08
+pitch_damping = 0.5
+fittings = Array[ExtResource("16_fitting")]([SubResource("Fitting_lifeboat_port"), SubResource("Fitting_lifeboat_starboard"), SubResource("Fitting_funnel"), SubResource("Fitting_generator"), SubResource("Fitting_bilge_pump_p"), SubResource("Fitting_bilge_pump_s")])
+strength = SubResource("Strength")
+hit_zone_x = Vector2(-19.5, 19.5)
+hit_zone_y = Vector2(-5.2, -0.2)
+sure_hit = SubResource("Sure_hit")
+
+[resource]
+script = ExtResource("5_layout")
+freeboard = 3.4
+deck_thickness = 0.2
+platforms = Array[ExtResource("1_plat")]([SubResource("Platform_main_deck"), SubResource("Platform_poop_deck"), SubResource("Platform_forecastle"), SubResource("Platform_boat_deck"), SubResource("Platform_bridge"), SubResource("Platform_main_deck_starboard"), SubResource("Platform_main_deck_aft"), SubResource("Platform_main_deck_aft_port"), SubResource("Platform_main_deck_aft_starboard"), SubResource("Platform_main_deck_waist"), SubResource("Platform_main_deck_hall"), SubResource("Platform_main_deck_forward"), SubResource("Platform_main_deck_bow"), SubResource("Platform_lower_deck"), SubResource("Platform_hold")])
+ramps = Array[ExtResource("2_ramp")]([SubResource("Ramp_poop_port"), SubResource("Ramp_poop_starboard"), SubResource("Ramp_boat_port"), SubResource("Ramp_boat_starboard"), SubResource("Ramp_forecastle"), SubResource("Ramp_forecastle_starboard"), SubResource("Ramp_bridge"), SubResource("Ramp_bridge_starboard"), SubResource("Ramp_aft_companionway"), SubResource("Ramp_inner_stair"), SubResource("Ramp_forward_companionway")])
+blockers = Array[ExtResource("3_block")]([SubResource("Blocker_funnel"), SubResource("Blocker_mast"), SubResource("Blocker_hatch"), SubResource("Blocker_forecastle_break"), SubResource("Blocker_hull_aft"), SubResource("Blocker_hull_port"), SubResource("Blocker_hull_starboard"), SubResource("Blocker_hold_port"), SubResource("Blocker_hold_starboard"), SubResource("Blocker_hold_port_forward"), SubResource("Blocker_hold_starboard_forward"), SubResource("Blocker_hold_forward"), SubResource("Blocker_bulkhead_hold_0"), SubResource("Blocker_bulkhead_hold_1"), SubResource("Blocker_bulkhead_hold_lintel_0"), SubResource("Blocker_bulkhead_engine_0"), SubResource("Blocker_bulkhead_engine_1"), SubResource("Blocker_bulkhead_engine_lintel_0"), SubResource("Blocker_engine"), SubResource("Blocker_corridor_port_0"), SubResource("Blocker_corridor_port_1"), SubResource("Blocker_corridor_port_2"), SubResource("Blocker_corridor_port_3"), SubResource("Blocker_corridor_port_lintel_0"), SubResource("Blocker_corridor_port_lintel_1"), SubResource("Blocker_corridor_port_lintel_2"), SubResource("Blocker_corridor_starboard_0"), SubResource("Blocker_corridor_starboard_1"), SubResource("Blocker_corridor_starboard_2"), SubResource("Blocker_corridor_starboard_3"), SubResource("Blocker_corridor_starboard_lintel_0"), SubResource("Blocker_corridor_starboard_lintel_1"), SubResource("Blocker_corridor_starboard_lintel_2"), SubResource("Blocker_cabins_port_aft"), SubResource("Blocker_cabins_starboard_aft"), SubResource("Blocker_cabins_port_forward"), SubResource("Blocker_cabins_starboard_forward"), SubResource("Blocker_deckhouse_aft"), SubResource("Blocker_deckhouse_forward_0"), SubResource("Blocker_deckhouse_forward_1"), SubResource("Blocker_deckhouse_forward_lintel_0"), SubResource("Blocker_deckhouse_port_0"), SubResource("Blocker_deckhouse_port_1"), SubResource("Blocker_deckhouse_port_2"), SubResource("Blocker_deckhouse_port_lintel_0"), SubResource("Blocker_deckhouse_port_lintel_1"), SubResource("Blocker_deckhouse_starboard_0"), SubResource("Blocker_deckhouse_starboard_1"), SubResource("Blocker_deckhouse_starboard_2"), SubResource("Blocker_deckhouse_starboard_lintel_0"), SubResource("Blocker_deckhouse_starboard_lintel_1"), SubResource("Blocker_saloon_aft_0"), SubResource("Blocker_saloon_aft_1"), SubResource("Blocker_saloon_aft_lintel_0"), SubResource("Blocker_hall_aft_0"), SubResource("Blocker_hall_aft_1"), SubResource("Blocker_hall_aft_2"), SubResource("Blocker_hall_aft_3"), SubResource("Blocker_hall_aft_4"), SubResource("Blocker_hall_aft_lintel_0"), SubResource("Blocker_hall_aft_lintel_1"), SubResource("Blocker_hall_aft_lintel_2"), SubResource("Blocker_hall_aft_lintel_3"), SubResource("Blocker_deckhouse_cabins_port"), SubResource("Blocker_deckhouse_cabins_middle"), SubResource("Blocker_deckhouse_cabins_starboard"), SubResource("Blocker_wheelhouse_aft"), SubResource("Blocker_wheelhouse_forward"), SubResource("Blocker_wheelhouse_port_0"), SubResource("Blocker_wheelhouse_port_1"), SubResource("Blocker_wheelhouse_port_lintel_0"), SubResource("Blocker_wheelhouse_starboard_0"), SubResource("Blocker_wheelhouse_starboard_1"), SubResource("Blocker_wheelhouse_starboard_lintel_0")])
+railings = Array[ExtResource("4_rail")]([SubResource("Railing_main_port_aft_0"), SubResource("Railing_main_port_aft_1"), SubResource("Railing_main_port_aft_2"), SubResource("Railing_main_port_aft_3"), SubResource("Railing_main_port_aft_4"), SubResource("Railing_main_port_fwd_0"), SubResource("Railing_main_port_fwd_1"), SubResource("Railing_main_starboard_aft_0"), SubResource("Railing_main_starboard_aft_1"), SubResource("Railing_main_starboard_aft_2"), SubResource("Railing_main_starboard_aft_3"), SubResource("Railing_main_starboard_aft_4"), SubResource("Railing_main_starboard_fwd_0"), SubResource("Railing_main_starboard_fwd_1"), SubResource("Railing_main_aft_port"), SubResource("Railing_main_aft_starboard"), SubResource("Railing_main_fwd_port"), SubResource("Railing_main_fwd_starboard"), SubResource("Railing_poop_aft_0"), SubResource("Railing_poop_aft_1"), SubResource("Railing_poop_aft_2"), SubResource("Railing_poop_port_0"), SubResource("Railing_poop_port_1"), SubResource("Railing_poop_starboard_0"), SubResource("Railing_poop_starboard_1"), SubResource("Railing_forecastle_fwd_0"), SubResource("Railing_forecastle_fwd_1"), SubResource("Railing_forecastle_fwd_2"), SubResource("Railing_forecastle_port_0"), SubResource("Railing_forecastle_port_1"), SubResource("Railing_forecastle_port_2"), SubResource("Railing_forecastle_starboard_0"), SubResource("Railing_forecastle_starboard_1"), SubResource("Railing_forecastle_starboard_2"), SubResource("Railing_aft_companionway_port"), SubResource("Railing_aft_companionway_starboard"), SubResource("Railing_aft_companionway_forward"), SubResource("Railing_inner_stair_aft"), SubResource("Railing_inner_stair_forward"), SubResource("Railing_inner_stair_starboard"), SubResource("Railing_forward_companionway_port"), SubResource("Railing_forward_companionway_starboard")])
+ladders = Array[ExtResource("7_ladder")]([SubResource("Ladder_port"), SubResource("Ladder_starboard")])
+spawns = Array[Vector3]([Vector3(8, -2.6, -2), Vector3(-2, -2.6, -3.5), Vector3(-7, -2.6, 2.8), Vector3(1.5, 0, -1.5), Vector3(-2.5, 0, 2.2), Vector3(-17.5, 1.2, -2.5), Vector3(-5, 0, -4.3), Vector3(6.5, 0, 4.2)])
+min_seats = 1
+max_seats = 8
+props = Array[ExtResource("8_prop")]([SubResource("Prop_hatch_aft"), SubResource("Prop_hatch_forward"), SubResource("Prop_forward_inboard"), SubResource("Prop_forward_outboard")])
+rooms = Array[ExtResource("6_room")]([SubResource("Room_forward_hold"), SubResource("Room_engine_room"), SubResource("Room_cabin_corridor"), SubResource("Room_cabin_port_aft"), SubResource("Room_cabin_port_middle"), SubResource("Room_cabin_port_forward"), SubResource("Room_cabin_starboard_aft"), SubResource("Room_cabin_starboard_middle"), SubResource("Room_cabin_starboard_forward"), SubResource("Room_saloon"), SubResource("Room_deckhouse_hall"), SubResource("Room_deckhouse_cabin_1"), SubResource("Room_deckhouse_cabin_2"), SubResource("Room_deckhouse_cabin_3"), SubResource("Room_deckhouse_cabin_4"), SubResource("Room_wheelhouse")])
+structure = SubResource("Structure")

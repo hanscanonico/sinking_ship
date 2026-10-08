@@ -31,7 +31,7 @@ func test_bots_play_on_her_side() -> void:
 		runner.step()
 		for seat in config.seats:
 			moved = moved or runner.sim.state.seats[seat].last_move != Vector2i.ZERO
-	assert_eq(runner.sim.state.up, Faces.Up.PORT, "the match stands on her port-facing faces")
+	assert_eq(runner.sim.state.up[0], Faces.Up.PORT, "the match stands on her port-facing faces")
 	assert_true(moved, "the bots press on")
 	var standing := 0
 	for player: PlayerState in runner.sim.state.seats:
@@ -47,7 +47,7 @@ func test_a_bot_reads_crates_still_aboard_off_her_decks() -> void:
 	var config := SimFixtures.config(4, SimFixtures.tilted(0.0, 90.0), 5, SimFixtures.steamer())
 	var tick := config.countdown_ticks + Ticks.RATE
 	var snapshot := MatchJump.snapshot(config, tick)
-	assert_ne(snapshot["up"], Faces.Up.DECK, "she lies on a face but her decks")
+	assert_ne(snapshot["up"][0], Faces.Up.DECK, "she lies on a face but her decks")
 	var aboard := 0
 	for crate: PropState in PropState.from_snapshot(snapshot):
 		if not crate.is_lost():

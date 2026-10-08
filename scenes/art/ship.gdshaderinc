@@ -90,6 +90,14 @@ uniform float cut_above = 1e6;
 uniform vec4 section_colour : source_color = vec4(0.2, 0.19, 0.2, 1.0);
 #endif
 
+#ifdef PIECE
+// One piece of a broken hull (ShipArt.span, SH33): nothing of the ship outside its
+// stretch along her is drawn, and the inside of what the cut leaves open shows as a dark
+// torn section.
+uniform vec2 piece_span = vec2(-1e6, 1e6);
+uniform vec4 torn_colour : source_color = vec4(0.09, 0.08, 0.08, 1.0);
+#endif
+
 #ifdef NEAR_FADE
 // The rooms' furnishings (ship_near.gdshader): a piece that fades (ShipMesh.fading)
 // starts to go within near_fade.y of the eye and is gone within near_fade.x —
@@ -283,6 +291,11 @@ void vertex() {
 }
 
 void fragment() {
+#ifdef PIECE
+	if (ship_pos.x < piece_span.x || ship_pos.x > piece_span.y) {
+		discard;
+	}
+#endif
 #ifdef CUT_AWAY
 	if (ship_pos.y > cut_above) {
 		discard;
@@ -324,6 +337,12 @@ void fragment() {
 	ALBEDO = mix(ALBEDO, flash_colour.rgb, flash * flash_strength);
 	EMISSION = flash_colour.rgb * flash * flash_strength;
 	EMISSION += lap_colour.rgb * lap * 0.2;
+#ifdef PIECE
+	if (!FRONT_FACING) {
+		ALBEDO = vec3(0.0);
+		EMISSION = torn_colour.rgb;
+	}
+#endif
 #ifdef CUT_AWAY
 	if (!FRONT_FACING) {
 		ALBEDO = vec3(0.0);

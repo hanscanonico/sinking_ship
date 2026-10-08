@@ -5,38 +5,36 @@ extends RefCounted
 ## seat or none left. MatchSim asks it each tick, after the water, in seat order.
 
 
-## The seats of [param live] the sea puts out on [param tick], in seat order: on the
-## tick she is gone ([param gone_tick]), whoever is still inside her goes out with her;
-## and once every surface still standing is [param wade_depth] under the sea, as
-## [param surfaces] has it under [param pose_now], and every seat left swims — when
-## nothing but the cold can change — they all go out by the cold, but for the one with
-## the most cold left when it has the most alone. A tie for the most is a draw, the
-## sea's; the places go by the cold they had left (place). Nothing else ends a match:
-## on a wreck that keeps dry footing — on her side on the bottom, or upside down on her
-## air — it goes on until one seat is left, however long (Q21). The match follows her
-## through any attitude (SH32), so [param pose_now] and [param surfaces] are the frame
-## the tick stands in.
-static func settled_by_the_sea(
-	live: Array[PlayerState],
-	pose_now: ShipPose,
-	tick: int,
-	gone_tick: int,
-	surfaces: Surfaces,
-	wade_depth: float
+## The seats of [param live] — the seats on one piece of her (Pieces, SH33): every seat,
+## while she does not break — who go out with that piece on [param tick]: on the tick it
+## is gone ([param gone_tick]), whoever is still inside it, in seat order, as
+## [param pose_now] has its cells — the frame the tick stands in on it (SH32).
+static func gone_with(
+	live: Array[PlayerState], pose_now: ShipPose, tick: int, gone_tick: int
 ) -> Array[PlayerState]:
 	var going: Array[PlayerState] = []
-	var left: Array[PlayerState] = []
 	for player: PlayerState in live:
 		if tick == gone_tick and pose_now.cell_at(player.pos) != CellMap.NONE:
 			going.append(player)
-		else:
-			left.append(player)
+	return going
+
+
+## The seats of [param left] — every seat still in that no piece took with it
+## (gone_with) — the sea puts out once nothing but the cold can change: every one of them
+## swims and [param sunk] says every surface of her still standing is wade_depth under
+## the sea (Surfaces.sunk, asked only then). They all go out by the cold, but for the one
+## with the most cold left when it has the most alone. A tie for the most is a draw, the
+## sea's; the places go by the cold they had left (place). Nothing else ends a match: on a
+## wreck that keeps dry footing — on her side on the bottom, or upside down on her air —
+## it goes on until one seat is left, however long (Q21).
+static func by_the_cold(left: Array[PlayerState], sunk: Callable) -> Array[PlayerState]:
+	var going: Array[PlayerState] = []
 	if left.size() < 2:
 		return going
 	for player: PlayerState in left:
 		if player.body != PlayerState.Body.SWIMMING:
 			return going
-	if not surfaces.sunk(pose_now, wade_depth):
+	if not sunk.call():
 		return going
 	var most := 0.0
 	var warmest := 0

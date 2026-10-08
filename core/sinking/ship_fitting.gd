@@ -5,8 +5,8 @@ extends Resource
 ## on the high side cannot be swung out and lowered (15° on old davits, 20° under
 ## modern rules). That is a label and a sight, never a rule (§5b.1). From SH31 the
 ## fittings the physics can fail (§5b.1, "Things that give way"): a funnel, whose stays
-## hold it until she lists or trims past what they take, the sea reaches its foot or —
-## from SH33 — a hinge forms beside it; her generator, which lights her while its foot
+## hold it until she lists or trims past what they take or the sea reaches its foot; her
+## generator, which lights her while its foot
 ## is dry enough and she stands within what machinery tolerates, then her emergency
 ## power for its minutes; and her pumps, which lift water out of their cell while the
 ## generator runs. Ship-local metres (D6).

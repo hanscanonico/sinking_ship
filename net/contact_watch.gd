@@ -6,8 +6,10 @@ extends RefCounted
 ## other can have come is the fastest the rules move anything across the deck —
 ## walking, vaulting, a charged knockback, a crate's — or its own speed when more,
 ## with the most the deck pulls anything downhill over the span on top: gravity across
-## the ship plane, as the schedule tilts it (D7). Distances are across the ship plane,
-## whatever the heights: a body on a deck overhead counts as near.
+## the ship plane, as the schedule tilts it (D7) — the steepest of her pieces' once she
+## breaks. Distances are across the ship plane, whatever the heights: a body on a deck
+## overhead counts as near, and one on another piece of her is seen from the seat's
+## (Pieces.seen_from).
 
 var _rules: BrawlRules
 var _schedule: SinkSchedule
@@ -36,7 +38,9 @@ func clear(snapshot: Dictionary, seat: int, path: PackedVector3Array, lookahead:
 	var ticks := path.size() - 1 + lookahead
 	var gained := _pull(snapshot["tick"], ticks) * ticks * Ticks.SECONDS_PER_TICK
 	var body := _rules.body_radius + _rules.shove_reach
-	for entry: Dictionary in snapshot["seats"]:
+	var pose := _schedule.pose_at(snapshot["tick"])
+	var seen := Pieces.seen_from(snapshot, snapshot["seats"][seat]["piece"], pose)
+	for entry: Dictionary in seen["seats"]:
 		if entry["seat"] != seat and not entry["out"]:
 			if not _apart(entry, body + _rules.body_radius, path, lookahead, gained):
 				return false
@@ -48,8 +52,8 @@ func clear(snapshot: Dictionary, seat: int, path: PackedVector3Array, lookahead:
 	return true
 
 
-## The most the deck pulls anything downhill, across the ship plane, over the
-## [param ticks] ticks from [param first] on.
+## The most the deck of any piece of her pulls anything downhill, across its ship plane,
+## over the [param ticks] ticks from [param first] on.
 func _pull(first: int, ticks: int) -> float:
 	for tick: int in _pulls.keys():
 		if tick < first - Ticks.RATE:
@@ -57,8 +61,12 @@ func _pull(first: int, ticks: int) -> float:
 	var most := 0.0
 	for tick in range(first, first + ticks + 1):
 		if not _pulls.has(tick):
-			var down := _schedule.pose_at(tick).ship_gravity(_rules.gravity)
-			_pulls[tick] = Vector2(down.x, down.z).length()
+			var pose := _schedule.pose_at(tick)
+			var pull := 0.0
+			for piece in _schedule.piece_count():
+				var down := pose.of_piece(piece).ship_gravity(_rules.gravity)
+				pull = maxf(pull, Vector2(down.x, down.z).length())
+			_pulls[tick] = pull
 		most = maxf(most, _pulls[tick])
 	return most
 

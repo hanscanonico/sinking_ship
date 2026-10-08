@@ -15,8 +15,10 @@ uniform float strength = 1.4;
 // Metres over which the sky colour climbs from above_colour to high_colour.
 uniform float sky_rise = 0.35;
 uniform float foam_width = 0.025;
-// The observer's cut-away, in ship space: no glass above it.
+// The observer's cut-away, in ship space: no glass above it; and a piece of a broken
+// hull's stretch along her (SH33): no glass outside it.
 uniform float cut_above = 1e6;
+uniform vec2 piece_span = vec2(-1e6, 1e6);
 // Seen from outside (outside = true): dark glass over the warm glow of the lamp-lit
 // room behind it, glowing most near its top, under the sky's reflection, which
 // takes over as the look grazes it.
@@ -53,7 +55,7 @@ vec3 outside_glass(vec3 normal, vec3 view, float reflected_up, float rise) {
 }
 
 void fragment() {
-	if (ship_height > cut_above) {
+	if (ship_height > cut_above || ship_point.x < piece_span.x || ship_point.x > piece_span.y) {
 		discard;
 	}
 	float h = world_height;

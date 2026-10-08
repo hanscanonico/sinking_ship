@@ -10,13 +10,19 @@ amidships. The numbers that shape the rooms are the constants and calls below:
 DOOR (a doorway's width), LOWER (the lower deck's height), LINTEL (a door's height),
 T (half a wall's thickness), and each wall_*_doors call's door gaps.
 
-Usage: tools/gen_steamer.py <out.tres>
+`--weak` writes her test-only weak hull instead (SH33): the same ship with her strength
+divided down by WEAK_DIVISOR and the weak spots WEAK_SPOTS, where she can break —
+tests/fixtures/ships/steamer_weak.tres, playable as `make run SHIP=steamer_weak` and never
+in the menu's fleet.
+
+Usage: tools/gen_steamer.py <out.tres> [--weak]
 """
 import math
 import re
 import sys
 
 out = sys.argv[1]
+weak = "--weak" in sys.argv[2:]
 
 def num(v):
     v = round(v, 4)
@@ -1153,6 +1159,14 @@ GENERATOR = dict(name="generator", cell="engine_room", base=(1.25, LOWER, 2.6), 
 PUMPS = [("bilge_pump_p", "engine_bilge_p", 0.025), ("bilge_pump_s", "engine_bilge_s", 0.025)]
 # The bending her hull carries (est.: her flooding loads stay far below it), in N·m.
 STRENGTH = (120e6, 110e6)
+# Her test-only weak hull (SH33, --weak): her strength divided by this, and the places
+# along her she can break — (name, x, the share of that strength the spot keeps) — the
+# aft one an expansion joint over the cabins, the midships one the engine room's casing.
+# Est.: chosen so some match hits break her in two and a few in three (the census, the
+# pinned seeds breaks_in_two and breaks_in_three); her flooding loads peak near amidships
+# at about a fifth of her real strength.
+WEAK_DIVISOR = 8.0
+WEAK_SPOTS = [("aft_joint", -8.0, 0.2), ("midships_joint", 2.0, 0.3)]
 # Where along her and up her shell an iceberg's gash can be at all (est.): clear of her
 # stem and her counter, from 0.2 m under the main deck down to 0.2 m over her keel.
 HIT_ZONE_X = (-19.5, 19.5)
@@ -1252,14 +1266,23 @@ fitting_ids.append(sub("Fitting_" + GENERATOR["name"], "16_fitting", [
 for name, cell, rate in PUMPS:
     fitting_ids.append(sub("Fitting_" + name, "16_fitting", [
         ("kind", "3"), ("name", '&"%s"' % name), ("cell", '&"%s"' % cell), ("rate", num(rate))]))
+def strength_fields():
+    """Her strength's fields: as she is, or her weak hull's (--weak)."""
+    if not weak:
+        return [("hog", num(STRENGTH[0])), ("sag", num(STRENGTH[1]))]
+    spots = [sub("Weak_" + name, "18_weak", [("name", '&"%s"' % name), ("x", num(x)),
+                                           ("share", num(share))])
+             for name, x, share in WEAK_SPOTS]
+    return [("hog", num(STRENGTH[0] / WEAK_DIVISOR)), ("sag", num(STRENGTH[1] / WEAK_DIVISOR)),
+            ("weak", arr("18_weak", spots))]
+
 sub("Structure", "9_structure", [
     ("waterline_y", num(WATERLINE)), ("keel_y", num(KEEL)),
     ("sections", arr("10_section", section_ids)), ("cells", arr("11_cell", cell_ids)),
     ("walls", arr("12_wall", wall_ids)), ("openings", arr("13_opening", opening_ids)),
     ("mass", arr("14_mass", mass_ids))] + [(k, num(v)) for k, v in MOTION] + [
     ("fittings", arr("16_fitting", fitting_ids)),
-    ("strength", 'SubResource("%s")' % sub("Strength", "17_strength", [
-        ("hog", num(STRENGTH[0])), ("sag", num(STRENGTH[1]))])),
+    ("strength", 'SubResource("%s")' % sub("Strength", "17_strength", strength_fields())),
     ("hit_zone_x", "Vector2(%s, %s)" % (num(HIT_ZONE_X[0]), num(HIT_ZONE_X[1]))),
     ("hit_zone_y", "Vector2(%s, %s)" % (num(HIT_ZONE_Y[0]), num(HIT_ZONE_Y[1]))),
     ("sure_hit", 'SubResource("%s")' % sub("Sure_hit", "15_hit", [(k, num(v)) for k, v in SURE_HIT]))])
@@ -1284,6 +1307,8 @@ head = """[gd_resource type="Resource" script_class="ShipLayout" format=3]
 [ext_resource type="Script" path="res://core/sinking/ship_fitting.gd" id="16_fitting"]
 [ext_resource type="Script" path="res://core/sinking/girder_strength.gd" id="17_strength"]
 """
+if weak:
+    head += '[ext_resource type="Script" path="res://core/sinking/weak_spot.gd" id="18_weak"]\n'
 res = ["[resource]", 'script = ExtResource("5_layout")', "freeboard = " + num(FREEBOARD),
        "deck_thickness = " + num(2 * T),
        "platforms = " + arr("1_plat", platforms),

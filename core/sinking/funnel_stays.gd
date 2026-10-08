@@ -3,10 +3,10 @@ extends RefCounted
 ## Her funnels' stays (§5b.1, "Things that give way"; step 10 of the physics): a funnel
 ## stands while she lists and trims within what its stays hold and the sea is under its
 ## foot, and falls once she passes either limit or the sea reaches its foot as she goes
-## down — from SH33 also once a hinge forms beside it — for good, toward her low side:
-## along the world's down, as it stands in her deck's plane then (toward). It creaks once
-## she stands creak_share of the way to a limit (strained), est. Her list and trim are
-## read off her rotation as sines, a limit in degrees through the series sine (R21).
+## down, for good, toward her low side: along the world's down, as it stands in her
+## deck's plane then (toward). It creaks once she stands creak_share of the way to a
+## limit (strained), est. Her list and trim are read off her rotation as sines, a limit
+## in degrees through the series sine (R21).
 ## Only +, −, ×, ÷ and square roots on 64-bit floats run here (D4).
 
 var _funnels: Array[ShipFitting] = []
