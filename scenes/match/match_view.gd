@@ -48,8 +48,9 @@ var _smoother := CorrectionSmoother.new(0.0)
 ## sinking.
 var _inner: InnerWater
 ## Once she breaks (SH33), every piece of her drawn: the first by the ship's own node, art
-## and water, kept to its stretch; the rest beside it.
+## and water, kept to its stretch — her aftmost piece, _aft; the rest beside it.
 var _broken := false
+var _aft := 0
 var _drawn_pieces: ShipPieces
 
 @onready var _ship: Node3D = $Ship
@@ -76,6 +77,7 @@ func setup(driver: SimDriver, sim: MatchSim, local_seat: int, correction_time: f
 	var rules := sim.config.rules
 	var leaves := ShipPieces.leaves_of(_schedule)
 	_broken = not leaves.is_empty()
+	_aft = leaves[0] if _broken else 0
 	var falls: Array[StringName] = []
 	for scheduled: SinkSchedule.Scheduled in _schedule.scheduled():
 		if scheduled.event.kind == SinkEvent.Kind.COLLAPSE:
@@ -229,7 +231,9 @@ func _process(delta: float) -> void:
 	var alpha := _driver.alpha
 	var pose_then := _schedule.pose_at(previous["tick"])
 	var pose_now := _schedule.pose_at(current["tick"])
-	_ship.transform = pose_then.transform.interpolate_with(pose_now.transform, alpha)
+	_ship.transform = pose_then.of_piece(_aft).transform.interpolate_with(
+		pose_now.of_piece(_aft).transform, alpha
+	)
 	if _inner != null and not _broken:
 		_inner.show_water(pose_then, pose_now, alpha)
 	_show_sinking(

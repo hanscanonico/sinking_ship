@@ -186,8 +186,9 @@ static func physics_clock(seconds: float) -> String:
 ## Where [param sim]'s sinking stood when the match ended or stopped — how long the
 ## physics had run, and through the scenario's clock what share of the whole sinking
 ## the match saw (R33), how far the sea had risen up her and the water over each wet
-## cell's lowest corner, level with the world — and how its bake ends, past what the
-## match played, with the labels read off it (OutcomeClassifier).
+## cell's lowest corner, level with the world, as the piece holding it has them — and
+## how its bake ends, past what the match played, with the labels read off it
+## (OutcomeClassifier).
 func _sinking(sim: MatchSim) -> void:
 	var timeline := sim.schedule.timeline()
 	if timeline == null:
@@ -218,8 +219,11 @@ func _sinking(sim: MatchSim) -> void:
 		]
 	)
 	var structure := sim.config.ship.structure
-	for index in structure.cells.size():
-		var cell := structure.cells[index]
+	for named: FloodCell in structure.cells:
+		var leaf := _leaf_of(sim.schedule, named.name)
+		var own := pose.of_piece(leaf)
+		var index := sim.schedule.structure_of(leaf).cell_named(named.name)
+		var cell := sim.schedule.structure_of(leaf).cells[index]
 		var lowest := INF
 		var highest := -INF
 		for corner in 8:
@@ -228,9 +232,9 @@ func _sinking(sim: MatchSim) -> void:
 				cell.high.y if corner & 2 else cell.low.y,
 				cell.high.z if corner & 4 else cell.low.z
 			)
-			lowest = minf(lowest, pose.world_height(point))
-			highest = maxf(highest, pose.world_height(point))
-		var level := pose.levels[index]
+			lowest = minf(lowest, own.world_height(point))
+			highest = maxf(highest, own.world_height(point))
+		var level := own.levels[index]
 		if level >= highest:
 			line += " · %s full" % cell.name
 		elif level - lowest >= SinkTimeline.FIRST_WATER:
@@ -254,6 +258,18 @@ func _sinking(sim: MatchSim) -> void:
 		)
 	)
 	_lines.append(bending(timeline))
+
+
+## The first piece of [param schedule]'s sinking she ends in, aft to fore, that holds
+## her cell [param cell] — the whole ship, while she does not break: the piece whose pose
+## has the cell's water and where it stands.
+static func _leaf_of(schedule: SinkSchedule, cell: StringName) -> int:
+	if schedule.piece_count() == 1:
+		return 0
+	for leaf: int in schedule.timeline().pieces_at(INF):
+		if schedule.structure_of(leaf).cell_named(cell) != -1:
+			return leaf
+	return 0
 
 
 ## How far [param timeline]'s bending came toward her strength at its worst, where along

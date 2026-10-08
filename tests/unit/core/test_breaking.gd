@@ -249,6 +249,95 @@ func test_three_pieces_at_most() -> void:
 	assert_true(OutcomeClassifier.labels(timeline).has(OutcomeClassifier.Outcome.BROKE_IN_THREE))
 
 
+func test_a_hinge_that_would_make_one_piece_too_many_holds() -> void:
+	# Three weak spots, the barge hinged at the middle one long enough ago and overloaded
+	# past what it keeps: while one more piece is allowed it parts there; with her already
+	# in most_pieces — two pieces hinging at once, the first parted — it holds, and no
+	# threshold of its hinge is left for the bake to land on; nor does it part where a piece
+	# would come out shorter than shortest_piece.
+	var spots := [[&"a", -10.0, 1.0], [&"b", 0.0, 1.0], [&"c", 10.0, 1.0]]
+	var structure := _barge(spots, 1.0)
+	var sea := _sea(true)
+	var stepper := SinkStepper.new(structure, HitDamage.new(), sea)
+	var state := stepper.start()
+	var bow := structure.cell_named(&"bow")
+	state.water[bow] = 300.0
+	state.heads[bow] = stepper.head(bow, 300.0)
+	var piece := BakePiece.new(stepper, sea, state, 0)
+	piece.hinge = 1
+	piece.hinged_at = state.seconds - sea.hinge_seconds - 1.0
+	var breaking := HullBreak.of(structure, HitDamage.new(), sea)
+	var span := PieceStructure.span_of(structure)
+	var hinge := breaking.count() - 2
+	assert_lt(breaking.gaps(piece, span, state, 2)[hinge + 1], 0.0, "overloaded past its hold")
+	assert_eq(breaking.follow(piece, span, 2), 1, "one more piece allowed: it parts")
+	var full := breaking.gaps(piece, span, state, sea.most_pieces)
+	assert_eq(breaking.follow(piece, span, sea.most_pieces), -1, "one too many: it holds")
+	assert_eq(full[hinge], INF, "no time left to land on")
+	assert_eq(full[hinge + 1], INF, "nor a hold")
+	var short := Vector2(-sea.shortest_piece * LENGTH * 0.5, span.y)
+	breaking.gaps(piece, short, state, 2)
+	assert_eq(breaking.follow(piece, short, 2), -1, "too short a piece aft of it: it holds")
+
+
+func test_her_pieces_run_aft_to_fore_however_she_broke() -> void:
+	# Parted midships first, then her aft piece at its own weak spot: her leaves in the
+	# order the bake made them are the bow, then the two aft; aft to fore, the stern first —
+	# the piece the whole ship's pose follows, and the one her labels are read off.
+	var timeline := SinkTimeline.opened(
+		_header(
+			PackedInt32Array([-1, 0, 0, 1, 1]),
+			PackedFloat64Array([-21.0, 2.0, 2.0, 30.0, -21.0, -8.0, -8.0, 2.0])
+		)
+	)
+	assert_not_null(timeline, "a header the bytes read")
+	assert_eq(timeline.leaves, PackedInt32Array([2, 3, 4]), "the bake's order: the bow first")
+	assert_eq(timeline.pieces_at(INF), PackedInt32Array([3, 4, 2]), "aft to fore")
+	assert_eq(timeline.leaves[timeline.leaf_of(0)], 3, "the whole ship's numbers her stern's")
+	var level := Attitude.level()
+	timeline.rotations = Attitude.pitched(level, deg_to_rad(-20.0))
+	timeline.rotations.append_array(level)
+	timeline.rotations.append_array(level)
+	var leans := OutcomeClassifier.leans_at(timeline, 0)
+	assert_almost_eq(leans[0], 0.0, 1e-9, "her stern's trim, not her bow's")
+
+
+func test_a_header_refuses_pieces_not_in_pairs() -> void:
+	# Past the whole ship her pieces come two to a break, each pair after the piece it
+	# broke, none broken twice: a header saying otherwise is no timeline.
+	var two := PackedFloat64Array([-20.0, 0.0, 0.0, 20.0])
+	var four := PackedFloat64Array([-20.0, 0.0, 0.0, 20.0, -20.0, -10.0, -10.0, 0.0])
+	assert_not_null(SinkTimeline.opened(_header(PackedInt32Array([-1, 0, 0]), two)))
+	assert_not_null(SinkTimeline.opened(_header(PackedInt32Array([-1, 0, 0, 1, 1]), four)))
+	var half := PackedFloat64Array([-20.0, 0.0])
+	assert_null(SinkTimeline.opened(_header(PackedInt32Array([-1, 0]), half)), "one alone")
+	var three := PackedFloat64Array([-20.0, 0.0, -20.0, -10.0])
+	three.append_array(PackedFloat64Array([-10.0, 0.0]))
+	assert_null(
+		SinkTimeline.opened(_header(PackedInt32Array([-1, 0, 0, 1]), three)), "an odd one out"
+	)
+	assert_null(SinkTimeline.opened(_header(PackedInt32Array([-1, 0, 1]), two)), "no sibling")
+	assert_null(
+		SinkTimeline.opened(_header(PackedInt32Array([-1, 0, 0, 0, 0]), four)), "broken twice"
+	)
+
+
+## The header (SinkTimeline.sections) of a timeline whose pieces broke from
+## [param parents], running as [param spans] says past the whole ship, a cell per leaf.
+func _header(parents: PackedInt32Array, spans: PackedFloat64Array) -> PackedByteArray:
+	var timeline := SinkTimeline.new()
+	timeline.parents = parents
+	timeline.spans = spans
+	timeline.born = PackedFloat64Array()
+	timeline.leaf_cells = PackedInt32Array()
+	for piece in parents.size():
+		timeline.born.append(10.0 * piece)
+		if not piece in parents:
+			timeline.leaf_cells.append(1)
+	timeline.cells = timeline.leaf_cells.size()
+	return timeline.sections()[0]
+
+
 func test_body_belongs_to_the_piece_under_it() -> void:
 	# The weak hull's match, jumped to just before she parts: once she has, every body is on
 	# the piece under it, its points in that piece's space; one in the air past its piece's

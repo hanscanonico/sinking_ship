@@ -89,7 +89,7 @@ static func labels(timeline: SinkTimeline) -> Array[Outcome]:
 			found[Outcome.FAST] = true
 	elif timeline.end == SinkTimeline.End.AGROUND:
 		found[Outcome.AGROUND] = true
-	elif timeline.rotation_of(timeline.count() - 1)[4] < 0.0:
+	elif timeline.rotation_of(timeline.count() - 1, timeline.leaf_of(0))[4] < 0.0:
 		found[Outcome.AFLOAT_UPSIDE_DOWN] = true
 	else:
 		found[Outcome.AFLOAT] = true
@@ -155,9 +155,10 @@ static func told(labels_of: Array[Outcome]) -> String:
 	return " · ".join(words)
 
 
-## Her trim and heel at kept state [param frame], in degrees (SinkSchedule.leans_of).
+## Her trim and heel at kept state [param frame], in degrees (SinkSchedule.leans_of): her
+## aftmost piece's once she has broken (SinkTimeline.leaf_of).
 static func leans_at(timeline: SinkTimeline, frame: int) -> PackedFloat64Array:
-	var r := timeline.rotation_of(frame)
+	var r := timeline.rotation_of(frame, timeline.leaf_of(0))
 	var turn := Basis(
 		Vector3(r[0], r[3], r[6]), Vector3(r[1], r[4], r[7]), Vector3(r[2], r[5], r[8])
 	)

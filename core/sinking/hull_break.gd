@@ -68,8 +68,8 @@ func count() -> int:
 ## [param pieces] pieces, stands from each threshold of the break — per weak spot, its
 ## bending reaching the spot's strength, while no hinge is forming and the spot may part;
 ## then the hinge's time running out, in seconds; then, once it has, the bending reaching
-## what the hinge keeps — under 0 past it, INF for none to come. It measures [param at]'s
-## bending into it.
+## what the hinge keeps — under 0 past it, INF for none to come, nor for a hinge that may
+## not part. It measures [param at]'s bending into it.
 func gaps(piece: BakePiece, span: Vector2, at: FloodState, pieces: int) -> PackedFloat64Array:
 	var girder := piece.stepper.failures().girder()
 	girder.measure(at)
@@ -79,7 +79,7 @@ func gaps(piece: BakePiece, span: Vector2, at: FloodState, pieces: int) -> Packe
 			found.append(1.0 - absf(girder.share_at(_spots[spot].x, _spots[spot].share)))
 		else:
 			found.append(INF)
-	if piece.hinge == -1:
+	if piece.hinge == -1 or not _parts(span, piece.hinge, pieces):
 		found.append_array([INF, INF])
 		return found
 	var left := _sea.hinge_seconds - (at.seconds - piece.hinged_at)
@@ -91,7 +91,8 @@ func gaps(piece: BakePiece, span: Vector2, at: FloodState, pieces: int) -> Packe
 ## Follows [param piece], spanning [param span] while she is in [param pieces] pieces, to
 ## its state now — its bending measured there (SinkFailures.measure): starts a hinge at
 ## the weak spot first overloaded, the event added to the piece; or, its hinge run and
-## still overloaded, gives the weak spot it parts at. -1 while it holds.
+## still overloaded, gives the weak spot it parts at — while it may part there still
+## (_parts): a hinge that would make one piece too many holds. -1 while it holds.
 func follow(piece: BakePiece, span: Vector2, pieces: int) -> int:
 	var at := piece.state
 	var girder := piece.stepper.failures().girder()
@@ -111,6 +112,8 @@ func follow(piece: BakePiece, span: Vector2, pieces: int) -> int:
 			)
 			hinging.lasts = _sea.hinge_seconds
 			piece.add(hinging)
+		return -1
+	if not _parts(span, piece.hinge, pieces):
 		return -1
 	if _sea.hinge_seconds - (at.seconds - piece.hinged_at) > REACHED:
 		return -1

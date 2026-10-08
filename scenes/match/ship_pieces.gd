@@ -28,12 +28,13 @@ var _cuts := PackedVector2Array()
 var _cut_leaf := PackedInt32Array()
 
 
-## The pieces of [param schedule]'s sinking she ends in, aft to fore; none for a hull that
-## never breaks.
+## The pieces of [param schedule]'s sinking she ends in, aft to fore — however she broke
+## into them (SinkTimeline.pieces_at) — the first the one the ship's own node rides; none
+## for a hull that never breaks.
 static func leaves_of(schedule: SinkSchedule) -> PackedInt32Array:
 	if schedule.piece_count() == 1:
 		return PackedInt32Array()
-	return schedule.timeline().leaves
+	return schedule.timeline().pieces_at(INF)
 
 
 ## Draws every piece of [param sim]'s ship past the first, which [param ship] — its node

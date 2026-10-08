@@ -232,7 +232,8 @@ static func from_bytes(bytes: PackedByteArray) -> SinkTimeline:
 
 
 ## A timeline from its [param header] alone (sections()[0]), its pages to come
-## (add_page); null when it is not one.
+## (add_page); null when it is not one — among its pieces past the whole ship, each break's
+## two after the piece it broke, and no piece broken twice.
 static func opened(header: PackedByteArray) -> SinkTimeline:
 	var reader := Reader.new(_unpacked(header))
 	var timeline := SinkTimeline.new()
@@ -260,6 +261,12 @@ static func opened(header: PackedByteArray) -> SinkTimeline:
 			return null
 		timeline.parents.append(parent)
 		timeline.born.append(_seconds_of(reader.integer()))
+	for piece in range(1, pieces, 2):
+		var parent := timeline.parents[piece]
+		if piece + 1 >= pieces or timeline.parents[piece + 1] != parent:
+			return null
+		if timeline.parents.count(parent) != 2:
+			return null
 	timeline.leaves = timeline._leaves()
 	var leaf_total := 0
 	for _leaf in timeline.leaves.size():
