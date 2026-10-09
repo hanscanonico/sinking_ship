@@ -6,7 +6,7 @@ extends SceneTree
 ## (tests/fixtures/titanic_scale.gd), or on SHIP of the Fleet in her open-sea sinking.
 ## The match is played once through MatchRunner and its input log replayed through bare
 ## MatchSims, ROUNDS times with the spatial index and as many without it — IndexRules'
-## cells INF, one cell each, every query a scan — taking turns:
+## cells and bands INF, one cell each, every query a scan — taking turns:
 ##
 ##   godot --headless --path . -s res://tools/bench_sim.gd -- --seats=64
 ##
@@ -71,13 +71,15 @@ func _initialize() -> void:
 	runner.run(Ticks.from_seconds(args["seconds"]))
 	var played := runner.input_log
 	var index := IndexRules.load_default()
-	var cells := [index.surface_cell, index.body_cell]
+	var cells := [index.surface_cell, index.body_cell, index.surface_band, index.scan_over]
 	var step_us: Array[PackedInt64Array] = [PackedInt64Array(), PackedInt64Array()]
 	var digests := PackedStringArray(["", ""])
 	for turn in ROUNDS * 2:
 		var indexed := turn % 2 == 0
 		index.surface_cell = cells[0] if indexed else INF
 		index.body_cell = cells[1] if indexed else INF
+		index.surface_band = cells[2] if indexed else INF
+		index.scan_over = cells[3] if indexed else INF
 		var sim := MatchSim.create(config)
 		var digest := SnapshotDigest.new()
 		digest.add(sim.snapshot())
@@ -92,6 +94,8 @@ func _initialize() -> void:
 		digests[turn % 2] = digest.hex()
 	index.surface_cell = cells[0]
 	index.body_cell = cells[1]
+	index.surface_band = cells[2]
+	index.scan_over = cells[3]
 	var layout := config.ship
 	var lines := PackedStringArray()
 	(
@@ -110,7 +114,8 @@ func _initialize() -> void:
 			)
 		)
 	)
-	lines.append(_stats("step, index on  (cells %s m, %s m)" % cells, step_us[0]))
+	var on := "step, index on  (cells %s m, %s m, bands %s m, scan over %s cells)" % cells
+	lines.append(_stats(on, step_us[0]))
 	lines.append(_stats("step, index off (one cell)", step_us[1]))
 	lines.append("load: %s" % _uptime())
 	var same := digests[0] == digests[1] and digests[0] == runner.digest.hex()
