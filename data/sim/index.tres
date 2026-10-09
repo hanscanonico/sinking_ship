@@ -1,0 +1,8 @@
+[gd_resource type="Resource" script_class="IndexRules" format=3]
+
+[ext_resource type="Script" path="res://core/index_rules.gd" id="1_index"]
+
+[resource]
+script = ExtResource("1_index")
+surface_cell = 1.0
+body_cell = 2.0

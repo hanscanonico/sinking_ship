@@ -196,6 +196,18 @@ sim-bench:
 	@set -o pipefail; $(GODOT) --headless --no-header --path . -s res://tools/sim_bench.gd \
 		-- $(match-args) | grep -v '^\[godot_ai'
 
+# `make bench [SEATS=64] [SHIP=] [SECONDS=60] [SEED=1]`: MatchSim.step timed with many bodies
+# on a huge hull (SH18, R7) — seats played by seeded wanderers, no bots, on the
+# Titanic-scale fixture or on SHIP — with the spatial index and without it, taking turns:
+# p50 and p99 per step each way, the load average, and both ways' digests, which must
+# match. Rules live in tools/bench_sim.gd.
+bench:
+	$(call require-godot)
+	@set -o pipefail; $(GODOT) --headless --no-header --path . -s res://tools/bench_sim.gd \
+		-- $(if $(SEED),--seed=$(SEED)) $(if $(SEATS),--seats=$(SEATS)) \
+		$(if $(SHIP),--ship=$(SHIP)) $(if $(SECONDS),--seconds=$(SECONDS)) \
+		| grep -v '^\[godot_ai'
+
 # `make fps [SEED=4] [SEATS=8] [SECONDS=40] [RES=1440x900] [ARGS=]`: a bots-only match in
 # a window, V-Sync off and always on top, a bot at the local seat's eyes (ARGS=--observer
 # for the observer camera; ARGS=--quality=high or --render-scale=1 to try a setting), its
@@ -371,7 +383,7 @@ format-check:
 # whole suite.
 .NOTPARALLEL:
 
-.PHONY: import run match capture net-bench sim-bench serve-local online-e2e export-server \
+.PHONY: import run match capture net-bench sim-bench bench serve-local online-e2e export-server \
 	export-web export-mac export-server-mac serve-web-local serve-web-local-stop fps arena \
 	hits bake census art-lint test verify check ship ship-check bake-ship bake-check ship-scene \
 	lint format format-check

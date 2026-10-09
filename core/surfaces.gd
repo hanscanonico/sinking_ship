@@ -14,14 +14,10 @@ extends RefCounted
 ## comes in the same way (SH10): the railings it has broken are gone like failed
 ## ones, and its crates stand where it says — each an upright circle that holds a
 ## body back as a round blocker does, and whose lid, surface count() + its index, is
-## stood on and landed on like a blocker's top.
+## stood on and landed on like a blocker's top. Every query looks only at the surfaces
+## whose areas reach the cells of its grid (SpatialIndex, SH18) that it touches.
 
 const NONE := -1
-## The side of a cell of the spatial index, in metres. Rooms made the steamer's
-## surfaces six times as many as SH3's, so every query looks only at the surfaces
-## whose areas reach the cells it touches — the first of SH18's index, behind this
-## same door.
-const CELL := 1.0
 ## How far under a step's reach a body slammed up a ramp is held, so that its feet
 ## still find the ramp within a step.
 const CLIMB_MARGIN := 0.001
@@ -77,15 +73,10 @@ var _first_top: int
 var _first_lid: int
 ## Per ladder, the unit normal pointing onto its platform.
 var _ladder_normals := PackedVector2Array()
-## The index: the ship plane cut into CELL squares from [member _grid_origin], each
-## listing, in ascending number, the surfaces whose areas reach into it — so a query
-## meets its candidates in the order the full list would.
-var _grid_origin := Vector2.ZERO
-var _grid_size := Vector2i.ONE
-var _cells: Array[PackedInt32Array] = []
-## The surfaces of each block of cells a query has touched, by its corner cells: the
-## index never changes, so a block is gathered once.
-var _blocks: Dictionary[Vector4i, PackedInt32Array] = {}
+## The grid of the surfaces, by number, over the layout's bounds; and of the railings,
+## by index.
+var _grid: SpatialIndex
+var _rail_grid: SpatialIndex
 ## Per surface, 1 while it is gone: a collapsed platform, and the tops of the blockers
 ## standing flush under it — the roof's edge goes with the roof; and, after them, per
 ## crate, 1 while honour() has not been told where it stands, or it is lost.
@@ -120,7 +111,8 @@ var _doors: DoorLeaves
 var _fallen: FallenFunnels
 
 
-func _init(layout: ShipLayout) -> void:
+## [param layout]'s surfaces, on a grid of [param grid]'s cells — the data's when none.
+func _init(layout: ShipLayout, grid: IndexRules = null) -> void:
 	_platforms = layout.platforms.duplicate()
 	_ramps = layout.ramps.duplicate()
 	_blockers = layout.blockers.duplicate()
@@ -140,7 +132,14 @@ func _init(layout: ShipLayout) -> void:
 	_first_ramp = _platforms.size()
 	_first_top = _first_ramp + _ramps.size()
 	_first_lid = count()
-	_index()
+	var cell := (grid if grid != null else IndexRules.load_default()).surface_cell
+	_grid = SpatialIndex.new(SpatialIndex.bounds_of(layout), cell)
+	_rail_grid = SpatialIndex.new(SpatialIndex.bounds_of(layout), cell)
+	for surface in count():
+		_grid.insert(surface, _area(surface))
+	for index in _railings.size():
+		var span := _railings[index]
+		_rail_grid.insert(index, Rect2(span.from, Vector2.ZERO).expand(span.to))
 	_gone.resize(_first_lid + _prop_radii.size())
 	_prop_feet.resize(_prop_radii.size())
 	_rail_gone.resize(_railings.size())
@@ -272,27 +271,25 @@ func under(ship_point: Vector3, step: float, except_prop: int = NONE) -> int:
 	# _contains and height_at written out for a level rectangle, and the crates' lids
 	# after the cell's surfaces as _with_lids has them: the bots ask this at every step
 	# they probe. Feet level with a floor clear of the rest of its cell stand on it.
-	var near := PackedInt32Array()
-	var cell := _cell_index(ship_point)
-	if cell != NONE:
-		near = _cells[cell]
-		var floors := _floors[cell]
-		for index in floors.size():
-			var floor_surface := floors[index]
-			var area := _areas[floor_surface]
-			if (
-				_tops[floor_surface] == ship_point.y
-				and step < _floor_clearances[cell][index]
-				and _gone[floor_surface] == 0
-				and x >= area.position.x
-				and x <= area.end.x
-				and z >= area.position.y
-				and z <= area.end.y
-			):
-				best = floor_surface
-				best_height = ship_point.y
-				near = PackedInt32Array()
-				break
+	var cell := _grid.cell_at(Vector2(x, z))
+	var near := _grid.in_cell(cell)
+	var floors := _floors[cell]
+	for index in floors.size():
+		var floor_surface := floors[index]
+		var area := _areas[floor_surface]
+		if (
+			_tops[floor_surface] == ship_point.y
+			and step < _floor_clearances[cell][index]
+			and _gone[floor_surface] == 0
+			and x >= area.position.x
+			and x <= area.end.x
+			and z >= area.position.y
+			and z <= area.end.y
+		):
+			best = floor_surface
+			best_height = ship_point.y
+			near = PackedInt32Array()
+			break
 	for surface: int in near:
 		if _gone[surface] == 1:
 			continue
@@ -399,7 +396,7 @@ func obstacle_contacts(
 	# and its head is at the second.
 	var reach_up := feet + step
 	var head := feet + body_height
-	var near := _near(Rect2(point - Vector2(radius, radius), Vector2(radius, radius) * 2.0))
+	var near := _grid.near(Rect2(point - Vector2(radius, radius), Vector2(radius, radius) * 2.0))
 	for surface: int in near:
 		if surface < _first_top:
 			continue
@@ -513,7 +510,8 @@ func airborne_rail_contacts(
 ) -> Array[Contact]:
 	var contacts: Array[Contact] = []
 	var point := Vector2(ship_point.x, ship_point.z)
-	for index in _railings.size():
+	var box := Rect2(point - Vector2(radius, radius), Vector2(radius, radius) * 2.0)
+	for index: int in _rail_grid.near(box):
 		if _rail_gone[index] == 1:
 			continue
 		var railing := _railings[index]
@@ -557,7 +555,7 @@ func blocked(from_point: Vector3, to_point: Vector3, body_height: float, step: f
 	var head := maxf(from_point.y, to_point.y) + body_height
 	if _doors.crossed(start, end, feet, head) or _fallen.crossed(start, end, feet, head):
 		return true
-	for surface: int in _near(Rect2(start, Vector2.ZERO).expand(end)):
+	for surface: int in _grid.near(Rect2(start, Vector2.ZERO).expand(end)):
 		if not _is_blocker_top(surface):
 			continue
 		var blocker := _blocker_of(surface)
@@ -623,7 +621,7 @@ func line_of_sight(from_point: Vector3, to_point: Vector3, pose: ShipPose) -> bo
 	if _doors.crossed(start, end, low, high) or _fallen.crossed(start, end, low, high):
 		return false
 	var reach := Rect2(start, Vector2.ZERO).expand(end)
-	for surface in count():
+	for surface: int in _grid.near(reach):
 		if _tops[surface] <= low or _bottoms[surface] >= high:
 			continue
 		var area := _areas[surface]
@@ -792,7 +790,7 @@ func nearest_climb(feet: Vector3, pose: ShipPose, rules: BrawlRules, within: flo
 			towards.append(_ladder_normals[index])
 	var box := Rect2(point - Vector2(within, within), Vector2(within, within) * 2.0)
 	var water := pose.water_height(feet)
-	for surface: int in _near(box):
+	for surface: int in _grid.near(box):
 		if _gone[surface] == 1 or _is_round_top(surface):
 			continue
 		var at := _waterline_point(surface, point, water)
@@ -907,32 +905,12 @@ func _rail_contact(index: int, point: Vector2, radius: float) -> Contact:
 	return Contact.new(_rail_normals[index], radius - inside, index)
 
 
-## Builds the index over every surface's area — a cylinder's by its square.
-func _index() -> void:
-	if count() == 0:
-		return
-	var bounds := _area(0)
-	for surface in count():
-		bounds = bounds.merge(_area(surface))
-	_grid_origin = bounds.position
-	_grid_size = Vector2i(floori(bounds.size.x / CELL) + 1, floori(bounds.size.y / CELL) + 1)
-	_cells.resize(_grid_size.x * _grid_size.y)
-	for cell in _cells.size():
-		_cells[cell] = PackedInt32Array()
-	for surface in count():
-		var area := _area(surface)
-		var low := _cell_of(area.position)
-		var high := _cell_of(area.end)
-		for row in range(low.y, high.y + 1):
-			for column in range(low.x, high.x + 1):
-				_cells[row * _grid_size.x + column].append(surface)
-
-
 ## Each cell's platforms and their clearances, into _floors and _floor_clearances: the
 ## distance from a platform's height to the heights every other surface of the cell
 ## stands at — a ramp anywhere between its ends — less CLEARANCE_SLACK.
 func _index_floors() -> void:
-	for near: PackedInt32Array in _cells:
+	for cell in _grid.cell_count():
+		var near := _grid.in_cell(cell)
 		var floors := PackedInt32Array()
 		var clearances := PackedFloat64Array()
 		for surface: int in near:
@@ -951,54 +929,9 @@ func _index_floors() -> void:
 		_floor_clearances.append(clearances)
 
 
-## The cell holding [param point] (x/z), the nearest one for a point off the grid.
-func _cell_of(point: Vector2) -> Vector2i:
-	var at := (point - _grid_origin) / CELL
-	return Vector2i(
-		clampi(floori(at.x), 0, _grid_size.x - 1), clampi(floori(at.y), 0, _grid_size.y - 1)
-	)
-
-
-## The surfaces whose areas reach the cells [param box] (x/z) touches, in ascending
-## number, each once: every surface whose area meets the box is among them.
-func _near(box: Rect2) -> PackedInt32Array:
-	if _cells.is_empty():
-		return PackedInt32Array()
-	var low := _cell_of(box.position)
-	var high := _cell_of(box.end)
-	if low == high:
-		return _cells[low.y * _grid_size.x + low.x]
-	var block := Vector4i(low.x, low.y, high.x, high.y)
-	if block in _blocks:
-		return _blocks[block]
-	var gathered := PackedInt32Array()
-	for row in range(low.y, high.y + 1):
-		for column in range(low.x, high.x + 1):
-			gathered.append_array(_cells[row * _grid_size.x + column])
-	gathered.sort()
-	var found := PackedInt32Array()
-	for surface: int in gathered:
-		if found.is_empty() or found[found.size() - 1] != surface:
-			found.append(surface)
-	_blocks[block] = found
-	return found
-
-
-## The surfaces whose areas reach the cell under [param ship_point]'s x/z, as _near
-## answers a box that is that one point.
+## The surfaces whose areas reach the cell under [param ship_point]'s x/z.
 func _at(ship_point: Vector3) -> PackedInt32Array:
-	var cell := _cell_index(ship_point)
-	return PackedInt32Array() if cell == NONE else _cells[cell]
-
-
-## The index in _cells of the cell under [param ship_point]'s x/z, as _cell_of finds it;
-## NONE with no cells.
-func _cell_index(ship_point: Vector3) -> int:
-	if _cells.is_empty():
-		return NONE
-	var at := (Vector2(ship_point.x, ship_point.z) - _grid_origin) / CELL
-	var column := clampi(floori(at.x), 0, _grid_size.x - 1)
-	return clampi(floori(at.y), 0, _grid_size.y - 1) * _grid_size.x + column
+	return _grid.in_cell(_grid.cell_at(Vector2(ship_point.x, ship_point.z)))
 
 
 ## [param near] and after it, in number order, the lid of every crate standing over

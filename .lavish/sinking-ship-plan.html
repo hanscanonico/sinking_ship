@@ -174,7 +174,7 @@
 
     <!-- ============================== HERO ============================== -->
     <header class="sk-hero px-6 py-10 md:px-12">
-      <p class="sk-kicker opacity-80">Sinking Ship · design of record · rev 4 (for review) · MVP approved 2026-10-02 · first person and rooms 2026-10-03 · the sinking as physics 2026-10-05 · <b>shipped: SH1, SH2, SH3, SH8, SH14, SH9, SH4, SH3b, SH9b, SH15, SH4b, SH6, SH14b, SH5, SH7, SH10, SH11, SH12 (the mini PC gate is owed), SH24, SH25, SH26, SH27, SH28, SH29, SH30, SH31, SH32, SH33, SH17</b></p>
+      <p class="sk-kicker opacity-80">Sinking Ship · design of record · rev 4 (for review) · MVP approved 2026-10-02 · first person and rooms 2026-10-03 · the sinking as physics 2026-10-05 · <b>shipped: SH1, SH2, SH3, SH8, SH14, SH9, SH4, SH3b, SH9b, SH15, SH4b, SH6, SH14b, SH5, SH7, SH10, SH11, SH12 (the mini PC gate is owed), SH24, SH25, SH26, SH27, SH28, SH29, SH30, SH31, SH32, SH33, SH17, SH18</b></p>
       <h1 class="text-3xl md:text-4xl font-black mt-2">Sinking Ship — last one dry wins</h1>
       <p class="mt-3 max-w-3xl opacity-90">
         A battle royale on a ship that is going down. Eight brawlers on a small coastal steamer,
@@ -4519,7 +4519,7 @@ sequenceDiagram
         <!-- SH18 -->
         <div class="card bg-base-100 border p-4 sk-ms" id="sh18">
           <div class="flex flex-wrap items-baseline gap-2">
-            <h3 class="font-black">SH18 · Spatial index — bodies and surfaces at scale <span class="badge badge-outline badge-sm">size M</span> <span class="badge badge-ghost badge-sm align-middle">proposed</span> <span class="badge badge-sm align-middle" style="background:var(--sk-deep); color:white; border:0;">post-MVP</span></h3>
+            <h3 class="font-black">SH18 · Spatial index — bodies and surfaces at scale <span class="badge badge-outline badge-sm">size M</span> <span class="badge badge-success badge-sm align-middle">shipped · #53</span> <span class="badge badge-sm align-middle" style="background:var(--sk-deep); color:white; border:0;">post-MVP</span></h3>
           </div>
           <p class="text-sm mt-2 max-w-3xl"><strong>Ships:</strong> the sim stays inside its tick budget with many bodies on a huge hull, and no outcome changes.</p>
           <p class="text-xs mt-1 max-w-3xl opacity-80"><strong>Rev 4:</strong> needed before SH34; from SH33
@@ -4535,7 +4535,7 @@ sequenceDiagram
           <ul class="sk-gates text-sm">
             <li><code>make verify</code> green. <strong>Behaviour-neutral:</strong> on the steamer the golden digest and <code>make match</code> transcripts are byte-identical to before — the index changes speed, never outcomes.</li>
             <li><span class="sk-file">test_spatial_index.gd</span> — <code>test_queries_match_brute_force_on_random_layouts</code>, <code>test_iteration_order_is_deterministic</code>, <code>test_body_crossing_cells_is_found_from_both</code>.</li>
-            <li><code>make bench SEATS=64</code> on the fixture: sim step p99 ≤ 4 ms per tick on the dev MacBook Air, recorded in <span class="sk-file">docs/arena.md</span>; a miss is reported with R7's fallbacks, not tuned away.</li>
+            <li><code>make bench SEATS=64</code> on the fixture: sim step p99 ≤ 4 ms per tick on the dev MacBook Air, recorded in <span class="sk-file">docs/arena.md</span>; a miss is reported with R7's fallbacks, not tuned away. <em>2026-10-09:</em> MISSED and reported — on the 270 × 28 m fixture with 64 wandering seats the step is p50 3.96 ms / p99 9.41 ms at load 4–5 (a full scan: p99 146 ms); the steamer with 8 seats is p99 0.78 ms. The time is in obstacle contacts (about 140 calls a tick) because the grid is two-dimensional and every cell holds all nine decks' surfaces; R7's fallbacks are named in docs/arena.md and none applied — height bands for the surface grid are the direct route to 4 ms.</li>
           </ul>
           <h4>Not in this milestone</h4>
           <ul class="sk-crosses text-sm">
