@@ -467,7 +467,7 @@ func _section(node: Node) -> HullSection:
 		section.length = _snap(loft.depth)
 		var offset := Vector2(place.origin.z, place.origin.y)
 		for corner: Vector2 in loft.polygon:
-			section.outline.append(corner + offset)
+			section.outline.append(Vector2(_snap(offset.x + corner.x), _snap(offset.y + corner.y)))
 	return section
 
 

@@ -57,6 +57,22 @@ func test_a_piece_moved_a_millimetre_is_a_difference() -> void:
 	)
 
 
+func test_a_section_moved_with_its_outline_bakes_the_same() -> void:
+	var scene := _drawn(SimFixtures.steamer())
+	var shift := Vector2(0.37, 1.13)
+	for loft: CSGPolygon3D in scene.get_node("Structure/Sections").get_children():
+		var outline := loft.polygon
+		for index in outline.size():
+			outline[index] -= shift
+		loft.polygon = outline
+		loft.position += Vector3(0, shift.y, shift.x)
+	var baked := ShipSceneBake.new(scene)
+	assert_eq(baked.problems, PackedStringArray())
+	assert_eq(
+		ShipSceneBake.differences(baked.layout, SimFixtures.steamer(), "ship"), PackedStringArray()
+	)
+
+
 func test_a_number_changed_is_a_difference() -> void:
 	var scene := _drawn(SimFixtures.steamer())
 	scene.get_node("Structure/Cells/Cell_aft_peak").set_meta(&"kind", "STORES")
