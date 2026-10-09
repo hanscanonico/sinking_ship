@@ -96,7 +96,7 @@ The fixture is tests/fixtures/titanic_scale.gd: 270 × 28 m, nine decks 2.8 m ap
 | Steamer, 8 seats, 1,800 ticks | on | 0.52 ms | 0.78 ms | 0.53 ms | 1.01 ms |
 | Steamer, 8 seats, 1,800 ticks | off | 1.38 ms | 2.95 ms | 1.60 ms | 3.37 ms |
 
-Load average (1, 5, 15 min) at the fixture's start: 4,41 4,54 8,04; at its end: 5,36 4,48 6,50; at the steamer's end: 4,54 4,35 6,40 — other worktrees' tools were running beside it. A run an hour earlier, at much the same load, gave the fixture p50 3.39 ms and p99 7.46 ms with the index: the tail moves with the machine, and misses either way. Both ways' digests match each other and the match played, on both ships: the index changes how fast, never what (D4).
+Load average (1, 5, 15 min) at the fixture's start: 4,41 4,54 8,04; at its end: 5,36 4,48 6,50; at the steamer's end: 4,54 4,35 6,40 — other worktrees' tools were running beside it. A run an hour earlier, at much the same load, gave the fixture p50 3.39 ms and p99 7.46 ms with the index: the tail moves with the machine, and misses either way. The review's run at a quieter moment (load 2,89 3,74 5,53 at the start, 4,14 3,97 4,91 at the end) gave the fixture p50 3.84 ms, p99 4.63 ms, worst 8.49 ms with the index (without: p99 154.12 ms), and the steamer p50 0.50 ms, p99 0.74 ms — still a miss, by about a sixth rather than twice over. Both ways' digests match each other and the match played, on both ships: the index changes how fast, never what (D4).
 
 | Target | Measured | |
 |---|---|---|

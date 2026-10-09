@@ -247,3 +247,14 @@ func test_body_crossing_cells_is_found_from_both() -> void:
 		func(event: SimEvent) -> bool: return event.kind == SimEvent.Kind.SHOVE_LANDED
 	)
 	assert_eq(landed.size(), 1, "the shove lands across the line")
+	# A shove at nearly its full reach lands on a body whose square is wholly in the next
+	# cell: the candidates come from a box grown by the reach, not by a body alone.
+	var far := SimFixtures.sim(2)
+	SimFixtures.place(far, 0, Vector3(line - 0.6, 0.0, 0.0))
+	SimFixtures.place(far, 1, Vector3(line + 1.0, 0.0, 0.0))
+	var reached := SimFixtures.step(far, {0: SimFixtures.frame(0, Vector2.ZERO, InputFrame.SHOVE)})
+	reached.append_array(SimFixtures.step(far, {0: SimFixtures.frame(0)}, 12))
+	var far_landed := reached.filter(
+		func(event: SimEvent) -> bool: return event.kind == SimEvent.Kind.SHOVE_LANDED
+	)
+	assert_eq(far_landed.size(), 1, "a shove 0.8 m past both edges lands in the next cell")
