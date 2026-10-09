@@ -452,7 +452,7 @@ func _fire(player: PlayerState, live: Array[PlayerState]) -> void:
 	player.shove_facing = ShoveResolver.autoaim(
 		_candidate(player),
 		player.facing,
-		_candidates(live),
+		_candidates(live, PackedVector2Array([Vector2(player.pos.x, player.pos.z)])),
 		_rules.shove_reach,
 		_rules.autoaim_cone_deg,
 		_here(),
@@ -516,6 +516,7 @@ func _thaw(live: Array[PlayerState]) -> void:
 ## (Hazards.shove), and its shover rocks and stops as for a body.
 func _shoves(live: Array[PlayerState], tick: int, events: Array[SimEvent]) -> void:
 	var attempts: Array[ShoveResolver.Attempt] = []
+	var origins := PackedVector2Array()
 	for player: PlayerState in live:
 		if (
 			player.action == PlayerState.Action.ACTIVE
@@ -530,11 +531,12 @@ func _shoves(live: Array[PlayerState], tick: int, events: Array[SimEvent]) -> vo
 					Vector2.from_angle(player.shove_facing)
 				)
 			)
+			origins.append(Vector2(player.pos.x, player.pos.z))
 	if attempts.is_empty():
 		return
 	var hits := ShoveResolver.resolve(
 		attempts,
-		_candidates(live),
+		_candidates(live, origins),
 		_rules.shove_reach,
 		_rules.shove_cone_deg,
 		_here(),
@@ -733,9 +735,13 @@ func _out(player: PlayerState, tick: int) -> void:
 	_enter(player, PlayerState.Action.IDLE)
 
 
-func _candidates(live: Array[PlayerState]) -> Array[ShoveResolver.Candidate]:
+## The bodies of [param live] a shove from any of [param origins] (x/z) could land on,
+## in seat order (Movement.around): none farther could.
+func _candidates(
+	live: Array[PlayerState], origins: PackedVector2Array
+) -> Array[ShoveResolver.Candidate]:
 	var candidates: Array[ShoveResolver.Candidate] = []
-	for player: PlayerState in live:
+	for player: PlayerState in _movement.around(live, origins, _rules.shove_reach):
 		candidates.append(_candidate(player))
 	return candidates
 

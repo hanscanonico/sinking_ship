@@ -27,6 +27,11 @@ const CONTACT_PASSES := 4
 ## How far apart a swimmer looks for a ceiling along the way it swims, out to where its
 ## circle reaches next (_headroom): half the thinnest lintel, so none slips between.
 const DUCK_LOOK := 0.1
+## How far one pass of _bodies may push a body before the pairs it took from the grid
+## at its start may miss one (_pairs): a pair it skipped was more than four of these
+## farther apart than touching then, and once it has pushed any body this far it scans
+## every pair left instead, so such a pair ends it at least two of these out of touch.
+const CROWD_DRIFT := 0.1
 
 var _rules: BrawlRules
 var _hazards: Hazards
@@ -35,6 +40,10 @@ var _faces: Faces
 var _piece: int
 ## The Surfaces of the frame the tick stands in.
 var _surfaces: Surfaces
+## The bodies of the piece on a grid of the frame the tick stands in (SpatialIndex), each
+## numbered by its place in the list last put on it; and that frame.
+var _crowd: SpatialIndex
+var _crowd_up := Faces.Up.DECK
 var _climb_ticks: int
 
 
@@ -43,6 +52,7 @@ func _init(rules: BrawlRules, faces: Faces, hazards: Hazards, piece := 0) -> voi
 	_faces = faces
 	_piece = piece
 	_surfaces = faces.surfaces(Faces.Up.DECK)
+	_crowd = _crowd_in(Faces.Up.DECK)
 	_hazards = hazards
 	_climb_ticks = Ticks.from_seconds(rules.climb_time)
 
@@ -59,6 +69,9 @@ func face(state: MatchState, pose: ShipPose, tick: int, events: Array[SimEvent])
 	_surfaces = _faces.surfaces(up, framed)
 	if up != Faces.Up.DECK:
 		_surfaces.honour(framed)
+	if up != _crowd_up:
+		_crowd = _crowd_in(up)
+		_crowd_up = up
 	var turned := up != was
 	var middle := Faces.axis(was) * _rules.body_height * 0.5
 	for player: PlayerState in state.seats:
@@ -89,6 +102,42 @@ func unface(state: MatchState) -> void:
 ## The Surfaces of the frame the tick stands in: what every rule of the tick asks.
 func surfaces() -> Surfaces:
 	return _surfaces
+
+
+## A grid for bodies over the layout of the frame [param up], of the data's cells.
+func _crowd_in(up: int) -> SpatialIndex:
+	var bounds := SpatialIndex.bounds_of(_faces.layout(up))
+	return SpatialIndex.new(bounds, IndexRules.load_default().body_cell)
+
+
+## The seats of [param live] whose circles a body's at any of [param points] (x/z) could
+## reach across [param reach], in seat order: every one that comes that near, and some a
+## little farther, off the grid — who a shove from there could land on.
+func around(
+	live: Array[PlayerState], points: PackedVector2Array, reach: float
+) -> Array[PlayerState]:
+	_gather(live)
+	var marked := PackedByteArray()
+	marked.resize(live.size())
+	var grow := Vector2.ONE * (_rules.body_radius + reach + CROWD_DRIFT)
+	for point: Vector2 in points:
+		for index: int in _crowd.near(Rect2(point - grow, grow * 2.0)):
+			marked[index] = 1
+	var found: Array[PlayerState] = []
+	for index in live.size():
+		if marked[index] == 1:
+			found.append(live[index])
+	return found
+
+
+## Puts [param bodies] on the grid, each the square its circle fits in, numbered by its
+## place in the list.
+func _gather(bodies: Array[PlayerState]) -> void:
+	_crowd.clear()
+	var half := Vector2.ONE * _rules.body_radius
+	for index in bodies.size():
+		var at := Vector2(bodies[index].pos.x, bodies[index].pos.z)
+		_crowd.insert(index, Rect2(at - half, half * 2.0))
 
 
 ## [param player] in a frame new to it, its [member PlayerState.pos] the middle of its
@@ -362,29 +411,62 @@ func _railings(
 
 
 ## Bodies whose heights overlap push each other apart, pair by pair in seat order,
-## each moving half the overlap. True when it moved anyone.
+## each moving half the overlap: the pairs the grid finds near enough (_pairs), and every
+## pair left once a body has been pushed CROWD_DRIFT. True when it moved anyone.
 func _bodies(live: Array[PlayerState]) -> bool:
 	var moved := false
-	var reach := _rules.body_radius * 2.0
-	var height := _rules.body_height
-	for first in live.size():
-		for second in range(first + 1, live.size()):
-			var a := live[first]
-			var b := live[second]
-			var a_pos := a.pos
-			var b_pos := b.pos
-			if absf(a_pos.y - b_pos.y) >= height:
-				continue
-			var offset := Vector2(b_pos.x - a_pos.x, b_pos.z - a_pos.z)
-			var distance := offset.length()
-			if distance >= reach:
-				continue
-			var normal := offset / distance if distance > 0.0 else Vector2.RIGHT
-			var push := normal * ((reach - distance) * 0.5)
-			a.pos -= Vector3(push.x, 0.0, push.y)
-			b.pos += Vector3(push.x, 0.0, push.y)
-			moved = true
+	var pairs := _pairs(live)
+	var pushed := PackedFloat64Array()
+	pushed.resize(live.size())
+	for at in range(0, pairs.size(), 2):
+		var first := pairs[at]
+		var second := pairs[at + 1]
+		var push := _push_apart(live[first], live[second])
+		if push == 0.0:
+			continue
+		moved = true
+		pushed[first] += push
+		pushed[second] += push
+		if pushed[first] >= CROWD_DRIFT or pushed[second] >= CROWD_DRIFT:
+			for a in range(first, live.size()):
+				for b in range(second + 1 if a == first else a + 1, live.size()):
+					_push_apart(live[a], live[b])
+			return true
 	return moved
+
+
+## Every pair of [param live] whose squares, one grown by four drifts, share a cell of
+## the grid, as (first, second) by place in the list, first before second, in seat order.
+func _pairs(live: Array[PlayerState]) -> PackedInt32Array:
+	_gather(live)
+	var pairs := PackedInt32Array()
+	var grow := Vector2.ONE * (_rules.body_radius + CROWD_DRIFT * 4.0)
+	for first in live.size():
+		var at := Vector2(live[first].pos.x, live[first].pos.z)
+		for second: int in _crowd.near(Rect2(at - grow, grow * 2.0)):
+			if second > first:
+				pairs.append(first)
+				pairs.append(second)
+	return pairs
+
+
+## Pushes [param a] and [param b] apart, each half the overlap, when their heights
+## overlap and their circles do; how far each moved, or 0.
+func _push_apart(a: PlayerState, b: PlayerState) -> float:
+	var reach := _rules.body_radius * 2.0
+	var a_pos := a.pos
+	var b_pos := b.pos
+	if absf(a_pos.y - b_pos.y) >= _rules.body_height:
+		return 0.0
+	var offset := Vector2(b_pos.x - a_pos.x, b_pos.z - a_pos.z)
+	var distance := offset.length()
+	if distance >= reach:
+		return 0.0
+	var normal := offset / distance if distance > 0.0 else Vector2.RIGHT
+	var push := normal * ((reach - distance) * 0.5)
+	a.pos -= Vector3(push.x, 0.0, push.y)
+	b.pos += Vector3(push.x, 0.0, push.y)
+	return (reach - distance) * 0.5
 
 
 ## Moves [param player] out of [param contact] in the deck plane and takes the

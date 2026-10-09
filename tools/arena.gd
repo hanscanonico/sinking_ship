@@ -1,6 +1,7 @@
 extends SceneTree
 ## `make arena SEEDS=200`: bots-only matches, headless, in lobbies of tiers, written up
-## as docs/arena.md — a dated record that the next run supersedes whole (§10, SH7).
+## as docs/arena.md — a dated record that the next run supersedes whole (§10, SH7), but
+## for the bench at scale (`make bench`, SH18) at its end, which it carries over.
 ##
 ##   godot --headless --path . -s res://tools/arena.gd -- --seeds=200 [--lobbies=a,b]
 ##
@@ -13,6 +14,9 @@ extends SceneTree
 const RunMatch := preload("res://tools/run_match.gd")
 
 const REPORT := "res://docs/arena.md"
+## The heading of the section of docs/arena.md that records `make bench` (SH18): a run
+## keeps it as it found it.
+const BENCH_SECTION := "\n## Bench at scale"
 ## Where a run on one of the Fleet's scenarios is written (--scenario, SH32).
 const SCENARIO_REPORT := "res://docs/arena_%s.md"
 ## The match time a match still on is stopped at, unfinished, unless --stop says.
@@ -150,6 +154,9 @@ func _initialize() -> void:
 	var minutes := (Time.get_ticks_msec() - started) / 60000.0
 	var report := _report(tallies, seeds, minutes, [load_before, _load_average()])
 	var path := REPORT if _scenario.is_empty() else SCENARIO_REPORT % _scenario
+	var before := FileAccess.get_file_as_string(path)
+	if path == REPORT and before.contains(BENCH_SECTION):
+		report += before.substr(before.find(BENCH_SECTION) + 1)
 	var file := FileAccess.open(path, FileAccess.WRITE)
 	if file == null:
 		printerr("arena: cannot write %s" % path)

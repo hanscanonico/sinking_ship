@@ -83,3 +83,23 @@ The tick-cost targets are the SH7 review's and supersede the plan's "sim + bots 
 - Longest idle streak with an opponent in sight within 6 m: 3.7 s (seed 6 seat 10 at (-20.2, -5.6, -7.6), 01:54.3).
 - Sim + bots per tick, 16 seats: p50 3.04 ms, p99 12.87 ms, mean 4.24 ms, worst 63.5 ms.
 
+## Bench at scale — `make bench SEATS=64` (SH18)
+
+Measured by `make bench` (tools/bench_sim.gd) on MacBookAir10,1, Apple M1, on 2026-10-09, and written here by hand; `make arena` carries this section over as it found it. Every seat is a wanderer on its own seeded dice — it walks one way for 20 to 60 ticks, turns, shoves one heading in four (let go at once or held into a charge) and jumps one in six — and no bots: bot planning on a hull this size is SH20's. The match is played once through MatchRunner, then its input log replayed through bare MatchSims, two rounds with the spatial index and two without it — IndexRules' cells INF: one cell, every query a scan of everything — taking turns. The milliseconds are MatchSim.step alone; no snapshot, no digest. "Without" is not the build before SH18: that one already kept the surfaces on a 1 m grid (SH3b's rooms); without is the scan the index replaces everywhere.
+
+The fixture is tests/fixtures/titanic_scale.gd: 270 × 28 m, nine decks 2.8 m apart, nine bays a deck, a corridor between walls with a door into every room below the top deck, a stair a bay, an open railed top deck with four funnels — 2,441 surfaces and 56 railings.
+
+| Match | Index | p50 | p99 | mean | worst |
+|---|---|---|---|---|---|
+| Fixture, 64 seats, 1,800 ticks | on (cells 1 m, bodies 2 m) | 3.96 ms | 9.41 ms | 4.16 ms | 44.29 ms |
+| Fixture, 64 seats, 1,800 ticks | off | 117.26 ms | 146.17 ms | 117.98 ms | 196.38 ms |
+| Steamer, 8 seats, 1,800 ticks | on | 0.52 ms | 0.78 ms | 0.53 ms | 1.01 ms |
+| Steamer, 8 seats, 1,800 ticks | off | 1.38 ms | 2.95 ms | 1.60 ms | 3.37 ms |
+
+Load average (1, 5, 15 min) at the fixture's start: 4,41 4,54 8,04; at its end: 5,36 4,48 6,50; at the steamer's end: 4,54 4,35 6,40 — other worktrees' tools were running beside it. A run an hour earlier, at much the same load, gave the fixture p50 3.39 ms and p99 7.46 ms with the index: the tail moves with the machine, and misses either way. The review's run at a quieter moment (load 2,89 3,74 5,53 at the start, 4,14 3,97 4,91 at the end) gave the fixture p50 3.84 ms, p99 4.63 ms, worst 8.49 ms with the index (without: p99 154.12 ms), and the steamer p50 0.50 ms, p99 0.74 ms — still a miss, by about a sixth rather than twice over. Both ways' digests match each other and the match played, on both ships: the index changes how fast, never what (D4).
+
+| Target | Measured | |
+|---|---|---|
+| Sim step p99 ≤ 4 ms per tick, 64 seats on the fixture | 9.41 ms (p50 3.96 ms) | **missed** |
+
+Where the time goes, from timers put in for one run and taken out again: of 3.6 ms a tick through MatchRunner, 2.3 ms is the move's contact passes — 1.7 ms of it obstacle_contacts, about 140 calls a tick at 12 µs each, 0.6 ms the bodies' pairs off the grid — 0.4 ms what each body stands on, and the rest under 0.2 ms a step. The grid is in the ship plane, so each of its cells holds the surfaces of all nine decks over it, and every obstacle query sifts nine decks' walls by height. R7's fallbacks, in its order, none applied: a slower think rate for easy and normal bots (no bots here; it would price the bots, not this step); caching per-tick geometry queries — an obstacle query's answer kept per body across a tick's four contact passes while it has not moved, or the grid cut into height bands as well, so a query meets only its own deck's surfaces; early-outs on distant pairs (the grid is this, for bodies and surfaces); last, a GDExtension for the hot loop — a plan decision with a toolchain cost.
