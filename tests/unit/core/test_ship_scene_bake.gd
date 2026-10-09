@@ -153,6 +153,24 @@ func test_a_shape_given_as_a_number_is_a_problem() -> void:
 	)
 
 
+func test_the_editors_own_metadata_is_no_problem() -> void:
+	var problems := _problems_after(
+		func(scene: Node) -> void:
+			var bridge := scene.get_node("Platforms/Platform_bridge")
+			bridge.set_meta(&"_edit_lock_", true)
+			bridge.set_meta(&"_edit_group_", true)
+			bridge.set_meta(&"_edit_pinned_properties_", [&"size"])
+			scene.get_node("Structure/Cells/Cell_hold").set_meta(&"_edit_lock_", true)
+			scene.get_node("Railings/Railing_poop_aft_0").set_meta(&"lamp", 1.0)
+	)
+	assert_eq(
+		problems,
+		PackedStringArray(
+			["railing Railings/Railing_poop_aft_0: lamp is no field its metadata sets"]
+		)
+	)
+
+
 func test_an_unknown_tag_and_a_wrong_node_are_problems() -> void:
 	var problems := _problems_after(
 		func(scene: Node) -> void:

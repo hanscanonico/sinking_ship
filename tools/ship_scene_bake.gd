@@ -233,7 +233,9 @@ func _fields(resource: Resource, node: Node, kind: StringName) -> void:
 	for property: Dictionary in stored(resource):
 		fields[property["name"]] = property
 	for key: StringName in node.get_meta_list():
-		if key == TAG or (key == &"platform" and kind in [&"railing", &"ladder"]):
+		if key == TAG or key.begins_with("_"):
+			continue
+		if key == &"platform" and kind in [&"railing", &"ladder"]:
 			continue
 		if not fields.has(key) or key in SHAPED[kind]:
 			problems.append("%s: %s is no field its metadata sets" % [_label(node), key])
