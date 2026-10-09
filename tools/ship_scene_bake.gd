@@ -109,6 +109,8 @@ func _init(root: Node) -> void:
 	_fields(layout, root, &"layout")
 	var platforms := {}
 	for node: Node in pieces.get(&"platform", []):
+		if platforms.has(node.name):
+			problems.append("%s: another platform is named %s" % [_label(node), node.name])
 		platforms[node.name] = layout.platforms.size()
 		layout.platforms.append(_platform(node))
 	for node: Node in pieces.get(&"ramp", []):

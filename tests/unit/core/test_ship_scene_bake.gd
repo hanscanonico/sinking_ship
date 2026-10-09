@@ -118,6 +118,22 @@ func test_a_railing_on_no_platform_is_a_problem() -> void:
 	)
 
 
+func test_two_platforms_of_one_name_are_a_problem() -> void:
+	var problems := _problems_after(
+		func(scene: Node) -> void:
+			var deck := Node3D.new()
+			deck.name = "Upper"
+			scene.add_child(deck)
+			deck.add_child(scene.get_node("Platforms/Platform_bridge").duplicate())
+	)
+	assert_eq(
+		problems,
+		PackedStringArray(
+			["platform Upper/Platform_bridge: another platform is named Platform_bridge"]
+		)
+	)
+
+
 func test_a_shape_given_as_a_number_is_a_problem() -> void:
 	var problems := _problems_after(
 		func(scene: Node) -> void:
