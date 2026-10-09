@@ -1,20 +1,25 @@
 extends GutTest
-## §5's layout lint, run over every layout under data/ships/: it holds the shape of
-## a ship, not any one ship's numbers.
+## §5's layout lint, run over every layout under data/ships/ and every ship's baked
+## authoring scene: it holds the shape of a ship, not any one ship's numbers.
 
 const SHIPS := "res://data/ships"
+const AUTHORING := "res://authoring"
 ## §5: doors are openings about 1.1 m wide; none narrower than a metre.
 const MIN_DOOR := 1.0
 ## A wall is a box blocker this thin, or thinner (§5: walls are 0.2 m).
 const WALL := 0.2
 
 
-## Every layout under data/ships/, by path.
+## Every layout under data/ships/, by path, and every ship drawn under authoring/ as her
+## scene bakes (SH17), by the scene's path.
 func _layouts() -> Dictionary:
 	var layouts := {}
 	for file: String in DirAccess.get_files_at(SHIPS):
 		if file.ends_with(".tres"):
 			layouts["%s/%s" % [SHIPS, file]] = load("%s/%s" % [SHIPS, file])
+	for ship: String in DirAccess.get_directories_at(AUTHORING):
+		var scene := "%s/%s/%s.tscn" % [AUTHORING, ship, ship]
+		layouts[scene] = ShipSceneBake.of_scene(scene).layout
 	return layouts
 
 

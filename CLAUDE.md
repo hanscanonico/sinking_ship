@@ -33,6 +33,9 @@ make test TEST=tests/unit/core/test_ticks.gd    # one test script
 make run                                        # play: you and seven bots, windowed
 make match SEED=1701                            # one bots-only match, headless, as a transcript
 make ship                                       # regenerate data/ships/NAME.tres from tools/gen_NAME.py; SHIP=trawler for one
+make bake-ship SCENE=authoring/steamer/steamer.tscn OUT=…   # bake a marked greybox scene into a ShipLayout .tres (SH17)
+make bake-check                                 # every authoring/NAME/NAME.tscn bakes to data/ships/NAME.tres field for field
+make ship-scene SHIP=steamer                    # draw data/ships/NAME.tres as its authoring scene
 ```
 
 A fresh checkout fails `check` with phantom "not declared" errors until `make import` has
