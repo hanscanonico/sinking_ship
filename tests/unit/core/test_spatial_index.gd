@@ -308,6 +308,10 @@ func test_surface_spanning_bands_is_found_from_either() -> void:
 	assert_eq(index.near(box, 2.5, 3.5), PackedInt32Array([0, 1, 2]), "from both, each once")
 	assert_eq(index.near(box, -9.0, -8.0), PackedInt32Array([0, 2]), "under them all: the lowest")
 	assert_eq(index.near(box, 9.0, INF), PackedInt32Array([1]), "over them all: the highest")
+	# A caller's own sum may round a hair past a band's foot: a query starting just over it
+	# still meets an item whose top is just under it.
+	index.insert(3, Rect2(1.0, 1.0, 2.0, 2.0), 2.9999999, 2.9999999)
+	assert_has(index.near(box, 3.0000004, 3.5), 3, "a hair under the query's foot, a band down")
 	# A stair from a deck up to the next crosses the bands between, and a wall stands
 	# through them: a body finds the stair under its feet from either end, and the wall
 	# holds it back with its feet at the wall's foot or a jump up its face.
