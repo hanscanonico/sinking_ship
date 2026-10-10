@@ -300,16 +300,18 @@ verify: check ship-check bake-check lint format-check test
 # generator writes, so a hand edit to a .tres cannot drift from it, and then floats every
 # ship with a structure: intact, level at her stated waterline — and proves she founders
 # on her sure hit, the must-sink rule's last rung, within the bake's cap of each of her
-# scenarios (tests/unit/core/test_ship_check.gd). The steamer's generator writes her
-# test-only weak hull too (SH33), tests/fixtures/ships/steamer_weak.tres, held to it the
-# same way.
+# scenarios (tests/unit/core/test_ship_check.gd). Generators write test-only hulls too,
+# under tests/fixtures/ships/ and held to them the same way: TEST_HULLS, each as
+# SHIP:FIXTURE:FLAG — the steamer's weak hull (SH33), the Titanic's sisters (SH34).
 GENERATED = $(patsubst tools/gen_%.py,%,$(wildcard tools/gen_*.py))
-WEAK_HULL = tests/fixtures/ships/steamer_weak.tres
+TEST_HULLS = steamer:steamer_weak:--weak titanic:olympic_1913:--variant=olympic1913 \
+	titanic:britannic:--variant=britannic
 ship:
 	@for ship in $(if $(SHIP),$(SHIP),$(GENERATED)); do \
 		python3 tools/gen_$$ship.py data/ships/$$ship.tres || exit 1; done
-	@if [ -z "$(SHIP)" ] || [ "$(SHIP)" = steamer ]; then \
-		python3 tools/gen_steamer.py $(WEAK_HULL) --weak; fi
+	@for hull in $(TEST_HULLS); do ship=$${hull%%:*}; rest=$${hull#*:}; \
+		if [ -z "$(SHIP)" ] || [ "$(SHIP)" = $$ship ]; then \
+		python3 tools/gen_$$ship.py tests/fixtures/ships/$${rest%%:*}.tres $${rest#*:} || exit 1; fi; done
 
 ship-check:
 	@for ship in $(GENERATED); do \
@@ -317,9 +319,12 @@ ship-check:
 		&& cmp -s "$$out" data/ships/$$ship.tres; status=$$?; rm -f "$$out"; \
 		test $$status -eq 0 || { echo "ship-check: data/ships/$$ship.tres differs from tools/gen_$$ship.py — run make ship SHIP=$$ship" >&2; exit 1; }; \
 	done
-	@out=$$(mktemp) && python3 tools/gen_steamer.py "$$out" --weak >/dev/null \
-		&& cmp -s "$$out" $(WEAK_HULL); status=$$?; rm -f "$$out"; \
-		test $$status -eq 0 || { echo "ship-check: $(WEAK_HULL) differs from tools/gen_steamer.py --weak — run make ship SHIP=steamer" >&2; exit 1; }
+	@for hull in $(TEST_HULLS); do ship=$${hull%%:*}; rest=$${hull#*:}; \
+		fixture=tests/fixtures/ships/$${rest%%:*}.tres; flag=$${rest#*:}; \
+		out=$$(mktemp) && python3 tools/gen_$$ship.py "$$out" $$flag >/dev/null \
+		&& cmp -s "$$out" $$fixture; status=$$?; rm -f "$$out"; \
+		test $$status -eq 0 || { echo "ship-check: $$fixture differs from tools/gen_$$ship.py $$flag — run make ship SHIP=$$ship" >&2; exit 1; }; \
+	done
 	GODOT="$(GODOT)" tools/run_tests.sh -gselect=test_ship_check.gd
 
 # A ship drawn as a scene (SH17): authoring/NAME/NAME.tscn, a scene of marked pieces —

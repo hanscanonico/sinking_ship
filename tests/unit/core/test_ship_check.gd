@@ -10,6 +10,14 @@ const SCENARIOS := "res://data/sinking"
 const DISPLACEMENT := 0.01
 const DRAUGHT := 0.02
 const LEVEL_DEG := 0.1
+## The Titanic on the night's condition (SH34, the research's): her displacement in kg,
+## ± 2 %; her mean draught, ± 0.15 m; her trim, positive bow down, so 0.2° by the stern,
+## ± 0.3°; her GM, ± 0.15 m.
+const TITANIC := "res://data/ships/titanic.tres"
+const NIGHT_DISPLACEMENT := 49075e3
+const NIGHT_DRAUGHT := 9.83
+const NIGHT_TRIM_DEG := -0.2
+const NIGHT_GM := 0.80
 
 
 func test_intact_steamer_floats_level_at_her_waterline() -> void:
@@ -66,6 +74,28 @@ func test_intact_steamer_floats_level_at_her_waterline() -> void:
 		assert_almost_eq(list, 0.0, LEVEL_DEG, "%s: no list" % file)
 		assert_gt(gm, 0.0, "%s: a list rights itself" % file)
 	assert_gt(checked, 0, "a ship to float")
+
+
+func test_the_titanic_floats_on_the_nights_condition() -> void:
+	var sea := SeaPhysics.load_default()
+	var structure := (load(TITANIC) as ShipLayout).structure
+	var mass := structure.total_mass()
+	var centre := structure.mass_centre()
+	var volume := mass / sea.sea_density
+	var rest := Hydrostatics.rest(structure.sections, volume, centre)
+	var draught := rest.height / rest.up_y - structure.keel_y
+	var trim := rad_to_deg(atan(rest.trim()))
+	var gm := Hydrostatics.metacentric_height(structure.sections, volume, centre, rest)
+	gut.p(
+		(
+			"titanic: %.0f t, draught %.3f m, trim %+.3f°, GM %.3f m"
+			% [mass / 1000.0, draught, trim, gm]
+		)
+	)
+	assert_almost_eq(mass, NIGHT_DISPLACEMENT, NIGHT_DISPLACEMENT * 0.02, "49 075 t")
+	assert_almost_eq(draught, NIGHT_DRAUGHT, 0.15, "9.83 m of draught")
+	assert_almost_eq(trim, NIGHT_TRIM_DEG, 0.3, "0.2° by the stern")
+	assert_almost_eq(gm, NIGHT_GM, 0.15, "a GM of 0.80 m")
 
 
 func test_she_founders_on_her_sure_hit() -> void:

@@ -1,0 +1,31 @@
+[gd_resource type="Resource" script_class="SinkScenario" format=3]
+
+[ext_resource type="Script" path="res://core/sink_scenario.gd" id="2_scen"]
+[ext_resource type="Script" path="res://core/sinking/hit_bands.gd" id="4_hit"]
+
+[sub_resource type="Resource" id="Hit"]
+script = ExtResource("4_hit")
+moment = Vector2(10, 40)
+starboard = 0.5
+start_x = Vector2(-120, 110)
+length = Vector2(20, 90)
+depth = Vector2(-0.5, 9)
+width = Vector2(0.03, 0.05)
+bite = Vector2(0.2, 2)
+unevenness = Vector2(0.5, 1.5)
+least_run = 0.1
+weakens_within = 1.0
+weakened_to = 0.5
+
+[resource]
+script = ExtResource("2_scen")
+starts_at = 3.0
+hit = SubResource("Hit")
+sea_depth = 3800.0
+clock = 1.0
+bake_cap = 19800.0
+quick_redraws = 8
+bakes = 3
+rungs = 6
+spare_deck = 0.1
+quick_failing = 0.75

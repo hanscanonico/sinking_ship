@@ -33,11 +33,11 @@ uniform float glint_tightness = 70.0;
 // The world to her ship space, as drawn this frame (InnerWater), and the box this sheet's
 // cell stands in there.
 uniform mat4 world_to_ship = mat4(1.0);
-instance uniform vec3 clip_low = vec3(0.0);
-instance uniform vec3 clip_high = vec3(0.0);
-instance uniform float pocket_glow = 0.0;
+uniform vec3 clip_low = vec3(0.0);
+uniform vec3 clip_high = vec3(0.0);
+uniform float pocket_glow = 0.0;
 // 1 for an open well's water, under the open sky; 0 under a deck.
-instance uniform float outdoor = 0.0;
+uniform float outdoor = 0.0;
 
 uniform sampler2D depth_texture : hint_depth_texture, filter_nearest, repeat_disable;
 

@@ -8,6 +8,12 @@ extends Node3D
 
 enum Beam { STARBOARD, PORT }
 
+## A hull longer than this many times the rig's distance is framed whole (SH34): the
+## rig watches her middle from far enough back that her length fills its view, this
+## share of her length away.
+const LONG_HULL := 3.0
+const LONG_HULL_DISTANCE := 0.8
+
 @export var side: Beam = Beam.STARBOARD
 @export var pitch_deg: float = 50.0
 @export var distance: float = 24.0
@@ -36,7 +42,11 @@ func make_current() -> void:
 func reset(target: Vector3, bounds: Rect2) -> void:
 	_bounds = bounds
 	rotation = Vector3(-deg_to_rad(pitch_deg), yaw(), 0.0)
-	_camera.position = Vector3(0.0, 0.0, distance)
+	var long_hull := bounds.size.x > distance * LONG_HULL
+	_camera.position = Vector3(
+		0.0, 0.0, bounds.size.x * LONG_HULL_DISTANCE if long_hull else distance
+	)
+	whole_ship = whole_ship or long_hull
 	position = _aim(target)
 
 

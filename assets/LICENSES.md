@@ -45,3 +45,17 @@ which each page states as "Creative Commons 0".
 | `beds/rush.ogg` (60–103 s) | AugustSandberg, Sailboat Sailing Interior 2 — https://freesound.org/people/AugustSandberg/sounds/252670/ | CC0 1.0 |
 | `music/sailors_chant.ogg` (oga_jam_menu_music_loopable.ogg) — the menu | thimras, A sailor's chant — https://opengameart.org/content/a-sailors-chant | CC0 1.0 |
 | `music/iridescent_deep.ogg` (Iridescent Deep - Loop.ogg, from iridescent_deep_ogg.7z) — the match | Tsorthan Grove, Iridescent Deep — https://opengameart.org/content/iridescent-deep | CC0 1.0 |
+
+### The Titanic's sources (`tools/gen_titanic.py`, SH34)
+
+No image or text of these is shipped: the generator keeps numbers traced from them, each
+beside the plate it was read from (its `PLATES`), and writes `data/ships/titanic.tres`,
+her sisters' test-only hulls and `authoring/titanic/titanic.tscn` from those numbers
+alone. Only public-domain plates are traced (R31); modern redraws are not used.
+
+| What was traced | Source | License |
+|---|---|---|
+| Her elevation, bulkheads A–P and their tops, deck lines and sheer, funnels, boats and expansion joints (Plate III); her decks B–E (Plate IV); her dimensions, double bottom, frame spacing and compartment lengths (text, Table II) | *The Shipbuilder*, the Olympic and Titanic special number (1911; plates headed "The White Star Triple-Screw Steamers Olympic and Titanic", "The Shipbuilder, June 1911") — Internet Archive `the_shipbuilder_special_numbers_images_201909` ("The Shipbuilder Mauretania, Olympic & Titanic Souvenir Numbers"), leaves n316 and n318 and its OCR text | Public Domain Mark 1.0 (the item's) |
+| Her decks' heights, bulkheads' decks, watertight doors, double bottom, generators, pumps, boats; the damage, the flooding and the night's times | Report of the British Wreck Commissioner's inquiry into the loss of the S.S. *Titanic* (1912), Annex 1 and 3, read in the Titanic Inquiry Project's transcription (https://www.titanicinquiry.org/BOTInq/BOTReport/) | Public domain (Crown copyright, 1912, expired); the transcription's site layout is not used |
+| The flooding cases and the holes' aggregate area (about 12 ft²) | Edward Wilding's evidence to the same inquiry, day 19 (Q 20286–20422), same transcription | Public domain (Crown copyright, 1912, expired) |
+| Her sisters' inner skin and Britannic's bulkheads | *The Shipbuilder* vol. 10 (January–June 1914), "Shipbuilding centres" and "The White Star liner Britannic" — Internet Archive `the_shipbuilder_vol10`, OCR text | Public Domain Mark 1.0 (the item's) |

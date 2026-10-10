@@ -14,15 +14,15 @@ render_mode blend_mix, depth_draw_never, cull_disabled;
 uniform vec4 foam_colour : source_color = vec4(0.97, 1.0, 0.99, 1.0);
 uniform vec4 water_colour : source_color = vec4(0.1, 0.46, 0.53, 1.0);
 // Metres across the patch, each way, so its lace keeps its size.
-instance uniform vec2 extent = vec2(1.0, 1.0);
+uniform vec2 extent = vec2(1.0, 1.0);
 // How hard it boils, 0…1.
-instance uniform float strength = 1.0;
+uniform float strength = 1.0;
 // For a burst of air, how far through it, 0…1; below 0 for a pour's landing, which
 // boils as long as the pour does.
-instance uniform float burst = -1.0;
-instance uniform float outdoor = 0.0;
+uniform float burst = -1.0;
+uniform float outdoor = 0.0;
 // A pocket's leak rather than a pour's landing or a burst.
-instance uniform bool leaking = false;
+uniform bool leaking = false;
 uniform float indoor_ambient = 0.35;
 uniform float lamp_bounce = 0.35;
 
