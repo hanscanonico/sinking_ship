@@ -11,8 +11,12 @@ extends ShipHull
 ## propeller at her stern and an anchor stowed in a hawse either side of her bow, all
 ## to her scale. The greybox (GreyboxHull) draws the same shell (shell()).
 
-## Points up each side of a section, keel to sheer, once resampled.
+## Points up each side of a section, keel to sheer, once resampled: at least
+## SIDE_POINTS, and enough that none stands further than SIDE_SPACING from the next on
+## her longest side — every section of hers the same, so each meets the next point for
+## point.
 const SIDE_POINTS := 18
+const SIDE_SPACING := 0.5
 ## A shell standing this far or more over the deck beside it is a bulwark.
 const BULWARK_FROM := 0.1
 ## A deck's plating stands this far under its planks' top, so the planks show where
@@ -91,14 +95,28 @@ static func _reach(section: HullSection, y: float, way: int) -> float:
 	return 0.0 if is_nan(z) else absf(z)
 
 
-## Each of [param sections]' sides, starboard then port, SIDE_POINTS points up it from
-## her keel to her sheer.
+## Each of [param sections]' sides, starboard then port, from her keel to her sheer,
+## as many points up each (SIDE_POINTS, SIDE_SPACING).
 static func shell_sides(sections: Array[HullSection]) -> Array[PackedVector2Array]:
-	var sides: Array[PackedVector2Array] = []
+	var lines: Array[PackedVector2Array] = []
+	var longest := 0.0
 	for section: HullSection in sections:
 		for side: float in [1.0, -1.0]:
-			sides.append(_resampled(_side(section.outline, side)))
+			var line := _side(section.outline, side)
+			lines.append(line)
+			longest = maxf(longest, _length(line))
+	var count := maxi(SIDE_POINTS, ceili(longest / SIDE_SPACING) + 1)
+	var sides: Array[PackedVector2Array] = []
+	for line: PackedVector2Array in lines:
+		sides.append(_resampled(line, count))
 	return sides
+
+
+static func _length(line: PackedVector2Array) -> float:
+	var total := 0.0
+	for index in range(1, line.size()):
+		total += line[index].distance_to(line[index - 1])
+	return total
 
 
 ## Draws [param layout]'s shell into [param mesh] from her sections' [param sides]
@@ -139,8 +157,8 @@ static func _side(outline: PackedVector2Array, side: float) -> PackedVector2Arra
 	return points
 
 
-## [param line] as SIDE_POINTS points evenly along it.
-static func _resampled(line: PackedVector2Array) -> PackedVector2Array:
+## [param line] as [param count] points evenly along it.
+static func _resampled(line: PackedVector2Array, count: int) -> PackedVector2Array:
 	if line.size() < 2:
 		line = PackedVector2Array([line[0], line[0]])
 	var lengths := PackedFloat64Array([0.0])
@@ -149,8 +167,8 @@ static func _resampled(line: PackedVector2Array) -> PackedVector2Array:
 	var total := lengths[lengths.size() - 1]
 	var points := PackedVector2Array()
 	var at := 0
-	for step in SIDE_POINTS:
-		var reach := total * step / (SIDE_POINTS - 1)
+	for step in count:
+		var reach := total * step / (count - 1)
 		while at < line.size() - 2 and lengths[at + 1] < reach:
 			at += 1
 		var span := lengths[at + 1] - lengths[at]
@@ -227,7 +245,7 @@ static func _loft_run(
 		grid.append(row)
 	var outward := Vector3(0.0, -0.3, 1.0 if side == 0 else -1.0)
 	for station in count - 1:
-		for j in SIDE_POINTS - 1:
+		for j in lines[0].size() - 1:
 			var corners := PackedVector3Array(
 				[
 					grid[station][j],
@@ -418,7 +436,8 @@ func _caps(mesh: ShipMesh) -> void:
 			x1 = section.x
 		for side in 2:
 			var top := _sheer_of(_sides[index * 2 + side])
-			var z := _sides[index * 2 + side][SIDE_POINTS - 1].x
+			var line := _sides[index * 2 + side]
+			var z := line[line.size() - 1].x
 			if absf(z) < CAP.x:
 				continue
 			var deck := deck_beside(_layout, section.x, Vector2(z, top))

@@ -15,12 +15,12 @@ extends SceneTree
 ##   drawn face looks like one: straight down through the heights a body could step
 ##   down to or jump up onto from that deck, the first face met never faces up — the
 ##   lifeboats beside an open edge, and the hull's ends all the way out past the end
-##   railings. And through every railing span, broken, the opening it leaves stands
-##   open as drawn: nothing across it between a step over its deck and a body's
-##   height, from its line out to a body's breadth past it. Steel her structure has
-##   stands where it stands, though: within STRUCTURE_TOLERANCE of a section's
-##   outline — the plating and the bulwark where a deck stops short of her shell
-##   (SectionHull) — it is no false floor, and nothing across an opening.
+##   railings. And through every railing span a body's breadth or longer, broken, the
+##   opening it leaves stands open as drawn: nothing across it between a step over its
+##   deck and a body's height, from its line out to a body's breadth past it. Steel
+##   her structure has stands where it stands, though: within STRUCTURE_TOLERANCE of
+##   a section's outline — the plating and the bulwark where a deck stops short of her
+##   shell (SectionHull) — it is no false floor, and nothing across an opening.
 ## - The hull against the structure (§5b.2), on every ship that has one: every point
 ##   of every section's outline below the sheer within HULL_TOLERANCE of a drawn face,
 ##   across the outline there; and every pane of glass the art sets in an outside wall
@@ -460,6 +460,10 @@ func _check_open_spans(file: String, layout: ShipLayout, rules: BrawlRules) -> v
 	var breadth := rules.body_radius * 2.0
 	for index in layout.railings.size():
 		_checks += 1
+		var span := layout.railings[index]
+		# A span too short for a body to pass leaves no opening to keep open.
+		if span.from.distance_to(span.to) < breadth:
+			continue
 		art.show_sinking(none, {}, PackedInt32Array([index]), false)
 		var remains := _ship_faces(
 			art.find_child("Railing%dRemains" % index, true, false) as Node3D
@@ -554,14 +558,21 @@ func _blocked(
 
 
 ## Whether [param point] stands within STRUCTURE_TOLERANCE of [param layout]'s
-## structure: inside or on the outline of a section cut across her there or of its
-## neighbour that way — her shell is lofted from one section's middle to the next.
+## structure: inside or on the outline of the section cut across her there or of
+## either whose middle stands nearest aft or fore of it — her shell is lofted from one
+## section's middle to the next.
 func _in_structure(layout: ShipLayout, point: Vector3) -> bool:
 	if layout.structure == null:
 		return false
 	var across := Vector2(point.z, point.y)
-	for section: HullSection in layout.structure.sections:
-		if absf(point.x - section.x) > section.length + STRUCTURE_TOLERANCE:
+	var sections := layout.structure.sections
+	for at in sections.size():
+		var section := sections[at]
+		var holds := absf(point.x - section.x) <= section.length * 0.5 + STRUCTURE_TOLERANCE
+		var before := at > 0 and sections[at - 1].x <= point.x and point.x <= section.x
+		var after := at < sections.size() - 1 and section.x <= point.x
+		after = after and point.x <= sections[at + 1].x
+		if not (holds or before or after):
 			continue
 		var outline := section.outline
 		if Geometry2D.is_point_in_polygon(across, outline):
