@@ -73,3 +73,17 @@ alias, never Fable, never a dated Opus id), effort set by role: `scout` low, `im
 medium (the `improve` workflow retries once at high on a red gate or a reject), `reviewer`
 high, `qa` low. `/improve` and `/orchestrate` carry the full loop. `qa` stays idle until the
 repo has a `make smoke` capture sweep.
+
+## Agent skills
+
+### Issue tracker
+
+Issues live in GitHub Issues on `hanscanonico/sinking_ship`, driven with `gh`. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+The five default roles, each label named for its role (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`). See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: one `GLOSSARY.md` and `docs/adr/` at the root, with the plan's D-decisions standing in for ADRs. See `docs/agents/domain.md`.
