@@ -80,6 +80,10 @@ const FROTH_SHADER := preload("res://scenes/art/froth.gdshader")
 
 var _structure: ShipStructure
 var _sea: ShaderMaterial
+## The water's material every cell's surface takes a copy of. Each surface, pour and
+## froth keeps its values in its own material, never in instance uniforms: the
+## compatibility renderer holds those for about 256 drawn things at most, fewer than a
+## ship of many cells and openings draws (the Titanic).
 var _water: ShaderMaterial
 var _boxes: Array[AABB] = []
 ## Per cell, its surface, or null for a cell whose water is not drawn.
@@ -265,7 +269,7 @@ func setup(
 	_leaks.clear()
 	for _leak in LEAKS:
 		var leak := _froth()
-		leak.set_instance_shader_parameter(&"leaking", true)
+		_param(leak, &"leaking", true)
 		_leaks.append(leak)
 	_airs.resize(structure.cells.size())
 	_airs.fill(-1.0)
@@ -292,7 +296,7 @@ func show_water(then: ShipPose, now: ShipPose, alpha: float) -> void:
 	_ship = then.transform.interpolate_with(now.transform, alpha)
 	_level = _ship.basis.inverse().orthonormalized()
 	_up = _level * Vector3.UP
-	_water.set_shader_parameter(&"world_to_ship", _ship.affine_inverse())
+	var to_ship := _ship.affine_inverse()
 	var levels := PackedFloat64Array()
 	levels.resize(_surfaces.size())
 	for cell in _surfaces.size():
@@ -308,6 +312,7 @@ func show_water(then: ShipPose, now: ShipPose, alpha: float) -> void:
 			surface.visible = showing
 		if showing:
 			surface.transform = CellSurface.placed(_ship, _level, box, level)
+			_param(surface, &"world_to_ship", to_ship)
 	for door: StringName in _leaves:
 		var shut: float = lerpf(
 			then.doors_shut.get(door, 0.0), now.doors_shut.get(door, 0.0), alpha
@@ -360,14 +365,19 @@ func _at_height(point: Vector3, height: float) -> Vector3:
 func _surface(box: AABB, under_sky: bool) -> MeshInstance3D:
 	var surface := MeshInstance3D.new()
 	surface.mesh = CellSurface.sheet()
-	surface.material_override = _water
+	surface.material_override = _water.duplicate()
 	surface.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	surface.set_instance_shader_parameter(&"clip_low", box.position)
-	surface.set_instance_shader_parameter(&"clip_high", box.end)
-	surface.set_instance_shader_parameter(&"outdoor", 1.0 if under_sky else 0.0)
+	_param(surface, &"clip_low", box.position)
+	_param(surface, &"clip_high", box.end)
+	_param(surface, &"outdoor", 1.0 if under_sky else 0.0)
 	surface.visible = false
 	add_child(surface)
 	return surface
+
+
+## Sets [param drawn]'s own material's [param parameter] to [param value].
+static func _param(drawn: MeshInstance3D, parameter: StringName, value: Variant) -> void:
+	(drawn.material_override as ShaderMaterial).set_shader_parameter(parameter, value)
 
 
 ## [param door]'s leaf: a steel plate in the doorway's wall, built shut, slid back into
@@ -557,10 +567,10 @@ func _hang(
 	outdoor: float
 ) -> void:
 	pour.transform = Transform3D(basis, middle)
-	pour.set_instance_shader_parameter(&"extent", Vector2(basis.x.length(), basis.y.length()))
-	pour.set_instance_shader_parameter(&"strength", strength)
-	pour.set_instance_shader_parameter(&"thrown", thrown)
-	pour.set_instance_shader_parameter(&"outdoor", outdoor)
+	_param(pour, &"extent", Vector2(basis.x.length(), basis.y.length()))
+	_param(pour, &"strength", strength)
+	_param(pour, &"thrown", thrown)
+	_param(pour, &"outdoor", outdoor)
 	pour.visible = true
 
 
@@ -569,9 +579,9 @@ func _hang(
 ## for a pour's landing.
 func _lay(froth: MeshInstance3D, basis: Basis, at: Vector3, strength: float, burst: float) -> void:
 	froth.transform = Transform3D(basis, at)
-	froth.set_instance_shader_parameter(&"extent", Vector2(basis.x.length(), basis.z.length()))
-	froth.set_instance_shader_parameter(&"strength", strength)
-	froth.set_instance_shader_parameter(&"burst", burst)
+	_param(froth, &"extent", Vector2(basis.x.length(), basis.z.length()))
+	_param(froth, &"strength", strength)
+	_param(froth, &"burst", burst)
 	froth.visible = true
 
 
@@ -606,7 +616,7 @@ func _blow(index: int, levels: PackedFloat64Array, top: float, opening: ShipOpen
 			at[axis] += signf(_middle(cell, axis) - at[axis]) * BURST_IN
 		var flat := _level * Basis.from_scale(Vector3(BURST, 1.0, BURST))
 		_lay(_bursts[burst], flat, _at_height(at, levels[side] + FROTH_LIFT), 1.0, 0.0)
-		_bursts[burst].set_instance_shader_parameter(&"outdoor", 0.0)
+		_param(_bursts[burst], &"outdoor", 0.0)
 		_burst_cells[burst] = cell
 		_burst_at[burst] = at
 		_burst_ages[burst] = 0.0
@@ -627,7 +637,7 @@ func _show_pockets(pose: ShipPose, levels: PackedFloat64Array) -> void:
 		var held := cell < pose.pockets.size() and pose.pockets[cell] > 0.0
 		var glow := POCKET_GLOW if held else 0.0
 		if _surfaces[cell] != null and _glows[cell] != glow:
-			_surfaces[cell].set_instance_shader_parameter(&"pocket_glow", glow)
+			_param(_surfaces[cell], &"pocket_glow", glow)
 			_glows[cell] = glow
 		if held and cell == eye_cell:
 			lit = cell
@@ -645,7 +655,7 @@ func _show_pockets(pose: ShipPose, levels: PackedFloat64Array) -> void:
 		var flat := _level * Basis.from_scale(Vector3(LEAK, 1.0, LEAK))
 		var outside := pose.cell_at(top + Vector3.UP * CellMap.DRY) == CellMap.NONE
 		_lay(_leaks[leak], flat, _at_height(top, over + FROTH_LIFT), 1.0, 0.0)
-		_leaks[leak].set_instance_shader_parameter(&"outdoor", 1.0 if outside else 0.0)
+		_param(_leaks[leak], &"outdoor", 1.0 if outside else 0.0)
 		leak += 1
 	for unused in range(leak, LEAKS):
 		_leaks[unused].visible = false
@@ -694,7 +704,7 @@ func _vent(cell: int, levels: PackedFloat64Array, pose: ShipPose) -> void:
 	_next_burst = (_next_burst + 1) % BURSTS
 	var flat := _level * Basis.from_scale(Vector3(VENT_BURST, 1.0, VENT_BURST))
 	_lay(_bursts[burst], flat, _at_height(at, level + FROTH_LIFT), 1.0, 0.0)
-	_bursts[burst].set_instance_shader_parameter(&"outdoor", 1.0 if under == -1 else 0.0)
+	_param(_bursts[burst], &"outdoor", 1.0 if under == -1 else 0.0)
 	_burst_cells[burst] = under
 	_burst_at[burst] = at
 	_burst_ages[burst] = 0.0
@@ -733,5 +743,5 @@ func _process(delta: float) -> void:
 			continue
 		bursting = true
 		var through := _burst_ages[burst] / BURST_SECONDS
-		_bursts[burst].set_instance_shader_parameter(&"burst", through)
+		_param(_bursts[burst], &"burst", through)
 	set_process(bursting)

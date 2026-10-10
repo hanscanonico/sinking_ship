@@ -11,14 +11,14 @@ render_mode blend_mix, depth_draw_never, cull_disabled;
 uniform vec4 water_colour : source_color = vec4(0.1, 0.46, 0.53, 1.0);
 uniform vec4 foam_colour : source_color = vec4(0.97, 1.0, 0.99, 1.0);
 // Metres of the sheet: how wide and how far it falls, so its streaks keep their size.
-instance uniform vec2 extent = vec2(1.0, 1.0);
+uniform vec2 extent = vec2(1.0, 1.0);
 // How hard it pours, 0…1: a trickle is a thin broken lace, a flood a solid sheet.
-instance uniform float strength = 1.0;
+uniform float strength = 1.0;
 // How far out of its opening it has gone by its foot, in the sheet's own units, along
 // whichever of its own axes runs out of the opening.
-instance uniform vec3 thrown = vec3(0.0);
+uniform vec3 thrown = vec3(0.0);
 // 1 where it pours in from under the open sky, which lights it; 0 under a deck.
-instance uniform float outdoor = 0.0;
+uniform float outdoor = 0.0;
 uniform float fall_speed = 3.5;
 // As the ship's indoor faces: the sky's ambient kept indoors, a lamp's light kept by a
 // face turned away from it.
