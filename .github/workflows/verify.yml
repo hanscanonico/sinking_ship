@@ -1,5 +1,9 @@
 # The merge gate, run for us instead of remembered: the same targets
-# `make verify` chains, in the same cheapest-first order.
+# `make verify` chains. The static gates run in one job; the suite is dealt
+# across parallel shards by tools/test_shards.py, balanced on
+# tests/durations.tsv — run in one engine it took over 70 minutes (SH34).
+# The `verify` job at the end is the one verdict: green only when every
+# other job is.
 name: verify
 
 on:
@@ -21,12 +25,10 @@ env:
   GODOT: bin/godot
 
 jobs:
-  verify:
+  static:
+    name: check, lint, format-check
     runs-on: ubuntu-24.04
-    # A guard against a hung engine, not a budget: the suite bakes whole sinkings
-    # and now runs past 30 minutes on a hosted runner (SH31 on main, SH32), and
-    # past 70 with the Titanic's night and her sisters (SH34).
-    timeout-minutes: 90
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
 
@@ -38,36 +40,7 @@ jobs:
       - name: Install gdtoolkit
         run: pip install "gdtoolkit==4.*"
 
-      # The engine links against these even with --headless.
-      - name: Install engine runtime libraries
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y --no-install-recommends \
-            libgl1 libx11-6 libxcursor1 libxinerama1 libxi6 libxrandr2
-
-      - name: Fetch Godot ${{ env.GODOT_VERSION }}
-        run: |
-          set -euo pipefail
-          url="https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}/Godot_v${GODOT_VERSION}_linux.x86_64.zip"
-          curl -sSfL -o /tmp/godot.zip "$url"
-          unzip -q /tmp/godot.zip -d /tmp/godot
-          mkdir -p bin
-          mv "/tmp/godot/Godot_v${GODOT_VERSION}_linux.x86_64" "$GODOT"
-          chmod +x "$GODOT"
-          "$GODOT" --headless --version
-
-      # Keyed on what an import actually depends on, so a run that only edits
-      # code reuses the cache and one that touches an asset rebuilds it.
-      - name: Cache imported assets
-        uses: actions/cache@v4
-        with:
-          path: .godot
-          key: godot-${{ env.GODOT_VERSION }}-import-${{ hashFiles('assets/**', 'data/**', '**/*.import', 'project.godot') }}
-
-      # First, and on a cache hit as well: a stale class cache surfaces as
-      # phantom parse errors in the very next step.
-      - name: Import assets
-        run: make import
+      - uses: ./.github/actions/setup-godot
 
       - name: check
         run: make check
@@ -78,5 +51,33 @@ jobs:
       - name: format-check
         run: make format-check
 
+  test:
+    name: test ${{ matrix.shard }}/6
+    runs-on: ubuntu-24.04
+    # A guard against a hung engine, not a budget: the longest shard is one
+    # script of about 13 minutes (test_flood_stepper.gd).
+    timeout-minutes: 40
+    strategy:
+      # Every shard reports, so one red run names every failing script.
+      fail-fast: false
+      matrix:
+        # Change the 6 in `--shard` and the job name with this list.
+        shard: [1, 2, 3, 4, 5, 6]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup-godot
+
       - name: test
-        run: make test
+        run: make test SHARD=${{ matrix.shard }}/6
+
+  verify:
+    needs: [static, test]
+    if: always()
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Every gate passed
+        run: |
+          echo "static: ${{ needs.static.result }}, test: ${{ needs.test.result }}"
+          test "${{ needs.static.result }}" = success
+          test "${{ needs.test.result }}" = success
