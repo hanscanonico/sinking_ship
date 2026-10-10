@@ -72,7 +72,7 @@ const reviewTrailerNote = trailers
 const implBrief = (t) => `Task slug: ${t.slug}\n\n${t.task}\n\n${trailerNote}${footerNote}`
 
 const retryBrief = (t, impl, review) => {
-	const worktree = (impl && impl.worktree) || `${REPO}/.claude/worktrees/improve-${t.slug}`
+	const worktree = (impl && impl.worktree) || `${REPO}-worktrees/improve-${t.slug}`
 	const branch = (impl && impl.branch) || `improve/${t.slug}`
 	const pr = impl && impl.pr_url ? `PR ${impl.pr_url}` : 'no PR yet'
 	const why = review

@@ -39,7 +39,7 @@ plumbing, small reads for triage.
 4. **Merge.** Read verdicts. **Merge only if the user has authorized merging**; otherwise
    leave PRs open and report them. Merge sequentially: `gh pr merge N --squash`; on a
    stale-branch error `gh pr update-branch N`, wait ~25s, retry. After each merged branch:
-   `git -C <main checkout> worktree remove .claude/worktrees/improve-<slug> --force` and
+   `git -C <main checkout> worktree remove /Users/hanscanonico/Projets/sinking_ship-worktrees/improve-<slug> --force` and
    delete the local branch.
 5. **QA.** After UI-touching work, once the repo has a `make smoke` capture sweep, spawn a
    `qa` agent over the main checkout: `make smoke`, then the frames read as images — a
