@@ -44,7 +44,19 @@ const BANDS := {
 		"gone within 20 min of physics": [30, 60],
 		"breaks (in two or three, SH33)": [0, 0],
 	},
+	"titanic":
+	{
+		"survives": [20, 40],
+		"founders upright, by the head or the stern": [35, 60],
+		"heavy list (≥ 15° for ≥ 5 min afloat)": [5, 25],
+		"capsizes (rolled past 90°)": [0, 5],
+		"gone within 20 min of physics": [0, 10],
+		"breaks (in two or three, SH33)": [1, 10],
+	},
 }
+## §5b.4's budgets — one bake's p95 and a match's bakes' p95 in seconds, the longest
+## timeline in bytes —, the steamer's but where a ship has her own (SH34: est.).
+const BUDGETS := {"titanic": [9.0, 20.0, 2000000]}
 const BAKE_BUDGET := 2.4
 const MATCH_BAKES_BUDGET := 5.0
 const SIZE_BUDGET := 200000
@@ -669,6 +681,7 @@ func _cost_section(raw: Array[Dictionary], chosen: Array[Dictionary]) -> PackedS
 			longest = choice
 	var sea := SeaPhysics.load_default()
 	var every := SinkBake.of(_structure, longest.damage, sea, _scenario.bake_cap)
+	var budgets: Array = BUDGETS.get(String(_ship), [BAKE_BUDGET, MATCH_BAKES_BUDGET, SIZE_BUDGET])
 	var lines := PackedStringArray()
 	lines.append("## What it costs (this machine, %s)" % OS.get_processor_name())
 	lines.append("")
@@ -690,11 +703,11 @@ func _cost_section(raw: Array[Dictionary], chosen: Array[Dictionary]) -> PackedS
 			(
 				"| one bake: p95 under %.1f s | p50 %.2f · p95 %.2f · most %.2f s | %s |"
 				% [
-					BAKE_BUDGET,
+					budgets[0],
 					_at(one, 0.5),
 					_at(one, 0.95),
 					_at(one, 1.0),
-					"in" if _at(one, 0.95) <= BAKE_BUDGET else "over",
+					"in" if _at(one, 0.95) <= budgets[0] else "over",
 				]
 			)
 		)
@@ -705,11 +718,11 @@ func _cost_section(raw: Array[Dictionary], chosen: Array[Dictionary]) -> PackedS
 			(
 				"| a match's bakes: p95 under %.1f s | p50 %.2f · p95 %.2f · most %.2f s | %s |"
 				% [
-					MATCH_BAKES_BUDGET,
+					budgets[1],
 					_at(per_match, 0.5),
 					_at(per_match, 0.95),
 					_at(per_match, 1.0),
-					"in" if _at(per_match, 0.95) <= MATCH_BAKES_BUDGET else "over",
+					"in" if _at(per_match, 0.95) <= budgets[1] else "over",
 				]
 			)
 		)
@@ -720,11 +733,11 @@ func _cost_section(raw: Array[Dictionary], chosen: Array[Dictionary]) -> PackedS
 			(
 				"| the longest timeline under %d kB | p50 %.1f · p95 %.1f · most %.1f kB | %s |"
 				% [
-					SIZE_BUDGET / 1000,
+					budgets[2] / 1000,
 					_at(sizes, 0.5) / 1e3,
 					_at(sizes, 0.95) / 1e3,
 					_at(sizes, 1.0) / 1e3,
-					"in" if _at(sizes, 1.0) <= SIZE_BUDGET else "over",
+					"in" if _at(sizes, 1.0) <= budgets[2] else "over",
 				]
 			)
 		)

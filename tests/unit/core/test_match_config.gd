@@ -138,7 +138,11 @@ func test_seat_bounds_follow_the_ship() -> void:
 
 func test_a_ship_is_named_and_struck_in_her_own_sea() -> void:
 	var match_rules := _rules()
-	assert_eq(Fleet.names(), PackedStringArray(["steamer", "trawler"]), "the fleet is data/ships/")
+	assert_eq(
+		Fleet.names(),
+		PackedStringArray(["steamer", "titanic", "trawler"]),
+		"the fleet is data/ships/"
+	)
 	assert_eq(Fleet.name_of(match_rules.ship), &"steamer", "the steamer stays the default")
 	var trawler := MatchConfig.from_rules(match_rules, 1701, 0, &"trawler")
 	assert_eq(trawler.ship, load("res://data/ships/trawler.tres"))
