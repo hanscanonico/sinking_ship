@@ -32,14 +32,17 @@ import:
 #   make match SEED=1701 [SEATS=] [SHIP=] [STOP=15:00] [HIT=]   bots only, headless, as a
 #       transcript; STOP is the match time the tool stops at and reports unfinished — a
 #       tool's limit, never a rule of the match; HIT=path/to/hit.tres strikes her with
-#       that explicit hit, past the must-sink rule (as `make capture HIT=` does)
+#       that explicit hit, past the must-sink rule (as `make capture HIT=` does), and
+#       HIT=NAME with the test fixtures' hit of that name, her own first (SHIP=titanic
+#       HIT=fast is tests/fixtures/sinking/hits/titanic_fast.tres)
 #   make capture SEED=1701 AT=60 [SEATS=] [SHIP=] [EYE=] [CUT=0] [CELLS=1] [SIDE=port] [HIT=] [CAPTURE=] [ARGS=]
 #       a windowed bots-only match saved as a PNG at AT seconds of match time
 #       (or its end), then quit: from the observer camera, or through seat EYE's
 #       eyes; CUT cuts the observer's view of the ship away at and above that
 #       height to show the inside; CELLS draws the ship's cells over the observer's
-#       view, every one named, each filled to its water's level; HIT=path.tres strikes
-#       her with that explicit hit (a fast one shows a late stage soon); SIDE=port
+#       view, every one named, each filled to its water's level; HIT=path.tres (or a
+#       fixture hit's NAME, as for match) strikes her with that explicit hit (a fast one
+#       shows a late stage soon); SIDE=port
 #       watches her from her port side rather than her starboard; ARGS passes more
 #       user args, e.g. ARGS=--net-sim=latency:120,jitter:20,loss:5. Not part of
 #       verify: it needs a display.
@@ -248,7 +251,7 @@ hits:
 	@set -o pipefail; $(GODOT) --headless --no-header --path . -s res://tools/hits.gd \
 		-- $(if $(SHIP),--ship=$(SHIP)) --seeds=$(SEEDS) | grep -v '^\[godot_ai'
 
-# `make bake SEED=1701 [SHIP=] [HIT=path.tres]`: a seed's sinking alone, no match played (§5b.4):
+# `make bake SEED=1701 [SHIP=] [HIT=path.tres|NAME]`: a seed's sinking alone, no match played (§5b.4):
 # the hit the must-sink rule chose (or HIT='s), how it came to it, every event of the
 # bake in physics time, how she ends and her labels, and what the bake cost and the
 # timeline weighs. Headless. Rules live in tools/bake.gd.
@@ -304,8 +307,8 @@ verify: check ship-check bake-check lint format-check test
 # under tests/fixtures/ships/ and held to them the same way: TEST_HULLS, each as
 # SHIP:FIXTURE:FLAG — the steamer's weak hull (SH33), the Titanic's sisters (SH34).
 GENERATED = $(patsubst tools/gen_%.py,%,$(wildcard tools/gen_*.py))
-TEST_HULLS = steamer:steamer_weak:--weak titanic:olympic_1913:--variant=olympic1913 \
-	titanic:britannic:--variant=britannic
+TEST_HULLS = steamer:steamer_weak:--weak titanic:titanic_olympic_1913:--variant=olympic1913 \
+	titanic:titanic_britannic:--variant=britannic
 ship:
 	@for ship in $(if $(SHIP),$(SHIP),$(GENERATED)); do \
 		python3 tools/gen_$$ship.py data/ships/$$ship.tres || exit 1; done

@@ -267,8 +267,11 @@ func test_the_nights_damage_is_the_inquirys() -> void:
 	# BOT: damage "at about 10 feet above the level of the keel", from the forepeak to
 	# No. 5 boiler room "at 2 feet from the watertight bulkhead between Nos. 5 and 6";
 	# Wilding, 20422: the holes' aggregate area "somewhere about 12 square feet". Its
-	# total area is part 2's calibration value: as a discharge area (× 0.6) 0.67 m², in
-	# the research's 0.5–1.1 m².
+	# total area — every hole the bake opens, the firemen's passage's with her shell's — is
+	# the calibration value (R32): as a discharge area (× 0.6) in the research's 0.5–1.1
+	# m², at its foot so that she lasts the night as long as her data lets her
+	# (test_titanic_night.gd); about 9 square feet, the foot of the 9–15 that test holds
+	# her to.
 	var hit: IcebergHit = load(NIGHT)
 	var bulkhead_e := _walls[4]
 	assert_eq(hit.side, 1, "her starboard side")
@@ -276,8 +279,10 @@ func test_the_nights_damage_is_the_inquirys() -> void:
 	assert_gt(hit.end_x(), _walls[0].at, "into her forepeak")
 	var over_keel := _structure.waterline_y - hit.depth_start - _structure.keel_y
 	assert_almost_eq(over_keel, 10.0 * 0.3048, 0.1, "about 10 ft over her keel")
-	var area := hit.width * hit.length
-	assert_almost_eq(area, 12.0 * 0.3048 * 0.3048, 0.01, "about 12 square feet")
+	var scenario: SinkScenario = load("res://data/sinking/titanic_open_sea.tres")
+	var area := HitMapper.map_explicit(hit, _structure, scenario.hit).area()
+	gut.p("the night's holes: %.3f m², %.1f ft²" % [area, area / (0.3048 * 0.3048)])
+	assert_almost_eq(area, 9.0 * 0.3048 * 0.3048, 0.01, "about 9 square feet")
 	assert_between(area * _sea.discharge, 0.5, 1.1, "a discharge area in the research's band")
 
 
@@ -312,9 +317,11 @@ func test_her_sisters_carry_their_bulkheads() -> void:
 	# The Shipbuilder, 1914: Britannic's "sixteen transverse bulkheads, five of which
 	# extend to a height of over 40 feet above the deepest load-line", and "a complete
 	# inner skin" along her boiler and engine rooms; the Olympic altered "by the
-	# introduction of an inner skin". Test-only hulls, never in the fleet.
-	for sister: String in ["olympic_1913", "britannic"]:
-		var layout: ShipLayout = load("res://tests/fixtures/ships/%s.tres" % sister)
+	# introduction of an inner skin". Test-only hulls, played by name as her variants,
+	# never in the fleet.
+	for sister: String in ["titanic_olympic_1913", "titanic_britannic"]:
+		var layout := Fleet.layout(StringName(sister))
+		assert_not_null(layout, "%s plays by name" % sister)
 		var structure := layout.structure
 		assert_eq(structure.problems(), PackedStringArray(), "%s's structure loads" % sister)
 		var bulkheads := 0
@@ -327,7 +334,7 @@ func test_her_sisters_carry_their_bulkheads() -> void:
 			bulkheads += 1
 			if wall.top > 0.0:
 				raised += 1
-		assert_eq(bulkheads, 16 if sister == "britannic" else 15, "%s's bulkheads" % sister)
+		assert_eq(bulkheads, 16 if sister == "titanic_britannic" else 15, "%s's bulkheads" % sister)
 		assert_eq(raised, 5, "%s: five carried over C deck" % sister)
 		assert_gt(skin, 0, "%s: an inner skin" % sister)
 		assert_false(Fleet.names().has(sister), "the fleet never lists %s" % sister)

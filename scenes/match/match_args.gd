@@ -1,7 +1,7 @@
 class_name MatchArgs
 extends RefCounted
 ## The user arguments a match host takes after `--`:
-##   --seed=N  --seats=N  --ship=NAME  --scenario=NAME  --stop=MM:SS  --hit=PATH  --fast
+##   --seed=N  --seats=N  --ship=NAME  --scenario=NAME  --stop=MM:SS  --hit=PATH|NAME  --fast
 ##   --autoplay
 ##   --capture=PATH
 ##   --capture-at=S
@@ -17,10 +17,11 @@ extends RefCounted
 ## (steamer_coast, whose ship it names when --ship does not); --stop (or --seconds, in
 ## seconds) is the match time a headless run is stopped at and reported unfinished — a
 ## tool's limit, never a rule of the match; --hit strikes her with the explicit hit
-## the IcebergHit at PATH is, past the must-sink rule (§5b.1), so a tool can play a
-## chosen sinking; --fast plays her sinking on the match data's fast_clock — the
-## menu's Fast sinking, ticked —, with --scenario and --hit as with neither;
-## --autoplay presses its
+## the IcebergHit at PATH is — or the one called NAME among the test fixtures' hits, hers
+## (--ship=titanic --hit=night is titanic_night) before any ship's (fast) —, past the
+## must-sink rule (§5b.1), so a tool can play a chosen sinking; --fast plays her sinking
+## on the match data's fast_clock — the menu's Fast sinking, ticked —, with --scenario
+## and --hit as with neither; --autoplay presses its
 ## Play, and without it --capture saves the menu. A capture is taken from the
 ## observer camera unless --capture-eye names the seat whose eyes it looks through;
 ## --observer opens the observer camera for QA, --observer-cut cuts its view of
@@ -52,6 +53,10 @@ extends RefCounted
 ## with --autoplay a bot, headless, whose creator starts the match once --start-at
 ## players are in.
 
+## The explicit hits a tool can name (--hit=NAME): the test fixtures', each a ship's
+## NAME_HIT or any ship's HIT.
+const HITS := "res://tests/fixtures/sinking/hits/%s.tres"
+
 ## -1 when not given: the host picks one.
 var seed_value: int = -1
 ## 0 when not given: the match data's seat count.
@@ -64,7 +69,8 @@ var scenario_name: StringName = &""
 ## How much match time a headless run may take before it stops, unfinished (STOP=,
 ## est. 15:00).
 var seconds: float = 900.0
-## An explicit hit's .tres to strike her with; empty for the match's own.
+## An explicit hit to strike her with, its .tres or its name among HITS; empty for the
+## match's own.
 var hit_path: String = ""
 ## Her sinking on the match data's fast_clock (MatchConfig.quickened): the menu's
 ## Fast sinking, ticked.
@@ -186,10 +192,18 @@ func _setting() -> SinkScenario:
 	return load(scenario_name) as SinkScenario
 
 
+## --hit's IcebergHit: the .tres it gives, or by name one of HITS — her own, her fleet
+## ship's for a test-only one (titanic_britannic strikes as titanic), then any ship's.
 func _hit() -> IcebergHit:
-	if not ResourceLoader.exists(hit_path):
+	var path := hit_path
+	if not hit_path.contains("/"):
+		for owner: StringName in [ship(), Fleet.ship_of(ship()), &""]:
+			path = HITS % (hit_path if owner.is_empty() else "%s_%s" % [owner, hit_path])
+			if ResourceLoader.exists(path):
+				break
+	if not ResourceLoader.exists(path):
 		return null
-	return load(hit_path) as IcebergHit
+	return load(path) as IcebergHit
 
 
 static func parse(args: PackedStringArray) -> MatchArgs:

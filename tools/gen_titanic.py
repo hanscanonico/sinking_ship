@@ -18,8 +18,8 @@ Her decks are laid flat at their amidships heights (the inquiry's table); her sh
 lives in her bulkhead tops, her stepped forecastle and poop, and nowhere else.
 
 `--variant=olympic1913` and `--variant=britannic` write her sisters as test-only hulls
-(tests/fixtures/ships/olympic_1913.tres, britannic.tres), never in the menu's fleet: the
-same hull with their bulkhead data — five bulkheads carried up to B deck and an inner
+(tests/fixtures/ships/titanic_olympic_1913.tres, titanic_britannic.tres), played by name
+as her variants are but never in the menu's fleet: the same hull with their bulkhead data — five bulkheads carried up to B deck and an inner
 skin along her boiler and engine rooms; Britannic's a sixteenth bulkhead too.
 
 Usage: tools/gen_titanic.py <out.tres> [--variant=olympic1913|--variant=britannic]
@@ -1031,6 +1031,24 @@ cell("b_deck", A_RUN[0], B_RUN[1], B_DECK, A_DECK, -HALF, HALF, "ACCOMMODATION")
 for name, (x0, x1, half, foot, roof) in zip(["a_deck", "officers_house", "staircase_house"], HOUSES):
     cell(name, x0, x1, foot, roof, -half, half, "ACCOMMODATION")
 
+# Each cell drawn in to her shell's widest within it: her water's surface across a cell
+# is the box's, so a box as wide as her midships in her fine ends and over her bilge
+# would give her flooded bow a free surface several times what her lines leave it, and
+# with it a list she never had (R23). The box still holds every bit of her hull in it.
+def widest(x0, x1, y0, y1):
+    reach = 0.0
+    for x, length, outline in sections:
+        if min(x1, x + length * 0.5) - max(x0, x - length * 0.5) <= 0:
+            continue
+        part = clip(clip(outline, 1, y1, True), 1, y0, False)
+        reach = max([reach] + [abs(z) for z, _y in part])
+    return math.ceil(reach * 16 - 1e-9) / 16
+
+for c in CELLS:
+    reach = widest(c[1], c[2], c[3], c[4])
+    c[5], c[6] = round(max(c[5], -reach), 4), round(min(c[6], reach), 4)
+    assert c[5] < c[6], ("a cell outside her", c[0])
+
 # Her sisters' inner skin (SB-1914): along her boiler and engine rooms each cell from
 # her tank top to F deck (est.) narrowed to inside it, a wing outside it either side of
 # each compartment, nobody's. The skin stands its width inside her shell where her
@@ -1179,12 +1197,20 @@ for k, (letter, z) in enumerate(VERTICAL_DOORS):
 # never shut by the ship (Boxhall's evidence, in BOT: "The watertight doors on F deck at
 # the fore and after ends of No. 3 compartment were not closed then"): on F deck in the
 # bulkheads from C to J, E deck's in those from K to O (est.: one each, 6 m to port); the one in bulkhead H between the third-class saloons is the layout's.
+# Her sisters' shut from the bridge with their vertical doors (est.: the bulkheads they
+# carried up through those decks after 1912, SB-1914, would hold nothing with a door left
+# open in them), weeping and giving way as those do.
+def deck_door(letter, deck):
+    if not variant:
+        return dict(starts="OPEN")
+    return dict(starts="OPEN", shuts_at_hit=True, shut_time=30.0, flip_chance=0.05, leak_head=TOPS[letter] - deck,
+                collapse_head=1.5 * (TOPS[letter] - deck), leak_area=0.005)
 for letter in "CDEFGJ":
     across("wtd_f_" + letter.lower(), "WATERTIGHT_DOOR", BX[letter], F_DECK + LINTEL * 0.5, -6.0, LINTEL, DOOR,
-           starts="OPEN")
+           **deck_door(letter, F_DECK))
 for letter in "KLMNO":
     across("wtd_e_" + letter.lower(), "WATERTIGHT_DOOR", BX[letter], E_DECK + LINTEL * 0.5, -6.0, LINTEL, DOOR,
-           starts="OPEN")
+           **deck_door(letter, E_DECK))
 # Each boiler room's forward cross bunker: its door to the stokehold at the plates,
 # shut — boiler room 5's "was closed when water was seen to be entering the ship" and
 # later burst, "weaker than the bunker bulkhead" (BOT) — est. 1 m square, 2 ft over the
@@ -1227,7 +1253,8 @@ for axis, at, d0, d1, foot in doorways:
     merged[key] = [centre, (d1 - d0) * LINTEL, size]
 for (a, b, axis, face, foot), (centre, area, size) in merged.items():
     if axis == 0 and face in bulkhead_x and b is not None:
-        opening("wtd_%s_%s" % (a, b), "WATERTIGHT_DOOR", a, b, centre, size, starts="OPEN")
+        letter = next(bulkhead[0] for bulkhead in BULKHEADS if round(bulkhead[1], 4) == face)
+        opening("wtd_%s_%s" % (a, b), "WATERTIGHT_DOOR", a, b, centre, size, **deck_door(letter, foot))
         continue
     tag = "door_%s_%s" % (a, b or SKY)
     single = abs(area - size[1] * (size[0] + size[2])) < 1e-6
@@ -1240,7 +1267,8 @@ opening("door_forecastle", "DOOR", "forecastle", SKY, (FCSL_FROM, 0.06 + 0.75, 6
 opening("open_d_deck", "OPEN", piece("d_deck", B_RUN[1] - 0.01), "d_deck_forward", (B_RUN[1], D_DECK * 0.5, 0.0),
         (0, -D_DECK, 2 * fit(B_RUN[1] - 0.5, B_RUN[1] + 0.5, D_DECK, 0.0)), starts="OPEN")
 opening("open_forecastle", "OPEN", "forecastle", "forecastle_head", (FCSL_STEP, FCSL[0] * 0.5, 0.0),
-        (0, FCSL[0], 2 * fit(FCSL_STEP - 0.5, FCSL_STEP, FCSL[0] * 0.5, 0.0)), starts="OPEN")
+        (0, FCSL[0], 2 * min(fit(FCSL_STEP - 0.5, FCSL_STEP, FCSL[0] * 0.5, 0.0), cell_box("forecastle_head")[5])),
+        starts="OPEN")
 
 # Over each watertight wall that stops short of the deck, the gap water spills over.
 for letter, x, *_rest in BULKHEADS:
@@ -1261,7 +1289,8 @@ for letter, x, *_rest in BULKHEADS:
 AIR_PIPE = 0.008  # a tank's 100 mm air pipe (est., as the steamer's)
 for c in CELLS:
     if c[0].startswith("db_") or c[0].endswith("_tank"):
-        through("pipe_" + c[0], "VENT", (c[1] + c[2]) * 0.5, -5.0, 0.09, 0.09, c[0], area=AIR_PIPE, starts="OPEN")
+        through("pipe_" + c[0], "VENT", (c[1] + c[2]) * 0.5, max(-5.0, c[5] * 0.5), 0.09, 0.09, c[0], area=AIR_PIPE,
+                starts="OPEN")
 WIDE = 4.0
 for name, x, z, size, kind in [
     ("forepeak", 120.0, 0.0, 1.0, "STAIRWELL"), ("forepeak_d", 118.0, 0.0, 1.0, "STAIRWELL"),
@@ -1372,8 +1401,9 @@ for c in CELLS:
     else:
         continue
     pieces = max(1, math.ceil((c[2] - c[1]) / 30.0 - 1e-9))
+    reach = min(widest(c[1], c[2], c[3], c[4]), HALF)
     for side, sign in [("p", -1), ("s", 1)]:
-        if (sign < 0 and c[5] > -HALF + 1e-6) or (sign > 0 and c[6] < HALF - 1e-6):
+        if (sign < 0 and c[5] > -reach + 1e-6) or (sign > 0 and c[6] < reach - 1e-6):
             continue
         for k in range(pieces):
             a, b = lerp(c[1], c[2], k / pieces) + 0.5, lerp(c[1], c[2], (k + 1) / pieces) - 0.5
@@ -1455,13 +1485,14 @@ LIFEBOATS += [("collapsible_a", 1, 62.0, 15.0), ("collapsible_b", -1, 62.0, 15.0
 # ft. long ... at the level of the inner bottom"), drowned by 1 m of water over their
 # feet, stopped past 22.5° of list (SOLAS, rolling) or 15° of trim and running again 3°
 # back within both; her two 30 kW emergency sets (BOT: "on a platform in the turbine
-# engine room casing on saloon deck level"), steam-fed, est. 15 minutes once the mains
-# stop, lighting her passages, stairways and boat deck (BOT: "500 incandescent lamps
+# engine room casing on saloon deck level"), steam-fed from her boiler rooms, est. a
+# minute of steam in their pipes once the mains stop — her lights went as she broke, the
+# night's did within a couple of minutes of it (the research's gate) —, lighting her passages, stairways and boat deck (BOT: "500 incandescent lamps
 # ... at the end of passages, and near stairways, also on the Boat deck").
 FUNNELS_FIT = [dict(name="funnel_%d" % (k + 1), base=(x, BOAT, 0.0), height=FUNNEL_TOP - BOAT,
                     radius=FUNNEL_RADIUS, list=28.0, trim=15.0, fall=3.0) for k, x in enumerate(FUNNELS)]
 GENERATOR = dict(name="generators", base=(-75.6, TANK_TOP, 0.0), drowns=1.0, list=22.5, trim=15.0, recovers=3.0,
-                 minutes=15.0, emergency=["staircase_house", "officers_house", "a_deck", "b_deck", "c_deck", "d_deck"])
+                 minutes=1.0, emergency=["staircase_house", "officers_house", "a_deck", "b_deck", "c_deck", "d_deck"])
 GENERATOR["cell"] = cell_at(GENERATOR["base"][0], GENERATOR["base"][1] + 0.01, GENERATOR["base"][2])
 # A cell a sister's bulkhead cut is lit in every piece of it.
 GENERATOR["emergency"] = [c[0] for name in GENERATOR["emergency"] for c in CELLS
@@ -1478,11 +1509,13 @@ for name, x, rate in [("pump_br5", 44.0, BIG), ("pump_br3", 9.0, BIG), ("pump_br
     PUMPS.append((name, cell_at(x, TANK_TOP + 0.5, 0.0), round(rate, 5)))
 # The bending her hull carries (§5b.1, the research after the Marine Forensics Panel):
 # 4.6 GN·m hogging where she failed, at boiler rooms 1–2 (± 15 %); sagging est. at the
-# steamer's ratio. She can break at her two expansion joints, which keep its whole (est.:
-# the 4.6 GN·m is already what her girder held where she failed, at boiler rooms 1–2,
-# some 10 m forward of the aft joint over boiler room 1's after end).
+# steamer's ratio. She can break where she failed, over boiler room 2 where her flooded
+# bow bends her most (x −7.5 m, 138 m from her stem), keeping est. 0.93 of it — 4.28
+# GN·m, inside the research's ± 15 % — and at her two expansion joints, which keep its
+# whole (est.: nothing in the plates or the research weakens them further).
 STRENGTH = (4.6e9, 4.6e9 * 110 / 120)
-WEAK_SPOTS = [(name, x, 1.0) for name, x in JOINTS]
+WEAK_SPOTS = sorted([(name, x, 1.0) for name, x in JOINTS] + [("boiler_rooms_1_2", -7.5, 0.93)],
+                    key=lambda spot: spot[1])
 # Where along her and up her shell an iceberg's gash can be at all (est.): clear of her
 # stem and her rudder post, from 0.2 m over her keel to 0.2 m under C deck.
 HIT_ZONE_X = (X_AP + 4.0, X_FP - 2.0)
