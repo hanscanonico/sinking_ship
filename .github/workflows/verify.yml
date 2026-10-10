@@ -45,6 +45,9 @@ jobs:
       - name: check
         run: make check
 
+      - name: guard-check
+        run: make guard-check
+
       - name: lint
         run: make lint
 
