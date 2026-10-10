@@ -55,12 +55,12 @@ extends RefCounted
 ## with --autoplay a bot, headless, whose creator starts the match once --start-at
 ## players are in.
 
-## The explicit hits a tool can name (--hit=NAME): the test fixtures', each a ship's
-## NAME_HIT or any ship's HIT.
 ## --goal's names for the match goals (MatchRules.Goal).
 const GOALS := {
 	"last_standing": MatchRules.Goal.LAST_STANDING, "survival": MatchRules.Goal.SURVIVAL
 }
+## The explicit hits a tool can name (--hit=NAME): the test fixtures', each a ship's
+## NAME_HIT or any ship's HIT.
 const HITS := "res://tests/fixtures/sinking/hits/%s.tres"
 
 ## -1 when not given: the host picks one.

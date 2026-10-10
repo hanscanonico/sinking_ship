@@ -1,5 +1,5 @@
 extends GutTest
-## A survival match told as `make match` tells it (SS3): seed 1, eight bots, struck by the
+## A survival match told as `make match` tells it (#62): seed 1, eight bots, struck by the
 ## fast explicit hit and played on the fast clock — what
 ##   make match SEED=1 HIT=fast FAST=1 GOAL=survival
 ## prints. Its transcript is recorded per platform, as the golden match is (R6):

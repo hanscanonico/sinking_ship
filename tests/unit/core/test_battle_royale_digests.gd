@@ -1,5 +1,5 @@
 extends GutTest
-## The battle royale must not change while other goals join it (SS1–SS3): a fixed set of
+## The battle royale must not change while other goals join it (#60–#62): a fixed set of
 ## bots-only matches under the default data's goal, struck by the fast explicit hit,
 ## played to a fixed stop — seed 1 past its end — keep the digests recorded before the
 ## goals came. Recorded per platform, as the golden match is (R6):

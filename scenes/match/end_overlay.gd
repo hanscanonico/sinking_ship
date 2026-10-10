@@ -13,8 +13,10 @@ signal rematch_requested
 signal menu_requested
 
 const HEADINGS: Array[String] = ["Place", "Seat", "Time dry", "Shoves landed", "Knock-outs"]
-## The time column's heading under survival: a seat's time in is the score.
-const SURVIVED := "Survived"
+## The same under survival, where a seat's time in is the score.
+const SURVIVAL_HEADINGS: Array[String] = [
+	"Place", "Seat", "Survived", "Shoves landed", "Knock-outs"
+]
 const LOCAL_COLOUR := Color(1.0, 0.85, 0.3)
 ## How long the buttons ignore presses once the results show: Space and pad A both
 ## jump and accept, so a jump mashed as the match ends must not rematch unseen. A
@@ -77,8 +79,8 @@ func show_results(
 		_table.remove_child(child)
 		child.queue_free()
 	_table.columns = HEADINGS.size()
-	for heading in HEADINGS:
-		_cell(SURVIVED if survival and heading == HEADINGS[2] else heading, UiTheme.MUTED)
+	for heading in SURVIVAL_HEADINGS if survival else HEADINGS:
+		_cell(heading, UiTheme.MUTED)
 	for line: MatchStats.SeatStats in stats.standings():
 		var colour := LOCAL_COLOUR if line.seat == local_seat else UiTheme.TEXT
 		_cell(ordinal(line.place), colour)

@@ -1,5 +1,5 @@
 extends GutTest
-## Survival (SS1): a second goal beside the battle royale. Everyone tries to stay in as
+## Survival (#60): a second goal beside the battle royale. Everyone tries to stay in as
 ## long as possible while she sinks, so a lone seat left plays on until her sinking is
 ## over — end_tick() — or until it goes out; the places are still the order seats go out
 ## in.
