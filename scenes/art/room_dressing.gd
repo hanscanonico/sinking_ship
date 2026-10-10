@@ -62,6 +62,9 @@ const HEADROOM := 1.85
 ## would fill the view.
 const NEAR_FADE := Vector2(0.3, 0.6)
 const PIPE_SIDES := 8
+## A passenger room longer or broader than this hangs a pendant under each square of
+## this side it is cut into (lights()).
+const LAMP_SPACING := 12.0
 ## A berth slung overhead: its length and its depth out from its wall.
 const BERTH := Vector2(1.9, 0.7)
 ## The longest piece a furnishing's box is drawn in.
@@ -297,8 +300,9 @@ static func _linings(kind: Kind) -> Array[ShipMesh.Paint]:
 	return paints
 
 
-## The lights [param room] is lit by: a pendant under the middle of its ceiling, but
-## in an engine room (EngineRoom) or a hold (CargoHold) their own.
+## The lights [param room] is lit by: a pendant under the middle of its ceiling — of
+## each LAMP_SPACING square of a great room's — but in an engine room (EngineRoom) or a
+## hold (CargoHold) their own.
 func lights(room: ShipRoom) -> Array[Light]:
 	var found: Array[Light] = []
 	var area := room.area
@@ -309,7 +313,16 @@ func lights(room: ShipRoom) -> Array[Light]:
 		Kind.HOLD:
 			found = _hold.lights(room)
 	if found.is_empty():
-		found.append(Light.new(under_ceiling(_space, room, middle), ShipLamp.Kind.PENDANT))
+		# A pendant under the middle of each LAMP_SPACING square of it: one in all but a
+		# liner's great rooms.
+		var across := Vector2i(
+			maxi(1, ceili(area.size.x / LAMP_SPACING)), maxi(1, ceili(area.size.y / LAMP_SPACING))
+		)
+		for i in across.x:
+			for j in across.y:
+				var share := Vector2((i + 0.5) / across.x, (j + 0.5) / across.y)
+				var at := area.position + area.size * share
+				found.append(Light.new(under_ceiling(_space, room, at), ShipLamp.Kind.PENDANT))
 	return found
 
 

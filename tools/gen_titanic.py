@@ -626,6 +626,10 @@ wall_x("wheelhouse_aft", 63.0, -OFFICERS[2], OFFICERS[2], BOAT, BOAT + HOUSE_TOP
 for tag, z in [("p", -OFFICERS[2]), ("s", OFFICERS[2])]:
     wall_z("officers_" + tag, z, OFFICERS[0], OFFICERS[1], BOAT, BOAT + HOUSE_TOP,
            [door_at(44.0), door_at(58.0), door_at(66.5)])
+# Each house roofed over, a slab on its walls' tops as the trawler's wheelhouse is (no
+# deck of anyone's: nobody climbs there); funnel 1 rises through the officers' house's.
+box("officers_roof", OFFICERS[0] - T, OFFICERS[1] + T, -OFFICERS[2] - T, OFFICERS[2] + T,
+    BOAT + HOUSE_TOP - 2 * T, BOAT + HOUSE_TOP)
 room("officers", "officers' quarters", OFFICERS[0], 63.0, -OFFICERS[2], OFFICERS[2], BOAT)
 room("wheelhouse", "wheelhouse", 63.0, OFFICERS[1], -OFFICERS[2], OFFICERS[2], BOAT)
 GYM = (17.4, GS[0])
@@ -634,6 +638,8 @@ wall_x("gs_boat_aft", GS[0], -6.0, 6.0, BOAT, BOAT + HOUSE_TOP, [door_at(0.0)])
 wall_x("gs_boat_fwd", GS[1], -6.0, 6.0, BOAT, BOAT + HOUSE_TOP)
 for tag, z in [("p", -6.0), ("s", 6.0)]:
     wall_z("gs_house_" + tag, z, GYM[0], GS[1], BOAT, BOAT + HOUSE_TOP, [door_at(19.1), door_at(30.0)])
+box("gs_house_roof", GYM[0] - T, GS[1] + T, -6.0 - T, 6.0 + T,
+    BOAT + HOUSE_TOP - 2 * T, BOAT + HOUSE_TOP)
 room("gym", "gymnasium", GYM[0], GYM[1], -6.0, 6.0, BOAT)
 room("gs_boat", "grand staircase, boat deck", GS[0], GS[1], -6.0, 6.0, BOAT)
 for k, x in enumerate(FUNNELS):

@@ -370,3 +370,12 @@ static func _minus(rect: Rect2, cut: Rect2) -> Array[Rect2]:
 		var depth := rect.end.y - overlap.end.y
 		pieces.append(Rect2(middle.x, overlap.end.y, middle.y - middle.x, depth))
 	return pieces
+
+
+## Whether [param blocker] roofs a room over: its middle over some room's floor.
+func roofs(blocker: ShipBlocker) -> bool:
+	var middle := blocker.area.get_center()
+	for room: ShipRoom in layout.rooms:
+		if room.area.has_point(middle) and room.floor_height < blocker.bottom:
+			return true
+	return false

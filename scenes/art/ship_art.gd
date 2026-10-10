@@ -819,13 +819,13 @@ func _blocker(mesh: ShipMesh, blocker: ShipBlocker, pieces: Dictionary) -> void:
 			# deck's top itself.
 			for bare: Rect2 in _space.uncovered(area, blocker.top):
 				mesh.box(bare, top, blocker.top, ShipPaints.wall, ShipMesh.TOP | ShipMesh.SIDES)
-	elif _space.outdoors(Vector3(centre.x, (blocker.bottom + top) * 0.5, centre.y)):
-		DeckWorks.hatch(mesh, area, blocker.bottom, top)
-	elif blocker.top - blocker.bottom <= ShipSpace.WALL_MAX:
+	elif blocker.top - blocker.bottom <= ShipSpace.WALL_MAX and _space.roofs(blocker):
 		# A slab over a room, no deck of its own: its roof, planked over its ceiling.
 		mesh.box(area, blocker.bottom, top, ShipPaints.deck, ShipMesh.TOP)
 		var faces := ShipMesh.ALL_FACES & ~ShipMesh.TOP
 		_lined_box(mesh, area, blocker.bottom, top, ShipPaints.wall, faces, faces)
+	elif _space.outdoors(Vector3(centre.x, (blocker.bottom + top) * 0.5, centre.y)):
+		DeckWorks.hatch(mesh, area, blocker.bottom, top)
 
 
 ## A box as ShipMesh.box() draws it in [param paint] — [param faces] of it — each
