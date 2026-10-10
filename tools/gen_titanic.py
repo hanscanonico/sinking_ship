@@ -39,7 +39,9 @@ PLATES = {
     # boat deck and promenade deck A.
     # Internet Archive the_shipbuilder_special_numbers_images_201909, leaf n316, Public
     # Domain Mark 1.0. Read off the 5510-px scan at 5.785 px a foot, x from her after
-    # perpendicular (the rudder post), heights from her drawn 34 ft 7 in waterline.
+    # perpendicular (the rudder post), heights from her drawn 34 ft 7 in waterline. The
+    # px given below are in the elevation cut from that scan at x 200–5420, y 820–1460:
+    # add 200 for the scan's own column.
     "SB-III": "The Shipbuilder 1911, Plate III (elevation; boat and promenade decks)",
     # The same number's Plate IV (leaf n318): bridge, shelter, saloon and upper decks.
     "SB-IV": "The Shipbuilder 1911, Plate IV (decks B-E)",
@@ -1476,7 +1478,9 @@ for name, x, rate in [("pump_br5", 44.0, BIG), ("pump_br3", 9.0, BIG), ("pump_br
     PUMPS.append((name, cell_at(x, TANK_TOP + 0.5, 0.0), round(rate, 5)))
 # The bending her hull carries (§5b.1, the research after the Marine Forensics Panel):
 # 4.6 GN·m hogging where she failed, at boiler rooms 1–2 (± 15 %); sagging est. at the
-# steamer's ratio. She can break at her two expansion joints, which keep its whole.
+# steamer's ratio. She can break at her two expansion joints, which keep its whole (est.:
+# the 4.6 GN·m is already what her girder held where she failed, at boiler rooms 1–2,
+# some 10 m forward of the aft joint over boiler room 1's after end).
 STRENGTH = (4.6e9, 4.6e9 * 110 / 120)
 WEAK_SPOTS = [(name, x, 1.0) for name, x in JOINTS]
 # Where along her and up her shell an iceberg's gash can be at all (est.): clear of her

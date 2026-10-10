@@ -118,9 +118,9 @@ func _cells_of(flooded: Array[int]) -> Array[FloodCell]:
 
 ## Her rest with compartments [param flooded] open to the sea: their cells filled to its
 ## plane, her lift found again, until the two agree.
-func _float(flooded: Array[int]) -> Floated:
+func _float(flooded: Array[int], given: Array[FloodCell] = []) -> Floated:
 	var made := Floated.new()
-	var cells := _cells_of(flooded)
+	var cells := given if not given.is_empty() else _cells_of(flooded)
 	var own := _own
 	var centre := _structure.mass_centre()
 	var whole := Hydrostatics.cut_hull(_structure.sections, Hydrostatics.level(INF)).volume
@@ -279,6 +279,29 @@ func test_the_nights_damage_is_the_inquirys() -> void:
 	var area := hit.width * hit.length
 	assert_almost_eq(area, 12.0 * 0.3048 * 0.3048, 0.01, "about 12 square feet")
 	assert_between(area * _sea.discharge, 0.5, 1.1, "a discharge area in the research's band")
+
+
+func test_the_inquirys_counterfactual_bulkhead_to_c_deck_floats_her() -> void:
+	# BOT, "Watertight subdivision": "with the bulkhead abaft No. 5 boiler room carried
+	# to C deck the ship would have remained afloat if the compartments certainly known
+	# to have been damaged had been flooded" (Scarrott, 518) — the night's six, at the
+	# night's draught. Bulkhead F raised to C deck, the six are one space under it:
+	# every cell between her bow and F under C deck, her double bottom kept. Without it
+	# (above) the first five already founder.
+	var bulkhead_f := _walls[5]
+	var cells: Array[FloodCell] = []
+	for cell: FloodCell in _structure.cells:
+		var middle := (float(cell.low.x) + cell.high.x) * 0.5
+		if middle <= bulkhead_f.at or cell.low.y >= 0.0:
+			continue
+		if String(cell.name).begins_with("db_"):
+			continue
+		cells.append(cell)
+	var made := _float([0, 1, 2, 3, 4, 5] as Array[int], cells)
+	var spare := -made.sea.depth(bulkhead_f.at, 0.0, 0.0) if made.sea != null else -INF
+	gut.p("the night's six under C deck: C deck at F %.2f m over the sea" % spare)
+	assert_true(made.rests, "she comes to rest")
+	assert_gt(spare, 0.0, "the sea stays under C deck at bulkhead F")
 
 
 func _trim_deg(made: Floated) -> float:
