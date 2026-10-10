@@ -236,6 +236,7 @@ func build(
 		func(_point: Vector3) -> bool: return false, _space.room_lines()
 	)
 	furnishings.cut_above = cut_above
+	furnishings.keep = span
 	furnishings.fading = _dressing.overhead
 	var dressed := Node3D.new()
 	dressed.name = "Dressing"
@@ -480,6 +481,7 @@ func _crate_marks(mesh: ShipMesh, half: float, height: float) -> void:
 func _mesh() -> ShipMesh:
 	var mesh := ShipMesh.new(_outdoors, _space.room_lines())
 	mesh.cut_above = cut_above
+	mesh.keep = span
 	return mesh
 
 
@@ -802,6 +804,11 @@ func _blocker(mesh: ShipMesh, blocker: ShipBlocker, pieces: Dictionary) -> void:
 		)
 		if not is_nan(deck) and blocker.bottom - deck > DOOR_FROM:
 			_door_frame(mesh, blocker, deck)
+		if top < blocker.top:
+			# Where the deck laid on it stops short of its edge, it stands up to the
+			# deck's top itself.
+			for bare: Rect2 in _uncovered(area, blocker.top):
+				mesh.box(bare, top, blocker.top, ShipPaints.wall, ShipMesh.TOP | ShipMesh.SIDES)
 	elif _space.outdoors(Vector3(centre.x, (blocker.bottom + top) * 0.5, centre.y)):
 		DeckWorks.hatch(mesh, area, blocker.bottom, top)
 	elif blocker.top - blocker.bottom <= ShipSpace.WALL_MAX:
@@ -809,6 +816,41 @@ func _blocker(mesh: ShipMesh, blocker: ShipBlocker, pieces: Dictionary) -> void:
 		mesh.box(area, blocker.bottom, top, ShipPaints.deck, ShipMesh.TOP)
 		var faces := ShipMesh.ALL_FACES & ~ShipMesh.TOP
 		_lined_box(mesh, area, blocker.bottom, top, ShipPaints.wall, faces, faces)
+
+
+## The parts of [param area] no platform at [param height] covers.
+func _uncovered(area: Rect2, height: float) -> Array[Rect2]:
+	var bare: Array[Rect2] = [area]
+	for platform: ShipPlatform in _space.layout.platforms:
+		if not is_equal_approx(platform.height, height):
+			continue
+		var left: Array[Rect2] = []
+		for rect: Rect2 in bare:
+			left.append_array(_minus(rect, platform.area))
+		bare = left
+	return bare
+
+
+## [param rect] with [param cut] taken out of it: up to four rectangles.
+static func _minus(rect: Rect2, cut: Rect2) -> Array[Rect2]:
+	var overlap := rect.intersection(cut)
+	if not overlap.has_area():
+		return [rect]
+	var pieces: Array[Rect2] = []
+	var x0 := rect.position.x
+	var x1 := rect.end.x
+	if overlap.position.x > x0 + ShipSpace.SLIVER:
+		pieces.append(Rect2(x0, rect.position.y, overlap.position.x - x0, rect.size.y))
+	if overlap.end.x < x1 - ShipSpace.SLIVER:
+		pieces.append(Rect2(overlap.end.x, rect.position.y, x1 - overlap.end.x, rect.size.y))
+	var middle := Vector2(overlap.position.x, overlap.end.x)
+	if overlap.position.y > rect.position.y + ShipSpace.SLIVER:
+		var depth := overlap.position.y - rect.position.y
+		pieces.append(Rect2(middle.x, rect.position.y, middle.y - middle.x, depth))
+	if overlap.end.y < rect.end.y - ShipSpace.SLIVER:
+		var depth := rect.end.y - overlap.end.y
+		pieces.append(Rect2(middle.x, overlap.end.y, middle.y - middle.x, depth))
+	return pieces
 
 
 ## A box as ShipMesh.box() draws it in [param paint] — [param faces] of it — each

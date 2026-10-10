@@ -17,7 +17,10 @@ extends SceneTree
 ##   lifeboats beside an open edge, and the hull's ends all the way out past the end
 ##   railings. And through every railing span, broken, the opening it leaves stands
 ##   open as drawn: nothing across it between a step over its deck and a body's
-##   height, from its line out to a body's breadth past it.
+##   height, from its line out to a body's breadth past it. Steel her structure has
+##   stands where it stands, though: within STRUCTURE_TOLERANCE of a section's
+##   outline — the plating and the bulwark where a deck stops short of her shell
+##   (SectionHull) — it is no false floor, and nothing across an opening.
 ## - The hull against the structure (§5b.2), on every ship that has one: every point
 ##   of every section's outline below the sheer within HULL_TOLERANCE of a drawn face,
 ##   across the outline there; and every pane of glass the art sets in an outside wall
@@ -73,6 +76,10 @@ const LADDER_TOLERANCE := 0.05
 ## its opening.
 const HULL_TOLERANCE := 0.05
 const PANE_TOLERANCE := 0.05
+## How far along her from a section's x its outline is probed.
+const HULL_NUDGE := 0.01
+## How near a section's outline a face stands to be her structure's own steel.
+const STRUCTURE_TOLERANCE := 0.05
 ## How far past a platform's edge the false-floor probes stand, how far apart along
 ## it, and how near upright a face must turn to read as floor; past an edge that
 ## ends the decks, probes stand BEYOND_STEP apart out to END_BEYOND, past the stem
@@ -342,7 +349,9 @@ func _check_hull(
 			var middle := (from + to) * 0.5
 			# Counter-clockwise in (z, y): out of the outline is the stretch turned right.
 			var out := Vector3(0.0, -(to.x - from.x), to.y - from.y).normalized()
-			var at := Vector3(section.x, middle.y, middle.x)
+			# A hair along her from the section's own x: a loft drawn from section to
+			# section has an edge there, which a ray down it can slip between.
+			var at := Vector3(section.x + HULL_NUDGE, middle.y, middle.x)
 			var off := _nearest_face(faces, cells, at, out)
 			if off > worst:
 				worst = off
@@ -418,6 +427,10 @@ func _check_false_floor(art: ShipArt, file: String, layout: ShipLayout, rules: B
 		for point in _beyond(platform.area, ends):
 			if _floor_near(layout, point, low, high):
 				continue
+			if [low, platform.height, high].any(
+				func(y: float) -> bool: return _in_structure(layout, Vector3(point.x, y, point.y))
+			):
+				continue
 			var facing := _top_facing(faces, cells, Vector3(point.x, high, point.y), low)
 			if facing > FLOOR_FACING:
 				_problems.append(
@@ -481,7 +494,7 @@ func _check_open_spans(file: String, layout: ShipLayout, rules: BrawlRules) -> v
 				)
 				out += OPENING_STEP * 0.5
 		for segment: PackedVector3Array in segments:
-			if _blocked(faces, cells, spans, index, remains, segment):
+			if _blocked(faces, cells, spans, index, remains, segment, layout):
 				_problems.append(
 					(
 						"art-lint: %s railing %d: drawn face across its opening, broken, on %s"
@@ -506,14 +519,16 @@ func _along_span(railing: ShipRailing) -> PackedVector2Array:
 
 
 ## Whether [param segment] (from, to) crosses a face of [param faces] — but those of
-## span [param broken], per [param spans] — or one of [param remains].
+## span [param broken], per [param spans], and [param layout]'s structure's own steel
+## (_in_structure()) — or one of [param remains].
 func _blocked(
 	faces: PackedVector3Array,
 	cells: Dictionary,
 	spans: PackedInt32Array,
 	broken: int,
 	remains: PackedVector3Array,
-	segment: PackedVector3Array
+	segment: PackedVector3Array,
+	layout: ShipLayout
 ) -> bool:
 	var from := segment[0]
 	var to := segment[1]
@@ -533,8 +548,30 @@ func _blocked(
 				var hit: Variant = Geometry3D.segment_intersects_triangle(
 					from, to, faces[index], faces[index + 1], faces[index + 2]
 				)
-				if hit != null:
+				if hit != null and not _in_structure(layout, hit):
 					return true
+	return false
+
+
+## Whether [param point] stands within STRUCTURE_TOLERANCE of [param layout]'s
+## structure: inside or on the outline of a section cut across her there or of its
+## neighbour that way — her shell is lofted from one section's middle to the next.
+func _in_structure(layout: ShipLayout, point: Vector3) -> bool:
+	if layout.structure == null:
+		return false
+	var across := Vector2(point.z, point.y)
+	for section: HullSection in layout.structure.sections:
+		if absf(point.x - section.x) > section.length + STRUCTURE_TOLERANCE:
+			continue
+		var outline := section.outline
+		if Geometry2D.is_point_in_polygon(across, outline):
+			return true
+		for index in outline.size():
+			var a := outline[index]
+			var b := outline[(index + 1) % outline.size()]
+			var nearest := Geometry2D.get_closest_point_to_segment(across, a, b)
+			if nearest.distance_to(across) <= STRUCTURE_TOLERANCE:
+				return true
 	return false
 
 
@@ -728,7 +765,9 @@ func _check_blocker(
 ) -> void:
 	_checks += 1
 	var probes: Array[Array] = []
-	var span := blocker.top - blocker.bottom
+	# A deck laid on its top stands in its planks' depth there: the deck's to draw.
+	var top := blocker.top - (ShipArt.PLANK if ShipSpace.new(layout).deck_on(blocker) else 0.0)
+	var span := top - blocker.bottom
 	var heights: Array[float] = [
 		blocker.bottom + span * 0.25, blocker.bottom + span * 0.5, blocker.bottom + span * 0.75
 	]

@@ -44,6 +44,8 @@ const NARROW := 0.3
 const OUTDOOR_LAYER := 3
 ## Lengths below this are float noise.
 const SLIVER := 0.005
+## How far past the stretch kept (keep) a piece may reach and still be drawn.
+const KEEP_MARGIN := 0.5
 
 
 ## What a face is painted with outdoors, and indoors.
@@ -80,6 +82,10 @@ class Batch:
 ## Ship-local height: a piece wholly at or above it is not drawn — the observer's
 ## cut-away; ship.gdshaderinc trims what straddles it.
 var cut_above := INF
+## The stretch along her, x from aft to fore, that is drawn: a piece wholly KEEP_MARGIN
+## or more past either end of it is not — a broken hull's piece draws its own stretch
+## alone (ShipArt.span), its paints trimming what straddles the cut (PieceClip).
+var keep := Vector2(-INF, INF)
 ## (piece: AABB) -> bool, ship space, when set: whether a piece — what one call
 ## draws, a box, a cylinder, a face — fades out near the eye (ship_near.gdshader).
 var fading := Callable()
@@ -124,6 +130,8 @@ func box(
 	head := NAN
 ) -> void:
 	if top - bottom < SLIVER or area.size.x < SLIVER or area.size.y < SLIVER:
+		return
+	if not kept(area.position.x, area.end.x):
 		return
 	foot = bottom if is_nan(foot) else foot
 	head = top if is_nan(head) else head
@@ -307,6 +315,8 @@ func quad(
 ) -> void:
 	if minf(minf(a.y, b.y), minf(c.y, d.y)) >= cut_above:
 		return
+	if not kept(minf(minf(a.x, b.x), minf(c.x, d.x)), maxf(maxf(a.x, b.x), maxf(c.x, d.x))):
+		return
 	var batch := _batch_for((a + c) * 0.5, normal, paint)
 	var outdoors: bool = _last_outdoors
 	var colour := paint.colour if outdoors else paint.colour_in
@@ -384,6 +394,9 @@ func smooth_quad(
 	var lowest := minf(minf(corners[0].y, corners[1].y), minf(corners[2].y, corners[3].y))
 	if lowest >= cut_above:
 		return
+	var aft := minf(minf(corners[0].x, corners[1].x), minf(corners[2].x, corners[3].x))
+	if not kept(aft, maxf(maxf(corners[0].x, corners[1].x), maxf(corners[2].x, corners[3].x))):
+		return
 	var facing := (normals[0] + normals[1] + normals[2] + normals[3]).normalized()
 	var batch := _batch_for((corners[0] + corners[2]) * 0.5, facing, paint)
 	var colour := paint.colour if _last_outdoors else paint.colour_in
@@ -411,6 +424,9 @@ func triangle(
 ) -> void:
 	if minf(corners[0].y, minf(corners[1].y, corners[2].y)) >= cut_above:
 		return
+	var aft := minf(corners[0].x, minf(corners[1].x, corners[2].x))
+	if not kept(aft, maxf(corners[0].x, maxf(corners[1].x, corners[2].x))):
+		return
 	var batch := _batch_for((corners[0] + corners[1] + corners[2]) / 3.0, normal, paint)
 	var colour := paint.colour if _last_outdoors else paint.colour_in
 	var normals := PackedVector3Array()
@@ -424,6 +440,11 @@ func triangle(
 	if (corners[1] - corners[0]).cross(corners[2] - corners[0]).dot(normal) > 0.0:
 		order = PackedInt32Array([0, 2, 1])
 	_emit(batch, order, corners, normals, colour, uvs, uv2s)
+
+
+## Whether a piece from [param aft] to [param fore] along her reaches the stretch kept.
+func kept(aft: float, fore: float) -> bool:
+	return fore >= keep.x - KEEP_MARGIN and aft <= keep.y + KEEP_MARGIN
 
 
 ## Every batch as a mesh instance under [param parent].

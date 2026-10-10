@@ -777,14 +777,20 @@ func _lifeboats(mesh: ShipMesh, ship: Node3D, paints: Dictionary) -> void:
 				PackedFloat32Array(), PackedFloat32Array(), PackedFloat32Array()
 			]
 			var hung := ShipMesh.new(func(_point: Vector3) -> bool: return true, no_rooms)
+			hung.keep = mesh.keep
 			var pivot := Vector3.ZERO
+			var hanging := false
 			for boat in count:
 				var at := area.position.x + area.size.x * (boat + 0.5) / count
+				# A boat wholly off the stretch drawn (ShipMesh.keep) hangs elsewhere.
+				if not mesh.kept(at - LIFEBOAT_LENGTH * 0.5, at + LIFEBOAT_LENGTH * 0.5):
+					continue
+				hanging = true
 				_boat(hung, Vector3(at, keel, middle))
 				for end: float in [-1.0, 1.0]:
 					var davit := at + end * (LIFEBOAT_LENGTH * 0.5 - 0.35)
 					pivot = _davit(mesh, hung, davit, edge, middle, platform.height, side)
-			if ship != null:
+			if ship != null and hanging:
 				var run := Lifeboat.new()
 				ship.add_child(run)
 				run.setup(int(side), pivot, hung, paints, _layout)
