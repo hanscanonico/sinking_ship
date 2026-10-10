@@ -1,8 +1,10 @@
 class_name EndOverlay
 extends CanvasLayer
 ## The results, once the match has ended: the local seat's verdict — "Last one
-## dry!" or "Overboard — 4th of 6" — then every seat's place, time dry, shoves
-## landed and knock-outs credited, all from MatchStats and so from the events
+## dry!" or "Overboard — 4th of 6", or under survival how long it lasted and its place,
+## "Survived 02:14.0 · 3rd" — then every seat's place, time dry (time survived, under
+## survival), shoves landed and knock-outs credited, all from MatchStats and so from the
+## events
 ## alone (D5), with rematch and back to the menu — or, online, back to the room and
 ## leave (offer_room) — on a plate over the world dimmed under a scrim, the HUDs having
 ## stood down.
@@ -11,6 +13,8 @@ signal rematch_requested
 signal menu_requested
 
 const HEADINGS: Array[String] = ["Place", "Seat", "Time dry", "Shoves landed", "Knock-outs"]
+## The time column's heading under survival: a seat's time in is the score.
+const SURVIVED := "Survived"
 const LOCAL_COLOUR := Color(1.0, 0.85, 0.3)
 ## How long the buttons ignore presses once the results show: Space and pad A both
 ## jump and accept, so a jump mashed as the match ends must not rematch unseen. A
@@ -51,14 +55,17 @@ func _ready() -> void:
 
 
 ## Shows [param stats] once they say the match has ended. [param names] labels
-## each seat; [param match_seed] is printed so the match can be typed back in.
+## each seat; [param match_seed] is printed so the match can be typed back in;
+## [param survival] says the match was survival (MatchRules.Goal).
 func show_results(
-	stats: MatchStats, local_seat: int, names: PackedStringArray, match_seed: int
+	stats: MatchStats, local_seat: int, names: PackedStringArray, match_seed: int, survival := false
 ) -> void:
 	if visible or not stats.ended:
 		return
 	var mine := stats.seats[local_seat]
-	if stats.winner == local_seat:
+	if survival:
+		_title.text = survived(mine.dry_ticks, mine.place)
+	elif stats.winner == local_seat:
 		_title.text = "Last one dry!"
 	elif stats.seats.size() == 1:
 		_title.text = "Overboard — you stayed dry %s" % MatchTranscript.clock(mine.dry_ticks)
@@ -71,7 +78,7 @@ func show_results(
 		child.queue_free()
 	_table.columns = HEADINGS.size()
 	for heading in HEADINGS:
-		_cell(heading, UiTheme.MUTED)
+		_cell(SURVIVED if survival and heading == HEADINGS[2] else heading, UiTheme.MUTED)
 	for line: MatchStats.SeatStats in stats.standings():
 		var colour := LOCAL_COLOUR if line.seat == local_seat else UiTheme.TEXT
 		_cell(ordinal(line.place), colour)
@@ -118,6 +125,11 @@ func _accept_presses() -> void:
 	_menu.disabled = false
 	if visible:
 		_rematch.grab_focus()
+
+
+## A seat's survival, as its title says it: "Survived 02:14.0 · 3rd".
+static func survived(ticks: int, place: int) -> String:
+	return "Survived %s · %s" % [MatchTranscript.clock(ticks), ordinal(place)]
 
 
 static func ordinal(place: int) -> String:

@@ -93,3 +93,17 @@ func test_the_menu_picks_the_pace_and_a_hit_keeps_it() -> void:
 	assert_eq(typed.scenario.clock, rules.fast_clock, "a typed seed too")
 	var started := _next_match(PackedStringArray(["--fast"])).config()
 	assert_eq(started.scenario.clock, rules.fast_clock, "--fast ticks it at first")
+
+
+## The menu's Survival, ticked, makes a survival match; unticked, the battle royale —
+## whatever seed, typed or drawn.
+func test_the_menus_survival_picks_the_goal() -> void:
+	var rules: MatchRules = load(MATCH_DATA)
+	var next := _next_match(PackedStringArray())
+	var royale := next.chosen(rules.seats, rules.bot_tier, "")
+	assert_eq(royale.goal, MatchRules.Goal.LAST_STANDING, "unticked by default")
+	var survival := next.chosen(rules.seats, rules.bot_tier, "", false, true)
+	assert_eq(survival.goal, MatchRules.Goal.SURVIVAL)
+	var typed := next.chosen(rules.seats, rules.bot_tier, "7", true, true)
+	assert_eq(typed.goal, MatchRules.Goal.SURVIVAL, "a typed seed, fast, too")
+	assert_eq(typed.scenario.clock, rules.fast_clock)

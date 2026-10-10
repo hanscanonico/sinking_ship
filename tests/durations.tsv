@@ -5,6 +5,7 @@ tests/unit/ai/test_bot_cargo.gd	0
 tests/unit/ai/test_bot_floors.gd	3
 tests/unit/ai/test_bot_footing.gd	0
 tests/unit/ai/test_bot_profile.gd	0
+tests/unit/ai/test_bot_survival.gd	5
 tests/unit/ai/test_bot_swim.gd	0
 tests/unit/ai/test_bot_view.gd	21
 tests/unit/ai/test_intents.gd	5
@@ -77,6 +78,7 @@ tests/unit/core/test_stamina.gd	1
 tests/unit/core/test_steamer_flooding.gd	461
 tests/unit/core/test_surfaces.gd	15
 tests/unit/core/test_survival.gd	1
+tests/unit/core/test_survival_transcript.gd	60
 tests/unit/core/test_swimming.gd	1
 tests/unit/core/test_ticks.gd	0
 tests/unit/core/test_titanic_night.gd	238

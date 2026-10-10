@@ -111,7 +111,9 @@ func _process(delta: float) -> void:
 			_cells[at].show_water(pose.of_piece(piece), _view.piece_to_world(at))
 	_hud.show_spectating(_spectating(snapshot, viewed))
 	_hud.show_controls(_prompts if _local != null else null)
-	_end.show_results(_stats, _local_seat, _names, _config.match_seed)
+	_end.show_results(
+		_stats, _local_seat, _names, _config.match_seed, _config.goal == MatchRules.Goal.SURVIVAL
+	)
 	if _end.visible:
 		_end.show_prompts(_prompts)
 	_free.keep(_can_fly(snapshot))

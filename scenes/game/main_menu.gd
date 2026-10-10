@@ -1,15 +1,18 @@
 class_name MainMenu
 extends CanvasLayer
 ## Play vs bots: every ship of the Fleet, the seat counts the picked one takes, every
-## bot tier there is a profile for, a seed — blank for a random one — and whether she
-## sinks fast, handed on as they stand.
+## bot tier there is a profile for, a seed — blank for a random one —, whether she
+## sinks fast and whether the match is survival (MatchRules.Goal), handed on as they
+## stand.
 ## Game turns them into a match through MatchConfig.from_menu (D13). Beside it, Play
 ## online opens the Online screen (SH12). It stands over the ship at dusk
 ## (MenuBackdrop) under the wordmark in her livery: cream on a boot-top red rule
 ## between brass lines — and the online screens stand over the same, its own panel put
 ## away (show_behind).
 
-signal play_requested(ship: StringName, seats: int, tier: StringName, seed_text: String, fast: bool)
+signal play_requested(
+	ship: StringName, seats: int, tier: StringName, seed_text: String, fast: bool, survival: bool
+)
 ## The picker has moved to [param ship], by name.
 signal ship_picked(ship: StringName)
 signal online_requested
@@ -21,6 +24,7 @@ signal quit_requested
 @onready var _tier: OptionButton = %Tier
 @onready var _seed: LineEdit = %Seed
 @onready var _fast: CheckButton = %Fast
+@onready var _survival: CheckButton = %Survival
 @onready var _problem: Label = %Problem
 @onready var _play: Button = %Play
 @onready var _panel: PanelContainer = $Panel
@@ -46,15 +50,17 @@ func _ready() -> void:
 
 ## Offers the Fleet's ships, the seat counts the picked one takes and the tiers under
 ## data/bots/, with [param ship], [param seats], [param tier] and [param seed_text]
-## chosen where offered — [param match_rules]' ship and seat count where not —, and
-## Fast sinking ticked when [param fast], over [param match_rules]' ship.
+## chosen where offered — [param match_rules]' ship and seat count where not —, Fast
+## sinking ticked when [param fast] and Survival when [param survival], over
+## [param match_rules]' ship.
 func setup(
 	match_rules: MatchRules,
 	ship: StringName,
 	seats: int,
 	tier: StringName,
 	seed_text: String,
-	fast := false
+	fast := false,
+	survival := false
 ) -> void:
 	_backdrop.show_ship(match_rules)
 	_ship.clear()
@@ -74,6 +80,7 @@ func setup(
 			_tier.select(_tier.item_count - 1)
 	_seed.text = seed_text
 	_fast.button_pressed = fast
+	_survival.button_pressed = survival
 
 
 func open() -> void:
@@ -153,5 +160,10 @@ func _on_ship_picked(_index: int) -> void:
 func _on_play() -> void:
 	var tier := StringName(_tier.get_item_text(_tier.selected)) if _tier.selected != -1 else &""
 	play_requested.emit(
-		picked_ship(), _seats.get_selected_id(), tier, _seed.text, _fast.button_pressed
+		picked_ship(),
+		_seats.get_selected_id(),
+		tier,
+		_seed.text,
+		_fast.button_pressed,
+		_survival.button_pressed
 	)

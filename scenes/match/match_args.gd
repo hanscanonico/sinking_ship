@@ -2,6 +2,7 @@ class_name MatchArgs
 extends RefCounted
 ## The user arguments a match host takes after `--`:
 ##   --seed=N  --seats=N  --ship=NAME  --scenario=NAME  --stop=MM:SS  --hit=PATH|NAME  --fast
+##   --goal=last_standing|survival
 ##   --autoplay
 ##   --capture=PATH
 ##   --capture-at=S
@@ -21,7 +22,8 @@ extends RefCounted
 ## (--ship=titanic --hit=night is titanic_night) before any ship's (fast) —, past the
 ## must-sink rule (§5b.1), so a tool can play a chosen sinking; --fast plays her sinking
 ## on the match data's fast_clock — the menu's Fast sinking, ticked —, with --scenario
-## and --hit as with neither; --autoplay presses its
+## and --hit as with neither; --goal=survival plays survival (MatchRules.Goal) — the
+## menu's Survival, ticked —, the battle royale without it; --autoplay presses its
 ## Play, and without it --capture saves the menu. A capture is taken from the
 ## observer camera unless --capture-eye names the seat whose eyes it looks through;
 ## --observer opens the observer camera for QA, --observer-cut cuts its view of
@@ -55,6 +57,10 @@ extends RefCounted
 
 ## The explicit hits a tool can name (--hit=NAME): the test fixtures', each a ship's
 ## NAME_HIT or any ship's HIT.
+## --goal's names for the match goals (MatchRules.Goal).
+const GOALS := {
+	"last_standing": MatchRules.Goal.LAST_STANDING, "survival": MatchRules.Goal.SURVIVAL
+}
 const HITS := "res://tests/fixtures/sinking/hits/%s.tres"
 
 ## -1 when not given: the host picks one.
@@ -75,6 +81,9 @@ var hit_path: String = ""
 ## Her sinking on the match data's fast_clock (MatchConfig.quickened): the menu's
 ## Fast sinking, ticked.
 var fast: bool = false
+## What the match is played for, by --goal's name (GOALS); the battle royale unless told.
+var goal := MatchRules.Goal.LAST_STANDING
+var _goal_name := ""
 ## A bot plays the local seat, and nobody waits at the menu.
 var autoplay: bool = false
 var capture_path: String = ""
@@ -178,6 +187,8 @@ func problems() -> PackedStringArray:
 		found.append("--scenario: %s is no scenario of %s" % [scenario_name, ship()])
 	if not hit_path.is_empty() and _hit() == null:
 		found.append("--hit: %s is not an IcebergHit" % hit_path)
+	if not _goal_name.is_empty() and not GOALS.has(_goal_name):
+		found.append("--goal: %s is no goal; one of %s" % [_goal_name, ", ".join(GOALS.keys())])
 	return found
 
 
@@ -227,6 +238,9 @@ static func parse(args: PackedStringArray) -> MatchArgs:
 				parsed.hit_path = value
 			"--fast":
 				parsed.fast = true
+			"--goal":
+				parsed._goal_name = value
+				parsed.goal = GOALS.get(value, MatchRules.Goal.LAST_STANDING)
 			"--autoplay":
 				parsed.autoplay = true
 			"--capture":

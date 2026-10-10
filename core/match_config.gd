@@ -77,7 +77,8 @@ static func from_rules(
 ## [param ship_name] of the Fleet, or the data's ship when blank (from_rules). Null
 ## when a choice is one the data does not offer: a ship the Fleet has not, a seat count
 ## outside her min_seats…max_seats, or a seed that is not a whole number. [param fast]
-## is the menu's Fast sinking.
+## is the menu's Fast sinking; [param goal] its Survival, as a MatchRules.Goal — the
+## data's when negative.
 static func from_menu(
 	match_rules: MatchRules,
 	seat_count: int,
@@ -85,7 +86,8 @@ static func from_menu(
 	seed_text: String,
 	seeds: RandomNumberGenerator,
 	ship_name := &"",
-	fast := false
+	fast := false,
+	goal := -1
 ) -> MatchConfig:
 	var layout := match_rules.ship if ship_name.is_empty() else Fleet.layout(ship_name)
 	if layout == null or seat_count < layout.min_seats or seat_count > layout.max_seats:
@@ -101,6 +103,8 @@ static func from_menu(
 		fast
 	)
 	config.bot_tier = tier
+	if goal >= 0:
+		config.goal = goal as MatchRules.Goal
 	return config
 
 
