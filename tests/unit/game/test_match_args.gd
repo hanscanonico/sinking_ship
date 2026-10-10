@@ -49,3 +49,15 @@ func test_a_ship_the_fleet_has_not_is_a_problem() -> void:
 	var problems := MatchArgs.parse(PackedStringArray(["--ship=ark"])).problems()
 	assert_eq(problems.size(), 1)
 	assert_string_contains(problems[0], "no ship called ark")
+
+
+func test_fast_is_parsed_and_off_by_default() -> void:
+	assert_false(MatchArgs.parse(PackedStringArray()).fast, "normal unless asked")
+	var args := MatchArgs.parse(PackedStringArray(["--fast", "--hit=" + FAST_HIT]))
+	assert_true(args.fast)
+	var scenario: SinkScenario = load(SCENARIO)
+	var struck := args.struck(scenario, 2.0)
+	assert_eq(struck.explicit_hit, load(FAST_HIT), "--hit and --fast together")
+	assert_eq(struck.clock, 2.0, "on the fast clock")
+	assert_eq(scenario.clock, 1.0, "the loaded scenario untouched")
+	assert_eq(MatchArgs.parse(PackedStringArray()).struck(scenario), scenario)

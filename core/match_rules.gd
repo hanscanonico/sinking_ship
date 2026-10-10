@@ -14,6 +14,9 @@ extends Resource
 @export var rules: BrawlRules
 @export var ship: ShipLayout
 @export var sinking: SinkScenario
+## The scenario clock a fast match plays at (Q20): physics seconds per match second,
+## the same sinking played that many times quicker.
+@export var fast_clock: float = 2.0
 
 
 func problems() -> PackedStringArray:
@@ -24,6 +27,8 @@ func problems() -> PackedStringArray:
 		found.append("match: humans must be within 0…seats")
 	if countdown < 0.0:
 		found.append("match: countdown must not be negative")
+	if fast_clock <= 1.0:
+		found.append("match: fast_clock must be over 1")
 	if rules == null or ship == null or sinking == null:
 		found.append("match: rules, ship and sinking are all required")
 	elif seats < ship.min_seats or seats > ship.max_seats:

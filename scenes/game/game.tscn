@@ -132,9 +132,18 @@ text = "Seed"
 
 [node name="Seed" type="LineEdit" parent="MainMenu/Panel/Box/Choices"]
 unique_name_in_owner = true
-focus_neighbor_bottom = NodePath("../../Buttons/Play")
+focus_neighbor_bottom = NodePath("../Fast")
 size_flags_horizontal = 3
 placeholder_text = "random"
+
+[node name="FastLabel" type="Label" parent="MainMenu/Panel/Box/Choices"]
+text = "Sinking"
+
+[node name="Fast" type="CheckButton" parent="MainMenu/Panel/Box/Choices"]
+unique_name_in_owner = true
+focus_neighbor_bottom = NodePath("../../Buttons/Play")
+size_flags_horizontal = 3
+text = "Fast sinking"
 
 [node name="Problem" type="Label" parent="MainMenu/Panel/Box"]
 unique_name_in_owner = true

@@ -234,3 +234,56 @@ func test_a_physics_lurch_is_warned_before_it_swings() -> void:
 	assert_ne(heel, 0.0, "by so many degrees")
 	assert_eq(schedule.pose_at(lurched - 1).lurch_warning, heel, "the pose telegraphs it")
 	assert_eq(schedule.pose_at(lurched).lurch, heel, "and names it as it swings")
+
+
+func test_the_clock_plays_the_same_sinking_sooner() -> void:
+	# A fast match's scenario (MatchConfig.quickened) plays the bake it would have played
+	# on its own clock: every moment of it after the hit lands at half the match time.
+	var layout := SimFixtures.steamer()
+	var scenario: SinkScenario = load(SimFixtures.STEAMER_SINKING).duplicate()
+	scenario.explicit_hit = load("res://tests/fixtures/sinking/hits/fast.tres")
+	var sea := SeaPhysics.load_default()
+	var chosen := MustSink.given(layout.structure, scenario, sea)
+	var quick := MatchConfig.quickened(scenario, 2.0)
+	var schedules: Array[SinkSchedule] = []
+	for played: SinkScenario in [scenario, quick]:
+		schedules.append(
+			SinkSchedule.new(
+				played,
+				layout.freeboard,
+				SeedStreams.derive(SEED, "sink"),
+				layout.structure,
+				sea,
+				chosen
+			)
+		)
+	var normal := schedules[0]
+	var fast := schedules[1]
+	assert_eq(fast.hit_tick(), normal.hit_tick(), "the hit stays where it was")
+	for seconds: float in [10.0, 60.0, 600.0]:
+		assert_eq(
+			fast.physics_tick(seconds) - fast.hit_tick(),
+			Ticks.from_seconds(seconds / 2.0),
+			"physics %.0f s lands at half that after the hit" % seconds
+		)
+	assert_almost_eq(
+		float(fast.end_tick() - fast.hit_tick()), (normal.end_tick() - normal.hit_tick()) / 2.0, 1.0
+	)
+	var normal_events := _event_ticks(normal)
+	var fast_events := _event_ticks(fast)
+	assert_eq(fast_events.size(), normal_events.size(), "the same events")
+	for index in normal_events.size():
+		assert_almost_eq(
+			float(fast_events[index] - fast.hit_tick()),
+			(normal_events[index] - normal.hit_tick()) / 2.0,
+			1.0
+		)
+
+
+## The ticks [param schedule]'s events land on, in order, to its end.
+func _event_ticks(schedule: SinkSchedule) -> Array[int]:
+	var ticks: Array[int] = []
+	for tick in schedule.end_tick() + 1:
+		for _event: SimEvent in schedule.events_at(tick):
+			ticks.append(tick)
+	return ticks

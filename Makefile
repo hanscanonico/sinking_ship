@@ -70,20 +70,22 @@ CUT ?=
 CELLS ?=
 SIDE ?=
 ARGS ?=
+FAST ?=
 SCREEN ?=
 RES ?=
 PHYS ?=
 JUMP ?=
 CAPTURE ?= $(CURDIR)/captures/match_$(SEED)_$(AT)$(if $(PHYS),phys$(subst :,-,$(PHYS)))$(if $(EYE),_eye$(EYE))$(if $(CUT),_cut$(CUT))$(if $(CELLS),_cells)$(if $(SCREEN),_$(SCREEN)).png
 match-args = $(if $(SEED),--seed=$(SEED)) $(if $(SEATS),--seats=$(SEATS)) $(if $(SHIP),--ship=$(SHIP)) \
-	$(if $(SCENARIO),--scenario=$(SCENARIO)) $(if $(HIT),--hit=$(HIT))
+	$(if $(SCENARIO),--scenario=$(SCENARIO)) $(if $(HIT),--hit=$(HIT)) $(if $(FAST),--fast)
 
+# FAST=1 plays her sinking on the match data's fast_clock (the menu's Fast sinking).
 run:
 	$(call require-godot)
 	$(GODOT) --path . -- $(match-args) $(ARGS)
 
 # The engine helper autoload prints one line of its own on every boot; it is
-# filtered so stdout is the transcript alone.
+# filtered so stdout is the transcript alone. FAST=1 as for run.
 match:
 	$(call require-godot)
 	@set -o pipefail; $(GODOT) --headless --no-header --path . -s res://tools/run_match.gd \
