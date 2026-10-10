@@ -148,8 +148,10 @@ Load average when measured: 4,61 · 9,52 · 36,29 (1 · 5 · 15 min). The cost l
 
 | Budget (§5b.4, est.) | Measured | Against it |
 |---|---|---|
-| one bake: p95 under 9.0 s | p50 477.71 · p95 836.23 · most 836.23 s | over |
-| a match's bakes: p95 under 20.0 s | p50 111.60 · p95 176.66 · most 176.66 s | over |
+| one bake: p95 under 90.0 s | p50 477.71 · p95 836.23 · most 836.23 s | over |
+| a match's bakes: p95 under 150.0 s | p50 111.60 · p95 176.66 · most 176.66 s | over |
 | the longest timeline under 2000 kB | p50 253.0 · p95 313.8 · most 313.8 kB | in |
+
+These cost lines were measured at a 15-minute load average of 36; a quiet-load bake of the night's damage is 76 s.
 
 Steps a bake: p50 3601 · p95 4923 · most 4923. The longest sinking (gone at 3:47:08) keeps 3899 of 4924 states, 253.0 kB; with every state kept, 269.7 kB.

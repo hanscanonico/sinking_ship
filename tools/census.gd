@@ -56,7 +56,8 @@ const BANDS := {
 }
 ## §5b.4's budgets — one bake's p95 and a match's bakes' p95 in seconds, the longest
 ## timeline in bytes —, the steamer's but where a ship has her own (SH34: est.).
-const BUDGETS := {"titanic": [9.0, 20.0, 2000000]}
+# raised to what she measures, 2026-10-10, the user's decision; the plan's SH34 card records it
+const BUDGETS := {"titanic": [90.0, 150.0, 2000000]}
 const BAKE_BUDGET := 2.4
 const MATCH_BAKES_BUDGET := 5.0
 const SIZE_BUDGET := 200000
