@@ -25,7 +25,9 @@ func test_the_survival_transcript_says_its_goal_and_who_was_in_at_the_plunge() -
 	assert_eq(lines[0], "goal survival", "it says its goal first")
 	var plunge := Array(lines).filter(func(line: String) -> bool: return "at the plunge" in line)
 	assert_eq(plunge.size(), 1, "and how many seats were in at the plunge")
-	var outs := Array(lines).filter(func(line: String) -> bool: return " out · " in line)
+	var outs := Array(lines).filter(
+		func(line: String) -> bool: return " seat " in line and " out · " in line
+	)
 	assert_eq(outs.size(), 8, "every seat goes out with its place")
 
 
