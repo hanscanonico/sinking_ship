@@ -12,11 +12,16 @@ const WALL_MAX := 0.3
 const FULL_WALL := 1.9
 ## A margin round a room's box when judging whether a point stands in it.
 const INSIDE := 0.02
+## How far past a room roof() is asked of; a superset is no harm.
+const ROOF_REACH := 1.0
 const SLIVER := 0.01
 ## Per side (0 to 3), its unit vector out of the room, ship plane (outward()).
 const OUTWARD: Array[Vector2] = [Vector2.UP, Vector2.RIGHT, Vector2.DOWN, Vector2.LEFT]
 
 var layout: ShipLayout
+## Per room, the platforms, by index, standing over its floor anywhere over its area:
+## the only ones roof() need look at, gathered the first time it is asked.
+var _over := {}
 
 
 func _init(ship: ShipLayout) -> void:
@@ -64,10 +69,19 @@ func ceiling(room: ShipRoom, x: float, z: float) -> float:
 ## The platform, by index, that roofs [param room] over (x, z): the lowest deck
 ## standing over its floor there; -1 where none does.
 func roof(room: ShipRoom, x: float, z: float) -> int:
+	if not _over.has(room):
+		var over := PackedInt32Array()
+		for index in layout.platforms.size():
+			var platform := layout.platforms[index]
+			# Grown past where anyone asks of a room (outdoors() reaches INSIDE past it).
+			var reach := platform.area.grow(ROOF_REACH)
+			if platform.height > room.floor_height + SLIVER and reach.intersects(room.area, true):
+				over.append(index)
+		_over[room] = over
 	var lowest := -1
-	for index in layout.platforms.size():
+	for index: int in _over[room]:
 		var platform := layout.platforms[index]
-		if platform.height > room.floor_height + SLIVER and platform.contains(x, z):
+		if platform.contains(x, z):
 			if lowest == -1 or platform.height < layout.platforms[lowest].height:
 				lowest = index
 	return lowest

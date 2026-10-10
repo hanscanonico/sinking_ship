@@ -419,6 +419,8 @@ func _structure_glass(mesh: ShipMesh) -> void:
 			var at := opening.centre
 			at[along] = spot.x
 			at.y = spot.y
+			if not mesh.kept(at.x, at.x):
+				continue
 			var normal := Vector3.ZERO
 			normal[across] = out
 			if porthole and across == 2:

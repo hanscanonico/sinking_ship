@@ -66,8 +66,9 @@ class Paint:
 		colour_in = out_colour if in_colour.a == 0.0 else in_colour
 
 
-## One mesh's arrays.
+## One mesh's arrays: each piece's corners once, its triangles by index.
 class Batch:
+	var indices := PackedInt32Array()
 	var vertices := PackedVector3Array()
 	var normals := PackedVector3Array()
 	var colours := PackedColorArray()
@@ -460,6 +461,7 @@ func commit(parent: Node3D, materials: Dictionary) -> void:
 		arrays[Mesh.ARRAY_COLOR] = batch.colours
 		arrays[Mesh.ARRAY_TEX_UV] = batch.uvs
 		arrays[Mesh.ARRAY_TEX_UV2] = batch.uv2s
+		arrays[Mesh.ARRAY_INDEX] = batch.indices
 		var format := 0
 		if not batch.halves.is_empty():
 			arrays[Mesh.ARRAY_CUSTOM0] = batch.pieces
@@ -499,10 +501,10 @@ func _batch_for(middle: Vector3, normal: Vector3, paint: Paint) -> Batch:
 	return _batches[key]
 
 
-## The corners of [param points] into [param batch] in [param order], three to a
-## triangle, each with its own of [param normals], [param uvs] (its paint's bands)
-## and [param uv2s] (its rim weight, and 1 outdoors). Godot's front faces are wound
-## clockwise.
+## The corners of [param points] into [param batch], each with its own of
+## [param normals], [param uvs] (its paint's bands) and [param uv2s] (its rim weight,
+## and 1 outdoors), and their triangles by index in [param order], three to a
+## triangle. Godot's front faces are wound clockwise.
 func _emit(
 	batch: Batch,
 	order: PackedInt32Array,
@@ -512,12 +514,15 @@ func _emit(
 	uvs: PackedVector2Array,
 	uv2s: PackedVector2Array
 ) -> void:
-	for index in order:
+	var base := batch.vertices.size()
+	for index in points.size():
 		batch.vertices.append(points[index])
 		batch.normals.append(normals[index])
 		batch.colours.append(colour)
 		batch.uvs.append(uvs[index])
 		batch.uv2s.append(uv2s[index])
+	for index in order:
+		batch.indices.append(base + index)
 	if not fading.is_valid():
 		return
 	if _reached.is_empty():
@@ -606,8 +611,12 @@ func _splits(origin: Vector3, edge: Vector3) -> PackedFloat32Array:
 ## [param low], every line of [param lines] strictly between, and [param high].
 func _between(lines: PackedFloat32Array, low: float, high: float) -> PackedFloat32Array:
 	var found := PackedFloat32Array([low])
-	for at: float in lines:
-		if at > low + SLIVER and at < high - SLIVER:
+	# The lines are sorted (_init): only those from the first past low are looked at.
+	for index in range(lines.bsearch(low + SLIVER, false), lines.size()):
+		var at := lines[index]
+		if at >= high - SLIVER:
+			break
+		if at > low + SLIVER:
 			found.append(at)
 	found.append(high)
 	return found

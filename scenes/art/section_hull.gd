@@ -322,10 +322,14 @@ static func deck_beside(layout: ShipLayout, x: float, top: Vector2) -> float:
 ## lofted along each run of sections plated at that height on that side.
 static func _plate_decks(mesh: ShipMesh, paint: ShipMesh.Paint, layout: ShipLayout) -> void:
 	var sections := layout.structure.sections
+	var decks := PackedFloat64Array()
+	for platform: ShipPlatform in layout.platforms:
+		decks.append(platform.height)
+	decks.sort()
 	# Per section, its plated tops: [height, from z, to z].
 	var tops: Array[Array] = []
 	for section: HullSection in sections:
-		tops.append(_plated(layout, section))
+		tops.append(_plated(decks, section))
 	for index in sections.size():
 		var section := sections[index]
 		for top: PackedFloat64Array in tops[index]:
@@ -353,9 +357,9 @@ static func _plate_decks(mesh: ShipMesh, paint: ShipMesh.Paint, layout: ShipLayo
 			_plate(mesh, paint, section.x, top, x1, mid_fore, y)
 
 
-## A section's level tops at a deck's height — a deck, not a well open to the sky:
-## [height, from z, to z] each.
-static func _plated(layout: ShipLayout, section: HullSection) -> Array[PackedFloat64Array]:
+## A section's level tops at one of [param decks]' heights (sorted) — a deck, not a well
+## open to the sky: [height, from z, to z] each.
+static func _plated(decks: PackedFloat64Array, section: HullSection) -> Array[PackedFloat64Array]:
 	var found: Array[PackedFloat64Array] = []
 	var outline := section.outline
 	for index in outline.size():
@@ -363,10 +367,9 @@ static func _plated(layout: ShipLayout, section: HullSection) -> Array[PackedFlo
 		var b := outline[(index + 1) % outline.size()]
 		if absf(a.y - b.y) > LEVEL or absf(a.x - b.x) <= LEVEL:
 			continue
-		for platform: ShipPlatform in layout.platforms:
-			if absf(platform.height - a.y) <= LEVEL:
-				found.append(PackedFloat64Array([a.y, minf(a.x, b.x), maxf(a.x, b.x)]))
-				break
+		var at := decks.bsearch(a.y - LEVEL)
+		if at < decks.size() and absf(decks[at] - a.y) <= LEVEL:
+			found.append(PackedFloat64Array([a.y, minf(a.x, b.x), maxf(a.x, b.x)]))
 	return found
 
 

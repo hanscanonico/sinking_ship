@@ -206,14 +206,21 @@ func build(
 		var platform := layout.platforms[index]
 		_breakups.append(null)
 		if _wrecks[index] == null:
-			_deck(mesh, platform, hull.hidden_faces(platform))
+			if mesh.kept(platform.area.position.x, platform.area.end.x):
+				_deck(mesh, platform, hull.hidden_faces(platform))
 			continue
 		_breakups[index] = DeckWreck.new(_space, platform, _dressing)
 		_breakups[index].build(_wrecks[index], self, pieces, _mesh)
+	# What stands wholly off the stretch this draws (span) is not drawn at all.
 	for ramp: ShipRamp in layout.ramps:
-		_stairs(mesh, ramp)
+		if mesh.kept(ramp.area.position.x, ramp.area.end.x):
+			_stairs(mesh, ramp)
 	for blocker: ShipBlocker in layout.blockers:
-		_blocker(mesh, blocker, pieces)
+		var reach := Vector2(blocker.area.position.x, blocker.area.end.x)
+		if blocker.shape == ShipBlocker.Shape.CYLINDER:
+			reach = Vector2(blocker.centre.x - blocker.radius, blocker.centre.x + blocker.radius)
+		if mesh.kept(reach.x, reach.y):
+			_blocker(mesh, blocker, pieces)
 	var cap := Vector2(RAIL_WIDTH, RAIL_DEPTH)
 	_wreckage = RailingRemains.new(layout, railing_height, cap, Vector2.ONE * MID_RAIL, POST)
 	for index in layout.railings.size():
@@ -222,10 +229,13 @@ func build(
 		var on: Node3D = wreck if wreck != null else self
 		_rails.append(_piece(pieces, index in fails, "Railing%d" % index, on))
 		var into: ShipMesh = pieces.get(_rails[index], pieces.get(wreck, mesh))
-		_railing(into, index, railing_height)
-		hull.staff(into, railing)
+		if mesh.kept(minf(railing.from.x, railing.to.x), maxf(railing.from.x, railing.to.x)):
+			_railing(into, index, railing_height)
+			hull.staff(into, railing)
 		_remains.append(null)
 	for ladder: ShipLadder in layout.ladders:
+		if not mesh.kept(minf(ladder.from.x, ladder.to.x), maxf(ladder.from.x, ladder.to.x)):
+			continue
 		var into: ShipMesh = pieces.get(_wrecks[ladder.platform], mesh)
 		_ladder(into, ladder, layout.platforms[ladder.platform], -layout.freeboard)
 	var fittings := ShipFittings.new(_space, hull, body_radius, open_ports)
