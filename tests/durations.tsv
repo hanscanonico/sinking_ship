@@ -39,7 +39,9 @@ tests/unit/core/test_determinism.gd	117
 tests/unit/core/test_elimination.gd	0
 tests/unit/core/test_faces.gd	0
 tests/unit/core/test_failures.gd	1
-tests/unit/core/test_flood_stepper.gd	749
+tests/unit/core/test_flood_step_bounds.gd	336
+tests/unit/core/test_flood_step_shipped.gd	378
+tests/unit/core/test_flood_stepper.gd	35
 tests/unit/core/test_funnel_strike.gd	0
 tests/unit/core/test_girder.gd	0
 tests/unit/core/test_hitstop.gd	0
@@ -77,8 +79,9 @@ tests/unit/core/test_steamer_flooding.gd	461
 tests/unit/core/test_surfaces.gd	15
 tests/unit/core/test_swimming.gd	1
 tests/unit/core/test_ticks.gd	0
+tests/unit/core/test_titanic_britannic.gd	332
 tests/unit/core/test_titanic_night.gd	238
-tests/unit/core/test_titanic_sisters.gd	626
+tests/unit/core/test_titanic_olympic.gd	294
 tests/unit/core/test_titanic_static.gd	22
 tests/unit/core/test_trawler_flooding.gd	98
 tests/unit/core/test_watertight_doors.gd	33
