@@ -18,7 +18,7 @@ extends RefCounted
 ## fitting's depth — the rest stands in a blocker's footprint or over HEADROOM — and
 ## art-lint holds it to that.
 
-## What a room is, by its shape and where it stands.
+## What a room is: by its name when that says, else by its shape and where it stands.
 enum Kind { PASSAGE, CUDDY, ENGINE, HOLD, STEERAGE, HELM, SALOON, CABIN }
 ## What of a room a face is: its walls, its floor, its ceiling, its beams.
 enum Part { WALL, FLOOR, OVERHEAD, BEAM }
@@ -26,7 +26,31 @@ enum Part { WALL, FLOOR, OVERHEAD, BEAM }
 ## A room narrower than CORRIDOR is a passage when it opens onto two rooms or more,
 ## else a cuddy too narrow for furniture; one below the main deck this big is a hold,
 ## a smaller one a cabin; one above it this big is a saloon, a smaller one a cabin,
-## and the highest room, if small, the helm.
+## and the highest room, if small, the helm. A room whose name says what it is — the
+## first of NAMED its name holds, any case — is that, though: a liner's saloons stand
+## below her main deck, and her holds' shape is a saloon's.
+const NAMED: Array[Array] = [
+	["hold", Kind.HOLD],
+	["wheelhouse", Kind.HELM],
+	["corridor", Kind.PASSAGE],
+	["road", Kind.PASSAGE],
+	["berths", Kind.STEERAGE],
+	["quarters", Kind.STEERAGE],
+	["office", Kind.CABIN],
+	["saloon", Kind.SALOON],
+	["restaurant", Kind.SALOON],
+	["lounge", Kind.SALOON],
+	["smoking", Kind.SALOON],
+	["reading", Kind.SALOON],
+	["café", Kind.SALOON],
+	["general room", Kind.SALOON],
+	["reception", Kind.SALOON],
+	["gymnasium", Kind.SALOON],
+	["entrance", Kind.SALOON],
+	["staircase", Kind.SALOON],
+	["open space", Kind.SALOON],
+	["galley", Kind.SALOON],
+]
 const CORRIDOR := 1.8
 const HOLD_AREA := 40.0
 const SALOON_AREA := 15.0
@@ -180,6 +204,10 @@ static func kind_of(space: ShipSpace, room: ShipRoom) -> Kind:
 	var size := room.area.size
 	if space.machinery_in(room):
 		return Kind.ENGINE
+	var name := String(room.name).to_lower()
+	for named: Array in NAMED:
+		if name.contains(named[0]):
+			return named[1]
 	if minf(size.x, size.y) < CORRIDOR:
 		var doorways := 0
 		var runs := space.wall_runs(room)
