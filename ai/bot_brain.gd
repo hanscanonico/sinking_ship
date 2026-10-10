@@ -93,6 +93,8 @@ var _footing: BotFooting
 ## Whom it goes at, and the drop behind its target.
 var _targeting: BotTargeting
 var _rng: RandomNumberGenerator
+## What the match is played for (MatchRules.Goal), its MatchConfig's (_arbitrate).
+var _match_goal := MatchRules.Goal.LAST_STANDING
 ## The zone its intent makes for, or WalkGraph.NONE.
 var _goal := WalkGraph.NONE
 ## The portals to it, as the last think found them; steered along until the next.
@@ -164,9 +166,11 @@ func _init(
 	rules: BrawlRules,
 	cargo: Array[ShipProp],
 	floors: BotFloors,
-	rng: RandomNumberGenerator
+	rng: RandomNumberGenerator,
+	match_goal := MatchRules.Goal.LAST_STANDING
 ) -> void:
 	seat = bot_seat
+	_match_goal = match_goal
 	_profile = profile
 	_rules = rules
 	_dodge = CargoDodge.new(profile, rules, cargo)
@@ -422,7 +426,7 @@ func _think(
 	)
 	_targeting.find_drop(mark if lines_up else {}, pose)
 	var swimmer := _swimmer_near(seen, my_pos)
-	intent = _arbitrate(seen, me, mark, now_pos, pose, swimmer, highest)
+	intent = _arbitrate(seen, me, mark, now_pos, pose, swimmer, highest, refuge)
 	if intent == Intent.GUARD:
 		target = swimmer
 	var kept_goal := _goal
@@ -458,7 +462,8 @@ func _think(
 ## The arbiter: the first urgent intent whose reason holds, else the best of SEEK_HIGH,
 ## LINE_UP and HUNT by score — the one the bot has, unless another beats it by its
 ## profile's hysteresis. Standing in [param highest] already, there is no higher
-## ground to seek: it goes at whoever it can.
+## ground to seek: it goes at whoever it can. Under survival it fights over its perch:
+## a target in neither [param refuge] nor [param highest] is worth survival_hunt_scale.
 func _arbitrate(
 	seen: Dictionary,
 	me: Dictionary,
@@ -466,7 +471,8 @@ func _arbitrate(
 	now_pos: Vector3,
 	pose: ShipPose,
 	swimmer: int,
-	highest: int
+	highest: int,
+	refuge: int
 ) -> Intent:
 	var urgent := _urgent(seen, me, mark, now_pos, pose, swimmer)
 	if urgent != -1:
@@ -485,6 +491,10 @@ func _arbitrate(
 		)
 	if not mark.is_empty():
 		scores[Intent.HUNT] = _profile.hunt_weight * _pacing.pressing
+	if _match_goal == MatchRules.Goal.SURVIVAL and not _zone_of(mark) in [refuge, highest]:
+		scores[Intent.LINE_UP] *= _profile.survival_hunt_scale
+		scores[Intent.HUNT] *= _profile.survival_hunt_scale
+		scores[Intent.SEEK_HIGH] = maxf(scores[Intent.SEEK_HIGH], _profile.wander_weight)
 	var kept := intent
 	if kept != Intent.SEEK_HIGH and kept != Intent.LINE_UP and kept != Intent.HUNT:
 		kept = Intent.SEEK_HIGH
