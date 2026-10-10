@@ -1,7 +1,8 @@
 class_name MatchArgs
 extends RefCounted
 ## The user arguments a match host takes after `--`:
-##   --seed=N  --seats=N  --ship=NAME  --scenario=NAME  --stop=MM:SS  --hit=PATH  --autoplay
+##   --seed=N  --seats=N  --ship=NAME  --scenario=NAME  --stop=MM:SS  --hit=PATH  --fast
+##   --autoplay
 ##   --capture=PATH
 ##   --capture-at=S
 ##   --observer  --capture-eye=SEAT  --observer-cut=M  --observer-cells  --greybox
@@ -17,7 +18,9 @@ extends RefCounted
 ## seconds) is the match time a headless run is stopped at and reported unfinished — a
 ## tool's limit, never a rule of the match; --hit strikes her with the explicit hit
 ## the IcebergHit at PATH is, past the must-sink rule (§5b.1), so a tool can play a
-## chosen sinking; --autoplay presses its
+## chosen sinking; --fast plays her sinking on the match data's fast_clock — the
+## menu's Fast sinking, ticked —, with --scenario and --hit as with neither;
+## --autoplay presses its
 ## Play, and without it --capture saves the menu. A capture is taken from the
 ## observer camera unless --capture-eye names the seat whose eyes it looks through;
 ## --observer opens the observer camera for QA, --observer-cut cuts its view of
@@ -63,6 +66,9 @@ var scenario_name: StringName = &""
 var seconds: float = 900.0
 ## An explicit hit's .tres to strike her with; empty for the match's own.
 var hit_path: String = ""
+## Her sinking on the match data's fast_clock (MatchConfig.quickened): the menu's
+## Fast sinking, ticked.
+var fast: bool = false
 ## A bot plays the local seat, and nobody waits at the menu.
 var autoplay: bool = false
 var capture_path: String = ""
@@ -135,14 +141,14 @@ func ship() -> StringName:
 
 
 ## The match's sinking: [param scenario] — or the one --scenario names in its place —
-## struck by the explicit hit --hit names, or as it is without one.
-func struck(scenario: SinkScenario) -> SinkScenario:
+## struck by the explicit hit --hit names, or as it is without one; played on
+## [param clock] (MatchConfig.quickened) when it is positive — a fast match's.
+func struck(scenario: SinkScenario, clock := 0.0) -> SinkScenario:
 	var setting := scenario if scenario_name.is_empty() else _setting()
-	if hit_path.is_empty():
-		return setting
-	var given: SinkScenario = setting.duplicate()
-	given.explicit_hit = _hit()
-	return given
+	if not hit_path.is_empty():
+		setting = setting.duplicate() as SinkScenario
+		setting.explicit_hit = _hit()
+	return MatchConfig.quickened(setting, clock) if clock > 0.0 else setting
 
 
 ## What is wrong with the arguments for a match: a --ship the Fleet has not, a
@@ -205,6 +211,8 @@ static func parse(args: PackedStringArray) -> MatchArgs:
 				parsed.seconds = clock_seconds(value)
 			"--hit":
 				parsed.hit_path = value
+			"--fast":
+				parsed.fast = true
 			"--autoplay":
 				parsed.autoplay = true
 			"--capture":

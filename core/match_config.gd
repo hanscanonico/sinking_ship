@@ -43,15 +43,18 @@ func _init(
 
 ## A match from data. [param seat_count] overrides the data's seat count when
 ## positive; [param ship_name] names the ship of the Fleet it is played on, struck in
-## her open-sea scenario, when it is not the data's — blank for the data's own.
+## her open-sea scenario, when it is not the data's — blank for the data's own; when
+## [param fast], her sinking plays on the data's fast_clock (quickened).
 static func from_rules(
-	match_rules: MatchRules, seed_value: int, seat_count: int = 0, ship_name := &""
+	match_rules: MatchRules, seed_value: int, seat_count: int = 0, ship_name := &"", fast := false
 ) -> MatchConfig:
 	var layout := match_rules.ship
 	var sinking := match_rules.sinking
 	if not ship_name.is_empty() and ship_name != Fleet.name_of(layout):
 		layout = Fleet.layout(ship_name)
 		sinking = Fleet.scenario(ship_name)
+	if fast:
+		sinking = quickened(sinking, match_rules.fast_clock)
 	var config := MatchConfig.new(
 		seed_value,
 		seat_count if seat_count > 0 else match_rules.seats,
@@ -70,14 +73,16 @@ static func from_rules(
 ## sim, and the config records it, so typing it back in replays the match. Played on
 ## [param ship_name] of the Fleet, or the data's ship when blank (from_rules). Null
 ## when a choice is one the data does not offer: a ship the Fleet has not, a seat count
-## outside her min_seats…max_seats, or a seed that is not a whole number.
+## outside her min_seats…max_seats, or a seed that is not a whole number. [param fast]
+## is the menu's Fast sinking.
 static func from_menu(
 	match_rules: MatchRules,
 	seat_count: int,
 	tier: StringName,
 	seed_text: String,
 	seeds: RandomNumberGenerator,
-	ship_name := &""
+	ship_name := &"",
+	fast := false
 ) -> MatchConfig:
 	var layout := match_rules.ship if ship_name.is_empty() else Fleet.layout(ship_name)
 	if layout == null or seat_count < layout.min_seats or seat_count > layout.max_seats:
@@ -86,10 +91,26 @@ static func from_menu(
 	if not typed.is_empty() and not (typed.is_valid_int() and typed.to_int() >= 0):
 		return null
 	var config := from_rules(
-		match_rules, seeds.randi() if typed.is_empty() else typed.to_int(), seat_count, ship_name
+		match_rules,
+		seeds.randi() if typed.is_empty() else typed.to_int(),
+		seat_count,
+		ship_name,
+		fast
 	)
 	config.bot_tier = tier
 	return config
+
+
+## [param scenario] played on [param clock] — physics seconds per match second: the
+## same sinking, baked the same, sooner in match time. A copy, so the loaded .tres is
+## left as it is and a fast match never shares a normal one's sinking (share_sinking);
+## [param scenario] itself when it already plays on that clock.
+static func quickened(scenario: SinkScenario, clock: float) -> SinkScenario:
+	if scenario == null or is_equal_approx(scenario.clock, clock):
+		return scenario
+	var quick: SinkScenario = scenario.duplicate()
+	quick.clock = clock
+	return quick
 
 
 ## The match's sinking (SinkSchedule.for_match), built on first asking.

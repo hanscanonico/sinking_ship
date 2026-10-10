@@ -78,3 +78,18 @@ func test_the_next_match_goes_on_the_ship_the_menu_picks() -> void:
 func test_a_ship_named_at_launch_is_the_next_match_s() -> void:
 	var next := _next_match(PackedStringArray(["--ship=trawler"]))
 	assert_eq(Fleet.name_of(next.config().ship), &"trawler")
+
+
+func test_the_menu_picks_the_pace_and_a_hit_keeps_it() -> void:
+	var rules: MatchRules = load(MATCH_DATA)
+	var next := _next_match(PackedStringArray(["--hit=" + FAST_HIT]))
+	var drawn := next.config()
+	assert_eq(drawn.scenario.clock, 1.0, "normal unless --fast")
+	var fast := next.chosen(rules.seats, rules.bot_tier, "", true)
+	assert_eq(fast.scenario.clock, rules.fast_clock, "Fast sinking ticked")
+	assert_eq(fast.scenario.explicit_hit, load(FAST_HIT), "struck by --hit still")
+	assert_ne(fast.match_seed, drawn.match_seed, "the normal one drawn ahead is dropped")
+	var typed := next.chosen(rules.seats, rules.bot_tier, "7", true)
+	assert_eq(typed.scenario.clock, rules.fast_clock, "a typed seed too")
+	var started := _next_match(PackedStringArray(["--fast"])).config()
+	assert_eq(started.scenario.clock, rules.fast_clock, "--fast ticks it at first")

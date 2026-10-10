@@ -53,10 +53,11 @@ var _match_rules: MatchRules
 ## Where a blank seed is drawn from: outside the sim, once per match.
 var _seeds := RandomNumberGenerator.new()
 var _match: MatchScene
-## The last match's ship, seats and tier, for a rematch.
+## The last match's ship, seats, tier and pace, for a rematch.
 var _ship: StringName
 var _seats: int
 var _tier: StringName
+var _fast: bool
 var _capturing := false
 ## The online play under way, from the Online screen; null when none is.
 var _online: OnlinePlay
@@ -123,11 +124,13 @@ func _ready() -> void:
 	_online_menu.page_server = link.server_url
 	var seats := _args.seats if _args.seats > 0 else _match_rules.seats
 	var seed_text := str(_args.seed_value) if _args.seed_value >= 0 else ""
-	_menu.setup(_match_rules, _args.ship(), seats, _match_rules.bot_tier, seed_text)
+	_menu.setup(_match_rules, _args.ship(), seats, _match_rules.bot_tier, seed_text, _args.fast)
 	if not is_nan(_args.capture_sway):
 		_menu.hold_drift(_args.capture_sway)
 	if _args.autoplay:
-		_play.call_deferred(_menu.picked_ship(), seats, _match_rules.bot_tier, seed_text)
+		_play.call_deferred(
+			_menu.picked_ship(), seats, _match_rules.bot_tier, seed_text, _args.fast
+		)
 		return
 	_music.play_menu()
 	if link.wanted:
@@ -192,9 +195,9 @@ func _unhandled_input(event: InputEvent) -> void:
 	get_viewport().set_input_as_handled()
 
 
-func _play(ship: StringName, seats: int, tier: StringName, seed_text: String) -> void:
+func _play(ship: StringName, seats: int, tier: StringName, seed_text: String, fast: bool) -> void:
 	_on_ship_picked(ship)
-	var config := _upcoming.chosen(seats, tier, seed_text)
+	var config := _upcoming.chosen(seats, tier, seed_text, fast)
 	var problems := _problems(config, ship)
 	if not problems.is_empty():
 		if _args.autoplay:
@@ -206,6 +209,7 @@ func _play(ship: StringName, seats: int, tier: StringName, seed_text: String) ->
 	_ship = ship
 	_seats = seats
 	_tier = tier
+	_fast = fast
 	_upcoming.take(config)
 	_menu.hide()
 	if config.bake_some(0):
@@ -281,7 +285,7 @@ func _start(config: MatchConfig) -> void:
 
 
 func _rematch() -> void:
-	_play(_ship, _seats, _tier, "")
+	_play(_ship, _seats, _tier, "", _fast)
 
 
 func _to_menu() -> void:

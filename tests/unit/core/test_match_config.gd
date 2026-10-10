@@ -202,3 +202,75 @@ func test_a_physical_sinking_needs_a_sea_under_her() -> void:
 	var authored := SimFixtures.calm()
 	assert_eq(authored.sea_depth, 0.0, "an authored sinking has no seabed")
 	assert_eq(authored.problems(), PackedStringArray(), "and needs none")
+
+
+## The steamer's match on [param seed_value], fast when [param fast], struck by the fast
+## fixture hit — past the must-sink rule, one cheap bake — on the clock it was given.
+func _hit_fast(seed_value: int, fast: bool) -> MatchConfig:
+	var config := MatchConfig.from_rules(_rules(), seed_value, 0, &"", fast)
+	config.scenario = config.scenario.duplicate() as SinkScenario
+	config.scenario.explicit_hit = load("res://tests/fixtures/sinking/hits/fast.tres")
+	return config
+
+
+func test_fast_mode_sinks_her_sooner_on_the_same_seed() -> void:
+	var normal := _hit_fast(1701, false).schedule()
+	var fast := _hit_fast(1701, true).schedule()
+	assert_eq(fast.hit_tick(), normal.hit_tick(), "struck at the same moment")
+	var normal_end := normal.end_tick() - normal.hit_tick()
+	var fast_end := fast.end_tick() - fast.hit_tick()
+	assert_gt(normal_end, 0)
+	assert_lt(fast_end, normal_end, "her sinking ends sooner")
+	assert_almost_eq(float(fast_end), normal_end / 2.0, 1.0, "on twice the clock, in half the time")
+	assert_ne(normal.gone_tick(), -1, "the fast hit sinks her")
+	assert_almost_eq(
+		float(fast.gone_tick() - fast.hit_tick()),
+		(normal.gone_tick() - normal.hit_tick()) / 2.0,
+		1.0,
+		"and she is gone in half the time"
+	)
+
+
+func test_fast_mode_changes_the_data_hash() -> void:
+	var normal := MatchConfig.from_rules(_rules(), 1701)
+	var fast := MatchConfig.from_rules(_rules(), 1701, 0, &"", true)
+	assert_eq(fast.scenario.clock, _rules().fast_clock, "on the data's fast clock")
+	assert_ne(fast.data_hash(), normal.data_hash(), "a replay refuses the other pace")
+	var trawler := MatchConfig.from_menu(_rules(), 6, &"normal", "1", _seeds(1), &"trawler", true)
+	assert_eq(trawler.scenario.clock, _rules().fast_clock, "on any ship")
+	assert_false(fast.share_sinking(normal), "nor shares a normal match's sinking")
+
+
+func test_fast_mode_leaves_the_loaded_scenario_untouched() -> void:
+	var loaded: SinkScenario = load(SimFixtures.STEAMER_SINKING)
+	var fast := MatchConfig.from_rules(_rules(), 1701, 0, &"", true)
+	assert_ne(fast.scenario, loaded, "a copy")
+	assert_eq(loaded.clock, 1.0, "the shared .tres keeps its clock")
+	assert_eq(fast.scenario.hit, loaded.hit, "and the copy its bands")
+	assert_eq(MatchConfig.quickened(loaded, 1.0), loaded, "her own clock is no copy")
+
+
+func test_normal_mode_is_unchanged() -> void:
+	var before := MatchConfig.from_rules(_rules(), 1701)
+	var normal := MatchConfig.from_rules(_rules(), 1701, 0, &"", false)
+	assert_eq(normal.scenario, before.scenario, "the loaded scenario itself")
+	assert_eq(normal.data_hash(), before.data_hash())
+	var menu := MatchConfig.from_menu(_rules(), 6, &"normal", "1", _seeds(1))
+	var unticked := MatchConfig.from_menu(_rules(), 6, &"normal", "1", _seeds(1), &"", false)
+	assert_eq(unticked.data_hash(), menu.data_hash())
+
+
+func test_the_fast_clock_must_quicken_her() -> void:
+	var slow: MatchRules = _rules().duplicate()
+	slow.fast_clock = 1.0
+	assert_eq(slow.problems(), PackedStringArray(["match: fast_clock must be over 1"]))
+
+
+func test_a_fast_match_is_deterministic() -> void:
+	var digests: Array[String] = []
+	for _run in 2:
+		var runner := RunMatch.bots_only(_hit_fast(1701, true))
+		runner.run(Ticks.from_seconds(40.0))
+		digests.append(runner.digest.hex())
+	assert_ne(digests[0], "")
+	assert_eq(digests[1], digests[0], "the same seed, inputs and pace, the same digest")

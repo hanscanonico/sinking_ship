@@ -53,7 +53,8 @@ func _initialize() -> void:
 	var config := default_config(
 		args.seed_value if args.seed_value >= 0 else DEFAULT_SEED, args.seats, args.ship()
 	)
-	config.scenario = args.struck(config.scenario)
+	var match_rules: MatchRules = load(DEFAULT_MATCH)
+	config.scenario = args.struck(config.scenario, match_rules.fast_clock if args.fast else 0.0)
 	var problems := config.problems()
 	var profile := BotProfile.for_tier(config.bot_tier)
 	if profile == null:
