@@ -9,8 +9,9 @@ RMS Titanic at full size, traced only from public-domain sources (R31), each tra
 number beside its plate below (PLATES): her length, beam and decks, her sixteen
 compartments and the bulkheads A–P between them, their tops measured off the 1911
 profile (R32), her doors, her machinery, her boats. Every number not traced is marked
-est. with its reasoning. She has no dressed art (SH23): her hull is lofted here from
-her dimensions, and the greybox draws her from her data (ShipLayout.dressed).
+est. with its reasoning. Her hull is lofted here from her dimensions, not as ShipHull
+lofts the steamer's, so the dressed art draws it from her sections (SectionHull, SH23;
+ShipLayout.dressed).
 
 Ship-local metres: x toward the bow, z to starboard, y up, origin on C deck — the
 inquiry's "highest deck which extends continuously from bow to stern" — amidships.

@@ -7,7 +7,8 @@ extends Node3D
 ## painted inside under beamed ceilings, with wooden door frames; treads on every
 ## ramp; railings of stanchions and rails; a ladder down the hull side at every
 ## boarding ladder; a buff funnel with a black top and smoke, a mast; a tarpaulined
-## hatch where a thick box stands outdoors; glass, furniture and lifeboats
+## hatch where a thick box stands outdoors, a planked roof where a slab stands over a
+## room; glass, furniture and lifeboats
 ## (ShipFittings); and each room's own lining, fittings — an engine where one stands
 ## in a room — door signs and lamps (RoomDressing), the lamps ShipLamps.
 ## Drawn only — the sim never reads a mesh. The sinking's events are drawn as
@@ -188,7 +189,7 @@ func build(
 	_lamp_at.clear()
 	_funnels.clear()
 	_felled = false
-	var hull := ShipHull.new(_space, railing_height)
+	var hull := SectionHull.of(_space, railing_height)
 	var materials := _materials(layout, hull.bow_sweep())
 	_paints = materials
 	var mesh := _mesh()
@@ -803,6 +804,11 @@ func _blocker(mesh: ShipMesh, blocker: ShipBlocker, pieces: Dictionary) -> void:
 			_door_frame(mesh, blocker, deck)
 	elif _space.outdoors(Vector3(centre.x, (blocker.bottom + top) * 0.5, centre.y)):
 		DeckWorks.hatch(mesh, area, blocker.bottom, top)
+	elif blocker.top - blocker.bottom <= ShipSpace.WALL_MAX:
+		# A slab over a room, no deck of its own: its roof, planked over its ceiling.
+		mesh.box(area, blocker.bottom, top, ShipPaints.deck, ShipMesh.TOP)
+		var faces := ShipMesh.ALL_FACES & ~ShipMesh.TOP
+		_lined_box(mesh, area, blocker.bottom, top, ShipPaints.wall, faces, faces)
 
 
 ## A box as ShipMesh.box() draws it in [param paint] — [param faces] of it — each

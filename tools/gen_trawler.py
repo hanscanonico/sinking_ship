@@ -8,10 +8,10 @@ this writes, so a hand edit to the .tres is caught. The sim reads only the .tres
 A 30 m trawler for quick, crowded matches (§5b.2): three compartments under her deck —
 the engine room aft, the fish hold, the crew space forward under the fo'c'sle — split by
 two watertight walls with one watertight door, and her working deck between its
-bulwarks a cell of its own, open to the sky, its freeing ports at its foot. She has no
-dressed art to cut her sections from, as the steamer's are (tools/gen_steamer.py): her
-hull is lofted here from a few numbers, and the greybox draws her from her data
-(ShipLayout.dressed). Every number is est. until a playtest or the census says
+bulwarks a cell of its own, open to the sky, its freeing ports at its foot. Her sections
+are not cut from ShipHull's loft, as the steamer's are (tools/gen_steamer.py): her hull
+is lofted here from a few numbers, and the dressed art draws it from her sections
+(SectionHull, SH23; ShipLayout.dressed). Every number is est. until a playtest or the census says
 otherwise.
 
 Ship-local metres: x toward the bow, z to starboard, y up, origin on the main deck

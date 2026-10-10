@@ -28,9 +28,10 @@ extends Resource
 ## Rooms by name, for the lint, the walk graph, the HUD and the greybox; no rule
 ## reads them (D6).
 @export var rooms: Array[ShipRoom] = []
-## Whether the dressed art (ShipArt) draws her: her generator cut her sections from
-## its loft, and `make art-lint` holds the two together. A ship lofted any other way
-## is drawn as the greybox her data makes (SH30). No rule reads it.
+## Whether the dressed art (ShipArt) lofts her hull as ShipHull does: her generator cut
+## her sections from that loft, and `make art-lint` holds the two together. A ship
+## lofted any other way is dressed all the same, her hull the shell her sections
+## enclose (SectionHull, SH23). No rule reads it.
 @export var dressed: bool = true
 ## The physics' view of the same hull (§5b.2): sections, cells, walls, openings and
 ## mass; null on a ship the physics does not float. No rule reads it yet (D13).

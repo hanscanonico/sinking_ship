@@ -3,8 +3,8 @@ extends SceneTree
 ## snapshots only (D5). Headless; run with --fixed-fps so match time advances one
 ## tick per two frames however fast the machine draws.
 ##
-## - The ship (ShipArt), on every ship in data/ships it dresses (ShipLayout.dressed; the
-##   greybox draws the rest): an upward face within
+## - The ship (ShipArt), on every ship in data/ships — her hull ShipHull's loft or her
+##   sections' shell (SectionHull, ShipLayout.dressed): an upward face within
 ##   PLATFORM_TOLERANCE of each platform's height across its whole area; a face
 ##   within BLOCKER_TOLERANCE of every blocker's sides, its top, and a lintel's
 ##   underside; and over every ramp a stair whose top stands within half a riser
@@ -22,7 +22,8 @@ extends SceneTree
 ##   of every section's outline below the sheer within HULL_TOLERANCE of a drawn face,
 ##   across the outline there; and every pane of glass the art sets in an outside wall
 ##   is a porthole or a window of the structure, and every porthole and window is a
-##   pane, within PANE_TOLERANCE along the wall.
+##   pane — a row of portholes one pane per port (ShipFittings.glass_of) — within
+##   PANE_TOLERANCE along the wall.
 ## - Seats: through a bots-only match in the real match scene, every brawler's
 ##   model hangs from its body's feet — the posed ship carrying the interpolated
 ##   snapshot position — and the mannequin's soles stand on that root.
@@ -128,14 +129,20 @@ var _checks := 0
 func _initialize() -> void:
 	# The root joins the tree only once the main loop runs.
 	await process_frame
+	# --ship=NAME checks that ship alone, and nothing that plays a match.
+	var only := ""
+	for arg: String in OS.get_cmdline_user_args():
+		if arg.begins_with("--ship="):
+			only = arg.trim_prefix("--ship=") + ".tres"
+	for file: String in DirAccess.get_files_at(SHIPS_DIR):
+		if file.ends_with(".tres") and (only.is_empty() or file == only):
+			_check_ship(file, load(SHIPS_DIR + file))
+	if not only.is_empty():
+		_report()
+		return
 	_check_snapshot_only()
 	_check_crew()
 	_check_sea_reach()
-	for file: String in DirAccess.get_files_at(SHIPS_DIR):
-		if file.ends_with(".tres"):
-			var layout: ShipLayout = load(SHIPS_DIR + file)
-			if layout.dressed:
-				_check_ship(file, layout)
 	await _check_seats()
 	await _check_collapse()
 	var effects: Array = await SinkingFxCheck.check(root, SinkingFxCheck.SEED, SEATS)
@@ -144,6 +151,10 @@ func _initialize() -> void:
 	var overhead: Array = await OverheadCheck.check(root, SEED, SEATS)
 	_problems.append_array(overhead[0])
 	_checks += overhead[1]
+	_report()
+
+
+func _report() -> void:
 	if not _problems.is_empty():
 		printerr("\n".join(_problems))
 		printerr("art-lint: %d problem(s) in %d checks" % [_problems.size(), _checks])
@@ -351,9 +362,8 @@ func _check_hull(
 ## up it, and each of them one pane.
 func _check_panes(file: String, layout: ShipLayout, rules: BrawlRules) -> void:
 	var space := ShipSpace.new(layout)
-	var fittings := ShipFittings.new(
-		space, ShipHull.new(space, rules.railing_height), rules.body_radius
-	)
+	var hull := SectionHull.of(space, rules.railing_height)
+	var fittings := ShipFittings.new(space, hull, rules.body_radius)
 	fittings.build(ShipMesh.new(func(_point: Vector3) -> bool: return false, space.room_lines()))
 	var glass: Array[ShipOpening] = []
 	for opening: ShipOpening in layout.structure.openings:
@@ -380,11 +390,12 @@ func _check_panes(file: String, layout: ShipLayout, rules: BrawlRules) -> void:
 			matched[found] = matched.get(found, 0) + 1
 	for index in glass.size():
 		_checks += 1
-		if matched.get(index, 0) != 1:
+		var ports := ShipFittings.glass_of(glass[index]).size()
+		if matched.get(index, 0) != ports:
 			_problems.append(
 				(
-					"art-lint: %s: opening %s is %d panes drawn, not one"
-					% [file, glass[index].name, matched.get(index, 0)]
+					"art-lint: %s: opening %s is %d panes drawn, not %d"
+					% [file, glass[index].name, matched.get(index, 0), ports]
 				)
 			)
 
