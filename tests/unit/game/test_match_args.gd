@@ -32,6 +32,25 @@ func test_a_missing_hit_is_a_problem() -> void:
 	assert_string_contains(problems[0], "none.tres is not an IcebergHit")
 
 
+func test_a_hit_named_bare_is_her_own_first() -> void:
+	# --hit=NAME, no path: the test fixtures' hit of that name — her own (SHIP_NAME), a
+	# test-only hull's own or else her fleet ship's, then any ship's (NAME).
+	var cases: Array = [
+		[["--ship=titanic", "--hit=fast"], "titanic_fast"],
+		[["--ship=titanic_britannic", "--hit=mine"], "titanic_britannic_mine"],
+		[["--ship=titanic_olympic_1913", "--hit=night"], "titanic_night"],
+		[["--ship=steamer", "--hit=fast"], "fast"],
+	]
+	for case: Array in cases:
+		var given := PackedStringArray(case[0])
+		var args := MatchArgs.parse(given)
+		var scenario: SinkScenario = args.struck(load(SCENARIO))
+		assert_eq(scenario.explicit_hit, load(MatchArgs.HITS % case[1]), " ".join(given))
+		assert_eq(args.problems(), PackedStringArray(), " ".join(given))
+	var problems: PackedStringArray = _struck("iceberg")[1]
+	assert_eq(problems.size(), 1, "a name no fixture has is a problem")
+
+
 func test_a_resource_that_is_no_hit_is_a_problem() -> void:
 	var problems: PackedStringArray = _struck(SCENARIO)[1]
 	assert_eq(problems.size(), 1)
