@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="IcebergHit" format=3]
+
+[ext_resource type="Script" path="res://core/sinking/iceberg_hit.gd" id="1_hit"]
+
+[resource]
+script = ExtResource("1_hit")
+moment = 20.0
+side = 1
+start_x = 76.0
+length = 34.0
+depth_start = 6.0
+depth_end = 6.0
+width = 0.08
+bite = 2.0
+jammed = Array[StringName]([&"wtd_d"])
+left_open = Array[StringName]([&"port_forepeak_p", &"port_forepeak_s", &"port_forepeak_d_p", &"port_forepeak_d_s", &"port_hold_1_tween_p", &"port_hold_1_tween_s", &"port_hold_1_d_p", &"port_hold_1_d_s", &"port_hold_2_tween_p", &"port_hold_2_tween_s", &"port_hold_3_tween_p", &"port_hold_3_tween_s", &"port_boiler_room_6_tween_p", &"port_boiler_room_6_tween_s", &"port_boiler_room_5_f_p", &"port_boiler_room_5_f_s", &"port_d_deck_forward_p", &"port_d_deck_forward_s"])

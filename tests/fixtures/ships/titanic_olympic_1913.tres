@@ -4790,37 +4790,37 @@ outline = PackedVector2Array(0, -19.4104, 0.2193, -18.1182, 0.3369, -16.8994, 0.
 [sub_resource type="Resource" id="Cell_db_after_hold_aft"]
 script = ExtResource("11_cell")
 name = &"db_after_hold_aft"
-low = Vector3(-118.97, -19.8125, -14.0208)
-high = Vector3(-101.69, -18.1875, 14.0208)
+low = Vector3(-118.97, -19.8125, -4.375)
+high = Vector3(-101.69, -18.1875, 4.375)
 kind = 4
-shape = 0.2192
+shape = 0.7023
 leak_area = 0.000173
 
 [sub_resource type="Resource" id="Cell_db_after_hold_fwd"]
 script = ExtResource("11_cell")
 name = &"db_after_hold_fwd"
-low = Vector3(-101.69, -19.8125, -14.0208)
-high = Vector3(-85.14, -18.1875, 14.0208)
+low = Vector3(-101.69, -19.8125, -6.75)
+high = Vector3(-85.14, -18.1875, 6.75)
 kind = 4
-shape = 0.4117
+shape = 0.8552
 leak_area = 0.00031
 
 [sub_resource type="Resource" id="Cell_db_electric_room"]
 script = ExtResource("11_cell")
 name = &"db_electric_room"
-low = Vector3(-85.14, -19.8125, -14.0208)
-high = Vector3(-66.02, -18.1875, 14.0208)
+low = Vector3(-85.14, -19.8125, -10.1875)
+high = Vector3(-66.02, -18.1875, 10.1875)
 kind = 4
-shape = 0.6133
+shape = 0.844
 leak_area = 0.000534
 
 [sub_resource type="Resource" id="Cell_db_turbine_room"]
 script = ExtResource("11_cell")
 name = &"db_turbine_room"
-low = Vector3(-66.02, -19.8125, -14.0208)
-high = Vector3(-48.63, -18.1875, 14.0208)
+low = Vector3(-66.02, -19.8125, -12.6875)
+high = Vector3(-48.63, -18.1875, 12.6875)
 kind = 4
-shape = 0.818
+shape = 0.9039
 leak_area = 0.000648
 
 [sub_resource type="Resource" id="Cell_db_engine_room"]
@@ -4835,210 +4835,210 @@ leak_area = 0.00107
 [sub_resource type="Resource" id="Cell_db_boiler_room_1"]
 script = ExtResource("11_cell")
 name = &"db_boiler_room_1"
-low = Vector3(-27.71, -19.8125, -14.0208)
-high = Vector3(-16.75, -18.1875, 14.0208)
+low = Vector3(-27.71, -19.8125, -14)
+high = Vector3(-16.75, -18.1875, 14)
 kind = 4
-shape = 0.9648
+shape = 0.9662
 leak_area = 0.000482
 
 [sub_resource type="Resource" id="Cell_db_boiler_room_2"]
 script = ExtResource("11_cell")
 name = &"db_boiler_room_2"
-low = Vector3(-16.75, -19.8125, -14.0208)
-high = Vector3(1.69, -18.1875, 14.0208)
+low = Vector3(-16.75, -19.8125, -14)
+high = Vector3(1.69, -18.1875, 14)
 kind = 4
-shape = 0.9648
+shape = 0.9662
 leak_area = 0.000811
 
 [sub_resource type="Resource" id="Cell_db_boiler_room_3"]
 script = ExtResource("11_cell")
 name = &"db_boiler_room_3"
-low = Vector3(1.69, -19.8125, -14.0208)
-high = Vector3(19.18, -18.1875, 14.0208)
+low = Vector3(1.69, -19.8125, -14)
+high = Vector3(19.18, -18.1875, 14)
 kind = 4
-shape = 0.9648
+shape = 0.9662
 leak_area = 0.000769
 
 [sub_resource type="Resource" id="Cell_db_boiler_room_4"]
 script = ExtResource("11_cell")
 name = &"db_boiler_room_4"
-low = Vector3(19.18, -19.8125, -14.0208)
-high = Vector3(36.46, -18.1875, 14.0208)
+low = Vector3(19.18, -19.8125, -14)
+high = Vector3(36.46, -18.1875, 14)
 kind = 4
-shape = 0.9223
+shape = 0.9236
 leak_area = 0.000726
 
 [sub_resource type="Resource" id="Cell_db_boiler_room_5"]
 script = ExtResource("11_cell")
 name = &"db_boiler_room_5"
-low = Vector3(36.46, -19.8125, -14.0208)
-high = Vector3(54.01, -18.1875, 14.0208)
+low = Vector3(36.46, -19.8125, -12.375)
+high = Vector3(54.01, -18.1875, 12.375)
 kind = 4
-shape = 0.762
+shape = 0.8634
 leak_area = 0.000609
 
 [sub_resource type="Resource" id="Cell_db_boiler_room_6"]
 script = ExtResource("11_cell")
 name = &"db_boiler_room_6"
-low = Vector3(54.01, -19.8125, -14.0208)
-high = Vector3(70.76, -18.1875, 14.0208)
+low = Vector3(54.01, -19.8125, -10.8125)
+high = Vector3(70.76, -18.1875, 10.8125)
 kind = 4
-shape = 0.6019
+shape = 0.7805
 leak_area = 0.000459
 
 [sub_resource type="Resource" id="Cell_db_hold_3"]
 script = ExtResource("11_cell")
 name = &"db_hold_3"
-low = Vector3(70.76, -19.8125, -14.0208)
-high = Vector3(86.3, -18.1875, 14.0208)
+low = Vector3(70.76, -19.8125, -7.875)
+high = Vector3(86.3, -18.1875, 7.875)
 kind = 4
-shape = 0.4523
+shape = 0.8053
 leak_area = 0.00032
 
 [sub_resource type="Resource" id="Cell_db_hold_2"]
 script = ExtResource("11_cell")
 name = &"db_hold_2"
-low = Vector3(86.3, -19.8125, -14.0208)
-high = Vector3(101.85, -18.1875, 14.0208)
+low = Vector3(86.3, -19.8125, -6.4375)
+high = Vector3(101.85, -18.1875, 6.4375)
 kind = 4
-shape = 0.3086
+shape = 0.6721
 leak_area = 0.000219
 
 [sub_resource type="Resource" id="Cell_db_hold_1"]
 script = ExtResource("11_cell")
 name = &"db_hold_1"
-low = Vector3(101.85, -19.8125, -14.0208)
-high = Vector3(115.81, -18.1875, 14.0208)
+low = Vector3(101.85, -19.8125, -4.5)
+high = Vector3(115.81, -18.1875, 4.5)
 kind = 4
-shape = 0.1721
+shape = 0.5363
 leak_area = 0.000109
 
 [sub_resource type="Resource" id="Cell_forepeak_tank"]
 script = ExtResource("11_cell")
 name = &"forepeak_tank"
-low = Vector3(115.81, -19.8125, -14.0208)
-high = Vector3(130.8, -13.4375, 14.0208)
+low = Vector3(115.81, -19.8125, -2)
+high = Vector3(130.8, -13.4375, 2)
 kind = 4
-shape = 0.0641
+shape = 0.4495
 leak_area = 0.000172
 
 [sub_resource type="Resource" id="Cell_forepeak"]
 script = ExtResource("11_cell")
 name = &"forepeak"
-low = Vector3(115.81, -13.4375, -14.0208)
-high = Vector3(130.8, -3.1875, 14.0208)
+low = Vector3(115.81, -13.4375, -4.4375)
+high = Vector3(130.8, -3.1875, 4.4375)
 kind = 3
-shape = 0.1349
+shape = 0.4261
 leak_area = 0.000581
 
 [sub_resource type="Resource" id="Cell_forepeak_d"]
 script = ExtResource("11_cell")
 name = &"forepeak_d"
-low = Vector3(115.81, -3.1875, -14.0208)
-high = Vector3(130.8, 0, 14.0208)
-shape = 0.2237
+low = Vector3(115.81, -3.1875, -5.3125)
+high = Vector3(130.8, 0, 5.3125)
+shape = 0.5904
 leak_area = 0.0003
 
 [sub_resource type="Resource" id="Cell_hold_1"]
 script = ExtResource("11_cell")
 name = &"hold_1"
-low = Vector3(101.85, -18.1875, -14.0208)
-high = Vector3(115.81, -11, 14.0208)
+low = Vector3(101.85, -18.1875, -6.875)
+high = Vector3(115.81, -11, 6.875)
 kind = 2
 permeability = 0.75
-shape = 0.2664
+shape = 0.5432
 leak_area = 0.000749
 
 [sub_resource type="Resource" id="Cell_hold_1_tween"]
 script = ExtResource("11_cell")
 name = &"hold_1_tween"
-low = Vector3(101.85, -11, -14.0208)
-high = Vector3(115.81, -3.1875, 14.0208)
-shape = 0.4348
+low = Vector3(101.85, -11, -10.5625)
+high = Vector3(115.81, -3.1875, 10.5625)
+shape = 0.5771
 leak_area = 0.00133
 
 [sub_resource type="Resource" id="Cell_hold_1_d"]
 script = ExtResource("11_cell")
 name = &"hold_1_d"
-low = Vector3(101.85, -3.1875, -14.0208)
-high = Vector3(115.81, 0, 14.0208)
-shape = 0.5979
+low = Vector3(101.85, -3.1875, -11.5625)
+high = Vector3(115.81, 0, 11.5625)
+shape = 0.725
 leak_area = 0.000746
 
 [sub_resource type="Resource" id="Cell_hold_2_port"]
 script = ExtResource("11_cell")
 name = &"hold_2_port"
-low = Vector3(86.3, -18.1875, -14.0208)
+low = Vector3(86.3, -18.1875, -7.5)
 high = Vector3(101.85, -15.75, 2.3391)
 kind = 2
 permeability = 0.75
-shape = 0.4714
+shape = 0.7837
 leak_area = 0.000292
 
 [sub_resource type="Resource" id="Cell_hold_2_starboard"]
 script = ExtResource("11_cell")
 name = &"hold_2_starboard"
 low = Vector3(86.3, -18.1875, 4.3391)
-high = Vector3(101.85, -15.75, 14.0208)
+high = Vector3(101.85, -15.75, 7.5)
 kind = 2
 permeability = 0.75
-shape = 0.1067
+shape = 0.3268
 leak_area = 0.0000392
 
 [sub_resource type="Resource" id="Cell_hold_2"]
 script = ExtResource("11_cell")
 name = &"hold_2"
-low = Vector3(86.3, -15.75, -14.0208)
-high = Vector3(101.85, -11, 14.0208)
+low = Vector3(86.3, -15.75, -9.125)
+high = Vector3(101.85, -11, 9.125)
 kind = 2
 permeability = 0.75
-shape = 0.4717
+shape = 0.7248
 leak_area = 0.000977
 
 [sub_resource type="Resource" id="Cell_hold_2_tween"]
 script = ExtResource("11_cell")
 name = &"hold_2_tween"
-low = Vector3(86.3, -11, -14.0208)
-high = Vector3(101.85, -3.1875, 14.0208)
-shape = 0.6521
+low = Vector3(86.3, -11, -12.4375)
+high = Vector3(101.85, -3.1875, 12.4375)
+shape = 0.7351
 leak_area = 0.00222
 
 [sub_resource type="Resource" id="Cell_hold_3_port"]
 script = ExtResource("11_cell")
 name = &"hold_3_port"
-low = Vector3(70.76, -18.1875, -14.0208)
+low = Vector3(70.76, -18.1875, -9.0625)
 high = Vector3(86.3, -15.75, 2.3391)
 kind = 2
 permeability = 0.75
-shape = 0.6077
+shape = 0.872
 leak_area = 0.000377
 
 [sub_resource type="Resource" id="Cell_hold_3_starboard"]
 script = ExtResource("11_cell")
 name = &"hold_3_starboard"
 low = Vector3(70.76, -18.1875, 4.3391)
-high = Vector3(86.3, -15.75, 14.0208)
+high = Vector3(86.3, -15.75, 9.0625)
 kind = 2
 permeability = 0.75
-shape = 0.3372
+shape = 0.6911
 leak_area = 0.000124
 
 [sub_resource type="Resource" id="Cell_hold_3"]
 script = ExtResource("11_cell")
 name = &"hold_3"
-low = Vector3(70.76, -15.75, -14.0208)
-high = Vector3(86.3, -11, 14.0208)
+low = Vector3(70.76, -15.75, -10.6875)
+high = Vector3(86.3, -11, 10.6875)
 kind = 2
 permeability = 0.75
-shape = 0.6421
+shape = 0.8424
 leak_area = 0.00133
 
 [sub_resource type="Resource" id="Cell_hold_3_tween"]
 script = ExtResource("11_cell")
 name = &"hold_3_tween"
-low = Vector3(70.76, -11, -14.0208)
-high = Vector3(86.3, -3.1875, 14.0208)
-shape = 0.8123
+low = Vector3(70.76, -11, -13.3125)
+high = Vector3(86.3, -3.1875, 13.3125)
+shape = 0.8555
 rooms = Array[StringName]([&"post office", &"third-class berths", &"crew quarters"])
 leak_area = 0.00277
 
@@ -5072,9 +5072,9 @@ leak_area = 0.00248
 [sub_resource type="Resource" id="Cell_boiler_room_6_tween"]
 script = ExtResource("11_cell")
 name = &"boiler_room_6_tween"
-low = Vector3(54.01, -8.5625, -14.0208)
-high = Vector3(70.76, -3.1875, 14.0208)
-shape = 0.943
+low = Vector3(54.01, -8.5625, -14)
+high = Vector3(70.76, -3.1875, 14)
+shape = 0.9444
 leak_area = 0.00238
 
 [sub_resource type="Resource" id="Cell_bunker_5"]
@@ -5100,9 +5100,9 @@ leak_area = 0.00323
 [sub_resource type="Resource" id="Cell_boiler_room_5_f"]
 script = ExtResource("11_cell")
 name = &"boiler_room_5_f"
-low = Vector3(36.46, -8.5625, -14.0208)
-high = Vector3(54.01, -5.9375, 14.0208)
-shape = 0.9807
+low = Vector3(36.46, -8.5625, -14)
+high = Vector3(54.01, -5.9375, 14)
+shape = 0.9822
 leak_area = 0.00127
 
 [sub_resource type="Resource" id="Cell_boiler_room_5_e"]
@@ -5331,131 +5331,131 @@ leak_area = 0.00356
 [sub_resource type="Resource" id="Cell_turbine_room_tween"]
 script = ExtResource("11_cell")
 name = &"turbine_room_tween"
-low = Vector3(-66.02, -8.5625, -14.0208)
-high = Vector3(-48.63, -3.1875, 14.0208)
-shape = 0.9707
+low = Vector3(-66.02, -8.5625, -14)
+high = Vector3(-48.63, -3.1875, 14)
+shape = 0.9722
 leak_area = 0.00254
 
 [sub_resource type="Resource" id="Cell_electric_room"]
 script = ExtResource("11_cell")
 name = &"electric_room"
-low = Vector3(-85.14, -18.1875, -14.0208)
-high = Vector3(-66.02, -11, 14.0208)
+low = Vector3(-85.14, -18.1875, -11.375)
+high = Vector3(-66.02, -11, 11.375)
 kind = 1
 permeability = 0.8
-shape = 0.6917
+shape = 0.8526
 leak_area = 0.00267
 
 [sub_resource type="Resource" id="Cell_electric_room_tween"]
 script = ExtResource("11_cell")
 name = &"electric_room_tween"
-low = Vector3(-85.14, -11, -14.0208)
-high = Vector3(-66.02, -3.1875, 14.0208)
-shape = 0.8296
+low = Vector3(-85.14, -11, -13.4375)
+high = Vector3(-66.02, -3.1875, 13.4375)
+shape = 0.8656
 leak_area = 0.00348
 
 [sub_resource type="Resource" id="Cell_electric_room_d"]
 script = ExtResource("11_cell")
 name = &"electric_room_d"
-low = Vector3(-85.14, -3.1875, -14.0208)
-high = Vector3(-66.02, 0, 14.0208)
-shape = 0.9394
+low = Vector3(-85.14, -3.1875, -13.75)
+high = Vector3(-66.02, 0, 13.75)
+shape = 0.9579
 leak_area = 0.00161
 
 [sub_resource type="Resource" id="Cell_after_hold_fwd"]
 script = ExtResource("11_cell")
 name = &"after_hold_fwd"
-low = Vector3(-101.69, -18.1875, -14.0208)
-high = Vector3(-85.14, -13.4375, 14.0208)
+low = Vector3(-101.69, -18.1875, -7.625)
+high = Vector3(-85.14, -13.4375, 7.625)
 kind = 2
 permeability = 0.75
-shape = 0.4642
+shape = 0.8535
 leak_area = 0.00102
 
 [sub_resource type="Resource" id="Cell_after_hold_fwd_orlop"]
 script = ExtResource("11_cell")
 name = &"after_hold_fwd_orlop"
-low = Vector3(-101.69, -13.4375, -14.0208)
-high = Vector3(-85.14, -11, 14.0208)
+low = Vector3(-101.69, -13.4375, -8)
+high = Vector3(-85.14, -11, 8)
 kind = 3
-shape = 0.5047
+shape = 0.8845
 leak_area = 0.000571
 
 [sub_resource type="Resource" id="Cell_after_hold_fwd_tween"]
 script = ExtResource("11_cell")
 name = &"after_hold_fwd_tween"
-low = Vector3(-101.69, -11, -14.0208)
-high = Vector3(-85.14, -3.1875, 14.0208)
-shape = 0.6446
+low = Vector3(-101.69, -11, -11.5625)
+high = Vector3(-85.14, -3.1875, 11.5625)
+shape = 0.7817
 leak_area = 0.00234
 
 [sub_resource type="Resource" id="Cell_after_hold_fwd_d"]
 script = ExtResource("11_cell")
 name = &"after_hold_fwd_d"
-low = Vector3(-101.69, -3.1875, -14.0208)
-high = Vector3(-85.14, 0, 14.0208)
-shape = 0.8132
+low = Vector3(-101.69, -3.1875, -12.3125)
+high = Vector3(-85.14, 0, 12.3125)
+shape = 0.9261
 leak_area = 0.0012
 
 [sub_resource type="Resource" id="Cell_after_hold_aft"]
 script = ExtResource("11_cell")
 name = &"after_hold_aft"
-low = Vector3(-118.97, -18.1875, -14.0208)
-high = Vector3(-101.69, -13.4375, 14.0208)
+low = Vector3(-118.97, -18.1875, -5.0625)
+high = Vector3(-101.69, -13.4375, 5.0625)
 kind = 2
 permeability = 0.75
-shape = 0.2512
+shape = 0.6958
 leak_area = 0.000578
 
 [sub_resource type="Resource" id="Cell_after_hold_aft_orlop"]
 script = ExtResource("11_cell")
 name = &"after_hold_aft_orlop"
-low = Vector3(-118.97, -13.4375, -14.0208)
-high = Vector3(-101.69, -11, 14.0208)
+low = Vector3(-118.97, -13.4375, -5.375)
+high = Vector3(-101.69, -11, 5.375)
 kind = 3
-shape = 0.2778
+shape = 0.7246
 leak_area = 0.000328
 
 [sub_resource type="Resource" id="Cell_after_hold_aft_tween"]
 script = ExtResource("11_cell")
 name = &"after_hold_aft_tween"
-low = Vector3(-118.97, -11, -14.0208)
-high = Vector3(-101.69, -3.1875, 14.0208)
-shape = 0.4119
+low = Vector3(-118.97, -11, -9.3125)
+high = Vector3(-101.69, -3.1875, 9.3125)
+shape = 0.6201
 leak_area = 0.00156
 
 [sub_resource type="Resource" id="Cell_after_hold_aft_d"]
 script = ExtResource("11_cell")
 name = &"after_hold_aft_d"
-low = Vector3(-118.97, -3.1875, -14.0208)
-high = Vector3(-101.69, 0, 14.0208)
-shape = 0.5977
+low = Vector3(-118.97, -3.1875, -10.25)
+high = Vector3(-101.69, 0, 10.25)
+shape = 0.8176
 leak_area = 0.000923
 
 [sub_resource type="Resource" id="Cell_after_peak_tank"]
 script = ExtResource("11_cell")
 name = &"after_peak_tank"
-low = Vector3(-138.2622, -19.8125, -14.0208)
-high = Vector3(-118.97, -11, 14.0208)
+low = Vector3(-138.2622, -19.8125, -3)
+high = Vector3(-118.97, -11, 3)
 kind = 4
-shape = 0.0386
+shape = 0.1802
 leak_area = 0.000184
 
 [sub_resource type="Resource" id="Cell_after_peak_tween"]
 script = ExtResource("11_cell")
 name = &"after_peak_tween"
-low = Vector3(-138.2622, -11, -14.0208)
-high = Vector3(-118.97, -3.1875, 14.0208)
+low = Vector3(-138.2622, -11, -6.6875)
+high = Vector3(-118.97, -3.1875, 6.6875)
 kind = 3
-shape = 0.1172
+shape = 0.2458
 leak_area = 0.000496
 
 [sub_resource type="Resource" id="Cell_after_peak_d"]
 script = ExtResource("11_cell")
 name = &"after_peak_d"
-low = Vector3(-138.2622, -3.1875, -14.0208)
-high = Vector3(-118.97, 0, 14.0208)
-shape = 0.2416
+low = Vector3(-138.2622, -3.1875, -7.6875)
+high = Vector3(-118.97, 0, 7.6875)
+shape = 0.4406
 leak_area = 0.000417
 
 [sub_resource type="Resource" id="Cell_d_deck_1"]
@@ -5513,26 +5513,26 @@ leak_area = 0.000248
 [sub_resource type="Resource" id="Cell_d_deck_forward"]
 script = ExtResource("11_cell")
 name = &"d_deck_forward"
-low = Vector3(73.64, -3.1875, -14.0208)
-high = Vector3(101.85, 0, 14.0208)
-shape = 0.867
+low = Vector3(73.64, -3.1875, -13.5)
+high = Vector3(101.85, 0, 13.5)
+shape = 0.9004
 rooms = Array[StringName]([&"third-class open space"])
 leak_area = 0.00219
 
 [sub_resource type="Resource" id="Cell_forecastle"]
 script = ExtResource("11_cell")
 name = &"forecastle"
-low = Vector3(91.7856, 0, -14.0208)
-high = Vector3(108, 4.3125, 14.0208)
-shape = 0.8016
+low = Vector3(91.7856, 0, -11.875)
+high = Vector3(108, 4.3125, 11.875)
+shape = 0.9464
 leak_area = 0.00157
 
 [sub_resource type="Resource" id="Cell_forecastle_head"]
 script = ExtResource("11_cell")
 name = &"forecastle_head"
-low = Vector3(108, 0, -14.0208)
-high = Vector3(130.8, 4.9375, 14.0208)
-shape = 0.377
+low = Vector3(108, 0, -8.5625)
+high = Vector3(130.8, 4.9375, 8.5625)
+shape = 0.6173
 leak_area = 0.00119
 
 [sub_resource type="Resource" id="Cell_c_deck_1"]
@@ -5588,9 +5588,9 @@ leak_area = 0.000217
 [sub_resource type="Resource" id="Cell_poop"]
 script = ExtResource("11_cell")
 name = &"poop"
-low = Vector3(-138.2622, 0, -14.0208)
-high = Vector3(-105.9534, 3.3125, 14.0208)
-shape = 0.4114
+low = Vector3(-138.2622, 0, -9.5625)
+high = Vector3(-105.9534, 3.3125, 9.5625)
+shape = 0.6032
 rooms = Array[StringName]([&"third-class general room"])
 leak_area = 0.00123
 
@@ -6337,6 +6337,12 @@ kind = 1
 joins = Array[StringName]([&"hold_3_tween", &"hold_2_tween"])
 centre = Vector3(86.3, -7.5125, -6)
 size = Vector3(0, 2.1, 1.1)
+flip_chance = 0.05
+shuts_at_hit = true
+shut_time = 30
+leak_head = 4.0515
+collapse_head = 6.0772
+leak_area = 0.005
 
 [sub_resource type="Resource" id="Opening_wtd_f_d"]
 script = ExtResource("13_opening")
@@ -6345,6 +6351,12 @@ kind = 1
 joins = Array[StringName]([&"boiler_room_6_tween", &"hold_3_tween"])
 centre = Vector3(70.76, -7.5125, -6)
 size = Vector3(0, 2.1, 1.1)
+flip_chance = 0.05
+shuts_at_hit = true
+shut_time = 30
+leak_head = 11.3125
+collapse_head = 16.9688
+leak_area = 0.005
 
 [sub_resource type="Resource" id="Opening_wtd_f_e"]
 script = ExtResource("13_opening")
@@ -6353,6 +6365,12 @@ kind = 1
 joins = Array[StringName]([&"boiler_room_5_f", &"boiler_room_6_tween"])
 centre = Vector3(54.01, -7.5125, -6)
 size = Vector3(0, 2.1, 1.1)
+flip_chance = 0.05
+shuts_at_hit = true
+shut_time = 30
+leak_head = 11.3125
+collapse_head = 16.9688
+leak_area = 0.005
 
 [sub_resource type="Resource" id="Opening_wtd_f_f"]
 script = ExtResource("13_opening")
@@ -6361,6 +6379,12 @@ kind = 1
 joins = Array[StringName]([&"boiler_room_4_f", &"boiler_room_5_f"])
 centre = Vector3(36.46, -7.5125, -6)
 size = Vector3(0, 2.1, 1.1)
+flip_chance = 0.05
+shuts_at_hit = true
+shut_time = 30
+leak_head = 11.3125
+collapse_head = 16.9688
+leak_area = 0.005
 
 [sub_resource type="Resource" id="Opening_wtd_f_g"]
 script = ExtResource("13_opening")
@@ -6369,6 +6393,12 @@ kind = 1
 joins = Array[StringName]([&"boiler_room_3_f", &"boiler_room_4_f"])
 centre = Vector3(19.18, -7.5125, -6)
 size = Vector3(0, 2.1, 1.1)
+flip_chance = 0.05
+shuts_at_hit = true
+shut_time = 30
+leak_head = 11.3125
+collapse_head = 16.9688
+leak_area = 0.005
 
 [sub_resource type="Resource" id="Opening_wtd_f_j"]
 script = ExtResource("13_opening")
@@ -6377,6 +6407,12 @@ kind = 1
 joins = Array[StringName]([&"boiler_room_1_f", &"boiler_room_2_f"])
 centre = Vector3(-16.75, -7.5125, -6)
 size = Vector3(0, 2.1, 1.1)
+flip_chance = 0.05
+shuts_at_hit = true
+shut_time = 30
+leak_head = 2.6799
+collapse_head = 4.0198
+leak_area = 0.005
 
 [sub_resource type="Resource" id="Opening_wtd_e_k"]
 script = ExtResource("13_opening")
@@ -6385,6 +6421,12 @@ kind = 1
 joins = Array[StringName]([&"engine_room_tween", &"boiler_room_1_e"])
 centre = Vector3(-27.71, -4.8875, -6)
 size = Vector3(0, 2.1, 1.1)
+flip_chance = 0.05
+shuts_at_hit = true
+shut_time = 30
+leak_head = 2.7371
+collapse_head = 4.1056
+leak_area = 0.005
 
 [sub_resource type="Resource" id="Opening_wtd_e_l"]
 script = ExtResource("13_opening")
@@ -6393,6 +6435,12 @@ kind = 1
 joins = Array[StringName]([&"turbine_room_tween", &"engine_room_tween"])
 centre = Vector3(-48.63, -4.8875, -6)
 size = Vector3(0, 2.1, 1.1)
+flip_chance = 0.05
+shuts_at_hit = true
+shut_time = 30
+leak_head = 2.6761
+collapse_head = 4.0141
+leak_area = 0.005
 
 [sub_resource type="Resource" id="Opening_wtd_e_m"]
 script = ExtResource("13_opening")
@@ -6401,6 +6449,12 @@ kind = 1
 joins = Array[StringName]([&"electric_room_tween", &"turbine_room_tween"])
 centre = Vector3(-66.02, -4.8875, -6)
 size = Vector3(0, 2.1, 1.1)
+flip_chance = 0.05
+shuts_at_hit = true
+shut_time = 30
+leak_head = 2.7981
+collapse_head = 4.1971
+leak_area = 0.005
 
 [sub_resource type="Resource" id="Opening_wtd_e_n"]
 script = ExtResource("13_opening")
@@ -6409,6 +6463,12 @@ kind = 1
 joins = Array[StringName]([&"after_hold_fwd_tween", &"electric_room_tween"])
 centre = Vector3(-85.14, -4.8875, -6)
 size = Vector3(0, 2.1, 1.1)
+flip_chance = 0.05
+shuts_at_hit = true
+shut_time = 30
+leak_head = 3.0114
+collapse_head = 4.5171
+leak_area = 0.005
 
 [sub_resource type="Resource" id="Opening_wtd_e_o"]
 script = ExtResource("13_opening")
@@ -6417,6 +6477,12 @@ kind = 1
 joins = Array[StringName]([&"after_hold_aft_tween", &"after_hold_fwd_tween"])
 centre = Vector3(-101.69, -4.8875, -6)
 size = Vector3(0, 2.1, 1.1)
+flip_chance = 0.05
+shuts_at_hit = true
+shut_time = 30
+leak_head = 3.2553
+collapse_head = 4.883
+leak_area = 0.005
 
 [sub_resource type="Resource" id="Opening_bunker_door_6"]
 script = ExtResource("13_opening")
@@ -6683,6 +6749,12 @@ kind = 1
 joins = Array[StringName]([&"boiler_room_2_f", &"boiler_room_3_f"])
 centre = Vector3(1.69, -7.5125, 0)
 size = Vector3(0, 2.1, 1.1)
+flip_chance = 0.05
+shuts_at_hit = true
+shut_time = 30
+leak_head = 11.3125
+collapse_head = 16.9688
+leak_area = 0.005
 
 [sub_resource type="Resource" id="Opening_door_forecastle"]
 script = ExtResource("13_opening")
@@ -6709,7 +6781,7 @@ name = &"open_forecastle"
 kind = 11
 joins = Array[StringName]([&"forecastle", &"forecastle_head"])
 centre = Vector3(108, 2.1562, 0)
-size = Vector3(0, 4.3125, 19.2)
+size = Vector3(0, 4.3125, 17.125)
 
 [sub_resource type="Resource" id="Opening_over_hold_1_d_to_forepeak_d"]
 script = ExtResource("13_opening")
@@ -6717,7 +6789,7 @@ name = &"over_hold_1_d_to_forepeak_d"
 kind = 6
 joins = Array[StringName]([&"hold_1_d", &"forepeak_d"])
 centre = Vector3(115.81, -0.2591, 0)
-size = Vector3(0, 0.5182, 28.0416)
+size = Vector3(0, 0.5182, 10.625)
 
 [sub_resource type="Resource" id="Opening_over_d_deck_forward_to_hold_1_d"]
 script = ExtResource("13_opening")
@@ -6725,7 +6797,7 @@ name = &"over_d_deck_forward_to_hold_1_d"
 kind = 6
 joins = Array[StringName]([&"d_deck_forward", &"hold_1_d"])
 centre = Vector3(101.85, -0.5944, 0)
-size = Vector3(0, 1.1887, 28.0416)
+size = Vector3(0, 1.1887, 23.125)
 
 [sub_resource type="Resource" id="Opening_over_hold_3_tween_to_hold_2_tween"]
 script = ExtResource("13_opening")
@@ -6733,7 +6805,7 @@ name = &"over_hold_3_tween_to_hold_2_tween"
 kind = 6
 joins = Array[StringName]([&"hold_3_tween", &"hold_2_tween"])
 centre = Vector3(86.3, -3.8493, 0)
-size = Vector3(0, 1.3235, 28.0416)
+size = Vector3(0, 1.3235, 24.875)
 
 [sub_resource type="Resource" id="Opening_over_boiler_room_1_e_to_boiler_room_2_e"]
 script = ExtResource("13_opening")
@@ -6773,7 +6845,7 @@ name = &"over_turbine_room_tween_to_engine_room_tween"
 kind = 6
 joins = Array[StringName]([&"turbine_room_tween", &"engine_room_tween"])
 centre = Vector3(-48.63, -3.2245, 0)
-size = Vector3(0, 0.0739, 28.0416)
+size = Vector3(0, 0.0739, 28)
 
 [sub_resource type="Resource" id="Opening_over_electric_room_d_to_d_deck_1"]
 script = ExtResource("13_opening")
@@ -6781,7 +6853,7 @@ name = &"over_electric_room_d_to_d_deck_1"
 kind = 6
 joins = Array[StringName]([&"electric_room_d", &"d_deck_1"])
 centre = Vector3(-66.02, -1.5697, 0)
-size = Vector3(0, 3.1394, 28.0416)
+size = Vector3(0, 3.1394, 27.5)
 
 [sub_resource type="Resource" id="Opening_over_after_hold_fwd_d_to_electric_room_d"]
 script = ExtResource("13_opening")
@@ -6789,7 +6861,7 @@ name = &"over_after_hold_fwd_d_to_electric_room_d"
 kind = 6
 joins = Array[StringName]([&"after_hold_fwd_d", &"electric_room_d"])
 centre = Vector3(-85.14, -1.463, 0)
-size = Vector3(0, 2.9261, 28.0416)
+size = Vector3(0, 2.9261, 24.625)
 
 [sub_resource type="Resource" id="Opening_over_after_hold_aft_d_to_after_hold_fwd_d"]
 script = ExtResource("13_opening")
@@ -6797,7 +6869,7 @@ name = &"over_after_hold_aft_d_to_after_hold_fwd_d"
 kind = 6
 joins = Array[StringName]([&"after_hold_aft_d", &"after_hold_fwd_d"])
 centre = Vector3(-101.69, -1.3411, 0)
-size = Vector3(0, 2.6822, 28.0416)
+size = Vector3(0, 2.6822, 20.5)
 
 [sub_resource type="Resource" id="Opening_over_after_peak_d_to_after_hold_aft_d"]
 script = ExtResource("13_opening")
@@ -6805,14 +6877,14 @@ name = &"over_after_peak_d_to_after_hold_aft_d"
 kind = 6
 joins = Array[StringName]([&"after_peak_d", &"after_hold_aft_d"])
 centre = Vector3(-118.97, -1.0668, 0)
-size = Vector3(0, 2.1336, 28.0416)
+size = Vector3(0, 2.1336, 15.375)
 
 [sub_resource type="Resource" id="Opening_pipe_db_after_hold_aft"]
 script = ExtResource("13_opening")
 name = &"pipe_db_after_hold_aft"
 kind = 9
 joins = Array[StringName]([&"db_after_hold_aft", &"after_hold_aft"])
-centre = Vector3(-110.33, -18.1875, -5)
+centre = Vector3(-110.33, -18.1875, -2.1875)
 size = Vector3(0.09, 0, 0.09)
 area = 0.008
 
@@ -6821,7 +6893,7 @@ script = ExtResource("13_opening")
 name = &"pipe_db_after_hold_fwd"
 kind = 9
 joins = Array[StringName]([&"db_after_hold_fwd", &"after_hold_fwd"])
-centre = Vector3(-93.415, -18.1875, -5)
+centre = Vector3(-93.415, -18.1875, -3.375)
 size = Vector3(0.09, 0, 0.09)
 area = 0.008
 
@@ -6911,7 +6983,7 @@ script = ExtResource("13_opening")
 name = &"pipe_db_hold_3"
 kind = 9
 joins = Array[StringName]([&"db_hold_3", &"hold_3_port"])
-centre = Vector3(78.53, -18.1875, -5)
+centre = Vector3(78.53, -18.1875, -3.9375)
 size = Vector3(0.09, 0, 0.09)
 area = 0.008
 
@@ -6920,7 +6992,7 @@ script = ExtResource("13_opening")
 name = &"pipe_db_hold_2"
 kind = 9
 joins = Array[StringName]([&"db_hold_2", &"hold_2_port"])
-centre = Vector3(94.075, -18.1875, -5)
+centre = Vector3(94.075, -18.1875, -3.2188)
 size = Vector3(0.09, 0, 0.09)
 area = 0.008
 
@@ -6929,7 +7001,7 @@ script = ExtResource("13_opening")
 name = &"pipe_db_hold_1"
 kind = 9
 joins = Array[StringName]([&"db_hold_1", &"hold_1"])
-centre = Vector3(108.83, -18.1875, -5)
+centre = Vector3(108.83, -18.1875, -2.25)
 size = Vector3(0.09, 0, 0.09)
 area = 0.008
 
@@ -6938,7 +7010,7 @@ script = ExtResource("13_opening")
 name = &"pipe_forepeak_tank"
 kind = 9
 joins = Array[StringName]([&"forepeak_tank", &"forepeak"])
-centre = Vector3(123.305, -13.4375, -5)
+centre = Vector3(123.305, -13.4375, -1)
 size = Vector3(0.09, 0, 0.09)
 area = 0.008
 
@@ -6947,7 +7019,7 @@ script = ExtResource("13_opening")
 name = &"pipe_after_peak_tank"
 kind = 9
 joins = Array[StringName]([&"after_peak_tank", &"after_peak_tween"])
-centre = Vector3(-128.6161, -11, -5)
+centre = Vector3(-128.6161, -11, -1.5)
 size = Vector3(0.09, 0, 0.09)
 area = 0.008
 
@@ -7498,16 +7570,16 @@ script = ExtResource("13_opening")
 name = &"open_hold_2_port"
 kind = 11
 joins = Array[StringName]([&"hold_2_port", &"hold_2"])
-centre = Vector3(94.075, -15.75, -5.8408)
-size = Vector3(15.55, 0, 16.3599)
+centre = Vector3(94.075, -15.75, -2.5804)
+size = Vector3(15.55, 0, 9.8391)
 
 [sub_resource type="Resource" id="Opening_open_hold_2_starboard"]
 script = ExtResource("13_opening")
 name = &"open_hold_2_starboard"
 kind = 11
 joins = Array[StringName]([&"hold_2_starboard", &"hold_2"])
-centre = Vector3(94.075, -15.75, 9.1799)
-size = Vector3(15.55, 0, 9.6817)
+centre = Vector3(94.075, -15.75, 5.9196)
+size = Vector3(15.55, 0, 3.1609)
 
 [sub_resource type="Resource" id="Opening_leak_passage_hold_3_port"]
 script = ExtResource("13_opening")
@@ -7532,16 +7604,16 @@ script = ExtResource("13_opening")
 name = &"open_hold_3_port"
 kind = 11
 joins = Array[StringName]([&"hold_3_port", &"hold_3"])
-centre = Vector3(78.53, -15.75, -5.8408)
-size = Vector3(15.54, 0, 16.3599)
+centre = Vector3(78.53, -15.75, -3.3617)
+size = Vector3(15.54, 0, 11.4016)
 
 [sub_resource type="Resource" id="Opening_open_hold_3_starboard"]
 script = ExtResource("13_opening")
 name = &"open_hold_3_starboard"
 kind = 11
 joins = Array[StringName]([&"hold_3_starboard", &"hold_3"])
-centre = Vector3(78.53, -15.75, 9.1799)
-size = Vector3(15.54, 0, 9.6817)
+centre = Vector3(78.53, -15.75, 6.7008)
+size = Vector3(15.54, 0, 4.7234)
 
 [sub_resource type="Resource" id="Opening_stair_firemens_passage"]
 script = ExtResource("13_opening")
@@ -9084,7 +9156,7 @@ trim_limit_deg = 15
 base = Vector3(-75.6, -18.1875, 0)
 drowns_at = 1
 recovers_deg = 3
-emergency_minutes = 15
+emergency_minutes = 1
 emergency_cells = Array[StringName]([&"staircase_house", &"officers_house", &"a_deck", &"b_deck", &"c_deck_1", &"c_deck_2", &"c_deck_3", &"c_deck_4", &"c_deck_5", &"c_deck_6", &"d_deck_1", &"d_deck_2", &"d_deck_3", &"d_deck_4", &"d_deck_5", &"d_deck_6"])
 cell = &"electric_room"
 
@@ -9150,6 +9222,12 @@ name = &"aft_joint"
 x = -26.6
 share = 1
 
+[sub_resource type="Resource" id="Weak_boiler_rooms_1_2"]
+script = ExtResource("18_weak")
+name = &"boiler_rooms_1_2"
+x = -7.5
+share = 0.93
+
 [sub_resource type="Resource" id="Weak_forward_joint"]
 script = ExtResource("18_weak")
 name = &"forward_joint"
@@ -9160,7 +9238,7 @@ share = 1
 script = ExtResource("17_strength")
 hog = 4600000000
 sag = 4216666666.6667
-weak = Array[ExtResource("18_weak")]([SubResource("Weak_aft_joint"), SubResource("Weak_forward_joint")])
+weak = Array[ExtResource("18_weak")]([SubResource("Weak_aft_joint"), SubResource("Weak_boiler_rooms_1_2"), SubResource("Weak_forward_joint")])
 
 [sub_resource type="Resource" id="Sure_hit"]
 script = ExtResource("15_hit")

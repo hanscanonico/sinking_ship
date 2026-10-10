@@ -1,6 +1,6 @@
 extends SceneTree
-## `make bake SEED=1701 [SHIP=] [HIT=path.tres]`: the sinking of a seed's match alone, no match
-## played (§5b.4) — the hit the must-sink rule chose for it (or the explicit one HIT=
+## `make bake SEED=1701 [SHIP=] [HIT=path.tres|NAME]`: the sinking of a seed's match alone, no
+## match played (§5b.4) — the hit the must-sink rule chose for it (or the explicit one HIT=
 ## gives), the doors the ship shuts and the openings left open, how the rule came to
 ## it, then every event of the bake in physics time, h:mm:ss, how she ends, the labels
 ## read off it (OutcomeClassifier) and the worst her bending came to (HullGirder), and
