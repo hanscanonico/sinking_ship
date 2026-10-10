@@ -473,29 +473,37 @@ func _room_holding(point: Vector3) -> ShipRoom:
 ## Which of [param glass] — a structure's windows and portholes, by index — [param pane]
 ## (one of panes) is: those of its kind, flat across the wall it is set in, beyond it
 ## from inside — a porthole's on its side of her — within [param near] of it up the
-## wall and of its reach along it.
+## wall and of its reach along it; of those, the nearest beyond it (within
+## [param near]), so the window of a house across an open deck, facing it, is not
+## taken for its own.
 static func openings_of(pane: Array, glass: Array[ShipOpening], near: float) -> PackedInt32Array:
 	var inside: Vector3 = pane[1]
 	var into: Vector3 = pane[2]
 	var kind := ShipOpening.Kind.PORTHOLE if pane[3] else ShipOpening.Kind.WINDOW
 	var across := 0 if absf(into.x) > absf(into.z) else 2
 	var along := 2 - across
-	var found := PackedInt32Array()
+	var fits := PackedInt32Array()
+	var nearest := INF
 	for index in glass.size():
 		var opening := glass[index]
 		# A window's opening stands in its wall's plane, out beyond the pane; a row of
 		# portholes along a curving shell stands flat at its middle's breadth, so a port
 		# need only be on its side of her.
-		var beyond := (opening.centre - inside).dot(into) < 0.0
+		var beyond := -(opening.centre - inside).dot(into)
 		if pane[3]:
-			beyond = opening.centre[across] * inside[across] > 0.0
+			beyond = 0.0 if opening.centre[across] * inside[across] > 0.0 else -1.0
 		if (
 			opening.kind == kind
 			and opening.facing() == across
-			and beyond
+			and beyond >= 0.0
 			and absf(opening.centre[along] - inside[along]) <= opening.size[along] * 0.5 + near
 			and absf(opening.centre.y - inside.y) <= near
 		):
+			fits.append(index)
+			nearest = minf(nearest, beyond)
+	var found := PackedInt32Array()
+	for index in fits:
+		if pane[3] or -(glass[index].centre - inside).dot(into) <= nearest + near:
 			found.append(index)
 	return found
 
