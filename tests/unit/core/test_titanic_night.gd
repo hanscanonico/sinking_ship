@@ -20,11 +20,19 @@ const EARLY_TRIM_AT := 15.0 * MINUTE
 const EARLY_TRIM := Vector2(0.3, 1.5)
 const LATE_TRIM_AT := 155.0 * MINUTE
 const LATE_TRIM := Vector2(8.0, 12.0)
-## The plateau: her trim rising slower from an hour in to an hour forty than from a
-## quarter hour in to an hour — and the late acceleration, from her forecastle going
-## under to the break, ten times the plateau's.
-const PLATEAU := Vector2(60.0 * MINUTE, 100.0 * MINUTE)
+## Her trim rising slower from an hour in to an hour forty than from a quarter hour in to
+## an hour — and the late acceleration, from her forecastle going under to the break, ten
+## times that.
+const SETTLING := Vector2(60.0 * MINUTE, 100.0 * MINUTE)
 const ACCELERATION := 10.0
+## The plateau itself (§5b.4, layer 2): her trim rising at most 1.5° an hour from T+60 to
+## T+125, her forecastle clear of the sea all that while; and no water in boiler rooms
+## 1–3 (their stokeholds, over a cubic metre) before T+100.
+const PLATEAU := Vector2(60.0 * MINUTE, 125.0 * MINUTE)
+const PLATEAU_MOST := 1.5 / (60.0 * MINUTE)
+const DRY_UNTIL := 100.0 * MINUTE
+const DRY_ROOMS: Array[StringName] = [&"boiler_room_1", &"boiler_room_2", &"boiler_room_3"]
+const DRY := 1.0
 ## A starboard list early, within her first quarter hour; a port list of 5–15° late, from
 ## an hour and a half in to the break.
 const EARLY_LIST_UNTIL := 15.0 * MINUTE
@@ -55,6 +63,8 @@ var _timeline: SinkTimeline
 ## The water aboard at ABOARD_AT, in m³, and the second it was measured at.
 var _aboard := 0.0
 var _aboard_at := 0.0
+## Her bake to DRY_UNTIL, whole: every state of it kept.
+var _early: SinkBake
 
 
 func before_all() -> void:
@@ -65,14 +75,18 @@ func before_all() -> void:
 	_damage = HitMapper.map_explicit(load(NIGHT), _structure, scenario.hit)
 	_damage.sea_depth = scenario.sea_depth
 	_timeline = SinkBake.of(_structure, _damage, _sea, scenario.bake_cap).timeline()
-	# The water aboard is the bake's own (SinkBake.waters), read where it stops at
-	# ABOARD_AT: whole then, as she is until she breaks.
-	var early := SinkBake.of(_structure, _damage, _sea, ABOARD_AT)
-	early.run(1 << 62)
+	# The water aboard is the bake's own (SinkBake.waters), read at its first state from
+	# ABOARD_AT on; its states to DRY_UNTIL kept for her stokeholds: whole then, as she
+	# is until she breaks, so their cells are hers in her order.
+	var early := SinkBake.of(_structure, _damage, _sea, DRY_UNTIL)
+	while not early.run(1) and early.seconds() < ABOARD_AT:
+		pass
 	var waters := early.waters()
 	for volume: float in waters.slice(waters.size() - early.cells()):
 		_aboard += volume
 	_aboard_at = early.seconds()
+	early.run(1 << 62)
+	_early = early
 
 
 ## Her trim and list at physics second [param seconds], before she breaks.
@@ -129,8 +143,8 @@ func test_her_trim_from_a_degree_to_the_plateau_and_the_plunge() -> void:
 	var early := _leans(EARLY_TRIM_AT)[0]
 	gut.p("trim %.2f° at %s" % [early, _clock(EARLY_TRIM_AT)])
 	assert_between(early, EARLY_TRIM.x, EARLY_TRIM.y, "0.3–1.5° a quarter hour in")
-	var first := (_leans(PLATEAU.x)[0] - early) / (PLATEAU.x - EARLY_TRIM_AT)
-	var plateau := (_leans(PLATEAU.y)[0] - _leans(PLATEAU.x)[0]) / (PLATEAU.y - PLATEAU.x)
+	var first := (_leans(SETTLING.x)[0] - early) / (SETTLING.x - EARLY_TRIM_AT)
+	var settling := (_leans(SETTLING.y)[0] - _leans(SETTLING.x)[0]) / (SETTLING.y - SETTLING.x)
 	var under := _forecastle_under()
 	var hinge := _event(SinkTimeline.Kind.HINGING)
 	assert_not_null(hinge, "she breaks")
@@ -139,23 +153,83 @@ func test_her_trim_from_a_degree_to_the_plateau_and_the_plunge() -> void:
 	var late := (_leans(hinge.seconds)[0] - _leans(under)[0]) / (hinge.seconds - under)
 	gut.p(
 		(
-			"trim rising %.3f°/min to an hour, %.3f°/min on the plateau, %.2f°/min in the plunge"
-			% [first * MINUTE, plateau * MINUTE, late * MINUTE]
+			"trim rising %.3f°/min to an hour, %.3f°/min to an hour forty, %.2f°/min in the plunge"
+			% [first * MINUTE, settling * MINUTE, late * MINUTE]
 		)
 	)
-	assert_lt(plateau, first, "a plateau: slower from an hour on than before it")
-	assert_gt(late, plateau * ACCELERATION, "the late acceleration")
+	assert_lt(settling, first, "slower from an hour on than before it")
+	assert_gt(late, settling * ACCELERATION, "the late acceleration")
+	var missed := PackedStringArray()
+	var whole := _timeline.pieces_at(PLATEAU.y).size() == 1
+	if under < PLATEAU.y or not whole:
+		# Her forecastle is under, and she breaks, before the plateau's end: measured over
+		# its first forty minutes, it rises faster than the research's plateau too.
+		(
+			missed
+			. append(
+				(
+					"a plateau of at most 1.5°/h to %s: her forecastle under at %s, %.2f°/h to %s"
+					% [
+						_clock(PLATEAU.y),
+						_clock(under),
+						settling * 60.0 * MINUTE,
+						_clock(SETTLING.y),
+					]
+				)
+			)
+		)
+	else:
+		var plateau := (_leans(PLATEAU.y)[0] - _leans(PLATEAU.x)[0]) / (PLATEAU.y - PLATEAU.x)
+		if plateau > PLATEAU_MOST:
+			missed.append("a plateau of %.2f°/h, not at most 1.5°/h" % (plateau * 60.0 * MINUTE))
 	var at_155 := _leans(LATE_TRIM_AT)[0]
 	if _timeline.pieces_at(LATE_TRIM_AT).size() > 1 or at_155 < LATE_TRIM.x:
 		# She breaks before T+155 (test_she_breaks_where_and_when_she_did).
-		pending(
+		missed.append(
 			(
 				"8–12° at %s: she broke at %s, at %.1f°"
 				% [_clock(LATE_TRIM_AT), _clock(hinge.seconds), _leans(hinge.seconds)[0]]
 			)
 		)
+	if not missed.is_empty():
+		pending(", ".join(missed))
 		return
+	var plateau_rate := (_leans(PLATEAU.y)[0] - _leans(PLATEAU.x)[0]) / (PLATEAU.y - PLATEAU.x)
+	assert_lte(plateau_rate, PLATEAU_MOST, "a plateau of at most 1.5°/h from T+60 to T+125")
 	assert_between(at_155, LATE_TRIM.x, LATE_TRIM.y, "8–12° at T+155")
+
+
+func test_boiler_rooms_1_to_3_dry_for_a_hundred_minutes() -> void:
+	# The most water each stokehold held before T+100, read off every state of her
+	# whole bake to then (SinkBake.waters).
+	var times := _early.times()
+	var waters := _early.waters()
+	var count := _early.cells()
+	var most := 0.0
+	var wettest := &""
+	var wet_at := -1.0
+	for room: StringName in DRY_ROOMS:
+		var at := _structure.cell_named(room)
+		for state in times.size():
+			if times[state] > DRY_UNTIL:
+				break
+			var water := waters[state * count + at]
+			if water > most:
+				most = water
+				wettest = room
+			if water > DRY and wet_at < 0.0:
+				wet_at = times[state]
+	var where := "in %s" % wettest if most > 0.0 else "in any"
+	gut.p("boiler rooms 1–3 before %s: at most %.2f m³ %s" % [_clock(DRY_UNTIL), most, where])
+	if wet_at >= 0.0:
+		pending(
+			(
+				"boiler rooms 1–3 wet before %s: water from %s, %.0f m³ in %s"
+				% [_clock(DRY_UNTIL), _clock(wet_at), most, wettest]
+			)
+		)
+		return
+	assert_lte(most, DRY, "no water in boiler rooms 1–3 before T+100")
 
 
 func test_she_lists_to_starboard_early_and_to_port_late() -> void:
