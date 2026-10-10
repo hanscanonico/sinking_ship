@@ -24,8 +24,9 @@ jobs:
   verify:
     runs-on: ubuntu-24.04
     # A guard against a hung engine, not a budget: the suite bakes whole sinkings
-    # and now runs past 30 minutes on a hosted runner (SH31 on main, SH32).
-    timeout-minutes: 60
+    # and now runs past 30 minutes on a hosted runner (SH31 on main, SH32), and
+    # past 70 with the Titanic's night and her sisters (SH34).
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
 
