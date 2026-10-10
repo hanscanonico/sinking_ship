@@ -54,8 +54,9 @@ jobs:
   test:
     name: test ${{ matrix.shard }}/8
     runs-on: ubuntu-24.04
-    # A guard against a hung engine, not a budget: the longest shard runs about
-    # 9 minutes, its longest script (test_steamer_flooding.gd) about 8.
+    # A guard against a hung engine, not a budget: the longest shard is
+    # test_must_sink.gd alone, about 13 minutes, most of it working out the
+    # steamer's 40 match hits (SimFixtures.match_hits) in its own engine.
     timeout-minutes: 40
     strategy:
       # Every shard reports, so one red run names every failing script.
