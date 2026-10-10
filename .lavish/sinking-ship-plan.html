@@ -4535,7 +4535,7 @@ sequenceDiagram
           <ul class="sk-gates text-sm">
             <li><code>make verify</code> green. <strong>Behaviour-neutral:</strong> on the steamer the golden digest and <code>make match</code> transcripts are byte-identical to before — the index changes speed, never outcomes.</li>
             <li><span class="sk-file">test_spatial_index.gd</span> — <code>test_queries_match_brute_force_on_random_layouts</code>, <code>test_iteration_order_is_deterministic</code>, <code>test_body_crossing_cells_is_found_from_both</code>.</li>
-            <li><code>make bench SEATS=64</code> on the fixture: sim step p99 ≤ 4 ms per tick on the dev MacBook Air, recorded in <span class="sk-file">docs/arena.md</span>; a miss is reported with R7's fallbacks, not tuned away. <em>2026-10-09:</em> MISSED and reported — on the 270 × 28 m fixture with 64 wandering seats the step is p50 3.84 ms / p99 4.63 ms at a quiet load of about 3 (the reviewer's run; the implementer's at load 4–5 read p99 9.41 ms, mostly machine load) against a full scan's p99 154 ms; the steamer with 8 seats is p99 0.74 ms. The time is in obstacle contacts (about 140 calls a tick) because the grid is two-dimensional and every cell holds all nine decks' surfaces; R7's fallbacks are named in docs/arena.md and none applied — height bands for the surface grid are the direct route to 4 ms.</li>
+            <li><code>make bench SEATS=64</code> on the fixture: sim step p99 ≤ 4 ms per tick on the dev MacBook Air, recorded in <span class="sk-file">docs/arena.md</span>; a miss is reported with R7's fallbacks, not tuned away. <em>2026-10-09:</em> MISSED and reported — on the 270 × 28 m fixture with 64 wandering seats the step is p50 3.84 ms / p99 4.63 ms at a quiet load of about 3 (the reviewer's run; the implementer's at load 4–5 read p99 9.41 ms, mostly machine load) against a full scan's p99 154 ms; the steamer with 8 seats is p99 0.74 ms. The time is in obstacle contacts (about 140 calls a tick) because the grid is two-dimensional and every cell holds all nine decks' surfaces; R7's fallbacks are named in docs/arena.md and none applied — height bands for the surface grid are the direct route to 4 ms. <em>2026-10-10 (PR #54, by your decision before SH34):</em> height bands (2.8 m, data) in the surface grid and a scan fallback for long sight lines, behaviour-neutral on five transcripts — the fixture's step is p50 2.74 / p99 3.41 ms at a quiet load, so the 4 ms target now holds; long sight lines fell from 222 to 33 µs.</li>
           </ul>
           <h4>Not in this milestone</h4>
           <ul class="sk-crosses text-sm">
@@ -5396,8 +5396,9 @@ sequenceDiagram
 
         <div class="card bg-base-100 border p-4">
           <div class="flex flex-wrap items-baseline gap-2">
-            <h3 class="font-black">Q11 · The big ship: open decks, or interiors too? <span class="badge badge-ghost badge-sm align-middle">destination</span></h3>
-            <span class="badge badge-sm" style="background:var(--sk-deck); border:0;">open · gates SH34 (was SH19) · stop and ask</span>
+            <h3 class="font-black">Q11 · The big ship: open decks, or interiors too? <span class="badge badge-ghost badge-sm align-middle">destination</span> <span class="badge badge-success badge-sm align-middle">answered 2026-10-09 · interiors from the start</span></h3>
+            <p class="text-sm mt-1"><em>Your answer, 2026-10-09:</em> interiors from the start (the recommendation), after two prerequisites named by SH18's review — height bands in the surface grid and a scan fallback for long sight lines (shipped as PR #54: the fixture's step is now p50 2.74 / p99 3.41 ms, inside the 4 ms budget). SH34 then ships as two PRs: her data, then her validation against the night.</p>
+            <span class="badge badge-sm" style="background:var(--sk-deck); border:0;">answered · SH34 may start</span>
           </div>
           <p class="text-sm mt-2"><strong>Rev 4:</strong> it now gates SH34, the Titanic, which absorbs SH19.
           Either answer, the physics needs her whole hull in cells: spaces with no walkable interior become

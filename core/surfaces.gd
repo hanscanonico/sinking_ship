@@ -15,7 +15,8 @@ extends RefCounted
 ## ones, and its crates stand where it says — each an upright circle that holds a
 ## body back as a round blocker does, and whose lid, surface count() + its index, is
 ## stood on and landed on like a blocker's top. Every query looks only at the surfaces
-## whose areas reach the cells of its grid (SpatialIndex, SH18) that it touches.
+## whose areas and heights reach the cells and bands of its grid (SpatialIndex, SH18)
+## that its own do.
 
 const NONE := -1
 ## How far under a step's reach a body slammed up a ramp is held, so that its feet
@@ -132,14 +133,6 @@ func _init(layout: ShipLayout, grid: IndexRules = null) -> void:
 	_first_ramp = _platforms.size()
 	_first_top = _first_ramp + _ramps.size()
 	_first_lid = count()
-	var cell := (grid if grid != null else IndexRules.load_default()).surface_cell
-	_grid = SpatialIndex.new(SpatialIndex.bounds_of(layout), cell)
-	_rail_grid = SpatialIndex.new(SpatialIndex.bounds_of(layout), cell)
-	for surface in count():
-		_grid.insert(surface, _area(surface))
-	for index in _railings.size():
-		var span := _railings[index]
-		_rail_grid.insert(index, Rect2(span.from, Vector2.ZERO).expand(span.to))
 	_gone.resize(_first_lid + _prop_radii.size())
 	_prop_feet.resize(_prop_radii.size())
 	_rail_gone.resize(_railings.size())
@@ -156,6 +149,20 @@ func _init(layout: ShipLayout, grid: IndexRules = null) -> void:
 			_bottoms.append(_platform_bottom(surface))
 			_tops.append(_platforms[surface].height)
 		_level_rects.append(0 if is_ramp(surface) or _is_round_top(surface) else 1)
+	# A fallen funnel's top comes down to its foot, never under the blocker's bottom: its
+	# bands from the bottom to the top it stands to here hold it.
+	var rules := grid if grid != null else IndexRules.load_default()
+	var bounds := SpatialIndex.bounds_of(layout)
+	var heights := SpatialIndex.heights_of(layout)
+	var cell := rules.surface_cell
+	_grid = SpatialIndex.new(bounds, cell, heights, rules.surface_band, rules.scan_over)
+	_rail_grid = SpatialIndex.new(bounds, cell, heights, rules.surface_band, rules.scan_over)
+	for surface in count():
+		_grid.insert(surface, _areas[surface], _bottoms[surface], _tops[surface])
+	for index in _railings.size():
+		var span := _railings[index]
+		var deck := _platforms[span.platform].height
+		_rail_grid.insert(index, Rect2(span.from, Vector2.ZERO).expand(span.to), deck, deck)
 	_index_floors()
 	_stand_props([])
 	_doors = DoorLeaves.new(layout.structure)
@@ -272,7 +279,7 @@ func under(ship_point: Vector3, step: float, except_prop: int = NONE) -> int:
 	# after the cell's surfaces as _with_lids has them: the bots ask this at every step
 	# they probe. Feet level with a floor clear of the rest of its cell stand on it.
 	var cell := _grid.cell_at(Vector2(x, z))
-	var near := _grid.in_cell(cell)
+	var near := PackedInt32Array()
 	var floors := _floors[cell]
 	for index in floors.size():
 		var floor_surface := floors[index]
@@ -288,8 +295,9 @@ func under(ship_point: Vector3, step: float, except_prop: int = NONE) -> int:
 		):
 			best = floor_surface
 			best_height = ship_point.y
-			near = PackedInt32Array()
 			break
+	if best == NONE:
+		near = _grid.near(Rect2(x, z, 0.0, 0.0), ship_point.y - step, ship_point.y + step)
 	for surface: int in near:
 		if _gone[surface] == 1:
 			continue
@@ -337,7 +345,7 @@ func landing(ship_point: Vector3, except_prop: int = NONE) -> int:
 ## feet than that is underfoot.
 func ceiling(ship_point: Vector3, clearance: float) -> float:
 	var lowest := INF
-	for surface: int in _at(ship_point):
+	for surface: int in _at(ship_point, ship_point.y + clearance, INF):
 		if _gone[surface] == 1 or not _contains(surface, ship_point):
 			continue
 		var underside := _underside(surface)
@@ -396,7 +404,8 @@ func obstacle_contacts(
 	# and its head is at the second.
 	var reach_up := feet + step
 	var head := feet + body_height
-	var near := _grid.near(Rect2(point - Vector2(radius, radius), Vector2(radius, radius) * 2.0))
+	var box := Rect2(point - Vector2(radius, radius), Vector2(radius, radius) * 2.0)
+	var near := _grid.near(box, reach_up, head)
 	for surface: int in near:
 		if surface < _first_top:
 			continue
@@ -511,7 +520,8 @@ func airborne_rail_contacts(
 	var contacts: Array[Contact] = []
 	var point := Vector2(ship_point.x, ship_point.z)
 	var box := Rect2(point - Vector2(radius, radius), Vector2(radius, radius) * 2.0)
-	for index: int in _rail_grid.near(box):
+	var low := ship_point.y - railing_height
+	for index: int in _rail_grid.near(box, low, ship_point.y + body_height):
 		if _rail_gone[index] == 1:
 			continue
 		var railing := _railings[index]
@@ -555,7 +565,7 @@ func blocked(from_point: Vector3, to_point: Vector3, body_height: float, step: f
 	var head := maxf(from_point.y, to_point.y) + body_height
 	if _doors.crossed(start, end, feet, head) or _fallen.crossed(start, end, feet, head):
 		return true
-	for surface: int in _grid.near(Rect2(start, Vector2.ZERO).expand(end)):
+	for surface: int in _grid.near(Rect2(start, Vector2.ZERO).expand(end), feet, head):
 		if not _is_blocker_top(surface):
 			continue
 		var blocker := _blocker_of(surface)
@@ -621,7 +631,7 @@ func line_of_sight(from_point: Vector3, to_point: Vector3, pose: ShipPose) -> bo
 	if _doors.crossed(start, end, low, high) or _fallen.crossed(start, end, low, high):
 		return false
 	var reach := Rect2(start, Vector2.ZERO).expand(end)
-	for surface: int in _grid.near(reach):
+	for surface: int in _grid.near(reach, low, high):
 		if _tops[surface] <= low or _bottoms[surface] >= high:
 			continue
 		var area := _areas[surface]
@@ -822,7 +832,8 @@ func nearest_climb(feet: Vector3, pose: ShipPose, rules: BrawlRules, within: flo
 func _highest_at_or_below(ship_point: Vector3, surfaces: int, except_prop: int = NONE) -> int:
 	var best := NONE
 	var best_height := -INF
-	for surface: int in _with_lids(_at(ship_point), ship_point, except_prop):
+	var near := _at(ship_point, -INF, ship_point.y)
+	for surface: int in _with_lids(near, ship_point, except_prop):
 		if surface >= surfaces:
 			break
 		if _gone[surface] == 1 or not _contains(surface, ship_point):
@@ -929,9 +940,10 @@ func _index_floors() -> void:
 		_floor_clearances.append(clearances)
 
 
-## The surfaces whose areas reach the cell under [param ship_point]'s x/z.
-func _at(ship_point: Vector3) -> PackedInt32Array:
-	return _grid.in_cell(_grid.cell_at(Vector2(ship_point.x, ship_point.z)))
+## The surfaces whose areas reach the cell under [param ship_point]'s x/z, in the bands
+## from [param bottom] up to [param top].
+func _at(ship_point: Vector3, bottom: float, top: float) -> PackedInt32Array:
+	return _grid.near(Rect2(ship_point.x, ship_point.z, 0.0, 0.0), bottom, top)
 
 
 ## [param near] and after it, in number order, the lid of every crate standing over
