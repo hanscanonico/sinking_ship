@@ -16,6 +16,8 @@ var countdown_ticks: int
 var humans: int
 ## A BotProfile under data/bots/, by file name.
 var bot_tier: StringName
+## What the seats play for (MatchRules.Goal): the battle royale unless the data says.
+var goal := MatchRules.Goal.LAST_STANDING
 ## Its sinking, baked once from the ship, the scenario and the seed (schedule()): match
 ## data every MatchSim of this match shares, so a sim resumed from a snapshot never
 ## bakes it again (D5). The must-sink rule's bake may run a slice at a time first
@@ -65,6 +67,7 @@ static func from_rules(
 	)
 	config.humans = match_rules.humans
 	config.bot_tier = match_rules.bot_tier
+	config.goal = match_rules.goal
 	return config
 
 
@@ -188,10 +191,14 @@ func problems() -> PackedStringArray:
 	return found
 
 
-## A hash of every number the match loaded: the rules, ship and scenario, and the
-## countdown.
+## A hash of every number the match loaded: the rules, ship and scenario, the
+## countdown, and the goal — but for the battle royale's, which the hash has always
+## left out, so its logs and wire stay as they were.
 func data_hash() -> String:
-	return _describe([rules, ship, scenario, countdown_ticks]).sha256_text()
+	var described: Array = [rules, ship, scenario, countdown_ticks]
+	if goal != MatchRules.Goal.LAST_STANDING:
+		described.append(goal)
+	return _describe(described).sha256_text()
 
 
 static func _describe(value: Variant) -> String:

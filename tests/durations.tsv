@@ -76,6 +76,7 @@ tests/unit/core/test_stability.gd	1
 tests/unit/core/test_stamina.gd	1
 tests/unit/core/test_steamer_flooding.gd	461
 tests/unit/core/test_surfaces.gd	15
+tests/unit/core/test_survival.gd	1
 tests/unit/core/test_swimming.gd	1
 tests/unit/core/test_ticks.gd	0
 tests/unit/core/test_titanic_night.gd	238

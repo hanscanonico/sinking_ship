@@ -1,8 +1,8 @@
 class_name MatchVerdict
 extends RefCounted
 ## How the sea settles a match and how its seats are placed (§5b.1, D4): who the sea
-## puts out on a tick, and each seat's place as it goes out, the match ending with one
-## seat or none left. MatchSim asks it each tick, after the water, in seat order.
+## puts out on a tick, and each seat's place as it goes out, the match ending as its goal
+## says (MatchRules.Goal). MatchSim asks it each tick, after the water, in seat order.
 
 
 ## The seats of [param live] — the seats on one piece of her (Pieces, SH33): every seat,
@@ -52,12 +52,18 @@ static func by_the_cold(left: Array[PlayerState], sunk: Callable) -> Array[Playe
 
 ## Places [param exits], the seats out of [param state]'s match on [param tick], into
 ## [param events]: seats out on the same tick share a place, unless their cold meters
-## differ — more cold left places higher. One or none left ends the match.
+## differ — more cold left places higher. Under [param goal] LAST_STANDING, one or none
+## left as seats go out ends the match; under SURVIVAL none left does, or one once
+## [param tick] reaches [param over_tick] — the tick her sinking is over (end_tick) — so
+## a lone seat plays on until then, and a wreck that keeps dry footing (Q21) cannot.
 static func place(
-	state: MatchState, exits: Array[PlayerState], tick: int, events: Array[SimEvent]
+	state: MatchState,
+	exits: Array[PlayerState],
+	tick: int,
+	events: Array[SimEvent],
+	goal := MatchRules.Goal.LAST_STANDING,
+	over_tick := -1
 ) -> void:
-	if exits.is_empty():
-		return
 	var remaining := state.remaining()
 	for player: PlayerState in exits:
 		var warmer := 0
@@ -75,10 +81,20 @@ static func place(
 				player.last_hit_crate
 			)
 		)
-	if remaining > 1:
+	if not _ends(remaining, not exits.is_empty(), tick, goal, over_tick):
 		return
 	state.phase = MatchState.Phase.ENDED
 	var winner := state.winner()
 	if winner != -1:
 		state.seats[winner].place = 1
 	events.append(SimEvent.match_ended(tick, winner))
+
+
+## Whether a match of [param goal] ends on [param tick] with [param remaining] seats in,
+## [param went] saying whether any went out on it (place).
+static func _ends(
+	remaining: int, went: bool, tick: int, goal: MatchRules.Goal, over_tick: int
+) -> bool:
+	if goal == MatchRules.Goal.SURVIVAL:
+		return remaining == 0 or (remaining == 1 and tick >= over_tick)
+	return went and remaining <= 1
