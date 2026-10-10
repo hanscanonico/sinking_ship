@@ -1,0 +1,42 @@
+# Everything a verify job needs before its first make target: the engine at
+# $GODOT, its runtime libraries, and the project imported. Shared by the static
+# gates and every test shard, so they cannot drift apart.
+name: Set up Godot
+description: Fetch the pinned Godot, install its libraries and import the project.
+
+runs:
+  using: composite
+  steps:
+    # The engine links against these even with --headless.
+    - name: Install engine runtime libraries
+      shell: bash
+      run: |
+        sudo apt-get update -qq
+        sudo apt-get install -y --no-install-recommends \
+          libgl1 libx11-6 libxcursor1 libxinerama1 libxi6 libxrandr2
+
+    - name: Fetch Godot ${{ env.GODOT_VERSION }}
+      shell: bash
+      run: |
+        set -euo pipefail
+        url="https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}/Godot_v${GODOT_VERSION}_linux.x86_64.zip"
+        curl -sSfL -o /tmp/godot.zip "$url"
+        unzip -q /tmp/godot.zip -d /tmp/godot
+        mkdir -p bin
+        mv "/tmp/godot/Godot_v${GODOT_VERSION}_linux.x86_64" "$GODOT"
+        chmod +x "$GODOT"
+        "$GODOT" --headless --version
+
+    # Keyed on what an import actually depends on, so a run that only edits
+    # code reuses the cache and one that touches an asset rebuilds it.
+    - name: Cache imported assets
+      uses: actions/cache@v4
+      with:
+        path: .godot
+        key: godot-${{ env.GODOT_VERSION }}-import-${{ hashFiles('assets/**', 'data/**', '**/*.import', 'project.godot') }}
+
+    # On a cache hit as well: a stale class cache surfaces as phantom parse
+    # errors in the very next step.
+    - name: Import assets
+      shell: bash
+      run: make import
