@@ -14,7 +14,7 @@ instead of forcing a change.
 
 Setup, exactly:
 1. `git -C /Users/hanscanonico/Projets/sinking_ship fetch origin main`
-2. `git -C /Users/hanscanonico/Projets/sinking_ship worktree add /Users/hanscanonico/Projets/sinking_ship/.claude/worktrees/improve-<slug> -b improve/<slug> origin/main`
+2. `git -C /Users/hanscanonico/Projets/sinking_ship worktree add /Users/hanscanonico/Projets/sinking_ship-worktrees/improve-<slug> -b improve/<slug> origin/main`
 3. `cd` into that worktree.
 4. `make import` — a fresh worktree needs the one-off headless import; skipping it looks
    like broken code, not a cold cache.
