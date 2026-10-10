@@ -59,7 +59,6 @@ const REVIEW = {
 
 const trailers = input.trailers || ''
 const footer = input.footer || ''
-const REPO = '/Users/hanscanonico/Projets/sinking_ship'
 
 const trailerNote = trailers
 	? 'Commit trailers to use (end the commit message with these lines):\n\n' + trailers
@@ -72,7 +71,7 @@ const reviewTrailerNote = trailers
 const implBrief = (t) => `Task slug: ${t.slug}\n\n${t.task}\n\n${trailerNote}${footerNote}`
 
 const retryBrief = (t, impl, review) => {
-	const worktree = (impl && impl.worktree) || `${REPO}-worktrees/improve-${t.slug}`
+	const worktree = (impl && impl.worktree) || 'the one your setup step names for this slug'
 	const branch = (impl && impl.branch) || `improve/${t.slug}`
 	const pr = impl && impl.pr_url ? `PR ${impl.pr_url}` : 'no PR yet'
 	const why = review

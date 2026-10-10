@@ -26,13 +26,14 @@ captures/
 # macOS
 .DS_Store
 
-# Agent scratch space. .claude/worktrees holds nested checkouts of this repo,
+# Agent scratch space. .claude/worktrees can hold nested checkouts of this repo,
 # which git would otherwise offer to commit as embedded repositories. `.claude/*`
-# rather than `.claude/`: git will not look inside an excluded directory, so a
-# rule below could not re-include anything. The agent kit (agents/, skills/,
-# workflows/) is tracked by force-adding it; ignoring a path git already tracks
-# changes nothing.
+# rather than `.claude/`: git will not look inside an excluded directory, so the
+# rules below could not re-include the agent kit.
 .claude/*
+!.claude/agents/
+!.claude/skills/
+!.claude/workflows/
 
 # Lavish review artifacts — in-progress plans and the screenshots they cite are
 # scratch by default. A plan worth keeping, such as the design of record

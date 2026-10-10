@@ -35,8 +35,9 @@ workflows, reading structured verdicts, merging, cleanup, and summaries.
    authorized merging** (e.g. "merge it yourself"); otherwise leave PRs open. Merge
    sequentially: `gh pr merge N --squash`; on a stale-branch error `gh pr update-branch N`,
    wait ~25s, retry. After each merged branch:
-   `git -C <main checkout> worktree remove /Users/hanscanonico/Projets/sinking_ship-worktrees/improve-<slug> --force` and
-   delete the local branch.
+   `git -C <main checkout> worktree remove <worktree>`, using the `worktree` path the
+   implementer returned, then delete the local branch. Without `--force`: a refusal means
+   uncommitted files, so stop and report them. A worktree whose PR is not merged stays.
 5. **Repeat** while there are tasks and time. After UI-touching batches, once the repo has
    a `make smoke` capture sweep, run a `qa` agent over the main checkout: full
    `make smoke`, then the frames read as images — a sweep that only checks a frame was
