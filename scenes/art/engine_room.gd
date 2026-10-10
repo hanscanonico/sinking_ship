@@ -205,8 +205,8 @@ func _controls(mesh: ShipMesh, area: Rect2, along_x: bool, low: float, top: floa
 
 ## [param room]'s own: its engines (_machinery), the boilers in its forward bulkhead,
 ## their main steam pipes overhead aft along the engine's side into it, pipes along
-## its hull sides over head height but over a stair climbing beside one, and on its after bulkhead a gauge board and fire
-## buckets on a shelf.
+## its hull sides over head height but over a stair climbing beside one, and on its
+## after bulkhead a gauge board and fire buckets on a shelf.
 func build(mesh: ShipMesh, room: ShipRoom) -> void:
 	var machines := _space.machinery(room)
 	for machine: ShipBlocker in machines:

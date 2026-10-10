@@ -335,3 +335,38 @@ func _full_wall_of(blocker: ShipBlocker, room: ShipRoom) -> bool:
 		and blocker.top - blocker.bottom > FULL_WALL
 		and blocker.area.grow(INSIDE).intersects(room.area)
 	)
+
+
+## The parts of [param area] no platform at [param height] covers.
+func uncovered(area: Rect2, height: float) -> Array[Rect2]:
+	var bare: Array[Rect2] = [area]
+	for platform: ShipPlatform in layout.platforms:
+		if not is_equal_approx(platform.height, height):
+			continue
+		var left: Array[Rect2] = []
+		for rect: Rect2 in bare:
+			left.append_array(_minus(rect, platform.area))
+		bare = left
+	return bare
+
+
+## [param rect] with [param cut] taken out of it: up to four rectangles.
+static func _minus(rect: Rect2, cut: Rect2) -> Array[Rect2]:
+	var overlap := rect.intersection(cut)
+	if not overlap.has_area():
+		return [rect]
+	var pieces: Array[Rect2] = []
+	var x0 := rect.position.x
+	var x1 := rect.end.x
+	if overlap.position.x > x0 + SLIVER:
+		pieces.append(Rect2(x0, rect.position.y, overlap.position.x - x0, rect.size.y))
+	if overlap.end.x < x1 - SLIVER:
+		pieces.append(Rect2(overlap.end.x, rect.position.y, x1 - overlap.end.x, rect.size.y))
+	var middle := Vector2(overlap.position.x, overlap.end.x)
+	if overlap.position.y > rect.position.y + SLIVER:
+		var depth := overlap.position.y - rect.position.y
+		pieces.append(Rect2(middle.x, rect.position.y, middle.y - middle.x, depth))
+	if overlap.end.y < rect.end.y - SLIVER:
+		var depth := rect.end.y - overlap.end.y
+		pieces.append(Rect2(middle.x, overlap.end.y, middle.y - middle.x, depth))
+	return pieces
