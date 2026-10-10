@@ -30,6 +30,7 @@ tests/unit/art/test_ship_space.gd	0
 tests/unit/audio/test_ambience_mix.gd	0
 tests/unit/audio/test_cue_planner.gd	30
 tests/unit/core/test_air.gd	2
+tests/unit/core/test_battle_royale_digests.gd	90
 tests/unit/core/test_blockers.gd	0
 tests/unit/core/test_brace.gd	0
 tests/unit/core/test_breaking.gd	165
