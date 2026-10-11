@@ -354,19 +354,6 @@ static func _put_field(values: Values, value: Variant, field: Array) -> void:
 			values.put(value)
 		SnapshotField.Kind.BOOL:
 			values.put(1 if value else 0)
-		SnapshotField.Kind.LENGTHS, SnapshotField.Kind.SPEEDS:
-			var vector: Vector3 = value
-			var quantum := SnapshotField.quantum(kind)
-			values.put(roundi(vector.x / quantum))
-			values.put(roundi(vector.y / quantum))
-			values.put(roundi(vector.z / quantum))
-		SnapshotField.Kind.LENGTH, SnapshotField.Kind.ANGLE, SnapshotField.Kind.DEGREES, SnapshotField.Kind.AMOUNT:
-			values.put(roundi(float(value) / SnapshotField.quantum(kind)))
-		SnapshotField.Kind.AMOUNTS:
-			var amounts: PackedFloat64Array = value
-			values.put(amounts.size())
-			for amount: float in amounts:
-				values.put(roundi(amount / SnapshotField.AMOUNT_QUANTUM))
 		SnapshotField.Kind.NAME:
 			var text := String(value).to_utf8_buffer()
 			values.put(text.size())
@@ -382,6 +369,12 @@ static func _put_field(values: Values, value: Variant, field: Array) -> void:
 			values.put(records.size())
 			for record: Dictionary in records:
 				_put_record(values, record, field[2])
+		_:
+			var quanta := SnapshotField.quanta(kind, value)
+			if SnapshotField.quanta_count(kind) < 0:
+				values.put(quanta.size())
+			for whole: int in quanta:
+				values.put(whole)
 
 
 static func _record(values: Values, walk: Array) -> Dictionary:
@@ -400,18 +393,6 @@ static func _field(values: Values, field: Array) -> Variant:
 	match kind:
 		SnapshotField.Kind.BOOL:
 			return values.take() != 0
-		SnapshotField.Kind.LENGTHS, SnapshotField.Kind.SPEEDS:
-			var quantum := SnapshotField.quantum(kind)
-			return Vector3(
-				values.take() * quantum, values.take() * quantum, values.take() * quantum
-			)
-		SnapshotField.Kind.LENGTH, SnapshotField.Kind.ANGLE, SnapshotField.Kind.DEGREES, SnapshotField.Kind.AMOUNT:
-			return values.take() * SnapshotField.quantum(kind)
-		SnapshotField.Kind.AMOUNTS:
-			var amounts := PackedFloat64Array()
-			for index in _count(values):
-				amounts.append(values.take() * SnapshotField.AMOUNT_QUANTUM)
-			return amounts
 		SnapshotField.Kind.NAME:
 			var text := PackedByteArray()
 			for index in _count(values):
@@ -427,7 +408,15 @@ static func _field(values: Values, field: Array) -> Variant:
 			for index in _count(values):
 				records.append(_record(values, field[2]))
 			return records
-	return values.take()
+		SnapshotField.Kind.INT:
+			return values.take()
+	var quanta := PackedInt64Array()
+	var count := SnapshotField.quanta_count(kind)
+	if count < 0:
+		count = _count(values)
+	for index in count:
+		quanta.append(values.take())
+	return SnapshotField.from_quanta(kind, quanta)
 
 
 ## A list's length; a negative or an absurd one breaks the packet.

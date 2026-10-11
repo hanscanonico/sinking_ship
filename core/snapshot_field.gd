@@ -11,7 +11,9 @@ extends RefCounted
 ## row says "digest": false and gives the reason in "why".
 ##
 ## A kind's quantum is the sim's precision for it: the finest a value of that kind is
-## told apart, 0 for one kept exactly. The wire (WireCodec) maps each kind to bytes.
+## told apart, 0 for one kept exactly. A field kept at a quantum is its whole quanta
+## (quanta) to the digest and the wire alike; the wire (WireCodec) maps them, and every
+## other kind, to bytes.
 
 ## LENGTHS and SPEEDS are Vector3s; AMOUNTS a PackedFloat64Array and INTS a list of
 ## ints; NAME a StringName; RECORDS a list of the row's "fields" records.
@@ -56,6 +58,56 @@ static func quantum(kind: Kind) -> float:
 		Kind.AMOUNT, Kind.AMOUNTS:
 			return AMOUNT_QUANTUM
 	return 0.0
+
+
+## Whether a field of [param kind] is kept at a quantum, as whole quanta (quanta),
+## rather than exactly.
+static func quantized(kind: Kind) -> bool:
+	return quantum(kind) > 0.0
+
+
+## How many quanta a field of quantized [param kind] comes to: 1 for a number, 3 for a
+## vector, -1 for a list of amounts, whose own length says.
+static func quanta_count(kind: Kind) -> int:
+	match kind:
+		Kind.LENGTHS, Kind.SPEEDS:
+			return 3
+		Kind.AMOUNTS:
+			return -1
+	return 1
+
+
+## [param value], a field of quantized [param kind], as whole quanta — what the digest
+## folds in and the wire carries: the number, the vector's x, y and z, or each amount.
+static func quanta(kind: Kind, value: Variant) -> PackedInt64Array:
+	var unit := quantum(kind)
+	var whole := PackedInt64Array()
+	match kind:
+		Kind.LENGTHS, Kind.SPEEDS:
+			var vector: Vector3 = value
+			whole.append(roundi(vector.x / unit))
+			whole.append(roundi(vector.y / unit))
+			whole.append(roundi(vector.z / unit))
+		Kind.AMOUNTS:
+			for amount: float in value as PackedFloat64Array:
+				whole.append(roundi(amount / unit))
+		_:
+			whole.append(roundi(float(value) / unit))
+	return whole
+
+
+## The field of quantized [param kind] that [param whole] quanta make: quanta, undone.
+static func from_quanta(kind: Kind, whole: PackedInt64Array) -> Variant:
+	var unit := quantum(kind)
+	match kind:
+		Kind.LENGTHS, Kind.SPEEDS:
+			return Vector3(whole[0] * unit, whole[1] * unit, whole[2] * unit)
+		Kind.AMOUNTS:
+			var amounts := PackedFloat64Array()
+			for count: int in whole:
+				amounts.append(count * unit)
+			return amounts
+	return whole[0] * unit
 
 
 ## The snapshot key of [param row]: its "key", else its variable's name.

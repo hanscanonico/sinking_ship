@@ -34,29 +34,26 @@ static func _record(fields: Array, record: Dictionary) -> String:
 
 static func _field(row: Dictionary, value: Variant) -> String:
 	var kind: SnapshotField.Kind = row["kind"]
-	var quantum := SnapshotField.quantum(kind)
 	match kind:
 		SnapshotField.Kind.BOOL:
 			return str(int(value))
-		SnapshotField.Kind.LENGTHS, SnapshotField.Kind.SPEEDS:
-			var vector: Vector3 = value
-			return _list([vector.x, vector.y, vector.z], quantum)
-		SnapshotField.Kind.AMOUNTS:
-			return _list(Array(value as PackedFloat64Array), quantum)
 		SnapshotField.Kind.INTS:
-			return _list(value, quantum)
+			return _list(value)
 		SnapshotField.Kind.RECORDS:
 			var records := PackedStringArray()
 			for entry: Dictionary in value:
 				records.append(_record(row["fields"], entry))
 			return "[%s]" % "".join(records)
-	if quantum > 0.0:
-		return str(roundi(float(value) / quantum))
-	return str(value)
+	if not SnapshotField.quantized(kind):
+		return str(value)
+	var quanta := SnapshotField.quanta(kind, value)
+	if SnapshotField.quanta_count(kind) == 1:
+		return str(quanta[0])
+	return _list(Array(quanta))
 
 
-static func _list(values: Array, quantum: float) -> String:
+static func _list(values: Array) -> String:
 	var text := PackedStringArray()
 	for value: Variant in values:
-		text.append(str(roundi(float(value) / quantum)) if quantum > 0.0 else str(value))
+		text.append(str(value))
 	return "[%s]" % ",".join(text)
