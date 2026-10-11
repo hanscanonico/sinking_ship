@@ -107,14 +107,16 @@ match:
 # tick however fast the machine draws. A capture is silent: the Dummy driver.
 # SCREEN=menu, settings, graphics, online or room starts no match, so it neither
 # autoplays nor takes AT; pause, online-pause and online-settings stand over the match
-# at AT.
+# at AT. One game window at a time on a shared machine: capture and fps take the window
+# lock themselves (tools/window_lock.sh), a kernel lock released on any exit, so never
+# hand-roll a lock around them; run, a person playing, does not take it.
 menu-screen = $(filter menu settings graphics online room,$(SCREEN))
 capture:
 	$(call require-godot)
 	@test -n "$(AT)$(PHYS)$(filter menu settings graphics online room results hold,$(SCREEN))" || \
 		{ echo "capture: AT=<seconds of match time> or PHYS=<h:mm:ss of physics> is required" >&2; exit 1; }
 	@mkdir -p "$(dir $(CAPTURE))"
-	tools/engine_guard.sh $(GODOT) --path . $(if $(RES),--resolution $(RES)) --audio-driver Dummy --fixed-fps 30 -- \
+	tools/window_lock.sh tools/engine_guard.sh $(GODOT) --path . $(if $(RES),--resolution $(RES)) --audio-driver Dummy --fixed-fps 30 -- \
 		$(match-args) $(if $(menu-screen),,--autoplay) --capture="$(CAPTURE)" \
 		$(if $(AT),--capture-at=$(AT)) $(if $(PHYS),--phys=$(PHYS)) $(if $(JUMP),--jump) \
 		$(if $(EYE),--capture-eye=$(EYE)) \
@@ -228,7 +230,7 @@ bench:
 # 10th percentile of the samples after the first 8, and the load average. A window the
 # system is not drawing idles at a flat ~145 fps: such a run prints NOT DRAWING and fails.
 # Rules live in tools/fps.sh. Not part of verify: it needs a display, and the machine to
-# itself — an agent takes /tmp/sinking_ship_window.lock around it, as around a capture.
+# itself — it takes the window lock itself, as capture does.
 fps:
 	GODOT="$(GODOT)" tools/fps.sh $(if $(SEED),--seed=$(SEED)) $(if $(SEATS),--seats=$(SEATS)) \
 		$(if $(SECONDS),--seconds=$(SECONDS)) $(if $(RES),--resolution=$(RES)) \
@@ -387,9 +389,11 @@ SOURCES = $(shell find . -name '*.gd' \
 check:
 	GODOT="$(GODOT)" tools/check_scripts.sh
 
-# The error guard itself, against a stand-in engine that errors and exits 0.
+# The error guard itself, against a stand-in engine that errors and exits 0; and
+# the window lock, against sleeps on a private lock file.
 guard-check:
 	tools/engine_guard_check.sh
+	tools/window_lock_check.sh
 
 # Style and smells. Rule overrides live in gdlintrc.
 lint:

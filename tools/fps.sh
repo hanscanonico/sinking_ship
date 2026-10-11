@@ -14,10 +14,11 @@
 # samples span 2 fps or less, slowest to fastest, the run prints NOT DRAWING and
 # fails, and is to be run again with the window in sight.
 #
-# One game window at a time on a shared machine: an agent takes the window lock
-# around each run, as around `make capture`, and releases it also on failure —
-#   until mkdir /tmp/sinking_ship_window.lock 2>/dev/null; do sleep 5; done
-#   make fps …; rmdir /tmp/sinking_ship_window.lock
+# One game window at a time on a shared machine: the script takes the window lock
+# itself (tools/window_lock.sh), however it is called — `make fps` or straight, as
+# for an A/B — and holds it over the whole measurement, both load readings with
+# the run. It is a kernel lock, released on any exit: never hand-roll a lock
+# around it.
 #
 # Usage:  tools/fps.sh [--seed=4] [--seats=8] [--seconds=40] [--resolution=1440x900]
 #                      [--project=DIR] [-- MORE USER ARGS]
@@ -35,6 +36,9 @@ source "$(dirname "$0")/lib/require_godot.sh" || exit 1
 cd "$(dirname "$0")/.." || exit 1
 
 require_godot fps
+
+# Under the window lock, or start again under it.
+[[ -n "${WINDOW_LOCK_HELD-}" ]] || exec tools/window_lock.sh tools/fps.sh "$@"
 
 SEED=4
 SEATS=8

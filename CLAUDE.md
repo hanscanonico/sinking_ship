@@ -47,6 +47,10 @@ registered every `class_name`. The engine is `$GODOT`, else a vendored `bin/Godo
 `godot` on PATH; lint and format need `pipx install "gdtoolkit==4.*"`. A green `make verify`
 is the bar for done.
 
+One game window at a time on this shared machine: `make capture` and `make fps` take the
+window lock themselves (`tools/window_lock.sh`, a kernel lock released on any exit) — never
+hand-roll a lock around them.
+
 ## Architecture
 
 - **`core/` is Node-free.** The simulation is plain GDScript classes; scenes render it.
