@@ -1,8 +1,9 @@
 class_name SnapshotDigest
 extends RefCounted
-## A running hash of a match (D4): the snapshot quantized to 1 mm, 1 cm/s and
-## 0.01°, folded in every RATE ticks and at the end. Same seed + same input log on
-## the same build and platform ⇒ the same digest.
+## The digest of a match (D4): the snapshot, walked through its records' field
+## tables (SnapshotField) and each field rounded at its kind's quantum, folded in every
+## RATE ticks and at the end. A field is in unless its row leaves it out, with its
+## reason. Same seed + same input log on the same build and platform ⇒ the same digest.
 
 var _hash: String = ""
 
@@ -18,91 +19,41 @@ func hex() -> String:
 	return _hash
 
 
+## [param snapshot]'s digested fields, each at its quantum, as text.
 static func quantized(snapshot: Dictionary) -> String:
-	var parts := PackedStringArray(
-		[
-			str(snapshot["tick"]),
-			str(snapshot["phase"]),
-			str(snapshot["rng"]),
-			_joined(snapshot["up"]),
-		]
-	)
-	var pieces: bool = snapshot["up"].size() > 1
-	for entry: Dictionary in snapshot["seats"]:
-		var pos: Vector3 = entry["pos"]
-		var vel: Vector3 = entry["vel"]
-		var held: Vector3 = entry["held_vel"]
-		var climb_to: Vector3 = entry["climb_to"]
-		var fields: Array = [
-			entry["seat"],
-			entry["state"],
-			entry["place"],
-			entry["out_tick"],
-			entry["out_cause"],
-			roundi(pos.x * 1000.0),
-			roundi(pos.y * 1000.0),
-			roundi(pos.z * 1000.0),
-			roundi(vel.x * 100.0),
-			roundi(vel.y * 100.0),
-			roundi(vel.z * 100.0),
-			roundi(rad_to_deg(entry["facing"]) * 100.0),
-			entry["surface"],
-			roundi(float(entry["fall_from"]) * 1000.0),
-			int(entry["jumped"]),
-			entry["action"],
-			entry["action_ticks"],
-			int(entry["shove_spent"]),
-			roundi(rad_to_deg(entry["shove_facing"]) * 100.0),
-			entry["charge"],
-			int(entry["bracing"]),
-			roundi(float(entry["stamina"]) * 100.0),
-			entry["stamina_wait"],
-			int(entry["exhausted"]),
-			entry["stagger"],
-			entry["hitstop"],
-			roundi(held.x * 100.0),
-			roundi(held.y * 100.0),
-			roundi(held.z * 100.0),
-			roundi(float(entry["cold"]) * 100.0),
-			entry["climb"],
-			roundi(climb_to.x * 1000.0),
-			roundi(climb_to.y * 1000.0),
-			roundi(climb_to.z * 1000.0),
-			entry["last_hit_by"],
-			entry["last_hit_at"],
-			entry["last_hit_crate"],
-			entry["prev_buttons"],
-		]
-		fields.append_array(entry["last_input"])
-		if pieces:
-			fields.append(entry["piece"])
-		parts.append(_joined(fields))
-	for entry: Dictionary in snapshot["props"]:
-		var pos: Vector3 = entry["pos"]
-		var vel: Vector3 = entry["vel"]
-		var fields: Array = [
-			entry["prop"],
-			entry["state"],
-			roundi(pos.x * 1000.0),
-			roundi(pos.y * 1000.0),
-			roundi(pos.z * 1000.0),
-			roundi(vel.x * 100.0),
-			roundi(vel.y * 100.0),
-			roundi(vel.z * 100.0),
-			entry["surface"],
-			entry["shoved_by"],
-			entry["shoved_at"],
-		]
-		parts.append(_joined(fields))
-	var hp: Array = []
-	for left: float in snapshot["railing_hp"]:
-		hp.append(roundi(left * 100.0))
-	parts.append(_joined(hp))
-	return "|".join(parts)
+	return _record(MatchState.FIELDS, snapshot)
 
 
-static func _joined(fields: Array) -> String:
+static func _record(fields: Array, record: Dictionary) -> String:
+	var parts := PackedStringArray()
+	for row: Dictionary in fields:
+		if SnapshotField.digested(row):
+			parts.append(_field(row, record[SnapshotField.key_of(row)]))
+	return "(%s)" % ",".join(parts)
+
+
+static func _field(row: Dictionary, value: Variant) -> String:
+	var kind: SnapshotField.Kind = row["kind"]
+	match kind:
+		SnapshotField.Kind.BOOL:
+			return str(int(value))
+		SnapshotField.Kind.INTS:
+			return _list(value)
+		SnapshotField.Kind.RECORDS:
+			var records := PackedStringArray()
+			for entry: Dictionary in value:
+				records.append(_record(row["fields"], entry))
+			return "[%s]" % "".join(records)
+	if not SnapshotField.quantized(kind):
+		return str(value)
+	var quanta := SnapshotField.quanta(kind, value)
+	if SnapshotField.quanta_count(kind) == 1:
+		return str(quanta[0])
+	return _list(Array(quanta))
+
+
+static func _list(values: Array) -> String:
 	var text := PackedStringArray()
-	for field: Variant in fields:
-		text.append(str(field))
-	return ",".join(text)
+	for value: Variant in values:
+		text.append(str(value))
+	return "[%s]" % ",".join(text)

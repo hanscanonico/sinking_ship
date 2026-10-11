@@ -247,6 +247,25 @@ static func match_ended(event_tick: int, winner: int) -> SimEvent:
 	return event
 
 
+## What to_dict() carries, one row per key in its order (SnapshotField).
+const FIELDS := [
+	{"name": "kind", "kind": SnapshotField.Kind.INT},
+	{"name": "tick", "kind": SnapshotField.Kind.INT},
+	{"name": "seat", "kind": SnapshotField.Kind.INT},
+	{"name": "place", "kind": SnapshotField.Kind.INT},
+	{"name": "cause", "kind": SnapshotField.Kind.INT},
+	{"name": "credit", "kind": SnapshotField.Kind.INT},
+	{"name": "surface", "kind": SnapshotField.Kind.INT},
+	{"name": "stagger_ticks", "kind": SnapshotField.Kind.INT, "key": "stagger"},
+	{"name": "target", "kind": SnapshotField.Kind.INT},
+	{"name": "heel_deg", "kind": SnapshotField.Kind.DEGREES, "key": "heel"},
+	{"name": "platform", "kind": SnapshotField.Kind.NAME},
+	{"name": "railing", "kind": SnapshotField.Kind.INT},
+	{"name": "prop", "kind": SnapshotField.Kind.INT},
+	{"name": "cell", "kind": SnapshotField.Kind.NAME},
+]
+
+
 func to_dict() -> Dictionary:
 	return {
 		"kind": kind,

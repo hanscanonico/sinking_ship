@@ -7,7 +7,7 @@ extends Node3D
 ## its end. The observer camera stands in for the eyes only as a tool: for --observer
 ## and captures, and it alone may cut the ship away to look inside. Rematch and menu
 ## go back to whoever started it: Game, which builds every config through
-## MatchConfig.from_menu (D13), or OnlinePlay.
+## MatchChoices.config (D13), or OnlinePlay.
 
 signal rematch_requested
 signal menu_requested

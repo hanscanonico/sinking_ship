@@ -23,16 +23,40 @@ static func default_config(seed_value: int, seats: int = 0, ship_name := &"") ->
 	return MatchConfig.from_rules(load(DEFAULT_MATCH), seed_value, seats, ship_name)
 
 
-## The match [param args] ask for: the default match on their seed — DEFAULT_SEED
-## when none —, seats and ship, struck by their hit, at their pace, for their goal.
-static func from_args(args: MatchArgs) -> MatchConfig:
-	var config := default_config(
-		args.seed_value if args.seed_value >= 0 else DEFAULT_SEED, args.seats, args.ship()
-	)
+## The command line's match choices: [param args]', their seed DEFAULT_SEED when none
+## is given — the golden transcript's (the menu leaves it blank, to be drawn).
+static func choices(args: MatchArgs) -> MatchChoices:
+	var chosen := args.choices
+	return chosen if not chosen.seed_text.is_empty() else chosen.with_seed(str(DEFAULT_SEED))
+
+
+## The command line's seed, as its choices read it — DEFAULT_SEED when none is given —
+## for a bench that plays the data's match on it alone; -1, the reason printed, when
+## the text is no seed.
+static func seed_of(args: MatchArgs) -> int:
+	var chosen := choices(args)
+	var problems := chosen.seed_problems()
+	if not problems.is_empty():
+		printerr("\n".join(problems))
+	return chosen.seed_number()
+
+
+## The match the command line chooses under the default match data: null, every
+## problem printed, when its choices have any, or the config they make has any of its
+## own or of [param checks] — a tool's, given the config, giving its problems.
+static func chosen_config(args: MatchArgs, checks := Callable()) -> MatchConfig:
+	var chosen := choices(args)
 	var match_rules: MatchRules = load(DEFAULT_MATCH)
-	config.scenario = args.struck(config.scenario, match_rules.fast_clock if args.fast else 0.0)
-	config.goal = args.goal
-	return config
+	var problems := chosen.problems(match_rules)
+	if problems.is_empty():
+		var config := chosen.config(match_rules)
+		problems = config.problems()
+		if checks.is_valid():
+			problems.append_array(checks.call(config))
+		if problems.is_empty():
+			return config
+	printerr("\n".join(problems))
+	return null
 
 
 ## [param config] with every seat a bot of its tier.
@@ -60,19 +84,8 @@ static func transcript(host: MatchHost, max_ticks: int) -> String:
 
 func _initialize() -> void:
 	var args := MatchArgs.parse(OS.get_cmdline_user_args())
-	if not args.problems().is_empty():
-		printerr("\n".join(args.problems()))
-		quit(1)
-		return
-	var config := from_args(args)
-	var problems := config.problems()
-	var profile := BotProfile.for_tier(config.bot_tier)
-	if profile == null:
-		problems.append("bot: no profile for the tier %s" % config.bot_tier)
-	else:
-		problems.append_array(profile.problems())
-	if not problems.is_empty():
-		printerr("\n".join(problems))
+	var config := chosen_config(args, _bot_problems)
+	if config == null:
 		quit(1)
 		return
 	var started := Time.get_ticks_usec()
@@ -87,3 +100,11 @@ func _initialize() -> void:
 		)
 	printraw(transcript(served(config), Ticks.from_seconds(args.seconds)))
 	quit()
+
+
+## What keeps [param config]'s bots from playing: no profile for their tier, or its own.
+static func _bot_problems(config: MatchConfig) -> PackedStringArray:
+	var profile := BotProfile.for_tier(config.bot_tier)
+	if profile == null:
+		return PackedStringArray(["bot: no profile for the tier %s" % config.bot_tier])
+	return profile.problems()

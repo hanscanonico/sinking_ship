@@ -13,7 +13,8 @@ extends RefCounted
 ##   --connect=ws://HOST:PORT  --create | --room=CODE  --name=NAME  --start-at=N
 ##   --capture-screen=SCREEN  --capture-from=X,Y,Z,YAW[,PITCH]  --capture-sway=S
 ##   --quality=low|medium|high  --render-scale=F  --bake-budget=MS  --phys=H:MM:SS  --jump
-## The game reads --seed, --seats and --ship as the menu's choices — --ship a ship of
+## --seed, --seats, --ship, --scenario, --hit, --fast and --goal are the match choices
+## (MatchChoices), each one not given the match data's — --ship a ship of
 ## the Fleet, by name, played in her open-sea scenario, or in --scenario's, one of hers
 ## (steamer_coast, whose ship it names when --ship does not); --stop (or --seconds, in
 ## seconds) is the match time a headless run is stopped at and reported unfinished — a
@@ -23,7 +24,7 @@ extends RefCounted
 ## must-sink rule (§5b.1), so a tool can play a chosen sinking; --fast plays her sinking
 ## on the match data's fast_clock — the menu's Fast sinking, ticked —, with --scenario
 ## and --hit as with neither; --goal=survival plays survival (MatchRules.Goal) — the
-## menu's Survival, ticked —, the battle royale without it; --autoplay presses its
+## menu's Survival, ticked —, and without it the data's goal; --autoplay presses its
 ## Play, and without it --capture saves the menu. A capture is taken from the
 ## observer camera unless --capture-eye names the seat whose eyes it looks through;
 ## --observer opens the observer camera for QA, --observer-cut cuts its view of
@@ -55,35 +56,12 @@ extends RefCounted
 ## with --autoplay a bot, headless, whose creator starts the match once --start-at
 ## players are in.
 
-## --goal's names for the match goals (MatchRules.Goal).
-const GOALS := {
-	"last_standing": MatchRules.Goal.LAST_STANDING, "survival": MatchRules.Goal.SURVIVAL
-}
-## The explicit hits a tool can name (--hit=NAME): the test fixtures', each a ship's
-## NAME_HIT or any ship's HIT.
-const HITS := "res://tests/fixtures/sinking/hits/%s.tres"
-
-## -1 when not given: the host picks one.
-var seed_value: int = -1
-## 0 when not given: the match data's seat count.
-var seats: int = 0
-## A ship of the Fleet, by name; empty when not given: the match data's.
-var ship_name: StringName = &""
-## One of a ship's scenarios of the Fleet, by name (steamer_coast); empty when not
-## given: her open sea's.
-var scenario_name: StringName = &""
+## The match choices --ship, --seats, --seed, --fast, --goal, --scenario and --hit
+## make; every one not given is the match data's, and the seed is blank (MatchChoices).
+var choices := MatchChoices.new()
 ## How much match time a headless run may take before it stops, unfinished (STOP=,
 ## est. 15:00).
 var seconds: float = 900.0
-## An explicit hit to strike her with, its .tres or its name among HITS; empty for the
-## match's own.
-var hit_path: String = ""
-## Her sinking on the match data's fast_clock (MatchConfig.quickened): the menu's
-## Fast sinking, ticked.
-var fast: bool = false
-## What the match is played for, by --goal's name (GOALS); the battle royale unless told.
-var goal := MatchRules.Goal.LAST_STANDING
-var _goal_name := ""
 ## A bot plays the local seat, and nobody waits at the menu.
 var autoplay: bool = false
 var capture_path: String = ""
@@ -149,98 +127,29 @@ static func clock_seconds(text: String) -> float:
 	return seconds
 
 
-## The ship of the Fleet the match is played on: --ship's, else --scenario's, else
-## empty for the match data's.
-func ship() -> StringName:
-	return ship_name if not ship_name.is_empty() else Fleet.ship_of(scenario_name)
-
-
-## The match's sinking: [param scenario] — or the one --scenario names in its place —
-## struck by the explicit hit --hit names, or as it is without one; played on
-## [param clock] (MatchConfig.quickened) when it is positive — a fast match's.
-func struck(scenario: SinkScenario, clock := 0.0) -> SinkScenario:
-	var setting := scenario if scenario_name.is_empty() else _setting()
-	if not hit_path.is_empty():
-		setting = setting.duplicate() as SinkScenario
-		setting.explicit_hit = _hit()
-	return MatchConfig.quickened(setting, clock) if clock > 0.0 else setting
-
-
-## What is wrong with the arguments for a match: a --ship the Fleet has not, a
-## --scenario that is not one of its ship's, a --hit that names no IcebergHit.
-func problems() -> PackedStringArray:
-	var found := PackedStringArray()
-	if not ship_name.is_empty() and Fleet.layout(ship_name) == null:
-		found.append(
-			"--ship: no ship called %s; the fleet has %s" % [ship_name, ", ".join(Fleet.names())]
-		)
-	if (
-		not scenario_name.is_empty()
-		and (
-			_setting() == null
-			or (
-				not String(scenario_name).begins_with("res://")
-				and Fleet.ship_of(scenario_name) != ship()
-			)
-		)
-	):
-		found.append("--scenario: %s is no scenario of %s" % [scenario_name, ship()])
-	if not hit_path.is_empty() and _hit() == null:
-		found.append("--hit: %s is not an IcebergHit" % hit_path)
-	if not _goal_name.is_empty() and not GOALS.has(_goal_name):
-		found.append("--goal: %s is no goal; one of %s" % [_goal_name, ", ".join(GOALS.keys())])
-	return found
-
-
-## --scenario's sinking: one of the Fleet's by name, or a test fixture's by its
-## res:// path — an authored roll (tests/fixtures/sinking/rolling_over.tres) a capture
-## stages her on to look at her faces (SH32), never a match's.
-func _setting() -> SinkScenario:
-	if not String(scenario_name).begins_with("res://"):
-		return Fleet.setting(scenario_name)
-	if not ResourceLoader.exists(scenario_name):
-		return null
-	return load(scenario_name) as SinkScenario
-
-
-## --hit's IcebergHit: the .tres it gives, or by name one of HITS — her own, her fleet
-## ship's for a test-only one (titanic_britannic strikes as titanic), then any ship's.
-func _hit() -> IcebergHit:
-	var path := hit_path
-	if not hit_path.contains("/"):
-		for owner: StringName in [ship(), Fleet.ship_of(ship()), &""]:
-			path = HITS % (hit_path if owner.is_empty() else "%s_%s" % [owner, hit_path])
-			if ResourceLoader.exists(path):
-				break
-	if not ResourceLoader.exists(path):
-		return null
-	return load(path) as IcebergHit
-
-
 static func parse(args: PackedStringArray) -> MatchArgs:
 	var parsed := MatchArgs.new()
 	for arg: String in args:
 		var value := arg.get_slice("=", 1)
 		match arg.get_slice("=", 0):
 			"--seed":
-				parsed.seed_value = value.to_int()
+				parsed.choices.seed_text = value
 			"--seats":
-				parsed.seats = value.to_int()
+				parsed.choices.seats = value.to_int()
 			"--ship":
-				parsed.ship_name = StringName(value)
+				parsed.choices.ship = StringName(value)
 			"--scenario":
-				parsed.scenario_name = StringName(value)
+				parsed.choices.scenario = StringName(value)
 			"--seconds":
 				parsed.seconds = value.to_float()
 			"--stop":
 				parsed.seconds = clock_seconds(value)
 			"--hit":
-				parsed.hit_path = value
+				parsed.choices.hit = value
 			"--fast":
-				parsed.fast = true
+				parsed.choices.fast = true
 			"--goal":
-				parsed._goal_name = value
-				parsed.goal = GOALS.get(value, MatchRules.Goal.LAST_STANDING)
+				parsed.choices.goal = StringName(value)
 			"--autoplay":
 				parsed.autoplay = true
 			"--capture":

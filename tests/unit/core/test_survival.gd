@@ -16,8 +16,6 @@ func test_the_data_carries_the_goal_onto_the_match() -> void:
 	var survival := MatchConfig.from_rules(load(SURVIVAL_MATCH), 1701)
 	assert_eq(royale.goal, MatchRules.Goal.LAST_STANDING, "the default stays the battle royale")
 	assert_eq(survival.goal, MatchRules.Goal.SURVIVAL)
-	var menu := MatchConfig.from_menu(load(SURVIVAL_MATCH), 8, &"normal", "1701", _seeds())
-	assert_eq(menu.goal, MatchRules.Goal.SURVIVAL, "from_menu carries it too")
 
 
 func test_the_battle_royale_hash_is_unchanged() -> void:
@@ -139,9 +137,3 @@ static func _ended(events: Array[SimEvent]) -> Array[SimEvent]:
 		if event.kind == SimEvent.Kind.MATCH_ENDED:
 			found.append(event)
 	return found
-
-
-static func _seeds() -> RandomNumberGenerator:
-	var seeds := RandomNumberGenerator.new()
-	seeds.seed = 1
-	return seeds

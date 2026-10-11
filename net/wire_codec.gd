@@ -8,13 +8,14 @@ extends RefCounted
 ##
 ## An input packet carries a seat's last few frames, the newest last, so a lost
 ## packet costs nothing while a later one arrives (D3's redundancy). A snapshot
-## carries the match quantized — 1 mm, 1 cm/s, 0.01°, the rest of its numbers to
-## AMOUNT — with the client's ack: every number an int64, in the tables' order, the
-## lot compressed. The engine packs and compresses, so the GDScript here only walks
-## the fields, once each way, every beat. Seats are listed by id, so a snapshot of
-## only some is valid (SH22). The fields are the tables below: a key the snapshot
-## gains and they do not is pushed as an error here and lost on the wire, which
-## test_wire_codec's round trip, walking the snapshot's own keys, fails on (R2).
+## carries the match quantized, each field at its kind's quantum (SnapshotField) —
+## 1 mm, 1 cm/s, 0.01° — with the client's ack: every number an int64, in the order of
+## the records' own tables (MatchState.FIELDS and those it nests), the lot compressed.
+## The engine packs and compresses, so the GDScript here only walks the fields, once
+## each way, every beat. Seats are listed by id, so a snapshot of only some is valid
+## (SH22). A key a record's to_dict() gains and its table does not is pushed as an
+## error here and lost on the wire, which test_wire_codec's round trip, walking the
+## snapshot's own keys, fails on (R2).
 
 const PROTOCOL_VERSION := 6
 ## The build of what plays a match — core/, ai/ and net/ — bumped by hand whenever a
@@ -22,11 +23,6 @@ const PROTOCOL_VERSION := 6
 ## two builds that would not agree are refused as other data.
 const SIM_BUILD := 7
 const HASH_BYTES := 8
-const LENGTH_QUANTUM := 0.001
-const SPEED_QUANTUM := 0.01
-const ANGLE_QUANTUM := TAU / 36000.0
-const DEGREES_QUANTUM := 0.01
-const AMOUNT_QUANTUM := 0.001
 ## How far apart, in quanta, two values within_quantum may be: a rounding on each side,
 ## and a single-precision Vector3's own error at a few tens of metres.
 const QUANTA_APART := 1.01
@@ -54,101 +50,10 @@ enum Kind {
 ## there is, of another protocol version, or of another match's data.
 enum Mismatch { NONE, MALFORMED, VERSION, DATA }
 
-## How a field travels. LENGTHS and SPEEDS are Vector3s; INTS a list of ints and
-## AMOUNTS a PackedFloat64Array; SEATS, PROPS and EVENTS lists of records.
-enum Field {
-	INT,
-	BOOL,
-	LENGTH,
-	LENGTHS,
-	SPEEDS,
-	ANGLE,
-	DEGREES,
-	AMOUNT,
-	AMOUNTS,
-	NAME,
-	INTS,
-	SEATS,
-	PROPS,
-	EVENTS,
-}
-
-## MatchState.to_dict().
-const SNAPSHOT_FIELDS := [
-	["v", Field.INT],
-	["tick", Field.INT],
-	["seed", Field.INT],
-	["phase", Field.INT],
-	["rng", Field.INT],
-	["seats", Field.SEATS],
-	["props", Field.PROPS],
-	["railing_hp", Field.AMOUNTS],
-	["up", Field.INTS],
-	["events", Field.EVENTS],
-]
-## PlayerState.to_dict().
-const SEAT_FIELDS := [
-	["seat", Field.INT],
-	["piece", Field.INT],
-	["out", Field.BOOL],
-	["place", Field.INT],
-	["out_tick", Field.INT],
-	["out_cause", Field.INT],
-	["pos", Field.LENGTHS],
-	["vel", Field.SPEEDS],
-	["facing", Field.ANGLE],
-	["surface", Field.INT],
-	["state", Field.INT],
-	["fall_from", Field.LENGTH],
-	["jumped", Field.BOOL],
-	["action", Field.INT],
-	["action_ticks", Field.INT],
-	["shove_spent", Field.BOOL],
-	["shove_facing", Field.ANGLE],
-	["charge", Field.INT],
-	["bracing", Field.BOOL],
-	["stamina", Field.AMOUNT],
-	["stamina_wait", Field.INT],
-	["exhausted", Field.BOOL],
-	["stagger", Field.INT],
-	["hitstop", Field.INT],
-	["held_vel", Field.SPEEDS],
-	["cold", Field.AMOUNT],
-	["climb", Field.INT],
-	["climb_to", Field.LENGTHS],
-	["last_hit_by", Field.INT],
-	["last_hit_at", Field.INT],
-	["last_hit_crate", Field.INT],
-	["prev_buttons", Field.INT],
-	["last_input", Field.INTS],
-]
-## PropState.to_dict().
-const PROP_FIELDS := [
-	["prop", Field.INT],
-	["state", Field.INT],
-	["pos", Field.LENGTHS],
-	["vel", Field.SPEEDS],
-	["surface", Field.INT],
-	["shoved_by", Field.INT],
-	["shoved_at", Field.INT],
-]
-## SimEvent.to_dict().
-const EVENT_FIELDS := [
-	["kind", Field.INT],
-	["tick", Field.INT],
-	["seat", Field.INT],
-	["place", Field.INT],
-	["cause", Field.INT],
-	["credit", Field.INT],
-	["surface", Field.INT],
-	["stagger", Field.INT],
-	["target", Field.INT],
-	["heel", Field.DEGREES],
-	["platform", Field.NAME],
-	["railing", Field.INT],
-	["prop", Field.INT],
-	["cell", Field.NAME],
-]
+## Each section — &"snapshot" and the key of every list of records in it — as the codec
+## walks it: per field its key, its kind and, for a list of records, their walk. Built
+## once from the records' tables.
+static var _walks := {}
 
 
 ## Reads a packet, noting rather than failing when it runs short.
@@ -276,7 +181,7 @@ func encode_snapshot(snapshot: Dictionary, ack: int, heard: int, early: int) -> 
 	values.put(ack)
 	values.put(heard)
 	values.put(early)
-	_put_record(values, snapshot, SNAPSHOT_FIELDS)
+	_put_record(values, snapshot, _walk(&"snapshot"))
 	var packed := values.ints.to_byte_array()
 	var squeezed := packed.compress(COMPRESSION)
 	var out := header(Kind.SNAPSHOT)
@@ -304,7 +209,7 @@ func decode_snapshot(bytes: PackedByteArray) -> SnapshotPacket:
 	var ack := values.take()
 	var heard := values.take()
 	var early := values.take()
-	var snapshot := _record(values, SNAPSHOT_FIELDS)
+	var snapshot := _record(values, _walk(&"snapshot"))
 	if not values.finished():
 		return null
 	return SnapshotPacket.new(snapshot, ack, heard, early)
@@ -335,9 +240,9 @@ func mismatch(bytes: PackedByteArray) -> Mismatch:
 ## &"seats", &"props" or &"events") travels at: 0 for one carried exactly, -1 for
 ## one the wire does not carry at all.
 static func quantum(section: StringName, key: String) -> float:
-	for field: Array in _section(section):
+	for field: Array in _walk(section):
 		if field[0] == key:
-			return _quantum_of(field[1])
+			return SnapshotField.quantum(field[1])
 	return -1.0
 
 
@@ -345,8 +250,8 @@ static func quantum(section: StringName, key: String) -> float:
 ## far as the wire can tell: every count and flag the same, every number within a
 ## quantum — one rounding on each side.
 static func within_quantum(section: StringName, one: Dictionary, other: Dictionary) -> bool:
-	for field: Array in _section(section):
-		if not _within(one[field[0]], other[field[0]], _quantum_of(field[1])):
+	for field: Array in _walk(section):
+		if not _within(one[field[0]], other[field[0]], SnapshotField.quantum(field[1])):
 			return false
 	return true
 
@@ -359,46 +264,42 @@ static func field_within_quantum(
 	return _within(one, other, quantum(section, key))
 
 
-static func _within(a: Variant, b: Variant, step: float) -> bool:
-	if step == 0.0:
+static func _within(a: Variant, b: Variant, quantum: float) -> bool:
+	if quantum == 0.0:
 		return a == b
 	if a is Vector3:
 		var off: Vector3 = (a as Vector3) - (b as Vector3)
-		return maxf(absf(off.x), maxf(absf(off.y), absf(off.z))) <= step * QUANTA_APART
+		return maxf(absf(off.x), maxf(absf(off.y), absf(off.z))) <= quantum * QUANTA_APART
 	if a is PackedFloat64Array:
 		var these: PackedFloat64Array = a
 		var those: PackedFloat64Array = b
 		if these.size() != those.size():
 			return false
 		for index in these.size():
-			if absf(these[index] - those[index]) > step * QUANTA_APART:
+			if absf(these[index] - those[index]) > quantum * QUANTA_APART:
 				return false
 		return true
-	return absf(float(a) - float(b)) <= step * QUANTA_APART
+	return absf(float(a) - float(b)) <= quantum * QUANTA_APART
 
 
-static func _section(section: StringName) -> Array:
-	return {
-		&"snapshot": SNAPSHOT_FIELDS,
-		&"seats": SEAT_FIELDS,
-		&"props": PROP_FIELDS,
-		&"events": EVENT_FIELDS,
-	}[section]
+static func _walk(section: StringName) -> Array:
+	if _walks.is_empty():
+		_walks[&"snapshot"] = _compiled(MatchState.FIELDS)
+	return _walks[section]
 
 
-static func _quantum_of(field: Field) -> float:
-	match field:
-		Field.LENGTH, Field.LENGTHS:
-			return LENGTH_QUANTUM
-		Field.SPEEDS:
-			return SPEED_QUANTUM
-		Field.ANGLE:
-			return ANGLE_QUANTUM
-		Field.DEGREES:
-			return DEGREES_QUANTUM
-		Field.AMOUNT, Field.AMOUNTS:
-			return AMOUNT_QUANTUM
-	return 0.0
+## [param fields], a record's table, as the codec walks it; each list of records in it
+## is a section of its own, by its key.
+static func _compiled(fields: Array) -> Array:
+	var walk := []
+	for row: Dictionary in fields:
+		var key := SnapshotField.key_of(row)
+		var nested := []
+		if row["kind"] == SnapshotField.Kind.RECORDS:
+			nested = _compiled(row["fields"])
+			_walks[StringName(key)] = nested
+		walk.append([key, row["kind"], nested])
+	return walk
 
 
 ## A packet of [param kind], opened: what follows is the caller's to put.
@@ -436,93 +337,86 @@ static func _put_int(out: StreamPeerBuffer, value: int) -> void:
 		out.put_u8(low | 0x80)
 
 
-static func _put_record(values: Values, record: Dictionary, fields: Array) -> void:
-	if record.size() != fields.size():
+static func _put_record(values: Values, record: Dictionary, walk: Array) -> void:
+	if record.size() != walk.size():
 		push_error("wire: a record of %s has keys the codec does not carry" % [record.keys()])
-	for field: Array in fields:
-		if field[1] == Field.INT:
+	for field: Array in walk:
+		if field[1] == SnapshotField.Kind.INT:
 			values.ints.append(record.get(field[0]))
 		else:
-			_put_field(values, record.get(field[0]), field[1])
+			_put_field(values, record.get(field[0]), field)
 
 
-static func _put_field(values: Values, value: Variant, field: Field) -> void:
-	match field:
-		Field.INT:
+static func _put_field(values: Values, value: Variant, field: Array) -> void:
+	var kind: SnapshotField.Kind = field[1]
+	match kind:
+		SnapshotField.Kind.INT:
 			values.put(value)
-		Field.BOOL:
+		SnapshotField.Kind.BOOL:
 			values.put(1 if value else 0)
-		Field.LENGTHS, Field.SPEEDS:
-			var vector: Vector3 = value
-			var step := _quantum_of(field)
-			values.put(roundi(vector.x / step))
-			values.put(roundi(vector.y / step))
-			values.put(roundi(vector.z / step))
-		Field.LENGTH, Field.ANGLE, Field.DEGREES, Field.AMOUNT:
-			values.put(roundi(float(value) / _quantum_of(field)))
-		Field.AMOUNTS:
-			var amounts: PackedFloat64Array = value
-			values.put(amounts.size())
-			for amount: float in amounts:
-				values.put(roundi(amount / AMOUNT_QUANTUM))
-		Field.NAME:
+		SnapshotField.Kind.NAME:
 			var text := String(value).to_utf8_buffer()
 			values.put(text.size())
 			for code: int in text:
 				values.put(code)
-		Field.INTS:
+		SnapshotField.Kind.INTS:
 			var ints: Array = value
 			values.put(ints.size())
 			for item: int in ints:
 				values.put(item)
-		Field.SEATS, Field.PROPS, Field.EVENTS:
+		SnapshotField.Kind.RECORDS:
 			var records: Array = value
 			values.put(records.size())
 			for record: Dictionary in records:
-				_put_record(values, record, _fields_of(field))
+				_put_record(values, record, field[2])
+		_:
+			var quanta := SnapshotField.quanta(kind, value)
+			if SnapshotField.quanta_count(kind) < 0:
+				values.put(quanta.size())
+			for whole: int in quanta:
+				values.put(whole)
 
 
-static func _record(values: Values, fields: Array) -> Dictionary:
+static func _record(values: Values, walk: Array) -> Dictionary:
 	var record := {}
-	for field: Array in fields:
+	for field: Array in walk:
 		# Most fields are counts and enums: read here, without a call per field.
-		if field[1] == Field.INT:
+		if field[1] == SnapshotField.Kind.INT:
 			record[field[0]] = values.take()
 		else:
-			record[field[0]] = _field(values, field[1])
+			record[field[0]] = _field(values, field)
 	return record
 
 
-static func _field(values: Values, field: Field) -> Variant:
-	match field:
-		Field.BOOL:
+static func _field(values: Values, field: Array) -> Variant:
+	var kind: SnapshotField.Kind = field[1]
+	match kind:
+		SnapshotField.Kind.BOOL:
 			return values.take() != 0
-		Field.LENGTHS, Field.SPEEDS:
-			var step := _quantum_of(field)
-			return Vector3(values.take() * step, values.take() * step, values.take() * step)
-		Field.LENGTH, Field.ANGLE, Field.DEGREES, Field.AMOUNT:
-			return values.take() * _quantum_of(field)
-		Field.AMOUNTS:
-			var amounts := PackedFloat64Array()
-			for index in _count(values):
-				amounts.append(values.take() * AMOUNT_QUANTUM)
-			return amounts
-		Field.NAME:
+		SnapshotField.Kind.NAME:
 			var text := PackedByteArray()
 			for index in _count(values):
 				text.append(values.take())
 			return StringName(text.get_string_from_utf8())
-		Field.INTS:
+		SnapshotField.Kind.INTS:
 			var ints := []
 			for index in _count(values):
 				ints.append(values.take())
 			return ints
-		Field.SEATS, Field.PROPS, Field.EVENTS:
+		SnapshotField.Kind.RECORDS:
 			var records: Array[Dictionary] = []
 			for index in _count(values):
-				records.append(_record(values, _fields_of(field)))
+				records.append(_record(values, field[2]))
 			return records
-	return values.take()
+		SnapshotField.Kind.INT:
+			return values.take()
+	var quanta := PackedInt64Array()
+	var count := SnapshotField.quanta_count(kind)
+	if count < 0:
+		count = _count(values)
+	for index in count:
+		quanta.append(values.take())
+	return SnapshotField.from_quanta(kind, quanta)
 
 
 ## A list's length; a negative or an absurd one breaks the packet.
@@ -532,12 +426,3 @@ static func _count(values: Values) -> int:
 		values.ok = false
 		return 0
 	return count
-
-
-static func _fields_of(field: Field) -> Array:
-	match field:
-		Field.SEATS:
-			return SEAT_FIELDS
-		Field.PROPS:
-			return PROP_FIELDS
-	return EVENT_FIELDS

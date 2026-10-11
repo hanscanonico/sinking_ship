@@ -15,7 +15,8 @@ static var _told := ""
 
 func _survival() -> String:
 	if _told.is_empty():
-		var config := RunMatch.from_args(MatchArgs.parse(PackedStringArray(ARGS)))
+		var chosen := RunMatch.choices(MatchArgs.parse(PackedStringArray(ARGS)))
+		var config := chosen.config(load(RunMatch.DEFAULT_MATCH))
 		_told = RunMatch.transcript(RunMatch.served(config), MAX_TICKS)
 	return _told
 

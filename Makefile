@@ -86,7 +86,9 @@ match-args = $(if $(SEED),--seed=$(SEED)) $(if $(SEATS),--seats=$(SEATS)) $(if $
 
 # FAST=1 plays her sinking on the match data's fast_clock (the menu's Fast sinking).
 # GOAL=survival plays survival (the menu's Survival): everyone stays in as long as she
-# lasts. Without GOAL=, the battle royale. It works for match too, and with FAST=1.
+# lasts. Without GOAL=, the match data's goal (the battle royale's in default.tres). It
+# works for match too, and with FAST=1. FAST=1 works for bake too. A SEED= that is not a
+# whole number of 0 or more is refused, as the menu refuses it.
 run:
 	$(call require-godot)
 	$(GODOT) --path . -- $(match-args) $(ARGS)
@@ -261,7 +263,7 @@ hits:
 	@set -o pipefail; tools/engine_guard.sh $(GODOT) --headless --no-header --path . -s res://tools/hits.gd \
 		-- $(if $(SHIP),--ship=$(SHIP)) --seeds=$(SEEDS) | grep -v '^\[godot_ai'
 
-# `make bake SEED=1701 [SHIP=] [HIT=path.tres|NAME]`: a seed's sinking alone, no match played (§5b.4):
+# `make bake SEED=1701 [SHIP=] [HIT=path.tres|NAME] [FAST=1]`: a seed's sinking alone, no match played (§5b.4):
 # the hit the must-sink rule chose (or HIT='s), how it came to it, every event of the
 # bake in physics time, how she ends and her labels, and what the bake cost and the
 # timeline weighs. Headless. Rules live in tools/bake.gd.

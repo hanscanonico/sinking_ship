@@ -1,102 +1,25 @@
 extends GutTest
-## MatchConfig.from_menu is the UI's only route into a match (D13): the menu's
-## ship, seats, tier and seed become a config, a blank seed is drawn once and
-## recorded, and a ship the Fleet has not or a seat count she does not take is refused.
+## MatchConfig: a match from the rules alone (from_rules) — the fixed-config tools'
+## and the tests' — its problems, its data hash and its pace. Player choices reach it
+## through MatchChoices (test_match_choices).
 
 const RunMatch := preload("res://tools/run_match.gd")
 
 const DEFAULT_MATCH := "res://data/match/default.tres"
-## Seconds of match time a match is played for at most: a match has no cap, and the
-## drawn one below ends at 15:28.7, two bots sparring a long while.
-const PLAYED_FOR := 1200.0
 
 
 func _rules() -> MatchRules:
 	return load(DEFAULT_MATCH)
 
 
-func _seeds(seed_value: int) -> RandomNumberGenerator:
-	var seeds := RandomNumberGenerator.new()
-	seeds.seed = seed_value
-	return seeds
-
-
-## [param config]'s match played out by bots, as the headless tools play it — for at
-## most PLAYED_FOR of match time: a match has no cap, and two bots can spar a while.
-func _played(config: MatchConfig) -> MatchRunner:
-	var runner := RunMatch.bots_only(config)
-	for _tick in Ticks.from_seconds(PLAYED_FOR):
-		if runner.is_over():
-			break
-		runner.step()
-	return runner
-
-
-func test_menu_values_build_a_config() -> void:
-	var match_rules := _rules()
-	assert_eq(match_rules.problems(), PackedStringArray(), "the default match data is valid")
-	var config := MatchConfig.from_menu(match_rules, 5, &"normal", " 1701 ", _seeds(1))
-	assert_not_null(config)
-	assert_eq(config.match_seed, 1701)
-	assert_eq(config.seats, 5)
-	assert_eq(config.bot_tier, &"normal")
-	assert_eq(config.humans, match_rules.humans)
-	assert_eq(config.countdown_ticks, Ticks.from_seconds(match_rules.countdown))
-	assert_eq(config.problems(), PackedStringArray())
-	var from_data := MatchConfig.from_rules(match_rules, 1701, 5)
-	assert_eq(config.data_hash(), from_data.data_hash(), "the same match the data states")
-	assert_true(BotProfile.tiers().has("normal"), "the menu's tiers are data/bots/")
-	var other_default: MatchRules = match_rules.duplicate()
-	other_default.bot_tier = &"hard"
-	assert_eq(
-		MatchConfig.from_menu(other_default, 5, &"normal", "", _seeds(1)).bot_tier,
-		&"normal",
-		"the menu's tier, not the data's default"
-	)
-	assert_null(
-		MatchConfig.from_menu(match_rules, 5, &"normal", "sixty", _seeds(1)),
-		"a seed that is not a whole number is refused"
-	)
-	assert_null(MatchConfig.from_menu(match_rules, 5, &"normal", "-3", _seeds(1)))
-
-
-func test_blank_seed_is_random_and_recorded() -> void:
-	var match_rules := _rules()
-	var config := MatchConfig.from_menu(match_rules, 6, &"normal", "", _seeds(42))
-	assert_eq(config.match_seed, _seeds(42).randi(), "drawn from the caller's stream, once")
-	var other := MatchConfig.from_menu(match_rules, 6, &"normal", "  ", _seeds(43))
-	assert_ne(other.match_seed, config.match_seed, "a blank seed is a fresh one")
-
-	# Recorded: typing the drawn seed back in plays the same match, to the end.
-	var replayed := MatchConfig.from_menu(
-		match_rules, 6, &"normal", str(config.match_seed), _seeds(7)
-	)
-	assert_eq(replayed.match_seed, config.match_seed)
-	var first := _played(config)
-	var second := _played(replayed)
-	assert_true(first.is_over(), "the drawn match ends")
-	assert_eq(second.digest.hex(), first.digest.hex())
-	assert_eq(second.snapshot, first.snapshot)
-
-
 func test_seat_count_bounds() -> void:
 	var match_rules := _rules()
 	var ship := match_rules.ship
-	var seeds := _seeds(1)
-	for seats in range(ship.min_seats, ship.max_seats + 1):
-		var config := MatchConfig.from_menu(match_rules, seats, &"normal", "", seeds)
-		assert_eq(config.seats, seats)
-		assert_eq(config.problems(), PackedStringArray(), "%d seats can start" % seats)
-	assert_null(MatchConfig.from_menu(match_rules, ship.min_seats - 1, &"normal", "", seeds))
-	assert_null(MatchConfig.from_menu(match_rules, ship.max_seats + 1, &"normal", "", seeds))
-
-	# The bounds are the ship's data, not the menu's: move them and the refusals move.
+	# The bounds are the ship's data: a match outside them cannot start.
 	var narrow: MatchRules = match_rules.duplicate()
 	narrow.ship = ship.duplicate()
 	narrow.ship.min_seats = 6
 	narrow.ship.max_seats = 6
-	assert_null(MatchConfig.from_menu(narrow, 5, &"normal", "", seeds))
-	assert_not_null(MatchConfig.from_menu(narrow, 6, &"normal", "", seeds))
 	narrow.seats = 7
 	assert_eq(
 		narrow.problems(),
@@ -117,23 +40,12 @@ func test_seat_count_bounds() -> void:
 	)
 
 
-func test_seat_bounds_follow_the_ship() -> void:
-	# SH30 starts SH21's bounds: each ship states the seats she takes, and the menu's
-	# choices are hers.
-	var match_rules := _rules()
-	var seeds := _seeds(1)
+func test_every_ship_has_a_spawn_for_every_seat() -> void:
+	# SH30 starts SH21's bounds: each ship states the seats she takes.
 	for ship_name: String in Fleet.names():
 		var ship := Fleet.layout(ship_name)
 		assert_gte(ship.min_seats, 1, "%s takes a seat" % ship_name)
 		assert_gte(ship.spawns.size(), ship.max_seats, "%s has a spawn for every seat" % ship_name)
-		for seats in range(ship.min_seats, ship.max_seats + 1):
-			var config := MatchConfig.from_menu(match_rules, seats, &"normal", "", seeds, ship_name)
-			assert_eq(config.ship, ship, "the menu's %s" % ship_name)
-			assert_eq(config.problems(), PackedStringArray(), "%s, %d seats" % [ship_name, seats])
-		assert_null(
-			MatchConfig.from_menu(match_rules, ship.max_seats + 1, &"normal", "", seeds, ship_name)
-		)
-	assert_null(MatchConfig.from_menu(match_rules, 6, &"normal", "", seeds, &"ark"), "no ark")
 
 
 func test_a_ship_is_named_and_struck_in_her_own_sea() -> void:
@@ -172,15 +84,6 @@ func test_the_weak_hull_plays_by_name_and_is_never_in_the_fleet() -> void:
 	assert_null(Fleet.layout(&"trawler_weak"), "no weak hull of a ship that has none")
 
 
-func test_the_menu_takes_a_lone_seat() -> void:
-	var config := MatchConfig.from_menu(_rules(), 1, &"normal", "1", _seeds(1))
-	assert_not_null(config, "one seat can start: you alone, no bots")
-	if config != null:
-		assert_eq(config.seats, 1)
-		assert_eq(config.humans, 1, "and that seat is the local human")
-		assert_eq(config.problems(), PackedStringArray())
-
-
 func test_a_sinking_with_an_iceberg_hit_needs_a_ship_with_a_structure() -> void:
 	var struck: SinkScenario = load(SimFixtures.STEAMER_SINKING)
 	var steamer := MatchConfig.new(1, 4, SimFixtures.rules(), SimFixtures.steamer(), struck)
@@ -208,12 +111,20 @@ func test_a_physical_sinking_needs_a_sea_under_her() -> void:
 	assert_eq(authored.problems(), PackedStringArray(), "and needs none")
 
 
+## The default match on [param seed_value], on the data's fast clock.
+func _fast(seed_value: int) -> MatchConfig:
+	var config := MatchConfig.from_rules(_rules(), seed_value)
+	config.scenario = MatchConfig.quickened(config.scenario, _rules().fast_clock)
+	return config
+
+
 ## The steamer's match on [param seed_value], fast when [param fast], struck by the fast
 ## fixture hit — past the must-sink rule, one cheap bake — on the clock it was given.
 func _hit_fast(seed_value: int, fast: bool) -> MatchConfig:
-	var config := MatchConfig.from_rules(_rules(), seed_value, 0, &"", fast)
-	config.scenario = config.scenario.duplicate() as SinkScenario
-	config.scenario.explicit_hit = load("res://tests/fixtures/sinking/hits/fast.tres")
+	var config := MatchConfig.from_rules(_rules(), seed_value)
+	var struck := config.scenario.duplicate() as SinkScenario
+	struck.explicit_hit = load("res://tests/fixtures/sinking/hits/fast.tres")
+	config.scenario = MatchConfig.quickened(struck, _rules().fast_clock) if fast else struck
 	return config
 
 
@@ -237,31 +148,19 @@ func test_fast_mode_sinks_her_sooner_on_the_same_seed() -> void:
 
 func test_fast_mode_changes_the_data_hash() -> void:
 	var normal := MatchConfig.from_rules(_rules(), 1701)
-	var fast := MatchConfig.from_rules(_rules(), 1701, 0, &"", true)
+	var fast := _fast(1701)
 	assert_eq(fast.scenario.clock, _rules().fast_clock, "on the data's fast clock")
 	assert_ne(fast.data_hash(), normal.data_hash(), "a replay refuses the other pace")
-	var trawler := MatchConfig.from_menu(_rules(), 6, &"normal", "1", _seeds(1), &"trawler", true)
-	assert_eq(trawler.scenario.clock, _rules().fast_clock, "on any ship")
 	assert_false(fast.share_sinking(normal), "nor shares a normal match's sinking")
 
 
 func test_fast_mode_leaves_the_loaded_scenario_untouched() -> void:
 	var loaded: SinkScenario = load(SimFixtures.STEAMER_SINKING)
-	var fast := MatchConfig.from_rules(_rules(), 1701, 0, &"", true)
+	var fast := _fast(1701)
 	assert_ne(fast.scenario, loaded, "a copy")
 	assert_eq(loaded.clock, 1.0, "the shared .tres keeps its clock")
 	assert_eq(fast.scenario.hit, loaded.hit, "and the copy its bands")
 	assert_eq(MatchConfig.quickened(loaded, 1.0), loaded, "her own clock is no copy")
-
-
-func test_normal_mode_is_unchanged() -> void:
-	var before := MatchConfig.from_rules(_rules(), 1701)
-	var normal := MatchConfig.from_rules(_rules(), 1701, 0, &"", false)
-	assert_eq(normal.scenario, before.scenario, "the loaded scenario itself")
-	assert_eq(normal.data_hash(), before.data_hash())
-	var menu := MatchConfig.from_menu(_rules(), 6, &"normal", "1", _seeds(1))
-	var unticked := MatchConfig.from_menu(_rules(), 6, &"normal", "1", _seeds(1), &"", false)
-	assert_eq(unticked.data_hash(), menu.data_hash())
 
 
 func test_the_fast_clock_must_quicken_her() -> void:
