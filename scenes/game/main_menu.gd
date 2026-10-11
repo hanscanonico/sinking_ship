@@ -3,16 +3,13 @@ extends CanvasLayer
 ## Play vs bots: every ship of the Fleet, the seat counts the picked one takes, every
 ## bot tier there is a profile for, a seed — blank for a random one —, whether she
 ## sinks fast and whether the match is survival (MatchRules.Goal), handed on as they
-## stand.
-## Game turns them into a match through MatchConfig.from_menu (D13). Beside it, Play
+## stand: one MatchChoices, which Game turns into a match (D13). Beside it, Play
 ## online opens the Online screen (SH12). It stands over the ship at dusk
 ## (MenuBackdrop) under the wordmark in her livery: cream on a boot-top red rule
 ## between brass lines — and the online screens stand over the same, its own panel put
 ## away (show_behind).
 
-signal play_requested(
-	ship: StringName, seats: int, tier: StringName, seed_text: String, fast: bool, survival: bool
-)
+signal play_requested(choices: MatchChoices)
 ## The picker has moved to [param ship], by name.
 signal ship_picked(ship: StringName)
 signal online_requested
@@ -29,6 +26,9 @@ signal quit_requested
 @onready var _play: Button = %Play
 @onready var _panel: PanelContainer = $Panel
 @onready var _backdrop: MenuBackdrop = $Backdrop
+## The choices the menu was set up with: what it offers no picker for — the command
+## line's scenario and hit — travels on with every Play.
+var _given := MatchChoices.new()
 
 
 func _ready() -> void:
@@ -49,38 +49,45 @@ func _ready() -> void:
 
 
 ## Offers the Fleet's ships, the seat counts the picked one takes and the tiers under
-## data/bots/, with [param ship], [param seats], [param tier] and [param seed_text]
-## chosen where offered — [param match_rules]' ship and seat count where not —, Fast
-## sinking ticked when [param fast] and Survival when [param survival], over
+## data/bots/, with [param choices] chosen where offered — each one unmade the
+## [param match_rules]' (MatchChoices.filled), Survival ticked when that goal is —, over
 ## [param match_rules]' ship.
-func setup(
-	match_rules: MatchRules,
-	ship: StringName,
-	seats: int,
-	tier: StringName,
-	seed_text: String,
-	fast := false,
-	survival := false
-) -> void:
+func setup(match_rules: MatchRules, choices: MatchChoices) -> void:
+	_given = choices
+	var full := choices.filled(match_rules)
 	_backdrop.show_ship(match_rules)
 	_ship.clear()
 	var ships := Fleet.names()
 	# A test-only ship (Fleet, SH33) is offered only when asked for by name.
-	if not ship.is_empty() and not ships.has(String(ship)) and Fleet.layout(ship) != null:
-		ships.append(String(ship))
+	if not ships.has(String(full.ship)) and Fleet.layout(full.ship) != null:
+		ships.append(String(full.ship))
 	for offered: String in ships:
 		_ship.add_item(offered)
-		if offered == ship or (ship.is_empty() and offered == Fleet.name_of(match_rules.ship)):
+		if offered == full.ship:
 			_ship.select(_ship.item_count - 1)
-	_offer_seats(seats, match_rules.seats)
+	_offer_seats(full.seats, match_rules.seats)
 	_tier.clear()
 	for offered: String in BotProfile.tiers():
 		_tier.add_item(offered)
-		if offered == tier:
+		if offered == full.bot_tier:
 			_tier.select(_tier.item_count - 1)
-	_seed.text = seed_text
-	_fast.button_pressed = fast
-	_survival.button_pressed = survival
+	_seed.text = full.seed_text
+	_fast.button_pressed = full.fast
+	_survival.button_pressed = full.goal == &"survival"
+
+
+## The choices as they stand: the ship, seats, tier, seed, pace and goal picked here,
+## the rest as the menu was set up with them.
+func choices() -> MatchChoices:
+	var picked := _given.with_seed(_seed.text)
+	picked.ship = picked_ship()
+	picked.seats = _seats.get_selected_id()
+	picked.bot_tier = (
+		StringName(_tier.get_item_text(_tier.selected)) if _tier.selected != -1 else &""
+	)
+	picked.fast = _fast.button_pressed
+	picked.goal = &"survival" if _survival.button_pressed else &"last_standing"
+	return picked
 
 
 func open() -> void:
@@ -158,12 +165,4 @@ func _on_ship_picked(_index: int) -> void:
 
 
 func _on_play() -> void:
-	var tier := StringName(_tier.get_item_text(_tier.selected)) if _tier.selected != -1 else &""
-	play_requested.emit(
-		picked_ship(),
-		_seats.get_selected_id(),
-		tier,
-		_seed.text,
-		_fast.button_pressed,
-		_survival.button_pressed
-	)
+	play_requested.emit(choices())

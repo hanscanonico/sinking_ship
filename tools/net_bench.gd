@@ -19,7 +19,7 @@ const SETTLE_BEATS := 2 * Ticks.RATE
 func _initialize() -> void:
 	var args := MatchArgs.parse(OS.get_cmdline_user_args())
 	var config := RunMatch.default_config(
-		args.seed_value if args.seed_value >= 0 else RunMatch.DEFAULT_SEED, args.seats
+		args.seed_value if args.seed_value >= 0 else RunMatch.DEFAULT_SEED, args.choices.seats
 	)
 	var profile := BotProfile.for_tier(config.bot_tier)
 	var bots := BotInputSource.fill(config, profile)

@@ -1,10 +1,12 @@
 extends SceneTree
-## `make bake SEED=1701 [SHIP=] [HIT=path.tres|NAME]`: the sinking of a seed's match alone, no
-## match played (§5b.4) — the hit the must-sink rule chose for it (or the explicit one HIT=
-## gives), the doors the ship shuts and the openings left open, how the rule came to
-## it, then every event of the bake in physics time, h:mm:ss, how she ends, the labels
-## read off it (OutcomeClassifier) and the worst her bending came to (HullGirder), and
-## what the bake cost and the timeline weighs, compacted and with every state kept.
+## `make bake SEED=1701 [SHIP=] [HIT=path.tres|NAME] [FAST=1]`: the sinking of a seed's
+## match alone, no match played (§5b.4) — the hit the must-sink rule chose for it (or the
+## explicit one HIT= gives), the doors the ship shuts and the openings left open, how the
+## rule came to it, then every event of the bake in physics time, h:mm:ss, how she ends,
+## the labels read off it (OutcomeClassifier) and the worst her bending came to
+## (HullGirder), and what the bake cost and the timeline weighs, compacted and with every
+## state kept. FAST=1 bakes her on the match data's fast clock, as `make match FAST=1`
+## plays her: the same physics, told in physics time, the header saying the clock.
 ## Everything is asked of the match's config and schedule (D13); only the cost is this
 ## machine's.
 ##
@@ -21,16 +23,15 @@ const LEANING: Array[SinkTimeline.Kind] = [
 
 
 func _initialize() -> void:
-	var args := MatchArgs.parse(OS.get_cmdline_user_args())
-	if not args.problems().is_empty():
-		printerr("\n".join(args.problems()))
+	var chosen := RunMatch.choices(MatchArgs.parse(OS.get_cmdline_user_args()))
+	var match_rules: MatchRules = load(RunMatch.DEFAULT_MATCH)
+	var problems := chosen.problems(match_rules)
+	if not problems.is_empty():
+		printerr("\n".join(problems))
 		quit(1)
 		return
-	var config := RunMatch.default_config(
-		args.seed_value if args.seed_value >= 0 else RunMatch.DEFAULT_SEED, 0, args.ship()
-	)
-	config.scenario = args.struck(config.scenario)
-	var problems := config.problems()
+	var config := chosen.config(match_rules)
+	problems = config.problems()
 	if config.ship.structure == null or not config.scenario.is_physical():
 		problems.append("bake: the match's ship and scenario have no physics to bake")
 	if not problems.is_empty():
@@ -54,10 +55,13 @@ static func _hit_lines(config: MatchConfig, choice: MustSink.Choice) -> PackedSt
 	var structure := config.ship.structure
 	var ship := Fleet.name_of(config.ship)
 	var lines := PackedStringArray()
+	var pace := ""
+	if not is_equal_approx(config.scenario.clock, 1.0):
+		pace = " · %.1f s of physics a match second" % config.scenario.clock
 	lines.append(
 		(
-			"%s · open sea (%.0f m) · hit at %s of the match"
-			% [ship, config.scenario.sea_depth, MatchTranscript.clock(schedule.hit_tick())]
+			"%s · open sea (%.0f m) · hit at %s of the match%s"
+			% [ship, config.scenario.sea_depth, MatchTranscript.clock(schedule.hit_tick()), pace]
 		)
 	)
 	(

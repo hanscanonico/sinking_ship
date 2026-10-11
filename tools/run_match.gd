@@ -23,16 +23,11 @@ static func default_config(seed_value: int, seats: int = 0, ship_name := &"") ->
 	return MatchConfig.from_rules(load(DEFAULT_MATCH), seed_value, seats, ship_name)
 
 
-## The match [param args] ask for: the default match on their seed — DEFAULT_SEED
-## when none —, seats and ship, struck by their hit, at their pace, for their goal.
-static func from_args(args: MatchArgs) -> MatchConfig:
-	var config := default_config(
-		args.seed_value if args.seed_value >= 0 else DEFAULT_SEED, args.seats, args.ship()
-	)
-	var match_rules: MatchRules = load(DEFAULT_MATCH)
-	config.scenario = args.struck(config.scenario, match_rules.fast_clock if args.fast else 0.0)
-	config.goal = args.goal
-	return config
+## The command line's match choices: [param args]', their seed DEFAULT_SEED when none
+## is given — the golden transcript's (the menu leaves it blank, to be drawn).
+static func choices(args: MatchArgs) -> MatchChoices:
+	var chosen := args.choices
+	return chosen if not chosen.seed_text.is_empty() else chosen.with_seed(str(DEFAULT_SEED))
 
 
 ## [param config] with every seat a bot of its tier.
@@ -60,12 +55,15 @@ static func transcript(host: MatchHost, max_ticks: int) -> String:
 
 func _initialize() -> void:
 	var args := MatchArgs.parse(OS.get_cmdline_user_args())
-	if not args.problems().is_empty():
-		printerr("\n".join(args.problems()))
+	var chosen := choices(args)
+	var match_rules: MatchRules = load(DEFAULT_MATCH)
+	var problems := chosen.problems(match_rules)
+	if not problems.is_empty():
+		printerr("\n".join(problems))
 		quit(1)
 		return
-	var config := from_args(args)
-	var problems := config.problems()
+	var config := chosen.config(match_rules)
+	problems = config.problems()
 	var profile := BotProfile.for_tier(config.bot_tier)
 	if profile == null:
 		problems.append("bot: no profile for the tier %s" % config.bot_tier)

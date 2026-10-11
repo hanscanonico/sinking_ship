@@ -1,10 +1,10 @@
 class_name Game
 extends Node
 ## What `make run` boots: the main menu, then matches. Every match the UI starts
-## — Play, and Rematch with the same ship, seats and tier on a new seed — is built by
-## MatchConfig.from_menu (D13). Esc / Start pauses by stopping the match's
+## — Play, and Rematch with the same choices on a new seed — is made of the menu's
+## MatchChoices (D13). Esc / Start pauses by stopping the match's
 ## SimDriver; the pause is never sim state. User arguments are MatchArgs':
-## --seed, --seats and --ship fill the menu in, --autoplay presses Play for a bot on the
+## their match choices fill the menu in, --autoplay presses Play for a bot on the
 ## local seat, and --capture saves a frame — of the match, or of the menu when
 ## nothing is autoplaying — and quits. A match is seen through the local seat's
 ## eyes (D14); the observer camera is a tool that only --observer and captures
@@ -53,12 +53,8 @@ var _match_rules: MatchRules
 ## Where a blank seed is drawn from: outside the sim, once per match.
 var _seeds := RandomNumberGenerator.new()
 var _match: MatchScene
-## The last match's ship, seats, tier, pace and goal, for a rematch.
-var _ship: StringName
-var _seats: int
-var _tier: StringName
-var _fast: bool
-var _survival: bool
+## The last match's choices, their seed blank, for a rematch: a fresh one is drawn.
+var _rematch_choices: MatchChoices
 var _capturing := false
 ## The online play under way, from the Online screen; null when none is.
 var _online: OnlinePlay
@@ -100,12 +96,12 @@ func _ready() -> void:
 	_view.apply_graphics(get_viewport())
 	_match_rules = load(MATCH_DATA)
 	var problems := _match_rules.problems()
-	problems.append_array(_args.problems())
+	problems.append_array(_args.choices.problems(_match_rules))
 	if not problems.is_empty():
 		push_error("\n".join(problems))
 		get_tree().quit(1)
 		return
-	_upcoming = NextMatch.new(_match_rules, _args, _seeds)
+	_upcoming = NextMatch.new(_match_rules, _seeds)
 	add_child(_baker)
 	add_child(_hold)
 	_baker.baked.connect(_on_baked)
@@ -123,19 +119,12 @@ func _ready() -> void:
 	_online_menu.back_requested.connect(_leave_online)
 	var link := OnlineLink.for_launch(_args)
 	_online_menu.page_server = link.server_url
-	var seats := _args.seats if _args.seats > 0 else _match_rules.seats
-	var seed_text := str(_args.seed_value) if _args.seed_value >= 0 else ""
-	# Survival ticked when asked for (--goal=survival) or when the data plays it.
-	var survival := MatchRules.Goal.SURVIVAL in [_args.goal, _match_rules.goal]
-	_menu.setup(
-		_match_rules, _args.ship(), seats, _match_rules.bot_tier, seed_text, _args.fast, survival
-	)
+	_menu.setup(_match_rules, _args.choices)
+	_upcoming.aim(_menu.choices())
 	if not is_nan(_args.capture_sway):
 		_menu.hold_drift(_args.capture_sway)
 	if _args.autoplay:
-		_play.call_deferred(
-			_menu.picked_ship(), seats, _match_rules.bot_tier, seed_text, _args.fast, survival
-		)
+		_play.call_deferred(_menu.choices())
 		return
 	_music.play_menu()
 	if link.wanted:
@@ -200,12 +189,13 @@ func _unhandled_input(event: InputEvent) -> void:
 	get_viewport().set_input_as_handled()
 
 
-func _play(
-	ship: StringName, seats: int, tier: StringName, seed_text: String, fast: bool, survival: bool
-) -> void:
-	_on_ship_picked(ship)
-	var config := _upcoming.chosen(seats, tier, seed_text, fast, survival)
-	var problems := _problems(config, ship)
+func _play(choices: MatchChoices) -> void:
+	var problems := choices.problems(_match_rules)
+	var config: MatchConfig = null
+	if problems.is_empty():
+		_aim(choices)
+		config = _upcoming.chosen(choices)
+		problems = _problems(config)
 	if not problems.is_empty():
 		if _args.autoplay:
 			push_error("\n".join(problems))
@@ -213,11 +203,7 @@ func _play(
 		else:
 			_menu.show_problem(problems[0])
 		return
-	_ship = ship
-	_seats = seats
-	_tier = tier
-	_fast = fast
-	_survival = survival
+	_rematch_choices = choices.with_seed("")
 	_upcoming.take(config)
 	_menu.hide()
 	if config.bake_some(0):
@@ -232,19 +218,25 @@ func _play(
 	_baker.bake(config, _args.bake_budget_ms if _args.bake_budget_ms > 0.0 else HOLD_BAKE_MS)
 
 
-## The next blank-seed match goes on [param ship], the menu's pick: a bake under way of
-## one drawn on another ship stops.
-func _on_ship_picked(ship: StringName) -> void:
+## The next blank-seed match goes on the menu's pick of ship.
+func _on_ship_picked(_ship: StringName) -> void:
+	_aim(_menu.choices())
+
+
+## The next blank-seed match is drawn on [param choices]: a bake under way of one drawn
+## on another sinking stops.
+func _aim(choices: MatchChoices) -> void:
 	var baking := _baker.baking()
-	_upcoming.aim(ship)
+	_upcoming.aim(choices)
 	if baking != null and baking != _holding and baking != _upcoming.config():
 		_baker.stop()
 
 
 ## Bakes the next blank-seed match's sinking on, gently, while nothing plays.
 func _bake_upcoming() -> void:
-	if _baker.baking() == null and not _upcoming.config().bake_some(0):
-		_baker.bake(_upcoming.config(), MENU_BAKE_MS)
+	var next := _upcoming.config()
+	if _baker.baking() == null and next != null and not next.bake_some(0):
+		_baker.bake(next, MENU_BAKE_MS)
 
 
 func _on_baked(config: MatchConfig) -> void:
@@ -293,7 +285,7 @@ func _start(config: MatchConfig) -> void:
 
 
 func _rematch() -> void:
-	_play(_ship, _seats, _tier, "", _fast, _survival)
+	_play(_rematch_choices)
 
 
 func _to_menu() -> void:
@@ -422,23 +414,9 @@ func _set_paused(paused: bool) -> void:
 		_pause.hide()
 
 
-## Why [param config], on [param ship], cannot start; a null config is a menu choice
-## from_menu refused.
-func _problems(config: MatchConfig, ship: StringName) -> PackedStringArray:
-	if config == null:
-		var layout := Fleet.layout(ship) if not ship.is_empty() else _match_rules.ship
-		if layout == null:
-			return PackedStringArray(["Choose a ship: %s" % ", ".join(Fleet.names())])
-		return PackedStringArray(
-			[
-				(
-					"Choose %d to %d seats, and a seed that is blank or a whole number"
-					% [layout.min_seats, layout.max_seats]
-				)
-			]
-		)
+## Why [param config], made of choices free of problems, cannot start.
+func _problems(config: MatchConfig) -> PackedStringArray:
 	var found := config.problems()
-	found.append_array(_args.problems())
 	if _args.capture_eye >= config.seats:
 		found.append("capture: no seat %d in a %d-seat match" % [_args.capture_eye, config.seats])
 	var profile := BotProfile.for_tier(config.bot_tier)
