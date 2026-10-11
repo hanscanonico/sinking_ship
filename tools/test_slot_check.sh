@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 #
 # `make guard-check`, its third part: tools/test_slot.sh lets no more than
-# TEST_SLOTS commands run at once, says once that a run waits, lets a waiter
-# through at once when a holder is killed with SIGKILL, defaults to half the cores
-# and hands back its command's exit status — on private lock files, with sleeps
+# TEST_SLOTS commands run at once, says once that a run waits — named, on its
+# notice descriptor when given one —, lets a waiter through at once when a holder
+# is killed with SIGKILL, defaults to half the cores and hands back its command's
+# exit status — on private lock files, with sleeps
 # standing in for test engines. Each step waits on what happened, never on how
 # long it took, so a loaded machine only makes it slower; DEADLINE seconds is how
 # long any one step may take before it fails.
@@ -14,7 +15,7 @@ cd "$(dirname "$0")/.." || exit 1
 DEADLINE=60
 WORK=$(mktemp -d)
 export TEST_SLOT_LOCK="$WORK/slot"
-unset TEST_SLOTS TEST_SLOT_SAY TEST_SLOT_NAME
+unset TEST_SLOTS TEST_SLOT_NOTICE_FD TEST_SLOT_NAME
 PIDS=()
 HOLDERS=()
 trap 'kill -9 ${PIDS[@]+"${PIDS[@]}"} 2>/dev/null; rm -rf "$WORK"' EXIT
@@ -59,7 +60,7 @@ hold a
 hold b
 if wait_for "[ -e '$WORK/a.start' ] && [ -e '$WORK/b.start' ]"; then
 	[[ -s "$WORK/a.err" || -s "$WORK/b.err" ]] && fail "a run waited with a slot free"
-	tools/test_slot.sh bash -c "[ -e '$WORK/a.end' ] || [ -e '$WORK/b.end' ] && touch '$WORK/c.ok'
+	tools/test_slot.sh bash -c "{ [ -e '$WORK/a.end' ] || [ -e '$WORK/b.end' ]; } && touch '$WORK/c.ok'
 		touch '$WORK/c.ran'" 2>"$WORK/c.err" &
 	PIDS+=($!)
 	third=$!
@@ -95,6 +96,30 @@ if wait_for "[ -e '$WORK/h.start' ]"; then
 	wait "$waiter"
 else
 	fail "the holder never started"
+fi
+
+# Side-by-side shards: the waiting line goes, named, to the descriptor
+# TEST_SLOT_NOTICE_FD numbers rather than stderr, and that descriptor is closed
+# before the command runs.
+tools/test_slot.sh bash -c "touch '$WORK/s.start'; until [ -e '$WORK/s.release' ]; do sleep 0.1; done" &
+PIDS+=($!)
+sayer=$!
+if wait_for "[ -e '$WORK/s.start' ]"; then
+	TEST_SLOT_NOTICE_FD=7 TEST_SLOT_NAME="shard 3/4" tools/test_slot.sh \
+		bash -c "{ true >&7; } 2>/dev/null || touch '$WORK/n.closed'; touch '$WORK/n.ran'" \
+		7>"$WORK/n.say" 2>"$WORK/n.err" &
+	PIDS+=($!)
+	named=$!
+	wait_for "grep -q '^test: shard 3/4 waiting for a test engine slot' '$WORK/n.say'" ||
+		fail "the named waiter never said so on its notice descriptor"
+	touch "$WORK/s.release"
+	wait "$sayer"
+	wait_for "[ -e '$WORK/n.ran' ]" || fail "the named waiter never ran after the slot freed"
+	wait "$named"
+	[[ -s "$WORK/n.err" ]] && fail "the named waiter wrote to stderr: $(cat "$WORK/n.err")"
+	[[ -e "$WORK/n.closed" ]] || fail "the notice descriptor was still open in the command"
+else
+	fail "the holder before the named waiter never started"
 fi
 
 # Unset, the count is half the cores, at least one: that many hold at once, and

@@ -302,14 +302,14 @@ art-lint:
 # Every test engine, from any worktree or session, first takes one of TEST_SLOTS
 # machine-wide slots (tools/test_slot.sh), a kernel lock dropped however its engine
 # ends: half the cores by default, TEST_SLOTS=6 on make or in the environment to
-# change it. A run that has to wait for one says so in one line.
+# change it (make hands either to the recipe as it is). A run that has to wait for one
+# says so in one line.
 TEST ?=
 SHARD ?=
 JOBS ?= 4
-TEST_SLOTS ?=
 test:
 	$(call require-godot)
-	GODOT="$(GODOT)" $(if $(TEST_SLOTS),TEST_SLOTS=$(TEST_SLOTS)) tools/run_tests.sh $(if $(TEST),-gselect=$(notdir $(TEST)),$(if $(SHARD),--shard $(SHARD),$(if $(filter-out 1,$(JOBS)),--jobs $(JOBS))))
+	GODOT="$(GODOT)" tools/run_tests.sh $(if $(TEST),-gselect=$(notdir $(TEST)),$(if $(SHARD),--shard $(SHARD),$(if $(filter-out 1,$(JOBS)),--jobs $(JOBS))))
 
 # The merge gate, in one command. Order is cheapest-feedback-first: parsing
 # fails fastest, style next, the suite last.
@@ -349,7 +349,7 @@ ship-check:
 		&& cmp -s "$$out" $$fixture; status=$$?; rm -f "$$out"; \
 		test $$status -eq 0 || { echo "ship-check: $$fixture differs from tools/gen_$$ship.py $$flag — run make ship SHIP=$$ship" >&2; exit 1; }; \
 	done
-	GODOT="$(GODOT)" $(if $(TEST_SLOTS),TEST_SLOTS=$(TEST_SLOTS)) tools/run_tests.sh -gselect=test_ship_check.gd
+	GODOT="$(GODOT)" tools/run_tests.sh -gselect=test_ship_check.gd
 
 # A ship drawn as a scene (SH17): authoring/NAME/NAME.tscn, a scene of marked pieces —
 # boxes, wedges, lines and markers tagged with what they are, the numbers that are not

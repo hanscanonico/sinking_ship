@@ -55,7 +55,7 @@ if [[ "${1:-}" == "--jobs" ]]; then
 	exec 7>&2
 	pids=()
 	for ((k = 1; k <= jobs; k++)); do
-		TEST_SLOT_SAY=7 "$0" --shard "$k/$jobs" >"$logs/shard_$k.log" 2>&1 &
+		TEST_SLOT_NOTICE_FD=7 "$0" --shard "$k/$jobs" >"$logs/shard_$k.log" 2>&1 &
 		pids+=("$!")
 	done
 	failed=0

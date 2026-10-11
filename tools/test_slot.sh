@@ -15,7 +15,7 @@
 # It cannot go stale; there is nothing to clean up.
 #
 # It tries every slot once without waiting; when all are taken, it says so in one
-# line — on stderr, or on the descriptor TEST_SLOT_SAY names, which it closes
+# line — on stderr, or on the descriptor TEST_SLOT_NOTICE_FD numbers, which it closes
 # before it runs COMMAND, prefixed with TEST_SLOT_NAME when set — and tries them
 # again every half second as long as it takes. The exit status is COMMAND's.
 # flock(1) where it is on PATH (Linux), else the BSD lockf(1) macOS ships; with
@@ -68,14 +68,14 @@ take_slot() {
 }
 
 if ! take_slot; then
-	echo "test: ${TEST_SLOT_NAME:+$TEST_SLOT_NAME }waiting for a test engine slot: $slots in use across the machine ($LOCK.*.flock)" >&"${TEST_SLOT_SAY:-2}"
+	echo "test: ${TEST_SLOT_NAME:+$TEST_SLOT_NAME }waiting for a test engine slot: $slots in use across the machine ($LOCK.*.flock)" >&"${TEST_SLOT_NOTICE_FD:-2}"
 	until take_slot; do
 		sleep 0.5
 	done
 fi
 
-if [[ "${TEST_SLOT_SAY-}" =~ ^[0-9]+$ ]]; then
-	eval "exec $TEST_SLOT_SAY>&-"
+if [[ "${TEST_SLOT_NOTICE_FD-}" =~ ^[0-9]+$ ]]; then
+	eval "exec $TEST_SLOT_NOTICE_FD>&-"
 fi
-unset TEST_SLOT_SAY TEST_SLOT_NAME
+unset TEST_SLOT_NOTICE_FD TEST_SLOT_NAME
 exec "$@"
