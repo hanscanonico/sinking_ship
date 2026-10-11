@@ -13,6 +13,7 @@ var _mesh := MeshInstance3D.new()
 var _material := ShaderMaterial.new()
 var _sky: ShaderMaterial
 var _water: ShaderMaterial
+var _dusk: Environment
 
 
 func _init() -> void:
@@ -40,7 +41,11 @@ func setup(
 		Basis(bow, Vector3.UP, bow.cross(Vector3.UP)), Vector3(at_sea.x, 0.0, at_sea.z)
 	)
 	_mesh.mesh = mesh_of(_planner)
-	_sky = sea_and_sky.dusk().sky.sky_material
+	_dusk = sea_and_sky.dusk()
+	_sky = _dusk.sky.sky_material
+	_material.set_shader_parameter(&"fog_begin", _dusk.fog_depth_begin)
+	_material.set_shader_parameter(&"fog_end", _dusk.fog_depth_end)
+	_material.set_shader_parameter(&"fog_curve", _dusk.fog_depth_curve)
 	_water = sea_and_sky.water()
 	_material.set_shader_parameter(&"sun_direction", sea_and_sky.sun())
 	_take(_water, [&"haze_begin", &"haze_end"])
@@ -55,6 +60,7 @@ func show_at(tick: float, under: bool) -> void:
 	global_transform = _sea_to_world * _planner.pose_at(tick)
 	_material.set_shader_parameter(&"under", under)
 	_take(_sky, [&"gloom"])
+	_material.set_shader_parameter(&"fog_colour", _dusk.fog_light_color)
 	_take(_water, [&"under_fog_colour", &"under_fog_end", &"under_fog_curve"])
 
 
