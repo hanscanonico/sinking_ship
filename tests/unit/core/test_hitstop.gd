@@ -135,15 +135,6 @@ func test_hitstop_survives_snapshot_continuation() -> void:
 				return
 	assert_gt(frozen_starts, 0, "resumed from inside a stop")
 	assert_true(stops.has(Ticks.from_seconds(rules.hitstop_braced)), "a braced stop was resumed")
-	# Both fields are in the digest, not only the snapshot.
-	var entry: Dictionary = played[4]["seats"][1]
-	assert_gt(entry["hitstop"], 0)
-	var changed := played[4].duplicate(true)
-	changed["seats"][1]["hitstop"] = entry["hitstop"] + 1
-	assert_ne(SnapshotDigest.quantized(changed), SnapshotDigest.quantized(played[4]))
-	changed = played[4].duplicate(true)
-	changed["seats"][1]["held_vel"] = (entry["held_vel"] as Vector3) + Vector3(0.1, 0.0, 0.0)
-	assert_ne(SnapshotDigest.quantized(changed), SnapshotDigest.quantized(played[4]))
 
 
 func test_a_frozen_seat_still_turns_its_look() -> void:

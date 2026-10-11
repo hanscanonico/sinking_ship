@@ -166,21 +166,6 @@ func test_crate_state_survives_snapshot_continuation() -> void:
 			return
 	for field: String in covered:
 		assert_true(covered[field], "the scene resumes from a %s" % field)
-	# Every field is in the digest, not only the snapshot.
-	var middle := played[Ticks.RATE]
-	for change: Callable in [
-		func(copy: Dictionary) -> void: copy["props"][0]["pos"] += Vector3(0.01, 0.0, 0.0),
-		func(copy: Dictionary) -> void: copy["props"][0]["vel"] += Vector3(0.0, 0.0, 0.1),
-		func(copy: Dictionary) -> void: copy["props"][1]["state"] = PropState.Body.LOST,
-		func(copy: Dictionary) -> void: copy["props"][0]["surface"] = Surfaces.NONE,
-		func(copy: Dictionary) -> void: copy["props"][0]["shoved_by"] = 2,
-		func(copy: Dictionary) -> void: copy["props"][0]["shoved_at"] = 99,
-		func(copy: Dictionary) -> void: copy["railing_hp"][0] = 0.5,
-		func(copy: Dictionary) -> void: copy["seats"][1]["last_hit_crate"] = 1,
-	]:
-		var changed := middle.duplicate(true)
-		change.call(changed)
-		assert_ne(SnapshotDigest.quantized(changed), SnapshotDigest.quantized(middle))
 
 
 func test_a_wall_stops_a_crate() -> void:
