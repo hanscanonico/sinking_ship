@@ -118,18 +118,7 @@ static func from_snapshot(snapshot: Dictionary, match_config: MatchConfig) -> Ma
 ## from, without building the ship again — a client predicting does it every snapshot.
 func restore(snapshot: Dictionary) -> void:
 	assert(snapshot["v"] == SNAPSHOT_VERSION, "snapshot version %s" % snapshot["v"])
-	var match_state := MatchState.new()
-	match_state.tick = snapshot["tick"]
-	match_state.phase = snapshot["phase"]
-	match_state.match_seed = snapshot["seed"]
-	match_state.rng = SeedStreams.derive(match_state.match_seed, "match")
-	match_state.rng.state = snapshot["rng"]
-	for entry: Dictionary in snapshot["seats"]:
-		match_state.seats.append(PlayerState.from_dict(entry))
-	match_state.props = PropState.from_snapshot(snapshot)
-	match_state.railing_hp = (snapshot["railing_hp"] as PackedFloat64Array).duplicate()
-	match_state.up = PackedInt32Array(snapshot["up"])
-	state = match_state
+	state = MatchState.from_dict(snapshot)
 	_honour(pose())
 
 

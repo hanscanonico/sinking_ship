@@ -46,6 +46,18 @@ static func from_snapshot(snapshot: Dictionary) -> Array[PropState]:
 	return props
 
 
+## What to_dict() carries, one row per key in its order (SnapshotField).
+const FIELDS := [
+	{"name": "prop", "kind": SnapshotField.Kind.INT},
+	{"name": "body", "kind": SnapshotField.Kind.INT, "key": "state"},
+	{"name": "pos", "kind": SnapshotField.Kind.LENGTHS},
+	{"name": "vel", "kind": SnapshotField.Kind.SPEEDS},
+	{"name": "surface", "kind": SnapshotField.Kind.INT},
+	{"name": "shoved_by", "kind": SnapshotField.Kind.INT},
+	{"name": "shoved_at", "kind": SnapshotField.Kind.INT},
+]
+
+
 func to_dict() -> Dictionary:
 	return {
 		"prop": prop,
