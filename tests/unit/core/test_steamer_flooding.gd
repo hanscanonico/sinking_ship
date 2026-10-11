@@ -190,9 +190,10 @@ func test_stern_down_trims_her_by_the_stern_before_the_end() -> void:
 
 
 func test_heavy_list_holds_15_degrees_for_5_minutes_afloat() -> void:
-	# A shallow gash floods the half of her bilges on its side, bounded by her centre
-	# girder: the weight all on one side, she lies over 15° or more for 5 minutes and
-	# longer while afloat, her high side's boats useless and her low side's not.
+	# A gash down her port side, from her after bilge's port half through the stokehold
+	# to the hold's port wing void (#74): the weight all on one side, she lies over 15° or
+	# more for 5 minutes and longer while afloat, her high side's boats useless and her low
+	# side's not.
 	for scale: float in MARGINS:
 		var timeline := _pinned(&"heavy_list", scale)
 		var end := timeline.gone_at if timeline.gone_at >= 0.0 else timeline.length()
@@ -563,10 +564,11 @@ func _freeboard(timeline: SinkTimeline, frame: int) -> float:
 
 
 func test_on_her_side_comes_to_rest_aground_with_part_of_her_dry() -> void:
-	# On her coast, 6 m of water under her (SH32): holed in her after peak and her
-	# starboard after bilge, she lists slowly for well over an hour, lies over and comes
-	# to rest on her starboard bilge on the bottom, 65° over, her high side 4½ m out of
-	# the water, measured — a wreck with dry footing, which the match plays on (Q21).
+	# On her coast, 6 m of water under her (SH32): holed in her hold's bilge and her
+	# forepeak, she settles by the head and comes to rest on the bottom after some 35 min,
+	# upright, her highest corner over 7 m out of the water, measured — a wreck with dry
+	# footing, which the match plays on (Q21). Since her stokehold (#74) no seed of the
+	# first 200 leaves her at rest lying over, as seed 14 once did, 65° over.
 	var coast := Fleet.setting(&"steamer_coast")
 	var stream := SeedStreams.derive(PinnedSeeds.seed_named(&"on_her_side"), "sink")
 	var choice := MustSink.choose(_structure, coast, stream, _sea)
