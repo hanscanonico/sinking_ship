@@ -52,24 +52,25 @@ jobs:
         run: make format-check
 
   test:
-    name: test ${{ matrix.shard }}/6
+    name: test ${{ matrix.shard }}/8
     runs-on: ubuntu-24.04
-    # A guard against a hung engine, not a budget: the longest shard is one
-    # script of about 13 minutes (test_flood_stepper.gd).
+    # A guard against a hung engine, not a budget: the longest shard is
+    # test_must_sink.gd alone, about 13 minutes, most of it working out the
+    # steamer's 40 match hits (SimFixtures.match_hits) in its own engine.
     timeout-minutes: 40
     strategy:
       # Every shard reports, so one red run names every failing script.
       fail-fast: false
       matrix:
-        # Change the 6 in `--shard` and the job name with this list.
-        shard: [1, 2, 3, 4, 5, 6]
+        # Change the 8 in SHARD and the job name with this list.
+        shard: [1, 2, 3, 4, 5, 6, 7, 8]
     steps:
       - uses: actions/checkout@v4
 
       - uses: ./.github/actions/setup-godot
 
       - name: test
-        run: make test SHARD=${{ matrix.shard }}/6
+        run: make test SHARD=${{ matrix.shard }}/8
 
   verify:
     needs: [static, test]

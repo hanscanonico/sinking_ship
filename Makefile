@@ -284,14 +284,16 @@ art-lint:
 
 # The GUT suite, headless. One script:
 #   make test TEST=tests/unit/core/test_ticks.gd
-# One shard of N, as CI runs it (tools/test_shards.py deals the scripts):
-#   make test SHARD=2/6
+# The whole suite runs as JOBS shards side by side (tools/test_shards.py deals the
+# scripts); JOBS=1 runs it in one engine. One shard of N, as CI runs it:
+#   make test SHARD=2/8
 # tools/run_tests.sh hands any other GUT flag through (-gunit_test_name=...).
 TEST ?=
 SHARD ?=
+JOBS ?= 4
 test:
 	$(call require-godot)
-	GODOT="$(GODOT)" tools/run_tests.sh $(if $(SHARD),--shard $(SHARD)) $(if $(TEST),-gselect=$(notdir $(TEST)))
+	GODOT="$(GODOT)" tools/run_tests.sh $(if $(TEST),-gselect=$(notdir $(TEST)),$(if $(SHARD),--shard $(SHARD),$(if $(filter-out 1,$(JOBS)),--jobs $(JOBS))))
 
 # The merge gate, in one command. Order is cheapest-feedback-first: parsing
 # fails fastest, style next, the suite last.

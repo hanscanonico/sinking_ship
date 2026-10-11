@@ -30,7 +30,8 @@ Design of record: `.lavish/sinking-ship-plan.html` (rev 4)
 make import                                     # once per fresh checkout or worktree
 make verify                                     # the merge gate: check, lint, format-check, test
 make test TEST=tests/unit/core/test_ticks.gd    # one test script
-make test SHARD=2/6                             # one CI shard; tests/durations.tsv balances them
+make test JOBS=8                                # the suite as 8 shards side by side (default 4; JOBS=1 for one engine)
+make test SHARD=2/8                             # one CI shard; tests/durations.tsv balances them
 make run                                        # play: you and seven bots, windowed
 make match SEED=1701                            # one bots-only match, headless, as a transcript
 make match SEED=1701 FAST=1                     # the same, her sinking on the fast clock (FAST=1 works for run too)
