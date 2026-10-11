@@ -275,7 +275,9 @@ static func _loft_run(
 				heads.append(_sheer_of(lines[at]))
 			var middle := (corners[0].y + corners[1].y + corners[2].y + corners[3].y) * 0.25
 			var over := superstructure and middle > white
-			mesh.smooth_quad(corners, normals, paints[1 if over else 0], heads)
+			# A house's side, its foot a deck under the line: no kick shows along it.
+			var foot := white - SUPERSTRUCTURE if over else NAN
+			mesh.smooth_quad(corners, normals, paints[1 if over else 0], heads, foot)
 
 
 ## The shell's normal at [param grid]'s station [param at], point [param up], turned

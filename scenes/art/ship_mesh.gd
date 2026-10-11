@@ -385,12 +385,14 @@ func quad(
 
 ## One piece of a curved surface: [param corners] a, b, c, d as quad()'s, each
 ## shaded by its own of [param normals], with no darkened rim; [param heads] holds
-## each corner's height for its paint's bands under the top, or is empty for none.
+## each corner's height for its paint's bands under the top, or is empty for none;
+## [param foot] the height its bands over the foot rise from, NAN for none.
 func smooth_quad(
 	corners: PackedVector3Array,
 	normals: PackedVector3Array,
 	paint: Paint,
-	heads := PackedFloat32Array()
+	heads := PackedFloat32Array(),
+	foot := NAN
 ) -> void:
 	var lowest := minf(minf(corners[0].y, corners[1].y), minf(corners[2].y, corners[3].y))
 	if lowest >= cut_above:
@@ -405,7 +407,7 @@ func smooth_quad(
 	var uv2s := PackedVector2Array()
 	for index in 4:
 		var head := NAN if heads.is_empty() else heads[index]
-		uvs.append(_bands(corners[index], NAN, head))
+		uvs.append(_bands(corners[index], foot, head))
 		uv2s.append(Vector2(0.0, 1.0 if _last_outdoors else 0.0))
 	var order := PackedInt32Array([0, 1, 2, 0, 2, 3])
 	if (corners[1] - corners[0]).cross(corners[3] - corners[0]).dot(facing) > 0.0:

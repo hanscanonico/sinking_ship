@@ -113,24 +113,27 @@ func test_her_superstructure_s_side_is_white_over_her_black_hull() -> void:
 	var white := titanic.white_above
 	# (x from, x to, y from, y to, paint): amidships under B deck and over it, under A
 	# deck's plating at 5.49 m; her fo'c'sle's side over B deck.
-	var bands := [
+	var stretches := [
 		[-10.0, 10.0, 0.5, white - 0.6, ShipPaints.hull],
 		[-10.0, 10.0, white + 0.6, 5.3, ShipPaints.wall],
 		[100.0, 125.0, white + 0.6, 4.0, ShipPaints.hull],
 	]
 	var seen := [0, 0, 0]
+	# A house's side is its foot's dark kick up to FOOT over its foot's band (UV.x).
+	const FOOT := 0.12
 	for part: Node in node.get_children():
 		var arrays := (part as MeshInstance3D).mesh.surface_get_arrays(0)
 		var points: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
 		var normals: PackedVector3Array = arrays[Mesh.ARRAY_NORMAL]
 		var colours: PackedColorArray = arrays[Mesh.ARRAY_COLOR]
+		var bands: PackedVector2Array = arrays[Mesh.ARRAY_TEX_UV]
 		for index in points.size():
 			var point := points[index]
 			# Her shell's outside alone: facing out across her.
 			if normals[index].z * signf(point.z) < 0.7:
 				continue
-			for band in bands.size():
-				var at: Array = bands[band]
+			for band in stretches.size():
+				var at: Array = stretches[band]
 				if point.x < at[0] or point.x > at[1] or point.y < at[2] or point.y > at[3]:
 					continue
 				seen[band] += 1
@@ -139,7 +142,9 @@ func test_her_superstructure_s_side_is_white_over_her_black_hull() -> void:
 					colours[index].is_equal_approx(paint.colour),
 					"band %d at %s: %s" % [band, point, colours[index]]
 				)
-	for band in bands.size():
+				if paint == ShipPaints.wall:
+					assert_gt(bands[index].x, FOOT, "no kick along her white at %s" % point)
+	for band in stretches.size():
 		assert_gt(seen[band], 0, "band %d drawn" % band)
 
 
