@@ -7,6 +7,9 @@ extends RefCounted
 ## the variable's name and "fields", the nested record's table, on a RECORDS row. A row
 ## with no variable of its own (a derived or composite field) names its key.
 ##
+## Every field is in the digest (SnapshotDigest, D4) at its kind's quantum, unless its
+## row says "digest": false and gives the reason in "why".
+##
 ## A kind's quantum is the sim's precision for it: the finest a value of that kind is
 ## told apart, 0 for one kept exactly. The wire (WireCodec) maps each kind to bytes.
 
@@ -58,3 +61,8 @@ static func quantum(kind: Kind) -> float:
 ## The snapshot key of [param row]: its "key", else its variable's name.
 static func key_of(row: Dictionary) -> String:
 	return row.get("key", row["name"])
+
+
+## Whether the digest folds in [param row]'s field.
+static func digested(row: Dictionary) -> bool:
+	return row.get("digest", true)

@@ -77,7 +77,7 @@ must 1 thrown · 5 bakes · sure hit
 04:20.2 lurch coming · heel +1°
 04:20.6 water through stair_hold_sky
 04:21.0 seat 3 out · cold · place 2
-winner seat 5 at 04:21.0 · digest 203b39497543c3d9
+winner seat 5 at 04:21.0 · digest bd6bc2a9f4d023f8
 sinking at the end of the match: physics 0:03:43 (= match time, Q20 deferred) · seen 88% · sea 8.04 m up her · trim -30.4° · list +38.7° · aft_peak full · poop_space full · aft_bilge_p full · aft_bilge_s full · aft_cabins 8.66 m · engine_bilge_p full · engine_bilge_s full · engine_room 7.45 m · hold_bilge 6.88 m · hold 3.77 m · hold_wing_s 6.46 m · deckhouse_cabins full · deckhouse_hall full · saloon 6.39 m · wheelhouse full
 not played: gone at 0:04:12 · trim -86.0° · list -11.8° · founders by the stern · fast · port boats useless · lights out · funnel fell
 bending peak 0.05 of strength, x +1.5 m, sagging

@@ -172,3 +172,93 @@ func _farthest(sent: Variant, received: Variant) -> float:
 				most = maxf(most, absf(amounts[index] - back[index]))
 			return most
 	return absf(float(sent) - float(received))
+
+
+func test_only_the_version_the_events_and_out_stay_out_of_the_digest() -> void:
+	var left_out: Array = []
+	for record: Array in [
+		["MatchState", MatchState.FIELDS],
+		["PlayerState", PlayerState.FIELDS],
+		["PropState", PropState.FIELDS],
+		["SimEvent", SimEvent.FIELDS],
+	]:
+		for row: Dictionary in record[1]:
+			if not SnapshotField.digested(row):
+				left_out.append("%s.%s" % [record[0], SnapshotField.key_of(row)])
+				assert_false(
+					(row.get("why", "") as String).is_empty(),
+					"%s.%s says why it is left out" % [record[0], SnapshotField.key_of(row)]
+				)
+	assert_eq(left_out, ["MatchState.v", "MatchState.events", "PlayerState.out"])
+
+
+func test_a_quantum_on_any_digested_field_changes_the_digest() -> void:
+	var snapshot := _filled(MatchState.FIELDS)
+	var digest := SnapshotDigest.quantized(snapshot)
+	var nudges := _nudges(MatchState.FIELDS, snapshot, "snapshot")
+	assert_gt(nudges.size(), 60, "every field of every record")
+	for nudge: Array in nudges:
+		var changed := snapshot.duplicate(true)
+		(nudge[1] as Callable).call(changed)
+		if nudge[2]:
+			assert_ne(SnapshotDigest.quantized(changed), digest, "%s is digested" % nudge[0])
+		else:
+			assert_eq(SnapshotDigest.quantized(changed), digest, "%s is left out" % nudge[0])
+
+
+## Each field of [param record] under [param fields], as [path, a change of it by one
+## quantum applied to a copy of the snapshot, whether it is digested]. [param reach]
+## takes the snapshot copy to the record.
+func _nudges(
+	fields: Array,
+	record: Dictionary,
+	path: String,
+	reach: Callable = func(s: Dictionary) -> Dictionary: return s,
+	digested: bool = true
+) -> Array:
+	var nudges: Array = []
+	for row: Dictionary in fields:
+		var key := SnapshotField.key_of(row)
+		var where := "%s.%s" % [path, key]
+		var counted: bool = digested and SnapshotField.digested(row)
+		if row["kind"] == SnapshotField.Kind.RECORDS:
+			for index in (record[key] as Array).size():
+				var inner := func(s: Dictionary) -> Dictionary: return reach.call(s)[key][index]
+				nudges.append_array(
+					_nudges(
+						row["fields"], record[key][index], "%s[%d]" % [where, index], inner, counted
+					)
+				)
+			continue
+		var quantum := SnapshotField.quantum(row["kind"])
+		var change := func(s: Dictionary) -> void:
+			var at: Dictionary = reach.call(s)
+			at[key] = _nudged(at[key], row["kind"], quantum)
+		nudges.append([where, change, counted])
+	return nudges
+
+
+## [param value], a field of [param kind], moved by one [param quantum] (or by one,
+## for a field kept exactly).
+func _nudged(value: Variant, kind: SnapshotField.Kind, quantum: float) -> Variant:
+	var nudged: Variant = value
+	match kind:
+		SnapshotField.Kind.LENGTH, SnapshotField.Kind.ANGLE:
+			nudged = float(value) + quantum
+		SnapshotField.Kind.DEGREES, SnapshotField.Kind.AMOUNT:
+			nudged = float(value) + quantum
+		SnapshotField.Kind.BOOL:
+			nudged = not value
+		SnapshotField.Kind.INT:
+			nudged = value + 1
+		SnapshotField.Kind.NAME:
+			nudged = StringName(String(value) + "_")
+		SnapshotField.Kind.LENGTHS, SnapshotField.Kind.SPEEDS:
+			nudged = (value as Vector3) + Vector3(quantum, 0.0, 0.0)
+		SnapshotField.Kind.AMOUNTS:
+			nudged = (value as PackedFloat64Array).duplicate()
+			nudged[0] += quantum
+		SnapshotField.Kind.INTS:
+			nudged = (value as Array).duplicate()
+			nudged[0] += 1
+	return nudged

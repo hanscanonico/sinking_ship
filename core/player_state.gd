@@ -128,7 +128,12 @@ func freeze(velocity: Vector3, ticks: int) -> void:
 const FIELDS := [
 	{"name": "seat", "kind": SnapshotField.Kind.INT},
 	{"name": "piece", "kind": SnapshotField.Kind.INT},
-	{"name": "out", "kind": SnapshotField.Kind.BOOL},
+	{
+		"name": "out",
+		"kind": SnapshotField.Kind.BOOL,
+		"digest": false,
+		"why": "derived from the body, which is digested",
+	},
 	{"name": "place", "kind": SnapshotField.Kind.INT},
 	{"name": "out_tick", "kind": SnapshotField.Kind.INT},
 	{"name": "out_cause", "kind": SnapshotField.Kind.INT},

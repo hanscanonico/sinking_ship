@@ -66,7 +66,12 @@ static func broken_in(hp: PackedFloat64Array) -> PackedInt32Array:
 
 ## What to_dict() carries, one row per key in its order (SnapshotField).
 const FIELDS := [
-	{"name": "v", "kind": SnapshotField.Kind.INT},
+	{
+		"name": "v",
+		"kind": SnapshotField.Kind.INT,
+		"digest": false,
+		"why": "the snapshot format's version, not match state",
+	},
 	{"name": "tick", "kind": SnapshotField.Kind.INT},
 	{"name": "match_seed", "kind": SnapshotField.Kind.INT, "key": "seed"},
 	{"name": "phase", "kind": SnapshotField.Kind.INT},
@@ -75,7 +80,13 @@ const FIELDS := [
 	{"name": "props", "kind": SnapshotField.Kind.RECORDS, "fields": PropState.FIELDS},
 	{"name": "railing_hp", "kind": SnapshotField.Kind.AMOUNTS},
 	{"name": "up", "kind": SnapshotField.Kind.INTS},
-	{"name": "events", "kind": SnapshotField.Kind.RECORDS, "fields": SimEvent.FIELDS},
+	{
+		"name": "events",
+		"kind": SnapshotField.Kind.RECORDS,
+		"fields": SimEvent.FIELDS,
+		"digest": false,
+		"why": "a report of the tick, not state; the golden transcripts pin them",
+	},
 ]
 
 
