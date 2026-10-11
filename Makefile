@@ -281,10 +281,11 @@ census:
 # The art against the data (D6) and the snapshots (D5): drawn platform tops,
 # every seat's model on its feet, no live sim object named under scenes/art.
 # Rules live in tools/art_lint.gd. Two frames per tick, so the view interpolates.
+# SHIP=trawler checks that ship's art alone, and plays no match.
 art-lint:
 	$(call require-godot)
 	@set -o pipefail; tools/engine_guard.sh $(GODOT) --headless --no-header --path . --fixed-fps 60 \
-		-s res://tools/art_lint.gd | grep -v -e '^\[godot_ai' -e '^match seed'
+		-s res://tools/art_lint.gd $(if $(SHIP),-- --ship=$(SHIP)) | grep -v -e '^\[godot_ai' -e '^match seed'
 
 # The GUT suite, headless. One script:
 #   make test TEST=tests/unit/core/test_ticks.gd

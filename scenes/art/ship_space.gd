@@ -12,11 +12,21 @@ const WALL_MAX := 0.3
 const FULL_WALL := 1.9
 ## A margin round a room's box when judging whether a point stands in it.
 const INSIDE := 0.02
+## How far past a room roof() is asked of; a superset is no harm.
+const ROOF_REACH := 1.0
 const SLIVER := 0.01
+## How far apart walled() looks for a blocker.
+const WALL_STEP := 0.05
 ## Per side (0 to 3), its unit vector out of the room, ship plane (outward()).
 const OUTWARD: Array[Vector2] = [Vector2.UP, Vector2.RIGHT, Vector2.DOWN, Vector2.LEFT]
 
 var layout: ShipLayout
+## Per room, the platforms, by index, standing over its floor anywhere over its area:
+## the only ones roof() need look at, gathered the first time it is asked.
+var _over := {}
+## Per room, the slabs, by blocker index, over its floor and over its area: the only
+## ones ceiling() need look at, gathered the first time it is asked.
+var _slabs := {}
 
 
 func _init(ship: ShipLayout) -> void:
@@ -53,21 +63,45 @@ func indoors(area: Rect2, height: float) -> float:
 
 
 ## The underside of what roofs [param room] over (x, z): the lowest deck standing
-## over its floor there, or OPEN_ROOM_HEIGHT above its floor where none does.
+## over its floor there, or OPEN_ROOM_HEIGHT above its floor where none does — or a
+## slab roofing it lower than either (the trawler's wheelhouse roof).
 func ceiling(room: ShipRoom, x: float, z: float) -> float:
 	var over := roof(room, x, z)
-	if over == -1:
-		return room.floor_height + OPEN_ROOM_HEIGHT
-	return layout.platforms[over].height
+	var height := room.floor_height + OPEN_ROOM_HEIGHT
+	if over != -1:
+		height = layout.platforms[over].height
+	if not _slabs.has(room):
+		var slabs := PackedInt32Array()
+		for index in layout.blockers.size():
+			var blocker := layout.blockers[index]
+			var thin := blocker.top - blocker.bottom <= WALL_MAX
+			var above := blocker.bottom > room.floor_height + SLIVER
+			if thin and above and not is_wall(blocker) and blocker.area.intersects(room.area):
+				slabs.append(index)
+		_slabs[room] = slabs
+	for index: int in _slabs[room]:
+		var slab := layout.blockers[index]
+		if slab.bottom < height and slab.area.grow(INSIDE).has_point(Vector2(x, z)):
+			height = slab.bottom
+	return height
 
 
 ## The platform, by index, that roofs [param room] over (x, z): the lowest deck
 ## standing over its floor there; -1 where none does.
 func roof(room: ShipRoom, x: float, z: float) -> int:
+	if not _over.has(room):
+		var over := PackedInt32Array()
+		for index in layout.platforms.size():
+			var platform := layout.platforms[index]
+			# Grown past where anyone asks of a room (outdoors() reaches INSIDE past it).
+			var reach := platform.area.grow(ROOF_REACH)
+			if platform.height > room.floor_height + SLIVER and reach.intersects(room.area, true):
+				over.append(index)
+		_over[room] = over
 	var lowest := -1
-	for index in layout.platforms.size():
+	for index: int in _over[room]:
 		var platform := layout.platforms[index]
-		if platform.height > room.floor_height + SLIVER and platform.contains(x, z):
+		if platform.contains(x, z):
 			if lowest == -1 or platform.height < layout.platforms[lowest].height:
 				lowest = index
 	return lowest
@@ -114,6 +148,25 @@ func deck_on(blocker: ShipBlocker) -> bool:
 			and platform.contains(blocker.centre.x, blocker.centre.y)
 		):
 			return true
+	return false
+
+
+## Whether [param point], ship plane, stands over [param blocker]'s footprint.
+static func over(blocker: ShipBlocker, point: Vector2) -> bool:
+	if blocker.shape == ShipBlocker.Shape.CYLINDER:
+		return point.distance_to(blocker.centre) <= blocker.radius
+	return blocker.area.has_point(point)
+
+
+## Whether a blocker stands at [param height] within [param reach] of [param point],
+## ship plane, the way [param toward] points: one holds a body back there (WALL_STEP
+## apart).
+func walled(point: Vector2, toward: Vector2, height: float, reach: float) -> bool:
+	for step in range(1, floori(reach / WALL_STEP) + 1):
+		var at := point + toward * WALL_STEP * step
+		for blocker: ShipBlocker in layout.blockers:
+			if height >= blocker.bottom and height <= blocker.top and over(blocker, at):
+				return true
 	return false
 
 
@@ -321,3 +374,47 @@ func _full_wall_of(blocker: ShipBlocker, room: ShipRoom) -> bool:
 		and blocker.top - blocker.bottom > FULL_WALL
 		and blocker.area.grow(INSIDE).intersects(room.area)
 	)
+
+
+## The parts of [param area] no platform at [param height] covers.
+func uncovered(area: Rect2, height: float) -> Array[Rect2]:
+	var bare: Array[Rect2] = [area]
+	for platform: ShipPlatform in layout.platforms:
+		if not is_equal_approx(platform.height, height):
+			continue
+		var left: Array[Rect2] = []
+		for rect: Rect2 in bare:
+			left.append_array(_minus(rect, platform.area))
+		bare = left
+	return bare
+
+
+## [param rect] with [param cut] taken out of it: up to four rectangles.
+static func _minus(rect: Rect2, cut: Rect2) -> Array[Rect2]:
+	var overlap := rect.intersection(cut)
+	if not overlap.has_area():
+		return [rect]
+	var pieces: Array[Rect2] = []
+	var x0 := rect.position.x
+	var x1 := rect.end.x
+	if overlap.position.x > x0 + SLIVER:
+		pieces.append(Rect2(x0, rect.position.y, overlap.position.x - x0, rect.size.y))
+	if overlap.end.x < x1 - SLIVER:
+		pieces.append(Rect2(overlap.end.x, rect.position.y, x1 - overlap.end.x, rect.size.y))
+	var middle := Vector2(overlap.position.x, overlap.end.x)
+	if overlap.position.y > rect.position.y + SLIVER:
+		var depth := overlap.position.y - rect.position.y
+		pieces.append(Rect2(middle.x, rect.position.y, middle.y - middle.x, depth))
+	if overlap.end.y < rect.end.y - SLIVER:
+		var depth := rect.end.y - overlap.end.y
+		pieces.append(Rect2(middle.x, overlap.end.y, middle.y - middle.x, depth))
+	return pieces
+
+
+## Whether [param blocker] roofs a room over: its middle over some room's floor.
+func roofs(blocker: ShipBlocker) -> bool:
+	var middle := blocker.area.get_center()
+	for room: ShipRoom in layout.rooms:
+		if room.area.has_point(middle) and room.floor_height < blocker.bottom:
+			return true
+	return false

@@ -53,6 +53,24 @@ func test_each_room_of_the_steamer_is_what_its_shape_says() -> void:
 		assert_eq(RoomDressing.kind_of(_space, _room(room_name)), kinds[room_name], room_name)
 
 
+func test_a_room_whose_name_says_what_it_is_is_that() -> void:
+	var titanic: ShipLayout = load("res://data/ships/titanic.tres")
+	var space := ShipSpace.new(titanic)
+	var kinds := {
+		&"first-class dining saloon": RoomDressing.Kind.SALOON,
+		&"third-class berths": RoomDressing.Kind.STEERAGE,
+		&"wheelhouse": RoomDressing.Kind.HELM,
+	}
+	for room: ShipRoom in titanic.rooms:
+		if kinds.has(room.name):
+			assert_eq(RoomDressing.kind_of(space, room), kinds[room.name], String(room.name))
+			kinds.erase(room.name)
+	assert_true(kinds.is_empty(), "the Titanic has each: %s" % [kinds.keys()])
+	for room: ShipRoom in titanic.rooms:
+		if String(room.name).begins_with("Scotland Road"):
+			assert_eq(RoomDressing.kind_of(space, room), RoomDressing.Kind.PASSAGE, "a road")
+
+
 func test_the_engine_room_is_lit_over_its_lanes_and_by_its_boilers_fires() -> void:
 	var lights := RoomDressing.new(_space).lights(_room(&"engine room"))
 	var pendants := 0
