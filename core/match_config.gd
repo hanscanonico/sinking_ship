@@ -3,8 +3,9 @@ extends RefCounted
 ## The typed statement of one match (D13) — the only way a match starts: its seed,
 ## its seat count, the rules, ship and sinking scenario it plays, who fills the
 ## seats, and a hash of that data so a replay refuses to run against changed
-## numbers. The UI builds one only through from_menu; the headless tools and the
-## tests build theirs from data.
+## numbers. Every path that starts from a player's choices builds one through
+## MatchChoices.config; the fixed-config tools, the benches, online rooms and the tests
+## build theirs from the rules alone (from_rules).
 
 var match_seed: int
 var seats: int
@@ -43,20 +44,18 @@ func _init(
 	countdown_ticks = countdown
 
 
-## A match from data. [param seat_count] overrides the data's seat count when
-## positive; [param ship_name] names the ship of the Fleet it is played on, struck in
-## her open-sea scenario, when it is not the data's — blank for the data's own; when
-## [param fast], her sinking plays on the data's fast_clock (quickened).
+## A match from data alone, for a tool or a test. [param seat_count] overrides the
+## data's seat count when positive; [param ship_name] names the ship of the Fleet it is
+## played on, struck in her open-sea scenario, when it is not the data's — blank for the
+## data's own.
 static func from_rules(
-	match_rules: MatchRules, seed_value: int, seat_count: int = 0, ship_name := &"", fast := false
+	match_rules: MatchRules, seed_value: int, seat_count: int = 0, ship_name := &""
 ) -> MatchConfig:
 	var layout := match_rules.ship
 	var sinking := match_rules.sinking
 	if not ship_name.is_empty() and ship_name != Fleet.name_of(layout):
 		layout = Fleet.layout(ship_name)
 		sinking = Fleet.scenario(ship_name)
-	if fast:
-		sinking = quickened(sinking, match_rules.fast_clock)
 	var config := MatchConfig.new(
 		seed_value,
 		seat_count if seat_count > 0 else match_rules.seats,
@@ -68,43 +67,6 @@ static func from_rules(
 	config.humans = match_rules.humans
 	config.bot_tier = match_rules.bot_tier
 	config.goal = match_rules.goal
-	return config
-
-
-## A match from the menu's choices — the only route from the UI into a match.
-## A blank [param seed_text] is drawn from [param seeds] here, once, outside the
-## sim, and the config records it, so typing it back in replays the match. Played on
-## [param ship_name] of the Fleet, or the data's ship when blank (from_rules). Null
-## when a choice is one the data does not offer: a ship the Fleet has not, a seat count
-## outside her min_seats…max_seats, or a seed that is not a whole number. [param fast]
-## is the menu's Fast sinking; [param goal] its Survival, as a MatchRules.Goal — the
-## data's when negative.
-static func from_menu(
-	match_rules: MatchRules,
-	seat_count: int,
-	tier: StringName,
-	seed_text: String,
-	seeds: RandomNumberGenerator,
-	ship_name := &"",
-	fast := false,
-	goal := -1
-) -> MatchConfig:
-	var layout := match_rules.ship if ship_name.is_empty() else Fleet.layout(ship_name)
-	if layout == null or seat_count < layout.min_seats or seat_count > layout.max_seats:
-		return null
-	var typed := seed_text.strip_edges()
-	if not typed.is_empty() and not (typed.is_valid_int() and typed.to_int() >= 0):
-		return null
-	var config := from_rules(
-		match_rules,
-		seeds.randi() if typed.is_empty() else typed.to_int(),
-		seat_count,
-		ship_name,
-		fast
-	)
-	config.bot_tier = tier
-	if goal >= 0:
-		config.goal = goal as MatchRules.Goal
 	return config
 
 
