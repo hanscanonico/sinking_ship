@@ -59,9 +59,6 @@ extends RefCounted
 ## The match choices --ship, --seats, --seed, --fast, --goal, --scenario and --hit
 ## make; every one not given is the match data's, and the seed is blank (MatchChoices).
 var choices := MatchChoices.new()
-## --seed as a number, for the server and the benches, which build their matches from
-## the rules alone; -1 when not given.
-var seed_value: int = -1
 ## How much match time a headless run may take before it stops, unfinished (STOP=,
 ## est. 15:00).
 var seconds: float = 900.0
@@ -137,7 +134,6 @@ static func parse(args: PackedStringArray) -> MatchArgs:
 		match arg.get_slice("=", 0):
 			"--seed":
 				parsed.choices.seed_text = value
-				parsed.seed_value = value.to_int()
 			"--seats":
 				parsed.choices.seats = value.to_int()
 			"--ship":

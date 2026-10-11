@@ -30,6 +30,17 @@ static func choices(args: MatchArgs) -> MatchChoices:
 	return chosen if not chosen.seed_text.is_empty() else chosen.with_seed(str(DEFAULT_SEED))
 
 
+## The command line's seed, as its choices read it — DEFAULT_SEED when none is given —
+## for a bench that plays the data's match on it alone; -1, the reason printed, when
+## the text is no seed.
+static func seed_of(args: MatchArgs) -> int:
+	var chosen := choices(args)
+	var problems := chosen.seed_problems()
+	if not problems.is_empty():
+		printerr("\n".join(problems))
+	return chosen.seed_number()
+
+
 ## [param config] with every seat a bot of its tier.
 static func bots_only(config: MatchConfig) -> MatchRunner:
 	return MatchRunner.new(

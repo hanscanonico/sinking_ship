@@ -28,6 +28,7 @@ func _ready() -> void:
 	var net_rules := NetRules.load_default()
 	var match_rules: MatchRules = load(MATCH_DATA)
 	var problems := RoomServer.problems(rules, net_rules, match_rules)
+	problems.append_array(_args.choices.seed_problems())
 	if not problems.is_empty():
 		printerr("\n".join(problems))
 		get_tree().quit(1)
@@ -40,11 +41,12 @@ func _ready() -> void:
 		printerr("server: cannot listen on %s:%d — %s" % [address, port, error_string(error)])
 		get_tree().quit(1)
 		return
-	var draws := draws_for(_args.seed_value)
+	var seed_number := _args.choices.seed_number()
+	var draws := draws_for(seed_number)
 	_rooms = RoomServer.new(_socket, rules, net_rules, match_rules, draws[0], draws[1])
 	_rooms.logged.connect(_say)
 	_rooms.match_finished.connect(_on_match_finished)
-	if _args.seed_value >= 0:
+	if seed_number >= 0:
 		_say("warning: --seed makes every match's seed predictable: never on a public server")
 	_say(
 		(

@@ -104,10 +104,26 @@ func problems(match_rules: MatchRules) -> PackedStringArray:
 		found.append("hit: %s is not an IcebergHit" % hit)
 	if not goal.is_empty() and not GOALS.has(goal):
 		found.append("goal: %s is no goal; one of %s" % [goal, ", ".join(GOALS.keys())])
-	var typed := seed_text.strip_edges()
-	if not typed.is_empty() and not (typed.is_valid_int() and typed.to_int() >= 0):
-		found.append("seed: %s is not a whole number of 0 or more" % typed)
+	found.append_array(seed_problems())
 	return found
+
+
+## Why the seed as typed is no seed — not a whole number of 0 or more —; empty when it
+## is one or is blank. What the command line's paths that play the seed alone (the
+## server, the benches) refuse it on.
+func seed_problems() -> PackedStringArray:
+	var typed := seed_text.strip_edges()
+	if typed.is_empty() or seed_number() >= 0:
+		return PackedStringArray()
+	return PackedStringArray(["seed: %s is not a whole number of 0 or more" % typed])
+
+
+## The seed as a number; -1 when it is blank, or no seed (seed_problems).
+func seed_number() -> int:
+	var typed := seed_text.strip_edges()
+	if not typed.is_valid_int() or typed.to_int() < 0:
+		return -1
+	return typed.to_int()
 
 
 ## The match these choices make under [param match_rules]: every unmade choice the
@@ -133,7 +149,7 @@ func config(match_rules: MatchRules) -> MatchConfig:
 	if fast:
 		sinking = MatchConfig.quickened(sinking, match_rules.fast_clock)
 	var made := MatchConfig.new(
-		seed_text.strip_edges().to_int(),
+		seed_number(),
 		full.seats,
 		match_rules.rules,
 		layout,
