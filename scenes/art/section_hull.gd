@@ -185,7 +185,8 @@ static func _resampled(line: PackedVector2Array, count: int) -> PackedVector2Arr
 
 ## The shell on [param side] (0 starboard, 1 port) of [param sections], whose sides are
 ## [param sides]: lofted from the middle of one section to the next while their sheer
-## is one height, out to the ends of each such run; in [param paints]' first, or its
+## is one height, out to the ends of each such run — where two runs meet, each ends on
+## the same curve under the lower sheer (_met()); in [param paints]' first, or its
 ## second over [param white] (_loft_run()).
 static func _loft_shell(
 	mesh: ShipMesh,
@@ -207,7 +208,7 @@ static func _loft_shell(
 		if run_ends:
 			_loft_run(mesh, paints, white, xs, lines, side)
 			xs = PackedFloat64Array([section.x - section.length * 0.5])
-			lines = [line]
+			lines = [line if index == 0 else _met(line, sides[(index - 1) * 2 + side])]
 		xs.append(section.x)
 		lines.append(line)
 		var next_differs := (
@@ -216,8 +217,38 @@ static func _loft_shell(
 		)
 		if next_differs:
 			xs.append(section.x + section.length * 0.5)
-			lines.append(line if index < sections.size() - 1 else _stem(line))
+			if index == sections.size() - 1:
+				lines.append(_stem(line))
+			else:
+				lines.append(_met(line, sides[(index + 1) * 2 + side]))
 	_loft_run(mesh, paints, white, xs, lines, side)
+
+
+## [param line] moved out or in to meet [param other] — the side of the section past
+## the joint, its sheer another — half way: under both sheers each lies on the curve
+## half way between them, so the two runs meet there with no slit; over the lower
+## sheer, and under the higher keel, it keeps the offset it has at either.
+static func _met(line: PackedVector2Array, other: PackedVector2Array) -> PackedVector2Array:
+	var low := maxf(line[0].y, other[0].y)
+	var high := minf(_sheer_of(line), _sheer_of(other))
+	var met := PackedVector2Array()
+	for point: Vector2 in line:
+		var y := clampf(point.y, low, high)
+		var shift := (_out_at(other, y) - _out_at(line, y)) * 0.5
+		met.append(Vector2(point.x + shift, point.y))
+	return met
+
+
+## How far across [param line] (z, y; climbing) stands at height [param y].
+static func _out_at(line: PackedVector2Array, y: float) -> float:
+	if y <= line[0].y:
+		return line[0].x
+	for index in range(1, line.size()):
+		var a := line[index - 1]
+		var b := line[index]
+		if y <= b.y:
+			return a.x if b.y - a.y < LEVEL else lerpf(a.x, b.x, (y - a.y) / (b.y - a.y))
+	return line[line.size() - 1].x
 
 
 ## [param line] closed onto her centreline: the stem her forward end comes to, where her

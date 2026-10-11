@@ -4,13 +4,18 @@ extends GutTest
 ## (SectionHull): as broad as they are wherever one is cut, closed at her stem, with a
 ## keel under her; and a slab roofing a room — the trawler's wheelhouse roof — is drawn.
 ## The Titanic's shell is her hull's paint to her B deck and white over it where her
-## superstructure stands (ShipLayout.white_above), her fo'c'sle hull to its top.
+## superstructure stands (ShipLayout.white_above), her fo'c'sle hull to its top; and
+## where her sheer steps her shell meets itself, no slit between one run and the next.
 
 const TRAWLER := "res://data/ships/trawler.tres"
+const TITANIC := "res://data/ships/titanic.tres"
 const RAILING_HEIGHT := 1.0
 const BODY_RADIUS := 0.35
 ## How far the drawn breadth may stand off her sections' reach, in metres.
 const NEAR := 0.01
+## How far apart two runs of her shell may end at a joint: the chords their own points
+## cut across a knuckle of the curve both lie on.
+const GAP := 0.25
 
 var _layout: ShipLayout
 var _hull: SectionHull
@@ -100,7 +105,7 @@ func test_the_wheelhouse_roof_is_drawn() -> void:
 
 
 func test_her_superstructure_s_side_is_white_over_her_black_hull() -> void:
-	var titanic: ShipLayout = load("res://data/ships/titanic.tres")
+	var titanic: ShipLayout = load(TITANIC)
 	var space := ShipSpace.new(titanic)
 	var hull := SectionHull.new(space, RAILING_HEIGHT)
 	var mesh := ShipMesh.new(func(_point: Vector3) -> bool: return true, space.room_lines())
@@ -146,6 +151,75 @@ func test_her_superstructure_s_side_is_white_over_her_black_hull() -> void:
 					assert_gt(bands[index].x, FOOT, "no kick along her white at %s" % point)
 	for band in stretches.size():
 		assert_gt(seen[band], 0, "band %d drawn" % band)
+
+
+func test_her_shell_meets_itself_where_her_sheer_steps() -> void:
+	var titanic: ShipLayout = load(TITANIC)
+	var space := ShipSpace.new(titanic)
+	var hull := SectionHull.new(space, RAILING_HEIGHT)
+	var mesh := ShipMesh.new(func(_point: Vector3) -> bool: return true, space.room_lines())
+	hull.build(mesh)
+	var node: Node3D = autofree(Node3D.new())
+	var finishes := {}
+	for finish: int in ShipMesh.Finish.values():
+		finishes[finish] = null
+	mesh.commit(node, finishes)
+	var faces := PackedVector3Array()
+	for part: Node in node.get_children():
+		faces.append_array((part as MeshInstance3D).mesh.get_faces())
+	var sections := titanic.structure.sections
+	var sides := SectionHull.shell_sides(sections)
+	var steps := 0
+	for index in range(1, sections.size()):
+		var aft := sections[index - 1]
+		var sheers := Vector2(_sheer(sides[index * 2 - 2]), _sheer(sides[index * 2]))
+		if is_equal_approx(sheers.x, sheers.y):
+			continue
+		var low := minf(sheers.x, sheers.y)
+		steps += 1
+		var joint := aft.x + aft.length * 0.5
+		# Her starboard shell's corners on the joint, from the run aft of it and the one
+		# forward, under the lower sheer and clear of her keel.
+		var runs: Array[PackedVector2Array] = [PackedVector2Array(), PackedVector2Array()]
+		for at in range(0, faces.size(), 3):
+			var a := faces[at]
+			var b := faces[at + 1]
+			var c := faces[at + 2]
+			if absf((b - a).cross(c - a).normalized().y) > 0.9:
+				continue
+			var run := 0 if (a.x + b.x + c.x) / 3.0 < joint else 1
+			for corner: Vector3 in [a, b, c]:
+				var on_joint := absf(corner.x - joint) < 1e-3 and corner.z > 1.0
+				if on_joint and corner.y < low - 0.05 and corner.y > -8.0:
+					runs[run].append(Vector2(corner.y, corner.z))
+		assert_gt(runs[0].size(), 2, "the run aft of x %.1f ends on it" % joint)
+		assert_gt(runs[1].size(), 2, "the run forward of x %.1f starts on it" % joint)
+		var fore := _climbing(runs[1])
+		for point: Vector2 in runs[0]:
+			var gap := INF
+			for at in range(1, fore.size()):
+				var near := Geometry2D.get_closest_point_to_segment(point, fore[at - 1], fore[at])
+				gap = minf(gap, point.distance_to(near))
+			assert_lt(
+				gap, GAP, "x %.1f at %.2f m: %.3f m from the run forward" % [joint, point.x, gap]
+			)
+	assert_gt(steps, 3, "her sheer steps at her wells, poop and superstructure")
+
+
+## A side's sheer: its last point's height (SectionHull.shell_sides()).
+func _sheer(side: PackedVector2Array) -> float:
+	return side[side.size() - 1].y
+
+
+## [param points] (y, z) once each, from her keel up.
+func _climbing(points: PackedVector2Array) -> PackedVector2Array:
+	var sorted := Array(points)
+	sorted.sort_custom(func(a: Vector2, b: Vector2) -> bool: return a.x < b.x)
+	var climbing := PackedVector2Array()
+	for point: Vector2 in sorted:
+		if climbing.is_empty() or not point.is_equal_approx(climbing[climbing.size() - 1]):
+			climbing.append(point)
+	return climbing
 
 
 func _dressed() -> ShipArt:
