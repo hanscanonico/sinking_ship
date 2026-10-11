@@ -1817,6 +1817,8 @@ res = ["[resource]", 'script = ExtResource("5_layout")', "freeboard = " + num(FR
        "props = " + arr("8_prop", props),
        "rooms = " + arr("6_room", rooms),
        "dressed = false",
+       # Her hull black to B deck, her superstructure's side white over it (est., the photographs).
+       "white_above = %r" % B_DECK,
        'structure = SubResource("Structure")']
 with open(out, "w") as f:
     f.write(head + "\n" + "\n\n".join(subs) + "\n\n" + "\n".join(res) + "\n")

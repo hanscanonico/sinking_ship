@@ -33,6 +33,11 @@ extends Resource
 ## lofted any other way is dressed all the same, her hull the shell her sections
 ## enclose (SectionHull, SH23). No rule reads it.
 @export var dressed: bool = true
+## Where her shell's paint turns from her hull's to her superstructure's white, in metres
+## up ship space: over it wherever her shell stands a deck higher still (SectionHull) —
+## the Titanic's B deck. INF, the default, paints her shell hull to its top. No rule
+## reads it.
+@export var white_above: float = INF
 ## The physics' view of the same hull (§5b.2): sections, cells, walls, openings and
 ## mass; null on a ship the physics does not float. No rule reads it yet (D13).
 @export var structure: ShipStructure

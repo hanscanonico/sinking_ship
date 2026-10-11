@@ -3,6 +3,8 @@ extends GutTest
 ## is dressed all the same (SH23), her hull the shell her sections enclose
 ## (SectionHull): as broad as they are wherever one is cut, closed at her stem, with a
 ## keel under her; and a slab roofing a room — the trawler's wheelhouse roof — is drawn.
+## The Titanic's shell is her hull's paint to her B deck and white over it where her
+## superstructure stands (ShipLayout.white_above), her fo'c'sle hull to its top.
 
 const TRAWLER := "res://data/ships/trawler.tres"
 const RAILING_HEIGHT := 1.0
@@ -69,17 +71,13 @@ func test_she_is_dressed_from_her_transom_to_her_stem_down_past_her_keel() -> vo
 
 
 func test_the_wheelhouse_roof_is_drawn() -> void:
-	# The wheelhouse roof: the one slab — no thicker than a wall, broader than one — whose
-	# middle stands in a room.
+	# The wheelhouse roof: the one slab — no thicker than a wall, broader than one — that
+	# roofs a room.
 	var space := ShipSpace.new(_layout)
 	var roof: ShipBlocker
 	for blocker: ShipBlocker in _layout.blockers:
-		var area := blocker.area
-		var middle := Vector3(
-			area.get_center().x, (blocker.bottom + blocker.top) * 0.5, area.get_center().y
-		)
 		var slab := blocker.top - blocker.bottom <= ShipSpace.WALL_MAX
-		if slab and minf(area.size.x, area.size.y) > 1.0 and not space.outdoors(middle):
+		if slab and not space.is_wall(blocker) and space.roofs(blocker):
 			roof = blocker
 	assert_not_null(roof, "the trawler's wheelhouse is roofed")
 	var art := _dressed()
@@ -99,6 +97,50 @@ func test_the_wheelhouse_roof_is_drawn() -> void:
 			found = true
 			break
 	assert_true(found, "a face at the roof's top over its middle")
+
+
+func test_her_superstructure_s_side_is_white_over_her_black_hull() -> void:
+	var titanic: ShipLayout = load("res://data/ships/titanic.tres")
+	var space := ShipSpace.new(titanic)
+	var hull := SectionHull.new(space, RAILING_HEIGHT)
+	var mesh := ShipMesh.new(func(_point: Vector3) -> bool: return true, space.room_lines())
+	hull.build(mesh)
+	var node: Node3D = autofree(Node3D.new())
+	var finishes := {}
+	for finish: int in ShipMesh.Finish.values():
+		finishes[finish] = null
+	mesh.commit(node, finishes)
+	var white := titanic.white_above
+	# (x from, x to, y from, y to, paint): amidships under B deck and over it, under A
+	# deck's plating at 5.49 m; her fo'c'sle's side over B deck.
+	var bands := [
+		[-10.0, 10.0, 0.5, white - 0.6, ShipPaints.hull],
+		[-10.0, 10.0, white + 0.6, 5.3, ShipPaints.wall],
+		[100.0, 125.0, white + 0.6, 4.0, ShipPaints.hull],
+	]
+	var seen := [0, 0, 0]
+	for part: Node in node.get_children():
+		var arrays := (part as MeshInstance3D).mesh.surface_get_arrays(0)
+		var points: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+		var normals: PackedVector3Array = arrays[Mesh.ARRAY_NORMAL]
+		var colours: PackedColorArray = arrays[Mesh.ARRAY_COLOR]
+		for index in points.size():
+			var point := points[index]
+			# Her shell's outside alone: facing out across her.
+			if normals[index].z * signf(point.z) < 0.7:
+				continue
+			for band in bands.size():
+				var at: Array = bands[band]
+				if point.x < at[0] or point.x > at[1] or point.y < at[2] or point.y > at[3]:
+					continue
+				seen[band] += 1
+				var paint: ShipMesh.Paint = at[4]
+				assert_true(
+					colours[index].is_equal_approx(paint.colour),
+					"band %d at %s: %s" % [band, point, colours[index]]
+				)
+	for band in bands.size():
+		assert_gt(seen[band], 0, "band %d drawn" % band)
 
 
 func _dressed() -> ShipArt:

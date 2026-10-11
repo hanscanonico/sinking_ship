@@ -187,6 +187,7 @@ metadata/deck_thickness = 0.2
 metadata/min_seats = 4
 metadata/max_seats = 16
 metadata/dressed = false
+metadata/white_above = 2.75
 
 [node name="Platforms" type="Node3D" parent="." unique_id=673303989]
 

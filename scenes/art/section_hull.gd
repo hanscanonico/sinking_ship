@@ -24,6 +24,9 @@ const BULWARK_FROM := 0.1
 const PLATE_DROP := 0.01
 ## Two heights this close are one.
 const LEVEL := 1e-3
+## How far over her white_above her shell must stand for its side over that to be her
+## superstructure's, painted white: a deck (the greybox's room height).
+const SUPERSTRUCTURE := ShipSpace.OPEN_ROOM_HEIGHT
 ## A bulwark's teak capping: how wide, and how far it stands over the shell's top.
 const CAP := Vector2(0.14, 0.06)
 ## The draft the steamer's fittings are drawn for (ShipHull.DRAFT): a ship's rudder,
@@ -55,7 +58,7 @@ func _init(space: ShipSpace, railing_height: float) -> void:
 
 
 func build(mesh: ShipMesh) -> void:
-	shell(_layout, mesh, ShipPaints.hull, ShipPaints.wall, ShipPaints.deck, _sides)
+	shell(_layout, mesh, ShipPaints.hull, ShipPaints.wall, ShipPaints.deck, _sides, ShipPaints.wall)
 	_caps(mesh)
 	_keel_bar(mesh)
 	_rudder(mesh)
@@ -120,7 +123,8 @@ static func _length(line: PackedVector2Array) -> float:
 
 
 ## Draws [param layout]'s shell into [param mesh] from her sections' [param sides]
-## (shell_sides()): in [param hull] paint, the inside of each bulwark in
+## (shell_sides()): in [param hull] paint — in [param white] over her white_above where
+## her shell stands a deck higher still, given one —, the inside of each bulwark in
 ## [param bulwark], her deck plating in [param plating].
 static func shell(
 	layout: ShipLayout,
@@ -128,11 +132,13 @@ static func shell(
 	hull: ShipMesh.Paint,
 	bulwark: ShipMesh.Paint,
 	plating: ShipMesh.Paint,
-	sides: Array[PackedVector2Array]
+	sides: Array[PackedVector2Array],
+	white: ShipMesh.Paint = null
 ) -> void:
 	var sections := layout.structure.sections
+	var paints: Array[ShipMesh.Paint] = [hull, white if white != null else hull]
 	for side in 2:
-		_loft_shell(mesh, hull, sections, sides, side)
+		_loft_shell(mesh, paints, layout.white_above, sections, sides, side)
 	_close_end(mesh, hull, sections[0], sides[0], sides[1], -1.0)
 	for index in sections.size():
 		_bulwarks(mesh, bulwark, layout, sections[index], sides[index * 2], sides[index * 2 + 1])
@@ -179,10 +185,12 @@ static func _resampled(line: PackedVector2Array, count: int) -> PackedVector2Arr
 
 ## The shell on [param side] (0 starboard, 1 port) of [param sections], whose sides are
 ## [param sides]: lofted from the middle of one section to the next while their sheer
-## is one height, out to the ends of each such run.
+## is one height, out to the ends of each such run; in [param paints]' first, or its
+## second over [param white] (_loft_run()).
 static func _loft_shell(
 	mesh: ShipMesh,
-	paint: ShipMesh.Paint,
+	paints: Array[ShipMesh.Paint],
+	white: float,
 	sections: Array[HullSection],
 	sides: Array[PackedVector2Array],
 	side: int
@@ -197,7 +205,7 @@ static func _loft_shell(
 			index == 0 or not is_equal_approx(_sheer_of(sides[(index - 1) * 2 + side]), sheer)
 		)
 		if run_ends:
-			_loft_run(mesh, paint, xs, lines, side)
+			_loft_run(mesh, paints, white, xs, lines, side)
 			xs = PackedFloat64Array([section.x - section.length * 0.5])
 			lines = [line]
 		xs.append(section.x)
@@ -209,7 +217,7 @@ static func _loft_shell(
 		if next_differs:
 			xs.append(section.x + section.length * 0.5)
 			lines.append(line if index < sections.size() - 1 else _stem(line))
-	_loft_run(mesh, paint, xs, lines, side)
+	_loft_run(mesh, paints, white, xs, lines, side)
 
 
 ## [param line] closed onto her centreline: the stem her forward end comes to, where her
@@ -226,10 +234,13 @@ static func _sheer_of(line: PackedVector2Array) -> float:
 
 
 ## Quads between the stations at [param xs], each the side [param lines] at its x,
-## shaded smooth across them; their bands under each station's sheer.
+## shaded smooth across them; their bands under each station's sheer. In
+## [param paints]' first, or its second over [param white] where their sheer stands a
+## deck (SUPERSTRUCTURE) over it: her superstructure's side.
 static func _loft_run(
 	mesh: ShipMesh,
-	paint: ShipMesh.Paint,
+	paints: Array[ShipMesh.Paint],
+	white: float,
 	xs: PackedFloat64Array,
 	lines: Array[PackedVector2Array],
 	side: int
@@ -244,6 +255,7 @@ static func _loft_run(
 			row.append(Vector3(xs[station], point.y, point.x))
 		grid.append(row)
 	var outward := Vector3(0.0, -0.3, 1.0 if side == 0 else -1.0)
+	var superstructure := _sheer_of(lines[0]) >= white + SUPERSTRUCTURE
 	for station in count - 1:
 		for j in lines[0].size() - 1:
 			var corners := PackedVector3Array(
@@ -261,7 +273,9 @@ static func _loft_run(
 				var up := j + (1 if corner >= 2 else 0)
 				normals.append(_normal(grid, at, up, outward))
 				heads.append(_sheer_of(lines[at]))
-			mesh.smooth_quad(corners, normals, paint, heads)
+			var middle := (corners[0].y + corners[1].y + corners[2].y + corners[3].y) * 0.25
+			var over := superstructure and middle > white
+			mesh.smooth_quad(corners, normals, paints[1 if over else 0], heads)
 
 
 ## The shell's normal at [param grid]'s station [param at], point [param up], turned

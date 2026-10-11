@@ -213,6 +213,7 @@ static func cut(
 	made.min_seats = layout.min_seats
 	made.max_seats = layout.max_seats
 	made.dressed = layout.dressed
+	made.white_above = layout.white_above
 	made.spawns = layout.spawns
 	made.props = layout.props
 	made.structure = structure
