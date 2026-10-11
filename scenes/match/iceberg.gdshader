@@ -17,6 +17,8 @@ uniform float fog_begin = 16.0;
 uniform float fog_end = 110.0;
 uniform float fog_curve = 1.6;
 uniform float fog_most = 0.7;
+// The light the ice lets through, lifting its faces in shadow off the dark.
+uniform float through = 0.18;
 uniform vec4 under_fog_colour : source_color = vec4(0.03, 0.17, 0.26, 1.0);
 uniform float under_fog_end = 7.0;
 uniform float under_fog_curve = 1.0;
@@ -31,6 +33,7 @@ void vertex() {
 
 void fragment() {
 	ALBEDO = COLOR.rgb;
+	EMISSION = COLOR.rgb * through;
 	ROUGHNESS = 0.7;
 	SPECULAR = 0.3;
 	vec3 look = world_vertex - CAMERA_POSITION_WORLD;
