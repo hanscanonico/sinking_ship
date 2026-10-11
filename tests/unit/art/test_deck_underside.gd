@@ -68,8 +68,7 @@ func _faces_down_under(faces: PackedVector3Array, point: Vector2, height: float)
 		var hit: Variant = Geometry3D.ray_intersects_triangle(from, Vector3.UP, a, b, c)
 		if hit == null or absf((hit as Vector3).y - height) > NEAR:
 			continue
-		# Godot's front faces wind clockwise: their normal is the cross reversed.
-		if -(b - a).cross(c - a).normalized().y < -0.5:
+		if FaceCells.facing(a, b, c) < -0.5:
 			return true
 	return false
 
