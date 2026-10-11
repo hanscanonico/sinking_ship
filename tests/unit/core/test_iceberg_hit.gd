@@ -234,9 +234,10 @@ func test_gash_opens_only_the_cells_it_crosses() -> void:
 	assert_eq(
 		_opened(_mapped(_hit(-1, -10.0, -5.0, 1.0, 1.0))), [&"aft_bilge_p"] as Array[StringName]
 	)
-	# Across the engine room's after bulkhead: the bilges either side of it.
+	# Across the engine room's after bulkhead: the bilge aft of it, and the stokehold
+	# forward of it, its floor down on her tank top (#74).
 	var across := _mapped(_hit(1, -6.0, -1.0, 1.0, 1.0))
-	assert_eq(_opened(across), [&"aft_bilge_s", &"engine_bilge_s"] as Array[StringName])
+	assert_eq(_opened(across), [&"aft_bilge_s", &"engine_room"] as Array[StringName])
 	assert_eq(across.weakened, [] as Array[StringName], "both its ends stand clear of a wall")
 	# Ending just short of the hold's after bulkhead weakens it, and nothing else.
 	var short := _mapped(_hit(1, -1.0, 3.5, 1.0, 1.0))
@@ -257,6 +258,17 @@ func test_gash_opens_only_the_cells_it_crosses() -> void:
 		assert_almost_eq(crossed, damage.to_x - damage.from_x, EPSILON, "the gash's length")
 
 
+func test_a_gash_along_her_middle_opens_the_stokehold_to_the_sea() -> void:
+	# Along the engine room's run 1 m under her waterline: through her own shell into the
+	# stokehold, a room people walk in, with no wing void between (#74).
+	var middle := _mapped(_hit(1, -2.0, 3.0, 1.0, 0.3))
+	assert_eq(_opened(middle), [&"engine_room"] as Array[StringName])
+	assert_eq(middle.openings[0].joins[1], ShipOpening.SEA, "straight to the sea")
+	# Wholly under her tank top: the double bottom's starboard half alone.
+	var low := _mapped(_hit(1, -2.0, 3.0, 1.6, 1.5))
+	assert_eq(_opened(low), [&"engine_bilge_s"] as Array[StringName])
+
+
 func test_shallow_bite_opens_the_side_void_not_the_hold() -> void:
 	var shallow := _opened(_mapped(_hit(1, 6.0, 10.0, 0.3, 0.3)))
 	assert_eq(shallow, [&"hold_wing_s"] as Array[StringName])
@@ -273,11 +285,11 @@ func test_shallow_bite_opens_the_side_void_not_the_hold() -> void:
 func test_a_sliver_of_a_run_opens_nothing() -> void:
 	var bands := _scenario().hit
 	assert_gt(bands.least_run, 0.0, "the bands keep slivers out")
-	# Into the engine room's bilge for 5 cm past the hold's after bulkhead.
+	# Into the stokehold for 5 cm past the hold's after bulkhead.
 	var sliver := _mapped(_hit(1, 4.0 - 0.05, 10.0, 1.0, 1.0))
-	assert_false(_opened(sliver).has(&"engine_bilge_s"), "5 cm into a cell holes nothing")
+	assert_false(_opened(sliver).has(&"engine_room"), "5 cm into a cell holes nothing")
 	var run := _mapped(_hit(1, 4.0 - 0.5, 10.0, 1.0, 1.0))
-	assert_true(_opened(run).has(&"engine_bilge_s"), "half a metre does")
+	assert_true(_opened(run).has(&"engine_room"), "half a metre does")
 
 
 func test_hit_above_the_waterline_opens_nothing_below_it() -> void:

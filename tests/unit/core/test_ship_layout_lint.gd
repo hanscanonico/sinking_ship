@@ -198,6 +198,8 @@ func test_no_single_route_perch() -> void:
 
 
 func test_every_room_has_a_door() -> void:
+	# Or a stair up out of it: the steamer's stokehold is left by the stairs to its
+	# galleries (#74).
 	var rules := SimFixtures.rules()
 	var layouts := _layouts()
 	var rooms := 0
@@ -209,6 +211,10 @@ func test_every_room_has_a_door() -> void:
 			var wide := 0
 			for door: ShipRoom.Door in room.doors(surfaces, rules.body_height, rules.step_height):
 				if door.width() >= rules.body_radius * 2.0:
+					wide += 1
+			for ramp: ShipRamp in layout.ramps:
+				var low := 0 if ramp.start_height < ramp.end_height else 1
+				if room.holds(ramp.end_point(low), rules.step_height):
 					wide += 1
 			assert_gt(wide, 0, "%s: %s has no door" % [path, room.name])
 	assert_gt(rooms, 0, "the steamer has rooms")

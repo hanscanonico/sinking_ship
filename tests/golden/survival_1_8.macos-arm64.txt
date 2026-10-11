@@ -4,133 +4,187 @@ must 0 thrown · 1 bakes · drawn
 00:23.0 hold_wing_s flooding
 00:23.0 aft_bilge_s flooding
 00:23.0 engine_bilge_s flooding
-00:23.0 lurch coming · heel +20°
 00:23.1 aft_peak flooding
 00:23.1 forepeak flooding
-00:23.9 lurched · heel +20°
+00:23.5 lurch coming · heel +15°
+00:24.0 lurched · heel +15°
 00:24.1 hold_bilge flooding
 00:24.8 aft_bilge_p flooding
-00:25.6 port boats useless
-00:28.8 funnel creaking
-00:29.7 generator stopped
-00:29.9 engine_bilge_p flooding
-00:33.3 aft_cabins flooding
-00:33.3 engine_room flooding
-00:35.1 water through over_girder_aft_cabins
-00:35.1 funnel falling
-00:35.1 water through over_girder_engine_room
-00:35.7 railing 9 broke
-00:36.4 seat 7 out · cold · place 8
-00:38.9 aft_bilge_s full
-00:39.3 engine_bilge_s full
-00:39.3 hold flooding
-00:40.9 seat 2 out · cold · place 7
-00:42.7 generator running again
-00:54.6 aft_bilge_p full
-00:55.4 engine_bilge_p full
-01:14.4 hold_bilge full
-01:19.0 water through over_bulkhead_hold_to_hold_wing_s
-01:49.0 saloon flooding
-01:49.2 deckhouse_hall flooding
-01:49.2 generator stopped
-01:51.5 water through stair_hold_sky
-01:54.6 deckhouse_cabins flooding
-01:55.6 hold_wing_s full
-01:58.1 crate 1 lost
-01:58.4 crate 0 lost
-01:58.6 hold_wing_p flooding
-01:59.5 the plunge
-01:59.8 door_hold_fwd_top_s leaking
-02:00.2 hold_fwd_top flooding
-02:00.7 hatch_hold leaking
-02:00.8 water through over_bulkhead_hold_to_hold
-02:01.6 water through stair_engine_room_deckhouse_hall
-02:01.8 crate 3 lost
-02:02.0 crate 2 lost
-02:03.5 door_hold_fwd_top_s gave way
-02:04.0 poop_space flooding
-02:04.4 hatch_hold gave way
-02:04.6 water through stair_aft_cabins_sky
-02:04.6 hold lamps drowned
-02:05.2 door_hold_fwd_top_p leaking
-02:05.6 air trapped in hold_fwd_top
-02:05.7 seat 4 out · cold · place 6
-02:05.8 hold full
-02:05.8 panel_hold_side_p_hold_wing_p_hold_bilge leaking
-02:06.0 engine_room lamps drowned
-02:06.4 lurch coming · heel -5°
-02:06.6 water through over_bulkhead_hold_to_hold_wing_p
-02:06.6 panel_hold_side_p_hold_wing_p_hold_bilge gave way
-02:06.9 lurched · heel -5°
-02:07.0 air trapped in engine_room
-02:07.0 air trapped in hold_bilge
-02:07.0 air trapped in hold_wing_p
-02:07.0 port_hold_wing_p_p8 leaking
-02:07.0 wtd_engine leaking
-02:07.2 port_hold_wing_p_p7 leaking
-02:07.2 air let out of engine_room
-02:07.2 air let out of hold_bilge
-02:07.2 air let out of hold_wing_p
-02:07.3 air trapped in engine_room
-02:07.3 air trapped in hold_bilge
-02:07.3 air trapped in hold_wing_p
-02:07.4 port_hold_wing_p_p6 leaking
-02:07.6 saloon lamps drowned
-02:07.8 wheelhouse flooding
-02:08.5 deckhouse_hall lamps drowned
-02:08.6 saloon full
-02:08.9 lurch coming · heel +15°
-02:09.0 air trapped in deckhouse_cabins
-02:09.0 air trapped in deckhouse_hall
-02:09.1 air let out of deckhouse_cabins
-02:09.1 air let out of deckhouse_hall
-02:09.2 air trapped in deckhouse_cabins
-02:09.2 air trapped in deckhouse_hall
-02:09.3 air let out of deckhouse_cabins
-02:09.3 air let out of deckhouse_hall
-02:09.3 air trapped in deckhouse_cabins
-02:09.3 air trapped in deckhouse_hall
-02:09.4 lurched · heel +15°
-02:09.7 port_aft_cabins_s4 leaking
-02:09.7 port_aft_cabins_s5 leaking
-02:09.7 port_aft_cabins_s6 leaking
-02:09.7 port_aft_cabins_s7 leaking
-02:09.7 wtd_engine gave way
-02:09.7 port_aft_cabins_s3 leaking
-02:10.0 air trapped in aft_peak
-02:10.1 panel_collision_hold_forepeak leaking
-02:10.1 panel_collision_hold_fwd_top_forepeak leaking
-02:10.2 air trapped in forepeak
-02:10.2 port_aft_cabins_s2 leaking
-02:10.5 wheelhouse lamps drowned
-02:10.6 port_aft_cabins_s1 leaking
-02:11.1 wheelhouse full
-02:11.1 deckhouse_cabins lamps drowned
-02:11.4 port_aft_cabins_p7 leaking
-02:12.0 port_aft_cabins_p6 leaking
-02:12.1 aft_cabins lamps drowned
-02:12.4 lurch coming · heel -38°
-02:12.5 port_aft_cabins_p5 leaking
-02:12.9 seat 6 out · cold · place 5
-02:12.9 lurched · heel -38°
-02:13.2 window_deckhouse_hall_p1 gave way
-02:13.2 window_deckhouse_hall_s1 gave way
-02:13.2 deckhouse_hall full
-02:13.8 air trapped in aft_cabins
-02:13.9 seat 3 out · cold · place 4
-02:14.2 air trapped in poop_space
-02:14.2 air let out of aft_cabins
-02:14.3 aft_cabins full
-02:14.6 air let out of hold_fwd_top
-02:14.6 air trapped in hold_fwd_top
-02:14.6 door_hold_fwd_top_p gave way
-02:14.6 panel_collision_hold_fwd_top_forepeak gave way
-02:14.6 hold_fwd_top full
-02:14.7 seat 5 out · cold · place 3
-02:15.8 seat 0 out · cold · place 2
-02:17.1 seat 1 out · cold · place 1
-all out at 02:17.1 · digest 51e575a4161d103a
-6 of 8 seats in at the plunge 01:59.5
-sinking at the end of the match: physics 0:03:48 (× 2.0 of match time) · seen 100% · sea 19.20 m up her · trim +49.5° · list -12.9° · aft_peak 8.65 m · poop_space 2.86 m · aft_bilge_p full · aft_bilge_s full · aft_cabins full · engine_bilge_p full · engine_bilge_s full · engine_room 7.42 m · hold_bilge 9.98 m · hold full · hold_wing_p 10.14 m · hold_wing_s full · hold_fwd_top full · forepeak 10.08 m · deckhouse_cabins 3.70 m · deckhouse_hall full · saloon full · wheelhouse full
-not played: gone at 0:03:48 · trim +50.5° · list -13.4° · founders by the head · fast · port boats useless · lights out · funnel fell
-bending peak 0.06 of strength, x -9.0 m, hogging
+00:25.6 engine_room flooding
+00:25.8 port boats useless
+00:26.0 engine_bilge_s full
+00:34.6 aft_cabins flooding
+00:35.4 water through over_girder_aft_cabins
+00:42.4 aft_bilge_s full
+00:57.8 aft_bilge_p full
+00:59.3 seat 4 out · cold · place 8
+01:08.1 engine_bilge_p flooding
+01:08.1 hold flooding
+01:16.2 panel_centre_girder_engine_bilge_p_engine_bilge_s gave way
+01:18.7 engine_bilge_p full
+01:19.3 hold_bilge full
+01:32.6 water through over_bulkhead_hold_to_hold_wing_s
+02:37.6 hold_wing_p flooding
+02:55.1 saloon flooding
+02:57.6 deckhouse_hall flooding
+02:59.0 water through stair_hold_sky
+03:01.4 deckhouse_cabins flooding
+03:03.3 hold_wing_s full
+03:06.3 crate 1 lost
+03:06.5 crate 0 lost
+03:07.5 door_hold_fwd_top_s leaking
+03:07.9 hold_fwd_top flooding
+03:07.9 the plunge
+03:08.4 water through over_bulkhead_hold_to_hold
+03:08.9 hatch_hold leaking
+03:10.0 crate 3 lost
+03:10.2 water through stair_engine_room_deckhouse_hall
+03:10.2 generator stopped
+03:10.2 crate 2 lost
+03:10.9 seat 2 out · cold · place 6
+03:10.9 seat 6 out · cold · place 6
+03:11.5 door_hold_fwd_top_s gave way
+03:12.1 hold lamps drowned
+03:12.4 poop_space flooding
+03:12.6 hatch_hold gave way
+03:13.6 air trapped in hold_fwd_top
+03:13.8 water through stair_aft_cabins_sky
+03:13.8 hold full
+03:13.8 wtd_hold leaking
+03:14.5 air let out of hold_fwd_top
+03:14.5 air trapped in hold_fwd_top
+03:14.5 door_hold_fwd_top_p leaking
+03:14.8 panel_hold_side_p_hold_wing_p_hold_bilge leaking
+03:15.0 engine_room lamps drowned
+03:15.5 lurch coming · heel -4°
+03:15.6 water through over_bulkhead_hold_to_hold_wing_p
+03:15.6 wheelhouse flooding
+03:15.6 panel_hold_side_p_hold_wing_p_hold leaking
+03:15.6 panel_hold_side_p_hold_wing_p_hold_bilge gave way
+03:15.7 port_hold_wing_p_p8 leaking
+03:15.9 port_hold_wing_p_p7 leaking
+03:15.9 air trapped in engine_room
+03:15.9 air trapped in hold_bilge
+03:15.9 air trapped in hold_wing_p
+03:15.9 saloon lamps drowned
+03:16.0 lurched · heel -4°
+03:16.1 wtd_engine leaking
+03:16.1 port_hold_wing_p_p6 leaking
+03:16.2 air let out of engine_room
+03:16.2 air let out of hold_bilge
+03:16.2 air let out of hold_wing_p
+03:16.2 air trapped in engine_room
+03:16.2 air trapped in hold_bilge
+03:16.2 air trapped in hold_wing_p
+03:16.3 port_hold_wing_p_p5 leaking
+03:16.5 funnel creaking
+03:16.6 air let out of engine_room
+03:16.6 air let out of hold_bilge
+03:16.6 air let out of hold_wing_p
+03:16.6 port_hold_wing_p_p4 leaking
+03:16.6 air trapped in engine_room
+03:16.6 air trapped in hold_bilge
+03:16.6 air trapped in hold_wing_p
+03:16.6 port_hold_wing_p_p3 leaking
+03:17.0 deckhouse_hall lamps drowned
+03:17.2 saloon full
+03:17.5 funnel falling
+03:17.7 air trapped in deckhouse_cabins
+03:17.7 air trapped in deckhouse_hall
+03:17.7 air let out of deckhouse_cabins
+03:17.7 air let out of deckhouse_hall
+03:17.8 air trapped in deckhouse_cabins
+03:17.8 air trapped in deckhouse_hall
+03:17.9 air let out of deckhouse_cabins
+03:17.9 air let out of deckhouse_hall
+03:17.9 air trapped in deckhouse_cabins
+03:17.9 air trapped in deckhouse_hall
+03:18.5 air trapped in forepeak
+03:18.7 lurch coming · heel +2°
+03:18.9 air trapped in aft_peak
+03:18.9 wheelhouse lamps drowned
+03:18.9 port_aft_cabins_s2 leaking
+03:18.9 port_aft_cabins_s3 leaking
+03:18.9 port_aft_cabins_s4 leaking
+03:18.9 port_aft_cabins_s5 leaking
+03:18.9 port_aft_cabins_s6 leaking
+03:18.9 port_aft_cabins_s7 leaking
+03:19.0 wtd_engine gave way
+03:19.2 lurched · heel +2°
+03:19.3 port_aft_cabins_s1 leaking
+03:19.4 deckhouse_cabins lamps drowned
+03:19.5 port_aft_cabins_p7 leaking
+03:19.7 wheelhouse full
+03:20.1 port_aft_cabins_p6 leaking
+03:20.6 aft_cabins lamps drowned
+03:20.7 port_aft_cabins_p5 leaking
+03:20.9 deckhouse_hall full
+03:20.9 window_deckhouse_hall_p1 gave way
+03:20.9 window_deckhouse_hall_s1 gave way
+03:21.0 lurch coming · heel -31°
+03:21.5 lurched · heel -31°
+03:22.2 air trapped in aft_cabins
+03:22.2 seat 1 out · cold · place 5
+03:22.5 air trapped in poop_space
+03:22.8 air let out of aft_cabins
+03:22.8 air let out of engine_room
+03:22.8 air let out of hold_bilge
+03:22.8 air let out of hold_wing_p
+03:22.8 wtd_hold gave way
+03:22.8 port_hold_wing_p_p1 gave way
+03:22.8 port_hold_wing_p_p2 gave way
+03:22.8 port_hold_wing_p_p3 gave way
+03:22.8 port_hold_wing_p_p4 gave way
+03:22.8 port_hold_wing_p_p5 gave way
+03:22.8 port_hold_wing_p_p6 gave way
+03:22.8 port_hold_wing_p_p7 gave way
+03:22.8 port_hold_wing_p_p8 gave way
+03:22.8 panel_bulkhead_engine_aft_bilge_p_engine_room gave way
+03:22.8 panel_bulkhead_engine_aft_bilge_s_engine_room gave way
+03:22.8 panel_bulkhead_hold_engine_bilge_p_hold_bilge gave way
+03:22.8 panel_bulkhead_hold_engine_bilge_p_hold_wing_p gave way
+03:22.8 panel_bulkhead_hold_engine_bilge_s_hold_bilge gave way
+03:22.8 panel_bulkhead_hold_engine_room_hold gave way
+03:22.8 panel_bulkhead_hold_engine_room_hold_wing_s gave way
+03:22.8 panel_collision_hold_bilge_forepeak gave way
+03:22.8 panel_collision_hold_wing_p_forepeak gave way
+03:22.8 panel_hold_side_p_hold_wing_p_hold gave way
+03:22.8 panel_hold_side_s_hold_bilge_hold_wing_s gave way
+03:22.8 air trapped in engine_room
+03:22.8 air let out of forepeak
+03:22.8 port_hold_wing_s_s1 gave way
+03:22.8 port_hold_wing_s_s2 gave way
+03:22.8 port_hold_wing_s_s3 gave way
+03:22.8 port_hold_wing_s_s4 gave way
+03:22.8 port_hold_wing_s_s5 gave way
+03:22.8 port_hold_wing_s_s6 gave way
+03:22.8 port_hold_wing_s_s7 gave way
+03:22.8 port_hold_wing_s_s8 gave way
+03:22.8 panel_bulkhead_hold_engine_bilge_s_hold_wing_s gave way
+03:22.8 panel_hold_side_s_hold_hold_wing_s gave way
+03:22.8 panel_bulkhead_hold_engine_room_hold_bilge leaking
+03:22.8 panel_bulkhead_hold_engine_room_hold_wing_p gave way
+03:22.8 panel_collision_hold_forepeak gave way
+03:22.8 panel_collision_hold_wing_s_forepeak gave way
+03:22.8 panel_collision_hold_fwd_top_forepeak gave way
+03:22.8 air trapped in forepeak
+03:22.8 door_hold_fwd_top_p gave way
+03:22.8 panel_bulkhead_hold_engine_room_hold_bilge gave way
+03:22.8 air let out of hold_fwd_top
+03:22.8 air let out of forepeak
+03:22.8 hold_wing_p full
+03:22.8 forepeak full
+03:22.8 hold_fwd_top full
+03:22.9 air trapped in aft_cabins
+03:22.9 aft_cabins full
+03:23.1 seat 3 out · cold · place 3
+03:23.1 seat 7 out · cold · place 3
+03:24.8 engine_room full
+03:24.8 panel_bulkhead_engine_aft_cabins_engine_room gave way
+03:25.0 seat 5 out · cold · place 2
+03:25.5 seat 0 out · cold · place 1
+all out at 03:25.5 · digest e10b909caca0ddbb
+7 of 8 seats in at the plunge 03:07.9
+sinking at the end of the match: physics 0:06:05 (× 2.0 of match time) · seen 100% · sea 19.48 m up her · trim +51.8° · list -13.2° · aft_peak 8.55 m · poop_space 2.82 m · aft_bilge_p full · aft_bilge_s full · aft_cabins full · engine_bilge_p full · engine_bilge_s full · engine_room full · hold_bilge full · hold full · hold_wing_p full · hold_wing_s full · hold_fwd_top full · forepeak full · deckhouse_cabins 3.80 m · deckhouse_hall full · saloon full · wheelhouse full
+not played: gone at 0:06:06 · trim +55.4° · list -12.4° · founders by the head · fast · port boats useless · lights out · funnel fell
+bending peak 0.07 of strength, x -1.0 m, hogging

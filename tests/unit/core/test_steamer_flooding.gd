@@ -2,13 +2,15 @@ extends GutTest
 ## §5b.4 layer 3, the steamer: pinned seeds' match hits — bow_down_slow, stern_down,
 ## heavy_list, two_compartments_and_open_ports, fwd_pocket, from SH31 door_gives_way,
 ## funnel_on_the_bridge and lights_out_early, from SH32 capsize_upside_down and on her
-## coast on_her_side — and explicit hits, each baked alone
+## coast on_her_side — and explicit hits, from #74 stokehold_holed, each baked alone
 ## and again with its holes' area × 0.9 and × 1.1 to the same outcome, so the seeds sit
 ## far from every threshold and a Mac and Linux agree (R21). Outcomes are labels and
 ## bands, never exact times.
 
 const LIGHT := "res://tests/fixtures/sinking/hits/light.tres"
 const FAST := "res://tests/fixtures/sinking/hits/fast.tres"
+## stokehold_holed: struck along her middle 1 m under her waterline, into the stokehold.
+const STOKEHOLD := "res://tests/fixtures/sinking/hits/stokehold.tres"
 const MARGINS: Array[float] = [0.9, 1.0, 1.1]
 ## Water this far over a floor, in metres, is water.
 const WET := 0.01
@@ -228,6 +230,46 @@ func test_light_hit_ends_afloat() -> void:
 		var heel := rad_to_deg(asin(timeline.rotations[last * 9 + 7]))
 		assert_lt(absf(heel), 7.0, "listing under 7°, × %s" % scale)
 		assert_lt(timeline.seas[last], SinkTimeline.MAIN_DECK, "her deck clear, × %s" % scale)
+
+
+func test_stokehold_holed_floods_the_engine_room_first_from_its_floor_up() -> void:
+	# Holed along her middle, 1 m under her waterline, through her own shell into the
+	# stokehold (#74): of the cells people walk in, the engine room's floods first, from
+	# the gash — its water standing on the stokehold's floor while its galleries, at the
+	# lower deck's height, are still dry.
+	var damage := _damage(load(STOKEHOLD))
+	assert_eq(damage.openings.size(), 1, "the one gash, into the stokehold")
+	assert_eq(damage.openings[0].joins[0], &"engine_room")
+	var rooms: Array[StringName] = []
+	for cell: FloodCell in _structure.cells:
+		if not cell.rooms.is_empty():
+			rooms.append(cell.name)
+	var engine := _structure.cells[_structure.cell_named(&"engine_room")]
+	var galleries := INF
+	for room: ShipRoom in SimFixtures.steamer().rooms:
+		if room.name == &"engine room":
+			galleries = minf(galleries, room.floor_height)
+	var gallery := Vector3((engine.low.x + engine.high.x) * 0.5, galleries, 0.0)
+	for scale: float in MARGINS:
+		var timeline := _bake(damage, scale)
+		var first := &""
+		var first_at := INF
+		for cell: StringName in rooms:
+			var at := _first(timeline, SinkTimeline.Kind.FLOODING, cell)
+			if at >= 0.0 and at < first_at:
+				first = cell
+				first_at = at
+		assert_eq(first, &"engine_room", "× %s: the engine room floods first" % scale)
+		var standing := false
+		for frame in timeline.count():
+			var on_floor := _depth(timeline, frame, &"engine_room") > WET
+			var under := (
+				_head(timeline, frame, &"engine_room") < _up_height(timeline, frame, gallery)
+			)
+			if on_floor and under:
+				standing = true
+				break
+		assert_true(standing, "× %s: water on the stokehold's floor, its galleries dry" % scale)
 
 
 func test_open_porthole_floods_its_cabin_once_under() -> void:

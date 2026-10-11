@@ -2,7 +2,8 @@ extends SceneTree
 ## `make hits SHIP=steamer SEEDS=200`: the spread of a ship's iceberg hits over seeds
 ## 1…SEEDS, each struck as her match on that seed strikes it — asked of SinkSchedule,
 ## never drawn again here (D13): the sides, where along her the gashes run, the cells
-## they open, their areas and moments, the walls they weaken, and the doors that jam
+## they open — and how many open a cell people walk in, where the breach is seen from
+## inside (#74) — their areas and moments, the walls they weaken, and the doors that jam
 ## and the openings left open. Headless; no match is played.
 ##
 ##   godot --headless --path . -s res://tools/hits.gd -- --ship=steamer --seeds=200
@@ -59,6 +60,7 @@ func _spread(ship: String, layout: ShipLayout, scenario: SinkScenario, seeds: in
 	var jammed := {}
 	var left_open := 0
 	var missed := 0
+	var into_rooms := 0
 	var areas := PackedFloat64Array()
 	var moments := PackedFloat64Array()
 	var zone := structure.hit_zone_x
@@ -74,8 +76,12 @@ func _spread(ship: String, layout: ShipLayout, scenario: SinkScenario, seeds: in
 		stretches[clampi(stretch, 0, STRETCHES - 1)] += 1
 		if damage.openings.is_empty():
 			missed += 1
+		var into_room := false
 		for opening: ShipOpening in damage.openings:
 			cells[opening.joins[0]] = cells.get(opening.joins[0], 0) + 1
+			var cell := structure.cells[structure.cell_named(opening.joins[0])]
+			into_room = into_room or not cell.rooms.is_empty()
+		into_rooms += 1 if into_room else 0
 		for wall: StringName in damage.weakened:
 			walls[wall] = walls.get(wall, 0) + 1
 		for door: StringName in damage.jammed:
@@ -96,6 +102,12 @@ func _spread(ship: String, layout: ShipLayout, scenario: SinkScenario, seeds: in
 	lines.append("places    %s  (the gash's middle, aft to fore)" % " · ".join(places))
 	lines.append("cells     %s  (seeds opening each)" % _in_order(cells, _cell_names(structure)))
 	lines.append("missed    %d  (the gash opens no cell)" % missed)
+	lines.append(
+		(
+			"rooms     %d · %.0f%%  (the gash opens a cell people walk in)"
+			% [into_rooms, 100.0 * into_rooms / seeds]
+		)
+	)
 	lines.append("areas m²  %s" % _quantiles(areas, "%.4f"))
 	lines.append("          %s" % _area_bins(areas))
 	lines.append("moments   %s" % _quantiles(moments, "%.1f s"))

@@ -26,6 +26,8 @@ const GLAZING_BAR := 0.025
 const WINDOW_HEIGHT := 1.45
 const WINDOW_SPACING := 1.3
 const WINDOW_MARGIN := 0.4
+## No porthole stands within this of her waterline, in metres (a stokehold's lining).
+const PORT_FREEBOARD := 1.0
 const GLASS_PROUD := 0.012
 ## A porthole in the hull stands this far off its curved plating.
 const HULL_GLASS_PROUD := 0.03
@@ -357,8 +359,9 @@ func _windows(mesh: ShipMesh, room: ShipRoom) -> void:
 				continue
 			var shape := _space.envelope(beyond.x)
 			var in_hull := shape.x != INF and height < minf(shape.z, shape.w)
-			# A hull's glass goes in its sides, never its ends.
-			if in_hull and side % 2 == 1:
+			# A hull's glass goes in its sides, never its ends, and never near the sea.
+			var near_sea := height < PORT_FREEBOARD - _space.layout.freeboard
+			if in_hull and (side % 2 == 1 or near_sea):
 				continue
 			var size := sizes[index]
 			var inner := on_line - outward * (half + GLASS_PROUD)

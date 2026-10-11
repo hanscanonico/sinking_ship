@@ -3,7 +3,8 @@ extends GutTest
 ## (InnerWater.boxes, SeaAndSky): none of any ship of the fleet reaches past her shell —
 ## a cell drawn for its rooms whose box pokes out of her, as the trawler's fore does at
 ## her bow, is drawn round its rooms only — and a ship whose room cells stand inside her,
-## the steamer, keeps each cell's whole box.
+## the steamer, keeps each cell's whole box, but for her engine room's, which runs out to
+## her shell round the stokehold (#74).
 
 ## How far a drawn box may stand past her shell, in metres.
 const NEAR := 0.01
@@ -69,14 +70,29 @@ func test_a_cell_poking_out_of_her_is_drawn_round_its_rooms() -> void:
 	assert_almost_eq(box.end.z, mess.area.end.y, 1e-5, "starboard")
 
 
-func test_the_steamer_keeps_each_cells_whole_box() -> void:
+func test_the_steamer_keeps_each_cells_whole_box_but_the_engine_rooms() -> void:
 	var layout := Fleet.layout(&"steamer")
 	var structure := layout.structure
 	var drawn := InnerWater.boxes(structure, layout.rooms)
+	# Her engine room's cell runs from her tank top out to her shell, round the turn of
+	# her bilge (#74): drawn round its rooms, the stokehold and its galleries, from the
+	# stokehold's floor, within its lining.
+	var engine := structure.cell_named(&"engine_room")
+	var engine_cell := structure.cells[engine]
+	assert_lt(engine_cell.shape, InnerWater.WHOLE, "her engine room pokes past her bilge's turn")
+	var stokehold: ShipRoom
+	for room: ShipRoom in layout.rooms:
+		if room.name == &"stokehold":
+			stokehold = room
+	var round := drawn[engine]
+	assert_almost_eq(round.position.y, stokehold.floor_height, 1e-5, "from the stokehold's floor")
+	assert_almost_eq(round.end.y, engine_cell.high.y, 1e-5, "to the engine room's top")
+	assert_almost_eq(round.position.z, stokehold.area.position.y, 1e-5, "within its lining")
+	assert_almost_eq(round.end.z, stokehold.area.end.y, 1e-5)
 	var whole := 0
 	for index in drawn.size():
 		var box := drawn[index]
-		if box.size == Vector3.ZERO:
+		if box.size == Vector3.ZERO or index == engine:
 			continue
 		whole += 1
 		var cell := structure.cells[index]
@@ -91,4 +107,4 @@ func test_the_steamer_keeps_each_cells_whole_box() -> void:
 					is_zero_approx(gap) or is_equal_approx(gap, InnerWater.INSET),
 					"%s's box is its own on axis %s" % [cell.name, axis]
 				)
-	assert_eq(whole, 8, "her rooms' cells, the deckhouse's and the hold's top")
+	assert_eq(whole, 7, "her rooms' cells, the deckhouse's and the hold's top")
