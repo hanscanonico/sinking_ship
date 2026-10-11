@@ -49,7 +49,9 @@ is the bar for done.
 
 One game window at a time on this shared machine: `make capture` and `make fps` take the
 window lock themselves (`tools/window_lock.sh`, a kernel lock released on any exit) — never
-hand-roll a lock around them.
+hand-roll a lock around them. Test engines are capped the same way: each takes one of
+`TEST_SLOTS` machine-wide slots (`tools/test_slot.sh`, half the cores by default), so a run
+that says it is waiting for a slot is the machine being shared, not a hang.
 
 ## Architecture
 
