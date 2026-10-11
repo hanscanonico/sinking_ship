@@ -176,7 +176,7 @@ func _init(
 	_dodge = CargoDodge.new(profile, rules, cargo)
 	_floors = floors
 	_stand_on(Faces.Up.DECK)
-	_pacing = BotPacing.new(profile)
+	_pacing = BotPacing.new(profile, plays_for, _targeting.carry)
 	_rng = rng
 	_charge_full_ticks = Ticks.from_seconds(rules.charge_full)
 	_windup_ticks = Ticks.from_seconds(rules.shove_windup)
@@ -373,7 +373,7 @@ func _think(
 	if under >= _profile.refuge_from:
 		_refuge = _refuges.choose(found, pose, seen["tick"], _refuge)
 		refuge = _refuge
-	target = _targeting.choose(seen, me, found, pose, highest, target, refuge)
+	target = _targeting.choose(seen, me, found, pose, highest, target, refuge, under)
 	var mark := _entry(seen, target)
 	var my_zone := _zone_of(me)
 	var feet := pose.above_water(my_pos)
