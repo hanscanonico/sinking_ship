@@ -46,6 +46,26 @@ func test_a_room_s_ceiling_is_the_lowest_deck_over_it() -> void:
 	assert_almost_eq(_space.ceiling(hold, 14.0, -2.0), 1.8, 0.001)
 
 
+func test_a_room_roofed_by_a_slab_and_no_deck_has_the_slab_for_its_ceiling() -> void:
+	# The trawler's wheelhouse: no deck over it, roofed by a slab under OPEN_ROOM_HEIGHT.
+	var space := ShipSpace.new(load("res://data/ships/trawler.tres"))
+	var middle := Vector2(-6.0, 0.0)
+	var wheelhouse: ShipRoom
+	for room: ShipRoom in space.layout.rooms:
+		var higher := wheelhouse == null or room.floor_height > wheelhouse.floor_height
+		if room.area.has_point(middle) and higher:
+			wheelhouse = room
+	var slab: ShipBlocker
+	for blocker: ShipBlocker in space.layout.blockers:
+		var thin := blocker.top - blocker.bottom <= ShipSpace.WALL_MAX
+		if thin and not space.is_wall(blocker) and blocker.area.has_point(middle):
+			slab = blocker
+	assert_not_null(slab, "the wheelhouse's roof")
+	assert_almost_eq(space.ceiling(wheelhouse, middle.x, middle.y), slab.bottom, 0.001)
+	var over := Vector3(middle.x, slab.top + 0.15, middle.y)
+	assert_true(space.outdoors(over), "a step over its roof is out in the weather")
+
+
 func test_a_doorway_is_a_gap_between_wall_runs() -> void:
 	var engine := _room(&"engine room")
 	var aft: Array = []

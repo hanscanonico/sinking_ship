@@ -22,6 +22,9 @@ var layout: ShipLayout
 ## Per room, the platforms, by index, standing over its floor anywhere over its area:
 ## the only ones roof() need look at, gathered the first time it is asked.
 var _over := {}
+## Per room, the slabs, by blocker index, over its floor and over its area: the only
+## ones ceiling() need look at, gathered the first time it is asked.
+var _slabs := {}
 
 
 func _init(ship: ShipLayout) -> void:
@@ -58,12 +61,27 @@ func indoors(area: Rect2, height: float) -> float:
 
 
 ## The underside of what roofs [param room] over (x, z): the lowest deck standing
-## over its floor there, or OPEN_ROOM_HEIGHT above its floor where none does.
+## over its floor there, or OPEN_ROOM_HEIGHT above its floor where none does — or a
+## slab roofing it lower than either (the trawler's wheelhouse roof).
 func ceiling(room: ShipRoom, x: float, z: float) -> float:
 	var over := roof(room, x, z)
-	if over == -1:
-		return room.floor_height + OPEN_ROOM_HEIGHT
-	return layout.platforms[over].height
+	var height := room.floor_height + OPEN_ROOM_HEIGHT
+	if over != -1:
+		height = layout.platforms[over].height
+	if not _slabs.has(room):
+		var slabs := PackedInt32Array()
+		for index in layout.blockers.size():
+			var blocker := layout.blockers[index]
+			var thin := blocker.top - blocker.bottom <= WALL_MAX
+			var above := blocker.bottom > room.floor_height + SLIVER
+			if thin and above and not is_wall(blocker) and blocker.area.intersects(room.area):
+				slabs.append(index)
+		_slabs[room] = slabs
+	for index: int in _slabs[room]:
+		var slab := layout.blockers[index]
+		if slab.bottom < height and slab.area.grow(INSIDE).has_point(Vector2(x, z)):
+			height = slab.bottom
+	return height
 
 
 ## The platform, by index, that roofs [param room] over (x, z): the lowest deck
