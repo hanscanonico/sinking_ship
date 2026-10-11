@@ -15,6 +15,8 @@ const INSIDE := 0.02
 ## How far past a room roof() is asked of; a superset is no harm.
 const ROOF_REACH := 1.0
 const SLIVER := 0.01
+## How far apart walled() looks for a blocker.
+const WALL_STEP := 0.05
 ## Per side (0 to 3), its unit vector out of the room, ship plane (outward()).
 const OUTWARD: Array[Vector2] = [Vector2.UP, Vector2.RIGHT, Vector2.DOWN, Vector2.LEFT]
 
@@ -146,6 +148,25 @@ func deck_on(blocker: ShipBlocker) -> bool:
 			and platform.contains(blocker.centre.x, blocker.centre.y)
 		):
 			return true
+	return false
+
+
+## Whether [param point], ship plane, stands over [param blocker]'s footprint.
+static func over(blocker: ShipBlocker, point: Vector2) -> bool:
+	if blocker.shape == ShipBlocker.Shape.CYLINDER:
+		return point.distance_to(blocker.centre) <= blocker.radius
+	return blocker.area.has_point(point)
+
+
+## Whether a blocker stands at [param height] within [param reach] of [param point],
+## ship plane, the way [param toward] points: one holds a body back there (WALL_STEP
+## apart).
+func walled(point: Vector2, toward: Vector2, height: float, reach: float) -> bool:
+	for step in range(1, floori(reach / WALL_STEP) + 1):
+		var at := point + toward * WALL_STEP * step
+		for blocker: ShipBlocker in layout.blockers:
+			if height >= blocker.bottom and height <= blocker.top and over(blocker, at):
+				return true
 	return false
 
 
