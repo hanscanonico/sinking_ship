@@ -40,6 +40,7 @@ guard_range_m = 4.0
 ride_margin_m = 2.0
 dodges_cargo = true
 perch_lead = 1.0
+survival_hunt_scale = 0.05
 hysteresis = 0.15
 detour_after_s = 1.0
 eye_height_m = 1.6

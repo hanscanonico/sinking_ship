@@ -19,16 +19,30 @@ var _profile: BotProfile
 var _rules: BrawlRules
 var _footing: BotFooting
 var _walk_graph: WalkGraph
+var _plays_for: MatchRules.Goal
+## The zones a survival bot fights over, as the last think found them: its refuge and
+## its highest ground. Empty under the battle royale, where it fights anywhere.
+var _fights: Array[int] = []
+## Whether a survival bot fights nobody yet: until it sees refuge_from of the ship
+## under water, nothing is worth a fight while she still holds them all.
+var _holds := false
 ## This think's looks round seats, by seat: where it stood, and how far the water or an
 ## open drop is along each probe direction.
 var _looked_from := {}
 var _looked := {}
 
 
+## [param plays_for] is what the match is played for (MatchRules.Goal).
 func _init(
-	seat: int, profile: BotProfile, rules: BrawlRules, footing: BotFooting, walk_graph: WalkGraph
+	seat: int,
+	profile: BotProfile,
+	rules: BrawlRules,
+	footing: BotFooting,
+	walk_graph: WalkGraph,
+	plays_for := MatchRules.Goal.LAST_STANDING
 ) -> void:
 	_seat = seat
+	_plays_for = plays_for
 	_profile = profile
 	_rules = rules
 	_footing = footing
@@ -52,10 +66,24 @@ func _init(
 ## zone it can reach. By exposure_weight, one within two shoves' carry scores by how far
 ## over a shove would put it; by crowd_aversion, one nearer another seat than the bot
 ## scores less. [param kept] stays unless another beats it by the hysteresis; ties go
-## to the lower seat. -1 for none.
+## to the lower seat. -1 for none. Under survival, once it sees the share [param under]
+## of the ship's platforms reach refuge_from, it fights over [param refuge] and
+## [param perch]: while anyone stands in them, only those are weighed — before that,
+## nobody is fought (off_perch).
 func choose(
-	seen: Dictionary, me: Dictionary, found: WalkGraph.Search, pose: ShipPose, perch: int, kept: int
+	seen: Dictionary,
+	me: Dictionary,
+	found: WalkGraph.Search,
+	pose: ShipPose,
+	perch: int,
+	kept: int,
+	refuge := WalkGraph.NONE,
+	under := 0.0
 ) -> int:
+	_fights.clear()
+	_holds = _plays_for == MatchRules.Goal.SURVIVAL and under < _profile.refuge_from
+	if _plays_for == MatchRules.Goal.SURVIVAL and not _holds:
+		_fights.assign([refuge, perch])
 	_looked_from.clear()
 	_looked.clear()
 	var my_pos: Vector3 = me["pos"]
@@ -76,6 +104,13 @@ func choose(
 		):
 			continue
 		candidates.append(entry)
+	if not _fights.is_empty():
+		var on_perch := candidates.filter(
+			func(entry: Dictionary) -> bool: return not off_perch(entry)
+		)
+		if not on_perch.is_empty():
+			candidates.assign(on_perch)
+	for entry: Dictionary in candidates:
 		var height := pose.world_height(entry["pos"])
 		nearest = minf(nearest, my_pos.distance_to(entry["pos"]))
 		lowest = minf(lowest, height)
@@ -220,6 +255,15 @@ func _fought(seen: Dictionary, entry: Dictionary, distance: float) -> bool:
 		):
 			return true
 	return false
+
+
+## Whether a survival bot would be going at [param entry] — a seat of the snapshot, or
+## none — off the zones it fights over, or before it fights at all (choose); never
+## under the battle royale.
+func off_perch(entry: Dictionary) -> bool:
+	if _holds:
+		return true
+	return not _fights.is_empty() and (entry.is_empty() or not _zone_of(entry) in _fights)
 
 
 func _zone_of(entry: Dictionary) -> int:

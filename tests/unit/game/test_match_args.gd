@@ -80,3 +80,14 @@ func test_fast_is_parsed_and_off_by_default() -> void:
 	assert_eq(struck.clock, 2.0, "on the fast clock")
 	assert_eq(scenario.clock, 1.0, "the loaded scenario untouched")
 	assert_eq(MatchArgs.parse(PackedStringArray()).struck(scenario), scenario)
+
+
+func test_a_goal_is_named_and_the_battle_royale_by_default() -> void:
+	assert_eq(MatchArgs.parse(PackedStringArray()).goal, MatchRules.Goal.LAST_STANDING)
+	var args := MatchArgs.parse(PackedStringArray(["--goal=survival", "--fast"]))
+	assert_eq(args.goal, MatchRules.Goal.SURVIVAL)
+	assert_true(args.fast, "with --fast too")
+	assert_eq(args.problems(), PackedStringArray())
+	var problems := MatchArgs.parse(PackedStringArray(["--goal=tag"])).problems()
+	assert_eq(problems.size(), 1)
+	assert_string_contains(problems[0], "tag is no goal")

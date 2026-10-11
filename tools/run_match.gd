@@ -1,11 +1,12 @@
 extends SceneTree
 ## `make match`: one bots-only match, headless, as fast as it runs, served by the
 ## local host the game plays through (SH11), printed as a transcript — its iceberg hit
-## and how the must-sink rule came to it, one line per exit and per thing the physics
-## does, then the verdict and the digest, and where the sinking stood at the end and
-## how its bake ends. STOP= (--stop) stops a match still on then, unfinished; the bake's
-## time and the timeline's size go to stderr, as the time is the machine's, not the
-## match's.
+## and how the must-sink rule came to it (after its goal, under --goal=survival), one
+## line per exit and per thing the physics does, then the verdict and the digest —
+## and, under survival, how many seats were still in at the plunge —, and where the
+## sinking stood at the end and how its bake ends. STOP= (--stop) stops a match still on
+## then, unfinished; the bake's time and the timeline's size go to stderr, as the time
+## is the machine's, not the match's.
 ##
 ##   godot --headless --path . -s res://tools/run_match.gd -- --seed=1701 --seats=8
 ##
@@ -20,6 +21,18 @@ const DEFAULT_SEED := 1701
 ## [param ship_name] its ship when given (MatchConfig.from_rules).
 static func default_config(seed_value: int, seats: int = 0, ship_name := &"") -> MatchConfig:
 	return MatchConfig.from_rules(load(DEFAULT_MATCH), seed_value, seats, ship_name)
+
+
+## The match [param args] ask for: the default match on their seed — DEFAULT_SEED
+## when none —, seats and ship, struck by their hit, at their pace, for their goal.
+static func from_args(args: MatchArgs) -> MatchConfig:
+	var config := default_config(
+		args.seed_value if args.seed_value >= 0 else DEFAULT_SEED, args.seats, args.ship()
+	)
+	var match_rules: MatchRules = load(DEFAULT_MATCH)
+	config.scenario = args.struck(config.scenario, match_rules.fast_clock if args.fast else 0.0)
+	config.goal = args.goal
+	return config
 
 
 ## [param config] with every seat a bot of its tier.
@@ -38,6 +51,7 @@ static func served(config: MatchConfig) -> MatchHost:
 static func transcript(host: MatchHost, max_ticks: int) -> String:
 	var told := MatchTranscript.new()
 	told.hit(host.runner.sim.schedule)
+	told.goal(host.runner.sim.config)
 	while not host.is_over() and host.tick() < max_ticks:
 		told.add(host.step())
 	told.finish(host.runner)
@@ -50,11 +64,7 @@ func _initialize() -> void:
 		printerr("\n".join(args.problems()))
 		quit(1)
 		return
-	var config := default_config(
-		args.seed_value if args.seed_value >= 0 else DEFAULT_SEED, args.seats, args.ship()
-	)
-	var match_rules: MatchRules = load(DEFAULT_MATCH)
-	config.scenario = args.struck(config.scenario, match_rules.fast_clock if args.fast else 0.0)
+	var config := from_args(args)
 	var problems := config.problems()
 	var profile := BotProfile.for_tier(config.bot_tier)
 	if profile == null:

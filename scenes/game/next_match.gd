@@ -52,15 +52,18 @@ func config() -> MatchConfig:
 
 
 ## The match the menu's choices make (MatchConfig.from_menu), struck by --hit and fast
-## when [param fast]; a blank [param seed_text] is the next match's seed, and its
-## scenario that match's own. Null when from_menu's is.
-func chosen(seats: int, tier: StringName, seed_text: String, fast := false) -> MatchConfig:
+## when [param fast], survival when [param survival]; a blank [param seed_text] is the
+## next match's seed, and its scenario that match's own. Null when from_menu's is.
+func chosen(
+	seats: int, tier: StringName, seed_text: String, fast := false, survival := false
+) -> MatchConfig:
 	pace(fast)
 	var typed := seed_text.strip_edges()
 	var next: MatchConfig = config() if typed.is_empty() else null
 	if next != null:
 		typed = str(next.match_seed)
-	var made := MatchConfig.from_menu(_rules, seats, tier, typed, _seeds, _ship, _fast)
+	var goal := MatchRules.Goal.SURVIVAL if survival else MatchRules.Goal.LAST_STANDING
+	var made := MatchConfig.from_menu(_rules, seats, tier, typed, _seeds, _ship, _fast, goal)
 	if made != null:
 		made.scenario = next.scenario if next != null else _args.struck(made.scenario, _clock())
 	return made

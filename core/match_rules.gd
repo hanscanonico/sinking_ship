@@ -4,6 +4,11 @@ extends Resource
 ## and which rules, ship and sinking scenario it plays — the menu's default; the seat
 ## counts a match takes are its ship's (ShipLayout).
 
+## What a seat plays for (#60): to be the last one in — the battle royale, over once one
+## seat is left — or to stay in as long as she lasts — survival, over once none is left,
+## or one is and her sinking is over (MatchVerdict.place).
+enum Goal { LAST_STANDING, SURVIVAL }
+
 @export var seats: int
 ## Seats 0…humans-1 are played locally; the rest are bots of bot_tier.
 @export var humans: int
@@ -17,6 +22,8 @@ extends Resource
 ## The scenario clock a fast match plays at (Q20): physics seconds per match second,
 ## the same sinking played that many times quicker.
 @export var fast_clock: float = 2.0
+## What the match is played for: the battle royale unless the data says survival.
+@export var goal: Goal = Goal.LAST_STANDING
 
 
 func problems() -> PackedStringArray:

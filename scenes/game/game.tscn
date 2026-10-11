@@ -141,9 +141,18 @@ text = "Sinking"
 
 [node name="Fast" type="CheckButton" parent="MainMenu/Panel/Box/Choices"]
 unique_name_in_owner = true
-focus_neighbor_bottom = NodePath("../../Buttons/Play")
+focus_neighbor_bottom = NodePath("../Survival")
 size_flags_horizontal = 3
 text = "Fast sinking"
+
+[node name="GoalLabel" type="Label" parent="MainMenu/Panel/Box/Choices"]
+text = "Goal"
+
+[node name="Survival" type="CheckButton" parent="MainMenu/Panel/Box/Choices"]
+unique_name_in_owner = true
+focus_neighbor_bottom = NodePath("../../Buttons/Play")
+size_flags_horizontal = 3
+text = "Survival"
 
 [node name="Problem" type="Label" parent="MainMenu/Panel/Box"]
 unique_name_in_owner = true

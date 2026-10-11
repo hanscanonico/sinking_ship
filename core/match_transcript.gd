@@ -16,6 +16,9 @@ extends RefCounted
 ##     seen 25% · sea 1.21 m up her · trim +2.1° · list -0.4° · hold_bilge full · hold 0.3 m
 ##   not played: gone at 0:09:12 · trim +31.0° · list +3.2° · founders by the head · fast
 ##   bending peak 0.05 of strength, x +1.5 m, sagging
+## A survival match (MatchRules.Goal) says so first — "goal survival" — and after its
+## verdict how many seats were still in at the plunge:
+##   3 of 8 seats in at the plunge 04:12.0
 ## What `make match` prints and what the golden files hold. Seats are sim seat ids.
 
 const CAUSES := {PlayerState.Cause.NONE: "none", PlayerState.Cause.COLD: "cold"}
@@ -23,6 +26,7 @@ const DIGEST_LENGTH := 16
 
 var _lines := PackedStringArray()
 var _ended: SimEvent
+var _survival := false
 
 
 ## Match time as mm:ss.t, from the tick count — tenths rounded down.
@@ -56,6 +60,14 @@ func hit(schedule: SinkSchedule) -> void:
 			]
 		)
 	)
+
+
+## The goal [param config] plays, as the first line, for a survival match; nothing for
+## the battle royale, whose transcripts stay as they were.
+func goal(config: MatchConfig) -> void:
+	_survival = config.goal == MatchRules.Goal.SURVIVAL
+	if _survival:
+		_lines.insert(0, "goal survival")
 
 
 ## " · sea 1.1 m" for a hit struck in waves 1.1 m high; nothing for a still sea.
@@ -169,12 +181,29 @@ func finish(runner: MatchRunner) -> void:
 	if _ended == null:
 		_lines.append("unfinished at %s · digest %s" % [clock(runner.tick()), digest])
 	elif _ended.seat == -1:
-		_lines.append("draw at %s · digest %s" % [clock(_ended.tick), digest])
+		# Under survival everyone out is no draw: the last out places first.
+		var verdict := "all out" if _survival else "draw"
+		_lines.append("%s at %s · digest %s" % [verdict, clock(_ended.tick), digest])
 	else:
 		_lines.append(
 			"winner seat %d at %s · digest %s" % [_ended.seat, clock(_ended.tick), digest]
 		)
+	if _survival:
+		_lines.append(at_the_plunge(runner.sim))
 	_sinking(runner.sim)
+
+
+## How many of [param sim]'s seats were still in at her plunge (plunge_tick): those out
+## on or after it, or never; or that she never plunged in what the match played.
+static func at_the_plunge(sim: MatchSim) -> String:
+	var plunge := sim.schedule.plunge_tick()
+	if plunge < 0 or plunge >= sim.state.tick:
+		return "no plunge while the match played"
+	var still := 0
+	for player: PlayerState in sim.state.seats:
+		if not player.is_out() or player.out_tick >= plunge:
+			still += 1
+	return "%d of %d seats in at the plunge %s" % [still, sim.state.seats.size(), clock(plunge)]
 
 
 ## Physics time as h:mm:ss, from whole seconds.

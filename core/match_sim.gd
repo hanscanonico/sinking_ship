@@ -201,7 +201,7 @@ func step(frames: Array[InputFrame]) -> Array[SimEvent]:
 		for player: PlayerState in going:
 			_out(player, tick)
 			exits.append(player)
-		MatchVerdict.place(state, exits, tick, events)
+		MatchVerdict.place(state, exits, tick, events, config.goal, schedule.end_tick())
 	state.tick += 1
 	if state.phase == MatchState.Phase.COUNTDOWN and state.tick >= config.countdown_ticks:
 		state.phase = MatchState.Phase.LIVE

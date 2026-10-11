@@ -93,6 +93,8 @@ var _footing: BotFooting
 ## Whom it goes at, and the drop behind its target.
 var _targeting: BotTargeting
 var _rng: RandomNumberGenerator
+## What the match is played for (MatchRules.Goal): its targeting fights by it.
+var _plays_for := MatchRules.Goal.LAST_STANDING
 ## The zone its intent makes for, or WalkGraph.NONE.
 var _goal := WalkGraph.NONE
 ## The portals to it, as the last think found them; steered along until the next.
@@ -164,15 +166,17 @@ func _init(
 	rules: BrawlRules,
 	cargo: Array[ShipProp],
 	floors: BotFloors,
-	rng: RandomNumberGenerator
+	rng: RandomNumberGenerator,
+	plays_for := MatchRules.Goal.LAST_STANDING
 ) -> void:
 	seat = bot_seat
+	_plays_for = plays_for
 	_profile = profile
 	_rules = rules
 	_dodge = CargoDodge.new(profile, rules, cargo)
 	_floors = floors
 	_stand_on(Faces.Up.DECK)
-	_pacing = BotPacing.new(profile)
+	_pacing = BotPacing.new(profile, plays_for, _targeting.carry)
 	_rng = rng
 	_charge_full_ticks = Ticks.from_seconds(rules.charge_full)
 	_windup_ticks = Ticks.from_seconds(rules.shove_windup)
@@ -258,7 +262,7 @@ func _stand_on(up: int, pose: ShipPose = null) -> void:
 	_walk_graph = _floors.graph(up, pose)
 	_surfaces = _walk_graph.surfaces()
 	_footing = BotFooting.new(_surfaces, _walk_graph, _rules, _profile.edge_margin_m)
-	_targeting = BotTargeting.new(seat, _profile, _rules, _footing, _walk_graph)
+	_targeting = BotTargeting.new(seat, _profile, _rules, _footing, _walk_graph, _plays_for)
 	_swim = BotSwim.new(_walk_graph, _rules, _profile)
 	_refuges = BotRefuge.new(_walk_graph, _profile)
 	_legs.clear()
@@ -369,7 +373,7 @@ func _think(
 	if under >= _profile.refuge_from:
 		_refuge = _refuges.choose(found, pose, seen["tick"], _refuge)
 		refuge = _refuge
-	target = _targeting.choose(seen, me, found, pose, highest, target)
+	target = _targeting.choose(seen, me, found, pose, highest, target, refuge, under)
 	var mark := _entry(seen, target)
 	var my_zone := _zone_of(me)
 	var feet := pose.above_water(my_pos)
@@ -458,7 +462,7 @@ func _think(
 ## The arbiter: the first urgent intent whose reason holds, else the best of SEEK_HIGH,
 ## LINE_UP and HUNT by score — the one the bot has, unless another beats it by its
 ## profile's hysteresis. Standing in [param highest] already, there is no higher
-## ground to seek: it goes at whoever it can.
+## ground to seek: it goes at whoever it can — off its perch, survival_hunt_scale of it.
 func _arbitrate(
 	seen: Dictionary,
 	me: Dictionary,
@@ -485,8 +489,13 @@ func _arbitrate(
 		)
 	if not mark.is_empty():
 		scores[Intent.HUNT] = _profile.hunt_weight * _pacing.pressing
+	var off_perch := _targeting.off_perch(mark)
+	if off_perch:
+		scores[Intent.LINE_UP] *= _profile.survival_hunt_scale
+		scores[Intent.HUNT] *= _profile.survival_hunt_scale
+		scores[Intent.SEEK_HIGH] = maxf(scores[Intent.SEEK_HIGH], _profile.wander_weight)
 	var kept := intent
-	if kept != Intent.SEEK_HIGH and kept != Intent.LINE_UP and kept != Intent.HUNT:
+	if off_perch or kept != Intent.SEEK_HIGH and kept != Intent.LINE_UP and kept != Intent.HUNT:
 		kept = Intent.SEEK_HIGH
 	var best := kept
 	for candidate: Intent in [Intent.SEEK_HIGH, Intent.LINE_UP, Intent.HUNT]:

@@ -23,6 +23,7 @@ const SHARES: Array[String] = [
 	"spar_until",
 	"refuge_from",
 	"perch_lead",
+	"survival_hunt_scale",
 ]
 const NON_NEGATIVE: Array[String] = [
 	"aim_error_deg",
@@ -138,6 +139,11 @@ const NON_NEGATIVE: Array[String] = [
 ## velocity carries it over the bot's reaction time. The last perch is fought for, not
 ## circled round.
 @export var perch_lead: float
+## Under survival (MatchRules.Goal) a bot fights over the spot it stands on, once it
+## sees refuge_from of the ship under water: going at a target neither in its refuge
+## nor on its highest ground — or at anyone before then — scores this share of what it
+## would, 0…1 — 0 leaves it be. Read only under survival.
+@export var survival_hunt_scale: float
 ## How near, in metres, a seat in the sea must be for the bot to make it its
 ## target and guard the edge against its climbing out.
 @export var guard_range_m: float
