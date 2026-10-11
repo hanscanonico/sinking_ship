@@ -219,7 +219,7 @@ func _play(choices: MatchChoices) -> void:
 
 
 ## The next blank-seed match goes on the menu's pick of ship.
-func _on_ship_picked(_ship: StringName) -> void:
+func _on_ship_picked() -> void:
 	_aim(_menu.choices())
 
 

@@ -11,7 +11,7 @@ extends CanvasLayer
 
 signal play_requested(choices: MatchChoices)
 ## The picker has moved to [param ship], by name.
-signal ship_picked(ship: StringName)
+signal ship_picked
 signal online_requested
 signal settings_requested
 signal quit_requested
@@ -161,7 +161,7 @@ func _offer_seats(seats: int, otherwise: int) -> void:
 func _on_ship_picked(_index: int) -> void:
 	var seats := _seats.get_selected_id()
 	_offer_seats(seats, seats)
-	ship_picked.emit(picked_ship())
+	ship_picked.emit()
 
 
 func _on_play() -> void:
