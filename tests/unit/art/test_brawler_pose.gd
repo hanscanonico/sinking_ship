@@ -27,6 +27,7 @@ func _origin(skeleton: Skeleton3D, bone: StringName) -> Vector3:
 func test_every_pose_names_only_what_a_pose_can_move() -> void:
 	var known: Array[StringName] = BrawlerPose.BONES.duplicate()
 	known.append_array([BrawlerPose.HIPS_AT, BrawlerPose.REACH_L, BrawlerPose.REACH_R])
+	known.append_array(BrawlerPose.PALMS.keys())
 	for table: Dictionary in [BrawlerAnimation.POSES, FirstPersonArms.POSES]:
 		for move: int in table:
 			var strokes: Array = table[move] if table[move] is Array else [table[move]]
@@ -34,6 +35,13 @@ func test_every_pose_names_only_what_a_pose_can_move() -> void:
 			for pose: Dictionary in strokes:
 				for key: StringName in pose:
 					assert_has(known, key, "move %d names %s" % [move, key])
+				# A palm turns a hand the pose aims, and nothing else.
+				for palm: StringName in BrawlerPose.PALMS:
+					if pose.has(palm):
+						var hand := BrawlerPose.BONES[
+							BrawlerPose.LIMBS[BrawlerPose.PALMS[palm]] + 2
+						]
+						assert_has(pose, hand, "move %d turns %s's hand unaimed" % [move, palm])
 
 
 func test_a_reach_puts_the_wrist_where_the_chest_sends_it() -> void:
