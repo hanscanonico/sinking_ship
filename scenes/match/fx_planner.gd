@@ -89,12 +89,29 @@ const SMOKE_STEPS := 12.0
 ## How far a falling body comes down, in m/s, that splashes hardest.
 const SPLASH_FALL := 6.0
 const SPLASH_LEAST := 0.35
+## Water wells up through a room's floor plates from the void under it, every
+## WELL_TICKS, at WELLS places spread over the floor, while the void's water stands
+## over the floor and the room's is shallower than WELL_DEEP, in metres: as hard as the
+## void's water stands over the room's — at its hardest WELL_HEAD over it — fading as
+## the room's deepens.
+const WELL_TICKS := 9
+const WELLS := 3
+const WELL_DEEP := 0.5
+const WELL_HEAD := 1.0
 ## A deck's corners round its edge, as shares of its area from its least corner.
 const _CORNERS: Array[Vector3] = [
 	Vector3(0.0, 0.0, 0.0), Vector3(1.0, 0.0, 0.0), Vector3(1.0, 0.0, 1.0), Vector3(0.0, 0.0, 1.0)
 ]
 
 var _layout: ShipLayout
+## Per cell of her structure, 1 where its water is drawn (InnerWater.boxes): a room
+## people walk in, or her open well.
+var _drawn := PackedByteArray()
+## Where water wells up through a floor: each place on it, ship-local, how far round
+## it the welling spreads, and the cells over and under the floor there.
+var _wells := PackedVector3Array()
+var _well_reach := PackedFloat32Array()
+var _well_cells := PackedInt32Array()
 var _surfaces: Surfaces
 var _schedule: SinkSchedule
 ## The iceberg's strike, as it shows (D13), and what gives way (SH31).
@@ -138,7 +155,13 @@ func _init(config: MatchConfig, surfaces: Surfaces, schedule: SinkSchedule) -> v
 	_layout = config.ship
 	_surfaces = surfaces
 	_schedule = schedule
-	_gash = GashPlanner.new(schedule, config.ship.structure)
+	var structure := config.ship.structure
+	if structure != null:
+		var boxes := InnerWater.boxes(structure, _layout.rooms)
+		for box: AABB in boxes:
+			_drawn.append(0 if box.size == Vector3.ZERO else 1)
+		_find_wells(structure, boxes)
+	_gash = GashPlanner.new(schedule, structure, _drawn)
 	_failures = FailureFx.new(config.ship.structure, schedule)
 	_space = ShipSpace.new(_layout)
 	_railing_height = config.rules.railing_height
@@ -178,6 +201,8 @@ func plan(previous: Dictionary, current: Dictionary) -> Array[FxCue]:
 	for event: Dictionary in current["events"]:
 		_from_event(event, previous, current, pose_now, cues)
 	_gash.bursts(tick, cues)
+	_gash.breach(previous["tick"], tick, pose_now, cues)
+	_welling(previous["tick"], tick, pose_now, cues)
 	_failures.plan(previous, current, pose_now, cues)
 	_waterlines(pose_then, pose_now, tick, plunging, cues)
 	_floods(pose_then, pose_now, tick, cues)
@@ -321,6 +346,32 @@ func _floods(pose_then: ShipPose, pose_now: ShipPose, tick: int, cues: Array[FxC
 			afloat.toward = low
 			afloat.on_sea = true
 			cues.append(afloat)
+
+
+## Water welling up through a floor from the void under it, over the step through the
+## sim's ticks from [param from_tick] up to [param tick], on every WELL_TICKS, under
+## [param pose]: on the floor, or on the room's water over it.
+func _welling(from_tick: int, tick: int, pose: ShipPose, cues: Array[FxCue]) -> void:
+	var beat := (tick - 1) - posmod(tick - 1, WELL_TICKS)
+	if _wells.is_empty() or beat < from_tick or not pose.pieces.is_empty():
+		return
+	if pose.levels.size() != _drawn.size():
+		return
+	for index in _wells.size():
+		var at := _wells[index]
+		var room := pose.levels[_well_cells[index * 2]]
+		var under := _gash.pushing(pose, _well_cells[index * 2 + 1])
+		var floor := pose.world_height(at)
+		var depth := maxf(room - floor, 0.0)
+		var head := under - maxf(_gash.pushing(pose, _well_cells[index * 2]), floor)
+		if under <= floor or depth >= WELL_DEEP or head < GashPlanner.LEVEL:
+			continue
+		var well := FxCue.new(FxCue.Kind.WELL, tick, at)
+		well.position.y = pose.height_of(maxf(room, floor), at)
+		well.radius = _well_reach[index]
+		well.strength = clampf(sqrt(head / WELL_HEAD), 0.0, 1.0) * (1.0 - depth / WELL_DEEP)
+		well.source = index
+		cues.append(well)
 
 
 ## Steam from a machinery room's vents as the sea first reaches its floor, and
@@ -813,6 +864,49 @@ func _find_machine(room: ShipRoom) -> void:
 			if not is_nan(deck) and _space.outdoors(vent + Vector3.UP * 0.5):
 				vents.append(vent)
 	_vents.append(vents)
+
+
+## Where water wells up through [param structure]'s floors: every floor's gaps from a
+## void, whose water is not drawn, up into a cell whose water is, in [param boxes] —
+## WELLS places spread along the part of the floor in the drawn box, staggered across it.
+func _find_wells(structure: ShipStructure, boxes: Array[AABB]) -> void:
+	for opening: ShipOpening in structure.openings:
+		if opening.kind != ShipOpening.Kind.FLOOR_GAPS or opening.joins.size() != 2:
+			continue
+		var over := -1
+		var under := -1
+		for place: StringName in opening.joins:
+			var cell := structure.cell_named(place)
+			if cell < 0:
+				continue
+			if is_equal_approx(structure.cells[cell].low.y, opening.centre.y):
+				over = cell
+			elif is_equal_approx(structure.cells[cell].high.y, opening.centre.y):
+				under = cell
+		if over < 0 or under < 0 or _drawn[over] == 0 or _drawn[under] == 1:
+			continue
+		var gaps := Rect2(
+			opening.centre.x - opening.size.x * 0.5,
+			opening.centre.z - opening.size.z * 0.5,
+			opening.size.x,
+			opening.size.z
+		)
+		var box := boxes[over]
+		var floor := gaps.intersection(
+			Rect2(box.position.x, box.position.z, box.size.x, box.size.z)
+		)
+		if not floor.has_area():
+			continue
+		var along := 0 if floor.size.x >= floor.size.y else 1
+		var spacing := floor.size[along] / WELLS
+		for place in WELLS:
+			var at := floor.position + floor.size * 0.5
+			at[along] = floor.position[along] + spacing * (place + 0.5)
+			at[1 - along] += floor.size[1 - along] * (0.25 if place % 2 == 0 else -0.25)
+			_wells.append(Vector3(at.x, opening.centre.y, at.y))
+			_well_reach.append(minf(spacing, floor.size[1 - along]) * 0.4)
+			_well_cells.append(over)
+			_well_cells.append(under)
 
 
 ## A box standing outdoors on a deck that is not a wall: ShipArt's tarpaulined hatch.

@@ -330,6 +330,48 @@ func test_the_strike_near_the_eye_is_low_small_and_faint() -> void:
 	assert_eq(off[0].color.a, 1.0, "a mist out of reach of a fight stands out whole")
 
 
+func test_the_breach_near_the_eye_is_low_small_and_faint() -> void:
+	var fx: SinkingFx = add_child_autofree(SinkingFx.new())
+	var camera: Camera3D = add_child_autofree(Camera3D.new())
+	camera.global_position = Vector3(0.0, FirstPersonCamera.EYE_HEIGHT, 0.0)
+	for kind: FxCue.Kind in [FxCue.Kind.JET, FxCue.Kind.BOIL, FxCue.Kind.WELL]:
+		for distance: float in [1.6, 3.0, 5.0, 7.5]:
+			var cue := _breach_cue(kind, Vector3(-1.0, 0.3, -distance))
+			var played := _played(fx, [cue], camera)
+			var name := "%s %.1f m off" % [FxCue.Kind.keys()[kind], distance]
+			assert_eq(played.size(), 1, name + " plays")
+			var emitter := played[0]
+			var faint := _near_opacity(emitter) <= SinkingFx.HUSHED_ALPHA + EPSILON
+			assert_true(_grain(emitter) <= SinkingFx.SPECK + EPSILON or faint, name)
+			# It comes in at the gash's height, or lies on the water or the floor: climbing
+			# no higher over that than spray near the eye over the sea.
+			assert_lte(_climb(emitter), SinkingFx.LEAST_TOP + EPSILON, name + ": low")
+	var far := _played(fx, [_breach_cue(FxCue.Kind.JET, Vector3(-1.0, 0.3, -20.0))], camera)
+	assert_gt(far[0].color.a, SinkingFx.HUSHED_ALPHA, "a jet out of reach of a fight stands out")
+
+
+func test_the_sea_jets_in_while_its_cues_keep_it_up_and_the_rent_stays() -> void:
+	var fx: SinkingFx = add_child_autofree(SinkingFx.new())
+	var ship := Transform3D(Basis(), Vector3.UP * 3.0)
+	var rent := _breach_cue(FxCue.Kind.RENT, Vector3(-1.0, 0.3, -2.0))
+	rent.radius = 0.2
+	rent.toward = Vector3.FORWARD
+	fx.play([rent, _breach_cue(FxCue.Kind.JET, Vector3(-1.0, 0.3, -2.0))], ship, null)
+	var jets := _going(fx, "BreachJet")
+	assert_eq(jets.size(), 1, "the sea jets in")
+	var placed := jets[0].global_transform
+	for beat in 4:
+		await get_tree().process_frame
+		fx.play([_breach_cue(FxCue.Kind.JET, Vector3(-1.0, 0.3, -2.0))], ship, null)
+	assert_eq(_going(fx, "BreachJet").size(), 1, "the same jet goes on, its source's")
+	assert_eq(_going(fx, "BreachJet")[0].global_transform, placed, "where it was")
+	fx._breach.advance(ship, BreachFx.HOLD + 0.1)
+	assert_eq(_going(fx, "BreachJet").size(), 0, "it stops once nothing keeps it up")
+	assert_eq(fx._breach.rent_count(), 1, "the rent stays")
+	fx.clear()
+	assert_eq(fx._breach.rent_count(), 0, "a new match has none")
+
+
 func test_the_strike_throws_from_emitters_the_bursts_after_it_never_take() -> void:
 	var sim := MatchSim.create(RunMatch.default_config(38))
 	var planner := FxPlanner.new(sim.config, sim.surfaces, sim.schedule)
@@ -606,6 +648,18 @@ func _holed(sim: MatchSim, tick: int) -> Dictionary:
 	var snapshot := _at(sim, tick + 1)
 	snapshot["events"] = [SimEvent.holed(tick).to_dict()]
 	return snapshot
+
+
+## A cue of the breach inside her, of [param kind], along 2 m of her side from
+## [param at], at its hardest: the sea jetting in across, toward -z.
+func _breach_cue(kind: FxCue.Kind, at: Vector3) -> FxCue:
+	var cue := FxCue.new(kind, 0, at)
+	cue.end = at + Vector3(2.0, 0.0, 0.0)
+	cue.toward = Vector3(0.0, -GashPlanner.JET_DROP, -1.0).normalized()
+	cue.radius = GashPlanner.JET_SHEET.y
+	cue.rise = 3.0
+	cue.source = 0
+	return cue
 
 
 ## A cue of the iceberg's strike, of [param kind], along 2 m of the sea from
