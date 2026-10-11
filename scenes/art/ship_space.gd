@@ -128,7 +128,7 @@ func deck_under(point: Vector2, height: float) -> float:
 	return deck
 
 
-## Whether some lower platform lies under [param platform]: it is a ceiling too.
+## Whether some lower platform lies under [param platform]: it roofs it, on beams.
 func stands_over_a_platform(platform: ShipPlatform) -> bool:
 	for other: ShipPlatform in layout.platforms:
 		if other.height < platform.height and other.area.intersects(platform.area):

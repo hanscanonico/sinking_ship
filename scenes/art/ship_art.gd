@@ -554,8 +554,10 @@ func _near_paints(materials: Dictionary) -> Dictionary:
 
 
 ## Planks on [param platform], but for the edges in [param hidden] that lie on the
-## hull's skin; under one that roofs another, a painted ceiling on beams. A deck at
-## or above the cut-away is not drawn at all, ceiling and all, so the observer looks
+## hull's skin, over a painted ceiling: every deck has an underside, whatever lies
+## under it, so nothing seen from below shows the sky through it. Only the beams
+## depend on what is beneath: a deck has them where it roofs another. A deck at or
+## above the cut-away is not drawn at all, ceiling and all, so the observer looks
 ## into the rooms under it (as the greybox).
 func _deck(mesh: ShipMesh, platform: ShipPlatform, hidden: int) -> void:
 	var area := platform.area
@@ -564,11 +566,11 @@ func _deck(mesh: ShipMesh, platform: ShipPlatform, hidden: int) -> void:
 		return
 	var faces := (ShipMesh.TOP | ShipMesh.SIDES) & ~hidden
 	_lined_box(mesh, area, height - PLANK, height, ShipPaints.deck, faces, ShipMesh.TOP)
-	if not _space.stands_over_a_platform(platform):
-		return
 	_lined_box(
 		mesh, area, height - PLANK, height, ShipPaints.ceiling, ShipMesh.BOTTOM, ShipMesh.BOTTOM
 	)
+	if not _space.stands_over_a_platform(platform):
+		return
 	var x := ceilf((area.position.x + BEAM_WIDTH) / BEAM_SPACING) * BEAM_SPACING
 	var under := height - PLANK - BEAM_DEPTH
 	while x < area.end.x - BEAM_WIDTH:

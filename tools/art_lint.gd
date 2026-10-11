@@ -5,7 +5,8 @@ extends SceneTree
 ##
 ## - The ship (ShipArt), on every ship in data/ships — her hull ShipHull's loft or her
 ##   sections' shell (SectionHull, ShipLayout.dressed): an upward face within
-##   PLATFORM_TOLERANCE of each platform's height across its whole area; a face
+##   PLATFORM_TOLERANCE of each platform's height across its whole area, and one
+##   facing down under it if below the cut-away (tools/underside_check.gd); a face
 ##   within BLOCKER_TOLERANCE of every blocker's sides, its top, and a lintel's
 ##   underside; and over every ramp a stair whose top stands within half a riser
 ##   (ShipArt.STEP_RISE) and PLATFORM_TOLERANCE of the ramp's height; and down
@@ -301,6 +302,7 @@ func _check_ship(file: String, layout: ShipLayout) -> void:
 			func(_point: Vector2) -> float: return platform.height,
 			PLATFORM_TOLERANCE
 		)
+	_problems.append_array(UndersideCheck.check(layout, art.cut_above, file, faces, _samples))
 	for index in layout.ramps.size():
 		var ramp := layout.ramps[index]
 		_check_tops(

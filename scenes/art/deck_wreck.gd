@@ -47,7 +47,7 @@ var _torn: Node3D
 ## Per shard, the middle of its outline and the breaks along it.
 var _middles := PackedVector2Array()
 var _breaks: Array[Array] = []
-## Under the deck: whether it roofs a room (a ceiling on beams), and how deep it is.
+## Under the deck: whether it roofs a room (beams under its ceiling), and how deep it is.
 var _ceiled: bool
 var _depth: float
 
@@ -237,8 +237,7 @@ func _shard(mesh: ShipMesh, outline: PackedVector2Array, breaks: Array, beamed: 
 		mesh.triangle(corners, flat, Vector3.UP, ShipPaints.deck)
 		for corner in 3:
 			corners[corner].y = under
-		if _ceiled:
-			mesh.triangle(corners, flat, Vector3.DOWN, ceiling)
+		mesh.triangle(corners, flat, Vector3.DOWN, ceiling)
 	var middle := Vector2.ZERO
 	for point: Vector2 in outline:
 		middle += point
