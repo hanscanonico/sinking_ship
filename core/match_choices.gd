@@ -42,15 +42,23 @@ var hit: String = ""
 ## A copy of these choices with [param text] for their seed — blank to draw a new one.
 func with_seed(text: String) -> MatchChoices:
 	var copy := MatchChoices.new()
-	copy.ship = ship
-	copy.seats = seats
-	copy.bot_tier = bot_tier
+	for property: Dictionary in get_property_list():
+		if property["usage"] & PROPERTY_USAGE_SCRIPT_VARIABLE:
+			copy.set(property["name"], get(property["name"]))
 	copy.seed_text = text
-	copy.fast = fast
-	copy.goal = goal
-	copy.scenario = scenario
-	copy.hit = hit
 	return copy
+
+
+## Whether these choices and [param other] shape the same sinking under [param
+## match_rules]: the same ship, scenario, hit and pace — whatever their seeds, seats,
+## tiers and goals.
+func sinks_alike(other: MatchChoices, match_rules: MatchRules) -> bool:
+	return (
+		ship_name(match_rules) == other.ship_name(match_rules)
+		and scenario == other.scenario
+		and hit == other.hit
+		and fast == other.fast
+	)
 
 
 ## The ship they play on, by name: the one chosen, else the scenario's, else

@@ -22,7 +22,7 @@ func _init(match_rules: MatchRules, seeds: RandomNumberGenerator) -> void:
 ## Draws the next match on [param choices]: one drawn ahead on choices that shape another
 ## sinking — another ship, scenario, hit or pace — is dropped, its sinking with it.
 func aim(choices: MatchChoices) -> void:
-	var kept := _config != null and _sinks_alike(choices, _choices)
+	var kept := _config != null and choices.sinks_alike(_choices, _rules)
 	_choices = choices.with_seed("")
 	if not kept:
 		_config = null
@@ -55,13 +55,3 @@ func take(played: MatchConfig) -> void:
 		return
 	played.share_sinking(_config)
 	_config = null
-
-
-## Whether [param one] and [param other] shape the same sinking.
-func _sinks_alike(one: MatchChoices, other: MatchChoices) -> bool:
-	return (
-		one.ship_name(_rules) == other.ship_name(_rules)
-		and one.scenario == other.scenario
-		and one.hit == other.hit
-		and one.fast == other.fast
-	)
