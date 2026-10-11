@@ -133,6 +133,16 @@ func test_it_drifts_astern_and_away_and_stays_in_sight() -> void:
 		assert_gt(hours.origin.length(), IcebergPlanner.DRIFT_LEAST * 0.5, "well astern")
 
 
+func test_it_goes_off_at_the_speed_it_scraped_at() -> void:
+	for path in SHIPS:
+		var layout: ShipLayout = load(path)
+		var planner := _planner(layout, 1)
+		var end := planner.scrape_end
+		var scraping := planner.spur_at(end - 1).distance_to(planner.spur_at(end))
+		var going := planner.spur_at(end).distance_to(planner.spur_at(end + 1))
+		assert_almost_eq(going, scraping, scraping * 0.05, "%s: no jolt" % path.get_file())
+
+
 func test_its_pose_is_a_pure_function_of_the_tick() -> void:
 	var layout := SimFixtures.steamer()
 	var ticks := [0, 500, 1099.5, 1100, 1180.25, 1310, 5000, 90000]

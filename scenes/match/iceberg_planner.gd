@@ -20,8 +20,8 @@ const LOOM_LENGTHS := 1.4
 const LOOM_BEARING_DEG := 22.0
 ## How far astern of the gash's aft end it drifts off to, at least and in her lengths,
 ## in metres; how far off her stern line it bears as it goes, in degrees; the least
-## speed it goes off at, in metres a second; and how far it turns as it goes, in
-## degrees.
+## speed it gathers toward as it goes off, in metres a second; and how far it turns as
+## it goes, in degrees.
 const DRIFT_LEAST := 110.0
 const DRIFT_LENGTHS := 1.0
 const DRIFT_BEARING_DEG := 18.0
@@ -192,11 +192,14 @@ func spur_at(tick: float) -> Vector3:
 	return _line[_line.size() - 1] + Vector3(-cos(away), 0.0, _side * sin(away)) * gone
 
 
-## How far it has gone of its drift at [param tick], after the scrape: 0…1, as fast
-## as it scraped — or DRIFT_SPEED, if that is faster — and slowing.
+## How far it has gone of its drift at [param tick], after the scrape: 0…1, going off
+## as fast as it scraped, gathering way toward DRIFT_SPEED if that is faster, and
+## slowing: 1 − e^(−kt)·(1 + (k − a)t), whose speed starts at a, the scrape's.
 func _gone(tick: float) -> float:
-	var speed := maxf(_scrape_speed, DRIFT_SPEED / Ticks.RATE)
-	return 1.0 - exp(-(tick - scrape_end) * speed / _drift)
+	var since := tick - scrape_end
+	var scraped := _scrape_speed / _drift
+	var pace := maxf(_scrape_speed, DRIFT_SPEED / Ticks.RATE) / _drift
+	return 1.0 - exp(-pace * since) * (1.0 + (pace - scraped) * since)
 
 
 ## Which way it faces at [param tick]: its spur toward her, turning as it drifts off.
