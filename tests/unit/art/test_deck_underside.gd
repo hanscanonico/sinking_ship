@@ -12,21 +12,8 @@ const NEAR := 0.02
 
 func test_the_forecastle_head_is_closed_from_below() -> void:
 	var layout: ShipLayout = load(TITANIC)
-	var space := ShipSpace.new(layout)
-	# The forecastle head: her forecastle's highest strips; its foremost one.
-	var head: ShipPlatform
-	for platform: ShipPlatform in layout.platforms:
-		if platform.name != &"forecastle":
-			continue
-		if head == null or platform.height > head.height + 1e-4:
-			head = platform
-		elif (
-			is_equal_approx(platform.height, head.height)
-			and platform.area.position.x > head.area.position.x
-		):
-			head = platform
-	assert_not_null(head, "the Titanic has a forecastle")
-	assert_false(space.stands_over_a_platform(head), "no deck under her forecastle head")
+	var head := _head(layout)
+	assert_false(ShipSpace.new(layout).stands_over_a_platform(head), "no deck under her head")
 	var art := ShipArt.new()
 	add_child_autofree(art)
 	art.build(layout, RAILING_HEIGHT, BODY_RADIUS)
@@ -37,6 +24,37 @@ func test_the_forecastle_head_is_closed_from_below() -> void:
 		for across in 3:
 			var point := area.position + area.size * Vector2(along, across) * 0.5
 			assert_true(_faces_down_under(faces, point, under), "an underside under %s" % point)
+
+
+func test_a_deck_that_can_fall_is_closed_from_below_with_nothing_under_it() -> void:
+	# Her forecastle drawn to break (DeckWreck): its shards, whole, keep their underside.
+	var layout: ShipLayout = load(TITANIC)
+	var head := _head(layout)
+	var art := ShipArt.new()
+	add_child_autofree(art)
+	var falls: Array[StringName] = [head.name]
+	art.build(layout, RAILING_HEIGHT, BODY_RADIUS, falls)
+	art.show_sinking([], {head.name: 0.0}, PackedInt32Array(), false)
+	var deck := art.get_node("Deck%d" % layout.platforms.find(head)) as Node3D
+	var middle := head.area.get_center()
+	assert_true(
+		_faces_down_under(_faces(deck, art), middle, head.height - ShipArt.PLANK),
+		"an underside under its middle"
+	)
+
+
+## The forecastle head: the highest of her forecastle's strips; its foremost one.
+func _head(layout: ShipLayout) -> ShipPlatform:
+	var head: ShipPlatform
+	for platform: ShipPlatform in layout.platforms:
+		if platform.name != &"forecastle":
+			continue
+		var higher := head == null or platform.height > head.height + 1e-4
+		var level := head != null and is_equal_approx(platform.height, head.height)
+		if higher or (level and platform.area.position.x > head.area.position.x):
+			head = platform
+	assert_not_null(head, "the Titanic has a forecastle")
+	return head
 
 
 ## Whether a face looking down stands within NEAR of [param height] straight over
@@ -56,14 +74,16 @@ func _faces_down_under(faces: PackedVector3Array, point: Vector2, height: float)
 	return false
 
 
-## Every triangle drawn under [param root], in its ship space.
-func _faces(root: Node3D) -> PackedVector3Array:
+## Every triangle drawn under [param root], in the space of [param ship] (by default
+## [param root] itself).
+func _faces(root: Node3D, ship: Node3D = null) -> PackedVector3Array:
+	var space := root if ship == null else ship
 	var faces := PackedVector3Array()
 	for instance: Node in root.find_children("*", "MeshInstance3D", true, false):
 		var mesh := instance as MeshInstance3D
-		if mesh.mesh == null:
+		if mesh.mesh == null or not mesh.is_visible_in_tree():
 			continue
-		var to_ship := root.global_transform.affine_inverse() * mesh.global_transform
+		var to_ship := space.global_transform.affine_inverse() * mesh.global_transform
 		for corner: Vector3 in mesh.mesh.get_faces():
 			faces.append(to_ship * corner)
 	return faces

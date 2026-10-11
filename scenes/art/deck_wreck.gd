@@ -47,16 +47,17 @@ var _torn: Node3D
 ## Per shard, the middle of its outline and the breaks along it.
 var _middles := PackedVector2Array()
 var _breaks: Array[Array] = []
-## Under the deck: whether it roofs a room (beams under its ceiling), and how deep it is.
-var _ceiled: bool
+## Under the deck: whether it roofs a room (and has beams under its ceiling), and how
+## deep it is.
+var _roofs: bool
 var _depth: float
 
 
 func _init(space: ShipSpace, platform: ShipPlatform, dressing: RoomDressing) -> void:
 	_platform = platform
 	_dressing = dressing
-	_ceiled = space.stands_over_a_platform(platform)
-	_depth = ShipArt.PLANK + (ShipArt.BEAM_DEPTH if _ceiled else 0.0)
+	_roofs = space.stands_over_a_platform(platform)
+	_depth = ShipArt.PLANK + (ShipArt.BEAM_DEPTH if _roofs else 0.0)
 
 
 ## The deck drawn in pieces: its shards and rim under [param wreck] — the rim carrying,
@@ -104,7 +105,7 @@ func build(wreck: Node3D, walls: Node3D, pieces: Dictionary, new_mesh: Callable)
 		_breaks.append(breaks)
 	for strip: Rect2 in _frame(area, inner):
 		(pieces[_rim] as ShipMesh).box(strip, height - ShipArt.PLANK, height, ShipPaints.deck, top)
-	if _ceiled:
+	if _roofs:
 		_whole_beams(pieces[_rim], after)
 	# Clear of the walls wherever a shard comes to rest.
 	var within := inner.grow_individual(-0.01, -GAP, -0.06, -GAP)
@@ -258,7 +259,7 @@ func _shard(mesh: ShipMesh, outline: PackedVector2Array, breaks: Array, beamed: 
 			paint,
 			ShipMesh.RIM_V0 | ShipMesh.RIM_V1
 		)
-	if not (_ceiled and beamed):
+	if not (_roofs and beamed):
 		return
 	var x := ceilf((_platform.area.position.x + ShipArt.BEAM_WIDTH) / ShipArt.BEAM_SPACING)
 	x *= ShipArt.BEAM_SPACING
@@ -422,7 +423,7 @@ func _loose(mesh: ShipMesh) -> void:
 		var size := Vector3(0.14, 0.04, 0.7 + 0.15 * index)
 		var paint := ShipPaints.splinter if index == 1 else ShipPaints.teak
 		mesh.turned_box(_rests[index] * place, size, paint)
-	if not _ceiled or _rests.is_empty():
+	if not _roofs or _rests.is_empty():
 		return
 	var at := _middles[0] + Vector2(-0.15, -0.45)
 	var lying := Vector3(at.x, top + ShipArt.BEAM_DEPTH * 0.5, at.y)
@@ -463,7 +464,7 @@ func _torn_ends(mesh: ShipMesh, edge: Rect2) -> void:
 			var anywhere := _platform.area.grow(RIM)
 			_jut(mesh, root, into, reach + RIM * 0.6, count, paint, DROOP, anywhere, 0.12)
 			at += 0.28 + 0.3 * absf(_jag(count + 5))
-	if not _ceiled:
+	if not _roofs:
 		return
 	var x := ceilf((_platform.area.position.x + ShipArt.BEAM_WIDTH) / ShipArt.BEAM_SPACING)
 	x *= ShipArt.BEAM_SPACING
