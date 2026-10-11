@@ -87,6 +87,10 @@ run:
 	$(call require-godot)
 	$(GODOT) --path . -- $(match-args) $(ARGS)
 
+# Every headless tool target, and capture, runs the engine through tools/engine_guard.sh:
+# the engine exits 0 after a SCRIPT ERROR or a renderer ERROR, so the guard fails the run
+# when either prints one.
+#
 # The engine helper autoload prints one line of its own on every boot; it is
 # filtered so stdout is the transcript alone. FAST=1 as for run.
 match:
@@ -94,10 +98,6 @@ match:
 	@set -o pipefail; tools/engine_guard.sh $(GODOT) --headless --no-header --path . -s res://tools/run_match.gd \
 		-- $(match-args) $(if $(SECONDS),--seconds=$(SECONDS)) $(if $(STOP),--stop=$(STOP)) \
 		| grep -v '^\[godot_ai'
-
-# Every headless tool target, and capture, runs the engine through tools/engine_guard.sh:
-# the engine exits 0 after a SCRIPT ERROR or a renderer ERROR, so the guard fails the run
-# when either prints one.
 
 # --fixed-fps steps one tick per drawn frame, so the capture lands on its exact
 # tick however fast the machine draws. A capture is silent: the Dummy driver.
