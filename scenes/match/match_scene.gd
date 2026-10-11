@@ -52,6 +52,7 @@ var _mouse_freed := false
 var _marks := BrawlMarks.new()
 var _dust := LandingDust.new()
 var _fx := SinkingFx.new()
+var _iceberg := Iceberg.new()
 var _prompts := InputPrompts.new()
 var _pointer := PointerCapture.new()
 var _kick: ViewKick
@@ -84,6 +85,7 @@ func _ready() -> void:
 	add_child(_marks)
 	add_child(_dust)
 	add_child(_fx)
+	add_child(_iceberg)
 	add_child(FxWarmUp.new(_fx.emitters()))
 	add_child(_prompts)
 	add_child(_pointer)
@@ -103,6 +105,8 @@ func _process(delta: float) -> void:
 	var viewed := _order.target(snapshot)
 	_hud.show_snapshot(snapshot)
 	_sea_and_sky.show_sinking(snapshot["tick"], _view.ship_to_world())
+	var drawn := lerpf(_driver.previous["tick"], snapshot["tick"], _driver.alpha)
+	_iceberg.show_at(drawn, _underwater.is_under())
 	if not _cells.is_empty():
 		var pose := _driver.client.sim.schedule.pose_at(snapshot["tick"])
 		var leaves := ShipPieces.leaves_of(_driver.client.sim.schedule)
@@ -328,6 +332,7 @@ func _begin(
 	_first_person_hud.setup(sim, _names, not observer, _prompts)
 	_sea_and_sky.setup(sim.schedule.end_tick(), config.ship, config.scenario.sea_depth)
 	_underwater.setup(_sea_and_sky)
+	_iceberg.setup(sim.schedule, config.ship, config.match_seed, _sea_and_sky)
 	_view.flood_with(_sea_and_sky.water())
 	_show_graphics(settings.graphics())
 	_observer_camera.whole_ship = observer and is_finite(observer_cut)
