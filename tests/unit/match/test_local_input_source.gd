@@ -1,9 +1,9 @@
 extends GutTest
-## The local seat while a menu over an online match has the keys, the pad and the mouse:
-## the arrows, the D-pad and the stick move a menu and the seat alike, Space and pad A
-## press a button and jump, a click presses one and shoves — so while held the seat
-## stands still, its look kept, and once let go no button still down from the menu acts
-## until it has been let go.
+## The local seat while a menu over the match — the pause, or an online Esc — has the
+## keys, the pad and the mouse: the arrows, the D-pad and the stick move a menu and the
+## seat alike, Space and pad A press a button and jump, a click presses one and shoves —
+## so while held the seat stands still, its look kept, and once let go no button still
+## down from the menu acts until it has been let go.
 
 const ACTIONS: Array[StringName] = [&"move_down", &"jump", &"shove", &"brace"]
 
@@ -71,3 +71,21 @@ func test_a_button_let_go_under_the_menu_is_not_held_back() -> void:
 	source.held = false
 	Input.action_press(&"jump")
 	assert_eq(source.next_frame(2).buttons, InputFrame.JUMP)
+
+
+## The pause menu holds the seat as an online menu does: a click still down as the
+## pause goes neither shoves nor winds up, burning stamina, until it is let go.
+func test_the_pause_menu_holds_the_seat() -> void:
+	assert_true(MatchScene.holds_seat(true, false, false), "paused offline")
+	assert_true(MatchScene.holds_seat(false, true, false), "the mouse let go online")
+	assert_true(MatchScene.holds_seat(false, false, true), "waiting on a click")
+	assert_false(MatchScene.holds_seat(false, false, false), "in play")
+	var source := _source()
+	source.held = MatchScene.holds_seat(true, false, false)
+	Input.action_press(&"shove")
+	source.held = MatchScene.holds_seat(false, false, false)
+	assert_eq(source.next_frame(1).buttons, 0, "the click down through the pause holds back")
+	Input.action_release(&"shove")
+	assert_eq(source.next_frame(2).buttons, 0, "let go")
+	Input.action_press(&"shove")
+	assert_eq(source.next_frame(3).buttons, InputFrame.SHOVE, "a click anew shoves")

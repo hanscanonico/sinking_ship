@@ -362,10 +362,11 @@ func is_over() -> bool:
 
 
 ## Pausing stops the SimDriver and nothing else: it is never sim state. The mouse
-## is freed while paused.
+## is freed while paused, and the local seat held, as under any menu over the match.
 func set_paused(paused: bool) -> void:
 	_paused = paused
 	_driver.set_process(not paused)
+	_hold()
 
 
 ## The sinking is felt before it is seen (D12): a full shake as the iceberg strikes,
@@ -438,11 +439,17 @@ func _fly(snapshot: Dictionary, viewed: int, delta: float) -> void:
 	_first_person_hud.show_view(snapshot, viewed, 0.0, _eyes, _view)
 
 
-## The local seat of a match on a server stands still while a menu over the match, or a
-## browser's "Click to play", has the keys, the pad and the mouse.
+## The local seat stands still while a menu over the match — the pause menu, or the
+## online match's Esc — or a browser's "Click to play" on a server has the keys, the
+## pad and the mouse.
 func _hold() -> void:
 	if _local != null:
-		_local.held = _mouse_freed or (_online and _pointer.waiting())
+		_local.held = holds_seat(_paused, _mouse_freed, _online and _pointer.waiting())
+
+
+## Whether the local seat is held: paused, the mouse let go, or waiting on a click.
+static func holds_seat(paused: bool, mouse_freed: bool, waiting: bool) -> bool:
+	return paused or mouse_freed or waiting
 
 
 ## Draws the sea, the sky and the ship as [param quality] says.
