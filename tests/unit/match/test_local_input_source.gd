@@ -1,9 +1,9 @@
 extends GutTest
-## The local seat while a menu over an online match has the keys, the pad and the mouse:
-## the arrows, the D-pad and the stick move a menu and the seat alike, Space and pad A
-## press a button and jump, a click presses one and shoves — so while held the seat
-## stands still, its look kept, and once let go no button still down from the menu acts
-## until it has been let go.
+## The local seat while a menu over the match — the pause, or an online Esc — has the
+## keys, the pad and the mouse: the arrows, the D-pad and the stick move a menu and the
+## seat alike, Space and pad A press a button and jump, a click presses one and shoves —
+## so while held the seat stands still, its look kept, and once let go no button still
+## down from the menu acts until it has been let go.
 
 const ACTIONS: Array[StringName] = [&"move_down", &"jump", &"shove", &"brace"]
 
@@ -71,3 +71,15 @@ func test_a_button_let_go_under_the_menu_is_not_held_back() -> void:
 	source.held = false
 	Input.action_press(&"jump")
 	assert_eq(source.next_frame(2).buttons, InputFrame.JUMP)
+
+
+## The click that started the match — Play, or the results' Rematch — or one the
+## engine never heard let go, does not shove as the seat is made; a click anew does.
+func test_a_button_down_as_the_seat_is_made_does_not_act() -> void:
+	Input.action_press(&"shove")
+	var source := _source()
+	assert_eq(source.next_frame(1).buttons, 0, "the click down as the match starts")
+	Input.action_release(&"shove")
+	assert_eq(source.next_frame(2).buttons, 0, "let go")
+	Input.action_press(&"shove")
+	assert_eq(source.next_frame(3).buttons, InputFrame.SHOVE, "a click anew shoves")
