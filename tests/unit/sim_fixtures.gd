@@ -86,6 +86,14 @@ static func bake(hit: IcebergHit, scale: float = 1.0) -> SinkTimeline:
 	return SinkTimeline.bake(SinkStepper.new(structure, damage, sea), sea, scenario.bake_cap)
 
 
+## The sea's constants with the physics held to a step of [param seconds].
+static func held_at(seconds: float) -> SeaPhysics:
+	var held: SeaPhysics = SeaPhysics.load_default().duplicate()
+	held.step_min = seconds
+	held.step_max = seconds
+	return held
+
+
 static func rules() -> BrawlRules:
 	return load(RULES)
 

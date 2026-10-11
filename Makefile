@@ -87,11 +87,15 @@ run:
 	$(call require-godot)
 	$(GODOT) --path . -- $(match-args) $(ARGS)
 
+# Every headless tool target, and capture, runs the engine through tools/engine_guard.sh:
+# the engine exits 0 after a SCRIPT ERROR or a renderer ERROR, so the guard fails the run
+# when either prints one.
+#
 # The engine helper autoload prints one line of its own on every boot; it is
 # filtered so stdout is the transcript alone. FAST=1 as for run.
 match:
 	$(call require-godot)
-	@set -o pipefail; $(GODOT) --headless --no-header --path . -s res://tools/run_match.gd \
+	@set -o pipefail; tools/engine_guard.sh $(GODOT) --headless --no-header --path . -s res://tools/run_match.gd \
 		-- $(match-args) $(if $(SECONDS),--seconds=$(SECONDS)) $(if $(STOP),--stop=$(STOP)) \
 		| grep -v '^\[godot_ai'
 
@@ -106,7 +110,7 @@ capture:
 	@test -n "$(AT)$(PHYS)$(filter menu settings graphics online room results hold,$(SCREEN))" || \
 		{ echo "capture: AT=<seconds of match time> or PHYS=<h:mm:ss of physics> is required" >&2; exit 1; }
 	@mkdir -p "$(dir $(CAPTURE))"
-	$(GODOT) --path . $(if $(RES),--resolution $(RES)) --audio-driver Dummy --fixed-fps 30 -- \
+	tools/engine_guard.sh $(GODOT) --path . $(if $(RES),--resolution $(RES)) --audio-driver Dummy --fixed-fps 30 -- \
 		$(match-args) $(if $(menu-screen),,--autoplay) --capture="$(CAPTURE)" \
 		$(if $(AT),--capture-at=$(AT)) $(if $(PHYS),--phys=$(PHYS)) $(if $(JUMP),--jump) \
 		$(if $(EYE),--capture-eye=$(EYE)) \
@@ -121,7 +125,7 @@ capture:
 NET ?= latency:120,jitter:20,loss:5
 net-bench:
 	$(call require-godot)
-	@set -o pipefail; $(GODOT) --headless --no-header --path . -s res://tools/net_bench.gd \
+	@set -o pipefail; tools/engine_guard.sh $(GODOT) --headless --no-header --path . -s res://tools/net_bench.gd \
 		-- $(match-args) --net-sim=$(NET) $(if $(SECONDS),--seconds=$(SECONDS)) \
 		| grep -v '^\[godot_ai'
 
@@ -198,7 +202,7 @@ serve-web-local-stop:
 # tools/sim_bench.gd.
 sim-bench:
 	$(call require-godot)
-	@set -o pipefail; $(GODOT) --headless --no-header --path . -s res://tools/sim_bench.gd \
+	@set -o pipefail; tools/engine_guard.sh $(GODOT) --headless --no-header --path . -s res://tools/sim_bench.gd \
 		-- $(match-args) | grep -v '^\[godot_ai'
 
 # `make bench [SEATS=64] [SHIP=] [SECONDS=60] [SEED=1]`: MatchSim.step timed with many bodies
@@ -208,7 +212,7 @@ sim-bench:
 # match. Rules live in tools/bench_sim.gd.
 bench:
 	$(call require-godot)
-	@set -o pipefail; $(GODOT) --headless --no-header --path . -s res://tools/bench_sim.gd \
+	@set -o pipefail; tools/engine_guard.sh $(GODOT) --headless --no-header --path . -s res://tools/bench_sim.gd \
 		-- $(if $(SEED),--seed=$(SEED)) $(if $(SEATS),--seats=$(SEATS)) \
 		$(if $(SHIP),--ship=$(SHIP)) $(if $(SECONDS),--seconds=$(SECONDS)) \
 		| grep -v '^\[godot_ai'
@@ -237,7 +241,7 @@ SEEDS ?= 200
 LOBBIES ?=
 arena:
 	$(call require-godot)
-	@set -o pipefail; $(GODOT) --headless --no-header --path . -s res://tools/arena.gd \
+	@set -o pipefail; tools/engine_guard.sh $(GODOT) --headless --no-header --path . -s res://tools/arena.gd \
 		-- --seeds=$(SEEDS) $(if $(LOBBIES),--lobbies=$(LOBBIES)) $(if $(STOP),--stop=$(STOP)) \
 		$(if $(SCENARIO),--scenario=$(SCENARIO)) \
 		| grep -v '^\[godot_ai'
@@ -248,7 +252,7 @@ arena:
 # open. Headless; no match is played. Rules live in tools/hits.gd.
 hits:
 	$(call require-godot)
-	@set -o pipefail; $(GODOT) --headless --no-header --path . -s res://tools/hits.gd \
+	@set -o pipefail; tools/engine_guard.sh $(GODOT) --headless --no-header --path . -s res://tools/hits.gd \
 		-- $(if $(SHIP),--ship=$(SHIP)) --seeds=$(SEEDS) | grep -v '^\[godot_ai'
 
 # `make bake SEED=1701 [SHIP=] [HIT=path.tres|NAME]`: a seed's sinking alone, no match played (§5b.4):
@@ -257,7 +261,7 @@ hits:
 # timeline weighs. Headless. Rules live in tools/bake.gd.
 bake:
 	$(call require-godot)
-	@set -o pipefail; $(GODOT) --headless --no-header --path . -s res://tools/bake.gd \
+	@set -o pipefail; tools/engine_guard.sh $(GODOT) --headless --no-header --path . -s res://tools/bake.gd \
 		-- $(match-args) | grep -v '^\[godot_ai'
 
 # `make census SHIP=steamer SEEDS=200 [MATCHES=20]`: the outcome census (§5b.4), written to
@@ -270,7 +274,7 @@ bake:
 MATCHES ?= 20
 census:
 	$(call require-godot)
-	@set -o pipefail; $(GODOT) --headless --no-header --path . -s res://tools/census.gd \
+	@set -o pipefail; tools/engine_guard.sh $(GODOT) --headless --no-header --path . -s res://tools/census.gd \
 		-- $(if $(SHIP),--ship=$(SHIP)) --seeds=$(SEEDS) --matches=$(MATCHES) \
 		| grep -v '^\[godot_ai'
 
@@ -280,26 +284,28 @@ census:
 # SHIP=trawler checks that ship's art alone, and plays no match.
 art-lint:
 	$(call require-godot)
-	@set -o pipefail; $(GODOT) --headless --no-header --path . --fixed-fps 60 \
+	@set -o pipefail; tools/engine_guard.sh $(GODOT) --headless --no-header --path . --fixed-fps 60 \
 		-s res://tools/art_lint.gd $(if $(SHIP),-- --ship=$(SHIP)) | grep -v -e '^\[godot_ai' -e '^match seed'
 
 # The GUT suite, headless. One script:
 #   make test TEST=tests/unit/core/test_ticks.gd
-# One shard of N, as CI runs it (tools/test_shards.py deals the scripts):
-#   make test SHARD=2/6
+# The whole suite runs as JOBS shards side by side (tools/test_shards.py deals the
+# scripts); JOBS=1 runs it in one engine. One shard of N, as CI runs it:
+#   make test SHARD=2/8
 # tools/run_tests.sh hands any other GUT flag through (-gunit_test_name=...).
 TEST ?=
 SHARD ?=
+JOBS ?= 4
 test:
 	$(call require-godot)
-	GODOT="$(GODOT)" tools/run_tests.sh $(if $(SHARD),--shard $(SHARD)) $(if $(TEST),-gselect=$(notdir $(TEST)))
+	GODOT="$(GODOT)" tools/run_tests.sh $(if $(TEST),-gselect=$(notdir $(TEST)),$(if $(SHARD),--shard $(SHARD),$(if $(filter-out 1,$(JOBS)),--jobs $(JOBS))))
 
 # The merge gate, in one command. Order is cheapest-feedback-first: parsing
 # fails fastest, style next, the suite last.
 #
 # Needs Godot 4.7+ and gdtoolkit 4.x for the lint and format steps:
 #   pipx install "gdtoolkit==4.*"
-verify: check ship-check bake-check lint format-check test
+verify: check guard-check ship-check bake-check lint format-check test
 
 # Each ship's layout and structure are generated by her tools/gen_NAME.py — the steamer's,
 # the trawler's (SH30): change her there, then `make ship SHIP=NAME`, or `make ship` for
@@ -347,19 +353,19 @@ bake-ship:
 	$(call require-godot)
 	@test -n "$(SCENE)" -a -n "$(OUT)" || \
 		{ echo "bake-ship: SCENE=<authoring scene> and OUT=<ship .tres> are required" >&2; exit 1; }
-	@set -o pipefail; $(GODOT) --headless --no-header --path . -s res://tools/ship_bake.gd \
+	@set -o pipefail; tools/engine_guard.sh $(GODOT) --headless --no-header --path . -s res://tools/ship_bake.gd \
 		-- --scene=$(SCENE) --out=$(OUT) | grep -v '^\[godot_ai'
 
 bake-check:
 	$(call require-godot)
 	@set -o pipefail; for scene in authoring/*/*.tscn; do \
-		$(GODOT) --headless --no-header --path . -s res://tools/ship_bake.gd -- --scene=$$scene \
+		tools/engine_guard.sh $(GODOT) --headless --no-header --path . -s res://tools/ship_bake.gd -- --scene=$$scene \
 		--check=data/ships/$$(basename $$scene .tscn).tres | grep -v '^\[godot_ai' || exit 1; done
 
 ship-scene:
 	$(call require-godot)
 	@test -n "$(SHIP)" || { echo "ship-scene: SHIP=<a ship under data/ships> is required" >&2; exit 1; }
-	@set -o pipefail; $(GODOT) --headless --no-header --path . -s res://tools/ship_bake.gd \
+	@set -o pipefail; tools/engine_guard.sh $(GODOT) --headless --no-header --path . -s res://tools/ship_bake.gd \
 		-- --draw=data/ships/$(SHIP).tres --scene=authoring/$(SHIP)/$(SHIP).tscn \
 		| grep -v '^\[godot_ai'
 
@@ -376,6 +382,10 @@ SOURCES = $(shell find . -name '*.gd' \
 # scene tree. Rules live in tools/check_scripts.sh.
 check:
 	GODOT="$(GODOT)" tools/check_scripts.sh
+
+# The error guard itself, against a stand-in engine that errors and exits 0.
+guard-check:
+	tools/engine_guard_check.sh
 
 # Style and smells. Rule overrides live in gdlintrc.
 lint:
@@ -399,5 +409,5 @@ format-check:
 
 .PHONY: import run match capture net-bench sim-bench bench serve-local online-e2e export-server \
 	export-web export-mac export-server-mac serve-web-local serve-web-local-stop fps arena \
-	hits bake census art-lint test verify check ship ship-check bake-ship bake-check ship-scene \
+	hits bake census art-lint test verify check guard-check ship ship-check bake-ship bake-check ship-scene \
 	lint format format-check
