@@ -54,10 +54,10 @@ const GASH_BOILS := 0.3
 const BOILS_ALONG := 3
 ## Inside her, every BREACH_TICKS from the strike, the sea comes in through each stretch
 ## of the gash into a cell whose water is drawn — a room people walk in, never a void —
-## so long as the sea outside stands LEVEL or more, in metres, over the room's water
+## so long as the sea outside stands LEAST_HEAD or more, in metres, over the room's water
 ## there; a stretch over the sea throws nothing.
 const BREACH_TICKS := 6
-const LEVEL := 0.05
+const LEAST_HEAD := 0.05
 ## The head over the room's water at which the sea jets in at its hardest, in metres:
 ## how hard goes as the speed it comes in at does, the head's root.
 const FULL_HEAD := 1.5
@@ -209,7 +209,7 @@ func breach(from_tick: int, tick: int, pose: ShipPose, cues: Array[FxCue]) -> vo
 ## [param pose], where it opens a room people walk in: jetting across the room from the
 ## part of it under the sea and over the room's water while that stands under its top;
 ## once the room's water tops it, boiling up over it; nothing once the sea outside
-## stands no more than LEVEL over the room's water.
+## stands no more than LEAST_HEAD over the room's water.
 func _inrush(
 	index: int, opening: ShipOpening, pose: ShipPose, tick: int, cues: Array[FxCue]
 ) -> void:
@@ -221,7 +221,7 @@ func _inrush(
 	var high := pose.world_height(opening.centre + Vector3(0.0, half.y, 0.0))
 	var inside := pose.levels[cell]
 	var head := -maxf(pushing(pose, cell), low)
-	if head < LEVEL:
+	if head < LEAST_HEAD:
 		return
 	var side := float(_schedule.hit().side)
 	# In front of the room's lining; where none stands, inboard of her shell as
@@ -243,8 +243,8 @@ func _inrush(
 		# Thrown as far as its speed carries it falling to the room's floor or water.
 		var room := _structure.cells[cell]
 		var middle := (a + b) * 0.5
-		var floor := pose.world_height(Vector3(middle.x, room.low.y, middle.z))
-		var fall := maxf(from - maxf(inside, floor), 0.05)
+		var floor_at := pose.world_height(Vector3(middle.x, room.low.y, middle.z))
+		var fall := maxf(from - maxf(inside, floor_at), 0.05)
 		var across := room.high.z - room.low.z - InnerWater.OFF_SHELL
 		cue.rise = clampf(2.0 * sqrt(head * fall), JET_LEAST, maxf(across, JET_LEAST))
 	else:

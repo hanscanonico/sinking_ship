@@ -59,7 +59,8 @@ var kind: Kind
 var tick: int
 ## Ship-local: where it happens; WASH, SPRAY, STRIKE, MIST, FROTH, JET, BOIL, RENT: one
 ## end of the line; FLOTSAM: where the piece leaves the ship from; SIFT: the middle of the room's
-## ceiling; SLIDE: the middle of the deck.
+## ceiling; SLIDE: the middle of the deck; WELL: the place on the floor, or on the
+## room's water over it, it wells up at.
 var position: Vector3
 ## Ship-local. WASH, FROTH, JET, BOIL, RENT: the line's other end. SPRAY, STRIKE, MIST:
 ## the sheet's other end, or its position again for a burst. FLOTSAM: where the piece comes down,

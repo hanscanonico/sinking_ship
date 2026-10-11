@@ -601,6 +601,38 @@ func test_the_jet_dies_into_a_boil_over_the_gash_as_the_room_fills_and_stops_lev
 	assert_eq(_described(_of(again, JET) + _of(again, BOIL)), _described(inrush))
 
 
+func test_the_sea_comes_in_by_its_head_over_the_room_s_water_and_stops_level() -> void:
+	# The deep bite into the trawler's engine room, the room's water held where the test
+	# puts it: dry under the gash, the sea jets in; over the gash's top, it boils up; level
+	# with the sea, or within the least head of it, nothing comes in.
+	var sim := _holed_by(&"trawler", _deep_bite())
+	var layout := sim.config.ship
+	var structure := layout.structure
+	var gash := _gash_into(sim, &"engine_room")
+	var top := gash.centre.y + gash.size.y * 0.5
+	var sea := -layout.freeboard
+	var drawn := PackedByteArray()
+	for box: AABB in InnerWater.boxes(structure, layout.rooms):
+		drawn.append(0 if box.size == Vector3.ZERO else 1)
+	var struck := sim.schedule.hit_tick()
+	var room := structure.cells[structure.cell_named(&"engine_room")]
+	var held := {
+		room.low.y: [JET],
+		top + 0.3: [BOIL],
+		sea - GashPlanner.LEAST_HEAD * 0.5: [],
+		sea: [],
+	}
+	for water: float in held:
+		var pose := HeldPose.flooded(layout, sea, {&"engine_room": [water]})
+		var cues: Array[FxCue] = []
+		GashPlanner.new(sim.schedule, structure, drawn).breach(struck, struck + 1, pose, cues)
+		var kinds: Array = []
+		for cue: FxCue in cues:
+			if cue.kind != RENT:
+				kinds.append(cue.kind)
+		assert_eq(kinds, held[water], "the room's water held at %.2f m" % water)
+
+
 func test_a_gash_that_opens_only_a_void_throws_nothing_inside() -> void:
 	var sim := _holed_by(&"trawler", _bilge_bite())
 	for opening: ShipOpening in sim.schedule.damage().openings:

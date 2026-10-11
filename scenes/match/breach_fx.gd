@@ -20,7 +20,7 @@ const WELL_GRAINS := 12
 ## Every grain they can draw at once.
 const GRAINS := JETS * JET_GRAINS + BOILS * BOIL_GRAINS + WELLS * WELL_GRAINS
 ## How many rents are drawn at once, at most.
-const RENTS := 12
+const RENTS := 24
 ## An emitter goes on this long after the last cue that kept it up, in seconds: past
 ## the planners' beats (GashPlanner.BREACH_TICKS, FxPlanner.WELL_TICKS).
 const HOLD := 0.45
@@ -272,6 +272,8 @@ func _take(first: int, count: int, source: int) -> int:
 	return nearest
 
 
+## A pool's emitter of [param grains] grains of [param mesh], in the world, named
+## [param called].
 func _emitter(grains: int, mesh: Mesh, called: String) -> CPUParticles3D:
 	var emitter := FxGrains.emitter(grains, mesh, false)
 	emitter.name = called

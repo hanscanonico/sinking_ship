@@ -365,13 +365,13 @@ func _welling(from_tick: int, tick: int, pose: ShipPose, cues: Array[FxCue]) -> 
 		var at := _wells[index]
 		var room := pose.levels[_well_cells[index * 2]]
 		var under := _gash.pushing(pose, _well_cells[index * 2 + 1])
-		var floor := pose.world_height(at)
-		var depth := maxf(room - floor, 0.0)
-		var head := under - maxf(_gash.pushing(pose, _well_cells[index * 2]), floor)
-		if under <= floor or depth >= WELL_DEEP or head < GashPlanner.LEVEL:
+		var floor_at := pose.world_height(at)
+		var depth := maxf(room - floor_at, 0.0)
+		var head := under - maxf(_gash.pushing(pose, _well_cells[index * 2]), floor_at)
+		if under <= floor_at or depth >= WELL_DEEP or head < GashPlanner.LEAST_HEAD:
 			continue
 		var well := FxCue.new(FxCue.Kind.WELL, tick, at)
-		well.position.y = pose.height_of(maxf(room, floor), at)
+		well.position.y = pose.height_of(maxf(room, floor_at), at)
 		well.radius = _well_reach[index]
 		well.strength = clampf(sqrt(head / WELL_HEAD), 0.0, 1.0) * (1.0 - depth / WELL_DEEP)
 		well.source = index
@@ -896,19 +896,19 @@ func _find_wells(structure: ShipStructure, boxes: Array[AABB]) -> void:
 			opening.size.z
 		)
 		var box := boxes[over]
-		var floor := gaps.intersection(
+		var walked := gaps.intersection(
 			Rect2(box.position.x, box.position.z, box.size.x, box.size.z)
 		)
-		if not floor.has_area():
+		if not walked.has_area():
 			continue
-		var along := 0 if floor.size.x >= floor.size.y else 1
-		var spacing := floor.size[along] / WELLS
+		var along := 0 if walked.size.x >= walked.size.y else 1
+		var spacing := walked.size[along] / WELLS
 		for place in WELLS:
-			var at := floor.position + floor.size * 0.5
-			at[along] = floor.position[along] + spacing * (place + 0.5)
-			at[1 - along] += floor.size[1 - along] * (0.25 if place % 2 == 0 else -0.25)
+			var at := walked.position + walked.size * 0.5
+			at[along] = walked.position[along] + spacing * (place + 0.5)
+			at[1 - along] += walked.size[1 - along] * (0.25 if place % 2 == 0 else -0.25)
 			_wells.append(Vector3(at.x, opening.centre.y, at.y))
-			_well_reach.append(minf(spacing, floor.size[1 - along]) * 0.4)
+			_well_reach.append(minf(spacing, walked.size[1 - along]) * 0.4)
 			_well_cells.append(over)
 			_well_cells.append(under)
 
