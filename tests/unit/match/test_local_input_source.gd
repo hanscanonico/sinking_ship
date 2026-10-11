@@ -73,18 +73,12 @@ func test_a_button_let_go_under_the_menu_is_not_held_back() -> void:
 	assert_eq(source.next_frame(2).buttons, InputFrame.JUMP)
 
 
-## The pause menu holds the seat as an online menu does: a click still down as the
-## pause goes neither shoves nor winds up, burning stamina, until it is let go.
-func test_the_pause_menu_holds_the_seat() -> void:
-	assert_true(MatchScene.holds_seat(true, false, false), "paused offline")
-	assert_true(MatchScene.holds_seat(false, true, false), "the mouse let go online")
-	assert_true(MatchScene.holds_seat(false, false, true), "waiting on a click")
-	assert_false(MatchScene.holds_seat(false, false, false), "in play")
-	var source := _source()
-	source.held = MatchScene.holds_seat(true, false, false)
+## The click that started the match — Play, or the results' Rematch — or one the
+## engine never heard let go, does not shove as the seat is made; a click anew does.
+func test_a_button_down_as_the_seat_is_made_does_not_act() -> void:
 	Input.action_press(&"shove")
-	source.held = MatchScene.holds_seat(false, false, false)
-	assert_eq(source.next_frame(1).buttons, 0, "the click down through the pause holds back")
+	var source := _source()
+	assert_eq(source.next_frame(1).buttons, 0, "the click down as the match starts")
 	Input.action_release(&"shove")
 	assert_eq(source.next_frame(2).buttons, 0, "let go")
 	Input.action_press(&"shove")

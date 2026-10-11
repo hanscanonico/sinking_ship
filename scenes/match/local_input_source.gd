@@ -24,7 +24,8 @@ var held := false:
 
 var _seat: int
 var _settings: ViewSettings
-## The buttons down as the hold ended, each until it is let go.
+## The buttons down as the hold ended — or as the seat was made, the menu that
+## started the match let go — each until it is let go.
 var _unreleased := 0
 
 
@@ -32,6 +33,7 @@ func _init(seat: int, start_yaw: float, settings: ViewSettings) -> void:
 	_seat = seat
 	yaw = start_yaw
 	_settings = settings
+	_unreleased = _buttons()
 
 
 ## Turns the look by a mouse motion of [param pixels].

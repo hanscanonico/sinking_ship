@@ -444,12 +444,7 @@ func _fly(snapshot: Dictionary, viewed: int, delta: float) -> void:
 ## pad and the mouse.
 func _hold() -> void:
 	if _local != null:
-		_local.held = holds_seat(_paused, _mouse_freed, _online and _pointer.waiting())
-
-
-## Whether the local seat is held: paused, the mouse let go, or waiting on a click.
-static func holds_seat(paused: bool, mouse_freed: bool, waiting: bool) -> bool:
-	return paused or mouse_freed or waiting
+		_local.held = _paused or _mouse_freed or (_online and _pointer.waiting())
 
 
 ## Draws the sea, the sky and the ship as [param quality] says.
