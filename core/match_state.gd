@@ -64,6 +64,21 @@ static func broken_in(hp: PackedFloat64Array) -> PackedInt32Array:
 	return broken
 
 
+## What to_dict() carries, one row per key in its order (SnapshotField).
+const FIELDS := [
+	{"name": "v", "kind": SnapshotField.Kind.INT},
+	{"name": "tick", "kind": SnapshotField.Kind.INT},
+	{"name": "match_seed", "kind": SnapshotField.Kind.INT, "key": "seed"},
+	{"name": "phase", "kind": SnapshotField.Kind.INT},
+	{"name": "rng", "kind": SnapshotField.Kind.INT},
+	{"name": "seats", "kind": SnapshotField.Kind.RECORDS, "fields": PlayerState.FIELDS},
+	{"name": "props", "kind": SnapshotField.Kind.RECORDS, "fields": PropState.FIELDS},
+	{"name": "railing_hp", "kind": SnapshotField.Kind.AMOUNTS},
+	{"name": "up", "kind": SnapshotField.Kind.INTS},
+	{"name": "events", "kind": SnapshotField.Kind.RECORDS, "fields": SimEvent.FIELDS},
+]
+
+
 func to_dict(version: int) -> Dictionary:
 	var seat_entries: Array[Dictionary] = []
 	for player: PlayerState in seats:
@@ -86,3 +101,20 @@ func to_dict(version: int) -> Dictionary:
 		"up": Array(up),
 		"events": event_entries,
 	}
+
+
+## The state [param snapshot] — a to_dict() of one — holds again, without the last
+## tick's events: a report of that tick, not state.
+static func from_dict(snapshot: Dictionary) -> MatchState:
+	var state := MatchState.new()
+	state.tick = snapshot["tick"]
+	state.phase = snapshot["phase"]
+	state.match_seed = snapshot["seed"]
+	state.rng = SeedStreams.derive(state.match_seed, "match")
+	state.rng.state = snapshot["rng"]
+	for entry: Dictionary in snapshot["seats"]:
+		state.seats.append(PlayerState.from_dict(entry))
+	state.props = PropState.from_snapshot(snapshot)
+	state.railing_hp = (snapshot["railing_hp"] as PackedFloat64Array).duplicate()
+	state.up = PackedInt32Array(snapshot["up"])
+	return state

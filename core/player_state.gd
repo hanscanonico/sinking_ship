@@ -124,6 +124,44 @@ func freeze(velocity: Vector3, ticks: int) -> void:
 		vel = velocity
 
 
+## What to_dict() carries, one row per key in its order (SnapshotField).
+const FIELDS := [
+	{"name": "seat", "kind": SnapshotField.Kind.INT},
+	{"name": "piece", "kind": SnapshotField.Kind.INT},
+	{"name": "out", "kind": SnapshotField.Kind.BOOL},
+	{"name": "place", "kind": SnapshotField.Kind.INT},
+	{"name": "out_tick", "kind": SnapshotField.Kind.INT},
+	{"name": "out_cause", "kind": SnapshotField.Kind.INT},
+	{"name": "pos", "kind": SnapshotField.Kind.LENGTHS},
+	{"name": "vel", "kind": SnapshotField.Kind.SPEEDS},
+	{"name": "facing", "kind": SnapshotField.Kind.ANGLE},
+	{"name": "surface", "kind": SnapshotField.Kind.INT},
+	{"name": "body", "kind": SnapshotField.Kind.INT, "key": "state"},
+	{"name": "fall_from", "kind": SnapshotField.Kind.LENGTH},
+	{"name": "jumped", "kind": SnapshotField.Kind.BOOL},
+	{"name": "action", "kind": SnapshotField.Kind.INT},
+	{"name": "action_ticks", "kind": SnapshotField.Kind.INT},
+	{"name": "shove_spent", "kind": SnapshotField.Kind.BOOL},
+	{"name": "shove_facing", "kind": SnapshotField.Kind.ANGLE},
+	{"name": "charge", "kind": SnapshotField.Kind.INT},
+	{"name": "bracing", "kind": SnapshotField.Kind.BOOL},
+	{"name": "stamina", "kind": SnapshotField.Kind.AMOUNT},
+	{"name": "stamina_wait", "kind": SnapshotField.Kind.INT},
+	{"name": "exhausted", "kind": SnapshotField.Kind.BOOL},
+	{"name": "stagger_ticks", "kind": SnapshotField.Kind.INT, "key": "stagger"},
+	{"name": "hitstop", "kind": SnapshotField.Kind.INT},
+	{"name": "held_vel", "kind": SnapshotField.Kind.SPEEDS},
+	{"name": "cold", "kind": SnapshotField.Kind.AMOUNT},
+	{"name": "climb_left", "kind": SnapshotField.Kind.INT, "key": "climb"},
+	{"name": "climb_to", "kind": SnapshotField.Kind.LENGTHS},
+	{"name": "last_hit_by", "kind": SnapshotField.Kind.INT},
+	{"name": "last_hit_at", "kind": SnapshotField.Kind.INT},
+	{"name": "last_hit_crate", "kind": SnapshotField.Kind.INT},
+	{"name": "prev_buttons", "kind": SnapshotField.Kind.INT},
+	{"name": "last_input", "kind": SnapshotField.Kind.INTS},
+]
+
+
 func to_dict() -> Dictionary:
 	return {
 		"seat": seat,
