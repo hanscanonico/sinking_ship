@@ -23,19 +23,10 @@ const LEANING: Array[SinkTimeline.Kind] = [
 
 
 func _initialize() -> void:
-	var chosen := RunMatch.choices(MatchArgs.parse(OS.get_cmdline_user_args()))
-	var match_rules: MatchRules = load(RunMatch.DEFAULT_MATCH)
-	var problems := chosen.problems(match_rules)
-	if not problems.is_empty():
-		printerr("\n".join(problems))
-		quit(1)
-		return
-	var config := chosen.config(match_rules)
-	problems = config.problems()
-	if config.ship.structure == null or not config.scenario.is_physical():
-		problems.append("bake: the match's ship and scenario have no physics to bake")
-	if not problems.is_empty():
-		printerr("\n".join(problems))
+	var config := RunMatch.chosen_config(
+		MatchArgs.parse(OS.get_cmdline_user_args()), _physics_problems
+	)
+	if config == null:
 		quit(1)
 		return
 	var started := Time.get_ticks_usec()
@@ -46,6 +37,13 @@ func _initialize() -> void:
 	lines.append_array(_cost_lines(config, choice, took))
 	printraw("\n".join(lines) + "\n")
 	quit()
+
+
+## Why [param config] has no sinking to bake: no physics in her ship or scenario.
+static func _physics_problems(config: MatchConfig) -> PackedStringArray:
+	if config.ship.structure == null or not config.scenario.is_physical():
+		return PackedStringArray(["bake: the match's ship and scenario have no physics to bake"])
+	return PackedStringArray()
 
 
 static func _hit_lines(config: MatchConfig, choice: MustSink.Choice) -> PackedStringArray:

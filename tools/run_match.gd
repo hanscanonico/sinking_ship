@@ -41,6 +41,24 @@ static func seed_of(args: MatchArgs) -> int:
 	return chosen.seed_number()
 
 
+## The match the command line chooses under the default match data: null, every
+## problem printed, when its choices have any, or the config they make has any of its
+## own or of [param checks] — a tool's, given the config, giving its problems.
+static func chosen_config(args: MatchArgs, checks := Callable()) -> MatchConfig:
+	var chosen := choices(args)
+	var match_rules: MatchRules = load(DEFAULT_MATCH)
+	var problems := chosen.problems(match_rules)
+	if problems.is_empty():
+		var config := chosen.config(match_rules)
+		problems = config.problems()
+		if checks.is_valid():
+			problems.append_array(checks.call(config))
+		if problems.is_empty():
+			return config
+	printerr("\n".join(problems))
+	return null
+
+
 ## [param config] with every seat a bot of its tier.
 static func bots_only(config: MatchConfig) -> MatchRunner:
 	return MatchRunner.new(
@@ -66,22 +84,8 @@ static func transcript(host: MatchHost, max_ticks: int) -> String:
 
 func _initialize() -> void:
 	var args := MatchArgs.parse(OS.get_cmdline_user_args())
-	var chosen := choices(args)
-	var match_rules: MatchRules = load(DEFAULT_MATCH)
-	var problems := chosen.problems(match_rules)
-	if not problems.is_empty():
-		printerr("\n".join(problems))
-		quit(1)
-		return
-	var config := chosen.config(match_rules)
-	problems = config.problems()
-	var profile := BotProfile.for_tier(config.bot_tier)
-	if profile == null:
-		problems.append("bot: no profile for the tier %s" % config.bot_tier)
-	else:
-		problems.append_array(profile.problems())
-	if not problems.is_empty():
-		printerr("\n".join(problems))
+	var config := chosen_config(args, _bot_problems)
+	if config == null:
 		quit(1)
 		return
 	var started := Time.get_ticks_usec()
@@ -96,3 +100,11 @@ func _initialize() -> void:
 		)
 	printraw(transcript(served(config), Ticks.from_seconds(args.seconds)))
 	quit()
+
+
+## What keeps [param config]'s bots from playing: no profile for their tier, or its own.
+static func _bot_problems(config: MatchConfig) -> PackedStringArray:
+	var profile := BotProfile.for_tier(config.bot_tier)
+	if profile == null:
+		return PackedStringArray(["bot: no profile for the tier %s" % config.bot_tier])
+	return profile.problems()
