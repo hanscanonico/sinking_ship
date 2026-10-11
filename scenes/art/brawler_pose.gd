@@ -14,11 +14,20 @@ extends RefCounted
 ##   reaches it, the knee bending ahead, and the foot lies flat;
 ## - REACH_L, REACH_R: where a wrist is, from the chest, in the chest's frame; the
 ##   arm reaches it, the elbow bending down and a little out;
+## - PALM_L, PALM_R: the way a hand's palm faces, in the chest's frame, turning the
+##   hand about the way its fingers point (a pose that names the hand's bone) —
+##   without one the hand keeps whatever roll the shortest turn from rest leaves it;
 ## - HIPS_AT: where the hips are, off their place at rest.
 
 const HIPS_AT := &"hips_at"
 const REACH_L := &"reach.L"
 const REACH_R := &"reach.R"
+const PALM_L := &"palm.L"
+const PALM_R := &"palm.R"
+## The arm whose hand each palm turns (0 left, 1 right), and the way the palms face
+## at rest: the mannequin stands with its arms out and its palms down.
+const PALMS := {PALM_L: 0, PALM_R: 1}
+const REST_PALM := Vector3(0.0, -1.0, 0.0)
 ## The mannequin faces +z.
 const AHEAD := Vector3(0.0, 0.0, 1.0)
 const CHEST := &"DEF-spine.003"
@@ -87,6 +96,7 @@ var _chest_at := Vector3.ZERO
 var _kinds := {}
 var _values := {}
 var _hips_at := {}
+var _palms := {}
 var _strokes := {}
 ## What a crossfade back to the clip alone reads: every slot left to the clip.
 var _clip_only := PackedByteArray()
@@ -172,6 +182,7 @@ func apply(delta: float) -> void:
 	var posed := _kinds.has(_pose)
 	var kinds: PackedByteArray = _kinds[_pose] if posed else _clip_only
 	var values: PackedVector3Array = _values[_pose] if posed else _no_values
+	var palms: Dictionary = _palms.get(_pose, {})
 	var goal_hips := clip_hips
 	if _hips_at.has(_pose):
 		var root := _skeleton.get_bone_global_pose(_root)
@@ -189,7 +200,10 @@ func apply(delta: float) -> void:
 				Kind.TURN:
 					turn = Quaternion.from_euler(values[slot] * (PI / 180.0)) * turn
 				Kind.AIM:
-					turn = _chest_turn * Quaternion(_rest_aim[slot], values[slot]) * turn
+					var aim := Quaternion(_rest_aim[slot], values[slot])
+					if palms.has(slot):
+						aim = _roll(aim, values[slot], palms[slot])
+					turn = _chest_turn * aim * turn
 				Kind.LIMB:
 					turn = Quaternion(_rest_aim[slot], _limb_aim(slot, values)) * turn
 			goal = _turn(_parents[slot]).inverse() * turn
@@ -229,6 +243,15 @@ func reach_arm(arm: int, to: Vector3) -> void:
 func _aim(slot: int, way: Vector3) -> void:
 	var turn := Quaternion(_rest_aim[slot], way.normalized()) * _rest_turn[slot]
 	_skeleton.set_bone_pose_rotation(_bones[slot], _turn(_parents[slot]).inverse() * turn)
+
+
+## [param aim] (a hand's turn from rest to point [param way]) turned on about
+## [param way] until the palm faces as near [param palm] as it can.
+static func _roll(aim: Quaternion, way: Vector3, palm: Vector3) -> Quaternion:
+	var goal := palm - way * way.dot(palm)
+	if goal.is_zero_approx():
+		return aim
+	return Quaternion(way, (aim * REST_PALM).signed_angle_to(goal, way)) * aim
 
 
 func _turn(bone: int) -> Quaternion:
@@ -303,5 +326,10 @@ func _compile(key: int, pose: Dictionary) -> void:
 			values[upper] = pose[REACHES[limb]]
 	_kinds[key] = kinds
 	_values[key] = values
+	for palm: StringName in PALMS:
+		if pose.has(palm):
+			if not _palms.has(key):
+				_palms[key] = {}
+			_palms[key][LIMBS[PALMS[palm]] + 2] = (pose[palm] as Vector3).normalized()
 	if pose.has(HIPS_AT):
 		_hips_at[key] = pose[HIPS_AT]

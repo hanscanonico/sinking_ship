@@ -9,8 +9,9 @@ RMS Titanic at full size, traced only from public-domain sources (R31), each tra
 number beside its plate below (PLATES): her length, beam and decks, her sixteen
 compartments and the bulkheads A–P between them, their tops measured off the 1911
 profile (R32), her doors, her machinery, her boats. Every number not traced is marked
-est. with its reasoning. She has no dressed art (SH23): her hull is lofted here from
-her dimensions, and the greybox draws her from her data (ShipLayout.dressed).
+est. with its reasoning. Her hull is lofted here from her dimensions, not as ShipHull
+lofts the steamer's, so the dressed art draws it from her sections (SectionHull, SH23;
+ShipLayout.dressed).
 
 Ship-local metres: x toward the bow, z to starboard, y up, origin on C deck — the
 inquiry's "highest deck which extends continuously from bow to stern" — amidships.
@@ -82,9 +83,10 @@ subs = []
 platforms, ramps, blockers, railings, ladders, rooms, props = [], [], [], [], [], [], []
 used = set()
 # The same pieces as numbers: (x0, x1, z0, z1, height) per platform; (x0, x1, z0, z1,
-# floor, name) per room; and every doorway as (axis, at, from, to, bottom): a gap in a
-# wall along x = at (axis 0) or z = at (axis 2).
-plat_geo, room_geo, doorways = [], [], []
+# axis, start, end) per ramp; (x0, x1, z0, z1, bottom, top, is a box) per blocker; (x0,
+# x1, z0, z1, floor, name) per room; and every doorway as (axis, at, from, to, bottom): a
+# gap in a wall along x = at (axis 0) or z = at (axis 2).
+plat_geo, ramp_geo, block_geo, room_geo, doorways = [], [], [], [], []
 
 def sub(kind_id, script, fields):
     assert kind_id not in used, kind_id
@@ -105,6 +107,7 @@ def platform(pid, name, x0, x1, z0, z1, h=0.0):
 
 def ramp(rid, x0, x1, z0, z1, axis, start, end):
     """A stair over (x0..x1, z0..z1) rising along x (axis 0) or z (axis 1)."""
+    ramp_geo.append((x0, x1, z0, z1, axis, start, end))
     f = [("area", rect_xz(x0, x1, z0, z1))]
     if axis == 1:
         f.append(("axis", "1"))
@@ -115,6 +118,7 @@ def ramp(rid, x0, x1, z0, z1, axis, start, end):
     ramps.append(sub("Ramp_" + rid, "2_ramp", f))
 
 def box(bid, x0, x1, z0, z1, bottom, top):
+    block_geo.append((x0, x1, z0, z1, bottom, top, True))
     f = [("area", rect_xz(x0, x1, z0, z1))]
     if bottom != 0.0:
         f.append(("bottom", num(bottom)))
@@ -122,6 +126,7 @@ def box(bid, x0, x1, z0, z1, bottom, top):
     blockers.append(sub("Blocker_" + bid, "3_block", f))
 
 def cylinder(bid, cx, cz, r, bottom, top):
+    block_geo.append((cx - r, cx + r, cz - r, cz + r, bottom, top, False))
     f = [("shape", "1"), ("centre", "Vector2(%s, %s)" % (num(cx), num(cz))), ("radius", num(r))]
     if bottom != 0.0:
         f.append(("bottom", num(bottom)))
@@ -621,6 +626,10 @@ wall_x("wheelhouse_aft", 63.0, -OFFICERS[2], OFFICERS[2], BOAT, BOAT + HOUSE_TOP
 for tag, z in [("p", -OFFICERS[2]), ("s", OFFICERS[2])]:
     wall_z("officers_" + tag, z, OFFICERS[0], OFFICERS[1], BOAT, BOAT + HOUSE_TOP,
            [door_at(44.0), door_at(58.0), door_at(66.5)])
+# Each house roofed over, a slab on its walls' tops as the trawler's wheelhouse is (no
+# deck of anyone's: nobody climbs there); funnel 1 rises through the officers' house's.
+box("officers_roof", OFFICERS[0] - T, OFFICERS[1] + T, -OFFICERS[2] - T, OFFICERS[2] + T,
+    BOAT + HOUSE_TOP - 2 * T, BOAT + HOUSE_TOP)
 room("officers", "officers' quarters", OFFICERS[0], 63.0, -OFFICERS[2], OFFICERS[2], BOAT)
 room("wheelhouse", "wheelhouse", 63.0, OFFICERS[1], -OFFICERS[2], OFFICERS[2], BOAT)
 GYM = (17.4, GS[0])
@@ -629,6 +638,8 @@ wall_x("gs_boat_aft", GS[0], -6.0, 6.0, BOAT, BOAT + HOUSE_TOP, [door_at(0.0)])
 wall_x("gs_boat_fwd", GS[1], -6.0, 6.0, BOAT, BOAT + HOUSE_TOP)
 for tag, z in [("p", -6.0), ("s", 6.0)]:
     wall_z("gs_house_" + tag, z, GYM[0], GS[1], BOAT, BOAT + HOUSE_TOP, [door_at(19.1), door_at(30.0)])
+box("gs_house_roof", GYM[0] - T, GS[1] + T, -6.0 - T, 6.0 + T,
+    BOAT + HOUSE_TOP - 2 * T, BOAT + HOUSE_TOP)
 room("gym", "gymnasium", GYM[0], GYM[1], -6.0, 6.0, BOAT)
 room("gs_boat", "grand staircase, boat deck", GS[0], GS[1], -6.0, 6.0, BOAT)
 for k, x in enumerate(FUNNELS):
@@ -1417,6 +1428,154 @@ for c in CELLS:
                     area=round(ports * math.pi * PORTHOLE_RADIUS ** 2, 4), starts="SHUT", flip_chance=0.05,
                     leak_head=4.0, collapse_head=8.0, leak_area=round(ports * 0.0005, 4))
 
+# Glass in every wall of her houses that faces the sky over her shell's top, where the
+# art sets it (ShipFittings._windows, with its numbers, placed as the steamer's generator
+# places them): the boat deck's houses, A deck's between its promenades, the bridge
+# deck's after face and the poop's onto the after well — none where a stair outside
+# climbs past it; under her shell's top her portholes stand instead. Each joins the cell
+# holding its room to the sky. Shut, a window breaks under 2 m of water (est., as the
+# steamer's). `make art-lint` matches each pane the art draws to one of these.
+WINDOW_HEIGHT, WINDOW_SPACING, WINDOW_MARGIN = 1.45, 1.3, 0.4
+WINDOW, NARROW_WINDOW, WINDOW_FRAME = (0.55, 0.6), (0.38, 0.6), 0.06
+WALL_MAX, FULL_WALL, INSIDE, OPEN_ROOM_HEIGHT, PROBE, SLIVER = 0.3, 1.9, 0.02, 2.5, 0.15, 0.01
+SALOON_AREA = 15.0  # a room on her top deck smaller than this is a helm (RoomDressing)
+OUTWARD = [(0, -1), (1, 0), (0, 1), (-1, 0)]  # per side of a room, (x, z) out of it
+SIDE_TAGS = ["p", "f", "s", "a"]
+
+def ceiling(floor, x, z):
+    over = [h for x0, x1, z0, z1, h in plat_geo if h > floor + SLIVER and x0 <= x <= x1 and z0 <= z <= z1]
+    return min(over) if over else floor + OPEN_ROOM_HEIGHT
+
+def outdoors(x, y, z):
+    for x0, x1, z0, z1, floor, _name in room_geo:
+        if y < floor - INSIDE or not (x0 - INSIDE <= x <= x1 + INSIDE and z0 - INSIDE <= z <= z1 + INSIDE):
+            continue
+        if y <= ceiling(floor, x, z) + INSIDE:
+            return False
+    return True
+
+def under_a_ramp(x, z, height):
+    for x0, x1, z0, z1, axis, start, end in ramp_geo:
+        if x0 <= x <= x1 and z0 <= z <= z1:
+            along, first, length = (x, x0, x1 - x0) if axis == 0 else (z, z0, z1 - z0)
+            if lerp(start, end, min(max((along - first) / length, 0.0), 1.0)) > height - 0.5:
+                return True
+    return False
+
+def on_side(house, side, distance, depth):
+    line = [house[2], house[1], house[3], house[0]][side]
+    x, z = (distance, line) if side % 2 == 0 else (line, distance)
+    return x - OUTWARD[side][0] * depth, z - OUTWARD[side][1] * depth
+
+def wall_runs(house):
+    """The full walls on house's floor along its sides, as ShipSpace.wall_runs: per run
+    (side, from, to, half thickness)."""
+    x0, x1, z0, z1, floor, _name = house
+    runs = []
+    for side in range(4):
+        along_x = side % 2 == 0
+        line = [z0, x1, z1, x0][side]
+        low, high = (x0, x1) if along_x else (z0, z1)
+        pieces, half = [], 0.0
+        for bx0, bx1, bz0, bz1, foot, top, is_box in block_geo:
+            if not is_box or min(bx1 - bx0, bz1 - bz0) > WALL_MAX:
+                continue
+            if abs(foot - floor) >= 0.05 or top - foot <= FULL_WALL:
+                continue
+            if not (bx0 - INSIDE < x1 and bx1 + INSIDE > x0 and bz0 - INSIDE < z1 and bz1 + INSIDE > z0):
+                continue
+            thick = (bz0, bz1) if along_x else (bx0, bx1)
+            if thick[1] - thick[0] > WALL_MAX or not thick[0] - SLIVER <= line <= thick[1] + SLIVER:
+                continue
+            half = (thick[1] - thick[0]) * 0.5
+            span = (bx0, bx1) if along_x else (bz0, bz1)
+            pieces.append((max(span[0], low), min(span[1], high)))
+        merged = []
+        for piece in sorted(pieces):
+            if piece[1] - piece[0] < SLIVER:
+                continue
+            if merged and piece[0] <= merged[-1][1] + SLIVER:
+                merged[-1] = (merged[-1][0], max(merged[-1][1], piece[1]))
+            else:
+                merged.append(piece)
+        for a, b in merged:
+            a, b = max(a, low + half), min(b, high - half)
+            if b - a > SLIVER:
+                runs.append((side, a, b, half))
+    return runs
+
+def clear_of_stairs(house, run, height):
+    side, a, b, half = run
+    found, start = [], None
+    count = max(1, math.ceil((b - a) / 0.05))
+    for i in range(count + 1):
+        along = lerp(a, b, i / count)
+        x, z = on_side(house, side, along, -(half + 0.1))
+        clear = i < count and not under_a_ramp(x, z, height + 0.5)
+        if clear and start is None:
+            start = along
+        elif not clear and start is not None:
+            found.append((start, along))
+            start = None
+    return found
+
+def machinery_in(house):
+    x0, x1, z0, z1, floor, _name = house
+    return any(is_box and min(bx1 - bx0, bz1 - bz0) > WALL_MAX and abs(foot - floor) < 0.05
+               and x0 <= (bx0 + bx1) * 0.5 <= x1 and z0 <= (bz0 + bz1) * 0.5 <= z1
+               for bx0, bx1, bz0, bz1, foot, _top, is_box in block_geo)
+
+def windows():
+    """Her windows, as ShipFittings._windows places glass: the walls of her rooms that
+    face the sky over her shell's top. Returns the rooms whose cell it could not name."""
+    unnamed = []
+    top_floor = max(r[4] for r in room_geo)
+    for house in room_geo:
+        x0, x1, z0, z1, floor, name = house
+        helm = not machinery_in(house) and floor >= top_floor and (x1 - x0) * (z1 - z0) < SALOON_AREA
+        height = floor + WINDOW_HEIGHT
+        for run in wall_runs(house):
+            side, a, b, half = run
+            stretches = clear_of_stairs(house, run, height) if helm else [(a, b)]
+            spots = []
+            for s0, s1 in stretches:
+                first, last = s0 + WINDOW_MARGIN, s1 - WINDOW_MARGIN
+                if last >= first:
+                    count = math.floor((last - first) / WINDOW_SPACING) + 1
+                    spots += [((first + last) * 0.5 + (i - (count - 1) * 0.5) * WINDOW_SPACING, WINDOW)
+                              for i in range(count)]
+                elif len(stretches) > 1 and s1 - s0 >= NARROW_WINDOW[0] + WINDOW_FRAME * 2 + 0.04:
+                    spots.append(((s0 + s1) * 0.5, NARROW_WINDOW))
+            for spot, size in spots:
+                bx, bz = on_side(house, side, spot, -(half + PROBE))
+                if not outdoors(bx, height, bz) or under_a_ramp(bx, bz, height):
+                    continue
+                # Under her shell's top, or onto a cell of hers: no sky beyond it.
+                if height < shell_top(bx) or cell_at(bx, height, bz) is not None:
+                    continue
+                x, z = on_side(house, side, spot, 0)
+                away = OUTWARD[side]
+                holder = cell_at(x - away[0] * (half + 0.01), height, z - away[1] * (half + 0.01))
+                if holder is None:
+                    unnamed.append(name)
+                    continue
+                box_of = cell_box(holder)
+                if side % 2 == 0:
+                    centre = (x, height, box_of[4] if away[1] < 0 else box_of[5])
+                    extent = (size[0], size[1], 0)
+                else:
+                    centre = (box_of[0] if away[0] < 0 else box_of[1], height, z)
+                    extent = (0, size[1], size[0])
+                tag = "window_%s_%s" % (holder, SIDE_TAGS[side])
+                number = sum(1 for o in openings if o[0].startswith(tag)) + 1
+                opening("%s%d" % (tag, number), "WINDOW", holder, SKY, centre, extent, starts="SHUT",
+                        collapse_head=2.0)
+    return unnamed
+
+# A window whose room no cell holds is left out, and said (none is, today).
+for skipped in sorted(set(windows())):
+    print("no cell holds %s: its windows left out" % skipped, file=sys.stderr)
+
 # Mass (est. throughout, but her displacement and her stability, which are the night's):
 # where her weight sits. Her water ballast is what the generator settles: as heavy as
 # she must be to float at the night's draught, and where along and across her it puts
@@ -1658,6 +1817,8 @@ res = ["[resource]", 'script = ExtResource("5_layout")', "freeboard = " + num(FR
        "props = " + arr("8_prop", props),
        "rooms = " + arr("6_room", rooms),
        "dressed = false",
+       # Her hull black to B deck, her superstructure's side white over it (est., the photographs).
+       "white_above = %r" % B_DECK,
        'structure = SubResource("Structure")']
 with open(out, "w") as f:
     f.write(head + "\n" + "\n\n".join(subs) + "\n\n" + "\n".join(res) + "\n")

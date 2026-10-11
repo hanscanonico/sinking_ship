@@ -8,7 +8,9 @@ extends RefCounted
 ## deck's open edge; a cap rail and a door or vents in every break of the decks; and
 ## the ground tackle lying on the deck at the bow. Furniture stands within a body's
 ## radius of a wall, where no body's centre ever goes, and only where the floor is
-## clear: a prop the rules cannot see never stands in anyone's way.
+## clear: a prop the rules cannot see never stands in anyone's way. On a ship whose hull
+## is her sections' shell (SectionHull), her generator placed her glass as it cut her
+## sections: it is set where her structure's portholes and windows are (glass_of()).
 
 const PORTHOLE_RADIUS := 0.16
 const PORTHOLE_RING := 0.05
@@ -82,6 +84,9 @@ const PORT_NEAR := 0.3
 ## The share of an open porthole's round its view out takes, inside the band of its
 ## bore through the wall.
 const BORE_SHOWN := 0.78
+## How far inboard of her shell a porthole's inner glass stands, on a ship whose glass
+## is her structure's: her plating and frames.
+const SHELL_DEPTH := 0.1
 
 var _space: ShipSpace
 var _layout: ShipLayout
@@ -112,8 +117,12 @@ func _init(
 ## apart from it under [param ship] (Lifeboat) in [param paints] (ShipArt.paints) — or,
 ## without a ship, the davits alone.
 func build(mesh: ShipMesh, ship: Node3D = null, paints := {}) -> void:
+	var placed := _hull is SectionHull and _layout.structure != null
+	if placed:
+		_structure_glass(mesh)
 	for room: ShipRoom in _layout.rooms:
-		_windows(mesh, room)
+		if not placed:
+			_windows(mesh, room)
 		_furnish(mesh, room)
 	_lifeboats(mesh, ship, paints)
 	for found: Array in breaks(_space):
@@ -377,25 +386,124 @@ func _windows(mesh: ShipMesh, room: ShipRoom) -> void:
 				_disc(mesh, at + out_normal * FRAME_PROUD, out_normal, ShipPaints.dark)
 
 
+## Where [param opening] — a structure's porthole or window — is glazed: one pane, or a
+## porthole standing for a row of them (its area a whole number of ports) one pane per
+## port, spread evenly along it; each [along, up] on the axis it runs along.
+static func glass_of(opening: ShipOpening) -> PackedVector2Array:
+	var across := opening.facing()
+	var along := 2 - across
+	var count := 1
+	if opening.kind == ShipOpening.Kind.PORTHOLE:
+		var port := PI * PORTHOLE_RADIUS * PORTHOLE_RADIUS
+		count = maxi(1, roundi(opening.flow_area() / port))
+	var length := opening.size[along]
+	var found := PackedVector2Array()
+	for index in count:
+		var at := opening.centre[along] + length * ((index + 0.5) / count - 0.5)
+		found.append(Vector2(at, opening.centre.y))
+	return found
+
+
+## The glass of her structure (glass_of()): a porthole set in her shell, a window in the
+## wall it is flat across, each outside facing outdoors (_outside_of()).
+func _structure_glass(mesh: ShipMesh) -> void:
+	for opening: ShipOpening in _layout.structure.openings:
+		var porthole := opening.kind == ShipOpening.Kind.PORTHOLE
+		var across := opening.facing()
+		if not (porthole or opening.kind == ShipOpening.Kind.WINDOW) or across in [-1, 1]:
+			continue
+		var along := 2 - across
+		var out := _outside_of(opening.centre, across)
+		var size := WINDOW_SIZE if porthole else Vector2(opening.size[along], opening.size.y)
+		for spot: Vector2 in glass_of(opening):
+			var at := opening.centre
+			at[along] = spot.x
+			at.y = spot.y
+			if not mesh.kept(at.x, at.x):
+				continue
+			var normal := Vector3.ZERO
+			normal[across] = out
+			if porthole and across == 2:
+				var side := 1 if out > 0.0 else 0
+				at.z = out * _hull.breadth(at.x, at.y, side)
+				normal = _hull.normal(at.x, at.y, side)
+			var inside := at - Vector3(normal.x, 0.0, normal.z).normalized() * SHELL_DEPTH
+			var room := _room_holding(inside)
+			# A row the hit left open is open all along it.
+			var open := porthole and opening.centre in _open_ports
+			if open:
+				_pane(mesh, inside, -normal, true, ShipPaints.glass_in, size, false)
+				_bore(mesh, inside, -normal)
+				_swung(mesh, inside, -normal)
+			else:
+				_pane(mesh, inside, -normal, porthole, ShipPaints.glass_in, size)
+			panes.append([room, inside, -normal, porthole, size * 0.5])
+			var outer := at + normal * (HULL_GLASS_PROUD if porthole else GLASS_PROUD)
+			_pane(mesh, outer, normal, porthole, ShipPaints.glass_out, size, not open)
+			if open:
+				_disc(mesh, outer + normal * FRAME_PROUD, normal, ShipPaints.dark)
+
+
+## Which way along [param across] from a pane at [param centre] is outdoors: the way a
+## step out of the wall it is set in is, the way its middle stands from her centreline
+## when both are or neither is.
+func _outside_of(centre: Vector3, across: int) -> float:
+	var step := Vector3.ZERO
+	step[across] = ShipSpace.WALL_MAX + ShipMesh.PROBE
+	var ahead := _space.outdoors(centre + step)
+	if ahead != _space.outdoors(centre - step):
+		return 1.0 if ahead else -1.0
+	return 1.0 if centre[across] >= 0.0 else -1.0
+
+
+## The room whose floor and walls hold [param point], or null.
+func _room_holding(point: Vector3) -> ShipRoom:
+	for room: ShipRoom in _layout.rooms:
+		var area := room.area.grow(SHELL_DEPTH)
+		var inside := area.has_point(Vector2(point.x, point.z))
+		if (
+			inside
+			and point.y >= room.floor_height
+			and point.y <= _space.ceiling(room, point.x, point.z)
+		):
+			return room
+	return null
+
+
 ## Which of [param glass] — a structure's windows and portholes, by index — [param pane]
 ## (one of panes) is: those of its kind, flat across the wall it is set in, beyond it
-## from inside, within [param near] of it along the wall and up it.
+## from inside — a porthole's on its side of her — within [param near] of it up the
+## wall and of its reach along it; of those, the nearest beyond it (within
+## [param near]), so the window of a house across an open deck, facing it, is not
+## taken for its own.
 static func openings_of(pane: Array, glass: Array[ShipOpening], near: float) -> PackedInt32Array:
 	var inside: Vector3 = pane[1]
 	var into: Vector3 = pane[2]
 	var kind := ShipOpening.Kind.PORTHOLE if pane[3] else ShipOpening.Kind.WINDOW
-	var across := 0 if absf(into.x) > 0.5 else 2
+	var across := 0 if absf(into.x) > absf(into.z) else 2
 	var along := 2 - across
-	var found := PackedInt32Array()
+	var fits := PackedInt32Array()
+	var nearest := INF
 	for index in glass.size():
 		var opening := glass[index]
+		# A window's opening stands in its wall's plane, out beyond the pane; a row of
+		# portholes along a curving shell stands flat at its middle's breadth, so a port
+		# need only be on its side of her.
+		var beyond := -(opening.centre - inside).dot(into)
+		if pane[3]:
+			beyond = 0.0 if opening.centre[across] * inside[across] > 0.0 else -1.0
 		if (
 			opening.kind == kind
 			and opening.facing() == across
-			and (opening.centre - inside).dot(into) < 0.0
-			and absf(opening.centre[along] - inside[along]) <= near
+			and beyond >= 0.0
+			and absf(opening.centre[along] - inside[along]) <= opening.size[along] * 0.5 + near
 			and absf(opening.centre.y - inside.y) <= near
 		):
+			fits.append(index)
+			nearest = minf(nearest, beyond)
+	var found := PackedInt32Array()
+	for index in fits:
+		if pane[3] or -(glass[index].centre - inside).dot(into) <= nearest + near:
 			found.append(index)
 	return found
 
@@ -686,14 +794,20 @@ func _lifeboats(mesh: ShipMesh, ship: Node3D, paints: Dictionary) -> void:
 				PackedFloat32Array(), PackedFloat32Array(), PackedFloat32Array()
 			]
 			var hung := ShipMesh.new(func(_point: Vector3) -> bool: return true, no_rooms)
+			hung.keep = mesh.keep
 			var pivot := Vector3.ZERO
+			var hanging := false
 			for boat in count:
 				var at := area.position.x + area.size.x * (boat + 0.5) / count
+				# A boat wholly off the stretch drawn (ShipMesh.keep) hangs elsewhere.
+				if not mesh.kept(at - LIFEBOAT_LENGTH * 0.5, at + LIFEBOAT_LENGTH * 0.5):
+					continue
+				hanging = true
 				_boat(hung, Vector3(at, keel, middle))
 				for end: float in [-1.0, 1.0]:
 					var davit := at + end * (LIFEBOAT_LENGTH * 0.5 - 0.35)
 					pivot = _davit(mesh, hung, davit, edge, middle, platform.height, side)
-			if ship != null:
+			if ship != null and hanging:
 				var run := Lifeboat.new()
 				ship.add_child(run)
 				run.setup(int(side), pivot, hung, paints, _layout)

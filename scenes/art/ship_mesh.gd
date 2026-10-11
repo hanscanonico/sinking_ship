@@ -44,6 +44,8 @@ const NARROW := 0.3
 const OUTDOOR_LAYER := 3
 ## Lengths below this are float noise.
 const SLIVER := 0.005
+## How far past the stretch kept (keep) a piece may reach and still be drawn.
+const KEEP_MARGIN := 0.5
 
 
 ## What a face is painted with outdoors, and indoors.
@@ -64,8 +66,9 @@ class Paint:
 		colour_in = out_colour if in_colour.a == 0.0 else in_colour
 
 
-## One mesh's arrays.
+## One mesh's arrays: each piece's corners once, its triangles by index.
 class Batch:
+	var indices := PackedInt32Array()
 	var vertices := PackedVector3Array()
 	var normals := PackedVector3Array()
 	var colours := PackedColorArray()
@@ -80,6 +83,10 @@ class Batch:
 ## Ship-local height: a piece wholly at or above it is not drawn — the observer's
 ## cut-away; ship.gdshaderinc trims what straddles it.
 var cut_above := INF
+## The stretch along her, x from aft to fore, that is drawn: a piece wholly KEEP_MARGIN
+## or more past either end of it is not — a broken hull's piece draws its own stretch
+## alone (ShipArt.span), its paints trimming what straddles the cut (PieceClip).
+var keep := Vector2(-INF, INF)
 ## (piece: AABB) -> bool, ship space, when set: whether a piece — what one call
 ## draws, a box, a cylinder, a face — fades out near the eye (ship_near.gdshader).
 var fading := Callable()
@@ -124,6 +131,8 @@ func box(
 	head := NAN
 ) -> void:
 	if top - bottom < SLIVER or area.size.x < SLIVER or area.size.y < SLIVER:
+		return
+	if not kept(area.position.x, area.end.x):
 		return
 	foot = bottom if is_nan(foot) else foot
 	head = top if is_nan(head) else head
@@ -307,6 +316,8 @@ func quad(
 ) -> void:
 	if minf(minf(a.y, b.y), minf(c.y, d.y)) >= cut_above:
 		return
+	if not kept(minf(minf(a.x, b.x), minf(c.x, d.x)), maxf(maxf(a.x, b.x), maxf(c.x, d.x))):
+		return
 	var batch := _batch_for((a + c) * 0.5, normal, paint)
 	var outdoors: bool = _last_outdoors
 	var colour := paint.colour if outdoors else paint.colour_in
@@ -374,15 +385,20 @@ func quad(
 
 ## One piece of a curved surface: [param corners] a, b, c, d as quad()'s, each
 ## shaded by its own of [param normals], with no darkened rim; [param heads] holds
-## each corner's height for its paint's bands under the top, or is empty for none.
+## each corner's height for its paint's bands under the top, or is empty for none;
+## [param foot] the height its bands over the foot rise from, NAN for none.
 func smooth_quad(
 	corners: PackedVector3Array,
 	normals: PackedVector3Array,
 	paint: Paint,
-	heads := PackedFloat32Array()
+	heads := PackedFloat32Array(),
+	foot := NAN
 ) -> void:
 	var lowest := minf(minf(corners[0].y, corners[1].y), minf(corners[2].y, corners[3].y))
 	if lowest >= cut_above:
+		return
+	var aft := minf(minf(corners[0].x, corners[1].x), minf(corners[2].x, corners[3].x))
+	if not kept(aft, maxf(maxf(corners[0].x, corners[1].x), maxf(corners[2].x, corners[3].x))):
 		return
 	var facing := (normals[0] + normals[1] + normals[2] + normals[3]).normalized()
 	var batch := _batch_for((corners[0] + corners[2]) * 0.5, facing, paint)
@@ -391,7 +407,7 @@ func smooth_quad(
 	var uv2s := PackedVector2Array()
 	for index in 4:
 		var head := NAN if heads.is_empty() else heads[index]
-		uvs.append(_bands(corners[index], NAN, head))
+		uvs.append(_bands(corners[index], foot, head))
 		uv2s.append(Vector2(0.0, 1.0 if _last_outdoors else 0.0))
 	var order := PackedInt32Array([0, 1, 2, 0, 2, 3])
 	if (corners[1] - corners[0]).cross(corners[3] - corners[0]).dot(facing) > 0.0:
@@ -411,6 +427,9 @@ func triangle(
 ) -> void:
 	if minf(corners[0].y, minf(corners[1].y, corners[2].y)) >= cut_above:
 		return
+	var aft := minf(corners[0].x, minf(corners[1].x, corners[2].x))
+	if not kept(aft, maxf(corners[0].x, maxf(corners[1].x, corners[2].x))):
+		return
 	var batch := _batch_for((corners[0] + corners[1] + corners[2]) / 3.0, normal, paint)
 	var colour := paint.colour if _last_outdoors else paint.colour_in
 	var normals := PackedVector3Array()
@@ -426,6 +445,11 @@ func triangle(
 	_emit(batch, order, corners, normals, colour, uvs, uv2s)
 
 
+## Whether a piece from [param aft] to [param fore] along her reaches the stretch kept.
+func kept(aft: float, fore: float) -> bool:
+	return fore >= keep.x - KEEP_MARGIN and aft <= keep.y + KEEP_MARGIN
+
+
 ## Every batch as a mesh instance under [param parent].
 func commit(parent: Node3D, materials: Dictionary) -> void:
 	var keys := _batches.keys()
@@ -439,6 +463,7 @@ func commit(parent: Node3D, materials: Dictionary) -> void:
 		arrays[Mesh.ARRAY_COLOR] = batch.colours
 		arrays[Mesh.ARRAY_TEX_UV] = batch.uvs
 		arrays[Mesh.ARRAY_TEX_UV2] = batch.uv2s
+		arrays[Mesh.ARRAY_INDEX] = batch.indices
 		var format := 0
 		if not batch.halves.is_empty():
 			arrays[Mesh.ARRAY_CUSTOM0] = batch.pieces
@@ -478,10 +503,10 @@ func _batch_for(middle: Vector3, normal: Vector3, paint: Paint) -> Batch:
 	return _batches[key]
 
 
-## The corners of [param points] into [param batch] in [param order], three to a
-## triangle, each with its own of [param normals], [param uvs] (its paint's bands)
-## and [param uv2s] (its rim weight, and 1 outdoors). Godot's front faces are wound
-## clockwise.
+## The corners of [param points] into [param batch], each with its own of
+## [param normals], [param uvs] (its paint's bands) and [param uv2s] (its rim weight,
+## and 1 outdoors), and their triangles by index in [param order], three to a
+## triangle. Godot's front faces are wound clockwise.
 func _emit(
 	batch: Batch,
 	order: PackedInt32Array,
@@ -491,12 +516,15 @@ func _emit(
 	uvs: PackedVector2Array,
 	uv2s: PackedVector2Array
 ) -> void:
-	for index in order:
+	var base := batch.vertices.size()
+	for index in points.size():
 		batch.vertices.append(points[index])
 		batch.normals.append(normals[index])
 		batch.colours.append(colour)
 		batch.uvs.append(uvs[index])
 		batch.uv2s.append(uv2s[index])
+	for index in order:
+		batch.indices.append(base + index)
 	if not fading.is_valid():
 		return
 	if _reached.is_empty():
@@ -585,8 +613,12 @@ func _splits(origin: Vector3, edge: Vector3) -> PackedFloat32Array:
 ## [param low], every line of [param lines] strictly between, and [param high].
 func _between(lines: PackedFloat32Array, low: float, high: float) -> PackedFloat32Array:
 	var found := PackedFloat32Array([low])
-	for at: float in lines:
-		if at > low + SLIVER and at < high - SLIVER:
+	# The lines are sorted (_init): only those from the first past low are looked at.
+	for index in range(lines.bsearch(low + SLIVER, false), lines.size()):
+		var at := lines[index]
+		if at >= high - SLIVER:
+			break
+		if at > low + SLIVER:
 			found.append(at)
 	found.append(high)
 	return found

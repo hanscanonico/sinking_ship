@@ -33,6 +33,14 @@ const STEM_DRAFT := 0.5
 ## does.
 const BOTTOM_SHOWN := 60.0
 const BOTTOM_SIZE := 600.0
+## The longest ship, in metres, the dusk's haze is set for (sea_and_sky.tscn): the
+## observer frames a longer one whole from as far back as she is long (ObserverCamera's
+## LONG_HULL times its 24 m), and her haze reaches as far: HAZE_SPAN times its own over
+## her length, so the rig sees her as clear as a short ship's and her bow sees her stern.
+const HAZE_LENGTH := 72.0
+## A long ship's length over how much farther her haze reaches than the scene's: the
+## rig's 24 m over the share of her length it stands back (LONG_HULL_DISTANCE, 0.8).
+const HAZE_SPAN := 30.0
 ## The side, in metres, of a cell of the rooms' maps (room_map, room_edges); how far
 ## in or out of a room the edges' map tells apart; and how far past its walls it
 ## takes a room to reach, so its corners, read between texels — which round a
@@ -63,6 +71,9 @@ var _churn_axis := Vector2.RIGHT
 ## last drawn, so the sea is told where the rooms are only when it moves.
 var _ship_to_rooms := Transform3D()
 var _ship_to_world := Transform3D()
+## The dusk's haze as sea_and_sky.tscn sets it — where it begins and where it is whole
+## — for a ship no longer than HAZE_LENGTH.
+var _haze := Vector2.ZERO
 ## The bottom under a coast's shallow water, or null in the open sea.
 var _bottom: MeshInstance3D
 
@@ -81,6 +92,7 @@ func _ready() -> void:
 	_sea.mesh = sea_mesh()
 	_sun_energy = _sun.light_energy
 	_fog = _dusk.fog_light_color
+	_haze = Vector2(_dusk.fog_depth_begin, _dusk.fog_depth_end)
 	_water.set_shader_parameter(&"sun_direction", sun())
 	_water.set_shader_parameter(&"churn_radius", CHURN_RADIUS)
 	_show_gloom(0.0)
@@ -121,7 +133,8 @@ func water() -> ShaderMaterial:
 ## not positive), churns the sea at [param layout]'s bow and keeps the open sea's sky,
 ## glint and whitecaps off the water in its rooms, and the sea out of her cells whose
 ## water is drawn as their own (InnerWater), from now on; under a sea
-## [param sea_depth] deep, the bottom when it is a coast's.
+## [param sea_depth] deep, the bottom when it is a coast's; the dusk's haze reaching as
+## far as her length asks (HAZE_LENGTH).
 func setup(end_tick: int, layout: ShipLayout, sea_depth: float = INF) -> void:
 	_end_tick = end_tick
 	_lay_bottom(sea_depth)
@@ -132,6 +145,9 @@ func setup(end_tick: int, layout: ShipLayout, sea_depth: float = INF) -> void:
 	var top := -INF
 	for platform: ShipPlatform in layout.platforms:
 		bounds = bounds.merge(platform.area)
+	var reach := 1.0 if bounds.size.x <= HAZE_LENGTH else bounds.size.x / HAZE_SPAN
+	_dusk.fog_depth_begin = _haze.x * reach
+	_dusk.fog_depth_end = _haze.y * reach
 	for platform: ShipPlatform in layout.platforms:
 		if platform.area.end.x >= bounds.end.x:
 			top = maxf(top, platform.height)

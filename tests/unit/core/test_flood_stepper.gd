@@ -5,15 +5,13 @@ extends GutTest
 ## same hit bakes the same timeline twice. The flows are checked with the attitude and
 ## air stages off (§5b.3: the stages keep earlier tests meaningful), so the barge they
 ## float in stays level and its tanks fill as though open to the sky — their air is
-## test_air's; the barge and the steamer turn as the physics turns them.
+## test_air's; the barge and the steamer turn as the physics turns them. The step on
+## twenty match hits is test_flood_step_bounds' and test_flood_step_shipped's, each a
+## script of its own so CI's shards can run them side by side.
 
 const SEA_DENSITY := 1025.0
 ## A barge so broad the water in her tanks barely moves the sea up her.
 const BROAD := 1000.0
-## The match hits the steps are checked on, and the water under nothing a cell may
-## hold: rounding's, in m³.
-const MATCH_SEEDS := 20
-const NOTHING := 1e-6
 
 
 func _sea() -> SeaPhysics:
@@ -33,14 +31,6 @@ func _without_air() -> SeaPhysics:
 	var without: SeaPhysics = SeaPhysics.load_default().duplicate()
 	without.air = false
 	return without
-
-
-## The sea's constants with the physics held to a step of [param seconds].
-func _held_at(seconds: float) -> SeaPhysics:
-	var held: SeaPhysics = SeaPhysics.load_default().duplicate()
-	held.step_min = seconds
-	held.step_max = seconds
-	return held
 
 
 ## A cell called [param cell_name], a box from [param low] to [param high], all of it
@@ -292,61 +282,13 @@ func test_sure_hit_sinks_her_alike_at_a_second_and_a_twentieth() -> void:
 	var damage := HitMapper.map_explicit(structure.sure_hit, structure, scenario.hit)
 	var gone := PackedFloat64Array()
 	for seconds: float in [1.0, 0.05]:
-		var sea := _held_at(seconds)
+		var sea := SimFixtures.held_at(seconds)
 		var timeline := SinkTimeline.bake(
 			SinkStepper.new(structure, damage, sea), sea, scenario.bake_cap
 		)
 		assert_true(timeline.is_gone(), "gone at a %s s step" % seconds)
 		gone.append(timeline.gone_at)
 	assert_almost_eq(gone[0], gone[1], gone[1] * 0.1, "gone at 1 s within 10% of 0.05 s")
-
-
-func test_no_cell_gives_more_than_it_holds_at_the_longest_step() -> void:
-	# The stiff cells' solve can miss at a long step: its cells then go back to the capped
-	# sweep, and a held cell never gives more than it holds — on twenty match hits held
-	# to the longest step the physics takes, no cell's water ever goes under nothing.
-	var structure: ShipStructure = SimFixtures.steamer().structure
-	var scenario: SinkScenario = load(SimFixtures.STEAMER_SINKING)
-	var longest := _held_at(_sea().step_max)
-	var under := PackedStringArray()
-	for index in MATCH_SEEDS:
-		var damage: HitDamage = SimFixtures.match_hits(MATCH_SEEDS)[index].damage
-		var stepper := SinkStepper.new(structure, damage, longest)
-		var state := stepper.start()
-		var least := 0.0
-		while state.seconds < scenario.bake_cap and state.above > -longest.gone_depth:
-			state = stepper.advance(state)
-			for water: float in state.water:
-				least = minf(least, water)
-		if least < -NOTHING:
-			under.append("seed %d: %.3f m³" % [index + 1, least])
-	assert_eq(under, PackedStringArray(), "no cell under nothing at a %s s step" % longest.step_max)
-
-
-func test_the_shipped_step_sinks_her_as_a_second_does() -> void:
-	# The step the physics chooses reaches step_max while little changes: on twenty match
-	# hits she is gone within a tenth of when the bake held to a second has her gone. With
-	# the failures stage off, the hits chosen under it too: a door or a wall's panel the
-	# water stands just under the head of, as a list lingers, may give way at one step and
-	# not the other — a threshold, which no step converges across (R21); the failures' own
-	# landing is test_failures'.
-	var structure: ShipStructure = SimFixtures.steamer().structure
-	var scenario: SinkScenario = load(SimFixtures.STEAMER_SINKING)
-	var chosen: SeaPhysics = _sea().duplicate()
-	chosen.failures = false
-	var second := _held_at(1.0)
-	second.failures = false
-	var off := PackedStringArray()
-	for index in MATCH_SEEDS:
-		var stream := SeedStreams.derive(index + 1, "sink")
-		var choice := MustSink.choose(structure, scenario, stream, chosen)
-		var held := SinkTimeline.bake(
-			SinkStepper.new(structure, choice.damage, second), second, scenario.bake_cap
-		)
-		var shipped := choice.timeline.gone_at
-		if absf(shipped - held.gone_at) > held.gone_at * 0.1:
-			off.append("seed %d: %.0f s against %.0f s" % [index + 1, shipped, held.gone_at])
-	assert_eq(off, PackedStringArray(), "gone within 10% of the bake held to 1 s")
 
 
 func test_spill_over_a_sill_matches_the_weir_law() -> void:

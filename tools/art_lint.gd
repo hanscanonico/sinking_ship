@@ -3,8 +3,8 @@ extends SceneTree
 ## snapshots only (D5). Headless; run with --fixed-fps so match time advances one
 ## tick per two frames however fast the machine draws.
 ##
-## - The ship (ShipArt), on every ship in data/ships it dresses (ShipLayout.dressed; the
-##   greybox draws the rest): an upward face within
+## - The ship (ShipArt), on every ship in data/ships — her hull ShipHull's loft or her
+##   sections' shell (SectionHull, ShipLayout.dressed): an upward face within
 ##   PLATFORM_TOLERANCE of each platform's height across its whole area; a face
 ##   within BLOCKER_TOLERANCE of every blocker's sides, its top, and a lintel's
 ##   underside; and over every ramp a stair whose top stands within half a riser
@@ -15,14 +15,19 @@ extends SceneTree
 ##   drawn face looks like one: straight down through the heights a body could step
 ##   down to or jump up onto from that deck, the first face met never faces up — the
 ##   lifeboats beside an open edge, and the hull's ends all the way out past the end
-##   railings. And through every railing span, broken, the opening it leaves stands
-##   open as drawn: nothing across it between a step over its deck and a body's
-##   height, from its line out to a body's breadth past it.
+##   railings. And through every railing span a body's breadth or longer, broken, the
+##   opening it leaves stands open as drawn: nothing across it between a step over its
+##   deck and a body's height, from its line out to a body's breadth past it (no lamp
+##   is a barrier; a span walled within a body's radius has no body behind it). Steel
+##   her structure has stands where it stands, though: within STRUCTURE_TOLERANCE of
+##   a section's outline — the plating and the bulwark where a deck stops short of her
+##   shell (SectionHull) — it is no false floor, and nothing across an opening.
 ## - The hull against the structure (§5b.2), on every ship that has one: every point
 ##   of every section's outline below the sheer within HULL_TOLERANCE of a drawn face,
 ##   across the outline there; and every pane of glass the art sets in an outside wall
 ##   is a porthole or a window of the structure, and every porthole and window is a
-##   pane, within PANE_TOLERANCE along the wall.
+##   pane — a row of portholes one pane per port (ShipFittings.glass_of) — within
+##   PANE_TOLERANCE along the wall.
 ## - Seats: through a bots-only match in the real match scene, every brawler's
 ##   model hangs from its body's feet — the posed ship carrying the interpolated
 ##   snapshot position — and the mannequin's soles stand on that root.
@@ -72,6 +77,12 @@ const LADDER_TOLERANCE := 0.05
 ## its opening.
 const HULL_TOLERANCE := 0.05
 const PANE_TOLERANCE := 0.05
+## How far along her from a section's x its outline is probed.
+const HULL_NUDGE := 0.01
+## How near a section's outline a face stands to be her structure's own steel.
+const STRUCTURE_TOLERANCE := 0.05
+## A lamp's triangles' span in _ship_faces(): it fades near the eye (ShipLamp.fade_near).
+const LAMP := -2
 ## How far past a platform's edge the false-floor probes stand, how far apart along
 ## it, and how near upright a face must turn to read as floor; past an edge that
 ## ends the decks, probes stand BEYOND_STEP apart out to END_BEYOND, past the stem
@@ -128,14 +139,20 @@ var _checks := 0
 func _initialize() -> void:
 	# The root joins the tree only once the main loop runs.
 	await process_frame
+	# --ship=NAME checks that ship alone, and nothing that plays a match.
+	var only := ""
+	for arg: String in OS.get_cmdline_user_args():
+		if arg.begins_with("--ship="):
+			only = arg.trim_prefix("--ship=") + ".tres"
+	for file: String in DirAccess.get_files_at(SHIPS_DIR):
+		if file.ends_with(".tres") and (only.is_empty() or file == only):
+			_check_ship(file, load(SHIPS_DIR + file))
+	if not only.is_empty():
+		_report()
+		return
 	_check_snapshot_only()
 	_check_crew()
 	_check_sea_reach()
-	for file: String in DirAccess.get_files_at(SHIPS_DIR):
-		if file.ends_with(".tres"):
-			var layout: ShipLayout = load(SHIPS_DIR + file)
-			if layout.dressed:
-				_check_ship(file, layout)
 	await _check_seats()
 	await _check_collapse()
 	var effects: Array = await SinkingFxCheck.check(root, SinkingFxCheck.SEED, SEATS)
@@ -144,6 +161,10 @@ func _initialize() -> void:
 	var overhead: Array = await OverheadCheck.check(root, SEED, SEATS)
 	_problems.append_array(overhead[0])
 	_checks += overhead[1]
+	_report()
+
+
+func _report() -> void:
 	if not _problems.is_empty():
 		printerr("\n".join(_problems))
 		printerr("art-lint: %d problem(s) in %d checks" % [_problems.size(), _checks])
@@ -331,7 +352,9 @@ func _check_hull(
 			var middle := (from + to) * 0.5
 			# Counter-clockwise in (z, y): out of the outline is the stretch turned right.
 			var out := Vector3(0.0, -(to.x - from.x), to.y - from.y).normalized()
-			var at := Vector3(section.x, middle.y, middle.x)
+			# A hair along her from the section's own x: a loft drawn from section to
+			# section has an edge there, which a ray down it can slip between.
+			var at := Vector3(section.x + HULL_NUDGE, middle.y, middle.x)
 			var off := _nearest_face(faces, cells, at, out)
 			if off > worst:
 				worst = off
@@ -351,9 +374,8 @@ func _check_hull(
 ## up it, and each of them one pane.
 func _check_panes(file: String, layout: ShipLayout, rules: BrawlRules) -> void:
 	var space := ShipSpace.new(layout)
-	var fittings := ShipFittings.new(
-		space, ShipHull.new(space, rules.railing_height), rules.body_radius
-	)
+	var hull := SectionHull.of(space, rules.railing_height)
+	var fittings := ShipFittings.new(space, hull, rules.body_radius)
 	fittings.build(ShipMesh.new(func(_point: Vector3) -> bool: return false, space.room_lines()))
 	var glass: Array[ShipOpening] = []
 	for opening: ShipOpening in layout.structure.openings:
@@ -380,11 +402,12 @@ func _check_panes(file: String, layout: ShipLayout, rules: BrawlRules) -> void:
 			matched[found] = matched.get(found, 0) + 1
 	for index in glass.size():
 		_checks += 1
-		if matched.get(index, 0) != 1:
+		var ports := ShipFittings.glass_of(glass[index]).size()
+		if matched.get(index, 0) != ports:
 			_problems.append(
 				(
-					"art-lint: %s: opening %s is %d panes drawn, not one"
-					% [file, glass[index].name, matched.get(index, 0)]
+					"art-lint: %s: opening %s is %d panes drawn, not %d"
+					% [file, glass[index].name, matched.get(index, 0), ports]
 				)
 			)
 
@@ -406,6 +429,10 @@ func _check_false_floor(art: ShipArt, file: String, layout: ShipLayout, rules: B
 		_checks += 1
 		for point in _beyond(platform.area, ends):
 			if _floor_near(layout, point, low, high):
+				continue
+			if [low, platform.height, high].any(
+				func(y: float) -> bool: return _in_structure(layout, Vector3(point.x, y, point.y))
+			):
 				continue
 			var facing := _top_facing(faces, cells, Vector3(point.x, high, point.y), low)
 			if facing > FLOOR_FACING:
@@ -434,12 +461,9 @@ func _check_open_spans(file: String, layout: ShipLayout, rules: BrawlRules) -> v
 	var faces := _ship_faces(art, false, spans)
 	var cells := _file_faces(faces)
 	var breadth := rules.body_radius * 2.0
+	var space := ShipSpace.new(layout)
 	for index in layout.railings.size():
 		_checks += 1
-		art.show_sinking(none, {}, PackedInt32Array([index]), false)
-		var remains := _ship_faces(
-			art.find_child("Railing%dRemains" % index, true, false) as Node3D
-		)
 		var railing := layout.railings[index]
 		var platform := layout.platforms[railing.platform]
 		var along := (railing.to - railing.from).normalized()
@@ -447,6 +471,17 @@ func _check_open_spans(file: String, layout: ShipLayout, rules: BrawlRules) -> v
 		if (platform.area.get_center() - railing.from).dot(outward) > 0.0:
 			outward = -outward
 		var low := platform.height + rules.step_height
+		# A span too short for a body to pass leaves no opening to keep open, and so does
+		# one with a wall within a body's radius behind it all along: no body stands there.
+		var walled := Array(_along_span(railing)).all(
+			func(at: Vector2) -> bool: return space.walled(at, -outward, low, rules.body_radius)
+		)
+		if walled or railing.from.distance_to(railing.to) < breadth:
+			continue
+		art.show_sinking(none, {}, PackedInt32Array([index]), false)
+		var remains := _ship_faces(
+			art.find_child("Railing%dRemains" % index, true, false) as Node3D
+		)
 		var high := platform.height + rules.body_height
 		var segments: Array[PackedVector3Array] = []
 		for point in _along_span(railing):
@@ -470,7 +505,7 @@ func _check_open_spans(file: String, layout: ShipLayout, rules: BrawlRules) -> v
 				)
 				out += OPENING_STEP * 0.5
 		for segment: PackedVector3Array in segments:
-			if _blocked(faces, cells, spans, index, remains, segment):
+			if _blocked(faces, cells, spans, index, remains, segment, layout):
 				_problems.append(
 					(
 						"art-lint: %s railing %d: drawn face across its opening, broken, on %s"
@@ -495,14 +530,16 @@ func _along_span(railing: ShipRailing) -> PackedVector2Array:
 
 
 ## Whether [param segment] (from, to) crosses a face of [param faces] — but those of
-## span [param broken], per [param spans] — or one of [param remains].
+## span [param broken], per [param spans], a lamp's (LAMP) and [param layout]'s
+## structure's own steel (_in_structure()) — or one of [param remains].
 func _blocked(
 	faces: PackedVector3Array,
 	cells: Dictionary,
 	spans: PackedInt32Array,
 	broken: int,
 	remains: PackedVector3Array,
-	segment: PackedVector3Array
+	segment: PackedVector3Array,
+	layout: ShipLayout
 ) -> bool:
 	var from := segment[0]
 	var to := segment[1]
@@ -522,8 +559,37 @@ func _blocked(
 				var hit: Variant = Geometry3D.segment_intersects_triangle(
 					from, to, faces[index], faces[index + 1], faces[index + 2]
 				)
-				if hit != null:
+				if hit == null or _in_structure(layout, hit):
+					continue
+				if spans[index / 3] != LAMP:
 					return true
+	return false
+
+
+## Whether [param point] stands within STRUCTURE_TOLERANCE of [param layout]'s
+## structure: on the outline of the section cut across her there or of either whose
+## middle stands nearest aft or fore of it — her shell is lofted from one section's
+## middle to the next. Only on it: what stands inside her hull is held to the checks.
+func _in_structure(layout: ShipLayout, point: Vector3) -> bool:
+	if layout.structure == null:
+		return false
+	var across := Vector2(point.z, point.y)
+	var sections := layout.structure.sections
+	for at in sections.size():
+		var section := sections[at]
+		var holds := absf(point.x - section.x) <= section.length * 0.5 + STRUCTURE_TOLERANCE
+		var before := at > 0 and sections[at - 1].x <= point.x and point.x <= section.x
+		var after := at < sections.size() - 1 and section.x <= point.x
+		after = after and point.x <= sections[at + 1].x
+		if not (holds or before or after):
+			continue
+		var outline := section.outline
+		for index in outline.size():
+			var a := outline[index]
+			var b := outline[(index + 1) % outline.size()]
+			var nearest := Geometry2D.get_closest_point_to_segment(across, a, b)
+			if nearest.distance_to(across) <= STRUCTURE_TOLERANCE:
+				return true
 	return false
 
 
@@ -566,8 +632,8 @@ func _beyond(area: Rect2, ends: Vector2) -> PackedVector2Array:
 
 
 ## Whether a platform of [param layout] stands over [param point] between
-## [param low] and [param high], or any ramp does: a stair is floor the rules have,
-## its stringers and all.
+## [param low] and [param high], or a blocker's top does (Surfaces), or any ramp does:
+## a stair is floor the rules have, its stringers and all.
 func _floor_near(layout: ShipLayout, point: Vector2, low: float, high: float) -> bool:
 	for platform: ShipPlatform in layout.platforms:
 		if (
@@ -575,6 +641,9 @@ func _floor_near(layout: ShipLayout, point: Vector2, low: float, high: float) ->
 			and platform.height >= low
 			and platform.height <= high
 		):
+			return true
+	for blocker: ShipBlocker in layout.blockers:
+		if blocker.top >= low and blocker.top <= high and ShipSpace.over(blocker, point):
 			return true
 	for ramp: ShipRamp in layout.ramps:
 		if ramp.contains(point.x, point.y):
@@ -717,7 +786,9 @@ func _check_blocker(
 ) -> void:
 	_checks += 1
 	var probes: Array[Array] = []
-	var span := blocker.top - blocker.bottom
+	# A deck laid on its top stands in its planks' depth there: the deck's to draw.
+	var top := blocker.top - (ShipArt.PLANK if ShipSpace.new(layout).deck_on(blocker) else 0.0)
+	var span := top - blocker.bottom
 	var heights: Array[float] = [
 		blocker.bottom + span * 0.25, blocker.bottom + span * 0.5, blocker.bottom + span * 0.75
 	]
@@ -764,7 +835,8 @@ func _check_blocker(
 
 ## Every triangle drawn under [param art], in the ship's space — those shown now
 ## alone when [param shown] says so. Into [param spans], when given, per triangle the
-## railing span it is drawn under (ShipArt's "Railing<n>" nodes), or -1.
+## railing span it is drawn under (ShipArt's "Railing<n>" nodes), LAMP for a lamp's,
+## or -1.
 func _ship_faces(art: Node3D, shown := false, spans := PackedInt32Array()) -> PackedVector3Array:
 	var faces := PackedVector3Array()
 	var ship := art
@@ -781,6 +853,8 @@ func _ship_faces(art: Node3D, shown := false, spans := PackedInt32Array()) -> Pa
 			var found := span_name.search(up.name)
 			if found != null:
 				span = found.get_string(1).to_int()
+			if up is ShipLamp:
+				span = LAMP
 			up = up.get_parent()
 		var to_ship := ship.global_transform.affine_inverse() * mesh_instance.global_transform
 		var corners := mesh_instance.mesh.get_faces()

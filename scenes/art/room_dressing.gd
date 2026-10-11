@@ -18,7 +18,7 @@ extends RefCounted
 ## fitting's depth — the rest stands in a blocker's footprint or over HEADROOM — and
 ## art-lint holds it to that.
 
-## What a room is, by its shape and where it stands.
+## What a room is: by its name when that says, else by its shape and where it stands.
 enum Kind { PASSAGE, CUDDY, ENGINE, HOLD, STEERAGE, HELM, SALOON, CABIN }
 ## What of a room a face is: its walls, its floor, its ceiling, its beams.
 enum Part { WALL, FLOOR, OVERHEAD, BEAM }
@@ -26,7 +26,31 @@ enum Part { WALL, FLOOR, OVERHEAD, BEAM }
 ## A room narrower than CORRIDOR is a passage when it opens onto two rooms or more,
 ## else a cuddy too narrow for furniture; one below the main deck this big is a hold,
 ## a smaller one a cabin; one above it this big is a saloon, a smaller one a cabin,
-## and the highest room, if small, the helm.
+## and the highest room, if small, the helm. A room whose name says what it is — the
+## first of NAMED its name holds, any case — is that, though: a liner's saloons stand
+## below her main deck, and her holds' shape is a saloon's.
+const NAMED: Array[Array] = [
+	["hold", Kind.HOLD],
+	["wheelhouse", Kind.HELM],
+	["corridor", Kind.PASSAGE],
+	["road", Kind.PASSAGE],
+	["berths", Kind.STEERAGE],
+	["quarters", Kind.STEERAGE],
+	["office", Kind.CABIN],
+	["saloon", Kind.SALOON],
+	["restaurant", Kind.SALOON],
+	["lounge", Kind.SALOON],
+	["smoking", Kind.SALOON],
+	["reading", Kind.SALOON],
+	["café", Kind.SALOON],
+	["general room", Kind.SALOON],
+	["reception", Kind.SALOON],
+	["gymnasium", Kind.SALOON],
+	["entrance", Kind.SALOON],
+	["staircase", Kind.SALOON],
+	["open space", Kind.SALOON],
+	["galley", Kind.SALOON],
+]
 const CORRIDOR := 1.8
 const HOLD_AREA := 40.0
 const SALOON_AREA := 15.0
@@ -38,6 +62,9 @@ const HEADROOM := 1.85
 ## would fill the view.
 const NEAR_FADE := Vector2(0.3, 0.6)
 const PIPE_SIDES := 8
+## A passenger room longer or broader than this hangs a pendant under each square of
+## this side it is cut into (lights()).
+const LAMP_SPACING := 12.0
 ## A berth slung overhead: its length and its depth out from its wall.
 const BERTH := Vector2(1.9, 0.7)
 ## The longest piece a furnishing's box is drawn in.
@@ -180,6 +207,10 @@ static func kind_of(space: ShipSpace, room: ShipRoom) -> Kind:
 	var size := room.area.size
 	if space.machinery_in(room):
 		return Kind.ENGINE
+	var name := String(room.name).to_lower()
+	for named: Array in NAMED:
+		if name.contains(named[0]):
+			return named[1]
 	if minf(size.x, size.y) < CORRIDOR:
 		var doorways := 0
 		var runs := space.wall_runs(room)
@@ -269,8 +300,9 @@ static func _linings(kind: Kind) -> Array[ShipMesh.Paint]:
 	return paints
 
 
-## The lights [param room] is lit by: a pendant under the middle of its ceiling, but
-## in an engine room (EngineRoom) or a hold (CargoHold) their own.
+## The lights [param room] is lit by: a pendant under the middle of its ceiling — of
+## each LAMP_SPACING square of a great room's — but in an engine room (EngineRoom) or a
+## hold (CargoHold) their own.
 func lights(room: ShipRoom) -> Array[Light]:
 	var found: Array[Light] = []
 	var area := room.area
@@ -281,7 +313,16 @@ func lights(room: ShipRoom) -> Array[Light]:
 		Kind.HOLD:
 			found = _hold.lights(room)
 	if found.is_empty():
-		found.append(Light.new(under_ceiling(_space, room, middle), ShipLamp.Kind.PENDANT))
+		# A pendant under the middle of each LAMP_SPACING square of it: one in all but a
+		# liner's great rooms.
+		var across := Vector2i(
+			maxi(1, ceili(area.size.x / LAMP_SPACING)), maxi(1, ceili(area.size.y / LAMP_SPACING))
+		)
+		for i in across.x:
+			for j in across.y:
+				var share := Vector2((i + 0.5) / across.x, (j + 0.5) / across.y)
+				var at := area.position + area.size * share
+				found.append(Light.new(under_ceiling(_space, room, at), ShipLamp.Kind.PENDANT))
 	return found
 
 
