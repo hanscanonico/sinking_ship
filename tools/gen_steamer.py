@@ -253,18 +253,6 @@ wall_x("hold_forward", 15, -3.8, 3.8, LOWER, 1.8)
 centre_door = [(-DOOR / 2, DOOR / 2)]
 wall_x_doors("bulkhead_hold", 4, -4.8, 4.8, centre_door, LOWER, 0)
 wall_x_doors("bulkhead_engine", -3, -4.8, 4.8, centre_door, LOWER, 0)
-# The stokehold's own walls (#74): its bulkheads down to its floor under the galleries,
-# and its lining either side, standing to the main deck, the hull's walls outboard of it.
-wall_x("stokehold_aft", -3, -LINING, LINING, TANK_TOP, LOWER)
-wall_x("stokehold_forward", 4, -LINING, LINING, TANK_TOP, LOWER)
-wall_z("stokehold_port", -LINING, -3 + T, 4 - T, TANK_TOP, 0)
-wall_z("stokehold_starboard", LINING, -3 + T, 4 - T, TANK_TOP, 0)
-# A stanchion at each corner of the opening over the stokehold, at the railings' joins:
-# each gallery's side onto the opening is then a doorway onto the gallery beside it and
-# an edge over the drop, so a body walks round the galleries one to the next.
-for tag, x in [("aft", HX0), ("forward", HX1)]:
-    for side, z in [("port", -HZ), ("starboard", HZ)]:
-        box("stanchion_%s_%s" % (tag, side), x - 0.05, x + 0.05, z - 0.05, z + 0.05, LOWER, LOWER + 1.0)
 # The engine block on the stokehold floor splits it into two lanes, a body's way past
 # it beside each stair; it stands up through the opening over it.
 box("engine", 1.0, 2.75, -0.5, 0.5, TANK_TOP, -1.2)
@@ -298,6 +286,19 @@ wall_x("wheelhouse_forward", -1.1, -1.4, 1.4, WH, WTOP)
 wall_z_doors("wheelhouse_port", -1.4, -3.9, -1.1, [(-3.05, -1.95)], WH, WTOP)
 wall_z_doors("wheelhouse_starboard", 1.4, -3.9, -1.1, [(-3.05, -1.95)], WH, WTOP)
 
+# --- The stokehold's own blockers (#74), after every other's so none moves: its
+# bulkheads down to its floor under the galleries, and its lining either side, standing
+# to the main deck, the hull's walls outboard of it.
+wall_x("stokehold_aft", -3, -LINING, LINING, TANK_TOP, LOWER)
+wall_x("stokehold_forward", 4, -LINING, LINING, TANK_TOP, LOWER)
+wall_z("stokehold_port", -LINING, -3 + T, 4 - T, TANK_TOP, 0)
+wall_z("stokehold_starboard", LINING, -3 + T, 4 - T, TANK_TOP, 0)
+# A stanchion at each corner of the opening over the stokehold, at the railings' joins:
+# each gallery's side onto the opening is then a doorway onto the gallery beside it and
+# an edge over the drop, so a body walks round the galleries one to the next.
+for tag, x in [("aft", HX0), ("forward", HX1)]:
+    for side, z in [("port", -HZ), ("starboard", HZ)]:
+        box("stanchion_%s_%s" % (tag, side), x - 0.05, x + 0.05, z - 0.05, z + 0.05, LOWER, LOWER + 1.0)
 # --- Railings: SH3's along the main deck's sides and ends, the poop and the
 # forecastle, then three sides of each stair opening.
 railing("main_port_aft", MAIN, (-14, -5), (3.5, -5))
@@ -352,10 +353,6 @@ room("forward_hold", "forward hold", 4, 15, -3.8, 3.8, LOWER)
 # The engine room's galleries, each a room of its own a body walks straight across,
 # and the stokehold under them (#74).
 room("engine_room", "engine room", -3, HX0, -LINING, LINING, LOWER)
-room("stokehold", "stokehold", -3, 4, -LINING, LINING, TANK_TOP)
-room("engine_room_forward", "engine room", HX1, 4, -LINING, LINING, LOWER)
-room("engine_room_port", "engine room", HX0, HX1, -LINING, -HZ, LOWER)
-room("engine_room_starboard", "engine room", HX0, HX1, HZ, LINING, LOWER)
 room("cabin_corridor", "cabin corridor", -13, -3, -0.7, 0.7, LOWER)
 for side, z0, z1 in [("port", -4.8, -0.7), ("starboard", 0.7, 4.8)]:
     for tag, x0, x1 in [("aft", -13, -8.4), ("middle", -8.4, -5.7), ("forward", -5.7, -3)]:
@@ -365,6 +362,11 @@ room("deckhouse_hall", "deckhouse hall", -3.4, 0, -3.3, 3.3, DH)
 for i, (z0, z1) in enumerate([(-3.3, -1.65), (-1.65, 0), (0, 1.65), (1.65, 3.3)]):
     room("deckhouse_cabin_%d" % (i + 1), "deckhouse cabin %d" % (i + 1), -6.9, -3.4, z0, z1, DH)
 room("wheelhouse", "wheelhouse", -3.9, -1.1, -1.4, 1.4, WH)
+# The stokehold and the rest of its galleries, after every other room so none moves.
+room("stokehold", "stokehold", -3, 4, -LINING, LINING, TANK_TOP)
+room("engine_room_forward", "engine room", HX1, 4, -LINING, LINING, LOWER)
+room("engine_room_port", "engine room", HX0, HX1, -LINING, -HZ, LOWER)
+room("engine_room_starboard", "engine room", HX0, HX1, HZ, LINING, LOWER)
 
 spawns = [
     (8, LOWER, -2), (-2, LOWER, -3.5), (-7, LOWER, 2.8),
@@ -858,8 +860,10 @@ WALL_LEAK = 0.002
 # port and a starboard half, so a gash floods the half on its side — the weight on one
 # side, its loose water half as wide (the plan's lengthwise wall in a wide cell, R23) —
 # until the water tops it and spills across. Limber holes through it leak est.
-# 0.005 m² a bilge.
+# 0.005 m² a bilge. Under the stokehold (#74) it stands only to her tank top, as strong,
+# parting her double bottom's halves whole.
 GIRDER = ("centre_girder", 0.0, KEEL + 2.5, 1.5 * built_for(KEEL + 2.5))
+GIRDER_STOKEHOLD = "centre_girder_stokehold"
 LIMBER_HOLES = 0.005
 
 def parted(axis, at, y0, y1, along0, along1):
@@ -884,7 +888,9 @@ for name, z, top, collapse in HOLD_WALLS:
     span = (4, 15)
     walls.append((name, "ALONG", z, span, KEEL, top, collapse, parted(2, z, KEEL, top, *span)))
 name, z, top, collapse = GIRDER
-walls.append((name, "ALONG", z, (-13, 4), KEEL, top, collapse, parted(2, z, KEEL, top, -13, 4)))
+walls.append((name, "ALONG", z, (-13, -3), KEEL, top, collapse, parted(2, z, KEEL, top, -13, -3)))
+walls.append((GIRDER_STOKEHOLD, "ALONG", z, (-3, 4), KEEL, TANK_TOP, collapse,
+              parted(2, z, KEEL, TANK_TOP, -3, 4)))
 
 # Openings: (name, kind, joins, centre, size, fields). size is the rectangle's extent
 # along x, y and z, zero across the axis it is flat on.
@@ -1273,7 +1279,7 @@ for name, axis, at, span, bottom, top, collapse, parts in walls:
         f.append(("axis", "1"))
     f += [("at", num(at)), ("span", "Vector2(%s, %s)" % (num(span[0]), num(span[1]))),
           ("bottom", num(bottom)), ("top", num(top)), ("collapse_head", num(collapse))]
-    if name != GIRDER[0]:
+    if name not in (GIRDER[0], GIRDER_STOKEHOLD):
         f += [("leak_head", num(collapse / 1.5 * 1.25)), ("leak_area", num(WALL_LEAK))]
     f.append(("cells", names(parts)))
     wall_ids.append(sub("Wall_" + name, "12_wall", f))
