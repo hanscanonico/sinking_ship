@@ -68,12 +68,17 @@ const FULL_HEAD := 1.5
 const JET_SHEET := Vector2(0.06, 0.7)
 const JET_DROP := 0.15
 const JET_LEAST := 0.3
-## The rent in her plating along each stretch of the gash: on the room's lining RENT_IN
-## in from her shell, on her hull RENT_OUT out from it, and never less than RENT_LEAST
-## tall.
+## The rent in her plating along each stretch of the gash: on the room's lining —
+## RENT_PROUD in front of the wall between the room and her shell, or RENT_IN in from
+## her shell where none stands — on her hull RENT_OUT out from it, and never less than
+## RENT_LEAST tall. The sea jets in from JET_PROUD in front of that lining, and boils up
+## on the room's water BOIL_IN in from it.
 const RENT_IN := 0.3
+const RENT_PROUD := 0.02
 const RENT_OUT := 0.03
 const RENT_LEAST := 0.15
+const JET_PROUD := 0.05
+const BOIL_IN := 0.3
 
 var _schedule: SinkSchedule
 ## The ship's structure, where the gash's line on her shell is read against her
@@ -88,14 +93,23 @@ var _struck := -1
 var _drawn := PackedByteArray()
 ## Whether the rent along the gash has been told.
 var _torn := false
+## Per stretch of the gash, how far across her the room's lining stands in front of it:
+## the inboard face of the wall between the room and her shell there, or NAN for none.
+var _linings := PackedFloat64Array()
 ## The atmosphere's pressure as metres of sea: what a pocket's air (ShipPose.pockets)
 ## squeezes past.
 var _atmosphere := 0.0
 
 
 ## Plans [param schedule]'s strike on [param structure], whose cells' water is drawn
-## where [param drawn] has 1 for them, in her cells' order.
-func _init(schedule: SinkSchedule, structure: ShipStructure, drawn := PackedByteArray()) -> void:
+## where [param drawn] has 1 for them, in her cells' order, and whose rooms are walled
+## by [param walls].
+func _init(
+	schedule: SinkSchedule,
+	structure: ShipStructure,
+	drawn := PackedByteArray(),
+	walls: Array[ShipBlocker] = []
+) -> void:
 	_schedule = schedule
 	_structure = structure
 	_drawn = drawn
@@ -103,6 +117,8 @@ func _init(schedule: SinkSchedule, structure: ShipStructure, drawn := PackedByte
 	_atmosphere = sea.air_pressure / (sea.sea_density * sea.gravity)
 	if schedule.damage() != null:
 		_size = size(schedule.damage().area())
+		for opening: ShipOpening in schedule.damage().openings:
+			_linings.append(_lining(opening, walls))
 
 
 ## How big a gash letting the sea in through [param area] m² looks: 0 for a scrape,
@@ -208,8 +224,12 @@ func _inrush(
 	if head < LEVEL:
 		return
 	var side := float(_schedule.hit().side)
-	# Inboard of her shell and the room's lining, as InnerWater hangs a pour off it.
-	var a := Vector3(opening.centre.x - half.x, 0.0, opening.centre.z - side * InnerWater.OFF_SHELL)
+	# In front of the room's lining; where none stands, inboard of her shell as
+	# InnerWater hangs a pour off it.
+	var z := opening.centre.z - side * InnerWater.OFF_SHELL
+	if not is_nan(_linings[index]):
+		z = _linings[index] - side * JET_PROUD
+	var a := Vector3(opening.centre.x - half.x, 0.0, z)
 	var b := a + Vector3(opening.size.x, 0.0, 0.0)
 	var strength := clampf(sqrt(head / FULL_HEAD), 0.0, 1.0)
 	var cue: FxCue
@@ -228,6 +248,8 @@ func _inrush(
 		var across := room.high.z - room.low.z - InnerWater.OFF_SHELL
 		cue.rise = clampf(2.0 * sqrt(head * fall), JET_LEAST, maxf(across, JET_LEAST))
 	else:
+		a.z -= side * BOIL_IN
+		b.z = a.z
 		a.y = pose.height_of(inside, a)
 		b.y = pose.height_of(inside, b)
 		cue = FxCue.new(FxCue.Kind.BOIL, tick, a)
@@ -252,13 +274,18 @@ func pushing(pose: ShipPose, cell: int) -> float:
 func _rents(damage: HitDamage, struck: int, cues: Array[FxCue]) -> void:
 	var pose := _schedule.pose_at(struck)
 	var side := float(_schedule.hit().side)
-	for opening: ShipOpening in damage.openings:
+	for index in damage.openings.size():
+		var opening := damage.openings[index]
 		var half := opening.size * 0.5
 		var a := opening.centre - Vector3(half.x, 0.0, 0.0)
 		var b := opening.centre + Vector3(half.x, 0.0, 0.0)
 		var cell := _structure.cell_named(opening.joins[0])
 		if cell >= 0 and cell < _drawn.size() and _drawn[cell] == 1:
-			cues.append(_rent(a, b, half.y, -side * RENT_IN, struck))
+			var lining := _linings[index]
+			var inboard := RENT_IN
+			if not is_nan(lining):
+				inboard = side * (opening.centre.z - lining) + RENT_PROUD
+			cues.append(_rent(a, b, half.y, -side * inboard, struck))
 		if opening.joins[1] != ShipOpening.SEA:
 			continue
 		var top := opening.centre.y + half.y
@@ -269,6 +296,29 @@ func _rents(damage: HitDamage, struck: int, cues: Array[FxCue]) -> void:
 		a.y = (top + bottom) * 0.5
 		b.y = a.y
 		cues.append(_rent(a, b, (top - bottom) * 0.5, side * RENT_OUT, struck))
+
+
+## The room's lining in front of [param opening], a stretch of the gash: the inboard
+## face of the outermost of [param walls] standing between the middle of its cell and
+## her shell at its middle and its height, or NAN where none does.
+func _lining(opening: ShipOpening, walls: Array[ShipBlocker]) -> float:
+	var cell := _structure.cell_named(opening.joins[0])
+	if cell < 0 or _schedule.hit() == null:
+		return NAN
+	var side := float(_schedule.hit().side)
+	var middle := (_structure.cells[cell].low.z + _structure.cells[cell].high.z) * 0.5
+	var found := NAN
+	for wall: ShipBlocker in walls:
+		var area := wall.area
+		if wall.bottom > opening.centre.y or wall.top < opening.centre.y:
+			continue
+		if opening.centre.x < area.position.x or opening.centre.x > area.end.x:
+			continue
+		var inner := area.position.y if side > 0.0 else area.end.y
+		var between := side * (inner - middle) > 0.0 and side * (inner - opening.centre.z) <= 0.0
+		if between and (is_nan(found) or side * inner > side * found):
+			found = inner
+	return found
 
 
 ## A rent from [param a] to [param b], on her shell, [param half] as tall either side of

@@ -161,9 +161,13 @@ func _init(config: MatchConfig, surfaces: Surfaces, schedule: SinkSchedule) -> v
 		for box: AABB in boxes:
 			_drawn.append(0 if box.size == Vector3.ZERO else 1)
 		_find_wells(structure, boxes)
-	_gash = GashPlanner.new(schedule, structure, _drawn)
-	_failures = FailureFx.new(config.ship.structure, schedule)
 	_space = ShipSpace.new(_layout)
+	var walls: Array[ShipBlocker] = []
+	for blocker: ShipBlocker in _layout.blockers:
+		if _space.is_wall(blocker):
+			walls.append(blocker)
+	_gash = GashPlanner.new(schedule, structure, _drawn, walls)
+	_failures = FailureFx.new(config.ship.structure, schedule)
 	_railing_height = config.rules.railing_height
 	_start_tick = Ticks.from_seconds(config.scenario.starts_at)
 	_end_tick = schedule.end_tick()

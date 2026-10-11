@@ -646,6 +646,9 @@ func test_the_rent_inside_is_told_once_from_the_strike_on() -> void:
 	var rents := _of(_sink(planner, sim, struck, struck + Ticks.from_seconds(10.0)), RENT)
 	assert_eq(rents.size(), 1, "inside the room only: all of the gash is under the sea")
 	assert_lt(rents[0].toward.z, -0.9, "facing into the room")
+	# A room runs to the middle of its walls: its wing wall's face stands half a wall in.
+	var face := _room_named(sim.config.ship, &"engine room").area.end.y - 0.1
+	assert_between(rents[0].position.z, face - 0.05, face, "on the wall that lines the room")
 	assert_almost_eq(rents[0].position.x, gash.centre.x - gash.size.x * 0.5, 0.01)
 	assert_almost_eq(rents[0].end.x, gash.centre.x + gash.size.x * 0.5, 0.01)
 	# A planner first asked after the strike — a match joined late — tells it all the same.
@@ -709,6 +712,15 @@ func _deep_bite() -> IcebergHit:
 ## and her bilge under the room, never the room.
 func _bilge_bite() -> IcebergHit:
 	return SimFixtures.explicit_hit(1, -12.0, -6.0, 2.4, 0.05, 1.0)
+
+
+## [param layout]'s room called [param room_name].
+func _room_named(layout: ShipLayout, room_name: StringName) -> ShipRoom:
+	for room: ShipRoom in layout.rooms:
+		if room.name == room_name:
+			return room
+	assert_true(false, "the layout has %s" % room_name)
+	return null
 
 
 ## The GASH opening of [param sim]'s hit into [param cell_name].
