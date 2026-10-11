@@ -57,7 +57,7 @@ const BLEND := {
 ## wind-up coils — the shoulders turned away, both hands drawn back to the far hip,
 ## the weight on the back foot, the head still on the target; a charge sets low and
 ## wide, leaning in with the elbows back and the hands cocked, held; the shove
-## uncoils into a lunge, both arms straight out and the back leg driving; a brace
+## uncoils into a lunge, both arms straight out, palms ahead, and the back leg driving; a brace
 ## digs in low and wide behind raised forearms; a stagger throws the head and arms
 ## back; a swimmer's crawl is stood up so the head and shoulders ride above the sea
 ## its feet hang under; a climb reaches up the ladder hand over hand, looking up.
@@ -106,6 +106,8 @@ const POSES := {
 		&"DEF-upper_arm.R": Vector3(-0.14, 0.42, 1.0),
 		&"DEF-forearm.R": Vector3(-0.04, 0.45, 1.0),
 		&"DEF-hand.R": Vector3(0.0, 1.0, 0.3),
+		BrawlerPose.PALM_L: BrawlerPose.AHEAD,
+		BrawlerPose.PALM_R: BrawlerPose.AHEAD,
 		&"DEF-foot.L": Vector3(0.05, 0.0, 0.42),
 		&"DEF-foot.R": Vector3(-0.05, 0.0, -0.5),
 	},
