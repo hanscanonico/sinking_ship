@@ -135,9 +135,11 @@ func seed_number() -> int:
 
 
 ## The match these choices make under [param match_rules]: every unmade choice the
-## data's. Asking for one while they have problems, or before their seed is filled in,
-## is an error, and null.
-func config(match_rules: MatchRules) -> MatchConfig:
+## data's. [param baked], when given, is the sinking they make, made already for another
+## match drawn on choices that sink alike (sinks_alike): played as it is, so the two
+## share its bake (NextMatch). Asking for one while they have problems, or before their
+## seed is filled in, is an error, and null.
+func config(match_rules: MatchRules, baked: SinkScenario = null) -> MatchConfig:
 	var found := problems(match_rules)
 	if seed_text.strip_edges().is_empty():
 		found.append("seed: blank, still to be drawn")
@@ -156,6 +158,8 @@ func config(match_rules: MatchRules) -> MatchConfig:
 		sinking.explicit_hit = _hit(full.ship)
 	if fast:
 		sinking = MatchConfig.quickened(sinking, match_rules.fast_clock)
+	if baked != null:
+		sinking = baked
 	var made := MatchConfig.new(
 		seed_number(),
 		full.seats,

@@ -43,9 +43,7 @@ func chosen(choices: MatchChoices) -> MatchConfig:
 	if not choices.seed_text.strip_edges().is_empty():
 		return choices.config(_rules)
 	var next := config()
-	var made := choices.with_seed(str(next.match_seed)).config(_rules)
-	made.scenario = next.scenario
-	return made
+	return choices.with_seed(str(next.match_seed)).config(_rules, next.scenario)
 
 
 ## [param played] starts: when it plays the next match's seed it takes that match's
