@@ -73,7 +73,7 @@ func setup(match_rules: MatchRules, choices: MatchChoices) -> void:
 			_tier.select(_tier.item_count - 1)
 	_seed.text = full.seed_text
 	_fast.button_pressed = full.fast
-	_survival.button_pressed = full.goal == &"survival"
+	_survival.button_pressed = full.goal == MatchChoices.SURVIVAL
 
 
 ## The choices as they stand: the ship, seats, tier, seed, pace and goal picked here,
@@ -86,7 +86,7 @@ func choices() -> MatchChoices:
 		StringName(_tier.get_item_text(_tier.selected)) if _tier.selected != -1 else &""
 	)
 	picked.fast = _fast.button_pressed
-	picked.goal = &"survival" if _survival.button_pressed else &"last_standing"
+	picked.goal = MatchChoices.SURVIVAL if _survival.button_pressed else MatchChoices.LAST_STANDING
 	return picked
 
 

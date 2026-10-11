@@ -10,9 +10,9 @@ extends RefCounted
 ## menu with the seed its next match drew ahead (NextMatch).
 
 ## The goals by name (MatchRules.Goal), as --goal and the menu's Survival name them.
-const GOALS := {
-	&"last_standing": MatchRules.Goal.LAST_STANDING, &"survival": MatchRules.Goal.SURVIVAL
-}
+const LAST_STANDING := &"last_standing"
+const SURVIVAL := &"survival"
+const GOALS := {LAST_STANDING: MatchRules.Goal.LAST_STANDING, SURVIVAL: MatchRules.Goal.SURVIVAL}
 ## The explicit hits a tool can name (--hit=NAME): the test fixtures', each a ship's
 ## NAME_HIT or any ship's HIT.
 const HITS := "res://tests/fixtures/sinking/hits/%s.tres"
