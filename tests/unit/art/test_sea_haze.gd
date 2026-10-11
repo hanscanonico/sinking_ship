@@ -1,7 +1,8 @@
 extends GutTest
 ## The dusk's haze reaches as far as her length asks (SeaAndSky.HAZE_LENGTH): as the
 ## scene sets it on the steamer and the trawler, and on the Titanic far enough that her
-## bow sees her stern.
+## bow sees her stern and the observer, standing back to frame her whole, sees her as
+## clear as a short ship.
 
 const SCENE := preload("res://scenes/art/sea_and_sky.tscn")
 
@@ -37,3 +38,7 @@ func test_the_titanics_haze_lets_her_bow_see_her_stern() -> void:
 	var length := _length(titanic)
 	assert_gt(_sea.dusk().fog_depth_begin, _set.fog_depth_begin, "her haze begins farther off")
 	assert_gt(_sea.dusk().fog_depth_end, length, "her stern stands short of the whole haze")
+	# The observer's rig: 24 m back from a short ship, LONG_HULL_DISTANCE of a long one.
+	var short := _set.fog_depth_begin / 24.0
+	var long := _sea.dusk().fog_depth_begin / (length * ObserverCamera.LONG_HULL_DISTANCE)
+	assert_almost_eq(long, short, 0.01, "the observer sees her through as little haze")

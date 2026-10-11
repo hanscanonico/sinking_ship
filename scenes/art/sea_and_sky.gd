@@ -33,9 +33,14 @@ const STEM_DRAFT := 0.5
 ## does.
 const BOTTOM_SHOWN := 60.0
 const BOTTOM_SIZE := 600.0
-## The longest ship, in metres, the dusk's haze is set for (sea_and_sky.tscn): a longer
-## one's reaches as much farther as she is longer, so a liner's bow sees her stern.
-const HAZE_LENGTH := 60.0
+## The longest ship, in metres, the dusk's haze is set for (sea_and_sky.tscn): the
+## observer frames a longer one whole from as far back as she is long (ObserverCamera's
+## LONG_HULL times its 24 m), and her haze reaches as far: HAZE_SPAN times its own over
+## her length, so the rig sees her as clear as a short ship's and her bow sees her stern.
+const HAZE_LENGTH := 72.0
+## A long ship's length over how much farther her haze reaches than the scene's: the
+## rig's 24 m over the share of her length it stands back (LONG_HULL_DISTANCE, 0.8).
+const HAZE_SPAN := 30.0
 ## The side, in metres, of a cell of the rooms' maps (room_map, room_edges); how far
 ## in or out of a room the edges' map tells apart; and how far past its walls it
 ## takes a room to reach, so its corners, read between texels — which round a
@@ -140,7 +145,7 @@ func setup(end_tick: int, layout: ShipLayout, sea_depth: float = INF) -> void:
 	var top := -INF
 	for platform: ShipPlatform in layout.platforms:
 		bounds = bounds.merge(platform.area)
-	var reach := maxf(1.0, bounds.size.x / HAZE_LENGTH)
+	var reach := 1.0 if bounds.size.x <= HAZE_LENGTH else bounds.size.x / HAZE_SPAN
 	_dusk.fog_depth_begin = _haze.x * reach
 	_dusk.fog_depth_end = _haze.y * reach
 	for platform: ShipPlatform in layout.platforms:
