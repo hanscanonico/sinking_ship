@@ -29,6 +29,11 @@ cd "$(dirname "$0")/.." || exit 1
 
 TEST_DIR="tests/unit"
 
+# Tests provoke engine errors on purpose (push_error under assert_push_error), and GUT
+# already fails a test on one it did not expect — so of the engine's output the suite is
+# held to a script that failed to run, not to every ERROR: line.
+export ENGINE_GUARD_PATTERN='SCRIPT ERROR:|Parse Error:'
+
 require_godot test
 
 # Every shard of N at once, one engine each, their output held in a log apiece
@@ -83,7 +88,7 @@ if [[ "${1:-}" == "--shard" ]]; then
 	gut_args=(-gconfig= -gexit -glog=1 "-gtest=$(printf '%s' "$shard" | paste -sd, -)")
 	echo "test: shard $2 runs $expected scripts"
 elif (($#)); then
-	exec "$GODOT" --headless --path . -s res://addons/gut/gut_cmdln.gd "$@"
+	exec tools/engine_guard.sh "$GODOT" --headless --path . -s res://addons/gut/gut_cmdln.gd "$@"
 fi
 
 if [[ -z "$expected" ]]; then
@@ -97,7 +102,7 @@ fi
 LOG="$(mktemp)"
 trap 'rm -f "$LOG"' EXIT
 
-"$GODOT" --headless --path . -s res://addons/gut/gut_cmdln.gd ${gut_args[@]+"${gut_args[@]}"} 2>&1 | tee "$LOG"
+tools/engine_guard.sh "$GODOT" --headless --path . -s res://addons/gut/gut_cmdln.gd ${gut_args[@]+"${gut_args[@]}"} 2>&1 | tee "$LOG"
 status=${PIPESTATUS[0]}
 
 # GUT's "Scripts" summary line, with the colour escapes it paints it with cut off.
