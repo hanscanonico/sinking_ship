@@ -1,6 +1,6 @@
 class_name SnapshotDigest
 extends RefCounted
-## A running hash of a match (D4): the snapshot, walked through its records' field
+## The digest of a match (D4): the snapshot, walked through its records' field
 ## tables (SnapshotField) and each field rounded at its kind's quantum, folded in every
 ## RATE ticks and at the end. A field is in unless its row leaves it out, with its
 ## reason. Same seed + same input log on the same build and platform ⇒ the same digest.

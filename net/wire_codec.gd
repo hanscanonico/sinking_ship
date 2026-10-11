@@ -50,9 +50,6 @@ enum Kind {
 ## there is, of another protocol version, or of another match's data.
 enum Mismatch { NONE, MALFORMED, VERSION, DATA }
 
-## A field's kind, which says how it travels (SnapshotField.Kind).
-const KIND := SnapshotField.Kind
-
 ## Each section — &"snapshot" and the key of every list of records in it — as the codec
 ## walks it: per field its key, its kind and, for a list of records, their walk. Built
 ## once from the records' tables.
@@ -267,22 +264,22 @@ static func field_within_quantum(
 	return _within(one, other, quantum(section, key))
 
 
-static func _within(a: Variant, b: Variant, step: float) -> bool:
-	if step == 0.0:
+static func _within(a: Variant, b: Variant, quantum: float) -> bool:
+	if quantum == 0.0:
 		return a == b
 	if a is Vector3:
 		var off: Vector3 = (a as Vector3) - (b as Vector3)
-		return maxf(absf(off.x), maxf(absf(off.y), absf(off.z))) <= step * QUANTA_APART
+		return maxf(absf(off.x), maxf(absf(off.y), absf(off.z))) <= quantum * QUANTA_APART
 	if a is PackedFloat64Array:
 		var these: PackedFloat64Array = a
 		var those: PackedFloat64Array = b
 		if these.size() != those.size():
 			return false
 		for index in these.size():
-			if absf(these[index] - those[index]) > step * QUANTA_APART:
+			if absf(these[index] - those[index]) > quantum * QUANTA_APART:
 				return false
 		return true
-	return absf(float(a) - float(b)) <= step * QUANTA_APART
+	return absf(float(a) - float(b)) <= quantum * QUANTA_APART
 
 
 static func _walk(section: StringName) -> Array:
@@ -298,7 +295,7 @@ static func _compiled(fields: Array) -> Array:
 	for row: Dictionary in fields:
 		var key := SnapshotField.key_of(row)
 		var nested := []
-		if row["kind"] == KIND.RECORDS:
+		if row["kind"] == SnapshotField.Kind.RECORDS:
 			nested = _compiled(row["fields"])
 			_walks[StringName(key)] = nested
 		walk.append([key, row["kind"], nested])
@@ -344,7 +341,7 @@ static func _put_record(values: Values, record: Dictionary, walk: Array) -> void
 	if record.size() != walk.size():
 		push_error("wire: a record of %s has keys the codec does not carry" % [record.keys()])
 	for field: Array in walk:
-		if field[1] == KIND.INT:
+		if field[1] == SnapshotField.Kind.INT:
 			values.ints.append(record.get(field[0]))
 		else:
 			_put_field(values, record.get(field[0]), field)
@@ -353,34 +350,34 @@ static func _put_record(values: Values, record: Dictionary, walk: Array) -> void
 static func _put_field(values: Values, value: Variant, field: Array) -> void:
 	var kind: SnapshotField.Kind = field[1]
 	match kind:
-		KIND.INT:
+		SnapshotField.Kind.INT:
 			values.put(value)
-		KIND.BOOL:
+		SnapshotField.Kind.BOOL:
 			values.put(1 if value else 0)
-		KIND.LENGTHS, KIND.SPEEDS:
+		SnapshotField.Kind.LENGTHS, SnapshotField.Kind.SPEEDS:
 			var vector: Vector3 = value
-			var step := SnapshotField.quantum(kind)
-			values.put(roundi(vector.x / step))
-			values.put(roundi(vector.y / step))
-			values.put(roundi(vector.z / step))
-		KIND.LENGTH, KIND.ANGLE, KIND.DEGREES, KIND.AMOUNT:
+			var quantum := SnapshotField.quantum(kind)
+			values.put(roundi(vector.x / quantum))
+			values.put(roundi(vector.y / quantum))
+			values.put(roundi(vector.z / quantum))
+		SnapshotField.Kind.LENGTH, SnapshotField.Kind.ANGLE, SnapshotField.Kind.DEGREES, SnapshotField.Kind.AMOUNT:
 			values.put(roundi(float(value) / SnapshotField.quantum(kind)))
-		KIND.AMOUNTS:
+		SnapshotField.Kind.AMOUNTS:
 			var amounts: PackedFloat64Array = value
 			values.put(amounts.size())
 			for amount: float in amounts:
 				values.put(roundi(amount / SnapshotField.AMOUNT_QUANTUM))
-		KIND.NAME:
+		SnapshotField.Kind.NAME:
 			var text := String(value).to_utf8_buffer()
 			values.put(text.size())
 			for code: int in text:
 				values.put(code)
-		KIND.INTS:
+		SnapshotField.Kind.INTS:
 			var ints: Array = value
 			values.put(ints.size())
 			for item: int in ints:
 				values.put(item)
-		KIND.RECORDS:
+		SnapshotField.Kind.RECORDS:
 			var records: Array = value
 			values.put(records.size())
 			for record: Dictionary in records:
@@ -391,7 +388,7 @@ static func _record(values: Values, walk: Array) -> Dictionary:
 	var record := {}
 	for field: Array in walk:
 		# Most fields are counts and enums: read here, without a call per field.
-		if field[1] == KIND.INT:
+		if field[1] == SnapshotField.Kind.INT:
 			record[field[0]] = values.take()
 		else:
 			record[field[0]] = _field(values, field)
@@ -401,29 +398,31 @@ static func _record(values: Values, walk: Array) -> Dictionary:
 static func _field(values: Values, field: Array) -> Variant:
 	var kind: SnapshotField.Kind = field[1]
 	match kind:
-		KIND.BOOL:
+		SnapshotField.Kind.BOOL:
 			return values.take() != 0
-		KIND.LENGTHS, KIND.SPEEDS:
-			var step := SnapshotField.quantum(kind)
-			return Vector3(values.take() * step, values.take() * step, values.take() * step)
-		KIND.LENGTH, KIND.ANGLE, KIND.DEGREES, KIND.AMOUNT:
+		SnapshotField.Kind.LENGTHS, SnapshotField.Kind.SPEEDS:
+			var quantum := SnapshotField.quantum(kind)
+			return Vector3(
+				values.take() * quantum, values.take() * quantum, values.take() * quantum
+			)
+		SnapshotField.Kind.LENGTH, SnapshotField.Kind.ANGLE, SnapshotField.Kind.DEGREES, SnapshotField.Kind.AMOUNT:
 			return values.take() * SnapshotField.quantum(kind)
-		KIND.AMOUNTS:
+		SnapshotField.Kind.AMOUNTS:
 			var amounts := PackedFloat64Array()
 			for index in _count(values):
 				amounts.append(values.take() * SnapshotField.AMOUNT_QUANTUM)
 			return amounts
-		KIND.NAME:
+		SnapshotField.Kind.NAME:
 			var text := PackedByteArray()
 			for index in _count(values):
 				text.append(values.take())
 			return StringName(text.get_string_from_utf8())
-		KIND.INTS:
+		SnapshotField.Kind.INTS:
 			var ints := []
 			for index in _count(values):
 				ints.append(values.take())
 			return ints
-		KIND.RECORDS:
+		SnapshotField.Kind.RECORDS:
 			var records: Array[Dictionary] = []
 			for index in _count(values):
 				records.append(_record(values, field[2]))
