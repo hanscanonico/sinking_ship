@@ -5,7 +5,8 @@ extends SceneTree
 ##
 ## - The ship (ShipArt), on every ship in data/ships — her hull ShipHull's loft or her
 ##   sections' shell (SectionHull, ShipLayout.dressed): an upward face within
-##   PLATFORM_TOLERANCE of each platform's height across its whole area; a face
+##   PLATFORM_TOLERANCE of each platform's height across its whole area, and one
+##   facing down under it if below the cut-away (tools/underside_check.gd); a face
 ##   within BLOCKER_TOLERANCE of every blocker's sides, its top, and a lintel's
 ##   underside; and over every ramp a stair whose top stands within half a riser
 ##   (ShipArt.STEP_RISE) and PLATFORM_TOLERANCE of the ramp's height; and down
@@ -110,8 +111,6 @@ const SAMPLES_ACROSS := 3
 ## height.
 const SIDE_REACH := 0.3
 const CYLINDER_RAYS := 8
-## The side of the cells drawn triangles are filed under, in metres.
-const CELL := 0.5
 ## What art may not name: the live match and the queries only rules make. Enum
 ## reads off PlayerState are allowed, a PlayerState itself is not.
 const LIVE: PackedStringArray = [
@@ -290,7 +289,7 @@ func _check_ship(file: String, layout: ShipLayout) -> void:
 	root.add_child(art)
 	art.build(layout, rules.railing_height, rules.body_radius)
 	var faces := _ship_faces(art)
-	var cells := _file_faces(faces)
+	var cells := FaceCells.file(faces)
 	for index in layout.platforms.size():
 		var platform := layout.platforms[index]
 		_check_tops(
@@ -301,6 +300,11 @@ func _check_ship(file: String, layout: ShipLayout) -> void:
 			func(_point: Vector2) -> float: return platform.height,
 			PLATFORM_TOLERANCE
 		)
+	_problems.append_array(
+		UndersideCheck.check(
+			layout, art.cut_above, file, faces, cells, _samples, PLATFORM_TOLERANCE
+		)
+	)
 	for index in layout.ramps.size():
 		var ramp := layout.ramps[index]
 		_check_tops(
@@ -418,7 +422,7 @@ func _check_panes(file: String, layout: ShipLayout, rules: BrawlRules) -> void:
 ## looks like deck a body could stand on where the rules have none (D6).
 func _check_false_floor(art: ShipArt, file: String, layout: ShipLayout, rules: BrawlRules) -> void:
 	var faces := _ship_faces(art, true)
-	var cells := _file_faces(faces)
+	var cells := FaceCells.file(faces)
 	var ends := Vector2(INF, -INF)
 	for platform: ShipPlatform in layout.platforms:
 		ends = Vector2(minf(ends.x, platform.area.position.x), maxf(ends.y, platform.area.end.x))
@@ -459,7 +463,7 @@ func _check_open_spans(file: String, layout: ShipLayout, rules: BrawlRules) -> v
 	art.build(layout, rules.railing_height, rules.body_radius, none, every)
 	var spans := PackedInt32Array()
 	var faces := _ship_faces(art, false, spans)
-	var cells := _file_faces(faces)
+	var cells := FaceCells.file(faces)
 	var breadth := rules.body_radius * 2.0
 	var space := ShipSpace.new(layout)
 	for index in layout.railings.size():
@@ -549,8 +553,8 @@ func _blocked(
 		)
 		if hit != null:
 			return true
-	var low := Vector2i(floori(minf(from.x, to.x) / CELL), floori(minf(from.z, to.z) / CELL))
-	var high := Vector2i(floori(maxf(from.x, to.x) / CELL), floori(maxf(from.z, to.z) / CELL))
+	var low := FaceCells.cell_of(Vector3(minf(from.x, to.x), 0.0, minf(from.z, to.z)))
+	var high := FaceCells.cell_of(Vector3(maxf(from.x, to.x), 0.0, maxf(from.z, to.z)))
 	for x in range(low.x, high.x + 1):
 		for z in range(low.y, high.y + 1):
 			for index: int in cells.get(Vector2i(x, z), []):
@@ -656,7 +660,7 @@ func _floor_near(layout: ShipLayout, point: Vector2, low: float, high: float) ->
 func _top_facing(faces: PackedVector3Array, cells: Dictionary, from: Vector3, low: float) -> float:
 	var highest := -INF
 	var facing := -1.0
-	for index: int in cells.get(Vector2i(floori(from.x / CELL), floori(from.z / CELL)), []):
+	for index: int in FaceCells.at(cells, from):
 		var a := faces[index]
 		var b := faces[index + 1]
 		var c := faces[index + 2]
@@ -666,8 +670,7 @@ func _top_facing(faces: PackedVector3Array, cells: Dictionary, from: Vector3, lo
 		var height := (hit as Vector3).y
 		if height >= low and height > highest:
 			highest = height
-			# Godot's front faces wind clockwise: their normal is the cross reversed.
-			facing = -(b - a).cross(c - a).normalized().y
+			facing = FaceCells.facing(a, b, c)
 	return facing
 
 
@@ -740,7 +743,7 @@ func _check_ladder(
 func _first_face(faces: PackedVector3Array, cells: Dictionary, from: Vector3, way: float) -> float:
 	var direction := Vector3.UP * way
 	var nearest := INF
-	for index: int in cells.get(Vector2i(floori(from.x / CELL), floori(from.z / CELL)), []):
+	for index: int in FaceCells.at(cells, from):
 		var hit: Variant = Geometry3D.ray_intersects_triangle(
 			from, direction, faces[index], faces[index + 1], faces[index + 2]
 		)
@@ -865,27 +868,6 @@ func _ship_faces(art: Node3D, shown := false, spans := PackedInt32Array()) -> Pa
 	return faces
 
 
-## The triangles of [param faces], filed by the CELL-sized squares of the ship plane
-## their bounds cover: Vector2i -> Array of first-corner indices (an Array, which a
-## Dictionary holds by reference, where a packed array would be copied out).
-func _file_faces(faces: PackedVector3Array) -> Dictionary:
-	var cells := {}
-	for index in range(0, faces.size(), 3):
-		var low := Vector2(INF, INF)
-		var high := Vector2(-INF, -INF)
-		for corner in 3:
-			var at := faces[index + corner]
-			low = Vector2(minf(low.x, at.x), minf(low.y, at.z))
-			high = Vector2(maxf(high.x, at.x), maxf(high.y, at.z))
-		for x in range(floori(low.x / CELL), floori(high.x / CELL) + 1):
-			for z in range(floori(low.y / CELL), floori(high.y / CELL) + 1):
-				var cell := Vector2i(x, z)
-				if not cells.has(cell):
-					cells[cell] = []
-				(cells[cell] as Array).append(index)
-	return cells
-
-
 func _samples(area: Rect2) -> PackedVector2Array:
 	var inner := area.grow(-SAMPLE_INSET)
 	var points := PackedVector2Array()
@@ -907,8 +889,7 @@ func _nearest_face(
 	var from := point - direction * reach
 	var candidates := {}
 	for at: Vector3 in [from, point, point + direction * reach]:
-		var cell := Vector2i(floori(at.x / CELL), floori(at.z / CELL))
-		for index: int in cells.get(cell, []):
+		for index: int in FaceCells.at(cells, at):
 			candidates[index] = true
 	var nearest := INF
 	for index: int in candidates:
@@ -1065,7 +1046,7 @@ func _check_collapse() -> void:
 	driver.previous = driver.current
 	await process_frame
 	var faces := _ship_faces(scene.get_node("MatchView/Ship/ShipArt"))
-	var cells := _file_faces(faces)
+	var cells := FaceCells.file(faces)
 	var layout := sim.config.ship
 	for index in layout.platforms.size():
 		var platform := layout.platforms[index]
