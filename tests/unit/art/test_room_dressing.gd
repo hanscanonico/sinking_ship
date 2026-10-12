@@ -25,6 +25,11 @@ func _room(room_name: StringName) -> ShipRoom:
 	return null
 
 
+## The ship data/ships/[param ship_name].tres lays out.
+func _ship(ship_name: String) -> ShipLayout:
+	return load("res://data/ships/%s.tres" % ship_name)
+
+
 ## The twelve triangles of a box over [param area] from [param bottom] to [param top].
 func _box(area: Rect2, bottom: float, top: float) -> PackedVector3Array:
 	var mesh := BoxMesh.new()
@@ -54,7 +59,7 @@ func test_each_room_of_the_steamer_is_what_its_shape_says() -> void:
 
 
 func test_a_room_whose_name_says_what_it_is_is_that() -> void:
-	var titanic: ShipLayout = load("res://data/ships/titanic.tres")
+	var titanic := _ship("titanic")
 	var space := ShipSpace.new(titanic)
 	var kinds := {
 		&"officers' quarters": RoomDressing.Kind.BERTHS,
@@ -101,7 +106,7 @@ func test_a_room_whose_name_says_what_it_is_is_that() -> void:
 
 
 func test_the_trawler_s_rooms_keep_their_dressing() -> void:
-	var trawler: ShipLayout = load("res://data/ships/trawler.tres")
+	var trawler := _ship("trawler")
 	var space := ShipSpace.new(trawler)
 	# Her galley is a room of service, and not an office: dressed as the saloon it was.
 	var kinds := {
@@ -118,10 +123,11 @@ func test_the_trawler_s_rooms_keep_their_dressing() -> void:
 
 
 func test_a_liner_s_office_is_one_and_her_officers_quarters_are_not() -> void:
-	var titanic: ShipLayout = load("res://data/ships/titanic.tres")
+	var titanic := _ship("titanic")
+	var space := ShipSpace.new(titanic)
 	var offices := {}
 	for room: ShipRoom in titanic.rooms:
-		if RoomDressing.kind_of(ShipSpace.new(titanic), room) == RoomDressing.Kind.SERVICE:
+		if RoomDressing.kind_of(space, room) == RoomDressing.Kind.SERVICE:
 			offices[room.name] = LinerService.office(room)
 	assert_eq(
 		offices,
