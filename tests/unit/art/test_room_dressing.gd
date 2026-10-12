@@ -141,11 +141,11 @@ func test_a_liner_s_office_is_one_and_her_officers_quarters_are_not() -> void:
 
 
 func test_the_liner_s_kinds_keep_the_ship_s_own_lining() -> void:
+	# A first-class corridor lines its own (LinerCorridor, test_liner_corridor.gd).
 	for kind: RoomDressing.Kind in [
 		RoomDressing.Kind.DINING,
 		RoomDressing.Kind.PUBLIC,
 		RoomDressing.Kind.STAIRCASE,
-		RoomDressing.Kind.FIRST_CORRIDOR,
 		RoomDressing.Kind.SERVICE,
 		RoomDressing.Kind.BERTHS,
 	]:

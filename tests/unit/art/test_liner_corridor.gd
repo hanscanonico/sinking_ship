@@ -76,6 +76,15 @@ func test_the_first_class_corridors_are_dressed_as_such() -> void:
 	)
 
 
+func test_a_first_class_corridor_is_panelled_over_a_carpet() -> void:
+	var paints := LinerCorridor.linings()
+	assert_eq(paints.size(), 4, "wall, floor, overhead and beam")
+	assert_eq(paints[RoomDressing.Part.WALL].colour_in, LinerCorridor.WHITE_PANEL)
+	assert_eq(paints[RoomDressing.Part.FLOOR].colour_in, LinerCorridor.CARPET)
+	assert_null(paints[RoomDressing.Part.OVERHEAD], "her own deckhead overhead")
+	assert_null(paints[RoomDressing.Part.BEAM], "her own beams")
+
+
 func test_each_corridor_draws_more_than_the_passage_dressing_alone() -> void:
 	var dressing := RoomDressing.new(_space)
 	var corridor := LinerCorridor.new(_space, dressing._passage)
