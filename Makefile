@@ -301,6 +301,11 @@ art-lint:
 # scripts); JOBS=1 runs it in one engine. One shard of N, as CI runs it:
 #   make test SHARD=2/8
 # tools/run_tests.sh hands any other GUT flag through (-gunit_test_name=...).
+# Every test engine, from any worktree or session, first takes one of TEST_SLOTS
+# machine-wide slots (tools/test_slot.sh), a kernel lock dropped however its engine
+# ends: half the cores by default, TEST_SLOTS=6 on make or in the environment to
+# change it (make hands either to the recipe as it is). A run that has to wait for one
+# says so in one line.
 TEST ?=
 SHARD ?=
 JOBS ?= 4
@@ -391,11 +396,13 @@ SOURCES = $(shell find . -name '*.gd' \
 check:
 	GODOT="$(GODOT)" tools/check_scripts.sh
 
-# The error guard itself, against a stand-in engine that errors and exits 0; and
-# the window lock, against sleeps on a private lock file.
+# The error guard itself, against a stand-in engine that errors and exits 0; the
+# window lock, against sleeps on a private lock file; and the test engine slots,
+# against sleeps on private ones.
 guard-check:
 	tools/engine_guard_check.sh
 	tools/window_lock_check.sh
+	tools/test_slot_check.sh
 
 # Style and smells. Rule overrides live in gdlintrc.
 lint:

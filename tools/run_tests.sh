@@ -16,6 +16,9 @@
 # A shard runs only its share of the scripts and holds the count to that share;
 # the shards of one N together run every script once. Any other argument is
 # handed to GUT verbatim, and the count check is skipped.
+# Every engine first takes one of TEST_SLOTS machine-wide slots (tools/test_slot.sh),
+# so the worktrees and sessions sharing a machine never run more than that many at
+# once; a run that has to wait says so in one line.
 # Narrow with -gselect (a filename substring), not -gtest: -gtest adds a script
 # on top of the config's directory scan instead of replacing it.
 
@@ -48,9 +51,11 @@ if [[ "${1:-}" == "--jobs" ]]; then
 	jobs="$2"
 	logs="$(mktemp -d)"
 	echo "test: $jobs shards side by side, logs in $logs"
+	# A shard waiting for a test engine slot says so here, not in its log.
+	exec 7>&2
 	pids=()
 	for ((k = 1; k <= jobs; k++)); do
-		"$0" --shard "$k/$jobs" >"$logs/shard_$k.log" 2>&1 &
+		TEST_SLOT_NOTICE_FD=7 "$0" --shard "$k/$jobs" >"$logs/shard_$k.log" 2>&1 &
 		pids+=("$!")
 	done
 	failed=0
@@ -87,8 +92,9 @@ if [[ "${1:-}" == "--shard" ]]; then
 	# No config file: its directory scan would add every script back.
 	gut_args=(-gconfig= -gexit -glog=1 "-gtest=$(printf '%s' "$shard" | paste -sd, -)")
 	echo "test: shard $2 runs $expected scripts"
+	export TEST_SLOT_NAME="shard $2"
 elif (($#)); then
-	exec tools/engine_guard.sh "$GODOT" --headless --path . -s res://addons/gut/gut_cmdln.gd "$@"
+	exec tools/engine_guard.sh tools/test_slot.sh "$GODOT" --headless --path . -s res://addons/gut/gut_cmdln.gd "$@"
 fi
 
 if [[ -z "$expected" ]]; then
@@ -102,7 +108,7 @@ fi
 LOG="$(mktemp)"
 trap 'rm -f "$LOG"' EXIT
 
-tools/engine_guard.sh "$GODOT" --headless --path . -s res://addons/gut/gut_cmdln.gd ${gut_args[@]+"${gut_args[@]}"} 2>&1 | tee "$LOG"
+tools/engine_guard.sh tools/test_slot.sh "$GODOT" --headless --path . -s res://addons/gut/gut_cmdln.gd ${gut_args[@]+"${gut_args[@]}"} 2>&1 | tee "$LOG"
 status=${PIPESTATUS[0]}
 
 # GUT's "Scripts" summary line, with the colour escapes it paints it with cut off.
