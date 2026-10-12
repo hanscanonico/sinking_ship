@@ -89,7 +89,13 @@ func report() -> PackedStringArray:
 		return PackedStringArray(["frame split: no frames kept"])
 	var frame := mean(&"frame")
 	var lines := PackedStringArray(
-		["frame split over %d frames, per frame (%.1f fps):" % [_frames, 1000.0 / frame]]
+		[
+			(
+				"frame split over the match's %d frames, not its bake's hold — the median above"
+				% _frames
+			),
+			"  counts those too — per frame (%.1f fps of the match alone):" % (1000.0 / frame),
+		]
 	)
 	_report_part(&"frame", "frame", 1, lines)
 	lines.append(
@@ -113,6 +119,10 @@ func _report_part(part: StringName, label: String, depth: int, lines: PackedStri
 	var note := ""
 	if part == &"match":
 		note = "  (%.2f steps)" % mean(&"steps")
+	elif part == &"prediction" and mean(part) == 0.0:
+		note = "  (not exercised: the client only watches, or nothing lags its wire)"
+	elif part == &"reconcile" and mean(&"prediction") == 0.0:
+		note = "  (each snapshot restored, nothing re-run)"
 	lines.append(_line(label, mean(part), depth) + note)
 	var parts := parts_of(part)
 	if parts.is_empty():

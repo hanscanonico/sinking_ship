@@ -86,7 +86,8 @@ func test_the_report_names_every_part_and_the_unaccounted_rest() -> void:
 		}
 	)
 	var report := "\n".join(split.report())
-	assert_string_contains(report, "over 1 frames")
+	assert_string_contains(report, "over the match's 1 frames")
+	assert_string_contains(report, "not its bake's hold", "which frames, said plainly")
 	assert_string_contains(report, "bots' decisions")
 	assert_string_contains(report, "display scripts")
 	assert_string_contains(report, "render CPU")
@@ -99,6 +100,17 @@ func test_the_report_names_every_part_and_the_unaccounted_rest() -> void:
 	assert_string_contains(unaccounted[0], "5.00 ms", "the frame's rest, in milliseconds")
 	assert_string_contains(report, "sinking poses")
 	assert_string_contains(report, "21.0", "poses built per frame")
+
+
+func test_a_prediction_never_run_is_said_not_exercised() -> void:
+	var split := FrameSplit.new()
+	_frame(split, 30000, {&"match": 6000, &"reconcile": 200, &"steps": 1})
+	var report := "\n".join(split.report())
+	assert_string_contains(report, "not exercised")
+	assert_string_contains(report, "each snapshot restored")
+	var predicting := FrameSplit.new()
+	_frame(predicting, 30000, {&"match": 6000, &"prediction": 900, &"steps": 1})
+	assert_false("\n".join(predicting.report()).contains("not exercised"), "said only when so")
 
 
 func test_a_report_of_no_frames_says_so() -> void:
