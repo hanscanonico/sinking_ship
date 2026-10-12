@@ -7,27 +7,27 @@ extends RefCounted
 ## net/ from outside, so neither core/ nor ai/ ever reads a clock (D2), and they are
 ## built only when the split is asked for: normal play builds none and pays nothing.
 ##
-## A timed piece is a continuation of the one it stands in for — the same snapshot,
-## the same hash, the same baked sinking — so the match plays as it would untimed. Two
-## of them go in where nothing public lets them: the config's schedule and the codecs
-## of the host and the client, set by name; this file is instrumentation, not play.
+## A timed piece is the one it stands in for, or a continuation of it — the schedule
+## SinkSchedule.for_match builds, as a Schedule (MatchConfig.schedule_as); the codec
+## both ends are handed; sims and a digest carried on from the same snapshot and hash —
+## so the match plays as it would untimed.
+##
+## Where the client's own work is booked: a beat's prediction steps, and the steps that
+## re-run it after a reset, as client prediction (Sim.step); the reset itself as client
+## reconcile (Sim.restore); the snapshot _trusted takes of the prediction as snapshot
+## and digest (Sim.snapshot); the rest of a reconcile — the checks, the bookkeeping — as
+## the step's rest.
 
 
-## Times every sinking pose [param config]'s match builds into [param split], before
-## anything of the match has asked for its schedule: the one SinkSchedule.for_match
-## builds, timed.
-static func time_schedule(config: MatchConfig, split: FrameSplit) -> void:
-	var schedule := Schedule.new(
-		config.scenario,
-		config.ship.freeboard,
-		SeedStreams.derive(config.match_seed, "sink"),
-		config.ship.structure,
-		null,
-		config.sinking()
-	)
-	schedule.place_falls(config.ship, config.rules.railing_height)
+## Times every sinking pose [param config]'s match builds into [param split]: its
+## schedule built as a Schedule, before anything of the match has asked for it. Whether
+## it could — once something has, the schedule is left as it is, its poses untimed.
+static func time_schedule(config: MatchConfig, split: FrameSplit) -> bool:
+	var schedule := config.schedule_as(Schedule) as Schedule
+	if schedule == null:
+		return false
 	schedule.split = split
-	config._schedule = schedule
+	return true
 
 
 ## [param sources], each one that is there timed as the bots' decisions.
@@ -42,6 +42,11 @@ static func _now() -> int:
 	return Time.get_ticks_usec()
 
 
+## Books the time since [param start] (_now) to [param part] of [param split].
+static func _book(split: FrameSplit, part: StringName, start: int) -> void:
+	split.add(part, _now() - start)
+
+
 ## The schedule, every pose it builds counted and timed.
 class Schedule:
 	extends SinkSchedule
@@ -50,8 +55,8 @@ class Schedule:
 	func pose_at(tick: int) -> ShipPose:
 		var start := FrameMeter._now()
 		var pose := super(tick)
+		FrameMeter._book(split, &"pose_time", start)
 		split.add(&"poses", 1)
-		split.add(&"pose_time", FrameMeter._now() - start)
 		return pose
 
 
@@ -68,13 +73,13 @@ class Source:
 	func next_frame(tick: int) -> InputFrame:
 		var start := FrameMeter._now()
 		var frame := _inner.next_frame(tick)
-		_split.add(&"bots", FrameMeter._now() - start)
+		FrameMeter._book(_split, &"bots", start)
 		return frame
 
 	func observe(snapshot: Dictionary, pose: ShipPose) -> void:
 		var start := FrameMeter._now()
 		_inner.observe(snapshot, pose)
-		_split.add(&"bots", FrameMeter._now() - start)
+		FrameMeter._book(_split, &"bots", start)
 
 
 ## A sim: its step timed as [member stepping] says — the host's or the client's
@@ -96,21 +101,21 @@ class Sim:
 	func step(frames: Array[InputFrame]) -> Array[SimEvent]:
 		var start := FrameMeter._now()
 		var events := super(frames)
-		split.add(stepping, FrameMeter._now() - start)
+		FrameMeter._book(split, stepping, start)
 		return events
 
 	func snapshot() -> Dictionary:
 		var start := FrameMeter._now()
 		var taken := super()
 		if split != null:
-			split.add(&"snapshot", FrameMeter._now() - start)
+			FrameMeter._book(split, &"snapshot", start)
 		return taken
 
 	func restore(from: Dictionary) -> void:
 		var start := FrameMeter._now()
 		super(from)
 		if split != null:
-			split.add(&"reconcile", FrameMeter._now() - start)
+			FrameMeter._book(split, &"reconcile", start)
 
 
 ## The host's digest, folding in timed as snapshot and digest.
@@ -126,7 +131,7 @@ class Digest:
 	func add(snapshot: Dictionary, final: bool = false) -> void:
 		var start := FrameMeter._now()
 		super(snapshot, final)
-		_split.add(&"snapshot", FrameMeter._now() - start)
+		FrameMeter._book(_split, &"snapshot", start)
 
 
 ## A wire codec, everything it encodes and decodes timed as the wire's.
@@ -141,25 +146,25 @@ class Codec:
 	func encode_inputs(frames: Array[InputFrame]) -> PackedByteArray:
 		var start := FrameMeter._now()
 		var bytes := super(frames)
-		_split.add(&"wire", FrameMeter._now() - start)
+		FrameMeter._book(_split, &"wire", start)
 		return bytes
 
 	func decode_inputs(bytes: PackedByteArray, seat: int) -> Array[InputFrame]:
 		var start := FrameMeter._now()
 		var frames := super(bytes, seat)
-		_split.add(&"wire", FrameMeter._now() - start)
+		FrameMeter._book(_split, &"wire", start)
 		return frames
 
 	func encode_snapshot(snapshot: Dictionary, ack: int, heard: int, early: int) -> PackedByteArray:
 		var start := FrameMeter._now()
 		var bytes := super(snapshot, ack, heard, early)
-		_split.add(&"wire", FrameMeter._now() - start)
+		FrameMeter._book(_split, &"wire", start)
 		return bytes
 
 	func decode_snapshot(bytes: PackedByteArray) -> SnapshotPacket:
 		var start := FrameMeter._now()
 		var packet := super(bytes)
-		_split.add(&"wire", FrameMeter._now() - start)
+		FrameMeter._book(_split, &"wire", start)
 		return packet
 
 
@@ -179,18 +184,16 @@ class Loopback:
 		from: Dictionary,
 		split: FrameSplit
 	) -> void:
-		super(config, net_rules, conditions, seat, source, sources, from)
+		var codec := Codec.new(WireCodec.match_hash(config, net_rules), split)
+		super(config, net_rules, conditions, seat, source, sources, from, codec)
 		_split = split
-		var data_hash := WireCodec.match_hash(config, net_rules)
 		host.runner.sim = Sim.continuing(host.runner.sim, split, &"host_sim")
 		host.runner.digest = Digest.new(host.runner.digest, split)
-		host._codec = Codec.new(data_hash, split)
 		client.sim = Sim.continuing(client.sim, split, &"prediction")
-		client._codec = Codec.new(data_hash, split)
 
 	func step() -> Array[SimEvent]:
 		var start := FrameMeter._now()
 		var events := super()
-		_split.add(&"match", FrameMeter._now() - start)
+		FrameMeter._book(_split, &"match", start)
 		_split.add(&"steps", 1)
 		return events

@@ -18,11 +18,17 @@ var _clients := {}
 var _recent: Array[SimEvent] = []
 
 
-func _init(match_runner: MatchRunner, wire: Transport, net_rules: NetRules) -> void:
+## Serves [param match_runner]'s match on [param wire], speaking [param codec] — a
+## codec for its match_hash, a tool's own (FrameMeter) — or, with none, the match's.
+func _init(
+	match_runner: MatchRunner, wire: Transport, net_rules: NetRules, codec: WireCodec = null
+) -> void:
 	runner = match_runner
 	_wire = wire
 	_rules = net_rules
-	_codec = WireCodec.new(WireCodec.match_hash(runner.sim.config, net_rules))
+	_codec = codec
+	if _codec == null:
+		_codec = WireCodec.new(WireCodec.match_hash(runner.sim.config, net_rules))
 
 
 ## Seats the client at [param peer] on [param buffer] — the source the runner was

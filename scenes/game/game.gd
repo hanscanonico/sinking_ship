@@ -270,7 +270,8 @@ func _start(config: MatchConfig) -> void:
 	if _probe != null:
 		split = _probe.split
 		_probe.playing = true
-		FrameMeter.time_schedule(config, split)
+		if not FrameMeter.time_schedule(config, split):
+			push_warning("frame split: the match's sinking was built already; its poses untimed")
 	var jump_to := -1
 	if _args.phys_seconds >= 0.0:
 		_capture_tick = config.schedule().physics_tick(_args.phys_seconds)

@@ -177,3 +177,32 @@ func test_a_fast_match_is_deterministic() -> void:
 		digests.append(runner.digest.hex())
 	assert_ne(digests[0], "")
 	assert_eq(digests[1], digests[0], "the same seed, inputs and pace, the same digest")
+
+
+## A SinkSchedule of a tool's own, as a timer subclasses it (FrameMeter).
+class OwnSchedule:
+	extends SinkSchedule
+
+
+func test_a_schedule_built_as_a_tools_own_is_the_matchs_sinking() -> void:
+	var plain := _hit_fast(1701, false).schedule()
+	var config := _hit_fast(1701, false)
+	var own := config.schedule_as(OwnSchedule)
+	assert_true(own is OwnSchedule, "built as the class asked for")
+	assert_same(config.schedule(), own, "and the match's schedule from then on")
+	assert_eq(own.hit_tick(), plain.hit_tick())
+	assert_eq(own.end_tick(), plain.end_tick())
+	assert_eq(own.gone_tick(), plain.gone_tick())
+	assert_eq(own.scheduled().size(), plain.scheduled().size(), "its events and falls placed")
+	for index in plain.scheduled().size():
+		assert_eq(own.scheduled()[index].at, plain.scheduled()[index].at)
+		assert_eq(own.scheduled()[index].event.kind, plain.scheduled()[index].event.kind)
+	for tick: int in [0, plain.hit_tick(), plain.end_tick() >> 1, plain.end_tick()]:
+		assert_eq(own.pose_at(tick).transform, plain.pose_at(tick).transform, "tick %d" % tick)
+
+
+func test_a_schedule_already_built_is_never_replaced() -> void:
+	var config := _hit_fast(1701, false)
+	var built := config.schedule()
+	assert_null(config.schedule_as(OwnSchedule), "nothing built over it")
+	assert_same(config.schedule(), built)
