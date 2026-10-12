@@ -142,3 +142,11 @@ func test_what_hangs_from_the_first_class_ceiling_hangs_over_a_head_on_a_table()
 			assert_gt(over, LinerDining.CLEAR_HIGH - 0.001)
 			high += 1
 	assert_gt(high, 0)
+
+
+func test_a_dining_saloon_lines_its_walls_floor_ceiling_and_beams() -> void:
+	var paints := RoomDressing._linings(RoomDressing.Kind.DINING)
+	assert_eq(paints, LinerDining.linings())
+	assert_eq(paints.size(), RoomDressing.Part.size())
+	for paint: ShipMesh.Paint in paints:
+		assert_not_null(paint)
