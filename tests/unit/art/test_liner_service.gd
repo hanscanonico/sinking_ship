@@ -72,6 +72,14 @@ func test_nothing_the_trawler_s_dressing_draws_stands_in_a_body_s_way() -> void:
 	assert_eq(found, PackedStringArray())
 
 
+func test_a_room_of_service_is_lined_in_white_tile_over_quarry_tile() -> void:
+	var paints := RoomDressing._linings(RoomDressing.Kind.SERVICE)
+	assert_eq(paints.size(), 4)
+	assert_eq(paints[RoomDressing.Part.WALL].colour_in, LinerService.TILE)
+	assert_eq(paints[RoomDressing.Part.FLOOR].colour_in, LinerService.QUARRY)
+	assert_null(paints[RoomDressing.Part.OVERHEAD])
+
+
 func test_each_of_her_rooms_of_service_is_dressed_more_than_it_was() -> void:
 	var space := ShipSpace.new(_titanic)
 	for room_name: StringName in BEFORE:
