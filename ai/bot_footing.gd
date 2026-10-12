@@ -212,12 +212,17 @@ func clear_heading(
 	return wish
 
 
-## The share of the ship's platforms under water at their middle under [param pose].
+## The share of her deck area under water under [param pose]: each platform by its
+## area, under once the water stands over its middle — a small platform going under
+## floods little of her.
 func flooded_share(pose: ShipPose) -> float:
-	var flooded := 0
+	var flooded := 0.0
+	var whole := 0.0
 	for platform in _surfaces.platform_count():
-		flooded += 1 if _surfaces.flooded(platform, pose) else 0
-	return flooded / float(_surfaces.platform_count())
+		var area := _walk_graph.platform_area(platform)
+		whole += area
+		flooded += area if _surfaces.flooded(platform, pose) else 0.0
+	return flooded / whole if whole > 0.0 else 0.0
 
 
 ## Whether [param mark] stands between the bot and [param probe] — nearer the probe

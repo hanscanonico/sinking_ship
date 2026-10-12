@@ -74,7 +74,7 @@ const NON_NEGATIVE: Array[String] = [
 @export var wander_weight: float
 ## How far a bot keeps from the waterline and the deck's open edges, in metres.
 @export var edge_margin_m: float
-## Late in the sinking a bot presses. Times the share of the ship's platforms under
+## Late in the sinking a bot presses. Times the share of her deck area under
 ## water: how much more the hunt and the line-up score, and the share of its edge
 ## margin it gives up — the last perches are fought for at their edges, not shared.
 @export var late_hunt_gain: float
@@ -82,8 +82,8 @@ const NON_NEGATIVE: Array[String] = [
 ## While the ship is level a bot spars: it charges nobody, holds a shove that would
 ## send a seat at the water, an open drop or a railing it could go over within
 ## spar_margin(), and lines up none at a drop nearer than that — a shove costs
-## position, not a life. The margin shrinks as the ship's platforms go under and is
-## gone once spar_until of them are: the sinking makes the fight a fight to the death.
+## position, not a life. The margin shrinks as her deck area goes under and is
+## gone once spar_until of it is: the sinking makes the fight a fight to the death.
 ## It shrinks as the match goes on too, gone spar_for_s seconds after it went live,
 ## so a ship that stays level does not hold the last seats sparring for ever.
 @export var spar_margin_m: float
@@ -125,7 +125,7 @@ const NON_NEGATIVE: Array[String] = [
 @export var climb_margin_m: float
 @export var refuge_margin_m: float
 ## A bot's refuge, where it climbs out and flees to: the highest ground it can reach —
-## once the share refuge_from of the ship's platforms is under water, the highest less
+## once the share refuge_from of her deck area is under water, the highest less
 ## refuge_rise_s seconds of how fast it has seen the water under each come up over its
 ## last refuge_window_s (BotRefuge); a refuge once made for is kept through a lurch, and
 ## else unless another would stand refuge_keep_m higher: a heel swinging across by a
@@ -167,7 +167,7 @@ const NON_NEGATIVE: Array[String] = [
 
 
 ## How far from the water, an open drop or a railing a bot keeps the seats it shoves
-## while the share [param under] of the ship's platforms is under water,
+## while the share [param under] of her deck area is under water,
 ## [param live_s] seconds after the match went live: spar_margin_m with every deck dry
 ## as it goes live, down to none once spar_until are under or spar_for_s has gone by,
 ## whichever is nearer.
