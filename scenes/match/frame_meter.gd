@@ -74,12 +74,12 @@ class Source:
 
 	func next_frame(tick: int) -> InputFrame:
 		var bot := _inner as BotInputSource
-		var searched := bot.brain.replans() if bot != null else 0
+		var searched := bot.replans() if bot != null else 0
 		var start := FrameMeter._now()
 		var frame := _inner.next_frame(tick)
 		FrameMeter._book(_split, &"bots", start)
 		if bot != null:
-			_split.add(&"replans", bot.brain.replans() - searched)
+			_split.add(&"replans", bot.replans() - searched)
 		return frame
 
 	func observe(snapshot: Dictionary, pose: ShipPose) -> void:
