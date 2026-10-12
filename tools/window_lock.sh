@@ -13,7 +13,9 @@
 # It cannot go stale; there is nothing to clean up.
 #
 # It tries once without waiting; when another window holds it, it says so in one
-# line on stderr and waits as long as it takes. The exit status is COMMAND's.
+# line on stderr and waits as long as it takes — blocked in flock(1), or with
+# lockf(1) trying again every half second, as lockf waiting on a descriptor spins
+# a core. The exit status is COMMAND's.
 # Under a holder (WINDOW_LOCK_HELD names the same file) it runs COMMAND as it is,
 # rather than wait on itself. flock(1) where it is on PATH (Linux), else the
 # BSD lockf(1) macOS ships; with neither it fails and runs nothing.
@@ -38,7 +40,7 @@ if command -v flock >/dev/null; then
 	wait_lock() { flock 9; }
 elif [[ -x /usr/bin/lockf ]]; then
 	try_lock() { /usr/bin/lockf -s -t 0 9; }
-	wait_lock() { /usr/bin/lockf -s 9; }
+	wait_lock() { until try_lock; do sleep 0.5; done; }
 else
 	echo "window: neither flock nor /usr/bin/lockf is available: cannot take $WINDOW_LOCK_FILE" >&2
 	exit 1
