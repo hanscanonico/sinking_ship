@@ -339,6 +339,63 @@ func test_a_bot_climbing_out_from_below_decks_never_turns_back_on_a_stair() -> v
 	assert_eq(again, [], "it never went back into a zone it had left: %s" % [passed])
 
 
+## A deck 30 × 20 m with a perch 4 m square on it, 2.2 m up, and a stair 1.4 m wide
+## from the perch's forward edge down along +x to the deck at x = -1; spawns well
+## clear of both.
+func _perched() -> ShipLayout:
+	var layout := ShipLayout.new()
+	layout.freeboard = 3.0
+	var platforms: Array[ShipPlatform] = []
+	for row: Array in [
+		[&"deck", Rect2(-15.0, -10.0, 30.0, 20.0), 0.0],
+		[&"perch", Rect2(-8.0, -2.0, 4.0, 4.0), 2.2],
+	]:
+		var platform := ShipPlatform.new()
+		platform.name = row[0]
+		platform.area = row[1]
+		platform.height = row[2]
+		platforms.append(platform)
+	layout.platforms = platforms
+	var stair := ShipRamp.new()
+	stair.area = Rect2(-4.0, -0.7, 3.0, 1.4)
+	stair.axis = ShipRamp.Axis.X
+	stair.start_height = 2.2
+	stair.end_height = 0.0
+	var ramps: Array[ShipRamp] = [stair]
+	layout.ramps = ramps
+	var spawns: Array[Vector3] = [Vector3(5.0, 0.0, -5.0), Vector3(5.0, 0.0, 5.0)]
+	layout.spawns = spawns
+	return layout
+
+
+## On an even keel, a bot on a perch goes at its target on the deck abaft the perch:
+## down the stair, off its foot and back round past the stair to it. Off the foot it
+## keeps to the deck it reckons it stands on — its view, a reaction behind, still shows
+## it on the stair — so the stair is no way at its target: it never turns back up it
+## at its first step off, to come down again by its route and go round so.
+func test_a_bot_off_a_stairs_foot_does_not_turn_back_up_it() -> void:
+	var layout := _perched()
+	var sim := SimFixtures.sim(2, null, layout)
+	SimFixtures.place(sim, 0, Vector3(-6.0, 2.2, 0.0), 0.0)
+	SimFixtures.place(sim, 1, Vector3(-12.0, 0.0, 2.6))
+	var deck := SimFixtures.platform_named(layout, &"deck")
+	var source := BotInputSource.new(0, _tier(&"normal"), sim.config)
+	var runner := _runner(sim, source)
+	var down := false
+	var back_up := false
+	var nearest := INF
+	for _tick in 8 * Ticks.RATE:
+		runner.step()
+		var bot := sim.state.seats[0]
+		down = down or bot.surface == deck
+		var on_stair := sim.surfaces.is_ramp(bot.surface)
+		back_up = back_up or down and on_stair and bot.pos.y > sim.config.rules.step_height
+		nearest = minf(nearest, bot.pos.distance_to(sim.state.seats[1].pos))
+	assert_true(down, "it came down onto the deck")
+	assert_false(back_up, "it never went back up the stair, a step or more")
+	assert_lt(nearest, 2.0, "it came at its target")
+
+
 ## Settled half a metre, the ship not yet foundering: a bot that climbs out of the
 ## cabins stops climbing once up on the main deck, three metres out of the sea's reach,
 ## and goes after its target there instead of on up to the bridge.
