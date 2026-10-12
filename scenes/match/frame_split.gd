@@ -4,8 +4,9 @@ extends RefCounted
 ## timers measured of each frame, in microseconds, summed up over the frames kept. A
 ## part is a share of the one it lists as its parent; what a parent's measured parts
 ## leave of it is its rest, reported under the rest's own name — the display scripts'
-## share of the frame's scripts, the step's own work, and the frame's unaccounted time —
-## so the parts always add up to the frame. Clock-free: it only adds what it is given.
+## share of the frame's scripts, the step's own work, the drawing's swap and wait on the
+## GPU, and the frame's unaccounted time — so the parts always add up to the frame.
+## Clock-free: it only adds what it is given.
 
 ## The frame and its parts, in the order the report lists them: key, label, parent.
 const PARTS: Array[Array] = [
@@ -18,13 +19,15 @@ const PARTS: Array[Array] = [
 	[&"wire", "wire encode and decode", &"match"],
 	[&"prediction", "client prediction", &"match"],
 	[&"reconcile", "client reconcile", &"match"],
-	[&"render", "render CPU", &"frame"],
+	[&"draw", "drawing", &"frame"],
+	[&"render", "render CPU", &"draw"],
 ]
 ## What each parent's measured parts leave of it, by name.
 const RESTS := {
 	&"frame": "unaccounted",
 	&"process": "display scripts",
 	&"match": "rest of the step",
+	&"draw": "swap and waiting on the GPU",
 }
 
 var _open := {}

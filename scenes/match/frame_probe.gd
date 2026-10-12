@@ -4,7 +4,10 @@ extends Node
 ## a frame is the wall time from one frame's scripts starting to the next's; its
 ## scripts, the time from the first node's _process to the last's — this probe runs
 ## first and its End last; the match's steps and their parts as FrameMeter's timers
-## measured them inside; and the render's CPU time, as the RenderingServer measured it.
+## measured them inside; its drawing, the wall time from the RenderingServer's
+## frame_pre_draw to its frame_post_draw — the render's CPU time within it, as the
+## RenderingServer measured it, the rest the buffer swap and the wait on the GPU, which
+## the Compatibility renderer cannot time itself.
 ## The frames drawn while a match plays from the skip-th second of the run on are kept
 ## — the run's own clock, as --print-fps counts its seconds; the menu's and a held
 ## countdown's bake are not the match's — and the split of them all so far is printed
@@ -24,6 +27,8 @@ var _process_start := 0
 var _reported := 0
 var _viewport: RID
 var _drawn := 0
+var _draw_start := 0
+var _draw_end := 0
 
 
 ## Keeps the frames from [param skip_seconds] of the run on.
@@ -39,6 +44,21 @@ func _init(skip_seconds: float) -> void:
 func _ready() -> void:
 	_viewport = get_viewport().get_viewport_rid()
 	RenderingServer.viewport_set_measure_render_time(_viewport, true)
+	RenderingServer.frame_pre_draw.connect(_on_pre_draw)
+	RenderingServer.frame_post_draw.connect(_on_post_draw)
+
+
+func _exit_tree() -> void:
+	RenderingServer.frame_pre_draw.disconnect(_on_pre_draw)
+	RenderingServer.frame_post_draw.disconnect(_on_post_draw)
+
+
+func _on_pre_draw() -> void:
+	_draw_start = Time.get_ticks_usec()
+
+
+func _on_post_draw() -> void:
+	_draw_end = Time.get_ticks_usec()
 
 
 func _process(_delta: float) -> void:
@@ -70,6 +90,8 @@ func _close(now: int) -> void:
 		RenderingServer.get_frame_setup_time_cpu()
 		+ RenderingServer.viewport_get_measured_render_time_cpu(_viewport)
 	)
+	if _draw_start >= _frame_start and _draw_end >= _draw_start:
+		split.add(&"draw", _draw_end - _draw_start)
 	split.add(&"render", int(render_ms * 1000.0))
 	split.add(
 		&"gpu", int(RenderingServer.viewport_get_measured_render_time_gpu(_viewport) * 1000.0)

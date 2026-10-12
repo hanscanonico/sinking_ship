@@ -48,18 +48,20 @@ func test_what_a_part_leaves_of_its_parent_is_its_rest() -> void:
 			&"match": 12000,
 			&"bots": 5000,
 			&"host_sim": 4000,
-			&"render": 15000,
+			&"draw": 15000,
+			&"render": 11000,
 		}
 	)
 	assert_almost_eq(split.rest(&"match"), 3.0, 0.0001, "the step less its measured parts")
+	assert_almost_eq(split.rest(&"draw"), 4.0, 0.0001, "the swap and the wait on the GPU")
 	assert_almost_eq(split.rest(&"process"), 8.0, 0.0001, "the display scripts' share")
 	assert_almost_eq(split.rest(&"frame"), 5.0, 0.0001, "unaccounted")
 
 
 func test_the_frames_parts_and_their_rest_add_up_to_the_frame() -> void:
 	var split := FrameSplit.new()
-	_frame(split, 38000, {&"process": 21000, &"match": 9000, &"render": 12500})
-	_frame(split, 41000, {&"process": 19000, &"match": 11000, &"render": 13500})
+	_frame(split, 38000, {&"process": 21000, &"match": 9000, &"draw": 12500})
+	_frame(split, 41000, {&"process": 19000, &"match": 11000, &"draw": 13500})
 	var top := 0.0
 	for part: StringName in split.parts_of(&"frame"):
 		top += split.mean(part)
@@ -76,7 +78,8 @@ func test_the_report_names_every_part_and_the_unaccounted_rest() -> void:
 			&"process": 20000,
 			&"match": 12000,
 			&"bots": 5000,
-			&"render": 15000,
+			&"draw": 15000,
+			&"render": 9000,
 			&"poses": 21,
 			&"pose_time": 3000,
 			&"steps": 1,
@@ -87,6 +90,7 @@ func test_the_report_names_every_part_and_the_unaccounted_rest() -> void:
 	assert_string_contains(report, "bots' decisions")
 	assert_string_contains(report, "display scripts")
 	assert_string_contains(report, "render CPU")
+	assert_string_contains(report, "waiting on the GPU")
 	assert_string_contains(report, "unaccounted")
 	var unaccounted := Array(split.report()).filter(
 		func(line: String) -> bool: return line.contains("unaccounted")
