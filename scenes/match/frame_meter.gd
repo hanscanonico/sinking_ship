@@ -3,9 +3,10 @@ extends RefCounted
 ## The timers of make fps SPLIT=1 (FrameProbe): the match's own pieces, subclassed so
 ## each call they make is timed into a FrameSplit — the bots' decisions, the host's
 ## sim step, snapshot and digest, the wire's encode and decode, the client's
-## prediction and reconcile, and every sinking pose built. They wrap core/, ai/ and
-## net/ from outside, so neither core/ nor ai/ ever reads a clock (D2), and they are
-## built only when the split is asked for: normal play builds none and pays nothing.
+## prediction and reconcile, and every sinking pose built — and they count every fresh
+## route search a bot takes. They wrap core/, ai/ and net/ from outside, so neither
+## core/ nor ai/ ever reads a clock (D2), and they are built only when the split is
+## asked for: normal play builds none and pays nothing.
 ##
 ## A timed piece is the one it stands in for, or a continuation of it — the schedule
 ## SinkSchedule.for_match builds, as a Schedule (MatchConfig.schedule_as); the codec
@@ -60,7 +61,8 @@ class Schedule:
 		return pose
 
 
-## A seat's source — a bot — what it decides and what it takes in timed as the bots'.
+## A seat's source — a bot — what it decides and what it takes in timed as the bots',
+## and every fresh route search its brain takes off the route it had counted.
 class Source:
 	extends InputSource
 	var _inner: InputSource
@@ -71,9 +73,13 @@ class Source:
 		_split = split
 
 	func next_frame(tick: int) -> InputFrame:
+		var bot := _inner as BotInputSource
+		var searched := bot.brain.replans() if bot != null else 0
 		var start := FrameMeter._now()
 		var frame := _inner.next_frame(tick)
 		FrameMeter._book(_split, &"bots", start)
+		if bot != null:
+			_split.add(&"replans", bot.brain.replans() - searched)
 		return frame
 
 	func observe(snapshot: Dictionary, pose: ShipPose) -> void:
