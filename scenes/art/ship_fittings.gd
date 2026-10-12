@@ -697,14 +697,25 @@ func _pane(
 		)
 
 
-## A passenger room's furniture, by what kind of room RoomDressing says it is.
+## A passenger room's furniture, by what kind of room RoomDressing says it is: a
+## saloon's banquettes — in a liner's dining saloons, public rooms, staircase landings,
+## galley and gymnasium too — or a small cabin's berth, in a liner's offices too.
 func _furnish(mesh: ShipMesh, room: ShipRoom) -> void:
 	var kind := RoomDressing.kind_of(_space, room)
-	if kind != RoomDressing.Kind.SALOON and kind != RoomDressing.Kind.CABIN:
+	var office := kind == RoomDressing.Kind.SERVICE and LinerService.office(room)
+	var seated: Array[RoomDressing.Kind] = [
+		RoomDressing.Kind.SALOON,
+		RoomDressing.Kind.DINING,
+		RoomDressing.Kind.PUBLIC,
+		RoomDressing.Kind.STAIRCASE,
+		RoomDressing.Kind.SERVICE,
+	]
+	var saloon := kind in seated and not office
+	if not saloon and not office and kind != RoomDressing.Kind.CABIN:
 		return
 	var runs := _space.wall_runs(room)
 	runs.sort_custom(func(a: Array, b: Array) -> bool: return a[2] - a[1] > b[2] - b[1])
-	if kind == RoomDressing.Kind.SALOON:
+	if saloon:
 		for run: Array in runs:
 			_banquette(mesh, room, run)
 	else:
