@@ -2740,8 +2740,8 @@ share = 0.2
 [sub_resource type="Resource" id="Weak_midships_joint"]
 script = ExtResource("18_weak")
 name = &"midships_joint"
-x = 2
-share = 0.3
+x = 0
+share = 0.2
 
 [sub_resource type="Resource" id="Strength"]
 script = ExtResource("17_strength")

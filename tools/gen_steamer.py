@@ -1236,12 +1236,17 @@ PUMPS = [("bilge_pump_p", "engine_bilge_p", 0.025), ("bilge_pump_s", "engine_bil
 STRENGTH = (120e6, 110e6)
 # Her test-only weak hull (SH33, --weak): her strength divided by this, and the places
 # along her she can break — (name, x, the share of that strength the spot keeps) — the
-# aft one an expansion joint over the cabins, the midships one the engine room's casing.
-# Est.: chosen so some match hits break her in two and a few in three (the census, the
-# pinned seeds breaks_in_two and breaks_in_three); her flooding loads peak near amidships
-# at about a fifth of her real strength.
+# aft one an expansion joint over the cabins, the midships one the engine room's casing
+# amidships, over the stokehold (#74). Est., measured on her match hits: chosen so some
+# break her in two and a few in three, every piece gone (the pinned seeds breaks_in_two
+# and breaks_in_three). Against this weak strength her own weight sags her amidships by
+# about 0.18 and a hit flooding her engine room by about 0.23, so the midships spot,
+# keeping 0.2, parts under the second alone; a hit aft hogs her at the aft joint past
+# its 0.2, and the piece fore of that break bends at most about 0.17 amidships, too
+# little to part it there. The midships spot stands no further forward: a piece fore of a
+# break at x 2 or more floats on her hold and forepeak, so she would not be gone.
 WEAK_DIVISOR = 8.0
-WEAK_SPOTS = [("aft_joint", -8.0, 0.2), ("midships_joint", 2.0, 0.3)]
+WEAK_SPOTS = [("aft_joint", -8.0, 0.2), ("midships_joint", 0.0, 0.2)]
 # Where along her and up her shell an iceberg's gash can be at all (est.): clear of her
 # stem and her counter, from 0.2 m under the main deck down to 0.2 m over her keel.
 HIT_ZONE_X = (-19.5, 19.5)
