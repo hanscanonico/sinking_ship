@@ -213,7 +213,7 @@ func test_a_physics_lurch_is_warned_before_it_swings() -> void:
 	# while it swings.
 	var layout := SimFixtures.steamer()
 	var scenario: SinkScenario = load(SimFixtures.STEAMER_SINKING).duplicate()
-	scenario.explicit_hit = SimFixtures.explicit_hit(1, 4.0, 19.0, 1.0, 0.1, 1.5)
+	scenario.explicit_hit = SimFixtures.explicit_hit(1, 6.0, 19.0, 1.0, 0.1, 1.5)
 	var schedule := SinkSchedule.new(
 		scenario, layout.freeboard, SeedStreams.derive(SEED, "sink"), layout.structure
 	)

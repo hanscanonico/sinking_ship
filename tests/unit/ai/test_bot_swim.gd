@@ -46,6 +46,11 @@ func test_bot_waits_in_a_pocket_then_swims_on() -> void:
 	var rooms := {}
 	for room: StringName in [&"deckhouse_hall", &"saloon", &"deckhouse_cabins"]:
 		rooms[room] = [2.25, 0.15]
+	# The engine room, open to the main deck by the inner stair, full to the sea's level:
+	# held dry, its cell now reaching down to the stokehold's floor (#74) leaves its
+	# galleries a dry room under the sea, and the nearest dry ground a swim down a
+	# drowned stair rather than out to the boat deck.
+	rooms[&"engine_room"] = [2.4]
 	HeldPose.hold(sim, HeldPose.flooded(layout, 2.4, rooms))
 	SimFixtures.place(sim, 1, Vector3(-2.5, 4.7, 0.0))
 	SimFixtures.swim(sim, 0, Vector3(1.5, 0.0, 1.5))

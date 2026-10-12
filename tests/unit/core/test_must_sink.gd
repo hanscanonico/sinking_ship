@@ -11,9 +11,10 @@ const SEEDS := 40
 const RAW_SEEDS := 60
 ## A seed whose first draw the quick check throws out: with one throw allowed the rule
 ## goes straight to the fallback — a rung it takes, or with no rung the sure hit.
-const SURE_SEED := 6
-## Raw seeds whose first draw the bake sinks after hours listed toward its gash.
-const LISTING_SEEDS: Array[int] = [13, 35, 45]
+const SURE_SEED := 39
+## Raw seeds whose first draw the quick check keeps for the list toward its gash she takes
+## on the way alone: level at the end of the spread, with deck to spare.
+const LISTING_SEEDS: Array[int] = [193, 218, 277]
 ## Explicit hits the bake sinks her on: her sure hit (empty) and the fixtures'.
 const SINKING_HITS: Array[String] = [
 	"",
@@ -80,10 +81,13 @@ func test_quick_check_throws_out_a_hit_she_floats_on() -> void:
 
 
 func test_quick_check_keeps_a_hit_she_lists_toward_until_she_founders() -> void:
-	# Raw draws whose gash floods one wing of her hold: the far wing waits on its leak
-	# while she lies listed toward the gash for an hour and more, her deck awash, and the
-	# bake has her gone by the head hours on. At the end of the spread she floats level
-	# with deck to spare; the quick check keeps them all the same.
+	# Raw draws whose gash floods her starboard after and engine bilges alone: the rest
+	# waits on its leaks while she lies listed toward the gash, her deck short of its
+	# spare. At the end of the spread she floats level with deck to spare; the quick check
+	# keeps them all the same. Since her stokehold (#74) the bake leaves every such draw of
+	# the first 1200 afloat — these three listed toward the gash 8–17° at most, measured —
+	# as it does the old wing-of-the-hold draws: the bake, not the quick check, finds she
+	# floats.
 	for seed_value: int in LISTING_SEEDS:
 		var stream := SeedStreams.derive(seed_value, "sink")
 		var hit := IcebergHit.draw(_scenario.hit, stream)
