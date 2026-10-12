@@ -8,7 +8,8 @@ extends Node3D
 ## from the machinery and the funnel's smoke thickening, dust and splinters as a deck
 ## gives way and its bits raining on the decks round (DeckDebris), wreckage floating
 ## off (Flotsam), soaked planks drying (DeckWetness), the iceberg's strike (GashFx),
-## and what shows round the eye wherever it looks (FxAroundEye).
+## the breach it leaves as seen from inside her (BreachFx), and what shows round the
+## eye wherever it looks (FxAroundEye).
 ##
 ## Near the eye an effect never stands between the player and a fight: within HUSHED
 ## of it, it is low, small and see-through — a thin line of foam at the feet tells the
@@ -54,6 +55,7 @@ const GRAIN_BUDGET := (
 	+ BELCH_GRAINS
 	+ FxAroundEye.GRAINS
 	+ GashFx.GRAINS
+	+ BreachFx.GRAINS
 )
 ## A burst further than FAR from the eye is not played, nor one further than BEHIND
 ## behind it; nor one within NEAR of it, which would fill the view.
@@ -138,6 +140,7 @@ var _flotsam: Flotsam
 var _debris: DeckDebris
 var _around: FxAroundEye
 var _gash: GashFx
+var _breach: BreachFx
 ## The billows' materials, lit by the scene's sun.
 var _billows: Array[ShaderMaterial] = []
 var _bursts: Array[CPUParticles3D] = []
@@ -285,6 +288,9 @@ func _ready() -> void:
 	_gash = GashFx.new(billow)
 	_gash.name = "Gash"
 	add_child(_gash)
+	_breach = BreachFx.new()
+	_breach.name = "Breach"
+	add_child(_breach)
 	_flotsam = Flotsam.new()
 	_flotsam.name = "Flotsam"
 	add_child(_flotsam)
@@ -345,6 +351,7 @@ func clear() -> void:
 	_debris.clear()
 	_around.clear()
 	_gash.clear()
+	_breach.clear()
 
 
 ## Plays [param cues] — FxPlanner's — with the ship drawn at [param ship], as seen
@@ -472,6 +479,7 @@ func _process(delta: float) -> void:
 		_shaken_left[room] -= delta
 	_around.advance(delta)
 	_gash.advance(ship, delta)
+	_breach.advance(ship, delta)
 	_advance_plumes(ship, delta, get_viewport().get_camera_3d())
 	_advance_boils(delta)
 	if not is_nan(_funnel.x):
@@ -505,6 +513,12 @@ func _play(cue: FxCue, ship: Transform3D, camera: Camera3D) -> void:
 				_gash.mist(cue, ship, camera)
 		FxCue.Kind.FROTH:
 			_gash.froth(cue, ship)
+		FxCue.Kind.JET, FxCue.Kind.BOIL, FxCue.Kind.WELL:
+			var to := ship * cue.end
+			if _seen((at + to) * 0.5, maxf(at.distance_to(to) * 0.5, 1.0) + cue.rise, camera):
+				_breach.play(cue, ship, camera)
+		FxCue.Kind.RENT:
+			_breach.rent(cue)
 		FxCue.Kind.DUST:
 			if _seen(at, cue.radius * 2.0, camera):
 				_dust(at, cue.radius, cue.strength, camera)
@@ -1055,6 +1069,7 @@ func _emitters() -> Array[CPUParticles3D]:
 	all.append(_belch)
 	all.append_array(_around.emitters())
 	all.append_array(_gash.emitters())
+	all.append_array(_breach.emitters())
 	return all
 
 

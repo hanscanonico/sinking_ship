@@ -19,7 +19,12 @@ extends RefCounted
 ## white water the iceberg throws up out of a stretch of its gash as it strikes. MIST:
 ## spray mist billowing up off a stretch of the gash and drifting off. FROTH: foam
 ## lying on the sea along a stretch of the gash for a while, thinning out. SPURT: white
-## water spurting up out of the gash after it struck.
+## water spurting up out of the gash after it struck. JET: the sea jetting in through a
+## stretch of the gash, in a sheet along it, across the room it opens. BOIL: the sea
+## boiling up on a room's water over the gash it comes in by, along it. RENT: the tear
+## in her plating along a stretch of the gash, on the room's lining or on her hull, from
+## the strike on. WELL: the water welling up through a room's floor plates from the
+## void under it.
 enum Kind {
 	SPRAY,
 	WASH,
@@ -42,32 +47,39 @@ enum Kind {
 	MIST,
 	FROTH,
 	SPURT,
+	JET,
+	BOIL,
+	RENT,
+	WELL,
 }
 ## What a FLOTSAM piece is.
 enum Piece { PLANK, CRATE, CHAIR, LIFEBELT }
 
 var kind: Kind
 var tick: int
-## Ship-local: where it happens; WASH, SPRAY, STRIKE, MIST, FROTH: one end of the
-## line; FLOTSAM: where the piece leaves the ship from; SIFT: the middle of the room's
-## ceiling; SLIDE: the middle of the deck.
+## Ship-local: where it happens; WASH, SPRAY, STRIKE, MIST, FROTH, JET, BOIL, RENT: one
+## end of the line; FLOTSAM: where the piece leaves the ship from; SIFT: the middle of the room's
+## ceiling; SLIDE: the middle of the deck; WELL: the place on the floor, or on the
+## room's water over it, it wells up at.
 var position: Vector3
-## Ship-local. WASH, FROTH: the line's other end. SPRAY, STRIKE, MIST: the sheet's
-## other end, or its position again for a burst. FLOTSAM: where the piece comes down,
+## Ship-local. WASH, FROTH, JET, BOIL, RENT: the line's other end. SPRAY, STRIKE, MIST:
+## the sheet's other end, or its position again for a burst. FLOTSAM: where the piece comes down,
 ## outboard of every deck. CHUNKS, SIFT, SLIDE: the half-extent of the deck or room it
 ## covers.
 var end: Vector3
 ## Ship-local and unit: the way it is thrown; FLOTSAM, FROTH: the way it drifts off;
 ## WASH: the way the sea climbs the deck, in its plane; SMOKE: the way the smoke
-## leaves the funnel; SLIDE: the deck's downhill.
+## leaves the funnel; SLIDE: the deck's downhill; RENT: the way the plating it tears
+## faces, into the room or out to the sea.
 var toward := Vector3.UP
 ## 0…1.
 var strength := 1.0
 ## Metres it spreads over round its position. CHUNKS: how far they fall. SIFT: how
-## far its dust falls to the floor. DEBRIS: how far round it the pieces come down.
+## far its dust falls to the floor. DEBRIS: how far round it the pieces come down. JET:
+## how thick a sheet it is. RENT: half as tall as it is.
 var radius := 0.0
 ## SPRAY, SPLASH, STRIKE, MIST, SPURT: how high over the sea its white water may
-## climb, in metres.
+## climb, in metres. JET: how far across the room it is thrown.
 var rise := 0.0
 ## STEAM, BUBBLES: seconds it keeps going at full. FROTH: seconds it lies, thinning.
 var seconds := 0.0
@@ -76,6 +88,9 @@ var piece: Piece = Piece.PLANK
 var seat := -1
 ## SIFT: the room it falls in, by index in the layout.
 var room := -1
+## JET, BOIL, WELL: what it keeps coming out of, numbered by its planner: a cue of the
+## same kind and source carries on where the last one left off.
+var source := -1
 ## Whether it happens on the sea: drawn on the world plane under its position (D7).
 var on_sea := false
 
@@ -89,7 +104,17 @@ func _init(cue_kind: Kind, cue_tick: int, at: Vector3 = Vector3.ZERO) -> void:
 
 func describe() -> String:
 	var line := "tick %d %s at %s" % [tick, Kind.keys()[kind], position.snappedf(0.01)]
-	var lines := [Kind.WASH, Kind.FLOTSAM, Kind.SPRAY, Kind.STRIKE, Kind.MIST, Kind.FROTH]
+	var lines := [
+		Kind.WASH,
+		Kind.FLOTSAM,
+		Kind.SPRAY,
+		Kind.STRIKE,
+		Kind.MIST,
+		Kind.FROTH,
+		Kind.JET,
+		Kind.BOIL,
+		Kind.RENT
+	]
 	if kind in lines and end != position:
 		line += " to %s" % end.snappedf(0.01)
 	if kind == Kind.FLOTSAM:
