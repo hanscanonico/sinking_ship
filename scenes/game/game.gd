@@ -68,6 +68,8 @@ var _capture_tick := -1
 var _upcoming: NextMatch
 var _holding: MatchConfig
 var _baker := SinkingBaker.new()
+## Where each frame's time goes, when --frame-split asks (make fps SPLIT=1); null else.
+var _probe: FrameProbe
 var _hold := BakeHold.new()
 
 @onready var _menu: MainMenu = $MainMenu
@@ -102,6 +104,9 @@ func _ready() -> void:
 		get_tree().quit(1)
 		return
 	_upcoming = NextMatch.new(_match_rules, _seeds)
+	if _args.frame_split >= 0.0:
+		_probe = FrameProbe.new(_args.frame_split)
+		add_child(_probe)
 	add_child(_baker)
 	add_child(_hold)
 	_baker.baked.connect(_on_baked)
@@ -261,6 +266,12 @@ func _start(config: MatchConfig) -> void:
 	var capturing := not _args.capture_path.is_empty()
 	var observer := _args.observer or (capturing and _args.capture_eye < 0)
 	var eye := _args.capture_eye if capturing and _args.capture_eye >= 0 else MatchScene.LOCAL_SEAT
+	var split: FrameSplit = null
+	if _probe != null:
+		split = _probe.split
+		_probe.playing = true
+		if not FrameMeter.time_schedule(config, split):
+			push_warning("frame split: the match's sinking was built already; its poses untimed")
 	var jump_to := -1
 	if _args.phys_seconds >= 0.0:
 		_capture_tick = config.schedule().physics_tick(_args.phys_seconds)
@@ -274,7 +285,8 @@ func _start(config: MatchConfig) -> void:
 		_args.observer_cut,
 		_args.greybox,
 		_args.net_sim,
-		jump_to
+		jump_to,
+		split
 	)
 	if capturing:
 		_match.stage_eyes(_args.capture_from)
@@ -290,6 +302,8 @@ func _rematch() -> void:
 
 func _to_menu() -> void:
 	_pause.hide()
+	if _probe != null:
+		_probe.playing = false
 	if _match != null:
 		_match.queue_free()
 		_match = null

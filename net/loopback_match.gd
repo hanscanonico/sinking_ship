@@ -17,7 +17,8 @@ var clock := NetClock.new()
 ## [param config]'s match, the client playing [param seat] with [param source] — or
 ## only watching when it is -1 — and the host running [param sources], one per seat
 ## by id, the client's seat's left null; both from the match's first tick, or from
-## [param from], the snapshot a tool jumped it to (MatchJump).
+## [param from], the snapshot a tool jumped it to (MatchJump). Both ends speak
+## [param codec] when one is given — a tool's own (FrameMeter) — else the match's.
 func _init(
 	config: MatchConfig,
 	net_rules: NetRules,
@@ -25,7 +26,8 @@ func _init(
 	seat: int,
 	source: InputSource,
 	sources: Array[InputSource],
-	from: Dictionary = {}
+	from: Dictionary = {},
+	codec: WireCodec = null
 ) -> void:
 	var host_end := _end(HOST_PEER, config, conditions)
 	var client_end := _end(CLIENT_PEER, config, conditions)
@@ -36,9 +38,12 @@ func _init(
 		buffer = SeatBuffer.new(seat)
 		served[seat] = buffer
 	var sim := MatchSim.create(config) if from.is_empty() else MatchSim.from_snapshot(from, config)
-	host = MatchHost.new(MatchRunner.new(sim, served), host_end, net_rules)
+	var spoken := codec
+	if spoken == null:
+		spoken = WireCodec.new(WireCodec.match_hash(config, net_rules))
+	host = MatchHost.new(MatchRunner.new(sim, served), host_end, net_rules, spoken)
 	host.admit(CLIENT_PEER, buffer)
-	client = MatchClient.new(config, net_rules, client_end, HOST_PEER, seat, source, from)
+	client = MatchClient.new(config, net_rules, client_end, HOST_PEER, seat, source, from, spoken)
 
 
 ## One beat: the client samples and sends, the host takes it in and steps, the

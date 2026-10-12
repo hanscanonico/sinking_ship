@@ -237,10 +237,12 @@ func _cut(structure: ShipStructure) -> void:
 
 ## The schedule of [param config]'s match: its scenario on its ship, its sinking as
 ## the config has it baked or received (MatchConfig.sinking), its funnels' falls placed on
-## her decks (place_falls).
-static func for_match(config: MatchConfig) -> SinkSchedule:
+## her decks (place_falls). Built as [param made_as], a SinkSchedule of a tool's own
+## (MatchConfig.schedule_as), when one is given — the same schedule, its class another.
+static func for_match(config: MatchConfig, made_as: GDScript = null) -> SinkSchedule:
 	var sink_stream := SeedStreams.derive(config.match_seed, "sink")
-	var schedule := new(
+	var kind: GDScript = made_as if made_as != null else SinkSchedule
+	var schedule: SinkSchedule = kind.new(
 		config.scenario,
 		config.ship.freeboard,
 		sink_stream,

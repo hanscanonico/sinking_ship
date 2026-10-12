@@ -89,6 +89,16 @@ func schedule() -> SinkSchedule:
 	return _schedule
 
 
+## The match's sinking built as [param kind], a SinkSchedule of a tool's own
+## (SinkSchedule.for_match), before anything has asked for it; null, and the one built
+## left as it is, once something has.
+func schedule_as(kind: GDScript) -> SinkSchedule:
+	if _schedule != null:
+		return null
+	_schedule = SinkSchedule.for_match(self, kind)
+	return _schedule
+
+
 ## How its hit was chosen and baked: received from the host, or the must-sink rule run
 ## to its end — straight through, or on from where bake_some left it; null for a match
 ## the physics does not sink.

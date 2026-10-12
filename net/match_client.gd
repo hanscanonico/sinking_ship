@@ -87,7 +87,8 @@ var _view: Dictionary
 ## [param wire], playing [param own_seat] with the frames [param source] makes — or
 ## only watching when that seat is -1. It starts from the match's first tick, which
 ## the config alone decides — or from [param from], the snapshot a tool jumped the
-## match to (MatchJump), as its host does.
+## match to (MatchJump), as its host does. It speaks [param codec] — a codec for its
+## match_hash, a tool's own (FrameMeter) — or, with none, the match's.
 func _init(
 	match_config: MatchConfig,
 	net_rules: NetRules,
@@ -95,7 +96,8 @@ func _init(
 	host_peer: int,
 	own_seat: int,
 	source: InputSource,
-	from: Dictionary = {}
+	from: Dictionary = {},
+	codec: WireCodec = null
 ) -> void:
 	config = match_config
 	_rules = net_rules
@@ -103,7 +105,9 @@ func _init(
 	_host = host_peer
 	seat = own_seat
 	_source = source
-	_codec = WireCodec.new(WireCodec.match_hash(config, net_rules))
+	_codec = codec
+	if _codec == null:
+		_codec = WireCodec.new(WireCodec.match_hash(config, net_rules))
 	var instant := wire.instant()
 	_lead_ticks = 0 if instant else _rules.lead_ticks()
 	_slack_ticks = 0 if instant else _rules.slack_ticks()

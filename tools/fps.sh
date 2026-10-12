@@ -20,8 +20,13 @@
 # the run. It is a kernel lock, released on any exit: never hand-roll a lock
 # around it.
 #
+# With --split the game also times where each frame goes (FrameProbe, --frame-split)
+# over the same kept seconds — the match's parts, the display scripts, the render —
+# and the split is printed under the summary, its unaccounted rest with it. Without
+# it nothing is timed and the output is the summary alone.
+#
 # Usage:  tools/fps.sh [--seed=4] [--seats=8] [--seconds=40] [--resolution=1440x900]
-#                      [--project=DIR] [-- MORE USER ARGS]
+#                      [--project=DIR] [--split] [-- MORE USER ARGS]
 #
 # --project runs another checkout of the game (an A/B against main) with this
 # script's rules. The engine runs under `timeout`, which ends it after --seconds,
@@ -49,6 +54,7 @@ RESOLUTION=1440x900
 PROJECT=.
 SKIP=8
 KILL_AFTER=10
+SPLIT=0
 EXTRA=()
 
 while (($#)); do
@@ -58,6 +64,7 @@ while (($#)); do
 	--seconds=*) SECONDS_RUN="${1#*=}" ;;
 	--resolution=*) RESOLUTION="${1#*=}" ;;
 	--project=*) PROJECT="${1#*=}" ;;
+	--split) SPLIT=1 ;;
 	--)
 		shift
 		EXTRA=("$@")
@@ -79,6 +86,10 @@ load() {
 	fi
 }
 
+# The split keeps the frames from the SKIP-th second on, as the samples below do.
+SPLIT_ARGS=()
+((SPLIT)) && SPLIT_ARGS=(--frame-split="$SKIP")
+
 LOG=$(mktemp)
 trap 'rm -f "$LOG"' EXIT
 
@@ -86,7 +97,8 @@ START_LOAD=$(load)
 # timeout's own status (124) is how every run ends: the run is judged by its samples.
 timeout -k "$KILL_AFTER" "$SECONDS_RUN" "$GODOT" --path "$PROJECT" --disable-vsync --print-fps \
 	--always-on-top --resolution "$RESOLUTION" --audio-driver Dummy -- \
-	--seed="$SEED" --seats="$SEATS" --autoplay ${EXTRA[@]+"${EXTRA[@]}"} >"$LOG" 2>&1
+	--seed="$SEED" --seats="$SEATS" --autoplay ${SPLIT_ARGS[@]+"${SPLIT_ARGS[@]}"} \
+	${EXTRA[@]+"${EXTRA[@]}"} >"$LOG" 2>&1
 END_LOAD=$(load)
 
 grep -o 'Project FPS: [0-9]*' "$LOG" | awk '{print $3}' | tail -n +$((SKIP + 1)) | sort -n |
@@ -112,3 +124,13 @@ grep -o 'Project FPS: [0-9]*' "$LOG" | awk '{print $3}' | tail -n +$((SKIP + 1))
 			exit 1
 		}
 	}'
+STATUS=$?
+
+# The last split the game printed, whole: it prints them all so far once a second.
+if ((SPLIT)); then
+	awk '/^frame split over/ { n = 0; inside = 1; block[n++] = $0; next }
+		inside && /^  / { block[n++] = $0; next }
+		{ inside = 0 }
+		END { for (i = 0; i < n; i++) print block[i] }' "$LOG"
+fi
+exit "$STATUS"
