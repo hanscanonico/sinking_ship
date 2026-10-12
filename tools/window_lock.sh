@@ -23,14 +23,13 @@
 set -uo pipefail
 
 source "$(dirname "$0")/lib/window_lock_file.sh" || exit 1
-LOCK="$WINDOW_LOCK_FILE"
 
 if (($# == 0)); then
 	echo "window: usage: tools/window_lock.sh COMMAND [ARGS…]" >&2
 	exit 2
 fi
 
-if [[ "${WINDOW_LOCK_HELD-}" == "$LOCK" ]]; then
+if window_lock_held; then
 	exec "$@"
 fi
 
@@ -41,22 +40,22 @@ elif [[ -x /usr/bin/lockf ]]; then
 	try_lock() { /usr/bin/lockf -s -t 0 9; }
 	wait_lock() { /usr/bin/lockf -s 9; }
 else
-	echo "window: neither flock nor /usr/bin/lockf is available: cannot take $LOCK" >&2
+	echo "window: neither flock nor /usr/bin/lockf is available: cannot take $WINDOW_LOCK_FILE" >&2
 	exit 1
 fi
 
-exec 9>>"$LOCK" || {
-	echo "window: cannot open $LOCK" >&2
+exec 9>>"$WINDOW_LOCK_FILE" || {
+	echo "window: cannot open $WINDOW_LOCK_FILE" >&2
 	exit 1
 }
 
 if ! try_lock; then
-	echo "window: waiting for another game window (lock $LOCK)" >&2
+	echo "window: waiting for another game window (lock $WINDOW_LOCK_FILE)" >&2
 	wait_lock || {
-		echo "window: could not take $LOCK" >&2
+		echo "window: could not take $WINDOW_LOCK_FILE" >&2
 		exit 1
 	}
 fi
 
-export WINDOW_LOCK_HELD="$LOCK"
+export WINDOW_LOCK_HELD="$WINDOW_LOCK_FILE"
 exec "$@"

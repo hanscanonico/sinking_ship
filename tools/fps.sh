@@ -38,8 +38,9 @@ cd "$(dirname "$0")/.." || exit 1
 
 require_godot fps
 
-# Under the window lock — the same file the wrapper would lock — or start again under it.
-[[ "${WINDOW_LOCK_HELD-}" == "$WINDOW_LOCK_FILE" ]] || exec tools/window_lock.sh tools/fps.sh "$@"
+# Under the window lock — the same file the wrapper would lock — or start again
+# under it, on the file resolved before the cd above.
+window_lock_held || WINDOW_LOCK="$WINDOW_LOCK_FILE" exec tools/window_lock.sh tools/fps.sh "$@"
 
 SEED=4
 SEATS=8
