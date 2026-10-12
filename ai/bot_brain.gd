@@ -157,6 +157,8 @@ var _pacing: BotPacing
 ## How far ahead of its target it aims, as the last think found it: the share of where
 ## the target's seen velocity carries it over the bot's reaction time.
 var _lead := 0.0
+## How many times it has searched the walk graph afresh, off the route it had.
+var _replans := 0
 
 
 ## [param rng] is this seat's own stream, SeedStreams' (match seed, seat).
@@ -183,6 +185,12 @@ func _init(
 	_sent_moves.resize(maxi(profile.reaction_ticks, 1))
 	_sent_ticks.resize(_sent_moves.size())
 	_sent_ticks.fill(-1)
+
+
+## How many times it has searched the walk graph afresh because it strayed off the
+## route it had — every one a full search; only counted, never read by its play.
+func replans() -> int:
+	return _replans
 
 
 func decide(view: BotView, tick: int) -> InputFrame:
@@ -442,7 +450,7 @@ func _think(
 	# The route it has, while its goal stands and every portal on it is open: two ways
 	# of near one length do not swap it from one to the other at every think.
 	var legs := _walk_graph.route_in(found, _goal)
-	if _goal != kept_goal or legs.is_empty() or not _open(_legs, pose):
+	if _goal != kept_goal or legs.is_empty() or not _walk_graph.open(_legs, pose):
 		_legs = legs
 	if (
 		seen["tick"] - _stalled_since >= Ticks.from_seconds(_profile.detour_after_s)
@@ -991,6 +999,7 @@ func _waypoint(
 			_legs.pop_front()
 			continue
 		_legs = _walk_graph.route(my_pos, my_surface, _goal, pose)
+		_replans += 1
 		break
 	if _legs.is_empty():
 		return PackedVector3Array()
@@ -1008,22 +1017,6 @@ func _going_under(legs: Array[WalkGraph.Portal], pose: ShipPose, below: float) -
 			if height < below and height < _profile.refuge_margin_m:
 				return true
 	return false
-
-
-## Whether [param legs] is a way still to take under [param pose]: not empty, and no
-## portal on it with an end under water or into a zone flooded or giving way.
-func _open(legs: Array[WalkGraph.Portal], pose: ShipPose) -> bool:
-	if legs.is_empty():
-		return false
-	for leg: WalkGraph.Portal in legs:
-		if (
-			_surfaces.wet(leg.entry, pose)
-			or _surfaces.wet(leg.exit, pose)
-			or _walk_graph.flooded(leg.to_zone, pose)
-			or _walk_graph.doomed(leg.to_zone, pose)
-		):
-			return false
-	return true
 
 
 ## Where to walk to reach [param target_pos]: straight at it, except past the
