@@ -59,3 +59,9 @@ func test_a_seed_is_read_by_the_choices_or_refused() -> void:
 			refused.seed_problems(),
 			PackedStringArray(["seed: %s is not a whole number of 0 or more" % text])
 		)
+
+
+func test_the_frame_split_is_asked_for_with_the_seconds_it_skips() -> void:
+	assert_eq(MatchArgs.parse(PackedStringArray()).frame_split, -1.0, "normal play pays nothing")
+	var args := MatchArgs.parse(PackedStringArray(["--frame-split=8"]))
+	assert_eq(args.frame_split, 8.0, "frames from the eighth second on are kept")

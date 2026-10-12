@@ -200,7 +200,8 @@ func _unhandled_input(event: InputEvent) -> void:
 ## or above the ship-local height [param observer_cut] and frames the whole ship once
 ## it is finite. [param greybox] draws the greybox in place of the dressed ship.
 ## [param jump_to], a tool's, starts the match at that tick instead, every seat on what
-## is dry then (MatchJump); -1 starts it at its first.
+## is dry then (MatchJump); -1 starts it at its first. With [param split], the match's
+## pieces are timed into it (FrameMeter, make fps SPLIT=1).
 func start(
 	config: MatchConfig,
 	autoplay: bool,
@@ -209,7 +210,8 @@ func start(
 	observer_cut: float = INF,
 	greybox: bool = false,
 	net_sim: NetConditions = null,
-	jump_to: int = -1
+	jump_to: int = -1,
+	split: FrameSplit = null
 ) -> void:
 	var profile := BotProfile.for_tier(config.bot_tier)
 	var net_rules := NetRules.load_default()
@@ -225,7 +227,14 @@ func start(
 	served.append_array(BotInputSource.fill(config, profile, LOCAL_SEAT + 1))
 	var conditions := net_sim if net_sim != null else NetConditions.new()
 	var from := MatchJump.snapshot(config, jump_to) if jump_to >= 0 else {}
-	var loopback := LoopbackMatch.new(config, net_rules, conditions, played, local, served, from)
+	var loopback: LoopbackMatch
+	if split == null:
+		loopback = LoopbackMatch.new(config, net_rules, conditions, played, local, served, from)
+	else:
+		served = FrameMeter.time_sources(served, split)
+		loopback = FrameMeter.Loopback.new(
+			config, net_rules, conditions, played, local, served, from, split
+		)
 	var names := _seat_names(config.seats)
 	_begin(loopback, local, LOCAL_SEAT, names, observer, eye_seat, observer_cut, greybox)
 
