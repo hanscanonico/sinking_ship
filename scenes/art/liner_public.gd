@@ -41,8 +41,8 @@ const STYLES: Array[Array] = [
 ]
 
 ## The rooms' own colours: woods, painted panels, glass and cloth.
-const MAHOGANY := Color("4a2618")
-const MAHOGANY_DEEP := Color("2e160d")
+const MAHOGANY := Color("6e3522")
+const MAHOGANY_DEEP := Color("4a2014")
 const OAK := Color("9a6b3e")
 const OAK_CARVED := Color("b88752")
 const WALNUT := Color("7a4528")
