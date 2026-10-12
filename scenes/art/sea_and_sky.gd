@@ -299,7 +299,9 @@ static func room_map(layout: ShipLayout) -> Image:
 			for room: ShipRoom in layout.rooms:
 				if room.area.intersects(cell):
 					var at := cell.get_center().clamp(room.area.position, room.area.end)
-					span.x = minf(span.x, room.floor_height)
+					# Down to INSIDE under its floor, as ShipSpace.outdoors reads a room:
+					# a point on a floor is in it.
+					span.x = minf(span.x, room.floor_height - ShipSpace.INSIDE)
 					span.y = maxf(span.y, space.ceiling(room, at.x, at.y))
 			if span.x < span.y:
 				map.set_pixel(column, row, Color(span.x, span.y, 0.0))

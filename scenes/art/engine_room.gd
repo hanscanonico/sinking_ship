@@ -11,6 +11,9 @@ extends RefCounted
 ## floor; the main steam pipe's radius, and how far outside the engine's footprint
 ## it runs.
 const BOILER_RADIUS := 1.0
+## The least a boiler's front's radius is drawn, in metres: under a stokehold's gallery
+## (#74) the deckhead leaves little more.
+const BOILER_LEAST := 0.5
 const BOILER_FOOT := 0.2
 const FURNACE_HEIGHT := 0.62
 const STEAM_PIPE := 0.07
@@ -227,10 +230,13 @@ func build(mesh: ShipMesh, room: ShipRoom) -> void:
 		if wall.length() < 1.0:
 			continue
 		if wall.outdoors_beyond():
-			# Over head height, and under any gallery standing over the wall (#74).
+			# Over head height, and under any gallery standing over the wall (#74) — none
+			# where the gallery leaves no room for it over a head.
 			var foot := wall.at(wall.middle(), 0.0)
 			var under := _space.ceiling(room, foot.x, foot.z) - room.floor_height
 			var height := minf(SIDE_PIPE, under - ShipArt.PLANK - SIDE_PIPE_CLEAR)
+			if height < RoomDressing.HEADROOM:
+				continue
 			for run: Vector2 in _clear_of_stairs(wall, Vector2(wall.from + 0.05, wall.to - 0.05)):
 				var from := wall.at(run.x, height, 0.08)
 				RoomDressing.pipe(mesh, from, wall.at(run.y, height, 0.08), 0.05)
@@ -333,7 +339,7 @@ func _boilers(room: ShipRoom) -> Array[Array]:
 		var height := _space.ceiling(room, at.x, at.z) - room.floor_height
 		height -= ShipArt.PLANK + ShipArt.BEAM_DEPTH
 		var radius := minf(BOILER_RADIUS, minf(wall.length() - 0.2, height - 0.3) * 0.5)
-		if radius < 0.6:
+		if radius < BOILER_LEAST:
 			continue
 		# As many side by side as the stretch holds at their full breadth: a stokehold's
 		# bulkhead, unbroken by a door, holds two (#74).

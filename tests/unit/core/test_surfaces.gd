@@ -221,10 +221,15 @@ func test_stern_down_scenario_floods_the_poop_deck_first() -> void:
 		var schedule := SinkSchedule.new(scenario, layout.freeboard, SeedStreams.derive(1, "sink"))
 		var first := Surfaces.NONE
 		var under := {poop_deck: -1, forecastle: -1}
+		# An authored scenario keeps no per-cell water, so a floor under her waterline —
+		# the stokehold's (#74) — is under the sea from the start: no deck going under.
+		var already := PackedByteArray()
+		for platform in layout.platforms.size():
+			already.append(1 if surfaces.flooded(platform, schedule.pose_at(0)) else 0)
 		for tick in 240 * Ticks.RATE:
 			var pose := schedule.pose_at(tick)
 			for platform in layout.platforms.size():
-				if first == Surfaces.NONE and surfaces.flooded(platform, pose):
+				if first == Surfaces.NONE and already[platform] == 0 and surfaces.flooded(platform, pose):
 					first = platform
 			for platform: int in under:
 				if under[platform] == -1 and surfaces.flooded(platform, pose):

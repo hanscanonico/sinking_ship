@@ -141,12 +141,14 @@ CRATE = [("radius", 0.45), ("height", 0.8), ("mass", 200), ("grip_angle_deg", 8)
 DOOR = 1.1
 LOWER = -2.6
 # The stokehold (#74): her engine room runs down from the lower deck to a floor on her
-# tank top, 1.2 m under her waterline over a double bottom, so a gash along her middle
-# opens a room a player can stand in; its sides a lining of plating LINING out from her
-# middle line, inside her shell, that stands to the main deck. Galleries at the lower
+# tank top, 1 m under her waterline, so a gash along her middle opens a room a player
+# can stand in; under it a double bottom as deep, deep enough that a gash low along her
+# floods one half of it, the weight on one side, as her bilges do. Its sides are a
+# lining of plating LINING out from her middle line, inside her shell, that stands to
+# the main deck. Galleries at the lower
 # deck's height ring it: along its after and forward bulkheads, and along its sides,
 # STOKEHOLD_HOLE the opening they leave over its floor, (x0, x1, half breadth).
-TANK_TOP = -4.6
+TANK_TOP = -4.4
 LINING = 3.8
 # Its after end leaves a body room to pass the inner stair's foot on the gallery; its
 # ends lie where a single-precision Rect2 holds them exactly.
@@ -291,8 +293,11 @@ wall_z_doors("wheelhouse_starboard", 1.4, -3.9, -1.1, [(-3.05, -1.95)], WH, WTOP
 # to the main deck, the hull's walls outboard of it.
 wall_x("stokehold_aft", -3, -LINING, LINING, TANK_TOP, LOWER)
 wall_x("stokehold_forward", 4, -LINING, LINING, TANK_TOP, LOWER)
-wall_z("stokehold_port", -LINING, -3 + T, 4 - T, TANK_TOP, 0)
-wall_z("stokehold_starboard", LINING, -3 + T, 4 - T, TANK_TOP, 0)
+# Its lining in two lifts, so its galleries have full walls on their floor too.
+wall_z("stokehold_port", -LINING, -3 + T, 4 - T, TANK_TOP, LOWER)
+wall_z("stokehold_starboard", LINING, -3 + T, 4 - T, TANK_TOP, LOWER)
+wall_z("gallery_port", -LINING, -3 + T, 4 - T, LOWER, 0)
+wall_z("gallery_starboard", LINING, -3 + T, 4 - T, LOWER, 0)
 # A stanchion at each corner of the opening over the stokehold, at the railings' joins:
 # each gallery's side onto the opening is then a doorway onto the gallery beside it and
 # an edge over the drop, so a body walks round the galleries one to the next.
@@ -1066,7 +1071,11 @@ def wall_runs(room):
         for bx0, bx1, bz0, bz1, bottom, top, is_box in block_geo:
             if not is_box or min(bx1 - bx0, bz1 - bz0) > WALL_MAX:
                 continue
-            if abs(bottom - floor) >= 0.05 or top - bottom <= FULL_WALL:
+            if abs(bottom - floor) >= 0.05:
+                continue
+            # Over FULL_WALL tall, or up to the deck over it (ShipSpace._full_wall_of).
+            mid = (min(max((bx0 + bx1) * 0.5, x0), x1), min(max((bz0 + bz1) * 0.5, z0), z1))
+            if top - bottom <= FULL_WALL and top < ceiling(floor, *mid) - SLIVER:
                 continue
             if not (bx0 - INSIDE < x1 and bx1 + INSIDE > x0 and bz0 - INSIDE < z1 and bz1 + INSIDE > z0):
                 continue
