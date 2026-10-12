@@ -2,7 +2,8 @@
 #
 # `make guard-check`, its second half: tools/window_lock.sh serialises two runs,
 # lets a waiter through at once when the holder is killed with SIGKILL, hands
-# back its command's exit status and does not wait on itself under a holder —
+# back its command's exit status and does not wait on itself under a holder, and
+# tools/fps.sh takes it again when the lock it is told it holds is another file —
 # on a private lock file, with shell stand-ins for the game. Each step waits on
 # what happened, never on how long it took, so a loaded machine only makes it
 # slower; DEADLINE seconds is how long any one step may take before it fails.
@@ -84,6 +85,28 @@ tools/window_lock.sh true || fail "a clean run failed"
 tools/window_lock.sh bash -c "tools/window_lock.sh touch '$WORK/n.ran'" &
 PIDS+=($!)
 wait_for "[ -e '$WORK/n.ran' ]" || fail "a run under a holder waited on itself"
+
+# fps under a lock on another file: it takes this one too, and waits on its holder.
+printf '#!/usr/bin/env bash\ntouch %q\n' "$WORK/f.ran" >"$WORK/godot"
+chmod +x "$WORK/godot"
+tools/window_lock.sh bash -c "touch '$WORK/g.start'; until [ -e '$WORK/g.release' ]; do sleep 0.1; done" &
+PIDS+=($!)
+holder=$!
+if wait_for "[ -e '$WORK/g.start' ]"; then
+	WINDOW_LOCK_HELD="$WORK/other.flock" GODOT="$WORK/godot" tools/fps.sh --seconds=5 \
+		>/dev/null 2>"$WORK/f.err" &
+	PIDS+=($!)
+	fps=$!
+	wait_for "grep -q 'waiting for another game window' '$WORK/f.err'" ||
+		fail "fps under a lock on another file never waited for the window lock"
+	[[ -e "$WORK/f.ran" ]] && fail "fps under a lock on another file ran while the holder held the lock"
+	touch "$WORK/g.release"
+	wait "$holder"
+	wait_for "[ -e '$WORK/f.ran' ]" || fail "fps never ran after the holder ended"
+	wait "$fps"
+else
+	fail "the holder for fps never started"
+fi
 
 ((fails == 0)) && echo "window-lock-check: ok"
 exit "$fails"

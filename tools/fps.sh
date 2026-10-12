@@ -32,13 +32,14 @@ set -uo pipefail
 export LC_ALL=C
 
 source "$(dirname "$0")/lib/require_godot.sh" || exit 1
+source "$(dirname "$0")/lib/window_lock_file.sh" || exit 1
 
 cd "$(dirname "$0")/.." || exit 1
 
 require_godot fps
 
-# Under the window lock, or start again under it.
-[[ -n "${WINDOW_LOCK_HELD-}" ]] || exec tools/window_lock.sh tools/fps.sh "$@"
+# Under the window lock — the same file the wrapper would lock — or start again under it.
+[[ "${WINDOW_LOCK_HELD-}" == "$WINDOW_LOCK_FILE" ]] || exec tools/window_lock.sh tools/fps.sh "$@"
 
 SEED=4
 SEATS=8

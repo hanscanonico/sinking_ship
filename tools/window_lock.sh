@@ -22,7 +22,8 @@
 
 set -uo pipefail
 
-LOCK="${WINDOW_LOCK:-/tmp/sinking_ship_window.flock}"
+source "$(dirname "$0")/lib/window_lock_file.sh" || exit 1
+LOCK="$WINDOW_LOCK_FILE"
 
 if (($# == 0)); then
 	echo "window: usage: tools/window_lock.sh COMMAND [ARGS…]" >&2
