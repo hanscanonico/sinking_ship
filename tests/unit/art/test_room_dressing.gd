@@ -57,18 +57,93 @@ func test_a_room_whose_name_says_what_it_is_is_that() -> void:
 	var titanic: ShipLayout = load("res://data/ships/titanic.tres")
 	var space := ShipSpace.new(titanic)
 	var kinds := {
-		&"first-class dining saloon": RoomDressing.Kind.SALOON,
-		&"third-class berths": RoomDressing.Kind.STEERAGE,
+		&"officers' quarters": RoomDressing.Kind.BERTHS,
 		&"wheelhouse": RoomDressing.Kind.HELM,
+		&"gymnasium": RoomDressing.Kind.SERVICE,
+		&"grand staircase, boat deck": RoomDressing.Kind.STAIRCASE,
+		&"verandah café": RoomDressing.Kind.PUBLIC,
+		&"first-class smoking room": RoomDressing.Kind.PUBLIC,
+		&"after entrance": RoomDressing.Kind.PUBLIC,
+		&"first-class lounge": RoomDressing.Kind.PUBLIC,
+		&"reading and writing room": RoomDressing.Kind.PUBLIC,
+		&"grand staircase, A deck": RoomDressing.Kind.STAIRCASE,
+		&"à la carte restaurant": RoomDressing.Kind.PUBLIC,
+		&"B deck corridor": RoomDressing.Kind.FIRST_CORRIDOR,
+		&"grand staircase, B deck": RoomDressing.Kind.STAIRCASE,
+		&"C deck corridor": RoomDressing.Kind.FIRST_CORRIDOR,
+		&"grand staircase, C deck": RoomDressing.Kind.STAIRCASE,
+		&"purser's office": RoomDressing.Kind.SERVICE,
+		&"third-class general room": RoomDressing.Kind.PUBLIC,
+		&"second-class dining saloon": RoomDressing.Kind.DINING,
+		&"D deck corridor": RoomDressing.Kind.FIRST_CORRIDOR,
+		&"galley": RoomDressing.Kind.SERVICE,
+		&"first-class dining saloon": RoomDressing.Kind.DINING,
+		&"reception room": RoomDressing.Kind.PUBLIC,
+		&"D deck corridor, forward": RoomDressing.Kind.FIRST_CORRIDOR,
+		&"third-class open space": RoomDressing.Kind.PUBLIC,
+		&"Scotland Road, boiler room 1": RoomDressing.Kind.PASSAGE,
+		&"Scotland Road, boiler rooms 2 and 3": RoomDressing.Kind.PASSAGE,
+		&"Scotland Road, boiler room 4": RoomDressing.Kind.PASSAGE,
+		&"Scotland Road, boiler room 5": RoomDressing.Kind.PASSAGE,
+		&"grand staircase, E deck": RoomDressing.Kind.STAIRCASE,
+		&"third-class dining saloon, aft": RoomDressing.Kind.DINING,
+		&"third-class dining saloon, forward": RoomDressing.Kind.DINING,
+		&"post office": RoomDressing.Kind.SERVICE,
+		&"third-class berths": RoomDressing.Kind.BERTHS,
+		&"crew quarters": RoomDressing.Kind.BERTHS,
 	}
 	for room: ShipRoom in titanic.rooms:
+		assert_true(kinds.has(room.name), "pinned: %s" % room.name)
 		if kinds.has(room.name):
 			assert_eq(RoomDressing.kind_of(space, room), kinds[room.name], String(room.name))
 			kinds.erase(room.name)
 	assert_true(kinds.is_empty(), "the Titanic has each: %s" % [kinds.keys()])
+
+
+func test_the_trawler_s_rooms_keep_their_dressing() -> void:
+	var trawler: ShipLayout = load("res://data/ships/trawler.tres")
+	var space := ShipSpace.new(trawler)
+	# Her galley is a room of service, and not an office: dressed as the saloon it was.
+	var kinds := {
+		&"engine room": RoomDressing.Kind.ENGINE,
+		&"fish hold": RoomDressing.Kind.HOLD,
+		&"galley": RoomDressing.Kind.SERVICE,
+		&"wheelhouse": RoomDressing.Kind.HELM,
+		&"crew mess": RoomDressing.Kind.SALOON,
+	}
+	for room: ShipRoom in trawler.rooms:
+		assert_eq(RoomDressing.kind_of(space, room), kinds.get(room.name), String(room.name))
+		if room.name == &"galley":
+			assert_false(LinerService.office(room))
+
+
+func test_a_liner_s_office_is_one_and_her_officers_quarters_are_not() -> void:
+	var titanic: ShipLayout = load("res://data/ships/titanic.tres")
+	var offices := {}
 	for room: ShipRoom in titanic.rooms:
-		if String(room.name).begins_with("Scotland Road"):
-			assert_eq(RoomDressing.kind_of(space, room), RoomDressing.Kind.PASSAGE, "a road")
+		if RoomDressing.kind_of(ShipSpace.new(titanic), room) == RoomDressing.Kind.SERVICE:
+			offices[room.name] = LinerService.office(room)
+	assert_eq(
+		offices,
+		{
+			&"gymnasium": false,
+			&"purser's office": true,
+			&"galley": false,
+			&"post office": true,
+		}
+	)
+
+
+func test_the_liner_s_kinds_keep_the_ship_s_own_lining() -> void:
+	for kind: RoomDressing.Kind in [
+		RoomDressing.Kind.DINING,
+		RoomDressing.Kind.PUBLIC,
+		RoomDressing.Kind.STAIRCASE,
+		RoomDressing.Kind.FIRST_CORRIDOR,
+		RoomDressing.Kind.SERVICE,
+		RoomDressing.Kind.BERTHS,
+	]:
+		assert_true(RoomDressing._linings(kind).is_empty(), RoomDressing.Kind.keys()[kind])
 
 
 func test_the_engine_room_is_lit_over_its_lanes_and_by_its_boilers_fires() -> void:
