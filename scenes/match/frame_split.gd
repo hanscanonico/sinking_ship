@@ -125,7 +125,7 @@ func _report_part(part: StringName, label: String, depth: int, lines: PackedStri
 
 static func _line(label: String, ms: float, depth: int) -> String:
 	var indent := "  ".repeat(depth)
-	return "%s%s %8.2f ms" % [indent, label.rpad(32 - indent.length()), ms]
+	return "%s%s %8.2f ms" % [indent, label.rpad(36 - indent.length()), ms]
 
 
 static func _is_count(part: StringName) -> bool:
