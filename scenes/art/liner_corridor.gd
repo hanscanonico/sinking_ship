@@ -124,41 +124,60 @@ static func _spots(
 	return found
 
 
-## The face of a box flat on [param wall] that lies against it, and its foot: the
-## faces a box on it need not draw.
-static func _hidden(wall: RoomDressing.Wall) -> int:
-	var back := ShipMesh.NEG_Z if wall.normal.z > 0.5 else ShipMesh.POS_Z
-	if absf(wall.normal.x) > 0.5:
-		back = ShipMesh.NEG_X if wall.normal.x > 0.0 else ShipMesh.POS_X
-	return back | ShipMesh.BOTTOM
+## A slab on [param wall] over [param span] — from x to y along it, z to w over its
+## floor — standing [param near] to [param far] out from its face: its front, ends and
+## top, and its underside when [param under]; unrimmed quads, two triangles a face.
+static func _slab(
+	mesh: ShipMesh,
+	wall: RoomDressing.Wall,
+	span: Vector4,
+	near: float,
+	far: float,
+	paint: ShipMesh.Paint,
+	under := false
+) -> void:
+	var back: Array[Vector3] = [
+		wall.at(span.x, span.z, near),
+		wall.at(span.y, span.z, near),
+		wall.at(span.y, span.w, near),
+		wall.at(span.x, span.w, near),
+	]
+	var front: Array[Vector3] = []
+	for corner: Vector3 in back:
+		front.append(corner + wall.normal * (far - near))
+	mesh.quad(front[0], front[1], front[2], front[3], wall.normal, paint, 0)
+	mesh.quad(back[0], front[0], front[3], back[3], -wall.right, paint, 0)
+	mesh.quad(front[1], back[1], back[2], front[2], wall.right, paint, 0)
+	mesh.quad(front[3], front[2], back[2], back[3], Vector3.UP, paint, 0)
+	if under:
+		mesh.quad(back[0], back[1], front[1], front[0], Vector3.DOWN, paint, 0)
 
 
 ## A stateroom door on [param wall] at [param along]: a teak architrave flat on the
 ## panelling, a mahogany door DOOR_DEPTH out of it, a brass number plate over a brass
 ## knob.
 func _stateroom_door(mesh: ShipMesh, wall: RoomDressing.Wall, along: float) -> void:
-	var faces := ShipMesh.ALL_FACES & ~_hidden(wall)
 	var surround := Vector2(DOOR.x * 0.5 + ARCHITRAVE, (DOOR.y + ARCHITRAVE) * 0.5)
 	var middle := wall.at(along, surround.y, 0.006)
-	RoomDressing.panel(mesh, middle, wall.right, surround, wall.normal, ShipPaints.frame)
+	RoomDressing.panel(mesh, middle, wall.right, surround, wall.normal, ShipPaints.frame, 0)
 	var half := DOOR.x * 0.5
-	var leaf := wall.rect(along - half, along + half, 0.0, DOOR_DEPTH)
-	mesh.box(leaf, wall.floor, wall.floor + DOOR.y, _door, faces)
+	_slab(mesh, wall, Vector4(along - half, along + half, 0.0, DOOR.y), 0.0, DOOR_DEPTH, _door)
 	var plate := wall.at(along, 1.55, DOOR_DEPTH + 0.003)
-	RoomDressing.panel(mesh, plate, wall.right, Vector2(0.06, 0.035), wall.normal, ShipPaints.brass)
+	var size := Vector2(0.06, 0.035)
+	RoomDressing.panel(mesh, plate, wall.right, size, wall.normal, ShipPaints.brass, 0)
 	var knob := along + half - 0.1
-	var at := wall.rect(knob - 0.025, knob + 0.025, DOOR_DEPTH, DOOR_DEPTH + 0.05)
-	mesh.box(at, wall.floor + 0.975, wall.floor + 1.025, ShipPaints.brass, faces)
+	var at := Vector4(knob - 0.025, knob + 0.025, 0.975, 1.025)
+	_slab(mesh, wall, at, DOOR_DEPTH, DOOR_DEPTH + 0.05, ShipPaints.brass, true)
 
 
 ## A sconce on [param wall] at [param along]: a brass back plate, an arm out of it and
 ## a glowing shade SCONCE_DEPTH out at SCONCE_HEIGHT.
 func _sconce(mesh: ShipMesh, wall: RoomDressing.Wall, along: float) -> void:
-	var faces := ShipMesh.ALL_FACES & ~_hidden(wall)
 	var back := wall.at(along, SCONCE_HEIGHT - 0.05, 0.004)
-	RoomDressing.panel(mesh, back, wall.right, Vector2(0.05, 0.09), wall.normal, ShipPaints.brass)
-	var arm := wall.rect(along - 0.012, along + 0.012, 0.004, 0.05)
-	var low := wall.floor + SCONCE_HEIGHT - 0.1
-	mesh.box(arm, low, low + 0.024, ShipPaints.brass, faces)
-	var shade := wall.rect(along - 0.06, along + 0.06, 0.03, SCONCE_DEPTH)
-	mesh.box(shade, low + 0.024, wall.floor + SCONCE_HEIGHT + 0.06, _glow, faces | ShipMesh.BOTTOM)
+	var plate := Vector2(0.05, 0.09)
+	RoomDressing.panel(mesh, back, wall.right, plate, wall.normal, ShipPaints.brass, 0)
+	var low := SCONCE_HEIGHT - 0.1
+	var arm := Vector4(along - 0.012, along + 0.012, low, low + 0.024)
+	_slab(mesh, wall, arm, 0.004, 0.03, ShipPaints.brass, true)
+	var shade := Vector4(along - 0.06, along + 0.06, low + 0.024, SCONCE_HEIGHT + 0.06)
+	_slab(mesh, wall, shade, 0.03, SCONCE_DEPTH, _glow, true)

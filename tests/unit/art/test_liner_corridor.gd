@@ -8,6 +8,8 @@ const RunMatch := preload("res://tools/run_match.gd")
 const CORRIDORS: Array[StringName] = [
 	&"B deck corridor", &"C deck corridor", &"D deck corridor", &"D deck corridor, forward"
 ]
+## The most triangles a corridor's own dressing may add.
+const BUDGET := 2500
 
 var _layout: ShipLayout
 var _rules: BrawlRules
@@ -87,6 +89,11 @@ func test_each_corridor_draws_more_than_the_passage_dressing_alone() -> void:
 			room, _drawn(func(mesh: ShipMesh) -> void: corridor.build(mesh, room, glass))
 		)
 		assert_gt(own, passage, room_name)
+		# Its own doors and sconces stay within a corridor's budget of triangles.
+		assert_lt(own - passage, BUDGET, room_name)
+		gut.p(
+			"%s: %d triangles over the passage dressing's %d" % [room_name, own - passage, passage]
+		)
 		assert_gt(_faces_in(room, _faces), passage, room_name)
 
 
