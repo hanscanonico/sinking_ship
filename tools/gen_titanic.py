@@ -778,6 +778,61 @@ for rid, name, h, top in [("post_office", "post office", G_DECK, F_DECK),
 WELL_HATCH = (76.0, 79.0, 3.0, 7.0)
 box("well_hatch", *WELL_HATCH, 0.0, 0.8)
 
+# --- Furniture: the boxes standing on her rooms' floors, after every other blocker so
+# none of theirs moves. Each is drawn inside its box (FurnitureDressing): tables 0.75 m
+# tall, a jump up; benches 0.45, a step and a half; ranges 0.9; counters and the
+# gymnasium's apparatus 1.0, which nobody perches on. Every one keeps clear a lane 1.5 m
+# either side of a room's centre line from door to door, 0.8 m before a stair's end and
+# 0.5 m beside it, 0.5 m off a wall's face, a body round the seat in the first-class
+# dining saloon, and on B, C and F decks, where the ceiling is low over a body on a
+# table, 1.0 m in plan from the pendant under the middle of each 12 m square of a room
+# (RoomDressing.lights). Placings est., after SB-IV's deck plans.
+TABLE, BENCH, RANGE, COUNTER = 0.75, 0.45, 0.9, 1.0
+SQUARE_TABLE = 0.6  # a square table's half side
+# The first-class dining saloon (SB-IV): nine columns of tables, three rows either side
+# of its centre line.
+for k in range(9):
+    x = -11.4 + 3.5 * k
+    for j, z in enumerate([-9.0, -6.0, -3.0, 3.0, 6.0, 9.0]):
+        box("table_saloon_1_%d" % (k * 6 + j), x - SQUARE_TABLE, x + SQUARE_TABLE,
+            z - SQUARE_TABLE, z + SQUARE_TABLE, D_DECK, D_DECK + TABLE)
+# The second-class dining saloon: four columns, three rows either side, clear of the
+# second-class staircase up to C deck from its centre line to starboard.
+for k, x in enumerate([-62.0, -59.0, -56.0, -53.0]):
+    for j, z in enumerate([-9.6, -6.6, -3.6, 3.6, 6.6, 9.6]):
+        box("table_saloon_2_%d" % (k * 6 + j), x - SQUARE_TABLE, x + SQUARE_TABLE,
+            z - SQUARE_TABLE, z + SQUARE_TABLE, D_DECK, D_DECK + TABLE)
+# The third-class dining saloons either side of bulkhead H: long tables, three in a row,
+# three rows either side, short of the pendants over z ±8.67 and the stairs to port.
+SALOON_3_ROWS = [(-7.5, -6.6), (-5.3, -4.4), (-3.1, -2.2), (2.2, 3.1), (4.4, 5.3), (6.6, 7.5)]
+for rid, runs in [("saloon_3_aft", [(-14.75, -10.75), (-9.55, -5.55), (-4.35, -0.35)]),
+                  ("saloon_3_fwd", [(3.19, 7.19), (8.39, 12.39), (13.59, 17.59)])]:
+    for k, (x0, x1) in enumerate(runs):
+        for j, (z0, z1) in enumerate(SALOON_3_ROWS):
+            box("table_%s_%d" % (rid, k * 6 + j), x0, x1, z0, z1, F_DECK, F_DECK + TABLE)
+# The à la carte restaurant: five columns, two rows either side, its after doors' lanes
+# at z ±5 clear.
+for k, x in enumerate([-74.5, -71.5, -68.5, -65.5, -62.5]):
+    for j, z in enumerate([-8.0, -2.5, 2.5, 8.0]):
+        box("table_restaurant_%d" % (k * 4 + j), x - SQUARE_TABLE, x + SQUARE_TABLE,
+            z - SQUARE_TABLE, z + SQUARE_TABLE, B_DECK, B_DECK + TABLE)
+# The galley's two ranges either side of its centre line.
+for k, (z0, z1) in enumerate([(-4.7, -3.5), (2.5, 3.7)]):
+    box("range_galley_%d" % k, -26.0, -18.0, z0, z1, D_DECK, D_DECK + RANGE)
+# Benches in the third-class general room and the open space, two either side.
+BENCH_ROWS = [(-5.8, -5.3), (-3.0, -2.5), (2.5, 3.0), (5.3, 5.8)]
+for rid, x0, x1, floor in [("general", -117.0, -108.0, 0.0), ("open_space", 87.0, 97.0, D_DECK)]:
+    for j, (z0, z1) in enumerate(BENCH_ROWS):
+        box("bench_%s_%d" % (rid, j), x0, x1, z0, z1, floor, floor + BENCH)
+# The purser's counter and the post office's, either side of the way in.
+for rid, x0, x1, floor, rows in [("purser", 35.4, 36.0, 0.0, [(-5.0, -1.5), (1.5, 5.0)]),
+                                 ("post_office", 73.0, 73.8, G_DECK, [(-6.0, -1.5), (1.5, 6.0)])]:
+    for j, (z0, z1) in enumerate(rows):
+        box("counter_%s_%d" % (rid, j), x0, x1, z0, z1, floor, floor + COUNTER)
+# The gymnasium's rowing machine and electric camel, against its after wall.
+box("gym_rowing_machine", 18.0, 18.7, 2.0, 3.5, BOAT, BOAT + COUNTER)
+box("gym_electric_camel", 18.0, 18.7, -3.5, -2.0, BOAT, BOAT + COUNTER)
+
 # Sixteen seats across her decks (SH21 takes more): six on the boat deck and one on her
 # bridge, two on A deck's promenade, one on B deck's open end, one on each well deck,
 # the forecastle and the poop, one in the first-class dining saloon, facing forward to the
@@ -1439,6 +1494,7 @@ WINDOW_HEIGHT, WINDOW_SPACING, WINDOW_MARGIN = 1.45, 1.3, 0.4
 WINDOW, NARROW_WINDOW, WINDOW_FRAME = (0.55, 0.6), (0.38, 0.6), 0.06
 WALL_MAX, FULL_WALL, INSIDE, OPEN_ROOM_HEIGHT, PROBE, SLIVER = 0.3, 1.9, 0.02, 2.5, 0.15, 0.01
 SALOON_AREA = 15.0  # a room on her top deck smaller than this is a helm (RoomDressing)
+FURNITURE_HEIGHT = 1.2  # a box on a floor no taller is furniture, not machinery (ShipSpace)
 OUTWARD = [(0, -1), (1, 0), (0, 1), (-1, 0)]  # per side of a room, (x, z) out of it
 SIDE_TAGS = ["p", "f", "s", "a"]
 
@@ -1522,8 +1578,9 @@ def clear_of_stairs(house, run, height):
 def machinery_in(house):
     x0, x1, z0, z1, floor, _name = house
     return any(is_box and min(bx1 - bx0, bz1 - bz0) > WALL_MAX and abs(foot - floor) < 0.05
+               and top - foot > FURNITURE_HEIGHT
                and x0 <= (bx0 + bx1) * 0.5 <= x1 and z0 <= (bz0 + bz1) * 0.5 <= z1
-               for bx0, bx1, bz0, bz1, foot, _top, is_box in block_geo)
+               for bx0, bx1, bz0, bz1, foot, top, is_box in block_geo)
 
 def windows():
     """Her windows, as ShipFittings._windows places glass: the walls of her rooms that
