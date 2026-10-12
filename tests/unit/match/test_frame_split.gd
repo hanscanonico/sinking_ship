@@ -101,3 +101,17 @@ func test_a_report_of_no_frames_says_so() -> void:
 	var report := FrameSplit.new().report()
 	assert_eq(report.size(), 1)
 	assert_string_contains(report[0], "no frames kept")
+
+
+func test_frames_not_drawn_are_named() -> void:
+	var split := FrameSplit.new()
+	_frame(split, 7000, {&"undrawn": 1})
+	_frame(split, 30000, {&"undrawn": 0, &"render": 9000})
+	assert_string_contains("\n".join(split.report()), "1 frames not drawn")
+	assert_false("\n".join(_drawn_split().report()).contains("not drawn"), "said only when so")
+
+
+func _drawn_split() -> FrameSplit:
+	var split := FrameSplit.new()
+	_frame(split, 30000, {&"undrawn": 0})
+	return split

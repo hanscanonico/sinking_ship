@@ -269,6 +269,7 @@ func _start(config: MatchConfig) -> void:
 	var split: FrameSplit = null
 	if _probe != null:
 		split = _probe.split
+		_probe.playing = true
 		FrameMeter.time_schedule(config, split)
 	var jump_to := -1
 	if _args.phys_seconds >= 0.0:
@@ -300,6 +301,8 @@ func _rematch() -> void:
 
 func _to_menu() -> void:
 	_pause.hide()
+	if _probe != null:
+		_probe.playing = false
 	if _match != null:
 		_match.queue_free()
 		_match = null

@@ -5,8 +5,9 @@ extends Node
 ## scripts, the time from the first node's _process to the last's — this probe runs
 ## first and its End last; the match's steps and their parts as FrameMeter's timers
 ## measured them inside; and the render's CPU time, as the RenderingServer measured it.
-## The frames from the skip-th second of the run on are kept — the run's own clock,
-## as --print-fps counts its seconds — and the split of them all so far is printed
+## The frames drawn while a match plays from the skip-th second of the run on are kept
+## — the run's own clock, as --print-fps counts its seconds; the menu's and a held
+## countdown's bake are not the match's — and the split of them all so far is printed
 ## once a second, lines starting "frame split", for tools/fps.sh to show the last.
 
 const FIRST := -(1 << 30)
@@ -14,12 +15,15 @@ const LAST := 1 << 30
 const REPORT_EVERY_US := 1000000
 
 var split := FrameSplit.new()
+## Whether a match is playing: only its frames are kept.
+var playing := false
 
 var _skip_us: int
 var _frame_start := -1
 var _process_start := 0
 var _reported := 0
 var _viewport: RID
+var _drawn := 0
 
 
 ## Keeps the frames from [param skip_seconds] of the run on.
@@ -50,8 +54,17 @@ func _process(_delta: float) -> void:
 
 ## The frame that started at _frame_start, its render just done, closed at [param now].
 func _close(now: int) -> void:
-	if _frame_start < _skip_us:
+	var drawn := Engine.get_frames_drawn()
+	var did_draw := drawn != _drawn
+	_drawn = drawn
+	if _frame_start < _skip_us or not playing:
 		split.drop()
+		return
+	split.add(&"undrawn", 0 if did_draw else 1)
+	if not did_draw:
+		# A window the system is not drawing renders nothing: the last frame's
+		# readings are not this one's.
+		split.close(now - _frame_start)
 		return
 	var render_ms := (
 		RenderingServer.get_frame_setup_time_cpu()

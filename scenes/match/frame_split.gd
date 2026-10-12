@@ -100,6 +100,9 @@ func report() -> PackedStringArray:
 		"  GPU %s (beside the CPU, not added)" % ("%.2f ms" % gpu if gpu > 0.0 else "not measured")
 	)
 	lines.append("  draw calls %.0f, primitives %.0f" % [mean(&"draw_calls"), mean(&"primitives")])
+	var undrawn: int = _sums.get(&"undrawn", 0)
+	if undrawn > 0:
+		lines.append("  %d frames not drawn (the window out of sight), nothing rendered" % undrawn)
 	return lines
 
 
@@ -123,4 +126,4 @@ static func _line(label: String, ms: float, depth: int) -> String:
 
 
 static func _is_count(part: StringName) -> bool:
-	return part in [&"poses", &"steps", &"draw_calls", &"primitives"]
+	return part in [&"poses", &"steps", &"draw_calls", &"primitives", &"undrawn"]
