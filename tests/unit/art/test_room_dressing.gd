@@ -264,10 +264,12 @@ func test_drawn_in_its_footprint_a_table_stands_in_nobody_s_way() -> void:
 	art.build(layout, _rules.railing_height, _rules.body_radius)
 	var faces := FurnishingCheck.furnishings(art)
 	art.free()
+	# Over its footprint, clear of the floor's own faces and under its top: the table.
 	var in_it := 0
 	for corner: Vector3 in faces:
 		if table.grow(0.002).has_point(Vector2(corner.x, corner.z)):
-			in_it += 1 if corner.y < saloon.floor_height + 0.76 else 0
+			var over := corner.y - saloon.floor_height
+			in_it += 1 if over > 0.05 and over < 0.76 else 0
 	assert_gt(in_it, 0, "the table is drawn")
 	assert_eq(FurnishingCheck.intrusions(layout, _rules, faces), PackedStringArray())
 
@@ -292,6 +294,16 @@ func test_a_piece_of_furniture_is_what_its_box_says() -> void:
 		box.bottom = deck
 		box.top = deck + piece[1]
 		assert_eq(FurnitureDressing.piece_of(box), piece[2], "on D deck: %s" % [piece])
+
+
+func test_a_name_says_what_a_room_is_ahead_of_its_machinery() -> void:
+	var engine_room := _room(&"engine room")
+	var boiler_room := ShipRoom.new()
+	boiler_room.name = &"boiler room 6"
+	boiler_room.area = engine_room.area
+	boiler_room.floor_height = engine_room.floor_height
+	assert_true(_space.machinery_in(boiler_room), "the steamer's engine stands in it")
+	assert_eq(RoomDressing.kind_of(_space, boiler_room), RoomDressing.Kind.BOILER)
 
 
 func test_a_room_named_for_a_boiler_a_bath_or_a_court_is_that() -> void:
