@@ -12,12 +12,24 @@ extends RefCounted
 ## a bot stands on is a footing — a piece and a frame (footing). Shared by the bots of one
 ## match, as the walk graph is: each answers only for the pose it is handed.
 
+## How many snapshots' broken railings and crates are kept (facts_of): enough for the
+## delays of a lobby's bots read in turn within one tick (#88).
+const FACTS_KEPT := 4
+
+## How many times a snapshot's broken railings and crates were worked out (facts_of).
+var facts_worked_out := 0
+
 var _deck: WalkGraph
 var _config: MatchConfig
 var _rules: BrawlRules
 var _faces: Faces
 var _pieces: Pieces
 var _graphs: Dictionary[int, WalkGraph] = {}
+## Per snapshot tick, its arrays and what facts_of worked out from them.
+var _facts: Dictionary[int, Dictionary] = {}
+## The last facts_of reading, counted, and when each kept snapshot was last read.
+var _readings := 0
+var _read_at: Dictionary[int, int] = {}
 
 
 ## The floors of [param config]'s ship, her decks' walk graph [param deck].
@@ -59,11 +71,48 @@ func honour(at: int, pose: ShipPose, seen: Dictionary) -> void:
 	if at % Faces.Up.size() != Faces.Up.DECK:
 		surfaces.honour(pose)
 		return
-	var broken := MatchState.broken_in(seen["railing_hp"])
+	var facts := facts_of(seen)
+	var broken: PackedInt32Array = facts["broken"]
+	var props: Array[PropState] = facts["props"]
 	if piece == 0:
-		surfaces.honour(pose, broken, PropState.from_snapshot(seen))
+		surfaces.honour(pose, broken, props)
 	else:
-		_pieces_of().honour(piece, pose, broken, PropState.from_snapshot(seen))
+		_pieces_of().honour(piece, pose, broken, props)
+
+
+## The railings [param seen] has broken and its crates — {"broken": PackedInt32Array,
+## "props": Array[PropState]} — worked out once for every bot reading that snapshot: its
+## tick names it, and its own railing and crate arrays, which every perceived copy of it
+## shares (BotView), tell it from another snapshot of the same tick. Read only: every bot
+## is handed the same arrays.
+func facts_of(seen: Dictionary) -> Dictionary:
+	var tick: int = seen["tick"]
+	_readings += 1
+	var kept: Dictionary = _facts.get(tick, {})
+	if (
+		not kept.is_empty()
+		and is_same(kept["railing_hp"], seen["railing_hp"])
+		and is_same(kept["props_of"], seen["props"])
+	):
+		_read_at[tick] = _readings
+		return kept
+	if not _facts.has(tick) and _facts.size() >= FACTS_KEPT:
+		var oldest := tick
+		for at: int in _read_at:
+			if oldest == tick or _read_at[at] < _read_at[oldest]:
+				oldest = at
+		_facts.erase(oldest)
+		_read_at.erase(oldest)
+	facts_worked_out += 1
+	kept = {
+		"railing_hp": seen["railing_hp"],
+		"props_of": seen["props"],
+		"broken": MatchState.broken_in(seen["railing_hp"]),
+		"props": PropState.from_snapshot(seen),
+	}
+	_facts[tick] = kept
+	_read_at[tick] = _readings
+	return kept
 
 
 ## [param pose] — the whole ship's — as the footing [param at] reads it: its piece's, in
