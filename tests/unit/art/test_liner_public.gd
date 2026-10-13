@@ -12,6 +12,8 @@ var _space: ShipSpace
 var _faces := PackedVector3Array()
 ## Per room index, how many of _faces stand in it.
 var _counts := {}
+## The middle of each of _faces that stands in no room: through a deck or a wall.
+var _strays := PackedVector3Array()
 
 ## Each room's faces under the saloon's dressing it had before LinerPublic drew its
 ## own (main 71002e8), and how many more it may take: a room's budget.
@@ -46,6 +48,8 @@ func before_all() -> void:
 		var middle := (_faces[index] + _faces[index + 1] + _faces[index + 2]) / 3.0
 		var room := RoomDressing.room_at(_space, middle)
 		_counts[room] = _counts.get(room, 0) + 1
+		if room == -1:
+			_strays.append(middle)
 
 
 func _room(room_name: StringName) -> ShipRoom:
@@ -85,6 +89,19 @@ func test_each_public_room_and_landing_is_dressed_more_than_a_saloon_within_budg
 		var faces := _faces_in(room_name)
 		assert_gt(faces, BEFORE[room_name], room_name)
 		assert_lt(faces - BEFORE[room_name], BUDGET, room_name)
+
+
+func test_nothing_of_a_public_room_or_landing_pokes_out_of_it() -> void:
+	var through := PackedStringArray()
+	for room_name: StringName in BEFORE:
+		var room := _room(room_name)
+		var area := room.area.grow(0.3)
+		for middle: Vector3 in _strays:
+			var over := _space.ceiling(room, middle.x, middle.z) + 0.5
+			var in_it := middle.y > room.floor_height and middle.y < over
+			if in_it and area.has_point(Vector2(middle.x, middle.z)):
+				through.append("%s: %s" % [room_name, middle])
+	assert_eq(through, PackedStringArray())
 
 
 func test_each_room_takes_its_style_by_its_name() -> void:

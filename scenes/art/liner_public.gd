@@ -690,8 +690,10 @@ func _clock_panel(mesh: ShipMesh, wall: RoomDressing.Wall, along: float) -> void
 		RoomDressing.panel(mesh, shoulders, wall.right, span, wall.normal, _oak_carved, 0)
 		var head := wall.at(at, 2.0, 0.028)
 		RoomDressing.disc(mesh, head, wall.normal, 0.06, _oak_carved, 6)
+	# Under a low ceiling (the boat deck's) it comes down rather than poke through.
+	var top := minf(2.45, _head(wall))
 	var pediment := wall.rect(along - 0.9, along + 0.9, 0.0, DEPTH)
-	RoomDressing.block(mesh, pediment, wall.floor + 2.35, wall.floor + 2.45, _oak_carved)
+	RoomDressing.block(mesh, pediment, wall.floor + top - 0.1, wall.floor + top, _oak_carved)
 	_clock(mesh, wall, along, 1.6, 0.17)
 
 
