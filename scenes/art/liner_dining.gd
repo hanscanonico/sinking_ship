@@ -10,9 +10,12 @@ extends RefCounted
 ## chandelier round each of the pendants it is lit by. The others are plainer:
 ## pilasters on a PLAIN_PITCH, a serving hatch on the wall nearest the galley, a clock
 ## on the forward wall, fire buckets on a shelf on a side wall, and the pendants.
-## Its tables are not drawn here yet: mid-room furniture stands only in a blocker's
-## footprint, and the tables' blockers are sim data (D6) a later slice lays — it draws
-## them on their footprints in tables().
+## Its tables are drawn on their blockers' footprints (tables()), every one inside its
+## box and solid on each side up to its top, as art-lint holds every blocker drawn: a
+## square table is laid — a white cloth hanging to HEM, a dark chair tucked under each
+## of its edges and a plate before each — and a long one is a bare mess table of planks
+## with a bench along each side. Nothing of a table stands out of its box, nor more
+## than SETTING over its top, where a body on it stands (D6: no box ever grows to fit).
 ## Between a step over the floor and a body's height, nothing it draws may stand more
 ## than FurnishingCheck.TOLERANCE (0.12 m) out from a wall; over HEADROOM (1.85 m)
 ## anything may, and so may anything standing inside a BOX blocker's footprint —
@@ -53,6 +56,28 @@ const HATCH_HEIGHT := 1.3
 ## The clock's middle's height over the floor and its radius.
 const CLOCK_HEIGHT := 2.05
 const CLOCK := 0.16
+## A table: how far its cloth or its apron stands in from its box's sides, within
+## art-lint's margin, so a chair's back or a bench shows proud of it inside the box;
+## how far over the floor a laid table's cloth hangs; a long table is one at least
+## LONG times as long as it is wide.
+const CLOTH_IN := 0.035
+const HEM := 0.15
+const LONG := 2.0
+## A chair tucked under a laid table's edge: its back's width and depth, how far under
+## the table's top it stops, and the plate before it — its radius, how far in from the
+## edge its middle stands, how far over the cloth it lies (no more than SETTING).
+const CHAIR := Vector2(0.44, 0.03)
+const CHAIR_UNDER := 0.03
+const PLATE := 0.11
+const PLATE_IN := 0.26
+const SETTING := 0.004
+## A mess table: its top's thickness, its bench's depth and seat height, and how high
+## over the floor its apron's foot stands.
+const BOARD := 0.05
+## The most triangles one table and what stands in its box may draw.
+const TABLE_BUDGET := 60
+const BENCH := Vector2(0.28, 0.45)
+const APRON_FOOT := 0.53
 ## How far along a wall either side of a pane a piece keeps clear of it.
 const GLASS_CLEAR := CabinDressing.GLASS_CLEAR
 
@@ -63,6 +88,7 @@ const CARPET := Color("a8463c")
 const GILT := Color("c9a55a")
 const SCONCE_GLASS := Color("fff0c8")
 const HATCH_SHUTTER := Color("8a6a48")
+const CHINA := Color("dce3ec")
 
 ## The saloons' linings (RoomDressing.Part): white enamel walls, a plank floor, a
 ## white ceiling on white beams.
@@ -85,6 +111,7 @@ static var gilt := ShipMesh.Paint.new(ShipMesh.Finish.PLAIN, GILT)
 static var sconce_glass := ShipMesh.Paint.new(ShipMesh.Finish.PLAIN, SCONCE_GLASS)
 static var shutter := ShipMesh.Paint.new(ShipMesh.Finish.PLAIN, HATCH_SHUTTER)
 static var curtain := ShipMesh.Paint.new(ShipMesh.Finish.PLAIN, ArtPalette.SALOON_CURTAIN)
+static var china := ShipMesh.Paint.new(ShipMesh.Finish.PLAIN, CHINA)
 
 var _space: ShipSpace
 var _cabins: CabinDressing
@@ -119,10 +146,130 @@ func build(mesh: ShipMesh, room: ShipRoom, glass: Array[Array]) -> void:
 	tables(mesh, room)
 
 
-## [param room]'s tables, into [param mesh]: none yet — they stand on blockers a
-## later slice lays, and draws here on their footprints.
-func tables(_mesh: ShipMesh, _room: ShipRoom) -> void:
-	pass
+## [param room]'s furniture (ShipSpace.furniture()), into [param mesh]: each table
+## laid (laid_table()) or a mess table (mess_table()) by its shape, anything else as
+## FurnitureDressing draws it.
+func tables(mesh: ShipMesh, room: ShipRoom) -> void:
+	var others: Array[ShipBlocker] = []
+	for blocker: ShipBlocker in _space.furniture(room):
+		if FurnitureDressing.piece_of(blocker) != FurnitureDressing.Piece.TABLE:
+			others.append(blocker)
+		elif long_table(blocker.area):
+			mess_table(mesh, blocker.area, blocker.bottom, blocker.top)
+		else:
+			laid_table(mesh, blocker.area, blocker.bottom, blocker.top)
+	FurnitureDressing.build(mesh, room, others)
+
+
+## Whether a table over [param area] is a long one: a mess table's.
+static func long_table(area: Rect2) -> bool:
+	return maxf(area.size.x, area.size.y) >= LONG * minf(area.size.x, area.size.y)
+
+
+## A laid table over [param area] from [param bottom] to [param top]: a white cloth
+## CLOTH_IN inside its sides from HEM over the floor to its top, under each edge a dark
+## chair tucked in — its back flush with the box's side, from the floor to CHAIR_UNDER
+## under the top — and before each chair a plate lying on the cloth.
+static func laid_table(mesh: ShipMesh, area: Rect2, bottom: float, top: float) -> void:
+	var cloth := area.grow(-CLOTH_IN)
+	_box(mesh, cloth, bottom + HEM, top, ShipPaints.linen, ShipMesh.SIDES | ShipMesh.TOP)
+	var middle := area.get_center()
+	var half := area.size * 0.5
+	for side: Vector2 in [Vector2.RIGHT, Vector2.LEFT, Vector2.DOWN, Vector2.UP]:
+		var reach := absf(side.dot(half))
+		var along := Vector2(absf(side.y), absf(side.x))
+		var edge := middle + side * (reach - ShipMesh.SLIVER - CHAIR.y * 0.5)
+		var size := along * CHAIR.x + Vector2(absf(side.x), absf(side.y)) * CHAIR.y
+		var back := Rect2(edge - size * 0.5, size)
+		var faces := ShipMesh.TOP | _facing(side) | _facing(along) | _facing(-along)
+		_box(mesh, back, bottom, top - CHAIR_UNDER, ShipPaints.frame, faces)
+		var plate := middle + side * (reach - PLATE_IN)
+		_plate(mesh, Vector3(plate.x, top + SETTING, plate.y), PLATE, china)
+
+
+## A mess table over [param area] from [param bottom] to [param top]: a bare board of
+## planks over an apron CLOTH_IN inside its sides from APRON_FOOT up, a bench along
+## each of its long sides from the floor to its seat, and a trestle's foot across each
+## end between them.
+static func mess_table(mesh: ShipMesh, area: Rect2, bottom: float, top: float) -> void:
+	_box(mesh, area, top - BOARD, top, ShipPaints.teak, ShipMesh.SIDES | ShipMesh.TOP)
+	var apron := area.grow(-CLOTH_IN)
+	_box(mesh, apron, bottom + APRON_FOOT, top - BOARD, ShipPaints.frame, ShipMesh.SIDES)
+	var along_x := area.size.x >= area.size.y
+	var across := Vector2.DOWN if along_x else Vector2.RIGHT
+	var middle := area.get_center()
+	var depth := absf(across.dot(area.size))
+	var length := absf((Vector2.ONE - across).dot(area.size))
+	var seat := bottom + BENCH.y
+	for side: float in [-1.0, 1.0]:
+		var at := middle + across * side * (depth - BENCH.x) * 0.5
+		var size := (Vector2.ONE - across) * length + across * BENCH.x
+		_box(
+			mesh,
+			Rect2(at - size * 0.5, size),
+			bottom,
+			seat,
+			ShipPaints.teak,
+			ShipMesh.SIDES | ShipMesh.TOP
+		)
+	var gap := depth - BENCH.x * 2.0
+	var ends := Vector2.ONE - across
+	for side: float in [-1.0, 1.0]:
+		var at := middle + ends * side * (length * 0.5 - CLOTH_IN)
+		var size := across * gap + ends * CHAIR.y
+		_box(
+			mesh, Rect2(at - size * 0.5, size), bottom, seat, ShipPaints.frame, _facing(ends * side)
+		)
+
+
+## The face of a box facing [param side] in the ship plane (ShipMesh.POS_X…).
+static func _facing(side: Vector2) -> int:
+	if side.x > 0.5:
+		return ShipMesh.POS_X
+	if side.x < -0.5:
+		return ShipMesh.NEG_X
+	return ShipMesh.POS_Z if side.y > 0.5 else ShipMesh.NEG_Z
+
+
+## A box over [param area] from [param bottom] to [param top], the [param faces] of it
+## (ShipMesh.TOP…), each one quad uncut at ShipMesh's chunk lines and unrimmed — a
+## table is drawn in a few triangles.
+static func _box(
+	mesh: ShipMesh, area: Rect2, bottom: float, top: float, paint: ShipMesh.Paint, faces: int
+) -> void:
+	var x0 := area.position.x
+	var x1 := area.end.x
+	var z0 := area.position.y
+	var z1 := area.end.y
+	var up := Vector3.UP * (top - bottom)
+	if faces & ShipMesh.TOP:
+		var a := Vector3(x0, top, z0)
+		var c := Vector3(x1, top, z1)
+		mesh.quad(a, Vector3(x1, top, z0), c, Vector3(x0, top, z1), Vector3.UP, paint, 0)
+	var sides: Array[Array] = [
+		[ShipMesh.POS_X, Vector3(x1, bottom, z0), Vector3(x1, bottom, z1), Vector3.RIGHT],
+		[ShipMesh.NEG_X, Vector3(x0, bottom, z0), Vector3(x0, bottom, z1), Vector3.LEFT],
+		[ShipMesh.POS_Z, Vector3(x0, bottom, z1), Vector3(x1, bottom, z1), Vector3.BACK],
+		[ShipMesh.NEG_Z, Vector3(x0, bottom, z0), Vector3(x1, bottom, z0), Vector3.FORWARD],
+	]
+	for side: Array in sides:
+		if faces & (side[0] as int):
+			var a: Vector3 = side[1]
+			var b: Vector3 = side[2]
+			mesh.quad(a, b, b + up, a + up, side[3], paint, 0)
+
+
+## A plate lying at [param centre], [param radius] across: a flat hexagon of four
+## triangles.
+static func _plate(mesh: ShipMesh, centre: Vector3, radius: float, paint: ShipMesh.Paint) -> void:
+	var ring := PackedVector3Array()
+	for index in 6:
+		var turn := TAU * index / 6.0
+		ring.append(centre + Vector3(cos(turn), 0.0, sin(turn)) * radius)
+	var none := PackedFloat32Array([0.0, 0.0, 0.0])
+	for index in range(1, 5):
+		var corners := PackedVector3Array([ring[0], ring[index], ring[index + 1]])
+		mesh.triangle(corners, none, Vector3.UP, paint)
 
 
 ## The lights [param room] is lit by: in the first-class saloon a pendant at the heart
