@@ -753,7 +753,10 @@ room("gs_e", "grand staircase, E deck", GS[0], GS[1], SR_Z[1], 6.0, E_DECK)
 # doors").
 wall_x("saloons_aft", BX["J"], -SALOON_Z, SALOON_Z, F_DECK, E_DECK)
 wall_x("saloons_middle", BX["H"], -SALOON_Z, SALOON_Z, F_DECK, E_DECK, [door_at(0.0)])
-wall_x("saloons_fwd", BX["G"], -SALOON_Z, SALOON_Z, F_DECK, E_DECK)
+# Bulkhead G's door forward to the baths' corridor (wtd_f_g): the wall to starboard of
+# it here, its port piece and lintel with the baths, so no blocker moves.
+G_DOOR = door_at(-6.0)
+box("saloons_fwd", BX["G"] - T, BX["G"] + T, G_DOOR[1], SALOON_Z + T, F_DECK, E_DECK)
 for tag, z in [("p", -SALOON_Z), ("s", SALOON_Z)]:
     wall_z("saloons_" + tag, z, BX["J"], BX["G"], F_DECK, E_DECK)
 room("saloon_3_aft", "third-class dining saloon, aft", BX["J"], BX["H"], -SALOON_Z, SALOON_Z, F_DECK)
@@ -832,6 +835,40 @@ for rid, x0, x1, floor, rows in [("purser", 35.4, 36.0, 0.0, [(-5.0, -1.5), (1.5
 # The gymnasium's rowing machine and electric camel, against its after wall.
 box("gym_rowing_machine", 18.0, 18.7, 2.0, 3.5, BOAT, BOAT + COUNTER)
 box("gym_electric_camel", 18.0, 18.7, -3.5, -2.0, BOAT, BOAT + COUNTER)
+
+# --- F deck over boiler rooms 4 and 5 (SB-IV), after every other platform, blocker and
+# room so none of theirs moves: the Turkish bath and the swimming bath to starboard, a
+# working corridor to port from the third-class saloons through bulkhead G's door and
+# F's (wtd_f_g, wtd_f_f) to bulkhead E. Each boiler room's fiddley rises through the
+# corridor in a casing 3 m square walled to E deck (est.), the deck cut round it. The
+# swimming bath's pool is a box a metre high, est. 9.1 m by 4.3 m: no water of the
+# sim's (SinkSchedule is the only), a rim nobody perches on.
+BR5_Z = fit(BX["F"], BX["E"], F_DECK, 0.3)
+FIDDLEY = 1.5  # half a fiddley casing's side (est.), round the fiddley opening's 3 m square
+BATHS_Z = 1.5  # the baths' wall, along her centre line's starboard side (est.)
+CASINGS = [(cx, cx - FIDDLEY, cx + FIDDLEY) for cx in ((BX["G"] + BUNKERS["br4"]) * 0.5,
+                                                       (BX["F"] + BUNKERS["br5"]) * 0.5)]
+casing_holes = [(x0, x1, -FIDDLEY, FIDDLEY) for _cx, x0, x1 in CASINGS]
+f_br4 = deck("f_br4", "F deck", BX["G"], BX["F"], -SALOON_Z, SALOON_Z, F_DECK, casing_holes[:1])
+f_br5 = deck("f_br5", "F deck", BX["F"], BX["E"], -BR5_Z, BR5_Z, F_DECK, casing_holes[1:])
+box("saloons_fwd_port", BX["G"] - T, BX["G"] + T, -SALOON_Z - T, G_DOOR[0], F_DECK, E_DECK)
+box("saloons_fwd_lintel", BX["G"] - T, BX["G"] + T, G_DOOR[0], G_DOOR[1], F_DECK + LINTEL, E_DECK)
+doorways.append((0, BX["G"], G_DOOR[0], G_DOOR[1], F_DECK))
+wall_x("baths_f", BX["F"], -SALOON_Z, SALOON_Z, F_DECK, E_DECK, [door_at(-6.0)])
+wall_x("baths_e", BX["E"], -BR5_Z, BR5_Z, F_DECK, E_DECK)
+for tag, x0, x1, w in [("br4", BX["G"], BX["F"], SALOON_Z), ("br5", BX["F"], BX["E"], BR5_Z)]:
+    for side, z in [("p", -w), ("s", w)]:
+        wall_z("baths_%s_%s" % (tag, side), z, x0, x1, F_DECK, E_DECK)
+wall_z("baths", BATHS_Z, BX["G"], BX["E"], F_DECK, E_DECK, [door_at(21.0), door_at(38.5)])
+for k, (_cx, x0, x1) in zip((4, 5), CASINGS):
+    wall_x("casing_%d_aft" % k, x0, -FIDDLEY, FIDDLEY, F_DECK, E_DECK)
+    wall_x("casing_%d_fwd" % k, x1, -FIDDLEY, FIDDLEY, F_DECK, E_DECK)
+    wall_z("casing_%d_p" % k, -FIDDLEY, x0, x1, F_DECK, E_DECK)
+room("corridor_br4", "F deck working corridor, boiler room 4", BX["G"], BX["F"], -SALOON_Z, BATHS_Z, F_DECK)
+room("corridor_br5", "F deck working corridor, boiler room 5", BX["F"], BX["E"], -BR5_Z, BATHS_Z, F_DECK)
+room("turkish_bath", "Turkish bath", BX["G"], BX["F"], BATHS_Z, SALOON_Z, F_DECK)
+room("swimming_bath", "swimming bath", BX["F"], BX["E"], BATHS_Z, BR5_Z, F_DECK)
+box("pool", 40.0, 49.1, 4.5, 8.8, F_DECK, F_DECK + 1.0)
 
 # Sixteen seats across her decks (SH21 takes more): six on the boat deck and one on her
 # bridge, two on A deck's promenade, one on B deck's open end, one on each well deck,
@@ -1311,6 +1348,11 @@ for axis, at, d0, d1, foot in doorways:
         lo, hi = (inside[0], inside[1]) if axis == 0 else (inside[4], inside[5])
         face = lo if abs(lo - at) < abs(hi - at) else hi
     key = (a, b, axis, round(face, 4), round(foot, 4))
+    # A doorway through a watertight door the ship has already (the F and E deck doors
+    # 6 m to port) is that door, not a second one nobody shuts.
+    if any(o[1] == "WATERTIGHT_DOOR" and set(o[2]) == {a, b or SKY} and o[4][axis] == 0
+           and abs(o[3][axis] - face) < 1e-4 and abs(o[3][1] - LINTEL * 0.5 - foot) < 1e-4 for o in openings):
+        continue
     if key in merged:
         merged[key][1] += (d1 - d0) * LINTEL
         continue

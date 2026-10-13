@@ -97,6 +97,12 @@ func test_a_room_whose_name_says_what_it_is_is_that() -> void:
 		&"post office": RoomDressing.Kind.SERVICE,
 		&"third-class berths": RoomDressing.Kind.BERTHS,
 		&"crew quarters": RoomDressing.Kind.BERTHS,
+		# A working corridor is a plain passage, no first-class "deck corridor"; its
+		# "corridor" stands ahead of the "boiler" its name ends on.
+		&"F deck working corridor, boiler room 4": RoomDressing.Kind.PASSAGE,
+		&"F deck working corridor, boiler room 5": RoomDressing.Kind.PASSAGE,
+		&"Turkish bath": RoomDressing.Kind.BATH,
+		&"swimming bath": RoomDressing.Kind.BATH,
 	}
 	for room: ShipRoom in titanic.rooms:
 		assert_true(kinds.has(room.name), "pinned: %s" % room.name)
