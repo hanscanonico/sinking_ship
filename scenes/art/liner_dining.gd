@@ -74,10 +74,10 @@ const SETTING := 0.004
 ## A mess table: its top's thickness, its bench's depth and seat height, and how high
 ## over the floor its apron's foot stands.
 const BOARD := 0.05
-## The most triangles one table and what stands in its box may draw.
-const TABLE_BUDGET := 60
 const BENCH := Vector2(0.28, 0.45)
 const APRON_FOOT := 0.53
+## The most triangles one table and what stands in its box may draw.
+const TABLE_BUDGET := 60
 ## How far along a wall either side of a pane a piece keeps clear of it.
 const GLASS_CLEAR := CabinDressing.GLASS_CLEAR
 
