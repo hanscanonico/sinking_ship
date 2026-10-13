@@ -374,7 +374,7 @@ room("engine_room_port", "engine room", HX0, HX1, -LINING, -HZ, LOWER)
 room("engine_room_starboard", "engine room", HX0, HX1, HZ, LINING, LOWER)
 
 spawns = [
-    (8, LOWER, -2), (-2, LOWER, -3.5), (-7, LOWER, 2.8),
+    (8, LOWER, -2), (-2, LOWER, -3.2), (-7, LOWER, 2.8),
     (1.5, 0, -1.5), (-2.5, 0, 2.2),
     (-17.5, 1.2, -2.5), (-5, 0, -4.3), (6.5, 0, 4.2),
 ]

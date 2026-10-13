@@ -252,9 +252,10 @@ func test_a_table_on_a_saloon_s_floor_leaves_it_a_saloon() -> void:
 
 
 func test_the_steamer_s_engine_is_machinery_not_furniture() -> void:
-	var engine_room := _room(&"engine room")
-	assert_eq(_space.machinery(engine_room).size(), 1)
-	assert_true(_space.furniture(engine_room).is_empty())
+	# Her engine stands on the stokehold's floor.
+	var stokehold := _room(&"stokehold")
+	assert_eq(_space.machinery(stokehold).size(), 1)
+	assert_true(_space.furniture(stokehold).is_empty())
 
 
 func test_drawn_in_its_footprint_a_table_stands_in_nobody_s_way() -> void:
@@ -298,11 +299,11 @@ func test_a_piece_of_furniture_is_what_its_box_says() -> void:
 
 
 func test_a_name_says_what_a_room_is_ahead_of_its_machinery() -> void:
-	var engine_room := _room(&"engine room")
+	var stokehold := _room(&"stokehold")
 	var boiler_room := ShipRoom.new()
 	boiler_room.name = &"boiler room 6"
-	boiler_room.area = engine_room.area
-	boiler_room.floor_height = engine_room.floor_height
+	boiler_room.area = stokehold.area
+	boiler_room.floor_height = stokehold.floor_height
 	assert_true(_space.machinery_in(boiler_room), "the steamer's engine stands in it")
 	assert_eq(RoomDressing.kind_of(_space, boiler_room), RoomDressing.Kind.BOILER)
 
