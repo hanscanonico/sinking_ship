@@ -6,9 +6,9 @@ extends GutTest
 
 const DEFAULT_MATCH := "res://data/match/default.tres"
 const SURVIVAL_MATCH := "res://data/match/survival.tres"
-## The default match's data hash on main before goals came (#65's ShipLayout): the
-## battle royale's must not move.
-const BATTLE_ROYALE_HASH := "8f1224a6fd024c8544239de2b4dfc15adc9c9e7619b2fbb59964e2d5dd674424"
+## The default match's data hash on main before goals came (#65's ShipLayout), taken
+## again when her data moved (#74's stokehold): the goals must not move the battle royale's.
+const BATTLE_ROYALE_HASH := "e675b49db08ee6ebbfe7d7ba699ee752526a2e0db0b5378bf0cd877ea6807249"
 
 
 func test_the_data_carries_the_goal_onto_the_match() -> void:

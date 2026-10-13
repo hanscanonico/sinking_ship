@@ -10,6 +10,9 @@ const OPEN_ROOM_HEIGHT := 2.5
 const WALL_MAX := 0.3
 ## A wall at least this tall over its floor is a full wall, not a lintel or a sill.
 const FULL_WALL := 1.9
+## A box on a room's floor no taller than this is furniture — a table, a bench, a
+## counter, a range — not machinery: an engine stands taller.
+const FURNITURE_HEIGHT := 1.2
 ## A margin round a room's box when judging whether a point stands in it.
 const INSIDE := 0.02
 ## How far past a room roof() is asked of; a superset is no harm.
@@ -347,14 +350,35 @@ static func outward(side: int) -> Vector2:
 	return OUTWARD[side]
 
 
-## Whether a box thicker than a wall stands on [param room]'s floor inside it: an
-## engine, a boiler — machinery.
+## Whether a box thicker than a wall and taller than furniture stands on
+## [param room]'s floor inside it: an engine, a boiler — machinery.
 func machinery_in(room: ShipRoom) -> bool:
 	return not machinery(room).is_empty()
 
 
-## The boxes thicker than a wall standing on [param room]'s floor inside it.
+## The boxes thicker than a wall and taller than FURNITURE_HEIGHT standing on
+## [param room]'s floor inside it.
 func machinery(room: ShipRoom) -> Array[ShipBlocker]:
+	var found: Array[ShipBlocker] = []
+	for blocker: ShipBlocker in _on_floor(room):
+		if blocker.top - blocker.bottom > FURNITURE_HEIGHT:
+			found.append(blocker)
+	return found
+
+
+## The boxes thicker than a wall and no taller than FURNITURE_HEIGHT standing on
+## [param room]'s floor inside it: its tables, benches, counters and ranges.
+func furniture(room: ShipRoom) -> Array[ShipBlocker]:
+	var found: Array[ShipBlocker] = []
+	for blocker: ShipBlocker in _on_floor(room):
+		if blocker.top - blocker.bottom <= FURNITURE_HEIGHT:
+			found.append(blocker)
+	return found
+
+
+## The boxes thicker than a wall standing on [param room]'s floor, their middle
+## inside it.
+func _on_floor(room: ShipRoom) -> Array[ShipBlocker]:
 	var found: Array[ShipBlocker] = []
 	for blocker: ShipBlocker in layout.blockers:
 		if (
@@ -367,13 +391,18 @@ func machinery(room: ShipRoom) -> Array[ShipBlocker]:
 	return found
 
 
+## Whether [param blocker] is one of [param room]'s full walls: a wall standing on its
+## floor, over FULL_WALL tall or up to the deck over it — a stokehold's, under its
+## galleries (#74).
 func _full_wall_of(blocker: ShipBlocker, room: ShipRoom) -> bool:
-	return (
-		is_wall(blocker)
-		and absf(blocker.bottom - room.floor_height) < 0.05
-		and blocker.top - blocker.bottom > FULL_WALL
-		and blocker.area.grow(INSIDE).intersects(room.area)
-	)
+	if not is_wall(blocker) or absf(blocker.bottom - room.floor_height) >= 0.05:
+		return false
+	if not blocker.area.grow(INSIDE).intersects(room.area):
+		return false
+	if blocker.top - blocker.bottom > FULL_WALL:
+		return true
+	var at := blocker.area.get_center().clamp(room.area.position, room.area.end)
+	return blocker.top >= ceiling(room, at.x, at.y) - SLIVER
 
 
 ## The parts of [param area] no platform at [param height] covers.

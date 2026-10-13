@@ -544,7 +544,7 @@ func _steer(
 		Intent.LINE_UP:
 			_line_up(steer, me, mark, now_pos, pose)
 		Intent.GUARD:
-			_walk_at(steer, me, mark, pose)
+			_walk_at(steer, me, mark, now_pos, pose)
 		Intent.BRACE:
 			_brace(steer, seen, me, mark, now_pos, pose)
 		Intent.RECOVER:
@@ -564,7 +564,7 @@ func _make_for_goal(
 	if _follow_route(steer, me, now_pos, pose):
 		return
 	if not mark.is_empty() and _zone_of(mark) == _zone_of(me):
-		_walk_at(steer, me, mark, pose)
+		_walk_at(steer, me, mark, now_pos, pose)
 	elif not mark.is_empty():
 		var mark_pos: Vector3 = mark["pos"]
 		steer.watch = Vector2(mark_pos.x - now_pos.x, mark_pos.z - now_pos.z)
@@ -575,7 +575,7 @@ func _hunt(
 	steer: Steer, me: Dictionary, mark: Dictionary, now_pos: Vector3, pose: ShipPose
 ) -> void:
 	if not _follow_route(steer, me, now_pos, pose):
-		_walk_at(steer, me, mark, pose)
+		_walk_at(steer, me, mark, now_pos, pose)
 
 
 ## Round its target, a shove's reach off it, toward the far side from the drop — at
@@ -594,7 +594,7 @@ func _line_up(
 	var from := Vector2(my_pos.x, my_pos.z)
 	var at := Vector2(mark_pos.x, mark_pos.z)
 	if absf((at - from).angle_to(drop_way)) <= deg_to_rad(_rules.shove_cone_deg):
-		_walk_at(steer, me, mark, pose)
+		_walk_at(steer, me, mark, now_pos, pose)
 		return
 	var bearing := (from - at).angle()
 	var turn := clampf(angle_difference(bearing, (-drop_way).angle()), -TAU / 6.0, TAU / 6.0)
@@ -699,8 +699,8 @@ func _follow_route(steer: Steer, me: Dictionary, now_pos: Vector3, pose: ShipPos
 
 
 ## At [param mark], off by this think's heading error, looking at it, keeping to its
-## own surface and zone and the mark's.
-func _walk_at(steer: Steer, me: Dictionary, mark: Dictionary, pose: ShipPose) -> void:
+## own zone and surface — the one it reckons it stands on at [param now] — and the mark's.
+func _walk_at(steer: Steer, me: Dictionary, mark: Dictionary, now: Vector3, pose: ShipPose) -> void:
 	if mark.is_empty():
 		return
 	var my_pos: Vector3 = me["pos"]
@@ -711,10 +711,11 @@ func _walk_at(steer: Steer, me: Dictionary, mark: Dictionary, pose: ShipPose) ->
 		mark_pos += Vector3(mark_vel.x, 0.0, mark_vel.z) * ahead
 	var goal := _approach(my_pos, mark_pos, pose)
 	var wish := Vector2(goal.x - my_pos.x, goal.z - my_pos.z).normalized().rotated(_aim_offset)
+	var on := _surfaces.under(now, _rules.step_height)
 	steer.move = _footing.clear_heading(
 		my_pos,
 		wish,
-		PackedInt32Array([me["surface"], mark["surface"]]),
+		PackedInt32Array([me["surface"] if on == Surfaces.NONE else on, mark["surface"]]),
 		PackedInt32Array([_zone_of(me), _zone_of(mark)])
 	)
 	steer.watch = Vector2(mark_pos.x - my_pos.x, mark_pos.z - my_pos.z).rotated(_aim_offset)

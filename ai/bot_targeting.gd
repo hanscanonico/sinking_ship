@@ -67,7 +67,7 @@ func _init(
 ## over a shove would put it; by crowd_aversion, one nearer another seat than the bot
 ## scores less. [param kept] stays unless another beats it by the hysteresis; ties go
 ## to the lower seat. -1 for none. Under survival, once it sees the share [param under]
-## of the ship's platforms reach refuge_from, it fights over [param refuge] and
+## of her deck area reach refuge_from, it fights over [param refuge] and
 ## [param perch]: while anyone stands in them, only those are weighed — before that,
 ## nobody is fought (off_perch).
 func choose(

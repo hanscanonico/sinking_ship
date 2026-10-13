@@ -99,6 +99,21 @@ func test_spawns_stand_on_platforms() -> void:
 			)
 
 
+## A body set down at a seat stands clear: no blocker, crate or edge — a table, a
+## bench, a wall — holds it back where it starts.
+func test_spawns_stand_clear_of_every_blocker() -> void:
+	var layouts := _layouts()
+	var rules := SimFixtures.rules()
+	for path: String in layouts:
+		var layout: ShipLayout = layouts[path]
+		var surfaces := Surfaces.new(layout)
+		for spawn: Vector3 in layout.spawns:
+			var contacts := surfaces.obstacle_contacts(
+				spawn, rules.body_radius, rules.body_height, rules.step_height
+			)
+			assert_true(contacts.is_empty(), "%s: spawn %s is held back" % [path, spawn])
+
+
 func test_no_overlapping_same_height_platforms() -> void:
 	var layouts := _layouts()
 	for path: String in layouts:
@@ -198,6 +213,8 @@ func test_no_single_route_perch() -> void:
 
 
 func test_every_room_has_a_door() -> void:
+	# Or a stair up out of it: the steamer's stokehold is left by the stairs to its
+	# galleries (#74).
 	var rules := SimFixtures.rules()
 	var layouts := _layouts()
 	var rooms := 0
@@ -209,6 +226,10 @@ func test_every_room_has_a_door() -> void:
 			var wide := 0
 			for door: ShipRoom.Door in room.doors(surfaces, rules.body_height, rules.step_height):
 				if door.width() >= rules.body_radius * 2.0:
+					wide += 1
+			for ramp: ShipRamp in layout.ramps:
+				var low := 0 if ramp.start_height < ramp.end_height else 1
+				if room.holds(ramp.end_point(low), rules.step_height):
 					wide += 1
 			assert_gt(wide, 0, "%s: %s has no door" % [path, room.name])
 	assert_gt(rooms, 0, "the steamer has rooms")

@@ -201,7 +201,15 @@ func test_every_warning_comes_before_its_event() -> void:
 				continue
 			lurches += 1
 			if event.warned > 0.0:
-				assert_lte(event.warned, event.seconds - _sea.lurch_warning, "a second ahead")
+				# In the whole microseconds the timeline keeps its seconds in: a warning
+				# placed exactly lurch_warning ahead is ahead by it, whatever the floats'
+				# last bit says of its second less one.
+				var ahead := roundi(_sea.lurch_warning * SinkTimeline.PER_SECOND)
+				assert_lte(
+					roundi(event.warned * SinkTimeline.PER_SECOND),
+					roundi(event.seconds * SinkTimeline.PER_SECOND) - ahead,
+					"a second ahead"
+				)
 			var told := false
 			for warning: SinkTimeline.Event in timeline.events:
 				if warning.kind == SinkTimeline.Kind.LURCHING and warning.seconds == event.warned:

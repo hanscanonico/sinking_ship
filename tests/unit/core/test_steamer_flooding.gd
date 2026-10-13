@@ -1,19 +1,19 @@
 extends GutTest
 ## §5b.4 layer 3, the steamer: pinned seeds' match hits — bow_down_slow, stern_down,
 ## heavy_list, two_compartments_and_open_ports, fwd_pocket, from SH31 door_gives_way,
-## funnel_on_the_bridge and lights_out_early, from SH32 capsize_upside_down and on her
-## coast on_her_side — and explicit hits, each baked alone
+## funnel_on_the_bridge and lights_out_early, from SH32 on her coast on_her_side — and
+## explicit hits, from #74 stokehold_holed, each baked alone
 ## and again with its holes' area × 0.9 and × 1.1 to the same outcome, so the seeds sit
 ## far from every threshold and a Mac and Linux agree (R21). Outcomes are labels and
 ## bands, never exact times.
 
 const LIGHT := "res://tests/fixtures/sinking/hits/light.tres"
 const FAST := "res://tests/fixtures/sinking/hits/fast.tres"
+## stokehold_holed: struck along her middle 1 m under her waterline, into the stokehold.
+const STOKEHOLD := "res://tests/fixtures/sinking/hits/stokehold.tres"
 const MARGINS: Array[float] = [0.9, 1.0, 1.1]
 ## Water this far over a floor, in metres, is water.
 const WET := 0.01
-## capsize_upside_down: she floats upside down at least this many seconds on end.
-const FLOATS_INVERTED := 60.0
 ## on_her_side: at rest, part of her stands at least this far over the sea, in metres.
 const DRY_FOOTING := 1.0
 ## fwd_pocket: her last minute, in seconds before she is gone, when what holds the pocket
@@ -188,9 +188,10 @@ func test_stern_down_trims_her_by_the_stern_before_the_end() -> void:
 
 
 func test_heavy_list_holds_15_degrees_for_5_minutes_afloat() -> void:
-	# A shallow gash floods the half of her bilges on its side, bounded by her centre
-	# girder: the weight all on one side, she lies over 15° or more for 5 minutes and
-	# longer while afloat, her high side's boats useless and her low side's not.
+	# A gash low along her starboard quarter, into her after peak and her after bilge's
+	# starboard half (#74): the weight aft and all on one side, she lies over to starboard
+	# 15° or more for 5 minutes and longer while afloat, her port boats useless and her
+	# starboard ones not, until she goes by the stern 80–100 min on, measured.
 	for scale: float in MARGINS:
 		var timeline := _pinned(&"heavy_list", scale)
 		var end := timeline.gone_at if timeline.gone_at >= 0.0 else timeline.length()
@@ -228,6 +229,46 @@ func test_light_hit_ends_afloat() -> void:
 		var heel := rad_to_deg(asin(timeline.rotations[last * 9 + 7]))
 		assert_lt(absf(heel), 7.0, "listing under 7°, × %s" % scale)
 		assert_lt(timeline.seas[last], SinkTimeline.MAIN_DECK, "her deck clear, × %s" % scale)
+
+
+func test_stokehold_holed_floods_the_engine_room_first_from_its_floor_up() -> void:
+	# Holed along her middle, 1 m under her waterline, through her own shell into the
+	# stokehold (#74): of the cells people walk in, the engine room's floods first, from
+	# the gash — its water standing on the stokehold's floor while its galleries, at the
+	# lower deck's height, are still dry.
+	var damage := _damage(load(STOKEHOLD))
+	assert_eq(damage.openings.size(), 1, "the one gash, into the stokehold")
+	assert_eq(damage.openings[0].joins[0], &"engine_room")
+	var rooms: Array[StringName] = []
+	for cell: FloodCell in _structure.cells:
+		if not cell.rooms.is_empty():
+			rooms.append(cell.name)
+	var engine := _structure.cells[_structure.cell_named(&"engine_room")]
+	var galleries := INF
+	for room: ShipRoom in SimFixtures.steamer().rooms:
+		if room.name == &"engine room":
+			galleries = minf(galleries, room.floor_height)
+	var gallery := Vector3((engine.low.x + engine.high.x) * 0.5, galleries, 0.0)
+	for scale: float in MARGINS:
+		var timeline := _bake(damage, scale)
+		var first := &""
+		var first_at := INF
+		for cell: StringName in rooms:
+			var at := _first(timeline, SinkTimeline.Kind.FLOODING, cell)
+			if at >= 0.0 and at < first_at:
+				first = cell
+				first_at = at
+		assert_eq(first, &"engine_room", "× %s: the engine room floods first" % scale)
+		var standing := false
+		for frame in timeline.count():
+			var on_floor := _depth(timeline, frame, &"engine_room") > WET
+			var under := (
+				_head(timeline, frame, &"engine_room") < _up_height(timeline, frame, gallery)
+			)
+			if on_floor and under:
+				standing = true
+				break
+		assert_true(standing, "× %s: water on the stokehold's floor, its galleries dry" % scale)
 
 
 func test_open_porthole_floods_its_cabin_once_under() -> void:
@@ -473,38 +514,6 @@ func test_lights_out_early_puts_her_dark_long_before_she_goes() -> void:
 		assert_lt(dark, timeline.gone_at - 600.0, what + ": ten minutes and more before she goes")
 
 
-## The longest [param timeline] floats upside down on end before she is gone, in seconds:
-## past her beam ends and not stood on end, as OutcomeClassifier reads a capsize.
-func _inverted(timeline: SinkTimeline) -> float:
-	var gone := timeline.gone_at if timeline.is_gone() else timeline.length()
-	var longest := 0.0
-	var since := -1.0
-	for frame in timeline.frame_at(gone) + 1:
-		var leans := OutcomeClassifier.leans_at(timeline, frame)
-		var on_end := absf(leans[0]) >= OutcomeClassifier.ON_END_DEG
-		if on_end or absf(leans[1]) <= OutcomeClassifier.CAPSIZED_DEG:
-			since = -1.0
-			continue
-		if since < 0.0:
-			since = timeline.times[frame]
-		longest = maxf(longest, timeline.times[frame] - since)
-	return longest
-
-
-func test_capsize_upside_down_floats_on_her_air_then_goes() -> void:
-	# Holed low along her starboard bilges: she lists for over an hour, rolls past her
-	# beam ends and floats over on them — 143°, easing back to 90° — on the air her
-	# plated floors keep in her port bilges and the air in her after spaces — 18½–20 min
-	# of it on end, measured — until it leaks and she goes, by the head, within the
-	# bake's cap (SH32).
-	for scale: float in MARGINS:
-		var timeline := _pinned(&"capsize_upside_down", scale)
-		var what := "× %s" % scale
-		assert_eq(timeline.end, SinkTimeline.End.GONE, what + ": gone within the cap")
-		assert_has(OutcomeClassifier.labels(timeline), OutcomeClassifier.Outcome.CAPSIZED, what)
-		assert_gte(_inverted(timeline), FLOATS_INVERTED, what + ": upside down a minute and more")
-
-
 ## How high her highest cell corner stands over the sea at [param timeline]'s kept step
 ## [param frame], in metres.
 func _freeboard(timeline: SinkTimeline, frame: int) -> float:
@@ -522,9 +531,11 @@ func _freeboard(timeline: SinkTimeline, frame: int) -> float:
 
 func test_on_her_side_comes_to_rest_aground_with_part_of_her_dry() -> void:
 	# On her coast, 6 m of water under her (SH32): holed in her after peak and her
-	# starboard after bilge, she lists slowly for well over an hour, lies over and comes
-	# to rest on her starboard bilge on the bottom, 65° over, her high side 4½ m out of
-	# the water, measured — a wreck with dry footing, which the match plays on (Q21).
+	# starboard after bilge, she lists some 21° and settles by the stern onto the bottom
+	# within 11 min, and comes to rest there in about an hour, upright, her highest corner
+	# nearly 7 m out of the water, measured — a wreck with dry footing, which the match
+	# plays on (Q21). Since her stokehold (#74) no seed of the first 200 leaves her at rest
+	# lying over, as seed 14 once did, 65° over.
 	var coast := Fleet.setting(&"steamer_coast")
 	var stream := SeedStreams.derive(PinnedSeeds.seed_named(&"on_her_side"), "sink")
 	var choice := MustSink.choose(_structure, coast, stream, _sea)

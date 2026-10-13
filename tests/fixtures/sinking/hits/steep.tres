@@ -6,8 +6,8 @@
 script = ExtResource("1_hit")
 moment = 5.0
 side = 1
-start_x = 4.0
-length = 15.0
+start_x = 6.0
+length = 13.0
 depth_start = 1.0
 depth_end = 1.0
 width = 0.4
