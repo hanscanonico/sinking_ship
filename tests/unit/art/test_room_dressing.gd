@@ -106,6 +106,10 @@ func test_a_room_whose_name_says_what_it_is_is_that() -> void:
 		&"squash court": RoomDressing.Kind.SQUASH,
 		&"squash court gallery": RoomDressing.Kind.SQUASH,
 		&"F deck landing corridor": RoomDressing.Kind.PASSAGE,
+		&"boiler room 2": RoomDressing.Kind.BOILER,
+		&"boiler room 3": RoomDressing.Kind.BOILER,
+		&"boiler room 4": RoomDressing.Kind.BOILER,
+		&"boiler room 5": RoomDressing.Kind.BOILER,
 	}
 	for room: ShipRoom in titanic.rooms:
 		assert_true(kinds.has(room.name), "pinned: %s" % room.name)
