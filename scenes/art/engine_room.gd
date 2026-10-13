@@ -11,10 +11,20 @@ extends RefCounted
 ## floor; the main steam pipe's radius, and how far outside the engine's footprint
 ## it runs.
 const BOILER_RADIUS := 1.0
+## The least a boiler's front's radius is drawn, in metres: under a stokehold's gallery
+## (#74) the deckhead leaves little more.
+const BOILER_LEAST := 0.5
 const BOILER_FOOT := 0.2
 const FURNACE_HEIGHT := 0.62
 const STEAM_PIPE := 0.07
 const PIPE_OFFSET := 0.25
+## Boilers stand side by side along a bulkhead this far apart at least, past their
+## fronts' full breadth.
+const BOILER_GAP := 0.6
+## The pipes along the hull sides run this high over the floor, and this far under any
+## deck over them at least.
+const SIDE_PIPE := 2.1
+const SIDE_PIPE_CLEAR := 0.04
 ## A stair this near a hull side breaks the pipe along it: a body on it reaches there.
 const STAIR_REACH := 0.8
 ## An engine: its bedplate, its crankcase's and its columns' tops over the floor, and
@@ -220,8 +230,16 @@ func build(mesh: ShipMesh, room: ShipRoom) -> void:
 		if wall.length() < 1.0:
 			continue
 		if wall.outdoors_beyond():
+			# Over head height, and under any gallery standing over the wall (#74) — none
+			# where the gallery leaves no room for it over a head.
+			var foot := wall.at(wall.middle(), 0.0)
+			var under := _space.ceiling(room, foot.x, foot.z) - room.floor_height
+			var height := minf(SIDE_PIPE, under - ShipArt.PLANK - SIDE_PIPE_CLEAR)
+			if height < RoomDressing.HEADROOM:
+				continue
 			for run: Vector2 in _clear_of_stairs(wall, Vector2(wall.from + 0.05, wall.to - 0.05)):
-				RoomDressing.pipe(mesh, wall.at(run.x, 2.1, 0.08), wall.at(run.y, 2.1, 0.08), 0.05)
+				var from := wall.at(run.x, height, 0.08)
+				RoomDressing.pipe(mesh, from, wall.at(run.y, height, 0.08), 0.05)
 		elif wall.side == 3:
 			var board := wall.at(wall.middle(), 1.45, 0.012)
 			RoomDressing.panel(
@@ -259,13 +277,15 @@ func _clear_of_stairs(wall: RoomDressing.Wall, run: Vector2) -> Array[Vector2]:
 
 
 ## The main steam pipe from [param boiler]'s stop valve up under the beams, along its
-## bulkhead to beside [param engine], aft along the engine's side and over into it.
+## bulkhead to beside [param engine], aft along the engine's side and over into it — but
+## for a boiler under a gallery (#74), whose pipe goes up behind its bulkhead, clear of
+## the gallery and of any stair at its foot.
 func _steam_pipe(mesh: ShipMesh, boiler: Array, engine: ShipBlocker) -> void:
 	var wall: RoomDressing.Wall = boiler[0]
 	var radius: float = boiler[2]
 	var valve := wall.at(boiler[1], BOILER_FOOT + radius * 2.0 + 0.04, 0.16)
 	var inlet := _steam_inlet(engine, engine.top)
-	if is_nan(inlet.y):
+	if is_nan(inlet.y) or _space.ceiling(wall.room, valve.x, valve.z) < inlet.y:
 		return
 	var beside := engine.area.grow(PIPE_OFFSET)
 	var over := Vector3(valve.x, inlet.y, valve.z)
@@ -306,9 +326,12 @@ func _lanes(room: ShipRoom) -> Array[Vector2]:
 
 
 ## The boilers set in [param room]'s forward bulkhead: per stretch of it long enough
-## to hold one, [Wall, along it, radius].
+## to hold one, as many as it holds side by side, [Wall, along it, radius] — on the
+## floor its machinery stands on, never on the galleries over it (#74).
 func _boilers(room: ShipRoom) -> Array[Array]:
 	var found: Array[Array] = []
+	if not _space.machinery_in(room):
+		return found
 	for wall: RoomDressing.Wall in RoomDressing.walls(_space, room):
 		if wall.side != 1:
 			continue
@@ -316,8 +339,13 @@ func _boilers(room: ShipRoom) -> Array[Array]:
 		var height := _space.ceiling(room, at.x, at.z) - room.floor_height
 		height -= ShipArt.PLANK + ShipArt.BEAM_DEPTH
 		var radius := minf(BOILER_RADIUS, minf(wall.length() - 0.2, height - 0.3) * 0.5)
-		if radius >= 0.6:
-			found.append([wall, wall.middle(), radius])
+		if radius < BOILER_LEAST:
+			continue
+		# As many side by side as the stretch holds at their full breadth: a stokehold's
+		# bulkhead, unbroken by a door, holds two (#74).
+		var count := maxi(1, floori((wall.length() - 0.2) / (BOILER_RADIUS * 2.0 + BOILER_GAP)))
+		for index in count:
+			found.append([wall, lerpf(wall.from, wall.to, (index + 0.5) / count), radius])
 	return found
 
 
@@ -365,6 +393,10 @@ func _boiler(mesh: ShipMesh, boiler: Array) -> void:
 			RoomDressing.block(mesh, tube.grow(0.015), end, end + 0.03, ShipPaints.brass)
 	var top := BOILER_FOOT + radius * 2.0
 	RoomDressing.gauge(mesh, wall.at(along, top - 0.28, 0.04), normal, 0.11)
+	# A boiler squeezed under a gallery (#74) keeps its stop valve behind its bulkhead,
+	# out of the way of a head under it.
+	if top < RoomDressing.HEADROOM:
+		return
 	var valve := wall.at(along, top + 0.04, 0.16)
 	var body := Rect2(Vector2(valve.x, valve.z) - Vector2.ONE * 0.08, Vector2.ONE * 0.16)
 	RoomDressing.block(mesh, body, valve.y - 0.1, valve.y + 0.05, ShipPaints.brass)

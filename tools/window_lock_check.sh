@@ -76,6 +76,38 @@ else
 	fail "the holder never started"
 fi
 
+# A waiter sleeps while it waits: over a five-second wait the processes it runs
+# spend well under half a second of CPU between them (macOS lockf(1) waiting on a
+# descriptor spins). Read off ps, as rusage leaves lockf's spin out.
+tree_cpu() {
+	local pids=$1 next=$1 kids
+	while [[ -n "$next" ]]; do
+		kids=$(pgrep -P "${next//[[:space:]]/,}" | paste -sd, -)
+		[[ -n "$kids" ]] && pids="$pids,$kids"
+		next=$kids
+	done
+	LC_ALL=C ps -o time= -p "$pids" | LC_ALL=C awk -F: '{ s += $(NF-1) * 60 + $NF } END { print s + 0 }'
+}
+tools/window_lock.sh bash -c "touch '$WORK/c.start'; until [ -e '$WORK/c.release' ]; do sleep 0.1; done" &
+PIDS+=($!)
+holder=$!
+if wait_for "[ -e '$WORK/c.start' ]"; then
+	tools/window_lock.sh touch "$WORK/c.ran" 2>"$WORK/c.err" &
+	PIDS+=($!)
+	waiter=$!
+	wait_for "grep -q 'waiting for another game window' '$WORK/c.err'" ||
+		fail "the idle waiter never said it was waiting"
+	sleep 5
+	cpu=$(tree_cpu "$waiter")
+	LC_ALL=C awk -v c="$cpu" 'BEGIN { exit !(c < 0.5) }' ||
+		fail "a waiter spent ${cpu}s of CPU over a five-second wait"
+	touch "$WORK/c.release"
+	wait "$holder"
+	wait "$waiter"
+else
+	fail "the holder for the idle waiter never started"
+fi
+
 # The command's own exit status.
 tools/window_lock.sh bash -c 'exit 7' 2>/dev/null
 status=$?

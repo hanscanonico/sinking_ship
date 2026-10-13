@@ -26,6 +26,8 @@ const GLAZING_BAR := 0.025
 const WINDOW_HEIGHT := 1.45
 const WINDOW_SPACING := 1.3
 const WINDOW_MARGIN := 0.4
+## No porthole stands within this of her waterline, in metres (a stokehold's lining).
+const PORT_FREEBOARD := 1.0
 const GLASS_PROUD := 0.012
 ## A porthole in the hull stands this far off its curved plating.
 const HULL_GLASS_PROUD := 0.03
@@ -357,8 +359,9 @@ func _windows(mesh: ShipMesh, room: ShipRoom) -> void:
 				continue
 			var shape := _space.envelope(beyond.x)
 			var in_hull := shape.x != INF and height < minf(shape.z, shape.w)
-			# A hull's glass goes in its sides, never its ends.
-			if in_hull and side % 2 == 1:
+			# A hull's glass goes in its sides, never its ends, and never near the sea.
+			var near_sea := height < PORT_FREEBOARD - _space.layout.freeboard
+			if in_hull and (side % 2 == 1 or near_sea):
 				continue
 			var size := sizes[index]
 			var inner := on_line - outward * (half + GLASS_PROUD)
@@ -697,14 +700,25 @@ func _pane(
 		)
 
 
-## A passenger room's furniture, by what kind of room RoomDressing says it is.
+## A passenger room's furniture, by what kind of room RoomDressing says it is: a
+## saloon's banquettes — in a liner's dining saloons, public rooms, staircase landings,
+## galley and gymnasium too — or a small cabin's berth, in a liner's offices too.
 func _furnish(mesh: ShipMesh, room: ShipRoom) -> void:
 	var kind := RoomDressing.kind_of(_space, room)
-	if kind != RoomDressing.Kind.SALOON and kind != RoomDressing.Kind.CABIN:
+	var office := kind == RoomDressing.Kind.SERVICE and LinerService.office(room)
+	var seated: Array[RoomDressing.Kind] = [
+		RoomDressing.Kind.SALOON,
+		RoomDressing.Kind.DINING,
+		RoomDressing.Kind.PUBLIC,
+		RoomDressing.Kind.STAIRCASE,
+		RoomDressing.Kind.SERVICE,
+	]
+	var saloon := kind in seated and not office
+	if not saloon and not office and kind != RoomDressing.Kind.CABIN:
 		return
 	var runs := _space.wall_runs(room)
 	runs.sort_custom(func(a: Array, b: Array) -> bool: return a[2] - a[1] > b[2] - b[1])
-	if kind == RoomDressing.Kind.SALOON:
+	if saloon:
 		for run: Array in runs:
 			_banquette(mesh, room, run)
 	else:

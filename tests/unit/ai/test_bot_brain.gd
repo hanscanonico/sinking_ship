@@ -678,10 +678,13 @@ func test_bot_is_not_pinned_in_the_bay_between_the_boat_deck_ramps() -> void:
 
 func test_bot_leaving_the_bridge_does_not_dither_at_the_ramp_foot() -> void:
 	# Off the bridge on its collapse warning, down its ramp to the boat deck: from the
-	# ramp's foot the bot keeps going one way, never back and forth.
+	# ramp's foot the bot keeps going one way, never back and forth. Her level and lifted
+	# clear of the sea, so nothing of her is under water: at rest on her waterline the
+	# stokehold's floor (#74) stands in the sea, and the bot, seeing a share of her
+	# flooded, would walk a narrower margin than this test is about.
 	var layout := SimFixtures.steamer()
 	var scenario := SimFixtures.with_events(
-		SimFixtures.calm(), [SimFixtures.collapse(5.0, &"bridge")]
+		SimFixtures.tilted(0.0, 0.0), [SimFixtures.collapse(5.0, &"bridge")]
 	)
 	var sim := MatchSim.create(SimFixtures.config(2, scenario, SEED, layout))
 	SimFixtures.place(sim, 0, Vector3(-2.5, 4.7, 0.0))

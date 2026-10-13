@@ -25,6 +25,11 @@ func _room(room_name: StringName) -> ShipRoom:
 	return null
 
 
+## The ship data/ships/[param ship_name].tres lays out.
+func _ship(ship_name: String) -> ShipLayout:
+	return load("res://data/ships/%s.tres" % ship_name)
+
+
 ## The twelve triangles of a box over [param area] from [param bottom] to [param top].
 func _box(area: Rect2, bottom: float, top: float) -> PackedVector3Array:
 	var mesh := BoxMesh.new()
@@ -39,6 +44,7 @@ func _box(area: Rect2, bottom: float, top: float) -> PackedVector3Array:
 
 func test_each_room_of_the_steamer_is_what_its_shape_says() -> void:
 	var kinds := {
+		&"stokehold": RoomDressing.Kind.ENGINE,
 		&"engine room": RoomDressing.Kind.ENGINE,
 		&"forward hold": RoomDressing.Kind.HOLD,
 		&"cabin corridor": RoomDressing.Kind.PASSAGE,
@@ -54,25 +60,101 @@ func test_each_room_of_the_steamer_is_what_its_shape_says() -> void:
 
 
 func test_a_room_whose_name_says_what_it_is_is_that() -> void:
-	var titanic: ShipLayout = load("res://data/ships/titanic.tres")
+	var titanic := _ship("titanic")
 	var space := ShipSpace.new(titanic)
 	var kinds := {
-		&"first-class dining saloon": RoomDressing.Kind.SALOON,
-		&"third-class berths": RoomDressing.Kind.STEERAGE,
+		&"officers' quarters": RoomDressing.Kind.BERTHS,
 		&"wheelhouse": RoomDressing.Kind.HELM,
+		&"gymnasium": RoomDressing.Kind.SERVICE,
+		&"grand staircase, boat deck": RoomDressing.Kind.STAIRCASE,
+		&"verandah café": RoomDressing.Kind.PUBLIC,
+		&"first-class smoking room": RoomDressing.Kind.PUBLIC,
+		&"after entrance": RoomDressing.Kind.PUBLIC,
+		&"first-class lounge": RoomDressing.Kind.PUBLIC,
+		&"reading and writing room": RoomDressing.Kind.PUBLIC,
+		&"grand staircase, A deck": RoomDressing.Kind.STAIRCASE,
+		&"à la carte restaurant": RoomDressing.Kind.PUBLIC,
+		&"B deck corridor": RoomDressing.Kind.FIRST_CORRIDOR,
+		&"grand staircase, B deck": RoomDressing.Kind.STAIRCASE,
+		&"C deck corridor": RoomDressing.Kind.FIRST_CORRIDOR,
+		&"grand staircase, C deck": RoomDressing.Kind.STAIRCASE,
+		&"purser's office": RoomDressing.Kind.SERVICE,
+		&"third-class general room": RoomDressing.Kind.PUBLIC,
+		&"second-class dining saloon": RoomDressing.Kind.DINING,
+		&"D deck corridor": RoomDressing.Kind.FIRST_CORRIDOR,
+		&"galley": RoomDressing.Kind.SERVICE,
+		&"first-class dining saloon": RoomDressing.Kind.DINING,
+		&"reception room": RoomDressing.Kind.PUBLIC,
+		&"D deck corridor, forward": RoomDressing.Kind.FIRST_CORRIDOR,
+		&"third-class open space": RoomDressing.Kind.PUBLIC,
+		&"Scotland Road, boiler room 1": RoomDressing.Kind.PASSAGE,
+		&"Scotland Road, boiler rooms 2 and 3": RoomDressing.Kind.PASSAGE,
+		&"Scotland Road, boiler room 4": RoomDressing.Kind.PASSAGE,
+		&"Scotland Road, boiler room 5": RoomDressing.Kind.PASSAGE,
+		&"grand staircase, E deck": RoomDressing.Kind.STAIRCASE,
+		&"third-class dining saloon, aft": RoomDressing.Kind.DINING,
+		&"third-class dining saloon, forward": RoomDressing.Kind.DINING,
+		&"post office": RoomDressing.Kind.SERVICE,
+		&"third-class berths": RoomDressing.Kind.BERTHS,
+		&"crew quarters": RoomDressing.Kind.BERTHS,
 	}
 	for room: ShipRoom in titanic.rooms:
+		assert_true(kinds.has(room.name), "pinned: %s" % room.name)
 		if kinds.has(room.name):
 			assert_eq(RoomDressing.kind_of(space, room), kinds[room.name], String(room.name))
 			kinds.erase(room.name)
 	assert_true(kinds.is_empty(), "the Titanic has each: %s" % [kinds.keys()])
+
+
+func test_the_trawler_s_rooms_keep_their_dressing() -> void:
+	var trawler := _ship("trawler")
+	var space := ShipSpace.new(trawler)
+	# Her galley is a room of service, and not an office: dressed as the saloon it was.
+	var kinds := {
+		&"engine room": RoomDressing.Kind.ENGINE,
+		&"fish hold": RoomDressing.Kind.HOLD,
+		&"galley": RoomDressing.Kind.SERVICE,
+		&"wheelhouse": RoomDressing.Kind.HELM,
+		&"crew mess": RoomDressing.Kind.SALOON,
+	}
+	for room: ShipRoom in trawler.rooms:
+		assert_eq(RoomDressing.kind_of(space, room), kinds.get(room.name), String(room.name))
+		if room.name == &"galley":
+			assert_false(LinerService.office(room))
+
+
+func test_a_liner_s_office_is_one_and_her_officers_quarters_are_not() -> void:
+	var titanic := _ship("titanic")
+	var space := ShipSpace.new(titanic)
+	var offices := {}
 	for room: ShipRoom in titanic.rooms:
-		if String(room.name).begins_with("Scotland Road"):
-			assert_eq(RoomDressing.kind_of(space, room), RoomDressing.Kind.PASSAGE, "a road")
+		if RoomDressing.kind_of(space, room) == RoomDressing.Kind.SERVICE:
+			offices[room.name] = LinerService.office(room)
+	assert_eq(
+		offices,
+		{
+			&"gymnasium": false,
+			&"purser's office": true,
+			&"galley": false,
+			&"post office": true,
+		}
+	)
 
 
-func test_the_engine_room_is_lit_over_its_lanes_and_by_its_boilers_fires() -> void:
-	var lights := RoomDressing.new(_space).lights(_room(&"engine room"))
+# A room of service lines itself in tile (test_liner_service.gd).
+func test_the_liner_s_kinds_keep_the_ship_s_own_lining() -> void:
+	# A dining saloon lines its own (LinerDining, test_liner_dining.gd).
+	for kind: RoomDressing.Kind in [
+		RoomDressing.Kind.PUBLIC,
+		RoomDressing.Kind.STAIRCASE,
+		RoomDressing.Kind.FIRST_CORRIDOR,
+		RoomDressing.Kind.BERTHS,
+	]:
+		assert_true(RoomDressing._linings(kind).is_empty(), RoomDressing.Kind.keys()[kind])
+
+
+func test_the_stokehold_is_lit_over_its_lanes_and_by_its_boilers_fires() -> void:
+	var lights := RoomDressing.new(_space).lights(_room(&"stokehold"))
 	var pendants := 0
 	var fires := 0
 	for light: RoomDressing.Light in lights:
@@ -133,6 +215,120 @@ func test_nothing_the_dressing_draws_on_the_steamer_stands_in_a_body_s_way() -> 
 	art.free()
 	assert_gt(faces.size(), 0)
 	assert_eq(FurnishingCheck.intrusions(_layout, _rules, faces), PackedStringArray())
+
+
+## The steamer laid out again with a box over [param area] of [param room], from its
+## floor to [param height] over it.
+func _with_a_box(room: ShipRoom, area: Rect2, height: float) -> ShipLayout:
+	var layout: ShipLayout = _layout.duplicate(true)
+	var box := ShipBlocker.new()
+	box.shape = ShipBlocker.Shape.BOX
+	box.area = area
+	box.bottom = room.floor_height
+	box.top = room.floor_height + height
+	layout.blockers.append(box)
+	return layout
+
+
+## A room of [param room_name] over [param area] on the steamer's main deck.
+func _named(room_name: StringName, area: Rect2) -> ShipRoom:
+	var room := ShipRoom.new()
+	room.name = room_name
+	room.area = area
+	room.floor_height = _room(&"saloon").floor_height
+	return room
+
+
+func test_a_table_on_a_saloon_s_floor_leaves_it_a_saloon() -> void:
+	var saloon := _room(&"saloon")
+	var table := Rect2(saloon.area.get_center() - Vector2.ONE * 0.6, Vector2.ONE * 1.2)
+	var layout := _with_a_box(saloon, table, 0.75)
+	var space := ShipSpace.new(layout)
+	var room := layout.rooms[_layout.rooms.find(saloon)]
+	assert_eq(RoomDressing.kind_of(space, room), RoomDressing.Kind.SALOON)
+	assert_eq(space.furniture(room).size(), 1)
+	assert_eq(space.furniture(room)[0].area, table)
+	assert_true(space.machinery(room).is_empty(), "a table is no engine")
+
+
+func test_the_steamer_s_engine_is_machinery_not_furniture() -> void:
+	# Her engine stands on the stokehold's floor.
+	var stokehold := _room(&"stokehold")
+	assert_eq(_space.machinery(stokehold).size(), 1)
+	assert_true(_space.furniture(stokehold).is_empty())
+
+
+func test_drawn_in_its_footprint_a_table_stands_in_nobody_s_way() -> void:
+	var saloon := _room(&"saloon")
+	var table := Rect2(saloon.area.get_center() - Vector2.ONE * 0.6, Vector2.ONE * 1.2)
+	var layout := _with_a_box(saloon, table, 0.75)
+	var art := ShipArt.new()
+	art.build(layout, _rules.railing_height, _rules.body_radius)
+	var faces := FurnishingCheck.furnishings(art)
+	art.free()
+	# Over its footprint, clear of the floor's own faces and under its top: the table.
+	var in_it := 0
+	for corner: Vector3 in faces:
+		if table.grow(0.002).has_point(Vector2(corner.x, corner.z)):
+			var over := corner.y - saloon.floor_height
+			in_it += 1 if over > 0.05 and over < 0.76 else 0
+	assert_gt(in_it, 0, "the table is drawn")
+	assert_eq(FurnishingCheck.intrusions(layout, _rules, faces), PackedStringArray())
+
+
+func test_a_piece_of_furniture_is_what_its_box_says() -> void:
+	var pieces := [
+		[Vector2(1.2, 1.2), 0.75, FurnitureDressing.Piece.TABLE],
+		[Vector2(4.0, 0.9), 0.75, FurnitureDressing.Piece.TABLE],
+		[Vector2(9.0, 0.5), 0.45, FurnitureDressing.Piece.BENCH],
+		[Vector2(0.6, 3.6), 1.0, FurnitureDressing.Piece.COUNTER],
+		[Vector2(8.0, 1.2), 0.9, FurnitureDressing.Piece.RANGE],
+		[Vector2(0.7, 1.5), 1.0, FurnitureDressing.Piece.APPARATUS],
+	]
+	# On the Titanic's D deck, 0.9 m over -3.1875 is a hair under 0.9 in single precision.
+	var deck := -3.1875
+	for piece: Array in pieces:
+		var box := ShipBlocker.new()
+		box.shape = ShipBlocker.Shape.BOX
+		box.area = Rect2(Vector2.ZERO, piece[0])
+		box.top = piece[1]
+		assert_eq(FurnitureDressing.piece_of(box), piece[2], str(piece))
+		box.bottom = deck
+		box.top = deck + piece[1]
+		assert_eq(FurnitureDressing.piece_of(box), piece[2], "on D deck: %s" % [piece])
+
+
+func test_a_name_says_what_a_room_is_ahead_of_its_machinery() -> void:
+	var stokehold := _room(&"stokehold")
+	var boiler_room := ShipRoom.new()
+	boiler_room.name = &"boiler room 6"
+	boiler_room.area = stokehold.area
+	boiler_room.floor_height = stokehold.floor_height
+	assert_true(_space.machinery_in(boiler_room), "the steamer's engine stands in it")
+	assert_eq(RoomDressing.kind_of(_space, boiler_room), RoomDressing.Kind.BOILER)
+
+
+func test_a_room_named_for_a_boiler_a_bath_or_a_court_is_that() -> void:
+	var area := Rect2(-2.0, -2.0, 4.0, 4.0)
+	var kinds := {
+		&"boiler room 6": RoomDressing.Kind.BOILER,
+		&"Turkish bath": RoomDressing.Kind.BATH,
+		&"swimming bath": RoomDressing.Kind.BATH,
+		&"squash court": RoomDressing.Kind.SQUASH,
+		&"engine room": RoomDressing.Kind.ENGINE,
+	}
+	for room_name: StringName in kinds:
+		var kind := RoomDressing.kind_of(_space, _named(room_name, area))
+		assert_eq(kind, kinds[room_name], String(room_name))
+
+
+func test_a_boiler_room_is_lined_as_an_engine_room() -> void:
+	assert_eq(
+		RoomDressing._linings(RoomDressing.Kind.BOILER),
+		RoomDressing._linings(RoomDressing.Kind.ENGINE)
+	)
+	for kind: RoomDressing.Kind in [RoomDressing.Kind.BATH, RoomDressing.Kind.SQUASH]:
+		assert_true(RoomDressing._linings(kind).is_empty(), RoomDressing.Kind.keys()[kind])
 
 
 ## The binnacle's two spheres on the wheelhouse's forward wall, as (along, height over

@@ -146,6 +146,54 @@ func test_path_from_the_hold_to_the_poop_deck() -> void:
 	assert_eq(sim.state.seats[0].pos.y, 0.0)
 
 
+func test_a_way_out_of_the_stokehold_and_none_back_into_it_flooded() -> void:
+	# The steamer's stokehold, down on her tank top (#74): a body under its galleries
+	# finds its way out up a stair to them, round them, through a bulkhead's doorway and
+	# up on deck; once its floor is under, no route goes down into it, though its
+	# galleries stay dry. Dry inside her, though under her waterline, as the physics has
+	# her before the hit.
+	var layout := SimFixtures.steamer()
+	var surfaces := Surfaces.new(layout)
+	var graph := _graph(layout, surfaces)
+	var step := SimFixtures.rules().step_height
+	var stokehold := _room(layout, &"stokehold")
+	var galleries: Array[int] = []
+	for index in layout.rooms.size():
+		if layout.rooms[index].name == &"engine room":
+			galleries.append(index)
+	assert_eq(galleries.size(), 4, "aft, forward and either side of the opening")
+	var main_deck := graph.deck_of(SimFixtures.platform_named(layout, &"main deck"))
+	var dry := HeldPose.flooded(layout, -layout.freeboard, {})
+	var start := Vector3(-1.5, -4.6, -2.0)
+	var on := surfaces.under(start, step)
+	assert_eq(graph.zone_at(start, on), stokehold, "it starts in the stokehold")
+	var route := graph.route(start, on, main_deck, dry)
+	assert_false(route.is_empty(), "there is a way up out of it")
+	if route.is_empty():
+		return
+	assert_has(galleries, route[0].to_zone, "up a stair to its galleries")
+	assert_eq(route.back().to_zone, main_deck, "and on up to the main deck")
+
+	var sim := SimFixtures.sim(2, null, layout)
+	SimFixtures.place(sim, 0, start)
+	SimFixtures.place(sim, 1, Vector3(-18.0, 1.2, 3.0))
+	HeldPose.hold(sim, dry)
+	var passed := _walk(sim, graph, main_deck, 20.0)
+	assert_eq(passed.front(), stokehold)
+	assert_eq(passed.back(), main_deck, "walked out of it and up on deck")
+
+	# A metre of water over its floor, a metre under its galleries.
+	var flooded := HeldPose.flooded(layout, -layout.freeboard, {&"engine_room": [-3.6]})
+	assert_true(graph.flooded(stokehold, flooded), "its floor under")
+	for gallery: int in galleries:
+		assert_false(graph.flooded(gallery, flooded), "its galleries dry")
+	var gallery := Vector3(-2.0, -2.6, 2.5)
+	var on_gallery := surfaces.under(gallery, step)
+	assert_eq(graph.zone_at(gallery, on_gallery), _room(layout, &"engine room"))
+	assert_false(graph.route(gallery, on_gallery, stokehold, dry).is_empty(), "down it, dry")
+	assert_true(graph.route(gallery, on_gallery, stokehold, flooded).is_empty(), "never flooded")
+
+
 func test_paths_cross_walls_only_through_doors() -> void:
 	var rules := SimFixtures.rules()
 	var layout := SimFixtures.steamer()

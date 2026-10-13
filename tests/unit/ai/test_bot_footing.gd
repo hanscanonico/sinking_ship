@@ -50,3 +50,25 @@ func test_the_look_further_out_finds_a_trench_with_floor_beyond_it() -> void:
 	assert_false(
 		footing.danger_within(Vector3(-6.0, 0.0, 0.0), pose, reach), "a whole deck has none"
 	)
+
+
+## A deck 20 × 10 m out of the sea and a well 2 × 2 m sunk under it: a small platform
+## flooded floods little of her. The share under water is of her deck area, not of
+## her platforms — a stokehold's walks going under are no half of the ship.
+func test_the_share_flooded_is_of_her_deck_area() -> void:
+	var layout := ShipLayout.new()
+	layout.freeboard = 3.0
+	var platforms: Array[ShipPlatform] = []
+	for row: Array in [[Rect2(-10.0, -5.0, 20.0, 10.0), 0.0], [Rect2(-1.0, -1.0, 2.0, 2.0), -4.0]]:
+		var platform := ShipPlatform.new()
+		platform.area = row[0]
+		platform.height = row[1]
+		platforms.append(platform)
+	layout.platforms = platforms
+	var surfaces := Surfaces.new(layout)
+	var pose := _calm(layout)
+	assert_false(surfaces.flooded(0, pose), "the deck is dry")
+	assert_true(surfaces.flooded(1, pose), "the well is under")
+	assert_almost_eq(
+		_footing(layout, surfaces).flooded_share(pose), 4.0 / 204.0, 1e-6, "the well's area"
+	)

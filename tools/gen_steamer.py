@@ -7,8 +7,9 @@ this writes, so a hand edit to the .tres is caught. The sim reads only the .tres
 
 Ship-local metres: x toward the bow, z to starboard, y up, origin on the main deck
 amidships. The numbers that shape the rooms are the constants and calls below:
-DOOR (a doorway's width), LOWER (the lower deck's height), LINTEL (a door's height),
-T (half a wall's thickness), and each wall_*_doors call's door gaps.
+DOOR (a doorway's width), LOWER (the lower deck's height), TANK_TOP (the stokehold's
+floor's), LINING (the stokehold's sides), LINTEL (a door's height), T (half a wall's
+thickness), and each wall_*_doors call's door gaps.
 
 `--weak` writes her test-only weak hull instead (SH33): the same ship with her strength
 divided down by WEAK_DIVISOR and the weak spots WEAK_SPOTS, where she can break —
@@ -139,6 +140,19 @@ T = 0.1  # half a wall's thickness: walls are 0.2 m, centred on a room's side
 CRATE = [("radius", 0.45), ("height", 0.8), ("mass", 200), ("grip_angle_deg", 8), ("friction", 2.5)]
 DOOR = 1.1
 LOWER = -2.6
+# The stokehold (#74): her engine room runs down from the lower deck to a floor on her
+# tank top, 1 m under her waterline, so a gash along her middle opens a room a player
+# can stand in; under it a double bottom as deep, deep enough that a gash low along her
+# floods one half of it, the weight on one side, as her bilges do. Its sides are a
+# lining of plating LINING out from her middle line, inside her shell, that stands to
+# the main deck. Galleries at the lower
+# deck's height ring it: along its after and forward bulkheads, and along its sides,
+# STOKEHOLD_HOLE the opening they leave over its floor, (x0, x1, half breadth).
+TANK_TOP = -4.4
+LINING = 3.8
+# Its after end leaves a body room to pass the inner stair's foot on the gallery; its
+# ends lie where a single-precision Rect2 holds them exactly.
+STOKEHOLD_HOLE = (0.75, 3.0, 2.6)
 LINTEL = 2.1  # a door's height above its floor
 
 def wall_x(bid, x, z0, z1, bottom, top):
@@ -183,8 +197,15 @@ MC = platform("main_deck_waist", "main deck", -10.25, -1.25, -1.6, 2.0)
 MD = platform("main_deck_hall", "main deck", -1.25, -0.15, 1.0, 2.0)
 ME = platform("main_deck_forward", "main deck", -0.15, 9.0, -1.6, 2.0)
 MF = platform("main_deck_bow", "main deck", 9.0, 12, -1.6, 0.9)
-L1 = platform("lower_deck", "lower deck", -13, 4, -4.8, 4.8, LOWER)
+L1 = platform("lower_deck", "lower deck", -13, -3, -4.8, 4.8, LOWER)
 L2 = platform("hold", "lower deck", 4, 15, -3.8, 3.8, LOWER)
+# The engine room's galleries round the opening over the stokehold, and its floor.
+HX0, HX1, HZ = STOKEHOLD_HOLE
+GA = platform("gallery_aft", "lower deck", -3, HX0, -LINING, LINING, LOWER)
+GF = platform("gallery_forward", "lower deck", HX1, 4, -LINING, LINING, LOWER)
+GP = platform("gallery_port", "lower deck", HX0, HX1, -LINING, -HZ, LOWER)
+GS = platform("gallery_starboard", "lower deck", HX0, HX1, HZ, LINING, LOWER)
+SH = platform("stokehold", "stokehold", -3, 4, -LINING, LINING, TANK_TOP)
 
 # --- Ramps: SH3's six, then the three stairs (39°, 1.1 m wide).
 ramp("poop_port", -14, -4.5, 3, 1.4, 0, 1.2, 0)
@@ -207,6 +228,11 @@ ramp("bridge_starboard", -1, 0.1, 3, 1.4, 0, 4.7, 2.5)
 ramp("aft_companionway", -12.85, -0.55, 3.2, 1.1, 0, 0, LOWER)
 ramp("inner_stair", -1.25, -1.6, 1.1, 3.2, 1, 0, LOWER)
 ramp("forward_companionway", 9.0, 0.9, 3.2, 1.1, 0, 0, LOWER)
+# The stokehold's two stairs (#74), as steep as the rest, one up to each end's gallery
+# along a lane beside the engine: the after one to port, the forward one to starboard.
+STOKEHOLD_RUN = 2.35  # its foot two body radii clear of the forward bulkhead
+ramp("stokehold_aft", HX0, -2.5, STOKEHOLD_RUN, 1.1, 0, LOWER, TANK_TOP)
+ramp("stokehold_forward", HX1 - STOKEHOLD_RUN, 1.4, STOKEHOLD_RUN, 1.1, 0, TANK_TOP, LOWER)
 
 # --- Blockers: SH3's funnel (now through the deckhouse), mast and hatch.
 cylinder("funnel", -6, 0, 0.9, 0, 7.5)
@@ -229,8 +255,9 @@ wall_x("hold_forward", 15, -3.8, 3.8, LOWER, 1.8)
 centre_door = [(-DOOR / 2, DOOR / 2)]
 wall_x_doors("bulkhead_hold", 4, -4.8, 4.8, centre_door, LOWER, 0)
 wall_x_doors("bulkhead_engine", -3, -4.8, 4.8, centre_door, LOWER, 0)
-# The engine block splits the engine room into two lanes.
-box("engine", 0, 2.5, -1.2, 1.2, LOWER, -0.8)
+# The engine block on the stokehold floor splits it into two lanes, a body's way past
+# it beside each stair; it stands up through the opening over it.
+box("engine", 1.0, 2.75, -0.5, 0.5, TANK_TOP, -1.2)
 # Passenger cabins off the corridor (z -0.7..0.7), three a side.
 cabin_doors = [(-9.6, -8.5), (-7.6, -6.5), (-4.9, -3.8)]
 wall_z_doors("corridor_port", -0.7, -13, -3, cabin_doors, LOWER, 0)
@@ -261,6 +288,22 @@ wall_x("wheelhouse_forward", -1.1, -1.4, 1.4, WH, WTOP)
 wall_z_doors("wheelhouse_port", -1.4, -3.9, -1.1, [(-3.05, -1.95)], WH, WTOP)
 wall_z_doors("wheelhouse_starboard", 1.4, -3.9, -1.1, [(-3.05, -1.95)], WH, WTOP)
 
+# --- The stokehold's own blockers (#74), after every other's so none moves: its
+# bulkheads down to its floor under the galleries, and its lining either side, standing
+# to the main deck, the hull's walls outboard of it.
+wall_x("stokehold_aft", -3, -LINING, LINING, TANK_TOP, LOWER)
+wall_x("stokehold_forward", 4, -LINING, LINING, TANK_TOP, LOWER)
+# Its lining in two lifts, so its galleries have full walls on their floor too.
+wall_z("stokehold_port", -LINING, -3 + T, 4 - T, TANK_TOP, LOWER)
+wall_z("stokehold_starboard", LINING, -3 + T, 4 - T, TANK_TOP, LOWER)
+wall_z("gallery_port", -LINING, -3 + T, 4 - T, LOWER, 0)
+wall_z("gallery_starboard", LINING, -3 + T, 4 - T, LOWER, 0)
+# A stanchion at each corner of the opening over the stokehold, at the railings' joins:
+# each gallery's side onto the opening is then a doorway onto the gallery beside it and
+# an edge over the drop, so a body walks round the galleries one to the next.
+for tag, x in [("aft", HX0), ("forward", HX1)]:
+    for side, z in [("port", -HZ), ("starboard", HZ)]:
+        box("stanchion_%s_%s" % (tag, side), x - 0.05, x + 0.05, z - 0.05, z + 0.05, LOWER, LOWER + 1.0)
 # --- Railings: SH3's along the main deck's sides and ends, the poop and the
 # forecastle, then three sides of each stair opening.
 railing("main_port_aft", MAIN, (-14, -5), (3.5, -5))
@@ -285,6 +328,15 @@ railing("inner_stair_forward", ME, (-0.15, -1.6), (-0.15, 1.0))
 railing("inner_stair_starboard", MD, (-1.25, 1.0), (-0.15, 1.0))
 railing("forward_companionway_port", MF, (9, 0.9), (12, 0.9))
 railing("forward_companionway_starboard", SS, (9, 2.0), (12, 2.0))
+# Round the opening over the stokehold, but for its stairs' heads and where the engine
+# stands too near the galleries' edges for a body to fall between.
+ENGINE_END = 0.6
+railing("stokehold_aft_port", GA, (HX0, -1.4), (HX0, -ENGINE_END))
+railing("stokehold_aft_starboard", GA, (HX0, ENGINE_END), (HX0, HZ))
+railing("stokehold_forward_port", GF, (HX1, -HZ), (HX1, -ENGINE_END))
+railing("stokehold_forward_starboard", GF, (HX1, ENGINE_END), (HX1, 1.4))
+railing("stokehold_port", GP, (HX0, -HZ), (HX1, -HZ))
+railing("stokehold_starboard", GS, (HX0, HZ), (HX1, HZ))
 
 # --- Boarding ladders (SH5), one down each side amidships, beside the railing
 # gaps where bodies go over: the main deck stands 3.4 m out of the sea, far past a
@@ -303,7 +355,9 @@ crate("forward_outboard", 11.0, 0, -3.6)
 
 # --- Rooms, to the middle of their walls.
 room("forward_hold", "forward hold", 4, 15, -3.8, 3.8, LOWER)
-room("engine_room", "engine room", -3, 4, -4.8, 4.8, LOWER)
+# The engine room's galleries, each a room of its own a body walks straight across,
+# and the stokehold under them (#74).
+room("engine_room", "engine room", -3, HX0, -LINING, LINING, LOWER)
 room("cabin_corridor", "cabin corridor", -13, -3, -0.7, 0.7, LOWER)
 for side, z0, z1 in [("port", -4.8, -0.7), ("starboard", 0.7, 4.8)]:
     for tag, x0, x1 in [("aft", -13, -8.4), ("middle", -8.4, -5.7), ("forward", -5.7, -3)]:
@@ -313,9 +367,14 @@ room("deckhouse_hall", "deckhouse hall", -3.4, 0, -3.3, 3.3, DH)
 for i, (z0, z1) in enumerate([(-3.3, -1.65), (-1.65, 0), (0, 1.65), (1.65, 3.3)]):
     room("deckhouse_cabin_%d" % (i + 1), "deckhouse cabin %d" % (i + 1), -6.9, -3.4, z0, z1, DH)
 room("wheelhouse", "wheelhouse", -3.9, -1.1, -1.4, 1.4, WH)
+# The stokehold and the rest of its galleries, after every other room so none moves.
+room("stokehold", "stokehold", -3, 4, -LINING, LINING, TANK_TOP)
+room("engine_room_forward", "engine room", HX1, 4, -LINING, LINING, LOWER)
+room("engine_room_port", "engine room", HX0, HX1, -LINING, -HZ, LOWER)
+room("engine_room_starboard", "engine room", HX0, HX1, HZ, LINING, LOWER)
 
 spawns = [
-    (8, LOWER, -2), (-2, LOWER, -3.5), (-7, LOWER, 2.8),
+    (8, LOWER, -2), (-2, LOWER, -3.2), (-7, LOWER, 2.8),
     (1.5, 0, -1.5), (-2.5, 0, 2.2),
     (-17.5, 1.2, -2.5), (-5, 0, -4.3), (6.5, 0, 4.2),
 ]
@@ -740,8 +799,10 @@ def hull_in(x0, x1, y0, y1, z0, z1):
     return volume
 
 # Cells: (name, x0, x1, y0, y1, z0, z1, kind, permeability or None for its kind's).
-# Each compartment's lower-deck floor has a bilge under it; the hold has a side void
-# either side, out from its walls, and a top under the forecastle — an air trap.
+# Each compartment's lower-deck floor has a bilge under it — the engine room's, the
+# stokehold's floor, a double bottom (#74), out to her shell with no wing void; the hold
+# has a side void either side, out from its walls, and a top under the forecastle — an
+# air trap.
 BEAM = max(max(-p[2], p[3]) for p in plat_geo)
 HOLD_SIDE = 3.8
 CELLS = [
@@ -750,9 +811,9 @@ CELLS = [
     ("aft_bilge_p", -13, -3, KEEL, LOWER, -BEAM, 0, "VOID", None),
     ("aft_bilge_s", -13, -3, KEEL, LOWER, 0, BEAM, "VOID", None),
     ("aft_cabins", -13, -3, LOWER, 0, -BEAM, BEAM, "ACCOMMODATION", None),
-    ("engine_bilge_p", -3, 4, KEEL, LOWER, -BEAM, 0, "VOID", None),
-    ("engine_bilge_s", -3, 4, KEEL, LOWER, 0, BEAM, "VOID", None),
-    ("engine_room", -3, 4, LOWER, 0, -BEAM, BEAM, "MACHINERY", None),
+    ("engine_bilge_p", -3, 4, KEEL, TANK_TOP, -BEAM, 0, "VOID", None),
+    ("engine_bilge_s", -3, 4, KEEL, TANK_TOP, 0, BEAM, "VOID", None),
+    ("engine_room", -3, 4, TANK_TOP, 0, -BEAM, BEAM, "MACHINERY", None),
     ("hold_bilge", 4, 15, KEEL, LOWER, -HOLD_SIDE, HOLD_SIDE, "VOID", None),
     ("hold", 4, 15, LOWER, 0, -HOLD_SIDE, HOLD_SIDE, "CARGO", 0.95),  # empty: 0.95
     ("hold_wing_p", 4, 15, KEEL, 0, -BEAM, -HOLD_SIDE, "VOID", None),
@@ -804,8 +865,10 @@ WALL_LEAK = 0.002
 # port and a starboard half, so a gash floods the half on its side — the weight on one
 # side, its loose water half as wide (the plan's lengthwise wall in a wide cell, R23) —
 # until the water tops it and spills across. Limber holes through it leak est.
-# 0.005 m² a bilge.
+# 0.005 m² a bilge. Under the stokehold (#74) it stands only to her tank top, as strong,
+# parting her double bottom's halves whole.
 GIRDER = ("centre_girder", 0.0, KEEL + 2.5, 1.5 * built_for(KEEL + 2.5))
+GIRDER_STOKEHOLD = "centre_girder_stokehold"
 LIMBER_HOLES = 0.005
 
 def parted(axis, at, y0, y1, along0, along1):
@@ -830,7 +893,9 @@ for name, z, top, collapse in HOLD_WALLS:
     span = (4, 15)
     walls.append((name, "ALONG", z, span, KEEL, top, collapse, parted(2, z, KEEL, top, *span)))
 name, z, top, collapse = GIRDER
-walls.append((name, "ALONG", z, (-13, 4), KEEL, top, collapse, parted(2, z, KEEL, top, -13, 4)))
+walls.append((name, "ALONG", z, (-13, -3), KEEL, top, collapse, parted(2, z, KEEL, top, -13, -3)))
+walls.append((GIRDER_STOKEHOLD, "ALONG", z, (-3, 4), KEEL, TANK_TOP, collapse,
+              parted(2, z, KEEL, TANK_TOP, -3, 4)))
 
 # Openings: (name, kind, joins, centre, size, fields). size is the rectangle's extent
 # along x, y and z, zero across the axis it is flat on.
@@ -926,6 +991,9 @@ opening("open_hold_fwd_top", "OPEN", "hold", "hold_fwd_top",
 # bilge — a plated floor over the bilge, tight but for its limbers and sounding
 # pipes, so a bilge keeps its air as the room over it floods (a capsized hull floats
 # on it, §5b.4). The hold's side walls leak est. 0.02 m² into it.
+# The stokehold's floor is its tank top, as gappy over the double bottom (#74); the
+# girder stands to the tank top there, parting the double bottom's halves whole, so
+# only its limber holes join them.
 FLOOR_GAPS = 0.05
 for room_cell, bilges in [("aft_cabins", ["aft_bilge_p", "aft_bilge_s"]),
                           ("engine_room", ["engine_bilge_p", "engine_bilge_s"]), ("hold", ["hold_bilge"])]:
@@ -933,17 +1001,18 @@ for room_cell, bilges in [("aft_cabins", ["aft_bilge_p", "aft_bilge_s"]),
         b = cell_box(bilge)
         tag = "_" + bilge[-1] if len(bilges) > 1 else ""
         opening("floor_" + room_cell + tag, "FLOOR_GAPS", bilge, room_cell,
-                ((b[0] + b[1]) * 0.5, LOWER, (b[4] + b[5]) * 0.5), (b[1] - b[0], 0, b[5] - b[4]),
+                ((b[0] + b[1]) * 0.5, b[3], (b[4] + b[5]) * 0.5), (b[1] - b[0], 0, b[5] - b[4]),
                 area=round(FLOOR_GAPS / len(bilges), 4), starts="OPEN")
     if len(bilges) > 1:
         b = cell_box(bilges[0])
-        girder_top = GIRDER[2]
+        girder_top = min(GIRDER[2], b[3])
         opening("limber_" + room_cell, "LEAK", bilges[0], bilges[1],
                 ((b[0] + b[1]) * 0.5, (b[2] + girder_top) * 0.5, 0.0), (b[1] - b[0], girder_top - b[2], 0),
                 area=LIMBER_HOLES, starts="OPEN")
-        opening("over_girder_" + room_cell, "OVER_WALL", bilges[0], bilges[1],
-                ((b[0] + b[1]) * 0.5, (girder_top + b[3]) * 0.5, 0.0), (b[1] - b[0], b[3] - girder_top, 0),
-                starts="OPEN")
+        if girder_top < b[3]:
+            opening("over_girder_" + room_cell, "OVER_WALL", bilges[0], bilges[1],
+                    ((b[0] + b[1]) * 0.5, (girder_top + b[3]) * 0.5, 0.0), (b[1] - b[0], b[3] - girder_top, 0),
+                    starts="OPEN")
 for wing, z in [("hold_wing_p", -HOLD_SIDE), ("hold_wing_s", HOLD_SIDE)]:
     b = cell_box("hold")
     opening("leak_" + wing, "LEAK", wing, "hold", ((b[0] + b[1]) * 0.5, (b[2] + b[3]) * 0.5, z),
@@ -954,8 +1023,10 @@ for wing, z in [("hold_wing_p", -HOLD_SIDE), ("hold_wing_s", HOLD_SIDE)]:
 # in four (est.), or behind a deadlight in a hold — and a window above. `make
 # art-lint` matches each pane it draws to one of these. Shut, a porthole's gasket weeps
 # 0.0005 m² under 4 m of water and its glass breaks under 8 m (est.: 6 mm of annealed
-# glass across its 0.32 m, a clamped plate); a window breaks under 2 m (est.).
+# glass across its 0.32 m, a clamped plate); a window breaks under 2 m (est.). No
+# porthole stands within PORT_FREEBOARD of her waterline: the stokehold's lining has none.
 WINDOW_HEIGHT, WINDOW_SPACING, WINDOW_MARGIN = 1.45, 1.3, 0.4
+PORT_FREEBOARD = 1.0
 WINDOW, NARROW_WINDOW, WINDOW_FRAME = (0.55, 0.6), (0.38, 0.6), 0.06
 PORTHOLE_RADIUS = 0.16
 WALL_MAX, FULL_WALL, INSIDE, OPEN_ROOM_HEIGHT, PROBE = 0.3, 1.9, 0.02, 2.5, 0.15
@@ -1000,7 +1071,11 @@ def wall_runs(room):
         for bx0, bx1, bz0, bz1, bottom, top, is_box in block_geo:
             if not is_box or min(bx1 - bx0, bz1 - bz0) > WALL_MAX:
                 continue
-            if abs(bottom - floor) >= 0.05 or top - bottom <= FULL_WALL:
+            if abs(bottom - floor) >= 0.05:
+                continue
+            # Over FULL_WALL tall, or up to the deck over it (ShipSpace._full_wall_of).
+            mid = (min(max((bx0 + bx1) * 0.5, x0), x1), min(max((bz0 + bz1) * 0.5, z0), z1))
+            if top - bottom <= FULL_WALL and top < ceiling(floor, *mid) - SLIVER:
                 continue
             if not (bx0 - INSIDE < x1 and bx1 + INSIDE > x0 and bz0 - INSIDE < z1 and bz1 + INSIDE > z0):
                 continue
@@ -1071,7 +1146,7 @@ for room in room_geo:
                 continue
             shape = envelope(bx)
             in_hull = shape is not None and height < min(shape[2], shape[3])
-            if in_hull and side % 2 == 1:
+            if in_hull and (side % 2 == 1 or height < WATERLINE + PORT_FREEBOARD):
                 continue
             x, z = on_side(room, side, spot, 0)
             away = OUTWARD[side]
@@ -1115,7 +1190,7 @@ for x, length, outline in sections:
         across += area * length * z
 MASS = [  # (name, kg, centre, (from x, to x))
     ("hull steel", 260e3, (-0.5, -1.8, 0.0), (-20, 20)),
-    ("engine and boiler", 55e3, (1.2, -2.0, 0.0), (0, 2.5)),
+    ("engine and boiler", 55e3, (1.2, -2.0 + TANK_TOP - LOWER, 0.0), (0, 2.5)),
     ("coal", 35e3, (-1.0, -4.0, 0.0), (-3, 1)),
     ("deckhouse", 38e3, (-2.0, 1.6, 0.0), (-7, 3)),
     ("wheelhouse and bridge", 8e3, (-2.5, 3.6, 0.0), (-4, -1)),
@@ -1161,12 +1236,17 @@ PUMPS = [("bilge_pump_p", "engine_bilge_p", 0.025), ("bilge_pump_s", "engine_bil
 STRENGTH = (120e6, 110e6)
 # Her test-only weak hull (SH33, --weak): her strength divided by this, and the places
 # along her she can break — (name, x, the share of that strength the spot keeps) — the
-# aft one an expansion joint over the cabins, the midships one the engine room's casing.
-# Est.: chosen so some match hits break her in two and a few in three (the census, the
-# pinned seeds breaks_in_two and breaks_in_three); her flooding loads peak near amidships
-# at about a fifth of her real strength.
+# aft one an expansion joint over the cabins, the midships one the engine room's casing
+# amidships, over the stokehold (#74). Est., measured on her match hits: chosen so some
+# break her in two and a few in three, every piece gone (the pinned seeds breaks_in_two
+# and breaks_in_three). Against this weak strength her own weight sags her amidships by
+# about 0.18 and a hit flooding her engine room by about 0.23, so the midships spot,
+# keeping 0.2, parts under the second alone; a hit aft hogs her at the aft joint past
+# its 0.2, and the piece fore of that break bends at most about 0.17 amidships, too
+# little to part it there. The midships spot stands no further forward: a piece fore of a
+# break at x 2 or more floats on her hold and forepeak, so she would not be gone.
 WEAK_DIVISOR = 8.0
-WEAK_SPOTS = [("aft_joint", -8.0, 0.2), ("midships_joint", 2.0, 0.3)]
+WEAK_SPOTS = [("aft_joint", -8.0, 0.2), ("midships_joint", 0.0, 0.2)]
 # Where along her and up her shell an iceberg's gash can be at all (est.): clear of her
 # stem and her counter, from 0.2 m under the main deck down to 0.2 m over her keel.
 HIT_ZONE_X = (-19.5, 19.5)
@@ -1213,7 +1293,7 @@ for name, axis, at, span, bottom, top, collapse, parts in walls:
         f.append(("axis", "1"))
     f += [("at", num(at)), ("span", "Vector2(%s, %s)" % (num(span[0]), num(span[1]))),
           ("bottom", num(bottom)), ("top", num(top)), ("collapse_head", num(collapse))]
-    if name != GIRDER[0]:
+    if name not in (GIRDER[0], GIRDER_STOKEHOLD):
         f += [("leak_head", num(collapse / 1.5 * 1.25)), ("leak_area", num(WALL_LEAK))]
     f.append(("cells", names(parts)))
     wall_ids.append(sub("Wall_" + name, "12_wall", f))

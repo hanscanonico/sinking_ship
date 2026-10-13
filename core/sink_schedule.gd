@@ -68,6 +68,9 @@ var _hit_tick := -1
 var _choice: MustSink.Choice
 var _timeline: SinkTimeline
 var _cells: CellMap
+## Her cells, when she has a structure but is never struck and rides at rest — no hit,
+## no keyframes: every one of them dry, as her cells are before any hit; else null.
+var _dry_cells: CellMap
 var _doors: Array[StringName] = []
 var _door_times := PackedFloat64Array()
 var _passages: Array[ShipOpening] = []
@@ -131,6 +134,8 @@ func _init(
 		_events.append(Scheduled.new(event, _start_tick + Ticks.from_seconds(event.at)))
 		if event.kind == SinkEvent.Kind.PLUNGE and _plunge_tick == -1:
 			_plunge_tick = _events.back().at
+	if structure != null and not scenario.is_physical() and _keyframes.is_empty():
+		_dry_cells = CellMap.new(structure)
 	if structure == null or not scenario.is_physical():
 		return
 	var physics := sea if sea != null else SeaPhysics.load_default()
@@ -323,11 +328,32 @@ func pose_at(tick: int) -> ShipPose:
 		physical.share_with_pieces()
 		return physical
 	var pose := _keyframed(tick)
+	if _dry_cells != null:
+		_dry(pose)
 	var swing := _happened(pose, tick)
 	if swing != 0.0:
 		pose.heel_deg += swing
 		pose.transform = _transform(pose.sink, pose.trim_deg, pose.heel_deg)
 	return pose
+
+
+## [param pose] with her cells, each dry: its water at its floor's lowest corner, as
+## the bake has a cell before any hit — not the sea, which an authored pose's points
+## read in her where it has no cells.
+func _dry(pose: ShipPose) -> void:
+	pose.cells = _dry_cells
+	pose.levels.resize(_dry_cells.count())
+	for cell in _dry_cells.count():
+		var box := _dry_cells.box_of(cell)
+		var lowest := INF
+		for corner: Vector3 in [
+			box.position,
+			box.position + Vector3(box.size.x, 0.0, 0.0),
+			box.position + Vector3(0.0, 0.0, box.size.z),
+			box.position + Vector3(box.size.x, 0.0, box.size.z),
+		]:
+			lowest = minf(lowest, pose.world_height(corner))
+		pose.levels[cell] = lowest
 
 
 ## What the scheduled events have done to [param pose] by [param tick] — the telegraphs
