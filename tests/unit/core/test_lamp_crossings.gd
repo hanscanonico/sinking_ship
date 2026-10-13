@@ -120,3 +120,9 @@ func test_a_lamp_shorts_inside_the_step_that_reached_it() -> void:
 	assert_almost_eq(timeline.times[frame], times[after], 1e-6, "the step's end kept")
 	assert_eq(timeline.lit(frame, cell), ShipPower.Power.DARK, "the hold dark there")
 	assert_ne(timeline.lit(frame - 1, cell), ShipPower.Power.DARK, "and lit before it")
+	# Kept for the light it changes, not for its fit: however loose the compaction, the
+	# state survives.
+	var loose := SinkTimeline.made(bake, 1000.0, 180.0, 1000.0)
+	var kept := loose.frame_at(times[after] + 1e-6)
+	assert_almost_eq(loose.times[kept], times[after], 1e-6, "kept however loose the fit")
+	assert_eq(loose.lit(kept, cell), ShipPower.Power.DARK, "the hold dark there too")
