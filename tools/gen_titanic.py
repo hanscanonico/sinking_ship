@@ -97,13 +97,25 @@ def sub(kind_id, script, fields):
     subs.append("\n".join(body))
     return kind_id
 
-def platform(pid, name, x0, x1, z0, z1, h=0.0):
-    plat_geo.append((x0, x1, z0, z1, h))
+def platform_fields(name, x0, x1, z0, z1, h):
     f = [("name", '&"%s"' % name), ("area", rect_xz(x0, x1, z0, z1))]
     if h != 0.0:
         f.append(("height", num(h)))
-    platforms.append(sub("Platform_" + pid, "1_plat", f))
+    return f
+
+def platform(pid, name, x0, x1, z0, z1, h=0.0):
+    plat_geo.append((x0, x1, z0, z1, h))
+    platforms.append(sub("Platform_" + pid, "1_plat", platform_fields(name, x0, x1, z0, z1, h)))
     return len(platforms) - 1
+
+def relay(index, name, x0, x1, z0, z1, h):
+    """Platform index laid again over (x0..x1, z0..z1) at h, keeping its place and id."""
+    plat_geo[index] = (x0, x1, z0, z1, h)
+    kind_id = platforms[index]
+    at = next(i for i, text in enumerate(subs) if text.startswith('[sub_resource type="Resource" id="%s"]' % kind_id))
+    body = ["[sub_resource type=\"Resource\" id=\"%s\"]" % kind_id, "script = ExtResource(\"1_plat\")"]
+    body += ["%s = %s" % kv for kv in platform_fields(name, x0, x1, z0, z1, h)]
+    subs[at] = "\n".join(body)
 
 def ramp(rid, x0, x1, z0, z1, axis, start, end):
     """A stair over (x0..x1, z0..z1) rising along x (axis 0) or z (axis 1)."""
@@ -364,8 +376,8 @@ def fit(x0, x1, h, margin):
     least = min(breadth(x, h) for x in (x0 + 0.01, (x0 + x1) * 0.5, x1 - 0.01))
     return math.floor((least - margin) * 20) / 20
 
-def deck(pid, name, x0, x1, z0, z1, h, holes):
-    """A deck from x0 to x1 and z0 to z1 at h, as rectangles round its holes."""
+def deck_pieces(x0, x1, z0, z1, holes):
+    """A deck's rectangles from x0 to x1 and z0 to z1 round its holes, as (x0, x1, z0, z1)."""
     cuts = sorted({x0, x1} | {v for hx0, hx1, _a, _b in holes for v in (hx0, hx1) if x0 < v < x1})
     pieces = []
     for a, b in zip(cuts, cuts[1:]):
@@ -381,11 +393,24 @@ def deck(pid, name, x0, x1, z0, z1, h, holes):
             pieces[-1][1] = b
         else:
             pieces.append([a, b, spans])
+    return [(a, b, s0, s1) for a, b, spans in pieces for s0, s1 in spans]
+
+def deck(pid, name, x0, x1, z0, z1, h, holes):
+    """A deck from x0 to x1 and z0 to z1 at h, as rectangles round its holes."""
     made = []
-    for a, b, spans in pieces:
-        for s0, s1 in spans:
-            made.append(platform("%s_%d" % (pid, len(made)), name, a, b, s0, s1, h))
+    for a, b, s0, s1 in deck_pieces(x0, x1, z0, z1, holes):
+        made.append(platform("%s_%d" % (pid, len(made)), name, a, b, s0, s1, h))
     return made
+
+def recut(made, pid, name, x0, x1, z0, z1, h, holes):
+    """A deck laid by deck() cut again round more holes: its first pieces laid over the
+    platforms it had, the rest after every other, so no other platform moves."""
+    pieces = deck_pieces(x0, x1, z0, z1, holes)
+    assert len(pieces) >= len(made), pid
+    for k, (a, b, s0, s1) in enumerate(pieces[:len(made)]):
+        relay(made[k], name, a, b, s0, s1, h)
+    return made + [platform("%s_%d" % (pid, k), name, a, b, s0, s1, h)
+                                 for k, (a, b, s0, s1) in enumerate(pieces) if k >= len(made)]
 
 STAIR = 1.4   # a stair's width (est.)
 
@@ -922,6 +947,92 @@ room("squash_court", "squash court", BX["C"], COURT_FWD, -COURT_Z, COURT_Z, G_DE
 # to the berths runs door to door.
 room("squash_gallery", "squash court gallery", BX["C"], GALLERY_FWD, LANDING_DOOR[1], -LANDING_DOOR[1], F_DECK)
 room("f_landing", "F deck landing corridor", H3_LANDING, h3_floor[1], -w, w, F_DECK)
+
+# --- Boiler rooms 2 to 5 at the tank top (SB-III, SB-IV), after every other platform,
+# ramp, blocker and room so none of theirs moves: each room's plates from its after
+# bulkhead to its cross bunker, walled to F deck at both and along her sides inside the
+# deck over them, the boilers boxes on them with a firing aisle fore and aft; nobody's
+# floor behind the bunker's face. Est.: the real ship had five double-ended boilers a
+# room (four in boiler room 5) — here four abreast, three in the narrower boiler room 5,
+# each 6.1 m long and 4.8 m across, 1.2 m apart where the room's breadth allows; each
+# box carried up with the uptakes over its boiler to a quarter metre under F deck,
+# too near it for anybody to stand on it, and boiler room 5's aft of the fiddley's
+# casing over its middle. No door through a bulkhead (there was none at the plates but the
+# vertical watertight doors, which are the structure's): two flights up to F deck a
+# room, so each room's plates have two ways up of their own — one beside the boilers
+# along her starboard side, and a second to port in boiler rooms 4 and 5; in 2 and 3,
+# where Scotland Road's stairs up from F deck stand over the port side, the second
+# rises between the boilers along her centre line. F deck is cut over each flight, out
+# to her side wall where it would leave only a sliver under it; else the flight keeps
+# half a metre and more off that wall, where a room's dressing stops short of a stair.
+BOILER = (6.1, 4.8)    # est.: a boiler's length and its breadth across her
+UPTAKE_CLEAR = 0.25    # a boiler's box's top under F deck
+STOKEHOLD_RUN = 11.875  # a flight's run up from the tank top to F deck (est.), 39°
+FLIGHT_LEAD = 0.8       # a body's width clear before each end of a flight
+
+def abreast(count, gap, middle):
+    """count boilers side by side across her, gap apart, middle apart either side of
+    her centre line (None: gap), centred on it, as (z0, z1)."""
+    gaps = [gap] * (count - 1)
+    if middle is not None:
+        gaps[(count - 1) // 2] = middle
+    z = -(count * BOILER[1] + sum(gaps)) * 0.5
+    found = []
+    for k in range(count):
+        found.append((z, z + BOILER[1]))
+        z += BOILER[1] + (gaps[k] if k < count - 1 else 0.0)
+    return found
+
+# (k, its after bulkhead, its boilers across her, their middle's offset aft of the
+# stokehold's, the F deck over it)
+STOKEHOLDS = [
+    (2, "J", abreast(4, 0.6, 2.0), 0.0, "f_saloons"),  # est.: an aisle down the middle for the stair
+    (3, "H", abreast(4, 0.6, 2.0), 0.0, "f_saloons"),
+    (4, "G", abreast(4, 0.7, None), 0.0, "f_br4"),     # est.: 0.7 m apart, her bilge narrower
+    (5, "F", abreast(3, 1.2, None), 2.0, "f_br5"),     # est.: clear of the casing
+]
+f_decks = {"f_saloons": (f_saloons, BX["J"], BX["G"], SALOON_Z, []),
+           "f_br4": (f_br4, BX["G"], BX["F"], SALOON_Z, casing_holes[:1]),
+           "f_br5": (f_br5, BX["F"], BX["E"], BR5_Z, casing_holes[1:])}
+stokehold_flights = []
+for k, aft, rows, back, over in STOKEHOLDS:
+    x0, bunker = BX[aft], BUNKERS["br%d" % k]
+    plates = (x0 + T, bunker - T)
+    deck_w = f_decks[over][3]
+    w = min(fit(plates[0], plates[1], TANK_TOP, 0.3), deck_w - T)
+    platform("stokehold_%d" % k, "tank top", plates[0], plates[1], -w, w, TANK_TOP)
+    side = w - T
+    if deck_w - side > 2 * T + 1e-9:
+        side = min(side, deck_w - T - 0.55)
+    lanes = [("s", (side - STAIR, side))]
+    lanes.append(("m", (-STAIR * 0.5, STAIR * 0.5)) if k < 4 else ("p", (-side, STAIR - side)))
+    # Its foot on a sixteenth of a metre, as its run, so its head meets the deck cut
+    # round it exactly in single precision.
+    low = math.ceil((plates[0] + FLIGHT_LEAD) * 16) / 16
+    for tag, (z0, z1) in lanes:
+        sid = "stokehold_%d_%s" % (k, tag)
+        stair(sid, low, low + STOKEHOLD_RUN, z0, z1, TANK_TOP, F_DECK, [])
+        if deck_w - abs(z1 if tag == "s" else z0) <= 2 * T + 1e-9:
+            z0, z1 = (z0, deck_w) if tag == "s" else (-deck_w, z1)
+        f_decks[over][4].append((low, low + STOKEHOLD_RUN, z0, z1))
+        stokehold_flights.append((sid, over))
+    # The boiler farthest from the flights first: an engine room's steam pipes run beside
+    # its first machine's sides under the deck, where a body climbing a flight beside it
+    # would put its head (EngineRoom).
+    rows = sorted(rows, key=lambda r: -min(max(lane[0] - r[1], r[0] - lane[1]) for _tag, lane in lanes))
+    middle = (plates[0] + plates[1]) * 0.5 - back
+    for j, (z0, z1) in enumerate(rows):
+        box("boiler_%d_%d" % (k, j), middle - BOILER[0] * 0.5, middle + BOILER[0] * 0.5, z0, z1,
+            TANK_TOP, F_DECK - UPTAKE_CLEAR)
+    wall_x("stokehold_%d_aft" % k, x0, -w, w, TANK_TOP, F_DECK)
+    wall_x("stokehold_%d_bunker" % k, bunker, -w, w, TANK_TOP, F_DECK)
+    for tag, z in [("p", -w), ("s", w)]:
+        wall_z("stokehold_%d_%s" % (k, tag), z, x0, bunker, TANK_TOP, F_DECK)
+    room("boiler_room_%d" % k, "boiler room %d" % k, x0, bunker, -w, w, TANK_TOP)
+for over, (made, x0, x1, half, holes) in f_decks.items():
+    f_decks[over] = recut(made, over, "F deck", x0, x1, -half, half, F_DECK, holes)
+for sid, over in stokehold_flights:
+    hole_rails(f_decks[over], sid)
 
 # Sixteen seats across her decks (SH21 takes more): six on the boat deck and one on her
 # bridge, two on A deck's promenade, one on B deck's open end, one on each well deck,
@@ -1499,6 +1610,10 @@ for name in ("engine_room", "turbine_room"):
     through("casing_" + name, "STAIRWELL", (b[0] + b[1]) * 0.5, 0.0, (b[1] - b[0]) * 0.5, 6.0, name, starts="OPEN")
 for name, x0, x1, z0, z1, high, _x_low in stairs:
     if name.startswith(("boat_aft", "a_aft", "b_aft", "a_fwd", "forecastle_", "poop_")):
+        continue
+    # The boiler rooms' flights to F deck: the fiddley/casing openings already stand for
+    # these shafts.
+    if name.startswith("stokehold_"):
         continue
     xm, zm = (x0 + x1) * 0.5, (z0 + z1) * 0.5
     below = cell_at(xm, high - 0.01, zm)
