@@ -104,8 +104,9 @@ func follow(state: FloodState, next: FloodState, seconds: float) -> void:
 
 ## How far [param state] stands from each threshold of her power — the water drowning
 ## her generator, in metres; her list and her trim stopping it and her coming back
-## within its margins, as sines; her emergency power running out, in seconds — then per
-## cell from its water reaching its lamps: under 0 past it, INF for none to come.
+## within its margins, as sines; her emergency power running out, in seconds — under 0
+## past it, INF for none to come. These gate her pumps, so the bake lands a step on each;
+## her lamps do not (lamp_gaps).
 func gaps(state: FloodState) -> PackedFloat64Array:
 	var found := PackedFloat64Array([INF, INF, INF, INF, INF])
 	if _generator != null:
@@ -113,6 +114,15 @@ func gaps(state: FloodState) -> PackedFloat64Array:
 		for at in 4:
 			found[at] = gaps_now[at]
 		found[4] = state.battery if state.power != Power.MAIN else INF
+	return found
+
+
+## Per cell of [param state], how far its water stands under its lamps, in metres: under
+## 0 past them, INF for a cell without any. Lamps only light her and never move the
+## physics, so no step lands on them (#112): the bake reads these only to place a
+## cell's short inside the step that reached it.
+func lamp_gaps(state: FloodState) -> PackedFloat64Array:
+	var found := PackedFloat64Array()
 	var up := Attitude.up(state.rotation)
 	for cell in state.shorted.size():
 		var lamp := cell * 3
