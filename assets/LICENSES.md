@@ -10,6 +10,16 @@ source and license.
 | `assets/characters/quaternius_ual/AnimationLibrary_Godot_Standard.glb` and its `License.txt` — Universal Animation Library [Standard] by Quaternius: the mannequin every brawler wears and its 46 clips (6.7 MB) | https://quaternius.com/packs/universalanimationlibrary.html, downloaded from https://opengameart.org/content/universal-animation-library (`universal_animation_librarystandard.zip`, Godot folder only) | CC0 1.0 |
 | `assets/fonts/playfair_display.ttf` (`PlayfairDisplay[wght].ttf`, the variable roman, unmodified, 0.3 MB) — Playfair Display by Claus Eggers Sørensen: the menus' titles, buttons and wordmark (UiTheme); its licence is `assets/fonts/OFL.txt` | https://github.com/google/fonts/tree/main/ofl/playfairdisplay (commit `1e1aa08`) | SIL Open Font License 1.1 |
 
+### Modelled props (`assets/models/`)
+
+Not third-party: original work made for this project in Blender 5.2.2, listed so the
+register covers every asset. `assets/models/README.md` says how they are authored.
+
+| Files | Source | License |
+|---|---|---|
+| `lifeboat/lifeboat.blend` and `lifeboat.glb` — the lifeboats: a double-ended clinker boat under a ridged canvas cover (2928 triangles, 0.1 MB each) | Original work, modelled for this project (2026-10-13) | The project's own |
+| `davit/davit.blend` and `davit.glb` — the lifeboats' radial davits: post, swan neck, collars, cleat and the fall's hauling part (556 triangles, under 0.1 MB each) | Original work, modelled for this project (2026-10-13) | The project's own |
+
 ### Audio (`assets/audio/`)
 
 Every sound below is CC0 1.0 (public domain dedication); no attribution is
