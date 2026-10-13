@@ -85,3 +85,22 @@ func test_a_schedule_already_built_is_left_untimed_not_replaced() -> void:
 	var built := config.schedule()
 	FrameMeter.time_schedule(config, FrameSplit.new())
 	assert_same(config.schedule(), built, "the match keeps the sinking it has")
+
+
+func test_the_bots_fresh_route_searches_are_counted_frame_by_frame() -> void:
+	# Bots spread over the steamer's decks and rooms: some stray off the routes they
+	# have. Each frame books the searches its bots took, so the frames sum to theirs.
+	var config := SimFixtures.config(8, null, 1701, SimFixtures.steamer())
+	var bots := BotInputSource.fill(config, BotProfile.for_tier(&"normal"))
+	var split := FrameSplit.new()
+	var runner := MatchRunner.new(MatchSim.create(config), FrameMeter.time_sources(bots, split))
+	var frames := 0
+	for _tick in Ticks.from_seconds(20.0):
+		runner.step()
+		split.close(0)
+		frames += 1
+	var searched := 0
+	for bot: InputSource in bots:
+		searched += (bot as BotInputSource).brain.replans()
+	assert_gt(searched, 0, "some bot strayed off its route")
+	assert_almost_eq(split.mean(&"replans") * frames, float(searched), 0.001, "every one booked")
