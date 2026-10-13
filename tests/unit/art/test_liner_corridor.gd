@@ -9,7 +9,7 @@ const CORRIDORS: Array[StringName] = [
 	&"B deck corridor", &"C deck corridor", &"D deck corridor", &"D deck corridor, forward"
 ]
 ## The most triangles a corridor's own dressing may add.
-const BUDGET := 2500
+const BUDGET := 2000
 
 var _layout: ShipLayout
 var _rules: BrawlRules

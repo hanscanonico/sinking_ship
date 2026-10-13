@@ -125,8 +125,10 @@ static func _spots(
 
 
 ## A slab on [param wall] over [param span] — from x to y along it, z to w over its
-## floor — standing [param near] to [param far] out from its face: its front, ends and
-## top, and its underside when [param under]; unrimmed quads, two triangles a face.
+## floor — standing [param near] to [param far] out from its face: its front, its ends
+## when [param ends], its top when [param top] and its underside when [param under];
+## unrimmed quads, two triangles a face. A face only a standing eye could never see —
+## the top of a piece over the eye, the underside of one under it — is left out.
 static func _slab(
 	mesh: ShipMesh,
 	wall: RoomDressing.Wall,
@@ -134,7 +136,9 @@ static func _slab(
 	near: float,
 	far: float,
 	paint: ShipMesh.Paint,
-	under := false
+	top := true,
+	under := false,
+	ends := true
 ) -> void:
 	var back: Array[Vector3] = [
 		wall.at(span.x, span.z, near),
@@ -146,9 +150,11 @@ static func _slab(
 	for corner: Vector3 in back:
 		front.append(corner + wall.normal * (far - near))
 	mesh.quad(front[0], front[1], front[2], front[3], wall.normal, paint, 0)
-	mesh.quad(back[0], front[0], front[3], back[3], -wall.right, paint, 0)
-	mesh.quad(front[1], back[1], back[2], front[2], wall.right, paint, 0)
-	mesh.quad(front[3], front[2], back[2], back[3], Vector3.UP, paint, 0)
+	if ends:
+		mesh.quad(back[0], front[0], front[3], back[3], -wall.right, paint, 0)
+		mesh.quad(front[1], back[1], back[2], front[2], wall.right, paint, 0)
+	if top:
+		mesh.quad(front[3], front[2], back[2], back[3], Vector3.UP, paint, 0)
 	if under:
 		mesh.quad(back[0], back[1], front[1], front[0], Vector3.DOWN, paint, 0)
 
@@ -161,13 +167,14 @@ func _stateroom_door(mesh: ShipMesh, wall: RoomDressing.Wall, along: float) -> v
 	var middle := wall.at(along, surround.y, 0.006)
 	RoomDressing.panel(mesh, middle, wall.right, surround, wall.normal, ShipPaints.frame, 0)
 	var half := DOOR.x * 0.5
-	_slab(mesh, wall, Vector4(along - half, along + half, 0.0, DOOR.y), 0.0, DOOR_DEPTH, _door)
+	var leaf := Vector4(along - half, along + half, 0.0, DOOR.y)
+	_slab(mesh, wall, leaf, 0.0, DOOR_DEPTH, _door, false)
 	var plate := wall.at(along, 1.55, DOOR_DEPTH + 0.003)
 	var size := Vector2(0.06, 0.035)
 	RoomDressing.panel(mesh, plate, wall.right, size, wall.normal, ShipPaints.brass, 0)
 	var knob := along + half - 0.1
 	var at := Vector4(knob - 0.025, knob + 0.025, 0.975, 1.025)
-	_slab(mesh, wall, at, DOOR_DEPTH, DOOR_DEPTH + 0.05, ShipPaints.brass, true)
+	_slab(mesh, wall, at, DOOR_DEPTH, DOOR_DEPTH + 0.05, ShipPaints.brass)
 
 
 ## A sconce on [param wall] at [param along]: a brass back plate, an arm out of it and
@@ -178,6 +185,6 @@ func _sconce(mesh: ShipMesh, wall: RoomDressing.Wall, along: float) -> void:
 	RoomDressing.panel(mesh, back, wall.right, plate, wall.normal, ShipPaints.brass, 0)
 	var low := SCONCE_HEIGHT - 0.1
 	var arm := Vector4(along - 0.012, along + 0.012, low, low + 0.024)
-	_slab(mesh, wall, arm, 0.004, 0.03, ShipPaints.brass, true)
+	_slab(mesh, wall, arm, 0.004, 0.03, ShipPaints.brass, false, true, false)
 	var shade := Vector4(along - 0.06, along + 0.06, low + 0.024, SCONCE_HEIGHT + 0.06)
-	_slab(mesh, wall, shade, 0.03, SCONCE_DEPTH, _glow, true)
+	_slab(mesh, wall, shade, 0.03, SCONCE_DEPTH, _glow, false, true)
