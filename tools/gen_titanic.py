@@ -772,7 +772,13 @@ for rid, name, h, top in [("post_office", "post office", G_DECK, F_DECK),
     room(rid, name, h3_floor[0], H3_LANDING, -w, w, h)
     wall_x(rid + "_aft", h3_floor[0], -w, w, h, top)
     wall_x(rid + "_fwd", H3_LANDING, -w, w, h, top, [door_at(0.0)])
-    wall_x(rid + "_landing", h3_floor[1], -w, w, h, top)
+    if rid == "berths":
+        # F deck's landing wall has a door at z -6.0 onto the squash court's gallery,
+        # through bulkhead C's (wtd_f_c): the wall to starboard of it here, its port
+        # piece and lintel with the court, so no blocker moves.
+        box(rid + "_landing", h3_floor[1] - T, h3_floor[1] + T, door_at(-6.0)[1], w + T, h, top)
+    else:
+        wall_x(rid + "_landing", h3_floor[1], -w, w, h, top)
     for tag, z in [("p", -w), ("s", w)]:
         wall_z("%s_%s" % (rid, tag), z, h3_floor[0], h3_floor[1], h, top)
 
@@ -869,6 +875,53 @@ room("corridor_br5", "F deck working corridor, boiler room 5", BX["F"], BX["E"],
 room("turkish_bath", "Turkish bath", BX["G"], BX["F"], BATHS_Z, SALOON_Z, F_DECK)
 room("swimming_bath", "swimming bath", BX["F"], BX["E"], BATHS_Z, BR5_Z, F_DECK)
 box("pool", 40.0, 49.1, 4.5, 8.8, F_DECK, F_DECK + 1.0)
+
+# --- The squash court in No. 2 hold (SB-IV), after every other platform, blocker and
+# room so none of theirs moves: a hall on G deck from bulkhead C forward, two decks high
+# to D deck, and its spectators' gallery at its after end on F deck, reached from the
+# third-class berths' landing through bulkhead C's door (wtd_f_c), two stairs down from
+# it into the court either side. The hall's floor stops at bulkhead C, short of the post
+# office's landing: no door in G deck's bulkhead there, and an open deck of its own, its
+# two stairs up its own. The gallery's floor runs on from F deck's landing. Sizes est.
+COURT_FWD = 101.5            # the hall's forward wall, short of bulkhead B
+COURT_Z = fit(BX["C"], COURT_FWD, G_DECK, 0.3)
+GALLERY_FWD = 89.5           # the gallery's front, over the court
+GALLERY_Z = H3W[G_DECK]      # the gallery's half width, as No. 3 hold's rooms
+COURT_STAIR = 3.4            # a flight G to F deck, as No. 3 hold's
+g_court = deck("g_court", "G deck", BX["C"], COURT_FWD, -COURT_Z, COURT_Z, G_DECK, [])
+f_gallery = deck("f_gallery", "F deck", h3_floor[1], GALLERY_FWD, -GALLERY_Z, GALLERY_Z, F_DECK, [])
+court_lanes = []
+for side, sign in [("p", -1), ("s", 1)]:
+    lane = sorted((sign * (COURT_Z - T - STAIR), sign * (COURT_Z - T)))
+    court_lanes.append(tuple(lane))
+    stair("court_" + side, GALLERY_FWD + COURT_STAIR, GALLERY_FWD, lane[0], lane[1], G_DECK, F_DECK, [])
+rail_line("gallery_front", f_gallery, 0, GALLERY_FWD, court_lanes[0][1], court_lanes[1][0])
+# F deck's landing wall: the port piece and lintel of its door (above).
+LANDING_DOOR = door_at(-6.0)
+w = H3W[G_DECK]
+box("berths_landing_port", h3_floor[1] - T, h3_floor[1] + T, -w - T, LANDING_DOOR[0], F_DECK, E_DECK)
+box("berths_landing_lintel", h3_floor[1] - T, h3_floor[1] + T, LANDING_DOOR[0], LANDING_DOOR[1],
+    F_DECK + LINTEL, E_DECK)
+doorways.append((0, h3_floor[1], LANDING_DOOR[0], LANDING_DOOR[1], F_DECK))
+# Bulkhead C: closed on G deck, its door on F deck.
+wall_x("court_c", BX["C"], -COURT_Z, COURT_Z, G_DECK, F_DECK)
+wall_x("gallery_c", BX["C"], -GALLERY_Z, GALLERY_Z, F_DECK, D_DECK, [LANDING_DOOR])
+wall_x("court_fwd", COURT_FWD, -COURT_Z, COURT_Z, G_DECK, D_DECK)
+for side, sign in [("p", -1), ("s", 1)]:
+    # The hall's sides: under the gallery to F deck, past it to D; the gallery's own,
+    # and the step between them at its front.
+    wall_z("court_%s_aft" % side, sign * COURT_Z, BX["C"], GALLERY_FWD, G_DECK, F_DECK)
+    wall_z("court_%s" % side, sign * COURT_Z, GALLERY_FWD + T, COURT_FWD, G_DECK, D_DECK)
+    wall_z("gallery_%s" % side, sign * GALLERY_Z, BX["C"], GALLERY_FWD, F_DECK, D_DECK)
+    wall_x("gallery_%s_step" % side, GALLERY_FWD, *sorted((sign * COURT_Z, sign * GALLERY_Z)), F_DECK, D_DECK)
+room("squash_court", "squash court", BX["C"], COURT_FWD, -COURT_Z, COURT_Z, G_DECK)
+# The gallery's room inside the court's width, as the water drawn round a cell's rooms
+# stands inside her shell from G deck up (InnerWater), and short of bulkhead C's door,
+# its port side open onto the gallery's floor there. F deck's landing, between the berths'
+# forward wall and their landing wall, a room of its own, so the way from the gallery
+# to the berths runs door to door.
+room("squash_gallery", "squash court gallery", BX["C"], GALLERY_FWD, LANDING_DOOR[1], -LANDING_DOOR[1], F_DECK)
+room("f_landing", "F deck landing corridor", H3_LANDING, h3_floor[1], -w, w, F_DECK)
 
 # Sixteen seats across her decks (SH21 takes more): six on the boat deck and one on her
 # bridge, two on A deck's promenade, one on B deck's open end, one on each well deck,
