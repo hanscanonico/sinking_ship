@@ -464,9 +464,9 @@ func build(mesh: ShipMesh, signs: Node3D, panes: Array[Array]) -> void:
 				_bath.build(mesh, room, glass)
 			Kind.SQUASH:
 				_squash.build(mesh, room, glass)
-		# An engine room draws its machinery and a hold its cargo; every other room's
-		# furniture is FurnitureDressing's — a dining dresser may lay its tables first.
-		if _kinds[index] not in [Kind.ENGINE, Kind.HOLD]:
+		# An engine room draws its machinery, a hold its cargo and a bath its pool
+		# (LinerBath.build()); every other room's furniture is FurnitureDressing's.
+		if _kinds[index] not in [Kind.ENGINE, Kind.HOLD, Kind.BATH]:
 			FurnitureDressing.build(mesh, room, _space.furniture(room))
 		var signed := [Kind.ENGINE, Kind.BOILER, Kind.HOLD, Kind.PASSAGE, Kind.FIRST_CORRIDOR]
 		if _kinds[index] in signed:

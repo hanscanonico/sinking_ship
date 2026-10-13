@@ -333,8 +333,8 @@ func test_a_boiler_room_is_lined_as_an_engine_room() -> void:
 		RoomDressing._linings(RoomDressing.Kind.BOILER),
 		RoomDressing._linings(RoomDressing.Kind.ENGINE)
 	)
-	for kind: RoomDressing.Kind in [RoomDressing.Kind.BATH, RoomDressing.Kind.SQUASH]:
-		assert_true(RoomDressing._linings(kind).is_empty(), RoomDressing.Kind.keys()[kind])
+	# A bath lines its own (LinerBath, test_liner_bath.gd); a squash court not yet.
+	assert_true(RoomDressing._linings(RoomDressing.Kind.SQUASH).is_empty())
 
 
 ## The binnacle's two spheres on the wheelhouse's forward wall, as (along, height over
