@@ -89,6 +89,7 @@ const GILT := Color("c9a55a")
 const SCONCE_GLASS := Color("fff0c8")
 const HATCH_SHUTTER := Color("8a6a48")
 const CHINA := Color("dce3ec")
+const DEAL := Color("d2b98e")
 
 ## The saloons' linings (RoomDressing.Part): white enamel walls, a plank floor, a
 ## white ceiling on white beams.
@@ -112,6 +113,7 @@ static var sconce_glass := ShipMesh.Paint.new(ShipMesh.Finish.PLAIN, SCONCE_GLAS
 static var shutter := ShipMesh.Paint.new(ShipMesh.Finish.PLAIN, HATCH_SHUTTER)
 static var curtain := ShipMesh.Paint.new(ShipMesh.Finish.PLAIN, ArtPalette.SALOON_CURTAIN)
 static var china := ShipMesh.Paint.new(ShipMesh.Finish.PLAIN, CHINA)
+static var deal := ShipMesh.Paint.new(ShipMesh.Finish.PLAIN, DEAL)
 
 var _space: ShipSpace
 var _cabins: CabinDressing
@@ -188,11 +190,11 @@ static func laid_table(mesh: ShipMesh, area: Rect2, bottom: float, top: float) -
 
 
 ## A mess table over [param area] from [param bottom] to [param top]: a bare board of
-## planks over an apron CLOTH_IN inside its sides from APRON_FOOT up, a bench along
-## each of its long sides from the floor to its seat, and a trestle's foot across each
+## scrubbed deal over an apron CLOTH_IN inside its sides from APRON_FOOT up, a bench along
+## each of its long sides from the floor to its seat of deal, and a trestle's foot across each
 ## end between them.
 static func mess_table(mesh: ShipMesh, area: Rect2, bottom: float, top: float) -> void:
-	_box(mesh, area, top - BOARD, top, ShipPaints.teak, ShipMesh.SIDES | ShipMesh.TOP)
+	_box(mesh, area, top - BOARD, top, deal, ShipMesh.SIDES | ShipMesh.TOP)
 	var apron := area.grow(-CLOTH_IN)
 	_box(mesh, apron, bottom + APRON_FOOT, top - BOARD, ShipPaints.frame, ShipMesh.SIDES)
 	var along_x := area.size.x >= area.size.y
@@ -204,14 +206,9 @@ static func mess_table(mesh: ShipMesh, area: Rect2, bottom: float, top: float) -
 	for side: float in [-1.0, 1.0]:
 		var at := middle + across * side * (depth - BENCH.x) * 0.5
 		var size := (Vector2.ONE - across) * length + across * BENCH.x
-		_box(
-			mesh,
-			Rect2(at - size * 0.5, size),
-			bottom,
-			seat,
-			ShipPaints.teak,
-			ShipMesh.SIDES | ShipMesh.TOP
-		)
+		var bench := Rect2(at - size * 0.5, size)
+		_box(mesh, bench, bottom, seat, ShipPaints.teak, ShipMesh.SIDES)
+		_box(mesh, bench, bottom, seat, deal, ShipMesh.TOP)
 	var gap := depth - BENCH.x * 2.0
 	var ends := Vector2.ONE - across
 	for side: float in [-1.0, 1.0]:
