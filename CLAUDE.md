@@ -80,7 +80,7 @@ Fable orchestrates and does not implement, research or review a PR itself. Worke
 agents in `.claude/agents/`, every one on the latest Opus available (`model: opus` — the
 alias, never Fable, never a dated Opus id), effort set by role: `scout` low, `implementer`
 medium (the `improve` workflow retries once at high on a red gate or a reject), `reviewer`
-high, `qa` low. `/improve` and `/orchestrate` carry the full loop. `qa` stays idle until the
+high, `qa` low. `/orchestrate` carries the full loop. `qa` stays idle until the
 repo has a `make smoke` capture sweep.
 
 ## Agent skills

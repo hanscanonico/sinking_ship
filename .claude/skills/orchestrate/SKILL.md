@@ -1,6 +1,6 @@
 ---
 name: orchestrate
-description: Make the session model (Fable) orchestrate instead of working — any task the user gives is delegated to Opus subagents with effort set by role (scouts low, implementers medium with one retry at high, reviewers high, QA low), using the same agent kit as /improve. Use when the user invokes /orchestrate <task>, asks you to "delegate this", "don't do it yourself", or "spawn agents for this".
+description: Make the session model (Fable) orchestrate instead of working — any task the user gives is delegated to Opus subagents with effort set by role (scouts low, implementers medium with one retry at high, reviewers high, QA low), using the agent kit in `.claude/agents` and the `improve` workflow. Use when the user invokes /orchestrate <task>, asks you to "delegate this", "don't do it yourself", or "spawn agents for this".
 ---
 
 # /orchestrate — delegate the given task, never do it

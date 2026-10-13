@@ -3,7 +3,7 @@ export const meta = {
 	description:
 		'Implement→adversarial-review pipeline: one PR per task via Opus subagents, one retry at high effort on a red gate or a reject',
 	whenToUse:
-		'Delegated implementation of scouted, disjoint task specs; used by the /improve and /orchestrate skills',
+		'Delegated implementation of scouted, disjoint task specs; used by the /orchestrate skill',
 	phases: [
 		{ title: 'Implement', detail: 'one implementer per task in its own worktree, medium effort' },
 		{ title: 'Review', detail: 'adversarial review + small fixes in the same worktree, high effort' },
