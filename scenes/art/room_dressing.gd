@@ -12,6 +12,8 @@ extends RefCounted
 ## the deckhouse's narrow cabins and saloon (CabinDressing, with the cabins' wall
 ## fittings); a corridor with handrails, a lifebelt and fire buckets; a wheelhouse
 ## panelled in teak with its wheel, binnacle, telegraph and chart against its walls;
+## the tables, benches, counters and ranges the layout stands on a room's floor, each
+## drawn inside its box (FurnitureDressing);
 ## and over every doorway out of a corridor, an engine room or a hold, a plate naming
 ## the room beyond as the HUD does. Between a step over the floor and a body's
 ## height, where a body walks, nothing it draws stands out from a wall further than a
@@ -22,7 +24,8 @@ extends RefCounted
 ## A liner's rooms each take one of her own kinds, by name: a dining saloon, a public
 ## room, a grand staircase's landing, a first-class corridor, a room of the ship's
 ## service, a block of berths — each with its own dresser (LinerDining, LinerPublic,
-## LinerCorridor, LinerService, LinerBerths).
+## LinerCorridor, LinerService, LinerBerths); a boiler room, a bath, a squash court too
+## (LinerBoiler, LinerBath, LinerSquash).
 enum Kind {
 	PASSAGE,
 	CUDDY,
@@ -38,6 +41,9 @@ enum Kind {
 	FIRST_CORRIDOR,
 	SERVICE,
 	BERTHS,
+	BOILER,
+	BATH,
+	SQUASH,
 }
 ## What of a room a face is: its walls, its floor, its ceiling, its beams.
 enum Part { WALL, FLOOR, OVERHEAD, BEAM }
@@ -47,8 +53,11 @@ enum Part { WALL, FLOOR, OVERHEAD, BEAM }
 ## a smaller one a cabin; one above it this big is a saloon, a smaller one a cabin,
 ## and the highest room, if small, the helm. A room whose name says what it is — the
 ## first of NAMED its name holds, any case — is that, though: a liner's saloons stand
-## below her main deck, and her holds' shape is a saloon's. Her own kinds come first,
-## so a "dining saloon" dines and a "deck corridor" is first class.
+## below her main deck, and her holds' shape is a saloon's; a name says it ahead of the
+## machinery a room holds, so a boiler room with its boilers is one. Her own kinds come
+## first, so a "dining saloon" dines and a "deck corridor" is first class; the engine
+## and boiler rooms, her baths and her court last, so "Scotland Road, boiler room 1" is
+## a road.
 const NAMED: Array[Array] = [
 	["dining", Kind.DINING],
 	["staircase", Kind.STAIRCASE],
@@ -74,6 +83,11 @@ const NAMED: Array[Array] = [
 	["corridor", Kind.PASSAGE],
 	["road", Kind.PASSAGE],
 	["saloon", Kind.SALOON],
+	["engine", Kind.ENGINE],
+	["boiler", Kind.BOILER],
+	# The Turkish bath and the swimming bath.
+	["bath", Kind.BATH],
+	["court", Kind.SQUASH],
 ]
 const CORRIDOR := 1.8
 const HOLD_AREA := 40.0
@@ -192,6 +206,9 @@ var _public: LinerPublic
 var _corridor: LinerCorridor
 var _service: LinerService
 var _berths: LinerBerths
+var _boiler: LinerBoiler
+var _bath: LinerBath
+var _squash: LinerSquash
 ## How many lower-deck cabins build() has dressed so far: the next one's number.
 var _cabin_count := 0
 
@@ -210,6 +227,9 @@ func _init(space: ShipSpace, cut_above := INF) -> void:
 	_corridor = LinerCorridor.new(space, _passage)
 	_service = LinerService.new(space, _cabins)
 	_berths = LinerBerths.new(space, _next_cabin)
+	_boiler = LinerBoiler.new(_engine)
+	_bath = LinerBath.new(space, _cabins)
+	_squash = LinerSquash.new(space, _cabins)
 	for room: ShipRoom in _layout.rooms:
 		var kind := kind_of(space, room)
 		_kinds.append(kind)
@@ -238,15 +258,16 @@ static func _box_of(space: ShipSpace, room: ShipRoom) -> AABB:
 	return AABB(foot, Vector3(room.area.size.x, head - room.floor_height, room.area.size.y))
 
 
-## What [param room] is, by its shape and where it stands on [param space].
+## What [param room] is, by its name, else by the machinery standing in it, else by
+## its shape and where it stands on [param space].
 static func kind_of(space: ShipSpace, room: ShipRoom) -> Kind:
 	var size := room.area.size
-	if space.machinery_in(room):
-		return Kind.ENGINE
 	var name := String(room.name).to_lower()
 	for named: Array in NAMED:
 		if name.contains(named[0]):
 			return named[1]
+	if space.machinery_in(room):
+		return Kind.ENGINE
 	if minf(size.x, size.y) < CORRIDOR:
 		var doorways := 0
 		var runs := space.wall_runs(room)
@@ -343,6 +364,12 @@ static func _linings(kind: Kind) -> Array[ShipMesh.Paint]:
 			paints = LinerService.linings()
 		Kind.BERTHS:
 			paints = LinerBerths.linings()
+		Kind.BOILER:
+			paints = LinerBoiler.linings()
+		Kind.BATH:
+			paints = LinerBath.linings()
+		Kind.SQUASH:
+			paints = LinerSquash.linings()
 	return paints
 
 
@@ -368,6 +395,12 @@ func lights(room: ShipRoom) -> Array[Light]:
 			found = _service.lights(room)
 		Kind.BERTHS:
 			found = _berths.lights(room)
+		Kind.BOILER:
+			found = _boiler.lights(room)
+		Kind.BATH:
+			found = _bath.lights(room)
+		Kind.SQUASH:
+			found = _squash.lights(room)
 	if found.is_empty():
 		# A pendant under the middle of each LAMP_SPACING square of it: one in all but a
 		# liner's great rooms.
@@ -423,7 +456,18 @@ func build(mesh: ShipMesh, signs: Node3D, panes: Array[Array]) -> void:
 				_service.build(mesh, room, glass)
 			Kind.BERTHS:
 				_berths.build(mesh, room, glass)
-		if _kinds[index] in [Kind.ENGINE, Kind.HOLD, Kind.PASSAGE, Kind.FIRST_CORRIDOR]:
+			Kind.BOILER:
+				_boiler.build(mesh, room, glass)
+			Kind.BATH:
+				_bath.build(mesh, room, glass)
+			Kind.SQUASH:
+				_squash.build(mesh, room, glass)
+		# An engine room draws its machinery and a hold its cargo; every other room's
+		# furniture is FurnitureDressing's — a dining dresser may lay its tables first.
+		if _kinds[index] not in [Kind.ENGINE, Kind.HOLD]:
+			FurnitureDressing.build(mesh, room, _space.furniture(room))
+		var signed := [Kind.ENGINE, Kind.BOILER, Kind.HOLD, Kind.PASSAGE, Kind.FIRST_CORRIDOR]
+		if _kinds[index] in signed:
 			_signs(mesh, signs, room)
 
 

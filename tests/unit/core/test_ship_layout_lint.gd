@@ -99,6 +99,21 @@ func test_spawns_stand_on_platforms() -> void:
 			)
 
 
+## A body set down at a seat stands clear: no blocker, crate or edge — a table, a
+## bench, a wall — holds it back where it starts.
+func test_spawns_stand_clear_of_every_blocker() -> void:
+	var layouts := _layouts()
+	var rules := SimFixtures.rules()
+	for path: String in layouts:
+		var layout: ShipLayout = layouts[path]
+		var surfaces := Surfaces.new(layout)
+		for spawn: Vector3 in layout.spawns:
+			var contacts := surfaces.obstacle_contacts(
+				spawn, rules.body_radius, rules.body_height, rules.step_height
+			)
+			assert_true(contacts.is_empty(), "%s: spawn %s is held back" % [path, spawn])
+
+
 func test_no_overlapping_same_height_platforms() -> void:
 	var layouts := _layouts()
 	for path: String in layouts:

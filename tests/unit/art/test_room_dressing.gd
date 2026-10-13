@@ -217,6 +217,119 @@ func test_nothing_the_dressing_draws_on_the_steamer_stands_in_a_body_s_way() -> 
 	assert_eq(FurnishingCheck.intrusions(_layout, _rules, faces), PackedStringArray())
 
 
+## The steamer laid out again with a box over [param area] of [param room], from its
+## floor to [param height] over it.
+func _with_a_box(room: ShipRoom, area: Rect2, height: float) -> ShipLayout:
+	var layout: ShipLayout = _layout.duplicate(true)
+	var box := ShipBlocker.new()
+	box.shape = ShipBlocker.Shape.BOX
+	box.area = area
+	box.bottom = room.floor_height
+	box.top = room.floor_height + height
+	layout.blockers.append(box)
+	return layout
+
+
+## A room of [param room_name] over [param area] on the steamer's main deck.
+func _named(room_name: StringName, area: Rect2) -> ShipRoom:
+	var room := ShipRoom.new()
+	room.name = room_name
+	room.area = area
+	room.floor_height = _room(&"saloon").floor_height
+	return room
+
+
+func test_a_table_on_a_saloon_s_floor_leaves_it_a_saloon() -> void:
+	var saloon := _room(&"saloon")
+	var table := Rect2(saloon.area.get_center() - Vector2.ONE * 0.6, Vector2.ONE * 1.2)
+	var layout := _with_a_box(saloon, table, 0.75)
+	var space := ShipSpace.new(layout)
+	var room := layout.rooms[_layout.rooms.find(saloon)]
+	assert_eq(RoomDressing.kind_of(space, room), RoomDressing.Kind.SALOON)
+	assert_eq(space.furniture(room).size(), 1)
+	assert_eq(space.furniture(room)[0].area, table)
+	assert_true(space.machinery(room).is_empty(), "a table is no engine")
+
+
+func test_the_steamer_s_engine_is_machinery_not_furniture() -> void:
+	var engine_room := _room(&"engine room")
+	assert_eq(_space.machinery(engine_room).size(), 1)
+	assert_true(_space.furniture(engine_room).is_empty())
+
+
+func test_drawn_in_its_footprint_a_table_stands_in_nobody_s_way() -> void:
+	var saloon := _room(&"saloon")
+	var table := Rect2(saloon.area.get_center() - Vector2.ONE * 0.6, Vector2.ONE * 1.2)
+	var layout := _with_a_box(saloon, table, 0.75)
+	var art := ShipArt.new()
+	art.build(layout, _rules.railing_height, _rules.body_radius)
+	var faces := FurnishingCheck.furnishings(art)
+	art.free()
+	# Over its footprint, clear of the floor's own faces and under its top: the table.
+	var in_it := 0
+	for corner: Vector3 in faces:
+		if table.grow(0.002).has_point(Vector2(corner.x, corner.z)):
+			var over := corner.y - saloon.floor_height
+			in_it += 1 if over > 0.05 and over < 0.76 else 0
+	assert_gt(in_it, 0, "the table is drawn")
+	assert_eq(FurnishingCheck.intrusions(layout, _rules, faces), PackedStringArray())
+
+
+func test_a_piece_of_furniture_is_what_its_box_says() -> void:
+	var pieces := [
+		[Vector2(1.2, 1.2), 0.75, FurnitureDressing.Piece.TABLE],
+		[Vector2(4.0, 0.9), 0.75, FurnitureDressing.Piece.TABLE],
+		[Vector2(9.0, 0.5), 0.45, FurnitureDressing.Piece.BENCH],
+		[Vector2(0.6, 3.6), 1.0, FurnitureDressing.Piece.COUNTER],
+		[Vector2(8.0, 1.2), 0.9, FurnitureDressing.Piece.RANGE],
+		[Vector2(0.7, 1.5), 1.0, FurnitureDressing.Piece.APPARATUS],
+	]
+	# On the Titanic's D deck, 0.9 m over -3.1875 is a hair under 0.9 in single precision.
+	var deck := -3.1875
+	for piece: Array in pieces:
+		var box := ShipBlocker.new()
+		box.shape = ShipBlocker.Shape.BOX
+		box.area = Rect2(Vector2.ZERO, piece[0])
+		box.top = piece[1]
+		assert_eq(FurnitureDressing.piece_of(box), piece[2], str(piece))
+		box.bottom = deck
+		box.top = deck + piece[1]
+		assert_eq(FurnitureDressing.piece_of(box), piece[2], "on D deck: %s" % [piece])
+
+
+func test_a_name_says_what_a_room_is_ahead_of_its_machinery() -> void:
+	var engine_room := _room(&"engine room")
+	var boiler_room := ShipRoom.new()
+	boiler_room.name = &"boiler room 6"
+	boiler_room.area = engine_room.area
+	boiler_room.floor_height = engine_room.floor_height
+	assert_true(_space.machinery_in(boiler_room), "the steamer's engine stands in it")
+	assert_eq(RoomDressing.kind_of(_space, boiler_room), RoomDressing.Kind.BOILER)
+
+
+func test_a_room_named_for_a_boiler_a_bath_or_a_court_is_that() -> void:
+	var area := Rect2(-2.0, -2.0, 4.0, 4.0)
+	var kinds := {
+		&"boiler room 6": RoomDressing.Kind.BOILER,
+		&"Turkish bath": RoomDressing.Kind.BATH,
+		&"swimming bath": RoomDressing.Kind.BATH,
+		&"squash court": RoomDressing.Kind.SQUASH,
+		&"engine room": RoomDressing.Kind.ENGINE,
+	}
+	for room_name: StringName in kinds:
+		var kind := RoomDressing.kind_of(_space, _named(room_name, area))
+		assert_eq(kind, kinds[room_name], String(room_name))
+
+
+func test_a_boiler_room_is_lined_as_an_engine_room() -> void:
+	assert_eq(
+		RoomDressing._linings(RoomDressing.Kind.BOILER),
+		RoomDressing._linings(RoomDressing.Kind.ENGINE)
+	)
+	for kind: RoomDressing.Kind in [RoomDressing.Kind.BATH, RoomDressing.Kind.SQUASH]:
+		assert_true(RoomDressing._linings(kind).is_empty(), RoomDressing.Kind.keys()[kind])
+
+
 ## The binnacle's two spheres on the wheelhouse's forward wall, as (along, height over
 ## the floor, radius): from the dark discs the dressed ship draws in front of it.
 func _spheres(art: ShipArt, wall: RoomDressing.Wall) -> Array[Vector3]:
