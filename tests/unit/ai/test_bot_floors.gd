@@ -96,3 +96,114 @@ func test_a_bots_frame_has_the_watertight_doors_its_pose_shows() -> void:
 			counts[bots.count()] = true
 		assert_eq(counts.size(), 1, "%s: no surface's number moves with its leaf" % door.name)
 	assert_gt(doors, 0, "she has watertight doors")
+
+
+## A snapshot of a match on the steamer at rest, its railing 0 broken.
+func _seen_with_a_railing_broken(floors_config: MatchConfig) -> Dictionary:
+	var seen := MatchSim.create(floors_config).snapshot()
+	var hp: PackedFloat64Array = seen["railing_hp"]
+	hp[0] = 0.0
+	seen["railing_hp"] = hp
+	return seen
+
+
+func test_bots_work_out_a_snapshots_broken_railings_and_crates_once() -> void:
+	# Every bot reading the same delayed snapshot — or a perceived copy of it, sharing
+	# its arrays (BotView) — stands the floors on the same railings and crates, worked
+	# out once (#88).
+	var config := SimFixtures.config(4, SimFixtures.calm(), 1, SimFixtures.steamer())
+	var floors := BotInputSource.floors_of(config)
+	var seen := _seen_with_a_railing_broken(config)
+	var pose := MatchSim.create(config).pose()
+	floors.honour(Faces.Up.DECK, pose, seen)
+	var facts := floors.facts_of(seen)
+	assert_eq(floors.facts_worked_out(), 1, "worked out once")
+	assert_eq(facts.broken, PackedInt32Array([0]), "its broken railing")
+	var crates: Array[PropState] = facts.props
+	assert_eq(crates.size(), (seen.props as Array).size(), "its crates")
+	assert_gt(crates.size(), 0, "the steamer carries crates")
+	var dicts: Array[Dictionary] = []
+	for crate in crates:
+		dicts.append(crate.to_dict())
+	floors.honour(Faces.Up.DECK, pose, seen)
+	floors.honour(Faces.Up.DECK, pose, seen.duplicate())
+	assert_eq(floors.facts_worked_out(), 1, "not again for the same snapshot")
+	# Shared by every bot, so nothing the floors are stood on changes them.
+	assert_eq(facts.broken, PackedInt32Array([0]), "its broken railings as they were")
+	for index in crates.size():
+		assert_eq(crates[index].to_dict(), dicts[index], "crate %d as it was" % index)
+	var again := floors.facts_of(seen.duplicate())
+	assert_true(is_same(again.broken, facts.broken), "the same broken railings")
+	assert_true(is_same(again.props, facts.props), "the same crates")
+
+
+func test_another_snapshot_is_worked_out_afresh() -> void:
+	var config := SimFixtures.config(4, SimFixtures.calm(), 1, SimFixtures.steamer())
+	var floors := BotInputSource.floors_of(config)
+	var seen := _seen_with_a_railing_broken(config)
+	var facts := floors.facts_of(seen)
+	var later := seen.duplicate()
+	later["tick"] = int(seen["tick"]) + 1
+	later.props = (seen.props as Array).duplicate(true)
+	later["railing_hp"] = (seen["railing_hp"] as PackedFloat64Array).duplicate()
+	assert_false(is_same(floors.facts_of(later).props, facts.props), "another tick")
+	assert_eq(floors.facts_worked_out(), 2)
+	# The same tick, but another snapshot's arrays: a match restored, or a test's.
+	var other := MatchSim.create(config).snapshot()
+	assert_eq(other["tick"], seen["tick"], "the same tick")
+	var fresh := floors.facts_of(other)
+	assert_eq(floors.facts_worked_out(), 3, "its own arrays, worked out afresh")
+	assert_eq(fresh.broken, PackedInt32Array(), "none of its railings broken")
+	var rails_only := seen.duplicate()
+	rails_only["railing_hp"] = other["railing_hp"]
+	assert_eq(floors.facts_of(rails_only).broken, PackedInt32Array(), "its own railings")
+	assert_eq(floors.facts_worked_out(), 4)
+
+
+func test_a_hard_easy_lobby_works_out_each_snapshot_once() -> void:
+	# Four hard and four easy bots, alternating, share one BotFloors (tools/arena.gd's
+	# hard-easy lobby): each tick, in seat order, they read snapshots 4 and 12 ticks old,
+	# and every snapshot any of them reads is worked out once, however long apart its
+	# readings fall.
+	var tiers: Array[StringName] = []
+	for seat in 8:
+		tiers.append(&"hard" if seat % 2 == 0 else &"easy")
+	_assert_each_snapshot_worked_out_once(tiers)
+
+
+func test_a_lobby_of_every_tier_works_out_each_snapshot_once() -> void:
+	# Two hard, two normal and two easy bots, read in turn: 4, 7 and 12 ticks old.
+	var tiers: Array[StringName] = [&"hard", &"normal", &"easy", &"hard", &"normal", &"easy"]
+	_assert_each_snapshot_worked_out_once(tiers)
+
+
+## Bots of [param tiers] (data/bots) on one BotFloors read, every tick, the snapshot
+## their reaction delay back: each distinct snapshot is worked out once, and every bot
+## reading it is handed the same facts.
+func _assert_each_snapshot_worked_out_once(tiers: Array[StringName]) -> void:
+	var config := SimFixtures.config(4, SimFixtures.calm(), 1, SimFixtures.steamer())
+	var floors := BotInputSource.floors_of(config)
+	var delays: Array[int] = []
+	for seat in tiers.size():
+		var profile: BotProfile = load("res://data/bots/%s.tres" % tiers[seat])
+		BotView.new(seat, profile, floors)
+		delays.append(profile.reaction_ticks)
+	var longest: int = delays.max()
+	var sim := MatchSim.create(config)
+	var snapshots: Array[Dictionary] = []
+	for _tick in 40:
+		snapshots.append(sim.snapshot())
+		SimFixtures.step(sim)
+	var read := {}
+	for now in range(longest, snapshots.size()):
+		var handed := {}
+		for seat in tiers.size():
+			var at: int = now - delays[seat]
+			var facts := floors.facts_of(snapshots[at])
+			read[at] = true
+			if handed.has(at):
+				assert_true(is_same(facts.props, handed[at]), "shared")
+			handed[at] = facts.props
+	assert_eq(
+		floors.facts_worked_out(), read.size(), "once for each snapshot read, not each reading"
+	)

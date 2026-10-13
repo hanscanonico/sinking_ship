@@ -266,6 +266,22 @@ func doomed(zone: int, pose: ShipPose) -> bool:
 	return _doomed[zone] == 2
 
 
+## Whether [param legs] is a way still to take under [param pose]: not empty, and no
+## portal on it with an end under water or into a zone flooded or giving way.
+func open(legs: Array[Portal], pose: ShipPose) -> bool:
+	if legs.is_empty():
+		return false
+	for leg: Portal in legs:
+		if (
+			_surfaces.wet(leg.entry, pose)
+			or _surfaces.wet(leg.exit, pose)
+			or flooded(leg.to_zone, pose)
+			or doomed(leg.to_zone, pose)
+		):
+			return false
+	return true
+
+
 ## How high [param zone] stands in the world under [param pose]: a room by the
 ## middle of its floor, an open deck by the highest middle of its platforms.
 func world_height(zone: int, pose: ShipPose) -> float:

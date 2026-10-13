@@ -104,6 +104,12 @@ func report() -> PackedStringArray:
 			% [mean(&"poses"), mean(&"pose_time")]
 		)
 	)
+	lines.append(
+		(
+			"  bot replans %.2f per frame, %d over the %d frames (fresh route searches)"
+			% [mean(&"replans"), _sums.get(&"replans", 0), _frames]
+		)
+	)
 	var gpu := mean(&"gpu")
 	lines.append(
 		"  GPU %s (beside the CPU, not added)" % ("%.2f ms" % gpu if gpu > 0.0 else "not measured")
@@ -139,4 +145,4 @@ static func _line(label: String, ms: float, depth: int) -> String:
 
 
 static func _is_count(part: StringName) -> bool:
-	return part in [&"poses", &"steps", &"draw_calls", &"primitives", &"undrawn"]
+	return part in [&"poses", &"replans", &"steps", &"draw_calls", &"primitives", &"undrawn"]

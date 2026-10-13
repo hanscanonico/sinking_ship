@@ -97,6 +97,12 @@ func test_a_room_whose_name_says_what_it_is_is_that() -> void:
 		&"post office": RoomDressing.Kind.SERVICE,
 		&"third-class berths": RoomDressing.Kind.BERTHS,
 		&"crew quarters": RoomDressing.Kind.BERTHS,
+		# A working corridor is a plain passage, no first-class "deck corridor"; its
+		# "corridor" stands ahead of the "boiler" its name ends on.
+		&"F deck working corridor, boiler room 4": RoomDressing.Kind.PASSAGE,
+		&"F deck working corridor, boiler room 5": RoomDressing.Kind.PASSAGE,
+		&"Turkish bath": RoomDressing.Kind.BATH,
+		&"swimming bath": RoomDressing.Kind.BATH,
 	}
 	for room: ShipRoom in titanic.rooms:
 		assert_true(kinds.has(room.name), "pinned: %s" % room.name)
@@ -143,11 +149,11 @@ func test_a_liner_s_office_is_one_and_her_officers_quarters_are_not() -> void:
 
 # A room of service lines itself in tile (test_liner_service.gd).
 func test_the_liner_s_kinds_keep_the_ship_s_own_lining() -> void:
-	# A dining saloon lines its own (LinerDining, test_liner_dining.gd).
+	# A dining saloon lines its own (LinerDining, test_liner_dining.gd), and so does a
+	# first-class corridor (LinerCorridor, test_liner_corridor.gd).
 	for kind: RoomDressing.Kind in [
 		RoomDressing.Kind.PUBLIC,
 		RoomDressing.Kind.STAIRCASE,
-		RoomDressing.Kind.FIRST_CORRIDOR,
 		RoomDressing.Kind.BERTHS,
 	]:
 		assert_true(RoomDressing._linings(kind).is_empty(), RoomDressing.Kind.keys()[kind])

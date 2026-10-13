@@ -52,3 +52,8 @@ func next_frame(tick: int) -> InputFrame:
 
 func observe(snapshot: Dictionary, pose: ShipPose) -> void:
 	view.push(snapshot, pose)
+
+
+## How many times its brain has searched the walk graph afresh (BotBrain.replans).
+func replans() -> int:
+	return brain.replans()

@@ -131,3 +131,33 @@ func _drawn_split() -> FrameSplit:
 	var split := FrameSplit.new()
 	_frame(split, 30000, {&"undrawn": 0})
 	return split
+
+
+func test_the_bots_fresh_route_searches_are_reported_per_frame_and_in_all() -> void:
+	var split := FrameSplit.new()
+	_frame(split, 30000, {&"replans": 3})
+	_frame(split, 30000, {&"replans": 0})
+	_frame(split, 30000, {&"replans": 6})
+	_frame(split, 30000, {&"replans": 1})
+	var lines := Array(split.report()).filter(
+		func(line: String) -> bool: return line.contains("bot replans")
+	)
+	assert_eq(lines.size(), 1, "one row")
+	if lines.is_empty():
+		return
+	assert_string_contains(lines[0], "2.50 per frame")
+	assert_string_contains(lines[0], "10 over the 4 frames")
+	assert_eq(
+		Array(split.report()).find(lines[0]),
+		_row_after(split, "sinking poses"),
+		"beside the sinking poses"
+	)
+
+
+## The index of the line right after the one containing [param text].
+func _row_after(split: FrameSplit, text: String) -> int:
+	var lines := Array(split.report())
+	for index in lines.size():
+		if (lines[index] as String).contains(text):
+			return index + 1
+	return -1
