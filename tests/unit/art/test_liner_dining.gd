@@ -12,7 +12,7 @@ const SALOONS: Array[StringName] = [
 	&"third-class dining saloon, aft",
 	&"third-class dining saloon, forward",
 ]
-## The most triangles one saloon's dressing may draw.
+## The most triangles one saloon's dressing may draw, its tables aside.
 const BUDGET := 4000
 
 var _titanic: ShipLayout
@@ -90,7 +90,9 @@ func test_each_saloon_has_more_to_it_than_a_saloon_s_dressing_within_a_budget() 
 		var before := _drawn(func(mesh: ShipMesh) -> void: cabins.saloon(mesh, room, none))
 		var after := _drawn(func(mesh: ShipMesh) -> void: dining.build(mesh, room, none))
 		assert_gt(_in_room(after, room), _in_room(before, room), room_name)
-		assert_lt(after.size() / 3, BUDGET, room_name)
+		# Its tables are held to their own budget, a table at a time (TABLE_BUDGET).
+		var tables := _drawn(func(mesh: ShipMesh) -> void: dining.tables(mesh, room))
+		assert_lt((after.size() - tables.size()) / 3, BUDGET, room_name)
 		# And the whole ship's dressing draws them there.
 		assert_gte(_in_room(_faces, room), _in_room(after, room), room_name)
 
@@ -150,3 +152,76 @@ func test_a_dining_saloon_lines_its_walls_floor_ceiling_and_beams() -> void:
 	assert_eq(paints.size(), RoomDressing.Part.size())
 	for paint: ShipMesh.Paint in paints:
 		assert_not_null(paint)
+
+
+## The faces of [param faces] wholly inside [param blocker]'s box, or lying on its top
+## no more than a setting over it.
+func _in_box(faces: PackedVector3Array, blocker: ShipBlocker) -> int:
+	var area := blocker.area.grow(0.002)
+	var count := 0
+	for index in range(0, faces.size(), 3):
+		var inside := true
+		for corner: Vector3 in faces.slice(index, index + 3):
+			if (
+				not area.has_point(Vector2(corner.x, corner.z))
+				or corner.y < blocker.bottom - 0.002
+				or corner.y > blocker.top + LinerDining.SETTING + 0.002
+			):
+				inside = false
+		if inside:
+			count += 1
+	return count
+
+
+func test_every_saloon_s_table_is_drawn_in_its_box_within_a_budget() -> void:
+	for room_name: StringName in SALOONS:
+		var tables := _space.furniture(_room(room_name))
+		assert_gt(tables.size(), 0, room_name)
+		for blocker: ShipBlocker in tables:
+			var drawn := _in_box(_faces, blocker)
+			assert_gt(drawn, 0, "%s table at %s" % [room_name, blocker.area])
+			assert_lte(
+				drawn, LinerDining.TABLE_BUDGET, "%s table at %s" % [room_name, blocker.area]
+			)
+
+
+func test_square_tables_are_laid_and_long_ones_are_mess_tables() -> void:
+	for room_name: StringName in SALOONS:
+		var third := String(room_name).begins_with("third")
+		for blocker: ShipBlocker in _space.furniture(_room(room_name)):
+			assert_eq(FurnitureDressing.piece_of(blocker), FurnitureDressing.Piece.TABLE)
+			assert_eq(LinerDining.long_table(blocker.area), third, room_name)
+
+
+func test_a_laid_table_seats_four_with_a_plate_each_all_inside_its_box() -> void:
+	var area := Rect2(-0.6, -0.6, 1.2, 1.2)
+	var faces := _drawn(func(mesh: ShipMesh) -> void: LinerDining.laid_table(mesh, area, 0.0, 0.75))
+	# A cloth's top and four sides, four chairs' backs, four plates.
+	assert_eq(faces.size() / 3, 10 + 4 * 8 + 4 * 4)
+	var plates := 0
+	for index in range(0, faces.size(), 3):
+		for corner: Vector3 in faces.slice(index, index + 3):
+			assert_true(area.grow(0.001).has_point(Vector2(corner.x, corner.z)), str(corner))
+			assert_between(corner.y, 0.0, 0.75 + LinerDining.SETTING + 0.001)
+		if faces[index].y > 0.75:
+			plates += 1
+	assert_eq(plates, 4 * 4)
+
+
+func test_a_mess_table_s_benches_run_its_length_inside_its_box() -> void:
+	var area := Rect2(-2.0, -0.45, 4.0, 0.9)
+	var faces := _drawn(func(mesh: ShipMesh) -> void: LinerDining.mess_table(mesh, area, 0.0, 0.75))
+	var seats := 0
+	for index in range(0, faces.size(), 3):
+		var low := INF
+		var high := -INF
+		for corner: Vector3 in faces.slice(index, index + 3):
+			assert_true(area.grow(0.001).has_point(Vector2(corner.x, corner.z)), str(corner))
+			assert_between(corner.y, 0.0, 0.75 + 0.001)
+			low = minf(low, corner.y)
+			high = maxf(high, corner.y)
+		if is_equal_approx(low, LinerDining.BENCH.y) and is_equal_approx(high, low):
+			seats += 1
+	# Each bench's seat, from end to end.
+	assert_eq(seats, 2 * 2)
+	assert_lte(faces.size() / 3, LinerDining.TABLE_BUDGET)
