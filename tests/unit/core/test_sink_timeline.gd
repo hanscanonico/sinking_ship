@@ -142,7 +142,9 @@ func test_events_keep_their_exact_times() -> void:
 		var event := timeline.events[index]
 		kinds[event.kind] = true
 		assert_almost_eq(event.seconds, baked[index], 0.5 / SinkTimeline.PER_SECOND)
-		if event.kind == SinkTimeline.Kind.LURCHING:
+		# A lurch's warning comes before it; a short falls inside its step, never landed
+		# on (#112).
+		if event.kind in [SinkTimeline.Kind.LURCHING, SinkTimeline.Kind.SHORTED]:
 			continue
 		var frame := timeline.frame_at(event.seconds)
 		assert_eq(timeline.times[frame], event.seconds, "a kept state at its very second")

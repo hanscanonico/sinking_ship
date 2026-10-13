@@ -378,7 +378,8 @@ func is_gone() -> bool:
 
 
 ## What lights cell [param cell] at kept state [param frame] (ShipPower.Power): it
-## changes only at a state an event is kept at, so a state's holds until the next's.
+## changes only at a state kept for it — the step's end a cell's short falls in, or an
+## event's — so a state's holds until the next's.
 func lit(frame: int, cell: int) -> int:
 	return lits[frame * cells + cell]
 
@@ -663,8 +664,10 @@ static func _held_states(bake: SinkBake) -> PackedInt64Array:
 
 
 ## The states of [param bake] to keep, in order: the first, the last, every one an event
-## happens at, and in between as few as reproduce the rest — each dropped state's sea,
-## and each cell's water both up her and against the sea, within [param level] metres,
+## happens at or what lights a cell changes at — a short falls inside its step (#112), so
+## the state ending it is kept for it — and in between as few as reproduce the rest —
+## each dropped state's sea, and each cell's water both up her and against the sea,
+## within [param level] metres,
 ## its rotation within [param turn_deg] degrees, and each cell's pocket — held or not as
 ## it is — within [param air] metres, of its kept neighbours' [param held] values read
 ## between them. Each stretch
@@ -686,9 +689,14 @@ static func _kept(
 	for event: Event in kept_events:
 		at_event[_microseconds(event.seconds)] = true
 	var width := 1 + bake.leaves().size() * POSE + bake.cells() * 3
+	var lit_from := width - bake.cells()
 	for state in count_of:
 		if at_event.has(held[state * width]):
 			pinned[state] = 1
+		elif state > 0:
+			var lit := held.slice(state * width + lit_from, state * width + width)
+			if lit != held.slice(state * width - bake.cells(), state * width):
+				pinned[state] = 1
 	var fit := Fit.new(bake, held, level, turn_deg, air)
 	var kept := PackedInt32Array([0])
 	var from := 0

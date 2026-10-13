@@ -11,8 +11,9 @@ extends GutTest
 const HOLD_CEILING := 0.5
 
 
-## A barge holed in her engine room aft and her hold forward, her generator aft; the
-## hold with lamps — a room in it — or none.
+## A barge holed in her engine room aft and her hold forward, her generator aft, its
+## emergency power lighting both for an hour; the hold with lamps — a room in it — or
+## none.
 func _barge(lit_hold: bool) -> ShipStructure:
 	var barge := BoxBarge.new(40.0, 10.0, 8.0, 3.0, 3.0)
 	barge.section_length = 2.0
@@ -36,8 +37,8 @@ func _barge(lit_hold: bool) -> ShipStructure:
 	generator.list_limit_deg = 25.0
 	generator.trim_limit_deg = 12.0
 	generator.recovers_deg = 3.0
-	generator.emergency_minutes = 1.0
-	var lit: Array[StringName] = [&"engine_room"]
+	generator.emergency_minutes = 60.0
+	var lit: Array[StringName] = [&"engine_room", &"hold"]
 	generator.emergency_cells = lit
 	barge.fittings.append(generator)
 	return barge.structure()
@@ -112,3 +113,10 @@ func test_a_lamp_shorts_inside_the_step_that_reached_it() -> void:
 		gaps.append(height - bake.heads()[state * bake.cells() + cell])
 	assert_gt(gaps[0], SinkFailures.REACHED, "under its lamps before the step")
 	assert_true(gaps[1] <= SinkFailures.REACHED, "at or past them after it")
+	# The timeline keeps the state ending that step — at its microsecond — the hold dark
+	# from it.
+	var timeline := bake.timeline()
+	var frame := timeline.frame_at(times[after] + 1e-6)
+	assert_almost_eq(timeline.times[frame], times[after], 1e-6, "the step's end kept")
+	assert_eq(timeline.lit(frame, cell), ShipPower.Power.DARK, "the hold dark there")
+	assert_ne(timeline.lit(frame - 1, cell), ShipPower.Power.DARK, "and lit before it")
