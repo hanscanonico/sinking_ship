@@ -5462,19 +5462,19 @@ height = -8.5625
 [sub_resource type="Resource" id="Platform_f_br4_1"]
 script = ExtResource("1_plat")
 name = &"F deck"
-area = Rect2(20.125, -13, 4.64, 0.45)
+area = Rect2(20.125, -13, 4.64, 0.65)
 height = -8.5625
 
 [sub_resource type="Resource" id="Platform_f_br4_2"]
 script = ExtResource("1_plat")
 name = &"F deck"
-area = Rect2(20.125, -11.15, 4.64, 22.3)
+area = Rect2(20.125, -10.95, 4.64, 21.9)
 height = -8.5625
 
 [sub_resource type="Resource" id="Platform_f_br4_3"]
 script = ExtResource("1_plat")
 name = &"F deck"
-area = Rect2(20.125, 12.55, 4.64, 0.45)
+area = Rect2(20.125, 12.35, 4.64, 0.65)
 height = -8.5625
 
 [sub_resource type="Resource" id="Platform_f_br5_0"]
@@ -5829,25 +5829,25 @@ end_height = -8.5625
 script = ExtResource("3_block")
 area = Rect2(-12.635, -11.2, 6.1, 4.8)
 bottom = -18.1875
-top = -8.625
+top = -8.8125
 
 [sub_resource type="Resource" id="Blocker_boiler_2_1"]
 script = ExtResource("3_block")
 area = Rect2(-12.635, -5.8, 6.1, 4.8)
 bottom = -18.1875
-top = -8.625
+top = -8.8125
 
 [sub_resource type="Resource" id="Blocker_boiler_2_2"]
 script = ExtResource("3_block")
 area = Rect2(-12.635, 1, 6.1, 4.8)
 bottom = -18.1875
-top = -8.625
+top = -8.8125
 
 [sub_resource type="Resource" id="Blocker_boiler_2_3"]
 script = ExtResource("3_block")
 area = Rect2(-12.635, 6.4, 6.1, 4.8)
 bottom = -18.1875
-top = -8.625
+top = -8.8125
 
 [sub_resource type="Resource" id="Blocker_stokehold_2_aft"]
 script = ExtResource("3_block")
@@ -5901,25 +5901,25 @@ end_height = -8.5625
 script = ExtResource("3_block")
 area = Rect2(5.855, -11.2, 6.1, 4.8)
 bottom = -18.1875
-top = -8.625
+top = -8.8125
 
 [sub_resource type="Resource" id="Blocker_boiler_3_1"]
 script = ExtResource("3_block")
 area = Rect2(5.855, -5.8, 6.1, 4.8)
 bottom = -18.1875
-top = -8.625
+top = -8.8125
 
 [sub_resource type="Resource" id="Blocker_boiler_3_2"]
 script = ExtResource("3_block")
 area = Rect2(5.855, 1, 6.1, 4.8)
 bottom = -18.1875
-top = -8.625
+top = -8.8125
 
 [sub_resource type="Resource" id="Blocker_boiler_3_3"]
 script = ExtResource("3_block")
 area = Rect2(5.855, 6.4, 6.1, 4.8)
 bottom = -18.1875
-top = -8.625
+top = -8.8125
 
 [sub_resource type="Resource" id="Blocker_stokehold_3_aft"]
 script = ExtResource("3_block")
@@ -5959,39 +5959,39 @@ height = -18.1875
 
 [sub_resource type="Resource" id="Ramp_stokehold_4_s"]
 script = ExtResource("2_ramp")
-area = Rect2(20.125, 11.15, 11.875, 1.4)
+area = Rect2(20.125, 10.95, 11.875, 1.4)
 start_height = -18.1875
 end_height = -8.5625
 
 [sub_resource type="Resource" id="Ramp_stokehold_4_p"]
 script = ExtResource("2_ramp")
-area = Rect2(20.125, -12.55, 11.875, 1.4)
+area = Rect2(20.125, -12.35, 11.875, 1.4)
 start_height = -18.1875
 end_height = -8.5625
 
 [sub_resource type="Resource" id="Blocker_boiler_4_0"]
 script = ExtResource("3_block")
-area = Rect2(23.215, 0.4, 6.1, 4.8)
+area = Rect2(23.215, -5.15, 6.1, 4.8)
 bottom = -18.1875
-top = -8.625
+top = -8.8125
 
 [sub_resource type="Resource" id="Blocker_boiler_4_1"]
 script = ExtResource("3_block")
-area = Rect2(23.215, -5.2, 6.1, 4.8)
+area = Rect2(23.215, 0.35, 6.1, 4.8)
 bottom = -18.1875
-top = -8.625
+top = -8.8125
 
 [sub_resource type="Resource" id="Blocker_boiler_4_2"]
 script = ExtResource("3_block")
-area = Rect2(23.215, 6, 6.1, 4.8)
+area = Rect2(23.215, -10.65, 6.1, 4.8)
 bottom = -18.1875
-top = -8.625
+top = -8.8125
 
 [sub_resource type="Resource" id="Blocker_boiler_4_3"]
 script = ExtResource("3_block")
-area = Rect2(23.215, -10.8, 6.1, 4.8)
+area = Rect2(23.215, 5.85, 6.1, 4.8)
 bottom = -18.1875
-top = -8.625
+top = -8.8125
 
 [sub_resource type="Resource" id="Blocker_stokehold_4_aft"]
 script = ExtResource("3_block")
@@ -6045,19 +6045,19 @@ end_height = -8.5625
 script = ExtResource("3_block")
 area = Rect2(38.84, -2.4, 6.1, 4.8)
 bottom = -18.1875
-top = -8.625
+top = -8.8125
 
 [sub_resource type="Resource" id="Blocker_boiler_5_1"]
 script = ExtResource("3_block")
 area = Rect2(38.84, -8.4, 6.1, 4.8)
 bottom = -18.1875
-top = -8.625
+top = -8.8125
 
 [sub_resource type="Resource" id="Blocker_boiler_5_2"]
 script = ExtResource("3_block")
 area = Rect2(38.84, 3.6, 6.1, 4.8)
 bottom = -18.1875
-top = -8.625
+top = -8.8125
 
 [sub_resource type="Resource" id="Blocker_stokehold_5_aft"]
 script = ExtResource("3_block")
@@ -6128,43 +6128,43 @@ height = -8.5625
 [sub_resource type="Resource" id="Platform_f_br4_4"]
 script = ExtResource("1_plat")
 name = &"F deck"
-area = Rect2(24.765, -13, 3, 0.45)
+area = Rect2(24.765, -13, 3, 0.65)
 height = -8.5625
 
 [sub_resource type="Resource" id="Platform_f_br4_5"]
 script = ExtResource("1_plat")
 name = &"F deck"
-area = Rect2(24.765, -11.15, 3, 9.65)
+area = Rect2(24.765, -10.95, 3, 9.45)
 height = -8.5625
 
 [sub_resource type="Resource" id="Platform_f_br4_6"]
 script = ExtResource("1_plat")
 name = &"F deck"
-area = Rect2(24.765, 1.5, 3, 9.65)
+area = Rect2(24.765, 1.5, 3, 9.45)
 height = -8.5625
 
 [sub_resource type="Resource" id="Platform_f_br4_7"]
 script = ExtResource("1_plat")
 name = &"F deck"
-area = Rect2(24.765, 12.55, 3, 0.45)
+area = Rect2(24.765, 12.35, 3, 0.65)
 height = -8.5625
 
 [sub_resource type="Resource" id="Platform_f_br4_8"]
 script = ExtResource("1_plat")
 name = &"F deck"
-area = Rect2(27.765, -13, 4.235, 0.45)
+area = Rect2(27.765, -13, 4.235, 0.65)
 height = -8.5625
 
 [sub_resource type="Resource" id="Platform_f_br4_9"]
 script = ExtResource("1_plat")
 name = &"F deck"
-area = Rect2(27.765, -11.15, 4.235, 22.3)
+area = Rect2(27.765, -10.95, 4.235, 21.9)
 height = -8.5625
 
 [sub_resource type="Resource" id="Platform_f_br4_10"]
 script = ExtResource("1_plat")
 name = &"F deck"
-area = Rect2(27.765, 12.55, 4.235, 0.45)
+area = Rect2(27.765, 12.35, 4.235, 0.65)
 height = -8.5625
 
 [sub_resource type="Resource" id="Platform_f_br4_11"]
@@ -6392,14 +6392,14 @@ to = Vector2(2.625, 0.7)
 [sub_resource type="Resource" id="Railing_stokehold_4_s_e"]
 script = ExtResource("4_rail")
 platform = 76
-from = Vector2(20.125, 11.15)
-to = Vector2(20.125, 12.55)
+from = Vector2(20.125, 10.95)
+to = Vector2(20.125, 12.35)
 
 [sub_resource type="Resource" id="Railing_stokehold_4_p_e"]
 script = ExtResource("4_rail")
 platform = 76
-from = Vector2(20.125, -12.55)
-to = Vector2(20.125, -11.15)
+from = Vector2(20.125, -12.35)
+to = Vector2(20.125, -10.95)
 
 [sub_resource type="Resource" id="Railing_stokehold_5_s_e"]
 script = ExtResource("4_rail")

@@ -955,17 +955,18 @@ room("f_landing", "F deck landing corridor", H3_LANDING, h3_floor[1], -w, w, F_D
 # floor behind the bunker's face. Est.: the real ship had five double-ended boilers a
 # room (four in boiler room 5) — here four abreast, three in the narrower boiler room 5,
 # each 6.1 m long and 4.8 m across, 1.2 m apart where the room's breadth allows; each
-# box carried up to F deck with the uptakes over its boiler, a sixteenth under the
-# deck, so nobody stands on a boiler, and boiler room 5's aft of the fiddley's casing
-# over its middle. No door through a bulkhead (there was none at the plates but the
+# box carried up with the uptakes over its boiler to a quarter metre under F deck,
+# too near it for anybody to stand on it, and boiler room 5's aft of the fiddley's
+# casing over its middle. No door through a bulkhead (there was none at the plates but the
 # vertical watertight doors, which are the structure's): two flights up to F deck a
 # room, so each room's plates have two ways up of their own — one beside the boilers
 # along her starboard side, and a second to port in boiler rooms 4 and 5; in 2 and 3,
 # where Scotland Road's stairs up from F deck stand over the port side, the second
 # rises between the boilers along her centre line. F deck is cut over each flight, out
-# to her side wall where it would leave only a sliver under it.
+# to her side wall where it would leave only a sliver under it; else the flight keeps
+# half a metre and more off that wall, where a room's dressing stops short of a stair.
 BOILER = (6.1, 4.8)    # est.: a boiler's length and its breadth across her
-UPTAKE_CLEAR = 0.0625  # a boiler's box's top under F deck
+UPTAKE_CLEAR = 0.25    # a boiler's box's top under F deck
 STOKEHOLD_RUN = 11.875  # a flight's run up from the tank top to F deck (est.), 39°
 FLIGHT_LEAD = 0.8       # a body's width clear before each end of a flight
 
@@ -987,7 +988,7 @@ def abreast(count, gap, middle):
 STOKEHOLDS = [
     (2, "J", abreast(4, 0.6, 2.0), 0.0, "f_saloons"),  # est.: an aisle down the middle for the stair
     (3, "H", abreast(4, 0.6, 2.0), 0.0, "f_saloons"),
-    (4, "G", abreast(4, 0.8, None), 0.0, "f_br4"),     # est.: 0.8 m apart, her bilge narrower
+    (4, "G", abreast(4, 0.7, None), 0.0, "f_br4"),     # est.: 0.7 m apart, her bilge narrower
     (5, "F", abreast(3, 1.2, None), 2.0, "f_br5"),     # est.: clear of the casing
 ]
 f_decks = {"f_saloons": (f_saloons, BX["J"], BX["G"], SALOON_Z, []),
@@ -1000,8 +1001,11 @@ for k, aft, rows, back, over in STOKEHOLDS:
     deck_w = f_decks[over][3]
     w = min(fit(plates[0], plates[1], TANK_TOP, 0.3), deck_w - T)
     platform("stokehold_%d" % k, "tank top", plates[0], plates[1], -w, w, TANK_TOP)
-    lanes = [("s", (w - T - STAIR, w - T))]
-    lanes.append(("m", (-STAIR * 0.5, STAIR * 0.5)) if k < 4 else ("p", (T - w, T - w + STAIR)))
+    side = w - T
+    if deck_w - side > 2 * T + 1e-9:
+        side = min(side, deck_w - T - 0.55)
+    lanes = [("s", (side - STAIR, side))]
+    lanes.append(("m", (-STAIR * 0.5, STAIR * 0.5)) if k < 4 else ("p", (-side, STAIR - side)))
     # Its foot on a sixteenth of a metre, as its run, so its head meets the deck cut
     # round it exactly in single precision.
     low = math.ceil((plates[0] + FLIGHT_LEAD) * 16) / 16
