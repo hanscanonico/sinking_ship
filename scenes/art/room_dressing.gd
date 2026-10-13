@@ -78,6 +78,8 @@ const NAMED: Array[Array] = [
 	["general room", Kind.PUBLIC],
 	["open space", Kind.PUBLIC],
 	["engine", Kind.ENGINE],
+	# Ahead of "hold": a stokehold is where her engine stands, no cargo hold.
+	["stokehold", Kind.ENGINE],
 	["hold", Kind.HOLD],
 	["wheelhouse", Kind.HELM],
 	["corridor", Kind.PASSAGE],

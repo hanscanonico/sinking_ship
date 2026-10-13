@@ -10,7 +10,7 @@ var _rules: BrawlRules
 var _space: ShipSpace
 ## Every face of the dressing, three corners to a face, in ship space.
 var _faces := PackedVector3Array()
-## Per room index, how many of _faces stand in it.
+## Per room index, how many of _faces stand in it, but those of its furniture.
 var _counts := {}
 ## The middle of each of _faces that stands in no room: through a deck or a wall.
 var _strays := PackedVector3Array()
@@ -47,9 +47,22 @@ func before_all() -> void:
 	for index in range(0, _faces.size(), 3):
 		var middle := (_faces[index] + _faces[index + 1] + _faces[index + 2]) / 3.0
 		var room := RoomDressing.room_at(_space, middle)
+		# A table FurnitureDressing draws to its box is the furniture's, not the room's.
+		if room != -1 and _in_furniture(_layout.rooms[room], middle):
+			continue
 		_counts[room] = _counts.get(room, 0) + 1
 		if room == -1:
 			_strays.append(middle)
+
+
+## Whether [param middle] stands in one of [param room]'s furniture boxes, on its sides
+## or its top.
+func _in_furniture(room: ShipRoom, middle: Vector3) -> bool:
+	for box: ShipBlocker in _space.furniture(room):
+		var over := middle.y >= box.bottom - 0.01 and middle.y <= box.top + 0.01
+		if over and box.area.grow(0.01).has_point(Vector2(middle.x, middle.z)):
+			return true
+	return false
 
 
 func _room(room_name: StringName) -> ShipRoom:
