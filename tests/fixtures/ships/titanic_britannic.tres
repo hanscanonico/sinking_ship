@@ -5798,7 +5798,13 @@ floor_height = -11
 [sub_resource type="Resource" id="Room_squash_gallery"]
 script = ExtResource("6_room")
 name = &"squash court gallery"
-area = Rect2(86.3, -8.3, 3.2, 16.6)
+area = Rect2(86.3, -5.45, 3.2, 10.9)
+floor_height = -8.5625
+
+[sub_resource type="Resource" id="Room_f_landing"]
+script = ExtResource("6_room")
+name = &"F deck landing corridor"
+area = Rect2(84.6, -8.3, 1.4, 16.6)
 floor_height = -8.5625
 
 [sub_resource type="Resource" id="Section_0"]
@@ -6303,7 +6309,7 @@ name = &"hold_3_tween"
 low = Vector3(70.76, -11, -13.3125)
 high = Vector3(86.3, -3.1875, 13.3125)
 shape = 0.8555
-rooms = Array[StringName]([&"post office", &"third-class berths", &"crew quarters"])
+rooms = Array[StringName]([&"post office", &"third-class berths", &"crew quarters", &"F deck landing corridor"])
 leak_area = 0.00277
 
 [sub_resource type="Resource" id="Cell_firemens_passage"]
@@ -12798,7 +12804,7 @@ spawns = Array[Vector3]([Vector3(60, 8.375, 9.5), Vector3(60, 8.375, -9.5), Vect
 min_seats = 4
 max_seats = 16
 props = Array[ExtResource("8_prop")]([])
-rooms = Array[ExtResource("6_room")]([SubResource("Room_officers"), SubResource("Room_wheelhouse"), SubResource("Room_gym"), SubResource("Room_gs_boat"), SubResource("Room_verandah"), SubResource("Room_smoking"), SubResource("Room_aft_entrance"), SubResource("Room_lounge"), SubResource("Room_reading"), SubResource("Room_gs_a"), SubResource("Room_restaurant"), SubResource("Room_b_corridor"), SubResource("Room_gs_b"), SubResource("Room_c_corridor"), SubResource("Room_gs_c"), SubResource("Room_purser"), SubResource("Room_general"), SubResource("Room_saloon_2"), SubResource("Room_d_corridor"), SubResource("Room_galley"), SubResource("Room_saloon_1"), SubResource("Room_reception"), SubResource("Room_d_corridor_fwd"), SubResource("Room_open_space"), SubResource("Room_road_1"), SubResource("Room_road_2"), SubResource("Room_road_3"), SubResource("Room_road_4"), SubResource("Room_gs_e"), SubResource("Room_saloon_3_aft"), SubResource("Room_saloon_3_fwd"), SubResource("Room_post_office"), SubResource("Room_berths"), SubResource("Room_crew"), SubResource("Room_corridor_br4"), SubResource("Room_corridor_br5"), SubResource("Room_turkish_bath"), SubResource("Room_swimming_bath"), SubResource("Room_squash_court"), SubResource("Room_squash_gallery")])
+rooms = Array[ExtResource("6_room")]([SubResource("Room_officers"), SubResource("Room_wheelhouse"), SubResource("Room_gym"), SubResource("Room_gs_boat"), SubResource("Room_verandah"), SubResource("Room_smoking"), SubResource("Room_aft_entrance"), SubResource("Room_lounge"), SubResource("Room_reading"), SubResource("Room_gs_a"), SubResource("Room_restaurant"), SubResource("Room_b_corridor"), SubResource("Room_gs_b"), SubResource("Room_c_corridor"), SubResource("Room_gs_c"), SubResource("Room_purser"), SubResource("Room_general"), SubResource("Room_saloon_2"), SubResource("Room_d_corridor"), SubResource("Room_galley"), SubResource("Room_saloon_1"), SubResource("Room_reception"), SubResource("Room_d_corridor_fwd"), SubResource("Room_open_space"), SubResource("Room_road_1"), SubResource("Room_road_2"), SubResource("Room_road_3"), SubResource("Room_road_4"), SubResource("Room_gs_e"), SubResource("Room_saloon_3_aft"), SubResource("Room_saloon_3_fwd"), SubResource("Room_post_office"), SubResource("Room_berths"), SubResource("Room_crew"), SubResource("Room_corridor_br4"), SubResource("Room_corridor_br5"), SubResource("Room_turkish_bath"), SubResource("Room_swimming_bath"), SubResource("Room_squash_court"), SubResource("Room_squash_gallery"), SubResource("Room_f_landing")])
 dressed = false
 white_above = 2.75
 structure = SubResource("Structure")
