@@ -123,10 +123,13 @@ func test_the_pool_is_drawn_inside_its_box() -> void:
 	var pool := _pool()
 	assert_true(LinerBath.is_pool(pool))
 	assert_gt(_in_box(_faces, pool), 0)
-	# Nothing it draws but the ladder's handles over the rim stands out of its box.
 	var drawn := _drawn(
 		func(mesh: ShipMesh) -> void: LinerBath.pool(mesh, pool.area, pool.bottom, pool.top)
 	)
+	# The whole ship draws in its box what pool() draws and nothing else: no
+	# FurnitureDressing case over it (RoomDressing.build() routes a bath's boxes here).
+	assert_eq(_in_box(_faces, pool), _in_box(drawn, pool), "drawn by LinerBath alone")
+	# Nothing it draws but the ladder's handles over the rim stands out of its box.
 	var high := pool.top + LinerBath.HANDLE + LinerBath.HANDLE_BAR
 	for corner: Vector3 in drawn:
 		assert_true(pool.area.grow(0.002).has_point(Vector2(corner.x, corner.z)), str(corner))
