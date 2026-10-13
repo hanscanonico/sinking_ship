@@ -221,10 +221,19 @@ func test_stern_down_scenario_floods_the_poop_deck_first() -> void:
 		var schedule := SinkSchedule.new(scenario, layout.freeboard, SeedStreams.derive(1, "sink"))
 		var first := Surfaces.NONE
 		var under := {poop_deck: -1, forecastle: -1}
+		# An authored scenario keeps no per-cell water, so a floor under her waterline —
+		# the stokehold's (#74) — is under the sea from the start: no deck going under.
+		var already := PackedByteArray()
+		for platform in layout.platforms.size():
+			already.append(1 if surfaces.flooded(platform, schedule.pose_at(0)) else 0)
 		for tick in 240 * Ticks.RATE:
 			var pose := schedule.pose_at(tick)
 			for platform in layout.platforms.size():
-				if first == Surfaces.NONE and surfaces.flooded(platform, pose):
+				if (
+					first == Surfaces.NONE
+					and already[platform] == 0
+					and surfaces.flooded(platform, pose)
+				):
 					first = platform
 			for platform: int in under:
 				if under[platform] == -1 and surfaces.flooded(platform, pose):
@@ -544,6 +553,21 @@ func test_room_is_wet_when_its_cell_water_is_above_its_floor() -> void:
 	assert_true(swam.has(0), "seat 0 swam in the flooding hold")
 	assert_false(swam.has(1), "seat 1 stands dry in its cell")
 	assert_true(dry_under_the_sea, "while its floor stood under the sea outside")
+
+
+func test_a_floor_under_the_sea_in_a_dry_cell_is_dry() -> void:
+	# A dry cell's water stands at its floor: the stokehold's tank top, under the sea
+	# outside, is dry before the hit — never wet by its height's last bit (#74).
+	var sinking: SinkScenario = load(SimFixtures.STEAMER_SINKING)
+	var sim := SimFixtures.sim(1, sinking, _steamer())
+	var pose := sim.schedule.pose_at(0)
+	var stokehold := _platform(&"stokehold")
+	assert_lt(sim.surfaces.world_height(stokehold, pose), 0.0, "her tank top under the sea")
+	for platform in _steamer().platforms.size():
+		assert_false(
+			sim.surfaces.flooded(platform, pose),
+			"%s dry before the hit" % _steamer().platforms[platform].name
+		)
 
 
 func test_a_ladder_climbs_out_of_reach_and_only_where_it_hangs() -> void:

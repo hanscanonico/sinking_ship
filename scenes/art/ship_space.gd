@@ -367,13 +367,18 @@ func machinery(room: ShipRoom) -> Array[ShipBlocker]:
 	return found
 
 
+## Whether [param blocker] is one of [param room]'s full walls: a wall standing on its
+## floor, over FULL_WALL tall or up to the deck over it — a stokehold's, under its
+## galleries (#74).
 func _full_wall_of(blocker: ShipBlocker, room: ShipRoom) -> bool:
-	return (
-		is_wall(blocker)
-		and absf(blocker.bottom - room.floor_height) < 0.05
-		and blocker.top - blocker.bottom > FULL_WALL
-		and blocker.area.grow(INSIDE).intersects(room.area)
-	)
+	if not is_wall(blocker) or absf(blocker.bottom - room.floor_height) >= 0.05:
+		return false
+	if not blocker.area.grow(INSIDE).intersects(room.area):
+		return false
+	if blocker.top - blocker.bottom > FULL_WALL:
+		return true
+	var at := blocker.area.get_center().clamp(room.area.position, room.area.end)
+	return blocker.top >= ceiling(room, at.x, at.y) - SLIVER
 
 
 ## The parts of [param area] no platform at [param height] covers.

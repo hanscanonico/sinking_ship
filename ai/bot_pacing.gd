@@ -1,8 +1,8 @@
 class_name BotPacing
 extends RefCounted
 ## How hard a bot fights, as its last think found the match (SH7d, R3). Early on, the
-## ship level, it spars (BotProfile.spar_margin): the margin fades as the ship's
-## platforms go under and as the match goes on from going live. Late in the sinking it
+## ship level, it spars (BotProfile.spar_margin): the margin fades as her deck area
+## goes under and as the match goes on from going live. Late in the sinking it
 ## presses, by late_hunt_gain times the share under. Down to the last hunt_at_seats
 ## seats left — as the HUD counts them for every player — it hunts them: no spar margin
 ## and the hunt and line-up pressed as hard as late in the sinking. Under survival
@@ -35,7 +35,7 @@ func _init(profile: BotProfile, plays_for := MatchRules.Goal.LAST_STANDING, carr
 
 
 ## Paces the bot for [param seen], the snapshot its view shows, with the share
-## [param under] of the ship's platforms under water and [param seats_left] seats
+## [param under] of her deck area under water and [param seats_left] seats
 ## left in the match.
 func pace(seen: Dictionary, under: float, seats_left: int) -> void:
 	var tick: int = seen["tick"]

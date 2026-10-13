@@ -68,6 +68,7 @@ const NAMED: Array[Array] = [
 	["entrance", Kind.PUBLIC],
 	["general room", Kind.PUBLIC],
 	["open space", Kind.PUBLIC],
+	["engine", Kind.ENGINE],
 	["hold", Kind.HOLD],
 	["wheelhouse", Kind.HELM],
 	["corridor", Kind.PASSAGE],

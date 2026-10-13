@@ -44,6 +44,7 @@ func _box(area: Rect2, bottom: float, top: float) -> PackedVector3Array:
 
 func test_each_room_of_the_steamer_is_what_its_shape_says() -> void:
 	var kinds := {
+		&"stokehold": RoomDressing.Kind.ENGINE,
 		&"engine room": RoomDressing.Kind.ENGINE,
 		&"forward hold": RoomDressing.Kind.HOLD,
 		&"cabin corridor": RoomDressing.Kind.PASSAGE,
@@ -152,8 +153,8 @@ func test_the_liner_s_kinds_keep_the_ship_s_own_lining() -> void:
 		assert_true(RoomDressing._linings(kind).is_empty(), RoomDressing.Kind.keys()[kind])
 
 
-func test_the_engine_room_is_lit_over_its_lanes_and_by_its_boilers_fires() -> void:
-	var lights := RoomDressing.new(_space).lights(_room(&"engine room"))
+func test_the_stokehold_is_lit_over_its_lanes_and_by_its_boilers_fires() -> void:
+	var lights := RoomDressing.new(_space).lights(_room(&"stokehold"))
 	var pendants := 0
 	var fires := 0
 	for light: RoomDressing.Light in lights:

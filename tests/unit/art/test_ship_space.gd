@@ -23,7 +23,8 @@ func test_a_point_inside_a_room_under_its_deck_is_indoors() -> void:
 
 
 func test_a_point_on_the_open_deck_over_a_room_is_outdoors() -> void:
-	var engine := _room(&"engine room")
+	# Over the steamer's engine room's space, its stokehold reaching to her hold (#74).
+	var engine := _room(&"stokehold")
 	assert_true(_space.outdoors(Vector3(engine.area.end.x - 0.5, 0.5, 0.0)))
 
 

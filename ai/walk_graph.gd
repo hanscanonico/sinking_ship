@@ -212,6 +212,11 @@ func deck_of(platform: int) -> int:
 	return _decks[platform]
 
 
+## The deck area of [param platform], in m².
+func platform_area(platform: int) -> float:
+	return _layout.platforms[platform].area.get_area()
+
+
 ## Every portal, in the order they were found.
 func portals() -> Array[Portal]:
 	return _portals
