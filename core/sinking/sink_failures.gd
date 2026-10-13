@@ -191,7 +191,8 @@ func follow(state: FloodState, next: FloodState, seconds: float, stepper: SinkSt
 ## How far under each threshold [param state] stands — per opening that can fail its
 ## leak's, then its giving way's; then her funnels' and her power's (FunnelStays,
 ## ShipPower) — under 0 past it, whether it has failed there or not, so the bake lands a
-## step where it is first passed; INF for none to come.
+## step where it is first passed; INF for none to come. Her lamps are none of these:
+## they never move the physics, so no step lands on them (ShipPower.lamp_gaps).
 func gaps(state: FloodState, stepper: SinkStepper) -> PackedFloat64Array:
 	var found := PackedFloat64Array()
 	var heads := _heads_across(state, stepper)
