@@ -12,12 +12,39 @@ extends RefCounted
 ## a bot stands on is a footing — a piece and a frame (footing). Shared by the bots of one
 ## match, as the walk graph is: each answers only for the pose it is handed.
 
+
+## The railings a snapshot has broken and its crates (facts_of), and the arrays of the
+## snapshot they were worked out from.
+class Facts:
+	extends RefCounted
+	var broken: PackedInt32Array
+	var props: Array[PropState]
+	var _railing_hp: PackedFloat64Array
+	var _props_of: Array
+
+	func _init(seen: Dictionary) -> void:
+		_railing_hp = seen["railing_hp"]
+		_props_of = seen["props"]
+		broken = MatchState.broken_in(_railing_hp)
+		props = PropState.from_snapshot(seen)
+
+	## Whether these are [param seen]'s: worked out from its own railing and crate arrays.
+	func of(seen: Dictionary) -> bool:
+		return is_same(_railing_hp, seen["railing_hp"]) and is_same(_props_of, seen["props"])
+
+
 var _deck: WalkGraph
 var _config: MatchConfig
 var _rules: BrawlRules
 var _faces: Faces
 var _pieces: Pieces
 var _graphs: Dictionary[int, WalkGraph] = {}
+## Per snapshot tick, what facts_of worked out from it.
+var _facts: Dictionary[int, Facts] = {}
+## How many snapshots' facts are kept: one for every tick from the newest a bot reading
+## these floors reads to the oldest the slowest of them does (reads_back).
+var _kept := 1
+var _worked_out := 0
 
 
 ## The floors of [param config]'s ship, her decks' walk graph [param deck].
@@ -26,6 +53,18 @@ func _init(deck: WalkGraph, config: MatchConfig) -> void:
 	_config = config
 	_rules = config.rules
 	_faces = Faces.new(config.ship, deck.surfaces(), _rules.brace_holds_to, true)
+
+
+## A bot reads these floors [param ticks] back (BotProfile.reaction_ticks): enough
+## snapshots' facts are kept that each is worked out once however its readings by bots
+## of every delay interleave.
+func reads_back(ticks: int) -> void:
+	_kept = maxi(_kept, ticks + 1)
+
+
+## How many times a snapshot's broken railings and crates were worked out (facts_of).
+func facts_worked_out() -> int:
+	return _worked_out
 
 
 ## The footing of a body on piece [param piece] of her (Pieces) standing in the frame
@@ -59,11 +98,30 @@ func honour(at: int, pose: ShipPose, seen: Dictionary) -> void:
 	if at % Faces.Up.size() != Faces.Up.DECK:
 		surfaces.honour(pose)
 		return
-	var broken := MatchState.broken_in(seen["railing_hp"])
+	var facts := facts_of(seen)
 	if piece == 0:
-		surfaces.honour(pose, broken, PropState.from_snapshot(seen))
+		surfaces.honour(pose, facts.broken, facts.props)
 	else:
-		_pieces_of().honour(piece, pose, broken, PropState.from_snapshot(seen))
+		_pieces_of().honour(piece, pose, facts.broken, facts.props)
+
+
+## The railings [param seen] has broken and its crates, worked out once for every bot
+## reading that snapshot: its tick names it, and its own railing and crate arrays, which
+## every perceived copy of it shares (BotView), tell it from another snapshot of the same
+## tick. The oldest tick kept gives way to a new one: bots read ticks forward, so it is
+## the one none reads again. Read only, both ways: every bot is handed the same facts,
+## and a snapshot's railing_hp and props must not be edited in place once read.
+func facts_of(seen: Dictionary) -> Facts:
+	var tick: int = seen["tick"]
+	var kept: Facts = _facts.get(tick)
+	if kept != null and kept.of(seen):
+		return kept
+	if kept == null and _facts.size() >= _kept:
+		_facts.erase(_facts.keys().min())
+	_worked_out += 1
+	kept = Facts.new(seen)
+	_facts[tick] = kept
+	return kept
 
 
 ## [param pose] — the whole ship's — as the footing [param at] reads it: its piece's, in

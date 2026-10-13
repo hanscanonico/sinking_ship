@@ -52,6 +52,7 @@ func _init(seat: int, profile: BotProfile, floors: BotFloors) -> void:
 	_memory_ticks = Ticks.from_seconds(profile.memory_seconds)
 	_look_every = profile.think_period
 	_floors = floors
+	floors.reads_back(_delay)
 
 
 func push(latest: Dictionary, pose_at_latest: ShipPose) -> void:
