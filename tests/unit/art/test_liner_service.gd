@@ -61,6 +61,16 @@ func _in(space: ShipSpace, faces: PackedVector3Array, room: ShipRoom) -> PackedV
 	return found
 
 
+## Whether [param middle] stands in one of [param room]'s furniture boxes in
+## [param space], on its sides or its top.
+func _in_furniture(space: ShipSpace, room: ShipRoom, middle: Vector3) -> bool:
+	for box: ShipBlocker in space.furniture(room):
+		var over := middle.y >= box.bottom - 0.01 and middle.y <= box.top + 0.01
+		if over and box.area.grow(0.01).has_point(Vector2(middle.x, middle.z)):
+			return true
+	return false
+
+
 func test_nothing_the_titanic_s_dressing_draws_stands_in_a_body_s_way() -> void:
 	assert_gt(_faces.size(), 0)
 	assert_eq(FurnishingCheck.intrusions(_titanic, _rules, _faces), PackedStringArray())
@@ -126,6 +136,9 @@ func test_away_from_its_walls_a_room_of_service_is_dressed_only_overhead_or_unde
 			var stray := 0
 			for middle: Vector3 in _in(space, ship[1], room):
 				if not middle_of.has_point(Vector2(middle.x, middle.z)):
+					continue
+				# Its counters, ranges and apparatus stand there, drawn to their boxes.
+				if _in_furniture(space, room, middle):
 					continue
 				var height := middle.y - room.floor_height
 				if height > 0.01 and height < RoomDressing.HEADROOM - ShipMesh.SLIVER:
