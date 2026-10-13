@@ -422,6 +422,7 @@ class Failures:
 	var events: Array[SinkTimeline.Event] = []
 	var _stepper: SinkStepper
 	var _funnels: FunnelStays
+	var _power: ShipPower
 	var _generator: StringName
 	## Whether her hull has creaked.
 	var creaked := false
@@ -433,7 +434,8 @@ class Failures:
 	func _init(stepper: SinkStepper, sea: SeaPhysics) -> void:
 		_stepper = stepper
 		_funnels = stepper.failures().funnels()
-		var generator := stepper.failures().power().generator()
+		_power = stepper.failures().power()
+		var generator := _power.generator()
 		_generator = generator.name if generator != null else &""
 		_warning = sea.fall_warning
 		_stressed = sea.stressed_share
@@ -466,14 +468,31 @@ class Failures:
 			_add(SinkTimeline.Event.new(at, SinkTimeline.Kind.POWER_BACK, _generator))
 		if before.power != ShipPower.Power.DARK and after.power == ShipPower.Power.DARK:
 			_add(SinkTimeline.Event.new(at, SinkTimeline.Kind.LIGHTS_OUT, &""))
-		for cell in after.shorted.size():
-			if before.shorted[cell] == 0 and after.shorted[cell] == 1:
-				_add(
-					SinkTimeline.Event.new(at, SinkTimeline.Kind.SHORTED, _stepper.cell_name(cell))
-				)
+		_shorts(before, after)
 		if not creaked and absf(after.bending) >= _stressed:
 			creaked = true
 			_add(SinkTimeline.Event.new(at, SinkTimeline.Kind.HULL_STRESSED, &"", after.bending))
+
+	## Each cell whose lamps the step from [param before] to [param after] reached: its
+	## short, where along the step its water's gap to them closed, read straight between
+	## the two — no step lands on a lamp (ShipPower.lamp_gaps), so the step is never cut
+	## for it.
+	func _shorts(before: FloodState, after: FloodState) -> void:
+		var gaps_before := PackedFloat64Array()
+		var gaps_after := PackedFloat64Array()
+		var seconds := after.seconds - before.seconds
+		for cell in after.shorted.size():
+			if before.shorted[cell] == 1 or after.shorted[cell] == 0:
+				continue
+			if gaps_before.is_empty():
+				gaps_before = _power.lamp_gaps(before)
+				gaps_after = _power.lamp_gaps(after)
+			var was := gaps_before[cell]
+			var share := 1.0
+			if was > gaps_after[cell]:
+				share = clampf(was / (was - gaps_after[cell]), 0.0, 1.0)
+			var at := before.seconds + seconds * share
+			_add(SinkTimeline.Event.new(at, SinkTimeline.Kind.SHORTED, _stepper.cell_name(cell)))
 
 	## Funnel [param funnel] let go at [param state]: its creak, then its fall, along the
 	## world's down there, as long as it takes.
