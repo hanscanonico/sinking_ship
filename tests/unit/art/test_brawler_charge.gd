@@ -85,8 +85,8 @@ func _entry(sim: MatchSim) -> Dictionary:
 
 
 func _clothes(body: Brawler) -> ShaderMaterial:
-	var mannequin: MeshInstance3D = body.find_child("Mannequin", true, false)
-	return mannequin.get_surface_override_material(0)
+	var sailor: MeshInstance3D = body.find_child("Sailor", true, false)
+	return sailor.get_surface_override_material(0)
 
 
 func _outline(body: Brawler) -> ShaderMaterial:

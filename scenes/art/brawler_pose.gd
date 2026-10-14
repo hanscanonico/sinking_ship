@@ -5,7 +5,7 @@ extends RefCounted
 ## top of it and back out to it. Presentation only — it reads nothing but the pose
 ## Brawler hands it.
 ##
-## A pose is a Dictionary from bone name to Vector3, in the mannequin's model frame
+## A pose is a Dictionary from bone name to Vector3, in the sailor's model frame
 ## at rest (+z ahead, +x its left, +y up):
 ## - a trunk bone (hips, spine, neck, head): its turn from rest, Euler degrees;
 ## - an arm bone: the way it points, in the chest's frame, so a turned chest
@@ -25,47 +25,47 @@ const REACH_R := &"reach.R"
 const PALM_L := &"palm.L"
 const PALM_R := &"palm.R"
 ## The arm whose hand each palm turns (0 left, 1 right), and the way the palms face
-## at rest: the mannequin stands with its arms out and its palms down.
+## at rest: the sailor stands with its arms out and its palms down.
 const PALMS := {PALM_L: 0, PALM_R: 1}
 const REST_PALM := Vector3(0.0, -1.0, 0.0)
-## The mannequin faces +z.
+## The sailor faces +z.
 const AHEAD := Vector3(0.0, 0.0, 1.0)
-const CHEST := &"DEF-spine.003"
+const CHEST := &"chest"
 const CHEST_SLOT := 3
 ## Every bone a pose may name, parents before children.
 const BONES: Array[StringName] = [
-	&"DEF-hips",
-	&"DEF-spine.001",
-	&"DEF-spine.002",
-	&"DEF-spine.003",
-	&"DEF-neck",
-	&"DEF-head",
-	&"DEF-upper_arm.L",
-	&"DEF-forearm.L",
-	&"DEF-hand.L",
-	&"DEF-upper_arm.R",
-	&"DEF-forearm.R",
-	&"DEF-hand.R",
-	&"DEF-thigh.L",
-	&"DEF-shin.L",
-	&"DEF-foot.L",
-	&"DEF-thigh.R",
-	&"DEF-shin.R",
-	&"DEF-foot.R",
+	&"pelvis",
+	&"spine_01",
+	&"spine_02",
+	&"chest",
+	&"neck",
+	&"head",
+	&"upperarm_l",
+	&"lowerarm_l",
+	&"hand_l",
+	&"upperarm_r",
+	&"lowerarm_r",
+	&"hand_r",
+	&"thigh_l",
+	&"calf_l",
+	&"foot_l",
+	&"thigh_r",
+	&"calf_r",
+	&"foot_r",
 ]
 const ARMS: Array[StringName] = [
-	&"DEF-upper_arm.L",
-	&"DEF-forearm.L",
-	&"DEF-hand.L",
-	&"DEF-upper_arm.R",
-	&"DEF-forearm.R",
-	&"DEF-hand.R",
+	&"upperarm_l",
+	&"lowerarm_l",
+	&"hand_l",
+	&"upperarm_r",
+	&"lowerarm_r",
+	&"hand_r",
 ]
 ## Per limb, the slot in BONES of its upper bone (the lower bone and the hand or
 ## foot follow it), the key a pose reaches it with, and the way its middle joint
 ## bends unless told otherwise (an elbow down and a little out; a knee ahead).
 const LIMBS: Array[int] = [6, 9, 12, 15]
-const REACHES: Array[StringName] = [REACH_L, REACH_R, &"DEF-foot.L", &"DEF-foot.R"]
+const REACHES: Array[StringName] = [REACH_L, REACH_R, &"foot_l", &"foot_r"]
 const ELBOWS: Array[Vector3] = [Vector3(0.35, -1.0, -0.3), Vector3(-0.35, -1.0, -0.3)]
 const ARM_LIMBS := 2
 

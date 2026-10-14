@@ -25,6 +25,17 @@ register covers every asset. `assets/models/README.md` says how they are authore
 | `gauge_small/` and `gauge_large/`, each `.blend` and `.glb` — the engine and boiler rooms' pressure gauges, radius 0.085 and 0.11 (113 triangles each, under 0.1 MB each) | Original work, modelled for this project (2026-10-14) | The project's own |
 | `handwheel_small/` and `handwheel_large/`, each `.blend` and `.glb` — the valves' and the engines' handwheels, radius 0.11 and 0.15 (166 and 190 triangles, under 0.1 MB each) | Original work, modelled for this project (2026-10-14) | The project's own |
 
+### The sailor (`assets/characters/sailor/`)
+
+Not third-party: original work made for this project, built in Blender 5.2.2 by a
+committed script. Its `README.md` says how. It replaces the Universal Animation
+Library mannequin above: nothing loads its files now, and they stay until they are
+retired.
+
+| Files | Source | License |
+|---|---|---|
+| `gen_sailor.py`, and the `sailor.blend` and `sailor.glb` it builds — the brawlers' rig (31 bones of its own), body (2320 triangles, 800 of them fingers and thumbs) and eleven clips (0.8 MB and 0.4 MB) | Original work, generated for this project (2026-10-14) | The project's own |
+
 ### Audio (`assets/audio/`)
 
 Every sound below is CC0 1.0 (public domain dedication); no attribution is

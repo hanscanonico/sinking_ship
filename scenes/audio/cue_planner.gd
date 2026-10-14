@@ -8,7 +8,7 @@ extends RefCounted
 ## last complained, is presentation state; nothing it does reaches the sim.
 
 ## Metres between footfalls, so steps land with the drawn feet: each locomotion
-## clip's speed times its length (Walk 1.33 s, Jog_Fwd 0.93 s), over two feet.
+## clip's speed times its length (walk 1.33 s, run 0.93 s), over two feet.
 const WALK_STRIDE := BrawlerAnimation.WALK_CLIP_SPEED * 1.333 / 2.0
 const RUN_STRIDE := BrawlerAnimation.RUN_CLIP_SPEED * 0.933 / 2.0
 ## Metres a swimmer covers between strokes: about two a second at swim_speed.

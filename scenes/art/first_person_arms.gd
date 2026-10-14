@@ -25,14 +25,14 @@ const CROSSHAIR_CLEAR := Vector2(96.0, 72.0)
 const READOUTS_CLEAR := Rect2(16.0, -174.0, 252.0, 124.0)
 ## The bone the brawler hangs from, and where it is held in camera space: ahead of
 ## the eye as well as under it, so the elbows come in below the hands.
-const CHEST_BONE := &"DEF-spine.003"
+const CHEST_BONE := &"chest"
 const CHEST := Vector3(0.0, -0.55, -0.2)
 ## The brawler is drawn facing +x; the camera looks down its own -z.
 const TURN := PI * 0.5
 ## The fists of a shove's wind-up clip, for the guard a brace raises here, and the
 ## open hands of a shove's, for a stagger's flung hand.
-const BRACE_CLIP := &"Punch_Enter"
-const STAGGER_CLIP := &"Push"
+const BRACE_CLIP := &"windup"
+const STAGGER_CLIP := &"shove"
 ## The elbows hang straight down, so the sleeves rise steeply from the bottom edge
 ## rather than slanting in across the readouts.
 const ELBOWS: Array[Vector3] = [Vector3(0.1, -1.0, 0.0), Vector3(-0.1, -1.0, 0.0)]
@@ -49,11 +49,11 @@ const BRACE_PALM_R := Vector3(1.0, 0.0, 0.4)
 ## Wrist spots and finger directions are in the chest's frame, model units: +x the
 ## body's left (the screen's left), +y up, +z ahead.
 const AT_REST := {
-	&"DEF-spine.003": UPRIGHT,
+	&"chest": UPRIGHT,
 	BrawlerPose.REACH_L: Vector3(0.17, 0.26, 0.31),
 	BrawlerPose.REACH_R: Vector3(-0.17, 0.26, 0.31),
-	&"DEF-hand.L": Vector3(-0.1, 0.6, 1.0),
-	&"DEF-hand.R": Vector3(0.1, 0.6, 1.0),
+	&"hand_l": Vector3(-0.1, 0.6, 1.0),
+	&"hand_r": Vector3(0.1, 0.6, 1.0),
 }
 const POSES := {
 	BrawlerAnimation.Move.IDLE: AT_REST,
@@ -62,76 +62,76 @@ const POSES := {
 	BrawlerAnimation.Move.RECOVER: AT_REST,
 	BrawlerAnimation.Move.WINDUP:
 	{
-		&"DEF-spine.003": UPRIGHT,
-		BrawlerPose.REACH_L: Vector3(0.093, 0.37, 0.28),
-		BrawlerPose.REACH_R: Vector3(-0.093, 0.37, 0.28),
-		&"DEF-hand.L": Vector3(-0.2, 1.0, -0.2),
-		&"DEF-hand.R": Vector3(0.2, 1.0, -0.2),
+		&"chest": UPRIGHT,
+		BrawlerPose.REACH_L: Vector3(0.11, 0.37, 0.28),
+		BrawlerPose.REACH_R: Vector3(-0.11, 0.37, 0.28),
+		&"hand_l": Vector3(-0.2, 1.0, -0.2),
+		&"hand_r": Vector3(0.2, 1.0, -0.2),
 		BrawlerPose.PALM_L: FIST_PALM_L,
 		BrawlerPose.PALM_R: FIST_PALM_R,
 	},
 	BrawlerAnimation.Move.CHARGE:
 	{
-		&"DEF-spine.003": UPRIGHT,
-		BrawlerPose.REACH_L: Vector3(0.075, 0.375, 0.26),
-		BrawlerPose.REACH_R: Vector3(-0.075, 0.375, 0.26),
-		&"DEF-hand.L": Vector3(-0.3, 1.0, -0.4),
-		&"DEF-hand.R": Vector3(0.3, 1.0, -0.4),
+		&"chest": UPRIGHT,
+		BrawlerPose.REACH_L: Vector3(0.12, 0.375, 0.26),
+		BrawlerPose.REACH_R: Vector3(-0.12, 0.375, 0.26),
+		&"hand_l": Vector3(-0.3, 1.0, -0.4),
+		&"hand_r": Vector3(0.3, 1.0, -0.4),
 		BrawlerPose.PALM_L: FIST_PALM_L,
 		BrawlerPose.PALM_R: FIST_PALM_R,
 	},
 	BrawlerAnimation.Move.SHOVE:
 	{
-		&"DEF-spine.003": UPRIGHT,
+		&"chest": UPRIGHT,
 		BrawlerPose.REACH_L: Vector3(0.135, 0.35, 0.4),
 		BrawlerPose.REACH_R: Vector3(-0.135, 0.35, 0.4),
-		&"DEF-hand.L": Vector3(0.0, 1.0, 0.4),
-		&"DEF-hand.R": Vector3(0.0, 1.0, 0.4),
+		&"hand_l": Vector3(0.0, 1.0, 0.4),
+		&"hand_r": Vector3(0.0, 1.0, 0.4),
 		BrawlerPose.PALM_L: BrawlerPose.AHEAD,
 		BrawlerPose.PALM_R: BrawlerPose.AHEAD,
 	},
 	BrawlerAnimation.Move.BRACE:
 	{
-		&"DEF-spine.003": UPRIGHT,
+		&"chest": UPRIGHT,
 		BrawlerPose.REACH_L: Vector3(0.135, 0.38, 0.28),
 		BrawlerPose.REACH_R: Vector3(-0.135, 0.38, 0.28),
-		&"DEF-hand.L": Vector3(0.0, 1.0, -0.15),
-		&"DEF-hand.R": Vector3(0.0, 1.0, -0.15),
+		&"hand_l": Vector3(0.0, 1.0, -0.15),
+		&"hand_r": Vector3(0.0, 1.0, -0.15),
 		BrawlerPose.PALM_L: BRACE_PALM_L,
 		BrawlerPose.PALM_R: BRACE_PALM_R,
 	},
 	BrawlerAnimation.Move.STAGGER:
 	{
-		&"DEF-spine.003": UPRIGHT,
+		&"chest": UPRIGHT,
 		BrawlerPose.REACH_L: Vector3(0.3, 0.15, -0.05),
 		BrawlerPose.REACH_R: Vector3(-0.27, 0.5, 0.16),
-		&"DEF-hand.L": Vector3(0.6, -0.2, -0.3),
-		&"DEF-hand.R": Vector3(-1.0, 0.6, 0.3),
+		&"hand_l": Vector3(0.6, -0.2, -0.3),
+		&"hand_r": Vector3(-1.0, 0.6, 0.3),
 	},
 	BrawlerAnimation.Move.SWIM:
 	[
 		{
-			&"DEF-spine.003": UPRIGHT,
+			&"chest": UPRIGHT,
 			BrawlerPose.REACH_L: Vector3(0.1, 0.42, 0.5),
 			BrawlerPose.REACH_R: Vector3(-0.1, 0.42, 0.5),
-			&"DEF-hand.L": Vector3(0.0, 0.1, 1.0),
-			&"DEF-hand.R": Vector3(0.0, 0.1, 1.0),
+			&"hand_l": Vector3(0.0, 0.1, 1.0),
+			&"hand_r": Vector3(0.0, 0.1, 1.0),
 		},
 		{
-			&"DEF-spine.003": UPRIGHT,
+			&"chest": UPRIGHT,
 			BrawlerPose.REACH_L: Vector3(0.11, 0.31, 0.34),
 			BrawlerPose.REACH_R: Vector3(-0.11, 0.31, 0.34),
-			&"DEF-hand.L": Vector3(0.2, 0.0, 1.0),
-			&"DEF-hand.R": Vector3(-0.2, 0.0, 1.0),
+			&"hand_l": Vector3(0.2, 0.0, 1.0),
+			&"hand_r": Vector3(-0.2, 0.0, 1.0),
 		},
 	],
 	BrawlerAnimation.Move.CLIMB:
 	{
-		&"DEF-spine.003": UPRIGHT,
+		&"chest": UPRIGHT,
 		BrawlerPose.REACH_L: Vector3(0.083, 0.36, 0.25),
 		BrawlerPose.REACH_R: Vector3(-0.134, 0.582, 0.22),
-		&"DEF-hand.L": Vector3(0.0, 1.0, 0.5),
-		&"DEF-hand.R": Vector3(-0.2, 1.0, 0.3),
+		&"hand_l": Vector3(0.0, 1.0, 0.5),
+		&"hand_r": Vector3(-0.2, 1.0, 0.3),
 	},
 }
 

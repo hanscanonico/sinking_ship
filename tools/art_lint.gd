@@ -31,7 +31,7 @@ extends SceneTree
 ##   PANE_TOLERANCE along the wall.
 ## - Seats: through a bots-only match in the real match scene, every brawler's
 ##   model hangs from its body's feet — the posed ship carrying the interpolated
-##   snapshot position — and the mannequin's soles stand on that root.
+##   snapshot position — and the sailor's soles stand on that root.
 ## - Cargo, through the same match: every crate is drawn at its underside as the
 ##   interpolated snapshot has it, and not at all once it is lost. And on every ship,
 ##   a crate set down where its cargo stands outdoors and in the middle of each room
@@ -227,7 +227,7 @@ func _check_crew() -> void:
 ## weighted to the spine bones alone; [param seat] names it.
 func _check_painted_front(seat: int, brawler: Brawler) -> void:
 	_checks += 1
-	var body: MeshInstance3D = brawler.find_child("Mannequin", true, false)
+	var body: MeshInstance3D = brawler.find_child("Sailor", true, false)
 	var arrays := body.mesh.surface_get_arrays(0)
 	var rest: PackedVector2Array = arrays[Mesh.ARRAY_TEX_UV]
 	var depth: PackedVector2Array = arrays[Mesh.ARRAY_TEX_UV2]
