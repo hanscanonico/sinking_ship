@@ -4,11 +4,12 @@ extends SceneTree
 ## is posed by Brawler.show_state from a snapshot entry of a fresh match, edited to
 ## stand in its move (D5), on a plain deck under a sun; nothing is played.
 ##
-##   godot --path . -s res://tools/crew_gallery.gd -- --capture=PATH [--view=crew|arms]
+##   godot --path . -s res://tools/crew_gallery.gd -- --capture=PATH [--view=crew|arms|hats]
 ##
 ## crew: every move on one deck, seen from ahead and to the side, a seat's hat and
 ## coat apiece. arms: a seat's own arms (FirstPersonArms) through a first-person
-## lens, one frame per move, laid out in a grid with the crosshair marked.
+## lens, one frame per move, laid out in a grid with the crosshair marked. hats: every
+## hat close up on the head it seats on, from ahead and from behind, in a grid.
 
 const RunMatch := preload("res://tools/run_match.gd")
 const SEED := 1701
@@ -28,6 +29,12 @@ const DECK := Color(0.62, 0.5, 0.36)
 ## The arms view: each frame shrunk to this size in a grid this many across.
 const CELL := Vector2i(576, 324)
 const CELLS_ACROSS := 4
+## The hats view: each head seen from HAT_DISTANCE metres, HAT_TURN radians off ahead
+## and off behind, looking down from HAT_RISE over the crown, kept HAT_CELL square.
+const HAT_DISTANCE := 1.0
+const HAT_TURN := 0.6
+const HAT_RISE := 0.25
+const HAT_CELL := 480
 
 var _path := ""
 var _view := "crew"
@@ -36,6 +43,7 @@ var _entry: Dictionary
 var _moves: Array = BrawlerAnimation.Move.values()
 var _bodies: Array[Brawler] = []
 var _arms: FirstPersonArms
+var _camera: Camera3D
 var _label: Label
 var _move := 0
 var _held := 0.0
@@ -50,8 +58,8 @@ func _initialize() -> void:
 			_path = argument.trim_prefix("--capture=")
 		elif argument.begins_with("--view="):
 			_view = argument.trim_prefix("--view=")
-	if _path.is_empty() or _view not in ["crew", "arms"]:
-		push_error("crew_gallery: --capture=PATH and --view=crew|arms")
+	if _path.is_empty() or _view not in ["crew", "arms", "hats"]:
+		push_error("crew_gallery: --capture=PATH and --view=crew|arms|hats")
 		quit(1)
 		return
 	var config: MatchConfig = RunMatch.default_config(SEED, SEATS)
@@ -60,6 +68,8 @@ func _initialize() -> void:
 	_stage()
 	if _view == "crew":
 		_stage_crew()
+	elif _view == "hats":
+		_stage_hats()
 	else:
 		_stage_arms()
 
@@ -73,6 +83,12 @@ func _process(delta: float) -> bool:
 			if _bodies[index].visible:
 				var entry := _as(_moves[index])
 				_bodies[index].show_state(entry, entry, 1.0)
+		if _held >= SETTLE:
+			_snap()
+	elif _view == "hats":
+		var entry := _as(BrawlerAnimation.Move.IDLE)
+		for body: Brawler in _bodies:
+			body.show_state(entry, entry, 1.0)
 		if _held >= SETTLE:
 			_snap()
 	else:
@@ -92,6 +108,9 @@ func _snap() -> void:
 	var image := root.get_texture().get_image()
 	if _view == "crew":
 		_snap_row(image)
+		return
+	if _view == "hats":
+		_snap_hat(image)
 		return
 	image.resize(CELL.x, CELL.y, Image.INTERPOLATE_LANCZOS)
 	if _sheet == null:
@@ -121,6 +140,29 @@ func _snap_row(image: Image) -> void:
 	_waiting = false
 	if _move >= rows:
 		_save(_sheet)
+
+
+## Keeps the middle of the frame, square, as the next head in the grid: every hat
+## from ahead along the top row, from behind along the bottom.
+func _snap_hat(image: Image) -> void:
+	var size := image.get_size()
+	var square := image.get_region(Rect2i((size.x - size.y) / 2, 0, size.y, size.y))
+	square.resize(HAT_CELL, HAT_CELL, Image.INTERPOLATE_LANCZOS)
+	var across := _bodies.size()
+	if _sheet == null:
+		_sheet = Image.create(HAT_CELL * across, HAT_CELL * 2, false, square.get_format())
+	_sheet.blit_rect(
+		square,
+		Rect2i(0, 0, HAT_CELL, HAT_CELL),
+		Vector2i(_move % across, _move / across) * HAT_CELL
+	)
+	_move += 1
+	_held = 0.0
+	_waiting = false
+	if _move >= across * 2:
+		_save(_sheet)
+		return
+	_aim_at_hat()
 
 
 func _save(image: Image) -> void:
@@ -181,6 +223,35 @@ func _stage_crew() -> void:
 	camera.fov = 30.0
 	root.add_child(camera)
 	camera.look_at_from_position(Vector3(0.0, 1.9, 7.2), Vector3(0.0, 1.0, 0.0))
+
+
+## Every hat on the head of the first seat that wears it, one head on the deck at a
+## time.
+func _stage_hats() -> void:
+	for hat: Brawler.Hat in Brawler.Hat.values():
+		var body := Brawler.new()
+		root.add_child(body)
+		body.setup(Brawler.HATS.find(hat), _rules, false)
+		body.rotation.y = -PI * 0.5
+		_bodies.append(body)
+	_camera = Camera3D.new()
+	_camera.fov = 30.0
+	root.add_child(_camera)
+	_aim_at_hat()
+
+
+## Shows the head the next frame is of and turns the eye on it: ahead of it, then
+## behind it.
+func _aim_at_hat() -> void:
+	var across := _bodies.size()
+	for index in across:
+		_bodies[index].visible = index == _move % across
+	var seat := _bodies[_move % across].seat
+	var top := Brawler.headgear(seat, _rules)
+	var head := Vector3(0.0, (_rules.body_height + top) * 0.5 - 0.1, 0.0)
+	var turn := HAT_TURN if _move < across else PI - HAT_TURN
+	var eye := head + Vector3(sin(turn), 0.0, cos(turn)) * HAT_DISTANCE + Vector3.UP * HAT_RISE
+	_camera.look_at_from_position(eye, head)
 
 
 ## A first-person eye at a body's height, its own arms under it, the crosshair marked.

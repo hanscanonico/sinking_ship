@@ -484,7 +484,8 @@ model-sources:
 
 # `make crew-capture`: every move a brawler is drawn in, saved as one PNG
 # (tools/crew_gallery.gd): VIEW=crew (the default) stands them all on a deck, VIEW=arms
-# shows a seat's own arms in each through a first-person lens, in a grid. Windowed, so
+# shows a seat's own arms in each through a first-person lens, in a grid, and VIEW=hats
+# every hat close up from ahead and behind. Windowed, so
 # it takes the window lock as capture does. CAPTURE= names the file.
 VIEW ?= crew
 crew-capture:
@@ -496,7 +497,8 @@ crew-capture:
 
 # `make sailor`: rebuilds the brawlers' sailor — rig, body and clips — from
 # assets/characters/sailor/gen_sailor.py, with Blender headless, into sailor.blend and
-# the sailor.glb the game loads; Godot reimports the .glb on its next import. Not
+# the sailor.glb the game loads, and its hats from gen_hats.py into hats.blend and
+# hats.glb; Godot reimports the .glb files on its next import. Not
 # part of verify, as for models. The sailor's README says how it is built.
 sailor:
 	@command -v "$(BLENDER)" >/dev/null || { \
@@ -507,6 +509,10 @@ sailor:
 		--python assets/characters/sailor/gen_sailor.py -- \
 		"$(CURDIR)/assets/characters/sailor/sailor.blend" "$(CURDIR)/assets/characters/sailor/sailor.glb" \
 		| { grep '^gen_sailor' || true; }
+	@set -o pipefail; "$(BLENDER)" --background --factory-startup --python-exit-code 1 \
+		--python assets/characters/sailor/gen_hats.py -- \
+		"$(CURDIR)/assets/characters/sailor/hats.blend" "$(CURDIR)/assets/characters/sailor/hats.glb" \
+		| { grep '^gen_hats' || true; }
 
 # Every .gd file that is actually ours: skips the engine cache, vendored addons,
 # the engine binary, and .claude/worktrees, which holds whole nested checkouts of

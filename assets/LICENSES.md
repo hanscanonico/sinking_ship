@@ -35,12 +35,13 @@ register covers every asset. `assets/models/README.md` says how they are authore
 
 ### The sailor (`assets/characters/sailor/`)
 
-Not third-party: original work made for this project, built in Blender 5.2.2 by a
-committed script. Its `README.md` says how.
+Not third-party: original work made for this project, built in Blender 5.2.2 by
+committed scripts. Its `README.md` says how.
 
 | Files | Source | License |
 |---|---|---|
 | `gen_sailor.py`, and the `sailor.blend` and `sailor.glb` it builds — the brawlers' rig (31 bones of its own), body (2320 triangles, 800 of them fingers and thumbs), its three outfits (2830, 3076 and 3402 triangles as dressed) and eleven clips | Original work, generated for this project (2026-10-14) | The project's own |
+| `gen_hats.py`, and the `hats.blend` and `hats.glb` it builds — the brawlers' six hats and a bare head's hair, 144 to 292 triangles each | Original work, generated for this project (2026-10-14) | The project's own |
 
 ### Audio (`assets/audio/`)
 

@@ -2,12 +2,14 @@
 
 Every brawler is this one figure: an original rig, body and set of clips, built in
 Blender from `gen_sailor.py` and nothing else, and dressed there in one of three
-outfits. `sailor.blend` is what the script
-saves, `sailor.glb` what it exports and the game loads (`Brawler.MODEL`), and
-`sailor.glb.import` is Godot's.
+outfits; its hats are built round its head by `gen_hats.py`. `sailor.blend` and
+`hats.blend` are what the scripts save, `sailor.glb` and `hats.glb` what they export
+and the game loads (`Brawler.MODEL`, `Brawler.HAT_MODELS`), and the `.glb.import`
+files are Godot's.
 
     make sailor        # Blender headless: gen_sailor.py -> sailor.blend, sailor.glb
-    make import        # Godot reimports the .glb
+                       #                   gen_hats.py   -> hats.blend, hats.glb
+    make import        # Godot reimports the .glb files
 
 Neither `make verify` nor CI runs Blender: regenerate after every change to the
 script and commit the .blend and the .glb.
@@ -25,7 +27,7 @@ script and commit the .blend and the .glb.
   clothing), each v written as 1 − v for glTF — so the game reads them as they are.
 - **Rest pose.** Arms out along x, palms down, thumbs ahead (`BrawlerPose.REST_PALM`).
   Every bone's length runs along its local +y; the head bone's +z faces ahead, as
-  the hats (`BrawlerHat`) are built in its space, 0.26 under the crown.
+  the hats (`gen_hats.py`) are built in its space, 0.26 under the crown.
 - **Bones.** `root`; `pelvis`, `spine_01`, `spine_02`, `chest`, `neck`, `head`; per
   side (`_l`, `_r`) `clavicle`, `upperarm`, `lowerarm`, `hand`, `fingers`,
   `fingertips`, `thumb`, `thumbtip`, `thigh`, `calf`, `foot`, `toe`. The poses laid
@@ -35,7 +37,7 @@ script and commit the .blend and the .glb.
   one round of subdivision, pressed into a brawler's build (`BULGES`: chest,
   shoulders, arms, forearms, jaw, ears) and skinned by Blender's automatic weights,
   smoothed across the wrists. Its proportions are the hats' and the clothes
-  shader's: a head about 0.19 wide and 0.23 deep, which every `BrawlerHat` fits, on
+  shader's: a head about 0.19 wide and 0.23 deep, which every hat fits, on
   a neck about 0.13 wide; shoulders out past the arm band at 0.22. Each hand's four
   fingers and thumb are closed shells of their own set into the palm, weighted by
   hand to `fingers`/`fingertips` and `thumb`/`thumbtip`, so a fist shows its
@@ -56,6 +58,19 @@ script and commit the .blend and the .glb.
   shears a narrow band of it; `make art-lint` checks it. Every colour is the
   shader's, the coat the seat's. Each outfit's triangle budget is pinned in
   `tests/unit/art/test_sailor.gd`.
+- **Hats.** `Cap`, `Souwester`, `Boater`, `Bare`, `Bobble`, `Top` and `Peaked`
+  (`Brawler.HAT_MESHES`, in `Brawler.Hat`'s order), each one small rigid mesh in the
+  head bone's space, never skinned: `Brawler` hangs the one its seat wears on the
+  head bone, so it rides the head and scales with the body, and `Brawler.headgear()`
+  reads its top. A seaman's flat cap with its ribbon, bow, tails and gilt tally; an
+  oilskin sou'wester, its brim long down the neck; a straw boater with its ribbon; a
+  knitted watch cap with a ribbed cuff and a bobble; a silk topper with its band and
+  curled brim; a mate's peaked cap with a leather peak and chin strap and a gilt
+  badge; and for a bare head, its hair. Each band is cast round the grown head, a
+  little clear of it, and the script stops if any point or face of a hat cuts into
+  the head. Parts and ink are written as on the outfits, so the hats wear the same
+  clothes shader, the seat's colour and the outline. Each hat's triangles are pinned
+  in `tests/unit/art/test_sailor.gd`, at most 300 apiece.
 - **Clips.** `idle`, `walk`, `run`, `windup`, `shove`, `stagger`, `fall`, `jump`,
   `brace`, `climb`, `swim` (`BrawlerAnimation.CLIPS`), keyed every frame at 30 fps
   from poses written in the script. A clip that loops is exported as `NAME-loop`,
