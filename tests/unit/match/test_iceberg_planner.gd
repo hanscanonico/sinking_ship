@@ -189,6 +189,11 @@ func test_it_stands_on_shallow_ground_without_going_through_it() -> void:
 		_hit(layout, 1), HIT_TICK, layout, SEED, PackedVector3Array(), 12.0
 	)
 	assert_lte(planner.depth, 12.0 * IcebergPlanner.SEA_SHARE, "over the bottom")
+	assert_lt(planner.depth, planner.height * IcebergPlanner.DRAUGHT, "shallower than it goes")
+	var lowest := INF
+	for corner in planner.shape():
+		lowest = minf(lowest, corner.y)
+	assert_almost_eq(lowest, -planner.depth * IcebergPlanner.FOOT, 0.01, "cut flat at its foot")
 
 
 func test_it_scrapes_the_gash_traced_on_her_shell() -> void:
@@ -219,3 +224,20 @@ func test_it_is_a_modelled_berg_picked_by_the_seed_and_scaled_alike_every_way() 
 				)
 	for berg in IcebergPlanner.BERGS:
 		assert_has(seen, berg, "%s is struck in some match" % berg)
+
+
+func test_its_blade_is_drawn_out_to_the_gash_on_every_berg() -> void:
+	var layout := SimFixtures.steamer()
+	var seen := {}
+	for seed_value in range(SEED, SEED + 30):
+		for side in [1, -1]:
+			var planner := _planner(layout, side, seed_value)
+			seen[planner.berg] = true
+			var top := planner.spur(INF)
+			var bottom := planner.spur(-INF)
+			assert_true(planner.shape().has(top), "%s: its blade up over the gash" % planner.berg)
+			assert_true(planner.shape().has(bottom), "%s: and down under it" % planner.berg)
+			for corner in planner.shape():
+				if corner.z > top.z - IcebergPlanner.BLADE_NEAR:
+					assert_true(corner == top or corner == bottom, "%s: the blade" % planner.berg)
+	assert_eq(seen.size(), IcebergPlanner.BERGS.size(), "every berg")
