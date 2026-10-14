@@ -24,6 +24,8 @@ const BRACE := BrawlerAnimation.Move.BRACE
 const STAGGER := BrawlerAnimation.Move.STAGGER
 ## How far, in pixels, a stagger flings each hand from its wind-up and brace places.
 const FLUNG := 180.0
+## How far a stagger may bend a wrist back, in degrees.
+const STAGGER_WRIST := 40.0
 ## How far the sleeve (round the forearm) and the hand stand out from their bones
 ## with the outline, in metres, and how many points are checked along each bone.
 const SLEEVE := 0.055
@@ -109,6 +111,26 @@ func test_a_stagger_flings_the_hands_out_of_the_windup_and_the_brace() -> void:
 		if Rect2(Vector2.ZERO, size).has_point(held[STAGGER][hand]):
 			seen += 1
 	assert_gt(seen, 0, "a hand flung out stays in view: %s" % held[STAGGER])
+
+
+## A stagger's right fist, flung out toward the screen's edge (the left is flung out
+## of view), stays near in line with its forearm: the shirt's cuff rides the forearm,
+## so a wrist bent far back leaves it standing up past the wrist, in front of the
+## fist, as a flat card. The wrist bends at most STAGGER_WRIST.
+func test_a_staggers_fist_in_view_keeps_in_line_with_its_forearm() -> void:
+	var entry := _as(STAGGER)
+	var watched := 0.0
+	while watched < SETTLE:
+		_arms.show_seat(SEAT, entry, entry, 1.0)
+		await get_tree().process_frame
+		watched += _arms.get_process_delta_time()
+	var body: Brawler = _arms.get_node("Body")
+	var bones: Array = JOINTS[&"R"]
+	var elbow := body.bone_position(bones[1])
+	var wrist := body.bone_position(bones[2])
+	var knuckles := body.bone_position(bones[3])
+	var bent := rad_to_deg((wrist - elbow).angle_to(knuckles - wrist))
+	assert_lt(bent, STAGGER_WRIST, "the wrist bent %.0f degrees" % bent)
 
 
 ## The seat's snapshot entry as it stands still in [param move].

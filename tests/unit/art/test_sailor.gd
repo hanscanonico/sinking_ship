@@ -18,10 +18,19 @@ const OUTFIT_TRIANGLES := {
 ## and at most ARMS_BUDGET.
 const ARMS_TRIANGLES := {
 	Brawler.Coat.JERSEY: 3324,
-	Brawler.Coat.JACKET: 3692,
-	Brawler.Coat.GREATCOAT: 3580,
+	Brawler.Coat.JACKET: 3844,
+	Brawler.Coat.GREATCOAT: 3732,
 }
 const ARMS_BUDGET := 4000
+## The arm's line at rest, out along +x (y, z), the part code of a cuff's facing,
+## how near its mouth a ring stands to be at it, how far inside a cuff's lining the
+## way into its mouth is tried, and how deep it may go before it meets a face, in
+## model units.
+const ARM_LINE := Vector2(1.44, -0.04)
+const FACING := 3
+const MOUTH_SLACK := 0.001
+const CUFF_INSIDE := 0.002
+const CUFF_FLOOR := 0.03
 const SEATS := 8
 const MATCH_TRIANGLES := 3450 * SEATS
 ## The crown the clothes shader paints the face under, in model units.
@@ -95,6 +104,51 @@ func test_each_coats_own_arms_keep_to_their_triangle_budget() -> void:
 		assert_eq(_triangles(arms.mesh), ARMS_TRIANGLES[coat], named)
 		assert_lte(_triangles(arms.mesh), ARMS_BUDGET, named)
 		arms.free()
+
+
+## A coat's cuff is lined a little way in and closed there round the shirt's cuff,
+## so an eye looking into its mouth never sees down the sleeve, whose far side the
+## outline paints ink: straight in from the mouth, just inside the lining all round,
+## every way meets a face before CUFF_FLOOR.
+func test_a_coats_cuff_is_closed_past_its_lining() -> void:
+	for coat: Brawler.Coat in [Brawler.Coat.JACKET, Brawler.Coat.GREATCOAT]:
+		var arms := Brawler.own_arms(coat)
+		var arrays := arms.mesh.surface_get_arrays(0)
+		arms.free()
+		var points: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+		var parts: PackedVector2Array = arrays[Mesh.ARRAY_TEX_UV2]
+		var faces: PackedInt32Array = arrays[Mesh.ARRAY_INDEX]
+		# The left cuff's mouth: its facing furthest out along the arm.
+		var mouth := 0.0
+		for index in points.size():
+			if roundi(parts[index].y) == FACING and points[index].x > mouth:
+				mouth = points[index].x
+		# The lining's lip there: the nearer of the two rings at the mouth, each way
+		# round the arm's line.
+		var lining := {}
+		for index in points.size():
+			var at := points[index]
+			if roundi(parts[index].y) != FACING or absf(at.x - mouth) > MOUTH_SLACK:
+				continue
+			var off := Vector2(at.y, at.z) - ARM_LINE
+			var way := snappedf(off.angle(), 0.01)
+			lining[way] = minf(lining.get(way, INF), off.length())
+		assert_gt(lining.size(), 8, "%s: its mouth found" % Brawler.ARMS[coat])
+		for way: float in lining:
+			var off: Vector2 = Vector2.from_angle(way) * (lining[way] - CUFF_INSIDE)
+			var from := Vector3(mouth + MOUTH_SLACK, ARM_LINE.x + off.x, ARM_LINE.y + off.y)
+			var met := INF
+			for face in range(0, faces.size(), 3):
+				var hit: Variant = Geometry3D.ray_intersects_triangle(
+					from,
+					Vector3.LEFT,
+					points[faces[face]],
+					points[faces[face + 1]],
+					points[faces[face + 2]]
+				)
+				if hit != null:
+					met = minf(met, from.distance_to(hit))
+			assert_lt(met, CUFF_FLOOR, "%s: into its mouth %.2f round" % [Brawler.ARMS[coat], way])
 
 
 func test_a_seats_own_arms_are_its_coats_in_its_colour() -> void:

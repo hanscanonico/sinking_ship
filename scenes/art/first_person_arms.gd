@@ -122,7 +122,7 @@ const POSES := {
 		BrawlerPose.REACH_L: Vector3(0.3, 0.15, -0.05),
 		BrawlerPose.REACH_R: Vector3(-0.3, 0.45, 0.3),
 		&"hand_l": Vector3(0.6, -0.2, -0.3),
-		&"hand_r": Vector3(-1.0, 0.6, 0.3),
+		&"hand_r": Vector3(-0.5, 1.0, 0.4),
 	},
 	BrawlerAnimation.Move.SWIM:
 	[
