@@ -89,7 +89,7 @@ def hardware(brass, iron):
     """The kick plate along its foot, its strap hinges at +x, and its lever handle and
     keyhole at -x."""
     panel(brass, [0.0, (SILL + 0.02 + RAILS[0][1] - 0.04) * 0.5, FACE + 0.0015], RIGHT, UP, (HALF - 0.03, (RAILS[0][1] - 0.04 - SILL - 0.02) * 0.5), rim=0.008)
-    for height in (0.42, 1.36):
+    for height in (0.4, 1.5):
         box(iron, [HALF - 0.17, height - 0.02, FACE], [HALF, height + 0.02, FACE + 0.004], inked=False, skip=(BACK, (0, 1)))
         knuckle = [(0.012, 0.0, 0.0), (0.012, 1.0, 0.0)]
         tube(iron, [HALF + 0.004, height - 0.06, FACE + 0.012], [HALF + 0.004, height + 0.06, FACE + 0.012], knuckle, 6, caps=(False, False))
