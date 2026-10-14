@@ -4,7 +4,9 @@ extends RefCounted
 ## assets/models/README.md says, gathered into one mesh in the prop's own space — every
 ## object's surfaces, each keeping the material that names its paint — for
 ## ShipMesh.model() to draw among the ship's own faces. Never a mesh instance of its
-## own: it goes into the ship's batches, chunked under the lamp limit as any face is.
+## own: it goes into the ship's batches, chunked under the lamp limit as any face is —
+## but a lamp's (ShipLamp), which swings and glows as it burns, so is drawn under its
+## lamp in the lamp's own materials.
 ##
 ## A model is read once: named() loads each .glb once a process, and a ShipModel holds
 ## its surfaces' arrays and its verdict, so drawing it a hundred times parses it once.

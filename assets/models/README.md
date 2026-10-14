@@ -16,6 +16,12 @@ when it is wholly off the stretch being drawn. It never becomes a mesh instance 
 its own. Where it stands is still decided by the data and the fitting code (D6). The
 model is only its shape.
 
+A lamp's model is the exception: a room's lamp (`ShipLamp`) swings as a pendulum and
+its glass glows as it burns, so each lamp draws its kind's model as one mesh instance
+of its own under the lamp, every surface in the lamp's own material for its paint
+(`sconce_glass` its glass, `brass` its brass, a cargo lamp's `steel` its tin). Every
+lamp of a kind shares the one mesh.
+
 The fitting code asks for a model by name, `ShipModel.named("davit")`. The first ask
 in a process loads the `.glb`, gathers it, reads every surface's arrays and judges
 whether `model()` can paint it; every later ask, and every placement, reuses that.
@@ -42,6 +48,9 @@ A prop placed a hundred times is parsed once.
 | `berth` | `RoomDressing.slung_berth`, every cabin's and block of berths' (`LinerBerths`) | furniture | 234 |
 | `lifebelt` | `RoomDressing.lifebelt`, in passages and holds and on deckhouses (`ShipFittings`) | furniture | 192 |
 | `fire_buckets` | `RoomDressing.fire_buckets`, a rack over head height | furniture | 344 |
+| `pendant_lamp` | `ShipLamp`, a room's pendant, under its own lamp node | wall decor | 130 |
+| `cargo_lamp` | `ShipLamp`, a hold's cargo lamp, under its own lamp node | furniture | 292 |
+| `furnace_fire` | `ShipLamp`, a furnace's fire, under its own lamp node | furniture | 32 |
 | `break_door` | `ShipFittings._break_door`, in a break's face tall enough for it | furniture | 266 |
 | `deck_pipe_20`, `deck_pipe_13` | `ShipFittings._deck_pipe`, the hawse and spurling pipes' mouths, by radius (`DECK_PIPES`) | furniture | 288, 280 |
 | `stowed_crate_80`, `stowed_crate_70`, `stowed_crate_62` | `CargoHold.crate`, a tween deck's stowed crates, the largest that fits (`STOWED_CRATES`) | furniture | 278 each |
@@ -119,6 +128,13 @@ count as many times as it is placed. Each model belongs to a class with a ceilin
   - `fire_buckets`: on the wall's face under the rack's middle at `HEADROOM`, x along
     the wall, z out of it, turned by `RoomDressing.facing()` so its lettering is never
     mirrored; its box is `FIRE_BUCKETS`.
+  - `pendant_lamp`, `cargo_lamp`: where the lamp hangs from the ceiling, the pivot it
+    swings round, y up; only its swivel's ball rises over it. The globe's middle hangs
+    `ShipLamp.CORD` (a cargo lamp's `CARGO_CORD`) under it, `GLOBE_RADIUS` round, where
+    the lamp's light burns; a cargo lamp's shade is `CARGO_SHADE` round at its rim.
+  - `furnace_fire`: on the bulkhead's face at the furnace mouth's middle, z out of it;
+    `ShipLamp.MOUTH` across and up to its ragged crown, `MOUTH_PROUD` out, behind the
+    boiler front's grate bars. `ShipLamp` turns it to face the lamp's way.
   - `break_door`: on a break's face at the foot of its sill's middle, x along the
     face, z out of it; `ShipFittings.BREAK_DOOR` standing on a sill
     `BREAK_DOOR_SILL` tall, in its frame; its box `BREAK_DOOR_BOX`, no deeper than a

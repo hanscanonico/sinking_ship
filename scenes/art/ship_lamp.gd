@@ -27,6 +27,12 @@ enum Kind { PENDANT, CARGO, FIRE }
 const CORD := 0.3
 const CARGO_CORD := 0.5
 const GLOBE_RADIUS := 0.09
+## A cargo lamp's tin shade's radius at its rim.
+const CARGO_SHADE := 0.2
+## The modelled lamps (ShipModel, assets/models): a pendant, a cargo lamp and a fire.
+const PENDANT_MODEL := "pendant_lamp"
+const CARGO_MODEL := "cargo_lamp"
+const FIRE_MODEL := "furnace_fire"
 const RANGE := 4.6
 const ENERGY := 1.5
 ## A cargo lamp's light: how bright, and how fast it fades with distance.
@@ -165,29 +171,7 @@ func setup(
 	if kind == Kind.CARGO:
 		_hang_cargo(brass)
 		return
-	var cord := CylinderMesh.new()
-	cord.top_radius = 0.008
-	cord.bottom_radius = 0.008
-	cord.height = CORD - GLOBE_RADIUS
-	cord.radial_segments = 4
-	cord.rings = 1
-	cord.material = brass
-	_part(cord, -(CORD - GLOBE_RADIUS) * 0.5)
-	var cap := CylinderMesh.new()
-	cap.top_radius = 0.035
-	cap.bottom_radius = 0.075
-	cap.height = 0.06
-	cap.radial_segments = 10
-	cap.rings = 1
-	cap.material = brass
-	_part(cap, -CORD + GLOBE_RADIUS * 0.6)
-	var globe := SphereMesh.new()
-	globe.radius = GLOBE_RADIUS
-	globe.height = GLOBE_RADIUS * 2.0
-	globe.radial_segments = 12
-	globe.rings = 6
-	globe.material = glass
-	_part(globe, -CORD)
+	_draw(PENDANT_MODEL, {"brass": brass, "sconce_glass": glass})
 	_light = OmniLight3D.new()
 	_light.position = Vector3(0.0, -CORD - GLOBE_RADIUS, 0.0)
 	_light.light_color = ArtPalette.LAMP_LIGHT
@@ -203,45 +187,13 @@ func setup(
 ## A cargo lamp: a brass cord down to a tin shade over its globe and a wire cage
 ## round it, its light bright under it and soon fading.
 func _hang_cargo(brass: Material) -> void:
-	var cord := CylinderMesh.new()
-	cord.top_radius = 0.008
-	cord.bottom_radius = 0.008
-	cord.height = CARGO_CORD - GLOBE_RADIUS
-	cord.radial_segments = 4
-	cord.rings = 1
-	cord.material = brass
-	_part(cord, -(CARGO_CORD - GLOBE_RADIUS) * 0.5)
 	var tin := StandardMaterial3D.new()
 	tin.albedo_color = ArtPalette.LAMP_SHADE
 	tin.diffuse_mode = BaseMaterial3D.DIFFUSE_TOON
 	tin.specular_mode = BaseMaterial3D.SPECULAR_DISABLED
 	tin.cull_mode = BaseMaterial3D.CULL_DISABLED
 	fade_near(tin)
-	var shade := CylinderMesh.new()
-	shade.top_radius = 0.05
-	shade.bottom_radius = 0.2
-	shade.height = 0.12
-	shade.radial_segments = 14
-	shade.rings = 1
-	shade.cap_top = false
-	shade.cap_bottom = false
-	shade.material = tin
-	_part(shade, -CARGO_CORD + GLOBE_RADIUS * 0.4)
-	var globe := SphereMesh.new()
-	globe.radius = GLOBE_RADIUS
-	globe.height = GLOBE_RADIUS * 2.0
-	globe.radial_segments = 12
-	globe.rings = 6
-	globe.material = _glass
-	_part(globe, -CARGO_CORD)
-	var cage := CylinderMesh.new()
-	cage.top_radius = GLOBE_RADIUS + 0.015
-	cage.bottom_radius = GLOBE_RADIUS + 0.015
-	cage.height = 0.012
-	cage.radial_segments = 10
-	cage.rings = 1
-	cage.material = brass
-	_part(cage, -CARGO_CORD - GLOBE_RADIUS * 0.4)
+	_draw(CARGO_MODEL, {"brass": brass, "steel": tin, "sconce_glass": _glass})
 	_light = OmniLight3D.new()
 	_light.position = Vector3(0.0, -CARGO_CORD - GLOBE_RADIUS, 0.0)
 	_light.light_color = ArtPalette.LAMP_LIGHT
@@ -257,11 +209,8 @@ func _hang_cargo(brass: Material) -> void:
 ## leaves the wall behind it, and whatever stands beyond, dark.
 func _burn(facing: Vector3) -> void:
 	basis = Basis.looking_at(facing)
-	var mouth := BoxMesh.new()
-	mouth.size = Vector3(MOUTH.x, MOUTH.y, 0.01)
-	mouth.material = _glass
-	var part := _part(mouth, 0.0)
-	part.position.z = -MOUTH_PROUD
+	# The model stands out along +z; the lamp faces -z, so it is turned half round.
+	_draw(FIRE_MODEL, {"sconce_glass": _glass}).basis = Basis(Vector3.UP, PI)
 	_spot = SpotLight3D.new()
 	_spot.position = Vector3(0.0, 0.0, -MOUTH_PROUD - 0.05)
 	_spot.light_color = ArtPalette.FIRE_LIGHT
@@ -327,10 +276,16 @@ func _tint(now: int) -> void:
 	_glass.emission = ArtPalette.EMERGENCY_GLASS if emergency else ArtPalette.LAMP_GLASS
 
 
-func _part(mesh: PrimitiveMesh, drop: float) -> MeshInstance3D:
+## Draws the modelled lamp [param model] (ShipModel) under the lamp, so it swings with
+## it: one mesh, shared by every lamp of its kind, each surface drawn in the material
+## [param materials] gives its paint — the lamp's own glass, whose glow it sets as it
+## burns, and brass.
+func _draw(model: String, materials: Dictionary) -> MeshInstance3D:
 	var part := MeshInstance3D.new()
-	part.mesh = mesh
-	part.position.y = drop
+	part.mesh = ShipModel.named(model).mesh
+	for surface in part.mesh.get_surface_count():
+		var paint := part.mesh.surface_get_material(surface).resource_name
+		part.set_surface_override_material(surface, materials[paint])
 	part.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(part)
 	return part

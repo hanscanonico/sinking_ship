@@ -57,6 +57,9 @@ func _rows() -> Dictionary:
 		"berth": ["furniture", _fills_the_berth_s_length_and_depth_off_its_wall],
 		"lifebelt": ["furniture", _hangs_the_lifebelt_flat_on_its_wall],
 		"fire_buckets": ["furniture", _fills_the_fire_buckets_rack_off_its_wall],
+		"pendant_lamp": ["wall decor", _hangs_the_pendant_s_globe_from_its_swivel],
+		"cargo_lamp": ["furniture", _hangs_the_cargo_lamp_s_globe_under_its_shade],
+		"furnace_fire": ["furniture", _fills_the_furnace_s_mouth_behind_its_bars],
 		"break_door": ["furniture", _stands_the_break_door_in_its_frame_on_the_face],
 		"deck_pipe_13": ["furniture", _is_the_deck_pipe_made_for.bind(0.13, "deck_pipe_13")],
 		"deck_pipe_20": ["furniture", _is_the_deck_pipe_made_for.bind(0.2, "deck_pipe_20")],
@@ -352,6 +355,38 @@ func _fills_the_fire_buckets_rack_off_its_wall(box: AABB) -> void:
 	assert_almost_eq(box.end, wanted.end, Vector3.ONE * TOLERANCE, "fire buckets: high")
 	assert_gte(box.position.y, -0.001, "fire buckets: nothing under HEADROOM")
 	assert_gte(box.position.z, -0.001, "fire buckets: nothing in its wall")
+
+
+## A lamp swings round where it hangs (ShipLamp): nothing of it more than its swivel's
+## ball over that, its globe's foot [param drop] under it, [param reach] round it.
+func _hangs_a_lamp(box: AABB, drop: float, reach: float, lamp: String) -> void:
+	assert_between(box.end.y, 0.0, TOLERANCE, "%s: its swivel in the ceiling" % lamp)
+	assert_almost_eq(box.position.y, -drop, TOLERANCE, "%s: its globe's foot" % lamp)
+	assert_almost_eq(box.get_center() * Vector3(1, 0, 1), Vector3.ZERO, Vector3.ONE * 0.001, lamp)
+	for across: float in [box.size.x, box.size.z]:
+		assert_almost_eq(across * 0.5, reach, TOLERANCE, "%s: round its cord" % lamp)
+
+
+func _hangs_the_pendant_s_globe_from_its_swivel(box: AABB) -> void:
+	var drop := ShipLamp.CORD + ShipLamp.GLOBE_RADIUS
+	_hangs_a_lamp(box, drop, ShipLamp.GLOBE_RADIUS, "pendant lamp")
+
+
+func _hangs_the_cargo_lamp_s_globe_under_its_shade(box: AABB) -> void:
+	var drop := ShipLamp.CARGO_CORD + ShipLamp.GLOBE_RADIUS
+	_hangs_a_lamp(box, drop, ShipLamp.CARGO_SHADE, "cargo lamp")
+
+
+## The fire fills the furnace's mouth (ShipLamp.MOUTH) up to its ragged crown, standing
+## MOUTH_PROUD out, behind the boiler front's grate bars a centimetre further out.
+func _fills_the_furnace_s_mouth_behind_its_bars(box: AABB) -> void:
+	var half := ShipLamp.MOUTH * 0.5
+	assert_almost_eq(box.position.x, -half.x, TOLERANCE, "fire: across the mouth")
+	assert_almost_eq(box.end.x, half.x, TOLERANCE, "fire: across the mouth")
+	assert_almost_eq(box.position.y, -half.y, TOLERANCE, "fire: the mouth's foot")
+	assert_between(box.end.y, half.y * 0.5, half.y, "fire: its crown under the mouth's top")
+	assert_almost_eq(box.position.z, ShipLamp.MOUTH_PROUD, TOLERANCE, "fire: in its mouth")
+	assert_lte(box.end.z, ShipLamp.MOUTH_PROUD + 0.004, "fire: behind the grate bars")
 
 
 ## The break door: its box ShipFittings.BREAK_DOOR_BOX, on the face and no further
