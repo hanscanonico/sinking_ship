@@ -57,9 +57,9 @@ A prop placed a hundred times is parsed once.
 | `crosstree_15`, `crosstree_20`, `crosstree_60` | `DeckWorks.mast`, near each mast's head, the largest no bigger than the mast (`CROSSTREES`) | hero | 660, 660, 740 |
 | `masthead_light` | `DeckWorks.mast`, the steaming light on each mast's fore side | hero | 890 |
 | `mast_cleat` | `DeckWorks.mast`, either side of each mast over its foot | furniture | 198 |
-| `whistle` | `DeckWorks.funnel`, on each funnel's fore face | hero | 1228 |
-| `waste_pipe_head` | `DeckWorks.funnel`, the waste pipe's head over each funnel's top | furniture | 354 |
-| `pipe_clamp` | `DeckWorks.funnel`, up each funnel's pipes, `CLAMP_SPACING` apart | wall decor | 130 |
+| `whistle_90`, `whistle_330` | `DeckWorks.funnel`, on each funnel's fore face, the size made for it (`FUNNEL_FITTINGS`) | hero | 1228 each |
+| `waste_pipe_head_90`, `waste_pipe_head_330` | `DeckWorks.funnel`, the waste pipe's head over each funnel's top, the size made for it | furniture | 354 each |
+| `pipe_clamp_90`, `pipe_clamp_330` | `DeckWorks.funnel`, up each funnel's pipes, `CLAMP_SPACING` apart, the size made for it | wall decor | 130 each |
 | `iceberg_tabular` | `IcebergPlanner`, one berg a match, drawn by `Iceberg` | world | 764 |
 | `iceberg_drydock` | `IcebergPlanner`, one berg a match, drawn by `Iceberg` | world | 896 |
 | `iceberg_wedge` | `IcebergPlanner`, one berg a match, drawn by `Iceberg` | world | 596 |
@@ -169,16 +169,20 @@ count as many times as it is placed. Each model belongs to a class with a ceilin
     `MASTHEAD_LIGHT_BOX`.
   - `mast_cleat`: on the mast's face at the cleat's middle, `DeckWorks.CLEAT` over
     the mast's foot, z out of the face; one each side. Its box is `CLEAT_BOX`.
-  - `whistle`, `waste_pipe_head`, `pipe_clamp`: drawn into the funnel's own piece, so
-    a funnel that falls (`FunnelArt`) carries them. The pipes between are the code's,
-    `DeckWorks.FUNNEL_PIPE` round, their axes `FUNNEL_PIPE_OUT` out from the funnel's
-    side, running from its foot. The whistle's origin is on the funnel's fore face
-    where its steam pipe ends, `WHISTLE_AT` of the funnel's height up it; the waste
-    pipe head's on the pipe's axis at the funnel's top, the funnel toward +x, its
-    mouth `WASTE_PIPE_RISE` over the top and its stay meeting the rim
-    (`FUNNEL_RIM`); a clamp's on the funnel's face, the pipe along +x, turned half
-    round for the after face. Their boxes are `WHISTLE_BOX`, `WASTE_PIPE_HEAD_BOX`
-    and `PIPE_CLAMP_BOX`.
+  - `whistle_NN`, `waste_pipe_head_NN`, `pipe_clamp_NN`: drawn into the funnel's own
+    piece, so a funnel that falls (`FunnelArt`) carries them. Each is made for a
+    funnel NN hundredths of a metre round, one of `DeckWorks.FUNNEL_FITTINGS`, at its
+    `FUNNEL_FITTING_SCALE`; `RoomDressing.variant()` picks the largest no bigger than
+    the funnel. The pipes between are the code's, `FUNNEL_PIPE` round, their axes
+    `FUNNEL_PIPE_OUT` out from the funnel's side, both times the scale, running from
+    its foot. The whistle's origin is on the funnel's fore face where its steam pipe
+    ends, `WHISTLE_AT` of the funnel's height up it; the waste pipe head's on the
+    pipe's axis at the funnel's top, the funnel toward +x, its mouth
+    `WASTE_PIPE_RISE` times the scale over the top and its stay meeting the rim
+    (`FUNNEL_RIM`, the same on every funnel); a clamp's on the funnel's face, the pipe
+    along +x, turned half round for the after face. The whistle's and the clamp's
+    boxes are `WHISTLE_BOX` and `PIPE_CLAMP_BOX` times the scale. The three share
+    `tools/funnel_fittings.py`.
 - **Paints.** One material per paint, named exactly after a `ShipPaints` entry
   (`white`, `teak`, `canvas`, `rope`, `dark`, `steel`, `brass`…). The material's
   name is all the game reads: the colour comes from the paint and the ship shader's

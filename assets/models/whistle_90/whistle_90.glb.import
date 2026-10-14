@@ -3,13 +3,13 @@
 importer="scene"
 importer_version=1
 type="PackedScene"
-uid="uid://06tn53fhjnvl"
-path="res://.godot/imported/waste_pipe_head.glb-cbbc4b71c4f3c1f7cecba8cb8bd6605f.scn"
+uid="uid://ygwvirrmq0qc"
+path="res://.godot/imported/whistle_90.glb-80c2dc3620c5c5c669d99a69febe5dd2.scn"
 
 [deps]
 
-source_file="res://assets/models/waste_pipe_head/waste_pipe_head.glb"
-dest_files=["res://.godot/imported/waste_pipe_head.glb-cbbc4b71c4f3c1f7cecba8cb8bd6605f.scn"]
+source_file="res://assets/models/whistle_90/whistle_90.glb"
+dest_files=["res://.godot/imported/whistle_90.glb-80c2dc3620c5c5c669d99a69febe5dd2.scn"]
 
 [params]
 

@@ -3,13 +3,13 @@
 importer="scene"
 importer_version=1
 type="PackedScene"
-uid="uid://buox20cuug2vb"
-path="res://.godot/imported/whistle.glb-3b1d791591ffd59cbc563b416e3afaed.scn"
+uid="uid://0o7hyxqvweq3"
+path="res://.godot/imported/whistle_330.glb-620cf356c476f4ae54eab8082e5b9dfb.scn"
 
 [deps]
 
-source_file="res://assets/models/whistle/whistle.glb"
-dest_files=["res://.godot/imported/whistle.glb-3b1d791591ffd59cbc563b416e3afaed.scn"]
+source_file="res://assets/models/whistle_330/whistle_330.glb"
+dest_files=["res://.godot/imported/whistle_330.glb-620cf356c476f4ae54eab8082e5b9dfb.scn"]
 
 [params]
 

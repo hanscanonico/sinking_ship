@@ -11,6 +11,13 @@ const FUNNEL_SEGMENTS := 20
 const MAST_SEGMENTS := 10
 ## The funnel's black rim: how far proud of its side and how deep under its top.
 const FUNNEL_RIM := Vector2(0.04, 0.12)
+## The sizes a funnel's fittings are made in — its whistle, its waste pipe's head and
+## its pipe clamps, each named with its size after it (whistle_330) — by the radius of
+## funnel each is made for, and the scale each is made at. RoomDressing.variant()
+## picks the largest no bigger than the funnel. The measures below are at scale 1, but
+## FUNNEL_RIM, which is the same on every funnel.
+const FUNNEL_FITTINGS := {0.9: "90", 3.3: "330"}
+const FUNNEL_FITTING_SCALE := {"90": 1.0, "330": 2.0}
 ## The pipes up a funnel's faces, the whistle's steam pipe up its fore face and the
 ## waste steam pipe up its after face: their radius, their axes' distance out from the
 ## funnel's side, and their sides in segments round.
@@ -23,10 +30,10 @@ const WHISTLE_MODEL := "whistle"
 const WHISTLE_AT := 0.7
 const WHISTLE_BOX := AABB(Vector3(-0.01, -0.35, -0.2), Vector3(0.245, 1.03, 0.5))
 ## The waste pipe's head (WASTE_PIPE_HEAD_MODEL): its origin on the pipe's axis at the
-## funnel's top, the funnel toward +x, its mouth WASTE_PIPE_RISE over the top; its box.
+## funnel's top, the funnel toward +x, its mouth WASTE_PIPE_RISE over the top and its
+## stay meeting the rim.
 const WASTE_PIPE_HEAD_MODEL := "waste_pipe_head"
 const WASTE_PIPE_RISE := 0.5
-const WASTE_PIPE_HEAD_BOX := AABB(Vector3(-0.1, -0.1, -0.1), Vector3(0.22, 0.6, 0.2))
 ## A clamp holding a pipe to the funnel (PIPE_CLAMP_MODEL), its origin on the funnel's
 ## face, the pipe along +x; one every CLAMP_SPACING up each pipe; its box.
 const PIPE_CLAMP_MODEL := "pipe_clamp"
@@ -135,23 +142,28 @@ static func funnel(
 
 ## The pipes up [param blocker]'s faces from its foot, held by clamps: up its fore face
 ## the steam pipe to the whistle (WHISTLE_MODEL), up its after face the waste steam pipe
-## to its head over the top (WASTE_PIPE_HEAD_MODEL).
+## to its head over the top (WASTE_PIPE_HEAD_MODEL); all in the size made for the
+## funnel (FUNNEL_FITTINGS).
 static func _funnel_pipes(mesh: ShipMesh, blocker: ShipBlocker, top: float) -> void:
+	var size := RoomDressing.variant(FUNNEL_FITTINGS, blocker.radius)
+	var scale: float = FUNNEL_FITTING_SCALE[size]
+	var out := FUNNEL_PIPE_OUT * scale
+	var radius := FUNNEL_PIPE * scale
 	var centre := blocker.centre
 	var fore := centre.x + blocker.radius
 	var aft := centre.x - blocker.radius
 	var whistle := lerpf(blocker.bottom, top, WHISTLE_AT)
-	var pipe := Vector2(fore + FUNNEL_PIPE_OUT, centre.y)
-	mesh.cylinder(
-		pipe, FUNNEL_PIPE, blocker.bottom, whistle, PIPE_SEGMENTS, ShipPaints.steel, false
-	)
-	pipe = Vector2(aft - FUNNEL_PIPE_OUT, centre.y)
-	mesh.cylinder(pipe, FUNNEL_PIPE, blocker.bottom, top, PIPE_SEGMENTS, ShipPaints.funnel, false)
+	var pipe := Vector2(fore + out, centre.y)
+	mesh.cylinder(pipe, radius, blocker.bottom, whistle, PIPE_SEGMENTS, ShipPaints.steel, false)
+	pipe = Vector2(aft - out, centre.y)
+	mesh.cylinder(pipe, radius, blocker.bottom, top, PIPE_SEGMENTS, ShipPaints.funnel, false)
 	var at := Vector3(fore, whistle, centre.y)
-	mesh.model(ShipModel.named(WHISTLE_MODEL), Transform3D(Basis.IDENTITY, at))
+	var model := ShipModel.named("%s_%s" % [WHISTLE_MODEL, size])
+	mesh.model(model, Transform3D(Basis.IDENTITY, at))
 	at = Vector3(pipe.x, top, pipe.y)
-	mesh.model(ShipModel.named(WASTE_PIPE_HEAD_MODEL), Transform3D(Basis.IDENTITY, at))
-	var clamp := ShipModel.named(PIPE_CLAMP_MODEL)
+	model = ShipModel.named("%s_%s" % [WASTE_PIPE_HEAD_MODEL, size])
+	mesh.model(model, Transform3D(Basis.IDENTITY, at))
+	var clamp := ShipModel.named("%s_%s" % [PIPE_CLAMP_MODEL, size])
 	var after := Basis(Vector3.UP, PI)
 	var height := blocker.bottom + CLAMP_SPACING * 0.5
 	while height < top - FUNNEL_RIM.y - CLAMP_SPACING * 0.25:

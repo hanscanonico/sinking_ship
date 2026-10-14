@@ -74,9 +74,13 @@ func _rows() -> Dictionary:
 		"crosstree_60": ["hero", _is_the_crosstree_made_for.bind(0.6, "crosstree_60")],
 		"masthead_light": ["hero", _stands_the_masthead_light_off_the_mast],
 		"mast_cleat": ["furniture", _fills_its_box.bind(DeckWorks.CLEAT_BOX, "mast cleat")],
-		"whistle": ["hero", _stands_the_whistle_on_its_steam_pipe],
-		"waste_pipe_head": ["furniture", _caps_the_waste_pipe_over_the_funnel_s_top],
-		"pipe_clamp": ["wall decor", _holds_a_pipe_to_the_funnel],
+		"whistle_90": ["hero", _stands_the_whistle_on_its_steam_pipe.bind("90")],
+		"waste_pipe_head_90": ["furniture", _caps_the_waste_pipe_over_the_funnel_s_top.bind("90")],
+		"pipe_clamp_90": ["wall decor", _holds_a_pipe_to_the_funnel.bind("90")],
+		"whistle_330": ["hero", _stands_the_whistle_on_its_steam_pipe.bind("330")],
+		"waste_pipe_head_330":
+		["furniture", _caps_the_waste_pipe_over_the_funnel_s_top.bind("330")],
+		"pipe_clamp_330": ["wall decor", _holds_a_pipe_to_the_funnel.bind("330")],
 		"iceberg_tabular": [WORLD, _stands_to_the_iceberg_planner_s_measure],
 		"iceberg_drydock": [WORLD, _stands_to_the_iceberg_planner_s_measure],
 		"iceberg_wedge": [WORLD, _stands_to_the_iceberg_planner_s_measure],
@@ -276,32 +280,51 @@ func _stands_the_masthead_light_off_the_mast(box: AABB) -> void:
 	)
 
 
-## The whistle: its plate on the funnel's face, standing on its steam pipe's end.
-func _stands_the_whistle_on_its_steam_pipe(box: AABB) -> void:
-	_fills_its_box(box, DeckWorks.WHISTLE_BOX, "whistle")
+## A funnel fitting's scale for [param size] (DeckWorks.FUNNEL_FITTINGS), and that
+## FUNNEL_FITTINGS names the size.
+func _funnel_scale(size: String) -> float:
+	assert_has(DeckWorks.FUNNEL_FITTINGS.values(), size, "FUNNEL_FITTINGS names %s" % size)
+	return DeckWorks.FUNNEL_FITTING_SCALE[size]
+
+
+## A box [param scale] times [param box], about the origin.
+func _scaled(box: AABB, scale: float) -> AABB:
+	return AABB(box.position * scale, box.size * scale)
+
+
+## The whistle of [param size]: its plate on the funnel's face, standing on its steam
+## pipe's end.
+func _stands_the_whistle_on_its_steam_pipe(box: AABB, size: String) -> void:
+	var scale := _funnel_scale(size)
+	_fills_its_box(box, _scaled(DeckWorks.WHISTLE_BOX, scale), "whistle_" + size)
 	assert_almost_eq(box.position.x, 0.0, TOLERANCE, "whistle: on the funnel's face")
-	assert_gt(
-		box.end.x, DeckWorks.FUNNEL_PIPE_OUT + DeckWorks.FUNNEL_PIPE, "whistle: over its pipe"
-	)
+	var pipe := (DeckWorks.FUNNEL_PIPE_OUT + DeckWorks.FUNNEL_PIPE) * scale
+	assert_gt(box.end.x, pipe, "whistle: over its pipe")
 
 
-## The waste pipe's head: on the pipe's end at the funnel's top, its mouth
-## WASTE_PIPE_RISE over it, its stay no further than the funnel's rim.
-func _caps_the_waste_pipe_over_the_funnel_s_top(box: AABB) -> void:
-	_fills_its_box(box, DeckWorks.WASTE_PIPE_HEAD_BOX, "waste pipe head")
-	assert_almost_eq(box.end.y, DeckWorks.WASTE_PIPE_RISE, PART, "waste pipe head: its mouth")
-	var rim := DeckWorks.FUNNEL_PIPE_OUT - DeckWorks.FUNNEL_RIM.x
-	assert_almost_eq(box.end.x, rim, PART, "waste pipe head: its stay meets the rim")
-	assert_gte(-box.position.y, 0.0, "waste pipe head: its stay under the top")
-	assert_lte(-box.position.y, DeckWorks.FUNNEL_RIM.y, "waste pipe head: on the rim")
+## The waste pipe's head of [param size]: on the pipe's end at the funnel's top, its
+## mouth WASTE_PIPE_RISE over it, its stay reaching the funnel's rim and no further,
+## within the rim's depth.
+func _caps_the_waste_pipe_over_the_funnel_s_top(box: AABB, size: String) -> void:
+	var scale := _funnel_scale(size)
+	var name := "waste_pipe_head_" + size
+	assert_almost_eq(box.end.y, DeckWorks.WASTE_PIPE_RISE * scale, PART, name + ": its mouth")
+	var rim := DeckWorks.FUNNEL_PIPE_OUT * scale - DeckWorks.FUNNEL_RIM.x
+	assert_almost_eq(box.end.x, rim, PART, name + ": its stay meets the rim")
+	assert_gt(-box.position.y, 0.0, name + ": its stay under the top")
+	assert_lte(-box.position.y, DeckWorks.FUNNEL_RIM.y, name + ": on the rim")
+	assert_almost_eq(box.get_center().z, 0.0, PART, name + ": square on its pipe")
+	assert_lte(-box.position.x, DeckWorks.WASTE_PIPE_RISE * scale, name + ": its mouth's round")
 
 
-## A pipe clamp: its foot on the funnel's face, its strap round the pipe.
-func _holds_a_pipe_to_the_funnel(box: AABB) -> void:
-	_fills_its_box(box, DeckWorks.PIPE_CLAMP_BOX, "pipe clamp")
-	assert_almost_eq(box.position.x, 0.0, TOLERANCE, "pipe clamp: on the funnel's face")
-	var strap := DeckWorks.FUNNEL_PIPE_OUT + DeckWorks.FUNNEL_PIPE
-	assert_almost_eq(box.end.x, strap, TOLERANCE, "pipe clamp: round its pipe")
+## A pipe clamp of [param size]: its foot on the funnel's face, its strap round the
+## pipe.
+func _holds_a_pipe_to_the_funnel(box: AABB, size: String) -> void:
+	var scale := _funnel_scale(size)
+	_fills_its_box(box, _scaled(DeckWorks.PIPE_CLAMP_BOX, scale), "pipe_clamp_" + size)
+	assert_almost_eq(box.position.x, -0.01 * scale, TOLERANCE, "pipe clamp: on the funnel's face")
+	var strap := (DeckWorks.FUNNEL_PIPE_OUT + DeckWorks.FUNNEL_PIPE) * scale
+	assert_almost_eq(box.end.x, strap, TOLERANCE * scale, "pipe clamp: round its pipe")
 
 
 func _is_the_gauge_made_for(box: AABB, radius: float, model: String) -> void:

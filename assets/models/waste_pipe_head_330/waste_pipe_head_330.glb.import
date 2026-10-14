@@ -3,13 +3,13 @@
 importer="scene"
 importer_version=1
 type="PackedScene"
-uid="uid://du6taa0qfiknh"
-path="res://.godot/imported/pipe_clamp.glb-3492e45b17a799b485495800f6fc4e50.scn"
+uid="uid://b6spo1huvj5u8"
+path="res://.godot/imported/waste_pipe_head_330.glb-fe27f14abd65b60e1ada76d4e66573ee.scn"
 
 [deps]
 
-source_file="res://assets/models/pipe_clamp/pipe_clamp.glb"
-dest_files=["res://.godot/imported/pipe_clamp.glb-3492e45b17a799b485495800f6fc4e50.scn"]
+source_file="res://assets/models/waste_pipe_head_330/waste_pipe_head_330.glb"
+dest_files=["res://.godot/imported/waste_pipe_head_330.glb-fe27f14abd65b60e1ada76d4e66573ee.scn"]
 
 [params]
 
