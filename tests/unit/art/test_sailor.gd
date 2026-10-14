@@ -12,6 +12,11 @@ const MATCH_TRIANGLES := SEAT_TRIANGLES * SEATS
 ## The crown the clothes shader paints the face under, in model units.
 const CROWN := 1.83
 const NEAR := 0.01
+## Where every BrawlerHat sits, in the head bone's space: its band starts this far up
+## the head, and the narrowest band — the bare head's hair, the topper's — is this
+## far across from the middle, in model units.
+const HAT_BAND := 0.165
+const HAT_HALF_WIDTH := 0.092
 
 
 func _model() -> Node3D:
@@ -45,6 +50,18 @@ func test_it_stands_from_the_soles_to_the_crown() -> void:
 	var box := (skeleton.get_node(Brawler.BODY) as MeshInstance3D).get_aabb()
 	assert_almost_eq(box.position.y, 0.0, NEAR, "the soles on the deck")
 	assert_almost_eq(box.end.y, CROWN, NEAR, "the crown")
+
+
+func test_the_head_fits_under_every_hat() -> void:
+	var skeleton: Skeleton3D = _model().get_node("Rig/Skeleton3D")
+	var head := skeleton.get_bone_global_rest(skeleton.find_bone(Brawler.HEAD_BONE)).origin
+	var body: MeshInstance3D = skeleton.get_node(Brawler.BODY)
+	var widest := 0.0
+	for point: Vector3 in body.mesh.surface_get_arrays(0)[Mesh.ARRAY_VERTEX]:
+		if point.y >= head.y + HAT_BAND:
+			widest = maxf(widest, absf(point.x - head.x))
+	assert_gt(widest, 0.0, "the head reaches the hat band")
+	assert_lte(widest, HAT_HALF_WIDTH, "the head under the hat band, across")
 
 
 func test_every_bone_a_pose_names_is_the_rigs_own() -> void:
