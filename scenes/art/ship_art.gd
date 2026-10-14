@@ -81,8 +81,10 @@ const WRECK_TILT := 0.25
 ## A crate is drawn a square whose half-side is this share of its circle's radius:
 ## its corners stand a little proud of the circle, its sides a little inside it.
 const CRATE_SIDE := 0.85
-## The battens round a crate's foot and its lid: how tall, and how proud.
-const CRATE_BATTEN := 0.08
+## A crate's model (ShipModel.named), the middle of its underside at its origin, and
+## how far its battens stand proud of the square: every crate of the cargo is the one
+## size it is modelled at.
+const CRATE_MODEL := "crate"
 const CRATE_PROUD := 0.015
 ## The finishes ship.gdshader paints; the glass has its own.
 const PAINTS: Array[int] = [
@@ -426,9 +428,10 @@ func _light_crate(index: int) -> void:
 		(_crate_paints[index][finish] as ShaderMaterial).set_shader_parameter("indoors", indoors)
 
 
-## [param prop] as a crate: planked sides and lid in the crate paint, a batten round
-## its foot and its lid, under a node of its own at its underside — built outdoors,
-## where the cargo stands, in paints of its own that _light_crate() takes indoors.
+## [param prop] as a crate, its model (CRATE_MODEL) — planked sides and lid, battens
+## round its foot and its lid, posts and braces, stencils and lashing — under a node of
+## its own at its underside: built outdoors, where the cargo stands, in paints of its
+## own that _light_crate() takes indoors.
 func _crate(prop: ShipProp, materials: Dictionary) -> Node3D:
 	var node := Node3D.new()
 	node.name = "Crate%d" % _crates.size()
@@ -438,12 +441,7 @@ func _crate(prop: ShipProp, materials: Dictionary) -> Node3D:
 		PackedFloat32Array(), PackedFloat32Array(), PackedFloat32Array()
 	]
 	var mesh := ShipMesh.new(func(_point: Vector3) -> bool: return true, no_rooms)
-	var half := prop.radius * CRATE_SIDE
-	var box := Rect2(-half, -half, half * 2.0, half * 2.0)
-	mesh.box(box, 0.0, prop.height, ShipPaints.crate, ShipMesh.SIDES | ShipMesh.TOP)
-	for band: float in [0.0, prop.height - CRATE_BATTEN]:
-		mesh.box(box.grow(CRATE_PROUD), band, band + CRATE_BATTEN, ShipPaints.frame, ShipMesh.SIDES)
-	_crate_marks(mesh, half, prop.height)
+	mesh.model(ShipModel.named(CRATE_MODEL), Transform3D.IDENTITY)
 	var paints := _own_paints(materials)
 	mesh.commit(node, paints)
 	# Off the outdoor layer, so a lamp reaches it once it slides into a room; the
@@ -452,39 +450,6 @@ func _crate(prop: ShipProp, materials: Dictionary) -> Node3D:
 		(part as MeshInstance3D).layers = 1
 	_crate_paints.append(paints)
 	return node
-
-
-## A crate's slats, stencils and lashing, none further out than its battens: two
-## slats up each side between them, a stencilled mark on two sides, and a rope
-## lashed round it and over its lid, [param half] its half side, [param height] tall.
-func _crate_marks(mesh: ShipMesh, half: float, height: float) -> void:
-	var low := CRATE_BATTEN
-	var high := height - CRATE_BATTEN
-	for side in 4:
-		var normal := [Vector3.RIGHT, Vector3.BACK, Vector3.LEFT, Vector3.FORWARD][side] as Vector3
-		var right := normal.cross(Vector3.UP)
-		var face := normal * half
-		for slat: float in [-0.45, 0.45]:
-			var middle := face + right * half * slat + Vector3.UP * (low + high) * 0.5
-			var place := Transform3D(
-				Basis(right, Vector3.UP, normal), middle + normal * CRATE_PROUD * 0.5
-			)
-			mesh.turned_box(place, Vector3(0.07, high - low, CRATE_PROUD), ShipPaints.frame, 0)
-		if side % 2 == 1:
-			var mark := face + normal * 0.002 + Vector3.UP * height * 0.5 - right * half * 0.05
-			RoomDressing.panel(
-				mesh, mark, right, Vector2(half * 0.3, 0.06), normal, ShipPaints.stencil, 0
-			)
-			var line := mark - Vector3.UP * 0.11
-			RoomDressing.panel(
-				mesh, line, right, Vector2(half * 0.2, 0.015), normal, ShipPaints.stencil, 0
-			)
-	var rope := CRATE_PROUD * 1.4
-	for along_x: bool in [true, false]:
-		var lash := Rect2(-half - rope, -0.02, (half + rope) * 2.0, 0.04)
-		if not along_x:
-			lash = Rect2(-0.02, -half - rope, 0.04, (half + rope) * 2.0)
-		mesh.box(lash, 0.0, height + 0.012, ShipPaints.rope, ShipMesh.SIDES | ShipMesh.TOP)
 
 
 ## The faces of the ship, gathered for one commit.

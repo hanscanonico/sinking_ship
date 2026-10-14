@@ -30,6 +30,9 @@ A prop placed a hundred times is parsed once.
 | `bell` | `ShipFittings._bell`, on the foremast | hero | 620 |
 | `gauge_small`, `gauge_large` | `RoomDressing.gauge()`, by radius (`GAUGES`) | furniture | 113 |
 | `handwheel_small`, `handwheel_large` | `RoomDressing.wheel()`, by radius (`HANDWHEELS`) | furniture | 166, 190 |
+| `chandelier` | `LinerPublic._chandelier`, one per pendant of a landing and the lounge | hero | 984 |
+| `boiler_100`, `boiler_85`, `boiler_65`, `boiler_50` | `EngineRoom._boiler`, the largest front its bulkhead has room for | hero | 1090, 1066, 640, 592 |
+| `crate` | `ShipArt._crate`, each under its own node | furniture | 334 |
 
 ## Triangle budgets
 
@@ -68,6 +71,17 @@ count as many times as it is placed. Each model belongs to a class with a ceilin
     `GAUGE_BACK` behind it, a handwheel's spindle `HANDWHEEL_SPINDLE`. Each variant is
     built at its own radius (`GAUGES`, `HANDWHEELS`); `RoomDressing.variant()` picks the
     largest no bigger than the radius asked for, never a scaled copy.
+  - `chandelier`: its hub, where the pendant's globe hangs, its corona
+    `LinerPublic.CHANDELIER` round; nothing of it more than `CHANDELIER_RISE` over its
+    hub or `CHANDELIER_DEPTH` under it.
+  - `boiler_NN`: the bulkhead's face at the floor under the front's middle, +Z out into
+    the room; its front's radius NN hundredths of a metre, one of
+    `EngineRoom.BOILER_FRONTS`, its middle `BOILER_FOOT` + radius up. Under head height
+    nothing stands more than art-lint's 0.12 m out from the face. The four sizes share
+    `tools/boiler_front.py`.
+  - `crate`: the middle of its underside, its body `ShipArt.CRATE_SIDE` of the cargo's
+    0.45 m radius each way and 0.8 m tall, its battens `CRATE_PROUD` proud. Every crate
+    of every ship is that size.
 - **Paints.** One material per paint, named exactly after a `ShipPaints` entry
   (`white`, `teak`, `canvas`, `rope`, `dark`, `steel`, `brass`…). The material's
   name is all the game reads: the colour comes from the paint and the ship shader's
@@ -100,6 +114,10 @@ Godot's axes and its paints, ink and sharp edges set as above; the shared helper
 `tools/model_kit.py`.
 Every model so far is built so; the pilots' scripts rebuild `.blend`s whose export is
 byte for byte the committed `.glb`.
+(`Part`, the paints' preview colours, the axis swap) are in `tools/model_kit.py`.
+Every model so far is built so, and their scripts rebuild `.blend`s whose export is
+byte for byte the committed `.glb`. Turned, boxed and swept shapes are in
+`tools/model_shapes.py`.
 
     make model-sources              # every NAME.py to its NAME.blend, Blender headless
     make model-sources MODEL=davit  # one

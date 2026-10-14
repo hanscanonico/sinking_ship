@@ -14,6 +14,12 @@ const BOILER_RADIUS := 1.0
 ## The least a boiler's front's radius is drawn, in metres: under a stokehold's gallery
 ## (#74) the deckhead leaves little more.
 const BOILER_LEAST := 0.5
+## The boiler fronts modelled, largest first, [radius, model]: a boiler is drawn the
+## largest one its room has space for, never a model scaled. BOILER_RADIUS heads it and
+## BOILER_LEAST ends it.
+const BOILER_FRONTS: Array[Array] = [
+	[1.0, "boiler_100"], [0.85, "boiler_85"], [0.65, "boiler_65"], [0.5, "boiler_50"]
+]
 const BOILER_FOOT := 0.2
 const FURNACE_HEIGHT := 0.62
 const STEAM_PIPE := 0.07
@@ -338,8 +344,8 @@ func _boilers(room: ShipRoom) -> Array[Array]:
 		var at := wall.at(wall.middle(), 0.0)
 		var height := _space.ceiling(room, at.x, at.z) - room.floor_height
 		height -= ShipArt.PLANK + ShipArt.BEAM_DEPTH
-		var radius := minf(BOILER_RADIUS, minf(wall.length() - 0.2, height - 0.3) * 0.5)
-		if radius < BOILER_LEAST:
+		var radius := front_for(minf(wall.length() - 0.2, height - 0.3) * 0.5)
+		if is_nan(radius):
 			continue
 		# As many side by side as the stretch holds at their full breadth: a stokehold's
 		# bulkhead, unbroken by a door, holds two (#74).
@@ -349,57 +355,27 @@ func _boilers(room: ShipRoom) -> Array[Array]:
 	return found
 
 
-## A Scotch boiler's front, flat in its bulkhead: a black riveted shell ringed in
-## steel, its furnace's door frame and grate bars round the fire's mouth
-## (ShipLamp), an ashpit under it, two water gauge glasses, a pressure gauge, and the
-## steam stop valve on top.
+## The largest modelled boiler front's radius (BOILER_FRONTS) no more than
+## [param room_for]; NAN when even the least is too large.
+static func front_for(room_for: float) -> float:
+	for front: Array in BOILER_FRONTS:
+		if (front[0] as float) <= room_for + 0.0001:
+			return front[0] as float
+	return NAN
+
+
+## A Scotch boiler's front, flat in its bulkhead, the model of its radius
+## (BOILER_FRONTS): a black riveted shell ringed in steel, its furnaces — the middle one
+## open round the fire's mouth (ShipLamp) behind its grate bars, a front of three
+## furnaces' breadth shut doors either side — ashpits under them, stays across it, two
+## water gauge glasses, a pressure gauge, and the steam stop valve on top of a front
+## that stands it over head height.
 func _boiler(mesh: ShipMesh, boiler: Array) -> void:
 	var wall: RoomDressing.Wall = boiler[0]
-	var along: float = boiler[1]
 	var radius: float = boiler[2]
-	var normal := wall.normal
-	var right := wall.right
-	var centre := wall.at(along, BOILER_FOOT + radius)
-	RoomDressing.disc(
-		mesh, centre + normal * 0.03, normal, radius, ShipPaints.boiler, 20, wall.floor
-	)
-	var ring := centre + normal * 0.034
-	RoomDressing.ring(mesh, ring, normal, radius - 0.05, radius + 0.015, ShipPaints.steel, 20)
-	var furnace := wall.at(along, FURNACE_HEIGHT)
-	var mouth := ShipLamp.MOUTH * 0.5
-	var surround := mouth + Vector2(0.14, 0.1)
-	RoomDressing.panel(mesh, furnace + normal * 0.035, right, surround, normal, ShipPaints.dark)
-	var frame := mouth + Vector2.ONE * 0.04
-	for bar: Rect2 in [
-		Rect2(-frame.x, mouth.y, frame.x * 2.0, 0.04),
-		Rect2(-frame.x, -frame.y, frame.x * 2.0, 0.04),
-		Rect2(-frame.x, -mouth.y, 0.04, mouth.y * 2.0),
-		Rect2(mouth.x, -mouth.y, 0.04, mouth.y * 2.0),
-	]:
-		var middle := furnace + right * bar.get_center().x + Vector3.UP * bar.get_center().y
-		RoomDressing.panel(
-			mesh, middle + normal * 0.06, right, bar.size * 0.5, normal, ShipPaints.bright_steel
-		)
-	for index in 4:
-		var grate := furnace + right * mouth.x * (index - 1.5) * 0.5 + normal * 0.055
-		RoomDressing.panel(mesh, grate, right, Vector2(0.012, mouth.y), normal, ShipPaints.dark, 0)
-	var ashpit := wall.at(along, FURNACE_HEIGHT - mouth.y - 0.2, 0.04)
-	RoomDressing.panel(mesh, ashpit, right, Vector2(mouth.x, 0.06), normal, ShipPaints.dark)
-	for side: float in [-1.0, 1.0]:
-		var glass := wall.at(along + side * radius * 0.6, BOILER_FOOT + radius * 1.1, 0.06)
-		var tube := Rect2(Vector2(glass.x, glass.z) - Vector2.ONE * 0.018, Vector2.ONE * 0.036)
-		RoomDressing.block(mesh, tube, glass.y, glass.y + 0.4, ShipPaints.bright_steel)
-		for end: float in [glass.y - 0.03, glass.y + 0.4]:
-			RoomDressing.block(mesh, tube.grow(0.015), end, end + 0.03, ShipPaints.brass)
-	var top := BOILER_FOOT + radius * 2.0
-	RoomDressing.gauge(mesh, wall.at(along, top - 0.28, 0.04), normal, 0.11)
-	# A boiler squeezed under a gallery (#74) keeps its stop valve behind its bulkhead,
-	# out of the way of a head under it.
-	if top < RoomDressing.HEADROOM:
-		return
-	var valve := wall.at(along, top + 0.04, 0.16)
-	var body := Rect2(Vector2(valve.x, valve.z) - Vector2.ONE * 0.08, Vector2.ONE * 0.16)
-	RoomDressing.block(mesh, body, valve.y - 0.1, valve.y + 0.05, ShipPaints.brass)
-	RoomDressing.wheel(
-		mesh, valve + Vector3.UP * 0.1, Vector3.UP, 0.11, 0.012, 4, ShipPaints.bright_steel
-	)
+	var model := ""
+	for front: Array in BOILER_FRONTS:
+		if is_equal_approx(front[0] as float, radius):
+			model = front[1] as String
+	var turn := Basis(Vector3.UP.cross(wall.normal), Vector3.UP, wall.normal)
+	mesh.model(ShipModel.named(model), Transform3D(turn, wall.at(boiler[1], 0.0)))

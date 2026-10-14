@@ -29,6 +29,12 @@ PAINTS = {
     "gauge": "efe8d6",
     "chart": "e3d8b8",
     "upholstery": "7a2e2a",
+    "gilt": "c9a548",
+    "crystal": "e8f0f4",
+    "sconce_glass": "ffe6b0",
+    "boiler": "34383a",
+    "crate": "9c7a4c",
+    "stencil": "3b2d22",
 }
 
 

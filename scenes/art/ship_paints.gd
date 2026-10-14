@@ -84,6 +84,9 @@ static var fire_bucket := ShipMesh.Paint.new(FINISH.PLAIN, ArtPalette.FIRE_BUCKE
 static var mirror := ShipMesh.Paint.new(FINISH.PLAIN, ArtPalette.MIRROR)
 static var chart := ShipMesh.Paint.new(FINISH.PLAIN, ArtPalette.CHART)
 static var leather := ShipMesh.Paint.new(FINISH.PLAIN, ArtPalette.LEATHER)
+static var gilt := ShipMesh.Paint.new(FINISH.PLAIN, ArtPalette.GILT)
+static var crystal := ShipMesh.Paint.new(FINISH.PLAIN, ArtPalette.CRYSTAL)
+static var sconce_glass := ShipMesh.Paint.new(FINISH.PLAIN, ArtPalette.SCONCE_GLASS)
 ## Glass seen from inside a room, and from outside it.
 static var glass_in := ShipMesh.Paint.new(FINISH.GLASS_IN, Color.WHITE)
 static var glass_out := ShipMesh.Paint.new(FINISH.GLASS_OUT, Color.WHITE)

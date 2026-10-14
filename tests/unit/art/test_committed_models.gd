@@ -16,6 +16,8 @@ const PART := 0.006
 ## fifty and more, furniture by the ten to a hundred, a hero prop by the one to
 ## twenty; the lifeboat is the pilot's, grandfathered.
 const BUDGETS := {"wall decor": 150, "furniture": 400, "hero": 1500, "lifeboat": 2928}
+## How far from its wall a furnishing may stand under a body's height (art-lint).
+const FurnishingCheck := preload("res://tools/furnishing_check.gd")
 
 
 ## Every committed model: its budget class and the check of its box (a method taking
@@ -31,6 +33,12 @@ func _rows() -> Dictionary:
 		"gauge_large": ["furniture", _is_the_gauge_made_for.bind(0.11, "gauge_large")],
 		"handwheel_small": ["furniture", _is_the_handwheel_made_for.bind(0.11, "handwheel_small")],
 		"handwheel_large": ["furniture", _is_the_handwheel_made_for.bind(0.15, "handwheel_large")],
+		"chandelier": ["hero", _hangs_round_its_hub_within_its_rise_and_depth],
+		"boiler_100": ["hero", _stands_a_boiler_front_in_its_bulkhead.bind("boiler_100")],
+		"boiler_85": ["hero", _stands_a_boiler_front_in_its_bulkhead.bind("boiler_85")],
+		"boiler_65": ["hero", _stands_a_boiler_front_in_its_bulkhead.bind("boiler_65")],
+		"boiler_50": ["hero", _stands_a_boiler_front_in_its_bulkhead.bind("boiler_50")],
+		"crate": ["furniture", _fills_every_cargo_crate_s_square],
 	}
 
 
@@ -91,6 +99,17 @@ func test_every_model_keeps_to_its_triangle_budget() -> void:
 		var triangles := ShipModel.named(model).triangles
 		assert_gt(triangles, 0, model)
 		assert_lte(triangles, budget, "%s within its %s budget" % [model, _rows()[model][0]])
+
+
+func test_the_boiler_fronts_run_from_the_largest_boiler_to_the_least() -> void:
+	var fronts := EngineRoom.BOILER_FRONTS
+	assert_eq(fronts.front()[0], EngineRoom.BOILER_RADIUS, "the largest front")
+	assert_eq(fronts.back()[0], EngineRoom.BOILER_LEAST, "the least front")
+	for index in range(1, fronts.size()):
+		assert_lt(fronts[index][0], fronts[index - 1][0], "largest first")
+	assert_eq(EngineRoom.front_for(0.86), 0.85, "a boiler is drawn the largest that fits")
+	assert_eq(EngineRoom.front_for(2.0), EngineRoom.BOILER_RADIUS, "never past the largest")
+	assert_true(is_nan(EngineRoom.front_for(0.49)), "none under the least")
 
 
 func test_every_model_fills_the_box_its_placing_code_gives_it() -> void:
@@ -157,3 +176,53 @@ func _is_the_handwheel_made_for(box: AABB, radius: float, model: String) -> void
 	assert_almost_eq(box.size.y * 0.5, radius, PART, "wheel: its radius")
 	assert_almost_eq(box.position.z, -RoomDressing.HANDWHEEL_SPINDLE, PART, "its spindle")
 	assert_almost_eq(box.get_center().x, 0.0, PART, "wheel: round its hub")
+func _hangs_round_its_hub_within_its_rise_and_depth(box: AABB) -> void:
+	var reach := Vector3(LinerPublic.CHANDELIER, 0.0, LinerPublic.CHANDELIER)
+	assert_almost_eq(box.end * Vector3(1, 0, 1), reach, Vector3.ONE * TOLERANCE, "its ring")
+	assert_almost_eq(box.position * Vector3(1, 0, 1), -reach, Vector3.ONE * TOLERANCE)
+	assert_lte(box.end.y, LinerPublic.CHANDELIER_RISE, "under the rod's foot")
+	assert_gte(box.position.y, -LinerPublic.CHANDELIER_DEPTH, "over HEADROOM under its hub")
+	assert_almost_eq(box.position.y, -LinerPublic.CHANDELIER_DEPTH, TOLERANCE, "its finial")
+
+
+## A boiler front [param model] of its radius in EngineRoom.BOILER_FRONTS: on the
+## floor and the bulkhead's face, square across its middle, as broad and as tall as its
+## radius makes it — a stop valve over it only over head height — and under a body's
+## height no further out from the bulkhead than a furnishing may stand.
+func _stands_a_boiler_front_in_its_bulkhead(box: AABB, model: String) -> void:
+	var radius := NAN
+	for front: Array in EngineRoom.BOILER_FRONTS:
+		if front[1] == model:
+			radius = front[0]
+	assert_false(is_nan(radius), "%s is one of EngineRoom.BOILER_FRONTS" % model)
+	var top := EngineRoom.BOILER_FOOT + radius * 2.0
+	assert_almost_eq(box.position.y, 0.0, TOLERANCE, "%s: on the floor" % model)
+	assert_almost_eq(box.position.z, 0.0, TOLERANCE, "%s: on the bulkhead" % model)
+	assert_almost_eq(box.end.x, radius, TOLERANCE, "%s: its breadth" % model)
+	assert_almost_eq(box.get_center().x, 0.0, TOLERANCE, "%s: square across it" % model)
+	if top < RoomDressing.HEADROOM:
+		assert_almost_eq(box.end.y, top, TOLERANCE, "%s: its top" % model)
+	else:
+		assert_between(box.end.y, top, top + 0.2, "%s: its stop valve on top" % model)
+	var furthest := 0.0
+	for surface: ShipModel.Surface in ShipModel.named(model).surfaces:
+		for point: Vector3 in surface.points:
+			if point.y < RoomDressing.HEADROOM:
+				furthest = maxf(furthest, point.z)
+	assert_lte(furthest, FurnishingCheck.TOLERANCE, "%s: flat to its bulkhead" % model)
+
+
+func _fills_every_cargo_crate_s_square(box: AABB) -> void:
+	var crates := 0
+	for file in DirAccess.get_files_at("res://data/ships"):
+		if not file.ends_with(".tres"):
+			continue
+		var layout: ShipLayout = load("res://data/ships".path_join(file))
+		for prop: ShipProp in layout.props:
+			crates += 1
+			var half := prop.radius * ShipArt.CRATE_SIDE + ShipArt.CRATE_PROUD
+			var low := Vector3(-half, 0.0, -half)
+			var high := Vector3(half, prop.height, half)
+			assert_almost_eq(box.position, low, Vector3.ONE * TOLERANCE, "%s's crates" % file)
+			assert_almost_eq(box.end, high, Vector3.ONE * TOLERANCE, "%s's crates" % file)
+	assert_gt(crates, 0, "the ships carry crates")

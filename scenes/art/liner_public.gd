@@ -49,10 +49,9 @@ const WALNUT := Color("7a4528")
 const PALE_PANEL := Color("e9e0c9")
 const WHITE_PANEL := Color("f3f0e7")
 const CREAM_CEILING := Color("efe4c8")
-const GILT := Color("c9a548")
+const GILT := ArtPalette.GILT
 const MIRROR_GLASS := Color("cfdde3")
-const CRYSTAL := Color("e8f0f4")
-const SCONCE_GLASS := Color("ffe6b0")
+const SCONCE_GLASS := ArtPalette.SCONCE_GLASS
 const TRELLIS := Color("5c7d48")
 const TRELLIS_GROUND := Color("dfe4cf")
 const WICKER := Color("c9a56b")
@@ -109,6 +108,11 @@ const SHELVES := 3
 ## A chandelier's ring, and the dome's glass: radii.
 const CHANDELIER := 0.4
 const DOME := 1.5
+## A chandelier (CHANDELIER_MODEL, its hub at its origin): how far over its hub it
+## stands at most, where the rod from the ceiling meets it, and how far under it.
+const CHANDELIER_MODEL := "chandelier"
+const CHANDELIER_RISE := 0.12
+const CHANDELIER_DEPTH := 0.15
 
 static var _mahogany := ShipMesh.Paint.new(ShipMesh.Finish.PLAIN, MAHOGANY)
 static var _mahogany_deep := ShipMesh.Paint.new(ShipMesh.Finish.PLAIN, MAHOGANY_DEEP)
@@ -120,7 +124,6 @@ static var _white := ShipMesh.Paint.new(ShipMesh.Finish.PLAIN, WHITE_PANEL)
 static var _cream := ShipMesh.Paint.new(ShipMesh.Finish.PLAIN, CREAM_CEILING)
 static var _gilt := ShipMesh.Paint.new(ShipMesh.Finish.PLAIN, GILT)
 static var _mirror := ShipMesh.Paint.new(ShipMesh.Finish.PLAIN, MIRROR_GLASS)
-static var _crystal := ShipMesh.Paint.new(ShipMesh.Finish.PLAIN, CRYSTAL)
 static var _sconce := ShipMesh.Paint.new(ShipMesh.Finish.PLAIN, SCONCE_GLASS)
 static var _trellis := ShipMesh.Paint.new(ShipMesh.Finish.PLAIN, TRELLIS)
 static var _trellis_ground := ShipMesh.Paint.new(ShipMesh.Finish.PLAIN, TRELLIS_GROUND)
@@ -865,8 +868,9 @@ func _notice_board(mesh: ShipMesh, wall: RoomDressing.Wall, along: float) -> voi
 
 
 ## A chandelier hung from [param room]'s ceiling over [param at], round its pendant's
-## globe: a gilt canopy and rod, arms out to a ring of candles with crystal drops
-## between the arms under it, all over HEADROOM — none where a stair rises under it.
+## globe: a gilt canopy and rod down to the modelled chandelier (CHANDELIER_MODEL) —
+## arms out to a ring of shaded lamps with crystal drops hung round it — all over
+## HEADROOM; none where a stair rises under it.
 func _chandelier(mesh: ShipMesh, room: ShipRoom, at: Vector2) -> void:
 	var top := RoomDressing.under_ceiling(_space, room, at)
 	var floor := room.floor_height
@@ -874,27 +878,13 @@ func _chandelier(mesh: ShipMesh, room: ShipRoom, at: Vector2) -> void:
 	if RoomDressing.over_a_ramp(_space.layout, spot, floor - 0.01, top.y):
 		return
 	var hub := top + Vector3.DOWN * ShipLamp.CORD
-	hub.y = maxf(hub.y, floor + RoomDressing.HEADROOM + 0.15)
-	if hub.y > top.y - 0.12:
+	hub.y = maxf(hub.y, floor + RoomDressing.HEADROOM + CHANDELIER_DEPTH)
+	if hub.y > top.y - CHANDELIER_RISE:
 		return
 	var canopy := Transform3D(Basis.IDENTITY, top + Vector3.DOWN * 0.03)
 	mesh.turned_box(canopy, Vector3(0.22, 0.06, 0.22), _gilt, 0)
-	mesh.beam(top, hub + Vector3.UP * 0.04, Vector2.ONE * 0.03, _gilt, 0)
-	var middle := hub + Vector3.DOWN * 0.03
-	var inner := CHANDELIER - 0.05
-	RoomDressing.ring(mesh, middle, Vector3.UP, inner, CHANDELIER, _gilt, 8)
-	var under := middle + Vector3.DOWN * 0.005
-	RoomDressing.ring(mesh, under, Vector3.DOWN, inner, CHANDELIER, _gilt, 8)
-	for arm in 8:
-		var turn := TAU * (arm + 0.5) / 8.0
-		var out := Vector3(cos(turn), 0.0, sin(turn)) * (CHANDELIER - 0.025)
-		if arm % 2 == 0:
-			mesh.beam(hub + Vector3.UP * 0.04, middle + out, Vector2.ONE * 0.016, _gilt, 0)
-		var candle := Transform3D(Basis.IDENTITY, middle + out + Vector3.UP * 0.05)
-		mesh.turned_box(candle, Vector3(0.028, 0.09, 0.028), _sconce, 0)
-		if arm % 2 == 1:
-			var drop := Transform3D(Basis.IDENTITY, middle + out + Vector3.DOWN * 0.07)
-			mesh.turned_box(drop, Vector3(0.022, 0.09, 0.022), _crystal, 0)
+	mesh.beam(top, hub + Vector3.UP * 0.1, Vector2.ONE * 0.03, _gilt, 0)
+	mesh.model(ShipModel.named(CHANDELIER_MODEL), Transform3D(Basis.IDENTITY, hub))
 
 
 ## The boat-deck landing's glass dome over [param room]'s middle: a disc of glass under
