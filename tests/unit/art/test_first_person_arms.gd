@@ -1,23 +1,22 @@
 extends GutTest
-## Your own arms, in every pose they take and through a jump and a fall, stay clear
-## of the crosshair and of the readouts at the bottom left (FirstPersonArms'
-## keep-clear zones) through the first-person camera's lens: at the default field of
-## view and the narrowest, on the windows the game is checked on. The HUD's canvas
-## scales with the window (canvas_items, expand), so the zones scale with it.
+## Your own arms, in every pose they take, stay clear of the crosshair and of the
+## readouts at the bottom left (FirstPersonArms' keep-clear zones) through the
+## first-person camera's lens, and never come so near the eye that the near plane
+## cuts into them in view: at the default field of view and the narrowest, on the
+## windows the game is checked on. The HUD's canvas scales with the window
+## (canvas_items, expand), so the zones scale with it.
 
 const SEAT := 4
 const WINDOWS: Array[Vector2] = [
 	Vector2(1152.0, 648.0), Vector2(1440.0, 900.0), Vector2(1920.0, 1080.0)
 ]
-## The moves drawn by their clip alone, beside those FirstPersonArms poses.
-const CLIP_MOVES: Array[BrawlerAnimation.Move] = [
-	BrawlerAnimation.Move.FALL, BrawlerAnimation.Move.JUMP
-]
-## Along each arm, elbow to fingertips: the bones whose heads mark it.
+## Along each arm, shoulder to fingertips: the bones whose heads mark it.
 const JOINTS := {
-	&"L": [&"lowerarm_l", &"hand_l", &"fingers_l", &"fingertips_l"],
-	&"R": [&"lowerarm_r", &"hand_r", &"fingers_r", &"fingertips_r"],
+	&"L": [&"upperarm_l", &"lowerarm_l", &"hand_l", &"fingers_l", &"fingertips_l"],
+	&"R": [&"upperarm_r", &"lowerarm_r", &"hand_r", &"fingers_r", &"fingertips_r"],
 }
+## The bones round which the sleeve, not the hand, is checked.
+const SLEEVES: Array[StringName] = [&"upperarm_l", &"lowerarm_l", &"upperarm_r", &"lowerarm_r"]
 const THUMBS: Array[StringName] = [&"thumbtip_l", &"thumbtip_r"]
 const HANDS: Array[StringName] = [&"hand_l", &"hand_r"]
 const WINDUP := BrawlerAnimation.Move.WINDUP
@@ -65,11 +64,9 @@ func before_each() -> void:
 			_labels.append("fov %d %dx%d" % [fov, size.x, size.y])
 
 
-func test_the_arms_stay_clear_of_the_crosshair_and_the_readouts_in_every_pose() -> void:
+func test_the_arms_stay_clear_of_the_crosshair_the_readouts_and_the_near_plane() -> void:
 	var problems := {}
-	var moves: Array = FirstPersonArms.POSES.keys()
-	moves.append_array(CLIP_MOVES)
-	for move: BrawlerAnimation.Move in moves:
+	for move: BrawlerAnimation.Move in BrawlerAnimation.Move.values():
 		var entry := _as(move)
 		var watched := 0.0
 		while watched < SETTLE + WATCH:
@@ -158,7 +155,7 @@ func _check(move: BrawlerAnimation.Move, problems: Dictionary) -> void:
 		for index in bones.size() - 1:
 			var from := _eye.to_local(body.bone_position(bones[index]))
 			var to := _eye.to_local(body.bone_position(bones[index + 1]))
-			var radius := SLEEVE if index == 0 else HAND
+			var radius := SLEEVE if bones[index] in SLEEVES else HAND
 			for step in SAMPLES + 1:
 				_check_point(
 					move, bones[index], from.lerp(to, float(step) / SAMPLES), radius, problems
@@ -174,7 +171,14 @@ func _check_point(
 	radius: float,
 	problems: Dictionary
 ) -> void:
-	if -point.z < FirstPersonCamera.NEAR:
+	if -point.z < FirstPersonCamera.NEAR + radius:
+		# So near, the near plane cuts it: a fault wherever the cut is in view.
+		var cut := Vector3(point.x, point.y, minf(point.z, -FirstPersonCamera.NEAR))
+		for view in _lenses.size():
+			var key := "%s %s %s" % [BrawlerAnimation.Move.keys()[move], bone, _labels[view]]
+			var at := _pixel(_lenses[view], _sizes[view], cut)
+			if Rect2(Vector2.ZERO, _sizes[view]).has_point(at) and not problems.has(key):
+				problems[key] = "%s cut by the near plane at %s" % [key, at.round()]
 		return
 	for view in _lenses.size():
 		var size := _sizes[view]

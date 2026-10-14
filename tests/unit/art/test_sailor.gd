@@ -13,6 +13,15 @@ const OUTFIT_TRIANGLES := {
 	Brawler.Coat.JACKET: 3100,
 	Brawler.Coat.GREATCOAT: 3450,
 }
+## Each coat's own arms (FirstPersonArms), as modelled: sleeves, cuffs and hands
+## finer than a body drawn eight times over can afford, drawn once, under the eye,
+## and at most ARMS_BUDGET.
+const ARMS_TRIANGLES := {
+	Brawler.Coat.JERSEY: 3324,
+	Brawler.Coat.JACKET: 3692,
+	Brawler.Coat.GREATCOAT: 3580,
+}
+const ARMS_BUDGET := 4000
 const SEATS := 8
 const MATCH_TRIANGLES := 3450 * SEATS
 ## The crown the clothes shader paints the face under, in model units.
@@ -72,8 +81,41 @@ func test_a_full_match_of_seats_keeps_to_its_triangle_budget() -> void:
 		for other: Brawler.Coat in OUTFIT_TRIANGLES:
 			var dropped := brawler.find_child(String(Brawler.OUTFITS[other]), true, false)
 			assert_null(dropped, "seat %d drops the %s" % [seat, Brawler.OUTFITS[other]])
+			var arms := brawler.find_child(String(Brawler.ARMS[other]), true, false)
+			assert_null(arms, "seat %d drops the %s" % [seat, Brawler.ARMS[other]])
 		total += _triangles(body.mesh)
 	assert_lte(total, MATCH_TRIANGLES)
+
+
+func test_each_coats_own_arms_keep_to_their_triangle_budget() -> void:
+	for coat: Brawler.Coat in ARMS_TRIANGLES:
+		var arms := Brawler.own_arms(coat)
+		var named := String(Brawler.ARMS[coat])
+		assert_eq(arms.mesh.get_surface_count(), 1, "one surface")
+		assert_eq(_triangles(arms.mesh), ARMS_TRIANGLES[coat], named)
+		assert_lte(_triangles(arms.mesh), ARMS_BUDGET, named)
+		arms.free()
+
+
+func test_a_seats_own_arms_are_its_coats_in_its_colour() -> void:
+	for seat in SEATS:
+		var brawler := Brawler.new()
+		add_child_autofree(brawler)
+		brawler.setup(seat, SimFixtures.rules(), false)
+		brawler.show_as_own_arms(
+			BrawlerAnimation.CLIPS, FirstPersonArms.POSES, FirstPersonArms.ELBOWS
+		)
+		var coat := Brawler.COATS[seat % Brawler.COATS.size()]
+		var arms := Brawler.own_arms(coat)
+		var drawn := brawler.find_children("*", "MeshInstance3D", true, false).filter(
+			func(node: MeshInstance3D) -> bool: return node.visible and node.skin != null
+		)
+		assert_eq(drawn.size(), 1, "seat %d draws its arms alone" % seat)
+		var body: MeshInstance3D = drawn[0]
+		assert_eq(body.mesh, arms.mesh, "seat %d's arms are its %s's" % [seat, Brawler.ARMS[coat]])
+		var clothes := body.get_surface_override_material(0) as ShaderMaterial
+		assert_eq(clothes.get_shader_parameter("coat"), ArtPalette.seat_colour(seat))
+		arms.free()
 
 
 func test_every_outfit_stands_from_the_soles_to_the_crown() -> void:

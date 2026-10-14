@@ -53,6 +53,13 @@ const MODEL_TURN := PI * 0.5
 ## (assets/characters/sailor): a seat keeps the one it wears, named BODY, and drops
 ## the others. And the bone its hat rides.
 const OUTFITS: Array[NodePath] = [^"Jersey", ^"Jacket", ^"Greatcoat"]
+## Each coat's own arms, modelled apart on the same skeleton and finer, for the seat
+## that looks out over them (FirstPersonArms): every body drops them, and a seat's
+## own arms draw its coat's in place of its body.
+const ARMS: Array[NodePath] = [^"JerseyArms", ^"JacketArms", ^"GreatcoatArms"]
+## Everywhere the arms reach from the shoulders, in model units: modelled out level,
+## their own box at rest would cull them once they drop under the eye.
+const ARMS_REACH := AABB(Vector3(-1.1, 0.45, -1.0), Vector3(2.2, 2.0, 2.0))
 const BODY := &"Sailor"
 const HEAD_BONE := &"head"
 ## The outline's width on a seat's own arms, under the eye, in model units.
@@ -113,6 +120,9 @@ static var _sailor := Vector2.ZERO
 static var _headgear := {}
 ## Each hat's mesh, read from HAT_MODELS once.
 static var _hats: Array[Mesh] = []
+## Each coat's own arms, their meshes and skins, read from MODEL once.
+static var _arm_meshes: Array[Mesh] = []
+static var _arm_skins: Array[Skin] = []
 
 var seat: int
 var _player: AnimationPlayer
@@ -179,6 +189,7 @@ func setup(seat_id: int, rules: BrawlRules, local: bool) -> void:
 	for coat in OUTFITS.size():
 		if coat != COATS[outfit]:
 			skeleton.get_node(OUTFITS[coat]).free()
+		skeleton.get_node(ARMS[coat]).free()
 	mesh.name = BODY
 	var crown := mesh.get_aabb().end.y
 	_rest_scale = Vector3.ONE * (rules.body_height / crown)
@@ -262,17 +273,40 @@ static func hat_mesh(hat: Hat) -> Mesh:
 	return _hats[hat]
 
 
+## [param coat]'s own arms, as modelled, to hang under a skeleton.
+static func own_arms(coat: Coat) -> MeshInstance3D:
+	if _arm_meshes.is_empty():
+		var model := MODEL.instantiate()
+		for path: NodePath in ARMS:
+			var modelled: MeshInstance3D = model.get_node("Rig/Skeleton3D").get_node(path)
+			_arm_meshes.append(modelled.mesh)
+			_arm_skins.append(modelled.skin)
+		model.free()
+	var arms := MeshInstance3D.new()
+	arms.mesh = _arm_meshes[coat]
+	arms.skin = _arm_skins[coat]
+	arms.skeleton = ^".."
+	arms.custom_aabb = ARMS_REACH
+	return arms
+
+
 ## Shows the marker overhead, on the local seat, or hides it.
 func show_marker(shown: bool) -> void:
 	if _marker != null:
 		_marker.visible = shown
 
 
-## Draws only what a seat sees of itself (FirstPersonArms): no hat, no disc at its
-## feet, no sparks, no shadow, no hit-stop squash or hold, a dimmer glow, a finer
-## outline, and [param clips] and [param poses] (as BrawlerAnimation.POSES, the
-## elbows bending as [param elbows] has) for its moves.
+## Draws only what a seat sees of itself (FirstPersonArms): its coat's own arms in
+## place of its body, no hat, no disc at its feet, no sparks, no shadow, no hit-stop
+## squash or hold, a dimmer glow, a finer outline, and [param clips] and
+## [param poses] (as BrawlerAnimation.POSES, the elbows bending as [param elbows]
+## has) for its moves.
 func show_as_own_arms(clips: Dictionary, poses: Dictionary, elbows: Array[Vector3]) -> void:
+	_skeleton.get_node(NodePath(BODY)).free()
+	var arms := own_arms(COATS[seat % COATS.size()])
+	arms.name = BODY
+	arms.set_surface_override_material(0, _clothes)
+	_skeleton.add_child(arms)
 	_clips = clips
 	_poses = BrawlerPose.new(_skeleton, poses, elbows)
 	_squashes = false
@@ -308,12 +342,6 @@ static func keep_apart(bodies: Array[Brawler], eye_seat: int) -> void:
 			var apart := other.position - body.position
 			if absf(apart.y) < CLINCH_HIGH and Vector2(apart.x, apart.z).length() < CLINCH_RANGE:
 				body._keep_hands_off(other)
-
-
-## Shrinks the sailor's [param bone] to nothing in this frame's pose, so what it
-## carries is not drawn.
-func collapse_bone(bone: StringName) -> void:
-	_skeleton.set_bone_pose_scale(_skeleton.find_bone(bone), Vector3.ONE * 0.001)
 
 
 ## The node the sailor hangs from: its origin is the drawn feet.

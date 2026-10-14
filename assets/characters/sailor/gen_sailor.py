@@ -502,7 +502,8 @@ STEADY_FADE = 0.05
 class Kit:
     """A mesh being put together in the model frame: its points, each with its part,
     its ink (how wide its outline is drawn) and its bones' shares; and its faces,
-    each turned on the way to the side it faces."""
+    each turned on the way to the side it faces. A point may be painted as if it
+    stood elsewhere at rest (`paints`, by index)."""
 
     def __init__(self):
         self.points = []
@@ -510,6 +511,7 @@ class Kit:
         self.inks = []
         self.weights = []
         self.faces = []
+        self.paints = {}
 
     def add(self, at, part, weights, ink=1.0):
         self.points.append(Vector(at))
@@ -531,6 +533,8 @@ class Kit:
             self.add(at, own if part is None else part, weights, ink)
         for face in other.faces:
             self.faces.append(tuple(start + i for i in face))
+        for index, at in other.paints.items():
+            self.paints[start + index] = at
 
 
 class Surface:
@@ -703,7 +707,12 @@ def _button(kit, surface, x, y, part=BRASS, behind=False, radius=0.0105, sides=8
     """A domed button at (x, y) on `surface`, seen from ahead (or `behind`)."""
     way = Vector((0.0, 0.0, 1.0 if behind else -1.0))
     at, normal, weights = surface.cast(Vector((x, y, 0.0)) - way * 0.6, way, -way)
-    side = normal.cross(UP).normalized()
+    _stud(kit, at, normal, weights, part, radius, sides)
+
+
+def _stud(kit, at, normal, weights, part=BRASS, radius=0.0105, sides=8, ref=UP):
+    """A domed button at `at` on a surface facing `normal`."""
+    side = normal.cross(ref).normalized()
     up = side.cross(normal).normalized()
     sunk, rim = [], []
     for step in range(sides):
@@ -931,6 +940,12 @@ def build_outfit(name, base, hands, rig, material):
     DRESS[name](kit, Surface(kit))
     kit.extend(hands)
     _steady(kit)
+    return _skinned(name, kit, rig, material)
+
+
+def _skinned(name, kit, rig, material):
+    """`kit` as a mesh object named `name`, skinned to `rig`: triangulated, smooth,
+    its rest places and parts in its UVs and its ink in its colours."""
     mesh = bpy.data.meshes.new(name)
     mesh.from_pydata([TO_BLENDER @ p for p in kit.points], [], kit.faces)
     shape = bmesh.new()
@@ -945,7 +960,7 @@ def build_outfit(name, base, hands, rig, material):
     rest = mesh.uv_layers.new(name="rest")
     depth = mesh.uv_layers.new(name="depth")
     for loop in mesh.loops:
-        at = kit.points[loop.vertex_index]
+        at = kit.paints.get(loop.vertex_index, kit.points[loop.vertex_index])
         rest.data[loop.index].uv = (at.x, 1.0 - at.y)
         depth.data[loop.index].uv = (at.z, 1.0 - kit.parts[loop.vertex_index])
     ink = mesh.color_attributes.new("ink", "FLOAT_COLOR", "POINT")
@@ -965,6 +980,349 @@ def build_outfit(name, base, hands, rig, material):
     modifier = body.modifiers.new("Rig", "ARMATURE")
     modifier.object = rig
     return body
+
+
+# ---------------------------------------------------------------------------
+# The first-person arms. A seat sees its own arms all the time, so each outfit's are
+# modelled again on their own (NAME + "Arms"), finer than a body drawn eight times
+# over can afford: the sleeve from above the elbow, hanging fuller than the arm as
+# cloth does, and its cuff — a jersey's ribbed one, a reefer jacket's with three
+# buttons, a greatcoat's deep turned-back one with two — a coat's shirt cuff under
+# it, each with the open mouth the wrist comes out of; a hand with the heel of its
+# palm and the ball of its thumb; and fingers and a thumb with knuckles standing
+# proud on the back, creases across their joints and flat nails. Every point sits
+# where the arm's does at rest, so the clothes shader paints sleeve, cuff and skin as
+# it paints the body, in the seat's colour. FirstPersonArms draws them in place of
+# the whole body.
+
+## Points round a sleeve, a cuff, the hand (and a shirt's cuff round it), and a
+## finger or thumb.
+SLEEVE_SIDES = 16
+CUFF_SIDES = 20
+HAND_SIDES = 18
+DIGIT_SIDES = 10
+## The arm's line at rest, out along +x: the upper arm's and forearm's bones.
+ARM_LINE = Vector((0.0, 1.44, -0.04))
+## Where the sleeve's rings stand along the arm, from above the elbow out to the cuff.
+SLEEVE_RINGS = (0.3, 0.36, 0.41, 0.45, 0.49, 0.535, 0.58, 0.625, 0.66)
+## Each outfit's sleeve: how much fuller than the bare arm it hangs, and how far
+## clear of the wrist at its narrowest; its cuff, from `cuff` out to `end` along the
+## arm and standing `proud` of the sleeve, its ribs, and the buttons on it; and
+## whether a shirt's cuff shows under it.
+ARM_SLEEVES = {
+    "Jersey": {"full": 0.006, "clear": 0.004, "cuff": 0.695, "end": 0.744, "proud": 0.004, "ribs": 0.0025,
+               "buttons": 0, "shirt": False},
+    "Jacket": {"full": 0.007, "clear": 0.011, "cuff": 0.662, "end": 0.714, "proud": 0.003, "ribs": 0.0,
+               "buttons": 3, "shirt": True},
+    "Greatcoat": {"full": 0.013, "clear": 0.016, "cuff": 0.612, "end": 0.704, "proud": 0.007, "ribs": 0.0,
+                  "buttons": 2, "shirt": True},
+}
+## The elbow's span, where the sleeve goes over from the upper arm to the forearm
+## and bridges the hollow of the elbow; and the wrist's, the forearm to the hand.
+ELBOW_SPAN = (0.4, 0.53)
+WRIST_SPAN = (0.715, 0.77)
+## A cuff's cloth at its mouth, and how far in its lining shows.
+CUFF_THICK = 0.004
+CUFF_LINING = 0.02
+## Buttons on a cuff: how far round from the back of the hand toward the little
+## finger they sit, in degrees, how far apart along it, and how big.
+CUFF_BUTTON_ROUND = -75.0
+CUFF_BUTTON_APART = 0.014
+CUFF_BUTTON = 0.0052
+## A shirt's cuff: how far it stands off the wrist, and its mouth (short of where
+## the shader paints skin).
+SHIRT_CLEAR = 0.0055
+SHIRT_END = 0.742
+## The hand, wrist to knuckles: its rings — x along the arm, the half-width across,
+## and the half-heights to its back (up at rest) and to its palm — round PALM_Y over
+## the arm's line, squarish (HAND_ROUND, a superellipse's power), closed at HAND_TIP.
+HAND_RINGS = [
+    (0.7, 0.054, 0.036, 0.038),
+    (0.725, 0.055, 0.036, 0.038),
+    (0.745, 0.056, 0.035, 0.037),
+    (0.762, 0.059, 0.031, 0.036),
+    (0.779, 0.06, 0.027, 0.033),
+    (0.794, 0.059, 0.022, 0.028),
+    (0.804, 0.055, 0.017, 0.022),
+]
+HAND_TIP = 0.811
+## Where the clothes shader paints the arm as skin, out from the cuff.
+SKIN_FROM = 0.746
+HAND_ROUND = 2.6
+## The heel of the hand and the ball of the thumb, pressed out of the palm, as BULGES.
+HAND_BULGES = [
+    ((0.772, 1.405, -0.005), (0.03, 0.02, 0.025), 0.007, 0.8),
+    ((0.765, 1.41, -0.075), (0.025, 0.02, 0.018), 0.004, 0.8),
+]
+## A finger, as FINGER_STATIONS but finer: x along the palm's middle line (scaled
+## past the knuckle by the finger's length), its rise, its half-widths across and
+## through, how much its ring creases — the knuckle standing proud on the back, a
+## fold across the palm's side — how flat its back is (a nail), and its bones' shares.
+KNUCKLE_X = 0.817
+DIGIT_STATIONS = [
+    (0.792, 0.0, 0.0125, 0.0125, 0.0, 0.0, {"hand": 1.0}),
+    (0.806, 0.002, 0.014, 0.015, 0.0, 0.0, {"hand": 0.75, "fingers": 0.25}),
+    (0.817, 0.006, 0.015, 0.0172, 0.3, 0.0, {"hand": 0.5, "fingers": 0.5}),
+    (0.84, 0.0, 0.013, 0.0128, 0.0, 0.0, {"fingers": 1.0}),
+    (0.86, 0.0, 0.0138, 0.0136, 0.12, 0.0, {"fingers": 0.5, "fingertips": 0.5}),
+    (0.877, -0.001, 0.0123, 0.0117, 0.0, 0.0, {"fingertips": 1.0}),
+    (0.887, -0.001, 0.0124, 0.0118, 0.1, 0.0, {"fingertips": 1.0}),
+    (0.898, -0.002, 0.0118, 0.0108, 0.0, 0.3, {"fingertips": 1.0}),
+    (0.906, -0.003, 0.0098, 0.009, 0.0, 0.3, {"fingertips": 1.0}),
+    (0.911, -0.003, 0.006, 0.0056, 0.0, 0.0, {"fingertips": 1.0}),
+]
+DIGIT_TIP = (0.913, -0.003)
+## The thumb, as THUMB_STATIONS but finer: each ring's point, half-widths, crease,
+## flatness and shares; then its tip.
+THUMB_RINGS = [
+    ((0.758, 1.43, -0.026), 0.02, 0.019, 0.0, 0.0, {"hand": 1.0}),
+    ((0.772, 1.427, 0.004), 0.021, 0.02, 0.0, 0.0, {"hand": 0.6, "thumb": 0.4}),
+    ((0.781, 1.425, 0.017), 0.0195, 0.0185, 0.0, 0.0, {"thumb": 0.8, "thumbtip": 0.2}),
+    ((0.789, 1.423, 0.03), 0.0188, 0.0178, 0.12, 0.0, {"thumb": 0.5, "thumbtip": 0.5}),
+    ((0.797, 1.4215, 0.04), 0.017, 0.016, 0.0, 0.0, {"thumbtip": 1.0}),
+    ((0.804, 1.42, 0.049), 0.0155, 0.0142, 0.0, 0.3, {"thumbtip": 1.0}),
+    ((0.809, 1.419, 0.057), 0.011, 0.0102, 0.0, 0.2, {"thumbtip": 1.0}),
+]
+THUMB_TIP = (0.812, 1.419, 0.063)
+THUMB_UP = Vector((0.0, 1.0, -0.6)).normalized()
+
+
+def _ring(centre, along, up, across, back, palm, sides, power=2.0, crease=0.0, flat=0.0, ribs=0.0):
+    """The points round a ring at `centre` square to `along`: `across` wide either
+    side, `back` high toward `up` and `palm` the other way, a superellipse of
+    `power`; creased (the back standing proud, the palm folding in), its back
+    flattened by `flat`, and every other point stood `ribs` further out."""
+    along = Vector(along).normalized()
+    up = (Vector(up) - along * along.dot(Vector(up))).normalized()
+    side = along.cross(up)
+    points = []
+    for step in range(sides):
+        angle = 2.0 * math.pi * step / sides
+        c, s = math.cos(angle), math.sin(angle)
+        c = math.copysign(abs(c) ** (2.0 / power), c)
+        s = math.copysign(abs(s) ** (2.0 / power), s)
+        high = c * (back * (1.0 + 0.5 * crease) if c > 0.0 else palm * (1.0 - crease))
+        if flat > 0.0:
+            high = min(high, back * (1.0 - flat))
+        out = up * high + side * (s * across)
+        if ribs > 0.0 and step % 2:
+            out += out.normalized() * ribs
+        points.append(Vector(centre) + out)
+    return points
+
+
+def _loft(kit, rings, start=None, end=None):
+    """Adds a tube through `rings` — each (points round it, its centre, part, ink,
+    shares, facing) — to `kit`. The band up to a ring faces out from the centre
+    before it, unless that ring's `facing` says otherwise: "in", toward it, or a
+    way. `start` and `end`, each a (point, shares) or None, close the tube's ends in
+    a point; None leaves an end open."""
+    ids = [[kit.add(p, part, shares, ink) for p in points] for points, _, part, ink, shares, _ in rings]
+    sides = len(ids[0])
+    for r in range(len(rings) - 1):
+        facing = rings[r + 1][5]
+        for i in range(sides):
+            j = (i + 1) % sides
+            out = kit.points[ids[r][i]] + kit.points[ids[r][j]] - rings[r][1] * 2.0
+            if facing == "in":
+                out = -out
+            elif facing is not None:
+                out = Vector(facing)
+            kit.face((ids[r][i], ids[r][j], ids[r + 1][j], ids[r + 1][i]), out)
+    for which, cap in ((0, start), (len(rings) - 1, end)):
+        if cap is None:
+            continue
+        at, shares = cap
+        _, centre, part, ink, _, _ = rings[which]
+        apex = kit.add(at, part, shares, ink)
+        for i in range(sides):
+            kit.face((ids[which][i], ids[which][(i + 1) % sides], apex), Vector(at) - centre)
+    return ids
+
+
+def _shares(blend, first, second, x):
+    """`first` giving way to `second` across the span `blend` along the arm, at `x`."""
+    t = _smoothstep(blend[0], blend[1], x)
+    return {bone: share for bone, share in ((first, 1.0 - t), (second, t)) if share > 0.0}
+
+
+def _sided(shares):
+    return {bone + "_l": share for bone, share in shares.items()}
+
+
+def _hand_ring(x, sides):
+    """The hand's ring at `x` along the arm, as HAND_RINGS lays it: its points and
+    its centre."""
+    following = next((n for n, ring in enumerate(HAND_RINGS) if ring[0] >= x), len(HAND_RINGS) - 1)
+    following = max(following, 1)
+    (x0, *low), (x1, *high) = HAND_RINGS[following - 1], HAND_RINGS[following]
+    t = max(0.0, min(1.0, (x - x0) / (x1 - x0)))
+    across, back, palm = (a + (b - a) * t for a, b in zip(low, high))
+    centre = Vector((x, PALM_Y, ARM_LINE.z))
+    return _ring(centre, Vector((1.0, 0.0, 0.0)), UP, across, back, palm, sides, HAND_ROUND), centre
+
+
+def _grown(points, centre, lift, x):
+    """`points` round `centre`, each `lift` further out from it, moved along the arm
+    to `x`."""
+    shift = Vector((x - centre.x, 0.0, 0.0))
+    return [p + (p - centre).normalized() * lift + shift for p in points], centre + shift
+
+
+def _sleeve_reach(surface, outfit, x, sides):
+    """How far out from the arm's line a sleeve of `outfit` stands at `x`, at each of
+    `sides` points round from the back of the hand: the bare arm let out, bridging
+    the elbow's hollow, and clear of the wrist."""
+    spec = ARM_SLEEVES[outfit]
+    wrist, centre = _hand_ring(0.745, sides)
+
+    def bare(at):
+        found = []
+        for step in range(sides):
+            angle = 2.0 * math.pi * step / sides
+            way = UP * math.cos(angle) + AHEAD * math.sin(angle)
+            origin = Vector((at, ARM_LINE.y, ARM_LINE.z))
+            found.append((surface.cast(origin, way, way)[0] - origin).length)
+        return found
+
+    reach = bare(x)
+    if ELBOW_SPAN[0] < x < ELBOW_SPAN[1]:
+        t = (x - ELBOW_SPAN[0]) / (ELBOW_SPAN[1] - ELBOW_SPAN[0])
+        bridge = [a + (b - a) * t for a, b in zip(bare(ELBOW_SPAN[0]), bare(ELBOW_SPAN[1]))]
+        reach = [max(r, b) for r, b in zip(reach, bridge)]
+    least = [(p - centre).length + spec["clear"] for p in wrist]
+    return [max(r + spec["full"], m) for r, m in zip(reach, least)]
+
+
+def _round(x, reach, lift=0.0):
+    """Points `reach` (each plus `lift`) out from the arm's line at `x`, round from
+    the back of the hand, and the centre they ring."""
+    centre = Vector((x, ARM_LINE.y, ARM_LINE.z))
+    points = []
+    for step, r in enumerate(reach):
+        angle = 2.0 * math.pi * step / len(reach)
+        points.append(centre + (UP * math.cos(angle) + AHEAD * math.sin(angle)) * (r + lift))
+    return points, centre
+
+
+def _arm_sleeve(kit, surface, outfit):
+    """A left sleeve of `outfit`: the cloth from above the elbow, its cuff and the
+    cuff's mouth, the buttons on it, and a shirt's cuff under it."""
+    spec = ARM_SLEEVES[outfit]
+    forearm = _sided({"lowerarm": 1.0})
+    rings = []
+    stations = [x for x in SLEEVE_RINGS if x < spec["cuff"] - 0.012] + [spec["cuff"] + 0.006]
+    for x in stations:
+        points, centre = _round(x, _sleeve_reach(surface, outfit, x, SLEEVE_SIDES))
+        rings.append((points, centre, BODY, 1.0, _sided(_shares(ELBOW_SPAN, "upperarm", "lowerarm", x)), None))
+    _loft(kit, rings)
+    # The cuff: sunk into the sleeve at its foot, standing proud of it to the mouth,
+    # rounding over its lip into the lining.
+    cuff, end, proud, ribs = spec["cuff"], spec["end"], spec["proud"], spec["ribs"]
+    rings = []
+    for x, lift, facing in ((cuff, -0.003, None), (cuff + 0.003, proud, None), (end - 0.004, proud, None),
+                            (end, proud - 0.0015, None)):
+        reach = _sleeve_reach(surface, outfit, x, CUFF_SIDES)
+        reach = [r + (ribs if lift > 0.0 and step % 2 else 0.0) for step, r in enumerate(reach)]
+        points, centre = _round(x, reach, lift)
+        rings.append((points, centre, FACING, DETAIL_INK, forearm, facing))
+    mouth = _sleeve_reach(surface, outfit, end, CUFF_SIDES)
+    for x, lift, facing in ((end, proud - CUFF_THICK, Vector((1.0, 0.0, 0.0))),
+                            (end - CUFF_LINING, proud - CUFF_THICK, "in")):
+        points, centre = _round(x, mouth, lift)
+        rings.append((points, centre, FACING, 0.0, forearm, facing))
+    _loft(kit, rings)
+    index = round(CUFF_BUTTON_ROUND / 360.0 * CUFF_SIDES) % CUFF_SIDES
+    angle = 2.0 * math.pi * index / CUFF_SIDES
+    way = UP * math.cos(angle) + AHEAD * math.sin(angle)
+    for number in range(spec["buttons"]):
+        x = end - 0.012 - number * CUFF_BUTTON_APART
+        reach = _sleeve_reach(surface, outfit, x, CUFF_SIDES)[index] + proud
+        at = Vector((x, ARM_LINE.y, ARM_LINE.z)) + way * reach
+        _stud(kit, at, way, forearm, radius=CUFF_BUTTON, ref=Vector((1.0, 0.0, 0.0)))
+    if spec["shirt"]:
+        wrist, centre = _hand_ring(0.745, HAND_SIDES)
+        rings = []
+        for x, lift, ink, facing in ((end - 0.03, SHIRT_CLEAR, DETAIL_INK, None),
+                                     (SHIRT_END - 0.005, SHIRT_CLEAR, DETAIL_INK, None),
+                                     (SHIRT_END, SHIRT_CLEAR - 0.0012, DETAIL_INK, None),
+                                     (SHIRT_END, SHIRT_CLEAR - 0.003, 0.0, Vector((1.0, 0.0, 0.0))),
+                                     (SHIRT_END - 0.012, SHIRT_CLEAR - 0.003, 0.0, "in")):
+            points, at = _grown(wrist, centre, lift, x)
+            rings.append((points, at, BODY, ink, forearm, facing))
+        _loft(kit, rings)
+
+
+def _arm_hand(kit):
+    """A left hand: the wrist out of the cuff, the palm with its heel and the ball of
+    its thumb, four fingers and a thumb."""
+    rings = []
+    for x, *_ in HAND_RINGS:
+        points, centre = _hand_ring(x, HAND_SIDES)
+        for point in points:
+            normal = Vector((0.0, point.y - centre.y, point.z - centre.z)).normalized()
+            for at, radii, push, soft in HAND_BULGES:
+                d = sum(((point[i] - at[i]) / radii[i]) ** 2 for i in range(3))
+                if d < 1.0:
+                    point += normal * push * min((1.0 - d) / soft, 1.0) ** 2
+        ink = 1.0 if x >= SKIN_FROM else 0.0
+        rings.append((points, centre, BODY, ink, _sided(_shares(WRIST_SPAN, "lowerarm", "hand", x)), None))
+    ids = _loft(kit, rings, end=(Vector((HAND_TIP, PALM_Y - 0.003, ARM_LINE.z)), _sided({"hand": 1.0})))
+    # The wrist inside the cuff shows when the hand bends back: skin, not cuff.
+    for ring in ids:
+        for index in ring:
+            at = kit.points[index]
+            if at.x < SKIN_FROM:
+                kit.paints[index] = Vector((SKIN_FROM, at.y, at.z))
+    for offset, length in FINGERS:
+        rings = []
+        for x, rise, across, through, crease, flat, shares in DIGIT_STATIONS:
+            if x > KNUCKLE_X:
+                x = KNUCKLE_X + (x - KNUCKLE_X) * length
+            spread = offset * (1.0 + 0.6 * max(x - KNUCKLE_X, 0.0))
+            centre = Vector((x, PALM_Y + rise, -0.04 + spread))
+            rings.append([centre, across, through, crease, flat, shares])
+        tip_x = KNUCKLE_X + (DIGIT_TIP[0] - KNUCKLE_X) * length
+        tip = Vector((tip_x, PALM_Y + DIGIT_TIP[1], -0.04 + offset * (1.0 + 0.6 * (tip_x - KNUCKLE_X))))
+        _digit(kit, rings, tip, UP)
+    thumb = [[Vector(at), across, through, crease, flat, shares]
+             for at, across, through, crease, flat, shares in THUMB_RINGS]
+    _digit(kit, thumb, Vector(THUMB_TIP), THUMB_UP)
+
+
+def _digit(kit, stations, tip, up):
+    """A finger or thumb through `stations` — (centre, across, through, crease,
+    flat, shares) — to `tip`, its back toward `up`."""
+    centres = [s[0] for s in stations] + [tip]
+    rings = []
+    for number, (centre, across, through, crease, flat, shares) in enumerate(stations):
+        along = centres[number + 1] - centres[max(number - 1, 0)]
+        points = _ring(centre, along, up, across, through, through, DIGIT_SIDES, crease=crease, flat=flat)
+        rings.append((points, centre, BODY, 1.0, _sided(shares), None))
+    _loft(kit, rings, start=(centres[0], _sided(stations[0][5])), end=(tip, _sided(stations[-1][5])))
+
+
+def _mirrored_arms(left):
+    """`left`, a left arm, with the right's mirror of it."""
+    kit = Kit()
+    kit.extend(left)
+    start = len(kit.points)
+    for at, part, ink, weights in zip(left.points, left.parts, left.inks, left.weights):
+        kit.add(MIRROR @ at, part, {bone[:-2] + "_r": share for bone, share in weights.items()}, ink)
+    for face in left.faces:
+        kit.faces.append(tuple(start + i for i in reversed(face)))
+    for index, at in left.paints.items():
+        kit.paints[start + index] = MIRROR @ at
+    return kit
+
+
+def build_arms(name, base, rig, material):
+    """`name`'s first-person arms, NAME + "Arms": both sleeves and hands, as a mesh
+    object skinned to `rig`, laid over the bare sailor `base`."""
+    left = Kit()
+    _arm_sleeve(left, Surface(base), name)
+    _arm_hand(left)
+    return _skinned(name + "Arms", _mirrored_arms(left), rig, material)
 
 
 # ---------------------------------------------------------------------------
@@ -1513,6 +1871,7 @@ def main():
     material = bpy.data.materials.new("sailor")
     material.diffuse_color = (0.84, 0.37, 0.0, 1.0)
     bodies = [build_outfit(name, base, hands, rig, material) for name in OUTFITS]
+    bodies += [build_arms(name, base, rig, material) for name in OUTFITS]
     make_clips(rig)
     for body in bodies:
         print("gen_sailor: %s %d triangles" % (body.name, len(body.data.polygons)))
