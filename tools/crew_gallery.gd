@@ -5,16 +5,20 @@ extends SceneTree
 ## stand in its move (D5), on a plain deck under a sun; nothing is played.
 ##
 ##   godot --path . -s res://tools/crew_gallery.gd -- --capture=PATH [--view=crew|arms|hats]
+##       [--seat=N] [--frames]
 ##
 ## crew: every move on one deck, seen from ahead and to the side, a seat's hat and
 ## coat apiece. arms: a seat's own arms (FirstPersonArms) through a first-person
-## lens, one frame per move, laid out in a grid with the crosshair marked. hats: every
+## lens, one frame per move, laid out in a grid with the crosshair marked (and with
+## --frames each move's frame whole as well, beside the sheet, to look at closely).
+## hats: every
 ## hat close up on the head it seats on, from ahead and from behind, in a grid.
 
 const RunMatch := preload("res://tools/run_match.gd")
 const SEED := 1701
 const SEATS := 8
-## The seat whose arms the arms view shows.
+## The seat whose arms the arms view shows, unless --seat names another: each coat's
+## sleeves and cuffs are its own.
 const EYE_SEAT := 4
 ## How long each move is held before it is drawn, in seconds: a stride under way, a
 ## wind-up drawn back, a stagger's flinch landed.
@@ -38,6 +42,8 @@ const HAT_CELL := 480
 
 var _path := ""
 var _view := "crew"
+var _eye_seat := EYE_SEAT
+var _frames := false
 var _rules: BrawlRules
 var _entry: Dictionary
 var _moves: Array = BrawlerAnimation.Move.values()
@@ -58,6 +64,10 @@ func _initialize() -> void:
 			_path = argument.trim_prefix("--capture=")
 		elif argument.begins_with("--view="):
 			_view = argument.trim_prefix("--view=")
+		elif argument == "--frames":
+			_frames = true
+		elif argument.begins_with("--seat="):
+			_eye_seat = argument.trim_prefix("--seat=").to_int()
 	if _path.is_empty() or _view not in ["crew", "arms", "hats"]:
 		push_error("crew_gallery: --capture=PATH and --view=crew|arms|hats")
 		quit(1)
@@ -93,7 +103,7 @@ func _process(delta: float) -> bool:
 			_snap()
 	else:
 		var entry := _as(_moves[_move])
-		_arms.show_seat(EYE_SEAT, entry, entry, 1.0)
+		_arms.show_seat(_eye_seat, entry, entry, 1.0)
 		_label.text = BrawlerAnimation.Move.keys()[_moves[_move]].to_lower()
 		if _held >= SETTLE:
 			_snap()
@@ -112,6 +122,9 @@ func _snap() -> void:
 	if _view == "hats":
 		_snap_hat(image)
 		return
+	if _frames:
+		var name: String = BrawlerAnimation.Move.keys()[_moves[_move]].to_lower()
+		image.save_png("%s_%s.png" % [_path.get_basename(), name])
 	image.resize(CELL.x, CELL.y, Image.INTERPOLATE_LANCZOS)
 	if _sheet == null:
 		var rows := ceili(float(_moves.size()) / CELLS_ACROSS)

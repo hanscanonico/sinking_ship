@@ -29,10 +29,10 @@ const CHEST_BONE := &"chest"
 const CHEST := Vector3(0.0, -0.55, -0.2)
 ## The brawler is drawn facing +x; the camera looks down its own -z.
 const TURN := PI * 0.5
-## The fists of a shove's wind-up clip, for the guard a brace raises here, and the
-## open hands of a shove's, for a stagger's flung hand.
+## The fists of a shove's wind-up clip, for the guard a brace raises here. A
+## stagger keeps its own clip's fists, as the crew's does: knocked aside, the guard
+## stays closed.
 const BRACE_CLIP := &"windup"
-const STAGGER_CLIP := &"shove"
 ## The elbows hang straight down, so the sleeves rise steeply from the bottom edge
 ## rather than slanting in across the readouts.
 const ELBOWS: Array[Vector3] = [Vector3(0.1, -1.0, 0.0), Vector3(-0.1, -1.0, 0.0)]
@@ -50,16 +50,29 @@ const BRACE_PALM_R := Vector3(1.0, 0.0, 0.4)
 ## body's left (the screen's left), +y up, +z ahead.
 const AT_REST := {
 	&"chest": UPRIGHT,
-	BrawlerPose.REACH_L: Vector3(0.17, 0.26, 0.31),
-	BrawlerPose.REACH_R: Vector3(-0.17, 0.26, 0.31),
+	BrawlerPose.REACH_L: Vector3(0.2, 0.29, 0.33),
+	BrawlerPose.REACH_R: Vector3(-0.2, 0.29, 0.33),
 	&"hand_l": Vector3(-0.1, 0.6, 1.0),
 	&"hand_r": Vector3(0.1, 0.6, 1.0),
+}
+## Open hands spread out low to either side, palms down, feeling for the deck: a
+## fall, and a jump's spring into it.
+const SPREAD := {
+	&"chest": UPRIGHT,
+	BrawlerPose.REACH_L: Vector3(0.18, 0.36, 0.37),
+	BrawlerPose.REACH_R: Vector3(-0.21, 0.36, 0.36),
+	&"hand_l": Vector3(0.25, 0.2, 1.0),
+	&"hand_r": Vector3(-0.35, 0.2, 1.0),
+	BrawlerPose.PALM_L: Vector3(0.0, -1.0, 0.2),
+	BrawlerPose.PALM_R: Vector3(0.0, -1.0, 0.2),
 }
 const POSES := {
 	BrawlerAnimation.Move.IDLE: AT_REST,
 	BrawlerAnimation.Move.WALK: AT_REST,
 	BrawlerAnimation.Move.RUN: AT_REST,
 	BrawlerAnimation.Move.RECOVER: AT_REST,
+	BrawlerAnimation.Move.FALL: SPREAD,
+	BrawlerAnimation.Move.JUMP: SPREAD,
 	BrawlerAnimation.Move.WINDUP:
 	{
 		&"chest": UPRIGHT,
@@ -164,10 +177,8 @@ func show_seat(seat: int, then: Dictionary, now: Dictionary, alpha: float) -> vo
 		_body.setup(seat, _rules, false)
 		var clips := BrawlerAnimation.CLIPS.duplicate()
 		clips[BrawlerAnimation.Move.BRACE] = BRACE_CLIP
-		clips[BrawlerAnimation.Move.STAGGER] = STAGGER_CLIP
 		clips[BrawlerAnimation.Move.JUMP] = clips[BrawlerAnimation.Move.FALL]
 		_body.show_as_own_arms(clips, POSES, ELBOWS)
 		_body.rotation.y = TURN
 	_body.show_state(then, now, alpha)
-	_body.collapse_bone(Brawler.HEAD_BONE)
 	_body.position += CHEST - to_local(_body.bone_position(CHEST_BONE))

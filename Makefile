@@ -486,14 +486,16 @@ model-sources:
 # (tools/crew_gallery.gd): VIEW=crew (the default) stands them all on a deck, VIEW=arms
 # shows a seat's own arms in each through a first-person lens, in a grid, and VIEW=hats
 # every hat close up from ahead and behind. Windowed, so
-# it takes the window lock as capture does. CAPTURE= names the file.
+# it takes the window lock as capture does. CAPTURE= names the file; EYE= picks
+# whose arms VIEW=arms shows (4, a jersey, by default; 2 a jacket, 1 a greatcoat),
+# and FRAMES=1 saves each of its moves' frames whole beside the sheet.
 VIEW ?= crew
 crew-capture:
 	$(call require-godot)
 	tools/window_lock.sh tools/engine_guard.sh $(GODOT) --path . --resolution $(if $(RES),$(RES),1920x1080) \
 		--audio-driver Dummy --fixed-fps 30 -s res://tools/crew_gallery.gd -- \
 		--capture="$(if $(filter $(CURDIR)/captures/match_%,$(CAPTURE)),$(CURDIR)/captures/crew_$(VIEW).png,$(CAPTURE))" \
-		--view=$(VIEW) | grep -v '^\[godot_ai'
+		--view=$(VIEW) $(if $(EYE),--seat=$(EYE)) $(if $(FRAMES),--frames) | grep -v '^\[godot_ai'
 
 # `make sailor`: rebuilds the brawlers' sailor — rig, body and clips — from
 # assets/characters/sailor/gen_sailor.py, with Blender headless, into sailor.blend and
