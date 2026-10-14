@@ -11,6 +11,12 @@ enum Coat { JERSEY, JACKET, GREATCOAT }
 enum Whiskers { NONE, MOUSTACHE, BEARD }
 
 const MODEL := preload("res://assets/characters/sailor/sailor.glb")
+## Every hat, modelled in the head bone's space (assets/characters/sailor/gen_hats.py),
+## by name in Hat's order: a seat wears the one its hat names, on HEAD_BONE.
+const HAT_MODELS := preload("res://assets/characters/sailor/hats.glb")
+const HAT_MESHES: Array[NodePath] = [
+	^"Cap", ^"Souwester", ^"Boater", ^"Bare", ^"Bobble", ^"Top", ^"Peaked"
+]
 const CLOTHES := preload("res://scenes/art/brawler.gdshader")
 const OUTLINE := preload("res://scenes/art/outline.gdshader")
 ## Per seat, eight apart: a hand, an oilskin, a passenger, a steward, a sailor, a
@@ -105,6 +111,8 @@ static var _disc_texture: GradientTexture2D
 ## hat how high it stands over the soles as a share of the crown: read once.
 static var _sailor := Vector2.ZERO
 static var _headgear := {}
+## Each hat's mesh, read from HAT_MODELS once.
+static var _hats: Array[Mesh] = []
 
 var seat: int
 var _player: AnimationPlayer
@@ -120,7 +128,7 @@ var _clothes: ShaderMaterial
 var _clips: Dictionary = BrawlerAnimation.CLIPS
 var _poses: BrawlerPose
 var _feet_material: StandardMaterial3D
-## The outlines of the body and of the hat, which a shove coming lights.
+## The outline of the body and its hat, which a shove coming lights.
 var _outlines: Array[ShaderMaterial] = []
 ## A charge's sparks and speed lines, on the chest; null on a seat's own arms.
 var _charge: BrawlerCharge
@@ -188,11 +196,10 @@ func setup(seat_id: int, rules: BrawlRules, local: bool) -> void:
 	skeleton.add_child(head)
 	_hat_node = MeshInstance3D.new()
 	_hat_node.name = "Hat"
-	_hat_node.mesh = BrawlerHat.build(HATS[outfit], _colour, ArtPalette.HAIR[HAIR[outfit]])
-	_hat_node.material_override = _painted()
+	_hat_node.mesh = hat_mesh(HATS[outfit])
+	_hat_node.material_override = _clothes
 	head.add_child(_hat_node)
-	var hat_outline := (_hat_node.material_override as StandardMaterial3D).next_pass
-	_outlines = [_clothes.next_pass as ShaderMaterial, hat_outline as ShaderMaterial]
+	_outlines = [_clothes.next_pass as ShaderMaterial]
 
 	_charge = BrawlerCharge.new()
 	_charge.name = "Charge"
@@ -240,9 +247,19 @@ static func headgear(seat: int, rules: BrawlRules) -> float:
 			var head := skeleton.get_bone_global_rest(skeleton.find_bone(HEAD_BONE)).origin.y
 			_sailor = Vector2(crown, head)
 			model.free()
-		var top := BrawlerHat.build(hat, Color.WHITE, Color.WHITE).get_aabb().end.y
+		var top := hat_mesh(hat).get_aabb().end.y
 		_headgear[hat] = maxf(_sailor.y + top, _sailor.x) / _sailor.x
 	return rules.body_height * _headgear[hat]
+
+
+## [param hat] as modelled, in the head bone's space.
+static func hat_mesh(hat: Hat) -> Mesh:
+	if _hats.is_empty():
+		var hats := HAT_MODELS.instantiate()
+		for path: NodePath in HAT_MESHES:
+			_hats.append((hats.get_node(path) as MeshInstance3D).mesh)
+		hats.free()
+	return _hats[hat]
 
 
 ## Shows the marker overhead, on the local seat, or hides it.
@@ -495,6 +512,7 @@ func _dress(outfit: int) -> ShaderMaterial:
 	material.set_shader_parameter("skin", ArtPalette.SKIN)
 	material.set_shader_parameter("hair", ArtPalette.HAIR[HAIR[outfit]])
 	material.set_shader_parameter("shirt", ArtPalette.SHIRT)
+	material.set_shader_parameter("straw", ArtPalette.STRAW)
 	material.set_shader_parameter("leather", ArtPalette.LEATHER)
 	material.set_shader_parameter("ink", ArtPalette.INK)
 	material.set_shader_parameter("trim", ArtPalette.BRASS)
@@ -504,18 +522,6 @@ func _dress(outfit: int) -> ShaderMaterial:
 	material.set_shader_parameter("flash_colour", ArtPalette.HAND_FLASH)
 	material.set_shader_parameter("heat_colour", ArtPalette.CHARGE)
 	material.set_shader_parameter("heat_core", ArtPalette.CHARGE_CORE)
-	material.next_pass = _outline()
-	return material
-
-
-## Lit, flat and matte with a dark edge, coloured by its vertices: the hats.
-func _painted() -> StandardMaterial3D:
-	var material := StandardMaterial3D.new()
-	material.vertex_color_use_as_albedo = true
-	material.vertex_color_is_srgb = true
-	material.roughness = 0.8
-	material.diffuse_mode = BaseMaterial3D.DIFFUSE_TOON
-	material.specular_mode = BaseMaterial3D.SPECULAR_DISABLED
 	material.next_pass = _outline()
 	return material
 
