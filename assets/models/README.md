@@ -33,6 +33,12 @@ A prop placed a hundred times is parsed once.
 | `chandelier` | `LinerPublic._chandelier`, one per pendant of a landing and the lounge | hero | 792 |
 | `boiler_100`, `boiler_85`, `boiler_65`, `boiler_50` | `EngineRoom._boiler`, the largest front its bulkhead has room for | hero | 1090, 1066, 640, 592 |
 | `crate` | `ShipArt._crate`, each under its own node | furniture | 334 |
+| `washstand` | `CabinDressing.washstand()`, in a cabin and by a block of berths | furniture | 294 |
+| `locker` | `CabinDressing.locker()`, in a cabin and by a block of berths | furniture | 182 |
+| `luggage_shelf` | `CabinDressing.luggage_shelf()`, over a cabin's doorway | furniture | 192 |
+| `luggage_rack` | `CabinDressing._rack`, over a narrow cabin's folded berth | furniture | 264 |
+| `coat` | `CabinDressing.coat()`, on a cabin's wall | furniture | 209 |
+| `folded_berth_190` | `CabinDressing._folded_berth`, by length (`FOLDED_BERTHS`) | furniture | 242 |
 | `iceberg_tabular` | `IcebergPlanner`, one berg a match, drawn by `Iceberg` | world | 764 |
 | `iceberg_drydock` | `IcebergPlanner`, one berg a match, drawn by `Iceberg` | world | 896 |
 | `iceberg_wedge` | `IcebergPlanner`, one berg a match, drawn by `Iceberg` | world | 596 |
@@ -83,6 +89,15 @@ count as many times as it is placed. Each model belongs to a class with a ceilin
     `EngineRoom.BOILER_FRONTS`, its middle `BOILER_FOOT` + radius up. Under head height
     nothing stands more than art-lint's 0.12 m out from the face. The four sizes share
     `tools/boiler_front.py`.
+  - `washstand`, `locker`, `luggage_shelf`, `luggage_rack`, `coat`, `folded_berth_NNN`:
+    on the floor at the wall's face under the fitting's middle (a coat's hook), x along
+    the wall, z out of it, placed with `Wall.place()`. Their boxes are `CabinDressing`'s
+    `WASHSTAND`, `LOCKER`, `LUGGAGE_SHELF`, `LUGGAGE_RACK` and `COAT`, no deeper than a
+    wall fitting under `HEADROOM`. A folded berth is NNN hundredths of a metre long, one
+    of `FOLDED_BERTHS`, in `FOLDED_BERTH`'s height and depth; `RoomDressing.variant()`
+    picks the longest no longer than the berth asked for. The coat's collar and the
+    berth's bedding take their cabin's colour, so the placing code draws them. The two
+    luggage shelves share `tools/luggage.py`.
   - `crate`: the middle of its underside, its body `ShipArt.CRATE_SIDE` of the cargo's
     0.45 m radius each way and 0.8 m tall, its battens `CRATE_PROUD` proud. Every crate
     of every ship is that size.
@@ -136,8 +151,8 @@ A model may be built by a script instead of by hand: `assets/models/NAME/NAME.py
 run by headless Blender, writes `NAME.blend` from nothing. Its points are given in
 Godot's axes and its paints, ink and sharp edges set as above; the shared helpers
 (`Part`, the paints' preview colours, the axis swap, and the turned, boxed and swept
-shapes `lathe`, `tube`, `cap`, `torus`, `sphere`, `box`, `turned_box`, `slab`, `sweep`
-and `stud`) are in `tools/model_kit.py`.
+shapes `lathe`, `tube`, `cap`, `torus`, `sphere`, `box`, `turned_box`, `slab`, `panel`,
+`sweep` and `stud`) are in `tools/model_kit.py`.
 Every model so far is built so; the pilots' scripts rebuild `.blend`s whose export is
 byte for byte the committed `.glb`.
 
