@@ -30,7 +30,7 @@ A prop placed a hundred times is parsed once.
 | `bell` | `ShipFittings._bell`, on the foremast | hero | 620 |
 | `gauge_small`, `gauge_large` | `RoomDressing.gauge()`, by radius (`GAUGES`) | furniture | 113 |
 | `handwheel_small`, `handwheel_large` | `RoomDressing.wheel()`, by radius (`HANDWHEELS`) | furniture | 166, 190 |
-| `chandelier` | `LinerPublic._chandelier`, one per pendant of a landing and the lounge | hero | 984 |
+| `chandelier` | `LinerPublic._chandelier`, one per pendant of a landing and the lounge | hero | 792 |
 | `boiler_100`, `boiler_85`, `boiler_65`, `boiler_50` | `EngineRoom._boiler`, the largest front its bulkhead has room for | hero | 1090, 1066, 640, 592 |
 | `crate` | `ShipArt._crate`, each under its own node | furniture | 334 |
 

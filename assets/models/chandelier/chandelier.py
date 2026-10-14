@@ -74,7 +74,7 @@ def gilt(collection):
             (CORONA_IN, CORONA_TOP, 1.0),
             (CORONA_IN, CORONA_LOW, 1.0),
         ],
-        16,
+        12,
     )
     # The bowl under the globe, its finial the lowest point of the chandelier.
     lathe(
@@ -95,7 +95,7 @@ def gilt(collection):
         # A scroll out of the bowl, sagging under the corona and up into it.
         path = [
             at(*bezier((0.06, -0.104), (0.2, -0.165), (0.31, -0.1), (REACH, CORONA_TOP), t))
-            for t in (0.0, 0.25, 0.5, 0.75, 1.0)
+            for t in (0.0, 0.35, 0.7, 1.0)
         ]
         sweep(part, path, 0.009, 4, caps=False)
         # Every other arm, a rod from the collar down to the corona's inner edge.
@@ -107,7 +107,7 @@ def gilt(collection):
             at(REACH, CORONA_TOP),
             UP,
             [(0.0, -0.004, 0.0), (0.032, 0.012, 1.0), (0.0, 0.012, 0.0)],
-            6,
+            5,
         )
     return part.build(collection, sharp_angle=70.0)
 
@@ -122,7 +122,7 @@ def shades(collection):
             centre,
             UP,
             [(0.0, 0.012, 0.0), (0.03, 0.045, 0.0), (0.034, 0.088, 1.0), (0.0, 0.082, 0.0)],
-            6,
+            5,
         )
     return part.build(collection, sharp_angle=70.0)
 
@@ -139,7 +139,7 @@ def drops(collection):
             centre,
             UP,
             [(0.0, -long, 0.0), (0.014, -long * 0.42, 0.0), (0.0, 0.0, 0.0)],
-            4,
+            3,
             turn,
         )
     return part.build(collection, sharp_angle=30.0)

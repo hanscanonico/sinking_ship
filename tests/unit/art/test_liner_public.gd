@@ -97,11 +97,18 @@ func test_nothing_the_liner_s_rooms_draw_stands_in_a_body_s_way() -> void:
 	assert_eq(FurnishingCheck.intrusions(_layout, _rules, _faces), PackedStringArray())
 
 
+## A room's own dressing within BUDGET: its modelled chandeliers are held to their
+## model's budget (test_committed_models.gd), not counted against the room's.
 func test_each_public_room_and_landing_is_dressed_more_than_a_saloon_within_budget() -> void:
+	var chandelier := ShipModel.named(LinerPublic.CHANDELIER_MODEL).triangles
 	for room_name: StringName in BEFORE:
+		var room := _room(room_name)
 		var faces := _faces_in(room_name)
 		assert_gt(faces, BEFORE[room_name], room_name)
-		assert_lt(faces - BEFORE[room_name], BUDGET, room_name)
+		var hung := 0
+		if LinerPublic.style_of(room) in [LinerPublic.Style.LANDING, LinerPublic.Style.LOUNGE]:
+			hung = LinerPublic.chandeliers(room).size()
+		assert_lt(faces - BEFORE[room_name] - hung * chandelier, BUDGET, room_name)
 
 
 func test_nothing_of_a_public_room_or_landing_pokes_out_of_it() -> void:
