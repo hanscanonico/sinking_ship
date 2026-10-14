@@ -77,6 +77,12 @@ const VENT := Vector2(0.24, 0.17)
 ## bracket over its deck.
 const CHAIN_LINK := 0.25
 const BELL := 2.65
+## The modelled bell (assets/models/bell): its origin where its bracket meets the
+## mast's after face, at BELL over the deck, the bracket reaching aft (−x) BELL_REACH
+## and the bell hung under its end; and its box over all there.
+const BELL_MODEL := "bell"
+const BELL_REACH := 0.22
+const BELL_BOX := AABB(Vector3(-0.27, -0.3, -0.1), Vector3(0.282, 0.345, 0.2))
 ## A porthole the hit left open (§5b.1): its glass swung in on its hinge this far, in
 ## radians; and how near, in metres along her and up, an open porthole's opening
 ## stands to the porthole drawn for it.
@@ -288,18 +294,10 @@ func _chain(mesh: ShipMesh, from: Vector3, to: Vector3) -> void:
 
 
 ## The ship's bell under a bracket on the after side of [param mast], over head
-## height on the deck at [param deck], its lanyard hanging.
+## height on the deck at [param deck], its lanyard hanging (BELL_MODEL).
 func _bell(mesh: ShipMesh, mast: ShipBlocker, deck: float) -> void:
-	var height := deck + BELL
-	var out := mast.radius + 0.22
-	var root := Vector3(mast.centre.x - mast.radius, height, mast.centre.y)
-	var tip := Vector3(mast.centre.x - out, height, mast.centre.y)
-	mesh.beam(root, tip, Vector2(0.04, 0.05), ShipPaints.dark, 0)
-	var spot := Vector2(tip.x + 0.05, tip.z)
-	mesh.cylinder(spot, 0.07, height - 0.17, height - 0.02, 10, ShipPaints.brass)
-	mesh.cylinder(spot, 0.1, height - 0.22, height - 0.17, 10, ShipPaints.brass, false)
-	var lanyard := Vector3(spot.x, height - 0.22, spot.y)
-	mesh.beam(lanyard, lanyard + Vector3.DOWN * 0.08, Vector2.ONE * 0.015, ShipPaints.rope, 0)
+	var root := Vector3(mast.centre.x - mast.radius, deck + BELL, mast.centre.y)
+	mesh.model(ShipModel.named(BELL_MODEL), Transform3D(Basis.IDENTITY, root))
 
 
 ## A louvred vent in a break's face at [param centre], facing [param normal].

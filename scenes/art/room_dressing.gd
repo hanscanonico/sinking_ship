@@ -107,6 +107,23 @@ const PIPE_SIDES := 8
 const LAMP_SPACING := 12.0
 ## A berth slung overhead: its length and its depth out from its wall.
 const BERTH := Vector2(1.9, 0.7)
+## The wheelhouse's modelled fittings (assets/models): against its forward wall the
+## wheel on its pedestal between the binnacle and the telegraph, and on its after wall
+## the chart over its case — each with its origin on the floor at the wall's face under
+## its middle, x along the wall, z out of it — and each one's box over all there, no
+## deeper than a wall fitting.
+const WHEEL_STAND_MODEL := "wheel_stand"
+const WHEEL_STAND := AABB(Vector3(-0.69, 0.0, 0.0), Vector3(1.37, 1.41, 0.1))
+const CHART_CASE_MODEL := "chart_case"
+const CHART_CASE := AABB(Vector3(-0.5, 0.46, 0.0), Vector3(1.0, 1.29, 0.105))
+## The modelled gauges and handwheels gauge() and wheel() draw, by the radius each is
+## made for (variant()): a gauge's face's middle at its origin, its case reaching
+## GAUGE_BACK behind it; a handwheel's hub at its origin, its spindle reaching
+## HANDWHEEL_SPINDLE back; each facing +z.
+const GAUGES := {0.085: "gauge_small", 0.11: "gauge_large"}
+const GAUGE_BACK := 0.014
+const HANDWHEELS := {0.11: "handwheel_small", 0.15: "handwheel_large"}
+const HANDWHEEL_SPINDLE := 0.05
 ## The longest piece a furnishing's box is drawn in.
 const PIECE := 1.5
 ## A sign over a doorway: its letters' size in pixels and the metres one stands for,
@@ -770,37 +787,12 @@ func _helm(mesh: ShipMesh, room: ShipRoom, glass: Array[Array]) -> void:
 		block(mesh, ledge, sill.y - 0.03, sill.y + 0.02, ShipPaints.frame)
 
 
-## The wheelhouse's forward wall: the wheel on its steering box, the binnacle to one
-## side of it with its compensating spheres beside its hood, the telegraph to the
-## other, a clock over the wheel and voice pipes either side of it, clear of the
-## windows by the corners.
+## The wheelhouse's forward wall: the wheel on its pedestal between the binnacle and
+## the telegraph (WHEEL_STAND_MODEL), a clock over the wheel and voice pipes either side
+## of it, clear of the windows by the corners.
 func _wheel_wall(mesh: ShipMesh, wall: Wall) -> void:
 	var middle := wall.middle()
-	var floor := wall.floor
-	var steering := wall.rect(middle - 0.12, middle + 0.12, 0.0, 0.07)
-	block(mesh, steering, floor, floor + 0.92, ShipPaints.frame, ShipMesh.RIM_ALL)
-	block(mesh, steering.grow(0.005), floor + 0.8, floor + 0.85, ShipPaints.brass)
-	wheel(mesh, wall.at(middle, 1.0, 0.085), wall.normal, 0.32, 0.022, 8, ShipPaints.teak)
-	var binnacle := middle - 0.51
-	_half_column(mesh, wall, binnacle, 0.09, Vector2(0.0, 1.0), ShipPaints.teak)
-	_half_column(mesh, wall, binnacle, 0.1, Vector2(1.0, 1.2), ShipPaints.brass)
-	_half_column(mesh, wall, binnacle, 0.08, Vector2(1.2, 1.28), ShipPaints.brass)
-	_half_column(mesh, wall, binnacle, 0.045, Vector2(1.28, 1.36), ShipPaints.brass)
-	# The spheres hug its hood, over the dado rail and the windows' sills and clear of the
-	# window's surround and the wheel's handles either side.
-	for side: float in [-1.0, 1.0]:
-		var sphere := wall.at(binnacle + side * 0.13, 1.26, 0.05)
-		disc(mesh, sphere, wall.normal, 0.05, ShipPaints.dark, 10)
-	var telegraph := middle + 0.5
-	_half_column(mesh, wall, telegraph, 0.06, Vector2(0.0, 1.02), ShipPaints.brass)
-	var dial := wall.at(telegraph, 1.2, 0.07)
-	disc(mesh, dial, wall.normal, 0.16, ShipPaints.enamel, 14)
-	ring(mesh, dial + wall.normal * 0.004, wall.normal, 0.15, 0.18, ShipPaints.brass, 14)
-	var order := dial + wall.normal * 0.006 + Vector3.UP * 0.07
-	panel(mesh, order, wall.right, Vector2(0.1, 0.035), wall.normal, ShipPaints.upholstery)
-	var lever := dial + wall.normal * 0.02
-	var handle := lever + (wall.right + Vector3.UP).normalized() * 0.16
-	mesh.beam(lever, handle, Vector2.ONE * 0.022, ShipPaints.brass, 0)
+	mesh.model(ShipModel.named(WHEEL_STAND_MODEL), wall.place(wall.at(middle, 0.0)))
 	var clock := wall.at(middle, 1.75, 0.02)
 	disc(mesh, clock, wall.normal, 0.11, ShipPaints.enamel, 12)
 	ring(mesh, clock + wall.normal * 0.004, wall.normal, 0.1, 0.13, ShipPaints.brass, 12)
@@ -813,50 +805,9 @@ func _wheel_wall(mesh: ShipMesh, wall: Wall) -> void:
 
 
 ## The wheelhouse's after wall: a chart pinned in a frame between its windows, over a
-## shallow chart case of two drawers.
+## shallow chart case of two drawers (CHART_CASE_MODEL).
 func _chart_wall(mesh: ShipMesh, wall: Wall) -> void:
-	var middle := wall.middle()
-	var chart := wall.at(middle, 1.45, 0.012)
-	panel(mesh, chart, wall.right, Vector2(0.27, 0.3), wall.normal, ShipPaints.frame)
-	var paper := chart + wall.normal * 0.006
-	panel(mesh, paper, wall.right, Vector2(0.23, 0.26), wall.normal, ShipPaints.chart)
-	for line: Vector4 in [
-		Vector4(-0.2, -0.1, -0.05, 0.2),
-		Vector4(0.0, -0.2, 0.2, 0.05),
-		Vector4(-0.18, 0.18, 0.2, -0.2),
-	]:
-		var from := paper + wall.normal * 0.003 + wall.right * line.x + Vector3.UP * line.y
-		var to := paper + wall.normal * 0.003 + wall.right * line.z + Vector3.UP * line.w
-		mesh.beam(from, to, Vector2(0.006, 0.002), ShipPaints.dark, 0)
-	var drawers := wall.rect(middle - 0.5, middle + 0.5, 0.0, 0.09)
-	block(mesh, drawers, wall.floor + 0.7, wall.floor + 0.98, ShipPaints.frame, ShipMesh.RIM_ALL)
-	for drawer in 2:
-		var front := wall.at(middle, 0.77 + drawer * 0.13, 0.092)
-		panel(mesh, front, wall.right, Vector2(0.45, 0.05), wall.normal, ShipPaints.teak, 0)
-		var pull := wall.place(front + wall.normal * 0.01)
-		mesh.turned_box(pull, Vector3(0.1, 0.02, 0.02), ShipPaints.brass, 0)
-
-
-## A half-column of [param radius] flat against [param wall] at [param along], from
-## [param span].x to [param span].y over the floor and capped: a binnacle's or a
-## telegraph's pillar.
-func _half_column(
-	mesh: ShipMesh, wall: Wall, along: float, radius: float, span: Vector2, paint: ShipMesh.Paint
-) -> void:
-	var bottom := wall.at(along, span.x)
-	var top := wall.at(along, span.y)
-	var segments := 8
-	for index in segments:
-		var turn := PI * index / segments
-		var next := PI * (index + 1) / segments
-		var na := wall.right * cos(turn) + wall.normal * sin(turn)
-		var nb := wall.right * cos(next) + wall.normal * sin(next)
-		var side := [
-			bottom + na * radius, bottom + nb * radius, top + nb * radius, top + na * radius
-		]
-		mesh.smooth_quad(PackedVector3Array(side), PackedVector3Array([na, nb, nb, na]), paint)
-		var cap := PackedVector3Array([top, top + na * radius, top + nb * radius])
-		mesh.triangle(cap, PackedFloat32Array([0.0, 0.0, 0.0]), Vector3.UP, paint)
+	mesh.model(ShipModel.named(CHART_CASE_MODEL), wall.place(wall.at(wall.middle(), 0.0)))
 
 
 ## A plate over every doorway of [param room] onto another room, on the doorway's
@@ -995,39 +946,44 @@ static func ring(
 		mesh.quad(c + a * inner, c + b * inner, c + b * outer, c + a * outer, normal, paint, 0)
 
 
-## A gauge: a white face in a brass rim, with its needle.
+## A gauge of [param radius] at [param centre] facing [param normal]: a white face in a
+## brass case, with its needle and its stem — GAUGES' model made for that radius.
 static func gauge(mesh: ShipMesh, centre: Vector3, normal: Vector3, radius: float) -> void:
-	disc(mesh, centre, normal, radius * 0.85, ShipPaints.gauge, 8)
-	ring(mesh, centre + normal * 0.004, normal, radius * 0.8, radius, ShipPaints.brass, 8)
-	var axes := across(normal)
-	var hub := centre + normal * 0.006
-	var tip := hub + (axes[0] * 0.6 + axes[1] * 0.5) * radius * 0.7
-	mesh.beam(hub, tip, Vector2(0.008, 0.002), ShipPaints.dark, 0)
+	mesh.model(ShipModel.named(variant(GAUGES, radius)), Transform3D(facing(normal), centre))
 
 
-## A handwheel of [param radius] round [param hub] facing [param normal], its rim
-## [param thick], with [param spokes] spokes across it — handles past its rim on a
-## ship's wheel of more than six.
+## A handwheel of [param radius] round [param hub] facing [param normal], its spindle
+## reaching HANDWHEEL_SPINDLE back: HANDWHEELS' model made for that radius, whose own
+## are its thickness, its spokes and its paints.
 static func wheel(
 	mesh: ShipMesh,
 	hub: Vector3,
 	normal: Vector3,
 	radius: float,
-	thick: float,
-	spokes: int,
-	paint: ShipMesh.Paint
+	_thick: float,
+	_spokes: int,
+	_paint: ShipMesh.Paint
 ) -> void:
-	var inner := radius - thick * 1.5
-	var outer := radius + thick * 0.5
-	ring(mesh, hub, normal, inner, outer, paint, 12)
-	ring(mesh, hub - normal * thick, -normal, inner, outer, paint, 12)
-	var axes := across(normal)
-	var reach := radius + (0.09 if spokes > 6 else 0.0)
-	var middle := hub - normal * thick * 0.5
-	for spoke in spokes:
-		var out := axes[0] * cos(PI * spoke / spokes) + axes[1] * sin(PI * spoke / spokes)
-		mesh.beam(middle - out * reach, middle + out * reach, Vector2.ONE * thick, paint, 0)
-	disc(mesh, hub + normal * 0.004, normal, thick * 1.6, ShipPaints.brass, 8)
+	mesh.model(ShipModel.named(variant(HANDWHEELS, radius)), Transform3D(facing(normal), hub))
+
+
+## The model of [param variants] (a radius each is made for: its name) made for
+## [param radius]: the largest made no bigger, else the smallest.
+static func variant(variants: Dictionary, radius: float) -> String:
+	var best := -1.0
+	var smallest := INF
+	for made: float in variants:
+		smallest = minf(smallest, made)
+		if made <= radius + ShipMesh.SLIVER and made > best:
+			best = made
+	return variants[best if best >= 0.0 else smallest]
+
+
+## A turn that faces a model's +z along [param normal], its +y up it as across() has
+## it: a gauge's face or a handwheel's hub.
+static func facing(normal: Vector3) -> Basis:
+	var up := across(normal)[1]
+	return Basis(up.cross(normal), up, normal)
 
 
 ## A pipe of [param radius] from [param from] to [param to], round in PIPE_SIDES
