@@ -11,6 +11,9 @@ It makes, from the numbers below and nothing else:
   skinned to the rig with Blender's automatic weights, at most four bones a point;
 - the fingers and thumbs: closed shells of their own set into the palms (FINGERS,
   THUMB_STATIONS), weighted by hand to the finger and thumb bones;
+- the outfits (OUTFITS): the body dressed three ways — a jersey, a jacket and a
+  greatcoat — each a mesh of its own on the rig, its pieces of clothing laid over
+  it and what each point is written into its UVs for the clothes shader;
 - the clips the game plays (CLIPS), keyed every frame from poses written in code;
 - the .blend, saved, and the .glb Godot loads, exported from it.
 
@@ -27,6 +30,7 @@ import sys
 import bmesh
 import bpy
 from mathutils import Matrix, Quaternion, Vector
+from mathutils.bvhtree import BVHTree
 
 FPS = 30
 ## Godot's model frame into Blender's, for a point or a direction.
@@ -98,31 +102,31 @@ def bones():
 ## The trunk, hips to crown: (name, at, (across, deep)), its half-widths along x
 ## and z. The head stays inside the hats BrawlerHat builds round it.
 TRUNK_NODES = [
-    ("hips", (0.0, 0.92, -0.015), (0.152, 0.125)),
-    ("waist", (0.0, 1.04, 0.0), (0.128, 0.11)),
-    ("belly", (0.0, 1.13, 0.004), (0.136, 0.11)),
-    ("ribs", (0.0, 1.21, 0.008), (0.18, 0.145)),
-    ("chest", (0.0, 1.295, 0.012), (0.215, 0.165)),
-    ("yoke", (0.0, 1.43, -0.015), (0.165, 0.165)),
-    ("neck_base", (0.0, 1.51, -0.025), (0.118, 0.094)),
-    ("neck", (0.0, 1.546, -0.026), (0.058, 0.062)),
-    ("chin", (0.0, 1.588, 0.024), (0.078, 0.09)),
-    ("jaw", (0.0, 1.628, 0.012), (0.09, 0.104)),
-    ("cheek", (0.0, 1.69, 0.006), (0.096, 0.116)),
+    ("hips", (0.0, 0.92, -0.015), (0.158, 0.13)),
+    ("waist", (0.0, 1.04, 0.0), (0.136, 0.116)),
+    ("belly", (0.0, 1.13, 0.004), (0.146, 0.118)),
+    ("ribs", (0.0, 1.21, 0.008), (0.194, 0.158)),
+    ("chest", (0.0, 1.295, 0.014), (0.234, 0.182)),
+    ("yoke", (0.0, 1.43, -0.015), (0.178, 0.172)),
+    ("neck_base", (0.0, 1.51, -0.025), (0.124, 0.098)),
+    ("neck", (0.0, 1.548, -0.024), (0.064, 0.066)),
+    ("chin", (0.0, 1.598, 0.024), (0.082, 0.092)),
+    ("jaw", (0.0, 1.636, 0.012), (0.095, 0.106)),
+    ("cheek", (0.0, 1.692, 0.006), (0.098, 0.116)),
     ("brow", (0.0, 1.752, -0.008), (0.1, 0.12)),
     ("crown", (0.0, 1.826, -0.014), (0.07, 0.082)),
 ]
 ## An arm, the shoulder out to the palm: (name, at, (deep, high), link), its
 ## half-widths along z and y; link is the trunk node it grows from.
 ARM_NODES = [
-    ("shoulder", (0.205, 1.432, -0.03), (0.11, 0.1), "yoke"),
-    ("delt", (0.265, 1.434, -0.035), (0.1, 0.095), None),
-    ("bicep", (0.345, 1.437, -0.04), (0.082, 0.084), None),
-    ("elbow", (0.45, 1.44, -0.04), (0.058, 0.058), None),
-    ("forearm", (0.545, 1.44, -0.04), (0.072, 0.066), None),
-    ("wrist", (0.722, 1.44, -0.04), (0.048, 0.037), None),
-    ("palm", (0.77, 1.438, -0.04), (0.068, 0.032), None),
-    ("palm_end", (0.806, 1.437, -0.04), (0.066, 0.029), None),
+    ("shoulder", (0.205, 1.432, -0.03), (0.12, 0.104), "yoke"),
+    ("delt", (0.265, 1.434, -0.035), (0.11, 0.1), None),
+    ("bicep", (0.345, 1.437, -0.04), (0.09, 0.09), None),
+    ("elbow", (0.45, 1.44, -0.04), (0.066, 0.064), None),
+    ("forearm", (0.545, 1.44, -0.04), (0.086, 0.078), None),
+    ("wrist", (0.722, 1.44, -0.04), (0.056, 0.046), None),
+    ("palm", (0.77, 1.438, -0.04), (0.07, 0.037), None),
+    ("palm_end", (0.806, 1.437, -0.04), (0.068, 0.033), None),
 ]
 ## A leg, the hip down to the heel: (name, at, (across, deep), link).
 LEG_NODES = [
@@ -162,9 +166,9 @@ FINGER_STATIONS = [
 ## of the palm out to the tip.
 THUMB_STATIONS = [
     ((0.758, 1.43, -0.026), 0.02, 0.019),
-    ((0.772, 1.427, 0.004), 0.0195, 0.0185),
-    ((0.789, 1.423, 0.03), 0.0165, 0.0155),
-    ((0.803, 1.42, 0.048), 0.0142, 0.0136),
+    ((0.772, 1.427, 0.004), 0.021, 0.02),
+    ((0.789, 1.423, 0.03), 0.0185, 0.0172),
+    ((0.803, 1.42, 0.048), 0.0158, 0.015),
     ((0.809, 1.419, 0.057), 0.011, 0.0105),
     ((0.812, 1.419, 0.063), 0.0, 0.0),
 ]
@@ -192,15 +196,15 @@ THUMB_WEIGHTS = [
 ## off the middle is matched on the other side.
 BULGES = [
     # The chest, the shoulders' caps, the trapezius, the shoulder blades, the seat.
-    ((0.085, 1.34, 0.11), (0.095, 0.075, 0.08), 0.034, 0.35),
-    ((0.22, 1.44, -0.03), (0.085, 0.08, 0.095), 0.034, 0.5),
+    ((0.088, 1.34, 0.12), (0.1, 0.08, 0.085), 0.044, 0.35),
+    ((0.22, 1.44, -0.03), (0.09, 0.08, 0.1), 0.04, 0.5),
     ((0.1, 1.505, -0.04), (0.075, 0.045, 0.065), 0.02, 0.8),
     ((0.1, 1.33, -0.1), (0.085, 0.1, 0.05), 0.016, 1.0),
     ((0.065, 0.87, -0.1), (0.075, 0.075, 0.06), 0.02, 1.0),
     # A bicep and a tricep, a sailor's forearm, a calf.
-    ((0.345, 1.44, 0.015), (0.075, 0.05, 0.05), 0.018, 0.6),
+    ((0.345, 1.44, 0.02), (0.075, 0.055, 0.055), 0.022, 0.6),
     ((0.33, 1.44, -0.1), (0.08, 0.05, 0.05), 0.012, 1.0),
-    ((0.53, 1.445, -0.035), (0.07, 0.06, 0.07), 0.014, 0.7),
+    ((0.54, 1.445, -0.035), (0.09, 0.07, 0.08), 0.02, 0.7),
     ((0.091, 0.4, -0.085), (0.06, 0.1, 0.05), 0.016, 1.0),
     # The head: a chin, a brow ridge, a nose, ears, the back of the skull.
     ((0.0, 1.588, 0.095), (0.045, 0.032, 0.045), 0.016, 0.8),
@@ -374,38 +378,6 @@ def _hand_shells():
     return verts, faces, weights
 
 
-def build_body():
-    """The sailor's body: a mesh object in Blender's axes, not yet skinned, and
-    its finger and thumb shells, apart, with their weights."""
-    grown = _grow()
-    grown.name = "Sailor"
-    for polygon in grown.polygons:
-        polygon.use_smooth = True
-    material = bpy.data.materials.new("sailor")
-    material.diffuse_color = (0.84, 0.37, 0.0, 1.0)
-    grown.materials.append(material)
-    sailor = bpy.data.objects.new("Sailor", grown)
-    bpy.context.scene.collection.objects.link(sailor)
-    verts, faces, weights = _hand_shells()
-    shells = bpy.data.meshes.new("Hands")
-    shells.from_pydata([TO_BLENDER @ v for v in verts], [], faces)
-    shells.materials.append(material)
-    bmesh_shells = bmesh.new()
-    bmesh_shells.from_mesh(shells)
-    bmesh.ops.triangulate(bmesh_shells, faces=bmesh_shells.faces[:], quad_method="BEAUTY")
-    bmesh_shells.to_mesh(shells)
-    bmesh_shells.free()
-    for polygon in shells.polygons:
-        polygon.use_smooth = True
-    hands = bpy.data.objects.new("Hands", shells)
-    bpy.context.scene.collection.objects.link(hands)
-    for index, share in enumerate(weights):
-        for bone, weight in share.items():
-            group = hands.vertex_groups.get(bone) or hands.vertex_groups.new(name=bone)
-            group.add([index], weight, "REPLACE")
-    return sailor, hands
-
-
 def build_rig():
     """The armature, Rig, at rest: BONES in Blender's axes, every one but root deforming."""
     data = bpy.data.armatures.new("Rig")
@@ -426,33 +398,573 @@ def build_rig():
     return rig
 
 
-def skin_body(sailor, hands, rig):
-    """Binds the body to the rig — automatic weights, at most four bones a point, the
-    fingers' and thumbs' bones left to their shells — and sets the shells into it."""
+def build_base(rig):
+    """The bare sailor, grown and skinned to `rig` by Blender's automatic weights, at
+    most four bones a point, the fingers' and thumbs' bones left to their shells:
+    a Kit of its points, in the model frame, its faces and its weights. The Blender
+    object it is skinned on is removed again."""
+    grown = _grow()
+    base = bpy.data.objects.new("Base", grown)
+    bpy.context.scene.collection.objects.link(base)
     bpy.ops.object.select_all(action="DESELECT")
-    sailor.select_set(True)
+    base.select_set(True)
     rig.select_set(True)
     bpy.context.view_layer.objects.active = rig
     bpy.ops.object.parent_set(type="ARMATURE_AUTO")
-    for group in list(sailor.vertex_groups):
+    for group in list(base.vertex_groups):
         if group.name.rsplit("_", 1)[0] in HAND_BONES:
-            sailor.vertex_groups.remove(group)
-    bpy.context.view_layer.objects.active = sailor
+            base.vertex_groups.remove(group)
+    bpy.context.view_layer.objects.active = base
     # A wrist turned on its forearm twists the skin between them: shared over a
     # longer run, the twist leaves no crease for the outline to catch.
     bpy.ops.object.mode_set(mode="WEIGHT_PAINT")
     for name in WRIST_BONES:
         for side in ("_l", "_r"):
-            sailor.vertex_groups.active_index = sailor.vertex_groups[name + side].index
+            base.vertex_groups.active_index = base.vertex_groups[name + side].index
             bpy.ops.object.vertex_group_smooth(group_select_mode="ACTIVE", factor=0.5, repeat=WRIST_SMOOTHING)
     bpy.ops.object.mode_set(mode="OBJECT")
-    bpy.ops.object.vertex_group_limit_total(group_select_mode="ALL", limit=4)
-    bpy.ops.object.vertex_group_normalize_all(group_select_mode="ALL", lock_active=False)
-    bpy.ops.object.select_all(action="DESELECT")
-    hands.select_set(True)
-    sailor.select_set(True)
-    bpy.context.view_layer.objects.active = sailor
-    bpy.ops.object.join()
+    kit = Kit()
+    names = {group.index: group.name for group in base.vertex_groups}
+    for vert in grown.vertices:
+        shares = {names[g.group]: g.weight for g in vert.groups if g.weight > 0.0}
+        kit.add(TO_BLENDER.transposed() @ vert.co, BODY, shares)
+    for polygon in grown.polygons:
+        kit.faces.append(tuple(polygon.vertices))
+    bpy.data.objects.remove(base)
+    bpy.data.meshes.remove(grown)
+    return kit
+
+
+# ---------------------------------------------------------------------------
+# The outfits. Every seat wears one of three (OUTFITS, in Brawler.Coat's order),
+# each the sailor dressed here and exported as a mesh of its own on the rig: the
+# body let out under the cloth (HANG), the coat's skirt hung from the hips, and the
+# collars, cuffs, ribbing, lapels, pockets and buttons laid over it. What each point
+# is — the body, painted from where it stands, or a piece of clothing in one colour
+# — goes into its second UV for the clothes shader (brawler.gdshader's PART_), and
+# the coat's colour stays the shader's, so the tint is the seat's.
+
+OUTFITS = ("Jersey", "Jacket", "Greatcoat")
+## The parts, as brawler.gdshader numbers them. Neighbours in a face blend across
+## it, so the cloth and its lining, which share the skirt's edges, are numbered
+## side by side.
+BODY, CLOTH, LINING, FACING, SHIRT, BRASS, LEATHER, INK, HORN = range(9)
+## How wide each piece's outline is drawn, as a share of the body's: small pieces
+## in full would drown in ink.
+DETAIL_INK = 0.45
+BUTTON_INK = 0.2
+## How far each outfit lets the body out under the cloth, at most, in model units:
+## over the trunk, hanging straight down from the chest between HANG_FROM and
+## HANG_TO within HANG_WIDTH of the middle; and over the sleeves.
+HANG = {"Jersey": 0.012, "Jacket": 0.022, "Greatcoat": 0.03}
+SLEEVE = {"Jersey": 0.004, "Jacket": 0.004, "Greatcoat": 0.009}
+HANG_FROM = 0.86
+HANG_TO = 1.38
+HANG_WIDTH = 0.22
+## How many rounds of smoothing each outfit's cloth bridges the trunk's hollows
+## with, over the trunk within DRAPE_WIDTH of the middle between DRAPE_FROM and
+## DRAPE_TO.
+DRAPE = {"Jersey": 3, "Jacket": 6, "Greatcoat": 8}
+DRAPE_WIDTH = 0.24
+DRAPE_FROM = 0.88
+DRAPE_TO = 1.46
+## A coat's skirt, hanging from the hips: rings from the waist down to its hem,
+## opening at the front by as many radians either side of ahead as SKIRT_OPENINGS
+## has from the waist to the hem — a jacket's tails are cut away. A ring stands
+## wider and deeper and is held less by the hips than by the thighs the lower it
+## hangs (the SKIRT_ rates, per unit of drop); past 1/SKIRT_SPLIT of the way round
+## from the front it goes wholly with its own thigh. Brawler.SKIRT_HEMS holds the
+## hems too, for the shadow the shader lays on the legs under them.
+SKIRT_HEMS = {"Jacket": 0.78, "Greatcoat": 0.45}
+SKIRT_OPENINGS = {"Jacket": (0.3, 0.8), "Greatcoat": (0.04, 0.14)}
+SKIRT_RINGS = {"Jacket": 4, "Greatcoat": 6}
+SKIRT_SEGMENTS = 18
+SKIRT_WAIST_HEIGHT = 1.0
+SKIRT_WAIST = (0.165, 0.137)
+SKIRT_FLARE = (0.15, 0.15)
+SKIRT_BACK = 0.02
+SKIRT_LET_GO = 1.55
+SKIRT_HELD = 0.12
+SKIRT_SPLIT = 2.5
+SKIRT_THICK = 0.012
+## The painted front — shirt, tie, lapels, buttons — rides the spine alone, its
+## share of each spine bone rising smoothly with height: automatic weights give the
+## breastbone to the collarbones and upper arms, which a raised arm swings, and its
+## rows to the spine bones in uneven shares, both of which would shear a narrow
+## band into a zigzag. Within STEADY_ACROSS of the middle and between the first and
+## last of STEADY_ROWS a point is weighted so, letting go over STEADY_FADE beyond.
+## tools/art_lint.gd checks it with the same numbers.
+STEADY_ACROSS = 0.09
+STEADY_ROWS = (("spine_01", 1.1), ("spine_02", 1.27), ("chest", 1.42))
+STEADY_FADE = 0.05
+
+
+class Kit:
+    """A mesh being put together in the model frame: its points, each with its part,
+    its ink (how wide its outline is drawn) and its bones' shares; and its faces,
+    each turned on the way to the side it faces."""
+
+    def __init__(self):
+        self.points = []
+        self.parts = []
+        self.inks = []
+        self.weights = []
+        self.faces = []
+
+    def add(self, at, part, weights, ink=1.0):
+        self.points.append(Vector(at))
+        self.parts.append(part)
+        self.inks.append(ink)
+        self.weights.append(dict(weights))
+        return len(self.points) - 1
+
+    def face(self, corners, outward):
+        """Adds the face over `corners`, wound to face `outward`."""
+        a, b, c = (self.points[i] for i in corners[:3])
+        if (b - a).cross(c - a).dot(outward) < 0.0:
+            corners = tuple(reversed(corners))
+        self.faces.append(tuple(corners))
+
+    def extend(self, other, part=None):
+        start = len(self.points)
+        for at, own, ink, weights in zip(other.points, other.parts, other.inks, other.weights):
+            self.add(at, own if part is None else part, weights, ink)
+        for face in other.faces:
+            self.faces.append(tuple(start + i for i in face))
+
+
+class Surface:
+    """What clothes are laid on: a Kit's faces as they stand, which a ray finds
+    the cloth's place on, with its smoothed normal and its bones' shares there."""
+
+    def __init__(self, kit):
+        self.points = [p.copy() for p in kit.points]
+        self.weights = kit.weights[:]
+        self.triangles = []
+        for face in kit.faces:
+            for i in range(1, len(face) - 1):
+                self.triangles.append((face[0], face[i], face[i + 1]))
+        self.tree = BVHTree.FromPolygons(self.points, self.triangles, all_triangles=True)
+        self.normals = [Vector((0.0, 0.0, 0.0)) for _ in self.points]
+        for a, b, c in self.triangles:
+            n = (self.points[b] - self.points[a]).cross(self.points[c] - self.points[a])
+            for i in (a, b, c):
+                self.normals[i] += n
+        for n in self.normals:
+            n.normalize()
+
+    def cast(self, origin, way, facing):
+        """Where a ray from `origin` along `way` meets the surface: the point, its
+        normal turned toward `facing`, and the bones' shares there."""
+        at, _, index, _ = self.tree.ray_cast(Vector(origin), Vector(way).normalized(), 3.0)
+        if at is None:
+            raise RuntimeError("gen_sailor: no surface from %s along %s" % (tuple(origin), tuple(way)))
+        a, b, c = self.triangles[index]
+        share = barycentric(at, self.points[a], self.points[b], self.points[c])
+        normal = (self.normals[a] * share[0] + self.normals[b] * share[1] + self.normals[c] * share[2]).normalized()
+        if normal.dot(Vector(facing)) < 0.0:
+            normal = -normal
+        weights = {}
+        for i, s in zip((a, b, c), share):
+            for bone, w in self.weights[i].items():
+                weights[bone] = weights.get(bone, 0.0) + w * s
+        return at, normal, _strongest(weights)
+
+
+def barycentric(p, a, b, c):
+    v0, v1, v2 = b - a, c - a, p - a
+    d00, d01, d11 = v0.dot(v0), v0.dot(v1), v1.dot(v1)
+    d20, d21 = v2.dot(v0), v2.dot(v1)
+    den = d00 * d11 - d01 * d01
+    v = (d11 * d20 - d01 * d21) / den
+    w = (d00 * d21 - d01 * d20) / den
+    v, w = max(v, 0.0), max(w, 0.0)
+    u = max(1.0 - v - w, 0.0)
+    total = u + v + w
+    return (u / total, v / total, w / total)
+
+
+def _strongest(shares, most=4):
+    """The `most` largest of `shares`, normalized."""
+    kept = sorted(shares.items(), key=lambda item: (-item[1], item[0]))[:most]
+    total = sum(w for _, w in kept)
+    return {bone: w / total for bone, w in kept if w > 0.0}
+
+
+def _smoothstep(edge0, edge1, x):
+    t = max(0.0, min(1.0, (x - edge0) / (edge1 - edge0)))
+    return t * t * (3.0 - 2.0 * t)
+
+
+def _let_out(kit, outfit):
+    """Lets the body out under `outfit`'s cloth, in place: the cloth bridging the
+    hollows between the muscles of the trunk (DRAPE rounds of smoothing that only
+    ever push out), the trunk hanging straight from the chest, the sleeves a little
+    fuller."""
+    surface = Surface(kit)
+    around = [set() for _ in kit.points]
+    for face in kit.faces:
+        for i, a in enumerate(face):
+            around[a].add(face[i - 1])
+            around[a].add(face[(i + 1) % len(face)])
+    trunk = [
+        index for index, point in enumerate(kit.points)
+        if abs(point.x) < DRAPE_WIDTH and DRAPE_FROM < point.y < DRAPE_TO
+    ]
+    for _ in range(DRAPE[outfit]):
+        moved = {}
+        for index in trunk:
+            middle = sum((kit.points[i] for i in around[index]), Vector()) / len(around[index])
+            out = (middle - kit.points[index]).dot(surface.normals[index])
+            if out > 0.0:
+                moved[index] = kit.points[index] + surface.normals[index] * out
+        for index, point in moved.items():
+            kit.points[index] = point
+    for index, point in enumerate(kit.points):
+        if abs(point.x) <= HANG_WIDTH and HANG_FROM <= point.y <= HANG_TO:
+            out = Vector((point.x, 0.0, point.z))
+            if out.length > 0.0:
+                lift = HANG[outfit] * math.sin(math.pi * (point.y - HANG_FROM) / (HANG_TO - HANG_FROM))
+                kit.points[index] = point + out.normalized() * lift
+        elif abs(point.x) > 0.24 and abs(point.x) < 0.7 and point.y > 1.25:
+            # The sleeve, easing off toward the shoulder and the cuff.
+            fade = _smoothstep(0.24, 0.3, abs(point.x)) * (1.0 - _smoothstep(0.64, 0.7, abs(point.x)))
+            kit.points[index] = point + surface.normals[index] * SLEEVE[outfit] * fade
+
+
+def _skirt(kit, outfit):
+    """Adds `outfit`'s skirt: an open-fronted tube from the waist, cloth outside and
+    lining inside, held by the hips and pulled along by the thighs below."""
+    hem = SKIRT_HEMS[outfit]
+    opening = SKIRT_OPENINGS[outfit]
+    rings = SKIRT_RINGS[outfit]
+    outer, inner = [], []
+    for ring in range(rings):
+        down = ring / (rings - 1)
+        height = SKIRT_WAIST_HEIGHT + (hem - SKIRT_WAIST_HEIGHT) * down
+        drop = SKIRT_WAIST_HEIGHT - height
+        size = (SKIRT_WAIST[0] + SKIRT_FLARE[0] * drop, SKIRT_WAIST[1] + SKIRT_FLARE[1] * drop)
+        gap = opening[0] + (opening[1] - opening[0]) * down
+        held = max(1.0 - drop * SKIRT_LET_GO, SKIRT_HELD)
+        out_row, in_row = [], []
+        for step in range(SKIRT_SEGMENTS + 1):
+            angle = gap + (2.0 * math.pi - 2.0 * gap) * step / SKIRT_SEGMENTS
+            across, ahead = math.sin(angle), math.cos(angle)
+            left = (1.0 - held) * (0.5 + 0.5 * max(-1.0, min(1.0, across * SKIRT_SPLIT)))
+            weights = _strongest({"pelvis": held, "thigh_l": left, "thigh_r": 1.0 - held - left})
+            back = -SKIRT_BACK * drop
+            out_row.append(kit.add((across * size[0], height, ahead * size[1] + back), CLOTH, weights))
+            in_row.append(kit.add(
+                (across * (size[0] - SKIRT_THICK), height, ahead * (size[1] - SKIRT_THICK) + back), LINING, weights))
+        outer.append(out_row)
+        inner.append(in_row)
+    for ring in range(rings - 1):
+        for step in range(SKIRT_SEGMENTS):
+            out = kit.points[outer[ring][step]] + kit.points[outer[ring + 1][step + 1]]
+            out = Vector((out.x, 0.0, out.z))
+            kit.face((outer[ring][step], outer[ring][step + 1], outer[ring + 1][step + 1], outer[ring + 1][step]), out)
+            kit.face((inner[ring][step], inner[ring][step + 1], inner[ring + 1][step + 1], inner[ring + 1][step]), -out)
+    for step in range(SKIRT_SEGMENTS):
+        for ring, way in ((0, UP), (rings - 1, DOWN)):
+            kit.face((outer[ring][step], outer[ring][step + 1], inner[ring][step + 1], inner[ring][step]), way)
+    for ring in range(rings - 1):
+        for step, toward in ((0, 1), (SKIRT_SEGMENTS, SKIRT_SEGMENTS - 1)):
+            way = kit.points[outer[ring][step]] - kit.points[outer[ring][toward]]
+            kit.face((outer[ring][step], outer[ring + 1][step], inner[ring + 1][step], inner[ring][step]), way)
+
+
+def _panel(kit, surface, grid, part, behind=False, lift=0.003, thick=0.006, ink=DETAIL_INK):
+    """Lays a piece of cloth on `surface`, seen from ahead (or `behind`): `grid`, rows
+    of (x, y) points over it, cast onto the surface and stood `lift` off it, `thick`
+    deep, its edges sunk into what it lies on."""
+    way = Vector((0.0, 0.0, 1.0 if behind else -1.0))
+    top, base = [], []
+    for row in grid:
+        top.append([])
+        base.append([])
+        for x, y in row:
+            at, normal, weights = surface.cast(Vector((x, y, 0.0)) - way * 0.6, way, -way)
+            top[-1].append(kit.add(at + normal * (lift + thick), part, weights, ink))
+            base[-1].append(kit.add(at - normal * 0.004, part, weights, ink))
+    rows, cols = len(grid), len(grid[0])
+    for r in range(rows - 1):
+        for c in range(cols - 1):
+            kit.face((top[r][c], top[r][c + 1], top[r + 1][c + 1], top[r + 1][c]), -way)
+    loop = [(0, c) for c in range(cols)] + [(r, cols - 1) for r in range(1, rows)]
+    loop += [(rows - 1, c) for c in range(cols - 2, -1, -1)] + [(r, 0) for r in range(rows - 2, 0, -1)]
+    middle = sum((kit.points[i] for row in top for i in row), Vector()) / (rows * cols)
+    for i, (r, c) in enumerate(loop):
+        r2, c2 = loop[(i + 1) % len(loop)]
+        edge = (kit.points[top[r][c]] + kit.points[top[r2][c2]]) * 0.5
+        kit.face((base[r][c], base[r2][c2], top[r2][c2], top[r][c]), edge - middle)
+
+
+def _button(kit, surface, x, y, part=BRASS, behind=False, radius=0.0105, sides=8):
+    """A domed button at (x, y) on `surface`, seen from ahead (or `behind`)."""
+    way = Vector((0.0, 0.0, 1.0 if behind else -1.0))
+    at, normal, weights = surface.cast(Vector((x, y, 0.0)) - way * 0.6, way, -way)
+    side = normal.cross(UP).normalized()
+    up = side.cross(normal).normalized()
+    sunk, rim = [], []
+    for step in range(sides):
+        angle = 2.0 * math.pi * step / sides
+        out = side * math.cos(angle) + up * math.sin(angle)
+        sunk.append(kit.add(at + out * radius - normal * 0.003, part, weights, BUTTON_INK))
+        rim.append(kit.add(at + out * radius * 0.85 + normal * 0.006, part, weights, BUTTON_INK))
+    apex = kit.add(at + normal * 0.009, part, weights, BUTTON_INK)
+    for step in range(sides):
+        following = (step + 1) % sides
+        out = (kit.points[rim[step]] + kit.points[rim[following]]) * 0.5 - at
+        kit.face((sunk[step], sunk[following], rim[following], rim[step]), out)
+        kit.face((rim[step], rim[following], apex), normal)
+
+
+def _band(kit, surface, centre, axis, stations, part, segments=16, ribs=0.0, ink=1.0):
+    """A band round a limb or the trunk: rings cast out from the line through
+    `centre` along `axis`, one at each of `stations` — (how far along the axis, how
+    far off the surface) — the first and last sunk into it. Every other point of a
+    ring stands `ribs` further out, as knitted ribbing does."""
+    axis = Vector(axis).normalized()
+    across = Vector((0.0, 1.0, 0.0)) if abs(axis.y) < 0.9 else Vector((0.0, 0.0, 1.0))
+    u = (across - axis * axis.dot(across)).normalized()
+    v = axis.cross(u)
+    rings = []
+    for along, lift in stations:
+        ring = []
+        for step in range(segments):
+            angle = 2.0 * math.pi * step / segments
+            out = u * math.cos(angle) + v * math.sin(angle)
+            at, normal, weights = surface.cast(Vector(centre) + axis * along, out, out)
+            off = lift + (ribs if lift > 0.0 and step % 2 else 0.0)
+            ring.append(kit.add(at + normal * off, part, weights, ink))
+        rings.append(ring)
+    for r in range(len(rings) - 1):
+        for step in range(segments):
+            following = (step + 1) % segments
+            out = kit.points[rings[r][step]] + kit.points[rings[r][following]] - Vector(centre) * 2.0
+            out -= axis * axis.dot(out)
+            kit.face((rings[r][step], rings[r][following], rings[r + 1][following], rings[r + 1][step]), out)
+
+
+def _cuffs(kit, surface, stations, part, ribs=0.0, segments=14):
+    """A band round each wrist, `stations` along the forearm out from the elbow."""
+    for flip in (1.0, -1.0):
+        _band(kit, surface, (0.0, 1.44, -0.04), (flip, 0.0, 0.0), stations, part, segments, ribs)
+
+
+def _lapels(kit, surface, opens, rate, top, widest, notch, rows=7):
+    """A coat's lapels, rolled back either side of the opening it parts on (opening
+    from `opens` high at `rate`): up its edge to `top`, `widest` across at the
+    notch, at `notch` high, where the collar takes over."""
+    for flip in (1.0, -1.0):
+        grid = []
+        for r in range(rows):
+            y = opens + (top - opens) * r / (rows - 1)
+            edge = max(y - opens, 0.0) * rate
+            if y < notch:
+                width = widest * _smoothstep(opens, notch, y) ** 0.6
+            else:
+                width = widest * 0.4 * (1.0 - (y - notch) / (top - notch)) + 0.014
+            grid.append([(flip * (edge - 0.004), y), (flip * (edge + width), y)])
+        _panel(kit, surface, grid, CLOTH, lift=0.001, thick=0.005)
+
+
+def _fan(kit, surface, stations, part, opening=0.0, segments=20, ink=1.0):
+    """A band round the base of the neck, cast out and down from inside it (NECK):
+    one ring at each of `stations` — (how many degrees above where the neck meets
+    the shoulders its ray points, how far off the body it stands) — the first and
+    last sunk into it. Round the whole neck, or round the back of it, `opening`
+    degrees short of ahead either side, its ends sunk too."""
+    whole = opening <= 0.0
+    count = segments if whole else segments + 1
+    rings = [[] for _ in stations]
+    for step in range(count):
+        if whole:
+            angle = 2.0 * math.pi * step / segments
+        else:
+            angle = math.radians(opening) + (2.0 * math.pi - 2.0 * math.radians(opening)) * step / segments
+        level = Vector((math.sin(angle), 0.0, math.cos(angle)))
+        foot = _neck_foot(surface, level)
+        for ring, (above, lift) in zip(rings, stations):
+            down = math.radians(foot - above)
+            way = level * math.cos(down) + DOWN * math.sin(down)
+            at, normal, weights = surface.cast(NECK, way, way)
+            off = lift
+            if not whole and step in (0, segments):
+                off = -0.004
+            ring.append(kit.add(at + normal * off, part, weights, ink))
+    for r in range(len(rings) - 1):
+        for step in range(segments):
+            following = (step + 1) % count
+            out = kit.points[rings[r][step]] + kit.points[rings[r][following]] - NECK * 2.0
+            out.y = 0.0
+            kit.face((rings[r][step], rings[r][following], rings[r + 1][following], rings[r + 1][step]), out)
+
+
+def _neck_foot(surface, level):
+    """How many degrees down from NECK, out along `level`, the neck meets the
+    shoulders or the chest: the last ray down to meet the neck before one passes
+    through the trapezius to the arm, or the body falls away more steeply — and no
+    further down than NECK_FOOT, so a collar rounds the neck rather than dipping
+    to the breastbone."""
+    last = None
+    for down in range(5, NECK_FOOT + 1):
+        way = level * math.cos(math.radians(down)) + DOWN * math.sin(math.radians(down))
+        at = surface.cast(NECK, way, way)[0]
+        reach = Vector((at.x - NECK.x, 0.0, at.z - NECK.z)).length
+        if last is not None and (reach > NECK_REACH or reach - last > 0.012):
+            return down - 1
+        last = reach
+    return NECK_FOOT
+
+
+## Where a collar's rays start: inside the neck, over its base; and how far out
+## from there the neck reaches, at most.
+NECK = Vector((0.0, 1.58, -0.022))
+NECK_REACH = 0.12
+NECK_FOOT = 36
+
+
+def _pocket(kit, surface, x, y, width, height, part=CLOTH, slant=0.0):
+    """A pocket flap: `width` by `height`, its top edge centred at (x, y), tipped
+    `slant` down toward the middle."""
+    grid = []
+    for r in range(2):
+        row = []
+        for c in range(3):
+            across = x + width * (c / 2.0 - 0.5)
+            row.append((across, y - height * r - slant * (across - x)))
+        grid.append(row)
+    _panel(kit, surface, grid, part, thick=0.005)
+
+
+def _jersey(kit, surface):
+    """A fisherman's jersey: a rolled collar, ribbed cuffs and a ribbed welt over the
+    belt, its buckle showing under it."""
+    _fan(kit, surface, [(0.0, -0.004), (3.0, 0.016), (8.0, 0.024), (13.0, 0.018), (17.0, -0.004)], FACING, ink=0.7)
+    _band(kit, surface, (0.0, 0.0, -0.01), (0.0, 1.0, 0.0),
+          [(0.925, -0.004), (0.935, 0.008), (0.975, 0.008), (0.99, -0.004)], FACING, segments=28, ribs=0.004, ink=0.6)
+    _cuffs(kit, surface, [(0.66, -0.004), (0.67, 0.007), (0.715, 0.007), (0.725, -0.004)], FACING, ribs=0.003)
+    _panel(kit, surface, [[(-0.022, 0.93), (0.022, 0.93)], [(-0.022, 0.9), (0.022, 0.9)]], BRASS, thick=0.006,
+           ink=BUTTON_INK)
+
+
+def _jacket(kit, surface):
+    """A single-breasted reefer jacket: lapels and a collar, three brass buttons,
+    a breast pocket, flapped hip pockets, and cuffs over the shirt's."""
+    _lapels(kit, surface, 1.2, 0.26, 1.44, 0.075, 1.4)
+    _fan(kit, surface, [(0.0, -0.004), (2.0, 0.012), (11.0, 0.012), (13.0, -0.004)], CLOTH, opening=50.0,
+         segments=14, ink=DETAIL_INK)
+    for y in (1.18, 1.08, 0.98):
+        _button(kit, surface, 0.0, y)
+    _pocket(kit, surface, 0.11, 1.335, 0.07, 0.012, FACING)
+    for flip in (1.0, -1.0):
+        _pocket(kit, surface, flip * 0.1, 0.95, 0.085, 0.032, slant=flip * 0.08)
+    _cuffs(kit, surface, [(0.665, -0.004), (0.675, 0.006), (0.705, 0.006), (0.712, -0.004)], FACING)
+
+
+def _greatcoat(kit, surface):
+    """A double-breasted greatcoat to the calf: broad lapels under a high collar, two
+    rows of brass buttons, flapped pockets, turned-back cuffs and a half-belt behind."""
+    _lapels(kit, surface, 1.28, 0.3, 1.45, 0.1, 1.41)
+    _fan(kit, surface, [(0.0, -0.004), (2.0, 0.016), (15.0, 0.016), (18.0, -0.004)], CLOTH, opening=48.0,
+         segments=14, ink=DETAIL_INK)
+    for y in (1.26, 1.16, 1.06, 0.95):
+        for x in (-0.065, 0.065):
+            _button(kit, surface, x, y)
+    for flip in (1.0, -1.0):
+        _pocket(kit, surface, flip * 0.115, 0.88, 0.085, 0.035)
+    _cuffs(kit, surface, [(0.62, -0.004), (0.63, 0.009), (0.69, 0.009), (0.7, -0.004)], FACING)
+    belt = [[(x, 1.05) for x in (-0.11, -0.04, 0.04, 0.11)], [(x, 1.0) for x in (-0.11, -0.04, 0.04, 0.11)]]
+    _panel(kit, surface, belt, CLOTH, behind=True, thick=0.006)
+    for x in (-0.085, 0.085):
+        _button(kit, surface, x, 1.025, behind=True)
+
+
+DRESS = {"Jersey": _jersey, "Jacket": _jacket, "Greatcoat": _greatcoat}
+
+
+def _steady(kit):
+    """Weights the front of `kit` on the spine as STEADY_ROWS has it, in place."""
+    heights = [h for _, h in STEADY_ROWS]
+    low, high = heights[0], heights[-1]
+    for index, point in enumerate(kit.points):
+        steady = (
+            (1.0 - _smoothstep(STEADY_ACROSS, STEADY_ACROSS + STEADY_FADE, abs(point.x)))
+            * _smoothstep(low - STEADY_FADE, low, point.y)
+            * (1.0 - _smoothstep(high, high + STEADY_FADE, point.y))
+            * _smoothstep(0.0, STEADY_FADE, point.z)
+        )
+        if steady <= 0.0:
+            continue
+        shares = {bone: w * (1.0 - steady) for bone, w in kit.weights[index].items()}
+        for row, (bone, height) in enumerate(STEADY_ROWS):
+            share = 1.0
+            if row > 0:
+                below = heights[row - 1]
+                share = min(share, (point.y - below) / (height - below))
+            if row < len(STEADY_ROWS) - 1:
+                above = heights[row + 1]
+                share = min(share, (point.y - above) / (height - above))
+            shares[bone] = shares.get(bone, 0.0) + max(0.0, min(1.0, share)) * steady
+        kit.weights[index] = _strongest(shares)
+
+
+def _hands():
+    """The fingers and thumbs of both hands as a Kit."""
+    verts, faces, weights = _hand_shells()
+    kit = Kit()
+    for at, share in zip(verts, weights):
+        kit.add(at, BODY, share)
+    kit.faces = [tuple(face) for face in faces]
+    return kit
+
+
+def build_outfit(name, base, hands, rig, material):
+    """`name`'s outfit, dressed on a copy of the bare sailor `base` with `hands`,
+    as a mesh object skinned to `rig`."""
+    kit = Kit()
+    kit.extend(base)
+    _let_out(kit, name)
+    if name in SKIRT_HEMS:
+        _skirt(kit, name)
+    DRESS[name](kit, Surface(kit))
+    kit.extend(hands)
+    _steady(kit)
+    mesh = bpy.data.meshes.new(name)
+    mesh.from_pydata([TO_BLENDER @ p for p in kit.points], [], kit.faces)
+    shape = bmesh.new()
+    shape.from_mesh(mesh)
+    bmesh.ops.triangulate(shape, faces=shape.faces[:], quad_method="BEAUTY")
+    shape.to_mesh(mesh)
+    shape.free()
+    for polygon in mesh.polygons:
+        polygon.use_smooth = True
+    # Where each point stands at rest, for the clothes shader: (x, y) in the first
+    # UV, (z, part) in the second. glTF's v runs down, so each is written as 1 - v.
+    rest = mesh.uv_layers.new(name="rest")
+    depth = mesh.uv_layers.new(name="depth")
+    for loop in mesh.loops:
+        at = kit.points[loop.vertex_index]
+        rest.data[loop.index].uv = (at.x, 1.0 - at.y)
+        depth.data[loop.index].uv = (at.z, 1.0 - kit.parts[loop.vertex_index])
+    ink = mesh.color_attributes.new("ink", "FLOAT_COLOR", "POINT")
+    for index, share in enumerate(kit.inks):
+        ink.data[index].color = (1.0, 1.0, 1.0, share)
+    mesh.color_attributes.active_color = ink
+    mesh.materials.append(material)
+    body = bpy.data.objects.new(name, mesh)
+    bpy.context.scene.collection.objects.link(body)
+    groups = {}
+    for index, shares in enumerate(kit.weights):
+        for bone, weight in _strongest(shares).items():
+            if bone not in groups:
+                groups[bone] = body.vertex_groups.new(name=bone)
+            groups[bone].add([index], weight, "REPLACE")
+    body.parent = rig
+    modifier = body.modifiers.new("Rig", "ARMATURE")
+    modifier.object = rig
+    return body
 
 
 # ---------------------------------------------------------------------------
@@ -627,7 +1139,7 @@ def turns(pose):
 THUMB_FIST = 55.0
 THUMB_REST = Vector(REST["thumb_l"][1]) - Vector(REST["thumb_l"][0])
 THUMBTIP_REST = Vector(REST["thumbtip_l"][1]) - Vector(REST["thumbtip_l"][0])
-THUMB_FOLDED = Vector((0.95, -0.1, 0.28))
+THUMB_FOLDED = Vector((0.95, -0.24, 0.04))
 THUMBTIP_FOLDED = Vector((0.6, -0.45, -0.66))
 
 
@@ -805,7 +1317,7 @@ def shove(t, length):
 
 
 def stagger(t, length):
-    """Struck in the chest: thrown back, arms flung up and out, hands open."""
+    """Struck in the chest: thrown back, arms flung up and out, fists still closed."""
     through = _ease(t / (length * 0.5))
     pose = Pose()
     pose.hips = Vector((0.0, -0.04 * through, -0.06 * through))
@@ -817,8 +1329,7 @@ def stagger(t, length):
     pose.trunk["head"] = (-20.0 * through, 6.0 * through, 6.0 * through)
     pose.arms["_l"] = arm(swing=30.0 * through, out=8.0 + 50.0 * through, bend=14.0 + 30.0 * through, twist=10.0, wrist=30.0 * through)
     pose.arms["_r"] = arm(swing=20.0 * through, out=8.0 + 60.0 * through, bend=14.0 + 40.0 * through, twist=10.0, wrist=30.0 * through)
-    for side in ("_l", "_r"):
-        pose.curl[side] = (10.0, 5.0, -5.0)
+    _fists(pose)
     pose.feet["_l"] = (Vector((0.03, 0.0, 0.06 * through)), 0.0)
     pose.feet["_r"] = (Vector((-0.03, 0.0, -0.22 * through)), 20.0 * through)
     return pose
@@ -974,7 +1485,8 @@ def export(path):
         export_yup=True,
         export_apply=False,
         export_normals=True,
-        export_texcoords=False,
+        export_texcoords=True,
+        export_vertex_color="ACTIVE",
         export_tangents=False,
         export_materials="EXPORT",
         export_skins=True,
@@ -995,11 +1507,16 @@ def main():
     bpy.ops.wm.read_factory_settings(use_empty=True)
     scene = bpy.context.scene
     scene.render.fps = FPS
-    sailor, hands = build_body()
     rig = build_rig()
-    skin_body(sailor, hands, rig)
+    base = build_base(rig)
+    hands = _hands()
+    material = bpy.data.materials.new("sailor")
+    material.diffuse_color = (0.84, 0.37, 0.0, 1.0)
+    bodies = [build_outfit(name, base, hands, rig, material) for name in OUTFITS]
     make_clips(rig)
-    print("gen_sailor: body %d triangles, %d bones" % (len(sailor.data.polygons), len(rig.data.bones)))
+    for body in bodies:
+        print("gen_sailor: %s %d triangles" % (body.name, len(body.data.polygons)))
+    print("gen_sailor: %d bones" % len(rig.data.bones))
     print("gen_sailor: walk %.3f, run %.3f model units/s" % (
         stride_speed(WALK, 40), stride_speed(RUN, 28)))
     if argv:
