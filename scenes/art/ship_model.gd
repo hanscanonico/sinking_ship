@@ -5,6 +5,84 @@ extends RefCounted
 ## object's surfaces, each keeping the material that names its paint — for
 ## ShipMesh.model() to draw among the ship's own faces. Never a mesh instance of its
 ## own: it goes into the ship's batches, chunked under the lamp limit as any face is.
+##
+## A model is read once: named() loads each .glb once a process, and a ShipModel holds
+## its surfaces' arrays and its verdict, so drawing it a hundred times parses it once.
+
+const MODELS := "res://assets/models"
+
+## Every model named() has gathered, by name.
+static var _named := {}
+
+## The gathered mesh, named after its file.
+var mesh: ArrayMesh
+## Why ShipMesh.model() cannot paint it, as the rest of its error after the model's
+## name; empty when nothing keeps it from being drawn.
+var unfit := ""
+## Its box in its own space.
+var bounds: AABB
+## How many triangles it carries.
+var triangles := 0
+## Its surfaces as model() draws them; none when it is unfit.
+var surfaces: Array[Surface] = []
+
+
+## One surface of a model, read once: its paint, its points, normals and ink, and its
+## triangles' corners.
+class Surface:
+	var paint: ShipMesh.Paint
+	var points: PackedVector3Array
+	var normals: PackedVector3Array
+	var inks: PackedColorArray
+	var order: PackedInt32Array
+
+
+func _init(gathered: Mesh) -> void:
+	mesh = gathered
+	bounds = gathered.get_aabb()
+	var read: Array[Surface] = []
+	for surface in gathered.get_surface_count():
+		if gathered.surface_get_primitive_type(surface) != Mesh.PRIMITIVE_TRIANGLES:
+			unfit = ": surface %d is not triangles" % surface
+			return
+		var material := gathered.surface_get_material(surface)
+		if material == null:
+			unfit = ": surface %d has no material" % surface
+			return
+		var paint := ShipPaints.named(material.resource_name)
+		if paint == null:
+			unfit = ": surface %d's material %s names no paint" % [surface, material.resource_name]
+			return
+		var arrays := gathered.surface_get_arrays(surface)
+		if arrays[Mesh.ARRAY_COLOR] == null:
+			unfit = ": surface %d has no ink layer" % surface
+			return
+		if arrays[Mesh.ARRAY_NORMAL] == null:
+			unfit = ": surface %d has no normals" % surface
+			return
+		var read_surface := Surface.new()
+		read_surface.paint = paint
+		read_surface.points = arrays[Mesh.ARRAY_VERTEX]
+		read_surface.normals = arrays[Mesh.ARRAY_NORMAL]
+		read_surface.inks = arrays[Mesh.ARRAY_COLOR]
+		read_surface.order = PackedInt32Array(range(read_surface.points.size()))
+		if arrays[Mesh.ARRAY_INDEX] != null:
+			read_surface.order = arrays[Mesh.ARRAY_INDEX]
+		triangles += read_surface.order.size() / 3
+		read.append(read_surface)
+	if triangles == 0:
+		unfit = " has no triangles"
+		return
+	surfaces = read
+
+
+## The model assets/models/[param name]/[param name].glb, gathered and read the first
+## time it is asked for and the same ShipModel every time after.
+static func named(name: String) -> ShipModel:
+	if not _named.has(name):
+		var scene: PackedScene = load(MODELS.path_join(name).path_join(name + ".glb"))
+		_named[name] = ShipModel.new(mesh_of(scene))
+	return _named[name]
 
 
 ## [param scene]'s every mesh, each where it stands in the scene, as one mesh named

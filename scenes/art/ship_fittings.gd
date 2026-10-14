@@ -47,9 +47,9 @@ const LIFEBOAT_SPACING := 5.0
 const LIFEBOAT_OUT := 0.3
 const LIFEBOAT_LIFT := 0.35
 ## The modelled boat, its keel's middle at its origin, and a radial davit, its post's
-## axis at the deck's height at its origin, curving out toward +z (ShipModel).
-const LIFEBOAT_MODEL := preload("res://assets/models/lifeboat/lifeboat.glb")
-const DAVIT_MODEL := preload("res://assets/models/davit/davit.glb")
+## axis at the deck's height at its origin, curving out toward +z (ShipModel.named).
+const LIFEBOAT_MODEL := "lifeboat"
+const DAVIT_MODEL := "davit"
 ## A radial davit: its post's section and how far it stands off the deck's edge, how
 ## high it rises before it curves out, how far it reaches out — over the boat's middle
 ## — and how far its foot reaches under the deck; its fall's section, and the blocks'.
@@ -100,9 +100,6 @@ var _depth: float
 var panes: Array[Array] = []
 ## The middles of the portholes the hit left open: drawn open, their glass swung in.
 var _open_ports := PackedVector3Array()
-## The modelled boat and davit (ShipModel), each gathered when first drawn.
-var _boat_model: ArrayMesh
-var _davit_model: ArrayMesh
 
 
 ## [param open_ports] are the middles of the portholes the hit left open, none for a
@@ -819,9 +816,8 @@ func _lifeboats(mesh: ShipMesh, ship: Node3D, paints: Dictionary) -> void:
 				if not mesh.kept(at - LIFEBOAT_LENGTH * 0.5, at + LIFEBOAT_LENGTH * 0.5):
 					continue
 				hanging = true
-				if _boat_model == null:
-					_boat_model = ShipModel.mesh_of(LIFEBOAT_MODEL)
-				hung.model(_boat_model, Transform3D(Basis.IDENTITY, Vector3(at, keel, middle)))
+				var boat_at := Transform3D(Basis.IDENTITY, Vector3(at, keel, middle))
+				hung.model(ShipModel.named(LIFEBOAT_MODEL), boat_at)
 				for end: float in [-1.0, 1.0]:
 					var davit := at + end * (LIFEBOAT_LENGTH * 0.5 - 0.35)
 					pivot = _davit(mesh, hung, davit, edge, middle, platform.height, side)
@@ -861,10 +857,8 @@ func _davit(
 	mesh: ShipMesh, hung: ShipMesh, x: float, edge: float, middle: float, deck: float, side: float
 ) -> Vector3:
 	var post := edge + side * (DAVIT * 0.5 + DAVIT_GAP)
-	if _davit_model == null:
-		_davit_model = ShipModel.mesh_of(DAVIT_MODEL)
 	var turn := Basis.IDENTITY if side > 0.0 else Basis(Vector3.UP, PI)
-	mesh.model(_davit_model, Transform3D(turn, Vector3(x, deck, post)))
+	mesh.model(ShipModel.named(DAVIT_MODEL), Transform3D(turn, Vector3(x, deck, post)))
 	var tip := Vector3(x, deck + DAVIT_RISE + DAVIT_REACH, post + side * DAVIT_REACH)
 	var head := tip + Vector3.DOWN * (DAVIT * 0.5 + BLOCK.y * 0.5)
 	mesh.turned_box(Transform3D(Basis.IDENTITY, head), BLOCK, ShipPaints.dark, 0)

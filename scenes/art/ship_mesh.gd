@@ -450,13 +450,12 @@ func triangle(
 ## indoors or out and chunked as a face is, a corner's rim weight its model's ink —
 ## its colour layer's red — and its paint's bands measured over the placed prop's own
 ## foot and under its top. A model that cannot be painted so is an error naming it,
-## and adds nothing.
-func model(prop: Mesh, place: Transform3D) -> void:
-	var unfit := _unfit(prop)
-	if unfit != "":
-		push_error("ShipMesh: model %s%s" % [prop.resource_name, unfit])
+## and adds nothing. The model's arrays are read once, when it is gathered.
+func model(prop: ShipModel, place: Transform3D) -> void:
+	if prop.unfit != "":
+		push_error("ShipMesh: model %s%s" % [prop.mesh.resource_name, prop.unfit])
 		return
-	var bounds := place * prop.get_aabb()
+	var bounds := place * prop.bounds
 	if bounds.position.y >= cut_above or not kept(bounds.position.x, bounds.end.x):
 		return
 	var foot := bounds.position.y
@@ -465,20 +464,17 @@ func model(prop: Mesh, place: Transform3D) -> void:
 	var turn := place.basis.inverse().transposed()
 	var mirrored := place.basis.determinant() < 0.0
 	_open()
-	for surface in prop.get_surface_count():
-		var paint := ShipPaints.named(prop.surface_get_material(surface).resource_name)
-		var arrays := prop.surface_get_arrays(surface)
-		var points: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
-		var normals: PackedVector3Array = arrays[Mesh.ARRAY_NORMAL]
-		var inks: PackedColorArray = arrays[Mesh.ARRAY_COLOR]
-		var order := PackedInt32Array(range(points.size()))
-		if arrays[Mesh.ARRAY_INDEX] != null:
-			order = arrays[Mesh.ARRAY_INDEX]
+	for surface in prop.surfaces:
+		var points := surface.points
+		var normals := surface.normals
+		var order := surface.order
 		var placed := PackedVector3Array()
 		var turned := PackedVector3Array()
+		placed.resize(points.size())
+		turned.resize(points.size())
 		for index in points.size():
-			placed.append(place * points[index])
-			turned.append((turn * normals[index]).normalized())
+			placed[index] = place * points[index]
+			turned[index] = (turn * normals[index]).normalized()
 		# Each batch's triangles, as the model's corners, wound clockwise once placed,
 		# and whether that batch is outdoors.
 		var corners := {}
@@ -496,39 +492,24 @@ func model(prop: Mesh, place: Transform3D) -> void:
 			if facing.length_squared() < SLIVER * SLIVER * SLIVER * SLIVER:
 				continue
 			var middle := (placed[a] + placed[b] + placed[c]) / 3.0
-			var batch := _batch_for(middle, facing.normalized(), paint)
+			var batch := _batch_for(middle, facing.normalized(), surface.paint)
 			if not corners.has(batch):
 				corners[batch] = PackedInt32Array()
 				outdoors[batch] = _last_outdoors
 			corners[batch].append_array([a, b, c])
 		for batch: Batch in corners:
 			_emit_model(
-				batch, corners[batch], placed, turned, inks, outdoors[batch], paint, foot, head
+				batch,
+				corners[batch],
+				placed,
+				turned,
+				surface.inks,
+				outdoors[batch],
+				surface.paint,
+				foot,
+				head
 			)
 	_close()
-
-
-## What keeps model() from painting [param prop], as the rest of its error after the
-## model's name; empty when nothing does.
-static func _unfit(prop: Mesh) -> String:
-	var triangles := 0
-	for surface in prop.get_surface_count():
-		if prop.surface_get_primitive_type(surface) != Mesh.PRIMITIVE_TRIANGLES:
-			return ": surface %d is not triangles" % surface
-		var material := prop.surface_get_material(surface)
-		if material == null:
-			return ": surface %d has no material" % surface
-		if ShipPaints.named(material.resource_name) == null:
-			return ": surface %d's material %s names no paint" % [surface, material.resource_name]
-		var arrays := prop.surface_get_arrays(surface)
-		if arrays[Mesh.ARRAY_COLOR] == null:
-			return ": surface %d has no ink layer" % surface
-		if arrays[Mesh.ARRAY_NORMAL] == null:
-			return ": surface %d has no normals" % surface
-		var indices: Variant = arrays[Mesh.ARRAY_INDEX]
-		var corners: int = (indices if indices != null else arrays[Mesh.ARRAY_VERTEX]).size()
-		triangles += corners / 3
-	return " has no triangles" if triangles == 0 else ""
 
 
 ## The model corners [param corners] (model() gathered them for [param batch]) into it,
