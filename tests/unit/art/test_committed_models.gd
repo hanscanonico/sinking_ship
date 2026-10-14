@@ -54,6 +54,9 @@ func _rows() -> Dictionary:
 		"coat": ["furniture", _fills_a_cabin_fitting_s_box.bind(CabinDressing.COAT, "coat")],
 		"folded_berth_190":
 		["furniture", _is_the_folded_berth_made_for.bind(1.9, "folded_berth_190")],
+		"berth": ["furniture", _fills_the_berth_s_length_and_depth_off_its_wall],
+		"lifebelt": ["furniture", _hangs_the_lifebelt_flat_on_its_wall],
+		"fire_buckets": ["furniture", _fills_the_fire_buckets_rack_off_its_wall],
 		"iceberg_tabular": [WORLD, _stands_to_the_iceberg_planner_s_measure],
 		"iceberg_drydock": [WORLD, _stands_to_the_iceberg_planner_s_measure],
 		"iceberg_wedge": [WORLD, _stands_to_the_iceberg_planner_s_measure],
@@ -287,6 +290,59 @@ func _fills_every_cargo_crate_s_square(box: AABB) -> void:
 			assert_almost_eq(box.position, low, Vector3.ONE * TOLERANCE, "%s's crates" % file)
 			assert_almost_eq(box.end, high, Vector3.ONE * TOLERANCE, "%s's crates" % file)
 	assert_gt(crates, 0, "the ships carry crates")
+
+
+## A berth: BERTH long either side of its middle and BERTH deep off its wall, from
+## its underside at HEADROOM up to its chains' eyes: the steel at each end, its top's
+## middle at BERTH_EYE, where slung_berth hangs a chain from. Its blanket is painted
+## blanket, the surface slung_berth repaints in its cabin's colour.
+func _fills_the_berth_s_length_and_depth_off_its_wall(box: AABB) -> void:
+	var berth := RoomDressing.BERTH
+	var low := Vector3(-berth.x * 0.5, 0.0, 0.0)
+	var high := Vector3(berth.x * 0.5, RoomDressing.BERTH_RISE, berth.y)
+	assert_almost_eq(box.position, low, Vector3.ONE * TOLERANCE, "berth: head, under, wall")
+	assert_almost_eq(box.end, high, Vector3.ONE * TOLERANCE, "berth: foot, eyes, front")
+	assert_gte(box.position.y, -0.001, "berth: nothing under HEADROOM")
+	assert_gte(box.position.z, -0.001, "berth: nothing in its wall")
+	var eyes := {-1.0: PackedVector3Array(), 1.0: PackedVector3Array()}
+	var blankets := 0
+	for surface: ShipModel.Surface in ShipModel.named(RoomDressing.BERTH_MODEL).surfaces:
+		blankets += 1 if surface.paint == ShipPaints.blanket else 0
+		if surface.paint == ShipPaints.steel:
+			for point in surface.points:
+				eyes[signf(point.x)].append(point)
+	assert_gt(blankets, 0, "berth: a blanket for its cabin's colour")
+	for end: float in eyes:
+		var points: PackedVector3Array = eyes[end]
+		assert_gt(points.size(), 0, "berth: an eye at each end")
+		var eye := AABB(points[0], Vector3.ZERO)
+		for point in points:
+			eye = eye.expand(point)
+		var top := Vector3(eye.get_center().x, eye.end.y, eye.get_center().z)
+		var wanted := Vector3(end * RoomDressing.BERTH_EYE.x, 0.0, 0.0)
+		wanted += Vector3(0.0, RoomDressing.BERTH_EYE.y, RoomDressing.BERTH_EYE.z)
+		assert_almost_eq(top, wanted, Vector3.ONE * PART, "berth: its chain's eye")
+
+
+## A lifebelt: its ring LIFEBELT_RADIUS round its middle, standing LIFEBELT_DEPTH out
+## from its wall, its grab line no more than LIFEBELT_LINE past it.
+func _hangs_the_lifebelt_flat_on_its_wall(box: AABB) -> void:
+	var ring := RoomDressing.LIFEBELT_RADIUS
+	var line := ring + RoomDressing.LIFEBELT_LINE
+	assert_almost_eq(box.position.z, 0.0, TOLERANCE, "lifebelt: on its wall")
+	assert_almost_eq(box.end.z, RoomDressing.LIFEBELT_DEPTH, TOLERANCE, "lifebelt: its face")
+	assert_almost_eq(box.get_center().x, 0.0, TOLERANCE, "lifebelt: round its middle")
+	for reach: float in [box.end.x, -box.position.x, box.end.y, -box.position.y]:
+		assert_between(reach, ring, line, "lifebelt: its ring and its grab line")
+	assert_lte(box.end.z, FurnishingCheck.TOLERANCE, "lifebelt: flat on its wall")
+
+
+func _fills_the_fire_buckets_rack_off_its_wall(box: AABB) -> void:
+	var wanted := RoomDressing.FIRE_BUCKETS
+	assert_almost_eq(box.position, wanted.position, Vector3.ONE * TOLERANCE, "fire buckets: low")
+	assert_almost_eq(box.end, wanted.end, Vector3.ONE * TOLERANCE, "fire buckets: high")
+	assert_gte(box.position.y, -0.001, "fire buckets: nothing under HEADROOM")
+	assert_gte(box.position.z, -0.001, "fire buckets: nothing in its wall")
 
 
 func test_every_world_model_is_one_the_iceberg_planner_can_draw() -> void:
