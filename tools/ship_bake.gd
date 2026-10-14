@@ -56,12 +56,12 @@ static func _baked(scene: String) -> ShipSceneBake:
 	if scene.get_extension() != "glb":
 		return ShipSceneBake.of_scene(scene)
 	var gltf := ShipGltf.read(scene)
-	var baked := ShipSceneBake.new(gltf.root if gltf.root != null else Node3D.new())
+	var root := gltf.root if gltf.root != null else Node3D.new()
+	var baked := ShipSceneBake.new(root)
+	root.free()
 	var problems := gltf.problems
 	problems.append_array(baked.problems)
 	baked.problems = problems
-	if gltf.root != null:
-		gltf.root.free()
 	return baked
 
 

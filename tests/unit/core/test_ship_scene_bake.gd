@@ -40,14 +40,17 @@ func test_every_ship_bakes_back_field_for_field() -> void:
 func test_each_authoring_scene_bakes_to_her_ship() -> void:
 	var ships := DirAccess.get_directories_at(AUTHORING)
 	assert_has(ships, "steamer")
+	var scenes := 0
 	for ship: String in ships:
 		var scene := "%s/%s/%s.tscn" % [AUTHORING, ship, ship]
 		if not ResourceLoader.exists(scene):
 			continue
+		scenes += 1
 		var baked := ShipSceneBake.of_scene(scene)
 		var wanted: ShipLayout = load("res://data/ships/%s.tres" % ship)
 		assert_eq(baked.problems, PackedStringArray(), ship)
 		assert_eq(ShipSceneBake.differences(baked.layout, wanted, ship), PackedStringArray())
+	assert_gt(scenes, 0, "the steamer at least is drawn as a scene")
 
 
 ## #125: each ship authored in Blender, as the glTF her .blend exports to, bakes back
