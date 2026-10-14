@@ -451,7 +451,9 @@ func triangle(
 ## its colour layer's red — and its paint's bands measured over the placed prop's own
 ## foot and under its top. A model that cannot be painted so is an error naming it,
 ## and adds nothing. The model's arrays are read once, when it is gathered.
-func model(prop: ShipModel, place: Transform3D) -> void:
+## [param paints] swaps a surface's paint for another (its ShipPaints paint to the one
+## drawn): a coat's collar or a berth's bedding in its cabin's colour.
+func model(prop: ShipModel, place: Transform3D, paints := {}) -> void:
 	if prop.unfit != "":
 		push_error("ShipMesh: model %s%s" % [prop.mesh.resource_name, prop.unfit])
 		return
@@ -465,6 +467,7 @@ func model(prop: ShipModel, place: Transform3D) -> void:
 	var mirrored := place.basis.determinant() < 0.0
 	_open()
 	for surface in prop.surfaces:
+		var paint: Paint = paints.get(surface.paint, surface.paint)
 		var points := surface.points
 		var normals := surface.normals
 		var order := surface.order
@@ -492,7 +495,7 @@ func model(prop: ShipModel, place: Transform3D) -> void:
 			if facing.length_squared() < SLIVER * SLIVER * SLIVER * SLIVER:
 				continue
 			var middle := (placed[a] + placed[b] + placed[c]) / 3.0
-			var batch := _batch_for(middle, facing.normalized(), surface.paint)
+			var batch := _batch_for(middle, facing.normalized(), paint)
 			if not corners.has(batch):
 				corners[batch] = PackedInt32Array()
 				outdoors[batch] = _last_outdoors
@@ -505,7 +508,7 @@ func model(prop: ShipModel, place: Transform3D) -> void:
 				turned,
 				surface.inks,
 				outdoors[batch],
-				surface.paint,
+				paint,
 				foot,
 				head
 			)

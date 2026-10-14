@@ -10,8 +10,27 @@ extends RefCounted
 ## and how finely a wall is searched for a clear stretch.
 const GLASS_CLEAR := 0.45
 const CLEAR_STEP := 0.2
-## How far apart a berth's chain's links stand.
-const CHAIN_LINK := 0.045
+## The modelled fittings (assets/models/README.md), each with its origin on the floor at
+## its wall's face under its middle, x along the wall (Wall.right), z out of it, and
+## each one's box over all there: no deeper than a wall fitting under HEADROOM, a
+## shelf's depth over it.
+const WASHSTAND_MODEL := "washstand"
+const WASHSTAND := AABB(Vector3(-0.51, 0.25, 0.0), Vector3(0.79, 1.55, 0.1))
+const LOCKER_MODEL := "locker"
+const LOCKER := AABB(Vector3(-0.31, 0.0, 0.0), Vector3(0.62, 1.9, 0.1))
+const LUGGAGE_SHELF_MODEL := "luggage_shelf"
+const LUGGAGE_SHELF := AABB(Vector3(-0.35, 1.94, 0.0), Vector3(0.7, 0.38, 0.3))
+const LUGGAGE_RACK_MODEL := "luggage_rack"
+const LUGGAGE_RACK := AABB(Vector3(-0.55, 1.89, 0.0), Vector3(1.1, 0.37, 0.28))
+## The coat's model, its origin under its hook, its collar and cuffs painted blanket
+## for its cabin's colour.
+const COAT_MODEL := "coat"
+const COAT := AABB(Vector3(-0.245, 0.98, 0.0), Vector3(0.49, 0.77, 0.095))
+## The folded berths _folded_berth draws, by the length each is made for
+## (RoomDressing.variant()), never one model stretched, its bedding painted blanket for
+## its cabin's colour; and each one's box but for its length.
+const FOLDED_BERTHS := {1.9: "folded_berth_190"}
+const FOLDED_BERTH := AABB(Vector3(0.0, 0.41, 0.0), Vector3(0.0, 1.22, 0.1))
 
 var _space: ShipSpace
 
@@ -20,57 +39,17 @@ func _init(space: ShipSpace) -> void:
 	_space = space
 
 
-## A washstand flat on [param wall] at [param along]: a cabinet under a marble top
-## with a white basin let into it, a brass tap and a jug, a towel on a rail, and a
+## A washstand flat on [param wall] at [param along] (WASHSTAND_MODEL): a cabinet
+## under a marble top with a basin and a jug on it, a towel on a rail beside it, and a
 ## mirror over it.
 static func washstand(mesh: ShipMesh, wall: RoomDressing.Wall, along: float) -> void:
-	var floor := wall.floor
-	var cabinet := wall.rect(along - 0.25, along + 0.25, 0.0, 0.08)
-	RoomDressing.block(
-		mesh, cabinet, floor + 0.25, floor + 0.86, ShipPaints.frame, ShipMesh.RIM_ALL
-	)
-	for side: float in [-1.0, 1.0]:
-		var door := wall.at(along + side * 0.12, 0.55, 0.082)
-		RoomDressing.panel(
-			mesh, door, wall.right, Vector2(0.1, 0.24), wall.normal, ShipPaints.teak, 0
-		)
-	var marble := wall.rect(along - 0.28, along + 0.28, 0.0, 0.1)
-	RoomDressing.block(mesh, marble, floor + 0.86, floor + 0.9, ShipPaints.enamel)
-	var bowl := wall.at(along, 0.905, 0.05)
-	RoomDressing.disc(mesh, bowl, Vector3.UP, 0.045, ShipPaints.mirror, 8)
-	var tap := wall.at(along, 0.97, 0.03)
-	mesh.turned_box(wall.place(tap), Vector3(0.03, 0.12, 0.04), ShipPaints.brass, 0)
-	var jug := wall.at(along + 0.17, 0.9, 0.05)
-	mesh.cylinder(Vector2(jug.x, jug.z), 0.045, jug.y, jug.y + 0.2, 8, ShipPaints.enamel, false)
-	var mirror := wall.at(along, 1.55, 0.012)
-	RoomDressing.panel(mesh, mirror, wall.right, Vector2(0.2, 0.25), wall.normal, ShipPaints.frame)
-	var glass := mirror + wall.normal * 0.006
-	RoomDressing.panel(mesh, glass, wall.right, Vector2(0.16, 0.21), wall.normal, ShipPaints.mirror)
-	var rail := wall.at(along - 0.27, 0.75, 0.05)
-	mesh.beam(rail, rail - wall.right * 0.25, Vector2.ONE * 0.015, ShipPaints.brass, 0)
-	var towel := wall.at(along - 0.4, 0.62, 0.052)
-	RoomDressing.panel(
-		mesh, towel, wall.right, Vector2(0.1, 0.13), wall.normal, ShipPaints.linen, 0
-	)
+	mesh.model(ShipModel.named(WASHSTAND_MODEL), wall.place(wall.at(along, 0.0)))
 
 
-## A tall locker flat on [param wall] at [param along]: two panelled doors, louvred
-## at the top, and a brass knob.
+## A tall locker flat on [param wall] at [param along] (LOCKER_MODEL): two panelled
+## doors, louvred at the top, each with a brass knob.
 static func locker(mesh: ShipMesh, wall: RoomDressing.Wall, along: float) -> void:
-	var body := wall.rect(along - 0.3, along + 0.3, 0.0, 0.08)
-	RoomDressing.block(mesh, body, wall.floor, wall.floor + 1.9, ShipPaints.frame, ShipMesh.RIM_ALL)
-	for side: float in [-1.0, 1.0]:
-		var door := wall.at(along + side * 0.14, 0.95, 0.083)
-		RoomDressing.panel(
-			mesh, door, wall.right, Vector2(0.12, 0.85), wall.normal, ShipPaints.teak
-		)
-		for slat in 5:
-			var louvre := wall.at(along + side * 0.14, 1.5 + slat * 0.06, 0.088)
-			RoomDressing.panel(
-				mesh, louvre, wall.right, Vector2(0.09, 0.008), wall.normal, ShipPaints.dark, 0
-			)
-	var knob := wall.at(along + 0.03, 1.0, 0.095)
-	mesh.turned_box(wall.place(knob), Vector3.ONE * 0.03, ShipPaints.brass, 0)
+	mesh.model(ShipModel.named(LOCKER_MODEL), wall.place(wall.at(along, 0.0)))
 
 
 ## Curtains drawn back either side of the glass centred on [param centre] facing
@@ -90,18 +69,10 @@ static func curtains(
 			)
 
 
-## A shelf over the doorway in [param wall], over head height, with a suitcase on it.
+## A shelf over the doorway in [param wall], over head height, with a suitcase on it
+## (LUGGAGE_SHELF_MODEL).
 static func luggage_shelf(mesh: ShipMesh, wall: RoomDressing.Wall) -> void:
-	var middle := wall.middle()
-	var low := wall.floor + 2.1
-	RoomDressing.block(
-		mesh, wall.rect(middle - 0.35, middle + 0.35, 0.0, 0.3), low, low + 0.03, ShipPaints.frame
-	)
-	var suitcase := wall.rect(middle - 0.24, middle + 0.24, 0.04, 0.27)
-	RoomDressing.block(
-		mesh, suitcase, low + 0.03, low + 0.21, ShipPaints.upholstery, ShipMesh.RIM_ALL
-	)
-	RoomDressing.block(mesh, suitcase.grow(0.006), low + 0.1, low + 0.13, ShipPaints.dark)
+	mesh.model(ShipModel.named(LUGGAGE_SHELF_MODEL), wall.place(wall.at(wall.middle(), 0.0)))
 
 
 ## A framed picture flat on [param wall] at [param along]: a seascape, a band of
@@ -126,65 +97,15 @@ static func picture(mesh: ShipMesh, wall: RoomDressing.Wall, along: float) -> vo
 	)
 
 
-## A coat with a collar of [param paint] hanging from a hook on [param wall] at
-## [param along]: narrow at the collar, its shoulders sloping and its skirt flaring
-## to the hem, with some depth to it, its sleeves hanging at its sides and a row of
-## buttons down its front.
+## A coat with a collar and cuffs of [param paint] hanging from a hook on [param wall]
+## at [param along] (COAT_MODEL): narrow at the collar, its shoulders sloping and its
+## skirt flaring to the hem, its sleeves hanging at its sides and a row of buttons down
+## its front.
 static func coat(
 	mesh: ShipMesh, wall: RoomDressing.Wall, along: float, paint: ShipMesh.Paint
 ) -> void:
-	var hook := wall.at(along, 1.75, 0.03)
-	mesh.turned_box(wall.place(hook), Vector3(0.03, 0.06, 0.06), ShipPaints.brass, 0)
-	# Its outline, (along, height) from the hook's foot, and how far out its back and
-	# its front stand.
-	var outline: Array[Vector2] = [
-		Vector2(-0.07, 1.71),
-		Vector2(0.07, 1.71),
-		Vector2(0.18, 1.62),
-		Vector2(0.22, 0.98),
-		Vector2(-0.22, 0.98),
-		Vector2(-0.18, 1.62),
-	]
-	var back := 0.02
-	var front := 0.075
-	var face := PackedVector3Array()
-	for point: Vector2 in outline:
-		face.append(wall.at(along + point.x, point.y, front))
-	mesh.polygon(face, wall.normal, ShipPaints.leather, wall.floor + 0.98, NAN)
-	for index in outline.size():
-		var a := outline[index]
-		var b := outline[(index + 1) % outline.size()]
-		var out := Vector2(b.y - a.y, a.x - b.x).normalized()
-		if out.dot(a + b - Vector2(0.0, 2.69)) < 0.0:
-			out = -out
-		mesh.quad(
-			wall.at(along + a.x, a.y, front),
-			wall.at(along + b.x, b.y, front),
-			wall.at(along + b.x, b.y, back),
-			wall.at(along + a.x, a.y, back),
-			wall.right * out.x + Vector3.UP * out.y,
-			ShipPaints.leather,
-			0
-		)
-	for side: float in [-1.0, 1.0]:
-		var shoulder := wall.at(along + side * 0.17, 1.6, front)
-		var cuff := wall.at(along + side * 0.2, 1.12, front)
-		var hang := (cuff - shoulder).normalized()
-		var across := hang.cross(wall.normal).normalized()
-		var sleeve := Transform3D(Basis(across, hang, wall.normal), (shoulder + cuff) * 0.5)
-		var length := shoulder.distance_to(cuff)
-		mesh.turned_box(sleeve, Vector3(0.08, length, 0.05), ShipPaints.leather)
-		var band := Transform3D(sleeve.basis, cuff - hang * 0.03)
-		mesh.turned_box(band, Vector3(0.085, 0.05, 0.055), paint, 0)
-	var opening := wall.at(along, 1.32, front + 0.002)
-	RoomDressing.panel(
-		mesh, opening, wall.right, Vector2(0.004, 0.34), wall.normal, ShipPaints.dark, 0
-	)
-	for button in 3:
-		var at := wall.at(along + 0.035, 1.5 - button * 0.14, front + 0.004)
-		RoomDressing.disc(mesh, at, wall.normal, 0.013, ShipPaints.brass, 6)
-	var collar := wall.at(along, 1.66, front + 0.003)
-	RoomDressing.panel(mesh, collar, wall.right, Vector2(0.1, 0.05), wall.normal, paint)
+	var place := wall.place(wall.at(along, 0.0))
+	mesh.model(ShipModel.named(COAT_MODEL), place, {ShipPaints.blanket: paint})
 
 
 ## A cabin too narrow for furniture, the [param number]th: a berth folded up flat on
@@ -264,75 +185,22 @@ func _clear_stretch(wall: RoomDressing.Wall, glass: Array[Array]) -> Vector2:
 	return best
 
 
-## A berth folded up flat against [param wall] from [param a] to [param b] along it:
-## its varnished underside in two panels on brass hinges, its bedding of
-## [param blanket] showing over its top, held by two straps, on chains to the wall.
+## A berth folded up flat against [param wall] from [param a] to [param b] along it,
+## FOLDED_BERTHS' model for that length: its varnished underside in two panels on
+## brass hinges, its bedding of [param blanket] showing over its top, held by two
+## straps, on chains to the wall.
 func _folded_berth(
 	mesh: ShipMesh, wall: RoomDressing.Wall, a: float, b: float, blanket: ShipMesh.Paint
 ) -> void:
-	var low := wall.floor + 0.42
-	var high := wall.floor + 1.12
-	RoomDressing.block(
-		mesh, wall.rect(a, b, 0.0, 0.08), low, high, ShipPaints.frame, ShipMesh.RIM_ALL
-	)
-	var middle := (a + b) * 0.5
-	var quarter := (b - a) * 0.25
-	for side: float in [-1.0, 1.0]:
-		var face := wall.at(middle + side * quarter, 0.77, 0.082)
-		RoomDressing.panel(
-			mesh, face, wall.right, Vector2(quarter - 0.07, 0.27), wall.normal, ShipPaints.teak
-		)
-		var hinge := middle + side * (quarter * 2.0 - 0.2)
-		RoomDressing.block(
-			mesh,
-			wall.rect(hinge - 0.06, hinge + 0.06, 0.0, 0.09),
-			low,
-			low + 0.05,
-			ShipPaints.brass
-		)
-		var strap := wall.at(middle + side * quarter * 1.3, 1.08, 0.091)
-		RoomDressing.panel(
-			mesh, strap, wall.right, Vector2(0.025, 0.12), wall.normal, ShipPaints.leather, 0
-		)
-		var end := middle + side * (quarter * 2.0 - 0.05)
-		chain(mesh, wall.at(end, 1.1, 0.06), wall.at(end, 1.62, 0.012), wall.normal)
-	var bedding := wall.rect(a + 0.04, b - 0.04, 0.0, 0.09)
-	RoomDressing.block(mesh, bedding, high, high + 0.08, blanket, ShipMesh.RIM_ALL)
+	var model := ShipModel.named(RoomDressing.variant(FOLDED_BERTHS, b - a))
+	mesh.model(model, wall.place(wall.at((a + b) * 0.5, 0.0)), {ShipPaints.blanket: blanket})
 
 
-## A chain from [param from] to [param to], its links each turned a quarter from the
-## last, the first flat to a wall facing [param normal].
-static func chain(mesh: ShipMesh, from: Vector3, to: Vector3, normal: Vector3) -> void:
-	var length := from.distance_to(to)
-	var count := maxi(2, roundi(length / CHAIN_LINK))
-	var along := (to - from) / length
-	var flat := along.cross(normal).normalized()
-	var edge := along.cross(flat).normalized()
-	for link in count:
-		var at := from.lerp(to, (link + 0.5) / count)
-		var size := Vector3(0.022, length / count + 0.012, 0.006)
-		var turn := Basis(flat, along, edge) if link % 2 == 0 else Basis(edge, along, flat)
-		mesh.turned_box(Transform3D(turn, at), size, ShipPaints.steel, 0)
-
-
-## A luggage rack over head height on [param wall] about [param along]: a shelf on two
-## brackets, a strapped suitcase and a bundle on it.
+## A luggage rack over head height on [param wall] about [param along]
+## (LUGGAGE_RACK_MODEL): a shelf on two brackets, a strapped suitcase and a rolled
+## blanket on it.
 func _rack(mesh: ShipMesh, wall: RoomDressing.Wall, along: float) -> void:
-	var low := wall.floor + 2.05
-	RoomDressing.block(
-		mesh, wall.rect(along - 0.55, along + 0.55, 0.0, 0.28), low, low + 0.03, ShipPaints.frame
-	)
-	for end: float in [along - 0.45, along + 0.45]:
-		RoomDressing.block(
-			mesh, wall.rect(end - 0.012, end + 0.012, 0.0, 0.2), low - 0.1, low, ShipPaints.frame
-		)
-	var suitcase := wall.rect(along - 0.45, along + 0.05, 0.04, 0.26)
-	RoomDressing.block(mesh, suitcase, low + 0.03, low + 0.2, ShipPaints.leather, ShipMesh.RIM_ALL)
-	for strap: float in [along - 0.32, along - 0.08]:
-		var band := wall.rect(strap - 0.015, strap + 0.015, 0.035, 0.265)
-		RoomDressing.block(mesh, band, low + 0.03, low + 0.205, ShipPaints.dark)
-	var bundle := wall.rect(along + 0.15, along + 0.42, 0.05, 0.25)
-	RoomDressing.block(mesh, bundle, low + 0.03, low + 0.15, ShipPaints.linen)
+	mesh.model(ShipModel.named(LUGGAGE_RACK_MODEL), wall.place(wall.at(along, 0.0)))
 
 
 ## A saloon's own, against its walls: curtains at each of [param glass], a clock and
