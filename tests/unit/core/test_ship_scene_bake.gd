@@ -41,10 +41,34 @@ func test_each_authoring_scene_bakes_to_her_ship() -> void:
 	var ships := DirAccess.get_directories_at(AUTHORING)
 	assert_has(ships, "steamer")
 	for ship: String in ships:
-		var baked := ShipSceneBake.of_scene("%s/%s/%s.tscn" % [AUTHORING, ship, ship])
+		var scene := "%s/%s/%s.tscn" % [AUTHORING, ship, ship]
+		if not ResourceLoader.exists(scene):
+			continue
+		var baked := ShipSceneBake.of_scene(scene)
 		var wanted: ShipLayout = load("res://data/ships/%s.tres" % ship)
 		assert_eq(baked.problems, PackedStringArray(), ship)
 		assert_eq(ShipSceneBake.differences(baked.layout, wanted, ship), PackedStringArray())
+
+
+## #125: each ship authored in Blender, as the glTF her .blend exports to, bakes back
+## into her ship field for field — with no Blender on hand, as CI has none.
+func test_each_blend_bakes_to_her_ship_through_its_gltf() -> void:
+	var blends := 0
+	for ship: String in DirAccess.get_directories_at(AUTHORING):
+		var blend := "%s/%s/%s.blend" % [AUTHORING, ship, ship]
+		if not FileAccess.file_exists(blend):
+			continue
+		blends += 1
+		var gltf := ShipGltf.read(blend.get_basename() + ".glb")
+		assert_eq(gltf.problems, PackedStringArray(), ship)
+		if gltf.root == null:
+			continue
+		var baked := ShipSceneBake.new(gltf.root)
+		gltf.root.free()
+		var wanted: ShipLayout = load("res://data/ships/%s.tres" % ship)
+		assert_eq(baked.problems, PackedStringArray(), ship)
+		assert_eq(ShipSceneBake.differences(baked.layout, wanted, ship), PackedStringArray())
+	assert_gt(blends, 0, "the steamer at least is authored in Blender")
 
 
 func test_a_piece_moved_a_millimetre_is_a_difference() -> void:
