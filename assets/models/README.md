@@ -4,8 +4,9 @@ A prop modelled in Blender instead of built from boxes in GDScript. Each lives i
 own folder, `assets/models/NAME/`: the source `NAME.blend`, the `NAME.glb` exported
 from it, the `.glb.import` Godot writes for it, and, when the model is built by
 script, `NAME.py`, the headless-Blender script that builds the `.blend`. The `.blend`
-is the source the `.glb` is exported from; the `.glb` is what the game loads. Godot never imports a `.blend` (`project.godot`
-turns its Blender importer off), so a checkout without Blender imports cleanly.
+is the source the `.glb` is exported from; the `.glb` is what the game loads. Godot
+never imports a `.blend` (`project.godot` turns its Blender importer off), so a
+checkout without Blender imports cleanly.
 
 A modelled prop is drawn like any procedural piece of the dressed ship. `ShipModel`
 gathers the `.glb`'s meshes into one, and `ShipMesh.model()` adds its triangles to

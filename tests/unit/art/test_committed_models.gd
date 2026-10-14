@@ -29,6 +29,12 @@ func _folders() -> Array[String]:
 	return found
 
 
+## Whether [param model]'s .glb is committed; the tests that load it skip a model that
+## is not, which test_every_row_is_a_committed_model and the painted test report.
+func _committed(model: String) -> bool:
+	return ResourceLoader.exists(MODELS.path_join(model).path_join(model + ".glb"))
+
+
 func test_every_model_folder_has_a_row() -> void:
 	assert_gt(_folders().size(), 0, "models are committed")
 	for folder in _folders():
@@ -38,8 +44,7 @@ func test_every_model_folder_has_a_row() -> void:
 func test_every_row_is_a_committed_model() -> void:
 	for model: String in _rows():
 		assert_has(_folders(), model, "%s's row names a committed model" % model)
-		var glb := MODELS.path_join(model).path_join(model + ".glb")
-		assert_true(ResourceLoader.exists(glb), "%s is committed" % glb)
+		assert_true(_committed(model), "%s.glb is committed" % model)
 
 
 func test_every_row_names_a_budget_class() -> void:
@@ -49,6 +54,9 @@ func test_every_row_names_a_budget_class() -> void:
 
 func test_every_model_is_painted_in_the_ship_s_paints_and_inked() -> void:
 	for folder in _folders():
+		assert_true(_committed(folder), "%s.glb is committed" % folder)
+		if not _committed(folder):
+			continue
 		var model := ShipModel.named(folder)
 		assert_eq(model.unfit, "", folder)
 		var mesh := model.mesh
@@ -66,6 +74,8 @@ func test_every_model_is_painted_in_the_ship_s_paints_and_inked() -> void:
 
 func test_every_model_keeps_to_its_triangle_budget() -> void:
 	for model: String in _rows():
+		if not _committed(model):
+			continue
 		var budget: int = BUDGETS.get(_rows()[model][0], 0)
 		var triangles := ShipModel.named(model).triangles
 		assert_gt(triangles, 0, model)
@@ -74,6 +84,8 @@ func test_every_model_keeps_to_its_triangle_budget() -> void:
 
 func test_every_model_fills_the_box_its_placing_code_gives_it() -> void:
 	for model: String in _rows():
+		if not _committed(model):
+			continue
 		var fills: Callable = _rows()[model][1]
 		fills.call(ShipModel.named(model).bounds)
 
