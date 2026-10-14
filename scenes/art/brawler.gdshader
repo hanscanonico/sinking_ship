@@ -1,9 +1,10 @@
-// A brawler's clothes and face, painted on the sailor per pixel from where each
-// point sits on it at rest (Brawler builds the mesh: UV holds rest x and y, UV2.x
-// rest z; UV2.y is 0 on the body, and runs from 1 at a coat skirt's waist to 2 at
-// its hem outside, from 3 to 4 inside). Rest space is model units: the soles
-// at 0, the crown at 1.83, facing +z, arms out along x. Painting from rest keeps
-// every edge crisp and riding the skin as the rig bends, for no geometry at all.
+// A brawler's clothes and face. Each outfit is modelled on the sailor
+// (assets/characters/sailor/gen_sailor.py), which writes where each point sits at
+// rest into its UVs — UV rest x and y, UV2.x rest z — and what it is into UV2.y:
+// PART_BODY, painted here per pixel from where it sits, or a piece of clothing in
+// one colour. Rest space is model units: the soles at 0, the crown at 1.83, facing
+// +z, arms out along x. Painting from rest keeps every edge crisp and riding the
+// skin as the rig bends; every colour is a uniform, so the coat is the seat's.
 shader_type spatial;
 render_mode diffuse_toon, specular_disabled;
 
@@ -32,6 +33,23 @@ uniform vec3 heat_colour : source_color = vec3(1.0, 0.42, 0.08);
 uniform vec3 heat_core : source_color = vec3(1.0, 0.94, 0.76);
 uniform float heat = 0.0;
 
+// What a point is (gen_sailor.py numbers them the same): the body, the coat's
+// cloth, its lining, a darker facing — ribbing, cuffs, a breast pocket's welt —
+// shirt, brass, leather, ink and horn.
+const int PART_BODY = 0;
+const int PART_CLOTH = 1;
+const int PART_LINING = 2;
+const int PART_FACING = 3;
+const int PART_SHIRT = 4;
+const int PART_BRASS = 5;
+const int PART_LEATHER = 6;
+const int PART_INK = 7;
+const int PART_HORN = 8;
+// The knit of a jersey: its ribs across, in rest units, and how much darker the
+// furrows between them are; the yoke's bands across the chest between these heights.
+const float RIB = 0.018;
+const float RIB_SHADE = 0.08;
+const vec2 YOKE = vec2(1.3, 1.43);
 const float LINING_LIFT = 0.3;
 // The legs under a skirt take the sun's shadow of it as well as the lining's dark;
 // below the hem they are lifted by no brighter a colour than LEG_CAP, so a pale
@@ -49,11 +67,11 @@ const float BEAT_FAST = 17.0;
 const float FOREARM_FROM = 0.5;
 
 varying vec3 rest;
-varying float skirt;
+varying float piece;
 
 void vertex() {
 	rest = vec3(UV.x, UV.y, UV2.x);
-	skirt = UV2.y;
+	piece = UV2.y;
 }
 
 // 1 inside the ellipse at centre c with radii r, in the face's x/y.
@@ -112,14 +130,22 @@ vec3 face(vec3 base) {
 	return c;
 }
 
+// A jersey's knit: ribs running down it, and over the chest the yoke's bands.
+vec3 knit(vec3 base) {
+	float rib = abs(fract(rest.x / RIB) - 0.5) * 2.0;
+	float band = abs(fract(rest.y / RIB) - 0.5) * 2.0;
+	bool yoke = rest.y > YOKE.x && rest.y < YOKE.y && rest.z > -0.02;
+	return base * (1.0 - RIB_SHADE * smoothstep(0.55, 0.9, yoke ? band : rib));
+}
+
 vec3 torso(float ax) {
 	float y = rest.y;
 	if (garment == 0) {
-		// A fisherman's jersey: a ribbed roll neck and welt, over a belt.
-		if (y < 0.975) {
-			return y > 0.935 ? leather : trousers;
+		// A fisherman's jersey, its welt modelled, over a belt.
+		if (y < 0.935) {
+			return y > 0.895 ? leather : trousers;
 		}
-		return y < 1.03 ? coat * 0.78 : coat;
+		return knit(coat);
 	}
 	float hem = garment == 2 ? 0.0 : 0.86;
 	if (garment == 1 && rest.z > 0.0) {
@@ -129,24 +155,39 @@ vec3 torso(float ax) {
 	if (y < hem) {
 		return trousers;
 	}
-	// The coat's front opens on a shirt and a neckerchief, below a turned collar.
-	float open_from = garment == 2 ? 1.36 : 1.2;
+	// The coat's front opens on a shirt and a tie or a neckerchief; the lapels
+	// rolled back either side are modelled.
+	// The openings and lapels' edges, as gen_sailor.py's _lapels lays them.
+	float open_from = garment == 2 ? 1.28 : 1.2;
 	float open = (y - open_from) * (garment == 2 ? 0.3 : 0.26);
 	if (rest.z > 0.03 && ax < open) {
 		return ax < 0.016 && y < 1.44 ? ink : shirt;
 	}
-	if (rest.z > 0.03 && ax < open + 0.014 && y > open_from) {
-		return coat * 0.72;
+	return coat;
+}
+
+// A piece of clothing's colour. An if chain, not a switch: the Mac's OpenGL shader
+// compiler crashes on a switch here.
+vec3 part_colour(int part) {
+	if (part == PART_CLOTH) {
+		return coat;
 	}
-	// Buttons down the front: one row on a jacket, two on a greatcoat.
-	float row = garment == 2 ? 0.06 : 0.0;
-	float pitch = 0.09;
-	float near_button = abs(fract((y - 0.02) / pitch) - 0.5) * pitch;
-	float top = garment == 2 ? 1.36 : 1.18;
-	if (rest.z > 0.05 && y > 0.9 && y < top && abs(ax - row) < 0.013 && near_button < 0.012) {
+	if (part == PART_LINING || part == PART_FACING) {
+		return coat * 0.78;
+	}
+	if (part == PART_SHIRT) {
+		return shirt;
+	}
+	if (part == PART_BRASS) {
 		return trim;
 	}
-	return coat;
+	if (part == PART_LEATHER) {
+		return leather;
+	}
+	if (part == PART_INK) {
+		return ink;
+	}
+	return mix(ink, leather, 0.5);
 }
 
 void fragment() {
@@ -161,11 +202,11 @@ void fragment() {
 	vec3 lining = coat * 0.78;
 	vec3 shade = lining;
 	float lift = 0.0;
-	if (skirt > 2.5) {
-		c = lining;
-		lift = LINING_LIFT;
-	} else if (skirt > 0.5) {
-		c = skirt > 1.93 ? coat * 0.78 : coat;
+	int part = int(round(piece));
+	if (part != PART_BODY) {
+		c = part_colour(part);
+		lift = part == PART_LINING ? LINING_LIFT : 0.0;
+		forearm = ax > 0.22 && rest.y > 1.25 ? smoothstep(FOREARM_FROM, 0.745, ax) : 0.0;
 	} else if (ax > 0.22 && rest.y > 1.25) {
 		// The arm: a sleeve, a cuff — the jersey's rib or the shirt's — and a hand.
 		forearm = smoothstep(FOREARM_FROM, 0.745, ax);
@@ -175,13 +216,14 @@ void fragment() {
 		} else if (ax > 0.7) {
 			c = garment == 0 ? coat * 0.78 : shirt;
 		} else {
-			c = coat;
+			c = garment == 0 ? knit(coat) : coat;
 		}
 	} else if (rest.y > 1.54) {
 		c = face(skin);
 	} else if (rest.y > 1.47 && ax < 0.1) {
-		// The neck, inside the jersey's roll or a collar turned up on the coat.
-		c = garment == 0 ? coat * 0.78 : (rest.y > 1.505 ? skin : shirt);
+		// The neck, inside the jersey's roll or the coat's collar, and the shirt's
+		// collar showing in front.
+		c = garment == 0 ? knit(coat) : (rest.z > 0.03 && ax < 0.06 ? shirt : coat);
 	} else if (rest.y > 0.86) {
 		c = torso(ax);
 	} else if (rest.y > 0.17) {

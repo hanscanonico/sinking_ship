@@ -7,7 +7,6 @@ source and license.
 |---|---|---|
 | `addons/gut/` (GUT, the test runner) | vendored addon — `addons/gut/LICENSE.md` | MIT |
 | `addons/godot_ai/` (the editor MCP bridge) | vendored addon — `addons/godot_ai/LICENSE` | MIT |
-| `assets/characters/quaternius_ual/AnimationLibrary_Godot_Standard.glb` and its `License.txt` — Universal Animation Library [Standard] by Quaternius: the mannequin every brawler wears and its 46 clips (6.7 MB) | https://quaternius.com/packs/universalanimationlibrary.html, downloaded from https://opengameart.org/content/universal-animation-library (`universal_animation_librarystandard.zip`, Godot folder only) | CC0 1.0 |
 | `assets/fonts/playfair_display.ttf` (`PlayfairDisplay[wght].ttf`, the variable roman, unmodified, 0.3 MB) — Playfair Display by Claus Eggers Sørensen: the menus' titles, buttons and wordmark (UiTheme); its licence is `assets/fonts/OFL.txt` | https://github.com/google/fonts/tree/main/ofl/playfairdisplay (commit `1e1aa08`) | SIL Open Font License 1.1 |
 
 ### Modelled props (`assets/models/`)
@@ -28,13 +27,11 @@ register covers every asset. `assets/models/README.md` says how they are authore
 ### The sailor (`assets/characters/sailor/`)
 
 Not third-party: original work made for this project, built in Blender 5.2.2 by a
-committed script. Its `README.md` says how. It replaces the Universal Animation
-Library mannequin above: nothing loads its files now, and they stay until they are
-retired.
+committed script. Its `README.md` says how.
 
 | Files | Source | License |
 |---|---|---|
-| `gen_sailor.py`, and the `sailor.blend` and `sailor.glb` it builds — the brawlers' rig (31 bones of its own), body (2320 triangles, 800 of them fingers and thumbs) and eleven clips (0.8 MB and 0.4 MB) | Original work, generated for this project (2026-10-14) | The project's own |
+| `gen_sailor.py`, and the `sailor.blend` and `sailor.glb` it builds — the brawlers' rig (31 bones of its own), body (2320 triangles, 800 of them fingers and thumbs), its three outfits (2830, 3076 and 3402 triangles as dressed) and eleven clips | Original work, generated for this project (2026-10-14) | The project's own |
 
 ### Audio (`assets/audio/`)
 

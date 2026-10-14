@@ -46,9 +46,10 @@ extends SceneTree
 ## - Snapshots only: no script anywhere under scenes/art names a live sim object.
 ## - Crew: the seats of a full match each wear their own hat and coat, so each reads
 ##   by its shape as well as its colour, and a brawler draws at most CREW_VERTICES
-##   vertices, so a deck full of them stays cheap. Its painted front — shirt, tie,
-##   lapels — is skinned to the spine alone (Brawler.STEADY_ROWS), so no swing of the
-##   arms shears a narrow painted band into a zigzag.
+##   vertices, so a deck full of them stays cheap. Its front — the painted shirt and
+##   tie, the lapels and buttons over them — is skinned to the spine alone
+##   (STEADY_ROWS, as assets/characters/sailor/gen_sailor.py weights it), so no swing
+##   of the arms shears a narrow band into a zigzag.
 ## - The horizon: the sea (SeaAndSky) reaches past every camera's far plane in the
 ##   match scene, so no view sees the sea's edge.
 ## - The rooms' furnishings (RoomDressing), on every ship: none stands in the space a
@@ -103,6 +104,12 @@ const SEAT_TOLERANCE := 0.001
 const CRATE_TOLERANCE := 0.001
 const SOLE_TOLERANCE := 0.02
 const CREW_VERTICES := 9000
+## A brawler's front: within STEADY_ACROSS of the middle, between the lowest and the
+## highest of STEADY_ROWS and more than STEADY_FADE ahead of the spine, in model
+## units, it rides the spine bones alone, in shares rising with height.
+const STEADY_ACROSS := 0.09
+const STEADY_ROWS := {&"spine_01": 1.1, &"spine_02": 1.27, &"chest": 1.42}
+const STEADY_FADE := 0.05
 ## How far in from a platform's edges the samples start, and how many per side.
 const SAMPLE_INSET := 0.1
 const SAMPLES_ALONG := 6
@@ -219,13 +226,13 @@ func _check_crew() -> void:
 					% [seat, vertices, CREW_VERTICES]
 				)
 			)
-		_check_painted_front(seat, brawler)
+		_check_front(seat, brawler)
 		brawler.free()
 
 
-## Every point of [param brawler]'s painted front, well inside it (Brawler.STEADY_),
-## weighted to the spine bones alone; [param seat] names it.
-func _check_painted_front(seat: int, brawler: Brawler) -> void:
+## Every point of [param brawler]'s front, well inside it (STEADY_), weighted to the
+## spine bones alone; [param seat] names it.
+func _check_front(seat: int, brawler: Brawler) -> void:
 	_checks += 1
 	var body: MeshInstance3D = brawler.find_child("Sailor", true, false)
 	var arrays := body.mesh.surface_get_arrays(0)
@@ -234,24 +241,23 @@ func _check_painted_front(seat: int, brawler: Brawler) -> void:
 	var bones: PackedInt32Array = arrays[Mesh.ARRAY_BONES]
 	var weights: PackedFloat32Array = arrays[Mesh.ARRAY_WEIGHTS]
 	var per := bones.size() / rest.size()
-	var heights: Array = Brawler.STEADY_ROWS.values()
+	var heights: Array = STEADY_ROWS.values()
 	var low: float = heights.min()
 	var high: float = heights.max()
 	for index in rest.size():
 		var front := (
-			absf(rest[index].x) < Brawler.STEADY_ACROSS
+			absf(rest[index].x) < STEADY_ACROSS
 			and rest[index].y > low
 			and rest[index].y < high
-			and depth[index].x > Brawler.STEADY_FADE
-			and depth[index].y == 0.0
+			and depth[index].x > STEADY_FADE
 		)
 		if not front:
 			continue
 		for slot in per:
 			var bone := body.skin.get_bind_name(bones[index * per + slot])
-			if weights[index * per + slot] > 0.001 and not Brawler.STEADY_ROWS.has(bone):
+			if weights[index * per + slot] > 0.001 and not STEADY_ROWS.has(bone):
 				_problems.append(
-					"art-lint: seat %d's painted front at %s rides %s" % [seat, rest[index], bone]
+					"art-lint: seat %d's front at %s rides %s" % [seat, rest[index], bone]
 				)
 				return
 
