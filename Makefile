@@ -424,6 +424,32 @@ model-sources:
 		--python "$$dir/$$name.py" -- "$$dir/$$name.blend" | { grep -E "^$$name:|^Info: Saved" || true; } \
 		|| exit 1; done
 
+# `make crew-capture`: every move a brawler is drawn in, saved as one PNG
+# (tools/crew_gallery.gd): VIEW=crew (the default) stands them all on a deck, VIEW=arms
+# shows a seat's own arms in each through a first-person lens, in a grid. Windowed, so
+# it takes the window lock as capture does. CAPTURE= names the file.
+VIEW ?= crew
+crew-capture:
+	$(call require-godot)
+	tools/window_lock.sh tools/engine_guard.sh $(GODOT) --path . --resolution $(if $(RES),$(RES),1920x1080) \
+		--audio-driver Dummy --fixed-fps 30 -s res://tools/crew_gallery.gd -- \
+		--capture="$(if $(filter $(CURDIR)/captures/match_%,$(CAPTURE)),$(CURDIR)/captures/crew_$(VIEW).png,$(CAPTURE))" \
+		--view=$(VIEW) | grep -v '^\[godot_ai'
+
+# `make sailor`: rebuilds the brawlers' sailor — rig, body and clips — from
+# assets/characters/sailor/gen_sailor.py, with Blender headless, into sailor.blend and
+# the sailor.glb the game loads; Godot reimports the .glb on its next import. Not
+# part of verify, as for models. The sailor's README says how it is built.
+sailor:
+	@command -v "$(BLENDER)" >/dev/null || { \
+		echo "$@: Blender not found at $(BLENDER)" >&2; \
+		echo "$@: install Blender 5.2 so \`blender\` is on PATH, or pass BLENDER=<path>" >&2; \
+		exit 1; }
+	@set -o pipefail; "$(BLENDER)" --background --factory-startup --python-exit-code 1 \
+		--python assets/characters/sailor/gen_sailor.py -- \
+		"$(CURDIR)/assets/characters/sailor/sailor.blend" "$(CURDIR)/assets/characters/sailor/sailor.glb" \
+		| { grep '^gen_sailor' || true; }
+
 # Every .gd file that is actually ours: skips the engine cache, vendored addons,
 # the engine binary, and .claude/worktrees, which holds whole nested checkouts of
 # this same repo and would otherwise be linted as if it were project source.
@@ -470,4 +496,4 @@ format-check:
 .PHONY: import run match capture net-bench sim-bench bench serve-local online-e2e export-server \
 	export-web export-mac export-server-mac serve-web-local serve-web-local-stop fps arena \
 	hits bake census art-lint test verify check guard-check ship ship-check bake-ship bake-check ship-scene \
-	models model-sources lint format format-check
+	models model-sources sailor crew-capture lint format format-check

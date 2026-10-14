@@ -1,4 +1,4 @@
-// A brawler's clothes and face, painted on the mannequin per pixel from where each
+// A brawler's clothes and face, painted on the sailor per pixel from where each
 // point sits on it at rest (Brawler builds the mesh: UV holds rest x and y, UV2.x
 // rest z; UV2.y is 0 on the body, and runs from 1 at a coat skirt's waist to 2 at
 // its hem outside, from 3 to 4 inside). Rest space is model units: the soles

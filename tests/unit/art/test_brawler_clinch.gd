@@ -5,8 +5,8 @@ extends GutTest
 ## is left as posed, and a body the view looks out of — not drawn, but there — is
 ## reached for as any other.
 
-const ARMS: Array[StringName] = [&"DEF-hand.L", &"DEF-hand.R"]
-const SHOULDERS: Array[StringName] = [&"DEF-upper_arm.L", &"DEF-upper_arm.R"]
+const ARMS: Array[StringName] = [&"hand_l", &"hand_r"]
+const SHOULDERS: Array[StringName] = [&"upperarm_l", &"upperarm_r"]
 
 var _ship: Node3D
 var _rules: BrawlRules

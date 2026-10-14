@@ -20,6 +20,17 @@ register covers every asset. `assets/models/README.md` says how they are authore
 | `lifeboat/lifeboat.blend` and `lifeboat.glb` — the lifeboats: a double-ended clinker boat under a ridged canvas cover (2928 triangles, 0.1 MB each) | Original work, modelled for this project (2026-10-13) | The project's own |
 | `davit/davit.blend` and `davit.glb` — the lifeboats' radial davits: post, swan neck, collars, cleat and the fall's hauling part (556 triangles, under 0.1 MB each) | Original work, modelled for this project (2026-10-13) | The project's own |
 
+### The sailor (`assets/characters/sailor/`)
+
+Not third-party: original work made for this project, built in Blender 5.2.2 by a
+committed script. Its `README.md` says how. It replaces the Universal Animation
+Library mannequin above: nothing loads its files now, and they stay until they are
+retired.
+
+| Files | Source | License |
+|---|---|---|
+| `gen_sailor.py`, and the `sailor.blend` and `sailor.glb` it builds — the brawlers' rig (31 bones of its own), body (1764 triangles) and eleven clips (0.8 MB and 0.4 MB) | Original work, generated for this project (2026-10-14) | The project's own |
+
 ### Audio (`assets/audio/`)
 
 Every sound below is CC0 1.0 (public domain dedication); no attribution is
