@@ -24,6 +24,7 @@ register covers every asset. `assets/models/README.md` says how they are authore
 | `bell/bell.blend` and `bell.glb` — the ship's bell on its bracket off the foremast, with its clapper and lanyard (620 triangles, under 0.1 MB each) | Original work, modelled for this project (2026-10-14) | The project's own |
 | `gauge_small/` and `gauge_large/`, each `.blend` and `.glb` — the engine and boiler rooms' pressure gauges, radius 0.085 and 0.11 (113 triangles each, under 0.1 MB each) | Original work, modelled for this project (2026-10-14) | The project's own |
 | `handwheel_small/` and `handwheel_large/`, each `.blend` and `.glb` — the valves' and the engines' handwheels, radius 0.11 and 0.15 (166 and 190 triangles, under 0.1 MB each) | Original work, modelled for this project (2026-10-14) | The project's own |
+| `iceberg_tabular/`, `iceberg_drydock/` and `iceberg_wedge/` (each `.blend` and `.glb`) — the iceberg she strikes: a flat-topped tabular berg, a drydock berg with two towers, and a wedge (764, 896 and 596 triangles, under 0.2 MB each) | Original work, modelled for this project (2026-10-14) | The project's own |
 
 ### The sailor (`assets/characters/sailor/`)
 
