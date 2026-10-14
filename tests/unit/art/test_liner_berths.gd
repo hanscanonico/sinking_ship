@@ -18,8 +18,8 @@ const BEFORE := {
 ## The most berths she may hang, all her blocks of berths together.
 const BUDGET := 200
 ## The most faces a block of berths may stand in all, its modelled berths
-## (RoomDressing.BERTH_MODEL) and their chains too: the third-class berths, the
-## worst, draw 7964.
+## (RoomDressing.BERTH_MODEL) and their chains and the cabin furniture's models too:
+## the third-class berths and the crew quarters, the worst, draw 8012.
 const CEILING := 8500
 
 var _layout: ShipLayout
