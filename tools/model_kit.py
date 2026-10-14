@@ -41,6 +41,7 @@ PAINTS = {
     "blanket": "41557a",
     "lifebelt": "cf3b2b",
     "fire_bucket": "b5302a",
+    "stowed": "ab8656",
 }
 
 

@@ -51,6 +51,9 @@ A prop placed a hundred times is parsed once.
 | `pendant_lamp` | `ShipLamp`, a room's pendant, under its own lamp node | wall decor | 130 |
 | `cargo_lamp` | `ShipLamp`, a hold's cargo lamp, under its own lamp node | furniture | 292 |
 | `furnace_fire` | `ShipLamp`, a furnace's fire, under its own lamp node | furniture | 32 |
+| `break_door` | `ShipFittings._break_door`, in a break's face tall enough for it | furniture | 266 |
+| `deck_pipe_20`, `deck_pipe_13` | `ShipFittings._deck_pipe`, the hawse and spurling pipes' mouths, by radius (`DECK_PIPES`) | furniture | 288, 280 |
+| `stowed_crate_80`, `stowed_crate_70`, `stowed_crate_62` | `CargoHold.crate`, a tween deck's stowed crates, the largest that fits (`STOWED_CRATES`) | furniture | 278 each |
 | `iceberg_tabular` | `IcebergPlanner`, one berg a match, drawn by `Iceberg` | world | 764 |
 | `iceberg_drydock` | `IcebergPlanner`, one berg a match, drawn by `Iceberg` | world | 896 |
 | `iceberg_wedge` | `IcebergPlanner`, one berg a match, drawn by `Iceberg` | world | 596 |
@@ -132,6 +135,21 @@ count as many times as it is placed. Each model belongs to a class with a ceilin
   - `furnace_fire`: on the bulkhead's face at the furnace mouth's middle, z out of it;
     `ShipLamp.MOUTH` across and up to its ragged crown, `MOUTH_PROUD` out, behind the
     boiler front's grate bars. `ShipLamp` turns it to face the lamp's way.
+  - `break_door`: on a break's face at the foot of its sill's middle, x along the
+    face, z out of it; `ShipFittings.BREAK_DOOR` standing on a sill
+    `BREAK_DOOR_SILL` tall, in its frame; its box `BREAK_DOOR_BOX`, no deeper than a
+    wall fitting.
+  - `deck_pipe_NN`: the pipe's axis at the deck, its flange NN hundredths of a metre
+    round, one of `ShipFittings.DECK_PIPES`, its lip no higher than `DECK_PIPE_RISE`,
+    under a toe rail; `RoomDressing.variant()` picks the largest no bigger than the
+    radius asked for. The two sizes share `tools/deck_pipe.py`.
+  - `stowed_crate_NN`: the middle of its underside, NN hundredths of a metre square,
+    as tall over all as `CargoHold.STOWED_CRATE_HEIGHTS` gives for its side, its
+    lashing lying on its battens and over its lid inside that box, so a crate stacked
+    on it sits on the rope. `CargoHold.stowed_crate()` picks the largest no wider and
+    no taller than the crate's spot: a stack's foot is drawn its own size, the crate
+    up a stack or on a barrel the largest that fits under it. The three sizes share
+    `tools/stowed_crate.py`.
 - **Paints.** One material per paint, named exactly after a `ShipPaints` entry
   (`white`, `teak`, `canvas`, `rope`, `dark`, `steel`, `brass`…). The material's
   name is all the game reads: the colour comes from the paint and the ship shader's

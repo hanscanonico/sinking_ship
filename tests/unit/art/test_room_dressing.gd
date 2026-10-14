@@ -453,6 +453,22 @@ func test_a_gauge_or_handwheel_is_the_largest_variant_no_bigger_than_asked() -> 
 	assert_eq(RoomDressing.variant(wheels, 0.11), "handwheel_large", "none so small: the smallest")
 
 
+func test_a_stowed_crate_is_the_largest_variant_that_fits_its_spot() -> void:
+	# A bottom crate of each stack size is drawn its own size, so the next sits on it.
+	assert_eq(CargoHold.stowed_crate(0.8, 0.68), "stowed_crate_80", "a 0.8 stack's foot")
+	assert_eq(CargoHold.stowed_crate(0.7, 0.595), "stowed_crate_70", "a 0.7 stack's foot")
+	assert_eq(CargoHold.stowed_crate(0.74, 0.68), "stowed_crate_70", "up a 0.8 stack")
+	assert_eq(CargoHold.stowed_crate(0.72, 0.56), "stowed_crate_62", "on a barrel: low")
+	assert_eq(CargoHold.stowed_crate(0.64, 0.595), "stowed_crate_62", "up a 0.7 stack")
+	assert_eq(CargoHold.stowed_crate(0.5, 0.3), "stowed_crate_62", "none fits: the smallest")
+
+
+func test_a_deck_pipe_is_the_largest_variant_no_bigger_than_asked() -> void:
+	var pipes := ShipFittings.DECK_PIPES
+	assert_eq(RoomDressing.variant(pipes, 0.2), "deck_pipe_20", "a hawse pipe's")
+	assert_eq(RoomDressing.variant(pipes, 0.13), "deck_pipe_13", "a spurling pipe's")
+
+
 func test_a_gauge_or_handwheel_faces_out_along_its_normal_upright() -> void:
 	for normal: Vector3 in [Vector3.LEFT, Vector3.RIGHT, Vector3.FORWARD, Vector3.BACK, Vector3.UP]:
 		var turn := RoomDressing.facing(normal)

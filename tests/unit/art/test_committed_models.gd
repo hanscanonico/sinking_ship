@@ -60,6 +60,15 @@ func _rows() -> Dictionary:
 		"pendant_lamp": ["wall decor", _hangs_the_pendant_s_globe_from_its_swivel],
 		"cargo_lamp": ["furniture", _hangs_the_cargo_lamp_s_globe_under_its_shade],
 		"furnace_fire": ["furniture", _fills_the_furnace_s_mouth_behind_its_bars],
+		"break_door": ["furniture", _stands_the_break_door_in_its_frame_on_the_face],
+		"deck_pipe_13": ["furniture", _is_the_deck_pipe_made_for.bind(0.13, "deck_pipe_13")],
+		"deck_pipe_20": ["furniture", _is_the_deck_pipe_made_for.bind(0.2, "deck_pipe_20")],
+		"stowed_crate_62":
+		["furniture", _is_the_stowed_crate_made_for.bind(0.62, "stowed_crate_62")],
+		"stowed_crate_70":
+		["furniture", _is_the_stowed_crate_made_for.bind(0.7, "stowed_crate_70")],
+		"stowed_crate_80":
+		["furniture", _is_the_stowed_crate_made_for.bind(0.8, "stowed_crate_80")],
 		"iceberg_tabular": [WORLD, _stands_to_the_iceberg_planner_s_measure],
 		"iceberg_drydock": [WORLD, _stands_to_the_iceberg_planner_s_measure],
 		"iceberg_wedge": [WORLD, _stands_to_the_iceberg_planner_s_measure],
@@ -378,6 +387,50 @@ func _fills_the_furnace_s_mouth_behind_its_bars(box: AABB) -> void:
 	assert_between(box.end.y, half.y * 0.5, half.y, "fire: its crown under the mouth's top")
 	assert_almost_eq(box.position.z, ShipLamp.MOUTH_PROUD, TOLERANCE, "fire: in its mouth")
 	assert_lte(box.end.z, ShipLamp.MOUTH_PROUD + 0.004, "fire: behind the grate bars")
+
+
+## The break door: its box ShipFittings.BREAK_DOOR_BOX, on the face and no further
+## out from it than a furnishing may stand (art-lint), round BREAK_DOOR standing on
+## its sill.
+func _stands_the_break_door_in_its_frame_on_the_face(box: AABB) -> void:
+	var wanted := ShipFittings.BREAK_DOOR_BOX
+	assert_almost_eq(box.position, wanted.position, Vector3.ONE * TOLERANCE, "break door: low")
+	assert_almost_eq(box.end, wanted.end, Vector3.ONE * TOLERANCE, "break door: high")
+	assert_gte(box.position.z, -0.001, "break door: nothing in the face")
+	assert_gte(box.position.y, -0.001, "break door: nothing under the deck")
+	assert_lte(box.end.z, FurnishingCheck.TOLERANCE, "break door: flat to the face")
+	var door := ShipFittings.BREAK_DOOR
+	assert_gt(box.size.x, door.x, "break door: its frame round the door")
+	assert_gt(box.end.y, ShipFittings.BREAK_DOOR_SILL + door.y, "break door: its head")
+	assert_almost_eq(box.get_center().x, 0.0, PART, "break door: square on its sill")
+
+
+## A deck pipe's mouth [param model] made for [param radius]
+## (ShipFittings.DECK_PIPES): its flange that round its axis, on the deck and no
+## higher than DECK_PIPE_RISE, under a toe rail's height.
+func _is_the_deck_pipe_made_for(box: AABB, radius: float, model: String) -> void:
+	assert_eq(ShipFittings.DECK_PIPES.get(radius), model, "DECK_PIPES names it")
+	for reach: float in [box.end.x, -box.position.x, box.end.z, -box.position.z]:
+		assert_almost_eq(reach, radius, PART, "%s: its flange's radius" % model)
+	assert_almost_eq(box.position.y, 0.0, 0.001, "%s: on the deck, nothing under it" % model)
+	assert_lte(box.end.y, ShipFittings.DECK_PIPE_RISE + 0.001, "%s: its lip" % model)
+	assert_lt(box.end.y, ShipHull.TOE_RAIL_HEIGHT, "%s: under a toe rail's height" % model)
+
+
+## A stowed crate [param model] made for [param side] (CargoHold.STOWED_CRATES): that
+## square round its middle, on its underside and STOWED_CRATE_HEIGHTS' height for it
+## tall, never past either: the crate stacked on it sits on its lashing.
+func _is_the_stowed_crate_made_for(box: AABB, side: float, model: String) -> void:
+	assert_eq(CargoHold.STOWED_CRATES.get(side), model, "STOWED_CRATES names it")
+	var height: float = CargoHold.STOWED_CRATE_HEIGHTS[side]
+	assert_almost_eq(box.size.x, side, PART, "%s: its side" % model)
+	assert_almost_eq(box.size.z, side, PART, "%s: its side" % model)
+	assert_lte(box.size.x, side + 0.001, "%s: within its square" % model)
+	assert_lte(box.size.z, side + 0.001, "%s: within its square" % model)
+	assert_almost_eq(box.get_center() * Vector3(1, 0, 1), Vector3.ZERO, Vector3.ONE * 0.001)
+	assert_almost_eq(box.position.y, 0.0, 0.001, "%s: on its underside" % model)
+	assert_almost_eq(box.end.y, height, PART, "%s: its height" % model)
+	assert_lte(box.end.y, height + 0.001, "%s: no taller" % model)
 
 
 func test_every_world_model_is_one_the_iceberg_planner_can_draw() -> void:
