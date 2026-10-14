@@ -3,13 +3,13 @@
 importer="scene"
 importer_version=1
 type="PackedScene"
-uid="uid://t4unds7g6wq5"
-path="res://.godot/imported/handwheel_small.glb-35863711b3724e51b6b01e05f359a434.scn"
+uid="uid://d3n662iovgn04"
+path="res://.godot/imported/crate.glb-5c60f27fb8375a5ef248eff3c7889d80.scn"
 
 [deps]
 
-source_file="res://assets/models/handwheel_small/handwheel_small.glb"
-dest_files=["res://.godot/imported/handwheel_small.glb-35863711b3724e51b6b01e05f359a434.scn"]
+source_file="res://assets/models/crate/crate.glb"
+dest_files=["res://.godot/imported/crate.glb-5c60f27fb8375a5ef248eff3c7889d80.scn"]
 
 [params]
 

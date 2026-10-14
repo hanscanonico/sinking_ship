@@ -28,8 +28,11 @@ A prop placed a hundred times is parsed once.
 | `wheel_stand` | `RoomDressing._wheel_wall`, a wheelhouse's forward wall | hero | 1461 |
 | `chart_case` | `RoomDressing._chart_wall`, a wheelhouse's after wall | hero | 444 |
 | `bell` | `ShipFittings._bell`, on the foremast | hero | 620 |
-| `gauge_small`, `gauge_large` | `RoomDressing.gauge()`, by radius (`GAUGES`) | furniture | 113 |
-| `handwheel_small`, `handwheel_large` | `RoomDressing.wheel()`, by radius (`HANDWHEELS`) | furniture | 166, 190 |
+| `gauge_small` | `RoomDressing.gauge()`, by radius (`GAUGES`) | furniture | 113 |
+| `handwheel_large` | `RoomDressing.wheel()`, by radius (`HANDWHEELS`) | furniture | 190 |
+| `chandelier` | `LinerPublic._chandelier`, one per pendant of a landing and the lounge | hero | 792 |
+| `boiler_100`, `boiler_85`, `boiler_65`, `boiler_50` | `EngineRoom._boiler`, the largest front its bulkhead has room for | hero | 1090, 1066, 640, 592 |
+| `crate` | `ShipArt._crate`, each under its own node | furniture | 334 |
 | `iceberg_tabular` | `IcebergPlanner`, one berg a match, drawn by `Iceberg` | world | 764 |
 | `iceberg_drydock` | `IcebergPlanner`, one berg a match, drawn by `Iceberg` | world | 896 |
 | `iceberg_wedge` | `IcebergPlanner`, one berg a match, drawn by `Iceberg` | world | 596 |
@@ -72,6 +75,17 @@ count as many times as it is placed. Each model belongs to a class with a ceilin
     `GAUGE_BACK` behind it, a handwheel's spindle `HANDWHEEL_SPINDLE`. Each variant is
     built at its own radius (`GAUGES`, `HANDWHEELS`); `RoomDressing.variant()` picks the
     largest no bigger than the radius asked for, never a scaled copy.
+  - `chandelier`: its hub, where the pendant's globe hangs, its corona
+    `LinerPublic.CHANDELIER` round; nothing of it more than `CHANDELIER_RISE` over its
+    hub or `CHANDELIER_DEPTH` under it.
+  - `boiler_NN`: the bulkhead's face at the floor under the front's middle, +Z out into
+    the room; its front's radius NN hundredths of a metre, one of
+    `EngineRoom.BOILER_FRONTS`, its middle `BOILER_FOOT` + radius up. Under head height
+    nothing stands more than art-lint's 0.12 m out from the face. The four sizes share
+    `tools/boiler_front.py`.
+  - `crate`: the middle of its underside, its body `ShipArt.CRATE_SIDE` of the cargo's
+    0.45 m radius each way and 0.8 m tall, its battens `CRATE_PROUD` proud. Every crate
+    of every ship is that size.
 - **Paints.** One material per paint, named exactly after a `ShipPaints` entry
   (`white`, `teak`, `canvas`, `rope`, `dark`, `steel`, `brass`…). The material's
   name is all the game reads: the colour comes from the paint and the ship shader's
@@ -121,9 +135,9 @@ measure:
 A model may be built by a script instead of by hand: `assets/models/NAME/NAME.py`,
 run by headless Blender, writes `NAME.blend` from nothing. Its points are given in
 Godot's axes and its paints, ink and sharp edges set as above; the shared helpers
-(`Part`, the paints' preview colours, the axis swap, and the turned and boxed shapes
-`lathe`, `tube`, `cap`, `torus`, `sphere`, `box` and `slab`) are in
-`tools/model_kit.py`.
+(`Part`, the paints' preview colours, the axis swap, and the turned, boxed and swept
+shapes `lathe`, `tube`, `cap`, `torus`, `sphere`, `box`, `turned_box`, `slab`, `sweep`
+and `stud`) are in `tools/model_kit.py`.
 Every model so far is built so; the pilots' scripts rebuild `.blend`s whose export is
 byte for byte the committed `.glb`.
 
@@ -154,9 +168,6 @@ every committed ship's `.glb` to its paints and its ink, every world model to wh
 planner and its shader read (a colour on every face, the waterline, its spur), and
 every model to its row's box and its class's budget. A model folder with no row
 fails, and so does a row with no folder: a new model lands with its row.
-
-A variant's script may build with its sibling's builder (`gauge_large.py` calls
-`gauge_small.py`'s `build()` at its own radius).
 
 ## Licence
 
