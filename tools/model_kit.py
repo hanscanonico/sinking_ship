@@ -35,6 +35,10 @@ PAINTS = {
     "boiler": "34383a",
     "crate": "9c7a4c",
     "stencil": "3b2d22",
+    "linen": "e9e4d6",
+    "blanket": "41557a",
+    "lifebelt": "cf3b2b",
+    "fire_bucket": "b5302a",
 }
 
 
@@ -348,10 +352,11 @@ def sphere(part, centre, radius, sides, rings):
     cap(part, rows[-1], _add(centre, [0.0, radius, 0.0]), [0.0, 1.0, 0.0], 0.0)
 
 
-def box(part, low, high, inked=True, rim=RIM_LOOP, skip=()):
+def box(part, low, high, inked=True, rim=RIM_LOOP, skip=(), plain=()):
     """An axis-aligned box from low to high, each face inked at its edges with a loop
     rim in (or plain when not inked); skip lists faces left off, as (axis, side) — a
-    back against a wall is (2, -1)."""
+    back against a wall is (2, -1) — and plain the faces drawn whole and uninked, a
+    narrow edge whose neighbours' rims ink it already."""
     for axis in range(3):
         for side in (-1, 1):
             if (axis, side) in skip:
@@ -365,7 +370,7 @@ def box(part, low, high, inked=True, rim=RIM_LOOP, skip=()):
                 corners.append(p)
             normal = [0.0, 0.0, 0.0]
             normal[axis] = float(side)
-            if not inked:
+            if not inked or (axis, side) in plain:
                 part.face([part.point(c) for c in corners], [0.0] * 4, normal)
                 continue
             ra = min(rim, (high[a] - low[a]) * 0.3)

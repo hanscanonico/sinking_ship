@@ -75,7 +75,8 @@ func build(mesh: ShipMesh, room: ShipRoom, glass: Array[Array]) -> void:
 	var number := 0
 	for spot: Spot in spots(_space, room):
 		var colour := blankets[_berths % blankets.size()]
-		_berth(mesh, spot, ShipMesh.Paint.new(ShipMesh.Finish.PLAIN, colour))
+		var blanket := ShipMesh.Paint.new(ShipMesh.Finish.PLAIN, colour)
+		RoomDressing.slung_berth(mesh, _space, spot.wall, spot.from, 1.0, blanket)
 		if number % FITTED == 0 and not _by_glass(spot, glass):
 			CabinDressing.washstand(mesh, spot.wall, spot.middle() - 0.45)
 			CabinDressing.locker(mesh, spot.wall, spot.middle() + 0.55)
@@ -217,81 +218,3 @@ func _lining(mesh: ShipMesh, wall: RoomDressing.Wall, span: Rect2, top: float) -
 			mesh.face(origin, u, v, part[2], 0, wall.floor, head)
 		else:
 			mesh.face(origin, v, u, part[2], 0, wall.floor, head)
-
-
-## A berth slung overhead at [param spot], as RoomDressing's: a board on chains from
-## the deckhead with a tall end at its head and its foot, a mattress on it, a pillow
-## and a blanket of [param blanket] drawn up to it, all over HEADROOM — only the faces
-## that show, a few dozen triangles a berth.
-func _berth(mesh: ShipMesh, spot: Spot, blanket: ShipMesh.Paint) -> void:
-	var wall := spot.wall
-	var low := wall.floor + RoomDressing.HEADROOM
-	var a := spot.from
-	var b := a + RoomDressing.BERTH.x
-	var depth := RoomDressing.BERTH.y
-	var frame := ShipPaints.frame
-	var linen := ShipPaints.linen
-	_slab(mesh, wall.rect(a, b, 0.0, depth), low, low + 0.1, frame)
-	for at: float in [a, b - 0.05]:
-		_slab(mesh, wall.rect(at, at + 0.05, 0.0, depth), low, low + 0.42, frame)
-	var mattress := Vector2(a + 0.05, b - 0.05)
-	_flat(mesh, wall, mattress, Vector2(0.0, depth - 0.04), low + 0.2, linen)
-	_front(mesh, wall, mattress, depth - 0.04, Vector2(low + 0.1, low + 0.2), linen)
-	var pillow := Vector2(a + 0.05, a + 0.45)
-	_flat(mesh, wall, pillow, Vector2(0.08, 0.55), low + 0.3, linen)
-	_front(mesh, wall, pillow, 0.55, Vector2(low + 0.2, low + 0.3), linen)
-	var end := wall.at(a + 0.45, RoomDressing.HEADROOM + 0.25, 0.315)
-	RoomDressing.panel(mesh, end, wall.normal, Vector2(0.235, 0.05), wall.right, linen, 0)
-	var cover := Vector2(a + 0.6, b - 0.06)
-	_flat(mesh, wall, cover, Vector2(0.0, depth - 0.03), low + 0.215, blanket)
-	_front(mesh, wall, cover, depth - 0.03, Vector2(low + 0.1, low + 0.215), blanket)
-	for at: float in [a + 0.03, b - 0.03]:
-		var hook := wall.at(at, RoomDressing.HEADROOM + 0.42, depth - 0.025)
-		var ceiling := _space.ceiling(wall.room, hook.x, hook.z) - ShipArt.PLANK
-		var middle := Vector3(hook.x, (hook.y + ceiling) * 0.5, hook.z)
-		var half := Vector2(0.008, (ceiling - hook.y) * 0.5)
-		RoomDressing.panel(mesh, middle, wall.right, half, wall.normal, ShipPaints.steel, 0)
-
-
-## A box over [param area] from [param bottom] to [param top], whole and unrimmed.
-static func _slab(
-	mesh: ShipMesh, area: Rect2, bottom: float, top: float, paint: ShipMesh.Paint
-) -> void:
-	var centre := Vector3(area.get_center().x, (bottom + top) * 0.5, area.get_center().y)
-	var size := Vector3(area.size.x, top - bottom, area.size.y)
-	mesh.turned_box(Transform3D(Basis.IDENTITY, centre), size, paint, 0)
-
-
-## A face looking up at [param height] over [param along] of [param wall], [param out]
-## from it.
-static func _flat(
-	mesh: ShipMesh,
-	wall: RoomDressing.Wall,
-	along: Vector2,
-	out: Vector2,
-	height: float,
-	paint: ShipMesh.Paint
-) -> void:
-	var over := height - wall.floor
-	var p := wall.at(along.x, over, out.x)
-	var q := wall.at(along.y, over, out.x)
-	var r := wall.at(along.y, over, out.y)
-	var s := wall.at(along.x, over, out.y)
-	mesh.quad(p, q, r, s, Vector3.UP, paint, 0)
-
-
-## A face looking out into the room from [param wall], [param out] from it, over
-## [param along] of it, from [param heights].x to [param heights].y.
-static func _front(
-	mesh: ShipMesh,
-	wall: RoomDressing.Wall,
-	along: Vector2,
-	out: float,
-	heights: Vector2,
-	paint: ShipMesh.Paint
-) -> void:
-	var p := wall.at(along.x, heights.x - wall.floor, out)
-	var q := wall.at(along.y, heights.x - wall.floor, out)
-	var r := wall.at(along.y, heights.y - wall.floor, out)
-	var s := wall.at(along.x, heights.y - wall.floor, out)
-	mesh.quad(p, q, r, s, wall.normal, paint, 0)

@@ -33,6 +33,9 @@ A prop placed a hundred times is parsed once.
 | `chandelier` | `LinerPublic._chandelier`, one per pendant of a landing and the lounge | hero | 792 |
 | `boiler_100`, `boiler_85`, `boiler_65`, `boiler_50` | `EngineRoom._boiler`, the largest front its bulkhead has room for | hero | 1090, 1066, 640, 592 |
 | `crate` | `ShipArt._crate`, each under its own node | furniture | 334 |
+| `berth` | `RoomDressing.slung_berth`, every cabin's and block of berths' (`LinerBerths`) | furniture | 176 |
+| `lifebelt` | `RoomDressing.lifebelt`, in passages and holds and on deckhouses (`ShipFittings`) | furniture | 168 |
+| `fire_buckets` | `RoomDressing.fire_buckets`, a rack over head height | furniture | 344 |
 | `iceberg_tabular` | `IcebergPlanner`, one berg a match, drawn by `Iceberg` | world | 764 |
 | `iceberg_drydock` | `IcebergPlanner`, one berg a match, drawn by `Iceberg` | world | 896 |
 | `iceberg_wedge` | `IcebergPlanner`, one berg a match, drawn by `Iceberg` | world | 596 |
@@ -86,6 +89,18 @@ count as many times as it is placed. Each model belongs to a class with a ceilin
   - `crate`: the middle of its underside, its body `ShipArt.CRATE_SIDE` of the cargo's
     0.45 m radius each way and 0.8 m tall, its battens `CRATE_PROUD` proud. Every crate
     of every ship is that size.
+  - `berth`: on the wall's face under its middle, at `RoomDressing.HEADROOM`, x
+    along the wall with its head toward −x, z out of it; `BERTH` long and deep,
+    `BERTH_RISE` tall to the eyes at `BERTH_EYE` its chains go up from. The chains
+    are the placing code's, each to its own deckhead. A head toward +x is the same
+    model mirrored along the wall. Its blanket is painted `blanket`, which
+    `ShipMesh.model()`'s `repaint` turns into the cabin's own colour.
+  - `lifebelt`: its middle on the wall's face, facing +z; its ring
+    `RoomDressing.LIFEBELT_RADIUS` round and `LIFEBELT_DEPTH` out, its grab line no
+    more than `LIFEBELT_LINE` past it.
+  - `fire_buckets`: on the wall's face under the rack's middle at `HEADROOM`, x along
+    the wall, z out of it, turned by `RoomDressing.facing()` so its lettering is never
+    mirrored; its box is `FIRE_BUCKETS`.
 - **Paints.** One material per paint, named exactly after a `ShipPaints` entry
   (`white`, `teak`, `canvas`, `rope`, `dark`, `steel`, `brass`…). The material's
   name is all the game reads: the colour comes from the paint and the ship shader's

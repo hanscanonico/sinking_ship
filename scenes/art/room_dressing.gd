@@ -107,6 +107,23 @@ const PIPE_SIDES := 8
 const LAMP_SPACING := 12.0
 ## A berth slung overhead: its length and its depth out from its wall.
 const BERTH := Vector2(1.9, 0.7)
+## Its model (assets/models), origin on the wall's face under its middle at HEADROOM,
+## x along the wall with its head toward -x, z out of it; BERTH_RISE its top over its
+## underside, and the eye on each end's top its chain goes up from, along it from its
+## middle, over its underside and out from the wall.
+const BERTH_MODEL := "berth"
+const BERTH_RISE := 0.42
+const BERTH_EYE := Vector3(0.92, 0.42, 0.675)
+## The modelled lifebelt, its middle on the wall's face facing +z: its ring's radius and
+## how far out it stands; its grab line hangs no more than LIFEBELT_LINE past the ring.
+const LIFEBELT_MODEL := "lifebelt"
+const LIFEBELT_RADIUS := 0.33
+const LIFEBELT_DEPTH := 0.075
+const LIFEBELT_LINE := 0.07
+## The modelled fire buckets in their rack, origin on the wall's face under the rack's
+## middle at HEADROOM, x along the wall, z out of it; their box over all there.
+const FIRE_BUCKETS_MODEL := "fire_buckets"
+const FIRE_BUCKETS := AABB(Vector3(-0.45, 0.0, 0.0), Vector3(0.9, 0.275, 0.3))
 ## The wheelhouse's modelled fittings (assets/models): against its forward wall the
 ## wheel on its pedestal between the binnacle and the telegraph, and on its after wall
 ## the chart over its case — each with its origin on the floor at the wall's face under
@@ -506,14 +523,11 @@ static func walls(space: ShipSpace, room: ShipRoom) -> Array[Wall]:
 	return found
 
 
-## Fire buckets, red on a shelf over head height on [param wall] at [param along].
+## Fire buckets in their rack over head height on [param wall] at [param along]
+## (FIRE_BUCKETS_MODEL), turned square to the wall so their lettering reads.
 static func fire_buckets(mesh: ShipMesh, wall: Wall, along: float) -> void:
-	var shelf := wall.rect(along - 0.45, along + 0.45, 0.0, 0.3)
-	block(mesh, shelf, wall.floor + HEADROOM, wall.floor + HEADROOM + 0.03, ShipPaints.frame)
-	for index in 3:
-		var at := wall.at(along + (index - 1) * 0.29, HEADROOM + 0.03, 0.15)
-		var spot := Vector2(at.x, at.z)
-		mesh.cylinder(spot, 0.11, at.y, at.y + 0.24, 8, ShipPaints.fire_bucket, false)
+	var place := Transform3D(facing(wall.normal), wall.at(along, HEADROOM))
+	mesh.model(ShipModel.named(FIRE_BUCKETS_MODEL), place)
 
 
 ## A lower-deck cabin, the [param number]th: a berth slung overhead along one of the
@@ -548,7 +562,9 @@ func _cabin(mesh: ShipMesh, room: ShipRoom, number: int, glass: Array[Array]) ->
 		return
 	var berth := sides[number % 2]
 	var stand := sides[(number + 1) % 2]
-	_berth(mesh, berth, berth.end_by(hull), blanket)
+	var head := berth.end_by(hull)
+	var way := 1.0 if is_equal_approx(head, berth.from) else -1.0
+	slung_berth(mesh, _space, berth, head + way * 0.02, way, blanket)
 	var wash := stand.end_by(hull)
 	var by_door := stand.to - 0.4
 	if wash == stand.from:
@@ -599,48 +615,21 @@ static func _gaps(room: ShipRoom, side: int, runs: Array) -> Array[Vector2]:
 	return gaps
 
 
-## A berth slung overhead along [param wall] from [param end] of it: a frame on
-## chains from the deckhead with tall ends and slats under it, a mattress showing over
-## its rail, a pillow and a blanket of [param blanket] folded over its foot, all over
-## HEADROOM.
-func _berth(mesh: ShipMesh, wall: Wall, end: float, blanket: ShipMesh.Paint) -> void:
-	var low := wall.floor + HEADROOM
-	var way := 1.0 if is_equal_approx(end, wall.from) else -1.0
-	var head := end + way * 0.02
-	var foot := end + way * BERTH.x
-	var a := minf(head, foot)
-	var b := maxf(head, foot)
-	var depth := BERTH.y
-	var frame := ShipPaints.frame
-	block(mesh, wall.rect(a, b, depth - 0.05, depth), low, low + 0.08, frame)
-	for at: float in [a, b - 0.05]:
-		block(mesh, wall.rect(at, at + 0.05, 0.0, depth), low, low + 0.42, frame)
-		block(
-			mesh,
-			wall.rect(at - 0.01, at + 0.06, depth - 0.06, depth + 0.01),
-			low + 0.38,
-			low + 0.44,
-			frame
-		)
-	var slat := a + 0.12
-	while slat < b - 0.1:
-		block(mesh, wall.rect(slat - 0.03, slat + 0.03, 0.0, depth - 0.05), low, low + 0.03, frame)
-		slat += 0.42
-	var mattress := wall.rect(a + 0.05, b - 0.05, 0.02, depth - 0.06)
-	block(mesh, mattress, low + 0.03, low + 0.17, ShipPaints.linen, ShipMesh.RIM_ALL)
-	var pillow := wall.rect(
-		minf(head, head + way * 0.42), maxf(head, head + way * 0.42), 0.08, 0.55
-	)
-	block(mesh, pillow.grow(-0.02), low + 0.17, low + 0.3, ShipPaints.linen)
-	var from := minf(head + way * 0.6, foot - way * 0.06)
-	var to := maxf(head + way * 0.6, foot - way * 0.06)
-	block(mesh, wall.rect(from, to, 0.0, depth - 0.05), low + 0.16, low + 0.23, blanket)
-	block(mesh, wall.rect(from, to, depth - 0.06, depth - 0.045), low + 0.08, low + 0.23, blanket)
-	for at: float in [a + 0.03, b - 0.03]:
-		var hook := wall.at(at, HEADROOM + 0.42, depth - 0.025)
-		var ceiling := _space.ceiling(wall.room, hook.x, hook.z) - ShipArt.PLANK
-		var chain := Vector2.ONE * 0.016
-		mesh.beam(hook, Vector3(hook.x, ceiling, hook.z), chain, ShipPaints.steel, 0)
+## A berth slung overhead along [param wall] of [param space] (BERTH_MODEL), its head
+## at [param head] along it and its foot BERTH.x toward [param way] (1 or -1) from it,
+## over HEADROOM, its blanket in [param blanket]; a chain from each end's eye up to the
+## deckhead over it.
+static func slung_berth(
+	mesh: ShipMesh, space: ShipSpace, wall: Wall, head: float, way: float, blanket: ShipMesh.Paint
+) -> void:
+	var middle := head + way * BERTH.x * 0.5
+	var turn := Basis(wall.right * way, Vector3.UP, wall.normal)
+	var place := Transform3D(turn, wall.at(middle, HEADROOM))
+	mesh.model(ShipModel.named(BERTH_MODEL), place, {ShipPaints.blanket: blanket})
+	for end: float in [-1.0, 1.0]:
+		var hook := wall.at(middle + end * BERTH_EYE.x, HEADROOM + BERTH_EYE.y, BERTH_EYE.z)
+		var ceiling := space.ceiling(wall.room, hook.x, hook.z) - ShipArt.PLANK
+		mesh.beam(hook, Vector3(hook.x, ceiling, hook.z), Vector2.ONE * 0.016, ShipPaints.steel, 0)
 
 
 ## The corridor's own: a handrail along each long wall, sloping up its stairs; a
@@ -733,25 +722,10 @@ func _hand_height(wall: Wall, along: float) -> Vector3:
 	return Vector3(at.x, surface + 0.92, at.z)
 
 
-## A lifebelt hung flat on a wall at [param centre], facing [param normal]: a red
-## ring with four white bands.
+## A lifebelt hung flat on a wall at [param centre], facing [param normal]
+## (LIFEBELT_MODEL): a red ring with four white bands and its grab line.
 static func lifebelt(mesh: ShipMesh, centre: Vector3, normal: Vector3) -> void:
-	var axes := across(normal)
-	var front := centre + normal * 0.075
-	var segments := 12
-	for index in segments:
-		var turn := TAU * index / segments
-		var next := TAU * (index + 1) / segments
-		var a := axes[0] * cos(turn) + axes[1] * sin(turn)
-		var b := axes[0] * cos(next) + axes[1] * sin(next)
-		var paint := ShipPaints.white if index % 3 == 1 else ShipPaints.lifebelt
-		var face := [front + a * 0.19, front + b * 0.19, front + b * 0.33, front + a * 0.33]
-		var flat := PackedVector3Array([normal, normal, normal, normal])
-		mesh.smooth_quad(PackedVector3Array(face), flat, paint)
-		var rim := [front + a * 0.33, front + b * 0.33, centre + b * 0.33, centre + a * 0.33]
-		mesh.smooth_quad(PackedVector3Array(rim), PackedVector3Array([a, b, b, a]), paint)
-		var hole := [centre + a * 0.19, centre + b * 0.19, front + b * 0.19, front + a * 0.19]
-		mesh.smooth_quad(PackedVector3Array(hole), PackedVector3Array([-a, -b, -b, -a]), paint)
+	mesh.model(ShipModel.named(LIFEBELT_MODEL), Transform3D(facing(normal), centre))
 
 
 ## The wheelhouse's own, against its walls: the wheel on its steering box in the

@@ -78,6 +78,18 @@ func test_each_surface_is_drawn_in_the_paint_its_material_names() -> void:
 		assert_eq(colour, ArtPalette.DECK)
 
 
+func test_a_repainted_surface_is_drawn_in_its_new_paint_and_the_rest_in_their_own() -> void:
+	var mesh := _ship_mesh()
+	var red := ShipMesh.Paint.new(ShipMesh.Finish.PLAIN, ArtPalette.CABIN_BLANKETS[1])
+	var model := _model(["blanket", "deck"])
+	mesh.model(model, Transform3D.IDENTITY, {ShipPaints.blanket: red})
+	var drawn := _drawn(mesh)
+	for colour: Color in _arrays(drawn["%d_out" % ShipMesh.Finish.PLAIN])[Mesh.ARRAY_COLOR]:
+		assert_eq(colour, ArtPalette.CABIN_BLANKETS[1])
+	for colour: Color in _arrays(drawn["%d_out" % ShipMesh.Finish.DECK])[Mesh.ARRAY_COLOR]:
+		assert_eq(colour, ArtPalette.DECK)
+
+
 func test_an_outdoor_model_is_drawn_on_the_outdoor_layer_inked_where_its_ink_says() -> void:
 	var mesh := _ship_mesh()
 	mesh.model(_model(["white"]), Transform3D.IDENTITY)
