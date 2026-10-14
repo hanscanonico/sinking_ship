@@ -411,7 +411,8 @@ func test_the_binnacle_s_spheres_stand_clear_of_rail_windows_and_wheel() -> void
 	var fittings := ShipFittings.new(_space, ShipHull.new(_space, _rules.railing_height), 0.3)
 	fittings.build(ShipMesh.new(_space.outdoors, _space.room_lines()))
 	# The cabin finish's dado rail (ship.gdshaderinc), 0.95 m up and 0.07 deep; the wheel
-	# (RoomDressing.wheel) round its hub 1 m up, handles 0.09 past a 0.32 rim, 0.022 thick.
+	# (the wheel_stand model) round its hub 1 m up, handles 0.09 past a 0.32 rim, 0.022
+	# thick.
 	var rail := Vector2(0.915, 0.985)
 	var hub := Vector2(wall.middle(), 1.0)
 	for sphere: Vector3 in spheres:
