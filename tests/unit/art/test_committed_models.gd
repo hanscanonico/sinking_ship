@@ -81,6 +81,16 @@ func _rows() -> Dictionary:
 		"waste_pipe_head_330":
 		["furniture", _caps_the_waste_pipe_over_the_funnel_s_top.bind("330")],
 		"pipe_clamp_330": ["wall decor", _holds_a_pipe_to_the_funnel.bind("330")],
+		"clock": ["wall decor", _hangs_the_clock_flat_on_its_wall],
+		"sconce_tulip": ["wall decor", _hangs_the_tulip_sconce_flat_on_its_wall],
+		"sconce_globe": ["wall decor", _hangs_the_dining_sconce_s_globe_off_its_wall],
+		"capital_32":
+		["wall decor", _is_the_capital_made_for.bind(LinerPublic.CAPITAL, "capital_32")],
+		"capital_38":
+		["wall decor", _is_the_capital_made_for.bind(_dining_capital(), "capital_38")],
+		"pilaster_base": ["wall decor", _stands_the_pilaster_base_on_the_floor],
+		"stateroom_door": ["wall decor", _stands_the_stateroom_door_in_its_architrave],
+		"hanging_basket": ["furniture", _hangs_the_basket_from_its_hook],
 		"iceberg_tabular": [WORLD, _stands_to_the_iceberg_planner_s_measure],
 		"iceberg_drydock": [WORLD, _stands_to_the_iceberg_planner_s_measure],
 		"iceberg_wedge": [WORLD, _stands_to_the_iceberg_planner_s_measure],
@@ -522,6 +532,107 @@ func _is_the_stowed_crate_made_for(box: AABB, side: float, model: String) -> voi
 	assert_almost_eq(box.position.y, 0.0, 0.001, "%s: on its underside" % model)
 	assert_almost_eq(box.end.y, height, PART, "%s: its height" % model)
 	assert_lte(box.end.y, height + 0.001, "%s: no taller" % model)
+
+
+## The wall clock: its bezel RoomDressing.CLOCK_RADIUS round its dial's middle, no
+## bigger than the clearance the dining saloon and the baths keep for it, flat on its
+## wall CLOCK_DEPTH out.
+func _hangs_the_clock_flat_on_its_wall(box: AABB) -> void:
+	var radius := RoomDressing.CLOCK_RADIUS
+	for reach: float in [box.end.x, -box.position.x, box.end.y, -box.position.y]:
+		assert_almost_eq(reach, radius, PART, "clock: its bezel's radius")
+	assert_lte(radius, LinerDining.CLOCK, "clock: in the dining saloon's clearance")
+	assert_lte(radius, LinerBath.CLOCK, "clock: in the baths' clearance")
+	assert_almost_eq(box.position.z, 0.0, 0.001, "clock: on its wall")
+	assert_almost_eq(box.end.z, RoomDressing.CLOCK_DEPTH, PART, "clock: its bezel's crown")
+	assert_lte(box.end.z, FurnishingCheck.TOLERANCE, "clock: flat on its wall")
+
+
+## The brass sconce public rooms and corridors hang: square round its plate's middle,
+## on its wall, no further out than SCONCE_REACH (within each room's depth) nor over
+## SCONCE_RISE.
+func _hangs_the_tulip_sconce_flat_on_its_wall(box: AABB) -> void:
+	assert_almost_eq(box.get_center().x, 0.0, PART, "sconce: square on its plate")
+	assert_almost_eq(box.position.z, 0.0, 0.001, "sconce: on its wall")
+	assert_almost_eq(box.end.z, RoomDressing.SCONCE_REACH, PART, "sconce: its shade's lip")
+	assert_lte(box.end.z, RoomDressing.SCONCE_REACH + 0.001, "sconce: no further out")
+	assert_lte(RoomDressing.SCONCE_REACH, LinerCorridor.SCONCE_DEPTH, "in a corridor's depth")
+	assert_lte(RoomDressing.SCONCE_REACH, LinerPublic.DEPTH, "in a public room's depth")
+	assert_almost_eq(box.end.y, RoomDressing.SCONCE_RISE, PART, "sconce: its shade's top")
+
+
+## The dining saloon's sconce: its globe SCONCE_GLOBE round, its middle SCONCE_OUT out
+## and SCONCE_LIFT up, square on its plate and flat on its wall.
+func _hangs_the_dining_sconce_s_globe_off_its_wall(box: AABB) -> void:
+	var globe := LinerDining.SCONCE_GLOBE
+	assert_almost_eq(box.get_center().x, 0.0, PART, "sconce: square on its plate")
+	assert_almost_eq(box.position.z, 0.0, 0.001, "sconce: on its wall")
+	assert_almost_eq(box.end.z, LinerDining.SCONCE_OUT + globe, PART, "sconce: its globe")
+	assert_lte(box.end.z, FurnishingCheck.TOLERANCE, "sconce: flat on its wall")
+	var glass := AABB()
+	var first := true
+	for surface: ShipModel.Surface in ShipModel.named(LinerDining.SCONCE_MODEL).surfaces:
+		if surface.paint != ShipPaints.sconce_glass:
+			continue
+		for point in surface.points:
+			glass = AABB(point, Vector3.ZERO) if first else glass.expand(point)
+			first = false
+	assert_false(first, "sconce: a globe of sconce glass")
+	var middle := Vector3(0.0, LinerDining.SCONCE_LIFT, LinerDining.SCONCE_OUT)
+	var centre := glass.get_center() * Vector3(1, 0, 1) + Vector3.UP * middle.y
+	assert_almost_eq(centre, middle, Vector3.ONE * PART, "sconce: its globe's middle")
+	assert_almost_eq(glass.end.y, middle.y + globe, PART, "sconce: its globe's crown")
+
+
+## The dining saloon's capital: as wide as CAPITAL.x, CAPITAL_HEIGHT tall, CAPITAL.y out.
+static func _dining_capital() -> Vector3:
+	return Vector3(LinerDining.CAPITAL.x, LinerDining.CAPITAL_HEIGHT, LinerDining.CAPITAL.y)
+
+
+## A capital [param model] made for [param size]'s width (RoomDressing.CAPITALS):
+## hanging that tall from its origin under the ceiling, that wide square across it
+## and that far out from its wall.
+func _is_the_capital_made_for(box: AABB, size: Vector3, model: String) -> void:
+	assert_eq(RoomDressing.variant(RoomDressing.CAPITALS, size.x), model, "CAPITALS names it")
+	assert_almost_eq(box.size.x, size.x, PART, "%s: its width" % model)
+	assert_almost_eq(box.get_center().x, 0.0, PART, "%s: square across it" % model)
+	assert_almost_eq(box.end.y, 0.0, 0.001, "%s: up to the ceiling" % model)
+	assert_almost_eq(box.position.y, -size.y, PART, "%s: its height" % model)
+	assert_almost_eq(box.position.z, 0.0, 0.001, "%s: on its wall" % model)
+	assert_almost_eq(box.end.z, size.z, PART, "%s: its depth" % model)
+
+
+## A public room's pilaster base: LinerPublic.PILASTER_BASE on the floor at its wall.
+func _stands_the_pilaster_base_on_the_floor(box: AABB) -> void:
+	var size := LinerPublic.PILASTER_BASE
+	var wanted := AABB(Vector3(-size.x * 0.5, 0.0, 0.0), size)
+	assert_almost_eq(box.position, wanted.position, Vector3.ONE * PART, "pilaster base: low")
+	assert_almost_eq(box.end, wanted.end, Vector3.ONE * PART, "pilaster base: high")
+	assert_lte(box.end.z, FurnishingCheck.TOLERANCE, "pilaster base: flat on its wall")
+
+
+## A stateroom door: LinerCorridor.DOOR on the floor in its ARCHITRAVE, its knob
+## DOOR_KNOB out of its face DOOR_DEPTH out of the wall.
+func _stands_the_stateroom_door_in_its_architrave(box: AABB) -> void:
+	var door := LinerCorridor.DOOR
+	var trim := LinerCorridor.ARCHITRAVE
+	var half := door.x * 0.5 + trim
+	var low := Vector3(-half, 0.0, 0.0)
+	var high := Vector3(half, door.y + trim, LinerCorridor.DOOR_DEPTH + LinerCorridor.DOOR_KNOB)
+	assert_almost_eq(box.position, low, Vector3.ONE * PART, "stateroom door: low")
+	assert_almost_eq(box.end, high, Vector3.ONE * PART, "stateroom door: high")
+	assert_lte(box.end.z, FurnishingCheck.TOLERANCE, "stateroom door: flat on its wall")
+
+
+## The café's hanging basket: from its hook down BASKET_DROP to its rim and
+## BASKET_DEPTH to its foot, its leaves spread no further than BASKET_SPREAD.
+func _hangs_the_basket_from_its_hook(box: AABB) -> void:
+	var foot := -LinerPublic.BASKET_DROP - LinerPublic.BASKET_DEPTH
+	assert_almost_eq(box.end.y, 0.0, PART, "basket: from its hook")
+	assert_almost_eq(box.position.y, foot, PART, "basket: its foot")
+	assert_gte(box.position.y, foot - 0.001, "basket: nothing under its foot")
+	for reach: float in [box.end.x, -box.position.x, box.end.z, -box.position.z]:
+		assert_between(reach, LinerPublic.BASKET, LinerPublic.BASKET_SPREAD, "basket: round")
 
 
 func test_every_world_model_is_one_the_iceberg_planner_can_draw() -> void:

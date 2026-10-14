@@ -51,7 +51,6 @@ const WHITE_PANEL := Color("f3f0e7")
 const CREAM_CEILING := Color("efe4c8")
 const GILT := ArtPalette.GILT
 const MIRROR_GLASS := Color("cfdde3")
-const SCONCE_GLASS := ArtPalette.SCONCE_GLASS
 const TRELLIS := Color("5c7d48")
 const TRELLIS_GROUND := Color("dfe4cf")
 const WICKER := Color("c9a56b")
@@ -82,6 +81,12 @@ const LINTEL := 2.12
 ## A pilaster's width and depth, and how far apart they stand.
 const PILASTER := Vector2(0.24, 0.1)
 const PILASTER_PITCH := 2.5
+## A pilaster's capital under the ceiling (RoomDressing.CAPITALS): its width, its
+## height and how far out; and its base on the floor (PILASTER_BASE_MODEL, its origin
+## on the floor at the wall's face under its middle), over all.
+const CAPITAL := Vector3(0.32, 0.16, DEPTH)
+const PILASTER_BASE_MODEL := "pilaster_base"
+const PILASTER_BASE := Vector3(0.3, 0.15, DEPTH)
 ## Sconces: how far apart in the smoking room, and how high their plate.
 const SCONCE_PITCH := 3.0
 const SCONCE_HEIGHT := 1.7
@@ -101,6 +106,12 @@ const MATTING := 2.0
 const BASKET_PITCH := 3.0
 const BASKET := 0.18
 const BASKET_DROP := 0.35
+## A basket's model (its origin at the hook): how deep the basket from its rim to its
+## foot, and how far round its leaves spread at most. Its wicker is painted rope and
+## its leaves canvas, swapped for WICKER and FOLIAGE.
+const BASKET_MODEL := "hanging_basket"
+const BASKET_DEPTH := 0.16
+const BASKET_SPREAD := 0.24
 ## A bookcase: its bays' width at most, its bottom and top over the floor, its shelves.
 const BAY := 1.3
 const BOOKCASE := Vector2(0.95, 2.35)
@@ -124,7 +135,6 @@ static var _white := ShipMesh.Paint.new(ShipMesh.Finish.PLAIN, WHITE_PANEL)
 static var _cream := ShipMesh.Paint.new(ShipMesh.Finish.PLAIN, CREAM_CEILING)
 static var _gilt := ShipMesh.Paint.new(ShipMesh.Finish.PLAIN, GILT)
 static var _mirror := ShipMesh.Paint.new(ShipMesh.Finish.PLAIN, MIRROR_GLASS)
-static var _sconce := ShipMesh.Paint.new(ShipMesh.Finish.PLAIN, SCONCE_GLASS)
 static var _trellis := ShipMesh.Paint.new(ShipMesh.Finish.PLAIN, TRELLIS)
 static var _trellis_ground := ShipMesh.Paint.new(ShipMesh.Finish.PLAIN, TRELLIS_GROUND)
 static var _wicker := ShipMesh.Paint.new(ShipMesh.Finish.PLAIN, WICKER)
@@ -306,7 +316,7 @@ func _reading_room(mesh: ShipMesh, room: ShipRoom, glass: Array[Array]) -> void:
 		if wall == longest:
 			_bookcases(mesh, wall, wall.from + 0.2, wall.middle() - 0.4)
 			_bookcases(mesh, wall, wall.middle() + 0.4, wall.to - 0.2)
-			_clock(mesh, wall, wall.middle(), 1.6, 0.16)
+			_clock(mesh, wall, wall.middle(), 1.6)
 		else:
 			_bookcases(mesh, wall, wall.from + 0.2, wall.to - 0.2)
 
@@ -397,7 +407,7 @@ func _third_class(mesh: ShipMesh, room: ShipRoom, glass: Array[Array]) -> void:
 	var middle := floori(spots.size() / 2.0)
 	_notice_board(mesh, board, spots[middle])
 	if middle > 0:
-		_clock(mesh, board, spots[middle - 1], 1.75, 0.14)
+		_clock(mesh, board, spots[middle - 1], 1.75)
 	var buckets := board
 	var along := spots[spots.size() - 1]
 	if clear.size() > 1:
@@ -573,19 +583,20 @@ func _by_a_ramp(wall: RoomDressing.Wall, a: float, b: float) -> bool:
 	return RoomDressing.over_a_ramp(_space.layout, area, wall.floor - 0.01, wall.floor + 2.5)
 
 
-## A pilaster on [param wall] at [param along], up to [param head]: a plinth, a shaft
-## and a capital under the ceiling, in [param paint].
+## A pilaster on [param wall] at [param along], up to [param head]: its modelled base
+## (PILASTER_BASE_MODEL), a shaft and its modelled capital under the ceiling
+## (RoomDressing.CAPITALS), in [param paint].
 func _pilaster(
 	mesh: ShipMesh, wall: RoomDressing.Wall, along: float, head: float, paint: ShipMesh.Paint
 ) -> void:
 	var floor := wall.floor
+	var paints := {ShipPaints.white: paint}
+	mesh.model(ShipModel.named(PILASTER_BASE_MODEL), wall.place(wall.at(along, 0.0)), paints)
 	var half := PILASTER.x * 0.5
-	var plinth := wall.rect(along - half - 0.03, along + half + 0.03, 0.0, DEPTH)
-	RoomDressing.block(mesh, plinth, floor, floor + 0.15, paint)
 	var shaft := wall.rect(along - half, along + half, 0.0, PILASTER.y)
-	RoomDressing.block(mesh, shaft, floor + 0.15, floor + head - 0.16, paint)
-	var capital := wall.rect(along - half - 0.04, along + half + 0.04, 0.0, DEPTH)
-	RoomDressing.block(mesh, capital, floor + head - 0.16, floor + head, paint)
+	RoomDressing.block(mesh, shaft, floor + PILASTER_BASE.y, floor + head - CAPITAL.y, paint)
+	var capital := ShipModel.named(RoomDressing.variant(RoomDressing.CAPITALS, CAPITAL.x))
+	mesh.model(capital, wall.place(wall.at(along, head)), paints)
 
 
 ## A sconce on every [param pitch] of [param wall] clear of [param holes] and further
@@ -607,16 +618,11 @@ func _sconces(
 			_sconce_on(mesh, wall, along)
 
 
-## A brass sconce on [param wall] at [param along]: a plate, an arm and a glass shade.
+## A brass sconce on [param wall] at [param along] (RoomDressing.SCONCE_MODEL): a
+## plate, an arm and a tulip shade.
 func _sconce_on(mesh: ShipMesh, wall: RoomDressing.Wall, along: float) -> void:
-	var plate := wall.at(along, SCONCE_HEIGHT, 0.012)
-	RoomDressing.panel(
-		mesh, plate, wall.right, Vector2(0.035, 0.07), wall.normal, ShipPaints.brass, 0
-	)
-	var arm := wall.at(along, SCONCE_HEIGHT, 0.02)
-	mesh.beam(arm, wall.at(along, SCONCE_HEIGHT + 0.06, 0.075), Vector2.ONE * 0.014, _gilt, 0)
-	var shade := wall.place(wall.at(along, SCONCE_HEIGHT + 0.11, 0.075))
-	mesh.turned_box(shade, Vector3(0.07, 0.09, 0.065), _sconce, 0)
+	var plate := wall.place(wall.at(along, SCONCE_HEIGHT))
+	mesh.model(ShipModel.named(RoomDressing.SCONCE_MODEL), plate)
 
 
 ## A mirror on each MIRROR_PITCH of [param wall] clear of [param holes], framed in
@@ -644,20 +650,11 @@ func _mirror_at(
 	RoomDressing.panel(mesh, glass, wall.right, half, wall.normal, _mirror, 0)
 
 
-## A clock of [param radius] on [param wall] at [param along], [param height] over the
-## floor: a white face in a brass rim, its hands at ten to two.
-func _clock(
-	mesh: ShipMesh, wall: RoomDressing.Wall, along: float, height: float, radius: float
-) -> void:
-	var face := wall.at(along, height, 0.03)
-	RoomDressing.disc(mesh, face, wall.normal, radius, ShipPaints.enamel, 8)
-	var rim := face + wall.normal * 0.004
-	RoomDressing.ring(mesh, rim, wall.normal, radius - 0.01, radius + 0.03, ShipPaints.brass, 8)
-	var hands := face + wall.normal * 0.008
-	var hour := hands + (wall.right * 0.6 + Vector3.UP * 0.5).normalized() * radius * 0.5
-	var minute := hands + (-wall.right * 0.6 + Vector3.UP * 0.5).normalized() * radius * 0.75
-	mesh.beam(hands, hour, Vector2(0.012, 0.004), ShipPaints.dark, 0)
-	mesh.beam(hands, minute, Vector2(0.01, 0.004), ShipPaints.dark, 0)
+## A clock on [param wall] at [param along], [param height] over the floor
+## (RoomDressing.CLOCK_MODEL): a white dial in a brass bezel, its hands at ten past ten.
+func _clock(mesh: ShipMesh, wall: RoomDressing.Wall, along: float, height: float) -> void:
+	var face := Transform3D(RoomDressing.facing(wall.normal), wall.at(along, height))
+	mesh.model(ShipModel.named(RoomDressing.CLOCK_MODEL), face)
 
 
 ## The wall of [param room] its clock panel stands on: its longest forward wall, else
@@ -697,7 +694,7 @@ func _clock_panel(mesh: ShipMesh, wall: RoomDressing.Wall, along: float) -> void
 	var top := minf(2.45, _head(wall))
 	var pediment := wall.rect(along - 0.9, along + 0.9, 0.0, DEPTH)
 	RoomDressing.block(mesh, pediment, wall.floor + top - 0.1, wall.floor + top, _oak_carved)
-	_clock(mesh, wall, along, 1.6, 0.17)
+	_clock(mesh, wall, along, 1.6)
 
 
 ## The coffered ceiling of [param room]: a panel of [param paint] under each COFFER
@@ -799,17 +796,15 @@ func _matting(mesh: ShipMesh, room: ShipRoom) -> void:
 			mesh.quad(a, Vector3(c.x, y, a.z), c, Vector3(a.x, y, c.z), Vector3.UP, _wicker, rims)
 
 
-## A basket of green hung from [param room]'s ceiling over [param at], over HEADROOM.
+## A basket of green hung from [param room]'s ceiling over [param at], over HEADROOM
+## (BASKET_MODEL).
 func _basket(mesh: ShipMesh, room: ShipRoom, at: Vector2) -> void:
 	var hook := RoomDressing.under_ceiling(_space, room, at)
-	var top := hook.y - BASKET_DROP
-	var bottom := top - 0.16
+	var bottom := hook.y - BASKET_DROP - BASKET_DEPTH
 	if bottom < room.floor_height + RoomDressing.HEADROOM + 0.05:
 		return
-	mesh.beam(hook, Vector3(at.x, top, at.y), Vector2.ONE * 0.012, ShipPaints.brass, 0)
-	mesh.cylinder(at, BASKET, bottom, top, 6, _wicker, false)
-	RoomDressing.disc(mesh, Vector3(at.x, bottom, at.y), Vector3.DOWN, BASKET, _wicker, 6)
-	mesh.cylinder(at, BASKET + 0.06, top, top + 0.1, 6, _foliage)
+	var paints := {ShipPaints.rope: _wicker, ShipPaints.canvas: _foliage}
+	mesh.model(ShipModel.named(BASKET_MODEL), Transform3D(Basis.IDENTITY, hook), paints)
 
 
 ## Bookcases on [param wall] from [param a] to [param b] along it, DEPTH deep from

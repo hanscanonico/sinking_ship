@@ -39,6 +39,10 @@ const SIDEBOARD_RUN := 3.0
 const SCONCE_HEIGHT := 1.6
 const SCONCE_GLOBE := 0.035
 const SCONCE_OUT := 0.075
+## Its model, its origin on the wall's face at its plate's middle, SCONCE_HEIGHT over
+## the floor; its globe's middle SCONCE_LIFT over that.
+const SCONCE_MODEL := "sconce_globe"
+const SCONCE_LIFT := 0.03
 ## A coffered ceiling: about how far apart its girders stand, how deep and how wide.
 const COFFER := 3.0
 const COFFER_DEPTH := 0.24
@@ -369,9 +373,8 @@ func _pilaster(mesh: ShipMesh, wall: RoomDressing.Wall, along: float, first: boo
 	var half := PILASTER.x * 0.5
 	_proud(mesh, wall, along - half, along + half, PILASTER.y, Vector2(0.0, top), white, false)
 	if first:
-		var cap := CAPITAL.x * 0.5
-		var span := Vector2(top - CAPITAL_HEIGHT, top)
-		_proud(mesh, wall, along - cap, along + cap, CAPITAL.y, span, gilt, true)
+		var capital := ShipModel.named(RoomDressing.variant(RoomDressing.CAPITALS, CAPITAL.x))
+		mesh.model(capital, wall.place(wall.at(along, top)), {ShipPaints.white: gilt})
 
 
 ## How high [param wall] stands at [param along] it: the top of the highest wall
@@ -388,14 +391,12 @@ func _wall_top(wall: RoomDressing.Wall, along: float) -> float:
 	return top
 
 
-## A sconce flat on [param wall] at [param along]: a gilt plate and a globe on it,
-## lit by nothing but its own glow.
+## A sconce flat on [param wall] at [param along] (SCONCE_MODEL): a gilt plate and a
+## globe on it, lit by nothing but its own glow.
 func _sconce(mesh: ShipMesh, wall: RoomDressing.Wall, along: float) -> void:
-	var plate := wall.at(along, SCONCE_HEIGHT, 0.006)
-	RoomDressing.panel(mesh, plate, wall.right, Vector2(0.05, 0.09), wall.normal, gilt, 0)
-	var globe := wall.at(along, SCONCE_HEIGHT + 0.03, SCONCE_OUT)
-	var size := Vector3.ONE * SCONCE_GLOBE * 2.0
-	mesh.turned_box(wall.place(globe), size, sconce_glass, 0)
+	var plate := wall.place(wall.at(along, SCONCE_HEIGHT))
+	var paints := {ShipPaints.gilt: gilt, ShipPaints.sconce_glass: sconce_glass}
+	mesh.model(ShipModel.named(SCONCE_MODEL), plate, paints)
 
 
 ## A sideboard flat on [param wall] at [param along]: a white cabinet of three doors
@@ -596,18 +597,11 @@ func _hatch(mesh: ShipMesh, wall: RoomDressing.Wall, along: float) -> void:
 	RoomDressing.block(mesh, sill, low - 0.03, low, ShipPaints.frame)
 
 
-## A clock flat on [param wall] at [param along]: a white face in a brass rim, with
-## its hands.
+## A clock flat on [param wall] at [param along] (RoomDressing.CLOCK_MODEL): a white
+## dial in a brass bezel, with its hands.
 func _clock(mesh: ShipMesh, wall: RoomDressing.Wall, along: float) -> void:
-	var face := wall.at(along, CLOCK_HEIGHT, 0.03)
-	var rim := face + wall.normal * 0.004
-	RoomDressing.disc(mesh, face, wall.normal, CLOCK * 0.82, ShipPaints.enamel, 8)
-	RoomDressing.ring(mesh, rim, wall.normal, CLOCK * 0.78, CLOCK, ShipPaints.brass, 8)
-	var hands := face + wall.normal * 0.008
-	var size := Vector2(0.012, 0.004)
-	mesh.beam(hands, hands + Vector3.UP * CLOCK * 0.6, size, ShipPaints.dark, 0)
-	var minute := hands + (wall.right * 0.7 - Vector3.UP * 0.4).normalized() * CLOCK * 0.45
-	mesh.beam(hands, minute, size, ShipPaints.dark, 0)
+	var face := Transform3D(RoomDressing.facing(wall.normal), wall.at(along, CLOCK_HEIGHT))
+	mesh.model(ShipModel.named(RoomDressing.CLOCK_MODEL), face)
 
 
 ## A box flat on [param wall] from [param a] to [param b] along it, [param out] from

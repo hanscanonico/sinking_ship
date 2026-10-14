@@ -20,6 +20,10 @@ const SCONCE_SPACING := 6.0
 const DOOR := Vector2(0.8, 2.0)
 const DOOR_DEPTH := 0.02
 const ARCHITRAVE := 0.06
+## Its model, its origin on the floor at the wall's face under its middle; its knob
+## stands DOOR_KNOB out of its face.
+const STATEROOM_DOOR_MODEL := "stateroom_door"
+const DOOR_KNOB := 0.05
 ## How far along a wall either side of its middle no door stands: room for the
 ## lifebelt, or the fire buckets' shelf across from it.
 const MIDDLE_CLEAR := 0.85
@@ -29,7 +33,6 @@ const SCONCE_DEPTH := 0.1
 ## The corridors' own colours.
 const CARPET := Color("7a2630")
 const WHITE_PANEL := Color("f1ede2")
-const MAHOGANY := Color("5a3420")
 const SCONCE_GLOW := Color("fff0c4")
 
 static var _carpet := ShipMesh.Paint.new(
@@ -38,7 +41,6 @@ static var _carpet := ShipMesh.Paint.new(
 static var _white_panel := ShipMesh.Paint.new(
 	ShipMesh.Finish.HOUSE, ArtPalette.HOUSE, ShipMesh.Finish.CABIN, WHITE_PANEL
 )
-static var _door := ShipMesh.Paint.new(ShipMesh.Finish.PLAIN, MAHOGANY)
 static var _glow := ShipMesh.Paint.new(ShipMesh.Finish.PLAIN, SCONCE_GLOW)
 
 var _space: ShipSpace
@@ -124,67 +126,16 @@ static func _spots(
 	return found
 
 
-## A slab on [param wall] over [param span] — from x to y along it, z to w over its
-## floor — standing [param near] to [param far] out from its face: its front, its ends
-## when [param ends], its top when [param top] and its underside when [param under];
-## unrimmed quads, two triangles a face. A face only a standing eye could never see —
-## the top of a piece over the eye, the underside of one under it — is left out.
-static func _slab(
-	mesh: ShipMesh,
-	wall: RoomDressing.Wall,
-	span: Vector4,
-	near: float,
-	far: float,
-	paint: ShipMesh.Paint,
-	top := true,
-	under := false,
-	ends := true
-) -> void:
-	var back: Array[Vector3] = [
-		wall.at(span.x, span.z, near),
-		wall.at(span.y, span.z, near),
-		wall.at(span.y, span.w, near),
-		wall.at(span.x, span.w, near),
-	]
-	var front: Array[Vector3] = []
-	for corner: Vector3 in back:
-		front.append(corner + wall.normal * (far - near))
-	mesh.quad(front[0], front[1], front[2], front[3], wall.normal, paint, 0)
-	if ends:
-		mesh.quad(back[0], front[0], front[3], back[3], -wall.right, paint, 0)
-		mesh.quad(front[1], back[1], back[2], front[2], wall.right, paint, 0)
-	if top:
-		mesh.quad(front[3], front[2], back[2], back[3], Vector3.UP, paint, 0)
-	if under:
-		mesh.quad(back[0], back[1], front[1], front[0], Vector3.DOWN, paint, 0)
-
-
-## A stateroom door on [param wall] at [param along]: a teak architrave flat on the
-## panelling, a mahogany door DOOR_DEPTH out of it, a brass number plate over a brass
-## knob.
+## A stateroom door on [param wall] at [param along] (STATEROOM_DOOR_MODEL): a white
+## panelled door DOOR_DEPTH out of the panelling in a varnished architrave, a brass
+## number plate over a brass knob.
 func _stateroom_door(mesh: ShipMesh, wall: RoomDressing.Wall, along: float) -> void:
-	var surround := Vector2(DOOR.x * 0.5 + ARCHITRAVE, (DOOR.y + ARCHITRAVE) * 0.5)
-	var middle := wall.at(along, surround.y, 0.006)
-	RoomDressing.panel(mesh, middle, wall.right, surround, wall.normal, ShipPaints.frame, 0)
-	var half := DOOR.x * 0.5
-	var leaf := Vector4(along - half, along + half, 0.0, DOOR.y)
-	_slab(mesh, wall, leaf, 0.0, DOOR_DEPTH, _door, false)
-	var plate := wall.at(along, 1.55, DOOR_DEPTH + 0.003)
-	var size := Vector2(0.06, 0.035)
-	RoomDressing.panel(mesh, plate, wall.right, size, wall.normal, ShipPaints.brass, 0)
-	var knob := along + half - 0.1
-	var at := Vector4(knob - 0.025, knob + 0.025, 0.975, 1.025)
-	_slab(mesh, wall, at, DOOR_DEPTH, DOOR_DEPTH + 0.05, ShipPaints.brass)
+	mesh.model(ShipModel.named(STATEROOM_DOOR_MODEL), wall.place(wall.at(along, 0.0)))
 
 
-## A sconce on [param wall] at [param along]: a brass back plate, an arm out of it and
-## a glowing shade SCONCE_DEPTH out at SCONCE_HEIGHT.
+## A sconce on [param wall] at [param along] (RoomDressing.SCONCE_MODEL): a brass back
+## plate, an arm out of it and a glowing tulip shade by SCONCE_HEIGHT, no further out
+## than SCONCE_DEPTH.
 func _sconce(mesh: ShipMesh, wall: RoomDressing.Wall, along: float) -> void:
-	var back := wall.at(along, SCONCE_HEIGHT - 0.05, 0.004)
-	var plate := Vector2(0.05, 0.09)
-	RoomDressing.panel(mesh, back, wall.right, plate, wall.normal, ShipPaints.brass, 0)
-	var low := SCONCE_HEIGHT - 0.1
-	var arm := Vector4(along - 0.012, along + 0.012, low, low + 0.024)
-	_slab(mesh, wall, arm, 0.004, 0.03, ShipPaints.brass, false, true, false)
-	var shade := Vector4(along - 0.06, along + 0.06, low + 0.024, SCONCE_HEIGHT + 0.06)
-	_slab(mesh, wall, shade, 0.03, SCONCE_DEPTH, _glow, false, true)
+	var plate := wall.place(wall.at(along, SCONCE_HEIGHT - 0.05))
+	mesh.model(ShipModel.named(RoomDressing.SCONCE_MODEL), plate, {ShipPaints.sconce_glass: _glow})

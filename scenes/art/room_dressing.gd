@@ -141,6 +141,22 @@ const GAUGES := {0.085: "gauge_small"}
 const GAUGE_BACK := 0.014
 const HANDWHEELS := {0.15: "handwheel_large"}
 const HANDWHEEL_SPINDLE := 0.05
+## Wall decor modelled once and hung by several rooms (assets/models). The wall clock:
+## its origin on the wall's face behind its dial's middle, facing +z (facing(), so it
+## never reads mirrored); its bezel CLOCK_RADIUS round and nothing CLOCK_DEPTH out.
+const CLOCK_MODEL := "clock"
+const CLOCK_RADIUS := 0.16
+const CLOCK_DEPTH := 0.045
+## The brass sconce with its tulip shade: its origin on the wall's face at its back
+## plate's middle, x along the wall, z out of it; nothing of it SCONCE_REACH out from
+## the wall nor SCONCE_RISE over its origin.
+const SCONCE_MODEL := "sconce_tulip"
+const SCONCE_REACH := 0.1
+const SCONCE_RISE := 0.15
+## A pilaster's capital, by its width along its wall (variant()): its origin on the
+## wall's face at its top's middle, under the ceiling, hanging down from there; each
+## painted white, which its placing code swaps for its room's paint.
+const CAPITALS := {0.32: "capital_32", 0.38: "capital_38"}
 ## The longest piece a furnishing's box is drawn in.
 const PIECE := 1.5
 ## A sign over a doorway: its letters' size in pixels and the metres one stands for,

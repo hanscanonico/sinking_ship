@@ -12,8 +12,12 @@ const SALOONS: Array[StringName] = [
 	&"third-class dining saloon, aft",
 	&"third-class dining saloon, forward",
 ]
-## The most triangles one saloon's dressing may draw, its tables aside.
-const BUDGET := 4000
+## The most triangles one saloon's dressing may draw, its tables aside: the first-class
+## saloon's, the worst, its capitals and sconces modelled.
+const BUDGET := 12000
+## The most triangles a saloon may stand in all, its tables too: the first-class
+## saloon's draws 14418.
+const CEILING := 16000
 
 var _titanic: ShipLayout
 var _rules: BrawlRules
@@ -95,6 +99,7 @@ func test_each_saloon_has_more_to_it_than_a_saloon_s_dressing_within_a_budget() 
 		assert_lt((after.size() - tables.size()) / 3, BUDGET, room_name)
 		# And the whole ship's dressing draws them there.
 		assert_gte(_in_room(_faces, room), _in_room(after, room), room_name)
+		assert_lt(_in_room(_faces, room), CEILING, "%s: all it draws" % room_name)
 
 
 func test_the_first_class_saloon_s_pilasters_stand_a_bay_apart_a_sconce_in_each() -> void:

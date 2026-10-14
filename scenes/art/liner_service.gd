@@ -399,17 +399,11 @@ func _notice_board(mesh: ShipMesh, wall: RoomDressing.Wall, along: float) -> voi
 		RoomDressing.panel(mesh, at, wall.right, size, wall.normal, paper, 0)
 
 
-## A clock flat on [param wall] at [param along], [param height] over the floor: a
-## white face in a brass rim, and its hands.
+## A clock flat on [param wall] at [param along], [param height] over the floor
+## (RoomDressing.CLOCK_MODEL): a white dial in a brass bezel, and its hands.
 func _clock(mesh: ShipMesh, wall: RoomDressing.Wall, along: float, height: float) -> void:
-	var clock := wall.at(along, height, 0.03)
-	var normal := wall.normal
-	_fan(mesh, clock, normal, 0.13, ShipPaints.enamel, 12)
-	RoomDressing.ring(mesh, clock + normal * 0.004, normal, 0.12, 0.15, ShipPaints.brass, 12)
-	var hands := clock + normal * 0.008
-	mesh.beam(hands, hands + Vector3.UP * 0.09, Vector2(0.012, 0.004), ShipPaints.dark, 0)
-	var minute := hands + (wall.right * 0.7 - Vector3.UP * 0.4).normalized() * 0.07
-	mesh.beam(hands, minute, Vector2(0.012, 0.004), ShipPaints.dark, 0)
+	var face := Transform3D(RoomDressing.facing(wall.normal), wall.at(along, height))
+	mesh.model(ShipModel.named(RoomDressing.CLOCK_MODEL), face)
 
 
 ## An office: linoleum underfoot; a pigeonhole rack on each wall's widest stretch

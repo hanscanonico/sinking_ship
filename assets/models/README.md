@@ -60,6 +60,13 @@ A prop placed a hundred times is parsed once.
 | `whistle_90`, `whistle_330` | `DeckWorks.funnel`, on each funnel's fore face, the size made for it (`FUNNEL_FITTINGS`) | hero | 1228 each |
 | `waste_pipe_head_90`, `waste_pipe_head_330` | `DeckWorks.funnel`, the waste pipe's head over each funnel's top, the size made for it | furniture | 354 each |
 | `pipe_clamp_90`, `pipe_clamp_330` | `DeckWorks.funnel`, up each funnel's pipes, `CLAMP_SPACING` times its scale apart, the size made for it | wall decor | 130 each |
+| `sconce_tulip` | `LinerPublic._sconce_on` and `LinerCorridor._sconce` (`RoomDressing.SCONCE_MODEL`) | wall decor | 120 |
+| `sconce_globe` | `LinerDining._sconce`, the first-class dining saloon's | wall decor | 124 |
+| `clock` | `LinerPublic._clock`, `LinerDining._clock`, `LinerService._clock`, `LinerBath._clock` (`RoomDressing.CLOCK_MODEL`) | wall decor | 118 |
+| `capital_32`, `capital_38` | `LinerPublic._pilaster` and `LinerDining._pilaster`, by width (`RoomDressing.CAPITALS`) | wall decor | 72, 72 |
+| `pilaster_base` | `LinerPublic._pilaster` | wall decor | 32 |
+| `stateroom_door` | `LinerCorridor._stateroom_door`, every `DOOR_SPACING` down a first-class corridor | wall decor | 132 |
+| `hanging_basket` | `LinerPublic._basket`, the verandah café's | furniture | 140 |
 | `iceberg_tabular` | `IcebergPlanner`, one berg a match, drawn by `Iceberg` | world | 764 |
 | `iceberg_drydock` | `IcebergPlanner`, one berg a match, drawn by `Iceberg` | world | 896 |
 | `iceberg_wedge` | `IcebergPlanner`, one berg a match, drawn by `Iceberg` | world | 596 |
@@ -183,6 +190,28 @@ count as many times as it is placed. Each model belongs to a class with a ceilin
     along +x, turned half round for the after face. The whistle's and the clamp's
     boxes are `WHISTLE_BOX` and `PIPE_CLAMP_BOX` times the scale. The three share
     `tools/funnel_fittings.py`.
+  - `sconce_tulip`, `sconce_globe`: on the wall's face at the back plate's middle, x
+    along the wall, z out of it. The tulip stands no further out than
+    `RoomDressing.SCONCE_REACH` nor over `SCONCE_RISE`, its glass painted
+    `sconce_glass` (a corridor swaps it for its own glow); the globe is
+    `LinerDining.SCONCE_GLOBE` round, its middle `SCONCE_OUT` out and `SCONCE_LIFT` up.
+  - `clock`: on the wall's face behind the dial's middle, facing +z, placed with
+    `RoomDressing.facing()` so it never reads mirrored; its bezel
+    `RoomDressing.CLOCK_RADIUS` round, `CLOCK_DEPTH` out.
+  - `capital_NN`: on the wall's face at its top's middle, under the ceiling, hanging
+    down; NN hundredths of a metre wide, one of `RoomDressing.CAPITALS`, picked by
+    `variant()`: `LinerPublic.CAPITAL`'s and `LinerDining.CAPITAL`'s. The shaft under
+    it is the placing code's, sized to its wall. Painted `white`, swapped for the
+    room's wood or the saloon's gilt. The two widths share `tools/capital.py`.
+  - `pilaster_base`: on the floor at the wall's face under its middle,
+    `LinerPublic.PILASTER_BASE` over all; painted `white`, swapped as the capital is.
+  - `stateroom_door`: on the floor at the wall's face under the door's middle;
+    `LinerCorridor.DOOR` in its `ARCHITRAVE`, `DOOR_DEPTH` out, its knob `DOOR_KNOB`
+    past that.
+  - `hanging_basket`: at its hook under the ceiling, the basket `LinerPublic.BASKET`
+    round hanging `BASKET_DROP` to its rim and `BASKET_DEPTH` more to its foot, its
+    leaves no more than `BASKET_SPREAD` round. Its wicker is painted `rope` and its
+    leaves `canvas`, swapped for the café's `WICKER` and `FOLIAGE`.
 - **Paints.** One material per paint, named exactly after a `ShipPaints` entry
   (`white`, `teak`, `canvas`, `rope`, `dark`, `steel`, `brass`…). The material's
   name is all the game reads: the colour comes from the paint and the ship shader's
