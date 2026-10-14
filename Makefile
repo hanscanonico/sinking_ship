@@ -409,21 +409,18 @@ ship-scene:
 # exports the .blend to authoring/NAME/NAME.glb, every custom property a glTF extra that
 # Godot reads back as node metadata (ShipGltf), and bakes it with the scene's baker into
 # OUT, data/ships/NAME.tres unless said — which it will not overwrite for a ship her
-# tools/gen_NAME.py writes, as ship-check holds that file to it. bake-check holds each committed NAME.glb to
-# data/ships/NAME.tres field for field, and each .blend too when Blender is on hand: the
-# committed .glb is what lets verify and CI, which have no Blender, hold a .blend.
+# tools/gen_NAME.py writes, as ship-check holds that file to it. bake-check holds each
+# committed NAME.glb to data/ships/NAME.tres field for field, and each .blend too when
+# Blender is on hand: the committed .glb is what lets verify and CI, which have no
+# Blender, hold a .blend. require-blender is shared with `make models` below.
 blend-export = "$(BLENDER)" --background --factory-startup "$(1)" --python-exit-code 1 \
 	--python tools/ship_blend.py -- export "$(2)" | { grep '^ship_blend' || true; }
 # Godot skips importing a ship's .glb: the bake reads the file itself, and an import of
 # every piece as a mesh would only slow each fresh checkout.
 glb-skip = { test -e "$(1).import" || printf '[remap]\n\nimporter="skip"\n' > "$(1).import"; }
-require-blender = @command -v "$(BLENDER)" >/dev/null || { \
-	echo "$(1): Blender not found at $(BLENDER)" >&2; \
-	echo "$(1): install Blender 5.2 so \`blender\` is on PATH, or pass BLENDER=<path>" >&2; \
-	exit 1; }
 ship-blend:
 	$(call require-godot)
-	$(call require-blender,ship-blend)
+	$(call require-blender)
 	@test -n "$(SHIP)" || { echo "ship-blend: SHIP=<a ship under data/ships> is required" >&2; exit 1; }
 	@set -o pipefail; dir=$$(mktemp -d) && mkdir -p authoring/$(SHIP) \
 		&& tools/engine_guard.sh $(GODOT) --headless --no-header --path . -s res://tools/ship_bake.gd \
@@ -435,7 +432,7 @@ ship-blend:
 
 bake-blend:
 	$(call require-godot)
-	$(call require-blender,bake-blend)
+	$(call require-blender)
 	@test -n "$(SHIP)" || { echo "bake-blend: SHIP=<a ship under authoring> is required" >&2; exit 1; }
 	@test -e authoring/$(SHIP)/$(SHIP).blend || \
 		{ echo "bake-blend: no authoring/$(SHIP)/$(SHIP).blend — make ship-blend SHIP=$(SHIP) draws one" >&2; exit 1; }
@@ -448,21 +445,41 @@ bake-blend:
 		-- --scene=authoring/$(SHIP)/$(SHIP).glb --out=$(if $(OUT),$(OUT),data/ships/$(SHIP).tres) \
 		| grep -v '^\[godot_ai'
 
-# `make models`: re-exports every modelled prop, assets/models/NAME/NAME.blend, to the
-# NAME.glb beside it, with Blender headless (tools/export_model.py), which refuses a
-# mesh with no material or no `ink` layer; Godot reimports the .glb on its next import.
-# assets/models/README.md says how a model is authored. Not part of verify: Godot
-# imports the committed .glb, so neither verify nor CI needs Blender. BLENDER=<path>
-# picks the binary, else `blender` on PATH.
+# `make models [MODEL=name]`: re-exports every modelled prop, or the one MODEL names,
+# assets/models/NAME/NAME.blend, to the NAME.glb beside it, with Blender headless
+# (tools/export_model.py), which refuses a mesh with no material or no `ink` layer;
+# Godot reimports the .glb on its next import. `make model-sources [MODEL=name]`
+# rebuilds each NAME.blend from the build script beside it, NAME.py (its shared kit is
+# tools/model_kit.py); the .blend stays what `make models` exports, so a model shaped
+# by hand in Blender needs no script. assets/models/README.md says how a model is
+# authored. Neither is part of verify: Godot imports the committed .glb, so neither
+# verify nor CI needs Blender. BLENDER=<path> picks the binary, else `blender` on PATH.
 BLENDER ?= blender
-models:
+MODEL_DIRS = $(if $(MODEL),assets/models/$(MODEL),$(shell find assets/models -mindepth 1 -maxdepth 1 -type d | sort))
+define require-blender
 	@command -v "$(BLENDER)" >/dev/null || { \
-		echo "models: Blender not found at $(BLENDER)" >&2; \
-		echo "models: install Blender 5.2 so \`blender\` is on PATH, or pass BLENDER=<path>" >&2; \
+		echo "$@: Blender not found at $(BLENDER)" >&2; \
+		echo "$@: install Blender 5.2 so \`blender\` is on PATH, or pass BLENDER=<path>" >&2; \
 		exit 1; }
-	@set -o pipefail; for blend in assets/models/*/*.blend; do \
-		"$(BLENDER)" --background --factory-startup "$$blend" --python-exit-code 1 \
-		--python tools/export_model.py -- "$${blend%.blend}.glb" | { grep '^export_model' || true; } \
+	@test -z "$(MODEL)" || test -d "assets/models/$(MODEL)" || { \
+		echo "$@: no model assets/models/$(MODEL)" >&2; exit 1; }
+endef
+models:
+	$(call require-blender)
+	@set -o pipefail; for dir in $(MODEL_DIRS); do name=$$(basename $$dir); \
+		test -f "$$dir/$$name.blend" || { echo "models: $$dir/$$name.blend is missing" >&2; exit 1; }; \
+		"$(BLENDER)" --background --factory-startup "$$dir/$$name.blend" --python-exit-code 1 \
+		--python tools/export_model.py -- "$$dir/$$name.glb" | { grep '^export_model' || true; } \
+		|| exit 1; done
+
+model-sources:
+	$(call require-blender)
+	@set -o pipefail; for dir in $(MODEL_DIRS); do name=$$(basename $$dir); \
+		if [ ! -f "$$dir/$$name.py" ]; then \
+			if [ -n "$(MODEL)" ]; then echo "model-sources: $$dir/$$name.py is missing" >&2; exit 1; fi; \
+			echo "model-sources: $$name has no build script; its .blend is its source"; continue; fi; \
+		"$(BLENDER)" --background --factory-startup --python-exit-code 1 \
+		--python "$$dir/$$name.py" -- "$$dir/$$name.blend" | { grep -E "^$$name:|^Info: Saved" || true; } \
 		|| exit 1; done
 
 # Every .gd file that is actually ours: skips the engine cache, vendored addons,
@@ -511,4 +528,4 @@ format-check:
 .PHONY: import run match capture net-bench sim-bench bench serve-local online-e2e export-server \
 	export-web export-mac export-server-mac serve-web-local serve-web-local-stop fps arena \
 	hits bake census art-lint test verify check guard-check ship ship-check bake-ship bake-check ship-scene \
-	ship-blend bake-blend models lint format format-check
+	ship-blend bake-blend models model-sources lint format format-check

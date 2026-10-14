@@ -51,3 +51,29 @@ func test_a_mirrored_part_still_faces_out() -> void:
 	assert_lt((b - a).cross(c - a).y, 0.0, "faces up")
 	for normal: Vector3 in mesh.surface_get_arrays(0)[Mesh.ARRAY_NORMAL]:
 		assert_almost_eq(normal, Vector3.UP, Vector3.ONE * 0.0001)
+
+
+func test_a_named_model_is_gathered_once_per_process() -> void:
+	var model := ShipModel.named("davit")
+	assert_same(ShipModel.named("davit"), model, "the same model, not a second parse")
+	assert_eq(model.mesh.resource_name, "davit")
+	assert_eq(model.unfit, "")
+	assert_eq(model.bounds, model.mesh.get_aabb())
+
+
+func test_a_model_reads_each_surface_once_in_its_paint() -> void:
+	var model := ShipModel.new(ShipModel.mesh_of(_scene(Transform3D.IDENTITY)))
+	assert_eq(model.unfit, "")
+	assert_eq(model.triangles, 1)
+	assert_eq(model.surfaces.size(), 1)
+	var surface: ShipModel.Surface = model.surfaces[0]
+	assert_eq(surface.paint, ShipPaints.white)
+	assert_eq(surface.points.size(), 3)
+	assert_eq(surface.order, PackedInt32Array([0, 1, 2]))
+	assert_eq(surface.inks[0], Color.WHITE)
+
+
+func test_an_unfit_model_says_why() -> void:
+	var model := ShipModel.new(ArrayMesh.new())
+	assert_eq(model.unfit, " has no triangles")
+	assert_eq(model.surfaces.size(), 0)

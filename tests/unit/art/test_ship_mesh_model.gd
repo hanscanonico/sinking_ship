@@ -7,7 +7,7 @@ extends GutTest
 ## A fixture model: per paint of [param paints], a metre square facing up, the next
 ## half a metre over the last, inked 1 at its first corner and 0 at the others — or
 ## with no ink layer when [param inked] is false.
-func _model(paints: Array[String], inked := true) -> ArrayMesh:
+func _model(paints: Array[String], inked := true) -> ShipModel:
 	var mesh := ArrayMesh.new()
 	mesh.resource_name = "fixture_boat"
 	for index in paints.size():
@@ -30,7 +30,7 @@ func _model(paints: Array[String], inked := true) -> ArrayMesh:
 		var material := StandardMaterial3D.new()
 		material.resource_name = paints[index]
 		mesh.surface_set_material(index, material)
-	return mesh
+	return ShipModel.new(mesh)
 
 
 ## [param mesh] committed under a fresh node: its mesh instances by name.
@@ -188,7 +188,7 @@ func test_a_model_without_triangles_is_an_error_naming_it() -> void:
 	var mesh := _ship_mesh()
 	var empty := ArrayMesh.new()
 	empty.resource_name = "fixture_boat"
-	mesh.model(empty, Transform3D.IDENTITY)
+	mesh.model(ShipModel.new(empty), Transform3D.IDENTITY)
 	assert_push_error("model fixture_boat has no triangles")
 	assert_eq(_drawn(mesh).size(), 0)
 

@@ -2,9 +2,11 @@
 
 A prop modelled in Blender instead of built from boxes in GDScript. Each lives in its
 own folder, `assets/models/NAME/`: the source `NAME.blend`, the `NAME.glb` exported
-from it, and the `.glb.import` Godot writes for it. The `.blend` is the source; the
-`.glb` is what the game loads. Godot never imports a `.blend` (`project.godot`
-turns its Blender importer off), so a checkout without Blender imports cleanly.
+from it, the `.glb.import` Godot writes for it, and, when the model is built by
+script, `NAME.py`, the headless-Blender script that builds the `.blend`. The `.blend`
+is the source the `.glb` is exported from; the `.glb` is what the game loads. Godot
+never imports a `.blend` (`project.godot` turns its Blender importer off), so a
+checkout without Blender imports cleanly.
 
 A modelled prop is drawn like any procedural piece of the dressed ship. `ShipModel`
 gathers the `.glb`'s meshes into one, and `ShipMesh.model()` adds its triangles to
@@ -14,10 +16,27 @@ when it is wholly off the stretch being drawn. It never becomes a mesh instance 
 its own. Where it stands is still decided by the data and the fitting code (D6). The
 model is only its shape.
 
-| Prop | Placed by | Triangles |
-|---|---|---|
-| `lifeboat` | `ShipFittings._lifeboats`, hung in the `Lifeboat` node | 2928 |
-| `davit` | `ShipFittings._davit`, two per boat | 556 |
+The fitting code asks for a model by name, `ShipModel.named("davit")`. The first ask
+in a process loads the `.glb`, gathers it, reads every surface's arrays and judges
+whether `model()` can paint it; every later ask, and every placement, reuses that.
+A prop placed a hundred times is parsed once.
+
+| Prop | Placed by | Class | Triangles |
+|---|---|---|---|
+| `lifeboat` | `ShipFittings._lifeboats`, hung in the `Lifeboat` node | lifeboat | 2928 |
+| `davit` | `ShipFittings._davit`, two per boat | hero | 556 |
+
+## Triangle budgets
+
+Every model is drawn into the ship's batches once per placement, so its triangles
+count as many times as it is placed. Each model belongs to a class with a ceiling:
+
+| Class | Budget | Placed | Examples |
+|---|---|---|---|
+| Wall decor | ≤150 | 50 and more | sconce, stateroom door, capital, clock |
+| Furniture | ≤400 | 10–100 | berth, washstand, locker, crate |
+| Hero | ≤1500 | 1–20 | wheel stand, chandelier, boiler face, bell, davit |
+| Lifeboat | 2928 | the pilot's, grandfathered | lifeboat |
 
 ## Authoring
 
@@ -55,17 +74,40 @@ model is only its shape.
   between a step down and a jump up from that deck, or it reads as floor
   (`make art-lint`). The lifeboat is a closed hull under its cover, with no thwarts.
 
+## Building by script
+
+A model may be built by a script instead of by hand: `assets/models/NAME/NAME.py`,
+run by headless Blender, writes `NAME.blend` from nothing. Its points are given in
+Godot's axes and its paints, ink and sharp edges set as above; the shared helpers
+(`Part`, the paints' preview colours, the axis swap) are in `tools/model_kit.py`.
+Both pilot models are built so, and their scripts rebuild `.blend`s whose export is
+byte for byte the committed `.glb`.
+
+    make model-sources              # every NAME.py to its NAME.blend, Blender headless
+    make model-sources MODEL=davit  # one
+
+A model with no script is skipped: its `.blend` is its source. Change the script,
+never the scripted `.blend` by hand, or the next rebuild loses the change.
+
 ## Exporting
 
     make models                     # every NAME.blend to its NAME.glb, Blender headless
+    make models MODEL=davit         # one
     make import                     # Godot reimports the changed .glb
 
 `tools/export_model.py` refuses a mesh with no material or no `ink` layer. Neither
 `make verify` nor CI runs Blender, and nothing checks that a `.glb` is up to date with
-its `.blend`: export after every change and commit both. The contract test
-(`tests/unit/art/test_committed_models.gd`) holds every committed `.glb` to its paints
-and its ink, and the lifeboat's and davit's boxes to `ShipFittings`' constants within
-2 cm.
+its `.blend`, or a `.blend` with its script: rebuild and export after every change and
+commit them all.
+
+## The contract test
+
+`tests/unit/art/test_committed_models.gd` keeps a table with one row per model: its
+budget class and a check of its box or anchor against the placing code's constants
+(the lifeboat's box is `ShipFittings`' `LIFEBOAT_*`, the davit's head and foot its
+`DAVIT_*`), within 2 cm. It holds every committed `.glb` to its paints, its ink, its
+row's box and its class's budget. A model folder with no row fails, and so does a row
+with no folder: a new model lands with its row.
 
 ## Licence
 
