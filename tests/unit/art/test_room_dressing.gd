@@ -411,7 +411,8 @@ func test_the_binnacle_s_spheres_stand_clear_of_rail_windows_and_wheel() -> void
 	var fittings := ShipFittings.new(_space, ShipHull.new(_space, _rules.railing_height), 0.3)
 	fittings.build(ShipMesh.new(_space.outdoors, _space.room_lines()))
 	# The cabin finish's dado rail (ship.gdshaderinc), 0.95 m up and 0.07 deep; the wheel
-	# (RoomDressing.wheel) round its hub 1 m up, handles 0.09 past a 0.32 rim, 0.022 thick.
+	# (the wheel_stand model) round its hub 1 m up, handles 0.09 past a 0.32 rim, 0.022
+	# thick.
 	var rail := Vector2(0.915, 0.985)
 	var hub := Vector2(wall.middle(), 1.0)
 	for sphere: Vector3 in spheres:
@@ -439,3 +440,24 @@ func test_the_binnacle_s_spheres_stand_clear_of_rail_windows_and_wheel() -> void
 			var out := Vector2(cos(PI * spoke / 8), sin(PI * spoke / 8)) * 0.41
 			assert_true(_clear_of(centre, radius, hub - out, hub + out, 0.011), "of a handle")
 	assert_eq(spheres.size(), 2, "two spheres")
+
+
+func test_a_gauge_or_handwheel_is_the_largest_variant_no_bigger_than_asked() -> void:
+	var gauges := RoomDressing.GAUGES
+	assert_eq(RoomDressing.variant(gauges, 0.085), "gauge_small", "the size it is made for")
+	assert_eq(RoomDressing.variant(gauges, 0.09), "gauge_small", "the engine room's board")
+	assert_eq(RoomDressing.variant(gauges, 0.11), "gauge_large", "a boiler's")
+	assert_eq(RoomDressing.variant(gauges, 0.3), "gauge_large", "none bigger: the largest")
+	assert_eq(RoomDressing.variant(gauges, 0.05), "gauge_small", "none so small: the smallest")
+	var wheels := RoomDressing.HANDWHEELS
+	assert_eq(RoomDressing.variant(wheels, 0.11), "handwheel_small", "a valve's")
+	assert_eq(RoomDressing.variant(wheels, 0.15), "handwheel_large", "an engine's")
+
+
+func test_a_gauge_or_handwheel_faces_out_along_its_normal_upright() -> void:
+	for normal: Vector3 in [Vector3.LEFT, Vector3.RIGHT, Vector3.FORWARD, Vector3.BACK, Vector3.UP]:
+		var turn := RoomDressing.facing(normal)
+		assert_almost_eq(turn.z, normal, Vector3.ONE * 0.001, "its face out along %s" % normal)
+		assert_almost_eq(turn.determinant(), 1.0, 0.001, "turned, not mirrored: %s" % normal)
+		if is_zero_approx(normal.y):
+			assert_almost_eq(turn.y, Vector3.UP, Vector3.ONE * 0.001, "upright: %s" % normal)

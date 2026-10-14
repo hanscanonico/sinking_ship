@@ -19,6 +19,11 @@ register covers every asset. `assets/models/README.md` says how they are authore
 |---|---|---|
 | `lifeboat/lifeboat.blend` and `lifeboat.glb` — the lifeboats: a double-ended clinker boat under a ridged canvas cover (2928 triangles, 0.1 MB each) | Original work, modelled for this project (2026-10-13) | The project's own |
 | `davit/davit.blend` and `davit.glb` — the lifeboats' radial davits: post, swan neck, collars, cleat and the fall's hauling part (556 triangles, under 0.1 MB each) | Original work, modelled for this project (2026-10-13) | The project's own |
+| `wheel_stand/wheel_stand.blend` and `wheel_stand.glb` — the wheelhouse's forward wall: the steering wheel on its pedestal, the binnacle with its spheres and the engine-order telegraph (1461 triangles, under 0.2 MB each) | Original work, modelled for this project (2026-10-14) | The project's own |
+| `chart_case/chart_case.blend` and `chart_case.glb` — the wheelhouse's chart case of two drawers on its brackets, and the chart framed over it (444 triangles, under 0.2 MB each) | Original work, modelled for this project (2026-10-14) | The project's own |
+| `bell/bell.blend` and `bell.glb` — the ship's bell on its bracket off the foremast, with its clapper and lanyard (620 triangles, under 0.1 MB each) | Original work, modelled for this project (2026-10-14) | The project's own |
+| `gauge_small/` and `gauge_large/`, each `.blend` and `.glb` — the engine and boiler rooms' pressure gauges, radius 0.085 and 0.11 (113 triangles each, under 0.1 MB each) | Original work, modelled for this project (2026-10-14) | The project's own |
+| `handwheel_small/` and `handwheel_large/`, each `.blend` and `.glb` — the valves' and the engines' handwheels, radius 0.11 and 0.15 (166 and 190 triangles, under 0.1 MB each) | Original work, modelled for this project (2026-10-14) | The project's own |
 
 ### Audio (`assets/audio/`)
 

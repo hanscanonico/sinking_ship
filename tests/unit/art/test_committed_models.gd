@@ -8,6 +8,10 @@ extends GutTest
 const MODELS := "res://assets/models"
 ## How near a model's box stands to the constants, in metres.
 const TOLERANCE := 0.02
+## How near a gauge's or a handwheel's box stands to the radius it is made for, in
+## metres: a variant a size apart is two to four centimetres off, and a handwheel's rim
+## stands a third of its thickness proud of its radius.
+const PART := 0.006
 ## The most triangles a model of each class may carry: wall decor stands by the
 ## fifty and more, furniture by the ten to a hundred, a hero prop by the one to
 ## twenty; the lifeboat is the pilot's, grandfathered.
@@ -20,6 +24,13 @@ func _rows() -> Dictionary:
 	return {
 		"lifeboat": ["lifeboat", _fills_the_lifeboat_s_box_from_the_middle_of_its_keel],
 		"davit": ["hero", _stands_its_head_where_the_falls_hang_from],
+		"wheel_stand": ["hero", _fills_the_wheel_stand_s_box_off_its_wall],
+		"chart_case": ["hero", _fills_the_chart_case_s_box_off_its_wall],
+		"bell": ["hero", _hangs_the_bell_from_its_bracket_off_the_mast],
+		"gauge_small": ["furniture", _is_the_gauge_made_for.bind(0.085, "gauge_small")],
+		"gauge_large": ["furniture", _is_the_gauge_made_for.bind(0.11, "gauge_large")],
+		"handwheel_small": ["furniture", _is_the_handwheel_made_for.bind(0.11, "handwheel_small")],
+		"handwheel_large": ["furniture", _is_the_handwheel_made_for.bind(0.15, "handwheel_large")],
 	}
 
 
@@ -104,3 +115,45 @@ func _stands_its_head_where_the_falls_hang_from(box: AABB) -> void:
 	assert_almost_eq(box.end.y, rise, TOLERANCE, "davit: its head's top")
 	assert_almost_eq(box.position.y, -ShipFittings.DAVIT_FOOT, TOLERANCE, "davit: its foot")
 	assert_almost_eq(box.get_center().x, 0.0, TOLERANCE, "davit: square across its post")
+
+
+## A wall fitting's box, against RoomDressing's for it: from the wall's face out no
+## deeper than it, on the floor, along the wall either side of its middle.
+func _fills_its_box_off_its_wall(box: AABB, wanted: AABB, name: String) -> void:
+	assert_almost_eq(box.position, wanted.position, Vector3.ONE * TOLERANCE, name + ": low")
+	assert_almost_eq(box.end, wanted.end, Vector3.ONE * TOLERANCE, name + ": high")
+	assert_gte(box.position.z, -0.001, name + ": nothing in its wall")
+	assert_lte(box.end.z, wanted.end.z + 0.001, name + ": no deeper than its box")
+
+
+func _fills_the_wheel_stand_s_box_off_its_wall(box: AABB) -> void:
+	_fills_its_box_off_its_wall(box, RoomDressing.WHEEL_STAND, "wheel stand")
+
+
+func _fills_the_chart_case_s_box_off_its_wall(box: AABB) -> void:
+	_fills_its_box_off_its_wall(box, RoomDressing.CHART_CASE, "chart case")
+
+
+func _hangs_the_bell_from_its_bracket_off_the_mast(box: AABB) -> void:
+	var wanted := ShipFittings.BELL_BOX
+	assert_almost_eq(box.position, wanted.position, Vector3.ONE * TOLERANCE, "bell: low")
+	assert_almost_eq(box.end, wanted.end, Vector3.ONE * TOLERANCE, "bell: high")
+	assert_almost_eq(box.end.x, 0.0, TOLERANCE, "bell: its bracket meets the mast")
+	assert_gt(-box.position.x, ShipFittings.BELL_REACH, "bell: hung at its bracket's end")
+	assert_almost_eq(box.get_center().z, 0.0, TOLERANCE, "bell: square under its bracket")
+
+
+func _is_the_gauge_made_for(box: AABB, radius: float, model: String) -> void:
+	assert_eq(RoomDressing.GAUGES.get(radius), model, "gauge: GAUGES names it")
+	assert_almost_eq(box.end.x, radius, PART, "gauge: its radius")
+	assert_almost_eq(box.position.x, -radius, PART, "gauge: its radius")
+	assert_almost_eq(box.end.y, radius, PART, "gauge: its top")
+	assert_almost_eq(box.position.z, -RoomDressing.GAUGE_BACK, PART, "gauge: its back")
+
+
+func _is_the_handwheel_made_for(box: AABB, radius: float, model: String) -> void:
+	assert_eq(RoomDressing.HANDWHEELS.get(radius), model, "wheel: HANDWHEELS names it")
+	assert_almost_eq(box.size.x * 0.5, radius, PART, "wheel: its radius")
+	assert_almost_eq(box.size.y * 0.5, radius, PART, "wheel: its radius")
+	assert_almost_eq(box.position.z, -RoomDressing.HANDWHEEL_SPINDLE, PART, "its spindle")
+	assert_almost_eq(box.get_center().x, 0.0, PART, "wheel: round its hub")
