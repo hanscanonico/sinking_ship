@@ -1,9 +1,12 @@
 extends GutTest
 ## Every committed prop model (assets/models/NAME/NAME.glb) stands in this file's table:
 ## its triangle budget class, and the box or anchor the placing code's constants give
-## it — the constants stay the prop's measure, whatever hangs off them. Every model is
-## one ShipMesh.model() can paint — every material a ShipPaints paint, every surface
-## inked — and a folder with no row, or a row with no folder, fails.
+## it — the constants stay the prop's measure, whatever hangs off them. Every ship's
+## model is one ShipMesh.model() can paint — every material a ShipPaints paint, every
+## surface inked — and a folder with no row, or a row with no folder, fails. A world
+## model (the iceberg's) is no ship's: IcebergPlanner reads it and iceberg.gdshader
+## draws it, so it is held to what they read instead — its colour on every face, its
+## top, foot and width where the planner measures them, and its spur toward her.
 
 const MODELS := "res://assets/models"
 ## How near a model's box stands to the constants, in metres.
@@ -14,8 +17,12 @@ const TOLERANCE := 0.02
 const PART := 0.006
 ## The most triangles a model of each class may carry: wall decor stands by the
 ## fifty and more, furniture by the ten to a hundred, a hero prop by the one to
-## twenty; the lifeboat is the pilot's, grandfathered.
-const BUDGETS := {"wall decor": 150, "furniture": 400, "hero": 1500, "lifeboat": 2928}
+## twenty; the lifeboat is the pilot's, grandfathered; a world mesh stands alone, far
+## off.
+const BUDGETS := {
+	"wall decor": 150, "furniture": 400, "hero": 1500, "lifeboat": 2928, "world": 3000
+}
+const WORLD := "world"
 
 
 ## Every committed model: its budget class and the check of its box (a method taking
@@ -31,7 +38,29 @@ func _rows() -> Dictionary:
 		"gauge_large": ["furniture", _is_the_gauge_made_for.bind(0.11, "gauge_large")],
 		"handwheel_small": ["furniture", _is_the_handwheel_made_for.bind(0.11, "handwheel_small")],
 		"handwheel_large": ["furniture", _is_the_handwheel_made_for.bind(0.15, "handwheel_large")],
+		"iceberg_tabular": [WORLD, _stands_to_the_iceberg_planner_s_measure],
+		"iceberg_drydock": [WORLD, _stands_to_the_iceberg_planner_s_measure],
+		"iceberg_wedge": [WORLD, _stands_to_the_iceberg_planner_s_measure],
 	}
+
+
+## Whether [param model]'s row puts it in the world class: no ship's prop.
+func _world(model: String) -> bool:
+	return _rows().get(model, [""])[0] == WORLD
+
+
+## [param model]'s triangles and box: a ship's read as ShipMesh.model() reads them, a
+## world model's as the planner does.
+func _triangles(model: String) -> int:
+	if _world(model):
+		return IcebergPlanner.model_of(model).corners.size() / 3
+	return ShipModel.named(model).triangles
+
+
+func _bounds(model: String) -> AABB:
+	if _world(model):
+		return IcebergPlanner.model_of(model).bounds
+	return ShipModel.named(model).bounds
 
 
 func _folders() -> Array[String]:
@@ -66,7 +95,7 @@ func test_every_row_names_a_budget_class() -> void:
 func test_every_model_is_painted_in_the_ship_s_paints_and_inked() -> void:
 	for folder in _folders():
 		assert_true(_committed(folder), "%s.glb is committed" % folder)
-		if not _committed(folder):
+		if not _committed(folder) or _world(folder):
 			continue
 		var model := ShipModel.named(folder)
 		assert_eq(model.unfit, "", folder)
@@ -88,7 +117,7 @@ func test_every_model_keeps_to_its_triangle_budget() -> void:
 		if not _committed(model):
 			continue
 		var budget: int = BUDGETS.get(_rows()[model][0], 0)
-		var triangles := ShipModel.named(model).triangles
+		var triangles := _triangles(model)
 		assert_gt(triangles, 0, model)
 		assert_lte(triangles, budget, "%s within its %s budget" % [model, _rows()[model][0]])
 
@@ -98,7 +127,7 @@ func test_every_model_fills_the_box_its_placing_code_gives_it() -> void:
 		if not _committed(model):
 			continue
 		var fills: Callable = _rows()[model][1]
-		fills.call(ShipModel.named(model).bounds)
+		fills.call(_bounds(model))
 
 
 func _fills_the_lifeboat_s_box_from_the_middle_of_its_keel(box: AABB) -> void:
@@ -157,3 +186,52 @@ func _is_the_handwheel_made_for(box: AABB, radius: float, model: String) -> void
 	assert_almost_eq(box.size.y * 0.5, radius, PART, "wheel: its radius")
 	assert_almost_eq(box.position.z, -RoomDressing.HANDWHEEL_SPINDLE, PART, "its spindle")
 	assert_almost_eq(box.get_center().x, 0.0, PART, "wheel: round its hub")
+
+
+func test_every_world_model_is_one_the_iceberg_planner_can_draw() -> void:
+	for model: String in _rows():
+		if not _world(model) or not _committed(model):
+			continue
+		assert_has(IcebergPlanner.BERGS, model, "%s is one of the planner's bergs" % model)
+		var berg := IcebergPlanner.model_of(model)
+		var corners := berg.corners
+		assert_eq(berg.shades.size() * 3, corners.size(), "%s: a colour on every face" % model)
+		var inboard := -INF
+		var blade := PackedVector3Array()
+		for corner in corners:
+			if corner.y >= 0.0:
+				inboard = maxf(inboard, corner.z)
+			if corner.z > berg.blade_z - IcebergPlanner.BLADE_NEAR and not blade.has(corner):
+				blade.append(corner)
+		assert_eq(blade.size(), 2, "%s: its spur's blade is two points" % model)
+		for point in blade:
+			assert_almost_eq(point.x, 0.0, TOLERANCE, "%s: its blade square ahead" % model)
+			assert_lt(point.y, 0.0, "%s: its blade under the sea" % model)
+			assert_gt(point.z, inboard, "%s: its blade out past the rest" % model)
+		for face in corners.size() / 3:
+			var a := corners[face * 3]
+			var b := corners[face * 3 + 1]
+			var c := corners[face * 3 + 2]
+			var middle := (a + b + c) / 3.0
+			var over := a.y >= -TOLERANCE and b.y >= -TOLERANCE and c.y >= -TOLERANCE
+			var under := a.y <= TOLERANCE and b.y <= TOLERANCE and c.y <= TOLERANCE
+			assert_true(over or under, "%s: face %d wholly over or under the sea" % [model, face])
+			if middle.y < 0.0:
+				for corner in [a, b, c]:
+					if corner.z <= berg.blade_z - IcebergPlanner.BLADE_NEAR:
+						assert_lte(
+							corner.z, inboard + TOLERANCE, "%s: under the sea clear of her" % model
+						)
+
+
+## A berg stands to IcebergPlanner's measure, uniformly scaled from it: its top
+## BERG_HEIGHT over the sea, its foot DRAUGHT × FOOT of that under, square across its
+## middle and as wide each side as SPREAD allows.
+func _stands_to_the_iceberg_planner_s_measure(box: AABB) -> void:
+	var height := IcebergPlanner.BERG_HEIGHT
+	assert_almost_eq(box.end.y, height, TOLERANCE, "berg: its top")
+	var foot := -height * IcebergPlanner.DRAUGHT * IcebergPlanner.FOOT
+	assert_almost_eq(box.position.y, foot, TOLERANCE, "berg: its foot")
+	assert_almost_eq(box.get_center().x, 0.0, TOLERANCE, "berg: square across its middle")
+	var spread := box.size.x * 0.5 / height
+	assert_between(spread, IcebergPlanner.SPREAD.x, IcebergPlanner.SPREAD.y, "berg: its width")

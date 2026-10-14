@@ -2,7 +2,8 @@ extends GutTest
 ## The iceberg is presentation (D12): IcebergPlanner stands it off her struck side ahead
 ## of her from the match's start, grinds its spur aft along the gash as HOLED strikes,
 ## and lets it fall astern and away, every pose a pure function of (hit, ship, seed,
-## tick) (D5). Built from hand-made hits on the shipped ships: no bake.
+## tick) (D5). Built from hand-made hits on the shipped ships: no bake. The berg is one
+## of the models of IcebergPlanner.BERGS, picked by the seed and scaled alike every way.
 
 const SHIPS: Array[String] = [
 	"res://data/ships/trawler.tres", SimFixtures.STEAMER, "res://data/ships/titanic.tres"
@@ -198,3 +199,23 @@ func test_it_scrapes_the_gash_traced_on_her_shell() -> void:
 	assert_almost_eq(middle.x, -1.0, 0.01, "halfway along it halfway through")
 	assert_almost_eq(middle.z, 4.15, 0.01, "on the trace")
 	assert_almost_eq(middle.y, -4.75 + 3.4, 0.01, "at its height over the sea")
+
+
+func test_it_is_a_modelled_berg_picked_by_the_seed_and_scaled_alike_every_way() -> void:
+	var layout := SimFixtures.steamer()
+	var seen := {}
+	for seed_value in range(SEED, SEED + 30):
+		var planner := _planner(layout, 1, seed_value)
+		seen[planner.berg] = true
+		var model := IcebergPlanner.model_of(planner.berg)
+		var scale := planner.height / IcebergPlanner.BERG_HEIGHT
+		assert_eq(planner.shape().size(), model.corners.size(), "%s whole" % planner.berg)
+		assert_eq(planner.shades(), model.shades, "%s in its own ice" % planner.berg)
+		for index in model.corners.size():
+			var corner := model.corners[index]
+			if corner.y >= 0.0:
+				assert_almost_eq(
+					planner.shape()[index], corner * scale, Vector3.ONE * 0.001, "unsquashed"
+				)
+	for berg in IcebergPlanner.BERGS:
+		assert_has(seen, berg, "%s is struck in some match" % berg)
