@@ -10,10 +10,17 @@ extends SceneTree
 ##       field, every difference printed and the exit non-zero on any
 ##   make ship-scene SHIP=NAME
 ##       data/ships/NAME.tres drawn as authoring/NAME/NAME.tscn (ShipSceneDraw)
+##   make ship-blend SHIP=NAME
+##       data/ships/NAME.tres drawn as the pieces (ShipGltf.pieces) tools/ship_blend.py
+##       builds authoring/NAME/NAME.blend from, as JSON
+##
+## A --scene= that ends in .glb is a ship authored in Blender, exported to glTF
+## (ShipGltf.read), and bakes and checks as a scene does (#125).
 ##
 ##   godot --headless --path . -s res://tools/ship_bake.gd -- --scene=… --out=…
 ##   godot --headless --path . -s res://tools/ship_bake.gd -- --scene=… --check=…
 ##   godot --headless --path . -s res://tools/ship_bake.gd -- --draw=… --scene=…
+##   godot --headless --path . -s res://tools/ship_bake.gd -- --draw=… --json=…
 
 
 func _initialize() -> void:
@@ -21,9 +28,11 @@ func _initialize() -> void:
 	for arg: String in OS.get_cmdline_user_args():
 		args[arg.get_slice("=", 0).trim_prefix("--")] = _res(arg.get_slice("=", 1))
 	var scene: String = args.get("scene", "")
-	if args.has("draw"):
+	if args.has("draw") and args.has("json"):
+		quit(_lay_out(args["draw"], args["json"]))
+	elif args.has("draw"):
 		quit(_draw(args["draw"], scene))
-	elif not ResourceLoader.exists(scene, "PackedScene"):
+	elif not _exists(scene):
 		printerr("bake: no scene at %s" % scene)
 		quit(1)
 	elif args.has("check"):
@@ -35,12 +44,35 @@ func _initialize() -> void:
 		quit(1)
 
 
+## Whether [param scene] is a saved scene, or a glTF file.
+static func _exists(scene: String) -> bool:
+	if scene.get_extension() == "glb":
+		return FileAccess.file_exists(scene)
+	return ResourceLoader.exists(scene, "PackedScene")
+
+
+## The ship [param scene] draws: a saved scene's, or a glTF's that Blender exported.
+static func _baked(scene: String) -> ShipSceneBake:
+	if scene.get_extension() != "glb":
+		return ShipSceneBake.of_scene(scene)
+	var gltf := ShipGltf.read(scene)
+	var root := gltf.root if gltf.root != null else Node3D.new()
+	var baked := ShipSceneBake.new(root)
+	root.free()
+	var problems := gltf.problems
+	problems.append_array(baked.problems)
+	baked.problems = problems
+	return baked
+
+
 static func _res(path: String) -> String:
-	return path if path.is_empty() or path.begins_with("res://") else "res://" + path
+	if path.is_empty() or path.begins_with("res://") or path.begins_with("/"):
+		return path
+	return "res://" + path
 
 
 func _bake(scene: String, out: String) -> int:
-	var baked := ShipSceneBake.of_scene(scene)
+	var baked := _baked(scene)
 	var layout := baked.layout
 	var problems := baked.problems
 	if problems.is_empty():
@@ -61,7 +93,7 @@ func _check(scene: String, wanted_path: String) -> int:
 	if wanted == null:
 		printerr("bake-check: no ship at %s" % wanted_path)
 		return 1
-	var baked := ShipSceneBake.of_scene(scene)
+	var baked := _baked(scene)
 	var found := baked.problems
 	found.append_array(ShipSceneBake.differences(baked.layout, wanted, "ship"))
 	if not found.is_empty():
@@ -93,6 +125,24 @@ func _draw(ship: String, scene: String) -> int:
 		printerr("bake: could not draw %s as %s: %s" % [ship, scene, error_string(status)])
 		return 1
 	print("bake: %s drawn as %s · %s" % [ship, scene, _counts(layout)])
+	return 0
+
+
+func _lay_out(ship: String, json: String) -> int:
+	var layout := load(ship) as ShipLayout
+	if layout == null:
+		printerr("bake: no ship at %s" % ship)
+		return 1
+	var root := ShipSceneDraw.scene(layout, ship.get_file().get_basename())
+	var pieces := ShipGltf.pieces(root)
+	root.free()
+	var file := FileAccess.open(json, FileAccess.WRITE)
+	if file == null:
+		printerr("bake: could not write %s: %s" % [json, error_string(FileAccess.get_open_error())])
+		return 1
+	file.store_string(JSON.stringify(pieces, "", false, true))
+	file.close()
+	print("bake: %s laid out as %s · %s" % [ship, json, _counts(layout)])
 	return 0
 
 

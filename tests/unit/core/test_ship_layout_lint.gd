@@ -10,8 +10,8 @@ const MIN_DOOR := 1.0
 const WALL := 0.2
 
 
-## Every layout under data/ships/, by path, and every ship drawn under authoring/ as her
-## scene bakes (SH17), by the scene's path.
+## Every layout under data/ships/, by path, and every ship drawn under authoring/ as a
+## scene, as her scene bakes (SH17), by the scene's path.
 func _layouts() -> Dictionary:
 	var layouts := {}
 	for file: String in DirAccess.get_files_at(SHIPS):
@@ -19,7 +19,8 @@ func _layouts() -> Dictionary:
 			layouts["%s/%s" % [SHIPS, file]] = load("%s/%s" % [SHIPS, file])
 	for ship: String in DirAccess.get_directories_at(AUTHORING):
 		var scene := "%s/%s/%s.tscn" % [AUTHORING, ship, ship]
-		layouts[scene] = ShipSceneBake.of_scene(scene).layout
+		if ResourceLoader.exists(scene):
+			layouts[scene] = ShipSceneBake.of_scene(scene).layout
 	return layouts
 
 

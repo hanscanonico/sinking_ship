@@ -376,15 +376,73 @@ bake-ship:
 
 bake-check:
 	$(call require-godot)
-	@set -o pipefail; for scene in authoring/*/*.tscn; do \
+	@set -o pipefail; for scene in authoring/*/*.tscn authoring/*/*.glb; do \
+		test -e "$$scene" || continue; ship=$$(basename $${scene%.*}); \
 		tools/engine_guard.sh $(GODOT) --headless --no-header --path . -s res://tools/ship_bake.gd -- --scene=$$scene \
-		--check=data/ships/$$(basename $$scene .tscn).tres | grep -v '^\[godot_ai' || exit 1; done
+		--check=data/ships/$$ship.tres | grep -v '^\[godot_ai' || exit 1; done
+	@for blend in authoring/*/*.blend; do test -e "$$blend" || continue; \
+		test -e "$${blend%.blend}.glb" || { \
+		echo "bake-check: $$blend has no $${blend%.blend}.glb beside it — run make bake-blend SHIP=$$(basename $$blend .blend)" >&2; \
+		exit 1; }; done
+	@if ! command -v "$(BLENDER)" >/dev/null; then \
+		echo "bake-check: no Blender at $(BLENDER) — each .blend held through the .glb committed beside it"; \
+	else set -o pipefail; for blend in authoring/*/*.blend; do test -e "$$blend" || continue; \
+		dir=$$(mktemp -d) && glb=$$dir/$$(basename $$blend .blend).glb \
+		&& $(call blend-export,$$blend,$$glb) \
+		&& tools/engine_guard.sh $(GODOT) --headless --no-header --path . -s res://tools/ship_bake.gd -- --scene=$$glb \
+		--check=data/ships/$$(basename $$blend .blend).tres | grep -v '^\[godot_ai'; \
+		status=$$?; rm -rf "$$dir"; test $$status -eq 0 || exit 1; done; fi
 
 ship-scene:
 	$(call require-godot)
 	@test -n "$(SHIP)" || { echo "ship-scene: SHIP=<a ship under data/ships> is required" >&2; exit 1; }
 	@set -o pipefail; tools/engine_guard.sh $(GODOT) --headless --no-header --path . -s res://tools/ship_bake.gd \
 		-- --draw=data/ships/$(SHIP).tres --scene=authoring/$(SHIP)/$(SHIP).tscn \
+		| grep -v '^\[godot_ai'
+
+# A ship authored in Blender (#125): authoring/NAME/NAME.blend, each piece an object
+# whose custom property `ship` says what it is and whose other custom properties are its
+# fields — the scene's vocabulary — so Blender authors the data while the hull stays
+# generated from it (D6). authoring/README.md says how. `make ship-blend SHIP=NAME`
+# draws data/ships/NAME.tres as that .blend (tools/ship_blend.py builds it from the
+# pieces Godot lays her out as) and exports it; `make bake-blend SHIP=NAME [OUT=…]`
+# exports the .blend to authoring/NAME/NAME.glb, every custom property a glTF extra that
+# Godot reads back as node metadata (ShipGltf), and bakes it with the scene's baker into
+# OUT, data/ships/NAME.tres unless said — which it will not overwrite for a ship her
+# tools/gen_NAME.py writes, as ship-check holds that file to it. bake-check holds each
+# committed NAME.glb to data/ships/NAME.tres field for field, and each .blend too when
+# Blender is on hand: the committed .glb is what lets verify and CI, which have no
+# Blender, hold a .blend. require-blender is shared with `make models` below.
+blend-export = "$(BLENDER)" --background --factory-startup "$(1)" --python-exit-code 1 \
+	--python tools/ship_blend.py -- export "$(2)" | { grep '^ship_blend' || true; }
+# Godot skips importing a ship's .glb: the bake reads the file itself, and an import of
+# every piece as a mesh would only slow each fresh checkout.
+glb-skip = { test -e "$(1).import" || printf '[remap]\n\nimporter="skip"\n' > "$(1).import"; }
+ship-blend:
+	$(call require-godot)
+	$(call require-blender)
+	@test -n "$(SHIP)" || { echo "ship-blend: SHIP=<a ship under data/ships> is required" >&2; exit 1; }
+	@set -o pipefail; dir=$$(mktemp -d) && mkdir -p authoring/$(SHIP) \
+		&& tools/engine_guard.sh $(GODOT) --headless --no-header --path . -s res://tools/ship_bake.gd \
+		-- --draw=data/ships/$(SHIP).tres --json=$$dir/pieces.json | grep -v '^\[godot_ai' \
+		&& "$(BLENDER)" --background --factory-startup --python-exit-code 1 --python tools/ship_blend.py \
+		-- build $$dir/pieces.json authoring/$(SHIP)/$(SHIP).blend | { grep '^ship_blend' || true; } \
+		&& $(call blend-export,authoring/$(SHIP)/$(SHIP).blend,authoring/$(SHIP)/$(SHIP).glb) \
+		&& $(call glb-skip,authoring/$(SHIP)/$(SHIP).glb); status=$$?; rm -rf "$$dir"; exit $$status
+
+bake-blend:
+	$(call require-godot)
+	$(call require-blender)
+	@test -n "$(SHIP)" || { echo "bake-blend: SHIP=<a ship under authoring> is required" >&2; exit 1; }
+	@test -e authoring/$(SHIP)/$(SHIP).blend || \
+		{ echo "bake-blend: no authoring/$(SHIP)/$(SHIP).blend — make ship-blend SHIP=$(SHIP) draws one" >&2; exit 1; }
+	@test -n "$(OUT)" -o ! -e tools/gen_$(SHIP).py || { \
+		echo "bake-blend: data/ships/$(SHIP).tres is written by tools/gen_$(SHIP).py — pass OUT=<ship .tres> to bake elsewhere" >&2; \
+		exit 1; }
+	@set -o pipefail; $(call blend-export,authoring/$(SHIP)/$(SHIP).blend,authoring/$(SHIP)/$(SHIP).glb) \
+		&& $(call glb-skip,authoring/$(SHIP)/$(SHIP).glb) \
+		&& tools/engine_guard.sh $(GODOT) --headless --no-header --path . -s res://tools/ship_bake.gd \
+		-- --scene=authoring/$(SHIP)/$(SHIP).glb --out=$(if $(OUT),$(OUT),data/ships/$(SHIP).tres) \
 		| grep -v '^\[godot_ai'
 
 # `make models [MODEL=name]`: re-exports every modelled prop, or the one MODEL names,
@@ -470,4 +528,4 @@ format-check:
 .PHONY: import run match capture net-bench sim-bench bench serve-local online-e2e export-server \
 	export-web export-mac export-server-mac serve-web-local serve-web-local-stop fps arena \
 	hits bake census art-lint test verify check guard-check ship ship-check bake-ship bake-check ship-scene \
-	models model-sources lint format format-check
+	ship-blend bake-blend models model-sources lint format format-check
