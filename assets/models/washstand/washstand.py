@@ -59,9 +59,9 @@ def top(enamel):
     box(enamel, [-TOP[0], high, 0.0], [TOP[0], high + SPLASH, 0.014], inked=False, skip=(BACK, (1, -1)))
 
 
-def basin_and_jug(enamel, dark):
-    """A wash basin, oval to fit the top, and a jug standing beside it with its
-    handle toward the basin."""
+def basin_and_jug(enamel, dark, water_paint):
+    """A wash basin, oval to fit the top, its water of water_paint, and a jug
+    standing beside it with its handle toward the basin."""
     high = HIGH + TOP[1]
     # Its axes: an oval 2.2 times as long along the wall as it is deep.
     oval = ([2.2, 0.0, 0.0], [0.0, 0.0, 1.0], [0.0, 1.0, 0.0])
@@ -69,7 +69,7 @@ def basin_and_jug(enamel, dark):
     rows = lathe(enamel, centre, oval, [(0.03, 0.0, 0.0), (0.045, 0.045, 0.0), (0.048, 0.05, 1.0)], 8)
     # The water inside, just under its lip.
     water = [[centre[0] + (p[0] - centre[0]) * 0.94, high + 0.046, centre[2] + (p[2] - centre[2]) * 0.94] for p in rows[-1]]
-    cap(dark, water, [centre[0], high + 0.046, centre[2]], Y, 0.0)
+    cap(water_paint, water, [centre[0], high + 0.046, centre[2]], Y, 0.0)
     jug = [0.17, high, 0.05]
     profile = [(0.034, 0.0, 1.0), (0.045, 0.07, 0.0), (0.03, 0.16, 0.0), (0.04, 0.2, 1.0)]
     rings = lathe(enamel, jug, (X, [0.0, 0.0, -1.0], Y), profile, 6)
@@ -114,7 +114,7 @@ def main():
     stripe = Part("stripe", "upholstery")
     cabinet(frame, teak, brass)
     top(enamel)
-    basin_and_jug(enamel, dark)
+    basin_and_jug(enamel, dark, glass)
     mirror(frame, glass)
     towel(brass, linen, stripe)
     for part in (frame, teak, brass, enamel, dark, glass, linen, stripe):
