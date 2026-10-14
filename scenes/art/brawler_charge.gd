@@ -9,9 +9,9 @@ extends MeshInstance3D
 
 const SHADER := preload("res://scenes/art/brawler_charge.gdshader")
 ## The bone it rides, and the bones its sparks stream off besides the fists.
-const CHEST := &"DEF-spine.003"
-const SHOULDERS: Array[StringName] = [&"DEF-upper_arm.L", &"DEF-upper_arm.R"]
-## The mannequin faces +z.
+const CHEST := &"chest"
+const SHOULDERS: Array[StringName] = [&"upperarm_l", &"upperarm_r"]
+## The sailor faces +z.
 const AHEAD := Vector3(0.0, 0.0, 1.0)
 const SPARKS_PER_POINT := 4
 const LINES := 6
@@ -21,7 +21,7 @@ const LINE_HIGH := 0.2
 ## Room round the chest for the streaks the shader flies off the mesh's points.
 const ROOM := 1.6
 
-## Built off the first skeleton seen: every brawler is the same mannequin.
+## Built off the first skeleton seen: every brawler is the same sailor.
 static var _mesh: ArrayMesh
 
 var _skeleton: Skeleton3D

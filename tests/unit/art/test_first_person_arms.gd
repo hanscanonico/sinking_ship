@@ -15,11 +15,11 @@ const CLIP_MOVES: Array[BrawlerAnimation.Move] = [
 ]
 ## Along each arm, elbow to fingertips: the bones whose heads mark it.
 const JOINTS := {
-	&"L": [&"DEF-forearm.L", &"DEF-hand.L", &"DEF-f_middle.01.L", &"DEF-f_middle.03.L"],
-	&"R": [&"DEF-forearm.R", &"DEF-hand.R", &"DEF-f_middle.01.R", &"DEF-f_middle.03.R"],
+	&"L": [&"lowerarm_l", &"hand_l", &"fingers_l", &"fingertips_l"],
+	&"R": [&"lowerarm_r", &"hand_r", &"fingers_r", &"fingertips_r"],
 }
-const THUMBS: Array[StringName] = [&"DEF-thumb.03.L", &"DEF-thumb.03.R"]
-const HANDS: Array[StringName] = [&"DEF-hand.L", &"DEF-hand.R"]
+const THUMBS: Array[StringName] = [&"thumbtip_l", &"thumbtip_r"]
+const HANDS: Array[StringName] = [&"hand_l", &"hand_r"]
 const WINDUP := BrawlerAnimation.Move.WINDUP
 const BRACE := BrawlerAnimation.Move.BRACE
 const STAGGER := BrawlerAnimation.Move.STAGGER

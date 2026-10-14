@@ -28,6 +28,17 @@ register covers every asset. `assets/models/README.md` says how they are authore
 | `boiler_100/`, `boiler_85/`, `boiler_65/` and `boiler_50/` — `.blend` and `.glb` each: a Scotch boiler's front in four sizes, its riveted shell, furnaces, stays, gauge glasses, pressure gauge and, on the two largest, its stop valve (1090, 1066, 640 and 592 triangles, 0.1 MB and under 0.1 MB each) | Original work, modelled for this project (2026-10-14) | The project's own |
 | `crate/crate.blend` and `crate.glb` — the loose cargo crates: planked body, battens, corner posts, braces, stencils and lashing (334 triangles, 0.1 MB and under 0.1 MB) | Original work, modelled for this project (2026-10-14) | The project's own |
 
+### The sailor (`assets/characters/sailor/`)
+
+Not third-party: original work made for this project, built in Blender 5.2.2 by a
+committed script. Its `README.md` says how. It replaces the Universal Animation
+Library mannequin above: nothing loads its files now, and they stay until they are
+retired.
+
+| Files | Source | License |
+|---|---|---|
+| `gen_sailor.py`, and the `sailor.blend` and `sailor.glb` it builds — the brawlers' rig (31 bones of its own), body (2320 triangles, 800 of them fingers and thumbs) and eleven clips (0.8 MB and 0.4 MB) | Original work, generated for this project (2026-10-14) | The project's own |
+
 ### Audio (`assets/audio/`)
 
 Every sound below is CC0 1.0 (public domain dedication); no attribution is

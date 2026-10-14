@@ -10,7 +10,7 @@ enum Hat { CAP, SOUWESTER, BOATER, BARE, BOBBLE, TOP, PEAKED }
 enum Coat { JERSEY, JACKET, GREATCOAT }
 enum Whiskers { NONE, MOUSTACHE, BEARD }
 
-const MODEL := preload("res://assets/characters/quaternius_ual/AnimationLibrary_Godot_Standard.glb")
+const MODEL := preload("res://assets/characters/sailor/sailor.glb")
 const CLOTHES := preload("res://scenes/art/brawler.gdshader")
 const OUTLINE := preload("res://scenes/art/outline.gdshader")
 ## Per seat, eight apart: a hand, an oilskin, a passenger, a steward, a sailor, a
@@ -41,9 +41,11 @@ const WHISKERS: Array[Whiskers] = [
 ## Indices into ArtPalette.HAIR and ArtPalette.TROUSERS.
 const HAIR: Array[int] = [0, 0, 0, 1, 3, 1, 3, 2]
 const TROUSERS: Array[int] = [1, 0, 3, 0, 2, 3, 0, 1]
-## The mannequin is authored facing +z; a seat faces +x.
+## The sailor is authored facing +z; a seat faces +x.
 const MODEL_TURN := PI * 0.5
-const HEAD_BONE := &"DEF-head"
+## The sailor's body, under its skeleton, and the bone its hat rides.
+const BODY := ^"Sailor"
+const HEAD_BONE := &"head"
 ## The outline's width on a seat's own arms, under the eye, in model units.
 const OWN_OUTLINE := 0.0035
 ## The disc sits just off the feet so it never fights the deck.
@@ -56,31 +58,16 @@ const HANG := 0.024
 const HANG_FROM := 0.86
 const HANG_TO := 1.38
 const HANG_WIDTH := 0.22
-## The mannequin's surface of ball joints and the rings between its segments.
-const JOINTS := 1
-## How many rings of a segment's triangles in from its rim its outline takes to
-## grow to full width, so the lip a segment curls in by at its rim inks no seam
-## across the cloth.
-const OUTLINE_RINGS := 3
-## Ironing: rounds of smoothing in and back out, and the head (above IRON_BELOW and
-## within IRON_HEAD of the middle), the hands (past IRON_HANDS) and the feet (under
-## IRON_ABOVE) left as they are, in model units.
-const IRON_ROUNDS := 4
-const IRON_IN := 0.5
-const IRON_OUT := -0.53
-const IRON_BELOW := 1.52
-const IRON_HEAD := 0.14
-const IRON_HANDS := 0.7
-const IRON_ABOVE := 0.16
 ## The painted front — shirt, tie, lapels, buttons — rides the spine alone, its
-## share of each spine bone rising smoothly with height: the mannequin weights its
-## breastbone to the collarbones, which a raised arm swings, and its rows to the
-## spine bones in uneven shares, both of which shear a narrow painted band into a
-## zigzag. The front within STEADY_ACROSS of the middle and between the first and
-## last of STEADY_ROWS is weighted so, letting go of it over STEADY_FADE beyond, in
-## model units; the spine bones' shares run between STEADY_ROWS' heights.
+## share of each spine bone rising smoothly with height: automatic weights give
+## the sailor's breastbone to the collarbones and upper arms, which a raised arm
+## swings, and its rows to the spine bones in uneven shares, both of which would
+## shear a narrow painted band into a zigzag. The front within STEADY_ACROSS of the
+## middle and between the first and last of STEADY_ROWS is weighted so, letting go
+## of it over STEADY_FADE beyond, in model units; the spine bones' shares run
+## between STEADY_ROWS' heights.
 const STEADY_ACROSS := 0.09
-const STEADY_ROWS := {&"DEF-spine.001": 1.1, &"DEF-spine.002": 1.27, &"DEF-spine.003": 1.42}
+const STEADY_ROWS := {&"spine_01": 1.1, &"spine_02": 1.27, &"chest": 1.42}
 const STEADY_FADE := 0.05
 ## A coat's skirt, hanging from the hips: rings from the waist down to its hem, at
 ## SKIRT_HEMS of each coat that has one, opening at the front by as many radians
@@ -141,14 +128,14 @@ const CLINCH_HIGH := 1.8
 const CLINCH_WIDE := 0.4
 const CLINCH_FOLD := 0.18
 
-## The mannequin's surfaces dressed for clothes, and the mesh for each coat — with
-## or without a skirt — built once and shared by every seat wearing it.
-static var _dressed: Array[Array] = []
+## The sailor's body dressed for clothes, and the mesh for each coat — with or
+## without a skirt — built once and shared by every seat wearing it.
+static var _dressed: Array = []
 static var _bodies := {}
 static var _disc_texture: GradientTexture2D
-## The mannequin's crown and the head bone's height at rest, in its units, and per
+## The sailor's crown and the head bone's height at rest, in its units, and per
 ## hat how high it stands over the soles as a share of the crown: read once.
-static var _mannequin := Vector2.ZERO
+static var _sailor := Vector2.ZERO
 static var _headgear := {}
 
 var seat: int
@@ -161,9 +148,6 @@ var _hat_node: MeshInstance3D
 ## The marker over the local seat, or null on any other.
 var _marker: MeshInstance3D
 var _clothes: ShaderMaterial
-## The clothes again on the mannequin's ball joints, with no outline, so the joints
-## draw no seams through the cloth.
-var _joints: ShaderMaterial
 ## The clip for each move: the crew's, unless drawn as a seat's own arms.
 var _clips: Dictionary = BrawlerAnimation.CLIPS
 var _poses: BrawlerPose
@@ -215,17 +199,14 @@ func setup(seat_id: int, rules: BrawlRules, local: bool) -> void:
 	add_child(_model)
 	var skeleton: Skeleton3D = _model.get_node("Rig/Skeleton3D")
 	_skeleton = skeleton
-	var mesh: MeshInstance3D = skeleton.get_node("Mannequin")
+	var mesh: MeshInstance3D = skeleton.get_node(BODY)
 	var crown := mesh.get_aabb().end.y
 	_rest_scale = Vector3.ONE * (rules.body_height / crown)
 	_model.scale = _rest_scale
 	_model.rotation.y = MODEL_TURN
 	mesh.mesh = _body(mesh.mesh as ArrayMesh, mesh.skin, COATS[outfit])
 	_clothes = _dress(outfit)
-	_joints = _clothes.duplicate()
-	_joints.next_pass = null
 	mesh.set_surface_override_material(0, _clothes)
-	mesh.set_surface_override_material(JOINTS, _joints)
 	_player = _model.get_node("AnimationPlayer")
 	_player.callback_mode_process = AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL
 	_player.play(_clips[_move])
@@ -280,15 +261,15 @@ func setup(seat_id: int, rules: BrawlRules, local: bool) -> void:
 static func headgear(seat: int, rules: BrawlRules) -> float:
 	var hat := HATS[seat % HATS.size()]
 	if not _headgear.has(hat):
-		if _mannequin == Vector2.ZERO:
+		if _sailor == Vector2.ZERO:
 			var model := MODEL.instantiate()
 			var skeleton: Skeleton3D = model.get_node("Rig/Skeleton3D")
-			var crown := (skeleton.get_node("Mannequin") as MeshInstance3D).get_aabb().end.y
+			var crown := (skeleton.get_node(BODY) as MeshInstance3D).get_aabb().end.y
 			var head := skeleton.get_bone_global_rest(skeleton.find_bone(HEAD_BONE)).origin.y
-			_mannequin = Vector2(crown, head)
+			_sailor = Vector2(crown, head)
 			model.free()
 		var top := BrawlerHat.build(hat, Color.WHITE, Color.WHITE).get_aabb().end.y
-		_headgear[hat] = maxf(_mannequin.y + top, _mannequin.x) / _mannequin.x
+		_headgear[hat] = maxf(_sailor.y + top, _sailor.x) / _sailor.x
 	return rules.body_height * _headgear[hat]
 
 
@@ -317,7 +298,7 @@ func show_as_own_arms(clips: Dictionary, poses: Dictionary, elbows: Array[Vector
 		(node as GeometryInstance3D).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 
 
-## Where the mannequin's [param bone] is drawn, in the world.
+## Where the sailor's [param bone] is drawn, in the world.
 func bone_position(bone: StringName) -> Vector3:
 	var pose := _skeleton.get_bone_global_pose(_skeleton.find_bone(bone))
 	return _skeleton.global_transform * pose.origin
@@ -340,13 +321,13 @@ static func keep_apart(bodies: Array[Brawler], eye_seat: int) -> void:
 				body._keep_hands_off(other)
 
 
-## Shrinks the mannequin's [param bone] to nothing in this frame's pose, so what it
+## Shrinks the sailor's [param bone] to nothing in this frame's pose, so what it
 ## carries is not drawn.
 func collapse_bone(bone: StringName) -> void:
 	_skeleton.set_bone_pose_scale(_skeleton.find_bone(bone), Vector3.ONE * 0.001)
 
 
-## The node the mannequin hangs from: its origin is the drawn feet.
+## The node the sailor hangs from: its origin is the drawn feet.
 func model_root() -> Node3D:
 	return _model
 
@@ -424,7 +405,6 @@ func _show_hands(move: BrawlerAnimation.Move) -> void:
 	if glow != _glow:
 		_glow = glow
 		_clothes.set_shader_parameter("flash", glow)
-		_joints.set_shader_parameter("flash", glow)
 
 
 ## Lights the body's edge, its outline, its forearms and the disc at its feet as a
@@ -452,7 +432,6 @@ func _show_heat(move: BrawlerAnimation.Move, fill: float, now: Dictionary, speed
 		return
 	_heat = heat
 	_clothes.set_shader_parameter("heat", heat)
-	_joints.set_shader_parameter("heat", heat)
 	var edge := ArtPalette.INK.lerp(ArtPalette.CHARGE, minf(heat / WINDUP_HEAT, 1.0))
 	for outline: ShaderMaterial in _outlines:
 		outline.set_shader_parameter("ink", edge)
@@ -600,150 +579,45 @@ static func _soft_disc() -> GradientTexture2D:
 	return texture
 
 
-## [param source], the mannequin, dressed (_dress_body) — and under a coat, with
-## its skirt — shared by every seat wearing [param coat]. [param skin] names its
-## bones.
+## [param source], the sailor, dressed (_dress_body) — and under a coat, with its
+## skirt — shared by every seat wearing [param coat]. [param skin] names its bones.
 static func _body(source: ArrayMesh, skin: Skin, coat: Coat) -> ArrayMesh:
 	if _bodies.has(coat):
 		return _bodies[coat]
 	if _dressed.is_empty():
 		_dressed = _dress_body(source, skin)
+	var arrays: Array = _dressed.duplicate(true)
+	if SKIRT_HEMS.has(coat):
+		_add_skirt(arrays, skin, coat)
 	var mesh := ArrayMesh.new()
-	for surface in _dressed.size():
-		var arrays: Array = _dressed[surface].duplicate(true)
-		if surface == 0 and SKIRT_HEMS.has(coat):
-			_add_skirt(arrays, skin, coat)
-		mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
 	_bodies[coat] = mesh
 	return mesh
 
 
-## The surfaces of [param source], the mannequin, ironed and hung for clothes, with
-## where each point sits at rest written into their UVs for the clothes shader and
-## its painted front steadied on the spine; [param skin] names its bones.
-## The mannequin is jointed: its segments and the joint rings between them meet at
-## rims, which stay put so no crack opens, and whose outline (in COLOR's alpha, as
-## outline.gdshader reads it) grows in from nothing over OUTLINE_RINGS so no seam
-## is inked across the cloth.
-static func _dress_body(source: ArrayMesh, skin: Skin) -> Array[Array]:
-	var surfaces: Array[Array] = []
-	for surface in source.get_surface_count():
-		var arrays := source.surface_get_arrays(surface)
-		var weld := _weld(arrays[Mesh.ARRAY_VERTEX])
-		var rims := _rims(arrays[Mesh.ARRAY_INDEX], weld)
-		var inked := _inked(arrays[Mesh.ARRAY_INDEX], weld, rims)
-		_iron(arrays, weld, rims)
-		_steady_front(arrays, skin)
-		# Rest is read off the ironed body, so a painted edge runs straight across
-		# the triangles drawn instead of tearing along them.
-		var vertices: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
-		var rest := PackedVector2Array()
-		var depth := PackedVector2Array()
-		var outline := PackedColorArray()
-		for index in vertices.size():
-			var vertex := vertices[index]
-			rest.append(Vector2(vertex.x, vertex.y))
-			depth.append(Vector2(vertex.z, 0.0))
-			vertices[index] += Vector3(vertex.x, 0.0, vertex.z).normalized() * _hang(vertex)
-			outline.append(Color(1.0, 1.0, 1.0, inked[index]))
-		arrays[Mesh.ARRAY_VERTEX] = vertices
-		arrays[Mesh.ARRAY_COLOR] = outline
-		arrays[Mesh.ARRAY_TEX_UV] = rest
-		arrays[Mesh.ARRAY_TEX_UV2] = depth
-		surfaces.append(arrays)
-	return surfaces
-
-
-## For each of [param vertices], the first one standing at the same point: where
-## the mesh is split, the vertex it shares.
-static func _weld(vertices: PackedVector3Array) -> PackedInt32Array:
-	var weld := PackedInt32Array()
-	weld.resize(vertices.size())
-	var first := {}
-	for index in vertices.size():
-		var key := vertices[index].snappedf(0.00001)
-		if not first.has(key):
-			first[key] = index
-		weld[index] = first[key]
-	return weld
-
-
-## 1 for each vertex on an edge of only one of [param indices]' triangles — a rim
-## where a surface stops — and 0 otherwise; [param weld] as _weld has it.
-static func _rims(indices: PackedInt32Array, weld: PackedInt32Array) -> PackedByteArray:
-	var edges := {}
-	for corner in range(0, indices.size(), 3):
-		for side in 3:
-			var a := weld[indices[corner + side]]
-			var b := weld[indices[corner + (side + 1) % 3]]
-			var edge := Vector2i(mini(a, b), maxi(a, b))
-			edges[edge] = edges.get(edge, 0) + 1
-	var shared := PackedByteArray()
-	shared.resize(weld.size())
-	for edge: Vector2i in edges:
-		if edges[edge] == 1:
-			shared[edge.x] = 1
-			shared[edge.y] = 1
-	var rims := PackedByteArray()
-	rims.resize(weld.size())
-	for index in weld.size():
-		rims[index] = shared[weld[index]]
-	return rims
-
-
-## How much outline each vertex of [param indices]' triangles grows: none on the
-## [param rims], and more the more rings of triangles away from one, full at
-## OUTLINE_RINGS; [param weld] as _weld has it.
-static func _inked(
-	indices: PackedInt32Array, weld: PackedInt32Array, rims: PackedByteArray
-) -> PackedFloat32Array:
-	var rings := PackedInt32Array()
-	rings.resize(weld.size())
-	rings.fill(OUTLINE_RINGS)
-	for index in weld.size():
-		if rims[index] == 1:
-			rings[weld[index]] = 0
-	for ring in OUTLINE_RINGS - 1:
-		for corner in range(0, indices.size(), 3):
-			var a := weld[indices[corner]]
-			var b := weld[indices[corner + 1]]
-			var c := weld[indices[corner + 2]]
-			var nearest := mini(rings[a], mini(rings[b], rings[c]))
-			if nearest == ring:
-				for point: int in [a, b, c]:
-					rings[point] = mini(rings[point], ring + 1)
-	var inked := PackedFloat32Array()
-	inked.resize(weld.size())
-	for index in weld.size():
-		inked[index] = float(rings[weld[index]]) / OUTLINE_RINGS
-	return inked
-
-
-## Irons the mannequin's muscles out of [param arrays], a surface's, below the head
-## and above the hands and feet, so cloth seems to lie over the body: rounds of
-## Taubin smoothing — in, then back out so the body keeps its size — of its points,
-## then of its normals; [param weld] as _weld has it, and the [param rims] held still.
-static func _iron(arrays: Array, weld: PackedInt32Array, rims: PackedByteArray) -> void:
+## The surface of [param source], the sailor — a closed skin, its fingers and thumbs
+## closed shells apart — hung for clothes, with where each point sits at rest
+## written into its UVs for the clothes shader and its painted front steadied on the
+## spine; [param skin] names its bones. Every point is inked in full (COLOR's alpha,
+## as outline.gdshader reads it): no shell has a rim to hide.
+static func _dress_body(source: ArrayMesh, skin: Skin) -> Array:
+	var arrays := source.surface_get_arrays(0)
+	_steady_front(arrays, skin)
 	var vertices: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
-	var normals: PackedVector3Array = arrays[Mesh.ARRAY_NORMAL]
-	var indices: PackedInt32Array = arrays[Mesh.ARRAY_INDEX]
-	var count := vertices.size()
-	var ironed := PackedByteArray()
-	ironed.resize(count)
-	for index in count:
-		var point := vertices[index]
-		var head := point.y > IRON_BELOW and absf(point.x) < IRON_HEAD
-		var kept := head or absf(point.x) > IRON_HANDS or point.y < IRON_ABOVE
-		ironed[index] = 0 if kept or rims[index] == 1 else 1
-	for _round in IRON_ROUNDS:
-		_blur(vertices, indices, weld, ironed, IRON_IN)
-		_blur(vertices, indices, weld, ironed, IRON_OUT)
-	for _round in IRON_ROUNDS:
-		_blur(normals, indices, weld, ironed, 1.0)
-	for index in count:
-		normals[index] = normals[index].normalized()
+	var rest := PackedVector2Array()
+	var depth := PackedVector2Array()
+	var outline := PackedColorArray()
+	for index in vertices.size():
+		var vertex := vertices[index]
+		rest.append(Vector2(vertex.x, vertex.y))
+		depth.append(Vector2(vertex.z, 0.0))
+		vertices[index] += Vector3(vertex.x, 0.0, vertex.z).normalized() * _hang(vertex)
+		outline.append(Color.WHITE)
 	arrays[Mesh.ARRAY_VERTEX] = vertices
-	arrays[Mesh.ARRAY_NORMAL] = normals
+	arrays[Mesh.ARRAY_COLOR] = outline
+	arrays[Mesh.ARRAY_TEX_UV] = rest
+	arrays[Mesh.ARRAY_TEX_UV2] = depth
+	return arrays
 
 
 ## Weights [param arrays]' front, a surface's, on the spine as STEADY_ROWS has it;
@@ -796,41 +670,7 @@ static func _steady_front(arrays: Array, skin: Skin) -> void:
 	arrays[Mesh.ARRAY_WEIGHTS] = weights
 
 
-## Moves each of [param values] marked in [param ironed] [param amount] of the way to
-## the mean of its neighbours across [param indices]' triangles; [param weld] names
-## the vertex each one shares its point with.
-static func _blur(
-	values: PackedVector3Array,
-	indices: PackedInt32Array,
-	weld: PackedInt32Array,
-	ironed: PackedByteArray,
-	amount: float
-) -> void:
-	var count := values.size()
-	var sums := PackedVector3Array()
-	sums.resize(count)
-	var links := PackedInt32Array()
-	links.resize(count)
-	for corner in range(0, indices.size(), 3):
-		var a := weld[indices[corner]]
-		var b := weld[indices[corner + 1]]
-		var c := weld[indices[corner + 2]]
-		sums[a] += values[b] + values[c]
-		sums[b] += values[c] + values[a]
-		sums[c] += values[a] + values[b]
-		links[a] += 2
-		links[b] += 2
-		links[c] += 2
-	for index in count:
-		if weld[index] == index and ironed[index] == 1 and links[index] > 0:
-			sums[index] = values[index].lerp(sums[index] / links[index], amount)
-		else:
-			sums[index] = values[index]
-	for index in count:
-		values[index] = sums[weld[index]]
-
-
-## How far clothes stand off the mannequin's skin at [param point], at rest: a
+## How far clothes stand off the sailor's skin at [param point], at rest: a
 ## coat hangs straight down from the chest rather than hugging the waist.
 static func _hang(point: Vector3) -> float:
 	if absf(point.x) > HANG_WIDTH or point.y < HANG_FROM or point.y > HANG_TO:
@@ -842,8 +682,8 @@ static func _hang(point: Vector3) -> float:
 ## open-fronted tube from the waist, held by the hips and pulled along by the thighs
 ## below, faced inside and out.
 static func _add_skirt(arrays: Array, skin: Skin, coat: Coat) -> void:
-	var hips := _bind(skin, &"DEF-hips")
-	var thighs := PackedInt32Array([_bind(skin, &"DEF-thigh.L"), _bind(skin, &"DEF-thigh.R")])
+	var hips := _bind(skin, &"pelvis")
+	var thighs := PackedInt32Array([_bind(skin, &"thigh_l"), _bind(skin, &"thigh_r")])
 	var vertices: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
 	var normals: PackedVector3Array = arrays[Mesh.ARRAY_NORMAL]
 	var tangents: PackedFloat32Array = arrays[Mesh.ARRAY_TANGENT]
@@ -901,5 +741,5 @@ static func _bind(skin: Skin, bone: StringName) -> int:
 	for index in skin.get_bind_count():
 		if skin.get_bind_name(index) == bone:
 			return index
-	push_error("brawler: the mannequin has no bone %s" % bone)
+	push_error("brawler: the sailor has no bone %s" % bone)
 	return 0

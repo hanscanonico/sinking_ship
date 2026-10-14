@@ -1,8 +1,8 @@
 extends GutTest
 
-const MODEL := preload("res://assets/characters/quaternius_ual/AnimationLibrary_Godot_Standard.glb")
-const CHEST := &"DEF-spine.003"
-## Model units: a centimetre on the mannequin is about 0.011.
+const MODEL := preload("res://assets/characters/sailor/sailor.glb")
+const CHEST := &"chest"
+## Model units: a centimetre on the sailor is about 0.011.
 const NEAR := 0.011
 
 
@@ -51,13 +51,13 @@ func test_a_reach_puts_the_wrist_where_the_chest_sends_it() -> void:
 	var chest := skeleton.get_bone_global_pose(skeleton.find_bone(CHEST))
 	var rest := skeleton.get_bone_global_rest(skeleton.find_bone(CHEST)).basis
 	var turn := chest.basis.get_rotation_quaternion() * rest.get_rotation_quaternion().inverse()
-	var reached := turn.inverse() * (_origin(skeleton, &"DEF-hand.R") - chest.origin)
+	var reached := turn.inverse() * (_origin(skeleton, &"hand_r") - chest.origin)
 	assert_almost_eq(reached, wrist, Vector3.ONE * NEAR)
 
 
 func test_a_foot_stands_where_the_pose_steps_it_with_the_hips_lowered() -> void:
 	var skeleton := _skeleton()
-	var rest_ankle := skeleton.get_bone_global_rest(skeleton.find_bone(&"DEF-foot.L")).origin
+	var rest_ankle := skeleton.get_bone_global_rest(skeleton.find_bone(&"foot_l")).origin
 	var step := Vector3(0.05, 0.0, 0.25)
-	_posed(skeleton, {BrawlerPose.HIPS_AT: Vector3(0.0, -0.1, 0.0), &"DEF-foot.L": step})
-	assert_almost_eq(_origin(skeleton, &"DEF-foot.L"), rest_ankle + step, Vector3.ONE * NEAR)
+	_posed(skeleton, {BrawlerPose.HIPS_AT: Vector3(0.0, -0.1, 0.0), &"foot_l": step})
+	assert_almost_eq(_origin(skeleton, &"foot_l"), rest_ankle + step, Vector3.ONE * NEAR)

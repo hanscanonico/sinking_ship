@@ -4,7 +4,7 @@ extends GutTest
 ## your own arms, and your own raised fists — a wind-up's, a charge's, a brace's —
 ## turn their backs to the eye, thumbs inside, never their palms as if swapped.
 
-const SIDES: Array[StringName] = [&"L", &"R"]
+const SIDES: Array[StringName] = [&"l", &"r"]
 const RAISED: Array[BrawlerAnimation.Move] = [
 	BrawlerAnimation.Move.WINDUP, BrawlerAnimation.Move.CHARGE, BrawlerAnimation.Move.BRACE
 ]
@@ -55,8 +55,8 @@ func test_your_own_raised_fists_show_their_backs_thumbs_inside() -> void:
 		for side: StringName in SIDES:
 			var facing := _palm(body, side).dot(_ahead(eye))
 			assert_gt(facing, 0.0, "%s: the %s palm faces away: %.2f" % [named, side, facing])
-			var thumb := eye.to_local(body.bone_position(StringName("DEF-thumb.03." + side)))
-			var pinky := eye.to_local(body.bone_position(StringName("DEF-f_pinky.01." + side)))
+			var thumb := eye.to_local(body.bone_position(StringName("thumbtip_" + side)))
+			var pinky := eye.to_local(_pinky(body, side))
 			assert_lt(absf(thumb.x), absf(pinky.x), "%s: the %s thumb is inside" % [named, side])
 
 
@@ -86,17 +86,22 @@ func _settle(show: Callable, node: Node) -> void:
 	show.call()
 
 
-## The way [param body]'s [param side] palm faces, in the world: square to the
-## hand's knuckles and to the way it points, on the palm's side.
+## The way [param body]'s [param side] palm faces, in the world: square to the way
+## the hand points and to its thumb's root, on the palm's side.
 func _palm(body: Brawler, side: StringName) -> Vector3:
-	var hand := body.bone_position(StringName("DEF-hand." + side))
-	var middle := body.bone_position(StringName("DEF-f_middle.01." + side))
-	var across := (
-		body.bone_position(StringName("DEF-f_index.01." + side))
-		- body.bone_position(StringName("DEF-f_pinky.01." + side))
-	)
-	var palm := (middle - hand).cross(across)
-	return (palm if side == &"L" else -palm).normalized()
+	var hand := body.bone_position(StringName("hand_" + side))
+	var knuckles := body.bone_position(StringName("fingers_" + side))
+	var across := body.bone_position(StringName("thumb_" + side)) - hand
+	var palm := (knuckles - hand).cross(across)
+	return (palm if side == &"l" else -palm).normalized()
+
+
+## The little finger's side of [param body]'s [param side] hand, in the world: its
+## knuckles, as far from the thumb's root as the thumb's root is from the wrist.
+func _pinky(body: Brawler, side: StringName) -> Vector3:
+	var hand := body.bone_position(StringName("hand_" + side))
+	var thumb := body.bone_position(StringName("thumb_" + side))
+	return body.bone_position(StringName("fingers_" + side)) - (thumb - hand)
 
 
 ## The seat's snapshot entry as it stands still in [param move].
