@@ -35,7 +35,8 @@ const WHISTLE_BOX := AABB(Vector3(-0.01, -0.35, -0.2), Vector3(0.245, 1.03, 0.5)
 const WASTE_PIPE_HEAD_MODEL := "waste_pipe_head"
 const WASTE_PIPE_RISE := 0.5
 ## A clamp holding a pipe to the funnel (PIPE_CLAMP_MODEL), its origin on the funnel's
-## face, the pipe along +x; one every CLAMP_SPACING up each pipe; its box.
+## face, the pipe along +x; one every CLAMP_SPACING, times the scale, up each pipe;
+## its box.
 const PIPE_CLAMP_MODEL := "pipe_clamp"
 const CLAMP_SPACING := 2.5
 const PIPE_CLAMP_BOX := AABB(Vector3(-0.01, -0.035, -0.072), Vector3(0.24, 0.07, 0.144))
@@ -165,12 +166,13 @@ static func _funnel_pipes(mesh: ShipMesh, blocker: ShipBlocker, top: float) -> v
 	mesh.model(model, Transform3D(Basis.IDENTITY, at))
 	var clamp := ShipModel.named("%s_%s" % [PIPE_CLAMP_MODEL, size])
 	var after := Basis(Vector3.UP, PI)
-	var height := blocker.bottom + CLAMP_SPACING * 0.5
-	while height < top - FUNNEL_RIM.y - CLAMP_SPACING * 0.25:
+	var spacing := CLAMP_SPACING * scale
+	var height := blocker.bottom + spacing * 0.5
+	while height < top - FUNNEL_RIM.y - spacing * 0.25:
 		mesh.model(clamp, Transform3D(after, Vector3(aft, height, centre.y)))
-		if height < whistle - CLAMP_SPACING * 0.25:
+		if height < whistle - spacing * 0.25:
 			mesh.model(clamp, Transform3D(Basis.IDENTITY, Vector3(fore, height, centre.y)))
-		height += CLAMP_SPACING
+		height += spacing
 
 
 ## A soft round puff, white at its heart and clear at its edge.
