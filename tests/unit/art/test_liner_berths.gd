@@ -17,6 +17,10 @@ const BEFORE := {
 }
 ## The most berths she may hang, all her blocks of berths together.
 const BUDGET := 200
+## The most faces a block of berths may stand in all, its modelled berths
+## (RoomDressing.BERTH_MODEL) and their chains and the cabin furniture's models too:
+## the third-class berths and the crew quarters, the worst, draw 8012.
+const CEILING := 8500
 
 var _layout: ShipLayout
 var _rules: BrawlRules
@@ -75,6 +79,11 @@ func test_nothing_her_dressing_draws_stands_in_a_body_s_way() -> void:
 func test_each_block_of_berths_is_furnished_more_than_before() -> void:
 	for room: ShipRoom in _berths():
 		assert_gt(_faces_in(room), BEFORE[room.name], String(room.name))
+
+
+func test_each_block_of_berths_stands_under_its_ceiling_berths_and_all() -> void:
+	for room: ShipRoom in _berths():
+		assert_lt(_faces_in(room), CEILING, String(room.name))
 
 
 func test_she_hangs_a_dozen_berths_a_block_and_under_the_budget_in_all() -> void:
