@@ -107,9 +107,10 @@ func test_the_furnishings_and_hanging_lamps_fade_and_nothing_else_does() -> void
 	for lamp: ShipLamp in art.find_children("Lamp*", "ShipLamp", true, false):
 		var fire := lamp.find_children("*", "SpotLight3D", false, false).size() > 0
 		for part: MeshInstance3D in lamp.find_children("*", "MeshInstance3D", false, false):
-			var mode := (part.mesh.surface_get_material(0) as BaseMaterial3D).distance_fade_mode
-			var wanted := BaseMaterial3D.DISTANCE_FADE_DISABLED
-			if not fire:
-				wanted = BaseMaterial3D.DISTANCE_FADE_PIXEL_DITHER
-			assert_eq(mode, wanted)
+			for surface in part.mesh.get_surface_count():
+				var material := part.get_active_material(surface) as BaseMaterial3D
+				var wanted := BaseMaterial3D.DISTANCE_FADE_DISABLED
+				if not fire:
+					wanted = BaseMaterial3D.DISTANCE_FADE_PIXEL_DITHER
+				assert_eq(material.distance_fade_mode, wanted)
 	art.free()

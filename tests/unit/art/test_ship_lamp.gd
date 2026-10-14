@@ -81,3 +81,30 @@ func test_a_fire_wavers_but_never_dies_while_dry() -> void:
 	assert_gte(lowest, 1.0 - ShipLamp.FIRE_WAVER)
 	assert_lte(highest, 1.0)
 	assert_gt(highest - lowest, ShipLamp.FIRE_WAVER * 0.5)
+
+
+func test_each_lamp_draws_its_model_once_in_its_own_glass() -> void:
+	var models := {
+		ShipLamp.Kind.PENDANT: ShipLamp.PENDANT_MODEL,
+		ShipLamp.Kind.CARGO: ShipLamp.CARGO_MODEL,
+		ShipLamp.Kind.FIRE: ShipLamp.FIRE_MODEL,
+	}
+	for kind: ShipLamp.Kind in models:
+		var lamp: ShipLamp = autofree(ShipLamp.new())
+		var glass := StandardMaterial3D.new()
+		var brass := StandardMaterial3D.new()
+		var facing := Vector3.BACK if kind == ShipLamp.Kind.FIRE else Vector3.DOWN
+		lamp.setup(0.0, glass, brass, kind, facing)
+		var parts := lamp.find_children("*", "MeshInstance3D", false, false)
+		assert_eq(parts.size(), 1, "one mesh a lamp, swinging with it")
+		var part := parts[0] as MeshInstance3D
+		assert_eq(part.mesh, ShipModel.named(models[kind]).mesh, "shared by its kind")
+		var glowing := 0
+		for surface in part.mesh.get_surface_count():
+			var drawn := part.get_active_material(surface)
+			var paint := part.mesh.surface_get_material(surface).resource_name
+			assert_eq(drawn == glass, paint == "sconce_glass", "%s in the lamp's glass" % paint)
+			if paint == "brass":
+				assert_eq(drawn, brass, "its brass the lamp's")
+			glowing += 1 if drawn == glass else 0
+		assert_eq(glowing, 1, "its glass glows as the lamp burns")
