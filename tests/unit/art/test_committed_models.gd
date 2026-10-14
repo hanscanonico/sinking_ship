@@ -261,7 +261,9 @@ func _fills_every_cargo_crate_s_square(box: AABB) -> void:
 
 
 ## A berth: BERTH long either side of its middle and BERTH deep off its wall, from
-## its underside at HEADROOM up to its chains' eyes, which stand at BERTH_EYE.
+## its underside at HEADROOM up to its chains' eyes: the steel at each end, its top's
+## middle at BERTH_EYE, where slung_berth hangs a chain from. Its blanket is painted
+## blanket, the surface slung_berth repaints in its cabin's colour.
 func _fills_the_berth_s_length_and_depth_off_its_wall(box: AABB) -> void:
 	var berth := RoomDressing.BERTH
 	var low := Vector3(-berth.x * 0.5, 0.0, 0.0)
@@ -270,9 +272,24 @@ func _fills_the_berth_s_length_and_depth_off_its_wall(box: AABB) -> void:
 	assert_almost_eq(box.end, high, Vector3.ONE * TOLERANCE, "berth: foot, eyes, front")
 	assert_gte(box.position.y, -0.001, "berth: nothing under HEADROOM")
 	assert_gte(box.position.z, -0.001, "berth: nothing in its wall")
-	assert_almost_eq(RoomDressing.BERTH_EYE.y, box.end.y, PART, "berth: its eyes on top")
-	assert_lt(RoomDressing.BERTH_EYE.x, berth.x * 0.5, "berth: its eyes over its ends")
-	assert_lt(RoomDressing.BERTH_EYE.z, berth.y, "berth: its eyes over its front")
+	var eyes := {-1.0: PackedVector3Array(), 1.0: PackedVector3Array()}
+	var blankets := 0
+	for surface: ShipModel.Surface in ShipModel.named(RoomDressing.BERTH_MODEL).surfaces:
+		blankets += 1 if surface.paint == ShipPaints.blanket else 0
+		if surface.paint == ShipPaints.steel:
+			for point in surface.points:
+				eyes[signf(point.x)].append(point)
+	assert_gt(blankets, 0, "berth: a blanket for its cabin's colour")
+	for end: float in eyes:
+		var points: PackedVector3Array = eyes[end]
+		assert_gt(points.size(), 0, "berth: an eye at each end")
+		var eye := AABB(points[0], Vector3.ZERO)
+		for point in points:
+			eye = eye.expand(point)
+		var top := Vector3(eye.get_center().x, eye.end.y, eye.get_center().z)
+		var wanted := Vector3(end * RoomDressing.BERTH_EYE.x, 0.0, 0.0)
+		wanted += Vector3(0.0, RoomDressing.BERTH_EYE.y, RoomDressing.BERTH_EYE.z)
+		assert_almost_eq(top, wanted, Vector3.ONE * PART, "berth: its chain's eye")
 
 
 ## A lifebelt: its ring LIFEBELT_RADIUS round its middle, standing LIFEBELT_DEPTH out
