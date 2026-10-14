@@ -44,6 +44,16 @@ func _rows() -> Dictionary:
 		"boiler_65": ["hero", _stands_a_boiler_front_in_its_bulkhead.bind("boiler_65")],
 		"boiler_50": ["hero", _stands_a_boiler_front_in_its_bulkhead.bind("boiler_50")],
 		"crate": ["furniture", _fills_every_cargo_crate_s_square],
+		"washstand":
+		["furniture", _fills_a_cabin_fitting_s_box.bind(CabinDressing.WASHSTAND, "washstand")],
+		"locker": ["furniture", _fills_a_cabin_fitting_s_box.bind(CabinDressing.LOCKER, "locker")],
+		"luggage_shelf":
+		["furniture", _fills_a_cabin_fitting_s_box.bind(CabinDressing.LUGGAGE_SHELF, "shelf")],
+		"luggage_rack":
+		["furniture", _fills_a_cabin_fitting_s_box.bind(CabinDressing.LUGGAGE_RACK, "rack")],
+		"coat": ["furniture", _fills_a_cabin_fitting_s_box.bind(CabinDressing.COAT, "coat")],
+		"folded_berth_190":
+		["furniture", _is_the_folded_berth_made_for.bind(1.9, "folded_berth_190")],
 		"berth": ["furniture", _fills_the_berth_s_length_and_depth_off_its_wall],
 		"lifebelt": ["furniture", _hangs_the_lifebelt_flat_on_its_wall],
 		"fire_buckets": ["furniture", _fills_the_fire_buckets_rack_off_its_wall],
@@ -173,6 +183,28 @@ func _fills_its_box_off_its_wall(box: AABB, wanted: AABB, name: String) -> void:
 	assert_almost_eq(box.end, wanted.end, Vector3.ONE * TOLERANCE, name + ": high")
 	assert_gte(box.position.z, -0.001, name + ": nothing in its wall")
 	assert_lte(box.end.z, wanted.end.z + 0.001, name + ": no deeper than its box")
+
+
+## A wall fitting of CabinDressing's: its box as _fills_its_box_off_its_wall has it,
+## and whatever of it stands under HEADROOM no further out from its wall than a
+## furnishing may stand (art-lint).
+func _fills_a_cabin_fitting_s_box(box: AABB, wanted: AABB, name: String) -> void:
+	_fills_its_box_off_its_wall(box, wanted, name)
+	if box.position.y < RoomDressing.HEADROOM:
+		assert_lte(box.end.z, FurnishingCheck.TOLERANCE, name + ": flat to its wall")
+
+
+## A folded berth [param model] made for [param length] (CabinDressing.FOLDED_BERTHS):
+## that long, square across its middle, in CabinDressing.FOLDED_BERTH's height and
+## depth, flat to its wall.
+func _is_the_folded_berth_made_for(box: AABB, length: float, model: String) -> void:
+	assert_eq(CabinDressing.FOLDED_BERTHS.get(length), model, "FOLDED_BERTHS names it")
+	assert_almost_eq(box.size.x, length, PART, "%s: its length" % model)
+	assert_almost_eq(box.get_center().x, 0.0, PART, "%s: square across its middle" % model)
+	var wanted := CabinDressing.FOLDED_BERTH
+	wanted.position.x = box.position.x
+	wanted.size.x = box.size.x
+	_fills_a_cabin_fitting_s_box(box, wanted, model)
 
 
 func _fills_the_wheel_stand_s_box_off_its_wall(box: AABB) -> void:

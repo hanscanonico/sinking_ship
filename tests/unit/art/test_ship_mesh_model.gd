@@ -78,16 +78,28 @@ func test_each_surface_is_drawn_in_the_paint_its_material_names() -> void:
 		assert_eq(colour, ArtPalette.DECK)
 
 
-func test_a_repainted_surface_is_drawn_in_its_new_paint_and_the_rest_in_their_own() -> void:
-	var mesh := _ship_mesh()
-	var red := ShipMesh.Paint.new(ShipMesh.Finish.PLAIN, ArtPalette.CABIN_BLANKETS[1])
-	var model := _model(["blanket", "deck"])
-	mesh.model(model, Transform3D.IDENTITY, {ShipPaints.blanket: red})
-	var drawn := _drawn(mesh)
-	for colour: Color in _arrays(drawn["%d_out" % ShipMesh.Finish.PLAIN])[Mesh.ARRAY_COLOR]:
-		assert_eq(colour, ArtPalette.CABIN_BLANKETS[1])
-	for colour: Color in _arrays(drawn["%d_out" % ShipMesh.Finish.DECK])[Mesh.ARRAY_COLOR]:
-		assert_eq(colour, ArtPalette.DECK)
+## The colours [param instance] is drawn in, each once, in the order first met.
+func _colours(instance: MeshInstance3D) -> Array:
+	var colours := {}
+	for colour: Color in _arrays(instance)[Mesh.ARRAY_COLOR]:
+		colours[colour] = true
+	return colours.keys()
+
+
+func test_a_surface_s_paint_may_be_swapped_for_another_in_that_placement_alone() -> void:
+	var prop := _model(["white", "blanket"])
+	var plain := "%d_out" % ShipMesh.Finish.PLAIN
+	var swapped := _ship_mesh()
+	# A finish of its own too, so the swapped surface's batch is the swap's.
+	var cabin := ShipMesh.Paint.new(ShipMesh.Finish.DECK, Color.RED)
+	swapped.model(prop, Transform3D.IDENTITY, {ShipPaints.blanket: cabin})
+	var drawn := _drawn(swapped)
+	assert_eq_deep(_colours(drawn[plain]), [ArtPalette.HOUSE])
+	assert_eq_deep(_colours(drawn["%d_out" % ShipMesh.Finish.DECK]), [Color.RED])
+	# The model itself keeps its own paints for the next placement.
+	var unswapped := _ship_mesh()
+	unswapped.model(prop, Transform3D.IDENTITY)
+	assert_eq_deep(_colours(_drawn(unswapped)[plain]), [ArtPalette.HOUSE, ArtPalette.BLANKET])
 
 
 func test_an_outdoor_model_is_drawn_on_the_outdoor_layer_inked_where_its_ink_says() -> void:
