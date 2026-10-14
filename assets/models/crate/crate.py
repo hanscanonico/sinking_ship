@@ -19,8 +19,16 @@ import sys
 # The shared kit, tools/model_kit.py, from the repo root three folders up.
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, "..", "..", "..", "tools"))
-from model_kit import Part, fresh_scene, save, triangles  # noqa: E402
-from model_shapes import block, lathe, sweep  # noqa: E402
+from model_kit import (  # noqa: E402
+    Part,
+    axes_along,
+    fresh_scene,
+    lathe,
+    save,
+    sweep,
+    triangles,
+    turned_box,
+)
 
 HALF = 0.45 * 0.85
 HEIGHT = 0.8
@@ -88,7 +96,7 @@ def battens(collection):
     lathe(
         part,
         (0.0, 0.0, 0.0),
-        UP,
+        axes_along(UP),
         [
             (out, 0.0, 1.0),
             (out, SEAM, 0.0),
@@ -97,12 +105,13 @@ def battens(collection):
             (inside, BATTEN, 1.0),
         ],
         4,
-        math.pi / 4,
+        phase=math.pi / 4,
+        wound=True,
     )
     lathe(
         part,
         (0.0, 0.0, 0.0),
-        UP,
+        axes_along(UP),
         [
             (inside, HEIGHT - BATTEN, 1.0),
             (out, HEIGHT - BATTEN, 1.0),
@@ -112,7 +121,8 @@ def battens(collection):
             (inside, HEIGHT, 0.0),
         ],
         4,
-        math.pi / 4,
+        phase=math.pi / 4,
+        wound=True,
     )
     low = BATTEN
     high = HEIGHT - BATTEN
@@ -120,7 +130,7 @@ def battens(collection):
         for cz in (-1.0, 1.0):
             corner = HALF + PROUD - POST * 0.5
             middle = [cx * corner, (low + high) * 0.5, cz * corner]
-            block(
+            turned_box(
                 part,
                 middle,
                 ((1.0, 0.0, 0.0), UP, (0.0, 0.0, 1.0)),
@@ -144,7 +154,7 @@ def battens(collection):
             normal[2] * along[0] - normal[0] * along[2],
             normal[0] * along[1] - normal[1] * along[0],
         ]
-        block(
+        turned_box(
             part,
             middle,
             (along, across, normal),

@@ -13,8 +13,7 @@ face (art-lint); a front tall enough to stand its stop valve over head height
 
 import math
 
-from model_kit import Part, fresh_scene, save, triangles
-from model_shapes import block, lathe, stud, sweep
+from model_kit import Part, axes_along, fresh_scene, lathe, save, stud, sweep, triangles, turned_box
 
 FOOT = 0.2
 FURNACE = 0.62
@@ -36,7 +35,7 @@ SURROUND = 0.04
 def proud(part, centre, half, rim=None, skip=((2, -1.0),)):
     """A box square to the face round [centre] by [half] each way, its back left off
     (it stands on the face or in front of it)."""
-    block(part, centre, (X, Y, Z), half, rim, skip=skip)
+    turned_box(part, centre, (X, Y, Z), half, rim, skip=skip)
 
 
 def rect_frame(part, centre, outer, inner, low, high, rim):
@@ -82,13 +81,14 @@ def shell(collection, radius, sides):
     """The front plate and the steel ring of the shell round it, riveted."""
     centre = (0.0, FOOT + radius, 0.0)
     plate = Part("plate", "boiler")
-    lathe(plate, centre, OUT, [(radius - 0.03, PLATE, 0.0), (0.0, PLATE, 0.0)], sides)
+    disc = [(radius - 0.03, PLATE, 0.0), (0.0, PLATE, 0.0)]
+    lathe(plate, centre, axes_along(OUT), disc, sides, wound=True)
     plate.build(collection, sharp_angle=60.0)
     ring = Part("ring", "steel")
     lathe(
         ring,
         centre,
-        OUT,
+        axes_along(OUT),
         [
             (radius + 0.015, RING, 1.0),
             (radius - 0.0175, RING, 0.0),
@@ -96,6 +96,7 @@ def shell(collection, radius, sides):
             (radius - 0.05, PLATE, 1.0),
         ],
         sides,
+        wound=True,
     )
     for k in range(sides):
         turn = 2.0 * math.pi * (k + 0.5) / sides
@@ -128,9 +129,10 @@ def furnace(steel, dark, x, y, open_mouth):
         lathe(
             steel,
             (x, y, 0.0),
-            OUT,
+            axes_along(OUT),
             [(door, SURROUND, 0.0), (door, 0.062, 1.0), (0.0, 0.068, 0.0)],
             10,
+            wound=True,
         )
         # Its latch bar across, and its hinges on the left.
         proud(steel, (x + 0.02, y, 0.074), (0.11, 0.014, 0.006))
@@ -156,10 +158,11 @@ def stays(part, radius, clear):
         lathe(
             part,
             (x, y, 0.0),
-            OUT,
+            axes_along(OUT),
             [(0.03, PLATE, 0.0), (0.03, 0.052, 1.0), (0.0, 0.052, 0.0)],
             4,
-            math.pi / 4,
+            phase=math.pi / 4,
+            wound=True,
         )
 
 
@@ -171,14 +174,15 @@ def gauge_glass(brass, glass, x, low):
         lathe(
             brass,
             (x, y, z),
-            UP,
+            axes_along(UP),
             [(0.0, 0.0, 0.0), (0.026, 0.0, 1.0), (0.026, 0.035, 1.0), (0.0, 0.035, 0.0)],
             6,
-            math.pi / 6,
+            phase=math.pi / 6,
+            wound=True,
         )
         proud(brass, (x, y + 0.0175, (PLATE + z) * 0.5), (0.012, 0.012, (z - PLATE) * 0.5))
     tube = [(0.0, 0.0, 0.0), (0.012, 0.0, 0.0), (0.012, 0.4, 0.0), (0.0, 0.4, 0.0)]
-    lathe(glass, (x, low, z), UP, tube, 6)
+    lathe(glass, (x, low, z), axes_along(UP), tube, 6, wound=True)
     # The drain cock's handle under it.
     proud(brass, (x + 0.03, low - 0.05, z), (0.03, 0.006, 0.006), skip=())
 
@@ -189,11 +193,12 @@ def pressure_gauge(brass, face, dark, top):
     lathe(
         brass,
         centre,
-        OUT,
+        axes_along(OUT),
         [(0.11, PLATE, 0.0), (0.11, 0.062, 1.0), (0.088, 0.062, 1.0)],
         12,
+        wound=True,
     )
-    lathe(face, centre, OUT, [(0.088, 0.058, 0.0), (0.0, 0.058, 0.0)], 12)
+    lathe(face, centre, axes_along(OUT), [(0.088, 0.058, 0.0), (0.0, 0.058, 0.0)], 12, wound=True)
     turn = math.radians(40.0)
     tip = (math.cos(turn) * 0.065, top - 0.28 + math.sin(turn) * 0.065, 0.062)
     sweep(dark, [(0.0, top - 0.28, 0.062), tip], 0.004, 3)
@@ -208,7 +213,7 @@ def stop_valve(brass, bright, top):
     lathe(
         brass,
         (0.0, y, z),
-        UP,
+        axes_along(UP),
         [
             (0.0, -0.07, 0.0),
             (0.065, -0.07, 1.0),
@@ -218,7 +223,8 @@ def stop_valve(brass, bright, top):
             (0.0, 0.08, 0.0),
         ],
         8,
-        math.pi / 8,
+        phase=math.pi / 8,
+        wound=True,
     )
     sweep(bright, [(0.0, y + 0.08, z), (0.0, y + 0.11, z)], 0.008, 4, caps=True)
     hub = (0.0, y + 0.1, z)

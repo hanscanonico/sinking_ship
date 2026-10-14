@@ -211,7 +211,7 @@ func _controls(mesh: ShipMesh, area: Rect2, along_x: bool, low: float, top: floa
 		var gauge := board + right * (index - 1) * half.x * 0.62 + normal * 0.02
 		RoomDressing.gauge(mesh, gauge, normal, minf(0.085, half.y * 0.8))
 	var wheel := face + Vector3.UP * (low - 0.05) - right * half.x * 0.5 + normal * 0.05
-	RoomDressing.wheel(mesh, wheel, normal, 0.15, 0.015, 5, ShipPaints.bright_steel)
+	RoomDressing.wheel(mesh, wheel, normal, 0.15)
 	var lever := face + right * half.x * 0.6 + normal * 0.025
 	var grip := lever + Vector3.UP * (low - 0.1)
 	var foot := Vector3(lever.x, grip.y - 0.7, lever.z)

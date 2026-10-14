@@ -19,8 +19,7 @@ import sys
 # The shared kit, tools/model_kit.py, from the repo root three folders up.
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, "..", "..", "..", "tools"))
-from model_kit import Part, fresh_scene, save, triangles  # noqa: E402
-from model_shapes import lathe, sweep  # noqa: E402
+from model_kit import Part, axes_along, fresh_scene, lathe, save, sweep, triangles  # noqa: E402
 
 # LinerPublic.CHANDELIER: the corona's outer radius.
 RADIUS = 0.4
@@ -48,7 +47,7 @@ def gilt(collection):
     lathe(
         part,
         (0.0, 0.0, 0.0),
-        UP,
+        axes_along(UP),
         [
             (0.0, 0.078, 0.0),
             (0.036, 0.078, 1.0),
@@ -58,13 +57,14 @@ def gilt(collection):
             (0.0, 0.114, 0.0),
         ],
         8,
-        math.pi / 8,
+        phase=math.pi / 8,
+        wound=True,
     )
     # The corona, inked round its outer edges.
     lathe(
         part,
         (0.0, 0.0, 0.0),
-        UP,
+        axes_along(UP),
         [
             (CORONA_IN, CORONA_LOW, 1.0),
             (0.3775, CORONA_LOW, 0.0),
@@ -75,15 +75,17 @@ def gilt(collection):
             (CORONA_IN, CORONA_LOW, 1.0),
         ],
         12,
+        wound=True,
     )
     # The bowl under the globe, its finial the lowest point of the chandelier.
     lathe(
         part,
         (0.0, 0.0, 0.0),
-        UP,
+        axes_along(UP),
         [(0.0, -0.146, 0.0), (0.03, -0.125, 0.0), (0.085, -0.1, 1.0), (0.0, -0.094, 0.0)],
         8,
-        math.pi / 8,
+        phase=math.pi / 8,
+        wound=True,
     )
     for arm in range(ARMS):
         turn = 2.0 * math.pi * (arm + 0.5) / ARMS
@@ -105,9 +107,10 @@ def gilt(collection):
         lathe(
             part,
             at(REACH, CORONA_TOP),
-            UP,
+            axes_along(UP),
             [(0.0, -0.004, 0.0), (0.032, 0.012, 1.0), (0.0, 0.012, 0.0)],
             5,
+            wound=True,
         )
     return part.build(collection, sharp_angle=70.0)
 
@@ -120,9 +123,10 @@ def shades(collection):
         lathe(
             part,
             centre,
-            UP,
+            axes_along(UP),
             [(0.0, 0.012, 0.0), (0.03, 0.045, 0.0), (0.034, 0.088, 1.0), (0.0, 0.082, 0.0)],
             5,
+            wound=True,
         )
     return part.build(collection, sharp_angle=70.0)
 
@@ -137,10 +141,11 @@ def drops(collection):
         lathe(
             part,
             centre,
-            UP,
+            axes_along(UP),
             [(0.0, -long, 0.0), (0.014, -long * 0.42, 0.0), (0.0, 0.0, 0.0)],
             3,
-            turn,
+            phase=turn,
+            wound=True,
         )
     return part.build(collection, sharp_angle=30.0)
 

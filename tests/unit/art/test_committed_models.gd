@@ -30,8 +30,6 @@ func _rows() -> Dictionary:
 		"chart_case": ["hero", _fills_the_chart_case_s_box_off_its_wall],
 		"bell": ["hero", _hangs_the_bell_from_its_bracket_off_the_mast],
 		"gauge_small": ["furniture", _is_the_gauge_made_for.bind(0.085, "gauge_small")],
-		"gauge_large": ["furniture", _is_the_gauge_made_for.bind(0.11, "gauge_large")],
-		"handwheel_small": ["furniture", _is_the_handwheel_made_for.bind(0.11, "handwheel_small")],
 		"handwheel_large": ["furniture", _is_the_handwheel_made_for.bind(0.15, "handwheel_large")],
 		"chandelier": ["hero", _hangs_round_its_hub_within_its_rise_and_depth],
 		"boiler_100": ["hero", _stands_a_boiler_front_in_its_bulkhead.bind("boiler_100")],
@@ -176,6 +174,8 @@ func _is_the_handwheel_made_for(box: AABB, radius: float, model: String) -> void
 	assert_almost_eq(box.size.y * 0.5, radius, PART, "wheel: its radius")
 	assert_almost_eq(box.position.z, -RoomDressing.HANDWHEEL_SPINDLE, PART, "its spindle")
 	assert_almost_eq(box.get_center().x, 0.0, PART, "wheel: round its hub")
+
+
 func _hangs_round_its_hub_within_its_rise_and_depth(box: AABB) -> void:
 	var reach := Vector3(LinerPublic.CHANDELIER, 0.0, LinerPublic.CHANDELIER)
 	assert_almost_eq(box.end * Vector3(1, 0, 1), reach, Vector3.ONE * TOLERANCE, "its ring")

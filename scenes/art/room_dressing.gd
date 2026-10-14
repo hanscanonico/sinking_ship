@@ -120,9 +120,9 @@ const CHART_CASE := AABB(Vector3(-0.5, 0.46, 0.0), Vector3(1.0, 1.29, 0.105))
 ## made for (variant()): a gauge's face's middle at its origin, its case reaching
 ## GAUGE_BACK behind it; a handwheel's hub at its origin, its spindle reaching
 ## HANDWHEEL_SPINDLE back; each facing +z.
-const GAUGES := {0.085: "gauge_small", 0.11: "gauge_large"}
+const GAUGES := {0.085: "gauge_small"}
 const GAUGE_BACK := 0.014
-const HANDWHEELS := {0.11: "handwheel_small", 0.15: "handwheel_large"}
+const HANDWHEELS := {0.15: "handwheel_large"}
 const HANDWHEEL_SPINDLE := 0.05
 ## The longest piece a furnishing's box is drawn in.
 const PIECE := 1.5
@@ -955,15 +955,7 @@ static func gauge(mesh: ShipMesh, centre: Vector3, normal: Vector3, radius: floa
 ## A handwheel of [param radius] round [param hub] facing [param normal], its spindle
 ## reaching HANDWHEEL_SPINDLE back: HANDWHEELS' model made for that radius, whose own
 ## are its thickness, its spokes and its paints.
-static func wheel(
-	mesh: ShipMesh,
-	hub: Vector3,
-	normal: Vector3,
-	radius: float,
-	_thick: float,
-	_spokes: int,
-	_paint: ShipMesh.Paint
-) -> void:
+static func wheel(mesh: ShipMesh, hub: Vector3, normal: Vector3, radius: float) -> void:
 	mesh.model(ShipModel.named(variant(HANDWHEELS, radius)), Transform3D(facing(normal), hub))
 
 

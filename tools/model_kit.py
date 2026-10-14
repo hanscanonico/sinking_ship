@@ -219,10 +219,15 @@ def axes_along(w):
     return u, v, w
 
 
-def lathe(part, centre, axes, profile, sides, half=False):
+def lathe(part, centre, axes, profile, sides, half=False, phase=0.0, wound=False):
     """A surface turned round the axis axes[2] through centre: profile a list of
     (radius, height along the axis, ink). Whole, or half — from axes[0] round through
-    axes[1] to -axes[0] — for a column standing against a wall. Returns its rings."""
+    axes[1] to -axes[0] — for a column standing against a wall; turned phase radians
+    round from axes[0]. Its faces are wound out from the axis, or, when wound, as the
+    profile walks — from the axis at its foot round its outside to the axis at its head
+    (anticlockwise, the radius to the right and the axis up) — so a flat face turned
+    square to the axis is wound right too; a radius of 0 closes it there in a point.
+    Returns its rings."""
     u, v, w = axes
     count = sides + 1 if half else sides
     span = math.pi if half else 2.0 * math.pi
@@ -230,9 +235,12 @@ def lathe(part, centre, axes, profile, sides, half=False):
     for radius, height, _ in profile:
         row = []
         for k in range(count):
-            a = span * k / sides
+            a = span * k / sides + phase
             row.append(_add(centre, _scale(u, radius * math.cos(a)), _scale(v, radius * math.sin(a)), _scale(w, height)))
         rows.append(row)
+    if wound:
+        _wound(part, rows, profile, centre, w, count, closed=not half)
+        return rows
     inks = [[ink] * count for _, _, ink in profile]
 
     def out(middle):
@@ -241,6 +249,35 @@ def lathe(part, centre, axes, profile, sides, half=False):
 
     part.grid(rows, None, out, closed=not half, row_inks=inks)
     return rows
+
+
+def _wound(part, rows, profile, centre, w, count, closed):
+    """lathe()'s faces between its rings, each wound as its profile walks."""
+    for j in range(len(profile) - 1):
+        dr = profile[j + 1][0] - profile[j][0]
+        dh = profile[j + 1][1] - profile[j][1]
+        if abs(dr) < 1e-9 and abs(dh) < 1e-9:
+            continue
+        low = rows[j]
+        high = rows[j + 1]
+        ink_low = profile[j][2]
+        ink_high = profile[j + 1][2]
+        for k in range(count if closed else count - 1):
+            n = (k + 1) % count
+            middle = _scale(_add(low[k], low[n], high[k], high[n]), 0.25)
+            rel = [m - c for m, c in zip(middle, centre)]
+            radial = [r - _dot(rel, w) * a for r, a in zip(rel, w)]
+            outward = _add(_scale(_unit(radial), dh), _scale(w, -dr))
+            if profile[j][0] == 0.0:
+                ids = [part.point(low[0]), part.point(high[k]), part.point(high[n])]
+                inks = [ink_low, ink_high, ink_high]
+            elif profile[j + 1][0] == 0.0:
+                ids = [part.point(low[k]), part.point(low[n]), part.point(high[0])]
+                inks = [ink_low, ink_low, ink_high]
+            else:
+                ids = [part.point(low[k]), part.point(low[n]), part.point(high[n]), part.point(high[k])]
+                inks = [ink_low, ink_low, ink_high, ink_high]
+            part.face(ids, inks, outward)
 
 
 def cap(part, ring, centre, outward, ink=1.0, closed=True):
@@ -350,3 +387,88 @@ def box(part, low, high, inked=True, rim=RIM_LOOP, skip=()):
 def slab(part, corners, normal, ink=0.0):
     """One flat face over corners (a polygon), facing normal."""
     part.face([part.point(c) for c in corners], [ink] * len(corners), normal)
+
+
+def turned_box(part, centre, axes, half, rim=None, skip=()):
+    """A box round centre along the three axes (unit, square to each other) by half
+    each way: with a rim, each face a frame of four trapezoids round its middle, inked
+    at its edges and falling to 0 rim in; without, plain and uninked. skip lists faces
+    left off, as box() has them."""
+    ax = [_scale(_unit(a), h) for a, h in zip(axes, half)]
+    for i in range(3):
+        for sign in (-1, 1):
+            if (i, sign) in skip:
+                continue
+            j, k = (i + 1) % 3, (i + 2) % 3
+            middle = _add(centre, _scale(ax[i], sign))
+
+            def corner(sj, sk, middle=middle, j=j, k=k):
+                return _add(middle, _scale(ax[j], sj), _scale(ax[k], sk))
+
+            corners = [corner(-1, -1), corner(1, -1), corner(1, 1), corner(-1, 1)]
+            outward = _scale(ax[i], sign)
+            if rim is None:
+                part.face([part.point(p) for p in corners], [0.0] * 4, outward)
+                continue
+            fj = max(0.0, 1.0 - rim / half[j])
+            fk = max(0.0, 1.0 - rim / half[k])
+            inner = [corner(-fj, -fk), corner(fj, -fk), corner(fj, fk), corner(-fj, fk)]
+            outer_ids = [part.point(p) for p in corners]
+            inner_ids = [part.point(p) for p in inner]
+            part.face(inner_ids, [0.0] * 4, outward)
+            for m in range(4):
+                n = (m + 1) % 4
+                part.face(
+                    [outer_ids[m], outer_ids[n], inner_ids[n], inner_ids[m]],
+                    [1.0, 1.0, 0.0, 0.0],
+                    outward,
+                )
+
+
+def sweep(part, path, radius, sides, ink=0.0, caps=True):
+    """A tube of radius along the polyline path, sides round, each ring square to the
+    path there and turned no more than it must from the last; capped at both ends when
+    caps."""
+    points = [list(p) for p in path]
+    rows = []
+    last_u = None
+    for index, p in enumerate(points):
+        ahead = points[min(index + 1, len(points) - 1)]
+        behind = points[max(index - 1, 0)]
+        tangent = _unit([a - b for a, b in zip(ahead, behind)])
+        if last_u is None:
+            u, v, _ = axes_along(tangent)
+        else:
+            u = _unit([a - _dot(last_u, tangent) * t for a, t in zip(last_u, tangent)])
+            v = _cross(tangent, u)
+        last_u = u
+        row = []
+        for k in range(sides):
+            t = 2.0 * math.pi * (k + 0.5) / sides
+            row.append(_add(p, _scale(u, radius * math.cos(t)), _scale(v, radius * math.sin(t))))
+        rows.append(row)
+    for j in range(len(rows) - 1):
+        low = [part.point(p) for p in rows[j]]
+        high = [part.point(p) for p in rows[j + 1]]
+        axis = _scale(_add(points[j], points[j + 1]), 0.5)
+        for k in range(sides):
+            n = (k + 1) % sides
+            middle = _scale(_add(rows[j][k], rows[j][n], rows[j + 1][k], rows[j + 1][n]), 0.25)
+            part.face([low[k], low[n], high[n], high[k]], [ink] * 4, [m - a for m, a in zip(middle, axis)])
+    if caps:
+        ends = ((rows[0], points[0], points[1]), (rows[-1], points[-1], points[-2]))
+        for row, end, inside in ends:
+            part.face([part.point(p) for p in row], [ink] * sides, [e - i for e, i in zip(end, inside)])
+
+
+def stud(part, centre, normal, radius, height, sides=4, phase=0.0):
+    """A rivet head: a low point of sides standing height off centre along normal, its
+    foot radius round; no base, it sits on a face."""
+    u, v, w = axes_along(normal)
+    ring = []
+    for k in range(sides):
+        t = 2.0 * math.pi * k / sides + phase
+        ring.append(part.point(_add(centre, _scale(u, radius * math.cos(t)), _scale(v, radius * math.sin(t)))))
+    apex = part.point(_add(centre, _scale(w, height)))
+    for k in range(sides):
+        part.face([ring[k], ring[(k + 1) % sides], apex], [0.0, 0.0, 0.0], w)
