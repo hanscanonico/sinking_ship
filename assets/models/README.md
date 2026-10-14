@@ -54,6 +54,12 @@ A prop placed a hundred times is parsed once.
 | `break_door` | `ShipFittings._break_door`, in a break's face tall enough for it | furniture | 266 |
 | `deck_pipe_20`, `deck_pipe_13` | `ShipFittings._deck_pipe`, the hawse and spurling pipes' mouths, by radius (`DECK_PIPES`) | furniture | 288, 280 |
 | `stowed_crate_80`, `stowed_crate_70`, `stowed_crate_62` | `CargoHold.crate`, a tween deck's stowed crates, the largest that fits (`STOWED_CRATES`) | furniture | 278 each |
+| `crosstree_15`, `crosstree_20`, `crosstree_60` | `DeckWorks.mast`, near each mast's head, the largest no bigger than the mast (`CROSSTREES`) | hero | 660, 660, 740 |
+| `masthead_light` | `DeckWorks.mast`, the steaming light on each mast's fore side | hero | 890 |
+| `mast_cleat` | `DeckWorks.mast`, either side of each mast over its foot | furniture | 198 |
+| `whistle` | `DeckWorks.funnel`, on each funnel's fore face | hero | 1228 |
+| `waste_pipe_head` | `DeckWorks.funnel`, the waste pipe's head over each funnel's top | furniture | 354 |
+| `pipe_clamp` | `DeckWorks.funnel`, up each funnel's pipes, `CLAMP_SPACING` apart | wall decor | 130 |
 | `iceberg_tabular` | `IcebergPlanner`, one berg a match, drawn by `Iceberg` | world | 764 |
 | `iceberg_drydock` | `IcebergPlanner`, one berg a match, drawn by `Iceberg` | world | 896 |
 | `iceberg_wedge` | `IcebergPlanner`, one berg a match, drawn by `Iceberg` | world | 596 |
@@ -150,6 +156,29 @@ count as many times as it is placed. Each model belongs to a class with a ceilin
     no taller than the crate's spot: a stack's foot is drawn its own size, the crate
     up a stack or on a barrel the largest that fits under it. The three sizes share
     `tools/stowed_crate.py`.
+  - `crosstree_NN`: the mast's axis at the trestle trees' foot, `DeckWorks.CROSSTREE_DOWN`
+    of the mast's height under its top, made for a mast NN hundredths of a metre
+    round, one of `DeckWorks.CROSSTREES`; its arms reach `CROSSTREE_REACH` past the
+    mast's side, nothing of it over `CROSSTREE_RISE` or under `CROSSTREE_DROP`, where
+    its braces meet the mast. `RoomDressing.variant()` picks the largest no bigger
+    than the mast. The three sizes share `tools/crosstree.py`.
+  - `masthead_light`: on the mast's fore face at its shelf's top, the lantern
+    forward (+x); its lens's middle `DeckWorks.MASTHEAD_LENS` from the origin,
+    `MASTHEAD_UNDER` under the crosstree, where the code hangs the light's glow, a
+    cylinder just round the lens (`MASTHEAD_LENS_SIZE`). Its box is
+    `MASTHEAD_LIGHT_BOX`.
+  - `mast_cleat`: on the mast's face at the cleat's middle, `DeckWorks.CLEAT` over
+    the mast's foot, z out of the face; one each side. Its box is `CLEAT_BOX`.
+  - `whistle`, `waste_pipe_head`, `pipe_clamp`: drawn into the funnel's own piece, so
+    a funnel that falls (`FunnelArt`) carries them. The pipes between are the code's,
+    `DeckWorks.FUNNEL_PIPE` round, their axes `FUNNEL_PIPE_OUT` out from the funnel's
+    side, running from its foot. The whistle's origin is on the funnel's fore face
+    where its steam pipe ends, `WHISTLE_AT` of the funnel's height up it; the waste
+    pipe head's on the pipe's axis at the funnel's top, the funnel toward +x, its
+    mouth `WASTE_PIPE_RISE` over the top and its stay meeting the rim
+    (`FUNNEL_RIM`); a clamp's on the funnel's face, the pipe along +x, turned half
+    round for the after face. Their boxes are `WHISTLE_BOX`, `WASTE_PIPE_HEAD_BOX`
+    and `PIPE_CLAMP_BOX`.
 - **Paints.** One material per paint, named exactly after a `ShipPaints` entry
   (`white`, `teak`, `canvas`, `rope`, `dark`, `steel`, `brass`…). The material's
   name is all the game reads: the colour comes from the paint and the ship shader's
