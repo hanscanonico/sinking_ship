@@ -595,11 +595,11 @@ static func _body(source: ArrayMesh, skin: Skin, coat: Coat) -> ArrayMesh:
 	return mesh
 
 
-## The surface of [param source], the sailor — one closed skin — hung for clothes,
-## with where each point sits at rest written into its UVs for the clothes shader
-## and its painted front steadied on the spine; [param skin] names its bones. Every
-## point is inked in full (COLOR's alpha, as outline.gdshader reads it): the skin
-## has no rim to hide.
+## The surface of [param source], the sailor — a closed skin, its fingers and thumbs
+## closed shells apart — hung for clothes, with where each point sits at rest
+## written into its UVs for the clothes shader and its painted front steadied on the
+## spine; [param skin] names its bones. Every point is inked in full (COLOR's alpha,
+## as outline.gdshader reads it): no shell has a rim to hide.
 static func _dress_body(source: ArrayMesh, skin: Skin) -> Array:
 	var arrays := source.surface_get_arrays(0)
 	_steady_front(arrays, skin)

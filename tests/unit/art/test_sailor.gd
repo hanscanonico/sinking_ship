@@ -5,8 +5,8 @@ extends GutTest
 
 ## Skinned triangles: the body as modelled, one seat as drawn with the longest
 ## skirt, and a full match's eight seats drawn at once.
-const BODY_TRIANGLES := 1800
-const SEAT_TRIANGLES := 2000
+const BODY_TRIANGLES := 2400
+const SEAT_TRIANGLES := 2550
 const SEATS := 8
 const MATCH_TRIANGLES := SEAT_TRIANGLES * SEATS
 ## The crown the clothes shader paints the face under, in model units.
@@ -23,7 +23,7 @@ func _model() -> Node3D:
 func test_the_body_keeps_to_its_triangle_budget() -> void:
 	var skeleton: Skeleton3D = _model().get_node("Rig/Skeleton3D")
 	var body: MeshInstance3D = skeleton.get_node(Brawler.BODY)
-	assert_eq(body.mesh.get_surface_count(), 1, "one closed skin")
+	assert_eq(body.mesh.get_surface_count(), 1, "one surface")
 	assert_lte(_triangles(body.mesh), BODY_TRIANGLES)
 
 

@@ -27,10 +27,17 @@ script and commit the .blend and the .glb.
   `fingertips`, `thumb`, `thumbtip`, `thigh`, `calf`, `foot`, `toe`. The poses laid
   over the clips (`BrawlerPose`, `BrawlerAnimation.POSES`, `FirstPersonArms.POSES`)
   name them.
-- **Body.** One closed surface, one material, at most four bones a point, grown over
-  a stick figure by the skin modifier and one round of subdivision, then skinned by
-  Blender's automatic weights. `Brawler` dresses it in code: the coats' skirts, the
-  painted front steadied on the spine, the outline. Its triangle budget is pinned in
+- **Body.** One mesh, one material, at most four bones a point. The body is one
+  closed surface grown over a stick figure by the skin modifier and one round of
+  subdivision, pressed into a brawler's build (`BULGES`: chest, shoulders, arms,
+  jaw, ears) and skinned by Blender's automatic weights, smoothed across the wrists.
+  Its proportions are the hats' and the clothes shader's: a head about 0.18 wide and
+  0.23 deep, which every `BrawlerHat` fits, on a neck about 0.13 wide; shoulders out
+  past the arm band at 0.22. Each hand's four fingers and thumb are closed shells of
+  their own set into the palm, weighted by hand to `fingers`/`fingertips` and
+  `thumb`/`thumbtip`, so a fist shows its knuckles and an open hand its fingers.
+  `Brawler` dresses it in code: the coats' skirts, the painted front steadied on the
+  spine, the outline. Its triangle budget is pinned in
   `tests/unit/art/test_sailor.gd`.
 - **Clips.** `idle`, `walk`, `run`, `windup`, `shove`, `stagger`, `fall`, `jump`,
   `brace`, `climb`, `swim` (`BrawlerAnimation.CLIPS`), keyed every frame at 30 fps
