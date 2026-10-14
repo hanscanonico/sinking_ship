@@ -23,7 +23,10 @@ unless each one is `data/ships/NAME.tres` field for field. So after editing a `.
 
 The steamer, the trawler and the Titanic are generated (`tools/gen_NAME.py`, held to their
 `.tres` by `make ship-check`); their `.tscn` and `.blend` are drawn from that data and held
-to it. `make bake-blend` will not overwrite a generated ship's `.tres`: pass `OUT=` to bake
+to it. Only the steamer's `.blend` is committed, so the round trip stays proven in CI while
+a change to the trawler's or the Titanic's generator never needs Blender to go green. Draw
+theirs when you want to edit them (`make ship-blend SHIP=titanic`), and commit one only for
+a ship whose layout is authored in Blender from then on. `make bake-blend` will not overwrite a generated ship's `.tres`: pass `OUT=` to bake
 an edit elsewhere and compare, then carry the change into her generator.
 
 `make ship-blend`, `make bake-blend` and the Blender half of `make bake-check` run Blender
