@@ -93,8 +93,7 @@ def globe(collection):
             (0.066, -CORD + 0.06, 0.0),
             (0.022, NECK, 0.0),
         ],
-        8,
-        phase=math.pi / 8,
+        10,
         wound=True,
     )
     return part.build(collection, sharp_angle=70.0)

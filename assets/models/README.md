@@ -49,7 +49,7 @@ A prop placed a hundred times is parsed once.
 | `lifebelt` | `RoomDressing.lifebelt`, in passages and holds and on deckhouses (`ShipFittings`) | furniture | 192 |
 | `fire_buckets` | `RoomDressing.fire_buckets`, a rack over head height | furniture | 344 |
 | `pendant_lamp` | `ShipLamp`, a room's pendant, under its own lamp node | wall decor | 130 |
-| `cargo_lamp` | `ShipLamp`, a hold's cargo lamp, under its own lamp node | furniture | 278 |
+| `cargo_lamp` | `ShipLamp`, a hold's cargo lamp, under its own lamp node | furniture | 292 |
 | `furnace_fire` | `ShipLamp`, a furnace's fire, under its own lamp node | furniture | 32 |
 | `iceberg_tabular` | `IcebergPlanner`, one berg a match, drawn by `Iceberg` | world | 764 |
 | `iceberg_drydock` | `IcebergPlanner`, one berg a match, drawn by `Iceberg` | world | 896 |
