@@ -33,6 +33,9 @@ A prop placed a hundred times is parsed once.
 | `chandelier` | `LinerPublic._chandelier`, one per pendant of a landing and the lounge | hero | 792 |
 | `boiler_100`, `boiler_85`, `boiler_65`, `boiler_50` | `EngineRoom._boiler`, the largest front its bulkhead has room for | hero | 1090, 1066, 640, 592 |
 | `crate` | `ShipArt._crate`, each under its own node | furniture | 334 |
+| `iceberg_tabular` | `IcebergPlanner`, one berg a match, drawn by `Iceberg` | world | 764 |
+| `iceberg_drydock` | `IcebergPlanner`, one berg a match, drawn by `Iceberg` | world | 896 |
+| `iceberg_wedge` | `IcebergPlanner`, one berg a match, drawn by `Iceberg` | world | 596 |
 
 ## Triangle budgets
 
@@ -45,6 +48,7 @@ count as many times as it is placed. Each model belongs to a class with a ceilin
 | Furniture | ≤400 | 10–100 | berth, washstand, locker, crate |
 | Hero | ≤1500 | 1–20 | wheel stand, chandelier, boiler face, bell, davit |
 | Lifeboat | 2928 | the pilot's, grandfathered | lifeboat |
+| World | ≤3000 | 1, far off | the iceberg |
 
 ## Authoring
 
@@ -104,6 +108,28 @@ count as many times as it is placed. Each model belongs to a class with a ceilin
   between a step down and a jump up from that deck, or it reads as floor
   (`make art-lint`). The lifeboat is a closed hull under its cover, with no thwarts.
 
+## World models
+
+A world model is no ship's prop: it is not drawn through `ShipMesh.model()`, carries
+no paints and no ink, and stands outside the ship's batches as a mesh of its own. The
+iceberg is one: `IcebergPlanner` picks one of `BERGS` by the match's seed, reads its
+faces and their colours, scales it uniformly to the height it gives the match's berg
+and draws its spur's blade out to the gash; `Iceberg` draws it with
+`iceberg.gdshader`. Each berg is built by `tools/berg_kit.py` to the planner's
+measure:
+
+- the sea at y = 0, every face wholly over or under it; its top at
+  `IcebergPlanner.BERG_HEIGHT` (10 m) and its foot `DRAUGHT × FOOT` of that under;
+  square across x = 0 and, each side, as wide as `SPREAD` allows of its height. The
+  bergs differ in proportion as discrete models, never by a squash at run time;
+- its side toward her along +z: nothing under the sea stands nearer her than the
+  furthest it reaches over the sea, but its spur, a ram whose blade is the two
+  points furthest along +z, both at x = 0 and under the sea;
+- one material, `ice`, and its colour on each face as the colour attribute `ice`
+  (linear: ice facing up, shade on the steep faces, under-ice under the sea). The
+  scene's `colour_layer` names it, so `tools/export_model.py` exports it as the
+  vertex colour the shader reads, in place of `ink`.
+
 ## Building by script
 
 A model may be built by a script instead of by hand: `assets/models/NAME/NAME.py`,
@@ -137,9 +163,11 @@ commit them all.
 `tests/unit/art/test_committed_models.gd` keeps a table with one row per model: its
 budget class and a check of its box or anchor against the placing code's constants
 (the lifeboat's box is `ShipFittings`' `LIFEBOAT_*`, the davit's head and foot its
-`DAVIT_*`), within 2 cm. It holds every committed `.glb` to its paints, its ink, its
-row's box and its class's budget. A model folder with no row fails, and so does a row
-with no folder: a new model lands with its row.
+`DAVIT_*`, a berg's top, foot and width `IcebergPlanner`'s), within 2 cm. It holds
+every committed ship's `.glb` to its paints and its ink, every world model to what the
+planner and its shader read (a colour on every face, the waterline, its spur), and
+every model to its row's box and its class's budget. A model folder with no row
+fails, and so does a row with no folder: a new model lands with its row.
 
 ## Licence
 

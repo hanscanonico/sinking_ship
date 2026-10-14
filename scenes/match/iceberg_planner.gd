@@ -1,13 +1,14 @@
 class_name IcebergPlanner
 extends RefCounted
-## The iceberg she strikes, as seen (Iceberg draws it): a seeded, jagged mass of ice
-## sized to her, and where it stands at any tick. From the match's start it looms off
-## the struck side, ahead of her, and closes in; as HOLED strikes, its spur grinds aft
-## along the gash, fore end to aft end, through GashPlanner's GASH_SECONDS — the white
-## water bursting where the ice is; then it falls astern and away from her, and stays
-## in sight. Every pose is a pure function of (hit, ship, seed, tick), never of frame
-## time, so a scrubbed or restored match shows it where it was (D5). Presentation
-## only: it has no collision and nothing it does reaches the sim (D12).
+## The iceberg she strikes, as seen (Iceberg draws it): one of the bergs modelled in
+## Blender (BERGS), picked by the seed and scaled to her, and where it stands at any
+## tick. From the match's start it looms off the struck side, ahead of her, and closes
+## in; as HOLED strikes, its spur grinds aft along the gash, fore end to aft end,
+## through GashPlanner's GASH_SECONDS — the white water bursting where the ice is;
+## then it falls astern and away from her, and stays in sight. Every pose is a pure
+## function of (hit, ship, seed, tick), never of frame time, so a scrubbed or restored
+## match shows it where it was (D5). Presentation only: it has no collision and
+## nothing it does reaches the sim (D12).
 ##
 ## Poses are in the sea's frame: her ship-local x and z as she lies before the hit,
 ## level, and y over the sea. The berg's own frame has the sea at y = 0 and its spur
@@ -28,31 +29,24 @@ const DRIFT_BEARING_DEG := 18.0
 const DRIFT_SPEED := 2.5
 const DRIFT_TURN_DEG := 35.0
 ## How high it towers over the sea, as a share of her top deck's height over it, at
-## least and at most; how wide it is at the sea, as a share of its height; how deep
-## it goes under, as a share of its height, and never deeper than this share of the
-## sea there.
+## least and at most; how wide it is over all, each side of its middle, as a share of
+## its height, at least and at most; how deep it goes under, as a share of its
+## height, and never deeper than this share of the sea there; and how far its foot
+## stands under that depth, as a share of it.
 const TOWERS := Vector2(1.4, 1.8)
 const SPREAD := Vector2(0.6, 0.85)
 const DRAUGHT := 2.0
 const SEA_SHARE := 0.9
+const FOOT := 1.05
 ## The least height of her top deck over the sea it is measured against, in metres.
 const DECK_LEAST := 3.0
-## How many sides each ring of it has, and the rings', from its foot to under its peak:
-## height as a share of its depth under the sea (below 0) or its height over it, and
-## width as a share of its width at the sea.
-const SIDES := 9
-const UNDER_RINGS: Array[Vector2] = [
-	Vector2(-1.0, 0.35), Vector2(-0.7, 0.85), Vector2(-0.4, 1.0), Vector2(-0.15, 0.97)
-]
-const OVER_RINGS: Array[Vector2] = [
-	Vector2(0.0, 0.92), Vector2(0.22, 0.78), Vector2(0.5, 0.55), Vector2(0.78, 0.32)
-]
-## How unevenly each corner of a ring stands out, at least and at most, and how far
-## round from its even place it may stand, as a share of a side.
-const JAGGED := Vector2(0.78, 1.15)
-const SKEW := 0.3
-## How far its peak leans off its middle, outboard, as a share of its width.
-const LEAN := 0.4
+## The bergs, modelled in Blender (assets/models/NAME, tools/berg_kit.py), one picked
+## a match: each modelled BERG_HEIGHT metres over the sea, its foot DRAUGHT × FOOT of
+## that under it, as wide as SPREAD allows, its spur toward her along +z.
+const BERGS: Array[String] = ["iceberg_tabular", "iceberg_drydock", "iceberg_wedge"]
+const BERG_HEIGHT := 10.0
+## How near two of a model's points along +z stand to be its spur's blade, in metres.
+const BLADE_NEAR := 0.01
 ## The spur: how far over the gash's shallowest point and under its deepest its blade
 ## runs, in metres, and how close it lies to the sea at most; and how far its body
 ## stands off her shell over the sea as the spur runs along the gash.
@@ -60,16 +54,14 @@ const BLADE_OVER := 0.4
 const BLADE_UNDER := 1.0
 const BLADE_TOP := -0.3
 const CLEAR := 0.4
-## Its ice: facing up, on its steep faces, and under the sea.
-const ICE := Color("dfe8ee")
-const ICE_SHADE := Color("a9c3d3")
-const ICE_UNDER := Color("4f8f9e")
 
 ## Ticks: the strike, as HOLED tells it, and the end of the scrape.
 var hit_tick := 0
 var scrape_end := 0
-## Metres: how high it towers over the sea, how wide its waterline ring is round its
-## middle, and how deep it goes.
+## The model it is drawn from, of BERGS.
+var berg := ""
+## Metres: how high it towers over the sea, how wide it stands out from its middle at
+## most, and how deep it goes.
 var height := 0.0
 var radius := 0.0
 var depth := 0.0
@@ -88,6 +80,20 @@ var _reach := 0.0
 var _blade := Vector2.ZERO
 var _shape := PackedVector3Array()
 var _shades := PackedColorArray()
+
+## Every model of BERGS read, by name: read once a process.
+static var _models := {}
+
+
+## A berg as modelled: its faces, three corners each, in its own frame at BERG_HEIGHT;
+## each face's colour, linear, as the model carries it; and its spur's blade, the
+## corners furthest along +z, as far out as they stand and halfway up between them.
+class Model:
+	var corners := PackedVector3Array()
+	var shades := PackedColorArray()
+	var bounds := AABB()
+	var blade_z := 0.0
+	var blade_middle := 0.0
 
 
 ## The berg [param hit], struck at [param struck] tick, makes on [param layout] in the
@@ -119,7 +125,9 @@ func _init(
 	var rng := SeedStreams.derive(match_seed, "iceberg")
 	var deck := maxf(_top_deck(layout) - structure.waterline_y, DECK_LEAST)
 	height = deck * rng.randf_range(TOWERS.x, TOWERS.y)
-	radius = height * rng.randf_range(SPREAD.x, SPREAD.y)
+	berg = BERGS[rng.randi_range(0, BERGS.size() - 1)]
+	var model := model_of(berg)
+	radius = model.bounds.size.x * 0.5 * height / BERG_HEIGHT
 	depth = height * DRAUGHT
 	if is_finite(sea_depth) and sea_depth > 0.0:
 		depth = minf(depth, sea_depth * SEA_SHARE)
@@ -133,7 +141,7 @@ func _init(
 	_blade = Vector2(deepest - BLADE_UNDER, minf(shallowest + BLADE_OVER, BLADE_TOP))
 	_blade.x = maxf(_blade.x, -depth * 0.85)
 	_blade.y = maxf(_blade.y, _blade.x + 0.2)
-	_build(rng, standoff + CLEAR)
+	_build(model, standoff + CLEAR)
 
 
 ## The berg of [param schedule]'s hit on [param layout] in the match of
@@ -210,113 +218,54 @@ func _yaw(tick: float) -> float:
 	return yaw
 
 
-## Builds its faces, from [param rng]: rings of uneven corners from its foot to its
-## peak, leaning outboard over the sea, flattened on the side toward her under it, and
-## the spur's blade standing [param standoff] out past the rest toward her.
-func _build(rng: RandomNumberGenerator, standoff: float) -> void:
-	var rings: Array[PackedVector3Array] = []
-	var heights := PackedFloat32Array()
-	for ring in UNDER_RINGS:
-		heights.append(ring.x * depth)
-	for ring in OVER_RINGS:
-		heights.append(ring.x * height)
-	var widths := PackedFloat32Array()
-	for ring in UNDER_RINGS + OVER_RINGS:
-		widths.append(ring.y)
-	var lean := rng.randf_range(PI * 0.6, PI * 1.4)
-	var lean_way := Vector3(sin(lean), 0.0, cos(lean))
-	for index in heights.size():
-		var y := heights[index] * rng.randf_range(0.94, 1.06)
-		var middle := lean_way * radius * LEAN * maxf(y / height, 0.0)
-		var ring := PackedVector3Array()
-		for corner in SIDES:
-			var turn := TAU * corner / SIDES
-			if corner != 0:
-				turn += rng.randf_range(-SKEW, SKEW) * TAU / SIDES
-			var out := widths[index] * radius * rng.randf_range(JAGGED.x, JAGGED.y)
-			ring.append(middle + Vector3(sin(turn) * out, y, cos(turn) * out))
-		rings.append(ring)
-	# Nothing of it over the sea, nor under it, comes nearer her than the spur's root.
-	var inboard := 0.0
-	for ring in rings:
-		for corner in ring:
-			if corner.y >= 0.0:
-				inboard = maxf(inboard, corner.z)
-	for index in rings.size():
-		var ring := rings[index]
-		for corner in ring.size():
-			var point := ring[corner]
-			if point.y < 0.0 and point.z > inboard:
-				ring[corner] = Vector3(point.x, point.y, inboard)
-		rings[index] = ring
+## The model of BERGS named [param name], read from its .glb the first time it is
+## asked for and the same Model every time after.
+static func model_of(name: String) -> Model:
+	if _models.has(name):
+		return _models[name]
+	var path := "res://assets/models".path_join(name).path_join(name + ".glb")
+	var mesh := ShipModel.mesh_of(load(path))
+	var model := Model.new()
+	model.bounds = mesh.get_aabb()
+	for surface in mesh.get_surface_count():
+		var arrays := mesh.surface_get_arrays(surface)
+		var points: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+		var colours: PackedColorArray = arrays[Mesh.ARRAY_COLOR]
+		var order := PackedInt32Array(range(points.size()))
+		if arrays[Mesh.ARRAY_INDEX] != null:
+			order = arrays[Mesh.ARRAY_INDEX]
+		for index in range(0, order.size(), 3):
+			for corner in 3:
+				model.corners.append(points[order[index + corner]])
+			model.shades.append(colours[order[index]])
+	model.blade_z = model.bounds.end.z
+	var blade := Vector2(INF, -INF)
+	for corner in model.corners:
+		if corner.z > model.blade_z - BLADE_NEAR:
+			blade = Vector2(minf(blade.x, corner.y), maxf(blade.y, corner.y))
+	model.blade_middle = (blade.x + blade.y) * 0.5
+	_models[name] = model
+	return model
+
+
+## Builds its faces from [param model]: scaled to its height, nothing under its foot,
+## and the spur's blade standing [param standoff] out past the rest over the sea toward
+## her, as deep as the gash is.
+func _build(model: Model, standoff: float) -> void:
+	var scale := height / BERG_HEIGHT
+	var inboard := -INF
+	for corner in model.corners:
+		if corner.y >= 0.0:
+			inboard = maxf(inboard, corner.z * scale)
 	_reach = inboard + standoff
-	_insert_blade(rings)
-	var peak := lean_way * radius * LEAN + Vector3.UP * height * rng.randf_range(0.95, 1.08)
-	peak += Vector3(rng.randf_range(-0.1, 0.1), 0.0, rng.randf_range(-0.1, 0.1)) * radius
-	var foot := Vector3(0.0, -depth * 1.05, 0.0)
-	var middles := PackedVector3Array()
-	for ring in rings:
-		var sum := Vector3.ZERO
-		for corner in ring:
-			sum += corner
-		middles.append(sum / ring.size())
-	for index in rings.size() - 1:
-		var low := rings[index]
-		var high := rings[index + 1]
-		var inside := (middles[index] + middles[index + 1]) * 0.5
-		for corner in SIDES:
-			var next := (corner + 1) % SIDES
-			if rng.randf() < 0.5:
-				_face(low[corner], low[next], high[next], inside, rng)
-				_face(low[corner], high[next], high[corner], inside, rng)
-			else:
-				_face(low[corner], low[next], high[corner], inside, rng)
-				_face(low[next], high[next], high[corner], inside, rng)
-	var top := rings[rings.size() - 1]
-	for corner in SIDES:
-		var next := (corner + 1) % SIDES
-		_face(top[corner], top[next], peak, middles[rings.size() - 1], rng)
-		_face(rings[0][next], rings[0][corner], foot, middles[0], rng)
-
-
-## Puts the spur's blade in [param rings]: two rings at its top and its foot, each
-## where the rings round it would be there, with its corner toward her drawn out to
-## the blade.
-func _insert_blade(rings: Array[PackedVector3Array]) -> void:
-	for y in PackedFloat32Array([_blade.x, _blade.y]):
-		var above := 0
-		while above < rings.size() and rings[above][0].y <= y:
-			above += 1
-		var low := rings[maxi(above - 1, 0)]
-		var high := rings[mini(above, rings.size() - 1)]
-		var ring := PackedVector3Array()
-		for corner in SIDES:
-			var gap := high[corner].y - low[corner].y
-			var share := clampf((y - low[corner].y) / gap, 0.0, 1.0) if gap > 0.001 else 0.0
-			var point := low[corner].lerp(high[corner], share)
-			ring.append(Vector3(point.x, y, point.z))
-		ring[0] = Vector3(0.0, y, _reach)
-		rings.insert(above, ring)
-
-
-## A face from [param a], [param b] and [param c], turned away from [param inside],
-## with its colour: ice, bluer the steeper and the deeper it lies, no two faces quite
-## alike.
-func _face(a: Vector3, b: Vector3, c: Vector3, inside: Vector3, rng: RandomNumberGenerator) -> void:
-	var normal := (b - a).cross(c - a)
-	var middle := (a + b + c) / 3.0
-	# Godot's faces are wound clockwise seen from outside.
-	if normal.dot(middle - inside) > 0.0:
-		_shape.append_array([a, c, b])
-	else:
-		_shape.append_array([a, b, c])
-	var up := absf(normal.normalized().y) if normal.length() > 0.0 else 0.0
-	var colour := ICE_SHADE.lerp(ICE, up)
-	if middle.y < 0.0:
-		colour = ICE_UNDER
-	colour = colour * rng.randf_range(0.9, 1.04)
-	colour.a = 1.0
-	_shades.append(colour.srgb_to_linear())
+	var foot := -depth * FOOT
+	for corner in model.corners:
+		var point := corner * scale
+		if corner.z > model.blade_z - BLADE_NEAR:
+			point = Vector3(0.0, _blade.y if corner.y > model.blade_middle else _blade.x, _reach)
+		point.y = maxf(point.y, foot)
+		_shape.append(point)
+	_shades = model.shades
 
 
 ## Her shell's line where [param hit] strikes [param structure], aft to fore,
