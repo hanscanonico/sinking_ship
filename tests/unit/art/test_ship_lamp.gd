@@ -103,6 +103,9 @@ func test_each_lamp_draws_its_model_once_in_its_own_glass() -> void:
 		for surface in part.mesh.get_surface_count():
 			var drawn := part.get_active_material(surface)
 			var paint := part.mesh.surface_get_material(surface).resource_name
+			# On the lamp's own instance, never on the shared mesh, or every lamp of its
+			# kind would glow and flicker as one.
+			assert_eq(part.get_surface_override_material(surface), drawn, "%s its own" % paint)
 			assert_eq(drawn == glass, paint == "sconce_glass", "%s in the lamp's glass" % paint)
 			if paint == "brass":
 				assert_eq(drawn, brass, "its brass the lamp's")
