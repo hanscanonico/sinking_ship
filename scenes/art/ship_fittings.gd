@@ -221,7 +221,7 @@ func _fit_break(mesh: ShipMesh, found: Array) -> void:
 ## middle) facing [param normal] (BREAK_DOOR_MODEL): its frame on a raised sill, two
 ## fielded panels and a louvre over them, a brass kick plate, hinges and a lever.
 func _break_door(mesh: ShipMesh, sill: Vector3, normal: Vector3) -> void:
-	var turn := Basis(Vector3.UP.cross(normal), Vector3.UP, normal)
+	var turn := RoomDressing.facing(normal)
 	mesh.model(ShipModel.named(BREAK_DOOR_MODEL), Transform3D(turn, sill))
 
 
