@@ -35,6 +35,10 @@ PAINTS = {
     "boiler": "34383a",
     "crate": "9c7a4c",
     "stencil": "3b2d22",
+    "leather": "4d3424",
+    "linen": "e9e4d6",
+    "mirror": "a7b8bf",
+    "blanket": "41557a",
 }
 
 
@@ -387,6 +391,26 @@ def box(part, low, high, inked=True, rim=RIM_LOOP, skip=()):
 def slab(part, corners, normal, ink=0.0):
     """One flat face over corners (a polygon), facing normal."""
     part.face([part.point(c) for c in corners], [ink] * len(corners), normal)
+
+
+def panel(part, centre, right, up, half, rim=RIM_LOOP):
+    """A flat rectangle round centre, half[0] along right and half[1] along up (unit,
+    square to each other), facing right x up: inked at its edges with a loop rim in,
+    as a box's face is, in ten triangles — a door's or a frame's face proud of a
+    wall."""
+    normal = _cross(right, up)
+
+    def corner(sx, sy, inset=0.0):
+        return _add(centre, _scale(right, sx * (half[0] - inset)), _scale(up, sy * (half[1] - inset)))
+
+    signs = ((-1, -1), (1, -1), (1, 1), (-1, 1))
+    inset = min(rim, half[0] * 0.6, half[1] * 0.6)
+    outer = [part.point(corner(sx, sy)) for sx, sy in signs]
+    inner = [part.point(corner(sx, sy, inset)) for sx, sy in signs]
+    for i in range(4):
+        j = (i + 1) % 4
+        part.face([outer[i], outer[j], inner[j], inner[i]], [1.0, 1.0, 0.0, 0.0], normal)
+    part.face(inner, [0.0] * 4, normal)
 
 
 def turned_box(part, centre, axes, half, rim=None, skip=()):
