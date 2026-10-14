@@ -35,6 +35,13 @@ const HAT_TRIANGLES := {
 	Brawler.Hat.PEAKED: 276,
 }
 const HAT_BUDGET := 300
+## The clothes shader, which colours a piece by its part code, and the script that
+## numbers the parts the outfits and hats are written in.
+const CLOTHES_SHADER := "res://scenes/art/brawler.gdshader"
+const PART_NUMBERS := "res://assets/characters/sailor/gen_sailor.py"
+## How far off a whole number a part code may read: the importer packs UVs into 16
+## bits.
+const PART_SLACK := 0.01
 
 
 func _model() -> Node3D:
@@ -106,6 +113,36 @@ func test_each_seat_wears_its_hat_in_its_clothes() -> void:
 		var hat: MeshInstance3D = brawler.find_child("Hat", true, false)
 		assert_eq(hat.mesh, Brawler.hat_mesh(Brawler.HATS[seat]), "seat %d's hat" % seat)
 		assert_eq(hat.material_override, body.get_surface_override_material(0), "its clothes")
+
+
+func test_the_shader_numbers_the_parts_as_the_generator_does() -> void:
+	var shader := RegEx.create_from_string("const int PART_(\\w+) = (\\d+);")
+	var numbered := {}
+	for found: RegExMatch in shader.search_all(FileAccess.get_file_as_string(CLOTHES_SHADER)):
+		numbered[found.get_string(1)] = found.get_string(2).to_int()
+	var parts := RegEx.create_from_string("(?m)^(BODY(?:, \\w+)*) = range\\(\\d+\\)$")
+	var written := parts.search(FileAccess.get_file_as_string(PART_NUMBERS))
+	assert_not_null(written, "gen_sailor.py numbers its parts")
+	if written == null:
+		return
+	var expected := {}
+	for part: String in written.get_string(1).split(", "):
+		expected[part] = expected.size()
+	assert_eq(numbered, expected, "brawler.gdshader's PART_ as gen_sailor.py numbers them")
+	for hat: Brawler.Hat in Brawler.Hat.values():
+		var unknown := 0
+		var depth: PackedVector2Array = Brawler.hat_mesh(hat).surface_get_arrays(0)[
+			Mesh.ARRAY_TEX_UV2
+		]
+		for point: Vector2 in depth:
+			var part := roundi(point.y)
+			if (
+				absf(point.y - part) > PART_SLACK
+				or part <= numbered["BODY"]
+				or part >= numbered.size()
+			):
+				unknown += 1
+		assert_eq(unknown, 0, "%s: a piece of clothing the shader knows" % Brawler.HAT_MESHES[hat])
 
 
 func test_the_coat_takes_the_seats_colour() -> void:
