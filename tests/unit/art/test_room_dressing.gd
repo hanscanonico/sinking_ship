@@ -446,12 +446,11 @@ func test_a_gauge_or_handwheel_is_the_largest_variant_no_bigger_than_asked() -> 
 	var gauges := RoomDressing.GAUGES
 	assert_eq(RoomDressing.variant(gauges, 0.085), "gauge_small", "the size it is made for")
 	assert_eq(RoomDressing.variant(gauges, 0.09), "gauge_small", "the engine room's board")
-	assert_eq(RoomDressing.variant(gauges, 0.11), "gauge_large", "a boiler's")
-	assert_eq(RoomDressing.variant(gauges, 0.3), "gauge_large", "none bigger: the largest")
+	assert_eq(RoomDressing.variant(gauges, 0.3), "gauge_small", "none bigger: the largest")
 	assert_eq(RoomDressing.variant(gauges, 0.05), "gauge_small", "none so small: the smallest")
 	var wheels := RoomDressing.HANDWHEELS
-	assert_eq(RoomDressing.variant(wheels, 0.11), "handwheel_small", "a valve's")
 	assert_eq(RoomDressing.variant(wheels, 0.15), "handwheel_large", "an engine's")
+	assert_eq(RoomDressing.variant(wheels, 0.11), "handwheel_large", "none so small: the smallest")
 
 
 func test_a_gauge_or_handwheel_faces_out_along_its_normal_upright() -> void:

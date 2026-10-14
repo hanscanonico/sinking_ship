@@ -1,7 +1,6 @@
 """Builds assets/models/gauge_small/gauge_small.blend: a pressure gauge of radius
-0.085 (RoomDressing.GAUGES), and, called by gauge_large.py, its larger variants — a
-brass case and bezel round a white face, its graduations and needle, and the stem
-it is piped by — in Godot's axes, metres, its face's middle at the origin facing +z,
+0.085 (RoomDressing.GAUGES) — a brass case and bezel round a white face, its
+graduations and needle, and the stem it is piped by — in Godot's axes, metres, its face's middle at the origin facing +z,
 the case's back RoomDressing.GAUGE_BACK behind it.
 
     make model-sources MODEL=gauge_small

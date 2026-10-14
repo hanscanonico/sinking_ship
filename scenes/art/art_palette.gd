@@ -117,6 +117,10 @@ const LIFEBELT := Color("cf3b2b")
 const FIRE_BUCKET := Color("b5302a")
 const MIRROR := Color("a7b8bf")
 const CHART := Color("e3d8b8")
+## A saloon's gilding, its chandeliers' crystal drops and their glass shades.
+const GILT := Color("c9a548")
+const CRYSTAL := Color("e8f0f4")
+const SCONCE_GLASS := Color("ffe6b0")
 ## The forecastle's steel deck plating, outboard of its planking.
 const BOW_PLATE := Color("6b4a3d")
 ## The jack flown at the bow and the ensign at the stern.

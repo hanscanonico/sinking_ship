@@ -3,13 +3,13 @@
 importer="scene"
 importer_version=1
 type="PackedScene"
-uid="uid://cqdpdoc2hk2ft"
-path="res://.godot/imported/gauge_large.glb-45074b57cdb42f4553dce90d14e9d9bc.scn"
+uid="uid://dyine3nhsaqk0"
+path="res://.godot/imported/iceberg_tabular.glb-5583410fe08cc4d25e87818f71eb6a4c.scn"
 
 [deps]
 
-source_file="res://assets/models/gauge_large/gauge_large.glb"
-dest_files=["res://.godot/imported/gauge_large.glb-45074b57cdb42f4553dce90d14e9d9bc.scn"]
+source_file="res://assets/models/iceberg_tabular/iceberg_tabular.glb"
+dest_files=["res://.godot/imported/iceberg_tabular.glb-5583410fe08cc4d25e87818f71eb6a4c.scn"]
 
 [params]
 
