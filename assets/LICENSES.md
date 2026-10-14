@@ -34,7 +34,7 @@ retired.
 
 | Files | Source | License |
 |---|---|---|
-| `gen_sailor.py`, and the `sailor.blend` and `sailor.glb` it builds — the brawlers' rig (31 bones of its own), body (1764 triangles) and eleven clips (0.8 MB and 0.4 MB) | Original work, generated for this project (2026-10-14) | The project's own |
+| `gen_sailor.py`, and the `sailor.blend` and `sailor.glb` it builds — the brawlers' rig (31 bones of its own), body (2320 triangles, 800 of them fingers and thumbs) and eleven clips (0.8 MB and 0.4 MB) | Original work, generated for this project (2026-10-14) | The project's own |
 
 ### Audio (`assets/audio/`)
 
