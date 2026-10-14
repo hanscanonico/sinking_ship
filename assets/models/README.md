@@ -33,8 +33,8 @@ A prop placed a hundred times is parsed once.
 | `chandelier` | `LinerPublic._chandelier`, one per pendant of a landing and the lounge | hero | 792 |
 | `boiler_100`, `boiler_85`, `boiler_65`, `boiler_50` | `EngineRoom._boiler`, the largest front its bulkhead has room for | hero | 1090, 1066, 640, 592 |
 | `crate` | `ShipArt._crate`, each under its own node | furniture | 334 |
-| `berth` | `RoomDressing.slung_berth`, every cabin's and block of berths' (`LinerBerths`) | furniture | 176 |
-| `lifebelt` | `RoomDressing.lifebelt`, in passages and holds and on deckhouses (`ShipFittings`) | furniture | 168 |
+| `berth` | `RoomDressing.slung_berth`, every cabin's and block of berths' (`LinerBerths`) | furniture | 234 |
+| `lifebelt` | `RoomDressing.lifebelt`, in passages and holds and on deckhouses (`ShipFittings`) | furniture | 192 |
 | `fire_buckets` | `RoomDressing.fire_buckets`, a rack over head height | furniture | 344 |
 | `iceberg_tabular` | `IcebergPlanner`, one berg a match, drawn by `Iceberg` | world | 764 |
 | `iceberg_drydock` | `IcebergPlanner`, one berg a match, drawn by `Iceberg` | world | 896 |

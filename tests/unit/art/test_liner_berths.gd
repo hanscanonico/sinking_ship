@@ -19,8 +19,8 @@ const BEFORE := {
 const BUDGET := 200
 ## The most faces a block of berths may stand in all, its modelled berths
 ## (RoomDressing.BERTH_MODEL) and their chains too: the third-class berths, the
-## worst, draw 6920.
-const CEILING := 7500
+## worst, draw 7964.
+const CEILING := 8500
 
 var _layout: ShipLayout
 var _rules: BrawlRules

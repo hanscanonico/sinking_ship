@@ -28,8 +28,10 @@ STRIPS = 12
 # hang and how far they sag.
 LINE = 0.008
 SEIZED = (0.328, 0.04)
-BIGHT = 0.04
-SAG = 0.02
+BIGHT = 0.035
+SAG = 0.03
+# The points each bight is swept through, its seizing the first.
+BIGHT_POINTS = 4
 
 
 def ring(red, white):
@@ -54,11 +56,12 @@ def ring(red, white):
 
 
 def grab_line(rope):
-    """The line round it, seized at each white band's middle, in a bight between."""
+    """The line round it, seized at each white band's middle, in a bight between
+    hanging out from it and down."""
     path = []
     for quarter in range(4):
-        for third in range(3):
-            t = third / 3.0
+        for step in range(BIGHT_POINTS):
+            t = step / BIGHT_POINTS
             a = math.pi * (0.25 + 0.5 * quarter + 0.5 * t)
             hang = math.sin(math.pi * t)
             radius = SEIZED[0] + BIGHT * hang

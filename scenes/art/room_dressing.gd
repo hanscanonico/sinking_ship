@@ -109,17 +109,17 @@ const LAMP_SPACING := 12.0
 const BERTH := Vector2(1.9, 0.7)
 ## Its model (assets/models), origin on the wall's face under its middle at HEADROOM,
 ## x along the wall with its head toward -x, z out of it; BERTH_RISE its top over its
-## underside, and the eye on each end's top its chain goes up from, along it from its
+## underside, and the eye on each end's cap its chain goes up from, along it from its
 ## middle, over its underside and out from the wall.
 const BERTH_MODEL := "berth"
-const BERTH_RISE := 0.42
-const BERTH_EYE := Vector3(0.92, 0.42, 0.675)
+const BERTH_RISE := 0.46
+const BERTH_EYE := Vector3(0.915, 0.46, 0.665)
 ## The modelled lifebelt, its middle on the wall's face facing +z: its ring's radius and
 ## how far out it stands; its grab line hangs no more than LIFEBELT_LINE past the ring.
 const LIFEBELT_MODEL := "lifebelt"
 const LIFEBELT_RADIUS := 0.33
 const LIFEBELT_DEPTH := 0.075
-const LIFEBELT_LINE := 0.07
+const LIFEBELT_LINE := 0.08
 ## The modelled fire buckets in their rack, origin on the wall's face under the rack's
 ## middle at HEADROOM, x along the wall, z out of it; their box over all there.
 const FIRE_BUCKETS_MODEL := "fire_buckets"
