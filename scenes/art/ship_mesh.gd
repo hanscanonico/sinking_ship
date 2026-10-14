@@ -451,9 +451,9 @@ func triangle(
 ## its colour layer's red — and its paint's bands measured over the placed prop's own
 ## foot and under its top. A model that cannot be painted so is an error naming it,
 ## and adds nothing. The model's arrays are read once, when it is gathered.
-## [param repaint] paints a surface whose paint is one of its keys in that key's value
-## instead: a berth's blanket in its cabin's own colour.
-func model(prop: ShipModel, place: Transform3D, repaint := {}) -> void:
+## [param paints] swaps a surface's paint for another (its ShipPaints paint to the one
+## drawn): a coat's collar or a berth's bedding in its cabin's colour.
+func model(prop: ShipModel, place: Transform3D, paints := {}) -> void:
 	if prop.unfit != "":
 		push_error("ShipMesh: model %s%s" % [prop.mesh.resource_name, prop.unfit])
 		return
@@ -467,7 +467,7 @@ func model(prop: ShipModel, place: Transform3D, repaint := {}) -> void:
 	var mirrored := place.basis.determinant() < 0.0
 	_open()
 	for surface in prop.surfaces:
-		var paint: Paint = repaint.get(surface.paint, surface.paint)
+		var paint: Paint = paints.get(surface.paint, surface.paint)
 		var points := surface.points
 		var normals := surface.normals
 		var order := surface.order

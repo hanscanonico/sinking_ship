@@ -94,7 +94,7 @@ count as many times as it is placed. Each model belongs to a class with a ceilin
     `BERTH_RISE` tall to the eyes at `BERTH_EYE` its chains go up from. The chains
     are the placing code's, each to its own deckhead. A head toward +x is the same
     model mirrored along the wall. Its blanket is painted `blanket`, which
-    `ShipMesh.model()`'s `repaint` turns into the cabin's own colour.
+    `ShipMesh.model()`'s `paints` turns into the cabin's own colour.
   - `lifebelt`: its middle on the wall's face, facing +z; its ring
     `RoomDressing.LIFEBELT_RADIUS` round and `LIFEBELT_DEPTH` out, its grab line no
     more than `LIFEBELT_LINE` past it.
