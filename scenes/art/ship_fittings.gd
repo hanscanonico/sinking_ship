@@ -63,7 +63,7 @@ const BLOCK := Vector3(0.1, 0.16, 0.08)
 ## A break in the decks: a deck at least BREAK_LEAST over the one at its end, found
 ## BREAK_STEP at a time along its edge, along at least BREAK_SPAN of it; its teak cap
 ## rail, how far proud and how deep, stopping STAIR_GAP short of a stair; a door's
-## size, and its frame's bars; a vent's half size.
+## size; a vent's half size.
 const BREAK_LEAST := 0.3
 const BREAK_STEP := 0.5
 const BREAK_SPAN := 0.6
@@ -71,8 +71,18 @@ const CAP_PROUD := 0.07
 const CAP_DEPTH := 0.12
 const STAIR_GAP := 0.05
 const BREAK_DOOR := Vector2(0.72, 1.5)
-const FRAME_BAR := 0.07
 const VENT := Vector2(0.24, 0.17)
+## The modelled break door (assets/models/break_door): its origin on the face at the
+## foot of its sill's middle, x along the face, z out of it; BREAK_DOOR standing on a
+## sill BREAK_DOOR_SILL tall, in its frame; and its box over all there.
+const BREAK_DOOR_MODEL := "break_door"
+const BREAK_DOOR_SILL := 0.06
+const BREAK_DOOR_BOX := AABB(Vector3(-0.43, 0.0, 0.0), Vector3(0.86, 1.63, 0.09))
+## The modelled mouths of the hawse and spurling pipes (assets/models/deck_pipe_NN), by
+## their flange's radius (RoomDressing.variant()); each stands no higher over its deck
+## than DECK_PIPE_RISE, its axis at its origin.
+const DECK_PIPES := {0.13: "deck_pipe_13", 0.2: "deck_pipe_20"}
+const DECK_PIPE_RISE := 0.07
 ## The bow's chain cable: its links on edge this far apart; and the ship's bell's
 ## bracket over its deck.
 const CHAIN_LINK := 0.25
@@ -207,27 +217,12 @@ func _fit_break(mesh: ShipMesh, found: Array) -> void:
 			_vent(mesh, Vector3(x, foot + 0.6, middle), normal)
 
 
-## A teak door, shut, in a break's face standing on [param sill] (its foot's middle)
-## facing [param normal]: a frame, two sunk panels, a louvre over them and a brass
-## knob.
+## A teak weather door, shut, in a break's face standing on [param sill] (its foot's
+## middle) facing [param normal] (BREAK_DOOR_MODEL): its frame on a raised sill, two
+## fielded panels and a louvre over them, a brass kick plate, hinges and a lever.
 func _break_door(mesh: ShipMesh, sill: Vector3, normal: Vector3) -> void:
-	var right := normal.cross(Vector3.UP).normalized()
-	var half := BREAK_DOOR * 0.5
-	var middle := sill + Vector3.UP * (half.y + 0.06)
-	var frame := half + Vector2.ONE * FRAME_BAR
-	RoomDressing.panel(mesh, middle + normal * 0.02, right, frame, normal, ShipPaints.frame)
-	RoomDressing.panel(mesh, middle + normal * 0.03, right, half, normal, ShipPaints.teak)
-	for row: float in [-0.38, 0.12]:
-		var sunk := middle + normal * 0.034 + Vector3.UP * row * half.y * 2.0
-		var size := Vector2(half.x - 0.08, half.y * 0.38)
-		RoomDressing.panel(mesh, sunk, right, size, normal, ShipPaints.frame, ShipMesh.RIM_ALL)
-	for slat in 4:
-		var louvre := middle + normal * 0.034 + Vector3.UP * (half.y - 0.12 - slat * 0.045)
-		RoomDressing.panel(
-			mesh, louvre, right, Vector2(half.x - 0.1, 0.008), normal, ShipPaints.dark, 0
-		)
-	var knob := middle + normal * 0.05 + right * (half.x - 0.09) - Vector3.UP * 0.08
-	mesh.turned_box(Transform3D(Basis.IDENTITY, knob), Vector3.ONE * 0.04, ShipPaints.brass, 0)
+	var turn := RoomDressing.facing(normal)
+	mesh.model(ShipModel.named(BREAK_DOOR_MODEL), Transform3D(turn, sill))
 
 
 ## The ground tackle on the deck at the bow, all of it lying flat, under a toe rail's
@@ -268,12 +263,12 @@ func _ground_tackle(mesh: ShipMesh) -> void:
 			return
 
 
-## A deck pipe's mouth of [param radius] at [param at] on the deck at [param deck]: a
-## raised iron rim round a dark mouth.
+## A deck pipe's mouth of [param radius] at [param at] on the deck at [param deck]
+## (DECK_PIPES): a cast-iron flange bolted down, its lip round a dark mouth and the
+## eye its cover's chain is shackled to.
 func _deck_pipe(mesh: ShipMesh, at: Vector2, deck: float, radius: float) -> void:
-	mesh.cylinder(at, radius, deck, deck + 0.035, 10, ShipPaints.steel)
-	var mouth := Vector3(at.x, deck + 0.037, at.y)
-	RoomDressing.disc(mesh, mouth, Vector3.UP, radius * 0.7, ShipPaints.dark, 10)
+	var model := ShipModel.named(RoomDressing.variant(DECK_PIPES, radius))
+	mesh.model(model, Transform3D(Basis.IDENTITY, Vector3(at.x, deck, at.y)))
 
 
 ## A chain cable lying on the deck from [param from] to [param to]: its flat links a

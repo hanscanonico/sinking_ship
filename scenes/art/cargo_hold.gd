@@ -23,6 +23,13 @@ const TWEEN_TOP := 0.21
 const RACK := 0.55
 const STOW_BACK := 0.95
 const STOW_DEPTH := 1.2
+## The modelled stowed crates (assets/models/stowed_crate_NN), by their side: each NN
+## hundredths of a metre square, the middle of its underside at its origin, and as
+## tall over all, lashing and all, as STOWED_CRATE_HEIGHTS gives for its side — the
+## stacks' crates' own sizes: a bottom crate of each stack size, and the smallest a
+## crate up a stack or on a barrel fits.
+const STOWED_CRATES := {0.62: "stowed_crate_62", 0.7: "stowed_crate_70", 0.8: "stowed_crate_80"}
+const STOWED_CRATE_HEIGHTS := {0.62: 0.49, 0.7: 0.595, 0.8: 0.68}
 
 var _space: ShipSpace
 var _layout: ShipLayout
@@ -237,19 +244,25 @@ func _stow(mesh: ShipMesh, footprint: Rect2, floor: float, head: float, column: 
 		row += 1
 
 
-## A stowed crate over [param area] from [param bottom] to [param top]: pale pine
-## with a stencilled band, roped down over its lid — smaller and paler than the deck
-## cargo that slides.
+## A stowed crate over [param area] from [param bottom] to [param top]
+## (stowed_crate()): pale pine, battened, stencilled and roped down over its lid —
+## smaller and paler than the deck cargo that slides.
 static func crate(mesh: ShipMesh, area: Rect2, bottom: float, top: float) -> void:
-	RoomDressing.block(mesh, area, bottom, top, ShipPaints.stowed)
-	var band := (bottom + top) * 0.5
-	RoomDressing.block(mesh, area.grow(0.004), band - 0.04, band + 0.04, ShipPaints.stencil)
+	var model := stowed_crate(minf(area.size.x, area.size.y), top - bottom)
 	var middle := area.get_center()
-	for across: bool in [true, false]:
-		var lash := Rect2(middle.x - 0.02, area.position.y, 0.04, area.size.y)
-		if not across:
-			lash = Rect2(area.position.x, middle.y - 0.02, area.size.x, 0.04)
-		RoomDressing.block(mesh, lash.grow(0.012), bottom + 0.02, top + 0.012, ShipPaints.rope)
+	mesh.model(
+		ShipModel.named(model), Transform3D(Basis.IDENTITY, Vector3(middle.x, bottom, middle.y))
+	)
+
+
+## The model of the largest of STOWED_CRATES no wider than [param side] nor taller than
+## [param height] (RoomDressing.variant()), or the smallest when none is.
+static func stowed_crate(side: float, height: float) -> String:
+	var fitting := {}
+	for made: float in STOWED_CRATES:
+		if STOWED_CRATE_HEIGHTS[made] <= height + ShipMesh.SLIVER:
+			fitting[made] = STOWED_CRATES[made]
+	return RoomDressing.variant(STOWED_CRATES if fitting.is_empty() else fitting, side)
 
 
 ## A cargo net hung across x = [param corner].x, from [param corner] along z for
