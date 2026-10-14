@@ -57,6 +57,9 @@ const OUTFITS: Array[NodePath] = [^"Jersey", ^"Jacket", ^"Greatcoat"]
 ## that looks out over them (FirstPersonArms): every body drops them, and a seat's
 ## own arms draw its coat's in place of its body.
 const ARMS: Array[NodePath] = [^"JerseyArms", ^"JacketArms", ^"GreatcoatArms"]
+## Everywhere the arms reach from the shoulders, in model units: modelled out level,
+## their own box at rest would cull them once they drop under the eye.
+const ARMS_REACH := AABB(Vector3(-1.1, 0.45, -1.0), Vector3(2.2, 2.0, 2.0))
 const BODY := &"Sailor"
 const HEAD_BONE := &"head"
 ## The outline's width on a seat's own arms, under the eye, in model units.
@@ -282,6 +285,8 @@ static func own_arms(coat: Coat) -> MeshInstance3D:
 	var arms := MeshInstance3D.new()
 	arms.mesh = _arm_meshes[coat]
 	arms.skin = _arm_skins[coat]
+	arms.skeleton = ^".."
+	arms.custom_aabb = ARMS_REACH
 	return arms
 
 

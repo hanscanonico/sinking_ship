@@ -1,21 +1,22 @@
 class_name FirstPersonArms
 extends Node3D
-## Your own arms in first person (D14): a crew brawler in the viewed seat's clothes,
-## hung from the camera by its chest — held upright under the eye whatever the clip
-## does with the body — with its head shrunk away, so only its sleeves and hands come
-## into view, low and to the sides of the crosshair and clear of the readouts at
-## the bottom left. It is posed as the crew is, by Brawler.show_state from the
-## seat's two snapshot entries (D5), and drives nothing (D12), but with poses of its
-## own (POSES), framed for the eye: fists low at the bottom edge at rest or on the
-## move, drawn up close in a wind-up and closer in a charge, palms thrust out ahead in
-## a shove, a raised guard in a brace (every raised hand turning its back to the eye,
-## thumb inside), knocked aside in a stagger — the left arm flung down and back out
-## of view, the right flung out to the screen's edge, its hand open and
-## tipped back — a breaststroke in the sea — both hands thrust out together under the
-## crosshair, then pulled apart and down to the bottom edge — and one hand reaching
-## high and the other gripping low as a climb hauls the body up. A jump's spring
-## shows as the fall it turns into; a hit-stop never squashes the arms nor holds
-## them, so a stagger's recoil comes the moment the shove lands.
+## Your own arms in first person (D14): the viewed seat's own arms, its coat's
+## sleeves, cuffs and hands modelled finer than a crew body (Brawler.ARMS), on a crew
+## brawler hung from the camera by its chest — held upright under the eye whatever the
+## clip does with the body — so only sleeves and hands come into view, low and to the
+## sides of the crosshair and clear of the readouts at the bottom left. It is posed as
+## the crew is, by Brawler.show_state from the seat's two snapshot entries (D5), and
+## drives nothing (D12), but with poses of its own (POSES), framed for the eye: fists
+## low at the bottom edge at rest or on the move, knuckles and cuffs showing, drawn up
+## close in a wind-up and closer in a charge, palms thrust out ahead in a shove, a
+## raised guard in a brace (every raised hand turning its back to the eye, thumb
+## inside), knocked aside in a stagger — the left arm flung down and back out of
+## view, the right fist flung out toward the screen's edge — open hands spread with
+## their fingers splayed through a jump and a fall, a breaststroke in the sea — both
+## hands thrust out together under the crosshair, then pulled apart and down to the
+## bottom edge — and one hand reaching high and the other gripping low as a climb
+## hauls the body up. A hit-stop never squashes the arms nor holds them, so a
+## stagger's recoil comes the moment the shove lands.
 
 ## What the arms never cover, in pixels of the HUD's canvas (which scales with the
 ## window, as the arms do): a zone round the crosshair, its half size, and the
@@ -39,13 +40,15 @@ const ELBOWS: Array[Vector3] = [Vector3(0.1, -1.0, 0.0), Vector3(-0.1, -1.0, 0.0
 ## Every pose holds the chest upright: the arms reach from it.
 const UPRIGHT := Vector3.ZERO
 ## The ways the palms face, so the eye sees the backs of the raised hands and their
-## thumbs inside: a wind-up's and a charge's fists ahead and in, a brace's in toward
-## each other; a shove's open hands face straight ahead (BrawlerPose.AHEAD).
+## thumbs inside: a wind-up's and a charge's fists ahead and a little in, a brace's
+## further in, so its guard shows its knuckles rather than its fingers' ends edge on;
+## a shove's open hands face straight ahead (BrawlerPose.AHEAD).
 const FIST_PALM_L := Vector3(-0.4, 0.0, 1.0)
 const FIST_PALM_R := Vector3(0.4, 0.0, 1.0)
-const BRACE_PALM_L := Vector3(-1.0, 0.0, 0.4)
-const BRACE_PALM_R := Vector3(1.0, 0.0, 0.4)
-## Fists low at the bottom edge: at rest, walking, running and easing out of a shove.
+const BRACE_PALM_L := Vector3(-0.8, 0.0, 1.0)
+const BRACE_PALM_R := Vector3(0.8, 0.0, 1.0)
+## Fists low at the bottom edge, knuckles and cuffs in view: at rest, walking,
+## running and easing out of a shove.
 ## Wrist spots and finger directions are in the chest's frame, model units: +x the
 ## body's left (the screen's left), +y up, +z ahead.
 const AT_REST := {
@@ -55,16 +58,16 @@ const AT_REST := {
 	&"hand_l": Vector3(-0.1, 0.6, 1.0),
 	&"hand_r": Vector3(0.1, 0.6, 1.0),
 }
-## Open hands spread out low to either side, palms down, feeling for the deck: a
-## fall, and a jump's spring into it.
+## Open hands thrown up either side, fingers splayed and palms out, catching the
+## body's balance: a fall, and a jump's spring into it.
 const SPREAD := {
 	&"chest": UPRIGHT,
-	BrawlerPose.REACH_L: Vector3(0.18, 0.36, 0.37),
-	BrawlerPose.REACH_R: Vector3(-0.21, 0.36, 0.36),
-	&"hand_l": Vector3(0.25, 0.2, 1.0),
-	&"hand_r": Vector3(-0.35, 0.2, 1.0),
-	BrawlerPose.PALM_L: Vector3(0.0, -1.0, 0.2),
-	BrawlerPose.PALM_R: Vector3(0.0, -1.0, 0.2),
+	BrawlerPose.REACH_L: Vector3(0.17, 0.38, 0.37),
+	BrawlerPose.REACH_R: Vector3(-0.21, 0.38, 0.36),
+	&"hand_l": Vector3(0.3, 1.0, 0.5),
+	&"hand_r": Vector3(-0.45, 1.0, 0.5),
+	BrawlerPose.PALM_L: Vector3(0.0, -0.4, 1.0),
+	BrawlerPose.PALM_R: Vector3(0.0, -0.4, 1.0),
 }
 const POSES := {
 	BrawlerAnimation.Move.IDLE: AT_REST,
@@ -117,7 +120,7 @@ const POSES := {
 	{
 		&"chest": UPRIGHT,
 		BrawlerPose.REACH_L: Vector3(0.3, 0.15, -0.05),
-		BrawlerPose.REACH_R: Vector3(-0.27, 0.5, 0.16),
+		BrawlerPose.REACH_R: Vector3(-0.3, 0.45, 0.3),
 		&"hand_l": Vector3(0.6, -0.2, -0.3),
 		&"hand_r": Vector3(-1.0, 0.6, 0.3),
 	},

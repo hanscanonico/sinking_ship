@@ -502,7 +502,8 @@ STEADY_FADE = 0.05
 class Kit:
     """A mesh being put together in the model frame: its points, each with its part,
     its ink (how wide its outline is drawn) and its bones' shares; and its faces,
-    each turned on the way to the side it faces."""
+    each turned on the way to the side it faces. A point may be painted as if it
+    stood elsewhere at rest (`paints`, by index)."""
 
     def __init__(self):
         self.points = []
@@ -510,6 +511,7 @@ class Kit:
         self.inks = []
         self.weights = []
         self.faces = []
+        self.paints = {}
 
     def add(self, at, part, weights, ink=1.0):
         self.points.append(Vector(at))
@@ -531,6 +533,8 @@ class Kit:
             self.add(at, own if part is None else part, weights, ink)
         for face in other.faces:
             self.faces.append(tuple(start + i for i in face))
+        for index, at in other.paints.items():
+            self.paints[start + index] = at
 
 
 class Surface:
@@ -956,7 +960,7 @@ def _skinned(name, kit, rig, material):
     rest = mesh.uv_layers.new(name="rest")
     depth = mesh.uv_layers.new(name="depth")
     for loop in mesh.loops:
-        at = kit.points[loop.vertex_index]
+        at = kit.paints.get(loop.vertex_index, kit.points[loop.vertex_index])
         rest.data[loop.index].uv = (at.x, 1.0 - at.y)
         depth.data[loop.index].uv = (at.z, 1.0 - kit.parts[loop.vertex_index])
     ink = mesh.color_attributes.new("ink", "FLOAT_COLOR", "POINT")
@@ -1006,7 +1010,7 @@ SLEEVE_RINGS = (0.3, 0.36, 0.41, 0.45, 0.49, 0.535, 0.58, 0.625, 0.66)
 ## arm and standing `proud` of the sleeve, its ribs, and the buttons on it; and
 ## whether a shirt's cuff shows under it.
 ARM_SLEEVES = {
-    "Jersey": {"full": 0.006, "clear": 0.004, "cuff": 0.68, "end": 0.744, "proud": 0.004, "ribs": 0.0025,
+    "Jersey": {"full": 0.006, "clear": 0.004, "cuff": 0.695, "end": 0.744, "proud": 0.004, "ribs": 0.0025,
                "buttons": 0, "shirt": False},
     "Jacket": {"full": 0.007, "clear": 0.011, "cuff": 0.662, "end": 0.714, "proud": 0.003, "ribs": 0.0,
                "buttons": 3, "shirt": True},
@@ -1042,6 +1046,8 @@ HAND_RINGS = [
     (0.804, 0.055, 0.017, 0.022),
 ]
 HAND_TIP = 0.811
+## Where the clothes shader paints the arm as skin, out from the cuff.
+SKIN_FROM = 0.746
 HAND_ROUND = 2.6
 ## The heel of the hand and the ball of the thumb, pressed out of the palm, as BULGES.
 HAND_BULGES = [
@@ -1259,8 +1265,15 @@ def _arm_hand(kit):
                 d = sum(((point[i] - at[i]) / radii[i]) ** 2 for i in range(3))
                 if d < 1.0:
                     point += normal * push * min((1.0 - d) / soft, 1.0) ** 2
-        rings.append((points, centre, BODY, 1.0, _sided(_shares(WRIST_SPAN, "lowerarm", "hand", x)), None))
-    _loft(kit, rings, end=(Vector((HAND_TIP, PALM_Y - 0.003, ARM_LINE.z)), _sided({"hand": 1.0})))
+        ink = 1.0 if x >= SKIN_FROM else 0.0
+        rings.append((points, centre, BODY, ink, _sided(_shares(WRIST_SPAN, "lowerarm", "hand", x)), None))
+    ids = _loft(kit, rings, end=(Vector((HAND_TIP, PALM_Y - 0.003, ARM_LINE.z)), _sided({"hand": 1.0})))
+    # The wrist inside the cuff shows when the hand bends back: skin, not cuff.
+    for ring in ids:
+        for index in ring:
+            at = kit.points[index]
+            if at.x < SKIN_FROM:
+                kit.paints[index] = Vector((SKIN_FROM, at.y, at.z))
     for offset, length in FINGERS:
         rings = []
         for x, rise, across, through, crease, flat, shares in DIGIT_STATIONS:
@@ -1298,6 +1311,8 @@ def _mirrored_arms(left):
         kit.add(MIRROR @ at, part, {bone[:-2] + "_r": share for bone, share in weights.items()}, ink)
     for face in left.faces:
         kit.faces.append(tuple(start + i for i in reversed(face)))
+    for index, at in left.paints.items():
+        kit.paints[start + index] = MIRROR @ at
     return kit
 
 
