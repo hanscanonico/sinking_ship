@@ -3,8 +3,8 @@ folded up flat against a narrow cabin's wall (CabinDressing._folded_berth,
 CabinDressing.FOLDED_BERTHS) — its varnished underside in two panels, on brass hinges
 at its foot, held by two leather straps and hung on chains to the wall — in Godot's
 axes, metres: x along the wall (Wall.right), y up, z out from the wall's face into
-the room, its origin on the floor at the wall's face under its middle. Its bedding, in
-its cabin's colour, is the placing code's. Nothing stands further out than
+the room, its origin on the floor at the wall's face under its middle. Its bedding over
+its top is painted blanket, for the placing code to draw in its cabin's colour. Nothing stands further out than
 CabinDressing.FOLDED_BERTH's depth, a wall fitting's.
 
     make model-sources MODEL=folded_berth_190
@@ -45,6 +45,11 @@ def frame(wood, teak):
     quarter = LENGTH * 0.25
     for side in (-1.0, 1.0):
         panel(teak, [side * quarter, (LOW + HIGH) * 0.5, DEPTH + 0.002], X, Y, (quarter - 0.07, (HIGH - LOW) * 0.5 - 0.08), 0.02)
+
+
+def bedding(blanket):
+    """Its bedding showing over its top, folded up with it."""
+    box(blanket, [-HALF + 0.04, HIGH, 0.0], [HALF - 0.04, HIGH + 0.08, DEPTH + 0.01], skip=(BACK, (1, -1)))
 
 
 def hinges(brass):
@@ -99,11 +104,13 @@ def main():
     brass = Part("brass", "brass")
     leather = Part("leather", "leather")
     steel = Part("steel", "steel")
+    blanket = Part("bedding", "blanket")
     frame(wood, teak)
+    bedding(blanket)
     hinges(brass)
     straps(leather, brass)
     chains(steel)
-    for part in (wood, teak, brass, leather, steel):
+    for part in (wood, teak, blanket, brass, leather, steel):
         part.build(collection)
     print("folded_berth_190: %d triangles" % triangles(collection))
     save(out)

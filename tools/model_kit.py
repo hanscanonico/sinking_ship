@@ -38,6 +38,7 @@ PAINTS = {
     "leather": "4d3424",
     "linen": "e9e4d6",
     "mirror": "a7b8bf",
+    "blanket": "41557a",
 }
 
 

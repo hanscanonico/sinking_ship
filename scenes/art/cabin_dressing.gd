@@ -22,23 +22,15 @@ const LUGGAGE_SHELF_MODEL := "luggage_shelf"
 const LUGGAGE_SHELF := AABB(Vector3(-0.35, 1.94, 0.0), Vector3(0.7, 0.38, 0.3))
 const LUGGAGE_RACK_MODEL := "luggage_rack"
 const LUGGAGE_RACK := AABB(Vector3(-0.55, 1.89, 0.0), Vector3(1.1, 0.37, 0.28))
-## The coat's model, its origin under its hook; its collar is drawn over it in its
-## cabin's colour, COAT_COLLAR's points (along, height, out) lying on its front.
+## The coat's model, its origin under its hook, its collar and cuffs painted blanket
+## for its cabin's colour.
 const COAT_MODEL := "coat"
-const COAT := AABB(Vector3(-0.24, 0.98, 0.0), Vector3(0.48, 0.77, 0.09))
-const COAT_COLLAR: Array[Vector3] = [
-	Vector3(-0.07, 1.71, 0.033),
-	Vector3(0.07, 1.71, 0.033),
-	Vector3(0.11, 1.665, 0.054),
-	Vector3(0.0, 1.57, 0.078),
-	Vector3(-0.11, 1.665, 0.054),
-]
+const COAT := AABB(Vector3(-0.245, 0.98, 0.0), Vector3(0.49, 0.77, 0.095))
 ## The folded berths _folded_berth draws, by the length each is made for
-## (RoomDressing.variant()), never one model stretched; each one's box but for its
-## length, and the height of its top, where its bedding (the placing code's) lies.
+## (RoomDressing.variant()), never one model stretched, its bedding painted blanket for
+## its cabin's colour; and each one's box but for its length.
 const FOLDED_BERTHS := {1.9: "folded_berth_190"}
 const FOLDED_BERTH := AABB(Vector3(0.0, 0.41, 0.0), Vector3(0.0, 1.22, 0.1))
-const FOLDED_BERTH_TOP := 1.12
 
 var _space: ShipSpace
 
@@ -105,18 +97,15 @@ static func picture(mesh: ShipMesh, wall: RoomDressing.Wall, along: float) -> vo
 	)
 
 
-## A coat with a collar of [param paint] hanging from a hook on [param wall] at
-## [param along] (COAT_MODEL): narrow at the collar, its shoulders sloping and its skirt
-## flaring to the hem, its sleeves hanging at its sides and a row of buttons down its
-## front.
+## A coat with a collar and cuffs of [param paint] hanging from a hook on [param wall]
+## at [param along] (COAT_MODEL): narrow at the collar, its shoulders sloping and its
+## skirt flaring to the hem, its sleeves hanging at its sides and a row of buttons down
+## its front.
 static func coat(
 	mesh: ShipMesh, wall: RoomDressing.Wall, along: float, paint: ShipMesh.Paint
 ) -> void:
-	mesh.model(ShipModel.named(COAT_MODEL), wall.place(wall.at(along, 0.0)))
-	var collar := PackedVector3Array()
-	for point: Vector3 in COAT_COLLAR:
-		collar.append(wall.at(along + point.x, point.y, point.z + 0.003))
-	mesh.polygon(collar, wall.normal, paint, wall.floor + COAT.position.y, NAN)
+	var place := wall.place(wall.at(along, 0.0))
+	mesh.model(ShipModel.named(COAT_MODEL), place, {ShipPaints.blanket: paint})
 
 
 ## A cabin too narrow for furniture, the [param number]th: a berth folded up flat on
@@ -198,17 +187,13 @@ func _clear_stretch(wall: RoomDressing.Wall, glass: Array[Array]) -> Vector2:
 
 ## A berth folded up flat against [param wall] from [param a] to [param b] along it,
 ## FOLDED_BERTHS' model for that length: its varnished underside in two panels on
-## brass hinges, held by two straps, on chains to the wall; its bedding of
-## [param blanket] showing over its top.
+## brass hinges, its bedding of [param blanket] showing over its top, held by two
+## straps, on chains to the wall.
 func _folded_berth(
 	mesh: ShipMesh, wall: RoomDressing.Wall, a: float, b: float, blanket: ShipMesh.Paint
 ) -> void:
-	var middle := (a + b) * 0.5
-	var model := RoomDressing.variant(FOLDED_BERTHS, b - a)
-	mesh.model(ShipModel.named(model), wall.place(wall.at(middle, 0.0)))
-	var top := wall.floor + FOLDED_BERTH_TOP
-	var bedding := wall.rect(a + 0.04, b - 0.04, 0.0, 0.09)
-	RoomDressing.block(mesh, bedding, top, top + 0.08, blanket, ShipMesh.RIM_ALL)
+	var model := ShipModel.named(RoomDressing.variant(FOLDED_BERTHS, b - a))
+	mesh.model(model, wall.place(wall.at((a + b) * 0.5, 0.0)), {ShipPaints.blanket: blanket})
 
 
 ## A luggage rack over head height on [param wall] about [param along]

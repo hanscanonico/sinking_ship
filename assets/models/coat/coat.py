@@ -3,8 +3,9 @@ wall (CabinDressing.coat) — narrow at the collar, its shoulders sloping and it
 flaring to the hem, full across its front, its sleeves hanging at its sides, a row of
 brass buttons down its fly and two pocket flaps — in Godot's axes, metres: x along the
 wall (Wall.right), y up, z out from the wall's face into the room, its origin on the
-floor at the wall's face under the hook. Its collar, in its cabin's colour, is the
-placing code's. Nothing stands further out than CabinDressing.COAT's depth.
+floor at the wall's face under the hook. Its collar and cuffs are painted blanket, for
+the placing code to draw in its cabin's colour. Nothing stands further out than
+CabinDressing.COAT's depth.
 
     make model-sources MODEL=coat
     blender --background --factory-startup --python-exit-code 1 \
@@ -33,6 +34,10 @@ SHOULDER = (0.17, 1.58)
 CUFF = (0.205, 1.12)
 SLEEVE = 0.035
 SLEEVE_OUT = 0.06
+# The collar: (height, half width) from the neck down to its V, and across it (share
+# of its half width, ink), inked at its edges.
+COLLAR = [(1.706, 0.068), (1.69, 0.1), (1.665, 0.11), (1.62, 0.06), (1.57, 0.0)]
+COLLAR_COLUMNS = [(-1.0, 1.0), (-0.75, 0.0), (0.0, 0.0), (0.75, 0.0), (1.0, 1.0)]
 
 Z = [0.0, 0.0, 1.0]
 
@@ -63,8 +68,28 @@ def body(leather):
             slab(leather, quad, [0.0, up, 0.0], 1.0)
 
 
-def sleeves(leather):
-    """A sleeve down each side from its shoulder, bent a little at the elbow."""
+def half_at(height):
+    """The coat's half width at height, between its outline's rows."""
+    for (h0, w0, _), (h1, w1, _) in zip(ROWS, ROWS[1:]):
+        if h1 <= height <= h0:
+            return w0 + (w1 - w0) * (h0 - height) / (h0 - h1)
+    return ROWS[-1][1]
+
+
+def collar(cloth):
+    """A turned-down collar from the neck to a V at the chest, lying on its front."""
+    rows = []
+    for height, half in COLLAR:
+        body = half_at(height)
+        rows.append([[share * half, height, out_at(share * half / body) + 0.006] for share, _ in COLLAR_COLUMNS])
+    inks = [[ink for _, ink in COLLAR_COLUMNS] for _ in COLLAR]
+    inks[0] = [1.0] * len(COLLAR_COLUMNS)
+    cloth.grid(rows, None, lambda p: Z, row_inks=inks)
+
+
+def sleeves(leather, cloth):
+    """A sleeve down each side from its shoulder, bent a little at the elbow, and a
+    cuff round its end."""
     for side in (-1.0, 1.0):
         elbow = (SHOULDER[0] + CUFF[0]) * 0.5 + 0.015
         path = [
@@ -73,6 +98,8 @@ def sleeves(leather):
             [side * CUFF[0], CUFF[1], SLEEVE_OUT],
         ]
         sweep(leather, path, SLEEVE, 6, ink=0.0, caps=True)
+        back = [c + (e - c) * 0.8 for e, c in zip(path[2], path[1])]
+        sweep(cloth, [back, path[2]], SLEEVE + 0.003, 6, ink=0.0, caps=False)
 
 
 def fittings(brass, dark):
@@ -97,10 +124,12 @@ def main():
     leather = Part("leather", "leather")
     brass = Part("brass", "brass")
     dark = Part("dark", "dark")
+    cloth = Part("collar", "blanket")
     body(leather)
-    sleeves(leather)
+    collar(cloth)
+    sleeves(leather, cloth)
     fittings(brass, dark)
-    for part in (leather, brass, dark):
+    for part in (leather, cloth, brass, dark):
         part.build(collection)
     print("coat: %d triangles" % triangles(collection))
     save(out)
