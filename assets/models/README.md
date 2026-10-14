@@ -25,6 +25,11 @@ A prop placed a hundred times is parsed once.
 |---|---|---|---|
 | `lifeboat` | `ShipFittings._lifeboats`, hung in the `Lifeboat` node | lifeboat | 2928 |
 | `davit` | `ShipFittings._davit`, two per boat | hero | 556 |
+| `wheel_stand` | `RoomDressing._wheel_wall`, a wheelhouse's forward wall | hero | 1461 |
+| `chart_case` | `RoomDressing._chart_wall`, a wheelhouse's after wall | hero | 444 |
+| `bell` | `ShipFittings._bell`, on the foremast | hero | 620 |
+| `gauge_small`, `gauge_large` | `RoomDressing.gauge()`, by radius (`GAUGES`) | furniture | 113 |
+| `handwheel_small`, `handwheel_large` | `RoomDressing.wheel()`, by radius (`HANDWHEELS`) | furniture | 166, 190 |
 
 ## Triangle budgets
 
@@ -52,6 +57,17 @@ count as many times as it is placed. Each model belongs to a class with a ceilin
     `DAVIT_RISE` and curves through a quarter circle of `DAVIT_REACH`, so its tip
     stands `DAVIT_REACH` out and `DAVIT_RISE + DAVIT_REACH + DAVIT / 2` up. Its foot
     is `DAVIT_FOOT` under the deck.
+  - `wheel_stand`, `chart_case`: on the floor at the wall's face under the prop's
+    middle, x along the wall (`Wall.right`), z out of it into the room; the code places
+    each with `Wall.place()`. Their boxes are `RoomDressing.WHEEL_STAND` and
+    `CHART_CASE`, no deeper than a wall fitting.
+  - `bell`: where its bracket meets the mast's after face, at `ShipFittings.BELL` over
+    the deck, the bracket reaching aft (−x) `BELL_REACH`; its box is `BELL_BOX`.
+  - `gauge_*`, `handwheel_*`: a gauge's face's middle, a handwheel's hub, facing +z;
+    `RoomDressing.facing()` turns +z along the normal. A gauge's case reaches
+    `GAUGE_BACK` behind it, a handwheel's spindle `HANDWHEEL_SPINDLE`. Each variant is
+    built at its own radius (`GAUGES`, `HANDWHEELS`); `RoomDressing.variant()` picks the
+    largest no bigger than the radius asked for, never a scaled copy.
 - **Paints.** One material per paint, named exactly after a `ShipPaints` entry
   (`white`, `teak`, `canvas`, `rope`, `dark`, `steel`, `brass`…). The material's
   name is all the game reads: the colour comes from the paint and the ship shader's
@@ -79,8 +95,10 @@ count as many times as it is placed. Each model belongs to a class with a ceilin
 A model may be built by a script instead of by hand: `assets/models/NAME/NAME.py`,
 run by headless Blender, writes `NAME.blend` from nothing. Its points are given in
 Godot's axes and its paints, ink and sharp edges set as above; the shared helpers
-(`Part`, the paints' preview colours, the axis swap) are in `tools/model_kit.py`.
-Both pilot models are built so, and their scripts rebuild `.blend`s whose export is
+(`Part`, the paints' preview colours, the axis swap, and the turned and boxed shapes
+`lathe`, `tube`, `cap`, `torus`, `sphere`, `box` and `slab`) are in
+`tools/model_kit.py`.
+Every model so far is built so; the pilots' scripts rebuild `.blend`s whose export is
 byte for byte the committed `.glb`.
 
     make model-sources              # every NAME.py to its NAME.blend, Blender headless
@@ -109,6 +127,9 @@ budget class and a check of its box or anchor against the placing code's constan
 row's box and its class's budget. A model folder with no row fails, and so does a row
 with no folder: a new model lands with its row.
 
+A variant's script may build with its sibling's builder (`gauge_large.py` calls
+`gauge_small.py`'s `build()` at its own radius).
+
 ## Licence
 
-Both models are original work for this project, listed in `assets/LICENSES.md`.
+Every model is original work for this project, listed in `assets/LICENSES.md`.
