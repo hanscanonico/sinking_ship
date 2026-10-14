@@ -100,7 +100,7 @@ def bones():
 # forearm to them.
 
 ## The trunk, hips to crown: (name, at, (across, deep)), its half-widths along x
-## and z. The head stays inside the hats BrawlerHat builds round it.
+## and z. The head stays inside the hats gen_hats.py builds round it.
 TRUNK_NODES = [
     ("hips", (0.0, 0.92, -0.015), (0.158, 0.13)),
     ("waist", (0.0, 1.04, 0.0), (0.136, 0.116)),
@@ -445,10 +445,10 @@ def build_base(rig):
 # the coat's colour stays the shader's, so the tint is the seat's.
 
 OUTFITS = ("Jersey", "Jacket", "Greatcoat")
-## The parts, as brawler.gdshader numbers them. Neighbours in a face blend across
-## it, so the cloth and its lining, which share the skirt's edges, are numbered
-## side by side.
-BODY, CLOTH, LINING, FACING, SHIRT, BRASS, LEATHER, INK, HORN = range(9)
+## The parts, as brawler.gdshader numbers them: the outfits' and the hats'
+## (gen_hats.py). Neighbours in a face blend across it, so the cloth and its
+## lining, which share the skirt's edges, are numbered side by side.
+BODY, CLOTH, LINING, FACING, BRASS, LEATHER, INK, STRAW, HAIR = range(9)
 ## How wide each piece's outline is drawn, as a share of the body's: small pieces
 ## in full would drown in ink.
 DETAIL_INK = 0.45

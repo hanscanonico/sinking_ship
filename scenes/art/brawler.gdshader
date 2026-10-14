@@ -1,6 +1,7 @@
-// A brawler's clothes and face. Each outfit is modelled on the sailor
-// (assets/characters/sailor/gen_sailor.py), which writes where each point sits at
-// rest into its UVs — UV rest x and y, UV2.x rest z — and what it is into UV2.y:
+// A brawler's clothes, face and hat. Each outfit is modelled on the sailor
+// (assets/characters/sailor/gen_sailor.py) and each hat round its head
+// (gen_hats.py), which write where each point sits at rest into its UVs — UV
+// rest x and y, UV2.x rest z — and what it is into UV2.y:
 // PART_BODY, painted here per pixel from where it sits, or a piece of clothing in
 // one colour. Rest space is model units: the soles at 0, the crown at 1.83, facing
 // +z, arms out along x. Painting from rest keeps every edge crisp and riding the
@@ -13,6 +14,7 @@ uniform vec3 trousers : source_color = vec3(0.23, 0.24, 0.27);
 uniform vec3 skin : source_color = vec3(0.88, 0.67, 0.53);
 uniform vec3 hair : source_color = vec3(0.18, 0.13, 0.1);
 uniform vec3 shirt : source_color = vec3(0.92, 0.9, 0.84);
+uniform vec3 straw : source_color = vec3(0.86, 0.78, 0.56);
 uniform vec3 leather : source_color = vec3(0.29, 0.2, 0.13);
 uniform vec3 ink : source_color = vec3(0.137, 0.149, 0.18);
 // Buttons and badges.
@@ -34,17 +36,17 @@ uniform vec3 heat_core : source_color = vec3(1.0, 0.94, 0.76);
 uniform float heat = 0.0;
 
 // What a point is (gen_sailor.py numbers them the same): the body, the coat's
-// cloth, its lining, a darker facing — ribbing, cuffs, a breast pocket's welt —
-// shirt, brass, leather, ink and horn.
+// cloth, its lining, a darker facing — ribbing, cuffs, a breast pocket's welt, a
+// cap's band — brass, and the hats' (gen_hats.py) leather, ink, straw and hair.
 const int PART_BODY = 0;
 const int PART_CLOTH = 1;
 const int PART_LINING = 2;
 const int PART_FACING = 3;
-const int PART_SHIRT = 4;
-const int PART_BRASS = 5;
-const int PART_LEATHER = 6;
-const int PART_INK = 7;
-const int PART_HORN = 8;
+const int PART_BRASS = 4;
+const int PART_LEATHER = 5;
+const int PART_INK = 6;
+const int PART_STRAW = 7;
+const int PART_HAIR = 8;
 // The knit of a jersey: its ribs across, in rest units, and how much darker the
 // furrows between them are; the yoke's bands across the chest between these heights.
 const float RIB = 0.018;
@@ -175,9 +177,6 @@ vec3 part_colour(int part) {
 	if (part == PART_LINING || part == PART_FACING) {
 		return coat * 0.78;
 	}
-	if (part == PART_SHIRT) {
-		return shirt;
-	}
 	if (part == PART_BRASS) {
 		return trim;
 	}
@@ -187,7 +186,10 @@ vec3 part_colour(int part) {
 	if (part == PART_INK) {
 		return ink;
 	}
-	return mix(ink, leather, 0.5);
+	if (part == PART_STRAW) {
+		return straw;
+	}
+	return hair;
 }
 
 void fragment() {
