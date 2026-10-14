@@ -208,6 +208,8 @@ func test_every_world_model_is_one_the_iceberg_planner_can_draw() -> void:
 			assert_almost_eq(point.x, 0.0, TOLERANCE, "%s: its blade square ahead" % model)
 			assert_lt(point.y, 0.0, "%s: its blade under the sea" % model)
 			assert_gt(point.z, inboard, "%s: its blade out past the rest" % model)
+		var darkest_over := INF
+		var lightest_under := -INF
 		for face in corners.size() / 3:
 			var a := corners[face * 3]
 			var b := corners[face * 3 + 1]
@@ -216,12 +218,19 @@ func test_every_world_model_is_one_the_iceberg_planner_can_draw() -> void:
 			var over := a.y >= -TOLERANCE and b.y >= -TOLERANCE and c.y >= -TOLERANCE
 			var under := a.y <= TOLERANCE and b.y <= TOLERANCE and c.y <= TOLERANCE
 			assert_true(over or under, "%s: face %d wholly over or under the sea" % [model, face])
-			if middle.y < 0.0:
+			var light := berg.shades[face].get_luminance()
+			if middle.y >= 0.0:
+				darkest_over = minf(darkest_over, light)
+			else:
+				lightest_under = maxf(lightest_under, light)
 				for corner in [a, b, c]:
 					if corner.z <= berg.blade_z - IcebergPlanner.BLADE_NEAR:
 						assert_lte(
 							corner.z, inboard + TOLERANCE, "%s: under the sea clear of her" % model
 						)
+		assert_lt(
+			lightest_under, darkest_over, "%s: under-ice darker than any over the sea" % model
+		)
 
 
 ## A berg stands to IcebergPlanner's measure, uniformly scaled from it: its top
