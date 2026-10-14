@@ -387,6 +387,23 @@ ship-scene:
 		-- --draw=data/ships/$(SHIP).tres --scene=authoring/$(SHIP)/$(SHIP).tscn \
 		| grep -v '^\[godot_ai'
 
+# `make models`: re-exports every modelled prop, assets/models/NAME/NAME.blend, to the
+# NAME.glb beside it, with Blender headless (tools/export_model.py), which refuses a
+# mesh with no material or no `ink` layer; Godot reimports the .glb on its next import.
+# assets/models/README.md says how a model is authored. Not part of verify: Godot
+# imports the committed .glb, so neither verify nor CI needs Blender. BLENDER=<path>
+# picks the binary, else `blender` on PATH.
+BLENDER ?= blender
+models:
+	@command -v "$(BLENDER)" >/dev/null || { \
+		echo "models: Blender not found at $(BLENDER)" >&2; \
+		echo "models: install Blender 5.2 so \`blender\` is on PATH, or pass BLENDER=<path>" >&2; \
+		exit 1; }
+	@set -o pipefail; for blend in assets/models/*/*.blend; do \
+		"$(BLENDER)" --background --factory-startup "$$blend" --python-exit-code 1 \
+		--python tools/export_model.py -- "$${blend%.blend}.glb" | { grep '^export_model' || true; } \
+		|| exit 1; done
+
 # Every .gd file that is actually ours: skips the engine cache, vendored addons,
 # the engine binary, and .claude/worktrees, which holds whole nested checkouts of
 # this same repo and would otherwise be linted as if it were project source.
@@ -433,4 +450,4 @@ format-check:
 .PHONY: import run match capture net-bench sim-bench bench serve-local online-e2e export-server \
 	export-web export-mac export-server-mac serve-web-local serve-web-local-stop fps arena \
 	hits bake census art-lint test verify check guard-check ship ship-check bake-ship bake-check ship-scene \
-	lint format format-check
+	models lint format format-check

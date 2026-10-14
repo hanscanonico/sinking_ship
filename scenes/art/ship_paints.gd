@@ -87,3 +87,10 @@ static var leather := ShipMesh.Paint.new(FINISH.PLAIN, ArtPalette.LEATHER)
 ## Glass seen from inside a room, and from outside it.
 static var glass_in := ShipMesh.Paint.new(FINISH.GLASS_IN, Color.WHITE)
 static var glass_out := ShipMesh.Paint.new(FINISH.GLASS_OUT, Color.WHITE)
+
+
+## The paint called [param paint] here (white, teak, canvas…), as a modelled prop's
+## material names it (ShipMesh.model); null for no paint of that name.
+static func named(paint: String) -> ShipMesh.Paint:
+	var found: Variant = (ShipPaints as Script).get(paint)
+	return found if found is ShipMesh.Paint else null

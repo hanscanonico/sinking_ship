@@ -40,6 +40,7 @@ make ship                                       # regenerate data/ships/NAME.tre
 make bake-ship SCENE=authoring/steamer/steamer.tscn OUT=…   # bake a marked greybox scene into a ShipLayout .tres (SH17)
 make bake-check                                 # every authoring/NAME/NAME.tscn bakes to data/ships/NAME.tres field for field
 make ship-scene SHIP=steamer                    # draw data/ships/NAME.tres as its authoring scene
+make models                                     # re-export assets/models/NAME/NAME.blend to NAME.glb (needs Blender; not in verify)
 ```
 
 A fresh checkout fails `check` with phantom "not declared" errors until `make import` has

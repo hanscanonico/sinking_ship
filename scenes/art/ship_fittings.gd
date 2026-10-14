@@ -36,29 +36,28 @@ const PROP_GAP := 0.03
 ## Lifeboats hang beside the open long edge of a deck that stands at least this high
 ## over the deck beneath it.
 const LIFEBOAT_HEADROOM := 2.4
+## A lifeboat's box over all — stem to stem, side to side, keel to the top of its
+## cover — which its model fills (assets/models/lifeboat), and how far apart they hang.
 const LIFEBOAT_LENGTH := 4.0
 const LIFEBOAT_BEAM := 1.1
-const LIFEBOAT_DEPTH := 0.7
+const LIFEBOAT_DEPTH := 0.9
 const LIFEBOAT_SPACING := 5.0
 ## How far the boat hangs out from the deck's edge, and its keel over the deck: its
 ## cover stands higher than a jump, so it never looks like a step off the deck.
 const LIFEBOAT_OUT := 0.3
 const LIFEBOAT_LIFT := 0.35
-## The boat's lines: stations along it, clinker strakes a side and how far each laps
-## the one under it, the sheer's rise and the keel's rocker toward the ends, and the
-## cover's ridge over the gunwale and its overhang.
-const BOAT_STATIONS := 11
-const STRAKES := 4
-const LAP := 0.02
-const BOAT_SHEER := 0.16
-const ROCKER := 0.1
-const GUNWALE := 0.06
-const RIDGE := 0.2
-const COVER_OVERHANG := 0.035
-## A radial davit: its post's section, how high it stands before it curves out over
-## the boat, its fall's section, and the blocks'.
+## The modelled boat, its keel's middle at its origin, and a radial davit, its post's
+## axis at the deck's height at its origin, curving out toward +z (ShipModel).
+const LIFEBOAT_MODEL := preload("res://assets/models/lifeboat/lifeboat.glb")
+const DAVIT_MODEL := preload("res://assets/models/davit/davit.glb")
+## A radial davit: its post's section and how far it stands off the deck's edge, how
+## high it rises before it curves out, how far it reaches out — over the boat's middle
+## — and how far its foot reaches under the deck; its fall's section, and the blocks'.
 const DAVIT := 0.09
+const DAVIT_GAP := 0.02
 const DAVIT_RISE := 1.3
+const DAVIT_REACH := LIFEBOAT_OUT + LIFEBOAT_BEAM * 0.5 - DAVIT * 0.5 - DAVIT_GAP
+const DAVIT_FOOT := 0.5
 const FALL := 0.025
 const BLOCK := Vector3(0.1, 0.16, 0.08)
 ## A break in the decks: a deck at least BREAK_LEAST over the one at its end, found
@@ -101,6 +100,9 @@ var _depth: float
 var panes: Array[Array] = []
 ## The middles of the portholes the hit left open: drawn open, their glass swung in.
 var _open_ports := PackedVector3Array()
+## The modelled boat and davit (ShipModel), each gathered when first drawn.
+var _boat_model: ArrayMesh
+var _davit_model: ArrayMesh
 
 
 ## [param open_ports] are the middles of the portholes the hit left open, none for a
@@ -781,8 +783,8 @@ func _banquette(mesh: ShipMesh, room: ShipRoom, run: Array) -> void:
 
 ## Lifeboats on davits beside the open long edges of every deck standing high
 ## enough over the deck beneath, where the air beyond the edge is open: the davits in
-## [param mesh], each run of boats with their falls hung under [param ship] from the line
-## through the davits' heads.
+## [param mesh], each run of boats (their model) with their falls hung under
+## [param ship] from the line through the davits' heads.
 func _lifeboats(mesh: ShipMesh, ship: Node3D, paints: Dictionary) -> void:
 	for index in _layout.platforms.size():
 		var platform := _layout.platforms[index]
@@ -817,7 +819,9 @@ func _lifeboats(mesh: ShipMesh, ship: Node3D, paints: Dictionary) -> void:
 				if not mesh.kept(at - LIFEBOAT_LENGTH * 0.5, at + LIFEBOAT_LENGTH * 0.5):
 					continue
 				hanging = true
-				_boat(hung, Vector3(at, keel, middle))
+				if _boat_model == null:
+					_boat_model = ShipModel.mesh_of(LIFEBOAT_MODEL)
+				hung.model(_boat_model, Transform3D(Basis.IDENTITY, Vector3(at, keel, middle)))
 				for end: float in [-1.0, 1.0]:
 					var davit := at + end * (LIFEBOAT_LENGTH * 0.5 - 0.35)
 					pivot = _davit(mesh, hung, davit, edge, middle, platform.height, side)
@@ -849,160 +853,22 @@ func _railed(index: int, edge: float) -> bool:
 	return false
 
 
-## A double-ended clinker boat lying fore and aft, its keel's middle at
-## [param keel]: white strakes, each lapping the one under it and shaded round as
-## the hull they make, a teak gunwale, its sheer rising and its keel rockered toward
-## the stems, under a ridged canvas cover.
-func _boat(mesh: ShipMesh, keel: Vector3) -> void:
-	var hull: Array[PackedVector3Array] = []
-	var round: Array[PackedVector3Array] = []
-	var cover: Array[PackedVector3Array] = []
-	for station in BOAT_STATIONS:
-		var along := float(station) / (BOAT_STATIONS - 1) * 2.0 - 1.0
-		var x := keel.x + along * LIFEBOAT_LENGTH * 0.5
-		var fullness := pow(1.0 - along * along, 0.55)
-		var half := LIFEBOAT_BEAM * 0.5 * fullness
-		var bottom := keel.y + ROCKER * pow(along, 4.0)
-		var gunwale := keel.y + LIFEBOAT_DEPTH + BOAT_SHEER * along * along
-		var shares := PackedFloat32Array([0.0, GUNWALE / LIFEBOAT_DEPTH])
-		var side := PackedVector3Array([_boat_point(x, half, gunwale, bottom, 0.0)])
-		side.append(_boat_point(x, half, gunwale, bottom, shares[1]))
-		for strake in STRAKES:
-			var share := (strake + 1.0) / STRAKES * 0.92
-			side.append(
-				_boat_point(x, half, gunwale, bottom, share) + Vector3(0, 0, LAP * fullness)
-			)
-			side.append(_boat_point(x, half, gunwale, bottom, share))
-			shares.append_array([share, share])
-		var section := PackedVector3Array()
-		var normals := PackedVector3Array()
-		for index in side.size():
-			var point := side[index]
-			section.append(Vector3(point.x, point.y, keel.z - point.z))
-			var out := _boat_normal(half, gunwale - bottom, shares[index])
-			normals.append(Vector3(0.0, out.y, -out.x))
-		section.append(Vector3(x, bottom, keel.z))
-		normals.append(Vector3.DOWN)
-		for index in range(side.size() - 1, -1, -1):
-			var point := side[index]
-			section.append(Vector3(point.x, point.y, keel.z + point.z))
-			var out := _boat_normal(half, gunwale - bottom, shares[index])
-			normals.append(Vector3(0.0, out.y, out.x))
-		hull.append(section)
-		round.append(normals)
-		var edge := half + COVER_OVERHANG * fullness
-		var ridge := gunwale + RIDGE * fullness
-		var low := gunwale - 0.04 * fullness
-		(
-			cover
-			. append(
-				PackedVector3Array(
-					[
-						Vector3(x, low, keel.z - edge),
-						Vector3(x, gunwale + RIDGE * 0.7 * fullness, keel.z - half * 0.5),
-						Vector3(x, ridge, keel.z),
-						Vector3(x, gunwale + RIDGE * 0.7 * fullness, keel.z + half * 0.5),
-						Vector3(x, low, keel.z + edge),
-					]
-				)
-			)
-		)
-	var count := hull[0].size()
-	# Each normal turned square to the boat's run along its length there.
-	for i in BOAT_STATIONS:
-		for j in count:
-			var along := hull[mini(i + 1, BOAT_STATIONS - 1)][j] - hull[maxi(i - 1, 0)][j]
-			along = along.normalized()
-			round[i][j] = (round[i][j] - along * round[i][j].dot(along)).normalized()
-	for i in BOAT_STATIONS - 1:
-		for j in count - 1:
-			var band := mini(j, count - 2 - j)
-			var paint := ShipPaints.teak if band == 0 else ShipPaints.white
-			var corners := PackedVector3Array(
-				[hull[i][j], hull[i][j + 1], hull[i + 1][j + 1], hull[i + 1][j]]
-			)
-			# A lap's lip, where one strake's edge stands proud of the next, stays flat.
-			if is_equal_approx(corners[0].y, corners[1].y) or band == 0:
-				_boat_quad(mesh, corners[0], corners[1], corners[2], corners[3], keel, paint)
-				continue
-			var at := PackedVector3Array(
-				[round[i][j], round[i][j + 1], round[i + 1][j + 1], round[i + 1][j]]
-			)
-			mesh.smooth_quad(corners, at, paint)
-		for j in 4:
-			_boat_quad(
-				mesh,
-				cover[i][j],
-				cover[i][j + 1],
-				cover[i + 1][j + 1],
-				cover[i + 1][j],
-				keel,
-				ShipPaints.canvas
-			)
-
-
-## A point down one side of a boat's section at x — (x, height, how far out) — a
-## [param share] (0 gunwale … 1 keel) of the way round from the gunwale to the keel.
-func _boat_point(x: float, half: float, gunwale: float, bottom: float, share: float) -> Vector3:
-	var angle := share * PI * 0.5
-	var out := half * pow(cos(angle), 0.7)
-	return Vector3(x, bottom + (gunwale - bottom) * (1.0 - sin(angle)), out)
-
-
-## The outward normal (out, up) of a boat's section [param half] wide and
-## [param depth] deep a [param share] of the way round from its gunwale to its keel
-## (_boat_point).
-static func _boat_normal(half: float, depth: float, share: float) -> Vector2:
-	var angle := minf(share, 0.999) * PI * 0.5
-	var out := depth * cos(angle)
-	var up := -0.7 * half * sin(angle) * pow(cos(angle), -0.3)
-	return Vector2(out, up).normalized()
-
-
-## One flat piece of a boat, facing out from its middle line at [param keel].
-func _boat_quad(
-	mesh: ShipMesh,
-	a: Vector3,
-	b: Vector3,
-	c: Vector3,
-	d: Vector3,
-	keel: Vector3,
-	paint: ShipMesh.Paint
-) -> void:
-	var normal := (c - a).cross(d - b)
-	if normal.length_squared() < 1e-10:
-		return
-	normal = normal.normalized()
-	var middle := (a + b + c + d) * 0.25
-	if normal.dot(middle - Vector3(middle.x, keel.y + LIFEBOAT_DEPTH * 0.5, keel.z)) < 0.0:
-		normal = -normal
-	mesh.quad(a, b, c, d, normal, paint, 0)
-
-
-## A radial davit at [param x]: a white post off the deck's edge at [param edge],
-## curving out over the boat's middle at [param middle], a block at its head — these
-## in [param mesh] — and its fall down to a block on the boat's gunwale, in
+## A radial davit at [param x] (its model): its post off the deck's edge at
+## [param edge], curving out over the boat's middle at [param middle], a block at its
+## head — these in [param mesh] — and its fall down to a block on the boat, in
 ## [param hung] with the boat; where its head stands.
 func _davit(
 	mesh: ShipMesh, hung: ShipMesh, x: float, edge: float, middle: float, deck: float, side: float
 ) -> Vector3:
-	var post := edge + side * (DAVIT * 0.5 + 0.02)
-	var radius := absf(middle - post)
-	var section := Vector2.ONE * DAVIT
-	var from := Vector3(x, deck - 0.5, post)
-	var bend := Vector3(x, deck + DAVIT_RISE, post)
-	mesh.beam(from, bend, section, ShipPaints.white, 0)
-	var steps := 5
-	var last := bend
-	for step in range(1, steps + 1):
-		var angle := PI * 0.5 * step / steps
-		var next := bend + Vector3(0.0, radius * sin(angle), side * radius * (1.0 - cos(angle)))
-		mesh.beam(last, next, section, ShipPaints.white, 0)
-		last = next
-	var head := last + Vector3.DOWN * (DAVIT * 0.5 + BLOCK.y * 0.5)
+	var post := edge + side * (DAVIT * 0.5 + DAVIT_GAP)
+	if _davit_model == null:
+		_davit_model = ShipModel.mesh_of(DAVIT_MODEL)
+	var turn := Basis.IDENTITY if side > 0.0 else Basis(Vector3.UP, PI)
+	mesh.model(_davit_model, Transform3D(turn, Vector3(x, deck, post)))
+	var tip := Vector3(x, deck + DAVIT_RISE + DAVIT_REACH, post + side * DAVIT_REACH)
+	var head := tip + Vector3.DOWN * (DAVIT * 0.5 + BLOCK.y * 0.5)
 	mesh.turned_box(Transform3D(Basis.IDENTITY, head), BLOCK, ShipPaints.dark, 0)
-	var gunwale := deck + LIFEBOAT_LIFT + LIFEBOAT_DEPTH + BOAT_SHEER * 0.6
-	var hook := Vector3(x, gunwale + BLOCK.y * 0.5 + RIDGE, middle)
+	var hook := Vector3(x, deck + LIFEBOAT_LIFT + LIFEBOAT_DEPTH + BLOCK.y * 0.5, middle)
 	hung.beam(head, hook, Vector2.ONE * FALL, ShipPaints.rope, 0)
 	hung.turned_box(Transform3D(Basis.IDENTITY, hook), BLOCK, ShipPaints.dark, 0)
 	return head

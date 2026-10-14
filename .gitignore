@@ -40,6 +40,9 @@ captures/
 # CLAUDE.md points at, is promoted with `git add -f .lavish/<name>.html`.
 .lavish/
 
+# Blender's backups of a saved .blend (assets/models).
+*.blend1
+
 # Python caches from the generators
 __pycache__/
 *.pyc
