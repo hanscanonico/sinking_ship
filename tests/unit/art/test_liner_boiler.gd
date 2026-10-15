@@ -66,3 +66,23 @@ func test_the_trawler_s_engine_room_is_lit_where_it_was() -> void:
 	]
 	_assert_lit(_lights("trawler", &"engine room"), pinned, "engine room")
 
+
+func test_her_boiler_rooms_hang_their_pendants_clear_of_the_boilers() -> void:
+	var dressing := RoomDressing.new(_space)
+	for room_name: StringName in BOILER_ROOMS:
+		var room := _room(room_name)
+		var machines := _space.machinery(room)
+		assert_gt(machines.size(), 1, room_name)
+		var pendants := 0
+		for light: RoomDressing.Light in dressing.lights(room):
+			if light.kind != ShipLamp.Kind.PENDANT:
+				continue
+			pendants += 1
+			var at := Vector2(light.at.x, light.at.z)
+			assert_true(room.area.has_point(at), "%s %s" % [room_name, light.at])
+			for machine: ShipBlocker in machines:
+				assert_false(machine.area.grow(CLEAR).has_point(at), "%s %s" % [room_name, at])
+			var ceiling := _space.ceiling(room, at.x, at.y)
+			assert_lte(light.at.y, ceiling, "%s %s" % [room_name, light.at])
+			assert_gt(light.at.y, room.floor_height + RoomDressing.HEADROOM, room_name)
+		assert_between(pendants, 1, EngineRoom.LAMPS, room_name)
