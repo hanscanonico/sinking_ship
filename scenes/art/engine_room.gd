@@ -33,6 +33,12 @@ const SIDE_PIPE := 2.1
 const SIDE_PIPE_CLEAR := 0.04
 ## A stair this near a hull side breaks the pipe along it: a body on it reaches there.
 const STAIR_REACH := 0.8
+## The most lamps an engine room hangs over its lanes; a lane between two machines
+## this wide at least; and how far in plan a lamp hangs from a machine standing up past
+## its globe, at least.
+const LAMPS := 4
+const LANE_LEAST := 1.0
+const LAMP_CLEAR := 0.3
 ## An engine: its bedplate, its crankcase's and its columns' tops over the floor, and
 ## its cylinders' lagging, as tall as the deckhead lets them stand, up to LAGGING;
 ## the cylinders' radii, high to low pressure, as shares of the largest.
@@ -56,15 +62,26 @@ func _init(space: ShipSpace) -> void:
 ## The lights an engine room [param room] is lit by: a pendant over each lane beside
 ## its engine and a fire in each boiler.
 func lights(room: ShipRoom) -> Array[RoomDressing.Light]:
-	var found: Array[RoomDressing.Light] = []
-	for lane: Vector2 in _lanes(room):
-		var hang := RoomDressing.under_ceiling(_space, room, lane)
-		found.append(RoomDressing.Light.new(hang, ShipLamp.Kind.PENDANT))
+	var found := pendants(room)
 	for boiler: Array in _boilers(room):
 		var wall: RoomDressing.Wall = boiler[0]
 		var fire := wall.at(boiler[1], FURNACE_HEIGHT)
 		found.append(RoomDressing.Light.new(fire, ShipLamp.Kind.FIRE, wall.normal))
 	return found
+
+
+## The pendants [param room] hangs over the lanes beside its machinery (_lanes()).
+func pendants(room: ShipRoom) -> Array[RoomDressing.Light]:
+	var found: Array[RoomDressing.Light] = []
+	for lane: Vector2 in _lanes(room):
+		var hang := RoomDressing.under_ceiling(_space, room, lane)
+		found.append(RoomDressing.Light.new(hang, ShipLamp.Kind.PENDANT))
+	return found
+
+
+## The ship space it dresses.
+func space() -> ShipSpace:
+	return _space
 
 
 ## An engine standing in [param blocker]'s footprint, which the rules hold every body
@@ -220,9 +237,8 @@ func _controls(mesh: ShipMesh, area: Rect2, along_x: bool, low: float, top: floa
 
 
 ## [param room]'s own: its engines (_machinery), the boilers in its forward bulkhead,
-## their main steam pipes overhead aft along the engine's side into it, pipes along
-## its hull sides over head height but over a stair climbing beside one, and on its
-## after bulkhead a gauge board and fire buckets on a shelf.
+## their main steam pipes overhead aft along the engine's side into it, and the
+## dressing on its walls (walls()).
 func build(mesh: ShipMesh, room: ShipRoom) -> void:
 	var machines := _space.machinery(room)
 	for machine: ShipBlocker in machines:
@@ -232,6 +248,13 @@ func build(mesh: ShipMesh, room: ShipRoom) -> void:
 		_boiler(mesh, boiler)
 		if not machines.is_empty():
 			_steam_pipe(mesh, boiler, machines[0])
+	walls(mesh, room)
+
+
+## The dressing on [param room]'s walls: pipes along its hull sides over head height
+## but over a stair climbing beside one, and on its after bulkhead a gauge board and
+## fire buckets on a shelf.
+func walls(mesh: ShipMesh, room: ShipRoom) -> void:
 	for wall: RoomDressing.Wall in RoomDressing.walls(_space, room):
 		if wall.length() < 1.0:
 			continue
@@ -311,7 +334,12 @@ func _steam_pipe(mesh: ShipMesh, boiler: Array, engine: ShipBlocker) -> void:
 
 
 ## The middle of each lane beside [param room]'s machinery, across the room's long
-## way: where its lamps hang.
+## way: where its lamps hang. A lane is each strip of the floor free of every machine
+## across the way the machinery leaves the more room — between a side of the room and
+## them all, and between two of them LANE_LEAST apart and more — its lamps spaced
+## along the machinery's breadth, as many as it has machines up to LAMPS / the lanes;
+## none within LAMP_CLEAR of a machine standing up past its globe, nor over a stair
+## within a body's reach of it, and LAMPS at most.
 func _lanes(room: ShipRoom) -> Array[Vector2]:
 	var lanes: Array[Vector2] = []
 	var machines := _space.machinery(room)
@@ -319,16 +347,55 @@ func _lanes(room: ShipRoom) -> Array[Vector2]:
 		return lanes
 	var area := room.area
 	var engine := machines[0].area
-	var middle := engine.get_center()
+	for machine: ShipBlocker in machines:
+		engine = engine.merge(machine.area)
 	var across_z := engine.position.y - area.position.y + area.end.y - engine.end.y
 	var across_x := engine.position.x - area.position.x + area.end.x - engine.end.x
-	if across_z >= across_x:
-		lanes.append(Vector2(middle.x, (area.position.y + engine.position.y) * 0.5))
-		lanes.append(Vector2(middle.x, (area.end.y + engine.end.y) * 0.5))
-	else:
-		lanes.append(Vector2((area.position.x + engine.position.x) * 0.5, middle.y))
-		lanes.append(Vector2((area.end.x + engine.end.x) * 0.5, middle.y))
+	# Along axis 1 (z) — lanes beside the machinery's sides — or along axis 0 (x).
+	var axis := 1 if across_z >= across_x else 0
+	var strips := _free_strips(machines, area, axis)
+	var per_lane := clampi(LAMPS / maxi(1, strips.size()), 1, machines.size())
+	var from := engine.position[1 - axis]
+	var breadth := engine.size[1 - axis]
+	for strip: Vector2 in strips:
+		for index in per_lane:
+			var point := Vector2.ZERO
+			point[axis] = (strip.x + strip.y) * 0.5
+			point[1 - axis] = from + breadth * (index + 0.5) / per_lane
+			if _lamp_fits(room, point, machines) and lanes.size() < LAMPS:
+				lanes.append(point)
 	return lanes
+
+
+## The stretches along [param axis] of [param area] free of every one of
+## [param machines]: from each side of it to the nearest, and between two of them
+## LANE_LEAST apart and more.
+static func _free_strips(machines: Array[ShipBlocker], area: Rect2, axis: int) -> Array[Vector2]:
+	var spans: Array[Vector2] = []
+	for machine: ShipBlocker in machines:
+		spans.append(Vector2(machine.area.position[axis], machine.area.end[axis]))
+	spans.sort_custom(func(a: Vector2, b: Vector2) -> bool: return a.x < b.x)
+	var strips: Array[Vector2] = [Vector2(area.position[axis], spans[0].x)]
+	var reach := spans[0].y
+	for span: Vector2 in spans.slice(1):
+		if span.x - reach >= LANE_LEAST:
+			strips.append(Vector2(reach, span.x))
+		reach = maxf(reach, span.y)
+	strips.append(Vector2(reach, area.end[axis]))
+	return strips
+
+
+## Whether a lamp hung under [param room]'s ceiling over [param point] stands clear of
+## [param machines] — LAMP_CLEAR in plan from any reaching up past its globe — and of
+## every stair a body climbing would reach its globe from.
+func _lamp_fits(room: ShipRoom, point: Vector2, machines: Array[ShipBlocker]) -> bool:
+	var hang := RoomDressing.under_ceiling(_space, room, point)
+	var globe := hang.y - ShipLamp.CORD - ShipLamp.GLOBE_RADIUS * 2.0
+	for machine: ShipBlocker in machines:
+		if machine.top > globe and machine.area.grow(LAMP_CLEAR).has_point(point):
+			return false
+	var near := Rect2(point, Vector2.ZERO).grow(LAMP_CLEAR)
+	return not RoomDressing.over_a_ramp(_layout, near, globe - RoomDressing.HEADROOM, hang.y)
 
 
 ## The boilers set in [param room]'s forward bulkhead: per stretch of it long enough
@@ -372,10 +439,15 @@ static func front_for(room_for: float) -> float:
 ## that stands it over head height.
 func _boiler(mesh: ShipMesh, boiler: Array) -> void:
 	var wall: RoomDressing.Wall = boiler[0]
-	var radius: float = boiler[2]
+	front(mesh, boiler[2], wall.at(boiler[1], 0.0), wall.normal)
+
+
+## The modelled front of [param radius] (BOILER_FRONTS, front_for()) standing on the
+## floor at [param foot], flat on the face whose way out is [param normal] (_boiler()).
+static func front(mesh: ShipMesh, radius: float, foot: Vector3, normal: Vector3) -> void:
 	var model := ""
-	for front: Array in BOILER_FRONTS:
-		if is_equal_approx(front[0] as float, radius):
-			model = front[1] as String
-	var turn := Basis(Vector3.UP.cross(wall.normal), Vector3.UP, wall.normal)
-	mesh.model(ShipModel.named(model), Transform3D(turn, wall.at(boiler[1], 0.0)))
+	for each: Array in BOILER_FRONTS:
+		if is_equal_approx(each[0] as float, radius):
+			model = each[1] as String
+	var turn := Basis(Vector3.UP.cross(normal), Vector3.UP, normal)
+	mesh.model(ShipModel.named(model), Transform3D(turn, foot))
