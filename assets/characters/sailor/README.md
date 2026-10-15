@@ -64,8 +64,9 @@ script and commit the .blend and the .glb.
   the sleeve from above the elbow, fuller than the arm and bridging the elbow; the
   outfit's own cuff — a jersey's ribbed one, a jacket's with three brass buttons, a
   greatcoat's deep turned-back one with two — with an open mouth and its lining; a
-  coat's shirt cuff under it, the lining closed round it a little way in so the eye
-  never sees down the sleeve; the wrist coming out of it; a palm with its heel and
+  coat's shirt cuff under it, showing a little past it and ending short of the
+  wrist's joint, the lining closed round it a little way in so the eye never sees
+  down the sleeve; the wrist coming out of it; a palm with its heel and
   the ball of its thumb; and fingers and a thumb of ten sides, their knuckles proud
   on the back, their joints creased and their nails flat. Each point sits where the
   arm's does at rest, so the clothes shader paints sleeve, cuff and skin in the

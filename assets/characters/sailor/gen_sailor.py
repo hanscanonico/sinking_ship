@@ -1029,10 +1029,11 @@ CUFF_LINING = 0.02
 CUFF_BUTTON_ROUND = -75.0
 CUFF_BUTTON_APART = 0.014
 CUFF_BUTTON = 0.0052
-## A shirt's cuff: how far it stands off the wrist, and its mouth (short of where
-## the shader paints skin).
+## A shirt's cuff: how far it stands off the wrist, and how far it shows past the
+## coat's cuff — its mouth short of the wrist's joint (the hand bone's head, 0.735),
+## so it never stands past a wrist bent back, in front of the fist, as a card.
 SHIRT_CLEAR = 0.0055
-SHIRT_END = 0.742
+SHIRT_SHOWS = 0.018
 ## How far off the wrist the floor closing a coat's cuff round a shirt's reaches in
 ## to: inside the shirt's cuff, out of sight.
 SHIRT_FLOOR = 0.004
@@ -1283,17 +1284,18 @@ def _arm_sleeve(kit, surface, outfit):
         _stud(kit, at, way, forearm, radius=CUFF_BUTTON, ref=Vector((1.0, 0.0, 0.0)))
     if spec["shirt"]:
         wrist, centre = _hand_ring(0.745, HAND_SIDES)
+        shirt_end = end + SHIRT_SHOWS
         rings = []
         for x, lift, ink, facing in ((end - 0.03, SHIRT_CLEAR, DETAIL_INK, None),
-                                     (SHIRT_END - 0.005, SHIRT_CLEAR, DETAIL_INK, None),
-                                     (SHIRT_END, SHIRT_CLEAR - 0.0012, DETAIL_INK, None),
-                                     (SHIRT_END, SHIRT_CLEAR - 0.003, 0.0, Vector((1.0, 0.0, 0.0))),
-                                     (SHIRT_END - 0.012, SHIRT_CLEAR - 0.003, 0.0, "in")):
+                                     (shirt_end - 0.005, SHIRT_CLEAR, DETAIL_INK, None),
+                                     (shirt_end, SHIRT_CLEAR - 0.0012, DETAIL_INK, None),
+                                     (shirt_end, SHIRT_CLEAR - 0.003, 0.0, Vector((1.0, 0.0, 0.0))),
+                                     (shirt_end - 0.012, SHIRT_CLEAR - 0.003, 0.0, "in")):
             points, at = _grown(wrist, centre, lift, x)
             rings.append((points, at, BODY, ink, forearm, facing))
         # Its own floor, closing it round the wrist inside its lining: held as the
         # wrist there is, so the hand bending back never draws it out of the skin.
-        x = SHIRT_END - 0.012
+        x = shirt_end - 0.012
         points, at = _grown(wrist, centre, -SHIRT_CLEAR, x)
         rings.append((points, at, BODY, 0.0, _sided(_shares(WRIST_SPAN, "lowerarm", "hand", x)),
                       Vector((1.0, 0.0, 0.0))))
