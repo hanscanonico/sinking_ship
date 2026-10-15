@@ -64,13 +64,17 @@ script and commit the .blend and the .glb.
   the sleeve from above the elbow, fuller than the arm and bridging the elbow; the
   outfit's own cuff — a jersey's ribbed one, a jacket's with three brass buttons, a
   greatcoat's deep turned-back one with two — with an open mouth and its lining; a
-  coat's shirt cuff under it; the wrist coming out of it; a palm with its heel and
-  the ball of its thumb; and fingers and a thumb of ten sides, their knuckles proud
-  on the back, their joints creased and their nails flat. Each point sits where the
-  arm's does at rest, so the clothes shader paints sleeve, cuff and skin in the
-  seat's colour. Every body drops them; a seat's own arms draw its coat's in place
-  of its body. Each one's triangles are pinned in `tests/unit/art/test_sailor.gd`,
-  at most 4,000.
+  coat's shirt cuff under it, showing a little past it and ending short of the
+  wrist's joint; the lining closed a little way in, round the shirt's cuff or the
+  bare wrist, so the eye never sees down the sleeve; the wrist coming out of it; a
+  palm with its heel and the ball of its thumb; and fingers and a thumb of ten
+  sides, their knuckles proud on the back, their joints creased and their nails
+  flat. Each point sits where the arm's does at rest, so the clothes shader paints
+  sleeve, cuff and skin in the seat's colour. Where a finger or the thumb is set
+  into the palm, and in the web between the thumb and the index finger, the outline
+  is left off (`WEB_*`), so a fist shows no slivers of ink in its creases. Every
+  body drops them; a seat's own arms draw its coat's in place of its body. Each
+  one's triangles are pinned in `tests/unit/art/test_sailor.gd`, at most 4,000.
 - **Hats.** `Cap`, `Souwester`, `Boater`, `Bare`, `Bobble`, `Top` and `Peaked`
   (`Brawler.HAT_MESHES`, in `Brawler.Hat`'s order), each one small rigid mesh in the
   head bone's space, never skinned: `Brawler` hangs the one its seat wears on the

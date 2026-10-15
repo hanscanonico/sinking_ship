@@ -1029,10 +1029,17 @@ CUFF_LINING = 0.02
 CUFF_BUTTON_ROUND = -75.0
 CUFF_BUTTON_APART = 0.014
 CUFF_BUTTON = 0.0052
-## A shirt's cuff: how far it stands off the wrist, and its mouth (short of where
-## the shader paints skin).
+## A shirt's cuff: how far it stands off the wrist, and how far it shows past the
+## coat's cuff — its mouth short of the wrist's joint (the hand bone's head, 0.735),
+## so it never stands past a wrist bent back, in front of the fist, as a card.
 SHIRT_CLEAR = 0.0055
-SHIRT_END = 0.742
+SHIRT_SHOWS = 0.018
+## How far off the wrist the floor closing a coat's cuff round a shirt's reaches in
+## to: inside the shirt's cuff, out of sight. A bare cuff's floor (a jersey's, with
+## no shirt's cuff under it) reaches WRIST_FLOOR into the wrist instead, buried in
+## the skin, so no gap shows round it.
+SHIRT_FLOOR = 0.004
+WRIST_FLOOR = 0.002
 ## The hand, wrist to knuckles: its rings — x along the arm, the half-width across,
 ## and the half-heights to its back (up at rest) and to its palm — round PALM_Y over
 ## the arm's line, squarish (HAND_ROUND, a superellipse's power), closed at HAND_TIP.
@@ -1049,6 +1056,13 @@ HAND_TIP = 0.811
 ## Where the clothes shader paints the arm as skin, out from the cuff.
 SKIN_FROM = 0.746
 HAND_ROUND = 2.6
+## The web between the thumb and the index finger, which draws no outline: the hand
+## from WEB_FROM along the arm, and the index finger's first WEB_RINGS rings (inside
+## the palm to past its knuckle), each on its side toward the thumb (more than
+## WEB_SIDE of the way round to it).
+WEB_FROM = 0.779
+WEB_RINGS = 4
+WEB_SIDE = 0.5
 ## The heel of the hand and the ball of the thumb, pressed out of the palm, as BULGES.
 HAND_BULGES = [
     ((0.772, 1.405, -0.005), (0.03, 0.02, 0.025), 0.007, 0.8),
@@ -1194,6 +1208,29 @@ def _sleeve_reach(surface, outfit, x, sides):
     return [max(r + spec["full"], m) for r, m in zip(reach, least)]
 
 
+def _reach_round(points, centre, sides):
+    """How far out from `centre` the ring through `points`, square to the arm,
+    stands at each of `sides` points round from the back of the hand, as `_round`
+    lays them."""
+    reach = []
+    for step in range(sides):
+        angle = 2.0 * math.pi * step / sides
+        way = (math.cos(angle), math.sin(angle))
+        found = []
+        for a, b in zip(points, points[1:] + points[:1]):
+            a, b = a - centre, b - centre
+            edge = (b.y - a.y, b.z - a.z)
+            across = way[0] * edge[1] - way[1] * edge[0]
+            if abs(across) < 1e-12:
+                continue
+            t = (a.y * edge[1] - a.z * edge[0]) / across
+            s = (a.y * way[1] - a.z * way[0]) / across
+            if t > 0.0 and -1e-9 <= s <= 1.0 + 1e-9:
+                found.append(t)
+        reach.append(min(found))
+    return reach
+
+
 def _round(x, reach, lift=0.0):
     """Points `reach` (each plus `lift`) out from the arm's line at `x`, round from
     the back of the hand, and the centre they ring."""
@@ -1231,6 +1268,14 @@ def _arm_sleeve(kit, surface, outfit):
                             (end - CUFF_LINING, proud - CUFF_THICK, "in")):
         points, centre = _round(x, mouth, lift)
         rings.append((points, centre, FACING, 0.0, forearm, facing))
+    # The lining's floor, closing the mouth round the shirt's cuff, or round the
+    # wrist under a bare cuff, so the eye never sees past the lining into the
+    # sleeve, whose far side the outline would paint ink.
+    x = end - CUFF_LINING
+    floor = SHIRT_FLOOR if spec["shirt"] else -WRIST_FLOOR
+    shirt, middle = _grown(*_hand_ring(0.745, HAND_SIDES), floor, x)
+    points, centre = _round(x, _reach_round(shirt, middle, CUFF_SIDES))
+    rings.append((points, centre, FACING, 0.0, forearm, Vector((1.0, 0.0, 0.0))))
     _loft(kit, rings)
     index = round(CUFF_BUTTON_ROUND / 360.0 * CUFF_SIDES) % CUFF_SIDES
     angle = 2.0 * math.pi * index / CUFF_SIDES
@@ -1242,14 +1287,21 @@ def _arm_sleeve(kit, surface, outfit):
         _stud(kit, at, way, forearm, radius=CUFF_BUTTON, ref=Vector((1.0, 0.0, 0.0)))
     if spec["shirt"]:
         wrist, centre = _hand_ring(0.745, HAND_SIDES)
+        shirt_end = end + SHIRT_SHOWS
         rings = []
         for x, lift, ink, facing in ((end - 0.03, SHIRT_CLEAR, DETAIL_INK, None),
-                                     (SHIRT_END - 0.005, SHIRT_CLEAR, DETAIL_INK, None),
-                                     (SHIRT_END, SHIRT_CLEAR - 0.0012, DETAIL_INK, None),
-                                     (SHIRT_END, SHIRT_CLEAR - 0.003, 0.0, Vector((1.0, 0.0, 0.0))),
-                                     (SHIRT_END - 0.012, SHIRT_CLEAR - 0.003, 0.0, "in")):
+                                     (shirt_end - 0.005, SHIRT_CLEAR, DETAIL_INK, None),
+                                     (shirt_end, SHIRT_CLEAR - 0.0012, DETAIL_INK, None),
+                                     (shirt_end, SHIRT_CLEAR - 0.003, 0.0, Vector((1.0, 0.0, 0.0))),
+                                     (shirt_end - 0.012, SHIRT_CLEAR - 0.003, 0.0, "in")):
             points, at = _grown(wrist, centre, lift, x)
             rings.append((points, at, BODY, ink, forearm, facing))
+        # Its own floor, closing it round the wrist inside its lining: held as the
+        # wrist there is, so the hand bending back never draws it out of the skin.
+        x = shirt_end - 0.012
+        points, at = _grown(wrist, centre, -SHIRT_CLEAR, x)
+        rings.append((points, at, BODY, 0.0, _sided(_shares(WRIST_SPAN, "lowerarm", "hand", x)),
+                      Vector((1.0, 0.0, 0.0))))
         _loft(kit, rings)
 
 
@@ -1267,6 +1319,7 @@ def _arm_hand(kit):
                     point += normal * push * min((1.0 - d) / soft, 1.0) ** 2
         ink = 1.0 if x >= SKIN_FROM else 0.0
         rings.append((points, centre, BODY, ink, _sided(_shares(WRIST_SPAN, "lowerarm", "hand", x)), None))
+    hand_from = len(kit.points)
     ids = _loft(kit, rings, end=(Vector((HAND_TIP, PALM_Y - 0.003, ARM_LINE.z)), _sided({"hand": 1.0})))
     # The wrist inside the cuff shows when the hand bends back: skin, not cuff.
     for ring in ids:
@@ -1274,7 +1327,9 @@ def _arm_hand(kit):
             at = kit.points[index]
             if at.x < SKIN_FROM:
                 kit.paints[index] = Vector((SKIN_FROM, at.y, at.z))
+    digits = []
     for offset, length in FINGERS:
+        digits.append(len(kit.points))
         rings = []
         for x, rise, across, through, crease, flat, shares in DIGIT_STATIONS:
             if x > KNUCKLE_X:
@@ -1287,7 +1342,59 @@ def _arm_hand(kit):
         _digit(kit, rings, tip, UP)
     thumb = [[Vector(at), across, through, crease, flat, shares]
              for at, across, through, crease, flat, shares in THUMB_RINGS]
+    digits.append(len(kit.points))
     _digit(kit, thumb, Vector(THUMB_TIP), THUMB_UP)
+    _unink_buried(kit, hand_from, digits)
+    # The web between the thumb and the index finger: in a fist the finger's root
+    # folds against the hand's side by the thumb into a crease, and the outline drawn
+    # there shows in it as slivers of ink. The hand's outline still rings it.
+    for ring in ids:
+        if kit.points[ring[0]].x >= WEB_FROM:
+            for step, index in enumerate(ring):
+                if math.sin(2.0 * math.pi * step / HAND_SIDES) > WEB_SIDE:
+                    kit.inks[index] = 0.0
+    for ring in range(WEB_RINGS):
+        for step in range(DIGIT_SIDES):
+            if math.sin(2.0 * math.pi * step / DIGIT_SIDES) > WEB_SIDE:
+                kit.inks[digits[0] + ring * DIGIT_SIDES + step] = 0.0
+
+
+AXES = [Vector(way) for way in ((1, 0, 0), (-1, 0, 0), (0, 1, 0), (0, -1, 0), (0, 0, 1), (0, 0, -1))]
+
+
+def _shell(kit, first, last):
+    """The closed shell of `kit`'s points `first` up to `last`, as a tree to ask
+    whether a point is inside it."""
+    faces = [f for f in kit.faces if first <= f[0] < last]
+    return BVHTree.FromPolygons(kit.points[first:last], [[i - first for i in f] for f in faces])
+
+
+def _inside(tree, at):
+    """Whether `at` is inside the closed shell `tree`: every way out of it crosses
+    the shell from within."""
+    for way in AXES:
+        found, normal, _, _ = tree.ray_cast(at, way)
+        if found is None or normal.dot(way) <= 0.0:
+            return False
+    return True
+
+
+def _unink_buried(kit, hand_from, starts):
+    """Takes the outline off every point of the hand (its points from `hand_from`)
+    buried in a finger or the thumb (each from its index in `starts`, the last to
+    the end), and off every point of theirs buried in the hand. Set into the palm,
+    their sides run within the outline's width of its sides, so the outline grown
+    round a buried point stands out through the skin over it, and a fist folding at
+    the knuckles shows it as slivers of ink in the crease by the thumb."""
+    hand = _shell(kit, hand_from, starts[0])
+    ends = starts[1:] + [len(kit.points)]
+    digits = [_shell(kit, first, last) for first, last in zip(starts, ends)]
+    for index in range(hand_from, starts[0]):
+        if any(_inside(digit, kit.points[index]) for digit in digits):
+            kit.inks[index] = 0.0
+    for index in range(starts[0], len(kit.points)):
+        if _inside(hand, kit.points[index]):
+            kit.inks[index] = 0.0
 
 
 def _digit(kit, stations, tip, up):
