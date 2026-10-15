@@ -67,8 +67,8 @@ A prop placed a hundred times is parsed once.
 | `pilaster_base` | `LinerPublic._pilaster` | wall decor | 32 |
 | `stateroom_door` | `LinerCorridor._stateroom_door`, every `DOOR_SPACING` down a first-class corridor | wall decor | 97 |
 | `hanging_basket` | `LinerPublic._basket`, the verandah café's | furniture | 140 |
-| `copper_pan_120`, `copper_pan_75` | `LinerService._pan_rack`, a galley's rack, by the room under its bar (`PANS`) | furniture | 106 each |
-| `stockpot` | `LinerService._pan_rack`, a galley's rack | furniture | 184 |
+| `copper_pan_120`, `copper_pan_75` | `LinerService._pan_rack`, a galley's rack, by the room under its bar (`PANS`) | furniture | 70 each |
+| `stockpot` | `LinerService._pan_rack`, a galley's rack | furniture | 140 |
 | `ladle_35`, `ladle_22` | `LinerService._pan_rack`, a galley's rack, by the room under its bar (`LADLES`) | furniture | 80 each |
 | `dresser_180`, `dresser_140` | `LinerService._dresser`, by the width of its wall's stretch (`DRESSERS`) | furniture | 340, 292 |
 | `wall_bars` | `LinerService._wall_bars`, a gymnasium's wall, bay by bay | furniture | 268 |

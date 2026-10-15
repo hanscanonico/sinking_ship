@@ -25,16 +25,17 @@ RIM = 0.045
 BASE = 0.19
 SIDES = 8
 UP = ([1.0, 0.0, 0.0], [0.0, 0.0, -1.0], [0.0, 1.0, 0.0])
-# The bail: its section's radius, how far under the bar its ends are held, and the
-# points it is swept through.
+# The bail: its section's radius, how far under the bar its ends are held, the points
+# it is swept through — an arch in the pot's own eighths of a turn — and its sides.
 BAIL = 0.004
 LUG = 0.075
-BAIL_POINTS = 7
+BAIL_POINTS = 5
+BAIL_SIDES = 3
 
 
 def pot(copper):
     """The pot and its lid, turned: from the middle of its base round its side, over
-    the rim's bead and up the lid to its knob."""
+    the rim's bead and up the lid to its crown — a low cone, seen only from above."""
     lathe(
         copper,
         [0.0, -BASE, 0.0],
@@ -47,7 +48,6 @@ def pot(copper):
             (RADIUS, BASE - RIM - 0.014, 0.0),
             (RADIUS + 0.003, BASE - RIM - 0.003, 1.0),
             (RADIUS - 0.016, BASE - RIM + 0.008, 0.0),
-            (0.016, BASE - 0.022, 0.0),
             (0.0, BASE - 0.018, 0.0),
         ],
         SIDES,
@@ -57,17 +57,19 @@ def pot(copper):
 
 
 def bail(iron):
-    """The lugs either side along the wall and the bail arched from one over the lid
-    to the other, its crown at the origin."""
+    """The lugs either side along the wall, each from inside the pot's flat side out,
+    and the bail arched from one over the lid to the other, its crown at the origin."""
     reach = RADIUS + 0.008
-    for side in (-1.0, 1.0):
-        x = side * (RADIUS + 0.004)
-        box(iron, [x - 0.006, -LUG - 0.012, -0.01], [x + 0.006, -LUG + 0.008, 0.01], inked=False)
+    flat = RADIUS * math.cos(math.pi / SIDES) - 0.002
+    outer = RADIUS + 0.01
+    for side in (-1, 1):
+        a, b = sorted((side * flat, side * outer))
+        box(iron, [a, -LUG - 0.012, -0.01], [b, -LUG + 0.008, 0.01], inked=False, skip=((0, -side),))
     path = []
     for k in range(BAIL_POINTS):
         a = math.pi * k / (BAIL_POINTS - 1)
         path.append([reach * math.cos(a), -LUG + (LUG - BAIL) * math.sin(a), 0.0])
-    sweep(iron, path, BAIL, 4, caps=False)
+    sweep(iron, path, BAIL, BAIL_SIDES, caps=False)
 
 
 def main():

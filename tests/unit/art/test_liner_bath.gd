@@ -16,8 +16,8 @@ const TOP_TOLERANCE := 0.05
 const SAMPLES := Vector2i(6, 3)
 const SAMPLE_IN := 0.05
 ## The most faces a bath may stand in all, its modelled lanterns and ladder too: the
-## Turkish bath, the worst, draws 2178.
-const CEILING := 2500
+## Turkish bath, the worst, draws 2189.
+const CEILING := 2350
 
 var _titanic: ShipLayout
 var _rules: BrawlRules

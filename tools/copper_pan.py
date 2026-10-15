@@ -2,7 +2,7 @@
 copper_pan_NNN build scripts (assets/models/copper_pan_NNN/copper_pan_NNN.py): one
 size each, its radius NNN thousandths of a metre, never one model scaled. A copper
 pan hung by its iron handle from an iron hook under the rack's bar, its base toward
-the room, its rolled rim to the wall.
+the room, its rim to the wall.
 
 In Godot's axes, metres: x along the wall, y up, z out of it into the room, the
 origin on the bar's axis at its underside, where the hook hangs from. The pan's rim's
@@ -25,8 +25,8 @@ HOOK = 0.0035
 
 
 def pan(copper, radius, sides):
-    """The pan, turned round z: its base toward the room, round its side to the
-    rolled rim at its back, its open mouth to the wall."""
+    """The pan, turned round z: its base toward the room, round its side to its rim
+    at its back, its open mouth to the wall, which nothing in the room sees."""
     depth = DEPTH[0] + DEPTH[1] * radius
     base = radius * BASE
     centre = [0.0, -(HANDLE + radius), depth * 0.5]
@@ -38,10 +38,8 @@ def pan(copper, radius, sides):
             (0.0, 0.0, 0.0),
             (base - 0.015, 0.0, 0.0),
             (base, 0.0, 1.0),
-            (base + 0.003, 0.012, 0.0),
-            (radius - 0.003, depth - 0.012, 0.0),
+            ((base + radius) * 0.5, depth * 0.5, 0.0),
             (radius, depth, 1.0),
-            (radius * 0.94, depth, 1.0),
         ],
         sides,
         wound=True,
@@ -51,8 +49,9 @@ def pan(copper, radius, sides):
 def handle(iron, radius):
     """The iron handle up from the pan's rim to its hook, and the hook to the bar."""
     low = -HANDLE - 0.012
-    box(iron, [-GRIP[0], low, -GRIP[1]], [GRIP[0], -0.012, GRIP[1]], inked=False, skip=((1, -1),))
-    sweep(iron, [[0.0, 0.0, 0.0], [0.0, -0.016, 0.0]], HOOK, 4, caps=False)
+    ends = ((1, -1), (1, 1))
+    box(iron, [-GRIP[0], low, -GRIP[1]], [GRIP[0], -0.012, GRIP[1]], inked=False, skip=ends)
+    sweep(iron, [[0.0, 0.0, 0.0], [0.0, -0.016, 0.0]], HOOK, 3, caps=False)
 
 
 def build(name, radius, sides):
