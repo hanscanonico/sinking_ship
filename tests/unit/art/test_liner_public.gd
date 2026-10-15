@@ -33,10 +33,13 @@ const BEFORE := {
 	&"third-class open space": 0,
 	&"grand staircase, E deck": 174,
 }
-const BUDGET := 3000
-## The most faces a room may stand in all, its modelled chandeliers' too: the lounge,
-## the worst, draws 5626 — its own dressing and four chandeliers.
-const CEILING := 6000
+## Its modelled wall decor counts in it: the smoking room, the worst, draws 7278 of
+## its own, most of them its pilasters' modelled bases and capitals and its sconces.
+const BUDGET := 7800
+## The most faces a room may stand in all, its modelled chandeliers' too: the smoking
+## room, the worst, draws 8220 — its pilasters and sconces modelled; the lounge 7354,
+## its own dressing, its sconces and four chandeliers.
+const CEILING := 8800
 
 
 func before_all() -> void:

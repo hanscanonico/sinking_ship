@@ -8,8 +8,12 @@ const RunMatch := preload("res://tools/run_match.gd")
 const CORRIDORS: Array[StringName] = [
 	&"B deck corridor", &"C deck corridor", &"D deck corridor", &"D deck corridor, forward"
 ]
-## The most triangles a corridor's own dressing may add.
-const BUDGET := 2000
+## The most triangles a corridor's own dressing may add: its modelled stateroom doors
+## and sconces, C deck's, the longest, 10252.
+const BUDGET := 11000
+## The most triangles a corridor may stand in all, passage dressing and all: C deck's
+## draws 16356.
+const CEILING := 17500
 
 var _layout: ShipLayout
 var _rules: BrawlRules
@@ -104,6 +108,7 @@ func test_each_corridor_draws_more_than_the_passage_dressing_alone() -> void:
 			"%s: %d triangles over the passage dressing's %d" % [room_name, own - passage, passage]
 		)
 		assert_gt(_faces_in(room, _faces), passage, room_name)
+		assert_lt(_faces_in(room, _faces), CEILING, "%s: all it draws" % room_name)
 
 
 func test_stateroom_doors_stand_every_three_metres_on_both_long_walls() -> void:

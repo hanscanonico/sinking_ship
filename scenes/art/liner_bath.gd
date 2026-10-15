@@ -185,8 +185,8 @@ func _course(mesh: ShipMesh, wall: RoomDressing.Wall, glass: Array[Array]) -> vo
 		RoomDressing.panel(mesh, skirt, wall.right, size, wall.normal, course, 0)
 
 
-## A clock on the longest of [param walls] clear at its middle: a white face in a brass
-## rim, with its hands.
+## A clock on the longest of [param walls] clear at its middle (RoomDressing.CLOCK_MODEL):
+## a white dial in a brass bezel, with its hands.
 func _clock(mesh: ShipMesh, walls: Array[RoomDressing.Wall], glass: Array[Array]) -> void:
 	var best: RoomDressing.Wall = null
 	for wall: RoomDressing.Wall in walls:
@@ -197,15 +197,8 @@ func _clock(mesh: ShipMesh, walls: Array[RoomDressing.Wall], glass: Array[Array]
 			best = wall
 	if best == null:
 		return
-	var face := best.at(best.middle(), CLOCK_HEIGHT, 0.03)
-	RoomDressing.disc(mesh, face, best.normal, CLOCK * 0.82, ShipPaints.enamel, 8)
-	var rim := face + best.normal * 0.004
-	RoomDressing.ring(mesh, rim, best.normal, CLOCK * 0.78, CLOCK, ShipPaints.brass, 8)
-	var hands := face + best.normal * 0.008
-	var size := Vector2(0.012, 0.004)
-	mesh.beam(hands, hands + Vector3.UP * CLOCK * 0.6, size, ShipPaints.dark, 0)
-	var minute := hands + (best.right * 0.7 - Vector3.UP * 0.4).normalized() * CLOCK * 0.45
-	mesh.beam(hands, minute, size, ShipPaints.dark, 0)
+	var face := Transform3D(RoomDressing.facing(best.normal), best.at(best.middle(), CLOCK_HEIGHT))
+	mesh.model(ShipModel.named(RoomDressing.CLOCK_MODEL), face)
 
 
 ## The Turkish bath's [param wall]: a dado of deep blue tile in green borders and a
