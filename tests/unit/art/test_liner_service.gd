@@ -16,6 +16,9 @@ const BEFORE := {
 	&"post office": 0,
 }
 const TRAWLER_GALLEY_BEFORE := 440
+## The most faces a room of service may stand in all, its modelled pans, pots, ladles,
+## dressers, wall bars and mail sacks too: her galley, the worst, draws 17354.
+const CEILING := 18000
 
 var _rules: BrawlRules
 var _titanic: ShipLayout
@@ -101,6 +104,18 @@ func test_the_trawler_s_galley_is_dressed_more_than_it_was() -> void:
 	var space := ShipSpace.new(_trawler)
 	var count := _in(space, _trawler_faces, _room(_trawler, &"galley")).size()
 	assert_gt(count, TRAWLER_GALLEY_BEFORE)
+
+
+func test_each_room_of_service_stands_within_its_ceiling() -> void:
+	var ships: Array[Array] = [[_titanic, _faces], [_trawler, _trawler_faces]]
+	for ship: Array in ships:
+		var layout: ShipLayout = ship[0]
+		var space := ShipSpace.new(layout)
+		for room: ShipRoom in layout.rooms:
+			if RoomDressing.kind_of(space, room) != RoomDressing.Kind.SERVICE:
+				continue
+			var count := _in(space, ship[1], room).size()
+			assert_lt(count, CEILING, "%s: %s" % [layout.resource_path, room.name])
 
 
 func test_a_galley_hangs_pans_overhead_along_each_full_wall() -> void:

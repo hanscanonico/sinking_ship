@@ -15,6 +15,9 @@ const SWIMMING := &"swimming bath"
 const TOP_TOLERANCE := 0.05
 const SAMPLES := Vector2i(6, 3)
 const SAMPLE_IN := 0.05
+## The most faces a bath may stand in all, its modelled lanterns and ladder too: the
+## Turkish bath, the worst, draws 2178.
+const CEILING := 2500
 
 var _titanic: ShipLayout
 var _rules: BrawlRules
@@ -117,6 +120,11 @@ func test_each_bath_has_more_to_it_than_a_saloon_s_dressing() -> void:
 		var after := _drawn(func(mesh: ShipMesh) -> void: bath.build(mesh, room, none))
 		assert_gt(_in_room(after, room), _in_room(before, room), room_name)
 		assert_gte(_in_room(_faces, room), _in_room(after, room), room_name)
+
+
+func test_each_bath_stands_within_its_ceiling() -> void:
+	for room_name: StringName in [TURKISH, SWIMMING]:
+		assert_lt(_in_room(_faces, _room(room_name)), CEILING, room_name)
 
 
 func test_the_pool_is_drawn_inside_its_box() -> void:

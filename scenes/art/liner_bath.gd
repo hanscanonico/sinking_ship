@@ -8,7 +8,7 @@ extends RefCounted
 ## everywhere), a brass ladder's handles over the rim at its aft end; round its walls a
 ## blue course of tile and a skirting, and a clock. The Turkish bath — her cooling room —
 ## is tiled in deep blue inside green borders to a dado, arched niches over it on its
-## inside walls, a green frieze over HEADROOM under the ceiling, and a bronze lantern
+## inside walls, a green frieze over HEADROOM under the ceiling, and a brass lantern
 ## round each of its pendants. Any other box on a bath's floor is FurnitureDressing's.
 ## No mid-room furniture: the pool is the one box on a bath's floor, and no blocker is
 ## ever widened or added to hold a piece (D6). Between a step over the floor and a
@@ -30,11 +30,15 @@ const POOL_COURSE := Vector2(0.14, 0.08)
 ## How far outside the box a face drawn on its side stands: inside art-lint's margin.
 const FLUSH := 0.001
 ## The ladder's handles: how far apart, how high over the rim — under a step, so a body
-## on the rim never meets them — how far back over it, and their bar's side.
+## on the rim never meets them — how far back over it, and their bar's side; the
+## modelled handles, their origin on the rim's top over its inner edge at the middle
+## of the pool's aft end, x out over the water, and their box there.
 const LADDER_SPAN := 0.45
 const HANDLE := 0.2
 const HANDLE_BACK := 0.16
 const HANDLE_BAR := 0.035
+const LADDER_MODEL := "pool_ladder"
+const LADDER := AABB(Vector3(-0.155, -0.065, -0.255), Vector3(0.205, 0.28, 0.51))
 ## The swimming bath's blue course of tile round its walls: its middle's height over
 ## the floor, its half height; its skirting's height; how far out tile stands.
 const COURSE_HEIGHT := 1.25
@@ -62,12 +66,13 @@ const NICHE_PITCH := 3.6
 const FRIEZE := 1.95
 const FRIEZE_DEPTH := 0.32
 const FRIEZE_OUT := 0.05
-## A bronze lantern round each pendant: its hoop's radius and width, how far under the
-## globe's middle it hangs, how many sides.
+## A brass lantern round each pendant: its band's radius and how far under the
+## globe's middle its foot hangs; the modelled lantern, its origin where the pendant
+## hangs under the ceiling, and its box there.
 const LANTERN := 0.2
-const LANTERN_WIDTH := 0.05
 const LANTERN_DROP := 0.1
-const LANTERN_SIDES := 8
+const LANTERN_MODEL := "bath_lantern"
+const LANTERN_BOX := AABB(Vector3(-0.185, -0.62, -0.185), Vector3(0.37, 0.62, 0.37))
 
 ## The colours of the baths: white glazed tile on the walls, pale tile underfoot, the
 ## blue course; the water; the Turkish bath's deep blue and green tile, and bronze.
@@ -156,18 +161,10 @@ static func pool(mesh: ShipMesh, area: Rect2, bottom: float, top: float) -> void
 	for strip: Array in strips:
 		mesh.box(strip[0], water_top, top, white_tile, ShipMesh.TOP | (strip[1] as int))
 	mesh.box(inner, water_top - 0.01, water_top, water, ShipMesh.TOP)
-	# The ladder's handles: up out of the water by the aft end's inner face, over the
-	# rim and down onto it.
-	var middle := area.get_center().y
-	var face := inner.position.x + HANDLE_BAR
-	var section := Vector2.ONE * HANDLE_BAR
-	for side: float in [-1.0, 1.0]:
-		var z := middle + side * LADDER_SPAN * 0.5
-		var high := Vector3(face, top + HANDLE, z)
-		var back := Vector3(face - HANDLE_BACK, top + HANDLE, z)
-		mesh.beam(Vector3(face, water_top, z), high, section, ShipPaints.brass, 0)
-		mesh.beam(high, back, section, ShipPaints.brass, 0)
-		mesh.beam(back, Vector3(back.x, top, z), section, ShipPaints.brass, 0)
+	# The ladder's handles (LADDER_MODEL): up out of the water by the aft end's inner
+	# face, over the rim and down onto it.
+	var ladder := Vector3(inner.position.x, top, area.get_center().y)
+	mesh.model(ShipModel.named(LADDER_MODEL), Transform3D(Basis.IDENTITY, ladder))
 
 
 ## The swimming bath's [param wall]: a blue course of tile at COURSE_HEIGHT and a blue
@@ -275,28 +272,16 @@ func _niche(mesh: ShipMesh, wall: RoomDressing.Wall, along: float) -> void:
 	RoomDressing.block(mesh, sill, wall.floor + NICHE.x - FRAME, wall.floor + NICHE.x, bronze)
 
 
-## A bronze lantern round the pendant hung from [param hang] in [param room]: a hoop
-## under its globe on four rods from a cap under the ceiling — none where it would hang
-## under HEADROOM.
+## A Moorish brass lantern round the pendant hung from [param hang] in [param room]
+## (LANTERN_MODEL): a pierced band round its globe on four ribs from a canopy under
+## the ceiling, and a drop under it — none where it would hang under HEADROOM.
 func _lantern(mesh: ShipMesh, room: ShipRoom, hang: Vector3) -> void:
-	var hoop := hang - Vector3.UP * (ShipLamp.CORD + LANTERN_DROP)
-	if hoop.y < room.floor_height + HEADROOM + ShipMesh.SLIVER:
+	if hang.y + LANTERN_BOX.position.y < room.floor_height + HEADROOM + ShipMesh.SLIVER:
 		return
-	var inner := LANTERN - LANTERN_WIDTH
-	RoomDressing.ring(mesh, hoop, Vector3.DOWN, inner, LANTERN, bronze, LANTERN_SIDES)
-	var lid := hoop + Vector3.UP * 0.012
-	RoomDressing.ring(mesh, lid, Vector3.UP, inner, LANTERN, bronze, LANTERN_SIDES)
-	var cap := hang - Vector3.UP * 0.05
-	RoomDressing.disc(mesh, cap, Vector3.DOWN, LANTERN * 0.5, bronze, LANTERN_SIDES)
-	var middle := LANTERN - LANTERN_WIDTH * 0.5
-	var rod := Vector2.ONE * 0.012
-	for index in 4:
-		var turn := TAU * (index + 0.5) / 4.0
-		var out := Vector3(cos(turn), 0.0, sin(turn))
-		mesh.beam(hoop + out * middle, cap + out * LANTERN * 0.45, rod, bronze, 0)
+	mesh.model(ShipModel.named(LANTERN_MODEL), Transform3D(Basis.IDENTITY, hang))
 
 
-## The lights [param room] is lit by: in the Turkish bath a pendant in each bronze
+## The lights [param room] is lit by: in the Turkish bath a pendant in each brass
 ## lantern, where RoomDressing would hang its own — as many, so its light costs no
 ## more; none, keeping RoomDressing's pendants, in the swimming bath.
 func lights(room: ShipRoom) -> Array[RoomDressing.Light]:

@@ -117,6 +117,11 @@ const LIFEBELT := Color("cf3b2b")
 const FIRE_BUCKET := Color("b5302a")
 const MIRROR := Color("a7b8bf")
 const CHART := Color("e3d8b8")
+## A galley's copper and tinned ware, a notice board's cork, a plate's blue.
+const COPPER := Color("b06a3e")
+const TIN := Color("9da3a6")
+const CORK := Color("a4794f")
+const DELFT := Color("3f5d80")
 ## A saloon's gilding, its chandeliers' crystal drops and their glass shades.
 const GILT := Color("c9a548")
 const CRYSTAL := Color("e8f0f4")
