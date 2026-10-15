@@ -18,7 +18,7 @@ import sys
 # The shared kit, tools/model_kit.py, from the repo root three folders up.
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, "..", "..", "..", "tools"))
-from model_kit import Part, box, fresh_scene, lathe, panel, save, triangles  # noqa: E402
+from model_kit import RIM_LOOP, Part, box, fresh_scene, lathe, panel, save, triangles  # noqa: E402
 
 # LinerCorridor's DOOR, DOOR_DEPTH, ARCHITRAVE and DOOR_KNOB.
 DOOR = (0.8, 2.0)
@@ -35,27 +35,40 @@ HANDLE = (1.0, 0.3)
 
 BACK = (2, -1)
 FLOOR = (1, -1)
+TOP = (1, 1)
 X = [1.0, 0.0, 0.0]
 Y = [0.0, 1.0, 0.0]
+Z = [0.0, 0.0, 1.0]
 
 
 def architrave(frame):
-    """The jambs either side and the head over them, flat on the wall."""
+    """The jambs either side and the head over them: one frame flat on the wall, mitred
+    at its corners and inked round its outside a loop in (the door's own rim inks its
+    inside), its two outer sides drawn full height and its top, over the eye, left
+    out."""
     half = DOOR[0] * 0.5
+    outer = half + ARCHITRAVE
+    top = DOOR[1] + ARCHITRAVE
+    edge = [[-outer, 0.0], [-outer, top], [outer, top], [outer, 0.0]]
+    loop = [[-outer + RIM_LOOP, 0.0], [-outer + RIM_LOOP, top - RIM_LOOP], [outer - RIM_LOOP, top - RIM_LOOP], [outer - RIM_LOOP, 0.0]]
+    opening = [[-half, 0.0], [-half, DOOR[1]], [half, DOOR[1]], [half, 0.0]]
+    for k in range(3):
+        for a, b, ink in ((edge, loop, 1.0), (loop, opening, 0.0)):
+            corners = [a[k] + [TRIM], a[k + 1] + [TRIM], b[k + 1] + [TRIM], b[k] + [TRIM]]
+            frame.face([frame.point(c) for c in corners], [ink, ink, 0.0, 0.0], Z)
     for side in (-1.0, 1.0):
-        low = [min(side * half, side * (half + ARCHITRAVE)), 0.0, 0.0]
-        high = [max(side * half, side * (half + ARCHITRAVE)), DOOR[1], TRIM]
-        inner = (0, -1) if side > 0 else (0, 1)
-        box(frame, low, high, skip=(BACK, FLOOR, inner, (1, 1)), plain=((0, int(side)),))
-    box(frame, [-half - ARCHITRAVE, DOOR[1], 0.0], [half + ARCHITRAVE, DOOR[1] + ARCHITRAVE, TRIM], skip=(BACK, (1, -1), (0, -1), (0, 1)), plain=((1, 1),))
+        x = side * outer
+        corners = [[x, 0.0, 0.0], [x, top, 0.0], [x, top, TRIM], [x, 0.0, TRIM]]
+        frame.face([frame.point(c) for c in corners], [0.0] * 4, [side, 0.0, 0.0])
 
 
 def leaf(white):
-    """The door, its face and its edges, and its four panels moulded on it."""
+    """The door, its face and its edges, and its four panels moulded on it, their
+    middles the door's own face; its top over the eye left out."""
     half = DOOR[0] * 0.5
-    box(white, [-half, 0.0, 0.0], [half, DOOR[1], DEPTH], skip=(BACK, FLOOR), plain=((0, -1), (0, 1), (1, 1)))
+    box(white, [-half, 0.0, 0.0], [half, DOOR[1], DEPTH], skip=(BACK, FLOOR, TOP), plain=((0, -1), (0, 1)))
     for x, y, w, h in PANELS:
-        panel(white, [x, y, DEPTH + 0.002], X, Y, (w, h), 0.02)
+        panel(white, [x, y, DEPTH + 0.002], X, Y, (w, h), 0.02, hollow=True)
 
 
 def furniture(brass):
@@ -64,7 +77,7 @@ def furniture(brass):
     centre = [HANDLE[1], HANDLE[0], DEPTH]
     out = ([1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0])
     profile = [(0.022, 0.0, 1.0), (0.006, 0.008, 0.0), (0.019, 0.032, 0.0), (0.0, KNOB, 0.0)]
-    lathe(brass, centre, out, profile, 6, wound=True)
+    lathe(brass, centre, out, profile, 5, wound=True)
 
 
 def main():

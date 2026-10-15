@@ -9,11 +9,11 @@ const CORRIDORS: Array[StringName] = [
 	&"B deck corridor", &"C deck corridor", &"D deck corridor", &"D deck corridor, forward"
 ]
 ## The most triangles a corridor's own dressing may add: its modelled stateroom doors
-## and sconces, C deck's, the longest, 14352.
-const BUDGET := 15000
+## and sconces, C deck's, the longest, 10252.
+const BUDGET := 11000
 ## The most triangles a corridor may stand in all, passage dressing and all: C deck's
-## draws 20494.
-const CEILING := 22000
+## draws 16356.
+const CEILING := 17500
 
 var _layout: ShipLayout
 var _rules: BrawlRules

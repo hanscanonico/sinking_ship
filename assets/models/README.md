@@ -60,12 +60,12 @@ A prop placed a hundred times is parsed once.
 | `whistle_90`, `whistle_330` | `DeckWorks.funnel`, on each funnel's fore face, the size made for it (`FUNNEL_FITTINGS`) | hero | 1228 each |
 | `waste_pipe_head_90`, `waste_pipe_head_330` | `DeckWorks.funnel`, the waste pipe's head over each funnel's top, the size made for it | furniture | 354 each |
 | `pipe_clamp_90`, `pipe_clamp_330` | `DeckWorks.funnel`, up each funnel's pipes, `CLAMP_SPACING` times its scale apart, the size made for it | wall decor | 130 each |
-| `sconce_tulip` | `LinerPublic._sconce_on` and `LinerCorridor._sconce` (`RoomDressing.SCONCE_MODEL`) | wall decor | 120 |
-| `sconce_globe` | `LinerDining._sconce`, the first-class dining saloon's | wall decor | 124 |
+| `sconce_tulip` | `LinerPublic._sconce_on` and `LinerCorridor._sconce` (`RoomDressing.SCONCE_MODEL`) | wall decor | 80 |
+| `sconce_globe` | `LinerDining._sconce`, the first-class dining saloon's | wall decor | 84 |
 | `clock` | `LinerPublic._clock`, `LinerDining._clock`, `LinerService._clock`, `LinerBath._clock` (`RoomDressing.CLOCK_MODEL`) | wall decor | 118 |
 | `capital_32`, `capital_38` | `LinerPublic._pilaster` and `LinerDining._pilaster`, by width (`RoomDressing.CAPITALS`) | wall decor | 72, 72 |
 | `pilaster_base` | `LinerPublic._pilaster` | wall decor | 32 |
-| `stateroom_door` | `LinerCorridor._stateroom_door`, every `DOOR_SPACING` down a first-class corridor | wall decor | 132 |
+| `stateroom_door` | `LinerCorridor._stateroom_door`, every `DOOR_SPACING` down a first-class corridor | wall decor | 97 |
 | `hanging_basket` | `LinerPublic._basket`, the verandah café's | furniture | 140 |
 | `iceberg_tabular` | `IcebergPlanner`, one berg a match, drawn by `Iceberg` | world | 764 |
 | `iceberg_drydock` | `IcebergPlanner`, one berg a match, drawn by `Iceberg` | world | 896 |

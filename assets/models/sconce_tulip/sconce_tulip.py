@@ -18,7 +18,7 @@ import sys
 # The shared kit, tools/model_kit.py, from the repo root three folders up.
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, "..", "..", "..", "tools"))
-from model_kit import Part, cap, fresh_scene, lathe, save, sweep, triangles  # noqa: E402
+from model_kit import Part, fresh_scene, lathe, save, slab, sweep, triangles  # noqa: E402
 
 # The back plate's half width and half height, and how far it stands off the wall.
 PLATE = (0.035, 0.07)
@@ -27,9 +27,13 @@ PLATE_OUT = 0.01
 AXIS = 0.058
 FOOT = 0.06
 SIDES = 8
+# The cup and the shade turn on fewer sides, smoothed round, a corner facing the room.
+ROUND = 6
+ROUND_PHASE = math.pi / 2.0
 # The shade's profile up its axis from the cup: (radius, height over FOOT, ink); its
-# lip at the top, RoomDressing.SCONCE_REACH - AXIS round.
-SHADE = [(0.018, 0.016, 1.0), (0.034, 0.045, 0.0), (0.042, 0.09, 1.0)]
+# lip at the top, RoomDressing.SCONCE_REACH - AXIS round, and its glowing floor a
+# little down inside it. Uninked, as the shade it replaces was: ink darkens the glass.
+SHADE = [(0.018, 0.016, 0.0), (0.034, 0.045, 0.0), (0.042, 0.09, 0.0), (0.0, 0.084, 0.0)]
 UP = ([1.0, 0.0, 0.0], [0.0, 0.0, -1.0], [0.0, 1.0, 0.0])
 
 
@@ -37,23 +41,22 @@ def plate(brass):
     """The oval plate, its edge bevelled back to the wall."""
     oval = ([PLATE[0], 0.0, 0.0], [0.0, PLATE[1], 0.0], [0.0, 0.0, 1.0])
     rows = lathe(brass, [0.0, 0.0, 0.0], oval, [(1.0, 0.0, 1.0), (0.82, PLATE_OUT, 1.0)], SIDES, phase=math.pi / SIDES)
-    cap(brass, rows[-1], [0.0, 0.0, PLATE_OUT], [0.0, 0.0, 1.0], 0.0)
+    slab(brass, rows[-1], [0.0, 0.0, 1.0])
 
 
 def arm(brass):
-    """The arm from the plate's lower half curving out and up under the cup."""
-    path = [[0.0, -0.025, PLATE_OUT - 0.002], [0.0, -0.02, 0.035], [0.0, 0.0, AXIS], [0.0, FOOT + 0.004, AXIS]]
+    """The arm from the plate's lower half sloping out and up, then straight up under
+    the cup."""
+    path = [[0.0, -0.025, PLATE_OUT - 0.002], [0.0, -0.005, AXIS], [0.0, FOOT + 0.004, AXIS]]
     sweep(brass, path, 0.007, 4, caps=False)
 
 
 def cup_and_shade(brass, glass):
-    """The turned cup on the arm and the tulip in it, open at the top, its glowing
-    floor a little down inside its lip."""
+    """The turned cup on the arm and the tulip in it, its glowing floor a little down
+    inside its lip."""
     centre = [0.0, FOOT, AXIS]
-    lathe(brass, centre, UP, [(0.008, 0.0, 1.0), (SHADE[0][0], SHADE[0][1], 1.0)], SIDES, wound=True)
-    profile = SHADE + [(SHADE[-1][0] - 0.004, SHADE[-1][1] - 0.006, 1.0)]
-    rows = lathe(glass, centre, UP, profile, SIDES, wound=True)
-    cap(glass, rows[-1], [0.0, FOOT + profile[-1][1], AXIS], [0.0, 1.0, 0.0], 0.0)
+    lathe(brass, centre, UP, [(0.008, 0.0, 1.0), (SHADE[0][0], SHADE[0][1], 1.0)], ROUND, phase=ROUND_PHASE, wound=True)
+    lathe(glass, centre, UP, SHADE, ROUND, phase=ROUND_PHASE, wound=True)
 
 
 def main():
@@ -64,8 +67,8 @@ def main():
     plate(brass)
     arm(brass)
     cup_and_shade(brass, glass)
-    for part in (brass, glass):
-        part.build(collection)
+    brass.build(collection)
+    glass.build(collection, sharp_angle=70.0)
     print("sconce_tulip: %d triangles" % triangles(collection))
     save(out)
 

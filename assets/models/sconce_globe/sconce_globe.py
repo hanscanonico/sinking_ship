@@ -19,7 +19,7 @@ import sys
 # The shared kit, tools/model_kit.py, from the repo root three folders up.
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, "..", "..", "..", "tools"))
-from model_kit import Part, cap, fresh_scene, lathe, save, stud, sweep, triangles  # noqa: E402
+from model_kit import Part, fresh_scene, lathe, save, slab, stud, sweep, triangles  # noqa: E402
 
 # The plate's half width and half height, and how far it stands off the wall.
 PLATE = (0.05, 0.09)
@@ -30,6 +30,10 @@ GLOBE = 0.035
 OUT = 0.075
 LIFT = 0.03
 SIDES = 8
+# The gallery and the globe turn on fewer sides, smoothed round, a corner facing the
+# room.
+ROUND = 6
+ROUND_PHASE = math.pi / 2.0
 UP = ([1.0, 0.0, 0.0], [0.0, 0.0, -1.0], [0.0, 1.0, 0.0])
 
 
@@ -37,14 +41,14 @@ def plate(gilt):
     """The shield: an oval plate bevelled back to the wall, a boss on its foot."""
     oval = ([PLATE[0], 0.0, 0.0], [0.0, PLATE[1], 0.0], [0.0, 0.0, 1.0])
     rows = lathe(gilt, [0.0, 0.0, 0.0], oval, [(1.0, 0.0, 1.0), (0.8, PLATE_OUT, 1.0)], SIDES, phase=math.pi / SIDES)
-    cap(gilt, rows[-1], [0.0, 0.0, PLATE_OUT], [0.0, 0.0, 1.0], 0.0)
+    slab(gilt, rows[-1], [0.0, 0.0, 1.0])
     stud(gilt, [0.0, -0.06, PLATE_OUT], [0.0, 0.0, 1.0], 0.014, 0.01, 4, math.pi / 4.0)
 
 
 def arm(gilt):
     """The arm, scrolled out from the plate's middle and up under the gallery."""
     foot = LIFT - GLOBE - 0.012
-    path = [[0.0, -0.035, PLATE_OUT - 0.002], [0.0, -0.035, 0.04], [0.0, foot - 0.02, OUT], [0.0, foot + 0.002, OUT]]
+    path = [[0.0, -0.035, PLATE_OUT - 0.002], [0.0, foot - 0.02, OUT], [0.0, foot + 0.002, OUT]]
     sweep(gilt, path, 0.007, 4, caps=False)
 
 
@@ -52,13 +56,11 @@ def gallery_and_globe(gilt, glass):
     """The gallery cupping the globe's foot, and the globe, round, its crown closed."""
     centre = [0.0, LIFT, OUT]
     low = -GLOBE - 0.012
-    lathe(gilt, centre, UP, [(0.008, low, 1.0), (0.024, -GLOBE * 0.72, 1.0)], SIDES, wound=True)
-    profile = []
-    for k in range(1, 5):
-        t = math.pi * k / 5.0
-        profile.append((GLOBE * math.sin(t), -GLOBE * math.cos(t), 0.0))
-    rows = lathe(glass, centre, UP, profile, SIDES)
-    cap(glass, rows[-1], [0.0, LIFT + GLOBE, OUT], [0.0, 1.0, 0.0], 0.0)
+    lathe(gilt, centre, UP, [(0.008, low, 1.0), (0.024, -GLOBE * 0.72, 1.0)], ROUND, phase=ROUND_PHASE, wound=True)
+    # Its foot inside the gallery, its middle, its shoulder and its crown.
+    foot = (GLOBE * math.sin(math.pi / 5.0), -GLOBE * math.cos(math.pi / 5.0), 0.0)
+    profile = [foot, (GLOBE, 0.0, 0.0), (foot[0], -foot[1], 0.0), (0.0, GLOBE, 0.0)]
+    lathe(glass, centre, UP, profile, ROUND, phase=ROUND_PHASE, wound=True)
 
 
 def main():
@@ -69,8 +71,8 @@ def main():
     plate(gilt)
     arm(gilt)
     gallery_and_globe(gilt, glass)
-    for part in (gilt, glass):
-        part.build(collection)
+    gilt.build(collection)
+    glass.build(collection, sharp_angle=70.0)
     print("sconce_globe: %d triangles" % triangles(collection))
     save(out)
 

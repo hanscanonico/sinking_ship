@@ -13,11 +13,11 @@ const SALOONS: Array[StringName] = [
 	&"third-class dining saloon, forward",
 ]
 ## The most triangles one saloon's dressing may draw, its tables aside: the first-class
-## saloon's, the worst, its capitals and sconces modelled.
-const BUDGET := 12000
+## saloon's, the worst, 9564, its capitals and sconces modelled.
+const BUDGET := 10200
 ## The most triangles a saloon may stand in all, its tables too: the first-class
-## saloon's draws 14418.
-const CEILING := 16000
+## saloon's draws 12740.
+const CEILING := 13600
 
 var _titanic: ShipLayout
 var _rules: BrawlRules
