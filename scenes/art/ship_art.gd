@@ -70,7 +70,8 @@ const LADDER_BELOW := 0.4
 const RUNG_SPACING := 0.3
 const RUNG := 0.04
 const STILE := 0.06
-## A cylinder this wide or wider is a funnel; a thinner one is a mast.
+## A cylinder this wide or wider is a funnel, a thinner one a mast, on a ship whose
+## structure does not say (is_funnel).
 const FUNNEL_FROM := 0.5
 ## A collapsed deck comes to rest with its top this far above the floor beneath — its
 ## planks' and beams' depth, lying on the floor — tipping up to this far about the
@@ -745,6 +746,16 @@ func _bar(
 	)
 
 
+## Whether [param blocker], a cylinder of [param layout], is drawn as a funnel rather
+## than a mast: one a FUNNEL fitting of her structure stands on (FunnelArt.fitting_of)
+## — the liner's masts are as stout as a small boat's funnel — or, on a ship with no
+## structure, one FUNNEL_FROM round or more.
+static func is_funnel(layout: ShipLayout, blocker: ShipBlocker) -> bool:
+	if layout.structure == null:
+		return blocker.radius >= FUNNEL_FROM
+	return FunnelArt.fitting_of(layout, blocker) != null
+
+
 ## A wall, a hatch, a funnel or a mast, by its shape and where it stands — an
 ## engine standing in a room is the room's own (RoomDressing). A blocker a deck rests
 ## on stops a plank short of its top, so the deck shows. A funnel the sinking can fell
@@ -753,12 +764,12 @@ func _blocker(mesh: ShipMesh, blocker: ShipBlocker, pieces: Dictionary) -> void:
 	var top := blocker.top - (PLANK if _space.deck_on(blocker) else 0.0)
 	if blocker.shape == ShipBlocker.Shape.CYLINDER:
 		var felled := FunnelArt.fitting_of(_space.layout, blocker)
-		if blocker.radius >= FUNNEL_FROM and felled != null:
+		if felled != null:
 			var node := _piece(pieces, true, "Funnel_%s" % felled.name, self)
 			_funnels[felled.name] = node
 			_smoke = FunnelArt.split(mesh, pieces[node], blocker, felled, top, self)
 			_smoke.reparent(node, false)
-		elif blocker.radius >= FUNNEL_FROM:
+		elif is_funnel(_space.layout, blocker):
 			_smoke = DeckWorks.funnel(mesh, blocker, top, self)
 		else:
 			DeckWorks.mast(mesh, blocker, top, self)

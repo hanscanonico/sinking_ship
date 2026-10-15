@@ -288,6 +288,22 @@ func test_the_funnel_smokes_thicker_and_belches_as_the_plunge_begins() -> void:
 	assert_gt(_of(cues, FxCue.Kind.BELCH).size(), 0, "and as its top comes down to the sea")
 
 
+## The liner's masts are as stout as a small boat's funnel: her smoke comes from a
+## funnel (ShipArt.is_funnel), never off a masthead.
+func test_the_liner_smokes_from_a_funnel_not_a_mast() -> void:
+	var titanic: ShipLayout = load("res://data/ships/titanic.tres")
+	var sim := SimFixtures.sim(1, SimFixtures.calm(), titanic)
+	var smoke := _of(_planner(sim).plan(_at(sim, 0), _at(sim, 1)), FxCue.Kind.SMOKE)
+	assert_eq(smoke.size(), 1, "her smoke, told on the first step")
+	var from: ShipBlocker = null
+	for blocker: ShipBlocker in titanic.blockers:
+		var top := Vector3(blocker.centre.x, blocker.top, blocker.centre.y)
+		if blocker.shape == ShipBlocker.Shape.CYLINDER and top.is_equal_approx(smoke[0].position):
+			from = blocker
+	assert_not_null(from, "from a cylinder's top")
+	assert_true(from != null and ShipArt.is_funnel(titanic, from), "a funnel's, not a mast's")
+
+
 func test_steam_vents_as_the_sea_reaches_the_engine_room_and_drowns_its_engine() -> void:
 	var sim := _sim()
 	var cues := _sink(_planner(sim), sim, 0, sim.schedule.end_tick(), SCAN_STRIDE)
