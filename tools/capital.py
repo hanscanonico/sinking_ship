@@ -35,20 +35,21 @@ def build(name, width, height, depth, shaft):
     bell_low = -height + neck
     # The abacus under the ceiling, the full width and depth.
     box(part, [-half, -abacus, 0.0], [half, 0.0, depth], skip=(BACK, TOP), plain=SIDES)
-    # The bell: its front a trapezoid from under the abacus in to the shaft's width.
+    # The bell: its front a trapezoid from under the abacus in to the shaft's width,
+    # uninked: the abacus's and the necking's rims ink its edges.
     face = depth - 0.012
     top_half = half - 0.02
     low_half = shaft[0] * 0.5 + 0.006
     front = [[-low_half, bell_low, face], [low_half, bell_low, face], [top_half, -abacus, face], [-top_half, -abacus, face]]
-    part.face([part.point(p) for p in front], [1.0, 1.0, 1.0, 1.0], Z)
+    part.face([part.point(p) for p in front], [0.0, 0.0, 0.0, 0.0], Z)
     for side in (-1.0, 1.0):
         ends = [[side * low_half, bell_low, 0.0], [side * low_half, bell_low, face], [side * top_half, -abacus, face], [side * top_half, -abacus, 0.0]]
-        part.face([part.point(p) for p in ends], [0.0, 1.0, 1.0, 0.0], [side, -0.3, 0.0])
-    # A volute at each upper corner, a rosette between them.
+        part.face([part.point(p) for p in ends], [0.0, 0.0, 0.0, 0.0], [side, -0.3, 0.0])
+    # A volute at each upper corner, inked round its rim, and a rosette between them.
     eye = height * 0.12
     for side in (-1.0, 1.0):
         centre = [side * (top_half - eye * 0.9), -abacus - eye * 1.05, face]
-        rows = lathe(part, centre, ([1.0, 0.0, 0.0], [0.0, 1.0, 0.0], Z), [(eye, 0.0, 1.0), (eye * 0.55, 0.012, 1.0)], 5, phase=side * 0.4)
+        rows = lathe(part, centre, ([1.0, 0.0, 0.0], [0.0, 1.0, 0.0], Z), [(eye, 0.0, 1.0), (eye * 0.55, 0.012, 0.0)], 5, phase=side * 0.4)
         cap(part, rows[-1], [centre[0], centre[1], face + 0.012], Z, 0.0)
     stud(part, [0.0, -abacus - height * 0.2, face], Z, height * 0.1, 0.014, 4, math.pi / 4.0)
     # The necking band round the shaft's head.
