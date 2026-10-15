@@ -13,11 +13,12 @@ const SALOONS: Array[StringName] = [
 	&"third-class dining saloon, forward",
 ]
 ## The most triangles one saloon's dressing may draw, its tables aside: the first-class
-## saloon's, the worst, 9564, its capitals and sconces modelled.
-const BUDGET := 10200
+## saloon's, the worst, 11616, its capitals, sconces, electroliers and sideboards
+## modelled.
+const BUDGET := 12400
 ## The most triangles a saloon may stand in all, its tables too: the first-class
-## saloon's draws 12740.
-const CEILING := 13600
+## saloon's draws 25376, its 216 chairs modelled.
+const CEILING := 27200
 
 var _titanic: ShipLayout
 var _rules: BrawlRules
@@ -190,6 +191,19 @@ func test_every_saloon_s_table_is_drawn_in_its_box_within_a_budget() -> void:
 			)
 
 
+func test_every_laid_table_seats_its_chairs_under_its_top() -> void:
+	for room_name: StringName in SALOONS:
+		for blocker: ShipBlocker in _space.furniture(_room(room_name)):
+			if LinerDining.long_table(blocker.area):
+				continue
+			var tall := blocker.top - blocker.bottom
+			var name := "%s table at %s" % [room_name, blocker.area]
+			assert_gte(tall, LinerDining.CHAIR_HEIGHT + LinerDining.CHAIR_UNDER - 0.001, name)
+			var half := minf(blocker.area.size.x, blocker.area.size.y) * 0.5
+			assert_gte(half, LinerDining.CHAIR_DEPTH, name + ": its chairs' legs inside it")
+			assert_gte(half * 2.0, LinerDining.CHAIR.x, name + ": its chairs' backs along it")
+
+
 func test_square_tables_are_laid_and_long_ones_are_mess_tables() -> void:
 	for room_name: StringName in SALOONS:
 		var third := String(room_name).begins_with("third")
@@ -201,8 +215,10 @@ func test_square_tables_are_laid_and_long_ones_are_mess_tables() -> void:
 func test_a_laid_table_seats_four_with_a_plate_each_all_inside_its_box() -> void:
 	var area := Rect2(-0.6, -0.6, 1.2, 1.2)
 	var faces := _drawn(func(mesh: ShipMesh) -> void: LinerDining.laid_table(mesh, area, 0.0, 0.75))
-	# A cloth's top and four sides, four chairs' backs, four plates.
-	assert_eq(faces.size() / 3, 10 + 4 * 8 + 4 * 4)
+	# A cloth's top and four sides, four chairs (CHAIR_MODEL), four plates.
+	var chair := ShipModel.named(LinerDining.CHAIR_MODEL).mesh.get_faces().size() / 3
+	assert_eq(faces.size() / 3, 10 + 4 * chair + 4 * 4)
+	assert_lte(chair, 60, "a chair in no more than sixty triangles")
 	var plates := 0
 	for index in range(0, faces.size(), 3):
 		for corner: Vector3 in faces.slice(index, index + 3):

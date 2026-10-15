@@ -106,6 +106,13 @@ func _rows() -> Dictionary:
 		["furniture", _hangs_flat_on_its_wall.bind(LinerService.NOTICE_BOARD, "notice board")],
 		"bath_lantern": ["furniture", _hangs_the_lantern_round_its_pendant],
 		"pool_ladder": ["furniture", _stands_the_ladder_over_the_pool_s_rim],
+		"electrolier": ["hero", _hangs_the_electrolier_round_its_pendant],
+		"sideboard_180":
+		["furniture", _is_the_sideboard_made_for.bind(_dining_sideboard(), "sideboard_180")],
+		"sideboard_64":
+		["furniture", _is_the_sideboard_made_for.bind(CabinDressing.SIDEBOARD, "sideboard_64")],
+		"dining_chair": ["wall decor", _seats_the_chair_inside_its_table_s_box],
+		"serving_hatch": ["furniture", _hangs_the_serving_hatch_in_its_wall],
 		"iceberg_tabular": [WORLD, _stands_to_the_iceberg_planner_s_measure],
 		"iceberg_drydock": [WORLD, _stands_to_the_iceberg_planner_s_measure],
 		"iceberg_wedge": [WORLD, _stands_to_the_iceberg_planner_s_measure],
@@ -720,6 +727,66 @@ func _stands_the_ladder_over_the_pool_s_rim(box: AABB) -> void:
 	assert_lte(box.end.y, high, "pool ladder: under its handles' height")
 	assert_gte(box.position.x, -LinerBath.RIM, "pool ladder: on the rim")
 	assert_almost_eq(box.size.z, LinerBath.LADDER_SPAN, 0.1, "pool ladder: its span")
+
+
+## The dining saloon's electrolier: its corona LinerDining.HOOP round its origin, its
+## gilt's underside HOOP_DROP under it, nothing over it nor more than ELECTROLIER_DEPTH
+## under it.
+func _hangs_the_electrolier_round_its_pendant(box: AABB) -> void:
+	for reach: float in [box.end.x, -box.position.x, box.end.z, -box.position.z]:
+		assert_almost_eq(reach, LinerDining.HOOP, PART, "electrolier: its corona's radius")
+	assert_lte(box.end.y, 0.001, "electrolier: nothing over where it hangs from")
+	var depth := LinerDining.ELECTROLIER_DEPTH
+	assert_almost_eq(box.position.y, -depth, PART, "electrolier: its drops")
+	assert_gte(box.position.y, -depth - 0.001, "electrolier: nothing lower")
+	var lowest := INF
+	for surface: ShipModel.Surface in ShipModel.named(LinerDining.ELECTROLIER_MODEL).surfaces:
+		if surface.paint != ShipPaints.gilt:
+			continue
+		for point in surface.points:
+			lowest = minf(lowest, point.y)
+	assert_almost_eq(lowest, -LinerDining.HOOP_DROP, PART, "electrolier: its corona's underside")
+
+
+## The dining saloon's sideboard: SIDEBOARD long, deep and tall, its gallery over that.
+static func _dining_sideboard() -> AABB:
+	var size := LinerDining.SIDEBOARD
+	var over := Vector3(size.x, size.z + LinerDining.SIDEBOARD_GALLERY, size.y)
+	return AABB(Vector3(-size.x * 0.5, 0.0, 0.0), over)
+
+
+## A sideboard [param model] made for [param wanted]'s length (CabinDressing.SIDEBOARDS),
+## filling that box off its wall as a cabin's fitting does.
+func _is_the_sideboard_made_for(box: AABB, wanted: AABB, model: String) -> void:
+	var made := RoomDressing.variant(CabinDressing.SIDEBOARDS, wanted.size.x)
+	assert_eq(made, model, "SIDEBOARDS names it")
+	_fills_a_cabin_fitting_s_box(box, wanted, model)
+	assert_almost_eq(box.size.x, wanted.size.x, PART, "%s: its length" % model)
+
+
+## A dining chair tucked under a laid table: LinerDining.CHAIR wide, square across the
+## table box's side, its back ShipMesh.SLIVER inside it, its crest CHAIR_HEIGHT over the
+## floor, its front legs CHAIR_DEPTH in.
+func _seats_the_chair_inside_its_table_s_box(box: AABB) -> void:
+	assert_almost_eq(box.size.x, LinerDining.CHAIR.x, PART, "chair: its width")
+	assert_almost_eq(box.get_center().x, 0.0, PART, "chair: square on its side")
+	assert_almost_eq(box.position.y, 0.0, 0.001, "chair: on the floor")
+	assert_almost_eq(box.end.y, LinerDining.CHAIR_HEIGHT, PART, "chair: its crest")
+	assert_almost_eq(box.end.z, -ShipMesh.SLIVER, 0.001, "chair: its back inside the box")
+	assert_almost_eq(box.position.z, -LinerDining.CHAIR_DEPTH, PART, "chair: its front legs")
+
+
+## A plain saloon's serving hatch: its opening LinerDining.HATCH each way from its
+## origin in its HATCH_RIM, its shelf HATCH_SILL under that and its brackets
+## HATCH_BRACKET under the shelf, flat on its wall.
+func _hangs_the_serving_hatch_in_its_wall(box: AABB) -> void:
+	var rim := LinerDining.HATCH + Vector2.ONE * LinerDining.HATCH_RIM
+	var sill := LinerDining.HATCH_SILL
+	var low := Vector3(-rim.x, -rim.y - sill.x - LinerDining.HATCH_BRACKET, 0.0)
+	var high := Vector3(rim.x, rim.y, sill.y)
+	assert_almost_eq(box.position, low, Vector3.ONE * PART, "serving hatch: low")
+	assert_almost_eq(box.end, high, Vector3.ONE * PART, "serving hatch: high")
+	assert_lte(box.end.z, FurnishingCheck.TOLERANCE, "serving hatch: flat on its wall")
 
 
 func test_every_world_model_is_one_the_iceberg_planner_can_draw() -> void:

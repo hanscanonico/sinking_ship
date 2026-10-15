@@ -77,6 +77,10 @@ A prop placed a hundred times is parsed once.
 | `notice_board` | `LinerService._notice_board`, a gymnasium's and an office's wall | furniture | 212 |
 | `bath_lantern` | `LinerBath._lantern`, round each pendant of the Turkish bath | furniture | 376 |
 | `pool_ladder` | `LinerBath.pool`, over the swimming bath's rim at its aft end | furniture | 368 |
+| `electrolier` | `LinerDining._chandelier`, round each pendant of the first-class dining saloon | hero | 282 |
+| `sideboard_180`, `sideboard_64` | `LinerDining._sideboard` and `CabinDressing._sideboard`, by length (`CabinDressing.SIDEBOARDS`) | furniture | 288, 304 |
+| `dining_chair` | `LinerDining.laid_table`, one under each edge of a laid table | wall decor | 57 |
+| `serving_hatch` | `LinerDining._hatch`, a plain dining saloon's wall nearest the galley | furniture | 120 |
 | `iceberg_tabular` | `IcebergPlanner`, one berg a match, drawn by `Iceberg` | world | 764 |
 | `iceberg_drydock` | `IcebergPlanner`, one berg a match, drawn by `Iceberg` | world | 896 |
 | `iceberg_wedge` | `IcebergPlanner`, one berg a match, drawn by `Iceberg` | world | 596 |
@@ -249,6 +253,26 @@ count as many times as it is placed. Each model belongs to a class with a ceilin
     aft end, x out over the water; its handles `LinerBath.LADDER_SPAN` apart rise out
     of the water `HANDLE_BAR` in, bend over `HANDLE` over the rim and come down onto it
     `HANDLE_BACK` back; its box is `LADDER`.
+  - `electrolier`: where the first-class dining saloon's pendant hangs from under the
+    ceiling, y up; nothing of it over that. Its corona is `LinerDining.HOOP` round, its
+    gilt's underside `HOOP_DROP` under the origin, at the pendant's globe's height, and
+    its drops hang no more than `ELECTROLIER_DEPTH` under it. Its gilt and its shades'
+    `sconce_glass` are swapped for the saloon's.
+  - `sideboard_NNN`: on the floor at the wall's face under its middle, x along the wall,
+    z out of it, placed with `Wall.place()`; its top NNN hundredths of a metre long, one
+    of `CabinDressing.SIDEBOARDS`, picked by `variant()`. The dining saloon's is
+    `LinerDining.SIDEBOARD` long, deep and tall, its gallery `SIDEBOARD_GALLERY` over
+    its top; the saloon's fills `CabinDressing.SIDEBOARD`. No deeper than a wall
+    fitting. The two lengths share `tools/sideboard.py`.
+  - `dining_chair`: on the floor at the middle of a laid table box's side, x along it, z
+    out of the table; all of it inside the box, its back's face `ShipMesh.SLIVER` in,
+    `LinerDining.CHAIR` wide, its crest `CHAIR_HEIGHT` up, `CHAIR_UNDER` under the
+    table's top, its front legs `CHAIR_DEPTH` in. What the cloth hides is not drawn.
+  - `serving_hatch`: on the wall's face at the opening's middle, `LinerDining.HATCH_HEIGHT`
+    over the floor, x along the wall, z out of it; the opening `HATCH` each way, its
+    architrave `HATCH_RIM` round it, its shelf `HATCH_SILL` thick and out under that,
+    its brackets `HATCH_BRACKET` under the shelf. Its shutters are painted `teak`,
+    swapped for the saloon's shutter paint.
 - **Paints.** One material per paint, named exactly after a `ShipPaints` entry
   (`white`, `teak`, `canvas`, `rope`, `dark`, `steel`, `brass`…). The material's
   name is all the game reads: the colour comes from the paint and the ship shader's

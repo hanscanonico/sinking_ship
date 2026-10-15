@@ -31,9 +31,11 @@ const PLAIN_PITCH := 4.0
 const PILASTER := Vector2(0.3, 0.1)
 const CAPITAL := Vector2(0.38, 0.115)
 const CAPITAL_HEIGHT := 0.18
-## A sideboard flat on its wall: its length, its depth, its height; and the shortest
-## wall run that takes one.
+## A sideboard flat on its wall: its length, its depth, its height; how high its
+## gallery stands over its top; and the shortest wall run that takes one. Its model is
+## CabinDressing.SIDEBOARDS' made for its length.
 const SIDEBOARD := Vector3(1.8, 0.115, 1.0)
+const SIDEBOARD_GALLERY := 0.12
 const SIDEBOARD_RUN := 3.0
 ## A sconce's height over the floor, the globe's half size and how far out it stands.
 const SCONCE_HEIGHT := 1.6
@@ -50,13 +52,23 @@ const COFFER_WIDTH := 0.2
 ## How high over its floor what hangs overhead keeps, where the ceiling lets it: over
 ## a head on a table (HEADROOM over a table's top).
 const CLEAR_HIGH := RoomDressing.HEADROOM + 0.75
-## A chandelier round a pendant: its hoop's radius and width, how many drops on it.
+## The electrolier round a pendant (ELECTROLIER_MODEL), its origin where the pendant
+## hangs from: its corona HOOP round, its underside HOOP_DROP under the origin, at the
+## globe's height; nothing of it more than ELECTROLIER_DEPTH under the origin.
+const ELECTROLIER_MODEL := "electrolier"
 const HOOP := 0.42
-const HOOP_WIDTH := 0.07
-const DROPS := 6
-## A serving hatch: its half size and its middle's height over the floor.
+const HOOP_DROP := ShipLamp.CORD + 0.03
+const ELECTROLIER_DEPTH := 0.4
+## A serving hatch (HATCH_MODEL), its origin on the wall's face at its opening's
+## middle: the opening's half size and its middle's height over the floor; the
+## architrave round it; its shelf's thickness and depth under that; how far under the
+## shelf its brackets reach.
+const HATCH_MODEL := "serving_hatch"
 const HATCH := Vector2(0.55, 0.35)
 const HATCH_HEIGHT := 1.3
+const HATCH_RIM := 0.06
+const HATCH_SILL := Vector2(0.03, 0.06)
+const HATCH_BRACKET := 0.1
 ## The clock's middle's height over the floor and its radius.
 const CLOCK_HEIGHT := 2.05
 const CLOCK := 0.16
@@ -67,11 +79,16 @@ const CLOCK := 0.16
 const CLOTH_IN := 0.035
 const HEM := 0.15
 const LONG := 2.0
-## A chair tucked under a laid table's edge: its back's width and depth, how far under
-## the table's top it stops, and the plate before it — its radius, how far in from the
-## edge its middle stands, how far over the cloth it lies (no more than SETTING).
+## A chair tucked under a laid table's edge (CHAIR_MODEL), its origin on the floor at
+## the middle of the table box's side: its back's width and depth, its crest's height
+## over the floor, how far under the table's top that stops, and how far into the box
+## its front legs stand; and the plate before it — its radius, how far in from the edge
+## its middle stands, how far over the cloth it lies (no more than SETTING).
+const CHAIR_MODEL := "dining_chair"
 const CHAIR := Vector2(0.44, 0.03)
+const CHAIR_HEIGHT := 0.72
 const CHAIR_UNDER := 0.03
+const CHAIR_DEPTH := 0.42
 const PLATE := 0.11
 const PLATE_IN := 0.26
 const SETTING := 0.004
@@ -80,8 +97,9 @@ const SETTING := 0.004
 const BOARD := 0.05
 const BENCH := Vector2(0.28, 0.45)
 const APRON_FOOT := 0.53
-## The most triangles one table and what stands in its box may draw.
-const TABLE_BUDGET := 60
+## The most triangles one table and what stands in its box may draw: a laid table's
+## cloth, four chairs and four plates.
+const TABLE_BUDGET := 254
 ## How far along a wall either side of a pane a piece keeps clear of it.
 const GLASS_CLEAR := CabinDressing.GLASS_CLEAR
 
@@ -174,21 +192,20 @@ static func long_table(area: Rect2) -> bool:
 
 ## A laid table over [param area] from [param bottom] to [param top]: a white cloth
 ## CLOTH_IN inside its sides from HEM over the floor to its top, under each edge a dark
-## chair tucked in — its back flush with the box's side, from the floor to CHAIR_UNDER
-## under the top — and before each chair a plate lying on the cloth.
+## chair tucked in (CHAIR_MODEL) — its back flush with the box's side, its crest
+## CHAIR_UNDER under the top of a table as tall as the saloons' — and before each chair
+## a plate lying on the cloth.
 static func laid_table(mesh: ShipMesh, area: Rect2, bottom: float, top: float) -> void:
 	var cloth := area.grow(-CLOTH_IN)
 	_box(mesh, cloth, bottom + HEM, top, ShipPaints.linen, ShipMesh.SIDES | ShipMesh.TOP)
 	var middle := area.get_center()
 	var half := area.size * 0.5
+	var chair := ShipModel.named(CHAIR_MODEL)
 	for side: Vector2 in [Vector2.RIGHT, Vector2.LEFT, Vector2.DOWN, Vector2.UP]:
 		var reach := absf(side.dot(half))
-		var along := Vector2(absf(side.y), absf(side.x))
-		var edge := middle + side * (reach - ShipMesh.SLIVER - CHAIR.y * 0.5)
-		var size := along * CHAIR.x + Vector2(absf(side.x), absf(side.y)) * CHAIR.y
-		var back := Rect2(edge - size * 0.5, size)
-		var faces := ShipMesh.TOP | _facing(side) | _facing(along) | _facing(-along)
-		_box(mesh, back, bottom, top - CHAIR_UNDER, ShipPaints.frame, faces)
+		var edge := middle + side * reach
+		var out := RoomDressing.facing(Vector3(side.x, 0.0, side.y))
+		mesh.model(chair, Transform3D(out, Vector3(edge.x, bottom, edge.y)))
 		var plate := middle + side * (reach - PLATE_IN)
 		_plate(mesh, Vector3(plate.x, top + SETTING, plate.y), PLATE, china)
 
@@ -399,20 +416,12 @@ func _sconce(mesh: ShipMesh, wall: RoomDressing.Wall, along: float) -> void:
 	mesh.model(ShipModel.named(SCONCE_MODEL), plate, paints)
 
 
-## A sideboard flat on [param wall] at [param along]: a white cabinet of three doors
-## under a gilt top.
+## A sideboard flat on [param wall] at [param along] (CabinDressing.SIDEBOARDS'
+## made for SIDEBOARD's length): three cupboard doors under three drawers between
+## carved stiles, under a mahogany top with a brass gallery rail along its back.
 func _sideboard(mesh: ShipMesh, wall: RoomDressing.Wall, along: float) -> void:
-	var half := SIDEBOARD.x * 0.5
-	var body := wall.rect(along - half, along + half, 0.0, SIDEBOARD.y - 0.01)
-	RoomDressing.block(mesh, body, wall.floor, wall.floor + SIDEBOARD.z - 0.04, white)
-	var top := wall.rect(along - half, along + half, 0.0, SIDEBOARD.y)
-	var lid := wall.floor + SIDEBOARD.z
-	RoomDressing.block(mesh, top, lid - 0.04, lid, gilt)
-	for door in 3:
-		var at := along + (door - 1) * SIDEBOARD.x / 3.0
-		var face := wall.at(at, (SIDEBOARD.z - 0.04) * 0.5, SIDEBOARD.y - 0.005)
-		var size := Vector2(SIDEBOARD.x / 6.0 - 0.04, (SIDEBOARD.z - 0.04) * 0.5 - 0.06)
-		RoomDressing.panel(mesh, face, wall.right, size, wall.normal, ShipPaints.teak, 0)
+	var sideboard := RoomDressing.variant(CabinDressing.SIDEBOARDS, SIDEBOARD.x)
+	mesh.model(ShipModel.named(sideboard), wall.place(wall.at(along, 0.0)))
 
 
 ## A carpet over [param room]'s floor, wall to wall, unless a stair stands in it: a
@@ -507,23 +516,12 @@ func _hangs(room: ShipRoom) -> Array[Vector3]:
 	return found
 
 
-## A chandelier round the pendant hung from [param hang]: a gilt hoop at its globe's
-## height on three chains from the ceiling, glass drops standing round it.
+## An electrolier round the pendant hung from [param hang] (ELECTROLIER_MODEL): a
+## ceiling rose, three rods down from it to a gilt corona at the globe's height, tulip
+## shades of glowing glass standing on the corona and crystal drops under it.
 func _chandelier(mesh: ShipMesh, hang: Vector3) -> void:
-	var hoop := hang - Vector3.UP * (ShipLamp.CORD + 0.03)
-	var inner := HOOP - HOOP_WIDTH
-	RoomDressing.ring(mesh, hoop, Vector3.DOWN, inner, HOOP, gilt, DROPS)
-	RoomDressing.ring(mesh, hoop + Vector3.UP * 0.012, Vector3.UP, inner, HOOP, gilt, DROPS)
-	var middle := HOOP - HOOP_WIDTH * 0.5
-	for drop in DROPS:
-		var turn := TAU * (drop + 0.5) / DROPS
-		var out := Vector3(cos(turn), 0.0, sin(turn)) * middle
-		var place := Transform3D(Basis.IDENTITY, hoop + out + Vector3.UP * 0.07)
-		mesh.turned_box(place, Vector3(0.05, 0.11, 0.05), sconce_glass, 0)
-	for chain in 3:
-		var turn := TAU * chain / 3.0
-		var out := Vector3(cos(turn), 0.0, sin(turn))
-		mesh.beam(hoop + out * middle, hang + out * 0.12, Vector2.ONE * 0.012, gilt, 0)
+	var paints := {ShipPaints.gilt: gilt, ShipPaints.sconce_glass: sconce_glass}
+	mesh.model(ShipModel.named(ELECTROLIER_MODEL), Transform3D(Basis.IDENTITY, hang), paints)
 
 
 ## A plain saloon's own: a serving hatch on the wall nearest the galley, a clock on
@@ -582,19 +580,12 @@ static func _bay_by_middle(wall: RoomDressing.Wall) -> float:
 	return best
 
 
-## A serving hatch in [param wall] at [param along]: a frame round two shutters
-## drawn down, over a narrow sill.
+## A serving hatch in [param wall] at [param along] (HATCH_MODEL): two panelled
+## shutters drawn down in a mitred architrave under a moulded head, over a serving
+## shelf on two brackets.
 func _hatch(mesh: ShipMesh, wall: RoomDressing.Wall, along: float) -> void:
-	var centre := wall.at(along, HATCH_HEIGHT, 0.01)
-	var rim := HATCH + Vector2.ONE * 0.06
-	RoomDressing.panel(mesh, centre, wall.right, rim, wall.normal, ShipPaints.frame, 0)
-	for half: float in [-1.0, 1.0]:
-		var at := centre + wall.normal * 0.02 + wall.right * half * HATCH.x * 0.5
-		var size := Vector2(HATCH.x * 0.5 - 0.02, HATCH.y)
-		RoomDressing.panel(mesh, at, wall.right, size, wall.normal, shutter, 0)
-	var sill := wall.rect(along - rim.x, along + rim.x, 0.0, 0.05)
-	var low := wall.floor + HATCH_HEIGHT - rim.y
-	RoomDressing.block(mesh, sill, low - 0.03, low, ShipPaints.frame)
+	var face := wall.place(wall.at(along, HATCH_HEIGHT))
+	mesh.model(ShipModel.named(HATCH_MODEL), face, {ShipPaints.teak: shutter})
 
 
 ## A clock flat on [param wall] at [param along] (RoomDressing.CLOCK_MODEL): a white

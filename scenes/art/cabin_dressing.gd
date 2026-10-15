@@ -31,6 +31,11 @@ const COAT := AABB(Vector3(-0.245, 0.98, 0.0), Vector3(0.49, 0.77, 0.095))
 ## its cabin's colour; and each one's box but for its length.
 const FOLDED_BERTHS := {1.9: "folded_berth_190"}
 const FOLDED_BERTH := AABB(Vector3(0.0, 0.41, 0.0), Vector3(0.0, 1.22, 0.1))
+## The sideboards a saloon and a dining saloon stand, by the length along its wall of
+## the top each is made for (RoomDressing.variant()), never one model stretched; and the
+## box over all of the saloon's, a decanter on its top.
+const SIDEBOARDS := {0.64: "sideboard_64", 1.8: "sideboard_180"}
+const SIDEBOARD := AABB(Vector3(-0.32, 0.0, 0.0), Vector3(0.64, 0.99, 0.11))
 
 var _space: ShipSpace
 
@@ -245,25 +250,9 @@ func saloon(mesh: ShipMesh, room: ShipRoom, glass: Array[Array]) -> void:
 		picture(mesh, longest, along)
 
 
-## A sideboard flat on [param wall] at [param along]: a cabinet of two doors under a
-## marble top, a decanter and a pair of glasses on it.
+## A sideboard flat on [param wall] at [param along] (SIDEBOARDS' made for
+## SIDEBOARD's length): two cupboard doors under two drawers under a marble top, a
+## brass gallery rail along its back, a decanter and a pair of glasses on it.
 func _sideboard(mesh: ShipMesh, wall: RoomDressing.Wall, along: float) -> void:
-	var floor := wall.floor
-	var body := wall.rect(along - 0.3, along + 0.3, 0.0, 0.1)
-	RoomDressing.block(mesh, body, floor, floor + 0.75, ShipPaints.frame, ShipMesh.RIM_ALL)
-	for side: float in [-1.0, 1.0]:
-		var door := wall.at(along + side * 0.14, 0.4, 0.102)
-		RoomDressing.panel(
-			mesh, door, wall.right, Vector2(0.12, 0.26), wall.normal, ShipPaints.teak
-		)
-		var knob := wall.place(door + wall.normal * 0.01 - wall.right * side * 0.09)
-		mesh.turned_box(knob, Vector3.ONE * 0.025, ShipPaints.brass, 0)
-	var top := wall.rect(along - 0.32, along + 0.32, 0.0, 0.11)
-	RoomDressing.block(mesh, top, floor + 0.75, floor + 0.78, ShipPaints.enamel)
-	var decanter := wall.at(along - 0.12, 0.78, 0.06)
-	var spot := Vector2(decanter.x, decanter.z)
-	mesh.cylinder(spot, 0.045, decanter.y, decanter.y + 0.15, 8, ShipPaints.mirror)
-	mesh.cylinder(spot, 0.015, decanter.y + 0.15, decanter.y + 0.21, 6, ShipPaints.mirror)
-	for index in 2:
-		var cup := wall.at(along + 0.1 + index * 0.1, 0.78, 0.06)
-		mesh.cylinder(Vector2(cup.x, cup.z), 0.025, cup.y, cup.y + 0.08, 6, ShipPaints.mirror)
+	var sideboard := RoomDressing.variant(SIDEBOARDS, SIDEBOARD.size.x)
+	mesh.model(ShipModel.named(sideboard), wall.place(wall.at(along, 0.0)))
