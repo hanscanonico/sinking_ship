@@ -16,6 +16,9 @@ const BEFORE := {
 	&"post office": 0,
 }
 const TRAWLER_GALLEY_BEFORE := 440
+## The most faces a room of service may stand in all, its modelled pans, pots, ladles,
+## dressers, wall bars and mail sacks too: her galley, the worst, draws 14554.
+const CEILING := 15600
 
 var _rules: BrawlRules
 var _titanic: ShipLayout
@@ -103,6 +106,18 @@ func test_the_trawler_s_galley_is_dressed_more_than_it_was() -> void:
 	assert_gt(count, TRAWLER_GALLEY_BEFORE)
 
 
+func test_each_room_of_service_stands_within_its_ceiling() -> void:
+	var ships: Array[Array] = [[_titanic, _faces], [_trawler, _trawler_faces]]
+	for ship: Array in ships:
+		var layout: ShipLayout = ship[0]
+		var space := ShipSpace.new(layout)
+		for room: ShipRoom in layout.rooms:
+			if RoomDressing.kind_of(space, room) != RoomDressing.Kind.SERVICE:
+				continue
+			var count := _in(space, ship[1], room).size()
+			assert_lt(count, CEILING, "%s: %s" % [layout.resource_path, room.name])
+
+
 func test_a_galley_hangs_pans_overhead_along_each_full_wall() -> void:
 	var galleys: Array[Array] = [[_titanic, _faces], [_trawler, _trawler_faces]]
 	for galley: Array in galleys:
@@ -144,3 +159,15 @@ func test_away_from_its_walls_a_room_of_service_is_dressed_only_overhead_or_unde
 				if height > 0.01 and height < RoomDressing.HEADROOM - ShipMesh.SLIVER:
 					stray += 1
 			assert_eq(stray, 0, String(room.name))
+
+
+func test_a_fitting_is_the_largest_variant_the_room_allows_and_none_when_none_fits() -> void:
+	assert_eq(LinerService._fitting(LinerService.PANS, 0.2), "copper_pan_120")
+	assert_eq(LinerService._fitting(LinerService.PANS, 0.12), "copper_pan_120")
+	assert_eq(LinerService._fitting(LinerService.PANS, 0.1), "copper_pan_75")
+	assert_eq(LinerService._fitting(LinerService.PANS, 0.075), "copper_pan_75")
+	# Shrunk under a low ceiling once; now left out rather than overhang it.
+	assert_eq(LinerService._fitting(LinerService.PANS, 0.06), "")
+	assert_eq(LinerService._fitting(LinerService.LADLES, 0.2), "")
+	assert_eq(LinerService._fitting(LinerService.DRESSERS, 1.6), "dresser_140")
+	assert_eq(LinerService._fitting(LinerService.DRESSERS, 1.0), "")

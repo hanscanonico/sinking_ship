@@ -67,6 +67,16 @@ A prop placed a hundred times is parsed once.
 | `pilaster_base` | `LinerPublic._pilaster` | wall decor | 32 |
 | `stateroom_door` | `LinerCorridor._stateroom_door`, every `DOOR_SPACING` down a first-class corridor | wall decor | 97 |
 | `hanging_basket` | `LinerPublic._basket`, the verandah café's | furniture | 140 |
+| `copper_pan_120`, `copper_pan_75` | `LinerService._pan_rack`, a galley's rack, by the room under its bar (`PANS`) | furniture | 70 each |
+| `stockpot` | `LinerService._pan_rack`, a galley's rack | furniture | 140 |
+| `ladle_35`, `ladle_22` | `LinerService._pan_rack`, a galley's rack, by the room under its bar (`LADLES`) | furniture | 80 each |
+| `dresser_180`, `dresser_140` | `LinerService._dresser`, by the width of its wall's stretch (`DRESSERS`) | furniture | 340, 292 |
+| `wall_bars` | `LinerService._wall_bars`, a gymnasium's wall, bay by bay | furniture | 268 |
+| `mail_sack` | `LinerService._mail_sacks`, a post office's longest wall | furniture | 210 |
+| `plaque` | `LinerService._plaque`, a gymnasium's wall | furniture | 58 |
+| `notice_board` | `LinerService._notice_board`, a gymnasium's and an office's wall | furniture | 212 |
+| `bath_lantern` | `LinerBath._lantern`, round each pendant of the Turkish bath | furniture | 376 |
+| `pool_ladder` | `LinerBath.pool`, over the swimming bath's rim at its aft end | furniture | 368 |
 | `electrolier` | `LinerDining._chandelier`, round each pendant of the first-class dining saloon | hero | 282 |
 | `sideboard_180`, `sideboard_64` | `LinerDining._sideboard` and `CabinDressing._sideboard`, by length (`CabinDressing.SIDEBOARDS`) | furniture | 288, 304 |
 | `dining_chair` | `LinerDining.laid_table`, one under each edge of a laid table | wall decor | 57 |
@@ -216,6 +226,33 @@ count as many times as it is placed. Each model belongs to a class with a ceilin
     round hanging `BASKET_DROP` to its rim and `BASKET_DEPTH` more to its foot, its
     leaves no more than `BASKET_SPREAD` round. Its wicker is painted `rope` and its
     leaves `canvas`, swapped for the café's `WICKER` and `FOLIAGE`.
+  - `copper_pan_NNN`, `stockpot`, `ladle_NN`: on the galley rack's bar's axis at its
+    underside, where each hangs from, x along the wall, z out of it. A pan is made for
+    a radius NNN thousandths of a metre, one of `LinerService.PANS`, its rim's top
+    `PAN_HANDLE` under the bar and its foot two radii under that; a ladle hangs NN
+    hundredths of a metre to its bowl's foot, one of `LADLES`; `RoomDressing.variant()`
+    picks the largest no bigger than the room under the bar, and none hangs where even
+    the least is too big. The stockpot's box is `STOCKPOT`. The pans share
+    `tools/copper_pan.py`, the ladles `tools/ladle.py`.
+  - `dresser_NNN`: on the floor at the wall's face under its middle, x along the wall,
+    z out of it; NNN hundredths of a metre wide, one of `LinerService.DRESSERS`, from
+    `DRESSER.x` to `DRESSER.y` over the floor and no deeper than `FLAT`; `variant()`
+    picks the widest the stretch allows. The two share `tools/dresser.py`.
+  - `wall_bars`: one bay, on the floor at the wall's face under its middle, placed
+    once a bay; its box is `LinerService.WALL_BARS`, no deeper than `BARS`.
+  - `mail_sack`: on the wall's face under its hook at `RoomDressing.HEADROOM`, nothing
+    under it, turned by `RoomDressing.facing()` so its lettering is never mirrored; its
+    box is `LinerService.MAIL_SACK`.
+  - `plaque`, `notice_board`: on the wall's face at the fitting's middle,
+    `LinerService.PLAQUE_HEIGHT` and `NOTICE_HEIGHT` over the floor, facing +z; their
+    boxes are `PLAQUE` and `NOTICE_BOARD`, flat to the wall.
+  - `bath_lantern`: where the Turkish bath's pendant hangs under the ceiling, nothing
+    of it over that; its band about the globe `LinerBath.LANTERN` round, its foot
+    `LANTERN_DROP` under the globe's middle; its box is `LANTERN_BOX`.
+  - `pool_ladder`: on the pool's rim's top over its inner edge at the middle of its
+    aft end, x out over the water; its handles `LinerBath.LADDER_SPAN` apart rise out
+    of the water `HANDLE_BAR` in, bend over `HANDLE` over the rim and come down onto it
+    `HANDLE_BACK` back; its box is `LADDER`.
   - `electrolier`: where the first-class dining saloon's pendant hangs from under the
     ceiling, y up; nothing of it over that. Its corona is `LinerDining.HOOP` round, its
     gilt's underside `HOOP_DROP` under the origin, at the pendant's globe's height, and

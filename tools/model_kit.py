@@ -44,6 +44,11 @@ PAINTS = {
     "stowed": "ab8656",
     "mast": "c8ad7f",
     "funnel": "d9a44a",
+    "sacking": "bda478",
+    "copper": "b06a3e",
+    "tin": "9da3a6",
+    "cork": "a4794f",
+    "delft": "3f5d80",
 }
 
 

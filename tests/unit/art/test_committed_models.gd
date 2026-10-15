@@ -91,6 +91,21 @@ func _rows() -> Dictionary:
 		"pilaster_base": ["wall decor", _stands_the_pilaster_base_on_the_floor],
 		"stateroom_door": ["wall decor", _stands_the_stateroom_door_in_its_architrave],
 		"hanging_basket": ["furniture", _hangs_the_basket_from_its_hook],
+		"copper_pan_120": ["furniture", _is_the_pan_made_for.bind(0.12, "copper_pan_120")],
+		"copper_pan_75": ["furniture", _is_the_pan_made_for.bind(0.075, "copper_pan_75")],
+		"stockpot": ["furniture", _hangs_the_stockpot_from_the_rack],
+		"ladle_35": ["furniture", _is_the_ladle_made_for.bind(0.35, "ladle_35")],
+		"ladle_22": ["furniture", _is_the_ladle_made_for.bind(0.22, "ladle_22")],
+		"dresser_180": ["furniture", _is_the_dresser_made_for.bind(1.8, "dresser_180")],
+		"dresser_140": ["furniture", _is_the_dresser_made_for.bind(1.4, "dresser_140")],
+		"wall_bars":
+		["furniture", _fills_its_box_off_its_wall.bind(LinerService.WALL_BARS, "wall bars")],
+		"mail_sack": ["furniture", _hangs_the_mail_sack_over_headroom],
+		"plaque": ["furniture", _hangs_flat_on_its_wall.bind(LinerService.PLAQUE, "plaque")],
+		"notice_board":
+		["furniture", _hangs_flat_on_its_wall.bind(LinerService.NOTICE_BOARD, "notice board")],
+		"bath_lantern": ["furniture", _hangs_the_lantern_round_its_pendant],
+		"pool_ladder": ["furniture", _stands_the_ladder_over_the_pool_s_rim],
 		"electrolier": ["hero", _hangs_the_electrolier_round_its_pendant],
 		"sideboard_180":
 		["furniture", _is_the_sideboard_made_for.bind(_dining_sideboard(), "sideboard_180")],
@@ -640,6 +655,78 @@ func _hangs_the_basket_from_its_hook(box: AABB) -> void:
 	assert_gte(box.position.y, foot - 0.001, "basket: nothing under its foot")
 	for reach: float in [box.end.x, -box.position.x, box.end.z, -box.position.z]:
 		assert_between(reach, LinerPublic.BASKET, LinerPublic.BASKET_SPREAD, "basket: round")
+
+
+## A copper pan [param model] made for [param radius] (LinerService.PANS): that round,
+## square across its middle, hanging from the bar no further than its handle and its
+## breadth.
+func _is_the_pan_made_for(box: AABB, radius: float, model: String) -> void:
+	assert_eq(LinerService.PANS.get(radius), model, "PANS names it")
+	assert_almost_eq(box.size.x, radius * 2.0, PART, "%s: its radius" % model)
+	assert_almost_eq(box.get_center().x, 0.0, PART, "%s: square across it" % model)
+	assert_almost_eq(box.end.y, 0.0, PART, "%s: from the bar" % model)
+	var drop := LinerService.PAN_HANDLE + radius * 2.0
+	assert_almost_eq(box.position.y, -drop, TOLERANCE, "%s: its foot" % model)
+	assert_gte(box.position.y, -drop - 0.001, "%s: no further down" % model)
+
+
+func _hangs_the_stockpot_from_the_rack(box: AABB) -> void:
+	_fills_its_box(box, LinerService.STOCKPOT, "stockpot")
+	assert_lte(box.end.y, 0.0, "stockpot: under the bar")
+
+
+## A ladle [param model] made to hang [param drop] (LinerService.LADLES): its bowl's
+## foot that far under the bar, square across its middle.
+func _is_the_ladle_made_for(box: AABB, drop: float, model: String) -> void:
+	assert_eq(LinerService.LADLES.get(drop), model, "LADLES names it")
+	assert_almost_eq(box.position.y, -drop, PART, "%s: its foot" % model)
+	assert_gte(box.position.y, -drop - 0.001, "%s: no further down" % model)
+	assert_almost_eq(box.end.y, 0.0, PART, "%s: from the bar" % model)
+	assert_almost_eq(box.get_center().x, 0.0, PART, "%s: square across it" % model)
+
+
+## A dresser [param model] made [param width] wide (LinerService.DRESSERS): that wide,
+## square across its middle, from DRESSER.x to DRESSER.y over the floor, flat to its
+## wall.
+func _is_the_dresser_made_for(box: AABB, width: float, model: String) -> void:
+	assert_eq(LinerService.DRESSERS.get(width), model, "DRESSERS names it")
+	assert_almost_eq(box.size.x, width, PART, "%s: its width" % model)
+	assert_almost_eq(box.get_center().x, 0.0, PART, "%s: square across it" % model)
+	assert_almost_eq(box.position.y, LinerService.DRESSER.x, PART, "%s: its foot" % model)
+	assert_almost_eq(box.end.y, LinerService.DRESSER.y, PART, "%s: its top" % model)
+	assert_gte(box.position.z, -0.001, "%s: nothing in its wall" % model)
+	assert_lte(box.end.z, LinerService.FLAT + 0.001, "%s: flat to its wall" % model)
+
+
+func _hangs_the_mail_sack_over_headroom(box: AABB) -> void:
+	_fills_its_box_off_its_wall(box, LinerService.MAIL_SACK, "mail sack")
+	assert_gte(box.position.y, 0.0, "mail sack: nothing under HEADROOM")
+
+
+## A fitting flat on its wall round its middle: its box, and under HEADROOM no further
+## out than a furnishing may stand.
+func _hangs_flat_on_its_wall(box: AABB, wanted: AABB, name: String) -> void:
+	_fills_its_box_off_its_wall(box, wanted, name)
+	assert_lte(box.end.z, FurnishingCheck.TOLERANCE, name + ": flat to its wall")
+
+
+## The bath's lantern: round its pendant's cord, LinerBath.LANTERN round, nothing over
+## where it hangs, its band's foot LANTERN_DROP under the globe's middle.
+func _hangs_the_lantern_round_its_pendant(box: AABB) -> void:
+	_fills_its_box(box, LinerBath.LANTERN_BOX, "lantern")
+	assert_lte(box.end.y, 0.001, "lantern: nothing over where it hangs")
+	assert_almost_eq(box.get_center() * Vector3(1, 0, 1), Vector3.ZERO, Vector3.ONE * 0.001)
+	assert_almost_eq(box.size.x * 0.5, LinerBath.LANTERN, TOLERANCE, "lantern: its band")
+
+
+## The pool's ladder: its box, its handles no higher over the rim than a body on it
+## steps over, nothing of it behind the rim's back edge.
+func _stands_the_ladder_over_the_pool_s_rim(box: AABB) -> void:
+	_fills_its_box(box, LinerBath.LADDER, "pool ladder")
+	var high := LinerBath.HANDLE + LinerBath.HANDLE_BAR
+	assert_lte(box.end.y, high, "pool ladder: under its handles' height")
+	assert_gte(box.position.x, -LinerBath.RIM, "pool ladder: on the rim")
+	assert_almost_eq(box.size.z, LinerBath.LADDER_SPAN, 0.1, "pool ladder: its span")
 
 
 ## The dining saloon's electrolier: its corona LinerDining.HOOP round its origin, its
