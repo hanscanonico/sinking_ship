@@ -1,6 +1,7 @@
 extends GutTest
 ## LinerPublic on the Titanic: her public rooms and her grand staircase's landings
-## each dressed by name — and nothing they draw stands in a body's way.
+## each dressed by name. That nothing they draw stands in a body's way is
+## test_dressing_clear's.
 
 const FurnishingCheck := preload("res://tools/furnishing_check.gd")
 const RunMatch := preload("res://tools/run_match.gd")
@@ -96,11 +97,6 @@ func _faces_near(room_name: StringName, at: Vector2, reach: float, low: float, h
 		if height >= low and height <= high:
 			count += 1
 	return count
-
-
-func test_nothing_the_liner_s_rooms_draw_stands_in_a_body_s_way() -> void:
-	assert_gt(_faces.size(), 0)
-	assert_eq(FurnishingCheck.intrusions(_layout, _rules, _faces), PackedStringArray())
 
 
 ## A room's own dressing within BUDGET: its modelled chandeliers are held to their

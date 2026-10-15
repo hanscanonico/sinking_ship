@@ -1,7 +1,7 @@
 extends GutTest
 ## LinerCorridor on the Titanic: her first-class corridors' stateroom doors and sconces
-## stand where their spacing says, they add to what the passage dressing drew, and
-## nothing the dressing draws stands in a body's way.
+## stand where their spacing says, and they add to what the passage dressing drew.
+## That nothing the dressing draws stands in a body's way is test_dressing_clear's.
 
 const FurnishingCheck := preload("res://tools/furnishing_check.gd")
 const RunMatch := preload("res://tools/run_match.gd")
@@ -133,8 +133,3 @@ func test_stateroom_doors_stand_every_three_metres_on_both_long_walls() -> void:
 	assert_eq(sides.size(), 2, "doors down both long walls")
 	# 114.8 m of corridor, less its doorways: well over a door a wall every 3 m of half.
 	assert_gt(total, 40)
-
-
-func test_nothing_on_the_titanic_stands_in_a_body_s_way() -> void:
-	assert_gt(_faces.size(), 0)
-	assert_eq(FurnishingCheck.intrusions(_layout, _rules, _faces), PackedStringArray())

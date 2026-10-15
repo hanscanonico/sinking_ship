@@ -2,11 +2,11 @@ extends GutTest
 ## Every match ends (§5b.1). There is no cap on a match: it ends by the brawl or, once
 ## she is gone, by the cold, and every match's hit sinks her. So every match ending
 ## comes to three things, and none of them plays a match that lasts hours (§5b.4):
-## every match hit founders within the bake's cap — bakes alone, the seeds
-## test_must_sink.gd reads (`make census` bakes 200 in every PR that changes the
-## physics); a match on an explicit fast hit ends by the brawl or the
-## cold; a body inside her as she goes is out with her; and a match follows her past any
-## attitude (SH32), standing on whichever of her faces turn up.
+## every match hit founders within the bake's cap — bakes alone, test_must_sink.gd's
+## (`make census` bakes 200 in every PR that changes the physics); a match on an
+## explicit fast hit ends by the brawl or the cold; a body inside her as she goes is
+## out with her; and a match follows her past any attitude (SH32), standing on
+## whichever of her faces turn up.
 
 const RunMatch := preload("res://tools/run_match.gd")
 const FAST_HIT := "res://tests/fixtures/sinking/hits/fast.tres"
@@ -14,7 +14,6 @@ const FAST_HIT := "res://tests/fixtures/sinking/hits/fast.tres"
 ## is gone.
 const STEEP_HIT := "res://tests/fixtures/sinking/hits/steep.tres"
 
-const SEEDS := 40
 const SEATS := 8
 ## Once she is gone and everyone swims, the cold meter (4 s) settles it: well within
 ## this many seconds.
@@ -32,12 +31,6 @@ func _fast_config(seed_value: int, path: String = FAST_HIT) -> MatchConfig:
 
 
 func test_match_always_ends() -> void:
-	var scenario: SinkScenario = load(SimFixtures.STEAMER_SINKING)
-	var afloat := 0
-	for choice: MustSink.Choice in SimFixtures.match_hits(SEEDS):
-		if not choice.timeline.is_gone() or choice.timeline.gone_at > scenario.bake_cap:
-			afloat += 1
-	assert_eq(afloat, 0, "every match hit of %d founders within the cap" % SEEDS)
 	var runner := RunMatch.bots_only(_fast_config(1))
 	var gone := runner.sim.schedule.gone_tick()
 	assert_between(gone, 0, Ticks.from_seconds(5.0 * 60.0), "the fast hit has her gone in 5 min")

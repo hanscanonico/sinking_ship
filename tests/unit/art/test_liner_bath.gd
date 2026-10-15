@@ -1,8 +1,8 @@
 extends GutTest
 ## LinerBath on the Titanic: her Turkish bath tiled and lit in bronze, her swimming
 ## bath's pool drawn inside its box — its top within art-lint's reach all over, the
-## water too — more to each than the saloon's dressing they had, and nothing the
-## whole ship's dressing draws standing in a body's way.
+## water too — more to each than the saloon's dressing they had. That nothing the
+## whole ship's dressing draws stands in a body's way is test_dressing_clear's.
 
 const FurnishingCheck := preload("res://tools/furnishing_check.gd")
 const RunMatch := preload("res://tools/run_match.gd")
@@ -103,11 +103,6 @@ func test_her_baths_are_baths() -> void:
 		assert_not_null(room, room_name)
 		assert_eq(RoomDressing.kind_of(_space, room), RoomDressing.Kind.BATH, room_name)
 		assert_eq(LinerBath.turkish(room), room_name == TURKISH, room_name)
-
-
-func test_nothing_her_dressing_draws_stands_in_a_body_s_way() -> void:
-	assert_gt(_faces.size(), 0)
-	assert_eq(FurnishingCheck.intrusions(_titanic, _rules, _faces), PackedStringArray())
 
 
 func test_each_bath_has_more_to_it_than_a_saloon_s_dressing() -> void:
