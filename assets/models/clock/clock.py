@@ -41,12 +41,13 @@ Z = [0.0, 0.0, 1.0]
 
 
 def case(brass, enamel):
-    """The case off the wall, its bezel rolled over the dial's edge, and the dial."""
+    """The case off the wall, its bezel rolled over the dial's edge, and the dial: inked
+    at the bezel's rim and where it meets the dial, bright brass on its crown."""
     rows = lathe(
         brass,
         [0.0, 0.0, 0.0],
         FRONT,
-        [(CASE, 0.0, 1.0), (RADIUS, 0.03, 1.0), (DIAL_RADIUS + 0.008, CROWN, 1.0), (DIAL_RADIUS, DIAL, 0.0)],
+        [(CASE, 0.0, 0.0), (RADIUS, 0.03, 1.0), (DIAL_RADIUS + 0.008, CROWN, 0.0), (DIAL_RADIUS, DIAL, 1.0)],
         SIDES,
         phase=math.pi / SIDES,
         wound=True,
