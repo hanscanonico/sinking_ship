@@ -12,9 +12,15 @@
 #         tools/run_tests.sh -gselect=test_sink_schedule.gd -gunit_test_name=timeline
 #         tools/run_tests.sh --shard 2/8        # one CI shard (tools/test_shards.py)
 #         tools/run_tests.sh --jobs 4           # every shard of 4, side by side
+#         tools/run_tests.sh --list FILE [--jobs 4 | --shard 2/8]
 #
 # A shard runs only its share of the scripts and holds the count to that share;
-# the shards of one N together run every script once. Any other argument is
+# the shards of one N together run every script once. --list runs the scripts FILE
+# names, one per line (- reads them from stdin), in place of the whole suite: dealt
+# over --jobs or cut to one --shard the same way, one engine without either, each
+# held to its share of the list. A list naming no script runs nothing and passes,
+# and so does a shard of a list that holds none; a line that is not a test script
+# on disk fails the run before any engine starts. Any other argument is
 # handed to GUT verbatim, and the count check is skipped.
 # Every engine first takes one of TEST_SLOTS machine-wide slots (tools/test_slot.sh),
 # so the worktrees and sessions sharing a machine never run more than that many at
@@ -39,6 +45,45 @@ export ENGINE_GUARD_PATTERN='SCRIPT ERROR:|Parse Error:'
 
 require_godot test
 
+list=""
+LOG=""
+trap 'rm -f ${list:+"$list"} ${LOG:+"$LOG"}' EXIT
+
+# The list is copied before anything reads it: stdin can be read only once, and
+# the shards of --jobs each read it again.
+if [[ "${1:-}" == "--list" ]]; then
+	if (($# < 2)); then
+		echo "test: --list takes a file of test scripts, one per line, or - for stdin" >&2
+		exit 1
+	fi
+	list="$(mktemp)"
+	if [[ "$2" == "-" ]]; then
+		cat >"$list"
+	else
+		cat -- "$2" >"$list" || exit 1
+	fi
+	shift 2
+	scripts="$(tools/test_shards.py --from "$list" 1 1)" || exit 1
+	count="$(printf '%s' "$scripts" | grep -c .)"
+	if ((count == 0)); then
+		echo "test: the list holds no test scripts — nothing to run"
+		exit 0
+	fi
+	if (($# != 0 && $# != 2)) || [[ $# -eq 2 && "$1" != --jobs && "$1" != --shard ]]; then
+		echo "test: --list takes --jobs N or --shard K/N after it, nothing else" >&2
+		exit 1
+	fi
+	# A shard apiece at most, as more would only start shards with nothing to run;
+	# down to one, or with no split asked for, the list runs in the foreground,
+	# its output shown as it comes.
+	if [[ "${1:-}" == "--jobs" && "$2" =~ ^[1-9][0-9]*$ ]] && (($2 > count)); then
+		set -- --jobs "$count"
+	fi
+	if (($# == 0)) || [[ "$1" == "--jobs" && "$2" == "1" ]]; then
+		set -- --shard 1/1
+	fi
+fi
+
 # Every shard of N at once, one engine each, their output held in a log apiece
 # and shown for a shard that fails: the whole suite in a fraction of the time on
 # a machine with the cores. Each shard holds its own count, so together they
@@ -55,7 +100,7 @@ if [[ "${1:-}" == "--jobs" ]]; then
 	exec 7>&2
 	pids=()
 	for ((k = 1; k <= jobs; k++)); do
-		TEST_SLOT_NOTICE_FD=7 "$0" --shard "$k/$jobs" >"$logs/shard_$k.log" 2>&1 &
+		TEST_SLOT_NOTICE_FD=7 "$0" ${list:+--list "$list"} --shard "$k/$jobs" >"$logs/shard_$k.log" 2>&1 &
 		pids+=("$!")
 	done
 	failed=0
@@ -83,7 +128,11 @@ if [[ "${1:-}" == "--shard" ]]; then
 		echo "test: --shard takes K/N, e.g. --shard 2/8" >&2
 		exit 1
 	fi
-	shard="$(tools/test_shards.py "${BASH_REMATCH[1]}" "${BASH_REMATCH[2]}")" || exit 1
+	shard="$(tools/test_shards.py ${list:+--from "$list"} "${BASH_REMATCH[1]}" "${BASH_REMATCH[2]}")" || exit 1
+	if [[ -z "$shard" && -n "$list" ]]; then
+		echo "test: shard $2 of the list holds no test scripts — nothing to run"
+		exit 0
+	fi
 	if [[ -z "$shard" ]]; then
 		echo "test: shard $2 holds no scripts" >&2
 		exit 1
@@ -91,7 +140,7 @@ if [[ "${1:-}" == "--shard" ]]; then
 	expected="$(printf '%s\n' "$shard" | wc -l | tr -d ' ')"
 	# No config file: its directory scan would add every script back.
 	gut_args=(-gconfig= -gexit -glog=1 "-gtest=$(printf '%s' "$shard" | paste -sd, -)")
-	echo "test: shard $2 runs $expected scripts"
+	echo "test: shard $2${list:+ of the list} runs $expected scripts"
 	export TEST_SLOT_NAME="shard $2"
 elif (($#)); then
 	exec tools/engine_guard.sh tools/test_slot.sh "$GODOT" --headless --path . -s res://addons/gut/gut_cmdln.gd "$@"
@@ -106,7 +155,6 @@ if [[ -z "$expected" ]]; then
 fi
 
 LOG="$(mktemp)"
-trap 'rm -f "$LOG"' EXIT
 
 tools/engine_guard.sh tools/test_slot.sh "$GODOT" --headless --path . -s res://addons/gut/gut_cmdln.gd ${gut_args[@]+"${gut_args[@]}"} 2>&1 | tee "$LOG"
 status=${PIPESTATUS[0]}
