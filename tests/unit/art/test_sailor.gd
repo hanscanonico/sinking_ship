@@ -17,7 +17,7 @@ const OUTFIT_TRIANGLES := {
 ## finer than a body drawn eight times over can afford, drawn once, under the eye,
 ## and at most ARMS_BUDGET.
 const ARMS_TRIANGLES := {
-	Brawler.Coat.JERSEY: 3324,
+	Brawler.Coat.JERSEY: 3404,
 	Brawler.Coat.JACKET: 3844,
 	Brawler.Coat.GREATCOAT: 3732,
 }
@@ -106,12 +106,12 @@ func test_each_coats_own_arms_keep_to_their_triangle_budget() -> void:
 		arms.free()
 
 
-## A coat's cuff is lined a little way in and closed there round the shirt's cuff,
-## so an eye looking into its mouth never sees down the sleeve, whose far side the
-## outline paints ink: straight in from the mouth, just inside the lining all round,
-## every way meets a face before CUFF_FLOOR.
+## A coat's cuff is lined a little way in and closed there, round the shirt's cuff
+## or, a jersey's, round the wrist, so an eye looking into its mouth never sees down
+## the sleeve, whose far side the outline paints ink: straight in from the mouth,
+## just inside the lining all round, every way meets a face before CUFF_FLOOR.
 func test_a_coats_cuff_is_closed_past_its_lining() -> void:
-	for coat: Brawler.Coat in [Brawler.Coat.JACKET, Brawler.Coat.GREATCOAT]:
+	for coat: Brawler.Coat in ARMS_TRIANGLES:
 		var arms := Brawler.own_arms(coat)
 		var arrays := arms.mesh.surface_get_arrays(0)
 		arms.free()

@@ -1035,8 +1035,11 @@ CUFF_BUTTON = 0.0052
 SHIRT_CLEAR = 0.0055
 SHIRT_SHOWS = 0.018
 ## How far off the wrist the floor closing a coat's cuff round a shirt's reaches in
-## to: inside the shirt's cuff, out of sight.
+## to: inside the shirt's cuff, out of sight. A bare cuff's floor (a jersey's, with
+## no shirt's cuff under it) reaches WRIST_FLOOR into the wrist instead, buried in
+## the skin, so no gap shows round it.
 SHIRT_FLOOR = 0.004
+WRIST_FLOOR = 0.002
 ## The hand, wrist to knuckles: its rings — x along the arm, the half-width across,
 ## and the half-heights to its back (up at rest) and to its palm — round PALM_Y over
 ## the arm's line, squarish (HAND_ROUND, a superellipse's power), closed at HAND_TIP.
@@ -1265,14 +1268,14 @@ def _arm_sleeve(kit, surface, outfit):
                             (end - CUFF_LINING, proud - CUFF_THICK, "in")):
         points, centre = _round(x, mouth, lift)
         rings.append((points, centre, FACING, 0.0, forearm, facing))
-    if spec["shirt"]:
-        # The lining's floor, closing the mouth round the shirt's cuff, so the eye
-        # never sees past the lining into the sleeve, whose far side the outline
-        # would paint ink.
-        x = end - CUFF_LINING
-        shirt, middle = _grown(*_hand_ring(0.745, HAND_SIDES), SHIRT_FLOOR, x)
-        points, centre = _round(x, _reach_round(shirt, middle, CUFF_SIDES))
-        rings.append((points, centre, FACING, 0.0, forearm, Vector((1.0, 0.0, 0.0))))
+    # The lining's floor, closing the mouth round the shirt's cuff, or round the
+    # wrist under a bare cuff, so the eye never sees past the lining into the
+    # sleeve, whose far side the outline would paint ink.
+    x = end - CUFF_LINING
+    floor = SHIRT_FLOOR if spec["shirt"] else -WRIST_FLOOR
+    shirt, middle = _grown(*_hand_ring(0.745, HAND_SIDES), floor, x)
+    points, centre = _round(x, _reach_round(shirt, middle, CUFF_SIDES))
+    rings.append((points, centre, FACING, 0.0, forearm, Vector((1.0, 0.0, 0.0))))
     _loft(kit, rings)
     index = round(CUFF_BUTTON_ROUND / 360.0 * CUFF_SIDES) % CUFF_SIDES
     angle = 2.0 * math.pi * index / CUFF_SIDES
