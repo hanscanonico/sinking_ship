@@ -251,9 +251,9 @@ func build(mesh: ShipMesh, room: ShipRoom) -> void:
 	walls(mesh, room)
 
 
-## The dressing on [param room]'s walls: pipes along its hull sides over head height but over a stair
-## climbing beside one, and on its after bulkhead a gauge board and fire buckets on a
-## shelf.
+## The dressing on [param room]'s walls: pipes along its hull sides over head height
+## but over a stair climbing beside one, and on its after bulkhead a gauge board and
+## fire buckets on a shelf.
 func walls(mesh: ShipMesh, room: ShipRoom) -> void:
 	for wall: RoomDressing.Wall in RoomDressing.walls(_space, room):
 		if wall.length() < 1.0:
