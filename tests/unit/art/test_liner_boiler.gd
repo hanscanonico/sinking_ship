@@ -174,3 +174,20 @@ func test_her_boiler_rooms_are_drawn_by_liner_boiler_alone() -> void:
 			assert_gt(_in_box(drawn, box), 0, room_name)
 			assert_eq(_in_box(_faces, box), _in_box(drawn, box), "%s by LinerBoiler" % room_name)
 			assert_ne(_in_box(drawn, box), _in_box(engines, box), "%s no engine" % room_name)
+
+
+func test_every_coal_face_frames_its_bunker_door() -> void:
+	var boiler := LinerBoiler.new(EngineRoom.new(_space))
+	for room_name: StringName in BOILER_ROOMS:
+		var bunkers := 0
+		for wall: RoomDressing.Wall in RoomDressing.walls(_space, _room(room_name)):
+			if wall.side != 1 or wall.length() < 1.0:
+				continue
+			bunkers += 1
+			# bunker_door_k: 1 m square, 0.6 m over the plates (tools/gen_titanic.py).
+			var doors := boiler._doors(wall)
+			assert_eq(doors.size(), 1, "%s bunker door" % room_name)
+			for door: Rect2 in doors:
+				assert_almost_eq(door.position.y, 0.6, 0.01, room_name)
+				assert_almost_eq(door.size, Vector2.ONE, Vector2.ONE * 0.01, room_name)
+		assert_eq(bunkers, 1, room_name)

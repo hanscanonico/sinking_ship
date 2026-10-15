@@ -39,6 +39,10 @@ const HANDLE := 1.1
 const BLADE := Vector2(0.26, 0.32)
 const RAKE := 1.8
 const TOOL_PROUD := 0.05
+## How far from a wall's face a door's centre may stand and be a door through it: the
+## door stands in the wall's middle, half its thickness back from its face (0.1 m on
+## her), so a tolerance of exactly that loses a door to rounding.
+const DOOR_IN_WALL := 0.25
 const COAL := Color("161618")
 const COAL_LIGHT := Color("26262a")
 
@@ -193,7 +197,7 @@ func _doors(wall: RoomDressing.Wall) -> Array[Rect2]:
 		if opening.kind not in [ShipOpening.Kind.DOOR, ShipOpening.Kind.WATERTIGHT_DOOR]:
 			continue
 		var centre := opening.centre
-		if absf((centre - middle).dot(wall.normal)) > 0.1:
+		if absf((centre - middle).dot(wall.normal)) > DOOR_IN_WALL:
 			continue
 		var along := centre.dot(wall.right)
 		var half := absf(Vector2(opening.size.x, opening.size.z).dot(Vector2.ONE)) * 0.5
