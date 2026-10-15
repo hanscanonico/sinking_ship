@@ -57,6 +57,9 @@ func _rows() -> Dictionary:
 		"berth": ["furniture", _fills_the_berth_s_length_and_depth_off_its_wall],
 		"lifebelt": ["furniture", _hangs_the_lifebelt_flat_on_its_wall],
 		"fire_buckets": ["furniture", _fills_the_fire_buckets_rack_off_its_wall],
+		"pendant_lamp": ["wall decor", _hangs_the_pendant_s_globe_from_its_swivel],
+		"cargo_lamp": ["furniture", _hangs_the_cargo_lamp_s_globe_under_its_shade],
+		"furnace_fire": ["furniture", _fills_the_furnace_s_mouth_behind_its_bars],
 		"break_door": ["furniture", _stands_the_break_door_in_its_frame_on_the_face],
 		"deck_pipe_13": ["furniture", _is_the_deck_pipe_made_for.bind(0.13, "deck_pipe_13")],
 		"deck_pipe_20": ["furniture", _is_the_deck_pipe_made_for.bind(0.2, "deck_pipe_20")],
@@ -66,6 +69,18 @@ func _rows() -> Dictionary:
 		["furniture", _is_the_stowed_crate_made_for.bind(0.7, "stowed_crate_70")],
 		"stowed_crate_80":
 		["furniture", _is_the_stowed_crate_made_for.bind(0.8, "stowed_crate_80")],
+		"crosstree_15": ["hero", _is_the_crosstree_made_for.bind(0.15, "crosstree_15")],
+		"crosstree_20": ["hero", _is_the_crosstree_made_for.bind(0.2, "crosstree_20")],
+		"crosstree_60": ["hero", _is_the_crosstree_made_for.bind(0.6, "crosstree_60")],
+		"masthead_light": ["hero", _stands_the_masthead_light_off_the_mast],
+		"mast_cleat": ["furniture", _fills_its_box.bind(DeckWorks.CLEAT_BOX, "mast cleat")],
+		"whistle_90": ["hero", _stands_the_whistle_on_its_steam_pipe.bind("90")],
+		"waste_pipe_head_90": ["furniture", _caps_the_waste_pipe_over_the_funnel_s_top.bind("90")],
+		"pipe_clamp_90": ["wall decor", _holds_a_pipe_to_the_funnel.bind("90")],
+		"whistle_330": ["hero", _stands_the_whistle_on_its_steam_pipe.bind("330")],
+		"waste_pipe_head_330":
+		["furniture", _caps_the_waste_pipe_over_the_funnel_s_top.bind("330")],
+		"pipe_clamp_330": ["wall decor", _holds_a_pipe_to_the_funnel.bind("330")],
 		"iceberg_tabular": [WORLD, _stands_to_the_iceberg_planner_s_measure],
 		"iceberg_drydock": [WORLD, _stands_to_the_iceberg_planner_s_measure],
 		"iceberg_wedge": [WORLD, _stands_to_the_iceberg_planner_s_measure],
@@ -233,6 +248,85 @@ func _hangs_the_bell_from_its_bracket_off_the_mast(box: AABB) -> void:
 	assert_almost_eq(box.get_center().z, 0.0, TOLERANCE, "bell: square under its bracket")
 
 
+## A box within TOLERANCE of [param wanted], the placing code's, both corners.
+func _fills_its_box(box: AABB, wanted: AABB, name: String) -> void:
+	assert_almost_eq(box.position, wanted.position, Vector3.ONE * TOLERANCE, name + ": low")
+	assert_almost_eq(box.end, wanted.end, Vector3.ONE * TOLERANCE, name + ": high")
+
+
+## A crosstree [param model] made for a mast of [param radius] (DeckWorks.CROSSTREES):
+## square round the mast, its arms CROSSTREE_REACH past its side, within its rise and
+## its drop.
+func _is_the_crosstree_made_for(box: AABB, radius: float, model: String) -> void:
+	assert_eq(DeckWorks.CROSSTREES.get(radius), model, "CROSSTREES names it")
+	var reach := radius + DeckWorks.CROSSTREE_REACH
+	assert_almost_eq(box.end.z, reach, PART, "%s: its arm's reach" % model)
+	assert_almost_eq(-box.position.z, reach, PART, "%s: its arm's reach" % model)
+	assert_almost_eq(box.get_center().x, 0.0, PART, "%s: square fore and aft" % model)
+	assert_gt(box.size.x, radius * 2.0, "%s: its trestle trees past the mast" % model)
+	assert_almost_eq(box.end.y, DeckWorks.CROSSTREE_RISE, PART, "%s: its rise" % model)
+	assert_almost_eq(-box.position.y, DeckWorks.CROSSTREE_DROP, TOLERANCE, "%s: drop" % model)
+
+
+## The masthead light: its plate on the mast's face, its glow round its lens.
+func _stands_the_masthead_light_off_the_mast(box: AABB) -> void:
+	_fills_its_box(box, DeckWorks.MASTHEAD_LIGHT_BOX, "masthead light")
+	assert_almost_eq(box.position.x, 0.0, TOLERANCE, "masthead light: on the mast's face")
+	var lens := DeckWorks.MASTHEAD_LENS
+	var size := DeckWorks.MASTHEAD_LENS_SIZE
+	assert_true(box.has_point(lens), "masthead light: its lens inside it")
+	assert_lt(
+		lens.x - size.x, box.end.x - lens.x, "masthead light: the lantern stands off the mast"
+	)
+
+
+## A funnel fitting's scale for [param size] (DeckWorks.FUNNEL_FITTINGS), and that
+## FUNNEL_FITTINGS names the size.
+func _funnel_scale(size: String) -> float:
+	assert_has(DeckWorks.FUNNEL_FITTINGS.values(), size, "FUNNEL_FITTINGS names %s" % size)
+	return DeckWorks.FUNNEL_FITTING_SCALE[size]
+
+
+## A box [param scale] times [param box], about the origin.
+func _scaled(box: AABB, scale: float) -> AABB:
+	return AABB(box.position * scale, box.size * scale)
+
+
+## The whistle of [param size]: its plate on the funnel's face, standing on its steam
+## pipe's end.
+func _stands_the_whistle_on_its_steam_pipe(box: AABB, size: String) -> void:
+	var scale := _funnel_scale(size)
+	_fills_its_box(box, _scaled(DeckWorks.WHISTLE_BOX, scale), "whistle_" + size)
+	assert_almost_eq(box.position.x, 0.0, TOLERANCE, "whistle: on the funnel's face")
+	var pipe := (DeckWorks.FUNNEL_PIPE_OUT + DeckWorks.FUNNEL_PIPE) * scale
+	assert_gt(box.end.x, pipe, "whistle: over its pipe")
+
+
+## The waste pipe's head of [param size]: on the pipe's end at the funnel's top, its
+## mouth WASTE_PIPE_RISE over it, its stay reaching the funnel's rim and no further,
+## within the rim's depth.
+func _caps_the_waste_pipe_over_the_funnel_s_top(box: AABB, size: String) -> void:
+	var scale := _funnel_scale(size)
+	var name := "waste_pipe_head_" + size
+	assert_almost_eq(box.end.y, DeckWorks.WASTE_PIPE_RISE * scale, PART, name + ": its mouth")
+	var rim := DeckWorks.FUNNEL_PIPE_OUT * scale - DeckWorks.FUNNEL_RIM.x
+	assert_almost_eq(box.end.x, rim, PART, name + ": its stay meets the rim")
+	assert_gt(-box.position.y, 0.0, name + ": its stay under the top")
+	assert_lte(-box.position.y, DeckWorks.FUNNEL_RIM.y, name + ": on the rim")
+	assert_almost_eq(box.get_center().z, 0.0, PART, name + ": square on its pipe")
+	assert_lte(-box.position.x, DeckWorks.WASTE_PIPE_RISE * scale, name + ": its mouth's round")
+
+
+## A pipe clamp of [param size]: its foot on the funnel's face, its strap round the
+## pipe.
+func _holds_a_pipe_to_the_funnel(box: AABB, size: String) -> void:
+	var scale := _funnel_scale(size)
+	_fills_its_box(box, _scaled(DeckWorks.PIPE_CLAMP_BOX, scale), "pipe_clamp_" + size)
+	assert_almost_eq(box.position.x, -0.01 * scale, TOLERANCE, "pipe clamp: on the funnel's face")
+	var strap := (DeckWorks.FUNNEL_PIPE_OUT + DeckWorks.FUNNEL_PIPE) * scale
+	assert_almost_eq(box.end.x, strap, TOLERANCE * scale, "pipe clamp: round its pipe")
+
+
 func _is_the_gauge_made_for(box: AABB, radius: float, model: String) -> void:
 	assert_eq(RoomDressing.GAUGES.get(radius), model, "gauge: GAUGES names it")
 	assert_almost_eq(box.end.x, radius, PART, "gauge: its radius")
@@ -352,6 +446,38 @@ func _fills_the_fire_buckets_rack_off_its_wall(box: AABB) -> void:
 	assert_almost_eq(box.end, wanted.end, Vector3.ONE * TOLERANCE, "fire buckets: high")
 	assert_gte(box.position.y, -0.001, "fire buckets: nothing under HEADROOM")
 	assert_gte(box.position.z, -0.001, "fire buckets: nothing in its wall")
+
+
+## A lamp swings round where it hangs (ShipLamp): nothing of it more than its swivel's
+## ball over that, its globe's foot [param drop] under it, [param reach] round it.
+func _hangs_a_lamp(box: AABB, drop: float, reach: float, lamp: String) -> void:
+	assert_between(box.end.y, 0.0, TOLERANCE, "%s: its swivel in the ceiling" % lamp)
+	assert_almost_eq(box.position.y, -drop, TOLERANCE, "%s: its globe's foot" % lamp)
+	assert_almost_eq(box.get_center() * Vector3(1, 0, 1), Vector3.ZERO, Vector3.ONE * 0.001, lamp)
+	for across: float in [box.size.x, box.size.z]:
+		assert_almost_eq(across * 0.5, reach, TOLERANCE, "%s: round its cord" % lamp)
+
+
+func _hangs_the_pendant_s_globe_from_its_swivel(box: AABB) -> void:
+	var drop := ShipLamp.CORD + ShipLamp.GLOBE_RADIUS
+	_hangs_a_lamp(box, drop, ShipLamp.GLOBE_RADIUS, "pendant lamp")
+
+
+func _hangs_the_cargo_lamp_s_globe_under_its_shade(box: AABB) -> void:
+	var drop := ShipLamp.CARGO_CORD + ShipLamp.GLOBE_RADIUS
+	_hangs_a_lamp(box, drop, ShipLamp.CARGO_SHADE, "cargo lamp")
+
+
+## The fire fills the furnace's mouth (ShipLamp.MOUTH) up to its ragged crown, standing
+## MOUTH_PROUD out, behind the boiler front's grate bars a centimetre further out.
+func _fills_the_furnace_s_mouth_behind_its_bars(box: AABB) -> void:
+	var half := ShipLamp.MOUTH * 0.5
+	assert_almost_eq(box.position.x, -half.x, TOLERANCE, "fire: across the mouth")
+	assert_almost_eq(box.end.x, half.x, TOLERANCE, "fire: across the mouth")
+	assert_almost_eq(box.position.y, -half.y, TOLERANCE, "fire: the mouth's foot")
+	assert_between(box.end.y, half.y * 0.5, half.y, "fire: its crown under the mouth's top")
+	assert_almost_eq(box.position.z, ShipLamp.MOUTH_PROUD, TOLERANCE, "fire: in its mouth")
+	assert_lte(box.end.z, ShipLamp.MOUTH_PROUD + 0.004, "fire: behind the grate bars")
 
 
 ## The break door: its box ShipFittings.BREAK_DOOR_BOX, on the face and no further

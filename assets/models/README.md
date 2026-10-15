@@ -16,6 +16,12 @@ when it is wholly off the stretch being drawn. It never becomes a mesh instance 
 its own. Where it stands is still decided by the data and the fitting code (D6). The
 model is only its shape.
 
+A lamp's model is the exception: a room's lamp (`ShipLamp`) swings as a pendulum and
+its glass glows as it burns, so each lamp draws its kind's model as one mesh instance
+of its own under the lamp, every surface in the lamp's own material for its paint
+(`sconce_glass` its glass, `brass` its brass, a cargo lamp's `steel` its tin). Every
+lamp of a kind shares the one mesh.
+
 The fitting code asks for a model by name, `ShipModel.named("davit")`. The first ask
 in a process loads the `.glb`, gathers it, reads every surface's arrays and judges
 whether `model()` can paint it; every later ask, and every placement, reuses that.
@@ -42,9 +48,18 @@ A prop placed a hundred times is parsed once.
 | `berth` | `RoomDressing.slung_berth`, every cabin's and block of berths' (`LinerBerths`) | furniture | 234 |
 | `lifebelt` | `RoomDressing.lifebelt`, in passages and holds and on deckhouses (`ShipFittings`) | furniture | 192 |
 | `fire_buckets` | `RoomDressing.fire_buckets`, a rack over head height | furniture | 344 |
+| `pendant_lamp` | `ShipLamp`, a room's pendant, under its own lamp node | wall decor | 130 |
+| `cargo_lamp` | `ShipLamp`, a hold's cargo lamp, under its own lamp node | furniture | 292 |
+| `furnace_fire` | `ShipLamp`, a furnace's fire, under its own lamp node | furniture | 32 |
 | `break_door` | `ShipFittings._break_door`, in a break's face tall enough for it | furniture | 266 |
 | `deck_pipe_20`, `deck_pipe_13` | `ShipFittings._deck_pipe`, the hawse and spurling pipes' mouths, by radius (`DECK_PIPES`) | furniture | 288, 280 |
 | `stowed_crate_80`, `stowed_crate_70`, `stowed_crate_62` | `CargoHold.crate`, a tween deck's stowed crates, the largest that fits (`STOWED_CRATES`) | furniture | 278 each |
+| `crosstree_15`, `crosstree_20`, `crosstree_60` | `DeckWorks.mast`, near each mast's head, the largest no bigger than the mast (`CROSSTREES`) | hero | 660, 660, 740 |
+| `masthead_light` | `DeckWorks.mast`, the steaming light on each mast's fore side | hero | 890 |
+| `mast_cleat` | `DeckWorks.mast`, either side of each mast over its foot | furniture | 198 |
+| `whistle_90`, `whistle_330` | `DeckWorks.funnel`, on each funnel's fore face, the size made for it (`FUNNEL_FITTINGS`) | hero | 1228 each |
+| `waste_pipe_head_90`, `waste_pipe_head_330` | `DeckWorks.funnel`, the waste pipe's head over each funnel's top, the size made for it | furniture | 354 each |
+| `pipe_clamp_90`, `pipe_clamp_330` | `DeckWorks.funnel`, up each funnel's pipes, `CLAMP_SPACING` times its scale apart, the size made for it | wall decor | 130 each |
 | `iceberg_tabular` | `IcebergPlanner`, one berg a match, drawn by `Iceberg` | world | 764 |
 | `iceberg_drydock` | `IcebergPlanner`, one berg a match, drawn by `Iceberg` | world | 896 |
 | `iceberg_wedge` | `IcebergPlanner`, one berg a match, drawn by `Iceberg` | world | 596 |
@@ -119,6 +134,13 @@ count as many times as it is placed. Each model belongs to a class with a ceilin
   - `fire_buckets`: on the wall's face under the rack's middle at `HEADROOM`, x along
     the wall, z out of it, turned by `RoomDressing.facing()` so its lettering is never
     mirrored; its box is `FIRE_BUCKETS`.
+  - `pendant_lamp`, `cargo_lamp`: where the lamp hangs from the ceiling, the pivot it
+    swings round, y up; only its swivel's ball rises over it. The globe's middle hangs
+    `ShipLamp.CORD` (a cargo lamp's `CARGO_CORD`) under it, `GLOBE_RADIUS` round, where
+    the lamp's light burns; a cargo lamp's shade is `CARGO_SHADE` round at its rim.
+  - `furnace_fire`: on the bulkhead's face at the furnace mouth's middle, z out of it;
+    `ShipLamp.MOUTH` across and up to its ragged crown, `MOUTH_PROUD` out, behind the
+    boiler front's grate bars. `ShipLamp` turns it to face the lamp's way.
   - `break_door`: on a break's face at the foot of its sill's middle, x along the
     face, z out of it; `ShipFittings.BREAK_DOOR` standing on a sill
     `BREAK_DOOR_SILL` tall, in its frame; its box `BREAK_DOOR_BOX`, no deeper than a
@@ -134,6 +156,33 @@ count as many times as it is placed. Each model belongs to a class with a ceilin
     no taller than the crate's spot: a stack's foot is drawn its own size, the crate
     up a stack or on a barrel the largest that fits under it. The three sizes share
     `tools/stowed_crate.py`.
+  - `crosstree_NN`: the mast's axis at the trestle trees' foot, `DeckWorks.CROSSTREE_DOWN`
+    of the mast's height under its top, made for a mast NN hundredths of a metre
+    round, one of `DeckWorks.CROSSTREES`; its arms reach `CROSSTREE_REACH` past the
+    mast's side, nothing of it over `CROSSTREE_RISE` or under `CROSSTREE_DROP`, where
+    its braces meet the mast. `RoomDressing.variant()` picks the largest no bigger
+    than the mast. The three sizes share `tools/crosstree.py`.
+  - `masthead_light`: on the mast's fore face at its shelf's top, the lantern
+    forward (+x); its lens's middle `DeckWorks.MASTHEAD_LENS` from the origin,
+    `MASTHEAD_UNDER` under the crosstree, where the code hangs the light's glow, a
+    cylinder just round the lens (`MASTHEAD_LENS_SIZE`). Its box is
+    `MASTHEAD_LIGHT_BOX`.
+  - `mast_cleat`: on the mast's face at the cleat's middle, `DeckWorks.CLEAT` over
+    the mast's foot, z out of the face; one each side. Its box is `CLEAT_BOX`.
+  - `whistle_NN`, `waste_pipe_head_NN`, `pipe_clamp_NN`: drawn into the funnel's own
+    piece, so a funnel that falls (`FunnelArt`) carries them. Each is made for a
+    funnel NN hundredths of a metre round, one of `DeckWorks.FUNNEL_FITTINGS`, at its
+    `FUNNEL_FITTING_SCALE`; `RoomDressing.variant()` picks the largest no bigger than
+    the funnel. The pipes between are the code's, `FUNNEL_PIPE` round, their axes
+    `FUNNEL_PIPE_OUT` out from the funnel's side, both times the scale, running from
+    its foot. The whistle's origin is on the funnel's fore face where its steam pipe
+    ends, `WHISTLE_AT` of the funnel's height up it; the waste pipe head's on the
+    pipe's axis at the funnel's top, the funnel toward +x, its mouth
+    `WASTE_PIPE_RISE` times the scale over the top and its stay meeting the rim
+    (`FUNNEL_RIM`, the same on every funnel); a clamp's on the funnel's face, the pipe
+    along +x, turned half round for the after face. The whistle's and the clamp's
+    boxes are `WHISTLE_BOX` and `PIPE_CLAMP_BOX` times the scale. The three share
+    `tools/funnel_fittings.py`.
 - **Paints.** One material per paint, named exactly after a `ShipPaints` entry
   (`white`, `teak`, `canvas`, `rope`, `dark`, `steel`, `brass`…). The material's
   name is all the game reads: the colour comes from the paint and the ship shader's

@@ -176,7 +176,7 @@ func _init(config: MatchConfig, surfaces: Surfaces, schedule: SinkSchedule) -> v
 		_hull = _hull.merge(platform.area)
 	_centre = Vector3(_hull.get_center().x, 0.0, _hull.get_center().y)
 	for blocker: ShipBlocker in _layout.blockers:
-		if blocker.shape == ShipBlocker.Shape.CYLINDER and blocker.radius >= ShipArt.FUNNEL_FROM:
+		if blocker.shape == ShipBlocker.Shape.CYLINDER and ShipArt.is_funnel(_layout, blocker):
 			_funnel = Vector3(blocker.centre.x, blocker.top, blocker.centre.y)
 	for room: ShipRoom in _layout.rooms:
 		_find_openings(room, config.rules)
