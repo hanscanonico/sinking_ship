@@ -62,15 +62,26 @@ func _init(space: ShipSpace) -> void:
 ## The lights an engine room [param room] is lit by: a pendant over each lane beside
 ## its engine and a fire in each boiler.
 func lights(room: ShipRoom) -> Array[RoomDressing.Light]:
-	var found: Array[RoomDressing.Light] = []
-	for lane: Vector2 in _lanes(room):
-		var hang := RoomDressing.under_ceiling(_space, room, lane)
-		found.append(RoomDressing.Light.new(hang, ShipLamp.Kind.PENDANT))
+	var found := pendants(room)
 	for boiler: Array in _boilers(room):
 		var wall: RoomDressing.Wall = boiler[0]
 		var fire := wall.at(boiler[1], FURNACE_HEIGHT)
 		found.append(RoomDressing.Light.new(fire, ShipLamp.Kind.FIRE, wall.normal))
 	return found
+
+
+## The pendants [param room] hangs over the lanes beside its machinery (_lanes()).
+func pendants(room: ShipRoom) -> Array[RoomDressing.Light]:
+	var found: Array[RoomDressing.Light] = []
+	for lane: Vector2 in _lanes(room):
+		var hang := RoomDressing.under_ceiling(_space, room, lane)
+		found.append(RoomDressing.Light.new(hang, ShipLamp.Kind.PENDANT))
+	return found
+
+
+## The ship space it dresses.
+func space() -> ShipSpace:
+	return _space
 
 
 ## An engine standing in [param blocker]'s footprint, which the rules hold every body
@@ -226,9 +237,8 @@ func _controls(mesh: ShipMesh, area: Rect2, along_x: bool, low: float, top: floa
 
 
 ## [param room]'s own: its engines (_machinery), the boilers in its forward bulkhead,
-## their main steam pipes overhead aft along the engine's side into it, pipes along
-## its hull sides over head height but over a stair climbing beside one, and on its
-## after bulkhead a gauge board and fire buckets on a shelf.
+## their main steam pipes overhead aft along the engine's side into it, and the
+## dressing on its walls (walls()).
 func build(mesh: ShipMesh, room: ShipRoom) -> void:
 	var machines := _space.machinery(room)
 	for machine: ShipBlocker in machines:
@@ -238,6 +248,13 @@ func build(mesh: ShipMesh, room: ShipRoom) -> void:
 		_boiler(mesh, boiler)
 		if not machines.is_empty():
 			_steam_pipe(mesh, boiler, machines[0])
+	walls(mesh, room)
+
+
+## The dressing on [param room]'s walls: pipes along its hull sides over head height but over a stair
+## climbing beside one, and on its after bulkhead a gauge board and fire buckets on a
+## shelf.
+func walls(mesh: ShipMesh, room: ShipRoom) -> void:
 	for wall: RoomDressing.Wall in RoomDressing.walls(_space, room):
 		if wall.length() < 1.0:
 			continue
@@ -422,10 +439,15 @@ static func front_for(room_for: float) -> float:
 ## that stands it over head height.
 func _boiler(mesh: ShipMesh, boiler: Array) -> void:
 	var wall: RoomDressing.Wall = boiler[0]
-	var radius: float = boiler[2]
+	front(mesh, boiler[2], wall.at(boiler[1], 0.0), wall.normal)
+
+
+## The modelled front of [param radius] (BOILER_FRONTS, front_for()) standing on the
+## floor at [param foot], flat on the face whose way out is [param normal] (_boiler()).
+static func front(mesh: ShipMesh, radius: float, foot: Vector3, normal: Vector3) -> void:
 	var model := ""
-	for front: Array in BOILER_FRONTS:
-		if is_equal_approx(front[0] as float, radius):
-			model = front[1] as String
-	var turn := Basis(Vector3.UP.cross(wall.normal), Vector3.UP, wall.normal)
-	mesh.model(ShipModel.named(model), Transform3D(turn, wall.at(boiler[1], 0.0)))
+	for each: Array in BOILER_FRONTS:
+		if is_equal_approx(each[0] as float, radius):
+			model = each[1] as String
+	var turn := Basis(Vector3.UP.cross(normal), Vector3.UP, normal)
+	mesh.model(ShipModel.named(model), Transform3D(turn, foot))
