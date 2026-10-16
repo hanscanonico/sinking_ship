@@ -334,6 +334,22 @@ durations:
 	$(if $(RUN),,$(error make durations needs RUN=<verify run id>; gh run list --workflow verify))
 	tools/test_durations.py --run $(RUN)
 
+# Only the test scripts the branch's changes can reach (tools/test_changed.py): its
+# commits and its uncommitted and untracked edits against the merge-base with
+# origin/main, each script printed with the chain that pulled it in, then run as a
+# TESTS list over JOBS or one SHARD. Nothing runs, and no engine starts, when no
+# GDScript, resource or scene changed; the whole suite runs, saying why, when the
+# change touches project settings, addons/, the test runner, data/, authoring/, a
+# ship generator or a file the graph cannot place. CI still runs the whole suite.
+test-changed:
+	@list=$$(mktemp) || exit 1; trap 'rm -f "$$list"' EXIT; \
+	tools/test_changed.py --list "$$list" || exit 1; \
+	if [ "$$(cat "$$list")" = ALL ]; then \
+		GODOT="$(GODOT)" tools/run_tests.sh $(test-split); \
+	elif [ -s "$$list" ]; then \
+		GODOT="$(GODOT)" tools/run_tests.sh --list "$$list" $(test-split); \
+	fi
+
 # The merge gate, in one command. Order is cheapest-feedback-first: parsing
 # fails fastest, style next, the suite last.
 #
@@ -572,7 +588,8 @@ check:
 # against sleeps on private ones; make fps's SPLIT, read off make -n; make test's
 # list of scripts, against a stand-in engine; make durations, against a sample log;
 # verify running the float test once, read off make -n; and the gdtoolkit targets'
-# warm-up, read off make -n.
+# warm-up, read off make -n; make test-changed's selection, against a fixture project,
+# and its list of runtime-built loads, against the code.
 guard-check:
 	tools/engine_guard_check.sh
 	tools/window_lock_check.sh
@@ -582,6 +599,8 @@ guard-check:
 	tools/ship_check_once.sh
 	tools/test_durations_check.sh
 	tools/lint_warmup_check.sh
+	tools/test_changed_check.sh
+	tools/test_changed.py --check-sites
 
 # Style and smells. Rule overrides live in gdlintrc.
 lint:
@@ -607,5 +626,6 @@ format-check:
 
 .PHONY: import run match capture net-bench sim-bench bench serve-local online-e2e export-server \
 	export-web export-mac export-server-mac serve-web-local serve-web-local-stop fps arena \
-	hits bake census art-lint test durations verify check guard-check ship ship-gen-check ship-check bake-ship bake-check ship-scene \
+	hits bake census art-lint test test-changed durations verify check guard-check ship ship-gen-check ship-check bake-ship \
+	bake-check ship-scene \
 	ship-blend bake-blend models model-sources sailor crew-capture lint format format-check
