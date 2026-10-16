@@ -47,6 +47,15 @@ got="$(tools/test_durations.py --log "$WORK/bare.log" --out - | grep -v '^#')"
 [[ "$got" == "$(grep -E 'stamina|olympic|brawl_marks' <<<"$expected")" ]] || fail "a bare job log read as:
 $got"
 
+# The digests' run cut out, so the job meets that path only in its Run Summary,
+# reprinted just ahead of the Britannic's: read past the banner, the reprint
+# would open a script the next reprint closes at 0 s.
+awk '/test_battle_royale_digests\.gd$/ && !cut { skip = 1; cut = 1 } /test_funnel_strike\.gd$/ { skip = 0 } !skip' \
+	"$SAMPLE" >"$WORK/reprint_only.log"
+got="$(tools/test_durations.py --log "$WORK/reprint_only.log" --out - | grep -v '^#')"
+[[ "$got" == "$(grep -v digests <<<"$expected")" ]] || fail "a path only reprinted in the Run Summary read as:
+$got"
+
 # A log that times no script, and a run id that is not one, are refused.
 printf 'nothing here\n' | tools/test_durations.py --log - --out "$WORK/none.tsv" 2>/dev/null &&
 	fail "a log timing no script passed"
