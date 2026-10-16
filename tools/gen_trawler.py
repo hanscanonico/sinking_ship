@@ -2,7 +2,7 @@
 """Writes the trawler's layout and structure, data/ships/trawler.tres (SH30).
 
 The layout and structure are generated: change her here, then `make ship SHIP=trawler`.
-`make ship-check` (part of `make verify`) fails when the committed .tres is not what
+`make ship-gen-check` (part of `make verify`) fails when the committed .tres is not what
 this writes, so a hand edit to the .tres is caught. The sim reads only the .tres (D6).
 
 A 30 m trawler for quick, crowded matches (§5b.2): three compartments under her deck —
