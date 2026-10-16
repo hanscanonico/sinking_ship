@@ -460,8 +460,12 @@ def select(root: Path, changed: list[str], merge_base: str | None = None) -> dic
     return {"tests": tests, "notes": notes, "godot": godot}
 
 
+def _count(count: int, noun: str) -> str:
+    return f"{count} {noun}" + ("" if count == 1 else "s")
+
+
 def report(selection: dict, changed: list[str], against: str) -> None:
-    print(f"test-changed: {len(changed)} files changed {against}")
+    print(f"test-changed: {_count(len(changed), 'file')} changed {against}")
     for path in changed:
         print(f"    {path}")
     if "all" in selection:
@@ -478,7 +482,7 @@ def report(selection: dict, changed: list[str], against: str) -> None:
     if not tests:
         print("test-changed: no test script reaches the changes — no tests to run")
         return
-    print(f"test-changed: {len(tests)} test scripts reach them")
+    print(f"test-changed: {_count(len(tests), 'test script')} reach them")
     for test, chain in tests.items():
         print(f"    {test}" + "".join(f"\n        -> {step}  ({why})" for step, why in chain[1:]))
 
