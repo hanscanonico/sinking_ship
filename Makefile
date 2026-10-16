@@ -534,6 +534,13 @@ SOURCES = $(shell find . -name '*.gd' \
 	-not -path './.godot/*' -not -path './addons/*' -not -path './bin/*' \
 	-not -path './.claude/*')
 
+# The gdtoolkit targets run over every core, NPROC workers of 60 files each,
+# fed NUL-delimited. xargs exits 123 when any one invocation fails, so a problem
+# in a single chunk still fails the target. Workers' output interleaves; each
+# chunk also prints its own summary line.
+NPROC ?= $(shell getconf _NPROCESSORS_ONLN 2>/dev/null || echo 4)
+gdtoolkit-each = printf '%s\0' $(SOURCES) | xargs -0 -P $(NPROC) -n 60 $(1)
+
 # Parse/type check plus lightweight architecture invariants without booting the
 # scene tree. Rules live in tools/check_scripts.sh.
 check:
@@ -553,16 +560,17 @@ guard-check:
 # Style and smells. Rule overrides live in gdlintrc.
 lint:
 	$(call require-gdtoolkit,gdlint)
-	gdlint $(SOURCES)
+	$(call gdtoolkit-each,gdlint)
 
-# Reformat in place; `make format-check` only reports.
+# Reformat in place, each file on its own so the workers never share one;
+# `make format-check` only reports.
 format:
 	$(call require-gdtoolkit,gdformat)
-	gdformat $(SOURCES)
+	$(call gdtoolkit-each,gdformat)
 
 format-check:
 	$(call require-gdtoolkit,gdformat)
-	gdformat --check $(SOURCES)
+	$(call gdtoolkit-each,gdformat --check)
 
 # `verify`'s gates are a sequence rather than a set: they share one .godot/
 # across every engine boot, and their order is the cheapest feedback first, so
