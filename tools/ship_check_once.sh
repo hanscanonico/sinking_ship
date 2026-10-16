@@ -3,7 +3,9 @@
 # `make guard-check`, its sixth part: `make verify` runs the float test
 # (tests/unit/core/test_ship_check.gd) once, inside test's directory scan, and
 # never again by name — verify holds the ships to their generators with
-# ship-gen-check, not ship-check. `make ship-check` alone still names it, once.
+# ship-gen-check, not ship-check. `make verify-changed` names it no more: its
+# test-changed picks the scripts at run time, so it runs the float test once
+# when the change reaches it. `make ship-check` alone still names it, once.
 # Read off `make -n`, so no engine runs.
 
 set -uo pipefail
@@ -25,6 +27,11 @@ named() {
 count=$(named verify)
 [ "$count" = 0 ] || {
 	echo "ship-check-once: make verify names test_ship_check.gd $count times, not 0 — the suite already runs it" >&2
+	fails=1
+}
+count=$(named verify-changed)
+[ "$count" = 0 ] || {
+	echo "ship-check-once: make verify-changed names test_ship_check.gd $count times, not 0 — test-changed already runs it when reached" >&2
 	fails=1
 }
 count=$(named ship-check)

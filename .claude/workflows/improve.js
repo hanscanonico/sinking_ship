@@ -24,6 +24,8 @@ export const meta = {
 //
 // Each result: { impl, review, retry, verdict } — retry is null or a second { impl, review };
 // verdict reads the last attempt: approve | reject | verify_failed | abandoned | unreviewed | no_result.
+// verify_pass is the implementer's local gate, make verify-changed; a red one is the red gate the retry
+// answers. No verdict is a merge: CI's full make verify must still be green on the PR head.
 // Some harness routes deliver args as a JSON string rather than a parsed value.
 const raw = typeof args === 'string' ? JSON.parse(args) : args
 const input = raw && raw.tasks ? raw : { tasks: raw }
@@ -38,7 +40,7 @@ const IMPL = {
 		pr_url: { type: 'string', description: 'Empty when no PR was opened' },
 		branch: { type: 'string' },
 		worktree: { type: 'string' },
-		verify_pass: { type: 'boolean', description: 'make verify plus any area gate green in the worktree' },
+		verify_pass: { type: 'boolean', description: 'make verify-changed plus any area gate green in the worktree (CI runs the full make verify before any merge)' },
 		summary: { type: 'string' },
 		notes: { type: 'string' },
 		abandoned: {

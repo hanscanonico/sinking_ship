@@ -28,7 +28,8 @@ Design of record: `.lavish/sinking-ship-plan.html` (rev 4)
 
 ```sh
 make import                                     # once per fresh checkout or worktree
-make verify                                     # the merge gate: check, lint, format-check, test
+make verify                                     # the full gate, CI's: check, guard-check, ship-gen-check, bake-check, lint, format-check, test
+make verify-changed                             # the local bar for done: every verify gate, test-changed in test's place
 make test TEST=tests/unit/core/test_ticks.gd    # one test script
 make test JOBS=8                                # the suite as 8 shards side by side (default 4; JOBS=1 for one engine)
 make test SHARD=2/8                             # one CI shard; tests/durations.tsv balances them
@@ -48,8 +49,10 @@ make models                                     # re-export assets/models/NAME/N
 
 A fresh checkout fails `check` with phantom "not declared" errors until `make import` has
 registered every `class_name`. The engine is `$GODOT`, else a vendored `bin/Godot.app`, else
-`godot` on PATH; lint and format need `pipx install "gdtoolkit==4.*"`. A green `make verify`
-is the bar for done.
+`godot` on PATH; lint and format need `pipx install "gdtoolkit==4.*"`. A green
+`make verify-changed` is the local bar for done; CI runs the full `make verify` on every
+PR, and nothing merges until it is green on the PR head. `make verify` stays runnable
+locally whenever the whole suite is wanted.
 
 One game window at a time on this shared machine: `make capture` and `make fps` take the
 window lock themselves (`tools/window_lock.sh`, a kernel lock released on any exit) — never
