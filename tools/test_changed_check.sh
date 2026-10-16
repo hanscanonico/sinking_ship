@@ -226,6 +226,16 @@ extends GutTest
 ## Names the brig, but loads no ship by name.
 var said := "brig"
 EOF
+put tests/unit/test_settings.gd <<'EOF'
+extends GutTest
+## Every ship with a scenario, by her scenario file's name: it spells no ship itself.
+const SCENARIOS := "res://data/sinking"
+
+
+func test_every_setting() -> void:
+	for file in DirAccess.get_files_at(SCENARIOS):
+		assert_not_null(Fleet.layout(file.get_slice("_", 0)))
+EOF
 echo "the transcript" | put tests/golden/run.macos.txt
 echo "tick 1" | put tests/unit/notes.txt
 put data/match.tres <<'EOF'
@@ -340,40 +350,43 @@ expect golden "$GOLDEN"
 says golden "        -> tests/golden/run.macos.txt  (res://tests/golden/run.%s.txt)"
 
 # A ship's data selects the tests that can load her, and not another ship's: by a
-# name a literal or a constant spells, by every name a listing of the fleet or the
-# environment can give — and not by a name no by-name load reaches. Her scenarios
-# and hulls are hers too.
+# name a literal or a constant spells, by the name of a file of hers the test reaches
+# (a directory listing), by every name a listing of the fleet or the environment can
+# give — and not by a name no by-name load reaches. Her scenarios and hulls are hers
+# too.
 BRIG=tests/unit/test_brig.gd
 SLOOP=tests/unit/test_sloop.gd
 DECK=tests/unit/test_deck.gd
 FLEET=tests/unit/test_fleet.gd
 ENV=tests/unit/test_env.gd
 LEAN=tests/unit/test_lean.gd
+SETTINGS=tests/unit/test_settings.gd
 BY_FLEET="the Fleet in core/fleet.gd loads her by name"
 run brig data/ships/brig.tres
-expect brig "$BRIG" "$FLEET" "$ENV"
+expect brig "$BRIG" "$FLEET" "$ENV" "$SETTINGS"
 says brig "        -> data/ships/brig.tres  ($BRIG names brig; $BY_FLEET)"
 says brig "        -> data/ships/brig.tres  ($FLEET lists the fleet; $BY_FLEET)"
 says brig "        -> data/ships/brig.tres  ($ENV reads a name from the environment; $BY_FLEET)"
+says brig "        -> data/ships/brig.tres  (her file data/sinking/brig_open_sea.tres; $BY_FLEET)"
 run sloop data/ships/sloop.tres
 expect sloop "$SLOOP" "$DECK" "$FLEET" "$ENV"
 says sloop "        -> data/ships/sloop.tres  ($SLOOP names sloop; $BY_FLEET)"
 says sloop "        -> data/ships/sloop.tres  ($DECK names sloop; res://data/ships/%s.tres in $DECK loads her by name)"
 run scenario data/sinking/brig_open_sea.tres
-expect scenario "$BRIG" "$FLEET" "$ENV"
+expect scenario "$BRIG" "$FLEET" "$ENV" "$SETTINGS"
 run hull tests/fixtures/ships/brig_weak.tres
-expect hull "$BRIG" "$FLEET" "$ENV"
+expect hull "$BRIG" "$FLEET" "$ENV" "$SETTINGS"
 
 # A ship's generator selects what her data and her test hulls (the Makefile's
 # TEST_HULLS, continued lines too) select; her authoring scene, what her data does.
 run genbrig tools/gen_brig.py
-expect genbrig "$BRIG" "$FLEET" "$ENV"
+expect genbrig "$BRIG" "$FLEET" "$ENV" "$SETTINGS"
 says genbrig "        -> tools/gen_brig.py  (written by tools/gen_brig.py (make ship))"
 run gensloop tools/gen_sloop.py
 expect gensloop "$SLOOP" "$DECK" "$FLEET" "$ENV" "$LEAN"
 says gensloop "        -> tools/gen_sloop.py  (written by tools/gen_sloop.py --lean (make ship))"
 run authoring authoring/brig/brig.tscn
-expect authoring "$BRIG" "$FLEET" "$ENV"
+expect authoring "$BRIG" "$FLEET" "$ENV" "$SETTINGS"
 says authoring "        -> authoring/brig/brig.tscn  (baked from authoring/brig/ (make bake-check))"
 
 # Shared data selects every test that reads it, through every reader.
