@@ -3,7 +3,8 @@ extends GutTest
 ## engine room lit where they always were; the Titanic's boiler rooms 2–5 drawn as
 ## boiler rooms by LinerBoiler alone — boilers in the boxes, their fronts and fires on
 ## the boxes' ends, a coal face on the bunker's — lit over their firing aisles, no lamp
-## hung inside a boiler, and nothing the whole ship's dressing draws in a body's way.
+## hung inside a boiler. That nothing the whole ship's dressing draws stands in a
+## body's way is test_dressing_clear's.
 
 const FurnishingCheck := preload("res://tools/furnishing_check.gd")
 const RunMatch := preload("res://tools/run_match.gd")
@@ -130,11 +131,6 @@ func test_her_boiler_rooms_hang_their_pendants_clear_of_the_boilers() -> void:
 			assert_lte(light.at.y, ceiling, "%s %s" % [room_name, light.at])
 			assert_gt(light.at.y, room.floor_height + RoomDressing.HEADROOM, room_name)
 		assert_between(pendants, 1, EngineRoom.LAMPS, room_name)
-
-
-func test_nothing_her_dressing_draws_stands_in_a_body_s_way() -> void:
-	assert_gt(_faces.size(), 0)
-	assert_eq(FurnishingCheck.intrusions(_titanic, _rules, _faces), PackedStringArray())
 
 
 func test_her_boilers_burn_on_their_ends_and_none_on_a_bunker() -> void:

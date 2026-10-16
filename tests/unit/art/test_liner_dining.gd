@@ -1,7 +1,8 @@
 extends GutTest
 ## LinerDining on the Titanic: her four dining saloons dressed by rule from their
-## walls — more to them than the saloon's dressing they had, within a budget — and
-## nothing the whole ship's dressing draws standing in a body's way.
+## walls — more to them than the saloon's dressing they had, within a budget. That
+## nothing the whole ship's dressing draws stands in a body's way is
+## test_dressing_clear's.
 
 const FurnishingCheck := preload("res://tools/furnishing_check.gd")
 const RunMatch := preload("res://tools/run_match.gd")
@@ -79,11 +80,6 @@ func test_her_dining_saloons_are_dining_saloons() -> void:
 		assert_not_null(room, room_name)
 		assert_eq(RoomDressing.kind_of(_space, room), RoomDressing.Kind.DINING, room_name)
 		assert_eq(LinerDining.first_class(room), room_name == SALOONS[0], room_name)
-
-
-func test_nothing_her_dressing_draws_stands_in_a_body_s_way() -> void:
-	assert_gt(_faces.size(), 0)
-	assert_eq(FurnishingCheck.intrusions(_titanic, _rules, _faces), PackedStringArray())
 
 
 func test_each_saloon_has_more_to_it_than_a_saloon_s_dressing_within_a_budget() -> void:

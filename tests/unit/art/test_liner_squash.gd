@@ -1,8 +1,8 @@
 extends GutTest
 ## LinerSquash on the Titanic: her squash court lined in white plaster over maple, its
 ## red lines painted flat on its walls at a court's heights, the gallery's front faced
-## over head height, and nothing the whole ship's dressing draws standing in a body's
-## way.
+## over head height. That nothing the whole ship's dressing draws stands in a body's
+## way is test_dressing_clear's.
 
 const FurnishingCheck := preload("res://tools/furnishing_check.gd")
 const RunMatch := preload("res://tools/run_match.gd")
@@ -90,11 +90,6 @@ func test_the_court_and_its_gallery_are_a_squash_court() -> void:
 		assert_not_null(room, room_name)
 		assert_eq(RoomDressing.kind_of(_space, room), RoomDressing.Kind.SQUASH, room_name)
 		assert_eq(LinerSquash.gallery(room), room_name == GALLERY, room_name)
-
-
-func test_nothing_her_dressing_draws_stands_in_a_body_s_way() -> void:
-	assert_gt(_faces.size(), 0)
-	assert_eq(FurnishingCheck.intrusions(_titanic, _rules, _faces), PackedStringArray())
 
 
 func test_the_court_and_its_gallery_are_lined_in_plaster_over_maple() -> void:

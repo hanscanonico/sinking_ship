@@ -1,8 +1,8 @@
 extends GutTest
 ## LinerBerths on the Titanic: berths hung one after another along every stretch of
 ## her berths' and quarters' walls long enough, none across a doorway or over a stair,
-## under a budget, every third with its washstand — and nothing they draw stands in a
-## body's way. Her ShipArt is built once, for every test.
+## under a budget, every third with its washstand. Her ShipArt is built once, for
+## every test. That nothing they draw stands in a body's way is test_dressing_clear's.
 
 const FurnishingCheck := preload("res://tools/furnishing_check.gd")
 const RunMatch := preload("res://tools/run_match.gd")
@@ -69,11 +69,6 @@ func test_her_blocks_of_berths_are_the_three_she_has() -> void:
 	assert_eq(
 		names, PackedStringArray(["crew quarters", "officers' quarters", "third-class berths"])
 	)
-
-
-func test_nothing_her_dressing_draws_stands_in_a_body_s_way() -> void:
-	assert_gt(_faces.size(), 0)
-	assert_eq(FurnishingCheck.intrusions(_layout, _rules, _faces), PackedStringArray())
 
 
 func test_each_block_of_berths_is_furnished_more_than_before() -> void:

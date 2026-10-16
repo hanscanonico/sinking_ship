@@ -1,8 +1,8 @@
 extends GutTest
 ## LinerService on the Titanic and the trawler: the rooms of service — her galley,
 ## gymnasium, purser's office and post office, the trawler's galley — each dressed by
-## its name, a galley's pans hung overhead along its walls, and nothing it draws
-## standing in a body's way.
+## its name, a galley's pans hung overhead along its walls, and nothing the trawler's
+## dressing draws standing in a body's way; the Titanic's is test_dressing_clear's.
 
 const FurnishingCheck := preload("res://tools/furnishing_check.gd")
 const RunMatch := preload("res://tools/run_match.gd")
@@ -72,11 +72,6 @@ func _in_furniture(space: ShipSpace, room: ShipRoom, middle: Vector3) -> bool:
 		if over and box.area.grow(0.01).has_point(Vector2(middle.x, middle.z)):
 			return true
 	return false
-
-
-func test_nothing_the_titanic_s_dressing_draws_stands_in_a_body_s_way() -> void:
-	assert_gt(_faces.size(), 0)
-	assert_eq(FurnishingCheck.intrusions(_titanic, _rules, _faces), PackedStringArray())
 
 
 func test_nothing_the_trawler_s_dressing_draws_stands_in_a_body_s_way() -> void:
