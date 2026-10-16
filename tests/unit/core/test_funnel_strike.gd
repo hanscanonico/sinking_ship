@@ -28,7 +28,7 @@ func test_bodies_in_the_strip_are_knocked_down_as_it_lands() -> void:
 	sim.state.seats[1].bracing = true
 	var hazards := Hazards.new(sim.config, sim.surfaces)
 	var tick := sim.state.tick
-	var pose := sim.pose()
+	var pose := SimFixtures.copy_of(sim.pose())
 	var falls: Array[FunnelFall] = [_fall(tick + 1)]
 	pose.falls = falls
 	var events: Array[SimEvent] = []

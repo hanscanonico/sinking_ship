@@ -84,12 +84,12 @@ func test_a_door_given_way_neither_holds_a_body_nor_hides_a_shove() -> void:
 	sim.surfaces.honour(shut)
 	assert_true(sim.surfaces.blocked(before, behind, rules.body_height, rules.step_height))
 	assert_false(sim.surfaces.line_of_sight(before + eyes, behind + eyes, shut))
-	var burst := sim.schedule.pose_at(later)
+	var burst := SimFixtures.copy_of(shut)
 	burst.opened[&"wtd_engine"] = 2
 	sim.surfaces.honour(burst)
 	assert_false(sim.surfaces.blocked(before, behind, rules.body_height, rules.step_height))
 	assert_true(sim.surfaces.line_of_sight(before + eyes, behind + eyes, burst))
-	var weeping := sim.schedule.pose_at(later)
+	var weeping := SimFixtures.copy_of(shut)
 	weeping.opened[&"wtd_engine"] = 1
 	sim.surfaces.honour(weeping)
 	assert_true(

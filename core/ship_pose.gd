@@ -5,6 +5,11 @@ extends RefCounted
 ## her is each cell's own, level with the world at its own height (D7). [member
 ## transform] takes a ship-local point to the world; a point is wet below the water it
 ## is in — its cell's, or the sea's outside every cell.
+##
+## A value: nothing changes a pose once SinkSchedule has handed it out. The schedule
+## builds a tick's pose once and hands that one to everyone who asks for the tick
+## (SinkSchedule.pose_at) — the sim, the planners, the display — so a reader that wants
+## other values makes a pose of its own (Pieces, Faces), never edits the one it holds.
 
 var sink: float
 var trim_deg: float

@@ -85,7 +85,7 @@ func test_a_bots_frame_has_the_watertight_doors_its_pose_shows() -> void:
 		# [doors_shut, opened, blocked].
 		for row: Array in [[0.0, 0, false], [1.0, 0, true], [1.0, 2, false]]:
 			var told := "%s shut %s, opened %s" % [door.name, row[0], row[1]]
-			var pose := sim.pose()
+			var pose := SimFixtures.copy_of(sim.pose())
 			pose.doors_shut[door.name] = row[0]
 			pose.opened[door.name] = row[1]
 			var framed := floors.framed(pose, Faces.Up.KEEL)

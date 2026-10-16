@@ -483,6 +483,47 @@ func test_continuation_is_exact_across_a_break() -> void:
 		assert_eq(diverged, -1, "resumed %d ticks in, every tick the same, events and all" % start)
 
 
+func test_a_tick_s_pose_is_built_once_and_shared() -> void:
+	# A tick's pose is asked for again and again — by the sim, the display, the planners —
+	# and handed out as built the first time: the same pose, its values a fresh schedule's
+	# for that tick, before the hit, whole and sinking, and once she has broken. Asked for
+	# in a scene's order — the tick before and the tick now, frame after frame — and once
+	# many ticks later, the answer is the same.
+	var config := _weak_match()
+	var schedule := config.schedule()
+	var fresh := SinkSchedule.for_match(config)
+	var parted := _events_of(schedule.timeline(), SinkTimeline.Kind.PARTED)[0]
+	var broken := schedule.physics_tick(parted.seconds) + Ticks.RATE
+	assert_eq(schedule.pose_at(broken).standing.size(), 2, "she has broken by then")
+	for tick: int in [0, schedule.hit_tick() + Ticks.RATE, broken - 1, broken, broken + 1]:
+		var pose := schedule.pose_at(tick)
+		schedule.pose_at(tick - 1)
+		assert_same(schedule.pose_at(tick), pose, "tick %d: the same pose again" % tick)
+		_assert_poses_equal(pose, fresh.pose_at(tick), "tick %d" % tick)
+	_assert_poses_equal(schedule.pose_at(0), fresh.pose_at(0), "the first tick, asked again late")
+
+
+## That [param pose] holds [param expected]'s values, and each piece's its piece's.
+func _assert_poses_equal(pose: ShipPose, expected: ShipPose, label: String) -> void:
+	assert_eq(pose.transform, expected.transform, "%s: where she stands" % label)
+	assert_eq(pose.levels, expected.levels, "%s: her cells' water" % label)
+	assert_eq(pose.pockets, expected.pockets, "%s: their air" % label)
+	assert_eq(pose.lit, expected.lit, "%s: their light" % label)
+	assert_eq(pose.doors_shut, expected.doors_shut, "%s: her doors" % label)
+	assert_eq(pose.opened, expected.opened, "%s: what has failed" % label)
+	assert_eq(pose.falls.size(), expected.falls.size(), "%s: her funnels' falls" % label)
+	assert_eq(pose.felled.size(), expected.felled.size(), "%s: those landed" % label)
+	assert_eq(pose.lurch, expected.lurch, "%s: her lurch" % label)
+	assert_eq(pose.lurch_warning, expected.lurch_warning, "%s: its warning" % label)
+	assert_eq(pose.standing, expected.standing, "%s: the pieces she is in" % label)
+	assert_eq(pose.pieces.size(), expected.pieces.size(), "%s: her pieces" % label)
+	for piece in mini(pose.pieces.size(), expected.pieces.size()):
+		var own := pose.of_piece(piece)
+		var theirs := expected.of_piece(piece)
+		assert_eq(own.transform, theirs.transform, "%s: piece %d stands" % [label, piece])
+		assert_eq(own.levels, theirs.levels, "%s: piece %d's water" % [label, piece])
+
+
 func test_the_weak_hull_breaks_in_two_on_her_pinned_seed() -> void:
 	# §5b.4 layer 3: her match hit on breaks_in_two — after the must-sink rule — parts her
 	# once, and every piece goes; with its holes × 0.9 and × 1.1 the same, so the seed sits

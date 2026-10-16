@@ -250,7 +250,7 @@ func test_view_in_the_dark_sees_no_farther_than_its_dark_sight() -> void:
 	structure.cells = cells
 	var seen := {}
 	for lit: int in [ShipPower.Power.DARK, ShipPower.Power.EMERGENCY]:
-		var pose := sim.pose()
+		var pose := SimFixtures.copy_of(sim.pose())
 		pose.cells = CellMap.new(structure)
 		pose.levels = PackedFloat64Array([-100.0])
 		pose.lit = PackedByteArray([lit])

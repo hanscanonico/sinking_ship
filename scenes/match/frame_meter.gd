@@ -48,12 +48,12 @@ static func _book(split: FrameSplit, part: StringName, start: int) -> void:
 	split.add(part, _now() - start)
 
 
-## The schedule, every pose it builds counted and timed.
+## The schedule, every pose it builds counted and timed — not those it hands out again.
 class Schedule:
 	extends SinkSchedule
 	var split: FrameSplit
 
-	func pose_at(tick: int) -> ShipPose:
+	func _posed(tick: int) -> ShipPose:
 		var start := FrameMeter._now()
 		var pose := super(tick)
 		FrameMeter._book(split, &"pose_time", start)

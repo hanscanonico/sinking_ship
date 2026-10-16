@@ -105,7 +105,7 @@ func test_unbroken_span_still_holds() -> void:
 func test_a_failed_span_and_a_broken_one_are_both_gone() -> void:
 	var rules := SimFixtures.rules()
 	var surfaces := Surfaces.new(SimFixtures.deck())
-	var pose := SimFixtures.sim(1).pose()
+	var pose := SimFixtures.copy_of(SimFixtures.sim(1).pose())
 	pose.broken_railings = PackedInt32Array([0])
 	surfaces.honour(pose, PackedInt32Array([SPAN]))
 	var radius := rules.body_radius
