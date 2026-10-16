@@ -15,17 +15,34 @@ Classes are read from the sources' own class_name lines rather than the engine's
 .godot/global_script_class_cache.cfg, so the selector needs no import and sees a
 class a branch adds, renames or deletes the moment it is written.
 
+Ships are data, and the graph follows them there. A ship's files — her layout
+data/ships/NAME.tres, her scenarios data/sinking/NAME_*.tres, her test-only hulls
+tests/fixtures/ships/NAME_*.tres and her authoring scene's authoring/NAME/ — stand on
+what writes them: tools/gen_NAME.py writes her data and, by the Makefile's TEST_HULLS,
+her test hulls, and her authoring scene bakes to her data (make bake-check). A ship
+loaded by name — through the Fleet (core/fleet.gd), whose own path literals are not
+edges, a res:// %s pattern only ships' files fill, or a site listed as @ship — is
+whichever ship her name, at runtime, says; and
+every such name started as text the process holds: a string in a script or a
+resource, one of her own files, a listing of the fleet (Fleet.names()), or the
+environment (the command line a test runs under is the runner's, and names none). So
+a test that reaches a by-name load depends on the ships whose names are words in the
+strings of the files it reaches, the ships whose files it reaches, and every ship
+when one of them lists the fleet or reads the environment — never a ship nothing it
+reaches can name.
+
 Nothing runs when no GDScript, resource or scene changed. The full suite runs, and
 the report says why, when a change touches project settings, addons/, the test
-runner or its config, data/, authoring/, a ship generator, or a file the graph
-cannot place.
+runner or its config, a file the graph cannot place, or a file under data/ or
+authoring/ that no edge reaches.
 
 A load whose path is built at runtime hides its target from the literals, so every
 such call — load, ResourceLoader, FileAccess and DirAccess with an argument that is
 not a string literal or a constant holding one — is a known site in
-tools/load_sites.tsv, each with the files it may reach (globs, or - for user://
-only); the graph takes those as edges too. --check-sites fails on a site the list
-does not hold, or a listed one the code no longer has (`make guard-check`).
+tools/load_sites.tsv, each with the files it may reach (globs, - for user://
+only, @ship for a ship by her name); the graph takes those as edges too.
+--check-sites fails on a site the list does not hold, or a listed one the code no
+longer has (`make guard-check`).
 
 Usage:  tools/test_changed.py                    # the report, against origin/main
         tools/test_changed.py --list FILE        # the report, and the selection to FILE:
@@ -75,10 +92,23 @@ FULL_SUITE_FILES = {
 }
 FULL_SUITE_DIRS = {
     "addons/": "addons/: GUT and the plugins every engine loads",
-    "data/": "data/: the balance and ship data matches read (edges through it are #85)",
-    "authoring/": "authoring/: the greybox scenes ships bake from",
 }
-GENERATOR = re.compile(r"tools/gen_\w+\.py")
+# Data a test reaches only through an edge: one no edge reaches is unplaced, not unused.
+PLACED_DIRS = ("data/", "authoring/")
+
+# Ships: her layout, her scenarios, her test-only hulls, her authoring scene.
+SHIP_DIR = "data/ships/"
+SHIP_FILES = ("data/sinking/", "tests/fixtures/ships/")
+AUTHORING_DIR = "authoring/"
+# The door ships are loaded through by name: its path literals are patterns over every
+# ship, and which one it loads is its caller's name.
+FLEET = "core/fleet.gd"
+# A listed site's reach for a ship loaded by name.
+BY_NAME = "@ship"
+# The test hulls the generators write, as the Makefile lists them: SHIP:FIXTURE:FLAG.
+TEST_HULLS = re.compile(r"^TEST_HULLS\s*:?=((?:[^\n]*\\\n)*[^\n]*)", re.M)
+WORD = re.compile(r"[a-z0-9_]+")
+QUOTED = re.compile(r'"((?:[^"\\\n]|\\.)*)"')
 
 # Never loaded by the engine and never read by a test unless a literal path says so:
 # a change to one of these, when nothing refers to it, reaches no test.
@@ -153,6 +183,20 @@ class Tree:
         self.uids = self._uids()
         self.edges: dict[str, set[str]] = {}
         self.why: dict[tuple[str, str], str] = {}
+        # The ships, by name, each to her files.
+        self.ships: dict[str, set[str]] = {}
+        for path in self.known:
+            if os.path.dirname(path) + "/" == SHIP_DIR and path.endswith(".tres"):
+                self.ships[Path(path).stem] = set()
+        for path in self.known:
+            ship = self.ship_of(path)
+            if ship:
+                self.ships[ship].add(path)
+        # Files that load a ship by name, each to the load that does.
+        self.by_name: dict[str, str] = {}
+        # Files that may name any ship, each to why: a listing of the fleet's names, or
+        # text the graph cannot read (the environment).
+        self.any_ship: dict[str, str] = {}
 
     def _walk(self) -> set[str]:
         found = set()
@@ -182,6 +226,27 @@ class Tree:
                     uids[match.group(1)] = path
         return uids
 
+    def ship_of(self, path: str) -> str | None:
+        """The ship whose file path is, or None: her name is its stem, or its stem's front."""
+        if path.startswith(AUTHORING_DIR):
+            parts = path.split("/")
+            return parts[1] if len(parts) > 2 and parts[1] in self.ships else None
+        if os.path.dirname(path) + "/" == SHIP_DIR:
+            return Path(path).stem if Path(path).stem in self.ships else None
+        if path.startswith(SHIP_FILES) and path.endswith(".tres"):
+            return self.ship_named(Path(path).stem)
+        return None
+
+    def ship_named(self, word: str) -> str | None:
+        """The ship word names — hers, or one of her scenarios' or hulls' (steamer_coast)."""
+        if word in self.ships:
+            return word
+        best = None
+        for ship in self.ships:
+            if word.startswith(ship + "_") and (best is None or len(ship) > len(best)):
+                best = ship
+        return best
+
     def is_resource(self, path: str) -> bool:
         return Path(path).suffix in RESOURCES or path + ".import" in self.known
 
@@ -204,7 +269,12 @@ class Tree:
             return  # res:// alone is a prefix test, not a load
         if FORMAT.search(path):
             pattern = FORMAT.sub("*", path)
-            for target in fnmatch.filter(self.known, pattern):
+            targets = fnmatch.filter(self.known, pattern)
+            if targets and all(self.ship_of(t) for t in targets):
+                # A ship's file by her name: whichever ship the name says (_ship_names).
+                self.by_name.setdefault(source, literal)
+                return
+            for target in targets:
                 self.add(source, target, literal)
         elif path in self.known:
             self.add(source, path, literal)
@@ -233,14 +303,96 @@ class Tree:
             for sidecar in (".uid", ".import"):
                 if path.endswith(sidecar):
                     self.add(path[: -len(sidecar)], path, "its " + sidecar)
+        if FLEET in self.files:
+            self.by_name[FLEET] = "the Fleet"
         for path, call, reaches in sites:
             for pattern in reaches:
+                if pattern == BY_NAME:
+                    self.by_name.setdefault(path, call)
                 for target in fnmatch.filter(self.known, pattern):
                     self.add(path, target, call)
+        self._ship_sources()
+        self._ship_names()
+
+    def _ship_sources(self) -> None:
+        """A ship's files on what writes them: her generator, her authoring scene."""
+        hulls = []
+        makefile = self.root / "Makefile"
+        if makefile.is_file():
+            for listed in TEST_HULLS.findall(makefile.read_text()):
+                hulls += [h.split(":", 2) for h in listed.replace("\\\n", " ").split()]
+        for ship in self.ships:
+            generator = f"tools/gen_{ship}.py"
+            data = f"{SHIP_DIR}{ship}.tres"
+            if generator in self.known:
+                self.add(data, generator, f"written by {generator} (make ship)")
+            for path in self.ships[ship]:
+                if path.startswith(AUTHORING_DIR):
+                    self.add(data, path, f"baked from {AUTHORING_DIR}{ship}/ (make bake-check)")
+        for hull in hulls:
+            if len(hull) == 3:
+                generator = f"tools/gen_{hull[0]}.py"
+                fixture = f"tests/fixtures/ships/{hull[1]}.tres"
+                if generator in self.known:
+                    self.add(fixture, generator, f"written by {generator} {hull[2]} (make ship)")
+
+    def _ship_names(self) -> None:
+        """Each test that reaches a by-name load, to the files of every ship it can name."""
+        words: dict[str, set[str]] = {}
+        named = {}
+        for test in sorted(self.files):
+            if not is_test(test):
+                continue
+            reached = self.reach_in_order(test)
+            loader = next((p for p in reached if p in self.by_name), None)
+            if loader is None:
+                continue
+            ships: dict[str, str] = {}
+            for path in reached:
+                ship = self.ship_of(path)
+                if ship:
+                    ships.setdefault(ship, f"her file {path}")
+                if path in self.any_ship:
+                    for ship in self.ships:
+                        ships.setdefault(ship, f"{path} {self.any_ship[path]}")
+                if path not in words:
+                    words[path] = self._words(path)
+                for word in words[path]:
+                    ship = self.ship_named(word)
+                    if ship:
+                        ships.setdefault(ship, f"{path} names {word}")
+            how = f"{self.by_name[loader]} in {loader}"
+            named[test] = {ship: f"{why}; {how} loads her by name" for ship, why in ships.items()}
+        for test, ships in named.items():
+            for ship, why in ships.items():
+                for path in sorted(self.ships[ship]):
+                    # Her authoring scene is not loaded, but baked to her data.
+                    if not path.startswith(AUTHORING_DIR):
+                        self.add(test, path, why)
+
+    def _words(self, path: str) -> set[str]:
+        """The words of the strings path holds, every one a ship's name it may spell."""
+        text = self.texts.get(path)
+        if text is None or path == FLEET:
+            return set()
+        if path.endswith(".gd"):
+            strings = [t for t in GD_TOKEN.findall(text) if t[0] in "\"'"]
+        else:
+            strings = QUOTED.findall(text)
+        return {w for string in strings for w in WORD.findall(string)}
 
     def _scan_gd(self, path: str, text: str) -> None:
         tokens = [t for t in GD_TOKEN.findall(text) if t[0] != "#"]
         for i, token in enumerate(tokens):
+            if path == FLEET:
+                if token in self.classes:
+                    self.add(path, self.classes[token], token)
+                continue
+            listed = tokens[i : i + 5] == ["Fleet", ".", "names", "(", ")"]
+            if listed and not _only_shown(tokens, i):
+                self.any_ship.setdefault(path, "lists the fleet")
+            if tokens[i : i + 4] == ["OS", ".", "get_environment", "("]:
+                self.any_ship.setdefault(path, "reads a name from the environment")
             if token[0] in "\"'":
                 literal = token.strip("\"'")
                 # A load's own argument may be relative to the script.
@@ -257,6 +409,17 @@ class Tree:
                 back.setdefault(target, set()).add(source)
         return back
 
+    def reach_in_order(self, start: str) -> list[str]:
+        """Every file start reaches, itself first, the nearest before the farther."""
+        order, seen, queue = [start], {start}, deque([start])
+        while queue:
+            for target in sorted(self.edges.get(queue.popleft(), ())):
+                if target not in seen:
+                    seen.add(target)
+                    order.append(target)
+                    queue.append(target)
+        return order
+
     def reach(self, starts: list[str]) -> set[str]:
         seen, queue = set(starts), deque(starts)
         while queue:
@@ -265,6 +428,14 @@ class Tree:
                     seen.add(target)
                     queue.append(target)
         return seen
+
+
+def _only_shown(tokens: list[str], i: int) -> bool:
+    """Whether the Fleet.names() at tokens[i] is only asked of or joined into words —
+    never a name to load."""
+    after = tokens[i + 5 : i + 8]
+    before = tokens[max(i - 3, 0) : i]
+    return after[:3] == [".", "has", "("] or before[-3:] == [".", "join", "("]
 
 
 def read_sites(root: Path) -> list[tuple[str, str, list[str]]]:
@@ -386,8 +557,6 @@ def full_suite_reason(path: str) -> str | None:
     for prefix, reason in FULL_SUITE_DIRS.items():
         if path.startswith(prefix):
             return reason
-    if GENERATOR.fullmatch(path):
-        return "a ship generator"
     return None
 
 
@@ -429,7 +598,11 @@ def select(root: Path, changed: list[str], merge_base: str | None = None) -> dic
             or tree.is_resource(path)
             or path.endswith((".uid", ".import"))
         )
-        if placed:
+        if path in back:
+            starts.append(path)
+        elif path.startswith(PLACED_DIRS) and not no_test_file(path):
+            reasons.append(f"{path}: a data file no edge reaches — the graph cannot place it")
+        elif placed:
             starts.append(path)
         elif no_test_file(path):
             notes.append(f"{path}: no test loads it")

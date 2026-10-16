@@ -339,8 +339,9 @@ durations:
 # origin/main, each script printed with the chain that pulled it in, then run as a
 # TESTS list over JOBS or one SHARD. Nothing runs, and no engine starts, when no
 # GDScript, resource or scene changed; the whole suite runs, saying why, when the
-# change touches project settings, addons/, the test runner, data/, authoring/, a
-# ship generator or a file the graph cannot place. CI still runs the whole suite.
+# change touches project settings, addons/, the test runner or a file the graph
+# cannot place. A ship's data, generator or authoring scene selects only the tests
+# that can load her. CI still runs the whole suite.
 test-changed:
 	@list=$$(mktemp) || exit 1; trap 'rm -f "$$list"' EXIT; \
 	tools/test_changed.py --list "$$list" || exit 1; \
