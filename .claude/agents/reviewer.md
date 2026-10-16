@@ -23,7 +23,8 @@ Verify claims yourself rather than trusting the PR body: re-run the new and chan
 tests plus `make check lint format-check` in the worktree; for a visual change re-capture
 the scene once the repo has a capture target and read the frame as an image; for a
 measured claim re-record the measurement. Skip the full suite unless something smells
-wrong — the implementer already ran `make verify`.
+wrong — the implementer already ran `make verify-changed`, and CI runs the full
+`make verify` on the PR head before any merge.
 
 Small fixable problems (naming, a weak assertion, a missing edge case, a wrong comment):
 fix them yourself in the worktree, rerun the relevant gate, commit with the same trailers

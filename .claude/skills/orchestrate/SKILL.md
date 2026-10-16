@@ -30,7 +30,8 @@ plumbing, small reads for triage.
 3. **Run.** `Workflow({ name: 'improve', args: { tasks: [{slug, task, reviewNote}...],
    trailers: <this session's commit trailers>, footer: <this session's PR footer> } })` —
    each slice becomes one PR by an `implementer` agent, adversarially reviewed in the same
-   worktree by a `reviewer` agent, with one retry at high effort on a red gate or a reject.
+   worktree by a `reviewer` agent, with one retry at high effort on a red gate (the
+   implementer's `make verify-changed`) or a reject.
    Use the workflow even for a single slice: the Agent tool has no effort override, so a
    direct `implementer` → `reviewer` pair cannot retry at high — reserve that pair for a
    slice where no retry would be wanted. Non-code deliverables (a report, a measurement, a
@@ -51,8 +52,10 @@ plumbing, small reads for triage.
 
 ## Hard rules
 
-- Nothing merges without both: implementer's `make verify` green AND reviewer approve — on
-  a retried slice, the retry's own gate and review.
+- Nothing merges without all three: the implementer's `make verify-changed` green, CI's
+  full `make verify` green on the PR head, AND reviewer approve — on a retried slice, the
+  retry's own gate, CI run and review. `make verify` stays runnable locally; CI is where
+  it gates.
 - One retry, never more: a slice still red or rejected after its high-effort attempt is
   reported to the user, not re-queued.
 - Reviewers verify claims independently and may push small fixes; fundamental problems
