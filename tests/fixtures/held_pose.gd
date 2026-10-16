@@ -13,7 +13,7 @@ func _init(pose: ShipPose) -> void:
 	_held = pose
 
 
-func pose_at(_tick: int) -> ShipPose:
+func _posed(_tick: int) -> ShipPose:
 	return _held
 
 

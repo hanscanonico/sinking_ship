@@ -506,6 +506,9 @@ func test_a_tick_s_pose_is_built_once_and_shared() -> void:
 ## That [param pose] holds [param expected]'s values, and each piece's its piece's.
 func _assert_poses_equal(pose: ShipPose, expected: ShipPose, label: String) -> void:
 	assert_eq(pose.transform, expected.transform, "%s: where she stands" % label)
+	assert_eq(pose.sink, expected.sink, "%s: how far she has sunk" % label)
+	assert_eq(pose.trim_deg, expected.trim_deg, "%s: her trim" % label)
+	assert_eq(pose.heel_deg, expected.heel_deg, "%s: her heel" % label)
 	assert_eq(pose.levels, expected.levels, "%s: her cells' water" % label)
 	assert_eq(pose.pockets, expected.pockets, "%s: their air" % label)
 	assert_eq(pose.lit, expected.lit, "%s: their light" % label)
@@ -513,6 +516,9 @@ func _assert_poses_equal(pose: ShipPose, expected: ShipPose, label: String) -> v
 	assert_eq(pose.opened, expected.opened, "%s: what has failed" % label)
 	assert_eq(pose.falls.size(), expected.falls.size(), "%s: her funnels' falls" % label)
 	assert_eq(pose.felled.size(), expected.felled.size(), "%s: those landed" % label)
+	assert_eq(pose.collapsed, expected.collapsed, "%s: what has collapsed" % label)
+	assert_eq(pose.collapsing, expected.collapsing, "%s: what is collapsing" % label)
+	assert_eq(pose.broken_railings, expected.broken_railings, "%s: her railings" % label)
 	assert_eq(pose.lurch, expected.lurch, "%s: her lurch" % label)
 	assert_eq(pose.lurch_warning, expected.lurch_warning, "%s: its warning" % label)
 	assert_eq(pose.standing, expected.standing, "%s: the pieces she is in" % label)
@@ -522,6 +528,8 @@ func _assert_poses_equal(pose: ShipPose, expected: ShipPose, label: String) -> v
 		var theirs := expected.of_piece(piece)
 		assert_eq(own.transform, theirs.transform, "%s: piece %d stands" % [label, piece])
 		assert_eq(own.levels, theirs.levels, "%s: piece %d's water" % [label, piece])
+		assert_eq(own.pockets, theirs.pockets, "%s: piece %d's air" % [label, piece])
+		assert_eq(own.lit, theirs.lit, "%s: piece %d's light" % [label, piece])
 
 
 func test_the_weak_hull_breaks_in_two_on_her_pinned_seed() -> void:

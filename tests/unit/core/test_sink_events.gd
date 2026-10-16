@@ -443,3 +443,28 @@ func test_continues_across_a_lurch_and_a_collapse() -> void:
 	for snapshot: Dictionary in snapshots:
 		fell = fell or snapshot["seats"][0]["state"] == PlayerState.Body.AIRBORNE
 	assert_true(fell, "the bridge's body fell within the window")
+
+
+func test_an_authored_tick_s_pose_is_built_once_and_shared() -> void:
+	# An authored sinking's pose is shared as a baked one's is (SinkSchedule.pose_at):
+	# asked for again, the same pose — mid-lurch and with platforms collapsed, its values
+	# a fresh schedule's for that tick.
+	var schedule := _steamer_schedule(7)
+	var fresh := _steamer_schedule(7)
+	var ticks: Array[int] = [0]
+	for scheduled: SinkSchedule.Scheduled in _all(schedule):
+		ticks.append((scheduled.at + scheduled.ends_at) / 2)
+	var swung := false
+	for tick: int in ticks:
+		var pose := schedule.pose_at(tick)
+		schedule.pose_at(tick + 1)
+		assert_same(schedule.pose_at(tick), pose, "tick %d: the same pose again" % tick)
+		var expected := fresh.pose_at(tick)
+		assert_eq(pose.transform, expected.transform, "tick %d: where she stands" % tick)
+		assert_eq(pose.heel_deg, expected.heel_deg, "tick %d: her heel" % tick)
+		assert_eq(pose.lurch, expected.lurch, "tick %d: her lurch" % tick)
+		assert_eq(pose.collapsed, expected.collapsed, "tick %d: what has collapsed" % tick)
+		assert_eq(pose.broken_railings, expected.broken_railings, "tick %d: railings" % tick)
+		swung = swung or pose.lurch != 0.0
+	assert_true(swung, "asked mid-lurch")
+	assert_false(schedule.pose_at(ticks[-1]).collapsed.is_empty(), "and once collapsed")

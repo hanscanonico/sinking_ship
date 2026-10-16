@@ -31,7 +31,7 @@ const CAPSIZING_DEG := 30.0
 const LISTING_DEG := 5.0
 const TRIMMED_DEG := 2.0
 ## How many ticks' poses are kept to be handed out again (pose_at).
-const KEPT_POSES := 4
+const KEPT_POSES := 8
 
 
 ## One of an authored scenario's events, placed on this match's ticks.
@@ -111,8 +111,9 @@ var _failed_states := PackedByteArray()
 var _falls: Array[FunnelFall] = []
 var _aground_tick := -1
 ## The poses last asked for and their ticks, the latest first (pose_at): the ticks a
-## frame asks about — the tick shown, the one before it, the sim's — each built once.
-## Never match state: no snapshot or digest holds them.
+## frame asks about — the host's and the client's, the tick shown and the one before
+## it, the sound's a second back, the contact watch's ahead — each built once. Never
+## match state: no snapshot or digest holds them.
 var _kept_ticks := PackedInt32Array()
 var _kept_poses: Array[ShipPose] = []
 
@@ -350,7 +351,8 @@ func pose_at(tick: int) -> ShipPose:
 	return pose
 
 
-## Her pose at [param tick], built afresh: the one place a pose is made (pose_at).
+## Her pose at [param tick], built afresh: the one place a pose is made (pose_at), and
+## what a schedule of a tool's or a test's own overrides to make its poses.
 func _posed(tick: int) -> ShipPose:
 	if _timeline != null:
 		var physical := _physical(tick)
