@@ -305,6 +305,9 @@ art-lint:
 # The whole suite runs as JOBS shards side by side (tools/test_shards.py deals the
 # scripts); JOBS=1 runs it in one engine. One shard of N, as CI runs it:
 #   make test SHARD=2/8
+# A given list of scripts, exactly those, over JOBS shards or one SHARD the same way:
+#   make test TESTS="tests/unit/core/test_ticks.gd tests/unit/core/test_air.gd"
+# TESTS= with nothing in it runs nothing and passes; given at all, it wins over TEST.
 # tools/run_tests.sh hands any other GUT flag through (-gunit_test_name=...).
 # Every test engine, from any worktree or session, first takes one of TEST_SLOTS
 # machine-wide slots (tools/test_slot.sh), a kernel lock dropped however its engine
@@ -314,9 +317,15 @@ art-lint:
 TEST ?=
 SHARD ?=
 JOBS ?= 4
+# TESTS is left undeclared: its origin is what tells an empty list from none. Only
+# a list given on make's command line counts, so a stray TESTS in the environment
+# cannot cut make verify down to nothing.
+test-list = $(filter command line,$(origin TESTS))
+test-split = $(if $(SHARD),--shard $(SHARD),$(if $(filter-out 1,$(JOBS)),--jobs $(JOBS)))
 test:
 	$(call require-godot)
-	GODOT="$(GODOT)" tools/run_tests.sh $(if $(TEST),-gselect=$(notdir $(TEST)),$(if $(SHARD),--shard $(SHARD),$(if $(filter-out 1,$(JOBS)),--jobs $(JOBS))))
+	$(if $(test-list),printf '%s\n' $(TESTS) | )GODOT="$(GODOT)" tools/run_tests.sh \
+		$(if $(test-list),--list - $(test-split),$(if $(TEST),-gselect=$(notdir $(TEST)),$(test-split)))
 
 # The merge gate, in one command. Order is cheapest-feedback-first: parsing
 # fails fastest, style next, the suite last.
@@ -532,12 +541,14 @@ check:
 
 # The error guard itself, against a stand-in engine that errors and exits 0; the
 # window lock, against sleeps on a private lock file; the test engine slots,
-# against sleeps on private ones; and make fps's SPLIT, read off make -n.
+# against sleeps on private ones; make fps's SPLIT, read off make -n; and make test's
+# list of scripts, against a stand-in engine.
 guard-check:
 	tools/engine_guard_check.sh
 	tools/window_lock_check.sh
 	tools/test_slot_check.sh
 	tools/fps_split_check.sh
+	tools/run_tests_check.sh
 
 # Style and smells. Rule overrides live in gdlintrc.
 lint:
