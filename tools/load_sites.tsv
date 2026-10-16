@@ -1,23 +1,25 @@
 # Every GDScript call that loads or reads a path built at runtime, and the files it
 # may reach: FILE<tab>CALL<tab>GLOBS (repo-relative, * crosses directories; - for a
-# user:// path only). tools/test_changed.py takes each as edges to those files, and
-# its --check-sites (make guard-check) fails on a site missing here or gone from the code.
-# Arguments that are a string literal, or a constant holding one, need no line: the
-# literal is an edge of its own.
+# user:// path only; @ship for a ship by her name, which the selector follows to the
+# ships the files its tests reach can name). tools/test_changed.py takes each as edges
+# to those files, and its --check-sites (make guard-check) fails on a site missing
+# here or gone from the code. Arguments that are a string literal, or a constant
+# holding one, need no line: the literal is an edge of its own. A path given as an
+# argument — a test's --hit=PATH — is a literal in its caller, an edge there.
 ai/bot_profile.gd	ResourceLoader.exists(path)	data/bots/*.tres
 ai/bot_profile.gd	load(path)	data/bots/*.tres
-core/fleet.gd	ResourceLoader.exists(OPEN_SEA % ship_name)	data/ships/*.tres data/sinking/*.tres tests/fixtures/ships/*.tres
-core/fleet.gd	ResourceLoader.exists(SCENARIOS % scenario_name)	data/ships/*.tres data/sinking/*.tres tests/fixtures/ships/*.tres
-core/fleet.gd	ResourceLoader.exists(TEST_SHIPS % ship_name)	data/ships/*.tres data/sinking/*.tres tests/fixtures/ships/*.tres
-core/fleet.gd	load("%s/%s.tres" % [SHIPS, ship_name])	data/ships/*.tres data/sinking/*.tres tests/fixtures/ships/*.tres
-core/fleet.gd	load(OPEN_SEA % ship_name)	data/ships/*.tres data/sinking/*.tres tests/fixtures/ships/*.tres
-core/fleet.gd	load(OPEN_SEA % ship_of(ship_name))	data/ships/*.tres data/sinking/*.tres tests/fixtures/ships/*.tres
-core/fleet.gd	load(SCENARIOS % scenario_name)	data/ships/*.tres data/sinking/*.tres tests/fixtures/ships/*.tres
-core/fleet.gd	load(TEST_SHIPS % ship_name)	data/ships/*.tres data/sinking/*.tres tests/fixtures/ships/*.tres
-core/match_choices.gd	ResourceLoader.exists(path)	tests/fixtures/sinking/hits/*.tres tests/fixtures/sinking/*.tres data/*
-core/match_choices.gd	ResourceLoader.exists(scenario)	tests/fixtures/sinking/*.tres data/sinking/*.tres
-core/match_choices.gd	load(path)	tests/fixtures/sinking/hits/*.tres tests/fixtures/sinking/*.tres data/*
-core/match_choices.gd	load(scenario)	tests/fixtures/sinking/*.tres data/sinking/*.tres
+core/fleet.gd	ResourceLoader.exists(OPEN_SEA % ship_name)	@ship
+core/fleet.gd	ResourceLoader.exists(SCENARIOS % scenario_name)	@ship
+core/fleet.gd	ResourceLoader.exists(TEST_SHIPS % ship_name)	@ship
+core/fleet.gd	load("%s/%s.tres" % [SHIPS, ship_name])	@ship
+core/fleet.gd	load(OPEN_SEA % ship_name)	@ship
+core/fleet.gd	load(OPEN_SEA % ship_of(ship_name))	@ship
+core/fleet.gd	load(SCENARIOS % scenario_name)	@ship
+core/fleet.gd	load(TEST_SHIPS % ship_name)	@ship
+core/match_choices.gd	ResourceLoader.exists(path)	tests/fixtures/sinking/*.tres
+core/match_choices.gd	ResourceLoader.exists(scenario)	tests/fixtures/sinking/*.tres
+core/match_choices.gd	load(path)	tests/fixtures/sinking/*.tres
+core/match_choices.gd	load(scenario)	tests/fixtures/sinking/*.tres
 scenes/art/ship_model.gd	load(MODELS.path_join(name).path_join(name + ".glb"))	assets/models/*.glb
 scenes/audio/audio_settings.gd	ResourceLoader.exists(path)	-
 scenes/audio/audio_settings.gd	ResourceLoader.load(path)	-
@@ -32,10 +34,10 @@ scenes/online/online_settings.gd	FileAccess.open(path)	-
 tests/unit/ai/test_bot_floors.gd	load("res://data/bots/%s.tres" % tiers[seat])	data/bots/*.tres
 tests/unit/art/test_committed_models.gd	ResourceLoader.exists(MODELS.path_join(model).path_join(model + ".glb"))	assets/models/*.glb
 tests/unit/art/test_committed_models.gd	load("res://data/ships".path_join(file))	data/ships/*
-tests/unit/art/test_deck_works.gd	load("res://data/ships/%s.tres" % ship)	data/ships/*.tres
-tests/unit/art/test_liner_boiler.gd	load("res://data/ships/%s.tres" % ship_name)	data/ships/*.tres
-tests/unit/art/test_room_dressing.gd	load("res://data/ships/%s.tres" % ship_name)	data/ships/*.tres
-tests/unit/art/test_sea_haze.gd	load("res://data/ships/%s.tres" % ship)	data/ships/*.tres
+tests/unit/art/test_deck_works.gd	load("res://data/ships/%s.tres" % ship)	@ship
+tests/unit/art/test_liner_boiler.gd	load("res://data/ships/%s.tres" % ship_name)	@ship
+tests/unit/art/test_room_dressing.gd	load("res://data/ships/%s.tres" % ship_name)	@ship
+tests/unit/art/test_sea_haze.gd	load("res://data/ships/%s.tres" % ship)	@ship
 tests/unit/core/test_battle_royale_digests.gd	FileAccess.file_exists(path)	tests/golden/battle_royale.*.txt
 tests/unit/core/test_battle_royale_digests.gd	FileAccess.get_file_as_string(path)	tests/golden/battle_royale.*.txt
 tests/unit/core/test_determinism.gd	FileAccess.file_exists(path)	tests/golden/golden_*.txt
@@ -52,7 +54,7 @@ tests/unit/core/test_ship_layout_lint.gd	ResourceLoader.exists(scene)	authoring/
 tests/unit/core/test_ship_layout_lint.gd	load("%s/%s" % [SHIPS, file])	data/ships/*
 tests/unit/core/test_ship_scene_bake.gd	FileAccess.file_exists(blend)	authoring/*.blend
 tests/unit/core/test_ship_scene_bake.gd	ResourceLoader.exists(scene)	authoring/*.tscn
-tests/unit/core/test_ship_scene_bake.gd	load("res://data/ships/%s.tres" % ship)	data/ships/*.tres
+tests/unit/core/test_ship_scene_bake.gd	load("res://data/ships/%s.tres" % ship)	@ship
 tests/unit/core/test_ship_scene_bake.gd	load(path)	data/ships/*
 tests/unit/core/test_ship_structure_lint.gd	load("%s/%s" % [SHIPS, file])	data/ships/*
 tests/unit/core/test_sink_timeline.gd	load(path)	tests/fixtures/sinking/hits/*.tres
@@ -64,7 +66,7 @@ tests/unit/core/titanic_sisters.gd	load(HITS % hit_name)	tests/fixtures/sinking/
 tests/unit/game/test_settings.gd	FileAccess.file_exists(path)	-
 tests/unit/game/test_ui_theme.gd	load(screen)	scenes/online/*.tscn
 tests/unit/match/test_fx_planner.gd	FileAccess.get_file_as_string("res://scenes/match/" + file)	scenes/match/*.gd
-tests/unit/match/test_iceberg_planner.gd	load(path)	data/ships/*.tres
+tests/unit/match/test_iceberg_planner.gd	load(path)	@ship
 tests/unit/online/test_online_play.gd	FileAccess.file_exists(path)	-
 tools/arena.gd	FileAccess.get_file_as_string(path)	docs/arena*.md
 tools/arena.gd	FileAccess.open(path)	docs/arena*.md

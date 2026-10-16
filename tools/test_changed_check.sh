@@ -2,9 +2,10 @@
 #
 # `make guard-check`, its ninth part: tools/test_changed.py selects every test
 # script a change can reach and no other — through a class_name, a literal path, a
-# .tres, a uid, a %s pattern, a listed runtime load — prints the chain that pulled
-# each in, selects nothing for docs and shell, falls back to the whole suite naming
-# why, reads the change set off git against the merge-base with origin/main, and
+# .tres, a uid, a %s pattern, a listed runtime load, a ship's generator and
+# authoring scene, a ship loaded by a name its test can spell — prints the chain that
+# pulled each in, selects nothing for docs and shell, falls back to the whole suite
+# naming why, reads the change set off git against the merge-base with origin/main, and
 # --check-sites fails on a runtime load the list does not hold. Against a small
 # fixture project written here into a scratch git repo rather than committed under
 # tests/: its scripts would join the real project's, and its class_names with them.
@@ -51,7 +52,32 @@ EOF
 put core/hub.gd <<'EOF'
 class_name Hub
 ## The hub every layer stands on.
+const RULES := preload("res://data/rules.tres")
 var rate := Ticks.RATE
+EOF
+put data/rules.tres <<'EOF'
+[gd_resource type="Resource" format=3]
+EOF
+put core/fleet.gd <<'EOF'
+class_name Fleet
+const SHIPS := "res://data/ships/%s.tres"
+
+
+static func layout(ship_name: StringName) -> Resource:
+	return load(SHIPS % ship_name)
+
+
+static func names() -> PackedStringArray:
+	return ResourceLoader.list_directory("res://data/ships")
+EOF
+for ship in data/ships/brig data/ships/sloop data/sinking/brig_open_sea \
+	tests/fixtures/ships/brig_weak tests/fixtures/ships/sloop_lean; do
+	echo '[gd_resource type="Resource" format=3]' | put "$ship.tres"
+done
+echo "print(1)" | put tools/gen_brig.py
+echo "print(2)" | put tools/gen_sloop.py
+put authoring/brig/brig.tscn <<'EOF'
+[gd_scene format=3]
 EOF
 put core/sink.gd <<'EOF'
 class_name Sink
@@ -108,6 +134,8 @@ EOF
 put tools/load_sites.tsv <<'EOF'
 # The fixture's runtime-built loads.
 scenes/screens.gd	load(path)	scenes/screens/*.tscn
+core/fleet.gd	load(SHIPS % ship_name)	@ship
+tests/unit/test_deck.gd	load("res://data/ships/%s.tres" % ship)	@ship
 tests/unit/test_golden.gd	FileAccess.file_exists(GOLDEN % OS.get_name())	tests/golden/run.*.txt
 EOF
 put tests/unit/helpers.gd <<'EOF'
@@ -151,6 +179,53 @@ const GOLDEN := "res://tests/golden/run.%s.txt"
 func test_golden() -> void:
 	assert_true(FileAccess.file_exists(GOLDEN % OS.get_name()))
 EOF
+put tests/unit/test_brig.gd <<'EOF'
+extends GutTest
+
+
+func test_brig() -> void:
+	assert_not_null(Fleet.layout(&"brig"))
+EOF
+put tests/unit/test_sloop.gd <<'EOF'
+extends GutTest
+const SHIP := "sloop"
+
+
+func test_sloop() -> void:
+	assert_not_null(Fleet.layout(SHIP))
+EOF
+put tests/unit/test_deck.gd <<'EOF'
+extends GutTest
+
+
+func test_deck() -> void:
+	for ship in ["sloop"]:
+		assert_not_null(load("res://data/ships/%s.tres" % ship))
+EOF
+put tests/unit/test_fleet.gd <<'EOF'
+extends GutTest
+
+
+func test_every_ship() -> void:
+	for ship in Fleet.names():
+		assert_not_null(Fleet.layout(ship))
+EOF
+put tests/unit/test_env.gd <<'EOF'
+extends GutTest
+
+
+func test_the_ship_asked_for() -> void:
+	assert_not_null(Fleet.layout(OS.get_environment("SHIP")))
+EOF
+put tests/unit/test_lean.gd <<'EOF'
+extends GutTest
+const HULL := preload("res://tests/fixtures/ships/sloop_lean.tres")
+EOF
+put tests/unit/test_words.gd <<'EOF'
+extends GutTest
+## Names the brig, but loads no ship by name.
+var said := "brig"
+EOF
 echo "the transcript" | put tests/golden/run.macos.txt
 echo "tick 1" | put tests/unit/notes.txt
 put data/match.tres <<'EOF'
@@ -162,9 +237,8 @@ EOF
 put addons/gut/gut.gd <<'EOF'
 extends Node
 EOF
-echo "print(1)" | put tools/gen_ship.py
 echo "{}" | put .gutconfig.json
-echo "all:" | put Makefile
+printf 'all:\nTEST_HULLS = brig:brig_weak:--weak \\\n\tsloop:sloop_lean:--lean\n' | put Makefile
 echo "# Notes" | put docs/notes.md
 echo "echo hi" | put tools/build.sh
 echo "binary" | put assets/odd.xyz
@@ -265,6 +339,48 @@ run golden tests/golden/run.macos.txt
 expect golden "$GOLDEN"
 says golden "        -> tests/golden/run.macos.txt  (res://tests/golden/run.%s.txt)"
 
+# A ship's data selects the tests that can load her, and not another ship's: by a
+# name a literal or a constant spells, by every name a listing of the fleet or the
+# environment can give — and not by a name no by-name load reaches. Her scenarios
+# and hulls are hers too.
+BRIG=tests/unit/test_brig.gd
+SLOOP=tests/unit/test_sloop.gd
+DECK=tests/unit/test_deck.gd
+FLEET=tests/unit/test_fleet.gd
+ENV=tests/unit/test_env.gd
+LEAN=tests/unit/test_lean.gd
+BY_FLEET="the Fleet in core/fleet.gd loads her by name"
+run brig data/ships/brig.tres
+expect brig "$BRIG" "$FLEET" "$ENV"
+says brig "        -> data/ships/brig.tres  ($BRIG names brig; $BY_FLEET)"
+says brig "        -> data/ships/brig.tres  ($FLEET lists the fleet; $BY_FLEET)"
+says brig "        -> data/ships/brig.tres  ($ENV reads a name from the environment; $BY_FLEET)"
+run sloop data/ships/sloop.tres
+expect sloop "$SLOOP" "$DECK" "$FLEET" "$ENV"
+says sloop "        -> data/ships/sloop.tres  ($SLOOP names sloop; $BY_FLEET)"
+says sloop "        -> data/ships/sloop.tres  ($DECK names sloop; res://data/ships/%s.tres in $DECK loads her by name)"
+run scenario data/sinking/brig_open_sea.tres
+expect scenario "$BRIG" "$FLEET" "$ENV"
+run hull tests/fixtures/ships/brig_weak.tres
+expect hull "$BRIG" "$FLEET" "$ENV"
+
+# A ship's generator selects what her data and her test hulls (the Makefile's
+# TEST_HULLS, continued lines too) select; her authoring scene, what her data does.
+run genbrig tools/gen_brig.py
+expect genbrig "$BRIG" "$FLEET" "$ENV"
+says genbrig "        -> tools/gen_brig.py  (written by tools/gen_brig.py (make ship))"
+run gensloop tools/gen_sloop.py
+expect gensloop "$SLOOP" "$DECK" "$FLEET" "$ENV" "$LEAN"
+says gensloop "        -> tools/gen_sloop.py  (written by tools/gen_sloop.py --lean (make ship))"
+run authoring authoring/brig/brig.tscn
+expect authoring "$BRIG" "$FLEET" "$ENV"
+says authoring "        -> authoring/brig/brig.tscn  (baked from authoring/brig/ (make bake-check))"
+
+# Shared data selects every test that reads it, through every reader.
+run rules data/rules.tres
+expect rules "$HUD" "$SINK"
+says rules "        -> data/rules.tres  (res://data/rules.tres)"
+
 # An unused script reaches no test, and nothing runs.
 run unused scenes/unused.gd
 expect unused
@@ -276,9 +392,8 @@ for changed in \
 	"addons/gut/gut.gd:addons/" \
 	".gutconfig.json:the test runner's config" \
 	"Makefile:the test runner" \
-	"data/match.tres:data/" \
-	"authoring/ship/ship.tscn:authoring/" \
-	"tools/gen_ship.py:a ship generator" \
+	"data/match.tres:a data file no edge reaches — the graph cannot place it" \
+	"authoring/ship/ship.tscn:a data file no edge reaches — the graph cannot place it" \
 	"tools/load_sites.tsv:the test selector's runtime load sites" \
 	"assets/odd.xyz:a file the graph cannot place" \
 	"core/prefs_store.gd:an autoload every engine runs reaches it"; do
