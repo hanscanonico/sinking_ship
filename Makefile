@@ -327,6 +327,13 @@ test:
 	$(if $(test-list),printf '%s\n' $(TESTS) | )GODOT="$(GODOT)" tools/run_tests.sh \
 		$(if $(test-list),--list - $(test-split),$(if $(TEST),-gselect=$(notdir $(TEST)),$(test-split)))
 
+# tests/durations.tsv, the seconds tools/test_shards.py balances the shards by, from
+# a finished CI verify run's logs (gh fetches them; RUN is its id):
+#   make durations RUN=38882193885
+durations:
+	$(if $(RUN),,$(error make durations needs RUN=<verify run id>; gh run list --workflow verify))
+	tools/test_durations.py --run $(RUN)
+
 # The merge gate, in one command. Order is cheapest-feedback-first: parsing
 # fails fastest, style next, the suite last.
 #
@@ -554,8 +561,8 @@ check:
 # The error guard itself, against a stand-in engine that errors and exits 0; the
 # window lock, against sleeps on a private lock file; the test engine slots,
 # against sleeps on private ones; make fps's SPLIT, read off make -n; make test's
-# list of scripts, against a stand-in engine; and verify running the float test once,
-# read off make -n.
+# list of scripts, against a stand-in engine; make durations, against a sample log; and
+# verify running the float test once, read off make -n.
 guard-check:
 	tools/engine_guard_check.sh
 	tools/window_lock_check.sh
@@ -563,6 +570,7 @@ guard-check:
 	tools/fps_split_check.sh
 	tools/run_tests_check.sh
 	tools/ship_check_once.sh
+	tools/test_durations_check.sh
 
 # Style and smells. Rule overrides live in gdlintrc.
 lint:
@@ -588,5 +596,5 @@ format-check:
 
 .PHONY: import run match capture net-bench sim-bench bench serve-local online-e2e export-server \
 	export-web export-mac export-server-mac serve-web-local serve-web-local-stop fps arena \
-	hits bake census art-lint test verify check guard-check ship ship-gen-check ship-check bake-ship bake-check ship-scene \
+	hits bake census art-lint test durations verify check guard-check ship ship-gen-check ship-check bake-ship bake-check ship-scene \
 	ship-blend bake-blend models model-sources sailor crew-capture lint format format-check

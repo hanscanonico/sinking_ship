@@ -2,10 +2,11 @@
 """Which test scripts shard K of N runs: `tools/run_tests.sh --shard K/N`.
 
 Every tests/unit/**/test_*.gd lands in exactly one shard. Scripts are weighed by
-tests/durations.tsv (seconds on a hosted runner) and dealt longest first to the
-lightest shard, so the shards finish close together. A script the file does not
-list yet weighs DEFAULT_SECONDS: it still runs, the split is just a little less
-even until the file is refreshed.
+tests/durations.tsv (seconds on a hosted runner, written from a CI verify run's
+logs by `make durations RUN=ID`, tools/test_durations.py) and dealt longest first
+to the lightest shard, so the shards finish close together. A script the file does
+not list yet weighs DEFAULT_SECONDS: it still runs, the split is just a little less
+even until the file is written again.
 
 With --from LIST the scripts are LIST's, one per line, instead of every one under
 tests/unit: `tools/run_tests.sh --list` deals a chosen few the same way. A line

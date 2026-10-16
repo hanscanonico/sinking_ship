@@ -1,0 +1,77 @@
+test 3/8	UNKNOWN STEP	﻿2026-10-16T09:41:40.6120581Z Current runner version: '2.337.0'
+test 3/8	UNKNOWN STEP	2026-10-16T09:48:19.4579018Z res://tests/unit/core/test_battle_royale_digests.gd
+test 3/8	UNKNOWN STEP	2026-10-16T09:48:19.4581884Z [0m* test_battle_royale_digests_are_unchanged
+test 3/8	UNKNOWN STEP	2026-10-16T09:49:07.0775305Z [33m    [Pending]:  [0mno battle royale digests recorded for linux-x86_64:
+test 3/8	UNKNOWN STEP	2026-10-16T09:49:07.0775961Z     1 120 b0f7297a9cee314f1e106bbc01ce3e3d31a1f864f4367444fad82cf6e8c2ead0
+test 3/8	UNKNOWN STEP	2026-10-16T09:49:07.0776536Z     2 30 c8cfb51365a4c2d0e70964b53fbaaa8f8c9e82034e6d610be70e6029331dded1
+test 3/8	UNKNOWN STEP	2026-10-16T09:49:07.0777088Z     3 30 59cc0f65fb858d12c65e2fee5804bcb7b7177af07efa8232ea8fce07b9e3924d
+test 3/8	UNKNOWN STEP	2026-10-16T09:49:07.0777423Z 
+test 3/8	UNKNOWN STEP	2026-10-16T09:49:07.0814694Z [4m
+test 3/8	UNKNOWN STEP	2026-10-16T09:49:07.0814886Z 
+test 3/8	UNKNOWN STEP	2026-10-16T09:49:07.0815117Z res://tests/unit/core/test_funnel_strike.gd
+test 3/8	UNKNOWN STEP	2026-10-16T09:49:07.0825420Z [0m* test_bodies_in_the_strip_are_knocked_down_as_it_lands
+test 3/8	UNKNOWN STEP	2026-10-16T09:49:07.0854270Z [1m1/1 passed.
+test 3/8	UNKNOWN STEP	2026-10-16T09:49:07.0856404Z [0m[4m
+test 3/8	UNKNOWN STEP	2026-10-16T09:52:50.9533192Z [0m[33m= Run Summary
+test 3/8	UNKNOWN STEP	2026-10-16T09:52:50.9533835Z [0m[33m==============================================
+test 3/8	UNKNOWN STEP	2026-10-16T09:52:50.9536986Z [0m[4m
+test 3/8	UNKNOWN STEP	2026-10-16T09:52:50.9537683Z res://tests/unit/core/test_battle_royale_digests.gd
+test 3/8	UNKNOWN STEP	2026-10-16T09:52:50.9538604Z [0m- test_battle_royale_digests_are_unchanged
+test 3/8	UNKNOWN STEP	2026-10-16T09:52:50.9544354Z [33m    [Pending]:  [0mno battle royale digests recorded for linux-x86_64:
+test 3/8	UNKNOWN STEP	2026-10-16T09:52:50.9545336Z     1 120 b0f7297a9cee314f1e106bbc01ce3e3d31a1f864f4367444fad82cf6e8c2ead0
+test 3/8	UNKNOWN STEP	2026-10-16T09:52:50.9546580Z     2 30 c8cfb51365a4c2d0e70964b53fbaaa8f8c9e82034e6d610be70e6029331dded1
+test 3/8	UNKNOWN STEP	2026-10-16T09:52:50.9547561Z     3 30 59cc0f65fb858d12c65e2fee5804bcb7b7177af07efa8232ea8fce07b9e3924d
+test 3/8	UNKNOWN STEP	2026-10-16T09:52:50.9548100Z 
+test 3/8	UNKNOWN STEP	2026-10-16T09:52:50.9548348Z [4m
+test 3/8	UNKNOWN STEP	2026-10-16T09:52:50.9548798Z res://tests/unit/core/test_titanic_britannic.gd
+test 3/8	UNKNOWN STEP	2026-10-16T09:52:50.9549533Z [0m- test_the_britannic_with_her_ports_shut_lasts
+test 3/8	UNKNOWN STEP	2026-10-16T09:52:50.9550995Z [33m    [Pending]:  [0mthe Britannic with her ports shut: first gone at 2:09:56, ends AFLOAT at 2:09:56: survives · funnel fell · broke in two
+test 3/8	UNKNOWN STEP	2026-10-16T09:52:50.9551953Z 
+test 3/8	UNKNOWN STEP	2026-10-16T09:52:50.9552111Z Totals
+test 3/8	UNKNOWN STEP	2026-10-16T09:52:50.9552453Z ------
+test 3/8	UNKNOWN STEP	2026-10-16T09:52:50.9552826Z Scripts              24
+test 3/8	UNKNOWN STEP	2026-10-16T09:52:50.9553258Z Tests               125
+test 3/8	UNKNOWN STEP	2026-10-16T09:52:50.9553945Z Passing Tests       123
+test 3/8	UNKNOWN STEP	2026-10-16T09:52:50.9554408Z Risky/Pending         2
+test 3/8	UNKNOWN STEP	2026-10-16T09:52:50.9554842Z Asserts           49906
+test 3/8	UNKNOWN STEP	2026-10-16T09:52:50.9555298Z Time              632.532s
+test 5/8	UNKNOWN STEP	﻿2026-10-16T09:41:40.1401116Z Current runner version: '2.337.0'
+test 5/8	UNKNOWN STEP	2026-10-16T09:48:47.9142713Z res://tests/unit/core/test_stamina.gd
+test 5/8	UNKNOWN STEP	2026-10-16T09:48:47.9147265Z [0m* test_regen_waits_for_the_delay
+test 5/8	UNKNOWN STEP	2026-10-16T09:48:47.9243873Z * test_stamina_stays_in_range
+test 5/8	UNKNOWN STEP	2026-10-16T09:48:48.4204033Z [1m2/2 passed.
+test 5/8	UNKNOWN STEP	2026-10-16T09:48:48.4204450Z [0m[4m
+test 5/8	UNKNOWN STEP	2026-10-16T09:48:48.4204613Z 
+test 5/8	UNKNOWN STEP	2026-10-16T09:48:48.4204829Z res://tests/unit/core/test_titanic_olympic.gd
+test 5/8	UNKNOWN STEP	2026-10-16T09:48:48.4207501Z [0m* test_the_olympic_refitted_floats_on_the_nights_damage
+test 5/8	UNKNOWN STEP	2026-10-16T09:50:25.6809650Z     the Olympic of 1913 on the night's damage: first gone at 2:25:39, ends AFLOAT at 2:25:58: survives · funnel fell · broke in two
+test 5/8	UNKNOWN STEP	2026-10-16T09:50:25.6811088Z [33m    [Pending]:  [0mthe Olympic founders: first gone at 2:25:39, ends AFLOAT at 2:25:58: survives · funnel fell · broke in two
+test 5/8	UNKNOWN STEP	2026-10-16T09:50:25.6847038Z [4m
+test 5/8	UNKNOWN STEP	2026-10-16T09:50:25.6847266Z 
+test 5/8	UNKNOWN STEP	2026-10-16T09:50:25.6847468Z res://tests/unit/match/test_brawl_marks.gd
+test 5/8	UNKNOWN STEP	2026-10-16T09:50:25.6850838Z [0m* test_the_scuffs_fade_out_to_every_edge_within_their_reach_and_arc
+test 5/8	UNKNOWN STEP	2026-10-16T09:50:25.7021211Z * test_a_brace_scuffs_a_flat_dry_floor_alone
+test 5/8	UNKNOWN STEP	2026-10-16T09:50:25.7450287Z * test_the_scuffs_stop_short_of_a_wall_and_a_railing
+test 5/8	UNKNOWN STEP	2026-10-16T09:50:25.7724004Z [1m3/3 passed.
+test 5/8	UNKNOWN STEP	2026-10-16T09:50:25.7727226Z [0m[4m
+test 5/8	UNKNOWN STEP	2026-10-16T09:50:26.1898077Z [0m
+test 5/8	UNKNOWN STEP	2026-10-16T09:50:26.1898272Z 
+test 5/8	UNKNOWN STEP	2026-10-16T09:50:26.1898280Z 
+test 5/8	UNKNOWN STEP	2026-10-16T09:50:26.1898283Z 
+test 5/8	UNKNOWN STEP	2026-10-16T09:50:26.1906272Z [33m==============================================
+test 5/8	UNKNOWN STEP	2026-10-16T09:50:26.1907064Z [0m[33m= Run Summary
+test 5/8	UNKNOWN STEP	2026-10-16T09:50:26.1907388Z [0m[33m==============================================
+test 5/8	UNKNOWN STEP	2026-10-16T09:50:26.1910239Z [0m[4m
+test 5/8	UNKNOWN STEP	2026-10-16T09:50:26.1910612Z res://tests/unit/core/test_titanic_olympic.gd
+test 5/8	UNKNOWN STEP	2026-10-16T09:50:26.1911304Z [0m- test_the_olympic_refitted_floats_on_the_nights_damage
+test 5/8	UNKNOWN STEP	2026-10-16T09:50:26.1913513Z [33m    [Pending]:  [0mthe Olympic founders: first gone at 2:25:39, ends AFLOAT at 2:25:58: survives · funnel fell · broke in two
+test 5/8	UNKNOWN STEP	2026-10-16T09:50:26.1914242Z 
+test 5/8	UNKNOWN STEP	2026-10-16T09:50:26.1914365Z Totals
+test 5/8	UNKNOWN STEP	2026-10-16T09:50:26.1914635Z ------
+test 5/8	UNKNOWN STEP	2026-10-16T09:50:26.1914898Z Scripts              24
+test 5/8	UNKNOWN STEP	2026-10-16T09:50:26.1915134Z Tests               205
+test 5/8	UNKNOWN STEP	2026-10-16T09:50:26.1915360Z Passing Tests       204
+test 5/8	UNKNOWN STEP	2026-10-16T09:50:26.1915582Z Risky/Pending         1
+test 5/8	UNKNOWN STEP	2026-10-16T09:50:26.1915796Z Asserts           42835
+test 5/8	UNKNOWN STEP	2026-10-16T09:50:26.1931406Z Time              499.903s
+test 5/8	UNKNOWN STEP	2026-10-16T09:50:26.1931620Z 
