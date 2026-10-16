@@ -620,7 +620,7 @@ func test_sunk_passes_over_a_collapsed_platform() -> void:
 	layout.platforms = platforms
 	var surfaces := Surfaces.new(layout)
 	var sinking := SimFixtures.scenario([[0.0, layout.freeboard + 1.0, 0.0, 0.0]])
-	var pose := SimFixtures.sim(1, sinking, layout).pose()
+	var pose := SimFixtures.copy_of(SimFixtures.sim(1, sinking, layout).pose())
 	var depth := SimFixtures.rules().wade_depth
 	assert_false(surfaces.sunk(pose, depth), "the roof stands out of the sea")
 	pose.collapsed = [&"roof"] as Array[StringName]
@@ -634,7 +634,8 @@ func test_a_collapsed_deck_takes_its_ladder() -> void:
 	var layout := _steamer()
 	var surfaces := Surfaces.new(layout)
 	var rules := SimFixtures.rules()
-	var pose := SimFixtures.sim(1, load(SimFixtures.STEAMER_SCRIPT), layout).pose()
+	var sim := SimFixtures.sim(1, load(SimFixtures.STEAMER_SCRIPT), layout)
+	var pose := SimFixtures.copy_of(sim.pose())
 	var ladder: ShipLadder = layout.ladders[1]
 	var middle := (ladder.from + ladder.to) * 0.5
 	var outboard := ladder.from.y + rules.body_radius + 0.2
@@ -735,7 +736,7 @@ func test_line_of_sight_is_blocked_by_walls_not_by_doorways() -> void:
 	var in_wheelhouse := Vector3(-2.5, 2.5 + eye, 0.0)
 	var on_bridge := Vector3(-2.5, 4.7 + eye, 0.0)
 	assert_false(surfaces.line_of_sight(in_wheelhouse, on_bridge, calm), "the bridge over it")
-	var gone := SimFixtures.sim(1, null, layout).pose()
+	var gone := SimFixtures.copy_of(SimFixtures.sim(1, null, layout).pose())
 	gone.collapsed = [&"bridge"] as Array[StringName]
 	assert_true(surfaces.line_of_sight(in_wheelhouse, on_bridge, gone), "the bridge collapsed")
 	# From the poop deck's rail, a swimmer under the side is behind the hull; one well

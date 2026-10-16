@@ -31,7 +31,7 @@ class DoorPose:
 		door = door_name
 		gave_way = given
 
-	func pose_at(tick: int) -> ShipPose:
+	func _posed(tick: int) -> ShipPose:
 		var pose: ShipPose = super(tick)
 		pose.doors_shut[door] = 1.0
 		if gave_way:

@@ -30,6 +30,8 @@ extends RefCounted
 const CAPSIZING_DEG := 30.0
 const LISTING_DEG := 5.0
 const TRIMMED_DEG := 2.0
+## How many ticks' poses are kept to be handed out again (pose_at).
+const KEPT_POSES := 8
 
 
 ## One of an authored scenario's events, placed on this match's ticks.
@@ -108,6 +110,12 @@ var _failed_names: Array[StringName] = []
 var _failed_states := PackedByteArray()
 var _falls: Array[FunnelFall] = []
 var _aground_tick := -1
+## The poses last asked for and their ticks, the latest first (pose_at): the ticks a
+## frame asks about — the host's and the client's, the tick shown and the one before
+## it, the sound's a second back, the contact watch's ahead — each built once. Never
+## match state: no snapshot or digest holds them.
+var _kept_ticks := PackedInt32Array()
+var _kept_poses: Array[ShipPose] = []
 
 
 ## [param sink_stream] is the sinking stream, SeedStreams' (match seed, "sink"),
@@ -321,7 +329,31 @@ func _weight(frame: int, tick: int) -> float:
 	return clampf((_seconds_at(tick) - _timeline.times[frame]) / span, 0.0, 1.0)
 
 
+## Her pose at [param tick]: built the first time it is asked for and handed out again
+## to everyone who asks for that tick while it is kept — a value nobody changes
+## (ShipPose), the same answer a fresh schedule builds (D7).
 func pose_at(tick: int) -> ShipPose:
+	var kept := _kept_ticks.find(tick)
+	var pose: ShipPose
+	if kept == -1:
+		pose = _posed(tick)
+		if _kept_ticks.size() == KEPT_POSES:
+			_kept_ticks.remove_at(KEPT_POSES - 1)
+			_kept_poses.pop_back()
+	else:
+		pose = _kept_poses[kept]
+		if kept == 0:
+			return pose
+		_kept_ticks.remove_at(kept)
+		_kept_poses.remove_at(kept)
+	_kept_ticks.insert(0, tick)
+	_kept_poses.insert(0, pose)
+	return pose
+
+
+## Her pose at [param tick], built afresh: the one place a pose is made (pose_at), and
+## what a schedule of a tool's or a test's own overrides to make its poses.
+func _posed(tick: int) -> ShipPose:
 	if _timeline != null:
 		var physical := _physical(tick)
 		_happened(physical, tick)

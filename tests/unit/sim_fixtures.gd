@@ -255,6 +255,30 @@ static func sim(seats: int, sinking: SinkScenario = null, layout: ShipLayout = n
 	return MatchSim.create(config(seats, sinking, 1, layout))
 
 
+## A pose of the test's own holding [param pose]'s values, for a test to change: the
+## schedule's poses are shared and nobody changes them (ShipPose). Its doors, failures,
+## falls and collapses are its own lists; a piece's pose is the one it was handed.
+static func copy_of(pose: ShipPose) -> ShipPose:
+	var made := ShipPose.new(pose.sink, pose.trim_deg, pose.heel_deg, pose.transform)
+	made.levels = pose.levels
+	made.pockets = pose.pockets
+	made.cells = pose.cells
+	made.lit = pose.lit
+	made.doors_shut = pose.doors_shut.duplicate()
+	made.opened = pose.opened.duplicate()
+	made.falls = pose.falls.duplicate()
+	made.felled = pose.felled.duplicate()
+	made.collapsed = pose.collapsed.duplicate()
+	made.collapsing = pose.collapsing.duplicate()
+	made.broken_railings = pose.broken_railings
+	made.lurch_warning = pose.lurch_warning
+	made.lurch = pose.lurch
+	for piece: ShipPose in pose.pieces:
+		made.pieces.append(made if piece == pose else piece)
+	made.standing = pose.standing
+	return made
+
+
 ## Puts [param seat] standing at [param pos] (ship-local), looking
 ## [param facing_deg] from the bow toward starboard, at rest.
 static func place(match_sim: MatchSim, seat: int, pos: Vector3, facing_deg: float = 0.0) -> void:
