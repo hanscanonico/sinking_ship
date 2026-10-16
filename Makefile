@@ -550,8 +550,17 @@ SOURCES = $(shell find . -name '*.gd' \
 # fed NUL-delimited. xargs exits 123 when any one invocation fails, so a problem
 # in a single chunk still fails the target. Workers' output interleaves; each
 # chunk also prints its own summary line.
+#
+# The first file goes alone, before the fan-out, and its failure fails the
+# target: gdtoolkit builds its parser cache directory (~/.cache/gdtoolkit on
+# Linux, ~/Library/Caches/gdtoolkit on macOS) with a check-then-makedirs, so on a
+# fresh machine — every CI runner — parallel workers race to create it and the
+# losers report "Cannot open file '…': File exists" as a problem. The warm-up
+# creates the directory and its parser pickles first; do not remove it.
 NPROC ?= $(shell getconf _NPROCESSORS_ONLN 2>/dev/null || echo 4)
-gdtoolkit-each = printf '%s\0' $(SOURCES) | xargs -0 -P $(NPROC) -n 60 $(1)
+gdtoolkit-each = $(1) $(firstword $(SOURCES)) && \
+	printf '%s\0' $(wordlist 2,$(words $(SOURCES)),$(SOURCES)) | \
+	xargs -0 -P $(NPROC) -n 60 $(1)
 
 # Parse/type check plus lightweight architecture invariants without booting the
 # scene tree. Rules live in tools/check_scripts.sh.
@@ -561,8 +570,9 @@ check:
 # The error guard itself, against a stand-in engine that errors and exits 0; the
 # window lock, against sleeps on a private lock file; the test engine slots,
 # against sleeps on private ones; make fps's SPLIT, read off make -n; make test's
-# list of scripts, against a stand-in engine; make durations, against a sample log; and
-# verify running the float test once, read off make -n.
+# list of scripts, against a stand-in engine; make durations, against a sample log;
+# verify running the float test once, read off make -n; and the gdtoolkit targets'
+# warm-up, read off make -n.
 guard-check:
 	tools/engine_guard_check.sh
 	tools/window_lock_check.sh
@@ -571,6 +581,7 @@ guard-check:
 	tools/run_tests_check.sh
 	tools/ship_check_once.sh
 	tools/test_durations_check.sh
+	tools/lint_warmup_check.sh
 
 # Style and smells. Rule overrides live in gdlintrc.
 lint:
