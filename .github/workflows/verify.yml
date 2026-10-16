@@ -1,5 +1,6 @@
-# The merge gate, run for us instead of remembered: the same targets
-# `make verify` chains. The static gates run in one job; the suite is dealt
+# The merge gate, run for us instead of remembered: the targets `make verify`
+# chains but bake-check. The static gates — check, guard-check, ship-gen-check,
+# lint and format-check — run in one job; the suite is dealt
 # across parallel shards by tools/test_shards.py, balanced on
 # tests/durations.tsv — run in one engine it took over 70 minutes (SH34).
 # The `verify` job at the end is the one verdict: green only when every
@@ -47,6 +48,11 @@ jobs:
 
       - name: guard-check
         run: make guard-check
+
+      # Every data/ships/NAME.tres and test hull held to its tools/gen_NAME.py;
+      # python3 is setup-python's.
+      - name: ship-gen-check
+        run: make ship-gen-check
 
       - name: lint
         run: make lint

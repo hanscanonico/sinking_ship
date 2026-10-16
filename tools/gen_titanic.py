@@ -2,7 +2,7 @@
 """Writes the Titanic's layout and structure, data/ships/titanic.tres (SH34).
 
 The layout and structure are generated: change her here, then `make ship SHIP=titanic`.
-`make ship-check` (part of `make verify`) fails when the committed .tres is not what
+`make ship-gen-check` (part of `make verify`) fails when the committed .tres is not what
 this writes, so a hand edit to the .tres is caught. The sim reads only the .tres (D6).
 
 RMS Titanic at full size, traced only from public-domain sources (R31), each traced

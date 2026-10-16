@@ -2,7 +2,7 @@
 """Writes the steamer's layout and structure, data/ships/steamer.tres.
 
 The layout and structure are generated: change the ship here, then `make ship`.
-`make ship-check` (part of `make verify`) fails when the committed .tres is not what
+`make ship-gen-check` (part of `make verify`) fails when the committed .tres is not what
 this writes, so a hand edit to the .tres is caught. The sim reads only the .tres (D6).
 
 Ship-local metres: x toward the bow, z to starboard, y up, origin on the main deck
