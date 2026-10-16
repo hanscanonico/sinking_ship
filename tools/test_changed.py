@@ -50,8 +50,8 @@ SITES = "tools/load_sites.tsv"
 TEST_DIR = "tests/unit/"
 
 # Never part of the project: version control, the engine's cache, a vendored engine,
-# nested agent checkouts.
-SKIP_DIRS = {".git", ".godot", "bin", ".claude"}
+# nested agent checkouts, exports and captures.
+SKIP_DIRS = {".git", ".godot", "bin", ".claude", "build", "captures"}
 # Files the graph reads references out of.
 SOURCES = {".gd", ".tscn", ".tres", ".gdshader", ".gdshaderinc"}
 # Files the engine loads as they are; any other it loads only once imported, and an
@@ -135,8 +135,6 @@ class Tree:
         # Paths a pattern may name though they are gone: a deleted file's dependents
         # still reach it.
         self.known = self.files | set(extra)
-        self.dirs = {str(Path(f).parent) + "/" for f in self.files}
-        self.dirs |= {d for f in self.files for d in _parents(f)}
         self.classes: dict[str, str] = {}
         self.texts: dict[str, str] = {}
         for path in sorted(self.files):
@@ -267,11 +265,6 @@ class Tree:
                     seen.add(target)
                     queue.append(target)
         return seen
-
-
-def _parents(path: str) -> list[str]:
-    parts = path.split("/")[:-1]
-    return ["/".join(parts[: i + 1]) + "/" for i in range(len(parts))]
 
 
 def read_sites(root: Path) -> list[tuple[str, str, list[str]]]:
