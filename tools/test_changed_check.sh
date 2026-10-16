@@ -34,6 +34,15 @@ put project.godot <<'EOF'
 config_version=5
 [application]
 run/main_scene="res://scenes/hud.tscn"
+[autoload]
+Prefs="*res://scenes/prefs.gd"
+EOF
+put scenes/prefs.gd <<'EOF'
+extends Node
+var store := PrefsStore.new()
+EOF
+put core/prefs_store.gd <<'EOF'
+class_name PrefsStore
 EOF
 put core/ticks.gd <<'EOF'
 class_name Ticks
@@ -254,6 +263,7 @@ expect pause "$SCREENS"
 says pause "        -> scenes/screens/pause.tscn  (load(path))"
 run golden tests/golden/run.macos.txt
 expect golden "$GOLDEN"
+says golden "        -> tests/golden/run.macos.txt  (res://tests/golden/run.%s.txt)"
 
 # An unused script reaches no test, and nothing runs.
 run unused scenes/unused.gd
@@ -270,7 +280,8 @@ for changed in \
 	"authoring/ship/ship.tscn:authoring/" \
 	"tools/gen_ship.py:a ship generator" \
 	"tools/load_sites.tsv:the test selector's runtime load sites" \
-	"assets/odd.xyz:a file the graph cannot place"; do
+	"assets/odd.xyz:a file the graph cannot place" \
+	"core/prefs_store.gd:an autoload every engine runs reaches it"; do
 	file="${changed%%:*}"
 	run fallback "$file" scenes/hud.gd
 	[[ "$(cat "$WORK/fallback.list")" == ALL ]] || fail "$file: did not fall back to the whole suite"

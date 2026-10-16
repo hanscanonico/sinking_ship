@@ -476,13 +476,14 @@ def report(selection: dict, changed: list[str], against: str) -> None:
     tests = selection["tests"]
     for note in selection["notes"]:
         print(f"    {note}")
-    if not selection["godot"]:
-        print("test-changed: no GDScript, resource or scene changed — no tests to run")
-        return
     if not tests:
-        print("test-changed: no test script reaches the changes — no tests to run")
+        if not selection["godot"]:
+            print("test-changed: no GDScript, resource or scene changed — no tests to run")
+        else:
+            print("test-changed: no test script reaches the changes — no tests to run")
         return
-    print(f"test-changed: {_count(len(tests), 'test script')} reach them")
+    verb = "reaches" if len(tests) == 1 else "reach"
+    print(f"test-changed: {_count(len(tests), 'test script')} {verb} them")
     for test, chain in tests.items():
         print(f"    {test}" + "".join(f"\n        -> {step}  ({why})" for step, why in chain[1:]))
 
