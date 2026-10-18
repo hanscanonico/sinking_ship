@@ -817,6 +817,14 @@ func _blocker(mesh: ShipMesh, blocker: ShipBlocker, pieces: Dictionary) -> void:
 			# deck's top itself.
 			for bare: Rect2 in _space.uncovered(area, blocker.top):
 				mesh.box(bare, top, blocker.top, ShipPaints.wall, ShipMesh.TOP | ShipMesh.SIDES)
+		# Along her side, up to the room's ceiling where the deck over it stops short of
+		# the wall, so her shell's outside never shows from in the room (#147).
+		for stretch: Vector3 in _space.short_of_ceiling(blocker):
+			var piece := ShipSpace.stretch_of(blocker, stretch)
+			var sides := ShipMesh.SIDES
+			_lined_box(
+				mesh, piece, blocker.top, stretch.z, ShipPaints.wall, sides, sides, foot, stretch.z
+			)
 	elif blocker.top - blocker.bottom <= ShipSpace.WALL_MAX and _space.roofs(blocker):
 		# A slab over a room, no deck of its own: its roof, planked over its ceiling.
 		mesh.box(area, blocker.bottom, top, ShipPaints.deck, ShipMesh.TOP)
