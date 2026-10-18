@@ -147,7 +147,7 @@ func edge_toward(
 			feet = _surfaces.height_at(under, at)
 			continue
 		if (
-			_surfaces.blocked(from, at, _rules.body_height, _rules.step_height)
+			_surfaces.blocked(from, at, _rules.height_at(_surfaces, from), _rules.step_height)
 			or not through_railings and _surfaces.railed(from, at, surface)
 		):
 			return INF
@@ -174,13 +174,19 @@ func feet_at(from: Vector3, to: Vector3) -> float:
 
 
 ## Whether feet at [param point] would stand inside something that holds a body back
-## — a stair's solid side, a deck's edge too high to step onto — as the sim asks it.
+## — a stair's solid side, a deck's edge too high to step onto — as the sim asks it of
+## a body on its feet, which ducks under what it can crawl under.
 func walled(point: Vector3) -> bool:
-	return not (
-		_surfaces
-		. obstacle_contacts(point, _rules.body_radius * 0.1, _rules.body_height, _rules.step_height)
-		. is_empty()
+	var contacts := _surfaces.obstacle_contacts(
+		point,
+		_rules.body_radius * 0.1,
+		_rules.body_height,
+		_rules.step_height,
+		Surfaces.NONE,
+		_rules.crawl_height,
+		_rules.body_radius
 	)
+	return not contacts.is_empty()
 
 
 ## [param wish] turned as little as it can, a probe direction at a time either way,
@@ -196,7 +202,8 @@ func clear_heading(
 		var heading := wish.rotated(TAU * turn / PROBES)
 		var ahead := my_pos + Vector3(heading.x, 0.0, heading.y) * _look_ahead
 		ahead.y = feet_at(my_pos, ahead)
-		if _surfaces.blocked(my_pos, ahead, _rules.body_height, _rules.step_height):
+		var height := _rules.height_at(_surfaces, my_pos)
+		if _surfaces.blocked(my_pos, ahead, height, _rules.step_height):
 			continue
 		if walled(ahead) or walled(my_pos.lerp(ahead, 0.5)):
 			continue

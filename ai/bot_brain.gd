@@ -304,10 +304,12 @@ func _by_walks(me: Dictionary, seen_tick: int, reckoned: Vector3) -> Vector3:
 	for index in _sent_ticks.size():
 		if _sent_ticks[index] >= seen_tick:
 			walked += _sent_moves[index]
-	walked *= _rules.walk_speed * Ticks.SECONDS_PER_TICK
+	var height := _rules.height_at(_surfaces, seen_pos)
+	var pace := _rules.walk_speed if height >= _rules.body_height else _rules.crawl_speed
+	walked *= pace * Ticks.SECONDS_PER_TICK
 	var walked_to := seen_pos + Vector3(walked.x, 0.0, walked.y)
 	if (
-		_surfaces.blocked(seen_pos, walked_to, _rules.body_height, _rules.step_height)
+		_surfaces.blocked(seen_pos, walked_to, height, _rules.step_height)
 		or _surfaces.railed(seen_pos, walked_to, me["surface"])
 	):
 		return reckoned
@@ -863,7 +865,7 @@ func _lands(from: Vector3, entry: Dictionary) -> bool:
 	if entry.is_empty() or entry["out"] or entry.has(BotView.REMEMBERED):
 		return false
 	var candidate := ShoveResolver.Candidate.new(
-		entry["seat"], entry["pos"], _rules.body_radius, _rules.body_height
+		entry["seat"], entry["pos"], _rules.body_radius, _rules.height_at(_surfaces, entry["pos"])
 	)
 	return ShoveResolver.lands(
 		from,
@@ -923,7 +925,9 @@ func _threat(seen: Dictionary, me: Dictionary) -> Dictionary:
 	var nearest := {}
 	var best := INF
 	var my_pos: Vector3 = me["pos"]
-	var mine := ShoveResolver.Candidate.new(seat, my_pos, _rules.body_radius, _rules.body_height)
+	var mine := ShoveResolver.Candidate.new(
+		seat, my_pos, _rules.body_radius, _rules.height_at(_surfaces, my_pos)
+	)
 	for entry: Dictionary in seen["seats"]:
 		if (
 			entry["seat"] == seat
