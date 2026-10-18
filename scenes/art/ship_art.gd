@@ -113,6 +113,9 @@ var _smoke: CPUParticles3D
 ## Per platform, the node its deck hangs from — what falls when it collapses — or
 ## null when no event can collapse it.
 var _wrecks: Array[Node3D] = []
+## Per platform, how far (0…1) its deck was last drawn fallen, so a deck is moved only as
+## that changes; -1 before it is first drawn.
+var _wrecked := PackedFloat64Array()
 ## Per platform, how its deck breaks up as it falls (DeckWreck), or null.
 var _breakups: Array[DeckWreck] = []
 ## Per platform, the height of the floor beneath its middle: where it lands.
@@ -121,6 +124,9 @@ var _floors := PackedFloat64Array()
 ## node its remains hang from, shown once it is broken — null until it first is.
 var _rails: Array[Node3D] = []
 var _remains: Array[Node3D] = []
+## The broken railings the rails were last drawn for, so they are gone through only as
+## those change — once a tick at most; [-1], none ever drawn, before they first are.
+var _railings_drawn := PackedInt32Array([-1])
 ## What draws a broken span's remains, and the ship's paints they are drawn in:
 ## Finish -> Material.
 var _wreckage: RailingRemains
@@ -152,6 +158,9 @@ var _funnels := {}
 var _felled := false
 ## The glass the sinking can break (BrokenGlass).
 var _broken_glass: BrokenGlass
+## The pose the lamps and the glass were last shown (show_power): a pose is a tick's, so
+## they are told again only as the tick changes.
+var _powered: ShipPose
 var _graphics := GraphicsQuality.of(GraphicsQuality.Preset.HIGH)
 
 
@@ -178,10 +187,13 @@ func build(
 	_lamp_sight.show_graphics(_graphics)
 	_smoke = null
 	_wrecks.clear()
+	_wrecked.clear()
 	_breakups.clear()
 	_floors.clear()
 	_rails.clear()
 	_remains.clear()
+	_railings_drawn = PackedInt32Array([-1])
+	_powered = null
 	_flashes.clear()
 	_flashing.clear()
 	_crates.clear()
@@ -202,6 +214,7 @@ func build(
 		var platform := layout.platforms[index]
 		_floors.append(_space.floor_beneath(platform))
 		_wrecks.append(_piece(pieces, platform.name in falls, "Deck%d" % index, self))
+		_wrecked.append(-1.0)
 		if _wrecks[index] != null and not _flashes.has(platform.name):
 			_flashes[platform.name] = _own_paints(materials)
 	hull.build(mesh)
@@ -325,11 +338,17 @@ func show_sinking(
 			continue
 		var platform := _space.layout.platforms[index]
 		var down: float = fallen.get(platform.name, 0.0)
+		if down == _wrecked[index]:
+			continue
+		_wrecked[index] = down
 		wreck.transform = wrecked(platform, _floors[index], down)
 		_breakups[index].show(down)
 		for child: Node in wreck.get_children():
 			if child is ShipLamp:
 				(child as ShipLamp).burning = down < 1.0
+	if broken_railings == _railings_drawn:
+		return
+	_railings_drawn = broken_railings
 	for index in _rails.size():
 		if _rails[index] == null:
 			continue
@@ -346,8 +365,9 @@ func show_sinking(
 ## cell has reached; shows the glass the pose has broken (BrokenGlass). A pose without
 ## cells leaves them lit.
 func show_power(pose: ShipPose) -> void:
-	if pose.lit.is_empty():
+	if pose.lit.is_empty() or pose == _powered:
 		return
+	_powered = pose
 	for index in _lamps.size():
 		# The cell it hangs in as the pose has her cells — a piece's own, once she breaks.
 		var cell := pose.cell_at(_lamp_at[index])

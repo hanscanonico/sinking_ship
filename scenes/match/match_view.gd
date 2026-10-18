@@ -52,6 +52,14 @@ var _inner: InnerWater
 var _broken := false
 var _aft := 0
 var _drawn_pieces: ShipPieces
+## What the sinking has done by the tick drawn, worked out once a tick rather than every
+## frame (_show_sinking): the railings gone — the pose's failed ones and those the
+## snapshot's railings have broken — and the collapses fired; for that tick and those
+## railings.
+var _gone := PackedInt32Array()
+var _collapses: Array[SinkSchedule.Scheduled] = []
+var _sinking_tick := -1
+var _sinking_hp := PackedFloat64Array()
 
 @onready var _ship: Node3D = $Ship
 @onready var _greybox: ShipGreybox = $Ship/Greybox
@@ -96,6 +104,7 @@ func setup(driver: SimDriver, sim: MatchSim, local_seat: int, correction_time: f
 		_drawn_pieces.name = "Pieces"
 		add_child(_drawn_pieces)
 	_drawn_pieces.setup(sim, _ship, _art, _greybox, falls, fails, _open_ports())
+	_sinking_tick = -1
 	for body: Brawler in _bodies:
 		body.queue_free()
 	for shadow: MeshInstance3D in _shadows:
@@ -237,10 +246,7 @@ func _process(delta: float) -> void:
 	if _inner != null and not _broken:
 		_inner.show_water(pose_then, pose_now, alpha)
 	_show_sinking(
-		lerpf(previous["tick"], current["tick"], alpha),
-		MatchState.broken_in(current["railing_hp"]),
-		pose_then,
-		alpha
+		lerpf(previous["tick"], current["tick"], alpha), current["railing_hp"], pose_then, alpha
 	)
 	_show_cargo(previous["props"], current["props"], alpha)
 	var seats_then: Array = previous["seats"]
@@ -301,28 +307,37 @@ func _process(delta: float) -> void:
 ## fractional, as the view interpolates between two snapshots: the platforms whose
 ## collapse is telegraphed and whether the blink is lit now, how far (0…1) each
 ## collapsed platform has fallen, by name, and the failed railings — with them those
-## the match has [param broken] — and, dressed, what lights each cell, the glass broken
-## and how far each funnel has fallen (SH31). A hull that breaks has each piece drawn as
-## its own pose has it, [param then] the pose [param alpha] of the way from (ShipPieces).
-func _show_sinking(tick: float, broken: PackedInt32Array, then: ShipPose, alpha: float) -> void:
+## the match has broken, as the snapshot's [param railing_hp] has them — and, dressed,
+## what lights each cell, the glass broken and how far each funnel has fallen (SH31). A
+## hull that breaks has each piece drawn as its own pose has it, [param then] the pose
+## [param alpha] of the way from (ShipPieces).
+func _show_sinking(
+	tick: float, railing_hp: PackedFloat64Array, then: ShipPose, alpha: float
+) -> void:
 	var now := floori(tick)
 	var pose := _schedule.pose_at(now)
+	if now != _sinking_tick or railing_hp != _sinking_hp:
+		_sinking_tick = now
+		_sinking_hp = railing_hp
+		_collapses.clear()
+		for scheduled: SinkSchedule.Scheduled in _schedule.fired(now):
+			if scheduled.event.kind == SinkEvent.Kind.COLLAPSE:
+				_collapses.append(scheduled)
+		_gone = pose.broken_railings.duplicate()
+		_gone.append_array(MatchState.broken_in(railing_hp))
 	var fallen := {}
-	for scheduled: SinkSchedule.Scheduled in _schedule.fired(now):
-		if scheduled.event.kind == SinkEvent.Kind.COLLAPSE:
-			var since := (tick - scheduled.at) * Ticks.SECONDS_PER_TICK
-			fallen[scheduled.event.platform] = clampf(since / FALL_SECONDS, 0.0, 1.0)
+	for scheduled: SinkSchedule.Scheduled in _collapses:
+		var since := (tick - scheduled.at) * Ticks.SECONDS_PER_TICK
+		fallen[scheduled.event.platform] = clampf(since / FALL_SECONDS, 0.0, 1.0)
 	var lit := now / BLINK_TICKS % 2 == 0
-	var gone := pose.broken_railings.duplicate()
-	gone.append_array(broken)
 	if _broken:
-		_drawn_pieces.show_pieces(then, pose, alpha, tick, pose.collapsing, fallen, gone, lit)
+		_drawn_pieces.show_pieces(then, pose, alpha, tick, pose.collapsing, fallen, _gone, lit)
 	elif _greybox.visible:
-		_greybox.show_sinking(pose.collapsing, fallen, gone, lit)
+		_greybox.show_sinking(pose.collapsing, fallen, _gone, lit)
 		_greybox.show_power(pose)
 		_greybox.show_falls(pose.falls, tick)
 	else:
-		_art.show_sinking(pose.collapsing, fallen, gone, lit)
+		_art.show_sinking(pose.collapsing, fallen, _gone, lit)
 		_art.show_power(pose)
 		_art.show_falls(pose.falls, tick)
 
