@@ -319,6 +319,7 @@ func _run_into_bodies(
 			if (
 				player.pos.y + _rules.step_height >= crate.pos.y + prop.height
 				or player.pos.y + _rules.body_height <= crate.pos.y
+				or player.pos.y + _rules.height_at(_surfaces, player.pos) <= crate.pos.y
 			):
 				continue
 			var normal := offset / distance if distance > 0.0 else Vector2.RIGHT

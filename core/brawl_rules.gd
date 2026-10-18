@@ -71,6 +71,14 @@ extends Resource
 ## Stamina a jump spends as it leaves the ground; a jump needs this much to start.
 @export var jump_cost: float
 
+@export_group("Crawl")
+## How tall a body is in a crawl space — where the headroom over its floor is less
+## than body_height — in metres; a floor with less headroom than this takes no body.
+## Her double bottoms are crawled, the steamer's about a metre deep (#148).
+@export var crawl_height: float
+## A crawler's pace, in m/s: on hands and knees, slower than a swimmer.
+@export var crawl_speed: float
+
 @export_group("Brace, charge and stamina")
 ## The share of a shove's knockback a brace takes off, when the shove comes into
 ## its front arc and is not a full charge; 0…1.
@@ -164,9 +172,47 @@ extends Resource
 
 
 ## How far over its feet a swimmer's head is reckoned, for whether it is in trapped air
-## (Q22): halfway from the waterline it floats at, swim_depth, to the top of its head.
-func head_height() -> float:
-	return (swim_depth + body_height) * 0.5
+## (Q22): halfway from the waterline it floats at, swim_depth, to the top of its head —
+## of a body [param height] tall, so a crawler's as much lower as it is (swim_depth_of).
+func head_height(height := body_height) -> float:
+	return _shrunk((swim_depth + body_height) * 0.5, height)
+
+
+## How far under the water a swimmer [param height] tall floats: swim_depth standing,
+## and a crawler as low for its height — its head rides above the water in a space too
+## low to stand in.
+func swim_depth_of(height := body_height) -> float:
+	return _shrunk(swim_depth, height)
+
+
+## [param length] of a standing body, on a body [param height] tall: itself standing.
+func _shrunk(length: float, height: float) -> float:
+	if height >= body_height:
+		return length
+	return length * height / body_height
+
+
+## How tall a body with its feet at [param feet] is: crawl_height in a crawl space,
+## where the headroom over its floor is less than body_height — crawling follows from
+## where a body is, never from a button (D3) — and body_height anywhere else.
+func height_at(surfaces: Surfaces, feet: Vector3) -> float:
+	if headroom(surfaces, feet) < body_height:
+		return crawl_height
+	return body_height
+
+
+## The headroom over a body with its feet at [param feet], as [param surfaces] has her:
+## from its floor — the deck or stair under it; a blocker's top or a crate's lid stands
+## on one (Surfaces.footing) and is no floor of its own, so a swimmer over a boiler is
+## in its room's water — up to the lowest underside more than step_height over its feet
+## (Surfaces.ceiling). INF with nothing over it, or nothing under.
+func headroom(surfaces: Surfaces, feet: Vector3) -> float:
+	var ground := surfaces.landing(feet)
+	if ground != Surfaces.NONE:
+		ground = surfaces.footing(ground)
+	if ground == Surfaces.NONE:
+		return INF
+	return surfaces.ceiling(feet, step_height) - surfaces.height_at(ground, feet)
 
 
 ## Every reason these numbers cannot run a match; empty when they can.
@@ -195,6 +241,8 @@ func problems() -> PackedStringArray:
 		"stamina_max",
 		"stamina_regen",
 		"jump_height",
+		"crawl_height",
+		"crawl_speed",
 		"swim_speed",
 		"swim_depth",
 		"dunk_drag",
@@ -250,6 +298,8 @@ func problems() -> PackedStringArray:
 		found.append("brawl rules: brace_holds_to must be under 90")
 	if step_height >= body_height:
 		found.append("brawl rules: step_height must be below body_height")
+	if crawl_height >= body_height:
+		found.append("brawl rules: crawl_height must be below body_height")
 	if brace_reduction < 0.0 or brace_reduction > 1.0:
 		found.append("brawl rules: brace_reduction must be within 0…1")
 	for field: String in ["air_control", "crate_restitution", "crate_brace_reduction"]:
@@ -286,4 +336,6 @@ func problems() -> PackedStringArray:
 		found.append("brawl rules: pocket_cold_rate must not exceed the open water's 1")
 	if wade_speed > walk_speed:
 		found.append("brawl rules: wade_speed must not exceed walk_speed")
+	if crawl_speed > walk_speed:
+		found.append("brawl rules: crawl_speed must not exceed walk_speed")
 	return found
