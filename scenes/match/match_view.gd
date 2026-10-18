@@ -26,9 +26,12 @@ var _driver: SimDriver
 var _schedule: SinkSchedule
 var _faces: Faces
 var _pieces: Pieces
-## Per seat, where it is drawn in its piece's space — its feet — and that piece's place
-## in the world as drawn this frame.
+## Per seat, where it is drawn in its piece's space — its feet — how tall it is there
+## (BrawlRules.height_at: a crawler lower), and that piece's place in the world as drawn
+## this frame.
 var _feet := PackedVector3Array()
+var _heights := PackedFloat64Array()
+var _rules: BrawlRules
 var _worlds: Array[Transform3D] = []
 var _structure: ShipStructure
 var _rooms: Array[ShipRoom] = []
@@ -113,6 +116,8 @@ func setup(driver: SimDriver, sim: MatchSim, local_seat: int, correction_time: f
 	_shadows.clear()
 	_facings.resize(sim.config.seats)
 	_feet.resize(sim.config.seats)
+	_heights.resize(sim.config.seats)
+	_rules = rules
 	_worlds.resize(sim.config.seats)
 	for seat in sim.config.seats:
 		_add_seat(seat, rules, seat == local_seat)
@@ -157,6 +162,18 @@ func seat_world_position(seat: int) -> Vector3:
 ## while she is whole.
 func seat_feet(seat: int) -> Vector3:
 	return _feet[seat]
+
+
+## How tall [param seat] is where it is drawn: a crawler's crawl_height, anyone else's
+## body_height.
+func seat_height(seat: int) -> float:
+	return _heights[seat]
+
+
+## How tall a body with its feet at [param feet] in her ship space stands, upright:
+## where an eye stood in ship space looks from.
+func height_at(feet: Vector3) -> float:
+	return _rules.height_at(_faces.surfaces(Faces.Up.DECK), feet)
 
 
 ## Where [param seat]'s piece of her is drawn: its space to the world (ship_to_world while
@@ -285,9 +302,10 @@ func _process(delta: float) -> void:
 			_ship.transform.affine_inverse() * world if piece != 0 else Transform3D.IDENTITY
 		)
 		body.transform = placed * Transform3D(to_ship * Basis(Vector3.UP, -_facings[seat]), pos)
-		body.show_state(then, now, alpha)
-		# A swimmer stands on nothing: no ring tilted to a deck under the sea, no shadow.
 		var feet := to_ship.transposed() * pos
+		_heights[seat] = _rules.height_at(here, feet)
+		body.show_state(then, now, alpha, _heights[seat] < _rules.body_height)
+		# A swimmer stands on nothing: no ring tilted to a deck under the sea, no shadow.
 		var below := Surfaces.NONE
 		if now["state"] != PlayerState.Body.SWIMMING:
 			below = here.landing(feet)

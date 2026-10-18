@@ -157,10 +157,13 @@ func _process(delta: float) -> void:
 	var up := _up_of(snapshot, viewed)
 	# Eyes stood in ship space (--capture-from) stand on her decks, still whatever the
 	# seat they look through goes through.
+	var height := _view.seat_height(viewed)
 	if not _staged.is_empty():
 		world = _view.ship_to_world()
 		kick = Vector3.ZERO
 		up = Faces.Up.DECK
+		height = _view.height_at(feet)
+	_eyes.ease_eye(viewed, height / _config.rules.body_height, delta)
 	_eyes.look_from(world, feet, yaw, pitch, kick, up)
 	_arms.visible = _staged.is_empty()
 	if _staged.is_empty():
