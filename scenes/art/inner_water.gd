@@ -72,6 +72,10 @@ const POCKET_REACH := Vector2(3.0, 8.0)
 const LANDING := Vector2(0.5, 1.1)
 const LANDING_WIDER := 0.4
 const FROTH_LIFT := 0.015
+## How far under both poses' bottoms an opening's bottom may stand on the ship drawn
+## between them, whose turn is slerped rather than lerped: far more than a tick's turn
+## ever moves it. An opening dry by this much at both poses is dry the whole tick.
+const TICK_SLACK := 0.05
 ## The sea's colours the water inside her takes.
 const COLOURS: Array[StringName] = [&"deep_colour", &"shallow_colour", &"foam_colour"]
 const WATER_SHADER := preload("res://scenes/art/inner_water.gdshader")
@@ -117,6 +121,11 @@ var _shut := PackedByteArray()
 ## Per opening, the world levels of its two sides' water last drawn: a side reaching
 ## its top blows its air out.
 var _last_heads: Array[Vector2] = []
+## The openings whose pours may show between the two poses last shown, worked out once
+## for that pair — once a tick — rather than every frame (_find_wet).
+var _wet := PackedInt32Array()
+var _wet_then: ShipPose
+var _wet_now: ShipPose
 ## The bursts of air on the water: each one's froth, the cell it breaks the water of — -1
 ## for the sea — and
 ## the point in her it lies over, and its seconds gone, or a negative number while it is
@@ -243,6 +252,9 @@ func setup(
 	_floors.clear()
 	_spans.clear()
 	_drawn.clear()
+	_wet.clear()
+	_wet_then = null
+	_wet_now = null
 	var unseen := [ShipOpening.Kind.GASH, ShipOpening.Kind.FLOOR_GAPS, ShipOpening.Kind.LEAK]
 	for opening: ShipOpening in _passages:
 		_pours.append(null)
@@ -321,11 +333,9 @@ func show_water(then: ShipPose, now: ShipPose, alpha: float) -> void:
 		leaf.visible = shut > 0.0 and now.opened.get(door, 0) < 2
 		if shut > 0.0:
 			leaf.position = _slide(door) * (shut - 1.0)
-	for index in _passages.size():
-		if _pours[index] == null:
-			if now.opened.get(_passages[index].name, 0) == 0:
-				continue
-			_pour_for(index)
+	if then != _wet_then or now != _wet_now:
+		_find_wet(then, now)
+	for index in _wet:
 		_show_pour(index, levels, now)
 	_show_pockets(now, levels)
 	for burst in BURSTS:
@@ -333,6 +343,52 @@ func show_water(then: ShipPose, now: ShipPose, alpha: float) -> void:
 			var under := _burst_cells[burst]
 			var level := (0.0 if under == -1 else levels[under]) + FROTH_LIFT
 			_bursts[burst].position = _at_height(_burst_at[burst], level)
+
+
+## The openings whose pours may show between [param then] and [param now]: each one shut
+## until it fails given its pour once the pose has it open; one never drawn pouring, or
+## dry the whole way — no side's water, at either pose, over its bottom as it stands at
+## the lower of the two, less TICK_SLACK — hidden and left out, as _show_pour would leave
+## it every frame.
+func _find_wet(then: ShipPose, now: ShipPose) -> void:
+	_wet_then = then
+	_wet_now = now
+	_wet.clear()
+	for index in _passages.size():
+		if _pours[index] == null:
+			if now.opened.get(_passages[index].name, 0) == 0:
+				continue
+			_pour_for(index)
+		if _drawn[index] == 1 and _may_pour(index, then, now):
+			_wet.append(index)
+		else:
+			_hide_pour(index)
+
+
+## Whether opening [param index] may pour on the ship drawn between [param then] and
+## [param now]: a side's water at either pose over its bottom as it stands at the lower.
+func _may_pour(index: int, then: ShipPose, now: ShipPose) -> bool:
+	var high := -INF
+	for side in 2:
+		var cell := _sides[index * 2 + side]
+		for pose: ShipPose in [then, now]:
+			high = maxf(high, 0.0 if cell == -1 else _level_of(pose, cell))
+	var bottom := minf(
+		CellSurface.reach(then.transform, _spans[index]).x,
+		CellSurface.reach(now.transform, _spans[index]).x
+	)
+	return high > bottom + SHOWS - TICK_SLACK
+
+
+## Hides opening [param index]'s pour, its froth and its crossing.
+func _hide_pour(index: int) -> void:
+	var pour := _pours[index]
+	if pour.visible:
+		pour.visible = false
+		_landings[index].visible = false
+	var crossing := _crossings[index]
+	if crossing != null and crossing.visible:
+		crossing.visible = false
 
 
 ## Makes opening [param index]'s pour, its crossing — through a floor or a porthole —
@@ -462,11 +518,7 @@ func _show_pour(index: int, levels: PackedFloat64Array, pose: ShipPose) -> void:
 	var landing := _landings[index]
 	if _drawn[index] == 0 or maxf(heights[0], heights[1]) <= bottom + SHOWS:
 		# Dry, or never drawn pouring: nothing to do but keep it hidden.
-		if pour.visible:
-			pour.visible = false
-			landing.visible = false
-		if crossing != null and crossing.visible:
-			crossing.visible = false
+		_hide_pour(index)
 		return
 	pour.visible = false
 	landing.visible = false
