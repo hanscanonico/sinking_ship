@@ -65,12 +65,12 @@ uniform sampler2D rooms : hint_default_black, filter_nearest, repeat_disable;
 uniform sampler2D room_edges : hint_default_black, filter_linear, repeat_disable;
 uniform mat4 world_to_rooms = mat4(1.0);
 // The boxes of her cells whose water is drawn as their own (InnerWater.boxes), ship
-// metres, with the box round them all; and from the world to her ship space. The sea
-// draws nothing inside one. A cell's own water is indoors: under a deck, it takes no
-// sky, glint or whitecap.
+// metres, as many as she has (SeaAndSky.cell_mask): a texel of each box's low corner,
+// then one of its high, in order along her from aft; with the box round them all; and
+// from the world to her ship space. The sea draws nothing inside one. A cell's own water
+// is indoors: under a deck, it takes no sky, glint or whitecap.
 uniform mat4 world_to_ship = mat4(1.0);
-uniform vec4 cell_low[16];
-uniform vec4 cell_high[16];
+uniform sampler2D cells : filter_nearest, repeat_disable;
 uniform int cell_count = 0;
 uniform vec3 cells_low = vec3(0.0);
 uniform vec3 cells_high = vec3(0.0);
@@ -141,11 +141,14 @@ bool in_cells(vec3 at) {
 	if (any(lessThan(ship, cells_low)) || any(greaterThan(ship, cells_high))) {
 		return false;
 	}
-	for (int i = 0; i < 16; i++) {
-		if (i >= cell_count) {
+	for (int i = 0; i < cell_count; i++) {
+		vec3 low = texelFetch(cells, ivec2(i * 2, 0), 0).xyz;
+		// In order along her: no box further on starts aft of this point.
+		if (low.x >= ship.x) {
 			break;
 		}
-		if (all(greaterThan(ship, cell_low[i].xyz)) && all(lessThan(ship, cell_high[i].xyz))) {
+		vec3 high = texelFetch(cells, ivec2(i * 2 + 1, 0), 0).xyz;
+		if (all(greaterThan(ship, low)) && all(lessThan(ship, high))) {
 			return true;
 		}
 	}

@@ -65,3 +65,36 @@ func test_the_frame_split_is_asked_for_with_the_seconds_it_skips() -> void:
 	assert_eq(MatchArgs.parse(PackedStringArray()).frame_split, -1.0, "normal play pays nothing")
 	var args := MatchArgs.parse(PackedStringArray(["--frame-split=8"]))
 	assert_eq(args.frame_split, 8.0, "frames from the eighth second on are kept")
+
+
+func test_a_capture_looks_from_chosen_feet_at_a_chosen_point_in_ship_space() -> void:
+	# The eye stands EYE_HEIGHT over the feet; its yaw runs from the bow toward
+	# starboard, its pitch up from the horizon (FirstPersonCamera.look_from).
+	var eye := FirstPersonCamera.EYE_HEIGHT
+	var cases := {
+		"10,-4,0 20,-4,0": [0.0, -atan(eye / 10.0)],
+		"0,0,0 0,0,5": [90.0, -atan(eye / 5.0)],
+		"0,0,0 -3,%f,-3" % (eye + sqrt(18.0)): [-135.0, 45.0],
+	}
+	for given: String in cases:
+		var args := (
+			MatchArgs
+			. parse(
+				PackedStringArray(
+					[
+						"--capture-from=%s" % given.get_slice(" ", 0),
+						"--capture-look=%s" % given.get_slice(" ", 1),
+					]
+				)
+			)
+		)
+		var feet := given.get_slice(" ", 0).split_floats(",")
+		assert_eq(args.capture_from.size(), 5, given)
+		for axis in 3:
+			assert_almost_eq(args.capture_from[axis], feet[axis], 1e-6, given + ": its feet")
+		var want: Array = cases[given]
+		assert_almost_eq(args.capture_from[3], want[0], 1e-4, given + ": yaw")
+		var pitch: float = want[1] if absf(want[1]) == 45.0 else rad_to_deg(want[1])
+		assert_almost_eq(args.capture_from[4], pitch, 1e-4, given + ": pitch")
+	var free := MatchArgs.parse(PackedStringArray(["--capture-from=1,2,3,90,-10"]))
+	assert_eq(free.capture_from, PackedFloat64Array([1, 2, 3, 90, -10]), "yaw and pitch as given")

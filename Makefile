@@ -35,14 +35,16 @@ import:
 #       that explicit hit, past the must-sink rule (as `make capture HIT=` does), and
 #       HIT=NAME with the test fixtures' hit of that name, her own first (SHIP=titanic
 #       HIT=fast is tests/fixtures/sinking/hits/titanic_fast.tres)
-#   make capture SEED=1701 AT=60 [SEATS=] [SHIP=] [EYE=] [CUT=0] [CELLS=1] [SIDE=port] [HIT=] [CAPTURE=] [ARGS=]
+#   make capture SEED=1701 AT=60 [SEATS=] [SHIP=] [EYE=] [CUT=0] [CELLS=1] [SIDE=port] [HIT=] [FROM= LOOK=] [CAPTURE=] [ARGS=]
 #       a windowed bots-only match saved as a PNG at AT seconds of match time
 #       (or its end), then quit: from the observer camera, or through seat EYE's
 #       eyes; CUT cuts the observer's view of the ship away at and above that
 #       height to show the inside; CELLS draws the ship's cells over the observer's
 #       view, every one named, each filled to its water's level; HIT=path.tres (or a
 #       fixture hit's NAME, as for match) strikes her with that explicit hit (a fast one
-#       shows a late stage soon); SIDE=port
+#       shows a late stage soon); FROM=x,y,z LOOK=x,y,z stands the eyes on those feet in
+#       ship space looking at that ship point, riding with her as she lists — the breach
+#       from inside any space, whether or not a seat stands there; SIDE=port
 #       watches her from her port side rather than her starboard; ARGS passes more
 #       user args, e.g. ARGS=--net-sim=latency:120,jitter:20,loss:5. Not part of
 #       verify: it needs a display.
@@ -69,6 +71,8 @@ STOP ?=
 HIT ?=
 AT ?=
 EYE ?=
+FROM ?=
+LOOK ?=
 CUT ?=
 CELLS ?=
 SIDE ?=
@@ -122,6 +126,7 @@ capture:
 		$(match-args) $(if $(menu-screen),,--autoplay) --capture="$(CAPTURE)" \
 		$(if $(AT),--capture-at=$(AT)) $(if $(PHYS),--phys=$(PHYS)) $(if $(JUMP),--jump) \
 		$(if $(EYE),--capture-eye=$(EYE)) \
+		$(if $(FROM),--capture-from=$(FROM)) $(if $(LOOK),--capture-look=$(LOOK)) \
 		$(if $(CUT),--observer-cut=$(CUT)) $(if $(CELLS),--observer-cells) \
 		$(if $(SIDE),--observer-side=$(SIDE)) \
 		$(if $(SCREEN),--capture-screen=$(SCREEN)) $(ARGS)

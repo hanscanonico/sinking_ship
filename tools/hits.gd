@@ -2,9 +2,10 @@ extends SceneTree
 ## `make hits SHIP=steamer SEEDS=200`: the spread of a ship's iceberg hits over seeds
 ## 1…SEEDS, each struck as her match on that seed strikes it — asked of SinkSchedule,
 ## never drawn again here (D13): the sides, where along her the gashes run, the cells
-## they open — and how many open a cell people walk in, where the breach is seen from
-## inside (#74) — their areas and moments, the walls they weaken, and the doors that jam
-## and the openings left open. Headless; no match is played.
+## they open — and how many open a place people can be (ShipLayout.opened_place),
+## where the breach is seen from inside (#74, #148) — their areas and moments, the
+## walls they weaken, and the doors that jam and the openings left open. Headless; no
+## match is played.
 ##
 ##   godot --headless --path . -s res://tools/hits.gd -- --ship=steamer --seeds=200
 ##
@@ -79,8 +80,7 @@ func _spread(ship: String, layout: ShipLayout, scenario: SinkScenario, seeds: in
 		var into_room := false
 		for opening: ShipOpening in damage.openings:
 			cells[opening.joins[0]] = cells.get(opening.joins[0], 0) + 1
-			var cell := structure.cells[structure.cell_named(opening.joins[0])]
-			into_room = into_room or not cell.rooms.is_empty()
+			into_room = into_room or layout.opens_place(opening)
 		into_rooms += 1 if into_room else 0
 		for wall: StringName in damage.weakened:
 			walls[wall] = walls.get(wall, 0) + 1
@@ -104,7 +104,7 @@ func _spread(ship: String, layout: ShipLayout, scenario: SinkScenario, seeds: in
 	lines.append("missed    %d  (the gash opens no cell)" % missed)
 	lines.append(
 		(
-			"rooms     %d · %.0f%%  (the gash opens a cell people walk in)"
+			"rooms     %d · %.0f%%  (the gash opens a place people can be: ShipLayout.opened_place)"
 			% [into_rooms, 100.0 * into_rooms / seeds]
 		)
 	)
