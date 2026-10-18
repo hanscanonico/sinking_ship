@@ -253,22 +253,38 @@ func _map_rooms(layout: ShipLayout) -> void:
 	_water.set_shader_parameter(&"world_to_rooms", _ship_to_rooms)
 
 
-## Leaves the sea out of [param boxes] (ship space), and the box round them all.
+## Leaves the sea out of [param boxes] (ship space), however many, and the box round
+## them all.
 func _mask_cells(boxes: Array[AABB]) -> void:
-	var lows := PackedVector4Array()
-	var highs := PackedVector4Array()
 	var around := AABB()
+	var count := 0
 	for box: AABB in boxes:
-		if box.size == Vector3.ZERO:
-			continue
-		lows.append(Vector4(box.position.x, box.position.y, box.position.z, 0.0))
-		highs.append(Vector4(box.end.x, box.end.y, box.end.z, 0.0))
-		around = box if lows.size() == 1 else around.merge(box)
-	_water.set_shader_parameter(&"cell_low", lows)
-	_water.set_shader_parameter(&"cell_high", highs)
-	_water.set_shader_parameter(&"cell_count", lows.size())
+		if box.size != Vector3.ZERO:
+			around = box if count == 0 else around.merge(box)
+			count += 1
+	_water.set_shader_parameter(&"cells", ImageTexture.create_from_image(cell_mask(boxes)))
+	_water.set_shader_parameter(&"cell_count", cell_count(boxes))
 	_water.set_shader_parameter(&"cells_low", around.position)
 	_water.set_shader_parameter(&"cells_high", around.end)
+
+
+## The boxes among [param boxes] (ship space) that hold anything, as the sea's shader
+## reads them: a texel of each one's low corner, then one of its high, in order of their
+## aft ends, in one row; a single empty texel for none.
+static func cell_mask(boxes: Array[AABB]) -> Image:
+	var drawn := boxes.filter(func(box: AABB) -> bool: return box.size != Vector3.ZERO)
+	drawn.sort_custom(func(a: AABB, b: AABB) -> bool: return a.position.x < b.position.x)
+	var mask := Image.create_empty(maxi(drawn.size() * 2, 1), 1, false, Image.FORMAT_RGBAF)
+	for index in drawn.size():
+		var box: AABB = drawn[index]
+		mask.set_pixel(index * 2, 0, Color(box.position.x, box.position.y, box.position.z))
+		mask.set_pixel(index * 2 + 1, 0, Color(box.end.x, box.end.y, box.end.z))
+	return mask
+
+
+## How many of [param boxes] hold anything: the boxes cell_mask() carries.
+static func cell_count(boxes: Array[AABB]) -> int:
+	return boxes.filter(func(box: AABB) -> bool: return box.size != Vector3.ZERO).size()
 
 
 ## What the rooms' map covers, ship x/z: every room and a cell of nothing round
