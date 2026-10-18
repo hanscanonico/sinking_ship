@@ -217,8 +217,8 @@
         unless you strike one in review; rev 4 rewords several and keeps each one's rev-3 wording
         folded beneath it. Rev 4's model, data and proofs are §5b. The real forks are the open questions in §12 (Q3 was decided and
         Q14 retired by first person in rev 3; Q10–Q13 belong to the destination (rev 4 supersedes Q10 and Q13), Q15–Q17 to first
-        person and rooms; Q18–Q22 to rev 4's physics — Q18 and Q19 you answered and Q20 you deferred
-        on 2026-10-05, Q21 came from that answer and you answered it the same day, Q22 has a recommendation);
+        person and rooms; Q18–Q22 to rev 4's physics — Q18 and Q19 you answered on 2026-10-05 and Q20, deferred then,
+        on 2026-10-18 (a paced clock), Q21 came from that answer and you answered it the same day, Q22 has a recommendation);
         each names the milestone it gates and what happens if it is still unanswered when that
         milestone comes up. Explicit non-goals are §13. <code>.lavish/</code> is gitignored in this
         repo, so <strong>SH1's PR force-adds this file</strong> (<code>git add -f
@@ -265,8 +265,8 @@
             poop deck while it slides under.</li>
           </ul>
           <p class="text-xs opacity-70 mt-2">This is today's scripted steamer. From SH26 (rev 4) the
-          phases come from the hit. She always sinks (Q18), and for now one physics second is one match
-          second (Q20, deferred), so a match lasts until the brawl ends it or she is gone (§5b).</p>
+          phases come from the hit. She always sinks (Q18), and her sinking plays on a paced clock — about 15 minutes, the
+          quiet opening faster than the end (Q20, decided 2026-10-18) — so a match lasts until the brawl ends it or she is gone (§5b).</p>
         </div>
         <div class="card bg-base-100 border p-4">
           <h3 class="font-black">What the player does</h3>
@@ -1816,7 +1816,7 @@ flowchart LR
             <tr><td><strong>Bending moment · strength</strong></td><td>The force trying to fold the hull along its length, because weight and lift do not match station by station; strength is how much of it each station carries before it gives.</td></tr>
             <tr><td><strong>Piece</strong></td><td>One part of a broken hull, with its own attitude, cells and bodies. A whole ship is one piece.</td></tr>
             <tr><td><strong>Step · bake · timeline · keyframe</strong></td><td>The physics advances in steps of simulated time. The <em>bake</em> runs it once, from the hit to the end, at match start. The <em>timeline</em> is what the bake writes: a <em>keyframe</em> about every simulated second — each piece's attitude, each cell's water and air — plus every event at its exact time.</td></tr>
-            <tr><td><strong>Physics time · match time</strong></td><td>Physics time is real seconds of the sinking; match time is what the players live through. For now one physics second is one match second (Q20, deferred); the mapping is a data value, so a later answer changes data, not code.</td></tr>
+            <tr><td><strong>Physics time · match time</strong></td><td>Physics time is real seconds of the sinking; match time is what the players live through. From 2026-10-18 the mapping is the paced clock (Q20): computed once from the bake's flooding share, its length, phases and limits data (<code>SinkPacing</code>), so the physics never changes with it. Until then one physics second was one match second.</td></tr>
             <tr><td><strong>GM</strong></td><td>How far her centre of mass sits below the point her lift swings about when she leans a little (the metacentre), in metres. The bigger it is, the harder she resists a small lean; at zero or below she lolls or capsizes.</td></tr>
             <tr><td><strong>Cd·A</strong></td><td>An opening's area times the share of the ideal flow it passes (0.6, above): the one number that sets how fast water comes through a hole. Used where a hole's real size is unknown, as on the Titanic.</td></tr>
             <tr><td><strong>Hogging · sagging</strong></td><td>The two ways a hull bends: hogging, the middle up and the ends down (a flooded end with lift under the middle); sagging, the middle down.</td></tr>
@@ -2371,7 +2371,7 @@ must_sink = { quick_redraws = 8, bakes = 3,                 <span class="c"># es
               last = sure_hit }             <span class="c"># sure_hit is in the ship's data; ship-check proves it</span>
 sea_depth = 200 m       <span class="c"># deeper than she is long: the bottom never matters</span>
                         <span class="c"># steamer_coast.tres (SH32): 6 m, est. — under her 10 m beam, so on her side part of her stays above water</span>
-clock     = 1.0         <span class="c"># physics seconds → match seconds: one to one; Q20 deferred</span>
+clock     = 1.0         <span class="c"># Fast sinking's factor on the paced clock (Q20, SinkPacing)</span>
 bake_cap  = 5 h 30 min  <span class="c"># simulated; the timeline ends there; a match hit still afloat then is drawn again</span></pre>
 <pre class="sk-code"><span class="c"># data/physics/sea.tres — SeaPhysics, the same for every ship</span>
 g = 9.81 m/s²     sea = 1 025 kg/m³     air = 1.2 kg/m³ at 101 325 Pa
@@ -5076,11 +5076,22 @@ sequenceDiagram
         <div class="card bg-base-100 border p-4" id="q20">
           <div class="flex flex-wrap items-baseline gap-2">
             <h3 class="font-black">Q20 · The sinking's clock and the match's clock <span class="badge badge-sm align-middle" style="background:var(--sk-rust); color:white; border:0;">raised by research, not in your list</span></h3>
-            <span class="badge badge-sm" style="background:var(--sk-hull); color:white; border:0;">deferred · 2026-10-05 · no milestone waits on it</span>
+            <span class="badge badge-sm" style="background:var(--sk-dry); color:white; border:0;">decided · a paced clock · 2026-10-18</span>
           </div>
           <div class="text-sm mt-2 grid gap-2">
-            <p><strong>Deferred by you on 2026-10-05.</strong> Told that matches end by the brawl in about 2:31, so a multi-hour sinking would mostly go unseen, you wrote <em>“it is ok for now we will think about this later”</em>.</p>
-            <p>Until you answer it, one physics second is one match second: the scenario's <code>clock</code> is 1.0, a data value, so a later answer is a data change. In play, "for now" means a long sinking is mostly not seen, and a match ends by the brawl or when the ship is gone. Tests, the census and the arena run the bake alone, and no gate plays a match for hours (§5b.4), so nothing waits on this. The arena reports how much of each sinking matches see (R33), for when you take it up again.</p>
+            <p><strong>Decided by you on 2026-10-18.</strong> Deferred on 2026-10-05 (<em>“it is ok for now we will think about this later”</em>); taken up again when you found the sinking <em>“too slow at the beginning and too fast at the end”</em> and asked to change that <em>“but still with a realistic approach”</em>. The answer joins the last two options below: every sinking is fitted to one match length, and the quiet stretches pass faster than the dramatic ones.</p>
+            <ul class="list-disc ml-5 grid gap-1">
+              <li><strong>The physics is untouched.</strong> The bake, its order of events and every flow inside a cell stay as they are; only the mapping from physics seconds to match seconds changes. It stays a pure function of (ship, scenario, seed) — nothing a player does moves it (D7).</li>
+              <li><strong>Paced by how far she has sunk, not by the clock.</strong> Her flooding share is the water in her over the most she ever holds — while she floats, every cubic metre of it is a cubic metre of spare buoyancy lost. The bake records the physics second she first reaches each fortieth of it (<code>SinkTimeline.sunk</code>, in the header, so a client paces a timeline whose pages are still coming).</li>
+              <li><strong>Phases, in match time:</strong> the opening (share 0–0.3) takes 25% of the sinking, the middle (0.3–0.8) 50%, the end (0.8–1) 25%; the plunge, the last 0.05, lasts at least 20 s.</li>
+              <li><strong>One length:</strong> about 15 minutes of match time from the hit to her going, whatever the physics took.</li>
+              <li><strong>Realism wins at the limits:</strong> the clock never runs under 0.4× or over 6× the physics. Where a limit binds, the match runs longer than 15 minutes or the plunge shorter than 20 s.</li>
+              <li><strong>Fast sinking</strong> (the menu's, <code>FAST=1</code>) doubles the whole curve, its limits included: about 7½ minutes, 0.8× to 12×.</li>
+              <li><strong>Data:</strong> <code>SinkPacing</code> in <span class="sk-file">data/rules/sink_pacing.tres</span>, one global set; a scenario may carry its own.</li>
+              <li><strong>Narrower hits:</strong> each ship's hit bands are narrowed so 90% of her match sinkings take at most 1 h 30 of physics — the Titanic too, her shortest whatever her physics gives — so the 6× limit seldom binds.</li>
+              <li><strong>Checked by the census:</strong> <code>make census</code> reports match time; on the steamer, seeds 1…200, the median is about 15 minutes, each phase within 5 points of 25 / 50 / 25, the plunge at least 20 s but where the 0.4× limit stops it; the trawler and the Titanic beside her.</li>
+              <li><strong>Not in it:</strong> new signals of the opening (creaks, a felt list, the HUD) wait until the paced clock has been played; how often the brawl ends a match before she goes is the brawl's own question.</li>
+            </ul>
           </div>
           <details class="sk-was text-sm mt-2">
             <summary>The question as rev 4 put it, with its options, kept for the record</summary>
