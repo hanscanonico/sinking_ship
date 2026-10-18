@@ -52,6 +52,35 @@ func room_at(ship_point: Vector3, step: float) -> int:
 	return -1
 
 
+## The heights, ship space, over which [param opening] — a stretch of a gash — opens a
+## place people can be: its part between the lowest floor of the rooms in its cell
+## along it and the cell's top. A part of it wholly under every such floor opens none.
+## An empty span (x past y) where it opens none. The breach drawn inside her and the
+## hits report both read it (#148).
+func opened_place(opening: ShipOpening) -> Vector2:
+	var none := Vector2(INF, -INF)
+	var cell := structure.cell_named(opening.joins[0]) if structure != null else -1
+	if cell < 0:
+		return none
+	var box := structure.cells[cell]
+	var from_x := opening.centre.x - opening.size.x * 0.5
+	var to_x := opening.centre.x + opening.size.x * 0.5
+	var floor_y := INF
+	for room: ShipRoom in rooms:
+		if room.name in box.rooms and room.area.position.x < to_x and room.area.end.x > from_x:
+			floor_y = minf(floor_y, room.floor_height)
+	var low := maxf(opening.centre.y - opening.size.y * 0.5, floor_y)
+	var high := minf(opening.centre.y + opening.size.y * 0.5, box.high.y)
+	return Vector2(low, high) if low < high else none
+
+
+## Whether [param opening], a stretch of a gash, opens a place people can be
+## (opened_place).
+func opens_place(opening: ShipOpening) -> bool:
+	var span := opened_place(opening)
+	return span.x < span.y
+
+
 ## The middle of the railing at [param railing], [param above] its deck.
 func railing_middle(railing: int, above: float) -> Vector3:
 	var span := railings[railing]
