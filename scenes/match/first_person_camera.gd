@@ -46,6 +46,14 @@ func eye_height() -> float:
 	return _eye
 
 
+## How high over its feet [param camera] looks from: a seat's eyes' height now, or a
+## standing body's for any other camera.
+static func eye_height_of(camera: Camera3D) -> float:
+	if camera is FirstPersonCamera:
+		return (camera as FirstPersonCamera).eye_height()
+	return EYE_HEIGHT
+
+
 ## Looks from the eye of feet at [param feet] (ship space) on a ship placed by
 ## [param ship_to_world], along [param yaw] in the plane of the faces the frame
 ## [param up] has as floors (Faces.Up) and [param pitch] above the horizon, turned on

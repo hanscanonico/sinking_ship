@@ -390,9 +390,10 @@ static func shown(distance: float) -> float:
 	return clampf((distance - HUSHED) / HUSH_EASE, 0.0, 1.0)
 
 
-## The height of the knees of an eye at [param eye], in the world.
-static func knee(eye: Vector3) -> float:
-	return eye.y - FirstPersonCamera.EYE_HEIGHT + KNEE
+## The height of the knees of an eye at [param eye], [param eye_height] over its feet,
+## in the world.
+static func knee(eye: Vector3, eye_height := FirstPersonCamera.EYE_HEIGHT) -> float:
+	return eye.y - eye_height + KNEE
 
 
 ## The share, from and to, of the line [param from]–[param to] that lies within
@@ -531,19 +532,21 @@ func _play(cue: FxCue, ship: Transform3D, camera: Camera3D) -> void:
 				_billow.emitting = true
 		FxCue.Kind.DEBRIS:
 			var eye := Vector3(NAN, NAN, NAN)
+			var eye_height := FirstPersonCamera.EYE_HEIGHT
 			var looking := Vector2.ZERO
 			if camera != null and at.distance_to(camera.global_position) < RAIN_SEEN:
 				eye = ship.affine_inverse() * camera.global_position
+				eye_height = FirstPersonCamera.eye_height_of(camera)
 				looking = _looking(ship, camera)
 				if not _eye_indoors:
 					_around.drift(at, camera)
-			_debris.rain(cue.position, cue.radius, eye, looking)
+			_debris.rain(cue.position, cue.radius, eye, looking, eye_height)
 		FxCue.Kind.SLIDE:
 			if camera != null:
 				var eye := ship.affine_inverse() * camera.global_position
 				var half := Vector2(cue.end.x, cue.end.z)
 				var deck := Rect2(Vector2(cue.position.x, cue.position.z) - half, half * 2.0)
-				var feet := eye.y - FirstPersonCamera.EYE_HEIGHT
+				var feet := eye.y - FirstPersonCamera.eye_height_of(camera)
 				if deck.has_point(Vector2(eye.x, eye.z)) and absf(feet - cue.position.y) < 0.6:
 					var downhill := Vector2(cue.toward.x, cue.toward.z)
 					var looking := _looking(ship, camera)
@@ -648,7 +651,8 @@ func _water_burst(
 	if camera != null:
 		var eye := camera.global_position
 		shows = shown(nearest_on(at, to, eye).distance_to(eye))
-		top = lerpf(minf(rise, maxf(knee(eye) - at.y, LEAST_TOP)), rise, shows)
+		var knees := knee(eye, FirstPersonCamera.eye_height_of(camera))
+		top = lerpf(minf(rise, maxf(knees - at.y, LEAST_TOP)), rise, shows)
 	var depth := lerpf(0.08, 0.35, shows)
 	# A grain at its biggest, measured along its flight: a streak end to end, a drop across.
 	var streak := (burst.mesh as QuadMesh).size.y * burst.scale_amount_curve.max_value

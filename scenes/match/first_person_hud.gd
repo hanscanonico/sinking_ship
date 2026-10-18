@@ -444,7 +444,7 @@ static func height_words(above_sea: float) -> String:
 ## [param pose] — Surfaces.line_of_sight, what the bots' view asks too: never through a
 ## wall, a floor or the hull — over its hat, laid out so none overlaps another.
 func _draw_chevrons(seen: Dictionary, deck: Surfaces, my_pos: Vector3, pose: ShipPose) -> void:
-	var eye := Vector3.UP * FirstPersonCamera.EYE_HEIGHT
+	var eye := Vector3.UP * FirstPersonCamera.eye_height_of(_camera)
 	var entries: Array[Dictionary] = []
 	var anchors := PackedVector2Array()
 	_ranks.clear()

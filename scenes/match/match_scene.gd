@@ -446,7 +446,7 @@ func _toggle_free() -> void:
 	_free.toggle(true)
 	if _free.active:
 		var viewed := _order.target(_driver.current)
-		var head := _view.seat_world_position(viewed) + Vector3.UP * FirstPersonCamera.EYE_HEIGHT
+		var head := _view.seat_world_position(viewed) + Vector3.UP * _eyes.eye_height()
 		_free.start(head, -_eyes.global_basis.z)
 
 
