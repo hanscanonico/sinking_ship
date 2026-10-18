@@ -153,10 +153,10 @@ var rest := 0.0
 ## The steps the bake took, and the states it had before any was dropped.
 var steps := 0
 var states := 0
-## The physics second she first holds each SUNK_STEPS-th of the most water she ever holds
-## — rising, the last the second she holds the most — or empty when she takes none: what
-## her clock is paced by (SinkPacing), in the header, so a client paces a timeline whose
-## pages are still coming.
+## The physics second she first holds each SUNK_STEPS-th of the most water she holds by
+## her going — rising, the last the second she holds the most — or empty when she takes
+## none: what her clock is paced by (SinkPacing), in the header, so a client paces a
+## timeline whose pages are still coming.
 var sunk := PackedFloat64Array()
 ## How the hit it was baked from was chosen, for a client to draw it again (MustSink):
 ## empty until the must-sink rule or a given hit says.
@@ -194,7 +194,7 @@ static func made(bake: SinkBake, level: float, turn_deg: float, air: float) -> S
 	timeline.states = bake.times().size()
 	timeline.bending = roundi(bake.bending() * PER_UNIT) / PER_UNIT
 	timeline.bending_x = roundi(bake.bending_x() * PER_METRE) / PER_METRE
-	for second: float in _sunk_of(bake.times(), bake.water_held):
+	for second: float in _sunk_of(bake.times(), bake.water_held, bake.gone_at()):
 		timeline.sunk.append(_seconds_of(_microseconds(second)))
 	var spans_of := bake.spans()
 	for at in range(2, spans_of.size()):
@@ -644,11 +644,17 @@ func _page_bytes(page: int) -> PackedByteArray:
 ## Every state of [param bake] as the integers it is kept as, each leaf's quaternion
 ## turned the same way round as its one before it.
 ## The second of [param times] she first holds each SUNK_STEPS-th of the most of
-## [param held], her water in m³ at each of them (sunk): empty for none.
-static func _sunk_of(times: PackedFloat64Array, held: PackedFloat64Array) -> PackedFloat64Array:
+## [param held], her water in m³ at each of them (sunk), by [param gone_at] — her cells
+## fill on as she goes down, past what sank her — or by the end, when she never goes:
+## empty for none.
+static func _sunk_of(
+	times: PackedFloat64Array, held: PackedFloat64Array, gone_at: float
+) -> PackedFloat64Array:
 	var most := 0.0
-	for water: float in held:
-		most = maxf(most, water)
+	for state in times.size():
+		if gone_at >= 0.0 and times[state] > gone_at:
+			break
+		most = maxf(most, held[state])
 	var found := PackedFloat64Array()
 	if most <= 0.0:
 		return found

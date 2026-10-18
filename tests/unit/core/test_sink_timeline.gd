@@ -279,8 +279,9 @@ func test_hash_changes_with_any_byte() -> void:
 
 
 func test_her_flooding_is_recorded_as_she_takes_it() -> void:
-	# The second she first holds each fortieth of the most water she ever holds: rising,
-	# each the first state that holds that much, the last the state she holds the most.
+	# The second she first holds each fortieth of the most water she holds by the time she
+	# goes — her cells fill on as she goes down, past what sank her: rising, each the first
+	# state that holds that much, the last no later than her going.
 	var bake := _bake(FAST_HIT)
 	var timeline := bake.timeline()
 	assert_eq(timeline.end, SinkTimeline.End.GONE, "the fast hit sinks her")
@@ -290,6 +291,8 @@ func test_her_flooding_is_recorded_as_she_takes_it() -> void:
 	var held := PackedFloat64Array()
 	var most := 0.0
 	for state in bake.times().size():
+		if bake.times()[state] > bake.gone_at():
+			break
 		var water := 0.0
 		for cell in cells:
 			water += waters[state * cells + cell]
@@ -310,7 +313,7 @@ func test_her_flooding_is_recorded_as_she_takes_it() -> void:
 		assert_gte(held[state], most * share - 1e-6, "step %d holds its share" % step)
 		if state > 0:
 			assert_lt(held[state - 1], most * share - 1e-6, "and the state before does not")
-	assert_lte(timeline.sunk[SinkTimeline.SUNK_STEPS - 1], timeline.length(), "within the bake")
+	assert_lte(timeline.sunk[SinkTimeline.SUNK_STEPS - 1], timeline.gone_at, "full as she goes")
 
 
 func test_a_timeline_without_flooding_records_none() -> void:
