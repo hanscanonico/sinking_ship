@@ -256,14 +256,12 @@ func _map_rooms(layout: ShipLayout) -> void:
 ## Leaves the sea out of [param boxes] (ship space), however many, and the box round
 ## them all.
 func _mask_cells(boxes: Array[AABB]) -> void:
-	var around := AABB()
-	var count := 0
-	for box: AABB in boxes:
-		if box.size != Vector3.ZERO:
-			around = box if count == 0 else around.merge(box)
-			count += 1
+	var drawn := _drawn(boxes)
+	var around: AABB = drawn[0] if not drawn.is_empty() else AABB()
+	for box: AABB in drawn:
+		around = around.merge(box)
 	_water.set_shader_parameter(&"cells", ImageTexture.create_from_image(cell_mask(boxes)))
-	_water.set_shader_parameter(&"cell_count", cell_count(boxes))
+	_water.set_shader_parameter(&"cell_count", drawn.size())
 	_water.set_shader_parameter(&"cells_low", around.position)
 	_water.set_shader_parameter(&"cells_high", around.end)
 
@@ -272,7 +270,7 @@ func _mask_cells(boxes: Array[AABB]) -> void:
 ## reads them: a texel of each one's low corner, then one of its high, in order of their
 ## aft ends, in one row; a single empty texel for none.
 static func cell_mask(boxes: Array[AABB]) -> Image:
-	var drawn := boxes.filter(func(box: AABB) -> bool: return box.size != Vector3.ZERO)
+	var drawn := _drawn(boxes)
 	drawn.sort_custom(func(a: AABB, b: AABB) -> bool: return a.position.x < b.position.x)
 	var mask := Image.create_empty(maxi(drawn.size() * 2, 1), 1, false, Image.FORMAT_RGBAF)
 	for index in drawn.size():
@@ -284,7 +282,12 @@ static func cell_mask(boxes: Array[AABB]) -> Image:
 
 ## How many of [param boxes] hold anything: the boxes cell_mask() carries.
 static func cell_count(boxes: Array[AABB]) -> int:
-	return boxes.filter(func(box: AABB) -> bool: return box.size != Vector3.ZERO).size()
+	return _drawn(boxes).size()
+
+
+## The boxes among [param boxes] that hold anything.
+static func _drawn(boxes: Array[AABB]) -> Array:
+	return boxes.filter(func(box: AABB) -> bool: return box.size != Vector3.ZERO)
 
 
 ## What the rooms' map covers, ship x/z: every room and a cell of nothing round

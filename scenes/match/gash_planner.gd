@@ -57,8 +57,9 @@ const BOILS_ALONG := 3
 ## of the gash that opens a place people can be — never under a room's floor, never into
 ## a void — so long as the sea outside stands LEAST_HEAD or more, in metres, over the
 ## room's water there; a stretch over the sea throws nothing. It jets in while that head
-## stays over JET_SHARE of the head it came in with, into the dry room — the sea over the
-## foot of the stretch's open part — and boils up under it.
+## stays over JET_SHARE of the head it came in with — the sea over the foot of the
+## stretch's open part as she was struck, into the dry room, or now for a stretch that
+## was over the sea then — and boils up under it.
 const BREACH_TICKS := 6
 const LEAST_HEAD := 0.05
 const JET_SHARE := 0.5
@@ -94,6 +95,9 @@ var _struck := -1
 ## Per stretch of the gash, the heights over which it opens a place people can be
 ## (ShipLayout.opened_place), ship space: empty where it opens none.
 var _places := PackedVector2Array()
+## Per stretch of the gash, the head the sea came in with through it as she was struck,
+## into the dry room, in metres: nothing over the sea then.
+var _started := PackedFloat64Array()
 ## Whether the rent along the gash has been told.
 var _torn := false
 ## Per stretch of the gash, how far across her the room's lining stands in front of it:
@@ -191,6 +195,7 @@ func breach(from_tick: int, tick: int, pose: ShipPose, cues: Array[FxCue]) -> vo
 	if not _torn:
 		_torn = true
 		_rents(damage, struck, cues)
+		_heads_at(_schedule.pose_at(struck), damage)
 	var beat := struck + (tick - 1 - struck) / BREACH_TICKS * BREACH_TICKS
 	# A broken hull's pieces keep cells of their own, and once she has gone the gash is
 	# the least of it.
@@ -212,10 +217,10 @@ func breach(from_tick: int, tick: int, pose: ShipPose, cues: Array[FxCue]) -> vo
 func _inrush(
 	index: int, opening: ShipOpening, pose: ShipPose, tick: int, cues: Array[FxCue]
 ) -> void:
-	var cell := _structure.cell_named(opening.joins[0])
 	var place := _places[index]
-	if cell < 0 or place.x >= place.y:
+	if place.x >= place.y:
 		return
+	var cell := _structure.cell_named(opening.joins[0])
 	var half := opening.size * 0.5
 	var low := pose.world_height(Vector3(opening.centre.x, place.x, opening.centre.z))
 	var high := pose.world_height(Vector3(opening.centre.x, place.y, opening.centre.z))
@@ -236,7 +241,8 @@ func _inrush(
 	var b := a + Vector3(opening.size.x, 0.0, 0.0)
 	var strength := clampf(sqrt(head / FULL_HEAD), 0.0, 1.0)
 	var cue: FxCue
-	if head > JET_SHARE * -low:
+	var started := _started[index] if _started[index] >= LEAST_HEAD else -low
+	if head > JET_SHARE * started:
 		# Out of the part of it over the room's water, or off that water once it tops it.
 		var from := (maxf(inside, low) + minf(0.0, high)) * 0.5 if inside < high else inside
 		a.y = pose.height_of(from, a)
@@ -287,16 +293,19 @@ func _rents(damage: HitDamage, struck: int, cues: Array[FxCue]) -> void:
 		var b := opening.centre + Vector3(half.x, 0.0, 0.0)
 		var place := _places[index]
 		if place.x < place.y:
-			# On the room's lining, over its floor.
+			# On the room's lining round its part over the floor, never under the floor:
+			# standing on it where the floor cuts the gash, however thin the gash over it.
 			var lining := _linings[index]
 			var inboard := RENT_IN
 			if not is_nan(lining):
 				inboard = side * (opening.centre.z - lining) + RENT_PROUD
-			var over := Vector3(0.0, (place.x + place.y) * 0.5 - opening.centre.y, 0.0)
-			var inside := _rent(
-				a + over, b + over, (place.y - place.x) * 0.5, -side * inboard, struck
-			)
-			cues.append(inside)
+			var tall := maxf((place.y - place.x) * 0.5, RENT_LEAST * 0.5)
+			var middle := (place.x + place.y) * 0.5
+			if place.x > opening.centre.y - half.y + 0.001:
+				middle = maxf(middle, place.x + tall)
+			var over := Vector3(0.0, middle - opening.centre.y, 0.0)
+			var on_lining := _rent(a + over, b + over, tall, -side * inboard, struck)
+			cues.append(on_lining)
 		if opening.joins[1] != ShipOpening.SEA:
 			continue
 		var top := opening.centre.y + half.y
@@ -307,6 +316,16 @@ func _rents(damage: HitDamage, struck: int, cues: Array[FxCue]) -> void:
 		a.y = (top + bottom) * 0.5
 		b.y = a.y
 		cues.append(_rent(a, b, (top - bottom) * 0.5, side * RENT_OUT, struck))
+
+
+## The head the sea came in with through each stretch of [param damage]'s gash under
+## [param pose], as she was struck: the sea over the foot of its open part.
+func _heads_at(pose: ShipPose, damage: HitDamage) -> void:
+	_started.clear()
+	for index in damage.openings.size():
+		var opening := damage.openings[index]
+		var foot := Vector3(opening.centre.x, _places[index].x, opening.centre.z)
+		_started.append(-pose.world_height(foot) if _places[index].x < INF else 0.0)
 
 
 ## The room's lining in front of [param opening], a stretch of the gash: the inboard

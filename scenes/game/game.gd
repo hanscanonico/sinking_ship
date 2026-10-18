@@ -433,6 +433,8 @@ func _set_paused(paused: bool) -> void:
 ## Why [param config], made of choices free of problems, cannot start.
 func _problems(config: MatchConfig) -> PackedStringArray:
 	var found := config.problems()
+	if not _args.capture_from.is_empty() and _args.capture_from.size() < 4:
+		found.append("capture: FROM=x,y,z takes LOOK=x,y,z, or --capture-from a yaw")
 	if _args.capture_eye >= config.seats:
 		found.append("capture: no seat %d in a %d-seat match" % [_args.capture_eye, config.seats])
 	var profile := BotProfile.for_tier(config.bot_tier)

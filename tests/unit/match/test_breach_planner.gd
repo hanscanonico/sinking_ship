@@ -78,8 +78,9 @@ func test_the_jet_dies_into_a_boil_over_the_gash_as_the_room_fills_and_stops_lev
 			pushing += maxf(pose.pockets[room] - atmosphere, 0.0)
 		var head := -maxf(pushing, pose.world_height(bottom))
 		heads.append(head)
-		# The head it came in with, into the dry room: the sea over the gash's foot.
-		var dry := -pose.world_height(bottom)
+		# The head it came in with, as she was struck, into the dry room: the sea over the
+		# gash's foot.
+		var dry := -sim.schedule.pose_at(struck).world_height(bottom)
 		if cue.kind == JET:
 			assert_gt(head, GashPlanner.JET_SHARE * dry - 0.001, "a jet while the head stays high")
 			assert_false(boiled, "and never again once it boils")
@@ -119,7 +120,11 @@ func test_the_sea_comes_in_by_its_head_over_the_room_s_water_and_stops_level() -
 	var top := gash.centre.y + gash.size.y * 0.5
 	var bottom := gash.centre.y - gash.size.y * 0.5
 	var sea := -layout.freeboard
-	var share := sea - GashPlanner.JET_SHARE * (sea - bottom)
+	# The head the sea came in with as she was struck, into the dry room.
+	var started := -sim.schedule.pose_at(sim.schedule.hit_tick()).world_height(
+		Vector3(gash.centre.x, bottom, gash.centre.z)
+	)
+	var share := sea - GashPlanner.JET_SHARE * started
 	var struck := sim.schedule.hit_tick()
 	var room := structure.cells[structure.cell_named(&"engine_room")]
 	var held := {
@@ -164,6 +169,11 @@ func test_a_stretch_under_a_room_s_floor_throws_no_jet() -> void:
 	GashPlanner.new(sim.schedule, raised).breach(struck, struck + 1, pose, cues)
 	var jets := _of(cues, JET)
 	assert_eq(jets.size(), 1, "the part over the floor jets in")
+	for rent: FxCue in _of(cues, RENT):
+		if rent.toward.z < 0.0:
+			var foot := rent.position.y - rent.radius
+			assert_almost_eq(foot, floor.floor_height, 0.001, "the rent inside stands on the floor")
+			assert_gte(rent.radius * 2.0, 0.4 - 0.001, "and stands 0.4 m tall at least")
 	assert_gte(jets[0].position.y, floor.floor_height - 0.001, "from over the floor")
 
 

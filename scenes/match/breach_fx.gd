@@ -8,7 +8,7 @@ extends Node3D
 ## plating along the gash, lying on her lining and her hull from the strike on, from a
 ## pool of fixed size too, its torn lip and the sea behind it lit faintly of their own so
 ## a dark room still shows them. Seeing the breach is the point (#148): the jet hushes —
-## slower, in specks, see-through — only within HUSHED of the eye or where its sheet is
+## slower, in specks, see-through — only within JET_HUSHED of the eye or where its sheet is
 ## thrown at the eye, never across a room, and the boil and the rent never; the welling,
 ## as every other effect near the eye, lies low on the floor, small and faint.
 
@@ -26,10 +26,11 @@ const RENTS := 24
 ## An emitter goes on this long after the last cue that kept it up, in seconds: past
 ## the planners' beats (GashPlanner.BREACH_TICKS, FxPlanner.WELL_TICKS).
 const HOLD := 0.45
-## The jet hushes within HUSHED of the eye, in metres — of its sheet, from the gash out as
-## far as it is thrown — easing into its full self over HUSH_EASE.
-const HUSHED := 2.0
-const HUSH_EASE := 1.0
+## The jet hushes within JET_HUSHED of the eye, in metres — of its sheet, from the gash
+## out as far as it is thrown — easing into its full self over JET_HUSH_EASE: far nearer
+## than SinkingFx.HUSHED.
+const JET_HUSHED := 2.0
+const JET_HUSH_EASE := 1.0
 ## A drop of the jet, across, in metres, at least, and at most as big as its sheet asks
 ## to be solid; and how fast the sea comes in, in m/s, from the least head to the most.
 ## A drop lives as long as the slowest crosses as far as it is thrown, JET_LIFE at the
@@ -259,14 +260,14 @@ func emitters() -> Array[CPUParticles3D]:
 
 
 ## How much of itself a jet thrown [param throw] (world) from the line [param from]–
-## [param to] (world) shows to an eye at [param eye]: none within HUSHED of its sheet,
-## all of it from HUSHED + HUSH_EASE on.
+## [param to] (world) shows to an eye at [param eye]: none within JET_HUSHED of its
+## sheet, all of it from JET_HUSHED + JET_HUSH_EASE on.
 static func jet_shown(from: Vector3, to: Vector3, throw: Vector3, eye: Vector3) -> float:
 	var nearest := INF
 	for step in THROW_STEPS + 1:
 		var out := throw * float(step) / THROW_STEPS
 		nearest = minf(nearest, SinkingFx.nearest_on(from + out, to + out, eye).distance_to(eye))
-	return clampf((nearest - HUSHED) / HUSH_EASE, 0.0, 1.0)
+	return clampf((nearest - JET_HUSHED) / JET_HUSH_EASE, 0.0, 1.0)
 
 
 ## How many rents are torn in her.

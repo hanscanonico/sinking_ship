@@ -5,7 +5,6 @@ extends GutTest
 ## domes up over the gash; and the welling, as every other effect, stays low, small and
 ## faint near the eye.
 
-## An eye in the sea looks out from this high over it.
 const EPSILON := 0.001
 
 
