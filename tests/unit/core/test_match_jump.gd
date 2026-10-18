@@ -15,7 +15,7 @@ func test_seats_stand_dry_at_the_moment_jumped_to() -> void:
 	var config := RunMatch.default_config(SEED)
 	var schedule := config.schedule()
 	var tick := schedule.physics_tick(PHYS)
-	assert_eq(tick, schedule.hit_tick() + Ticks.from_seconds(PHYS), "by the scenario's clock")
+	assert_almost_eq(schedule.physics_at(tick), PHYS, 1.0, "that moment, on her paced clock")
 	var snapshot := MatchJump.snapshot(config, tick)
 	assert_eq(snapshot["tick"], tick)
 	assert_eq(snapshot["phase"], MatchState.Phase.LIVE)

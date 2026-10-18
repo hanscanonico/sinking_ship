@@ -2,7 +2,7 @@ extends GutTest
 ## SinkPacing: the paced clock (Q20) — physics seconds to match seconds by how far she has
 ## flooded, its phases' shares of the match's length, its limits and the plunge's least.
 ## Every expected number is worked by hand from the default data: 900 s, phases at 0.3
-## and 0.8, shares 25 / 50 / 25, the plunge the last 0.05 for 20 s at least, 0.4×…6×.
+## and 0.8, shares 25 / 50 / 25, the plunge the last 0.05 for 20 s at least, 0.15×…6×.
 
 
 ## The physics seconds she first holds each fortieth of her water, flooding evenly over
@@ -24,7 +24,7 @@ func test_the_data_is_the_decided_pacing() -> void:
 	assert_eq(pacing.length, 900.0, "about 15 minutes")
 	assert_eq([pacing.opening_until, pacing.middle_until, pacing.plunge_from], [0.3, 0.8, 0.95])
 	assert_eq([pacing.opening_share, pacing.middle_share], [0.25, 0.5])
-	assert_eq([pacing.slowest, pacing.fastest, pacing.plunge_least], [0.4, 6.0, 20.0])
+	assert_eq([pacing.slowest, pacing.fastest, pacing.plunge_least], [0.15, 6.0, 20.0])
 
 
 func test_an_hour_of_even_flooding_plays_in_fifteen_minutes() -> void:
@@ -45,29 +45,33 @@ func test_a_slow_opening_runs_at_most_six_times_the_physics() -> void:
 	assert_almost_eq(clock.match_of(18000.0), 3000.0, 1e-6)
 
 
-func test_a_rushed_end_runs_at_least_four_tenths_of_the_physics() -> void:
-	# Six minutes evenly, 9 s a fortieth: the opening at 0.48×; the middle (0.4×) and the
-	# end (0.32×) held to 0.4× — 225 s, then 180 s at 0.4× is 450 s, then 72 s is 180 s.
-	var clock := _pacing().clock_of(_even(360.0))
-	assert_almost_eq(clock.match_of(108.0), 225.0, 1e-6)
-	assert_almost_eq(clock.match_of(288.0), 675.0, 1e-6)
-	assert_almost_eq(clock.match_of(360.0), 855.0, 1e-6, "shorter than asked, never slower")
+func test_a_rushed_sinking_runs_at_least_fifteen_hundredths_of_the_physics() -> void:
+	# Ninety seconds evenly, 2.25 s a fortieth: the opening asks for 0.12×, the middle 0.1×
+	# and the end 0.08×; all held to 0.15×, 15 s a fortieth — 180, 480 and 600 s.
+	var clock := _pacing().clock_of(_even(90.0))
+	assert_almost_eq(clock.match_of(27.0), 180.0, 1e-6)
+	assert_almost_eq(clock.match_of(72.0), 480.0, 1e-6)
+	assert_almost_eq(clock.match_of(90.0), 600.0, 1e-6, "shorter than asked, never slower")
 
 
 func test_slow_then_fast_is_evened_out() -> void:
-	# The real shape: 300 s a fortieth through the opening, 30 s through the middle, 5 s
+	# The real shape: 300 s a fortieth through the opening, 30 s through the middle, 2 s
 	# through the end. The opening's 16× is held to 6× (50 s a fortieth, 600 s); the
-	# middle runs at 30 / 22.5 (450 s); the end's 0.18× is held to 0.4× (12.5 s each).
+	# middle runs at 30 / 22.5 (450 s); the end's 0.07× is held to 0.15× (13⅓ s each).
 	var sunk := PackedFloat64Array()
 	var at := 0.0
 	for step in range(1, SinkTimeline.SUNK_STEPS + 1):
-		at += 300.0 if step <= 12 else (30.0 if step <= 32 else 5.0)
+		at += 300.0 if step <= 12 else (30.0 if step <= 32 else 2.0)
 		sunk.append(at)
 	var clock := _pacing().clock_of(sunk)
 	assert_almost_eq(clock.match_of(3600.0), 600.0, 1e-6, "the opening, much sooner")
 	assert_almost_eq(clock.match_of(4200.0), 1050.0, 1e-6, "the middle, its half")
-	assert_almost_eq(clock.match_of(4240.0), 1150.0, 1e-6, "the end, slowed as far as it goes")
-	assert_almost_eq(clock.match_of(4240.0) - clock.match_of(4230.0), 25.0, 1e-6, "the plunge")
+	assert_almost_eq(
+		clock.match_of(4216.0), 1050.0 + 320.0 / 3.0, 1e-6, "the end, slowed far as it goes"
+	)
+	assert_almost_eq(
+		clock.match_of(4216.0) - clock.match_of(4212.0), 80.0 / 3.0, 1e-6, "the plunge"
+	)
 
 
 func test_a_short_length_still_gives_the_plunge_twenty_seconds() -> void:

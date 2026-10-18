@@ -11,5 +11,5 @@ plunge_from = 0.95
 opening_share = 0.25
 middle_share = 0.5
 plunge_least = 20.0
-slowest = 0.4
+slowest = 0.15
 fastest = 6.0
