@@ -69,6 +69,10 @@ func before_each() -> void:
 func test_the_arms_stay_clear_of_the_crosshair_the_readouts_and_the_near_plane() -> void:
 	var problems := {}
 	for move: BrawlerAnimation.Move in BrawlerAnimation.Move.values():
+		# A seat's own arms show what it does on its feet, never the crawl the others see
+		# it make (#148): show_seat never crawls.
+		if move == BrawlerAnimation.Move.CRAWL:
+			continue
 		var entry := _as(move)
 		var watched := 0.0
 		while watched < SETTLE + WATCH:
