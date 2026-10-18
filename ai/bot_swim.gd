@@ -68,7 +68,7 @@ func goal() -> Vector3:
 ## is down to what that swim costs.
 func find(cold: float, now_pos: Vector3, pose: ShipPose) -> void:
 	var reach := cold * _rules.swim_speed
-	var head := now_pos + Vector3.UP * _rules.head_height()
+	var head := now_pos + Vector3.UP * _rules.head_height(_rules.height_at(_surfaces, now_pos))
 	waiting = false
 	_pockets.look(now_pos, pose)
 	_find_out(reach, now_pos, pose)
