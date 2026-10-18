@@ -81,6 +81,9 @@ var radius := 0.0
 ## SPRAY, SPLASH, STRIKE, MIST, SPURT: how high over the sea its white water may
 ## climb, in metres. JET: how far across the room it is thrown.
 var rise := 0.0
+## JET: how far its water falls on its way across, to the room's floor or water, in
+## metres.
+var drop := 0.0
 ## STEAM, BUBBLES: seconds it keeps going at full. FROTH: seconds it lies, thinning.
 var seconds := 0.0
 var piece: Piece = Piece.PLANK

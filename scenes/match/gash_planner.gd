@@ -8,11 +8,12 @@ extends RefCounted
 ## dying down, white water bursts up somewhere new along it every GASH_TICKS. The
 ## bigger the gash, the harder, higher and thicker all of it. Inside her (breach()),
 ## the rent the iceberg tore along it shows from the strike on, and the sea jets in
-## through it wherever it opens a room people walk in, as hard as the sea outside
-## stands over the room's water, dying into a boil over it once the room's water tops
-## it, and gone once that stands level with the sea: what the pose answers at each
-## tick, so a replay shows what the live match did. Presentation state only; nothing
-## it does reaches the sim (D5, D12).
+## through it wherever it opens a place people can be (ShipLayout.opened_place), from
+## its part over the floor, as hard as the sea outside stands over the room's water,
+## dying into a boil over it once that head falls under JET_SHARE of the head it came in
+## with, and gone once the room's water stands level with the sea: what the pose answers
+## at each tick, so a replay shows what the live match did. Presentation state only;
+## nothing it does reaches the sim (D5, D12).
 
 ## How long the gash goes on showing after the strike, in seconds, and how often a
 ## burst comes up along it after the strike, in ticks.
@@ -53,30 +54,32 @@ const SPITS := Vector2(0.5, 1.4)
 const GASH_BOILS := 0.3
 const BOILS_ALONG := 3
 ## Inside her, every BREACH_TICKS from the strike, the sea comes in through each stretch
-## of the gash into a cell whose water is drawn — a room people walk in, never a void —
-## so long as the sea outside stands LEAST_HEAD or more, in metres, over the room's water
-## there; a stretch over the sea throws nothing.
+## of the gash that opens a place people can be — never under a room's floor, never into
+## a void — so long as the sea outside stands LEAST_HEAD or more, in metres, over the
+## room's water there; a stretch over the sea throws nothing. It jets in while that head
+## stays over JET_SHARE of the head it came in with, into the dry room — the sea over the
+## foot of the stretch's open part — and boils up under it.
 const BREACH_TICKS := 6
 const LEAST_HEAD := 0.05
+const JET_SHARE := 0.5
 ## The head over the room's water at which the sea jets in at its hardest, in metres:
 ## how hard goes as the speed it comes in at does, the head's root.
 const FULL_HEAD := 1.5
 ## How thick a sheet the sea jets in as, from the least gash to the most (size()), in
-## metres: a thin sheet of spray for a scrape, a wall of water for the worst; leaving
-## the gash leaning JET_DROP down for every metre in, and thrown no less than JET_LEAST
-## across the room.
+## metres: a thin sheet of spray for a scrape, a wall of water for the worst; thrown
+## level out of the gash, and no less than JET_LEAST across the room, wherever it opens.
 const JET_SHEET := Vector2(0.06, 0.7)
-const JET_DROP := 0.15
-const JET_LEAST := 0.3
+const JET_LEAST := 1.5
 ## The rent in her plating along each stretch of the gash: on the room's lining —
 ## RENT_PROUD in front of the wall between the room and her shell, or RENT_IN in from
 ## her shell where none stands — on her hull RENT_OUT out from it, and never less than
-## RENT_LEAST tall. The sea jets in from JET_PROUD in front of that lining, and boils up
-## on the room's water BOIL_IN in from it.
+## RENT_LEAST tall: a slit of a gash still tears a wound you can find. The sea jets in
+## from JET_PROUD in front of that lining, and boils up on the room's water BOIL_IN in
+## from it.
 const RENT_IN := 0.3
 const RENT_PROUD := 0.02
 const RENT_OUT := 0.03
-const RENT_LEAST := 0.15
+const RENT_LEAST := 0.4
 const JET_PROUD := 0.05
 const BOIL_IN := 0.3
 
@@ -88,9 +91,9 @@ var _structure: ShipStructure
 var _size := 0.0
 ## The tick the iceberg struck, as its HOLED event told it, or -1 before it.
 var _struck := -1
-## Per cell of her structure, 1 where its water is drawn (InnerWater.boxes): a room
-## people walk in.
-var _drawn := PackedByteArray()
+## Per stretch of the gash, the heights over which it opens a place people can be
+## (ShipLayout.opened_place), ship space: empty where it opens none.
+var _places := PackedVector2Array()
 ## Whether the rent along the gash has been told.
 var _torn := false
 ## Per stretch of the gash, how far across her the room's lining stands in front of it:
@@ -101,24 +104,18 @@ var _linings := PackedFloat64Array()
 var _atmosphere := 0.0
 
 
-## Plans [param schedule]'s strike on [param structure], whose cells' water is drawn
-## where [param drawn] has 1 for them, in her cells' order, and whose rooms are walled
-## by [param walls].
-func _init(
-	schedule: SinkSchedule,
-	structure: ShipStructure,
-	drawn := PackedByteArray(),
-	walls: Array[ShipBlocker] = []
-) -> void:
+## Plans [param schedule]'s strike on [param layout], whose rooms are walled by
+## [param walls].
+func _init(schedule: SinkSchedule, layout: ShipLayout, walls: Array[ShipBlocker] = []) -> void:
 	_schedule = schedule
-	_structure = structure
-	_drawn = drawn
+	_structure = layout.structure
 	var sea := SeaPhysics.load_default()
 	_atmosphere = sea.air_pressure / (sea.sea_density * sea.gravity)
-	if schedule.damage() != null:
+	if schedule.damage() != null and _structure != null:
 		_size = size(schedule.damage().area())
 		for opening: ShipOpening in schedule.damage().openings:
 			_linings.append(_lining(opening, walls))
+			_places.append(layout.opened_place(opening))
 
 
 ## How big a gash letting the sea in through [param area] m² looks: 0 for a scrape,
@@ -206,47 +203,56 @@ func breach(from_tick: int, tick: int, pose: ShipPose, cues: Array[FxCue]) -> vo
 
 
 ## The sea coming in through [param opening], the gash's [param index]th stretch, under
-## [param pose], where it opens a room people walk in: jetting across the room from the
-## part of it under the sea and over the room's water while that stands under its top;
-## once the room's water tops it, boiling up over it; nothing once the sea outside
-## stands no more than LEAST_HEAD over the room's water.
+## [param pose], where it opens a place people can be, from its part over the floor:
+## jetting across the room while the sea outside stands over the room's water by more
+## than JET_SHARE of the head it came in with — from the part of it under the sea and
+## over the room's water, or off that water once it tops it; under that, boiling up
+## over it; nothing once the sea outside stands no more than LEAST_HEAD over the room's
+## water.
 func _inrush(
 	index: int, opening: ShipOpening, pose: ShipPose, tick: int, cues: Array[FxCue]
 ) -> void:
 	var cell := _structure.cell_named(opening.joins[0])
-	if cell < 0 or cell >= _drawn.size() or _drawn[cell] == 0:
+	var place := _places[index]
+	if cell < 0 or place.x >= place.y:
 		return
 	var half := opening.size * 0.5
-	var low := pose.world_height(opening.centre - Vector3(0.0, half.y, 0.0))
-	var high := pose.world_height(opening.centre + Vector3(0.0, half.y, 0.0))
+	var low := pose.world_height(Vector3(opening.centre.x, place.x, opening.centre.z))
+	var high := pose.world_height(Vector3(opening.centre.x, place.y, opening.centre.z))
 	var inside := pose.levels[cell]
 	var head := -maxf(pushing(pose, cell), low)
 	if head < LEAST_HEAD:
 		return
 	var side := float(_schedule.hit().side)
 	# In front of the room's lining; where none stands, inboard of her shell as
-	# InnerWater hangs a pour off it.
-	var z := opening.centre.z - side * InnerWater.OFF_SHELL
+	# InnerWater hangs a pour off it, or half way across a cell narrower than that.
+	var room := _structure.cells[cell]
+	var inner := room.low.z if side > 0.0 else room.high.z
+	var off := minf(InnerWater.OFF_SHELL, absf(opening.centre.z - inner) * 0.5)
+	var z := opening.centre.z - side * off
 	if not is_nan(_linings[index]):
 		z = _linings[index] - side * JET_PROUD
 	var a := Vector3(opening.centre.x - half.x, 0.0, z)
 	var b := a + Vector3(opening.size.x, 0.0, 0.0)
 	var strength := clampf(sqrt(head / FULL_HEAD), 0.0, 1.0)
 	var cue: FxCue
-	if inside < high:
-		var from := (maxf(inside, low) + minf(0.0, high)) * 0.5
+	if head > JET_SHARE * -low:
+		# Out of the part of it over the room's water, or off that water once it tops it.
+		var from := (maxf(inside, low) + minf(0.0, high)) * 0.5 if inside < high else inside
 		a.y = pose.height_of(from, a)
 		b.y = pose.height_of(from, b)
 		cue = FxCue.new(FxCue.Kind.JET, tick, a)
-		cue.toward = Vector3(0.0, -JET_DROP, -side).normalized()
+		cue.toward = Vector3(0.0, 0.0, -side)
 		cue.radius = lerpf(JET_SHEET.x, JET_SHEET.y, size(opening.area))
-		# Thrown as far as its speed carries it falling to the room's floor or water.
-		var room := _structure.cells[cell]
+		# Thrown as far as its speed carries it falling to the room's floor or water —
+		# never less than JET_LEAST — falling that far on its way.
 		var middle := (a + b) * 0.5
-		var floor_at := pose.world_height(Vector3(middle.x, room.low.y, middle.z))
-		var fall := maxf(from - maxf(inside, floor_at), 0.05)
+		var floor_at := pose.world_height(Vector3(middle.x, place.x, middle.z))
+		var fall := maxf(from - maxf(inside, floor_at), 0.0)
 		var across := room.high.z - room.low.z - InnerWater.OFF_SHELL
-		cue.rise = clampf(2.0 * sqrt(head * fall), JET_LEAST, maxf(across, JET_LEAST))
+		var reach := 2.0 * sqrt(head * maxf(fall, 0.05))
+		cue.rise = clampf(reach, JET_LEAST, maxf(across, JET_LEAST))
+		cue.drop = fall
 	else:
 		a.z -= side * BOIL_IN
 		b.z = a.z
@@ -279,13 +285,18 @@ func _rents(damage: HitDamage, struck: int, cues: Array[FxCue]) -> void:
 		var half := opening.size * 0.5
 		var a := opening.centre - Vector3(half.x, 0.0, 0.0)
 		var b := opening.centre + Vector3(half.x, 0.0, 0.0)
-		var cell := _structure.cell_named(opening.joins[0])
-		if cell >= 0 and cell < _drawn.size() and _drawn[cell] == 1:
+		var place := _places[index]
+		if place.x < place.y:
+			# On the room's lining, over its floor.
 			var lining := _linings[index]
 			var inboard := RENT_IN
 			if not is_nan(lining):
 				inboard = side * (opening.centre.z - lining) + RENT_PROUD
-			cues.append(_rent(a, b, half.y, -side * inboard, struck))
+			var over := Vector3(0.0, (place.x + place.y) * 0.5 - opening.centre.y, 0.0)
+			var inside := _rent(
+				a + over, b + over, (place.y - place.x) * 0.5, -side * inboard, struck
+			)
+			cues.append(inside)
 		if opening.joins[1] != ShipOpening.SEA:
 			continue
 		var top := opening.centre.y + half.y
