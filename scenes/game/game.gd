@@ -264,7 +264,9 @@ func _start(config: MatchConfig) -> void:
 	_music.play_match()
 	_set_paused(false)
 	var capturing := not _args.capture_path.is_empty()
-	var observer := _args.observer or (capturing and _args.capture_eye < 0)
+	# Eyes stood in ship space (--capture-from) look through a seat's, never the observer's.
+	var staged := capturing and not _args.capture_from.is_empty()
+	var observer := _args.observer or (capturing and _args.capture_eye < 0 and not staged)
 	var eye := _args.capture_eye if capturing and _args.capture_eye >= 0 else MatchScene.LOCAL_SEAT
 	var split: FrameSplit = null
 	if _probe != null:

@@ -11,7 +11,8 @@ extends RefCounted
 ##   --net-sim=latency:MS,jitter:MS,loss:PERCENT
 ##   --server  --port=N  --bind=ADDRESS  --matches=N
 ##   --connect=ws://HOST:PORT  --create | --room=CODE  --name=NAME  --start-at=N
-##   --capture-screen=SCREEN  --capture-from=X,Y,Z,YAW[,PITCH]  --capture-sway=S
+##   --capture-screen=SCREEN  --capture-from=X,Y,Z,YAW[,PITCH]  --capture-look=X,Y,Z
+##   --capture-sway=S
 ##   --quality=low|medium|high  --render-scale=F  --bake-budget=MS  --phys=H:MM:SS  --jump
 ##   --frame-split=S
 ## --seed, --seats, --ship, --scenario, --hit, --fast and --goal are the match choices
@@ -39,7 +40,9 @@ extends RefCounted
 ## players made up), online-pause (the online pause over the match), online-settings
 ## (the settings opened from it) or hold (the countdown held for a slow bake, its bar
 ## half way); --capture-from stands the capture's eyes on chosen feet in ship space,
-## looking YAW degrees from the bow toward starboard and PITCH above the horizon;
+## looking YAW degrees from the bow toward starboard and PITCH above the horizon — or,
+## given only X,Y,Z, at the ship point --capture-look names, riding with her as she
+## lists, so the breach can be taken from inside any space;
 ## --capture-sway holds the menu
 ## backdrop's drift at S (-1…1, one end of its sway to the other); --quality and
 ## --render-scale draw this run as if the settings screen had chosen them, to measure
@@ -109,6 +112,9 @@ var capture_screen: String = ""
 ## Where a capture's eyes stand and look: x, y, z of the feet in ship space, yaw and
 ## pitch in degrees; empty for the seat's own.
 var capture_from := PackedFloat64Array()
+## The ship point a capture standing on capture_from's feet looks at; empty for its yaw
+## and pitch as given.
+var capture_look := PackedFloat64Array()
 ## Where a capture holds the menu backdrop's drift, -1…1; NAN to let it drift.
 var capture_sway := NAN
 ## The graphics preset and render scale this run draws with whatever is saved;
@@ -182,6 +188,8 @@ static func parse(args: PackedStringArray) -> MatchArgs:
 				parsed.capture_screen = value
 			"--capture-from":
 				parsed.capture_from = value.split_floats(",")
+			"--capture-look":
+				parsed.capture_look = value.split_floats(",")
 			"--capture-sway":
 				parsed.capture_sway = value.to_float()
 			"--quality":
@@ -226,4 +234,24 @@ static func parse(args: PackedStringArray) -> MatchArgs:
 				parsed.start_at = value.to_int()
 			_:
 				push_warning("unknown argument %s" % arg)
+	if parsed.capture_look.size() == 3 and parsed.capture_from.size() >= 3:
+		parsed.capture_from = vantage(parsed.capture_from, parsed.capture_look)
 	return parsed
+
+
+## Eyes standing on [param feet] looking at [param look], both ship space: the feet,
+## then the yaw from the bow toward starboard and the pitch above the horizon, in
+## degrees, that FirstPersonCamera.look_from takes.
+static func vantage(feet: PackedFloat64Array, look: PackedFloat64Array) -> PackedFloat64Array:
+	var eye := Vector3(feet[0], feet[1] + FirstPersonCamera.EYE_HEIGHT, feet[2])
+	var way := Vector3(look[0], look[1], look[2]) - eye
+	var level := Vector2(way.x, way.z).length()
+	return PackedFloat64Array(
+		[
+			feet[0],
+			feet[1],
+			feet[2],
+			rad_to_deg(atan2(way.z, way.x)),
+			rad_to_deg(atan2(way.y, level)),
+		]
+	)
