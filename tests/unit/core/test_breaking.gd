@@ -503,6 +503,62 @@ func test_a_tick_s_pose_is_built_once_and_shared() -> void:
 	_assert_poses_equal(schedule.pose_at(0), fresh.pose_at(0), "the first tick, asked again late")
 
 
+func test_a_piece_numbers_its_gone_railings_again_only_when_the_broken_change() -> void:
+	# Once she has broken, every tick honours each piece with the railings of hers the
+	# match has broken (Pieces.honour), numbered among the piece's own (Pieces.gone). The
+	# numbering is kept and made again only when those railings change: the same ones in a
+	# fresh list are the list kept, one more a new list with it, none an empty one. Each
+	# time the piece's Surfaces stand as the list says.
+	var config := _weak_match()
+	var schedule := config.schedule()
+	var parted := _events_of(schedule.timeline(), SinkTimeline.Kind.PARTED)[0]
+	var tick := schedule.physics_tick(parted.seconds) + Ticks.RATE
+	var sim := MatchSim.from_snapshot(MatchJump.snapshot(config, tick), config)
+	var pose := sim.pose()
+	assert_eq(pose.standing.size(), 2, "she is in two pieces")
+	var pieces := sim.pieces
+	for piece: int in pose.standing:
+		var surfaces := pieces.faces(piece).surfaces(Faces.Up.DECK)
+		var railings := pieces.layout(piece).railings
+		pieces.honour(piece, pose, PackedInt32Array(), sim.state.props)
+		var standing: Array[int] = []
+		for railing in railings.size():
+			if _railed(surfaces, railings[railing]):
+				standing.append(railing)
+		assert_gt(standing.size(), 1, "piece %d has railings standing" % piece)
+		var first := standing[0]
+		var second := standing[-1]
+		var hers := PackedInt32Array([pieces.rail(piece, first)])
+		var gone := pieces.gone(piece, hers)
+		assert_eq(gone, PackedInt32Array([first]), "piece %d: the one of its own" % piece)
+		var again := PackedInt32Array([pieces.rail(piece, first)])
+		assert_same(pieces.gone(piece, again), gone, "piece %d: the same, kept" % piece)
+		pieces.honour(piece, pose, again, sim.state.props)
+		assert_same(pieces.gone(piece, hers), gone, "piece %d: honoured, still kept" % piece)
+		assert_false(_railed(surfaces, railings[first]), "piece %d: it is gone" % piece)
+		assert_true(_railed(surfaces, railings[second]), "piece %d: the other stands" % piece)
+		hers.append(pieces.rail(piece, second))
+		var more := pieces.gone(piece, hers)
+		assert_eq(more, PackedInt32Array([first, second]), "piece %d: one more" % piece)
+		assert_false(is_same(more, gone), "piece %d: numbered again" % piece)
+		pieces.honour(piece, pose, hers, sim.state.props)
+		assert_false(_railed(surfaces, railings[second]), "piece %d: both gone" % piece)
+		assert_eq(
+			pieces.gone(piece, PackedInt32Array()), PackedInt32Array(), "piece %d: none" % piece
+		)
+		pieces.honour(piece, pose, PackedInt32Array(), sim.state.props)
+		assert_true(_railed(surfaces, railings[first]), "piece %d: standing again" % piece)
+
+
+## Whether [param surfaces] holds a body crossing [param railing] at its middle.
+func _railed(surfaces: Surfaces, railing: ShipRailing) -> bool:
+	var middle := (railing.from + railing.to) / 2.0
+	var across := (railing.to - railing.from).orthogonal().normalized() * 0.5
+	var from := Vector3(middle.x - across.x, 0.0, middle.y - across.y)
+	var to := Vector3(middle.x + across.x, 0.0, middle.y + across.y)
+	return surfaces.railed(from, to, railing.platform)
+
+
 ## That [param pose] holds [param expected]'s values, and each piece's its piece's.
 func _assert_poses_equal(pose: ShipPose, expected: ShipPose, label: String) -> void:
 	assert_eq(pose.transform, expected.transform, "%s: where she stands" % label)

@@ -30,6 +30,10 @@ var _rails: Dictionary[int, PackedInt32Array] = {}
 ## among the piece's (_renumbered).
 var _posed_from: Dictionary[int, ShipPose] = {}
 var _posed: Dictionary[int, ShipPose] = {}
+## Per piece, the railings of hers the match had broken when it last numbered them among
+## its own, and those numbers (gone).
+var _gone_from: Dictionary[int, PackedInt32Array] = {}
+var _gone: Dictionary[int, PackedInt32Array] = {}
 
 
 ## The pieces of [param layout] [param schedule] has, the whole ship's faces
@@ -93,16 +97,37 @@ func honour(piece: int, pose: ShipPose, broken: PackedInt32Array, props: Array[P
 	if own != _posed_from[piece]:
 		_posed_from[piece] = own
 		_posed[piece] = _renumbered(piece, own)
-	var gone := PackedInt32Array()
-	var rails := _rails[piece]
-	for railing in rails.size():
-		if rails[railing] in broken:
-			gone.append(railing)
 	var aboard: Array[PropState] = []
 	for crate: PropState in props:
 		if piece_at(own.standing, crate.pos.x) == piece:
 			aboard.append(crate)
-	surfaces.honour(_posed[piece], gone, aboard)
+	surfaces.honour(_posed[piece], gone(piece, broken), aboard)
+
+
+## The railings of piece [param piece]'s layout that are among hers [param broken], by
+## its own numbers: the list it last made while the same railings are broken, made
+## again only when they change. Hers as they are for the whole ship.
+func gone(piece: int, broken: PackedInt32Array) -> PackedInt32Array:
+	if piece == 0:
+		return broken
+	if _gone.has(piece) and broken == _gone_from[piece]:
+		return _gone[piece]
+	# A copy, so a caller's list edited in place is not the one compared.
+	_gone_from[piece] = broken.duplicate()
+	_gone[piece] = _own(piece, broken)
+	return _gone[piece]
+
+
+## The railings of piece [param piece]'s layout that are among hers [param hers], by its
+## own numbers: rail() the other way.
+func _own(piece: int, hers: PackedInt32Array) -> PackedInt32Array:
+	layout(piece)
+	var rails := _rails[piece]
+	var own := PackedInt32Array()
+	for railing in rails.size():
+		if rails[railing] in hers:
+			own.append(railing)
+	return own
 
 
 ## [param pose], piece [param piece]'s, with its failed railings numbered among the
@@ -120,10 +145,7 @@ func _renumbered(piece: int, pose: ShipPose) -> ShipPose:
 	made.collapsed = pose.collapsed
 	made.collapsing = pose.collapsing
 	made.standing = pose.standing
-	var rails := _rails[piece]
-	for railing in rails.size():
-		if rails[railing] in pose.broken_railings:
-			made.broken_railings.append(railing)
+	made.broken_railings = _own(piece, pose.broken_railings)
 	return made
 
 
