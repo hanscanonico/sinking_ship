@@ -166,7 +166,7 @@ func _init(config: MatchConfig, surfaces: Surfaces, schedule: SinkSchedule) -> v
 	for blocker: ShipBlocker in _layout.blockers:
 		if _space.is_wall(blocker):
 			walls.append(blocker)
-	_gash = GashPlanner.new(schedule, structure, _drawn, walls)
+	_gash = GashPlanner.new(schedule, _layout, walls)
 	_failures = FailureFx.new(config.ship.structure, schedule)
 	_railing_height = config.rules.railing_height
 	_start_tick = Ticks.from_seconds(config.scenario.starts_at)

@@ -330,48 +330,6 @@ func test_the_strike_near_the_eye_is_low_small_and_faint() -> void:
 	assert_eq(off[0].color.a, 1.0, "a mist out of reach of a fight stands out whole")
 
 
-func test_the_breach_near_the_eye_is_low_small_and_faint() -> void:
-	var fx: SinkingFx = add_child_autofree(SinkingFx.new())
-	var camera: Camera3D = add_child_autofree(Camera3D.new())
-	camera.global_position = Vector3(0.0, FirstPersonCamera.EYE_HEIGHT, 0.0)
-	for kind: FxCue.Kind in [FxCue.Kind.JET, FxCue.Kind.BOIL, FxCue.Kind.WELL]:
-		for distance: float in [1.6, 3.0, 5.0, 7.5]:
-			var cue := _breach_cue(kind, Vector3(-1.0, 0.3, -distance))
-			var played := _played(fx, [cue], camera)
-			var name := "%s %.1f m off" % [FxCue.Kind.keys()[kind], distance]
-			assert_eq(played.size(), 1, name + " plays")
-			var emitter := played[0]
-			var faint := _near_opacity(emitter) <= SinkingFx.HUSHED_ALPHA + EPSILON
-			assert_true(_grain(emitter) <= SinkingFx.SPECK + EPSILON or faint, name)
-			# It comes in at the gash's height, or lies on the water or the floor: climbing
-			# no higher over that than spray near the eye over the sea.
-			assert_lte(_climb(emitter), SinkingFx.LEAST_TOP + EPSILON, name + ": low")
-	var far := _played(fx, [_breach_cue(FxCue.Kind.JET, Vector3(-1.0, 0.3, -20.0))], camera)
-	assert_gt(far[0].color.a, SinkingFx.HUSHED_ALPHA, "a jet out of reach of a fight stands out")
-
-
-func test_the_sea_jets_in_while_its_cues_keep_it_up_and_the_rent_stays() -> void:
-	var fx: SinkingFx = add_child_autofree(SinkingFx.new())
-	var ship := Transform3D(Basis(), Vector3.UP * 3.0)
-	var rent := _breach_cue(FxCue.Kind.RENT, Vector3(-1.0, 0.3, -2.0))
-	rent.radius = 0.2
-	rent.toward = Vector3.FORWARD
-	fx.play([rent, _breach_cue(FxCue.Kind.JET, Vector3(-1.0, 0.3, -2.0))], ship, null)
-	var jets := _going(fx, "BreachJet")
-	assert_eq(jets.size(), 1, "the sea jets in")
-	var placed := jets[0].global_transform
-	for beat in 4:
-		await get_tree().process_frame
-		fx.play([_breach_cue(FxCue.Kind.JET, Vector3(-1.0, 0.3, -2.0))], ship, null)
-	assert_eq(_going(fx, "BreachJet").size(), 1, "the same jet goes on, its source's")
-	assert_eq(_going(fx, "BreachJet")[0].global_transform, placed, "where it was")
-	fx._breach.advance(ship, BreachFx.HOLD + 0.1)
-	assert_eq(_going(fx, "BreachJet").size(), 0, "it stops once nothing keeps it up")
-	assert_eq(fx._breach.rent_count(), 1, "the rent stays")
-	fx.clear()
-	assert_eq(fx._breach.rent_count(), 0, "a new match has none")
-
-
 func test_the_strike_throws_from_emitters_the_bursts_after_it_never_take() -> void:
 	var sim := MatchSim.create(RunMatch.default_config(38))
 	var planner := FxPlanner.new(sim.config, sim.surfaces, sim.schedule)
@@ -650,18 +608,6 @@ func _holed(sim: MatchSim, tick: int) -> Dictionary:
 	return snapshot
 
 
-## A cue of the breach inside her, of [param kind], along 2 m of her side from
-## [param at], at its hardest: the sea jetting in across, toward -z.
-func _breach_cue(kind: FxCue.Kind, at: Vector3) -> FxCue:
-	var cue := FxCue.new(kind, 0, at)
-	cue.end = at + Vector3(2.0, 0.0, 0.0)
-	cue.toward = Vector3(0.0, -GashPlanner.JET_DROP, -1.0).normalized()
-	cue.radius = GashPlanner.JET_SHEET.y
-	cue.rise = 3.0
-	cue.source = 0
-	return cue
-
-
 ## A cue of the iceberg's strike, of [param kind], along 2 m of the sea from
 ## [param at], at its biggest.
 func _gash_cue(kind: FxCue.Kind, at: Vector3) -> FxCue:
@@ -678,10 +624,7 @@ func _gash_cue(kind: FxCue.Kind, at: Vector3) -> FxCue:
 
 ## The emitters of [param fx] going whose names begin [param called].
 func _going(fx: SinkingFx, called: String) -> Array[CPUParticles3D]:
-	return fx.emitters().filter(
-		func(emitter: CPUParticles3D) -> bool:
-			return emitter.emitting and emitter.name.begins_with(called)
-	)
+	return FxProbe.going(fx, called)
 
 
 ## The highest the top of a billow of [param emitter] climbs, in the world: its
@@ -781,56 +724,26 @@ func _on_sea(emitter: CPUParticles3D) -> bool:
 func _played(
 	fx: SinkingFx, cues: Array[FxCue], camera: Camera3D, eye_room := -1
 ) -> Array[CPUParticles3D]:
-	fx.clear()
-	fx.play(cues, Transform3D(), camera, eye_room)
-	return fx.emitters().filter(func(emitter: CPUParticles3D) -> bool: return emitter.emitting)
+	return FxProbe.played(fx, cues, camera, eye_room)
 
 
 ## The most a grain of [param emitter] climbs over its emitter, in the emitter's own
 ## up: the depth it starts from, its flight, and its top edge, if it stands up.
 func _climb(emitter: CPUParticles3D) -> float:
-	var way := emitter.direction.normalized()
-	var tilt := maxf(acos(clampf(way.y, -1.0, 1.0)) - deg_to_rad(emitter.spread), 0.0)
-	var rising := maxf(cos(tilt), 0.0) * emitter.initial_velocity_max
-	var pull := (emitter.global_basis.transposed() * emitter.gravity).y
-	var life := emitter.lifetime
-	var flight := rising * life + 0.5 * pull * life * life
-	if pull < 0.0 and rising / -pull < life:
-		flight = rising * rising / (-2.0 * pull)
-	var start := 0.0
-	if emitter.emission_shape == CPUParticles3D.EMISSION_SHAPE_BOX:
-		start = emitter.emission_box_extents.y
-	elif emitter.emission_shape == CPUParticles3D.EMISSION_SHAPE_SPHERE:
-		start = emitter.emission_sphere_radius
-	# A grain lying flat stands no higher than its middle.
-	var top := 0.0 if _lying(emitter) else _grain(emitter) * 0.5
-	return start + maxf(flight, 0.0) + top
+	return FxProbe.climb(emitter)
 
 
 ## How big a grain of [param emitter] grows, at most, in metres: a streak drawn out
 ## along its flight, end to end; any other, the side of a square covering as much as
 ## it does.
 func _grain(emitter: CPUParticles3D) -> float:
-	var grown := 1.0
-	if emitter.scale_amount_curve != null:
-		# Its biggest at any age: white water grows as it flies, the strike's dwindles.
-		for age in 11:
-			grown = maxf(grown, emitter.scale_amount_curve.sample(age / 10.0))
-	var size := _side(emitter)
-	if emitter.particle_flag_align_y and emitter.mesh is QuadMesh:
-		size = (emitter.mesh as QuadMesh).size.y
-	return size * emitter.scale_amount_max * grown
+	return FxProbe.grain(emitter)
 
 
 ## How opaque a grain of [param emitter] is drawn at most anywhere within HUSHED of
 ## the eye, its material fading it out as it nears (fx_grain.gdshaderinc).
 func _near_opacity(emitter: CPUParticles3D) -> float:
-	var material := emitter.mesh.surface_get_material(0) as ShaderMaterial
-	if material == null:
-		return _opacity(emitter)
-	var from: float = material.get_shader_parameter(&"clear_from")
-	var to: float = material.get_shader_parameter(&"clear_to")
-	return _opacity(emitter) * smoothstep(from, to, SinkingFx.HUSHED)
+	return FxProbe.near_opacity(emitter)
 
 
 ## How far round the crosshair [param emitter]'s grains keep clear, as a share of the
@@ -843,21 +756,15 @@ func _crosshair(emitter: CPUParticles3D) -> float:
 
 ## Whether [param emitter]'s grains lie flat in its plane.
 func _lying(emitter: CPUParticles3D) -> bool:
-	return emitter.mesh is QuadMesh and (emitter.mesh as QuadMesh).orientation == PlaneMesh.FACE_Y
+	return FxProbe.lying(emitter)
 
 
 ## The side of a square covering as much as a grain of [param emitter] does as it is
 ## born; 0 for one that is not a quad.
 func _side(emitter: CPUParticles3D) -> float:
-	if not emitter.mesh is QuadMesh:
-		return 0.0
-	var size := (emitter.mesh as QuadMesh).size
-	return sqrt(size.x * size.y)
+	return FxProbe.side(emitter)
 
 
 ## How opaque a grain of [param emitter] is drawn at most, wherever it is.
 func _opacity(emitter: CPUParticles3D) -> float:
-	var peak := 0.0
-	for colour: Color in emitter.color_ramp.colors:
-		peak = maxf(peak, colour.a)
-	return emitter.color.a * peak
+	return FxProbe.opacity(emitter)

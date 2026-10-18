@@ -264,7 +264,9 @@ func _start(config: MatchConfig) -> void:
 	_music.play_match()
 	_set_paused(false)
 	var capturing := not _args.capture_path.is_empty()
-	var observer := _args.observer or (capturing and _args.capture_eye < 0)
+	# Eyes stood in ship space (--capture-from) look through a seat's, never the observer's.
+	var staged := capturing and not _args.capture_from.is_empty()
+	var observer := _args.observer or (capturing and _args.capture_eye < 0 and not staged)
 	var eye := _args.capture_eye if capturing and _args.capture_eye >= 0 else MatchScene.LOCAL_SEAT
 	var split: FrameSplit = null
 	if _probe != null:
@@ -431,6 +433,8 @@ func _set_paused(paused: bool) -> void:
 ## Why [param config], made of choices free of problems, cannot start.
 func _problems(config: MatchConfig) -> PackedStringArray:
 	var found := config.problems()
+	if not _args.capture_from.is_empty() and _args.capture_from.size() < 4:
+		found.append("capture: FROM=x,y,z takes LOOK=x,y,z, or --capture-from a yaw")
 	if _args.capture_eye >= config.seats:
 		found.append("capture: no seat %d in a %d-seat match" % [_args.capture_eye, config.seats])
 	var profile := BotProfile.for_tier(config.bot_tier)

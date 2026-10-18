@@ -60,27 +60,14 @@ func _planner(sim: MatchSim) -> FxPlanner:
 ## [param sim]'s snapshot moved to [param tick], carrying [param events]: its seats
 ## and cargo shared with every other, as the planner only reads them.
 func _at(sim: MatchSim, tick: int, events: Array[SimEvent] = []) -> Dictionary:
-	var snapshot := sim.snapshot().duplicate()
-	snapshot["tick"] = tick
-	snapshot["phase"] = MatchState.Phase.LIVE
-	var entries: Array[Dictionary] = []
-	for event: SimEvent in events:
-		entries.append(event.to_dict())
-	snapshot["events"] = entries
-	return snapshot
+	return FxProbe.snapshot_at(sim, tick, events)
 
 
 ## Every cue of the planner stepping [param sim]'s snapshots from tick [param from]
 ## to [param to], [param stride] ticks a step, with nothing happening but the
 ## sinking.
 func _sink(planner: FxPlanner, sim: MatchSim, from: int, to: int, stride: int = 1) -> Array[FxCue]:
-	var seen: Array[FxCue] = []
-	var previous := _at(sim, from)
-	for tick in range(from + stride, to + 1, stride):
-		var current := _at(sim, tick)
-		seen.append_array(planner.plan(previous, current))
-		previous = current
-	return seen
+	return FxProbe.sink(planner, sim, from, to, stride)
 
 
 ## How much white water [param sprays] throw up: how high each climbs, over how
@@ -93,7 +80,7 @@ func _thrown(sprays: Array[FxCue]) -> float:
 
 
 func _of(cues: Array[FxCue], kind: FxCue.Kind) -> Array[FxCue]:
-	return cues.filter(func(cue: FxCue) -> bool: return cue.kind == kind)
+	return FxProbe.of(cues, kind)
 
 
 ## Whether ship point [param point] stands over any deck of [param layout].
@@ -535,242 +522,6 @@ func test_a_bigger_gash_strikes_harder_higher_and_thicker() -> void:
 		assert_gte(sizes[index], sizes[index - 1], "never smaller for a bigger gash")
 
 
-func test_the_sea_jets_in_through_a_gash_into_a_room_people_walk_in() -> void:
-	var sim := _holed_by(&"trawler", _deep_bite())
-	var structure := sim.config.ship.structure
-	var gash := _gash_into(sim, &"engine_room")
-	var room := structure.cells[structure.cell_named(&"engine_room")]
-	var planner := _planner(sim)
-	var struck := sim.schedule.hit_tick()
-	var before := _sink(planner, sim, struck - Ticks.RATE, struck)
-	assert_eq(_of(before, JET).size(), 0, "nothing gets in before she is struck")
-	var cues := _strike(planner, sim)
-	var jets := _of(cues, JET)
-	assert_gt(jets.size(), 0, "the sea jets in as she is holed")
-	assert_eq(_of(cues, BOIL).size(), 0, "into a dry room: no boil yet")
-	for jet: FxCue in jets:
-		for end: Vector3 in [jet.position, jet.end]:
-			var half := gash.size.x * 0.5 + 0.01
-			assert_between(end.x, gash.centre.x - half, gash.centre.x + half, "along the gash")
-			assert_lt(end.z, gash.centre.z, "inboard of the room's side")
-			assert_gt(end.z, room.low.z, "and inside the room")
-			assert_between(end.y, room.low.y, room.high.y, "at the gash's height in it")
-		assert_lt(jet.toward.z, -0.8, "thrown in across the room, from her starboard side")
-		assert_gt(jet.strength, 0.5, "hard: the sea stands far over the dry room's floor")
-		assert_gt(jet.rise, 0.5, "thrown well into the room")
-	var void_gash := _gash_into(sim, &"engine_wing_s")
-	for jet: FxCue in jets:
-		assert_true(jet.position.z < void_gash.centre.z, "none into the wing void, nobody's room")
-
-
-func test_the_jet_dies_into_a_boil_over_the_gash_as_the_room_fills_and_stops_level() -> void:
-	# The room fills over the gash's slit in some 20 s; she goes down by 3 min.
-	var sim := _holed_by(&"trawler", _deep_bite())
-	var structure := sim.config.ship.structure
-	var room := structure.cell_named(&"engine_room")
-	var gash := _gash_into(sim, &"engine_room")
-	var struck := sim.schedule.hit_tick()
-	var gone := sim.schedule.gone_tick()
-	var to := gone + Ticks.from_seconds(10.0)
-	var cues := _sink(_planner(sim), sim, struck, to, SCAN_STRIDE)
-	var inrush := _of(cues, JET) + _of(cues, BOIL)
-	assert_gt(_of(cues, JET).size(), 2, "it jets in")
-	assert_gt(_of(cues, BOIL).size(), 2, "and boils once the room's water tops the gash")
-	var bottom := gash.centre - Vector3(0.0, gash.size.y * 0.5, 0.0)
-	var top := gash.centre + Vector3(0.0, gash.size.y * 0.5, 0.0)
-	var heads := PackedFloat64Array()
-	var boiled := false
-	var sea := SeaPhysics.load_default()
-	var atmosphere := sea.air_pressure / (sea.sea_density * sea.gravity)
-	for cue: FxCue in inrush:
-		var pose := sim.schedule.pose_at(cue.tick)
-		var level := pose.levels[room]
-		assert_lt(cue.tick, gone, "none once she has gone")
-		if cue.kind == JET:
-			assert_lt(level, pose.world_height(top), "a jet while the room's water is under it")
-			assert_false(boiled, "and never again once it boils")
-		else:
-			boiled = true
-			assert_gt(level, pose.world_height(top), "a boil once the water tops it")
-			assert_almost_eq(pose.world_height(cue.position), level, 0.01, "on the room's water")
-			assert_almost_eq(pose.world_height(cue.end), level, 0.01)
-		assert_lt(cue.position.z, gash.centre.z, "inboard of the gash")
-		# Under the squeeze of any air trapped over the room's water.
-		var pushing := level
-		if pose.pockets[room] > 0.0:
-			pushing += maxf(pose.pockets[room] - atmosphere, 0.0)
-		heads.append(-maxf(pushing, pose.world_height(bottom)))
-	# How hard it comes in goes as the head of sea over the room's water does: weaker as
-	# the room fills, harder as she settles and takes the gash deeper.
-	var stronger := 0
-	for one in inrush.size():
-		for other in inrush.size():
-			if heads[one] < heads[other] - 0.05 and inrush[one].strength > inrush[other].strength:
-				stronger += 1
-	assert_eq(stronger, 0, "never harder for less head")
-	var weakest := 1.0
-	for cue: FxCue in inrush:
-		weakest = minf(weakest, cue.strength)
-	assert_lt(weakest, 0.3, "dying away as her room fills level with the sea")
-	# The same snapshots and poses show the same breach to a fresh planner.
-	var again := _sink(_planner(sim), sim, struck, to, SCAN_STRIDE)
-	assert_eq(_described(_of(again, JET) + _of(again, BOIL)), _described(inrush))
-
-
-func test_the_sea_comes_in_by_its_head_over_the_room_s_water_and_stops_level() -> void:
-	# The deep bite into the trawler's engine room, the room's water held where the test
-	# puts it: dry under the gash, the sea jets in; over the gash's top, it boils up; level
-	# with the sea, or within the least head of it, nothing comes in.
-	var sim := _holed_by(&"trawler", _deep_bite())
-	var layout := sim.config.ship
-	var structure := layout.structure
-	var gash := _gash_into(sim, &"engine_room")
-	var top := gash.centre.y + gash.size.y * 0.5
-	var sea := -layout.freeboard
-	var drawn := PackedByteArray()
-	for box: AABB in InnerWater.boxes(structure, layout.rooms):
-		drawn.append(0 if box.size == Vector3.ZERO else 1)
-	var struck := sim.schedule.hit_tick()
-	var room := structure.cells[structure.cell_named(&"engine_room")]
-	var held := {
-		room.low.y: [JET],
-		top + 0.3: [BOIL],
-		sea - GashPlanner.LEAST_HEAD * 0.5: [],
-		sea: [],
-	}
-	for water: float in held:
-		var pose := HeldPose.flooded(layout, sea, {&"engine_room": [water]})
-		var cues: Array[FxCue] = []
-		GashPlanner.new(sim.schedule, structure, drawn).breach(struck, struck + 1, pose, cues)
-		var kinds: Array = []
-		for cue: FxCue in cues:
-			if cue.kind != RENT:
-				kinds.append(cue.kind)
-		assert_eq(kinds, held[water], "the room's water held at %.2f m" % water)
-
-
-func test_a_gash_that_opens_only_a_void_throws_nothing_inside() -> void:
-	var sim := _holed_by(&"trawler", _bilge_bite())
-	for opening: ShipOpening in sim.schedule.damage().openings:
-		assert_does_not_have([&"engine_room", &"fish_hold"], opening.joins[0], "voids only")
-	var struck := sim.schedule.hit_tick()
-	var cues := _sink(_planner(sim), sim, struck, struck + Ticks.from_seconds(60.0), SCAN_STRIDE)
-	for kind: FxCue.Kind in [JET, BOIL, RENT]:
-		assert_eq(_of(cues, kind).size(), 0, "nobody's room is breached")
-
-
-func test_a_gash_over_the_sea_throws_nothing_but_shows_its_rent_inside_and_out() -> void:
-	# The steamer struck 1.5 m over her waterline, into her engine room.
-	var sim := _holed_by(&"steamer", SimFixtures.explicit_hit(1, -2.0, 3.0, -1.5, 0.1, 0.5))
-	var gash := _gash_into(sim, &"engine_room")
-	var struck := sim.schedule.hit_tick()
-	var planner := _planner(sim)
-	var cues := _strike(planner, sim)
-	cues.append_array(_sink(planner, sim, struck + 1, struck + Ticks.from_seconds(10.0)))
-	assert_eq(_of(cues, JET).size(), 0, "no sea to jet in")
-	assert_eq(_of(cues, BOIL).size(), 0)
-	var rents := _of(cues, RENT)
-	assert_eq(rents.size(), 2, "torn inside and out, once")
-	var inside := rents[0] if rents[0].toward.z < 0.0 else rents[1]
-	var outside := rents[1] if inside == rents[0] else rents[0]
-	assert_lt(inside.toward.z, -0.9, "facing into the room")
-	assert_lt(inside.position.z, gash.centre.z, "on its lining")
-	assert_gt(outside.toward.z, 0.9, "facing the sea")
-	assert_gte(outside.position.z, gash.centre.z, "on her hull")
-	for rent: FxCue in rents:
-		assert_eq(rent.tick, struck, "from the strike")
-		assert_almost_eq(rent.position.x, gash.centre.x - gash.size.x * 0.5, 0.01, "all along it")
-		assert_almost_eq(rent.end.x, gash.centre.x + gash.size.x * 0.5, 0.01)
-		assert_almost_eq(rent.position.y, gash.centre.y, 0.01, "at its height")
-		assert_gte(rent.radius, gash.size.y * 0.5 - 0.001, "as tall as it is")
-
-
-func test_the_rent_inside_is_told_once_from_the_strike_on() -> void:
-	var sim := _holed_by(&"trawler", _deep_bite())
-	var gash := _gash_into(sim, &"engine_room")
-	var struck := sim.schedule.hit_tick()
-	var planner := _planner(sim)
-	assert_eq(_of(_sink(planner, sim, struck - Ticks.RATE, struck), RENT).size(), 0)
-	var rents := _of(_sink(planner, sim, struck, struck + Ticks.from_seconds(10.0)), RENT)
-	assert_eq(rents.size(), 1, "inside the room only: all of the gash is under the sea")
-	assert_lt(rents[0].toward.z, -0.9, "facing into the room")
-	# A room runs to the middle of its walls: its wing wall's face stands half a wall in.
-	var face := _room_named(sim.config.ship, &"engine room").area.end.y - 0.1
-	assert_between(rents[0].position.z, face - 0.05, face, "on the wall that lines the room")
-	assert_almost_eq(rents[0].position.x, gash.centre.x - gash.size.x * 0.5, 0.01)
-	assert_almost_eq(rents[0].end.x, gash.centre.x + gash.size.x * 0.5, 0.01)
-	# A planner first asked after the strike — a match joined late — tells it all the same.
-	var late := _of(_sink(_planner(sim), sim, struck + Ticks.RATE, struck + Ticks.RATE * 2), RENT)
-	assert_eq(late.size(), 1)
-	assert_eq(late[0].position, rents[0].position, "the same rent")
-	assert_eq(late[0].end, rents[0].end)
-
-
-func test_water_wells_up_through_the_floor_from_the_void_under_it_until_the_room_is_deep() -> void:
-	# The bite floods the trawler's bilge under her engine room, which fills through its
-	# floor plates.
-	var sim := _holed_by(&"trawler", _bilge_bite())
-	var structure := sim.config.ship.structure
-	var room := structure.cell_named(&"engine_room")
-	var bilge := structure.cell_named(&"engine_bilge")
-	var box := structure.cells[room]
-	var struck := sim.schedule.hit_tick()
-	var to := struck + Ticks.from_seconds(BREACH_SCAN)
-	var wells := _of(_sink(_planner(sim), sim, struck, to, SCAN_STRIDE), WELL)
-	assert_gt(wells.size(), 3, "it wells up through the floor")
-	var places := {}
-	for well: FxCue in wells:
-		var pose := sim.schedule.pose_at(well.tick)
-		var floor := pose.world_height(Vector3(well.position.x, box.low.y, well.position.z))
-		assert_gt(pose.levels[bilge], floor, "while the bilge's water stands over the floor")
-		var depth := pose.levels[room] - floor
-		assert_lt(depth, FxPlanner.WELL_DEEP, "and the room's is shallow")
-		assert_between(well.position.x, box.low.x, box.high.x, "over the room's floor")
-		assert_between(well.position.z, box.low.z, box.high.z)
-		var shows := maxf(pose.levels[room], floor)
-		assert_almost_eq(pose.world_height(well.position), shows, 0.01, "on its floor or water")
-		assert_between(well.strength, 0.0, 1.0)
-		places[Vector2(well.position.x, well.position.z).snappedf(0.5)] = true
-	assert_gt(places.size(), 1, "spread over the floor")
-	assert_lt(wells[-1].strength, wells[0].strength, "fading as the room deepens")
-	var last := sim.schedule.pose_at(wells[-1].tick + SCAN_STRIDE * 2)
-	var middle := (box.low + box.high) * 0.5
-	var floor_now := last.world_height(Vector3(middle.x, box.low.y, middle.z))
-	assert_gt(last.levels[room] - floor_now, FxPlanner.WELL_DEEP * 0.5, "it stops once deep")
-	assert_lt(wells[-1].tick, to - Ticks.from_seconds(10.0), "and stays stopped")
-
-
-## The default match on [param ship_name] struck by explicit [param hit] 20 s in.
-func _holed_by(ship_name: StringName, hit: IcebergHit) -> MatchSim:
-	var config := RunMatch.default_config(1701, 0, ship_name)
-	var given: SinkScenario = config.scenario.duplicate()
-	hit.moment = 20.0
-	given.explicit_hit = hit
-	config.scenario = given
-	return MatchSim.create(config)
-
-
-## A deep bite into the trawler's starboard side by her engine room, 0.8 m under her
-## waterline: through her wing void into the room, the whole gash under the sea.
-func _deep_bite() -> IcebergHit:
-	return SimFixtures.explicit_hit(1, -12.0, -6.0, 0.8, 0.05, 1.5)
-
-
-## A bite into the trawler's starboard side by her engine room, low: into her wing void
-## and her bilge under the room, never the room.
-func _bilge_bite() -> IcebergHit:
-	return SimFixtures.explicit_hit(1, -12.0, -6.0, 2.4, 0.05, 1.0)
-
-
-## [param layout]'s room called [param room_name].
-func _room_named(layout: ShipLayout, room_name: StringName) -> ShipRoom:
-	for room: ShipRoom in layout.rooms:
-		if room.name == room_name:
-			return room
-	assert_true(false, "the layout has %s" % room_name)
-	return null
-
-
 ## The GASH opening of [param sim]'s hit into [param cell_name].
 func _gash_into(sim: MatchSim, cell_name: StringName) -> ShipOpening:
 	for opening: ShipOpening in sim.schedule.damage().openings:
@@ -781,16 +532,12 @@ func _gash_into(sim: MatchSim, cell_name: StringName) -> ShipOpening:
 
 
 func _described(cues: Array) -> PackedStringArray:
-	var lines := PackedStringArray()
-	for cue: FxCue in cues:
-		lines.append(cue.describe())
-	return lines
+	return FxProbe.described(cues)
 
 
 ## The cues of the step [param planner] takes as [param sim]'s iceberg strikes.
 func _strike(planner: FxPlanner, sim: MatchSim) -> Array[FxCue]:
-	var struck := sim.schedule.hit_tick()
-	return planner.plan(_at(sim, struck), _at(sim, struck + 1, [SimEvent.holed(struck)]))
+	return FxProbe.strike(planner, sim)
 
 
 ## The highest any of [param cues] climbs over the sea.
