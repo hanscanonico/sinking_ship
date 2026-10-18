@@ -57,6 +57,7 @@ tests/unit/core/test_ship_scene_bake.gd	ResourceLoader.exists(scene)	authoring/*
 tests/unit/core/test_ship_scene_bake.gd	load("res://data/ships/%s.tres" % ship)	@ship
 tests/unit/core/test_ship_scene_bake.gd	load(path)	data/ships/*
 tests/unit/core/test_ship_structure_lint.gd	load("%s/%s" % [SHIPS, file])	data/ships/*
+tests/unit/core/test_sink_schedule.gd	load(hit)	tests/fixtures/sinking/hits/*.tres
 tests/unit/core/test_sink_timeline.gd	load(path)	tests/fixtures/sinking/hits/*.tres
 tests/unit/core/test_survival_transcript.gd	FileAccess.file_exists(path)	tests/golden/survival_*.txt
 tests/unit/core/test_survival_transcript.gd	FileAccess.get_file_as_string(path)	tests/golden/survival_*.txt

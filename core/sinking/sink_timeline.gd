@@ -63,6 +63,9 @@ enum Kind {
 const FIRST_WATER := 0.01
 ## Her main deck's height: ship space's origin stands on it (D6).
 const MAIN_DECK := 0.0
+## How finely her flooding is recorded (sunk): the second she first holds each of these
+## many equal shares of the most water she ever holds.
+const SUNK_STEPS := 40
 ## The integers it is held as: microseconds, millimetres, millionths of a quaternion's
 ## component, millionths of a degree. A page holds PAGE_STATES states. FORMAT changes
 ## with the bytes' layout; a section unpacks to no more than MOST_BYTES.
@@ -71,7 +74,7 @@ const PER_METRE := 1e3
 const PER_UNIT := 1e6
 const PER_DEGREE := 1e6
 const PAGE_STATES := 256
-const FORMAT := 5
+const FORMAT := 6
 const MOST_BYTES := 1 << 24
 const COMPRESSION := FileAccess.COMPRESSION_ZSTD
 ## How the four quaternion components and a state's other numbers lie in a page: per
@@ -150,6 +153,11 @@ var rest := 0.0
 ## The steps the bake took, and the states it had before any was dropped.
 var steps := 0
 var states := 0
+## The physics second she first holds each SUNK_STEPS-th of the most water she ever holds
+## — rising, the last the second she holds the most — or empty when she takes none: what
+## her clock is paced by (SinkPacing), in the header, so a client paces a timeline whose
+## pages are still coming.
+var sunk := PackedFloat64Array()
 ## How the hit it was baked from was chosen, for a client to draw it again (MustSink):
 ## empty until the must-sink rule or a given hit says.
 var origin := PackedInt64Array()
@@ -186,6 +194,8 @@ static func made(bake: SinkBake, level: float, turn_deg: float, air: float) -> S
 	timeline.states = bake.times().size()
 	timeline.bending = roundi(bake.bending() * PER_UNIT) / PER_UNIT
 	timeline.bending_x = roundi(bake.bending_x() * PER_METRE) / PER_METRE
+	for second: float in _sunk_of(bake.times(), bake.water_held):
+		timeline.sunk.append(_seconds_of(_microseconds(second)))
 	var spans_of := bake.spans()
 	for at in range(2, spans_of.size()):
 		timeline.spans.append(roundi(spans_of[at] * PER_METRE) / PER_METRE)
@@ -250,6 +260,8 @@ static func opened(header: PackedByteArray) -> SinkTimeline:
 	timeline._total = reader.integer()
 	timeline.bending = reader.integer() / PER_UNIT
 	timeline.bending_x = reader.integer() / PER_METRE
+	for _step in reader.count():
+		timeline.sunk.append(_seconds_of(reader.integer()))
 	var pieces := reader.count()
 	timeline.parents = PackedInt32Array([-1])
 	timeline.born = PackedFloat64Array([0.0])
@@ -572,6 +584,9 @@ func _header_bytes(pages: Array[PackedByteArray]) -> PackedByteArray:
 	writer.integer(_total)
 	writer.integer(roundi(bending * PER_UNIT))
 	writer.integer(roundi(bending_x * PER_METRE))
+	writer.integer(sunk.size())
+	for second: float in sunk:
+		writer.integer(_microseconds(second))
 	writer.integer(parents.size())
 	for piece in range(1, parents.size()):
 		writer.integer(roundi(spans[(piece - 1) * 2] * PER_METRE))
@@ -628,6 +643,24 @@ func _page_bytes(page: int) -> PackedByteArray:
 
 ## Every state of [param bake] as the integers it is kept as, each leaf's quaternion
 ## turned the same way round as its one before it.
+## The second of [param times] she first holds each SUNK_STEPS-th of the most of
+## [param held], her water in m³ at each of them (sunk): empty for none.
+static func _sunk_of(times: PackedFloat64Array, held: PackedFloat64Array) -> PackedFloat64Array:
+	var most := 0.0
+	for water: float in held:
+		most = maxf(most, water)
+	var found := PackedFloat64Array()
+	if most <= 0.0:
+		return found
+	var state := 0
+	for step in SUNK_STEPS:
+		var share := most * ((step + 1.0) / SUNK_STEPS)
+		while held[state] < share:
+			state += 1
+		found.append(times[state])
+	return found
+
+
 static func _held_states(bake: SinkBake) -> PackedInt64Array:
 	var held := PackedInt64Array()
 	var times := bake.times()

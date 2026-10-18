@@ -52,6 +52,9 @@ var _heads := PackedFloat64Array()
 var _waters := PackedFloat64Array()
 var _pockets := PackedFloat64Array()
 var _lits := PackedByteArray()
+## Every state's water in her, in m³: every cell of every piece she was in then, each
+## counted once (SinkTimeline.sunk). Read, never written, outside the bake.
+var water_held := PackedFloat64Array()
 ## The same per piece of her that never broke (leaves), once the bake is over and she
 ## broke: made from the above, each state's numbers for a piece being those of the piece
 ## it was part of then.
@@ -416,15 +419,19 @@ func _more(index: int, at: FloodState) -> PackedFloat64Array:
 func _keep() -> void:
 	_times.append(_seconds)
 	_alive_of.append(_alive)
+	var held := 0.0
 	for index: int in _alive:
 		var piece := _pieces[index]
 		var state := piece.state
+		for water: float in state.water:
+			held += water
 		_seas.append(state.sea)
 		_rotations.append_array(state.rotation)
 		_heads.append_array(state.heads)
 		_waters.append_array(state.water)
 		_pockets.append_array(piece.pressures)
 		_lits.append_array(state.lit if not state.lit.is_empty() else _lit_throughout(state))
+	water_held.append(held)
 
 
 ## What lights each cell of [param state] without the failures stage: everything, as

@@ -234,6 +234,7 @@ func test_bytes_round_trip_exactly() -> void:
 		assert_eq(back.rotations, made.rotations)
 		assert_eq(back.heads, made.heads)
 		assert_eq(back.origin, made.origin)
+		assert_eq(back.sunk, made.sunk, "her flooding, as the clock paces it")
 		assert_eq(
 			[back.end, back.gone_at, back.rest, back.steps, back.length()],
 			[made.end, made.gone_at, made.rest, made.steps, made.length()]
@@ -255,6 +256,7 @@ func test_bytes_round_trip_exactly() -> void:
 	assert_false(coming.add_page(sections[2]), "the second page before the first")
 	for page in range(1, sections.size()):
 		assert_true(coming.add_page(sections[page]), "page %d" % page)
+	assert_eq(coming.sunk, timeline.sunk, "paced from the header alone, before any page")
 	assert_true(coming.is_whole())
 	assert_eq(coming.digest(), timeline.digest())
 
@@ -274,3 +276,43 @@ func test_hash_changes_with_any_byte() -> void:
 	tampered[tampered.size() - 3] ^= 0x10
 	assert_null(SinkTimeline.from_bytes(tampered), "a page not as its header claims is refused")
 	assert_eq(opened.digest(), digest)
+
+
+func test_her_flooding_is_recorded_as_she_takes_it() -> void:
+	# The second she first holds each fortieth of the most water she ever holds: rising,
+	# each the first state that holds that much, the last the state she holds the most.
+	var bake := _bake(FAST_HIT)
+	var timeline := bake.timeline()
+	assert_eq(timeline.end, SinkTimeline.End.GONE, "the fast hit sinks her")
+	assert_eq(timeline.sunk.size(), SinkTimeline.SUNK_STEPS)
+	var cells := bake.cells()
+	var waters := bake.waters()
+	var held := PackedFloat64Array()
+	var most := 0.0
+	for state in bake.times().size():
+		var water := 0.0
+		for cell in cells:
+			water += waters[state * cells + cell]
+		most = maxf(most, water)
+		held.append(most)
+	var before := 0.0
+	for step in SinkTimeline.SUNK_STEPS:
+		var at := timeline.sunk[step]
+		assert_gte(at, before, "step %d rises" % step)
+		before = at
+		var state := -1
+		for index in bake.times().size():
+			if absf(bake.times()[index] - at) < 1e-6:
+				state = index
+				break
+		assert_ne(state, -1, "step %d stands on a state of the bake" % step)
+		var share := (step + 1.0) / SinkTimeline.SUNK_STEPS
+		assert_gte(held[state], most * share - 1e-6, "step %d holds its share" % step)
+		if state > 0:
+			assert_lt(held[state - 1], most * share - 1e-6, "and the state before does not")
+	assert_lte(timeline.sunk[SinkTimeline.SUNK_STEPS - 1], timeline.length(), "within the bake")
+
+
+func test_a_timeline_without_flooding_records_none() -> void:
+	var timeline := SinkTimeline.new()
+	assert_eq(timeline.sunk, PackedFloat64Array(), "nothing to pace by: the physics' own clock")

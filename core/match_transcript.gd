@@ -213,7 +213,7 @@ static func physics_clock(seconds: float) -> String:
 
 
 ## Where [param sim]'s sinking stood when the match ended or stopped — how long the
-## physics had run, and through the scenario's clock what share of the whole sinking
+## physics had run, and through her paced clock what share of the whole sinking
 ## the match saw (R33), how far the sea had risen up her and the water over each wet
 ## cell's lowest corner, level with the world, as the piece holding it has them — and
 ## how its bake ends, past what the match played, with the labels read off it
@@ -223,15 +223,13 @@ func _sinking(sim: MatchSim) -> void:
 	if timeline == null:
 		return
 	var tick := _ended.tick if _ended != null else sim.state.tick
-	var since := (
-		Ticks.to_seconds(maxi(tick - sim.schedule.hit_tick(), 0)) * sim.config.scenario.clock
-	)
+	var since := sim.schedule.physics_at(maxi(tick, sim.schedule.hit_tick()))
 	var pose := sim.schedule.pose_at(tick)
 	var whole := timeline.gone_at if timeline.is_gone() else timeline.length()
 	var clocked := (
-		"= match time, Q20 deferred"
+		"on the paced clock, Q20"
 		if sim.config.scenario.clock == 1.0
-		else "× %s of match time" % sim.config.scenario.clock
+		else "on the paced clock × %s, Q20" % sim.config.scenario.clock
 	)
 	var line := (
 		(
