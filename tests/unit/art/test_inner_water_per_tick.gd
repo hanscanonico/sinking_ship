@@ -2,11 +2,14 @@ extends GutTest
 ## The water inside her walks her openings once a tick (#87): which may pour between the
 ## two poses it is drawn between is worked out once for that pair (InnerWater._find_wet),
 ## and every frame draws only those. One wet at either pose pours wherever between them
-## its water stands over its bottom; one dry at both is hidden.
+## its water stands over its bottom; one dry at both is hidden; and water that has risen
+## over an opening's top since last drawn still bursts its air out, pouring or not.
 
 const RunMatch := preload("res://tools/run_match.gd")
 ## How high over the sea the test's poses lift her: every opening of hers clear of it.
 const LIFT := 50.0
+## How deep under the sea the sunk poses have her: every opening of hers under it.
+const DEEP := 200.0
 
 var _structure: ShipStructure
 var _rooms: Array[ShipRoom]
@@ -64,6 +67,31 @@ func _pose(wet := false) -> ShipPose:
 	return pose
 
 
+## A pose of her upright, DEEP under the sea, every cell dry at its floor — or, when
+## [param flooded], every cell's water level with the sea's.
+func _sunk(flooded: bool) -> ShipPose:
+	var pose := ShipPose.new(DEEP, 0.0, 0.0, Transform3D(Basis.IDENTITY, Vector3.DOWN * DEEP))
+	pose.cells = _cells
+	for cell: FloodCell in _structure.cells:
+		pose.levels.append(0.0 if flooded else cell.low.y - DEEP)
+	return pose
+
+
+## The bursts of air shown: the froths visible that are not a pour's landing.
+func _bursting(water: InnerWater) -> int:
+	var shown := 0
+	for child: Node in water.get_children():
+		var froth := child as MeshInstance3D
+		if froth == null or not froth.visible:
+			continue
+		var material := froth.material_override as ShaderMaterial
+		if material == null or material.shader != InnerWater.FROTH_SHADER:
+			continue
+		if material.get_shader_parameter(&"burst") >= 0.0:
+			shown += 1
+	return shown
+
+
 ## The pours shown: the spill sheets visible.
 func _pouring(water: InnerWater) -> int:
 	var shown := 0
@@ -111,3 +139,15 @@ func test_a_pour_is_hidden_once_its_door_is_dry_the_whole_tick() -> void:
 	var dry := _pose()
 	water.show_water(dry, dry, 0.0)
 	assert_eq(_pouring(water), 0)
+
+
+func test_water_over_every_top_since_last_drawn_bursts_though_nothing_pours() -> void:
+	var water := _water()
+	water.show_water(_sunk(false), _sunk(false), 0.0)
+	var dry := _bursting(water)
+	# A frame later, ticks on, every cell full to the sea's level, far over every top:
+	# nothing pours anywhere — the water stands level through her — but her air has gone.
+	var full := _sunk(true)
+	water.show_water(full, full, 0.0)
+	assert_eq(_pouring(water), 0, "nothing pours")
+	assert_gt(_bursting(water), dry, "her air out")
