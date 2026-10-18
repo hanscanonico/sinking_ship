@@ -36,7 +36,8 @@ up to the lowest underside over it.
 _Avoid_: clearance, ceiling height
 
 **Crawl space**:
-A room whose floor has headroom to crawl but not to stand: less than the rules'
+Wherever a floor has headroom to crawl but not to stand: less than the rules'
 `body_height`, at least their `crawl_height`. A body there crawls, `crawl_height` tall, at
-`crawl_speed`, and cannot jump; it follows from where the body is, never from a button.
+`crawl_speed`, and cannot jump; it follows from where the body is, never from a button. A
+room holding one is marked a crawl space for the lint and the bots' routes.
 _Avoid_: crouch, crawlway, duct

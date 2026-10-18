@@ -74,7 +74,7 @@ extends Resource
 @export_group("Crawl")
 ## How tall a body is in a crawl space — where the headroom over its floor is less
 ## than body_height — in metres; a floor with less headroom than this takes no body.
-## Her double bottoms are crawled, the steamer's about a metre deep (#148).
+## Low enough for the steamer's double bottom, about a metre deep, to take a crawler.
 @export var crawl_height: float
 ## A crawler's pace, in m/s: on hands and knees, slower than a swimmer.
 @export var crawl_speed: float
