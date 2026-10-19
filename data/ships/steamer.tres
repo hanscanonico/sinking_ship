@@ -1791,8 +1791,9 @@ fitted = true
 
 [sub_resource type="Resource" id="Blocker_poop_break"]
 script = ExtResource("3_block")
-area = Rect2(-14.2, -4.5, 0.2, 9)
+area = Rect2(-14.2, -4.48, 0.2, 8.96)
 top = 1.2
+fitted = true
 
 [sub_resource type="Resource" id="Blocker_steering_engine"]
 script = ExtResource("3_block")

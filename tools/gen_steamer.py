@@ -101,6 +101,7 @@ def holed(pid, name, x0, x1, z0, z1, h, holes, cuts=(), fitted=False, across=Fal
     once. After lays every piece after the rest, the rest of a deck already laid."""
     pieces = []
     xs = [x0] + [c for c in cuts if x0 < c < x1] + [x1]
+    assert not any(o[0] < c < o[1] for o in holes for c in xs), "a hole across a cut in %s" % pid
     if across:
         xs = sorted({x0, x1} | {v for o in holes for v in o[:2] if x0 < v < x1})
     for a, b in zip(xs, xs[1:]):
@@ -890,8 +891,8 @@ for side, sign in [("port", -1), ("starboard", 1)]:
 # The aft peak: her steering gear on a flat under the poop, stores under it down to
 # where her counter's bottom lets a floor stand, and lower stores where her run narrows
 # under those, each down from the one over it by two stairs. Her poop stands over the
-# steering gear, so its break is walled down to the main deck, under its edge: under a
-# deck, so it shapes nothing of her lines.
+# steering gear, so its break is walled down to the main deck, under its edge: fitted,
+# as everything here, so it shapes nothing of her lines.
 STEERING_FLOOR, AFT_STORES_FLOOR, LOWER_STORES_FLOOR = -1.0, -3.1, -5.2
 STEERING_HATCHES = [(-18.6, -16.35, -2.7, -1.6), (-18.6, -16.35, 1.6, 2.7)]
 # Its forward wall's line half a wall abaft the poop's break, so the wall stands under
@@ -903,7 +904,7 @@ wall_x("steering_gear_aft", -19.8, -4.2, 4.2, STEERING_FLOOR, POOP_DECK, True)
 wall_x("steering_gear_forward", STEERING_FORWARD, -4.2, 4.2, STEERING_FLOOR, 0.0, True)
 for side, z in [("port", -4.2), ("starboard", 4.2)]:
     wall_z("steering_gear_" + side, z, -19.8, STEERING_FORWARD, STEERING_FLOOR, POOP_DECK, True)
-box("poop_break", STEERING_FORWARD - T, STEERING_FORWARD + T, -4.5, 4.5, 0.0, POOP_DECK)
+box("poop_break", STEERING_FORWARD - T, STEERING_FORWARD + T, -4.5 + FIT, 4.5 - FIT, 0.0, POOP_DECK, True)
 # The steering engine on her centreline against the flat's after wall, its quadrant on
 # her rudder's head over it; too tall to climb (est.).
 box("steering_engine", -19.8 + T, -18.9, -0.8, 0.8, STEERING_FLOOR, STEERING_FLOOR + 1.25, True)
