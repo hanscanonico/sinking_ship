@@ -47,6 +47,19 @@ func test_a_room_s_ceiling_is_the_lowest_deck_over_it() -> void:
 	assert_almost_eq(_space.ceiling(hold, 14.0, -2.0), 1.8, 0.001)
 
 
+func test_under_a_hatch_a_room_s_ceiling_is_the_deck_the_hatch_is_in() -> void:
+	# The steamer's scuttles (#148): under one, no deck of the room's stands over it, but
+	# its ceiling is the deck the hatch is in — not open air over its floor, nor the deck
+	# over that one.
+	var steering := _room(&"steering gear")
+	assert_almost_eq(_space.ceiling(steering, -16.0, 0.65), 1.2, 0.001, "the poop's")
+	var bosuns := _room(&"bosun's store")
+	assert_almost_eq(_space.ceiling(bosuns, 16.0, 2.0), 1.8, 0.001, "the forecastle's")
+	var lower_hold := _room(&"lower hold")
+	assert_almost_eq(_space.ceiling(lower_hold, 6.0, 2.0), -2.6, 0.001, "the hold's floor")
+	assert_almost_eq(_space.ceiling(lower_hold, 6.0, 0.0), -2.6, 0.001, "beside it, the same")
+
+
 func test_a_room_roofed_by_a_slab_and_no_deck_has_the_slab_for_its_ceiling() -> void:
 	# The trawler's wheelhouse: no deck over it, roofed by a slab under OPEN_ROOM_HEIGHT.
 	var space := ShipSpace.new(load("res://data/ships/trawler.tres"))

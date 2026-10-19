@@ -266,7 +266,10 @@ func walls(mesh: ShipMesh, room: ShipRoom) -> void:
 			var height := minf(SIDE_PIPE, under - ShipArt.PLANK - SIDE_PIPE_CLEAR)
 			if height < RoomDressing.HEADROOM:
 				continue
-			for run: Vector2 in _clear_of_stairs(wall, Vector2(wall.from + 0.05, wall.to - 0.05)):
+			var along := Vector2(wall.from + 0.05, wall.to - 0.05)
+			for run: Vector2 in RoomDressing.clear_of_stairs(
+				_space.layout, wall, along, STAIR_REACH
+			):
 				var from := wall.at(run.x, height, 0.08)
 				RoomDressing.pipe(mesh, from, wall.at(run.y, height, 0.08), 0.05)
 		elif wall.side == 3:
@@ -278,31 +281,6 @@ func walls(mesh: ShipMesh, room: ShipRoom) -> void:
 				var gauge := board + wall.right * (index - 0.5) * 0.36 + wall.normal * 0.01
 				RoomDressing.gauge(mesh, gauge, wall.normal, 0.09)
 			RoomDressing.fire_buckets(mesh, wall, wall.middle())
-
-
-## The stretches of [param run] along [param wall] clear of every stair climbing
-## within STAIR_REACH of it, where a body on the stair would stand in a pipe on it; none
-## shorter than a pipe's worth.
-func _clear_of_stairs(wall: RoomDressing.Wall, run: Vector2) -> Array[Vector2]:
-	var runs: Array[Vector2] = [run]
-	var near := wall.rect(wall.from, wall.to, 0.0, STAIR_REACH)
-	for ramp: ShipRamp in _space.layout.ramps:
-		if not ramp.area.intersects(near):
-			continue
-		var cut := Vector2(ramp.area.position.x, ramp.area.end.x)
-		if wall.side % 2 == 1:
-			cut = Vector2(ramp.area.position.y, ramp.area.end.y)
-		var left: Array[Vector2] = []
-		for stretch: Vector2 in runs:
-			if cut.y <= stretch.x or cut.x >= stretch.y:
-				left.append(stretch)
-				continue
-			if cut.x - stretch.x >= STAIR_REACH:
-				left.append(Vector2(stretch.x, cut.x))
-			if stretch.y - cut.y >= STAIR_REACH:
-				left.append(Vector2(cut.y, stretch.y))
-		runs = left
-	return runs
 
 
 ## The main steam pipe from [param boiler]'s stop valve up under the beams, along its

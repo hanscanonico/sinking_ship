@@ -278,7 +278,8 @@ func test_king_of_hill_targets_the_highest_seat() -> void:
 ## on the boat deck that has watched the water come up forward goes down while the way
 ## aft is dry and makes for the poop deck, the end she rises by — it is not left on an
 ## island the sea closes round. The two seats stand for a full match: neither is down
-## to hunting the last seats left.
+## to hunting the last seats left, and the bot lines up no shove — its refuge is what
+## is watched, not a fight that knocks the waiting seat off the bridge.
 func test_a_bot_leaves_an_island_to_be_for_the_last_refuge() -> void:
 	var layout := SimFixtures.steamer()
 	var by_the_head := SimFixtures.scenario([[0.0, 2.5, 4.0, 0.0], [10.0, 2.5, 8.0, 0.0]])
@@ -293,6 +294,7 @@ func test_a_bot_leaves_an_island_to_be_for_the_last_refuge() -> void:
 	assert_eq(graph.highest_in(found, pose), bridge, "the bridge stands highest now")
 	var profile: BotProfile = _tier(&"normal").duplicate()
 	profile.hunt_at_seats = 0
+	profile.lineup_weight = 0.0
 	var source := BotInputSource.new(0, profile, sim.config)
 	var runner := _runner(sim, source)
 	var reached := false
