@@ -354,6 +354,13 @@ static func digest_of_bytes(bytes: PackedByteArray) -> String:
 	return digest_of(sections)
 
 
+## The physics second she first holds [param share] of her water (sunk) — rounded to
+## its SUNK_STEPS-th — or -1 for never.
+func sunk_at(share: float) -> float:
+	var step := clampi(roundi(share * SUNK_STEPS) - 1, 0, SUNK_STEPS - 1)
+	return sunk[step] if step < sunk.size() else -1.0
+
+
 ## How many states it keeps, the hit's first — those that came, of one still coming.
 func count() -> int:
 	return times.size()
@@ -641,8 +648,6 @@ func _page_bytes(page: int) -> PackedByteArray:
 	return _packed(writer.bytes)
 
 
-## Every state of [param bake] as the integers it is kept as, each leaf's quaternion
-## turned the same way round as its one before it.
 ## The second of [param times] she first holds each SUNK_STEPS-th of the most of
 ## [param held], her water in m³ at each of them (sunk), by [param gone_at] — her cells
 ## fill on as she goes down, past what sank her — or by the end, when she never goes:
@@ -667,6 +672,8 @@ static func _sunk_of(
 	return found
 
 
+## Every state of [param bake] as the integers it is kept as, each leaf's quaternion
+## turned the same way round as its one before it.
 static func _held_states(bake: SinkBake) -> PackedInt64Array:
 	var held := PackedInt64Array()
 	var times := bake.times()

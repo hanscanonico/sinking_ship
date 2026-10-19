@@ -55,7 +55,7 @@ static func _hit_lines(config: MatchConfig, choice: MustSink.Choice) -> PackedSt
 	var lines := PackedStringArray()
 	var pace := ""
 	if not is_equal_approx(config.scenario.clock, 1.0):
-		pace = " · %.1f s of physics a match second" % config.scenario.clock
+		pace = " · on the paced clock × %.1f" % config.scenario.clock
 	lines.append(
 		(
 			"%s · open sea (%.0f m) · hit at %s of the match%s"

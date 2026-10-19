@@ -12,7 +12,7 @@ extends RefCounted
 ##   01:02.1 hold_bilge flooding
 ##   01:31.0 seat 1 out · cold · place 5 · credit crate 2
 ##   winner seat 2 at 02:21.0 · digest 9f3c…
-##   sinking at the end of the match: physics 0:02:18 (= match time, Q20 deferred) ·
+##   sinking at the end of the match: physics 0:02:18 (on the paced clock, Q20) ·
 ##     seen 25% · sea 1.21 m up her · trim +2.1° · list -0.4° · hold_bilge full · hold 0.3 m
 ##   not played: gone at 0:09:12 · trim +31.0° · list +3.2° · founders by the head · fast
 ##   bending peak 0.05 of strength, x +1.5 m, sagging

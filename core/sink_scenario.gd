@@ -54,6 +54,11 @@ extends Resource
 @export var quick_failing: float = 1.0
 
 
+## How the sinking is paced (Q20): its own pacing, or the shared one.
+func paced() -> SinkPacing:
+	return pacing if pacing != null else SinkPacing.load_default()
+
+
 ## Whether a match's sea is drawn: a band of waves, not a still sea.
 func has_waves() -> bool:
 	return wave_height != Vector2.ZERO

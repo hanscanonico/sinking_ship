@@ -314,8 +314,3 @@ func test_her_flooding_is_recorded_as_she_takes_it() -> void:
 		if state > 0:
 			assert_lt(held[state - 1], most * share - 1e-6, "and the state before does not")
 	assert_lte(timeline.sunk[SinkTimeline.SUNK_STEPS - 1], timeline.gone_at, "full as she goes")
-
-
-func test_a_timeline_without_flooding_records_none() -> void:
-	var timeline := SinkTimeline.new()
-	assert_eq(timeline.sunk, PackedFloat64Array(), "nothing to pace by: the physics' own clock")

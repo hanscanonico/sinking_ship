@@ -26,8 +26,11 @@ const SHIP_OUT := "res://docs/census_%s.md"
 ## How long a measuring match may run before it is stopped, as `make arena` stops one.
 const MATCH_STOP := 900.0
 ## How far, as a share, a phase may stand from the share of the sinking it was asked for
-## and still count as paced (Q20's bar).
+## and still count as paced (Q20's bar); how far past its pacing's length a sinking still
+## counts as on it; and how near its least a plunge still counts as that long — a tick.
 const SHARE_SPREAD := 0.05
+const LENGTH_SPREAD := 1.1
+const PLUNGE_TICK := 1.0 / Ticks.RATE
 ## §5b.4's bands per ship, raw census, in percent (est.): [low, high]; and its budgets.
 const BANDS := {
 	"steamer":
@@ -798,13 +801,12 @@ static func _mean(values: PackedFloat64Array) -> float:
 	return total / values.size()
 
 
-## The value [param share] of the way up [param values] sorted: 0 the least, 1 the most.
 ## The match census's sinkings in match time, on the paced clock (Q20, SinkPacing): from
-## the hit to her going; each phase's share of it — the opening to the 0.3 of her water,
-## the middle to the 0.8, the end to the full —, its plunge from the 0.95; and how often
-## the clock's limits keep a sinking from its length or a plunge from its least.
+## the hit to her going; each phase's share of it — the opening, the middle and the end
+## to the shares of her water the pacing marks them by —, its plunge; and how often the
+## clock's limits keep a sinking from its length or a plunge from its least.
 func _paced_section(chosen: Array[Dictionary]) -> PackedStringArray:
-	var pacing := _scenario.pacing if _scenario.pacing != null else SinkPacing.load_default()
+	var pacing := _scenario.paced()
 	var lengths := PackedFloat64Array()
 	var shares: Array[PackedFloat64Array] = [
 		PackedFloat64Array(), PackedFloat64Array(), PackedFloat64Array()
@@ -826,17 +828,17 @@ func _paced_section(chosen: Array[Dictionary]) -> PackedStringArray:
 			continue
 		var marks := PackedFloat64Array()
 		for share: float in [pacing.opening_until, pacing.middle_until, pacing.plunge_from, 1.0]:
-			var step := roundi(share * SinkTimeline.SUNK_STEPS) - 1
-			marks.append(Ticks.to_seconds(schedule.physics_tick(sunk[step]) - schedule.hit_tick()))
+			var at := choice.timeline.sunk_at(share)
+			marks.append(Ticks.to_seconds(schedule.physics_tick(at) - schedule.hit_tick()))
 		var whole := marks[3]
 		var gone := schedule.gone_tick() if schedule.gone_tick() != -1 else schedule.end_tick()
 		lengths.append(Ticks.to_seconds(gone - schedule.hit_tick()))
-		var parts := [marks[0] / whole, (marks[1] - marks[0]) / whole, (whole - marks[1]) / whole]
-		var wanted := [
-			pacing.opening_share,
-			pacing.middle_share,
-			1.0 - pacing.opening_share - pacing.middle_share,
-		]
+		var parts := PackedFloat64Array(
+			[marks[0] / whole, (marks[1] - marks[0]) / whole, (whole - marks[1]) / whole]
+		)
+		var wanted := PackedFloat64Array(
+			[pacing.opening_share, pacing.middle_share, pacing.end_share()]
+		)
 		var inside := true
 		for phase in 3:
 			shares[phase].append(parts[phase])
@@ -846,45 +848,13 @@ func _paced_section(chosen: Array[Dictionary]) -> PackedStringArray:
 	var lines := PackedStringArray()
 	lines.append("## From the hit to her going (match census, match time on the paced clock, Q20)")
 	lines.append("")
-	(
-		lines
-		. append(
-			(
-				(
-					"p10 %s · p50 %s · p90 %s · most %s · %s within %s. Phases, median share of the"
-					+ " sinking: opening %.1f%% · middle %.1f%% · end %.1f%% (asked %.0f / %.0f / %.0f);"
-					+ " %s with every phase within %.0f points. Plunge: p10 %.1f s · p50 %.1f s ·"
-					+ " least %.1f s; %s of %.0f s or more."
-				)
-				% [
-					MatchTranscript.physics_clock(_at(lengths, 0.1)),
-					MatchTranscript.physics_clock(_at(lengths, 0.5)),
-					MatchTranscript.physics_clock(_at(lengths, 0.9)),
-					MatchTranscript.physics_clock(_at(lengths, 1.0)),
-					_share(_count_at_most(lengths, pacing.length * 1.1), lengths.size()),
-					MatchTranscript.physics_clock(pacing.length * 1.1),
-					_at(shares[0], 0.5) * 100.0,
-					_at(shares[1], 0.5) * 100.0,
-					_at(shares[2], 0.5) * 100.0,
-					pacing.opening_share * 100.0,
-					pacing.middle_share * 100.0,
-					(1.0 - pacing.opening_share - pacing.middle_share) * 100.0,
-					_share(in_shares, chosen.size()),
-					SHARE_SPREAD * 100.0,
-					_at(plunges, 0.1),
-					_at(plunges, 0.5),
-					_at(plunges, 0.0),
-					_share(_count_at_least(plunges, pacing.plunge_least - 0.05), plunges.size()),
-					pacing.plunge_least,
-				]
-			)
-		)
-	)
-	lines.append("")
 	lines.append(
 		(
-			"Where a sinking runs past its length the 6× limit held it (realism over length);"
-			+ " where a plunge runs short of its least, the 0.4× limit did."
+			(
+				"Where a sinking runs past its length the %s× limit held it (realism over"
+				+ " length); where a plunge runs short of its least, the %s× limit did."
+			)
+			% [pacing.fastest, pacing.slowest]
 		)
 	)
 	lines.append("")
@@ -899,6 +869,7 @@ static func _count_at_most(values: PackedFloat64Array, most: float) -> int:
 	return count
 
 
+## The value [param share] of the way up [param values] sorted: 0 the least, 1 the most.
 static func _at(values: PackedFloat64Array, share: float) -> float:
 	var sorted := values.duplicate()
 	sorted.sort()

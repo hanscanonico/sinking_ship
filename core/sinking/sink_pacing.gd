@@ -11,6 +11,10 @@ extends Resource
 
 const PATH := "res://data/rules/sink_pacing.tres"
 
+## Where a share of her flooding stands: the opening, the middle, the end before the
+## plunge, and the plunge.
+enum Phase { OPENING, MIDDLE, END, PLUNGE }
+
 ## Match seconds from the hit to her going, the clock at 1.
 @export var length: float
 ## Where her flooding share leaves the opening, the middle, and starts the plunge.
@@ -43,40 +47,39 @@ func clock_of(sunk: PackedFloat64Array) -> PacedClock:
 	var counts := PackedInt32Array([0, 0, 0, 0])
 	for step in steps:
 		counts[_phase((step + 0.5) / steps)] += 1
-	var shares := PackedFloat64Array(
-		[
-			opening_share,
-			middle_share,
-			1.0 - opening_share - middle_share,
-			1.0 - opening_share - middle_share
-		]
-	)
-	var end_steps := counts[2] + counts[3]
+	var shares := PackedFloat64Array([opening_share, middle_share, end_share(), end_share()])
+	var end_steps := counts[Phase.END] + counts[Phase.PLUNGE]
 	var before := 0.0
 	for step in steps:
 		if sunk[step] < 0.0:
 			break
 		var phase := _phase((step + 0.5) / steps)
-		var wanted := length * shares[phase] / (end_steps if phase >= 2 else counts[phase])
-		if phase == 3:
-			wanted = maxf(wanted, plunge_least / counts[3])
+		var among := end_steps if phase >= Phase.END else counts[phase]
+		var wanted := length * shares[phase] / among
+		if phase == Phase.PLUNGE:
+			wanted = maxf(wanted, plunge_least / counts[Phase.PLUNGE])
 		var physics := sunk[step] - before
-		var pace := clampf(physics / wanted, slowest, fastest)
-		clock.add(physics, physics / pace, pace)
+		clock.add(physics, clampf(physics / wanted, slowest, fastest))
 		before = sunk[step]
 	return clock
 
 
-## 0 the opening, 1 the middle, 2 the end before the plunge, 3 the plunge, at flooding
-## share [param share].
-func _phase(share: float) -> int:
+## The share of the length the end, the plunge with it, takes: what the opening and the
+## middle leave.
+func end_share() -> float:
+	return 1.0 - opening_share - middle_share
+
+
+## The phase flooding share [param share] stands in.
+func _phase(share: float) -> Phase:
 	if share < opening_until:
-		return 0
+		return Phase.OPENING
 	if share < middle_until:
-		return 1
-	return 2 if share < plunge_from else 3
+		return Phase.MIDDLE
+	return Phase.END if share < plunge_from else Phase.PLUNGE
 
 
+## Every reason this pacing cannot pace a sinking; empty when it can.
 func problems() -> PackedStringArray:
 	var found := PackedStringArray()
 	if length <= 0.0:

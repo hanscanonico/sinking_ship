@@ -53,7 +53,8 @@ var _waters := PackedFloat64Array()
 var _pockets := PackedFloat64Array()
 var _lits := PackedByteArray()
 ## Every state's water in her, in m³: every cell of every piece she was in then, each
-## counted once (SinkTimeline.sunk). Read, never written, outside the bake.
+## counted once (SinkTimeline.sunk). Read, never written, outside the bake: a field, not
+## an accessor, as the bake holds the lint's most public methods already.
 var water_held := PackedFloat64Array()
 ## The same per piece of her that never broke (leaves), once the bake is over and she
 ## broke: made from the above, each state's numbers for a piece being those of the piece

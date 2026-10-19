@@ -161,8 +161,7 @@ func _init(
 	_timeline = _choice.timeline
 	_hit_tick = _start_tick + Ticks.from_seconds(_hit.moment)
 	_clock = scenario.clock
-	var pacing := scenario.pacing if scenario.pacing != null else SinkPacing.load_default()
-	_paced = pacing.clock_of(_timeline.sunk)
+	_paced = scenario.paced().clock_of(_timeline.sunk)
 	_cells = CellMap.new(structure)
 	_cut(structure)
 	for opening: ShipOpening in structure.openings:

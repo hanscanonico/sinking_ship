@@ -18,11 +18,11 @@ static func even() -> PacedClock:
 	return PacedClock.new()
 
 
-## Adds a knot [param physics_seconds] after the last, played [param match_seconds] after
-## it — which a pace of [param pace] gives — and keeps that pace as the last.
-func add(physics_seconds: float, match_seconds: float, pace: float) -> void:
+## Adds a knot [param physics_seconds] after the last, played at [param pace] — physics
+## seconds per match second — and keeps that pace as the last.
+func add(physics_seconds: float, pace: float) -> void:
 	_physics.append(_physics[_physics.size() - 1] + physics_seconds)
-	_match.append(_match[_match.size() - 1] + match_seconds)
+	_match.append(_match[_match.size() - 1] + physics_seconds / pace)
 	_last_pace = pace
 
 

@@ -528,7 +528,7 @@
           matches always sink (your answer to Q18). "5 minutes to 5 hours" is read as real seconds of
           physics, and is true of the fleet, not of every ship — the trawler and the steamer span it, the
           Titanic cannot go in 5 minutes (§5b.1). How physics seconds map onto a match was a question
-          research raised (Q20); you deferred it, so for now one physics second is one match second.
+          research raised (Q20); you deferred it, so for now one physics second is one match second. <em>(Q20 decided 2026-10-18: a paced clock — §12)</em>
           "Scaled to full size" is read as the Titanic's real dimensions and subdivision; whether her
           interiors are walkable is still Q11. Your suggested bake is the design (D7); you answered Q19
           "for now players can't change the sinking", so a live driver stays reachable — the stepper is
@@ -574,7 +574,7 @@
             every timing, the wire format and the golden. Data is authored in seconds and metres for
             humans and converted once per match by <code>Ticks.from_seconds</code> (round half away
             from zero), the single conversion authority — rev 4's timeline included, through the clock
-            mapping its scenario names, one to one for now (Q20, deferred). Why 30 and not 60: half the GDScript cost
+            mapping its scenario names, one to one for now (Q20, deferred). <em>(Q20 decided 2026-10-18: a paced clock — §12)</em> Why 30 and not 60: half the GDScript cost
             for the sim, the bots and the client's re-simulation, half the snapshot bandwidth out of
             a home connection, and a shove's windup (3 ticks, 100 ms) still reads. Rendering runs at
             the display rate by interpolating the last two ticks, so 30 Hz never shows as stutter.
@@ -849,7 +849,7 @@ var buttons: int</pre>
             built. Outcomes ("by the head", "capsized", "broke in two") are labels read off a
             finished timeline; they drive nothing. The physics runs in real seconds with its constants and
             each ship's values in <code>data/</code>; one physics second is one match second for now (Q20,
-            deferred), kept as a data value so a later answer changes data, not code. The authored-keyframe
+            deferred), kept as a data value so a later answer changes data, not code. <em>(Q20 decided 2026-10-18: a paced clock — §12)</em> The authored-keyframe
             kind of scenario that the MVP shipped survives only as a test fixture. §5b is this decision in
             full.
           </p>
@@ -1229,7 +1229,7 @@ var buttons: int</pre>
             founders (§5b.1). Q19 (can players change the sinking) — answered, <em>“for now players can't
             change the sinking”</em>: the bake stands; a live driver stays reachable, not built. Q20 (the
             sinking's clock against the match's, raised by research) — deferred, <em>“it is ok for now we
-            will think about this later”</em>: one physics second is one match second. New from those
+            will think about this later”</em>: one physics second is one match second. <em>(Q20 decided 2026-10-18: a paced clock — §12)</em> New from those
             answers: Q21 (what ends a match on a wreck that leaves dry footing) — answered, <em>“in this
             case when only 1 player is left”</em>: no limit, no new rule — and Q22 (the cold meter inside an air pocket; a
             recommendation, built unless you overrule it). Q5, Q6, Q10 and Q13 are superseded; Q1, Q11,
@@ -1788,7 +1788,7 @@ flowchart LR
           (Q18): every match's hit sinks her; a hit that would not is drawn again before the match starts
           (5b.1). <em>“For now players can't change the sinking”</em> (Q19): the bake stands, and nothing a
           player does moves the water. <em>“It is ok for now we will think about this later”</em> (Q20,
-          deferred): one physics second is one match second. In play that means a match ends by the brawl
+          deferred): one physics second is one match second. <em>(Q20 decided 2026-10-18: a paced clock — §12)</em> In play that means a match ends by the brawl
           — a median of 2:31 today — or, if the brawl outlasts her, once she is gone and the cold settles
           the swimmers. <em>“In this case when only 1 player is left”</em> (Q21): on a wreck that keeps
           dry footing — on her side on the bottom — the match goes on until one player is left, with no
@@ -5089,7 +5089,7 @@ sequenceDiagram
               <li><strong>Fast sinking</strong> (the menu's, <code>FAST=1</code>) doubles the whole curve, its limits included: about half the time, 0.3× to 12×.</li>
               <li><strong>Data:</strong> <code>SinkPacing</code> in <span class="sk-file">data/rules/sink_pacing.tres</span>, one global set; a scenario may carry its own.</li>
               <li><strong>Narrower hits, and a bound:</strong> so the 6× limit seldom binds, 90% of a ship's match sinkings take at most 1 h 30 of physics — the Titanic too, her shortest whatever her physics gives. Narrowing the bands alone could not do it: the slowest are gashes near amidships that flood one large compartment and leave her settling for hours whatever the hole. So, your choice on 2026-10-19, both: the bands narrowed (the steamer's length 3–12 m and width 0.015–0.2 m, the trawler's 1.5–7 m and 0.005–0.1 m, the Titanic's width 0.06–0.1 m, each ship's coast as her open sea) and a scenario's <code>sinks_within</code> of 1 h 30: the must-sink rule bakes a drawn hit no further and draws again one she is still afloat on by then. An explicit hit and her sure hit bake to the cap. Measured over 60 seeds, before the census: the steamer's 90% within 44 minutes at 1.8 bakes a match, as today.</li>
-              <li><strong>Checked by the census:</strong> <code>make census</code> reports match time; on the steamer, seeds 1…200, the median is about 15 minutes, each phase within 5 points of 25 / 50 / 25, the plunge at least 20 s but where the 0.4× limit stops it; the trawler and the Titanic beside her.</li>
+              <li><strong>Checked by the census:</strong> <code>make census</code> reports match time — each sinking from the hit to her going, each phase's share, the plunge. The bar first set — on the steamer, seeds 1…200, a median of about 15 minutes, each phase within 5 points of 25 / 50 / 25, the plunge at least 20 s — assumed an end the physics does not have: with the 0.15× floor the census measures, 2026-10-19, the steamer at a median of 11:16 (90% within 14:02), her phases 37 / 47 / 15 and no seed within 5 points of all three, her plunge 20 s or more in 99%; the trawler at 7:22 (58 / 25 / 11, plunge 20 s or more in 52%). Realism wins there, as the limits say; the census reports the numbers rather than gating on them (R24).</li>
               <li><strong>Not in it:</strong> new signals of the opening (creaks, a felt list, the HUD) wait until the paced clock has been played; how often the brawl ends a match before she goes is the brawl's own question.</li>
             </ul>
           </div>
@@ -5290,7 +5290,7 @@ sequenceDiagram
           <div class="text-sm mt-2 grid gap-2">
             <p><strong>Rev 4:</strong> the 3:30 cap is the script's (SH6) and still ends today's matches. From
             SH26 the sinking has no cap: how long a match lasts comes from the brawl and the hit — she always
-            sinks (Q18), and for now one physics second is one match second (Q20, deferred).</p>
+            sinks (Q18), and for now one physics second is one match second (Q20, deferred). <em>(Q20 decided 2026-10-18: a paced clock — §12)</em></p>
             <p class="opacity-70">Weighed before rev 4: about 3 minutes with a 3:30 cap (then recommended,
             built), about 5 minutes, about 2 minutes.</p>
           </div>

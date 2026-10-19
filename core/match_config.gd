@@ -70,9 +70,10 @@ static func from_rules(
 	return config
 
 
-## [param scenario] played on [param clock] — physics seconds per match second: the
-## same sinking, baked the same, sooner in match time. A copy, so the loaded .tres is
-## left as it is and a fast match never shares a normal one's sinking (share_sinking);
+## [param scenario] played on [param clock] — that many times quicker than her paced
+## clock (Q20), its limits too: the same sinking, baked the same, sooner in match time.
+## A copy, so the loaded .tres is left as it is and a fast match never shares a normal
+## one's sinking (share_sinking);
 ## [param scenario] itself when it already plays on that clock.
 static func quickened(scenario: SinkScenario, clock: float) -> SinkScenario:
 	if scenario == null or is_equal_approx(scenario.clock, clock):
