@@ -51,7 +51,8 @@ sections stay as they are. The spaces in the steamer's old voids are fitted (#14
 _Avoid_: inset, internal
 
 **Scuttle**:
-A small hatch into a space under a deck, battened and dogged: shut in the flood model, it
-weeps once the water over it tops its coaming and gives way under more, while bodies pass
-through it as through a doorway (#148).
-_Avoid_: trapdoor, manhole (a manhole is the open hole in a tank top)
+A small hatch into a space under a deck, battened and dogged watertight: shut in the flood
+model, never weeping or giving way, so the space under it floods as it did before it was a
+place, while bodies pass through it as through a doorway (#148). A manhole in a tank top
+is one.
+_Avoid_: trapdoor

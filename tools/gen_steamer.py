@@ -90,13 +90,15 @@ def ramp(rid, x, z, w, d, axis, start, end, fitted=False):
 # (pieces_after()), so no other platform's index moves.
 later = []
 
-def holed(pid, name, x0, x1, z0, z1, h, holes, cuts=(), fitted=False, across=False, after=False):
+def holed(pid, name, x0, x1, z0, z1, h, holes, cuts=(), fitted=False, across=False, after=False,
+          largest=False):
     """The deck x0…x1 by z0…z1 at h less holes [(x0, x1, z0, z1)]: cut across x at
     cuts, then each part in bands along z between the holes' sides, each band round the
     holes in it — so a deck's edges that railings stand along stay whole; or, across,
     in bands across her between the holes' ends, each round the holes in it. Returns the
-    largest piece's index, laid first in the deck's place; a fitted deck lays the rest
-    at once. After lays every piece after the rest, the rest of a deck already laid."""
+    first piece's index — with largest, its largest, which stands in for the whole deck it
+    was before its holes: its stairs come down onto it; a fitted deck lays the rest at
+    once. After lays every piece after the rest, the rest of a deck already laid."""
     pieces = []
     xs = [x0] + [c for c in cuts if x0 < c < x1] + [x1]
     if across:
@@ -117,7 +119,8 @@ def holed(pid, name, x0, x1, z0, z1, h, holes, cuts=(), fitted=False, across=Fal
             for e, f in zip(edges[::2], edges[1::2]):
                 if f - e > 1e-6:
                     pieces.append((e, f, c, d))
-    pieces.sort(key=lambda p: -(p[1] - p[0]) * (p[3] - p[2]))
+    if largest:
+        pieces.sort(key=lambda p: -(p[1] - p[0]) * (p[3] - p[2]))
     first = None if after else platform(pid, name, *pieces[0], h, fitted)
     for k, piece in enumerate(pieces if after else pieces[1:]):
         if fitted:
@@ -326,15 +329,15 @@ MC = platform("main_deck_waist", "main deck", -10.25, -1.25, -1.6, 2.0)
 MD = platform("main_deck_hall", "main deck", -1.25, -0.15, 1.0, 2.0)
 ME = platform("main_deck_forward", "main deck", -0.15, 9.0, -1.6, 2.0)
 MF = platform("main_deck_bow", "main deck", 9.0, 12, -1.6, 0.9)
-L1 = holed("lower_deck", "lower deck", -13, -3, -4.8, 4.8, LOWER, BILGE_HATCHES, across=True)
-L2 = holed("hold", "lower deck", 4, 15, -3.8, 3.8, LOWER, LOWER_HOLD_HATCHES)
+L1 = holed("lower_deck", "lower deck", -13, -3, -4.8, 4.8, LOWER, BILGE_HATCHES, across=True, largest=True)
+L2 = holed("hold", "lower deck", 4, 15, -3.8, 3.8, LOWER, LOWER_HOLD_HATCHES, largest=True)
 # The engine room's galleries round the opening over the stokehold, and its floor.
 HX0, HX1, HZ = STOKEHOLD_HOLE
 GA = platform("gallery_aft", "lower deck", -3, HX0, -LINING, LINING, LOWER)
 GF = platform("gallery_forward", "lower deck", HX1, 4, -LINING, LINING, LOWER)
 GP = platform("gallery_port", "lower deck", HX0, HX1, -LINING, -HZ, LOWER)
 GS = platform("gallery_starboard", "lower deck", HX0, HX1, HZ, LINING, LOWER)
-SH = holed("stokehold", "stokehold", -3, 4, -LINING, LINING, TANK_TOP, MANHOLES)
+SH = holed("stokehold", "stokehold", -3, 4, -LINING, LINING, TANK_TOP, MANHOLES, largest=True)
 pieces_after()
 
 # --- Ramps: SH3's six, then the three stairs (39°, 1.1 m wide).
@@ -821,10 +824,9 @@ FIT = 0.02
 # height like -5.3 under it, and the floor is missed there): -5.3125 is exact.
 BILGE_FLOOR = KEEL + 0.0875
 GIRDER_TOP = KEEL + 2.5
-# A hatch into one is a scuttle, battened and dogged as the hold's is, a body going
-# down it opening it as a doorway's door is opened: its seams weep SCUTTLE_LEAK under the
-# head of water its coaming stands to, and it gives way under SCUTTLE_GIVES (est.).
-SCUTTLE_LEAK, SCUTTLE_COAMING, SCUTTLE_GIVES = 0.01, 0.3, 1.0
+# A hatch into one is a scuttle, battened and dogged watertight, a body going down it
+# opening it as a doorway's door is opened: shut to the water, it never weeps nor gives
+# way, so the space under it floods as it did before it was a place (#148).
 # The double bottom under the stokehold, a crawl space either side of her girder, which
 # stands to the tank top there; its sides and ends under the stokehold's.
 for side, z0, z1 in [("port", -LINING, 0), ("starboard", 0, LINING)]:
@@ -887,17 +889,20 @@ for side, sign in [("port", -1), ("starboard", 1)]:
 # The aft peak: her steering gear on a flat under the poop, stores under it down to
 # where her counter's bottom lets a floor stand, and lower stores where her run narrows
 # under those, each down from the one over it by two stairs. Her poop stands over the
-# steering gear, so its break is walled to the main deck: at the break, where neither
-# deck stands, so it shapes nothing of her lines either way.
+# steering gear, so its break is walled down to the main deck, under its edge: under a
+# deck, so it shapes nothing of her lines.
 STEERING_FLOOR, AFT_STORES_FLOOR, LOWER_STORES_FLOOR = -1.0, -3.1, -5.2
 STEERING_HATCHES = [(-18.6, -16.35, -2.7, -1.6), (-18.6, -16.35, 1.6, 2.7)]
-STEERING = holed("steering_gear", "steering gear", -19.8, -14, -4.2, 4.2, STEERING_FLOOR, STEERING_HATCHES,
-                 fitted=True)
+# Its forward wall's line half a wall abaft the poop's break, so the wall stands under
+# the poop flush with its edge, no ledge of it proud of the deck.
+STEERING_FORWARD = -14 - T
+STEERING = holed("steering_gear", "steering gear", -19.8, STEERING_FORWARD, -4.2, 4.2, STEERING_FLOOR,
+                 STEERING_HATCHES, fitted=True)
 wall_x("steering_gear_aft", -19.8, -4.2, 4.2, STEERING_FLOOR, POOP_DECK, True)
-wall_x("steering_gear_forward", -14, -4.2, 4.2, STEERING_FLOOR, 0.0, True)
+wall_x("steering_gear_forward", STEERING_FORWARD, -4.2, 4.2, STEERING_FLOOR, 0.0, True)
 for side, z in [("port", -4.2), ("starboard", 4.2)]:
-    wall_z("steering_gear_" + side, z, -19.8, -14, STEERING_FLOOR, POOP_DECK, True)
-box("poop_break", -14 - T, -14 + T, -4.5, 4.5, 0.0, POOP_DECK)
+    wall_z("steering_gear_" + side, z, -19.8, STEERING_FORWARD, STEERING_FLOOR, POOP_DECK, True)
+box("poop_break", STEERING_FORWARD - T, STEERING_FORWARD + T, -4.5, 4.5, 0.0, POOP_DECK)
 # The steering engine on her centreline against the flat's after wall, its quadrant on
 # her rudder's head over it; too tall to climb (est.).
 box("steering_engine", -19.8 + T, -18.9, -0.8, 0.8, STEERING_FLOOR, STEERING_FLOOR + 1.25, True)
@@ -979,7 +984,7 @@ room("bilge_stores", "stores", -13, -3, 0, BILGE_SIDE, BILGE_FLOOR)
 for side, sign in [("port", -1), ("starboard", 1)]:
     room("side_passage_" + side, "%s side passage" % side, WING[0], WING[1],
          *sorted((sign * 3.8, sign * WING_SHELL)), WING_FLOOR, crawl_space=True)
-room("steering_gear", "steering gear", -19.8, -14, -4.2, 4.2, STEERING_FLOOR)
+room("steering_gear", "steering gear", -19.8, STEERING_FORWARD, -4.2, 4.2, STEERING_FLOOR)
 room("aft_stores", "aft stores", -18.9, -13, -3.0, 3.0, AFT_STORES_FLOOR)
 room("lower_aft_stores", "lower aft stores", -16.5, -13, -1.2, 1.2, LOWER_STORES_FLOOR)
 room("bosuns_store", "bosun's store", 15, 19.9, -2.7, 2.7, BOSUN_FLOOR)
@@ -1341,20 +1346,17 @@ opening("open_hold_fwd_top", "OPEN", "hold", "hold_fwd_top",
         ((top_box[0] + top_box[1]) * 0.5, 0, 0), (top_box[1] - top_box[0], 0, top_box[5] - top_box[4]),
         starts="OPEN")
 # The ways into her old voids (#148), chosen to move her flooding as little as they can:
-# each a scuttle in the deck over its space (SCUTTLE_*), shut, so the space stays dry
-# from above and keeps its air until the water over that deck tops its coaming; the
-# double bottom's manholes open and flush in her tank top, where its floor's gaps already
-# join it to the stokehold. No doorway pierces a wall along her.
-def hatch(name, under, over, hole, deck, scuttle=True):
+# each a watertight scuttle in the deck over its space — the double bottom's manholes in
+# her tank top too — so the space stays dry from above and keeps its air. No doorway
+# pierces a wall along her.
+def hatch(name, under, over, hole, deck):
     x0, x1, z0, z1 = hole
-    fields = dict(starts="SHUT", leak_head=SCUTTLE_COAMING, collapse_head=SCUTTLE_GIVES,
-                  leak_area=SCUTTLE_LEAK) if scuttle else dict(starts="OPEN")
     opening(name, "HATCH", under, over, ((x0 + x1) * 0.5, deck, (z0 + z1) * 0.5), (x1 - x0, 0, z1 - z0),
-            **fields)
+            starts="SHUT")
 
 for k, hole in enumerate(MANHOLES):
     hatch("manhole_%d" % (k + 1), "engine_bilge_p" if hole[2] < 0 else "engine_bilge_s", "engine_room", hole,
-          TANK_TOP, scuttle=False)
+          TANK_TOP)
 for k, hole in enumerate(LOWER_HOLD_HATCHES):
     hatch("hatch_hold_bilge_%d" % (k + 1), "hold_bilge", "hold", hole, LOWER)
 for k, hole in enumerate(BILGE_HATCHES):

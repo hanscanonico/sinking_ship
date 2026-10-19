@@ -33,7 +33,7 @@ height = 1.2
 [sub_resource type="Resource" id="Platform_forecastle"]
 script = ExtResource("1_plat")
 name = &"forecastle"
-area = Rect2(17, -4, 3, 8)
+area = Rect2(12, -4, 2.5, 8)
 height = 1.8
 
 [sub_resource type="Resource" id="Platform_boat_deck"]
@@ -139,13 +139,13 @@ height = 1.2
 [sub_resource type="Resource" id="Platform_poop_deck_2"]
 script = ExtResource("1_plat")
 name = &"poop deck"
-area = Rect2(-17, 1.2, 3, 3.3)
+area = Rect2(-14.9, -1.2, 0.9, 1.1)
 height = 1.2
 
 [sub_resource type="Resource" id="Platform_poop_deck_3"]
 script = ExtResource("1_plat")
 name = &"poop deck"
-area = Rect2(-14.9, -1.2, 0.9, 1.1)
+area = Rect2(-17, -0.1, 3, 0.2)
 height = 1.2
 
 [sub_resource type="Resource" id="Platform_poop_deck_4"]
@@ -157,43 +157,43 @@ height = 1.2
 [sub_resource type="Resource" id="Platform_poop_deck_5"]
 script = ExtResource("1_plat")
 name = &"poop deck"
-area = Rect2(-17, -0.1, 3, 0.2)
+area = Rect2(-17, 1.2, 3, 3.3)
 height = 1.2
 
 [sub_resource type="Resource" id="Platform_forecastle_1"]
 script = ExtResource("1_plat")
 name = &"forecastle"
-area = Rect2(12, -4, 2.5, 8)
+area = Rect2(14.5, -4, 2.5, 1.4)
 height = 1.8
 
 [sub_resource type="Resource" id="Platform_forecastle_2"]
 script = ExtResource("1_plat")
 name = &"forecastle"
-area = Rect2(14.5, -1.5, 2.5, 3)
+area = Rect2(14.5, -2.6, 0.7, 1.1)
 height = 1.8
 
 [sub_resource type="Resource" id="Platform_forecastle_3"]
 script = ExtResource("1_plat")
 name = &"forecastle"
-area = Rect2(14.5, -4, 2.5, 1.4)
+area = Rect2(14.5, -1.5, 2.5, 3)
 height = 1.8
 
 [sub_resource type="Resource" id="Platform_forecastle_4"]
 script = ExtResource("1_plat")
 name = &"forecastle"
-area = Rect2(14.5, 2.6, 2.5, 1.4)
+area = Rect2(14.5, 1.5, 0.7, 1.1)
 height = 1.8
 
 [sub_resource type="Resource" id="Platform_forecastle_5"]
 script = ExtResource("1_plat")
 name = &"forecastle"
-area = Rect2(14.5, -2.6, 0.7, 1.1)
+area = Rect2(14.5, 2.6, 2.5, 1.4)
 height = 1.8
 
 [sub_resource type="Resource" id="Platform_forecastle_6"]
 script = ExtResource("1_plat")
 name = &"forecastle"
-area = Rect2(14.5, 1.5, 0.7, 1.1)
+area = Rect2(17, -4, 3, 8)
 height = 1.8
 
 [sub_resource type="Resource" id="Platform_main_deck_outboard_1"]
@@ -204,27 +204,27 @@ area = Rect2(-14, -5, 17.7, 1.0938)
 [sub_resource type="Resource" id="Platform_main_deck_outboard_2"]
 script = ExtResource("1_plat")
 name = &"main deck"
-area = Rect2(8.5, -5, 3.5, 1.0938)
+area = Rect2(3.7, -5, 4.8, 0.23)
 
 [sub_resource type="Resource" id="Platform_main_deck_outboard_3"]
 script = ExtResource("1_plat")
 name = &"main deck"
-area = Rect2(6.8, -4.77, 1.7, 0.8638)
+area = Rect2(3.7, -4.77, 0.3, 0.8638)
 
 [sub_resource type="Resource" id="Platform_main_deck_outboard_4"]
 script = ExtResource("1_plat")
 name = &"main deck"
-area = Rect2(3.7, -5, 4.8, 0.23)
+area = Rect2(5.2, -4.77, 0.4, 0.8638)
 
 [sub_resource type="Resource" id="Platform_main_deck_outboard_5"]
 script = ExtResource("1_plat")
 name = &"main deck"
-area = Rect2(5.2, -4.77, 0.4, 0.8638)
+area = Rect2(6.8, -4.77, 1.7, 0.8638)
 
 [sub_resource type="Resource" id="Platform_main_deck_outboard_6"]
 script = ExtResource("1_plat")
 name = &"main deck"
-area = Rect2(3.7, -4.77, 0.3, 0.8638)
+area = Rect2(8.5, -5, 3.5, 1.0938)
 
 [sub_resource type="Resource" id="Platform_main_deck_starboard_outboard_1"]
 script = ExtResource("1_plat")
@@ -234,27 +234,27 @@ area = Rect2(-14, 3.9062, 17.7, 1.0938)
 [sub_resource type="Resource" id="Platform_main_deck_starboard_outboard_2"]
 script = ExtResource("1_plat")
 name = &"main deck"
-area = Rect2(8.5, 3.9062, 3.5, 1.0938)
+area = Rect2(3.7, 3.9062, 0.3, 0.8638)
 
 [sub_resource type="Resource" id="Platform_main_deck_starboard_outboard_3"]
 script = ExtResource("1_plat")
 name = &"main deck"
-area = Rect2(6.8, 3.9062, 1.7, 0.8638)
+area = Rect2(5.2, 3.9062, 0.4, 0.8638)
 
 [sub_resource type="Resource" id="Platform_main_deck_starboard_outboard_4"]
 script = ExtResource("1_plat")
 name = &"main deck"
-area = Rect2(3.7, 4.77, 4.8, 0.23)
+area = Rect2(6.8, 3.9062, 1.7, 0.8638)
 
 [sub_resource type="Resource" id="Platform_main_deck_starboard_outboard_5"]
 script = ExtResource("1_plat")
 name = &"main deck"
-area = Rect2(5.2, 3.9062, 0.4, 0.8638)
+area = Rect2(3.7, 4.77, 4.8, 0.23)
 
 [sub_resource type="Resource" id="Platform_main_deck_starboard_outboard_6"]
 script = ExtResource("1_plat")
 name = &"main deck"
-area = Rect2(3.7, 3.9062, 0.3, 0.8638)
+area = Rect2(8.5, 3.9062, 3.5, 1.0938)
 
 [sub_resource type="Resource" id="Platform_lower_deck_1"]
 script = ExtResource("1_plat")
@@ -1024,13 +1024,13 @@ to = Vector2(3.5, -5)
 
 [sub_resource type="Resource" id="Railing_main_port_fwd_0"]
 script = ExtResource("4_rail")
-platform = 34
+platform = 32
 from = Vector2(5.5, -5)
 to = Vector2(8.5, -5)
 
 [sub_resource type="Resource" id="Railing_main_port_fwd_1"]
 script = ExtResource("4_rail")
-platform = 32
+platform = 36
 from = Vector2(8.5, -5)
 to = Vector2(12, -5)
 
@@ -1066,13 +1066,13 @@ to = Vector2(3.5, 5)
 
 [sub_resource type="Resource" id="Railing_main_starboard_fwd_0"]
 script = ExtResource("4_rail")
-platform = 40
+platform = 41
 from = Vector2(5.5, 5)
 to = Vector2(8.5, 5)
 
 [sub_resource type="Resource" id="Railing_main_starboard_fwd_1"]
 script = ExtResource("4_rail")
-platform = 38
+platform = 42
 from = Vector2(8.5, 5)
 to = Vector2(12, 5)
 
@@ -1090,13 +1090,13 @@ to = Vector2(-14, 5)
 
 [sub_resource type="Resource" id="Railing_main_fwd_port"]
 script = ExtResource("4_rail")
-platform = 32
+platform = 36
 from = Vector2(12, -5)
 to = Vector2(12, -4)
 
 [sub_resource type="Resource" id="Railing_main_fwd_starboard"]
 script = ExtResource("4_rail")
-platform = 38
+platform = 42
 from = Vector2(12, 4)
 to = Vector2(12, 5)
 
@@ -1138,61 +1138,61 @@ to = Vector2(-17, 4.5)
 
 [sub_resource type="Resource" id="Railing_poop_starboard_1"]
 script = ExtResource("4_rail")
-platform = 21
+platform = 24
 from = Vector2(-17, 4.5)
 to = Vector2(-14, 4.5)
 
 [sub_resource type="Resource" id="Railing_forecastle_fwd_0"]
 script = ExtResource("4_rail")
-platform = 2
+platform = 30
 from = Vector2(20, -4)
 to = Vector2(20, -1.5)
 
 [sub_resource type="Resource" id="Railing_forecastle_fwd_1"]
 script = ExtResource("4_rail")
-platform = 2
+platform = 30
 from = Vector2(20, -1.5)
 to = Vector2(20, 1)
 
 [sub_resource type="Resource" id="Railing_forecastle_fwd_2"]
 script = ExtResource("4_rail")
-platform = 2
+platform = 30
 from = Vector2(20, 1)
 to = Vector2(20, 4)
 
 [sub_resource type="Resource" id="Railing_forecastle_port_0"]
 script = ExtResource("4_rail")
-platform = 25
+platform = 2
 from = Vector2(12, -4)
 to = Vector2(14.5, -4)
 
 [sub_resource type="Resource" id="Railing_forecastle_port_1"]
 script = ExtResource("4_rail")
-platform = 27
+platform = 25
 from = Vector2(14.5, -4)
 to = Vector2(17, -4)
 
 [sub_resource type="Resource" id="Railing_forecastle_port_2"]
 script = ExtResource("4_rail")
-platform = 2
+platform = 30
 from = Vector2(17, -4)
 to = Vector2(20, -4)
 
 [sub_resource type="Resource" id="Railing_forecastle_starboard_0"]
 script = ExtResource("4_rail")
-platform = 25
+platform = 2
 from = Vector2(12, 4)
 to = Vector2(14.5, 4)
 
 [sub_resource type="Resource" id="Railing_forecastle_starboard_1"]
 script = ExtResource("4_rail")
-platform = 28
+platform = 29
 from = Vector2(14.5, 4)
 to = Vector2(17, 4)
 
 [sub_resource type="Resource" id="Railing_forecastle_starboard_2"]
 script = ExtResource("4_rail")
-platform = 2
+platform = 30
 from = Vector2(17, 4)
 to = Vector2(20, 4)
 
@@ -1715,49 +1715,49 @@ fitted = true
 [sub_resource type="Resource" id="Platform_steering_gear"]
 script = ExtResource("1_plat")
 name = &"steering gear"
-area = Rect2(-19.8, -1.6, 5.8, 3.2)
+area = Rect2(-19.8, -4.2, 5.7, 1.5)
 height = -1
 fitted = true
 
 [sub_resource type="Resource" id="Platform_steering_gear_1"]
 script = ExtResource("1_plat")
 name = &"steering gear"
-area = Rect2(-19.8, -4.2, 5.8, 1.5)
+area = Rect2(-19.8, -2.7, 1.2, 1.1)
 height = -1
 fitted = true
 
 [sub_resource type="Resource" id="Platform_steering_gear_2"]
 script = ExtResource("1_plat")
 name = &"steering gear"
-area = Rect2(-19.8, 2.7, 5.8, 1.5)
+area = Rect2(-16.35, -2.7, 2.25, 1.1)
 height = -1
 fitted = true
 
 [sub_resource type="Resource" id="Platform_steering_gear_3"]
 script = ExtResource("1_plat")
 name = &"steering gear"
-area = Rect2(-16.35, -2.7, 2.35, 1.1)
+area = Rect2(-19.8, -1.6, 5.7, 3.2)
 height = -1
 fitted = true
 
 [sub_resource type="Resource" id="Platform_steering_gear_4"]
 script = ExtResource("1_plat")
 name = &"steering gear"
-area = Rect2(-16.35, 1.6, 2.35, 1.1)
+area = Rect2(-19.8, 1.6, 1.2, 1.1)
 height = -1
 fitted = true
 
 [sub_resource type="Resource" id="Platform_steering_gear_5"]
 script = ExtResource("1_plat")
 name = &"steering gear"
-area = Rect2(-19.8, -2.7, 1.2, 1.1)
+area = Rect2(-16.35, 1.6, 2.25, 1.1)
 height = -1
 fitted = true
 
 [sub_resource type="Resource" id="Platform_steering_gear_6"]
 script = ExtResource("1_plat")
 name = &"steering gear"
-area = Rect2(-19.8, 1.6, 1.2, 1.1)
+area = Rect2(-19.8, 2.7, 5.7, 1.5)
 height = -1
 fitted = true
 
@@ -1770,28 +1770,28 @@ fitted = true
 
 [sub_resource type="Resource" id="Blocker_steering_gear_forward"]
 script = ExtResource("3_block")
-area = Rect2(-14.1, -4.3, 0.2, 8.6)
+area = Rect2(-14.2, -4.3, 0.2, 8.6)
 bottom = -1
 top = 0
 fitted = true
 
 [sub_resource type="Resource" id="Blocker_steering_gear_port"]
 script = ExtResource("3_block")
-area = Rect2(-19.9, -4.3, 6, 0.2)
+area = Rect2(-19.9, -4.3, 5.9, 0.2)
 bottom = -1
 top = 1.2
 fitted = true
 
 [sub_resource type="Resource" id="Blocker_steering_gear_starboard"]
 script = ExtResource("3_block")
-area = Rect2(-19.9, 4.1, 6, 0.2)
+area = Rect2(-19.9, 4.1, 5.9, 0.2)
 bottom = -1
 top = 1.2
 fitted = true
 
 [sub_resource type="Resource" id="Blocker_poop_break"]
 script = ExtResource("3_block")
-area = Rect2(-14.1, -4.5, 0.2, 9)
+area = Rect2(-14.2, -4.5, 0.2, 9)
 top = 1.2
 
 [sub_resource type="Resource" id="Blocker_steering_engine"]
@@ -1825,21 +1825,21 @@ fitted = true
 [sub_resource type="Resource" id="Platform_aft_stores_1"]
 script = ExtResource("1_plat")
 name = &"aft stores"
-area = Rect2(-18.9, 1.1, 5.8, 1.9)
+area = Rect2(-18.9, -1.1, 2.5, 2.2)
 height = -3.1
 fitted = true
 
 [sub_resource type="Resource" id="Platform_aft_stores_2"]
 script = ExtResource("1_plat")
 name = &"aft stores"
-area = Rect2(-18.9, -1.1, 2.5, 2.2)
+area = Rect2(-14.25, -1.1, 1.15, 2.2)
 height = -3.1
 fitted = true
 
 [sub_resource type="Resource" id="Platform_aft_stores_3"]
 script = ExtResource("1_plat")
 name = &"aft stores"
-area = Rect2(-14.25, -1.1, 1.15, 2.2)
+area = Rect2(-18.9, 1.1, 5.8, 1.9)
 height = -3.1
 fitted = true
 
@@ -1944,21 +1944,21 @@ fitted = true
 [sub_resource type="Resource" id="Platform_bosuns_store_1"]
 script = ExtResource("1_plat")
 name = &"bosun's store"
-area = Rect2(15, 1.1, 4.9, 1.6)
+area = Rect2(15, -1.1, 2.15, 2.2)
 height = -1.5
 fitted = true
 
 [sub_resource type="Resource" id="Platform_bosuns_store_2"]
 script = ExtResource("1_plat")
 name = &"bosun's store"
-area = Rect2(15, -1.1, 2.15, 2.2)
+area = Rect2(18.9, -1.1, 1, 2.2)
 height = -1.5
 fitted = true
 
 [sub_resource type="Resource" id="Platform_bosuns_store_3"]
 script = ExtResource("1_plat")
 name = &"bosun's store"
-area = Rect2(18.9, -1.1, 1, 2.2)
+area = Rect2(15, 1.1, 4.9, 1.6)
 height = -1.5
 fitted = true
 
@@ -2055,13 +2055,13 @@ fitted = true
 
 [sub_resource type="Resource" id="Railing_wing_hatch_1_x1"]
 script = ExtResource("4_rail")
-platform = 35
+platform = 34
 from = Vector2(5.2, -4.77)
 to = Vector2(5.2, -3.9062)
 
 [sub_resource type="Resource" id="Railing_wing_hatch_1_z0"]
 script = ExtResource("4_rail")
-platform = 34
+platform = 32
 from = Vector2(4, -4.77)
 to = Vector2(5.2, -4.77)
 
@@ -2072,13 +2072,13 @@ to = Vector2(5.2, -3.9062)
 
 [sub_resource type="Resource" id="Railing_wing_hatch_2_x0"]
 script = ExtResource("4_rail")
-platform = 35
+platform = 34
 from = Vector2(5.6, -4.77)
 to = Vector2(5.6, -3.9062)
 
 [sub_resource type="Resource" id="Railing_wing_hatch_2_z0"]
 script = ExtResource("4_rail")
-platform = 34
+platform = 32
 from = Vector2(5.6, -4.77)
 to = Vector2(6.8, -4.77)
 
@@ -2089,7 +2089,7 @@ to = Vector2(6.8, -3.9062)
 
 [sub_resource type="Resource" id="Railing_wing_hatch_3_x1"]
 script = ExtResource("4_rail")
-platform = 41
+platform = 39
 from = Vector2(5.2, 3.9062)
 to = Vector2(5.2, 4.77)
 
@@ -2101,13 +2101,13 @@ to = Vector2(5.2, 3.9062)
 
 [sub_resource type="Resource" id="Railing_wing_hatch_3_z1"]
 script = ExtResource("4_rail")
-platform = 40
+platform = 41
 from = Vector2(4, 4.77)
 to = Vector2(5.2, 4.77)
 
 [sub_resource type="Resource" id="Railing_wing_hatch_4_x0"]
 script = ExtResource("4_rail")
-platform = 41
+platform = 39
 from = Vector2(5.6, 3.9062)
 to = Vector2(5.6, 4.77)
 
@@ -2119,7 +2119,7 @@ to = Vector2(6.8, 3.9062)
 
 [sub_resource type="Resource" id="Railing_wing_hatch_4_z1"]
 script = ExtResource("4_rail")
-platform = 40
+platform = 41
 from = Vector2(5.6, 4.77)
 to = Vector2(6.8, 4.77)
 
@@ -2245,7 +2245,7 @@ to = Vector2(-14.9, -1.2)
 
 [sub_resource type="Resource" id="Railing_poop_hatch_1_z1"]
 script = ExtResource("4_rail")
-platform = 24
+platform = 22
 from = Vector2(-17, -0.1)
 to = Vector2(-14.9, -0.1)
 
@@ -2257,91 +2257,91 @@ to = Vector2(-17, 1.2)
 
 [sub_resource type="Resource" id="Railing_poop_hatch_2_z0"]
 script = ExtResource("4_rail")
-platform = 24
+platform = 22
 from = Vector2(-17, 0.1)
 to = Vector2(-14.9, 0.1)
 
 [sub_resource type="Resource" id="Railing_poop_hatch_2_z1"]
 script = ExtResource("4_rail")
-platform = 21
+platform = 24
 from = Vector2(-17, 1.2)
 to = Vector2(-14.9, 1.2)
 
 [sub_resource type="Resource" id="Railing_forecastle_hatch_1_x1"]
 script = ExtResource("4_rail")
-platform = 2
+platform = 30
 from = Vector2(17, -2.6)
 to = Vector2(17, -1.5)
 
 [sub_resource type="Resource" id="Railing_forecastle_hatch_1_z0"]
 script = ExtResource("4_rail")
-platform = 27
+platform = 25
 from = Vector2(15.2, -2.6)
 to = Vector2(17, -2.6)
 
 [sub_resource type="Resource" id="Railing_forecastle_hatch_1_z1"]
 script = ExtResource("4_rail")
-platform = 26
+platform = 27
 from = Vector2(15.2, -1.5)
 to = Vector2(17, -1.5)
 
 [sub_resource type="Resource" id="Railing_forecastle_hatch_2_x1"]
 script = ExtResource("4_rail")
-platform = 2
+platform = 30
 from = Vector2(17, 1.5)
 to = Vector2(17, 2.6)
 
 [sub_resource type="Resource" id="Railing_forecastle_hatch_2_z0"]
 script = ExtResource("4_rail")
-platform = 26
+platform = 27
 from = Vector2(15.2, 1.5)
 to = Vector2(17, 1.5)
 
 [sub_resource type="Resource" id="Railing_forecastle_hatch_2_z1"]
 script = ExtResource("4_rail")
-platform = 28
+platform = 29
 from = Vector2(15.2, 2.6)
 to = Vector2(17, 2.6)
 
 [sub_resource type="Resource" id="Railing_steering_hatch_1_x1"]
 script = ExtResource("4_rail")
-platform = 83
+platform = 82
 from = Vector2(-16.35, -2.7)
 to = Vector2(-16.35, -1.6)
 
 [sub_resource type="Resource" id="Railing_steering_hatch_1_z0"]
 script = ExtResource("4_rail")
-platform = 81
+platform = 80
 from = Vector2(-18.6, -2.7)
 to = Vector2(-16.35, -2.7)
 
 [sub_resource type="Resource" id="Railing_steering_hatch_1_z1"]
 script = ExtResource("4_rail")
-platform = 80
+platform = 83
 from = Vector2(-18.6, -1.6)
 to = Vector2(-16.35, -1.6)
 
 [sub_resource type="Resource" id="Railing_steering_hatch_2_x1"]
 script = ExtResource("4_rail")
-platform = 84
+platform = 85
 from = Vector2(-16.35, 1.6)
 to = Vector2(-16.35, 2.7)
 
 [sub_resource type="Resource" id="Railing_steering_hatch_2_z0"]
 script = ExtResource("4_rail")
-platform = 80
+platform = 83
 from = Vector2(-18.6, 1.6)
 to = Vector2(-16.35, 1.6)
 
 [sub_resource type="Resource" id="Railing_steering_hatch_2_z1"]
 script = ExtResource("4_rail")
-platform = 82
+platform = 86
 from = Vector2(-18.6, 2.7)
 to = Vector2(-16.35, 2.7)
 
 [sub_resource type="Resource" id="Railing_aft_stores_hatch_x1"]
 script = ExtResource("4_rail")
-platform = 90
+platform = 89
 from = Vector2(-14.25, -1.1)
 to = Vector2(-14.25, 1.1)
 
@@ -2353,13 +2353,13 @@ to = Vector2(-14.25, -1.1)
 
 [sub_resource type="Resource" id="Railing_aft_stores_hatch_z1"]
 script = ExtResource("4_rail")
-platform = 88
+platform = 90
 from = Vector2(-16.4, 1.1)
 to = Vector2(-14.25, 1.1)
 
 [sub_resource type="Resource" id="Railing_chain_locker_hatch_x0"]
 script = ExtResource("4_rail")
-platform = 94
+platform = 93
 from = Vector2(17.15, -1.1)
 to = Vector2(17.15, 1.1)
 
@@ -2371,7 +2371,7 @@ to = Vector2(18.9, -1.1)
 
 [sub_resource type="Resource" id="Railing_chain_locker_hatch_z1"]
 script = ExtResource("4_rail")
-platform = 93
+platform = 95
 from = Vector2(17.15, 1.1)
 to = Vector2(18.9, 1.1)
 
@@ -2424,7 +2424,7 @@ crawl_space = true
 [sub_resource type="Resource" id="Room_steering_gear"]
 script = ExtResource("6_room")
 name = &"steering gear"
-area = Rect2(-19.8, -4.2, 5.8, 8.4)
+area = Rect2(-19.8, -4.2, 5.7, 8.4)
 floor_height = -1
 
 [sub_resource type="Resource" id="Room_aft_stores"]
@@ -3133,6 +3133,7 @@ kind = 5
 joins = Array[StringName]([&"engine_bilge_p", &"engine_room"])
 centre = Vector3(-1.45, -4.4, -2.75)
 size = Vector3(1.1, 0, 1.1)
+starts = 1
 
 [sub_resource type="Resource" id="Opening_manhole_2"]
 script = ExtResource("13_opening")
@@ -3141,6 +3142,7 @@ kind = 5
 joins = Array[StringName]([&"engine_bilge_s", &"engine_room"])
 centre = Vector3(-1.45, -4.4, 2.75)
 size = Vector3(1.1, 0, 1.1)
+starts = 1
 
 [sub_resource type="Resource" id="Opening_manhole_3"]
 script = ExtResource("13_opening")
@@ -3149,6 +3151,7 @@ kind = 5
 joins = Array[StringName]([&"engine_bilge_p", &"engine_room"])
 centre = Vector3(2.05, -4.4, -3.15)
 size = Vector3(1.1, 0, 1.1)
+starts = 1
 
 [sub_resource type="Resource" id="Opening_manhole_4"]
 script = ExtResource("13_opening")
@@ -3157,6 +3160,7 @@ kind = 5
 joins = Array[StringName]([&"engine_bilge_s", &"engine_room"])
 centre = Vector3(2.05, -4.4, 3.15)
 size = Vector3(1.1, 0, 1.1)
+starts = 1
 
 [sub_resource type="Resource" id="Opening_hatch_hold_bilge_1"]
 script = ExtResource("13_opening")
@@ -3166,9 +3170,6 @@ joins = Array[StringName]([&"hold_bilge", &"hold"])
 centre = Vector3(6, -2.6, 2.05)
 size = Vector3(2.2, 0, 1.1)
 starts = 1
-leak_head = 0.3
-collapse_head = 1
-leak_area = 0.01
 
 [sub_resource type="Resource" id="Opening_hatch_hold_bilge_2"]
 script = ExtResource("13_opening")
@@ -3178,9 +3179,6 @@ joins = Array[StringName]([&"hold_bilge", &"hold"])
 centre = Vector3(12.2, -2.6, -2.05)
 size = Vector3(2.2, 0, 1.1)
 starts = 1
-leak_head = 0.3
-collapse_head = 1
-leak_area = 0.01
 
 [sub_resource type="Resource" id="Opening_hatch_aft_bilge_p_1"]
 script = ExtResource("13_opening")
@@ -3190,9 +3188,6 @@ joins = Array[StringName]([&"aft_bilge_p", &"aft_cabins"])
 centre = Vector3(-11, -2.6, -2.65)
 size = Vector3(2.2, 0, 1.1)
 starts = 1
-leak_head = 0.3
-collapse_head = 1
-leak_area = 0.01
 
 [sub_resource type="Resource" id="Opening_hatch_aft_bilge_p_2"]
 script = ExtResource("13_opening")
@@ -3202,9 +3197,6 @@ joins = Array[StringName]([&"aft_bilge_p", &"aft_cabins"])
 centre = Vector3(-4.95, -2.6, -2.75)
 size = Vector3(1.1, 0, 1.8)
 starts = 1
-leak_head = 0.3
-collapse_head = 1
-leak_area = 0.01
 
 [sub_resource type="Resource" id="Opening_hatch_aft_bilge_s_1"]
 script = ExtResource("13_opening")
@@ -3214,9 +3206,6 @@ joins = Array[StringName]([&"aft_bilge_s", &"aft_cabins"])
 centre = Vector3(-11, -2.6, 2.65)
 size = Vector3(2.2, 0, 1.1)
 starts = 1
-leak_head = 0.3
-collapse_head = 1
-leak_area = 0.01
 
 [sub_resource type="Resource" id="Opening_hatch_aft_bilge_s_2"]
 script = ExtResource("13_opening")
@@ -3226,9 +3215,6 @@ joins = Array[StringName]([&"aft_bilge_s", &"aft_cabins"])
 centre = Vector3(-4.95, -2.6, 2.75)
 size = Vector3(1.1, 0, 1.8)
 starts = 1
-leak_head = 0.3
-collapse_head = 1
-leak_area = 0.01
 
 [sub_resource type="Resource" id="Opening_hatch_hold_wing_p_1"]
 script = ExtResource("13_opening")
@@ -3238,9 +3224,6 @@ joins = Array[StringName]([&"hold_wing_p", &"sky"])
 centre = Vector3(4.6, 0, -4.3381)
 size = Vector3(1.2, 0, 0.8638)
 starts = 1
-leak_head = 0.3
-collapse_head = 1
-leak_area = 0.01
 
 [sub_resource type="Resource" id="Opening_hatch_hold_wing_p_2"]
 script = ExtResource("13_opening")
@@ -3250,9 +3233,6 @@ joins = Array[StringName]([&"hold_wing_p", &"sky"])
 centre = Vector3(6.2, 0, -4.3381)
 size = Vector3(1.2, 0, 0.8638)
 starts = 1
-leak_head = 0.3
-collapse_head = 1
-leak_area = 0.01
 
 [sub_resource type="Resource" id="Opening_hatch_hold_wing_s_1"]
 script = ExtResource("13_opening")
@@ -3262,9 +3242,6 @@ joins = Array[StringName]([&"hold_wing_s", &"sky"])
 centre = Vector3(4.6, 0, 4.3381)
 size = Vector3(1.2, 0, 0.8638)
 starts = 1
-leak_head = 0.3
-collapse_head = 1
-leak_area = 0.01
 
 [sub_resource type="Resource" id="Opening_hatch_hold_wing_s_2"]
 script = ExtResource("13_opening")
@@ -3274,9 +3251,6 @@ joins = Array[StringName]([&"hold_wing_s", &"sky"])
 centre = Vector3(6.2, 0, 4.3381)
 size = Vector3(1.2, 0, 0.8638)
 starts = 1
-leak_head = 0.3
-collapse_head = 1
-leak_area = 0.01
 
 [sub_resource type="Resource" id="Opening_open_aft_peak"]
 script = ExtResource("13_opening")
@@ -3294,9 +3268,6 @@ joins = Array[StringName]([&"poop_space", &"sky"])
 centre = Vector3(-15.95, 1.2, -0.65)
 size = Vector3(2.1, 0, 1.1)
 starts = 1
-leak_head = 0.3
-collapse_head = 1
-leak_area = 0.01
 
 [sub_resource type="Resource" id="Opening_hatch_poop_space_2"]
 script = ExtResource("13_opening")
@@ -3306,9 +3277,6 @@ joins = Array[StringName]([&"poop_space", &"sky"])
 centre = Vector3(-15.95, 1.2, 0.65)
 size = Vector3(2.1, 0, 1.1)
 starts = 1
-leak_head = 0.3
-collapse_head = 1
-leak_area = 0.01
 
 [sub_resource type="Resource" id="Opening_hatch_forepeak_1"]
 script = ExtResource("13_opening")
@@ -3318,9 +3286,6 @@ joins = Array[StringName]([&"forepeak", &"sky"])
 centre = Vector3(16.1, 1.8, -2.05)
 size = Vector3(1.8, 0, 1.1)
 starts = 1
-leak_head = 0.3
-collapse_head = 1
-leak_area = 0.01
 
 [sub_resource type="Resource" id="Opening_hatch_forepeak_2"]
 script = ExtResource("13_opening")
@@ -3330,9 +3295,6 @@ joins = Array[StringName]([&"forepeak", &"sky"])
 centre = Vector3(16.1, 1.8, 2.05)
 size = Vector3(1.8, 0, 1.1)
 starts = 1
-leak_head = 0.3
-collapse_head = 1
-leak_area = 0.01
 
 [sub_resource type="Resource" id="Opening_floor_aft_cabins_p"]
 script = ExtResource("13_opening")
