@@ -181,6 +181,18 @@ func is_wall(blocker: ShipBlocker) -> bool:
 	)
 
 
+## Whether a wall stands between ship-plane points [param from] and [param to],
+## standing from [param bottom] or under to [param top] or over: a body on a deck at
+## [param bottom] goes no further.
+func walled_between(from: Vector2, to: Vector2, bottom: float, top: float) -> bool:
+	var between := Rect2(from, Vector2.ZERO).expand(to).grow(0.001)
+	for blocker: ShipBlocker in layout.blockers:
+		if is_wall(blocker) and blocker.area.intersects(between):
+			if blocker.bottom <= bottom + SLIVER and blocker.top >= top:
+				return true
+	return false
+
+
 ## Whether nothing of the ship but floor stands in [param area] between
 ## [param bottom] and [param top]: no blocker, no ramp, and a deck at [param bottom]
 ## under all of it.
