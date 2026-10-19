@@ -810,7 +810,10 @@ FIT = 0.02
 # height like -5.3 under it, and the floor is missed there): -5.3125 is exact.
 BILGE_FLOOR = KEEL + 0.0875
 GIRDER_TOP = KEEL + 2.5
-COAMING = 0.3  # a hatch's, over its deck (est.): the sea tops it before it comes in
+# A hatch into one is a scuttle, battened and dogged as the hold's is, a body going
+# down it opening it as a doorway's door is opened: its seams weep SCUTTLE_LEAK under the
+# head of water its coaming stands to, and it gives way under SCUTTLE_GIVES (est.).
+SCUTTLE_LEAK, SCUTTLE_COAMING, SCUTTLE_GIVES = 0.01, 0.3, 1.0
 # The double bottom under the stokehold, a crawl space either side of her girder, which
 # stands to the tank top there; its sides and ends under the stokehold's.
 for side, z0, z1 in [("port", -LINING, 0), ("starboard", 0, LINING)]:
@@ -838,9 +841,11 @@ BILGE_SIDE = 3.8
 platform("shaft_tunnel", "shaft tunnel", -13, -3, -BILGE_SIDE, 0, BILGE_FLOOR, True)
 platform("bilge_stores", "stores", -13, -3, 0, BILGE_SIDE, BILGE_FLOOR, True)
 wall_x("bilge_aft", -13, -BILGE_SIDE, BILGE_SIDE, BILGE_FLOOR, LOWER, True)
-# Its girder runs from the after bulkhead's face to 0.3 m short of the engine room's —
-# too narrow a gap for a body — its top under the lower deck.
-box("girder", -13 + T, -3 - T - 0.3, -T, T, BILGE_FLOOR, GIRDER_TOP, True)
+# Its girder runs from bulkhead to bulkhead, its top under the lower deck but for its
+# last 0.3 m under the engine room's, a metre high there — still too high to climb — so
+# nothing standing on it reaches the fire buckets over that bulkhead's far side.
+box("girder", -13 - T, -3 - T - 0.25, -T, T, BILGE_FLOOR, GIRDER_TOP, True)
+box("girder_forward", -3 - T - 0.3, -3 + T, -T, T, BILGE_FLOOR, BILGE_FLOOR + 1.0, True)
 for side, z in [("port", -BILGE_SIDE), ("starboard", BILGE_SIDE)]:
     wall_z("bilge_" + side, z, -13 + T, -3 - T, BILGE_FLOOR, LOWER, True)
 # Her propeller shaft runs aft down the shaft tunnel beside her girder on its plummer
@@ -1320,34 +1325,36 @@ top_box = cell_box("hold_fwd_top")
 opening("open_hold_fwd_top", "OPEN", "hold", "hold_fwd_top",
         ((top_box[0] + top_box[1]) * 0.5, 0, 0), (top_box[1] - top_box[0], 0, top_box[5] - top_box[4]),
         starts="OPEN")
-# The ways into her old voids (#148), open — bodies go down them — and chosen to move her
-# flooding as little as they can: each a hatch in the deck over its space, its sill on a
-# coaming COAMING over that deck, so the space stays dry from above until that deck goes
-# under; the double bottom's manholes flush in her tank top, where its floor's gaps
-# already join it to the stokehold. No doorway pierces a wall along her.
-def hatch(name, under, over, hole, sill):
+# The ways into her old voids (#148), chosen to move her flooding as little as they can:
+# each a scuttle in the deck over its space (SCUTTLE_*), shut, so the space stays dry
+# from above and keeps its air until the water over that deck tops its coaming; the
+# double bottom's manholes open and flush in her tank top, where its floor's gaps already
+# join it to the stokehold. No doorway pierces a wall along her.
+def hatch(name, under, over, hole, deck, scuttle=True):
     x0, x1, z0, z1 = hole
-    opening(name, "HATCH", under, over, ((x0 + x1) * 0.5, sill, (z0 + z1) * 0.5), (x1 - x0, 0, z1 - z0),
-            starts="OPEN")
+    fields = dict(starts="SHUT", leak_head=SCUTTLE_COAMING, collapse_head=SCUTTLE_GIVES,
+                  leak_area=SCUTTLE_LEAK) if scuttle else dict(starts="OPEN")
+    opening(name, "HATCH", under, over, ((x0 + x1) * 0.5, deck, (z0 + z1) * 0.5), (x1 - x0, 0, z1 - z0),
+            **fields)
 
 for k, hole in enumerate(MANHOLES):
     hatch("manhole_%d" % (k + 1), "engine_bilge_p" if hole[2] < 0 else "engine_bilge_s", "engine_room", hole,
-          TANK_TOP)
+          TANK_TOP, scuttle=False)
 for k, hole in enumerate(LOWER_HOLD_HATCHES):
-    hatch("hatch_hold_bilge_%d" % (k + 1), "hold_bilge", "hold", hole, LOWER + COAMING)
+    hatch("hatch_hold_bilge_%d" % (k + 1), "hold_bilge", "hold", hole, LOWER)
 for k, hole in enumerate(BILGE_HATCHES):
     bilge = "aft_bilge_p" if hole[2] < 0 else "aft_bilge_s"
-    hatch("hatch_%s_%d" % (bilge, k % 2 + 1), bilge, "aft_cabins", hole, LOWER + COAMING)
+    hatch("hatch_%s_%d" % (bilge, k % 2 + 1), bilge, "aft_cabins", hole, LOWER)
 for k, hole in enumerate(WING_MAIN + WING_SS):
     wing = "hold_wing_p" if hole[2] < 0 else "hold_wing_s"
-    hatch("hatch_%s_%d" % (wing, k % 2 + 1), wing, SKY, hole, COAMING)
+    hatch("hatch_%s_%d" % (wing, k % 2 + 1), wing, SKY, hole, 0.0)
 # The steering gear stands up into the space under the poop with no deck between them,
 # so the two are one space there; its hatches are in the poop.
 opening("open_aft_peak", "OPEN", "aft_peak", "poop_space", (-16.9, 0, 0), (5.8, 0, 8.4), starts="OPEN")
 for k, hole in enumerate(POOP_HATCHES):
-    hatch("hatch_poop_space_%d" % (k + 1), "poop_space", SKY, hole, POOP_DECK + COAMING)
+    hatch("hatch_poop_space_%d" % (k + 1), "poop_space", SKY, hole, POOP_DECK)
 for k, hole in enumerate(FCSL_HATCHES):
-    hatch("hatch_forepeak_%d" % (k + 1), "forepeak", SKY, hole, FCSL_DECK + COAMING)
+    hatch("hatch_forepeak_%d" % (k + 1), "forepeak", SKY, hole, FCSL_DECK)
 
 # The lower-deck floors are not watertight: est. 0.05 m² of gaps between each and its
 # bilge — a plated floor over the bilge, tight but for its limbers and sounding

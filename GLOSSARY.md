@@ -50,7 +50,8 @@ leave room for it: her drawn hull is lofted round everything else, never round i
 sections stay as they are. The spaces in the steamer's old voids are fitted (#148).
 _Avoid_: inset, internal
 
-**Coaming**:
-The raised rim round a hatch: the hatch's opening in the flood model has its sill on it, so
-the space under the hatch stays dry from above until the sea stands over the coaming.
-_Avoid_: lip, kerb
+**Scuttle**:
+A small hatch into a space under a deck, battened and dogged: shut in the flood model, it
+weeps once the water over it tops its coaming and gives way under more, while bodies pass
+through it as through a doorway (#148).
+_Avoid_: trapdoor, manhole (a manhole is the open hole in a tank top)
