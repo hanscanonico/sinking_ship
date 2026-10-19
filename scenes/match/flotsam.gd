@@ -159,11 +159,13 @@ func _go_under_if_shallow(index: int) -> void:
 			return
 
 
-## Every piece gone.
+## Every piece gone, and the ship as last stepped forgotten.
 func clear() -> void:
 	for index in CAP:
 		_state[index] = State.IDLE
 		_pieces[index].visible = false
+	_ship = Transform3D.IDENTITY
+	_stepped = false
 
 
 ## Moves every piece on by [param delta] seconds.
