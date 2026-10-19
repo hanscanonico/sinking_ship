@@ -21,6 +21,11 @@ const TWEEN_TOP := 0.21
 ## beyond the edge of a deck beside it where anything flat would look like a floor to
 ## step down to — and how deep the cargo is drawn: what shows from below.
 const RACK := 0.55
+## A stair climbing within this of a hull side breaks its racks: a body on it reaches
+## there (EngineRoom.STAIR_REACH).
+const STAIR_REACH := 0.8
+## And a rack stops this far short of the stair, past a body's reach from its side.
+const RACK_CLEAR := 0.4
 const STOW_BACK := 0.95
 const STOW_DEPTH := 1.2
 ## The modelled stowed crates (assets/models/stowed_crate_NN), by their side: each NN
@@ -94,14 +99,20 @@ func build(mesh: ShipMesh, room: ShipRoom) -> void:
 	_hatch_beams(mesh, room)
 
 
-## Racks along [param wall], a hull side, over head height and short of
-## [param tween], each a board on knees from the wall stowed with sacks and lashed
-## crates under the beams.
+## Racks along [param wall], a hull side, over head height, short of [param tween]
+## and clear of any stair beside it, each a board on knees from the wall stowed with
+## sacks and lashed crates under the beams.
 func _racks(mesh: ShipMesh, wall: RoomDressing.Wall, tween: Rect2) -> void:
 	var end := wall.to - 0.2
 	if tween.has_area():
 		end = minf(end, tween.position.x - 0.3)
-	var from := wall.from + 0.3
+	var along := Vector2(wall.from + 0.3, end)
+	for run: Vector2 in RoomDressing.clear_of_stairs(_layout, wall, along, STAIR_REACH, RACK_CLEAR):
+		_rack(mesh, wall, run.x, run.y)
+
+
+## One rack along [param wall] from [param from] to [param end], when a metre or more.
+func _rack(mesh: ShipMesh, wall: RoomDressing.Wall, from: float, end: float) -> void:
 	if end - from < 1.0:
 		return
 	var shelf := RoomDressing.HEADROOM + 0.05
@@ -139,9 +150,9 @@ func _racks(mesh: ShipMesh, wall: RoomDressing.Wall, tween: Rect2) -> void:
 		slot += 1
 
 
-## The part of [param room] whose ceiling stands TWEEN_ROOM or more over its floor,
-## clear of its walls, blockers and stairs: where a tween deck spans it, wall to
-## wall; an empty Rect2 when none does.
+## The part of [param room] whose ceiling — the deck over it, no other between —
+## stands TWEEN_ROOM or more over its floor, clear of its walls, blockers and stairs:
+## where a tween deck spans it, wall to wall; an empty Rect2 when none does.
 func _tween_area(room: ShipRoom) -> Rect2:
 	var floor := room.floor_height
 	var inner := room.area.grow(-ShipSpace.WALL_MAX * 0.5 + 0.05)
@@ -149,6 +160,10 @@ func _tween_area(room: ShipRoom) -> Rect2:
 		if platform.height - floor < TWEEN_ROOM or not platform.area.intersects(inner):
 			continue
 		var area := platform.area.intersection(inner)
+		var middle := area.get_center()
+		if _space.ceiling(room, middle.x, middle.y) < platform.height - ShipMesh.SLIVER:
+			# Another deck stands between: a hold fitted under a lower one (#148).
+			continue
 		for blocker: ShipBlocker in _layout.blockers:
 			if blocker.shape != ShipBlocker.Shape.BOX or not blocker.area.intersects(area):
 				continue

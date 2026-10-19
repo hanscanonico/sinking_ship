@@ -16,3 +16,7 @@ enum Shape { BOX, CYLINDER }
 ## The heights its underside and its top stand at.
 @export var bottom: float
 @export var top: float
+## Fitted inside her lines: her hull (ShipHull) is lofted round her decks and what
+## stood in her before, never round this, which stands where her hull already lets it
+## (#148). No rule reads it.
+@export var fitted: bool

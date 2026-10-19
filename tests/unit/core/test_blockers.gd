@@ -70,11 +70,16 @@ func test_a_raised_deck_is_a_wall_from_the_deck_below() -> void:
 	# Walked square into the after face of the forecastle, which stands taller than
 	# a body, and the forward face of the poop deck, which does not — each clear of
 	# its ramps and of the companionway openings. Neither is walked onto, under or off.
+	# Each deck laid round its hatches is in pieces (#148): its face is its pieces'.
 	var faces := {&"forecastle": [Vector2.RIGHT, 3.5], &"poop deck": [Vector2.LEFT, 1.2]}
 	for deck_name: StringName in faces:
-		var deck := layout.platforms[SimFixtures.platform_named(layout, deck_name)]
 		var direction: Vector2 = faces[deck_name][0]
-		var face := deck.area.position.x if direction == Vector2.RIGHT else deck.area.end.x
+		var face := INF if direction == Vector2.RIGHT else -INF
+		for deck: ShipPlatform in layout.platforms:
+			if deck.name == deck_name and direction == Vector2.RIGHT:
+				face = minf(face, deck.area.position.x)
+			elif deck.name == deck_name:
+				face = maxf(face, deck.area.end.x)
 		var sim := _steamer_sim(2)
 		SimFixtures.place(sim, 0, Vector3(face - direction.x * 1.5, 0.0, faces[deck_name][1]))
 		var events := SimFixtures.step(sim, {0: SimFixtures.frame(0, direction)}, 2 * Ticks.RATE)
@@ -99,10 +104,12 @@ func test_a_body_fits_between_the_hatch_and_the_boat_deck_ramps() -> void:
 	var hatch := _blocker(ShipBlocker.Shape.BOX, Vector2(6.0, 0.0))
 	assert_not_null(hatch)
 	# The lane between the hatch's starboard side and the inboard side of the ramp
-	# beside it, walked aft from forward of the hatch: the strip between the hatch and
-	# the deckhouse is never a pocket a body cannot leave.
+	# beside it on the main deck, walked aft from forward of the hatch: the strip between
+	# the hatch and the deckhouse is never a pocket a body cannot leave.
 	var ramp_side := INF
 	for ramp: ShipRamp in layout.ramps:
+		if minf(ramp.end_point(0).y, ramp.end_point(1).y) < 0.0:
+			continue
 		var beside := (
 			ramp.area.position.x < hatch.area.end.x and ramp.area.end.x > hatch.area.position.x
 		)

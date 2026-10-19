@@ -344,7 +344,7 @@ func _windows(mesh: ShipMesh, room: ShipRoom) -> void:
 	var height := room.floor_height + WINDOW_HEIGHT
 	var kind := RoomDressing.kind_of(_space, room)
 	var helm := kind == RoomDressing.Kind.HELM
-	for run: Array in _space.wall_runs(room):
+	for run: Array in _space.wall_runs(room, true):
 		var side: int = run[0]
 		var half: float = run[3]
 		var outward := ShipSpace.outward(side)

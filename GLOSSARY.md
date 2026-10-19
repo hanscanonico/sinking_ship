@@ -41,3 +41,18 @@ Wherever a floor has headroom to crawl but not to stand: less than the rules'
 `crawl_speed`, and cannot jump; it follows from where the body is, never from a button. A
 room holding one is marked a crawl space for the lint and the bots' routes.
 _Avoid_: crouch, crawlway, duct
+
+### Her hull and the ways into her
+
+**Fitted**:
+Said of a platform, ramp or blocker that stands inside a hull's lines where they already
+leave room for it: her drawn hull is lofted round everything else, never round it, so her
+sections stay as they are. The spaces in the steamer's old voids are fitted (#148).
+_Avoid_: inset, internal
+
+**Scuttle**:
+A small hatch into a space under a deck, battened and dogged watertight: shut in the flood
+model, never weeping or giving way, so the space under it floods as it did before it was a
+place, while bodies pass through it as through a doorway (#148). A manhole in a tank top
+is one.
+_Avoid_: trapdoor

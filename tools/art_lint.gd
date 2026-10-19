@@ -425,10 +425,13 @@ func _check_panes(file: String, layout: ShipLayout, rules: BrawlRules) -> void:
 ## Past each of [param layout]'s platforms' edges, wherever the rules have no stair
 ## and no platform within a step down or a jump up of it, the highest face
 ## [param art] shows in that band, straight down, does not face up: nothing drawn
-## looks like deck a body could stand on where the rules have none (D6).
+## looks like deck a body could stand on where the rules have none (D6). Past an edge
+## walled from the deck to over a jump no body goes, so nothing there is looked at: a
+## space fitted in behind her hold's wall, or her hull behind a peak's (#148).
 func _check_false_floor(art: ShipArt, file: String, layout: ShipLayout, rules: BrawlRules) -> void:
 	var faces := _ship_faces(art, true)
 	var cells := FaceCells.file(faces)
+	var space := ShipSpace.new(layout)
 	var ends := Vector2(INF, -INF)
 	for platform: ShipPlatform in layout.platforms:
 		ends = Vector2(minf(ends.x, platform.area.position.x), maxf(ends.y, platform.area.end.x))
@@ -439,6 +442,9 @@ func _check_false_floor(art: ShipArt, file: String, layout: ShipLayout, rules: B
 		_checks += 1
 		for point in _beyond(platform.area, ends):
 			if _floor_near(layout, point, low, high):
+				continue
+			var edge := point.clamp(platform.area.position, platform.area.end)
+			if space.walled_between(edge, point, platform.height, high):
 				continue
 			if [low, platform.height, high].any(
 				func(y: float) -> bool: return _in_structure(layout, Vector3(point.x, y, point.y))

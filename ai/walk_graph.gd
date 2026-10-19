@@ -220,9 +220,12 @@ func deck_of(platform: int) -> int:
 	return _decks[platform]
 
 
-## The deck area of [param platform], in m².
+## The deck area of [param platform], in m²: none for a floor fitted inside her lines
+## (#148) — her deck area is her decks', so how much of her is under reads as it did
+## before her old voids were places.
 func platform_area(platform: int) -> float:
-	return _layout.platforms[platform].area.get_area()
+	var deck := _layout.platforms[platform]
+	return 0.0 if deck.fitted else deck.area.get_area()
 
 
 ## Every portal, in the order they were found.

@@ -108,15 +108,20 @@ func test_nothing_drawn_past_the_end_railings_turns_up_within_reach() -> void:
 
 
 func test_a_deck_edge_on_the_hull_is_left_to_the_hull() -> void:
+	# The forecastle is in pieces round its hatches (#148): between them, its sides and
+	# its end, never its break over the deck.
+	var hull_side := ShipMesh.NEG_Z | ShipMesh.POS_Z | ShipMesh.POS_X
+	var forecastle := 0
 	for index in _layout.platforms.size():
 		var platform := _layout.platforms[index]
 		var hidden := _hull.hidden_faces(platform)
 		match platform.name:
 			&"forecastle":
-				var hull_side := ShipMesh.NEG_Z | ShipMesh.POS_Z | ShipMesh.POS_X
-				assert_eq(hidden, hull_side, "its sides and its end, not its break over the deck")
+				assert_eq(hidden & ~hull_side, 0, "not its break over the deck")
+				forecastle |= hidden
 			&"boat deck":
 				assert_eq(hidden, 0, "the boat deck stands clear of the hull")
+	assert_eq(forecastle, hull_side, "its sides and its end")
 
 
 ## The decks' x range.
