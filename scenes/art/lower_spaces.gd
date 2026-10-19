@@ -72,29 +72,21 @@ func build(mesh: ShipMesh, room: ShipRoom, kind: RoomDressing.Kind) -> void:
 ## Frames down every wall of [param room] its hull side stands beyond, floor to the deck
 ## over it, flat on the wall; none under a hatch in that deck.
 func _frames(mesh: ShipMesh, room: ShipRoom) -> void:
-	var middle := room.area.get_center()
-	var roof := _deck_over(middle, room.floor_height)
 	for wall: RoomDressing.Wall in RoomDressing.walls(_space, room):
 		if not wall.outdoors_beyond():
 			continue
 		var along := wall.from + FRAME_SPACING * 0.5
 		while along < wall.to - FRAME.x:
 			var foot := wall.at(along, 0.0)
-			var deck := _deck_over(Vector2(foot.x, foot.z), room.floor_height)
-			if is_equal_approx(deck, roof):
-				var frame := wall.rect(along - FRAME.x * 0.5, along + FRAME.x * 0.5, 0.0, FRAME.y)
-				RoomDressing.block(mesh, frame, room.floor_height, deck - ShipArt.PLANK, _rib())
+			var over := _space.roof(room, foot.x, foot.z)
+			if over != -1:
+				var deck := _layout.platforms[over].height
+				if _space.hatch_over(room, foot.x, foot.z) >= deck:
+					var frame := wall.rect(
+						along - FRAME.x * 0.5, along + FRAME.x * 0.5, 0.0, FRAME.y
+					)
+					RoomDressing.block(mesh, frame, room.floor_height, deck - ShipArt.PLANK, _rib())
 			along += FRAME_SPACING
-
-
-## The height of the lowest deck over ship point [param at] above [param over], or
-## NAN where nothing roofs it.
-func _deck_over(at: Vector2, over: float) -> float:
-	var lowest := INF
-	for platform: ShipPlatform in _layout.platforms:
-		if platform.height > over + ShipMesh.SLIVER and platform.contains(at.x, at.y):
-			lowest = minf(lowest, platform.height)
-	return lowest if lowest < INF else NAN
 
 
 ## The shaft standing over [param blocker]'s footprint along her, its top the

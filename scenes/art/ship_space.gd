@@ -33,6 +33,8 @@ var _slabs := {}
 ## Per room, the hatches in a deck over its floor over its area, each as its
 ## [footprint, height]: the only ones ceiling() need look at.
 var _hatches := {}
+## Her walls, gathered the first time walled_between() is asked.
+var _walls: Array[ShipBlocker] = []
 
 
 func _init(ship: ShipLayout) -> void:
@@ -69,18 +71,17 @@ func indoors(area: Rect2, height: float) -> float:
 
 
 ## The underside of what roofs [param room] over (x, z): the lowest deck standing
-## over its floor there, or OPEN_ROOM_HEIGHT above its floor where none does — but the
-## deck a hatch is in over it, where it stands under the hatch (#148) — or a slab
-## roofing it lower than any (the trawler's wheelhouse roof).
+## over its floor there, or OPEN_ROOM_HEIGHT above its floor where none does — but,
+## under a hatch, the deck it is in where no deck stands lower over it (#148) — or a
+## slab roofing it lower than any (the trawler's wheelhouse roof).
 func ceiling(room: ShipRoom, x: float, z: float) -> float:
 	var over := roof(room, x, z)
 	var height := room.floor_height + OPEN_ROOM_HEIGHT
 	if over != -1:
 		height = layout.platforms[over].height
-	else:
-		var hatch := _hatch_over(room, x, z)
-		if hatch < INF:
-			height = hatch
+	var hatch := hatch_over(room, x, z)
+	if hatch < INF and (over == -1 or hatch < height):
+		height = hatch
 	if not _slabs.has(room):
 		var slabs := PackedInt32Array()
 		for index in layout.blockers.size():
@@ -98,7 +99,7 @@ func ceiling(room: ShipRoom, x: float, z: float) -> float:
 
 
 ## The height of the lowest hatch over [param room]'s floor over (x, z), or INF.
-func _hatch_over(room: ShipRoom, x: float, z: float) -> float:
+func hatch_over(room: ShipRoom, x: float, z: float) -> float:
 	if not _hatches.has(room):
 		var hatches := []
 		if layout.structure != null:
@@ -217,9 +218,13 @@ func is_wall(blocker: ShipBlocker) -> bool:
 ## standing from [param bottom] or under to [param top] or over: a body on a deck at
 ## [param bottom] goes no further.
 func walled_between(from: Vector2, to: Vector2, bottom: float, top: float) -> bool:
+	if _walls.is_empty():
+		for blocker: ShipBlocker in layout.blockers:
+			if is_wall(blocker):
+				_walls.append(blocker)
 	var between := Rect2(from, Vector2.ZERO).expand(to).grow(0.001)
-	for blocker: ShipBlocker in layout.blockers:
-		if is_wall(blocker) and blocker.area.intersects(between):
+	for blocker: ShipBlocker in _walls:
+		if blocker.area.intersects(between):
 			if blocker.bottom <= bottom + SLIVER and blocker.top >= top:
 				return true
 	return false
