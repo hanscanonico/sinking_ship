@@ -30,6 +30,9 @@ var _over := {}
 ## Per room, the slabs, by blocker index, over its floor and over its area: the only
 ## ones ceiling() need look at, gathered the first time it is asked.
 var _slabs := {}
+## Per room, the hatches in a deck over its floor over its area, each as its
+## [footprint, height]: the only ones ceiling() need look at.
+var _hatches := {}
 
 
 func _init(ship: ShipLayout) -> void:
@@ -66,13 +69,16 @@ func indoors(area: Rect2, height: float) -> float:
 
 
 ## The underside of what roofs [param room] over (x, z): the lowest deck standing
-## over its floor there, or OPEN_ROOM_HEIGHT above its floor where none does — or a
-## slab roofing it lower than either (the trawler's wheelhouse roof).
+## over its floor there, or OPEN_ROOM_HEIGHT above its floor where none does — but the
+## deck a hatch is in over it, where it stands under the hatch (#148) — or a slab
+## roofing it lower than any (the trawler's wheelhouse roof).
 func ceiling(room: ShipRoom, x: float, z: float) -> float:
 	var over := roof(room, x, z)
 	var height := room.floor_height + OPEN_ROOM_HEIGHT
 	if over != -1:
 		height = layout.platforms[over].height
+	else:
+		height = minf(height, _hatch_over(room, x, z))
 	if not _slabs.has(room):
 		var slabs := PackedInt32Array()
 		for index in layout.blockers.size():
@@ -87,6 +93,30 @@ func ceiling(room: ShipRoom, x: float, z: float) -> float:
 		if slab.bottom < height and slab.area.grow(INSIDE).has_point(Vector2(x, z)):
 			height = slab.bottom
 	return height
+
+
+## The height of the lowest hatch over [param room]'s floor over (x, z), or INF.
+func _hatch_over(room: ShipRoom, x: float, z: float) -> float:
+	if not _hatches.has(room):
+		var hatches := []
+		if layout.structure != null:
+			for opening: ShipOpening in layout.structure.openings:
+				var at := opening.centre
+				var size := Vector2(opening.size.x, opening.size.z)
+				var footprint := Rect2(Vector2(at.x, at.z) - size * 0.5, size)
+				var over := at.y > room.floor_height + SLIVER
+				if (
+					opening.kind == ShipOpening.Kind.HATCH
+					and over
+					and footprint.intersects(room.area)
+				):
+					hatches.append([footprint.grow(INSIDE), at.y])
+		_hatches[room] = hatches
+	var lowest := INF
+	for hatch: Array in _hatches[room]:
+		if (hatch[0] as Rect2).has_point(Vector2(x, z)):
+			lowest = minf(lowest, hatch[1])
+	return lowest
 
 
 ## The platform, by index, that roofs [param room] over (x, z): the lowest deck
