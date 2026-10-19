@@ -7,6 +7,12 @@ extends RefCounted
 ## down as the pose says (ShipPose.felled); the strip's way is the schedule's.
 ## Ship-local metres (D6).
 
+## How far, in metres, a funnel's foot may sit under the bottom of the blocker it stands
+## on, and must sit under its top: its foot is single precision, the blocker's heights
+## double — the trawler's stack stands at 2.3 m, its foot at 2.2999999523 (#142) — and a
+## foot that close to a blocker's top stands on it, not in it.
+const FOOT_SLACK := 0.001
+
 ## Per funnel of the layout's structure, the layout's blocker it stands on, -1 for none;
 ## and the falls the pose last honoured has landed.
 var _funnels: Array[ShipFitting] = []
@@ -29,13 +35,15 @@ func _init(layout: ShipLayout) -> void:
 
 
 ## Whether [param fitting] — a funnel — stands on [param blocker]: its foot within the
-## blocker's round and its height.
+## blocker's round and its height, FOOT_SLACK lower at both ends.
 static func stands_on(fitting: ShipFitting, blocker: ShipBlocker) -> bool:
 	if blocker.shape != ShipBlocker.Shape.CYLINDER:
 		return false
 	var foot := Vector2(fitting.base.x, fitting.base.z)
 	var round := foot.distance_to(blocker.centre) <= blocker.radius
-	return round and fitting.base.y >= blocker.bottom and fitting.base.y < blocker.top
+	var from := blocker.bottom - FOOT_SLACK
+	var to := blocker.top - FOOT_SLACK
+	return round and fitting.base.y >= from and fitting.base.y < to
 
 
 ## Takes the falls [param pose] has landed of its funnels — a piece of her has its own
