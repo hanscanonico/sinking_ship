@@ -63,8 +63,11 @@ const BLOCK := Vector3(0.1, 0.16, 0.08)
 ## A break in the decks: a deck at least BREAK_LEAST over the one at its end, found
 ## BREAK_STEP at a time along its edge, along at least BREAK_SPAN of it; its teak cap
 ## rail, how far proud and how deep, stopping STAIR_GAP short of a stair; a door's
-## size; a vent's half size.
+## size; a vent's half size. A deck between a deck and the one at its end, under its
+## edge's last BREAK_OVERHANG, makes the face that deck's: the deck over it is stacked
+## on it or overhangs it, no break.
 const BREAK_LEAST := 0.3
+const BREAK_OVERHANG := 1.0
 const BREAK_STEP := 0.5
 const BREAK_SPAN := 0.6
 const CAP_PROUD := 0.07
@@ -114,6 +117,8 @@ var _depth: float
 ## Every pane of glass, as seen from inside its room: [room, centre, normal into the
 ## room, whether a porthole, its half size].
 var panes: Array[Array] = []
+## Every door fitted in a break's face: [the foot of its sill's middle, its normal].
+var break_doors: Array[Array] = []
 ## The middles of the portholes the hit left open: drawn open, their glass swung in.
 var _open_ports := PackedVector3Array()
 
@@ -147,10 +152,11 @@ func build(mesh: ShipMesh, ship: Node3D = null, paints := {}) -> void:
 	_ground_tackle(mesh)
 
 
-## Where a deck ends over a lower one with no room of that deck's under its edge —
-## a break in the decks, as a poop's forward face or a forecastle's after face — on
-## [param space]: per break [x, from z, to z, foot, head, out], its face along x
-## between the decks' heights, facing out (1 toward the bow, -1 toward the stern).
+## Where a deck ends over a lower one with no room of that deck's under its edge, and
+## no deck between them ending under it — a break in the decks, as a poop's forward
+## face or a forecastle's after face — on [param space]: per break [x, from z, to z,
+## foot, head, out], its face along x between the decks' heights, facing out (1 toward
+## the bow, -1 toward the stern).
 static func breaks(space: ShipSpace) -> Array:
 	var found := []
 	for platform: ShipPlatform in space.layout.platforms:
@@ -162,6 +168,8 @@ static func breaks(space: ShipSpace) -> Array:
 			while z < area.end.y:
 				var foot := space.deck_under(Vector2(x + out * 0.05, z), platform.height)
 				if platform.height - foot < BREAK_LEAST:
+					foot = NAN
+				if not is_nan(foot) and _deck_between(space, platform, foot, x, z, out):
 					foot = NAN
 				if not is_nan(foot):
 					var room := RoomDressing.room_at(space, Vector3(x - out * 0.3, foot + 1.0, z))
@@ -178,6 +186,26 @@ static func breaks(space: ShipSpace) -> Array:
 			if not run.is_empty():
 				found.append(run)
 	return found.filter(func(run: Array) -> bool: return run[2] - run[1] >= BREAK_SPAN)
+
+
+## Whether a deck higher than [param foot] and lower than [param platform] lies under
+## the last BREAK_OVERHANG of its edge at [param x], [param z], facing [param out].
+static func _deck_between(
+	space: ShipSpace, platform: ShipPlatform, foot: float, x: float, z: float, out: float
+) -> bool:
+	var inner := minf(x, x - out * BREAK_OVERHANG)
+	var outer := maxf(x, x - out * BREAK_OVERHANG)
+	for other: ShipPlatform in space.layout.platforms:
+		var area := other.area
+		if other.height <= foot + ShipSpace.SLIVER:
+			continue
+		if other.height >= platform.height - ShipSpace.SLIVER:
+			continue
+		if z < area.position.y or z > area.end.y:
+			continue
+		if area.end.x > inner + ShipSpace.SLIVER and area.position.x < outer - ShipSpace.SLIVER:
+			return true
+	return false
 
 
 ## A break's face fitted out, but where a stair climbs it: a teak cap rail along the
@@ -223,6 +251,7 @@ func _fit_break(mesh: ShipMesh, found: Array) -> void:
 func _break_door(mesh: ShipMesh, sill: Vector3, normal: Vector3) -> void:
 	var turn := RoomDressing.facing(normal)
 	mesh.model(ShipModel.named(BREAK_DOOR_MODEL), Transform3D(turn, sill))
+	break_doors.append([sill, normal])
 
 
 ## The ground tackle on the deck at the bow, all of it lying flat, under a toe rail's
