@@ -10,7 +10,7 @@ must 3 thrown · 3 bakes · drawn
 02:51.8 seat 3 out · cold · place 3
 02:51.8 seat 5 out · cold · place 3
 02:55.8 seat 1 out · cold · place 2
-winner seat 2 at 02:55.8 · digest 1c64a2e427339ccb
+winner seat 2 at 02:55.8 · digest 9551f4cb61bc7150
 sinking at the end of the match: physics 0:02:13 (= match time, Q20 deferred) · seen 13% · sea 0.01 m up her · trim +0.1° · list -0.0° · hold_bilge 0.04 m · forepeak 0.10 m
-not played: gone at 0:17:18 · trim +85.4° · list -0.3° · founders by the head · fast · lights out · funnel fell
-bending peak 0.06 of strength, x -1.0 m, hogging
+not played: gone at 0:17:27 · trim +85.5° · list +1.0° · founders by the head · fast · lights out · funnel fell
+bending peak 0.07 of strength, x -1.0 m, hogging
