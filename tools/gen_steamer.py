@@ -260,16 +260,16 @@ BILGE_HATCHES = [(-12.1, -9.9, -3.2, -2.1), (-5.5, -4.4, -3.65, -1.85),
                  (-12.1, -9.9, 2.1, 3.2), (-5.5, -4.4, 1.85, 3.65)]
 # The hold's wing passages run along her shell under the main deck, a hatch at either
 # end, each stair's top at the passage's end (aft x0, forward x1). WING_SHELL is the
-# passage's outboard side, the lining on her frames: her shell leaves room for a body
-# beside the hold's wall only that high and that far forward.
+# passage's outboard side, the middle of the lining on her frames: her shell leaves room
+# for a body beside the hold's wall only that high and that far forward.
 WING = (4.0, 6.8)
-WING_SHELL = 4.85
+WING_SHELL = 4.82
 WING_HATCHES = [(4.0, 5.2), (5.6, 6.8)]
 # The steering gear's two stairs up through the poop, to their tops at x1, and the
 # forepeak's through the forecastle, to their tops at x0 — each deck cut only between its
 # railings' span ends, so no railing moves.
 POOP_HATCHES = [(-17.0, -14.9, -1.2, -0.1), (-17.0, -14.9, 0.1, 1.2)]
-FCSL_HATCHES = [(15.2, 16.95, -2.6, -1.5), (15.2, 16.95, 1.5, 2.6)]
+FCSL_HATCHES = [(15.2, 17.0, -2.6, -1.5), (15.2, 17.0, 1.5, 2.6)]
 
 def wall_x(bid, x, z0, z1, bottom, top, fitted=False):
     """A wall along x = const from z0 to z1 (centre line), ends overlapping corners."""
@@ -297,8 +297,8 @@ def wall_z_doors(bid, z, x0, x1, doors, bottom, top, fitted=False):
 
 # --- Platforms. The first five are SH3's, in SH3's order; the main deck is now
 # rectangles round three stair openings, every one of them named "main deck".
-WING_MAIN = [(a, b, -WING_SHELL + 0.02, -3.9) for a, b in WING_HATCHES]
-WING_SS = [(a, b, 3.9, WING_SHELL - 0.02) for a, b in WING_HATCHES]
+WING_MAIN = [(a, b, -WING_SHELL + 0.05, -3.9) for a, b in WING_HATCHES]
+WING_SS = [(a, b, 3.9, WING_SHELL - 0.05) for a, b in WING_HATCHES]
 MAIN = holed("main_deck", "main deck", -14, 12, -5, -1.6, 0.0, WING_MAIN, (3.7, 8.5))  # the port strip
 POOP = holed("poop_deck", "poop deck", -20, -14, -4.5, 4.5, 1.2, POOP_HATCHES, (-17,))
 FCSL = holed("forecastle", "forecastle", 12, 20, -4, 4, 1.8, FCSL_HATCHES, (14.5, 17))
@@ -817,7 +817,7 @@ for side, z0, z1 in [("port", -LINING, 0), ("starboard", 0, LINING)]:
     platform("double_bottom_" + side, "double bottom", -3, 4, z0, z1, BILGE_FLOOR, True)
 wall_x("double_bottom_aft", -3, -LINING, LINING, BILGE_FLOOR, TANK_TOP, True)
 wall_x("double_bottom_forward", 4, -LINING, LINING, BILGE_FLOOR, TANK_TOP, True)
-wall_z("girder_stokehold", 0, -3, 4, BILGE_FLOOR, TANK_TOP, True)
+box("girder_stokehold", -3 + T, 4 - T, -T, T, BILGE_FLOOR, TANK_TOP, True)
 wall_z("double_bottom_port", -LINING, -3 + T, 4 - T, BILGE_FLOOR, TANK_TOP, True)
 wall_z("double_bottom_starboard", LINING, -3 + T, 4 - T, BILGE_FLOOR, TANK_TOP, True)
 for k, (x0, x1, z0, z1) in enumerate(MANHOLES):
@@ -834,13 +834,19 @@ x0, x1, z0, z1 = LOWER_HOLD_HATCHES[1]
 ramp("lower_hold_forward", x1 - 3.3, z0, 3.3, z1 - z0, 0, BILGE_FLOOR, LOWER, True)
 # The bilges under the aft cabins: the shaft tunnel to port, stores to starboard, either
 # side of her girder.
-BILGE_SIDE = 3.7
+BILGE_SIDE = 3.8
 platform("shaft_tunnel", "shaft tunnel", -13, -3, -BILGE_SIDE, 0, BILGE_FLOOR, True)
 platform("bilge_stores", "stores", -13, -3, 0, BILGE_SIDE, BILGE_FLOOR, True)
 wall_x("bilge_aft", -13, -BILGE_SIDE, BILGE_SIDE, BILGE_FLOOR, LOWER, True)
-wall_z("girder", 0, -13, -3, BILGE_FLOOR, GIRDER_TOP, True)
+# Its girder runs from the after bulkhead's face to 0.3 m short of the engine room's —
+# too narrow a gap for a body — its top under the lower deck.
+box("girder", -13 + T, -3 - T - 0.3, -T, T, BILGE_FLOOR, GIRDER_TOP, True)
 for side, z in [("port", -BILGE_SIDE), ("starboard", BILGE_SIDE)]:
     wall_z("bilge_" + side, z, -13 + T, -3 - T, BILGE_FLOOR, LOWER, True)
+# Her propeller shaft runs aft down the shaft tunnel beside her girder on its plummer
+# blocks, as high as a body's hip: a body goes round it (est.).
+SHAFT = (-0.55, -0.1, 0.85)  # z0, z1, its top over the floor
+box("shaft", -13 + T, -3 - T, SHAFT[0], SHAFT[1], BILGE_FLOOR, BILGE_FLOOR + SHAFT[2], True)
 for k, (x0, x1, z0, z1) in enumerate(BILGE_HATCHES):
     if x1 - x0 > z1 - z0:  # along her, from the after cabin
         ramp("bilge_%d" % (k + 1), x0, z0, 3.3, z1 - z0, 0, LOWER, BILGE_FLOOR, True)
@@ -849,13 +855,13 @@ for k, (x0, x1, z0, z1) in enumerate(BILGE_HATCHES):
     else:
         ramp("bilge_%d" % (k + 1), x0, z1 - 2.7, x1 - x0, 2.7, 1, BILGE_FLOOR, LOWER, True)
 # The hold's wing passages, a crawl under the main deck along her shell, the hold's wall
-# inboard and a lining on her frames outboard (est. 4 cm).
+# inboard and a lining on her frames outboard (est. 10 cm).
 WING_FLOOR = -1.0
 for side, sign in [("port", -1), ("starboard", 1)]:
-    inner, shell = sign * 3.9, sign * (WING_SHELL - 0.02)
+    inner, shell = sign * 3.9, sign * (WING_SHELL - 0.05)
     platform("wing_" + side, "side passage", WING[0], WING[1], *sorted((sign * 3.8, sign * WING_SHELL)),
              WING_FLOOR, True)
-    box("wing_%s_shell" % side, WING[0], WING[1] + T, *sorted((sign * (WING_SHELL - 0.02), sign * (WING_SHELL + 0.02))),
+    box("wing_%s_shell" % side, WING[0], WING[1] + T, *sorted((sign * (WING_SHELL - 0.05), sign * (WING_SHELL + 0.05))),
         WING_FLOOR, 0.0, True)
     box("wing_%s_end" % side, WING[1] - T, WING[1] + T, *sorted((inner, shell)), WING_FLOOR, 0.0, True)
     a, b = WING_HATCHES[0]
@@ -876,6 +882,9 @@ wall_x("steering_gear_forward", -14, -4.2, 4.2, STEERING_FLOOR, 0.0, True)
 for side, z in [("port", -4.2), ("starboard", 4.2)]:
     wall_z("steering_gear_" + side, z, -19.8, -14, STEERING_FLOOR, POOP_DECK, True)
 box("poop_break", -14 - T, -14 + T, -4.5, 4.5, 0.0, POOP_DECK)
+# The steering engine on her centreline against the flat's after wall, its quadrant on
+# her rudder's head over it; too tall to climb (est.).
+box("steering_engine", -19.8 + T, -18.9, -0.8, 0.8, STEERING_FLOOR, STEERING_FLOOR + 1.25, True)
 for k, (x0, x1, z0, z1) in enumerate(POOP_HATCHES):
     ramp("poop_%d" % (k + 1), x1 - 2.6, z0, 2.6, z1 - z0, 0, STEERING_FLOOR, POOP_DECK, True)
 STORES_HATCH = (-16.4, -14.25, -1.1, 1.1)
@@ -904,10 +913,15 @@ for side, z in [("port", -2.7), ("starboard", 2.7)]:
     wall_z("bosuns_store_" + side, z, 15 + T, 19.9, BOSUN_FLOOR, FCSL_DECK, True)
 for k, (x0, x1, z0, z1) in enumerate(FCSL_HATCHES):
     ramp("forecastle_hatch_%d" % (k + 1), x0, z0, 3.3, z1 - z0, 0, FCSL_DECK, BOSUN_FLOOR, True)
-platform("chain_locker", "chain locker", 15, 19, -1.2, 1.2, LOCKER_FLOOR, True)
-wall_x("chain_locker_forward", 19, -1.2, 1.2, LOCKER_FLOOR, BOSUN_FLOOR, True)
-for side, z in [("port", -1.2), ("starboard", 1.2)]:
+LOCKER_SIDE = 1.8
+platform("chain_locker", "chain locker", 15, 19, -LOCKER_SIDE, LOCKER_SIDE, LOCKER_FLOOR, True)
+wall_x("chain_locker_forward", 19, -LOCKER_SIDE, LOCKER_SIDE, LOCKER_FLOOR, BOSUN_FLOOR, True)
+for side, z in [("port", -LOCKER_SIDE), ("starboard", LOCKER_SIDE)]:
     wall_z("chain_locker_" + side, z, 15 + T, 19, LOCKER_FLOOR, BOSUN_FLOOR, True)
+# Either side of its stairs a bin the cable is stowed in, up to the bosun's store's
+# floor, which its spurling pipe pays it out through to the windlass (est.).
+for side, z0, z1 in [("port", -LOCKER_SIDE + T, -1.25), ("starboard", 1.25, LOCKER_SIDE - T)]:
+    box("chain_bin_" + side, 16.0, 18.6, z0, z1, LOCKER_FLOOR, BOSUN_FLOOR, True)
 for k, (z0, z1) in enumerate([(-1.1, 0), (0, 1.1)]):
     ramp("chain_locker_%d" % (k + 1), LOCKER_HATCH[1] - 3.0, z0, 3.0, z1 - z0, 0, LOCKER_FLOOR, BOSUN_FLOOR, True)
 
@@ -949,7 +963,7 @@ room("steering_gear", "steering gear", -19.8, -14, -4.2, 4.2, STEERING_FLOOR)
 room("aft_stores", "aft stores", -18.9, -13, -3.0, 3.0, AFT_STORES_FLOOR)
 room("lower_aft_stores", "lower aft stores", -16.5, -13, -1.2, 1.2, LOWER_STORES_FLOOR)
 room("bosuns_store", "bosun's store", 15, 19.9, -2.7, 2.7, BOSUN_FLOOR)
-room("chain_locker", "chain locker", 15, 19, -1.2, 1.2, LOCKER_FLOOR)
+room("chain_locker", "chain locker", 15, 19, -LOCKER_SIDE, LOCKER_SIDE, LOCKER_FLOOR)
 
 def f32(v):
     return struct.unpack("f", struct.pack("f", v))[0]
