@@ -44,6 +44,10 @@ enum Kind {
 	BOILER,
 	BATH,
 	SQUASH,
+	TANK,
+	SHAFT,
+	STEERING,
+	LOCKER,
 }
 ## What of a room a face is: its walls, its floor, its ceiling, its beams.
 enum Part { WALL, FLOOR, OVERHEAD, BEAM }
@@ -77,6 +81,13 @@ const NAMED: Array[Array] = [
 	["entrance", Kind.PUBLIC],
 	["general room", Kind.PUBLIC],
 	["open space", Kind.PUBLIC],
+	# The spaces in her old voids (#148, LowerSpaces): her stores are holds.
+	["double bottom", Kind.TANK],
+	["side passage", Kind.TANK],
+	["shaft tunnel", Kind.SHAFT],
+	["steering gear", Kind.STEERING],
+	["chain locker", Kind.LOCKER],
+	["store", Kind.HOLD],
 	["engine", Kind.ENGINE],
 	# Ahead of "hold": a stokehold is where her engine stands, no cargo hold.
 	["stokehold", Kind.ENGINE],
@@ -261,6 +272,7 @@ var _berths: LinerBerths
 var _boiler: LinerBoiler
 var _bath: LinerBath
 var _squash: LinerSquash
+var _lower: LowerSpaces
 ## How many lower-deck cabins build() has dressed so far: the next one's number.
 var _cabin_count := 0
 
@@ -282,6 +294,7 @@ func _init(space: ShipSpace, cut_above := INF) -> void:
 	_boiler = LinerBoiler.new(_engine)
 	_bath = LinerBath.new(space, _cabins)
 	_squash = LinerSquash.new(space, _cabins)
+	_lower = LowerSpaces.new(space)
 	for room: ShipRoom in _layout.rooms:
 		var kind := kind_of(space, room)
 		_kinds.append(kind)
@@ -401,9 +414,12 @@ static func _linings(kind: Kind) -> Array[ShipMesh.Paint]:
 		Kind.ENGINE:
 			paints.assign([ShipPaints.bulkhead, ShipPaints.checker_plate])
 			paints.append_array([ShipPaints.steel_overhead, ShipPaints.steel_beam])
-		Kind.HOLD:
+		Kind.HOLD, Kind.TANK, Kind.LOCKER:
 			paints.assign([ShipPaints.hold_wall, ShipPaints.hold_floor])
 			paints.append_array([ShipPaints.hold_overhead, null])
+		Kind.SHAFT, Kind.STEERING:
+			paints.assign([ShipPaints.bulkhead, ShipPaints.checker_plate])
+			paints.append_array([ShipPaints.steel_overhead, ShipPaints.steel_beam])
 		Kind.HELM:
 			paints.assign([ShipPaints.panelling, null, null, null])
 		Kind.DINING:
@@ -514,10 +530,14 @@ func build(mesh: ShipMesh, signs: Node3D, panes: Array[Array]) -> void:
 				_bath.build(mesh, room, glass)
 			Kind.SQUASH:
 				_squash.build(mesh, room, glass)
+			Kind.TANK, Kind.SHAFT, Kind.STEERING, Kind.LOCKER:
+				_lower.build(mesh, room, _kinds[index])
 		# An engine room draws its machinery, a hold its cargo, a dining saloon its
-		# tables (LinerDining.tables()) and a bath its pool (LinerBath.build()); every
-		# other room's furniture is FurnitureDressing's.
-		if _kinds[index] not in [Kind.ENGINE, Kind.HOLD, Kind.DINING, Kind.BATH]:
+		# tables (LinerDining.tables()), a bath its pool (LinerBath.build()) and the
+		# spaces in her old voids their shaft, steering engine and chain bins
+		# (LowerSpaces); every other room's furniture is FurnitureDressing's.
+		var own := [Kind.ENGINE, Kind.HOLD, Kind.DINING, Kind.BATH]
+		if _kinds[index] not in own + [Kind.SHAFT, Kind.STEERING, Kind.LOCKER]:
 			FurnitureDressing.build(mesh, room, _space.furniture(room))
 		var signed := [Kind.ENGINE, Kind.BOILER, Kind.HOLD, Kind.PASSAGE, Kind.FIRST_CORRIDOR]
 		if _kinds[index] in signed:
@@ -670,6 +690,35 @@ func _passage(mesh: ShipMesh, room: ShipRoom) -> void:
 			if not _stair_beside(wall):
 				fire_buckets(mesh, wall, wall.middle())
 				return
+
+
+## The stretches of [param run] along [param wall] clear of every stair of
+## [param layout] climbing within [param reach] of it, where a body on the stair would
+## stand in what hangs on the wall over a floor's head height, and [param margin] past
+## either end of it; none shorter than [param reach].
+static func clear_of_stairs(
+	layout: ShipLayout, wall: Wall, run: Vector2, reach: float, margin := 0.0
+) -> Array[Vector2]:
+	var runs: Array[Vector2] = [run]
+	var near := wall.rect(wall.from, wall.to, 0.0, reach)
+	for ramp: ShipRamp in layout.ramps:
+		if not ramp.area.intersects(near):
+			continue
+		var cut := Vector2(ramp.area.position.x, ramp.area.end.x)
+		if wall.side % 2 == 1:
+			cut = Vector2(ramp.area.position.y, ramp.area.end.y)
+		cut += Vector2(-margin, margin)
+		var left: Array[Vector2] = []
+		for stretch: Vector2 in runs:
+			if cut.y <= stretch.x or cut.x >= stretch.y:
+				left.append(stretch)
+				continue
+			if cut.x - stretch.x >= reach:
+				left.append(Vector2(stretch.x, cut.x))
+			if stretch.y - cut.y >= reach:
+				left.append(Vector2(cut.y, stretch.y))
+		runs = left
+	return runs
 
 
 ## Whether a stair stands beside [param wall] anywhere along it.
