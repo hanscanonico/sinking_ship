@@ -30,6 +30,11 @@ var _over := {}
 ## Per room, the slabs, by blocker index, over its floor and over its area: the only
 ## ones ceiling() need look at, gathered the first time it is asked.
 var _slabs := {}
+## Per room, the hatches in a deck over its floor over its area, each as its
+## [footprint, height]: the only ones ceiling() need look at.
+var _hatches := {}
+## Her walls, gathered the first time walled_between() is asked.
+var _walls: Array[ShipBlocker] = []
 
 
 func _init(ship: ShipLayout) -> void:
@@ -66,13 +71,17 @@ func indoors(area: Rect2, height: float) -> float:
 
 
 ## The underside of what roofs [param room] over (x, z): the lowest deck standing
-## over its floor there, or OPEN_ROOM_HEIGHT above its floor where none does — or a
-## slab roofing it lower than either (the trawler's wheelhouse roof).
+## over its floor there, or OPEN_ROOM_HEIGHT above its floor where none does — but,
+## under a hatch, the deck it is in where no deck stands lower over it (#148) — or a
+## slab roofing it lower than any (the trawler's wheelhouse roof).
 func ceiling(room: ShipRoom, x: float, z: float) -> float:
 	var over := roof(room, x, z)
 	var height := room.floor_height + OPEN_ROOM_HEIGHT
 	if over != -1:
 		height = layout.platforms[over].height
+	var hatch := hatch_over(room, x, z)
+	if hatch < INF and (over == -1 or hatch < height):
+		height = hatch
 	if not _slabs.has(room):
 		var slabs := PackedInt32Array()
 		for index in layout.blockers.size():
@@ -87,6 +96,30 @@ func ceiling(room: ShipRoom, x: float, z: float) -> float:
 		if slab.bottom < height and slab.area.grow(INSIDE).has_point(Vector2(x, z)):
 			height = slab.bottom
 	return height
+
+
+## The height of the lowest hatch over [param room]'s floor over (x, z), or INF.
+func hatch_over(room: ShipRoom, x: float, z: float) -> float:
+	if not _hatches.has(room):
+		var hatches := []
+		if layout.structure != null:
+			for opening: ShipOpening in layout.structure.openings:
+				var at := opening.centre
+				var size := Vector2(opening.size.x, opening.size.z)
+				var footprint := Rect2(Vector2(at.x, at.z) - size * 0.5, size)
+				var over := at.y > room.floor_height + SLIVER
+				if (
+					opening.kind == ShipOpening.Kind.HATCH
+					and over
+					and footprint.intersects(room.area)
+				):
+					hatches.append([footprint.grow(INSIDE), at.y])
+		_hatches[room] = hatches
+	var lowest := INF
+	for hatch: Array in _hatches[room]:
+		if (hatch[0] as Rect2).has_point(Vector2(x, z)):
+			lowest = minf(lowest, hatch[1])
+	return lowest
 
 
 ## The platform, by index, that roofs [param room] over (x, z): the lowest deck
@@ -179,6 +212,22 @@ func is_wall(blocker: ShipBlocker) -> bool:
 		blocker.shape == ShipBlocker.Shape.BOX
 		and minf(blocker.area.size.x, blocker.area.size.y) <= WALL_MAX
 	)
+
+
+## Whether a wall stands between ship-plane points [param from] and [param to],
+## standing from [param bottom] or under to [param top] or over: a body on a deck at
+## [param bottom] goes no further.
+func walled_between(from: Vector2, to: Vector2, bottom: float, top: float) -> bool:
+	if _walls.is_empty():
+		for blocker: ShipBlocker in layout.blockers:
+			if is_wall(blocker):
+				_walls.append(blocker)
+	var between := Rect2(from, Vector2.ZERO).expand(to).grow(0.001)
+	for blocker: ShipBlocker in _walls:
+		if blocker.area.intersects(between):
+			if blocker.bottom <= bottom + SLIVER and blocker.top >= top:
+				return true
+	return false
 
 
 ## Whether nothing of the ship but floor stands in [param area] between
@@ -289,8 +338,9 @@ static func x_reach(blocker: ShipBlocker) -> Vector2:
 ## [side, from, to, half thickness]: side 0 at its least z, 1 at its greatest x,
 ## 2 at its greatest z, 3 at its least x; from and to along the side, merged where
 ## pieces meet and held off the corners by the wall's half thickness. The gaps
-## between runs are its doorways.
-func wall_runs(room: ShipRoom) -> Array:
+## between runs are its doorways. [param glazed], only the walls glass can go in: no
+## lining fitted inside her shell (#148).
+func wall_runs(room: ShipRoom, glazed := false) -> Array:
 	var runs := []
 	var area := room.area
 	for side in 4:
@@ -301,7 +351,7 @@ func wall_runs(room: ShipRoom) -> Array:
 		var pieces: Array[Vector2] = []
 		var half := 0.0
 		for blocker: ShipBlocker in layout.blockers:
-			if not _full_wall_of(blocker, room):
+			if not _full_wall_of(blocker, room) or (glazed and blocker.fitted):
 				continue
 			var box := blocker.area
 			var across_low := box.position.y if along_x else box.position.x

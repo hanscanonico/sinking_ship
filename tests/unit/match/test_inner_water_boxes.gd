@@ -2,9 +2,10 @@ extends GutTest
 ## The boxes the water inside her is drawn in, and the sea is masked out of
 ## (InnerWater.boxes, SeaAndSky): none of any ship of the fleet reaches past her shell —
 ## a cell drawn for its rooms whose box pokes out of her, as the trawler's fore does at
-## her bow, is drawn round its rooms only — and a ship whose room cells stand inside her,
+## her bow, is drawn round its rooms only, each in its own box where one round them all
+## would poke out (the steamer's aft peak) — and a ship whose room cells stand inside her,
 ## the steamer, keeps each cell's whole box, but for her engine room's, which runs out to
-## her shell round the stokehold (#74).
+## her shell round the stokehold (#74), and her old voids', people's places now (#148).
 
 ## How far a drawn box may stand past her shell, in metres.
 const NEAR := 0.01
@@ -36,12 +37,16 @@ func test_no_drawn_box_reaches_past_her_shell() -> void:
 		var sections := structure.sections
 		var stern := sections[0].x - sections[0].length * 0.5
 		var stem := sections[-1].x + sections[-1].length * 0.5
-		var drawn := InnerWater.boxes(structure, layout.rooms)
-		for index in drawn.size():
-			var box := drawn[index]
+		var boxes := InnerWater.boxes(structure, layout.rooms)
+		var drawn: Array = []
+		for index in boxes.size():
+			drawn.append([index, boxes[index]])
+		drawn.append_array(InnerWater.stacked(structure, layout.rooms))
+		for each: Array in drawn:
+			var box: AABB = each[1]
 			if box.size == Vector3.ZERO:
 				continue
-			var cell := "%s's %s" % [ship_name, structure.cells[index].name]
+			var cell := "%s's %s" % [ship_name, structure.cells[each[0]].name]
 			assert_true(box.position.x >= stern - NEAR and box.end.x <= stem + NEAR, cell)
 			for section: HullSection in sections:
 				var half := section.length * 0.5
@@ -70,7 +75,7 @@ func test_a_cell_poking_out_of_her_is_drawn_round_its_rooms() -> void:
 	assert_almost_eq(box.end.z, mess.area.end.y, 1e-5, "starboard")
 
 
-func test_the_steamer_keeps_each_cells_whole_box_but_the_engine_rooms() -> void:
+func test_the_steamer_keeps_each_cells_whole_box_but_those_round_her_shell() -> void:
 	var layout := Fleet.layout(&"steamer")
 	var structure := layout.structure
 	var drawn := InnerWater.boxes(structure, layout.rooms)
@@ -92,7 +97,8 @@ func test_the_steamer_keeps_each_cells_whole_box_but_the_engine_rooms() -> void:
 	var whole := 0
 	for index in drawn.size():
 		var box := drawn[index]
-		if box.size == Vector3.ZERO or index == engine:
+		# Her old voids' boxes are their rooms', as her engine room's is (#148).
+		if box.size == Vector3.ZERO or structure.cells[index].shape < InnerWater.WHOLE:
 			continue
 		whole += 1
 		var cell := structure.cells[index]

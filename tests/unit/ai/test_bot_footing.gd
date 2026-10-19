@@ -72,3 +72,29 @@ func test_the_share_flooded_is_of_her_deck_area() -> void:
 	assert_almost_eq(
 		_footing(layout, surfaces).flooded_share(pose), 4.0 / 204.0, 1e-6, "the well's area"
 	)
+
+
+func test_a_railing_on_the_next_piece_of_deck_stops_the_walk_to_the_edge() -> void:
+	# A deck in two pieces side by side, the railing along the outer one's edge: a walk
+	# from the inner one out to the side meets that railing, not a drop (#148 lays her
+	# decks in pieces round hatches).
+	var layout := ShipLayout.new()
+	layout.freeboard = 3.0
+	var platforms: Array[ShipPlatform] = []
+	for area: Rect2 in [Rect2(-10.0, -3.0, 20.0, 3.0), Rect2(-10.0, 0.0, 20.0, 2.0)]:
+		var deck := ShipPlatform.new()
+		deck.area = area
+		platforms.append(deck)
+	layout.platforms = platforms
+	var railing := ShipRailing.new()
+	railing.platform = 1
+	railing.from = Vector2(-10.0, 2.0)
+	railing.to = Vector2(10.0, 2.0)
+	var railings: Array[ShipRailing] = [railing]
+	layout.railings = railings
+	var surfaces := Surfaces.new(layout)
+	var footing := _footing(layout, surfaces)
+	var pose := _calm(layout)
+	var inner := Vector3(0.0, 0.0, -1.0)
+	assert_eq(footing.edge_toward(inner, 0, Vector2.DOWN, 4.0, pose, false), INF, "railed")
+	assert_lt(footing.edge_toward(inner, 0, Vector2.DOWN, 4.0, pose, true), INF, "over it")

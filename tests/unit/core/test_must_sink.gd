@@ -308,10 +308,11 @@ func test_a_coast_match_hit_brings_her_to_rest_on_the_bottom() -> void:
 func test_a_match_hit_sinks_her_within_its_bound() -> void:
 	# The paced clock fits a sinking into a match within its limits (Q20), so a match
 	# draws again a hit she is still afloat on at sinks_within — seeds whose first hits
-	# leave her settling for two hours and more — and every hit stays the physics'.
+	# leave her settling an hour and three-quarters and more (29 and 47 since #148's
+	# spaces moved her flooding) — and every hit stays the physics'.
 	var bound := _scenario.sinks_within
 	assert_eq(bound, 5400.0, "an hour and a half")
-	for seed_value: int in [13, 51]:
+	for seed_value: int in [29, 47]:
 		var stream := SeedStreams.derive(seed_value, "sink")
 		var choice := MustSink.choose(_structure, _scenario, stream, _sea)
 		assert_eq(choice.timeline.end, SinkTimeline.End.GONE, "seed %d: gone" % seed_value)

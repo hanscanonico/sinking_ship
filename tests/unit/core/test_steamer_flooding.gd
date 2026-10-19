@@ -239,13 +239,14 @@ func test_stokehold_holed_floods_the_engine_room_first_from_its_floor_up() -> vo
 	# Holed along her middle, 1 m under her waterline, through her own shell into the
 	# stokehold (#74): of the cells people walk in, the engine room's floods first, from
 	# the gash — its water standing on the stokehold's floor while its galleries, at the
-	# lower deck's height, are still dry.
+	# lower deck's height, are still dry. Her double bottom under it, a crawl space now
+	# (#148), takes its water from it down through the tank top: no measure of it.
 	var damage := _damage(load(STOKEHOLD))
 	assert_eq(damage.openings.size(), 1, "the one gash, into the stokehold")
 	assert_eq(damage.openings[0].joins[0], &"engine_room")
 	var rooms: Array[StringName] = []
 	for cell: FloodCell in _structure.cells:
-		if not cell.rooms.is_empty():
+		if not cell.rooms.is_empty() and not String(cell.name).begins_with("engine_bilge"):
 			rooms.append(cell.name)
 	var engine := _structure.cells[_structure.cell_named(&"engine_room")]
 	var galleries := INF

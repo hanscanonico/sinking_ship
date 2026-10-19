@@ -269,16 +269,48 @@ func test_a_gash_along_her_middle_opens_the_stokehold_to_the_sea() -> void:
 	assert_eq(_opened(low), [&"engine_bilge_s"] as Array[StringName])
 
 
-func test_shallow_bite_opens_the_side_void_not_the_hold() -> void:
-	var shallow := _opened(_mapped(_hit(1, 6.0, 10.0, 0.3, 0.3)))
-	assert_eq(shallow, [&"hold_wing_s"] as Array[StringName])
+func test_shallow_bite_opens_the_wing_not_the_lower_hold() -> void:
+	# Low along her hold the wing is a wedge between her shell and the hold's wall, too
+	# narrow for a body under its passage (#148): a bite no deeper than it opens the wing
+	# alone, and nowhere anyone can be; a deeper one holes the lower hold behind it too.
+	var shallow := _mapped(_hit(1, 6.0, 10.0, 0.3, 0.3))
+	assert_eq(_opened(shallow), [&"hold_wing_s"] as Array[StringName])
+	assert_false(_steamer().opens_place(shallow.openings[0]), "under the wing's passage")
 	var deep := _mapped(_hit(1, 6.0, 10.0, 0.3, 1.5))
 	assert_eq(
-		_opened(deep), [&"hold_bilge", &"hold_wing_s"] as Array[StringName], "through the void"
+		_opened(deep), [&"hold_bilge", &"hold_wing_s"] as Array[StringName], "through the wing"
 	)
-	# The bilge's hole is in the void's inner wall: it opens into the void, not the sea.
-	assert_eq(deep.openings[0].joins[1], &"hold_wing_s", "the bilge holed into the void")
-	assert_eq(deep.openings[1].joins[1], ShipOpening.SEA, "the void holed to the sea")
+	# The lower hold's hole is in the wing's inner wall: it opens into the wing, not the
+	# sea.
+	assert_eq(deep.openings[0].joins[1], &"hold_wing_s", "the lower hold holed into the wing")
+	assert_eq(deep.openings[1].joins[1], ShipOpening.SEA, "the wing holed to the sea")
+	assert_true(_steamer().opens_place(deep.openings[0]), "the lower hold is a place")
+
+
+func test_a_gash_along_each_old_void_opens_a_place_people_can_be() -> void:
+	# Every cell of hers that was a void is a place a body can be (#148): a gash along
+	# each, where gashes run, opens a room in it — over its floor — for someone there to
+	# see the sea come in. The wing's passage stands under her main deck, high in it.
+	var gashes := {
+		&"aft_peak": _hit(1, -17.0, -14.0, 1.6, 0.5),
+		&"aft_bilge_p": _hit(-1, -11.0, -6.0, 1.2, 0.5),
+		&"aft_bilge_s": _hit(1, -11.0, -6.0, 1.7, 0.5),
+		&"engine_bilge_p": _hit(-1, -2.0, 3.0, 1.7, 0.5),
+		&"engine_bilge_s": _hit(1, -2.0, 3.0, 1.6, 1.5),
+		&"hold_bilge": _hit(-1, 6.0, 12.0, 1.5, 1.5),
+		&"hold_wing_p": _hit(-1, 4.5, 6.5, -2.8, 0.3),
+		&"hold_wing_s": _hit(1, 4.5, 6.5, -2.8, 0.3),
+		&"forepeak": _hit(1, 15.5, 18.5, 0.9, 0.5),
+	}
+	for cell: StringName in gashes:
+		var damage := _mapped(gashes[cell])
+		var into: ShipOpening = null
+		for opening: ShipOpening in damage.openings:
+			if opening.joins[0] == cell:
+				into = opening
+		assert_not_null(into, "the gash opens the %s" % cell)
+		if into != null:
+			assert_true(_steamer().opens_place(into), "into a place people can be in the %s" % cell)
 
 
 ## A cell the gash runs through for less than the bands' least run is not holed.

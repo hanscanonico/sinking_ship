@@ -130,7 +130,10 @@ func _names(layout: ShipLayout, platforms: PackedInt32Array) -> Array[StringName
 func test_spray_soaks_the_deck_round_where_it_bursts() -> void:
 	var layout := SimFixtures.steamer()
 	var wetness := DeckWetness.new(layout)
-	var main_deck := wetness.platforms.find(0)
+	# The piece of her main deck along her port side, laid round her hatches (#148).
+	var side := Surfaces.new(layout).under(Vector3(0.0, 0.0, -4.9), 0.1)
+	assert_eq(layout.platforms[side].name, &"main deck")
+	var main_deck := wetness.platforms.find(side)
 	wetness.soak(Vector3(0.0, 0.0, -5.0), 1.0)
 	var level := Transform3D(Basis(), Vector3(0.0, 3.4, 0.0))
 	assert_true(wetness.update_one(main_deck, level, 0.0), "drawn as it next updates")
@@ -768,3 +771,26 @@ func _side(emitter: CPUParticles3D) -> float:
 ## How opaque a grain of [param emitter] is drawn at most, wherever it is.
 func _opacity(emitter: CPUParticles3D) -> float:
 	return FxProbe.opacity(emitter)
+
+
+func test_wreckage_coming_down_between_steps_over_a_wadeable_deck_goes_under() -> void:
+	# The ship stepped with her main deck within wading depth of the sea; a piece comes
+	# down over it before the next step: it goes under as it lands, never a raft.
+	var layout := SimFixtures.steamer()
+	var wade := 0.3
+	var flotsam: Flotsam = add_child_autofree(Flotsam.new())
+	flotsam.setup(layout, wade)
+	var middle := layout.platforms[0].area.get_center()
+	var awash := Transform3D(Basis(), Vector3.DOWN * 0.2)
+	flotsam.go_under_shallows(awash)
+	var over := awash * Vector3(middle.x, 0.0, middle.y)
+	flotsam.throw(FxCue.Piece.CRATE, over + Vector3.UP * 2.0, over, Vector2.DOWN)
+	for _frame in 60:
+		flotsam.advance(1.0 / 30.0)
+	assert_eq(flotsam.afloat().size(), 0, "under as it landed")
+	# A new match forgets the old one's ship: before its first step, a piece floats.
+	flotsam.setup(layout, wade)
+	flotsam.throw(FxCue.Piece.CRATE, over + Vector3.UP * 2.0, over, Vector2.DOWN)
+	for _frame in 60:
+		flotsam.advance(1.0 / 30.0)
+	assert_eq(flotsam.afloat().size(), 1, "afloat, no ship stepped yet")

@@ -129,7 +129,8 @@ func test_a_crawler_in_a_flooding_crawl_space_swims_and_breathes_in_its_pocket()
 	var sim := SimFixtures.sim(2, null, layout)
 	HeldPose.hold(sim, HeldPose.flooded(layout, 0.5, {&"aft_cabins": [water, 0.5]}))
 	SimFixtures.place(sim, 1, Vector3(-2.5, 4.7, 0.0))
-	SimFixtures.place(sim, 0, Vector3(-11.5, floor_y, -2.7))
+	# Clear of the scuttle in the cabin's floor down to the shaft tunnel (#148).
+	SimFixtures.place(sim, 0, Vector3(-11.5, floor_y, -1.5))
 	var crawler := sim.state.seats[0]
 	assert_eq(rules.height_at(sim.surfaces, crawler.pos), rules.crawl_height, "in a crawl space")
 	SimFixtures.step(sim, {}, Ticks.RATE)

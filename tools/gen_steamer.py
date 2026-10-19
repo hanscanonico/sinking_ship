@@ -20,6 +20,7 @@ Usage: tools/gen_steamer.py <out.tres> [--weak]
 """
 import math
 import re
+import struct
 import sys
 
 out = sys.argv[1]
@@ -46,6 +47,9 @@ used = set()
 # doorway as (axis, at, from, to, bottom): a gap in a wall along x = at (axis 0) or
 # z = at (axis 2).
 plat_geo, ramp_geo, block_geo, room_geo, doorways = [], [], [], [], []
+# What is fitted inside her lines (#148), as (x0, x1, z0, z1, heights it stands at), and
+# which blockers are.
+fitted_geo, fitted_blocks = [], set()
 
 def sub(kind_id, script, fields):
     assert kind_id not in used, kind_id
@@ -56,15 +60,18 @@ def sub(kind_id, script, fields):
     subs.append("\n".join(body))
     return kind_id
 
-def platform(pid, name, x0, x1, z0, z1, h=0.0):
+def platform(pid, name, x0, x1, z0, z1, h=0.0, fitted=False):
     plat_geo.append((x0, x1, z0, z1, h))
     f = [("name", '&"%s"' % name), ("area", rect_xz(x0, x1, z0, z1))]
     if h != 0.0:
         f.append(("height", num(h)))
+    if fitted:
+        f.append(("fitted", "true"))
+        fitted_geo.append((x0, x1, z0, z1, [h - PLANK]))
     platforms.append(sub("Platform_" + pid, "1_plat", f))
     return len(platforms) - 1
 
-def ramp(rid, x, z, w, d, axis, start, end):
+def ramp(rid, x, z, w, d, axis, start, end, fitted=False):
     ramp_geo.append((x, x + w, z, z + d, axis, start, end))
     f = [("area", rect(x, z, w, d))]
     if axis == 1:
@@ -73,14 +80,71 @@ def ramp(rid, x, z, w, d, axis, start, end):
         f.append(("start_height", num(start)))
     if end != 0.0:
         f.append(("end_height", num(end)))
+    if fitted:
+        f.append(("fitted", "true"))
+        fitted_geo.append((x, x + w, z, z + d, [min(start, end)]))
     ramps.append(sub("Ramp_" + rid, "2_ramp", f))
 
-def box(bid, x0, x1, z0, z1, bottom, top):
+# A deck with holes in it (#148) is laid in pieces round them: its first piece where
+# the deck stood in the platforms' order, the rest after all her decks
+# (pieces_after()), so no other platform's index moves.
+later = []
+
+def holed(pid, name, x0, x1, z0, z1, h, holes, cuts=(), fitted=False, across=False, after=False,
+          largest=False):
+    """The deck x0…x1 by z0…z1 at h less holes [(x0, x1, z0, z1)]: cut across x at
+    cuts, then each part in bands along z between the holes' sides, each band round the
+    holes in it — so a deck's edges that railings stand along stay whole; or, across,
+    in bands across her between the holes' ends, each round the holes in it. Returns the
+    first piece's index — with largest, its largest, which stands in for the whole deck it
+    was before its holes: its stairs come down onto it; a fitted deck lays the rest at
+    once. After lays every piece after the rest, the rest of a deck already laid."""
+    pieces = []
+    xs = [x0] + [c for c in cuts if x0 < c < x1] + [x1]
+    assert not any(o[0] < c < o[1] for o in holes for c in xs), "a hole across a cut in %s" % pid
+    if across:
+        xs = sorted({x0, x1} | {v for o in holes for v in o[:2] if x0 < v < x1})
+    for a, b in zip(xs, xs[1:]):
+        inside = [o for o in holes if a <= o[0] and o[1] <= b] if not across else []
+        if across:
+            cutting = sorted(o for o in holes if o[0] <= a and b <= o[1])
+            edges = [z0] + [v for o in cutting for v in o[2:]] + [z1]
+            for e, f in zip(edges[::2], edges[1::2]):
+                if f - e > 1e-6:
+                    pieces.append((a, b, e, f))
+            continue
+        zs = sorted({z0, z1} | {v for o in inside for v in o[2:] if z0 < v < z1})
+        for c, d in zip(zs, zs[1:]):
+            across_band = sorted(o for o in inside if o[2] <= c and d <= o[3])
+            edges = [a] + [v for o in across_band for v in o[:2]] + [b]
+            for e, f in zip(edges[::2], edges[1::2]):
+                if f - e > 1e-6:
+                    pieces.append((e, f, c, d))
+    if largest:
+        pieces.sort(key=lambda p: -(p[1] - p[0]) * (p[3] - p[2]))
+    first = None if after else platform(pid, name, *pieces[0], h, fitted)
+    for k, piece in enumerate(pieces if after else pieces[1:]):
+        if fitted:
+            platform("%s_%d" % (pid, k + 1), name, *piece, h, True)
+        else:
+            later.append(("%s_%d" % (pid, k + 1), name, piece, h))
+    return first
+
+def pieces_after():
+    for pid, name, piece, h in later:
+        platform(pid, name, *piece, h)
+
+def box(bid, x0, x1, z0, z1, bottom, top, fitted=False):
     block_geo.append((x0, x1, z0, z1, bottom, top, True))
+    if fitted:
+        fitted_blocks.add(len(block_geo) - 1)
     f = [("area", rect_xz(x0, x1, z0, z1))]
     if bottom != 0.0:
         f.append(("bottom", num(bottom)))
     f.append(("top", num(top)))
+    if fitted:
+        f.append(("fitted", "true"))
+        fitted_geo.append((x0, x1, z0, z1, [bottom, top]))
     blockers.append(sub("Blocker_" + bid, "3_block", f))
 
 def cylinder(bid, cx, cz, r, bottom, top):
@@ -90,6 +154,26 @@ def cylinder(bid, cx, cz, r, bottom, top):
         f.append(("bottom", num(bottom)))
     f.append(("top", num(top)))
     blockers.append(sub("Blocker_" + bid, "3_block", f))
+
+def edge_holds(plat, a, b):
+    """Whether the segment a…b (x, z) lies along an edge of platform plat, as
+    ShipPlatform.edge_holds has it."""
+    x0, x1, z0, z1, _h = plat_geo[plat]
+    near = lambda u, v: abs(u - v) < 1e-5
+    inside = all(x0 - 0.001 <= p[0] <= x1 + 0.001 and z0 - 0.001 <= p[1] <= z1 + 0.001 for p in (a, b))
+    return inside and (any(near(a[0], x) and near(b[0], x) for x in (x0, x1))
+                       or any(near(a[1], z) and near(b[1], z) for z in (z0, z1)))
+
+def holding(a, b, plat):
+    """The platform a railing or a ladder from a to b stands on: plat, else the piece of
+    the deck plat is in whose edge holds it — a deck laid round holes is in pieces."""
+    if edge_holds(plat, a, b):
+        return plat
+    height = plat_geo[plat][4]
+    for other in range(len(plat_geo)):
+        if plat_geo[other][4] == height and edge_holds(other, a, b):
+            return other
+    raise AssertionError("no edge of the deck at %s holds %s…%s" % (height, a, b))
 
 # A railing breaks span by span (SH10): a run longer than RAIL_SECTION is laid as
 # touching spans of about that length, half-metre ends, none longer — a crate or
@@ -107,14 +191,16 @@ def railing(rid, plat, a, b):
     ends.append(b)
     for k in range(len(ends) - 1):
         f = []
-        if plat != 0:
-            f.append(("platform", str(plat)))
+        on = holding(ends[k], ends[k + 1], plat)
+        if on != 0:
+            f.append(("platform", str(on)))
         f.append(("from", "Vector2(%s, %s)" % (num(ends[k][0]), num(ends[k][1]))))
         f.append(("to", "Vector2(%s, %s)" % (num(ends[k + 1][0]), num(ends[k + 1][1]))))
         railings.append(sub("Railing_" + rid + ("_%d" % k if len(ends) > 2 else ""), "4_rail", f))
 
 def ladder(lid, plat, a, b):
     f = []
+    plat = holding(a, b, plat)
     if plat != 0:
         f.append(("platform", str(plat)))
     f.append(("from", "Vector2(%s, %s)" % (num(a[0]), num(a[1]))))
@@ -126,11 +212,13 @@ def crate(cid, x, y, z):
     f += [(k, num(v)) for k, v in CRATE]
     props.append(sub("Prop_" + cid, "8_prop", f))
 
-def room(rid, name, x0, x1, z0, z1, floor):
+def room(rid, name, x0, x1, z0, z1, floor, crawl_space=False):
     room_geo.append((x0, x1, z0, z1, floor, name))
     f = [("name", '&"%s"' % name), ("area", rect_xz(x0, x1, z0, z1))]
     if floor != 0.0:
         f.append(("floor_height", num(floor)))
+    if crawl_space:
+        f.append(("crawl_space", "true"))
     rooms.append(sub("Room_" + rid, "6_room", f))
 
 T = 0.1  # half a wall's thickness: walls are 0.2 m, centred on a room's side
@@ -155,41 +243,87 @@ LINING = 3.8
 STOKEHOLD_HOLE = (0.75, 3.0, 2.6)
 LINTEL = 2.1  # a door's height above its floor
 
-def wall_x(bid, x, z0, z1, bottom, top):
+# --- Her old voids made places (#148): every cell of hers a place a body can stand or
+# crawl in, each space fitted inside her lines (after her hull below), lit, and with two
+# ways up. The ways in are cut through her decks here, before her hull is lofted, so the
+# holes shape nothing: each a hatch over a steep stair, (x0, x1, z0, z1) of the deck it
+# cuts, its stair's top at the end named in its comment. Stairs into them are 39° where
+# there is room and 45° (a ship's ladder's pitch) where there is not; each hatch's hole
+# is the stair's run under a deck too low to stand under.
+# The double bottom's four manholes in the stokehold's tank top, two a side of her
+# girder, each over a stair up out of it to its forward (x1) end: two under the after
+# gallery, two under the side galleries beside the stairs.
+MANHOLES = [(-2.0, -0.9, -3.3, -2.2), (-2.0, -0.9, 2.2, 3.3), (1.5, 2.6, -3.7, -2.6), (1.5, 2.6, 2.6, 3.7)]
+# The lower hold's two hatches in the hold's floor, clear of the forward companionway's
+# foot and the spawn to port: its after one to starboard (the stair's top at x0), its
+# forward one to port (at x1).
+LOWER_HOLD_HATCHES = [(4.9, 7.1, 1.5, 2.6), (11.1, 13.3, -2.6, -1.5)]
+# Her girder parts the bilges under the aft cabins down her middle, under the cabin
+# corridor, so each half is entered through the floors of the cabins over it: from the
+# after cabin, a stair along her to its top at x0; from the forward cabin, a stair
+# across her to its top at the shell's side (45°: the girder and the hull's wall leave
+# no more run).
+BILGE_HATCHES = [(-12.1, -9.9, -3.2, -2.1), (-5.5, -4.4, -3.65, -1.85),
+                 (-12.1, -9.9, 2.1, 3.2), (-5.5, -4.4, 1.85, 3.65)]
+# The hold's wing passages run along her shell under the main deck, a hatch at either
+# end, each stair's top at the passage's end (aft x0, forward x1). WING_SHELL is the
+# passage's outboard side, the middle of the lining on her frames: her shell leaves room
+# for a body beside the hold's wall only that high and that far forward.
+WING = (4.0, 6.8)
+WING_SHELL = 4.82
+WING_HATCHES = [(4.0, 5.2), (5.6, 6.8)]
+# The steering gear's two stairs up through the poop, to their tops at x1, and the
+# forepeak's through the forecastle, to their tops at x0 — each deck cut only between its
+# railings' span ends, so no railing moves.
+POOP_HATCHES = [(-17.0, -14.9, -1.2, -0.1), (-17.0, -14.9, 0.1, 1.2)]
+FCSL_HATCHES = [(15.2, 17.0, -2.6, -1.5), (15.2, 17.0, 1.5, 2.6)]
+
+def wall_x(bid, x, z0, z1, bottom, top, fitted=False):
     """A wall along x = const from z0 to z1 (centre line), ends overlapping corners."""
-    box(bid, x - T, x + T, z0 - T, z1 + T, bottom, top)
+    box(bid, x - T, x + T, z0 - T, z1 + T, bottom, top, fitted)
 
-def wall_z(bid, z, x0, x1, bottom, top):
-    box(bid, x0 - T, x1 + T, z - T, z + T, bottom, top)
+def wall_z(bid, z, x0, x1, bottom, top, fitted=False):
+    box(bid, x0 - T, x1 + T, z - T, z + T, bottom, top, fitted)
 
-def wall_x_doors(bid, x, z0, z1, doors, bottom, top):
+def wall_x_doors(bid, x, z0, z1, doors, bottom, top, fitted=False):
     """Wall pieces along x = const with door gaps [(a, b)] in z; a lintel over each."""
     edges = [z0 - T] + [v for d in doors for v in d] + [z1 + T]
     for i in range(0, len(edges), 2):
-        box("%s_%d" % (bid, i // 2), x - T, x + T, edges[i], edges[i + 1], bottom, top)
+        box("%s_%d" % (bid, i // 2), x - T, x + T, edges[i], edges[i + 1], bottom, top, fitted)
     for i, d in enumerate(doors):
-        box("%s_lintel_%d" % (bid, i), x - T, x + T, d[0], d[1], bottom + LINTEL, top)
+        box("%s_lintel_%d" % (bid, i), x - T, x + T, d[0], d[1], bottom + LINTEL, top, fitted)
         doorways.append((0, x, d[0], d[1], bottom))
 
-def wall_z_doors(bid, z, x0, x1, doors, bottom, top):
+def wall_z_doors(bid, z, x0, x1, doors, bottom, top, fitted=False):
     edges = [x0 - T] + [v for d in doors for v in d] + [x1 + T]
     for i in range(0, len(edges), 2):
-        box("%s_%d" % (bid, i // 2), edges[i], edges[i + 1], z - T, z + T, bottom, top)
+        box("%s_%d" % (bid, i // 2), edges[i], edges[i + 1], z - T, z + T, bottom, top, fitted)
     for i, d in enumerate(doors):
-        box("%s_lintel_%d" % (bid, i), d[0], d[1], z - T, z + T, bottom + LINTEL, top)
+        box("%s_lintel_%d" % (bid, i), d[0], d[1], z - T, z + T, bottom + LINTEL, top, fitted)
         doorways.append((2, z, d[0], d[1], bottom))
 
 # --- Platforms. The first five are SH3's, in SH3's order; the main deck is now
 # rectangles round three stair openings, every one of them named "main deck".
-MAIN = platform("main_deck", "main deck", -14, 12, -5, -1.6)  # the port strip
-POOP = platform("poop_deck", "poop deck", -20, -14, -4.5, 4.5, 1.2)
-FCSL = platform("forecastle", "forecastle", 12, 20, -4, 4, 1.8)
+# Their inboard sides a hair outboard of the hold's walls (3.9 out): the main deck's
+# strips inboard of them end at 1.6 out in single precision too (Surfaces.joins), where
+# the inner stair comes up.
+WING_INBOARD = 3.90625
+WING_MAIN = [(a, b, -WING_SHELL + 0.05, -WING_INBOARD) for a, b in WING_HATCHES]
+WING_SS = [(a, b, WING_INBOARD, WING_SHELL - 0.05) for a, b in WING_HATCHES]
+# The port strip inboard of her wing passages' hatches, and outboard of it the rest of
+# it, round them.
+MAIN = platform("main_deck", "main deck", -14, 12, -WING_INBOARD, -1.6, 0.0)
+POOP = holed("poop_deck", "poop deck", -20, -14, -4.5, 4.5, 1.2, POOP_HATCHES, (-17,))
+FCSL = holed("forecastle", "forecastle", 12, 20, -4, 4, 1.8, FCSL_HATCHES, (14.5, 17))
 BOAT = platform("boat_deck", "boat deck", -7, 3, -3.4, 3.4, 2.5)
 BRIDGE = platform("bridge", "bridge", -4, -1, -1.5, 1.5, 4.7)
 # The three stair openings it leaves, (x0, x1, z0, z1): the aft companionway, the
 # inner stair, the forward companionway.
 STAIR_HOLES = [(-12.85, -10.25, -0.55, 0.55), (-1.25, -0.15, -1.6, 1.0), (9, 12, 0.9, 2.0)]
-SS = platform("main_deck_starboard", "main deck", -14, 12, 2.0, 5)
+SS = platform("main_deck_starboard", "main deck", -14, 12, 2.0, WING_INBOARD, 0.0)
+holed("main_deck_outboard", "main deck", -14, 12, -5, -WING_INBOARD, 0.0, WING_MAIN, (3.7, 8.5), after=True)
+holed("main_deck_starboard_outboard", "main deck", -14, 12, WING_INBOARD, 5, 0.0, WING_SS, (3.7, 8.5),
+      after=True)
 MA = platform("main_deck_aft", "main deck", -14, -12.85, -1.6, 2.0)
 MB1 = platform("main_deck_aft_port", "main deck", -12.85, -10.25, -1.6, -0.55)
 MB2 = platform("main_deck_aft_starboard", "main deck", -12.85, -10.25, 0.55, 2.0)
@@ -197,15 +331,16 @@ MC = platform("main_deck_waist", "main deck", -10.25, -1.25, -1.6, 2.0)
 MD = platform("main_deck_hall", "main deck", -1.25, -0.15, 1.0, 2.0)
 ME = platform("main_deck_forward", "main deck", -0.15, 9.0, -1.6, 2.0)
 MF = platform("main_deck_bow", "main deck", 9.0, 12, -1.6, 0.9)
-L1 = platform("lower_deck", "lower deck", -13, -3, -4.8, 4.8, LOWER)
-L2 = platform("hold", "lower deck", 4, 15, -3.8, 3.8, LOWER)
+L1 = holed("lower_deck", "lower deck", -13, -3, -4.8, 4.8, LOWER, BILGE_HATCHES, across=True, largest=True)
+L2 = holed("hold", "lower deck", 4, 15, -3.8, 3.8, LOWER, LOWER_HOLD_HATCHES, largest=True)
 # The engine room's galleries round the opening over the stokehold, and its floor.
 HX0, HX1, HZ = STOKEHOLD_HOLE
 GA = platform("gallery_aft", "lower deck", -3, HX0, -LINING, LINING, LOWER)
 GF = platform("gallery_forward", "lower deck", HX1, 4, -LINING, LINING, LOWER)
 GP = platform("gallery_port", "lower deck", HX0, HX1, -LINING, -HZ, LOWER)
 GS = platform("gallery_starboard", "lower deck", HX0, HX1, HZ, LINING, LOWER)
-SH = platform("stokehold", "stokehold", -3, 4, -LINING, LINING, TANK_TOP)
+SH = holed("stokehold", "stokehold", -3, 4, -LINING, LINING, TANK_TOP, MANHOLES, largest=True)
+pieces_after()
 
 # --- Ramps: SH3's six, then the three stairs (39°, 1.1 m wide).
 ramp("poop_port", -14, -4.5, 3, 1.4, 0, 1.2, 0)
@@ -376,7 +511,7 @@ room("engine_room_starboard", "engine room", HX0, HX1, HZ, LINING, LOWER)
 spawns = [
     (8, LOWER, -2), (-2, LOWER, -3.2), (-7, LOWER, 2.8),
     (1.5, 0, -1.5), (-2.5, 0, 2.2),
-    (-17.5, 1.2, -2.5), (-5, 0, -4.3), (6.5, 0, 4.2),
+    (-17.5, 1.2, -2.5), (-5, 0, -4.3), (7.4, 0, 4.2),
 ]
 # The seats a match on her takes: the menu's 4–8 since SH8, hers from SH30; one plays
 # alone, no bots.
@@ -404,11 +539,11 @@ def lerp(a, b, t):
 SLIVER = 0.01
 PLANK = 0.06  # ShipArt.PLANK
 
-def envelope(x):
+def envelope(x, plats=None):
     """The decks' outline across the ship at x, as ShipSpace.envelope: [port z,
     starboard z, port height, starboard height], or None where no deck stands."""
     shape = None
-    for x0, x1, z0, z1, h in plat_geo:
+    for x0, x1, z0, z1, h in plat_geo if plats is None else plats:
         if x <= x0 or x >= x1:
             continue
         if shape is None:
@@ -425,7 +560,8 @@ class Hull:
     (scenes/art/ship_hull.gd), with the art's own numbers: its half breadth at
     (x, y), its keel, its stem and its counter, and its drawn faces cut across at
     any x — what the sections are, so they are the drawn hull's. `make art-lint`
-    holds the two together."""
+    holds the two together. It is lofted round the pieces laid before it: what is
+    fitted inside her lines after it (#148) shapes none of them."""
     DRAFT = 2.0
     KEEL_CLEARANCE = 0.4
     CONTENT_CLEARANCE = 0.12
@@ -441,9 +577,10 @@ class Hull:
     SECTION_POINTS, TOP_RINGS, RING_POINTS, STATION_SPACING = 14, 4, 8, 0.4
 
     def __init__(self):
-        self.span = (min(p[0] for p in plat_geo), max(p[1] for p in plat_geo))
-        self.fore = envelope(self.span[1] - SLIVER)
-        self.aft = envelope(self.span[0] + SLIVER)
+        self.plats = list(plat_geo)
+        self.span = (min(p[0] for p in self.plats), max(p[1] for p in self.plats))
+        self.fore = envelope(self.span[1] - SLIVER, self.plats)
+        self.aft = envelope(self.span[0] + SLIVER, self.plats)
         fore_edge = max(-self.fore[0], self.fore[1])
         aft_edge = max(-self.aft[0], self.aft[1])
         self.fore_deck = max(self.fore[2], self.fore[3])
@@ -454,7 +591,7 @@ class Hull:
         self.counter_lead = min(self.COUNTER_LEAD * aft_edge,
                                 max(self.aft_deck - WATERLINE - self.KNUCKLE, 0.0) / fall)
         self.inside = []
-        for x0, x1, z0, z1, h in plat_geo:
+        for x0, x1, z0, z1, h in self.plats:
             self.hold((x0, x1, z0, z1), h - PLANK)
         for x0, x1, z0, z1, _axis, start, end in ramp_geo:
             self.hold((x0, x1, z0, z1), min(start, end))
@@ -467,19 +604,19 @@ class Hull:
 
     def hold(self, plan, foot):
         middle = (plan[0] + plan[1]) * 0.5
-        shape = envelope(min(max(middle, self.span[0] + SLIVER), self.span[1] - SLIVER))
+        shape = envelope(min(max(middle, self.span[0] + SLIVER), self.span[1] - SLIVER), self.plats)
         if shape is None or foot >= min(shape[2], shape[3]) - PLANK - SLIVER:
             return
         self.inside.append((plan, foot))
 
     def lofting_runs(self):
-        stations = sorted(x for p in plat_geo for x in p[:2])
+        stations = sorted(x for p in self.plats for x in p[:2])
         runs = []
         last = self.span[0]
         for x in stations:
             if x <= last + SLIVER:
                 continue
-            shape = envelope((last + x) * 0.5)
+            shape = envelope((last + x) * 0.5, self.plats)
             if shape is None:
                 last = x
                 continue
@@ -496,7 +633,7 @@ class Hull:
             return self.fore
         if x <= self.span[0] + SLIVER:
             return self.aft
-        return envelope(x)
+        return envelope(x, self.plats)
 
     def breadth(self, x, y, side, shape=None):
         shape = shape or self.shape_at(x)
@@ -676,6 +813,230 @@ hull = Hull()
 KEEL = hull.keel
 X_AFT = hull.span[0] - SLIVER - hull.counter_lead
 X_FORE = hull.span[1] + SLIVER + hull.bow_lead
+
+# --- Her old voids made places (#148), fitted inside her lines: each piece stands where
+# her hull already leaves room for it, clear of her shell by FIT (fits() below holds
+# them to it), and shapes none of it. Floors go as low as her shell's width lets a body
+# stand or crawl, so wherever a gash opens her it opens a place someone can be.
+FIT = 0.02
+# Her lowest floors, on her plating over the keel (est.): the double bottom's under her
+# tank top leaves 0.91 m — a crawl space, and more than a jump, so no deck meets another
+# a hop over it — and the bilges' under the lower deck 2.71 m. Every new floor stands
+# where single precision holds its height at or over it (a position's float rounds a
+# height like -5.3 under it, and the floor is missed there): -5.3125 is exact.
+BILGE_FLOOR = KEEL + 0.0875
+GIRDER_TOP = KEEL + 2.5
+# A hatch into one is a scuttle, battened and dogged watertight, a body going down it
+# opening it as a doorway's door is opened: shut to the water, it never weeps nor gives
+# way, so the space under it floods as it did before it was a place (#148).
+# The double bottom under the stokehold, a crawl space either side of her girder, which
+# stands to the tank top there; its sides and ends under the stokehold's.
+for side, z0, z1 in [("port", -LINING, 0), ("starboard", 0, LINING)]:
+    platform("double_bottom_" + side, "double bottom", -3, 4, z0, z1, BILGE_FLOOR, True)
+wall_x("double_bottom_aft", -3, -LINING, LINING, BILGE_FLOOR, TANK_TOP, True)
+wall_x("double_bottom_forward", 4, -LINING, LINING, BILGE_FLOOR, TANK_TOP, True)
+box("girder_stokehold", -3 + T, 4 - T, -T, T, BILGE_FLOOR, TANK_TOP, True)
+wall_z("double_bottom_port", -LINING, -3 + T, 4 - T, BILGE_FLOOR, TANK_TOP, True)
+wall_z("double_bottom_starboard", LINING, -3 + T, 4 - T, BILGE_FLOOR, TANK_TOP, True)
+for k, (x0, x1, z0, z1) in enumerate(MANHOLES):
+    ramp("manhole_%d" % (k + 1), x0, z0, x1 - x0, z1 - z0, 0, BILGE_FLOOR, TANK_TOP, True)
+# The lower hold under the hold, its sides in from the turn of her bilge.
+LOWER_HOLD_SIDE = 2.7
+platform("lower_hold", "lower hold", 4, 15, -LOWER_HOLD_SIDE, LOWER_HOLD_SIDE, BILGE_FLOOR, True)
+wall_x("lower_hold_forward", 15, -LOWER_HOLD_SIDE, LOWER_HOLD_SIDE, BILGE_FLOOR, LOWER, True)
+for side, z in [("port", -LOWER_HOLD_SIDE), ("starboard", LOWER_HOLD_SIDE)]:
+    wall_z("lower_hold_" + side, z, 4 + T, 15 - T, BILGE_FLOOR, LOWER, True)
+x0, x1, z0, z1 = LOWER_HOLD_HATCHES[0]
+ramp("lower_hold_aft", x0, z0, 3.3, z1 - z0, 0, LOWER, BILGE_FLOOR, True)
+x0, x1, z0, z1 = LOWER_HOLD_HATCHES[1]
+ramp("lower_hold_forward", x1 - 3.3, z0, 3.3, z1 - z0, 0, BILGE_FLOOR, LOWER, True)
+# The bilges under the aft cabins: the shaft tunnel to port, stores to starboard, either
+# side of her girder.
+BILGE_SIDE = 3.8
+platform("shaft_tunnel", "shaft tunnel", -13, -3, -BILGE_SIDE, 0, BILGE_FLOOR, True)
+platform("bilge_stores", "stores", -13, -3, 0, BILGE_SIDE, BILGE_FLOOR, True)
+wall_x("bilge_aft", -13, -BILGE_SIDE, BILGE_SIDE, BILGE_FLOOR, LOWER, True)
+# Its girder runs from bulkhead to bulkhead, its top under the lower deck but for its
+# last 0.3 m under the engine room's, a metre high there — still too high to climb — so
+# nothing standing on it reaches the fire buckets over that bulkhead's far side.
+box("girder", -13 - T, -3 - T - 0.25, -T, T, BILGE_FLOOR, GIRDER_TOP, True)
+box("girder_forward", -3 - T - 0.3, -3 + T, -T, T, BILGE_FLOOR, BILGE_FLOOR + 1.0, True)
+for side, z in [("port", -BILGE_SIDE), ("starboard", BILGE_SIDE)]:
+    wall_z("bilge_" + side, z, -13 + T, -3 - T, BILGE_FLOOR, LOWER, True)
+# Her propeller shaft runs aft down the shaft tunnel beside her girder on its plummer
+# blocks, as high as a body's hip: a body goes round it (est.).
+SHAFT = (-0.55, -0.1, 0.85)  # z0, z1, its top over the floor
+box("shaft", -13 + T, -3 - T, SHAFT[0], SHAFT[1], BILGE_FLOOR, BILGE_FLOOR + SHAFT[2], True)
+for k, (x0, x1, z0, z1) in enumerate(BILGE_HATCHES):
+    if x1 - x0 > z1 - z0:  # along her, from the after cabin
+        ramp("bilge_%d" % (k + 1), x0, z0, 3.3, z1 - z0, 0, LOWER, BILGE_FLOOR, True)
+    elif z0 < 0:  # across her, from the forward cabin, its foot by her girder
+        ramp("bilge_%d" % (k + 1), x0, z0, x1 - x0, 2.7, 1, LOWER, BILGE_FLOOR, True)
+    else:
+        ramp("bilge_%d" % (k + 1), x0, z1 - 2.7, x1 - x0, 2.7, 1, BILGE_FLOOR, LOWER, True)
+# The hold's wing passages, a crawl under the main deck along her shell, the hold's wall
+# inboard and a lining on her frames outboard (est. 10 cm).
+WING_FLOOR = -1.0
+for side, sign in [("port", -1), ("starboard", 1)]:
+    inner, shell = sign * 3.9, sign * (WING_SHELL - 0.05)
+    platform("wing_" + side, "side passage", WING[0], WING[1], *sorted((sign * 3.8, sign * WING_SHELL)),
+             WING_FLOOR, True)
+    box("wing_%s_shell" % side, WING[0], WING[1] + T, *sorted((sign * (WING_SHELL - 0.05), sign * (WING_SHELL + 0.05))),
+        WING_FLOOR, 0.0, True)
+    box("wing_%s_end" % side, WING[1] - T, WING[1] + T, *sorted((inner, shell)), WING_FLOOR, 0.0, True)
+    a, b = WING_HATCHES[0]
+    ramp("wing_%s_aft" % side, a, min(inner, shell), b - a, abs(shell - inner), 0, 0.0, WING_FLOOR, True)
+    a, b = WING_HATCHES[1]
+    ramp("wing_%s_forward" % side, a, min(inner, shell), b - a, abs(shell - inner), 0, WING_FLOOR, 0.0, True)
+# The aft peak: her steering gear on a flat under the poop, stores under it down to
+# where her counter's bottom lets a floor stand, and lower stores where her run narrows
+# under those, each down from the one over it by two stairs. Her poop stands over the
+# steering gear, so its break is walled down to the main deck, under its edge: fitted,
+# as everything here, so it shapes nothing of her lines.
+STEERING_FLOOR, AFT_STORES_FLOOR, LOWER_STORES_FLOOR = -1.0, -3.1, -5.2
+STEERING_HATCHES = [(-18.6, -16.35, -2.7, -1.6), (-18.6, -16.35, 1.6, 2.7)]
+# Its forward wall's line half a wall abaft the poop's break, so the wall stands under
+# the poop flush with its edge, no ledge of it proud of the deck.
+STEERING_FORWARD = -14 - T
+STEERING = holed("steering_gear", "steering gear", -19.8, STEERING_FORWARD, -4.2, 4.2, STEERING_FLOOR,
+                 STEERING_HATCHES, fitted=True)
+wall_x("steering_gear_aft", -19.8, -4.2, 4.2, STEERING_FLOOR, POOP_DECK, True)
+wall_x("steering_gear_forward", STEERING_FORWARD, -4.2, 4.2, STEERING_FLOOR, 0.0, True)
+for side, z in [("port", -4.2), ("starboard", 4.2)]:
+    wall_z("steering_gear_" + side, z, -19.8, STEERING_FORWARD, STEERING_FLOOR, POOP_DECK, True)
+box("poop_break", STEERING_FORWARD - T, STEERING_FORWARD + T, -4.5 + FIT, 4.5 - FIT, 0.0, POOP_DECK, True)
+# The steering engine on her centreline against the flat's after wall, its quadrant on
+# her rudder's head over it; too tall to climb (est.).
+box("steering_engine", -19.8 + T, -18.9, -0.8, 0.8, STEERING_FLOOR, STEERING_FLOOR + 1.25, True)
+for k, (x0, x1, z0, z1) in enumerate(POOP_HATCHES):
+    ramp("poop_%d" % (k + 1), x1 - 2.6, z0, 2.6, z1 - z0, 0, STEERING_FLOOR, POOP_DECK, True)
+STORES_HATCH = (-16.4, -14.25, -1.1, 1.1)
+# Its floor stops at the face of the bulkhead before it, half a metre under the lower
+# deck beyond: the two never meet, a hop up (bots never jump).
+AFT_STORES = holed("aft_stores", "aft stores", -18.9, -13 - T, -3.0, 3.0, AFT_STORES_FLOOR, [STORES_HATCH],
+                   fitted=True)
+wall_x("aft_stores_aft", -18.9, -3.0, 3.0, AFT_STORES_FLOOR, STEERING_FLOOR, True)
+for side, z in [("port", -3.0), ("starboard", 3.0)]:
+    wall_z("aft_stores_" + side, z, -18.9, -14, AFT_STORES_FLOOR, STEERING_FLOOR, True)
+    wall_z("aft_stores_%s_forward" % side, z, -14, -13, AFT_STORES_FLOOR, 0.0, True)
+for k, (x0, x1, z0, z1) in enumerate(STEERING_HATCHES):
+    ramp("steering_%d" % (k + 1), x0, z0, 2.65, z1 - z0, 0, STEERING_FLOOR, AFT_STORES_FLOOR, True)
+platform("lower_aft_stores", "lower aft stores", -16.5, -13, -1.2, 1.2, LOWER_STORES_FLOOR, True)
+wall_x("lower_aft_stores_aft", -16.5, -1.2, 1.2, LOWER_STORES_FLOOR, AFT_STORES_FLOOR, True)
+for side, z in [("port", -1.2), ("starboard", 1.2)]:
+    wall_z("lower_aft_stores_" + side, z, -16.5, -13, LOWER_STORES_FLOOR, AFT_STORES_FLOOR, True)
+for k, (z0, z1) in enumerate([(-1.1, 0), (0, 1.1)]):
+    ramp("aft_stores_%d" % (k + 1), STORES_HATCH[0], z0, 2.5, z1 - z0, 0, AFT_STORES_FLOOR, LOWER_STORES_FLOOR,
+         True)
+# The forepeak: the bosun's store under the forecastle, the chain locker under it down
+# to where her forefoot narrows.
+BOSUN_FLOOR, LOCKER_FLOOR = -1.5, -4.5
+LOCKER_HATCH = (17.15, 18.9, -1.1, 1.1)
+BOSUN = holed("bosuns_store", "bosun's store", 15, 19.9, -2.7, 2.7, BOSUN_FLOOR, [LOCKER_HATCH], fitted=True)
+wall_x("bosuns_store_forward", 19.9, -2.7, 2.7, BOSUN_FLOOR, FCSL_DECK, True)
+for side, z in [("port", -2.7), ("starboard", 2.7)]:
+    wall_z("bosuns_store_" + side, z, 15 + T, 19.9, BOSUN_FLOOR, FCSL_DECK, True)
+for k, (x0, x1, z0, z1) in enumerate(FCSL_HATCHES):
+    ramp("forecastle_hatch_%d" % (k + 1), x0, z0, 3.3, z1 - z0, 0, FCSL_DECK, BOSUN_FLOOR, True)
+LOCKER_SIDE = 1.8
+# Its floor stops at the face of the bulkhead abaft it, the lower hold's floor beyond a
+# hop under it.
+platform("chain_locker", "chain locker", 15 + T, 19, -LOCKER_SIDE, LOCKER_SIDE, LOCKER_FLOOR, True)
+wall_x("chain_locker_forward", 19, -LOCKER_SIDE, LOCKER_SIDE, LOCKER_FLOOR, BOSUN_FLOOR, True)
+for side, z in [("port", -LOCKER_SIDE), ("starboard", LOCKER_SIDE)]:
+    wall_z("chain_locker_" + side, z, 15 + T, 19, LOCKER_FLOOR, BOSUN_FLOOR, True)
+# Either side of its stairs a bin the cable is stowed in, up to the bosun's store's
+# floor, which its spurling pipe pays it out through to the windlass (est.).
+for side, z0, z1 in [("port", -LOCKER_SIDE + T, -1.25), ("starboard", 1.25, LOCKER_SIDE - T)]:
+    box("chain_bin_" + side, 16.0, 18.6, z0, z1, LOCKER_FLOOR, BOSUN_FLOOR, True)
+for k, (z0, z1) in enumerate([(-1.1, 0), (0, 1.1)]):
+    ramp("chain_locker_%d" % (k + 1), LOCKER_HATCH[1] - 3.0, z0, 3.0, z1 - z0, 0, LOCKER_FLOOR, BOSUN_FLOOR, True)
+
+# Three sides of every hatch railed, as the stair openings are: the fourth, its stair's
+# head, open.
+def hatch_rails(rid, plat, hole, head):
+    x0, x1, z0, z1 = hole
+    sides = {"x0": ((x0, z0), (x0, z1)), "x1": ((x1, z0), (x1, z1)),
+             "z0": ((x0, z0), (x1, z0)), "z1": ((x0, z1), (x1, z1))}
+    for tag, (a, b) in sides.items():
+        if tag != head:
+            railing("%s_%s" % (rid, tag), plat, a, b)
+
+for k, hole in enumerate(WING_MAIN + WING_SS):
+    hatch_rails("wing_hatch_%d" % (k + 1), MAIN if hole[2] < 0 else SS, hole, "x0" if k % 2 == 0 else "x1")
+for k, hole in enumerate(LOWER_HOLD_HATCHES):
+    hatch_rails("lower_hold_hatch_%d" % (k + 1), L2, hole, ["x0", "x1"][k])
+for k, hole in enumerate(BILGE_HATCHES):
+    hatch_rails("bilge_hatch_%d" % (k + 1), L1, hole, ["x0", "z0", "x0", "z1"][k])
+for k, hole in enumerate(POOP_HATCHES):
+    hatch_rails("poop_hatch_%d" % (k + 1), POOP, hole, "x1")
+for k, hole in enumerate(FCSL_HATCHES):
+    hatch_rails("forecastle_hatch_%d" % (k + 1), FCSL, hole, "x0")
+for k, hole in enumerate(STEERING_HATCHES):
+    hatch_rails("steering_hatch_%d" % (k + 1), STEERING, hole, "x0")
+hatch_rails("aft_stores_hatch", AFT_STORES, STORES_HATCH, "x0")
+hatch_rails("chain_locker_hatch", BOSUN, LOCKER_HATCH, "x1")
+
+# The rooms, after every other.
+for side, z0, z1 in [("port", -LINING, 0), ("starboard", 0, LINING)]:
+    room("double_bottom_" + side, "%s double bottom" % side, -3, 4, z0, z1, BILGE_FLOOR, crawl_space=True)
+room("lower_hold", "lower hold", 4, 15, -LOWER_HOLD_SIDE, LOWER_HOLD_SIDE, BILGE_FLOOR)
+room("shaft_tunnel", "shaft tunnel", -13, -3, -BILGE_SIDE, 0, BILGE_FLOOR)
+room("bilge_stores", "stores", -13, -3, 0, BILGE_SIDE, BILGE_FLOOR)
+for side, sign in [("port", -1), ("starboard", 1)]:
+    room("side_passage_" + side, "%s side passage" % side, WING[0], WING[1],
+         *sorted((sign * 3.8, sign * WING_SHELL)), WING_FLOOR, crawl_space=True)
+room("steering_gear", "steering gear", -19.8, STEERING_FORWARD, -4.2, 4.2, STEERING_FLOOR)
+room("aft_stores", "aft stores", -18.9, -13, -3.0, 3.0, AFT_STORES_FLOOR)
+room("lower_aft_stores", "lower aft stores", -16.5, -13, -1.2, 1.2, LOWER_STORES_FLOOR)
+room("bosuns_store", "bosun's store", 15, 19.9, -2.7, 2.7, BOSUN_FLOOR)
+room("chain_locker", "chain locker", 15, 19, -LOCKER_SIDE, LOCKER_SIDE, LOCKER_FLOOR)
+
+def f32(v):
+    return struct.unpack("f", struct.pack("f", v))[0]
+
+def joins():
+    """Every stair's two ends meet a deck at its height, as Surfaces.joins finds them:
+    each end's edge, its corners and its middle, inside a platform's Rect2 in single
+    precision, where a rectangle's far side is its corner plus its size."""
+    def end_of(a, b):
+        return f32(f32(a) + f32(b - a))
+    for x0, x1, z0, z1, axis, start, end in ramp_geo:
+        for which, height in [(0, start), (1, end)]:
+            if axis == 0:
+                x = f32(x0) if which == 0 else end_of(x0, x1)
+                points = [(x, f32(z0)), (x, end_of(z0, z1))]
+            else:
+                z = f32(z0) if which == 0 else end_of(z0, z1)
+                points = [(f32(x0), z), (end_of(x0, x1), z)]
+            points.append(tuple(f32((a + b) * 0.5) for a, b in zip(*points)))
+            holds = lambda p, q: (f32(p[0]) <= q[0] <= end_of(p[0], p[1])
+                                  and f32(p[2]) <= q[1] <= end_of(p[2], p[3]))
+            for q in points:
+                assert any(abs(f32(h) - f32(height)) < 1e-6 and holds(p, q) for *p, h in plat_geo), \
+                    "stair %s's end %d at %s meets no deck" % ((x0, x1, z0, z1), which, q)
+
+joins()
+
+def fits():
+    """Every fitted piece stands inside her lines, FIT clear of her shell, at the heights
+    it stands at below her main deck; and none moves her decks' outline, which her lines
+    are lofted from."""
+    for x0, x1, z0, z1, heights in fitted_geo:
+        for y in heights:
+            for k in range(21):
+                x = lerp(x0, x1, k / 20) + 0.0037  # off a deck's break, where none stands
+                if y >= -PLANK - SLIVER:
+                    continue
+                assert hull.within(x, y), "fitted piece %s past her ends at %s" % ((x0, x1, z0, z1), (x, y))
+                for side, reach in [(0, -z0), (1, z1)]:
+                    assert hull.breadth(x, y, side) >= reach + FIT, \
+                        "fitted piece %s through her shell at %s" % ((x0, x1, z0, z1), (x, y))
+    for k in range(int((hull.span[1] - hull.span[0]) / 0.05)):
+        x = hull.span[0] + 0.013 + k * 0.05  # off every deck's break
+        assert envelope(x) == envelope(x, hull.plats), "the fitted pieces move her decks' outline at x %s" % x
+
+fits()
 
 # The deckhouses on the main deck, enclosed: (x0, x1, half breadth, foot, top), each
 # out to its walls' outer faces, the wheelhouse standing on the deckhouse.
@@ -986,6 +1347,33 @@ top_box = cell_box("hold_fwd_top")
 opening("open_hold_fwd_top", "OPEN", "hold", "hold_fwd_top",
         ((top_box[0] + top_box[1]) * 0.5, 0, 0), (top_box[1] - top_box[0], 0, top_box[5] - top_box[4]),
         starts="OPEN")
+# The ways into her old voids (#148), chosen to move her flooding as little as they can:
+# each a watertight scuttle in the deck over its space — the double bottom's manholes in
+# her tank top too — so the space stays dry from above and keeps its air. No doorway
+# pierces a wall along her.
+def hatch(name, under, over, hole, deck):
+    x0, x1, z0, z1 = hole
+    opening(name, "HATCH", under, over, ((x0 + x1) * 0.5, deck, (z0 + z1) * 0.5), (x1 - x0, 0, z1 - z0),
+            starts="SHUT")
+
+for k, hole in enumerate(MANHOLES):
+    hatch("manhole_%d" % (k + 1), "engine_bilge_p" if hole[2] < 0 else "engine_bilge_s", "engine_room", hole,
+          TANK_TOP)
+for k, hole in enumerate(LOWER_HOLD_HATCHES):
+    hatch("hatch_hold_bilge_%d" % (k + 1), "hold_bilge", "hold", hole, LOWER)
+for k, hole in enumerate(BILGE_HATCHES):
+    bilge = "aft_bilge_p" if hole[2] < 0 else "aft_bilge_s"
+    hatch("hatch_%s_%d" % (bilge, k % 2 + 1), bilge, "aft_cabins", hole, LOWER)
+for k, hole in enumerate(WING_MAIN + WING_SS):
+    wing = "hold_wing_p" if hole[2] < 0 else "hold_wing_s"
+    hatch("hatch_%s_%d" % (wing, k % 2 + 1), wing, SKY, hole, 0.0)
+# The steering gear stands up into the space under the poop with no deck between them,
+# so the two are one space there; its hatches are in the poop.
+opening("open_aft_peak", "OPEN", "aft_peak", "poop_space", (-16.9, 0, 0), (5.8, 0, 8.4), starts="OPEN")
+for k, hole in enumerate(POOP_HATCHES):
+    hatch("hatch_poop_space_%d" % (k + 1), "poop_space", SKY, hole, POOP_DECK)
+for k, hole in enumerate(FCSL_HATCHES):
+    hatch("hatch_forepeak_%d" % (k + 1), "forepeak", SKY, hole, FCSL_DECK)
 
 # The lower-deck floors are not watertight: est. 0.05 m² of gaps between each and its
 # bilge — a plated floor over the bilge, tight but for its limbers and sounding
@@ -1058,9 +1446,10 @@ def on_side(room, side, distance, depth):
     x, z = (distance, line) if side % 2 == 0 else (line, distance)
     return x - OUTWARD[side][0] * depth, z - OUTWARD[side][1] * depth
 
-def wall_runs(room):
+def wall_runs(room, glazed=False):
     """The full walls on room's floor along its sides, as ShipSpace.wall_runs: per run
-    (side, from, to, half thickness)."""
+    (side, from, to, half thickness); glazed, only those glass can go in — no fitted
+    lining, which stands inside her shell (#148)."""
     x0, x1, z0, z1, floor, _name = room
     runs = []
     for side in range(4):
@@ -1068,8 +1457,10 @@ def wall_runs(room):
         line = [z0, x1, z1, x0][side]
         low, high = (x0, x1) if along_x else (z0, z1)
         pieces, half = [], 0.0
-        for bx0, bx1, bz0, bz1, bottom, top, is_box in block_geo:
+        for index, (bx0, bx1, bz0, bz1, bottom, top, is_box) in enumerate(block_geo):
             if not is_box or min(bx1 - bx0, bz1 - bz0) > WALL_MAX:
+                continue
+            if glazed and index in fitted_blocks:
                 continue
             if abs(bottom - floor) >= 0.05:
                 continue
@@ -1128,7 +1519,7 @@ for room in room_geo:
     helm = not machinery_in(room) and floor >= top_floor and area < SALOON_AREA
     deadlights = not machinery_in(room) and floor < 0 and area >= HOLD_AREA
     height = floor + WINDOW_HEIGHT
-    for run in wall_runs(room):
+    for run in wall_runs(room, glazed=True):
         side, a, b, half = run
         stretches = clear_of_stairs(room, run, height) if helm else [(a, b)]
         spots = []

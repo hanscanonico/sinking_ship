@@ -28,6 +28,11 @@ const SHOWS := 0.02
 ## A cell's shape at or over which its box counts as inside her: her generator rounds a
 ## box the hull's curve barely touches to just under 1 (the steamer's lower rooms).
 const WHOLE := 0.999
+## How far past her shell a box round a cell's rooms may stand and count as inside her;
+## how far inside its top and bottom her shell is read, where her outline ends at a
+## box's top on her sheer.
+const SHELL_NEAR := 0.01
+const SHELL_IN := 1e-3
 ## The least difference across an opening that is drawn pouring, in metres, and the
 ## difference at which a pour is a solid sheet.
 const POURS := 0.03
@@ -90,8 +95,10 @@ var _sea: ShaderMaterial
 ## ship of many cells and openings draws (the Titanic).
 var _water: ShaderMaterial
 var _boxes: Array[AABB] = []
-## Per cell, its surface, or null for a cell whose water is not drawn.
+## Per cell, its surface, or null for a cell whose water is not drawn; and the rest of
+## a cell drawn in a stack of boxes (stacked), each as [cell, box, surface].
 var _surfaces: Array[MeshInstance3D] = []
+var _stacks: Array = []
 ## The ship as drawn at the moment last shown — her rotation and place, the poses'
 ## between them — the world's up in her axes, and a basis that lays a sheet level with
 ## the world in her space.
@@ -156,8 +163,8 @@ var _pocket_light: OmniLight3D
 ## standing in by INSET from any face no other cell's box shares, so its water ends
 ## inside the wall there; a cell whose box pokes out of her, round its [param rooms]
 ## only (_round_rooms), so neither its water nor the sea's mask (SeaAndSky) reaches past
-## her shell; a zero box for a cell whose water is not drawn — a void, a peak — in her
-## cells' order.
+## her shell — the top of its stack where one box round them would (stacked); a zero box
+## for a cell whose water is not drawn — a void, a peak — in her cells' order.
 static func boxes(structure: ShipStructure, rooms: Array[ShipRoom]) -> Array[AABB]:
 	var found: Array[AABB] = []
 	for cell: FloodCell in structure.cells:
@@ -166,7 +173,7 @@ static func boxes(structure: ShipStructure, rooms: Array[ShipRoom]) -> Array[AAB
 			found.append(AABB())
 			continue
 		if cell.shape < WHOLE and not open:
-			found.append(_round_rooms(cell, rooms))
+			found.append(_room_boxes(structure, cell, rooms)[0])
 			continue
 		var low := cell.low
 		var high := cell.high
@@ -177,6 +184,90 @@ static func boxes(structure: ShipStructure, rooms: Array[ShipRoom]) -> Array[AAB
 				high[axis] -= INSET
 		found.append(AABB(low, high - low))
 	return found
+
+
+## The rest of each cell drawn round its [param rooms] whose one box round them would
+## reach past [param structure]'s shell — rooms stacked down her run, the lower the
+## narrower (the steamer's aft peak, #148): each of its rooms in its own box, from its
+## floor up to the floor of the one over it or the cell's top, that one in boxes(); each
+## as [cell, box].
+static func stacked(structure: ShipStructure, rooms: Array[ShipRoom]) -> Array:
+	var found := []
+	for index in structure.cells.size():
+		var cell := structure.cells[index]
+		if cell.shape >= WHOLE or cell.rooms.is_empty() or cell.kind == FloodCell.Kind.OPEN_WELL:
+			continue
+		var drawn := _room_boxes(structure, cell, rooms)
+		for box: AABB in drawn.slice(1):
+			found.append([index, box])
+	return found
+
+
+## [param cell]'s boxes round its [param rooms]: the one round them all
+## (_round_rooms) where it stands inside [param structure]'s shell, else one per room,
+## stacked, each held inside her shell — none her shell closes to nothing — the one up
+## to the cell's top — the largest such — first.
+static func _room_boxes(
+	structure: ShipStructure, cell: FloodCell, rooms: Array[ShipRoom]
+) -> Array[AABB]:
+	var round := _round_rooms(cell, rooms)
+	var own: Array[ShipRoom] = []
+	for room: ShipRoom in rooms:
+		if room.name in cell.rooms:
+			own.append(room)
+	if own.size() < 2 or _within(structure, round):
+		return [round]
+	var found: Array[AABB] = []
+	for room: ShipRoom in own:
+		var top := cell.high.y
+		for other: ShipRoom in own:
+			if other.floor_height > room.floor_height and other.area.intersects(room.area):
+				top = minf(top, other.floor_height)
+		var low := Vector3(room.area.position.x, room.floor_height, room.area.position.y)
+		var box := AABB(low, Vector3(room.area.end.x, top, room.area.end.y) - low)
+		var shell := _shell(structure, box)
+		box.position.z = maxf(box.position.z, -shell.x)
+		box.end.z = minf(box.end.z, shell.y)
+		if box.size.z > 0.0:
+			found.append(box)
+	if found.is_empty():
+		return [round]
+	found.sort_custom(
+		func(a: AABB, b: AABB) -> bool:
+			if not is_equal_approx(a.end.y, b.end.y):
+				return a.end.y > b.end.y
+			return a.get_volume() > b.get_volume()
+	)
+	return found
+
+
+## Whether [param box] stands inside [param structure]'s shell at every height it spans,
+## within SHELL_NEAR.
+static func _within(structure: ShipStructure, box: AABB) -> bool:
+	var shell := _shell(structure, box)
+	return -box.position.z <= shell.x + SHELL_NEAR and box.end.z <= shell.y + SHELL_NEAR
+
+
+## How far out [param structure]'s shell stands to port and to starboard at its narrowest
+## over [param box] — 0 where her outline does not reach a height it spans: her shell is
+## straight between its outline's points, so its narrowest is at one of them or at the
+## box's top or bottom.
+static func _shell(structure: ShipStructure, box: AABB) -> Vector2:
+	var narrowest := Vector2(INF, INF)
+	for section: HullSection in structure.sections:
+		var half := section.length * 0.5
+		if section.x + half <= box.position.x or section.x - half >= box.end.x:
+			continue
+		var heights := PackedFloat32Array([box.position.y + SHELL_IN, box.end.y - SHELL_IN])
+		for point: Vector2 in section.outline:
+			if point.y > box.position.y and point.y < box.end.y:
+				heights.append(point.y)
+		for height: float in heights:
+			var port := -section.shell_at(height, -1)
+			var starboard := section.shell_at(height, 1)
+			narrowest.x = minf(narrowest.x, 0.0 if is_nan(port) else port)
+			narrowest.y = minf(narrowest.y, 0.0 if is_nan(starboard) else starboard)
+	return narrowest
 
 
 ## The part of [param cell]'s box over the floors of its rooms among [param rooms]:
@@ -238,6 +329,9 @@ func setup(
 		var box := _boxes[cell]
 		var under_sky := structure.cells[cell].kind == FloodCell.Kind.OPEN_WELL
 		_surfaces.append(null if box.size == Vector3.ZERO else _surface(box, under_sky))
+	_stacks.clear()
+	for stack: Array in stacked(structure, rooms):
+		_stacks.append([stack[0], stack[1], _surface(stack[1], false)])
 	_leaves.clear()
 	_leaf_widths.clear()
 	if not paints.is_empty():
@@ -326,17 +420,10 @@ func show_water(then: ShipPose, now: ShipPose, alpha: float) -> void:
 	for cell in _surfaces.size():
 		var level := lerpf(_level_of(then, cell), _level_of(now, cell), alpha)
 		levels[cell] = level
-		var surface := _surfaces[cell]
-		if surface == null:
-			continue
-		var box := _boxes[cell]
-		var reach := CellSurface.reach(_ship, box)
-		var showing := level > reach.x + SHOWS and level < reach.y - SHOWS
-		if surface.visible != showing:
-			surface.visible = showing
-		if showing:
-			surface.transform = CellSurface.placed(_ship, _level, box, level)
-			_param(surface, &"world_to_ship", to_ship)
+		if _surfaces[cell] != null:
+			_show_surface(_surfaces[cell], _boxes[cell], level, to_ship)
+	for stack: Array in _stacks:
+		_show_surface(stack[2], stack[1], levels[stack[0]], to_ship)
 	for door: StringName in _leaves:
 		var shut: float = lerpf(
 			then.doors_shut.get(door, 0.0), now.doors_shut.get(door, 0.0), alpha
@@ -495,6 +582,18 @@ func _surface(box: AABB, under_sky: bool) -> MeshInstance3D:
 	surface.visible = false
 	add_child(surface)
 	return surface
+
+
+## Shows [param surface], drawn in [param box], at world height [param level] while it
+## stands between the box's lowest corner and its highest as she leans, else hides it.
+func _show_surface(surface: MeshInstance3D, box: AABB, level: float, to_ship: Transform3D) -> void:
+	var reach := CellSurface.reach(_ship, box)
+	var showing := level > reach.x + SHOWS and level < reach.y - SHOWS
+	if surface.visible != showing:
+		surface.visible = showing
+	if showing:
+		surface.transform = CellSurface.placed(_ship, _level, box, level)
+		_param(surface, &"world_to_ship", to_ship)
 
 
 ## Sets [param drawn]'s own material's [param parameter] to [param value].
@@ -756,6 +855,9 @@ func _show_pockets(pose: ShipPose, levels: PackedFloat64Array) -> void:
 		var glow := POCKET_GLOW if held else 0.0
 		if _surfaces[cell] != null and _glows[cell] != glow:
 			_param(_surfaces[cell], &"pocket_glow", glow)
+			for stack: Array in _stacks:
+				if stack[0] == cell:
+					_param(stack[2], &"pocket_glow", glow)
 			_glows[cell] = glow
 		if held and cell == eye_cell:
 			lit = cell

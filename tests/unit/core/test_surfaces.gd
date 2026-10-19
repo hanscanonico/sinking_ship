@@ -11,6 +11,16 @@ func _platform(platform_name: StringName) -> int:
 	return SimFixtures.platform_named(_steamer(), platform_name)
 
 
+## How far forward the steamer's deck named [param platform_name] reaches, over all its
+## pieces: a deck laid round hatches is in pieces (#148).
+func _forward_end(platform_name: StringName) -> float:
+	var end := -INF
+	for platform: ShipPlatform in _steamer().platforms:
+		if platform.name == platform_name:
+			end = maxf(end, platform.area.end.x)
+	return end
+
+
 ## The steamer's ramp whose start end joins [param start] and end end joins
 ## [param end], as a surface number.
 func _ramp_between(surfaces: Surfaces, start: int, end: int) -> int:
@@ -132,11 +142,12 @@ func test_landing_stagger_scales_with_the_drop() -> void:
 	var bridge := layout.platforms[_platform(&"bridge")]
 	var boat_deck := layout.platforms[_platform(&"boat deck")]
 	var poop_deck := layout.platforms[_platform(&"poop deck")]
-	# Off the poop deck's open forward edge onto the main deck, off the bridge's after
-	# edge onto the boat deck, off the boat deck's after edge onto the main deck.
+	# Off the poop deck's open forward edge onto the main deck, clear of its hatches,
+	# off the bridge's after edge onto the boat deck, off the boat deck's after edge
+	# onto the main deck.
 	var falls := [
 		[
-			Vector3(poop_deck.area.end.x - 0.6, poop_deck.height, 1.2),
+			Vector3(_forward_end(&"poop deck") - 0.6, poop_deck.height, 2.5),
 			Vector2.RIGHT,
 			poop_deck.height
 		],
@@ -297,7 +308,7 @@ func test_stacked_floors_pick_the_one_underfoot() -> void:
 	var step := SimFixtures.rules().step_height
 	# Abaft the funnel, to port: a lower-deck cabin, the main deck over it (a deckhouse
 	# cabin's floor) and the boat deck over that, one above another.
-	var x := -5.0
+	var x := -6.3
 	var z := -2.5
 	var floors := {-2.6: &"lower deck", 0.0: &"main deck", 2.5: &"boat deck"}
 	for height: float in floors:
@@ -516,7 +527,7 @@ func test_room_is_wet_when_its_cell_water_is_above_its_floor() -> void:
 	var sinking: SinkScenario = load(SimFixtures.STEAMER_SINKING).duplicate()
 	sinking.explicit_hit = SimFixtures.explicit_hit(1, -2.0, 19.0, 1.0, 0.05, 1.5)
 	var sim := SimFixtures.sim(3, sinking, layout)
-	var rooms := {0: Vector3(8.0, -2.6, -2.0), 1: Vector3(-11.0, -2.6, 3.0)}
+	var rooms := {0: Vector3(8.0, -2.6, -2.0), 1: Vector3(-11.0, -2.6, 4.0)}
 	for seat: int in rooms:
 		SimFixtures.place(sim, seat, rooms[seat])
 		assert_ne(layout.room_at(rooms[seat], 0.01), -1, "seat %d stands in a room" % seat)

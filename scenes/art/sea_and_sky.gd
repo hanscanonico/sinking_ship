@@ -140,7 +140,10 @@ func setup(end_tick: int, layout: ShipLayout, sea_depth: float = INF) -> void:
 	_lay_bottom(sea_depth)
 	_map_rooms(layout)
 	if layout.structure != null:
-		_mask_cells(InnerWater.boxes(layout.structure, layout.rooms))
+		var boxes := InnerWater.boxes(layout.structure, layout.rooms)
+		for stack: Array in InnerWater.stacked(layout.structure, layout.rooms):
+			boxes.append(stack[1])
+		_mask_cells(boxes)
 	var bounds := layout.platforms[0].area
 	var top := -INF
 	for platform: ShipPlatform in layout.platforms:
@@ -291,13 +294,15 @@ static func _drawn(boxes: Array[AABB]) -> Array:
 
 
 ## What the rooms' map covers, ship x/z: every room and a cell of nothing round
-## them, in whole cells.
+## them, in whole cells, on her grid of them — so a deck that breaks on a whole cell,
+## as hers do on the half metre, breaks between cells however far her rooms reach.
 static func room_bounds(layout: ShipLayout) -> Rect2:
 	var bounds := layout.rooms[0].area
 	for room: ShipRoom in layout.rooms:
 		bounds = bounds.merge(room.area)
 	bounds = bounds.grow(ROOM_CELL)
-	return Rect2(bounds.position, (bounds.size / ROOM_CELL).ceil() * ROOM_CELL)
+	var low := (bounds.position / ROOM_CELL).floor() * ROOM_CELL
+	return Rect2(low, ((bounds.end - low) / ROOM_CELL).ceil() * ROOM_CELL)
 
 
 ## The rooms seen from above, a cell of ROOM_CELL metres a texel over room_bounds():

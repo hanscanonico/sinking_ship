@@ -157,11 +157,16 @@ func _init(space: ShipSpace, railing_height: float) -> void:
 	_bow_lead = minf(STEM_LEAD * _fore_edge, bow_drop / fall)
 	var counter_drop := maxf(_aft_deck - _waterline - KNUCKLE, 0.0)
 	_counter_lead = minf(COUNTER_LEAD * _aft_edge, counter_drop / fall)
+	# What is fitted inside her lines stands where they already let it, and shapes none.
 	for platform: ShipPlatform in _layout.platforms:
-		_hold(platform.area, platform.height - ShipArt.PLANK)
+		if not platform.fitted:
+			_hold(platform.area, platform.height - ShipArt.PLANK)
 	for ramp: ShipRamp in _layout.ramps:
-		_hold(ramp.area, ramp.base())
+		if not ramp.fitted:
+			_hold(ramp.area, ramp.base())
 	for blocker: ShipBlocker in _layout.blockers:
+		if blocker.fitted:
+			continue
 		var plan := blocker.area
 		if blocker.shape == ShipBlocker.Shape.CYLINDER:
 			plan = Rect2(
