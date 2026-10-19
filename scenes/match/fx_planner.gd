@@ -126,6 +126,8 @@ var _hull: Rect2
 var _centre := Vector3.ZERO
 ## The funnel's top, ship-local, or NAN when the ship has none.
 var _funnel := Vector3(NAN, NAN, NAN)
+## The funnel that top is of, or null.
+var _funnel_blocker: ShipBlocker
 ## Per room, the openings air blows out of as it floods: points and their outward.
 var _openings: Array[PackedVector3Array] = []
 var _outwards: Array[PackedVector3Array] = []
@@ -178,6 +180,7 @@ func _init(config: MatchConfig, surfaces: Surfaces, schedule: SinkSchedule) -> v
 	for blocker: ShipBlocker in _layout.blockers:
 		if blocker.shape == ShipBlocker.Shape.CYLINDER and ShipArt.is_funnel(_layout, blocker):
 			_funnel = Vector3(blocker.centre.x, blocker.top, blocker.centre.y)
+			_funnel_blocker = blocker
 	for room: ShipRoom in _layout.rooms:
 		_find_openings(room, config.rules)
 		_find_machine(room)
@@ -436,8 +439,8 @@ func _funnel_going(pose_then: ShipPose, pose_now: ShipPose, tick: int, cues: Arr
 
 
 ## The funnel's smoke, thicker and darker in steps as the sinking goes on, and bent
-## over toward the ship's high end once the plunge drags the funnel down: told on the
-## first step and whenever it changes.
+## over toward the ship's high end once the plunge drags the funnel down, none once the
+## funnel has fallen (FunnelArt.down): told on the first step and whenever it changes.
 func _smoke_level(tick: int, plunging: bool, pose: ShipPose, cues: Array[FxCue]) -> void:
 	if is_nan(_funnel.x):
 		return
@@ -445,6 +448,9 @@ func _smoke_level(tick: int, plunging: bool, pose: ShipPose, cues: Array[FxCue])
 	if _end_tick > _start_tick:
 		progress = clampf(float(tick - _start_tick) / (_end_tick - _start_tick), 0.0, 1.0)
 	var level := snappedf(progress, 1.0 / SMOKE_STEPS)
+	for fall: FunnelFall in pose.falls:
+		if FallenFunnels.stands_on(fall.fitting, _funnel_blocker) and FunnelArt.down(fall, tick):
+			level = 0.0
 	if level == _smoke and plunging == _bent:
 		return
 	_smoke = level
