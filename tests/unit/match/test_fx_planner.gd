@@ -291,6 +291,27 @@ func test_the_liner_smokes_from_a_funnel_not_a_mast() -> void:
 	assert_true(from != null and ShipArt.is_funnel(titanic, from), "a funnel's, not a mast's")
 
 
+## A funnel that has come down smokes no more (FunnelArt.down): the planner's smoke
+## stops with ShipArt's, never left hanging where its top stood.
+func test_a_fallen_funnel_smokes_no_more() -> void:
+	var seed_value := PinnedSeeds.seed_named(&"funnel_on_the_bridge")
+	var sim := MatchSim.create(RunMatch.default_config(seed_value))
+	var cues := _sink(_planner(sim), sim, 0, sim.schedule.end_tick(), SCAN_STRIDE)
+	var falls := sim.schedule.pose_at(sim.schedule.end_tick()).falls
+	assert_eq(falls.size(), 1, "her funnel falls")
+	if falls.is_empty():
+		return
+	var smoked := false
+	for puff: FxCue in _of(cues, FxCue.Kind.SMOKE):
+		if FunnelArt.down(falls[0], puff.tick):
+			assert_eq(puff.strength, 0.0, "none once it is down")
+		else:
+			smoked = smoked or puff.strength > 0.0
+	assert_true(smoked, "smoking while it stood")
+	var last := _of(cues, FxCue.Kind.SMOKE)[-1]
+	assert_true(FunnelArt.down(falls[0], last.tick), "told it has stopped")
+
+
 func test_steam_vents_as_the_sea_reaches_the_engine_room_and_drowns_its_engine() -> void:
 	var sim := _sim()
 	var cues := _sink(_planner(sim), sim, 0, sim.schedule.end_tick(), SCAN_STRIDE)
