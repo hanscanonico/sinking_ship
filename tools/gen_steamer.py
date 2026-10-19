@@ -90,12 +90,13 @@ def ramp(rid, x, z, w, d, axis, start, end, fitted=False):
 # (pieces_after()), so no other platform's index moves.
 later = []
 
-def holed(pid, name, x0, x1, z0, z1, h, holes, cuts=(), fitted=False, across=False):
+def holed(pid, name, x0, x1, z0, z1, h, holes, cuts=(), fitted=False, across=False, after=False):
     """The deck x0…x1 by z0…z1 at h less holes [(x0, x1, z0, z1)]: cut across x at
     cuts, then each part in bands along z between the holes' sides, each band round the
     holes in it — so a deck's edges that railings stand along stay whole; or, across,
     in bands across her between the holes' ends, each round the holes in it. Returns the
-    first piece's index; a fitted deck lays the rest at once."""
+    largest piece's index, laid first in the deck's place; a fitted deck lays the rest
+    at once. After lays every piece after the rest, the rest of a deck already laid."""
     pieces = []
     xs = [x0] + [c for c in cuts if x0 < c < x1] + [x1]
     if across:
@@ -116,8 +117,9 @@ def holed(pid, name, x0, x1, z0, z1, h, holes, cuts=(), fitted=False, across=Fal
             for e, f in zip(edges[::2], edges[1::2]):
                 if f - e > 1e-6:
                     pieces.append((e, f, c, d))
-    first = platform(pid, name, *pieces[0], h, fitted)
-    for k, piece in enumerate(pieces[1:]):
+    pieces.sort(key=lambda p: -(p[1] - p[0]) * (p[3] - p[2]))
+    first = None if after else platform(pid, name, *pieces[0], h, fitted)
+    for k, piece in enumerate(pieces if after else pieces[1:]):
         if fitted:
             platform("%s_%d" % (pid, k + 1), name, *piece, h, True)
         else:
@@ -297,9 +299,15 @@ def wall_z_doors(bid, z, x0, x1, doors, bottom, top, fitted=False):
 
 # --- Platforms. The first five are SH3's, in SH3's order; the main deck is now
 # rectangles round three stair openings, every one of them named "main deck".
-WING_MAIN = [(a, b, -WING_SHELL + 0.05, -3.9) for a, b in WING_HATCHES]
-WING_SS = [(a, b, 3.9, WING_SHELL - 0.05) for a, b in WING_HATCHES]
-MAIN = holed("main_deck", "main deck", -14, 12, -5, -1.6, 0.0, WING_MAIN, (3.7, 8.5))  # the port strip
+# Their inboard sides a hair outboard of the hold's walls (3.9 out): the main deck's
+# strips inboard of them end at 1.6 out in single precision too (Surfaces.joins), where
+# the inner stair comes up.
+WING_INBOARD = 3.90625
+WING_MAIN = [(a, b, -WING_SHELL + 0.05, -WING_INBOARD) for a, b in WING_HATCHES]
+WING_SS = [(a, b, WING_INBOARD, WING_SHELL - 0.05) for a, b in WING_HATCHES]
+# The port strip inboard of her wing passages' hatches, and outboard of it the rest of
+# it, round them.
+MAIN = platform("main_deck", "main deck", -14, 12, -WING_INBOARD, -1.6, 0.0)
 POOP = holed("poop_deck", "poop deck", -20, -14, -4.5, 4.5, 1.2, POOP_HATCHES, (-17,))
 FCSL = holed("forecastle", "forecastle", 12, 20, -4, 4, 1.8, FCSL_HATCHES, (14.5, 17))
 BOAT = platform("boat_deck", "boat deck", -7, 3, -3.4, 3.4, 2.5)
@@ -307,7 +315,10 @@ BRIDGE = platform("bridge", "bridge", -4, -1, -1.5, 1.5, 4.7)
 # The three stair openings it leaves, (x0, x1, z0, z1): the aft companionway, the
 # inner stair, the forward companionway.
 STAIR_HOLES = [(-12.85, -10.25, -0.55, 0.55), (-1.25, -0.15, -1.6, 1.0), (9, 12, 0.9, 2.0)]
-SS = holed("main_deck_starboard", "main deck", -14, 12, 2.0, 5, 0.0, WING_SS, (3.7, 8.5))
+SS = platform("main_deck_starboard", "main deck", -14, 12, 2.0, WING_INBOARD, 0.0)
+holed("main_deck_outboard", "main deck", -14, 12, -5, -WING_INBOARD, 0.0, WING_MAIN, (3.7, 8.5), after=True)
+holed("main_deck_starboard_outboard", "main deck", -14, 12, WING_INBOARD, 5, 0.0, WING_SS, (3.7, 8.5),
+      after=True)
 MA = platform("main_deck_aft", "main deck", -14, -12.85, -1.6, 2.0)
 MB1 = platform("main_deck_aft_port", "main deck", -12.85, -10.25, -1.6, -0.55)
 MB2 = platform("main_deck_aft_starboard", "main deck", -12.85, -10.25, 0.55, 2.0)
@@ -893,7 +904,9 @@ box("steering_engine", -19.8 + T, -18.9, -0.8, 0.8, STEERING_FLOOR, STEERING_FLO
 for k, (x0, x1, z0, z1) in enumerate(POOP_HATCHES):
     ramp("poop_%d" % (k + 1), x1 - 2.6, z0, 2.6, z1 - z0, 0, STEERING_FLOOR, POOP_DECK, True)
 STORES_HATCH = (-16.4, -14.25, -1.1, 1.1)
-AFT_STORES = holed("aft_stores", "aft stores", -18.9, -13, -3.0, 3.0, AFT_STORES_FLOOR, [STORES_HATCH],
+# Its floor stops at the face of the bulkhead before it, half a metre under the lower
+# deck beyond: the two never meet, a hop up (bots never jump).
+AFT_STORES = holed("aft_stores", "aft stores", -18.9, -13 - T, -3.0, 3.0, AFT_STORES_FLOOR, [STORES_HATCH],
                    fitted=True)
 wall_x("aft_stores_aft", -18.9, -3.0, 3.0, AFT_STORES_FLOOR, STEERING_FLOOR, True)
 for side, z in [("port", -3.0), ("starboard", 3.0)]:
@@ -919,7 +932,9 @@ for side, z in [("port", -2.7), ("starboard", 2.7)]:
 for k, (x0, x1, z0, z1) in enumerate(FCSL_HATCHES):
     ramp("forecastle_hatch_%d" % (k + 1), x0, z0, 3.3, z1 - z0, 0, FCSL_DECK, BOSUN_FLOOR, True)
 LOCKER_SIDE = 1.8
-platform("chain_locker", "chain locker", 15, 19, -LOCKER_SIDE, LOCKER_SIDE, LOCKER_FLOOR, True)
+# Its floor stops at the face of the bulkhead abaft it, the lower hold's floor beyond a
+# hop under it.
+platform("chain_locker", "chain locker", 15 + T, 19, -LOCKER_SIDE, LOCKER_SIDE, LOCKER_FLOOR, True)
 wall_x("chain_locker_forward", 19, -LOCKER_SIDE, LOCKER_SIDE, LOCKER_FLOOR, BOSUN_FLOOR, True)
 for side, z in [("port", -LOCKER_SIDE), ("starboard", LOCKER_SIDE)]:
     wall_z("chain_locker_" + side, z, 15 + T, 19, LOCKER_FLOOR, BOSUN_FLOOR, True)

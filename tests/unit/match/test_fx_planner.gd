@@ -142,7 +142,9 @@ func test_a_lurch_slaps_spray_up_the_low_side() -> void:
 	assert_gt(sifts.size(), 0, "dust off the decks overhead")
 	for sift: FxCue in sifts:
 		assert_gt(sift.end.x * sift.end.z, 0.5, "across the whole of a room")
-		assert_gt(sift.radius, 1.5, "down from its ceiling to its floor")
+		# A crawl space (#148) is under a body's height, the rest over a body's.
+		var least := 0.8 if sim.config.ship.rooms[sift.room].crawl_space else 1.5
+		assert_gt(sift.radius, least, "down from its ceiling to its floor")
 	var slides := _of(cues, FxCue.Kind.SLIDE)
 	assert_gt(slides.size(), 0, "loose gear sliding")
 	for slide: FxCue in slides:

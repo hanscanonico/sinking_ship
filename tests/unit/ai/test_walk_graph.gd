@@ -216,18 +216,27 @@ func test_paths_cross_walls_only_through_doors() -> void:
 		assert_ne(portal.from_zone, portal.to_zone)
 	assert_gt(doorways, 0)
 	# Rooms that share a wall and no doorway have no way between them: the cabins on
-	# the lower deck are entered from the corridor only.
+	# the lower deck are entered from the corridor, or up a stair through a scuttle in
+	# their floor from the shaft tunnel under them (#148), never through a wall.
 	var cabins := [
 		_room(layout, &"aft port cabin"),
 		_room(layout, &"middle port cabin"),
 		_room(layout, &"forward port cabin"),
 	]
 	var corridor := _room(layout, &"cabin corridor")
+	var under := _room(layout, &"shaft tunnel")
 	for portal: WalkGraph.Portal in graph.portals():
+		var up_from_under := portal.ramp != WalkGraph.NONE
 		if portal.from_zone in cabins:
-			assert_eq(portal.to_zone, corridor, "out of a cabin only into the corridor")
+			assert_true(
+				portal.to_zone == corridor or portal.to_zone == under and up_from_under,
+				"out of a cabin only into the corridor, or down to the shaft tunnel"
+			)
 		if portal.to_zone in cabins:
-			assert_eq(portal.from_zone, corridor, "into a cabin only from the corridor")
+			assert_true(
+				portal.from_zone == corridor or portal.from_zone == under and up_from_under,
+				"into a cabin only from the corridor, or up from the shaft tunnel"
+			)
 	# And a walk from the engine room to the saloon goes up the inner stair and through
 	# doorways — the straight line between them crosses walls and decks.
 	var engine_room := _room(layout, &"engine room")
@@ -627,7 +636,7 @@ func test_a_way_out_of_a_crawl_space_to_the_main_deck_and_none_into_it_flooded()
 	var cabin := _room(layout, &"aft port cabin")
 	var main_deck := graph.deck_of(SimFixtures.platform_named(layout, &"main deck"))
 	var dry := HeldPose.flooded(layout, -layout.freeboard, {})
-	var start := Vector3(-11.5, -2.6, -2.7)
+	var start := Vector3(-11.5, -2.6, -1.5)
 	var on := surfaces.under(start, step)
 	assert_eq(graph.zone_at(start, on), cabin, "it starts in the crawl space")
 	var route := graph.route(start, on, main_deck, dry)
