@@ -125,7 +125,8 @@ func water_near(my_pos: Vector3, pose: ShipPose) -> bool:
 ## How far a walk from [param from] on [param surface] along [param direction] goes
 ## before it meets the water or a drop within [param reach] — a body's width at a
 ## time — or INF when it meets neither, or a wall stands before it, or, unless
-## [param through_railings], a railing of [param surface] does.
+## [param through_railings], a railing of the surface it last walked on does: a deck
+## in pieces railed along its outer one's edge stops a walk from an inner one.
 func edge_toward(
 	from: Vector3,
 	surface: int,
@@ -136,6 +137,7 @@ func edge_toward(
 ) -> float:
 	var stride := _rules.body_radius * 2.0
 	var feet := from.y
+	var on := surface
 	for index in range(1, ceili(reach / stride) + 1):
 		var along := minf(index * stride, reach)
 		var at := from + Vector3(direction.x, 0.0, direction.y) * along
@@ -145,10 +147,11 @@ func edge_toward(
 		)
 		if under != Surfaces.NONE:
 			feet = _surfaces.height_at(under, at)
+			on = under
 			continue
 		if (
 			_surfaces.blocked(from, at, _rules.height_at(_surfaces, from), _rules.step_height)
-			or not through_railings and _surfaces.railed(from, at, surface)
+			or not through_railings and _surfaces.railed(from, at, on)
 		):
 			return INF
 		return along
