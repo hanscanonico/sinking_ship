@@ -405,6 +405,124 @@ func _full_wall_of(blocker: ShipBlocker, room: ShipRoom) -> bool:
 	return blocker.top >= ceiling(room, at.x, at.y) - SLIVER
 
 
+## Where [param blocker], one of a room's full walls with no room past it — her side, or
+## the empty space inside her shell — stands short of the room's ceiling over it, as
+## [from, to, top] along the wall: under a deck that stops short of the wall, the room
+## reaches up to the next (#147). Up to that ceiling, or to the floor of a room standing
+## over the wall's top on the same side, whichever is lower; never where another wall
+## already stands. A wall between two rooms stands short of nothing.
+func short_of_ceiling(blocker: ShipBlocker) -> Array[Vector3]:
+	var stretches: Array[Vector3] = []
+	if not is_wall(blocker):
+		return stretches
+	var box := blocker.area
+	var axis := 0 if box.size.x >= box.size.y else 1
+	var line := box.get_center()[1 - axis]
+	var half := box.size[1 - axis] * 0.5
+	for room: ShipRoom in layout.rooms:
+		if not _full_wall_of(blocker, room):
+			continue
+		var area := room.area
+		var low := maxf(box.position[axis], area.position[axis])
+		var high := minf(box.end[axis], area.end[axis])
+		if high - low < SLIVER:
+			continue
+		# Toward the room across the wall: just inside its face, and past the wall.
+		var way := signf(area.get_center()[1 - axis] - line)
+		var face := clampf(
+			line + way * (half + INSIDE), area.position[1 - axis], area.end[1 - axis]
+		)
+		var past := line - way * (half + WALL_MAX)
+		var cuts := _ceiling_cuts(room, axis, low, high)
+		for index in cuts.size() - 1:
+			var middle := (cuts[index] + cuts[index + 1]) * 0.5
+			var inside := _across(axis, middle, face)
+			var top := minf(
+				ceiling(room, inside.x, inside.y), _floor_over(room, inside, blocker.top)
+			)
+			if top <= blocker.top + SLIVER:
+				continue
+			var height := (blocker.top + top) * 0.5
+			var beyond := _across(axis, middle, past)
+			if not outdoors(Vector3(beyond.x, height, beyond.y)):
+				continue
+			if _other_wall(blocker, _across(axis, middle, line), height):
+				continue
+			var last := stretches.size() - 1
+			if (
+				last >= 0
+				and absf(stretches[last].y - cuts[index]) < SLIVER
+				and is_equal_approx(stretches[last].z, top)
+			):
+				stretches[last].y = cuts[index + 1]
+			else:
+				stretches.append(Vector3(cuts[index], cuts[index + 1], top))
+	return stretches
+
+
+## The part of [param blocker]'s footprint along [param stretch] (short_of_ceiling()).
+static func stretch_of(blocker: ShipBlocker, stretch: Vector3) -> Rect2:
+	var area := blocker.area
+	if area.size.x >= area.size.y:
+		return Rect2(stretch.x, area.position.y, stretch.y - stretch.x, area.size.y)
+	return Rect2(area.position.x, stretch.x, area.size.x, stretch.y - stretch.x)
+
+
+## The ship-plane point [param along] along [param axis] (0 x, 1 z), [param across] the
+## other way.
+static func _across(axis: int, along: float, across: float) -> Vector2:
+	return Vector2(along, across) if axis == 0 else Vector2(across, along)
+
+
+## From [param low] to [param high] along [param axis] (0 x, 1 z), where what stands
+## over [param room] may change: the ends, and every edge of a deck, a slab or a room
+## between.
+func _ceiling_cuts(room: ShipRoom, axis: int, low: float, high: float) -> PackedFloat64Array:
+	# Asked once so the decks and slabs over the room are gathered (_over, _slabs).
+	var middle := room.area.get_center()
+	ceiling(room, middle.x, middle.y)
+	var edges: Array[Rect2] = []
+	for index: int in _over[room]:
+		edges.append(layout.platforms[index].area)
+	for index: int in _slabs[room]:
+		edges.append(layout.blockers[index].area)
+	for other: ShipRoom in layout.rooms:
+		edges.append(other.area)
+	var cuts := PackedFloat64Array([low, high])
+	for edge: Rect2 in edges:
+		for at: float in [edge.position[axis], edge.end[axis]]:
+			if at > low + SLIVER and at < high - SLIVER:
+				cuts.append(at)
+	cuts.sort()
+	return cuts
+
+
+## The lowest floor, no lower than [param bottom], of a room other than [param room]
+## over [param point]; INF where none stands.
+func _floor_over(room: ShipRoom, point: Vector2, bottom: float) -> float:
+	var lowest := INF
+	for other: ShipRoom in layout.rooms:
+		if other == room or other.floor_height < bottom - SLIVER:
+			continue
+		if other.area.grow(INSIDE).has_point(point):
+			lowest = minf(lowest, other.floor_height)
+	return lowest
+
+
+## Whether a wall other than [param blocker] stands at [param point] at [param height].
+func _other_wall(blocker: ShipBlocker, point: Vector2, height: float) -> bool:
+	for other: ShipBlocker in layout.blockers:
+		if other == blocker or not is_wall(other):
+			continue
+		if (
+			height > other.bottom
+			and height < other.top
+			and other.area.grow(SLIVER).has_point(point)
+		):
+			return true
+	return false
+
+
 ## The parts of [param area] no platform at [param height] covers.
 func uncovered(area: Rect2, height: float) -> Array[Rect2]:
 	var bare: Array[Rect2] = [area]
