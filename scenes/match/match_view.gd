@@ -218,6 +218,12 @@ func indoors(eye: Vector3) -> bool:
 	return _eye_pose().cell_at(_eye_world().affine_inverse() * eye) != CellMap.NONE
 
 
+## What lights [param eye], in the world (ShipPower.Power): its cell's lamps' power,
+## or outside her the sky's (ShipPose.lit_at).
+func lit_at(eye: Vector3) -> int:
+	return _eye_pose().lit_at(_eye_world().affine_inverse() * eye)
+
+
 ## The pose of the piece of her the eyes are on, and where it is drawn: the whole ship's
 ## for the observer.
 func _eye_pose() -> ShipPose:
