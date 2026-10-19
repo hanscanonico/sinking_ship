@@ -848,6 +848,47 @@ func _paced_section(chosen: Array[Dictionary]) -> PackedStringArray:
 	var lines := PackedStringArray()
 	lines.append("## From the hit to her going (match census, match time on the paced clock, Q20)")
 	lines.append("")
+	if lengths.is_empty():
+		lines.append("No sinking was paced.")
+		lines.append("")
+		return lines
+	(
+		lines
+		. append(
+			(
+				(
+					"p10 %s · p50 %s · p90 %s · most %s · %s within %s. Phases, median share of the"
+					+ " sinking: opening %.1f%% · middle %.1f%% · end %.1f%% (asked %.0f / %.0f / %.0f);"
+					+ " %s with every phase within %.0f points. Plunge: p10 %.1f s · p50 %.1f s ·"
+					+ " least %.1f s; %s of %.0f s or more."
+				)
+				% [
+					MatchTranscript.physics_clock(_at(lengths, 0.1)),
+					MatchTranscript.physics_clock(_at(lengths, 0.5)),
+					MatchTranscript.physics_clock(_at(lengths, 0.9)),
+					MatchTranscript.physics_clock(_at(lengths, 1.0)),
+					_share(_count_at_most(lengths, pacing.length * LENGTH_SPREAD), lengths.size()),
+					MatchTranscript.physics_clock(pacing.length * LENGTH_SPREAD),
+					_at(shares[0], 0.5) * 100.0,
+					_at(shares[1], 0.5) * 100.0,
+					_at(shares[2], 0.5) * 100.0,
+					pacing.opening_share * 100.0,
+					pacing.middle_share * 100.0,
+					pacing.end_share() * 100.0,
+					_share(in_shares, lengths.size()),
+					SHARE_SPREAD * 100.0,
+					_at(plunges, 0.1),
+					_at(plunges, 0.5),
+					_at(plunges, 0.0),
+					_share(
+						_count_at_least(plunges, pacing.plunge_least - PLUNGE_TICK), plunges.size()
+					),
+					pacing.plunge_least,
+				]
+			)
+		)
+	)
+	lines.append("")
 	lines.append(
 		(
 			(
