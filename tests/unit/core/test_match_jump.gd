@@ -5,17 +5,18 @@ extends GutTest
 
 const RunMatch := preload("res://tools/run_match.gd")
 ## A seed whose match sinks her slowly by the head (from SH31 the golden 1701 falls back
-## to her sure hit, gone in minutes; from her stokehold, #74, seed 1 is gone in 13).
-const SEED := 15
+## to her sure hit, gone in minutes; from her stokehold, #74, seed 1 is gone in 13; from
+## Q20's narrower hits and 1 h 30 bound, seed 9, gone in 43 minutes of physics).
+const SEED := 9
 ## Physics seconds after the hit: well into her slow sinking, her bow low.
-const PHYS := 5400.0
+const PHYS := 1800.0
 
 
 func test_seats_stand_dry_at_the_moment_jumped_to() -> void:
 	var config := RunMatch.default_config(SEED)
 	var schedule := config.schedule()
 	var tick := schedule.physics_tick(PHYS)
-	assert_eq(tick, schedule.hit_tick() + Ticks.from_seconds(PHYS), "by the scenario's clock")
+	assert_almost_eq(schedule.physics_at(tick), PHYS, 1.0, "that moment, on her paced clock")
 	var snapshot := MatchJump.snapshot(config, tick)
 	assert_eq(snapshot["tick"], tick)
 	assert_eq(snapshot["phase"], MatchState.Phase.LIVE)

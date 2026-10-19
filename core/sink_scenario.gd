@@ -1,8 +1,8 @@
 class_name SinkScenario
 extends Resource
 ## One match's sinking, as a value the match carries (D7): the bands its iceberg hit
-## is drawn from, the sea under her, the clock that maps physics seconds to match
-## seconds and the bake's limits — and the physics decides everything after the hit.
+## is drawn from, the sea under her, the clock and pacing that map physics seconds to
+## match seconds and the bake's limits — and the physics decides everything after the hit.
 ## Which end or side goes under first, and when, is never a rule. The authored kind the
 ## MVP shipped — keyframes and events — survives only as a test fixture
 ## (tests/fixtures/sinking/): a scenario with neither a hit's bands nor an explicit hit
@@ -29,10 +29,19 @@ extends Resource
 ## The band the sea's wave height is drawn from, in metres, once a match (MustSink):
 ## what her open wells ship (ShippedWater). Zero for a still sea, which draws nothing.
 @export var wave_height: Vector2
-## Physics seconds per match second: one to one for now (Q20, deferred).
+## How many times quicker than its paced clock the sinking plays: 1, or a fast match's
+## (MatchConfig.quickened) — the whole curve, its limits too (Q20).
 @export var clock: float = 1.0
+## How the sinking is paced in match time (Q20): its own, or null for the shared
+## data/rules/sink_pacing.tres.
+@export var pacing: SinkPacing
 ## The most simulated seconds a bake runs: past it, a hit still afloat is afloat.
 @export var bake_cap: float
+## The most physics seconds a match's drawn hit may take to sink her (Q20): the
+## must-sink rule bakes a drawn hit, or a rung of its fallback, no further, and draws
+## again one she is still afloat on by then, so the paced clock seldom has to run past
+## its limits. An explicit hit and her sure hit bake to the cap. 0 for the cap itself.
+@export var sinks_within: float
 ## The must-sink rule's bounds (§5b.1): hits the quick check may throw out, bakes
 ## before the fallback, and the fallback's rungs; the dry deck, in metres, the quick
 ## check needs to spare to throw a hit out; and from SH31 the share of each failure's
@@ -43,6 +52,11 @@ extends Resource
 @export var rungs: int
 @export var spare_deck: float
 @export var quick_failing: float = 1.0
+
+
+## How the sinking is paced (Q20): its own pacing, or the shared one.
+func paced() -> SinkPacing:
+	return pacing if pacing != null else SinkPacing.load_default()
 
 
 ## Whether a match's sea is drawn: a band of waves, not a still sea.
@@ -93,6 +107,10 @@ func problems() -> PackedStringArray:
 		found.append("sinking: the waves' band must run up from 0 or more")
 	if is_physical() and (clock <= 0.0 or bake_cap <= 0.0):
 		found.append("sinking: the physics needs a clock and a bake's cap")
+	if pacing != null:
+		found.append_array(pacing.problems())
+	if sinks_within < 0.0:
+		found.append("sinking: the bound she sinks within must not be negative")
 	if quick_redraws < 0 or bakes < 0 or rungs < 0 or spare_deck < 0.0:
 		found.append("sinking: the must-sink rule's bounds must not be negative")
 	if quick_failing <= 0.0 or quick_failing > 1.0:

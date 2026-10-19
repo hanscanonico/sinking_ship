@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="SinkPacing" format=3]
+
+[ext_resource type="Script" path="res://core/sinking/sink_pacing.gd" id="1_pace"]
+
+[resource]
+script = ExtResource("1_pace")
+length = 900.0
+opening_until = 0.3
+middle_until = 0.8
+plunge_from = 0.95
+opening_share = 0.25
+middle_share = 0.5
+plunge_least = 20.0
+slowest = 0.15
+fastest = 6.0

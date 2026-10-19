@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="IcebergHit" format=3]
+
+[ext_resource type="Script" path="res://core/sinking/iceberg_hit.gd" id="1_hit"]
+
+[resource]
+script = ExtResource("1_hit")
+moment = 34.195072
+side = -1
+start_x = -4.2948475
+length = 8.680919
+depth_start = -0.13994125
+depth_end = 0.45813394
+width = 0.024657037910500022
+bite = 1.2678846
+left_open = Array[StringName]([&"port_engine_room_p1", &"port_engine_room_s2", &"port_aft_cabins_p2", &"port_aft_cabins_p3", &"port_aft_cabins_s1", &"port_aft_cabins_s2", &"port_aft_cabins_s6", &"port_aft_cabins_s7"])
