@@ -78,7 +78,9 @@ func ceiling(room: ShipRoom, x: float, z: float) -> float:
 	if over != -1:
 		height = layout.platforms[over].height
 	else:
-		height = minf(height, _hatch_over(room, x, z))
+		var hatch := _hatch_over(room, x, z)
+		if hatch < INF:
+			height = hatch
 	if not _slabs.has(room):
 		var slabs := PackedInt32Array()
 		for index in layout.blockers.size():

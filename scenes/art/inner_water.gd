@@ -28,8 +28,11 @@ const SHOWS := 0.02
 ## A cell's shape at or over which its box counts as inside her: her generator rounds a
 ## box the hull's curve barely touches to just under 1 (the steamer's lower rooms).
 const WHOLE := 0.999
-## How far past her shell a box round a cell's rooms may stand and count as inside her.
+## How far past her shell a box round a cell's rooms may stand and count as inside her;
+## how far inside its top and bottom her shell is read, where her outline ends at a
+## box's top on her sheer.
 const SHELL_NEAR := 0.01
+const SHELL_IN := 1e-3
 ## The least difference across an opening that is drawn pouring, in metres, and the
 ## difference at which a pour is a solid sheet.
 const POURS := 0.03
@@ -202,7 +205,8 @@ static func stacked(structure: ShipStructure, rooms: Array[ShipRoom]) -> Array:
 
 ## [param cell]'s boxes round its [param rooms]: the one round them all
 ## (_round_rooms) where it stands inside [param structure]'s shell, else one per room,
-## stacked, the one up to the cell's top — the largest such — first.
+## stacked, each held inside her shell, the one up to the cell's top — the largest
+## such — first.
 static func _room_boxes(
 	structure: ShipStructure, cell: FloodCell, rooms: Array[ShipRoom]
 ) -> Array[AABB]:
@@ -220,7 +224,11 @@ static func _room_boxes(
 			if other.floor_height > room.floor_height and other.area.intersects(room.area):
 				top = minf(top, other.floor_height)
 		var low := Vector3(room.area.position.x, room.floor_height, room.area.position.y)
-		found.append(AABB(low, Vector3(room.area.end.x, top, room.area.end.y) - low))
+		var box := AABB(low, Vector3(room.area.end.x, top, room.area.end.y) - low)
+		var shell := _shell(structure, box)
+		box.position.z = maxf(box.position.z, -shell.x)
+		box.end.z = minf(box.end.z, shell.y)
+		found.append(box)
 	found.sort_custom(
 		func(a: AABB, b: AABB) -> bool:
 			if not is_equal_approx(a.end.y, b.end.y):
@@ -231,24 +239,32 @@ static func _room_boxes(
 
 
 ## Whether [param box] stands inside [param structure]'s shell at every height it spans,
-## within SHELL_NEAR: her shell is straight between its outline's points, so its
-## narrowest over the box is at one of them or at the box's top or bottom.
+## within SHELL_NEAR.
 static func _within(structure: ShipStructure, box: AABB) -> bool:
+	var shell := _shell(structure, box)
+	return -box.position.z <= shell.x + SHELL_NEAR and box.end.z <= shell.y + SHELL_NEAR
+
+
+## How far out [param structure]'s shell stands to port and to starboard at its narrowest
+## over [param box] — 0 where her outline does not reach a height it spans: her shell is
+## straight between its outline's points, so its narrowest is at one of them or at the
+## box's top or bottom.
+static func _shell(structure: ShipStructure, box: AABB) -> Vector2:
+	var narrowest := Vector2(INF, INF)
 	for section: HullSection in structure.sections:
 		var half := section.length * 0.5
 		if section.x + half <= box.position.x or section.x - half >= box.end.x:
 			continue
-		var heights := PackedFloat32Array([box.position.y + SHELL_NEAR, box.end.y - SHELL_NEAR])
+		var heights := PackedFloat32Array([box.position.y + SHELL_IN, box.end.y - SHELL_IN])
 		for point: Vector2 in section.outline:
 			if point.y > box.position.y and point.y < box.end.y:
 				heights.append(point.y)
 		for height: float in heights:
-			for side: int in [1, -1]:
-				var shell := section.shell_at(height, side)
-				var reach := box.end.z if side == 1 else -box.position.z
-				if is_nan(shell) or reach > shell * side + SHELL_NEAR:
-					return false
-	return true
+			var port := -section.shell_at(height, -1)
+			var starboard := section.shell_at(height, 1)
+			narrowest.x = minf(narrowest.x, 0.0 if is_nan(port) else port)
+			narrowest.y = minf(narrowest.y, 0.0 if is_nan(starboard) else starboard)
+	return narrowest
 
 
 ## The part of [param cell]'s box over the floors of its rooms among [param rooms]:
