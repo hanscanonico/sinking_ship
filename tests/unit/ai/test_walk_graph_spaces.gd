@@ -2,7 +2,8 @@ extends GutTest
 ## The steamer's old voids made places (#148): from every space fitted into them the
 ## bots' walk graph finds a way up to her main deck, and a body crawls up out of her
 ## double bottom through a manhole and walks on up on deck; once a space's floor is
-## under, no route goes down into it.
+## under, no route goes down into it; and her deck area, by which the bots read how much
+## of her is under, is her decks'.
 
 ## Each space by name, and a point on its floor clear of its stairs and hatches.
 const SPACES := {
@@ -102,3 +103,19 @@ func test_a_body_crawls_out_of_the_double_bottom_and_none_goes_into_it_flooded()
 	var flooded := HeldPose.flooded(layout, -layout.freeboard, {&"engine_bilge_p": [-4.9]})
 	assert_true(graph.flooded(double_bottom, flooded), "its floor under")
 	assert_true(graph.route(stokehold, on, double_bottom, flooded).is_empty(), "never flooded")
+
+
+func test_her_deck_area_is_her_decks_not_the_floors_fitted_in_her_voids() -> void:
+	# How much of her is under (BotFooting.flooded_share) reads as it did before: a floor
+	# fitted in her old voids, under her waterline, is no part of her deck area.
+	var layout := SimFixtures.steamer()
+	var graph := _graph(layout, Surfaces.new(layout))
+	var fitted := 0
+	for platform in layout.platforms.size():
+		var deck := layout.platforms[platform]
+		if deck.fitted:
+			fitted += 1
+			assert_eq(graph.platform_area(platform), 0.0, "%s: no deck area" % deck.name)
+		else:
+			assert_eq(graph.platform_area(platform), deck.area.get_area(), "%s" % deck.name)
+	assert_gt(fitted, 0, "she has floors fitted in her old voids")

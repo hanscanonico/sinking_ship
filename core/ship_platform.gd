@@ -18,7 +18,7 @@ const EDGE := 0.001
 @export var slab: bool
 ## Fitted inside her lines: her hull (ShipHull) is lofted round her decks and what
 ## stood in her before, never round this, which stands where her hull already lets it
-## (#148). No rule reads it.
+## (#148). No rule reads it; bots leave it out of her deck area (WalkGraph).
 @export var fitted: bool
 
 
