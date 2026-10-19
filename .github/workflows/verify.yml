@@ -19,6 +19,10 @@ concurrency:
   group: verify-${{ github.ref }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
+# Untrusted PR code runs here: the token reads the repository and nothing more.
+permissions:
+  contents: read
+
 env:
   # The engine version the repo pins.
   GODOT_VERSION: 4.7.1-stable
