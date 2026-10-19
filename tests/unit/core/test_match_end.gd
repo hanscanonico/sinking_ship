@@ -32,8 +32,17 @@ func _fast_config(seed_value: int, path: String = FAST_HIT) -> MatchConfig:
 
 func test_match_always_ends() -> void:
 	var runner := RunMatch.bots_only(_fast_config(1))
-	var gone := runner.sim.schedule.gone_tick()
-	assert_between(gone, 0, Ticks.from_seconds(5.0 * 60.0), "the fast hit has her gone in 5 min")
+	var schedule := runner.sim.schedule
+	var gone := schedule.gone_tick()
+	assert_between(
+		schedule.timeline().gone_at, 0.0, 300.0, "the fast hit: gone in 5 min of physics"
+	)
+	assert_between(
+		gone - schedule.hit_tick(),
+		0,
+		Ticks.from_seconds(SinkPacing.load_default().length * 1.5),
+		"played within half again her paced length"
+	)
 	var ended: SimEvent = null
 	var bound := gone + Ticks.from_seconds(SETTLED_WITHIN)
 	while not runner.is_over() and runner.tick() <= bound:

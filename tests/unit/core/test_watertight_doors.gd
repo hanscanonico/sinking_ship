@@ -1,6 +1,7 @@
 extends GutTest
 ## The watertight doors (§5b.2, SH26): the ship slides them shut at the hit over
-## their shut time, a jammed one stays open, and a shutting door is a sliding blocker
+## their shut time — physics seconds, on her paced clock (Q20) — a jammed one stays
+## open, and a shutting door is a sliding blocker
 ## that pushes anyone in its gap to the side their centre is on — then holds them
 ## there, as a wall does.
 
@@ -22,13 +23,14 @@ func _sim(seats: int, jammed: Array[StringName] = []) -> MatchSim:
 func test_doors_shut_over_their_shut_time_and_a_jammed_one_stays_open() -> void:
 	var sim := _sim(1)
 	var hit := sim.schedule.hit_tick()
-	var shut_time := Ticks.from_seconds(20.0)
+	# A tick past her 20th physics second: its tick, rounded, may stand a hair before it.
+	var shut_at := sim.schedule.physics_tick(20.0) + 1
 	assert_true(sim.schedule.pose_at(hit - 1).doors_shut.is_empty(), "open until the hit")
-	var half := sim.schedule.pose_at(hit + shut_time / 2).doors_shut
+	var half := sim.schedule.pose_at(sim.schedule.physics_tick(10.0)).doors_shut
 	assert_almost_eq(half.get(&"wtd_engine", 0.0), 0.5, 0.01, "half shut halfway")
-	assert_eq(sim.schedule.pose_at(hit + shut_time).doors_shut.get(&"wtd_engine", 0.0), 1.0)
+	assert_eq(sim.schedule.pose_at(shut_at).doors_shut.get(&"wtd_engine", 0.0), 1.0)
 	var jammed := _sim(1, [&"wtd_engine"] as Array[StringName])
-	var later := jammed.schedule.pose_at(hit + shut_time).doors_shut
+	var later := jammed.schedule.pose_at(jammed.schedule.physics_tick(20.0) + 1).doors_shut
 	assert_false(later.has(&"wtd_engine"), "jammed, it never moves")
 	assert_eq(later.get(&"wtd_hold", 0.0), 1.0, "the other shuts")
 
@@ -44,7 +46,7 @@ func test_a_shutting_door_pushes_a_body_to_the_side_its_centre_is_on() -> void:
 		var at := Vector3(WALL_X + side * 0.05, -2.6, -0.3)
 		SimFixtures.place(sim, 0, at)
 		SimFixtures.place(sim, 1, Vector3(-17.0, 1.2, 0.0))
-		SimFixtures.step(sim, {}, Ticks.from_seconds(20.0) + 1)
+		SimFixtures.step(sim, {}, sim.schedule.physics_tick(20.0) - hit + 1)
 		var body := sim.state.seats[0]
 		# Pushed out of the leaf's path to its own side — and, the deck trimming as she
 		# floods (SH27), free to slide on along it.
@@ -66,7 +68,7 @@ func test_a_shut_door_hides_and_stops_a_shove() -> void:
 	assert_false(sim.surfaces.blocked(before, behind, rules.body_height, rules.step_height))
 	var eyes := Vector3.UP * 1.6
 	assert_true(sim.surfaces.line_of_sight(before + eyes, behind + eyes, sim.pose()))
-	var shut := sim.schedule.pose_at(sim.schedule.hit_tick() + Ticks.from_seconds(30.0))
+	var shut := sim.schedule.pose_at(sim.schedule.physics_tick(30.0))
 	sim.surfaces.honour(shut)
 	assert_true(sim.surfaces.blocked(before, behind, rules.body_height, rules.step_height))
 	assert_false(sim.surfaces.line_of_sight(before + eyes, behind + eyes, shut))
@@ -78,7 +80,7 @@ func test_a_door_given_way_neither_holds_a_body_nor_hides_a_shove() -> void:
 	var before := Vector3(WALL_X - 0.6, -2.6, 0.0)
 	var behind := Vector3(WALL_X + 0.6, -2.6, 0.0)
 	var eyes := Vector3.UP * 1.6
-	var later := sim.schedule.hit_tick() + Ticks.from_seconds(30.0)
+	var later := sim.schedule.physics_tick(30.0)
 	var shut := sim.schedule.pose_at(later)
 	assert_eq(shut.doors_shut.get(&"wtd_engine", 0.0), 1.0, "shut")
 	sim.surfaces.honour(shut)
