@@ -441,22 +441,222 @@ func test_an_exit_a_crate_causes_credits_the_crate_and_its_shover() -> void:
 		assert_string_contains(told.text(), line)
 
 
-func test_a_crate_the_sea_floats_off_is_lost() -> void:
-	var sinking := SimFixtures.scenario([[0.0, 0.0, 0.0, 0.0], [2.0, 4.0, 0.0, 0.0]])
-	var sim := _one_crate(1, Vector3(0.0, 0.0, 0.0), sinking)
-	SimFixtures.place(sim, 0, Vector3(-10.0, 0.0, 0.0))
-	var events := SimFixtures.step(sim, {}, 2 * Ticks.RATE)
-	var lost := _of(events, SimEvent.Kind.CRATE_LOST)
-	assert_eq(lost.size(), 1, "the sea floats it off")
-	assert_eq(lost[0].prop, 0)
-	var crate := sim.state.props[0]
-	assert_eq(crate.body, PropState.Body.LOST)
-	var feet := Vector3(0.0, 0.0, 0.0)
+## The sea from the flat deck's edge rising [param metres] over it in [param seconds],
+## then held — and, from [param falls_at] seconds when it is given, back down to the
+## deck's edge by [param falls_by].
+func _rising(metres: float, seconds: float, falls_at := -1.0, falls_by := -1.0) -> SinkScenario:
+	var edge := SimFixtures.deck().freeboard
+	var rows := [[0.0, edge, 0.0, 0.0], [seconds, edge + metres, 0.0, 0.0]]
+	if falls_at >= 0.0:
+		rows.append([falls_at, edge + metres, 0.0, 0.0])
+		rows.append([falls_by, edge, 0.0, 0.0])
+	return SimFixtures.scenario(rows)
+
+
+## The water over [param point] as [param sim]'s last step had it.
+func _water(sim: MatchSim, point: Vector3) -> float:
+	return sim.schedule.pose_at(sim.state.tick - 1).water_height(point)
+
+
+## The flat deck carrying one crate at [param at], with a roof [param roof] metres over
+## the deck from x -2 to 2 across her beam — none when it is not given: test data.
+func _roofed(at: Vector3, roof := -1.0) -> ShipLayout:
+	var crates: Array[ShipProp] = [SimFixtures.crate(at)]
+	var layout := SimFixtures.crated(crates)
+	if roof >= 0.0:
+		layout.platforms = layout.platforms.duplicate()
+		var over := ShipPlatform.new()
+		over.name = &"roof"
+		over.area = Rect2(-2.0, -4.0, 4.0, 8.0)
+		over.height = roof
+		layout.platforms.append(over)
+	return layout
+
+
+## Steps [param sim] a tick at a time, up to [param ticks], until its crate 0 is
+## [param body]; the events of every tick stepped.
+func _until(sim: MatchSim, body: PropState.Body, ticks: int) -> Array[SimEvent]:
+	var events: Array[SimEvent] = []
+	for _tick in ticks:
+		events.append_array(SimFixtures.step(sim))
+		if sim.state.props[0].body == body:
+			break
+	return events
+
+
+func test_the_water_floats_a_standing_crate_off_its_floor_and_it_rises_with_it() -> void:
 	var rules := _rules()
+	var at := Vector3(0.0, 0.0, 0.0)
+	var sim := SimFixtures.sim(1, _rising(0.9, 3.0), _roofed(at))
+	SimFixtures.place(sim, 0, Vector3(-10.0, 0.0, 0.0))
+	var crate := sim.state.props[0]
+	var events := _until(sim, PropState.Body.FLOATING, 3 * Ticks.RATE)
+	var afloat := _of(events, SimEvent.Kind.CRATE_AFLOAT)
+	assert_eq(afloat.size(), 1, "the water lifts it off its floor")
+	assert_eq(afloat[0].prop, 0)
+	assert_eq(crate.body, PropState.Body.FLOATING)
+	var water := _water(sim, crate.pos)
+	assert_gte(water, rules.wade_depth, "once wade_depth stands over its floor")
+	assert_eq(crate.pos.y, maxf(water - rules.crate_draft, 0.0), "crate_draft deep, on its floor")
+	var risen_from := crate.pos.y
+	events = SimFixtures.step(sim, {}, 3 * Ticks.RATE)
+	water = _water(sim, crate.pos)
+	assert_almost_eq(water, 0.9, 0.0001, "the sea held 0.9 m over the deck")
+	assert_eq(crate.body, PropState.Body.FLOATING, "short of crate_adrift_depth: still aboard")
+	assert_almost_eq(
+		crate.pos.y, water - rules.crate_draft, 0.0001, "riding crate_draft deep in the water"
+	)
+	assert_gt(crate.pos.y, risen_from, "risen with it")
+	assert_eq(Vector2(crate.pos.x, crate.pos.z), Vector2(at.x, at.z), "where it lifted")
+	assert_eq(crate.surface, 0, "over the deck it stood on")
+	assert_true(_of(events, SimEvent.Kind.CRATE_AFLOAT).is_empty(), "lifted once")
+	assert_true(_of(events, SimEvent.Kind.CRATE_LOST).is_empty())
+
+
+func test_an_open_deck_s_crate_is_swept_away_at_crate_adrift_depth() -> void:
+	var rules := _rules()
+	var sim := SimFixtures.sim(1, _rising(4.0, 2.0), _roofed(Vector3.ZERO))
+	SimFixtures.place(sim, 0, Vector3(-10.0, 0.0, 0.0))
+	var crate := sim.state.props[0]
+	var events := _until(sim, PropState.Body.FLOATING, 2 * Ticks.RATE)
+	var depth := 0.0
+	for _tick in 2 * Ticks.RATE:
+		depth = _water(sim, crate.pos)
+		events.append_array(SimFixtures.step(sim))
+		if crate.is_lost():
+			break
+	assert_eq(_of(events, SimEvent.Kind.CRATE_AFLOAT).size(), 1, "afloat first")
+	var lost := _of(events, SimEvent.Kind.CRATE_LOST)
+	assert_eq(lost.size(), 1, "then the sea sweeps it away")
+	assert_eq(lost[0].prop, 0)
+	assert_lt(depth, rules.crate_adrift_depth, "not while the water was shallower")
+	assert_gte(_water(sim, crate.pos), rules.crate_adrift_depth, "but at it")
+	var feet := Vector3(0.0, 0.0, 0.0)
 	assert_true(
 		sim.surfaces.obstacle_contacts(feet, rules.body_radius, rules.body_height, 0.0).is_empty(),
 		"and nothing stands where it was"
 	)
+
+
+func test_a_roofed_crate_is_lost_as_its_top_meets_the_ceiling() -> void:
+	var rules := _rules()
+	var roof := 2.0
+	var height := _steamer_crate().height
+	assert_gt(
+		roof - height + rules.crate_draft, rules.crate_adrift_depth, "deeper than the open deck's"
+	)
+	var sim := SimFixtures.sim(1, _rising(4.0, 2.0), _roofed(Vector3.ZERO, roof))
+	SimFixtures.place(sim, 0, Vector3(-10.0, 0.0, 0.0))
+	var crate := sim.state.props[0]
+	var events := _until(sim, PropState.Body.FLOATING, 2 * Ticks.RATE)
+	var top := 0.0
+	for _tick in 2 * Ticks.RATE:
+		top = crate.pos.y + height
+		events.append_array(SimFixtures.step(sim))
+		if crate.is_lost():
+			break
+	assert_eq(_of(events, SimEvent.Kind.CRATE_LOST).size(), 1, "lost under its roof")
+	assert_lt(top, roof, "not while its top was under the ceiling")
+	assert_gte(crate.pos.y + height, roof, "but once it met it")
+	assert_gt(_water(sim, crate.pos), rules.crate_adrift_depth, "past the open deck's depth")
+
+
+func test_a_floating_crate_still_stops_a_body_walking_into_it() -> void:
+	var rules := _rules()
+	var crate_def := _steamer_crate()
+	# A quay 0.5 m over the deck aft of x -0.6: the sea 0.6 m over the deck floats the
+	# crate, while a body on the quay wades in 0.1 m of it.
+	var layout := _roofed(Vector3.ZERO)
+	layout.platforms = layout.platforms.duplicate()
+	var quay := ShipPlatform.new()
+	quay.name = &"quay"
+	quay.area = Rect2(-12.0, -4.0, 11.4, 8.0)
+	quay.height = 0.5
+	layout.platforms.append(quay)
+	var sim := SimFixtures.sim(1, _rising(0.6, 1.0), layout)
+	var start := -crate_def.radius - rules.body_radius - 1.0
+	SimFixtures.place(sim, 0, Vector3(start, 0.5, 0.0))
+	var crate := sim.state.props[0]
+	SimFixtures.step(sim, {}, 2 * Ticks.RATE)
+	assert_eq(crate.body, PropState.Body.FLOATING, "afloat by the quay")
+	var player := sim.state.seats[0]
+	assert_eq(player.body, PlayerState.Body.GROUNDED, "the body wades on the quay")
+	var toward := {0: SimFixtures.frame(0, Vector2.RIGHT)}
+	SimFixtures.step(sim, toward, 2 * Ticks.RATE)
+	assert_eq(player.body, PlayerState.Body.GROUNDED, "still on the quay")
+	assert_lte(
+		player.pos.x - crate.pos.x,
+		-(crate_def.radius + rules.body_radius) + 0.0001,
+		"held off the crate as by one standing"
+	)
+	assert_eq(crate.body, PropState.Body.FLOATING)
+
+
+func test_a_floating_crate_settles_on_its_floor_as_the_water_falls_back() -> void:
+	var rules := _rules()
+	var sim := SimFixtures.sim(1, _rising(0.6, 1.0, 2.0, 4.0), _roofed(Vector3.ZERO))
+	SimFixtures.place(sim, 0, Vector3(-10.0, 0.0, 0.0))
+	var crate := sim.state.props[0]
+	var events := _until(sim, PropState.Body.FLOATING, 2 * Ticks.RATE)
+	assert_eq(crate.body, PropState.Body.FLOATING)
+	events.append_array(_until(sim, PropState.Body.GROUNDED, 4 * Ticks.RATE))
+	assert_eq(crate.body, PropState.Body.GROUNDED, "set down again")
+	assert_lt(_water(sim, crate.pos), rules.wade_depth, "as the water fell back")
+	assert_eq(crate.pos.y, 0.0, "on its floor")
+	assert_eq(crate.surface, 0)
+	events.append_array(SimFixtures.step(sim, {}, Ticks.RATE))
+	assert_eq(crate.body, PropState.Body.GROUNDED, "and it stays there")
+	assert_eq(_of(events, SimEvent.Kind.CRATE_AFLOAT).size(), 1, "lifted once")
+	assert_true(_of(events, SimEvent.Kind.CRATE_LOST).is_empty(), "never lost")
+
+
+func test_a_floating_crate_survives_snapshot_continuation() -> void:
+	var sim := SimFixtures.sim(1, _rising(1.5, 3.0), _roofed(Vector3.ZERO))
+	SimFixtures.place(sim, 0, Vector3(-10.0, 0.0, 0.0))
+	var played: Array[Dictionary] = [sim.snapshot()]
+	var floating := []
+	for _tick in 3 * Ticks.RATE:
+		SimFixtures.step(sim)
+		played.append(sim.snapshot())
+		if sim.state.props[0].body == PropState.Body.FLOATING:
+			floating.append(played.size() - 1)
+	assert_gt(floating.size(), 2, "the crate floats a while")
+	assert_true(sim.state.props[0].is_lost(), "and is swept away")
+	# As SimFixtures.step sends: no frame, the seat repeating its last.
+	var no_input := func(_tick: int) -> Array[InputFrame]:
+		var row: Array[InputFrame] = []
+		row.resize(1)
+		return row
+	for start: int in [floating[0] - 1, floating[0], floating[floating.size() / 2], floating[-1]]:
+		if not _continues(played, start, sim.config, no_input):
+			return
+
+
+func test_a_crate_draft_as_tall_as_a_crate_is_refused() -> void:
+	var rules: BrawlRules = _rules().duplicate()
+	var crate_def := _steamer_crate()
+	var config := SimFixtures.config(1, null, 1, SimFixtures.steamer())
+	assert_true(config.problems().is_empty(), "the shipped rules float her crates")
+	rules.crate_draft = crate_def.height
+	config = MatchConfig.new(1, 1, rules, SimFixtures.steamer(), SimFixtures.calm())
+	assert_true(
+		config.problems().has("match: crate_draft must be below every crate's height"),
+		"a crate floats with its top out of the water"
+	)
+	rules = _rules().duplicate()
+	rules.crate_float_drag = 1.5
+	rules.crate_adrift_depth = rules.wade_depth
+	assert_eq(
+		rules.problems(),
+		PackedStringArray(
+			[
+				"brawl rules: crate_float_drag must not exceed 1",
+				"brawl rules: crate_adrift_depth must be more than wade_depth",
+			]
+		)
+	)
+	rules.crate_draft = 0.0
+	assert_true(rules.problems().has("brawl rules: crate_draft must be positive"))
 
 
 ## A run-up at three metres a second and a jump from 1.3 m short lands on a still

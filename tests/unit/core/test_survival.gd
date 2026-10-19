@@ -10,9 +10,10 @@ const SURVIVAL_MATCH := "res://data/match/survival.tres"
 ## again when her data moved (#74's stokehold, then a spawn stepped off its gallery wall,
 ## then #148's crawl_height and crawl_speed and the rooms' crawl_space mark, then Q20's
 ## paced clock, narrower hits and 1 h 30 bound, then #148's spaces in the steamer's old
-## voids, their scuttles and the pieces' fitted mark): the goals must not move the
+## voids, their scuttles and the pieces' fitted mark, then the floating crates'
+## crate_draft, crate_float_drag and crate_adrift_depth): the goals must not move the
 ## battle royale's.
-const BATTLE_ROYALE_HASH := "6fc064b315ffa81f503315b695b4015cc5c26deb602a8bb86256dc79636a185f"
+const BATTLE_ROYALE_HASH := "4bcbf8d3cc831659dbe5a11b71d26bae44fc93cb9332930412a0b3b287ae3a03"
 
 
 func test_the_data_carries_the_goal_onto_the_match() -> void:

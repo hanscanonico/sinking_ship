@@ -162,6 +162,10 @@ func problems() -> PackedStringArray:
 		found.append("match: countdown must not be negative")
 	found.append_array(rules.problems())
 	found.append_array(ship.problems(seats))
+	for prop: ShipProp in ship.props:
+		if rules.crate_draft >= prop.height:
+			found.append("match: crate_draft must be below every crate's height")
+			break
 	found.append_array(scenario.problems())
 	if scenario.hit != null and ship.structure == null:
 		found.append("match: the sinking's iceberg hit needs a ship with a structure")
