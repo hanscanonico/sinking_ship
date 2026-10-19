@@ -2,7 +2,9 @@
 // looking up toward the surface and the nearer it the eye is, darker looking down,
 // with shafts of light slanting down from the surface — none inside her, where no sun
 // reaches the water over a flooded hold or up into a pocket (SH29). The direction each
-// pixel looks along comes from the eye's axes and field of view.
+// pixel looks along comes from the eye's axes and field of view. Within a hand of the
+// surface the water's line crosses the view, rippling, with foam along it: the tint
+// under it, clear air over it.
 shader_type canvas_item;
 
 uniform vec3 eye_right = vec3(1.0, 0.0, 0.0);
@@ -13,6 +15,9 @@ uniform vec2 eye_tan = vec2(1.0, 0.56);
 // Metres the eye is under the surface, and over which the light from above fades.
 uniform float depth = 0.0;
 uniform float light_depth = 14.0;
+// Metres the eye stands over the surface, below 0 under it; from MENISCUS_FULL down
+// the whole view is under.
+uniform float above = 1.0;
 // 1 with the eye inside one of her cells, 0 out in the sea.
 uniform float indoors = 0.0;
 // The way the shafts run: down, slanted away from the sun.
@@ -20,6 +25,19 @@ uniform vec3 shaft_axis = vec3(-0.3, -0.9, -0.3);
 uniform vec4 deep_tint : source_color = vec4(0.03, 0.15, 0.27, 0.5);
 uniform vec4 lit_tint : source_color = vec4(0.2, 0.55, 0.52, 0.3);
 uniform vec4 shaft_colour : source_color = vec4(0.62, 0.9, 0.82, 1.0);
+uniform vec4 foam_colour : source_color = vec4(0.88, 0.96, 0.96, 0.6);
+
+// How far before the eye, in metres, the water's line is seen to cross: the lens it
+// wets. Level, the line leaves the bottom of the view as the eye rises 15 cm over it.
+const float LENS = 0.26;
+const float MENISCUS_FULL = -0.15;
+// The line's ripple, as a share of the view's height, how many waves across it and how
+// fast.
+const float RIPPLE = 0.02;
+const float RIPPLE_WAVES = 18.0;
+const float RIPPLE_SPEED = 3.0;
+// The foam band along the line, in pixels.
+const float FOAM_PIXELS = 2.5;
 
 float hash(vec2 p) {
 	return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
@@ -38,7 +56,8 @@ float value_noise(vec2 p) {
 
 void fragment() {
 	vec2 ndc = UV * 2.0 - 1.0;
-	vec3 look = normalize(eye_right * ndc.x * eye_tan.x - eye_up * ndc.y * eye_tan.y - eye_back);
+	vec3 ray = eye_right * ndc.x * eye_tan.x - eye_up * ndc.y * eye_tan.y - eye_back;
+	vec3 look = normalize(ray);
 	float near = exp(-depth / light_depth) * (1.0 - indoors * 0.7);
 	vec4 tint = mix(deep_tint, lit_tint, smoothstep(-0.6, 0.9, look.y) * near);
 	// Lines along the axis, so they fan out from where it vanishes overhead; patterned
@@ -53,5 +72,16 @@ void fragment() {
 	shaft *= 1.0 - indoors;
 	tint.rgb = mix(tint.rgb, shaft_colour.rgb, shaft * 0.6);
 	tint.a = mix(tint.a, 0.6, shaft * 0.45);
+	if (above > MENISCUS_FULL) {
+		// How far over the water the lens is where this pixel looks through it, the
+		// pixel moved up or down the view by the ripple.
+		float wave = RIPPLE * sin(UV.x * RIPPLE_WAVES + TIME * RIPPLE_SPEED);
+		float over = above + LENS * (ray.y - eye_up.y * eye_tan.y * 2.0 * wave);
+		float pixel = max(fwidth(over), 1e-6);
+		float wet = 1.0 - smoothstep(-pixel, pixel, over);
+		float foam = 1.0 - smoothstep(FOAM_PIXELS * 0.5 * pixel, (FOAM_PIXELS * 0.5 + 1.0) * pixel, abs(over));
+		tint.a *= wet;
+		tint = mix(tint, foam_colour, foam);
+	}
 	COLOR = tint;
 }
