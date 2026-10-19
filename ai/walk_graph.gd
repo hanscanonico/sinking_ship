@@ -122,6 +122,9 @@ var _zone_count := 0
 var _portals: Array[Portal] = []
 ## Per zone, the portals leading out of it, in the order they were found.
 var _out: Array[PackedInt32Array] = []
+## Per zone, what a metre walked in it costs: walk_speed over crawl_speed in a crawl
+## space, 1 anywhere else — a route's cost is in metres walked.
+var _pace := PackedFloat64Array()
 ## Per ramp, the zones at its start and end ends, NONE where it joins nothing.
 var _ramp_zones: Array[PackedInt32Array] = []
 ## Per ramp, its portals toward its start end and toward its end end, or NONE.
@@ -178,8 +181,13 @@ func _init(layout: ShipLayout, surfaces: Surfaces, rules: BrawlRules) -> void:
 		_zone_platforms[zone] = PackedInt32Array()
 	for platform in _decks.size():
 		_zone_platforms[_decks[platform]].append(platform)
+	_pace.resize(_zone_count)
+	_pace.fill(1.0)
+	for room in layout.rooms.size():
+		if layout.rooms[room].crawl_space:
+			_pace[room] = rules.walk_speed / rules.crawl_speed
 	_add_ramps()
-	_add_doors(rules.body_height)
+	_add_doors(rules.crawl_height)
 	_flooded.resize(_zone_count)
 	_doomed.resize(_zone_count)
 	_heights.resize(_zone_count)
@@ -404,7 +412,9 @@ func detour(
 			if _portals[index].ramp != NONE or _wet(index, pose):
 				continue
 			var through := (
-				cost[zone] + arrived[zone].distance_to(_portal_entry[index]) + _portal_length[index]
+				cost[zone]
+				+ arrived[zone].distance_to(_portal_entry[index]) * _pace[zone]
+				+ _portal_length[index]
 			)
 			if other == start:
 				var total := through + _portal_exit[index].distance_to(to_point)
@@ -573,9 +583,9 @@ func _add_ramps() -> void:
 		_ramp_portals.append(toward)
 
 
-## A portal out through every gap in a room's walls wide enough for a body that
-## gives onto another zone, and back in from an open deck — a room's own scan adds
-## the way back from a room.
+## A portal out through every gap in a room's walls wide enough for a body — crawling,
+## [param body_height] tall, if it must — that gives onto another zone, and back in
+## from an open deck — a room's own scan adds the way back from a room.
 func _add_doors(body_height: float) -> void:
 	for room in _layout.rooms.size():
 		var floor_height := _layout.rooms[room].floor_height
@@ -621,8 +631,9 @@ func _room_middle(room: int) -> Vector3:
 ## Dijkstra over the zones from where a body on [param from_surface] at
 ## [param from_pos] stands — a zone, or both ends of the ramp it is on — never entering
 ## a doomed zone, nor, unless it may [param swim], a flooded one or going through a
-## portal with an end under water; ties go to the lower zone number. Empty when it
-## stands on nothing.
+## portal with an end under water; ties go to the lower zone number. Its costs are
+## metres walked, a crawl space's at crawl_speed (_pace). Empty when it stands on
+## nothing.
 func search(from_pos: Vector3, from_surface: int, pose: ShipPose, swim := false) -> Search:
 	var found := Search.new()
 	var footing := _surfaces.footing(from_surface) if from_surface != Surfaces.NONE else NONE
@@ -676,7 +687,9 @@ func search(from_pos: Vector3, from_surface: int, pose: ShipPose, swim := false)
 			if not swim and (flooded(other, pose) or _wet(index, pose)):
 				continue
 			var through := (
-				cost[zone] + arrived[zone].distance_to(_portal_entry[index]) + _portal_length[index]
+				cost[zone]
+				+ arrived[zone].distance_to(_portal_entry[index]) * _pace[zone]
+				+ _portal_length[index]
 			)
 			if through < cost[other]:
 				cost[other] = through

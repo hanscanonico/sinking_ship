@@ -596,3 +596,85 @@ func test_no_zones_meet_within_jump_height_so_bots_never_jump() -> void:
 			if runner.input_log.frame(tick, seat).is_held(InputFrame.JUMP):
 				fail_test("seat %d jumped at tick %d" % [seat, tick])
 				return
+
+
+## The steamer with a roof a metre over the floor of her aft port cabin, aft of
+## x −10.4, the cabin marked a crawl space — test data, no ship has one yet.
+func _crawl_cabin_layout() -> ShipLayout:
+	var layout: ShipLayout = SimFixtures.steamer().duplicate()
+	layout.platforms = layout.platforms.duplicate()
+	var roof := ShipPlatform.new()
+	roof.name = &"cabin roof"
+	roof.area = Rect2(-12.9, -4.7, 2.5, 4.0)
+	roof.height = -1.6
+	layout.platforms.append(roof)
+	layout.rooms = layout.rooms.duplicate()
+	var cabin := _room(layout, &"aft port cabin")
+	var crawl_space: ShipRoom = layout.rooms[cabin].duplicate()
+	crawl_space.crawl_space = true
+	layout.rooms[cabin] = crawl_space
+	return layout
+
+
+func test_a_way_out_of_a_crawl_space_to_the_main_deck_and_none_into_it_flooded() -> void:
+	# A body crawling under the cabin's roof finds its way out of the cabin, crawling
+	# then walking, and on up to the main deck — and walks it; once the cabin's floor is
+	# under, no route goes back into it.
+	var layout := _crawl_cabin_layout()
+	var surfaces := Surfaces.new(layout)
+	var graph := _graph(layout, surfaces)
+	var step := SimFixtures.rules().step_height
+	var cabin := _room(layout, &"aft port cabin")
+	var main_deck := graph.deck_of(SimFixtures.platform_named(layout, &"main deck"))
+	var dry := HeldPose.flooded(layout, -layout.freeboard, {})
+	var start := Vector3(-11.5, -2.6, -2.7)
+	var on := surfaces.under(start, step)
+	assert_eq(graph.zone_at(start, on), cabin, "it starts in the crawl space")
+	var route := graph.route(start, on, main_deck, dry)
+	assert_false(route.is_empty(), "there is a way out of it")
+	if route.is_empty():
+		return
+	assert_eq(route.back().to_zone, main_deck, "up to the main deck")
+
+	var sim := SimFixtures.sim(2, null, layout)
+	SimFixtures.place(sim, 0, start)
+	SimFixtures.place(sim, 1, Vector3(-18.0, 1.2, 3.0))
+	HeldPose.hold(sim, dry)
+	var passed := _walk(sim, graph, main_deck, 30.0)
+	assert_eq(passed.front(), cabin)
+	assert_eq(passed.back(), main_deck, "crawled out of it and walked up on deck")
+
+	var deck := Vector3(-10.5, 0.0, 2.5)
+	var on_deck := surfaces.under(deck, step)
+	assert_false(graph.route(deck, on_deck, cabin, dry).is_empty(), "down into it, dry")
+	var flooded := HeldPose.flooded(layout, -layout.freeboard, {&"aft_cabins": [-2.0]})
+	assert_true(graph.flooded(cabin, flooded), "its floor under")
+	assert_true(graph.route(deck, on_deck, cabin, flooded).is_empty(), "never flooded")
+
+
+func test_a_crawl_space_is_costed_at_crawl_speed() -> void:
+	# The flat deck with a room under a roof over x 0…4, open at both ends — test data. A
+	# body a metre in from its aft end is a metre's walk from the deck, or that metre at
+	# crawl_speed when the room is a crawl space: walk_speed / crawl_speed metres walked.
+	var rules := SimFixtures.rules()
+	for crawl_space: bool in [false, true]:
+		var layout: ShipLayout = SimFixtures.deck().duplicate()
+		layout.platforms = layout.platforms.duplicate()
+		var roof := ShipPlatform.new()
+		roof.area = Rect2(0.0, -4.0, 4.0, 8.0)
+		roof.height = 1.0
+		layout.platforms.append(roof)
+		var room := ShipRoom.new()
+		room.name = &"crawlway"
+		room.area = roof.area
+		room.crawl_space = crawl_space
+		var rooms: Array[ShipRoom] = [room]
+		layout.rooms = rooms
+		var surfaces := Surfaces.new(layout)
+		var graph := _graph(layout, surfaces)
+		var start := Vector3(1.0, 0.0, 0.0)
+		var on := surfaces.under(start, rules.step_height)
+		assert_eq(graph.zone_at(start, on), 0, "in the room")
+		var found := graph.search(start, on, _pose(layout, SimFixtures.calm()))
+		var pace := rules.walk_speed / rules.crawl_speed if crawl_space else 1.0
+		assert_almost_eq(found.cost[graph.deck_of(0)], pace, 0.0001, "crawl space %s" % crawl_space)

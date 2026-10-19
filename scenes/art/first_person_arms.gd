@@ -164,7 +164,8 @@ func setup(rules: BrawlRules) -> void:
 
 
 ## Poses [param seat]'s arms for the display moment [param alpha] of the way from
-## [param then] to [param now], its entries in two snapshots; hidden once the seat
+## [param then] to [param now], its entries in two snapshots — what it does on its
+## feet, never the crawl others see it make in a crawl space; hidden once the seat
 ## is out. Until it is first called — and so from the observer camera — nothing is
 ## drawn.
 func show_seat(seat: int, then: Dictionary, now: Dictionary, alpha: float) -> void:

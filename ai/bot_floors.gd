@@ -139,6 +139,13 @@ func surfaces(piece := 0) -> Surfaces:
 	return _pieces_of().faces(piece).surfaces(Faces.Up.DECK)
 
 
+## The share of a standing body's height a body with its feet at [param feet] on piece
+## [param piece] stands at, her decks its floors (BrawlRules.height_at): under 1 for a
+## crawler, whose eyes are as much lower.
+func height_share(feet: Vector3, piece := 0) -> float:
+	return _rules.height_at(surfaces(piece), feet) / _rules.body_height
+
+
 ## The faces of the piece of the footing [param at].
 func _faces_of(at: int) -> Faces:
 	var piece := at / Faces.Up.size()

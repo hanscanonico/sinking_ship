@@ -17,6 +17,7 @@ enum Move {
 	SWIM,
 	CLIMB,
 	JUMP,
+	CRAWL,
 }
 
 ## The sailor's clips (assets/characters/sailor/gen_sailor.py), by move.
@@ -34,6 +35,7 @@ const CLIPS := {
 	Move.SWIM: &"swim",
 	Move.CLIMB: &"climb",
 	Move.JUMP: &"jump",
+	Move.CRAWL: &"crawl",
 }
 ## How long the previous clip fades out, by move: a shove snaps into its pose so the
 ## telegraph lands on its tick, and recovery spends its whole window easing out.
@@ -51,6 +53,7 @@ const BLEND := {
 	Move.SWIM: 0.2,
 	Move.CLIMB: 0.15,
 	Move.JUMP: 0.05,
+	Move.CRAWL: 0.2,
 }
 ## The poses laid over a clip (BrawlerPose), by move: a telegraph has to read in a
 ## single frame from the front and the side, which no clip does on its own. A
@@ -168,6 +171,8 @@ const RUN_FROM := 2.5
 ## gen_sailor.py prints it in model units (0.9 and 3.086), times 1.7 / 1.83.
 const WALK_CLIP_SPEED := 0.836
 const RUN_CLIP_SPEED := 2.867
+## And the crawl's, its knees' slide (CRAWL in gen_sailor.py).
+const CRAWL_CLIP_SPEED := 1.115
 ## A hit-stop squashes the model this much shorter, wider by half of it, held for
 ## the stop and springing back over SQUASH_SECONDS after.
 const SQUASH := 0.14
@@ -175,8 +180,9 @@ const SQUASH_SECONDS := 0.18
 
 
 ## The move for [param entry], a seat's snapshot entry, moving at [param speed]
-## across the deck.
-static func move_for(entry: Dictionary, speed: float) -> Move:
+## across the deck — on its feet in a crawl space, [param crawling], a crawl whatever
+## it does there: a shove still shows in its hands' heat.
+static func move_for(entry: Dictionary, speed: float, crawling := false) -> Move:
 	if entry["state"] == PlayerState.Body.AIRBORNE:
 		# A jump springs up off the ground and falls like any fall once it tops out.
 		if entry["jumped"] and (entry["vel"] as Vector3).y > 0.0:
@@ -184,6 +190,8 @@ static func move_for(entry: Dictionary, speed: float) -> Move:
 		return Move.FALL
 	if entry["state"] == PlayerState.Body.SWIMMING:
 		return Move.CLIMB if entry["climb"] > 0 else Move.SWIM
+	if crawling:
+		return Move.CRAWL
 	if entry["stagger"] > 0:
 		return Move.STAGGER
 	match entry["action"]:
@@ -211,6 +219,8 @@ static func rate(move: Move, speed: float) -> float:
 			return speed / WALK_CLIP_SPEED
 		Move.RUN:
 			return speed / RUN_CLIP_SPEED
+		Move.CRAWL:
+			return maxf(speed, WALK_FROM) / CRAWL_CLIP_SPEED
 	return 1.0
 
 

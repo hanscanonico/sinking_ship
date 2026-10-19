@@ -75,10 +75,15 @@ func _spot(cell: int, feet: Vector3, pose: ShipPose) -> Vector3:
 	var floor_height := pose.world_height(at)
 	if pose.levels[cell] <= floor_height + CellMap.DRY:
 		return Vector3.INF
-	at.y = pose.water_height(at) - _rules.swim_depth
+	# Afloat as a crawler would be first: under a crawl space's roof, that is where it
+	# floats; anywhere else it stands taller and floats deeper.
+	var water := pose.water_height(at)
+	at.y = water - _rules.swim_depth_of(_rules.crawl_height)
+	at.y = water - _rules.swim_depth_of(_rules.height_at(_surfaces, at))
 	return at if pose.in_pocket(_head(at)) else Vector3.INF
 
 
-## The head of a swimmer whose feet are at [param feet].
+## The head of a swimmer whose feet are at [param feet], as tall as it is there — a
+## crawler's lower (BrawlRules.head_height).
 func _head(feet: Vector3) -> Vector3:
-	return feet + Vector3.UP * _rules.head_height()
+	return feet + Vector3.UP * _rules.head_height(_rules.height_at(_surfaces, feet))

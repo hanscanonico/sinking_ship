@@ -1904,6 +1904,44 @@ def swim(t, length):
     return pose
 
 
+## On hands and knees (#148): the knees' slide back, as walk's feet's, and how far
+## the hands reach ahead and behind of under the shoulders.
+CRAWL = {"duty": 0.5, "reach": 0.2, "lift": 0.06}
+CRAWL_HANDS = 22.0
+
+
+def crawl(t, length):
+    """On hands and knees in a space too low to stand, the back level and the head up
+    to see ahead: a hand and the other knee forward together, as a baby crawls."""
+    phase = t / length
+    pose = Pose()
+    sway = _wave(phase)
+    pose.hips = Vector((0.0, -0.47 + 0.01 * _wave(2.0 * phase), 0.06))
+    pose.trunk["pelvis"] = (78.0, -4.0 * sway, 0.0)
+    pose.trunk["spine_01"] = (82.0, -2.0 * sway, 0.0)
+    pose.trunk["spine_02"] = (84.0, 2.0 * sway, 0.0)
+    pose.trunk["chest"] = (84.0, 4.0 * sway, 0.0)
+    pose.trunk["neck"] = (45.0, 0.0, 0.0)
+    pose.trunk["head"] = (5.0, 0.0, 0.0)
+    for side, at in (("_l", 0.0), ("_r", 0.5)):
+        # The hand and the other knee: the left hand with the right knee.
+        hand = (phase - at) % 1.0
+        if hand < CRAWL["duty"]:
+            through = hand / CRAWL["duty"]
+            swing = 90.0 + CRAWL_HANDS - 2.0 * CRAWL_HANDS * through
+            lift = 0.0
+        else:
+            through = (hand - CRAWL["duty"]) / (1.0 - CRAWL["duty"])
+            swing = 90.0 - CRAWL_HANDS + 2.0 * CRAWL_HANDS * _ease(through)
+            lift = 12.0 * math.sin(math.pi * through)
+        pose.arms[side] = arm(swing=swing, out=10.0, bend=4.0 + lift, twist=20.0, wrist=70.0)
+        pose.curl[side] = (15.0, 10.0, 0.0)
+        knee = (phase - at + 0.5) % 1.0
+        stride, _ = _stride(knee, CRAWL["duty"], CRAWL["reach"], CRAWL["lift"], 0.0, 0.0)
+        pose.feet[side] = (Vector((0.0, stride.y - 0.05, stride.z - 0.42)), 70.0)
+    return pose
+
+
 ## Each clip: the game's name, its maker, its length in frames, and whether it loops
 ## (exported as NAME-loop, which Godot's import loops and names NAME).
 CLIPS = [
@@ -1918,6 +1956,7 @@ CLIPS = [
     ("brace", brace, 88, True),
     ("climb", climb, 60, True),
     ("swim", swim, 40, True),
+    ("crawl", crawl, 20, True),
 ]
 
 
@@ -1983,8 +2022,8 @@ def main():
     for body in bodies:
         print("gen_sailor: %s %d triangles" % (body.name, len(body.data.polygons)))
     print("gen_sailor: %d bones" % len(rig.data.bones))
-    print("gen_sailor: walk %.3f, run %.3f model units/s" % (
-        stride_speed(WALK, 40), stride_speed(RUN, 28)))
+    print("gen_sailor: walk %.3f, run %.3f, crawl %.3f model units/s" % (
+        stride_speed(WALK, 40), stride_speed(RUN, 28), stride_speed(CRAWL, 20)))
     if argv:
         bpy.ops.wm.save_as_mainfile(filepath=argv[0])
     if len(argv) > 1:

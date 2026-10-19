@@ -392,10 +392,20 @@ func joins(ramp_surface_id: int) -> PackedInt32Array:
 ## [param ship_point], a circle of [param radius]: every blocker and crate — but the
 ## crate [param except_prop] — its height overlaps, and every surface's edge too high
 ## above its feet to step onto but not clear overhead — a deck over another is a
-## slab, a deck over none the top of a solid hull, a ramp a solid wedge. One contact
-## per direction, the deepest.
+## slab, a deck over none the top of a solid hull, a ramp a solid wedge. A body that
+## can crawl [param crawl_height] tall ducks under any of those whose underside is that
+## high over its feet or higher where it has a floor to crawl on under it, its middle
+## [param crawl_reach] in under the edge — the circle's radius when that is negative
+## (_crawls_under): a deck edge over a stair, with none, still holds it. One contact per
+## direction, the deepest.
 func obstacle_contacts(
-	ship_point: Vector3, radius: float, body_height: float, step: float, except_prop: int = NONE
+	ship_point: Vector3,
+	radius: float,
+	body_height: float,
+	step: float,
+	except_prop: int = NONE,
+	crawl_height := INF,
+	crawl_reach := -1.0
 ) -> Array[Contact]:
 	var contacts: Array[Contact] = []
 	var point := Vector2(ship_point.x, ship_point.z)
@@ -404,12 +414,15 @@ func obstacle_contacts(
 	# and its head is at the second.
 	var reach_up := feet + step
 	var head := feet + body_height
+	var reach_in := radius if crawl_reach < 0.0 else crawl_reach
 	var box := Rect2(point - Vector2(radius, radius), Vector2(radius, radius) * 2.0)
 	var near := _grid.near(box, reach_up, head)
 	for surface: int in near:
 		if surface < _first_top:
 			continue
 		if not (reach_up < _tops[surface] and head > _bottoms[surface]):
+			continue
+		if _crawls_under(surface, point, reach_in, feet, step, crawl_height):
 			continue
 		var blocker := _blocker_of(surface)
 		var contact: Contact
@@ -428,6 +441,8 @@ func obstacle_contacts(
 		var closest := point.clamp(area.position, area.end)
 		var top := height_at(surface, Vector3(closest.x, 0.0, closest.y))
 		if not (reach_up < top and head > _bottoms[surface]):
+			continue
+		if _crawls_under(surface, point, reach_in, feet, step, crawl_height):
 			continue
 		var contact := (
 			_climb_contact(_ramps[surface - _first_ramp], point, radius, reach_up)
@@ -454,6 +469,30 @@ func obstacle_contacts(
 	contacts.append_array(_doors.contacts(point, reach_up, head, radius))
 	contacts.append_array(_fallen.contacts(point, reach_up, head, radius))
 	return PlaneShapes.deepest_per_direction(contacts)
+
+
+## Whether a body with its feet at [param feet] and its middle at [param point] ducks
+## under [param surface] to crawl: its underside is [param crawl_height] or more over
+## the feet, and under it — [param reach] in from its edge nearest the body, where its
+## middle would be once its circle is under it — a deck or a stair stands within
+## [param step] of the feet with crawl_height or more of headroom up to it.
+func _crawls_under(
+	surface: int, point: Vector2, reach: float, feet: float, step: float, crawl_height: float
+) -> bool:
+	var underside := _bottoms[surface]
+	if underside < feet + crawl_height:
+		return false
+	var area := _areas[surface]
+	var closest := point.clamp(area.position, area.end)
+	var under_it := closest
+	if closest != point:
+		under_it += (closest - point).normalized() * reach
+	var at := Vector3(under_it.x, feet + step, under_it.y)
+	var ground := _highest_at_or_below(at, _first_top)
+	if ground == NONE:
+		return false
+	var height := height_at(ground, at)
+	return height >= feet - step and underside - height >= crawl_height
 
 
 ## What holds back a circle of [param radius] whose centre at [param point] stands on

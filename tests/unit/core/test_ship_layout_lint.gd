@@ -8,6 +8,8 @@ const AUTHORING := "res://authoring"
 const MIN_DOOR := 1.0
 ## A wall is a box blocker this thin, or thinner (§5: walls are 0.2 m).
 const WALL := 0.2
+## How far apart the headroom rule looks over a room's floor.
+const HEADROOM_STEP := 0.25
 
 
 ## Every layout under data/ships/, by path, and every ship drawn under authoring/ as a
@@ -48,6 +50,46 @@ func _walls(layout: ShipLayout) -> Array[ShipBlocker]:
 		if blocker.shape == ShipBlocker.Shape.BOX and minf(size.x, size.y) <= WALL + 0.001:
 			walls.append(blocker)
 	return walls
+
+
+## Every point of [param layout]'s rooms' floors without the headroom its room needs
+## (BrawlRules.headroom), described: every room's floor has headroom to stand, or headroom
+## between the rules' crawl_height and standing and is marked a crawl space — and a
+## room marked one has somewhere too low to stand. It looks every HEADROOM_STEP over the
+## floor of each room, on its platforms, where a body's middle can be: a body's radius
+## in from the middle of its walls.
+func _headroom_problems(layout: ShipLayout) -> PackedStringArray:
+	var rules := SimFixtures.rules()
+	var step := rules.step_height
+	var surfaces := Surfaces.new(layout)
+	var found := PackedStringArray()
+	for room: ShipRoom in layout.rooms:
+		var inner := room.area.grow(-(rules.body_radius + WALL * 0.5))
+		var crawled := false
+		var x := inner.position.x
+		while x <= inner.end.x:
+			var z := inner.position.y
+			while z <= inner.end.y:
+				var feet := Vector3(x, room.floor_height, z)
+				var under := surfaces.under(feet, step)
+				z += HEADROOM_STEP
+				if under == Surfaces.NONE or under >= surfaces.platform_count():
+					continue
+				feet.y = surfaces.height_at(under, feet)
+				var headroom := rules.headroom(surfaces, feet)
+				if headroom < rules.crawl_height:
+					found.append(
+						"%s: %.2f m over %s, too low to crawl" % [room.name, headroom, feet]
+					)
+				elif headroom < rules.body_height and not room.crawl_space:
+					found.append(
+						"%s: %.2f m over %s, not a crawl space" % [room.name, headroom, feet]
+					)
+				crawled = crawled or headroom < rules.body_height
+			x += HEADROOM_STEP
+		if room.crawl_space and not crawled:
+			found.append("%s: a crawl space with headroom to stand everywhere" % room.name)
+	return found
 
 
 ## The first platform standing at the main deck's height — the origin's (D6).
@@ -215,7 +257,7 @@ func test_no_single_route_perch() -> void:
 
 func test_every_room_has_a_door() -> void:
 	# Or a stair up out of it: the steamer's stokehold is left by the stairs to its
-	# galleries (#74).
+	# galleries (#74). A door is any gap a body gets through, crawling if it must.
 	var rules := SimFixtures.rules()
 	var layouts := _layouts()
 	var rooms := 0
@@ -225,7 +267,7 @@ func test_every_room_has_a_door() -> void:
 		for room: ShipRoom in layout.rooms:
 			rooms += 1
 			var wide := 0
-			for door: ShipRoom.Door in room.doors(surfaces, rules.body_height, rules.step_height):
+			for door: ShipRoom.Door in room.doors(surfaces, rules.crawl_height, rules.step_height):
 				if door.width() >= rules.body_radius * 2.0:
 					wide += 1
 			for ramp: ShipRamp in layout.ramps:
@@ -243,7 +285,7 @@ func test_doors_are_at_least_a_metre_wide() -> void:
 		var layout: ShipLayout = layouts[path]
 		var surfaces := Surfaces.new(layout)
 		for room: ShipRoom in layout.rooms:
-			for door: ShipRoom.Door in room.doors(surfaces, rules.body_height, rules.step_height):
+			for door: ShipRoom.Door in room.doors(surfaces, rules.crawl_height, rules.step_height):
 				assert_gte(
 					door.width(),
 					MIN_DOOR,
@@ -299,6 +341,42 @@ func test_no_sealed_room() -> void:
 						walkable or (reached[room] == 1 and on_it.area.intersects(platform.area))
 					)
 			assert_true(walkable, "%s: platform %d cannot be walked to" % [path, index])
+
+
+func test_every_floor_in_a_room_has_headroom_to_stand_or_is_a_crawl_space() -> void:
+	var layouts := _layouts()
+	for path: String in layouts:
+		assert_eq(_headroom_problems(layouts[path]), PackedStringArray(), path)
+
+
+func test_the_headroom_rule_bites() -> void:
+	# The flat deck with a roof over x 0…4 and a room under it — test data. A metre's
+	# headroom is a crawl space's, 0.6 m nobody's; a room in the open is no crawl space.
+	var roofed := func(roof_height: float, crawl_space: bool) -> ShipLayout:
+		var layout: ShipLayout = SimFixtures.deck().duplicate()
+		layout.platforms = layout.platforms.duplicate()
+		var roof := ShipPlatform.new()
+		roof.area = Rect2(0.0, -4.0, 4.0, 8.0)
+		roof.height = roof_height
+		layout.platforms.append(roof)
+		var room := ShipRoom.new()
+		room.name = &"under the roof"
+		room.area = roof.area
+		room.crawl_space = crawl_space
+		var rooms: Array[ShipRoom] = [room]
+		layout.rooms = rooms
+		return layout
+	assert_eq(_headroom_problems(roofed.call(1.0, true)), PackedStringArray(), "a crawl space")
+	var unmarked := _headroom_problems(roofed.call(1.0, false))
+	assert_false(unmarked.is_empty(), "unmarked, it is too low")
+	assert_string_contains(unmarked[0], "not a crawl space")
+	var low := _headroom_problems(roofed.call(0.6, true))
+	assert_false(low.is_empty(), "under crawl_height, it takes nobody")
+	assert_string_contains(low[0], "too low to crawl")
+	assert_eq(
+		_headroom_problems(roofed.call(3.0, true)),
+		PackedStringArray(["under the roof: a crawl space with headroom to stand everywhere"])
+	)
 
 
 func test_every_lower_deck_has_two_stairs_up() -> void:
