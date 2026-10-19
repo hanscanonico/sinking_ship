@@ -115,7 +115,10 @@ match:
 # autoplays nor takes AT; pause, online-pause and online-settings stand over the match
 # at AT. One game window at a time on a shared machine: capture and fps take the window
 # lock themselves (tools/window_lock.sh), a kernel lock released on any exit, so never
-# hand-roll a lock around them; run, a person playing, does not take it.
+# hand-roll a lock around them; run, a person playing, does not take it. A window the
+# system stops drawing — covered, minimised, on another Space, the display asleep —
+# fails a capture once no frame has been drawn for a minute (DrawWatch), rather
+# than hang holding the lock.
 menu-screen = $(filter menu settings graphics online room,$(SCREEN))
 capture:
 	$(call require-godot)

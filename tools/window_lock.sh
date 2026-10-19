@@ -13,9 +13,12 @@
 # It cannot go stale; there is nothing to clean up.
 #
 # It tries once without waiting; when another window holds it, it says so in one
-# line on stderr and waits as long as it takes — blocked in flock(1), or with
-# lockf(1) trying again every half second, as lockf waiting on a descriptor spins
-# a core. The exit status is COMMAND's.
+# line on stderr, naming the holder — its PID, how long it has run, its command —
+# when the file says which it is, and waits as long as it takes: blocked in
+# flock(1), or with lockf(1) trying again every half second, as lockf waiting on a
+# descriptor spins a core. The exit status is COMMAND's. A holder writes its PID,
+# which exec keeps for COMMAND, into the file with its start time, so a PID the
+# system has since given another process is never named.
 # Under a holder (WINDOW_LOCK_HELD names the same file) it runs COMMAND as it is,
 # rather than wait on itself. flock(1) where it is on PATH (Linux), else the
 # BSD lockf(1) macOS ships; with neither it fails and runs nothing.
@@ -46,18 +49,39 @@ else
 	exit 1
 fi
 
+# When process $1 started, as ps says it; nothing for a process that is gone.
+started() {
+	LC_ALL=C ps -o lstart= -p "$1" 2>/dev/null | sed 's/^ *//; s/ *$//'
+}
+
+# ", held by PID …" for the holder the file names, while it is the process that wrote
+# it; when the file names no one, or someone gone, that the holder is unknown — one
+# that has just taken the lock, or an older copy of this script, which wrote nothing.
+holder() {
+	local pid start
+	if IFS=$'\t' read -r pid start <"$WINDOW_LOCK_FILE" 2>/dev/null &&
+		[[ "$pid" =~ ^[0-9]+$ && -n "$start" && "$(started "$pid")" == "$start" ]]; then
+		printf ', held by PID %s for %s: %s' "$pid" \
+			"$(ps -o etime= -p "$pid" 2>/dev/null | tr -d ' ')" \
+			"$(ps -ww -o command= -p "$pid" 2>/dev/null | cut -c1-400)"
+	else
+		printf ', its holder unknown'
+	fi
+}
+
 exec 9>>"$WINDOW_LOCK_FILE" || {
 	echo "window: cannot open $WINDOW_LOCK_FILE" >&2
 	exit 1
 }
 
 if ! try_lock; then
-	echo "window: waiting for another game window (lock $WINDOW_LOCK_FILE)" >&2
+	echo "window: waiting for another game window (lock $WINDOW_LOCK_FILE)$(holder)" >&2
 	wait_lock || {
 		echo "window: could not take $WINDOW_LOCK_FILE" >&2
 		exit 1
 	}
 fi
 
+printf '%s\t%s\n' "$$" "$(started "$$")" >"$WINDOW_LOCK_FILE"
 export WINDOW_LOCK_HELD="$WINDOW_LOCK_FILE"
 exec "$@"

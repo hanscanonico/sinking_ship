@@ -56,6 +56,9 @@ var _match: MatchScene
 ## The last match's choices, their seed blank, for a rematch: a fresh one is drawn.
 var _rematch_choices: MatchChoices
 var _capturing := false
+## Watches a capture's window for frames drawn, so one the system stops drawing fails
+## rather than wait forever (#105); null when not capturing.
+var _draw_watch: DrawWatch
 ## The online play under way, from the Online screen; null when none is.
 var _online: OnlinePlay
 ## The view settings, held so that what --quality and --render-scale choose holds all
@@ -93,6 +96,8 @@ func _ready() -> void:
 	# A capture keeps the window it was launched with, whatever the player saved.
 	if _args.capture_path.is_empty():
 		_view.apply_window()
+	else:
+		_draw_watch = DrawWatch.new()
 	_view.run_quality = _args.quality
 	_view.run_render_scale = _args.render_scale
 	_view.apply_graphics(get_viewport())
@@ -148,6 +153,14 @@ func _process(delta: float) -> void:
 		_hold.advance(delta, _baker.progress())
 	elif _online == null and (_match == null or _match.is_over()):
 		_bake_upcoming()
+	if (
+		_draw_watch != null
+		and _draw_watch.stalled(Engine.get_frames_drawn(), Time.get_ticks_msec())
+	):
+		push_error("capture: %s: %s" % [_args.capture_path, _draw_watch.stall_message()])
+		_draw_watch = null
+		get_tree().quit(1)
+		return
 	if _args.capture_path.is_empty() or _capturing:
 		return
 	if _holding != null:
