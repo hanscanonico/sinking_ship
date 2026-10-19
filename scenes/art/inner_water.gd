@@ -205,8 +205,8 @@ static func stacked(structure: ShipStructure, rooms: Array[ShipRoom]) -> Array:
 
 ## [param cell]'s boxes round its [param rooms]: the one round them all
 ## (_round_rooms) where it stands inside [param structure]'s shell, else one per room,
-## stacked, each held inside her shell, the one up to the cell's top — the largest
-## such — first.
+## stacked, each held inside her shell — none her shell closes to nothing — the one up
+## to the cell's top — the largest such — first.
 static func _room_boxes(
 	structure: ShipStructure, cell: FloodCell, rooms: Array[ShipRoom]
 ) -> Array[AABB]:
@@ -228,7 +228,10 @@ static func _room_boxes(
 		var shell := _shell(structure, box)
 		box.position.z = maxf(box.position.z, -shell.x)
 		box.end.z = minf(box.end.z, shell.y)
-		found.append(box)
+		if box.size.z > 0.0:
+			found.append(box)
+	if found.is_empty():
+		return [round]
 	found.sort_custom(
 		func(a: AABB, b: AABB) -> bool:
 			if not is_equal_approx(a.end.y, b.end.y):
