@@ -14,7 +14,7 @@ extends OmniLight3D
 ## How bright the fill burns at its fullest, how far it reaches, and how gently it
 ## falls off toward its reach (OmniLight3D.omni_attenuation): flat enough that the
 ## wall before the eye is not a glare and the far side of the room still reads.
-const ENERGY := 0.32
+const ENERGY := 0.06
 const RANGE := 6.5
 const ATTENUATION := 0.35
 ## Its share on her emergency power, whose dim red lamps still light the room some.
