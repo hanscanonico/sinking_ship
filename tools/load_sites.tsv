@@ -47,6 +47,7 @@ tests/unit/core/test_match_choices.gd	load(HITS % "titanic_britannic_mine")	test
 tests/unit/core/test_match_choices.gd	load(HITS % "titanic_fast")	tests/fixtures/sinking/hits/*.tres
 tests/unit/core/test_match_choices.gd	load(HITS % "titanic_night")	tests/fixtures/sinking/hits/*.tres
 tests/unit/core/test_match_end.gd	load(path)	tests/fixtures/sinking/hits/*.tres
+tests/unit/core/test_must_sink.gd	load(SINKING_HITS[1])	tests/fixtures/sinking/hits/*.tres
 tests/unit/core/test_must_sink.gd	load(path)	tests/fixtures/sinking/hits/*.tres
 tests/unit/core/test_ship_check.gd	load("%s/%s" % [SCENARIOS, scenario_file])	data/sinking/*
 tests/unit/core/test_ship_check.gd	load("%s/%s" % [SHIPS, file])	data/ships/*

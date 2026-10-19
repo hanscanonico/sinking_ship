@@ -5,10 +5,11 @@ extends GutTest
 
 const RunMatch := preload("res://tools/run_match.gd")
 ## A seed whose match sinks her slowly by the head (from SH31 the golden 1701 falls back
-## to her sure hit, gone in minutes; from her stokehold, #74, seed 1 is gone in 13).
-const SEED := 15
+## to her sure hit, gone in minutes; from her stokehold, #74, seed 1 is gone in 13; from
+## Q20's narrower hits and 1 h 30 bound, seed 9, gone in 43 minutes of physics).
+const SEED := 9
 ## Physics seconds after the hit: well into her slow sinking, her bow low.
-const PHYS := 5400.0
+const PHYS := 1800.0
 
 
 func test_seats_stand_dry_at_the_moment_jumped_to() -> void:
