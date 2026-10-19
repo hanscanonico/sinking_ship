@@ -181,7 +181,7 @@ func test_capsize_inverted_floats_upside_down_then_goes() -> void:
 	# Holed in her port hold wing and her stores, a fo'c'sle porthole left open: she lists
 	# to port, the sea comes in over her low side and she rolls past 150° in under a
 	# minute, floating upside down on the air kept in her hold, its bilge, her starboard
-	# wings and her stores under the mess's plated floor — 1½–7 min of it on end,
+	# wings and her stores under the mess's plated floor — 1½–3½ min of it on end,
 	# measured — until it leaks and she goes under within the bake's cap (SH32).
 	var choice := _match_hit(&"capsize_inverted")
 	for scale: float in MARGINS:

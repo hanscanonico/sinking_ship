@@ -8,10 +8,11 @@ const DEFAULT_MATCH := "res://data/match/default.tres"
 const SURVIVAL_MATCH := "res://data/match/survival.tres"
 ## The default match's data hash on main before goals came (#65's ShipLayout), taken
 ## again when her data moved (#74's stokehold, then a spawn stepped off its gallery wall,
-## then #148's crawl_height and crawl_speed and the rooms' crawl_space mark, then #148's
-## spaces in the steamer's old voids, their scuttles and the pieces' fitted mark): the
-## goals must not move the battle royale's.
-const BATTLE_ROYALE_HASH := "4bfc283ad12938957a0067c80e415654634730448d0968a3ecf15223c8c9c8be"
+## then #148's crawl_height and crawl_speed and the rooms' crawl_space mark, then Q20's
+## paced clock, narrower hits and 1 h 30 bound, then #148's spaces in the steamer's old
+## voids, their scuttles and the pieces' fitted mark): the goals must not move the
+## battle royale's.
+const BATTLE_ROYALE_HASH := "b229144877d3114bc94e9fcc20c273f90e6fe41551e331f3c902120a0a3ae063"
 
 
 func test_the_data_carries_the_goal_onto_the_match() -> void:

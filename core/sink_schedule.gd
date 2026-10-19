@@ -17,8 +17,8 @@ extends RefCounted
 ## (PieceStructure), turning about its own centre of mass, which keeps the place across the
 ## world it had under the pose of the piece it broke from as it broke; its cells' water
 ## and air are the timeline's for the piece of her they were part of then. Its physics
-## seconds become match ticks once,
-## through the scenario's clock and Ticks (D2). An authored fixture plays its keyframes
+## seconds become match ticks once, through her paced clock (Q20, SinkPacing) — quickened
+## by the scenario's clock — and Ticks (D2). An authored fixture plays its keyframes
 ## and events. Either
 ## way, once built it is a pure function of (ship, scenario, seed, tick) — nothing a
 ## player does moves it, and it is never stored in a snapshot (D5).
@@ -78,6 +78,9 @@ var _door_times := PackedFloat64Array()
 var _passages: Array[ShipOpening] = []
 var _failing: Array[ShipOpening] = []
 var _clock := 1.0
+## Physics seconds after the hit to match seconds, by how far she has flooded (Q20): the
+## physics' own, one to one, until a timeline paces it.
+var _paced := PacedClock.even()
 ## What the physics announces, on its ticks, in the timeline's order; and the tick she
 ## is gone, or -1.
 var _physics_events: Array[SimEvent] = []
@@ -158,6 +161,7 @@ func _init(
 	_timeline = _choice.timeline
 	_hit_tick = _start_tick + Ticks.from_seconds(_hit.moment)
 	_clock = scenario.clock
+	_paced = scenario.paced().clock_of(_timeline.sunk)
 	_cells = CellMap.new(structure)
 	_cut(structure)
 	for opening: ShipOpening in structure.openings:
@@ -181,7 +185,7 @@ func _init(
 				_lurch_ticks.append(tick)
 			SinkTimeline.Kind.LURCHED:
 				_lurch_ticks.append(tick)
-				_lurch_ticks.append(tick + Ticks.from_seconds(event.lasts / _clock))
+				_lurch_ticks.append(_tick_of(event.seconds + event.lasts))
 				_lurch_heels.append(event.heel_deg)
 			SinkTimeline.Kind.LEAKING, SinkTimeline.Kind.GAVE_WAY:
 				_failed_ticks.append(tick)
@@ -194,7 +198,7 @@ func _init(
 			SinkTimeline.Kind.GONE:
 				_gone_ticks[event.piece] = tick
 			SinkTimeline.Kind.HINGING:
-				_hinge_ticks.append_array([tick, tick + Ticks.from_seconds(event.lasts / _clock)])
+				_hinge_ticks.append_array([tick, _tick_of(event.seconds + event.lasts)])
 				_hinge_pieces.append(event.piece)
 			SinkTimeline.Kind.PARTED:
 				_hinge_ticks[_hinge_pieces.rfind(event.piece) * 2 + 1] = tick
@@ -300,10 +304,10 @@ func _fall_of(structure: ShipStructure, event: SinkTimeline.Event, tick: int) ->
 	return FunnelFall.new(funnel, event.along, _tick_of(event.warned), tick, lands)
 
 
-## The match tick [param seconds] of physics after the hit is, through the scenario's
-## clock (Q20, deferred) and Ticks, the one conversion.
+## The match tick [param seconds] of physics after the hit is, through her paced clock,
+## quickened by the scenario's (Q20), and Ticks: the one conversion.
 func _tick_of(seconds: float) -> int:
-	return _hit_tick + Ticks.from_seconds(seconds / _clock)
+	return _hit_tick + Ticks.from_seconds(_paced.match_of(seconds) / _clock)
 
 
 ## The match tick [param seconds] of physics after the hit, or -1 without a physical
@@ -314,9 +318,15 @@ func physics_tick(seconds: float) -> int:
 
 
 ## The physics second after the hit match tick [param tick] stands at: Ticks' answer,
-## through the scenario's clock — the one mapping, read the other way.
+## through the scenario's clock and her paced clock — the one mapping, read the other way.
 func _seconds_at(tick: int) -> float:
-	return Ticks.to_seconds(tick - _hit_tick) * _clock
+	return _paced.physics_of(Ticks.to_seconds(tick - _hit_tick) * _clock)
+
+
+## The physics second after the hit match tick [param tick] stands at, or 0 without a
+## physical sinking: what a transcript tells of how far the sinking had come.
+func physics_at(tick: int) -> float:
+	return _seconds_at(tick) if _timeline != null else 0.0
 
 
 ## How far, 0…1, [param tick]'s physics second stands from kept state [param frame] to

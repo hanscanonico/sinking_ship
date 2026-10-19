@@ -5,7 +5,8 @@ extends RefCounted
 ## the gash, then the doors that jam and the openings left open, and after the first
 ## hit's, once, the sea's wave height where the scenario has waves; throw it out at once
 ## when the quick check finds her afloat with dry deck to spare and stable; bake the one
-## that passes, and draw again while the bake leaves her afloat; at most quick_redraws
+## that passes — no further than the scenario's bound (sinks_within) — and draw again
+## while the bake leaves her afloat; at most quick_redraws
 ## thrown out and bakes baked. Then a fixed fallback, drawing nothing: the last hit made
 ## heavier rung by rung — twice as wide and one cell longer each, fore and aft in turn —
 ## until the quick check says she founders, baked once; and last her sure hit, with
@@ -189,7 +190,7 @@ class Choosing:
 		if scenario.explicit_hit != null:
 			_drawn.hit = scenario.explicit_hit
 			_drawn.damage = HitMapper.map_explicit(_drawn.hit, structure, _bands)
-			_start(_drawn.damage)
+			_start(_drawn.damage, scenario.bake_cap)
 			_stage = Stage.GIVEN
 			return
 		var own := structure.total_mass() / sea.sea_density
@@ -252,7 +253,7 @@ class Choosing:
 				_tried.hit.moment = _drawn.hit.moment
 				_tried.damage = HitMapper.map_explicit(_tried.hit, _structure, _bands)
 				_tried.damage.wave_height = _wave_height
-				_start(_tried.damage)
+				_start(_tried.damage, _scenario.bake_cap)
 				_stage = Stage.BAKING_SURE
 			Stage.BAKING_SURE:
 				_tried.bakes += 1 + _drawn.bakes
@@ -274,7 +275,7 @@ class Choosing:
 		var spare := _scenario.spare_deck
 		var failing := _scenario.quick_failing
 		if MustSink.founders(_structure, _drawn.damage, _hull, _sea, spare, failing, _motion):
-			_start(_drawn.damage)
+			_start(_drawn.damage, _bound())
 			_stage = Stage.BAKING
 			return
 		_drawn.thrown += 1
@@ -303,14 +304,20 @@ class Choosing:
 				_tried = Choice.new()
 				_tried.hit = _weighted
 				_tried.damage = damage
-				_start(damage)
+				_start(damage, _bound())
 				_stage = Stage.BAKING_RUNG
 				return
 		_stage = Stage.SURE
 
-	func _start(damage: HitDamage) -> void:
+	func _start(damage: HitDamage, cap: float) -> void:
 		damage.sea_depth = _scenario.sea_depth
-		_bake = SinkBake.of(_structure, damage, _sea, _scenario.bake_cap)
+		_bake = SinkBake.of(_structure, damage, _sea, cap)
+
+	## How far a drawn hit, or a rung of the fallback, is baked: the scenario's bound
+	## (sinks_within), never past its cap.
+	func _bound() -> float:
+		var within := _scenario.sinks_within
+		return minf(within, _scenario.bake_cap) if within > 0.0 else _scenario.bake_cap
 
 	## Ends the rule on [param chosen]: its bake made its timeline — compacted only now,
 	## for the one bake kept — stamped with how it was come by.

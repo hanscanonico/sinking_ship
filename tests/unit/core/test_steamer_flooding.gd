@@ -1,8 +1,8 @@
 extends GutTest
 ## §5b.4 layer 3, the steamer: pinned seeds' match hits — bow_down_slow, stern_down,
-## heavy_list, two_compartments_and_open_ports, fwd_pocket, from SH31 door_gives_way,
-## funnel_on_the_bridge and lights_out_early, from SH32 on her coast on_her_side — and
-## explicit hits, from #74 stokehold_holed, each baked alone
+## heavy_list, two_compartments_and_open_ports, fwd_pocket, from SH31 door_gives_way and
+## funnel_on_the_bridge, from SH32 on her coast on_her_side — and explicit hits, from #74
+## stokehold_holed, from SH31 lights_out_early, each baked alone
 ## and again with its holes' area × 0.9 and × 1.1 to the same outcome, so the seeds sit
 ## far from every threshold and a Mac and Linux agree (R21). Outcomes are labels and
 ## bands, never exact times.
@@ -11,6 +11,10 @@ const LIGHT := "res://tests/fixtures/sinking/hits/light.tres"
 const FAST := "res://tests/fixtures/sinking/hits/fast.tres"
 ## stokehold_holed: struck along her middle 1 m under her waterline, into the stokehold.
 const STOKEHOLD := "res://tests/fixtures/sinking/hits/stokehold.tres"
+## lights_out_early: seed 114's match hit before her hits narrowed, frozen as data — the
+## pin was 115, whose hit frozen goes dark too late at × 0.9; of seeds 1–1000's since,
+## only 802's gives it, and at × 0.9 by under a minute.
+const LIGHTS_OUT := "res://tests/fixtures/sinking/hits/lights_out_early.tres"
 const MARGINS: Array[float] = [0.9, 1.0, 1.1]
 ## Water this far over a floor, in metres, is water.
 const WET := 0.01
@@ -188,10 +192,10 @@ func test_stern_down_trims_her_by_the_stern_before_the_end() -> void:
 
 
 func test_heavy_list_holds_15_degrees_for_5_minutes_afloat() -> void:
-	# A gash low along her starboard quarter, into her after peak and her after bilge's
-	# starboard half (#74): the weight aft and all on one side, she lies over to starboard
-	# 15° or more for 5 minutes and longer while afloat, her port boats useless and her
-	# starboard ones not, until she goes by the stern 80–100 min on, measured.
+	# A gash along her starboard side (re-pinned when Q20 narrowed her hits): her water all
+	# on one side, she lies over to starboard 15° or more for 5 minutes and longer while
+	# afloat — about half an hour, measured — her port boats useless and her starboard ones
+	# not, until she goes by the head 36–39 min on.
 	for scale: float in MARGINS:
 		var timeline := _pinned(&"heavy_list", scale)
 		var end := timeline.gone_at if timeline.gone_at >= 0.0 else timeline.length()
@@ -486,8 +490,9 @@ func test_lights_out_early_puts_her_dark_long_before_she_goes() -> void:
 	for fitting: ShipFitting in _structure.fittings:
 		if fitting.kind == ShipFitting.Kind.GENERATOR:
 			generator = fitting
+	var damage := _damage(load(LIGHTS_OUT))
 	for scale: float in MARGINS:
-		var timeline := _pinned(&"lights_out_early", scale)
+		var timeline := _bake(damage, scale)
 		var what := "× %s" % scale
 		var stopped := _first(timeline, SinkTimeline.Kind.POWER_LOST, generator.name)
 		assert_between(stopped, 0.0, timeline.gone_at * 0.5, what + ": in her first half")

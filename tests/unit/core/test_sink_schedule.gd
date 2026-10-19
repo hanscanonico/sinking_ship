@@ -1,6 +1,9 @@
 extends GutTest
 
 const SEED := 1701
+const FAST_HIT := "res://tests/fixtures/sinking/hits/fast.tres"
+## A wide gash forward: she lurches before she is gone.
+const STEEP_HIT := "res://tests/fixtures/sinking/hits/steep.tres"
 
 
 func _schedule(scenario: SinkScenario, seed_value: int = SEED) -> SinkSchedule:
@@ -154,9 +157,7 @@ func test_ship_is_level_until_the_hit() -> void:
 	assert_false(doors.is_empty(), "the ship shut her watertight doors")
 	for door: StringName in doors:
 		assert_eq(later.doors_shut[door], 1.0, "%s shut by 2 min" % door)
-		assert_almost_eq(
-			schedule.pose_at(hit + Ticks.from_seconds(10.0)).doors_shut[door], 0.5, 0.01
-		)
+		assert_almost_eq(schedule.pose_at(schedule.physics_tick(10.0)).doors_shut[door], 0.5, 0.01)
 
 
 func test_highest_surface_migrates() -> void:
@@ -238,7 +239,8 @@ func test_a_physics_lurch_is_warned_before_it_swings() -> void:
 
 func test_the_clock_plays_the_same_sinking_sooner() -> void:
 	# A fast match's scenario (MatchConfig.quickened) plays the bake it would have played
-	# on its own clock: every moment of it after the hit lands at half the match time.
+	# on its own clock: every moment of it after the hit lands at half the match time —
+	# the whole paced clock doubled, its limits too (Q20).
 	var layout := SimFixtures.steamer()
 	var scenario: SinkScenario = load(SimFixtures.STEAMER_SINKING).duplicate()
 	scenario.explicit_hit = load("res://tests/fixtures/sinking/hits/fast.tres")
@@ -261,10 +263,11 @@ func test_the_clock_plays_the_same_sinking_sooner() -> void:
 	var fast := schedules[1]
 	assert_eq(fast.hit_tick(), normal.hit_tick(), "the hit stays where it was")
 	for seconds: float in [10.0, 60.0, 600.0]:
-		assert_eq(
-			fast.physics_tick(seconds) - fast.hit_tick(),
-			Ticks.from_seconds(seconds / 2.0),
-			"physics %.0f s lands at half that after the hit" % seconds
+		assert_almost_eq(
+			float(fast.physics_tick(seconds) - fast.hit_tick()),
+			(normal.physics_tick(seconds) - normal.hit_tick()) / 2.0,
+			1.0,
+			"physics %.0f s lands at half the paced time after the hit" % seconds
 		)
 	assert_almost_eq(
 		float(fast.end_tick() - fast.hit_tick()), (normal.end_tick() - normal.hit_tick()) / 2.0, 1.0
@@ -287,3 +290,53 @@ func _event_ticks(schedule: SinkSchedule) -> Array[int]:
 		for _event: SimEvent in schedule.events_at(tick):
 			ticks.append(tick)
 	return ticks
+
+
+## The default scenario struck by the fixture hit [param hit], carrying [param pacing]
+## when given, on the steamer.
+func _paced(pacing: SinkPacing = null, hit: String = FAST_HIT) -> SinkSchedule:
+	var layout := SimFixtures.steamer()
+	var scenario: SinkScenario = load(SimFixtures.STEAMER_SINKING).duplicate()
+	scenario.explicit_hit = load(hit)
+	scenario.pacing = pacing
+	return SinkSchedule.new(
+		scenario,
+		layout.freeboard,
+		SeedStreams.derive(SEED, "sink"),
+		layout.structure,
+		SeaPhysics.load_default(),
+		null
+	)
+
+
+func test_the_sinking_plays_on_its_paced_clock() -> void:
+	# Each share of her flooding lands where the pacing's clock plays it, and a tick reads
+	# back the physics second it stands at — the shared pacing, or a scenario's own.
+	var schedule := _paced()
+	var sunk := schedule.timeline().sunk
+	var clock := SinkPacing.load_default().clock_of(sunk)
+	for step: int in [0, 11, 31, 39]:
+		var expected := schedule.hit_tick() + Ticks.from_seconds(clock.match_of(sunk[step]))
+		assert_eq(schedule.physics_tick(sunk[step]), expected, "share %d/40" % (step + 1))
+		assert_almost_eq(schedule.physics_at(expected), sunk[step], 6.0 / Ticks.RATE)
+	assert_eq(schedule.gone_tick(), schedule.physics_tick(schedule.timeline().gone_at))
+	var own: SinkPacing = SinkPacing.load_default().duplicate()
+	own.length = 300.0
+	var shorter := _paced(own)
+	assert_lt(shorter.gone_tick(), schedule.gone_tick(), "a scenario's own pacing")
+	assert_eq(_paced().gone_tick(), schedule.gone_tick(), "the same clock again")
+
+
+func test_a_lurch_swings_on_the_paced_clock() -> void:
+	# A lurch lasts its physics seconds as the clock plays them where it happens.
+	var schedule := _paced(null, STEEP_HIT)
+	var lurches := 0
+	for event: SinkTimeline.Event in schedule.timeline().events:
+		if event.kind == SinkTimeline.Kind.LURCHED:
+			lurches += 1
+			var tick := schedule.physics_tick(event.seconds)
+			var ends := schedule.physics_tick(event.seconds + event.lasts)
+			assert_eq(schedule.pose_at(ends - 1).lurch, event.heel_deg, "still swinging")
+			assert_ne(schedule.pose_at(ends).lurch, event.heel_deg, "over")
+			assert_eq(schedule.pose_at(tick).lurch, event.heel_deg)
+	assert_gt(lurches, 0, "the steep hit lurches her")

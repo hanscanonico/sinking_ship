@@ -8,7 +8,8 @@ extends SceneTree
 ## 0% by construction, and it records how often a hit was drawn again, the bakes, and the
 ## fallback's rungs with the holes they make. Each label's share (OutcomeClassifier)
 ## stands beside its band, which nothing gates on yet (R24); then the hit → gone times,
-## the share of each sinking MATCHES bots-only matches saw (R33, Q20), how long each
+## in physics time and in match time on the paced clock with each phase's share and the
+## plunge (Q20), the share of each sinking MATCHES bots-only matches saw (R33), how long each
 ## cell's air pockets last (SH29), what gave way and the worst bending against her
 ## strength (SH31), and what the bakes cost on this machine, at its load average,
 ## against §5b.4's budgets, with the timelines' sizes. Progress goes to stderr.
@@ -24,6 +25,12 @@ const OUT := "res://docs/census.md"
 const SHIP_OUT := "res://docs/census_%s.md"
 ## How long a measuring match may run before it is stopped, as `make arena` stops one.
 const MATCH_STOP := 900.0
+## How far, as a share, a phase may stand from the share of the sinking it was asked for
+## and still count as paced (Q20's bar); how far past its pacing's length a sinking still
+## counts as on it; and how near its least a plunge still counts as that long — a tick.
+const SHARE_SPREAD := 0.05
+const LENGTH_SPREAD := 1.1
+const PLUNGE_TICK := 1.0 / Ticks.RATE
 ## §5b.4's bands per ship, raw census, in percent (est.): [low, high]; and its budgets.
 const BANDS := {
 	"steamer":
@@ -65,6 +72,7 @@ const SIZE_BUDGET := 200000
 const L := OutcomeClassifier.Outcome
 
 var _ship: StringName
+var _freeboard: float
 var _structure: ShipStructure
 var _scenario: SinkScenario
 
@@ -93,6 +101,7 @@ func _initialize() -> void:
 		quit(1)
 		return
 	_ship = StringName(ship)
+	_freeboard = layout.freeboard
 	_structure = layout.structure
 	_scenario = scenario
 	var raw := _raw(layout.structure, scenario, seeds)
@@ -167,8 +176,7 @@ func _seen(chosen: Array[Dictionary], count: int) -> PackedFloat64Array:
 			host.step()
 		var schedule := host.runner.sim.schedule
 		var timeline := schedule.timeline()
-		var since := Ticks.to_seconds(maxi(host.tick() - schedule.hit_tick(), 0))
-		since *= config.scenario.clock
+		var since := schedule.physics_at(maxi(host.tick(), schedule.hit_tick()))
 		shares.append(minf(since / timeline.gone_at, 1.0))
 		printerr("seen %d/%d · %.1f%%" % [index + 1, count, shares[-1] * 100.0])
 	return shares
@@ -549,7 +557,8 @@ func _gone_section(chosen: Array[Dictionary], seen: PackedFloat64Array) -> Packe
 		)
 	)
 	lines.append("")
-	lines.append("## How much of her sinking a match sees (R33; Q20, the clock at 1.0)")
+	lines.append_array(_paced_section(chosen))
+	lines.append("## How much of her sinking a match sees (R33; Q20, the paced clock)")
 	lines.append("")
 	if seen.is_empty():
 		lines.append("No match was played (MATCHES=0).")
@@ -790,6 +799,115 @@ static func _mean(values: PackedFloat64Array) -> float:
 	for value: float in values:
 		total += value
 	return total / values.size()
+
+
+## The match census's sinkings in match time, on the paced clock (Q20, SinkPacing): from
+## the hit to her going; each phase's share of it — the opening, the middle and the end
+## to the shares of her water the pacing marks them by —, its plunge; and how often the
+## clock's limits keep a sinking from its length or a plunge from its least.
+func _paced_section(chosen: Array[Dictionary]) -> PackedStringArray:
+	var pacing := _scenario.paced()
+	var lengths := PackedFloat64Array()
+	var shares: Array[PackedFloat64Array] = [
+		PackedFloat64Array(), PackedFloat64Array(), PackedFloat64Array()
+	]
+	var plunges := PackedFloat64Array()
+	var in_shares := 0
+	for entry: Dictionary in chosen:
+		var choice: MustSink.Choice = entry["choice"]
+		var schedule := SinkSchedule.new(
+			_scenario,
+			_freeboard,
+			SeedStreams.derive(entry["seed"], "sink"),
+			_structure,
+			null,
+			choice
+		)
+		var sunk := choice.timeline.sunk
+		if sunk.is_empty():
+			continue
+		var marks := PackedFloat64Array()
+		for share: float in [pacing.opening_until, pacing.middle_until, pacing.plunge_from, 1.0]:
+			var at := choice.timeline.sunk_at(share)
+			marks.append(Ticks.to_seconds(schedule.physics_tick(at) - schedule.hit_tick()))
+		var whole := marks[3]
+		var gone := schedule.gone_tick() if schedule.gone_tick() != -1 else schedule.end_tick()
+		lengths.append(Ticks.to_seconds(gone - schedule.hit_tick()))
+		var parts := PackedFloat64Array(
+			[marks[0] / whole, (marks[1] - marks[0]) / whole, (whole - marks[1]) / whole]
+		)
+		var wanted := PackedFloat64Array(
+			[pacing.opening_share, pacing.middle_share, pacing.end_share()]
+		)
+		var inside := true
+		for phase in 3:
+			shares[phase].append(parts[phase])
+			inside = inside and absf(parts[phase] - wanted[phase]) <= SHARE_SPREAD
+		in_shares += 1 if inside else 0
+		plunges.append(whole - marks[2])
+	var lines := PackedStringArray()
+	lines.append("## From the hit to her going (match census, match time on the paced clock, Q20)")
+	lines.append("")
+	if lengths.is_empty():
+		lines.append("No sinking was paced.")
+		lines.append("")
+		return lines
+	(
+		lines
+		. append(
+			(
+				(
+					"p10 %s · p50 %s · p90 %s · most %s · %s within %s. Phases, median share of the"
+					+ " sinking: opening %.1f%% · middle %.1f%% · end %.1f%% (asked %.0f / %.0f / %.0f);"
+					+ " %s with every phase within %.0f points. Plunge: p10 %.1f s · p50 %.1f s ·"
+					+ " least %.1f s; %s of %.0f s or more."
+				)
+				% [
+					MatchTranscript.physics_clock(_at(lengths, 0.1)),
+					MatchTranscript.physics_clock(_at(lengths, 0.5)),
+					MatchTranscript.physics_clock(_at(lengths, 0.9)),
+					MatchTranscript.physics_clock(_at(lengths, 1.0)),
+					_share(_count_at_most(lengths, pacing.length * LENGTH_SPREAD), lengths.size()),
+					MatchTranscript.physics_clock(pacing.length * LENGTH_SPREAD),
+					_at(shares[0], 0.5) * 100.0,
+					_at(shares[1], 0.5) * 100.0,
+					_at(shares[2], 0.5) * 100.0,
+					pacing.opening_share * 100.0,
+					pacing.middle_share * 100.0,
+					pacing.end_share() * 100.0,
+					_share(in_shares, lengths.size()),
+					SHARE_SPREAD * 100.0,
+					_at(plunges, 0.1),
+					_at(plunges, 0.5),
+					_at(plunges, 0.0),
+					_share(
+						_count_at_least(plunges, pacing.plunge_least - PLUNGE_TICK), plunges.size()
+					),
+					pacing.plunge_least,
+				]
+			)
+		)
+	)
+	lines.append("")
+	lines.append(
+		(
+			(
+				"Where a sinking runs past its length the %s× limit held it (realism over"
+				+ " length); where a plunge runs short of its least, the %s× limit did."
+			)
+			% [pacing.fastest, pacing.slowest]
+		)
+	)
+	lines.append("")
+	return lines
+
+
+static func _count_at_most(values: PackedFloat64Array, most: float) -> int:
+	var count := 0
+	for value: float in values:
+		if value <= most:
+			count += 1
+	return count
 
 
 ## The value [param share] of the way up [param values] sorted: 0 the least, 1 the most.

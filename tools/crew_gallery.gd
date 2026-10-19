@@ -56,6 +56,8 @@ var _held := 0.0
 var _sheet: Image
 var _waiting := false
 var _done := false
+## A window the system stops drawing fails the gallery rather than hang it (#105).
+var _draw_watch := DrawWatch.new()
 
 
 func _initialize() -> void:
@@ -85,8 +87,15 @@ func _initialize() -> void:
 
 
 func _process(delta: float) -> bool:
-	if _done or _waiting:
-		return _done
+	if _done:
+		return true
+	if _draw_watch.stalled(Engine.get_frames_drawn(), Time.get_ticks_msec()):
+		push_error("crew_gallery: %s" % _draw_watch.stall_message())
+		_done = true
+		quit(1)
+		return true
+	if _waiting:
+		return false
 	_held += delta
 	if _view == "crew":
 		for index in _bodies.size():

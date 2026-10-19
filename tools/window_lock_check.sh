@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 #
 # `make guard-check`, its second half: tools/window_lock.sh serialises two runs,
-# lets a waiter through at once when the holder is killed with SIGKILL, hands
+# lets a waiter through at once when the holder is killed with SIGKILL, has a
+# waiter name its holder but never a PID taken again, hands
 # back its command's exit status and does not wait on itself under a holder, and
 # tools/fps.sh takes it again when the lock it is told it holds is another file,
 # but not when it is the same file spelled another way —
@@ -74,6 +75,46 @@ if wait_for "[ -e '$WORK/h.start' ]"; then
 	wait "$waiter"
 else
 	fail "the holder never started"
+fi
+
+# A waiter names what it waits behind — the holder's PID and command — and never a
+# process that only took its PID once the holder that wrote it is gone.
+tools/window_lock.sh bash -c "touch '$WORK/p.start'; until [ -e '$WORK/p.release' ]; do sleep 0.1; done" &
+PIDS+=($!)
+holder=$!
+if wait_for "[ -e '$WORK/p.start' ]"; then
+	tools/window_lock.sh true 2>"$WORK/p.err" &
+	PIDS+=($!)
+	waiter=$!
+	wait_for "grep -q 'waiting for another game window' '$WORK/p.err'" ||
+		fail "the waiter for a named holder never said it was waiting"
+	grep -q "held by PID $holder .*p.release" "$WORK/p.err" ||
+		fail "the waiter did not name its holder, PID $holder: $(cat "$WORK/p.err")"
+	touch "$WORK/p.release"
+	wait "$holder"
+	wait "$waiter"
+else
+	fail "the holder to be named never started"
+fi
+tools/window_lock.sh bash -c "touch '$WORK/q.start'; until [ -e '$WORK/q.release' ]; do sleep 0.1; done" &
+PIDS+=($!)
+holder=$!
+if wait_for "[ -e '$WORK/q.start' ]"; then
+	# A live process, but not the one whose start the file names: a PID taken again.
+	printf '%s\tMon Jan  1 00:00:00 2001\n' "$$" >"$WINDOW_LOCK"
+	tools/window_lock.sh true 2>"$WORK/q.err" &
+	PIDS+=($!)
+	waiter=$!
+	wait_for "grep -q 'waiting for another game window' '$WORK/q.err'" ||
+		fail "the waiter behind a reused PID never said it was waiting"
+	grep -q 'held by' "$WORK/q.err" && fail "the waiter named a PID taken again: $(cat "$WORK/q.err")"
+	grep -q 'its holder unknown' "$WORK/q.err" ||
+		fail "the waiter behind a reused PID did not say its holder is unknown: $(cat "$WORK/q.err")"
+	touch "$WORK/q.release"
+	wait "$holder"
+	wait "$waiter"
+else
+	fail "the holder behind a reused PID never started"
 fi
 
 # A waiter sleeps while it waits: over a five-second wait the processes it runs

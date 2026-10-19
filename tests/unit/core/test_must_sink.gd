@@ -303,3 +303,32 @@ func test_a_coast_match_hit_brings_her_to_rest_on_the_bottom() -> void:
 		if timeline.end == SinkTimeline.End.AGROUND:
 			aground += 1
 	assert_gt(aground, 0, "some of her rest with part of her dry")
+
+
+func test_a_match_hit_sinks_her_within_its_bound() -> void:
+	# The paced clock fits a sinking into a match within its limits (Q20), so a match
+	# draws again a hit she is still afloat on at sinks_within — seeds whose first hits
+	# leave her settling for two hours and more — and every hit stays the physics'.
+	var bound := _scenario.sinks_within
+	assert_eq(bound, 5400.0, "an hour and a half")
+	for seed_value: int in [13, 51]:
+		var stream := SeedStreams.derive(seed_value, "sink")
+		var choice := MustSink.choose(_structure, _scenario, stream, _sea)
+		assert_eq(choice.timeline.end, SinkTimeline.End.GONE, "seed %d: gone" % seed_value)
+		assert_lte(choice.timeline.gone_at, bound, "seed %d: within the bound" % seed_value)
+		assert_gt(choice.bakes, 1, "seed %d: a slow hit drawn again" % seed_value)
+
+
+func test_the_bound_holds_drawn_hits_alone() -> void:
+	# An explicit hit is baked as given, to the bake's cap; and where no drawn hit can
+	# sink her within the bound, her sure hit is baked to the cap too.
+	var scenario: SinkScenario = _scenario.duplicate()
+	scenario.sinks_within = 60.0
+	var stream := SeedStreams.derive(1, "sink")
+	var drawn := MustSink.choose(_structure, scenario, stream, _sea)
+	assert_true(drawn.sure, "no drawn hit sinks her in a minute")
+	assert_eq(drawn.timeline.end, SinkTimeline.End.GONE, "her sure hit does, given the cap")
+	scenario.explicit_hit = load(SINKING_HITS[1])
+	var given := MustSink.given(_structure, scenario, _sea)
+	assert_eq(given.timeline.end, SinkTimeline.End.GONE, "the fast hit, as given")
+	assert_gt(given.timeline.gone_at, 60.0, "past the bound")

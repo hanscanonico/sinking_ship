@@ -19,8 +19,8 @@ enum Goal { LAST_STANDING, SURVIVAL }
 @export var rules: BrawlRules
 @export var ship: ShipLayout
 @export var sinking: SinkScenario
-## The scenario clock a fast match plays at (Q20): physics seconds per match second,
-## the same sinking played that many times quicker.
+## The scenario clock a fast match plays at (Q20): her paced clock that many times
+## quicker, its limits too — the same sinking played sooner.
 @export var fast_clock: float = 2.0
 ## What the match is played for: the battle royale unless the data says survival.
 @export var goal: Goal = Goal.LAST_STANDING

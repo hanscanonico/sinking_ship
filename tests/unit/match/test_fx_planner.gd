@@ -502,10 +502,11 @@ func test_the_mist_off_a_deep_gash_climbs_over_her_rail() -> void:
 
 
 func test_a_bigger_gash_strikes_harder_higher_and_thicker() -> void:
-	# Seed 30's gash, half as wide again, lets the sea in through over 3.6 m², seed 22's
-	# through 0.005 m².
+	# Seed 30's gash, half as wide again, lets the sea in through over 3.6 m²; seed 22's, a
+	# twentieth as wide, through 0.005 m² — a scrape narrower than any match draws since
+	# her bands narrowed (Q20).
 	var big_sim := _struck(30, 1.5)
-	var small_sim := _struck(22)
+	var small_sim := _struck(22, 0.05)
 	var big := _strike(_planner(big_sim), big_sim)
 	var small := _strike(_planner(small_sim), small_sim)
 	assert_gt(big_sim.schedule.damage().area(), small_sim.schedule.damage().area() * 100.0)
