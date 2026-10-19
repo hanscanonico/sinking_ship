@@ -199,6 +199,7 @@ def railing(rid, plat, a, b):
 
 def ladder(lid, plat, a, b):
     f = []
+    plat = holding(a, b, plat)
     if plat != 0:
         f.append(("platform", str(plat)))
     f.append(("from", "Vector2(%s, %s)" % (num(a[0]), num(a[1]))))

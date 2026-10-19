@@ -1282,12 +1282,13 @@ to = Vector2(3, 2.6)
 
 [sub_resource type="Resource" id="Ladder_port"]
 script = ExtResource("7_ladder")
+platform = 31
 from = Vector2(1, -5)
 to = Vector2(2.2, -5)
 
 [sub_resource type="Resource" id="Ladder_starboard"]
 script = ExtResource("7_ladder")
-platform = 5
+platform = 37
 from = Vector2(1, 5)
 to = Vector2(2.2, 5)
 
