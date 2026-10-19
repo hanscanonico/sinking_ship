@@ -11,8 +11,9 @@ const LIGHT := "res://tests/fixtures/sinking/hits/light.tres"
 const FAST := "res://tests/fixtures/sinking/hits/fast.tres"
 ## stokehold_holed: struck along her middle 1 m under her waterline, into the stokehold.
 const STOKEHOLD := "res://tests/fixtures/sinking/hits/stokehold.tres"
-## lights_out_early: seed 114's match hit before her hits narrowed, frozen as data — of
-## seeds 1–1000's since only 802's gives it, and at × 0.9 by under a minute.
+## lights_out_early: seed 114's match hit before her hits narrowed, frozen as data — the
+## pin was 115, whose hit frozen goes dark too late at × 0.9; of seeds 1–1000's since,
+## only 802's gives it, and at × 0.9 by under a minute.
 const LIGHTS_OUT := "res://tests/fixtures/sinking/hits/lights_out_early.tres"
 const MARGINS: Array[float] = [0.9, 1.0, 1.1]
 ## Water this far over a floor, in metres, is water.
