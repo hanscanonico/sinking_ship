@@ -16,6 +16,10 @@ const EDGE := 0.001
 ## turned to a floor (Faces), whose solid is a blocker of its own. Else a deck over
 ## none is the top of the hull, solid all the way down (Surfaces).
 @export var slab: bool
+## Fitted inside her lines: her hull (ShipHull) is lofted round her decks and what
+## stood in her before, never round this, which stands where her hull already lets it
+## (#148). No rule reads it.
+@export var fitted: bool
 
 
 func contains(x: float, z: float) -> bool:

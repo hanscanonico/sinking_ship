@@ -289,8 +289,9 @@ static func x_reach(blocker: ShipBlocker) -> Vector2:
 ## [side, from, to, half thickness]: side 0 at its least z, 1 at its greatest x,
 ## 2 at its greatest z, 3 at its least x; from and to along the side, merged where
 ## pieces meet and held off the corners by the wall's half thickness. The gaps
-## between runs are its doorways.
-func wall_runs(room: ShipRoom) -> Array:
+## between runs are its doorways. [param glazed], only the walls glass can go in: no
+## lining fitted inside her shell (#148).
+func wall_runs(room: ShipRoom, glazed := false) -> Array:
 	var runs := []
 	var area := room.area
 	for side in 4:
@@ -301,7 +302,7 @@ func wall_runs(room: ShipRoom) -> Array:
 		var pieces: Array[Vector2] = []
 		var half := 0.0
 		for blocker: ShipBlocker in layout.blockers:
-			if not _full_wall_of(blocker, room):
+			if not _full_wall_of(blocker, room) or (glazed and blocker.fitted):
 				continue
 			var box := blocker.area
 			var across_low := box.position.y if along_x else box.position.x
