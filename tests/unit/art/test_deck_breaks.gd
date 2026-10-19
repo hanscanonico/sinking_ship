@@ -1,8 +1,9 @@
 extends GutTest
 ## The breaks in the decks and the deckhouse's narrow cabins, as the dressed ship
 ## draws them: a break's face plated and painted as a house, never in the hull's
-## dark, fitted with a cap rail; every cabin too narrow for furniture still dressed
-## on its walls; a funnel passing through one cased in riveted steel.
+## dark, fitted with a cap rail, its doors one to a face and on it; every cabin too
+## narrow for furniture still dressed on its walls; a funnel passing through one
+## cased in riveted steel.
 
 const RunMatch := preload("res://tools/run_match.gd")
 const FurnishingCheck := preload("res://tools/furnishing_check.gd")
@@ -81,3 +82,41 @@ func test_every_cabin_too_narrow_for_furniture_is_dressed_on_its_walls() -> void
 func test_a_funnel_through_a_cabin_is_cased_in_riveted_steel() -> void:
 	assert_eq(ShipPaints.funnel.finish_in, ShipMesh.Finish.PLATE)
 	assert_ne(ShipPaints.funnel.colour_in, ArtPalette.CABIN)
+
+
+func test_the_liner_s_break_doors_stand_one_to_a_face_and_on_it() -> void:
+	var titanic: ShipLayout = load("res://data/ships/titanic.tres")
+	var space := ShipSpace.new(titanic)
+	var fittings := ShipFittings.new(space, ShipHull.new(space, _rules.railing_height), 0.3)
+	fittings.build(ShipMesh.new(space.outdoors, space.room_lines()))
+	var doors := fittings.break_doors
+	assert_gt(doors.size(), 0, "the liner's breaks have doors")
+	var width := ShipFittings.BREAK_DOOR_BOX.size.x
+	for index in doors.size():
+		var sill: Vector3 = doors[index][0]
+		var out: float = (doors[index][1] as Vector3).x
+		for other in range(index + 1, doors.size()):
+			var there: Vector3 = doors[other][0]
+			var apart := Vector2(sill.x, sill.z).distance_to(Vector2(there.x, there.z))
+			assert_gt(apart, width, "two doors at %s, %.2f apart" % [sill, apart])
+		# Its back on a deck's edge face: the deck over its sill there ends at the door
+		# and reaches in from it, no overhang over a lower deck's face behind.
+		var back := _deck_over(titanic, Vector2(sill.x - out * 0.05, sill.z), sill.y)
+		var inside := sill.x - out * ShipFittings.BREAK_OVERHANG
+		var within := _deck_over(titanic, Vector2(inside, sill.z), sill.y)
+		assert_not_null(back, "a deck over the door at %s" % sill)
+		if back == null:
+			continue
+		var edge := back.area.end.x if out > 0.0 else back.area.position.x
+		assert_almost_eq(edge, sill.x, 0.01, "the door at %s on its deck's edge" % sill)
+		assert_eq(within, back, "the door at %s on its deck's own face" % sill)
+
+
+## The lowest platform of [param layout] over [param height] at [param point].
+func _deck_over(layout: ShipLayout, point: Vector2, height: float) -> ShipPlatform:
+	var lowest: ShipPlatform = null
+	for platform: ShipPlatform in layout.platforms:
+		if platform.height > height + 0.01 and platform.contains(point.x, point.y):
+			if lowest == null or platform.height < lowest.height:
+				lowest = platform
+	return lowest
