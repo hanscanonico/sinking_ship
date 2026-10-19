@@ -73,6 +73,10 @@ var _rng := RandomNumberGenerator.new()
 ## stand for a piece to stay afloat over it.
 var _decks: Array[ShipPlatform] = []
 var _shallow := 0.0
+## The ship (ship to world) as last stepped, which a piece coming down between steps
+## is sent under against; none before the first.
+var _ship := Transform3D.IDENTITY
+var _stepped := false
 
 
 func _init() -> void:
@@ -130,20 +134,29 @@ func setup(layout: ShipLayout, wade: float) -> void:
 
 
 ## Sends under every piece afloat over a deck that stands less than wading depth
-## and UNDER_LEAD under the sea with the ship at [param ship] (ship to world).
+## and UNDER_LEAD under the sea with the ship at [param ship] (ship to world); a piece
+## that comes down on the sea before the next is sent under against this one.
 func go_under_shallows(ship: Transform3D) -> void:
-	var to_ship := ship.affine_inverse()
+	_ship = ship
+	_stepped = true
 	for index in CAP:
-		if _state[index] != State.AFLOAT:
+		if _state[index] == State.AFLOAT:
+			_go_under_if_shallow(index)
+
+
+## Sends piece [param index] under when it floats over a deck that stands less than
+## wading depth and UNDER_LEAD under the sea, the ship as last stepped.
+func _go_under_if_shallow(index: int) -> void:
+	if not _stepped:
+		return
+	var on_ship := _ship.affine_inverse() * _pieces[index].position
+	for deck: ShipPlatform in _decks:
+		if not deck.area.has_point(Vector2(on_ship.x, on_ship.z)):
 			continue
-		var on_ship := to_ship * _pieces[index].position
-		for deck: ShipPlatform in _decks:
-			if not deck.area.has_point(Vector2(on_ship.x, on_ship.z)):
-				continue
-			if (ship * Vector3(on_ship.x, deck.height, on_ship.z)).y > -_shallow:
-				_state[index] = State.SINKING
-				_age[index] = 0.0
-				break
+		if (_ship * Vector3(on_ship.x, deck.height, on_ship.z)).y > -_shallow:
+			_state[index] = State.SINKING
+			_age[index] = 0.0
+			return
 
 
 ## Every piece gone.
@@ -200,6 +213,8 @@ func _fly(index: int, delta: float) -> void:
 	_velocity[index] = Vector3(_away[index].x, 0.0, _away[index].y) * DRIFT
 	drawn.position = Vector3(crossed.x, 0.0, crossed.z)
 	landed.emit(drawn.position, clampf(-velocity.y / SPLASH_SPEED, 0.2, 1.0))
+	# Down between two steps over a deck already wadeable: under at once, never a raft.
+	_go_under_if_shallow(index)
 
 
 func _float(index: int, delta: float) -> void:
