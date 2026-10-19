@@ -64,7 +64,7 @@ import:
 #   RES=1920x1080 on any of them opens the window at that size
 #   make smoke [SEED=1701] [SHIP=] [FAST=1] [MAX=] [DRY=1] [OUT=captures/smoke]   the
 #       capture sweep QA reads: plays the match headless once, then takes make capture
-#       shots one after another at the water moments of its transcript (the sea early,
+#       shots one after another at the water moments of its transcript (seat 0's eyes early,
 #       the first and last flooding, a crate lost, the first seat out, mid-sinking, late)
 #       into OUT/<nn>_<name>.png; MAX bounds the shots, DRY=1 prints the planned capture
 #       commands and opens no window. Rules live in tools/smoke.sh. Not part of verify.

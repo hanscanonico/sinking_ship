@@ -5,7 +5,7 @@
 # nothing) to read its transcript, plans its shots from the lines there, and takes them
 # one after another with `make capture`, each into OUT/<nn>_<name>.png:
 #
-#   01 sea_deck       through seat 0's eyes 5 s in, before any water
+#   01 eyes_early     through seat 0's eyes 5 s in, before any water, wherever it starts
 #   02 flood_first    the observer from port, cells drawn, 4 s past the first "flooding"
 #   03 flood_last     the observer from port 4 s past the last "flooding"
 #   04 crate          through seat 0's eyes at the first "crate n lost"
@@ -90,7 +90,7 @@ fi
 
 # The plan: one shot per line, "name|what it shows|make capture's knobs".
 plan=()
-plan+=("sea_deck|seat 0's eyes 5 s in, before any water|AT=5 EYE=0")
+plan+=("eyes_early|seat 0's eyes 5 s in, before any water, wherever it starts|AT=5 EYE=0")
 if [[ -n "$first_flood" ]]; then
 	plan+=("flood_first|the observer from port at the first flooding ($(cut -d' ' -f2 <<<"$first_flood")) + 4 s, cells drawn|AT=$(offset "$(seconds "$first_flood")" 4) SIDE=port CELLS=1")
 	plan+=("flood_last|the observer from port at the last flooding ($(cut -d' ' -f2 <<<"$last_flood")) + 4 s|AT=$(offset "$(seconds "$last_flood")" 4) SIDE=port")
