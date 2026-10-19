@@ -37,6 +37,11 @@ extends Resource
 @export var pacing: SinkPacing
 ## The most simulated seconds a bake runs: past it, a hit still afloat is afloat.
 @export var bake_cap: float
+## The most physics seconds a match's drawn hit may take to sink her (Q20): the
+## must-sink rule bakes a drawn hit, or a rung of its fallback, no further, and draws
+## again one she is still afloat on by then, so the paced clock seldom has to run past
+## its limits. An explicit hit and her sure hit bake to the cap. 0 for the cap itself.
+@export var sinks_within: float
 ## The must-sink rule's bounds (§5b.1): hits the quick check may throw out, bakes
 ## before the fallback, and the fallback's rungs; the dry deck, in metres, the quick
 ## check needs to spare to throw a hit out; and from SH31 the share of each failure's
@@ -99,6 +104,8 @@ func problems() -> PackedStringArray:
 		found.append("sinking: the physics needs a clock and a bake's cap")
 	if pacing != null:
 		found.append_array(pacing.problems())
+	if sinks_within < 0.0:
+		found.append("sinking: the bound she sinks within must not be negative")
 	if quick_redraws < 0 or bakes < 0 or rungs < 0 or spare_deck < 0.0:
 		found.append("sinking: the must-sink rule's bounds must not be negative")
 	if quick_failing <= 0.0 or quick_failing > 1.0:
