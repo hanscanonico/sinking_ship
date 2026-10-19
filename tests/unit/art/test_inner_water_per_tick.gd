@@ -151,3 +151,46 @@ func test_water_over_every_top_since_last_drawn_bursts_though_nothing_pours() ->
 	water.show_water(full, full, 0.0)
 	assert_eq(_pouring(water), 0, "nothing pours")
 	assert_gt(_bursting(water), dry, "her air out")
+
+
+func test_water_climbing_its_full_rate_or_faster_churns_wholly() -> void:
+	assert_eq(InnerWater.inflow(0.0, 0.03, 1.0 / 30.0, 0.3), 1.0)
+
+
+func test_water_standing_or_falling_does_not_churn() -> void:
+	assert_eq(InnerWater.inflow(0.5, 0.5, 1.0 / 30.0, 0.3), 0.0, "standing")
+	assert_eq(InnerWater.inflow(0.5, 0.4, 1.0 / 30.0, 0.3), 0.0, "falling")
+	assert_eq(InnerWater.inflow(0.0, 0.03, 0.0, 0.3), 0.0, "no time gone by")
+
+
+func test_water_climbing_slower_churns_by_its_share_of_the_full_rate() -> void:
+	assert_almost_eq(InnerWater.inflow(0.0, 0.005, 1.0 / 30.0, 0.3), 0.5, 1e-6)
+
+
+## How hard the door's high side's sheet churns, as its material is told.
+func _inflow_of(water: InnerWater) -> float:
+	var sheet: MeshInstance3D = water._surfaces[_high]
+	var churn: Variant = (sheet.material_override as ShaderMaterial).get_shader_parameter(&"inflow")
+	return 0.0 if churn == null else churn
+
+
+func test_a_sheet_churns_a_fifth_of_the_way_more_each_tick_its_water_climbs_fast() -> void:
+	var water := _water()
+	assert_not_null(water._surfaces[_high], "the door's high side's water is drawn")
+	var calm := _pose()
+	water.show_water(calm, calm, 0.0)
+	assert_eq(_inflow_of(water), 0.0, "calm before")
+	var risen := _pose()
+	risen.levels[_high] += 0.1
+	water.show_water(calm, risen, 0.0)
+	assert_almost_eq(_inflow_of(water), 0.2, 1e-6, "a fifth of the way on the first tick")
+	water.show_water(calm, risen, 0.7)
+	assert_almost_eq(_inflow_of(water), 0.2, 1e-6, "once a tick, not once a frame")
+	var higher := _pose()
+	higher.levels[_high] += 0.2
+	water.show_water(risen, higher, 0.0)
+	assert_almost_eq(_inflow_of(water), 0.36, 1e-6, "a fifth more of what is left")
+	var settled := _pose()
+	settled.levels[_high] += 0.2
+	water.show_water(higher, settled, 0.0)
+	assert_almost_eq(_inflow_of(water), 0.288, 1e-6, "standing still, a fifth back")

@@ -81,6 +81,13 @@ const FROTH_LIFT := 0.015
 ## between them, whose turn is slerped rather than lerped: far more than a tick's turn
 ## ever moves it. An opening dry by this much at both poses is dry the whole tick.
 const TICK_SLACK := 0.05
+## How fast a cell's water must climb her, in metres a second, to churn at its wildest
+## (inflow); and the share of the way to the fresh inflow a sheet's churn moves each
+## tick, so it swells as the water pours in and calms once it settles. Under INFLOW_CALM
+## the churn is none at all, the water drawn as calm as it always was.
+const INFLOW_FULL := 0.3
+const INFLOW_EASE := 0.2
+const INFLOW_CALM := 1e-3
 ## The sea's colours the water inside her takes.
 const COLOURS: Array[StringName] = [&"deep_colour", &"shallow_colour", &"foam_colour"]
 const WATER_SHADER := preload("res://scenes/art/inner_water.gdshader")
@@ -156,6 +163,10 @@ var _airs := PackedFloat64Array()
 ## an eye is in.
 var _glows := PackedFloat32Array()
 var _pocket_light: OmniLight3D
+## Per cell, how hard its water churns as it climbs, 0…1, eased tick by tick; and the
+## pose it was last worked out to.
+var _inflows := PackedFloat64Array()
+var _inflow_now: ShipPose
 
 
 ## The boxes of [param structure]'s cells whose water is drawn — every cell wholly
@@ -393,6 +404,9 @@ func setup(
 	_airs.fill(-1.0)
 	_glows.resize(structure.cells.size())
 	_glows.fill(0.0)
+	_inflows.resize(structure.cells.size())
+	_inflows.fill(0.0)
+	_inflow_now = null
 	_pocket_light = OmniLight3D.new()
 	_pocket_light.light_color = POCKET_LIGHT
 	_pocket_light.light_energy = POCKET_ENERGY
@@ -424,6 +438,8 @@ func show_water(then: ShipPose, now: ShipPose, alpha: float) -> void:
 			_show_surface(_surfaces[cell], _boxes[cell], level, to_ship)
 	for stack: Array in _stacks:
 		_show_surface(stack[2], stack[1], levels[stack[0]], to_ship)
+	if now != _inflow_now:
+		_show_inflows(then, now)
 	for door: StringName in _leaves:
 		var shut: float = lerpf(
 			then.doors_shut.get(door, 0.0), now.doors_shut.get(door, 0.0), alpha
@@ -594,6 +610,43 @@ func _show_surface(surface: MeshInstance3D, box: AABB, level: float, to_ship: Tr
 	if showing:
 		surface.transform = CellSurface.placed(_ship, _level, box, level)
 		_param(surface, &"world_to_ship", to_ship)
+
+
+## How hard water climbing from [param prev_level] to [param level] in [param seconds]
+## churns, 0…1: its climb a second as a share of [param full_rate], none while it stands
+## or falls.
+static func inflow(prev_level: float, level: float, seconds: float, full_rate: float) -> float:
+	if seconds <= 0.0 or full_rate <= 0.0:
+		return 0.0
+	return clampf((level - prev_level) / seconds / full_rate, 0.0, 1.0)
+
+
+## A sheet's churn a tick on from [param churn], INFLOW_EASE of the way to [param fresh]
+## — none once under INFLOW_CALM.
+static func eased_inflow(churn: float, fresh: float) -> float:
+	var eased := lerpf(churn, fresh, INFLOW_EASE)
+	return eased if eased >= INFLOW_CALM else 0.0
+
+
+## Eases each cell's churn a tick on, from [param then] to [param now]: by how fast its
+## water climbed her — over her cell's middle, so water standing still while she goes
+## down churns as it pours in — and tells its sheets.
+func _show_inflows(then: ShipPose, now: ShipPose) -> void:
+	_inflow_now = now
+	for cell in _inflows.size():
+		var middle := _structure.cells[cell].low.lerp(_structure.cells[cell].high, 0.5)
+		var was := _level_of(then, cell) - then.world_height(middle)
+		var is_now := _level_of(now, cell) - now.world_height(middle)
+		var fresh := inflow(was, is_now, Ticks.SECONDS_PER_TICK, INFLOW_FULL)
+		var churn := eased_inflow(_inflows[cell], fresh)
+		if churn == _inflows[cell]:
+			continue
+		_inflows[cell] = churn
+		if _surfaces[cell] != null:
+			_param(_surfaces[cell], &"inflow", churn)
+		for stack: Array in _stacks:
+			if stack[0] == cell:
+				_param(stack[2], &"inflow", churn)
 
 
 ## Sets [param drawn]'s own material's [param parameter] to [param value].
