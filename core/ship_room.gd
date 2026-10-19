@@ -32,6 +32,10 @@ class Door:
 @export var area: Rect2
 ## The height of the deck it stands on.
 @export var floor_height: float
+## A crawl space: somewhere on its floor the headroom is enough to crawl, not to stand
+## (BrawlRules.crawl_height). The lint holds every other room's floor to standing
+## headroom; a body crawls wherever the headroom is that low, marked or not.
+@export var crawl_space: bool
 
 
 ## Whether feet at [param ship_point] stand in this room: inside its area, within

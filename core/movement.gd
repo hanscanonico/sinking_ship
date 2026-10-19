@@ -104,6 +104,12 @@ func surfaces() -> Surfaces:
 	return _surfaces
 
 
+## How tall [param player] is where it is now, in the frame the tick stands in
+## (BrawlRules.height_at): crawl_height in a crawl space, body_height anywhere else.
+func height_of(player: PlayerState) -> float:
+	return _rules.height_at(_surfaces, player.pos)
+
+
 ## A grid for bodies over the layout of the frame [param up], of the data's cells.
 func _crowd_in(up: int) -> SpatialIndex:
 	var bounds := SpatialIndex.bounds_of(_faces.layout(up))
@@ -165,8 +171,8 @@ func _reseat(player: PlayerState, tick: int, events: Array[SimEvent]) -> void:
 ## it has lost its grip — staggered, or idle on a deck steeper than the grip angle.
 ## On a floor tilted past stand_limit_deg nobody walks: a brace holds where it is up to
 ## brace_holds_to, anyone else slides into the corner and walks only along it (_slid).
-## Wading slows a walk; swimming is _swim's. A body frozen in a hit-stop feels none
-## of it, and its stagger waits.
+## Wading slows a walk, and crawling to crawl_speed; swimming is _swim's. A body frozen
+## in a hit-stop feels none of it, and its stagger waits.
 func forces(live: Array[PlayerState], pose_now: ShipPose) -> void:
 	var dt := Ticks.SECONDS_PER_TICK
 	var gravity := pose_now.ship_gravity(_rules.gravity)
@@ -193,6 +199,8 @@ func forces(live: Array[PlayerState], pose_now: ShipPose) -> void:
 			wish = Vector2.ZERO
 		if _surfaces.wet(player.pos, pose_now):
 			wish = wish.limit_length(_rules.wade_speed)
+		if height_of(player) < _rules.body_height:
+			wish = wish.limit_length(_rules.crawl_speed)
 		# A brace is rooted: the deck past the grip angle does not pull it.
 		var pulled := steep and not (player.bracing and holds)
 		if player.is_staggered():
@@ -302,15 +310,16 @@ func move(
 	return feet_before
 
 
-## A rising body stops with its head against the lowest underside over it — a deck,
-## a stair, a lintel — and loses its upward speed. It is looked for from where the
-## feet stood before this tick's move, so a fast rise cannot pass through a deck.
+## A rising body stops with its head — at its height there (height_of) — against the
+## lowest underside over it — a deck, a stair, a lintel — and loses its upward speed.
+## It is looked for from where the feet stood before this tick's move, so a fast rise
+## cannot pass through a deck.
 func _ceilings(live: Array[PlayerState], feet_before: PackedFloat64Array) -> void:
 	for player: PlayerState in live:
 		if player.body != PlayerState.Body.AIRBORNE or player.vel.y <= 0.0:
 			continue
 		var feet := Vector3(player.pos.x, feet_before[player.seat], player.pos.z)
-		var highest := _surfaces.ceiling(feet, _rules.step_height) - _rules.body_height
+		var highest := _surfaces.ceiling(feet, _rules.step_height) - height_of(player)
 		if player.pos.y > highest:
 			player.pos.y = highest
 			player.vel.y = 0.0
@@ -320,8 +329,10 @@ func _ceilings(live: Array[PlayerState], feet_before: PackedFloat64Array) -> voi
 ## pushes it back out in the deck plane and takes the velocity into it. It is met at
 ## the height the feet stood at before this tick's move, so a fall lands on a deck
 ## in _ground rather than being pushed off its edge. A swimmer steps as a swimmer
-## does (_swim_step). A body still where [param clear] last found it held by nothing
-## is not asked again. True when it moved anyone.
+## does (_swim_step). A body on its feet ducks under whatever it has a floor to crawl
+## under (Surfaces.obstacle_contacts), and crawls there (height_of); a body off them is
+## held by what its height there meets. A body still where [param clear] last found it
+## held by nothing is not asked again. True when it moved anyone.
 func _blockers(
 	live: Array[PlayerState],
 	feet_before: PackedFloat64Array,
@@ -334,10 +345,15 @@ func _blockers(
 			continue
 		var feet := Vector3(player.pos.x, feet_before[player.seat], player.pos.z)
 		var step := _rules.step_height
+		var height := _rules.body_height
+		var crawl := _rules.crawl_height
+		if player.body != PlayerState.Body.GROUNDED:
+			height = height_of(player)
+			crawl = INF
 		if player.body == PlayerState.Body.SWIMMING:
 			step = _swim_step(feet, pose_now.water_height(feet))
 		var contacts := _surfaces.obstacle_contacts(
-			feet, _rules.body_radius, _rules.body_height, step
+			feet, _rules.body_radius, height, step, Surfaces.NONE, crawl
 		)
 		if contacts.is_empty():
 			clear[player.seat] = player.pos
@@ -374,7 +390,7 @@ func _railings(
 				player.pos,
 				came_from[player.seat],
 				_rules.body_radius,
-				_rules.body_height,
+				height_of(player),
 				_rules.railing_height
 			)
 		elif player.body == PlayerState.Body.GROUNDED:
@@ -451,16 +467,20 @@ func _pairs(live: Array[PlayerState]) -> PackedInt32Array:
 
 
 ## Pushes [param a] and [param b] apart, each half the overlap, when their heights
-## overlap and their circles do; how far each moved, or 0.
+## overlap — the higher one's feet under the lower one's head, a crawler's as low as it
+## is — and their circles do; how far each moved, or 0.
 func _push_apart(a: PlayerState, b: PlayerState) -> float:
 	var reach := _rules.body_radius * 2.0
 	var a_pos := a.pos
 	var b_pos := b.pos
-	if absf(a_pos.y - b_pos.y) >= _rules.body_height:
+	var apart := absf(a_pos.y - b_pos.y)
+	if apart >= _rules.body_height:
 		return 0.0
 	var offset := Vector2(b_pos.x - a_pos.x, b_pos.z - a_pos.z)
 	var distance := offset.length()
 	if distance >= reach:
+		return 0.0
+	if apart > 0.0 and apart >= height_of(a if a_pos.y <= b_pos.y else b):
 		return 0.0
 	var normal := offset / distance if distance > 0.0 else Vector2.RIGHT
 	var push := normal * ((reach - distance) * 0.5)
@@ -551,17 +571,18 @@ func _swim(player: PlayerState, pose_now: ShipPose) -> void:
 
 ## Where a swimmer's feet rest at [param feet]'s x/z, coming from
 ## [param feet_before]'s height and swimming [param heading]: swim_depth under the
-## water it is in — its cell's, so it surfaces in a pocket (SH29) — or on the bottom
-## there when that is higher.
+## water it is in — its cell's, so it surfaces in a pocket (SH29) — or a crawler's, in
+## a crawl space (BrawlRules.swim_depth_of); or on the bottom there when that is higher.
 func _rest_at(feet: Vector3, feet_before: float, pose_now: ShipPose, heading: Vector2) -> float:
 	var sea := pose_now.water_height(feet)
 	var bottom := _bottom(feet, feet_before, sea)
-	var rest := maxf(sea - _rules.swim_depth, bottom)
-	return minf(rest, _headroom(feet, feet_before, heading, sea, bottom))
+	var height := _rules.height_at(_surfaces, feet)
+	var rest := maxf(sea - _rules.swim_depth_of(height), bottom)
+	return minf(rest, _headroom(feet, feet_before, heading, sea, bottom, height))
 
 
 ## The highest a swimmer's feet at [param feet]'s x/z, coming from
-## [param feet_before]'s height, may rest: a body's height under the lowest deck over
+## [param feet_before]'s height, may rest: its [param height] under the lowest deck over
 ## its head (Surfaces.ceiling) — and, swimming [param heading], under the lowest along
 ## the way to where its circle reaches next, so it ducks under a lintel or a deck's
 ## edge it swims into: through a flooded doorway into the next cell, to surface there.
@@ -571,10 +592,10 @@ func _rest_at(feet: Vector3, feet_before: float, pose_now: ShipPose, heading: Ve
 ## as little as its feet's height rounds up, CLEARANCE_SLACK under it — would be pushed
 ## out sideways by it, through a wall or the hull.
 func _headroom(
-	feet: Vector3, feet_before: float, heading: Vector2, sea: float, bottom: float
+	feet: Vector3, feet_before: float, heading: Vector2, sea: float, bottom: float, height: float
 ) -> float:
 	var from := Vector3(feet.x, feet_before, feet.z)
-	var body := _rules.body_height + Surfaces.CLEARANCE_SLACK
+	var body := height + Surfaces.CLEARANCE_SLACK
 	var room := _surfaces.ceiling(from, _rules.step_height) - body
 	if heading == Vector2.ZERO:
 		return room
@@ -614,12 +635,14 @@ func _bottom(feet: Vector3, feet_before: float, sea: float) -> float:
 
 ## How far up a swimmer with its feet at [param feet] steps: over any edge it can
 ## float across, as high as wade_depth under [param sea], but never so high that its
-## head would meet a deck over it; a step_height at the least. A deck's edge it swims
-## onto stands below its head and a deck it swims under above it, within a step: the
-## first is no wall to someone swimming in from deeper water, the second no floor.
+## head — a crawler's, in a crawl space — would meet a deck over it; a step_height at
+## the least. A deck's edge it swims onto stands below its head and a deck it swims
+## under above it, within a step: the first is no wall to someone swimming in from
+## deeper water, the second no floor.
 func _swim_step(feet: Vector3, sea: float) -> float:
-	var clearance := _rules.body_height - _rules.step_height
-	var overhead := _surfaces.ceiling(feet, clearance) - _rules.body_height
+	var height := _rules.height_at(_surfaces, feet)
+	var clearance := height - _rules.step_height
+	var overhead := _surfaces.ceiling(feet, clearance) - height
 	return maxf(_rules.step_height, minf(sea - _rules.wade_depth, overhead) - feet.y)
 
 
@@ -644,8 +667,9 @@ func sea_over(surface: int, feet: Vector3, pose_now: ShipPose) -> float:
 func come_to_rest(player: PlayerState, feet_before: float, pose_now: ShipPose) -> void:
 	var sea := pose_now.water_height(player.pos)
 	var bottom := _bottom(player.pos, feet_before, sea)
-	var headroom := _headroom(player.pos, feet_before, _heading(player), sea, bottom)
-	var rest := minf(maxf(sea - _rules.swim_depth, bottom), headroom)
+	var height := height_of(player)
+	var headroom := _headroom(player.pos, feet_before, _heading(player), sea, bottom, height)
+	var rest := minf(maxf(sea - _rules.swim_depth_of(height), bottom), headroom)
 	var rise := player.vel.y
 	if player.pos.y < bottom:
 		player.pos.y = bottom

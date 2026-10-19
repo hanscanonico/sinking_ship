@@ -136,9 +136,16 @@ func lying() -> PackedVector3Array:
 
 ## Bits of a deck giving way at [param from] thrown up to rain on the open decks
 ## within [param reach] round it, and some on the deck [param before] — ahead of an
-## eye at ship point [param eye] looking along [param looking] (ship plane, unit);
+## eye at ship point [param eye], [param eye_height] over its feet, looking along
+## [param looking] (ship plane, unit);
 ## NAN for no eye. Ship-local throughout.
-func rain(from: Vector3, reach: float, eye: Vector3, looking: Vector2) -> void:
+func rain(
+	from: Vector3,
+	reach: float,
+	eye: Vector3,
+	looking: Vector2,
+	eye_height := FirstPersonCamera.EYE_HEIGHT
+) -> void:
 	if _space == null:
 		return
 	for index in RAIN:
@@ -150,7 +157,7 @@ func rain(from: Vector3, reach: float, eye: Vector3, looking: Vector2) -> void:
 				var spot := (
 					Vector2(eye.x, eye.z) + ahead * _rng.randf_range(BEFORE_EYE.x, BEFORE_EYE.y)
 				)
-				target = _open_deck(spot, eye.y - FirstPersonCamera.EYE_HEIGHT + 0.3)
+				target = _open_deck(spot, eye.y - eye_height + 0.3)
 			else:
 				var turn := Vector2.from_angle(_rng.randf() * TAU) * _rng.randf_range(1.0, reach)
 				target = _open_deck(Vector2(from.x, from.z) + turn, from.y)

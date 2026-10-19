@@ -367,10 +367,11 @@ func _intent(live: Array[PlayerState], pose_now: ShipPose) -> void:
 
 
 ## A jump is a press, never a hold, from the ground gravity holds it to: idle, its brace
-## let go, and with jump_cost of stamina to spend. It goes up along the world's up
-## (D8) until its feet are jump_height above where it left along the frame's — whatever
-## the face's tilt, never over a railing — and gravity, the world's turned by the pose,
-## brings it down where it rose, on its way across the face as it was walking.
+## let go, standing — a crawler never jumps — and with jump_cost of stamina to spend. It
+## goes up along the world's up (D8) until its feet are jump_height above where it left
+## along the frame's — whatever the face's tilt, never over a railing — and gravity, the
+## world's turned by the pose, brings it down where it rose, on its way across the face
+## as it was walking.
 func _jump(player: PlayerState, pose_now: ShipPose) -> void:
 	if (
 		player.body != PlayerState.Body.GROUNDED
@@ -379,6 +380,7 @@ func _jump(player: PlayerState, pose_now: ShipPose) -> void:
 		or player.exhausted
 		or player.stamina < _rules.jump_cost
 		or pose_now.ship_gravity(_rules.gravity).y >= 0.0
+		or _movement.height_of(player) < _rules.body_height
 	):
 		return
 	_spend(player, _rules.jump_cost)
@@ -681,7 +683,7 @@ func _water(
 		_movement.start_climb(player, pose_now)
 		if player.is_climbing():
 			continue
-		var head := player.pos + Vector3.UP * _rules.head_height()
+		var head := player.pos + Vector3.UP * _rules.head_height(_movement.height_of(player))
 		var rate := _rules.pocket_cold_rate if pose_now.in_pocket(head) else 1.0
 		player.cold = maxf(player.cold - dt * rate, 0.0)
 		if player.cold == 0.0:
@@ -735,7 +737,9 @@ func _candidates(
 	return candidates
 
 
+## [param player] as a shove reaches it: as tall as it is where it is — a crawler
+## lower, out of reach of the deck over it.
 func _candidate(player: PlayerState) -> ShoveResolver.Candidate:
 	return ShoveResolver.Candidate.new(
-		player.seat, player.pos, _rules.body_radius, _rules.body_height
+		player.seat, player.pos, _rules.body_radius, _movement.height_of(player)
 	)

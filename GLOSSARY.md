@@ -27,3 +27,17 @@ _Avoid_: checksum, hash (the match hash is the build-and-data fingerprint the wi
 **Quantum**:
 The precision a snapshot field is kept at: the digest rounds to it and the wire carries it.
 _Avoid_: resolution, step
+
+### Bodies aboard her
+
+**Headroom**:
+The height from a body's floor, a deck or a stair (never a blocker's top or a crate's lid),
+up to the lowest underside over it.
+_Avoid_: clearance, ceiling height
+
+**Crawl space**:
+Wherever a floor has headroom to crawl but not to stand: less than the rules'
+`body_height`, at least their `crawl_height`. A body there crawls, `crawl_height` tall, at
+`crawl_speed`, and cannot jump; it follows from where the body is, never from a button. A
+room holding one is marked a crawl space for the lint and the bots' routes.
+_Avoid_: crouch, crawlway, duct

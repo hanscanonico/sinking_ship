@@ -153,8 +153,8 @@ func _hears(me: Dictionary, entry: Dictionary) -> bool:
 
 
 ## Whether the bot, as [param me], looks at [param entry] in the snapshot of
-## [param tick] and nothing stands between their eyes — nor, in the dark, more than
-## dark_sight_m.
+## [param tick] and nothing stands between their eyes — a crawler's lower, while her
+## decks are floors — nor, in the dark, more than dark_sight_m.
 func _sees(me: Dictionary, entry: Dictionary, tick: int) -> bool:
 	var seat: int = entry["seat"]
 	if tick < _look_due.get(seat, tick):
@@ -167,6 +167,9 @@ func _sees(me: Dictionary, entry: Dictionary, tick: int) -> bool:
 	var their_pos: Vector3 = entry["pos"]
 	var mine := my_pos + eye
 	var theirs := their_pos + eye
+	if _frame() == Faces.Up.DECK:
+		mine = my_pos + eye * _floors.height_share(my_pos, _piece())
+		theirs = their_pos + eye * _floors.height_share(their_pos, _piece())
 	var own := _pose.of_piece(_piece())
 	var dark := (
 		own.lit_at(mine) == ShipPower.Power.DARK or own.lit_at(theirs) == ShipPower.Power.DARK

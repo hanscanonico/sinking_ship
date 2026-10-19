@@ -150,7 +150,7 @@ static func would_hit(
 		if entry["out"]:
 			continue
 		var candidate := Candidate.new(
-			entry["seat"], entry["pos"], rules.body_radius, rules.body_height
+			entry["seat"], entry["pos"], rules.body_radius, rules.height_at(surfaces, entry["pos"])
 		)
 		candidates.append(candidate)
 		if entry["seat"] == seat:

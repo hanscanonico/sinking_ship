@@ -13,6 +13,7 @@ const CHARGE := BrawlerAnimation.Move.CHARGE
 const JUMP := BrawlerAnimation.Move.JUMP
 const SWIM := BrawlerAnimation.Move.SWIM
 const CLIMB := BrawlerAnimation.Move.CLIMB
+const CRAWL := BrawlerAnimation.Move.CRAWL
 
 
 func _entry(sim: MatchSim, seat: int = 0) -> Dictionary:
@@ -121,6 +122,27 @@ func test_feet_walk_then_run_with_speed() -> void:
 	assert_eq(_move(entry, BrawlerAnimation.RUN_FROM), RUN)
 	assert_almost_eq(BrawlerAnimation.rate(RUN, BrawlerAnimation.RUN_CLIP_SPEED), 1.0, 0.0001)
 	assert_eq(BrawlerAnimation.rate(STAGGER, 9.0), 1.0, "only strides follow speed")
+
+
+func test_a_crawler_crawls_whatever_it_does_on_its_feet() -> void:
+	# In a crawl space (#148): on its knees it crawls, walking, shoving or bracing alike —
+	# its hands' heat still telegraphs a shove — and a crawler in the air falls and in the
+	# water swims as anyone does.
+	var sim := SimFixtures.sim(1)
+	var entry := _entry(sim)
+	assert_eq(BrawlerAnimation.move_for(entry, 0.0, true), CRAWL, "idle, it kneels")
+	assert_eq(BrawlerAnimation.move_for(entry, 1.5, true), CRAWL, "moving, it crawls")
+	entry["action"] = PlayerState.Action.WINDUP
+	assert_eq(BrawlerAnimation.move_for(entry, 0.0, true), CRAWL, "winding up")
+	assert_eq(BrawlerAnimation.move_for(entry, 0.0, false), WINDUP, "standing, it winds up")
+	entry["action"] = PlayerState.Action.IDLE
+	entry["state"] = PlayerState.Body.AIRBORNE
+	assert_eq(BrawlerAnimation.move_for(entry, 0.0, true), FALL)
+	entry["state"] = PlayerState.Body.SWIMMING
+	assert_eq(BrawlerAnimation.move_for(entry, 0.0, true), SWIM)
+	assert_almost_eq(
+		BrawlerAnimation.rate(CRAWL, BrawlerAnimation.CRAWL_CLIP_SPEED), 1.0, 0.0001, "in stride"
+	)
 
 
 func test_every_move_names_a_clip_the_model_has() -> void:

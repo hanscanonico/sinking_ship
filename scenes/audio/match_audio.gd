@@ -106,7 +106,7 @@ func _process(delta: float) -> void:
 		return
 	_listener.global_transform = camera.global_transform
 	# The sea is the world plane (D7), so the ears' height is their distance to it.
-	var above_sea := camera.global_position.y - FirstPersonCamera.EYE_HEIGHT
+	var above_sea := camera.global_position.y - FirstPersonCamera.eye_height_of(camera)
 	var tick: int = _driver.current["tick"]
 	var sink_rate := _schedule.pose_at(tick).sink - _schedule.pose_at(tick - Ticks.RATE).sink
 	_enclosure = move_toward(

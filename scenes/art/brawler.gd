@@ -148,7 +148,10 @@ var _charge_from: int
 var _charge_full: int
 var _charge_walk: float
 var _move: BrawlerAnimation.Move = BrawlerAnimation.Move.IDLE
-## Seconds since the move drawn began.
+## The move its hands and heat show: _move but in a crawl space, where the clip crawls
+## and the hands still telegraph the shove the body is making.
+var _acting: BrawlerAnimation.Move = BrawlerAnimation.Move.IDLE
+## Seconds since the move its hands show began.
 var _since := 0.0
 var _glow := 0.0
 ## The heat drawn now, and at the moment the last shove landed.
@@ -350,14 +353,16 @@ func model_root() -> Node3D:
 
 
 ## Poses the brawler for the display moment [param alpha] of the way from
-## [param then] to [param now], one seat's entries in two snapshots: the move's
-## clip, advanced here, with the move's pose over it. Frozen in a hit-stop, its pose
-## holds, squashed, and springs back as the stop ends.
-func show_state(then: Dictionary, now: Dictionary, alpha: float) -> void:
+## [param then] to [param now], one seat's entries in two snapshots — [param crawling]
+## where MatchView finds it in a crawl space: the move's clip, advanced here, with the
+## move's pose over it. Frozen in a hit-stop, its pose holds, squashed, and springs back
+## as the stop ends.
+func show_state(then: Dictionary, now: Dictionary, alpha: float, crawling := false) -> void:
 	var delta := get_process_delta_time()
 	var vel: Vector3 = (then["vel"] as Vector3).lerp(now["vel"], alpha)
 	var speed := Vector2(vel.x, vel.z).length()
-	var move := BrawlerAnimation.move_for(now, speed)
+	var move := BrawlerAnimation.move_for(now, speed, crawling)
+	var acting := BrawlerAnimation.move_for(now, speed)
 	var renewed: bool = now["stagger"] > _stagger
 	_stagger = now["stagger"]
 	if move != _move or renewed:
@@ -365,6 +370,8 @@ func show_state(then: Dictionary, now: Dictionary, alpha: float) -> void:
 		if renewed:
 			_player.seek(0.0, true)
 		_move = move
+	if acting != _acting or renewed:
+		_acting = acting
 		_since = 0.0
 	var frozen: bool = now["hitstop"] > 0
 	var held := 0.0 if frozen and _freezes else delta
@@ -376,9 +383,9 @@ func show_state(then: Dictionary, now: Dictionary, alpha: float) -> void:
 	_unsquashing = 0.0 if frozen else _unsquashing + delta
 	if _squashes:
 		_model.scale = _rest_scale * BrawlerAnimation.squash(_unsquashing)
-	_show_hands(move)
+	_show_hands(acting)
 	var charge: float = lerpf(then["charge"], now["charge"], alpha)
-	_show_heat(move, BrawlerCharge.filled(charge, _charge_from, _charge_full), now, speed)
+	_show_heat(acting, BrawlerCharge.filled(charge, _charge_from, _charge_full), now, speed)
 	var shoving: bool = (
 		now["action"] == PlayerState.Action.WINDUP or now["action"] == PlayerState.Action.ACTIVE
 	)
