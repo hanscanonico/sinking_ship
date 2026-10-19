@@ -12,7 +12,7 @@ const SURVIVAL_MATCH := "res://data/match/survival.tres"
 ## paced clock, narrower hits and 1 h 30 bound, then #148's spaces in the steamer's old
 ## voids, their scuttles and the pieces' fitted mark): the goals must not move the
 ## battle royale's.
-const BATTLE_ROYALE_HASH := "b229144877d3114bc94e9fcc20c273f90e6fe41551e331f3c902120a0a3ae063"
+const BATTLE_ROYALE_HASH := "2dca37351b6b7a65bfc183a5b87c848d45217fb4130fcc6c3e82c24ba071cb70"
 
 
 func test_the_data_carries_the_goal_onto_the_match() -> void:
