@@ -447,3 +447,38 @@ func test_no_wall_crosses_a_stair_or_an_opening() -> void:
 						),
 						"%s: the wall at %s crosses ramp %d" % [path, wall.area, index]
 					)
+
+
+## How far the spans a–b and c–d run together along one line; 0 when they do not share it.
+func _shared(a: Vector2, b: Vector2, c: Vector2, d: Vector2) -> float:
+	var along := (b - a).normalized()
+	var across := Vector2(-along.y, along.x)
+	if absf((c - a).dot(across)) > 0.01 or absf((d - a).dot(across)) > 0.01:
+		return 0.0
+	var from := minf((c - a).dot(along), (d - a).dot(along))
+	var to := maxf((c - a).dot(along), (d - a).dot(along))
+	return maxf(0.0, minf(to, a.distance_to(b)) - maxf(from, 0.0))
+
+
+func test_no_railing_crosses_a_stair_end() -> void:
+	# A stair's end is open onto the deck at its height: no railing on that deck runs
+	# across it (the Titanic's forecastle stairs, railed over at their heads).
+	var layouts := _layouts()
+	for path: String in layouts:
+		var layout: ShipLayout = layouts[path]
+		for index in layout.ramps.size():
+			var ramp := layout.ramps[index]
+			for end in 2:
+				var edge := ramp.end_edge(end)
+				var height := ramp.start_height if end == 0 else ramp.end_height
+				for railing: ShipRailing in layout.railings:
+					if not is_equal_approx(layout.platforms[railing.platform].height, height):
+						continue
+					assert_lt(
+						_shared(edge[0], edge[1], railing.from, railing.to),
+						0.05,
+						(
+							"%s: the railing %s–%s crosses ramp %d's end %d"
+							% [path, railing.from, railing.to, index, end]
+						)
+					)
