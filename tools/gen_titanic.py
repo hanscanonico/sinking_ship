@@ -597,9 +597,10 @@ def rail_taper(rid, strips, open_ends=()):
             elif nxt[3] > w:
                 railing("%s_step_p%d" % (rid, k), nxt[0], (b, -nxt[3]), (b, -w))
                 railing("%s_step_s%d" % (rid, k), nxt[0], (b, w), (b, nxt[3]))
-    ends = dict(open_ends)
     for index, x, w in [(ordered[0][0], ordered[0][1], ordered[0][3]), (ordered[-1][0], ordered[-1][2], ordered[-1][3])]:
-        rail_line("%s_end_%d" % (rid, int(abs(x))), [index], 0, x, -w, w, ends.get(x, ()))
+        # A strip's ends are rounded (tapered), so an open end is matched to the nearest mm.
+        gaps = next((g for end, g in open_ends if abs(end - x) < 1e-3), ())
+        rail_line("%s_end_%d" % (rid, int(abs(x))), [index], 0, x, -w, w, gaps)
 
 FC1 = tapered("fcsl", "forecastle", FCSL_FROM, FCSL_STEP, FCSL[0], 4.0, 0.05)
 FC_RAMP = (FCSL_STEP, FCSL_STEP + 3.0)

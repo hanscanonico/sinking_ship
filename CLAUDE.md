@@ -55,6 +55,19 @@ registered every `class_name`. The engine is `$GODOT`, else a vendored `bin/Godo
 PR, and nothing merges until it is green on the PR head. `make verify` stays runnable
 locally whenever the whole suite is wanted.
 
+Finished work ships without being asked: once a change is done, commit it on a branch,
+push, open the PR, wait for CI, and merge it yourself when it is green on the PR head.
+A red PR gets fixed, not merged. Ask first only when the change is not what was asked for
+or a decision is genuinely the user's.
+
+Every session works in its own worktree, never in the main checkout: several sessions share
+this machine, and one session's `checkout`, `switch` or `stash` moves every other session's
+HEAD with it. Before the first edit, `git worktree add ../sinking_ship-worktrees/<slug> -b
+<branch> origin/main`, `make import` in it, and work there (`git worktree list` shows what
+is taken). The main checkout stays on `main` and is only fetched; never stash (the stash is
+shared by every worktree). Once the PR is merged, `git worktree remove` it unless it holds
+uncommitted work.
+
 One game window at a time on this shared machine: `make capture` and `make fps` take the
 window lock themselves (`tools/window_lock.sh`, a kernel lock released on any exit) — never
 hand-roll a lock around them. Test engines are capped the same way: each takes one of
@@ -71,6 +84,16 @@ that says it is waiting for a slot is the machine being shared, not a hang.
 - **Seeded RNG only.** Thread a seeded `RandomNumberGenerator` through the sim; global
   `randf()`/`randi()`/`randomize()` in `core/` or `ai/` fails `make check`.
 - **Balance numbers live in `data/*.tres`**, never as constants in code.
+- **Godot owns the form, Blender the finish.** Everything the game measures — a blocker's
+  footprint, a walkable surface, a height, an opening, the size a variant is picked by,
+  every dimension a fit test reads — is declared on the Godot side (layout data, authoring
+  scenes, the fitting code's tables). A model in `assets/models/NAME/` only dresses that
+  envelope and stays inside it: never read gameplay or placement from a mesh's bounds, and
+  never change a form by editing only a model. New props and reworks are modelled in
+  Blender through the Blender MCP, judged with `look`; the saved `.blend` is the source and
+  `make models` exports it. Scripted geometry is for the form (layout, cells, runtime FX
+  meshes), not for art; an existing `NAME.py` prop stays scripted until it is reworked. One
+  live Blender per machine: one session models at a time. See `assets/models/README.md`.
 
 ## Conventions
 

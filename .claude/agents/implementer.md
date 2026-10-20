@@ -88,6 +88,12 @@ Captures:
 The shared machine: never kill a process you did not start, never raise `TEST_SLOTS`, and
 never script window focus (no raising or activating a window).
 
+Models: Godot owns the form, Blender the finish (`assets/models/README.md`). Declare any
+dimension the game measures on the Godot side first; model inside it in Blender through the
+Blender MCP, judged with `look` — never as vertex lists in a `NAME.py` or GDScript, and
+never read a size back from a mesh. If the Blender MCP is not available to you, stop and
+say so rather than falling back to a script.
+
 Ship: commit in repo style (present-tense imperative subject, focused body only if
 needed). Add only the commit trailers the orchestrator provides in the task; if none were
 provided, add none — never a Co-Authored-By or generated-with line. Push with
