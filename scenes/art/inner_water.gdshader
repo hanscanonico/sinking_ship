@@ -38,6 +38,9 @@ uniform vec3 clip_high = vec3(0.0);
 uniform float pocket_glow = 0.0;
 // 1 for an open well's water, under the open sky; 0 under a deck.
 uniform float outdoor = 0.0;
+// How hard it churns as the sea pours in and it climbs her, 0…1 (InnerWater.inflow):
+// a rougher wobble, brighter streaks and foam boiling up all over it. 0 is calm water.
+uniform float inflow : hint_range(0.0, 1.0) = 0.0;
 
 uniform sampler2D depth_texture : hint_depth_texture, filter_nearest, repeat_disable;
 
@@ -84,7 +87,8 @@ void fragment() {
 		value_noise(world.xz * 5.3 + vec2(-t * 0.8, t * 0.6) + 3.0),
 		value_noise(world.xz * 5.3 + vec2(t * 0.7, t * 0.5) + 13.0)
 	) - 0.5) * 0.5;
-	vec3 up = normalize(vec3(-slope.x * 0.35, 1.0, -slope.y * 0.35));
+	float wobble = 0.35 + 0.9 * inflow;
+	vec3 up = normalize(vec3(-slope.x * wobble, 1.0, -slope.y * wobble));
 	NORMAL = normalize((VIEW_MATRIX * vec4(up, 0.0)).xyz) * (FRONT_FACING ? 1.0 : -1.0);
 	AO = mix(indoor_ambient, 1.0, outdoor);
 	AO_LIGHT_AFFECT = 0.0;
@@ -112,7 +116,14 @@ void fragment() {
 		float alpha = mix(shallow_alpha, 0.95, murk);
 		// Drifting streaks on it, a little lighter: water, not a painted floor.
 		float streak = lace(world.xz * 0.9, t * 0.15, 0.03);
-		colour = mix(colour, shallow_colour.rgb * 1.25, streak * 0.25);
+		colour = mix(colour, shallow_colour.rgb * 1.25, streak * (0.25 + 0.5 * inflow));
+		// Foam boiling up all over it while the sea pours in; none on calm water.
+		if (inflow > 0.0) {
+			float boil = value_noise(world.xz * 3.0 + t * vec2(1.2, -0.9));
+			float foam = smoothstep(1.0 - 0.25 * inflow, 1.0, boil) * inflow;
+			colour = mix(colour, foam_colour.rgb, foam);
+			alpha = max(alpha, foam * 0.92);
+		}
 		if (below <= lace_depth) {
 			float lap = value_noise(world.xz * 2.4 + vec2(t * 0.6, -t * 0.4));
 			float edge = step(below, foam_depth * (0.45 + 0.55 * lap));
