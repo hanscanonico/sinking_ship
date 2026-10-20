@@ -18,8 +18,8 @@
 # line — on stderr, or on the descriptor TEST_SLOT_NOTICE_FD numbers, which it closes
 # before it runs COMMAND, prefixed with TEST_SLOT_NAME when set — and tries them
 # again every half second as long as it takes. The exit status is COMMAND's.
-# flock(1) where it is on PATH (Linux), else the BSD lockf(1) macOS ships; with
-# neither it fails and runs nothing.
+# flock(1) where it is on PATH (Linux), else the BSD lockf(1) macOS ships, else
+# perl's flock (Git Bash on Windows); with none it fails and runs nothing.
 #
 # Usage:  tools/test_slot.sh COMMAND [ARGS…]
 
@@ -48,8 +48,15 @@ if command -v flock >/dev/null; then
 	try_lock() { flock -n 8; }
 elif [[ -x /usr/bin/lockf ]]; then
 	try_lock() { /usr/bin/lockf -s -t 0 8; }
+elif command -v perl >/dev/null; then
+	# Git Bash on Windows ships neither, but its perl locks the descriptor it
+	# inherits with the same flock(2); the lock stays on the open file after
+	# perl exits, exactly as flock(1) leaves it.
+	try_lock() {
+		perl -e 'use Fcntl ":flock"; open(F, ">>&=", 8) or exit 2; exit(flock(F, LOCK_EX | LOCK_NB) ? 0 : 1)'
+	}
 else
-	echo "test: neither flock nor /usr/bin/lockf is available: cannot take a slot of $LOCK" >&2
+	echo "test: neither flock, /usr/bin/lockf nor perl is available: cannot take a slot of $LOCK" >&2
 	exit 1
 fi
 

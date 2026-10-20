@@ -44,8 +44,15 @@ if command -v flock >/dev/null; then
 elif [[ -x /usr/bin/lockf ]]; then
 	try_lock() { /usr/bin/lockf -s -t 0 9; }
 	wait_lock() { until try_lock; do sleep 0.5; done; }
+elif command -v perl >/dev/null; then
+	# Git Bash on Windows: perl's flock(2) on the inherited descriptor, as in
+	# tools/test_slot.sh.
+	try_lock() {
+		perl -e 'use Fcntl ":flock"; open(F, ">>&=", 9) or exit 2; exit(flock(F, LOCK_EX | LOCK_NB) ? 0 : 1)'
+	}
+	wait_lock() { until try_lock; do sleep 0.5; done; }
 else
-	echo "window: neither flock nor /usr/bin/lockf is available: cannot take $WINDOW_LOCK_FILE" >&2
+	echo "window: neither flock, /usr/bin/lockf nor perl is available: cannot take $WINDOW_LOCK_FILE" >&2
 	exit 1
 fi
 
