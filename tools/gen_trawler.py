@@ -21,6 +21,7 @@ Usage: tools/gen_trawler.py <out.tres>
 """
 import math
 import re
+import struct
 import sys
 
 out = sys.argv[1]
@@ -45,6 +46,9 @@ used = set()
 # is a box) per blocker; (x0, x1, z0, z1, floor, name) per room; and every doorway as
 # (axis, at, from, to, bottom): a gap in a wall along x = at (axis 0) or z = at (axis 2).
 plat_geo, ramp_geo, block_geo, room_geo, doorways = [], [], [], [], []
+# What is fitted inside her lines (#148), as (x0, x1, z0, z1, heights it stands at), and
+# which ramps are.
+fitted_geo, fitted_ramps = [], []
 
 def sub(kind_id, script, fields):
     assert kind_id not in used, kind_id
@@ -55,30 +59,74 @@ def sub(kind_id, script, fields):
     subs.append("\n".join(body))
     return kind_id
 
-def platform(pid, name, x0, x1, z0, z1, h=0.0):
+def platform(pid, name, x0, x1, z0, z1, h=0.0, fitted=False):
     plat_geo.append((x0, x1, z0, z1, h))
     f = [("name", '&"%s"' % name), ("area", rect_xz(x0, x1, z0, z1))]
     if h != 0.0:
         f.append(("height", num(h)))
+    if fitted:
+        f.append(("fitted", "true"))
+        fitted_geo.append((x0, x1, z0, z1, [h]))
     platforms.append(sub("Platform_" + pid, "1_plat", f))
     return len(platforms) - 1
 
-def ramp(rid, x, z, w, d, start, end):
-    """A stair along x from start (at x) to end (at x + w), d wide."""
-    ramp_geo.append((x, x + w, z, z + d, 0, start, end))
+# The steepest stair a body climbs: its rise a body's radius on, 0.4 m, under a step,
+# 0.35 m (data/rules/brawl.tres).
+STEEPEST = 0.85
+
+def ramp(rid, x, z, w, d, start, end, axis=0, fitted=False):
+    """A stair from start (at x, or z across her) to end (at x + w, or z + d), its
+    area w along her by d across."""
+    assert abs(end - start) / (w if axis == 0 else d) <= STEEPEST, "stair %s too steep to climb" % rid
+    ramp_geo.append((x, x + w, z, z + d, axis, start, end))
     f = [("area", rect(x, z, w, d))]
+    if axis == 1:
+        f.append(("axis", "1"))
     if start != 0.0:
         f.append(("start_height", num(start)))
     if end != 0.0:
         f.append(("end_height", num(end)))
+    if fitted:
+        f.append(("fitted", "true"))
+        fitted_ramps.append(len(ramp_geo) - 1)
     ramps.append(sub("Ramp_" + rid, "2_ramp", f))
 
-def box(bid, x0, x1, z0, z1, bottom, top):
+def holed(pid, name, x0, x1, z0, z1, h, holes, fitted=False):
+    """The deck x0…x1 by z0…z1 at h less holes [(x0, x1, z0, z1)], as the steamer's
+    generator lays one (#148): in bands along z between the holes' sides, each band round
+    the holes in it. Its largest piece stands where the deck stood in the platforms'
+    order, in for the whole deck it was before its holes — its stairs come down onto it —,
+    the rest after all her decks (pieces_after()), so no other platform's index moves.
+    Returns the largest piece's index."""
+    pieces = []
+    zs = sorted({z0, z1} | {v for o in holes for v in o[2:] if z0 < v < z1})
+    for c, d in zip(zs, zs[1:]):
+        across_band = sorted(o for o in holes if o[2] <= c and d <= o[3])
+        edges = [x0] + [v for o in across_band for v in o[:2]] + [x1]
+        for e, f in zip(edges[::2], edges[1::2]):
+            if f - e > 1e-6:
+                pieces.append((e, f, c, d))
+    pieces.sort(key=lambda p: -(p[1] - p[0]) * (p[3] - p[2]))
+    first = platform(pid, name, *pieces[0], h, fitted)
+    for k, piece in enumerate(pieces[1:]):
+        later.append(("%s_%d" % (pid, k + 1), name, piece, h, fitted))
+    return first
+
+later = []
+
+def pieces_after():
+    for pid, name, piece, h, fitted in later:
+        platform(pid, name, *piece, h, fitted)
+
+def box(bid, x0, x1, z0, z1, bottom, top, fitted=False):
     block_geo.append((x0, x1, z0, z1, bottom, top, True))
     f = [("area", rect_xz(x0, x1, z0, z1))]
     if bottom != 0.0:
         f.append(("bottom", num(bottom)))
     f.append(("top", num(top)))
+    if fitted:
+        f.append(("fitted", "true"))
+        fitted_geo.append((x0, x1, z0, z1, [bottom, top]))
     blockers.append(sub("Blocker_" + bid, "3_block", f))
 
 def cylinder(bid, cx, cz, r, bottom, top):
@@ -93,6 +141,26 @@ def cylinder(bid, cx, cz, r, bottom, top):
 # RAIL_SECTION is laid as touching spans of about that length.
 RAIL_SECTION = 3.5
 
+def edge_holds(plat, a, b):
+    """Whether the segment a…b (x, z) lies along an edge of platform plat, as
+    ShipPlatform.edge_holds has it."""
+    x0, x1, z0, z1, _h = plat_geo[plat]
+    near = lambda u, v: abs(u - v) < 1e-5
+    inside = all(x0 - 0.001 <= p[0] <= x1 + 0.001 and z0 - 0.001 <= p[1] <= z1 + 0.001 for p in (a, b))
+    return inside and (any(near(a[0], x) and near(b[0], x) for x in (x0, x1))
+                       or any(near(a[1], z) and near(b[1], z) for z in (z0, z1)))
+
+def holding(a, b, plat):
+    """The platform a railing or a ladder from a to b stands on: plat, else the piece of
+    the deck plat is in whose edge holds it — a deck laid round holes is in pieces."""
+    if edge_holds(plat, a, b):
+        return plat
+    height = plat_geo[plat][4]
+    for other in range(len(plat_geo)):
+        if plat_geo[other][4] == height and edge_holds(other, a, b):
+            return other
+    raise AssertionError("no edge of the deck at %s holds %s…%s" % (height, a, b))
+
 def railing(rid, plat, a, b):
     length = abs(b[0] - a[0]) + abs(b[1] - a[1])  # every railing runs along x or z
     count = -(-length // RAIL_SECTION)
@@ -104,14 +172,16 @@ def railing(rid, plat, a, b):
     ends.append(b)
     for k in range(len(ends) - 1):
         f = []
-        if plat != 0:
-            f.append(("platform", str(plat)))
+        on = holding(ends[k], ends[k + 1], plat)
+        if on != 0:
+            f.append(("platform", str(on)))
         f.append(("from", "Vector2(%s, %s)" % (num(ends[k][0]), num(ends[k][1]))))
         f.append(("to", "Vector2(%s, %s)" % (num(ends[k + 1][0]), num(ends[k + 1][1]))))
         railings.append(sub("Railing_" + rid + ("_%d" % k if len(ends) > 2 else ""), "4_rail", f))
 
 def ladder(lid, plat, a, b):
     f = []
+    plat = holding(a, b, plat)
     if plat != 0:
         f.append(("platform", str(plat)))
     f.append(("from", "Vector2(%s, %s)" % (num(a[0]), num(a[1]))))
@@ -126,23 +196,25 @@ def crate(cid, x, y, z):
     f += [(k, num(v)) for k, v in CRATE]
     props.append(sub("Prop_" + cid, "8_prop", f))
 
-def room(rid, name, x0, x1, z0, z1, floor):
+def room(rid, name, x0, x1, z0, z1, floor, crawl_space=False):
     room_geo.append((x0, x1, z0, z1, floor, name))
     f = [("name", '&"%s"' % name), ("area", rect_xz(x0, x1, z0, z1))]
     if floor != 0.0:
         f.append(("floor_height", num(floor)))
+    if crawl_space:
+        f.append(("crawl_space", "true"))
     rooms.append(sub("Room_" + rid, "6_room", f))
 
 T = 0.1  # half a wall's thickness: walls are 0.2 m, centred on a room's side
 DOOR = 1.1
 LINTEL = 2.1  # a door's height above its floor
 
-def wall_x(bid, x, z0, z1, bottom, top):
+def wall_x(bid, x, z0, z1, bottom, top, fitted=False):
     """A wall along x = const from z0 to z1 (centre line), ends overlapping corners."""
-    box(bid, x - T, x + T, z0 - T, z1 + T, bottom, top)
+    box(bid, x - T, x + T, z0 - T, z1 + T, bottom, top, fitted)
 
-def wall_z(bid, z, x0, x1, bottom, top):
-    box(bid, x0 - T, x1 + T, z - T, z + T, bottom, top)
+def wall_z(bid, z, x0, x1, bottom, top, fitted=False):
+    box(bid, x0 - T, x1 + T, z - T, z + T, bottom, top, fitted)
 
 def wall_x_doors(bid, x, z0, z1, doors, bottom, top, sill=0.0):
     """Wall pieces along x = const with door gaps [(a, b)] in z; a lintel over each
@@ -185,8 +257,20 @@ HOLD_LINING = 2.4
 # deck stands that deep before it runs in.
 SILL = 0.3
 
+# The fish hold's wing passages (#148): as far forward as her shell leaves a body room
+# beside the hold at their floor, each down from the working deck by two stairs through
+# hatches in it, their tops aft (x0), clear of the boarding ladders' feet and the
+# fo'c'sle's stairs. WING_SHELL is the outer face of the lining on her frames, FIT inside
+# her shell at the passages' floor.
+WING = (-3, 5.5)
+WING_FLOOR = -1.875
+WING_SHELL = 3.33
+WING_STAIRS = [(a, a + 2.3) for a in (-2.1, 2.3)]
+WING_HATCHES = [(a, b, *sorted((sign * HOLD_LINING, sign * (WING_SHELL - T))))
+                for sign in (-1, 1) for a, b in WING_STAIRS]
+
 # --- Platforms. The working deck first: the main deck the lints walk from (D6).
-WORK = platform("working_deck", "working deck", -3, 7, -BEAM, BEAM)
+WORK = holed("working_deck", "working deck", -3, 7, -BEAM, BEAM, 0.0, WING_HATCHES)
 AFT = platform("aft_deck", "aft deck", -14.4, -10, -3.3, 3.3)
 # The galley's floor, round the two stairs down to the engine room, port and starboard.
 ENGINE_STAIRS = [(-7.0, -4.3, -2.7, -1.6), (-7.0, -4.3, 1.6, 2.7)]
@@ -195,7 +279,10 @@ GF = platform("galley_forward", "main deck", -4.3, -3, -3.55, 3.55)
 GP = platform("galley_port", "main deck", -7.0, -4.3, -3.55, -2.7)
 GMID = platform("galley_middle", "main deck", -7.0, -4.3, -1.6, 1.6)
 GS = platform("galley_starboard", "main deck", -7.0, -4.3, 2.7, 3.55)
-MESS = platform("crew_mess", "main deck", 7, 11, -2.9, 2.9)
+# The crew mess's floor round the hatch down to the fore stores under it (#148): two
+# stairs side by side across her in it, each down to its starboard (z1) end.
+FORE_HATCH = (7.95, 10.05, -2.0, 0.65)
+MESS = holed("crew_mess", "main deck", 7, 11, -2.9, 2.9, 0.0, [FORE_HATCH])
 F1 = platform("forecastle", "forecastle", 7, 11, -2.9, 2.9, UPPER)
 F2 = platform("forecastle_head", "forecastle", 11, 12.5, -2.1, 2.1, UPPER)
 # The deckhouse's roof, round the wheelhouse's stair: its floor is the roof. ROOF_AFT
@@ -206,14 +293,23 @@ RA = platform("roof_aft", "deckhouse roof", ROOF_AFT, -7.0, -3.65, 3.65, UPPER)
 RF = platform("roof_forward", "deckhouse roof", -4.2, -2.9, -3.65, 3.65, UPPER)
 RP = platform("roof_port", "deckhouse roof", -7.0, -4.2, -3.65, -0.55, UPPER)
 RS = platform("roof_starboard", "deckhouse roof", -7.0, -4.2, 0.55, 3.65, UPPER)
-ENGINE_FLOOR = platform("engine_floor", "lower deck", -10.5, -3, -LINING, LINING, LOWER)
-HOLD_FLOOR = platform("hold_floor", "lower deck", -3, 7, -HOLD_LINING, HOLD_LINING, LOWER)
+# The lower deck round the manholes down to the double bottoms under it (#148), each over a
+# stair down away from its head: the fish hold's down to their forward (x1) ends, the
+# engine room's side by side down aft to theirs, their heads forward, off the engine. Each
+# clear of every stair's foot, of the way from the fish hold's door to the foot of either
+# stair up to the galley, and of the lamps over her centreline.
+ENGINE_MANHOLES = [(-7.4, -5.8, -1.0, -0.1), (-7.4, -5.8, 0.1, 1.0)]
+HOLD_MANHOLES = [(-1.7, -0.1, -1.3, -0.3), (3.5, 5.1, 0.3, 1.3)]
+ENGINE_FLOOR = holed("engine_floor", "lower deck", -10.5, -3, -LINING, LINING, LOWER, ENGINE_MANHOLES)
+HOLD_FLOOR = holed("hold_floor", "lower deck", -3, 7, -HOLD_LINING, HOLD_LINING, LOWER, HOLD_MANHOLES)
+pieces_after()
 
 # --- Ramps: two up each perch (Q6) — the fo'c'sle from the working deck, the
 # deckhouse's roof from the aft deck —, two down from the galley to the engine room,
-# and the wheelhouse's own stair up from the galley. Each rises 39°, 1.1 m wide.
-ramp("forecastle_port", 4.2, -2.9, 2.8, 1.1, 0, UPPER)
-ramp("forecastle_starboard", 4.2, 1.8, 2.8, 1.1, 0, UPPER)
+# and the wheelhouse's own stair up from the galley. Each rises 39°, 1.1 m wide; the
+# fo'c'sle's stand inboard of the hatches down to the fish hold's wing passages.
+ramp("forecastle_port", 4.2, -HOLD_LINING, 2.8, 1.1, 0, UPPER)
+ramp("forecastle_starboard", 4.2, HOLD_LINING - 1.1, 2.8, 1.1, 0, UPPER)
 ramp("roof_port", -12.9, -3.0, 2.8, 1.1, 0, UPPER)
 ramp("roof_starboard", -12.9, 1.9, 2.8, 1.1, 0, UPPER)
 for tag, (x0, x1, z0, z1) in zip(["port", "starboard"], ENGINE_STAIRS):
@@ -223,11 +319,16 @@ ramp("wheelhouse_stair", WHEEL_STAIR[0], WHEEL_STAIR[2], WHEEL_STAIR[1] - WHEEL_
 
 # --- Blockers. Below the deck: the lower deck's sides and ends, the after watertight
 # wall with its door, the forward one, and the engine between two lanes.
-wall_x("engine_aft", -10.5, -LINING, LINING, LOWER, 0)
+# The engine room's after wall, a door in it to the steering gear abaft it (#148),
+# starboard of the engine.
+STEERING_DOOR = (0.9, 0.9 + DOOR)
+wall_x_doors("engine_aft", -10.5, -LINING, LINING, [STEERING_DOOR], LOWER, 0)
 wall_z("engine_port", -LINING, -10.5, -3, LOWER, 0)
 wall_z("engine_starboard", LINING, -10.5, -3, LOWER, 0)
-wall_z("hold_port", -HOLD_LINING, -3, 7, LOWER, 0)
-wall_z("hold_starboard", HOLD_LINING, -3, 7, LOWER, 0)
+# The fish hold's insulated sides stand inboard of her linings, their outer faces on
+# them, so the wing passages behind them (#148) are a body wide.
+box("hold_port", -3 - T, 7 + T, -HOLD_LINING, -HOLD_LINING + 2 * T, LOWER, 0)
+box("hold_starboard", -3 - T, 7 + T, HOLD_LINING - 2 * T, HOLD_LINING, LOWER, 0)
 wall_x_doors("bulkhead_aft", -3, -LINING, LINING, [(-DOOR / 2, DOOR / 2)], LOWER, 0)
 wall_x("bulkhead_fwd", 7, -HOLD_LINING, HOLD_LINING, LOWER, 0)
 box("engine", -10.0, -7.8, -0.9, 0.9, LOWER, LOWER + 1.5)
@@ -296,20 +397,114 @@ railing("wheelhouse_stair_fwd", RF, (WHEEL_STAIR[1], WHEEL_STAIR[2]), (WHEEL_STA
 ladder("port", WORK, (1.0, -BEAM), (2.0, -BEAM))
 ladder("starboard", WORK, (1.0, BEAM), (2.0, BEAM))
 
-# --- Two fish boxes on the working deck, against her bulwarks.
-crate("deck_port", -1.6, 0, -3.0)
-crate("deck_starboard", 0.2, 0, 3.0)
+# --- Two fish boxes on the working deck, beside the fish hold's hatch: by her bulwarks
+# are the hatches down to its wing passages and the ladders' landings.
+crate("deck_port", -1.6, 0, -1.65)
+crate("deck_starboard", 0.2, 0, 1.65)
 
 # --- Rooms, to the middle of their walls.
 room("engine_room", "engine room", -10.5, -3, -LINING, LINING, LOWER)
-room("fish_hold", "fish hold", -3, 7, -HOLD_LINING, HOLD_LINING, LOWER)
+room("fish_hold", "fish hold", -3, 7, -HOLD_LINING + T, HOLD_LINING - T, LOWER)
 room("galley", "galley", -10, -3, -3.55, 3.55, 0)
 room("wheelhouse", "wheelhouse", -8, -4, -1.8, 1.8, UPPER)
 room("crew_mess", "crew mess", 7, 11, -2.9, 2.9, 0)
 
+# --- Her old voids made places (#148): every cell of hers a place a body can stand or
+# crawl in, each space fitted inside her lines (fits() below holds them to it), lit, and
+# with two ways up. Floors go as low as her shell's width lets a body stand or crawl, at
+# heights single precision holds exactly (a position's float rounds a height like -3.3
+# under it, and the floor is missed there).
+# Under the lower deck, the double bottoms over her plating, a crawl space each (est.:
+# where the turn of her bilge leaves a body room): the engine room's, its fuel tanks',
+# the length of the steering gear and the engine room, the fish hold's under it.
+DOUBLE_BOTTOM = -3.5
+ENGINE_DB = (-12, -3, 1.35)
+HOLD_DB = (-3, 7, 1.45)
+for tag, (x0, x1, half), holes, (aft, forward) in [
+        ("engine_room", ENGINE_DB, ENGINE_MANHOLES, (DOUBLE_BOTTOM, LOWER)),
+        ("fish_hold", HOLD_DB, HOLD_MANHOLES, (LOWER, DOUBLE_BOTTOM))]:
+    platform(tag + "_double_bottom", "double bottom", x0, x1, -half, half, DOUBLE_BOTTOM, True)
+    for side, sign in [("port", -1), ("starboard", 1)]:
+        wall_z("%s_double_bottom_%s" % (tag, side), sign * half, x0 + T, x1 - T, DOUBLE_BOTTOM, LOWER, True)
+    for k, (h0, h1, z0, z1) in enumerate(holes):
+        ramp("%s_manhole_%d" % (tag, k + 1), h0, z0, h1 - h0, z1 - z0, aft, forward, fitted=True)
+wall_x("engine_room_double_bottom_aft", ENGINE_DB[0], -ENGINE_DB[2], ENGINE_DB[2], DOUBLE_BOTTOM, LOWER, True)
+wall_x("double_bottom_bulkhead", -3, -HOLD_DB[2], HOLD_DB[2], DOUBLE_BOTTOM, LOWER, True)
+wall_x("fish_hold_double_bottom_forward", HOLD_DB[1], -HOLD_DB[2], HOLD_DB[2], DOUBLE_BOTTOM, LOWER, True)
+# Abaft the engine room under the aft deck, her steering gear on the engine room's plates
+# carried aft, through the door in its after wall: the steering engine against its after
+# wall on her centreline, too tall to climb (est.), the quadrant on her rudder's head
+# over it.
+STEERING = (-13.9, -10.5, 2.1)
+platform("steering_gear", "lower deck", STEERING[0], STEERING[1], -STEERING[2], STEERING[2], LOWER, True)
+wall_x("steering_gear_aft", STEERING[0], -STEERING[2], STEERING[2], LOWER, 0, True)
+for side, sign in [("port", -1), ("starboard", 1)]:
+    wall_z("steering_gear_" + side, sign * STEERING[2], STEERING[0], STEERING[1], LOWER, 0, True)
+box("steering_engine", STEERING[0] + T, STEERING[0] + 0.9, -0.6, 0.6, LOWER, LOWER + 1.25, True)
+
+# Her fore stores under the crew mess, on the lower deck's height, standing room under
+# the mess's floor; as wide as her bow lets it be at its forward wall.
+FORE_STORES = (7, 10.2, 1.55)
+platform("fore_stores", "fore stores", FORE_STORES[0] + T, FORE_STORES[1], -FORE_STORES[2], FORE_STORES[2], LOWER,
+         True)
+wall_x("fore_stores_forward", FORE_STORES[1], -FORE_STORES[2], FORE_STORES[2], LOWER, 0, True)
+wall_z("fore_stores_starboard", FORE_STORES[2], FORE_STORES[0] + T, FORE_STORES[1], LOWER, 0, True)
+# To port its stairs cross over its side, which stands only to their underside there.
+x0, x1, z0, z1 = FORE_HATCH
+side = -FORE_STORES[2]
+under = LOWER * (side - T - z0) / (z1 - z0) - 0.1
+for tag, a, b, top in [("aft", FORE_STORES[0], x0, 0), ("stairs", x0 - T, x1 + T, under),
+                       ("forward", x1, FORE_STORES[1] + T, 0)]:
+    box("fore_stores_port_" + tag, a, b, side - T, side + T, LOWER, top, True)
+for k, (a, b) in enumerate([(x0, (x0 + x1) * 0.5), ((x0 + x1) * 0.5, x1)]):
+    ramp("fore_stores_%d" % (k + 1), a, z0, b - a, z1 - z0, 0, LOWER, axis=1, fitted=True)
+
+# The fish hold's wing passages along her shell under the working deck (#148), the
+# hold's side inboard and a lining on her frames outboard (est. 10 cm); their hatches
+# and stairs are laid with the working deck.
+for side, sign in [("port", -1), ("starboard", 1)]:
+    inner, shell = sign * (HOLD_LINING - T), sign * (WING_SHELL - T * 0.5)
+    platform("wing_" + side, "side passage", WING[0], WING[1], *sorted((inner, shell)), WING_FLOOR, True)
+    box("wing_%s_shell" % side, WING[0], WING[1] + T, *sorted((sign * (WING_SHELL - T), sign * WING_SHELL)),
+        WING_FLOOR, 0.0, True)
+    clear = sorted((sign * HOLD_LINING, sign * (WING_SHELL - T)))
+    for end, x in [("aft", WING[0]), ("forward", WING[1])]:
+        box("wing_%s_%s" % (side, end), x - T, x + T, *clear, WING_FLOOR, 0.0, True)
+    for k, (a, b) in enumerate(WING_STAIRS):
+        ramp("wing_%s_%d" % (side, k + 1), a, clear[0], b - a, clear[1] - clear[0], 0.0, WING_FLOOR, fitted=True)
+
+# Three sides of every hatch railed, as the stair openings are: the fourth, its stair's
+# head, open. The wing passages' hatches leave their outboard sides open too: between them
+# and her bulwark no body stands.
+def hatch_rails(rid, plat, hole, *open_sides):
+    x0, x1, z0, z1 = hole
+    sides = {"x0": ((x0, z0), (x0, z1)), "x1": ((x1, z0), (x1, z1)),
+             "z0": ((x0, z0), (x1, z0)), "z1": ((x0, z1), (x1, z1))}
+    for tag, (a, b) in sides.items():
+        if tag not in open_sides:
+            railing("%s_%s" % (rid, tag), plat, a, b)
+
+for k, hole in enumerate(ENGINE_MANHOLES):
+    hatch_rails("engine_manhole_%d" % (k + 1), ENGINE_FLOOR, hole, "x1")
+for k, hole in enumerate(HOLD_MANHOLES):
+    hatch_rails("hold_manhole_%d" % (k + 1), HOLD_FLOOR, hole, "x0")
+for k, hole in enumerate(WING_HATCHES):
+    hatch_rails("wing_hatch_%d" % (k + 1), WORK, hole, "x0", "z0" if hole[2] < 0 else "z1")
+hatch_rails("fore_stores_hatch", MESS, FORE_HATCH, "z0")
+
+room("engine_room_double_bottom", "engine room double bottom", ENGINE_DB[0], ENGINE_DB[1], -ENGINE_DB[2],
+     ENGINE_DB[2], DOUBLE_BOTTOM, crawl_space=True)
+room("fish_hold_double_bottom", "fish hold double bottom", HOLD_DB[0], HOLD_DB[1], -HOLD_DB[2], HOLD_DB[2],
+     DOUBLE_BOTTOM, crawl_space=True)
+room("steering_gear", "steering gear", STEERING[0], STEERING[1], -STEERING[2], STEERING[2], LOWER)
+for side, sign in [("port", -1), ("starboard", 1)]:
+    room("side_passage_" + side, "%s side passage" % side, WING[0], WING[1],
+         *sorted((sign * HOLD_LINING, sign * (WING_SHELL - T * 0.5))), WING_FLOOR)
+room("fore_stores", "fore stores", FORE_STORES[0], FORE_STORES[1], -FORE_STORES[2], FORE_STORES[2], LOWER)
+
 # Eight seats: six on the working deck, one on the fo'c'sle, one on the aft deck.
 spawns = [
-    (-2.0, 0, -1.5), (-2.0, 0, 1.5), (0.0, 0, 0.0), (2.0, 0, -2.4), (2.0, 0, 2.4), (5.0, 0, 0.0),
+    (-2.0, 0, -1.5), (-2.0, 0, 1.5), (0.0, 0, 0.0), (2.0, 0, -1.8), (2.0, 0, 1.8), (5.0, 0, 0.0),
     (9.0, UPPER, -1.0), (-11.5, 0, 0.0),
 ]
 # The seats a match on her takes (est.): the steamer's 1–8 — SH21's bounds start here.
@@ -470,13 +665,58 @@ for a, b in zip(SECTION_BREAKS, SECTION_BREAKS[1:]):
         sections.append((x, round(length, 4), section_outline(x)))
 
 # Every deck in her hull stands inside it, at its corners: one under her deck clear of
-# her shell, the walls along its edges with it; one on her deck no wider than her.
+# her shell, the walls along its edges with it; one on her deck no wider than her. A
+# floor fitted into her old voids is held to her lines by FIT instead (fits() below).
 CLEARANCE = 0.05
-for x0, x1, z0, z1, h in plat_geo:
+for x0, x1, z0, z1, h in (p for p in plat_geo if (*p[:4], [p[4]]) not in fitted_geo):
     for x in (x0 + 0.01, x1 - 0.01):
         if h <= sheer(x):
             room_for = max(-z0, z1) + (CLEARANCE + T if h < 0 else 0.0)
             assert breadth(x, h) >= room_for - 1e-9, ("platform outside her", x, h)
+
+def f32(v):
+    return struct.unpack("f", struct.pack("f", v))[0]
+
+def joins():
+    """Every stair's two ends meet a deck at its height, as Surfaces.joins finds them:
+    each end's edge, its corners and its middle, inside a platform's Rect2 in single
+    precision, where a rectangle's far side is its corner plus its size."""
+    def end_of(a, b):
+        return f32(f32(a) + f32(b - a))
+    for x0, x1, z0, z1, axis, start, end in ramp_geo:
+        for which, height in [(0, start), (1, end)]:
+            if axis == 0:
+                x = f32(x0) if which == 0 else end_of(x0, x1)
+                points = [(x, f32(z0)), (x, end_of(z0, z1))]
+            else:
+                z = f32(z0) if which == 0 else end_of(z0, z1)
+                points = [(f32(x0), z), (end_of(x0, x1), z)]
+            points.append(tuple(f32((a + b) * 0.5) for a, b in zip(*points)))
+            holds = lambda p, q: (f32(p[0]) <= q[0] <= end_of(p[0], p[1])
+                                  and f32(p[2]) <= q[1] <= end_of(p[2], p[3]))
+            for q in points:
+                assert any(abs(f32(h) - f32(height)) < 1e-6 and holds(p, q) for *p, h in plat_geo), \
+                    "stair %s's end %d at %s meets no deck" % ((x0, x1, z0, z1), which, q)
+
+joins()
+
+# Every piece fitted into her old voids (#148) stands inside her lines, FIT clear of her
+# shell, at every height it stands at under her deck.
+FIT = 0.02
+for x0, x1, z0, z1, heights in fitted_geo:
+    for y in heights:
+        for k in range(21):
+            x = lerp(x0, x1, k / 20)
+            if y < 0.0:
+                assert breadth(x, y) >= max(-z0, z1) + FIT, ("fitted piece through her shell", (x0, x1, z0, z1), x, y)
+for index in fitted_ramps:
+    x0, x1, z0, z1, axis, start, end = ramp_geo[index]
+    for k in range(21):
+        y = lerp(start, end, k / 20)
+        xs = [lerp(x0, x1, k / 20)] if axis == 0 else [x0, x1]
+        reach = max(-z0, z1) if axis == 0 else abs(lerp(z0, z1, k / 20))
+        for x in xs:
+            assert y >= 0.0 or breadth(x, y) >= reach + FIT, ("fitted stair through her shell", ramp_geo[index], x, y)
 
 def clip(polygon, axis, value, keep_below):
     """Sutherland–Hodgman: the part of polygon (z, y) on one side of the line where
@@ -523,9 +763,10 @@ def hull_in(x0, x1, y0, y1, z0, z1):
 # Cells (§5b.2): (name, x0, x1, y0, y1, z0, z1, kind, permeability or None for its
 # kind's). Three compartments from her keel to her deck — the fo'c'sle's reaching up to
 # its deck, its crew mess at the main deck's height over the stores below it —, the
-# engine room and the fish hold each between two wing spaces outboard of their linings,
-# nobody's (the plan's lengthwise wall in a wide cell, R23: a gash biting less deep than
-# a wing is wide floods that side alone, and she lists); the deckhouse and the
+# engine room and the fish hold each between two wing spaces outboard of their linings
+# (the plan's lengthwise wall in a wide cell, R23: a gash biting less deep than a wing is
+# wide floods that side alone, and she lists) — the fish hold's side passages, the engine
+# room's nobody's, too narrow for a body where gashes run (#148); the deckhouse and the
 # wheelhouse on her deck; and the working deck between its bulwarks, an open well: it
 # holds water once the sea comes over its edge or in at its freeing ports, and lets it
 # out at them (the Gaul's deck).
@@ -540,8 +781,9 @@ CELLS = [
     ("deckhouse", -10 - T, -3, 0, UPPER, -3.55 - T, 3.55 + T, "ACCOMMODATION", None),
     ("wheelhouse", -8 - T, -4 + T, UPPER, WHEEL_TOP, -1.8 - T, 1.8 + T, "ACCOMMODATION", None),
     ("working_deck", -3, 7, 0, BULWARK, -BEAM, BEAM, "OPEN_WELL", None),
-    # Under the lower deck's plates, a bilge the length of each compartment, nobody's (as
-    # the steamer's, §5b.2); under the crew mess's floor, her stores.
+    # Under the lower deck's plates, a bilge the length of each compartment (as the
+    # steamer's, §5b.2), its double bottom a crawl space (#148); under the crew mess's
+    # floor, her stores.
     ("engine_bilge", X_AFT, -3, KEEL, LOWER, -LINING, LINING, "VOID", None),
     ("hold_bilge", -3, 7, KEEL, LOWER, -HOLD_LINING, HOLD_LINING, "VOID", None),
     ("fore_stores", 7, X_FORE, KEEL, 0, -BEAM, BEAM, "ACCOMMODATION", None),
@@ -659,6 +901,24 @@ x0, x1, z0, z1 = FISH_HATCH
 opening("fish_hatch", "HATCH", "fish_hold", "working_deck", ((x0 + x1) * 0.5, 0, (z0 + z1) * 0.5),
         (x1 - x0, 0, z1 - z0), starts="SHUT", flip_chance=0.3, leak_head=1.0, collapse_head=3.0,
         leak_area=0.01)
+# The ways into her old voids (#148), chosen to move her flooding as little as they can,
+# as the steamer's: each a scuttle in the deck over its space, battened and dogged
+# watertight, a body going down it opening it as a doorway's door is opened — shut to the
+# water, it never weeps nor gives way, so the space under it floods as it did before it
+# was a place. No doorway pierces a wall along her.
+def hatch(name, under, over, hole, deck):
+    x0, x1, z0, z1 = hole
+    opening(name, "HATCH", under, over, ((x0 + x1) * 0.5, deck, (z0 + z1) * 0.5), (x1 - x0, 0, z1 - z0),
+            starts="SHUT")
+
+for k, hole in enumerate(ENGINE_MANHOLES):
+    hatch("manhole_engine_bilge_%d" % (k + 1), "engine_bilge", "engine_room", hole, LOWER)
+for k, hole in enumerate(HOLD_MANHOLES):
+    hatch("manhole_hold_bilge_%d" % (k + 1), "hold_bilge", "fish_hold", hole, LOWER)
+hatch("hatch_fore_stores", "fore_stores", "fore", FORE_HATCH, 0.0)
+for k, hole in enumerate(WING_HATCHES):
+    wing = "hold_wing_p" if hole[2] < 0 else "hold_wing_s"
+    hatch("hatch_%s_%d" % (wing, k % 2 + 1), wing, "working_deck", hole, 0.0)
 # The engine room's skylight, under its casing on the aft deck: always open (0.5 m²).
 x0, x1, z0, z1 = SKYLIGHT
 opening("skylight", "VENT", "engine_room", SKY, ((x0 + x1) * 0.5, 0, (z0 + z1) * 0.5),

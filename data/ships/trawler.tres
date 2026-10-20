@@ -21,7 +21,7 @@
 [sub_resource type="Resource" id="Platform_working_deck"]
 script = ExtResource("1_plat")
 name = &"working deck"
-area = Rect2(-3, -3.75, 10, 7.5)
+area = Rect2(-3, -2.4, 10, 4.8)
 
 [sub_resource type="Resource" id="Platform_aft_deck"]
 script = ExtResource("1_plat")
@@ -56,7 +56,7 @@ area = Rect2(-7, 2.7, 2.7, 0.85)
 [sub_resource type="Resource" id="Platform_crew_mess"]
 script = ExtResource("1_plat")
 name = &"main deck"
-area = Rect2(7, -2.9, 4, 5.8)
+area = Rect2(7, 0.65, 4, 2.25)
 
 [sub_resource type="Resource" id="Platform_forecastle"]
 script = ExtResource("1_plat")
@@ -97,23 +97,150 @@ height = 2.3
 [sub_resource type="Resource" id="Platform_engine_floor"]
 script = ExtResource("1_plat")
 name = &"lower deck"
-area = Rect2(-10.5, -2.8, 7.5, 5.6)
+area = Rect2(-10.5, -2.8, 7.5, 1.8)
 height = -2.2
 
 [sub_resource type="Resource" id="Platform_hold_floor"]
 script = ExtResource("1_plat")
 name = &"lower deck"
-area = Rect2(-3, -2.4, 10, 4.8)
+area = Rect2(-3, -2.4, 10, 1.1)
+height = -2.2
+
+[sub_resource type="Resource" id="Platform_working_deck_1"]
+script = ExtResource("1_plat")
+name = &"working deck"
+area = Rect2(-3, -3.75, 10, 0.52)
+
+[sub_resource type="Resource" id="Platform_working_deck_2"]
+script = ExtResource("1_plat")
+name = &"working deck"
+area = Rect2(-3, 3.23, 10, 0.52)
+
+[sub_resource type="Resource" id="Platform_working_deck_3"]
+script = ExtResource("1_plat")
+name = &"working deck"
+area = Rect2(4.6, -3.23, 2.4, 0.83)
+
+[sub_resource type="Resource" id="Platform_working_deck_4"]
+script = ExtResource("1_plat")
+name = &"working deck"
+area = Rect2(4.6, 2.4, 2.4, 0.83)
+
+[sub_resource type="Resource" id="Platform_working_deck_5"]
+script = ExtResource("1_plat")
+name = &"working deck"
+area = Rect2(0.2, -3.23, 2.1, 0.83)
+
+[sub_resource type="Resource" id="Platform_working_deck_6"]
+script = ExtResource("1_plat")
+name = &"working deck"
+area = Rect2(0.2, 2.4, 2.1, 0.83)
+
+[sub_resource type="Resource" id="Platform_working_deck_7"]
+script = ExtResource("1_plat")
+name = &"working deck"
+area = Rect2(-3, -3.23, 0.9, 0.83)
+
+[sub_resource type="Resource" id="Platform_working_deck_8"]
+script = ExtResource("1_plat")
+name = &"working deck"
+area = Rect2(-3, 2.4, 0.9, 0.83)
+
+[sub_resource type="Resource" id="Platform_crew_mess_1"]
+script = ExtResource("1_plat")
+name = &"main deck"
+area = Rect2(7, -2.9, 4, 0.9)
+
+[sub_resource type="Resource" id="Platform_crew_mess_2"]
+script = ExtResource("1_plat")
+name = &"main deck"
+area = Rect2(7, -2, 0.95, 2.65)
+
+[sub_resource type="Resource" id="Platform_crew_mess_3"]
+script = ExtResource("1_plat")
+name = &"main deck"
+area = Rect2(10.05, -2, 0.95, 2.65)
+
+[sub_resource type="Resource" id="Platform_engine_floor_1"]
+script = ExtResource("1_plat")
+name = &"lower deck"
+area = Rect2(-10.5, 1, 7.5, 1.8)
+height = -2.2
+
+[sub_resource type="Resource" id="Platform_engine_floor_2"]
+script = ExtResource("1_plat")
+name = &"lower deck"
+area = Rect2(-10.5, -1, 3.1, 0.9)
+height = -2.2
+
+[sub_resource type="Resource" id="Platform_engine_floor_3"]
+script = ExtResource("1_plat")
+name = &"lower deck"
+area = Rect2(-10.5, 0.1, 3.1, 0.9)
+height = -2.2
+
+[sub_resource type="Resource" id="Platform_engine_floor_4"]
+script = ExtResource("1_plat")
+name = &"lower deck"
+area = Rect2(-5.8, -1, 2.8, 0.9)
+height = -2.2
+
+[sub_resource type="Resource" id="Platform_engine_floor_5"]
+script = ExtResource("1_plat")
+name = &"lower deck"
+area = Rect2(-5.8, 0.1, 2.8, 0.9)
+height = -2.2
+
+[sub_resource type="Resource" id="Platform_engine_floor_6"]
+script = ExtResource("1_plat")
+name = &"lower deck"
+area = Rect2(-10.5, -0.1, 7.5, 0.2)
+height = -2.2
+
+[sub_resource type="Resource" id="Platform_hold_floor_1"]
+script = ExtResource("1_plat")
+name = &"lower deck"
+area = Rect2(-3, 1.3, 10, 1.1)
+height = -2.2
+
+[sub_resource type="Resource" id="Platform_hold_floor_2"]
+script = ExtResource("1_plat")
+name = &"lower deck"
+area = Rect2(-0.1, -1.3, 7.1, 1)
+height = -2.2
+
+[sub_resource type="Resource" id="Platform_hold_floor_3"]
+script = ExtResource("1_plat")
+name = &"lower deck"
+area = Rect2(-3, 0.3, 6.5, 1)
+height = -2.2
+
+[sub_resource type="Resource" id="Platform_hold_floor_4"]
+script = ExtResource("1_plat")
+name = &"lower deck"
+area = Rect2(-3, -0.3, 10, 0.6)
+height = -2.2
+
+[sub_resource type="Resource" id="Platform_hold_floor_5"]
+script = ExtResource("1_plat")
+name = &"lower deck"
+area = Rect2(5.1, 0.3, 1.9, 1)
+height = -2.2
+
+[sub_resource type="Resource" id="Platform_hold_floor_6"]
+script = ExtResource("1_plat")
+name = &"lower deck"
+area = Rect2(-3, -1.3, 1.3, 1)
 height = -2.2
 
 [sub_resource type="Resource" id="Ramp_forecastle_port"]
 script = ExtResource("2_ramp")
-area = Rect2(4.2, -2.9, 2.8, 1.1)
+area = Rect2(4.2, -2.4, 2.8, 1.1)
 end_height = 2.3
 
 [sub_resource type="Resource" id="Ramp_forecastle_starboard"]
 script = ExtResource("2_ramp")
-area = Rect2(4.2, 1.8, 2.8, 1.1)
+area = Rect2(4.2, 1.3, 2.8, 1.1)
 end_height = 2.3
 
 [sub_resource type="Resource" id="Ramp_roof_port"]
@@ -141,10 +268,22 @@ script = ExtResource("2_ramp")
 area = Rect2(-7, -0.55, 2.8, 1.1)
 start_height = 2.3
 
-[sub_resource type="Resource" id="Blocker_engine_aft"]
+[sub_resource type="Resource" id="Blocker_engine_aft_0"]
 script = ExtResource("3_block")
-area = Rect2(-10.6, -2.9, 0.2, 5.8)
+area = Rect2(-10.6, -2.9, 0.2, 3.8)
 bottom = -2.2
+top = 0
+
+[sub_resource type="Resource" id="Blocker_engine_aft_1"]
+script = ExtResource("3_block")
+area = Rect2(-10.6, 2, 0.2, 0.9)
+bottom = -2.2
+top = 0
+
+[sub_resource type="Resource" id="Blocker_engine_aft_lintel_0"]
+script = ExtResource("3_block")
+area = Rect2(-10.6, 0.9, 0.2, 1.1)
+bottom = -0.1
 top = 0
 
 [sub_resource type="Resource" id="Blocker_engine_port"]
@@ -161,13 +300,13 @@ top = 0
 
 [sub_resource type="Resource" id="Blocker_hold_port"]
 script = ExtResource("3_block")
-area = Rect2(-3.1, -2.5, 10.2, 0.2)
+area = Rect2(-3.1, -2.4, 10.2, 0.2)
 bottom = -2.2
 top = 0
 
 [sub_resource type="Resource" id="Blocker_hold_starboard"]
 script = ExtResource("3_block")
-area = Rect2(-3.1, 2.3, 10.2, 0.2)
+area = Rect2(-3.1, 2.2, 10.2, 0.2)
 bottom = -2.2
 top = 0
 
@@ -371,31 +510,37 @@ top = 9.5
 
 [sub_resource type="Resource" id="Railing_working_port_0"]
 script = ExtResource("4_rail")
+platform = 16
 from = Vector2(-3, -3.75)
 to = Vector2(0.5, -3.75)
 
 [sub_resource type="Resource" id="Railing_working_port_1"]
 script = ExtResource("4_rail")
+platform = 16
 from = Vector2(0.5, -3.75)
 to = Vector2(4, -3.75)
 
 [sub_resource type="Resource" id="Railing_working_port_2"]
 script = ExtResource("4_rail")
+platform = 16
 from = Vector2(4, -3.75)
 to = Vector2(7, -3.75)
 
 [sub_resource type="Resource" id="Railing_working_starboard_0"]
 script = ExtResource("4_rail")
+platform = 17
 from = Vector2(-3, 3.75)
 to = Vector2(0.5, 3.75)
 
 [sub_resource type="Resource" id="Railing_working_starboard_1"]
 script = ExtResource("4_rail")
+platform = 17
 from = Vector2(0.5, 3.75)
 to = Vector2(4, 3.75)
 
 [sub_resource type="Resource" id="Railing_working_starboard_2"]
 script = ExtResource("4_rail")
+platform = 17
 from = Vector2(4, 3.75)
 to = Vector2(7, 3.75)
 
@@ -629,17 +774,19 @@ to = Vector2(-4.2, 0.55)
 
 [sub_resource type="Resource" id="Ladder_port"]
 script = ExtResource("7_ladder")
+platform = 16
 from = Vector2(1, -3.75)
 to = Vector2(2, -3.75)
 
 [sub_resource type="Resource" id="Ladder_starboard"]
 script = ExtResource("7_ladder")
+platform = 17
 from = Vector2(1, 3.75)
 to = Vector2(2, 3.75)
 
 [sub_resource type="Resource" id="Prop_deck_port"]
 script = ExtResource("8_prop")
-pos = Vector3(-1.6, 0, -3)
+pos = Vector3(-1.6, 0, -1.65)
 radius = 0.45
 height = 0.8
 mass = 200
@@ -648,7 +795,7 @@ friction = 2.5
 
 [sub_resource type="Resource" id="Prop_deck_starboard"]
 script = ExtResource("8_prop")
-pos = Vector3(0.2, 0, 3)
+pos = Vector3(0.2, 0, 1.65)
 radius = 0.45
 height = 0.8
 mass = 200
@@ -664,7 +811,7 @@ floor_height = -2.2
 [sub_resource type="Resource" id="Room_fish_hold"]
 script = ExtResource("6_room")
 name = &"fish hold"
-area = Rect2(-3, -2.4, 10, 4.8)
+area = Rect2(-3, -2.3, 10, 4.6)
 floor_height = -2.2
 
 [sub_resource type="Resource" id="Room_galley"]
@@ -682,6 +829,440 @@ floor_height = 2.3
 script = ExtResource("6_room")
 name = &"crew mess"
 area = Rect2(7, -2.9, 4, 5.8)
+
+[sub_resource type="Resource" id="Platform_engine_room_double_bottom"]
+script = ExtResource("1_plat")
+name = &"double bottom"
+area = Rect2(-12, -1.35, 9, 2.7)
+height = -3.5
+fitted = true
+
+[sub_resource type="Resource" id="Blocker_engine_room_double_bottom_port"]
+script = ExtResource("3_block")
+area = Rect2(-12, -1.45, 9, 0.2)
+bottom = -3.5
+top = -2.2
+fitted = true
+
+[sub_resource type="Resource" id="Blocker_engine_room_double_bottom_starboard"]
+script = ExtResource("3_block")
+area = Rect2(-12, 1.25, 9, 0.2)
+bottom = -3.5
+top = -2.2
+fitted = true
+
+[sub_resource type="Resource" id="Ramp_engine_room_manhole_1"]
+script = ExtResource("2_ramp")
+area = Rect2(-7.4, -1, 1.6, 0.9)
+start_height = -3.5
+end_height = -2.2
+fitted = true
+
+[sub_resource type="Resource" id="Ramp_engine_room_manhole_2"]
+script = ExtResource("2_ramp")
+area = Rect2(-7.4, 0.1, 1.6, 0.9)
+start_height = -3.5
+end_height = -2.2
+fitted = true
+
+[sub_resource type="Resource" id="Platform_fish_hold_double_bottom"]
+script = ExtResource("1_plat")
+name = &"double bottom"
+area = Rect2(-3, -1.45, 10, 2.9)
+height = -3.5
+fitted = true
+
+[sub_resource type="Resource" id="Blocker_fish_hold_double_bottom_port"]
+script = ExtResource("3_block")
+area = Rect2(-3, -1.55, 10, 0.2)
+bottom = -3.5
+top = -2.2
+fitted = true
+
+[sub_resource type="Resource" id="Blocker_fish_hold_double_bottom_starboard"]
+script = ExtResource("3_block")
+area = Rect2(-3, 1.35, 10, 0.2)
+bottom = -3.5
+top = -2.2
+fitted = true
+
+[sub_resource type="Resource" id="Ramp_fish_hold_manhole_1"]
+script = ExtResource("2_ramp")
+area = Rect2(-1.7, -1.3, 1.6, 1)
+start_height = -2.2
+end_height = -3.5
+fitted = true
+
+[sub_resource type="Resource" id="Ramp_fish_hold_manhole_2"]
+script = ExtResource("2_ramp")
+area = Rect2(3.5, 0.3, 1.6, 1)
+start_height = -2.2
+end_height = -3.5
+fitted = true
+
+[sub_resource type="Resource" id="Blocker_engine_room_double_bottom_aft"]
+script = ExtResource("3_block")
+area = Rect2(-12.1, -1.45, 0.2, 2.9)
+bottom = -3.5
+top = -2.2
+fitted = true
+
+[sub_resource type="Resource" id="Blocker_double_bottom_bulkhead"]
+script = ExtResource("3_block")
+area = Rect2(-3.1, -1.55, 0.2, 3.1)
+bottom = -3.5
+top = -2.2
+fitted = true
+
+[sub_resource type="Resource" id="Blocker_fish_hold_double_bottom_forward"]
+script = ExtResource("3_block")
+area = Rect2(6.9, -1.55, 0.2, 3.1)
+bottom = -3.5
+top = -2.2
+fitted = true
+
+[sub_resource type="Resource" id="Platform_steering_gear"]
+script = ExtResource("1_plat")
+name = &"lower deck"
+area = Rect2(-13.9, -2.1, 3.4, 4.2)
+height = -2.2
+fitted = true
+
+[sub_resource type="Resource" id="Blocker_steering_gear_aft"]
+script = ExtResource("3_block")
+area = Rect2(-14, -2.2, 0.2, 4.4)
+bottom = -2.2
+top = 0
+fitted = true
+
+[sub_resource type="Resource" id="Blocker_steering_gear_port"]
+script = ExtResource("3_block")
+area = Rect2(-14, -2.2, 3.6, 0.2)
+bottom = -2.2
+top = 0
+fitted = true
+
+[sub_resource type="Resource" id="Blocker_steering_gear_starboard"]
+script = ExtResource("3_block")
+area = Rect2(-14, 2, 3.6, 0.2)
+bottom = -2.2
+top = 0
+fitted = true
+
+[sub_resource type="Resource" id="Blocker_steering_engine"]
+script = ExtResource("3_block")
+area = Rect2(-13.8, -0.6, 0.8, 1.2)
+bottom = -2.2
+top = -0.95
+fitted = true
+
+[sub_resource type="Resource" id="Platform_fore_stores"]
+script = ExtResource("1_plat")
+name = &"fore stores"
+area = Rect2(7.1, -1.55, 3.1, 3.1)
+height = -2.2
+fitted = true
+
+[sub_resource type="Resource" id="Blocker_fore_stores_forward"]
+script = ExtResource("3_block")
+area = Rect2(10.1, -1.65, 0.2, 3.3)
+bottom = -2.2
+top = 0
+fitted = true
+
+[sub_resource type="Resource" id="Blocker_fore_stores_starboard"]
+script = ExtResource("3_block")
+area = Rect2(7, 1.45, 3.3, 0.2)
+bottom = -2.2
+top = 0
+fitted = true
+
+[sub_resource type="Resource" id="Blocker_fore_stores_port_aft"]
+script = ExtResource("3_block")
+area = Rect2(7, -1.65, 0.95, 0.2)
+bottom = -2.2
+top = 0
+fitted = true
+
+[sub_resource type="Resource" id="Blocker_fore_stores_port_stairs"]
+script = ExtResource("3_block")
+area = Rect2(7.85, -1.65, 2.3, 0.2)
+bottom = -2.2
+top = -0.3906
+fitted = true
+
+[sub_resource type="Resource" id="Blocker_fore_stores_port_forward"]
+script = ExtResource("3_block")
+area = Rect2(10.05, -1.65, 0.25, 0.2)
+bottom = -2.2
+top = 0
+fitted = true
+
+[sub_resource type="Resource" id="Ramp_fore_stores_1"]
+script = ExtResource("2_ramp")
+area = Rect2(7.95, -2, 1.05, 2.65)
+axis = 1
+end_height = -2.2
+fitted = true
+
+[sub_resource type="Resource" id="Ramp_fore_stores_2"]
+script = ExtResource("2_ramp")
+area = Rect2(9, -2, 1.05, 2.65)
+axis = 1
+end_height = -2.2
+fitted = true
+
+[sub_resource type="Resource" id="Platform_wing_port"]
+script = ExtResource("1_plat")
+name = &"side passage"
+area = Rect2(-3, -3.28, 8.5, 0.98)
+height = -1.875
+fitted = true
+
+[sub_resource type="Resource" id="Blocker_wing_port_shell"]
+script = ExtResource("3_block")
+area = Rect2(-3, -3.33, 8.6, 0.1)
+bottom = -1.875
+top = 0
+fitted = true
+
+[sub_resource type="Resource" id="Blocker_wing_port_aft"]
+script = ExtResource("3_block")
+area = Rect2(-3.1, -3.23, 0.2, 0.83)
+bottom = -1.875
+top = 0
+fitted = true
+
+[sub_resource type="Resource" id="Blocker_wing_port_forward"]
+script = ExtResource("3_block")
+area = Rect2(5.4, -3.23, 0.2, 0.83)
+bottom = -1.875
+top = 0
+fitted = true
+
+[sub_resource type="Resource" id="Ramp_wing_port_1"]
+script = ExtResource("2_ramp")
+area = Rect2(-2.1, -3.23, 2.3, 0.83)
+end_height = -1.875
+fitted = true
+
+[sub_resource type="Resource" id="Ramp_wing_port_2"]
+script = ExtResource("2_ramp")
+area = Rect2(2.3, -3.23, 2.3, 0.83)
+end_height = -1.875
+fitted = true
+
+[sub_resource type="Resource" id="Platform_wing_starboard"]
+script = ExtResource("1_plat")
+name = &"side passage"
+area = Rect2(-3, 2.3, 8.5, 0.98)
+height = -1.875
+fitted = true
+
+[sub_resource type="Resource" id="Blocker_wing_starboard_shell"]
+script = ExtResource("3_block")
+area = Rect2(-3, 3.23, 8.6, 0.1)
+bottom = -1.875
+top = 0
+fitted = true
+
+[sub_resource type="Resource" id="Blocker_wing_starboard_aft"]
+script = ExtResource("3_block")
+area = Rect2(-3.1, 2.4, 0.2, 0.83)
+bottom = -1.875
+top = 0
+fitted = true
+
+[sub_resource type="Resource" id="Blocker_wing_starboard_forward"]
+script = ExtResource("3_block")
+area = Rect2(5.4, 2.4, 0.2, 0.83)
+bottom = -1.875
+top = 0
+fitted = true
+
+[sub_resource type="Resource" id="Ramp_wing_starboard_1"]
+script = ExtResource("2_ramp")
+area = Rect2(-2.1, 2.4, 2.3, 0.83)
+end_height = -1.875
+fitted = true
+
+[sub_resource type="Resource" id="Ramp_wing_starboard_2"]
+script = ExtResource("2_ramp")
+area = Rect2(2.3, 2.4, 2.3, 0.83)
+end_height = -1.875
+fitted = true
+
+[sub_resource type="Resource" id="Railing_engine_manhole_1_x0"]
+script = ExtResource("4_rail")
+platform = 28
+from = Vector2(-7.4, -1)
+to = Vector2(-7.4, -0.1)
+
+[sub_resource type="Resource" id="Railing_engine_manhole_1_z0"]
+script = ExtResource("4_rail")
+platform = 14
+from = Vector2(-7.4, -1)
+to = Vector2(-5.8, -1)
+
+[sub_resource type="Resource" id="Railing_engine_manhole_1_z1"]
+script = ExtResource("4_rail")
+platform = 32
+from = Vector2(-7.4, -0.1)
+to = Vector2(-5.8, -0.1)
+
+[sub_resource type="Resource" id="Railing_engine_manhole_2_x0"]
+script = ExtResource("4_rail")
+platform = 29
+from = Vector2(-7.4, 0.1)
+to = Vector2(-7.4, 1)
+
+[sub_resource type="Resource" id="Railing_engine_manhole_2_z0"]
+script = ExtResource("4_rail")
+platform = 32
+from = Vector2(-7.4, 0.1)
+to = Vector2(-5.8, 0.1)
+
+[sub_resource type="Resource" id="Railing_engine_manhole_2_z1"]
+script = ExtResource("4_rail")
+platform = 27
+from = Vector2(-7.4, 1)
+to = Vector2(-5.8, 1)
+
+[sub_resource type="Resource" id="Railing_hold_manhole_1_x1"]
+script = ExtResource("4_rail")
+platform = 34
+from = Vector2(-0.1, -1.3)
+to = Vector2(-0.1, -0.3)
+
+[sub_resource type="Resource" id="Railing_hold_manhole_1_z0"]
+script = ExtResource("4_rail")
+platform = 15
+from = Vector2(-1.7, -1.3)
+to = Vector2(-0.1, -1.3)
+
+[sub_resource type="Resource" id="Railing_hold_manhole_1_z1"]
+script = ExtResource("4_rail")
+platform = 36
+from = Vector2(-1.7, -0.3)
+to = Vector2(-0.1, -0.3)
+
+[sub_resource type="Resource" id="Railing_hold_manhole_2_x1"]
+script = ExtResource("4_rail")
+platform = 37
+from = Vector2(5.1, 0.3)
+to = Vector2(5.1, 1.3)
+
+[sub_resource type="Resource" id="Railing_hold_manhole_2_z0"]
+script = ExtResource("4_rail")
+platform = 36
+from = Vector2(3.5, 0.3)
+to = Vector2(5.1, 0.3)
+
+[sub_resource type="Resource" id="Railing_hold_manhole_2_z1"]
+script = ExtResource("4_rail")
+platform = 33
+from = Vector2(3.5, 1.3)
+to = Vector2(5.1, 1.3)
+
+[sub_resource type="Resource" id="Railing_wing_hatch_1_x1"]
+script = ExtResource("4_rail")
+platform = 20
+from = Vector2(0.2, -3.23)
+to = Vector2(0.2, -2.4)
+
+[sub_resource type="Resource" id="Railing_wing_hatch_1_z1"]
+script = ExtResource("4_rail")
+from = Vector2(-2.1, -2.4)
+to = Vector2(0.2, -2.4)
+
+[sub_resource type="Resource" id="Railing_wing_hatch_2_x1"]
+script = ExtResource("4_rail")
+platform = 18
+from = Vector2(4.6, -3.23)
+to = Vector2(4.6, -2.4)
+
+[sub_resource type="Resource" id="Railing_wing_hatch_2_z1"]
+script = ExtResource("4_rail")
+from = Vector2(2.3, -2.4)
+to = Vector2(4.6, -2.4)
+
+[sub_resource type="Resource" id="Railing_wing_hatch_3_x1"]
+script = ExtResource("4_rail")
+platform = 21
+from = Vector2(0.2, 2.4)
+to = Vector2(0.2, 3.23)
+
+[sub_resource type="Resource" id="Railing_wing_hatch_3_z0"]
+script = ExtResource("4_rail")
+from = Vector2(-2.1, 2.4)
+to = Vector2(0.2, 2.4)
+
+[sub_resource type="Resource" id="Railing_wing_hatch_4_x1"]
+script = ExtResource("4_rail")
+platform = 19
+from = Vector2(4.6, 2.4)
+to = Vector2(4.6, 3.23)
+
+[sub_resource type="Resource" id="Railing_wing_hatch_4_z0"]
+script = ExtResource("4_rail")
+from = Vector2(2.3, 2.4)
+to = Vector2(4.6, 2.4)
+
+[sub_resource type="Resource" id="Railing_fore_stores_hatch_x0"]
+script = ExtResource("4_rail")
+platform = 25
+from = Vector2(7.95, -2)
+to = Vector2(7.95, 0.65)
+
+[sub_resource type="Resource" id="Railing_fore_stores_hatch_x1"]
+script = ExtResource("4_rail")
+platform = 26
+from = Vector2(10.05, -2)
+to = Vector2(10.05, 0.65)
+
+[sub_resource type="Resource" id="Railing_fore_stores_hatch_z1"]
+script = ExtResource("4_rail")
+platform = 7
+from = Vector2(7.95, 0.65)
+to = Vector2(10.05, 0.65)
+
+[sub_resource type="Resource" id="Room_engine_room_double_bottom"]
+script = ExtResource("6_room")
+name = &"engine room double bottom"
+area = Rect2(-12, -1.35, 9, 2.7)
+floor_height = -3.5
+crawl_space = true
+
+[sub_resource type="Resource" id="Room_fish_hold_double_bottom"]
+script = ExtResource("6_room")
+name = &"fish hold double bottom"
+area = Rect2(-3, -1.45, 10, 2.9)
+floor_height = -3.5
+crawl_space = true
+
+[sub_resource type="Resource" id="Room_steering_gear"]
+script = ExtResource("6_room")
+name = &"steering gear"
+area = Rect2(-13.9, -2.1, 3.4, 4.2)
+floor_height = -2.2
+
+[sub_resource type="Resource" id="Room_side_passage_port"]
+script = ExtResource("6_room")
+name = &"port side passage"
+area = Rect2(-3, -3.28, 8.5, 0.88)
+floor_height = -1.875
+
+[sub_resource type="Resource" id="Room_side_passage_starboard"]
+script = ExtResource("6_room")
+name = &"starboard side passage"
+area = Rect2(-3, 2.4, 8.5, 0.88)
+floor_height = -1.875
+
+[sub_resource type="Resource" id="Room_fore_stores"]
+script = ExtResource("6_room")
+name = &"fore stores"
+area = Rect2(7, -1.55, 3.2, 3.1)
+floor_height = -2.2
 
 [sub_resource type="Resource" id="Section_0"]
 script = ExtResource("10_section")
@@ -819,7 +1400,7 @@ low = Vector3(-15, -2.2, -2.8)
 high = Vector3(-3, 0, 2.8)
 kind = 1
 shape = 0.9954
-rooms = Array[StringName]([&"engine room"])
+rooms = Array[StringName]([&"engine room", &"steering gear"])
 leak_area = 0.000147
 
 [sub_resource type="Resource" id="Cell_engine_wing_s"]
@@ -838,6 +1419,7 @@ low = Vector3(-3, -4.2, -3.75)
 high = Vector3(7, 0, -2.4)
 kind = 4
 shape = 0.5246
+rooms = Array[StringName]([&"port side passage"])
 leak_area = 0.0000297
 
 [sub_resource type="Resource" id="Cell_fish_hold"]
@@ -858,6 +1440,7 @@ low = Vector3(-3, -4.2, 2.4)
 high = Vector3(7, 0, 3.75)
 kind = 4
 shape = 0.5246
+rooms = Array[StringName]([&"starboard side passage"])
 leak_area = 0.0000297
 
 [sub_resource type="Resource" id="Cell_fore"]
@@ -904,6 +1487,7 @@ low = Vector3(-15, -4.2, -2.8)
 high = Vector3(-3, -2.2, 2.8)
 kind = 4
 shape = 0.6803
+rooms = Array[StringName]([&"engine room double bottom"])
 leak_area = 0.0000914
 
 [sub_resource type="Resource" id="Cell_hold_bilge"]
@@ -913,6 +1497,7 @@ low = Vector3(-3, -4.2, -2.4)
 high = Vector3(7, -2.2, 2.4)
 kind = 4
 shape = 0.83
+rooms = Array[StringName]([&"fish hold double bottom"])
 leak_area = 0.0000797
 
 [sub_resource type="Resource" id="Cell_fore_stores"]
@@ -921,6 +1506,7 @@ name = &"fore_stores"
 low = Vector3(7, -4.2, -3.75)
 high = Vector3(15, 0, 3.75)
 shape = 0.3623
+rooms = Array[StringName]([&"fore stores"])
 leak_area = 0.0000913
 
 [sub_resource type="Resource" id="Wall_bulkhead_aft"]
@@ -1090,6 +1676,87 @@ flip_chance = 0.3
 leak_head = 1
 collapse_head = 3
 leak_area = 0.01
+
+[sub_resource type="Resource" id="Opening_manhole_engine_bilge_1"]
+script = ExtResource("13_opening")
+name = &"manhole_engine_bilge_1"
+kind = 5
+joins = Array[StringName]([&"engine_bilge", &"engine_room"])
+centre = Vector3(-6.6, -2.2, -0.55)
+size = Vector3(1.6, 0, 0.9)
+starts = 1
+
+[sub_resource type="Resource" id="Opening_manhole_engine_bilge_2"]
+script = ExtResource("13_opening")
+name = &"manhole_engine_bilge_2"
+kind = 5
+joins = Array[StringName]([&"engine_bilge", &"engine_room"])
+centre = Vector3(-6.6, -2.2, 0.55)
+size = Vector3(1.6, 0, 0.9)
+starts = 1
+
+[sub_resource type="Resource" id="Opening_manhole_hold_bilge_1"]
+script = ExtResource("13_opening")
+name = &"manhole_hold_bilge_1"
+kind = 5
+joins = Array[StringName]([&"hold_bilge", &"fish_hold"])
+centre = Vector3(-0.9, -2.2, -0.8)
+size = Vector3(1.6, 0, 1)
+starts = 1
+
+[sub_resource type="Resource" id="Opening_manhole_hold_bilge_2"]
+script = ExtResource("13_opening")
+name = &"manhole_hold_bilge_2"
+kind = 5
+joins = Array[StringName]([&"hold_bilge", &"fish_hold"])
+centre = Vector3(4.3, -2.2, 0.8)
+size = Vector3(1.6, 0, 1)
+starts = 1
+
+[sub_resource type="Resource" id="Opening_hatch_fore_stores"]
+script = ExtResource("13_opening")
+name = &"hatch_fore_stores"
+kind = 5
+joins = Array[StringName]([&"fore_stores", &"fore"])
+centre = Vector3(9, 0, -0.675)
+size = Vector3(2.1, 0, 2.65)
+starts = 1
+
+[sub_resource type="Resource" id="Opening_hatch_hold_wing_p_1"]
+script = ExtResource("13_opening")
+name = &"hatch_hold_wing_p_1"
+kind = 5
+joins = Array[StringName]([&"hold_wing_p", &"working_deck"])
+centre = Vector3(-0.95, 0, -2.815)
+size = Vector3(2.3, 0, 0.83)
+starts = 1
+
+[sub_resource type="Resource" id="Opening_hatch_hold_wing_p_2"]
+script = ExtResource("13_opening")
+name = &"hatch_hold_wing_p_2"
+kind = 5
+joins = Array[StringName]([&"hold_wing_p", &"working_deck"])
+centre = Vector3(3.45, 0, -2.815)
+size = Vector3(2.3, 0, 0.83)
+starts = 1
+
+[sub_resource type="Resource" id="Opening_hatch_hold_wing_s_1"]
+script = ExtResource("13_opening")
+name = &"hatch_hold_wing_s_1"
+kind = 5
+joins = Array[StringName]([&"hold_wing_s", &"working_deck"])
+centre = Vector3(-0.95, 0, 2.815)
+size = Vector3(2.3, 0, 0.83)
+starts = 1
+
+[sub_resource type="Resource" id="Opening_hatch_hold_wing_s_2"]
+script = ExtResource("13_opening")
+name = &"hatch_hold_wing_s_2"
+kind = 5
+joins = Array[StringName]([&"hold_wing_s", &"working_deck"])
+centre = Vector3(3.45, 0, 2.815)
+size = Vector3(2.3, 0, 0.83)
+starts = 1
 
 [sub_resource type="Resource" id="Opening_skylight"]
 script = ExtResource("13_opening")
@@ -1683,7 +2350,7 @@ keel_y = -4.2
 sections = Array[ExtResource("10_section")]([SubResource("Section_0"), SubResource("Section_1"), SubResource("Section_2"), SubResource("Section_3"), SubResource("Section_4"), SubResource("Section_5"), SubResource("Section_6"), SubResource("Section_7"), SubResource("Section_8"), SubResource("Section_9"), SubResource("Section_10"), SubResource("Section_11"), SubResource("Section_12"), SubResource("Section_13"), SubResource("Section_14"), SubResource("Section_15"), SubResource("Section_16"), SubResource("Section_17"), SubResource("Section_18"), SubResource("Section_19")])
 cells = Array[ExtResource("11_cell")]([SubResource("Cell_engine_wing_p"), SubResource("Cell_engine_room"), SubResource("Cell_engine_wing_s"), SubResource("Cell_hold_wing_p"), SubResource("Cell_fish_hold"), SubResource("Cell_hold_wing_s"), SubResource("Cell_fore"), SubResource("Cell_deckhouse"), SubResource("Cell_wheelhouse"), SubResource("Cell_working_deck"), SubResource("Cell_engine_bilge"), SubResource("Cell_hold_bilge"), SubResource("Cell_fore_stores")])
 walls = Array[ExtResource("12_wall")]([SubResource("Wall_bulkhead_aft"), SubResource("Wall_bulkhead_fwd"), SubResource("Wall_engine_lining_p"), SubResource("Wall_engine_lining_s"), SubResource("Wall_hold_lining_p"), SubResource("Wall_hold_lining_s")])
-openings = Array[ExtResource("13_opening")]([SubResource("Opening_wtd_engine"), SubResource("Opening_door_deckhouse_sky_0"), SubResource("Opening_door_deckhouse_working_deck_0"), SubResource("Opening_door_deckhouse_sky_1"), SubResource("Opening_door_wheelhouse_sky_0"), SubResource("Opening_door_wheelhouse_sky_1"), SubResource("Opening_door_working_deck_fore_0"), SubResource("Opening_door_fore_sky_0"), SubResource("Opening_stair_engine_room_deckhouse_p"), SubResource("Opening_stair_engine_room_deckhouse_s"), SubResource("Opening_stair_deckhouse_wheelhouse"), SubResource("Opening_fish_hatch"), SubResource("Opening_skylight"), SubResource("Opening_freeing_port_p1"), SubResource("Opening_freeing_port_p2"), SubResource("Opening_freeing_port_p3"), SubResource("Opening_freeing_port_s1"), SubResource("Opening_freeing_port_s2"), SubResource("Opening_freeing_port_s3"), SubResource("Opening_leak_engine_wing_p"), SubResource("Opening_pipe_engine_wing_p"), SubResource("Opening_leak_engine_wing_s"), SubResource("Opening_pipe_engine_wing_s"), SubResource("Opening_leak_hold_wing_p"), SubResource("Opening_pipe_hold_wing_p"), SubResource("Opening_leak_hold_wing_s"), SubResource("Opening_pipe_hold_wing_s"), SubResource("Opening_floor_engine_room"), SubResource("Opening_floor_fish_hold"), SubResource("Opening_floor_fore"), SubResource("Opening_open_working_deck"), SubResource("Opening_port_fore_p1"), SubResource("Opening_port_fore_s1"), SubResource("Opening_window_deckhouse_p1"), SubResource("Opening_window_deckhouse_p2"), SubResource("Opening_window_deckhouse_p3"), SubResource("Opening_window_deckhouse_p4"), SubResource("Opening_window_deckhouse_p5"), SubResource("Opening_window_deckhouse_f1"), SubResource("Opening_window_deckhouse_f2"), SubResource("Opening_window_deckhouse_f3"), SubResource("Opening_window_deckhouse_f4"), SubResource("Opening_window_deckhouse_s1"), SubResource("Opening_window_deckhouse_s2"), SubResource("Opening_window_deckhouse_s3"), SubResource("Opening_window_deckhouse_s4"), SubResource("Opening_window_deckhouse_s5"), SubResource("Opening_window_deckhouse_a1"), SubResource("Opening_window_deckhouse_a2"), SubResource("Opening_window_wheelhouse_p1"), SubResource("Opening_window_wheelhouse_p2"), SubResource("Opening_window_wheelhouse_f1"), SubResource("Opening_window_wheelhouse_f2"), SubResource("Opening_window_wheelhouse_f3"), SubResource("Opening_window_wheelhouse_s1"), SubResource("Opening_window_wheelhouse_s2"), SubResource("Opening_window_wheelhouse_a1"), SubResource("Opening_window_wheelhouse_a2"), SubResource("Opening_window_wheelhouse_a3"), SubResource("Opening_window_fore_a1")])
+openings = Array[ExtResource("13_opening")]([SubResource("Opening_wtd_engine"), SubResource("Opening_door_deckhouse_sky_0"), SubResource("Opening_door_deckhouse_working_deck_0"), SubResource("Opening_door_deckhouse_sky_1"), SubResource("Opening_door_wheelhouse_sky_0"), SubResource("Opening_door_wheelhouse_sky_1"), SubResource("Opening_door_working_deck_fore_0"), SubResource("Opening_door_fore_sky_0"), SubResource("Opening_stair_engine_room_deckhouse_p"), SubResource("Opening_stair_engine_room_deckhouse_s"), SubResource("Opening_stair_deckhouse_wheelhouse"), SubResource("Opening_fish_hatch"), SubResource("Opening_manhole_engine_bilge_1"), SubResource("Opening_manhole_engine_bilge_2"), SubResource("Opening_manhole_hold_bilge_1"), SubResource("Opening_manhole_hold_bilge_2"), SubResource("Opening_hatch_fore_stores"), SubResource("Opening_hatch_hold_wing_p_1"), SubResource("Opening_hatch_hold_wing_p_2"), SubResource("Opening_hatch_hold_wing_s_1"), SubResource("Opening_hatch_hold_wing_s_2"), SubResource("Opening_skylight"), SubResource("Opening_freeing_port_p1"), SubResource("Opening_freeing_port_p2"), SubResource("Opening_freeing_port_p3"), SubResource("Opening_freeing_port_s1"), SubResource("Opening_freeing_port_s2"), SubResource("Opening_freeing_port_s3"), SubResource("Opening_leak_engine_wing_p"), SubResource("Opening_pipe_engine_wing_p"), SubResource("Opening_leak_engine_wing_s"), SubResource("Opening_pipe_engine_wing_s"), SubResource("Opening_leak_hold_wing_p"), SubResource("Opening_pipe_hold_wing_p"), SubResource("Opening_leak_hold_wing_s"), SubResource("Opening_pipe_hold_wing_s"), SubResource("Opening_floor_engine_room"), SubResource("Opening_floor_fish_hold"), SubResource("Opening_floor_fore"), SubResource("Opening_open_working_deck"), SubResource("Opening_port_fore_p1"), SubResource("Opening_port_fore_s1"), SubResource("Opening_window_deckhouse_p1"), SubResource("Opening_window_deckhouse_p2"), SubResource("Opening_window_deckhouse_p3"), SubResource("Opening_window_deckhouse_p4"), SubResource("Opening_window_deckhouse_p5"), SubResource("Opening_window_deckhouse_f1"), SubResource("Opening_window_deckhouse_f2"), SubResource("Opening_window_deckhouse_f3"), SubResource("Opening_window_deckhouse_f4"), SubResource("Opening_window_deckhouse_s1"), SubResource("Opening_window_deckhouse_s2"), SubResource("Opening_window_deckhouse_s3"), SubResource("Opening_window_deckhouse_s4"), SubResource("Opening_window_deckhouse_s5"), SubResource("Opening_window_deckhouse_a1"), SubResource("Opening_window_deckhouse_a2"), SubResource("Opening_window_wheelhouse_p1"), SubResource("Opening_window_wheelhouse_p2"), SubResource("Opening_window_wheelhouse_f1"), SubResource("Opening_window_wheelhouse_f2"), SubResource("Opening_window_wheelhouse_f3"), SubResource("Opening_window_wheelhouse_s1"), SubResource("Opening_window_wheelhouse_s2"), SubResource("Opening_window_wheelhouse_a1"), SubResource("Opening_window_wheelhouse_a2"), SubResource("Opening_window_wheelhouse_a3"), SubResource("Opening_window_fore_a1")])
 mass = Array[ExtResource("14_mass")]([SubResource("Mass_hull_steel"), SubResource("Mass_engine_and_gearbox"), SubResource("Mass_fuel"), SubResource("Mass_deckhouse_and_wheelhouse"), SubResource("Mass_winch_and_fishing_gear"), SubResource("Mass_mast_and_rigging"), SubResource("Mass_fish_hold_insulation_and_ice"), SubResource("Mass_stores_and_water"), SubResource("Mass_ballast")])
 roll_radius = 3
 pitch_radius = 7.5
@@ -1701,15 +2368,15 @@ sure_hit = SubResource("Sure_hit")
 script = ExtResource("5_layout")
 freeboard = 1.2
 deck_thickness = 0.2
-platforms = Array[ExtResource("1_plat")]([SubResource("Platform_working_deck"), SubResource("Platform_aft_deck"), SubResource("Platform_galley_aft"), SubResource("Platform_galley_forward"), SubResource("Platform_galley_port"), SubResource("Platform_galley_middle"), SubResource("Platform_galley_starboard"), SubResource("Platform_crew_mess"), SubResource("Platform_forecastle"), SubResource("Platform_forecastle_head"), SubResource("Platform_roof_aft"), SubResource("Platform_roof_forward"), SubResource("Platform_roof_port"), SubResource("Platform_roof_starboard"), SubResource("Platform_engine_floor"), SubResource("Platform_hold_floor")])
-ramps = Array[ExtResource("2_ramp")]([SubResource("Ramp_forecastle_port"), SubResource("Ramp_forecastle_starboard"), SubResource("Ramp_roof_port"), SubResource("Ramp_roof_starboard"), SubResource("Ramp_engine_port"), SubResource("Ramp_engine_starboard"), SubResource("Ramp_wheelhouse_stair")])
-blockers = Array[ExtResource("3_block")]([SubResource("Blocker_engine_aft"), SubResource("Blocker_engine_port"), SubResource("Blocker_engine_starboard"), SubResource("Blocker_hold_port"), SubResource("Blocker_hold_starboard"), SubResource("Blocker_bulkhead_aft_0"), SubResource("Blocker_bulkhead_aft_1"), SubResource("Blocker_bulkhead_aft_lintel_0"), SubResource("Blocker_bulkhead_fwd"), SubResource("Blocker_engine"), SubResource("Blocker_deckhouse_aft_0"), SubResource("Blocker_deckhouse_aft_1"), SubResource("Blocker_deckhouse_aft_lintel_0"), SubResource("Blocker_deckhouse_aft_sill_0"), SubResource("Blocker_deckhouse_forward_0"), SubResource("Blocker_deckhouse_forward_1"), SubResource("Blocker_deckhouse_forward_lintel_0"), SubResource("Blocker_deckhouse_forward_sill_0"), SubResource("Blocker_deckhouse_port"), SubResource("Blocker_deckhouse_starboard"), SubResource("Blocker_wheelhouse_aft"), SubResource("Blocker_wheelhouse_forward"), SubResource("Blocker_wheelhouse_port_0"), SubResource("Blocker_wheelhouse_port_1"), SubResource("Blocker_wheelhouse_port_sill_0"), SubResource("Blocker_wheelhouse_starboard_0"), SubResource("Blocker_wheelhouse_starboard_1"), SubResource("Blocker_wheelhouse_starboard_sill_0"), SubResource("Blocker_wheelhouse_roof"), SubResource("Blocker_forecastle_aft_0"), SubResource("Blocker_forecastle_aft_1"), SubResource("Blocker_forecastle_aft_lintel_0"), SubResource("Blocker_forecastle_aft_sill_0"), SubResource("Blocker_mess_port"), SubResource("Blocker_mess_starboard"), SubResource("Blocker_mess_forward"), SubResource("Blocker_fish_hatch"), SubResource("Blocker_skylight"), SubResource("Blocker_stack"), SubResource("Blocker_mast")])
-railings = Array[ExtResource("4_rail")]([SubResource("Railing_working_port_0"), SubResource("Railing_working_port_1"), SubResource("Railing_working_port_2"), SubResource("Railing_working_starboard_0"), SubResource("Railing_working_starboard_1"), SubResource("Railing_working_starboard_2"), SubResource("Railing_aft_port_0"), SubResource("Railing_aft_port_1"), SubResource("Railing_aft_starboard_0"), SubResource("Railing_aft_starboard_1"), SubResource("Railing_transom_0"), SubResource("Railing_transom_1"), SubResource("Railing_forecastle_port_0"), SubResource("Railing_forecastle_port_1"), SubResource("Railing_forecastle_starboard_0"), SubResource("Railing_forecastle_starboard_1"), SubResource("Railing_forecastle_step_port"), SubResource("Railing_forecastle_step_starboard"), SubResource("Railing_forecastle_head_port"), SubResource("Railing_forecastle_head_starboard"), SubResource("Railing_forecastle_head_fwd_0"), SubResource("Railing_forecastle_head_fwd_1"), SubResource("Railing_roof_aft_port"), SubResource("Railing_roof_middle_port"), SubResource("Railing_roof_forward_port"), SubResource("Railing_roof_aft_starboard"), SubResource("Railing_roof_middle_starboard"), SubResource("Railing_roof_forward_starboard"), SubResource("Railing_roof_fwd_0"), SubResource("Railing_roof_fwd_1"), SubResource("Railing_roof_fwd_2"), SubResource("Railing_roof_aft_end_port"), SubResource("Railing_roof_aft_end_middle_0"), SubResource("Railing_roof_aft_end_middle_1"), SubResource("Railing_roof_aft_end_starboard"), SubResource("Railing_engine_stair_port_aft"), SubResource("Railing_engine_stair_port_outboard"), SubResource("Railing_engine_stair_port_inboard"), SubResource("Railing_engine_stair_starboard_aft"), SubResource("Railing_engine_stair_starboard_outboard"), SubResource("Railing_engine_stair_starboard_inboard"), SubResource("Railing_wheelhouse_stair_port"), SubResource("Railing_wheelhouse_stair_starboard"), SubResource("Railing_wheelhouse_stair_fwd")])
+platforms = Array[ExtResource("1_plat")]([SubResource("Platform_working_deck"), SubResource("Platform_aft_deck"), SubResource("Platform_galley_aft"), SubResource("Platform_galley_forward"), SubResource("Platform_galley_port"), SubResource("Platform_galley_middle"), SubResource("Platform_galley_starboard"), SubResource("Platform_crew_mess"), SubResource("Platform_forecastle"), SubResource("Platform_forecastle_head"), SubResource("Platform_roof_aft"), SubResource("Platform_roof_forward"), SubResource("Platform_roof_port"), SubResource("Platform_roof_starboard"), SubResource("Platform_engine_floor"), SubResource("Platform_hold_floor"), SubResource("Platform_working_deck_1"), SubResource("Platform_working_deck_2"), SubResource("Platform_working_deck_3"), SubResource("Platform_working_deck_4"), SubResource("Platform_working_deck_5"), SubResource("Platform_working_deck_6"), SubResource("Platform_working_deck_7"), SubResource("Platform_working_deck_8"), SubResource("Platform_crew_mess_1"), SubResource("Platform_crew_mess_2"), SubResource("Platform_crew_mess_3"), SubResource("Platform_engine_floor_1"), SubResource("Platform_engine_floor_2"), SubResource("Platform_engine_floor_3"), SubResource("Platform_engine_floor_4"), SubResource("Platform_engine_floor_5"), SubResource("Platform_engine_floor_6"), SubResource("Platform_hold_floor_1"), SubResource("Platform_hold_floor_2"), SubResource("Platform_hold_floor_3"), SubResource("Platform_hold_floor_4"), SubResource("Platform_hold_floor_5"), SubResource("Platform_hold_floor_6"), SubResource("Platform_engine_room_double_bottom"), SubResource("Platform_fish_hold_double_bottom"), SubResource("Platform_steering_gear"), SubResource("Platform_fore_stores"), SubResource("Platform_wing_port"), SubResource("Platform_wing_starboard")])
+ramps = Array[ExtResource("2_ramp")]([SubResource("Ramp_forecastle_port"), SubResource("Ramp_forecastle_starboard"), SubResource("Ramp_roof_port"), SubResource("Ramp_roof_starboard"), SubResource("Ramp_engine_port"), SubResource("Ramp_engine_starboard"), SubResource("Ramp_wheelhouse_stair"), SubResource("Ramp_engine_room_manhole_1"), SubResource("Ramp_engine_room_manhole_2"), SubResource("Ramp_fish_hold_manhole_1"), SubResource("Ramp_fish_hold_manhole_2"), SubResource("Ramp_fore_stores_1"), SubResource("Ramp_fore_stores_2"), SubResource("Ramp_wing_port_1"), SubResource("Ramp_wing_port_2"), SubResource("Ramp_wing_starboard_1"), SubResource("Ramp_wing_starboard_2")])
+blockers = Array[ExtResource("3_block")]([SubResource("Blocker_engine_aft_0"), SubResource("Blocker_engine_aft_1"), SubResource("Blocker_engine_aft_lintel_0"), SubResource("Blocker_engine_port"), SubResource("Blocker_engine_starboard"), SubResource("Blocker_hold_port"), SubResource("Blocker_hold_starboard"), SubResource("Blocker_bulkhead_aft_0"), SubResource("Blocker_bulkhead_aft_1"), SubResource("Blocker_bulkhead_aft_lintel_0"), SubResource("Blocker_bulkhead_fwd"), SubResource("Blocker_engine"), SubResource("Blocker_deckhouse_aft_0"), SubResource("Blocker_deckhouse_aft_1"), SubResource("Blocker_deckhouse_aft_lintel_0"), SubResource("Blocker_deckhouse_aft_sill_0"), SubResource("Blocker_deckhouse_forward_0"), SubResource("Blocker_deckhouse_forward_1"), SubResource("Blocker_deckhouse_forward_lintel_0"), SubResource("Blocker_deckhouse_forward_sill_0"), SubResource("Blocker_deckhouse_port"), SubResource("Blocker_deckhouse_starboard"), SubResource("Blocker_wheelhouse_aft"), SubResource("Blocker_wheelhouse_forward"), SubResource("Blocker_wheelhouse_port_0"), SubResource("Blocker_wheelhouse_port_1"), SubResource("Blocker_wheelhouse_port_sill_0"), SubResource("Blocker_wheelhouse_starboard_0"), SubResource("Blocker_wheelhouse_starboard_1"), SubResource("Blocker_wheelhouse_starboard_sill_0"), SubResource("Blocker_wheelhouse_roof"), SubResource("Blocker_forecastle_aft_0"), SubResource("Blocker_forecastle_aft_1"), SubResource("Blocker_forecastle_aft_lintel_0"), SubResource("Blocker_forecastle_aft_sill_0"), SubResource("Blocker_mess_port"), SubResource("Blocker_mess_starboard"), SubResource("Blocker_mess_forward"), SubResource("Blocker_fish_hatch"), SubResource("Blocker_skylight"), SubResource("Blocker_stack"), SubResource("Blocker_mast"), SubResource("Blocker_engine_room_double_bottom_port"), SubResource("Blocker_engine_room_double_bottom_starboard"), SubResource("Blocker_fish_hold_double_bottom_port"), SubResource("Blocker_fish_hold_double_bottom_starboard"), SubResource("Blocker_engine_room_double_bottom_aft"), SubResource("Blocker_double_bottom_bulkhead"), SubResource("Blocker_fish_hold_double_bottom_forward"), SubResource("Blocker_steering_gear_aft"), SubResource("Blocker_steering_gear_port"), SubResource("Blocker_steering_gear_starboard"), SubResource("Blocker_steering_engine"), SubResource("Blocker_fore_stores_forward"), SubResource("Blocker_fore_stores_starboard"), SubResource("Blocker_fore_stores_port_aft"), SubResource("Blocker_fore_stores_port_stairs"), SubResource("Blocker_fore_stores_port_forward"), SubResource("Blocker_wing_port_shell"), SubResource("Blocker_wing_port_aft"), SubResource("Blocker_wing_port_forward"), SubResource("Blocker_wing_starboard_shell"), SubResource("Blocker_wing_starboard_aft"), SubResource("Blocker_wing_starboard_forward")])
+railings = Array[ExtResource("4_rail")]([SubResource("Railing_working_port_0"), SubResource("Railing_working_port_1"), SubResource("Railing_working_port_2"), SubResource("Railing_working_starboard_0"), SubResource("Railing_working_starboard_1"), SubResource("Railing_working_starboard_2"), SubResource("Railing_aft_port_0"), SubResource("Railing_aft_port_1"), SubResource("Railing_aft_starboard_0"), SubResource("Railing_aft_starboard_1"), SubResource("Railing_transom_0"), SubResource("Railing_transom_1"), SubResource("Railing_forecastle_port_0"), SubResource("Railing_forecastle_port_1"), SubResource("Railing_forecastle_starboard_0"), SubResource("Railing_forecastle_starboard_1"), SubResource("Railing_forecastle_step_port"), SubResource("Railing_forecastle_step_starboard"), SubResource("Railing_forecastle_head_port"), SubResource("Railing_forecastle_head_starboard"), SubResource("Railing_forecastle_head_fwd_0"), SubResource("Railing_forecastle_head_fwd_1"), SubResource("Railing_roof_aft_port"), SubResource("Railing_roof_middle_port"), SubResource("Railing_roof_forward_port"), SubResource("Railing_roof_aft_starboard"), SubResource("Railing_roof_middle_starboard"), SubResource("Railing_roof_forward_starboard"), SubResource("Railing_roof_fwd_0"), SubResource("Railing_roof_fwd_1"), SubResource("Railing_roof_fwd_2"), SubResource("Railing_roof_aft_end_port"), SubResource("Railing_roof_aft_end_middle_0"), SubResource("Railing_roof_aft_end_middle_1"), SubResource("Railing_roof_aft_end_starboard"), SubResource("Railing_engine_stair_port_aft"), SubResource("Railing_engine_stair_port_outboard"), SubResource("Railing_engine_stair_port_inboard"), SubResource("Railing_engine_stair_starboard_aft"), SubResource("Railing_engine_stair_starboard_outboard"), SubResource("Railing_engine_stair_starboard_inboard"), SubResource("Railing_wheelhouse_stair_port"), SubResource("Railing_wheelhouse_stair_starboard"), SubResource("Railing_wheelhouse_stair_fwd"), SubResource("Railing_engine_manhole_1_x0"), SubResource("Railing_engine_manhole_1_z0"), SubResource("Railing_engine_manhole_1_z1"), SubResource("Railing_engine_manhole_2_x0"), SubResource("Railing_engine_manhole_2_z0"), SubResource("Railing_engine_manhole_2_z1"), SubResource("Railing_hold_manhole_1_x1"), SubResource("Railing_hold_manhole_1_z0"), SubResource("Railing_hold_manhole_1_z1"), SubResource("Railing_hold_manhole_2_x1"), SubResource("Railing_hold_manhole_2_z0"), SubResource("Railing_hold_manhole_2_z1"), SubResource("Railing_wing_hatch_1_x1"), SubResource("Railing_wing_hatch_1_z1"), SubResource("Railing_wing_hatch_2_x1"), SubResource("Railing_wing_hatch_2_z1"), SubResource("Railing_wing_hatch_3_x1"), SubResource("Railing_wing_hatch_3_z0"), SubResource("Railing_wing_hatch_4_x1"), SubResource("Railing_wing_hatch_4_z0"), SubResource("Railing_fore_stores_hatch_x0"), SubResource("Railing_fore_stores_hatch_x1"), SubResource("Railing_fore_stores_hatch_z1")])
 ladders = Array[ExtResource("7_ladder")]([SubResource("Ladder_port"), SubResource("Ladder_starboard")])
-spawns = Array[Vector3]([Vector3(-2, 0, -1.5), Vector3(-2, 0, 1.5), Vector3(0, 0, 0), Vector3(2, 0, -2.4), Vector3(2, 0, 2.4), Vector3(5, 0, 0), Vector3(9, 2.3, -1), Vector3(-11.5, 0, 0)])
+spawns = Array[Vector3]([Vector3(-2, 0, -1.5), Vector3(-2, 0, 1.5), Vector3(0, 0, 0), Vector3(2, 0, -1.8), Vector3(2, 0, 1.8), Vector3(5, 0, 0), Vector3(9, 2.3, -1), Vector3(-11.5, 0, 0)])
 min_seats = 1
 max_seats = 8
 props = Array[ExtResource("8_prop")]([SubResource("Prop_deck_port"), SubResource("Prop_deck_starboard")])
-rooms = Array[ExtResource("6_room")]([SubResource("Room_engine_room"), SubResource("Room_fish_hold"), SubResource("Room_galley"), SubResource("Room_wheelhouse"), SubResource("Room_crew_mess")])
+rooms = Array[ExtResource("6_room")]([SubResource("Room_engine_room"), SubResource("Room_fish_hold"), SubResource("Room_galley"), SubResource("Room_wheelhouse"), SubResource("Room_crew_mess"), SubResource("Room_engine_room_double_bottom"), SubResource("Room_fish_hold_double_bottom"), SubResource("Room_steering_gear"), SubResource("Room_side_passage_port"), SubResource("Room_side_passage_starboard"), SubResource("Room_fore_stores")])
 dressed = false
 structure = SubResource("Structure")

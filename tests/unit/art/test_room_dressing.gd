@@ -129,6 +129,13 @@ func test_the_trawler_s_rooms_keep_their_dressing() -> void:
 		&"galley": RoomDressing.Kind.SERVICE,
 		&"wheelhouse": RoomDressing.Kind.HELM,
 		&"crew mess": RoomDressing.Kind.SALOON,
+		# Her old voids made places (#148).
+		&"engine room double bottom": RoomDressing.Kind.TANK,
+		&"fish hold double bottom": RoomDressing.Kind.TANK,
+		&"steering gear": RoomDressing.Kind.STEERING,
+		&"port side passage": RoomDressing.Kind.TANK,
+		&"starboard side passage": RoomDressing.Kind.TANK,
+		&"fore stores": RoomDressing.Kind.HOLD,
 	}
 	for room: ShipRoom in trawler.rooms:
 		assert_eq(RoomDressing.kind_of(space, room), kinds.get(room.name), String(room.name))
