@@ -277,6 +277,24 @@ void fragment() {
 			whitecap *= mix(1.0, smoothstep(0.25, 0.6, spill), 0.5 * (1.0 - near));
 			// Its tips, where the gust that lifts it dies away, thin out into the sea.
 			whitecap *= mix(1.0, smoothstep(0.004, 0.035, width), near);
+			// Out past the near water a cap is no stroke at all but a few ragged patches
+			// of foam: a soft band along the crest, straight rather than bent into a
+			// crescent, where the gust lifts it, broken by froth riding with the swell
+			// and drifting across it, so each patch gathers and fades over a few seconds
+			// and no crescent's outline survives.
+			float patchy = smoothstep(10.0, 20.0, dist);
+			if (patchy > 0.0) {
+				float riding = crestwise.y + t * 1.4 / 0.61;
+				float straight = fract(riding * 0.61 / 6.2832 + 0.25) - 0.5;
+				float clump = value_noise(
+					vec2(crestwise.x * 0.8, riding * 1.1) + vec2(t * 0.11, -t * 0.07) + 17.0
+				);
+				float froth = clump * 0.7 + spill * 0.3;
+				float lifted = smoothstep(0.7, 0.9, gust);
+				float band = 1.0 - smoothstep(0.02, 0.1, abs(straight));
+				float patches = smoothstep(0.5, 0.75, froth) * band * lifted * 0.85;
+				whitecap = mix(whitecap, patches, patchy);
+			}
 			whitecap *= mix(0.5, 1.0, smoothstep(1.5, 5.0, dist)) * detail * deep;
 		}
 
