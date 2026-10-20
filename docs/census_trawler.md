@@ -58,7 +58,7 @@ Where a sinking runs past its length the 6.0× limit held it (realism over lengt
 
 ## How much of her sinking a match sees (R33; Q20, the paced clock)
 
-Over 20 bots-only matches (seeds 1…20, each to its end or 0:15:00), the share of the sinking from the hit to her going that the match saw: least 19.6% · median 93.1% · most 100.0%; 1 saw her go.
+Over 20 bots-only matches (seeds 1…20, each to its end or 0:15:00), the share of the sinking from the hit to her going that the match saw: least 20.4% · median 92.7% · most 98.6%; 0 saw her go.
 
 ## How long the air pockets last (match census, physics time; SH29)
 
@@ -99,12 +99,12 @@ The hull creaked — her bending past 80% of her strength — in 0 of 200 sinkin
 
 ## What it costs (this machine, Apple M1)
 
-Load average when measured: 7,38 · 13,26 · 12,17 (1 · 5 · 15 min). The cost lines depend on the machine's load; the plan's R20 budgets are judged on a quiet machine.
+Load average when measured: 12,44 · 14,98 · 15,75 (1 · 5 · 15 min). The cost lines depend on the machine's load; the plan's R20 budgets are judged on a quiet machine.
 
 | Budget (§5b.4, est.) | Measured | Against it |
 |---|---|---|
-| one bake: p95 under 2.4 s | p50 6.44 · p95 26.65 · most 45.17 s | over |
-| a match's bakes: p95 under 5.0 s | p50 7.08 · p95 14.48 · most 39.58 s | over |
+| one bake: p95 under 2.4 s | p50 4.81 · p95 7.57 · most 10.06 s | over |
+| a match's bakes: p95 under 5.0 s | p50 5.38 · p95 13.38 · most 39.04 s | over |
 | the longest timeline under 200 kB | p50 12.1 · p95 16.6 · most 17.9 kB | in |
 
 Steps a bake: p50 800 · p95 3966 · most 3994. The longest sinking (gone at 1:27:27) keeps 461 of 1582 states, 13.3 kB; with every state kept, 21.3 kB.
