@@ -204,6 +204,22 @@ func test_a_lost_crate_and_a_broken_rail_float_off_outboard() -> void:
 		assert_false(_over_a_deck(sim.config.ship, piece.end), "never comes down on a deck")
 
 
+func test_a_crate_lost_while_afloat_stays_on_the_water_where_it_floated() -> void:
+	var sim := _sim()
+	var tick := Ticks.from_seconds(60.0)
+	var floating := _at(sim, tick - 1).duplicate(true)
+	floating["props"][0]["state"] = PropState.Body.FLOATING
+	var cues := _planner(sim).plan(floating, _at(sim, tick, [SimEvent.crate_lost(tick, 0)]))
+	var thrown := _of(cues, FLOTSAM)
+	assert_eq(thrown.size(), 1, "the crate alone")
+	assert_eq(thrown[0].piece, FxCue.Piece.CRATE)
+	assert_true(thrown[0].on_sea)
+	var crate: Vector3 = _at(sim, tick)["props"][0]["pos"]
+	var moved := Vector2(thrown[0].end.x - crate.x, thrown[0].end.z - crate.z).length()
+	assert_lt(moved, 0.5, "comes down on the water where it floated")
+	assert_true(_over_a_deck(sim.config.ship, thrown[0].end), "never thrown over the rail")
+
+
 func test_a_body_going_in_splashes_harder_the_harder_it_falls() -> void:
 	var sim := _sim()
 	var tick := Ticks.from_seconds(60.0)
