@@ -10,6 +10,9 @@ const PATH := "res://data/match/replay.tres"
 ## ticks seek faster and keep more: a snapshot every 60 ticks of an 8-seat match is
 ## about a kilobyte a second of match.
 @export var keyframe_every: int = 60
+## How many saved replays are kept: the newest so many, the rest pruned as one is
+## saved (ReplayRecorder).
+@export var keep_newest: int = 20
 
 
 static func load_default() -> ReplayRules:

@@ -14,6 +14,12 @@ signal menu_requested
 ## A browser let go of the mouse mid-match at the player's Esc, which this never hears.
 signal pointer_lost
 
+## The choices a local match was built from (Game), for its replay; null online.
+var choices: MatchChoices
+## A local match's replay, recorded once it ended or as it was left (save_replay): what
+## the results offer to watch again; null until then, and for an online match.
+var last_replay: ReplayFile
+
 const LOCAL_SEAT := 0
 ## The gaze through another seat's eyes, in degrees above the horizon: at a level
 ## gaze the deck within about 3 m of the feet is under the frame.
@@ -46,6 +52,8 @@ var _staged := PackedFloat64Array()
 var _paused := false
 ## Whether the match is played on a server: started by start_online.
 var _online := false
+## The local match's host and client in one process (start); null online.
+var _loopback: LoopbackMatch
 ## The mouse let go mid-match without pausing, a menu over the match having it, the keys
 ## and the pad: an online match never pauses.
 var _mouse_freed := false
@@ -100,6 +108,8 @@ func _ready() -> void:
 
 func _exit_tree() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	# A match left early — the pause menu's, or the game's quit — is kept as it ends.
+	save_replay()
 
 
 # Runs after MatchView (the scene's process_priority), so the eyes sit on the bodies
@@ -127,6 +137,7 @@ func _process(delta: float) -> void:
 	)
 	if _end.visible:
 		_end.show_prompts(_prompts)
+		save_replay()
 	_free.keep(_can_fly(snapshot))
 	_pointer.want(_looking() or _flying())
 	_hold()
@@ -255,6 +266,8 @@ func start(
 			config, net_rules, conditions, played, local, served, from, split
 		)
 	var names := _seat_names(config.seats)
+	_loopback = loopback
+	last_replay = null
 	_begin(loopback, local, LOCAL_SEAT, names, observer, eye_seat, observer_cut, greybox)
 
 
@@ -265,6 +278,8 @@ func start(
 func start_online(played: PlayedMatch, local: LocalInputSource, names: PackedStringArray) -> void:
 	var seat := played.client.seat
 	_online = true
+	_loopback = null
+	last_replay = null
 	_begin(played, local, seat, names, false, seat, INF, false)
 	_end.offer_room()
 
@@ -379,6 +394,20 @@ func _begin(
 		_eyes.make_current()
 	_end.hide()
 	print("match seed %d" % config.match_seed)
+
+
+## Records the local match as its replay (last_replay) — the host's log, which has every
+## seat's frames — and saves it, once: as the results show, or as the match is left
+## early, its log ending where play ended (R3). An online match is never saved: its host
+## is elsewhere. A match started mid-way (a tool's jump) is recorded but not saved, as
+## no replay could rebuild its start (ReplayFile.playable).
+func save_replay() -> void:
+	if last_replay != null or _loopback == null or choices == null:
+		return
+	var recorder := ReplayRecorder.new()
+	last_replay = recorder.record(choices, _loopback.host.runner)
+	if last_replay.playable():
+		recorder.save(last_replay)
 
 
 ## Takes up the settings screen's field of view, deck roll, view kick and graphics

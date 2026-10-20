@@ -5,3 +5,4 @@
 [resource]
 script = ExtResource("1_replay")
 keyframe_every = 60
+keep_newest = 20

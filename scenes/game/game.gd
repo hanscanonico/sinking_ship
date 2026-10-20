@@ -55,6 +55,9 @@ var _seeds := RandomNumberGenerator.new()
 var _match: MatchScene
 ## The last match's choices, their seed blank, for a rematch: a fresh one is drawn.
 var _rematch_choices: MatchChoices
+## The match under way's choices, their seed the one it plays: what its replay is
+## built from (MatchScene.choices).
+var _playing: MatchChoices
 var _capturing := false
 ## Watches a capture's window for frames drawn, so one the system stops drawing fails
 ## rather than wait forever (#105); null when not capturing.
@@ -222,6 +225,7 @@ func _play(choices: MatchChoices) -> void:
 			_menu.show_problem(problems[0])
 		return
 	_rematch_choices = choices.with_seed("")
+	_playing = choices.with_seed(str(config.match_seed))
 	_upcoming.take(config)
 	_menu.hide()
 	if config.bake_some(0):
@@ -292,6 +296,7 @@ func _start(config: MatchConfig) -> void:
 		_capture_tick = config.schedule().physics_tick(_args.phys_seconds)
 		if _args.jump:
 			jump_to = maxi(_capture_tick - Ticks.from_seconds(JUMP_LEAD), 0)
+	_match.choices = _playing
 	_match.start(
 		config,
 		_args.autoplay,
