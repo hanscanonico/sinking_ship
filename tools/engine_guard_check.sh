@@ -26,6 +26,10 @@ expect 1 "coloured ERROR" bash -c 'printf "\033[31mERROR: red\033[0m\n" >&2'
 expect 3 "the command's own failure" bash -c 'exit 3'
 expect 0 "the godot_ai helper's lines" bash -c 'echo "[godot_ai] ERROR: not ours"'
 expect 0 "a leak report at exit" bash -c 'echo "ERROR: 4 resources still in use at exit (run with --verbose for details)." >&2'
+leaks='printf "ERROR: 3 shaders of type SceneShaderGLES3 were never freed\nERROR: Buffer with GL ID of 98: leaked 216 bytes.\nERROR: Texture with GL ID of 37: leaked 4096 bytes.\n" >&2'
+expect 0 "the renderer's GL leak report at exit" bash -c "echo captured; $leaks"
+expect 1 "a SCRIPT ERROR among the GL leak report" bash -c "printf 'SCRIPT ERROR: boom\n' >&2; $leaks"
+expect 1 "an ERROR that only mentions a leak" bash -c 'echo "ERROR: Buffer with GL ID of 9: leaked 216 bytes, then the draw failed" >&2'
 ENGINE_GUARD_PATTERN='SCRIPT ERROR:' expect 0 "a deliberate push_error under a script-only pattern" bash -c 'echo "ERROR: CSPRNG gave 3 of 4 bytes" >&2'
 ENGINE_GUARD_PATTERN='SCRIPT ERROR:' expect 1 "a script error under a script-only pattern" bash -c 'echo "SCRIPT ERROR: boom" >&2'
 ENGINE_GUARD_IGNORE='expected' expect 0 "an ignored error" bash -c 'echo "ERROR: expected thing"'
