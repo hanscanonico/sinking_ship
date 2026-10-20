@@ -421,7 +421,8 @@ func test_a_stacked_shove_never_carries_a_body_through_a_wall() -> void:
 ## A body slammed up a steep stair faster than it can climb — more than a step's
 ## rise in one tick — is held on the stair where the rise runs out, never pushed out
 ## of the stair's side or head: at the aft companionway's head, that is through the
-## hull.
+## hull's after wall under the main deck. Come up to the head, it goes on over the
+## wall's top onto the deck, flush with it.
 func test_a_body_slammed_up_a_stair_is_held_on_it() -> void:
 	var rules := SimFixtures.rules()
 	var fastest := rules.knockback * rules.restagger_mult * 2.0
@@ -433,15 +434,16 @@ func test_a_body_slammed_up_a_stair_is_held_on_it() -> void:
 		body.vel = Vector3(-speed, 0.0, 0.0)
 		body.stagger_ticks = Ticks.from_seconds(rules.stagger)
 		var lowest := body.pos.y
-		var aftmost := body.pos.x
+		var lowest_past_wall := INF
 		for _tick in Ticks.RATE:
 			SimFixtures.step(sim)
 			lowest = minf(lowest, body.pos.y)
-			aftmost = minf(aftmost, body.pos.x)
+			if body.pos.x < -12.9:
+				lowest_past_wall = minf(lowest_past_wall, body.pos.y)
 		var label := "at %.1f m/s" % speed
 		assert_eq(body.body, PlayerState.Body.GROUNDED, label + ": still standing")
 		assert_gte(lowest, -0.77, label + ": never fell off the stair")
-		assert_gt(aftmost, -12.9, label + ": never into the hull's after wall")
+		assert_gte(lowest_past_wall, 0.0, label + ": never into the hull's after wall")
 		assert_true(
 			sim.surfaces.is_ramp(body.surface) or body.pos.y == 0.0,
 			label + ": on the stair or the deck at its head"

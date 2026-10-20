@@ -19,12 +19,11 @@ extends RefCounted
 ## that its own do.
 
 const NONE := -1
-## How far under a step's reach a body slammed up a ramp is held, so that its feet
-## still find the ramp within a step.
-const CLIMB_MARGIN := 0.001
 ## How much of a floor's clearance under() leaves unused: a ramp's height between
 ## its ends may round past them.
 const CLEARANCE_SLACK := 0.000001
+## obstacle_contacts' stair under the feet before it has been looked for.
+const UNASKED := -2
 
 
 ## A body's circle overlapping something that holds it back.
@@ -396,7 +395,10 @@ func joins(ramp_surface_id: int) -> PackedInt32Array:
 ## can crawl [param crawl_height] tall ducks under any of those whose underside is that
 ## high over its feet or higher where it has a floor to crawl on under it, its middle
 ## [param crawl_reach] in under the edge — the circle's radius when that is negative
-## (_crawls_under): a deck edge over a stair, with none, still holds it. One contact per
+## (_crawls_under): a deck edge over a stair, with none, still holds it. On a stair,
+## each is measured from the stair carried on to it, not from the feet: the deck at its
+## head and a wall's top flush with that deck are where it goes, not a step too high,
+## and the stair going on down under a deck edge is a floor to crawl on. One contact per
 ## direction, the deepest.
 func obstacle_contacts(
 	ship_point: Vector3,
@@ -417,16 +419,22 @@ func obstacle_contacts(
 	var reach_in := radius if crawl_reach < 0.0 else crawl_reach
 	var box := Rect2(point - Vector2(radius, radius), Vector2(radius, radius) * 2.0)
 	var near := _grid.near(box, reach_up, head)
+	var stair := UNASKED
 	for surface: int in near:
 		if surface < _first_top:
 			continue
 		if not (reach_up < _tops[surface] and head > _bottoms[surface]):
 			continue
-		if _crawls_under(surface, point, reach_in, feet, step, crawl_height):
+		if stair == UNASKED:
+			stair = _stair_under(point, feet, step)
+		if _crawls_under(surface, point, reach_in, feet, step, crawl_height, stair):
 			continue
 		var blocker := _blocker_of(surface)
 		var contact: Contact
 		if blocker.shape == ShipBlocker.Shape.BOX:
+			var nearest := point.clamp(blocker.area.position, blocker.area.end)
+			if _tops[surface] <= _along(stair, nearest, feet) + step:
+				continue
 			contact = PlaneShapes.rect_contact(blocker.area, point, radius)
 		else:
 			contact = PlaneShapes.circle_contact(blocker.centre, blocker.radius, point, radius)
@@ -442,10 +450,14 @@ func obstacle_contacts(
 		var top := height_at(surface, Vector3(closest.x, 0.0, closest.y))
 		if not (reach_up < top and head > _bottoms[surface]):
 			continue
-		if _crawls_under(surface, point, reach_in, feet, step, crawl_height):
+		if stair == UNASKED:
+			stair = _stair_under(point, feet, step)
+		if surface < _first_ramp and top <= _along(stair, closest, feet) + step:
+			continue
+		if _crawls_under(surface, point, reach_in, feet, step, crawl_height, stair):
 			continue
 		var contact := (
-			_climb_contact(_ramps[surface - _first_ramp], point, radius, reach_up)
+			PlaneShapes.climb_contact(_ramps[surface - _first_ramp], point, radius, reach_up)
 			if surface >= _first_ramp and closest == point
 			else PlaneShapes.rect_contact(area, point, radius)
 		)
@@ -472,58 +484,55 @@ func obstacle_contacts(
 
 
 ## Whether a body with its feet at [param feet] and its middle at [param point] ducks
-## under [param surface] to crawl: its underside is [param crawl_height] or more over
-## the feet, and under it — [param reach] in from its edge nearest the body, where its
-## middle would be once its circle is under it — a deck or a stair stands within
-## [param step] of the feet with crawl_height or more of headroom up to it.
+## under [param surface] to crawl: under it — [param reach] in from its edge nearest
+## the body, where its middle would be once its circle is under it — a deck or a stair
+## stands within [param step] of the feet, or of [param stair] going on down to there,
+## with crawl_height or more of headroom up to it, and its underside is
+## [param crawl_height] or more over the feet, or over that stair there.
 func _crawls_under(
-	surface: int, point: Vector2, reach: float, feet: float, step: float, crawl_height: float
+	surface: int,
+	point: Vector2,
+	reach: float,
+	feet: float,
+	step: float,
+	crawl_height: float,
+	stair: int
 ) -> bool:
 	var underside := _bottoms[surface]
-	if underside < feet + crawl_height:
+	if underside < feet + crawl_height and stair == NONE:
 		return false
 	var area := _areas[surface]
 	var closest := point.clamp(area.position, area.end)
 	var under_it := closest
 	if closest != point:
 		under_it += (closest - point).normalized() * reach
+	var low := minf(_along(stair, under_it, feet), feet)
+	if underside < low + crawl_height:
+		return false
 	var at := Vector3(under_it.x, feet + step, under_it.y)
 	var ground := _highest_at_or_below(at, _first_top)
 	if ground == NONE:
 		return false
 	var height := height_at(ground, at)
-	return height >= feet - step and underside - height >= crawl_height
+	return height >= low - step and underside - height >= crawl_height
 
 
-## What holds back a circle of [param radius] whose centre at [param point] stands on
-## [param ramp] where it rises above [param reach], the highest its feet can step this
-## tick — carried up a steep stair faster than a step a tick, or onto its side: the
-## least move of back down the ramp to where the rise runs out, or out through a side
-## or the low end. Never out through the high end: past a stair's head is the deck it
-## climbs to, standing over a wall or the hull.
-static func _climb_contact(ramp: ShipRamp, point: Vector2, radius: float, reach: float) -> Contact:
-	var x_axis := ramp.axis == ShipRamp.Axis.X
-	var axis := 0 if x_axis else 1
-	var length := ramp.area.size[axis]
-	var along := point[axis] - ramp.area.position[axis]
-	var rise := (ramp.end_height - ramp.start_height) / length
-	var outward := Vector2.RIGHT if x_axis else Vector2.DOWN
-	var high_end := outward if rise > 0.0 else -outward
-	# A hair under the reach, so the feet find the ramp within a step when grounded.
-	var limit := clampf((reach - CLIMB_MARGIN - ramp.start_height) / rise, 0.0, length)
-	var best := Contact.new(-high_end, absf(along - limit) + CLIMB_MARGIN / absf(rise))
-	var area := ramp.area
-	for side: Array in [
-		[point.x - area.position.x, Vector2.LEFT],
-		[area.end.x - point.x, Vector2.RIGHT],
-		[point.y - area.position.y, Vector2.UP],
-		[area.end.y - point.y, Vector2.DOWN],
-	]:
-		if side[1] == high_end:
-			continue
-		if side[0] + radius < best.depth:
-			best = Contact.new(side[1], side[0] + radius)
-	return best
+## The ramp a body with its feet at [param feet] and its middle at [param point]
+## stands on — the highest surface within [param step] under them, if a ramp — or NONE.
+func _stair_under(point: Vector2, feet: float, step: float) -> int:
+	var at := Vector3(point.x, feet + step, point.y)
+	var stand := _highest_at_or_below(at, _first_top)
+	if stand < _first_ramp or height_at(stand, at) < feet - step:
+		return NONE
+	return stand
+
+
+## The height [param stair] stands at at [param at], carried on level past its ends;
+## off a stair (NONE), the feet's [param feet].
+func _along(stair: int, at: Vector2, feet: float) -> float:
+	if stair == NONE:
+		return feet
+	return _ramps[stair - _first_ramp].height_at(at.x, at.y)
 
 
 ## Every railing of [param surface] that a circle of [param radius] centred on

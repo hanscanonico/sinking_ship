@@ -1,8 +1,13 @@
 class_name PlaneShapes
 extends RefCounted
 ## The flat shapes Surfaces' questions are made of, in the ship's x/z plane: where a
-## circle meets a rectangle or another circle, where a segment crosses one, and how
-## contacts facing one way merge. Pure functions, nothing kept.
+## circle meets a rectangle, another circle or a stair too steep for it, where a
+## segment crosses one, and how contacts facing one way merge. Pure functions, nothing
+## kept.
+
+## How far under a step's reach a body slammed up a ramp is held, so that its feet
+## still find the ramp within a step.
+const CLIMB_MARGIN := 0.001
 
 
 ## Whether a body [param body_height] tall with its feet at [param feet] meets
@@ -47,6 +52,39 @@ static func circle_contact(
 		return null
 	var normal := offset / distance if distance > 0.0 else Vector2.RIGHT
 	return Surfaces.Contact.new(normal, circle_radius + radius - distance)
+
+
+## What holds back a circle of [param radius] whose centre at [param point] stands on
+## [param ramp] where it rises above [param reach], the highest its feet can step this
+## tick — carried up a steep stair faster than a step a tick, or onto its side: the
+## least move of back down the ramp to where the rise runs out, or out through a side
+## or the low end. Never out through the high end: past a stair's head is the deck it
+## climbs to, standing over a wall or the hull.
+static func climb_contact(
+	ramp: ShipRamp, point: Vector2, radius: float, reach: float
+) -> Surfaces.Contact:
+	var x_axis := ramp.axis == ShipRamp.Axis.X
+	var axis := 0 if x_axis else 1
+	var length := ramp.area.size[axis]
+	var along := point[axis] - ramp.area.position[axis]
+	var rise := (ramp.end_height - ramp.start_height) / length
+	var outward := Vector2.RIGHT if x_axis else Vector2.DOWN
+	var high_end := outward if rise > 0.0 else -outward
+	# A hair under the reach, so the feet find the ramp within a step when grounded.
+	var limit := clampf((reach - CLIMB_MARGIN - ramp.start_height) / rise, 0.0, length)
+	var best := Surfaces.Contact.new(-high_end, absf(along - limit) + CLIMB_MARGIN / absf(rise))
+	var area := ramp.area
+	for side: Array in [
+		[point.x - area.position.x, Vector2.LEFT],
+		[area.end.x - point.x, Vector2.RIGHT],
+		[point.y - area.position.y, Vector2.UP],
+		[area.end.y - point.y, Vector2.DOWN],
+	]:
+		if side[1] == high_end:
+			continue
+		if side[0] + radius < best.depth:
+			best = Surfaces.Contact.new(side[1], side[0] + radius)
+	return best
 
 
 static func segment_meets_rect(start: Vector2, end: Vector2, rect: Rect2) -> bool:
