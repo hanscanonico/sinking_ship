@@ -379,6 +379,8 @@ func setup(
 	_wet.clear()
 	_wet_then = null
 	_wet_now = null
+	_flow_names = []
+	_flow_at.clear()
 	var unseen := [ShipOpening.Kind.GASH, ShipOpening.Kind.FLOOR_GAPS, ShipOpening.Kind.LEAK]
 	for opening: ShipOpening in _passages:
 		_pours.append(null)
