@@ -194,3 +194,18 @@ func test_a_sheet_churns_a_fifth_of_the_way_more_each_tick_its_water_climbs_fast
 	settled.levels[_high] += 0.2
 	water.show_water(higher, settled, 0.0)
 	assert_almost_eq(_inflow_of(water), 0.288, 1e-6, "standing still, a fifth back")
+
+
+func test_a_cell_s_water_shows_from_its_first_water_as_the_transcript_tells_it() -> void:
+	var reach := Vector2(-1.0, 1.5)
+	var first := SinkTimeline.FIRST_WATER
+	assert_true(InnerWater.shows(reach.x + first + 1e-4, reach), "just over its first water")
+	assert_true(InnerWater.shows(reach.x + first, reach), "at its first water, flooding")
+	assert_false(InnerWater.shows(reach.x + first - 1e-4, reach), "just under it: dry")
+	assert_false(InnerWater.shows(reach.y, reach), "full: no surface")
+
+
+func test_a_cell_s_water_is_never_drawn_close_enough_to_fight_a_dry_floor() -> void:
+	var reach := Vector2(0.0, 2.5)
+	assert_false(InnerWater.shows(InnerWater.CLEAR_OF_FLOOR * 0.5, reach))
+	assert_gte(SinkTimeline.FIRST_WATER, InnerWater.CLEAR_OF_FLOOR, "the first water clears it")
