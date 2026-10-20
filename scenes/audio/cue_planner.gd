@@ -35,6 +35,8 @@ const WADE_STRIDE := 1.3
 ## LANDING_LOUD_TICKS or more lands at full.
 const LANDING_SOFT := 0.35
 const LANDING_LOUD_TICKS := 12
+## Climbing out of the water: the wet landing's splash of the water running off.
+const CLIMB_OUT_SPLASH := 0.3
 ## A jump's effort is the shove's grunt, this much quieter.
 const JUMP_EFFORT := 0.5
 ## The hull's strain is its change of trim and heel in degrees, plus SINK_STRAIN
@@ -60,6 +62,8 @@ const CARGO_SOFT := 0.4
 ## something — and the loss, or the speed it comes down at, heard loudest.
 const THUD_DROP := 2.0
 const THUD_LOUD := 4.0
+## A crate the water lifts off the deck splashes this soft.
+const AFLOAT_GAIN := 0.45
 ## Water this far over the lowest corner of a cell's floor, in metres, is heard
 ## breaking in; and the least difference across an opening heard pouring. Twins of
 ## InnerWater.SHOWS and InnerWater.POURS, so a pour is heard as it starts being drawn.
@@ -253,15 +257,23 @@ func _shove(then: Dictionary, now: Dictionary, tick: int, cues: Array[AudioCue])
 ## The cargo (SH10), crate by crate from [param then] to [param now] — the two
 ## snapshots' "props": a scrape each SCRAPE_STRIDE a crate slides along the deck, a
 ## thud as it comes down or loses THUD_DROP of its speed in a tick, and a splash as
-## it goes into the sea.
+## it goes into the sea. The water lifting one off the deck splashes soft; afloat it
+## is silent, and drifting off adrift it makes no second splash.
 func _cargo(then: Array, now: Array, tick: int, cues: Array[AudioCue]) -> void:
 	for index in now.size():
 		var entry: Dictionary = now[index]
 		var before: Dictionary = then[index]
 		var state: PropState.Body = entry["state"]
+		var was_state: PropState.Body = before["state"]
 		if state == PropState.Body.LOST:
-			if before["state"] != PropState.Body.LOST:
+			if was_state != PropState.Body.LOST and was_state != PropState.Body.FLOATING:
 				cues.append(_at_crate(AudioCue.Kind.SPLASH, tick, entry))
+			continue
+		if state == PropState.Body.FLOATING:
+			if was_state != PropState.Body.FLOATING:
+				var lifted := _at_crate(AudioCue.Kind.SPLASH, tick, entry)
+				lifted.gain = AFLOAT_GAIN
+				cues.append(lifted)
 			continue
 		var vel: Vector3 = entry["vel"]
 		var was: Vector3 = before["vel"]
@@ -294,8 +306,9 @@ func _take_off(then: Dictionary, now: Dictionary, tick: int, cues: Array[AudioCu
 	cues.append(effort)
 
 
-## What [param event] sounds like. Going into the sea splashes, and a climber shoved
-## back in splashes heavy; an out by the cold is quiet — its splash was going in.
+## What [param event] sounds like. Going into the sea splashes, climbing out lands
+## wet with a small splash, and a climber shoved back in splashes heavy; an out by
+## the cold is quiet — its splash was going in.
 func _from_event(event: Dictionary, now: Dictionary, pose: ShipPose, cues: Array[AudioCue]) -> void:
 	var tick: int = event["tick"]
 	var seat: int = event["seat"]
@@ -316,6 +329,14 @@ func _from_event(event: Dictionary, now: Dictionary, pose: ShipPose, cues: Array
 			cues.append(cue)
 		SimEvent.Kind.ENTERED_WATER:
 			cues.append(_at_seat(AudioCue.Kind.SPLASH, tick, now[seat]))
+		SimEvent.Kind.CLIMBED_OUT:
+			var out := _at_seat(AudioCue.Kind.LANDING, tick, now[seat])
+			out.gain = LANDING_SOFT
+			out.ground = AudioCue.Ground.WET
+			cues.append(out)
+			var dripping := _at_seat(AudioCue.Kind.SPLASH, tick, now[seat])
+			dripping.gain = CLIMB_OUT_SPLASH
+			cues.append(dripping)
 		SimEvent.Kind.CRATE_HIT:
 			var thud := _at_seat(AudioCue.Kind.THUD, tick, now[seat])
 			thud.heavy = true
