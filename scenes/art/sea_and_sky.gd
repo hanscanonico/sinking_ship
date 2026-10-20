@@ -67,6 +67,8 @@ var _gloom := -1.0
 var _churn := 0.0
 var _churn_centre := Vector2.ZERO
 var _churn_axis := Vector2.RIGHT
+## The bodies in water the sea's rings are drawn round now (show_waders).
+var _waders := PackedVector4Array()
 ## From ship space to the rooms' map: x and z to its UV, y kept; and the ship as
 ## last drawn, so the sea is told where the rooms are only when it moves.
 var _ship_to_rooms := Transform3D()
@@ -190,6 +192,24 @@ func show_graphics(quality: GraphicsQuality) -> void:
 	_sun.directional_shadow_max_distance = quality.shadow_distance
 	_dusk.glow_enabled = quality.glow
 	_water.set_shader_parameter(&"fine_share", quality.sea_detail)
+
+
+## Draws rings on the sea round [param waders], the bodies in water nearest the eye
+## (MatchView.waders): each a world foot point on its water and how fast it moves.
+func show_waders(waders: PackedVector4Array) -> void:
+	if waders == _waders:
+		return
+	_waders = waders
+	_water.set_shader_parameter(&"waders", padded_waders(waders))
+	_water.set_shader_parameter(&"wader_count", waders.size())
+
+
+## [param waders] filled out to the shaders' MatchView.MAX_WADERS slots: past
+## wader_count, none is read.
+static func padded_waders(waders: PackedVector4Array) -> PackedVector4Array:
+	var padded := waders.duplicate()
+	padded.resize(MatchView.MAX_WADERS)
+	return padded
 
 
 ## Shows the sinking at [param tick] with the ship drawn at [param ship_to_world].

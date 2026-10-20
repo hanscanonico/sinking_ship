@@ -107,6 +107,8 @@ var _sea: ShaderMaterial
 ## compatibility renderer holds those for about 256 drawn things at most, fewer than a
 ## ship of many cells and openings draws (the Titanic).
 var _water: ShaderMaterial
+## The bodies in water its rings are drawn round now (show_waders).
+var _waders := PackedVector4Array()
 var _boxes: Array[AABB] = []
 ## Per cell, its surface, or null for a cell whose water is not drawn; and the rest of
 ## a cell drawn in a stack of boxes (stacked), each as [cell, box, surface].
@@ -430,6 +432,27 @@ func setup(
 	_pocket_light.visible = false
 	add_child(_pocket_light)
 	set_process(false)
+
+
+## Draws rings in every cell's water round [param waders], the bodies in water nearest
+## the eye (MatchView.waders): each a world foot point on its water and how fast it moves.
+func show_waders(waders: PackedVector4Array) -> void:
+	if waders == _waders:
+		return
+	_waders = waders
+	var padded := SeaAndSky.padded_waders(waders)
+	for surface: MeshInstance3D in _surfaces:
+		if surface != null:
+			_show_waders_on(surface, padded, waders.size())
+	for stack: Array in _stacks:
+		_show_waders_on(stack[2], padded, waders.size())
+
+
+static func _show_waders_on(
+	surface: MeshInstance3D, padded: PackedVector4Array, count: int
+) -> void:
+	_param(surface, &"waders", padded)
+	_param(surface, &"wader_count", count)
 
 
 ## Shows the water [param alpha] of the way from [param then] to [param now], on the
