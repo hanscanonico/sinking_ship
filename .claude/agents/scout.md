@@ -26,7 +26,24 @@ implementer needs no further reading:
 - risk — what could break, and which locked rule is in play
 - size — S or M; one implementer finishes in ≤90 min, or split it
 
+Tag every line that states a game fact — a moment, a position, a cause ("crates lift at
+01:36", "the saloon is at x = 12") — **VERIFIED** with how (the command, or file:line) or
+**UNVERIFIED**. A guess written as a fact travels into a spec and an implementer's
+capture; an UNVERIFIED tag tells them to re-derive it, and implementers re-derive capture
+moments from the sim either way. `FROM=` on a capture is the seat's feet — the eye is
+1.6 m above it, so a frame from a deck's height may be on the roof above it.
+
+Running the engine (a `make match`, a capture): never from the main checkout — its class
+cache goes stale and captures draw no hull. Add a detached worktree at origin/main
+(`git -C /Users/hanscanonico/Projets/sinking_ship fetch origin main`, then `worktree add
+--detach /Users/hanscanonico/Projets/sinking_ship-worktrees/scout-<topic> origin/main`),
+run `make import` there, run the engine from it, and remove it when done. Keep probes and
+logs in the session scratchpad. Never kill a process you did not start, never raise
+`TEST_SLOTS`, never script window focus; the window lock does not serve waiters in order,
+so a capture may wait 30–50 min — wait, never kill.
+
 Prefer a small, certain change over a large, plausible one. Never propose scope the plan
 has not scheduled, a balance number moved without measurement, or work in an area the
 brief says another session owns. Do not edit, commit, run `make format`, or run any
-instrument that writes under docs/ — read only.
+instrument that writes under docs/ — read only. The scratch worktree above is the one
+exception, and it is never committed to.
