@@ -71,6 +71,16 @@ that says it is waiting for a slot is the machine being shared, not a hang.
 - **Seeded RNG only.** Thread a seeded `RandomNumberGenerator` through the sim; global
   `randf()`/`randi()`/`randomize()` in `core/` or `ai/` fails `make check`.
 - **Balance numbers live in `data/*.tres`**, never as constants in code.
+- **Godot owns the form, Blender the finish.** Everything the game measures — a blocker's
+  footprint, a walkable surface, a height, an opening, the size a variant is picked by,
+  every dimension a fit test reads — is declared on the Godot side (layout data, authoring
+  scenes, the fitting code's tables). A model in `assets/models/NAME/` only dresses that
+  envelope and stays inside it: never read gameplay or placement from a mesh's bounds, and
+  never change a form by editing only a model. New props and reworks are modelled in
+  Blender through the Blender MCP, judged with `look`; the saved `.blend` is the source and
+  `make models` exports it. Scripted geometry is for the form (layout, cells, runtime FX
+  meshes), not for art; an existing `NAME.py` prop stays scripted until it is reworked. One
+  live Blender per machine: one session models at a time. See `assets/models/README.md`.
 
 ## Conventions
 
