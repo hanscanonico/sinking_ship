@@ -588,10 +588,15 @@ sailor:
 # the engine binary, and .claude/worktrees, which holds whole nested checkouts of
 # this same repo and would otherwise be linted as if it were project source.
 #
+# Double quotes, not single: GNU make on Windows runs a $(shell …) line with no
+# shell metacharacters itself and strips only double quotes, and the MSYS find
+# then globs a bare pattern and finds nothing. Both quote styles read the same
+# through sh on Linux and macOS.
+#
 # Deferred, so only the three gdtoolkit targets below pay for the walk.
-SOURCES = $(shell find . -name '*.gd' \
-	-not -path './.godot/*' -not -path './addons/*' -not -path './bin/*' \
-	-not -path './.claude/*')
+SOURCES = $(shell find . -name "*.gd" \
+	-not -path "./.godot/*" -not -path "./addons/*" -not -path "./bin/*" \
+	-not -path "./.claude/*")
 
 # The gdtoolkit targets run over every core, NPROC workers of 60 files each,
 # fed NUL-delimited. xargs exits 123 when any one invocation fails, so a problem
