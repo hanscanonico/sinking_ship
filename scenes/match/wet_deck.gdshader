@@ -8,6 +8,8 @@
 // It lies a few millimetres over the planks and is drawn a hair nearer the eye along
 // its own line of sight — the same pixels, nearer in depth — so it wins over them
 // without z-fighting and without rising over the sole of a foot.
+// Where water stands on the planks (wetness past 0.7) it also catches the sky at a
+// grazing look, a fresnel sheen toward sheen_colour; below that it is only the veil.
 shader_type spatial;
 render_mode unshaded, blend_mix, depth_draw_never, cull_back, fog_disabled, skip_vertex_transform;
 
@@ -19,6 +21,9 @@ uniform float grain = 2.2;
 uniform float ragged = 0.35;
 // The share of its distance from the eye the veil is drawn nearer it.
 uniform float pull = 0.0006;
+// The sky standing water catches at a grazing look, and how much of it at most.
+uniform vec4 sheen_colour : source_color = vec4(0.55, 0.62, 0.7, 1.0);
+uniform float sheen = 0.35;
 
 varying vec3 world;
 varying vec2 deck;
@@ -55,6 +60,11 @@ void fragment() {
 	if (wet <= 0.004) {
 		discard;
 	}
-	ALBEDO = vec3(0.0);
-	ALPHA = wet * soaked;
+	float veil = wet * soaked;
+	// Standing water only: zero below 0.7, so a merely wet deck is today's veil.
+	float facing = abs(dot(normalize(-VERTEX), NORMAL));
+	float glint = pow(1.0 - facing, 5.0) * sheen * smoothstep(0.7, 0.9, wet);
+	ALPHA = max(veil, glint);
+	// The black veil and the sheen share one draw: the sheen's share of the alpha.
+	ALBEDO = sheen_colour.rgb * (glint / ALPHA);
 }
