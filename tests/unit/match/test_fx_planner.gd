@@ -83,6 +83,11 @@ func _of(cues: Array[FxCue], kind: FxCue.Kind) -> Array[FxCue]:
 	return FxProbe.of(cues, kind)
 
 
+## Ship point [param point] in the ship plane.
+func _plane(point: Vector3) -> Vector2:
+	return Vector2(point.x, point.z)
+
+
 ## Whether ship point [param point] stands over any deck of [param layout].
 func _over_a_deck(layout: ShipLayout, point: Vector3) -> bool:
 	for platform: ShipPlatform in layout.platforms:
@@ -218,6 +223,80 @@ func test_a_crate_lost_while_afloat_stays_on_the_water_where_it_floated() -> voi
 	var moved := Vector2(thrown[0].end.x - crate.x, thrown[0].end.z - crate.z).length()
 	assert_lt(moved, 0.5, "comes down on the water where it floated")
 	assert_true(_over_a_deck(sim.config.ship, thrown[0].end), "never thrown over the rail")
+
+
+func test_a_crate_set_adrift_starts_clear_of_a_crate_floating_beside_it() -> void:
+	var sim := _sim()
+	var tick := Ticks.from_seconds(60.0)
+	var floating := _at(sim, tick - 1).duplicate(true)
+	floating["props"][0]["state"] = PropState.Body.FLOATING
+	var lost := _at(sim, tick, [SimEvent.crate_lost(tick, 0)])
+	# A second crate floating just where the first, alone, would be set adrift.
+	var beside: Vector3 = _of(_planner(sim).plan(floating, lost), FLOTSAM)[0].end
+	floating["props"][1]["state"] = PropState.Body.FLOATING
+	floating["props"][1]["pos"] = beside
+	var cues := _planner(sim).plan(floating, lost)
+	var thrown := _of(cues, FLOTSAM)
+	assert_eq(thrown.size(), 1, "the crate alone")
+	var width := sim.config.ship.props[0].radius * 2.0
+	var apart := Vector2(thrown[0].end.x - beside.x, thrown[0].end.z - beside.z).length()
+	assert_gte(apart, width - 0.001, "a crate width clear of the one beside it")
+	assert_true(_over_a_deck(sim.config.ship, thrown[0].end), "still on the water it floated on")
+
+
+func test_a_crate_set_adrift_keeps_out_of_the_way_of_one_floating_against_it() -> void:
+	var sim := _sim()
+	var tick := Ticks.from_seconds(60.0)
+	var floating := _at(sim, tick - 1).duplicate(true)
+	floating["props"][0]["state"] = PropState.Body.FLOATING
+	var crate: Vector3 = floating["props"][0]["pos"]
+	var width := sim.config.ship.props[0].radius * 2.0
+	# Resting against its outboard side: once it goes, that one drifts into its place.
+	var against := crate + Vector3(0.0, 0.0, -width)
+	floating["props"][1]["state"] = PropState.Body.FLOATING
+	floating["props"][1]["pos"] = against
+	var lost := _at(sim, tick, [SimEvent.crate_lost(tick, 0)])
+	var thrown := _of(_planner(sim).plan(floating, lost), FLOTSAM)
+	assert_eq(thrown.size(), 1, "the crate alone")
+	var end := Vector2(thrown[0].end.x, thrown[0].end.z)
+	var line := Vector2(crate.x - against.x, crate.z - against.z).normalized()
+	var off := end - Vector2(against.x, against.z)
+	var side := off - line * off.dot(line)
+	assert_gte(side.length(), width - 0.001, "a crate width clear of the other's way in")
+	var toward := Vector2(thrown[0].toward.x, thrown[0].toward.z)
+	assert_gte(toward.dot(side.normalized()), 0.0, "and drifting on away from it")
+	assert_true(_over_a_deck(sim.config.ship, thrown[0].end), "still on the water it floated on")
+
+
+func test_a_crate_set_adrift_keeps_clear_of_one_set_adrift_before_it() -> void:
+	var sim := _sim()
+	var planner := _planner(sim)
+	var tick := Ticks.from_seconds(60.0)
+	var floating := _at(sim, tick - 1).duplicate(true)
+	floating["props"][0]["state"] = PropState.Body.FLOATING
+	var crate: Vector3 = floating["props"][0]["pos"]
+	var first: FxCue = _of(
+		planner.plan(floating, _at(sim, tick, [SimEvent.crate_lost(tick, 0)])), FLOTSAM
+	)[0]
+	# A second crate a second later floating where the first did, swept off after it.
+	var later := tick + Ticks.RATE
+	var after := _at(sim, later - 1).duplicate(true)
+	after["props"][0]["state"] = PropState.Body.LOST
+	after["props"][1]["state"] = PropState.Body.FLOATING
+	after["props"][1]["pos"] = crate
+	var swept := _at(sim, later, [SimEvent.crate_lost(later, 1)]).duplicate(true)
+	swept["props"][1]["pos"] = crate
+	var thrown := _of(planner.plan(after, swept), FLOTSAM)
+	assert_eq(thrown.size(), 1, "the second crate alone")
+	var ways := Geometry2D.get_closest_points_between_segments(
+		_plane(first.end),
+		_plane(first.end + first.toward * FxPlanner.ADRIFT_WAY),
+		_plane(thrown[0].end),
+		_plane(thrown[0].end + thrown[0].toward * FxPlanner.ADRIFT_WAY)
+	)
+	var width := sim.config.ship.props[1].radius * 2.0
+	assert_gte(ways[0].distance_to(ways[1]), width - 0.001, "their ways a crate width apart")
+	assert_true(_over_a_deck(sim.config.ship, thrown[0].end), "still on the water it floated on")
 
 
 func test_a_body_going_in_splashes_harder_the_harder_it_falls() -> void:
