@@ -56,6 +56,8 @@ const ASTERN_SPREAD := 10.0
 const ASTERN_BOIL := Vector2(2.0, 3.0)
 ## A piece of wreckage comes down on the sea this far outboard of every deck.
 const OVERBOARD := 1.2
+## A crate swept off a flooded deck it already floated on moves on this far outboard.
+const ADRIFT_NUDGE := 0.3
 ## How long each sheet of spray a lurch slaps up the low side is, in metres.
 const LURCH_SPACING := 6.0
 ## The dust a deck giving way throws up billows from this far over it, in metres;
@@ -245,7 +247,10 @@ func _from_event(
 			cues.append(splash)
 		SimEvent.Kind.CRATE_LOST:
 			var crate: Vector3 = current["props"][event["prop"]]["pos"]
-			_throw(FxCue.Piece.CRATE, crate, _side_of(crate), tick, cues)
+			if previous["props"][event["prop"]]["state"] == PropState.Body.FLOATING:
+				_set_adrift(crate, tick, cues)
+			else:
+				_throw(FxCue.Piece.CRATE, crate, _side_of(crate), tick, cues)
 		SimEvent.Kind.RAILING_BROKE:
 			var span := _layout.railings[event["railing"]]
 			var middle := _layout.railing_middle(event["railing"], _railing_height * 0.5)
@@ -677,6 +682,19 @@ func _throw(
 	thrown.toward = outward
 	thrown.on_sea = true
 	cues.append(thrown)
+
+
+## A crate already afloat on a flooded deck when the sea sweeps it off: it carries on
+## from where it floated, nudged ADRIFT_NUDGE outboard, never thrown over the rail.
+func _set_adrift(crate: Vector3, tick: int, cues: Array[FxCue]) -> void:
+	var outward := _side_of(crate)
+	var adrift := FxCue.new(FxCue.Kind.FLOTSAM, tick, crate)
+	adrift.piece = FxCue.Piece.CRATE
+	# Flotsam times a flight by its drop, at least FLIGHT_LEAST, so a short one is defined.
+	adrift.end = crate + outward * ADRIFT_NUDGE
+	adrift.toward = outward
+	adrift.on_sea = true
+	cues.append(adrift)
 
 
 func _steam(
