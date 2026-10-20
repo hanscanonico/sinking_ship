@@ -248,7 +248,7 @@ func _from_event(
 		SimEvent.Kind.CRATE_LOST:
 			var crate: Vector3 = current["props"][event["prop"]]["pos"]
 			if previous["props"][event["prop"]]["state"] == PropState.Body.FLOATING:
-				_set_adrift(crate, tick, cues)
+				_set_adrift(event["prop"], crate, previous, tick, cues)
 			else:
 				_throw(FxCue.Piece.CRATE, crate, _side_of(crate), tick, cues)
 		SimEvent.Kind.RAILING_BROKE:
@@ -686,15 +686,67 @@ func _throw(
 
 ## A crate already afloat on a flooded deck when the sea sweeps it off: it carries on
 ## from where it floated, nudged ADRIFT_NUDGE outboard, never thrown over the rail.
-func _set_adrift(crate: Vector3, tick: int, cues: Array[FxCue]) -> void:
+## A crate still aboard in [param previous] too close to that spot pushes it away
+## instead, until the two stand clear, but never off the deck it floated over.
+func _set_adrift(
+	prop: int, crate: Vector3, previous: Dictionary, tick: int, cues: Array[FxCue]
+) -> void:
 	var outward := _side_of(crate)
 	var adrift := FxCue.new(FxCue.Kind.FLOTSAM, tick, crate)
 	adrift.piece = FxCue.Piece.CRATE
 	# Flotsam times a flight by its drop, at least FLIGHT_LEAST, so a short one is defined.
-	adrift.end = crate + outward * ADRIFT_NUDGE
+	adrift.end = _clear_of_crates(prop, crate, crate + outward * ADRIFT_NUDGE, previous)
 	adrift.toward = outward
 	adrift.on_sea = true
 	cues.append(adrift)
+
+
+## Where crate [param prop], floating at [param crate], may start adrift instead of
+## [param end]: [param end] itself unless the nearest other crate still aboard in
+## [param previous] stands closer to it than the two crates' radii, else that far
+## from it, away from it through [param crate], kept on the deck it floated over.
+func _clear_of_crates(prop: int, crate: Vector3, end: Vector3, previous: Dictionary) -> Vector3:
+	var nearest := -1
+	var nearest_distance := INF
+	for entry: Dictionary in previous["props"]:
+		var other: int = entry["prop"]
+		if other == prop or entry["state"] == PropState.Body.LOST:
+			continue
+		var at: Vector3 = entry["pos"]
+		var distance := Vector2(at.x - end.x, at.z - end.z).length()
+		if distance < nearest_distance:
+			nearest = other
+			nearest_distance = distance
+	if nearest < 0:
+		return end
+	var radius := _layout.props[prop].radius
+	var apart := radius + _layout.props[nearest].radius
+	if nearest_distance >= apart:
+		return end
+	var neighbour: Vector3 = previous["props"][nearest]["pos"]
+	var away := Vector2(crate.x - neighbour.x, crate.z - neighbour.z)
+	if away.length() < 0.001:
+		away = Vector2(end.x - crate.x, end.z - crate.z)
+	var clear := Vector2(neighbour.x, neighbour.z) + away.normalized() * apart
+	var deck := _deck_under(crate)
+	if deck != null:
+		var inside := deck.area.grow(-radius)
+		if inside.has_area():
+			clear = clear.clamp(inside.position, inside.end)
+	return Vector3(clear.x, end.y, clear.y)
+
+
+## The highest deck under [param point] at or below it, or null.
+func _deck_under(point: Vector3) -> ShipPlatform:
+	var under: ShipPlatform = null
+	for platform: ShipPlatform in _layout.platforms:
+		if not platform.area.has_point(Vector2(point.x, point.z)):
+			continue
+		if platform.height > point.y + 0.01:
+			continue
+		if under == null or platform.height > under.height:
+			under = platform
+	return under
 
 
 func _steam(

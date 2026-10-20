@@ -220,6 +220,25 @@ func test_a_crate_lost_while_afloat_stays_on_the_water_where_it_floated() -> voi
 	assert_true(_over_a_deck(sim.config.ship, thrown[0].end), "never thrown over the rail")
 
 
+func test_a_crate_set_adrift_starts_clear_of_a_crate_floating_beside_it() -> void:
+	var sim := _sim()
+	var tick := Ticks.from_seconds(60.0)
+	var floating := _at(sim, tick - 1).duplicate(true)
+	floating["props"][0]["state"] = PropState.Body.FLOATING
+	var lost := _at(sim, tick, [SimEvent.crate_lost(tick, 0)])
+	# A second crate floating just where the first, alone, would be set adrift.
+	var beside: Vector3 = _of(_planner(sim).plan(floating, lost), FLOTSAM)[0].end
+	floating["props"][1]["state"] = PropState.Body.FLOATING
+	floating["props"][1]["pos"] = beside
+	var cues := _planner(sim).plan(floating, lost)
+	var thrown := _of(cues, FLOTSAM)
+	assert_eq(thrown.size(), 1, "the crate alone")
+	var width := sim.config.ship.props[0].radius * 2.0
+	var apart := Vector2(thrown[0].end.x - beside.x, thrown[0].end.z - beside.z).length()
+	assert_gte(apart, width - 0.001, "a crate width clear of the one beside it")
+	assert_true(_over_a_deck(sim.config.ship, thrown[0].end), "still on the water it floated on")
+
+
 func test_a_body_going_in_splashes_harder_the_harder_it_falls() -> void:
 	var sim := _sim()
 	var tick := Ticks.from_seconds(60.0)
