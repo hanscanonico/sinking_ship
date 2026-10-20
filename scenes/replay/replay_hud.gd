@@ -91,7 +91,8 @@ func _ready() -> void:
 func setup(first_tick: int, last_tick: int) -> void:
 	_last_tick = last_tick
 	_bar.min_value = first_tick
-	_bar.max_value = last_tick
+	# A range of nothing has no ratio to draw: a bar of one tick at the least.
+	_bar.max_value = maxi(last_tick, first_tick + 1)
 	_bar.value = first_tick
 
 
@@ -104,7 +105,7 @@ func show_state(
 	if not _dragging:
 		_bar.set_value_no_signal(tick)
 	_play.text = "Play" if paused else "Pause"
-	_speed.text = "%s×" % String.num(speed, 2).trim_suffix("0").trim_suffix(".")
+	_speed.text = "%s×" % String.num(speed, 2)
 	_clock.text = "%s / %s" % [MatchTranscript.clock(tick), MatchTranscript.clock(_last_tick)]
 	_seat.text = "" if whose.is_empty() else whose[0].to_upper() + whose.substr(1)
 	_camera.text = camera

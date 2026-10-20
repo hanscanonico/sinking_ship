@@ -65,6 +65,9 @@ var _playing: MatchChoices
 ## where leaving it goes back to.
 var _replays: ReplaysMenu
 var _replay_from := ReplayFrom.MENU
+## The replay held for its match's sinking to bake (_holding is its config); null
+## while none is.
+var _holding_replay: ReplayFile
 var _capturing := false
 ## Watches a capture's window for frames drawn, so one the system stops drawing fails
 ## rather than wait forever (#105); null when not capturing.
@@ -289,7 +292,12 @@ func _on_baked(config: MatchConfig) -> void:
 		return
 	_holding = null
 	_hold.hide()
-	_start(config)
+	if _holding_replay != null:
+		var file := _holding_replay
+		_holding_replay = null
+		_begin_replay(file, config)
+	else:
+		_start(config)
 
 
 ## Starts [param config]'s match, its sinking made.
@@ -391,15 +399,34 @@ func _watch_from_results(file: ReplayFile) -> void:
 	_start_replay(file)
 
 
-## Watches [param file] in the match scene (R4).
+## Watches [param file] in the match scene (R4), its match's sinking made first as a
+## played match's is (R20): the countdown held over the backdrop while it bakes.
 func _start_replay(file: ReplayFile) -> void:
+	var config := file.config(_match_rules)
+	if config == null:
+		push_error("replay: its choices no longer make a match")
+		return
 	_baker.stop()
+	_menu.hide()
+	_pause.hide()
+	if config.bake_some(0):
+		_begin_replay(file, config)
+		return
+	_holding = config
+	_holding_replay = file
+	_hold.begin(Ticks.to_seconds(config.countdown_ticks))
+	_menu.show_behind(_hold.beside())
+	_baker.bake(config, _args.bake_budget_ms if _args.bake_budget_ms > 0.0 else HOLD_BAKE_MS)
+
+
+## Watches [param file] on [param config], its sinking made, in the match scene.
+func _begin_replay(file: ReplayFile, config: MatchConfig) -> void:
 	_ensure_match()
 	_menu.hide()
 	_pause.hide()
 	_music.play_match()
 	_match.set_paused(false)
-	_match.start_replay(file)
+	_match.start_replay(file, config)
 
 
 ## Back from a replay, to where it was opened from (R6): the results it was watched

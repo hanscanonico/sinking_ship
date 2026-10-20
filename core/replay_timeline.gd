@@ -24,14 +24,18 @@ var _every: int
 var _keyframes: Dictionary[int, Dictionary] = {}
 
 
-## [param replay] played under [param rules], its match made under [param match_rules]
-## (the default match data's when null). Asking for a timeline of a file that is not
-## playable() is an error.
-func _init(replay: ReplayFile, rules: ReplayRules, match_rules: MatchRules = null) -> void:
+## [param replay] played under [param rules], on [param config] — the match its
+## choices make (ReplayFile.config), handed in so the caller can have its sinking baked
+## ahead (Game's hold) rather than here. A config the log was not played under is an
+## error: the replay would not be the match (playable()).
+func _init(replay: ReplayFile, rules: ReplayRules, config: MatchConfig) -> void:
 	file = replay
 	_every = maxi(1, rules.keyframe_every)
-	_config = replay.config(match_rules)
-	assert(_config != null and replay.playable(match_rules), "a timeline of a playable replay")
+	_config = config
+	assert(
+		config != null and replay.log.first_tick == 0 and replay.log.matches(config),
+		"a timeline of a playable replay, on its own match"
+	)
 	_sim = MatchSim.create(_config)
 	_sources = replay.replay_sources()
 	_runner = MatchRunner.new(_sim, _sources)
@@ -52,8 +56,10 @@ func last_tick() -> int:
 	return file.log.last_tick() + 1
 
 
+## Whether there is nothing more to step: the log is used up, or the match ended before
+## it was (the sim steps no further once over, whatever frames remain).
 func at_end() -> bool:
-	return tick() >= last_tick()
+	return tick() >= last_tick() or _sim.is_over()
 
 
 func snapshot() -> Dictionary:
@@ -84,7 +90,7 @@ func seek(target: int) -> void:
 	if to < tick() or from > tick():
 		_sim.restore(_keyframes[from])
 		_runner = MatchRunner.new(_sim, _sources)
-	while tick() < to:
+	while tick() < to and not _sim.is_over():
 		_runner.step()
 		_keep()
 

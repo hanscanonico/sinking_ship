@@ -453,8 +453,12 @@ func _setup_view(
 func save_replay() -> void:
 	if last_replay != null or _loopback == null or choices == null:
 		return
+	var runner := _loopback.host.runner
+	# A match left before a tick was stepped has nothing to watch again.
+	if runner.input_log.last_tick() < runner.input_log.first_tick:
+		return
 	var recorder := ReplayRecorder.new()
-	last_replay = recorder.record(choices, _loopback.host.runner)
+	last_replay = recorder.record(choices, runner)
 	_last_stats = _stats
 	var playable := last_replay.playable()
 	_end.offer_replay(playable)
@@ -466,9 +470,9 @@ func save_replay() -> void:
 ## (ReplayTimeline) and drawn exactly as a live match is, seen through the recorded
 ## human seat's eyes, with the replay's controls over it (ReplayHud) and nothing of a
 ## match's input, pause or results. Esc, or the controls' Back, emits replay_closed.
-func start_replay(file: ReplayFile) -> void:
+func start_replay(file: ReplayFile, config: MatchConfig) -> void:
 	var rules := ReplayRules.load_default()
-	var timeline := ReplayTimeline.new(file, rules)
+	var timeline := ReplayTimeline.new(file, rules, config)
 	_online = false
 	_loopback = null
 	choices = file.choices
@@ -486,7 +490,6 @@ func start_replay(file: ReplayFile) -> void:
 		_replay_hud.seek_requested.connect(replay_seek)
 		_replay_hud.close_requested.connect(replay_closed.emit)
 	_replay_hud.setup(timeline.first_tick(), timeline.last_tick())
-	var config := timeline.sim().config
 	_setup_view(config, null, LOCAL_SEAT, _seat_names(config.seats), false, LOCAL_SEAT, INF, false)
 	# Nobody plays: no crosshair, readouts or wedges over the eyes, as from the observer.
 	_first_person_hud.setup(timeline.sim(), _names, false, _prompts)

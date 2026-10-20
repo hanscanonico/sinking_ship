@@ -51,7 +51,10 @@ func _ready() -> void:
 	_rows.add_theme_constant_override("separation", ROW_GAP)
 	scroll.add_child(_rows)
 	_empty = Label.new()
-	_empty.text = "No replays yet: every match played here is kept, the newest 20."
+	_empty.text = (
+		"No replays yet: every match played here is kept, the newest %d."
+		% ReplayRules.load_default().keep_newest
+	)
 	_empty.theme_type_variation = UiTheme.HINT_LABEL
 	box.add_child(_empty)
 	_back = Button.new()

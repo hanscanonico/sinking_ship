@@ -25,7 +25,7 @@ func _rules() -> MatchRules:
 
 
 func _timeline() -> ReplayTimeline:
-	return ReplayTimeline.new(_file, ReplayRules.load_default(), _rules())
+	return ReplayTimeline.new(_file, ReplayRules.load_default(), _file.config(_rules()))
 
 
 func _stepped_to(timeline: ReplayTimeline, to: int) -> Array[SimEvent]:
@@ -73,6 +73,28 @@ func test_sought_back_it_steps_on_with_the_match_s_own_events() -> void:
 	assert_eq(again, first_time, "the same events again")
 	timeline.seek(0)
 	assert_eq(_dicts(_stepped_to(timeline, from)).size() > 0, true, "events from the start")
+
+
+func test_a_log_running_past_the_match_s_end_stops_where_the_match_did() -> void:
+	# A two-seat fast match to its end, its log padded with frames after it ended — a
+	# file no recorder writes, but one a seek must not hang on.
+	var chosen := MatchChoices.new()
+	chosen.seed_text = "7"
+	chosen.seats = 2
+	chosen.fast = true
+	var config := chosen.config(_rules())
+	var played := RunMatch.bots_only(config)
+	played.run(20 * 60 * Ticks.RATE)
+	assert_true(played.is_over(), "the match ended")
+	var ended_at := played.tick()
+	for tick in range(ended_at, ended_at + 2 * Ticks.RATE):
+		played.input_log.record(tick, [null, null] as Array[InputFrame])
+	var file := ReplayFile.record(chosen, played.input_log, 1_760_000_000, _rules())
+	var timeline := ReplayTimeline.new(file, ReplayRules.load_default(), file.config(_rules()))
+	timeline.seek(timeline.last_tick())
+	assert_true(timeline.at_end(), "at its end")
+	assert_eq(timeline.tick(), ended_at, "where the match ended, not where the log does")
+	assert_eq(timeline.step(), [] as Array[SimEvent], "nothing more to step")
 
 
 func test_seeking_past_either_end_clamps() -> void:
