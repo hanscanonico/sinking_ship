@@ -4,8 +4,9 @@ extends RefCounted
 ## it, the snapshot after it with the events it carries, and the ship's pose at
 ## both ticks as SinkSchedule answers them (D7). Nothing else — no live seat, no
 ## sim (D5). Its own memory, how far through a stride each seat is, how far each
-## crate has slid since it last scraped and how far the hull has strained since it
-## last complained, is presentation state; nothing it does reaches the sim.
+## crate has slid since it last scraped, how far the hull has strained since it
+## last complained and which of her water it has heard, is presentation state;
+## nothing it does reaches the sim.
 
 ## Metres between footfalls, so steps land with the drawn feet: each locomotion
 ## clip's speed times its length (walk 1.33 s, run 0.93 s), over two feet.
@@ -64,6 +65,17 @@ const THUD_LOUD := 4.0
 ## InnerWater.SHOWS and InnerWater.POURS, so a pour is heard as it starts being drawn.
 const SHOWS := 0.02
 const POURS := 0.03
+## Seconds a cell heard flooding must stand dry before it is heard flooding again, and
+## an opening heard pouring must stand still before it is heard pouring again: water
+## hovering at either edge is heard once, not on every crossing.
+const CELL_REARM := 10.0
+const POUR_REARM := 5.0
+## A slot's _off_since while its water is on (_comes_on).
+const ON := -1
+## The most of the water's cues heard in one tick, the nearest the listener's ears: a
+## sinking that sets a deck's worth of water going at once is heard by its nearest,
+## not crowding out every voice the brawl needs.
+const WATER_CUES := 6
 ## The openings water passes unseen, and so unheard, as InnerWater leaves them undrawn:
 ## the gash is the iceberg's boom, a floor's gaps and a small leak only seep.
 const UNHEARD: Array[ShipOpening.Kind] = [
@@ -101,6 +113,16 @@ var _floor_halves := PackedVector3Array()
 var _openings: Array[ShipOpening] = []
 var _sides := PackedInt32Array()
 var _shut := PackedByteArray()
+## What of the water has been heard, by slot — each cell's, then each opening's, then
+## each platform's out of every cell: 1 once its coming on is heard, until it has stood
+## off its rearm; and the tick it has stood off since, ON while it is on.
+var _heard := PackedByteArray()
+var _off_since := PackedInt32Array()
+## Each platform's slot: its cell's, so the two flood as one, or its own.
+var _platform_slots := PackedInt32Array()
+## CELL_REARM and POUR_REARM in ticks.
+var _cell_rearm := Ticks.from_seconds(CELL_REARM)
+var _pour_rearm := Ticks.from_seconds(POUR_REARM)
 var _creak_strain := 0.0
 var _groan_strain := 0.0
 
@@ -124,8 +146,24 @@ func _init(
 	_stride.fill(0.5)
 	_scrape.resize(_layout.props.size())
 	var structure := _layout.structure
-	if structure == null:
-		return
+	if structure != null:
+		_watch_structure(structure)
+	var pose := _schedule.pose_at(0)
+	var slots := _floors.size() + _openings.size()
+	for platform: ShipPlatform in _layout.platforms:
+		var middle := platform.area.get_center()
+		var cell := pose.cell_at(Vector3(middle.x, platform.height + CellMap.DRY, middle.y))
+		if cell == CellMap.NONE or cell >= _floors.size():
+			cell = slots
+			slots += 1
+		_platform_slots.append(cell)
+	_heard.resize(slots)
+	_off_since.resize(slots)
+	_off_since.fill(ON)
+
+
+## The cells and the openings of [param structure], whose water is heard.
+func _watch_structure(structure: ShipStructure) -> void:
 	for cell: FloodCell in structure.cells:
 		var half := (cell.high - cell.low) * 0.5
 		_floors.append(Vector3(cell.low.x + half.x, cell.low.y, cell.low.z + half.z))
@@ -163,9 +201,7 @@ func plan(previous: Dictionary, current: Dictionary) -> Array[AudioCue]:
 		_from_event(event, now, pose_now, cues)
 	if current["phase"] == MatchState.Phase.LIVE:
 		_hull_strain(pose_then, pose_now, now, tick, cues)
-	var sounded := _cell_floods(pose_then, pose_now, tick, cues)
-	_floods(pose_then, pose_now, sounded, tick, cues)
-	_pours(pose_then, pose_now, tick, cues)
+	_water(pose_then, pose_now, now, tick, cues)
 	return cues
 
 
@@ -396,60 +432,82 @@ func _hull_strain(
 		cues.append(groan)
 
 
-## The sea breaking into her: a flood from the middle of each cell's floor as its
-## water first rises SHOWS over the floor's lowest corner. The cells it came from.
-func _cell_floods(
-	pose_then: ShipPose, pose_now: ShipPose, tick: int, cues: Array[AudioCue]
-) -> PackedInt32Array:
-	var sounded := PackedInt32Array()
-	if not _keeps_cells(pose_then) or not _keeps_cells(pose_now):
-		return sounded
-	for cell in _floors.size():
-		if _over_floor(cell, pose_then) or not _over_floor(cell, pose_now):
-			continue
-		var flood := AudioCue.new(AudioCue.Kind.FLOOD, tick)
-		flood.positional = true
-		flood.position = _floors[cell]
-		cues.append(flood)
-		sounded.append(cell)
-	return sounded
-
-
-## The sea rushing in: a flood from the middle of each platform as the water
-## reaches it, which is when Surfaces calls it flooded — but for one in a cell of
-## [param sounded], whose flood is already heard.
-func _floods(
-	pose_then: ShipPose,
-	pose_now: ShipPose,
-	sounded: PackedInt32Array,
-	tick: int,
-	cues: Array[AudioCue]
+## The sea breaking in and running on, each heard once as it comes and again only
+## once it has stopped a while (_comes_on): a flood from the middle of a cell's floor
+## as its water rises SHOWS over the floor's lowest corner, and from the middle of a
+## platform as the water reaches it, which is when Surfaces calls it flooded — but for
+## one in a cell, which floods with its cell, the one heard of the two first; and a
+## pour from an opening's middle as it starts carrying water. WATER_CUES of them at most,
+## the nearest the listener; the rest go unheard.
+func _water(
+	pose_then: ShipPose, pose_now: ShipPose, now: Dictionary, tick: int, cues: Array[AudioCue]
 ) -> void:
+	var heard: Array[AudioCue] = []
+	_water_coming_on(pose_then, pose_now, tick, heard)
+	if heard.size() > WATER_CUES:
+		var ears := _ears(now)
+		heard.sort_custom(
+			func(a: AudioCue, b: AudioCue) -> bool:
+				return a.position.distance_squared_to(ears) < b.position.distance_squared_to(ears)
+		)
+		heard.resize(WATER_CUES)
+	cues.append_array(heard)
+
+
+## The cues of _water before any goes unheard.
+func _water_coming_on(
+	pose_then: ShipPose, pose_now: ShipPose, tick: int, cues: Array[AudioCue]
+) -> void:
+	var cells := _keeps_cells(pose_then) and _keeps_cells(pose_now)
+	if cells:
+		for cell in _floors.size():
+			var was := _over_floor(cell, pose_then)
+			if _comes_on(cell, was, _over_floor(cell, pose_now), tick, _cell_rearm):
+				_flood_at(_floors[cell], tick, cues)
 	for platform in _layout.platforms.size():
-		if not _surfaces.flooded(platform, pose_now) or _surfaces.flooded(platform, pose_then):
+		var was := _surfaces.flooded(platform, pose_then)
+		var slot := _platform_slots[platform]
+		if not _comes_on(slot, was, _surfaces.flooded(platform, pose_now), tick, _cell_rearm):
 			continue
 		var middle := _layout.platforms[platform].area.get_center()
-		var at := Vector3(middle.x, _layout.platforms[platform].height, middle.y)
-		if not sounded.is_empty() and pose_now.cell_at(at + Vector3.UP * CellMap.DRY) in sounded:
-			continue
-		var flood := AudioCue.new(AudioCue.Kind.FLOOD, tick)
-		flood.positional = true
-		flood.position = at
-		cues.append(flood)
-
-
-## Water starting through an opening: a pour from its middle as one side's water
-## first stands over its bottom and POURS higher than the other side's.
-func _pours(pose_then: ShipPose, pose_now: ShipPose, tick: int, cues: Array[AudioCue]) -> void:
-	if not _keeps_cells(pose_then) or not _keeps_cells(pose_now):
+		_flood_at(Vector3(middle.x, _layout.platforms[platform].height, middle.y), tick, cues)
+	if not cells:
 		return
 	for index in _openings.size():
-		if _pouring(index, pose_then) or not _pouring(index, pose_now):
+		var slot := _floors.size() + index
+		var was := _pouring(index, pose_then)
+		if not _comes_on(slot, was, _pouring(index, pose_now), tick, _pour_rearm):
 			continue
 		var pour := AudioCue.new(AudioCue.Kind.POUR, tick)
 		pour.positional = true
 		pour.position = _openings[index].centre
 		cues.append(pour)
+
+
+## A flood from [param at].
+func _flood_at(at: Vector3, tick: int, cues: Array[AudioCue]) -> void:
+	var flood := AudioCue.new(AudioCue.Kind.FLOOD, tick)
+	flood.positional = true
+	flood.position = at
+	cues.append(flood)
+
+
+## Whether the water of [param slot] is heard coming on at [param tick]: on under the
+## pose before it as [param was], under its own as [param now_on]. It is heard as it
+## comes on, and once heard not again until it has stood off [param rearm] ticks, so
+## water hovering at the edge is heard once, not on every crossing. On already when
+## first asked about, it is taken as heard.
+func _comes_on(slot: int, was: bool, now_on: bool, tick: int, rearm: int) -> bool:
+	if now_on:
+		_off_since[slot] = ON
+	elif _off_since[slot] == ON:
+		_off_since[slot] = tick
+	elif _heard[slot] == 1 and tick - _off_since[slot] >= rearm:
+		_heard[slot] = 0
+	if not now_on or _heard[slot] == 1:
+		return false
+	_heard[slot] = 1
+	return not was
 
 
 ## Whether opening [param index] carries water under [param pose]: open — a door
@@ -536,12 +594,17 @@ func _wading(feet: Vector3, pose: ShipPose) -> float:
 ## hull's middle when no seat is listening — walked round by the tick so creaks
 ## never come twice from one spot.
 func _round_the_listener(now: Dictionary, tick: int) -> Vector3:
-	var centre := Vector3(_hull.get_center().x, 0.0, _hull.get_center().y)
-	if now.has(listener_seat) and not now[listener_seat]["out"]:
-		centre = now[listener_seat]["pos"]
+	var centre := _ears(now)
 	var turn := tick * 2.39996
 	var reach := CREAK_SPREAD * fposmod(tick * 0.618034, 1.0)
 	return centre + Vector3(cos(turn) * reach, 0.0, sin(turn) * reach)
+
+
+## The listener's feet, or the hull's middle when no seat is listening.
+func _ears(now: Dictionary) -> Vector3:
+	if now.has(listener_seat) and not now[listener_seat]["out"]:
+		return now[listener_seat]["pos"]
+	return Vector3(_hull.get_center().x, 0.0, _hull.get_center().y)
 
 
 ## The keel at whichever end and side the pose has lowest.
