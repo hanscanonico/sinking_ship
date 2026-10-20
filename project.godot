@@ -160,3 +160,10 @@ renderer/rendering_method.mobile="gl_compatibility"
 textures/vram_compression/import_etc2_astc=true
 limits/opengl/max_lights_per_object=16
 anti_aliasing/quality/msaa_3d=1
+
+[shader_globals]
+
+eye_under={
+"type": "float",
+"value": 0.0
+}
