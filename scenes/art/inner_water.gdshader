@@ -25,9 +25,11 @@ uniform vec4 foam_colour : source_color = vec4(0.97, 1.0, 0.99, 1.0);
 // much of something just under the surface still shows through.
 uniform float clear_depth = 1.1;
 uniform float shallow_alpha = 0.45;
-// Metres under the surface that foam: a solid lap, then lace a little deeper.
-uniform float foam_depth = 0.06;
+// Metres under the surface that foam: a frayed lap fading out over foam_depth, then
+// faint lace a little deeper, at most lace_strength of white.
+uniform float foam_depth = 0.15;
 uniform float lace_depth = 0.25;
+uniform float lace_strength = 0.3;
 // The share of the sky's ambient light it keeps indoors, as the ship's indoor faces
 // do, and the share of a lamp's light a surface turned from it still takes.
 uniform float indoor_ambient = 0.35;
@@ -91,6 +93,39 @@ float value_noise(vec2 p) {
 		mix(hash(cell + vec2(0.0, 1.0)), hash(cell + vec2(1.0, 1.0)), u.x),
 		u.y
 	);
+}
+
+// Value noise eased by a quintic, so its contours bend smoothly across the cells' edges
+// instead of kinking into polygons there.
+float smooth_noise(vec2 p) {
+	vec2 cell = floor(p);
+	vec2 f = fract(p);
+	vec2 u = f * f * f * (f * (f * 6.0 - 15.0) + 10.0);
+	return mix(
+		mix(hash(cell), hash(cell + vec2(1.0, 0.0)), u.x),
+		mix(hash(cell + vec2(0.0, 1.0)), hash(cell + vec2(1.0, 1.0)), u.x),
+		u.y
+	);
+}
+
+// Two octaves of it, the second turned and offset, so no cell's outline lines up with
+// the next and none closes.
+float soft_noise(vec2 p) {
+	mat2 turn = mat2(vec2(0.8, 0.6), vec2(-0.6, 0.8));
+	return smooth_noise(p) * 0.65 + smooth_noise(turn * p * 2.1 + 17.0) * 0.35;
+}
+
+// Foam's faint lace, 0…1: wide soft lines where two drifting soft noises cross, kept only
+// in sparse drifting patches and thinned by a fine one — a blurred tracery of broken foam,
+// never a web.
+float soft_lace(vec2 p, float t, float width) {
+	mat2 turn = mat2(vec2(0.6, -0.8), vec2(0.8, 0.6));
+	float a = soft_noise(p + vec2(t * 0.3, t * 0.2));
+	float b = soft_noise(turn * p * 1.3 + vec2(-t * 0.25, t * 0.3) + 11.0);
+	float net = 1.0 - smoothstep(0.0, width, abs(a - b));
+	float pieces = smooth_noise(turn * p * 0.55 + vec2(-t * 0.12, t * 0.09) + 23.0);
+	float thin = smooth_noise(p * 4.5 + vec2(t * 0.4, -t * 0.3) + 37.0);
+	return net * net * smoothstep(0.5, 0.85, pieces + (thin - 0.5) * 0.3) * (0.3 + 0.7 * thin);
 }
 
 // A fine net of meandering lines where two drifting noises cross, 0…1 (water.gdshader).
@@ -188,10 +223,15 @@ void fragment() {
 		}
 		float foamed = boiling;
 		if (below <= lace_depth) {
+			// The lap where it meets a wall: a wide band fading out from the wall, its
+			// reach swelling and shrinking and its edge frayed by noise, never a drawn line.
 			float lap = value_noise(world.xz * 2.4 + vec2(t * 0.6, -t * 0.4));
-			float edge = step(below, foam_depth * (0.45 + 0.55 * lap));
-			float lacing = 0.09 * clamp(1.0 - below / lace_depth, 0.05, 1.0);
-			float foam = max(edge, broken_lace(world.xz * 3.4, t, lacing));
+			float fray = soft_noise(world.xz * 6.0 + vec2(-t * 0.5, t * 0.35) + 41.0);
+			float reach = 1.0 - below / (foam_depth * (0.6 + 0.8 * lap));
+			float edge = smoothstep(0.0, 0.9, reach + (fray - 0.5) * 0.8) * (0.55 + 0.3 * fray);
+			float shallows = clamp(1.0 - below / lace_depth, 0.0, 1.0);
+			float lacing = soft_lace(world.xz * 2.2, t, 0.14) * lace_strength * shallows;
+			float foam = max(edge, lacing);
 			colour = mix(colour, foam_colour.rgb, foam);
 			alpha = max(alpha, foam * 0.92);
 			foamed = max(foamed, foam);
