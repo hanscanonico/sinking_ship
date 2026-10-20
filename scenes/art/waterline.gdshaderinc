@@ -26,11 +26,12 @@ uniform float deep_depth = 3.0;
 global uniform float eye_under;
 // How much of the sunk tint the eye under the sea is spared.
 const float UNDER_CLEAR = 0.6;
-// The sea's deep colour (water.gdshader's deep_colour), which a face under the surface
-// fades into after lighting, and the metres under it by which it has gone wholly: well
-// inside the sea's clear_depth, before its murk steps toward opaque, so what shows
-// through them has already sunk into the sea's colour instead of ending in a hard edge.
-const vec3 SEA_DEEP = vec3(0.09, 0.27, 0.42);
+// The sea's deep colour (water.gdshader's deep_colour, 0.09, 0.27, 0.42), which a face
+// under the surface fades into after lighting, and the metres under it by which it has
+// gone wholly: well inside the sea's clear_depth, before its murk steps toward opaque,
+// so what shows through them has already sunk into the sea's colour instead of ending
+// in a hard edge. A const takes no source_color conversion, so it is written linear.
+const vec3 SEA_DEEP = vec3(0.0085, 0.0593, 0.1473);
 const float FADE_DEPTH = 0.5;
 
 // [albedo] as the sea leaves it at [world_pos] on a face turned to [world_normal],
