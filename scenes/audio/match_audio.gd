@@ -134,7 +134,7 @@ func _process(delta: float) -> void:
 	var cell := pose.cell_at(ears)
 	if cell != CellMap.NONE:
 		if before.levels.size() == pose.levels.size():
-			var rise := pose.levels[cell] - before.levels[cell]
+			var rise := AmbienceMix.cell_rise(pose, before, cell)
 			rush = maxf(rush, AmbienceMix.cell_rush_db(rise, under))
 		var floor_point := Vector3(ears.x, pose.cells.floor_of(cell), ears.z)
 		lap = AmbienceMix.lap_db(pose.levels[cell] - pose.world_height(floor_point), under)

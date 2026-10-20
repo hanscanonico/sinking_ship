@@ -82,6 +82,23 @@ static func cell_rush_db(rise: float, ears_under: bool) -> float:
 	return maxf(level, SILENT_DB)
 
 
+## How fast the water in [param cell] climbs its walls, metres a second, from
+## [param before] to [param pose] a second later: its level less how far the cell's own
+## middle rose, so water carried up as she rolls or lifts is not water coming in; 0
+## while the cell holds none, for a dry cell's level is only its lowest corner's height,
+## which rises and falls with her. The poses keep the same cells.
+static func cell_rise(pose: ShipPose, before: ShipPose, cell: int) -> float:
+	var box := pose.cells.box_of(cell)
+	var lowest := INF
+	for corner in 8:
+		lowest = minf(lowest, pose.world_height(box.get_endpoint(corner)))
+	if pose.levels[cell] <= lowest + CellMap.DRY:
+		return 0.0
+	var middle := box.get_center()
+	var climbed := pose.levels[cell] - pose.world_height(middle)
+	return climbed - (before.levels[cell] - before.world_height(middle))
+
+
 ## The water lapping in the listener's cell, [param depth] metres of it over the
 ## floor; silent with the ears under it.
 static func lap_db(depth: float, ears_under: bool) -> float:
