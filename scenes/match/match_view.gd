@@ -65,7 +65,7 @@ var _gone := PackedInt32Array()
 var _collapses: Array[SinkSchedule.Scheduled] = []
 var _sinking_tick := -1
 var _sinking_hp := PackedFloat64Array()
-## The bodies in water the water's rings are drawn round (waders), and the tick they
+## The bodies in the sea the sea's rings are drawn round (waders), and the tick they
 ## are as of.
 var _waders := PackedVector4Array()
 var _waders_tick := -1
@@ -160,10 +160,11 @@ func eye_seat() -> int:
 
 
 ## The bodies in water the water's rings are drawn round (water.gdshader, waders): of
-## those whose world [param feet] stand under the world height of the water they are in,
-## [param water_heights] — the same index — the [param max_count] nearest [param eye],
-## nearest first, each its foot point on that water and how fast it moves, [param speeds]
-## clamped to 0…1. A dry body leaves none.
+## those whose world [param feet] stand more than CellMap.DRY under the world height of
+## the water they are in, [param water_heights] — the same index — the [param max_count]
+## nearest [param eye], nearest first, each its foot point on that water and how fast it
+## moves, [param speeds] clamped to 0…1. A dry body leaves none — one on the floor of a
+## dry cell, whose level is that floor, included.
 static func waders(
 	feet: PackedVector3Array,
 	water_heights: PackedFloat32Array,
@@ -173,7 +174,7 @@ static func waders(
 ) -> PackedVector4Array:
 	var wet: Array[Vector2] = []
 	for index in feet.size():
-		if feet[index].y < water_heights[index]:
+		if water_heights[index] - feet[index].y > CellMap.DRY:
 			wet.append(Vector2(eye.distance_squared_to(feet[index]), index))
 	wet.sort()
 	var found := PackedVector4Array()
@@ -184,8 +185,22 @@ static func waders(
 	return found
 
 
-## The bodies in water as drawn this tick, nearest the eye first (waders): rings round
-## each in the water they stand or swim in. Worked out once a tick.
+## [param water_heights] with every body in the other water standing in none (waders):
+## those in a cell — [param in_cell], the same index — for the sea, or, given
+## [param cells], those in the sea for her cells. So the sea rings only round the bodies
+## in it and a cell's water only round those in a cell, never across her side.
+static func water_of(
+	water_heights: PackedFloat32Array, in_cell: PackedByteArray, cells: bool
+) -> PackedFloat32Array:
+	var kept := water_heights.duplicate()
+	for index in kept.size():
+		if (in_cell[index] != 0) != cells:
+			kept[index] = -INF
+	return kept
+
+
+## The bodies in the sea as drawn this tick, nearest the eye first (waders): rings round
+## each on the sea it stands or swims in. Worked out once a tick.
 func waders_drawn() -> PackedVector4Array:
 	return _waders
 
@@ -309,6 +324,7 @@ func _process(delta: float) -> void:
 	var wet_feet := PackedVector3Array()
 	var wet_water := PackedFloat32Array()
 	var wet_speeds := PackedFloat32Array()
+	var wet_in_cell := PackedByteArray()
 	# Bodies stand up the frame the match stands in now on their piece; across a change of
 	# frame — or of piece — they are drawn in the new one, facing as it has them.
 	for index in seats_now.size():
@@ -341,8 +357,9 @@ func _process(delta: float) -> void:
 			var foot := global_transform * world * pos
 			var water := in_water.water_level(pos)
 			if now["state"] == PlayerState.Body.SWIMMING:
-				foot.y = minf(foot.y, water - 0.01)
+				foot.y = minf(foot.y, water - 2.0 * CellMap.DRY)
 			var vel: Vector3 = now["vel"]
+			wet_in_cell.append(1 if in_water.cell_at(pos) != CellMap.NONE else 0)
 			wet_feet.append(foot)
 			wet_water.append(water)
 			wet_speeds.append(Vector2(vel.x, vel.z).length() / _rules.walk_speed)
@@ -371,23 +388,30 @@ func _process(delta: float) -> void:
 			)
 	Brawler.keep_apart(_bodies, _eye_seat)
 	if wading:
-		_show_waders(current["tick"], wet_feet, wet_water, wet_speeds)
+		_show_waders(current["tick"], wet_feet, wet_water, wet_speeds, wet_in_cell)
 
 
 ## Works out the bodies in water as of [param tick] from where each seat in the match
-## stands — [param feet], the [param water] it is in and how fast it moves, [param speeds]
-## as a share of walk_speed — nearest the eye drawing them, and hands them to her water.
+## stands — [param feet], the [param water] it is in, whether in a cell's — [param in_cell]
+## — or the sea's, and how fast it moves, [param speeds] as a share of walk_speed —
+## nearest the eye drawing them: those in the sea for the sea (waders_drawn), those in
+## her cells handed to her water.
 func _show_waders(
-	tick: int, feet: PackedVector3Array, water: PackedFloat32Array, speeds: PackedFloat32Array
+	tick: int,
+	feet: PackedVector3Array,
+	water: PackedFloat32Array,
+	speeds: PackedFloat32Array,
+	in_cell: PackedByteArray
 ) -> void:
 	_waders_tick = tick
 	var camera := get_viewport().get_camera_3d()
 	var eye := camera.global_position if camera != null else Vector3.ZERO
-	_waders = waders(feet, water, speeds, eye, MAX_WADERS)
+	_waders = waders(feet, water_of(water, in_cell, false), speeds, eye, MAX_WADERS)
+	var inside := waders(feet, water_of(water, in_cell, true), speeds, eye, MAX_WADERS)
 	if _broken:
-		_drawn_pieces.show_waders(_waders)
+		_drawn_pieces.show_waders(inside)
 	elif _inner != null:
-		_inner.show_waders(_waders)
+		_inner.show_waders(inside)
 
 
 ## Hands the ship drawn what the schedule's events have done by [param tick] —
