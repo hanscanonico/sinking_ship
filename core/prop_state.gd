@@ -4,8 +4,10 @@ extends RefCounted
 ## snapshot (D5): what the crate is — its size, mass and grip — is the layout's
 ## ShipProp at the same index.
 
-## LOST: gone into the sea, for the rest of the match.
-enum Body { GROUNDED, AIRBORNE, LOST }
+## LOST: gone into the sea, for the rest of the match. FLOATING: lifted off its floor
+## by its cell's water, riding on it (Hazards); appended, so the others keep their
+## numbers in the snapshot.
+enum Body { GROUNDED, AIRBORNE, LOST, FLOATING }
 
 ## Its index in [member ShipLayout.props].
 var prop: int
@@ -13,6 +15,7 @@ var prop: int
 var pos: Vector3
 var vel: Vector3
 var body: Body = Body.GROUNDED
+## What it stands on — afloat, the floor under it.
 var surface: int = Surfaces.NONE
 ## The seat whose shove last sent it, or -1.
 var shoved_by: int = -1
