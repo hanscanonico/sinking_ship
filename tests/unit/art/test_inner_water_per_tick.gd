@@ -10,6 +10,11 @@ const RunMatch := preload("res://tools/run_match.gd")
 const LIFT := 50.0
 ## How deep under the sea the sunk poses have her: every opening of hers under it.
 const DEEP := 200.0
+## How far the levelled poses heel her, in degrees.
+const HEEL := 12.0
+## How near a sheet's height comes to its pose's level: its transform is single
+## precision, LIFT over the sea.
+const FLOAT_SLACK := 1e-4
 
 var _structure: ShipStructure
 var _rooms: Array[ShipRoom]
@@ -261,3 +266,73 @@ func test_pour_strength_reads_the_flow_before_the_fall() -> void:
 	assert_almost_eq(
 		InnerWater.pour_strength(2.0, InnerWater.FLOW_FULL * 0.6, 2.0), 0.3, 1e-9, "per metre"
 	)
+
+
+## A pose of her heeled HEEL, LIFT over the sea, every cell dry at its lowest corner but
+## the door's two sides, both their water at the world height of the door's middle — the
+## high side's [param raised] over it.
+func _levelled(raised := 0.0) -> ShipPose:
+	var turned := Transform3D(Basis(Vector3.RIGHT, deg_to_rad(HEEL)), Vector3.UP * LIFT)
+	var pose := ShipPose.new(-LIFT, 0.0, HEEL, turned)
+	pose.cells = _cells
+	for cell: FloodCell in _structure.cells:
+		pose.levels.append(CellSurface.reach(turned, AABB(cell.low, cell.high - cell.low)).x)
+	var level := pose.world_height(_door.centre)
+	pose.levels[_low] = level
+	pose.levels[_high] = level + raised
+	return pose
+
+
+## Whether the door's own pour is shown.
+func _door_pours(water: InnerWater) -> bool:
+	var pour := water._pours[_schedule.passages().find(_door)]
+	return pour != null and pour.visible
+
+
+## The world height [param sheet] stands at on her as [param pose] has her.
+func _sheet_height(sheet: MeshInstance3D, pose: ShipPose) -> float:
+	return pose.world_height(sheet.transform.origin)
+
+
+func test_water_level_across_a_heeled_doorway_stands_at_one_height_and_does_not_pour() -> void:
+	var water := _water()
+	var level := _levelled()
+	water.show_water(level, level, 0.0)
+	var high: MeshInstance3D = water._surfaces[_high]
+	var low: MeshInstance3D = water._surfaces[_low]
+	assert_true(high.visible, "the high side's water")
+	assert_true(low.visible, "the low side's water")
+	assert_almost_eq(_sheet_height(high, level), _sheet_height(low, level), 1e-6, "one height")
+	assert_almost_eq(_sheet_height(low, level), level.levels[_low], FLOAT_SLACK, "the pose's")
+	assert_false(_door_pours(water), "nothing pours through the door")
+
+
+func test_a_doorway_pours_only_once_one_side_stands_pours_over_the_other() -> void:
+	var under := _levelled(InnerWater.POURS - 0.001)
+	var short := _water()
+	short.show_water(under, under, 0.0)
+	assert_false(_door_pours(short), "just under POURS higher: no pour")
+	var over := _levelled(InnerWater.POURS + 0.01)
+	var pouring := _water()
+	pouring.show_water(over, over, 0.0)
+	assert_true(_door_pours(pouring), "past POURS higher: it pours")
+
+
+func test_a_stacked_box_s_sheet_follows_its_cell_s_water() -> void:
+	var stacks := InnerWater.stacked(_structure, _rooms)
+	assert_gt(stacks.size(), 0, "a cell drawn in a stack of boxes")
+	var water := _water()
+	assert_eq(water._stacks.size(), stacks.size(), "a sheet per stacked box")
+	var cell: int = stacks[0][0]
+	var box: AABB = stacks[0][1]
+	var pose := _pose()
+	var reach := CellSurface.reach(pose.transform, box)
+	for share: float in [0.3, 0.7]:
+		pose = _pose()
+		pose.levels[cell] = lerpf(reach.x, reach.y, share)
+		water.show_water(pose, pose, 0.0)
+		var sheet: MeshInstance3D = water._stacks[0][2]
+		assert_true(sheet.visible, "%.1f up its box: shown" % share)
+		assert_almost_eq(
+			_sheet_height(sheet, pose), pose.levels[cell], FLOAT_SLACK, "at its cell's level"
+		)
