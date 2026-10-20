@@ -11,6 +11,8 @@ extends CanvasLayer
 
 signal rematch_requested
 signal menu_requested
+## Watch the match again (R6): offered for a local match once its replay is kept.
+signal replay_requested
 
 const HEADINGS: Array[String] = ["Place", "Seat", "Time dry", "Shoves landed", "Knock-outs"]
 ## The same under survival, where a seat's time in is the score.
@@ -35,6 +37,7 @@ var _second_word := "menu"
 @onready var _seed: Label = %Seed
 @onready var _rematch: Button = %Rematch
 @onready var _hint: Label = $Panel/Box/Hint
+@onready var _watch: Button = %WatchReplay
 @onready var _menu: Button = %Menu
 
 
@@ -49,6 +52,7 @@ func _ready() -> void:
 	add_child(scrim)
 	move_child(scrim, 0)
 	_rematch.pressed.connect(rematch_requested.emit)
+	_watch.pressed.connect(replay_requested.emit)
 	_menu.pressed.connect(menu_requested.emit)
 	_guard.one_shot = true
 	_guard.wait_time = PRESS_GUARD_SECONDS
@@ -96,18 +100,25 @@ func show_results(
 		_cell(str(line.knockouts), colour)
 	_seed.text = "Seed %d" % match_seed
 	_rematch.disabled = true
+	_watch.disabled = true
 	_menu.disabled = true
 	show()
 	_guard.start()
 
 
 ## Online, a match's end leads back to its room or out of it: the rematch's button and
-## key go back to the room, the menu's leave.
+## key go back to the room, the menu's leave. No replay is kept online.
 func offer_room() -> void:
 	_first_word = "back to the room"
 	_second_word = "leave"
 	_rematch.text = "Back to the room"
 	_menu.text = "Leave"
+	_watch.visible = false
+
+
+## Whether the results offer to watch the match again (replay_requested).
+func offer_replay(offered: bool) -> void:
+	_watch.visible = offered
 
 
 ## Words the hint line for the device [param prompts] says was used last. On a
@@ -124,6 +135,7 @@ func show_prompts(prompts: InputPrompts) -> void:
 
 func _accept_presses() -> void:
 	_rematch.disabled = false
+	_watch.disabled = false
 	_menu.disabled = false
 	if visible:
 		_rematch.grab_focus()

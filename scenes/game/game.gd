@@ -48,6 +48,9 @@ const JUMP_LEAD := 15.0
 ## A capture of a held countdown is taken once its bar is this far on.
 const HOLD_CAPTURED_AT := 0.5
 
+## Where a replay was opened from (R6): leaving it goes back there.
+enum ReplayFrom { MENU, LIST, RESULTS }
+
 var _args: MatchArgs
 var _match_rules: MatchRules
 ## Where a blank seed is drawn from: outside the sim, once per match.
@@ -58,6 +61,10 @@ var _rematch_choices: MatchChoices
 ## The match under way's choices, their seed the one it plays: what its replay is
 ## built from (MatchScene.choices).
 var _playing: MatchChoices
+## The saved replays' list (R6), and where the replay being watched was opened from:
+## where leaving it goes back to.
+var _replays: ReplaysMenu
+var _replay_from := ReplayFrom.MENU
 var _capturing := false
 ## Watches a capture's window for frames drawn, so one the system stops drawing fails
 ## rather than wait forever (#105); null when not capturing.
@@ -127,6 +134,12 @@ func _ready() -> void:
 	_pause.menu_requested.connect(_to_menu)
 	_pause.settings_requested.connect(_settings.open)
 	_pause.quit_requested.connect(_quit)
+	_replays = ReplaysMenu.new()
+	_replays.name = "ReplaysMenu"
+	add_child(_replays)
+	_menu.replays_requested.connect(_open_replays)
+	_replays.watch_requested.connect(_watch_from_list)
+	_replays.back_requested.connect(_leave_replays)
 	_settings.view_changed.connect(_on_view_changed)
 	_online_menu.play_requested.connect(_play_online)
 	_online_menu.back_requested.connect(_leave_online)
@@ -185,6 +198,8 @@ func _process(delta: float) -> void:
 					_open_online()
 				"room":
 					_stage_room()
+				"replays":
+					_open_replays()
 			_capture("the menu")
 		return
 	var snapshot := _match.current()
@@ -331,6 +346,7 @@ func _ensure_match() -> void:
 	_match.rematch_requested.connect(_rematch)
 	_match.menu_requested.connect(_to_menu)
 	_match.replay_closed.connect(_close_replay)
+	_match.replay_requested.connect(_watch_from_results)
 
 
 ## Opens the replay saved at [param path] (--replay); quits, the reason printed, when
@@ -347,6 +363,31 @@ func _open_replay_path(path: String) -> void:
 		)
 		get_tree().quit(1)
 		return
+	_replay_from = ReplayFrom.MENU
+	_start_replay(file)
+
+
+## The saved replays over the menu's backdrop (R6).
+func _open_replays() -> void:
+	_replays.open(ReplayStore.new(), _match_rules)
+	_menu.show_behind(_replays.panel())
+
+
+func _leave_replays() -> void:
+	_replays.hide()
+	_menu.open()
+
+
+func _watch_from_list(file: ReplayFile) -> void:
+	_replay_from = ReplayFrom.LIST
+	_replays.hide()
+	_start_replay(file)
+
+
+func _watch_from_results(file: ReplayFile) -> void:
+	if file == null:
+		return
+	_replay_from = ReplayFrom.RESULTS
 	_start_replay(file)
 
 
@@ -361,9 +402,17 @@ func _start_replay(file: ReplayFile) -> void:
 	_match.start_replay(file)
 
 
-## Back from a replay: to the menu.
+## Back from a replay, to where it was opened from (R6): the results it was watched
+## from, the list of replays, or the menu (--replay).
 func _close_replay() -> void:
-	_to_menu()
+	match _replay_from:
+		ReplayFrom.RESULTS:
+			_match.show_results_again()
+		ReplayFrom.LIST:
+			_to_menu()
+			_open_replays()
+		_:
+			_to_menu()
 
 
 func _rematch() -> void:

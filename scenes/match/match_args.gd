@@ -38,9 +38,10 @@ extends RefCounted
 ## and the client lie about latency, jitter and loss (SH11); --capture-screen stages a
 ## screen for the capture: menu, settings (over the menu), graphics (the settings on
 ## their Graphics page), pause, results, online (the Online screen), room (a room, its
-## players made up), online-pause (the online pause over the match), online-settings
-## (the settings opened from it) or hold (the countdown held for a slow bake, its bar
-## half way); --capture-from stands the capture's eyes on chosen feet in ship space,
+## players made up), replays (the saved replays' list), online-pause (the online pause
+## over the match), online-settings (the settings opened from it) or hold (the countdown
+## held for a slow bake, its bar half way); --capture-from stands the capture's eyes on
+## chosen feet in ship space,
 ## looking YAW degrees from the bow toward starboard and PITCH above the horizon — or,
 ## given only X,Y,Z, at the ship point --capture-look names, riding with her as she
 ## lists, so the breach can be taken from inside any space;

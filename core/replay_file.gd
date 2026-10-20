@@ -25,6 +25,8 @@ var seats: int = 0
 var ticks: int = 0
 ## The seat that won, or -1 for none (unfinished, or a draw).
 var winner: int = -1
+## Whether the match had ended when it was recorded, or was left early.
+var ended := false
 
 
 ## A replay of the match [param chosen] made, stepped with [param input_log], recorded
@@ -77,6 +79,7 @@ func to_bytes() -> PackedByteArray:
 	out.put_s32(seats)
 	out.put_s32(ticks)
 	out.put_s32(winner)
+	out.put_s32(1 if ended else 0)
 	var fields := _choice_fields(choices)
 	out.put_s32(fields.size())
 	for field: String in fields:
@@ -99,6 +102,7 @@ static func from_bytes(bytes: PackedByteArray) -> ReplayFile:
 	file.seats = read.s32()
 	file.ticks = read.s32()
 	file.winner = read.s32()
+	file.ended = read.s32() != 0
 	var chosen := MatchChoices.new()
 	var known := _choice_fields(chosen)
 	var count := read.s32()

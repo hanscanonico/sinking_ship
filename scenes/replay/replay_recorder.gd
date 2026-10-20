@@ -18,6 +18,7 @@ func _init(store: ReplayStore = null, rules: ReplayRules = null) -> void:
 func record(chosen: MatchChoices, runner: MatchRunner) -> ReplayFile:
 	var file := ReplayFile.record(chosen, runner.input_log, int(Time.get_unix_time_from_system()))
 	file.winner = runner.sim.state.winner()
+	file.ended = runner.sim.is_over()
 	return file
 
 

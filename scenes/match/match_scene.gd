@@ -15,6 +15,8 @@ signal menu_requested
 signal pointer_lost
 ## The replay watched was left: Esc, or the controls' Back (R4).
 signal replay_closed
+## The results asked to watch the match again (R6): [param file] is its replay.
+signal replay_requested(file: ReplayFile)
 
 ## The choices a local match was built from (Game), for its replay; null online.
 var choices: MatchChoices
@@ -37,6 +39,8 @@ const CELLS_DISTANCE := 33.0
 
 var _config: MatchConfig
 var _stats: MatchStats
+## The stats the results showed, kept past a replay of the match (show_results_again).
+var _last_stats: MatchStats
 var _order: SpectateOrder
 var _names := PackedStringArray()
 ## The local player's seat when a person plays it; null when a bot does.
@@ -100,6 +104,7 @@ var _replay_seat := LOCAL_SEAT
 func _ready() -> void:
 	_end.rematch_requested.connect(rematch_requested.emit)
 	_end.menu_requested.connect(menu_requested.emit)
+	_end.replay_requested.connect(func() -> void: replay_requested.emit(last_replay))
 	_driver.stepped.connect(func(events: Array[SimEvent]) -> void: _stats.add(events))
 	_driver.stepped.connect(_shake_for_the_sinking)
 	add_child(_marks)
@@ -224,14 +229,13 @@ func _unhandled_input(event: InputEvent) -> void:
 		elif _looking():
 			_local.look_by_mouse((event as InputEventMouseMotion).screen_relative)
 		return
-	if _driver.replaying():
-		if _replay_input(event):
-			get_viewport().set_input_as_handled()
-		return
 	if _end.visible and event.is_action_pressed("restart"):
 		rematch_requested.emit()
 	elif _end.visible and event.is_action_pressed("pause"):
 		menu_requested.emit()
+	elif _driver.replaying():
+		if not _replay_input(event):
+			return
 	elif event.is_action_pressed("spectate_free") and _can_fly(_driver.current):
 		_toggle_free()
 	elif event.is_action_pressed("spectate_next"):
@@ -451,7 +455,10 @@ func save_replay() -> void:
 		return
 	var recorder := ReplayRecorder.new()
 	last_replay = recorder.record(choices, _loopback.host.runner)
-	if last_replay.playable():
+	_last_stats = _stats
+	var playable := last_replay.playable()
+	_end.offer_replay(playable)
+	if playable:
 		recorder.save(last_replay)
 
 
@@ -524,6 +531,22 @@ func replay_speed(direction: int) -> void:
 ## The replay to [param tick].
 func replay_seek(tick: int) -> void:
 	_driver.seek(tick)
+
+
+## Back from a replay opened from the results (R6): the results again, over the replay
+## standing still, with Rematch, Watch replay and Menu as before.
+func show_results_again() -> void:
+	if _last_stats == null or not _driver.replaying():
+		return
+	_driver.clock().paused = true
+	_replay_hud.hide()
+	_end.show_results(
+		_last_stats,
+		_local_seat,
+		_names,
+		_config.match_seed,
+		_config.goal == MatchRules.Goal.SURVIVAL
+	)
 
 
 ## The replay's keys: whether [param event] was one of them, and what it asked done.
