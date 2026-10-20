@@ -171,8 +171,9 @@ func _reseat(player: PlayerState, tick: int, events: Array[SimEvent]) -> void:
 ## it has lost its grip — staggered, or idle on a deck steeper than the grip angle.
 ## On a floor tilted past stand_limit_deg nobody walks: a brace holds where it is up to
 ## brace_holds_to, anyone else slides into the corner and walks only along it (_slid).
-## Wading slows a walk, and crawling to crawl_speed; swimming is _swim's. A body frozen
-## in a hit-stop feels none of it, and its stagger waits.
+## Wading slows a walk, the more the deeper (_wade_speed), and crawling to crawl_speed;
+## swimming is _swim's. A body frozen in a hit-stop feels none of it, and its stagger
+## waits.
 func forces(live: Array[PlayerState], pose_now: ShipPose) -> void:
 	var dt := Ticks.SECONDS_PER_TICK
 	var gravity := pose_now.ship_gravity(_rules.gravity)
@@ -198,7 +199,7 @@ func forces(live: Array[PlayerState], pose_now: ShipPose) -> void:
 		elif player.bracing:
 			wish = Vector2.ZERO
 		if _surfaces.wet(player.pos, pose_now):
-			wish = wish.limit_length(_rules.wade_speed)
+			wish = wish.limit_length(_wade_speed(player, pose_now))
 		if height_of(player) < _rules.body_height:
 			wish = wish.limit_length(_rules.crawl_speed)
 		# A brace is rooted: the deck past the grip angle does not pull it.
@@ -660,6 +661,14 @@ func in_the_sea(player: PlayerState, pose_now: ShipPose) -> bool:
 ## How deep the sea stands over [param surface] under [param feet]'s x/z.
 func sea_over(surface: int, feet: Vector3, pose_now: ShipPose) -> float:
 	return pose_now.water_height(feet) - _surfaces.height_at(surface, feet)
+
+
+## The fastest [param player] wades over its surface under [param pose_now]: wade_speed
+## in a film of water, easing to wade_speed_deep as the water deepens to wade_depth.
+func _wade_speed(player: PlayerState, pose_now: ShipPose) -> float:
+	var depth := sea_over(player.surface, player.pos, pose_now)
+	var deep := clampf(depth / _rules.wade_depth, 0.0, 1.0)
+	return lerpf(_rules.wade_speed, _rules.wade_speed_deep, deep)
 
 
 ## After this tick's move: on the bottom, if it went under it; at rest, if it rose

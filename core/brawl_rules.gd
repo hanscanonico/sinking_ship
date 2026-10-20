@@ -118,8 +118,11 @@ extends Resource
 ## A swimmer finds its feet where the water over the bottom is shallower than this:
 ## below wade_depth, so that a body at the waterline does not flicker between the two.
 @export var stand_depth: float
-## The fastest a body wades, in m/s.
+## The fastest a body wades, in m/s: in a film of water over its floor.
 @export var wade_speed: float
+## The fastest a body wades in water wade_depth deep, in m/s: the cap eases from
+## wade_speed to this as the water over the floor deepens. At most wade_speed.
+@export var wade_speed_deep: float
 ## Seconds of swimming a full cold meter holds.
 @export var cold_meter: float
 ## Seconds of the cold meter regained per second out of the sea.
@@ -265,6 +268,7 @@ func problems() -> PackedStringArray:
 		"wade_depth",
 		"stand_depth",
 		"wade_speed",
+		"wade_speed_deep",
 		"cold_meter",
 		"cold_regen",
 		"pocket_cold_rate",
@@ -355,6 +359,8 @@ func problems() -> PackedStringArray:
 		found.append("brawl rules: pocket_cold_rate must not exceed the open water's 1")
 	if wade_speed > walk_speed:
 		found.append("brawl rules: wade_speed must not exceed walk_speed")
+	if wade_speed_deep > wade_speed:
+		found.append("brawl rules: wade_speed_deep must not exceed wade_speed")
 	if crawl_speed > walk_speed:
 		found.append("brawl rules: crawl_speed must not exceed walk_speed")
 	if crate_float_drag > 1.0:
