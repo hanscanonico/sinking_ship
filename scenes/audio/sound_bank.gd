@@ -95,6 +95,8 @@ const FILES := {
 	## Plates struck hard, far down: the iceberg booming through the hull.
 	AudioCue.Kind.HOLED:
 	["brawl/land_metal_0.wav", "brawl/land_metal_1.wav", "brawl/land_metal_2.wav"],
+	## The sea rushing in, higher and nearer: one opening's stream.
+	AudioCue.Kind.POUR: ["ship/flood_0.wav", "ship/flood_1.wav"],
 }
 ## How each kind carries: its level in dB; for a positional cue the distance it
 ## plays at that level ("near") and the farthest it is heard ("far"), in metres;
@@ -121,6 +123,7 @@ const CARRY := {
 	AudioCue.Kind.THUD: {"db": -1.0, "near": 4.0, "far": 45.0, "pitch": 0.7},
 	AudioCue.Kind.CRACK: {"db": -2.0, "near": 6.0, "far": 60.0, "pitch": 1.4},
 	AudioCue.Kind.HOLED: {"db": 3.0, "near": 40.0, "far": 250.0, "pitch": 0.4},
+	AudioCue.Kind.POUR: {"db": -4.0, "near": 6.0, "far": 50.0, "pitch": 1.3},
 }
 
 var _streams := {}

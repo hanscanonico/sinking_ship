@@ -32,6 +32,8 @@ enum Kind {
 	CRACK,
 	## The iceberg striking the hull: a boom through her plates, from the gash.
 	HOLED,
+	## Water starting to pour through an opening into a lower side.
+	POUR,
 }
 ## What a footfall or a landing comes down on.
 enum Ground { WOOD, METAL, WET }

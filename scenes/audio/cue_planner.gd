@@ -59,6 +59,16 @@ const CARGO_SOFT := 0.4
 ## something — and the loss, or the speed it comes down at, heard loudest.
 const THUD_DROP := 2.0
 const THUD_LOUD := 4.0
+## Water this far over the lowest corner of a cell's floor, in metres, is heard
+## breaking in; and the least difference across an opening heard pouring. Twins of
+## InnerWater.SHOWS and InnerWater.POURS, so a pour is heard as it starts being drawn.
+const SHOWS := 0.02
+const POURS := 0.03
+## The openings water passes unseen, and so unheard, as InnerWater leaves them undrawn:
+## the gash is the iceberg's boom, a floor's gaps and a small leak only seep.
+const UNHEARD: Array[ShipOpening.Kind] = [
+	ShipOpening.Kind.GASH, ShipOpening.Kind.FLOOR_GAPS, ShipOpening.Kind.LEAK
+]
 
 ## The seat whose ears the view is in: its own sounds are in the head. -1 when
 ## no seat's are (the observer camera).
@@ -83,6 +93,14 @@ var _keel := INF
 var _stride := PackedFloat32Array()
 ## How far through its scrape each crate is, 0…1.
 var _scrape := PackedFloat32Array()
+## Per cell of her structure, its floor's middle and its half extent along the floor.
+var _floors := PackedVector3Array()
+var _floor_halves := PackedVector3Array()
+## The openings water can pass (SinkSchedule.passages, then failing), but the unheard;
+## their two sides, by cell, -1 for the sea or the sky; 1 for one shut until it fails.
+var _openings: Array[ShipOpening] = []
+var _sides := PackedInt32Array()
+var _shut := PackedByteArray()
 var _creak_strain := 0.0
 var _groan_strain := 0.0
 
@@ -105,6 +123,24 @@ func _init(
 	_stride.resize(config.seats)
 	_stride.fill(0.5)
 	_scrape.resize(_layout.props.size())
+	var structure := _layout.structure
+	if structure == null:
+		return
+	for cell: FloodCell in structure.cells:
+		var half := (cell.high - cell.low) * 0.5
+		_floors.append(Vector3(cell.low.x + half.x, cell.low.y, cell.low.z + half.z))
+		_floor_halves.append(Vector3(half.x, 0.0, half.z))
+	var failing := _schedule.failing()
+	var openings := _schedule.passages().duplicate()
+	openings.append_array(failing)
+	for index in openings.size():
+		var opening: ShipOpening = openings[index]
+		if opening.kind in UNHEARD or opening.joins.size() != 2:
+			continue
+		_openings.append(opening)
+		for place: StringName in opening.joins:
+			_sides.append(structure.cell_named(place))
+		_shut.append(1 if index >= openings.size() - failing.size() else 0)
 
 
 ## The cues of the step from [param previous] to [param current], whose events
@@ -127,7 +163,9 @@ func plan(previous: Dictionary, current: Dictionary) -> Array[AudioCue]:
 		_from_event(event, now, pose_now, cues)
 	if current["phase"] == MatchState.Phase.LIVE:
 		_hull_strain(pose_then, pose_now, now, tick, cues)
-	_floods(pose_then, pose_now, tick, cues)
+	var sounded := _cell_floods(pose_then, pose_now, tick, cues)
+	_floods(pose_then, pose_now, sounded, tick, cues)
+	_pours(pose_then, pose_now, tick, cues)
 	return cues
 
 
@@ -358,18 +396,109 @@ func _hull_strain(
 		cues.append(groan)
 
 
+## The sea breaking into her: a flood from the middle of each cell's floor as its
+## water first rises SHOWS over the floor's lowest corner. The cells it came from.
+func _cell_floods(
+	pose_then: ShipPose, pose_now: ShipPose, tick: int, cues: Array[AudioCue]
+) -> PackedInt32Array:
+	var sounded := PackedInt32Array()
+	if not _keeps_cells(pose_then) or not _keeps_cells(pose_now):
+		return sounded
+	for cell in _floors.size():
+		if _over_floor(cell, pose_then) or not _over_floor(cell, pose_now):
+			continue
+		var flood := AudioCue.new(AudioCue.Kind.FLOOD, tick)
+		flood.positional = true
+		flood.position = _floors[cell]
+		cues.append(flood)
+		sounded.append(cell)
+	return sounded
+
+
 ## The sea rushing in: a flood from the middle of each platform as the water
-## reaches it, which is when Surfaces calls it flooded.
-func _floods(pose_then: ShipPose, pose_now: ShipPose, tick: int, cues: Array[AudioCue]) -> void:
+## reaches it, which is when Surfaces calls it flooded — but for one in a cell of
+## [param sounded], whose flood is already heard.
+func _floods(
+	pose_then: ShipPose,
+	pose_now: ShipPose,
+	sounded: PackedInt32Array,
+	tick: int,
+	cues: Array[AudioCue]
+) -> void:
 	for platform in _layout.platforms.size():
 		if not _surfaces.flooded(platform, pose_now) or _surfaces.flooded(platform, pose_then):
 			continue
-		var area := _layout.platforms[platform].area
+		var middle := _layout.platforms[platform].area.get_center()
+		var at := Vector3(middle.x, _layout.platforms[platform].height, middle.y)
+		if not sounded.is_empty() and pose_now.cell_at(at + Vector3.UP * CellMap.DRY) in sounded:
+			continue
 		var flood := AudioCue.new(AudioCue.Kind.FLOOD, tick)
 		flood.positional = true
-		var middle := area.get_center()
-		flood.position = Vector3(middle.x, _layout.platforms[platform].height, middle.y)
+		flood.position = at
 		cues.append(flood)
+
+
+## Water starting through an opening: a pour from its middle as one side's water
+## first stands over its bottom and POURS higher than the other side's.
+func _pours(pose_then: ShipPose, pose_now: ShipPose, tick: int, cues: Array[AudioCue]) -> void:
+	if not _keeps_cells(pose_then) or not _keeps_cells(pose_now):
+		return
+	for index in _openings.size():
+		if _pouring(index, pose_then) or not _pouring(index, pose_now):
+			continue
+		var pour := AudioCue.new(AudioCue.Kind.POUR, tick)
+		pour.positional = true
+		pour.position = _openings[index].centre
+		cues.append(pour)
+
+
+## Whether opening [param index] carries water under [param pose]: open — a door
+## the ship has not shut, one shut until it fails once it has — with one side's
+## water over its bottom by SHOWS and over the other side's by POURS. That side holds
+## water: the sea, or a cell wet over its floor — a dry cell's level is its floor, which
+## stands over a doorway down into a lower cell.
+func _pouring(index: int, pose: ShipPose) -> bool:
+	var opening := _openings[index]
+	var failed: int = pose.opened.get(opening.name, 0)
+	if failed == 0 and (_shut[index] == 1 or pose.doors_shut.get(opening.name, 0.0) >= 1.0):
+		return false
+	var first := _sides[index * 2]
+	var second := _sides[index * 2 + 1]
+	var first_level := _side_level(first, pose)
+	var second_level := _side_level(second, pose)
+	var high := first if first_level >= second_level else second
+	if high != -1 and not _over_floor(high, pose):
+		return false
+	var bottom := _lowest(pose, opening.centre, opening.size * 0.5)
+	return (
+		maxf(first_level, second_level) > bottom + SHOWS
+		and absf(first_level - second_level) >= POURS
+	)
+
+
+## The world height of the water on side [param cell] of an opening: its cell's, or
+## the sea's.
+func _side_level(cell: int, pose: ShipPose) -> float:
+	return 0.0 if cell == -1 else pose.levels[cell]
+
+
+## Whether [param pose] keeps a level for each of her cells.
+func _keeps_cells(pose: ShipPose) -> bool:
+	return not _floors.is_empty() and pose.levels.size() == _floors.size()
+
+
+## Whether cell [param cell]'s water stands SHOWS over its floor's lowest corner.
+func _over_floor(cell: int, pose: ShipPose) -> bool:
+	return pose.levels[cell] > _lowest(pose, _floors[cell], _floor_halves[cell]) + SHOWS
+
+
+## The lowest world height under [param pose] of the box about [param centre] reaching
+## [param half] each way.
+static func _lowest(pose: ShipPose, centre: Vector3, half: Vector3) -> float:
+	var basis := pose.transform.basis
+	var row := Vector3(basis.x.y, basis.y.y, basis.z.y)
+	var reach := absf(row.x) * half.x + absf(row.y) * half.y + absf(row.z) * half.z
+	return row.dot(centre) - reach + pose.transform.origin.y
 
 
 func _at_crate(kind: AudioCue.Kind, tick: int, entry: Dictionary) -> AudioCue:

@@ -493,3 +493,135 @@ func test_a_crate_hit_thuds_on_the_brawler() -> void:
 	var on_the_brawler := thuds.filter(func(cue: AudioCue) -> bool: return cue.seat == 0)
 	assert_eq(on_the_brawler.size(), 1, "one thud on the brawler it hits")
 	assert_true(on_the_brawler[0].heavy)
+
+
+## A sinking whose poses a test may set tick by tick: every other tick is the bake's.
+class Posed:
+	extends SinkSchedule
+	var poses := {}
+
+	func pose_at(tick: int) -> ShipPose:
+		return poses[tick] if poses.has(tick) else super.pose_at(tick)
+
+
+## Seed 38's match, its sinking a Posed one with her poses at ticks 1…3 dry as she lies
+## before the hit; the dry pose comes back.
+func _posed_sim() -> MatchSim:
+	var config := RunMatch.default_config(38)
+	config.scenario = config.scenario.duplicate()
+	config.scenario.explicit_hit = IcebergHit.draw(
+		config.scenario.hit, SeedStreams.derive(38, "sink")
+	)
+	var posed: Posed = config.schedule_as(Posed)
+	var dry := SimFixtures.copy_of(posed.pose_at(0))
+	for tick in [1, 2, 3]:
+		posed.poses[tick] = dry
+	return MatchSim.create(config)
+
+
+## A copy of [param pose] with cell [param cell]'s water at world height [param level].
+func _with_level(pose: ShipPose, cell: int, level: float) -> ShipPose:
+	var made := SimFixtures.copy_of(pose)
+	var levels := PackedFloat64Array(pose.levels)
+	levels[cell] = level
+	made.levels = levels
+	return made
+
+
+## The cues of ticks 1→2 and 2→3, with [param wet] the pose at 2 and at 3.
+func _wetted(sim: MatchSim, wet: ShipPose) -> Array:
+	var posed := sim.schedule as Posed
+	posed.poses[2] = wet
+	posed.poses[3] = wet
+	var planner := _planner(sim, -1)
+	var heard: Array = []
+	for tick in [1, 2]:
+		var before := sim.snapshot().duplicate(true)
+		before["tick"] = tick
+		var after := before.duplicate(true)
+		after["tick"] = tick + 1
+		heard.append(planner.plan(before, after))
+	return heard
+
+
+func _floor_centre(cell: FloodCell) -> Vector3:
+	return Vector3((cell.low.x + cell.high.x) * 0.5, cell.low.y, (cell.low.z + cell.high.z) * 0.5)
+
+
+func test_a_cell_floods_once_as_its_water_first_rises_over_its_floor() -> void:
+	var sim := _posed_sim()
+	var dry := sim.schedule.pose_at(1)
+	var structure := sim.config.ship.structure
+	var silent := _wetted(sim, dry)
+	for cues: Array[AudioCue] in silent:
+		assert_eq(_of(cues, AudioCue.Kind.FLOOD).size(), 0, "a dry tick floods nothing")
+		assert_eq(_of(cues, AudioCue.Kind.POUR).size(), 0, "nor pours")
+	var cell := 0
+	var heard := _wetted(sim, _with_level(dry, cell, dry.levels[cell] + 0.5))
+	var floods := _of(heard[0], AudioCue.Kind.FLOOD)
+	assert_eq(floods.size(), 1, "one flood as its water breaks in")
+	assert_true(floods[0].positional)
+	var centre := _floor_centre(structure.cells[cell])
+	assert_almost_eq(floods[0].position, centre, Vector3.ONE * 0.001, "from its floor")
+	assert_eq(_of(heard[1], AudioCue.Kind.FLOOD).size(), 0, "and only as it first does")
+
+
+func test_a_platform_in_a_flooding_cell_floods_with_it_not_again() -> void:
+	var sim := _posed_sim()
+	var dry := sim.schedule.pose_at(1)
+	var structure := sim.config.ship.structure
+	var platform := -1
+	var cell := -1
+	for index in sim.config.ship.platforms.size():
+		var deck: ShipPlatform = sim.config.ship.platforms[index]
+		var middle := deck.area.get_center()
+		cell = dry.cell_at(Vector3(middle.x, deck.height + CellMap.DRY, middle.y))
+		if cell != CellMap.NONE:
+			platform = index
+			break
+	assert_ne(platform, -1, "a deck in a cell")
+	var deck: ShipPlatform = sim.config.ship.platforms[platform]
+	var middle := deck.area.get_center()
+	var top := dry.world_height(Vector3(middle.x, deck.height, middle.y)) + 0.5
+	var wet := _with_level(dry, cell, top)
+	assert_false(sim.surfaces.flooded(platform, dry))
+	assert_true(sim.surfaces.flooded(platform, wet), "the deck floods with its cell")
+	var floods := _of(_wetted(sim, wet)[0], AudioCue.Kind.FLOOD)
+	assert_eq(floods.size(), 1, "one flood, not one for the cell and one for its deck")
+	var centre := _floor_centre(structure.cells[cell])
+	assert_almost_eq(floods[0].position, centre, Vector3.ONE * 0.001, "from the cell's floor")
+
+
+func test_an_opening_pours_as_it_starts_carrying_water() -> void:
+	var sim := _posed_sim()
+	var dry := sim.schedule.pose_at(1)
+	var structure := sim.config.ship.structure
+	var opening: ShipOpening = null
+	var cell := -1
+	for passage: ShipOpening in sim.schedule.passages():
+		if passage.kind in CuePlanner.UNHEARD or passage.shuts_at_hit:
+			continue
+		cell = structure.cell_named(passage.joins[0])
+		if cell != -1:
+			opening = passage
+			break
+	assert_not_null(opening, "an opening water can pass")
+	var bottom := INF
+	for corner in 8:
+		var half := opening.size * 0.5
+		var at := (
+			opening.centre
+			+ Vector3(
+				half.x if corner & 1 else -half.x,
+				half.y if corner & 2 else -half.y,
+				half.z if corner & 4 else -half.z
+			)
+		)
+		bottom = minf(bottom, dry.world_height(at))
+	var heard := _wetted(sim, _with_level(dry, cell, maxf(bottom, 0.0) + 0.5))
+	var here := _of(heard[0], AudioCue.Kind.POUR).filter(
+		func(cue: AudioCue) -> bool: return cue.position.is_equal_approx(opening.centre)
+	)
+	assert_eq(here.size(), 1, "one pour from %s as it starts" % opening.name)
+	assert_true(here[0].positional)
+	assert_eq(_of(heard[1], AudioCue.Kind.POUR).size(), 0, "none as it goes on pouring")
