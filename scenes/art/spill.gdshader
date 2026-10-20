@@ -97,7 +97,6 @@ void fragment() {
 	AO_LIGHT_AFFECT = 0.0;
 }
 
-
 void light() {
 	float facing = abs(dot(NORMAL, LIGHT));
 	float lit = LIGHT_IS_DIRECTIONAL
