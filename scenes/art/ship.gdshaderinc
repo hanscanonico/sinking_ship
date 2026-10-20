@@ -337,6 +337,12 @@ void fragment() {
 	ALBEDO = mix(ALBEDO, flash_colour.rgb, flash * flash_strength);
 	EMISSION = flash_colour.rgb * flash * flash_strength;
 	EMISSION += lap_colour.rgb * lap * 0.2;
+	// Fade into the sea after lighting: the lit albedo gives way to the sea's deep
+	// colour, added unlit, so the blend holds in shadow as in sun. Outdoors only — a
+	// dry room below the waterline stays as its lamps light it.
+	float fade = sea_fade(world_pos, TIME) * outdoor;
+	ALBEDO *= 1.0 - fade;
+	EMISSION = mix(EMISSION, SEA_DEEP, fade);
 #ifdef PIECE
 	if (!FRONT_FACING) {
 		ALBEDO = vec3(0.0);
