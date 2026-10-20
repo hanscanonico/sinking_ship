@@ -21,10 +21,12 @@ extends Node3D
 ## How far a cell's water stands in from a face of its box at her side or an outside
 ## wall — inside the wall's thickness, never out past the hull.
 const INSET := 0.15
-## How deep over its lowest corner and how far under its highest a cell's water is
-## drawn: not on a dry floor, where it would fight the planks, nor in a full cell, which
-## has no surface.
+## How far under its highest corner a cell's water is drawn — not in a full cell, which
+## has no surface — and how deep over its lowest corner its openings are drawn pouring.
 const SHOWS := 0.02
+## The least depth over its lowest corner a cell's water is ever drawn at: under it, a
+## sheet would fight a dry floor's planks.
+const CLEAR_OF_FLOOR := 0.005
 ## A cell's shape at or over which its box counts as inside her: her generator rounds a
 ## box the hull's curve barely touches to just under 1 (the steamer's lower rooms).
 const WHOLE := 0.999
@@ -603,13 +605,21 @@ func _surface(box: AABB, under_sky: bool) -> MeshInstance3D:
 ## Shows [param surface], drawn in [param box], at world height [param level] while it
 ## stands between the box's lowest corner and its highest as she leans, else hides it.
 func _show_surface(surface: MeshInstance3D, box: AABB, level: float, to_ship: Transform3D) -> void:
-	var reach := CellSurface.reach(_ship, box)
-	var showing := level > reach.x + SHOWS and level < reach.y - SHOWS
+	var showing := shows(level, CellSurface.reach(_ship, box))
 	if surface.visible != showing:
 		surface.visible = showing
 	if showing:
 		surface.transform = CellSurface.placed(_ship, _level, box, level)
 		_param(surface, &"world_to_ship", to_ship)
+
+
+## Whether a cell's water standing at world height [param level] is drawn in a box whose
+## lowest and highest corners stand at [param reach]'s x and y: from its first water
+## (SinkTimeline.FIRST_WATER, when the transcript says the cell is flooding) — never so
+## near its floor it would fight the planks — to SHOWS under its top.
+static func shows(level: float, reach: Vector2) -> bool:
+	var first := maxf(SinkTimeline.FIRST_WATER, CLEAR_OF_FLOOR)
+	return level >= reach.x + first and level < reach.y - SHOWS
 
 
 ## How hard water climbing from [param prev_level] to [param level] in [param seconds]
