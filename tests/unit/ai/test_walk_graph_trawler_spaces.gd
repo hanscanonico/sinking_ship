@@ -100,3 +100,40 @@ func test_a_body_crawls_out_of_the_double_bottom_and_none_goes_into_it_flooded()
 	var flooded := HeldPose.flooded(layout, -layout.freeboard, {&"hold_bilge": [-3.0]})
 	assert_true(graph.flooded(double_bottom, flooded), "its floor under")
 	assert_true(graph.route(hold, on, double_bottom, flooded).is_empty(), "never flooded")
+
+
+func test_a_body_crawls_out_of_the_engine_room_double_bottom_from_its_forward_end() -> void:
+	# From its forward end, where the engine room's manhole comes down, past that stair's
+	# side clear of the double bottom's wall and up it or the steering gear's, on up to
+	# her working deck.
+	var layout := _trawler()
+	var surfaces := Surfaces.new(layout)
+	var graph := _graph(layout, surfaces)
+	var double_bottom := _room(layout, &"engine room double bottom")
+	var deck := graph.deck_of(SimFixtures.platform_named(layout, &"working deck"))
+	var dry := HeldPose.flooded(layout, -layout.freeboard, {})
+	var sim := SimFixtures.sim(2, null, layout)
+	SimFixtures.place(sim, 0, Vector3(-3.6, -3.5, 0.6))
+	SimFixtures.place(sim, 1, Vector3(-12.0, 0.0, 2.0))
+	HeldPose.hold(sim, dry)
+	var walked := _walk(sim, graph, deck, 90.0)
+	var passed: Array[int] = walked[0]
+	assert_eq(passed.front(), double_bottom)
+	assert_eq(passed.back(), deck, "crawled out of it and walked up on deck")
+
+
+func test_a_body_walks_up_out_of_either_side_passage() -> void:
+	# From between the feet of its two stairs.
+	var layout := _trawler()
+	var surfaces := Surfaces.new(layout)
+	var graph := _graph(layout, surfaces)
+	var deck := graph.deck_of(SimFixtures.platform_named(layout, &"working deck"))
+	var dry := HeldPose.flooded(layout, -layout.freeboard, {})
+	for space: StringName in [&"port side passage", &"starboard side passage"]:
+		var sim := SimFixtures.sim(2, null, layout)
+		SimFixtures.place(sim, 0, SPACES[space])
+		SimFixtures.place(sim, 1, Vector3(-12.0, 0.0, 2.0))
+		HeldPose.hold(sim, dry)
+		var passed: Array[int] = _walk(sim, graph, deck, 30.0)[0]
+		assert_eq(passed.front(), _room(layout, space))
+		assert_eq(passed.back(), deck, "up out of the %s" % space)

@@ -70,9 +70,13 @@ def platform(pid, name, x0, x1, z0, z1, h=0.0, fitted=False):
     platforms.append(sub("Platform_" + pid, "1_plat", f))
     return len(platforms) - 1
 
-# The steepest stair a body climbs: its rise a body's radius on, 0.4 m, under a step,
-# 0.35 m (data/rules/brawl.tres).
-STEEPEST = 0.85
+# The steepest stair a body climbs: its rise a body's radius on under a step, both
+# read from data/rules/brawl.tres.
+def rule(key):
+    with open("data/rules/brawl.tres") as f:
+        return float(re.search(r"^%s = ([\d.]+)$" % key, f.read(), re.M).group(1))
+
+STEEPEST = rule("step_height") / rule("body_radius")
 
 def ramp(rid, x, z, w, d, start, end, axis=0, fitted=False):
     """A stair from start (at x, or z across her) to end (at x + w, or z + d), its
@@ -259,15 +263,16 @@ SILL = 0.3
 
 # The fish hold's wing passages (#148): as far forward as her shell leaves a body room
 # beside the hold at their floor, each down from the working deck by two stairs through
-# hatches in it, their tops aft (x0), clear of the boarding ladders' feet and the
-# fo'c'sle's stairs. WING_SHELL is the outer face of the lining on her frames, FIT inside
+# hatches in it, their feet facing as the steamer's — the after one's top aft (x0), the
+# forward one's forward (x1) —, clear of the boarding ladders' feet and the fo'c'sle's
+# stairs. WING_SHELL is the outer face of the lining on her frames, FIT inside
 # her shell at the passages' floor.
 WING = (-3, 5.5)
 WING_FLOOR = -1.875
 WING_SHELL = 3.33
-WING_STAIRS = [(a, a + 2.3) for a in (-2.1, 2.3)]
+WING_STAIRS = [(-2.1, 0.2, "x0"), (2.3, 4.6, "x1")]
 WING_HATCHES = [(a, b, *sorted((sign * HOLD_LINING, sign * (WING_SHELL - T))))
-                for sign in (-1, 1) for a, b in WING_STAIRS]
+                for sign in (-1, 1) for a, b, _top in WING_STAIRS]
 
 # --- Platforms. The working deck first: the main deck the lints walk from (D6).
 WORK = holed("working_deck", "working deck", -3, 7, -BEAM, BEAM, 0.0, WING_HATCHES)
@@ -294,11 +299,13 @@ RF = platform("roof_forward", "deckhouse roof", -4.2, -2.9, -3.65, 3.65, UPPER)
 RP = platform("roof_port", "deckhouse roof", -7.0, -4.2, -3.65, -0.55, UPPER)
 RS = platform("roof_starboard", "deckhouse roof", -7.0, -4.2, 0.55, 3.65, UPPER)
 # The lower deck round the manholes down to the double bottoms under it (#148), each over a
-# stair down away from its head: the fish hold's down to their forward (x1) ends, the
-# engine room's side by side down aft to theirs, their heads forward, off the engine. Each
-# clear of every stair's foot, of the way from the fish hold's door to the foot of either
-# stair up to the galley, and of the lamps over her centreline.
-ENGINE_MANHOLES = [(-7.4, -5.8, -1.0, -0.1), (-7.4, -5.8, 0.1, 1.0)]
+# stair down away from its head: the fish hold's down to their forward (x1) ends, one port
+# and one starboard; the engine room's down aft to its, its head forward, off the engine,
+# to port of the double bottom so a body passes it to starboard — the double bottom's other
+# manhole is in the steering gear's floor. Each clear of every stair's foot, of the way
+# from the fish hold's door to the foot of either stair up to the galley, and of the lamps
+# over her centreline.
+ENGINE_MANHOLES = [(-7.4, -5.8, -1.0, -0.1)]
 HOLD_MANHOLES = [(-1.7, -0.1, -1.3, -0.3), (3.5, 5.1, 0.3, 1.3)]
 ENGINE_FLOOR = holed("engine_floor", "lower deck", -10.5, -3, -LINING, LINING, LOWER, ENGINE_MANHOLES)
 HOLD_FLOOR = holed("hold_floor", "lower deck", -3, 7, -HOLD_LINING, HOLD_LINING, LOWER, HOLD_MANHOLES)
@@ -307,8 +314,9 @@ pieces_after()
 # --- Ramps: two up each perch (Q6) — the fo'c'sle from the working deck, the
 # deckhouse's roof from the aft deck —, two down from the galley to the engine room,
 # and the wheelhouse's own stair up from the galley. Each rises 39°, 1.1 m wide; the
-# fo'c'sle's stand inboard of the hatches down to the fish hold's wing passages.
-ramp("forecastle_port", 4.2, -HOLD_LINING, 2.8, 1.1, 0, UPPER)
+# fo'c'sle's stand inboard of the hatches down to the fish hold's wing passages, the
+# port one 0.85 m wide, clear of the crew mess's door beside it.
+ramp("forecastle_port", 4.2, -HOLD_LINING, 2.8, 0.85, 0, UPPER)
 ramp("forecastle_starboard", 4.2, HOLD_LINING - 1.1, 2.8, 1.1, 0, UPPER)
 ramp("roof_port", -12.9, -3.0, 2.8, 1.1, 0, UPPER)
 ramp("roof_starboard", -12.9, 1.9, 2.8, 1.1, 0, UPPER)
@@ -351,7 +359,8 @@ wall_z("mess_port", -2.9, 7, 11, 0, UPPER)
 wall_z("mess_starboard", 2.9, 7, 11, 0, UPPER)
 wall_x("mess_forward", 11, -2.9, 2.9, 0, UPPER)
 # On deck: the fish hatch's coaming and cover, a hop up; the engine room's skylight
-# on the aft deck; the exhaust stack behind the wheelhouse and the mast on the fo'c'sle.
+# on the aft deck, over her steering gear; the exhaust stack behind the wheelhouse and
+# the mast on the fo'c'sle.
 FISH_HATCH = (1.0, 3.0, -0.9, 0.9)
 box("fish_hatch", *FISH_HATCH, 0, 0.6)
 SKYLIGHT = (-13.6, -12.6, -0.25, 0.25)
@@ -399,7 +408,7 @@ ladder("starboard", WORK, (1.0, BEAM), (2.0, BEAM))
 
 # --- Two fish boxes on the working deck, beside the fish hold's hatch: by her bulwarks
 # are the hatches down to its wing passages and the ladders' landings.
-crate("deck_port", -1.6, 0, -1.65)
+crate("deck_port", 0.2, 0, -1.65)
 crate("deck_starboard", 0.2, 0, 1.65)
 
 # --- Rooms, to the middle of their walls.
@@ -416,7 +425,7 @@ room("crew_mess", "crew mess", 7, 11, -2.9, 2.9, 0)
 # under it, and the floor is missed there).
 # Under the lower deck, the double bottoms over her plating, a crawl space each (est.:
 # where the turn of her bilge leaves a body room): the engine room's, its fuel tanks',
-# the length of the steering gear and the engine room, the fish hold's under it.
+# from under her steering gear the length of the engine room, the fish hold's under it.
 DOUBLE_BOTTOM = -3.5
 ENGINE_DB = (-12, -3, 1.35)
 HOLD_DB = (-3, 7, 1.45)
@@ -435,8 +444,16 @@ wall_x("fish_hold_double_bottom_forward", HOLD_DB[1], -HOLD_DB[2], HOLD_DB[2], D
 # carried aft, through the door in its after wall: the steering engine against its after
 # wall on her centreline, too tall to climb (est.), the quadrant on her rudder's head
 # over it.
+# The double bottom's after manhole in its floor, a stair across her down to starboard, its
+# head to port, abaft the door, so a body on the double bottom passes it to starboard.
 STEERING = (-13.9, -10.5, 2.1)
-platform("steering_gear", "lower deck", STEERING[0], STEERING[1], -STEERING[2], STEERING[2], LOWER, True)
+STEERING_MANHOLE = (-11.9, -11.0, -1.15, 0.4)
+later.clear()
+STEERING_FLOOR = holed("steering_gear", "lower deck", STEERING[0], STEERING[1], -STEERING[2], STEERING[2], LOWER,
+                       [STEERING_MANHOLE], True)
+pieces_after()
+x0, x1, z0, z1 = STEERING_MANHOLE
+ramp("engine_room_manhole_2", x0, z0, x1 - x0, z1 - z0, LOWER, DOUBLE_BOTTOM, axis=1, fitted=True)
 wall_x("steering_gear_aft", STEERING[0], -STEERING[2], STEERING[2], LOWER, 0, True)
 for side, sign in [("port", -1), ("starboard", 1)]:
     wall_z("steering_gear_" + side, sign * STEERING[2], STEERING[0], STEERING[1], LOWER, 0, True)
@@ -452,7 +469,7 @@ wall_z("fore_stores_starboard", FORE_STORES[2], FORE_STORES[0] + T, FORE_STORES[
 # To port its stairs cross over its side, which stands only to their underside there.
 x0, x1, z0, z1 = FORE_HATCH
 side = -FORE_STORES[2]
-under = LOWER * (side - T - z0) / (z1 - z0) - 0.1
+under = LOWER * (side + T - z0) / (z1 - z0) - 0.1
 for tag, a, b, top in [("aft", FORE_STORES[0], x0, 0), ("stairs", x0 - T, x1 + T, under),
                        ("forward", x1, FORE_STORES[1] + T, 0)]:
     box("fore_stores_port_" + tag, a, b, side - T, side + T, LOWER, top, True)
@@ -470,8 +487,9 @@ for side, sign in [("port", -1), ("starboard", 1)]:
     clear = sorted((sign * HOLD_LINING, sign * (WING_SHELL - T)))
     for end, x in [("aft", WING[0]), ("forward", WING[1])]:
         box("wing_%s_%s" % (side, end), x - T, x + T, *clear, WING_FLOOR, 0.0, True)
-    for k, (a, b) in enumerate(WING_STAIRS):
-        ramp("wing_%s_%d" % (side, k + 1), a, clear[0], b - a, clear[1] - clear[0], 0.0, WING_FLOOR, fitted=True)
+    for k, (a, b, top) in enumerate(WING_STAIRS):
+        heights = (0.0, WING_FLOOR) if top == "x0" else (WING_FLOOR, 0.0)
+        ramp("wing_%s_%d" % (side, k + 1), a, clear[0], b - a, clear[1] - clear[0], *heights, fitted=True)
 
 # Three sides of every hatch railed, as the stair openings are: the fourth, its stair's
 # head, open. The wing passages' hatches leave their outboard sides open too: between them
@@ -486,10 +504,11 @@ def hatch_rails(rid, plat, hole, *open_sides):
 
 for k, hole in enumerate(ENGINE_MANHOLES):
     hatch_rails("engine_manhole_%d" % (k + 1), ENGINE_FLOOR, hole, "x1")
+hatch_rails("steering_manhole", STEERING_FLOOR, STEERING_MANHOLE, "z0")
 for k, hole in enumerate(HOLD_MANHOLES):
     hatch_rails("hold_manhole_%d" % (k + 1), HOLD_FLOOR, hole, "x0")
 for k, hole in enumerate(WING_HATCHES):
-    hatch_rails("wing_hatch_%d" % (k + 1), WORK, hole, "x0", "z0" if hole[2] < 0 else "z1")
+    hatch_rails("wing_hatch_%d" % (k + 1), WORK, hole, WING_STAIRS[k % 2][2], "z0" if hole[2] < 0 else "z1")
 hatch_rails("fore_stores_hatch", MESS, FORE_HATCH, "z0")
 
 room("engine_room_double_bottom", "engine room double bottom", ENGINE_DB[0], ENGINE_DB[1], -ENGINE_DB[2],
@@ -911,7 +930,7 @@ def hatch(name, under, over, hole, deck):
     opening(name, "HATCH", under, over, ((x0 + x1) * 0.5, deck, (z0 + z1) * 0.5), (x1 - x0, 0, z1 - z0),
             starts="SHUT")
 
-for k, hole in enumerate(ENGINE_MANHOLES):
+for k, hole in enumerate(ENGINE_MANHOLES + [STEERING_MANHOLE]):
     hatch("manhole_engine_bilge_%d" % (k + 1), "engine_bilge", "engine_room", hole, LOWER)
 for k, hole in enumerate(HOLD_MANHOLES):
     hatch("manhole_hold_bilge_%d" % (k + 1), "hold_bilge", "fish_hold", hole, LOWER)
@@ -919,7 +938,8 @@ hatch("hatch_fore_stores", "fore_stores", "fore", FORE_HATCH, 0.0)
 for k, hole in enumerate(WING_HATCHES):
     wing = "hold_wing_p" if hole[2] < 0 else "hold_wing_s"
     hatch("hatch_%s_%d" % (wing, k % 2 + 1), wing, "working_deck", hole, 0.0)
-# The engine room's skylight, under its casing on the aft deck: always open (0.5 m²).
+# The engine room's skylight, under its casing on the aft deck over her steering gear:
+# always open (0.5 m²).
 x0, x1, z0, z1 = SKYLIGHT
 opening("skylight", "VENT", "engine_room", SKY, ((x0 + x1) * 0.5, 0, (z0 + z1) * 0.5),
         (x1 - x0, 0, z1 - z0), starts="OPEN")
