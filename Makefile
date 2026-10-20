@@ -66,7 +66,7 @@ import:
 #       capture sweep QA reads: plays the match headless once, then takes make capture
 #       shots one after another at the water moments of its transcript (seat 0's eyes early,
 #       the first and last flooding, a crate afloat, the first seat out, late, mid-sinking,
-#       the saloon filling)
+#       the saloon filling, a seat wading in a cell's water)
 #       into OUT/<nn>_<name>.png; MAX bounds the shots, DRY=1 prints the planned capture
 #       commands and opens no window. Rules live in tools/smoke.sh. Not part of verify.
 SEED ?=

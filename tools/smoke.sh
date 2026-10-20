@@ -16,10 +16,19 @@
 #   07 mid_sinking    the observer, cells drawn, half way from the first flooding to the end
 #   08 saloon_filling eyes stood on the floor of the saloon (else of the cell the second
 #                     "flooding" line names), at the middle of its cell, 8 s past that line
+#   09 wader_cell     eyes stood in the cell where a seat first wades in a cell's water,
+#                     feet 2.5 m from the seat inside the cell's box, looking at its feet,
+#                     2 s after it first stands wet there (rings round it on that water)
 #
 # A crate's deck and a cell's floor come from the ship's layout, data/ships/<ship>.tres
 # (the default match's ship when SHIP is empty): crate n is the layout's prop n, a cell
 # its Cell_ block's low and high corners in ship space.
+#
+# The transcript names no wading, so shot 09 reads its seat, cell, moment and feet from
+# the table of first waders below, measured from the sim's snapshots for each match it
+# lists (seed, clock, ship): the first tick a seat's feet stand more than CellMap.DRY
+# under the water of the cell they are in. A match the table lacks leaves it out, as
+# does one whose transcript no longer floods that cell before then or has that seat out.
 #
 # A shot whose moment the transcript lacks is left out. Every capture takes the window
 # lock itself (tools/window_lock.sh): the sweep takes none of its own, never raises or
@@ -148,6 +157,56 @@ cell_feet() {
 		}' "$layout"
 }
 
+# The first waders in a cell: "seed|fast|ship|seat|cell|seconds|x,y,z" — the seat's feet
+# in ship space as it stands there. Measure a row again when the sim moves them.
+first_waders=(
+	"1701|1|steamer|7|hold_wing_s|157.3|4.50,-0.42,4.31"
+)
+# The feet to stand at in cell [param 1], "x,y,z", 2.5 m from [param 2], "x,y,z", along
+# the cell's longer side toward its middle, kept 0.3 m inside its box; at the seat's
+# height.
+cell_near() {
+	[[ -n "$layout" ]] || return 0
+	awk -v want="$1" -v seat="$2" '
+		/^\[sub_resource .*id="Cell_/ { inside = 1; named = 0; low = ""; high = ""; next }
+		/^\[/ { inside = 0 }
+		inside && $0 == "name = &\"" want "\"" { named = 1 }
+		inside && /^low = Vector3\(/ { low = $0 }
+		inside && /^high = Vector3\(/ { high = $0 }
+		inside && named && low != "" && high != "" {
+			sub(/^[^(]*/, "", low); sub(/^[^(]*/, "", high)
+			gsub(/[^0-9.,-]/, "", low); gsub(/[^0-9.,-]/, "", high)
+			split(low, a, ","); split(high, b, ","); split(seat, p, ",")
+			x = p[1]; z = p[3]
+			if (b[1] - a[1] >= b[3] - a[3]) {
+				x += (p[1] < (a[1] + b[1]) / 2) ? 2.5 : -2.5
+			} else {
+				z += (p[3] < (a[3] + b[3]) / 2) ? 2.5 : -2.5
+			}
+			x = (x < a[1] + 0.3) ? a[1] + 0.3 : (x > b[1] - 0.3) ? b[1] - 0.3 : x
+			z = (z < a[3] + 0.3) ? a[3] + 0.3 : (z > b[3] - 0.3) ? b[3] - 0.3 : z
+			printf "%.2f,%.2f,%.2f\n", x, p[2], z
+			exit
+		}' "$layout"
+}
+ship_name=$(basename "${layout:-none}" .tres)
+fast_key=0
+[[ -n "$FAST" && "$FAST" != 0 ]] && fast_key=1
+wader=""
+for row in "${first_waders[@]}"; do
+	IFS='|' read -r w_seed w_fast w_ship w_seat w_cell w_at w_feet <<<"$row"
+	[[ "$w_seed" == "$SEED" && "$w_fast" == "$fast_key" && "$w_ship" == "$ship_name" ]] || continue
+	flooded=$(grep -E -m 1 "$stamp$w_cell flooding$" <<<"$transcript")
+	[[ -n "$flooded" ]] || continue
+	awk -v f="$(seconds "$flooded")" -v w="$w_at" 'BEGIN { exit !(f < w) }' || continue
+	gone=$(grep -E -m 1 "$stamp""seat $w_seat out" <<<"$transcript")
+	if [[ -n "$gone" ]] && awk -v g="$(seconds "$gone")" -v w="$w_at" 'BEGIN { exit !(g <= w + 2) }'; then
+		continue
+	fi
+	wader=$row
+	break
+done
+
 # The plan: one shot per line, "name|what it shows|make capture's knobs".
 plan=()
 plan+=("eyes_early|seat 0's eyes 5 s in, before any water, wherever it starts|AT=5 EYE=0")
@@ -180,6 +239,14 @@ if [[ -n "$filling" ]]; then
 	spot=$(cell_feet "$cell")
 	if [[ -n "$spot" ]]; then
 		plan+=("saloon_filling|eyes on $cell's floor at its flooding + 8 s|AT=$(offset "$(seconds "$filling")" 8) FROM=${spot%|*} LOOK=${spot#*|}")
+	fi
+fi
+
+if [[ -n "$wader" ]]; then
+	IFS='|' read -r w_seed w_fast w_ship w_seat w_cell w_at w_feet <<<"$wader"
+	stand=$(cell_near "$w_cell" "$w_feet")
+	if [[ -n "$stand" ]]; then
+		plan+=("wader_cell|eyes in $w_cell 2.5 m from seat $w_seat, 2 s after it first wades there|AT=$(offset "$w_at" 2) FROM=$stand LOOK=$w_feet")
 	fi
 fi
 
