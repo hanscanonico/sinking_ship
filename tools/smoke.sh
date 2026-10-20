@@ -36,11 +36,6 @@ DRY=${DRY:-}
 OUT=${OUT:-captures/smoke}
 MAKE=${MAKE:-make}
 
-# The compatibility renderer's shutdown reports — GL shaders never freed, GL buffers
-# and textures leaked — after a frame is saved are the engine quitting, not the shot
-# going wrong; engine_guard already lets its other at-exit reports through.
-export ENGINE_GUARD_IGNORE="${ENGINE_GUARD_IGNORE:-were never freed|with GL ID of [0-9]+: leaked [0-9]+ bytes}"
-
 [[ "$OUT" = /* ]] || OUT="$PWD/$OUT"
 if [[ -n "$MAX" && ! "$MAX" =~ ^[0-9]+$ ]]; then
 	echo "smoke: MAX takes a whole number of shots, not $MAX" >&2
