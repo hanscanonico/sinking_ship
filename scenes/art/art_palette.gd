@@ -84,6 +84,9 @@ const LAMP_GLASS := Color("ffe2a8")
 const LAMP_LIGHT := Color("ffc47a")
 const EMERGENCY_GLASS := Color("ff6a4a")
 const EMERGENCY_LIGHT := Color("e2492e")
+## The faint fill round the eye in a room whose lamps have failed (EyeFill): a cool
+## grey, so a dark room reads dark and the emergency lamps' red still reads red.
+const EYE_FILL := Color("a9b6c8")
 ## A deck about to give way blinks toward this (the greybox's flash).
 const COLLAPSE_FLASH := Color(1.0, 0.2, 0.1)
 ## The rooms below the passenger decks and the wheelhouse (RoomDressing). An engine
