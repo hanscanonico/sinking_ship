@@ -57,7 +57,14 @@ const ASTERN_BOIL := Vector2(2.0, 3.0)
 ## A piece of wreckage comes down on the sea this far outboard of every deck.
 const OVERBOARD := 1.2
 ## A crate swept off a flooded deck it already floated on moves on this far outboard.
+## Its way on the water is kept clear of every other crate's for ADRIFT_WAY metres;
+## to keep it clear it may turn from outboard in steps of 180 / ADRIFT_TURNS degrees
+## either way. Two crates ADRIFT_TOUCH metres or less further apart than their radii
+## rest against each other.
 const ADRIFT_NUDGE := 0.3
+const ADRIFT_WAY := 2.0
+const ADRIFT_TURNS := 6
+const ADRIFT_TOUCH := 0.05
 ## How long each sheet of spray a lurch slaps up the low side is, in metres.
 const LURCH_SPACING := 6.0
 ## The dust a deck giving way throws up billows from this far over it, in metres;
@@ -153,6 +160,12 @@ var _venting := -1
 ## over the sea, as _crossing() last found them.
 var _line := PackedVector3Array([Vector3.ZERO, Vector3.ZERO])
 var _heights := PackedFloat32Array([0.0, 0.0, 0.0, 0.0])
+## Every crate set adrift, the newest last, at most Flotsam.CAP of them: where it came
+## down (ship plane), the way it drifts, the tick it was sent and its radius.
+var _adrift_at := PackedVector2Array()
+var _adrift_way := PackedVector2Array()
+var _adrift_tick := PackedInt32Array()
+var _adrift_radius := PackedFloat32Array()
 
 
 func _init(config: MatchConfig, surfaces: Surfaces, schedule: SinkSchedule) -> void:
@@ -248,7 +261,7 @@ func _from_event(
 		SimEvent.Kind.CRATE_LOST:
 			var crate: Vector3 = current["props"][event["prop"]]["pos"]
 			if previous["props"][event["prop"]]["state"] == PropState.Body.FLOATING:
-				_set_adrift(event["prop"], crate, previous, tick, cues)
+				_set_adrift(event["prop"], crate, previous, pose, tick, cues)
 			else:
 				_throw(FxCue.Piece.CRATE, crate, _side_of(crate), tick, cues)
 		SimEvent.Kind.RAILING_BROKE:
@@ -686,54 +699,123 @@ func _throw(
 
 ## A crate already afloat on a flooded deck when the sea sweeps it off: it carries on
 ## from where it floated, nudged ADRIFT_NUDGE outboard, never thrown over the rail.
-## A crate still aboard in [param previous] too close to that spot pushes it away
-## instead, until the two stand clear, but never off the deck it floated over.
+## Where that way, ADRIFT_WAY of it, comes nearer another crate's way on the water
+## (_crate_ways) than their radii, it turns from outboard, a step at a time each way,
+## and hops up to a crate's width, until its way keeps clear of them all — still on the
+## deck it floated over, or one as high; the least crowded way when none keeps clear.
 func _set_adrift(
-	prop: int, crate: Vector3, previous: Dictionary, tick: int, cues: Array[FxCue]
+	prop: int, crate: Vector3, previous: Dictionary, pose: ShipPose, tick: int, cues: Array[FxCue]
 ) -> void:
+	var here := Vector2(crate.x, crate.z)
 	var outward := _side_of(crate)
+	var way := Vector2(outward.x, outward.z)
+	var end := here + way * ADRIFT_NUDGE
+	var ways: Array[Vector2] = []
+	var radii: Array[float] = []
+	_crate_ways(prop, crate, previous, pose, tick, ways, radii)
+	var radius := _layout.props[prop].radius
+	var reach := maxf(ADRIFT_NUDGE, radius * 2.0)
+	var hops := ceili(reach / ADRIFT_NUDGE - 0.001)
+	var floor_deck := _deck_under(crate)
+	var best := -INF
+	for turn in ADRIFT_TURNS * 2:
+		# Outboard, then a step either side of it, and so on round to inboard.
+		var steps := ceili(turn * 0.5) * (1 if turn % 2 == 1 else -1)
+		var heading := way.rotated(steps * PI / ADRIFT_TURNS) if turn > 0 else way
+		for hop in hops:
+			var at := here + heading * minf(ADRIFT_NUDGE * (hop + 1), reach)
+			if not _level_with(floor_deck, Vector3(at.x, crate.y, at.y)):
+				continue
+			var clear := INF
+			for index in radii.size():
+				var closest := Geometry2D.get_closest_points_between_segments(
+					at, at + heading * ADRIFT_WAY, ways[index * 2], ways[index * 2 + 1]
+				)
+				clear = minf(clear, closest[0].distance_to(closest[1]) - radius - radii[index])
+			if clear > best + 0.001:
+				best = clear
+				end = at
+				outward = Vector3(heading.x, 0.0, heading.y)
+			if best >= -0.001:
+				break
+		if best >= -0.001:
+			break
 	var adrift := FxCue.new(FxCue.Kind.FLOTSAM, tick, crate)
 	adrift.piece = FxCue.Piece.CRATE
 	# Flotsam times a flight by its drop, at least FLIGHT_LEAST, so a short one is defined.
-	adrift.end = _clear_of_crates(prop, crate, crate + outward * ADRIFT_NUDGE, previous)
+	adrift.end = Vector3(end.x, crate.y, end.y)
 	adrift.toward = outward
 	adrift.on_sea = true
 	cues.append(adrift)
+	_adrift_at.append(end)
+	_adrift_way.append(Vector2(outward.x, outward.z))
+	_adrift_tick.append(tick)
+	_adrift_radius.append(radius)
+	if _adrift_tick.size() > Flotsam.CAP:
+		_adrift_at.remove_at(0)
+		_adrift_way.remove_at(0)
+		_adrift_tick.remove_at(0)
+		_adrift_radius.remove_at(0)
 
 
-## Where crate [param prop], floating at [param crate], may start adrift instead of
-## [param end]: [param end] itself unless the nearest other crate still aboard in
-## [param previous] stands closer to it than the two crates' radii, else that far
-## from it, away from it through [param crate], kept on the deck it floated over.
-func _clear_of_crates(prop: int, crate: Vector3, end: Vector3, previous: Dictionary) -> Vector3:
-	var nearest := -1
-	var nearest_distance := INF
+## The way on the water of every crate but [param prop], floating at [param crate],
+## at [param tick], into [param ways] as pairs of ship-plane points — from where it is
+## to ADRIFT_WAY along it — and its radius into [param radii]. A crate still aboard in
+## [param previous] stays put, or, afloat, drifts downhill under [param pose] and,
+## resting against [param crate], into the place it leaves; one set adrift before
+## drifts on along its way from where it came down, as Flotsam drifts it.
+func _crate_ways(
+	prop: int,
+	crate: Vector3,
+	previous: Dictionary,
+	pose: ShipPose,
+	tick: int,
+	ways: Array[Vector2],
+	radii: Array[float]
+) -> void:
+	var here := Vector2(crate.x, crate.z)
+	var radius := _layout.props[prop].radius
+	var down := _downhill(pose)
+	var downhill := Vector2(down.x, down.z)
 	for entry: Dictionary in previous["props"]:
 		var other: int = entry["prop"]
 		if other == prop or entry["state"] == PropState.Body.LOST:
 			continue
-		var at: Vector3 = entry["pos"]
-		var distance := Vector2(at.x - end.x, at.z - end.z).length()
-		if distance < nearest_distance:
-			nearest = other
-			nearest_distance = distance
-	if nearest < 0:
-		return end
-	var radius := _layout.props[prop].radius
-	var apart := radius + _layout.props[nearest].radius
-	if nearest_distance >= apart:
-		return end
-	var neighbour: Vector3 = previous["props"][nearest]["pos"]
-	var away := Vector2(crate.x - neighbour.x, crate.z - neighbour.z)
-	if away.length() < 0.001:
-		away = Vector2(end.x - crate.x, end.z - crate.z)
-	var clear := Vector2(neighbour.x, neighbour.z) + away.normalized() * apart
-	var deck := _deck_under(crate)
-	if deck != null:
-		var inside := deck.area.grow(-radius)
-		if inside.has_area():
-			clear = clear.clamp(inside.position, inside.end)
-	return Vector3(clear.x, end.y, clear.y)
+		var pos: Vector3 = entry["pos"]
+		var at := Vector2(pos.x, pos.z)
+		var other_radius := _layout.props[other].radius
+		var afloat: bool = entry["state"] == PropState.Body.FLOATING
+		ways.append_array([at, at + downhill * ADRIFT_WAY if afloat else at])
+		radii.append(other_radius)
+		var into := here - at
+		if afloat and into.length() > 0.001:
+			if into.length() <= radius + other_radius + ADRIFT_TOUCH:
+				ways.append_array([at, at + into.normalized() * ADRIFT_WAY])
+				radii.append(other_radius)
+	for index in _adrift_tick.size():
+		if _adrift_tick[index] > tick:
+			continue
+		var seconds := (tick - _adrift_tick[index]) * Ticks.SECONDS_PER_TICK
+		var drifted := _drifted(maxf(seconds - Flotsam.FLIGHT_LEAST, 0.0))
+		var from := _adrift_at[index]
+		ways.append_array([from, from + _adrift_way[index] * (drifted + ADRIFT_WAY)])
+		radii.append(_adrift_radius[index])
+
+
+## How far Flotsam drifts a piece in its first [param seconds] on the water.
+static func _drifted(seconds: float) -> float:
+	var easing := 1.0 - exp(-Flotsam.DRIFT_EASE * seconds)
+	var fading := (Flotsam.DRIFT - Flotsam.DRIFT_LEAST) * easing / Flotsam.DRIFT_EASE
+	return Flotsam.DRIFT_LEAST * seconds + fading
+
+
+## Whether [param point] stands over [param deck], or a deck as high, the highest
+## under it; any point does when [param deck] is null.
+func _level_with(deck: ShipPlatform, point: Vector3) -> bool:
+	if deck == null:
+		return true
+	var under := _deck_under(point)
+	return under != null and is_equal_approx(under.height, deck.height)
 
 
 ## The highest deck under [param point] at or below it, or null.
