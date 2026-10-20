@@ -47,7 +47,7 @@ import:
 #       from inside any space, whether or not a seat stands there; SIDE=port
 #       watches her from her port side rather than her starboard; ARGS passes more
 #       user args, e.g. ARGS=--net-sim=latency:120,jitter:20,loss:5. Not part of
-#       verify: it needs a display.
+#       verify: it needs a display. WET=S holds the lens wet S seconds after surfacing.
 #   make capture SEED=1701 PHYS=1:04:40 [JUMP=1] [EYE=] [CUT=] [CELLS=1] [SIDE=]
 #       at that moment of the sinking, in physics time after the hit, in place of AT;
 #       JUMP=1 bakes, seeks the timeline there and starts the match JUMP's lead before
@@ -138,7 +138,7 @@ capture:
 		$(if $(EYE),--capture-eye=$(EYE)) \
 		$(if $(FROM),--capture-from=$(FROM)) $(if $(LOOK),--capture-look=$(LOOK)) \
 		$(if $(CUT),--observer-cut=$(CUT)) $(if $(CELLS),--observer-cells) \
-		$(if $(SIDE),--observer-side=$(SIDE)) \
+		$(if $(SIDE),--observer-side=$(SIDE)) $(if $(WET),--capture-wet=$(WET)) \
 		$(if $(SCREEN),--capture-screen=$(SCREEN)) $(ARGS)
 
 # The sweep runs make capture shot by shot, so each takes the window lock itself; the

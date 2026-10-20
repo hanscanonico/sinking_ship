@@ -305,6 +305,8 @@ func _start(config: MatchConfig) -> void:
 	)
 	if capturing:
 		_match.stage_eyes(_args.capture_from)
+	if capturing and not is_nan(_args.capture_wet):
+		_match.wet_lens(_args.capture_wet)
 	if observer:
 		_match.watch_from(_args.observer_side)
 	if observer and _args.observer_cells:

@@ -63,6 +63,8 @@ var _cells: Array[CellOverlay] = []
 var _free := FreeCamera.new()
 ## The faint light round the eye in a room whose lamps have failed.
 var _eye_fill := EyeFill.new()
+## The water running off the lens once the eye comes up out of it.
+var _lens_drops := LensDrops.new()
 
 @onready var _sea_and_sky: SeaAndSky = $SeaAndSky
 @onready var _driver: SimDriver = $SimDriver
@@ -89,6 +91,7 @@ func _ready() -> void:
 	add_child(_fx)
 	add_child(_iceberg)
 	add_child(_eye_fill)
+	add_child(_lens_drops)
 	add_child(FxWarmUp.new(_fx.emitters()))
 	add_child(_prompts)
 	add_child(_pointer)
@@ -177,6 +180,7 @@ func _process(delta: float) -> void:
 	var eye := _eyes.global_position
 	_underwater.show_eye(eye, _view.above_water(eye), _view.indoors(eye))
 	_eye_fill.show_eye(eye, _view.lit_at(eye), _underwater.is_under())
+	_lens_drops.show_eye(_underwater.is_under())
 	_first_person_hud.show_view(snapshot, viewed, yaw, _eyes, _view)
 
 
@@ -273,6 +277,12 @@ func stage_eyes(at: PackedFloat64Array) -> void:
 	if at.size() == 4:
 		_staged.append(SPECTATE_PITCH_DEG)
 	_arms.visible = at.is_empty()
+
+
+## Holds the lens wet as it is [param seconds] after surfacing (--capture-wet): a tool,
+## a still shot having no surfacing to wet it.
+func wet_lens(seconds: float) -> void:
+	_lens_drops.hold_wet(seconds)
 
 
 ## Has the observer camera watch from her [param side] (--observer-side): a tool, as
@@ -466,6 +476,7 @@ func _fly(snapshot: Dictionary, viewed: int, delta: float) -> void:
 	var eye := _eyes.global_position
 	_underwater.show_eye(eye, _view.above_water(eye), _view.indoors(eye))
 	_eye_fill.show_eye(eye, _view.lit_at(eye), _underwater.is_under())
+	_lens_drops.show_eye(_underwater.is_under())
 	_first_person_hud.show_view(snapshot, viewed, 0.0, _eyes, _view)
 
 
