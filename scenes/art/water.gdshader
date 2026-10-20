@@ -28,6 +28,18 @@ uniform float clear_depth = 1.3;
 // How much of a surface just under the water still shows through.
 uniform float shallow_alpha = 0.5;
 uniform float murk_steps = 3.0;
+// Near the eye and at a slant the steps would stripe a drowned hull side, so there the
+// murk grades smoothly: fully within murk_graded_near metres of the eye and stepped again
+// by murk_graded_far; fully where the view dips under graze_begin (the sine of its angle
+// below the horizontal) and stepped again by graze_end.
+uniform float murk_graded_near = 6.0;
+uniform float murk_graded_far = 14.0;
+uniform float graze_begin = 0.12;
+uniform float graze_end = 0.3;
+// How far the Fresnel term closes the surface where the murk grades, from 0, not at all,
+// to 1, hiding what lies under it entirely at a graze; full by graze_depth metres down.
+uniform float graze_closing = 0.8;
+uniform float graze_depth = 0.6;
 // Metres below the surface that foam: a solid edge, then lace a little deeper.
 uniform float foam_depth = 0.035;
 uniform float lace_depth = 0.2;
@@ -319,8 +331,17 @@ void fragment() {
 		whitecap *= sky_over;
 		open = mix(open, foam_colour.rgb * foam_glow, whitecap);
 
-		// Stepped, so a drowning deck shows contour bands parallel to the waterline.
-		float murk = floor(smoothstep(0.0, clear_depth, below) * murk_steps + 0.5) / murk_steps;
+		// Stepped, so a drowning deck seen from afar shows contour bands parallel to the
+		// waterline. Near the eye or at a slant the steps would stripe a drowned hull side
+		// and cut it off where the last turns opaque: there the murk grades smoothly, and
+		// the Fresnel term closes the surface as the view grazes it, so what lies under it
+		// fades into the sea rather than ending at a line.
+		float sunk = smoothstep(0.0, clear_depth, below);
+		float stepped = floor(sunk * murk_steps + 0.5) / murk_steps;
+		float graded = 1.0 - smoothstep(murk_graded_near, murk_graded_far, dist);
+		graded = max(graded, 1.0 - smoothstep(graze_begin, graze_end, -look.y));
+		float closed = fresnel * graze_closing * smoothstep(0.0, graze_depth, below);
+		float murk = mix(stepped, max(sunk, closed), graded);
 		vec3 colour = mix(shallow_colour.rgb, open, murk);
 		float alpha = mix(shallow_alpha, 1.0, murk);
 
