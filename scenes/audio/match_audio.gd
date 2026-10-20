@@ -20,8 +20,13 @@ const HEAD_VOICES := 8
 const SEA := "beds/sea.ogg"
 const WIND := "beds/wind.ogg"
 const RUSH := "beds/rush.ogg"
+## The water lapping in a part-flooded room: the sea's bed, pitched up.
+const LAP_PITCH := 1.4
 ## Seconds the mix takes to go from open deck to enclosed, or back.
 const ENCLOSE_SECONDS := 0.25
+## Seconds the room's cues take to go muffled as the ears go under, or back, so a
+## bob at the surface does not click.
+const UNDER_SECONDS := 0.15
 
 var _driver: SimDriver
 var _view: MatchView
@@ -41,6 +46,9 @@ var _listener: AudioListener3D
 var _sea: AudioStreamPlayer
 var _wind: AudioStreamPlayer
 var _rush: AudioStreamPlayer
+var _lap: AudioStreamPlayer
+## The room's cutoff now, easing toward AmbienceMix.cue_cutoff_hz.
+var _cue_hz := AmbienceMix.OPEN_HZ
 
 
 func _ready() -> void:
@@ -59,13 +67,15 @@ func _ready() -> void:
 	_sea = _bed(SEA, &"Sea")
 	_wind = _bed(WIND, &"Ambience")
 	_rush = _bed(RUSH, SoundBank.ROOM_BUS)
+	_lap = _bed(SEA, SoundBank.ROOM_BUS)
+	_lap.pitch_scale = LAP_PITCH
 
 
 # Leaves the buses open-deck for the menu, and nothing of the match sounding.
 func _exit_tree() -> void:
 	_set_enclosure(0.0)
 	_silence()
-	for bed: AudioStreamPlayer in [_sea, _wind, _rush]:
+	for bed: AudioStreamPlayer in [_sea, _wind, _rush, _lap]:
 		bed.stop()
 
 
@@ -86,7 +96,7 @@ func setup(
 		_driver.stepped.connect(_on_stepped)
 	_silence()
 	_listener.make_current()
-	for bed: AudioStreamPlayer in [_sea, _wind, _rush]:
+	for bed: AudioStreamPlayer in [_sea, _wind, _rush, _lap]:
 		if SoundBank.audible() and not bed.playing:
 			bed.play()
 
@@ -108,18 +118,32 @@ func _process(delta: float) -> void:
 	# The sea is the world plane (D7), so the ears' height is their distance to it.
 	var above_sea := camera.global_position.y - FirstPersonCamera.eye_height_of(camera)
 	var tick: int = _driver.current["tick"]
-	var sink_rate := _schedule.pose_at(tick).sink - _schedule.pose_at(tick - Ticks.RATE).sink
+	var pose := _schedule.pose_at(tick)
+	var before := _schedule.pose_at(tick - Ticks.RATE)
+	var sink_rate := pose.sink - before.sink
 	_enclosure = move_toward(
 		_enclosure, _enclosure_at(_planner.listener_seat), delta / ENCLOSE_SECONDS
 	)
 	_sea.volume_db = AmbienceMix.sea_db(above_sea)
 	var under := _underwater.is_under()
 	_wind.volume_db = AmbienceMix.wind_db(above_sea, _enclosure, under)
-	_rush.volume_db = AmbienceMix.rush_db(sink_rate, above_sea)
+	var rush := AmbienceMix.rush_db(sink_rate, above_sea)
+	var lap := AmbienceMix.SILENT_DB
+	# The listener's own cell: the water rising in it, and how deep it stands.
+	var ears := _view.ship_to_world().affine_inverse() * camera.global_position
+	var cell := pose.cell_at(ears)
+	if cell != CellMap.NONE:
+		if before.levels.size() == pose.levels.size():
+			var rise := AmbienceMix.cell_rise(pose, before, cell)
+			rush = maxf(rush, AmbienceMix.cell_rush_db(rise, under))
+		var floor_point := Vector3(ears.x, pose.cells.floor_of(cell), ears.z)
+		lap = AmbienceMix.lap_db(pose.levels[cell] - pose.world_height(floor_point), under)
+	_rush.volume_db = rush
+	_lap.volume_db = lap
 	var sea_filter := _filter(&"Sea")
 	if sea_filter != null:
 		sea_filter.cutoff_hz = AmbienceMix.sea_cutoff_hz(above_sea)
-	_set_enclosure(_enclosure, under)
+	_set_enclosure(_enclosure, under, delta)
 
 
 func _on_stepped(_events: Array[SimEvent]) -> void:
@@ -192,13 +216,28 @@ func _enclosure_at(seat: int) -> float:
 	return AmbienceMix.enclosure(_layout, entry["pos"], _step_height)
 
 
-## The room's reverb, and the outside heard through the hull — or the sea.
-func _set_enclosure(enclosure: float, under: bool = false) -> void:
+## The room's reverb, and the outside heard through the hull — or the sea; with the
+## ears under, the room's cues muffled too, eased over [param delta] seconds (at once
+## when it is negative).
+func _set_enclosure(enclosure: float, under: bool = false, delta: float = -1.0) -> void:
 	var room := AudioServer.get_bus_index(SoundBank.ROOM_BUS)
 	if room != -1:
 		var reverb := AudioServer.get_bus_effect(room, 0) as AudioEffectReverb
 		reverb.wet = AmbienceMix.reverb_wet(enclosure)
 		AudioServer.set_bus_effect_enabled(room, 0, enclosure > 0.0)
+		var target := AmbienceMix.cue_cutoff_hz(under)
+		if delta < 0.0:
+			_cue_hz = target
+		else:
+			# Evenly in octaves, as the ear hears a cutoff move.
+			var octaves := log(AmbienceMix.OPEN_HZ / AmbienceMix.UNDER_CUE_HZ) / log(2.0)
+			var now := log(_cue_hz) / log(2.0)
+			now = move_toward(now, log(target) / log(2.0), octaves * delta / UNDER_SECONDS)
+			_cue_hz = pow(2.0, now)
+		if AudioServer.get_bus_effect_count(room) > 1:
+			var muffle := AudioServer.get_bus_effect(room, 1) as AudioEffectLowPassFilter
+			if muffle != null:
+				muffle.cutoff_hz = _cue_hz
 	var outside := _filter(&"Ambience")
 	if outside != null:
 		outside.cutoff_hz = AmbienceMix.outside_cutoff_hz(enclosure, under)

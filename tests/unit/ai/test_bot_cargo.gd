@@ -16,13 +16,17 @@ func _first_move(sim: MatchSim, seat: int, profile: BotProfile = null) -> Vector
 
 
 ## Seat 0 a little to port of a crate's line, seat 1 — its target — far aft on that
-## line, so that left alone the bot walks aft; the crate at [param crate_vel].
-func _facing_a_crate(crate_vel: Vector3, profile: BotProfile = null) -> Vector2:
+## line, so that left alone the bot walks aft; the crate at [param crate_vel], and
+## [param body] — standing, or afloat.
+func _facing_a_crate(
+	crate_vel: Vector3, profile: BotProfile = null, body := PropState.Body.GROUNDED
+) -> Vector2:
 	var crates: Array[ShipProp] = [SimFixtures.crate(Vector3(3.0, 0.0, 0.0))]
 	var sim := SimFixtures.sim(2, null, SimFixtures.crated(crates))
 	SimFixtures.place(sim, 0, Vector3(0.0, 0.0, -0.3), 180.0)
 	SimFixtures.place(sim, 1, Vector3(-10.0, 0.0, 0.0))
 	sim.state.props[0].vel = crate_vel
+	sim.state.props[0].body = body
 	return _first_move(sim, 0, profile)
 
 
@@ -34,6 +38,18 @@ func test_a_bot_steps_out_of_a_sliding_crate_s_path() -> void:
 	assert_almost_eq(coming.x, 0.0, 1.0, "square to the crate's path")
 	var going := _facing_a_crate(Vector3(4.0, 0.0, 0.0))
 	assert_lt(going.x, 0.0, "a crate sliding away: no matter")
+
+
+func test_a_bot_steps_out_of_a_fast_drifting_floating_crate_s_path_only() -> void:
+	var afloat := PropState.Body.FLOATING
+	var still := _facing_a_crate(Vector3.ZERO, null, afloat)
+	assert_lt(still.x, 0.0, "a crate afloat and still is a blocker: the bot walks on")
+	# As slow as her water carries one down a gentle heel: three metres off, no matter.
+	var drifting := _facing_a_crate(Vector3(-0.1, 0.0, 0.0), null, afloat)
+	assert_eq(drifting, still, "a slow drift from three metres off changes nothing")
+	var coming := _facing_a_crate(Vector3(-4.0, 0.0, 0.0), null, afloat)
+	assert_lt(coming.y, 0.0, "one shoved at it across the water: the bot steps aside")
+	assert_almost_eq(coming.x, 0.0, 1.0, "square to the crate's path")
 
 
 func test_an_easy_bot_does_not_dodge_cargo() -> void:

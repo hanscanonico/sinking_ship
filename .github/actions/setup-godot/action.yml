@@ -15,7 +15,17 @@ runs:
         sudo apt-get install -y --no-install-recommends \
           libgl1 libx11-6 libxcursor1 libxinerama1 libxi6 libxrandr2
 
+    # The pinned version is the whole key: a bump fetches afresh, anything
+    # else reuses the binary instead of downloading it in every job.
+    - name: Cache Godot ${{ env.GODOT_VERSION }}
+      id: godot-bin
+      uses: actions/cache@v4
+      with:
+        path: ${{ env.GODOT }}
+        key: godot-bin-${{ env.GODOT_VERSION }}-linux
+
     - name: Fetch Godot ${{ env.GODOT_VERSION }}
+      if: steps.godot-bin.outputs.cache-hit != 'true'
       shell: bash
       run: |
         set -euo pipefail
@@ -25,7 +35,11 @@ runs:
         mkdir -p bin
         mv "/tmp/godot/Godot_v${GODOT_VERSION}_linux.x86_64" "$GODOT"
         chmod +x "$GODOT"
-        "$GODOT" --headless --version
+
+    # On a cache hit as well, so a bad restore fails here and not mid-gate.
+    - name: Check Godot runs
+      shell: bash
+      run: '"$GODOT" --headless --version'
 
     # Keyed on what an import actually depends on, so a run that only edits
     # code reuses the cache and one that touches an asset rebuilds it.

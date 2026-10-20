@@ -493,3 +493,287 @@ func test_a_crate_hit_thuds_on_the_brawler() -> void:
 	var on_the_brawler := thuds.filter(func(cue: AudioCue) -> bool: return cue.seat == 0)
 	assert_eq(on_the_brawler.size(), 1, "one thud on the brawler it hits")
 	assert_true(on_the_brawler[0].heavy)
+
+
+## A sinking whose poses a test may set tick by tick: every other tick is the bake's.
+class Posed:
+	extends SinkSchedule
+	var poses := {}
+
+	func pose_at(tick: int) -> ShipPose:
+		return poses[tick] if poses.has(tick) else super.pose_at(tick)
+
+
+## Seed 38's match, its sinking a Posed one with her poses at ticks 1…3 dry as she lies
+## before the hit; the dry pose comes back.
+func _posed_sim() -> MatchSim:
+	var config := RunMatch.default_config(38)
+	config.scenario = config.scenario.duplicate()
+	config.scenario.explicit_hit = IcebergHit.draw(
+		config.scenario.hit, SeedStreams.derive(38, "sink")
+	)
+	var posed: Posed = config.schedule_as(Posed)
+	var dry := SimFixtures.copy_of(posed.pose_at(0))
+	for tick in [1, 2, 3]:
+		posed.poses[tick] = dry
+	return MatchSim.create(config)
+
+
+## A copy of [param pose] with cell [param cell]'s water at world height [param level].
+func _with_level(pose: ShipPose, cell: int, level: float) -> ShipPose:
+	var made := SimFixtures.copy_of(pose)
+	var levels := PackedFloat64Array(pose.levels)
+	levels[cell] = level
+	made.levels = levels
+	return made
+
+
+## The cues of each step through [param poses], ticks to the poses at them in the
+## order they come, from the dry one at tick 1 on.
+func _through(sim: MatchSim, poses: Dictionary) -> Array:
+	var posed := sim.schedule as Posed
+	var planner := _planner(sim, -1)
+	var heard: Array = []
+	var before := sim.snapshot().duplicate(true)
+	before["tick"] = 1
+	for tick: int in poses:
+		posed.poses[tick] = poses[tick]
+		var after := before.duplicate(true)
+		after["tick"] = tick
+		heard.append(planner.plan(before, after))
+		before = after
+	return heard
+
+
+## How many cues of [param kind] [param heard] holds, every step's.
+func _count(heard: Array, kind: AudioCue.Kind) -> int:
+	var count := 0
+	for cues: Array[AudioCue] in heard:
+		count += _of(cues, kind).size()
+	return count
+
+
+func _floor_centre(cell: FloodCell) -> Vector3:
+	return Vector3((cell.low.x + cell.high.x) * 0.5, cell.low.y, (cell.low.z + cell.high.z) * 0.5)
+
+
+## The lowest world height under [param pose] of the box about [param centre] reaching
+## [param half] each way.
+func _lowest(pose: ShipPose, centre: Vector3, half: Vector3) -> float:
+	var lowest := INF
+	for corner in 8:
+		var at := (
+			centre
+			+ Vector3(
+				half.x if corner & 1 else -half.x,
+				half.y if corner & 2 else -half.y,
+				half.z if corner & 4 else -half.z
+			)
+		)
+		lowest = minf(lowest, pose.world_height(at))
+	return lowest
+
+
+## The lowest corner of cell [param cell]'s floor under [param pose].
+func _floor_low(pose: ShipPose, cell: FloodCell) -> float:
+	var half := (cell.high - cell.low) * 0.5
+	return _lowest(pose, _floor_centre(cell), Vector3(half.x, 0.0, half.z))
+
+
+## Seconds of ticks after [param tick]: where a test's water may stand again.
+func _after(tick: int, seconds: float) -> int:
+	return tick + Ticks.from_seconds(seconds)
+
+
+func test_a_cell_floods_once_as_its_water_first_rises_over_its_floor() -> void:
+	var sim := _posed_sim()
+	var dry := sim.schedule.pose_at(1)
+	var structure := sim.config.ship.structure
+	var silent := _through(sim, {2: dry, 3: dry})
+	assert_eq(_count(silent, AudioCue.Kind.FLOOD), 0, "a dry tick floods nothing")
+	assert_eq(_count(silent, AudioCue.Kind.POUR), 0, "nor pours")
+	sim = _posed_sim()
+	var cell := 0
+	var wet := _with_level(dry, cell, dry.levels[cell] + 0.5)
+	var heard := _through(sim, {2: wet, 3: wet})
+	var floods := _of(heard[0], AudioCue.Kind.FLOOD)
+	assert_eq(floods.size(), 1, "one flood as its water breaks in")
+	assert_true(floods[0].positional)
+	var centre := _floor_centre(structure.cells[cell])
+	assert_almost_eq(floods[0].position, centre, Vector3.ONE * 0.001, "from its floor")
+	assert_eq(_of(heard[1], AudioCue.Kind.FLOOD).size(), 0, "and only as it first does")
+
+
+func test_a_cell_hovering_at_its_floor_floods_again_only_once_it_has_stood_dry() -> void:
+	var sim := _posed_sim()
+	var dry := sim.schedule.pose_at(1)
+	var cell := 0
+	var wet := _with_level(dry, cell, dry.levels[cell] + 0.5)
+	var back := _after(5, CuePlanner.CELL_REARM)
+	var hovering := _through(sim, {2: wet, 3: dry, 4: wet, 5: dry, back - 1: dry, back: wet})
+	assert_eq(_of(hovering[0], AudioCue.Kind.FLOOD).size(), 1, "it floods")
+	assert_eq(_count(hovering, AudioCue.Kind.FLOOD), 1, "once, while it hovers")
+	sim = _posed_sim()
+	var again := _after(3, CuePlanner.CELL_REARM)
+	var drained := _through(sim, {2: wet, 3: dry, again: dry, again + 1: wet})
+	assert_eq(_count(drained, AudioCue.Kind.FLOOD), 2)
+	assert_eq(_of(drained[3], AudioCue.Kind.FLOOD).size(), 1, "and again once dry a while")
+
+
+func test_a_platform_in_a_flooding_cell_floods_with_it_not_again() -> void:
+	var sim := _posed_sim()
+	var dry := sim.schedule.pose_at(1)
+	var structure := sim.config.ship.structure
+	var platform := -1
+	var cell := -1
+	for index in sim.config.ship.platforms.size():
+		var deck: ShipPlatform = sim.config.ship.platforms[index]
+		var middle := deck.area.get_center()
+		cell = dry.cell_at(Vector3(middle.x, deck.height + CellMap.DRY, middle.y))
+		if cell != CellMap.NONE:
+			platform = index
+			break
+	assert_ne(platform, -1, "a deck in a cell")
+	var deck: ShipPlatform = sim.config.ship.platforms[platform]
+	var middle := deck.area.get_center()
+	var under := dry.world_height(Vector3(middle.x, dry.cells.floor_of(cell), middle.y))
+	var top := dry.world_height(Vector3(middle.x, deck.height, middle.y))
+	var deck_wets := maxf(top, under + CellMap.DRY)
+	var cell_wets := _floor_low(dry, structure.cells[cell]) + CuePlanner.SHOWS
+	# Water between the deck's flooding and the cell's: one of the two before the other.
+	var first := _with_level(dry, cell, (deck_wets + cell_wets) * 0.5)
+	var wet := _with_level(dry, cell, top + 0.5)
+	var cell_first := first.levels[cell] > cell_wets
+	assert_ne(sim.surfaces.flooded(platform, first), cell_first, "one comes on first")
+	assert_true(sim.surfaces.flooded(platform, wet), "the deck floods with its cell")
+	var heard := _through(sim, {2: first, 3: first, 4: wet, 5: dry, 6: wet})
+	assert_eq(_of(heard[0], AudioCue.Kind.FLOOD).size(), 1, "the first of them floods")
+	assert_eq(_count(heard, AudioCue.Kind.FLOOD), 1, "and not the other, later, nor either again")
+	sim = _posed_sim()
+	var both := _of(_through(sim, {2: wet})[0], AudioCue.Kind.FLOOD)
+	assert_eq(both.size(), 1, "one flood, not one for the cell and one for its deck")
+	var centre := _floor_centre(structure.cells[cell])
+	assert_almost_eq(both[0].position, centre, Vector3.ONE * 0.001, "from the cell's floor")
+
+
+## Seed 38's first opening water can pass from a cell, and a pose of [param sim] with
+## that cell's water half a metre over its bottom.
+func _pouring(sim: MatchSim) -> Array:
+	var dry := sim.schedule.pose_at(1)
+	var structure := sim.config.ship.structure
+	for passage: ShipOpening in sim.schedule.passages():
+		if passage.kind in CuePlanner.UNHEARD or passage.shuts_at_hit:
+			continue
+		var cell := structure.cell_named(passage.joins[0])
+		if cell == -1:
+			continue
+		var bottom := _lowest(dry, passage.centre, passage.size * 0.5)
+		return [passage, _with_level(dry, cell, maxf(bottom, 0.0) + 0.5)]
+	return [null, dry]
+
+
+func test_an_opening_pours_as_it_starts_carrying_water() -> void:
+	var sim := _posed_sim()
+	var found := _pouring(sim)
+	var opening: ShipOpening = found[0]
+	assert_not_null(opening, "an opening water can pass")
+	var heard := _through(sim, {2: found[1], 3: found[1]})
+	var here := _of(heard[0], AudioCue.Kind.POUR).filter(
+		func(cue: AudioCue) -> bool: return cue.position.is_equal_approx(opening.centre)
+	)
+	assert_eq(here.size(), 1, "one pour from %s as it starts" % opening.name)
+	assert_true(here[0].positional)
+	assert_eq(_of(heard[1], AudioCue.Kind.POUR).size(), 0, "none as it goes on pouring")
+
+
+func test_an_opening_pours_again_only_once_it_has_stood_still_a_while() -> void:
+	var sim := _posed_sim()
+	var found := _pouring(sim)
+	var dry := sim.schedule.pose_at(1)
+	var pouring: ShipPose = found[1]
+	var back := _after(5, CuePlanner.POUR_REARM)
+	var stuttering := _through(
+		sim, {2: pouring, 3: dry, 4: pouring, 5: dry, back - 1: dry, back: pouring}
+	)
+	var started := _of(stuttering[0], AudioCue.Kind.POUR).size()
+	assert_gt(started, 0, "it pours")
+	assert_eq(_count(stuttering, AudioCue.Kind.POUR), started, "once, while it stutters")
+	sim = _posed_sim()
+	var again := _after(3, CuePlanner.POUR_REARM)
+	var still := _through(sim, {2: pouring, 3: dry, again: dry, again + 1: pouring})
+	assert_eq(_of(still[3], AudioCue.Kind.POUR).size(), started, "and again once still a while")
+
+
+func test_water_coming_on_all_at_once_is_heard_by_a_few() -> void:
+	var sim := _posed_sim()
+	var dry := sim.schedule.pose_at(1)
+	var awash := dry
+	for cell in dry.levels.size():
+		awash = _with_level(awash, cell, dry.levels[cell] + 0.5 + cell * 0.1)
+	assert_gt(dry.levels.size(), CuePlanner.WATER_CUES, "more cells than the water's voices")
+	var heard := _through(sim, {2: awash, 3: awash})
+	var water: Array[AudioCue] = _of(heard[0], AudioCue.Kind.FLOOD)
+	water.append_array(_of(heard[0], AudioCue.Kind.POUR))
+	assert_eq(water.size(), CuePlanner.WATER_CUES, "only so many at once")
+	var rest := _count([heard[1]], AudioCue.Kind.FLOOD) + _count([heard[1]], AudioCue.Kind.POUR)
+	assert_eq(rest, 0, "and the rest go unheard, not on the tick after")
+
+
+## Where each flood [param ship] can sound comes from, to what it floods as one: a
+## cell's floor, a deck in a cell its cell, a deck out of every cell itself.
+func _flooding(ship: ShipLayout, dry: ShipPose) -> Dictionary:
+	var from := {}
+	for cell in ship.structure.cells.size():
+		from[_floor_centre(ship.structure.cells[cell])] = "cell %d" % cell
+	for deck: ShipPlatform in ship.platforms:
+		var middle := deck.area.get_center()
+		var at := Vector3(middle.x, deck.height, middle.y)
+		var cell := dry.cell_at(at + Vector3.UP * CellMap.DRY)
+		from[at] = "cell %d" % cell if cell != CellMap.NONE else "deck %s" % at
+	return from
+
+
+## What [param cue] sounds as one with: a flood its cell or deck (of [param flooding]),
+## a pour its opening.
+func _source(cue: AudioCue, flooding: Dictionary) -> String:
+	if cue.kind == AudioCue.Kind.POUR:
+		return "pour %s" % cue.position
+	for at: Vector3 in flooding:
+		if at.is_equal_approx(cue.position):
+			return flooding[at]
+	return "flood %s" % cue.position
+
+
+## Seed 1701's trawler sinking as baked, heard tick by tick: her water hovers at the
+## edges, yet no cell — its floor and its decks as one — floods again before it has
+## stood dry CELL_REARM, and no opening pours again before it has stood still POUR_REARM.
+func test_a_real_sinking_floods_each_cell_and_pours_each_opening_once_a_while() -> void:
+	var config := RunMatch.default_config(1701, 0, &"trawler")
+	var sim := MatchSim.create(config)
+	var planner := _planner(sim, -1)
+	var flooding := _flooding(config.ship, sim.schedule.pose_at(0))
+	var quiet := {
+		AudioCue.Kind.FLOOD: Ticks.from_seconds(CuePlanner.CELL_REARM),
+		AudioCue.Kind.POUR: Ticks.from_seconds(CuePlanner.POUR_REARM),
+	}
+	var heard := {AudioCue.Kind.FLOOD: 0, AudioCue.Kind.POUR: 0}
+	var last := {}
+	var again: Array[String] = []
+	var before := {
+		"tick": 0, "seats": [], "props": [], "events": [], "phase": MatchState.Phase.ENDED
+	}
+	for tick in range(1, sim.schedule.end_tick()):
+		var after := before.duplicate()
+		after["tick"] = tick
+		for cue: AudioCue in planner.plan(before, after):
+			if not heard.has(cue.kind):
+				continue
+			heard[cue.kind] += 1
+			var source := _source(cue, flooding)
+			if last.has(source) and tick - last[source] <= quiet[cue.kind]:
+				again.append("%s at %d and %d" % [source, last[source], tick])
+			last[source] = tick
+		before = after
+	assert_gt(heard[AudioCue.Kind.FLOOD], 0, "she floods")
+	assert_gt(heard[AudioCue.Kind.POUR], 0, "and pours")
+	assert_eq(again, [] as Array[String], "nothing sounds again before it has stood quiet")

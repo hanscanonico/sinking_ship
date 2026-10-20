@@ -36,9 +36,13 @@ const WHOLE := 0.999
 const SHELL_NEAR := 0.01
 const SHELL_IN := 1e-3
 ## The least difference across an opening that is drawn pouring, in metres, and the
-## difference at which a pour is a solid sheet.
+## difference at which a pour is a solid sheet — where the pose has no flow through it.
 const POURS := 0.03
 const FLOOD := 1.0
+## The water through an opening, in m³ a second per metre of its width, at which its pour
+## is a solid sheet (ShipPose.flows); and the least strength a pour is drawn at.
+const FLOW_FULL := 2.0
+const THINNEST := 0.15
 ## How far into the lower side a pour hangs off its opening, so its sheet is seen
 ## clear of the wall it pours through: a wall's half thickness and a little, and for an
 ## opening in her shell, the shell and the room's lining inside it as the art draws them.
@@ -142,6 +146,10 @@ var _slots := PackedInt32Array()
 var _drawn := PackedByteArray()
 ## Per opening, 1 where it is shut until it fails (SinkSchedule.failing).
 var _shut := PackedByteArray()
+## The names of the openings the poses last shown had flows for (ShipPose.passages), and
+## per opening where its flow lies among them, -1 for none.
+var _flow_names: Array[StringName] = []
+var _flow_at := PackedInt32Array()
 ## Per opening, the world levels of its two sides' water last drawn: a side reaching
 ## its top blows its air out.
 var _last_heads: Array[Vector2] = []
@@ -373,6 +381,8 @@ func setup(
 	_wet.clear()
 	_wet_then = null
 	_wet_now = null
+	_flow_names = []
+	_flow_at.clear()
 	var unseen := [ShipOpening.Kind.GASH, ShipOpening.Kind.FLOOR_GAPS, ShipOpening.Kind.LEAK]
 	for opening: ShipOpening in _passages:
 		_pours.append(null)
@@ -795,7 +805,7 @@ func _show_pour(index: int, levels: PackedFloat64Array, pose: ShipPose) -> void:
 		return
 	var from := minf(heights[high], top)
 	var to := maxf(heights[low], floor_under)
-	var strength := clampf(drop / FLOOD, 0.15, 1.0)
+	var strength := pour_strength(drop, _flow_of(index, pose), _width_of(opening))
 	var centre := opening.centre
 	var width := 0.0
 	var across := Vector3.ZERO
@@ -851,6 +861,39 @@ func _show_pour(index: int, levels: PackedFloat64Array, pose: ShipPose) -> void:
 		var edge_on := Basis(normal * width, _up * tall, across)
 		_hang(crossing, edge_on, middle, strength, Vector3(thrown / width, 0.0, 0.0), outdoor)
 	_lay(landing, patch, lands, strength, -1.0)
+
+
+## How hard a pour is drawn pouring, THINNEST…1: from [param flow], the water passing its
+## opening in m³ a second (ShipPose.flows), over [param width], the opening's width; or,
+## where [param flow] is below 0 — the pose has none — from [param drop], the height its
+## water falls.
+static func pour_strength(drop: float, flow: float, width: float) -> float:
+	if flow < 0.0:
+		return clampf(drop / FLOOD, THINNEST, 1.0)
+	return clampf(flow / (maxf(width, 0.1) * FLOW_FULL), THINNEST, 1.0)
+
+
+## The water passing opening [param index] under [param pose], in m³ a second, or -1 where
+## the pose has no flow for it.
+func _flow_of(index: int, pose: ShipPose) -> float:
+	if pose.flows.is_empty():
+		return -1.0
+	if not is_same(pose.passages, _flow_names):
+		_flow_names = pose.passages
+		_flow_at.clear()
+		for opening: ShipOpening in _passages:
+			_flow_at.append(pose.passages.find(opening.name))
+	var at := _flow_at[index]
+	return pose.flows[at] if at != -1 else -1.0
+
+
+## How wide [param opening]'s water pours: across a wall, its width along it; through a
+## deck, its longer side.
+static func _width_of(opening: ShipOpening) -> float:
+	var axis := opening.facing()
+	if axis == 1:
+		return maxf(opening.size.x, opening.size.z)
+	return opening.size[2 if axis == 0 else 0]
 
 
 ## [param direction] in her laid level with the world, a unit long.

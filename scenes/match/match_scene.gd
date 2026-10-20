@@ -61,6 +61,8 @@ var _kick: ViewKick
 var _cells: Array[CellOverlay] = []
 ## The free camera the local seat may fly once it is out, in place of a seat's eyes.
 var _free := FreeCamera.new()
+## The faint light round the eye in a room whose lamps have failed.
+var _eye_fill := EyeFill.new()
 
 @onready var _sea_and_sky: SeaAndSky = $SeaAndSky
 @onready var _driver: SimDriver = $SimDriver
@@ -86,6 +88,7 @@ func _ready() -> void:
 	add_child(_dust)
 	add_child(_fx)
 	add_child(_iceberg)
+	add_child(_eye_fill)
 	add_child(FxWarmUp.new(_fx.emitters()))
 	add_child(_prompts)
 	add_child(_pointer)
@@ -173,6 +176,7 @@ func _process(delta: float) -> void:
 		)
 	var eye := _eyes.global_position
 	_underwater.show_eye(eye, _view.above_water(eye), _view.indoors(eye))
+	_eye_fill.show_eye(eye, _view.lit_at(eye), _underwater.is_under())
 	_first_person_hud.show_view(snapshot, viewed, yaw, _eyes, _view)
 
 
@@ -461,6 +465,7 @@ func _fly(snapshot: Dictionary, viewed: int, delta: float) -> void:
 	_eyes.global_transform = _free.transform()
 	var eye := _eyes.global_position
 	_underwater.show_eye(eye, _view.above_water(eye), _view.indoors(eye))
+	_eye_fill.show_eye(eye, _view.lit_at(eye), _underwater.is_under())
 	_first_person_hud.show_view(snapshot, viewed, 0.0, _eyes, _view)
 
 

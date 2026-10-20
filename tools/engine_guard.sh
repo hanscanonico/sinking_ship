@@ -17,10 +17,13 @@
 # scanned.
 #
 # The engine's shutdown reports of resources still in use at exit are not a run's
-# errors and are let through. ENGINE_GUARD_PATTERN is an extended regex that replaces
-# the lines that count (the test runner counts script errors alone: its tests provoke
-# engine errors on purpose); ENGINE_GUARD_IGNORE an extended regex of matching lines
-# to let through.
+# errors and are let through, the compatibility renderer's among them: "N shaders of
+# type X were never freed" and "<kind> with GL ID of N: leaked N bytes." come only
+# from its storage destructors as the engine quits (a capture prints hundreds after
+# its frame is saved), so they are matched whole, wherever in the log they fall.
+# ENGINE_GUARD_PATTERN is an extended regex that replaces the lines that count (the
+# test runner counts script errors alone: its tests provoke engine errors on purpose);
+# ENGINE_GUARD_IGNORE an extended regex of matching lines to let through.
 
 set -uo pipefail
 
@@ -46,12 +49,15 @@ trap 'rm -f "$OUT" "$ERR" "$STATUS"' EXIT
 status="$(cat "$STATUS" 2>/dev/null)"
 status="${status:-1}"
 
+exit_leaks='^[[:space:]]*ERROR: ([0-9]+ shaders of type [A-Za-z0-9_]+ were never freed|[A-Za-z ]+ with GL ID of [0-9]+: leaked [0-9]+ bytes\.?)[[:space:]]*$'
+
 errors="$(
 	cat "$OUT" "$ERR" |
 		sed $'s/\033\[[0-9;]*m//g' |
 		grep -v '^\[godot_ai' |
 		grep -E "${ENGINE_GUARD_PATTERN:-^[[:space:]]*((SCRIPT|USER|SHADER) )?ERROR:|^[[:space:]]*Parse Error:}" |
 		grep -Ev 'still in use at exit|leaked at exit|exist at exit in PagedAllocator' |
+		grep -Ev "$exit_leaks" |
 		{ if [[ -n "${ENGINE_GUARD_IGNORE:-}" ]]; then grep -Ev "$ENGINE_GUARD_IGNORE"; else cat; fi; } |
 		sort | uniq -c | sort -rn
 )"

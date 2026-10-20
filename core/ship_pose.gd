@@ -29,6 +29,14 @@ var cells: CellMap
 ## 1 her emergency power, 0 nothing — dark. Empty where [member levels] is: lit
 ## throughout, as before the physics (SH31).
 var lit := PackedByteArray()
+## How fast water passes each opening the physics moves it through at this tick, in m³ a
+## second, either way, as the bake found it (SinkTimeline.flow), in the order of
+## [member passages], their names — the whole ship's, every piece's pose sharing them.
+## Empty before the hit and without a physical sinking: a pour is then read off the water
+## either side of it. Presentation reads it; never in a snapshot or the digest, as it is
+## the timeline's, which the match already has (D5).
+var passages: Array[StringName] = []
+var flows := PackedFloat64Array()
 ## The watertight doors the ship is shutting or has shut, by name: how far shut, 0…1.
 ## A door not here stands open.
 var doors_shut: Dictionary[StringName, float] = {}
@@ -95,6 +103,8 @@ func share_with_pieces() -> void:
 		piece.lurch_warning = lurch_warning
 		piece.lurch = lurch
 		piece.standing = standing
+		piece.passages = passages
+		piece.flows = flows
 
 
 func world_height(ship_point: Vector3) -> float:
