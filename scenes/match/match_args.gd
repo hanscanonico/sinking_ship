@@ -12,7 +12,7 @@ extends RefCounted
 ##   --server  --port=N  --bind=ADDRESS  --matches=N
 ##   --connect=ws://HOST:PORT  --create | --room=CODE  --name=NAME  --start-at=N
 ##   --capture-screen=SCREEN  --capture-from=X,Y,Z,YAW[,PITCH]  --capture-look=X,Y,Z
-##   --capture-sway=S
+##   --capture-sway=S  --capture-wet=S
 ##   --quality=low|medium|high  --render-scale=F  --bake-budget=MS  --phys=H:MM:SS  --jump
 ##   --frame-split=S
 ## --seed, --seats, --ship, --scenario, --hit, --fast and --goal are the match choices
@@ -43,7 +43,8 @@ extends RefCounted
 ## looking YAW degrees from the bow toward starboard and PITCH above the horizon — or,
 ## given only X,Y,Z, at the ship point --capture-look names, riding with her as she
 ## lists, so the breach can be taken from inside any space;
-## --capture-sway holds the menu
+## --capture-wet holds the lens as wet as S seconds after surfacing (LensDrops), a
+## still shot having no surfacing to wet it; --capture-sway holds the menu
 ## backdrop's drift at S (-1…1, one end of its sway to the other); --quality and
 ## --render-scale draw this run as if the settings screen had chosen them, to measure
 ## or capture a choice (make fps); --bake-budget gives a held countdown's sinking that
@@ -117,6 +118,8 @@ var capture_from := PackedFloat64Array()
 var capture_look := PackedFloat64Array()
 ## Where a capture holds the menu backdrop's drift, -1…1; NAN to let it drift.
 var capture_sway := NAN
+## Seconds after surfacing a capture holds its lens wet at; NAN for its own.
+var capture_wet := NAN
 ## The graphics preset and render scale this run draws with whatever is saved;
 ## ViewSettings.AUTOMATIC when not given.
 var quality: int = ViewSettings.AUTOMATIC
@@ -192,6 +195,8 @@ static func parse(args: PackedStringArray) -> MatchArgs:
 				parsed.capture_look = value.split_floats(",")
 			"--capture-sway":
 				parsed.capture_sway = value.to_float()
+			"--capture-wet":
+				parsed.capture_wet = value.to_float()
 			"--quality":
 				parsed.quality = GraphicsQuality.Preset.keys().find(value.to_upper())
 				if parsed.quality == ViewSettings.AUTOMATIC:

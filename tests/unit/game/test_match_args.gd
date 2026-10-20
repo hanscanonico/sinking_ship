@@ -98,3 +98,9 @@ func test_a_capture_looks_from_chosen_feet_at_a_chosen_point_in_ship_space() -> 
 		assert_almost_eq(args.capture_from[4], pitch, 1e-4, given + ": pitch")
 	var free := MatchArgs.parse(PackedStringArray(["--capture-from=1,2,3,90,-10"]))
 	assert_eq(free.capture_from, PackedFloat64Array([1, 2, 3, 90, -10]), "yaw and pitch as given")
+
+
+func test_a_capture_may_hold_its_lens_wet() -> void:
+	assert_true(is_nan(MatchArgs.parse(PackedStringArray()).capture_wet), "its own lens")
+	var args := MatchArgs.parse(PackedStringArray(["--capture-wet=0.3"]))
+	assert_almost_eq(args.capture_wet, 0.3, 1e-6)
