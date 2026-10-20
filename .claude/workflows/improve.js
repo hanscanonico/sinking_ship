@@ -182,7 +182,11 @@ const reviewBrief = (t, impl, bases, prior, priorSha) =>
 	`Review the PR in worktree ${impl.worktree} (branch ${impl.branch}, PR ${impl.pr_url}).\n\nThe task it implements:\n${t.task}\n` +
 	(t.reviewNote ? '\nWhat to verify independently: ' + t.reviewNote : '') +
 	(bases.length
-		? `\n\nThis branch builds on ${bases.map((b) => b.branch).join(', ')} (approved, possibly unmerged): review its own commits — \`git diff origin/${bases[bases.length - 1].branch}...HEAD\` after a fetch — not theirs.`
+		? `\n\nThis branch builds on ${bases.map((b) => b.branch).join(', ')} (approved, possibly unmerged): review its own commits — ` +
+			(bases.length === 1
+				? `\`git diff origin/${bases[0].branch}...HEAD\``
+				: `\`git log -p --no-merges HEAD --not origin/main ${bases.map((b) => 'origin/' + b.branch).join(' ')}\``) +
+			' after a fetch — not theirs.'
 		: '') +
 	(prior
 		? `\n\nThis is a second attempt. The first review's verdict was ${prior.verdict}, for:\n${prior.reasons}\n` +
