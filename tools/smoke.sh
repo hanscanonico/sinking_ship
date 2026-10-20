@@ -19,6 +19,10 @@
 #   09 wader_cell     eyes stood in the cell where a seat first wades in a cell's water,
 #                     feet 2.5 m from the seat inside the cell's box, looking at its feet,
 #                     2 s after it first stands wet there (rings round it on that water)
+#   10 hatch_pour     eyes stood in the cell the sea pours down into through a hole in its
+#                     deck, 3.5 m across from the hole's middle inside the cell's box, half
+#                     way between its water and the deck, looking at the sheet and its
+#                     frothy foot as it pours hard there
 #
 # A crate's deck and a cell's floor come from the ship's layout, data/ships/<ship>.tres
 # (the default match's ship when SHIP is empty): crate n is the layout's prop n, a cell
@@ -29,6 +33,13 @@
 # lists (seed, clock, ship): the first tick a seat's feet stand more than CellMap.DRY
 # under the water of the cell they are in. A match the table lacks leaves it out, as
 # does one whose transcript no longer floods that cell before then or has that seat out.
+#
+# Nor does it name how hard a pour falls, so shot 10 reads its hole, cell, moment and
+# water from the table of strong pours below, measured from the sim's poses for each
+# match it lists: a moment the sea pours down the hole at a strength of 0.6 or more
+# (InnerWater.pour_strength) over a fall of half a metre or more, which leaves the eyes
+# above the cell's water. A match the table lacks leaves it out, as does one whose
+# transcript no longer has water through that hole before then.
 #
 # A shot whose moment the transcript lacks is left out. Every capture takes the window
 # lock itself (tools/window_lock.sh): the sweep takes none of its own, never raises or
@@ -207,6 +218,58 @@ for row in "${first_waders[@]}"; do
 	break
 done
 
+# The strong pours down a hole in a deck: "seed|fast|ship|hole|cell|seconds|y" — the
+# hole, the cell the sea falls into through it, and the height in ship space of that
+# cell's water under the hole's middle then. Measure a row again when the sim moves it.
+strong_pours=(
+	"1701|1|steamer|stair_hold_sky|hold|153.0|-0.63"
+)
+# Where to stand to see the pour down hole [param 1] into cell [param 2], whose water
+# stands at [param 3] under the hole, as "x,y,z|x,y,z": the feet 3.5 m off the hole's
+# middle across its longer side, toward the cell's middle and kept 0.3 m inside its box,
+# the eyes half way between the water and the deck; and where they look, the hole's
+# middle a third of the way up from the water, so the sheet and its foot are both seen.
+# FROM is the feet: the eyes stand FirstPersonCamera.EYE_HEIGHT over them.
+eye_height=$(sed -nE 's/^const EYE_HEIGHT := ([0-9.]+).*/\1/p' scenes/match/first_person_camera.gd)
+eye_height=${eye_height:-1.6}
+pour_view() {
+	[[ -n "$layout" ]] || return 0
+	awk -v hole="$1" -v want="$2" -v water="$3" -v eye_height="$eye_height" '
+		function vec(line) { sub(/^[^(]*/, "", line); gsub(/[^0-9.,-]/, "", line); return line }
+		/^\[/ { kind = ""; named = 0 }
+		/^\[sub_resource .*id="Cell_/ { kind = "cell" }
+		/^\[sub_resource .*id="Opening_/ { kind = "hole" }
+		kind != "" && $0 == "name = &\"" (kind == "cell" ? want : hole) "\"" { named = 1 }
+		named && kind == "cell" && /^low = Vector3\(/ { low = vec($0) }
+		named && kind == "cell" && /^high = Vector3\(/ { high = vec($0) }
+		named && kind == "hole" && /^centre = Vector3\(/ { centre = vec($0) }
+		named && kind == "hole" && /^size = Vector3\(/ { size = vec($0) }
+		END {
+			if (low == "" || high == "" || centre == "" || size == "") exit
+			split(low, a, ","); split(high, b, ","); split(centre, c, ","); split(size, s, ",")
+			x = c[1]; z = c[3]
+			if (s[1] >= s[3]) {
+				z += (c[3] > (a[3] + b[3]) / 2) ? -3.5 : 3.5
+			} else {
+				x += (c[1] > (a[1] + b[1]) / 2) ? -3.5 : 3.5
+			}
+			x = (x < a[1] + 0.3) ? a[1] + 0.3 : (x > b[1] - 0.3) ? b[1] - 0.3 : x
+			z = (z < a[3] + 0.3) ? a[3] + 0.3 : (z > b[3] - 0.3) ? b[3] - 0.3 : z
+			eye = (c[2] + water) / 2
+			printf "%.2f,%.2f,%.2f|%.2f,%.2f,%.2f\n", x, eye - eye_height, z, c[1], water + (c[2] - water) / 3, c[3]
+		}' "$layout"
+}
+pour=""
+for row in "${strong_pours[@]}"; do
+	IFS='|' read -r p_seed p_fast p_ship p_hole p_cell p_at p_water <<<"$row"
+	[[ "$p_seed" == "$SEED" && "$p_fast" == "$fast_key" && "$p_ship" == "$ship_name" ]] || continue
+	through=$(grep -E -m 1 "$stamp""water through $p_hole$" <<<"$transcript")
+	[[ -n "$through" ]] || continue
+	awk -v t="$(seconds "$through")" -v p="$p_at" 'BEGIN { exit !(t < p) }' || continue
+	pour=$row
+	break
+done
+
 # The plan: one shot per line, "name|what it shows|make capture's knobs".
 plan=()
 plan+=("eyes_early|seat 0's eyes 5 s in, before any water, wherever it starts|AT=5 EYE=0")
@@ -247,6 +310,14 @@ if [[ -n "$wader" ]]; then
 	stand=$(cell_near "$w_cell" "$w_feet")
 	if [[ -n "$stand" ]]; then
 		plan+=("wader_cell|eyes in $w_cell 2.5 m from seat $w_seat, 2 s after it first wades there|AT=$(offset "$w_at" 2) FROM=$stand LOOK=$w_feet")
+	fi
+fi
+
+if [[ -n "$pour" ]]; then
+	IFS='|' read -r p_seed p_fast p_ship p_hole p_cell p_at p_water <<<"$pour"
+	view=$(pour_view "$p_hole" "$p_cell" "$p_water")
+	if [[ -n "$view" ]]; then
+		plan+=("hatch_pour|eyes in $p_cell across from the sea pouring down $p_hole at ${p_at} s|AT=$p_at FROM=${view%|*} LOOK=${view#*|}")
 	fi
 fi
 
