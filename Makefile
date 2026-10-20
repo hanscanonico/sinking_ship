@@ -616,7 +616,8 @@ check:
 
 # The error guard itself, against a stand-in engine that errors and exits 0; the
 # window lock, against sleeps on a private lock file; the test engine slots,
-# against sleeps on private ones; make fps's SPLIT, read off make -n; make test's
+# against sleeps on private ones — both again on Perl's lock, the one Git Bash on
+# Windows takes (tools/lib/fd_lock.sh); make fps's SPLIT, read off make -n; make test's
 # list of scripts, against a stand-in engine; make durations, against a sample log;
 # verify running the float test once, read off make -n; and the gdtoolkit targets'
 # warm-up, read off make -n; make test-changed's selection, against a fixture project,
@@ -625,6 +626,8 @@ guard-check:
 	tools/engine_guard_check.sh
 	tools/window_lock_check.sh
 	tools/test_slot_check.sh
+	FD_LOCK=perl tools/window_lock_check.sh
+	FD_LOCK=perl tools/test_slot_check.sh
 	tools/fps_split_check.sh
 	tools/run_tests_check.sh
 	tools/ship_check_once.sh

@@ -18,8 +18,8 @@
 # line — on stderr, or on the descriptor TEST_SLOT_NOTICE_FD numbers, which it closes
 # before it runs COMMAND, prefixed with TEST_SLOT_NAME when set — and tries them
 # again every half second as long as it takes. The exit status is COMMAND's.
-# flock(1) where it is on PATH (Linux), else the BSD lockf(1) macOS ships; with
-# neither it fails and runs nothing.
+# The lock is tools/lib/fd_lock.sh's: flock(1), lockf(1) or Perl, whichever the
+# system has; with none it fails and runs nothing.
 #
 # Usage:  tools/test_slot.sh COMMAND [ARGS…]
 
@@ -44,12 +44,9 @@ else
 	((slots >= 1)) || slots=1
 fi
 
-if command -v flock >/dev/null; then
-	try_lock() { flock -n 8; }
-elif [[ -x /usr/bin/lockf ]]; then
-	try_lock() { /usr/bin/lockf -s -t 0 8; }
-else
-	echo "test: neither flock nor /usr/bin/lockf is available: cannot take a slot of $LOCK" >&2
+source "$(dirname "$0")/lib/fd_lock.sh" || exit 1
+if [[ -z "$FD_LOCK_TOOL" ]]; then
+	echo "test: none of flock, /usr/bin/lockf and perl is available: cannot take a slot of $LOCK" >&2
 	exit 1
 fi
 
@@ -61,7 +58,7 @@ take_slot() {
 			echo "test: cannot open $LOCK.$k.flock" >&2
 			exit 1
 		}
-		try_lock && return 0
+		fd_lock_try 8 && return 0
 	done
 	exec 8>&-
 	return 1
