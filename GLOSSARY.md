@@ -42,6 +42,20 @@ Wherever a floor has headroom to crawl but not to stand: less than the rules'
 room holding one is marked a crawl space for the lint and the bots' routes.
 _Avoid_: crouch, crawlway, duct
 
+### Watching her again
+
+**Replay**:
+A finished local match watched again: the sim run from its input log (D4) and drawn as it
+was played, through any seat's eyes or from the orbit camera, paused, sped up or sought to
+any tick. Nothing of what happened is kept — the seed and the frames make it again.
+_Avoid_: recording, video, save
+
+**Orbit camera**:
+The replay viewer's elevated view: an eye orbiting a pivot — the seat watched, or wherever
+it was panned — over the sea and outside her hull. The one elevated view a player ever
+gets (D14); the observer camera stays a tool, and the free camera is an out seat's in play.
+_Avoid_: spectator camera, overhead, drone
+
 ### Her hull and the ways into her
 
 **Fitted**:

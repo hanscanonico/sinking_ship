@@ -23,6 +23,10 @@ const HINTS: Array[Array] = [
 	[&"replay_speed_up", "faster"],
 	[&"replay_seek_start", "to the start"],
 	[&"replay_seek_end", "to the end"],
+	[&"spectate_previous", "seat before"],
+	[&"spectate_next", "seat after"],
+	[&"replay_camera_toggle", "camera"],
+	[&"replay_orbit_lock", "lock on the seat"],
 	[&"ui_cancel", "back"],
 ]
 const PLATE_MARGIN := 12

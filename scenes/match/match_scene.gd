@@ -77,6 +77,10 @@ var _eye_fill := EyeFill.new()
 var _lens_drops := LensDrops.new()
 ## The replay's controls, made the first time a replay is watched (start_replay).
 var _replay_hud: ReplayHud
+## The replay's orbit camera (R5), made as a replay starts; null until one is.
+var _orbit: OrbitCamera
+## Whose eyes the replay is seen through, cycled round every seat (SpectateOrder.every).
+var _replay_seat := LOCAL_SEAT
 
 @onready var _sea_and_sky: SeaAndSky = $SeaAndSky
 @onready var _driver: SimDriver = $SimDriver
@@ -122,7 +126,7 @@ func _process(delta: float) -> void:
 	if not _driver.started():
 		return
 	var snapshot := _driver.current
-	var viewed := _order.target(snapshot)
+	var viewed := _replay_seat if _driver.replaying() else _order.target(snapshot)
 	_hud.show_snapshot(snapshot)
 	_sea_and_sky.show_sinking(snapshot["tick"], _view.ship_to_world())
 	_sea_and_sky.show_waders(_view.waders_drawn())
@@ -158,14 +162,17 @@ func _process(delta: float) -> void:
 		_local_up = local_up
 	if _looking() and not _free.active:
 		_local.look_by_stick(delta)
-	_audio.hear_through(-1 if _observer or _free.active else viewed)
-	_first_person_hud.flying = _free.active
+	_audio.hear_through(-1 if _observer or _free.active or _orbiting() else viewed)
+	_first_person_hud.flying = _free.active or _orbiting()
 	if _observer:
 		_observer_camera.follow(_view.seat_world_position(viewed), delta)
 		_first_person_hud.show_view(snapshot, viewed, 0.0, _eyes, _view)
 		return
 	if _free.active:
 		_fly(snapshot, viewed, delta)
+		return
+	if _orbiting():
+		_orbit_view(snapshot, viewed, delta)
 		return
 	# Another seat's pitch never leaves its client, so its gaze is fixed (D14): a
 	# little below level, so the deck and its edges show under the horizon.
@@ -210,7 +217,9 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not _driver.started() or _mouse_freed:
 		return
 	if event is InputEventMouseMotion:
-		if _flying():
+		if _orbiting():
+			_orbit.drag(event as InputEventMouseMotion)
+		elif _flying():
 			_free.look_by_mouse((event as InputEventMouseMotion).screen_relative)
 		elif _looking():
 			_local.look_by_mouse((event as InputEventMouseMotion).screen_relative)
@@ -474,6 +483,10 @@ func start_replay(file: ReplayFile) -> void:
 	_setup_view(config, null, LOCAL_SEAT, _seat_names(config.seats), false, LOCAL_SEAT, INF, false)
 	# Nobody plays: no crosshair, readouts or wedges over the eyes, as from the observer.
 	_first_person_hud.setup(timeline.sim(), _names, false, _prompts)
+	_replay_seat = LOCAL_SEAT
+	_orbit = OrbitCamera.new(ViewSettings.local())
+	_orbit.set_ship(config.ship)
+	_orbit.open()
 
 
 ## Whether a replay is being watched rather than a match played.
@@ -530,9 +543,21 @@ func _replay_input(event: InputEvent) -> bool:
 	elif event.is_action_pressed("replay_seek_end"):
 		replay_seek(_driver.timeline().last_tick())
 	elif event.is_action_pressed("spectate_next"):
-		_order.cycle(_driver.current, 1)
+		_replay_seat = SpectateOrder.every(_replay_seat, 1, _config.seats)
 	elif event.is_action_pressed("spectate_previous"):
-		_order.cycle(_driver.current, -1)
+		_replay_seat = SpectateOrder.every(_replay_seat, -1, _config.seats)
+	elif event.is_action_pressed("replay_camera_toggle"):
+		_orbit.active = not _orbit.active
+	elif event.is_action_pressed("replay_orbit_lock"):
+		_orbit.locked = not _orbit.locked
+	elif event is InputEventMouseButton and event.is_pressed() and _orbiting():
+		var button := (event as InputEventMouseButton).button_index
+		if button == MOUSE_BUTTON_WHEEL_UP:
+			_orbit.zoom(1.0)
+		elif button == MOUSE_BUTTON_WHEEL_DOWN:
+			_orbit.zoom(-1.0)
+		else:
+			return false
 	elif event.is_action_pressed("ui_cancel") or event.is_action_pressed("pause"):
 		replay_closed.emit()
 	else:
@@ -549,7 +574,7 @@ func _show_replay(snapshot: Dictionary, viewed: int) -> void:
 		clock.paused,
 		clock.speed(),
 		Hud.whose_view(_hud.fit_name(_names[viewed]), viewed == _local_seat, false),
-		"First person",
+		_camera_name(),
 		_prompts
 	)
 
@@ -561,6 +586,33 @@ func _on_sought(_tick: int) -> void:
 	_order = SpectateOrder.new(_eye_seat, _stats)
 	_fx.clear()
 	_audio.rewind()
+
+
+## Whether the replay is seen from the orbit camera now.
+func _orbiting() -> bool:
+	return _driver.replaying() and _orbit != null and _orbit.active
+
+
+## The view from the orbit camera (R5): every seat drawn, nobody's arms, the pivot on
+## [param viewed]'s head while locked, and the HUD as from the observer.
+func _orbit_view(snapshot: Dictionary, viewed: int, delta: float) -> void:
+	var head := _view.seat_world_position(viewed) + Vector3.UP * _eyes.eye_height()
+	_orbit.advance(delta, head, _view.ship_to_world())
+	_view.look_out_of(-1)
+	_arms.visible = false
+	_eyes.global_transform = _orbit.transform()
+	var eye := _eyes.global_position
+	_underwater.show_eye(eye, _view.above_water(eye), _view.indoors(eye))
+	_eye_fill.show_eye(eye, _view.lit_at(eye), _underwater.is_under())
+	_lens_drops.show_eye(_underwater.is_under())
+	_first_person_hud.show_view(snapshot, viewed, 0.0, _eyes, _view)
+
+
+## The camera the replay's plate names.
+func _camera_name() -> String:
+	if not _orbiting():
+		return "First person"
+	return "Orbit · on the seat" if _orbit.locked else "Orbit · free"
 
 
 ## Takes up the settings screen's field of view, deck roll, view kick and graphics

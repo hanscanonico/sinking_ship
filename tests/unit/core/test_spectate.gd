@@ -61,3 +61,10 @@ func test_cycle_skips_seats_that_are_out() -> void:
 	assert_eq(order.target(four_out), 1, "the picked seat went out: back to the best")
 	order.cycle(four_out, -1)
 	assert_eq(order.target(four_out), 3)
+
+
+func test_a_replay_cycles_every_seat_out_or_not() -> void:
+	assert_eq(SpectateOrder.every(0, 1, 5), 1)
+	assert_eq(SpectateOrder.every(4, 1, 5), 0, "round past the last")
+	assert_eq(SpectateOrder.every(0, -1, 5), 4, "and back round")
+	assert_eq(SpectateOrder.every(2, 1, 1), 0, "one seat only")
