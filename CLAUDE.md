@@ -55,6 +55,11 @@ registered every `class_name`. The engine is `$GODOT`, else a vendored `bin/Godo
 PR, and nothing merges until it is green on the PR head. `make verify` stays runnable
 locally whenever the whole suite is wanted.
 
+Finished work ships without being asked: once a change is done, commit it on a branch,
+push, open the PR, wait for CI, and merge it yourself when it is green on the PR head.
+A red PR gets fixed, not merged. Ask first only when the change is not what was asked for
+or a decision is genuinely the user's.
+
 One game window at a time on this shared machine: `make capture` and `make fps` take the
 window lock themselves (`tools/window_lock.sh`, a kernel lock released on any exit) — never
 hand-roll a lock around them. Test engines are capped the same way: each takes one of
