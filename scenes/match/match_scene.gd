@@ -105,6 +105,7 @@ func _process(delta: float) -> void:
 	var viewed := _order.target(snapshot)
 	_hud.show_snapshot(snapshot)
 	_sea_and_sky.show_sinking(snapshot["tick"], _view.ship_to_world())
+	_sea_and_sky.show_waders(_view.waders_drawn())
 	var drawn := lerpf(_driver.previous["tick"], snapshot["tick"], _driver.alpha)
 	_iceberg.show_at(drawn, _underwater.is_under())
 	if not _cells.is_empty():

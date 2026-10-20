@@ -4,7 +4,8 @@
 // lamps' glints on its wobbling surface — and, seen low across it, the lit room mirrored
 // in it, so a grazing eye reads water, not a shadow on the floor. Over a floor just under it, see-through to the
 // planks; deeper, the sea's own deep; where it meets a wall, a body or anything standing
-// in it, the sea's lap of foam and lace. Seen from under it, a dim ceiling. Its sheet
+// in it, the sea's lap of foam and lace, and rings spreading round a body wading or
+// swimming in it (wader_rings.gdshaderinc). Seen from under it, a dim ceiling. Its sheet
 // is level with the world, turned against her lean (CellSurface), and drawn only inside
 // its cell's box, in ship metres: so it piles into the box's low corner and never pokes
 // through a deck, a wall or her side. Under a pocket (SH29) it glows faintly, the sea's
@@ -12,6 +13,8 @@
 // well's deck, under the sky, the sun and the sky's whole ambient light it instead.
 shader_type spatial;
 render_mode blend_mix, depth_draw_never, cull_disabled;
+
+#include "res://scenes/art/wader_rings.gdshaderinc"
 
 uniform vec4 deep_colour : source_color = vec4(0.09, 0.27, 0.42, 1.0);
 uniform vec4 shallow_colour : source_color = vec4(0.1, 0.46, 0.53, 1.0);
@@ -149,6 +152,12 @@ void fragment() {
 			float foam = max(edge, lace(world.xz * 3.4, t, lacing));
 			colour = mix(colour, foam_colour.rgb, foam);
 			alpha = max(alpha, foam * 0.92);
+		}
+		// Rings spreading round the bodies wading or swimming in it.
+		if (wader_count > 0) {
+			float rings = wader_rings(world, t);
+			colour = mix(colour, foam_colour.rgb, rings);
+			alpha = max(alpha, rings * 0.92);
 		}
 		ALBEDO = colour;
 		ALPHA = alpha;

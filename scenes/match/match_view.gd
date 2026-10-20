@@ -21,6 +21,8 @@ const SLOPE_PROBE := 0.05
 ## FALL_SECONDS to fall.
 const BLINK_TICKS := 6
 const FALL_SECONDS := 0.5
+## The most bodies in water the water's rings are drawn round (water.gdshader).
+const MAX_WADERS := 8
 
 var _driver: SimDriver
 var _schedule: SinkSchedule
@@ -63,6 +65,10 @@ var _gone := PackedInt32Array()
 var _collapses: Array[SinkSchedule.Scheduled] = []
 var _sinking_tick := -1
 var _sinking_hp := PackedFloat64Array()
+## The bodies in water the water's rings are drawn round (waders), and the tick they
+## are as of.
+var _waders := PackedVector4Array()
+var _waders_tick := -1
 
 @onready var _ship: Node3D = $Ship
 @onready var _greybox: ShipGreybox = $Ship/Greybox
@@ -151,6 +157,37 @@ func look_out_of(seat: int) -> void:
 ## The seat whose eyes the view is in, or -1 for none.
 func eye_seat() -> int:
 	return _eye_seat
+
+
+## The bodies in water the water's rings are drawn round (water.gdshader, waders): of
+## those whose world [param feet] stand under the world height of the water they are in,
+## [param water_heights] — the same index — the [param max_count] nearest [param eye],
+## nearest first, each its foot point on that water and how fast it moves, [param speeds]
+## clamped to 0…1. A dry body leaves none.
+static func waders(
+	feet: PackedVector3Array,
+	water_heights: PackedFloat32Array,
+	speeds: PackedFloat32Array,
+	eye: Vector3,
+	max_count: int
+) -> PackedVector4Array:
+	var wet: Array[Vector2] = []
+	for index in feet.size():
+		if feet[index].y < water_heights[index]:
+			wet.append(Vector2(eye.distance_squared_to(feet[index]), index))
+	wet.sort()
+	var found := PackedVector4Array()
+	for near: Vector2 in wet.slice(0, max_count):
+		var index := int(near.y)
+		var at := feet[index]
+		found.append(Vector4(at.x, water_heights[index], at.z, clampf(speeds[index], 0.0, 1.0)))
+	return found
+
+
+## The bodies in water as drawn this tick, nearest the eye first (waders): rings round
+## each in the water they stand or swim in. Worked out once a tick.
+func waders_drawn() -> PackedVector4Array:
+	return _waders
 
 
 ## Where [param seat] is drawn, in the world.
@@ -268,6 +305,10 @@ func _process(delta: float) -> void:
 	_show_cargo(previous["props"], current["props"], alpha)
 	var seats_then: Array = previous["seats"]
 	var seats_now: Array = current["seats"]
+	var wading: bool = current["tick"] != _waders_tick
+	var wet_feet := PackedVector3Array()
+	var wet_water := PackedFloat32Array()
+	var wet_speeds := PackedFloat32Array()
 	# Bodies stand up the frame the match stands in now on their piece; across a change of
 	# frame — or of piece — they are drawn in the new one, facing as it has them.
 	for index in seats_now.size():
@@ -295,6 +336,16 @@ func _process(delta: float) -> void:
 		if seat == _local_seat:
 			pos += _smoother.offset
 		_feet[seat] = pos
+		if wading:
+			var in_water := pose_now.of_piece(piece)
+			var foot := global_transform * world * pos
+			var water := in_water.water_level(pos)
+			if now["state"] == PlayerState.Body.SWIMMING:
+				foot.y = minf(foot.y, water - 0.01)
+			var vel: Vector3 = now["vel"]
+			wet_feet.append(foot)
+			wet_water.append(water)
+			wet_speeds.append(Vector2(vel.x, vel.z).length() / _rules.walk_speed)
 		_facings[seat] = (
 			now["facing"] if turned else lerp_angle(then["facing"], now["facing"], alpha)
 		)
@@ -319,6 +370,24 @@ func _process(delta: float) -> void:
 				* Transform3D(to_ship, to_ship * Vector3(feet.x, ground + SHADOW_LIFT, feet.z))
 			)
 	Brawler.keep_apart(_bodies, _eye_seat)
+	if wading:
+		_show_waders(current["tick"], wet_feet, wet_water, wet_speeds)
+
+
+## Works out the bodies in water as of [param tick] from where each seat in the match
+## stands — [param feet], the [param water] it is in and how fast it moves, [param speeds]
+## as a share of walk_speed — nearest the eye drawing them, and hands them to her water.
+func _show_waders(
+	tick: int, feet: PackedVector3Array, water: PackedFloat32Array, speeds: PackedFloat32Array
+) -> void:
+	_waders_tick = tick
+	var camera := get_viewport().get_camera_3d()
+	var eye := camera.global_position if camera != null else Vector3.ZERO
+	_waders = waders(feet, water, speeds, eye, MAX_WADERS)
+	if _broken:
+		_drawn_pieces.show_waders(_waders)
+	elif _inner != null:
+		_inner.show_waders(_waders)
 
 
 ## Hands the ship drawn what the schedule's events have done by [param tick] —

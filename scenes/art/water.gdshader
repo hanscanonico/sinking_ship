@@ -4,7 +4,8 @@
 // the plane, so the drawn waterline never strays from the one the sim tests; the
 // swell is shading only. Colour comes from how far below the surface the opaque
 // scene lies: lacy foam where the hull, a flooded deck or a body cuts the plane,
-// see-through shallows over a drowned deck, open sea everywhere else. The open sea
+// see-through shallows over a drowned deck, open sea everywhere else; rings spreading
+// round the bodies wading or swimming in it (wader_rings.gdshaderinc). The open sea
 // is deep blue underfoot and takes the dusk sky (dusk.gdshaderinc) toward the
 // horizon, with a glint toward the sun, swell at three scales and sparse whitecaps
 // that fade with distance, and hazes into exactly the sky's horizon; in a room of
@@ -15,6 +16,7 @@ render_mode unshaded, blend_mix, depth_draw_never, cull_disabled, fog_disabled;
 
 #include "res://scenes/art/sea_ripple.gdshaderinc"
 #include "res://scenes/art/dusk.gdshaderinc"
+#include "res://scenes/art/wader_rings.gdshaderinc"
 
 uniform vec4 deep_colour : source_color = vec4(0.09, 0.27, 0.42, 1.0);
 uniform vec4 shallow_colour : source_color = vec4(0.1, 0.46, 0.53, 1.0);
@@ -314,6 +316,13 @@ void fragment() {
 			float foam = max(edge, laced * step(below, lace_depth)) * detail;
 			colour = mix(colour, foam_colour.rgb * foam_glow, foam);
 			alpha = max(alpha, foam * 0.92);
+		}
+
+		// Rings spreading round the bodies in it, only on the near water.
+		if (wader_count > 0 && detail > 0.0) {
+			float rings = wader_rings(world, TIME) * detail;
+			colour = mix(colour, foam_colour.rgb * foam_glow, rings);
+			alpha = max(alpha, rings * 0.92);
 		}
 
 		float haze = pow(smoothstep(haze_begin, haze_end, dist), 0.55);

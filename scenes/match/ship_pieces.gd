@@ -158,6 +158,13 @@ func flood_with(sea: ShaderMaterial, first: InnerWater) -> void:
 		)
 
 
+## Draws rings in every piece's water round [param waders] (InnerWater.show_waders).
+func show_waders(waders: PackedVector4Array) -> void:
+	for water: InnerWater in _waters:
+		if water != null:
+			water.show_waders(waders)
+
+
 ## Sets every piece where [param then] and [param now] — the whole ship's poses of two
 ## snapshots — have it [param alpha] of the way between, at [param tick], fractional: its
 ## node, its water, its lamps and its torn ends; the sinking's events drawn on each as
