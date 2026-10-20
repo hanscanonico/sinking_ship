@@ -168,7 +168,9 @@ extends Resource
 ## floats with its underside this far under its cell's water. Below every crate's
 ## height (MatchConfig).
 @export var crate_draft: float
-## The share of its planar speed a floating crate keeps from tick to tick; 0…1, above 0.
+## The share of its planar speed a floating crate keeps from tick to tick, the rest
+## going over to the drift of the ship moving under it; 0…1, above 0. Near 1 the water
+## drags little: a shove or a body's push sends one afloat farther than one standing.
 @export var crate_float_drag: float
 ## How deep the water over a floating crate's floor may stand where nothing roofs it
 ## before the sea sweeps it away, in metres: more than wade_depth, which lifts it.

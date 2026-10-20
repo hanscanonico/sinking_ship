@@ -153,6 +153,8 @@ func step(frames: Array[InputFrame]) -> Array[SimEvent]:
 	var exits: Array[PlayerState] = []
 	var going: Array[PlayerState] = []
 	var framed_of: Dictionary[int, ShipPose] = {}
+	# What the crates afloat drift from (Hazards._drift).
+	var pose_before: ShipPose = schedule.pose_at(tick - 1) if playing and tick > 0 else null
 	for piece: int in pose_now.standing:
 		_stand_on(piece)
 		var here := _on(live, piece)
@@ -172,7 +174,7 @@ func step(frames: Array[InputFrame]) -> Array[SimEvent]:
 			var feet_before := _movement.move(state, here, framed, tick, events)
 			_movement.ground(here, tick, events, feet_before)
 			_thaw(here)
-			_hazards.step(state, pose_now, tick, events)
+			_hazards.step(state, pose_now, tick, events, pose_before)
 			_shoves(here, tick, events)
 			exits.append_array(_water(here, framed, tick, events, feet_before))
 			var gone_tick := schedule.piece_gone_tick(piece)
