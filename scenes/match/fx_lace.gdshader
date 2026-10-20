@@ -3,7 +3,10 @@
 // Each grain shows its own piece of a sheet of lace (FxGrains.lace), its threads
 // worn thinner or thicker than the next one's, its outline ragged where the sheet's
 // broad noise lets it, so no two patches are the same and overlapping ones run
-// together into a band.
+// together into a band. Its threads are soft, never wire: they fade in over soft of
+// the picture's field, and the whole grain fades out over the end of its life as its
+// threads wear thin. Foam laid at a waterline (wet_reach over 0) shows only within
+// wet_reach of the sea plane, so none of it lies up the dry planks.
 shader_type spatial;
 render_mode unshaded, blend_mix, depth_draw_opaque, cull_disabled;
 
@@ -16,6 +19,11 @@ uniform vec2 window = vec2(0.5);
 // much more of its threads one grain has lost than another, at most.
 uniform float ragged = 0.55;
 uniform float worn = 0.12;
+// How far either side of a thread's edge, in the picture's field, it fades in.
+uniform float soft = 0.08;
+// How far over or under the sea plane, in metres, foam at a waterline still shows;
+// 0 or less: wherever it lies.
+uniform float wet_reach = 0.0;
 
 // How far through its life the grain is, 0…1.
 varying float age;
@@ -48,7 +56,12 @@ void fragment() {
 	float edge = 0.5 + worn * wear + 0.3 * smoothstep(0.45, 1.0, age);
 	edge += 0.45 * smoothstep(0.45, 1.05, rim);
 	edge += 0.55 * smoothstep(0.8, 1.0, max(abs(off.x), abs(off.y)));
-	float cover = shape_edge(sheet.a, edge);
+	float blur = max(soft, fwidth(sheet.a) * 0.75);
+	float cover = smoothstep(edge - blur, edge + blur, sheet.a);
+	cover *= 1.0 - smoothstep(0.35, 1.0, age);
+	if (wet_reach > 0.0) {
+		cover *= 1.0 - smoothstep(wet_reach * 0.5, wet_reach, abs(height));
+	}
 	ALBEDO = COLOR.rgb * glow;
 	ALPHA = COLOR.a * cover * near_fade(VERTEX);
 }

@@ -16,11 +16,12 @@ const RUNNEL_GRAINS := 32
 const GRAINS := RAIN_GRAINS + DRIFT_GRAINS + RUNNEL_GRAINS
 ## A raindrop of spray, as big as a square this many metres across, this many times
 ## as long as it is wide; a speck of drifting grit; a runnel of water, across and
-## along, its lace drawn out this many times along its flow.
+## along — thin, so drawn out it is a wet streak, not a worm — its lace drawn out
+## this many times along its flow.
 const RAINDROP := 0.3
 const RAIN_ASPECT := 9.0
 const GRIT := 0.2
-const RUNNEL := Vector2(0.22, 0.9)
+const RUNNEL := Vector2(0.12, 0.6)
 const RUNNEL_DRAWN := 3.0
 ## Spray rains out of a box this far ahead of the eye, over it and upwind of it,
 ## this big either way (across, up, ahead), in metres — beyond any opponent close

@@ -525,6 +525,44 @@ func test_water_streaming_down_the_planks_runs_in_threads_along_its_flow() -> vo
 	assert_gt(across, along * 2, "a line across the flow crosses far more threads")
 
 
+func test_lace_is_broken_strands_of_foam_never_a_web_of_closed_cells() -> void:
+	for drawn: float in [1.0, FxAroundEye.RUNNEL_DRAWN]:
+		var sheet := FxGrains.lace(drawn).get_image()
+		var threads := _threads(sheet)
+		var gaps := _regions(threads, sheet.get_width(), 0)
+		assert_eq(gaps.size(), 1, "no thread closes a cell round any of the sheet (%s)" % drawn)
+		var strands := _regions(threads, sheet.get_width(), 1)
+		assert_gt(strands.size(), 10, "broken into many strands (%s)" % drawn)
+		var drawn_whole := 0
+		for strand in strands:
+			drawn_whole += strand
+		assert_lt(strands.max(), threads.size() / 32, "none of them a web (%s)" % drawn)
+		assert_lt(drawn_whole, threads.size() / 4, "sparse: mostly the water between (%s)" % drawn)
+
+
+func test_foam_at_the_feet_lies_on_the_wet_side_of_the_waterline() -> void:
+	var fx: SinkingFx = add_child_autofree(SinkingFx.new())
+	var camera: Camera3D = add_child_autofree(Camera3D.new())
+	camera.global_position = Vector3(0.0, FirstPersonCamera.EYE_HEIGHT, 0.0)
+	var wash := FxCue.new(FxCue.Kind.WASH, 0, Vector3(-2.0, 0.0, 1.0))
+	wash.end = Vector3(2.0, 0.0, 1.0)
+	# The sea climbs the deck toward +z: the dry planks lie that way.
+	wash.toward = Vector3.BACK
+	var cues: Array[FxCue] = [wash]
+	var foams := _played(fx, cues, camera).filter(
+		func(emitter: CPUParticles3D) -> bool: return emitter.name.begins_with("Foam")
+	)
+	assert_eq(foams.size(), 1, "foam at the feet")
+	var foam: CPUParticles3D = foams[0]
+	var dry_edge := foam.global_position.z + foam.emission_box_extents.z
+	assert_lt(foam.global_position.z, 1.0, "laid on the wet side")
+	assert_lte(dry_edge, 1.0 + EPSILON, "none of it laid up the dry planks")
+	var material := foam.mesh.surface_get_material(0) as ShaderMaterial
+	var reach: float = material.get_shader_parameter(&"wet_reach")
+	assert_gt(reach, 0.0, "shown only near the sea plane")
+	assert_lte(reach, SinkingFx.FOAM_LIFT + EPSILON, "no higher over it than it rides")
+
+
 func test_the_eye_s_effects_stop_when_cleared() -> void:
 	var around: FxAroundEye = add_child_autofree(FxAroundEye.new(FxGrains.streak()))
 	var camera: Camera3D = add_child_autofree(Camera3D.new())
@@ -707,6 +745,35 @@ func _threads(sheet: Image) -> PackedByteArray:
 		for along in sheet.get_width():
 			threads.append(1 if sheet.get_pixel(along, down).a > 0.5 else 0)
 	return threads
+
+
+## The sizes of the regions of [param pixels] (_threads, [param width] a row) that are
+## [param value], four ways connected, wrapping round as the sheet tiles.
+func _regions(pixels: PackedByteArray, width: int, value: int) -> Array[int]:
+	var height := pixels.size() / width
+	var seen := PackedByteArray()
+	seen.resize(pixels.size())
+	var sizes: Array[int] = []
+	for start in pixels.size():
+		if seen[start] == 1 or pixels[start] != value:
+			continue
+		seen[start] = 1
+		var open: Array[int] = [start]
+		var size := 0
+		while not open.is_empty():
+			var at: int = open.pop_back()
+			size += 1
+			for step: Vector2i in [
+				Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)
+			]:
+				var next := (
+					posmod(at / width + step.y, height) * width + posmod(at % width + step.x, width)
+				)
+				if seen[next] == 0 and pixels[next] == value:
+					seen[next] = 1
+					open.append(next)
+		sizes.append(size)
+	return sizes
 
 
 ## Whether [param emitter] throws white water or air up: a burst, or the iceberg's.

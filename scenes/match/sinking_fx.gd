@@ -99,7 +99,7 @@ const WET_LIFT := 0.004
 const DROPLET := 0.22
 const WASH_DROPLET := 0.2
 const STREAK_ASPECT := 5.0
-const LACE := Vector2(0.5, 0.5)
+const LACE := Vector2(0.32, 0.32)
 const DUST_PUFF := 0.9
 const CLOUD_PUFF := 2.0
 ## A streak of dust sifting down, across and along: thin enough that, grown, it
@@ -110,8 +110,13 @@ const SMOKE_PUFF := 1.8
 const BUBBLE := 0.16
 const SPLINTER := Vector3(0.025, 0.025, 0.2)
 const CHUNK := Vector3(1.2, 0.1, 0.22)
-## How far foam rides over the planks.
+## How far foam rides over the planks; how far over or under the sea plane it still
+## shows — no further over it than it rides, so what shows lies over planks under the
+## water and none up the dry ones; how broad a band it lies in on the wet side of the
+## waterline, at least and at most, either side of its middle, in metres.
 const FOAM_LIFT := 0.05
+const FOAM_REACH := FOAM_LIFT
+const FOAM_BREADTH := Vector2(0.08, 0.22)
 ## The funnel's smoke, bent over in the plunge, is blown this much harder along the
 ## way it leaves the funnel.
 const BENT_WIND := 4.5
@@ -213,7 +218,7 @@ func _ready() -> void:
 		wash.spread = 20.0
 		_white.append(wash)
 	var lace := FxGrains.lace()
-	var patch := FxGrains.laces(LACE, lace)
+	var patch := FxGrains.laces(LACE, lace, FxGrains.LACE_SHEET, FOAM_REACH)
 	for index in FOAMS:
 		var foam := _emitter(FOAM_GRAINS, patch, false, "Foam%d" % index)
 		FxGrains.foam(foam)
@@ -783,8 +788,9 @@ func _lay_wash(wash: CPUParticles3D, offer: Vector4, cues: Array[FxCue], ship: T
 
 
 ## Low foam along the share of a waterline [param offer] holds, near the eye: lace
-## lying flat on the planks, sliding up them the way the sea climbs — the broader and
-## faster the harder the sea climbs.
+## lying flat on the planks in a band on the wet side of the line, sliding up them the
+## way the sea climbs — the broader and faster the harder the sea climbs — and gone
+## by the waterline (FOAM_REACH).
 func _lay_foam(foam: CPUParticles3D, offer: Vector4, cues: Array[FxCue], ship: Transform3D) -> void:
 	var cue := cues[int(offer.x)]
 	var line := _line(offer, cues, ship)
@@ -797,11 +803,12 @@ func _lay_foam(foam: CPUParticles3D, offer: Vector4, cues: Array[FxCue], ship: T
 	if across.dot(ship.basis * cue.toward) < 0.0:
 		along = -along
 		across = -across
-	var middle := (line[0] + line[1]) * 0.5 + planks * FOAM_LIFT
+	var breadth := lerpf(FOAM_BREADTH.x, FOAM_BREADTH.y, cue.strength)
+	var middle := (line[0] + line[1]) * 0.5 + planks * FOAM_LIFT - across * breadth
 	foam.global_transform = Transform3D(Basis(along, planks, across), middle)
-	foam.emission_box_extents = Vector3(length * 0.5, 0.01, 0.15 + cue.strength * 0.55)
-	foam.initial_velocity_min = 0.15
-	foam.initial_velocity_max = 0.3 + cue.strength * 0.6
+	foam.emission_box_extents = Vector3(length * 0.5, 0.01, breadth)
+	foam.initial_velocity_min = 0.05
+	foam.initial_velocity_max = 0.1 + cue.strength * 0.2
 	foam.emitting = true
 
 
