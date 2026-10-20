@@ -36,6 +36,64 @@ func test_under_the_sea_the_outside_is_muffled_and_the_wind_drops() -> void:
 	assert_lt(AmbienceMix.wind_db(-1.0, 0.0, true), AmbienceMix.wind_db(-1.0, 1.0), "past a room's")
 
 
+func test_under_the_sea_the_room_s_cues_are_muffled_too() -> void:
+	assert_eq(AmbienceMix.cue_cutoff_hz(true), 500.0)
+	assert_eq(AmbienceMix.cue_cutoff_hz(false), AmbienceMix.OPEN_HZ, "full-band in the air")
+
+
+func test_the_rush_follows_the_water_rising_in_the_listener_s_cell() -> void:
+	var full := AmbienceMix.CELL_RUSH_FULL_RATE
+	assert_eq(AmbienceMix.cell_rush_db(0.0, false), AmbienceMix.SILENT_DB, "a still cell")
+	assert_eq(AmbienceMix.cell_rush_db(-0.1, false), AmbienceMix.SILENT_DB, "a draining one")
+	assert_almost_eq(AmbienceMix.cell_rush_db(full, false), AmbienceMix.RUSH_DB, 0.0001)
+	assert_almost_eq(AmbienceMix.cell_rush_db(full * 4.0, false), AmbienceMix.RUSH_DB, 0.0001)
+	var last := AmbienceMix.SILENT_DB
+	for step in range(1, 11):
+		var level := AmbienceMix.cell_rush_db(full * step / 10.0, false)
+		assert_gt(level, last, "louder the faster it rises")
+		last = level
+	assert_almost_eq(
+		AmbienceMix.cell_rush_db(0.1, true),
+		AmbienceMix.cell_rush_db(0.1, false) - 6.0,
+		0.0001,
+		"quieter under it"
+	)
+
+
+func test_the_rise_is_water_coming_in_not_the_cell_moving() -> void:
+	var cells := CellMap.new(SimFixtures.steamer().structure)
+	var bottom := cells.box_of(0).position.y
+	var lifted := Transform3D(Basis.IDENTITY, Vector3.UP * 0.3)
+	var sunk := Transform3D(Basis.IDENTITY, Vector3.DOWN * 0.2)
+	var still := Transform3D.IDENTITY
+	# A dry cell's level is its lowest corner: lifted with her, nothing is coming in.
+	var dry := AmbienceMix.cell_rise(
+		_posed(cells, lifted, bottom + 0.3), _posed(cells, still, bottom), 0
+	)
+	assert_eq(dry, 0.0, "a dry cell lifted with her")
+	var filling := AmbienceMix.cell_rise(
+		_posed(cells, still, bottom + 0.8), _posed(cells, still, bottom + 0.5), 0
+	)
+	assert_almost_eq(filling, 0.3, 0.0001, "a filling cell")
+	var carried := AmbienceMix.cell_rise(
+		_posed(cells, lifted, bottom + 0.8), _posed(cells, still, bottom + 0.5), 0
+	)
+	assert_almost_eq(carried, 0.0, 0.0001, "its water carried up with her")
+	var swallowed := AmbienceMix.cell_rise(
+		_posed(cells, sunk, bottom + 0.5), _posed(cells, still, bottom + 0.5), 0
+	)
+	assert_almost_eq(swallowed, 0.2, 0.0001, "the sea climbing her walls as she settles")
+
+
+func test_water_laps_in_a_part_flooded_room() -> void:
+	assert_eq(AmbienceMix.lap_db(0.0, false), AmbienceMix.SILENT_DB, "a dry floor")
+	assert_eq(AmbienceMix.lap_db(0.6, true), AmbienceMix.SILENT_DB, "not heard from under")
+	for depth: float in [0.3, 0.6, 1.2]:
+		assert_almost_eq(AmbienceMix.lap_db(depth, false), -10.0, 0.0001, "at its peak")
+	assert_lt(AmbienceMix.lap_db(0.1, false), AmbienceMix.lap_db(0.3, false), "a film laps less")
+	assert_lt(AmbienceMix.lap_db(2.0, false), AmbienceMix.lap_db(1.0, false), "too deep to lap")
+
+
 func test_feet_in_a_room_are_enclosed_and_open_deck_is_not() -> void:
 	var steamer := SimFixtures.steamer()
 	var step := SimFixtures.rules().step_height
@@ -59,3 +117,14 @@ func test_every_cue_kind_has_sounds_to_play() -> void:
 			assert_gt(picks.streams_count, 0, "%s has files" % named)
 			for index in picks.streams_count:
 				assert_not_null(picks.get_stream(index), "%s's file %d loads" % [named, index])
+
+
+## A pose of [param cells] at [param transform], its first cell's water at world
+## height [param level].
+func _posed(cells: CellMap, transform: Transform3D, level: float) -> ShipPose:
+	var pose := ShipPose.new(0.0, 0.0, 0.0, transform)
+	pose.cells = cells
+	pose.levels.resize(cells.count())
+	pose.levels.fill(-100.0)
+	pose.levels[0] = level
+	return pose

@@ -21,6 +21,19 @@ const WIND_HIGH_M := 12.0
 const RUSH_FULL_RATE := 0.15
 const RUSH_DB := -2.0
 const RUSH_FAR_SHARE := 0.35
+## The water rushing into the listener's own cell is at its loudest once it rises
+## this fast, in metres a second, and CELL_RUSH_UNDER_DB quieter heard from under it.
+const CELL_RUSH_FULL_RATE := 0.25
+const CELL_RUSH_UNDER_DB := -6.0
+## The water lapping round the listener's cell: none below LAP_FROM_M deep, at
+## LAP_DB from LAP_FULL_M to LAP_DEEP_FROM_M, and down to LAP_DEEP_SHARE of that by
+## LAP_DEEP_M, where it is too deep to lap at the feet.
+const LAP_DB := -10.0
+const LAP_FROM_M := 0.02
+const LAP_FULL_M := 0.3
+const LAP_DEEP_FROM_M := 1.2
+const LAP_DEEP_M := 3.0
+const LAP_DEEP_SHARE := 0.25
 ## Quieter than this is off.
 const SILENT_DB := -60.0
 ## Fully enclosed, the outside is heard through the hull: muffled to ENCLOSED_HZ,
@@ -33,6 +46,9 @@ const ENCLOSED_WET := 0.35
 ## to UNDER_HZ, and the wind down by UNDER_WIND_DB.
 const UNDER_HZ := 300.0
 const UNDER_WIND_DB := -30.0
+## With the ears under, every cue in the room — and the rush — is heard through the
+## water too, muffled to UNDER_CUE_HZ.
+const UNDER_CUE_HZ := 500.0
 
 
 static func sea_db(above_sea: float) -> float:
@@ -56,6 +72,45 @@ static func rush_db(sink_rate: float, above_sea: float) -> float:
 	return maxf(RUSH_DB + linear_to_db(pace * near), SILENT_DB)
 
 
+## [param rise] is how fast the water in the listener's own cell is rising, metres a
+## second; heard [param ears_under] it, quieter.
+static func cell_rush_db(rise: float, ears_under: bool) -> float:
+	if rise <= 0.0:
+		return SILENT_DB
+	var pace := clampf(rise / CELL_RUSH_FULL_RATE, 0.0, 1.0)
+	var level := RUSH_DB + linear_to_db(pace) + (CELL_RUSH_UNDER_DB if ears_under else 0.0)
+	return maxf(level, SILENT_DB)
+
+
+## How fast the water in [param cell] climbs its walls, metres a second, from
+## [param before] to [param pose] a second later: its level less how far the cell's own
+## middle rose, so water carried up as she rolls or lifts is not water coming in; 0
+## while the cell holds none, for a dry cell's level is only its lowest corner's height,
+## which rises and falls with her. The poses keep the same cells.
+static func cell_rise(pose: ShipPose, before: ShipPose, cell: int) -> float:
+	var box := pose.cells.box_of(cell)
+	var lowest := INF
+	for corner in 8:
+		lowest = minf(lowest, pose.world_height(box.get_endpoint(corner)))
+	if pose.levels[cell] <= lowest + CellMap.DRY:
+		return 0.0
+	var middle := box.get_center()
+	var climbed := pose.levels[cell] - pose.world_height(middle)
+	return climbed - (before.levels[cell] - before.world_height(middle))
+
+
+## The water lapping in the listener's cell, [param depth] metres of it over the
+## floor; silent with the ears under it.
+static func lap_db(depth: float, ears_under: bool) -> float:
+	if ears_under or depth <= LAP_FROM_M:
+		return SILENT_DB
+	var share := clampf((depth - LAP_FROM_M) / (LAP_FULL_M - LAP_FROM_M), 0.0, 1.0)
+	if depth > LAP_DEEP_FROM_M:
+		var deep := clampf((depth - LAP_DEEP_FROM_M) / (LAP_DEEP_M - LAP_DEEP_FROM_M), 0.0, 1.0)
+		share = lerpf(1.0, LAP_DEEP_SHARE, deep)
+	return maxf(LAP_DB + linear_to_db(share), SILENT_DB)
+
+
 ## 1 when feet at [param feet] stand in one of [param layout]'s rooms, within
 ## [param step] of its floor; 0 on open deck.
 static func enclosure(layout: ShipLayout, feet: Vector3, step: float) -> float:
@@ -68,6 +123,11 @@ static func outside_cutoff_hz(enclosure: float, under: bool = false) -> float:
 	if under:
 		return UNDER_HZ
 	return _sweep(OPEN_HZ, ENCLOSED_HZ, clampf(enclosure, 0.0, 1.0))
+
+
+## The cutoff of every cue in the room, by whether the ears are [param under] the sea.
+static func cue_cutoff_hz(under: bool) -> float:
+	return UNDER_CUE_HZ if under else OPEN_HZ
 
 
 static func reverb_wet(enclosure: float) -> float:
