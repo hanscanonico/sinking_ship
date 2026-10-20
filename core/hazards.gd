@@ -11,9 +11,15 @@ extends RefCounted
 ## falls off an open edge or down a stair opening. Falling into the sea, it is lost once
 ## the water stands wade_depth over its underside; standing, the water lifts it off its
 ## floor there, and it floats on its cell's water crate_draft deep, never under its
-## floor, rising with it — a blocker still, as it stood — until its top meets the
-## ceiling over it or, with none, until the water over its floor is crate_adrift_depth
-## deep and the sea sweeps it away: lost. The water falling back under wade_depth over
+## floor, rising with it — a blocker still, as it stood, and its lid a surface a body may
+## stand on, carried by nothing — until its top meets the ceiling over it or, with none,
+## until the water over its floor is crate_adrift_depth deep and the sea sweeps it away:
+## lost. As she heels and trims her water runs to her low side and carries it there,
+## whatever its height in her: crate_float_pull of the deck-plane pull of gravity, with
+## no grip angle to hold it and none on an even keel, into her walls, blockers and the
+## other crates as a sliding crate meets them — and off an open edge or through a broken
+## span into the sea, lost. Its planar speed keeps crate_float_drag of itself a tick,
+## against a standing crate's friction. The water falling back under wade_depth over
 ## its floor sets it down there again. Running into a brawler at crate_impact_speed or
 ## more, it staggers it and knocks it back through a hit-stop, as a shove does (D12),
 ## and keeps going, slowed; slower, it pushes it. Either way the two part with the
@@ -180,8 +186,9 @@ func damage(
 	return true
 
 
-## Gravity in the air; afloat, the water's drag; on the deck, the downhill pull past
-## its grip angle, and its friction.
+## Gravity in the air; afloat, crate_float_pull of the downhill pull at any slope, and
+## the water's drag; on the deck, the downhill pull past its grip angle, and its
+## friction.
 func _forces(crates: Array[PropState], pose: ShipPose) -> void:
 	var dt := Ticks.SECONDS_PER_TICK
 	var gravity := pose.ship_gravity(_rules.gravity)
@@ -192,7 +199,9 @@ func _forces(crates: Array[PropState], pose: ShipPose) -> void:
 			crate.vel += gravity * dt
 			continue
 		if crate.body == PropState.Body.FLOATING:
-			crate.vel = Vector3(crate.vel.x, 0.0, crate.vel.z) * _rules.crate_float_drag
+			var afloat := Vector2(crate.vel.x, crate.vel.z) + downhill * _rules.crate_float_pull
+			afloat *= _rules.crate_float_drag
+			crate.vel = Vector3(afloat.x, 0.0, afloat.y)
 			continue
 		var prop := _props[crate.prop]
 		var planar := Vector2(crate.vel.x, crate.vel.z)

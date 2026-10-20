@@ -168,8 +168,14 @@ extends Resource
 ## floats with its underside this far under its cell's water. Below every crate's
 ## height (MatchConfig).
 @export var crate_draft: float
-## The share of its planar speed a floating crate keeps from tick to tick; 0…1, above 0.
+## The share of its planar speed a floating crate keeps from tick to tick; 0…1, above
+## 0. Near 1 the water drags little: a shove or a body's push sends one afloat farther
+## than one standing.
 @export var crate_float_drag: float
+## The share of the deck-plane pull of gravity — the slope a heel and a trim make —
+## that carries a floating crate toward her low side, as her water runs there: no grip
+## angle holds it, and on an even keel there is none. 0…1, above 0.
+@export var crate_float_pull: float
 ## How deep the water over a floating crate's floor may stand where nothing roofs it
 ## before the sea sweeps it away, in metres: more than wade_depth, which lifts it.
 @export var crate_adrift_depth: float
@@ -272,6 +278,7 @@ func problems() -> PackedStringArray:
 		"railing_break_speed",
 		"crate_draft",
 		"crate_float_drag",
+		"crate_float_pull",
 		"crate_adrift_depth",
 		"struck_knockback",
 		"struck_stagger",
@@ -352,6 +359,8 @@ func problems() -> PackedStringArray:
 		found.append("brawl rules: crawl_speed must not exceed walk_speed")
 	if crate_float_drag > 1.0:
 		found.append("brawl rules: crate_float_drag must not exceed 1")
+	if crate_float_pull > 1.0:
+		found.append("brawl rules: crate_float_pull must not exceed 1")
 	if crate_adrift_depth <= wade_depth:
 		found.append("brawl rules: crate_adrift_depth must be more than wade_depth")
 	return found
