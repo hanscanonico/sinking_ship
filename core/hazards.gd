@@ -14,12 +14,13 @@ extends RefCounted
 ## floor, rising with it — a blocker still, as it stood, and its lid a surface a body may
 ## stand on, carried by nothing — until its top meets the ceiling over it or, with none,
 ## until the water over its floor is crate_adrift_depth deep and the sea sweeps it away:
-## lost. The water holds it where it is in the world, so as she heels and trims she
-## slides under it, eased by crate_float_drag, into her walls, blockers and the other
-## crates as a sliding crate meets them — and off an open edge or through a broken span
-## into the sea, lost. Its planar speed keeps crate_float_drag of itself a tick, against
-## a standing crate's friction. The water falling back under wade_depth over its floor
-## sets it down there again. Running into a brawler at crate_impact_speed or
+## lost. As she heels and trims her water runs to her low side and carries it there,
+## whatever its height in her: crate_float_pull of the deck-plane pull of gravity, with
+## no grip angle to hold it and none on an even keel, into her walls, blockers and the
+## other crates as a sliding crate meets them — and off an open edge or through a broken
+## span into the sea, lost. Its planar speed keeps crate_float_drag of itself a tick,
+## against a standing crate's friction. The water falling back under wade_depth over
+## its floor sets it down there again. Running into a brawler at crate_impact_speed or
 ## more, it staggers it and knocks it back through a hit-stop, as a shove does (D12),
 ## and keeps going, slowed; slower, it pushes it. Either way the two part with the
 ## closing speed by their masses. A shove sends a crate at its knockback weighed by
@@ -76,13 +77,10 @@ func _init(config: MatchConfig, surfaces: Surfaces, piece := 0, pieces: Pieces =
 
 
 ## One tick of the cargo, in [param state], under [param pose] — the whole ship's — and
-## before it, every funnel landing; [param before] is her pose the tick before, which
-## the crates afloat drift from (_drift), or null for none. Once the match stands on any
-## face but its decks (Faces), the piece has rolled past where cargo stays stowed: what
-## is still aboard breaks loose into the sea.
-func step(
-	state: MatchState, pose: ShipPose, tick: int, events: Array[SimEvent], before: ShipPose = null
-) -> void:
+## before it, every funnel landing. Once the match stands on any face but its decks
+## (Faces), the piece has rolled past where cargo stays stowed: what is still aboard
+## breaks loose into the sea.
+func step(state: MatchState, pose: ShipPose, tick: int, events: Array[SimEvent]) -> void:
 	var here := pose.of_piece(_piece)
 	# A funnel's strip lies on her decks: off them (SH32) its landing strikes nobody, and
 	# the bodies' points are in another frame's.
@@ -101,11 +99,7 @@ func step(
 	if state.up[_piece] != Faces.Up.DECK:
 		_lose(crates, tick, events)
 		return
-	# The tick she breaks, a piece's frame is new: nothing afloat drifts across it.
-	var was: ShipPose = null
-	if before != null and before.pieces.size() == pose.pieces.size():
-		was = before.of_piece(_piece)
-	_forces(crates, here, was)
+	_forces(crates, here)
 	var feet_before := _move(state, crates, pose, tick, events)
 	_run_into_bodies(state, crates, tick, events)
 	_stand(state, pose)
@@ -192,10 +186,10 @@ func damage(
 	return true
 
 
-## Gravity in the air; afloat, the water's drag toward the drift the ship moving under
-## it makes since [param was] (_drift); on the deck, the downhill pull past its grip
-## angle, and its friction.
-func _forces(crates: Array[PropState], pose: ShipPose, was: ShipPose) -> void:
+## Gravity in the air; afloat, crate_float_pull of the downhill pull at any slope, and
+## the water's drag; on the deck, the downhill pull past its grip angle, and its
+## friction.
+func _forces(crates: Array[PropState], pose: ShipPose) -> void:
 	var dt := Ticks.SECONDS_PER_TICK
 	var gravity := pose.ship_gravity(_rules.gravity)
 	var downhill := Vector2(gravity.x, gravity.z) * dt
@@ -205,9 +199,8 @@ func _forces(crates: Array[PropState], pose: ShipPose, was: ShipPose) -> void:
 			crate.vel += gravity * dt
 			continue
 		if crate.body == PropState.Body.FLOATING:
-			var drift := _drift(crate.pos, was, pose) / dt
-			var afloat := Vector2(crate.vel.x, crate.vel.z)
-			afloat = afloat.lerp(drift, 1.0 - _rules.crate_float_drag)
+			var afloat := Vector2(crate.vel.x, crate.vel.z) + downhill * _rules.crate_float_pull
+			afloat *= _rules.crate_float_drag
 			crate.vel = Vector3(afloat.x, 0.0, afloat.y)
 			continue
 		var prop := _props[crate.prop]
@@ -216,22 +209,6 @@ func _forces(crates: Array[PropState], pose: ShipPose, was: ShipPose) -> void:
 			planar += downhill
 		planar = planar.move_toward(Vector2.ZERO, prop.friction * dt)
 		crate.vel = Vector3(planar.x, crate.vel.y, planar.y)
-
-
-## How far, in the deck plane, the ship has moved under a crate afloat at
-## [param point] since [param was], to [param now]: the water holds it where it is in
-## the world — its x/z there — at its height in her, so that as she heels and trims she
-## slides under it. Zero with no pose before, or one she has only risen or sunk from.
-func _drift(point: Vector3, was: ShipPose, now: ShipPose) -> Vector2:
-	if was == null:
-		return Vector2.ZERO
-	var moved := now.transform.origin - was.transform.origin
-	if was.transform.basis == now.transform.basis and moved.x == 0.0 and moved.z == 0.0:
-		return Vector2.ZERO
-	var held := now.transform.affine_inverse() * (was.transform * point)
-	var up := now.transform.basis.inverse() * Vector3.UP
-	held += up * ((point.y - held.y) / up.y)
-	return Vector2(held.x - point.x, held.z - point.z)
 
 
 ## Integration, then contacts — blockers, walls, deck edges and the other crates,

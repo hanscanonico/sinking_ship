@@ -645,18 +645,22 @@ func test_a_crate_draft_as_tall_as_a_crate_is_refused() -> void:
 	)
 	rules = _rules().duplicate()
 	rules.crate_float_drag = 1.5
+	rules.crate_float_pull = 1.5
 	rules.crate_adrift_depth = rules.wade_depth
 	assert_eq(
 		rules.problems(),
 		PackedStringArray(
 			[
 				"brawl rules: crate_float_drag must not exceed 1",
+				"brawl rules: crate_float_pull must not exceed 1",
 				"brawl rules: crate_adrift_depth must be more than wade_depth",
 			]
 		)
 	)
 	rules.crate_draft = 0.0
+	rules.crate_float_pull = 0.0
 	assert_true(rules.problems().has("brawl rules: crate_draft must be positive"))
+	assert_true(rules.problems().has("brawl rules: crate_float_pull must be positive"))
 
 
 ## A run-up at three metres a second and a jump from 1.3 m short lands on a still

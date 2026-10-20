@@ -1,12 +1,14 @@
 extends GutTest
-## Crates afloat (SH10): the water holds a floating crate where it is in the world, so
-## the ship slides under it as she heels and trims — into her railings and walls, or
-## off an open edge into the sea — a shove or a push sends one farther than one
-## standing, a body may stand on its lid, and all of it is in the snapshot (D5).
+## Crates afloat (SH10): as she heels and trims her water runs to her low side and
+## carries a floating crate there, whatever its height in her — into her railings and
+## walls, or off an open edge into the sea — a shove or a push sends one farther than
+## one standing, a body may stand on its lid, and all of it is in the snapshot (D5).
 
 const SHOVE := InputFrame.SHOVE
 ## Clear of the flat deck's railing gaps on either side.
 const RAILED_X := -8.0
+## Where she turns about: her centre of mass, under her deck, as a ship's is.
+const UNDER_DECK := -3.0
 
 
 func _rules() -> BrawlRules:
@@ -81,24 +83,25 @@ func _continues(
 
 
 ## The sea [param metres] over the flat deck from the start, held, while she heels from
-## level to [param heel_deg] between [param from] and [param to] seconds about a point
-## [param pivot_y] metres over her deck — her hold under her roll's axis, as the water
-## in her is: test data.
+## level to [param heel_deg] and trims to [param trim_deg] between [param from] and
+## [param to] seconds about a point [param pivot_y] metres over her deck — under it, her
+## centre of mass, unless given: test data.
 func _heeling(
-	metres: float, heel_deg: float, from := 1.0, to := 2.0, pivot_y := 12.0
+	metres: float, heel_deg: float, from := 1.0, to := 2.0, pivot_y := UNDER_DECK, trim_deg := 0.0
 ) -> SinkScenario:
 	var sea := SimFixtures.deck().freeboard + metres
 	var made := SimFixtures.scenario(
-		[[0.0, sea, 0.0, 0.0], [from, sea, 0.0, 0.0], [to, sea, 0.0, heel_deg]]
+		[[0.0, sea, 0.0, 0.0], [from, sea, 0.0, 0.0], [to, sea, trim_deg, heel_deg]]
 	)
 	made.pivot = Vector3(0.0, pivot_y, 0.0)
 	return made
 
 
 ## The flat deck carrying one crate at [param at], the water [param metres] over it
-## and her heeling 5° to starboard over a second from one second in.
-func _drifting(at: Vector3, metres := 0.45) -> MatchSim:
-	var sim := SimFixtures.sim(1, _heeling(metres, 5.0), _roofed(at))
+## and her heeling 5° to starboard over a second from one second in, about
+## [param pivot_y] over her deck.
+func _drifting(at: Vector3, metres := 0.45, pivot_y := UNDER_DECK) -> MatchSim:
+	var sim := SimFixtures.sim(1, _heeling(metres, 5.0, 1.0, 2.0, pivot_y), _roofed(at))
 	SimFixtures.place(sim, 0, Vector3(-12.0, 0.0, -2.0))
 	return sim
 
@@ -116,16 +119,31 @@ func test_a_floating_crate_drifts_to_the_low_side_as_she_heels_and_the_railing_h
 	assert_eq(crate.body, PropState.Body.FLOATING, "aboard, the railing between it and the sea")
 	var low := ShipPose.low_side(sim.pose().heel_deg)
 	assert_eq(low, Vector2(0.0, 1.0), "she heels to starboard")
-	assert_gt(crate.pos.z, start.z + 0.1, "the ship slid under it: nearer her low side")
+	assert_gt(crate.pos.z, start.z + 0.1, "her water carried it nearer her low side")
 	assert_lte(crate.pos.z, edge - crate_def.radius + 0.0001, "no farther than her railing")
 	assert_almost_eq(crate.pos.x, start.x, 0.0001, "a heel moves it athwartships only")
 
 
-func test_a_floating_crate_holds_its_place_while_she_does_not_turn() -> void:
-	# Held at a heel the whole time while the sea rises: she sinks under it, never turns.
+func test_a_floating_crate_goes_downhill_whatever_its_height_against_her_turn() -> void:
+	# Over her centre of mass, as on an open deck, and under where she turns, as in a
+	# hold: either way her water carries it down her heel and her trim.
+	var start := Vector3.ZERO
+	for pivot_y: float in [UNDER_DECK, 12.0]:
+		var scenario := _heeling(0.6, 5.0, 1.0, 2.0, pivot_y, 3.0)
+		var sim := SimFixtures.sim(1, scenario, _roofed(start))
+		SimFixtures.place(sim, 0, Vector3(-12.0, 0.0, -2.0))
+		var crate := sim.state.props[0]
+		SimFixtures.step(sim, {}, 3 * Ticks.RATE)
+		assert_eq(crate.body, PropState.Body.FLOATING, "afloat, pivot %.1f" % pivot_y)
+		assert_gt(crate.pos.z, start.z + 0.1, "to starboard, she heeling so: %.1f" % pivot_y)
+		assert_gt(crate.pos.x, start.x + 0.05, "forward, she down by the head: %.1f" % pivot_y)
+
+
+func test_a_floating_crate_holds_its_place_on_an_even_keel() -> void:
+	# Level the whole time while the sea rises over her deck: nothing runs anywhere.
 	var sea := SimFixtures.deck().freeboard
-	var scenario := SimFixtures.scenario([[0.0, sea, 0.0, 5.0], [3.0, sea + 0.8, 0.0, 5.0]])
-	scenario.pivot = Vector3(0.0, 12.0, 0.0)
+	var scenario := SimFixtures.scenario([[0.0, sea, 0.0, 0.0], [3.0, sea + 0.8, 0.0, 0.0]])
+	scenario.pivot = Vector3(0.0, UNDER_DECK, 0.0)
 	var at := Vector3(RAILED_X, 0.0, 0.0)
 	var sim := SimFixtures.sim(1, scenario, _roofed(at))
 	SimFixtures.place(sim, 0, Vector3(-12.0, 0.0, -2.0))

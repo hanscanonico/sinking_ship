@@ -44,7 +44,7 @@ func test_a_bot_steps_out_of_a_fast_drifting_floating_crate_s_path_only() -> voi
 	var afloat := PropState.Body.FLOATING
 	var still := _facing_a_crate(Vector3.ZERO, null, afloat)
 	assert_lt(still.x, 0.0, "a crate afloat and still is a blocker: the bot walks on")
-	# As slow as she drifts under it as she heels: three metres off, it is no matter.
+	# As slow as her water carries one down a gentle heel: three metres off, no matter.
 	var drifting := _facing_a_crate(Vector3(-0.1, 0.0, 0.0), null, afloat)
 	assert_eq(drifting, still, "a slow drift from three metres off changes nothing")
 	var coming := _facing_a_crate(Vector3(-4.0, 0.0, 0.0), null, afloat)
