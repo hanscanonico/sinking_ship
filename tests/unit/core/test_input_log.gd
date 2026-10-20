@@ -36,6 +36,38 @@ func test_every_frame_comes_back_as_it_came() -> void:
 	assert_null(recorded.frame(40, 3), "a seat the match does not have")
 
 
+func test_the_log_comes_back_from_bytes_field_for_field() -> void:
+	var config := SimFixtures.config(3, load(SimFixtures.FLAT_SINKING), SEED)
+	var recorded := InputLog.new(config, 40)
+	var sent: Array[InputFrame] = [
+		InputFrame.new(0, 40, Vector2i(127, -127), InputFrame.SHOVE | InputFrame.JUMP, 65535),
+		null,
+		InputFrame.new(2, 40, Vector2i(-3, 9), 0xFF, -12),
+	]
+	recorded.record(40, sent)
+	recorded.record(41, [null, null, null] as Array[InputFrame])
+	var back := InputLog.from_bytes(recorded.to_bytes())
+	assert_not_null(back)
+	assert_eq(
+		[back.match_seed, back.seats, back.data_hash, back.first_tick, back.last_tick()],
+		[SEED, 3, config.data_hash(), 40, 41],
+		"the header"
+	)
+	for tick in [40, 41]:
+		for seat in 3:
+			var came := recorded.frame(tick, seat)
+			var read := back.frame(tick, seat)
+			if came == null:
+				assert_null(read, "tick %d seat %d sent nothing" % [tick, seat])
+				continue
+			assert_eq(
+				[read.seat, read.tick, read.move, read.buttons, read.look_yaw],
+				[came.seat, came.tick, came.move, came.buttons, came.look_yaw],
+				"tick %d seat %d" % [tick, seat]
+			)
+	assert_null(InputLog.from_bytes(recorded.to_bytes().slice(0, 20)), "a log cut short")
+
+
 func test_a_match_replayed_from_its_log_is_the_same_match() -> void:
 	var config := RunMatch.default_config(SEED)
 	var played := RunMatch.bots_only(config)
