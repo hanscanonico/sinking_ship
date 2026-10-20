@@ -22,6 +22,10 @@ Review the actual diff: `git -C <worktree> diff origin/main...HEAD` (fetch first
    worktree, `git status --porcelain` shows no untracked `.uid` next to a file the PR
    adds. A new file without its `.uid` is a reject (or a fix you push, if it is the only
    problem).
+6. Godot owns the form, Blender the finish (`assets/models/README.md`). Reject a model PR
+   that changes a gameplay dimension only in the model or its `NAME.py`, reads a size or
+   placement from a mesh's bounds, adds new art as scripted vertex lists, or carries no
+   renders of the new model.
 
 Verify claims yourself rather than trusting the PR body: re-run the new and changed GUT
 tests plus `make check lint format-check` in the worktree; for a visual change re-capture

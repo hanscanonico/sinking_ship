@@ -16,6 +16,39 @@ when it is wholly off the stretch being drawn. It never becomes a mesh instance 
 its own. Where it stands is still decided by the data and the fitting code (D6). The
 model is only its shape.
 
+## Form and finish
+
+Godot owns the form; Blender owns the finish. The form is everything the game measures:
+a blocker's footprint, a walkable surface, a height, an opening, the size a variant is
+picked by (`STOWED_CRATES`, `CROSSTREES`, `FOLDED_BERTHS`, `GAUGES`, …), and every other
+dimension a fit test reads. It is declared on the Godot side — the ship's layout data,
+its authoring scene, the fitting code's tables — and a model dresses it: bevels, trim,
+silhouette detail, paint, all inside that envelope.
+
+- **Declare before you model.** A new prop's envelope lands in Godot first; the model is
+  built inside it, with the envelope blocked in as a guide.
+- **Never read the form from a mesh.** Nothing places, sizes or collides by a model's
+  bounds. Cut-away and stretch culling (`ShipModel.bounds`) are drawing, not form.
+- **A form changes in Godot.** Making a prop bigger is a change to the data or the
+  table, in its own reviewable diff, never a re-sculpt alone. A dimension that today
+  exists only in a `NAME.py` (a stowed crate's height, a boiler front's depth) moves to
+  the Godot side the next time that prop is touched.
+- **Model in Blender, by eye.** New props and reworks are modelled through the Blender
+  MCP, judged with `look`; the saved `.blend` is the source and `make models` exports
+  the `.glb`. Vertex lists in Python or GDScript are for the form, not for art. The
+  `NAME.py` props stay scripted until someone reworks them.
+- **One live Blender.** The MCP drives the one Blender open on the machine; one session
+  models at a time.
+- **Show it.** A `.blend` cannot be diffed, so a model PR carries renders: `look` shots
+  from the front, the side and three-quarters, and an in-game capture.
+- **Imports are CC0 or licensed**, the source and licence noted in the model's folder;
+  `generate_3d` spends the user's credits and needs their go-ahead.
+
+Two known leaks, to retire rather than copy: `IcebergPlanner` takes a berg's radius and
+blade from its model's bounds (presentation only — the D7 hit never reads it), and
+`ShipBake` accepts a whole ship as a `.glb`. No check yet holds a `.glb` inside its
+declared envelope.
+
 A lamp's model is the exception: a room's lamp (`ShipLamp`) swings as a pendulum and
 its glass glows as it burns, so each lamp draws its kind's model as one mesh instance
 of its own under the lamp, every surface in the lamp's own material for its paint
