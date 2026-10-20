@@ -60,6 +60,14 @@ func test_a_held_lens_stays_wet() -> void:
 	assert_true(drops.is_wet(), "a capture's lens never dries")
 
 
+func test_the_drops_sit_under_the_hud() -> void:
+	var hud := CanvasLayer.new()
+	var drops := _drops()
+	assert_eq(drops.layer, 0, "Underwater's layer, drawn over it as a later sibling")
+	assert_lt(drops.layer, hud.layer, "under the HUD's layer")
+	hud.free()
+
+
 func _drops() -> LensDrops:
 	var drops := LensDrops.new()
 	drops.set_process(false)

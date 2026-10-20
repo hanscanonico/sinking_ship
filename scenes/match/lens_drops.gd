@@ -28,6 +28,9 @@ static func wetness(seconds_since_surfacing: float) -> float:
 
 func _ready() -> void:
 	name = "LensDrops"
+	# On Underwater's layer (match.tscn), over it as a later sibling, and under the
+	# HUD's layer 1: the drops sit on the lens, not on the HUD.
+	layer = 0
 	_overlay = ShaderMaterial.new()
 	_overlay.shader = OVERLAY
 	_drops = ColorRect.new()
