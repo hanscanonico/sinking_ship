@@ -6,7 +6,10 @@
 // never reads through the shallows as a pink band, darkening deeper into the sea's
 // own hue, never blacker than the water round it. While the eye is under the sea
 // (eye_under, set by Underwater) the tint eases, so a swimmer sees the plating as a
-// wall and not as more of the fog.
+// wall and not as more of the fog. Whatever lies outdoors under the surface also
+// fades into the sea's deep colour after it is lit (sea_fade), deeper the more, so a
+// drowned deckhouse or funnel dark in its own shadow sinks into the water rather
+// than reading as a black cut-out.
 
 #include "res://scenes/art/sea_ripple.gdshaderinc"
 
@@ -23,6 +26,13 @@ uniform float deep_depth = 3.0;
 global uniform float eye_under;
 // How much of the sunk tint the eye under the sea is spared.
 const float UNDER_CLEAR = 0.6;
+// The sea's deep colour (water.gdshader's deep_colour, 0.09, 0.27, 0.42), which a face
+// under the surface fades into after lighting, and the metres under it by which it has
+// gone wholly: well inside the sea's clear_depth, before its murk steps toward opaque,
+// so what shows through them has already sunk into the sea's colour instead of ending
+// in a hard edge. A const takes no source_color conversion, so it is written linear.
+const vec3 SEA_DEEP = vec3(0.0085, 0.0593, 0.1473);
+const float FADE_DEPTH = 0.5;
 
 // [albedo] as the sea leaves it at [world_pos] on a face turned to [world_normal],
 // a hull's paint when [hull], at [time]; [lap] is how much of the lap line lies
@@ -42,4 +52,12 @@ vec3 sea_waterline(
 	lap = 1.0 - smoothstep(0.6, 1.0, above / (lap_width * (0.75 + 0.25 * wash)));
 	lap *= step(-0.01, above) * smoothstep(0.35, 0.7, steep);
 	return mix(albedo, lap_colour.rgb, lap);
+}
+
+// How far a face at [world_pos] has faded into the sea's deep colour (SEA_DEEP) at
+// [time]: 0 at the surface or above it, 1 FADE_DEPTH under it, eased like the tint
+// while the eye is under the sea. The caller blends its lit colour by it.
+float sea_fade(vec3 world_pos, float time) {
+	float under = sea_ripple(world_pos.xz, time) - world_pos.y;
+	return smoothstep(0.0, FADE_DEPTH, under) * (1.0 - UNDER_CLEAR * eye_under);
 }
