@@ -25,6 +25,11 @@ const STEP_SOFT := 0.45
 const COLLAPSING_GAIN := 0.6
 ## Feet this close above the water they are in splash as they step, in metres.
 const WET_ABOVE := 0.3
+## A step in water as deep over the feet as wade_depth lands this much louder, and
+## comes this much further apart, than one in a film of it: wading is heavy going.
+## At its loudest a run's step stays well under the bank's ceiling.
+const WADE_LOUD := 1.4
+const WADE_STRIDE := 1.3
 ## A landing that costs no stagger still thuds this loud; one that costs
 ## LANDING_LOUD_TICKS or more lands at full.
 const LANDING_SOFT := 0.35
@@ -63,6 +68,8 @@ var _surfaces: Surfaces
 var _schedule: SinkSchedule
 var _layout: ShipLayout
 var _walk_speed: float
+## Water this deep over the feet takes them (SWIMMING): the deepest wading.
+var _wade_depth: float
 ## Ticks of charge that make a shove a full one, heard heavy.
 var _charge_full: int
 var _railing_height: float
@@ -87,6 +94,7 @@ func _init(
 	_schedule = schedule
 	_layout = config.ship
 	_walk_speed = config.rules.walk_speed
+	_wade_depth = config.rules.wade_depth
 	_charge_full = Ticks.from_seconds(config.rules.charge_full)
 	_railing_height = config.rules.railing_height
 	_local_seat = local_seat
@@ -125,7 +133,8 @@ func plan(previous: Dictionary, current: Dictionary) -> Array[AudioCue]:
 
 ## A footfall each stride while the feet are drawn walking or running, and a stroke
 ## each SWIM_STROKE while a swimmer is drawn swimming along; a body frozen in a
-## hit-stop holds its stride without a sound.
+## hit-stop holds its stride without a sound. Wading, the steps come louder and
+## further apart the deeper the water over the feet.
 func _footstep(entry: Dictionary, pose: ShipPose, tick: int, cues: Array[AudioCue]) -> void:
 	if entry["hitstop"] > 0:
 		return
@@ -136,7 +145,9 @@ func _footstep(entry: Dictionary, pose: ShipPose, tick: int, cues: Array[AudioCu
 	if entry["out"] or not STRIDES.has(move):
 		_stride[seat] = 0.5
 		return
-	_stride[seat] += speed * Ticks.SECONDS_PER_TICK / STRIDES[move]
+	var wading := 0.0 if move == BrawlerAnimation.Move.SWIM else _wading(entry["pos"], pose)
+	var stride: float = STRIDES[move] * lerpf(1.0, WADE_STRIDE, wading)
+	_stride[seat] += speed * Ticks.SECONDS_PER_TICK / stride
 	if _stride[seat] < 1.0:
 		return
 	_stride[seat] = fposmod(_stride[seat], 1.0)
@@ -145,6 +156,7 @@ func _footstep(entry: Dictionary, pose: ShipPose, tick: int, cues: Array[AudioCu
 		return
 	var cue := _at_seat(AudioCue.Kind.FOOTSTEP, tick, entry)
 	cue.gain = lerpf(STEP_SOFT, 1.0, clampf(speed / _walk_speed, 0.0, 1.0))
+	cue.gain *= lerpf(1.0, WADE_LOUD, wading)
 	cue.ground = _ground(entry["surface"], entry["pos"], pose)
 	cues.append(cue)
 
@@ -382,6 +394,13 @@ func _ground(surface: int, feet: Vector3, pose: ShipPose) -> AudioCue.Ground:
 	if surface != Surfaces.NONE and surface >= _surfaces.platform_count():
 		return AudioCue.Ground.METAL
 	return AudioCue.Ground.WOOD
+
+
+## How deep the water stands over [param feet], as a share of wade_depth: 0 dry or
+## in a film of it, 1 as deep as it gets before it takes them.
+func _wading(feet: Vector3, pose: ShipPose) -> float:
+	var depth := pose.water_level(feet) - pose.world_height(feet)
+	return clampf(depth / _wade_depth, 0.0, 1.0)
 
 
 ## Somewhere in the deck within CREAK_SPREAD of the listener's feet — of the

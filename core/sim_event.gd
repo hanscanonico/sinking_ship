@@ -14,7 +14,8 @@ extends RefCounted
 ## cell's water drowns its lamps, her hull creaks under its bending; from SH32
 ## GROUNDED as her hull first touches the bottom; and from SH33 HULL_HINGING as a hinge
 ## starts at a weak spot of hers, HULL_PARTED as her hull parts there. KNOCKED_DOWN is a
-## rule's: a falling funnel landing on a body (Hazards, D12).
+## rule's: a falling funnel landing on a body (Hazards, D12); CRATE_AFLOAT too: a crate
+## its cell's water lifts off its floor.
 
 enum Kind {
 	SEAT_OUT,
@@ -55,6 +56,7 @@ enum Kind {
 	GROUNDED,
 	HULL_HINGING,
 	HULL_PARTED,
+	CRATE_AFLOAT,
 }
 
 var kind: Kind
@@ -64,8 +66,8 @@ var tick: int
 ## SHOVE_LANDED: the shover. ENTERED_WATER: who started swimming. CLIMBED_OUT: who
 ## stood up out of the sea. KNOCKED_BACK_IN: the climber a shove sent back.
 ## CRATE_HIT: the seat a crate ran into. RAILING_BROKE: the seat whose vault broke
-## the span, or -1. KNOCKED_DOWN: the seat a funnel landed on. The sinking's events and
-## CRATE_LOST: -1.
+## the span, or -1. KNOCKED_DOWN: the seat a funnel landed on. The sinking's events,
+## CRATE_AFLOAT and CRATE_LOST: -1.
 var seat: int
 var place: int
 var cause: PlayerState.Cause = PlayerState.Cause.NONE
@@ -73,7 +75,7 @@ var cause: PlayerState.Cause = PlayerState.Cause.NONE
 ## the crate credited — or -1. KNOCKED_BACK_IN: the shover.
 var credit: int = -1
 ## SEAT_OUT: the crate that last ran into the one going out, or -1. CRATE_HIT,
-## CRATE_LOST: the crate. RAILING_BROKE: the crate that broke the span, or -1. By
+## CRATE_AFLOAT, CRATE_LOST: the crate. RAILING_BROKE: the crate that broke the span, or -1. By
 ## its index in the layout's props.
 var prop: int = -1
 ## LANDED: the surface it came down on. CLIMBED_OUT: the surface it stands on.
@@ -231,6 +233,13 @@ static func knocked_down(event_tick: int, struck_seat: int, funnel: StringName) 
 
 static func crate_hit(event_tick: int, hit_seat: int, crate: int) -> SimEvent:
 	var event := SimEvent.new(Kind.CRATE_HIT, event_tick, hit_seat)
+	event.prop = crate
+	return event
+
+
+## [param crate] lifted off its floor by its cell's water (Hazards).
+static func crate_afloat(event_tick: int, crate: int) -> SimEvent:
+	var event := SimEvent.new(Kind.CRATE_AFLOAT, event_tick, -1)
 	event.prop = crate
 	return event
 

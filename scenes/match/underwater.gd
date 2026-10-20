@@ -27,6 +27,9 @@ const BREATH := Vector2(0.6, 0.15)
 const BUBBLE_COLOUR := Color(0.85, 0.97, 1.0, 0.7)
 ## How much less steep than the sun's light the shafts run, as water bends it.
 const REFRACTION := 1.33
+## How near over the water, in metres, the eye starts to see its rippling line cross
+## the view, the tint under it and clear air over it.
+const MENISCUS := 0.15
 
 var _world: WorldEnvironment
 var _above: Environment
@@ -36,6 +39,8 @@ var _overlay: ShaderMaterial
 var _motes: CPUParticles3D
 var _bubbles: CPUParticles3D
 var _under := false
+## Whether the tint, or the line of the water over it, is drawn.
+var _meniscus := false
 ## How far the eye stood over its water when last shown.
 var _over_water := 0.0
 
@@ -94,7 +99,9 @@ func setup(sea_and_sky: SeaAndSky) -> void:
 	_overlay.set_shader_parameter(&"shaft_axis", shafts)
 	_world.environment = _above
 	_under = false
+	_meniscus = false
 	_show_under(false)
+	_tint.hide()
 
 
 ## Glows under the sea as [param quality] has the dusk glow above it.
@@ -111,12 +118,22 @@ func show_eye(eye: Vector3, above: float, indoors := false) -> void:
 	# Placed before they start, so the motes fill in round the eye, not where it
 	# last went under.
 	_over_water = above
-	if under:
+	var meniscus := meniscus_shown(above)
+	if meniscus:
 		_follow(eye)
+	if meniscus != _meniscus:
+		_meniscus = meniscus
+		_tint.visible = meniscus
 	if under != _under:
 		_under = under
 		_world.environment = _below if under else _above
 		_show_under(under)
+
+
+## Whether the eye standing [param above] over its water is near enough it, or under
+## it, for the overlay to draw: the line of the water crossing the view, or the tint.
+static func meniscus_shown(above: float) -> bool:
+	return above < MENISCUS
 
 
 ## Whether the eye is under the sea.
@@ -135,13 +152,13 @@ func _follow(eye: Vector3) -> void:
 	_overlay.set_shader_parameter(&"eye_up", basis.y)
 	_overlay.set_shader_parameter(&"eye_back", basis.z)
 	_overlay.set_shader_parameter(&"eye_tan", Vector2(across, across * size.y / size.x))
-	_overlay.set_shader_parameter(&"depth", -_over_water)
+	_overlay.set_shader_parameter(&"depth", maxf(-_over_water, 0.0))
+	_overlay.set_shader_parameter(&"above", _over_water)
 	_motes.global_position = eye - basis.z * MOTE_AHEAD
 	_bubbles.global_position = eye - basis.z * BREATH.x + Vector3.DOWN * BREATH.y
 
 
 func _show_under(under: bool) -> void:
-	_tint.visible = under
 	for particles: CPUParticles3D in [_motes, _bubbles]:
 		particles.visible = under
 		particles.emitting = under

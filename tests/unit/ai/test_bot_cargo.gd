@@ -63,6 +63,28 @@ func test_a_crate_seen_still_on_a_deck_tilted_past_its_grip_is_coming() -> void:
 	assert_gt(move.dot(aside), 0.9, "out of the line the crate will slide down, its side")
 
 
+func test_a_floating_crate_seen_still_on_a_tilted_deck_is_no_matter() -> void:
+	# Tilted as the last test's, but the crate afloat: the water holds it, not its grip.
+	var crate := SimFixtures.crate(Vector3.ZERO)
+	var tilt := (crate.grip_angle_deg + SimFixtures.rules().grip_angle_deg) * 0.5
+	var crates: Array[ShipProp] = [crate]
+	var sim := SimFixtures.sim(2, SimFixtures.tilted(tilt, 0.0), SimFixtures.crated(crates))
+	var gravity := sim.pose().ship_gravity(1.0)
+	var downhill := Vector2(gravity.x, gravity.z).normalized()
+	var aside := downhill.orthogonal()
+	var bot := downhill + aside * 0.3
+	var mark := -downhill * 10.0
+	SimFixtures.place(sim, 0, Vector3(bot.x, 0.0, bot.y), rad_to_deg((mark - bot).angle()))
+	SimFixtures.place(sim, 1, Vector3(mark.x, 0.0, mark.y))
+	sim.state.props[0].body = PropState.Body.FLOATING
+	var move := _first_move(sim, 0).normalized()
+	assert_lt(move.dot(aside), 0.9, "no dodge out of a line it will not slide down")
+	assert_gt(move.dot((mark - bot).normalized()), 0.0, "the bot goes on toward its target")
+	sim.state.props[0].vel = Vector3(downhill.x, 0.0, downhill.y) * 4.0
+	move = _first_move(sim, 0).normalized()
+	assert_gt(absf(move.dot(aside)), 0.9, "one coming at it afloat is dodged as any other")
+
+
 ## Seat 0 alone, half a metre aft of [param bow_x] along the deck — at the flat deck's
 ## bow end, unrailed, an open edge — and a crate sliding athwartships at it, its line
 ## just aft of the bot: the side the bot would dodge to is toward the bow.
