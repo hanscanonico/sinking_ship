@@ -14,20 +14,31 @@ const FIELD_SPREAD := 4.0
 const STREAK_SIZE := Vector2i(16, 64)
 const STREAK_HEAD := Vector3(8.0, 6.0, 3.6)
 const STREAK_TIP := Vector3(8.3, 60.0, 1.1)
-## A sheet of lace foam, LACE_SIZE pixels, that tiles: white threads where the
+## A sheet of lace foam, LACE_SIZE pixels, that tiles: broken threads along where the
 ## cells of a jittered grid LACE_GRID cells a side meet, from LACE_THREAD.x to .y
 ## pixels thick, swelling and thinning along them, as LACE_SEED lays them; its field
 ## LACE_SPREAD pixels deep either side of a thread's edge, sharper than a shape's, so
 ## a grain can wear its threads away by degrees; the broad noise a grain's ragged
-## outline follows, LACE_NOISE cells a side.
+## outline follows, LACE_NOISE cells a side. Foam is no wire web: every thread tapers
+## to nothing before it reaches a corner where three cells meet — from LACE_JOIN.y of
+## a cell off it to LACE_JOIN.x — so no cell is ever closed and no corner a star, and a
+## finer noise, LACE_BREAK cells a side, breaks the rest into strands where it falls
+## from LACE_KEPT.y to LACE_KEPT.x; the same fine noise bends every strand up to
+## LACE_BEND pixels off its straight line, so it curls as foam does.
 const LACE_SIZE := Vector2i(64, 64)
 const LACE_GRID := 7
-const LACE_THREAD := Vector2(0.3, 1.2)
+const LACE_THREAD := Vector2(0.3, 1.4)
 const LACE_SPREAD := 2.0
 const LACE_SEED := 4817
 const LACE_NOISE := 4
-## How many metres of foam the whole sheet of lace spans, either way, on the planks.
+const LACE_JOIN := Vector2(0.06, 0.24)
+const LACE_BREAK := 9
+const LACE_KEPT := Vector2(0.25, 0.55)
+const LACE_BEND := 1.6
+## How many metres of foam the whole sheet of lace spans, either way, on the planks;
+## how many before a waterline it is kept off (keep_wet) it fades out over.
 const LACE_SHEET := 1.0
+const LACE_SHORE := 0.06
 ## A billow: bumps heaped on a broad foot, as blobs — the middle (x, y) and radius
 ## (z), in pixels — on a picture of BILLOW_SIZE pixels.
 const BILLOW_SIZE := Vector2i(32, 32)
@@ -40,10 +51,11 @@ const BILLOW_BLOBS: Array[Vector3] = [
 	Vector3(26.5, 24.0, 4.8),
 	Vector3(6.5, 25.0, 4.8),
 ]
-## How much a grain of white water grows over its life, and a patch of foam; how
+## How much a grain of white water grows over its life; how much of its first size a
+## patch of foam keeps by its end, broken up and shrinking away; how
 ## far foam strays off its way across the planks, in degrees.
 const WATER_GROWN := 1.2
-const FLECK_GROWN := 1.15
+const FLECK_GROWN := 0.55
 const FOAM_SPREAD := 5.0
 ## A drop of white water out of the gash is this much of its first size by the
 ## time it slows over the top of its arc, STRUCK_TOP of the way through its life, and
@@ -74,23 +86,25 @@ const CLEAR := 6.0
 const STEAM_CLEAR := 9.0
 const SPECK_CLEAR := 2.0
 ## White water drawn this much brighter than its colour, so it stays
-## white through the tonemap as the sea's foam does; foam lying on the planks, in
-## their light and shade, a little less; bubbles breaking on the sea, as its foam.
+## white through the tonemap as the sea's foam does; lace foam, in
+## their light and shade, far less — pale threads, never a white wire; bubbles
+## breaking on the sea, as its foam.
 const WHITE_GLOW := 3.2
 ## Steam, a little brighter than its colour: its sunlit side white, its shade side
 ## the dusk's lilac, never both blown out to one white.
 const STEAM_GLOW := 1.3
-const LACE_GLOW := 1.7
+const LACE_GLOW := 1.0
 const BUBBLE_GLOW := 2.4
 ## Grit blown off a falling deck a little brighter than its colour, so its warm tan
 ## holds against the dusk.
 const GRIT_GLOW := 1.4
-## How opaque foam on the planks is, and water streaming down them: see-through
-## enough that the patches overlapping run together into one band; foam on the sea a
-## little more, to stand out on it from the deck.
-const FOAM_OPACITY := 0.42
-const RUNNEL_OPACITY := 0.38
-const FROTH_OPACITY := 0.6
+## How opaque foam at a waterline is, and water streaming down the planks: see-through
+## enough that the patches overlapping run together into one faint band, and a runnel
+## a wet streak, not a white worm; foam on the sea a little more, to stand out on it
+## from the deck.
+const FOAM_OPACITY := 0.5
+const RUNNEL_OPACITY := 0.18
+const FROTH_OPACITY := 0.45
 ## How opaque the funnel's smoke is: dark, darker than the sky behind it.
 const SMOKE_OPACITY := 0.9
 ## Particles are drawn after the sea, which otherwise covers what stands on it.
@@ -163,7 +177,7 @@ static func mist(emitter: CPUParticles3D) -> void:
 	emitter.color_ramp = held(Color(Color.WHITE, MIST_OPACITY))
 
 
-## Foam: patches of lace sliding over the planks along the emitter's z, lying in
+## Foam: patches of lace drifting along the emitter's z, lying in
 ## its plane, turned every way.
 static func foam(emitter: CPUParticles3D) -> void:
 	emitter.lifetime = 1.6
@@ -177,7 +191,7 @@ static func foam(emitter: CPUParticles3D) -> void:
 	emitter.angle_max = 360.0
 	emitter.scale_amount_min = 0.6
 	emitter.scale_amount_max = 1.0
-	emitter.scale_amount_curve = growth(0.7, FLECK_GROWN)
+	emitter.scale_amount_curve = growth(1.0, FLECK_GROWN)
 	emitter.color_ramp = held(Color(ArtPalette.SPRAY, FOAM_OPACITY))
 
 
@@ -191,7 +205,7 @@ static func froth(emitter: CPUParticles3D) -> void:
 
 
 ## Water streaming down the planks along the emitter's z: runnels of lace drawn out
-## along their way, lying in its plane.
+## along their way, lying in its plane, the spray's shade — wet, not white.
 static func runnel(emitter: CPUParticles3D) -> void:
 	emitter.lifetime = 1.4
 	emitter.emission_shape = CPUParticles3D.EMISSION_SHAPE_BOX
@@ -203,7 +217,7 @@ static func runnel(emitter: CPUParticles3D) -> void:
 	emitter.scale_amount_min = 0.6
 	emitter.scale_amount_max = 1.0
 	emitter.scale_amount_curve = growth(0.8, 1.1)
-	emitter.color_ramp = held(Color(ArtPalette.SPRAY, RUNNEL_OPACITY))
+	emitter.color_ramp = held(Color(ArtPalette.SPRAY_SHADE, RUNNEL_OPACITY))
 
 
 ## Spray blown across the sky and falling: fine streaks driven down the wind.
@@ -380,9 +394,18 @@ static func streaks(
 static func laces(size: Vector2, picture: Texture2D, sheet: float = LACE_SHEET) -> QuadMesh:
 	var material := _material(LACE_SHADER, picture, SPECK_CLEAR, LACE_GLOW)
 	material.set_shader_parameter(&"window", size / sheet)
+	material.set_shader_parameter(&"shore_fade", LACE_SHORE)
 	var quad := _quad(size, material)
 	quad.orientation = PlaneMesh.FACE_Y
 	return quad
+
+
+## Keeps the lace [param emitter] lays (laces()) on the wet side of a waterline through
+## [param on_line], [param toward_dry] the way up the planks out of the water: none of
+## it shows past the line, and it fades out over LACE_SHORE before it (fx_lace.gdshader).
+static func keep_wet(emitter: GeometryInstance3D, on_line: Vector3, toward_dry: Vector3) -> void:
+	var dry := toward_dry.normalized()
+	emitter.set_instance_shader_parameter(&"shore", Vector4(dry.x, dry.y, dry.z, dry.dot(on_line)))
 
 
 ## Billows [param size] across, lit [param lit] on their sunward bumps and
@@ -501,13 +524,25 @@ static func lace(drawn: float = 1.0) -> ImageTexture:
 			points.append((Vector2(column, row) + jitter) * cell)
 	var outline := _noise(rng)
 	var swell := _noise(rng)
+	var breaks := _noise(rng, LACE_BREAK)
+	var bends := [_noise(rng, LACE_BREAK), _noise(rng, LACE_BREAK)]
+	var join := minf(cell.x, cell.y)
 	var picture := Image.create_empty(size.x, size.y, false, Image.FORMAT_RGBA8)
 	for y in size.y:
 		for x in size.x:
 			var at := Vector2(x + 0.5, (y + 0.5) / drawn)
+			var uv := at / laid
+			at += (
+				Vector2(
+					_sample(bends[0], uv, LACE_BREAK) - 0.5, _sample(bends[1], uv, LACE_BREAK) - 0.5
+				)
+				* LACE_BEND
+				* 2.0
+			)
 			var home := Vector2i(floori(at.x / cell.x), floori(at.y / cell.y))
 			var nearest := INF
 			var next := INF
+			var third := INF
 			for row in range(-2, 3):
 				for column in range(-2, 3):
 					var over := home + Vector2i(column, row)
@@ -515,12 +550,19 @@ static func lace(drawn: float = 1.0) -> ImageTexture:
 					var shift := Vector2(over - wrapped) * cell
 					var gap := at.distance_to(points[wrapped.y * grid.x + wrapped.x] + shift)
 					if gap < nearest:
+						third = next
 						next = nearest
 						nearest = gap
 					elif gap < next:
+						third = next
 						next = gap
-			var uv := at / laid
+					elif gap < third:
+						third = gap
 			var thread := lerpf(LACE_THREAD.x, LACE_THREAD.y, _sample(swell, uv))
+			# Near a corner a third cell comes as near as the second: the thread is gone
+			# there, and wherever the finer noise breaks it.
+			thread *= smoothstep(LACE_JOIN.x * join, LACE_JOIN.y * join, third - next)
+			thread *= smoothstep(LACE_KEPT.x, LACE_KEPT.y, _sample(breaks, uv, LACE_BREAK))
 			# A thread runs where two cells meet: half their difference is how far off it.
 			var inside := thread - (next - nearest) * 0.5
 			picture.set_pixel(
@@ -591,23 +633,23 @@ static func _quad(size: Vector2, material: ShaderMaterial) -> QuadMesh:
 	return quad
 
 
-## A broad noise that tiles: LACE_NOISE cells a side of [param rng]'s values, 0…1.
-static func _noise(rng: RandomNumberGenerator) -> PackedFloat32Array:
+## A broad noise that tiles: [param cells] cells a side of [param rng]'s values, 0…1.
+static func _noise(rng: RandomNumberGenerator, cells: int = LACE_NOISE) -> PackedFloat32Array:
 	var values := PackedFloat32Array()
-	for index in LACE_NOISE * LACE_NOISE:
+	for index in cells * cells:
 		values.append(rng.randf())
 	return values
 
 
-## [param noise] (_noise) at [param uv], 0…1 either way, eased between its cells and
-## wrapping round.
-static func _sample(noise: PackedFloat32Array, uv: Vector2) -> float:
-	var at := uv * LACE_NOISE - Vector2(0.5, 0.5)
+## [param noise] (_noise, [param cells] a side) at [param uv], 0…1 either way, eased
+## between its cells and wrapping round.
+static func _sample(noise: PackedFloat32Array, uv: Vector2, cells: int = LACE_NOISE) -> float:
+	var at := uv * cells - Vector2(0.5, 0.5)
 	var corner := Vector2i(floori(at.x), floori(at.y))
 	var part := at - Vector2(corner)
 	part = part * part * (Vector2(3.0, 3.0) - part * 2.0)
 	var value := func(column: int, row: int) -> float:
-		return noise[posmod(row, LACE_NOISE) * LACE_NOISE + posmod(column, LACE_NOISE)]
+		return noise[posmod(row, cells) * cells + posmod(column, cells)]
 	var low := lerpf(value.call(corner.x, corner.y), value.call(corner.x + 1, corner.y), part.x)
 	var high := lerpf(
 		value.call(corner.x, corner.y + 1), value.call(corner.x + 1, corner.y + 1), part.x

@@ -243,7 +243,7 @@ func test_white_water_near_the_eye_stays_under_the_knees() -> void:
 					camera.global_position = eye
 					fx.clear()
 					fx.play(cues, pose.transform, camera)
-					foamed += _assert_hushed(fx, eye, pose.transform.basis.y.normalized())
+					foamed += _assert_hushed(fx, eye)
 	assert_gt(foamed, 0, "the sea at the feet still shows, as low foam")
 
 
@@ -525,6 +525,58 @@ func test_water_streaming_down_the_planks_runs_in_threads_along_its_flow() -> vo
 	assert_gt(across, along * 2, "a line across the flow crosses far more threads")
 
 
+func test_lace_is_broken_strands_of_foam_never_a_web_of_closed_cells() -> void:
+	for drawn: float in [1.0, FxAroundEye.RUNNEL_DRAWN]:
+		var sheet := FxGrains.lace(drawn).get_image()
+		var threads := _threads(sheet)
+		var gaps := _regions(threads, sheet.get_width(), 0)
+		assert_eq(gaps.size(), 1, "no thread closes a cell round any of the sheet (%s)" % drawn)
+		var strands := _regions(threads, sheet.get_width(), 1)
+		assert_gt(strands.size(), 10, "broken into many strands (%s)" % drawn)
+		var drawn_whole := 0
+		for strand in strands:
+			drawn_whole += strand
+		assert_lt(strands.max(), threads.size() / 32, "none of them a web (%s)" % drawn)
+		assert_lt(drawn_whole, threads.size() / 4, "sparse: mostly the water between (%s)" % drawn)
+
+
+func test_foam_at_the_feet_floats_on_the_water_s_side_of_the_waterline() -> void:
+	var fx: SinkingFx = add_child_autofree(SinkingFx.new())
+	var camera: Camera3D = add_child_autofree(Camera3D.new())
+	camera.global_position = Vector3(0.0, FirstPersonCamera.EYE_HEIGHT, 0.0)
+	# Heeled: the planks rise toward +z out of the sea, which crosses them at z = 1.
+	var ship := Transform3D(Basis(Vector3.RIGHT, deg_to_rad(-17.0)), Vector3(0.0, 0.0, 1.0))
+	var wash := FxCue.new(FxCue.Kind.WASH, 0, ship.inverse() * Vector3(-2.0, 0.0, 1.0))
+	wash.end = ship.inverse() * Vector3(2.0, 0.0, 1.0)
+	wash.toward = ship.basis.inverse() * Vector3.BACK
+	var cues: Array[FxCue] = [wash]
+	fx.clear()
+	fx.play(cues, ship, camera)
+	var foams := fx.emitters().filter(
+		func(emitter: CPUParticles3D) -> bool:
+			return emitter.emitting and emitter.name.begins_with("Foam")
+	)
+	assert_eq(foams.size(), 1, "foam at the feet")
+	var foam: CPUParticles3D = foams[0]
+	assert_almost_eq(foam.global_basis.y.normalized().dot(Vector3.UP), 1.0, EPSILON, "level")
+	assert_between(foam.global_position.y, 0.0, 0.02, "floating just over the sea")
+	var dry_edge := foam.global_position.z + foam.emission_box_extents.z
+	assert_lt(foam.global_position.z, 1.0, "laid the water's side of the line")
+	assert_lte(dry_edge, 1.0 + EPSILON, "none of it laid past it")
+	var shore: Vector4 = foam.get_instance_shader_parameter(&"shore")
+	assert_almost_eq(Vector3(shore.x, shore.y, shore.z), Vector3.BACK, Vector3.ONE * EPSILON)
+	assert_almost_eq(shore.w, 1.0, EPSILON, "and none of it shows past the line")
+
+
+func test_lace_kept_wet_shows_only_the_water_s_side_of_its_line() -> void:
+	var foam: CPUParticles3D = autofree(CPUParticles3D.new())
+	assert_eq(foam.get_instance_shader_parameter(&"shore"), null, "shown everywhere, unkept")
+	FxGrains.keep_wet(foam, Vector3(3.0, 0.0, 2.0), Vector3(0.0, 0.0, -4.0))
+	var shore: Vector4 = foam.get_instance_shader_parameter(&"shore")
+	assert_almost_eq(Vector3(shore.x, shore.y, shore.z), Vector3.FORWARD, Vector3.ONE * EPSILON)
+	assert_almost_eq(shore.w, -2.0, EPSILON, "the line, measured the way to the dry planks")
+
+
 func test_the_eye_s_effects_stop_when_cleared() -> void:
 	var around: FxAroundEye = add_child_autofree(FxAroundEye.new(FxGrains.streak()))
 	var camera: Camera3D = add_child_autofree(Camera3D.new())
@@ -662,11 +714,11 @@ func _platform_at(layout: ShipLayout, point: Vector3) -> ShipPlatform:
 	return null
 
 
-## Checks every emitter of [param fx] going as seen from [param eye], on a ship
-## whose up is [param planks]: no rising white water within HUSHED of it, foam lying
-## flat and faint on the planks, bursts near it under its knees, spray raining round
-## it in specks; how many emitters of foam it checked.
-func _assert_hushed(fx: SinkingFx, eye: Vector3, planks: Vector3) -> int:
+## Checks every emitter of [param fx] going as seen from [param eye]: no rising white
+## water within HUSHED of it, foam lying flat and faint on the water at the line,
+## bursts near it under its knees, spray raining round it in specks; how many emitters
+## of foam it checked.
+func _assert_hushed(fx: SinkingFx, eye: Vector3) -> int:
 	var foams := 0
 	for emitter: CPUParticles3D in fx.emitters():
 		if not emitter.emitting:
@@ -683,8 +735,8 @@ func _assert_hushed(fx: SinkingFx, eye: Vector3, planks: Vector3) -> int:
 			foams += 1
 			var lift := emitter.global_position.y / emitter.global_basis.y.y
 			assert_lte(lift + _climb(emitter), SinkingFx.KNEE + EPSILON, "foam lies low")
-			var flat := absf(emitter.global_basis.y.normalized().dot(planks))
-			assert_almost_eq(flat, 1.0, EPSILON, "flat on the planks")
+			var flat := absf(emitter.global_basis.y.normalized().dot(Vector3.UP))
+			assert_almost_eq(flat, 1.0, EPSILON, "flat on the water")
 			assert_lte(_opacity(emitter), SinkingFx.SPECK_ALPHA + EPSILON, "and see-through")
 		elif _thrown_up(emitter):
 			if near and _on_sea(emitter):
@@ -707,6 +759,35 @@ func _threads(sheet: Image) -> PackedByteArray:
 		for along in sheet.get_width():
 			threads.append(1 if sheet.get_pixel(along, down).a > 0.5 else 0)
 	return threads
+
+
+## The sizes of the regions of [param pixels] (_threads, [param width] a row) that are
+## [param value], four ways connected, wrapping round as the sheet tiles.
+func _regions(pixels: PackedByteArray, width: int, value: int) -> Array[int]:
+	var height := pixels.size() / width
+	var seen := PackedByteArray()
+	seen.resize(pixels.size())
+	var sizes: Array[int] = []
+	for start in pixels.size():
+		if seen[start] == 1 or pixels[start] != value:
+			continue
+		seen[start] = 1
+		var open: Array[int] = [start]
+		var size := 0
+		while not open.is_empty():
+			var at: int = open.pop_back()
+			size += 1
+			for step: Vector2i in [
+				Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)
+			]:
+				var next := (
+					posmod(at / width + step.y, height) * width + posmod(at % width + step.x, width)
+				)
+				if seen[next] == 0 and pixels[next] == value:
+					seen[next] = 1
+					open.append(next)
+		sizes.append(size)
+	return sizes
 
 
 ## Whether [param emitter] throws white water or air up: a burst, or the iceberg's.

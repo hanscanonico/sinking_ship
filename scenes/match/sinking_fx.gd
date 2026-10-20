@@ -4,7 +4,7 @@ extends Node3D
 ## snapshots and the pose into cues, and they play here where the ship is drawn
 ## (MatchView.ship_to_world), the sea being the world plane y = 0 (D7): white water
 ## where the sea meets and climbs the decks — streaks thrown up and downwind, lace
-## lying on the planks — splashes, air blown out of flooding rooms, billows of steam
+## floating at the line — splashes, air blown out of flooding rooms, billows of steam
 ## from the machinery and the funnel's smoke thickening, dust and splinters as a deck
 ## gives way and its bits raining on the decks round (DeckDebris), wreckage floating
 ## off (Flotsam), soaked planks drying (DeckWetness), the iceberg's strike (GashFx),
@@ -99,7 +99,7 @@ const WET_LIFT := 0.004
 const DROPLET := 0.22
 const WASH_DROPLET := 0.2
 const STREAK_ASPECT := 5.0
-const LACE := Vector2(0.5, 0.5)
+const LACE := Vector2(0.45, 0.45)
 const DUST_PUFF := 0.9
 const CLOUD_PUFF := 2.0
 ## A streak of dust sifting down, across and along: thin enough that, grown, it
@@ -110,8 +110,12 @@ const SMOKE_PUFF := 1.8
 const BUBBLE := 0.16
 const SPLINTER := Vector3(0.025, 0.025, 0.2)
 const CHUNK := Vector3(1.2, 0.1, 0.22)
-## How far foam rides over the planks.
+## How far foam rides over the planks; how far it floats over the sea at a
+## waterline; how broad a band it lies in on the water's side of the line, at least
+## and at most, either side of its middle, in metres.
 const FOAM_LIFT := 0.05
+const FOAM_FLOAT := 0.006
+const FOAM_BREADTH := Vector2(0.18, 0.4)
 ## The funnel's smoke, bent over in the plunge, is blown this much harder along the
 ## way it leaves the funnel.
 const BENT_WIND := 4.5
@@ -783,25 +787,28 @@ func _lay_wash(wash: CPUParticles3D, offer: Vector4, cues: Array[FxCue], ship: T
 
 
 ## Low foam along the share of a waterline [param offer] holds, near the eye: lace
-## lying flat on the planks, sliding up them the way the sea climbs — the broader and
-## faster the harder the sea climbs.
+## floating on the water in a band the water's side of the line, drifting to it the
+## way the sea climbs — the broader and faster the harder it climbs — and kept off the
+## dry planks past it (FxGrains.keep_wet).
 func _lay_foam(foam: CPUParticles3D, offer: Vector4, cues: Array[FxCue], ship: Transform3D) -> void:
 	var cue := cues[int(offer.x)]
 	var line := _line(offer, cues, ship)
 	var length := line[0].distance_to(line[1])
 	if length < SHORTEST:
 		return
-	var planks := ship.basis.y.normalized()
 	var along := (line[1] - line[0]) / length
-	var across := along.cross(planks).normalized()
+	var across := along.cross(Vector3.UP)
 	if across.dot(ship.basis * cue.toward) < 0.0:
 		along = -along
 		across = -across
-	var middle := (line[0] + line[1]) * 0.5 + planks * FOAM_LIFT
-	foam.global_transform = Transform3D(Basis(along, planks, across), middle)
-	foam.emission_box_extents = Vector3(length * 0.5, 0.01, 0.15 + cue.strength * 0.55)
-	foam.initial_velocity_min = 0.15
-	foam.initial_velocity_max = 0.3 + cue.strength * 0.6
+	var breadth := lerpf(FOAM_BREADTH.x, FOAM_BREADTH.y, cue.strength)
+	var on_line := (line[0] + line[1]) * 0.5
+	var middle := on_line + Vector3.UP * FOAM_FLOAT - across * breadth
+	foam.global_transform = Transform3D(Basis(along, Vector3.UP, across), middle)
+	foam.emission_box_extents = Vector3(length * 0.5, 0.0, breadth)
+	foam.initial_velocity_min = 0.05
+	foam.initial_velocity_max = 0.1 + cue.strength * 0.2
+	FxGrains.keep_wet(foam, on_line, across)
 	foam.emitting = true
 
 
