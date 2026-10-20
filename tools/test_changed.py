@@ -148,6 +148,12 @@ STRING_CONST = re.compile(
 )
 
 
+def posix(path: str) -> str:
+    """[path] normalised, with / between its parts on every platform: git and the
+    tables name files that way, and Windows would otherwise answer with backslashes."""
+    return os.path.normpath(path).replace(os.sep, "/")
+
+
 def is_test(path: str) -> bool:
     return (
         path.startswith(TEST_DIR)
@@ -207,7 +213,7 @@ class Tree:
                 continue
             dirs[:] = [d for d in dirs if not (rel == "." and d in SKIP_DIRS)]
             for name in names:
-                found.add(os.path.normpath(os.path.join(rel, name)))
+                found.add(posix(os.path.join(rel, name)))
         return found
 
     def _uids(self) -> dict[str, str]:
@@ -264,7 +270,7 @@ class Tree:
         if literal.startswith("res://"):
             path = literal[len("res://") :]
         else:
-            path = os.path.normpath(os.path.join(os.path.dirname(source), literal))
+            path = posix(os.path.join(os.path.dirname(source), literal))
         if not path.strip("/"):
             return  # res:// alone is a prefix test, not a load
         if FORMAT.search(path):
@@ -689,15 +695,16 @@ def main(argv: list[str]) -> int:
             return 1
         against = f"against {base} (merge-base {merge_base[:10]})"
     else:
-        changed = sorted({os.path.normpath(p).removeprefix("./") for p in changed})
+        changed = sorted({posix(p).removeprefix("./") for p in changed})
         against = "as given"
     selection = select(root, changed, merge_base)
     report(selection, changed, against)
     if out is not None:
+        # Read back line by line by bash: LF only, whatever the platform's own ending.
         if "all" in selection:
-            out.write_text("ALL\n")
+            out.write_text("ALL\n", newline="\n")
         else:
-            out.write_text("".join(f"{t}\n" for t in selection["tests"]))
+            out.write_text("".join(f"{t}\n" for t in selection["tests"]), newline="\n")
     return 0
 
 

@@ -76,6 +76,9 @@ def plan(count: int, scripts: list[str] | None = None) -> list[tuple[float, list
 
 
 def main(argv: list[str]) -> int:
+    # The list is read back line by line by bash: LF only, whatever the platform's
+    # own ending (Windows would write CRLF, and the engine then finds no such script).
+    sys.stdout.reconfigure(newline="\n")
     scripts = None
     if len(argv) >= 2 and argv[0] == "--from":
         scripts = read_list(Path(argv[1]))
