@@ -31,6 +31,8 @@ const UNDER_SECONDS := 0.15
 var _driver: SimDriver
 var _view: MatchView
 var _underwater: Underwater
+var _sim: MatchSim
+var _local_seat := -1
 var _schedule: SinkSchedule
 var _layout: ShipLayout
 var _step_height: float
@@ -88,6 +90,8 @@ func setup(
 	_driver = driver
 	_view = view
 	_underwater = underwater
+	_sim = sim
+	_local_seat = local_seat
 	_schedule = sim.schedule
 	_layout = sim.config.ship
 	_step_height = sim.config.rules.step_height
@@ -101,6 +105,17 @@ func setup(
 			bed.play()
 
 
+## Forgets what it has heard of the match so far — a replay sought elsewhere (D5): the
+## cues plan again from the snapshot, every voice silenced.
+func rewind() -> void:
+	if _planner == null:
+		return
+	var heard_through := _planner.listener_seat
+	_planner = CuePlanner.new(_sim.config, _sim.surfaces, _sim.schedule, _local_seat)
+	_planner.listener_seat = heard_through
+	_silence()
+
+
 ## Hears through [param seat]'s ears — its own sounds in the head — or through
 ## no seat's when it is -1 (the observer camera).
 func hear_through(seat: int) -> void:
@@ -112,7 +127,7 @@ func hear_through(seat: int) -> void:
 # camera was put this frame.
 func _process(delta: float) -> void:
 	var camera := get_viewport().get_camera_3d()
-	if _driver == null or _driver.client == null or camera == null:
+	if _driver == null or not _driver.started() or camera == null:
 		return
 	_listener.global_transform = camera.global_transform
 	# The sea is the world plane (D7), so the ears' height is their distance to it.

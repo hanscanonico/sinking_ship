@@ -136,6 +136,9 @@ func _ready() -> void:
 	_upcoming.aim(_menu.choices())
 	if not is_nan(_args.capture_sway):
 		_menu.hold_drift(_args.capture_sway)
+	if not _args.replay_path.is_empty():
+		_open_replay_path(_args.replay_path)
+		return
 	if _args.autoplay:
 		_play.call_deferred(_menu.choices())
 		return
@@ -203,7 +206,12 @@ func _unhandled_input(event: InputEvent) -> void:
 		and (event.is_action_pressed("pause") or event.is_action_pressed("ui_cancel"))
 	):
 		_set_paused(false)
-	elif not _pause.visible and event.is_action_pressed("pause") and not _match.is_over():
+	elif (
+		not _pause.visible
+		and event.is_action_pressed("pause")
+		and not _match.is_over()
+		and not _match.replaying()
+	):
 		_set_paused(true)
 	else:
 		return
@@ -272,11 +280,7 @@ func _on_baked(config: MatchConfig) -> void:
 ## Starts [param config]'s match, its sinking made.
 func _start(config: MatchConfig) -> void:
 	_baker.stop()
-	if _match == null:
-		_match = MATCH_SCENE.instantiate()
-		add_child(_match)
-		_match.rematch_requested.connect(_rematch)
-		_match.menu_requested.connect(_to_menu)
+	_ensure_match()
 	_menu.hide()
 	_music.play_match()
 	_set_paused(false)
@@ -316,6 +320,50 @@ func _start(config: MatchConfig) -> void:
 		_match.watch_from(_args.observer_side)
 	if observer and _args.observer_cells:
 		_match.show_cells()
+
+
+## The match scene, made the first time a match or a replay needs it.
+func _ensure_match() -> void:
+	if _match != null:
+		return
+	_match = MATCH_SCENE.instantiate()
+	add_child(_match)
+	_match.rematch_requested.connect(_rematch)
+	_match.menu_requested.connect(_to_menu)
+	_match.replay_closed.connect(_close_replay)
+
+
+## Opens the replay saved at [param path] (--replay); quits, the reason printed, when
+## nothing readable is there or it can no longer be played.
+func _open_replay_path(path: String) -> void:
+	var file := ReplayStore.new().load_file(path)
+	if file == null:
+		push_error("replay: %s is not a replay the game can read" % path)
+		get_tree().quit(1)
+		return
+	if not file.playable(_match_rules):
+		push_error(
+			"replay: %s cannot be played: its match data has changed, or it started mid-way" % path
+		)
+		get_tree().quit(1)
+		return
+	_start_replay(file)
+
+
+## Watches [param file] in the match scene (R4).
+func _start_replay(file: ReplayFile) -> void:
+	_baker.stop()
+	_ensure_match()
+	_menu.hide()
+	_pause.hide()
+	_music.play_match()
+	_match.set_paused(false)
+	_match.start_replay(file)
+
+
+## Back from a replay: to the menu.
+func _close_replay() -> void:
+	_to_menu()
 
 
 func _rematch() -> void:

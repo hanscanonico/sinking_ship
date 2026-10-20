@@ -6,3 +6,4 @@
 script = ExtResource("1_replay")
 keyframe_every = 60
 keep_newest = 20
+speeds = PackedFloat32Array(0.25, 0.5, 1.0, 2.0, 4.0, 8.0)

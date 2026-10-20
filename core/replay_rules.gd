@@ -13,6 +13,9 @@ const PATH := "res://data/match/replay.tres"
 ## How many saved replays are kept: the newest so many, the rest pruned as one is
 ## saved (ReplayRecorder).
 @export var keep_newest: int = 20
+## The speeds a replay is watched at, slowest first, as multiples of match time
+## (ReplayClock); the viewer starts at 1×.
+@export var speeds := PackedFloat32Array([0.25, 0.5, 1.0, 2.0, 4.0, 8.0])
 
 
 static func load_default() -> ReplayRules:

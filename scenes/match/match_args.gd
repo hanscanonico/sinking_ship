@@ -15,6 +15,7 @@ extends RefCounted
 ##   --capture-sway=S  --capture-wet=S
 ##   --quality=low|medium|high  --render-scale=F  --bake-budget=MS  --phys=H:MM:SS  --jump
 ##   --frame-split=S
+##   --replay=PATH
 ## --seed, --seats, --ship, --scenario, --hit, --fast and --goal are the match choices
 ## (MatchChoices), each one not given the match data's — --ship a ship of
 ## the Fleet, by name, played in her open-sea scenario, or in --scenario's, one of hers
@@ -54,7 +55,9 @@ extends RefCounted
 ## every seat on what is dry then (MatchJump) — rather than hours of brawl before it.
 ## --frame-split times where each frame goes (FrameProbe, make fps SPLIT=1) and prints
 ## the split of the frames drawn from the S-th second of the run on; without it nothing
-## is timed.
+## is timed. --replay opens the saved replay at PATH (a .replay the game wrote under
+## user://replays, or any path) in the replay viewer instead of the menu (R4), and quits
+## with the reason when it cannot be played.
 ## No menu reaches any of them (D14). --server serves
 ## rooms over WebSocket, headless, on --port and --bind (ServerRules' unless given),
 ## its matches' seeds drawn from --seed when given — its rooms' codes never are — until
@@ -133,6 +136,8 @@ var jump := false
 ## The seconds of the run --frame-split leaves out before keeping frames; -1 times
 ## nothing.
 var frame_split := -1.0
+## A saved replay to watch instead of playing (--replay, R4); "" to play.
+var replay_path: String = ""
 
 
 ## The seconds [param text] says: mm:ss, h:mm:ss or plain seconds.
@@ -211,6 +216,8 @@ static func parse(args: PackedStringArray) -> MatchArgs:
 				parsed.jump = true
 			"--frame-split":
 				parsed.frame_split = value.to_float()
+			"--replay":
+				parsed.replay_path = value
 			"--net-sim":
 				var conditions := NetConditions.parse(value)
 				if conditions == null:
