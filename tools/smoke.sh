@@ -8,7 +8,7 @@
 #   01 eyes_early     through seat 0's eyes 5 s in, before any water, wherever it starts
 #   02 flood_first    the observer from port, cells drawn, 4 s past the first "flooding"
 #   03 flood_last     the observer from port 4 s past the last "flooding"
-#   04 crate_afloat   eyes stood 8 m aft of the first crate afloat's starting point and
+#   04 crate_afloat   eyes stood 8 m aft of the first crate afloat's starting point, feet
 #                     2.5 m over its deck, looking at it, 2 s past "crate n afloat" (else
 #                     the first crate lost, 2 s before "crate n lost")
 #   05 seat_out       through the eyes of the first seat out, 1 s before it goes
