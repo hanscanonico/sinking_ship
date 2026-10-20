@@ -209,3 +209,55 @@ func test_a_cell_s_water_is_never_drawn_close_enough_to_fight_a_dry_floor() -> v
 	var reach := Vector2(0.0, 2.5)
 	assert_false(InnerWater.shows(InnerWater.CLEAR_OF_FLOOR * 0.5, reach))
 	assert_gte(SinkTimeline.FIRST_WATER, InnerWater.CLEAR_OF_FLOOR, "the first water clears it")
+
+
+## The strength the pours shown are drawn at, the strongest.
+func _strongest(water: InnerWater) -> float:
+	var most := -1.0
+	for child: Node in water.get_children():
+		var sheet := child as MeshInstance3D
+		if sheet == null or not sheet.visible:
+			continue
+		var material := sheet.material_override as ShaderMaterial
+		if material != null and material.shader == InnerWater.SPILL_SHADER:
+			most = maxf(most, material.get_shader_parameter(&"strength"))
+	return most
+
+
+func test_a_pour_is_as_strong_as_the_water_passing_it() -> void:
+	# The bake's flow through an opening, per metre of its width, where the pose has one
+	# (ShipPose.flows); the height the water falls where it has none.
+	var wet := _pose(true)
+	var water := _water()
+	water.show_water(wet, wet, 0.0)
+	assert_eq(_strongest(water), 1.0, "a door's height of water falling: a solid sheet")
+	var names: Array[StringName] = []
+	for opening: ShipOpening in _schedule.passages():
+		names.append(opening.name)
+	for share: float in [0.0, 0.5, 2.0]:
+		var flowing := _pose(true)
+		flowing.passages = names
+		flowing.flows.resize(names.size())
+		for at in names.size():
+			var opening := _schedule.passages()[at]
+			var wide := opening.size.z if opening.facing() == 0 else opening.size.x
+			if opening.facing() == 1:
+				wide = maxf(opening.size.x, opening.size.z)
+			flowing.flows[at] = share * InnerWater.FLOW_FULL * wide
+		var drawn := _water()
+		drawn.show_water(flowing, flowing, 0.0)
+		assert_almost_eq(
+			_strongest(drawn),
+			clampf(share, InnerWater.THINNEST, 1.0),
+			1e-6,
+			"%.1f of a full flow" % share
+		)
+
+
+func test_pour_strength_reads_the_flow_before_the_fall() -> void:
+	assert_eq(InnerWater.pour_strength(0.5, -1.0, 1.0), 0.5, "no flow: half a metre falling")
+	assert_eq(InnerWater.pour_strength(0.5, InnerWater.FLOW_FULL, 1.0), 1.0, "a full flow")
+	assert_eq(InnerWater.pour_strength(2.0, 0.0, 1.0), InnerWater.THINNEST, "nothing passing")
+	assert_almost_eq(
+		InnerWater.pour_strength(2.0, InnerWater.FLOW_FULL * 0.6, 2.0), 0.3, 1e-9, "per metre"
+	)

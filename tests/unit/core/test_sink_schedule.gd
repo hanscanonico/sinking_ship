@@ -340,3 +340,26 @@ func test_a_lurch_swings_on_the_paced_clock() -> void:
 			assert_ne(schedule.pose_at(ends).lurch, event.heel_deg, "over")
 			assert_eq(schedule.pose_at(tick).lurch, event.heel_deg)
 	assert_gt(lurches, 0, "the steep hit lurches her")
+
+
+func test_a_pose_has_the_flow_through_each_opening_once_she_is_holed() -> void:
+	# The timeline's flows, read between the states the tick falls between (SinkTimeline.
+	# flow), by the names of her openings; none before the hit.
+	var layout := SimFixtures.steamer()
+	var config := SimFixtures.config(2, load(SimFixtures.STEAMER_SINKING), SEED, layout)
+	var schedule := config.schedule()
+	var timeline := schedule.timeline()
+	var hit := schedule.hit_tick()
+	assert_true(schedule.pose_at(hit).flows.is_empty(), "nothing flows before the hit")
+	var tick := hit + Ticks.from_seconds(120.0)
+	var pose := schedule.pose_at(tick)
+	assert_eq(pose.passages, timeline.passages, "her openings, by name")
+	assert_eq(pose.flows.size(), timeline.passages.size())
+	var seconds := schedule.physics_at(tick)
+	var frame := timeline.frame_at(seconds)
+	var next := mini(frame + 1, timeline.count() - 1)
+	var flowing := 0
+	for passage in pose.flows.size():
+		assert_eq(pose.flows[passage], timeline.flow(frame, next, passage), "as the timeline")
+		flowing += 1 if pose.flows[passage] > 0.0 else 0
+	assert_gt(flowing, 0, "water passing her openings two minutes on")

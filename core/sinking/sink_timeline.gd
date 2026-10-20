@@ -6,9 +6,10 @@ extends RefCounted
 ## SH33 the two or three she broke into) where the sea stands up it and its attitude, then
 ## the head of every leaf's every cell's water, the pressure of every cell's pocket and what
 ## lights every cell — a leaf's numbers before it broke away being those of the piece it was
-## part of then — and every event at its exact second, a lurch and a funnel's fall with
-## their warnings, each the piece's it happened to; where along her each piece runs, what
-## it broke from and when; and the worst her bending came to. Kept
+## part of then — and how fast water passed each opening getting there; and every event
+## at its exact second, a lurch and a funnel's fall with their warnings, each the piece's
+## it happened to; where along her each piece runs, what it broke from and when; and the
+## worst her bending came to. Kept
 ## compact: a state its neighbours, read between (blend, pocket), reproduce within
 ## keep_level of water, keep_turn_deg of attitude and keep_air of a pocket's pressure
 ## (SeaPhysics, est.) is dropped, but never one an event happens at. What stays
@@ -67,14 +68,15 @@ const MAIN_DECK := 0.0
 ## many equal shares of the most water she ever holds.
 const SUNK_STEPS := 40
 ## The integers it is held as: microseconds, millimetres, millionths of a quaternion's
-## component, millionths of a degree. A page holds PAGE_STATES states. FORMAT changes
-## with the bytes' layout; a section unpacks to no more than MOST_BYTES.
+## component, millionths of a degree, hundredths of m³ a second. A page holds PAGE_STATES
+## states. FORMAT changes with the bytes' layout; a section unpacks to no more than MOST_BYTES.
 const PER_SECOND := 1e6
 const PER_METRE := 1e3
 const PER_UNIT := 1e6
 const PER_DEGREE := 1e6
+const PER_FLOW := 1e2
 const PAGE_STATES := 256
-const FORMAT := 6
+const FORMAT := 7
 const MOST_BYTES := 1 << 24
 const COMPRESSION := FileAccess.COMPRESSION_ZSTD
 ## How the four quaternion components and a state's other numbers lie in a page: per
@@ -139,6 +141,11 @@ var heads := PackedFloat64Array()
 var pockets := PackedFloat64Array()
 ## Per state kept, as heads are, what lights each cell (ShipPower.Power).
 var lits := PackedByteArray()
+## The openings the whole ship's stepper moves water through, by name, in its order; and
+## per state kept, per one, the m³ a second that passed it either way since the state kept
+## before (flow, SinkBake.passed): presentation reads it (ShipPose.flows), never the match.
+var passages: Array[StringName] = []
+var flows := PackedFloat64Array()
 ## In the order they happen.
 var events: Array[Event] = []
 ## The worst her bending came to, as a share of her strength — positive hogging,
@@ -165,7 +172,7 @@ var origin := PackedInt64Array()
 ## Per state kept, per leaf, its rotation as a unit quaternion, w x y z.
 var _quaternions := PackedFloat64Array()
 ## The integers: per state its microsecond, per leaf millimetres of sea and its
-## quaternion, then every cell's heads, pockets and lights.
+## quaternion, then every cell's heads, pockets and lights, then every passage's flow.
 var _held := PackedInt64Array()
 var _length := 0.0
 var _total := 0
@@ -216,11 +223,23 @@ static func made(bake: SinkBake, level: float, turn_deg: float, air: float) -> S
 		event.along = Vector2(
 			roundi(event.along.x * PER_UNIT) / PER_UNIT, roundi(event.along.y * PER_UNIT) / PER_UNIT
 		)
+	timeline.passages = bake.passages.duplicate()
 	var held := _held_states(bake)
 	var kept := _kept(bake, held, timeline.events, level, turn_deg, air)
-	var width := timeline._width()
-	for state: int in kept:
+	var width := timeline._width() - timeline.passages.size()
+	var times := bake.times()
+	var count_of := timeline.passages.size()
+	for at in kept.size():
+		var state := kept[at]
 		timeline._held.append_array(held.slice(state * width, state * width + width))
+		# Each passage's flow, on average since the state kept before.
+		var from := kept[maxi(at - 1, 0)]
+		var span := times[state] - times[from]
+		for passage in count_of:
+			var volume := 0.0
+			for step in range(from + 1, state + 1):
+				volume += bake.passed[step * count_of + passage]
+			timeline._held.append(roundi(volume / span * PER_FLOW) if span > 0.0 else 0)
 	timeline._total = kept.size()
 	timeline._length = _seconds_of(held[(held.size() / width - 1) * width])
 	timeline._decode(0)
@@ -288,6 +307,8 @@ static func opened(header: PackedByteArray) -> SinkTimeline:
 		return null
 	for _value in reader.count():
 		timeline.origin.append(reader.integer())
+	for _passage in reader.count():
+		timeline.passages.append(StringName(reader.text()))
 	var names: Array[StringName] = []
 	for _name in reader.count():
 		names.append(StringName(reader.text()))
@@ -409,6 +430,15 @@ func lit(frame: int, cell: int) -> int:
 ## it between states.
 func pocket(frame: int, next: int, weight: float, cell: int) -> float:
 	return _pocket_between(pockets[frame * cells + cell], pockets[next * cells + cell], weight)
+
+
+## The m³ a second passing passage [param passage] either way from kept state
+## [param frame] to [param next]: the stretch's average, the one way of reading it.
+func flow(frame: int, next: int, passage: int) -> float:
+	var count_of := passages.size()
+	if count_of == 0:
+		return 0.0
+	return flows[maxi(frame, next) * count_of + passage]
 
 
 ## Leaf [param leaf]'s rotation [param weight] of the way from kept state [param frame]
@@ -551,7 +581,7 @@ func add_page(bytes: PackedByteArray) -> bool:
 
 
 func _width() -> int:
-	return 1 + leaves.size() * POSE + cells * 3
+	return 1 + leaves.size() * POSE + cells * 3 + passages.size()
 
 
 ## Fills the readable numbers from the integers, from state [param from] on.
@@ -576,6 +606,8 @@ func _decode(from: int) -> void:
 			pockets.append(_held[at + first_cell + cells + cell] / PER_METRE)
 		for cell in cells:
 			lits.append(_held[at + first_cell + cells * 2 + cell])
+		for passage in passages.size():
+			flows.append(_held[at + first_cell + cells * 3 + passage] / PER_FLOW)
 
 
 func _header_bytes(pages: Array[PackedByteArray]) -> PackedByteArray:
@@ -605,6 +637,9 @@ func _header_bytes(pages: Array[PackedByteArray]) -> PackedByteArray:
 	writer.integer(origin.size())
 	for value: int in origin:
 		writer.integer(value)
+	writer.integer(passages.size())
+	for named: StringName in passages:
+		writer.text(String(named))
 	var names: Array[StringName] = []
 	for event: Event in events:
 		if not event.name in names:

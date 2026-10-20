@@ -234,6 +234,8 @@ func test_bytes_round_trip_exactly() -> void:
 		assert_eq(back.rotations, made.rotations)
 		assert_eq(back.heads, made.heads)
 		assert_eq(back.origin, made.origin)
+		assert_eq(back.passages, made.passages, "the openings it keeps flows for")
+		assert_eq(back.flows, made.flows, "the water through each")
 		assert_eq(back.sunk, made.sunk, "her flooding, as the clock paces it")
 		assert_eq(
 			[back.end, back.gone_at, back.rest, back.steps, back.length()],
@@ -314,3 +316,34 @@ func test_her_flooding_is_recorded_as_she_takes_it() -> void:
 		if state > 0:
 			assert_lt(held[state - 1], most * share - 1e-6, "and the state before does not")
 	assert_lte(timeline.sunk[SinkTimeline.SUNK_STEPS - 1], timeline.gone_at, "full as she goes")
+
+
+func test_its_flows_keep_the_water_each_opening_passed() -> void:
+	# Per opening the stepper sweeps, by name, how fast water passed it on average over
+	# each kept stretch: over the stretches together, what the bake found passing it in
+	# every step, to the hundredth of a m³ a second each stretch is kept to.
+	var bake := _bake(FAST_HIT)
+	var timeline := bake.timeline()
+	var stepper := SinkStepper.new(
+		_structure, HitMapper.map_explicit(load(FAST_HIT), _structure, _scenario.hit), _sea
+	)
+	assert_eq(timeline.passages, stepper.opening_names(), "the stepper's openings, in order")
+	var count_of := timeline.passages.size()
+	assert_eq(timeline.flows.size(), timeline.count() * count_of)
+	var states := bake.times().size()
+	var poured := 0
+	for passage in count_of:
+		var truth := 0.0
+		for state in states:
+			truth += bake.passed[state * count_of + passage]
+		var kept := 0.0
+		for frame in range(1, timeline.count()):
+			var span := timeline.times[frame] - timeline.times[frame - 1]
+			var flow := timeline.flow(frame - 1, frame, passage)
+			assert_gte(flow, 0.0, "either way, a rate")
+			kept += flow * span
+		var slack := 0.5 / SinkTimeline.PER_FLOW * timeline.length() + 1e-6
+		assert_almost_eq(kept, truth, slack, "%s: its water" % timeline.passages[passage])
+		poured += 1 if truth > 1.0 else 0
+	assert_gt(poured, 1, "water through more than one opening")
+	assert_eq(timeline.flow(0, 0, 0), 0.0, "none before the first state")

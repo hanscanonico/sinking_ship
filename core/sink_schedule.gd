@@ -447,6 +447,11 @@ func _physical(tick: int) -> ShipPose:
 		for piece in _structures.size():
 			var own := pose if piece == 0 else _piece_pose(piece, frame, next, weight, seconds)
 			pose.pieces.append(own)
+	if tick > _hit_tick and not _timeline.passages.is_empty():
+		pose.passages = _timeline.passages
+		pose.flows.resize(_timeline.passages.size())
+		for passage in pose.flows.size():
+			pose.flows[passage] = _timeline.flow(frame, next, passage)
 	for failed in _failed_ticks.size():
 		if _failed_ticks[failed] > tick:
 			break

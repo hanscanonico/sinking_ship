@@ -56,10 +56,19 @@ var _lits := PackedByteArray()
 ## counted once (SinkTimeline.sunk). Read, never written, outside the bake: a field, not
 ## an accessor, as the bake holds the lint's most public methods already.
 var water_held := PackedFloat64Array()
+## The openings the whole ship's stepper moves water through, in its order, by name; and
+## per state, per one of them, the m³ that passed it in the step that led there, either
+## way — every piece's own opening of that name together, once she broke (FloodState.moved;
+## SinkTimeline.flows). A field, as water_held is.
+var passages: Array[StringName] = []
+var passed := PackedFloat64Array()
 ## The same per piece of her that never broke (leaves), once the bake is over and she
 ## broke: made from the above, each state's numbers for a piece being those of the piece
 ## it was part of then.
 var _leafed: Array = []
+## Per piece, worked out once, where each of its openings is in passages — -1 for one the
+## whole ship has not, a wall torn at a break.
+var _passage_of: Array[PackedInt32Array] = []
 var _timeline: SinkTimeline
 
 
@@ -75,6 +84,7 @@ func _init(stepper: SinkStepper, sea: SeaPhysics, cap: float, breaking: HullBrea
 		more.fill(INF)
 	var whole := BakePiece.new(stepper, sea, stepper.start(), 0, more)
 	_pieces.append(whole)
+	passages = stepper.opening_names().duplicate()
 	var ends := breaking.ends() if breaking != null else Vector2.ZERO
 	_spans.append_array([ends.x, ends.y])
 	_parents.append(-1)
@@ -257,7 +267,7 @@ func _take() -> void:
 		if piece.follow(nexts[at], nexts[at].seconds - piece.state.seconds):
 			piece.close()
 	_seconds = nexts[0].seconds
-	_keep()
+	_keep(stepping)
 	if _breaking != null:
 		_break()
 	var going := false
@@ -417,8 +427,23 @@ func _more(index: int, at: FloodState) -> PackedFloat64Array:
 	return _breaking.gaps(_pieces[index], span, at, _alive.size())
 
 
-func _keep() -> void:
+## Keeps the state every piece stands at now, what passed each opening in the step the
+## pieces [param stepping] took to it — none, for the first.
+func _keep(stepping := PackedInt32Array()) -> void:
 	_times.append(_seconds)
+	var at := passed.size()
+	passed.resize(at + passages.size())
+	for index: int in stepping:
+		var piece := _pieces[index]
+		while _passage_of.size() <= index:
+			var found := PackedInt32Array()
+			for named: StringName in _pieces[_passage_of.size()].stepper.opening_names():
+				found.append(passages.find(named))
+			_passage_of.append(found)
+		var whole := _passage_of[index]
+		for opening in whole.size():
+			if whole[opening] != -1:
+				passed[at + whole[opening]] += absf(piece.state.moved[opening])
 	_alive_of.append(_alive)
 	var held := 0.0
 	for index: int in _alive:
