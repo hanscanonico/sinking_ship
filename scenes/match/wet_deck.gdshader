@@ -21,9 +21,15 @@ uniform float grain = 2.2;
 uniform float ragged = 0.35;
 // The share of its distance from the eye the veil is drawn nearer it.
 uniform float pull = 0.0006;
-// The sky standing water catches at a grazing look, and how much of it at most.
+// The sky standing water catches at a grazing look, how much of it at most, and how
+// fast it fades as the look steepens: a soft falloff, so a seat's eye 1.6 m over the
+// deck sees it on water a few metres off, not only at the horizon. It is drawn
+// sheen_glow times brighter than its colour, so it stays sky through the tonemap
+// rather than greying the planks.
 uniform vec4 sheen_colour : source_color = vec4(0.55, 0.62, 0.7, 1.0);
-uniform float sheen = 0.35;
+uniform float sheen = 0.5;
+uniform float falloff = 2.0;
+uniform float sheen_glow = 5.0;
 
 varying vec3 world;
 varying vec2 deck;
@@ -63,8 +69,8 @@ void fragment() {
 	float veil = wet * soaked;
 	// Standing water only: zero below 0.7, so a merely wet deck is today's veil.
 	float facing = abs(dot(normalize(-VERTEX), NORMAL));
-	float glint = pow(1.0 - facing, 5.0) * sheen * smoothstep(0.7, 0.9, wet);
+	float glint = pow(1.0 - facing, falloff) * sheen * smoothstep(0.7, 0.9, wet);
 	ALPHA = max(veil, glint);
 	// The black veil and the sheen share one draw: the sheen's share of the alpha.
-	ALBEDO = sheen_colour.rgb * (glint / ALPHA);
+	ALBEDO = sheen_colour.rgb * sheen_glow * (glint / ALPHA);
 }
