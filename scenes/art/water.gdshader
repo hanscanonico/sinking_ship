@@ -38,8 +38,8 @@ uniform float graze_begin = 0.12;
 uniform float graze_end = 0.3;
 // How far the Fresnel term closes the surface where the murk grades, from 0, not at all,
 // to 1, hiding what lies under it entirely at a graze; full by graze_depth metres down.
-uniform float graze_closing = 0.8;
-uniform float graze_depth = 0.6;
+uniform float graze_closing = 0.45;
+uniform float graze_depth = 0.8;
 // Metres below the surface that foam: a solid edge, then lace a little deeper.
 uniform float foam_depth = 0.035;
 uniform float lace_depth = 0.2;
