@@ -243,7 +243,7 @@ func test_white_water_near_the_eye_stays_under_the_knees() -> void:
 					camera.global_position = eye
 					fx.clear()
 					fx.play(cues, pose.transform, camera)
-					foamed += _assert_hushed(fx, eye, pose.transform.basis.y.normalized())
+					foamed += _assert_hushed(fx, eye)
 	assert_gt(foamed, 0, "the sea at the feet still shows, as low foam")
 
 
@@ -540,27 +540,41 @@ func test_lace_is_broken_strands_of_foam_never_a_web_of_closed_cells() -> void:
 		assert_lt(drawn_whole, threads.size() / 4, "sparse: mostly the water between (%s)" % drawn)
 
 
-func test_foam_at_the_feet_lies_on_the_wet_side_of_the_waterline() -> void:
+func test_foam_at_the_feet_floats_on_the_water_s_side_of_the_waterline() -> void:
 	var fx: SinkingFx = add_child_autofree(SinkingFx.new())
 	var camera: Camera3D = add_child_autofree(Camera3D.new())
 	camera.global_position = Vector3(0.0, FirstPersonCamera.EYE_HEIGHT, 0.0)
-	var wash := FxCue.new(FxCue.Kind.WASH, 0, Vector3(-2.0, 0.0, 1.0))
-	wash.end = Vector3(2.0, 0.0, 1.0)
-	# The sea climbs the deck toward +z: the dry planks lie that way.
-	wash.toward = Vector3.BACK
+	# Heeled: the planks rise toward +z out of the sea, which crosses them at z = 1.
+	var ship := Transform3D(Basis(Vector3.RIGHT, deg_to_rad(-17.0)), Vector3(0.0, 0.0, 1.0))
+	var wash := FxCue.new(FxCue.Kind.WASH, 0, ship.inverse() * Vector3(-2.0, 0.0, 1.0))
+	wash.end = ship.inverse() * Vector3(2.0, 0.0, 1.0)
+	wash.toward = ship.basis.inverse() * Vector3.BACK
 	var cues: Array[FxCue] = [wash]
-	var foams := _played(fx, cues, camera).filter(
-		func(emitter: CPUParticles3D) -> bool: return emitter.name.begins_with("Foam")
+	fx.clear()
+	fx.play(cues, ship, camera)
+	var foams := fx.emitters().filter(
+		func(emitter: CPUParticles3D) -> bool:
+			return emitter.emitting and emitter.name.begins_with("Foam")
 	)
 	assert_eq(foams.size(), 1, "foam at the feet")
 	var foam: CPUParticles3D = foams[0]
+	assert_almost_eq(foam.global_basis.y.normalized().dot(Vector3.UP), 1.0, EPSILON, "level")
+	assert_between(foam.global_position.y, 0.0, 0.02, "floating just over the sea")
 	var dry_edge := foam.global_position.z + foam.emission_box_extents.z
-	assert_lt(foam.global_position.z, 1.0, "laid on the wet side")
-	assert_lte(dry_edge, 1.0 + EPSILON, "none of it laid up the dry planks")
-	var material := foam.mesh.surface_get_material(0) as ShaderMaterial
-	var reach: float = material.get_shader_parameter(&"wet_reach")
-	assert_gt(reach, 0.0, "shown only near the sea plane")
-	assert_lte(reach, SinkingFx.FOAM_LIFT + EPSILON, "no higher over it than it rides")
+	assert_lt(foam.global_position.z, 1.0, "laid the water's side of the line")
+	assert_lte(dry_edge, 1.0 + EPSILON, "none of it laid past it")
+	var shore: Vector4 = foam.get_instance_shader_parameter(&"shore")
+	assert_almost_eq(Vector3(shore.x, shore.y, shore.z), Vector3.BACK, Vector3.ONE * EPSILON)
+	assert_almost_eq(shore.w, 1.0, EPSILON, "and none of it shows past the line")
+
+
+func test_lace_kept_wet_shows_only_the_water_s_side_of_its_line() -> void:
+	var foam: CPUParticles3D = autofree(CPUParticles3D.new())
+	assert_eq(foam.get_instance_shader_parameter(&"shore"), null, "shown everywhere, unkept")
+	FxGrains.keep_wet(foam, Vector3(3.0, 0.0, 2.0), Vector3(0.0, 0.0, -4.0))
+	var shore: Vector4 = foam.get_instance_shader_parameter(&"shore")
+	assert_almost_eq(Vector3(shore.x, shore.y, shore.z), Vector3.FORWARD, Vector3.ONE * EPSILON)
+	assert_almost_eq(shore.w, -2.0, EPSILON, "the line, measured the way to the dry planks")
 
 
 func test_the_eye_s_effects_stop_when_cleared() -> void:
@@ -700,11 +714,11 @@ func _platform_at(layout: ShipLayout, point: Vector3) -> ShipPlatform:
 	return null
 
 
-## Checks every emitter of [param fx] going as seen from [param eye], on a ship
-## whose up is [param planks]: no rising white water within HUSHED of it, foam lying
-## flat and faint on the planks, bursts near it under its knees, spray raining round
-## it in specks; how many emitters of foam it checked.
-func _assert_hushed(fx: SinkingFx, eye: Vector3, planks: Vector3) -> int:
+## Checks every emitter of [param fx] going as seen from [param eye]: no rising white
+## water within HUSHED of it, foam lying flat and faint on the water at the line,
+## bursts near it under its knees, spray raining round it in specks; how many emitters
+## of foam it checked.
+func _assert_hushed(fx: SinkingFx, eye: Vector3) -> int:
 	var foams := 0
 	for emitter: CPUParticles3D in fx.emitters():
 		if not emitter.emitting:
@@ -721,8 +735,8 @@ func _assert_hushed(fx: SinkingFx, eye: Vector3, planks: Vector3) -> int:
 			foams += 1
 			var lift := emitter.global_position.y / emitter.global_basis.y.y
 			assert_lte(lift + _climb(emitter), SinkingFx.KNEE + EPSILON, "foam lies low")
-			var flat := absf(emitter.global_basis.y.normalized().dot(planks))
-			assert_almost_eq(flat, 1.0, EPSILON, "flat on the planks")
+			var flat := absf(emitter.global_basis.y.normalized().dot(Vector3.UP))
+			assert_almost_eq(flat, 1.0, EPSILON, "flat on the water")
 			assert_lte(_opacity(emitter), SinkingFx.SPECK_ALPHA + EPSILON, "and see-through")
 		elif _thrown_up(emitter):
 			if near and _on_sea(emitter):

@@ -5,8 +5,9 @@
 // broad noise lets it, so no two patches are the same and overlapping ones run
 // together into a band. Its threads are soft, never wire: they fade in over soft of
 // the picture's field, and the whole grain fades out over the end of its life as its
-// threads wear thin. Foam laid at a waterline (wet_reach over 0) shows only within
-// wet_reach of the sea plane, so none of it lies up the dry planks.
+// threads wear thin. Foam kept off the planks (FxGrains.keep_wet) shows only on the
+// water's side of its waterline, fading out over shore_fade before it, so none of it
+// lies up the dry planks.
 shader_type spatial;
 render_mode unshaded, blend_mix, depth_draw_opaque, cull_disabled;
 
@@ -21,22 +22,27 @@ uniform float ragged = 0.55;
 uniform float worn = 0.12;
 // How far either side of a thread's edge, in the picture's field, it fades in.
 uniform float soft = 0.08;
-// How far over or under the sea plane, in metres, foam at a waterline still shows;
-// 0 or less: wherever it lies.
-uniform float wet_reach = 0.0;
+// The waterline this emitter's foam stays the water's side of: the way up the planks
+// out of the water, in the world, and how far along it the line lies — none (0) for
+// foam that shows wherever it lies; how far before the line, in metres, it fades out.
+instance uniform vec4 shore = vec4(0.0);
+uniform float shore_fade = 0.06;
 
 // How far through its life the grain is, 0…1.
 varying float age;
 // Where on the sheet this grain's piece lies, and how worn its threads are, 0…1.
 varying vec2 corner;
 varying float wear;
+// Where the part of the grain drawn here lies in the world.
+varying vec3 world;
 
 float hash(float n) {
 	return fract(sin(n) * 43758.5453);
 }
 
 void vertex() {
-	height = (MODEL_MATRIX * vec4(VERTEX, 1.0)).y;
+	world = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
+	height = world.y;
 	age = INSTANCE_CUSTOM.y;
 	// Its slot, and the turn it took this life: a new piece each time it comes back.
 	float which = float(INSTANCE_ID) * 1.618 + INSTANCE_CUSTOM.x * 7.31;
@@ -58,9 +64,9 @@ void fragment() {
 	edge += 0.55 * smoothstep(0.8, 1.0, max(abs(off.x), abs(off.y)));
 	float blur = max(soft, fwidth(sheet.a) * 0.75);
 	float cover = smoothstep(edge - blur, edge + blur, sheet.a);
-	cover *= 1.0 - smoothstep(0.35, 1.0, age);
-	if (wet_reach > 0.0) {
-		cover *= 1.0 - smoothstep(wet_reach * 0.5, wet_reach, abs(height));
+	cover *= 1.0 - smoothstep(0.5, 1.0, age);
+	if (dot(shore.xyz, shore.xyz) > 0.0) {
+		cover *= 1.0 - smoothstep(-shore_fade, 0.0, dot(world, shore.xyz) - shore.w);
 	}
 	ALBEDO = COLOR.rgb * glow;
 	ALPHA = COLOR.a * cover * near_fade(VERTEX);

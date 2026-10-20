@@ -35,8 +35,10 @@ const LACE_JOIN := Vector2(0.06, 0.24)
 const LACE_BREAK := 9
 const LACE_KEPT := Vector2(0.25, 0.55)
 const LACE_BEND := 1.6
-## How many metres of foam the whole sheet of lace spans, either way, on the planks.
+## How many metres of foam the whole sheet of lace spans, either way, on the planks;
+## how many before a waterline it is kept off (keep_wet) it fades out over.
 const LACE_SHEET := 1.0
+const LACE_SHORE := 0.06
 ## A billow: bumps heaped on a broad foot, as blobs — the middle (x, y) and radius
 ## (z), in pixels — on a picture of BILLOW_SIZE pixels.
 const BILLOW_SIZE := Vector2i(32, 32)
@@ -50,7 +52,7 @@ const BILLOW_BLOBS: Array[Vector3] = [
 	Vector3(6.5, 25.0, 4.8),
 ]
 ## How much a grain of white water grows over its life; how much of its first size a
-## patch of foam on the planks keeps by its end, broken up and shrinking away; how
+## patch of foam keeps by its end, broken up and shrinking away; how
 ## far foam strays off its way across the planks, in degrees.
 const WATER_GROWN := 1.2
 const FLECK_GROWN := 0.55
@@ -84,7 +86,7 @@ const CLEAR := 6.0
 const STEAM_CLEAR := 9.0
 const SPECK_CLEAR := 2.0
 ## White water drawn this much brighter than its colour, so it stays
-## white through the tonemap as the sea's foam does; foam lying on the planks, in
+## white through the tonemap as the sea's foam does; lace foam, in
 ## their light and shade, far less — pale threads, never a white wire; bubbles
 ## breaking on the sea, as its foam.
 const WHITE_GLOW := 3.2
@@ -96,11 +98,11 @@ const BUBBLE_GLOW := 2.4
 ## Grit blown off a falling deck a little brighter than its colour, so its warm tan
 ## holds against the dusk.
 const GRIT_GLOW := 1.4
-## How opaque foam on the planks is, and water streaming down them: see-through
+## How opaque foam at a waterline is, and water streaming down the planks: see-through
 ## enough that the patches overlapping run together into one faint band, and a runnel
 ## a wet streak, not a white worm; foam on the sea a little more, to stand out on it
 ## from the deck.
-const FOAM_OPACITY := 0.3
+const FOAM_OPACITY := 0.5
 const RUNNEL_OPACITY := 0.18
 const FROTH_OPACITY := 0.45
 ## How opaque the funnel's smoke is: dark, darker than the sky behind it.
@@ -175,7 +177,7 @@ static func mist(emitter: CPUParticles3D) -> void:
 	emitter.color_ramp = held(Color(Color.WHITE, MIST_OPACITY))
 
 
-## Foam: patches of lace sliding over the planks along the emitter's z, lying in
+## Foam: patches of lace drifting along the emitter's z, lying in
 ## its plane, turned every way.
 static func foam(emitter: CPUParticles3D) -> void:
 	emitter.lifetime = 1.6
@@ -388,17 +390,22 @@ static func streaks(
 
 ## Lace foam lying flat in its emitter's x–z plane, [param size] along x and z, each
 ## grain its own piece of the sheet [param picture] (lace()), as much of it as
-## [param sheet] metres of it hold; laid at a waterline, shown only within
-## [param wet_reach] metres of the sea plane (fx_lace.gdshader), if that is over 0.
-static func laces(
-	size: Vector2, picture: Texture2D, sheet: float = LACE_SHEET, wet_reach: float = 0.0
-) -> QuadMesh:
+## [param sheet] metres of it hold.
+static func laces(size: Vector2, picture: Texture2D, sheet: float = LACE_SHEET) -> QuadMesh:
 	var material := _material(LACE_SHADER, picture, SPECK_CLEAR, LACE_GLOW)
 	material.set_shader_parameter(&"window", size / sheet)
-	material.set_shader_parameter(&"wet_reach", wet_reach)
+	material.set_shader_parameter(&"shore_fade", LACE_SHORE)
 	var quad := _quad(size, material)
 	quad.orientation = PlaneMesh.FACE_Y
 	return quad
+
+
+## Keeps the lace [param emitter] lays (laces()) on the wet side of a waterline through
+## [param on_line], [param toward_dry] the way up the planks out of the water: none of
+## it shows past the line, and it fades out over LACE_SHORE before it (fx_lace.gdshader).
+static func keep_wet(emitter: GeometryInstance3D, on_line: Vector3, toward_dry: Vector3) -> void:
+	var dry := toward_dry.normalized()
+	emitter.set_instance_shader_parameter(&"shore", Vector4(dry.x, dry.y, dry.z, dry.dot(on_line)))
 
 
 ## Billows [param size] across, lit [param lit] on their sunward bumps and
