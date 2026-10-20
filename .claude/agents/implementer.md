@@ -17,7 +17,16 @@ Setup, exactly:
 2. `git -C /Users/hanscanonico/Projets/sinking_ship worktree add /Users/hanscanonico/Projets/sinking_ship-worktrees/improve-<slug> -b improve/<slug> origin/main`
 3. `cd` into that worktree.
 4. `make import` — a fresh worktree needs the one-off headless import; skipping it looks
-   like broken code, not a cold cache.
+   like broken code, not a cold cache. Never run the engine from the main checkout: its
+   class cache goes stale (captures drew no hull).
+5. `git status --porcelain` after the import, and again before each commit: an untracked
+   `.uid` next to a new script, shader or test is committed with that file — a new file
+   without its `.uid` is a follow-up PR waiting to happen, and the reviewer rejects it.
+6. For a visual change, take the **before** capture now, before any edit (see Captures).
+
+The brief may say the task BUILDS ON earlier slices: then step 2 branches from the branch
+it names instead of `origin/main`, exactly as the brief spells out; the PR still targets
+main, and the orchestrator updates it after those slices merge.
 
 Second attempt: the brief may say a first attempt already exists — a worktree, a branch,
 maybe a PR — with a red gate or a review rejection and its reasons. Then skip steps 1–2
@@ -37,6 +46,48 @@ visual change, capture the affected scene and read the frame as an image once th
 a capture target; until then, say in the PR that the change was not seen running. A
 shared, loaded machine makes gates slow; slowness is not failure.
 
+Report the gate as `local_gate`, exactly one of:
+- `completed` — `make verify-changed` (and any area gate) ran to its end in your worktree
+  and passed. Only a run you saw end, on the head you pushed, is completed.
+- `failed` — it ran to its end and something was red that you could not fix.
+- `timed_out` — it had not ended when you reported (test slots held by other sessions, a
+  loaded machine). A timed-out gate is reported as `timed_out`, never as `completed`, and
+  never upgraded because CI went green.
+
+and `ci_green` separately: true only when you saw CI's verify check conclude success on
+the PR head you last pushed (`gh pr view --json statusCheckRollup`); false when it is red,
+still running, or you did not look. Also return `head_sha`, the PR head when you report.
+Push and open the PR as soon as the local gate is green; CI then runs while you report.
+
+Long commands under the harness cap. The harness caps one shell call at about 120 s and
+moves it to the background whatever timeout you pass, so a 10-minute `make smoke` or
+`make verify-changed` cannot run in one foreground call. Run it as a job writing to a log
+(`nohup make verify-changed > <scratchpad>/gate.log 2>&1 &`, or `run_in_background` on
+that one call), then wait for it with foreground polls each under 120 s (`for i in 1 2 3
+4 5 6 7 8 9 10; do sleep 10; grep -q '<end marker>' <log> && break; done`, repeated), and
+read the log's end — and, for a capture, every frame it wrote — before reporting. Never
+report "waiting on background work"; never report before the job ended.
+
+Captures:
+- Take the before capture right after `make import`, before editing. Re-derive the capture
+  moment from the sim (`make match` transcript, a probe) rather than trusting a spec's
+  stated moment or position; `FROM=` is the seat's feet — the eye is 1.6 m above it.
+- A before shot of main once you have edited: add a second, detached worktree at
+  origin/main (`git -C /Users/hanscanonico/Projets/sinking_ship worktree add --detach
+  /Users/hanscanonico/Projets/sinking_ship-worktrees/before-<slug> origin/main`, then
+  `make import` there), capture from it, and
+  remove it when done. Never check main's files out into your worktree, and never
+  `git stash` — the stash is shared by every worktree of the repo.
+- Keep probe scripts and logs in the session scratchpad, never under the worktree (lint
+  picks up any `.gd`, captures/ included).
+- `make capture` exiting non-zero: read what `tools/engine_guard.sh` complained about and
+  report it; never set `ENGINE_GUARD_IGNORE` to get past it.
+- The window lock does not serve waiters in order: a capture may wait 30–50 min on a
+  shared machine. Wait; never kill it.
+
+The shared machine: never kill a process you did not start, never raise `TEST_SLOTS`, and
+never script window focus (no raising or activating a window).
+
 Ship: commit in repo style (present-tense imperative subject, focused body only if
 needed). Add only the commit trailers the orchestrator provides in the task; if none were
 provided, add none — never a Co-Authored-By or generated-with line. Push with
@@ -50,9 +101,9 @@ images with `gh api`/a comment, or commit the pair under `docs/pr/<branch>/` if 
 fails) and show them side by side in a two-column table so the reviewer sees the change at
 a glance.
 
-Return: the PR URL, branch, worktree path, whether the gate passed, and a summary. If you
+Return: the PR URL, branch, worktree path, `local_gate`, `ci_green`, the head SHA, and a summary. If you
 stopped because the task is wrong or already done, say so and mark it abandoned rather
 than reporting a red gate — that is a good outcome, not a failure.
 
 Never merge. Leave the worktree in place — the reviewer works in it. Report back: PR URL,
-branch, worktree path, whether verify-changed passed, a short summary, and anything surprising.
+branch, worktree path, `local_gate` and `ci_green`, a short summary, and anything surprising.
