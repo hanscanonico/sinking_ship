@@ -7,9 +7,14 @@ extends RefCounted
 ## A crate is an upright circle on the deck, as a body is (D8). It holds while the
 ## deck is no steeper than its own grip angle; past it, the world's gravity turned by
 ## the pose pulls it downhill against its friction — the slope rule bodies follow. It
-## meets walls, blockers, railings and the other crates through Surfaces (D6), falls
-## off an open edge or down a stair opening, and is lost once the sea stands
-## wade_depth over its underside. Running into a brawler at crate_impact_speed or
+## meets walls, blockers, railings and the other crates through Surfaces (D6), and
+## falls off an open edge or down a stair opening. Falling into the sea, it is lost once
+## the water stands wade_depth over its underside; standing, the water lifts it off its
+## floor there, and it floats on its cell's water crate_draft deep, never under its
+## floor, rising with it — a blocker still, as it stood — until its top meets the
+## ceiling over it or, with none, until the water over its floor is crate_adrift_depth
+## deep and the sea sweeps it away: lost. The water falling back under wade_depth over
+## its floor sets it down there again. Running into a brawler at crate_impact_speed or
 ## more, it staggers it and knocks it back through a hit-stop, as a shove does (D12),
 ## and keeps going, slowed; slower, it pushes it. Either way the two part with the
 ## closing speed by their masses. A shove sends a crate at its knockback weighed by
@@ -175,8 +180,8 @@ func damage(
 	return true
 
 
-## Gravity in the air; on the deck, the downhill pull past its grip angle, and its
-## friction.
+## Gravity in the air; afloat, the water's drag; on the deck, the downhill pull past
+## its grip angle, and its friction.
 func _forces(crates: Array[PropState], pose: ShipPose) -> void:
 	var dt := Ticks.SECONDS_PER_TICK
 	var gravity := pose.ship_gravity(_rules.gravity)
@@ -185,6 +190,9 @@ func _forces(crates: Array[PropState], pose: ShipPose) -> void:
 	for crate: PropState in crates:
 		if crate.body == PropState.Body.AIRBORNE:
 			crate.vel += gravity * dt
+			continue
+		if crate.body == PropState.Body.FLOATING:
+			crate.vel = Vector3(crate.vel.x, 0.0, crate.vel.z) * _rules.crate_float_drag
 			continue
 		var prop := _props[crate.prop]
 		var planar := Vector2(crate.vel.x, crate.vel.z)
@@ -299,7 +307,7 @@ func _hold(crate: PropState, contact: Surfaces.Contact) -> void:
 
 ## Every crate against every body on board its circle and height overlap, crate by
 ## crate and seat by seat — a body standing on a crate's lid is not in its way, and a
-## crate never comes down on a swimmer: it is lost as it reaches the sea.
+## crate never comes down on a swimmer: it is lost or afloat as it reaches the water.
 func _run_into_bodies(
 	state: MatchState, crates: Array[PropState], tick: int, events: Array[SimEvent]
 ) -> void:
@@ -400,9 +408,11 @@ func _credited_to(player: PlayerState, prop: int, tick: int) -> bool:
 
 ## What each crate stands on: a grounded one follows its surface within step_height
 ## and goes over an edge deeper than that; a falling one comes down on the highest
-## surface under it. Never on its own lid.
+## surface under it. Never on its own lid. A floating one is the water's (_float).
 func _ground(crates: Array[PropState], feet_before: PackedFloat64Array) -> void:
 	for crate: PropState in crates:
+		if crate.body == PropState.Body.FLOATING:
+			continue
 		if crate.body == PropState.Body.GROUNDED:
 			var surface := _surfaces.under(crate.pos, _rules.step_height, crate.prop)
 			crate.surface = surface
@@ -423,13 +433,48 @@ func _ground(crates: Array[PropState], feet_before: PackedFloat64Array) -> void:
 		crate.vel.y = 0.0
 
 
-## A crate with the sea wade_depth or more over its underside floats off: lost.
+## A crate with its cell's water wade_depth or more over its underside: standing, it
+## floats off its floor; falling, it is lost. One afloat rides the water (_float).
 func _sea(crates: Array[PropState], pose: ShipPose, tick: int, events: Array[SimEvent]) -> void:
-	var floated: Array[PropState] = []
+	var lost: Array[PropState] = []
 	for crate: PropState in crates:
-		if pose.water_height(crate.pos) - crate.pos.y >= _rules.wade_depth:
-			floated.append(crate)
-	_lose(floated, tick, events)
+		if crate.body != PropState.Body.FLOATING:
+			if pose.water_height(crate.pos) - crate.pos.y < _rules.wade_depth:
+				continue
+			if crate.body == PropState.Body.AIRBORNE:
+				lost.append(crate)
+				continue
+			crate.body = PropState.Body.FLOATING
+			events.append(SimEvent.crate_afloat(tick, crate.prop))
+		if _float(crate, pose):
+			lost.append(crate)
+	_lose(lost, tick, events)
+
+
+## Floats [param crate] on its cell's water under [param pose]: its underside
+## crate_draft under the water over its x/z, never under the floor beneath it. Set down
+## on that floor once the water over it is shallower than wade_depth. True when it is
+## lost: its top at the ceiling over it or, with none, the water over its floor
+## crate_adrift_depth deep — or nothing under it at all.
+func _float(crate: PropState, pose: ShipPose) -> bool:
+	var prop := _props[crate.prop]
+	var floor_surface := _surfaces.landing(crate.pos, crate.prop)
+	if floor_surface == Surfaces.NONE:
+		return true
+	var floor_height := _surfaces.height_at(floor_surface, crate.pos)
+	var water := pose.water_height(crate.pos)
+	crate.surface = floor_surface
+	crate.vel.y = 0.0
+	if water - floor_height < _rules.wade_depth:
+		crate.body = PropState.Body.GROUNDED
+		crate.pos.y = floor_height
+		return false
+	crate.pos.y = maxf(water - _rules.crate_draft, floor_height)
+	var floor_point := Vector3(crate.pos.x, floor_height, crate.pos.z)
+	var roof := _surfaces.ceiling(floor_point, _rules.step_height)
+	if roof == INF:
+		return water - floor_height >= _rules.crate_adrift_depth
+	return crate.pos.y + prop.height >= roof
 
 
 ## [param crates] gone into the sea.

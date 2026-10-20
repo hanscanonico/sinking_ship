@@ -245,7 +245,10 @@ void fragment() {
 		// the crest line a little and widens the cap in its middle, tapering it to its
 		// tips; a soft painted edge. Seen close they are spilling froth rather than
 		// a painted swoosh: softer edged and tipped, fading behind the crest, broken up
-		// inside, and smaller and fainter right by the eye.
+		// inside, and smaller and fainter right by the eye. Out past the near water a
+		// slow swell of size sets each cap wider or narrower than the next, its edge
+		// softens with the distance, and the froth breaks it into patches, so the far
+		// sea holds no row of matching crescents.
 		float whitecap = 0.0;
 		if (detail * deep > 0.0) {
 			vec2 crestwise = vec2(
@@ -256,13 +259,20 @@ void fragment() {
 			// 0 on a crest's top, ±0.5 down in the troughs either side.
 			float across = fract(bent / 6.2832 + 0.25) - 0.5;
 			float near = 1.0 - smoothstep(5.0, 45.0, dist);
+			float far = smoothstep(45.0, 200.0, dist);
+			// Each cap's size, from half to a little over its own; by the eye, its own.
+			float size = mix(0.5, 1.2, value_noise(world.xz * 0.02));
 			float width = (gust - 0.78) * 0.3 * mix(0.6, 1.0, smoothstep(1.5, 6.0, dist));
-			whitecap = smoothstep(0.0, 0.015 + 0.012 * near, width - abs(across) * 2.0);
+			width *= mix(size, 1.0, near);
+			float edge = 0.015 + 0.012 * near + 0.03 * far;
+			whitecap = smoothstep(0.0, edge, width - abs(across) * 2.0);
 			// -1 at the cap's lip, 1 at its back: the back spills into broken froth.
 			float behind_crest = clamp(across * 2.0 / max(width, 1e-3), -1.0, 1.0);
 			float spilling = min(near * 1.5, 1.0) * smoothstep(-0.6, 0.6, behind_crest);
 			float spill = value_noise(world.xz * vec2(4.0, 7.0) + vec2(t * 0.5, -t * 0.35));
 			whitecap *= mix(1.0, smoothstep(0.3, 0.6, spill) * 0.8, spilling);
+			// Away from the eye the same froth breaks a cap into patches.
+			whitecap *= mix(1.0, smoothstep(0.25, 0.6, spill), 0.5 * (1.0 - near));
 			// Its tips, where the gust that lifts it dies away, thin out into the sea.
 			whitecap *= mix(1.0, smoothstep(0.004, 0.035, width), near);
 			whitecap *= mix(0.5, 1.0, smoothstep(1.5, 5.0, dist)) * detail * deep;

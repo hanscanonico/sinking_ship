@@ -95,6 +95,45 @@ func test_footsteps_follow_speed_and_stop_in_the_air() -> void:
 	assert_eq(airborne.size(), 0, "feet off the deck make no steps")
 
 
+## Seat 0 walking for [param ticks] ticks with [param depth] metres of the sea over
+## its feet, outboard of every deck where only the sea is.
+func _wade(sim: MatchSim, depth: float, ticks: int) -> Array[AudioCue]:
+	var planner := _planner(sim)
+	var heard: Array[AudioCue] = []
+	var speed := sim.config.rules.wade_speed
+	var previous := _waded(sim, 0, speed, depth)
+	for tick in range(1, ticks + 1):
+		var current := _waded(sim, tick, speed, depth)
+		heard.append_array(planner.plan(previous, current))
+		previous = current
+	return _of(heard, FOOTSTEP)
+
+
+func _waded(sim: MatchSim, tick: int, speed: float, depth: float) -> Dictionary:
+	var snapshot := _moved(sim, tick, speed, GROUNDED)
+	var entry: Dictionary = snapshot["seats"][0]
+	var pose := sim.schedule.pose_at(tick)
+	var feet: Vector3 = entry["pos"] + Vector3(0.0, 0.0, 60.0)
+	var above := pose.world_height(feet) - pose.water_level(feet)
+	feet.y -= (above + depth) / pose.transform.basis.y.y
+	entry["pos"] = feet
+	return snapshot
+
+
+func test_a_wading_step_is_louder_and_further_apart_the_deeper_the_water() -> void:
+	var sim := SimFixtures.sim(1)
+	var ticks := Ticks.from_seconds(4.0)
+	var shallow := _wade(sim, 0.02, ticks)
+	var deep := _wade(sim, 0.25, ticks)
+	assert_gt(shallow.size(), 0)
+	assert_eq(shallow[0].ground, AudioCue.Ground.WET, "a film of water splashes")
+	assert_eq(deep[0].ground, AudioCue.Ground.WET)
+	assert_gt(deep[0].gain, shallow[0].gain * 1.2, "the same walker, louder knee deep")
+	assert_lt(deep.size(), shallow.size(), "and further apart")
+	var deepest := _wade(sim, sim.config.rules.wade_depth, ticks)
+	assert_almost_eq(deepest[0].gain / _wade(sim, 0.0, ticks)[0].gain, CuePlanner.WADE_LOUD, 0.001)
+
+
 func test_a_swimmer_strokes_instead_of_stepping() -> void:
 	var sim := SimFixtures.sim(1)
 	var ticks := Ticks.from_seconds(3.0)

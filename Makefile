@@ -62,6 +62,12 @@ import:
 #   make capture SCREEN=results [EYE=]   the results once the match ends and their
 #       buttons take presses
 #   RES=1920x1080 on any of them opens the window at that size
+#   make smoke [SEED=1701] [SHIP=] [FAST=1] [MAX=] [DRY=1] [OUT=captures/smoke]   the
+#       capture sweep QA reads: plays the match headless once, then takes make capture
+#       shots one after another at the water moments of its transcript (seat 0's eyes early,
+#       the first and last flooding, a crate lost, the first seat out, mid-sinking, late)
+#       into OUT/<nn>_<name>.png; MAX bounds the shots, DRY=1 prints the planned capture
+#       commands and opens no window. Rules live in tools/smoke.sh. Not part of verify.
 SEED ?=
 SEATS ?=
 SHIP ?=
@@ -133,6 +139,15 @@ capture:
 		$(if $(CUT),--observer-cut=$(CUT)) $(if $(CELLS),--observer-cells) \
 		$(if $(SIDE),--observer-side=$(SIDE)) \
 		$(if $(SCREEN),--capture-screen=$(SCREEN)) $(ARGS)
+
+# The sweep runs make capture shot by shot, so each takes the window lock itself; the
+# sweep takes none. FAST defaults to 1 there (FAST=0 for the paced clock).
+MAX ?=
+DRY ?=
+OUT ?=
+smoke:
+	@SEED="$(SEED)" SHIP="$(SHIP)" FAST="$(FAST)" MAX="$(MAX)" DRY="$(DRY)" OUT="$(OUT)" \
+		GODOT="$(GODOT)" MAKE="$(MAKE)" tools/smoke.sh
 
 # `make net-bench [SEED=] [SEATS=] [SECONDS=] [NET=latency:120,jitter:20,loss:5]`: one
 # match headless, seat 0 played through the client over a loopback lying as NET says
@@ -639,7 +654,7 @@ format-check:
 # test is already one of test's scripts.
 .NOTPARALLEL:
 
-.PHONY: import run match capture net-bench sim-bench bench serve-local online-e2e export-server \
+.PHONY: import run match capture smoke net-bench sim-bench bench serve-local online-e2e export-server \
 	export-web export-mac export-server-mac serve-web-local serve-web-local-stop fps arena \
 	hits bake census art-lint test test-changed durations verify verify-changed check guard-check ship ship-gen-check ship-check bake-ship \
 	bake-check ship-scene \
