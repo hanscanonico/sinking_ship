@@ -16,6 +16,9 @@ const SCAN_STRIDE := 10
 ## A floor is watched this many seconds from the strike: long enough for the room over
 ## it to fill deep.
 const BREACH_SCAN := 240.0
+## The trawler's cells under her engine room and beside it, voids as they were before
+## #148: her starboard engine room wing still is.
+const VOIDS: Array[StringName] = [&"engine_bilge", &"engine_wing_s"]
 
 
 func test_the_sea_jets_in_through_a_gash_into_a_room_people_walk_in() -> void:
@@ -148,13 +151,20 @@ func test_the_sea_comes_in_by_its_head_over_the_room_s_water_and_stops_level() -
 
 
 func test_a_stretch_under_a_room_s_floor_throws_no_jet() -> void:
-	# The deep bite into the trawler's engine room, her floor raised over the gash in a
-	# copy of her: under the floor plates nobody is there to see the sea come in.
+	# The deep bite into the trawler's engine room, her floors in it — the engine room's
+	# and her steering gear's abaft it — raised over the gash in a copy of her: under the
+	# floor plates nobody is there to see the sea come in.
 	var sim := _holed_by(&"trawler", _deep_bite())
 	var gash := _gash_into(sim, &"engine_room")
 	var raised: ShipLayout = sim.config.ship.duplicate(true)
+	var cell := raised.structure.cells[raised.structure.cell_named(&"engine_room")]
+	var floors: Array[ShipRoom] = []
+	for room: ShipRoom in raised.rooms:
+		if room.name in cell.rooms:
+			floors.append(room)
+			room.floor_height = gash.centre.y + gash.size.y
+	assert_eq(floors.size(), 2, "the engine room and her steering gear")
 	var floor := _room_named(raised, &"engine room")
-	floor.floor_height = gash.centre.y + gash.size.y
 	var struck := sim.schedule.hit_tick()
 	var pose := HeldPose.flooded(raised, -raised.freeboard, {})
 	var cues: Array[FxCue] = []
@@ -164,7 +174,8 @@ func test_a_stretch_under_a_room_s_floor_throws_no_jet() -> void:
 	for rent: FxCue in _of(cues, RENT):
 		assert_gt(rent.toward.z, 0.0, "a rent on her hull only, none in the room")
 	# Its floor across the gash: the sea jets in from the part of it over the floor.
-	floor.floor_height = gash.centre.y
+	for room: ShipRoom in floors:
+		room.floor_height = gash.centre.y
 	cues.clear()
 	GashPlanner.new(sim.schedule, raised).breach(struck, struck + 1, pose, cues)
 	var jets := _of(cues, JET)
@@ -209,7 +220,7 @@ func test_the_jet_is_planned_in_front_of_a_wing_passage_s_shell() -> void:
 
 
 func test_a_gash_that_opens_only_a_void_throws_nothing_inside() -> void:
-	var sim := _holed_by(&"trawler", _bilge_bite())
+	var sim := _holed_by(&"trawler", _bilge_bite(), VOIDS)
 	for opening: ShipOpening in sim.schedule.damage().openings:
 		assert_does_not_have([&"engine_room", &"fish_hold"], opening.joins[0], "voids only")
 	var struck := sim.schedule.hit_tick()
@@ -268,9 +279,9 @@ func test_the_rent_inside_is_told_once_from_the_strike_on() -> void:
 
 
 func test_water_wells_up_through_the_floor_from_the_void_under_it_until_the_room_is_deep() -> void:
-	# The bite floods the trawler's bilge under her engine room, which fills through its
-	# floor plates.
-	var sim := _holed_by(&"trawler", _bilge_bite())
+	# The bite floods the trawler's bilge under her engine room — a void again in a copy
+	# of her —, which fills through its floor plates.
+	var sim := _holed_by(&"trawler", _bilge_bite(), VOIDS)
 	var structure := sim.config.ship.structure
 	var room := structure.cell_named(&"engine_room")
 	var bilge := structure.cell_named(&"engine_bilge")
@@ -301,13 +312,23 @@ func test_water_wells_up_through_the_floor_from_the_void_under_it_until_the_room
 	assert_lt(wells[-1].tick, to - Ticks.from_seconds(10.0), "and stays stopped")
 
 
-## The default match on [param ship_name] struck by explicit [param hit] 20 s in.
-func _holed_by(ship_name: StringName, hit: IcebergHit) -> MatchSim:
+## The default match on [param ship_name] struck by explicit [param hit] 20 s in; with
+## [param voids], on a copy of her whose cells by those names hold no room — voids, as
+## they were before #148 made them places.
+func _holed_by(ship_name: StringName, hit: IcebergHit, voids: Array[StringName] = []) -> MatchSim:
 	var config := RunMatch.default_config(1701, 0, ship_name)
 	var given: SinkScenario = config.scenario.duplicate()
 	hit.moment = 20.0
 	given.explicit_hit = hit
 	config.scenario = given
+	if not voids.is_empty():
+		var ship: ShipLayout = config.ship.duplicate(true)
+		for cell: FloodCell in ship.structure.cells:
+			if cell.name in voids:
+				for room_name: StringName in cell.rooms:
+					ship.rooms.erase(_room_named(ship, room_name))
+				cell.rooms.clear()
+		config.ship = ship
 	return MatchSim.create(config)
 
 
