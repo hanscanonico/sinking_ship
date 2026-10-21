@@ -5,6 +5,7 @@ extends GutTest
 
 const AUTHORING := "res://authoring"
 const WEAK_HULL := "res://tests/fixtures/ships/steamer_weak.tres"
+const ShipBake := preload("res://tools/ship_bake.gd")
 
 
 ## [param layout] drawn (ShipSceneDraw), packed and instantiated as a saved scene is.
@@ -219,3 +220,13 @@ func test_an_unknown_tag_and_a_wrong_node_are_problems() -> void:
 			]
 		)
 	)
+
+
+## bake-check hands ship_bake.gd the .glb it exported into a temporary folder, which
+## Windows spells with a drive letter: an absolute path is read where it is, and only a
+## relative one is the project's.
+func test_an_absolute_path_is_not_read_as_the_projects() -> void:
+	assert_eq(ShipBake._res("authoring/steamer/steamer.tscn"), "res://authoring/steamer/steamer.tscn")
+	assert_eq(ShipBake._res("res://data/ships/steamer.tres"), "res://data/ships/steamer.tres")
+	assert_eq(ShipBake._res("/tmp/tmp.x/steamer.glb"), "/tmp/tmp.x/steamer.glb")
+	assert_eq(ShipBake._res("C:/Temp/tmp.x/steamer.glb"), "C:/Temp/tmp.x/steamer.glb")
