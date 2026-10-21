@@ -130,11 +130,14 @@ func bake_steps() -> int:
 
 ## Takes [param other]'s sinking, baked or under way, when it is this match's too — the
 ## same ship, scenario and seed make the same sinking (D7) — and none is under way
-## here; whether it took it.
+## here; whether it took it. A scenario is the same when its numbers are: one made again
+## of the same choices — quickened, or struck by a --hit — is a copy, and still hers.
 func share_sinking(other: MatchConfig) -> bool:
 	if other == null or _choosing != null or _received != null or _schedule != null:
 		return false
-	if other.ship != ship or other.scenario != scenario or other.match_seed != match_seed:
+	if other.ship != ship or other.match_seed != match_seed:
+		return false
+	if other.scenario != scenario and _describe(other.scenario) != _describe(scenario):
 		return false
 	_choosing = other._choosing
 	_received = other._received

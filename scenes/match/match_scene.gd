@@ -510,6 +510,12 @@ func replaying() -> bool:
 	return _driver != null and _driver.replaying()
 
 
+## The match it last started, played or watched, and its sinking — kept behind the
+## results for a replay of it to share (Game, D7); null before any.
+func played_config() -> MatchConfig:
+	return _config
+
+
 ## Pauses the replay, or plays it on.
 func replay_pause() -> void:
 	var clock := _driver.clock()
