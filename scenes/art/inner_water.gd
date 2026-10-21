@@ -179,8 +179,7 @@ var _pocket_light: OmniLight3D
 ## pose it was last worked out to.
 var _inflows := PackedFloat64Array()
 var _inflow_now: ShipPose
-## Per cell, the world height its water was last drawn at, kept from frame to frame so
-## no frame allocates them; and a pour's two sides' water, the same way (_show_pour).
+## Per cell, its water's world height as last drawn; a pour's two sides' (_show_pour).
 var _levels := PackedFloat64Array()
 var _heights := PackedFloat64Array([0.0, 0.0])
 
@@ -468,8 +467,7 @@ func show_water(then: ShipPose, now: ShipPose, alpha: float) -> void:
 	_level = _ship.basis.inverse().orthonormalized()
 	_up = _level * Vector3.UP
 	var to_ship := _ship.affine_inverse()
-	if _levels.size() != _surfaces.size():
-		_levels.resize(_surfaces.size())
+	_levels.resize(_surfaces.size())
 	for cell in _surfaces.size():
 		var level := lerpf(_level_of(then, cell), _level_of(now, cell), alpha)
 		_levels[cell] = level
@@ -773,16 +771,15 @@ func _show_pour(index: int, levels: PackedFloat64Array, pose: ShipPose) -> void:
 	var second := _sides[index * 2 + 1]
 	_heights[0] = 0.0 if first == -1 else levels[first]
 	_heights[1] = 0.0 if second == -1 else levels[second]
-	var heights := _heights
 	var span := CellSurface.reach(_ship, _spans[index])
 	var bottom := span.x
 	var top := span.y
 	if _drawn[index] == 1:
-		_blow(index, heights, top, opening)
+		_blow(index, _heights, top, opening)
 	var pour := _pours[index]
 	var crossing := _crossings[index]
 	var landing := _landings[index]
-	if _drawn[index] == 0 or maxf(heights[0], heights[1]) <= bottom + SHOWS:
+	if _drawn[index] == 0 or maxf(_heights[0], _heights[1]) <= bottom + SHOWS:
 		# Dry, or never drawn pouring: nothing to do but keep it hidden.
 		_hide_pour(index)
 		return
@@ -799,7 +796,7 @@ func _show_pour(index: int, levels: PackedFloat64Array, pose: ShipPose) -> void:
 		open = maxf(open if _shut[index] == 0 else 0.0, TRICKLE)
 	elif _shut[index] == 1:
 		open = 0.0
-	var high := 0 if heights[0] >= heights[1] else 1
+	var high := 0 if _heights[0] >= _heights[1] else 1
 	var low := 1 - high
 	var side_high := first if high == 0 else second
 	var side_low := second if high == 0 else first
@@ -807,11 +804,11 @@ func _show_pour(index: int, levels: PackedFloat64Array, pose: ShipPose) -> void:
 	var under := opening.centre
 	under.y = _floors[index * 2 + low]
 	var floor_under := -INF if side_low == -1 else (_ship * under).y
-	var drop := heights[high] - maxf(heights[low], floor_under)
-	if open <= 0.0 or heights[high] <= bottom + SHOWS or heights[high] - heights[low] < POURS:
+	var drop := _heights[high] - maxf(_heights[low], floor_under)
+	if open <= 0.0 or _heights[high] <= bottom + SHOWS or _heights[high] - _heights[low] < POURS:
 		return
-	var from := minf(heights[high], top)
-	var to := maxf(heights[low], floor_under)
+	var from := minf(_heights[high], top)
+	var to := maxf(_heights[low], floor_under)
 	var strength := pour_strength(drop, _flow_of(index, pose), _width_of(opening))
 	var centre := opening.centre
 	var width := 0.0
@@ -845,7 +842,7 @@ func _show_pour(index: int, levels: PackedFloat64Array, pose: ShipPose) -> void:
 	# level with the world.
 	var thrown := 0.0
 	if axis != 1:
-		var head := maxf(heights[high] - (from + maxf(bottom, heights[low])) * 0.5, 0.0)
+		var head := maxf(_heights[high] - (from + maxf(bottom, _heights[low])) * 0.5, 0.0)
 		thrown = minf(2.0 * sqrt(head * tall), MOST_THROW)
 	var short := opening.size[int(normal.abs().max_axis_index())]
 	across = _flat(across)
