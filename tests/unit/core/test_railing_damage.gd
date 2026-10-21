@@ -135,3 +135,30 @@ func test_a_steamer_span_is_a_stretch_of_a_side() -> void:
 		if along_port and railing.from.x >= -14.0 and railing.to.x <= 3.5:
 			main_port_aft += 1
 	assert_gt(main_port_aft, 1, "the main deck's 17.5 m aft port side is several spans")
+
+
+## broken_railings() is worked out once per change of the hits, not per call: a span
+## broken inside a tick, after the tick has asked once, is in the next answer; one
+## written in place outside any tick too; and a match restored from a snapshot answers
+## as the snapshot has its railings. An answer already handed out stays as it was.
+func test_the_broken_railings_follow_every_hit() -> void:
+	var rules := SimFixtures.rules()
+	var sim := SimFixtures.sim(3)
+	var whole := sim.state.broken_railings()
+	assert_true(whole.is_empty(), "none broken yet")
+	assert_true(is_same(sim.state.broken_railings(), whole), "asked again, the same answer")
+	var before := sim.snapshot()
+	sim.state.railing_hp[SPAN] = rules.vault_damage
+	assert_true(sim.state.broken_railings().is_empty(), "a damaged span is not broken")
+	_vault(sim)
+	assert_eq(sim.state.broken_railings(), PackedInt32Array([SPAN]), "broken mid-tick")
+	assert_true(whole.is_empty(), "the earlier answer is not edited")
+	sim.state.railing_hp[0] = 0.0
+	assert_eq(sim.state.broken_railings(), PackedInt32Array([0, SPAN]), "written in place")
+	var after := sim.snapshot()
+	sim.restore(before)
+	assert_true(sim.state.broken_railings().is_empty(), "restored to whole railings")
+	sim.restore(after)
+	assert_eq(sim.state.broken_railings(), PackedInt32Array([0, SPAN]), "and to broken ones")
+	sim.state.railing_hp[0] = rules.railing_hp
+	assert_eq(sim.state.broken_railings(), PackedInt32Array([SPAN]), "mended in place")

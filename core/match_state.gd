@@ -25,6 +25,11 @@ var up := PackedInt32Array([Faces.Up.DECK])
 ## The last stepped tick's events: hints for presentation, not state.
 var events: Array[SimEvent] = []
 
+## broken_railings()'s last answer, and the hits it was worked out from: railing_hp is
+## written in place by whoever hits a span, so the cache is kept by the hits it read.
+var _broken := PackedInt32Array()
+var _broken_from := PackedFloat64Array()
+
 
 func remaining() -> int:
 	var count := 0
@@ -50,9 +55,13 @@ static func up_of(snapshot: Dictionary, entry: Dictionary) -> int:
 	return snapshot["up"][entry["piece"]]
 
 
-## The railings, by index, that the match has broken.
+## The railings, by index, that the match has broken: worked out again only when
+## railing_hp has changed since. Shared with every caller, so read it, never edit it.
 func broken_railings() -> PackedInt32Array:
-	return broken_in(railing_hp)
+	if railing_hp != _broken_from:
+		_broken = broken_in(railing_hp)
+		_broken_from = railing_hp.duplicate()
+	return _broken
 
 
 ## The railings, by index, broken in [param hp] — a snapshot's "railing_hp".
