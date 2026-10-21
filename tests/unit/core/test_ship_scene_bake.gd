@@ -232,3 +232,4 @@ func test_an_absolute_path_is_not_read_as_the_projects() -> void:
 	assert_eq(ShipBake._res("res://data/ships/steamer.tres"), "res://data/ships/steamer.tres")
 	assert_eq(ShipBake._res("/tmp/tmp.x/steamer.glb"), "/tmp/tmp.x/steamer.glb")
 	assert_eq(ShipBake._res("C:/Temp/tmp.x/steamer.glb"), "C:/Temp/tmp.x/steamer.glb")
+	assert_eq(ShipBake._res(""), "")
