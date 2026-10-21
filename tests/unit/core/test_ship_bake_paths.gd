@@ -7,7 +7,9 @@ const ShipBake := preload("res://tools/ship_bake.gd")
 
 
 func test_a_relative_path_is_read_under_the_project() -> void:
-	assert_eq(ShipBake._res("authoring/steamer/steamer.tscn"), "res://authoring/steamer/steamer.tscn")
+	assert_eq(
+		ShipBake._res("authoring/steamer/steamer.tscn"), "res://authoring/steamer/steamer.tscn"
+	)
 
 
 func test_a_project_path_stands() -> void:
