@@ -62,6 +62,10 @@ var _members: Array[PackedInt32Array] = []
 ## cells it was worked out from: a solve asks it again at every opening of a cell.
 var _pushed := PackedFloat64Array()
 var _pushed_at := PackedFloat64Array()
+## Per cell, for the step begun: 1 where its water is held by a pocket (holding), and 1
+## where no head but its own moves its push (alone).
+var _holding := PackedByteArray()
+var _alone := PackedByteArray()
 
 
 func _init(sea: SeaPhysics) -> void:
@@ -102,6 +106,8 @@ func close(touching: Array[PackedInt32Array]) -> void:
 	_members.resize(_boxes.size())
 	_pushed.resize(_boxes.size())
 	_pushed_at.resize(_boxes.size())
+	_holding.resize(_boxes.size())
+	_alone.resize(_boxes.size())
 
 
 ## Opening [param index] turned to the attitude where the world's up is [param up] in
@@ -128,6 +134,8 @@ func start(state: FloodState) -> void:
 func begin(state: FloodState, seconds: float) -> void:
 	_pocket.fill(-1)
 	_pushed_at.fill(NAN)
+	_holding.fill(0)
+	_alone.fill(1)
 	if not _on:
 		return
 	for first in _boxes.size():
@@ -151,11 +159,29 @@ func begin(state: FloodState, seconds: float) -> void:
 			air += state.air[cell]
 		_members[first] = members
 		_air[first] = air
+		if members.size() > 1:
+			for cell: int in members:
+				_alone[cell] = 0
 		if seconds > 0.0:
 			_air[first] = maxf(air - _leak(first, state) * seconds, 0.0)
 			# Its push was worked out with the air it had before the leak.
 			for cell: int in members:
 				_pushed_at[cell] = NAN
+	for cell in _boxes.size():
+		_holding[cell] = 1 if holds(cell) else 0
+
+
+## Per cell, 1 where its water is held by a pocket in the step begun (holds) — only
+## then does its pocket lift its push (lift) — else 0: read, never written.
+func holding() -> PackedByteArray:
+	return _holding
+
+
+## Per cell, 1 where in the step begun no head but its own moves the push lifting its
+## water (lift) — its air free, or a pocket of its own — 0 where another cell of its
+## pocket's does: read, never written.
+func alone() -> PackedByteArray:
+	return _alone
 
 
 ## Whether [param cell]'s water is held by a pocket in the step begun.
@@ -192,9 +218,13 @@ func reached(cell: int) -> PackedByteArray:
 ## across an opening to [param other] — none to a cell of the same pocket — with the
 ## cells' heads at [param heads]: what lifts its water's push.
 func lift(cell: int, other: int, heads: PackedFloat64Array) -> float:
-	if cell == OUTSIDE or _pocket[cell] == -1 or shared(cell, other):
+	if cell == OUTSIDE:
 		return 0.0
-	return _push(_pocket[cell], heads)
+	var pocket := _pocket[cell]
+	# None, or one it shares with the other side (shared).
+	if pocket == -1 or other != OUTSIDE and _pocket[other] == pocket:
+		return 0.0
+	return _push(pocket, heads)
 
 
 ## Every cell's pocket's pressure with [param state]'s heads, the boxes turned to its

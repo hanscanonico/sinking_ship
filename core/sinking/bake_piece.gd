@@ -47,6 +47,8 @@ var _cells := 0
 var _wet := PackedByteArray()
 var _full := PackedByteArray()
 var _names: Array[StringName] = []
+## Each opening's two sides (SinkStepper.opening_sides), as they stay.
+var _sides: Array[Vector2i] = []
 var _spilled := PackedByteArray()
 var _doors_move_until := 0.0
 var _plunged := false
@@ -93,6 +95,8 @@ func _init(
 			1 if state.heads[cell] >= stepper.floor_of(cell) + SinkTimeline.FIRST_WATER else 0
 		)
 	_names = stepper.opening_names()
+	for index in _names.size():
+		_sides.append(stepper.opening_sides(index))
 	_spilled.resize(_names.size())
 	_more = more.size()
 	_gaps = gaps_of(state, more)
@@ -164,9 +168,10 @@ func gaps_of(at: FloodState, more := PackedFloat64Array()) -> PackedFloat64Array
 	for cell in _cells:
 		gaps[cell] = room(cell, at.water[cell])
 	for index in _names.size():
-		var sides := stepper.opening_sides(index)
-		var high := maxf(_level(at, sides.x), _level(at, sides.y))
-		gaps[_cells + index] = stepper.sill_of(index) - high
+		var sides := _sides[index]
+		var first := at.sea if sides.x == SinkStepper.OUTSIDE else at.heads[sides.x]
+		var second := at.sea if sides.y == SinkStepper.OUTSIDE else at.heads[sides.y]
+		gaps[_cells + index] = stepper.sill_of(index) - maxf(first, second)
 	if _sea.air:
 		for cell in _cells:
 			gaps.append(stepper.highest_top(cell) - at.heads[cell])
@@ -334,10 +339,6 @@ func add(event: SinkTimeline.Event) -> void:
 	while at > 0 and _events[at - 1].seconds > event.seconds:
 		at -= 1
 	_events.insert(at, event)
-
-
-func _level(at: FloodState, side: int) -> float:
-	return at.sea if side == SinkStepper.OUTSIDE else at.heads[side]
 
 
 ## How much water [param after]'s cells hold more or less than [param before]'s, all of

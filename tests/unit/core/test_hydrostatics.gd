@@ -182,6 +182,30 @@ func test_section_cut_works_upside_down() -> void:
 	assert_lt(on_side.z, 0.0, "to port")
 
 
+func test_tilted_box_height_follows_its_turns() -> void:
+	# The same water asked of one box at one attitude after another, and turned back: at
+	# each the height a box only ever turned there gives it, to the last bit.
+	var low := Vector3(4.0, -2.5, -3.75)
+	var high := Vector3(15.0, 0.0, 3.75)
+	var capacity := 11.0 * 2.5 * 7.5
+	var box := TiltedBox.new(low, high, capacity, 1.0)
+	var water := capacity * 0.3
+	var ups: Array[PackedFloat64Array] = [
+		PackedFloat64Array([0.0, 1.0, 0.0]),
+		PackedFloat64Array([0.28, 0.95, 0.14]),
+		PackedFloat64Array([-0.6, 0.7, 0.39]),
+		PackedFloat64Array([0.28, 0.95, 0.14]),
+		PackedFloat64Array([0.0, 1.0, 0.0]),
+	]
+	for at in ups.size():
+		var up := ups[at]
+		var length := sqrt(up[0] * up[0] + up[1] * up[1] + up[2] * up[2])
+		box.turn(up[0] / length, up[1] / length, up[2] / length)
+		var fresh := TiltedBox.new(low, high, capacity, 1.0)
+		fresh.turn(up[0] / length, up[1] / length, up[2] / length)
+		assert_eq(box.height(water), fresh.height(water), "attitude %d" % at)
+
+
 func test_tilted_box_water_matches_the_cut_at_random_attitudes() -> void:
 	# A cell's water (TiltedBox) at random attitudes, and near level where its spreads
 	# grow narrow: the volume under a surface and its centre as the box cut by that
