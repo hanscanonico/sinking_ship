@@ -150,6 +150,9 @@ var _portal_wet := PackedByteArray()
 ## until asked.
 var _heights := PackedFloat64Array()
 var _lowest := PackedFloat64Array()
+## The share of her deck area under water under that pose (flooded_share); NAN until
+## asked.
+var _flooded_share := NAN
 ## Per portal, what a search reads of it, laid out flat.
 var _portal_to := PackedInt32Array()
 var _portal_entry := PackedVector3Array()
@@ -226,6 +229,22 @@ func deck_of(platform: int) -> int:
 func platform_area(platform: int) -> float:
 	var deck := _layout.platforms[platform]
 	return 0.0 if deck.fitted else deck.area.get_area()
+
+
+## The share of her deck area under water under [param pose]: each platform by its
+## area, under once the water stands over its middle — a small platform going under
+## floods little of her. Worked out once per pose, however many bots ask.
+func flooded_share(pose: ShipPose) -> float:
+	_know(pose)
+	if is_nan(_flooded_share):
+		var flooded := 0.0
+		var whole := 0.0
+		for platform in _surfaces.platform_count():
+			var area := platform_area(platform)
+			whole += area
+			flooded += area if _surfaces.flooded(platform, pose) else 0.0
+		_flooded_share = flooded / whole if whole > 0.0 else 0.0
+	return _flooded_share
 
 
 ## Every portal, in the order they were found.
@@ -738,6 +757,7 @@ func _know(pose: ShipPose) -> void:
 	_portal_wet.fill(0)
 	_heights.fill(NAN)
 	_lowest.fill(NAN)
+	_flooded_share = NAN
 
 
 func _is_flooded(zone: int, pose: ShipPose) -> bool:

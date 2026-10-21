@@ -56,6 +56,38 @@ func test_the_look_further_out_finds_a_trench_with_floor_beyond_it() -> void:
 ## flooded floods little of her. The share under water is of her deck area, not of
 ## her platforms — a stokehold's walks going under are no half of the ship.
 func test_the_share_flooded_is_of_her_deck_area() -> void:
+	var layout := _welled()
+	var surfaces := Surfaces.new(layout)
+	var pose := _calm(layout)
+	assert_false(surfaces.flooded(0, pose), "the deck is dry")
+	assert_true(surfaces.flooded(1, pose), "the well is under")
+	assert_almost_eq(
+		_footing(layout, surfaces).flooded_share(pose), 4.0 / 204.0, 1e-6, "the well's area"
+	)
+
+
+## The share is worked out once per pose and shared by every footing on the graph: the
+## cached answer is the loop's, and a new pose is worked out afresh, never the last one's.
+func test_the_share_flooded_is_worked_out_again_for_a_new_pose() -> void:
+	var layout := _welled()
+	var surfaces := Surfaces.new(layout)
+	var rules := SimFixtures.rules()
+	var margin: float = load(SimFixtures.NORMAL_BOT).edge_margin_m
+	var graph := WalkGraph.new(layout, surfaces, rules)
+	var one := BotFooting.new(surfaces, graph, rules, margin)
+	var other := BotFooting.new(surfaces, graph, rules, margin)
+	var calm := _calm(layout)
+	assert_almost_eq(one.flooded_share(calm), _share(graph, surfaces, calm), 1e-9, "the loop's")
+	assert_almost_eq(other.flooded_share(calm), 4.0 / 204.0, 1e-9, "shared, the well's area")
+	var sunk := SinkSchedule.new(SimFixtures.calm(), -1.0, SeedStreams.derive(1, "sink")).pose_at(0)
+	assert_true(surfaces.flooded(0, sunk), "the deck is under")
+	assert_almost_eq(_share(graph, surfaces, sunk), 1.0, 1e-9, "all of her, by the loop")
+	assert_almost_eq(one.flooded_share(sunk), 1.0, 1e-9, "worked out again, not the calm's")
+	assert_almost_eq(other.flooded_share(calm), 4.0 / 204.0, 1e-9, "and again on going back")
+
+
+## A deck 20 × 10 m at the main deck and a well 2 × 2 m 4 m under it.
+func _welled() -> ShipLayout:
 	var layout := ShipLayout.new()
 	layout.freeboard = 3.0
 	var platforms: Array[ShipPlatform] = []
@@ -65,13 +97,19 @@ func test_the_share_flooded_is_of_her_deck_area() -> void:
 		platform.height = row[1]
 		platforms.append(platform)
 	layout.platforms = platforms
-	var surfaces := Surfaces.new(layout)
-	var pose := _calm(layout)
-	assert_false(surfaces.flooded(0, pose), "the deck is dry")
-	assert_true(surfaces.flooded(1, pose), "the well is under")
-	assert_almost_eq(
-		_footing(layout, surfaces).flooded_share(pose), 4.0 / 204.0, 1e-6, "the well's area"
-	)
+	return layout
+
+
+## The share of her deck area under water under [param pose], platform by platform,
+## with nothing cached: what WalkGraph.flooded_share must answer.
+func _share(graph: WalkGraph, surfaces: Surfaces, pose: ShipPose) -> float:
+	var flooded := 0.0
+	var whole := 0.0
+	for platform in surfaces.platform_count():
+		var area := graph.platform_area(platform)
+		whole += area
+		flooded += area if surfaces.flooded(platform, pose) else 0.0
+	return flooded / whole if whole > 0.0 else 0.0
 
 
 func test_a_railing_on_the_next_piece_of_deck_stops_the_walk_to_the_edge() -> void:
