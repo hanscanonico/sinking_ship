@@ -64,7 +64,8 @@ DRY=${DRY:-}
 OUT=${OUT:-captures/smoke}
 MAKE=${MAKE:-make}
 
-[[ "$OUT" = /* ]] || OUT="$PWD/$OUT"
+# C:/… on Windows is as absolute as /…
+[[ "$OUT" = /* || "$OUT" = [A-Za-z]:/* ]] || OUT="$PWD/$OUT"
 if [[ -n "$MAX" && ! "$MAX" =~ ^[0-9]+$ ]]; then
 	echo "smoke: MAX takes a whole number of shots, not $MAX" >&2
 	exit 1
