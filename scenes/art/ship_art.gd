@@ -346,6 +346,7 @@ func show_sinking(
 		for child: Node in wreck.get_children():
 			if child is ShipLamp:
 				(child as ShipLamp).burning = down < 1.0
+				(child as ShipLamp).wake()
 	if broken_railings == _railings_drawn:
 		return
 	_railings_drawn = broken_railings
@@ -363,11 +364,17 @@ func show_sinking(
 ## Lights each room's lamp as [param pose] has its cell lit — on her generator, her
 ## emergency power or nothing (ShipPose.lit) — and puts out each fire the water of its
 ## cell has reached; shows the glass the pose has broken (BrokenGlass). A pose without
-## cells leaves them lit.
+## cells leaves them lit. A new pose — a tick's — that turns her from the last wakes
+## every lamp asleep (ShipLamp.wake), so none misses how she has moved.
 func show_power(pose: ShipPose) -> void:
-	if pose.lit.is_empty() or pose == _powered:
+	if pose == _powered:
 		return
+	if _powered == null or pose.transform.basis != _powered.transform.basis:
+		for lamp: ShipLamp in _lamps:
+			lamp.wake()
 	_powered = pose
+	if pose.lit.is_empty():
+		return
 	for index in _lamps.size():
 		# The cell it hangs in as the pose has her cells — a piece's own, once she breaks.
 		var cell := pose.cell_at(_lamp_at[index])
