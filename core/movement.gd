@@ -546,9 +546,9 @@ func ground(
 
 
 ## A swimmer moves across the sea at swim_speed, without control while staggered.
-## A body above the sea falls into it; in it, the water takes a dive's speed and
-## floats it back to where it rests (_rest_at). A climber hangs where its climb has
-## it (_water).
+## A body above the sea falls into it; in it, the water takes a dive's speed — no
+## more than dunk_drag stops within dunk_depth — and floats it back to where it rests
+## (_rest_at). A climber hangs where its climb has it (_water).
 func _swim(player: PlayerState, pose_now: ShipPose) -> void:
 	if player.is_climbing():
 		return
@@ -564,6 +564,7 @@ func _swim(player: PlayerState, pose_now: ShipPose) -> void:
 	if _surfaces.wet(player.pos, pose_now):
 		var rest := _rest_at(player.pos, player.pos.y, pose_now, _heading(player))
 		var toward := signf(rest - player.pos.y)
+		rise = maxf(rise, -sqrt(2.0 * _rules.dunk_drag * _rules.dunk_depth))
 		rise = move_toward(rise, toward * _rules.float_speed, _rules.dunk_drag * dt)
 	else:
 		rise -= _rules.gravity * dt
