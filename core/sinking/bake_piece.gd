@@ -255,9 +255,11 @@ func follow(next: FloodState, seconds: float) -> bool:
 	_lurches.follow(before, next, seconds)
 	for boat in _boats.size():
 		if _useless[boat] == 0 and SinkBake.boats_useless(next.rotation, _boats[boat]):
+			# A side is news once: when the first of its boats goes.
+			if not _side_useless(_boats[boat].side):
+				var side := &"starboard" if _boats[boat].side == 1 else &"port"
+				_add_own(SinkTimeline.Kind.BOATS_USELESS, side, at)
 			_useless[boat] = 1
-			var side := &"starboard" if _boats[boat].side == 1 else &"port"
-			_add_own(SinkTimeline.Kind.BOATS_USELESS, side, at)
 	if _failing != null:
 		_failures.measure(next)
 		_failing.follow(before, next)
@@ -309,6 +311,14 @@ func _add_own(kind: SinkTimeline.Kind, named: StringName, at: float) -> void:
 	var event := SinkTimeline.Event.new(at, kind, named)
 	event.piece = id
 	_events.append(event)
+
+
+## Whether a boat on [param side] (ShipFitting.side) has already gone useless.
+func _side_useless(side: int) -> bool:
+	for boat in _boats.size():
+		if _useless[boat] == 1 and _boats[boat].side == side:
+			return true
+	return false
 
 
 ## What an event of the whole of it names: nothing for the whole ship; a piece she broke
