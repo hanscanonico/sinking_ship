@@ -66,7 +66,7 @@ static func _baked(scene: String) -> ShipSceneBake:
 
 
 static func _res(path: String) -> String:
-	if path.is_empty() or path.begins_with("res://") or path.begins_with("/"):
+	if path.is_empty() or path.is_absolute_path():
 		return path
 	return "res://" + path
 

@@ -16,8 +16,9 @@ const TOP_TOLERANCE := 0.05
 const SAMPLES := Vector2i(6, 3)
 const SAMPLE_IN := 0.05
 ## The most faces a bath may stand in all, its modelled lanterns and ladder too: the
-## Turkish bath, the worst, draws 2189.
-const CEILING := 2350
+## swimming bath, the worst, draws 2418, its panels cut at every edge of every deck across
+## her (ShipSpace's room lines) — the decks of her old voids (#148) among them.
+const CEILING := 2600
 
 var _titanic: ShipLayout
 var _rules: BrawlRules
