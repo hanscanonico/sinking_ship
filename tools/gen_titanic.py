@@ -1611,7 +1611,11 @@ for rid, name, x0, x1 in E_AFT:
     w = E_AFT_Z[rid]
     # The engine room's short of bulkhead K, as boiler room 1's F deck is (above).
     e_aft += deck(rid, "E deck", x0, x1 - 2 * T if rid == "e_engine" else x1, -w, w, E_DECK, e_holes)
-    walled(rid, x0, x1, -w, w, E_DECK, D_DECK if x0 >= -64.5 else 0.0, "ps")
+    # Its walls up to D deck under it, to C deck aft of D deck's end (-64.5): the turbine
+    # room's passage runs under both, and its walls stop at the second-class saloon's floor.
+    for a, b in [(x0, min(x1, -64.5)), (max(x0, -64.5), x1)]:
+        if b > a:
+            walled(rid if a == x0 else rid + "_d", a, b, -w, w, E_DECK, D_DECK if a >= -64.5 else 0.0, "ps")
     room(rid, name, x0, x1, -w, w, E_DECK)
 
 # Her compartments' floors aft, touching end to end through her bulkheads' walls: boiler

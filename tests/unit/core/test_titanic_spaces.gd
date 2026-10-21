@@ -121,3 +121,20 @@ func test_no_2_hold_s_starboard_part_is_left_nobody_s() -> void:
 	assert_not_null(part, "it opens the hold's starboard part")
 	if part != null:
 		assert_false(_layout.opens_place(part), "too narrow for a body: nobody's")
+
+
+func test_no_wall_from_under_a_room_s_floor_stands_up_through_it() -> void:
+	# The working passage over the turbine room runs aft past D deck's end: its walls rise
+	# to C deck there only, never up through the second-class dining saloon's floor.
+	var through: Array[String] = []
+	for room: ShipRoom in _layout.rooms:
+		var inside := room.area.grow(-0.3)
+		for blocker: ShipBlocker in _layout.blockers:
+			if (
+				blocker.shape == ShipBlocker.Shape.BOX
+				and blocker.bottom < room.floor_height - 0.05
+				and blocker.top > room.floor_height + 0.5
+				and blocker.area.intersects(inside)
+			):
+				through.append("%s through the %s" % [blocker.area, room.name])
+	assert_eq(through, [] as Array[String])
