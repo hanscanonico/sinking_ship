@@ -174,8 +174,11 @@ static func _stats(label: String, values: PackedInt64Array) -> String:
 	)
 
 
-## The machine's load, as `uptime` says it: the timings are only worth as much.
+## The machine's load, as `uptime` says it: the timings are only worth as much. Windows
+## has no `uptime`, and the engine's error at a missing command fails the engine guard.
 static func _uptime() -> String:
+	if OS.get_name() == "Windows":
+		return "n/a"
 	var said := []
 	OS.execute("uptime", [], said)
 	return str(said[0]).strip_edges() if not said.is_empty() else "?"
