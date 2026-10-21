@@ -403,9 +403,13 @@ func _watch_from_results(file: ReplayFile) -> void:
 
 
 ## Watches [param file] in the match scene (R4), its match's sinking made first as a
-## played match's is (R20): the countdown held over the backdrop while it bakes.
+## played match's is (R20): the countdown held over the backdrop while it bakes —
+## never from the results, whose match made that very sinking already.
 func _start_replay(file: ReplayFile) -> void:
-	var config := file.config(_match_rules)
+	var played: MatchConfig = null
+	if _replay_from == ReplayFrom.RESULTS and _match != null:
+		played = _match.played_config()
+	var config := replay_config(file, _match_rules, played)
 	if config == null:
 		push_error("replay: its choices no longer make a match")
 		return
@@ -423,6 +427,19 @@ func _start_replay(file: ReplayFile) -> void:
 		_match.stand_aside()
 	_menu.show_behind(_hold.beside())
 	_baker.bake(config, _args.bake_budget_ms if _args.bake_budget_ms > 0.0 else HOLD_BAKE_MS)
+
+
+## The match [param file] plays, on [param match_rules]; null when its choices no longer
+## make one. It takes [param played]'s sinking, baked or under way, when that match is
+## the same — the same ship, scenario and seed make the same sinking (D7) — so a replay
+## watched from the results never bakes hers again.
+static func replay_config(
+	file: ReplayFile, match_rules: MatchRules, played: MatchConfig
+) -> MatchConfig:
+	var config := file.config(match_rules)
+	if config != null:
+		config.share_sinking(played)
+	return config
 
 
 ## Watches [param file] on [param config], its sinking made, in the match scene.

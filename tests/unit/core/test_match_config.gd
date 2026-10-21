@@ -154,6 +154,16 @@ func test_fast_mode_changes_the_data_hash() -> void:
 	assert_false(fast.share_sinking(normal), "nor shares a normal match's sinking")
 
 
+func test_a_copy_of_her_scenario_shares_her_sinking_and_another_pace_does_not() -> void:
+	var played := _hit_fast(1701, true)
+	played.bake_some(1)
+	var again := _hit_fast(1701, true)
+	assert_ne(again.scenario, played.scenario, "each made of the choices is a copy")
+	assert_true(again.share_sinking(played), "the same numbers, the same sinking (D7)")
+	assert_eq(again.bake_steps(), 1, "taken as far as it was baked")
+	assert_false(_hit_fast(1701, false).share_sinking(played), "never at another pace")
+
+
 func test_fast_mode_leaves_the_loaded_scenario_untouched() -> void:
 	var loaded: SinkScenario = load(SimFixtures.STEAMER_SINKING)
 	var fast := _fast(1701)
