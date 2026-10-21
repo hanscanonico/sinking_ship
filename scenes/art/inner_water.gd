@@ -179,6 +179,10 @@ var _pocket_light: OmniLight3D
 ## pose it was last worked out to.
 var _inflows := PackedFloat64Array()
 var _inflow_now: ShipPose
+## Per cell, the world height its water was last drawn at, kept from frame to frame so
+## no frame allocates them; and a pour's two sides' water, the same way (_show_pour).
+var _levels := PackedFloat64Array()
+var _heights := PackedFloat64Array([0.0, 0.0])
 
 
 ## The boxes of [param structure]'s cells whose water is drawn — every cell wholly
@@ -464,15 +468,15 @@ func show_water(then: ShipPose, now: ShipPose, alpha: float) -> void:
 	_level = _ship.basis.inverse().orthonormalized()
 	_up = _level * Vector3.UP
 	var to_ship := _ship.affine_inverse()
-	var levels := PackedFloat64Array()
-	levels.resize(_surfaces.size())
+	if _levels.size() != _surfaces.size():
+		_levels.resize(_surfaces.size())
 	for cell in _surfaces.size():
 		var level := lerpf(_level_of(then, cell), _level_of(now, cell), alpha)
-		levels[cell] = level
+		_levels[cell] = level
 		if _surfaces[cell] != null:
 			_show_surface(_surfaces[cell], _boxes[cell], level, to_ship)
 	for stack: Array in _stacks:
-		_show_surface(stack[2], stack[1], levels[stack[0]], to_ship)
+		_show_surface(stack[2], stack[1], _levels[stack[0]], to_ship)
 	if now != _inflow_now:
 		_show_inflows(then, now)
 	for door: StringName in _leaves:
@@ -484,14 +488,14 @@ func show_water(then: ShipPose, now: ShipPose, alpha: float) -> void:
 		if shut > 0.0:
 			leaf.position = _slide(door) * (shut - 1.0)
 	if then != _wet_then or now != _wet_now:
-		_find_wet(then, now, levels)
+		_find_wet(then, now, _levels)
 	for index in _wet:
-		_show_pour(index, levels, now)
-	_show_pockets(now, levels)
+		_show_pour(index, _levels, now)
+	_show_pockets(now, _levels)
 	for burst in BURSTS:
 		if _burst_ages[burst] >= 0.0:
 			var under := _burst_cells[burst]
-			var level := (0.0 if under == -1 else levels[under]) + FROTH_LIFT
+			var level := (0.0 if under == -1 else _levels[under]) + FROTH_LIFT
 			_bursts[burst].position = _at_height(_burst_at[burst], level)
 
 
@@ -765,10 +769,11 @@ func _pour() -> MeshInstance3D:
 ## opening's top.
 func _show_pour(index: int, levels: PackedFloat64Array, pose: ShipPose) -> void:
 	var opening := _passages[index]
-	var sides := PackedInt32Array([_sides[index * 2], _sides[index * 2 + 1]])
-	var heights := PackedFloat64Array()
-	for side: int in sides:
-		heights.append(0.0 if side == -1 else levels[side])
+	var first := _sides[index * 2]
+	var second := _sides[index * 2 + 1]
+	_heights[0] = 0.0 if first == -1 else levels[first]
+	_heights[1] = 0.0 if second == -1 else levels[second]
+	var heights := _heights
 	var span := CellSurface.reach(_ship, _spans[index])
 	var bottom := span.x
 	var top := span.y
@@ -796,10 +801,12 @@ func _show_pour(index: int, levels: PackedFloat64Array, pose: ShipPose) -> void:
 		open = 0.0
 	var high := 0 if heights[0] >= heights[1] else 1
 	var low := 1 - high
+	var side_high := first if high == 0 else second
+	var side_low := second if high == 0 else first
 	# The floor of the lower side under the opening, as high as it stands in the world.
 	var under := opening.centre
 	under.y = _floors[index * 2 + low]
-	var floor_under := -INF if sides[low] == -1 else (_ship * under).y
+	var floor_under := -INF if side_low == -1 else (_ship * under).y
 	var drop := heights[high] - maxf(heights[low], floor_under)
 	if open <= 0.0 or heights[high] <= bottom + SHOWS or heights[high] - heights[low] < POURS:
 		return
@@ -813,7 +820,7 @@ func _show_pour(index: int, levels: PackedFloat64Array, pose: ShipPose) -> void:
 	if axis == 1:
 		# A hole in a deck: water falls through it from over the hole, if the higher
 		# side is over it, down the hole's longer way.
-		if not _over(sides[high], opening.centre.y):
+		if not _over(side_high, opening.centre.y):
 			return
 		from = (_ship * centre).y
 		var long := 0 if opening.size.x >= opening.size.z else 2
@@ -824,8 +831,8 @@ func _show_pour(index: int, levels: PackedFloat64Array, pose: ShipPose) -> void:
 		var along := 2 if axis == 0 else 0
 		width = opening.size[along] * open
 		across[along] = 1.0
-		normal[axis] = signf(_middle(sides[low], axis) - centre[axis])
-		centre += normal * (OFF_SHELL if sides[high] == -1 else OFF_WALL)
+		normal[axis] = signf(_middle(side_low, axis) - centre[axis])
+		centre += normal * (OFF_SHELL if side_high == -1 else OFF_WALL)
 		# A sliding door's opening is what its leaf has not covered.
 		centre[along] += opening.size[along] * (1.0 - open) * 0.5
 	if from - to < POURS or width <= 0.0:
@@ -843,7 +850,7 @@ func _show_pour(index: int, levels: PackedFloat64Array, pose: ShipPose) -> void:
 	var short := opening.size[int(normal.abs().max_axis_index())]
 	across = _flat(across)
 	normal = _flat(normal)
-	var outdoor := 1.0 if axis == 1 and sides[high] == -1 else 0.0
+	var outdoor := 1.0 if axis == 1 and side_high == -1 else 0.0
 	var middle := _at_height(centre, (from + to) * 0.5)
 	var falling := Basis(across * width, _up * tall, normal)
 	_hang(pour, falling, middle, strength, Vector3(0.0, 0.0, thrown), outdoor)
