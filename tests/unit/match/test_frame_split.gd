@@ -173,7 +173,8 @@ func test_a_node_class_is_its_processes_mean_over_the_frames_kept() -> void:
 	split.close(10000)
 	assert_almost_eq(split.node_mean(&"ShipLamp"), 0.2, 0.0001, "every lamp, summed")
 	assert_almost_eq(split.node_mean(&"MatchView"), 1.0, 0.0001)
-	assert_eq(split.node_classes(), [&"MatchView", &"ShipLamp"] as Array[StringName], "costliest first")
+	var costliest_first: Array[StringName] = [&"MatchView", &"ShipLamp"]
+	assert_eq(split.node_classes(), costliest_first)
 
 
 func test_a_dropped_frames_nodes_count_for_nothing() -> void:
