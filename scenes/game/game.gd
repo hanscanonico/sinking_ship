@@ -259,6 +259,9 @@ func _play(choices: MatchChoices) -> void:
 		return
 	_holding = config
 	_hold.begin(Ticks.to_seconds(config.countdown_ticks))
+	# A rematch's: the results it was pressed on stand aside, or they draw over the hold.
+	if _match != null:
+		_match.stand_aside()
 	# Over the menu's backdrop, the ship at rest; an autoplay never dressed it, and
 	# dressing it now would stall the very frames the hold keeps moving.
 	if not _args.autoplay:
@@ -415,6 +418,9 @@ func _start_replay(file: ReplayFile) -> void:
 	_holding = config
 	_holding_replay = file
 	_hold.begin(Ticks.to_seconds(config.countdown_ticks))
+	# Watched from the results: they stand aside, kept for the way back (_close_replay).
+	if _match != null:
+		_match.stand_aside()
 	_menu.show_behind(_hold.beside())
 	_baker.bake(config, _args.bake_budget_ms if _args.bake_budget_ms > 0.0 else HOLD_BAKE_MS)
 

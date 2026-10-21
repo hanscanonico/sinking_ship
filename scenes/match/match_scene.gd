@@ -85,6 +85,8 @@ var _replay_hud: ReplayHud
 var _orbit: OrbitCamera
 ## Whose eyes the replay is seen through, cycled round every seat (SpectateOrder.every).
 var _replay_seat := LOCAL_SEAT
+## Whether the match stands aside for the next one's held countdown (stand_aside).
+var _aside := false
 
 @onready var _sea_and_sky: SeaAndSky = $SeaAndSky
 @onready var _driver: SimDriver = $SimDriver
@@ -128,7 +130,7 @@ func _exit_tree() -> void:
 # Runs after MatchView (the scene's process_priority), so the eyes sit on the bodies
 # as drawn this frame.
 func _process(delta: float) -> void:
-	if not _driver.started():
+	if not _driver.started() or _aside:
 		return
 	var snapshot := _driver.current
 	var viewed := _replay_seat if _driver.replaying() else _order.target(snapshot)
@@ -219,7 +221,7 @@ func _process(delta: float) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if not _driver.started() or _mouse_freed:
+	if not _driver.started() or _mouse_freed or _aside:
 		return
 	if event is InputEventMouseMotion:
 		if _orbiting():
@@ -439,6 +441,10 @@ func _setup_view(
 		_observer_camera.make_current()
 	else:
 		_eyes.make_current()
+	_aside = false
+	visible = true
+	for layer: CanvasLayer in _overlays():
+		layer.show()
 	_end.hide()
 	if _replay_hud != null:
 		_replay_hud.visible = _driver.replaying()
@@ -550,6 +556,29 @@ func show_results_again() -> void:
 		_config.match_seed,
 		_config.goal == MatchRules.Goal.SURVIVAL
 	)
+
+
+## Stands the ended match aside while Game holds the next one's countdown for its
+## sinking (R20) — a rematch's, or a replay's watched from the results: nothing of it
+## drawn, its world, HUDs and results, nor its keys heard, so the held countdown shows
+## over the menu's backdrop as a held Play does. The match and its last stats are kept
+## for the way back from the replay (show_results_again); start or start_replay brings
+## it back.
+func stand_aside() -> void:
+	_aside = true
+	visible = false
+	for layer: CanvasLayer in _overlays():
+		layer.hide()
+
+
+## Everything the match draws over the world.
+func _overlays() -> Array[CanvasLayer]:
+	var layers: Array[CanvasLayer] = [
+		_hud, _first_person_hud, _underwater, _lens_drops, _pointer, _end
+	]
+	if _replay_hud != null:
+		layers.append(_replay_hud)
+	return layers
 
 
 ## The replay's keys: whether [param event] was one of them, and what it asked done.
