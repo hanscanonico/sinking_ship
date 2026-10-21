@@ -164,3 +164,29 @@ func test_the_roof_parts_a_crawler_from_those_on_it_and_a_shove_beside_it_lands(
 	SimFixtures.step(sim, {2: SimFixtures.frame(2, Vector2.ZERO, InputFrame.SHOVE)})
 	SimFixtures.step(sim, {2: SimFixtures.frame(2)}, 5)
 	assert_true(crawler.is_staggered(), "a shove from beside the roof lands")
+
+
+func test_a_landing_found_already_gives_the_height_and_headroom_asked_afresh() -> void:
+	# MatchView finds each body's landing once a frame and hands it on (height_on).
+	var rules := _rules()
+	var sim := _roofed_sim(1, 1.0)
+	var surfaces := sim.surfaces
+	for feet: Vector3 in [
+		Vector3(2.0, 0.0, 0.0),
+		Vector3(-3.0, 0.0, 0.0),
+		Vector3(6.0, 0.0, 1.0),
+		Vector3(2.0, 1.0, 0.0),
+		Vector3(0.0, -30.0, 0.0),
+		Vector3(400.0, 0.0, 0.0),
+	]:
+		var ground := surfaces.landing(feet)
+		assert_eq(
+			rules.height_on(surfaces, feet, ground), rules.height_at(surfaces, feet), "%s" % feet
+		)
+		assert_eq(
+			rules.headroom_on(surfaces, feet, ground), rules.headroom(surfaces, feet), "%s" % feet
+		)
+	var under_roof := Vector3(2.0, 0.0, 0.0)
+	var landing := surfaces.landing(under_roof)
+	assert_eq(rules.height_on(surfaces, under_roof, landing), rules.crawl_height, "under the roof")
+	assert_eq(rules.headroom_on(surfaces, under_roof, Surfaces.NONE), INF, "over nothing")
