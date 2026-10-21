@@ -336,3 +336,28 @@ func test_a_stacked_box_s_sheet_follows_its_cell_s_water() -> void:
 		assert_almost_eq(
 			_sheet_height(sheet, pose), pose.levels[cell], FLOAT_SLACK, "at its cell's level"
 		)
+
+
+## What [param water] draws: each sheet's and pour's visibility and, shown, its transform.
+func _drawn(water: InnerWater) -> Array:
+	var drawn := []
+	for child: Node in water.get_children():
+		var sheet := child as MeshInstance3D
+		if sheet != null:
+			drawn.append([sheet.visible, sheet.transform if sheet.visible else Transform3D()])
+	return drawn
+
+
+func test_water_drawn_again_frame_after_frame_draws_as_it_would_drawn_afresh() -> void:
+	# The levels and a pour's heights are kept from frame to frame, not made anew: what a
+	# frame draws owes nothing to the frames before it.
+	var kept := _water()
+	var wet := _pose(true)
+	kept.show_water(wet, wet, 0.0)
+	var over := _levelled(InnerWater.POURS + 0.01)
+	kept.show_water(wet, over, 0.6)
+	kept.show_water(over, over, 0.0)
+	var fresh := _water()
+	fresh.show_water(over, over, 0.0)
+	assert_true(_door_pours(kept), "the door pours")
+	assert_eq(_drawn(kept), _drawn(fresh))
