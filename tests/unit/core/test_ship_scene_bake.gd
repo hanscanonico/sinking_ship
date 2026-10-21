@@ -226,7 +226,9 @@ func test_an_unknown_tag_and_a_wrong_node_are_problems() -> void:
 ## Windows spells with a drive letter: an absolute path is read where it is, and only a
 ## relative one is the project's.
 func test_an_absolute_path_is_not_read_as_the_projects() -> void:
-	assert_eq(ShipBake._res("authoring/steamer/steamer.tscn"), "res://authoring/steamer/steamer.tscn")
+	assert_eq(
+		ShipBake._res("authoring/steamer/steamer.tscn"), "res://authoring/steamer/steamer.tscn"
+	)
 	assert_eq(ShipBake._res("res://data/ships/steamer.tres"), "res://data/ships/steamer.tres")
 	assert_eq(ShipBake._res("/tmp/tmp.x/steamer.glb"), "/tmp/tmp.x/steamer.glb")
 	assert_eq(ShipBake._res("C:/Temp/tmp.x/steamer.glb"), "C:/Temp/tmp.x/steamer.glb")
