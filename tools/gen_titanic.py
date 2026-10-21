@@ -2238,10 +2238,9 @@ for axis, at, d0, d1, foot in doorways:
     if any(o[1] == "WATERTIGHT_DOOR" and set(o[2]) == {a, b or SKY} and o[4][axis] == 0
            and abs(o[3][axis] - face) < 1e-4 and abs(o[3][1] - LINTEL * 0.5 - foot) < 1e-4 for o in openings):
         continue
-    # Nor is one through a door the ship has already at its own sill: a bunker's door from
-    # its stokehold, or the forecastle's onto the forward well (door_forecastle, below).
-    if any(o[1] == "DOOR" and set(o[2]) == {a, b or SKY} and o[4][axis] == 0 and abs(o[3][axis] - face) < 1e-4
-           for o in openings) or (a, b, axis) == ("forecastle", None, 0):
+    # Nor is the one through the forecastle's front onto the forward well: the forecastle's
+    # door there (door_forecastle, below) is that door.
+    if (a, b, axis) == ("forecastle", None, 0) and abs(face - FCSL_FROM) < 1e-4:
         continue
     if key in merged:
         merged[key][1] += (d1 - d0) * LINTEL
