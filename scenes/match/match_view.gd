@@ -377,17 +377,21 @@ func _process(delta: float) -> void:
 		)
 		body.transform = placed * Transform3D(to_ship * Basis(Vector3.UP, -_facings[seat]), pos)
 		var feet := to_ship.transposed() * pos
-		_heights[seat] = _rules.height_at(here, feet)
+		var below := here.landing(feet)
+		_heights[seat] = _rules.height_on(here, feet, below)
+		# Posed even unseen, through its eyes: the hands of a body drawn reaching for it
+		# stop at its guard (Brawler.keep_apart).
 		body.show_state(then, now, alpha, _heights[seat] < _rules.body_height)
+		if not body.visible:
+			continue
 		# A swimmer stands on nothing: no ring tilted to a deck under the sea, no shadow.
-		var below := Surfaces.NONE
-		if now["state"] != PlayerState.Body.SWIMMING:
-			below = here.landing(feet)
+		if now["state"] == PlayerState.Body.SWIMMING:
+			below = Surfaces.NONE
 		var normal := Vector3.UP if below == Surfaces.NONE else _ground_normal(here, below, feet)
 		body.show_ground(placed.basis * (to_ship * normal))
 		if below != Surfaces.NONE:
 			var ground := here.height_at(below, feet)
-			_shadows[seat].visible = body.visible
+			_shadows[seat].visible = true
 			_shadows[seat].transform = (
 				placed
 				* Transform3D(to_ship, to_ship * Vector3(feet.x, ground + SHADOW_LIFT, feet.z))

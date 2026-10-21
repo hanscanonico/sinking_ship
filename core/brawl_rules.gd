@@ -214,7 +214,13 @@ func _shrunk(length: float, height: float) -> float:
 ## where the headroom over its floor is less than body_height — crawling follows from
 ## where a body is, never from a button (D3) — and body_height anywhere else.
 func height_at(surfaces: Surfaces, feet: Vector3) -> float:
-	if headroom(surfaces, feet) < body_height:
+	return height_on(surfaces, feet, surfaces.landing(feet))
+
+
+## height_at for a body whose landing — surfaces.landing(feet) — is [param ground],
+## found already: the same answer without asking for it twice.
+func height_on(surfaces: Surfaces, feet: Vector3, ground: int) -> float:
+	if headroom_on(surfaces, feet, ground) < body_height:
 		return crawl_height
 	return body_height
 
@@ -225,7 +231,12 @@ func height_at(surfaces: Surfaces, feet: Vector3) -> float:
 ## in its room's water — up to the lowest underside more than step_height over its feet
 ## (Surfaces.ceiling). INF with nothing over it, or nothing under.
 func headroom(surfaces: Surfaces, feet: Vector3) -> float:
-	var ground := surfaces.landing(feet)
+	return headroom_on(surfaces, feet, surfaces.landing(feet))
+
+
+## headroom for a body whose landing — surfaces.landing(feet) — is [param ground],
+## found already.
+func headroom_on(surfaces: Surfaces, feet: Vector3, ground: int) -> float:
 	if ground != Surfaces.NONE:
 		ground = surfaces.footing(ground)
 	if ground == Surfaces.NONE:
