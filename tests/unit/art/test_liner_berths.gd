@@ -14,13 +14,17 @@ const BEFORE := {
 	&"officers' quarters": 1806,
 	&"third-class berths": 0,
 	&"crew quarters": 0,
+	# Her old voids' (#148): none on main.
+	&"firemen's quarters": 0,
+	&"seamen's quarters": 0,
 }
 ## The most berths she may hang, all her blocks of berths together.
 const BUDGET := 200
 ## The most faces a block of berths may stand in all, its modelled berths
 ## (RoomDressing.BERTH_MODEL) and their chains and the cabin furniture's models too:
-## the third-class berths and the crew quarters, the worst, draw 8012.
-const CEILING := 8500
+## the crew quarters, the worst, draw 8816, their panels cut at every edge of every deck
+## across her (ShipSpace's room lines) — the decks of her old voids (#148) among them.
+const CEILING := 9300
 
 var _layout: ShipLayout
 var _rules: BrawlRules
@@ -61,13 +65,22 @@ func _faces_in(room: ShipRoom) -> int:
 	return count
 
 
-func test_her_blocks_of_berths_are_the_three_she_has() -> void:
+func test_her_blocks_of_berths_are_the_five_she_has() -> void:
 	var names := PackedStringArray()
 	for room: ShipRoom in _berths():
 		names.append(String(room.name))
 	names.sort()
 	assert_eq(
-		names, PackedStringArray(["crew quarters", "officers' quarters", "third-class berths"])
+		names,
+		PackedStringArray(
+			[
+				"crew quarters",
+				"firemen's quarters",
+				"officers' quarters",
+				"seamen's quarters",
+				"third-class berths"
+			]
+		)
 	)
 
 

@@ -259,3 +259,48 @@ func test_view_in_the_dark_sees_no_farther_than_its_dark_sight() -> void:
 		seen[lit] = _seats_in(view)
 	assert_eq(seen[ShipPower.Power.DARK], [0, 1], "in the dark, 3 m and not 6 m")
 	assert_eq(seen[ShipPower.Power.EMERGENCY], [0, 1, 2], "in a dim light, both")
+
+
+## The cached entry by seat is the one a scan of the perceived snapshot finds, push
+## after push — never the previous snapshot's.
+func test_entry_is_the_perceived_snapshots() -> void:
+	var delay := _profile().reaction_ticks
+	var sim := _sim(2)
+	var view := _view_of(sim)
+	var last_seen := Vector3.INF
+	var moved := 0
+	for _tick in 3 * delay:
+		SimFixtures.step(sim, {1: SimFixtures.frame(1, Vector2.RIGHT)})
+		view.push(sim.snapshot(), sim.pose())
+		var seen := view.snapshot()
+		for wanted: int in [0, 1, 2]:
+			var scanned := {}
+			for entry: Dictionary in seen["seats"]:
+				if entry["seat"] == wanted:
+					scanned = entry
+					break
+			var cached := view.entry(wanted)
+			if scanned.is_empty():
+				assert_true(cached.is_empty(), "seat %d is in no snapshot" % wanted)
+			else:
+				assert_true(is_same(cached, scanned), "seat %d at %d" % [wanted, seen["tick"]])
+		var at: Vector3 = view.entry(1)["pos"]
+		if at != last_seen:
+			moved += 1
+		last_seen = at
+	assert_gt(moved, delay, "the entry served follows each new delayed snapshot")
+
+
+## The piece and frame the bot stood on are its entry's in the delayed snapshot of the
+## latest push, not of the push before.
+func test_footing_follows_each_push() -> void:
+	var delay := _profile().reaction_ticks
+	var view := BotView.new(0, _profile(), BotInputSource.floors_of(_sim(1).config))
+	var ups := [Faces.Up.DECK, Faces.Up.KEEL, Faces.Up.PORT]
+	for tick in delay + 6:
+		var piece := tick % 2
+		var up: Array = [ups[tick % 3], ups[(tick + 1) % 3]]
+		view.push({"tick": tick, "seats": [{"seat": 0, "piece": piece}], "up": up}, null)
+		var held := maxi(0, tick - delay)
+		var expected := BotFloors.footing(held % 2, ups[(held + held % 2) % 3])
+		assert_eq(view.up(), expected, "after the push of %d" % tick)
