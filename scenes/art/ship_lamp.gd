@@ -17,7 +17,8 @@ extends Node3D
 ## fading sooner, so it throws a pool of light on the floor under it; a furnace's
 ## fire is set in a wall, unswung, and throws its light out of the wall alone, never
 ## through it, wavering as a fire does. Each is one light, so a mesh still meets few
-## enough.
+## enough. A lamp with nothing left to change — done fading, steady, hanging still —
+## sleeps until a change of its own, or ShipArt as she turns, wakes it.
 
 ## What the lamp is: a room's pendant globe, a hold's shaded cargo lamp, or a fire.
 enum Kind { PENDANT, CARGO, FIRE }
@@ -63,19 +64,43 @@ const REACH := 8.0
 const STOREY_MARGIN := 0.8
 ## Seconds a lamp takes to come up or go down as the eye comes and goes.
 const FADE := 0.3
+## Below this a lamp's swing, and how far it hangs off plumb, are still: a lamp done
+## fading, steady and still is hung plumb and sleeps (stops processing) until something
+## it shows changes or she turns (wake) — at most a tick's turn of her off plumb.
+const STILL := 2e-3
 
 ## False once the lamp is wrecked: it stays out whatever the water does.
-var burning := true
+var burning := true:
+	set(value):
+		if value != burning:
+			burning = value
+			wake()
 ## What powers its cell now (ShipPower.Power), and for a fire whether the water in its
 ## cell has reached it; ShipArt sets both from the pose.
-var power: int = ShipPower.Power.MAIN
-var drowned := false
+var power: int = ShipPower.Power.MAIN:
+	set(value):
+		if value != power:
+			power = value
+			wake()
+var drowned := false:
+	set(value):
+		if value != drowned:
+			drowned = value
+			wake()
 ## Whether the lamp lights its room whatever eye draws the frame: the observer's
 ## cut-away, which looks down into every room at once.
-var everywhere := false
+var everywhere := false:
+	set(value):
+		if value != everywhere:
+			everywhere = value
+			wake()
 ## Whether the eye that draws the frame wants the lamp lighting its room (ShipArt
 ## chooses): it fades up toward lit while it does, and down while it does not.
-var wanted := true
+var wanted := true:
+	set(value):
+		if value != wanted:
+			wanted = value
+			wake()
 
 var _kind := Kind.PENDANT
 ## How far the lamp has faded up (0…1) toward lighting its room.
@@ -111,6 +136,21 @@ static func glow(power: int, was: int, since: float, clock: float) -> float:
 	var moment := floorf(clock * FLICKER_RATE)
 	var roll := fposmod(sin(moment * 12.9898 + 78.233) * 43758.5453, 1.0)
 	return before if roll > since / FAILING else now
+
+
+## Whether a lamp may sleep: done fading in or out ([param faded]), its glow not
+## flickering ([param since] its power last dropped, FAILING or more ago) and, unless it
+## is a fire ([param kind]), its [param swing] and its [param lean] off the world's
+## down still (STILL); a fire only once it is out ([param level] 0), as it wavers while
+## it burns.
+static func still(
+	kind: Kind, faded: bool, level: float, since: float, swing: Vector3, lean: Vector3
+) -> bool:
+	if not faded or since < FAILING:
+		return false
+	if kind == Kind.FIRE:
+		return level == 0.0
+	return swing.length() < STILL and lean.length() < STILL
 
 
 static func _brightness(power: int) -> float:
@@ -228,13 +268,21 @@ static func _unlit_outdoors(light: Light3D) -> void:
 	light.light_cull_mask &= ~(1 << (ShipMesh.OUTDOOR_LAYER - 1))
 
 
+## Has a sleeping lamp process again: ShipArt calls it on each tick's pose that turns
+## her and as the deck it hangs from falls, so no turn goes unseen, and the lamp's own
+## setters on every change.
+func wake() -> void:
+	set_process(true)
+
+
 func _process(delta: float) -> void:
 	var ship := get_parent_node_3d()
 	if ship == null:
 		return
 	_clock += delta
+	var down := _hang
 	if _kind != Kind.FIRE:
-		var down := (ship.global_basis.inverse() * Vector3.DOWN).normalized()
+		down = (ship.global_basis.inverse() * Vector3.DOWN).normalized()
 		_swing += ((down - _hang) * STIFFNESS - _swing * DAMPING) * delta
 		_hang = (_hang + _swing * delta).normalized()
 		basis = Basis(Quaternion(Vector3.DOWN, _hang))
@@ -250,7 +298,8 @@ func _process(delta: float) -> void:
 	if not burning:
 		level = 0.0
 	var lit := burning and (everywhere or wanted)
-	_presence = move_toward(_presence, 1.0 if lit else 0.0, delta / FADE)
+	var target := 1.0 if lit else 0.0
+	_presence = move_toward(_presence, target, delta / FADE)
 	var energy := level * smoothstep(0.0, 1.0, _presence)
 	if energy != _energy:
 		_energy = energy
@@ -263,6 +312,12 @@ func _process(delta: float) -> void:
 	if level != _shown:
 		_shown = level
 		_glass.emission_energy_multiplier = level
+	if still(_kind, _presence == target, level, _since, _swing, down - _hang):
+		_hang = down
+		_swing = Vector3.ZERO
+		if _kind != Kind.FIRE:
+			basis = Basis(Quaternion(Vector3.DOWN, _hang))
+		set_process(false)
 
 
 ## A lamp on her emergency power burns red, on her generator its own warm light.
