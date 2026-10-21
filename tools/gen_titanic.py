@@ -27,6 +27,7 @@ Usage: tools/gen_titanic.py <out.tres> [--variant=olympic1913|--variant=britanni
 """
 import math
 import re
+import struct
 import sys
 
 out = sys.argv[1]
@@ -81,6 +82,7 @@ def lerp(a, b, t):
 
 subs = []
 platforms, ramps, blockers, railings, ladders, rooms, props = [], [], [], [], [], [], []
+rail_geo = []  # per railing, (platform, from, to)
 used = set()
 # The same pieces as numbers: (x0, x1, z0, z1, height) per platform; (x0, x1, z0, z1,
 # axis, start, end) per ramp; (x0, x1, z0, z1, bottom, top, is a box) per blocker; (x0,
@@ -117,8 +119,17 @@ def relay(index, name, x0, x1, z0, z1, h):
     body += ["%s = %s" % kv for kv in platform_fields(name, x0, x1, z0, z1, h)]
     subs[at] = "\n".join(body)
 
+# The steepest stair a body climbs: its rise a body's radius on under a step, both read
+# from data/rules/brawl.tres (as the trawler's generator reads them).
+def rule(key):
+    with open("data/rules/brawl.tres") as f:
+        return float(re.search(r"^%s = ([\d.]+)$" % key, f.read(), re.M).group(1))
+
+STEEPEST = rule("step_height") / rule("body_radius")
+
 def ramp(rid, x0, x1, z0, z1, axis, start, end):
     """A stair over (x0..x1, z0..z1) rising along x (axis 0) or z (axis 1)."""
+    assert abs(end - start) / (x1 - x0 if axis == 0 else z1 - z0) <= STEEPEST, "stair %s too steep to climb" % rid
     ramp_geo.append((x0, x1, z0, z1, axis, start, end))
     f = [("area", rect_xz(x0, x1, z0, z1))]
     if axis == 1:
@@ -136,6 +147,18 @@ def box(bid, x0, x1, z0, z1, bottom, top):
         f.append(("bottom", num(bottom)))
     f.append(("top", num(top)))
     blockers.append(sub("Blocker_" + bid, "3_block", f))
+
+def relay_box(bid, x0, x1, z0, z1, bottom, top):
+    """Box bid laid again over (x0..x1, z0..z1) from bottom to top, keeping its place and id."""
+    kind_id = "Blocker_" + bid
+    block_geo[blockers.index(kind_id)] = (x0, x1, z0, z1, bottom, top, True)
+    at = next(i for i, text in enumerate(subs) if text.startswith('[sub_resource type="Resource" id="%s"]' % kind_id))
+    f = [("area", rect_xz(x0, x1, z0, z1))]
+    if bottom != 0.0:
+        f.append(("bottom", num(bottom)))
+    f.append(("top", num(top)))
+    body = ["[sub_resource type=\"Resource\" id=\"%s\"]" % kind_id, "script = ExtResource(\"3_block\")"]
+    subs[at] = "\n".join(body + ["%s = %s" % kv for kv in f])
 
 def cylinder(bid, cx, cz, r, bottom, top):
     block_geo.append((cx - r, cx + r, cz - r, cz + r, bottom, top, False))
@@ -165,12 +188,26 @@ def railing(rid, plat, a, b):
         f.append(("from", "Vector2(%s, %s)" % (num(ends[k][0]), num(ends[k][1]))))
         f.append(("to", "Vector2(%s, %s)" % (num(ends[k + 1][0]), num(ends[k + 1][1]))))
         railings.append(sub("Railing_" + rid + ("_%d" % k if len(ends) > 2 else ""), "4_rail", f))
+        rail_geo.append((plat, ends[k], ends[k + 1]))
 
-def room(rid, name, x0, x1, z0, z1, floor):
+def rehome(index, plat):
+    """Railing index laid again on platform plat, keeping its place and id."""
+    _old, a, b = rail_geo[index]
+    rail_geo[index] = (plat, a, b)
+    kind_id = railings[index]
+    at = next(i for i, text in enumerate(subs) if text.startswith('[sub_resource type="Resource" id="%s"]' % kind_id))
+    f = [("platform", str(plat))] if plat != 0 else []
+    f += [("from", "Vector2(%s, %s)" % (num(a[0]), num(a[1]))), ("to", "Vector2(%s, %s)" % (num(b[0]), num(b[1])))]
+    body = ["[sub_resource type=\"Resource\" id=\"%s\"]" % kind_id, "script = ExtResource(\"4_rail\")"]
+    subs[at] = "\n".join(body + ["%s = %s" % kv for kv in f])
+
+def room(rid, name, x0, x1, z0, z1, floor, crawl_space=False):
     room_geo.append((x0, x1, z0, z1, floor, name))
     f = [("name", '&"%s"' % name), ("area", rect_xz(x0, x1, z0, z1))]
     if floor != 0.0:
         f.append(("floor_height", num(floor)))
+    if crawl_space:
+        f.append(("crawl_space", "true"))
     rooms.append(sub("Room_" + rid, "6_room", f))
 
 T = 0.1  # half a wall's thickness: walls are 0.2 m, centred on a room's side
@@ -412,6 +449,29 @@ def recut(made, pid, name, x0, x1, z0, z1, h, holes):
     return made + [platform("%s_%d" % (pid, k), name, a, b, s0, s1, h)
                                  for k, (a, b, s0, s1) in enumerate(pieces) if k >= len(made)]
 
+def split(made, pid, name, h, holes):
+    """A deck laid by deck() cut round more holes piece by piece: each piece one falls in
+    laid again as the largest of its parts, the rest after every other, and a railing on it
+    moved to the part whose edge it stands on — so no other piece moves, nor any railing."""
+    out = list(made)
+    for index in made:
+        x0, x1, z0, z1, _h = plat_geo[index]
+        cut = [o for o in holes if o[0] < x1 and o[1] > x0 and o[2] < z1 and o[3] > z0]
+        if not cut:
+            continue
+        parts = sorted(deck_pieces(x0, x1, z0, z1, cut), key=lambda r: -(r[1] - r[0]) * (r[3] - r[2]))
+        relay(index, name, *parts[0], h)
+        new = []
+        for part in parts[1:]:
+            new.append(platform("%s_%d" % (pid, len(out)), name, *part, h))
+            out.append(new[-1])
+        for k, (plat, a, b) in enumerate(rail_geo):
+            if plat == index and edge_platform([index], a, b) is None:
+                home = edge_platform(new, a, b)
+                assert home is not None, ("a railing left on no deck's edge", pid, a, b)
+                rehome(k, home)
+    return out
+
 STAIR = 1.4   # a stair's width (est.)
 
 def stair(sid, x_low, x_high, z0, z1, low, high, deck_holes):
@@ -555,11 +615,13 @@ CWD = fit(B_RUN[0], B_RUN[1], 0.0, 0.05)
 c_deck = deck("c", "C deck", B_RUN[0], B_RUN[1], -CWD, CWD, 0.0, holes["c"])
 # D deck, her length from the turbine room's after bulkhead to No. 2 hold, narrowing
 # forward with her hull.
-d_deck = []
+d_deck, d_ranges = [], []  # its pieces; per stretch of it, (its pieces, its half width)
 for x0, x1 in [(-64.5, 60.0), (60.0, 85.0), (85.0, 100.5)]:
     w = fit(x0, x1, D_DECK, 0.2)
-    d_deck += deck("d_%d" % len(d_deck), "D deck", x0, x1, -w, w, D_DECK,
-                   [h for h in holes["d"] if x0 <= h[0] < x1])
+    cut = [h for h in holes["d"] if x0 <= h[0] < x1]
+    made = deck("d_%d" % len(d_deck), "D deck", x0, x1, -w, w, D_DECK, cut)
+    d_ranges.append((made, w))
+    d_deck += made
 e_road = deck("e_road", "E deck", SR[0] + T, SR[1] - T, SR_Z[0], SR_Z[1], E_DECK, holes["e"])
 e_landing = deck("e_landing", "E deck", GS[0], GS[1], SR_Z[1], 6.0, E_DECK, holes["e"])
 f_saloons = deck("f_saloons", "F deck", BX["J"], BX["G"], -SALOON_Z, SALOON_Z, F_DECK, [])
@@ -996,11 +1058,13 @@ f_decks = {"f_saloons": (f_saloons, BX["J"], BX["G"], SALOON_Z, []),
            "f_br4": (f_br4, BX["G"], BX["F"], SALOON_Z, casing_holes[:1]),
            "f_br5": (f_br5, BX["F"], BX["E"], BR5_Z, casing_holes[1:])}
 stokehold_flights = []
+STOKEHOLD_Z = {}  # each stokehold's plates' half width
 for k, aft, rows, back, over in STOKEHOLDS:
     x0, bunker = BX[aft], BUNKERS["br%d" % k]
     plates = (x0 + T, bunker - T)
     deck_w = f_decks[over][3]
     w = min(fit(plates[0], plates[1], TANK_TOP, 0.3), deck_w - T)
+    STOKEHOLD_Z[k] = w
     platform("stokehold_%d" % k, "tank top", plates[0], plates[1], -w, w, TANK_TOP)
     side = w - T
     if deck_w - side > 2 * T + 1e-9:
@@ -1034,6 +1098,628 @@ for over, (made, x0, x1, half, holes) in f_decks.items():
     f_decks[over] = recut(made, over, "F deck", x0, x1, -half, half, F_DECK, holes)
 for sid, over in stokehold_flights:
     hole_rails(f_decks[over], sid)
+
+# The firemen's passage, from the foot of the spiral stairs in No. 2 hold aft through
+# No. 3 to boiler room 6 (Wilding: "the spiral stair"; BOT: its side "3 1/2 ft from the
+# outer skin of the ship", in No. 2 hold): est. 2 m wide and 8 ft high, its starboard
+# side 3 ft 6 in inside her shell at its middle height in No. 2 hold.
+PASSAGE_TOP = q(TANK_TOP + 8.0 * FT)
+PASSAGE_Z = (round(breadth(94.0, (TANK_TOP + PASSAGE_TOP) * 0.5) - 3.5 * FT - 2.0, 4),
+             round(breadth(94.0, (TANK_TOP + PASSAGE_TOP) * 0.5) - 3.5 * FT, 4))
+
+# --- Every cell a place a body can be (#148), the bow: boiler room 6, its bunker and the
+# firemen's passage forward of it, Nos. 3, 2 and 1 holds deck by deck, the forepeak and its
+# tank, the forecastle over them, and the double bottoms under them all — after every other
+# platform, ramp, blocker and room so none of theirs moves; a wall given a door is laid
+# again in its place, its other pieces after every other (relay_box). Her cells, her hull
+# and her openings stand as they were but for the ways into her old voids, every one
+# sealed to the water (with her openings, below), so she floods as she did. Every floor
+# stands 0.3 m inside her shell (fit), every room inside her lines from its floor up, and
+# every stair is climbable (STEEPEST), its ends on sixteenths of a metre so they meet their
+# decks in single precision (joins, below). Sizes and places est.
+SPACE_FLIGHT = 3.0      # a flight's run up 8 ft, the firemen's passage's height (est.), 39°
+NARROW_STAIR = 0.9      # a stair in a narrow space or down a manhole: a body's width and a hand
+# The ways through her watertight bulkheads the spaces take where no deck over them leaves a
+# way up (est.): each a door bolted shut, as the manholes are — (name, bulkhead, floor, z).
+SEALED_DOORS = []
+
+def sealed_door(name, letter, floor, z):
+    SEALED_DOORS.append((name, BX[letter], floor, z))
+    return door_at(z)
+
+def door_in(bid, x, z0, z1, bottom, top, middle):
+    """The wall bid, one box across her at x from z0 to z1 (wall_x's), given a door round
+    middle as wall_x gives one: its first piece laid over the box it was, the rest after
+    every other."""
+    d0, d1 = door_at(middle)
+    relay_box(bid, x - T, x + T, z0 - T, d0, bottom, top)
+    box(bid + "_1", x - T, x + T, d1, z1 + T, bottom, top)
+    if bottom + LINTEL < top:
+        box(bid + "_lintel_0", x - T, x + T, d0, d1, bottom + LINTEL, top)
+    doorways.append((0, x, d0, d1, bottom))
+
+def walled(bid, x0, x1, z0, z1, bottom, top, sides="psaf", doors=None):
+    """Walls from bottom to top along the sides of (x0..x1, z0..z1) that sides names — p
+    along z0, s along z1, a across x0, f across x1 — each with its doors [(from, to)]."""
+    doors = doors or {}
+    for side in sides:
+        if side in "ps":
+            wall_z("%s_%s" % (bid, side), z0 if side == "p" else z1, x0, x1, bottom, top, doors.get(side, ()))
+        else:
+            wall_x("%s_%s" % (bid, side), x0 if side == "a" else x1, z0, z1, bottom, top, doors.get(side, ()))
+
+# Boiler room 6 (SB-III): the stokeholds' pattern (above) — two boilers abreast in her
+# narrowing bilge, their firing aisles fore and aft — with an F deck of its own over it and
+# its bunker, which it had none of: a working corridor from bulkhead E's door to bulkhead
+# D's (wtd_f_e, wtd_f_d), on along F deck through boiler rooms 5 and 4 to the third-class
+# saloons aft, and into No. 3 hold's berths forward. Its plates run on into its bunker's
+# floor, and that into the firemen's passage's: the stokers' way to their quarters (Wilding).
+BR6 = (BX["E"], BUNKERS["br6"])
+F6_Z = fit(BX["E"], h3_floor[0], F_DECK, 0.3)
+BR6_Z = min(fit(BR6[0] + T, BR6[1], TANK_TOP, 0.3), F6_Z - T)
+BUNKER6_Z = min(fit(BR6[1], BX["D"], TANK_TOP, 0.3), BR6_Z)
+f6_holes, br6_holes = [], []
+side = BR6_Z - T
+low6 = math.ceil((BR6[0] + T + FLIGHT_LEAD) * 16) / 16
+for tag, (z0, z1) in [("s", (side - STAIR, side)), ("p", (-side, STAIR - side))]:
+    stair("stokehold_6_" + tag, low6, low6 + STOKEHOLD_RUN, z0, z1, TANK_TOP, F_DECK, f6_holes)
+cx6 = (BR6[0] + BR6[1]) * 0.5
+f6_holes.append((cx6 - FIDDLEY, cx6 + FIDDLEY, -FIDDLEY, FIDDLEY))
+middle6 = (BR6[0] + T + BR6[1]) * 0.5
+for j, (z0, z1) in enumerate(abreast(2, 0.6, 2.0)):
+    box("boiler_6_%d" % j, middle6 - BOILER[0] * 0.5, middle6 + BOILER[0] * 0.5, z0, z1, TANK_TOP,
+        F_DECK - UPTAKE_CLEAR)
+# Its after wall through bulkhead E's vertical door (wtd_e) into bunker 5, its bunker wall
+# whole, the bunker door shut in it (bunker_door_6; the coal face round it, LinerBoiler).
+walled("stokehold_6", BR6[0], BR6[1], -BR6_Z, BR6_Z, TANK_TOP, F_DECK, "asp", {"a": [door_at(0.0)]})
+wall_x("stokehold_6_bunker", BR6[1], -BR6_Z, BR6_Z, TANK_TOP, F_DECK)
+room("boiler_room_6", "boiler room 6", BR6[0], BR6[1], -BR6_Z, BR6_Z, TANK_TOP)
+# Bunker 6, through bulkhead D's vertical door (wtd_d) from the firemen's passage — each
+# bunker is entered through the vertical door in the bulkhead it stands against (Wilding:
+# "the watertight bulkheads are in coal bunkers"), its bunker door from its stokehold shut
+# — its forward wall No. 3 hold's after one too, up to F deck.
+PASSAGE_MID = (PASSAGE_Z[0] + PASSAGE_Z[1]) * 0.5
+walled("bunker_6", BR6[1], BX["D"], -BUNKER6_Z, BUNKER6_Z, TANK_TOP, F_DECK, "psf", {"f": [door_at(PASSAGE_MID)]})
+room("bunker_6", "coal bunker 6", BR6[1], BX["D"], -BUNKER6_Z, BUNKER6_Z, TANK_TOP)
+# F deck over them: bulkhead E's wall given its door (baths_e), bulkhead D's its own, the
+# berths' after wall given theirs (berths_aft); the fiddley's casing walled up to D deck.
+door_in("baths_e", BX["E"], -BR5_Z, BR5_Z, F_DECK, E_DECK, -6.0)
+walled("f_br6", BX["E"], BX["D"], -F6_Z, F6_Z, F_DECK, D_DECK, "psf", {"f": [door_at(-6.0)]})
+door_in("berths_aft", h3_floor[0], -H3W[G_DECK], H3W[G_DECK], F_DECK, E_DECK, -6.0)
+walled("casing_6", cx6 - FIDDLEY, cx6 + FIDDLEY, -FIDDLEY, FIDDLEY, F_DECK, D_DECK)
+room("f_br6", "F deck working corridor, boiler room 6", BX["E"], BX["D"], -F6_Z, F6_Z, F_DECK)
+
+# The firemen's passage (above, its cell), from bunker 6 forward under Nos. 3 and 2 holds to
+# the spiral stairs at its forward end (Wilding), here a stair up forward out of it onto
+# No. 2 hold's orlop deck, its foot facing a body coming along it (the passage's stair
+# opening stands for it). Its floor ends there, where her bilge closes in on its starboard
+# side (est.).
+PASSAGE_END = 96.25
+pt3_holes, pt2_holes, h3_holes, h2_holes = [], [], [], []
+stair("space_spiral", PASSAGE_END - T - FLIGHT_LEAD - 0.1 - SPACE_FLIGHT, PASSAGE_END - T - FLIGHT_LEAD - 0.1,
+      PASSAGE_MID - STAIR * 0.5, PASSAGE_MID + STAIR * 0.5, TANK_TOP, PASSAGE_TOP, pt2_holes)
+walled("passage", BX["D"], PASSAGE_END, PASSAGE_Z[0], PASSAGE_Z[1], TANK_TOP, PASSAGE_TOP, "psf")
+room("passage", "firemen's passage", BX["D"], PASSAGE_END, PASSAGE_Z[0], PASSAGE_Z[1], TANK_TOP)
+
+# Nos. 3 and 2 holds: at the tank top either side of the passage, each part's floor open
+# to the hold over it (open_hold_*), as wide as her bilge lets it be — No. 2 hold's
+# starboard part too narrow for anybody, its cell left nobody's; over the passage's top an
+# orlop deck across each hold (est.), No. 2's reached through bulkhead C from No. 3's;
+# No. 3's two flights up into the post office on G deck (stair_hold_3 stands for them).
+H3T = fit(BX["D"], BX["C"], TANK_TOP, 0.3)
+H2T = fit(BX["C"], BX["B"], TANK_TOP, 0.3)
+H3P = fit(BX["D"], BX["C"], PASSAGE_TOP, 0.3)
+H2P = fit(BX["C"], BX["B"], PASSAGE_TOP, 0.3)
+inboard = (PASSAGE_Z[0] - T - STAIR, PASSAGE_Z[0] - T)
+starboard = (PASSAGE_Z[1] + T + 0.11, PASSAGE_Z[1] + T + 0.11 + NARROW_STAIR)
+for sid, foot, head, lane, holes_above in [
+        ("space_h3_a", 75.0, 72.0, inboard, pt3_holes), ("space_h3_b", 82.0, 85.0, inboard, pt3_holes),
+        ("space_h3_c", 74.75, 71.75, starboard, pt3_holes), ("space_h3_d", 82.3125, 85.3125, starboard, pt3_holes),
+        ("space_h2_a", 90.25, 87.25, inboard, pt2_holes), ("space_h2_b", 97.75, 100.75, inboard, pt2_holes)]:
+    stair(sid, foot, head, lane[0], lane[1], TANK_TOP, PASSAGE_TOP, holes_above)
+g3_holes = []
+for sid, (z0, z1) in [("space_h3_g_1", (-4.2, -2.8)), ("space_h3_g_2", (-2.8, -1.4))]:
+    stair(sid, 83.0, 77.375, z0, z1, PASSAGE_TOP, G_DECK, g3_holes)
+g_post = recut(g_post, "g_post", "G deck", h3_floor[0], h3_floor[1], -H3W[G_DECK], H3W[G_DECK], G_DECK, g3_holes)
+
+# The double bottoms (#148): crawl spaces on her bottom plating under the tank top, 5 ft 3
+# in (SB-text), each entered through two manholes in the tank top over it, a stair down each.
+DB6_Z = fit(BX["E"], BX["D"], KEEL, 0.3)
+DB3_Z = fit(BX["D"], BX["C"], KEEL, 0.3)
+DB2_Z = fit(BX["C"], BX["B"], KEEL, 0.3)
+H1_SPLIT = 110.0  # where No. 1 hold's floors narrow (est.)
+DB1_Z = fit(BX["B"], H1_SPLIT, KEEL, 0.3)
+h1_holes = []
+for sid, foot, head, (z0, z1), holes_above in [
+        ("space_db6_a", 57.0, 55.0, (-2.0, -1.1), br6_holes), ("space_db6_b", 64.75, 66.75, (1.1, 2.0), br6_holes),
+        ("space_db3_a", 78.0, 76.0, (-3.0, -2.1), h3_holes), ("space_db3_b", 79.8125, 81.8125, (-3.0, -2.1), h3_holes),
+        ("space_db2_a", 94.0, 92.0, (-0.45, 0.45), h2_holes),
+        ("space_db2_b", 95.8125, 97.8125, (-0.45, 0.45), h2_holes),
+        ("space_db1_a", 105.0, 103.0, (0.1, 1.0), h1_holes), ("space_db1_b", 106.8125, 108.8125, (0.1, 1.0), h1_holes)]:
+    stair(sid, foot, head, z0, z1, KEEL, TANK_TOP, holes_above)
+for rid, name, x0, x1, w in [("db_br6", "boiler room 6 double bottom", BX["E"], BX["D"], DB6_Z),
+                             ("db_hold_3", "No. 3 hold double bottom", BX["D"], BX["C"], DB3_Z),
+                             ("db_hold_2", "No. 2 hold double bottom", BX["C"], BX["B"], DB2_Z),
+                             ("db_hold_1", "No. 1 hold double bottom", BX["B"], H1_SPLIT, DB1_Z)]:
+    deck(rid, "double bottom", x0, x1, -w, w, KEEL, [])
+    walled(rid, x0, x1, -w, w, KEEL, TANK_TOP, "ps")
+    room(rid, name, x0, x1, -w, w, KEEL, crawl_space=TANK_TOP - KEEL < rule("body_height"))
+for letter, at, w in [("e", BX["E"], DB6_Z), ("d", BX["D"], DB6_Z), ("c", BX["C"], DB3_Z), ("b", BX["B"], DB2_Z)]:
+    wall_x("db_" + letter, at, -w, w, KEEL, TANK_TOP)
+# No. 1 hold's on forward of its manholes to bulkhead A, as narrow as her forefoot leaves it,
+# through a door in their wall.
+DB1F_Z = fit(H1_SPLIT, BX["A"], KEEL, 0.3)
+wall_x("db_1", H1_SPLIT, -DB1_Z, DB1_Z, KEEL, TANK_TOP, [door_at(0.0)])
+deck("db_hold_1_fwd", "double bottom", H1_SPLIT, BX["A"], -DB1F_Z, DB1F_Z, KEEL, [])
+walled("db_hold_1_fwd", H1_SPLIT, BX["A"], -DB1F_Z, DB1F_Z, KEEL, TANK_TOP, "psf")
+room("db_hold_1_fwd", "No. 1 hold double bottom, forward", H1_SPLIT, BX["A"], -DB1F_Z, DB1F_Z, KEEL,
+     crawl_space=TANK_TOP - KEEL < rule("body_height"))
+
+# The plates, the bunker's floor and the passage's, touching end to end through the walls;
+# the holds' tank top either side of the passage, and their orlop decks over it.
+br6_plates = deck("stokehold_6", "tank top", BR6[0], BR6[1], -BR6_Z, BR6_Z, TANK_TOP, br6_holes)
+deck("bunker_6", "tank top", BR6[1], BX["D"], -BUNKER6_Z, BUNKER6_Z, TANK_TOP, [])
+deck("passage", "tank top", BX["D"], PASSAGE_END, PASSAGE_Z[0], PASSAGE_Z[1], TANK_TOP, [])
+h3_tank = deck("hold_3_port", "tank top", BX["D"], BX["C"], -H3T, PASSAGE_Z[0], TANK_TOP, h3_holes)
+deck("hold_3_starboard", "tank top", BX["D"], BX["C"], PASSAGE_Z[1], H3T, TANK_TOP, [])
+h2_tank = deck("hold_2_port", "tank top", BX["C"], BX["B"], -H2T, PASSAGE_Z[0], TANK_TOP, h2_holes)
+pt3 = deck("pt_hold_3", "orlop deck", BX["D"], BX["C"], -H3P, H3P, PASSAGE_TOP, pt3_holes)
+pt2 = deck("pt_hold_2", "orlop deck", BX["C"], BX["B"], -H2P, H2P, PASSAGE_TOP, pt2_holes)
+f6 = deck("f_br6", "F deck", BX["E"], h3_floor[0], -F6_Z, F6_Z, F_DECK, f6_holes)
+walled("hold_3_port", BX["D"], BX["C"], -H3T, PASSAGE_Z[0], TANK_TOP, PASSAGE_TOP, "p")
+walled("hold_3_starboard", BX["D"], BX["C"], PASSAGE_Z[1], H3T, TANK_TOP, PASSAGE_TOP, "s")
+walled("hold_2_port", BX["C"], BX["B"], -H2T, PASSAGE_Z[0], TANK_TOP, PASSAGE_TOP, "p")
+wall_x("tank_c", BX["C"], -H3T, PASSAGE_Z[0], TANK_TOP, PASSAGE_TOP)
+wall_x("tank_c_s", BX["C"], PASSAGE_Z[1], H3T, TANK_TOP, PASSAGE_TOP)
+wall_x("tank_b", BX["B"], -H2T, PASSAGE_Z[0], TANK_TOP, PASSAGE_TOP)
+walled("pt_hold_3", BX["D"], BX["C"], -H3P, H3P, PASSAGE_TOP, G_DECK, "psf",
+       {"f": [sealed_door("sealed_c_orlop", "C", PASSAGE_TOP, -1.0)]})
+walled("pt_hold_2", BX["C"], BX["B"], -H2P, H2P, PASSAGE_TOP, G_DECK, "psf")
+room("hold_3_port", "No. 3 hold, port", BX["D"], BX["C"], -H3T, PASSAGE_Z[0], TANK_TOP)
+room("hold_3_starboard", "No. 3 hold, starboard", BX["D"], BX["C"], PASSAGE_Z[1], H3T, TANK_TOP)
+room("hold_2_port", "No. 2 hold, port", BX["C"], BX["B"], -H2T, PASSAGE_Z[0], TANK_TOP)
+# Each orlop's room roofed by G deck from end to end: No. 3's, bulkhead to bulkhead, under
+# a strip of G deck laid between bulkhead D's wall and the post office's floor (so its
+# hold's framing stops under G deck there too); No. 2's under the squash court.
+deck("g_strip_d", "G deck", BX["D"] + T, h3_floor[0], -H3P, H3P, G_DECK, [])
+room("hold_3_orlop", "No. 3 hold", BX["D"], BX["C"], -H3P, H3P, PASSAGE_TOP)
+room("hold_2_orlop", "No. 2 hold", BX["C"], COURT_FWD, -H2P, H2P, PASSAGE_TOP)
+
+# No. 1 hold, deck over deck from its tank top to the forecastle: an orlop deck, G deck and
+# D deck in it (est.), two flights side by side up each, the last onto C deck under the forecastle, its
+# seamen's quarters and its stores (SB-IV), and out through the forecastle's door onto the
+# forward well (door_forecastle). Each deck narrows forward of H1_SPLIT with her bow. The
+# forepeak's tank and its stores forward of bulkhead A, each through a door in it from the
+# hold's deck at its floor.
+H1T = (fit(BX["B"], H1_SPLIT, TANK_TOP, 0.3), fit(H1_SPLIT, BX["A"], TANK_TOP, 0.3))
+H1O = (fit(BX["B"], H1_SPLIT, ORLOP, 0.3), fit(H1_SPLIT, BX["A"], ORLOP, 0.3))
+H1G = (fit(BX["B"], H1_SPLIT, G_DECK, 0.3), fit(H1_SPLIT, BX["A"], G_DECK, 0.3))
+H1D = fit(BX["B"], BX["A"], D_DECK, 0.3)
+FC_C = (fit(FCSL_FROM, FCSL_STEP, 0.0, 0.3), fit(FCSL_STEP, 116.0, 0.0, 0.3))
+FORE_STORES = 116.0  # where the forecastle stores narrow with her bow (est.)
+h1o_holes, h1g_holes, h1d_holes, c_holes = [], [], [], []
+for sid, foot, head, (z0, z1), low, high, holes_above in [
+        ("space_h1_or_1", 108.625, 103.0, (-2.1, -1.1), TANK_TOP, ORLOP, h1o_holes),
+        ("space_h1_or_2", 108.625, 103.0, (-1.1, -0.1), TANK_TOP, ORLOP, h1o_holes),
+        ("space_h1_g_1", 105.5, 108.5, (1.2, 2.25), ORLOP, G_DECK, h1g_holes),
+        ("space_h1_g_2", 105.5, 108.5, (2.25, 3.3), ORLOP, G_DECK, h1g_holes),
+        ("space_h1_d_1", 113.5, 104.125, (-2.6, -1.55), G_DECK, D_DECK, h1d_holes),
+        ("space_h1_d_2", 113.5, 104.125, (-1.55, -0.5), G_DECK, D_DECK, h1d_holes),
+        ("space_h1_c_1", 108.5, 112.25, (1.0, 2.05), D_DECK, 0.0, c_holes),
+        ("space_h1_c_2", 108.5, 112.25, (2.05, 3.1), D_DECK, 0.0, c_holes)]:
+    stair(sid, foot, head, z0, z1, low, high, holes_above)
+FP_TANK = (119.5, fit(BX["A"], 119.5, TANK_TOP, 0.3))
+FP_STORES = (122.0, fit(BX["A"], 122.0, ORLOP, 0.3))
+h1_decks = {}
+for level, h, widths, holes, top in [("tank", TANK_TOP, H1T, h1_holes, ORLOP), ("orlop", ORLOP, H1O, h1o_holes, G_DECK),
+                                     ("g", G_DECK, H1G, h1g_holes, D_DECK)]:
+    name = {"tank": "tank top", "orlop": "orlop deck", "g": "G deck"}[level]
+    made = deck("hold_1_" + level, name, BX["B"], H1_SPLIT, -widths[0], widths[0], h, holes)
+    made += deck("hold_1_%s_fwd" % level, name, H1_SPLIT, BX["A"], -widths[1], widths[1], h, holes)
+    h1_decks[level] = made
+    walled("hold_1_" + level, BX["B"], H1_SPLIT, -widths[0], widths[0], h, top, "ps")
+    walled("hold_1_%s_fwd" % level, H1_SPLIT, BX["A"], -widths[1], widths[1], h, top, "ps")
+    for tag, sign in [("p", -1), ("s", 1)]:
+        wall_x("hold_1_%s_step_%s" % (level, tag), H1_SPLIT, *sorted((sign * widths[1], sign * widths[0])), h, top)
+h1_decks["d"] = deck("hold_1_d", "D deck", BX["B"], BX["A"], -H1D, H1D, D_DECK, h1d_holes)
+fcsl_c = deck("fcsl_c", "C deck", FCSL_FROM, FCSL_STEP, -FC_C[0], FC_C[0], 0.0, [])
+fcsl_c += deck("fcsl_head_c", "C deck", FCSL_STEP, FORE_STORES, -FC_C[1], FC_C[1], 0.0, c_holes)
+deck("forepeak_tank", "tank top", BX["A"], FP_TANK[0], -FP_TANK[1], FP_TANK[1], TANK_TOP, [])
+deck("forepeak_stores", "orlop deck", BX["A"], FP_STORES[0], -FP_STORES[1], FP_STORES[1], ORLOP, [])
+# The forecastle stores on forward over the forepeak, roofing it: its stores open up to them.
+FC_FWD = fit(FORE_STORES, FP_STORES[0], 0.0, 0.3)
+fcsl_c += deck("fcsl_fwd_c", "C deck", FORE_STORES, FP_STORES[0], -FC_FWD, FC_FWD, 0.0, [])
+wall_x("tank_a", BX["A"], -H1T[1], H1T[1], TANK_TOP, ORLOP, [sealed_door("sealed_a_tank", "A", TANK_TOP, 0.0)])
+wall_x("orlop_a", BX["A"], -H1O[1], H1O[1], ORLOP, G_DECK, [sealed_door("sealed_a_orlop", "A", ORLOP, 0.0)])
+wall_x("g_b", BX["B"], -H1G[0], H1G[0], G_DECK, D_DECK)
+wall_x("g_a", BX["A"], -H1G[1], H1G[1], G_DECK, D_DECK)
+walled("hold_1_d", BX["B"], BX["A"], -H1D, H1D, D_DECK, 0.0)
+walled("forepeak_tank", BX["A"], FP_TANK[0], -FP_TANK[1], FP_TANK[1], TANK_TOP, ORLOP, "psf")
+walled("forepeak_stores", BX["A"], FP_STORES[0], -FP_STORES[1], FP_STORES[1], ORLOP, 0.0, "psf")
+# Under the forecastle, its walls up to its deck, under the step on to its head no higher
+# than the step's foot; the forecastle's front given its door (door_forecastle).
+door_in("forecastle_face", FCSL_FROM, -CW, CW, 0.0, FCSL[0], 6.0)
+walled("fcsl_c", FCSL_FROM, FCSL_STEP, -FC_C[0], FC_C[0], 0.0, FCSL[0], "ps")
+for tag, sign in [("p", -1), ("s", 1)]:
+    wall_x("fcsl_c_step_" + tag, FCSL_STEP, *sorted((sign * FC_C[1], sign * FC_C[0])), 0.0, FCSL[0])
+    wall_z("fcsl_head_c_" + tag, sign * FC_C[1], FCSL_STEP, FC_RAMP[1], 0.0, FCSL[0])
+    wall_z("fcsl_head_c_%s_fwd" % tag, sign * FC_C[1], FC_RAMP[1], FORE_STORES, 0.0, FCSL[1])
+for tag, sign in [("p", -1), ("s", 1)]:
+    wall_x("fcsl_head_c_step_" + tag, FORE_STORES, *sorted((sign * FC_FWD, sign * FC_C[1])), 0.0, FCSL[1])
+walled("fcsl_fwd_c", FORE_STORES, FP_STORES[0], -FC_FWD, FC_FWD, 0.0, FCSL[1], "psf")
+# G deck over it a passage between its flights, no hold: under the 'tween deck a hold's
+# dressing stows (CargoHold), its flights up would climb through cargo.
+for rid, name, x1, widths, h in [("hold_1", "No. 1 hold", H1_SPLIT, H1T, TANK_TOP),
+                                 ("hold_1_orlop", "No. 1 hold, orlop", H1_SPLIT, H1O, ORLOP),
+                                 ("hold_1_g", "G deck passage, No. 1 hold", H1_SPLIT, H1G, G_DECK)]:
+    room(rid, name, BX["B"], x1, -widths[0], widths[0], h)
+    room(rid + "_fwd", name + ", forward", x1, BX["A"], -widths[1], widths[1], h)
+room("hold_1_d", "firemen's quarters", BX["B"], BX["A"], -H1D, H1D, D_DECK)
+# The quarters a metre in from the forecastle's front, past a lobby inside its door: glass
+# in a room's wall onto the well (windows, below) would be openings into her she never had.
+FCSL_LOBBY = 1.0
+room("fcsl_c", "seamen's quarters", FCSL_FROM + FCSL_LOBBY, FCSL_STEP, -FC_C[0], FC_C[0], 0.0)
+room("fcsl_head_c", "forecastle stores", FCSL_STEP, FORE_STORES, -FC_C[1], FC_C[1], 0.0)
+room("fcsl_fwd_c", "forecastle stores, forward", FORE_STORES, FP_STORES[0], -FC_FWD, FC_FWD, 0.0)
+room("forepeak_tank", "forepeak tank", BX["A"], FP_TANK[0], -FP_TANK[1], FP_TANK[1], TANK_TOP)
+room("forepeak_stores", "forepeak stores", BX["A"], FP_STORES[0], -FP_STORES[1], FP_STORES[1], ORLOP)
+
+# Three sides of every new stair's hole railed, as the layout's other stairs' are.
+for decks, sids in [(f6, ["stokehold_6_s", "stokehold_6_p"]), (br6_plates, ["space_db6_a", "space_db6_b"]),
+                    (h3_tank, ["space_db3_a", "space_db3_b"]), (h2_tank, ["space_db2_a", "space_db2_b"]),
+                    (h1_decks["tank"], ["space_db1_a", "space_db1_b"]),
+                    (pt3, ["space_h3_a", "space_h3_b", "space_h3_c", "space_h3_d"]),
+                    (pt2, ["space_h2_a", "space_h2_b", "space_spiral"]), (g_post, ["space_h3_g_1", "space_h3_g_2"]),
+                    (h1_decks["orlop"], ["space_h1_or_1", "space_h1_or_2"]),
+                    (h1_decks["g"], ["space_h1_g_1", "space_h1_g_2"]),
+                    (h1_decks["d"], ["space_h1_d_1", "space_h1_d_2"]), (fcsl_c, ["space_h1_c_1", "space_h1_c_2"])]:
+    for sid in sids:
+        hole_rails(decks, sid)
+
+# --- Every cell a place a body can be (#148), the stern: boiler room 1 and its bunker,
+# the reciprocating engine room, the turbine engine room and the electric engine room, the
+# two after holds deck by deck, and the double bottoms under them all, as the bow's
+# (above). Their way up is a working passage along E deck from the engine room aft through
+# the E deck doors in bulkheads L to O (wtd_e_l…o), a stair up from it into the D deck
+# corridor over the engine room and another into the second-class dining saloon over the
+# turbine room; boiler room 1's is the bow's, an F deck corridor of its own forward to the
+# third-class saloons (wtd_f_j), and a stair from it up into Scotland Road. The after holds
+# are reached through their watertight orlop deck by hatches bolted shut, as the manholes
+# are (below, where her openings are).
+stairs_z = []  # (id, x0, x1, z0, z1, upper height, low end's z)
+
+def stair_z(sid, z_low, z_high, x0, x1, low, high, deck_holes):
+    """A stair along z from low at z_low to high at z_high, x0 to x1 wide; the hole it
+    leaves in the deck above is added to deck_holes."""
+    lo, hi = min(z_low, z_high), max(z_low, z_high)
+    rising = z_high > z_low
+    ramp(sid, x0, x1, lo, hi, 1, low if rising else high, high if rising else low)
+    deck_holes.append((x0, x1, lo, hi))
+    stairs_z.append((sid, x0, x1, lo, hi, high, z_low))
+
+def hole_rails_z(plats, sid):
+    """Railings round a stair along z's hole on the deck above: its two sides and its low end."""
+    for name, x0, x1, lo, hi, _high, z_low in [s for s in stairs_z if s[0] == sid]:
+        closed = lo if z_low == lo else hi
+        for tag, a, b in [("a", (x0, lo), (x0, hi)), ("f", (x1, lo), (x1, hi)), ("e", (x0, closed), (x1, closed))]:
+            on = edge_platform(plats, a, b)
+            if on is not None:
+                railing("%s_%s" % (name, tag), on, a, b)
+
+def bulkhead_wall(bid, x, bands, doors=()):
+    """Walls across her at x, one for each (bottom, top, half width) of bands, the doors
+    [(z, floor)] in the band whose bottom is that floor."""
+    for k, (bottom, top, w) in enumerate(bands):
+        gaps = [door_at(z) for z, floor in doors if floor == bottom]
+        wall_x("%s_%d" % (bid, k), x, -w, w, bottom, top, gaps)
+
+# Boiler room 1 (SB-III; S8d′3): too short from bulkhead K to its bunker for a flight up
+# to F deck along her, its two flights rise athwartships by its after wall, port and
+# starboard, their heads either side of her centre line; its boilers abreast forward of
+# them (est. three, BR1's single-ended five as three boxes), a firing aisle before its
+# bunker's door.
+BR1 = (BX["K"], BUNKERS["br1"])
+BR1_Z = min(fit(BR1[0], BX["J"], F_DECK, 0.3), SALOON_Z)  # as wide as the saloons' F deck it meets
+BR1_PLATES = min(fit(BR1[0], BR1[1], TANK_TOP, 0.3), BR1_Z)
+BUNKER1_Z = min(fit(BR1[1], BX["J"], TANK_TOP, 0.3), STOKEHOLD_Z[2])  # boiler room 2's after wall's
+f1_holes, bunker1_holes = [], []
+BR1_FLIGHT = (-27.5, -26.1)
+BR1_RUN = 11.5  # a flight's run across her up to F deck, 40°: as long as her side leaves room for
+for tag, sign in [("p", -1), ("s", 1)]:
+    head = sign * 0.5
+    stair_z("space_br1_" + tag, head + sign * BR1_RUN, head, *BR1_FLIGHT, TANK_TOP, F_DECK, f1_holes)
+for j, (z0, z1) in enumerate([(-7.0, -3.0), (-2.0, 2.0), (3.0, 7.0)]):
+    box("boiler_1_%d" % j, -25.2, -22.5, z0, z1, TANK_TOP, F_DECK - UPTAKE_CLEAR)
+cx1 = (BR1[0] + BR1[1]) * 0.5
+f1_holes.append((cx1 - FIDDLEY, cx1 + FIDDLEY, -FIDDLEY, FIDDLEY))
+walled("stokehold_1", BR1[0], BR1[1], -BR1_PLATES, BR1_PLATES, TANK_TOP, F_DECK, "ps")
+wall_x("stokehold_1_bunker", BR1[1], -BR1_PLATES, BR1_PLATES, TANK_TOP, F_DECK)
+room("boiler_room_1", "boiler room 1", BR1[0], BR1[1], -BR1_PLATES, BR1_PLATES, TANK_TOP)
+# Its bunker, through bulkhead J's vertical door (wtd_j) from boiler room 2, whose after
+# wall it is; down two manholes in its floor side by side, the double bottom under both.
+door_in("stokehold_2_aft", BX["J"], -STOKEHOLD_Z[2], STOKEHOLD_Z[2], TANK_TOP, F_DECK, 0.0)
+walled("bunker_1", BR1[1], BX["J"], -BUNKER1_Z, BUNKER1_Z, TANK_TOP, F_DECK, "ps")
+room("bunker_1", "coal bunker 1", BR1[1], BX["J"], -BUNKER1_Z, BUNKER1_Z, TANK_TOP)
+# F deck over them, on through bulkhead J's door to the third-class saloons; a stair up
+# from it into Scotland Road (stair_boiler_room_1_road stands for it); the fiddley's casing.
+road_holes = []
+stair("space_br1_road", -21.75, -18.5, -12.4, -11.0, F_DECK, E_DECK, road_holes)  # forward of sr_d
+door_in("saloons_aft", BX["J"], -SALOON_Z, SALOON_Z, F_DECK, E_DECK, -6.0)
+walled("f_br1", BR1[0], BX["J"], -BR1_Z, BR1_Z, F_DECK, E_DECK, "ps")
+walled("casing_1", cx1 - FIDDLEY, cx1 + FIDDLEY, -FIDDLEY, FIDDLEY, F_DECK, E_DECK)
+room("f_br1", "F deck working corridor, boiler room 1", BR1[0], BX["J"], -BR1_Z, BR1_Z, F_DECK)
+
+# The engine room (S8d′1): its two engines (BOT: "two sets of four-cylinder reciprocating
+# engines") as boxes either side of her centre line, est. 14 m long, an aisle down the
+# middle and along each side, up to a quarter metre under the E deck over it, too near it
+# for anybody to stand on one (as the boilers' boxes, above); its two flights up along its
+# sides to E deck (the casing opening stands for them).
+ENG = (BX["L"], BX["K"])
+ENG_Z = fit(*ENG, ENGINE_TANK_TOP, 0.3)
+e_holes, eng_holes = [], []
+for tag, (z0, z1) in [("p", (-11.4, -10.0)), ("s", (10.0, 11.4))]:
+    stair("space_engine_" + tag, -46.25, -32.0, z0, z1, ENGINE_TANK_TOP, E_DECK, e_holes)
+for j, (z0, z1) in enumerate([(-9.0, -1.5), (1.5, 9.0)]):
+    box("engine_%d" % j, -45.0, -31.0, z0, z1, ENGINE_TANK_TOP, E_DECK - UPTAKE_CLEAR)
+room("engine_room", "engine room", *ENG, -ENG_Z, ENG_Z, ENGINE_TANK_TOP)
+# The turbine engine room (S8d′2): its low-pressure turbine (BOT) on her centre line,
+# est. 10 m long and 4 m across, up to under E deck as the engines are; two flights up
+# along its sides to E deck.
+TURB = (BX["M"], BX["L"])
+TURB_Z = fit(*TURB, TANK_TOP, 0.3)
+turb_holes = []
+for tag, (z0, z1) in [("p", (-8.4, -7.0)), ("s", (7.0, 8.4))]:
+    stair("space_turbine_" + tag, -64.5, -50.125, z0, z1, TANK_TOP, E_DECK, e_holes)
+box("turbine", -62.0, -52.0, -2.0, 2.0, TANK_TOP, E_DECK - UPTAKE_CLEAR)
+room("turbine_room", "turbine engine room", *TURB, -TURB_Z, TURB_Z, TANK_TOP)
+# The electric engine room (BOT: "a separate watertight compartment ... at the level of
+# the inner bottom"): its four generating sets as two boxes either side of her centre
+# line (est.), up to under the G deck over them (est., its stores); two flights up to G
+# deck (stair_electric_room stands for them), two on up to E deck.
+ELEC = (BX["N"], BX["M"])
+ELEC_Z = fit(*ELEC, TANK_TOP, 0.3)
+ELEC_G = fit(*ELEC, G_DECK, 0.3)
+elec_holes, elec_g_holes = [], []
+for tag, sign in [("p", -1), ("s", 1)]:
+    stair("space_electric_g_" + tag, -83.5, -75.0, *sorted((sign * 5.0, sign * 6.2)), TANK_TOP, G_DECK, elec_g_holes)
+    stair("space_electric_e_" + tag, -70.0, -76.0, *sorted((sign * 2.0, sign * 3.2)), G_DECK, E_DECK, e_holes)
+for j, (z0, z1) in enumerate([(-4.0, -1.0), (1.0, 4.0)]):
+    box("generators_%d" % j, -81.5, -69.5, z0, z1, TANK_TOP, G_DECK - UPTAKE_CLEAR)
+room("electric_room", "electric engine room", *ELEC, -ELEC_Z, ELEC_Z, TANK_TOP)
+room("electric_room_g", "G deck stores, electric room", *ELEC, -ELEC_G, ELEC_G, G_DECK)
+
+# The after holds, deck by deck as No. 1 hold (above): two flights side by side from the
+# tank top up through the watertight orlop deck, two up to G deck (their orlops' stair
+# openings stand for them), two up to E deck. The after one narrows aft of AFT_HOLD with
+# her run (est.), its decks on to bulkhead P, and on through it, each through a door at its
+# floor as the forepeak's are, to the after peak's tank and its stores over it.
+AFT_HOLD = -110.0
+AHF = (BX["O"], BX["N"])
+AHA = (AFT_HOLD, BX["O"])
+AHE = (BX["P"], AFT_HOLD)
+AH_Z = {}
+for hold, span in [("ahf", AHF), ("aha", AHA), ("ahe", AHE)]:
+    AH_Z[hold] = {h: fit(*span, h, 0.3) for h in (TANK_TOP, ORLOP, G_DECK, E_DECK)}
+ah_holes = {(hold, h): [] for hold in AH_Z for h in (TANK_TOP, ORLOP, G_DECK, E_DECK)}
+for sid, foot, head, (z0, z1), low, high, hold in [
+        ("space_ahf_or_1", -99.0, -93.375, (2.0, 3.0), TANK_TOP, ORLOP, "ahf"),
+        ("space_ahf_or_2", -99.0, -93.375, (3.0, 4.0), TANK_TOP, ORLOP, "ahf"),
+        ("space_ahf_g_1", -88.0, -91.0, (-3.0, -2.0), ORLOP, G_DECK, "ahf"),
+        ("space_ahf_g_2", -88.0, -91.0, (-2.0, -1.0), ORLOP, G_DECK, "ahf"),
+        ("space_ahf_e_1", -98.0, -92.0, (1.0, 2.0), G_DECK, E_DECK, "ahf"),
+        ("space_ahf_e_2", -98.0, -92.0, (2.0, 3.0), G_DECK, E_DECK, "ahf"),
+        ("space_aha_or_1", -109.0, -103.375, (-2.0, -1.0), TANK_TOP, ORLOP, "aha"),
+        ("space_aha_or_2", -109.0, -103.375, (-1.0, 0.0), TANK_TOP, ORLOP, "aha"),
+        ("space_aha_g_1", -104.0, -107.0, (0.5, 1.5), ORLOP, G_DECK, "aha"),
+        ("space_aha_g_2", -104.0, -107.0, (1.5, 2.5), ORLOP, G_DECK, "aha"),
+        ("space_aha_e_1", -109.0, -103.0, (-2.5, -1.5), G_DECK, E_DECK, "aha"),
+        ("space_aha_e_2", -109.0, -103.0, (-1.5, -0.5), G_DECK, E_DECK, "aha")]:
+    stair(sid, foot, head, z0, z1, low, high, e_holes if high == E_DECK else ah_holes[(hold, high)])
+for hold, span, name, end in [("ahf", AHF, "after hold, forward", ""), ("aha", AHA, "after hold, aft", ""),
+                               ("ahe", AHE, "after hold, aft", ", after end")]:
+    widths = AH_Z[hold]
+    for h, top, level in [(TANK_TOP, ORLOP, ""), (ORLOP, G_DECK, ", orlop"), (G_DECK, E_DECK, ", G deck")]:
+        # The after end's G deck roofed by no E deck, its walls up to C deck over it.
+        top = 0.0 if (hold, h) == ("ahe", G_DECK) else top
+        walled("%s_%d" % (hold, int(-h * 16)), *span, -widths[h], widths[h], h, top, "ps")
+        room("%s_%d" % (hold, int(-h * 16)), name + level + end, *span, -widths[h], widths[h], h)
+        if hold == "ahe":
+            for tag, sign in [("p", -1), ("s", 1)]:
+                step = sorted((sign * widths[h], sign * AH_Z["aha"][h]))
+                wall_x("ahe_%d_step_%s" % (int(-h * 16), tag), AFT_HOLD, *step, h, min(top, E_DECK))
+AFTER_PEAK = -122.0  # the after peak's spaces' after end, where her counter closes in (est.)
+AP_TANK = fit(BX["P"] - 3.0, BX["P"], TANK_TOP, 0.3)
+AP_STORES = fit(BX["P"] - 3.0, BX["P"], G_DECK, 0.45)  # inside her section there, coarser than her lines
+for rid, name, h, w, top in [("after_peak_tank", "after peak tank", TANK_TOP, AP_TANK, G_DECK),
+                             ("after_peak_stores", "after peak stores", G_DECK, AP_STORES, POOP)]:
+    deck(rid, "tank top" if h == TANK_TOP else "G deck", AFTER_PEAK, BX["P"], -w, w, h, [])
+    walled(rid, AFTER_PEAK, BX["P"], -w, w, h, top, "psa")
+    room(rid, name, AFTER_PEAK, BX["P"], -w, w, h)
+sealed_door("sealed_p_tank", "P", TANK_TOP, 0.0)
+sealed_door("sealed_p_g", "P", G_DECK, 0.0)
+bulkhead_wall("aft_p", BX["P"], [(TANK_TOP, ORLOP, AH_Z["ahe"][TANK_TOP]), (ORLOP, G_DECK, AH_Z["ahe"][ORLOP]),
+                                 (G_DECK, 0.0, AH_Z["ahe"][G_DECK])], [(0.0, TANK_TOP), (0.0, G_DECK)])
+
+# The double bottoms aft, crawl spaces as the bow's — but the engine room's, a foot deeper
+# under its engines (SB-text), where a body stands — each down two manholes.
+DB_AFT = [("db_br1", "boiler room 1 double bottom", BR1[0], BX["J"], TANK_TOP),
+          ("db_engine", "engine room double bottom", *ENG, ENGINE_TANK_TOP),
+          ("db_turbine", "turbine room double bottom", *TURB, TANK_TOP),
+          ("db_electric", "electric room double bottom", *ELEC, TANK_TOP),
+          ("db_ahf", "after hold, forward, double bottom", *AHF, TANK_TOP),
+          ("db_aha", "after hold, aft, double bottom", *AHA, TANK_TOP)]
+DB_AFT_Z = {rid: fit(x0, x1, KEEL, 0.3) for rid, _n, x0, x1, _t in DB_AFT}
+# Bunker 1's two run across her, its floor too short along her for one.
+for tag, sign in [("a", -1), ("b", 1)]:
+    stair_z("space_dbbr1_" + tag, sign * 3.0, sign * 1.0, -19.4, -18.5, KEEL, TANK_TOP, bunker1_holes)
+manholes_aft = [
+    ("space_dbengine_a", -31.0, -28.75, (-5.0, -4.1), ENGINE_TANK_TOP, eng_holes),
+    ("space_dbengine_b", -31.0, -28.75, (4.1, 5.0), ENGINE_TANK_TOP, eng_holes),
+    ("space_dbturbine_a", -61.75, -64.0, (3.5, 4.4), TANK_TOP, turb_holes),
+    ("space_dbturbine_b", -52.75, -50.5, (-4.4, -3.5), TANK_TOP, turb_holes),
+    ("space_dbelectric_a", -81.75, -84.0, (-0.45, 0.45), TANK_TOP, elec_holes),
+    ("space_dbelectric_b", -69.25, -67.0, (-0.45, 0.45), TANK_TOP, elec_holes),
+    ("space_dbahf_a", -96.25, -98.5, (-2.0, -1.1), TANK_TOP, ah_holes[("ahf", TANK_TOP)]),
+    ("space_dbahf_b", -94.25, -92.0, (-2.0, -1.1), TANK_TOP, ah_holes[("ahf", TANK_TOP)]),
+    ("space_dbaha_a", -108.75, -106.5, (0.5, 1.4), TANK_TOP, ah_holes[("aha", TANK_TOP)]),
+    ("space_dbaha_b", -105.0, -102.75, (0.5, 1.4), TANK_TOP, ah_holes[("aha", TANK_TOP)])]
+for sid, foot, head, (z0, z1), top, holes_above in manholes_aft:
+    stair(sid, foot, head, z0, z1, KEEL, top, holes_above)
+for rid, name, x0, x1, top in DB_AFT:
+    w = DB_AFT_Z[rid]
+    deck(rid, "double bottom", x0, x1, -w, w, KEEL, [])
+    walled(rid, x0, x1, -w, w, KEEL, top, "ps")
+    room(rid, name, x0, x1, -w, w, KEEL, crawl_space=top - KEEL < rule("body_height"))
+for letter, at, bands in [
+        ("j", BX["J"], [(KEEL, TANK_TOP, DB_AFT_Z["db_br1"])]),
+        ("k", BX["K"], [(KEEL, ENGINE_TANK_TOP, DB_AFT_Z["db_br1"])]),
+        ("l", BX["L"], [(KEEL, ENGINE_TANK_TOP, DB_AFT_Z["db_engine"])]),
+        ("m", BX["M"], [(KEEL, TANK_TOP, DB_AFT_Z["db_turbine"])]),
+        ("n", BX["N"], [(KEEL, TANK_TOP, DB_AFT_Z["db_electric"])]),
+        ("o", BX["O"], [(KEEL, TANK_TOP, DB_AFT_Z["db_ahf"])]),
+        ("aft_hold", AFT_HOLD, [(KEEL, TANK_TOP, DB_AFT_Z["db_aha"])])]:
+    bulkhead_wall("db_" + letter, at, bands)
+
+# The working passage along E deck aft, a room for each compartment it runs through, over
+# the engine and turbine rooms' casings (their openings stand for the shafts the machinery
+# fills under it); its two stairs up to D deck, the first into the D deck corridor, the
+# second into the second-class dining saloon (stair_engine_room_tween and
+# stair_turbine_room_tween stand for them).
+E_AFT = [("e_engine", "E deck working passage, engine room", *ENG),
+         ("e_turbine", "E deck working passage, turbine room", *TURB),
+         ("e_electric", "E deck working passage, electric room", *ELEC),
+         ("e_ahf", "E deck working passage, after hold, forward", *AHF),
+         ("e_aha", "E deck working passage, after hold, aft", *AHA)]
+# Each as wide as her hull lets it be, and no wider than the deck over it: D deck over the
+# engine and turbine rooms, C deck, the after well and the poop's general room aft (as the
+# boiler rooms are held to the F deck over them).
+def roofed(x0, x1):
+    over = [(D_DECK, -64.5, 100.5, d_ranges[0][1]), (0.0, B_RUN[0], B_RUN[1], CWD), (0.0, AFT_WELL[0], AFT_WELL[1], AW),
+            (0.0, GENERAL[0], GENERAL[1], GW)]
+    least = math.inf
+    for k in range(int((x1 - x0) / 0.25) + 1):
+        x = min(x0 + 0.25 * k + 0.01, x1 - 0.01)
+        least = min(least, min((h, w) for h, a, b, w in over if a <= x <= b)[1])
+    return least - T
+
+E_AFT_Z = {rid: min(fit(x0, x1, E_DECK, 0.3), roofed(x0, x1)) for rid, _n, x0, x1 in E_AFT}
+d_aft_holes = []
+stair("space_e_d_engine", -47.6, -44.35, -NARROW_STAIR * 0.5, NARROW_STAIR * 0.5, E_DECK, D_DECK, d_aft_holes)
+stair("space_e_d_turbine", -65.1, -61.85, -1.45, -0.05, E_DECK, D_DECK, d_aft_holes)
+e_aft = []
+for rid, name, x0, x1 in E_AFT:
+    w = E_AFT_Z[rid]
+    # The engine room's short of bulkhead K, as boiler room 1's F deck is (above).
+    e_aft += deck(rid, "E deck", x0, x1 - 2 * T if rid == "e_engine" else x1, -w, w, E_DECK, e_holes)
+    # Its walls up to D deck under it, to C deck aft of D deck's end (-64.5): the turbine
+    # room's passage runs under both, and its walls stop at the second-class saloon's floor.
+    for a, b in [(x0, min(x1, -64.5)), (max(x0, -64.5), x1)]:
+        if b > a:
+            walled(rid if a == x0 else rid + "_d", a, b, -w, w, E_DECK, D_DECK if a >= -64.5 else 0.0, "ps")
+    room(rid, name, x0, x1, -w, w, E_DECK)
+
+# Her compartments' floors aft, touching end to end through her bulkheads' walls: boiler
+# room 1's plates and its bunker's, the engine room's plates, the turbine and electric
+# rooms', the after holds' tank tops, orlops and G decks.
+br1_plates = deck("stokehold_1", "tank top", BR1[0], BR1[1], -BR1_PLATES, BR1_PLATES, TANK_TOP, [])
+bunker1_floor = deck("bunker_1", "tank top", BR1[1], BX["J"] + T, -BUNKER1_Z, BUNKER1_Z, TANK_TOP, bunker1_holes)
+# F deck from its flights' after side: ended at bulkhead K over the engine room's floor it
+# would read as a break in her decks (ShipFittings.breaks), a weather door in its face.
+f1 = deck("f_br1", "F deck", BR1_FLIGHT[0], BX["J"], -BR1_Z, BR1_Z, F_DECK, f1_holes)
+eng_plates = deck("engine_room", "engine room floor", *ENG, -ENG_Z, ENG_Z, ENGINE_TANK_TOP, eng_holes)
+turb_plates = deck("turbine_room", "tank top", *TURB, -TURB_Z, TURB_Z, TANK_TOP, turb_holes)
+elec_plates = deck("electric_room", "tank top", *ELEC, -ELEC_Z, ELEC_Z, TANK_TOP, elec_holes)
+elec_g = deck("electric_room_g", "G deck", *ELEC, -ELEC_G, ELEC_G, G_DECK, elec_g_holes)
+ah_decks = {}
+for hold, span in [("ahf", AHF), ("aha", AHA), ("ahe", AHE)]:
+    for h, name in [(TANK_TOP, "tank top"), (ORLOP, "orlop deck"), (G_DECK, "G deck")]:
+        ah_decks[(hold, h)] = deck("%s_%d" % (hold, int(-h * 16)), name, *span, -AH_Z[hold][h], AH_Z[hold][h], h,
+                                   ah_holes[(hold, h)])
+walled("engine_room", *ENG, -ENG_Z, ENG_Z, ENGINE_TANK_TOP, E_DECK, "ps")
+walled("turbine_room", *TURB, -TURB_Z, TURB_Z, TANK_TOP, E_DECK, "ps")
+walled("electric_room", *ELEC, -ELEC_Z, ELEC_Z, TANK_TOP, G_DECK, "ps")
+walled("electric_room_g", *ELEC, -ELEC_G, ELEC_G, G_DECK, E_DECK, "ps")
+# Her bulkheads aft across each deck, as wide as the wider room either side; the E deck
+# doors through L to O.
+for letter, at, bands in [
+        ("k", BX["K"], [(TANK_TOP, F_DECK, BR1_Z), (F_DECK, E_DECK, BR1_Z), (E_DECK, D_DECK, E_AFT_Z["e_engine"])]),
+        ("l", BX["L"], [(TANK_TOP, E_DECK, ENG_Z), (E_DECK, D_DECK, E_AFT_Z["e_engine"])]),
+        ("m", BX["M"], [(TANK_TOP, E_DECK, TURB_Z), (E_DECK, 0.0, E_AFT_Z["e_turbine"])]),
+        ("n", BX["N"], [(TANK_TOP, G_DECK, ELEC_Z), (G_DECK, E_DECK, ELEC_G), (E_DECK, 0.0, E_AFT_Z["e_electric"])]),
+        ("o", BX["O"], [(TANK_TOP, ORLOP, AH_Z["ahf"][TANK_TOP]), (ORLOP, G_DECK, AH_Z["ahf"][ORLOP]),
+                        (G_DECK, E_DECK, AH_Z["ahf"][G_DECK]), (E_DECK, 0.0, E_AFT_Z["e_ahf"])]),
+        ("aft_hold", AFT_HOLD, [(E_DECK, 0.0, E_AFT_Z["e_aha"])])]:
+    # Bulkhead O's door a half metre inboard of the others, the after hold's passage there
+    # narrower than they: as wide, the same door (wtd_e_o).
+    bulkhead_wall("aft_" + letter, at, bands, [(-5.5 if letter == "o" else -6.0, E_DECK)] if letter in "lmno" else [])
+# D deck over the engine and turbine rooms cut for the passage's two stairs up, and
+# Scotland Road for boiler room 1's.
+d_aft = split(d_ranges[0][0], "d_0", "D deck", D_DECK, d_aft_holes)
+e_road = split(e_road, "e_road", "E deck", E_DECK, road_holes)
+
+for decks, sids in [(f1, []),
+                    (eng_plates, ["space_dbengine_a", "space_dbengine_b"]),
+                    (turb_plates, ["space_dbturbine_a", "space_dbturbine_b"]),
+                    (elec_plates, ["space_dbelectric_a", "space_dbelectric_b"]),
+                    (elec_g, ["space_electric_g_p", "space_electric_g_s"]),
+                    (ah_decks[("ahf", TANK_TOP)], ["space_dbahf_a", "space_dbahf_b"]),
+                    (ah_decks[("aha", TANK_TOP)], ["space_dbaha_a", "space_dbaha_b"]),
+                    (ah_decks[("ahf", ORLOP)], ["space_ahf_or_1", "space_ahf_or_2"]),
+                    (ah_decks[("aha", ORLOP)], ["space_aha_or_1", "space_aha_or_2"]),
+                    (ah_decks[("ahf", G_DECK)], ["space_ahf_g_1", "space_ahf_g_2"]),
+                    (ah_decks[("aha", G_DECK)], ["space_aha_g_1", "space_aha_g_2"]),
+                    (e_aft, ["space_engine_p", "space_engine_s", "space_turbine_p", "space_turbine_s",
+                             "space_electric_e_p", "space_electric_e_s", "space_ahf_e_1", "space_ahf_e_2",
+                             "space_aha_e_1", "space_aha_e_2"]),
+                    (d_aft, ["space_e_d_engine", "space_e_d_turbine"]), (e_road, ["space_br1_road"])]:
+    for sid in sids:
+        hole_rails(decks, sid)
+for sid in ("space_br1_p", "space_br1_s"):
+    hole_rails_z(f1, sid)
+for sid in ("space_dbbr1_a", "space_dbbr1_b"):
+    hole_rails_z(bunker1_floor, sid)
+
+# --- Every cell a place a body can be (#148), amidships: the cross bunkers of boiler rooms
+# 2 to 5, each through the vertical door in the bulkhead forward of it from the next room,
+# its floor run on from the plates to that room's; and the
+# double bottoms under those rooms, crawl spaces down two manholes in their bunkers' floors,
+# across her as bunker 1's are.
+MID_ROOMS = {2: (BX["J"], BX["H"]), 3: (BX["H"], BX["G"]), 4: (BX["G"], BX["F"]), 5: (BX["F"], BX["E"])}
+DB_MID_Z = {k: fit(*MID_ROOMS[k], KEEL, 0.3) for k in MID_ROOMS}
+DB_MID_Z[1] = DB_AFT_Z["db_br1"]
+for k in (2, 3, 4, 5):
+    bunker, fwd = BUNKERS["br%d" % k], MID_ROOMS[k][1]
+    w = STOKEHOLD_Z[k]
+    wb = min(fit(bunker, fwd, TANK_TOP, 0.3), w, STOKEHOLD_Z.get(k + 1, BR6_Z))
+    # Through the vertical door in the bulkhead forward of it (wtd_h, wtd_g, wtd_f), from the
+    # next room; boiler room 6's own (above).
+    if k < 5:
+        door_in("stokehold_%d_aft" % (k + 1), fwd, -STOKEHOLD_Z[k + 1], STOKEHOLD_Z[k + 1], TANK_TOP, F_DECK, 0.0)
+    walled("bunker_%d" % k, bunker, fwd, -wb, wb, TANK_TOP, F_DECK, "ps")
+    room("bunker_%d" % k, "coal bunker %d" % k, bunker, fwd, -wb, wb, TANK_TOP)
+    holes_k = []
+    for tag, sign in [("a", -1), ("b", 1)]:
+        stair_z("space_dbbr%d_%s" % (k, tag), sign * 6.0, sign * 4.0, bunker + 0.9, bunker + 1.8, KEEL, TANK_TOP,
+                holes_k)
+    # On to boiler room 6's plates, which start at bulkhead E; the others' a wall's half on.
+    floor_k = deck("bunker_%d" % k, "tank top", bunker - T, fwd + (T if k < 5 else 0.0), -wb, wb, TANK_TOP, holes_k)
+    for tag in ("a", "b"):
+        hole_rails_z(floor_k, "space_dbbr%d_%s" % (k, tag))
+    aft = MID_ROOMS[k][0]
+    wd = DB_MID_Z[k]
+    deck("db_br%d" % k, "double bottom", aft, fwd, -wd, wd, KEEL, [])
+    walled("db_br%d" % k, aft, fwd, -wd, wd, KEEL, TANK_TOP, "ps")
+    room("db_br%d" % k, "boiler room %d double bottom" % k, aft, fwd, -wd, wd, KEEL,
+         crawl_space=TANK_TOP - KEEL < rule("body_height"))
+    # Its after end's watertight floor as wide as the wider double bottom either side
+    # (boiler room 1's, bulkhead J's, above).
+    if k > 2:
+        w_ends = max(wd, DB_MID_Z[k - 1])
+        wall_x("db_%s" % next(b[0] for b in BULKHEADS if b[1] == aft).lower(), aft, -w_ends, w_ends, KEEL, TANK_TOP)
+# Bulkhead E's in the double bottom out to boiler room 5's, wider than boiler room 6's.
+for tag, sign in [("p", -1), ("s", 1)]:
+    box("db_e_" + tag, BX["E"] - T, BX["E"] + T, *sorted((sign * (DB6_Z + T), sign * (DB_MID_Z[5] + T))), KEEL,
+        TANK_TOP)
 
 # Sixteen seats across her decks (SH21 takes more): six on the boat deck and one on her
 # bridge, two on A deck's promenade, one on B deck's open end, one on each well deck,
@@ -1207,6 +1893,44 @@ for x0, x1, z0, z1, h in plat_geo:
     for x in (x0 + 0.01, x1 - 0.01):
         assert breadth(x, h) >= max(-z0, z1) - 1e-9 or h >= shell_top(x) - 1e-9, ("platform outside her", x, h)
 
+def f32(v):
+    return struct.unpack("f", struct.pack("f", v))[0]
+
+def joins():
+    """Every stair's two ends meet a deck at its height, as Surfaces.joins finds them:
+    each end's edge, its corners and its middle, inside a platform's Rect2 in single
+    precision, where a rectangle's far side is its corner plus its size (as the trawler's
+    generator checks hers)."""
+    def end_of(a, b):
+        return f32(f32(a) + f32(b - a))
+    for x0, x1, z0, z1, axis, start, end in ramp_geo:
+        for which, height in [(0, start), (1, end)]:
+            if axis == 0:
+                x = f32(x0) if which == 0 else end_of(x0, x1)
+                points = [(x, f32(z0)), (x, end_of(z0, z1))]
+            else:
+                z = f32(z0) if which == 0 else end_of(z0, z1)
+                points = [(f32(x0), z), (end_of(x0, x1), z)]
+            points.append(tuple(f32((a + b) * 0.5) for a, b in zip(*points)))
+            holds = lambda p, q: (f32(p[0]) <= q[0] <= end_of(p[0], p[1])
+                                  and f32(p[2]) <= q[1] <= end_of(p[2], p[3]))
+            for q in points:
+                assert any(abs(f32(h) - f32(height)) < 1e-6 and holds(p, q) for *p, h in plat_geo), \
+                    "stair %s's end %d at %s meets no deck" % ((x0, x1, z0, z1), which, q)
+
+joins()
+
+# Every stair of the spaces made in her old voids (#148) stands inside her lines, 0.1 m
+# clear of her shell, all along it.
+for name, x0, x1, z0, z1, high, x_low in stairs:
+    if not name.startswith(("space_", "stokehold_6")):
+        continue
+    low = next(min(r[5], r[6]) for r in ramp_geo if r[:4] == (x0, x1, z0, z1))
+    for k in range(21):
+        x = lerp(x0, x1, k / 20)
+        y = lerp(low, high, (x - x_low) / (x1 - x0) if x_low == x0 else (x_low - x) / (x1 - x0))
+        assert y >= shell_top(x) or breadth(x, y) >= max(-z0, z1) + 0.1, ("stair through her shell", name, x, y)
+
 # --- Cells (§5b.2): (name, x0, x1, y0, y1, z0, z1, kind, permeability or None for its
 # kind's). Her sixteen compartments deck by deck where their decks part her water: the
 # double bottom under each (SB-text: watertight floors under every bulkhead), the hold
@@ -1217,13 +1941,6 @@ for x0, x1, z0, z1, h in plat_geo:
 # accommodation 0.95 — her kinds' own but the holds' and the machinery's, stated here.
 HOLD, MACHINERY = 0.75, 0.80
 KINDS = ["ACCOMMODATION", "MACHINERY", "CARGO", "STORES", "VOID", "BUNKER", "OPEN_WELL"]
-# The firemen's passage, from the foot of the spiral stairs in No. 2 hold aft through
-# No. 3 to boiler room 6 (Wilding: "the spiral stair"; BOT: its side "3 1/2 ft from the
-# outer skin of the ship", in No. 2 hold): est. 2 m wide and 8 ft high, its starboard
-# side 3 ft 6 in inside her shell at its middle height in No. 2 hold.
-PASSAGE_TOP = q(TANK_TOP + 8.0 * FT)
-PASSAGE_Z = (round(breadth(94.0, (TANK_TOP + PASSAGE_TOP) * 0.5) - 3.5 * FT - 2.0, 4),
-             round(breadth(94.0, (TANK_TOP + PASSAGE_TOP) * 0.5) - 3.5 * FT, 4))
 COMPARTMENTS = [  # (name, aft x, fore x) aft to fore, as her bulkheads part her
     ("after_peak", X_AFT, BX["P"]), ("after_hold_aft", BX["P"], BX["O"]), ("after_hold_fwd", BX["O"], BX["N"]),
     ("electric_room", BX["N"], BX["M"]), ("turbine_room", BX["M"], BX["L"]), ("engine_room", BX["L"], BX["K"]),
@@ -1494,6 +2211,13 @@ for k in range(6, 0, -1):
     through("scuttle_bunker_%d" % k, "LEAK", (b[0] + b[1]) * 0.5, 8.0, 1.0, 1.0, "bunker_%d" % k, area=0.05,
             starts="OPEN")
 
+# The doors through her bulkheads into the spaces made in her old voids (#148), as the
+# steamer's and the trawler's scuttles: bolted shut, a body going through one opening it
+# as a doorway's door is opened — shut to the water, each never weeps nor gives way, so
+# the spaces either side of it flood as they did before they were places.
+for name, x, floor, z in SEALED_DOORS:
+    across(name, "WATERTIGHT_DOOR", x, floor + LINTEL * 0.5, z, LINTEL, DOOR, starts="SHUT")
+
 # Doorways: open, as Q15 built them; one in a watertight wall a hand-worked watertight
 # door. Doorways joining the same two places at one sill on one face are one opening.
 bulkhead_x = {round(b[1], 4) for b in BULKHEADS}
@@ -1517,6 +2241,10 @@ for axis, at, d0, d1, foot in doorways:
     # 6 m to port) is that door, not a second one nobody shuts.
     if any(o[1] == "WATERTIGHT_DOOR" and set(o[2]) == {a, b or SKY} and o[4][axis] == 0
            and abs(o[3][axis] - face) < 1e-4 and abs(o[3][1] - LINTEL * 0.5 - foot) < 1e-4 for o in openings):
+        continue
+    # Nor is the one through the forecastle's front onto the forward well: the forecastle's
+    # door there (door_forecastle, below) is that door.
+    if (a, b, axis) == ("forecastle", None, 0) and abs(face - FCSL_FROM) < 1e-4:
         continue
     if key in merged:
         merged[key][1] += (d1 - d0) * LINTEL
@@ -1613,14 +2341,26 @@ for name, x0, x1, z0, z1, high, _x_low in stairs:
     if name.startswith(("boat_aft", "a_aft", "b_aft", "a_fwd", "forecastle_", "poop_")):
         continue
     # The boiler rooms' flights to F deck: the fiddley/casing openings already stand for
-    # these shafts.
-    if name.startswith("stokehold_"):
+    # these shafts. The stairs of the spaces made in her old voids (#148): the hatchways,
+    # the holds' open tops and the passage's stair opening stand for theirs, and the
+    # manholes into her double bottoms are their own (below).
+    if name.startswith(("stokehold_", "space_")):
         continue
     xm, zm = (x0 + x1) * 0.5, (z0 + z1) * 0.5
     below = cell_at(xm, high - 0.01, zm)
     above = cell_at(xm, high + 0.01, zm)
     if below != above and below is not None:
         opening("stair_%s" % name, "STAIRWELL", below, above, (xm, high, zm), (x1 - x0, 0, z1 - z0), starts="OPEN")
+# The manholes down into her double bottoms (#148), each over its stair in the tank top,
+# and the hatches down through the after holds' watertight orlop deck, each over its
+# stair: bolted shut as the doors through her bulkheads into her spaces are (above).
+for name, x0, x1, z0, z1, high, _x_low in stairs + stairs_z:
+    kind = ("manhole_" if name.startswith("space_db")
+            else "hatch_" if name.startswith(("space_ahf_or", "space_aha_or")) else "")
+    if kind:
+        xm, zm = (x0 + x1) * 0.5, (z0 + z1) * 0.5
+        opening(kind + name[len("space_"):], "HATCH", cell_at(xm, high - 0.01, zm), cell_at(xm, high + 0.01, zm),
+                (xm, high, zm), (x1 - x0, 0, z1 - z0), starts="SHUT")
 # The firemen's passage: its plating leaks into the holds round it (est. 0.01 m² each
 # side), and the spiral stairs at its forward end climb out of it (Wilding) — est. a
 # metre square into No. 2 hold over it.

@@ -12,14 +12,26 @@ extends Node
 ## — the run's own clock, as --print-fps counts its seconds; the menu's and a held
 ## countdown's bake are not the match's — and the split of them all so far is printed
 ## once a second, lines starting "frame split", for tools/fps.sh to show the last.
+##
+## The display scripts are timed node by node from outside, nothing in the nodes
+## themselves: every node in the tree whose script has a _process is handed a Lap, an
+## internal first child at its priority — so it processes right after it, and none of
+## the node's get_children sees it — which books the time since the last lap to the
+## node's class. A class's line is so its _process, and any engine-processed node run
+## between it and the timed script before it; the probe's own work and whatever
+## processes after the last timed script are no node's.
 
 const FIRST := -(1 << 30)
 const LAST := 1 << 30
 const REPORT_EVERY_US := 1000000
 
 var split := FrameSplit.new()
-## Whether a match is playing: only its frames are kept.
-var playing := false
+## Whether a match is playing: only its frames are kept, from the one after it starts
+## on — the frame it starts in builds it.
+var playing := false:
+	set(value):
+		_starting = value and not playing
+		playing = value
 
 var _skip_us: int
 var _frame_start := -1
@@ -29,6 +41,10 @@ var _viewport: RID
 var _drawn := 0
 var _draw_start := 0
 var _draw_end := 0
+## When the last lap was booked, this frame.
+var _lap := 0
+## Whether the match started in the open frame: one not kept.
+var _starting := false
 
 
 ## Keeps the frames from [param skip_seconds] of the run on.
@@ -46,11 +62,58 @@ func _ready() -> void:
 	RenderingServer.viewport_set_measure_render_time(_viewport, true)
 	RenderingServer.frame_pre_draw.connect(_on_pre_draw)
 	RenderingServer.frame_post_draw.connect(_on_post_draw)
+	get_tree().node_added.connect(_on_node_added)
+	_watch_all(get_tree().root)
 
 
 func _exit_tree() -> void:
 	RenderingServer.frame_pre_draw.disconnect(_on_pre_draw)
 	RenderingServer.frame_post_draw.disconnect(_on_post_draw)
+	get_tree().node_added.disconnect(_on_node_added)
+
+
+## Books the time since the last lap to [param node_class]'s _process.
+func lap(node_class: StringName) -> void:
+	var now := Time.get_ticks_usec()
+	split.add_node(node_class, now - _lap)
+	_lap = now
+
+
+func _watch_all(node: Node) -> void:
+	_on_node_added(node)
+	for child: Node in node.get_children():
+		_watch_all(child)
+
+
+func _on_node_added(node: Node) -> void:
+	if node is Lap or node is End or node == self:
+		return
+	var script := node.get_script() as Script
+	if script != null and node.has_method(&"_process"):
+		# Not while the node is still entering the tree with its children.
+		_watch.call_deferred(node)
+
+
+## Hands [param node] — whatever it is by now — its Lap, once.
+func _watch(node: Variant) -> void:
+	if not is_instance_valid(node):
+		return
+	var watched := node as Node
+	if not watched.is_inside_tree():
+		return
+	if watched.get_child_count(true) > 0 and watched.get_child(0, true) is Lap:
+		return
+	var script := watched.get_script() as Script
+	var named := script.get_global_name()
+	if named.is_empty():
+		named = StringName(script.resource_path.get_file().get_basename())
+	if named.is_empty():
+		named = StringName(watched.name)
+	var lap_node := Lap.new()
+	lap_node.probe = self
+	lap_node.node_class = named
+	lap_node.process_priority = watched.process_priority
+	watched.add_child(lap_node, false, Node.INTERNAL_MODE_FRONT)
 
 
 func _on_pre_draw() -> void:
@@ -70,6 +133,7 @@ func _process(_delta: float) -> void:
 	if now - _reported >= REPORT_EVERY_US and split.frames() > 0:
 		_reported = now
 		print("\n".join(split.report()))
+	_lap = Time.get_ticks_usec()
 
 
 ## The frame that started at _frame_start, its render just done, closed at [param now].
@@ -77,7 +141,8 @@ func _close(now: int) -> void:
 	var drawn := Engine.get_frames_drawn()
 	var did_draw := drawn != _drawn
 	_drawn = drawn
-	if _frame_start < _skip_us or not playing:
+	if _frame_start < _skip_us or not playing or _starting:
+		_starting = false
 		split.drop()
 		return
 	split.add(&"undrawn", 0 if did_draw else 1)
@@ -116,3 +181,13 @@ class End:
 
 	func _process(_delta: float) -> void:
 		probe.scripts_done()
+
+
+## Processes right after the node it is the first child of: books its _process.
+class Lap:
+	extends Node
+	var probe: FrameProbe
+	var node_class: StringName
+
+	func _process(_delta: float) -> void:
+		probe.lap(node_class)

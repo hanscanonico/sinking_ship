@@ -27,6 +27,7 @@ var _look_ahead: float
 func _init(
 	surfaces: Surfaces, walk_graph: WalkGraph, rules: BrawlRules, edge_margin: float
 ) -> void:
+	assert(surfaces == walk_graph.surfaces(), "a footing reads its walk graph's surfaces")
 	_surfaces = surfaces
 	_walk_graph = walk_graph
 	_rules = rules
@@ -234,15 +235,10 @@ func clear_heading(
 
 ## The share of her deck area under water under [param pose]: each platform by its
 ## area, under once the water stands over its middle — a small platform going under
-## floods little of her.
+## floods little of her: its walk graph's answer (WalkGraph.flooded_share), worked out
+## once per pose for every bot reading that graph.
 func flooded_share(pose: ShipPose) -> float:
-	var flooded := 0.0
-	var whole := 0.0
-	for platform in _surfaces.platform_count():
-		var area := _walk_graph.platform_area(platform)
-		whole += area
-		flooded += area if _surfaces.flooded(platform, pose) else 0.0
-	return flooded / whole if whole > 0.0 else 0.0
+	return _walk_graph.flooded_share(pose)
 
 
 ## Whether [param mark] stands between the bot and [param probe] — nearer the probe

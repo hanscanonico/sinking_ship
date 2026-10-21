@@ -197,7 +197,7 @@ func decide(view: BotView, tick: int) -> InputFrame:
 	if view.is_empty():
 		return InputFrame.new(seat, tick)
 	var seen := view.snapshot()
-	var me := _entry(seen, seat)
+	var me := view.entry(seat)
 	if me.is_empty() or me["out"]:
 		return InputFrame.new(seat, tick)
 	var first := _look == -1
@@ -216,7 +216,7 @@ func decide(view: BotView, tick: int) -> InputFrame:
 	if me["state"] == PlayerState.Body.SWIMMING:
 		intent = Intent.SWIM_OUT
 		return _swim_out(me, now_pos, pose, tick)
-	var mark := _entry(seen, target)
+	var mark := view.entry(target)
 	if intent == Intent.SWIM_OUT:
 		# Out of the sea: a fresh look round on deck.
 		_think_in = 0
@@ -224,10 +224,10 @@ func decide(view: BotView, tick: int) -> InputFrame:
 		# Where it last saw its target, and nobody there: time to think again.
 		_think_in = 0
 	if _think_in <= 0:
-		_think(seen, me, now_pos, pose, view.seats_left())
+		_think(view, me, now_pos, pose)
 		# After the first, each seat thinks on its own beat: never every bot at once.
 		_think_in = _profile.think_period - (seat % _profile.think_period if first else 0)
-		mark = _entry(seen, target)
+		mark = view.entry(target)
 	_think_in -= 1
 	var steer := _steer(seen, me, mark, now_pos, pose)
 	if _lapse > 0:
@@ -341,9 +341,9 @@ func _swim_out(me: Dictionary, now_pos: Vector3, pose: ShipPose, tick: int) -> I
 ## Rolls this think's heading error, reads and lapse from the bot's own stream — the
 ## same draws, in the same order, every think — then picks its target, its intent and
 ## the route to the intent's goal.
-func _think(
-	seen: Dictionary, me: Dictionary, now_pos: Vector3, pose: ShipPose, seats_left: int
-) -> void:
+func _think(view: BotView, me: Dictionary, now_pos: Vector3, pose: ShipPose) -> void:
+	var seen := view.snapshot()
+	var seats_left := view.seats_left()
 	var my_pos: Vector3 = me["pos"]
 	var my_surface: int = me["surface"]
 	var error := _profile.aim_error_deg
@@ -384,7 +384,7 @@ func _think(
 		_refuge = _refuges.choose(found, pose, seen["tick"], _refuge)
 		refuge = _refuge
 	target = _targeting.choose(seen, me, found, pose, highest, target, refuge, under)
-	var mark := _entry(seen, target)
+	var mark := view.entry(target)
 	var my_zone := _zone_of(me)
 	var feet := pose.above_water(my_pos)
 	var floor_height := _walk_graph.floor_height(my_zone, my_pos, pose)
@@ -448,7 +448,7 @@ func _think(
 		Intent.GUARD:
 			_goal = WalkGraph.NONE
 		_:
-			_goal = _zone_of(_entry(seen, target))
+			_goal = _zone_of(view.entry(target))
 	# The route it has, while its goal stands and every portal on it is open: two ways
 	# of near one length do not swap it from one to the other at every think.
 	var legs := _walk_graph.route_in(found, _goal)
@@ -1088,10 +1088,3 @@ func _zone_of(entry: Dictionary) -> int:
 
 static func _flat(a: Vector3, b: Vector3) -> float:
 	return Vector2(a.x - b.x, a.z - b.z).length()
-
-
-static func _entry(seen: Dictionary, wanted: int) -> Dictionary:
-	for entry: Dictionary in seen["seats"]:
-		if entry["seat"] == wanted:
-			return entry
-	return {}

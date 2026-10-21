@@ -51,6 +51,16 @@ const BANDS := {
 		"gone within 20 min of physics": [30, 60],
 		"breaks (in two or three, SH33)": [0, 0],
 	},
+	# SH35: capsizing her commonest end, the open car deck's.
+	"ferry":
+	{
+		"survives": [10, 30],
+		"founders upright, by the head or the stern": [15, 40],
+		"heavy list (≥ 15° for ≥ 5 min afloat)": [40, 70],
+		"capsizes (rolled past 90°)": [40, 70],
+		"gone within 20 min of physics": [5, 25],
+		"breaks (in two or three, SH33)": [0, 0],
+	},
 	"titanic":
 	{
 		"survives": [20, 40],

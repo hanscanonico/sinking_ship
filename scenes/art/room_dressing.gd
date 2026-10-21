@@ -81,13 +81,17 @@ const NAMED: Array[Array] = [
 	["entrance", Kind.PUBLIC],
 	["general room", Kind.PUBLIC],
 	["open space", Kind.PUBLIC],
-	# The spaces in her old voids (#148, LowerSpaces): her stores are holds.
+	# The spaces in her old voids (#148, LowerSpaces): her stores are holds, and so are a
+	# liner's coal bunkers; a peak's tank is a tank, the firemen's passage a passage.
 	["double bottom", Kind.TANK],
 	["side passage", Kind.TANK],
+	["peak tank", Kind.TANK],
+	["passage", Kind.PASSAGE],
 	["shaft tunnel", Kind.SHAFT],
 	["steering gear", Kind.STEERING],
 	["chain locker", Kind.LOCKER],
 	["store", Kind.HOLD],
+	["bunker", Kind.HOLD],
 	["engine", Kind.ENGINE],
 	# Ahead of "hold": a stokehold is where her engine stands, no cargo hold.
 	["stokehold", Kind.ENGINE],

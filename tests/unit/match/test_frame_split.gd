@@ -161,3 +161,70 @@ func _row_after(split: FrameSplit, text: String) -> int:
 		if (lines[index] as String).contains(text):
 			return index + 1
 	return -1
+
+
+func test_a_node_class_is_its_processes_mean_over_the_frames_kept() -> void:
+	var split := FrameSplit.new()
+	split.add_node(&"ShipLamp", 100)
+	split.add_node(&"ShipLamp", 300)
+	split.add_node(&"MatchView", 900)
+	split.close(10000)
+	split.add_node(&"MatchView", 1100)
+	split.close(10000)
+	assert_almost_eq(split.node_mean(&"ShipLamp"), 0.2, 0.0001, "every lamp, summed")
+	assert_almost_eq(split.node_mean(&"MatchView"), 1.0, 0.0001)
+	var costliest_first: Array[StringName] = [&"MatchView", &"ShipLamp"]
+	assert_eq(split.node_classes(), costliest_first)
+
+
+func test_a_dropped_frames_nodes_count_for_nothing() -> void:
+	var split := FrameSplit.new()
+	split.add_node(&"MatchView", 90000)
+	split.drop()
+	split.add_node(&"MatchView", 500)
+	split.close(10000)
+	assert_almost_eq(split.node_mean(&"MatchView"), 0.5, 0.0001)
+
+
+func test_the_stepper_is_its_own_work_without_the_steps_it_runs() -> void:
+	var split := FrameSplit.new()
+	_node_frame(split, {&"SimDriver": 2600, &"MatchView": 900}, {&"process": 4000, &"match": 2200})
+	assert_almost_eq(split.node_mean(&"SimDriver"), 0.4, 0.0001, "its steps taken out")
+
+
+func test_the_node_lines_and_their_rest_add_up_to_the_display_scripts() -> void:
+	var split := FrameSplit.new()
+	_node_frame(split, {&"SimDriver": 2500, &"MatchView": 900}, {&"process": 4000, &"match": 2200})
+	_node_frame(split, {&"SimDriver": 300, &"MatchView": 1000}, {&"process": 1600, &"match": 0})
+	var lines := 0.0
+	for node_class: StringName in split.node_classes():
+		lines += split.node_mean(node_class)
+	assert_almost_eq(lines + split.nodes_rest(), split.rest(&"process"), 0.0001)
+	assert_almost_eq(split.nodes_rest(), 0.45, 0.0001, "the probe's own and the tail")
+
+
+func test_the_report_lists_the_nodes_under_the_display_scripts() -> void:
+	var split := FrameSplit.new()
+	_node_frame(split, {&"SimDriver": 2600, &"MatchView": 900}, {&"process": 4000, &"match": 2200})
+	var lines := Array(split.report())
+	var display := _row_after(split, "display scripts") - 1
+	assert_string_contains(lines[display + 1], "MatchView")
+	assert_string_contains(lines[display + 1], "0.90 ms")
+	assert_string_contains(lines[display + 2], "SimDriver beyond its steps")
+	assert_string_contains(lines[display + 2], "0.40 ms")
+	assert_string_contains(lines[display + 3], FrameSplit.NODES_REST)
+	assert_string_contains(lines[display + 3], "0.50 ms", "what no node took")
+	var indent := func(line: String) -> int: return line.length() - line.lstrip(" ").length()
+	assert_gt(indent.call(lines[display + 1]), indent.call(lines[display]), "indented under it")
+
+
+func test_a_report_with_no_node_timed_lists_none() -> void:
+	var split := FrameSplit.new()
+	_frame(split, 10000, {&"process": 4000})
+	assert_false("\n".join(split.report()).contains(FrameSplit.NODES_REST), "said only when timed")
+
+
+func _node_frame(split: FrameSplit, nodes: Dictionary, parts: Dictionary) -> void:
+	for node_class: StringName in nodes:
+		split.add_node(node_class, nodes[node_class])
+	_frame(split, 10000, parts)
