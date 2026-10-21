@@ -13,6 +13,16 @@ signal rematch_requested
 signal menu_requested
 ## A browser let go of the mouse mid-match at the player's Esc, which this never hears.
 signal pointer_lost
+## The replay watched was left: Esc, or the controls' Back (R4).
+signal replay_closed
+## The results asked to watch the match again (R6): [param file] is its replay.
+signal replay_requested(file: ReplayFile)
+
+## The choices a local match was built from (Game), for its replay; null online.
+var choices: MatchChoices
+## A local match's replay, recorded once it ended or as it was left (save_replay): what
+## the results offer to watch again; null until then, and for an online match.
+var last_replay: ReplayFile
 
 const LOCAL_SEAT := 0
 ## The gaze through another seat's eyes, in degrees above the horizon: at a level
@@ -29,6 +39,8 @@ const CELLS_DISTANCE := 33.0
 
 var _config: MatchConfig
 var _stats: MatchStats
+## The stats the results showed, kept past a replay of the match (show_results_again).
+var _last_stats: MatchStats
 var _order: SpectateOrder
 var _names := PackedStringArray()
 ## The local player's seat when a person plays it; null when a bot does.
@@ -46,6 +58,8 @@ var _staged := PackedFloat64Array()
 var _paused := false
 ## Whether the match is played on a server: started by start_online.
 var _online := false
+## The local match's host and client in one process (start); null online.
+var _loopback: LoopbackMatch
 ## The mouse let go mid-match without pausing, a menu over the match having it, the keys
 ## and the pad: an online match never pauses.
 var _mouse_freed := false
@@ -65,6 +79,12 @@ var _free := FreeCamera.new()
 var _eye_fill := EyeFill.new()
 ## The water running off the lens once the eye comes up out of it.
 var _lens_drops := LensDrops.new()
+## The replay's controls, made the first time a replay is watched (start_replay).
+var _replay_hud: ReplayHud
+## The replay's orbit camera (R5), made as a replay starts; null until one is.
+var _orbit: OrbitCamera
+## Whose eyes the replay is seen through, cycled round every seat (SpectateOrder.every).
+var _replay_seat := LOCAL_SEAT
 
 @onready var _sea_and_sky: SeaAndSky = $SeaAndSky
 @onready var _driver: SimDriver = $SimDriver
@@ -84,6 +104,7 @@ var _lens_drops := LensDrops.new()
 func _ready() -> void:
 	_end.rematch_requested.connect(rematch_requested.emit)
 	_end.menu_requested.connect(menu_requested.emit)
+	_end.replay_requested.connect(func() -> void: replay_requested.emit(last_replay))
 	_driver.stepped.connect(func(events: Array[SimEvent]) -> void: _stats.add(events))
 	_driver.stepped.connect(_shake_for_the_sinking)
 	add_child(_marks)
@@ -100,33 +121,43 @@ func _ready() -> void:
 
 func _exit_tree() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	# A match left early — the pause menu's, or the game's quit — is kept as it ends.
+	save_replay()
 
 
 # Runs after MatchView (the scene's process_priority), so the eyes sit on the bodies
 # as drawn this frame.
 func _process(delta: float) -> void:
-	if _driver.client == null:
+	if not _driver.started():
 		return
 	var snapshot := _driver.current
-	var viewed := _order.target(snapshot)
+	var viewed := _replay_seat if _driver.replaying() else _order.target(snapshot)
 	_hud.show_snapshot(snapshot)
 	_sea_and_sky.show_sinking(snapshot["tick"], _view.ship_to_world())
 	_sea_and_sky.show_waders(_view.waders_drawn())
 	var drawn := lerpf(_driver.previous["tick"], snapshot["tick"], _driver.alpha)
 	_iceberg.show_at(drawn, _underwater.is_under())
 	if not _cells.is_empty():
-		var pose := _driver.client.sim.schedule.pose_at(snapshot["tick"])
-		var leaves := ShipPieces.leaves_of(_driver.client.sim.schedule)
+		var pose := _driver.sim().schedule.pose_at(snapshot["tick"])
+		var leaves := ShipPieces.leaves_of(_driver.sim().schedule)
 		for at in _cells.size():
 			var piece := leaves[at] if not leaves.is_empty() else 0
 			_cells[at].show_water(pose.of_piece(piece), _view.piece_to_world(at))
 	_hud.show_spectating(_spectating(snapshot, viewed))
 	_hud.show_controls(_prompts if _local != null else null)
-	_end.show_results(
-		_stats, _local_seat, _names, _config.match_seed, _config.goal == MatchRules.Goal.SURVIVAL
-	)
+	if _driver.replaying():
+		_show_replay(snapshot, viewed)
+	else:
+		_end.show_results(
+			_stats,
+			_local_seat,
+			_names,
+			_config.match_seed,
+			_config.goal == MatchRules.Goal.SURVIVAL
+		)
 	if _end.visible:
 		_end.show_prompts(_prompts)
+		save_replay()
 	_free.keep(_can_fly(snapshot))
 	_pointer.want(_looking() or _flying())
 	_hold()
@@ -136,14 +167,17 @@ func _process(delta: float) -> void:
 		_local_up = local_up
 	if _looking() and not _free.active:
 		_local.look_by_stick(delta)
-	_audio.hear_through(-1 if _observer or _free.active else viewed)
-	_first_person_hud.flying = _free.active
+	_audio.hear_through(-1 if _observer or _free.active or _orbiting() else viewed)
+	_first_person_hud.flying = _free.active or _orbiting()
 	if _observer:
 		_observer_camera.follow(_view.seat_world_position(viewed), delta)
 		_first_person_hud.show_view(snapshot, viewed, 0.0, _eyes, _view)
 		return
 	if _free.active:
 		_fly(snapshot, viewed, delta)
+		return
+	if _orbiting():
+		_orbit_view(snapshot, viewed, delta)
 		return
 	# Another seat's pitch never leaves its client, so its gaze is fixed (D14): a
 	# little below level, so the deck and its edges show under the horizon.
@@ -185,10 +219,12 @@ func _process(delta: float) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if _driver.client == null or _mouse_freed:
+	if not _driver.started() or _mouse_freed:
 		return
 	if event is InputEventMouseMotion:
-		if _flying():
+		if _orbiting():
+			_orbit.drag(event as InputEventMouseMotion)
+		elif _flying():
 			_free.look_by_mouse((event as InputEventMouseMotion).screen_relative)
 		elif _looking():
 			_local.look_by_mouse((event as InputEventMouseMotion).screen_relative)
@@ -197,6 +233,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		rematch_requested.emit()
 	elif _end.visible and event.is_action_pressed("pause"):
 		menu_requested.emit()
+	elif _driver.replaying():
+		if not _replay_input(event):
+			return
 	elif event.is_action_pressed("spectate_free") and _can_fly(_driver.current):
 		_toggle_free()
 	elif event.is_action_pressed("spectate_next"):
@@ -255,6 +294,8 @@ func start(
 			config, net_rules, conditions, played, local, served, from, split
 		)
 	var names := _seat_names(config.seats)
+	_loopback = loopback
+	last_replay = null
 	_begin(loopback, local, LOCAL_SEAT, names, observer, eye_seat, observer_cut, greybox)
 
 
@@ -265,6 +306,8 @@ func start(
 func start_online(played: PlayedMatch, local: LocalInputSource, names: PackedStringArray) -> void:
 	var seat := played.client.seat
 	_online = true
+	_loopback = null
+	last_replay = null
 	_begin(played, local, seat, names, false, seat, INF, false)
 	_end.offer_room()
 
@@ -296,7 +339,7 @@ func watch_from(side: ObserverCamera.Beam) -> void:
 ## (--observer-cells): a tool, as the observer camera is.
 func show_cells() -> void:
 	if _cells.is_empty():
-		var schedule := _driver.client.sim.schedule
+		var schedule := _driver.sim().schedule
 		var leaves := ShipPieces.leaves_of(schedule)
 		for at in maxi(leaves.size(), 1):
 			var overlay := CellOverlay.new()
@@ -330,7 +373,26 @@ func _begin(
 	observer_cut: float,
 	greybox: bool
 ) -> void:
-	var config := played.client.config
+	_driver.start(played)
+	_setup_view(
+		played.client.config, local, local_seat, names, observer, eye_seat, observer_cut, greybox
+	)
+
+
+## What a match and a replay share once the driver runs it: [param config]'s ship,
+## sinking and seats drawn, [param local] (null for a bot, or a replay) on
+## [param local_seat], seen through [param eye_seat]'s eyes or the observer camera, as
+## start() says.
+func _setup_view(
+	config: MatchConfig,
+	local: LocalInputSource,
+	local_seat: int,
+	names: PackedStringArray,
+	observer: bool,
+	eye_seat: int,
+	observer_cut: float,
+	greybox: bool
+) -> void:
 	_config = config
 	_observer = observer
 	_eye_seat = eye_seat
@@ -339,13 +401,13 @@ func _begin(
 	_mouse_freed = false
 	var settings := ViewSettings.local()
 	var net_rules := NetRules.load_default()
-	_driver.start(played)
 	if _local != null:
 		# The look starts where the match's first snapshot faces the seat.
-		_local.yaw = _driver.client.view()["seats"][_local_seat]["facing"]
-		_local_up = _up_of(_driver.client.view(), _local_seat)
-	# The client's prediction: what the data, the ship and its sinking are.
-	var sim := _driver.client.sim
+		_local.yaw = _driver.latest()["seats"][_local_seat]["facing"]
+		_local_up = _up_of(_driver.latest(), _local_seat)
+	# The client's prediction, or the replay's sim: what the data, the ship and its
+	# sinking are.
+	var sim := _driver.sim()
 	_stats = MatchStats.new(config.seats, config.countdown_ticks)
 	_order = SpectateOrder.new(_eye_seat, _stats)
 	_names = names
@@ -378,7 +440,205 @@ func _begin(
 	else:
 		_eyes.make_current()
 	_end.hide()
+	if _replay_hud != null:
+		_replay_hud.visible = _driver.replaying()
 	print("match seed %d" % config.match_seed)
+
+
+## Records the local match as its replay (last_replay) — the host's log, which has every
+## seat's frames — and saves it, once: as the results show, or as the match is left
+## early, its log ending where play ended (R3). An online match is never saved: its host
+## is elsewhere. A match started mid-way (a tool's jump) is recorded but not saved, as
+## no replay could rebuild its start (ReplayFile.playable).
+func save_replay() -> void:
+	if last_replay != null or _loopback == null or choices == null:
+		return
+	var runner := _loopback.host.runner
+	# A match left before a tick was stepped has nothing to watch again.
+	if runner.input_log.last_tick() < runner.input_log.first_tick:
+		return
+	var recorder := ReplayRecorder.new()
+	last_replay = recorder.record(choices, runner)
+	_last_stats = _stats
+	var playable := last_replay.playable()
+	_end.offer_replay(playable)
+	if playable:
+		recorder.save(last_replay)
+
+
+## Watches [param file]'s match again (R4, #212): its sim run from its log
+## (ReplayTimeline) and drawn exactly as a live match is, seen through the recorded
+## human seat's eyes, with the replay's controls over it (ReplayHud) and nothing of a
+## match's input, pause or results. Esc, or the controls' Back, emits replay_closed.
+func start_replay(file: ReplayFile, config: MatchConfig) -> void:
+	var rules := ReplayRules.load_default()
+	var timeline := ReplayTimeline.new(file, rules, config)
+	_online = false
+	_loopback = null
+	choices = file.choices
+	last_replay = file
+	_driver.start_replay(timeline, rules)
+	if not _driver.sought.is_connected(_on_sought):
+		_driver.sought.connect(_on_sought)
+	if _replay_hud == null:
+		_replay_hud = ReplayHud.new()
+		_replay_hud.name = "ReplayHud"
+		add_child(_replay_hud)
+		_replay_hud.pause_toggled.connect(replay_pause)
+		_replay_hud.step_requested.connect(replay_step)
+		_replay_hud.speed_requested.connect(replay_speed)
+		_replay_hud.seek_requested.connect(replay_seek)
+		_replay_hud.close_requested.connect(replay_closed.emit)
+	_replay_hud.setup(timeline.first_tick(), timeline.last_tick())
+	_setup_view(config, null, LOCAL_SEAT, _seat_names(config.seats), false, LOCAL_SEAT, INF, false)
+	# Nobody plays: no crosshair, readouts or wedges over the eyes, as from the observer.
+	_first_person_hud.setup(timeline.sim(), _names, false, _prompts)
+	_replay_seat = LOCAL_SEAT
+	_orbit = OrbitCamera.new(ViewSettings.local())
+	_orbit.set_ship(config.ship)
+	_orbit.open()
+
+
+## Whether a replay is being watched rather than a match played.
+func replaying() -> bool:
+	return _driver != null and _driver.replaying()
+
+
+## Pauses the replay, or plays it on.
+func replay_pause() -> void:
+	var clock := _driver.clock()
+	if clock != null:
+		clock.paused = not clock.paused
+
+
+## The replay one tick on ([param direction] 1) or back (-1), paused first.
+func replay_step(direction: int) -> void:
+	var clock := _driver.clock()
+	if clock == null:
+		return
+	clock.paused = true
+	_driver.step_once(direction)
+
+
+## Up ([param direction] 1) or down (-1) the replay's speed ladder.
+func replay_speed(direction: int) -> void:
+	var clock := _driver.clock()
+	if clock == null:
+		return
+	if direction > 0:
+		clock.speed_up()
+	else:
+		clock.speed_down()
+
+
+## The replay to [param tick].
+func replay_seek(tick: int) -> void:
+	_driver.seek(tick)
+
+
+## Back from a replay opened from the results (R6): the results again, over the replay
+## standing still, with Rematch, Watch replay and Menu as before.
+func show_results_again() -> void:
+	if _last_stats == null or not _driver.replaying():
+		return
+	_driver.clock().paused = true
+	_replay_hud.hide()
+	_end.show_results(
+		_last_stats,
+		_local_seat,
+		_names,
+		_config.match_seed,
+		_config.goal == MatchRules.Goal.SURVIVAL
+	)
+
+
+## The replay's keys: whether [param event] was one of them, and what it asked done.
+func _replay_input(event: InputEvent) -> bool:
+	if event.is_action_pressed("replay_pause"):
+		replay_pause()
+	elif event.is_action_pressed("replay_step_back"):
+		replay_step(-1)
+	elif event.is_action_pressed("replay_step_forward"):
+		replay_step(1)
+	elif event.is_action_pressed("replay_speed_down"):
+		replay_speed(-1)
+	elif event.is_action_pressed("replay_speed_up"):
+		replay_speed(1)
+	elif event.is_action_pressed("replay_seek_start"):
+		replay_seek(_driver.timeline().first_tick())
+	elif event.is_action_pressed("replay_seek_end"):
+		replay_seek(_driver.timeline().last_tick())
+	elif event.is_action_pressed("spectate_next"):
+		_replay_seat = SpectateOrder.every(_replay_seat, 1, _config.seats)
+	elif event.is_action_pressed("spectate_previous"):
+		_replay_seat = SpectateOrder.every(_replay_seat, -1, _config.seats)
+	elif event.is_action_pressed("replay_camera_toggle"):
+		_orbit.active = not _orbit.active
+	elif event.is_action_pressed("replay_orbit_lock"):
+		_orbit.locked = not _orbit.locked
+	elif event is InputEventMouseButton and event.is_pressed() and _orbiting():
+		var button := (event as InputEventMouseButton).button_index
+		if button == MOUSE_BUTTON_WHEEL_UP:
+			_orbit.zoom(1.0)
+		elif button == MOUSE_BUTTON_WHEEL_DOWN:
+			_orbit.zoom(-1.0)
+		else:
+			return false
+	elif event.is_action_pressed("ui_cancel") or event.is_action_pressed("pause"):
+		replay_closed.emit()
+	else:
+		return false
+	return true
+
+
+## The replay's controls over the view, as the replay stands at [param snapshot], seen
+## through [param viewed]'s eyes.
+func _show_replay(snapshot: Dictionary, viewed: int) -> void:
+	var clock := _driver.clock()
+	_replay_hud.show_state(
+		snapshot["tick"],
+		clock.paused,
+		clock.speed(),
+		Hud.whose_view(_hud.fit_name(_names[viewed]), viewed == _local_seat, false),
+		_camera_name(),
+		_prompts
+	)
+
+
+## The replay was sought: what presentation built from the ticks before is built again
+## from the snapshot (D5) — the standings, the sinking's effects and the cues.
+func _on_sought(_tick: int) -> void:
+	_stats = MatchStats.new(_config.seats, _config.countdown_ticks)
+	_order = SpectateOrder.new(_eye_seat, _stats)
+	_fx.clear()
+	_audio.rewind()
+
+
+## Whether the replay is seen from the orbit camera now.
+func _orbiting() -> bool:
+	return _driver.replaying() and _orbit != null and _orbit.active
+
+
+## The view from the orbit camera (R5): every seat drawn, nobody's arms, the pivot on
+## [param viewed]'s head while locked, and the HUD as from the observer.
+func _orbit_view(snapshot: Dictionary, viewed: int, delta: float) -> void:
+	var head := _view.seat_world_position(viewed) + Vector3.UP * _eyes.eye_height()
+	_orbit.advance(delta, head, _view.ship_to_world())
+	_view.look_out_of(-1)
+	_arms.visible = false
+	_eyes.global_transform = _orbit.transform()
+	var eye := _eyes.global_position
+	_underwater.show_eye(eye, _view.above_water(eye), _view.indoors(eye))
+	_eye_fill.show_eye(eye, _view.lit_at(eye), _underwater.is_under())
+	_lens_drops.show_eye(_underwater.is_under())
+	_first_person_hud.show_view(snapshot, viewed, 0.0, _eyes, _view)
+
+
+## The camera the replay's plate names.
+func _camera_name() -> String:
+	if not _orbiting():
+		return "First person"
+	return "Orbit · on the seat" if _orbit.locked else "Orbit · free"
 
 
 ## Takes up the settings screen's field of view, deck roll, view kick and graphics
@@ -452,7 +712,12 @@ static func _up_of(snapshot: Dictionary, seat: int) -> int:
 ## match goes on, the eyes being a seat's (not the observer's).
 func _can_fly(snapshot: Dictionary) -> bool:
 	var mine: Dictionary = snapshot["seats"][_eye_seat]
-	return not _observer and mine["out"] and snapshot["phase"] != MatchState.Phase.ENDED
+	return (
+		not _observer
+		and not _driver.replaying()
+		and mine["out"]
+		and snapshot["phase"] != MatchState.Phase.ENDED
+	)
 
 
 ## Into the free camera, behind and over the seat whose eyes the view was in and

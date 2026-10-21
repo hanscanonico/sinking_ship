@@ -9,6 +9,9 @@ extends RefCounted
 ## Per seat per tick: whether a frame came, then its seat, tick, move x and y, buttons
 ## and look yaw as received.
 const FIELDS := 7
+## The bytes' first four, and the layout they announce (to_bytes).
+const MAGIC := "SSIL"
+const FORMAT := 1
 
 var match_seed: int
 var seats: int
@@ -18,11 +21,54 @@ var _rows := PackedInt32Array()
 var _count := 0
 
 
+## A log of [param config]'s match from [param from_tick]; [param config] may be null
+## for a log about to be filled from bytes (from_bytes).
 func _init(config: MatchConfig, from_tick: int = 0) -> void:
-	match_seed = config.match_seed
-	seats = config.seats
-	data_hash = config.data_hash()
+	if config != null:
+		match_seed = config.match_seed
+		seats = config.seats
+		data_hash = config.data_hash()
 	first_tick = from_tick
+
+
+## The log as bytes: MAGIC, FORMAT, the seed, the seats, the data hash, the first tick
+## and the tick count, then the rows as they are kept.
+func to_bytes() -> PackedByteArray:
+	var out := ByteCursor.new()
+	out.put_bytes(MAGIC.to_ascii_buffer())
+	out.put_s32(FORMAT)
+	out.put_s64(match_seed)
+	out.put_s32(seats)
+	out.put_string(data_hash)
+	out.put_s32(first_tick)
+	out.put_s32(_count)
+	out.put_bytes(_rows.to_byte_array())
+	return out.bytes()
+
+
+## The log [param bytes] hold, as to_bytes wrote it; null for a buffer cut short,
+## garbled, or of another layout.
+static func from_bytes(bytes: PackedByteArray) -> InputLog:
+	var read := ByteCursor.new(bytes)
+	if read.bytes_next() != MAGIC.to_ascii_buffer() or read.s32() != FORMAT:
+		return null
+	var seed_value := read.s64()
+	var seat_count := read.s32()
+	var hash := read.string()
+	var from_tick := read.s32()
+	var count := read.s32()
+	var rows := read.bytes_next()
+	if not read.ok or not read.at_end() or seat_count < 1 or count < 0 or from_tick < 0:
+		return null
+	if rows.size() != count * seat_count * FIELDS * 4:
+		return null
+	var log := InputLog.new(null, from_tick)
+	log.match_seed = seed_value
+	log.seats = seat_count
+	log.data_hash = hash
+	log._rows = rows.to_int32_array()
+	log._count = count
+	return log
 
 
 func record(tick: int, frames: Array[InputFrame]) -> void:

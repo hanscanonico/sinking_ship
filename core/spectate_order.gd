@@ -43,6 +43,13 @@ func cycle(snapshot: Dictionary, step: int) -> void:
 	_picked = dry[posmod(at + step, dry.size())]
 
 
+## The seat [param step] on from [param seat] round every one of [param count] seats,
+## out or not: a replay's cycling (R5), where the snapshot keeps every seat where it
+## ended and any pair of eyes may be looked through.
+static func every(seat: int, step: int, count: int) -> int:
+	return posmod(seat + step, count)
+
+
 static func _dry(snapshot: Dictionary) -> Array[int]:
 	var dry: Array[int] = []
 	for entry: Dictionary in snapshot["seats"]:

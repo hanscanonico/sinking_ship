@@ -37,6 +37,7 @@ make test TESTS="tests/unit/core/test_ticks.gd …"  # exactly these scripts, ov
 make durations RUN=38882193885                  # rewrite tests/durations.tsv from that CI verify run's logs
 make test-changed                               # only the scripts the branch's changes can reach, each with its chain
 make run                                        # play: you and seven bots, windowed
+make replay FILE=path/to/one.replay             # watch a saved replay (every local match is kept under user://replays) in the replay viewer
 make match SEED=1701                            # one bots-only match, headless, as a transcript
 make match SEED=1701 FAST=1                     # the same, her sinking on the fast clock (FAST=1 works for run too)
 make match SEED=1701 GOAL=survival              # survival: everyone stays in as long as she lasts (GOAL= works for run too)

@@ -175,13 +175,20 @@ text = "Play"
 unique_name_in_owner = true
 custom_minimum_size = Vector2(120, 0)
 focus_neighbor_left = NodePath("../Play")
-focus_neighbor_right = NodePath("../QuitGame")
+focus_neighbor_right = NodePath("../Replays")
 text = "Settings"
+
+[node name="Replays" type="Button" parent="MainMenu/Panel/Box/Buttons"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(120, 0)
+focus_neighbor_left = NodePath("../Settings")
+focus_neighbor_right = NodePath("../QuitGame")
+text = "Replays"
 
 [node name="QuitGame" type="Button" parent="MainMenu/Panel/Box/Buttons"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(120, 0)
-focus_neighbor_left = NodePath("../Settings")
+focus_neighbor_left = NodePath("../Replays")
 text = "Quit"
 
 [node name="OnlineMenu" parent="." instance=ExtResource("8_online")]

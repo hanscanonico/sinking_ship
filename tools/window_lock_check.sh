@@ -26,6 +26,15 @@ fail() {
 	fails=1
 }
 
+# Git Bash on Windows has no pgrep and a ps without -o: the lock serialises and
+# releases there as everywhere, but names no holder and its waiters' CPU cannot be read
+# off ps, so those cases are left out, and said so.
+names_holders=1
+if ! LC_ALL=C ps -o lstart= -p $$ >/dev/null 2>&1 || ! command -v pgrep >/dev/null; then
+	names_holders=0
+	echo "window-lock-check: no ps -o or pgrep here; holders named and waiters' CPU are not checked" >&2
+fi
+
 # Waits until the shell condition $1 holds, DEADLINE seconds at most.
 wait_for() {
 	local i
@@ -79,22 +88,24 @@ fi
 
 # A waiter names what it waits behind — the holder's PID and command — and never a
 # process that only took its PID once the holder that wrote it is gone.
-tools/window_lock.sh bash -c "touch '$WORK/p.start'; until [ -e '$WORK/p.release' ]; do sleep 0.1; done" &
-PIDS+=($!)
-holder=$!
-if wait_for "[ -e '$WORK/p.start' ]"; then
-	tools/window_lock.sh true 2>"$WORK/p.err" &
+if ((names_holders)); then
+	tools/window_lock.sh bash -c "touch '$WORK/p.start'; until [ -e '$WORK/p.release' ]; do sleep 0.1; done" &
 	PIDS+=($!)
-	waiter=$!
-	wait_for "grep -q 'waiting for another game window' '$WORK/p.err'" ||
-		fail "the waiter for a named holder never said it was waiting"
-	grep -q "held by PID $holder .*p.release" "$WORK/p.err" ||
-		fail "the waiter did not name its holder, PID $holder: $(cat "$WORK/p.err")"
-	touch "$WORK/p.release"
-	wait "$holder"
-	wait "$waiter"
-else
-	fail "the holder to be named never started"
+	holder=$!
+	if wait_for "[ -e '$WORK/p.start' ]"; then
+		tools/window_lock.sh true 2>"$WORK/p.err" &
+		PIDS+=($!)
+		waiter=$!
+		wait_for "grep -q 'waiting for another game window' '$WORK/p.err'" ||
+			fail "the waiter for a named holder never said it was waiting"
+		grep -q "held by PID $holder .*p.release" "$WORK/p.err" ||
+			fail "the waiter did not name its holder, PID $holder: $(cat "$WORK/p.err")"
+		touch "$WORK/p.release"
+		wait "$holder"
+		wait "$waiter"
+	else
+		fail "the holder to be named never started"
+	fi
 fi
 tools/window_lock.sh bash -c "touch '$WORK/q.start'; until [ -e '$WORK/q.release' ]; do sleep 0.1; done" &
 PIDS+=($!)
@@ -129,24 +140,26 @@ tree_cpu() {
 	done
 	LC_ALL=C ps -o time= -p "$pids" | LC_ALL=C awk -F: '{ s += $(NF-1) * 60 + $NF } END { print s + 0 }'
 }
-tools/window_lock.sh bash -c "touch '$WORK/c.start'; until [ -e '$WORK/c.release' ]; do sleep 0.1; done" &
-PIDS+=($!)
-holder=$!
-if wait_for "[ -e '$WORK/c.start' ]"; then
-	tools/window_lock.sh touch "$WORK/c.ran" 2>"$WORK/c.err" &
+if ((names_holders)); then
+	tools/window_lock.sh bash -c "touch '$WORK/c.start'; until [ -e '$WORK/c.release' ]; do sleep 0.1; done" &
 	PIDS+=($!)
-	waiter=$!
-	wait_for "grep -q 'waiting for another game window' '$WORK/c.err'" ||
-		fail "the idle waiter never said it was waiting"
-	sleep 5
-	cpu=$(tree_cpu "$waiter")
-	LC_ALL=C awk -v c="$cpu" 'BEGIN { exit !(c < 0.5) }' ||
-		fail "a waiter spent ${cpu}s of CPU over a five-second wait"
-	touch "$WORK/c.release"
-	wait "$holder"
-	wait "$waiter"
-else
-	fail "the holder for the idle waiter never started"
+	holder=$!
+	if wait_for "[ -e '$WORK/c.start' ]"; then
+		tools/window_lock.sh touch "$WORK/c.ran" 2>"$WORK/c.err" &
+		PIDS+=($!)
+		waiter=$!
+		wait_for "grep -q 'waiting for another game window' '$WORK/c.err'" ||
+			fail "the idle waiter never said it was waiting"
+		sleep 5
+		cpu=$(tree_cpu "$waiter")
+		LC_ALL=C awk -v c="$cpu" 'BEGIN { exit !(c < 0.5) }' ||
+			fail "a waiter spent ${cpu}s of CPU over a five-second wait"
+		touch "$WORK/c.release"
+		wait "$holder"
+		wait "$waiter"
+	else
+		fail "the holder for the idle waiter never started"
+	fi
 fi
 
 # The command's own exit status.
@@ -183,16 +196,22 @@ else
 fi
 
 # fps under a holder of the same file spelled another way — through a symlinked
-# directory — knows it holds the lock, and runs rather than wait on itself.
-ln -s "$WORK" "$WORK/alias"
-printf '#!/usr/bin/env bash\ntouch %q\n' "$WORK/s.ran" >"$WORK/godot2"
-chmod +x "$WORK/godot2"
-tools/window_lock.sh bash -c "WINDOW_LOCK='$WORK/alias/window.flock' GODOT='$WORK/godot2' \
-	tools/fps.sh --seconds=5 >/dev/null 2>'$WORK/s.err'" &
-PIDS+=($!)
-wait_for "[ -e '$WORK/s.ran' ]" || fail "fps under the same lock file spelled another way waited on itself"
-grep -q 'waiting for another game window' "$WORK/s.err" 2>/dev/null &&
-	fail "fps under the same lock file spelled another way waited for the window lock"
+# directory — knows it holds the lock, and runs rather than wait on itself. Git Bash on
+# Windows makes no symlink (its ln -s copies, and a directory into itself fails), so
+# there the case is left out, and said so.
+if ln -s "$WORK" "$WORK/alias" 2>/dev/null && [[ -L "$WORK/alias" ]]; then
+	printf '#!/usr/bin/env bash\ntouch %q\n' "$WORK/s.ran" >"$WORK/godot2"
+	chmod +x "$WORK/godot2"
+	tools/window_lock.sh bash -c "WINDOW_LOCK='$WORK/alias/window.flock' GODOT='$WORK/godot2' \
+		tools/fps.sh --seconds=5 >/dev/null 2>'$WORK/s.err'" &
+	PIDS+=($!)
+	wait_for "[ -e '$WORK/s.ran' ]" || fail "fps under the same lock file spelled another way waited on itself"
+	grep -q 'waiting for another game window' "$WORK/s.err" 2>/dev/null &&
+		fail "fps under the same lock file spelled another way waited for the window lock"
+else
+	rm -rf "$WORK/alias"
+	echo "window-lock-check: no symlinks here; the lock file spelled another way is not checked" >&2
+fi
 
 ((fails == 0)) && echo "window-lock-check: ok"
 exit "$fails"

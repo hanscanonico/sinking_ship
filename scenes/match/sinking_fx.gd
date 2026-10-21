@@ -134,6 +134,7 @@ const WET_SHADER := preload("res://scenes/match/wet_deck.gdshader")
 
 var _driver: SimDriver
 var _view: MatchView
+var _sim: MatchSim
 var _schedule: SinkSchedule
 ## The ship's layout, and the step a room's floor is told from the deck by.
 var _layout: ShipLayout
@@ -318,11 +319,11 @@ func setup(driver: SimDriver, view: MatchView, sim: MatchSim, sun: Vector3) -> v
 		_driver.stepped.disconnect(_on_stepped)
 	_driver = driver
 	_view = view
+	_sim = sim
 	_schedule = sim.schedule
 	_layout = sim.config.ship
 	_step = sim.config.rules.step_height
 	_flotsam.setup(sim.config.ship, sim.config.rules.wade_depth)
-	_planner = FxPlanner.new(sim.config, sim.surfaces, sim.schedule)
 	var falls: Array[StringName] = []
 	for event: SinkEvent in sim.config.scenario.events:
 		if event.kind == SinkEvent.Kind.COLLAPSE:
@@ -334,8 +335,11 @@ func setup(driver: SimDriver, view: MatchView, sim: MatchSim, sun: Vector3) -> v
 	_driver.stepped.connect(_on_stepped)
 
 
-## Stops every effect and takes away everything drawn.
+## Stops every effect, takes away everything drawn and forgets what the match has done
+## so far: the effects plan again from the next snapshot (a replay sought, D5).
 func clear() -> void:
+	if _sim != null:
+		_planner = FxPlanner.new(_sim.config, _sim.surfaces, _sim.schedule)
 	for emitter: CPUParticles3D in _emitters():
 		emitter.emitting = false
 		emitter.restart()

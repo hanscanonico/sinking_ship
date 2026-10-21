@@ -48,6 +48,9 @@ const JUMP_LEAD := 15.0
 ## A capture of a held countdown is taken once its bar is this far on.
 const HOLD_CAPTURED_AT := 0.5
 
+## Where a replay was opened from (R6): leaving it goes back there.
+enum ReplayFrom { MENU, LIST, RESULTS }
+
 var _args: MatchArgs
 var _match_rules: MatchRules
 ## Where a blank seed is drawn from: outside the sim, once per match.
@@ -55,6 +58,16 @@ var _seeds := RandomNumberGenerator.new()
 var _match: MatchScene
 ## The last match's choices, their seed blank, for a rematch: a fresh one is drawn.
 var _rematch_choices: MatchChoices
+## The match under way's choices, their seed the one it plays: what its replay is
+## built from (MatchScene.choices).
+var _playing: MatchChoices
+## The saved replays' list (R6), and where the replay being watched was opened from:
+## where leaving it goes back to.
+var _replays: ReplaysMenu
+var _replay_from := ReplayFrom.MENU
+## The replay held for its match's sinking to bake (_holding is its config); null
+## while none is.
+var _holding_replay: ReplayFile
 var _capturing := false
 ## Watches a capture's window for frames drawn, so one the system stops drawing fails
 ## rather than wait forever (#105); null when not capturing.
@@ -124,6 +137,12 @@ func _ready() -> void:
 	_pause.menu_requested.connect(_to_menu)
 	_pause.settings_requested.connect(_settings.open)
 	_pause.quit_requested.connect(_quit)
+	_replays = ReplaysMenu.new()
+	_replays.name = "ReplaysMenu"
+	add_child(_replays)
+	_menu.replays_requested.connect(_open_replays)
+	_replays.watch_requested.connect(_watch_from_list)
+	_replays.back_requested.connect(_leave_replays)
 	_settings.view_changed.connect(_on_view_changed)
 	_online_menu.play_requested.connect(_play_online)
 	_online_menu.back_requested.connect(_leave_online)
@@ -133,6 +152,9 @@ func _ready() -> void:
 	_upcoming.aim(_menu.choices())
 	if not is_nan(_args.capture_sway):
 		_menu.hold_drift(_args.capture_sway)
+	if not _args.replay_path.is_empty():
+		_open_replay_path(_args.replay_path)
+		return
 	if _args.autoplay:
 		_play.call_deferred(_menu.choices())
 		return
@@ -179,6 +201,8 @@ func _process(delta: float) -> void:
 					_open_online()
 				"room":
 					_stage_room()
+				"replays":
+					_open_replays()
 			_capture("the menu")
 		return
 	var snapshot := _match.current()
@@ -200,7 +224,12 @@ func _unhandled_input(event: InputEvent) -> void:
 		and (event.is_action_pressed("pause") or event.is_action_pressed("ui_cancel"))
 	):
 		_set_paused(false)
-	elif not _pause.visible and event.is_action_pressed("pause") and not _match.is_over():
+	elif (
+		not _pause.visible
+		and event.is_action_pressed("pause")
+		and not _match.is_over()
+		and not _match.replaying()
+	):
 		_set_paused(true)
 	else:
 		return
@@ -222,6 +251,7 @@ func _play(choices: MatchChoices) -> void:
 			_menu.show_problem(problems[0])
 		return
 	_rematch_choices = choices.with_seed("")
+	_playing = choices.with_seed(str(config.match_seed))
 	_upcoming.take(config)
 	_menu.hide()
 	if config.bake_some(0):
@@ -262,17 +292,18 @@ func _on_baked(config: MatchConfig) -> void:
 		return
 	_holding = null
 	_hold.hide()
-	_start(config)
+	if _holding_replay != null:
+		var file := _holding_replay
+		_holding_replay = null
+		_begin_replay(file, config)
+	else:
+		_start(config)
 
 
 ## Starts [param config]'s match, its sinking made.
 func _start(config: MatchConfig) -> void:
 	_baker.stop()
-	if _match == null:
-		_match = MATCH_SCENE.instantiate()
-		add_child(_match)
-		_match.rematch_requested.connect(_rematch)
-		_match.menu_requested.connect(_to_menu)
+	_ensure_match()
 	_menu.hide()
 	_music.play_match()
 	_set_paused(false)
@@ -292,6 +323,7 @@ func _start(config: MatchConfig) -> void:
 		_capture_tick = config.schedule().physics_tick(_args.phys_seconds)
 		if _args.jump:
 			jump_to = maxi(_capture_tick - Ticks.from_seconds(JUMP_LEAD), 0)
+	_match.choices = _playing
 	_match.start(
 		config,
 		_args.autoplay,
@@ -311,6 +343,103 @@ func _start(config: MatchConfig) -> void:
 		_match.watch_from(_args.observer_side)
 	if observer and _args.observer_cells:
 		_match.show_cells()
+
+
+## The match scene, made the first time a match or a replay needs it.
+func _ensure_match() -> void:
+	if _match != null:
+		return
+	_match = MATCH_SCENE.instantiate()
+	add_child(_match)
+	_match.rematch_requested.connect(_rematch)
+	_match.menu_requested.connect(_to_menu)
+	_match.replay_closed.connect(_close_replay)
+	_match.replay_requested.connect(_watch_from_results)
+
+
+## Opens the replay saved at [param path] (--replay); quits, the reason printed, when
+## nothing readable is there or it can no longer be played.
+func _open_replay_path(path: String) -> void:
+	var file := ReplayStore.new().load_file(path)
+	if file == null:
+		push_error("replay: %s is not a replay the game can read" % path)
+		get_tree().quit(1)
+		return
+	if not file.playable(_match_rules):
+		push_error(
+			"replay: %s cannot be played: its match data has changed, or it started mid-way" % path
+		)
+		get_tree().quit(1)
+		return
+	_replay_from = ReplayFrom.MENU
+	_start_replay(file)
+
+
+## The saved replays over the menu's backdrop (R6).
+func _open_replays() -> void:
+	_replays.open(ReplayStore.new(), _match_rules)
+	_menu.show_behind(_replays.panel())
+
+
+func _leave_replays() -> void:
+	_replays.hide()
+	_menu.open()
+
+
+func _watch_from_list(file: ReplayFile) -> void:
+	_replay_from = ReplayFrom.LIST
+	_replays.hide()
+	_start_replay(file)
+
+
+func _watch_from_results(file: ReplayFile) -> void:
+	if file == null:
+		return
+	_replay_from = ReplayFrom.RESULTS
+	_start_replay(file)
+
+
+## Watches [param file] in the match scene (R4), its match's sinking made first as a
+## played match's is (R20): the countdown held over the backdrop while it bakes.
+func _start_replay(file: ReplayFile) -> void:
+	var config := file.config(_match_rules)
+	if config == null:
+		push_error("replay: its choices no longer make a match")
+		return
+	_baker.stop()
+	_menu.hide()
+	_pause.hide()
+	if config.bake_some(0):
+		_begin_replay(file, config)
+		return
+	_holding = config
+	_holding_replay = file
+	_hold.begin(Ticks.to_seconds(config.countdown_ticks))
+	_menu.show_behind(_hold.beside())
+	_baker.bake(config, _args.bake_budget_ms if _args.bake_budget_ms > 0.0 else HOLD_BAKE_MS)
+
+
+## Watches [param file] on [param config], its sinking made, in the match scene.
+func _begin_replay(file: ReplayFile, config: MatchConfig) -> void:
+	_ensure_match()
+	_menu.hide()
+	_pause.hide()
+	_music.play_match()
+	_match.set_paused(false)
+	_match.start_replay(file, config)
+
+
+## Back from a replay, to where it was opened from (R6): the results it was watched
+## from, the list of replays, or the menu (--replay).
+func _close_replay() -> void:
+	match _replay_from:
+		ReplayFrom.RESULTS:
+			_match.show_results_again()
+		ReplayFrom.LIST:
+			_to_menu()
+			_open_replays()
+		_:
+			_to_menu()
 
 
 func _rematch() -> void:

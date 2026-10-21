@@ -31,6 +31,10 @@ scenes/match/iceberg_planner.gd	load(path)	assets/models/*.glb
 scenes/match/view_settings.gd	ResourceLoader.exists(path)	-
 scenes/match/view_settings.gd	ResourceLoader.load(path)	-
 scenes/online/online_settings.gd	FileAccess.open(path)	-
+scenes/replay/replay_store.gd	DirAccess.open(dir)	-
+scenes/replay/replay_store.gd	FileAccess.file_exists(path)	-
+scenes/replay/replay_store.gd	FileAccess.get_file_as_bytes(path)	-
+scenes/replay/replay_store.gd	FileAccess.open(path)	-
 tests/unit/ai/test_bot_floors.gd	load("res://data/bots/%s.tres" % tiers[seat])	data/bots/*.tres
 tests/unit/art/test_committed_models.gd	ResourceLoader.exists(MODELS.path_join(model).path_join(model + ".glb"))	assets/models/*.glb
 tests/unit/art/test_committed_models.gd	load("res://data/ships".path_join(file))	data/ships/*
@@ -49,6 +53,9 @@ tests/unit/core/test_match_choices.gd	load(HITS % "titanic_night")	tests/fixture
 tests/unit/core/test_match_end.gd	load(path)	tests/fixtures/sinking/hits/*.tres
 tests/unit/core/test_must_sink.gd	load(SINKING_HITS[1])	tests/fixtures/sinking/hits/*.tres
 tests/unit/core/test_must_sink.gd	load(path)	tests/fixtures/sinking/hits/*.tres
+tests/unit/core/test_replay_file.gd	load(RunMatch.DEFAULT_MATCH)	data/match/default.tres
+tests/unit/core/test_replay_listing.gd	load(RunMatch.DEFAULT_MATCH)	data/match/default.tres
+tests/unit/core/test_replay_timeline.gd	load(RunMatch.DEFAULT_MATCH)	data/match/default.tres
 tests/unit/core/test_ship_check.gd	load("%s/%s" % [SCENARIOS, scenario_file])	data/sinking/*
 tests/unit/core/test_ship_check.gd	load("%s/%s" % [SHIPS, file])	data/ships/*
 tests/unit/core/test_ship_layout_lint.gd	ResourceLoader.exists(scene)	authoring/*.tscn

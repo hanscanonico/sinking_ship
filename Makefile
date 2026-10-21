@@ -105,6 +105,14 @@ run:
 	$(call require-godot)
 	$(GODOT) --path . -- $(match-args) $(ARGS)
 
+# `make replay FILE=path/to/one.replay` watches a saved replay — one the game wrote
+# under user://replays, or any path — in the replay viewer (R4–R6); the game quits with
+# the reason when the file cannot be played.
+replay:
+	$(call require-godot)
+	@test -n "$(FILE)" || { echo "replay: FILE=<path to a .replay> is required" >&2; exit 1; }
+	$(GODOT) --path . -- --replay="$(FILE)" $(ARGS)
+
 # Every headless tool target, and capture, runs the engine through tools/engine_guard.sh:
 # the engine exits 0 after a SCRIPT ERROR or a renderer ERROR, so the guard fails the run
 # when either prints one.
@@ -119,7 +127,7 @@ match:
 
 # --fixed-fps steps one tick per drawn frame, so the capture lands on its exact
 # tick however fast the machine draws. A capture is silent: the Dummy driver.
-# SCREEN=menu, settings, graphics, online or room starts no match, so it neither
+# SCREEN=menu, settings, graphics, online, room or replays starts no match, so it neither
 # autoplays nor takes AT; pause, online-pause and online-settings stand over the match
 # at AT. One game window at a time on a shared machine: capture and fps take the window
 # lock themselves (tools/window_lock.sh), a kernel lock released on any exit, so never
@@ -127,10 +135,10 @@ match:
 # system stops drawing — covered, minimised, on another Space, the display asleep —
 # fails a capture once no frame has been drawn for a minute (DrawWatch), rather
 # than hang holding the lock.
-menu-screen = $(filter menu settings graphics online room,$(SCREEN))
+menu-screen = $(filter menu settings graphics online room replays,$(SCREEN))
 capture:
 	$(call require-godot)
-	@test -n "$(AT)$(PHYS)$(filter menu settings graphics online room results hold,$(SCREEN))" || \
+	@test -n "$(AT)$(PHYS)$(filter menu settings graphics online room replays results hold,$(SCREEN))" || \
 		{ echo "capture: AT=<seconds of match time> or PHYS=<h:mm:ss of physics> is required" >&2; exit 1; }
 	@mkdir -p "$(dir $(CAPTURE))"
 	tools/window_lock.sh tools/engine_guard.sh $(GODOT) --path . $(if $(RES),--resolution $(RES)) --audio-driver Dummy --fixed-fps 30 -- \
@@ -589,10 +597,15 @@ sailor:
 # the engine binary, and .claude/worktrees, which holds whole nested checkouts of
 # this same repo and would otherwise be linted as if it were project source.
 #
+# Double quotes, not single: GNU make on Windows runs a $(shell …) line with no
+# shell metacharacters itself and strips only double quotes, and the MSYS find
+# then globs a bare pattern and finds nothing. Both quote styles read the same
+# through sh on Linux and macOS.
+#
 # Deferred, so only the three gdtoolkit targets below pay for the walk.
-SOURCES = $(shell find . -name '*.gd' \
-	-not -path './.godot/*' -not -path './addons/*' -not -path './bin/*' \
-	-not -path './.claude/*')
+SOURCES = $(shell find . -name "*.gd" \
+	-not -path "./.godot/*" -not -path "./addons/*" -not -path "./bin/*" \
+	-not -path "./.claude/*")
 
 # The gdtoolkit targets run over every core, NPROC workers of 60 files each,
 # fed NUL-delimited. xargs exits 123 when any one invocation fails, so a problem
@@ -659,7 +672,7 @@ format-check:
 # test is already one of test's scripts.
 .NOTPARALLEL:
 
-.PHONY: import run match capture smoke net-bench sim-bench bench serve-local online-e2e export-server \
+.PHONY: import run replay match capture smoke net-bench sim-bench bench serve-local online-e2e export-server \
 	export-web export-mac export-server-mac serve-web-local serve-web-local-stop fps arena \
 	hits bake census art-lint test test-changed durations verify verify-changed check guard-check ship ship-gen-check ship-check bake-ship \
 	bake-check ship-scene \

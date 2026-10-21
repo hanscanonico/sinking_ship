@@ -13,6 +13,7 @@ signal play_requested(choices: MatchChoices)
 ## The picker has moved to [param ship], by name.
 signal ship_picked
 signal online_requested
+signal replays_requested
 signal settings_requested
 signal quit_requested
 
@@ -44,6 +45,7 @@ func _ready() -> void:
 	_seed.text_submitted.connect(func(_text: String) -> void: _on_play())
 	_seed.gui_input.connect(leave_field.bind(_seed))
 	%Online.pressed.connect(online_requested.emit)
+	%Replays.pressed.connect(replays_requested.emit)
 	%Settings.pressed.connect(settings_requested.emit)
 	%QuitGame.pressed.connect(quit_requested.emit)
 

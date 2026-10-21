@@ -196,6 +196,13 @@ custom_minimum_size = Vector2(120, 0)
 theme_type_variation = &"GuardedButton"
 text = "Rematch"
 
+[node name="WatchReplay" type="Button" parent="EndOverlay/Panel/Box/Buttons"]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(140, 0)
+theme_type_variation = &"GuardedButton"
+text = "Watch replay"
+
 [node name="Menu" type="Button" parent="EndOverlay/Panel/Box/Buttons"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(120, 0)

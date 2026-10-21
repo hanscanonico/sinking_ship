@@ -68,7 +68,9 @@ func test_a_guarded_button_reads_as_a_button() -> void:
 				continue
 			if scene.get_node_property_value(node, property) == UiTheme.GUARDED_BUTTON:
 				guarded.append(scene.get_node_name(node))
-	assert_eq(guarded, PackedStringArray(["Rematch", "Menu"]), "the results' two buttons")
+	assert_eq(
+		guarded, PackedStringArray(["Rematch", "WatchReplay", "Menu"]), "the results' three buttons"
+	)
 
 
 func test_the_menus_controls_are_all_in_the_theme() -> void:
