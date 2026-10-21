@@ -7,9 +7,11 @@ extends RefCounted
 
 ## The x for which [param matrix] (rows of [param count]) times x is [param values]:
 ## Gauss's elimination, the largest pivot first. A row is taken from another only where
-## the pivot's row is not 0: taking factor × 0 leaves every number as it was — none is
-## ever -0, the slopes starting at +0 and a difference that comes to 0 being +0 — unless
-## the factor is not finite, where the whole row is taken as it stands.
+## the pivot's row is not 0, and only from a row whose own entry under the pivot is not 0:
+## taking factor × 0 leaves every number as it was — none is ever -0, the slopes starting
+## at +0 and a difference that comes to 0 being +0 — and a factor of 0 takes nothing.
+## Where the factor is not finite, or the pivot is not a number (so every factor is
+## not, 0 over it too), the whole row is taken as it stands.
 static func solved(
 	matrix: PackedFloat64Array, values: PackedFloat64Array, count: int
 ) -> PackedFloat64Array:
@@ -32,6 +34,8 @@ static func solved(
 		var lead := m[column * count + column]
 		if lead == 0.0:
 			continue
+		# Over a pivot not a number, 0 is no factor of 0: every row is taken whole.
+		var known := not is_nan(lead)
 		var from := column * count
 		filled.clear()
 		for at in range(column, count):
@@ -39,7 +43,7 @@ static func solved(
 				filled.append(at)
 		for row in range(column + 1, count):
 			var to := row * count
-			if m[to + column] == 0.0:
+			if known and m[to + column] == 0.0:
 				continue
 			var factor := m[to + column] / lead
 			if factor == 0.0:

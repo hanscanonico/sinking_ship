@@ -1,7 +1,8 @@
 extends GutTest
 ## LinearSystem against the dense elimination it stands in for: the same answer to the
 ## last bit (D4) on sparse systems shaped like the stepper's solve together, on ones whose
-## pivots run out, and where a factor is not finite; and the answer on a small system.
+## pivots run out, where a factor is not finite and where a pivot is not a number; and the
+## answer on a small system.
 
 const SEED := 31
 const SYSTEMS := 40
@@ -88,6 +89,14 @@ func test_sparse_systems_solve_to_the_dense_answers_bit() -> void:
 func test_a_factor_not_finite_takes_the_whole_row() -> void:
 	# Infinite over infinite: the factor is NaN, and so is factor × 0, as in the dense.
 	var matrix := PackedFloat64Array([INF, 1.0, 0.0, INF, 0.0, 2.0, 0.0, 1.0, 1.0])
+	var values := PackedFloat64Array([1.0, 2.0, 3.0])
+	var found := LinearSystem.solved(matrix, values, 3)
+	assert_eq(var_to_bytes(found), var_to_bytes(_dense(matrix, values, 3)))
+
+
+func test_a_pivot_not_a_number_takes_every_row_whole() -> void:
+	# A NaN pivot: 0 over it is NaN, so the dense takes even a row with 0 under it whole.
+	var matrix := PackedFloat64Array([NAN, 1.0, 1.0, 0.0, 2.0, 0.0, 0.0, 0.0, 3.0])
 	var values := PackedFloat64Array([1.0, 2.0, 3.0])
 	var found := LinearSystem.solved(matrix, values, 3)
 	assert_eq(var_to_bytes(found), var_to_bytes(_dense(matrix, values, 3)))
