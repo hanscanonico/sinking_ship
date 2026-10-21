@@ -21,9 +21,10 @@
 # around it.
 #
 # With --split the game also times where each frame goes (FrameProbe, --frame-split)
-# over the same kept seconds — the match's parts, the display scripts, the render —
-# and the split is printed under the summary, its unaccounted rest with it. Without
-# it nothing is timed and the output is the summary alone.
+# over the same kept seconds — the match's parts, the display scripts node class by
+# node class, the render — and the split is printed under the summary, its
+# unaccounted rests with it. Without it nothing is timed and the output is the
+# summary alone.
 #
 # Usage:  tools/fps.sh [--seed=4] [--seats=8] [--seconds=40] [--resolution=1440x900]
 #                      [--project=DIR] [--split] [-- MORE USER ARGS]

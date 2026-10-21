@@ -6,7 +6,10 @@ extends RefCounted
 ## leave of it is its rest, reported under the rest's own name — the display scripts'
 ## share of the frame's scripts, the step's own work, the drawing's swap and wait on the
 ## GPU, and the frame's unaccounted time — so the parts always add up to the frame.
-## Clock-free: it only adds what it is given.
+## The display scripts are split further by node class (add_node): each class's
+## _process, the stepping node's less the match's steps it runs, and what no class
+## took — the probe's own work and whatever processes after the last timed script —
+## as their own rest. Clock-free: it only adds what it is given.
 
 ## The frame and its parts, in the order the report lists them: key, label, parent.
 const PARTS: Array[Array] = [
@@ -29,9 +32,16 @@ const RESTS := {
 	&"match": "rest of the step",
 	&"draw": "swap and waiting on the GPU",
 }
+## The node class whose _process runs the match's steps: its line is its own work, the
+## steps (match) taken out.
+const STEPPER := &"SimDriver"
+## What the display scripts' node lines leave of them.
+const NODES_REST := "probe and tail, no node's"
 
 var _open := {}
 var _sums := {}
+var _nodes_open := {}
+var _node_sums := {}
 var _frames := 0
 
 
@@ -40,18 +50,28 @@ func add(part: StringName, amount: int) -> void:
 	_open[part] = _open.get(part, 0) + amount
 
 
+## Adds [param us] microseconds to the _process time of the nodes of class
+## [param node_class] in the open frame.
+func add_node(node_class: StringName, us: int) -> void:
+	_nodes_open[node_class] = _nodes_open.get(node_class, 0) + us
+
+
 ## Keeps the open frame, [param frame_us] long, and opens the next.
 func close(frame_us: int) -> void:
 	add(&"frame", frame_us)
 	for part: StringName in _open:
 		_sums[part] = _sums.get(part, 0) + _open[part]
+	for node_class: StringName in _nodes_open:
+		_node_sums[node_class] = _node_sums.get(node_class, 0) + _nodes_open[node_class]
 	_frames += 1
 	_open.clear()
+	_nodes_open.clear()
 
 
 ## Leaves the open frame out — one before the frames kept — and opens the next.
 func drop() -> void:
 	_open.clear()
+	_nodes_open.clear()
 
 
 func frames() -> int:
@@ -80,6 +100,37 @@ func rest(parent: StringName) -> float:
 	var left := mean(parent)
 	for part: StringName in parts_of(parent):
 		left -= mean(part)
+	return left
+
+
+## The display scripts' share of [param node_class]'s _process, in milliseconds per
+## frame kept: the stepper's without the match's steps it runs.
+func node_mean(node_class: StringName) -> float:
+	if _frames == 0:
+		return 0.0
+	var sum: float = _node_sums.get(node_class, 0)
+	var ms := sum / _frames / 1000.0
+	return ms - mean(&"match") if node_class == STEPPER else ms
+
+
+## The node classes timed, the costliest first.
+func node_classes() -> Array[StringName]:
+	var classes: Array[StringName] = []
+	classes.assign(_node_sums.keys())
+	classes.sort_custom(
+		func(a: StringName, b: StringName) -> bool:
+			var by_a := node_mean(a)
+			var by_b := node_mean(b)
+			return by_a > by_b if by_a != by_b else String(a) < String(b)
+	)
+	return classes
+
+
+## What the node lines leave of the display scripts, in milliseconds per frame kept.
+func nodes_rest() -> float:
+	var left := rest(&"process")
+	for node_class: StringName in _node_sums:
+		left -= node_mean(node_class)
 	return left
 
 
@@ -137,6 +188,18 @@ func _report_part(part: StringName, label: String, depth: int, lines: PackedStri
 		if row[2] == part:
 			_report_part(row[0], row[1], depth + 1, lines)
 	lines.append(_line(RESTS[part], rest(part), depth + 1))
+	if part == &"process" and not _node_sums.is_empty():
+		_report_nodes(depth + 2, lines)
+
+
+## The display scripts by node class, under their line, and what no class took.
+func _report_nodes(depth: int, lines: PackedStringArray) -> void:
+	for node_class: StringName in node_classes():
+		var label := String(node_class)
+		if node_class == STEPPER:
+			label += " beyond its steps"
+		lines.append(_line(label, node_mean(node_class), depth))
+	lines.append(_line(NODES_REST, nodes_rest(), depth))
 
 
 static func _line(label: String, ms: float, depth: int) -> String:
