@@ -43,6 +43,13 @@ var _b: float
 var _c: float
 var _counted := 1
 var _shift: float
+## The rate the share rises at, as _share_rising last found it.
+var _slope: float
+## The up it was last turned to; and the water last asked its height of at it, and that
+## height: asked again, the same (height).
+var _up := PackedFloat64Array([NAN, NAN, NAN])
+var _asked := NAN
+var _answer := NAN
 
 
 ## The box from [param low] to [param high] holding [param capacity] m³ of water, with
@@ -59,6 +66,18 @@ func _init(low: Vector3, high: Vector3, capacity: float, full_area: float) -> vo
 ## Turns the box to the attitude where the world's up is ([param up_x], [param up_y],
 ## [param up_z]) in the ship's axes, a unit vector.
 func turn(up_x: float, up_y: float, up_z: float) -> void:
+	# Turned there already: as it stands, to the last bit — a 0 to the same side of 0.
+	if up_x == _up[0] and up_y == _up[1] and up_z == _up[2]:
+		if (
+			(up_x != 0.0 or 1.0 / up_x == 1.0 / _up[0])
+			and (up_y != 0.0 or 1.0 / up_y == 1.0 / _up[1])
+		):
+			if up_z != 0.0 or 1.0 / up_z == 1.0 / _up[2]:
+				return
+	_up[0] = up_x
+	_up[1] = up_y
+	_up[2] = up_z
+	_asked = NAN
 	var reach_x := up_x * _size[0]
 	var reach_y := up_y * _size[1]
 	var reach_z := up_z * _size[2]
@@ -139,8 +158,17 @@ func volume(height: float) -> float:
 	return _capacity * _share(height - _bottom - _shift)
 
 
-## The height its surface stands at holding [param water] m³.
+## The height its surface stands at holding [param water] m³: worked out again only for
+## other water, or once it has turned.
 func height(water: float) -> float:
+	if water != _asked:
+		_asked = water
+		_answer = _height(water)
+	return _answer
+
+
+## The height its surface stands at holding [param water] m³, worked out.
+func _height(water: float) -> float:
 	if water <= 0.0:
 		return _bottom
 	if water >= _capacity:
@@ -169,12 +197,12 @@ func height(water: float) -> float:
 	var close := TOLERANCE * high
 	var at := share * high
 	for _step in SOLVE_STEPS:
-		var off := _share(at) - share
+		var off := _share_rising(at) - share
 		if off < 0.0:
 			low = at
 		else:
 			high = at
-		var slope := _rate(at)
+		var slope := _slope
 		var next := at - off / slope if slope > 0.0 else NAN
 		next = next if next > low and next < high else (low + high) * 0.5
 		var moved := next - at
@@ -261,27 +289,46 @@ func _rise(t: float) -> float:
 	return flat / (_a * _b)
 
 
-## How fast the share rises with [param t], three spreads counted.
-func _rate(t: float) -> float:
+## How fast the share rises with [param t], three spreads counted (_rate) kept in
+## _slope, and the share under it (_share): both worked from the same corners, each to
+## the last bit as its own would be — a term that is not there taken away as 0 is none,
+## as neither sum is ever -0.
+func _share_rising(t: float) -> float:
 	var a := _a
 	var b := _b
 	var c := _c
 	var square := t * t if t > 0.0 else 0.0
+	var cube := t * t * t
 	var past := t - a
-	square -= past * past if past > 0.0 else 0.0
+	if past > 0.0:
+		square -= past * past
+		cube -= past * past * past
 	past = t - b
-	square -= past * past if past > 0.0 else 0.0
+	if past > 0.0:
+		square -= past * past
+		cube -= past * past * past
 	past = t - c
-	square -= past * past if past > 0.0 else 0.0
+	if past > 0.0:
+		square -= past * past
+		cube -= past * past * past
 	past = t - a - b
-	square += past * past if past > 0.0 else 0.0
+	if past > 0.0:
+		square += past * past
+		cube += past * past * past
 	past = t - a - c
-	square += past * past if past > 0.0 else 0.0
+	if past > 0.0:
+		square += past * past
+		cube += past * past * past
 	past = t - b - c
-	square += past * past if past > 0.0 else 0.0
+	if past > 0.0:
+		square += past * past
+		cube += past * past * past
 	past = t - a - b - c
-	square -= past * past if past > 0.0 else 0.0
-	return square / (2.0 * a * b * c)
+	if past > 0.0:
+		square -= past * past
+		cube -= past * past * past
+	_slope = square / (2.0 * a * b * c)
+	return cube / (6.0 * a * b * c) if t > 0.0 else 0.0
 
 
 ## Into [param along], where the water's centre lies along the two counted spreads under
@@ -330,3 +377,59 @@ func _spreads(along: PackedFloat64Array, t: float) -> void:
 	along[_order[0]] = moment_a / (volume * _a)
 	along[_order[1]] = moment_b / (volume * _b)
 	along[_order[2]] = moment_c / (volume * _c)
+
+
+## The one level at which boxes [param a] and [param b] together hold [param total] m³,
+## [param breaks] their floors and ceilings: bracketed between the two breaks either side
+## of it, then found between them by false position, its stale end halved; level, the
+## volumes rise straight between the breaks and the first guess is the level.
+static func common_level(
+	a: TiltedBox, b: TiltedBox, breaks: PackedFloat64Array, total: float
+) -> float:
+	breaks.sort()
+	var below := breaks[0]
+	var held := 0.0
+	for at: float in breaks:
+		var holds := a.volume(at) + b.volume(at)
+		if holds >= total:
+			if holds <= held:
+				return at
+			return _between(a, b, total, below, held, at, holds)
+		below = at
+		held = holds
+	return below + (total - held) / (a.full_area() + b.full_area())
+
+
+## The level between [param low] holding [param low_held] and [param high] holding
+## [param high_held] at which boxes [param a] and [param b] hold [param total].
+static func _between(
+	a: TiltedBox,
+	b: TiltedBox,
+	total: float,
+	low: float,
+	low_held: float,
+	high: float,
+	high_held: float
+) -> float:
+	var low_off := low_held - total
+	var high_off := high_held - total
+	var at := low
+	var stale := 0
+	for _step in SOLVE_STEPS:
+		at = low + (high - low) * low_off / (low_off - high_off)
+		var off := a.volume(at) + b.volume(at) - total
+		if absf(off) <= TOLERANCE * total:
+			return at
+		if off < 0.0:
+			low = at
+			low_off = off
+			if stale == -1:
+				high_off *= 0.5
+			stale = -1
+		else:
+			high = at
+			high_off = off
+			if stale == 1:
+				low_off *= 0.5
+			stale = 1
+	return at

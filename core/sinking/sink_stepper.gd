@@ -104,6 +104,25 @@ var _shipped: ShippedWater
 ## opened it in the step begun (FloodState.opened).
 var _failures: SinkFailures
 var _opened := PackedFloat64Array()
+## Within a solve together (_solve_together), per opening, twice — the flow at the heads
+## the solve stands at, and at one nudged — what it passed, the two sides' heads it passed
+## that at and the solve it was worked out in, and which of the two was asked last: a flow
+## asked again in that solve at the same two heads, neither side sharing a pocket with
+## another cell, is that flow to the last bit (_transfer); and the solve under way, or 0.
+var _flows := PackedFloat64Array()
+var _flow_from := PackedFloat64Array()
+var _flow_to := PackedFloat64Array()
+var _flow_solve := PackedInt32Array()
+var _flow_last := PackedByteArray()
+var _solves := 0
+var _solving := 0
+## In the step under way: each opening's share open (_share_out) and the second it was
+## worked out for; 1 for each cell whose water a pocket holds (SinkAir.holding); and 1
+## for each cell whose push hangs on its own head alone (SinkAir.alone).
+var _shares := PackedFloat64Array()
+var _shares_at := NAN
+var _holding := PackedByteArray()
+var _alone := PackedByteArray()
 var _g: float
 var _discharge: float
 
@@ -148,6 +167,12 @@ func _init(structure: ShipStructure, damage: HitDamage, sea: SeaPhysics) -> void
 	_touching.resize(_boxes.size())
 	_widest.resize(_boxes.size())
 	_opened.resize(_names.size())
+	_flows.resize(_names.size() * 2)
+	_flow_from.resize(_names.size() * 2)
+	_flow_to.resize(_names.size() * 2)
+	_flow_solve.resize(_names.size() * 2)
+	_flow_last.resize(_names.size())
+	_shares.resize(_names.size())
 	_touch(_opened)
 	_air.close(_touching)
 	_held.resize(_boxes.size())
@@ -233,6 +258,9 @@ func step(state: FloodState, seconds: float) -> FloodState:
 	if state.opened != _opened:
 		_touch(state.opened)
 	_air.begin(state, seconds)
+	_holding = _air.holding()
+	_alone = _air.alone()
+	_shares_at = NAN
 	_shipped.begin(state.rotation, state.sea)
 	var next := state.copy()
 	var heads := state.heads.duplicate()
@@ -270,7 +298,7 @@ func step(state: FloodState, seconds: float) -> FloodState:
 		# A full cell keeps the head it was held at — the push it passes on, where the
 		# next step's solve starts — any other stands where its water does.
 		if next.water[cell] < _capacity[cell] or heads[cell] < _ceiling[cell]:
-			heads[cell] = head(cell, next.water[cell])
+			heads[cell] = _boxes[cell].height(next.water[cell])
 		else:
 			full_held[cell] = 1
 		_held[cell] = 0
@@ -288,7 +316,7 @@ func step(state: FloodState, seconds: float) -> FloodState:
 				# Its push rides with its ceiling as she turns.
 				next.heads[cell] += _ceiling[cell] - ceilings[cell]
 			else:
-				next.heads[cell] = head(cell, next.water[cell])
+				next.heads[cell] = _boxes[cell].height(next.water[cell])
 	_air.settle(next)
 	if _failures != null:
 		_failures.follow(state, next, seconds, self)
@@ -351,7 +379,7 @@ func _give_to(side: int, amount: float, state: FloodState, heads: PackedFloat64A
 		return
 	state.water[side] += amount
 	if _held[side] == 0:
-		heads[side] = head(side, state.water[side])
+		heads[side] = _boxes[side].height(state.water[side])
 
 
 ## Holds every stiff cell's head in [param heads] — see STIFF_HEAD, any cell whose air
@@ -368,6 +396,8 @@ func _hold_stiff(
 ) -> PackedInt32Array:
 	var held := PackedInt32Array()
 	var per_metre := _discharge * sqrt(2.0 * _g * STIFF_HEAD) * seconds
+	if state.seconds != _shares_at:
+		_share_out(state.seconds)
 	for cell in _area.size():
 		var room := minf(_area[cell] * STIFF_HEAD, _capacity[cell] - state.water[cell])
 		var trapped := _air.holds(cell)
@@ -387,7 +417,7 @@ func _hold_stiff(
 			var bottom := _bottom[index]
 			if own <= bottom and beyond <= bottom:
 				continue
-			var share := open_share(_shut_time[index], state.seconds, _opened[index])
+			var share := _shares[index]
 			var across := absf(maxf(beyond, bottom) - maxf(own, bottom))
 			passes += _flow_area[index] * share * sqrt(minf(across, STIFF_HEAD) / STIFF_HEAD)
 			# Squeezed air moves water however level the two stand.
@@ -482,8 +512,20 @@ func _groups(held: PackedInt32Array, heads: PackedFloat64Array) -> Array[PackedI
 ## slopes measured by nudging each head, every step halved until it brings the largest
 ## surplus down: one held cell's head pins its neighbour's, so a pair joined wide under
 ## water moves as one, which solving them in turn would only creep towards. Whether every
-## surplus came within SURPLUS_TOLERANCE.
+## surplus came within SURPLUS_TOLERANCE. A flow asked again at the same heads is not
+## worked out again (_transfer).
 func _solve_together(
+	held: PackedInt32Array, state: FloodState, heads: PackedFloat64Array, sea: float, seconds: float
+) -> bool:
+	_solves += 1
+	_solving = _solves
+	var solved := _newton(held, state, heads, sea, seconds)
+	_solving = 0
+	return solved
+
+
+## The solve together itself (_solve_together).
+func _newton(
 	held: PackedInt32Array, state: FloodState, heads: PackedFloat64Array, sea: float, seconds: float
 ) -> bool:
 	var count := held.size()
@@ -518,10 +560,10 @@ func _solve_together(
 				)
 				/ NUDGE
 			)
-			if _air.members(cell).size() > 1:
-				# Its pocket's pressure moves the water at every opening the pocket's
-				# cells touch: every surplus it reaches (SinkAir.reached) by nudging —
-				# any other stands as it was, to the last bit.
+			if _alone[cell] == 0:
+				# Its pocket's pressure, which another cell shares (SinkAir.alone), moves the
+				# water at every opening the pocket's cells touch: every surplus it reaches
+				# (SinkAir.reached) by nudging — any other stands as it was, to the last bit.
 				var reached := _air.reached(cell)
 				for row in count:
 					if row == column or reached[held[row]] == 0:
@@ -545,7 +587,7 @@ func _solve_together(
 				var into_other := 1.0 if _second[index] == other else -1.0
 				slopes[rows[other] * count + column] += into_other * (nudged - before) / NUDGE
 			heads[cell] = was
-		var change := _gauss(slopes, surplus, count)
+		var change := LinearSystem.solved(slopes, surplus, count)
 		for row in count:
 			started[row] = heads[held[row]]
 		var share := 1.0
@@ -586,47 +628,6 @@ static func _largest(values: PackedFloat64Array) -> float:
 	for value: float in values:
 		most = maxf(most, absf(value))
 	return most
-
-
-## The x for which [param matrix] (rows of [param count]) times x is [param values]:
-## Gauss's elimination, the largest pivot first.
-static func _gauss(
-	matrix: PackedFloat64Array, values: PackedFloat64Array, count: int
-) -> PackedFloat64Array:
-	var m := matrix.duplicate()
-	var v := values.duplicate()
-	for column in count:
-		var pivot := column
-		for row in range(column + 1, count):
-			if absf(m[row * count + column]) > absf(m[pivot * count + column]):
-				pivot = row
-		if pivot != column:
-			for at in count:
-				var kept := m[column * count + at]
-				m[column * count + at] = m[pivot * count + at]
-				m[pivot * count + at] = kept
-			var kept_value := v[column]
-			v[column] = v[pivot]
-			v[pivot] = kept_value
-		var lead := m[column * count + column]
-		if lead == 0.0:
-			continue
-		for row in range(column + 1, count):
-			var factor := m[row * count + column] / lead
-			if factor == 0.0:
-				continue
-			for at in range(column, count):
-				m[row * count + at] -= factor * m[column * count + at]
-			v[row] -= factor * v[column]
-	var x := PackedFloat64Array()
-	x.resize(count)
-	for row in range(count - 1, -1, -1):
-		var sum := v[row]
-		for at in range(row + 1, count):
-			sum -= m[row * count + at] * x[at]
-		var lead := m[row * count + row]
-		x[row] = sum / lead if lead != 0.0 else 0.0
-	return x
 
 
 ## The head of held cell [param cell], holding [param water] m³, at which what the step
@@ -721,7 +722,7 @@ func _surplus(
 		into += amount if _second[index] == cell else -amount
 	into += _shipped.into(cell, at) * seconds
 	heads[cell] = was
-	return into - (volume_at(cell, at) - water)
+	return into - (_boxes[cell].volume(at) - water)
 
 
 ## How high the water of cell [param cell] holding [param water] m³ stands: from its
@@ -907,7 +908,8 @@ static func _under(structure: ShipStructure, side: int, height: float) -> bool:
 ## its water covers the opening, or its air would not be trapped. Solved over the step
 ## where the flow has a closed form with the two sides' surfaces held — under water on
 ## both sides, over a sill, falling through a floor — else the flow now times the step;
-## and never more than levels the two sides.
+## and never more than levels the two sides. Within a solve together, a flow asked again
+## at the same two heads is the one worked out the first time (_flows).
 func _transfer(
 	index: int, heads: PackedFloat64Array, sea: float, since: float, seconds: float
 ) -> float:
@@ -918,12 +920,30 @@ func _transfer(
 	var bottom := _bottom[index]
 	if first_head <= bottom and second_head <= bottom:
 		return 0.0
-	var share := open_share(_shut_time[index], since, _opened[index])
+	# A pocket's push hangs on every head of its cells: worked out again each time.
+	var kept := _solving != 0 and (first == OUTSIDE or _alone[first] == 1)
+	kept = kept and (second == OUTSIDE or _alone[second] == 1)
+	if kept:
+		for at in range(index * 2, index * 2 + 2):
+			if _flow_from[at] == first_head and _flow_to[at] == second_head:
+				if _flow_solve[at] == _solving:
+					_flow_last[index] = at - index * 2
+					return _flows[at]
+	var from := first_head
+	var to := second_head
+	if since != _shares_at:
+		_share_out(since)
+	var share := _shares[index]
 	if share <= 0.0:
 		return 0.0
 	var size := _size[index] * share
-	var first_lift := _air.lift(first, second, heads)
-	var second_lift := _air.lift(second, first, heads)
+	# Only a pocket holding its water lifts a push (SinkAir.lift).
+	var first_lift := 0.0
+	if first != OUTSIDE and _holding[first] == 1:
+		first_lift = _air.lift(first, second, heads)
+	var second_lift := 0.0
+	if second != OUTSIDE and _holding[second] == 1:
+		second_lift = _air.lift(second, first, heads)
 	first_head += first_lift
 	second_head += second_lift
 	if first_head <= bottom and second_head <= bottom:
@@ -937,31 +957,54 @@ func _transfer(
 	var down := second if forward else first
 	var high := maxf(first_head, second_head)
 	var low := minf(first_head, second_head)
+	# How much each side's head moves per m³ it gives or takes while it has a surface:
+	# the sea's never moves, nor a held full cell's within its step.
+	var up_held := up == OUTSIDE or _held[up] == 1
+	var down_held := down == OUTSIDE or _held[down] == 1
+	var give := 0.0 if up_held else 1.0 / _area[up]
 	var amount := 0.0
 	if _in_floor[index] == 1:
 		if first_head >= bottom:
 			# The cell under the hole reaches it: an orifice between the two sides.
-			amount = _orifice(size, high - low, _give(up) + _give(down), seconds)
+			var gives := give + (0.0 if down_held else 1.0 / _area[down])
+			amount = _orifice(size, high - low, gives, seconds)
 		else:
 			# Water falls through it at the rate the depth over it drives.
-			amount = _orifice(size, high - bottom, _give(up), seconds)
+			amount = _orifice(size, high - bottom, give, seconds)
 	else:
 		var top := _top[index]
 		if low >= top:
-			amount = _orifice(size * (top - bottom), high - low, _give(up) + _give(down), seconds)
+			var gives := give + (0.0 if down_held else 1.0 / _area[down])
+			amount = _orifice(size * (top - bottom), high - low, gives, seconds)
 		elif low <= bottom and high <= top:
-			amount = _weir(size, high - bottom, _give(up), seconds)
+			amount = _weir(size, high - bottom, give, seconds)
 		else:
 			amount = _flow(size, bottom, top, high, low) * seconds
-	var lifted := first_lift - second_lift
-	amount = minf(amount, _levelling(up, down, heads, sea, bottom, lifted if forward else -lifted))
-	return amount if forward else -amount
+	if up_held and down_held:
+		# Between two held sides the step's flow is the whole answer (_levelling).
+		amount = minf(amount, INF)
+	else:
+		var lifted := first_lift - second_lift
+		var most := _levelling(up, down, heads, sea, bottom, lifted if forward else -lifted)
+		amount = minf(amount, most)
+	var passed := amount if forward else -amount
+	if kept:
+		# Over the one not asked last: a nudge keeps the flow at the solve's heads.
+		_flow_last[index] = 1 - _flow_last[index]
+		var at := index * 2 + _flow_last[index]
+		_flows[at] = passed
+		_flow_from[at] = from
+		_flow_to[at] = to
+		_flow_solve[at] = _solving
+	return passed
 
 
-## How much a cell's head moves per m³ it gives or takes while it has a surface; the
-## sea's never moves, nor a held full cell's within its step.
-func _give(side: int) -> float:
-	return 0.0 if side == OUTSIDE or _held[side] == 1 else 1.0 / _area[side]
+## Every opening's share open (open_share) [param since] seconds after the hit, as
+## _transfer reads it.
+func _share_out(since: float) -> void:
+	_shares_at = since
+	for index in _names.size():
+		_shares[index] = open_share(_shut_time[index], since, _opened[index])
 
 
 ## The water an opening of [param area] passes in [param seconds] with
@@ -1032,61 +1075,14 @@ func _levelling(
 		return INF
 	if up_held:
 		var high := (sea if up == OUTSIDE else heads[up]) + lifted
-		return maxf(volume_at(down, high) - volume_at(down, heads[down]), 0.0)
-	var water := volume_at(up, heads[up])
+		return maxf(_boxes[down].volume(high) - _boxes[down].volume(heads[down]), 0.0)
+	var water := _boxes[up].volume(heads[up])
 	var level := (sea if down == OUTSIDE else heads[down]) - lifted
 	if not down_held:
-		level = _common_level(up, down, water + volume_at(down, heads[down]))
-	return maxf(water - volume_at(up, maxf(level, sill)), 0.0)
-
-
-## The one level at which cells [param a] and [param b] together hold [param total]
-## m³: bracketed between the two breaks — floors and ceilings — either side of it, then
-## found between them by false position, its stale end halved; level, the volumes rise
-## straight between the breaks and the first guess is the level.
-func _common_level(a: int, b: int, total: float) -> float:
-	var breaks := PackedFloat64Array([_floor[a], _ceiling[a], _floor[b], _ceiling[b]])
-	breaks.sort()
-	var below := breaks[0]
-	var held := 0.0
-	for at: float in breaks:
-		var holds := volume_at(a, at) + volume_at(b, at)
-		if holds >= total:
-			if holds <= held:
-				return at
-			return _between(a, b, total, below, held, at, holds)
-		below = at
-		held = holds
-	return below + (total - held) / (_boxes[a].full_area() + _boxes[b].full_area())
-
-
-## The level between [param low] holding [param low_held] and [param high] holding
-## [param high_held] at which cells [param a] and [param b] hold [param total].
-func _between(
-	a: int, b: int, total: float, low: float, low_held: float, high: float, high_held: float
-) -> float:
-	var low_off := low_held - total
-	var high_off := high_held - total
-	var at := low
-	var stale := 0
-	for _step in TiltedBox.SOLVE_STEPS:
-		at = low + (high - low) * low_off / (low_off - high_off)
-		var off := volume_at(a, at) + volume_at(b, at) - total
-		if absf(off) <= TiltedBox.TOLERANCE * total:
-			return at
-		if off < 0.0:
-			low = at
-			low_off = off
-			if stale == -1:
-				high_off *= 0.5
-			stale = -1
-		else:
-			high = at
-			high_off = off
-			if stale == 1:
-				low_off *= 0.5
-			stale = 1
-	return at
+		var breaks := PackedFloat64Array([_floor[up], _ceiling[up], _floor[down], _ceiling[down]])
+		var total := water + _boxes[down].volume(heads[down])
+		level = TiltedBox.common_level(_boxes[up], _boxes[down], breaks, total)
+	return maxf(water - _boxes[up].volume(maxf(level, sill)), 0.0)
 
 
 ## Where the sea stands up her once she carries [param displaced] m³ of weight as sea,
