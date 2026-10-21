@@ -35,6 +35,13 @@ var _pose: ShipPose
 ## The delayed snapshot as perceived, and the tick it is of.
 var _perceived: Dictionary
 var _perceived_tick := -1
+## The perceived snapshot's entries by seat, built with it.
+var _perceived_by_seat: Dictionary[int, Dictionary] = {}
+## The piece the bot stood on in the delayed snapshot and that piece's frame, worked
+## out from its own entry there once per push, when first asked for.
+var _own_piece := 0
+var _own_frame := 0
+var _own_stale := true
 ## Per seat: the tick of the snapshot the next look at it is due on.
 var _look_due := {}
 ## Per seat: its entry when last perceived — marked REMEMBERED once it no longer is —
@@ -60,6 +67,7 @@ func push(latest: Dictionary, pose_at_latest: ShipPose) -> void:
 	if _snapshots.size() > _delay + 1:
 		_snapshots.pop_front()
 	_pose = pose_at_latest
+	_own_stale = true
 
 
 func is_empty() -> bool:
@@ -75,7 +83,17 @@ func snapshot() -> Dictionary:
 		var seen := Pieces.seen_from(delayed, _piece(), _pose)
 		_perceived = Faces.framed_snapshot(_perceive(seen), _frame())
 		_perceived_tick = delayed["tick"]
+		_perceived_by_seat = {}
+		for entry: Dictionary in _perceived["seats"]:
+			if not _perceived_by_seat.has(entry["seat"]):
+				_perceived_by_seat[entry["seat"]] = entry
 	return _perceived
+
+
+## The entry of [param wanted] in [method snapshot], or none.
+func entry(wanted: int) -> Dictionary:
+	snapshot()
+	return _perceived_by_seat.get(wanted, {})
 
 
 ## The pose now, its piece's, read in the frame of the delayed snapshot.
@@ -91,12 +109,23 @@ func up() -> int:
 
 ## The piece of her the bot stood on in the delayed snapshot, and the frame it stood in.
 func _piece() -> int:
-	var me := _me(_snapshots[0])
-	return me["piece"] if not me.is_empty() else 0
+	_settle_own()
+	return _own_piece
 
 
 func _frame() -> int:
-	return _snapshots[0]["up"][_piece()]
+	_settle_own()
+	return _own_frame
+
+
+func _settle_own() -> void:
+	if not _own_stale:
+		return
+	var delayed := _snapshots[0]
+	var me := _me(delayed)
+	_own_piece = me["piece"] if not me.is_empty() else 0
+	_own_frame = delayed["up"][_own_piece]
+	_own_stale = false
 
 
 ## The bot's own entry in [param snapshot], or none.
@@ -162,18 +191,20 @@ func _sees(me: Dictionary, entry: Dictionary, tick: int) -> bool:
 	# Spread over the period, so that every bot does not look at every body at once.
 	var offset := (seat + _seat) % _look_every
 	_look_due[seat] = tick + _look_every - posmod(tick - offset, _look_every)
-	var eye := Faces.axis(_frame()) * _eye
+	var piece := _piece()
+	var frame := _frame()
+	var eye := Faces.axis(frame) * _eye
 	var my_pos: Vector3 = me["pos"]
 	var their_pos: Vector3 = entry["pos"]
 	var mine := my_pos + eye
 	var theirs := their_pos + eye
-	if _frame() == Faces.Up.DECK:
-		mine = my_pos + eye * _floors.height_share(my_pos, _piece())
-		theirs = their_pos + eye * _floors.height_share(their_pos, _piece())
-	var own := _pose.of_piece(_piece())
+	if frame == Faces.Up.DECK:
+		mine = my_pos + eye * _floors.height_share(my_pos, piece)
+		theirs = their_pos + eye * _floors.height_share(their_pos, piece)
+	var own := _pose.of_piece(piece)
 	var dark := (
 		own.lit_at(mine) == ShipPower.Power.DARK or own.lit_at(theirs) == ShipPower.Power.DARK
 	)
 	if dark and my_pos.distance_to(their_pos) > _dark_sight:
 		return false
-	return _floors.surfaces(_piece()).line_of_sight(mine, theirs, own)
+	return _floors.surfaces(piece).line_of_sight(mine, theirs, own)
