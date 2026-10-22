@@ -8,7 +8,8 @@ extends CanvasLayer
 ## events
 ## alone (D5), with rematch and back to the menu — or, online, back to the room and
 ## leave (offer_room) — on a plate over the world dimmed under a scrim, the HUDs having
-## stood down.
+## stood down. From a session's second match on, the session's standings stand beside
+## the table (SessionTally): each name's points and rank over its matches.
 
 signal rematch_requested
 signal menu_requested
@@ -20,6 +21,7 @@ const HEADINGS: Array[String] = ["Place", "Seat", "Time dry", "Shoves landed", "
 const SURVIVAL_HEADINGS: Array[String] = [
 	"Place", "Seat", "Survived", "Shoves landed", "Knock-outs"
 ]
+const SESSION_HEADINGS: Array[String] = ["Rank", "Seat", "Points"]
 const LOCAL_COLOUR := Color(1.0, 0.85, 0.3)
 ## How long the buttons ignore presses once the results show: Space and pad A both
 ## jump and accept, so a jump mashed as the match ends must not rematch unseen. A
@@ -35,6 +37,9 @@ var _second_word := "menu"
 
 @onready var _title: Label = %Title
 @onready var _table: GridContainer = %Table
+@onready var _session: VBoxContainer = %Session
+@onready var _session_title: Label = %SessionTitle
+@onready var _session_table: GridContainer = %SessionTable
 @onready var _seed: Label = %Seed
 @onready var _rematch: Button = %Rematch
 @onready var _hint: Label = $Panel/Box/Hint
@@ -63,9 +68,15 @@ func _ready() -> void:
 
 ## Shows [param stats] once they say the match has ended. [param names] labels
 ## each seat; [param match_seed] is printed so the match can be typed back in;
-## [param survival] says the match was survival (MatchRules.Goal).
+## [param survival] says the match was survival (MatchRules.Goal); [param session] is
+## the session it was counted in, if any (show_session).
 func show_results(
-	stats: MatchStats, local_seat: int, names: PackedStringArray, match_seed: int, survival := false
+	stats: MatchStats,
+	local_seat: int,
+	names: PackedStringArray,
+	match_seed: int,
+	survival := false,
+	session: SessionTally = null
 ) -> void:
 	if visible or not stats.ended:
 		return
@@ -101,6 +112,7 @@ func show_results(
 		_cell(MatchTranscript.clock(line.dry_ticks), colour)
 		_cell(str(line.shoves_landed), colour)
 		_cell(str(line.knockouts), colour)
+	show_session(session, names[local_seat])
 	_seed.text = "Seed %d" % match_seed
 	_rematch.disabled = true
 	_watch.disabled = true
@@ -156,10 +168,41 @@ static func ordinal(place: int) -> String:
 	return "%d%s" % [place, suffix]
 
 
+## The session's standings beside the table — "Session · match 3", then every name's
+## rank and points, [param local_name]'s row picked out — once [param session] has
+## counted two matches or more; hidden with none, or only the one this is.
+func show_session(session: SessionTally, local_name: String) -> void:
+	for child in _session_table.get_children():
+		_session_table.remove_child(child)
+		child.queue_free()
+	_session.visible = session != null and session.matches >= 2
+	if not _session.visible:
+		return
+	_session_title.text = "Session · match %d" % session.matches
+	_session_title.add_theme_color_override("font_color", UiTheme.MUTED)
+	for heading in SESSION_HEADINGS:
+		_cell_in(_session_table, heading, UiTheme.MUTED)
+	for line: SessionTally.Line in session.standings():
+		var colour := LOCAL_COLOUR if line.name == local_name else UiTheme.TEXT
+		_cell_in(_session_table, ordinal(line.rank), colour)
+		var name_cell := _cell_in(_session_table, line.name, colour)
+		name_cell.text = UiTheme.fit(
+			name_cell.text,
+			name_cell.get_theme_font(&"font"),
+			name_cell.get_theme_font_size(&"font_size"),
+			NAME_WIDTH
+		)
+		_cell_in(_session_table, str(line.points), colour)
+
+
 func _cell(text: String, colour: Color) -> Label:
+	return _cell_in(_table, text, colour)
+
+
+func _cell_in(grid: GridContainer, text: String, colour: Color) -> Label:
 	var label := Label.new()
 	label.text = text
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.add_theme_color_override("font_color", colour)
-	_table.add_child(label)
+	grid.add_child(label)
 	return label

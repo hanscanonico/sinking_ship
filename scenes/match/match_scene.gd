@@ -39,6 +39,10 @@ var dressing: ShipDressing
 ## The next local match served ahead of its start (serve), taken as it starts; with none
 ## it is served as it starts, which takes seconds on a liner.
 var served: Served
+## The session of matches this one counts in, its places added as its results first
+## show (SessionTally): Game's; null online, where the results lead back to the room.
+## A replay never counts in it.
+var session: SessionTally
 ## What plans the sinking's effects for the match starting (Served.planner); null while
 ## none is, and for a match served elsewhere.
 var _planner: FxPlanner
@@ -60,6 +64,9 @@ var _config: MatchConfig
 var _stats: MatchStats
 ## The stats the results showed, kept past a replay of the match (show_results_again).
 var _last_stats: MatchStats
+## Whether the match started last has been counted in the session: once, as its results
+## first show.
+var _counted := false
 var _order: SpectateOrder
 var _names := PackedStringArray()
 ## The local player's seat when a person plays it; null when a bot does.
@@ -174,12 +181,14 @@ func _process(delta: float) -> void:
 	if _driver.replaying():
 		_show_replay(snapshot, viewed)
 	else:
+		_count_in_session()
 		_end.show_results(
 			_stats,
 			_local_seat,
 			_names,
 			_config.match_seed,
-			_config.goal == MatchRules.Goal.SURVIVAL
+			_config.goal == MatchRules.Goal.SURVIVAL,
+			session
 		)
 	_feed.visible = not _end.visible
 	if _end.visible:
@@ -308,6 +317,7 @@ func start(
 	_loopback = serving.loopback
 	_planner = serving.planner
 	last_replay = null
+	_counted = false
 	_begin(
 		serving.loopback,
 		serving.local,
@@ -376,6 +386,7 @@ func start_online(played: PlayedMatch, local: LocalInputSource, names: PackedStr
 	_online = true
 	_loopback = null
 	last_replay = null
+	session = null
 	_begin(played, local, seat, names, false, seat, INF, false)
 	_end.offer_room()
 
@@ -545,6 +556,15 @@ func save_replay() -> void:
 		recorder.save(last_replay)
 
 
+## Counts the match in the session (SessionTally) once it has ended, the once: as its
+## results first show. A replay never reaches here.
+func _count_in_session() -> void:
+	if session == null or _counted or not _stats.ended:
+		return
+	_counted = true
+	session.count(_stats, _names)
+
+
 ## Watches [param file]'s match again (R4, #212): its sim run from its log
 ## (ReplayTimeline) and drawn exactly as a live match is, seen through the recorded
 ## human seat's eyes, with the replay's controls over it (ReplayHud) and nothing of a
@@ -628,12 +648,14 @@ func show_results_again() -> void:
 		return
 	_driver.clock().paused = true
 	_replay_hud.hide()
+	# The session as the match's own results showed it: the replay adds nothing to it.
 	_end.show_results(
 		_last_stats,
 		_local_seat,
 		_names,
 		_config.match_seed,
-		_config.goal == MatchRules.Goal.SURVIVAL
+		_config.goal == MatchRules.Goal.SURVIVAL,
+		session
 	)
 
 
