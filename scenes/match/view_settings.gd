@@ -1,9 +1,9 @@
 class_name ViewSettings
 extends Resource
-## How the local player's first-person view turns and frames (D14), whether the
-## window fills the screen, and the graphics — the preset (GraphicsQuality) and the 3D
-## view's render scale, each this machine's own until the player picks one — with
-## defaults. The settings screen saves them at PATH. Presentation only: none of it is
+## How the local player's first-person view turns and frames (D14), the window — its
+## mode, VSync and a frame-rate cap — and the graphics — the preset (GraphicsQuality)
+## and the 3D view's render scale, each this machine's own until the player picks one
+## — with defaults. The settings screen saves them at PATH. Presentation only: none of it is
 ## ever sent, and no rule reads it.
 
 const PATH := "user://view_settings.tres"
@@ -11,6 +11,11 @@ const FOV_MIN := 75.0
 const FOV_MAX := 110.0
 ## A graphics choice the player has not made: the machine's own stands in.
 const AUTOMATIC := -1
+## The frame-rate caps on offer, 0 for none.
+const MAX_FPS_CHOICES: Array[int] = [0, 60, 120, 144, 240]
+
+## How the window sits on the screen: in a frame, filling it borderless, or owning it.
+enum WindowMode { WINDOWED, BORDERLESS, EXCLUSIVE }
 
 ## The one instance the game reads and the settings screen edits while either
 ## holds it, so a change reaches the look as it is made. Weak: a script's static
@@ -37,7 +42,14 @@ static var _shared: WeakRef
 @export_range(0.0, 1.0) var view_kick: float = 1.0:
 	set(value):
 		view_kick = clampf(value, 0.0, 1.0)
-@export var fullscreen: bool = false
+@export var window_mode: WindowMode = WindowMode.WINDOWED:
+	set(value):
+		window_mode = clampi(value, 0, WindowMode.size() - 1) as WindowMode
+@export var vsync: bool = true
+## The most frames a second the game draws, 0 for no cap.
+@export_range(0, 240) var max_fps: int = 0:
+	set(value):
+		max_fps = maxi(value, 0)
 ## The graphics preset (GraphicsQuality.Preset), or AUTOMATIC until the player picks
 ## one: then this machine's own (graphics()).
 @export var quality: int = AUTOMATIC:
@@ -81,12 +93,33 @@ func save(path: String = PATH) -> Error:
 	return ResourceSaver.save(self, path)
 
 
-func apply_window() -> void:
-	var mode := (
-		DisplayServer.WINDOW_MODE_FULLSCREEN if fullscreen else DisplayServer.WINDOW_MODE_WINDOWED
-	)
+## A file saved before window_mode held a fullscreen flag: it reads as borderless,
+## the mode it set.
+func _set(property: StringName, value: Variant) -> bool:
+	if property != &"fullscreen":
+		return false
+	window_mode = WindowMode.BORDERLESS if value else WindowMode.WINDOWED
+	return true
+
+
+## Puts the window in its mode, and VSync and the frame cap as chosen. VSync on and
+## no cap are the engine's own defaults: unless [param overrule_launch] (the player
+## just chose them), those leave the launch's own be, so for a player who kept them
+## --disable-vsync and --max-fps still hold.
+func apply_window(overrule_launch := false) -> void:
+	var mode: DisplayServer.WindowMode = [
+		DisplayServer.WINDOW_MODE_WINDOWED,
+		DisplayServer.WINDOW_MODE_FULLSCREEN,
+		DisplayServer.WINDOW_MODE_EXCLUSIVE_FULLSCREEN,
+	][window_mode]
 	if DisplayServer.window_get_mode() != mode:
 		DisplayServer.window_set_mode(mode)
+	if overrule_launch or not vsync:
+		DisplayServer.window_set_vsync_mode(
+			DisplayServer.VSYNC_ENABLED if vsync else DisplayServer.VSYNC_DISABLED
+		)
+	if overrule_launch or max_fps > 0:
+		Engine.max_fps = max_fps
 
 
 ## The preset the game draws with: this run's, else the player's, else this

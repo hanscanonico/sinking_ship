@@ -118,8 +118,9 @@ func _ready() -> void:
 	_seeds.randomize()
 	AudioSettings.local().apply()
 	_view = ViewSettings.local()
-	# A capture keeps the window it was launched with, whatever the player saved.
-	if _args.capture_path.is_empty():
+	# A capture, and a bot's autoplay (make fps), keep the window, VSync and frame rate
+	# they were launched with, whatever the player saved.
+	if _args.capture_path.is_empty() and not _args.autoplay:
 		_view.apply_window()
 	else:
 		_draw_watch = DrawWatch.new()
