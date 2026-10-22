@@ -51,13 +51,22 @@ func test_leaving_for_the_menu_gives_up_the_held_countdown() -> void:
 	var game := _holding_game(config)
 	game._baker.bake(config, 1.0)
 	game._hold.advance(BakeHold.GRACE_SECONDS * 2.0, 0.5)
+	var dressing := ShipDressing.new(config)
+	game._dressing = dressing
+	game._held_dressing = dressing
+	game._serving.serve(config, func() -> MatchScene.Served: return MatchScene.Served.new())
 	game._cancel_hold()
 	assert_null(game._holding, "no match held")
 	assert_null(game._holding_replay, "nor a replay")
 	assert_false(game._dressed_hold, "nor waiting on her ship")
 	assert_null(game._held_dressing)
+	assert_null(game._dressing, "her ship's dressing let go")
+	assert_true(dressing._dropped, "and dropped")
 	assert_null(game._baker.baking(), "her sinking's bake stopped")
 	assert_false(game._hold.visible, "the hold hidden")
+	await _settle(game._serving)
+	assert_false(game._serving.ready_for(config), "what was served for it let go")
+	game._serving.finish()
 
 
 func test_what_was_served_is_taken_only_for_its_own_config() -> void:
