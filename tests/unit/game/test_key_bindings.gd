@@ -175,6 +175,32 @@ func test_no_swap_leaves_a_switch_of_view_on_a_replay_s_key() -> void:
 	assert_true(KeyBindings.same_input(keys.shown(&"spectate_free"), _key(KEY_LEFT)))
 
 
+## A replay's orbit drags with the left button and pans with the middle: a switch of
+## view on either would switch the seat at every drag.
+func test_a_switch_of_view_never_takes_a_button_the_orbit_drags_with() -> void:
+	var keys := KeyBindings.new()
+	assert_false(keys.bind(&"spectate_next", _click(MOUSE_BUTTON_LEFT)), "the orbit's drag")
+	assert_false(keys.bind(&"spectate_previous", _click(MOUSE_BUTTON_MIDDLE)), "the orbit's pan")
+	assert_true(keys.chosen.is_empty(), "nothing moved")
+	assert_true(keys.bind(&"spectate_next", _click(MOUSE_BUTTON_RIGHT)), "the right is no replay's")
+	assert_false(keys.bind(&"shove", _click(MOUSE_BUTTON_RIGHT)), "nor by the swap")
+	assert_true(KeyBindings.same_input(keys.shown(&"spectate_next"), _click(MOUSE_BUTTON_RIGHT)))
+
+
+## Nor does a file edited by hand put one there: such an entry is left out, as one
+## the settings screen could never have saved.
+func test_a_file_never_puts_a_switch_of_view_on_a_replay_s_key() -> void:
+	_write(
+		(
+			'{"spectate_next": {"keycode": 4194305}, "spectate_previous": {"mouse": 1},'
+			+ ' "spectate_free": {"key": 4194319}}'
+		)
+	)
+	var back := KeyBindings.read(PATH)
+	assert_eq(back.chosen.keys(), [&"spectate_free"], "only the free camera may take a replay's")
+	assert_eq(_unsound(back, "the file"), [] as Array[String])
+
+
 ## Whatever is bound to whatever, from the project's keys or from a seeded jumble of
 ## them: no key answers to two actions, and neither switch of view to a replay's key.
 func test_no_bind_breaks_the_keys_of_play_or_of_replays() -> void:

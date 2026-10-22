@@ -54,6 +54,9 @@ const IN_REPLAYS: Array[StringName] = [&"spectate_previous", &"spectate_next"]
 ## The project's actions whose keys a replay hears before the switches of view.
 const REPLAY_PREFIX := "input/replay_"
 const REPLAY_CLOSE: StringName = &"ui_cancel"
+## The mouse buttons a replay's orbit drags and pans with (OrbitCamera.drag), whose
+## presses a replay hears before the switches of view too.
+const REPLAY_DRAGS: Array[MouseButton] = [MOUSE_BUTTON_LEFT, MOUSE_BUTTON_MIDDLE]
 
 ## A wheel's turns are not buttons a player holds.
 const WHEEL: Array[MouseButton] = [
@@ -84,7 +87,8 @@ static func local() -> KeyBindings:
 
 
 ## The bindings saved at [param path] — anything in them that is not a key or mouse
-## button for an action that may be rebound left out — or none when there are none.
+## button for an action that may be rebound, or that puts a switch of view on a
+## replay's key, left out — or none when there are none.
 static func read(path: String) -> KeyBindings:
 	var bindings := KeyBindings.new()
 	var file := FileAccess.open(path, FileAccess.READ)
@@ -96,7 +100,7 @@ static func read(path: String) -> KeyBindings:
 	var saved: Dictionary = json.data
 	for action: StringName in ACTIONS:
 		var event := _from_json(saved.get(String(action)))
-		if event != null:
+		if event != null and not (action in IN_REPLAYS and _holds(replay_keys(), event)):
 			bindings.chosen[action] = event
 	return bindings
 
@@ -201,7 +205,7 @@ func clashes_in_replays(action: StringName, event: InputEvent) -> bool:
 
 
 ## The keys a replay hears before the switches of view: every replay action's, as
-## project.godot binds them, and Esc's.
+## project.godot binds them, Esc's and the buttons its orbit drags with.
 static func replay_keys() -> Array[InputEvent]:
 	if _replay_keys.is_empty():
 		for property: Dictionary in ProjectSettings.get_property_list():
@@ -209,6 +213,10 @@ static func replay_keys() -> Array[InputEvent]:
 			if setting.begins_with(REPLAY_PREFIX):
 				_replay_keys.append_array(defaults_of(StringName(setting.trim_prefix("input/"))))
 		_replay_keys.append_array(defaults_of(REPLAY_CLOSE))
+		for button: MouseButton in REPLAY_DRAGS:
+			var drag := InputEventMouseButton.new()
+			drag.button_index = button
+			_replay_keys.append(drag)
 	return _replay_keys
 
 
