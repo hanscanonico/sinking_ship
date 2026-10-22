@@ -127,14 +127,108 @@ func test_the_spectate_keys_rebind_and_swap_with_play() -> void:
 	var keys := KeyBindings.new()
 	assert_true(keys.bind(&"spectate_free", _key(KEY_SPACE)))
 	assert_true(KeyBindings.same_input(keys.shown(&"jump"), _key(KEY_C)), "jump takes C")
-	assert_true(keys.bind(&"spectate_previous", _key(KEY_LEFT)))
+	assert_true(keys.bind(&"spectate_previous", _key(KEY_Z)))
+	assert_true(keys.bind(&"spectate_free", _key(KEY_LEFT)), "the free camera is not a replay's")
 	assert_false(keys.chosen.has(&"move_left"), "the arrow was only an alternate")
 	keys.apply()
 	var left := _key(KEY_LEFT)
 	left.pressed = true
-	assert_true(left.is_action_pressed(&"spectate_previous"))
+	assert_true(left.is_action_pressed(&"spectate_free"))
 	assert_false(left.is_action_pressed(&"move_left"), "no key answers to two actions")
+	var z := _key(KEY_Z)
+	z.pressed = true
+	assert_true(z.is_action_pressed(&"spectate_previous"))
 	assert_eq(_pad_events(&"spectate_free").size(), 1, "the pad's kept")
+
+
+## A replay hears its own keys and Esc before the switches of view, which there
+## switch the seat: a switch left on one could never be used, and its hint would lie.
+func test_a_switch_of_view_never_takes_a_replay_s_key() -> void:
+	var keys := KeyBindings.new()
+	assert_false(keys.bind(&"spectate_previous", _key(KEY_LEFT)), "a step back")
+	assert_false(keys.bind(&"spectate_next", _key(KEY_RIGHT)), "a step forward")
+	assert_false(keys.bind(&"spectate_next", _key(KEY_SPACE)), "the replay's pause")
+	assert_false(keys.bind(&"spectate_previous", _key(KEY_ESCAPE)), "Esc closes the replay")
+	var typed := InputEventKey.new()
+	typed.keycode = KEY_ESCAPE
+	assert_false(keys.bind(&"spectate_next", typed), "Esc by what it types")
+	assert_true(keys.chosen.is_empty(), "nothing moved")
+	assert_true(keys.clashes_in_replays(&"spectate_previous", _key(KEY_LEFT)))
+	assert_false(keys.clashes_in_replays(&"spectate_previous", _key(KEY_Z)))
+
+
+## Nor by the swap: jump on E would hand the next view jump's Space — the replay's
+## pause — and the pause on E would hand it Esc.
+func test_no_swap_leaves_a_switch_of_view_on_a_replay_s_key() -> void:
+	var keys := KeyBindings.new()
+	assert_false(keys.bind(&"jump", _key(KEY_E)))
+	assert_true(KeyBindings.same_input(keys.shown(&"spectate_next"), _key(KEY_E)))
+	assert_true(KeyBindings.same_input(keys.shown(&"jump"), _key(KEY_SPACE)))
+	assert_false(keys.bind(&"pause", _key(KEY_E)))
+	assert_false(keys.bind(&"pause", _key(KEY_Q)))
+	assert_true(keys.chosen.is_empty(), "nothing moved")
+
+	assert_true(keys.bind(&"brace", _key(KEY_LEFT)), "a key of play may be a replay's")
+	assert_false(keys.bind(&"brace", _key(KEY_Q)), "but not hand it to the previous view")
+	assert_true(KeyBindings.same_input(keys.shown(&"spectate_previous"), _key(KEY_Q)))
+	assert_true(keys.bind(&"brace", _key(KEY_C)), "the free camera takes it")
+	assert_true(KeyBindings.same_input(keys.shown(&"spectate_free"), _key(KEY_LEFT)))
+
+
+## Whatever is bound to whatever, from the project's keys or from a seeded jumble of
+## them: no key answers to two actions, and neither switch of view to a replay's key.
+func test_no_bind_breaks_the_keys_of_play_or_of_replays() -> void:
+	var tried: Array[InputEvent] = []
+	for code: Key in [
+		KEY_W,
+		KEY_A,
+		KEY_S,
+		KEY_D,
+		KEY_UP,
+		KEY_DOWN,
+		KEY_LEFT,
+		KEY_RIGHT,
+		KEY_SPACE,
+		KEY_ESCAPE,
+		KEY_E,
+		KEY_Q,
+		KEY_C,
+		KEY_F,
+		KEY_R,
+		KEY_J,
+		KEY_Z,
+		KEY_SHIFT,
+		KEY_CTRL,
+		KEY_TAB,
+		KEY_COMMA,
+		KEY_PERIOD,
+		KEY_BRACKETLEFT,
+		KEY_BRACKETRIGHT,
+		KEY_HOME,
+		KEY_END,
+	]:
+		tried.append(_key(code))
+	for button: MouseButton in [MOUSE_BUTTON_LEFT, MOUSE_BUTTON_RIGHT, MOUSE_BUTTON_MIDDLE]:
+		tried.append(_click(button))
+	var jumbled := KeyBindings.new()
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 257
+	for step in 40:
+		var action: StringName = KeyBindings.ACTIONS[rng.randi_range(
+			0, KeyBindings.ACTIONS.size() - 1
+		)]
+		jumbled.bind(action, tried[rng.randi_range(0, tried.size() - 1)])
+	assert_false(jumbled.chosen.is_empty(), "the jumble moved some")
+	var unsound: Array[String] = []
+	for start: KeyBindings in [KeyBindings.new(), jumbled]:
+		unsound.append_array(_unsound(start, "the start"))
+		for action: StringName in KeyBindings.ACTIONS:
+			for key: InputEvent in tried:
+				var keys := KeyBindings.new()
+				keys.chosen.assign(start.chosen)
+				keys.bind(action, key)
+				unsound.append_array(_unsound(keys, "%s on %s" % [action, key.as_text()]))
+	assert_eq(unsound, [] as Array[String])
 
 
 func test_only_keys_and_buttons_of_play_bind() -> void:
@@ -225,6 +319,23 @@ func test_the_keys_page_binds_the_next_key_and_esc_cancels() -> void:
 	menu._input(j)
 	assert_eq(jump.text, "J")
 	assert_eq(InputPrompts.word_for(InputMap.action_get_events(&"jump"), false), "J")
+
+	var previous: Button = menu.get_node("%KeyRows").find_child(
+		"Key_spectate_previous", false, false
+	)
+	previous.pressed.emit()
+	var left := _key(KEY_LEFT)
+	left.pressed = true
+	menu._input(left)
+	assert_eq(previous.text, SettingsMenu.REFUSED, "a replay's key is refused, and why said")
+	var wheel := _click(MOUSE_BUTTON_WHEEL_UP)
+	wheel.pressed = true
+	menu._input(wheel)
+	assert_eq(previous.text, "Press a key…", "a wheel's turn is no replay's")
+	var z := _key(KEY_Z)
+	z.pressed = true
+	menu._input(z)
+	assert_eq(previous.text, "Z", "still waiting, it takes the next")
 	(menu.get_node("%ResetKeys") as Button).pressed.emit()
 	assert_eq(jump.text, "Space")
 	menu.close()
@@ -249,7 +360,33 @@ func test_the_keys_page_fits_its_panel() -> void:
 		var needed := panel.get_combined_minimum_size()
 		assert_lte(needed.x, declared.x, "page %d's width" % page)
 		assert_lte(needed.y, declared.y, "page %d's height" % page)
+	menu.open(SettingsMenu.Page.KEYS)
+	menu._listen(&"spectate_previous")
+	var left := _key(KEY_LEFT)
+	left.pressed = true
+	menu._input(left)
+	await wait_process_frames(2)
+	assert_lte(panel.get_combined_minimum_size().x, declared.x, "the refusal's width")
 	menu.hide()
+
+
+## Each key of [param keys] that answers to two actions, and each a switch of view
+## holds that a replay hears first, said after [param why].
+func _unsound(keys: KeyBindings, why: String) -> Array[String]:
+	var found: Array[String] = []
+	var held: Array[InputEvent] = []
+	for action: StringName in KeyBindings.ACTIONS:
+		for key: InputEvent in keys.keys_of(action):
+			for other: InputEvent in held:
+				if KeyBindings.same_input(key, other):
+					found.append("%s: %s answers to two actions" % [why, key.as_text()])
+			held.append(key)
+			if action not in KeyBindings.IN_REPLAYS:
+				continue
+			for replay: InputEvent in KeyBindings.replay_keys():
+				if KeyBindings.same_input(key, replay):
+					found.append("%s: %s holds the replay's %s" % [why, action, key.as_text()])
+	return found
 
 
 func _write(text: String) -> void:
