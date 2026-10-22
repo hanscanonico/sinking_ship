@@ -38,7 +38,7 @@ extends RefCounted
 ## and the client lie about latency, jitter and loss (SH11); --capture-screen stages a
 ## screen for the capture: menu, settings (over the menu), graphics (the settings on
 ## their Graphics page), pause, results, online (the Online screen), room (a room, its
-## players made up), replays (the saved replays' list), online-pause (the online pause
+## players made up), replays (the saved replays' list), credits, online-pause (the online pause
 ## over the match), online-settings (the settings opened from it) or hold (the countdown
 ## held for a slow bake, its bar half way); --capture-from stands the capture's eyes on
 ## chosen feet in ship space,

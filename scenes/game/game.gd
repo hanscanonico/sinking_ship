@@ -18,9 +18,9 @@ extends Node
 ## address naming a room — opens it on that link, and plays it once the name is known.
 ## --capture-screen stages the settings — on their Graphics page for graphics —, the
 ## pause menu, the results, the Online screen, a room — its players made up, no server
-## asked — or the online pause over the match, the settings opened from it or not, for
-## a capture, or catches the countdown held for a slow bake (hold); --capture-sway holds
-## the menu backdrop's drift.
+## asked —, the replays, the credits, or the online pause over the match, the settings
+## opened from it or not, for a capture, or catches the countdown held for a slow bake
+## (hold); --capture-sway holds the menu backdrop's drift.
 ## The saved volumes, window and graphics apply as it boots — --quality and
 ## --render-scale stand in for the saved graphics for one run; the settings screen opens
 ## from the main menu and the pause menu, and its changes reach the window, the menu's
@@ -64,6 +64,7 @@ var _playing: MatchChoices
 ## The saved replays' list (R6), and where the replay being watched was opened from:
 ## where leaving it goes back to.
 var _replays: ReplaysMenu
+var _credits: CreditsMenu
 var _replay_from := ReplayFrom.MENU
 ## The replay held for its match's sinking to bake or its ship to be dressed (_holding is
 ## its config); null while none is.
@@ -156,6 +157,11 @@ func _ready() -> void:
 	_menu.replays_requested.connect(_open_replays)
 	_replays.watch_requested.connect(_watch_from_list)
 	_replays.back_requested.connect(_leave_replays)
+	_credits = CreditsMenu.new()
+	_credits.name = "CreditsMenu"
+	add_child(_credits)
+	_menu.credits_requested.connect(_open_credits)
+	_credits.back_requested.connect(_leave_credits)
 	_settings.view_changed.connect(_on_view_changed)
 	_online_menu.play_requested.connect(_play_online)
 	_online_menu.back_requested.connect(_leave_online)
@@ -221,6 +227,8 @@ func _process(delta: float) -> void:
 					_stage_room()
 				"replays":
 					_open_replays()
+				"credits":
+					_open_credits()
 			_capture("the menu")
 		return
 	var snapshot := _match.current()
@@ -500,6 +508,17 @@ func _open_replays() -> void:
 
 func _leave_replays() -> void:
 	_replays.hide()
+	_menu.open()
+
+
+## The credits over the menu's backdrop.
+func _open_credits() -> void:
+	_credits.open()
+	_menu.show_behind(_credits.panel())
+
+
+func _leave_credits() -> void:
+	_credits.hide()
 	_menu.open()
 
 

@@ -127,32 +127,48 @@ text = "Bots"
 unique_name_in_owner = true
 size_flags_horizontal = 3
 
-[node name="SeedLabel" type="Label" parent="MainMenu/Panel/Box/Choices"]
-text = "Seed"
-
-[node name="Seed" type="LineEdit" parent="MainMenu/Panel/Box/Choices"]
-unique_name_in_owner = true
-focus_neighbor_bottom = NodePath("../Fast")
-size_flags_horizontal = 3
-placeholder_text = "random"
-
-[node name="FastLabel" type="Label" parent="MainMenu/Panel/Box/Choices"]
-text = "Sinking"
-
-[node name="Fast" type="CheckButton" parent="MainMenu/Panel/Box/Choices"]
-unique_name_in_owner = true
-focus_neighbor_bottom = NodePath("../Survival")
-size_flags_horizontal = 3
-text = "Fast sinking"
-
 [node name="GoalLabel" type="Label" parent="MainMenu/Panel/Box/Choices"]
 text = "Goal"
 
 [node name="Survival" type="CheckButton" parent="MainMenu/Panel/Box/Choices"]
 unique_name_in_owner = true
-focus_neighbor_bottom = NodePath("../../Buttons/Play")
+focus_neighbor_bottom = NodePath("../../Custom")
 size_flags_horizontal = 3
 text = "Survival"
+
+[node name="Custom" type="Button" parent="MainMenu/Panel/Box"]
+unique_name_in_owner = true
+focus_neighbor_top = NodePath("../Choices/Survival")
+toggle_mode = true
+text = "Custom match"
+flat = true
+alignment = 0
+
+[node name="CustomChoices" type="GridContainer" parent="MainMenu/Panel/Box"]
+unique_name_in_owner = true
+visible = false
+theme_override_constants/h_separation = 18
+theme_override_constants/v_separation = 10
+columns = 2
+
+[node name="SeedLabel" type="Label" parent="MainMenu/Panel/Box/CustomChoices"]
+text = "Seed"
+
+[node name="Seed" type="LineEdit" parent="MainMenu/Panel/Box/CustomChoices"]
+unique_name_in_owner = true
+focus_neighbor_top = NodePath("../../Custom")
+focus_neighbor_bottom = NodePath("../Fast")
+size_flags_horizontal = 3
+placeholder_text = "random"
+
+[node name="FastLabel" type="Label" parent="MainMenu/Panel/Box/CustomChoices"]
+text = "Sinking"
+
+[node name="Fast" type="CheckButton" parent="MainMenu/Panel/Box/CustomChoices"]
+unique_name_in_owner = true
+focus_neighbor_bottom = NodePath("../../Buttons/Play")
+size_flags_horizontal = 3
+text = "Fast sinking"
 
 [node name="Problem" type="Label" parent="MainMenu/Panel/Box"]
 unique_name_in_owner = true
@@ -182,14 +198,37 @@ text = "Settings"
 unique_name_in_owner = true
 custom_minimum_size = Vector2(120, 0)
 focus_neighbor_left = NodePath("../Settings")
-focus_neighbor_right = NodePath("../QuitGame")
+focus_neighbor_right = NodePath("../Credits")
 text = "Replays"
+
+[node name="Credits" type="Button" parent="MainMenu/Panel/Box/Buttons"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(120, 0)
+focus_neighbor_left = NodePath("../Replays")
+focus_neighbor_right = NodePath("../QuitGame")
+text = "Credits"
 
 [node name="QuitGame" type="Button" parent="MainMenu/Panel/Box/Buttons"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(120, 0)
-focus_neighbor_left = NodePath("../Replays")
+focus_neighbor_left = NodePath("../Credits")
 text = "Quit"
+
+[node name="Version" type="Label" parent="MainMenu"]
+unique_name_in_owner = true
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -24.0
+offset_top = -24.0
+offset_right = -24.0
+offset_bottom = -24.0
+grow_horizontal = 0
+grow_vertical = 0
+theme_type_variation = &"HintLabel"
+horizontal_alignment = 2
 
 [node name="OnlineMenu" parent="." instance=ExtResource("8_online")]
 

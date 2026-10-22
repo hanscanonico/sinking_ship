@@ -7,13 +7,16 @@ extends CanvasLayer
 ## online opens the Online screen (SH12). It stands over the ship at dusk
 ## (MenuBackdrop) under the wordmark in her livery: cream on a boot-top red rule
 ## between brass lines — and the online screens stand over the same, its own panel put
-## away (show_behind).
+## away (show_behind). The seed and the pace are a tester's knobs: folded under Custom
+## match, closed unless the command line set one of them. The build's version stands in
+## the bottom-right corner; Credits opens the credits (CreditsMenu).
 
 signal play_requested(choices: MatchChoices)
 ## The picker has moved to [param ship], by name.
 signal ship_picked
 signal online_requested
 signal replays_requested
+signal credits_requested
 signal settings_requested
 signal quit_requested
 
@@ -25,6 +28,8 @@ signal quit_requested
 @onready var _survival: CheckButton = %Survival
 @onready var _problem: Label = %Problem
 @onready var _play: Button = %Play
+@onready var _custom: Button = %Custom
+@onready var _custom_choices: Control = %CustomChoices
 @onready var _panel: PanelContainer = $Panel
 @onready var _backdrop: MenuBackdrop = $Backdrop
 ## The choices the menu was set up with: what it offers no picker for — the command
@@ -46,6 +51,10 @@ func _ready() -> void:
 	_seed.gui_input.connect(leave_field.bind(_seed))
 	%Online.pressed.connect(online_requested.emit)
 	%Replays.pressed.connect(replays_requested.emit)
+	%Credits.pressed.connect(credits_requested.emit)
+	%Version.text = version_text()
+	_custom.toggled.connect(_show_custom)
+	_show_custom(_custom.button_pressed)
 	%Settings.pressed.connect(settings_requested.emit)
 	%QuitGame.pressed.connect(quit_requested.emit)
 
@@ -76,6 +85,8 @@ func setup(match_rules: MatchRules, choices: MatchChoices) -> void:
 	_seed.text = full.seed_text
 	_fast.button_pressed = full.fast
 	_survival.button_pressed = full.goal == MatchChoices.SURVIVAL
+	# A seed or a pace given on the command line is shown, not hidden under the fold.
+	_custom.button_pressed = not full.seed_text.is_empty() or full.fast
 
 
 ## The choices as they stand: the ship, seats, tier, seed, pace and goal picked here,
@@ -128,6 +139,18 @@ func show_problem(text: String) -> void:
 	_problem.show()
 
 
+## Whether the seed and the pace are shown, under Custom match.
+func custom_shown() -> bool:
+	return _custom_choices.visible
+
+
+## The build's version as the menu's corner shows it: "v" and the project's
+## application/config/version, or "dev" for a build that sets none.
+static func version_text() -> String:
+	var version := str(ProjectSettings.get_setting("application/config/version", "")).strip_edges()
+	return "dev" if version.is_empty() else "v" + version
+
+
 ## A one-line field has no lines to move between, so up and down leave [param field]
 ## as they leave every other choice — otherwise the arrow keys could never get out of
 ## it. Every screen's one-line fields take it, on their gui_input.
@@ -163,6 +186,14 @@ func _offer_seats(seats: int, otherwise: int) -> void:
 	if seat_index == -1:
 		seat_index = _seats.get_item_index(layout.seats_near(otherwise))
 	_seats.select(seat_index)
+
+
+## Opens or folds the seed and the pace, the fold's arrow and the way down from it
+## following.
+func _show_custom(shown: bool) -> void:
+	_custom_choices.visible = shown
+	_custom.text = ("▾ " if shown else "▸ ") + "Custom match"
+	_custom.focus_neighbor_bottom = _custom.get_path_to(_seed if shown else _play)
 
 
 func _on_ship_picked(_index: int) -> void:
