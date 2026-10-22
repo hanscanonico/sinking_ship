@@ -52,6 +52,7 @@ stamina_regen_delay = 0.6
 swim_speed = 2.2
 swim_depth = 1.45
 dunk_drag = 25.0
+dunk_depth = 3.5
 float_speed = 3.0
 wade_depth = 0.3
 stand_depth = 0.15

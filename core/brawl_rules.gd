@@ -111,6 +111,10 @@ extends Resource
 ## How hard the water slows a body that drops into it, in m/s²: a fall in dunks
 ## it under before it floats back up.
 @export var dunk_drag: float
+## The deepest a fall dunks a body, in metres under where it meets the water, however
+## high it fell from: the water takes at once any speed past what dunk_drag stops
+## within this, as it does from a height. A fall from a low deck stops short of it.
+@export var dunk_depth: float
 ## The speed the water floats a dunked body back up at, in m/s.
 @export var float_speed: float
 ## Water shallower than this over the feet is wading, not swimming.
@@ -275,6 +279,7 @@ func problems() -> PackedStringArray:
 		"swim_speed",
 		"swim_depth",
 		"dunk_drag",
+		"dunk_depth",
 		"float_speed",
 		"wade_depth",
 		"stand_depth",

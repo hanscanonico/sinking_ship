@@ -57,6 +57,49 @@ func test_entering_the_sea_starts_swimming() -> void:
 	assert_almost_eq(planar.length(), rules.swim_speed, 0.0001, "it swims at swim_speed")
 
 
+## Seat 0 dropped from rest [param height] over the open sea beside the flat deck;
+## returns the deepest its feet went under the sea and the seconds it took to float
+## back up to rest, INF when it never did (it went out first).
+func _drop_into_the_sea(height: float) -> Array[float]:
+	var rules := _rules()
+	var sim := SimFixtures.sim(2)
+	SimFixtures.place(sim, 1, Vector3(-10.0, 0.0, 0.0))
+	var faller := sim.state.seats[0]
+	var sea := sim.pose().water_height(Vector3(0.0, 0.0, 8.0))
+	faller.pos = Vector3(0.0, sea + height, 8.0)
+	faller.vel = Vector3.ZERO
+	faller.body = PlayerState.Body.AIRBORNE
+	faller.surface = Surfaces.NONE
+	var deepest := 0.0
+	var entered := -1
+	for tick in 4 * Ticks.from_seconds(rules.cold_meter):
+		SimFixtures.step(sim)
+		if faller.is_out():
+			break
+		deepest = maxf(deepest, sea - faller.pos.y)
+		if entered < 0 and faller.body == PlayerState.Body.SWIMMING:
+			entered = tick
+		var resting := absf(faller.pos.y - (sea - rules.swim_depth)) < 0.0001
+		if entered >= 0 and resting and faller.vel.y == 0.0:
+			return [deepest, (tick - entered) * Ticks.SECONDS_PER_TICK]
+	return [deepest, INF]
+
+
+func test_a_high_fall_dunks_no_deeper_than_dunk_depth() -> void:
+	var rules := _rules()
+	# Off a Titanic's boat deck: it surfaces with most of its cold meter to spare.
+	var high := _drop_into_the_sea(18.0)
+	var overshoot := sqrt(2.0 * rules.dunk_drag * rules.dunk_depth) * Ticks.SECONDS_PER_TICK
+	assert_lt(high[0], rules.dunk_depth + overshoot + 0.0001, "dunked no deeper than the cap")
+	assert_lt(high[1], rules.cold_meter * 0.5, "afloat with its meter half full or more")
+
+	# Off a low deck the cap never bites: it dunks as deep as the drag alone takes it.
+	var low := _drop_into_the_sea(3.0)
+	var dunk := 2.0 * rules.gravity * 3.0 / (2.0 * rules.dunk_drag)
+	assert_lt(dunk, rules.dunk_depth, "a 3 m fall stops short of the cap")
+	assert_almost_eq(low[0], dunk, 0.5, "dunked by the drag alone")
+
+
 func test_cold_meter_puts_you_out_at_zero() -> void:
 	var rules := _rules()
 	var sim := SimFixtures.sim(2)
