@@ -4,6 +4,10 @@ extends Resource
 ## y up, origin on the main deck amidships. Collision never comes from a mesh; the
 ## greybox is generated from this. Nothing here assumes a size or a deck count.
 
+## A ladder whose outward normal stands this near square to her centreline faces her
+## side (ladder_at()).
+const SIDE_FACING := 0.999
+
 ## Height of the main deck above the sea when the ship is level and unsunk.
 @export var freeboard: float
 ## How far under its top a deck's underside stands: the floor of a ship upside down
@@ -86,6 +90,70 @@ func railing_middle(railing: int, above: float) -> Vector3:
 	var span := railings[railing]
 	var middle := (span.from + span.to) * 0.5
 	return Vector3(middle.x, platforms[span.platform].height + above, middle.y)
+
+
+## The unit normal, x/z, of [param ladder]'s stretch of edge pointing off its platform:
+## the way it hangs outboard.
+func ladder_outward(ladder: ShipLadder) -> Vector2:
+	var outward := (ladder.to - ladder.from).normalized().orthogonal()
+	if (platforms[ladder.platform].area.get_center() - ladder.from).dot(outward) > 0.0:
+		outward = -outward
+	return outward
+
+
+## The top of [param ladder]: its deck's height, or her sheer's where her shell stands
+## over its deck there (HullSection.sheer) — a ladder down her side leads up over her
+## bulwark.
+func ladder_top(ladder: ShipLadder) -> float:
+	var top := platforms[ladder.platform].height
+	var outward := ladder_outward(ladder)
+	if structure == null or absf(outward.y) < SIDE_FACING:
+		return top
+	var way := 1 if outward.y > 0.0 else -1
+	for end: Vector2 in [ladder.from, ladder.to]:
+		var section := structure.section_at(end.x)
+		if section != null:
+			top = maxf(top, section.sheer(way))
+	return top
+
+
+## Where [param ladder] hangs at [param height] (D6): its two ends, x/z — from, then
+## to. A ladder down her side lies on her shell's side there, her structure's half
+## breadth at each end's x (ShipStructure.half_breadth), so it follows her flare and
+## her bilge from its deck down into the sea, never through her plating; on its deck's
+## edge where her shell does not reach that height, on a ship with no structure, and
+## for a ladder not down her side.
+func ladder_at(ladder: ShipLadder, height: float) -> PackedVector2Array:
+	var ends := PackedVector2Array([ladder.from, ladder.to])
+	var outward := ladder_outward(ladder)
+	if structure == null or absf(outward.y) < SIDE_FACING:
+		return ends
+	var way := 1 if outward.y > 0.0 else -1
+	for index in ends.size():
+		var shell := structure.half_breadth(ends[index].x, height, way)
+		if shell > 0.0:
+			ends[index].y = shell * way
+	return ends
+
+
+## The point of [param ladder] nearest [param point], x/z, where it hangs at
+## [param height] (ladder_at()): where a swimmer there takes hold of it.
+func ladder_hold(ladder: ShipLadder, point: Vector2, height: float) -> Vector2:
+	var hangs := ladder_at(ladder, height)
+	return Geometry2D.get_closest_point_to_segment(point, hangs[0], hangs[1])
+
+
+## Where a swimmer taking hold of [param ladder] at [param hold] (ladder_hold()) swims
+## for to climb it and stand at [param stand]: there — on the way it passes the hold —
+## unless that lies short of the hold, her deck flaring out over the ladder's foot;
+## then [param reach] past the hold, in toward her, at the stand's height.
+func ladder_aim(ladder: ShipLadder, hold: Vector2, stand: Vector3, reach: float) -> Vector3:
+	var inward := -ladder_outward(ladder)
+	var edge := Geometry2D.get_closest_point_to_segment(hold, ladder.from, ladder.to)
+	if (edge - hold).dot(inward) >= -reach:
+		return stand
+	var past := hold + inward * reach
+	return Vector3(past.x, stand.y, past.y)
 
 
 ## Every reason this layout cannot host [param seats] seats; empty when it can.

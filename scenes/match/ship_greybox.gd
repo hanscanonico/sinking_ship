@@ -415,32 +415,63 @@ func _railing(railing: ShipRailing, deck_height: float, railing_height: float) -
 	return rail
 
 
-## Two stiles and their rungs hanging just outboard of [param ladder]'s stretch of
-## [param platform]'s edge, from the deck down [param depth], hung from [param deck]
-## so they go with it when it collapses.
+## Two stiles and their rungs hanging just outboard of where [param ladder] hangs at
+## each height (ShipLayout.ladder_at) — down her side, on her shell — from its top
+## (ShipLayout.ladder_top) down [param depth] under [param platform]'s deck, hung from
+## [param deck] so they go with it when it collapses. A stile runs plumb where her side
+## does and bends where it does, RUNG_SPACING apart.
 func _ladder(ladder: ShipLadder, platform: ShipPlatform, depth: float, deck: Node3D) -> void:
-	var span := ladder.to - ladder.from
-	var outward := span.normalized().orthogonal()
-	if (platform.area.get_center() - ladder.from).dot(outward) > 0.0:
-		outward = -outward
-	var off := outward * LADDER_THICKNESS
-	var turn := Basis(Vector3.UP, -span.angle())
-	for end: Vector2 in [ladder.from + off, ladder.to + off]:
-		_box(
-			Vector3(LADDER_THICKNESS, depth, LADDER_THICKNESS),
-			Vector3(end.x, platform.height - depth * 0.5, end.y),
-			LADDER_COLOUR,
-			deck
-		)
-	var middle := (ladder.from + ladder.to) * 0.5 + off
-	for index in floori(depth / RUNG_SPACING):
+	var top := _layout.ladder_top(ladder)
+	var bottom := platform.height - depth
+	var heights := PackedFloat64Array()
+	var height := top
+	while height > bottom + RUNG_SPACING * 0.5:
+		heights.append(height)
+		height -= RUNG_SPACING
+	heights.append(bottom)
+	var off := _layout.ladder_outward(ladder) * LADDER_THICKNESS
+	var lines: Array[PackedVector2Array] = []
+	for at: float in heights:
+		var hangs := _layout.ladder_at(ladder, at)
+		lines.append(PackedVector2Array([hangs[0] + off, hangs[1] + off]))
+	for end in 2:
+		var upper := 0
+		for index in range(1, heights.size()):
+			var plumb := lines[index][end].is_equal_approx(lines[upper][end])
+			var next_plumb := (
+				index < heights.size() - 1
+				and lines[index + 1][end].is_equal_approx(lines[upper][end])
+			)
+			if not (plumb and next_plumb):
+				_stile(lines[upper][end], heights[upper], lines[index][end], heights[index], deck)
+				upper = index
+	for index in range(1, heights.size()):
+		var line := _layout.ladder_at(ladder, heights[index])
+		var span := line[1] - line[0]
+		var middle := (line[0] + line[1]) * 0.5 + off
 		var rung := _box(
 			Vector3(span.length(), LADDER_THICKNESS * 0.6, LADDER_THICKNESS * 0.6),
-			Vector3(middle.x, platform.height - RUNG_SPACING * (index + 1), middle.y),
+			Vector3(middle.x, heights[index], middle.y),
 			LADDER_COLOUR,
 			deck
 		)
-		rung.basis = turn
+		rung.basis = Basis(Vector3.UP, -span.angle())
+
+
+## A stile from [param from] (x/z) at [param from_height] down to [param to] at
+## [param to_height], hung from [param deck].
+func _stile(from: Vector2, from_height: float, to: Vector2, to_height: float, deck: Node3D) -> void:
+	var upper := Vector3(from.x, from_height, from.y)
+	var lower := Vector3(to.x, to_height, to.y)
+	var stile := _box(
+		Vector3(LADDER_THICKNESS, upper.distance_to(lower), LADDER_THICKNESS),
+		(upper + lower) * 0.5,
+		LADDER_COLOUR,
+		deck
+	)
+	var along := (upper - lower).normalized()
+	if not along.is_equal_approx(Vector3.UP):
+		stile.basis = Basis(Quaternion(Vector3.UP, along))
 
 
 ## A box over [param footprint] (x/z) from [param bottom] to [param top], cut short

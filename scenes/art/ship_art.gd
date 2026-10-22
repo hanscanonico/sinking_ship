@@ -6,7 +6,7 @@ extends Node3D
 ## dresses itself. A lofted hull (ShipHull); planked decks; walls white outside and
 ## painted inside under beamed ceilings, with wooden door frames; treads on every
 ## ramp; railings of stanchions and rails; a ladder down the hull side at every
-## boarding ladder; a buff funnel with a black top and smoke, a mast; a tarpaulined
+## boarding ladder (BoardingLadder); a buff funnel with a black top and smoke, a mast; a tarpaulined
 ## hatch where a thick box stands outdoors, a planked roof where a slab stands over a
 ## room; glass, furniture and lifeboats
 ## (ShipFittings); and each room's own lining, fittings — an engine where one stands
@@ -62,14 +62,6 @@ const RAIL_DEPTH := 0.06
 const MID_RAIL := 0.035
 const POST := 0.06
 const POST_SPACING := 1.5
-## A boarding ladder: its rungs' line stands LADDER_OUT outboard of its deck's edge,
-## clear of the hull side and the toe rail; the top rung is flush with the deck, the
-## rest RUNG_SPACING apart down to LADDER_BELOW under the waterline at rest.
-const LADDER_OUT := 0.12
-const LADDER_BELOW := 0.4
-const RUNG_SPACING := 0.3
-const RUNG := 0.04
-const STILE := 0.06
 ## A cylinder this wide or wider is a funnel, a thinner one a mast, on a ship whose
 ## structure does not say (is_funnel).
 const FUNNEL_FROM := 0.5
@@ -253,7 +245,7 @@ func build(
 		if not mesh.kept(minf(ladder.from.x, ladder.to.x), maxf(ladder.from.x, ladder.to.x)):
 			continue
 		var into: ShipMesh = pieces.get(_wrecks[ladder.platform], mesh)
-		_ladder(into, ladder, layout.platforms[ladder.platform], -layout.freeboard)
+		BoardingLadder.draw(into, layout, ladder)
 	var fittings := ShipFittings.new(_space, hull, body_radius, open_ports)
 	fittings.build(mesh, self, materials)
 	_broken_glass = BrokenGlass.new(layout, fittings.panes, self, materials)
@@ -717,25 +709,6 @@ func _overhang(index: int, point: Vector2) -> float:
 		if along_x == is_equal_approx(other.from.y, other.to.y) or not along_x:
 			return 0.0
 	return 1.0
-
-
-## A ladder hung outboard of [param ladder]'s stretch of [param platform]'s edge:
-## two steel stiles and teak rungs, from the deck to LADDER_BELOW under
-## [param waterline], the sea's height on a level, unsunk ship.
-func _ladder(mesh: ShipMesh, ladder: ShipLadder, platform: ShipPlatform, waterline: float) -> void:
-	var outward := (ladder.to - ladder.from).normalized().orthogonal()
-	if (platform.area.get_center() - ladder.from).dot(outward) > 0.0:
-		outward = -outward
-	var from := ladder.from + outward * LADDER_OUT
-	var to := ladder.to + outward * LADDER_OUT
-	var bottom := waterline - LADDER_BELOW
-	for end: Vector2 in [from, to]:
-		var stile := Rect2(end - Vector2.ONE * STILE * 0.5, Vector2.ONE * STILE)
-		mesh.box(stile, bottom, platform.height, ShipPaints.steel)
-	var rung := platform.height - RUNG * 0.5
-	while rung > bottom:
-		_bar(mesh, from, to, rung, Vector2(RUNG, RUNG), ShipPaints.teak)
-		rung -= RUNG_SPACING
 
 
 ## A bar from [param from] to [param to] (x/z) centred at [param height], of
