@@ -20,6 +20,8 @@ extends RefCounted
 ##   how fast it has seen the water under each come up (BotRefuge) — the present and
 ##   what it has seen, never her lean carried on — kept through a lurch, and else unless
 ##   another would stand refuge_keep_m higher; so it goes there while the way is dry.
+##   Its floor going under and every dry way only to rooms going under too, it wades
+##   out instead, heedless of the water, to the nearest floor out of reach (BotRefuge).
 ## - RIDE, a lurch telegraphed or under way: within ride_margin_m of the side it puts
 ##   down, away from it; else, once the deck swings, a brace where it stands while its
 ##   stamina lasts. Farther off, until the swing, it carries on with its target.
@@ -53,13 +55,12 @@ extends RefCounted
 ## charges nobody, and shoves nobody it would send at the water, an open drop or a
 ## railing within its spar margin; down to the last seats left, none (BotPacing). It
 ## presses only once its view shows its last press, so what it sees of itself is never
-## from before it. A bot that has stood still for two thinks while
-## walking, with nobody at hand moving to be holding it back, steps aside — or, on an
-## open deck making for a stair, goes round through the rooms beside it.
-## Its stream also rolls, mistake_rate times a second, a lapse: mistake_seconds walking
-## a heading of its choosing, neither bracing nor holding its shove for a line-up —
-## still off the water, and off open drops too (and out of a crate's path) unless it is
-## one of the share of its profile's lapses that are heedless.
+## from before it. A bot that has stood still for two thinks while walking, with nobody
+## at hand moving to be holding it back, steps aside — or, on an open deck making for a
+## stair, goes round through the rooms beside it. Its stream also rolls, mistake_rate
+## times a second, a lapse: mistake_seconds walking a heading of its choosing, neither
+## bracing nor holding its shove for a line-up — still off the water, and off open drops
+## too (and out of a crate's path) unless it is one of its profile's heedless lapses.
 
 enum Intent { SEEK_HIGH, LINE_UP, HUNT, GUARD, BRACE, RECOVER, RIDE, CLIMB_OUT, FLEE, SWIM_OUT }
 
@@ -102,6 +103,8 @@ var _legs: Array[WalkGraph.Portal] = []
 ## Whether it is climbing because its floor was about to flood: it climbs on until it
 ## stands in the zone it was making for.
 var _climbing := false
+## Whether its way to where it climbs is a wade (BotRefuge.wade_out), heedless of water.
+var _wading := false
 ## The refuge it chose at the last think, or WalkGraph.NONE, and what chooses it.
 var _refuge := WalkGraph.NONE
 var _refuges: BotRefuge
@@ -239,9 +242,11 @@ func decide(view: BotView, tick: int) -> InputFrame:
 		steer.heedless = _lapse_heedless
 	if _stuck >= 2 and steer.move != Vector2.ZERO:
 		steer.move = steer.move.rotated(PI * 0.5 if _stuck % 4 < 2 else -PI * 0.5)
-	# Out of a crate's way, then off the edges: edge-keeping has the last word.
+	# Out of a crate's way, then off the edges: edge-keeping has the last word — wading
+	# out, off the water only in a lapse.
 	if not steer.heedless:
 		_out_of_cargo(steer, seen, now_pos, pose)
+	_footing.heed_water = not _wading or _lapse > 0
 	_keep_off_edges(steer, me, mark, _edge_from, pose)
 	var buttons := steer.buttons
 	if _charge_held > 0:
@@ -277,6 +282,7 @@ func _stand_on(up: int, pose: ShipPose = null) -> void:
 	_goal = WalkGraph.NONE
 	_refuge = WalkGraph.NONE
 	_climbing = false
+	_wading = false
 
 
 ## Where the bot stands now, from where its view shows it: carried on by the velocity
@@ -383,11 +389,14 @@ func _think(view: BotView, me: Dictionary, now_pos: Vector3, pose: ShipPose) -> 
 	if under >= _profile.refuge_from:
 		_refuge = _refuges.choose(found, pose, seen["tick"], _refuge)
 		refuge = _refuge
-	target = _targeting.choose(seen, me, found, pose, highest, target, refuge, under)
-	var mark := view.entry(target)
 	var my_zone := _zone_of(me)
 	var feet := pose.above_water(my_pos)
 	var floor_height := _walk_graph.floor_height(my_zone, my_pos, pose)
+	# Its floor going under, and every dry way from it too: it wades out (BotRefuge).
+	var wade := _refuges.wade_out(my_zone, my_pos, my_surface, pose, refuge, _goal, _wading)
+	refuge = refuge if wade.is_empty() else wade.back().to_zone
+	target = _targeting.choose(seen, me, found, pose, highest, target, refuge, under)
+	var mark := view.entry(target)
 	# It climbs until it stands where it was making for — off its feet, it stands
 	# nowhere — or, the ship not yet foundering, on a floor a body's height out of the
 	# sea's reach.
@@ -451,7 +460,8 @@ func _think(view: BotView, me: Dictionary, now_pos: Vector3, pose: ShipPose) -> 
 			_goal = _zone_of(view.entry(target))
 	# The route it has, while its goal stands and every portal on it is open: two ways
 	# of near one length do not swap it from one to the other at every think.
-	var legs := _walk_graph.route_in(found, _goal)
+	_wading = not wade.is_empty() and _goal == refuge
+	var legs := wade if _wading else _walk_graph.route_in(found, _goal)
 	if _goal != kept_goal or legs.is_empty() or not _walk_graph.open(_legs, pose):
 		_legs = legs
 	if (
@@ -1003,7 +1013,7 @@ func _waypoint(
 		if my_zone == leg.to_zone:
 			_legs.pop_front()
 			continue
-		_legs = _walk_graph.route(my_pos, my_surface, _goal, pose)
+		_legs = _walk_graph.route(my_pos, my_surface, _goal, pose, _wading)
 		_replans += 1
 		break
 	if _legs.is_empty():

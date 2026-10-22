@@ -6,7 +6,8 @@ extends RefCounted
 ## path crosses a wall only through a doorway. A bot routes to a zone, then steers
 ## locally. What stands where, what a ramp joins and which points are wet it asks
 ## Surfaces; it never routes into a flooded zone or one giving way, nor through a
-## portal with an end under water — but for a swimmer's way ashore, which swims them.
+## portal with an end under water — but for a swimmer's way ashore, which swims them,
+## and the wade out of rooms whose every dry way leads to floors about to go under.
 
 const NONE := -1
 ## How far apart two platforms' edges may be and still meet: the data's rectangles
@@ -146,6 +147,7 @@ var _pose_known: ShipPose
 var _flooded := PackedByteArray()
 var _doomed := PackedByteArray()
 var _portal_wet := PackedByteArray()
+var _portal_shut := PackedByteArray()
 ## Per zone under that pose: how high it stands, and its floor's lowest corner; NAN
 ## until asked.
 var _heights := PackedFloat64Array()
@@ -196,6 +198,7 @@ func _init(layout: ShipLayout, surfaces: Surfaces, rules: BrawlRules) -> void:
 	_heights.resize(_zone_count)
 	_lowest.resize(_zone_count)
 	_portal_wet.resize(_portals.size())
+	_portal_shut.resize(_portals.size())
 	for portal: Portal in _portals:
 		_portal_to.append(portal.to_zone)
 		_portal_entry.append(portal.entry)
@@ -372,9 +375,34 @@ func _floor_lowest(zone: int, pose: ShipPose) -> float:
 ## The portals from a body on [param from_surface] at [param from_pos] to the zone
 ## [param goal], in order. Shortest by the distance walked; empty when already there,
 ## when either end is nowhere, or when every way ends in or crosses a flooded zone or
-## a portal with an end under water.
-func route(from_pos: Vector3, from_surface: int, goal: int, pose: ShipPose) -> Array[Portal]:
-	return route_in(search(from_pos, from_surface, pose), goal)
+## a portal with an end under water — unless it may [param wade] through those (search).
+func route(
+	from_pos: Vector3, from_surface: int, goal: int, pose: ShipPose, wade := false
+) -> Array[Portal]:
+	return route_in(search(from_pos, from_surface, pose, false, wade), goal)
+
+
+## The portals of the shortest wade from a body on [param from_surface] at
+## [param from_pos] — through portals with an end under water, never a flooded zone,
+## one giving way or a shut door — to the nearest zone not flooded whose floor's lowest
+## corner stands [param clear_by] out of its water: the way out of rooms whose every
+## dry way leads only to floors about to go under. Empty when it reaches none.
+func wade_out(
+	from_pos: Vector3, from_surface: int, pose: ShipPose, clear_by: float
+) -> Array[Portal]:
+	var found := search(from_pos, from_surface, pose, false, true)
+	var nearest := NONE
+	for zone in found.cost.size():
+		if (
+			found.cost[zone] == INF
+			or flooded(zone, pose)
+			or doomed(zone, pose)
+			or lowest_above_water(zone, pose) < clear_by
+		):
+			continue
+		if nearest == NONE or found.cost[zone] < found.cost[nearest]:
+			nearest = zone
+	return route_in(found, nearest)
 
 
 ## The portals to [param goal] in what [param found] found, in order: as route().
@@ -653,10 +681,13 @@ func _room_middle(room: int) -> Vector3:
 ## Dijkstra over the zones from where a body on [param from_surface] at
 ## [param from_pos] stands — a zone, or both ends of the ramp it is on — never entering
 ## a doomed zone, nor, unless it may [param swim], a flooded one or going through a
-## portal with an end under water; ties go to the lower zone number. Its costs are
-## metres walked, a crawl space's at crawl_speed (_pace). Empty when it stands on
-## nothing.
-func search(from_pos: Vector3, from_surface: int, pose: ShipPose, swim := false) -> Search:
+## portal with an end under water — nor, if it may [param wade], a flooded one or a
+## shut door, but through a portal with an end under water; ties go to the lower zone
+## number. Its costs are metres walked, a crawl space's at crawl_speed (_pace). Empty
+## when it stands on nothing.
+func search(
+	from_pos: Vector3, from_surface: int, pose: ShipPose, swim := false, wade := false
+) -> Search:
 	var found := Search.new()
 	var footing := _surfaces.footing(from_surface) if from_surface != Surfaces.NONE else NONE
 	if footing == Surfaces.NONE:
@@ -684,7 +715,7 @@ func search(from_pos: Vector3, from_surface: int, pose: ShipPose, swim := false)
 			var exit := _ramps[ramp].end_point(end)
 			if portal == NONE or doomed(zone, pose):
 				continue
-			if not swim and (flooded(zone, pose) or _surfaces.wet(exit, pose)):
+			if not swim and (flooded(zone, pose) or not wade and _surfaces.wet(exit, pose)):
 				continue
 			var reached := from_pos.distance_to(exit)
 			if reached < cost[zone]:
@@ -706,7 +737,9 @@ func search(from_pos: Vector3, from_surface: int, pose: ShipPose, swim := false)
 			var other := _portal_to[index]
 			if done[other] == 1 or doomed(other, pose):
 				continue
-			if not swim and (flooded(other, pose) or _wet(index, pose)):
+			if not swim and (flooded(other, pose) or _shut(index, pose)):
+				continue
+			if not swim and not wade and _wet(index, pose):
 				continue
 			var through := (
 				cost[zone]
@@ -731,20 +764,30 @@ func _closed(zone: int, pose: ShipPose) -> bool:
 
 
 ## Whether the portal at [param index] is closed: either end under water, or a
-## doorway a watertight door is shut across (Surfaces.blocked) — the routes a shut door
-## changes (§5b.2).
+## doorway a watertight door is shut across (_shut).
 func _wet(index: int, pose: ShipPose) -> bool:
 	_know(pose)
 	if _portal_wet[index] == 0:
 		var portal := _portals[index]
 		var wet := _surfaces.wet(portal.entry, pose) or _surfaces.wet(portal.exit, pose)
-		if not wet and portal.ramp == NONE:
+		_portal_wet[index] = 2 if wet or _shut(index, pose) else 1
+	return _portal_wet[index] == 2
+
+
+## Whether the portal at [param index] is a doorway a watertight door is shut across
+## (Surfaces.blocked) — the routes a shut door changes (§5b.2): not even waded through.
+func _shut(index: int, pose: ShipPose) -> bool:
+	_know(pose)
+	if _portal_shut[index] == 0:
+		var portal := _portals[index]
+		var shut := false
+		if portal.ramp == NONE:
 			var through := Vector3(portal.along.x, 0.0, portal.along.y) * _body_radius
-			wet = _surfaces.blocked(
+			shut = _surfaces.blocked(
 				portal.entry - through, portal.exit + through, _step * 2.0, _step
 			)
-		_portal_wet[index] = 2 if wet else 1
-	return _portal_wet[index] == 2
+		_portal_shut[index] = 2 if shut else 1
+	return _portal_shut[index] == 2
 
 
 ## Forgets what an earlier pose said, when [param pose] is another.
@@ -755,6 +798,7 @@ func _know(pose: ShipPose) -> void:
 	_flooded.fill(0)
 	_doomed.fill(0)
 	_portal_wet.fill(0)
+	_portal_shut.fill(0)
 	_heights.fill(NAN)
 	_lowest.fill(NAN)
 	_flooded_share = NAN
