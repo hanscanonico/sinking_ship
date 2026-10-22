@@ -17,9 +17,11 @@ extends SceneTree
 ## as it quits, so a person's saved name is never touched.
 
 const GAME := "res://scenes/game/game.tscn"
-## How long any one step may take, in seconds; a match is about two and a half minutes.
+## How long any one step may take, in seconds, and the match: hands pressing at random
+## may stay dry until she is gone, some eight minutes on the paced clock, where bots
+## alone are out in about three.
 const STEP_SECONDS := 60.0
-const MATCH_SECONDS := 300.0
+const MATCH_SECONDS := 720.0
 ## What the hands may hold, and how often they change their minds, in seconds.
 const HANDS: Array[StringName] = [
 	&"move_up", &"move_left", &"move_right", &"look_left", &"look_right", &"shove", &"jump"

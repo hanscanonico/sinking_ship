@@ -25,8 +25,9 @@ require_godot online-e2e
 
 PORT=47931
 SEED=1701
-# The longest any one engine may run: a match is about two and a half minutes.
-DEADLINE=480
+# The longest any one engine may run: the room, then a match of up to MATCH_SECONDS
+# (tools/online_e2e.gd) and the way back.
+DEADLINE=900
 
 for arg in "$@"; do
 	case "$arg" in
