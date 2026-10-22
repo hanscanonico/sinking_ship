@@ -93,13 +93,15 @@ PHYS ?=
 JUMP ?=
 CAPTURE ?= $(CURDIR)/captures/match_$(SEED)_$(AT)$(if $(PHYS),phys$(subst :,-,$(PHYS)))$(if $(EYE),_eye$(EYE))$(if $(CUT),_cut$(CUT))$(if $(CELLS),_cells)$(if $(SCREEN),_$(SCREEN)).png
 match-args = $(if $(SEED),--seed=$(SEED)) $(if $(SEATS),--seats=$(SEATS)) $(if $(SHIP),--ship=$(SHIP)) \
-	$(if $(SCENARIO),--scenario=$(SCENARIO)) $(if $(HIT),--hit=$(HIT)) $(if $(FAST),--fast) \
+	$(if $(SCENARIO),--scenario=$(SCENARIO)) $(if $(HIT),--hit=$(HIT)) $(if $(FAST),--fast=$(FAST)) \
 	$(if $(GOAL),--goal=$(GOAL))
 
-# FAST=1 plays her sinking on the match data's fast_clock (the menu's Fast sinking).
+# The game plays her sinking on the match data's fast_clock (the menu's Fast sinking,
+# ticked for a player); FAST=0 plays it on her paced clock, unticked. A tool — match,
+# bake, a bot's ARGS=--autoplay — plays the paced clock unless FAST=1.
 # GOAL=survival plays survival (the menu's Survival): everyone stays in as long as she
 # lasts. Without GOAL=, the match data's goal (the battle royale's in default.tres). It
-# works for match too, and with FAST=1. FAST=1 works for bake too. A SEED= that is not a
+# works for match too, and with FAST=1. A SEED= that is not a
 # whole number of 0 or more is refused, as the menu refuses it.
 run:
 	$(call require-godot)

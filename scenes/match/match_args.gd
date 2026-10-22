@@ -1,7 +1,7 @@
 class_name MatchArgs
 extends RefCounted
 ## The user arguments a match host takes after `--`:
-##   --seed=N  --seats=N  --ship=NAME  --scenario=NAME  --stop=MM:SS  --hit=PATH|NAME  --fast
+##   --seed=N  --seats=N  --ship=NAME  --scenario=NAME  --stop=MM:SS  --hit=PATH|NAME  --fast[=0]
 ##   --goal=last_standing|survival
 ##   --autoplay
 ##   --capture=PATH
@@ -26,9 +26,11 @@ extends RefCounted
 ## (--ship=titanic --hit=night is titanic_night) before any ship's (fast) —, past the
 ## must-sink rule (§5b.1), so a tool can play a chosen sinking; --fast plays her sinking
 ## on the match data's fast_clock — the menu's Fast sinking, ticked —, with --scenario
-## and --hit as with neither; --goal=survival plays survival (MatchRules.Goal) — the
-## menu's Survival, ticked —, and without it the data's goal; --autoplay presses its
-## Play, and without it --capture saves the menu. A capture is taken from the
+## and --hit as with neither, and --fast=0 on her paced clock — it unticked: a player's
+## match starts fast unless one of them is given (player_choices); --goal=survival
+## plays survival (MatchRules.Goal) — the menu's Survival, ticked —, and without it the
+## data's goal; --autoplay presses its Play, and without it --capture saves the menu. A
+## capture is taken from the
 ## observer camera unless --capture-eye names the seat whose eyes it looks through;
 ## --observer opens the observer camera for QA, --observer-cut cuts its view of
 ## the ship away to show the inside, and --observer-cells draws the ship's cells over
@@ -71,6 +73,8 @@ extends RefCounted
 ## The match choices --ship, --seats, --seed, --fast, --goal, --scenario and --hit
 ## make; every one not given is the match data's, and the seed is blank (MatchChoices).
 var choices := MatchChoices.new()
+## Whether --fast or --fast=0 chose the pace, rather than leaving it to who plays.
+var pace_given: bool = false
 ## How much match time a headless run may take before it stops, unfinished (STOP=,
 ## est. 15:00).
 var seconds: float = 900.0
@@ -169,7 +173,8 @@ static func parse(args: PackedStringArray) -> MatchArgs:
 			"--hit":
 				parsed.choices.hit = value
 			"--fast":
-				parsed.choices.fast = true
+				parsed.choices.fast = value != "0"
+				parsed.pace_given = true
 			"--goal":
 				parsed.choices.goal = StringName(value)
 			"--autoplay":
@@ -250,6 +255,18 @@ static func parse(args: PackedStringArray) -> MatchArgs:
 	if parsed.capture_look.size() == 3 and parsed.capture_from.size() >= 3:
 		parsed.capture_from = vantage(parsed.capture_from, parsed.capture_look)
 	return parsed
+
+
+## The choices a player's match starts from — the menu's, and so `make run`'s, its
+## rematches' and the next match's: [member choices], their pace fast
+## (MatchChoices.PLAYERS_FAST) unless --fast or --fast=0 chose one. A bot's autoplay
+## keeps the paced clock, as every tool does: captures and make fps are timed on the
+## transcripts make match prints.
+func player_choices() -> MatchChoices:
+	var full := choices.with_seed(choices.seed_text)
+	if not pace_given and not autoplay:
+		full.fast = MatchChoices.PLAYERS_FAST
+	return full
 
 
 ## Eyes standing on [param feet] looking at [param look], both ship space: the feet,

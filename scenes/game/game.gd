@@ -172,7 +172,7 @@ func _ready() -> void:
 	_online_menu.back_requested.connect(_leave_online)
 	var link := OnlineLink.for_launch(_args)
 	_online_menu.page_server = link.server_url
-	_menu.setup(_match_rules, _args.choices)
+	_menu.setup(_match_rules, _args.player_choices())
 	_upcoming.aim(_menu.choices())
 	if not is_nan(_args.capture_sway):
 		_menu.hold_drift(_args.capture_sway)

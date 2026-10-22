@@ -43,6 +43,31 @@ func test_unmade_choices_are_left_to_the_data() -> void:
 	assert_eq(choices.hit, "")
 
 
+func test_fast_takes_a_zero_for_the_paced_clock() -> void:
+	var slow := MatchArgs.parse(PackedStringArray(["--fast=0"]))
+	assert_false(slow.choices.fast, "--fast=0 is her paced clock")
+	assert_true(slow.pace_given)
+	var fast := MatchArgs.parse(PackedStringArray(["--fast=1"]))
+	assert_true(fast.choices.fast, "--fast=1 as --fast, what make's FAST=1 passes")
+	assert_true(fast.pace_given)
+	assert_false(MatchArgs.parse(PackedStringArray()).pace_given)
+
+
+## A player's match sinks fast unless the command line asks for the paced clock; a
+## bot's autoplay, like every tool, keeps the paced clock its transcript is timed on.
+func test_a_players_choices_sink_fast_unless_asked_otherwise() -> void:
+	var given := MatchArgs.parse(PackedStringArray(["--seed=7"]))
+	assert_true(given.player_choices().fast, "a player's default pace is fast")
+	assert_eq(given.player_choices().seed_text, "7", "the other choices as given")
+	assert_false(given.choices.fast, "the args' own choices stay paced")
+	var slow := MatchArgs.parse(PackedStringArray(["--fast=0"]))
+	assert_false(slow.player_choices().fast, "the slow pace asked for")
+	var bot := MatchArgs.parse(PackedStringArray(["--autoplay"]))
+	assert_false(bot.player_choices().fast, "a bot's autoplay is a tool's: paced")
+	var fast_bot := MatchArgs.parse(PackedStringArray(["--autoplay", "--fast"]))
+	assert_true(fast_bot.player_choices().fast)
+
+
 ## Every command-line path — make match, the server, the benches — takes its seed as the
 ## choices read it: a whole number of 0 or more, or refused with a reason, never seed 0.
 func test_a_seed_is_read_by_the_choices_or_refused() -> void:
