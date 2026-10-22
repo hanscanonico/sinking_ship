@@ -544,6 +544,8 @@ func test_the_seat_stands_still_under_the_online_pause() -> void:
 	fixture.beat(2)
 	host.start_match()
 	fixture.beat()
+	# The real scene shows once its ship is dressed, on a thread.
+	await wait_until(func() -> bool: return online._match != null, 60.0)
 	var scene := online._match as MatchScene
 	assert_not_null(scene, "a match scene is up")
 	var local: LocalInputSource = scene._local

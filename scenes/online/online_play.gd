@@ -16,6 +16,9 @@ extends Node
 ## A player at the results is still in the room, so the host's next start pulls them
 ## into its match: a BEGIN always lets the match scene that is up go before it builds
 ## the next, and neither a refusal nor the room is ever shown over a match being played.
+## Its scene is made as the match begins and shown once her ship is dressed on a thread
+## (ShipDressing), the room showing and the socket polled meanwhile: dressed in a frame,
+## she would stall it for seconds, and a frame that long answers none of the server's pings.
 ## A BEGIN outside a room is not one an honest server sends, and builds nothing.
 ## A BEGIN sooner than MIN_BUILD_GAP_MSEC after the last scene was built is not one an
 ## honest server sends — its matches come a whole match apart — and is left unbuilt, so
@@ -87,6 +90,18 @@ var _match: Node
 ## test's that draws nothing. The scene has MatchScene's rematch_requested,
 ## menu_requested and pointer_lost signals, its free_mouse(), is_over() and apply_view().
 var _build: Callable
+## Whether a match begun waits for its ship to be dressed on a thread before its scene is
+## built — _build_match's, which draws her — so no frame stalls for seconds, the room
+## showing and the socket polled meanwhile; a test's stand-ins are built at once.
+var _dresses: bool
+## The match begun whose ship is being dressed, and what its scene is to be built of —
+## its PlayedMatch, LocalInputSource and seat names; null and empty while none waits.
+var _dressing: ShipDressing
+var _begun: Array = []
+## The frame the match began waiting on its dressing in, and its scene, made then and
+## standing aside till its ship is dressed; null while none waits.
+var _begun_frame := 0
+var _made: MatchScene
 ## Milliseconds, as Time.get_ticks_msec counts them, and when the last match scene was
 ## built and the last frame ran by them; -1 before the first.
 var _clock: Callable
@@ -110,6 +125,7 @@ func _init(
 	_link = link
 	_room = room
 	_build = build if build.is_valid() else _build_match
+	_dresses = not build.is_valid()
 	_clock = clock if clock.is_valid() else Callable(Time, &"get_ticks_msec")
 	_silence_msec = roundi(ServerRules.load_default().silence_timeout * 1000.0)
 	process_priority = PROCESS_PRIORITY
@@ -157,6 +173,10 @@ func _process(_delta: float) -> void:
 	if _socket != null:
 		_socket.poll()
 	_room.poll()
+	# A frame on from the BEGIN at the soonest, which made the scene: the two never share
+	# a frame.
+	if _dressing != null and Engine.get_process_frames() > _begun_frame and _dressing.done():
+		_show_match()
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -236,7 +256,22 @@ func _on_began(config: MatchConfig, seat: int) -> void:
 	_built_msec = now
 	_leave_match()
 	var local := LocalInputSource.new(seat, 0.0, ViewSettings.local())
-	_match = _build.call(_room.play(local), local, _seat_names(config.seats, seat))
+	_begun = [_room.play(local), local, _seat_names(config.seats, seat)]
+	if not _dresses:
+		_show_match()
+		return
+	# Her ship is dressed on a thread, and the scene made now, standing aside till then.
+	_dressing = ShipDressing.new(config).start()
+	_begun_frame = Engine.get_process_frames()
+	_made = MATCH_SCENE.instantiate()
+	add_child(_made)
+	_made.stand_aside()
+
+
+## The match begun is shown: its scene built and started (_build), over the room.
+func _show_match() -> void:
+	_match = _build.callv(_begun)
+	_begun = []
 	_match.connect(&"rematch_requested", _back_to_room)
 	_match.connect(&"menu_requested", _leave_room)
 	_match.connect(&"pointer_lost", _open_pause)
@@ -308,8 +343,15 @@ func _end(to_menu: bool, note: String, rejoin: String) -> void:
 
 ## Lets the match scene go, freed at the frame's end: unhooked and stopped first, so
 ## nothing of it — its results' keys, its hold on the mouse — reaches the room or the
-## next match meanwhile.
+## next match meanwhile. A match still waiting on its ship's dressing is let go too.
 func _leave_match() -> void:
+	if _dressing != null:
+		_dressing.drop()
+		_dressing = null
+	if _made != null:
+		_made.queue_free()
+		_made = null
+	_begun = []
 	if _match == null:
 		return
 	_match.disconnect(&"rematch_requested", _back_to_room)
@@ -320,9 +362,16 @@ func _leave_match() -> void:
 	_match = null
 
 
+## The scene made as the match began (_on_began), its ship dressed, started — or a new
+## one, when none was made.
 func _build_match(played: PlayedMatch, local: LocalInputSource, names: PackedStringArray) -> Node:
-	var scene: MatchScene = MATCH_SCENE.instantiate()
-	add_child(scene)
+	var scene := _made
+	_made = null
+	if scene == null:
+		scene = MATCH_SCENE.instantiate()
+		add_child(scene)
+	scene.dressing = _dressing
+	_dressing = null
 	scene.start_online(played, local, names)
 	return scene
 
