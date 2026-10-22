@@ -16,7 +16,7 @@ const MARGINS: Array[float] = [0.9, 1.0, 1.1]
 ## knockdown: open, she is laid past her beam ends within this many seconds of the hit,
 ## and at least SOONER_BY sooner than with them shut.
 const CAPSIZES_WITHIN := 600.0
-const SOONER_BY := 900.0
+const SOONER_BY := 3600.0
 ## knockdown shut: heeled by her flooded tank, she lies over between these lists, in
 ## degrees, from HANGS_FROM to HANGS_UNTIL seconds after the hit, neither righted nor over.
 const HANGS_LIST := Vector2(20.0, 60.0)
@@ -93,7 +93,7 @@ func test_her_companionways_left_open_lay_her_over() -> void:
 			OutcomeClassifier.labels(opened), OutcomeClassifier.Outcome.CAPSIZED, what + ": over"
 		)
 		assert_lt(over, CAPSIZES_WITHIN, what + ": over within 10 min")
-		assert_lt(over + SOONER_BY, _capsized_at(shut), what + ": open, over 15 min sooner")
+		assert_lt(over + SOONER_BY, _capsized_at(shut), what + ": open, over an hour sooner")
 
 
 func test_her_companionways_shut_she_lies_over_and_holds() -> void:

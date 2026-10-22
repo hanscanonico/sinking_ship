@@ -13,7 +13,7 @@ under it her hold, a small auxiliary engine room aft and her sail locker forward
 by bulkheads that stand only as high as the 'tween deck — few and low, as an old ship's
 are. Four companionways and her main hatch open onto the 'tween deck from her main deck.
 Her three masts carry her weight high, so her GM is small. Her signature is the
-knockdown: heeled by water in her hold, the sea reaching her main deck pours in at her
+knockdown: heeled by water in a side tank, the sea reaching her main deck pours in at her
 companionways and her main hatch when they were left open, onto a deck no wall divides,
 and lays her on her side (the Marques, 1984; the Albatross, 1961). Her sections are
 lofted here from a few numbers, as the trawler's (tools/gen_trawler.py) and the ferry's
@@ -616,8 +616,8 @@ for a, b in zip(SECTION_BREAKS, SECTION_BREAKS[1:]):
         x = round(a + length * (k + 0.5), 4)
         sections.append((x, round(length, 4), section_outline(x)))
 
-# Every deck in her hull stands inside it, at its corners: one under her car deck clear
-# of her shell, the walls along its edges with it; one on her car deck or her shell's
+# Every deck in her hull stands inside it, at its corners: one under her main deck clear
+# of her shell, the walls along its edges with it; one on her main deck or her shell's
 # top no wider than her.
 CLEARANCE = 0.05
 for x0, x1, z0, z1, h in plat_geo:
@@ -817,8 +817,8 @@ def hatch(name, under, over, hole, deck, **fields):
 # Her companionways and her main hatch, the 'tween deck's ways to the sky — her signature.
 # Each companionway is a hood over its stair, its slide and doors shut, left open one time
 # in four (est.: a training ship under sail keeps hers open for the watch below, as the
-# Marques did); shut, its slide weeps 0.02 m² under half a metre of water and gives way
-# under 2 m. Her main hatch is battened under its tarpaulins, left open one time in ten
+# Marques did); shut, its slide weeps 0.005 m² under 1.5 m of water and gives way under
+# 4 m. Her main hatch is battened under its tarpaulins, left open one time in ten
 # (est.: working cargo or stores), weeping 0.01 m² under a metre of water and giving way
 # under 3 m, as the trawler's fish hatch.
 for tag, hole in zip(COMPANIONWAY_TAGS, COMPANIONWAYS):
