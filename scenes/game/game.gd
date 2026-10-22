@@ -65,8 +65,8 @@ var _playing: MatchChoices
 ## where leaving it goes back to.
 var _replays: ReplaysMenu
 var _replay_from := ReplayFrom.MENU
-## The replay held for its match's sinking to bake (_holding is its config); null
-## while none is.
+## The replay held for its match's sinking to bake or its ship to be dressed (_holding is
+## its config); null while none is.
 var _holding_replay: ReplayFile
 var _capturing := false
 ## Watches a capture's window for frames drawn, so one the system stops drawing fails
@@ -80,10 +80,23 @@ var _view: ViewSettings
 ## The tick a capture is due at, past a --phys moment; -1 for --capture-at's.
 var _capture_tick := -1
 ## The next blank-seed match, its seed drawn ahead so its sinking can be made
-## on the menu; the match held for its sinking, and how it will start.
+## on the menu; the match held for its sinking or its ship, and how it will start.
 var _upcoming: NextMatch
 var _holding: MatchConfig
 var _baker := SinkingBaker.new()
+## The ship dressed, or being dressed, for the match held or the next one (ShipDressing),
+## until a match takes it; and whether the held match waits on its dressing — that one,
+## null for the greybox, which none draws — rather than on its sinking's bake.
+var _dressing: ShipDressing
+var _dressed_hold := false
+var _held_dressing: ShipDressing
+## The frame the held match began waiting on its dressing: it starts a frame on at the
+## soonest.
+var _held_since := 0
+## The held match served on a thread once its ship is dressed (MatchScene.serve) — its
+## task, -1 when none runs — and what it served, until the match takes it.
+var _serving_task := -1
+var _served: MatchScene.Served
 ## Where each frame's time goes, when --frame-split asks (make fps SPLIT=1); null else.
 var _probe: FrameProbe
 var _hold := BakeHold.new()
@@ -173,6 +186,10 @@ func _process(delta: float) -> void:
 		return
 	if _holding != null:
 		_hold.advance(delta, _baker.progress())
+		var dressed := _held_dressing == null or _held_dressing.done()
+		if _dressed_hold and Engine.get_process_frames() > _held_since and dressed:
+			if _served_held():
+				_release_held()
 	elif _online == null and (_match == null or _match.is_over()):
 		_bake_upcoming()
 	if (
@@ -185,13 +202,14 @@ func _process(delta: float) -> void:
 		return
 	if _args.capture_path.is_empty() or _capturing:
 		return
+	# The backdrop shows its ship once she is dressed, on a thread (MenuBackdrop).
 	if _holding != null:
-		if _args.capture_screen == "hold" and _hold.visible:
+		if _args.capture_screen == "hold" and _hold.visible and _menu.dressed():
 			if _baker.progress() >= HOLD_CAPTURED_AT:
 				_capture("the held countdown")
 		return
 	if _match == null:
-		if not _args.autoplay:
+		if not _args.autoplay and _menu.dressed():
 			match _args.capture_screen:
 				"settings":
 					_settings.open()
@@ -254,19 +272,26 @@ func _play(choices: MatchChoices) -> void:
 	_playing = choices.with_seed(str(config.match_seed))
 	_upcoming.take(config)
 	_menu.hide()
-	if config.bake_some(0):
-		_start(config)
-		return
 	_holding = config
 	_hold.begin(Ticks.to_seconds(config.countdown_ticks))
-	# A rematch's: the results it was pressed on stand aside, or they draw over the hold.
+	if config.bake_some(0):
+		_dress_held()
+		return
+	_hold_over_backdrop()
+	_baker.bake(config, _args.bake_budget_ms if _args.bake_budget_ms > 0.0 else HOLD_BAKE_MS)
+
+
+## The countdown held over the menu's backdrop, the ship at rest, while the held match's
+## sinking bakes or its ship is dressed.
+func _hold_over_backdrop() -> void:
+	# A rematch's, or a replay's from them: the results stand aside, or they draw over
+	# the hold — kept for the way back (_close_replay).
 	if _match != null:
 		_match.stand_aside()
-	# Over the menu's backdrop, the ship at rest; an autoplay never dressed it, and
-	# dressing it now would stall the very frames the hold keeps moving.
+	# An autoplay never built the backdrop, and has nobody to show it to: building it now
+	# would only take from the frames the hold keeps moving.
 	if not _args.autoplay:
 		_menu.show_behind(_hold.beside())
-	_baker.bake(config, _args.bake_budget_ms if _args.bake_budget_ms > 0.0 else HOLD_BAKE_MS)
 
 
 ## The next blank-seed match goes on the menu's pick of ship.
@@ -283,27 +308,114 @@ func _aim(choices: MatchChoices) -> void:
 		_baker.stop()
 
 
-## Bakes the next blank-seed match's sinking on, gently, while nothing plays.
+## Bakes the next blank-seed match's sinking on, gently, while nothing plays, and dresses
+## her ship once it is baked, on a thread: so Play starts at once.
 func _bake_upcoming() -> void:
 	var next := _upcoming.config()
-	if _baker.baking() == null and next != null and not next.bake_some(0):
-		_baker.bake(next, MENU_BAKE_MS)
+	if next == null:
+		return
+	if not next.bake_some(0):
+		if _baker.baking() == null:
+			_baker.bake(next, MENU_BAKE_MS)
+	# A frame split times the match's sinking as it is first built: dressing her builds it.
+	elif _probe == null:
+		_dressing_of(next)
 
 
 func _on_baked(config: MatchConfig) -> void:
-	if config != _holding:
-		return
+	if config == _holding:
+		_dress_held()
+
+
+## Starts the held match or replay once its ship is dressed — a frame on at the soonest,
+## the countdown held over the backdrop meanwhile (_process) — its scene made now, standing
+## aside: making it and starting it would each fill most of a frame.
+func _dress_held() -> void:
+	_held_dressing = _dressing_of(_holding, _holding_replay != null)
+	_dressed_hold = true
+	_held_since = Engine.get_process_frames()
+	if _match == null:
+		_ensure_match()
+		_match.stand_aside()
+	_hold_over_backdrop()
+
+
+## Whether the held match is served (MatchScene.serve): a match served on a thread, which
+## starts once that is done — but a replay, which no loopback serves, and a tool's jump or
+## frame split, which start() serves itself.
+func _served_held() -> bool:
+	if _serving_task >= 0:
+		if not WorkerThreadPool.is_task_completed(_serving_task):
+			return false
+		WorkerThreadPool.wait_for_task_completion(_serving_task)
+		_serving_task = -1
+		return true
+	var jumps := _args.phys_seconds >= 0.0 and _args.jump
+	if _served != null or _holding_replay != null or jumps or _probe != null:
+		return true
+	# Her ship dressed, her sinking is built: nothing else builds it meanwhile.
+	var config := _holding
+	var local := MatchScene.local_for(config, _args.autoplay)
+	var net_sim := _args.net_sim
+	_serving_task = WorkerThreadPool.add_task(
+		func() -> void: _served = MatchScene.serve(config, local, net_sim), false, "Serving a match"
+	)
+	return false
+
+
+## The held match, or its replay, starts: its sinking is made and its ship dressed.
+func _release_held() -> void:
+	var config := _holding
+	var file := _holding_replay
 	_holding = null
+	_holding_replay = null
+	_dressed_hold = false
+	_held_dressing = null
 	_hold.hide()
-	if _holding_replay != null:
-		var file := _holding_replay
-		_holding_replay = null
+	if file != null:
 		_begin_replay(file, config)
 	else:
 		_start(config)
 
 
-## Starts [param config]'s match, its sinking made.
+## The ship of [param config]'s match — or of its replay, when [param watched] — dressed,
+## or being dressed on a thread, as it will be drawn: the one dressed or under way when it
+## fits, a new one otherwise, which drops any other; null for a match drawn as the
+## greybox, which no dressing draws.
+func _dressing_of(config: MatchConfig, watched: bool = false) -> ShipDressing:
+	if _args.greybox and not watched:
+		return null
+	# A replay is seen through eyes (MatchScene.start_replay).
+	var cut := INF if watched else MatchScene.cut_of(_observer(), _args.observer_cut)
+	if _dressing != null and _dressing.fits(config, cut):
+		return _dressing
+	if _dressing != null:
+		_dressing.drop()
+	# A frame split times the poses of her sinking as it is first built: dressing her does.
+	if _probe != null and not FrameMeter.time_schedule(config, _probe.split):
+		push_warning("frame split: the match's sinking was built already; its poses untimed")
+	_dressing = ShipDressing.new(config, cut).start()
+	return _dressing
+
+
+## [param config]'s ship dressed (_dressing_of), handed over to its match or its replay,
+## when [param watched], to take; no longer this one's.
+func _take_dressing(config: MatchConfig, watched: bool = false) -> ShipDressing:
+	var dressing := _dressing_of(config, watched)
+	_dressing = null
+	return dressing
+
+
+## Whether the match is seen through the observer camera rather than a seat's eyes: as
+## --observer asks, and for a capture taken neither through a seat's eyes nor from eyes
+## stood in ship space (--capture-from), which look through a seat's.
+func _observer() -> bool:
+	var capturing := not _args.capture_path.is_empty()
+	var staged := capturing and not _args.capture_from.is_empty()
+	return _args.observer or (capturing and _args.capture_eye < 0 and not staged)
+
+
+## Starts [param config]'s match, its sinking made and its ship dressed.
 func _start(config: MatchConfig) -> void:
 	_baker.stop()
 	_ensure_match()
@@ -311,15 +423,14 @@ func _start(config: MatchConfig) -> void:
 	_music.play_match()
 	_set_paused(false)
 	var capturing := not _args.capture_path.is_empty()
-	# Eyes stood in ship space (--capture-from) look through a seat's, never the observer's.
-	var staged := capturing and not _args.capture_from.is_empty()
-	var observer := _args.observer or (capturing and _args.capture_eye < 0 and not staged)
+	var observer := _observer()
 	var eye := _args.capture_eye if capturing and _args.capture_eye >= 0 else MatchScene.LOCAL_SEAT
 	var split: FrameSplit = null
 	if _probe != null:
 		split = _probe.split
 		_probe.playing = true
-		if not FrameMeter.time_schedule(config, split):
+		# A dressed ship's dressing timed her sinking (_dressing_of); the greybox has none.
+		if _args.greybox and not FrameMeter.time_schedule(config, split):
 			push_warning("frame split: the match's sinking was built already; its poses untimed")
 	var jump_to := -1
 	if _args.phys_seconds >= 0.0:
@@ -327,6 +438,9 @@ func _start(config: MatchConfig) -> void:
 		if _args.jump:
 			jump_to = maxi(_capture_tick - Ticks.from_seconds(JUMP_LEAD), 0)
 	_match.choices = _playing
+	_match.dressing = _take_dressing(config)
+	_match.served = _served
+	_served = null
 	_match.start(
 		config,
 		_args.autoplay,
@@ -416,16 +530,13 @@ func _start_replay(file: ReplayFile) -> void:
 	_baker.stop()
 	_menu.hide()
 	_pause.hide()
-	if config.bake_some(0):
-		_begin_replay(file, config)
-		return
 	_holding = config
 	_holding_replay = file
 	_hold.begin(Ticks.to_seconds(config.countdown_ticks))
-	# Watched from the results: they stand aside, kept for the way back (_close_replay).
-	if _match != null:
-		_match.stand_aside()
-	_menu.show_behind(_hold.beside())
+	if config.bake_some(0):
+		_dress_held()
+		return
+	_hold_over_backdrop()
 	_baker.bake(config, _args.bake_budget_ms if _args.bake_budget_ms > 0.0 else HOLD_BAKE_MS)
 
 
@@ -449,6 +560,7 @@ func _begin_replay(file: ReplayFile, config: MatchConfig) -> void:
 	_pause.hide()
 	_music.play_match()
 	_match.set_paused(false)
+	_match.dressing = _take_dressing(config, true)
 	_match.start_replay(file, config)
 
 
@@ -492,6 +604,20 @@ func _quit() -> void:
 	for _frame in QUIT_SETTLE_FRAMES:
 		await get_tree().process_frame
 	get_tree().quit()
+
+
+# However the game quits — its Quit, a capture taken, the window closed — every ship being
+# dressed on a thread is finished first: left, its thread would wait on frames that never
+# come, and the game would never end (ShipDressing). A match being served is waited for
+# after them, never before: its task may wait on the pool's threads they hold.
+func _exit_tree() -> void:
+	if _dressing != null:
+		_dressing.drop()
+		_dressing = null
+	ShipDressing.finish_all()
+	if _serving_task >= 0:
+		WorkerThreadPool.wait_for_task_completion(_serving_task)
+		_serving_task = -1
 
 
 func _on_view_changed(settings: ViewSettings) -> void:

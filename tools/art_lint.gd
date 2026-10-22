@@ -10,8 +10,8 @@ extends SceneTree
 ##   within BLOCKER_TOLERANCE of every blocker's sides, its top, and a lintel's
 ##   underside; and over every ramp a stair whose top stands within half a riser
 ##   (ShipArt.STEP_RISE) and PLATFORM_TOLERANCE of the ramp's height; and down
-##   every boarding ladder's rung line, a top within LADDER_TOLERANCE of its
-##   platform's height and a bottom at or under the waterline at rest. And past
+##   every boarding ladder's rung line, down her side, a top within LADDER_TOLERANCE
+##   of its deck and a bottom at or under the waterline at rest. And past
 ##   every platform's edge, wherever the rules have no floor near its height, no
 ##   drawn face looks like one: straight down through the heights a body could step
 ##   down to or jump up onto from that deck, the first face met never faces up — the
@@ -720,10 +720,12 @@ func _check_crate_light(file: String, layout: ShipLayout, art: ShipArt) -> void:
 				)
 
 
-## Straight down the middle of [param ladder]'s rung line, ShipArt.LADDER_OUT
-## outboard of its platform's edge: the highest face drawn there within
-## LADDER_TOLERANCE of the deck, and the lowest at or under the waterline at rest —
-## a swimmer finds it from the sea, and it leads all the way up.
+## Down the middle of [param ladder]'s rung line, BoardingLadder.OUT outboard of where
+## it hangs (ShipLayout.ladder_at): straight down onto its top, the highest face drawn
+## there within LADDER_TOLERANCE of its deck; and straight up under
+## its lowest rung, where her side slopes it there (BoardingLadder.lowest_rung), the
+## lowest at or under the waterline at rest — a swimmer finds it from the sea, and it
+## leads all the way up.
 func _check_ladder(
 	faces: PackedVector3Array,
 	cells: Dictionary,
@@ -732,16 +734,17 @@ func _check_ladder(
 	layout: ShipLayout
 ) -> void:
 	_checks += 1
-	var platform := layout.platforms[ladder.platform]
-	var outward := (ladder.to - ladder.from).normalized().orthogonal()
-	if (platform.area.get_center() - ladder.from).dot(outward) > 0.0:
-		outward = -outward
-	var middle := (ladder.from + ladder.to) * 0.5 + outward * ShipArt.LADDER_OUT
-	var top := _first_face(faces, cells, Vector3(middle.x, platform.height + 1.0, middle.y), -1.0)
-	var bottom := _first_face(faces, cells, Vector3(middle.x, -100.0, middle.y), 1.0)
-	if absf(top - platform.height) > LADDER_TOLERANCE:
+	var outward := layout.ladder_outward(ladder) * BoardingLadder.OUT
+	var height := layout.platforms[ladder.platform].height
+	var up := layout.ladder_at(ladder, height)
+	var high := (up[0] + up[1]) * 0.5 + outward
+	var low_at := BoardingLadder.line(layout, ladder, BoardingLadder.lowest_rung(layout, ladder))
+	var low := (low_at[0] + low_at[1]) * 0.5
+	var top := _first_face(faces, cells, Vector3(high.x, height + 1.0, high.y), -1.0)
+	var bottom := _first_face(faces, cells, Vector3(low.x, -100.0, low.y), 1.0)
+	if absf(top - height) > LADDER_TOLERANCE:
 		_problems.append(
-			"art-lint: %s: drawn top %.1f cm off its deck" % [what, (top - platform.height) * 100.0]
+			"art-lint: %s: drawn top %.1f cm off its top" % [what, (top - height) * 100.0]
 		)
 	if bottom > -layout.freeboard:
 		_problems.append(

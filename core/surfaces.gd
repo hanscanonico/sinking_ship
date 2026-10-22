@@ -41,15 +41,18 @@ class Contact:
 		railing = span
 
 
-## A way out of the sea: where the climb puts a swimmer's feet, standing, and on
-## which surface.
+## A way out of the sea: where the climb puts a swimmer's feet, standing, on which
+## surface, and where a swimmer swims for to take it — past its hold on a ladder in
+## under a deck that flares out over it, else where it stands (climb_out()).
 class Climb:
 	var stand: Vector3
 	var surface: int
+	var aim: Vector3
 
 	func _init(feet: Vector3, onto: int) -> void:
 		stand = feet
 		surface = onto
+		aim = feet
 
 
 var _platforms: Array[ShipPlatform] = []
@@ -60,7 +63,8 @@ var _railings: Array[ShipRailing] = []
 var _rail_normals := PackedVector2Array()
 ## Per platform, its railings in layout order: a body on a deck meets no other.
 var _platform_rails: Array[PackedInt32Array] = []
-var _ladders: Array[ShipLadder] = []
+## The layout: her ladders, and where they hang (ShipLayout.ladder_at).
+var _layout: ShipLayout
 ## Per crate, its radius and height, and where its underside stands as the last
 ## honour() was told.
 var _prop_radii := PackedFloat64Array()
@@ -117,7 +121,7 @@ func _init(layout: ShipLayout, grid: IndexRules = null) -> void:
 	_ramps = layout.ramps.duplicate()
 	_blockers = layout.blockers.duplicate()
 	_railings = layout.railings.duplicate()
-	_ladders = layout.ladders.duplicate()
+	_layout = layout
 	for prop: ShipProp in layout.props:
 		_prop_radii.append(prop.radius)
 		_prop_heights.append(prop.height)
@@ -127,7 +131,7 @@ func _init(layout: ShipLayout, grid: IndexRules = null) -> void:
 		var railing := _railings[index]
 		_rail_normals.append(_onto(railing.platform, railing.from, railing.to))
 		_platform_rails[railing.platform].append(index)
-	for ladder: ShipLadder in _ladders:
+	for ladder: ShipLadder in _layout.ladders:
 		_ladder_normals.append(_onto(ladder.platform, ladder.from, ladder.to))
 	_first_ramp = _platforms.size()
 	_first_top = _first_ramp + _ramps.size()
@@ -797,13 +801,13 @@ func sunk(pose: ShipPose, depth: float) -> bool:
 
 ## Where a swimmer with its feet at [param feet] gets out of the sea under
 ## [param pose] pressing along [param toward] (a unit vector, x/z), a body as
-## [param rules] size it: up a standing ladder it is at, however high; else onto the surface
-## past an edge within a radius of its circle that holds it back and stands no more
-## than climb_reach above the water it swims in — a railing never stops it, a deck over
-## its head too low to stand up under does: in a pocket it climbs onto a dry face inside
-## it (Q22), never up through the ceiling or out over a wall under it. Either way the
-## climb
-## ends with the circle on a surface a radius past that edge — a deck, a stair or a
+## [param rules] size it: up a standing ladder it is at climb_reach over the water
+## (ShipLayout.ladder_at), however high; else onto the surface past an edge within a
+## radius of its circle that holds it back and stands no more than climb_reach above
+## the water it swims in — a railing never stops it, a deck over its head too low to
+## stand up under does: in a pocket it climbs onto a dry face inside it (Q22), never up
+## through the ceiling or out over a wall under it. Either way the climb ends with the
+## circle on a surface a radius past that edge — a deck, a stair or a
 ## box's top, never a round blocker's — under less than wade_depth of the sea, clear
 ## of everything that would hold it back, with no wall across the way at that height.
 ## Null when there is no way out there.
@@ -811,19 +815,21 @@ func climb_out(feet: Vector3, toward: Vector2, pose: ShipPose, rules: BrawlRules
 	var radius := rules.body_radius
 	var step := rules.step_height
 	var point := Vector2(feet.x, feet.z)
-	for index in _ladders.size():
+	for index in _layout.ladders.size():
 		var normal := _ladder_normals[index]
-		var ladder := _ladders[index]
+		var ladder := _layout.ladders[index]
 		if _gone[ladder.platform] == 1 or toward.dot(normal) <= 0.0:
 			continue
-		var at := Geometry2D.get_closest_point_to_segment(point, ladder.from, ladder.to)
+		var at := _layout.ladder_hold(ladder, point, pose.water_height(feet) + rules.climb_reach)
 		if (at - point).dot(normal) <= 0.0 or point.distance_to(at) > radius * 2.0:
 			continue
 		var top := _platforms[ladder.platform].height
 		if top <= feet.y + step:
 			continue
-		var climb := _standing(feet, at + normal * radius * 2.0, top, pose, rules)
+		var edge := Geometry2D.get_closest_point_to_segment(point, ladder.from, ladder.to)
+		var climb := _standing(feet, edge + normal * radius * 2.0, top, pose, rules)
 		if climb != null:
+			climb.aim = _layout.ladder_aim(ladder, at, climb.stand, radius * 2.0)
 			return climb
 	var probe := point + toward * radius * 2.0
 	var limit := pose.water_height(feet) + rules.climb_reach
@@ -837,9 +843,9 @@ func climb_out(feet: Vector3, toward: Vector2, pose: ShipPose, rules: BrawlRules
 
 
 ## The way out of the sea nearest a swimmer with its feet at [param feet], within
-## [param within] across the water and with no wall across the swim: a ladder, or
-## the point of a surface nearest the swimmer — a ramp's, moved along it to the
-## waterline — when that point stands within climb_reach above the sea and no deeper
+## [param within] across the water and with no wall across the swim: a ladder where
+## climb_out takes hold of it, or the point of a surface nearest the swimmer — a ramp's, moved
+## along it to the waterline — when that point stands within climb_reach above the sea and no deeper
 ## than wade_depth under it, and climb_out finds a way up there. A surface whose
 ## nearest point is out of reach is passed over, even where another part of it is
 ## not. Null when there is none.
@@ -847,16 +853,16 @@ func nearest_climb(feet: Vector3, pose: ShipPose, rules: BrawlRules, within: flo
 	var point := Vector2(feet.x, feet.z)
 	var edges := PackedVector2Array()
 	var towards := PackedVector2Array()
-	for index in _ladders.size():
-		var ladder := _ladders[index]
+	var water := pose.water_height(feet)
+	for index in _layout.ladders.size():
+		var ladder := _layout.ladders[index]
 		if _gone[ladder.platform] == 1:
 			continue
-		var at := Geometry2D.get_closest_point_to_segment(point, ladder.from, ladder.to)
+		var at := _layout.ladder_hold(ladder, point, water + rules.climb_reach)
 		if (at - point).dot(_ladder_normals[index]) > 0.0:
 			edges.append(at)
 			towards.append(_ladder_normals[index])
 	var box := Rect2(point - Vector2(within, within), Vector2(within, within) * 2.0)
-	var water := pose.water_height(feet)
 	for surface: int in _grid.near(box):
 		if _gone[surface] == 1 or _is_round_top(surface):
 			continue

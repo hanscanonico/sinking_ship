@@ -67,35 +67,10 @@ func build(mesh: ShipMesh) -> void:
 		_anchor(mesh, side)
 
 
-## The hull's half breadth on [param side] (0 port, 1 starboard) at (x, y): the shell
-## between the two sections whose middles stand either side of x, 0 past her ends or
-## where her shell does not reach y.
+## The hull's half breadth on [param side] (0 port, 1 starboard) at (x, y): her
+## structure's (ShipStructure.half_breadth).
 func breadth(x: float, y: float, side: int) -> float:
-	var count := _sections.size()
-	var aft_end := _sections[0].x - _sections[0].length * 0.5
-	var last := _sections[count - 1]
-	if x < aft_end or x > last.x + last.length * 0.5:
-		return 0.0
-	var way := side * 2 - 1
-	for index in count:
-		var section := _sections[index]
-		if x > section.x and index < count - 1:
-			continue
-		var here := _reach(section, y, way)
-		if index == 0 and x <= section.x:
-			return here
-		if x > section.x:
-			# Past her last section's middle her shell closes onto her stem.
-			return here * (1.0 - (x - section.x) / (last.length * 0.5))
-		var before := _sections[index - 1]
-		var t := (x - before.x) / (section.x - before.x)
-		return lerpf(_reach(before, y, way), here, t)
-	return 0.0
-
-
-static func _reach(section: HullSection, y: float, way: int) -> float:
-	var z := section.shell_at(y, way)
-	return 0.0 if is_nan(z) else absf(z)
+	return _layout.structure.half_breadth(x, y, side * 2 - 1)
 
 
 ## Each of [param sections]' sides, starboard then port, from her keel to her sheer,

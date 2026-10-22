@@ -9,6 +9,9 @@ extends Resource
 ## (SinkStepper, D13); `make ship-check` proves she floats on it, level, where she is
 ## said to, and founders on her sure hit.
 
+## How far inside a body's radius of her shell off_hull() leaves a climber be.
+const HULL_SLACK := 0.001
+
 ## Where the intact ship floats, level, and the bottom of her hull.
 @export var waterline_y: float
 @export var keel_y: float
@@ -58,6 +61,55 @@ func section_at(x: float) -> HullSection:
 		if x >= section.x - half and x < section.x + half:
 			return section
 	return null
+
+
+## Her shell's half breadth at (x, y) on the side [param way] points to — 1 for
+## starboard, -1 for port: the shell between the two sections whose middles stand
+## either side of x, closing onto her stem past her last section's middle; 0 past her
+## ends or where her shell does not reach y. The dressed art lofts the same shell
+## (SectionHull).
+func half_breadth(x: float, y: float, way: int) -> float:
+	var count := sections.size()
+	if count == 0:
+		return 0.0
+	var aft_end := sections[0].x - sections[0].length * 0.5
+	var last := sections[count - 1]
+	if x < aft_end or x > last.x + last.length * 0.5:
+		return 0.0
+	for index in count:
+		var section := sections[index]
+		if x > section.x and index < count - 1:
+			continue
+		var here := _reach(section, y, way)
+		if index == 0 and x <= section.x:
+			return here
+		if x > section.x:
+			return here * (1.0 - (x - section.x) / (last.length * 0.5))
+		var before := sections[index - 1]
+		var t := (x - before.x) / (section.x - before.x)
+		return lerpf(_reach(before, y, way), here, t)
+	return 0.0
+
+
+static func _reach(section: HullSection, y: float, way: int) -> float:
+	var z := section.shell_at(y, way)
+	return 0.0 if is_nan(z) else absf(z)
+
+
+## [param after], where a climber up her side has moved its feet to from
+## [param before], kept a body's [param radius] outboard of her shell at its height
+## (half_breadth()), so it hangs outside her flare as it climbs, never inside her
+## plating. One whose feet stood inside her shell at [param before] — in a pocket,
+## climbing onto a dry face in her — keeps [param after] as it is; so does one set
+## against her side by a sum that rounds, HULL_SLACK in.
+func off_hull(before: Vector3, after: Vector3, radius: float) -> Vector3:
+	var way := 1 if after.z >= 0.0 else -1
+	if absf(before.z) < half_breadth(before.x, before.y, way):
+		return after
+	var shell := half_breadth(after.x, after.y, way)
+	if shell > 0.0 and absf(after.z) < shell + radius - HULL_SLACK:
+		after.z = (shell + radius) * way
+	return after
 
 
 ## Her whole weight, in kilograms.

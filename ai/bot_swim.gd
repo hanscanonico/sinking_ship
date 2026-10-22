@@ -54,7 +54,7 @@ func goal() -> Vector3:
 		return Vector3.INF
 	if via != Vector3.INF:
 		return via
-	return way_out.stand if way_out != null else Vector3.INF
+	return way_out.aim if way_out != null else Vector3.INF
 
 
 ## Looks for the way out of the sea of a swimmer at [param now_pos] with [param cold]
