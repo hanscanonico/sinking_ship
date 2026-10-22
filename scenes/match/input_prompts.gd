@@ -60,25 +60,59 @@ func controls() -> String:
 	return controls_for(pad)
 
 
+## Every control of play, one to a line, on the device last used — and, when
+## [param spectating], what switches the view once out.
+func pause_controls(spectating := false) -> String:
+	return pause_controls_for(pad, spectating)
+
+
 ## Move, jump, shove and brace as the input map binds them, on the pad when
 ## [param on_pad], else on the keyboard and mouse — the four keys of the move by
 ## the layout's labels, so Z Q S D on AZERTY where QWERTY reads W A S D.
 static func controls_for(on_pad: bool) -> String:
-	var move := _word_of(&"move_up", on_pad)
-	if not on_pad:
-		var keys := PackedStringArray()
-		for action: StringName in [&"move_up", &"move_left", &"move_down", &"move_right"]:
-			keys.append(_word_of(action, on_pad))
-		move = " ".join(keys)
 	var hints := PackedStringArray()
 	for line: Array in [
-		[move, "move"],
+		[_move_of(on_pad), "move"],
 		[_word_of(&"jump", on_pad), "jump"],
 		[_word_of(&"shove", on_pad), "shove"],
 		[_word_of(&"brace", on_pad), "brace"],
 	]:
 		hints.append("%s — %s" % line)
 	return "   ·   ".join(hints)
+
+
+## Move, look, jump, shove, brace and pause as the input map binds them, one to a
+## line, on the pad when [param on_pad], else on the keyboard and mouse — the look
+## being the mouse's, bound to no action — and, when [param spectating], what
+## switches whose eyes the view is in and flies the free camera.
+static func pause_controls_for(on_pad: bool, spectating := false) -> String:
+	var lines: Array[Array] = [
+		[_move_of(on_pad), "move"],
+		[_word_of(&"look_left", on_pad) if on_pad else "Mouse", "look"],
+		[_word_of(&"jump", on_pad), "jump"],
+		[_word_of(&"shove", on_pad), "shove"],
+		[_word_of(&"brace", on_pad), "brace"],
+		[_word_of(&"pause", on_pad), "pause"],
+	]
+	if spectating:
+		var previous := _word_of(&"spectate_previous", on_pad)
+		var next := _word_of(&"spectate_next", on_pad)
+		lines.append(["%s / %s" % [previous, next], "switch view"])
+		lines.append([_word_of(&"spectate_free", on_pad), "free camera"])
+	var text := PackedStringArray()
+	for line: Array in lines:
+		text.append("%s — %s" % line)
+	return "\n".join(text)
+
+
+## What moves on the pad when [param on_pad], else the four keys of the move.
+static func _move_of(on_pad: bool) -> String:
+	if on_pad:
+		return _word_of(&"move_up", on_pad)
+	var keys := PackedStringArray()
+	for action: StringName in [&"move_up", &"move_left", &"move_down", &"move_right"]:
+		keys.append(_word_of(action, on_pad))
+	return " ".join(keys)
 
 
 static func _word_of(action: StringName, on_pad: bool) -> String:
