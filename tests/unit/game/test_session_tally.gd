@@ -4,6 +4,7 @@ extends GutTest
 ## and started afresh by a new Play, the menu or another seat count.
 
 const NAMES := ["You", "Bot 1", "Bot 2", "Bot 3"]
+const MATCH_DATA := "res://data/match/default.tres"
 
 
 func test_the_points_table_is_data_and_valid() -> void:
@@ -105,6 +106,38 @@ func test_another_seat_count_starts_a_new_session() -> void:
 	assert_eq(_rows(tally), [["Bot 1", 10, 1], ["You", 0, 2]])
 	tally.count(_ended([0, 1, 2, 3]), _names(4))
 	assert_eq(tally.matches, 1, "a match of other seats counted is a new session too")
+
+
+## Game's own session: its Rematch carries the session on, its Play from the menu starts a
+## new one, and the menu ends it.
+func test_game_carries_the_session_over_its_rematch_alone() -> void:
+	var game := _game()
+	var choices := MatchChoices.new()
+	choices.ship = &"tug"
+	choices.seats = 4
+	game._play(choices)
+	game._session.count(_ended([0, 1, 2, 3]), _names(4))
+	game._cancel_hold()
+	game._rematch()
+	assert_eq(game._session.matches, 1, "a Rematch carries the session on")
+	game._session.count(_ended([0, 1, 2, 3]), _names(4))
+	game._cancel_hold()
+	game._play(choices)
+	assert_eq(game._session.matches, 0, "a Play starts a new one")
+	game._cancel_hold()
+
+
+## A Game ready to play, never booted (no menu, no music): only what Play and Rematch
+## read, its countdown held and given up after each.
+func _game() -> Game:
+	var game: Game = autofree(Game.new())
+	autofree(game._baker)
+	add_child_autofree(game._hold)
+	game._args = MatchArgs.parse(PackedStringArray(["--autoplay"]))
+	game._match_rules = load(MATCH_DATA)
+	game._upcoming = NextMatch.new(game._match_rules, game._seeds)
+	game._menu = autofree(MainMenu.new())
+	return game
 
 
 ## Stats of a match ended with [param order]'s seats placed 1st, 2nd, … in turn.

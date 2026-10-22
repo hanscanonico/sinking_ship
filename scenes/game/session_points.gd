@@ -7,7 +7,7 @@ extends Resource
 const PATH := "res://data/match/session_points.tres"
 
 ## Points by place, 1st first, for a match of as many seats as it has entries.
-@export var by_place := PackedInt32Array([10, 7, 5, 4, 3, 2, 1, 0])
+@export var by_place := PackedInt32Array()
 
 
 static func load_default() -> SessionPoints:
