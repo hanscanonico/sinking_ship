@@ -98,6 +98,8 @@ var _free := FreeCamera.new()
 var _eye_fill := EyeFill.new()
 ## The water running off the lens once the eye comes up out of it.
 var _lens_drops := LensDrops.new()
+## Who went into the sea, and whose shove sent them, as it happens.
+var _feed := KnockoutFeed.new()
 ## The replay's controls, made the first time a replay is watched (start_replay).
 var _replay_hud: ReplayHud
 ## The replay's orbit camera (R5), made as a replay starts; null until one is.
@@ -127,6 +129,7 @@ func _ready() -> void:
 	_end.menu_requested.connect(menu_requested.emit)
 	_end.replay_requested.connect(func() -> void: replay_requested.emit(last_replay))
 	_driver.stepped.connect(func(events: Array[SimEvent]) -> void: _stats.add(events))
+	_driver.stepped.connect(_feed.add)
 	_driver.stepped.connect(_shake_for_the_sinking)
 	add_child(_marks)
 	add_child(_dust)
@@ -134,6 +137,8 @@ func _ready() -> void:
 	add_child(_iceberg)
 	add_child(_eye_fill)
 	add_child(_lens_drops)
+	_feed.name = "KnockoutFeed"
+	add_child(_feed)
 	add_child(FxWarmUp.new(_fx.emitters()))
 	add_child(_prompts)
 	add_child(_pointer)
@@ -176,6 +181,7 @@ func _process(delta: float) -> void:
 			_config.match_seed,
 			_config.goal == MatchRules.Goal.SURVIVAL
 		)
+	_feed.visible = not _end.visible
 	if _end.visible:
 		_end.show_prompts(_prompts)
 		save_replay()
@@ -473,6 +479,7 @@ func _setup_view(
 	_stats = MatchStats.new(config.seats, config.countdown_ticks)
 	_order = SpectateOrder.new(_eye_seat, _stats)
 	_names = names
+	_feed.setup(names, local_seat)
 	_greybox.cut_above = cut_of(observer, observer_cut)
 	_ship_art.cut_above = _greybox.cut_above
 	_greybox.visible = greybox
@@ -646,7 +653,7 @@ func stand_aside() -> void:
 ## Everything the match draws over the world.
 func _overlays() -> Array[CanvasLayer]:
 	var layers: Array[CanvasLayer] = [
-		_hud, _first_person_hud, _underwater, _lens_drops, _pointer, _end
+		_hud, _first_person_hud, _underwater, _lens_drops, _pointer, _feed, _end
 	]
 	if _replay_hud != null:
 		layers.append(_replay_hud)
@@ -711,6 +718,7 @@ func _show_replay(snapshot: Dictionary, viewed: int) -> void:
 func _on_sought(_tick: int) -> void:
 	_stats = MatchStats.new(_config.seats, _config.countdown_ticks)
 	_order = SpectateOrder.new(_eye_seat, _stats)
+	_feed.clear()
 	_fx.clear()
 	_audio.rewind()
 

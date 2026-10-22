@@ -1,7 +1,8 @@
 class_name EndOverlay
 extends CanvasLayer
 ## The results, once the match has ended: the local seat's verdict — "Last one
-## dry!" or "Overboard — 4th of 6", or under survival how long it lasted and its place,
+## dry!" or "Overboard — 4th of 6 — shoved by Bot 3" (the shove only if one sent it
+## over), or under survival how long it lasted and its place,
 ## "Survived 02:14.0 · 3rd" — then every seat's place, time dry (time survived, under
 ## survival), shoves landed and knock-outs credited, all from MatchStats and so from the
 ## events
@@ -79,6 +80,8 @@ func show_results(
 		_title.text = "The sea wins — nobody stays dry"
 	else:
 		_title.text = "Overboard — %s of %d" % [ordinal(mine.place), stats.seats.size()]
+		if mine.out_by >= 0:
+			_title.text += " — shoved by %s" % names[mine.out_by]
 	for child in _table.get_children():
 		_table.remove_child(child)
 		child.queue_free()

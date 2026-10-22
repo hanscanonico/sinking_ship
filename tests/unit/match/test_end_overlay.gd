@@ -45,6 +45,30 @@ func test_survival_results_say_time_survived_and_place() -> void:
 	assert_eq((table.get_child(columns + 2) as Label).text, "03:20.0", "in to the end")
 
 
+## Shoved out, the title names the shover; gone in on its own, it names nobody.
+func test_the_title_names_who_shoved_you() -> void:
+	var names := PackedStringArray(["You", "Bot 1", "Bot 2"])
+	var titles: Array[String] = []
+	for credit: int in [2, -1]:
+		var scene: Node = MATCH_SCENE.instantiate()
+		add_child_autofree(scene)
+		var stats := MatchStats.new(3, 0)
+		(
+			stats
+			. add(
+				[
+					SimEvent.seat_out(90, 0, 3, PlayerState.Cause.COLD, credit),
+					SimEvent.seat_out(120, 1, 2, PlayerState.Cause.COLD, -1),
+					SimEvent.match_ended(120, 2),
+				]
+			)
+		)
+		var results: EndOverlay = scene.get_node("EndOverlay")
+		results.show_results(stats, 0, names, 1701)
+		titles.append((results.get_node("%Title") as Label).text)
+	assert_eq(titles, ["Overboard — 3rd of 3 — shoved by Bot 2", "Overboard — 3rd of 3"])
+
+
 func test_the_battle_royale_results_keep_their_words() -> void:
 	var scene: Node = MATCH_SCENE.instantiate()
 	add_child_autofree(scene)
