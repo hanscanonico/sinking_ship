@@ -21,9 +21,12 @@ func after_each() -> void:
 		DirAccess.remove_absolute(SETTINGS_PATH)
 
 
-## The screen as a browser's page shows it when [param on_web], natively otherwise, open.
-func _open(on_web: bool = false) -> OnlineMenu:
+## The screen as a browser's page shows it when [param on_web], natively otherwise, open
+## — on [param rules] when given, else the shipped ones.
+func _open(on_web: bool = false, rules: ServerRules = null) -> OnlineMenu:
 	_menu = load("res://scenes/online/online_menu.tscn").instantiate()
+	if rules != null:
+		_menu._rules = rules
 	_menu.settings_path = SETTINGS_PATH
 	_menu.on_web = on_web
 	_menu.page_server = "wss://ship.example.org/ws" if on_web else ""
@@ -125,6 +128,14 @@ func test_the_shipped_default_is_none_or_a_server() -> void:
 		OnlineMenu.first_server("", ServerRules.load_default()),
 		"nothing saved: the field starts there"
 	)
+
+
+## A release's default is what a native screen with nothing saved starts on.
+func test_a_native_screen_starts_on_the_release_default() -> void:
+	var rules: ServerRules = ServerRules.load_default().duplicate()
+	rules.default_server_url = "wss://ship.example.org/ws"
+	_open(false, rules)
+	assert_eq((_node("%Server") as LineEdit).text, "wss://ship.example.org/ws")
 
 
 func test_a_server_is_a_ws_address() -> void:
