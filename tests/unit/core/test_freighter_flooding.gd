@@ -2,10 +2,11 @@ extends GutTest
 ## §5b.4 layer 3, the ore freighter (SH38): her signature, breaking in two — the
 ## explicit hit hold, a gash in her starboard side amidships through her wing tanks into
 ## her middle hold, whose water sags her long, shallow girder past what her hatch row
-## keeps until she parts there —, her sure hit founding her in both her scenarios, and
-## light_hit, a scrape at her bow over her waterline that leaves her afloat and whole.
-## The signature baked alone and again with its holes' area × 0.9 and × 1.1 to the same
-## outcome, so it sits far from every threshold and a Mac and Linux agree (R21).
+## keeps until she parts there —, and bow, the same gash into her fore tank, that sinks
+## her whole; her sure hit founding her in both her scenarios, and light_hit, a scrape at
+## her bow over her waterline that leaves her afloat and whole. The signature baked alone
+## and again with its holes' area × 0.9 and × 1.1 to the same outcome, so it sits far
+## from every threshold and a Mac and Linux agree (R21).
 ## Outcomes are labels and bands, never exact times.
 
 const FREIGHTER := "res://data/ships/freighter.tres"
@@ -13,6 +14,7 @@ const OPEN_SEA := "res://data/sinking/freighter_open_sea.tres"
 const COAST := "res://data/sinking/freighter_coast.tres"
 const HOLD := "res://tests/fixtures/sinking/hits/freighter_hold.tres"
 const LIGHT := "res://tests/fixtures/sinking/hits/freighter_light.tres"
+const BOW := "res://tests/fixtures/sinking/hits/freighter_bow.tres"
 const MARGINS: Array[float] = [0.9, 1.0, 1.1]
 ## hold: she parts within this many seconds of the hit, and at least BEFORE_GONE before
 ## the last of her is gone.
@@ -76,6 +78,27 @@ func test_her_hold_flooded_breaks_her_in_two() -> void:
 		assert_eq(timeline.end, SinkTimeline.End.GONE, what + ": every piece gone")
 		assert_lt(parted, PARTS_WITHIN, what + ": parted within 30 min")
 		assert_lt(parted + BEFORE_GONE, timeline.gone_at, what + ": parted before she went")
+
+
+func test_her_fore_end_flooded_sinks_her_whole() -> void:
+	# The same gash forward of her holds, through her fore tank into her fore peak: she
+	# goes down by the head, her water at her end and not on her hatch row, whose bending
+	# never comes to what her weakest spot keeps — she parts under a load amidships, not
+	# under any hit. One bake: her sag is the same at × 0.9 and × 1.1, about 0.6.
+	var timeline := _bake(load(BOW), _scenarios[0])
+	var weakest := 1.0
+	for spot: WeakSpot in _structure.strength.weak:
+		weakest = minf(weakest, spot.share)
+	gut.p(
+		(
+			"gone at %.0f s, %d pieces, bending %.2f at %.1f m"
+			% [timeline.gone_at, timeline.leaves.size(), timeline.bending, timeline.bending_x]
+		)
+	)
+	assert_eq(timeline.end, SinkTimeline.End.GONE, "gone")
+	assert_eq(timeline.leaves.size(), 1, "whole")
+	assert_eq(_parted_at(timeline), INF, "never parted")
+	assert_lt(absf(timeline.bending), weakest, "her bending short of her weakest spot's")
 
 
 func test_she_founders_on_her_sure_hit_in_both_scenarios() -> void:
