@@ -516,6 +516,7 @@ func _setup_view(
 	_sea_and_sky.setup(sim.schedule.end_tick(), config.ship, config.scenario.sea_depth)
 	_underwater.setup(_sea_and_sky)
 	_iceberg.setup(sim.schedule, config.ship, config.match_seed, _sea_and_sky)
+	_end.setup_fate(String(Fleet.name_of(config.ship)).capitalize(), sim.schedule)
 	_view.flood_with(_sea_and_sky.water())
 	_show_graphics(settings.graphics())
 	_observer_camera.whole_ship = observer and is_finite(observer_cut)

@@ -23,6 +23,18 @@ extends RefCounted
 
 const CAUSES := {PlayerState.Cause.NONE: "none", PlayerState.Cause.COLD: "cold"}
 const DIGEST_LENGTH := 16
+## How the results word her end (founders), by the label that tells it, the first
+## found first.
+const FOUNDERS := {
+	OutcomeClassifier.Outcome.BROKE_IN_THREE: "breaks in three",
+	OutcomeClassifier.Outcome.BROKE_IN_TWO: "breaks in two",
+	OutcomeClassifier.Outcome.BY_THE_HEAD: "down by the head",
+	OutcomeClassifier.Outcome.BY_THE_STERN: "down by the stern",
+	OutcomeClassifier.Outcome.ONTO_HER_SIDE: "over on her side",
+	OutcomeClassifier.Outcome.AFLOAT_UPSIDE_DOWN: "afloat upside down",
+	OutcomeClassifier.Outcome.AGROUND: "aground",
+	OutcomeClassifier.Outcome.AFLOAT: "stays afloat",
+}
 
 var _lines := PackedStringArray()
 var _ended: SimEvent
@@ -287,6 +299,52 @@ func _sinking(sim: MatchSim) -> void:
 		)
 	)
 	_lines.append(bending(timeline))
+
+
+## The share of [param schedule]'s whole sinking — from the hit to her going, or to its
+## bake's end when she does not go — the match had played by [param tick], 0…1, in
+## match time: what a player sat through of it. Not the transcript's "seen", the
+## physics' share, which her paced clock (Q20) runs far ahead, drawing her end out.
+## Read off the baked schedule alone (D7); 0 for a match without a sinking.
+static func share_played(schedule: SinkSchedule, tick: int) -> float:
+	var timeline := schedule.timeline()
+	if timeline == null:
+		return 0.0
+	var hit := schedule.hit_tick()
+	var whole := schedule.gone_tick() if timeline.is_gone() else schedule.end_tick()
+	return clampf(float(tick - hit) / float(maxi(whole - hit, 1)), 0.0, 1.0)
+
+
+## How the results tell her fate in a line: [param ship_name], how her sinking ends
+## (founders) and the share of it played by [param tick], the match's end
+## (share_played) — "Steamer · down by the head · 27% of her sinking played". Empty for
+## a match without a sinking. All of it is baked in [param schedule] (D7): nothing on a
+## clock.
+static func fate_line(ship_name: String, schedule: SinkSchedule, tick: int) -> String:
+	var timeline := schedule.timeline()
+	if timeline == null:
+		return ""
+	return fate_told(ship_name, OutcomeClassifier.labels(timeline), share_played(schedule, tick))
+
+
+## The fate line of [param ship_name] whose sinking earns [param labels_of], with
+## [param share] of it played (fate_line).
+static func fate_told(
+	ship_name: String, labels_of: Array[OutcomeClassifier.Outcome], share: float
+) -> String:
+	return (
+		"%s · %s · %.0f%% of her sinking played"
+		% [ship_name, founders(labels_of), clampf(share, 0.0, 1.0) * 100.0]
+	)
+
+
+## How a sinking that earns [param labels_of] ends, in a few words: her hull parting
+## first, the most of what befalls her, then the way she goes, or that she does not.
+static func founders(labels_of: Array[OutcomeClassifier.Outcome]) -> String:
+	for label: OutcomeClassifier.Outcome in FOUNDERS:
+		if labels_of.has(label):
+			return FOUNDERS[label]
+	return "her end untold"
 
 
 ## The first piece of [param schedule]'s sinking she ends in, aft to fore, that holds

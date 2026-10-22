@@ -214,6 +214,11 @@ theme_override_constants/h_separation = 16
 theme_override_constants/v_separation = 6
 columns = 3
 
+[node name="Fate" type="Label" parent="EndOverlay/Panel/Box"]
+unique_name_in_owner = true
+visible = false
+horizontal_alignment = 1
+
 [node name="Seed" type="Label" parent="EndOverlay/Panel/Box"]
 unique_name_in_owner = true
 modulate = Color(1, 1, 1, 0.7)
