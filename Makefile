@@ -203,13 +203,17 @@ online-e2e:
 #   make export-web          the browser build: single-threaded, so it needs no
 #       cross-origin isolation headers
 #   make export-mac          the macOS app, ad-hoc signed
+#   make export-win          the Windows game, one .exe with its pack embedded
+#   make export-linux        the Linux game, one x86_64 binary with its pack embedded
 #   make export-server-mac   the dedicated server for this Mac, the same pack as the
 #       Linux one: what `make serve-local EXPORTED=1` and serve-web-local run
-# They need Godot's export templates for the engine's version installed, which CI has
-# not: none is part of verify. No export ships the godot_ai helper autoload (R11): the
+# They need Godot's export templates for the engine's exact version installed, which
+# CI has not: none is part of verify, and each stops first, saying where they belong,
+# when they are missing (tools/export_templates.sh). No export ships the godot_ai helper autoload (R11): the
 # plugin's export hook strips it from every pack, and every preset leaves addons/ out.
 define export-preset
 	$(call require-godot)
+	@tools/export_templates.sh "$(GODOT)"
 	@mkdir -p "$(dir $(2))" && touch build/.gdignore
 	timeout 1200 $(GODOT) --headless --path . --export-release "$(1)" "$(2)"
 endef
@@ -221,7 +225,13 @@ export-web:
 	$(call export-preset,Web,build/web/index.html)
 
 export-mac:
-	$(call export-preset,macOS,build/mac/SinkingShip.app)
+	$(call export-preset,macOS,build/mac/LastOneDry.app)
+
+export-win:
+	$(call export-preset,Windows Desktop,build/win/LastOneDry.exe)
+
+export-linux:
+	$(call export-preset,Linux Desktop,build/linux/LastOneDry.x86_64)
 
 export-server-mac:
 	$(call export-preset,macOS Server,build/server-mac/SinkingShipServer.app)
@@ -674,7 +684,7 @@ format-check:
 .NOTPARALLEL:
 
 .PHONY: import run replay match capture smoke net-bench sim-bench bench serve-local online-e2e export-server \
-	export-web export-mac export-server-mac serve-web-local serve-web-local-stop fps arena \
+	export-web export-mac export-win export-linux export-server-mac serve-web-local serve-web-local-stop fps arena \
 	hits bake census art-lint test test-changed durations verify verify-changed check guard-check ship ship-gen-check ship-check bake-ship \
 	bake-check ship-scene \
 	ship-blend bake-blend models model-sources sailor crew-capture lint format format-check

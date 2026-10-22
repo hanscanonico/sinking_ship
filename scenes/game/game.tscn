@@ -46,7 +46,7 @@ theme_override_constants/separation = 4
 
 [node name="Title" type="Label" parent="MainMenu/Wordmark"]
 theme_type_variation = &"WordmarkLabel"
-text = "Sinking Ship"
+text = "Last One Dry"
 uppercase = true
 
 [node name="Livery" type="VBoxContainer" parent="MainMenu/Wordmark"]
