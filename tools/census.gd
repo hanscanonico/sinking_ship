@@ -72,8 +72,8 @@ const BANDS := {
 		"gone within 20 min of physics": [5, 25],
 		"breaks (in two or three, SH33)": [0, 0],
 	},
-	# SH36: by the stern, every time she goes — the one big engine room — and soonest of
-	# the fleet; too stiff to list or roll over.
+	# SH36: by the stern, every time she goes — the one big engine room — and in minutes
+	# once her casing door lets her towing deck's sea in; too stiff to list or roll over.
 	"tug":
 	{
 		"survives": [20, 50],
