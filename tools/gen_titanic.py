@@ -704,6 +704,24 @@ for name, _lo, _hi, _z0, _z1, high, _x_low in list(stairs):
     if high in DECKS_AT and not name.startswith(("boat_aft", "a_aft", "b_aft", "a_fwd")):
         hole_rails(DECKS_AT[high], name)
 
+# --- Boarding ladders (SH5), one down each side of both well decks, where a body shoved
+# over her rail comes down: a swimmer climbs back aboard there, ten metres up her side
+# from the sea, which no edge is in reach of. Each hangs in the middle of its well from
+# the piece of the deck whose side it is on, a body's breadth and more wide (est.).
+LADDER = 1.0
+
+def ladder(lid, plats, x, z):
+    a, b = (round(x - LADDER / 2, 4), z), (round(x + LADDER / 2, 4), z)
+    plat = edge_platform(plats, a, b)
+    assert plat is not None, "no piece of the deck holds the ladder " + lid
+    f = [("platform", str(plat))] if plat != 0 else []
+    f += [("from", "Vector2(%s, %s)" % (num(a[0]), num(a[1]))), ("to", "Vector2(%s, %s)" % (num(b[0]), num(b[1])))]
+    ladders.append(sub("Ladder_" + lid, "7_ladder", f))
+
+for tag, plats, middle, side in [("aft_well", aft_well, sum(AFT_WELL) / 2, AW), ("well", well, sum(WELL) / 2, CW)]:
+    ladder(tag + "_port", plats, middle, -side)
+    ladder(tag + "_starboard", plats, middle, side)
+
 # --- Walls and rooms.
 # The boat deck's houses (SB-III): the officers' house and the wheelhouse forward, round
 # funnel 1; the grand staircase's entrance and the gymnasium between funnels 1 and 2.
