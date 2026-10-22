@@ -1,9 +1,9 @@
 class_name Hud
 extends CanvasLayer
 ## Seats left, the match clock and the countdown, read from the latest snapshot,
-## with what to press under the countdown; and, once the local seat is out, whose
-## eyes the view is in — none of it over the results. The tilt is the first-person
-## HUD's inclinometer.
+## with what the match is played for and what to press under the countdown; and,
+## once the local seat is out, whose eyes the view is in — none of it over the
+## results. The tilt is the first-person HUD's inclinometer.
 
 ## How long "Go!" stays up once the countdown is over.
 const GO_SECONDS := 0.8
@@ -22,6 +22,7 @@ var _countdown_ticks: int
 @onready var _countdown: Label = %Countdown
 @onready var _spectating: Label = %Spectating
 @onready var _controls: Label = %Controls
+@onready var _goal: Label = %Goal
 
 
 func _ready() -> void:
@@ -33,6 +34,7 @@ func _ready() -> void:
 
 func setup(sim: MatchSim) -> void:
 	_countdown_ticks = sim.config.countdown_ticks
+	_goal.text = goal_text(sim.config.goal)
 
 
 func show_snapshot(snapshot: Dictionary) -> void:
@@ -47,6 +49,15 @@ func show_snapshot(snapshot: Dictionary) -> void:
 	_seats_left.visible = not ended
 	_clock.visible = not ended
 	_show_countdown(snapshot["tick"])
+	_goal.visible = _countdown.visible
+
+
+## What a seat plays for under [param goal] (MatchRules.Goal), in the end screen's
+## words (EndOverlay): to be the last one dry, or to last as long as she does.
+static func goal_text(goal: MatchRules.Goal) -> String:
+	if goal == MatchRules.Goal.SURVIVAL:
+		return "Stay aboard as long as she floats."
+	return "Be the last one dry. Shove rivals into the sea."
 
 
 ## Whose view the spectating line names: [param name]'s eyes from a seat's view,

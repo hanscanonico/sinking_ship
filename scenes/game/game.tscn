@@ -227,6 +227,11 @@ theme_type_variation = &"TitleLabel"
 text = "Paused"
 horizontal_alignment = 1
 
+[node name="PauseControls" type="Label" parent="PauseMenu/Panel/Box"]
+unique_name_in_owner = true
+theme_type_variation = &"HintLabel"
+horizontal_alignment = 1
+
 [node name="Resume" type="Button" parent="PauseMenu/Panel/Box"]
 unique_name_in_owner = true
 text = "Resume"

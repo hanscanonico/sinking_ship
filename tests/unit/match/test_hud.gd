@@ -20,6 +20,14 @@ func test_the_line_names_whose_view_it_is() -> void:
 	assert_eq(Hud.whose_view("You", true, true), "watching you")
 
 
+func test_the_countdown_says_what_the_match_is_played_for() -> void:
+	assert_eq(
+		Hud.goal_text(MatchRules.Goal.LAST_STANDING),
+		"Be the last one dry. Shove rivals into the sea."
+	)
+	assert_eq(Hud.goal_text(MatchRules.Goal.SURVIVAL), "Stay aboard as long as she floats.")
+
+
 func test_the_line_says_how_into_the_free_camera_and_back() -> void:
 	assert_eq(
 		Hud.spectating_text("3rd", 8, "through Bot 3's eyes", "Q", "E", "C"),

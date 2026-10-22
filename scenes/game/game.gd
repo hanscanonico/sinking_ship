@@ -228,7 +228,7 @@ func _process(delta: float) -> void:
 		_match.set_paused(true)
 		match _args.capture_screen:
 			"pause":
-				_pause.open()
+				_pause.open(_match.prompts(), _match.spectating())
 			"online-pause", "online-settings":
 				_stage_online_pause(_args.capture_screen == "online-settings")
 		_capture(MatchTranscript.clock(snapshot["tick"]))
@@ -718,7 +718,7 @@ func _stage_online_pause(settings: bool) -> void:
 func _set_paused(paused: bool) -> void:
 	_match.set_paused(paused)
 	if paused:
-		_pause.open()
+		_pause.open(_match.prompts(), _match.spectating())
 	else:
 		_pause.hide()
 
