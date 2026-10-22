@@ -716,7 +716,8 @@ func start_climb(player: PlayerState, pose_now: ShipPose) -> void:
 
 
 ## A climb rises an equal share of the rest of the way each tick, hanging at the
-## edge, and steps over it at walk_speed at the end, to stand where it was going.
+## edge — up her side, outside her shell (ShipStructure.off_hull) — and steps over it at
+## walk_speed at the end, to stand where it was going.
 ## Where that is gone — the deck collapsed under it — the climber lets go, back into
 ## the sea.
 func climb(player: PlayerState, tick: int, events: Array[SimEvent]) -> void:
@@ -724,11 +725,15 @@ func climb(player: PlayerState, tick: int, events: Array[SimEvent]) -> void:
 	if ground == Surfaces.NONE:
 		player.climb_left = 0
 		return
+	var before := player.pos
 	player.pos.y += (player.climb_to.y - player.pos.y) / player.climb_left
 	var across := Vector2(player.climb_to.x - player.pos.x, player.climb_to.z - player.pos.z)
 	var later := _rules.walk_speed * Ticks.SECONDS_PER_TICK * (player.climb_left - 1)
 	var stride := across.limit_length(maxf(across.length() - later, 0.0))
 	player.pos += Vector3(stride.x, 0.0, stride.y)
+	var structure := _faces.layout(_crowd_up).structure
+	if stride == Vector2.ZERO and structure != null:
+		player.pos = structure.off_hull(before, player.pos, _rules.body_radius)
 	player.climb_left -= 1
 	if player.climb_left == 0:
 		stand(player, ground, tick, events)
