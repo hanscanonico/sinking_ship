@@ -590,6 +590,9 @@ albedo_color = Color(0.45490196, 0.50980395, 0.43529412, 1)
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_7qh17"]
 albedo_color = Color(0.8117647, 0.23137255, 0.16862746, 1)
 
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_ladr1"]
+albedo_color = Color(0.4392157, 0.45882353, 0.4862745, 1)
+
 [node name="Titanic" type="Node3D" unique_id=123257851]
 metadata/ship = &"layout"
 metadata/freeboard = 10.0
@@ -12608,6 +12611,34 @@ metadata/ship = &"railing"
 metadata/platform = &"Platform_bunker_5_3"
 
 [node name="Ladders" type="Node3D" parent="." unique_id=1954104382]
+
+[node name="Ladder_aft_well_port" type="CSGBox3D" parent="Ladders" unique_id=2145464817]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -99.9767, 0.5, -9.6)
+size = Vector3(1, 1, 0.05)
+material = SubResource("StandardMaterial3D_ladr1")
+metadata/ship = &"ladder"
+metadata/platform = &"Platform_aft_well_0"
+
+[node name="Ladder_aft_well_starboard" type="CSGBox3D" parent="Ladders" unique_id=339866547]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -99.9767, 0.5, 9.6)
+size = Vector3(1, 1, 0.05)
+material = SubResource("StandardMaterial3D_ladr1")
+metadata/ship = &"ladder"
+metadata/platform = &"Platform_aft_well_0"
+
+[node name="Ladder_well_port" type="CSGBox3D" parent="Ladders" unique_id=2101603116]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 82.7128, 0.5, -12.05)
+size = Vector3(1, 1, 0.05)
+material = SubResource("StandardMaterial3D_ladr1")
+metadata/ship = &"ladder"
+metadata/platform = &"Platform_fwd_well_1"
+
+[node name="Ladder_well_starboard" type="CSGBox3D" parent="Ladders" unique_id=584425593]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 82.7128, 0.5, 12.05)
+size = Vector3(1, 1, 0.05)
+material = SubResource("StandardMaterial3D_ladr1")
+metadata/ship = &"ladder"
+metadata/platform = &"Platform_fwd_well_3"
 
 [node name="Spawns" type="Node3D" parent="." unique_id=192798081]
 
