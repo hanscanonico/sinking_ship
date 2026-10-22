@@ -118,11 +118,15 @@ func _init(
 
 
 ## The hash a client's data must match: every match of [param match_rules] played to
-## [param net_rules] has it, whatever its seed or seats (WireCodec.match_hash) — her
-## paced clock's, whatever the pace: a room's match speaks it too, its pace told in
-## BEGIN rather than hashed, so a client learns it only as the match begins.
+## [param net_rules] has it, whatever its seed, seats or pace — the match_hash of each
+## pace's match (config_for), hashed together, so a client whose paced or fast clock
+## differs is refused at its HELLO. A room's match speaks it too, its pace told in
+## BEGIN rather than hashed, so a client learns which it plays only as the match begins.
 static func data_hash(match_rules: MatchRules, net_rules: NetRules) -> String:
-	return WireCodec.match_hash(MatchConfig.from_rules(match_rules, 0), net_rules)
+	var paces := PackedStringArray()
+	for fast: bool in [false, true]:
+		paces.append(WireCodec.match_hash(config_for(match_rules, 0, fast), net_rules))
+	return "|".join(paces).sha256_text()
 
 
 ## A room's match of [param match_rules]: [param match_seed], [param seat_count] seats
