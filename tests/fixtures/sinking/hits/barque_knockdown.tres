@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="IcebergHit" format=3]
+
+[ext_resource type="Script" path="res://core/sinking/iceberg_hit.gd" id="1_hit"]
+
+[resource]
+script = ExtResource("1_hit")
+moment = 20.0
+side = 1
+start_x = -6.0
+length = 8.0
+depth_start = 1.5
+depth_end = 1.5
+width = 0.05
+bite = 0.5
+left_open = Array[StringName]([&"companionway_aft_p", &"companionway_aft_s", &"companionway_fore_p", &"companionway_fore_s", &"main_hatch"])
