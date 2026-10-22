@@ -140,6 +140,11 @@ func ladder_aim(ladder: ShipLadder, hold: Vector2, stand: Vector3, reach: float)
 	return Vector3(past.x, stand.y, past.y)
 
 
+## [param seats] when she takes that many, else the nearest count she does.
+func seats_near(seats: int) -> int:
+	return clampi(seats, min_seats, max_seats)
+
+
 ## Every reason this layout cannot host [param seats] seats; empty when it can.
 func problems(seats: int) -> PackedStringArray:
 	var found := PackedStringArray()

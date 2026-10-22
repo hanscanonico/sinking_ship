@@ -151,7 +151,7 @@ func picked_ship() -> StringName:
 
 
 ## The seat counts the picked ship takes, [param seats] chosen where she takes it, else
-## [param otherwise], else her fewest.
+## [param otherwise] as near as she takes it.
 func _offer_seats(seats: int, otherwise: int) -> void:
 	_seats.clear()
 	var layout := Fleet.layout(picked_ship())
@@ -161,7 +161,7 @@ func _offer_seats(seats: int, otherwise: int) -> void:
 		_seats.add_item(str(count), count)
 	var seat_index := _seats.get_item_index(seats)
 	if seat_index == -1:
-		seat_index = maxi(_seats.get_item_index(otherwise), 0)
+		seat_index = _seats.get_item_index(layout.seats_near(otherwise))
 	_seats.select(seat_index)
 
 

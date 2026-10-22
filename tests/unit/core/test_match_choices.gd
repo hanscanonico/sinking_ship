@@ -320,3 +320,22 @@ func test_the_menu_starts_from_the_data() -> void:
 	assert_eq(full.bot_tier, survival.bot_tier)
 	assert_eq(full.goal, &"survival", "the menu's Survival starts ticked")
 	assert_eq(full.seed_text, "", "and its seed blank, to be drawn")
+
+
+func test_a_ship_that_takes_fewer_seats_starts_from_her_most() -> void:
+	var default: MatchRules = load(DEFAULT_MATCH)
+	var small: MatchRules = default.duplicate()
+	small.ship = default.ship.duplicate()
+	small.ship.max_seats = default.seats - 2
+	var full := MatchArgs.parse(PackedStringArray()).choices.filled(small)
+	assert_eq(full.seats, small.ship.max_seats, "the data's seats, as near as she takes")
+	var config := _cli(["--seed=3"]).config(small)
+	assert_not_null(config, "an unmade seat count is no problem on her")
+	assert_eq(config.seats, small.ship.max_seats)
+	small.ship.min_seats = default.seats + 2
+	small.ship.max_seats = default.seats + 4
+	assert_eq(
+		MatchArgs.parse(PackedStringArray()).choices.filled(small).seats,
+		small.ship.min_seats,
+		"and on one that takes more, her fewest"
+	)

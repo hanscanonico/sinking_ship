@@ -71,13 +71,16 @@ func ship_name(match_rules: MatchRules) -> StringName:
 
 
 ## These choices with every unmade one but the seed made as [param match_rules] makes
-## it: the data's ship (or the scenario's), seats, bot tier and goal — what the menu
-## starts from.
+## it: the data's ship (or the scenario's), seats — as near the data's as she takes —,
+## bot tier and goal — what the menu starts from.
 func filled(match_rules: MatchRules) -> MatchChoices:
 	var full := with_seed(seed_text)
 	full.ship = ship_name(match_rules)
 	if seats == 0:
 		full.seats = match_rules.seats
+		var layout := _layout(match_rules, full.ship)
+		if layout != null:
+			full.seats = layout.seats_near(match_rules.seats)
 	if bot_tier.is_empty():
 		full.bot_tier = match_rules.bot_tier
 	if goal.is_empty():
