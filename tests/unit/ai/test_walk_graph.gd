@@ -687,3 +687,45 @@ func test_a_crawl_space_is_costed_at_crawl_speed() -> void:
 		var found := graph.search(start, on, _pose(layout, SimFixtures.calm()))
 		var pace := rules.walk_speed / rules.crawl_speed if crawl_space else 1.0
 		assert_almost_eq(found.cost[graph.deck_of(0)], pace, 0.0001, "crawl space %s" % crawl_space)
+
+
+func test_a_wade_goes_through_water_but_never_a_shut_door_or_a_flooded_zone() -> void:
+	# The wade out (BotRefuge) goes through doorways and stair feet under water, never
+	# a watertight door shut across its doorway nor into a zone flooded. Dry, it finds
+	# just what the walk finds, its doors open or shut — shut, they cut both short. The
+	# engine room a hand under, it reaches past the water that stops the walk, and still
+	# into no zone flooded, though a swim goes on into one.
+	var layout := SimFixtures.steamer()
+	var surfaces := Surfaces.new(layout)
+	var graph := _graph(layout, surfaces)
+	var start := Vector3(3.5, -2.6, 2.4)
+	var on := surfaces.under(start, SimFixtures.rules().step_height)
+	var dry := HeldPose.flooded(layout, -layout.freeboard, {})
+	surfaces.honour(dry)
+	var walked := graph.search(start, on, dry)
+	assert_eq(graph.search(start, on, dry, false, true).cost, walked.cost, "dry, a wade walks")
+	var shut := HeldPose.flooded(layout, -layout.freeboard, {})
+	for door: ShipOpening in layout.structure.openings:
+		if door.shuts_at_hit:
+			shut.doors_shut[door.name] = 1.0
+	surfaces.honour(shut)
+	var walled := graph.search(start, on, shut)
+	assert_ne(walled.cost, walked.cost, "her shut doors cut the walk short")
+	assert_eq(graph.search(start, on, shut, false, true).cost, walled.cost, "and the wade")
+
+	var settled := _pose(layout, SimFixtures.scenario([[0.0, 1.04, -2.0, 0.0]]))
+	surfaces.honour(settled)
+	var here := graph.zone_at(start, on)
+	var dry_way := graph.search(start, on, settled)
+	var wade := graph.search(start, on, settled, false, true)
+	var swim := graph.search(start, on, settled, true)
+	var past_the_water := 0
+	var flooded_swum := 0
+	for zone in wade.cost.size():
+		if wade.cost[zone] < INF and dry_way.cost[zone] == INF:
+			past_the_water += 1
+		if zone != here and graph.flooded(zone, settled):
+			assert_eq(wade.cost[zone], INF, "never into flooded zone %d" % zone)
+			flooded_swum += 1 if swim.cost[zone] < INF else 0
+	assert_gt(past_the_water, 0, "it wades on where the walk stops")
+	assert_gt(flooded_swum, 0, "where a swim goes on into a flooded zone")
