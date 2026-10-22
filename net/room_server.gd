@@ -50,6 +50,9 @@ class Connection:
 	var since: int
 	## The beat it last sent an input or a pong at, or its stage began at if later.
 	var heard: int
+	## Whether its match has begun and no input of it has come yet: its client is
+	## building the match, held to load_timeout rather than silence_timeout.
+	var loading := false
 	## The CREATEs and JOINs it has used of room_attempts, and the beat the next one
 	## given back is counted from: one each attempt_refill.
 	var attempts := 0
@@ -227,6 +230,7 @@ func _take(packet: Transport.Packet) -> void:
 			# Only a seated player's, to their room's match — whose host reads it as the
 			# connection's seat's; late ones from a room left are dropped unread.
 			connection.heard = _beat
+			connection.loading = false
 			var at := connection.room
 			if at != null and at.phase == Room.Phase.PLAYING:
 				at.wire.deliver(packet)
@@ -366,10 +370,12 @@ func _start(connection: Connection) -> void:
 		digest = schedule.timeline().digest()
 	var players := PackedStringArray()
 	for player: Room.Member in at.members:
-		# Its silence counts from here: loading the match may take its client a while.
+		# Its silence counts from here, held to load_timeout until its first input: its
+		# client builds the match in one frame that may outlast silence_timeout.
 		var member: Connection = _connections.get(player.peer)
 		if member != null:
 			member.heard = _beat
+			member.loading = true
 		players.append("%s seat %d" % [player.name, player.seat])
 		var begin := _codec.encode_begin(config.match_seed, config.seats, player.seat, digest)
 		_wire.send(player.peer, begin)
@@ -464,6 +470,7 @@ func _send_timeline(playing: Room) -> void:
 func _keep_time() -> void:
 	var linger := ServerRules.beats(_rules.refusal_linger)
 	var silence := ServerRules.beats(_rules.silence_timeout)
+	var loading := ServerRules.beats(_rules.load_timeout)
 	for peer: int in _full.keys():
 		if _beat - _full[peer] >= linger:
 			_full.erase(peer)
@@ -481,8 +488,12 @@ func _keep_time() -> void:
 				_turn_away(connection, RoomCodec.Refusal.TIMEOUT)
 		elif connection.stage == Stage.LOBBY and waited >= ServerRules.beats(_rules.lobby_timeout):
 			_turn_away(connection, RoomCodec.Refusal.TIMEOUT)
-		elif connection.stage == Stage.ROOM and _beat - connection.heard >= silence:
-			_say("%s went silent" % _who(connection))
+		elif (
+			connection.stage == Stage.ROOM
+			and _beat - connection.heard >= (loading if connection.loading else silence)
+		):
+			var why := " loading its match" if connection.loading else ""
+			_say("%s went silent%s" % [_who(connection), why])
 			_turn_away(connection, RoomCodec.Refusal.TIMEOUT)
 		elif _wire.backlog(connection.peer) > _rules.outbound_backlog:
 			_say("%s stopped reading" % _who(connection))
@@ -615,6 +626,7 @@ func _enter(connection: Connection, stage: Stage) -> void:
 	connection.stage = stage
 	connection.since = _beat
 	connection.heard = _beat
+	connection.loading = false
 
 
 func _refuse(connection: Connection, reason: RoomCodec.Refusal) -> void:
