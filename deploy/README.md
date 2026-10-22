@@ -140,6 +140,21 @@ The server logs every room's tick time, each player's round trip and the snapsho
 bandwidth every 10 s, and a finished match's transcript:
 `docker compose -f deploy/compose.yml logs -f server`.
 
+## Pointing the release builds at the server
+
+A native build's Online screen offers `ws://127.0.0.1:47923` until the player saves
+another server. To have release builds offer this one instead, set one line in
+`data/net/server.tres` before exporting them:
+
+```
+default_server_url = "wss://HOST/ws"
+```
+
+with `HOST` the tunnel's public hostname — the one whose `https://HOST/` serves the
+page. A server the player saved still wins, and a value that is not a `ws://` or
+`wss://` address is ignored. The browser build needs nothing: it plays on its page's
+own server.
+
 ## Rolling back
 
 Before building, `deploy/bin/deploy` tags the images that are serving as

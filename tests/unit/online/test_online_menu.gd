@@ -21,9 +21,12 @@ func after_each() -> void:
 		DirAccess.remove_absolute(SETTINGS_PATH)
 
 
-## The screen as a browser's page shows it when [param on_web], natively otherwise, open.
-func _open(on_web: bool = false) -> OnlineMenu:
+## The screen as a browser's page shows it when [param on_web], natively otherwise, open
+## — on [param rules] when given, else the shipped ones.
+func _open(on_web: bool = false, rules: ServerRules = null) -> OnlineMenu:
 	_menu = load("res://scenes/online/online_menu.tscn").instantiate()
+	if rules != null:
+		_menu._rules = rules
 	_menu.settings_path = SETTINGS_PATH
 	_menu.on_web = on_web
 	_menu.page_server = "wss://ship.example.org/ws" if on_web else ""
@@ -89,6 +92,50 @@ func test_a_room_is_created_and_the_choices_remembered() -> void:
 	var again := _open()
 	assert_eq((again.get_node("%Name") as LineEdit).text, "Ada", "the next run's name")
 	assert_eq((again.get_node("%Server") as LineEdit).text, "ws://127.0.0.1:47931")
+
+
+## The field starts on the server the player saved; with none saved, on the rules'
+## default_server_url — a release's public server — and without one, this machine's own.
+func test_the_saved_server_wins_then_the_default_then_this_machine() -> void:
+	var rules: ServerRules = ServerRules.load_default().duplicate()
+	var own := "ws://127.0.0.1:%d" % rules.port
+	rules.default_server_url = ""
+	assert_eq(OnlineMenu.first_server("", rules), own, "no default: this machine's")
+	rules.default_server_url = "wss://ship.example.org/ws"
+	assert_eq(OnlineMenu.first_server("", rules), "wss://ship.example.org/ws", "the default")
+	assert_eq(
+		OnlineMenu.first_server("ws://10.0.0.2:47931", rules),
+		"ws://10.0.0.2:47931",
+		"a saved server still wins"
+	)
+
+
+func test_a_default_that_is_no_server_is_ignored() -> void:
+	var rules: ServerRules = ServerRules.load_default().duplicate()
+	var own := "ws://127.0.0.1:%d" % rules.port
+	for bad: String in ["https://ship.example.org/ws", "ship.example.org", "wss://eve@host/ws"]:
+		rules.default_server_url = bad
+		assert_eq(OnlineMenu.first_server("", rules), own, bad)
+
+
+## What ships is either no default or a server's address the field can start on.
+func test_the_shipped_default_is_none_or_a_server() -> void:
+	var shipped := ServerRules.load_default().default_server_url
+	assert_true(shipped.is_empty() or OnlineLink.is_server_url(shipped), shipped)
+	_open()
+	assert_eq(
+		(_node("%Server") as LineEdit).text,
+		OnlineMenu.first_server("", ServerRules.load_default()),
+		"nothing saved: the field starts there"
+	)
+
+
+## A release's default is what a native screen with nothing saved starts on.
+func test_a_native_screen_starts_on_the_release_default() -> void:
+	var rules: ServerRules = ServerRules.load_default().duplicate()
+	rules.default_server_url = "wss://ship.example.org/ws"
+	_open(false, rules)
+	assert_eq((_node("%Server") as LineEdit).text, "wss://ship.example.org/ws")
 
 
 func test_a_server_is_a_ws_address() -> void:
