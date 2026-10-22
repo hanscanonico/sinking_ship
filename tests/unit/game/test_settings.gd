@@ -300,9 +300,9 @@ func test_the_player_s_pick_sets_aside_a_run_s_chosen_graphics() -> void:
 func test_every_choice_on_every_page_takes_the_keys_and_the_pad() -> void:
 	var menu: SettingsMenu = autofree(SETTINGS_MENU.instantiate())
 	add_child(menu)
-	for tab: String in ["%SoundTab", "%ControlsTab", "%GraphicsTab"]:
+	for tab: String in ["%SoundTab", "%ControlsTab", "%KeysTab", "%GraphicsTab"]:
 		assert_eq((menu.get_node(tab) as Control).focus_mode, Control.FOCUS_ALL, tab)
-	for page: String in ["%Sound", "%Controls", "%Graphics"]:
+	for page: String in ["%Sound", "%Controls", "%Keys", "%Graphics"]:
 		for control: Node in menu.get_node(page).find_children("*", "Range", true, true):
 			assert_eq((control as Control).focus_mode, Control.FOCUS_ALL, control.name)
 		for control: Node in menu.get_node(page).find_children("*", "BaseButton", true, true):

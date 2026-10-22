@@ -42,19 +42,25 @@ theme_override_constants/separation = 10
 
 [node name="SoundTab" type="Button" parent="Panel/Box/Tabs"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(130, 0)
+custom_minimum_size = Vector2(110, 0)
 toggle_mode = true
 text = "Sound"
 
 [node name="ControlsTab" type="Button" parent="Panel/Box/Tabs"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(130, 0)
+custom_minimum_size = Vector2(110, 0)
 toggle_mode = true
 text = "Controls"
 
+[node name="KeysTab" type="Button" parent="Panel/Box/Tabs"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(110, 0)
+toggle_mode = true
+text = "Keys"
+
 [node name="GraphicsTab" type="Button" parent="Panel/Box/Tabs"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(130, 0)
+custom_minimum_size = Vector2(110, 0)
 toggle_mode = true
 text = "Graphics"
 
@@ -206,6 +212,23 @@ unique_name_in_owner = true
 custom_minimum_size = Vector2(64, 0)
 modulate = Color(1, 1, 1, 0.7)
 horizontal_alignment = 2
+
+[node name="Keys" type="VBoxContainer" parent="Panel/Box"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 216)
+theme_override_constants/separation = 14
+
+[node name="KeyRows" type="GridContainer" parent="Panel/Box/Keys"]
+unique_name_in_owner = true
+theme_override_constants/h_separation = 18
+theme_override_constants/v_separation = 10
+columns = 4
+
+[node name="ResetKeys" type="Button" parent="Panel/Box/Keys"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(200, 0)
+size_flags_horizontal = 4
+text = "Reset to defaults"
 
 [node name="Graphics" type="VBoxContainer" parent="Panel/Box"]
 unique_name_in_owner = true
