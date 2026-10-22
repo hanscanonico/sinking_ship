@@ -52,7 +52,7 @@ func test_a_ship_is_named_and_struck_in_her_own_sea() -> void:
 	var match_rules := _rules()
 	assert_eq(
 		Fleet.names(),
-		PackedStringArray(["barque", "ferry", "steamer", "titanic", "trawler", "tug"]),
+		PackedStringArray(["barque", "ferry", "freighter", "steamer", "titanic", "trawler", "tug"]),
 		"the fleet is data/ships/"
 	)
 	assert_eq(Fleet.name_of(match_rules.ship), &"steamer", "the steamer stays the default")

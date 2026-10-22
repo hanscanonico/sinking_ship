@@ -72,6 +72,16 @@ const BANDS := {
 		"gone within 20 min of physics": [5, 25],
 		"breaks (in two or three, SH33)": [0, 0],
 	},
+	# SH38: breaking in two her signature, her hatch row's weak girder.
+	"freighter":
+	{
+		"survives": [15, 40],
+		"founders upright, by the head or the stern": [50, 80],
+		"heavy list (≥ 15° for ≥ 5 min afloat)": [0, 10],
+		"capsizes (rolled past 90°)": [0, 5],
+		"gone within 20 min of physics": [20, 50],
+		"breaks (in two or three, SH33)": [20, 50],
+	},
 	# SH36: by the stern, every time she goes — the one big engine room — and in minutes
 	# once her casing door lets her towing deck's sea in; too stiff to list or roll over.
 	"tug":
