@@ -228,6 +228,7 @@ size_flags_horizontal = 3
 [node name="WindowModeSpacer" type="Control" parent="Panel/Box/Graphics/GraphicsChoices"]
 
 [node name="VSyncLabel" type="Label" parent="Panel/Box/Graphics/GraphicsChoices"]
+unique_name_in_owner = true
 text = "VSync"
 
 [node name="VSync" type="CheckButton" parent="Panel/Box/Graphics/GraphicsChoices"]
@@ -235,6 +236,7 @@ unique_name_in_owner = true
 size_flags_horizontal = 0
 
 [node name="VSyncSpacer" type="Control" parent="Panel/Box/Graphics/GraphicsChoices"]
+unique_name_in_owner = true
 
 [node name="MaxFpsLabel" type="Label" parent="Panel/Box/Graphics/GraphicsChoices"]
 text = "Max FPS"

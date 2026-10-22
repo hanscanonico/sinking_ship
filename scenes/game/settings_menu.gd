@@ -24,6 +24,9 @@ var _audio: AudioSettings
 var _view: ViewSettings
 ## What had the focus when the screen opened, to hand it back on closing.
 var _opener: Control
+## In a browser, which draws at its own pace and fills the screen one way: VSync and
+## the exclusive mode, which would do nothing there, are not offered.
+var on_web := OS.has_feature("web")
 
 @onready var _master: HSlider = %Master
 @onready var _music: HSlider = %Music
@@ -50,7 +53,10 @@ func _ready() -> void:
 	_effects.value_changed.connect(_on_volume)
 	_window_mode.add_item("Windowed", ViewSettings.WindowMode.WINDOWED)
 	_window_mode.add_item("Borderless fullscreen", ViewSettings.WindowMode.BORDERLESS)
-	_window_mode.add_item("Exclusive fullscreen", ViewSettings.WindowMode.EXCLUSIVE)
+	if not on_web:
+		_window_mode.add_item("Exclusive fullscreen", ViewSettings.WindowMode.EXCLUSIVE)
+	for vsync_row: Control in [%VSyncLabel, _vsync, %VSyncSpacer]:
+		vsync_row.visible = not on_web
 	_window_mode.item_selected.connect(_on_window)
 	_vsync.toggled.connect(_on_window)
 	for fps: int in ViewSettings.MAX_FPS_CHOICES:
@@ -80,7 +86,11 @@ func open(page := Page.SOUND) -> void:
 	_master.set_value_no_signal(_audio.master * 100.0)
 	_music.set_value_no_signal(_audio.music * 100.0)
 	_effects.set_value_no_signal(_audio.effects * 100.0)
-	_window_mode.select(_window_mode.get_item_index(_view.window_mode))
+	# Exclusive, where it is not offered, fills the screen as borderless does.
+	var mode := _window_mode.get_item_index(_view.window_mode)
+	if mode < 0:
+		mode = _window_mode.get_item_index(ViewSettings.WindowMode.BORDERLESS)
+	_window_mode.select(mode)
 	_vsync.set_pressed_no_signal(_view.vsync)
 	# A cap saved off the list shows as none until the player picks one.
 	_max_fps.select(maxi(_max_fps.get_item_index(_view.max_fps), 0))

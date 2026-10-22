@@ -82,6 +82,11 @@ func test_fov_and_volume_are_clamped() -> void:
 	assert_eq(view.view_kick, 1.0)
 	view.view_kick = -0.5
 	assert_eq(view.view_kick, 0.0)
+	# As a file off the list would set it.
+	view.set(&"window_mode", 7)
+	assert_eq(view.window_mode, ViewSettings.WindowMode.EXCLUSIVE)
+	view.set(&"window_mode", -1)
+	assert_eq(view.window_mode, ViewSettings.WindowMode.WINDOWED)
 	var audio := AudioSettings.new()
 	audio.master = 1.5
 	audio.music = -0.2
@@ -163,6 +168,26 @@ func test_the_graphics_page_picks_the_window_mode_vsync_and_the_frame_cap() -> v
 	assert_false(saved.vsync)
 	shared.max_fps = 0
 	shared.vsync = true
+
+
+func test_a_browser_is_not_offered_vsync_or_the_exclusive_mode() -> void:
+	var shared := ViewSettings.local()
+	shared.window_mode = ViewSettings.WindowMode.EXCLUSIVE
+	var menu: SettingsMenu = autofree(SETTINGS_MENU.instantiate())
+	menu.on_web = true
+	menu.audio_path = AUDIO_PATH
+	menu.view_path = VIEW_PATH
+	add_child(menu)
+	menu.open(SettingsMenu.Page.GRAPHICS)
+	var mode: OptionButton = menu.get_node("%WindowMode")
+	assert_eq(mode.item_count, 2)
+	assert_eq(mode.get_item_index(ViewSettings.WindowMode.EXCLUSIVE), -1)
+	assert_eq(mode.get_selected_id(), ViewSettings.WindowMode.BORDERLESS, "exclusive, as it shows")
+	for row: String in ["%VSyncLabel", "%VSync", "%VSyncSpacer"]:
+		assert_false(menu.get_node(row).visible, row)
+	assert_true(menu.get_node("%MaxFps").visible, "a browser keeps the frame cap")
+	menu.close()
+	shared.window_mode = ViewSettings.WindowMode.WINDOWED
 
 
 func test_graphics_are_this_machine_s_own_until_the_player_picks_them() -> void:

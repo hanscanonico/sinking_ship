@@ -42,7 +42,9 @@ static var _shared: WeakRef
 @export_range(0.0, 1.0) var view_kick: float = 1.0:
 	set(value):
 		view_kick = clampf(value, 0.0, 1.0)
-@export var window_mode: WindowMode = WindowMode.WINDOWED
+@export var window_mode: WindowMode = WindowMode.WINDOWED:
+	set(value):
+		window_mode = clampi(value, 0, WindowMode.size() - 1) as WindowMode
 @export var vsync: bool = true
 ## The most frames a second the game draws, 0 for no cap.
 @export_range(0, 240) var max_fps: int = 0:
@@ -102,8 +104,8 @@ func _set(property: StringName, value: Variant) -> bool:
 
 ## Puts the window in its mode, and VSync and the frame cap as chosen. VSync on and
 ## no cap are the engine's own defaults: unless [param overrule_launch] (the player
-## just chose them), those leave the launch's own be, so --disable-vsync and
-## --max-fps still measure what they ask for.
+## just chose them), those leave the launch's own be, so for a player who kept them
+## --disable-vsync and --max-fps still hold.
 func apply_window(overrule_launch := false) -> void:
 	var mode: DisplayServer.WindowMode = [
 		DisplayServer.WINDOW_MODE_WINDOWED,
