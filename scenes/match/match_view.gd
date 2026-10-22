@@ -77,8 +77,16 @@ var _waders_tick := -1
 
 ## Draws [param sim]'s match as [param driver] steps it; [param local_seat] gets a
 ## marker overhead (look_out_of), and each correction to its predicted body is drawn
-## away over [param correction_time] seconds (D12).
-func setup(driver: SimDriver, sim: MatchSim, local_seat: int, correction_time: float = 0.0) -> void:
+## away over [param correction_time] seconds (D12). The ship is drawn as [param dressing]
+## dressed her, its art taking the place of the ship's own; with none she is dressed here
+## and now, which takes seconds (ShipDressing).
+func setup(
+	driver: SimDriver,
+	sim: MatchSim,
+	local_seat: int,
+	correction_time: float = 0.0,
+	dressing: ShipDressing = null
+) -> void:
 	if _driver != null:
 		_driver.corrected.disconnect(_on_corrected)
 	_driver = driver
@@ -95,24 +103,22 @@ func setup(driver: SimDriver, sim: MatchSim, local_seat: int, correction_time: f
 	var leaves := ShipPieces.leaves_of(_schedule)
 	_broken = not leaves.is_empty()
 	_aft = leaves[0] if _broken else 0
-	var falls: Array[StringName] = []
-	for scheduled: SinkSchedule.Scheduled in _schedule.scheduled():
-		if scheduled.event.kind == SinkEvent.Kind.COLLAPSE:
-			falls.append(scheduled.event.platform)
-	# Any railing may break (SH10), not only those the scenario fails.
-	var fails := PackedInt32Array(range(ship.railings.size()))
+	var stretches: Array[ShipArt] = []
 	if _greybox.visible:
 		_greybox.build(_pieces.layout(leaves[0]) if _broken else ship, rules.railing_height)
 		_crates = _greybox.crates()
 	else:
-		_art.span = ShipPieces.first_span(_schedule)
-		_art.build(ship, rules.railing_height, rules.body_radius, falls, fails, _open_ports())
+		if dressing == null:
+			dressing = ShipDressing.new(sim.config, _art.cut_above)
+		dressing.finish()
+		_wear(dressing.art)
+		stretches = dressing.stretches
 		_crates = _art.crates()
 	if _drawn_pieces == null:
 		_drawn_pieces = ShipPieces.new()
 		_drawn_pieces.name = "Pieces"
 		add_child(_drawn_pieces)
-	_drawn_pieces.setup(sim, _ship, _art, _greybox, falls, fails, _open_ports())
+	_drawn_pieces.setup(sim, _ship, _art, _greybox, stretches)
 	_sinking_tick = -1
 	for body: Brawler in _bodies:
 		body.queue_free()
@@ -130,16 +136,45 @@ func setup(driver: SimDriver, sim: MatchSim, local_seat: int, correction_time: f
 	_process(0.0)
 
 
-## The middles of the portholes the match's hit left open: drawn open.
-func _open_ports() -> PackedVector3Array:
+## The ship's dressed art as drawn: what setup's dressing made.
+func art() -> ShipArt:
+	return _art
+
+
+## The platforms [param schedule]'s sinking collapses: built to fall.
+static func falls_of(schedule: SinkSchedule) -> Array[StringName]:
+	var falls: Array[StringName] = []
+	for scheduled: SinkSchedule.Scheduled in schedule.scheduled():
+		if scheduled.event.kind == SinkEvent.Kind.COLLAPSE:
+			falls.append(scheduled.event.platform)
+	return falls
+
+
+## The middles of the portholes of [param structure] that [param schedule]'s hit left
+## open: drawn open.
+static func open_ports_of(schedule: SinkSchedule, structure: ShipStructure) -> PackedVector3Array:
 	var found := PackedVector3Array()
-	var damage := _schedule.damage()
-	if damage == null or _structure == null:
+	var damage := schedule.damage()
+	if damage == null or structure == null:
 		return found
-	for opening: ShipOpening in _structure.openings:
+	for opening: ShipOpening in structure.openings:
 		if opening.kind == ShipOpening.Kind.PORTHOLE and opening.name in damage.left_open:
 			found.append(opening.centre)
 	return found
+
+
+## Draws the ship as [param dressed] — a ShipArt built outside the tree — in place of
+## the art drawn so far, which goes; as visible as that was.
+func _wear(dressed: ShipArt) -> void:
+	if dressed == _art:
+		return
+	var at := _art.get_index()
+	dressed.visible = _art.visible
+	_ship.remove_child(_art)
+	_art.queue_free()
+	_ship.add_child(dressed)
+	_ship.move_child(dressed, at)
+	_art = dressed
 
 
 ## Draws every seat but [param seat] from now on — the view is in its eyes — or

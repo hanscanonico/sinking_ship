@@ -38,17 +38,11 @@ static func leaves_of(schedule: SinkSchedule) -> PackedInt32Array:
 
 
 ## Draws every piece of [param sim]'s ship past the first, which [param ship] — its node
-## — [param art] and [param greybox] draw: dressed as [param art] is built, with
-## [param falls], [param fails] and [param open_ports] as MatchView builds it, or as the
-## greybox while [param greybox] is visible.
+## — [param art] and [param greybox] draw: dressed as [param art] is, each stretch past the
+## first one of [param stretches] (stretches_of), or as the greybox while [param greybox]
+## is visible.
 func setup(
-	sim: MatchSim,
-	ship: Node3D,
-	art: ShipArt,
-	greybox: ShipGreybox,
-	falls: Array[StringName],
-	fails: PackedInt32Array,
-	open_ports: PackedVector3Array
+	sim: MatchSim, ship: Node3D, art: ShipArt, greybox: ShipGreybox, stretches: Array[ShipArt]
 ) -> void:
 	for child: Node in get_children():
 		child.queue_free()
@@ -82,8 +76,6 @@ func setup(
 			_greyboxes[at].cut_above = greybox.cut_above
 			holder.add_child(_greyboxes[at])
 			_greyboxes[at].build(_pieces.layout(leaf), rules.railing_height)
-	var bare: ShipLayout = sim.config.ship.duplicate()
-	bare.props = []
 	for cut in _cuts.size():
 		var middle := (_cuts[cut].x + _cuts[cut].y) * 0.5
 		var at := 0
@@ -95,18 +87,44 @@ func setup(
 		elif cut == 0:
 			_arts.append(art)
 		else:
-			var dressed := ShipArt.new()
-			dressed.name = "Stretch%d" % cut
-			dressed.cut_above = art.cut_above
-			dressed.span = _cuts[cut]
+			var dressed := stretches[cut - 1]
 			_holders[at].add_child(dressed)
-			dressed.build(bare, rules.railing_height, rules.body_radius, falls, fails, open_ports)
 			_arts.append(dressed)
 
 
 ## The node the [param at]th piece she ends in is drawn under.
 func holder(at: int) -> Node3D:
 	return _holders[at]
+
+
+## Every stretch of [param ship] past the first that [param schedule]'s sinking cuts her
+## into (cuts_of), aft to fore, each a ShipArt kept to it — none for a hull that never
+## breaks — built outside the tree, cut away above [param cut_above], with [param falls],
+## [param fails] and [param open_ports] as her first stretch is (ShipDressing), for setup
+## to hang on their pieces. The crates are her first stretch's to draw.
+static func stretches_of(
+	ship: ShipLayout,
+	schedule: SinkSchedule,
+	rules: BrawlRules,
+	cut_above: float,
+	falls: Array[StringName],
+	fails: PackedInt32Array,
+	open_ports: PackedVector3Array
+) -> Array[ShipArt]:
+	var found: Array[ShipArt] = []
+	var cuts := cuts_of(schedule)
+	if cuts.size() < 2:
+		return found
+	var bare: ShipLayout = ship.duplicate()
+	bare.props = []
+	for cut in range(1, cuts.size()):
+		var dressed := ShipArt.new()
+		dressed.name = "Stretch%d" % cut
+		dressed.cut_above = cut_above
+		dressed.span = cuts[cut]
+		dressed.build(bare, rules.railing_height, rules.body_radius, falls, fails, open_ports)
+		found.append(dressed)
+	return found
 
 
 ## The stretches her dressed art is cut into, aft to fore, when [param schedule]'s

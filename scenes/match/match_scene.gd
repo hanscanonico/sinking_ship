@@ -23,6 +23,9 @@ var choices: MatchChoices
 ## A local match's replay, recorded once it ended or as it was left (save_replay): what
 ## the results offer to watch again; null until then, and for an online match.
 var last_replay: ReplayFile
+## Her ship dressed for the next match or replay started here (ShipDressing), taken as it
+## starts; with none she is dressed as it starts, a frame of seconds.
+var dressing: ShipDressing
 
 const LOCAL_SEAT := 0
 ## The gaze through another seat's eyes, in degrees above the horizon: at a level
@@ -413,11 +416,16 @@ func _setup_view(
 	_stats = MatchStats.new(config.seats, config.countdown_ticks)
 	_order = SpectateOrder.new(_eye_seat, _stats)
 	_names = names
-	_greybox.cut_above = observer_cut if observer else INF
+	_greybox.cut_above = cut_of(observer, observer_cut)
 	_ship_art.cut_above = _greybox.cut_above
 	_greybox.visible = greybox
 	_ship_art.visible = not _greybox.visible
-	_view.setup(_driver, sim, _local_seat, net_rules.correction_time)
+	if dressing != null and (greybox or not dressing.fits(config, _greybox.cut_above)):
+		dressing.drop()
+		dressing = null
+	_view.setup(_driver, sim, _local_seat, net_rules.correction_time, dressing)
+	dressing = null
+	_ship_art = _view.art()
 	_view.look_out_of(-1 if observer else _eye_seat)
 	_hud.setup(sim)
 	_marks.setup(_driver, _view, sim)
@@ -801,6 +809,12 @@ func _deck_bounds(layout: ShipLayout) -> Rect2:
 	for platform: ShipPlatform in layout.platforms:
 		bounds = bounds.merge(platform.area)
 	return bounds
+
+
+## How high up the ship is cut away (ShipArt.cut_above): at [param observer_cut] for
+## the observer camera when [param observer] says it looks, nowhere through eyes.
+static func cut_of(observer: bool, observer_cut: float) -> float:
+	return observer_cut if observer else INF
 
 
 static func _seat_names(seats: int) -> PackedStringArray:
