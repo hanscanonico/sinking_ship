@@ -1,11 +1,15 @@
 class_name KeyBindings
 extends RefCounted
 ## The keys of play the player chose over the project's: at most one key or mouse
-## button for each of the move's four ways, jump, shove, brace and pause. An action
-## left unchosen keeps the project's keys. A chosen one heads the action's keys in
-## place of the project's first of its kind — a key for a key, a mouse button for a
-## mouse button — so the arrows still move and a click still shoves; an alternate
-## another action is given goes from this one. The pad's bindings are never touched.
+## button for each of the move's four ways, jump, shove, brace and pause, and for
+## the switch of view and the free camera once out — one set, so a key of play
+## never also answers to watching (#257). An action left unchosen keeps the
+## project's keys. A chosen one heads the action's keys in place of the project's
+## first of its kind — a key for a key, a mouse button for a mouse button — so the
+## arrows still move and a click still shoves; an alternate another action is given
+## goes from this one. The pad's bindings are never touched. The switches of view
+## also switch seats in replays, which hear their own keys and Esc first, so a bind
+## that would leave either on one of those is refused (IN_REPLAYS).
 ## The settings screen saves them at PATH; Game applies them to the input map as it
 ## boots, and InputFrame reads actions, never keys, so the sim sees none of it (D3).
 ##
@@ -25,6 +29,9 @@ const ACTIONS: Array[StringName] = [
 	&"shove",
 	&"brace",
 	&"pause",
+	&"spectate_previous",
+	&"spectate_next",
+	&"spectate_free",
 ]
 ## Each action's name on the settings screen.
 const TITLES := {
@@ -36,7 +43,20 @@ const TITLES := {
 	&"shove": "Shove",
 	&"brace": "Brace",
 	&"pause": "Pause",
+	&"spectate_previous": "Previous view",
+	&"spectate_next": "Next view",
+	&"spectate_free": "Free camera",
 }
+
+## The actions that also act in replays, where a replay's own keys and Esc are heard
+## before them: none of them may hold one of those.
+const IN_REPLAYS: Array[StringName] = [&"spectate_previous", &"spectate_next"]
+## The project's actions whose keys a replay hears before the switches of view.
+const REPLAY_PREFIX := "input/replay_"
+const REPLAY_CLOSE: StringName = &"ui_cancel"
+## The mouse buttons a replay's orbit drags and pans with (OrbitCamera.drag), whose
+## presses a replay hears before the switches of view too.
+const REPLAY_DRAGS: Array[MouseButton] = [MOUSE_BUTTON_LEFT, MOUSE_BUTTON_MIDDLE]
 
 ## A wheel's turns are not buttons a player holds.
 const WHEEL: Array[MouseButton] = [
@@ -49,6 +69,9 @@ const WHEEL: Array[MouseButton] = [
 ## The one instance the game applies and the settings screen edits while either
 ## holds it. Weak, as AudioSettings' is.
 static var _shared: WeakRef
+
+## The keys a replay hears before the switches of view, read once.
+static var _replay_keys: Array[InputEvent] = []
 
 ## The player's key or mouse button for each action they rebound.
 var chosen: Dictionary[StringName, InputEvent] = {}
@@ -64,7 +87,8 @@ static func local() -> KeyBindings:
 
 
 ## The bindings saved at [param path] — anything in them that is not a key or mouse
-## button for an action that may be rebound left out — or none when there are none.
+## button for an action that may be rebound, or that puts a switch of view on a
+## replay's key, left out — or none when there are none.
 static func read(path: String) -> KeyBindings:
 	var bindings := KeyBindings.new()
 	var file := FileAccess.open(path, FileAccess.READ)
@@ -76,7 +100,7 @@ static func read(path: String) -> KeyBindings:
 	var saved: Dictionary = json.data
 	for action: StringName in ACTIONS:
 		var event := _from_json(saved.get(String(action)))
-		if event != null:
+		if event != null and not (action in IN_REPLAYS and _holds(replay_keys(), event)):
 			bindings.chosen[action] = event
 	return bindings
 
@@ -153,22 +177,47 @@ func shown(action: StringName) -> InputEvent:
 
 ## Binds [param event] to [param action]. An action shown with it takes
 ## [param action]'s old key in exchange; one that only had it as an alternate lets
-## it go. False when [param event] cannot be a binding or [param action] may not be
-## rebound.
+## it go. False when [param event] cannot be a binding, [param action] may not be
+## rebound, or it would leave a switch of view on a replay's key (clashes_in_replays).
 func bind(action: StringName, event: InputEvent) -> bool:
+	var bound := as_binding(event)
+	if bound == null or action not in ACTIONS or clashes_in_replays(action, bound):
+		return false
+	_put(action, bound)
+	return true
+
+
+## Whether binding [param event] to [param action] — the swap it makes included —
+## would leave an action IN_REPLAYS on a key a replay hears first, a replay's own or
+## Esc, where it could never switch the seat.
+func clashes_in_replays(action: StringName, event: InputEvent) -> bool:
 	var bound := as_binding(event)
 	if bound == null or action not in ACTIONS:
 		return false
-	var old := shown(action)
-	for other: StringName in ACTIONS:
-		if other != action and same_input(shown(other), bound):
-			if old != null:
-				chosen[other] = as_binding(old)
-			else:
-				chosen.erase(other)
-			break
-	chosen[action] = bound
-	return true
+	var trial := KeyBindings.new()
+	trial.chosen.assign(chosen)
+	trial._put(action, bound)
+	for switch: StringName in IN_REPLAYS:
+		for key: InputEvent in trial.keys_of(switch):
+			if _holds(replay_keys(), key):
+				return true
+	return false
+
+
+## The keys a replay hears before the switches of view: every replay action's, as
+## project.godot binds them, Esc's and the buttons its orbit drags with.
+static func replay_keys() -> Array[InputEvent]:
+	if _replay_keys.is_empty():
+		for property: Dictionary in ProjectSettings.get_property_list():
+			var setting: String = property["name"]
+			if setting.begins_with(REPLAY_PREFIX):
+				_replay_keys.append_array(defaults_of(StringName(setting.trim_prefix("input/"))))
+		_replay_keys.append_array(defaults_of(REPLAY_CLOSE))
+		for button: MouseButton in REPLAY_DRAGS:
+			var drag := InputEventMouseButton.new()
+			drag.button_index = button
+			_replay_keys.append(drag)
+	return _replay_keys
 
 
 ## Back to the project's keys for every action.
@@ -198,6 +247,20 @@ func apply() -> void:
 				InputMap.action_erase_event(action, event)
 		for event: InputEvent in keys_of(action):
 			InputMap.action_add_event(action, event)
+
+
+## [param bound] on [param action], the action shown with it given
+## [param action]'s old key.
+func _put(action: StringName, bound: InputEvent) -> void:
+	var old := shown(action)
+	for other: StringName in ACTIONS:
+		if other != action and same_input(shown(other), bound):
+			if old != null:
+				chosen[other] = as_binding(old)
+			else:
+				chosen.erase(other)
+			break
+	chosen[action] = bound
 
 
 func _given_elsewhere(action: StringName, key: InputEvent) -> bool:

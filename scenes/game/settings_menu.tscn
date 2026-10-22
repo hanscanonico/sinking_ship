@@ -20,10 +20,10 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -260.0
-offset_top = -250.0
-offset_right = 260.0
-offset_bottom = 250.0
+offset_left = -290.0
+offset_top = -279.0
+offset_right = 290.0
+offset_bottom = 279.0
 grow_horizontal = 2
 grow_vertical = 2
 
@@ -221,7 +221,7 @@ theme_override_constants/separation = 14
 [node name="KeyRows" type="GridContainer" parent="Panel/Box/Keys"]
 unique_name_in_owner = true
 theme_override_constants/h_separation = 18
-theme_override_constants/v_separation = 10
+theme_override_constants/v_separation = 6
 columns = 4
 
 [node name="ResetKeys" type="Button" parent="Panel/Box/Keys"]

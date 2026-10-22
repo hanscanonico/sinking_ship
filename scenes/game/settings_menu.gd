@@ -4,11 +4,11 @@ extends CanvasLayer
 ## tabs over them picks: Sound — master, music and effects volume; Controls — the
 ## first-person view's mouse sensitivity, invert Y, field of view, and the deck-roll
 ## and view-kick comfort sliders (D14, Q17, R15); Keys — the key or mouse button of
-## each action of play (KeyBindings), picked by pressing it; Graphics — the window
-## mode, VSync, a frame-rate cap, the graphics preset with a line on what it changes
-## (GraphicsQuality), and the 3D view's render scale, both this machine's own until
-## the player picks them. Each change applies as it is made; closing saves them under
-## user://.
+## each action of play and of spectating (KeyBindings), picked by pressing it;
+## Graphics — the window mode, VSync, a frame-rate cap, the graphics preset with a
+## line on what it changes (GraphicsQuality), and the 3D view's render scale, both
+## this machine's own until the player picks them. Each change applies as it is
+## made; closing saves them under user://.
 
 signal closed
 ## The first-person view or the graphics changed: whatever is on screen should take
@@ -17,6 +17,8 @@ signal view_changed(settings: ViewSettings)
 
 ## The pages, in the tabs' order.
 enum Page { SOUND, CONTROLS, KEYS, GRAPHICS }
+## What a waiting row says when a key was refused for being a replay's.
+const REFUSED := "Replay's key"
 
 ## Where closing saves the choices; a test points them elsewhere.
 var audio_path := AudioSettings.PATH
@@ -28,6 +30,8 @@ var _view: ViewSettings
 var _keys: KeyBindings
 ## The action whose row waits for the next key or mouse button, or none.
 var _rebinding: StringName = &""
+## Whether the waiting row's last key was refused for being a replay's.
+var _refused := false
 ## Each action's row button, by action.
 var _key_buttons := {}
 ## What had the focus when the screen opened, to hand it back on closing.
@@ -85,7 +89,7 @@ func _ready() -> void:
 		%KeyRows.add_child(title)
 		var key := Button.new()
 		key.name = "Key_%s" % action
-		key.custom_minimum_size = Vector2(150, 0)
+		key.custom_minimum_size = Vector2(120, 0)
 		key.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		key.pressed.connect(_listen.bind(action))
 		%KeyRows.add_child(key)
@@ -153,7 +157,8 @@ func close() -> void:
 
 
 ## While a row waits, the next key or mouse button binds its action — Esc, or the
-## pad's back, leaving it as it was — and nothing else hears it.
+## pad's back, leaving it as it was — and nothing else hears it. A key the action
+## may not take leaves it waiting, saying why when it is a replay's.
 func _input(event: InputEvent) -> void:
 	if not visible or _rebinding.is_empty() or not event.is_pressed() or event.is_echo():
 		return
@@ -164,6 +169,9 @@ func _input(event: InputEvent) -> void:
 		if _keys.bind(_rebinding, event):
 			_keys.apply()
 			_stop_listening()
+		else:
+			_refused = _keys.clashes_in_replays(_rebinding, event)
+			_show_keys()
 	elif event.is_action_pressed("ui_cancel"):
 		_stop_listening()
 	else:
@@ -223,12 +231,14 @@ func _on_render_scale(value: float) -> void:
 ## [param action]'s row waits for the key or mouse button to bind to it.
 func _listen(action: StringName) -> void:
 	_rebinding = action
+	_refused = false
 	_show_keys()
 
 
 func _stop_listening() -> void:
 	var action := _rebinding
 	_rebinding = &""
+	_refused = false
 	_show_keys()
 	if _key_buttons.has(action):
 		(_key_buttons[action] as Control).grab_focus()
@@ -236,12 +246,14 @@ func _stop_listening() -> void:
 
 func _on_reset_keys() -> void:
 	_rebinding = &""
+	_refused = false
 	_keys.reset()
 	_keys.apply()
 	_show_keys()
 
 
-## Each row's key, named as the hints name it, or the call to press one.
+## Each row's key, named as the hints name it, or the call to press one — or why
+## the last one pressed was refused.
 func _show_keys() -> void:
 	if _keys == null:
 		return
@@ -251,9 +263,9 @@ func _show_keys() -> void:
 		if shown != null:
 			events.append(shown)
 		var word := InputPrompts.word_for(events, false)
-		(_key_buttons[action] as Button).text = (
-			"Press a key…" if action == _rebinding else (word if not word.is_empty() else "—")
-		)
+		if action == _rebinding:
+			word = REFUSED if _refused else "Press a key…"
+		(_key_buttons[action] as Button).text = word if not word.is_empty() else "—"
 
 
 func _show_values() -> void:
