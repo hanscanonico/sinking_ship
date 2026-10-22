@@ -98,8 +98,15 @@ func remove(peer: int, beat: int) -> void:
 
 
 ## Starts [param config]'s match: a seat for each player, in order, from
-## [param bots] — one per seat, by id — the rest of them bots.
-func start(config: MatchConfig, net_rules: NetRules, bots: Array[InputSource], beat: int) -> void:
+## [param bots] — one per seat, by id — the rest of them bots. It speaks [param codec],
+## the room protocol's (RoomServer.data_hash) — or, with none, the match's own.
+func start(
+	config: MatchConfig,
+	net_rules: NetRules,
+	bots: Array[InputSource],
+	beat: int,
+	codec: WireCodec = null
+) -> void:
 	var sources := bots.duplicate()
 	_seats.clear()
 	for index in members.size():
@@ -108,7 +115,7 @@ func start(config: MatchConfig, net_rules: NetRules, bots: Array[InputSource], b
 		var seat := ClientSeat.new(SeatBuffer.new(index), bots[index])
 		_seats[index] = seat
 		sources[index] = seat
-	host = MatchHost.new(MatchRunner.new(MatchSim.create(config), sources), wire, net_rules)
+	host = MatchHost.new(MatchRunner.new(MatchSim.create(config), sources), wire, net_rules, codec)
 	for player: Member in members:
 		host.admit(player.peer, _seats[player.seat].buffer)
 	wire.sent_bytes.clear()

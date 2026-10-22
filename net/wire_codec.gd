@@ -17,7 +17,9 @@ extends RefCounted
 ## error here and lost on the wire, which test_wire_codec's round trip, walking the
 ## snapshot's own keys, fails on (R2).
 
-const PROTOCOL_VERSION := 6
+## 7: BEGIN carries the match's pace, so a client of 6 — which would build its match
+## paced and play the server's fast one out of step — is refused VERSION at its HELLO.
+const PROTOCOL_VERSION := 7
 ## The build of what plays a match — core/, ai/ and net/ — bumped by hand whenever a
 ## change there would play the same data differently: part of every match's hash, so
 ## two builds that would not agree are refused as other data.

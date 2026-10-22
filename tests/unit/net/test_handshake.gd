@@ -51,6 +51,20 @@ func test_net_rules_mismatch_is_refused() -> void:
 	assert_false(fixture.logged("said hello"), "never welcomed")
 
 
+## The pace is the server's, told in BEGIN, so either clock may be the one played: a
+## client whose fast_clock differs would build another match from a fast BEGIN, and is
+## refused as other data at its HELLO rather than left to play out of step.
+func test_fast_clock_mismatch_is_refused() -> void:
+	var fixture := RoomFixtures.new()
+	var changed: MatchRules = fixture.match_rules.duplicate()
+	changed.fast_clock += 1.0
+	var client := fixture.connect_client("Changed", changed)
+	fixture.beat()
+	assert_eq(client.state, RoomClient.State.CLOSED)
+	assert_eq(client.close_reason, RoomCodec.Refusal.DATA, "refused for its fast clock")
+	assert_false(fixture.logged("said hello"), "never welcomed")
+
+
 ## A packet of the server's own, read by a client of another version, is the
 ## server's refusal too: either end can tell.
 func test_a_client_reads_another_version_as_a_refusal() -> void:

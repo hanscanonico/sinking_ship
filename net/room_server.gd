@@ -118,9 +118,28 @@ func _init(
 
 
 ## The hash a client's data must match: every match of [param match_rules] played to
-## [param net_rules] has it, whatever its seed or seats (WireCodec.match_hash).
+## [param net_rules] has it, whatever its seed, seats or pace — the match_hash of each
+## pace's match (config_for), hashed together, so a client whose paced or fast clock
+## differs is refused at its HELLO. A room's match speaks it too, its pace told in
+## BEGIN rather than hashed, so a client learns which it plays only as the match begins.
 static func data_hash(match_rules: MatchRules, net_rules: NetRules) -> String:
-	return WireCodec.match_hash(MatchConfig.from_rules(match_rules, 0), net_rules)
+	var paces := PackedStringArray()
+	for fast: bool in [false, true]:
+		paces.append(WireCodec.match_hash(config_for(match_rules, 0, fast), net_rules))
+	return "|".join(paces).sha256_text()
+
+
+## A room's match of [param match_rules]: [param match_seed], [param seat_count] seats
+## — the data's when 0 —, her sinking on the data's fast_clock when [param fast]
+## (MatchConfig.quickened). The server builds it with its ServerRules.fast, and each
+## player with the pace BEGIN carried — never its own — so both play the one match.
+static func config_for(
+	match_rules: MatchRules, match_seed: int, fast: bool, seat_count: int = 0
+) -> MatchConfig:
+	var config := MatchConfig.from_rules(match_rules, match_seed, seat_count)
+	if fast:
+		config.scenario = MatchConfig.quickened(config.scenario, match_rules.fast_clock)
+	return config
 
 
 ## Every reason a server of these rules cannot run; empty when it can.
@@ -359,9 +378,9 @@ func _start(connection: Connection) -> void:
 		_refuse(connection, RoomCodec.Refusal.BUSY)
 		return
 	_count_build(connection)
-	var config := MatchConfig.from_rules(_match_rules, match_seed)
+	var config := config_for(_match_rules, match_seed, _rules.fast)
 	var bots := BotInputSource.fill(config, BotProfile.for_tier(config.bot_tier))
-	at.start(config, _net, bots, _beat)
+	at.start(config, _net, bots, _beat, _codec.wire)
 	# The server bakes the sinking; its players receive it, checked against its digest.
 	var schedule := at.host.runner.sim.schedule
 	var digest := ""
@@ -377,12 +396,20 @@ func _start(connection: Connection) -> void:
 			member.heard = _beat
 			member.loading = true
 		players.append("%s seat %d" % [player.name, player.seat])
-		var begin := _codec.encode_begin(config.match_seed, config.seats, player.seat, digest)
+		var begin := _codec.encode_begin(
+			config.match_seed, config.seats, player.seat, _rules.fast, digest
+		)
 		_wire.send(player.peer, begin)
 	_say(
 		(
-			"room %s: match begins · seed %d · %d seats · %s · bots on the rest"
-			% [at.code, config.match_seed, config.seats, ", ".join(players)]
+			"room %s: match begins · seed %d · %d seats · %s sinking · %s · bots on the rest"
+			% [
+				at.code,
+				config.match_seed,
+				config.seats,
+				"fast" if _rules.fast else "paced",
+				", ".join(players),
+			]
 		)
 	)
 	_send_rosters(at)

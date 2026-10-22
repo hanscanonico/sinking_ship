@@ -5,7 +5,8 @@ extends RefCounted
 ## as the connection opens; then, on the caller's word, it creates a room, joins one
 ## by its code, starts the match as the room's host, or leaves. What the server says
 ## comes back as signals and in [member state] and [member roster]. As a match
-## begins, [signal began] gives its config and this client's seat, and play() the
+## begins, [signal began] gives its config — at the pace BEGIN said, the server's,
+## never this end's own — and this client's seat, and play() the
 ## RemoteMatch a SimDriver steps, the server's snapshots routed to it from here.
 ## poll() reads the wire: call it every frame, a match on or not.
 ##
@@ -105,7 +106,9 @@ func hang_up() -> void:
 ## client's seat: the RemoteMatch to step.
 func play(source: InputSource) -> RemoteMatch:
 	_share = SharedTransport.new(_wire)
-	return RemoteMatch.new(MatchClient.new(_config, _net, _share, _server, _seat, source))
+	return RemoteMatch.new(
+		MatchClient.new(_config, _net, _share, _server, _seat, source, {}, _codec.wire)
+	)
 
 
 ## Reads what has come: the connection opening or closing, the server's answers, its
@@ -182,7 +185,7 @@ func _begin(message: RoomCodec.Message) -> void:
 	var seats := message.seats
 	if seats < _match_rules.ship.min_seats or seats > _match_rules.ship.max_seats:
 		return
-	_config = MatchConfig.from_rules(_match_rules, message.value, seats)
+	_config = RoomServer.config_for(_match_rules, message.value, message.fast, seats)
 	_seat = message.seat
 	state = State.PLAYING
 	_digest = message.text
