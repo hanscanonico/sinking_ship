@@ -93,16 +93,9 @@ func _play_match(room: RoomScreen) -> bool:
 	if scene == null:
 		return false
 	_say("playing")
-	var results: EndOverlay = scene.get_node("EndOverlay")
-	var from := Time.get_ticks_msec()
-	while not results.visible:
-		if Time.get_ticks_msec() - from > MATCH_SECONDS * 1000.0:
-			_fail("the results")
-			return false
-		_move_hands()
-		await create_timer(HANDS_SECONDS).timeout
-	for action: StringName in HANDS:
-		Input.action_release(action)
+	var results := await _results(scene)
+	if results == null:
+		return false
 	var back: Button = results.get_node("%Rematch")
 	if not await _until(func() -> bool: return not back.disabled, "the results' buttons"):
 		return false
@@ -115,6 +108,26 @@ func _play_match(room: RoomScreen) -> bool:
 		return false
 	_say("back in room %s" % (room.get_node("%Code") as Label).text)
 	return true
+
+
+## [param scene]'s match played with the hands until its results show: them, or null
+## when they never do — in MATCH_SECONDS, or at all, the server having let this player
+## go and the scene been freed as the game dropped back to the Online screen.
+func _results(scene: MatchScene) -> EndOverlay:
+	var results: EndOverlay = scene.get_node("EndOverlay")
+	var from := Time.get_ticks_msec()
+	while not (is_instance_valid(results) and results.visible):
+		if not is_instance_valid(results) or scene.is_queued_for_deletion():
+			_fail("the results: the match was let go")
+			return null
+		if Time.get_ticks_msec() - from > MATCH_SECONDS * 1000.0:
+			_fail("the results")
+			return null
+		_move_hands()
+		await create_timer(HANDS_SECONDS).timeout
+	for action: StringName in HANDS:
+		Input.action_release(action)
+	return results
 
 
 ## The room screen, once the room shows.
