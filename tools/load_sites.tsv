@@ -72,6 +72,8 @@ tests/unit/core/test_survival_transcript.gd	FileAccess.get_file_as_string(path)	
 tests/unit/core/test_survival_transcript.gd	load(RunMatch.DEFAULT_MATCH)	data/match/default.tres
 tests/unit/core/test_wrecks.gd	load(path)	tests/fixtures/wrecks/*.tres
 tests/unit/core/titanic_sisters.gd	load(HITS % hit_name)	tests/fixtures/sinking/hits/*.tres
+tests/unit/game/test_credits_menu.gd	DirAccess.get_directories_at(folder)	assets/audio/* assets/fonts/*
+tests/unit/game/test_credits_menu.gd	DirAccess.get_files_at(folder)	assets/audio/* assets/fonts/*
 tests/unit/game/test_settings.gd	FileAccess.file_exists(path)	-
 tests/unit/game/test_ui_theme.gd	load(screen)	scenes/online/*.tscn
 tests/unit/match/test_fx_planner.gd	FileAccess.get_file_as_string("res://scenes/match/" + file)	scenes/match/*.gd
