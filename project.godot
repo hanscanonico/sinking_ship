@@ -10,10 +10,16 @@ config_version=5
 
 [application]
 
-config/name="Sinking Ship"
+config/name="Last One Dry"
+config/description="A first-person battle-royale brawl aboard a sinking ship: the last one dry wins."
+config/version="0.9.0"
 run/main_scene="res://scenes/game/game.tscn"
+config/use_custom_user_dir=true
+config/custom_user_dir_name="LastOneDry"
 config/features=PackedStringArray("4.7", "GL Compatibility")
 run/flush_stdout_on_print=true
+boot_splash/bg_color=Color(0.13333334, 0.14509805, 0.16862746, 1)
+config/icon="res://icon.svg"
 
 [autoload]
 

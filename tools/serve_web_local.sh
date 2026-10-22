@@ -24,7 +24,7 @@ WS_PORT=47985
 DEADLINE=7200
 STATE="build/serve-web-local"
 PIDS="$STATE/pids"
-SERVER_ENGINE="build/server-mac/SinkingShipServer.app/Contents/MacOS/Sinking Ship"
+SERVER_ENGINE="build/server-mac/SinkingShipServer.app/Contents/MacOS/Last One Dry"
 
 stop() {
 	[[ -f "$PIDS" ]] || return 0
