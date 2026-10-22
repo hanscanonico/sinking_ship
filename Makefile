@@ -209,8 +209,9 @@ online-e2e:
 #       Linux one: what `make serve-local EXPORTED=1` and serve-web-local run
 # They need Godot's export templates for the engine's exact version installed, which
 # CI has not: none is part of verify, and each stops first, saying where they belong,
-# when they are missing (tools/export_templates.sh). No export ships the godot_ai helper autoload (R11): the
-# plugin's export hook strips it from every pack, and every preset leaves addons/ out.
+# when they are missing (tools/export_templates.sh). No export ships the godot_ai
+# helper autoload (R11): the plugin's export hook strips it from every pack, and every
+# preset leaves addons/ out.
 define export-preset
 	$(call require-godot)
 	@tools/export_templates.sh "$(GODOT)"
