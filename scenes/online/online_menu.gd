@@ -53,11 +53,17 @@ func _ready() -> void:
 	_back.pressed.connect(back_requested.emit)
 	_settings = OnlineSettings.read(settings_path)
 	_name.text = _settings.player_name
-	_server.text = (
-		_settings.server_url
-		if not _settings.server_url.is_empty()
-		else "ws://127.0.0.1:%d" % _rules.port
-	)
+	_server.text = first_server(_settings.server_url, _rules)
+
+
+## The server the field starts on: the one [param saved] if any, else [param rules]'
+## default_server_url when it is a server's address, else this machine's own.
+static func first_server(saved: String, rules: ServerRules) -> String:
+	if not saved.is_empty():
+		return saved
+	if OnlineLink.is_server_url(rules.default_server_url):
+		return rules.default_server_url
+	return "ws://127.0.0.1:%d" % rules.port
 
 
 ## Shows the screen, [param note] — what went wrong, if anything — under the choices,

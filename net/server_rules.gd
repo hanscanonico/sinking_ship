@@ -14,6 +14,10 @@ const NAME_PUNCTUATION := " -_.'"
 ## loopback address keeps a dev server off the network.
 @export var port: int
 @export var bind_address: String
+## The server a native build's Online screen offers when the player has saved none —
+## the public one's wss://HOST/ws for a release (deploy/README.md) — or "" for this
+## machine's own on port. The screen ignores one that is not a ws:// or wss:// address.
+@export var default_server_url: String
 ## Frames a second a headless server or client runs at: its socket is looked at once
 ## a frame, and the match stepped at 30 Hz among them.
 @export var headless_fps: int
