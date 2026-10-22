@@ -62,9 +62,20 @@ func test_the_fold_opens_and_closes() -> void:
 	custom.button_pressed = true
 	assert_true(menu.custom_shown())
 	assert_eq(custom.get_node(custom.focus_neighbor_bottom), menu.get_node("%Seed"))
+	_assert_drawn_in_its_font(custom)
 	custom.button_pressed = false
 	assert_false(menu.custom_shown())
 	assert_eq(custom.get_node(custom.focus_neighbor_bottom), menu.get_node("%Play"))
+	_assert_drawn_in_its_font(custom)
+
+
+## Every character of [param button]'s text is in its own font: a web build has no
+## system font to fall back on, so a missing one draws as a box there.
+func _assert_drawn_in_its_font(button: Button) -> void:
+	var font := button.get_theme_font("font")
+	for index in button.text.length():
+		var code := button.text.unicode_at(index)
+		assert_true(font.has_char(code), "%s draws U+%04X" % [button.text, code])
 
 
 func test_credits_stands_between_replays_and_quit() -> void:

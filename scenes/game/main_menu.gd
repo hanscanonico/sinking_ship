@@ -188,11 +188,12 @@ func _offer_seats(seats: int, otherwise: int) -> void:
 	_seats.select(seat_index)
 
 
-## Opens or folds the seed and the pace, the fold's arrow and the way down from it
-## following.
+## Opens or folds the seed and the pace, the fold's mark and the way down from it
+## following. The mark is a plus or a minus: Playfair has no triangles, and a web build
+## has no system font to borrow one from.
 func _show_custom(shown: bool) -> void:
 	_custom_choices.visible = shown
-	_custom.text = ("▾ " if shown else "▸ ") + "Custom match"
+	_custom.text = ("− " if shown else "+ ") + "Custom match"
 	_custom.focus_neighbor_bottom = _custom.get_path_to(_seed if shown else _play)
 
 

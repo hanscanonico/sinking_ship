@@ -1,7 +1,8 @@
 extends GutTest
 ## The credits (CreditsMenu): the game's name, the asset register as plain text, the
 ## engine's licence and its third-party notices — the register packed into every
-## export that shows them — and a register that names every sound and font shipped.
+## export that shows them —, Back or Esc out of it and up and down scrolling it, and a
+## register that names every sound and font shipped.
 
 const LICENSES := "res://assets/LICENSES.md"
 const PRESETS := "res://export_presets.cfg"
@@ -20,6 +21,33 @@ func test_the_credits_carry_the_name_the_register_and_godots_notices() -> void:
 	assert_string_contains(text, component["name"], "the engine's third-party components")
 	for license: String in Engine.get_license_info():
 		assert_string_contains(text, license, "every licence they come under")
+
+
+func test_back_or_esc_returns_and_up_and_down_on_back_scroll() -> void:
+	var credits := CreditsMenu.new()
+	add_child_autofree(credits)
+	credits.open()
+	await wait_physics_frames(2)
+	var back: Button = credits.get_viewport().gui_get_focus_owner()
+	assert_eq(back.text, "Back", "Back holds the focus as it opens")
+	var bar := (credits.panel().find_child("Text", true, false) as RichTextLabel).get_v_scroll_bar()
+	assert_gt(bar.max_value, bar.page, "the credits run past the plate")
+	back.gui_input.emit(_action("ui_down"))
+	assert_eq(bar.value, CreditsMenu.SCROLL_STEP, "down on Back scrolls on")
+	back.gui_input.emit(_action("ui_up"))
+	assert_eq(bar.value, 0.0, "and up scrolls back")
+	watch_signals(credits)
+	credits._unhandled_input(_action("ui_cancel"))
+	assert_signal_emit_count(credits, "back_requested", 1, "Esc returns")
+	back.pressed.emit()
+	assert_signal_emit_count(credits, "back_requested", 2, "and so does Back")
+
+
+static func _action(action: String) -> InputEventAction:
+	var event := InputEventAction.new()
+	event.action = action
+	event.pressed = true
+	return event
 
 
 func test_the_register_reads_as_plain_text() -> void:
