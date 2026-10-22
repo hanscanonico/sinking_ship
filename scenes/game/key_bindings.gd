@@ -1,11 +1,13 @@
 class_name KeyBindings
 extends RefCounted
 ## The keys of play the player chose over the project's: at most one key or mouse
-## button for each of the move's four ways, jump, shove, brace and pause. An action
-## left unchosen keeps the project's keys. A chosen one heads the action's keys in
-## place of the project's first of its kind — a key for a key, a mouse button for a
-## mouse button — so the arrows still move and a click still shoves; an alternate
-## another action is given goes from this one. The pad's bindings are never touched.
+## button for each of the move's four ways, jump, shove, brace and pause, and for
+## the switch of view and the free camera once out — one set, so a key of play
+## never also answers to watching (#257). An action left unchosen keeps the
+## project's keys. A chosen one heads the action's keys in place of the project's
+## first of its kind — a key for a key, a mouse button for a mouse button — so the
+## arrows still move and a click still shoves; an alternate another action is given
+## goes from this one. The pad's bindings are never touched.
 ## The settings screen saves them at PATH; Game applies them to the input map as it
 ## boots, and InputFrame reads actions, never keys, so the sim sees none of it (D3).
 ##
@@ -25,6 +27,9 @@ const ACTIONS: Array[StringName] = [
 	&"shove",
 	&"brace",
 	&"pause",
+	&"spectate_previous",
+	&"spectate_next",
+	&"spectate_free",
 ]
 ## Each action's name on the settings screen.
 const TITLES := {
@@ -36,6 +41,9 @@ const TITLES := {
 	&"shove": "Shove",
 	&"brace": "Brace",
 	&"pause": "Pause",
+	&"spectate_previous": "Previous view",
+	&"spectate_next": "Next view",
+	&"spectate_free": "Free camera",
 }
 
 ## A wheel's turns are not buttons a player holds.

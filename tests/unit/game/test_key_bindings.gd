@@ -2,7 +2,8 @@ extends GutTest
 ## The keys of play are the player's to choose (non-QWERTY layouts, one hand): a
 ## choice outlives the game, heads its action's keys in place of the project's first
 ## of its kind and leaves the other alternates and the pad's alone, swaps with an
-## action shown with the key, and resets to the project's own.
+## action shown with the key, and resets to the project's own. The spectate keys
+## are of the same set, so a key of play never also switches the view once out.
 
 const PATH := "user://test_key_bindings.json"
 const SETTINGS_MENU := preload("res://scenes/game/settings_menu.tscn")
@@ -102,6 +103,40 @@ func test_an_alternate_another_action_is_given_leaves_it_without_a_swap() -> voi
 	assert_true(KeyBindings.same_input(brace[0], _key(KEY_SHIFT)))
 
 
+## An ESDF player's forward on E, or a brace on C, must not throw them out of the
+## free camera once they are out: the spectate keys swap like any other (#257).
+func test_a_play_key_never_answers_to_a_spectate_action_too() -> void:
+	var keys := KeyBindings.new()
+	assert_true(keys.bind(&"move_up", _key(KEY_E)))
+	assert_true(keys.bind(&"brace", _key(KEY_C)))
+	keys.apply()
+	var e := _key(KEY_E)
+	e.pressed = true
+	assert_true(e.is_action_pressed(&"move_up"))
+	assert_false(e.is_action_pressed(&"spectate_next"), "no key answers to two actions")
+	var c := _key(KEY_C)
+	c.pressed = true
+	assert_true(c.is_action_pressed(&"brace"))
+	assert_false(c.is_action_pressed(&"spectate_free"), "no key answers to two actions")
+	var spectating := InputPrompts.pause_controls_for(false, true)
+	assert_string_contains(spectating, "Q / W — switch view", "the next view took forward's W")
+	assert_string_contains(spectating, "Shift — free camera", "the free camera took brace's")
+
+
+func test_the_spectate_keys_rebind_and_swap_with_play() -> void:
+	var keys := KeyBindings.new()
+	assert_true(keys.bind(&"spectate_free", _key(KEY_SPACE)))
+	assert_true(KeyBindings.same_input(keys.shown(&"jump"), _key(KEY_C)), "jump takes C")
+	assert_true(keys.bind(&"spectate_previous", _key(KEY_LEFT)))
+	assert_false(keys.chosen.has(&"move_left"), "the arrow was only an alternate")
+	keys.apply()
+	var left := _key(KEY_LEFT)
+	left.pressed = true
+	assert_true(left.is_action_pressed(&"spectate_previous"))
+	assert_false(left.is_action_pressed(&"move_left"), "no key answers to two actions")
+	assert_eq(_pad_events(&"spectate_free").size(), 1, "the pad's kept")
+
+
 func test_only_keys_and_buttons_of_play_bind() -> void:
 	var keys := KeyBindings.new()
 	var pad := InputEventJoypadButton.new()
@@ -196,6 +231,25 @@ func test_the_keys_page_binds_the_next_key_and_esc_cancels() -> void:
 	assert_true(KeyBindings.read(PATH).chosen.is_empty())
 	for path: String in [menu.audio_path, menu.view_path]:
 		DirAccess.remove_absolute(path)
+
+
+func test_the_keys_page_fits_its_panel() -> void:
+	var menu: SettingsMenu = autofree(SETTINGS_MENU.instantiate())
+	menu.keys_path = PATH
+	add_child(menu)
+	var rows: Node = menu.get_node("%KeyRows")
+	assert_not_null(rows.find_child("Key_spectate_free", false, false), "a row to spectate")
+	var panel: Control = menu.get_node("Panel")
+	var declared := Vector2(
+		panel.offset_right - panel.offset_left, panel.offset_bottom - panel.offset_top
+	)
+	for page: int in SettingsMenu.Page.values():
+		menu.open(page)
+		await wait_process_frames(2)
+		var needed := panel.get_combined_minimum_size()
+		assert_lte(needed.x, declared.x, "page %d's width" % page)
+		assert_lte(needed.y, declared.y, "page %d's height" % page)
+	menu.hide()
 
 
 func _write(text: String) -> void:

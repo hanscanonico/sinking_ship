@@ -4,11 +4,11 @@ extends CanvasLayer
 ## tabs over them picks: Sound — master, music and effects volume; Controls — the
 ## first-person view's mouse sensitivity, invert Y, field of view, and the deck-roll
 ## and view-kick comfort sliders (D14, Q17, R15); Keys — the key or mouse button of
-## each action of play (KeyBindings), picked by pressing it; Graphics — the window
-## mode, VSync, a frame-rate cap, the graphics preset with a line on what it changes
-## (GraphicsQuality), and the 3D view's render scale, both this machine's own until
-## the player picks them. Each change applies as it is made; closing saves them under
-## user://.
+## each action of play and of spectating (KeyBindings), picked by pressing it;
+## Graphics — the window mode, VSync, a frame-rate cap, the graphics preset with a
+## line on what it changes (GraphicsQuality), and the 3D view's render scale, both
+## this machine's own until the player picks them. Each change applies as it is
+## made; closing saves them under user://.
 
 signal closed
 ## The first-person view or the graphics changed: whatever is on screen should take
@@ -85,7 +85,7 @@ func _ready() -> void:
 		%KeyRows.add_child(title)
 		var key := Button.new()
 		key.name = "Key_%s" % action
-		key.custom_minimum_size = Vector2(150, 0)
+		key.custom_minimum_size = Vector2(120, 0)
 		key.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		key.pressed.connect(_listen.bind(action))
 		%KeyRows.add_child(key)
