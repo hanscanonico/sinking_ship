@@ -4,12 +4,13 @@ extends GutTest
 
 const VIEW_PATH := "user://test_view_settings.tres"
 const AUDIO_PATH := "user://test_audio_settings.tres"
+const KEYS_PATH := "user://test_key_bindings_settings.json"
 const SETTINGS_MENU := preload("res://scenes/game/settings_menu.tscn")
 const VIEW_SCRIPT := "res://scenes/match/view_settings.gd"
 
 
 func after_each() -> void:
-	for path: String in [VIEW_PATH, AUDIO_PATH]:
+	for path: String in [VIEW_PATH, AUDIO_PATH, KEYS_PATH]:
 		if FileAccess.file_exists(path):
 			DirAccess.remove_absolute(path)
 
@@ -55,6 +56,7 @@ func test_the_settings_screen_saves_as_it_closes() -> void:
 	var menu: SettingsMenu = autofree(SETTINGS_MENU.instantiate())
 	menu.audio_path = AUDIO_PATH
 	menu.view_path = VIEW_PATH
+	menu.keys_path = KEYS_PATH
 	add_child(menu)
 	menu.open()
 	(menu.get_node("%Music") as HSlider).value = 35.0
@@ -141,6 +143,7 @@ func test_the_graphics_page_picks_the_window_mode_vsync_and_the_frame_cap() -> v
 	var menu: SettingsMenu = autofree(SETTINGS_MENU.instantiate())
 	menu.audio_path = AUDIO_PATH
 	menu.view_path = VIEW_PATH
+	menu.keys_path = KEYS_PATH
 	add_child(menu)
 	menu.open(SettingsMenu.Page.GRAPHICS)
 	var mode: OptionButton = menu.get_node("%WindowMode")
@@ -177,6 +180,7 @@ func test_a_browser_is_not_offered_vsync_or_the_exclusive_mode() -> void:
 	menu.on_web = true
 	menu.audio_path = AUDIO_PATH
 	menu.view_path = VIEW_PATH
+	menu.keys_path = KEYS_PATH
 	add_child(menu)
 	menu.open(SettingsMenu.Page.GRAPHICS)
 	var mode: OptionButton = menu.get_node("%WindowMode")
@@ -238,6 +242,7 @@ func test_the_graphics_page_picks_the_preset_and_the_render_scale() -> void:
 	var menu: SettingsMenu = autofree(SETTINGS_MENU.instantiate())
 	menu.audio_path = AUDIO_PATH
 	menu.view_path = VIEW_PATH
+	menu.keys_path = KEYS_PATH
 	add_child(menu)
 	watch_signals(menu)
 	menu.open(SettingsMenu.Page.GRAPHICS)
@@ -279,6 +284,7 @@ func test_the_player_s_pick_sets_aside_a_run_s_chosen_graphics() -> void:
 	var menu: SettingsMenu = autofree(SETTINGS_MENU.instantiate())
 	menu.audio_path = AUDIO_PATH
 	menu.view_path = VIEW_PATH
+	menu.keys_path = KEYS_PATH
 	add_child(menu)
 	menu.open(SettingsMenu.Page.GRAPHICS)
 	var quality: OptionButton = menu.get_node("%Quality")

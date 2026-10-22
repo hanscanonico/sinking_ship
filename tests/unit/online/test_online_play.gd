@@ -15,6 +15,7 @@ const SUNK := [[0.0, 0.0, 0.0, 0.0], [1.0, 10.0, 0.0, 0.0]]
 ## Where the settings screen saves as it closes, here.
 const VIEW_PATH := "user://test_online_view_settings.tres"
 const AUDIO_PATH := "user://test_online_audio_settings.tres"
+const KEYS_PATH := "user://test_online_key_bindings.json"
 
 
 ## What OnlinePlay builds in place of a MatchScene.
@@ -55,7 +56,7 @@ func before_each() -> void:
 func after_each() -> void:
 	for action: StringName in [&"move_down", &"jump", &"shove"]:
 		Input.action_release(action)
-	for path: String in [VIEW_PATH, AUDIO_PATH]:
+	for path: String in [VIEW_PATH, AUDIO_PATH, KEYS_PATH]:
 		if FileAccess.file_exists(path):
 			DirAccess.remove_absolute(path)
 
@@ -412,6 +413,7 @@ func _wired(code: String) -> Array:
 func _settings() -> SettingsMenu:
 	var settings: SettingsMenu = load("res://scenes/game/settings_menu.tscn").instantiate()
 	settings.view_path = VIEW_PATH
+	settings.keys_path = KEYS_PATH
 	settings.audio_path = AUDIO_PATH
 	add_child_autofree(settings)
 	_online.settings = settings

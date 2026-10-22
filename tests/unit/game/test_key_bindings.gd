@@ -1,10 +1,10 @@
 extends GutTest
 ## The keys of play are the player's to choose (non-QWERTY layouts, one hand): a
-## choice outlives the game, takes the keyboard's place in the input map and leaves
-## the pad's alone, swaps with an action that held the key, and resets to the
-## project's own.
+## choice outlives the game, heads its action's keys in place of the project's first
+## of its kind and leaves the other alternates and the pad's alone, swaps with an
+## action shown with the key, and resets to the project's own.
 
-const PATH := "user://test_key_bindings.tres"
+const PATH := "user://test_key_bindings.json"
 const SETTINGS_MENU := preload("res://scenes/game/settings_menu.tscn")
 
 
@@ -36,8 +36,9 @@ func test_applying_replaces_only_the_keyboard_and_mouse() -> void:
 	keys.apply()
 
 	var on_keyboard := _key_events(&"move_up")
-	assert_eq(on_keyboard.size(), 1, "the one chosen key in place of W and the arrow")
+	assert_eq(on_keyboard.size(), 2, "the chosen key in place of W, the arrow kept")
 	assert_true(KeyBindings.same_input(on_keyboard[0], _key(KEY_Z)))
+	assert_true(KeyBindings.same_input(on_keyboard[1], _key(KEY_UP)))
 	assert_eq(_pad_events(&"move_up").size(), pad_before.size(), "the pad's kept")
 	assert_eq(InputPrompts.word_for(InputMap.action_get_events(&"move_up"), false), "Z")
 	assert_eq(_key_events(&"move_down").size(), 2, "an unchosen action keeps its keys")
@@ -63,6 +64,42 @@ func test_a_key_another_action_holds_swaps_the_two() -> void:
 	space.pressed = true
 	assert_true(space.is_action_pressed(&"shove"))
 	assert_false(space.is_action_pressed(&"jump"), "no key answers to two actions")
+
+
+func test_a_key_keeps_the_click_and_a_click_keeps_the_key() -> void:
+	var keys := KeyBindings.new()
+	keys.bind(&"shove", _key(KEY_G))
+	keys.bind(&"brace", _click(MOUSE_BUTTON_MIDDLE))
+	keys.apply()
+	var shove := _key_events(&"shove")
+	assert_eq(shove.size(), 2, "G in F's place")
+	assert_true(KeyBindings.same_input(shove[0], _key(KEY_G)), "the hints name it")
+	assert_true(KeyBindings.same_input(shove[1], _click(MOUSE_BUTTON_LEFT)), "a click shoves")
+	var brace := _key_events(&"brace")
+	assert_eq(brace.size(), 2, "the middle button in the right's place")
+	assert_true(KeyBindings.same_input(brace[0], _click(MOUSE_BUTTON_MIDDLE)))
+	assert_true(KeyBindings.same_input(brace[1], _key(KEY_SHIFT)), "Shift braces")
+	assert_eq(InputPrompts.word_for(InputMap.action_get_events(&"shove"), false), "G")
+
+
+func test_an_alternate_another_action_is_given_leaves_it_without_a_swap() -> void:
+	var keys := KeyBindings.new()
+	assert_true(keys.bind(&"jump", _key(KEY_UP)))
+	assert_false(keys.chosen.has(&"move_up"), "the arrow was not what forward showed")
+	keys.apply()
+	var forward := _key_events(&"move_up")
+	assert_eq(forward.size(), 1, "W, the arrow gone to jump")
+	assert_true(KeyBindings.same_input(forward[0], _key(KEY_W)))
+	var up := _key(KEY_UP)
+	up.pressed = true
+	assert_true(up.is_action_pressed(&"jump"))
+	assert_false(up.is_action_pressed(&"move_up"), "no key answers to two actions")
+
+	assert_true(keys.bind(&"shove", _click(MOUSE_BUTTON_RIGHT)))
+	keys.apply()
+	var brace := _key_events(&"brace")
+	assert_eq(brace.size(), 1, "Shift, the right click gone to shove")
+	assert_true(KeyBindings.same_input(brace[0], _key(KEY_SHIFT)))
 
 
 func test_only_keys_and_buttons_of_play_bind() -> void:
@@ -105,19 +142,30 @@ func test_reset_restores_the_project_s_keys() -> void:
 func test_a_missing_or_corrupt_file_reads_as_the_defaults() -> void:
 	assert_true(KeyBindings.read(PATH).chosen.is_empty(), "nothing saved yet")
 
-	var wrong := AudioSettings.new()
-	assert_eq(wrong.save(PATH), OK)
-	assert_true(KeyBindings.read(PATH).chosen.is_empty(), "another resource")
+	_write(
+		(
+			'[gd_resource type="Resource" format=3]\n'
+			+ '[sub_resource type="GDScript" id="1"]\nscript/source = "extends Resource"\n'
+			+ '[resource]\nscript = SubResource("1")\n'
+		)
+	)
+	assert_true(KeyBindings.read(PATH).chosen.is_empty(), "a resource is never loaded")
 
-	var odd := KeyBindings.new()
-	var pad := InputEventJoypadButton.new()
-	pad.button_index = JOY_BUTTON_X
-	odd.chosen[&"jump"] = pad
-	odd.chosen[&"debug_nonsense"] = _key(KEY_K)
-	odd.chosen[&"shove"] = _key(KEY_G)
-	assert_eq(odd.save(PATH), OK)
+	_write(
+		(
+			'{"jump": {"pad": 2}, "debug_nonsense": {"key": 75}, "shove": {"key": 71},'
+			+ ' "brace": {"mouse": 4}, "pause": {"key": -1}, "move_up": {"key": 1e30},'
+			+ ' "move_down": {"key": 83.5}, "move_left": "A", "move_right": {"key": 68, "mouse": 1}}'
+		)
+	)
 	var back := KeyBindings.read(PATH)
-	assert_eq(back.chosen.keys(), [&"shove"], "only a key of play is kept")
+	assert_eq(back.chosen.keys(), [&"shove"], "only a key or button of play is kept")
+	assert_true(KeyBindings.same_input(back.chosen[&"shove"], _key(KEY_G)))
+
+	_write("[1, 2]")
+	assert_true(KeyBindings.read(PATH).chosen.is_empty(), "not an object")
+	_write('{"jump": {"key": 74}}' + " ".repeat(KeyBindings.MAX_BYTES))
+	assert_true(KeyBindings.read(PATH).chosen.is_empty(), "too long to be ours")
 
 
 func test_the_keys_page_binds_the_next_key_and_esc_cancels() -> void:
@@ -148,6 +196,12 @@ func test_the_keys_page_binds_the_next_key_and_esc_cancels() -> void:
 	assert_true(KeyBindings.read(PATH).chosen.is_empty())
 	for path: String in [menu.audio_path, menu.view_path]:
 		DirAccess.remove_absolute(path)
+
+
+func _write(text: String) -> void:
+	var file := FileAccess.open(PATH, FileAccess.WRITE)
+	file.store_string(text)
+	file.close()
 
 
 func _key(physical: Key) -> InputEventKey:

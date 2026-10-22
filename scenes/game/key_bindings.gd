@@ -1,13 +1,20 @@
 class_name KeyBindings
-extends Resource
+extends RefCounted
 ## The keys of play the player chose over the project's: at most one key or mouse
 ## button for each of the move's four ways, jump, shove, brace and pause. An action
-## left unchosen keeps the project's keys; a chosen one has that one in their place.
-## The pad's bindings are never touched. The settings screen saves them at PATH; Game
-## applies them to the input map as it boots, and InputFrame reads actions, never
-## keys, so the sim sees none of it (D3).
+## left unchosen keeps the project's keys. A chosen one heads the action's keys in
+## place of the project's first of its kind — a key for a key, a mouse button for a
+## mouse button — so the arrows still move and a click still shoves; an alternate
+## another action is given goes from this one. The pad's bindings are never touched.
+## The settings screen saves them at PATH; Game applies them to the input map as it
+## boots, and InputFrame reads actions, never keys, so the sim sees none of it (D3).
+##
+## The file is one players pass round, and so read as plain JSON — never as a
+## resource, which can carry a script — of at most MAX_BYTES, each entry kept only
+## when it is one the settings screen could have saved (OnlineSettings).
 
-const PATH := "user://key_bindings.tres"
+const PATH := "user://key_bindings.json"
+const MAX_BYTES := 4096
 ## What may be rebound, in the settings screen's order.
 const ACTIONS: Array[StringName] = [
 	&"move_up",
@@ -44,7 +51,7 @@ const WHEEL: Array[MouseButton] = [
 static var _shared: WeakRef
 
 ## The player's key or mouse button for each action they rebound.
-@export var chosen: Dictionary[StringName, InputEvent] = {}
+var chosen: Dictionary[StringName, InputEvent] = {}
 
 
 ## The saved bindings, or none when none are saved.
@@ -60,14 +67,16 @@ static func local() -> KeyBindings:
 ## button for an action that may be rebound left out — or none when there are none.
 static func read(path: String) -> KeyBindings:
 	var bindings := KeyBindings.new()
-	if not ResourceLoader.exists(path):
+	var file := FileAccess.open(path, FileAccess.READ)
+	if file == null or file.get_length() > MAX_BYTES:
 		return bindings
-	var saved := ResourceLoader.load(path, "", ResourceLoader.CACHE_MODE_IGNORE) as KeyBindings
-	if saved == null:
+	var json := JSON.new()
+	if json.parse(file.get_as_text()) != OK or not json.data is Dictionary:
 		return bindings
-	for action: StringName in saved.chosen:
-		var event := as_binding(saved.chosen[action])
-		if action in ACTIONS and event != null:
+	var saved: Dictionary = json.data
+	for action: StringName in ACTIONS:
+		var event := _from_json(saved.get(String(action)))
+		if event != null:
 			bindings.chosen[action] = event
 	return bindings
 
@@ -118,39 +127,46 @@ static func same_input(a: InputEvent, b: InputEvent) -> bool:
 	return false
 
 
-## The keys and mouse buttons [param action] answers to: the player's one, else
-## the project's.
+## The keys and mouse buttons [param action] answers to: the player's one first, in
+## place of the project's first of its kind (else its first), then the project's
+## others that no other action was given.
 func keys_of(action: StringName) -> Array[InputEvent]:
+	var keys: Array[InputEvent] = []
+	var others := defaults_of(action)
 	if chosen.has(action):
-		return [chosen[action]]
-	return defaults_of(action)
+		var mine: InputEvent = chosen[action]
+		keys.append(mine)
+		if not others.is_empty():
+			others.remove_at(_first_of_kind(others, mine))
+	for key: InputEvent in others:
+		if not _given_elsewhere(action, key) and not _holds(keys, key):
+			keys.append(key)
+	return keys
 
 
-## The key or mouse button shown for [param action]: the player's, else the
-## project's first.
+## The key or mouse button shown for [param action] — the hints' — the first it
+## answers to.
 func shown(action: StringName) -> InputEvent:
 	var keys := keys_of(action)
 	return keys[0] if not keys.is_empty() else null
 
 
-## Binds [param event] to [param action]; an action that may be rebound and
-## answered to it takes [param action]'s old key in exchange. False when
-## [param event] cannot be a binding or [param action] may not be rebound.
+## Binds [param event] to [param action]. An action shown with it takes
+## [param action]'s old key in exchange; one that only had it as an alternate lets
+## it go. False when [param event] cannot be a binding or [param action] may not be
+## rebound.
 func bind(action: StringName, event: InputEvent) -> bool:
 	var bound := as_binding(event)
 	if bound == null or action not in ACTIONS:
 		return false
 	var old := shown(action)
 	for other: StringName in ACTIONS:
-		if other == action:
-			continue
-		for key: InputEvent in keys_of(other):
-			if same_input(key, bound):
-				if old != null:
-					chosen[other] = as_binding(old)
-				else:
-					chosen.erase(other)
-				break
+		if other != action and same_input(shown(other), bound):
+			if old != null:
+				chosen[other] = as_binding(old)
+			else:
+				chosen.erase(other)
+			break
 	chosen[action] = bound
 	return true
 
@@ -161,7 +177,14 @@ func reset() -> void:
 
 
 func save(path: String = PATH) -> Error:
-	return ResourceSaver.save(self, path)
+	var saved := {}
+	for action: StringName in chosen:
+		saved[String(action)] = _to_json(chosen[action])
+	var file := FileAccess.open(path, FileAccess.WRITE)
+	if file == null:
+		return FileAccess.get_open_error()
+	file.store_string(JSON.stringify(saved))
+	return file.get_error()
 
 
 ## Puts each action's keys and mouse buttons into the input map in place of what
@@ -175,6 +198,64 @@ func apply() -> void:
 				InputMap.action_erase_event(action, event)
 		for event: InputEvent in keys_of(action):
 			InputMap.action_add_event(action, event)
+
+
+func _given_elsewhere(action: StringName, key: InputEvent) -> bool:
+	for other: StringName in chosen:
+		if other != action and same_input(chosen[other], key):
+			return true
+	return false
+
+
+static func _first_of_kind(events: Array[InputEvent], event: InputEvent) -> int:
+	for index in events.size():
+		if (events[index] is InputEventKey) == (event is InputEventKey):
+			return index
+	return 0
+
+
+static func _holds(keys: Array[InputEvent], key: InputEvent) -> bool:
+	for held: InputEvent in keys:
+		if same_input(held, key):
+			return true
+	return false
+
+
+## A binding as the file holds it: the key by where it sits, by what it types when
+## it has no place, or the mouse button.
+static func _to_json(event: InputEvent) -> Dictionary:
+	if event is InputEventMouseButton:
+		return {"mouse": (event as InputEventMouseButton).button_index}
+	var key := event as InputEventKey
+	if key.physical_keycode != KEY_NONE:
+		return {"key": key.physical_keycode}
+	return {"keycode": key.keycode}
+
+
+## The binding [param saved] holds, or null when it holds none.
+static func _from_json(saved: Variant) -> InputEvent:
+	if not saved is Dictionary or (saved as Dictionary).size() != 1:
+		return null
+	var entry: Dictionary = saved
+	var kind: Variant = entry.keys()[0]
+	var code: Variant = entry[kind]
+	if not (code is float or code is int) or code != floorf(code):
+		return null
+	if code <= 0 or code > KEY_CODE_MASK:
+		return null
+	var event: InputEvent = null
+	if kind == "mouse":
+		var button := InputEventMouseButton.new()
+		button.button_index = int(code) as MouseButton
+		event = button
+	elif kind == "key" or kind == "keycode":
+		var key := InputEventKey.new()
+		if kind == "key":
+			key.physical_keycode = int(code) as Key
+		else:
+			key.keycode = int(code) as Key
+		event = key
+	return as_binding(event)
 
 
 static func _is_key_or_mouse(event: InputEvent) -> bool:

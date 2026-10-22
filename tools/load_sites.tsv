@@ -27,8 +27,7 @@ scenes/audio/match_audio.gd	load(SoundBank.DIR + file)	assets/audio/*
 scenes/audio/music_player.gd	load(path)	assets/audio/music/*
 scenes/audio/sound_bank.gd	load(DIR + file)	assets/audio/*
 scenes/audio/ui_sounds.gd	load(path)	assets/audio/ui/*
-scenes/game/key_bindings.gd	ResourceLoader.exists(path)	-
-scenes/game/key_bindings.gd	ResourceLoader.load(path)	-
+scenes/game/key_bindings.gd	FileAccess.open(path)	-
 scenes/match/iceberg_planner.gd	load(path)	assets/models/*.glb
 scenes/match/view_settings.gd	ResourceLoader.exists(path)	-
 scenes/match/view_settings.gd	ResourceLoader.load(path)	-
