@@ -5,6 +5,7 @@ extends GutTest
 const VIEW_PATH := "user://test_view_settings.tres"
 const AUDIO_PATH := "user://test_audio_settings.tres"
 const SETTINGS_MENU := preload("res://scenes/game/settings_menu.tscn")
+const VIEW_SCRIPT := "res://scenes/match/view_settings.gd"
 
 
 func after_each() -> void:
@@ -23,7 +24,9 @@ func test_settings_round_trip_through_user_storage() -> void:
 	view.fov_deg = 104.0
 	view.deck_roll = 0.25
 	view.view_kick = 0.4
-	view.fullscreen = true
+	view.window_mode = ViewSettings.WindowMode.EXCLUSIVE
+	view.vsync = false
+	view.max_fps = 144
 	assert_eq(view.save(VIEW_PATH), OK)
 	var audio := AudioSettings.new()
 	audio.master = 0.5
@@ -38,7 +41,9 @@ func test_settings_round_trip_through_user_storage() -> void:
 	assert_almost_eq(view_back.fov_deg, 104.0, 0.0001)
 	assert_almost_eq(view_back.deck_roll, 0.25, 0.0001)
 	assert_almost_eq(view_back.view_kick, 0.4, 0.0001)
-	assert_true(view_back.fullscreen)
+	assert_eq(view_back.window_mode, ViewSettings.WindowMode.EXCLUSIVE)
+	assert_false(view_back.vsync)
+	assert_eq(view_back.max_fps, 144)
 	var audio_back := AudioSettings.read(AUDIO_PATH)
 	assert_ne(audio_back, audio)
 	assert_almost_eq(audio_back.master, 0.5, 0.0001)
@@ -93,6 +98,71 @@ func test_fov_and_volume_are_clamped() -> void:
 	file.store_string("\n".join(kept).strip_edges() + "\nfov_deg = 170.0\n")
 	file.close()
 	assert_eq(ViewSettings.read(VIEW_PATH).fov_deg, ViewSettings.FOV_MAX)
+
+
+func test_a_file_from_before_the_window_choices_reads_with_their_defaults() -> void:
+	for fullscreen: bool in [true, false]:
+		var file := FileAccess.open(VIEW_PATH, FileAccess.WRITE)
+		var lines: Array[String] = [
+			'[gd_resource type="Resource" script_class="ViewSettings" format=3]',
+			"",
+			'[ext_resource type="Script" path="%s" id="1"]' % VIEW_SCRIPT,
+			"",
+			"[resource]",
+			'script = ExtResource("1")',
+			"fov_deg = 100.0",
+			"fullscreen = %s" % fullscreen,
+		]
+		file.store_string("\n".join(lines) + "\n")
+		file.close()
+		var old := ViewSettings.read(VIEW_PATH)
+		assert_almost_eq(old.fov_deg, 100.0, 0.0001, "the file was read")
+		assert_eq(
+			old.window_mode,
+			ViewSettings.WindowMode.BORDERLESS if fullscreen else ViewSettings.WindowMode.WINDOWED,
+			"fullscreen = %s" % fullscreen
+		)
+		assert_true(old.vsync, "VSync's default")
+		assert_eq(old.max_fps, 0, "no cap")
+		# Saved again, the flag is gone and the mode stays.
+		assert_eq(old.save(VIEW_PATH), OK)
+		assert_false(FileAccess.get_file_as_string(VIEW_PATH).contains("fullscreen"))
+		assert_eq(ViewSettings.read(VIEW_PATH).window_mode, old.window_mode)
+
+
+func test_the_graphics_page_picks_the_window_mode_vsync_and_the_frame_cap() -> void:
+	var shared := ViewSettings.local()
+	var was_fps := Engine.max_fps
+	var menu: SettingsMenu = autofree(SETTINGS_MENU.instantiate())
+	menu.audio_path = AUDIO_PATH
+	menu.view_path = VIEW_PATH
+	add_child(menu)
+	menu.open(SettingsMenu.Page.GRAPHICS)
+	var mode: OptionButton = menu.get_node("%WindowMode")
+	assert_eq(mode.item_count, ViewSettings.WindowMode.size())
+	assert_eq(mode.get_selected_id(), shared.window_mode)
+	var fps: OptionButton = menu.get_node("%MaxFps")
+	assert_eq(fps.item_count, ViewSettings.MAX_FPS_CHOICES.size())
+	assert_eq(fps.get_item_text(0), "Unlimited")
+	var vsync: CheckButton = menu.get_node("%VSync")
+	assert_eq(vsync.button_pressed, shared.vsync)
+
+	var windowed := mode.get_item_index(ViewSettings.WindowMode.WINDOWED)
+	mode.select(windowed)
+	mode.item_selected.emit(windowed)
+	var capped := fps.get_item_index(120)
+	fps.select(capped)
+	fps.item_selected.emit(capped)
+	assert_eq(Engine.max_fps, 120, "the cap applies as it is picked")
+	vsync.button_pressed = false
+	menu.close()
+	Engine.max_fps = was_fps
+	var saved := ViewSettings.read(VIEW_PATH)
+	assert_eq(saved.window_mode, ViewSettings.WindowMode.WINDOWED)
+	assert_eq(saved.max_fps, 120)
+	assert_false(saved.vsync)
+	shared.max_fps = 0
+	shared.vsync = true
 
 
 func test_graphics_are_this_machine_s_own_until_the_player_picks_them() -> void:
@@ -150,7 +220,7 @@ func test_the_graphics_page_picks_the_preset_and_the_render_scale() -> void:
 	assert_false(menu.get_node("%Sound").visible)
 	assert_false(menu.get_node("%Controls").visible)
 	assert_true((menu.get_node("%GraphicsTab") as Button).button_pressed)
-	assert_true(menu.get_node("%Fullscreen").has_focus(), "the page's first choice")
+	assert_true(menu.get_node("%WindowMode").has_focus(), "the page's first choice")
 
 	var quality: OptionButton = menu.get_node("%Quality")
 	assert_eq(quality.get_selected_id(), GraphicsQuality.automatic_preset(), "the machine's own")

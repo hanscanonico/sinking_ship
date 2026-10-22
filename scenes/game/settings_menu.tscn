@@ -217,14 +217,34 @@ theme_override_constants/h_separation = 18
 theme_override_constants/v_separation = 10
 columns = 3
 
-[node name="FullscreenLabel" type="Label" parent="Panel/Box/Graphics/GraphicsChoices"]
-text = "Fullscreen"
+[node name="WindowModeLabel" type="Label" parent="Panel/Box/Graphics/GraphicsChoices"]
+text = "Window mode"
 
-[node name="Fullscreen" type="CheckButton" parent="Panel/Box/Graphics/GraphicsChoices"]
+[node name="WindowMode" type="OptionButton" parent="Panel/Box/Graphics/GraphicsChoices"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(200, 0)
+size_flags_horizontal = 3
+
+[node name="WindowModeSpacer" type="Control" parent="Panel/Box/Graphics/GraphicsChoices"]
+
+[node name="VSyncLabel" type="Label" parent="Panel/Box/Graphics/GraphicsChoices"]
+text = "VSync"
+
+[node name="VSync" type="CheckButton" parent="Panel/Box/Graphics/GraphicsChoices"]
 unique_name_in_owner = true
 size_flags_horizontal = 0
 
-[node name="FullscreenSpacer" type="Control" parent="Panel/Box/Graphics/GraphicsChoices"]
+[node name="VSyncSpacer" type="Control" parent="Panel/Box/Graphics/GraphicsChoices"]
+
+[node name="MaxFpsLabel" type="Label" parent="Panel/Box/Graphics/GraphicsChoices"]
+text = "Max FPS"
+
+[node name="MaxFps" type="OptionButton" parent="Panel/Box/Graphics/GraphicsChoices"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(200, 0)
+size_flags_horizontal = 3
+
+[node name="MaxFpsSpacer" type="Control" parent="Panel/Box/Graphics/GraphicsChoices"]
 
 [node name="QualityLabel" type="Label" parent="Panel/Box/Graphics/GraphicsChoices"]
 text = "Quality"
