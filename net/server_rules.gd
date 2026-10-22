@@ -44,10 +44,14 @@ const NAME_PUNCTUATION := " -_.'"
 ## How long a client may stay in no room, and a room wait for its match.
 @export var lobby_timeout: float
 @export var idle_room_timeout: float
-## How long a player in a room may send neither an input nor a pong — counted again
-## from its match's start — past which the client is gone however its socket looks,
-## and its seat is a bot's. At least two ping_intervals and a second.
+## How long a player in a room may send neither an input nor a pong past which the
+## client is gone however its socket looks, and its seat is a bot's — load_timeout
+## instead while its match loads. At least two ping_intervals and a second.
 @export var silence_timeout: float
+## How long a player may say nothing from its match's start until its first input: its
+## client builds the match scene in one frame, answering nothing meanwhile — seconds on
+## a slow machine, longer than silence_timeout on a loaded one. At least silence_timeout.
+@export var load_timeout: float
 ## How long a finished match keeps sending its last snapshot before its room goes back
 ## to waiting.
 @export var finished_linger: float
@@ -117,6 +121,7 @@ func problems() -> PackedStringArray:
 		"lobby_timeout",
 		"idle_room_timeout",
 		"silence_timeout",
+		"load_timeout",
 		"attempt_refill",
 		"start_cooldown",
 		"finished_linger",
@@ -131,6 +136,8 @@ func problems() -> PackedStringArray:
 	# a ping_interval apart plus the round trip.
 	if silence_timeout < 2.0 * ping_interval + 1.0:
 		found.append("server: silence_timeout must be at least 2 × ping_interval + 1 s")
+	if load_timeout < silence_timeout:
+		found.append("server: load_timeout must be at least silence_timeout")
 	# A name travels behind one length byte, and a roster lists its players in one.
 	if name_length > 0xFF:
 		found.append("server: name_length must be at most 255")

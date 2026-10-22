@@ -224,16 +224,20 @@ func test_a_silent_connection_times_out() -> void:
 
 
 ## A client gone without closing its socket — a machine switched off, a cable pulled —
-## sends neither inputs nor pongs: past silence_timeout its seat is a bot's and its
-## connection is closed. A player who only answers pings is still there.
+## sends neither inputs nor pongs: once its match was up, past silence_timeout its seat
+## is a bot's and its connection is closed, however long load_timeout is. A player who
+## only answers pings is still there.
 func test_a_silent_player_is_given_up() -> void:
 	var fixture := RoomFixtures.new(
-		RoomFixtures.rules_with({"silence_timeout": 3.0}), RoomFixtures.flat_rules()
+		RoomFixtures.rules_with({"silence_timeout": 3.0, "load_timeout": 9.0}),
+		RoomFixtures.flat_rules()
 	)
 	var players := fixture.room_of(2)
 	players[0].start_match()
 	fixture.beat()
 	var room := fixture.room(players[0])
+	players[1].play(InputSource.new()).step()
+	fixture.beat()
 	fixture.hush(players[1])
 	fixture.beat(ServerRules.beats(fixture.rules.silence_timeout))
 	assert_true(room.is_bot(1), "its seat is a bot's")
@@ -246,23 +250,28 @@ func test_a_silent_player_is_given_up() -> void:
 	assert_eq(fixture.server.connection_count(), 1)
 
 
-## A client's match may take a while to load (shaders compiled on a slow machine): its
-## silence is counted from the match's start, not from the last pong before it.
+## A client's match may take a while to load: its scene is built in one frame, seconds
+## on a slow machine and longer than silence_timeout on a loaded one, answering nothing
+## meanwhile. Until its first input its silence is held to load_timeout instead,
+## counted from the match's start, not from the last pong before it.
 func test_a_player_loading_the_match_is_not_given_up() -> void:
 	var fixture := RoomFixtures.new(
-		RoomFixtures.rules_with({"silence_timeout": 3.0}), RoomFixtures.flat_rules()
+		RoomFixtures.rules_with({"silence_timeout": 3.0, "load_timeout": 9.0}),
+		RoomFixtures.flat_rules()
 	)
-	var silence := ServerRules.beats(fixture.rules.silence_timeout)
+	var loading := ServerRules.beats(fixture.rules.load_timeout)
 	var players := fixture.room_of(2)
 	fixture.hush(players[1])
-	fixture.beat(silence / 2)
+	fixture.beat(ServerRules.beats(fixture.rules.silence_timeout) / 2)
 	players[0].start_match()
 	fixture.beat()
 	var room := fixture.room(players[0])
-	fixture.beat(silence - 1)
-	assert_false(room.is_bot(1), "a whole silence_timeout from the start")
+	fixture.beat(loading - 1)
+	assert_false(room.is_bot(1), "a whole load_timeout from the start, past silence_timeout")
+	assert_false(room.is_bot(0), "nor the one only answering pings while it loads")
 	fixture.beat()
 	assert_true(room.is_bot(1), "and no longer")
+	assert_true(fixture.logged("went silent loading its match"))
 
 
 ## A ping's stamp travels as a u32: once the server's count passes 2^32 the stamps
