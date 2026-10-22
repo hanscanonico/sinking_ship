@@ -9,7 +9,9 @@ extends CanvasLayer
 ## alone (D5), with rematch and back to the menu — or, online, back to the room and
 ## leave (offer_room) — on a plate over the world dimmed under a scrim, the HUDs having
 ## stood down. From a session's second match on, the session's standings stand beside
-## the table (SessionTally): each name's points and rank over its matches.
+## the table (SessionTally): each name's points and rank over its matches. Under the
+## table one line tells the ship's fate (setup_fate, MatchTranscript.fate_line): her
+## name, how her sinking ends and how much of it the match played.
 
 signal rematch_requested
 signal menu_requested
@@ -29,17 +31,23 @@ const LOCAL_COLOUR := Color(1.0, 0.85, 0.3)
 const PRESS_GUARD_SECONDS := 0.7
 ## The widest a seat's name is shown, in pixels: a server's may be far longer.
 const NAME_WIDTH := 200.0
+## The widest the fate line is shown, in pixels: inside the plate at its narrowest.
+const FATE_WIDTH := 520.0
 
 var _guard := Timer.new()
 ## What the two buttons do, as the hint words them.
 var _first_word := "rematch"
 var _second_word := "menu"
+## Whose fate the results tell, and the sinking that tells it (setup_fate).
+var _ship_name := ""
+var _schedule: SinkSchedule
 
 @onready var _title: Label = %Title
 @onready var _table: GridContainer = %Table
 @onready var _session: VBoxContainer = %Session
 @onready var _session_title: Label = %SessionTitle
 @onready var _session_table: GridContainer = %SessionTable
+@onready var _fate: Label = %Fate
 @onready var _seed: Label = %Seed
 @onready var _rematch: Button = %Rematch
 @onready var _hint: Label = $Panel/Box/Hint
@@ -113,12 +121,30 @@ func show_results(
 		_cell(str(line.shoves_landed), colour)
 		_cell(str(line.knockouts), colour)
 	show_session(session, names[local_seat])
+	_show_fate(stats.ended_tick)
 	_seed.text = "Seed %d" % match_seed
 	_rematch.disabled = true
 	_watch.disabled = true
 	_menu.disabled = true
 	show()
 	_guard.start()
+
+
+## The ship the match is played on, by [param ship_name], and [param schedule], the
+## sinking that tells her fate on the results; a null schedule tells none.
+func setup_fate(ship_name: String, schedule: SinkSchedule) -> void:
+	_ship_name = ship_name
+	_schedule = schedule
+
+
+## The fate line for a match ended on [param tick], fitted to the plate; hidden when
+## there is no sinking to tell.
+func _show_fate(tick: int) -> void:
+	var line := "" if _schedule == null else MatchTranscript.fate_line(_ship_name, _schedule, tick)
+	_fate.text = UiTheme.fit(
+		line, _fate.get_theme_font(&"font"), _fate.get_theme_font_size(&"font_size"), FATE_WIDTH
+	)
+	_fate.visible = not line.is_empty()
 
 
 ## Online, a match's end leads back to its room or out of it: the rematch's button and

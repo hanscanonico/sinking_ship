@@ -82,3 +82,45 @@ func test_the_battle_royale_results_keep_their_words() -> void:
 	results.show_results(stats, 0, PackedStringArray(["You", "Bot 1"]), 1701)
 	assert_eq((results.get_node("%Title") as Label).text, "Last one dry!")
 	assert_eq((results.get_node("%Table").get_child(2) as Label).text, "Time dry")
+
+
+## Under the table the results tell the ship's fate, as MatchTranscript words it at the
+## tick the match ended; with no sinking to tell, no line.
+func test_the_results_tell_her_fate() -> void:
+	var scenario: SinkScenario = load(SimFixtures.STEAMER_SINKING)
+	var schedule := SimFixtures.config(8, scenario, 1701, SimFixtures.steamer()).schedule()
+	var ended := schedule.hit_tick() + 120 * Ticks.RATE
+	var won: Array[SimEvent] = [
+		SimEvent.seat_out(ended, 1, 2, PlayerState.Cause.COLD, -1),
+		SimEvent.match_ended(ended, 0),
+	]
+	var names := PackedStringArray(["You", "Bot 1"])
+	var scene: Node = MATCH_SCENE.instantiate()
+	add_child_autofree(scene)
+	var stats := MatchStats.new(2, 0)
+	stats.add(won)
+	var results: EndOverlay = scene.get_node("EndOverlay")
+	results.setup_fate("Steamer", schedule)
+	results.show_results(stats, 0, names, 1701)
+	var fate: Label = results.get_node("%Fate")
+	assert_true(fate.visible)
+	assert_eq(fate.text, MatchTranscript.fate_line("Steamer", schedule, ended))
+	assert_string_starts_with(fate.text, "Steamer · ")
+	var calm: Node = MATCH_SCENE.instantiate()
+	add_child_autofree(calm)
+	var untold: EndOverlay = calm.get_node("EndOverlay")
+	untold.setup_fate("Deck", SimFixtures.config(2).schedule())
+	untold.show_results(stats, 0, names, 1701)
+	assert_false((untold.get_node("%Fate") as Label).visible, "no sinking, no fate")
+
+
+## A match hands the results its ship and the sinking its sim plays.
+func test_a_match_hands_the_results_its_sinking() -> void:
+	var scene: MatchScene = MATCH_SCENE.instantiate()
+	add_child_autofree(scene)
+	var config := SimFixtures.config(2)
+	config.bot_tier = (load("res://data/match/default.tres") as MatchRules).bot_tier
+	scene.start(config, true)
+	var results: EndOverlay = scene.get_node("EndOverlay")
+	assert_eq(results._schedule, scene._driver.sim().schedule)
+	assert_eq(results._ship_name, String(Fleet.name_of(config.ship)).capitalize())
