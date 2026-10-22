@@ -723,8 +723,9 @@ func _check_crate_light(file: String, layout: ShipLayout, art: ShipArt) -> void:
 ## Down the middle of [param ladder]'s rung line, BoardingLadder.OUT outboard of where
 ## it hangs (ShipLayout.ladder_at): straight down onto its top, the highest face drawn
 ## there within LADDER_TOLERANCE of it (ShipLayout.ladder_top); and straight up under
-## its foot, where it hangs at the waterline at rest, the lowest at or under that
-## waterline — a swimmer finds it from the sea, and it leads all the way up.
+## its lowest rung, where her side slopes it there (BoardingLadder.lowest_rung), the
+## lowest at or under the waterline at rest — a swimmer finds it from the sea, and it
+## leads all the way up.
 func _check_ladder(
 	faces: PackedVector3Array,
 	cells: Dictionary,
@@ -737,8 +738,8 @@ func _check_ladder(
 	var height := layout.ladder_top(ladder)
 	var up := layout.ladder_at(ladder, height)
 	var high := (up[0] + up[1]) * 0.5 + outward
-	var low_at := layout.ladder_at(ladder, -layout.freeboard)
-	var low := (low_at[0] + low_at[1]) * 0.5 + outward
+	var low_at := BoardingLadder.line(layout, ladder, BoardingLadder.lowest_rung(layout, ladder))
+	var low := (low_at[0] + low_at[1]) * 0.5
 	var top := _first_face(faces, cells, Vector3(high.x, height + 1.0, high.y), -1.0)
 	var bottom := _first_face(faces, cells, Vector3(low.x, -100.0, low.y), 1.0)
 	if absf(top - height) > LADDER_TOLERANCE:

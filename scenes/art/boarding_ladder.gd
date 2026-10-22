@@ -54,6 +54,16 @@ static func line(layout: ShipLayout, ladder: ShipLadder, height: float) -> Packe
 	return PackedVector2Array([hangs[0] + out, hangs[1] + out])
 
 
+## The height of the middle of [param ladder]'s lowest rung, the last of draw()'s over
+## BELOW under her waterline.
+static func lowest_rung(layout: ShipLayout, ladder: ShipLadder) -> float:
+	var bottom := -layout.freeboard - BELOW
+	var rung := layout.ladder_top(ladder) - RUNG * 0.5
+	while rung - RUNG_SPACING > bottom:
+		rung -= RUNG_SPACING
+	return rung
+
+
 ## Whether the stile at [param end] of [param lines], at [param heights], runs on
 ## straight from its point [param top] through [param through] to [param next].
 static func _in_line(
