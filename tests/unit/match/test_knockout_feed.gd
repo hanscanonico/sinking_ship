@@ -2,6 +2,8 @@ extends GutTest
 ## The knock-out feed says who went into the sea and whose shove sent them
 ## (KnockoutFeed), the local seat as "You".
 
+const MATCH := preload("res://scenes/match/match.tscn")
+const MATCH_DATA := "res://data/match/default.tres"
 const COLD := PlayerState.Cause.COLD
 const NAMES := ["You", "Bot 1", "Bot 2", "Bot 3"]
 
@@ -51,6 +53,34 @@ func test_a_line_fades_and_goes() -> void:
 	assert_almost_eq(label.modulate.a, 0.5, 0.01, "half way through its fade")
 	feed._process(KnockoutFeed.FADE_SECONDS)
 	assert_eq(_lines(feed), [], "gone once it has stood its time")
+
+
+## The match feeds it every stepped tick's events, as it does the stats, clears it as
+## a replay is sought, and keeps it off the results.
+func test_the_match_feeds_it_each_stepped_tick() -> void:
+	var scene: MatchScene = MATCH.instantiate()
+	add_child_autofree(scene)
+	var config := SimFixtures.config(3)
+	config.bot_tier = (load(MATCH_DATA) as MatchRules).bot_tier
+	scene.start(config, true)
+	var feed: KnockoutFeed = scene.get_node("KnockoutFeed")
+	feed.set_process(false)
+	var out: Array[SimEvent] = [SimEvent.seat_out(90, 2, 3, COLD, 0)]
+	scene._driver.stepped.emit(out)
+	assert_eq(_lines(feed), ["You shoved Bot 2 into the sea"], "posted as the tick steps")
+	scene._on_sought(0)
+	assert_eq(_lines(feed), [], "a seek clears it")
+	scene._process(0.0)
+	assert_true(feed.visible, "shown while the match goes on")
+	var ended: Array[SimEvent] = [
+		SimEvent.seat_out(120, 1, 2, COLD, -1), SimEvent.match_ended(120, 0)
+	]
+	scene._driver.stepped.emit(ended)
+	scene._process(0.0)
+	assert_false(feed.visible, "not over the results")
+	scene.stand_aside()
+	scene._process(0.0)
+	assert_false(feed.visible, "nor while the match stands aside")
 
 
 func _feed() -> KnockoutFeed:
