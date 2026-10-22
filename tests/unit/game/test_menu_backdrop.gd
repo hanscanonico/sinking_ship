@@ -21,6 +21,8 @@ const WORDMARK := Rect2(64.0, 40.0, 563.0, 160.0)
 const CLEAR := 0.03
 ## Moments of the drift looked at, end to end: finer than the backdrop frames her by.
 const SWAYS := 65
+## How long dressing her on her thread may take here, in seconds.
+const DRESSING_SECONDS := 120.0
 
 var _backdrop: MenuBackdrop
 ## Her bow, her stern and her masthead: the drawn points furthest forward, aft and up.
@@ -35,6 +37,9 @@ func before_all() -> void:
 	_backdrop.size = BASE
 	_backdrop.show_ship(load(MATCH_DATA))
 	_backdrop.run(true)
+	# She is dressed on a thread, and drawn and framed by her outline once she is.
+	await wait_until(_backdrop.dressed, DRESSING_SECONDS)
+	assert_true(_backdrop.dressed(), "she is dressed")
 	_ends = _drawn_ends()
 
 

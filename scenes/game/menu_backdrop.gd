@@ -8,7 +8,10 @@ extends TextureRect
 ## set, and to the graphics preset as a match is (show_graphics). Nothing of it exists
 ## until the menu first shows — a server or a headless client never builds it — and it is
 ## stopped, not freed, while a match runs: dressing her again costs seconds, a hitch on
-## every return to the menu, where keeping her costs some megabytes.
+## every return to the menu, where keeping her costs some megabytes. She is dressed on a
+## thread (ShipDressing) as the menu first shows, the sea and sky drawn meanwhile and the
+## camera framed on her decks, so the game's first frame never waits the seconds that
+## takes; she is drawn, and framed by her outline, once she is dressed (dressed).
 
 const SEA_AND_SKY := preload("res://scenes/art/sea_and_sky.tscn")
 ## Her render scale, whatever the settings': one pixel of her for every pixel.
@@ -52,8 +55,11 @@ var _aim_left := 0.0
 var _time := 0.0
 ## The sway (-1…1) the drift is held at for a capture; NAN while it drifts.
 var _held := NAN
-## The match data whose ship is still to be dressed.
+## The match data whose ship is still to be dressed, and her dressing under way.
 var _undressed: MatchRules
+var _dressing: ShipDressing
+## The graphics she is drawn to, as show_graphics last said.
+var _quality: GraphicsQuality
 ## The panels of the screens over her, which she stands to the right of.
 var _beside: Array[Control] = []
 
@@ -80,6 +86,8 @@ func frame_beside(panel: Control) -> void:
 ## its sinking has her at POSE_SECONDS, every crate where it is loaded.
 func show_ship(match_rules: MatchRules) -> void:
 	_undressed = match_rules
+	# A dressing still under way is another ship's: never to be drawn for this one.
+	_let_go()
 	if is_processing():
 		_dress()
 
@@ -127,7 +135,27 @@ static func on_view(view: Transform3D, fov: float, aspect: float, point: Vector3
 	return Vector2(0.5 + 0.5 * seen.x / (reach * aspect), 0.5 - 0.5 * seen.y / reach)
 
 
+## Whether nothing of her is still being dressed: she is drawn as the menu's data has
+## her, or the backdrop has never been built.
+func dressed() -> bool:
+	return _dressing == null and (_undressed == null or _viewport == null)
+
+
+# Her dressing, still under way as the game quits, is let go, so its nodes are freed once
+# she is dressed (ShipDressing.finish_all).
+func _exit_tree() -> void:
+	_let_go()
+
+
+func _let_go() -> void:
+	if _dressing != null:
+		_dressing.drop()
+		_dressing = null
+
+
 func _process(delta: float) -> void:
+	if _dressing != null and _dressing.done():
+		_wear()
 	_time += delta
 	_camera.transform = view_at(_sway())
 
@@ -159,10 +187,10 @@ func _build() -> void:
 func show_graphics(settings: ViewSettings) -> void:
 	if _viewport == null:
 		return
-	var quality := settings.graphics()
-	quality.apply_to(_viewport, RENDER_SCALE)
-	_sea_and_sky.show_graphics(quality)
-	_art.show_graphics(quality)
+	_quality = settings.graphics()
+	_quality.apply_to(_viewport, RENDER_SCALE)
+	_sea_and_sky.show_graphics(_quality)
+	_art.show_graphics(_quality)
 
 
 ## One pixel of her render for every pixel of the window, which the UI's scaling
@@ -178,13 +206,13 @@ func _forget(panel: Control) -> void:
 	_frame()
 
 
+## Poses her and her sea, and starts dressing her, on a thread: framed on her decks till
+## she is dressed (_wear).
 func _dress() -> void:
+	if _dressing != null:
+		return
 	var layout := _undressed.ship
-	var rules := _undressed.rules
-	_art.build(layout, rules.railing_height, rules.body_radius)
-	var crates := _art.crates()
-	for index in crates.size():
-		crates[index].position = layout.props[index].pos
+	_dressing = ShipDressing.at_rest(layout, _undressed.rules).start()
 	var schedule := SinkSchedule.new(
 		_undressed.sinking, layout.freeboard, SeedStreams.derive(0, "sink")
 	)
@@ -195,10 +223,32 @@ func _dress() -> void:
 	_sea_and_sky.setup(schedule.end_tick(), layout)
 	_sea_and_sky.show_sinking(tick, _ship.transform)
 	var bounds := layout.platforms[0].area
+	_corners.clear()
 	for platform: ShipPlatform in layout.platforms:
 		bounds = bounds.merge(platform.area)
+		for corner: Vector2 in [platform.area.position, platform.area.end]:
+			_corners.append(_ship.transform * Vector3(corner.x, platform.height, corner.y))
 	var centre := bounds.get_center()
 	_middle = _ship.transform * Vector3(centre.x, 0.0, centre.y)
+	_frame()
+	_camera.transform = view_at(_sway())
+
+
+## Draws her as her dressing dressed her, in place of the art drawn so far, every crate
+## where it is loaded, and frames her by her outline.
+func _wear() -> void:
+	var dressed := _dressing.art
+	_dressing = null
+	_ship.remove_child(_art)
+	_art.queue_free()
+	_art = dressed
+	_ship.add_child(_art)
+	if _quality != null:
+		_art.show_graphics(_quality)
+	var layout := _undressed.ship
+	var crates := _art.crates()
+	for index in crates.size():
+		crates[index].position = layout.props[index].pos
 	_corners = _outline()
 	_undressed = null
 	_frame()

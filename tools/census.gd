@@ -51,6 +51,17 @@ const BANDS := {
 		"gone within 20 min of physics": [30, 60],
 		"breaks (in two or three, SH33)": [0, 0],
 	},
+	# SH37: the knockdown her commonest end — laid on her side, her weight aloft and her
+	# 'tween deck open to the sea.
+	"barque":
+	{
+		"survives": [0, 15],
+		"founders upright, by the head or the stern": [5, 25],
+		"heavy list (≥ 15° for ≥ 5 min afloat)": [25, 55],
+		"capsizes (rolled past 90°)": [70, 95],
+		"gone within 20 min of physics": [60, 90],
+		"breaks (in two or three, SH33)": [0, 0],
+	},
 	# SH35: capsizing her commonest end, the open car deck's.
 	"ferry":
 	{
@@ -59,6 +70,17 @@ const BANDS := {
 		"heavy list (≥ 15° for ≥ 5 min afloat)": [40, 70],
 		"capsizes (rolled past 90°)": [40, 70],
 		"gone within 20 min of physics": [5, 25],
+		"breaks (in two or three, SH33)": [0, 0],
+	},
+	# SH36: by the stern, every time she goes — the one big engine room — and in minutes
+	# once her casing door lets her towing deck's sea in; too stiff to list or roll over.
+	"tug":
+	{
+		"survives": [20, 50],
+		"founders upright, by the head or the stern": [50, 80],
+		"heavy list (≥ 15° for ≥ 5 min afloat)": [0, 10],
+		"capsizes (rolled past 90°)": [0, 10],
+		"gone within 20 min of physics": [10, 40],
 		"breaks (in two or three, SH33)": [0, 0],
 	},
 	"titanic":
@@ -85,6 +107,9 @@ var _ship: StringName
 var _freeboard: float
 var _structure: ShipStructure
 var _scenario: SinkScenario
+## The seats her measuring matches take: the match data's, or her most where she takes
+## fewer (the tug's six); 0 for the data's.
+var _seats: int
 
 
 func _initialize() -> void:
@@ -114,6 +139,8 @@ func _initialize() -> void:
 	_freeboard = layout.freeboard
 	_structure = layout.structure
 	_scenario = scenario
+	var match_rules: MatchRules = load(RunMatch.DEFAULT_MATCH)
+	_seats = 0 if match_rules.seats <= layout.max_seats else layout.max_seats
 	var raw := _raw(layout.structure, scenario, seeds)
 	var chosen := _matches(layout.structure, scenario, seeds)
 	var seen := _seen(chosen, mini(matches, seeds))
@@ -179,7 +206,7 @@ func _matches(structure: ShipStructure, scenario: SinkScenario, seeds: int) -> A
 func _seen(chosen: Array[Dictionary], count: int) -> PackedFloat64Array:
 	var shares := PackedFloat64Array()
 	for index in count:
-		var config := RunMatch.default_config(chosen[index]["seed"], 0, _ship)
+		var config := RunMatch.default_config(chosen[index]["seed"], _seats, _ship)
 		var host := RunMatch.served(config)
 		var stop := Ticks.from_seconds(MATCH_STOP)
 		while not host.is_over() and host.tick() < stop:

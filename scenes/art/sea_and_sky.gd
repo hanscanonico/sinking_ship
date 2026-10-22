@@ -50,6 +50,12 @@ const ROOM_CELL := 0.5
 const EDGE_REACH := 1.0
 const EDGE_GRACE := ROOM_CELL * 0.25
 
+## Each layout's rooms' maps as the sea is handed them (maps_of), made once a run: for a
+## match, on her dressing's thread ahead of it (ShipDressing) — off the main thread,
+## hence the guard — as a liner's take seconds.
+static var _maps := {}
+static var _maps_guard := Mutex.new()
+
 var _end_tick := 0
 ## The stem, ship space: its head at the bow's deck, its foot under the waterline;
 ## and the stern at the head's height, so the line aft from the head is the one the
@@ -270,10 +276,24 @@ func _map_rooms(layout: ShipLayout) -> void:
 		Vector3(-bounds.position.x / bounds.size.x, 0.0, -bounds.position.y / bounds.size.y)
 	)
 	_ship_to_world = Transform3D()
-	_water.set_shader_parameter(&"rooms", ImageTexture.create_from_image(room_map(layout)))
-	var edges := ImageTexture.create_from_image(room_edges(layout))
-	_water.set_shader_parameter(&"room_edges", edges)
+	var maps := maps_of(layout)
+	_water.set_shader_parameter(&"rooms", ImageTexture.create_from_image(maps[0]))
+	_water.set_shader_parameter(&"room_edges", ImageTexture.create_from_image(maps[1]))
 	_water.set_shader_parameter(&"world_to_rooms", _ship_to_rooms)
+
+
+## [param layout]'s rooms' maps — room_map, then room_edges — made the first time they
+## are asked for, on whatever thread asks; none for a layout without rooms.
+static func maps_of(layout: ShipLayout) -> Array:
+	_maps_guard.lock()
+	var found: Array = _maps.get(layout, [])
+	_maps_guard.unlock()
+	if found.is_empty() and not layout.rooms.is_empty():
+		found = [room_map(layout), room_edges(layout)]
+		_maps_guard.lock()
+		_maps[layout] = found
+		_maps_guard.unlock()
+	return found
 
 
 ## Leaves the sea out of [param boxes] (ship space), however many, and the box round
