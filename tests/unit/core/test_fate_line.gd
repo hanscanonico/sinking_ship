@@ -64,12 +64,16 @@ func test_the_line_reads_the_baked_sinking() -> void:
 		MatchTranscript.fate_line("Steamer", schedule, gone), " · 100% of her sinking played"
 	)
 	var midway := (hit + gone) / 2
-	var share := MatchTranscript.seen(schedule, midway)
-	assert_between(share, 0.01, 0.99, "part of it played midway")
+	assert_almost_eq(MatchTranscript.share_played(schedule, midway), 0.5, 0.001)
 	assert_eq(
 		MatchTranscript.fate_line("Steamer", schedule, midway),
-		MatchTranscript.fate_told("Steamer", told, share)
+		MatchTranscript.fate_told("Steamer", told, 0.5),
+		"half of it played halfway from the hit to her going"
 	)
+	# The share is the match's time, not the physics': her paced clock (Q20) has run
+	# well past half her physics by then, drawing her end out.
+	var physics := schedule.physics_at(midway) / schedule.timeline().gone_at
+	assert_gt(physics, 0.6, "the physics runs ahead of the match")
 	assert_eq(
 		MatchTranscript.fate_line("Steamer", schedule, midway),
 		MatchTranscript.fate_line("Steamer", schedule, midway),
@@ -81,4 +85,4 @@ func test_a_match_without_a_sinking_tells_no_fate() -> void:
 	var calm := SimFixtures.config(2).schedule()
 	assert_null(calm.timeline())
 	assert_eq(MatchTranscript.fate_line("Deck", calm, 900), "")
-	assert_eq(MatchTranscript.seen(calm, 900), 0.0)
+	assert_eq(MatchTranscript.share_played(calm, 900), 0.0)

@@ -253,7 +253,7 @@ func _sinking(sim: MatchSim) -> void:
 		% [
 			physics_clock(since),
 			clocked,
-			seen(sim.schedule, tick) * 100.0,
+			minf(since / whole, 1.0) * 100.0,
 			pose.sink,
 			pose.trim_deg,
 			pose.heel_deg,
@@ -301,27 +301,30 @@ func _sinking(sim: MatchSim) -> void:
 	_lines.append(bending(timeline))
 
 
-## The share of [param schedule]'s whole sinking — to her going, or to its bake's end
-## when she does not go — the physics had run by [param tick], 0…1: what the match saw
-## of it (R33), read off the baked timeline alone (D7). 0 for a match without one.
-static func seen(schedule: SinkSchedule, tick: int) -> float:
+## The share of [param schedule]'s whole sinking — from the hit to her going, or to its
+## bake's end when she does not go — the match had played by [param tick], 0…1, in
+## match time: what a player sat through of it. Not the transcript's "seen", the
+## physics' share, which her paced clock (Q20) runs far ahead, drawing her end out.
+## Read off the baked schedule alone (D7); 0 for a match without a sinking.
+static func share_played(schedule: SinkSchedule, tick: int) -> float:
 	var timeline := schedule.timeline()
 	if timeline == null:
 		return 0.0
-	var since := schedule.physics_at(maxi(tick, schedule.hit_tick()))
-	var whole := timeline.gone_at if timeline.is_gone() else timeline.length()
-	return minf(since / whole, 1.0)
+	var hit := schedule.hit_tick()
+	var whole := schedule.gone_tick() if timeline.is_gone() else schedule.end_tick()
+	return clampf(float(tick - hit) / float(maxi(whole - hit, 1)), 0.0, 1.0)
 
 
 ## How the results tell her fate in a line: [param ship_name], how her sinking ends
-## (founders) and the share of it played by [param tick], the match's end —
-## "Steamer · down by the head · 54% of her sinking played". Empty for a match without
-## a sinking. All of it is baked in [param schedule] (D7): nothing on a clock.
+## (founders) and the share of it played by [param tick], the match's end
+## (share_played) — "Steamer · down by the head · 27% of her sinking played". Empty for
+## a match without a sinking. All of it is baked in [param schedule] (D7): nothing on a
+## clock.
 static func fate_line(ship_name: String, schedule: SinkSchedule, tick: int) -> String:
 	var timeline := schedule.timeline()
 	if timeline == null:
 		return ""
-	return fate_told(ship_name, OutcomeClassifier.labels(timeline), seen(schedule, tick))
+	return fate_told(ship_name, OutcomeClassifier.labels(timeline), share_played(schedule, tick))
 
 
 ## The fate line of [param ship_name] whose sinking earns [param labels_of], with
