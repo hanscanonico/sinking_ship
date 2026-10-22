@@ -3,8 +3,8 @@ extends RefCounted
 ## A boarding ladder, dressed (SH5, SH14b): two steel stiles and teak rungs, their line
 ## OUT outboard of where the ladder hangs at each height (ShipLayout.ladder_at) — down
 ## her side, on her shell, following her flare and her bilge, or straight down from its
-## deck's edge where her side stands plumb there — from its top (ShipLayout.ladder_top),
-## the top rung flush with it, the rest RUNG_SPACING apart, down to BELOW under her
+## deck's edge where her side stands plumb there — from its deck, the top rung flush
+## with it, the rest RUNG_SPACING apart, down to BELOW under her
 ## waterline at rest. Godot owns its form: every point of it is read from her data.
 
 ## How far outboard of where it hangs its rungs' line stands, clear of her plating and
@@ -24,7 +24,7 @@ const STRAIGHT := 1e-6
 static func draw(mesh: ShipMesh, layout: ShipLayout, ladder: ShipLadder) -> void:
 	var bottom := -layout.freeboard - BELOW
 	var heights := PackedFloat64Array()
-	var height := layout.ladder_top(ladder)
+	var height := layout.platforms[ladder.platform].height
 	var rung := height - RUNG * 0.5
 	while height > bottom + BEND * 0.5:
 		heights.append(height)
@@ -58,7 +58,7 @@ static func line(layout: ShipLayout, ladder: ShipLadder, height: float) -> Packe
 ## BELOW under her waterline.
 static func lowest_rung(layout: ShipLayout, ladder: ShipLadder) -> float:
 	var bottom := -layout.freeboard - BELOW
-	var rung := layout.ladder_top(ladder) - RUNG * 0.5
+	var rung := layout.platforms[ladder.platform].height - RUNG * 0.5
 	while rung - RUNG_SPACING > bottom:
 		rung -= RUNG_SPACING
 	return rung

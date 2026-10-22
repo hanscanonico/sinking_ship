@@ -417,11 +417,11 @@ func _railing(railing: ShipRailing, deck_height: float, railing_height: float) -
 
 ## Two stiles and their rungs hanging just outboard of where [param ladder] hangs at
 ## each height (ShipLayout.ladder_at) — down her side, on her shell — from its top
-## (ShipLayout.ladder_top) down [param depth] under [param platform]'s deck, hung from
+## down [param depth] under [param platform]'s deck, hung from
 ## [param deck] so they go with it when it collapses. A stile runs plumb where her side
 ## does and bends where it does, RUNG_SPACING apart.
 func _ladder(ladder: ShipLadder, platform: ShipPlatform, depth: float, deck: Node3D) -> void:
-	var top := _layout.ladder_top(ladder)
+	var top := platform.height
 	var bottom := platform.height - depth
 	var heights := PackedFloat64Array()
 	var height := top

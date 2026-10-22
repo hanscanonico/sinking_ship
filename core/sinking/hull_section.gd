@@ -4,9 +4,6 @@ extends Resource
 ## the hull from its keel to its sheer and the deckhouses on it — standing for the
 ## stretch of hull [member length] long about it. Ship-local metres (D6).
 
-## Two heights, or two breadths, this close are one (sheer()).
-const LEVEL := 1e-3
-
 ## Where along the ship it is cut, and the length of hull it stands for, centred on it.
 @export var x: float
 @export var length: float
@@ -28,20 +25,6 @@ func shell_at(y: float, side: int) -> float:
 		var z := a.x + (float(b.x) - a.x) * (y - a.y) / (float(b.y) - a.y)
 		outermost = maxf(outermost, z * side)
 	return outermost * side if outermost > -INF else NAN
-
-
-## The height of her sheer on the side [param way] points to — 1 for starboard, -1 for
-## port: the top of her shell's side, up the outline from where it starts (or ends,
-## to port) while it climbs and stands out; over it stand her deck and her houses.
-func sheer(way: int) -> float:
-	var count := outline.size()
-	var last := outline[0]
-	for step in range(1, count):
-		var point := outline[step if way > 0 else count - step]
-		if point.y < last.y - LEVEL or point.x * way < last.x * way - LEVEL:
-			break
-		last = point
-	return last.y
 
 
 ## Every reason this section cannot be read; empty when it can.

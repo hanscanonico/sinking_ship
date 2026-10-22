@@ -1,6 +1,6 @@
 extends GutTest
-## A boarding ladder hangs down her side on her shell (D6, SH5): from its deck, or over
-## her bulwark, to under the sea, following her flare and her bilge — the Titanic's
+## A boarding ladder hangs down her side on her shell (D6, SH5): from its deck to under
+## the sea, following her flare and her bilge — the Titanic's
 ## flare out of her well decks' edges and come in under the sea — never through her
 ## plating; and a body climbing it hangs outside her shell at every height.
 
@@ -16,7 +16,7 @@ const NEAR := 0.0001
 ## apart.
 func _heights(layout: ShipLayout, ladder: ShipLadder) -> PackedFloat64Array:
 	var heights := PackedFloat64Array()
-	var height := layout.ladder_top(ladder)
+	var height := layout.platforms[ladder.platform].height
 	while height > -layout.freeboard - BELOW:
 		heights.append(height)
 		height -= STEP
@@ -53,7 +53,6 @@ func test_the_titanic_ladders_flare_out_and_come_in_under_the_sea() -> void:
 	for ladder: ShipLadder in layout.ladders:
 		var deck := layout.platforms[ladder.platform]
 		var edge := absf(ladder.from.y)
-		assert_eq(layout.ladder_top(ladder), deck.height, "up to her well deck")
 		var top := layout.ladder_at(ladder, deck.height)
 		var foot := layout.ladder_at(ladder, -layout.freeboard)
 		for end in 2:
@@ -67,22 +66,12 @@ func test_a_wall_sided_ladder_hangs_from_its_deck_edge() -> void:
 	# ladders hang as they always did, straight down from it.
 	var layout := Fleet.layout(&"steamer")
 	for ladder: ShipLadder in layout.ladders:
-		assert_eq(layout.ladder_top(ladder), 0.0, "from her main deck")
 		var height := 0.0
 		while height > -2.5:
 			var hangs := layout.ladder_at(ladder, height)
 			assert_almost_eq(hangs[0].distance_to(ladder.from), 0.0, NEAR, "at %.1f m" % height)
 			assert_almost_eq(hangs[1].distance_to(ladder.to), 0.0, NEAR, "at %.1f m" % height)
 			height -= STEP
-
-
-func test_a_ladder_leads_up_over_her_bulwark() -> void:
-	# The trawler's shell stands a metre over her deck at her ladders: they start at its
-	# top.
-	var layout := Fleet.layout(&"trawler")
-	for ladder: ShipLadder in layout.ladders:
-		var deck := layout.platforms[ladder.platform].height
-		assert_almost_eq(layout.ladder_top(ladder), deck + 1.0, NEAR, "over her bulwark")
 
 
 func test_a_ladder_with_no_structure_hangs_from_its_edge() -> void:
@@ -92,7 +81,6 @@ func test_a_ladder_with_no_structure_hangs_from_its_edge() -> void:
 	var hangs := layout.ladder_at(ladder, -layout.freeboard)
 	assert_eq(hangs[0], ladder.from)
 	assert_eq(hangs[1], ladder.to)
-	assert_eq(layout.ladder_top(ladder), layout.platforms[ladder.platform].height)
 
 
 func test_a_climber_up_the_titanic_hangs_outside_her_shell() -> void:

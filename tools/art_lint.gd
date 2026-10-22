@@ -11,7 +11,7 @@ extends SceneTree
 ##   underside; and over every ramp a stair whose top stands within half a riser
 ##   (ShipArt.STEP_RISE) and PLATFORM_TOLERANCE of the ramp's height; and down
 ##   every boarding ladder's rung line, down her side, a top within LADDER_TOLERANCE
-##   of its own (ShipLayout.ladder_top) and a bottom at or under the waterline at rest. And past
+##   of its deck and a bottom at or under the waterline at rest. And past
 ##   every platform's edge, wherever the rules have no floor near its height, no
 ##   drawn face looks like one: straight down through the heights a body could step
 ##   down to or jump up onto from that deck, the first face met never faces up — the
@@ -722,7 +722,7 @@ func _check_crate_light(file: String, layout: ShipLayout, art: ShipArt) -> void:
 
 ## Down the middle of [param ladder]'s rung line, BoardingLadder.OUT outboard of where
 ## it hangs (ShipLayout.ladder_at): straight down onto its top, the highest face drawn
-## there within LADDER_TOLERANCE of it (ShipLayout.ladder_top); and straight up under
+## there within LADDER_TOLERANCE of its deck; and straight up under
 ## its lowest rung, where her side slopes it there (BoardingLadder.lowest_rung), the
 ## lowest at or under the waterline at rest — a swimmer finds it from the sea, and it
 ## leads all the way up.
@@ -735,7 +735,7 @@ func _check_ladder(
 ) -> void:
 	_checks += 1
 	var outward := layout.ladder_outward(ladder) * BoardingLadder.OUT
-	var height := layout.ladder_top(ladder)
+	var height := layout.platforms[ladder.platform].height
 	var up := layout.ladder_at(ladder, height)
 	var high := (up[0] + up[1]) * 0.5 + outward
 	var low_at := BoardingLadder.line(layout, ladder, BoardingLadder.lowest_rung(layout, ladder))

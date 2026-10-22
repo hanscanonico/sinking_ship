@@ -101,22 +101,6 @@ func ladder_outward(ladder: ShipLadder) -> Vector2:
 	return outward
 
 
-## The top of [param ladder]: its deck's height, or her sheer's where her shell stands
-## over its deck there (HullSection.sheer) — a ladder down her side leads up over her
-## bulwark.
-func ladder_top(ladder: ShipLadder) -> float:
-	var top := platforms[ladder.platform].height
-	var outward := ladder_outward(ladder)
-	if structure == null or absf(outward.y) < SIDE_FACING:
-		return top
-	var way := 1 if outward.y > 0.0 else -1
-	for end: Vector2 in [ladder.from, ladder.to]:
-		var section := structure.section_at(end.x)
-		if section != null:
-			top = maxf(top, section.sheer(way))
-	return top
-
-
 ## Where [param ladder] hangs at [param height] (D6): its two ends, x/z — from, then
 ## to. A ladder down her side lies on her shell's side there, her structure's half
 ## breadth at each end's x (ShipStructure.half_breadth), so it follows her flare and
