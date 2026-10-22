@@ -86,6 +86,8 @@ func frame_beside(panel: Control) -> void:
 ## its sinking has her at POSE_SECONDS, every crate where it is loaded.
 func show_ship(match_rules: MatchRules) -> void:
 	_undressed = match_rules
+	# A dressing still under way is another ship's: never to be drawn for this one.
+	_let_go()
 	if is_processing():
 		_dress()
 
@@ -137,6 +139,18 @@ static func on_view(view: Transform3D, fov: float, aspect: float, point: Vector3
 ## her, or the backdrop has never been built.
 func dressed() -> bool:
 	return _dressing == null and (_undressed == null or _viewport == null)
+
+
+# Her dressing, still under way as the game quits, is let go, so its nodes are freed once
+# she is dressed (ShipDressing.finish_all).
+func _exit_tree() -> void:
+	_let_go()
+
+
+func _let_go() -> void:
+	if _dressing != null:
+		_dressing.drop()
+		_dressing = null
 
 
 func _process(delta: float) -> void:

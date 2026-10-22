@@ -3,7 +3,8 @@ extends GutTest
 ## no frame stalls the seconds dressing her takes — and the match draws the very art her
 ## dressing made rather than dressing her again as it starts. Dressed on a thread she is
 ## the ship dressed here; a dressing let go before she is dressed frees her once she is;
-## and one dressing fits only the match, and the cut, it was made for.
+## and one dressing fits only the cut it was made for, and a match on the ship, rules,
+## sinking and seed it was made for: the one Play makes on the next match dressed ahead.
 
 const MATCH := preload("res://scenes/match/match.tscn")
 const MATCH_DATA := "res://data/match/default.tres"
@@ -80,4 +81,20 @@ func test_a_dressing_fits_its_own_match_and_cut() -> void:
 	var resting := ShipDressing.at_rest(config.ship, config.rules)
 	assert_false(resting.fits(config), "a ship at rest is no match's")
 	resting.drop()
+	dressing.drop()
+
+
+func test_the_next_match_dressed_on_the_menu_fits_the_match_play_makes() -> void:
+	var seeds := RandomNumberGenerator.new()
+	seeds.seed = 1701
+	var upcoming := NextMatch.new(load(MATCH_DATA), seeds)
+	var choices := MatchChoices.new()
+	upcoming.aim(choices)
+	var next := upcoming.config()
+	var dressing := ShipDressing.new(next)
+	var played := upcoming.chosen(choices)
+	assert_ne(played, next, "Play makes a match of its own")
+	assert_true(dressing.fits(played), "on the ship, the rules, the sinking and the seed dressed")
+	var typed := upcoming.chosen(choices.with_seed(str(next.match_seed + 1)))
+	assert_false(dressing.fits(typed), "another seed's sinking is another")
 	dressing.drop()

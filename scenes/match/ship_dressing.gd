@@ -102,9 +102,21 @@ func done() -> bool:
 
 
 ## Whether this dresses [param other]'s ship as its match draws her, cut away above
-## [param cut].
+## [param cut]: its own match's, or one of the same ship, rules, scenario and seed, whose
+## sinking — all of her art that is the match's — is the same (D4). Play makes a match of
+## its own on the one dressed on the menu (NextMatch.chosen), which this fits.
 func fits(other: MatchConfig, cut: float = INF) -> bool:
-	return config != null and config == other and cut_above == cut
+	if config == null or other == null or cut_above != cut:
+		return false
+	return (
+		config == other
+		or (
+			other.ship == config.ship
+			and other.rules == config.rules
+			and other.scenario == config.scenario
+			and other.match_seed == config.match_seed
+		)
+	)
 
 
 ## Lets her go, never taken: her nodes are freed — once she is dressed, when she is
@@ -146,6 +158,17 @@ func _dress() -> void:
 			_flush()
 	else:
 		_building.lock()
+	# Let go while she waited her turn: never dressed, so the next waits no longer.
+	_guard.lock()
+	var dropped := _dropped
+	_guard.unlock()
+	if dropped:
+		_building.unlock()
+		_guard.lock()
+		_built = true
+		_guard.unlock()
+		_free_nodes()
+		return
 	if config == null:
 		art.build(_ship, _rules.railing_height, _rules.body_radius)
 	else:
@@ -163,7 +186,7 @@ func _dress() -> void:
 	SeaAndSky.maps_of(_ship)
 	_guard.lock()
 	_built = true
-	var dropped := _dropped
+	dropped = _dropped
 	_guard.unlock()
 	if dropped:
 		_free_nodes()

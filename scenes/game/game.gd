@@ -608,15 +608,16 @@ func _quit() -> void:
 
 # However the game quits — its Quit, a capture taken, the window closed — every ship being
 # dressed on a thread is finished first: left, its thread would wait on frames that never
-# come, and the game would never end (ShipDressing). A match being served is waited for.
+# come, and the game would never end (ShipDressing). A match being served is waited for
+# after them, never before: its task may wait on the pool's threads they hold.
 func _exit_tree() -> void:
-	if _serving_task >= 0:
-		WorkerThreadPool.wait_for_task_completion(_serving_task)
-		_serving_task = -1
 	if _dressing != null:
 		_dressing.drop()
 		_dressing = null
 	ShipDressing.finish_all()
+	if _serving_task >= 0:
+		WorkerThreadPool.wait_for_task_completion(_serving_task)
+		_serving_task = -1
 
 
 func _on_view_changed(settings: ViewSettings) -> void:
