@@ -20,6 +20,42 @@ func test_the_line_names_whose_view_it_is() -> void:
 	assert_eq(Hud.whose_view("You", true, true), "watching you")
 
 
+func test_the_countdown_says_what_the_match_is_played_for() -> void:
+	assert_eq(
+		Hud.goal_text(MatchRules.Goal.LAST_STANDING),
+		"Be the last one dry. Shove rivals into the sea."
+	)
+	assert_eq(Hud.goal_text(MatchRules.Goal.SURVIVAL), "Stay aboard as long as she floats.")
+
+
+func test_the_goal_shows_with_the_countdown_and_go_then_goes() -> void:
+	var scene: Node = load("res://scenes/match/match.tscn").instantiate()
+	add_child_autofree(scene)
+	var hud: Hud = scene.get_node("Hud")
+	var goal: Label = hud.get_node("%Goal")
+	var countdown := Ticks.from_seconds(3.0)
+	for rule: MatchRules.Goal in [MatchRules.Goal.LAST_STANDING, MatchRules.Goal.SURVIVAL]:
+		var config := SimFixtures.config(2)
+		config.countdown_ticks = countdown
+		config.goal = rule
+		var sim := MatchSim.create(config)
+		hud.setup(sim)
+		assert_eq(goal.text, Hud.goal_text(rule), "the match's own goal")
+		var snapshot := sim.snapshot()
+		for tick: int in [0, countdown - 1, countdown]:
+			snapshot["tick"] = tick
+			hud.show_snapshot(snapshot)
+			assert_true(goal.visible, "up at tick %d, the countdown's or Go!'s" % tick)
+		snapshot["tick"] = countdown + Ticks.from_seconds(Hud.GO_SECONDS)
+		hud.show_snapshot(snapshot)
+		assert_false(goal.visible, "gone with Go!")
+		var font := goal.get_theme_font(&"font")
+		var font_size := goal.get_theme_font_size(&"font_size")
+		var width := font.get_string_size(goal.text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
+		var outline := goal.get_theme_constant(&"outline_size")
+		assert_lt(width + outline * 2.0, goal.size.x, "%s fits on one line" % goal.text)
+
+
 func test_the_line_says_how_into_the_free_camera_and_back() -> void:
 	assert_eq(
 		Hud.spectating_text("3rd", 8, "through Bot 3's eyes", "Q", "E", "C"),

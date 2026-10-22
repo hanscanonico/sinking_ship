@@ -3,10 +3,10 @@ extends CanvasLayer
 ## The settings screen, from the main menu or the pause menu, in three pages a row of
 ## tabs over them picks: Sound — master, music and effects volume; Controls — the
 ## first-person view's mouse sensitivity, invert Y, field of view, and the deck-roll
-## and view-kick comfort sliders (D14, Q17, R15); Graphics — fullscreen, the graphics
-## preset with a line on what it changes (GraphicsQuality), and the 3D view's render
-## scale, both this machine's own until the player picks them. Each change applies as
-## it is made; closing saves them under user://.
+## and view-kick comfort sliders (D14, Q17, R15); Graphics — the window mode, VSync, a
+## frame-rate cap, the graphics preset with a line on what it changes (GraphicsQuality),
+## and the 3D view's render scale, both this machine's own until the player picks them.
+## Each change applies as it is made; closing saves them under user://.
 
 signal closed
 ## The first-person view or the graphics changed: whatever is on screen should take
@@ -24,11 +24,16 @@ var _audio: AudioSettings
 var _view: ViewSettings
 ## What had the focus when the screen opened, to hand it back on closing.
 var _opener: Control
+## In a browser, which draws at its own pace and fills the screen one way: VSync and
+## the exclusive mode, which would do nothing there, are not offered.
+var on_web := OS.has_feature("web")
 
 @onready var _master: HSlider = %Master
 @onready var _music: HSlider = %Music
 @onready var _effects: HSlider = %Effects
-@onready var _fullscreen: CheckButton = %Fullscreen
+@onready var _window_mode: OptionButton = %WindowMode
+@onready var _vsync: CheckButton = %VSync
+@onready var _max_fps: OptionButton = %MaxFps
 @onready var _sensitivity: HSlider = %Sensitivity
 @onready var _invert_y: CheckButton = %InvertY
 @onready var _fov: HSlider = %FieldOfView
@@ -46,7 +51,17 @@ func _ready() -> void:
 	_master.value_changed.connect(_on_volume)
 	_music.value_changed.connect(_on_volume)
 	_effects.value_changed.connect(_on_volume)
-	_fullscreen.toggled.connect(_on_window)
+	_window_mode.add_item("Windowed", ViewSettings.WindowMode.WINDOWED)
+	_window_mode.add_item("Borderless fullscreen", ViewSettings.WindowMode.BORDERLESS)
+	if not on_web:
+		_window_mode.add_item("Exclusive fullscreen", ViewSettings.WindowMode.EXCLUSIVE)
+	for vsync_row: Control in [%VSyncLabel, _vsync, %VSyncSpacer]:
+		vsync_row.visible = not on_web
+	_window_mode.item_selected.connect(_on_window)
+	_vsync.toggled.connect(_on_window)
+	for fps: int in ViewSettings.MAX_FPS_CHOICES:
+		_max_fps.add_item("Unlimited" if fps == 0 else "%d" % fps, fps)
+	_max_fps.item_selected.connect(_on_window)
 	for slider: HSlider in [_sensitivity, _fov, _deck_roll, _view_kick]:
 		slider.value_changed.connect(_on_view)
 	_invert_y.toggled.connect(_on_view)
@@ -71,7 +86,14 @@ func open(page := Page.SOUND) -> void:
 	_master.set_value_no_signal(_audio.master * 100.0)
 	_music.set_value_no_signal(_audio.music * 100.0)
 	_effects.set_value_no_signal(_audio.effects * 100.0)
-	_fullscreen.set_pressed_no_signal(_view.fullscreen)
+	# Exclusive, where it is not offered, fills the screen as borderless does.
+	var mode := _window_mode.get_item_index(_view.window_mode)
+	if mode < 0:
+		mode = _window_mode.get_item_index(ViewSettings.WindowMode.BORDERLESS)
+	_window_mode.select(mode)
+	_vsync.set_pressed_no_signal(_view.vsync)
+	# A cap saved off the list shows as none until the player picks one.
+	_max_fps.select(maxi(_max_fps.get_item_index(_view.max_fps), 0))
 	_sensitivity.set_value_no_signal(_view.mouse_deg_per_pixel)
 	_invert_y.set_pressed_no_signal(_view.invert_y)
 	_fov.set_value_no_signal(_view.fov_deg)
@@ -82,7 +104,7 @@ func open(page := Page.SOUND) -> void:
 	_show_values()
 	show_page(page)
 	show()
-	var first: Array[Control] = [_master, _sensitivity, _fullscreen]
+	var first: Array[Control] = [_master, _sensitivity, _window_mode]
 	first[page].grab_focus()
 
 
@@ -117,9 +139,11 @@ func _on_volume(_value: float) -> void:
 	_show_values()
 
 
-func _on_window(fullscreen: bool) -> void:
-	_view.fullscreen = fullscreen
-	_view.apply_window()
+func _on_window(_value: Variant) -> void:
+	_view.window_mode = _window_mode.get_selected_id() as ViewSettings.WindowMode
+	_view.vsync = _vsync.button_pressed
+	_view.max_fps = _max_fps.get_selected_id()
+	_view.apply_window(true)
 
 
 func _on_view(_value: Variant) -> void:

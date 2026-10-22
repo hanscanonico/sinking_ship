@@ -756,6 +756,19 @@ func current() -> Dictionary:
 	return _driver.current
 
 
+## What names the buttons on the device last used.
+func prompts() -> InputPrompts:
+	return _prompts
+
+
+## Whether the eye seat is out while the match goes on: the view switchable.
+func spectating() -> bool:
+	var snapshot := _driver.current
+	if snapshot.is_empty() or snapshot["phase"] == MatchState.Phase.ENDED:
+		return false
+	return snapshot["seats"][_eye_seat]["out"]
+
+
 ## Whether the latest snapshot says the match has ended.
 func is_over() -> bool:
 	return _driver.current.get("phase", -1) == MatchState.Phase.ENDED

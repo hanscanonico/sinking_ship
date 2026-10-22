@@ -57,8 +57,8 @@ done
 SERVER=("$GODOT" --path .)
 CLIENT=("$GODOT" --path .)
 if ((EXPORTED)); then
-	SERVER=("build/server-mac/SinkingShipServer.app/Contents/MacOS/Sinking Ship")
-	CLIENT=("build/mac/SinkingShip.app/Contents/MacOS/Sinking Ship")
+	SERVER=("build/server-mac/SinkingShipServer.app/Contents/MacOS/Last One Dry")
+	CLIENT=("build/mac/LastOneDry.app/Contents/MacOS/Last One Dry")
 	for exported in "${SERVER[0]}" "${CLIENT[0]}"; do
 		if [[ ! -x "$exported" ]]; then
 			echo "serve-local: no $exported — make export-server-mac export-mac" >&2

@@ -94,10 +94,9 @@ var _held_dressing: ShipDressing
 ## The frame the held match began waiting on its dressing: it starts a frame on at the
 ## soonest.
 var _held_since := 0
-## The held match served on a thread once its ship is dressed (MatchScene.serve) — its
-## task, -1 when none runs — and what it served, until the match takes it.
-var _serving_task := -1
-var _served: MatchScene.Served
+## The held match served on a thread once its ship is dressed (MatchScene.serve), what it
+## served kept beside the config it was served for until that match takes it.
+var _serving := MatchServing.new()
 ## Where each frame's time goes, when --frame-split asks (make fps SPLIT=1); null else.
 var _probe: FrameProbe
 var _hold := BakeHold.new()
@@ -120,8 +119,9 @@ func _ready() -> void:
 	_seeds.randomize()
 	AudioSettings.local().apply()
 	_view = ViewSettings.local()
-	# A capture keeps the window it was launched with, whatever the player saved.
-	if _args.capture_path.is_empty():
+	# A capture, and a bot's autoplay (make fps), keep the window, VSync and frame rate
+	# they were launched with, whatever the player saved.
+	if _args.capture_path.is_empty() and not _args.autoplay:
 		_view.apply_window()
 	else:
 		_draw_watch = DrawWatch.new()
@@ -236,7 +236,7 @@ func _process(delta: float) -> void:
 		_match.set_paused(true)
 		match _args.capture_screen:
 			"pause":
-				_pause.open()
+				_pause.open(_match.prompts(), _match.spectating())
 			"online-pause", "online-settings":
 				_stage_online_pause(_args.capture_screen == "online-settings")
 		_capture(MatchTranscript.clock(snapshot["tick"]))
@@ -250,16 +250,38 @@ func _unhandled_input(event: InputEvent) -> void:
 		and (event.is_action_pressed("pause") or event.is_action_pressed("ui_cancel"))
 	):
 		_set_paused(false)
-	elif (
-		not _pause.visible
-		and event.is_action_pressed("pause")
-		and not _match.is_over()
-		and not _match.replaying()
-	):
+	elif not _pause.visible and event.is_action_pressed("pause") and _takes_pause():
 		_set_paused(true)
 	else:
 		return
 	get_viewport().set_input_as_handled()
+
+
+## Whether Esc / Start pauses the match: one being played, never a countdown held for its
+## sinking or its ship — whose match has not started, so nothing says it is over — nor
+## a replay, nor a match over.
+func _takes_pause() -> bool:
+	if _holding != null or _holding_replay != null:
+		return false
+	return not _match.is_over() and not _match.replaying()
+
+
+## Gives up the countdown held, if one is: its match or replay never starts — its bake
+## stopped, its ship's dressing dropped, what was served of it let go, never waited on
+## (MatchServing).
+func _cancel_hold() -> void:
+	if _holding == null:
+		return
+	_baker.stop()
+	_holding = null
+	_holding_replay = null
+	_dressed_hold = false
+	_held_dressing = null
+	_hold.hide()
+	if _dressing != null:
+		_dressing.drop()
+		_dressing = null
+	_serving.cancel()
 
 
 func _play(choices: MatchChoices) -> void:
@@ -352,21 +374,20 @@ func _dress_held() -> void:
 ## starts once that is done — but a replay, which no loopback serves, and a tool's jump or
 ## frame split, which start() serves itself.
 func _served_held() -> bool:
-	if _serving_task >= 0:
-		if not WorkerThreadPool.is_task_completed(_serving_task):
-			return false
-		WorkerThreadPool.wait_for_task_completion(_serving_task)
-		_serving_task = -1
-		return true
 	var jumps := _args.phys_seconds >= 0.0 and _args.jump
-	if _served != null or _holding_replay != null or jumps or _probe != null:
+	if _holding_replay != null or jumps or _probe != null:
 		return true
-	# Her ship dressed, her sinking is built: nothing else builds it meanwhile.
 	var config := _holding
+	if _serving.ready_for(config):
+		return true
+	# One served for another held match, given up, ends first; what it served is dropped.
+	if _serving.busy():
+		return false
+	# Her ship dressed, her sinking is built: nothing else builds it meanwhile.
 	var local := MatchScene.local_for(config, _args.autoplay)
 	var net_sim := _args.net_sim
-	_serving_task = WorkerThreadPool.add_task(
-		func() -> void: _served = MatchScene.serve(config, local, net_sim), false, "Serving a match"
+	_serving.serve(
+		config, func() -> MatchScene.Served: return MatchScene.serve(config, local, net_sim)
 	)
 	return false
 
@@ -447,8 +468,7 @@ func _start(config: MatchConfig) -> void:
 			jump_to = maxi(_capture_tick - Ticks.from_seconds(JUMP_LEAD), 0)
 	_match.choices = _playing
 	_match.dressing = _take_dressing(config)
-	_match.served = _served
-	_served = null
+	_match.served = _serving.take(config)
 	_match.start(
 		config,
 		_args.autoplay,
@@ -601,6 +621,7 @@ func _rematch() -> void:
 
 
 func _to_menu() -> void:
+	_cancel_hold()
 	_pause.hide()
 	if _probe != null:
 		_probe.playing = false
@@ -634,9 +655,7 @@ func _exit_tree() -> void:
 		_dressing.drop()
 		_dressing = null
 	ShipDressing.finish_all()
-	if _serving_task >= 0:
-		WorkerThreadPool.wait_for_task_completion(_serving_task)
-		_serving_task = -1
+	_serving.finish()
 
 
 func _on_view_changed(settings: ViewSettings) -> void:
@@ -737,7 +756,7 @@ func _stage_online_pause(settings: bool) -> void:
 func _set_paused(paused: bool) -> void:
 	_match.set_paused(paused)
 	if paused:
-		_pause.open()
+		_pause.open(_match.prompts(), _match.spectating())
 	else:
 		_pause.hide()
 
