@@ -189,11 +189,30 @@ unique_name_in_owner = true
 theme_type_variation = &"TitleLabel"
 horizontal_alignment = 1
 
-[node name="Table" type="GridContainer" parent="EndOverlay/Panel/Box"]
+[node name="Standings" type="HBoxContainer" parent="EndOverlay/Panel/Box"]
+alignment = 1
+theme_override_constants/separation = 48
+
+[node name="Table" type="GridContainer" parent="EndOverlay/Panel/Box/Standings"]
 unique_name_in_owner = true
 theme_override_constants/h_separation = 28
 theme_override_constants/v_separation = 6
 columns = 5
+
+[node name="Session" type="VBoxContainer" parent="EndOverlay/Panel/Box/Standings"]
+unique_name_in_owner = true
+visible = false
+theme_override_constants/separation = 6
+
+[node name="SessionTitle" type="Label" parent="EndOverlay/Panel/Box/Standings/Session"]
+unique_name_in_owner = true
+horizontal_alignment = 1
+
+[node name="SessionTable" type="GridContainer" parent="EndOverlay/Panel/Box/Standings/Session"]
+unique_name_in_owner = true
+theme_override_constants/h_separation = 16
+theme_override_constants/v_separation = 6
+columns = 3
 
 [node name="Seed" type="Label" parent="EndOverlay/Panel/Box"]
 unique_name_in_owner = true

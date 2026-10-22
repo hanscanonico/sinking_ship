@@ -58,6 +58,9 @@ var _seeds := RandomNumberGenerator.new()
 var _match: MatchScene
 ## The last match's choices, their seed blank, for a rematch: a fresh one is drawn.
 var _rematch_choices: MatchChoices
+## The points the session's matches have earned each seat (SessionTally): a Play starts
+## a new one, the rematches after it carry it on, and the menu ends it.
+var _session := SessionTally.new()
 ## The match under way's choices, their seed the one it plays: what its replay is
 ## built from (MatchScene.choices).
 var _playing: MatchChoices
@@ -284,7 +287,8 @@ func _cancel_hold() -> void:
 	_serving.cancel()
 
 
-func _play(choices: MatchChoices) -> void:
+## Plays [param choices]: a [param rematch] carries the session on (SessionTally.begin).
+func _play(choices: MatchChoices, rematch: bool = false) -> void:
 	var problems := choices.problems(_match_rules)
 	var config: MatchConfig = null
 	if problems.is_empty():
@@ -298,6 +302,7 @@ func _play(choices: MatchChoices) -> void:
 		else:
 			_menu.show_problem(problems[0])
 		return
+	_session.begin(config.seats, rematch)
 	_rematch_choices = choices.with_seed("")
 	_playing = choices.with_seed(str(config.match_seed))
 	_upcoming.take(config)
@@ -467,6 +472,7 @@ func _start(config: MatchConfig) -> void:
 		if _args.jump:
 			jump_to = maxi(_capture_tick - Ticks.from_seconds(JUMP_LEAD), 0)
 	_match.choices = _playing
+	_match.session = _session
 	_match.dressing = _take_dressing(config)
 	_match.served = _serving.take(config)
 	_match.start(
@@ -617,11 +623,12 @@ func _close_replay() -> void:
 
 
 func _rematch() -> void:
-	_play(_rematch_choices)
+	_play(_rematch_choices, true)
 
 
 func _to_menu() -> void:
 	_cancel_hold()
+	_session.reset()
 	_pause.hide()
 	if _probe != null:
 		_probe.playing = false
