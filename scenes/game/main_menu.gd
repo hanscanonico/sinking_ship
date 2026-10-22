@@ -118,6 +118,11 @@ func show_graphics(settings: ViewSettings) -> void:
 	_backdrop.show_graphics(settings)
 
 
+## Whether the backdrop's ship is drawn, not still being dressed (MenuBackdrop.dressed).
+func dressed() -> bool:
+	return _backdrop.dressed()
+
+
 func show_problem(text: String) -> void:
 	_problem.text = text
 	_problem.show()

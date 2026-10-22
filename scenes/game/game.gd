@@ -197,13 +197,14 @@ func _process(delta: float) -> void:
 		return
 	if _args.capture_path.is_empty() or _capturing:
 		return
+	# The backdrop shows its ship once she is dressed, on a thread (MenuBackdrop).
 	if _holding != null:
-		if _args.capture_screen == "hold" and _hold.visible:
+		if _args.capture_screen == "hold" and _hold.visible and _menu.dressed():
 			if _baker.progress() >= HOLD_CAPTURED_AT:
 				_capture("the held countdown")
 		return
 	if _match == null:
-		if not _args.autoplay:
+		if not _args.autoplay and _menu.dressed():
 			match _args.capture_screen:
 				"settings":
 					_settings.open()
@@ -282,8 +283,8 @@ func _hold_over_backdrop() -> void:
 	# the hold — kept for the way back (_close_replay).
 	if _match != null:
 		_match.stand_aside()
-	# An autoplay never dressed the backdrop, and dressing it now would stall the very
-	# frames the hold keeps moving.
+	# An autoplay never built the backdrop, and has nobody to show it to: building it now
+	# would only take from the frames the hold keeps moving.
 	if not _args.autoplay:
 		_menu.show_behind(_hold.beside())
 
