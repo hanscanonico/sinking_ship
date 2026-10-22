@@ -1,16 +1,17 @@
 extends GutTest
 ## The main menu as a first-time player meets it: the build's version in its corner,
 ## Ship, Seats, Bots and Survival up front, the seed and the pace folded under Custom
-## match — closed, unless the command line set one of them — and Credits between
-## Replays and Quit.
+## match — closed, unless the command line set a seed or the slow pace — and Credits
+## between Replays and Quit. A player's match sinks fast unless they untick it.
 
 const GAME := "res://scenes/game/game.tscn"
 const MATCH_DATA := "res://data/match/default.tres"
 const VERSION := "application/config/version"
 
 
-## game.tscn's main menu alone, set up with the choices [param args] make: the rest of
-## the game — its boot, its other screens — taken out first.
+## game.tscn's main menu alone, set up with the choices [param args] make for a player
+## (MatchArgs.player_choices), as Game sets it up: the rest of the game — its boot, its
+## other screens — taken out first.
 func _menu(args: PackedStringArray = PackedStringArray()) -> MainMenu:
 	var game: Node = load(GAME).instantiate()
 	for child: Node in game.get_children():
@@ -20,7 +21,7 @@ func _menu(args: PackedStringArray = PackedStringArray()) -> MainMenu:
 	game.set_script(null)
 	add_child_autofree(game)
 	var menu: MainMenu = game.get_node("MainMenu")
-	menu.setup(load(MATCH_DATA), MatchArgs.parse(args).choices)
+	menu.setup(load(MATCH_DATA), MatchArgs.parse(args).player_choices())
 	return menu
 
 
@@ -51,9 +52,30 @@ func test_a_seed_or_a_pace_given_opens_the_fold() -> void:
 	assert_true(seeded.custom_shown(), "a seed from the command line is shown")
 	assert_eq((seeded.get_node("%Seed") as LineEdit).text, "1701")
 	assert_eq(seeded.choices().seed_text, "1701", "and played")
+	var slow := _menu(PackedStringArray(["--fast=0"]))
+	assert_true(slow.custom_shown(), "the slow pace from the command line is shown")
+	assert_false((slow.get_node("%Fast") as CheckButton).button_pressed, "Fast unticked")
+	assert_false(slow.choices().fast, "and played")
 	var fast := _menu(PackedStringArray(["--fast"]))
-	assert_true(fast.custom_shown(), "a fast sinking from the command line is shown")
+	assert_false(fast.custom_shown(), "--fast is a player's pace already: still folded")
 	assert_true(fast.choices().fast, "and played")
+
+
+func test_a_players_match_sinks_fast_by_default() -> void:
+	var menu := _menu()
+	assert_true((menu.get_node("%Fast") as CheckButton).button_pressed, "Fast sinking ticked")
+	var match_rules: MatchRules = load(MATCH_DATA)
+	var config := menu.choices().with_seed("1701").config(match_rules)
+	assert_eq(config.scenario.clock, match_rules.fast_clock, "the match on the fast clock")
+
+
+func test_unticking_fast_plays_her_paced_clock() -> void:
+	var menu := _menu()
+	(menu.get_node("%Fast") as CheckButton).button_pressed = false
+	var match_rules: MatchRules = load(MATCH_DATA)
+	var config := menu.choices().with_seed("1701").config(match_rules)
+	assert_false(menu.choices().fast)
+	assert_eq(config.scenario.clock, match_rules.sinking.clock, "the slow, realistic pace")
 
 
 func test_the_fold_opens_and_closes() -> void:

@@ -16,6 +16,11 @@ const GOALS := {LAST_STANDING: MatchRules.Goal.LAST_STANDING, SURVIVAL: MatchRul
 ## The explicit hits a tool can name (--hit=NAME): the test fixtures', each a ship's
 ## NAME_HIT or any ship's HIT.
 const HITS := "res://tests/fixtures/sinking/hits/%s.tres"
+## The pace a player's match starts on — the menu's Fast sinking, and `make run`'s —
+## unless they ask for the paced one (MatchArgs.player_choices): fast, since on the
+## paced clock few matches lived to see her plunge (Q20, amended 2026-10-22). [member
+## fast] itself starts paced: the tools play the clock their transcripts are timed on.
+const PLAYERS_FAST := true
 
 ## A ship of the Fleet, or a test-only one, by name; empty for the match data's.
 var ship: StringName = &""

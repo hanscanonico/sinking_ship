@@ -8,7 +8,9 @@ extends CanvasLayer
 ## (MenuBackdrop) under the wordmark in her livery: cream on a boot-top red rule
 ## between brass lines — and the online screens stand over the same, its own panel put
 ## away (show_behind). The seed and the pace are a tester's knobs: folded under Custom
-## match, closed unless the command line set one of them. The build's version stands in
+## match — Fast sinking ticked for a player (MatchArgs.player_choices), unticked for her
+## slow, realistic pace —, closed unless the command line set a seed or that slow pace.
+## The build's version stands in
 ## the bottom-right corner; Credits opens the credits (CreditsMenu).
 
 signal play_requested(choices: MatchChoices)
@@ -85,8 +87,11 @@ func setup(match_rules: MatchRules, choices: MatchChoices) -> void:
 	_seed.text = full.seed_text
 	_fast.button_pressed = full.fast
 	_survival.button_pressed = full.goal == MatchChoices.SURVIVAL
-	# A seed or a pace given on the command line is shown, not hidden under the fold.
-	_custom.button_pressed = not full.seed_text.is_empty() or full.fast
+	# A seed, or a pace other than a player's, given on the command line is shown, not
+	# hidden under the fold.
+	_custom.button_pressed = (
+		not full.seed_text.is_empty() or full.fast != MatchChoices.PLAYERS_FAST
+	)
 
 
 ## The choices as they stand: the ship, seats, tier, seed, pace and goal picked here,

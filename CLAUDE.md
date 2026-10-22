@@ -39,7 +39,7 @@ make test-changed                               # only the scripts the branch's 
 make run                                        # play: you and seven bots, windowed
 make replay FILE=path/to/one.replay             # watch a saved replay (every local match is kept under user://replays) in the replay viewer
 make match SEED=1701                            # one bots-only match, headless, as a transcript
-make match SEED=1701 FAST=1                     # the same, her sinking on the fast clock (FAST=1 works for run too)
+make match SEED=1701 FAST=1                     # the same, her sinking on the fast clock (run's own; FAST=0 runs the paced one)
 make match SEED=1701 GOAL=survival              # survival: everyone stays in as long as she lasts (GOAL= works for run too)
 make smoke                                      # the water capture sweep for QA: shots at the transcript's water moments into captures/smoke/ (MAX=3, DRY=1)
 make ship                                       # regenerate data/ships/NAME.tres from tools/gen_NAME.py; SHIP=trawler for one
