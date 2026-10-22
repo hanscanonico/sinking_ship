@@ -140,6 +140,14 @@ The server logs every room's tick time, each player's round trip and the snapsho
 bandwidth every 10 s, and a finished match's transcript:
 `docker compose -f deploy/compose.yml logs -f server`.
 
+## The pace of its matches
+
+The server's rooms sink her fast, as a player's match on their own machine does
+(`fast = true` in `data/net/server.tres`). For the slow, realistic pace, set
+`fast = false` there and deploy: the server tells each player the pace as their match
+begins, so the builds already out need nothing. Each match's `match begins` log line
+says which it played.
+
 ## Pointing the release builds at the server
 
 A native build's Online screen offers `ws://127.0.0.1:47923` until the player saves

@@ -2,8 +2,9 @@ extends GutTest
 ## Rooms (SH12): four-letter codes, unique, read in any case and drawn apart from the
 ## match seeds every player is shown; the host starts the match and bots take the seats
 ## nobody holds (D10); a player who goes mid-match leaves their seat to a bot and the
-## match plays on; a full room refuses a join; and a finished match is let go, its room
-## waiting for its host again. Over loopbacks, as RoomClients a menu would drive.
+## match plays on; a full room refuses a join; a match sinks at the pace the server
+## says, its players' too; and a finished match is let go, its room waiting for its
+## host again. Over loopbacks, as RoomClients a menu would drive.
 
 ## Long enough for every bot to have walked or shoved, the countdown behind them.
 const ACTING_BEATS := 8 * Ticks.RATE
@@ -287,6 +288,36 @@ func test_a_client_plays_its_seat_through_the_room() -> void:
 	assert_gt(host_seat["pos"].z - start.z, 1.0, "and moves the seat to starboard")
 	var seen: Dictionary = played.client.view()["seats"][0]
 	assert_almost_eq(seen["pos"].z, host_seat["pos"].z, 0.5, "the client sees it there")
+
+
+## The server says the pace — fast as shipped, as a player's local match, or paced —
+## and its player builds the match from what BEGIN said: both ends play the one match,
+## its data hash the same, so the server's snapshots are the client's to read.
+func test_a_room_sinks_at_the_servers_pace() -> void:
+	assert_true(ServerRules.load_default().fast, "a server as shipped sinks her fast")
+	for fast: bool in [true, false]:
+		var fixture := RoomFixtures.new(
+			RoomFixtures.rules_with({"fast": fast}), RoomFixtures.flat_rules()
+		)
+		var player := fixture.room_of(1)[0]
+		var begun: Array[MatchConfig] = []
+		player.began.connect(func(config: MatchConfig, _seat: int) -> void: begun.append(config))
+		player.start_match()
+		fixture.beat()
+		assert_eq(begun.size(), 1, "fast %s: the match began" % fast)
+		var served: MatchConfig = fixture.room(player).host.runner.sim.config
+		var clock: float = (
+			fixture.match_rules.fast_clock if fast else fixture.match_rules.sinking.clock
+		)
+		assert_eq(served.scenario.clock, clock, "fast %s: the server's pace" % fast)
+		assert_eq(begun[0].scenario.clock, clock, "fast %s: the client's, as told" % fast)
+		assert_eq(begun[0].data_hash(), served.data_hash(), "fast %s: one match" % fast)
+		assert_true(fixture.logged("%s sinking" % ("fast" if fast else "paced")))
+		var played := player.play(InputSource.new())
+		for _beat in Ticks.RATE:
+			played.step()
+			fixture.beat()
+		assert_gte(played.client.view()["tick"], Ticks.RATE, "fast %s: and played" % fast)
 
 
 func test_the_last_player_leaving_closes_the_room() -> void:

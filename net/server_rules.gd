@@ -70,6 +70,10 @@ const NAME_PUNCTUATION := " -_.'"
 ## countdown ends and a long timeline never floods a connection.
 @export var timeline_lead: float
 @export var timeline_bytes_per_beat: int
+## Whether its rooms' matches sink on the match data's fast_clock, as a player's local
+## match does (MatchChoices.PLAYERS_FAST), rather than on her paced clock. The server's
+## to say: BEGIN tells each player, whose match is built from it (RoomServer.config_for).
+@export var fast: bool = true
 
 
 static func load_default() -> ServerRules:
