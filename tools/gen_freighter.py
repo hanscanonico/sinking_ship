@@ -812,7 +812,7 @@ for k, x in enumerate(HATCH_X):
             (HATCH_LENGTH, 0, 2 * HATCH_HALF), starts="SHUT", flip_chance=0.01, leak_head=0.3,
             collapse_head=2.5, leak_area=HATCH_LEAK)
 # The screen bulkheads between the holds, steel screens that keep the ore apart and not
-# the water (est.): 0.5 m² of gaps across each, from the tank top to the spar deck.
+# the water (est.): 0.15 m² of gaps across each, from the tank top to the spar deck.
 SCREEN_GAPS = 0.15
 for (aft, _a0, x), (fore, _f0, _f1) in zip(HOLDS, HOLDS[1:]):
     opening("screen_%s_%s" % (aft, fore), "LEAK", "hold_" + aft, "hold_" + fore, (x, DB_TOP * 0.5, 0.0),
@@ -1060,7 +1060,10 @@ PUMPS = [("bilge_pump", "engine_room", 0.05)]
 # The bending her hull carries (est.), in N·m, and where along her she can break —
 # (name, x, the share of that strength the spot keeps): a laker's girder is shallow for
 # her length, and weakest along her hatch row, where twenty hatches cut her deck plating
-# away; the screen bulkheads stand in two of its gaps.
+# away; the screen bulkheads stand in two of its gaps. Est., measured on her hits: her ore
+# alone sags her amidships by about 0.39 of this strength, 0.6 of what the midships spot
+# keeps; her middle hold flooded faster than its screens pass the water on sags her by
+# about 0.86, past it, and she parts there (test_freighter_flooding's hold).
 STRENGTH = (2.0e9, 1.8e9)
 WEAK_SPOTS = [("hatch_row_aft", -SCREEN, 0.8), ("hatch_row_midships", 0.0, 0.65), ("hatch_row_forward", SCREEN, 0.8)]
 # Where along her and up her shell an iceberg's gash can be at all (est.): clear of her
