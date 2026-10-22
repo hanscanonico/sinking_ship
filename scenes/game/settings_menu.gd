@@ -1,12 +1,14 @@
 class_name SettingsMenu
 extends CanvasLayer
-## The settings screen, from the main menu or the pause menu, in three pages a row of
+## The settings screen, from the main menu or the pause menu, in four pages a row of
 ## tabs over them picks: Sound — master, music and effects volume; Controls — the
 ## first-person view's mouse sensitivity, invert Y, field of view, and the deck-roll
-## and view-kick comfort sliders (D14, Q17, R15); Graphics — the window mode, VSync, a
-## frame-rate cap, the graphics preset with a line on what it changes (GraphicsQuality),
-## and the 3D view's render scale, both this machine's own until the player picks them.
-## Each change applies as it is made; closing saves them under user://.
+## and view-kick comfort sliders (D14, Q17, R15); Keys — the key or mouse button of
+## each action of play (KeyBindings), picked by pressing it; Graphics — the window
+## mode, VSync, a frame-rate cap, the graphics preset with a line on what it changes
+## (GraphicsQuality), and the 3D view's render scale, both this machine's own until
+## the player picks them. Each change applies as it is made; closing saves them under
+## user://.
 
 signal closed
 ## The first-person view or the graphics changed: whatever is on screen should take
@@ -14,14 +16,20 @@ signal closed
 signal view_changed(settings: ViewSettings)
 
 ## The pages, in the tabs' order.
-enum Page { SOUND, CONTROLS, GRAPHICS }
+enum Page { SOUND, CONTROLS, KEYS, GRAPHICS }
 
 ## Where closing saves the choices; a test points them elsewhere.
 var audio_path := AudioSettings.PATH
 var view_path := ViewSettings.PATH
+var keys_path := KeyBindings.PATH
 
 var _audio: AudioSettings
 var _view: ViewSettings
+var _keys: KeyBindings
+## The action whose row waits for the next key or mouse button, or none.
+var _rebinding: StringName = &""
+## Each action's row button, by action.
+var _key_buttons := {}
 ## What had the focus when the screen opened, to hand it back on closing.
 var _opener: Control
 ## In a browser, which draws at its own pace and fills the screen one way: VSync and
@@ -41,8 +49,8 @@ var on_web := OS.has_feature("web")
 @onready var _view_kick: HSlider = %ViewKick
 @onready var _quality: OptionButton = %Quality
 @onready var _render_scale: HSlider = %RenderScale
-@onready var _pages: Array[Control] = [%Sound, %Controls, %Graphics]
-@onready var _tabs: Array[Button] = [%SoundTab, %ControlsTab, %GraphicsTab]
+@onready var _pages: Array[Control] = [%Sound, %Controls, %Keys, %Graphics]
+@onready var _tabs: Array[Button] = [%SoundTab, %ControlsTab, %KeysTab, %GraphicsTab]
 
 
 func _ready() -> void:
@@ -71,6 +79,18 @@ func _ready() -> void:
 	_render_scale.min_value = GraphicsQuality.SCALE_MIN * 100.0
 	_render_scale.max_value = GraphicsQuality.SCALE_MAX * 100.0
 	_render_scale.value_changed.connect(_on_render_scale)
+	for action: StringName in KeyBindings.ACTIONS:
+		var title := Label.new()
+		title.text = KeyBindings.TITLES[action]
+		%KeyRows.add_child(title)
+		var key := Button.new()
+		key.name = "Key_%s" % action
+		key.custom_minimum_size = Vector2(150, 0)
+		key.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		key.pressed.connect(_listen.bind(action))
+		%KeyRows.add_child(key)
+		_key_buttons[action] = key
+	%ResetKeys.pressed.connect(_on_reset_keys)
 	var tabs := ButtonGroup.new()
 	for page in _tabs.size():
 		_tabs[page].button_group = tabs
@@ -82,6 +102,8 @@ func _ready() -> void:
 func open(page := Page.SOUND) -> void:
 	_audio = AudioSettings.local()
 	_view = ViewSettings.local()
+	_keys = KeyBindings.local()
+	_rebinding = &""
 	_opener = get_viewport().gui_get_focus_owner()
 	_master.set_value_no_signal(_audio.master * 100.0)
 	_music.set_value_no_signal(_audio.music * 100.0)
@@ -104,25 +126,49 @@ func open(page := Page.SOUND) -> void:
 	_show_values()
 	show_page(page)
 	show()
-	var first: Array[Control] = [_master, _sensitivity, _window_mode]
+	var first: Array[Control] = [
+		_master, _sensitivity, _key_buttons[KeyBindings.ACTIONS[0]], _window_mode
+	]
 	first[page].grab_focus()
 
 
 ## Shows [param page] under its tab, the other pages hidden.
 func show_page(page: Page) -> void:
+	_rebinding = &""
+	_show_keys()
 	for index in _pages.size():
 		_pages[index].visible = index == page
 		_tabs[index].set_pressed_no_signal(index == page)
 
 
 func close() -> void:
-	for saved: Error in [_audio.save(audio_path), _view.save(view_path)]:
+	_rebinding = &""
+	for saved: Error in [_audio.save(audio_path), _view.save(view_path), _keys.save(keys_path)]:
 		if saved != OK:
 			push_warning("settings: not saved: %s" % error_string(saved))
 	hide()
 	if is_instance_valid(_opener) and _opener.is_visible_in_tree():
 		_opener.grab_focus()
 	closed.emit()
+
+
+## While a row waits, the next key or mouse button binds its action — Esc, or the
+## pad's back, leaving it as it was — and nothing else hears it.
+func _input(event: InputEvent) -> void:
+	if not visible or _rebinding.is_empty() or not event.is_pressed() or event.is_echo():
+		return
+	var key := event as InputEventKey
+	if key != null and (key.keycode == KEY_ESCAPE or key.physical_keycode == KEY_ESCAPE):
+		_stop_listening()
+	elif event is InputEventKey or event is InputEventMouseButton:
+		if _keys.bind(_rebinding, event):
+			_keys.apply()
+			_stop_listening()
+	elif event.is_action_pressed("ui_cancel"):
+		_stop_listening()
+	else:
+		return
+	get_viewport().set_input_as_handled()
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -172,6 +218,42 @@ func _on_render_scale(value: float) -> void:
 	_view.run_render_scale = ViewSettings.AUTOMATIC
 	_show_values()
 	view_changed.emit(_view)
+
+
+## [param action]'s row waits for the key or mouse button to bind to it.
+func _listen(action: StringName) -> void:
+	_rebinding = action
+	_show_keys()
+
+
+func _stop_listening() -> void:
+	var action := _rebinding
+	_rebinding = &""
+	_show_keys()
+	if _key_buttons.has(action):
+		(_key_buttons[action] as Control).grab_focus()
+
+
+func _on_reset_keys() -> void:
+	_rebinding = &""
+	_keys.reset()
+	_keys.apply()
+	_show_keys()
+
+
+## Each row's key, named as the hints name it, or the call to press one.
+func _show_keys() -> void:
+	if _keys == null:
+		return
+	for action: StringName in _key_buttons:
+		var shown := _keys.shown(action)
+		var events: Array[InputEvent] = []
+		if shown != null:
+			events.append(shown)
+		var word := InputPrompts.word_for(events, false)
+		(_key_buttons[action] as Button).text = (
+			"Press a key…" if action == _rebinding else (word if not word.is_empty() else "—")
+		)
 
 
 func _show_values() -> void:

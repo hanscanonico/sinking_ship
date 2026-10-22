@@ -118,6 +118,7 @@ func _ready() -> void:
 		return
 	_seeds.randomize()
 	AudioSettings.local().apply()
+	KeyBindings.local().apply()
 	_view = ViewSettings.local()
 	# A capture, and a bot's autoplay (make fps), keep the window, VSync and frame rate
 	# they were launched with, whatever the player saved.
@@ -163,6 +164,7 @@ func _ready() -> void:
 	_menu.credits_requested.connect(_open_credits)
 	_credits.back_requested.connect(_leave_credits)
 	_settings.view_changed.connect(_on_view_changed)
+	_settings.closed.connect(_on_settings_closed)
 	_online_menu.play_requested.connect(_play_online)
 	_online_menu.back_requested.connect(_leave_online)
 	var link := OnlineLink.for_launch(_args)
@@ -656,6 +658,12 @@ func _exit_tree() -> void:
 		_dressing = null
 	ShipDressing.finish_all()
 	_serving.finish()
+
+
+## The pause's controls as the keys now stand, the settings having maybe rebound them.
+func _on_settings_closed() -> void:
+	if _match != null and _pause.visible:
+		_pause.show_controls(_match.prompts(), _match.spectating())
 
 
 func _on_view_changed(settings: ViewSettings) -> void:

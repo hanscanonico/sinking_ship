@@ -24,8 +24,14 @@ func _ready() -> void:
 ## Shows the pause with [param prompts]' controls on the device last used — what
 ## switches the view too when [param spectating] — or none without prompts.
 func open(prompts: InputPrompts = null, spectating := false) -> void:
+	show_controls(prompts, spectating)
+	show()
+	_resume.grab_focus()
+
+
+## Writes [param prompts]' controls out again — after the keys were rebound — or
+## hides them without prompts.
+func show_controls(prompts: InputPrompts = null, spectating := false) -> void:
 	_controls.visible = prompts != null
 	if prompts != null:
 		_controls.text = prompts.pause_controls(spectating)
-	show()
-	_resume.grab_focus()
