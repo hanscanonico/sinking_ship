@@ -158,6 +158,9 @@ func _dress() -> void:
 		art.build(_ship, _rules.railing_height, _rules.body_radius, falls, fails, ports)
 		stretches = ShipPieces.stretches_of(_ship, schedule, _rules, cut_above, falls, fails, ports)
 	_building.unlock()
+	# Her sea's maps of her rooms too, which her match's sea takes as it starts: a liner's
+	# take seconds (SeaAndSky.maps_of).
+	SeaAndSky.maps_of(_ship)
 	_guard.lock()
 	_built = true
 	var dropped := _dropped

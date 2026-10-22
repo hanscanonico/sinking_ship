@@ -309,9 +309,11 @@ func _ready() -> void:
 
 
 ## Shows the sinking of [param sim]'s match as [param driver] steps it, where
-## [param view] draws the ship, lit from [param sun] (toward it, in the world), from
-## a clean start.
-func setup(driver: SimDriver, view: MatchView, sim: MatchSim, sun: Vector3) -> void:
+## [param view] draws the ship, lit from [param sun] (toward it, in the world), from a
+## clean start: planned by [param planner], made ahead for that sim (MatchScene.serve).
+func setup(
+	driver: SimDriver, view: MatchView, sim: MatchSim, sun: Vector3, planner: FxPlanner = null
+) -> void:
 	for material: ShaderMaterial in _billows:
 		material.set_shader_parameter(&"sun", sun)
 	_gash.lit_from(sun)
@@ -331,15 +333,15 @@ func setup(driver: SimDriver, view: MatchView, sim: MatchSim, sun: Vector3) -> v
 	_wetness = DeckWetness.new(sim.config.ship, falls)
 	_build_decks(sim.config.ship)
 	_debris.setup(sim.config.ship)
-	clear()
+	clear(planner)
 	_driver.stepped.connect(_on_stepped)
 
 
-## Stops every effect, takes away everything drawn and forgets what the match has done
-## so far: the effects plan again from the next snapshot (a replay sought, D5).
-func clear() -> void:
+## Stops every effect, takes away everything drawn and forgets what the match did so far:
+## [param planner], or a new one, plans again from the next snapshot (a replay sought, D5).
+func clear(planner: FxPlanner = null) -> void:
 	if _sim != null:
-		_planner = FxPlanner.new(_sim.config, _sim.surfaces, _sim.schedule)
+		_planner = planner if planner else FxPlanner.new(_sim.config, _sim.surfaces, _sim.schedule)
 	for emitter: CPUParticles3D in _emitters():
 		emitter.emitting = false
 		emitter.restart()

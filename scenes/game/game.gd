@@ -93,6 +93,10 @@ var _held_dressing: ShipDressing
 ## The frame the held match began waiting on its dressing: it starts a frame on at the
 ## soonest.
 var _held_since := 0
+## The held match served on a thread once its ship is dressed (MatchScene.serve) — its
+## task, -1 when none runs — and what it served, until the match takes it.
+var _serving_task := -1
+var _served: MatchScene.Served
 ## Where each frame's time goes, when --frame-split asks (make fps SPLIT=1); null else.
 var _probe: FrameProbe
 var _hold := BakeHold.new()
@@ -184,7 +188,8 @@ func _process(delta: float) -> void:
 		_hold.advance(delta, _baker.progress())
 		var dressed := _held_dressing == null or _held_dressing.done()
 		if _dressed_hold and Engine.get_process_frames() > _held_since and dressed:
-			_release_held()
+			if _served_held():
+				_release_held()
 	elif _online == null and (_match == null or _match.is_over()):
 		_bake_upcoming()
 	if (
@@ -335,6 +340,29 @@ func _dress_held() -> void:
 	_hold_over_backdrop()
 
 
+## Whether the held match is served (MatchScene.serve): a match served on a thread, which
+## starts once that is done — but a replay, which no loopback serves, and a tool's jump or
+## frame split, which start() serves itself.
+func _served_held() -> bool:
+	if _serving_task >= 0:
+		if not WorkerThreadPool.is_task_completed(_serving_task):
+			return false
+		WorkerThreadPool.wait_for_task_completion(_serving_task)
+		_serving_task = -1
+		return true
+	var jumps := _args.phys_seconds >= 0.0 and _args.jump
+	if _served != null or _holding_replay != null or jumps or _probe != null:
+		return true
+	# Her ship dressed, her sinking is built: nothing else builds it meanwhile.
+	var config := _holding
+	var local := MatchScene.local_for(config, _args.autoplay)
+	var net_sim := _args.net_sim
+	_serving_task = WorkerThreadPool.add_task(
+		func() -> void: _served = MatchScene.serve(config, local, net_sim), false, "Serving a match"
+	)
+	return false
+
+
 ## The held match, or its replay, starts: its sinking is made and its ship dressed.
 func _release_held() -> void:
 	var config := _holding
@@ -411,6 +439,8 @@ func _start(config: MatchConfig) -> void:
 			jump_to = maxi(_capture_tick - Ticks.from_seconds(JUMP_LEAD), 0)
 	_match.choices = _playing
 	_match.dressing = _take_dressing(config)
+	_match.served = _served
+	_served = null
 	_match.start(
 		config,
 		_args.autoplay,
@@ -578,8 +608,11 @@ func _quit() -> void:
 
 # However the game quits — its Quit, a capture taken, the window closed — every ship being
 # dressed on a thread is finished first: left, its thread would wait on frames that never
-# come, and the game would never end (ShipDressing).
+# come, and the game would never end (ShipDressing). A match being served is waited for.
 func _exit_tree() -> void:
+	if _serving_task >= 0:
+		WorkerThreadPool.wait_for_task_completion(_serving_task)
+		_serving_task = -1
 	if _dressing != null:
 		_dressing.drop()
 		_dressing = null

@@ -18,6 +18,16 @@ signal replay_closed
 ## The results asked to watch the match again (R6): [param file] is its replay.
 signal replay_requested(file: ReplayFile)
 
+
+## A local match served ahead of its start (serve): its loopback, and the local player's
+## keys it plays the local seat with — null for a bot.
+class Served:
+	var loopback: LoopbackMatch
+	var local: LocalInputSource
+	## What plans the sinking's effects for its client's sim (SinkingFx).
+	var planner: FxPlanner
+
+
 ## The choices a local match was built from (Game), for its replay; null online.
 var choices: MatchChoices
 ## A local match's replay, recorded once it ended or as it was left (save_replay): what
@@ -26,6 +36,12 @@ var last_replay: ReplayFile
 ## Her ship dressed for the next match or replay started here (ShipDressing), taken as it
 ## starts; with none she is dressed as it starts, a frame of seconds.
 var dressing: ShipDressing
+## The next local match served ahead of its start (serve), taken as it starts; with none
+## it is served as it starts, which takes seconds on a liner.
+var served: Served
+## What plans the sinking's effects for the match starting (Served.planner); null while
+## none is, and for a match served elsewhere.
+var _planner: FxPlanner
 
 const LOCAL_SEAT := 0
 ## The gaze through another seat's eyes, in degrees above the horizon: at a level
@@ -264,7 +280,8 @@ func _unhandled_input(event: InputEvent) -> void:
 ## it is finite. [param greybox] draws the greybox in place of the dressed ship.
 ## [param jump_to], a tool's, starts the match at that tick instead, every seat on what
 ## is dry then (MatchJump); -1 starts it at its first. With [param split], the match's
-## pieces are timed into it (FrameMeter, make fps SPLIT=1).
+## pieces are timed into it (FrameMeter, make fps SPLIT=1). It plays as [member served]
+## serves it, when that serves [param config]'s match.
 func start(
 	config: MatchConfig,
 	autoplay: bool,
@@ -276,32 +293,72 @@ func start(
 	jump_to: int = -1,
 	split: FrameSplit = null
 ) -> void:
+	var serving := served
+	served = null
+	if serving == null or serving.loopback.client.config != config:
+		var from := MatchJump.snapshot(config, jump_to) if jump_to >= 0 else {}
+		serving = serve(config, local_for(config, autoplay), net_sim, from, split)
+	var names := _seat_names(config.seats)
+	_loopback = serving.loopback
+	_planner = serving.planner
+	last_replay = null
+	_begin(
+		serving.loopback,
+		serving.local,
+		LOCAL_SEAT,
+		names,
+		observer,
+		eye_seat,
+		observer_cut,
+		greybox
+	)
+
+
+## The local player's keys, mouse and pad on the local seat of [param config]'s match, as
+## start() plays it: null when a bot plays it, as when [param autoplay] says.
+static func local_for(config: MatchConfig, autoplay: bool) -> LocalInputSource:
+	if config.humans > 0 and not autoplay:
+		return LocalInputSource.new(LOCAL_SEAT, 0.0, ViewSettings.local())
+	return null
+
+
+## [param config]'s match served as start() serves it: the local seat played by
+## [param local] — a bot of the config's tier when it is null — the rest by bots, from
+## [param from] (MatchJump) or the first tick, over a loopback that lies as
+## [param net_sim] says, timed into [param split]. Node-free, so it is made on a thread
+## ahead of the start (Game): a liner's sims and bots take seconds to make.
+static func serve(
+	config: MatchConfig,
+	local: LocalInputSource,
+	net_sim: NetConditions = null,
+	from: Dictionary = {},
+	split: FrameSplit = null
+) -> Served:
 	var profile := BotProfile.for_tier(config.bot_tier)
 	var net_rules := NetRules.load_default()
 	var played := -1
-	var served: Array[InputSource] = []
-	var local: LocalInputSource = null
-	if config.humans > 0 and not autoplay:
-		local = LocalInputSource.new(LOCAL_SEAT, 0.0, ViewSettings.local())
+	var sources: Array[InputSource] = []
+	if local != null:
 		played = LOCAL_SEAT
-		served.append(null)
+		sources.append(null)
 	else:
-		served.append(BotInputSource.new(LOCAL_SEAT, profile, config))
-	served.append_array(BotInputSource.fill(config, profile, LOCAL_SEAT + 1))
+		sources.append(BotInputSource.new(LOCAL_SEAT, profile, config))
+	sources.append_array(BotInputSource.fill(config, profile, LOCAL_SEAT + 1))
 	var conditions := net_sim if net_sim != null else NetConditions.new()
-	var from := MatchJump.snapshot(config, jump_to) if jump_to >= 0 else {}
-	var loopback: LoopbackMatch
+	var serving := Served.new()
+	serving.local = local
 	if split == null:
-		loopback = LoopbackMatch.new(config, net_rules, conditions, played, local, served, from)
-	else:
-		served = FrameMeter.time_sources(served, split)
-		loopback = FrameMeter.Loopback.new(
-			config, net_rules, conditions, played, local, served, from, split
+		serving.loopback = LoopbackMatch.new(
+			config, net_rules, conditions, played, local, sources, from
 		)
-	var names := _seat_names(config.seats)
-	_loopback = loopback
-	last_replay = null
-	_begin(loopback, local, LOCAL_SEAT, names, observer, eye_seat, observer_cut, greybox)
+	else:
+		sources = FrameMeter.time_sources(sources, split)
+		serving.loopback = FrameMeter.Loopback.new(
+			config, net_rules, conditions, played, local, sources, from, split
+		)
+	var sim := serving.loopback.client.sim
+	serving.planner = FxPlanner.new(config, sim.surfaces, sim.schedule)
+	return serving
 
 
 ## Starts [param played] — a match on a server, RemoteMatch (SH12) — from its first
@@ -430,7 +487,8 @@ func _setup_view(
 	_hud.setup(sim)
 	_marks.setup(_driver, _view, sim)
 	_dust.setup(_driver, _view)
-	_fx.setup(_driver, _view, sim, _sea_and_sky.sun())
+	_fx.setup(_driver, _view, sim, _sea_and_sky.sun(), _planner)
+	_planner = null
 	_kick = ViewKick.new(settings.view_kick)
 	_free = FreeCamera.new(settings)
 	_free.set_bounds(_deck_bounds(config.ship))
