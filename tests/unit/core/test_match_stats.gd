@@ -47,6 +47,14 @@ func test_knockout_credit_uses_the_event_field() -> void:
 	assert_eq(played.seats[0].place, 1)
 
 
+func test_out_by_names_the_shove_that_sent_a_seat_out() -> void:
+	var stats := MatchStats.new(6, 0)
+	assert_eq(stats.seats[3].out_by, -1, "nobody, while dry")
+	stats.add([SimEvent.seat_out(60, 3, 6, COLD, 5), SimEvent.seat_out(90, 2, 5, COLD, -1)])
+	assert_eq(stats.seats[3].out_by, 5, "the event's credit")
+	assert_eq(stats.seats[2].out_by, -1, "no credit, nobody")
+
+
 func test_stats_come_from_events_only() -> void:
 	# No sim at all: a three-seat match told only as events, the brawl starting
 	# on tick 90.
@@ -71,9 +79,30 @@ func test_stats_come_from_events_only() -> void:
 	assert_eq(
 		told.to_dict()["seats"],
 		[
-			{"seat": 0, "place": 2, "dry_ticks": 110, "shoves_landed": 0, "knockouts": 0},
-			{"seat": 1, "place": 1, "dry_ticks": 110, "shoves_landed": 2, "knockouts": 1},
-			{"seat": 2, "place": 3, "dry_ticks": 60, "shoves_landed": 0, "knockouts": 0},
+			{
+				"seat": 0,
+				"place": 2,
+				"dry_ticks": 110,
+				"shoves_landed": 0,
+				"knockouts": 0,
+				"out_by": -1,
+			},
+			{
+				"seat": 1,
+				"place": 1,
+				"dry_ticks": 110,
+				"shoves_landed": 2,
+				"knockouts": 1,
+				"out_by": -1,
+			},
+			{
+				"seat": 2,
+				"place": 3,
+				"dry_ticks": 60,
+				"shoves_landed": 0,
+				"knockouts": 0,
+				"out_by": 1,
+			},
 		],
 		"a shove hitting two bodies on one tick counts once"
 	)

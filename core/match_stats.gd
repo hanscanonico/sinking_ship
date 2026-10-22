@@ -2,7 +2,8 @@ class_name MatchStats
 extends RefCounted
 ## The results screen's numbers, built from the match's events and nothing else
 ## (D5): places and time dry from SEAT_OUT and MATCH_ENDED, shoves landed from
-## SHOVE_LANDED, and knock-outs from the credit each SEAT_OUT carries.
+## SHOVE_LANDED, and knock-outs and who shoved each seat out from the credit each
+## SEAT_OUT carries.
 
 
 class SeatStats:
@@ -18,6 +19,8 @@ class SeatStats:
 	var shoves_landed: int
 	## Seats out with this one's shove as their credit.
 	var knockouts: int
+	## The seat whose shove sent this one out — its SEAT_OUT's credit — or -1.
+	var out_by: int = -1
 
 	func _init(seat_id: int) -> void:
 		seat = seat_id
@@ -29,6 +32,7 @@ class SeatStats:
 			"dry_ticks": dry_ticks,
 			"shoves_landed": shoves_landed,
 			"knockouts": knockouts,
+			"out_by": out_by,
 		}
 
 
@@ -65,6 +69,7 @@ func add(events: Array[SimEvent]) -> void:
 				var out := seats[event.seat]
 				out.place = event.place
 				out.dry_ticks = _dry_until(event.tick)
+				out.out_by = event.credit
 				if event.credit != -1:
 					seats[event.credit].knockouts += 1
 			SimEvent.Kind.MATCH_ENDED:
