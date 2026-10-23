@@ -398,6 +398,14 @@ for side, sign in [("port", -1), ("starboard", 1)]:
 box("main_hatch", *MAIN_HATCH, 0, HATCH_TOP)
 for name, x, radius, top in MASTS:
     cylinder(name + "_mast", x, 0, radius, 0, top)
+# Her saloon's furniture, after every other blocker so none of theirs moves, each drawn
+# as its shape says (FurnitureDressing): a table 0.75 m tall either side of the way in
+# from its door, a bench 0.45 along its inboard side; each 0.5 m off the walls and 1.0 m
+# in plan from the pendant over the room's middle (est.).
+TABLE, BENCH = 0.75, 0.45
+for side, sign in [("port", -1), ("starboard", 1)]:
+    box("table_saloon_" + side, -20.0, -17.0, *sorted((sign * 2.15, sign * 2.85)), 0, TABLE)
+    box("bench_saloon_" + side, -20.0, -17.0, *sorted((sign * 1.65, sign * 2.0)), 0, BENCH)
 
 # --- Railings: her main deck's bulwarks, the poop's and the fo'c'sle's edges — open where
 # a stair lands, and along the fo'c'sle's break, a drop onto her main deck as the
@@ -948,11 +956,14 @@ def clear_of_stairs(house, run, height):
             start = None
     return found
 
+FURNITURE_HEIGHT = 1.2  # a box on a floor no taller is furniture, not machinery (ShipSpace)
+
 def machinery_in(house):
     x0, x1, z0, z1, floor, _name = house
     return any(is_box and min(bx1 - bx0, bz1 - bz0) > WALL_MAX and abs(foot - floor) < 0.05
+               and top - foot > FURNITURE_HEIGHT
                and x0 <= (bx0 + bx1) * 0.5 <= x1 and z0 <= (bz0 + bz1) * 0.5 <= z1
-               for bx0, bx1, bz0, bz1, foot, _top, is_box in block_geo)
+               for bx0, bx1, bz0, bz1, foot, top, is_box in block_geo)
 
 def windows():
     """Her windows, as ShipFittings._windows places glass: the walls of her rooms that
