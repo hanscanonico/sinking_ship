@@ -859,7 +859,14 @@ func nearest_climb(feet: Vector3, pose: ShipPose, rules: BrawlRules, within: flo
 			towards.append(_ladder_normals[index])
 	var box := Rect2(point - Vector2(within, within), Vector2(within, within) * 2.0)
 	for surface: int in _grid.near(box):
-		if _gone[surface] == 1 or _is_round_top(surface):
+		# A level rectangle stands at its top wherever its nearest point lies: out of reach,
+		# it is passed over before that point is looked for — most of hers are.
+		var top := _tops[surface] - water
+		if (
+			_gone[surface] == 1
+			or _level_rects[surface] == 1 and (top < -rules.wade_depth or top > rules.climb_reach)
+			or _is_round_top(surface)
+		):
 			continue
 		var at := _waterline_point(surface, point, water)
 		var above := height_at(surface, Vector3(at.x, 0.0, at.y)) - water
@@ -867,21 +874,23 @@ func nearest_climb(feet: Vector3, pose: ShipPose, rules: BrawlRules, within: flo
 			continue
 		edges.append(at)
 		towards.append((at - point).normalized())
-	var best: Climb = null
-	var best_distance := within
+	# Nearest first, ties to the first found, so the first a climb takes is the one: in a
+	# ship awash, most of her decks are edges.
+	var order := PackedVector2Array()
 	for index in edges.size():
 		var distance := point.distance_to(edges[index])
-		if distance >= best_distance:
-			continue
+		if distance < within:
+			order.append(Vector2(distance, index))
+	order.sort()
+	for nearest: Vector2 in order:
+		var index := int(nearest.y)
 		var touching := edges[index] - towards[index] * rules.body_radius
 		var from := Vector3(touching.x, feet.y, touching.y)
-		if blocked(feet, from, rules.body_height, rules.step_height):
-			continue
-		var climb := climb_out(from, towards[index], pose, rules)
-		if climb != null:
-			best = climb
-			best_distance = distance
-	return best
+		if not blocked(feet, from, rules.body_height, rules.step_height):
+			var climb := climb_out(from, towards[index], pose, rules)
+			if climb != null:
+				return climb
+	return null
 
 
 ## The highest of the first [param surfaces] surfaces — crates' lids last, but
