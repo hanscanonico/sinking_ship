@@ -48,6 +48,7 @@ enum Kind {
 	SHAFT,
 	STEERING,
 	LOCKER,
+	VEHICLE,
 }
 ## What of a room a face is: its walls, its floor, its ceiling, its beams.
 enum Part { WALL, FLOOR, OVERHEAD, BEAM }
@@ -92,6 +93,8 @@ const NAMED: Array[Array] = [
 	["shaft tunnel", Kind.SHAFT],
 	["steering gear", Kind.STEERING],
 	["chain locker", Kind.LOCKER],
+	# A ferry's vehicle deck (VehicleDeck), no saloon for all its size.
+	["car deck", Kind.VEHICLE],
 	["store", Kind.HOLD],
 	["bunker", Kind.HOLD],
 	["engine", Kind.ENGINE],
@@ -279,6 +282,7 @@ var _boiler: LinerBoiler
 var _bath: LinerBath
 var _squash: LinerSquash
 var _lower: LowerSpaces
+var _vehicle: VehicleDeck
 ## How many lower-deck cabins build() has dressed so far: the next one's number.
 var _cabin_count := 0
 
@@ -301,6 +305,7 @@ func _init(space: ShipSpace, cut_above := INF) -> void:
 	_bath = LinerBath.new(space, _cabins)
 	_squash = LinerSquash.new(space, _cabins)
 	_lower = LowerSpaces.new(space)
+	_vehicle = VehicleDeck.new(space, cut_above)
 	for room: ShipRoom in _layout.rooms:
 		var kind := kind_of(space, room)
 		_kinds.append(kind)
@@ -444,6 +449,8 @@ static func _linings(kind: Kind) -> Array[ShipMesh.Paint]:
 			paints = LinerBath.linings()
 		Kind.SQUASH:
 			paints = LinerSquash.linings()
+		Kind.VEHICLE:
+			paints = VehicleDeck.linings()
 	return paints
 
 
@@ -538,6 +545,8 @@ func build(mesh: ShipMesh, signs: Node3D, panes: Array[Array]) -> void:
 				_squash.build(mesh, room, glass)
 			Kind.TANK, Kind.SHAFT, Kind.STEERING, Kind.LOCKER:
 				_lower.build(mesh, room, _kinds[index])
+			Kind.VEHICLE:
+				_vehicle.build(mesh, signs, room)
 		# An engine room draws its machinery, a hold its cargo, a dining saloon its
 		# tables (LinerDining.tables()), a bath its pool (LinerBath.build()) and the
 		# spaces in her old voids their shaft, steering engine and chain bins

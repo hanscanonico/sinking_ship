@@ -69,6 +69,11 @@ static var hold_overhead := ShipMesh.Paint.new(
 static var steel_beam := ShipMesh.Paint.new(
 	FINISH.PLAIN, ArtPalette.BEAM, FINISH.PLAIN, ArtPalette.STEEL
 )
+## A vehicle deck's painted steel underfoot, and its lanes' paint (VehicleDeck).
+static var car_deck := ShipMesh.Paint.new(
+	FINISH.DECK, ArtPalette.DECK, FINISH.PLATE, ArtPalette.CAR_DECK
+)
+static var lane := ShipMesh.Paint.new(FINISH.PLAIN, ArtPalette.LANE_PAINT)
 static var hold_frame := ShipMesh.Paint.new(FINISH.PLAIN, ArtPalette.HOLD_FRAME)
 ## What a room's furnishings are made of (RoomDressing).
 static var engine := ShipMesh.Paint.new(FINISH.PLAIN, ArtPalette.ENGINE)
