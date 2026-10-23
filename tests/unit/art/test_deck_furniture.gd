@@ -15,7 +15,7 @@ const FERRY_BRIDGE_DECK := 7.6
 
 
 func _layout(ship: String) -> ShipLayout:
-	return load("res://data/ships/%s.tres" % ship)
+	return Fleet.layout(StringName(ship))
 
 
 ## What [param blocker] of [param layout] is drawn as.
