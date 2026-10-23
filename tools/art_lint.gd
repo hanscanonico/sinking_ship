@@ -19,10 +19,12 @@ extends SceneTree
 ##   railings. And through every railing span a body's breadth or longer, broken, the
 ##   opening it leaves stands open as drawn: nothing across it between a step over its
 ##   deck and a body's height, from its line out to a body's breadth past it (no lamp
-##   is a barrier; a span walled within a body's radius has no body behind it). Steel
-##   her structure has stands where it stands, though: within STRUCTURE_TOLERANCE of
-##   a section's outline — the plating and the bulwark where a deck stops short of her
-##   shell (SectionHull) — it is no false floor, and nothing across an opening.
+##   is a barrier; a span walled within a body's radius has no body behind it, and a
+##   blocker's own faces stand where the rules hold every body out). Steel her
+##   structure has stands where it stands, though: on a section's outline — the
+##   plating and the bulwark where a deck stops short of her shell (SectionHull) — or
+##   on a face closing her ends, as a transom (StructureSteel), it is no false floor,
+##   and nothing across an opening.
 ## - The hull against the structure (§5b.2), on every ship that has one: every point
 ##   of every section's outline below the sheer within HULL_TOLERANCE of a drawn face,
 ##   across the outline there; and every pane of glass the art sets in an outside wall
@@ -61,6 +63,7 @@ extends SceneTree
 
 const RunMatch := preload("res://tools/run_match.gd")
 const FurnishingCheck := preload("res://tools/furnishing_check.gd")
+const StructureSteel := preload("res://tools/structure_steel.gd")
 const MATCH_SCENE := "res://scenes/match/match.tscn"
 const SHIPS_DIR := "res://data/ships/"
 const ART_DIR := "res://scenes/art/"
@@ -81,8 +84,6 @@ const HULL_TOLERANCE := 0.05
 const PANE_TOLERANCE := 0.05
 ## How far along her from a section's x its outline is probed.
 const HULL_NUDGE := 0.01
-## How near a section's outline a face stands to be her structure's own steel.
-const STRUCTURE_TOLERANCE := 0.05
 ## A lamp's triangles' span in _ship_faces(): it fades near the eye (ShipLamp.fade_near).
 const LAMP := -2
 ## How far past a platform's edge the false-floor probes stand, how far apart along
@@ -448,7 +449,8 @@ func _check_false_floor(art: ShipArt, file: String, layout: ShipLayout, rules: B
 			if space.walled_between(edge, point, platform.height, high):
 				continue
 			if [low, platform.height, high].any(
-				func(y: float) -> bool: return _in_structure(layout, Vector3(point.x, y, point.y))
+				func(y: float) -> bool:
+					return StructureSteel.holds(layout, Vector3(point.x, y, point.y))
 			):
 				continue
 			var facing := _top_facing(faces, cells, Vector3(point.x, high, point.y), low)
@@ -548,8 +550,9 @@ func _along_span(railing: ShipRailing) -> PackedVector2Array:
 
 
 ## Whether [param segment] (from, to) crosses a face of [param faces] — but those of
-## span [param broken], per [param spans], a lamp's (LAMP) and [param layout]'s
-## structure's own steel (_in_structure()) — or one of [param remains].
+## span [param broken], per [param spans], a lamp's (LAMP), and [param layout]'s
+## structure's own steel and its blockers' faces (StructureSteel) — or one of
+## [param remains].
 func _blocked(
 	faces: PackedVector3Array,
 	cells: Dictionary,
@@ -577,37 +580,12 @@ func _blocked(
 				var hit: Variant = Geometry3D.segment_intersects_triangle(
 					from, to, faces[index], faces[index + 1], faces[index + 2]
 				)
-				if hit == null or _in_structure(layout, hit):
+				if hit == null or StructureSteel.holds(layout, hit):
+					continue
+				if StructureSteel.in_a_blocker(layout, hit, BLOCKER_TOLERANCE):
 					continue
 				if spans[index / 3] != LAMP:
 					return true
-	return false
-
-
-## Whether [param point] stands within STRUCTURE_TOLERANCE of [param layout]'s
-## structure: on the outline of the section cut across her there or of either whose
-## middle stands nearest aft or fore of it — her shell is lofted from one section's
-## middle to the next. Only on it: what stands inside her hull is held to the checks.
-func _in_structure(layout: ShipLayout, point: Vector3) -> bool:
-	if layout.structure == null:
-		return false
-	var across := Vector2(point.z, point.y)
-	var sections := layout.structure.sections
-	for at in sections.size():
-		var section := sections[at]
-		var holds := absf(point.x - section.x) <= section.length * 0.5 + STRUCTURE_TOLERANCE
-		var before := at > 0 and sections[at - 1].x <= point.x and point.x <= section.x
-		var after := at < sections.size() - 1 and section.x <= point.x
-		after = after and point.x <= sections[at + 1].x
-		if not (holds or before or after):
-			continue
-		var outline := section.outline
-		for index in outline.size():
-			var a := outline[index]
-			var b := outline[(index + 1) % outline.size()]
-			var nearest := Geometry2D.get_closest_point_to_segment(across, a, b)
-			if nearest.distance_to(across) <= STRUCTURE_TOLERANCE:
-				return true
 	return false
 
 

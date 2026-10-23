@@ -33,6 +33,10 @@ const SIDE_PIPE := 2.1
 const SIDE_PIPE_CLEAR := 0.04
 ## A stair this near a hull side breaks the pipe along it: a body on it reaches there.
 const STAIR_REACH := 0.8
+## A main steam pipe this near a stair in plan, overhead, stands in a body climbing it: a
+## body's radius past the pipe's, less the wall fitting's depth art-lint lets stand in a
+## body (tools/furnishing_check.gd).
+const OVERHEAD_REACH := 0.35
 ## The most lamps an engine room hangs over its lanes; a lane between two machines
 ## this wide at least; and how far in plan a lamp hangs from a machine standing up past
 ## its globe, at least.
@@ -40,12 +44,14 @@ const LAMPS := 4
 const LANE_LEAST := 1.0
 const LAMP_CLEAR := 0.3
 ## An engine: its bedplate, its crankcase's and its columns' tops over the floor, and
-## its cylinders' lagging, as tall as the deckhead lets them stand, up to LAGGING;
+## its cylinders' lagging, as tall as the deckhead lets them stand, from LAGGING_LEAST
+## up to LAGGING — the least, under a step, where a body could stand on the engine;
 ## the cylinders' radii, high to low pressure, as shares of the largest.
 const BEDPLATE := 0.14
 const CRANKCASE := 0.6
 const COLUMNS := 1.25
 const LAGGING := 0.35
+const LAGGING_LEAST := 0.1
 const CYLINDER_SCALE: Array[float] = [0.72, 0.86, 1.0]
 ## How far in from its footprint the engine's open columns stand back.
 const RECESS := 0.045
@@ -86,7 +92,9 @@ func space() -> ShipSpace:
 
 ## An engine standing in [param blocker]'s footprint, which the rules hold every body
 ## out of, from its bottom to [param top] and over it up to the deckhead, where no
-## body can stand: an inverted triple-expansion engine — a bedplate, a crankcase with
+## body can stand — but under a deckhead a head's height over it or more, where one
+## could (_stood_on), no more than a step over it and with no steam pipe down into it:
+## an inverted triple-expansion engine — a bedplate, a crankcase with
 ## inspection doors, columns round its four faces with bright piston rods and
 ## crossheads between them, a cylinder block with a gauge board, a starting wheel
 ## and a reversing lever on its after face — and over it three cylinders, high,
@@ -151,7 +159,7 @@ func _machinery(mesh: ShipMesh, blocker: ShipBlocker, top: float) -> void:
 		var chest_box := Rect2(chest - Vector2.ONE * 0.13, Vector2.ONE * 0.26)
 		RoomDressing.block(mesh, chest_box, top, top + lagging * 0.85, ShipPaints.engine)
 	var inlet := _steam_inlet(blocker, top)
-	if not is_nan(inlet.y):
+	if not is_nan(inlet.y) and not _stood_on(area, top):
 		var cover := Vector3(inlet.x, top + lagging + 0.05, inlet.z)
 		RoomDressing.pipe(mesh, cover, inlet, STEAM_PIPE)
 		RoomDressing.flange(mesh, cover + Vector3.UP * 0.03, Vector3.UP, STEAM_PIPE)
@@ -170,24 +178,40 @@ func _steam_inlet(blocker: ShipBlocker, top: float) -> Vector3:
 
 
 ## The height of the cylinders' lagging over [param area]'s engine standing
-## [param top] high: LAGGING, or less under a low deckhead.
+## [param top] high: LAGGING, or less under a low deckhead, and the least where a body
+## could stand on it (_stood_on).
 func _lagging(area: Rect2, top: float) -> float:
 	var room := _pipe_height(area.get_center(), top)
 	if is_nan(room):
 		return LAGGING
-	return clampf(room - STEAM_PIPE - 0.17 - top, 0.1, LAGGING)
+	if _stood_on(area, top):
+		return LAGGING_LEAST
+	return clampf(room - STEAM_PIPE - 0.17 - top, LAGGING_LEAST, LAGGING)
+
+
+## Whether a body could stand on [param area]'s engine standing [param top] high: the
+## deck over it stands a head's height over its top or more (RoomDressing.HEADROOM).
+func _stood_on(area: Rect2, top: float) -> bool:
+	return _deck_over(area.get_center(), top) - top >= RoomDressing.HEADROOM
 
 
 ## The height steam pipes run at over ship point [param at], under the beams of the
 ## lowest deck over [param above]; NAN when no deck stands over it.
 func _pipe_height(at: Vector2, above: float) -> float:
+	var deck := _deck_over(at, above)
+	if is_nan(deck):
+		return NAN
+	return deck - ShipArt.PLANK - ShipArt.BEAM_DEPTH - STEAM_PIPE - 0.03
+
+
+## The height of the lowest deck over ship point [param at] above [param above]; NAN when
+## none stands over it.
+func _deck_over(at: Vector2, above: float) -> float:
 	var deck := INF
 	for platform: ShipPlatform in _layout.platforms:
 		if platform.height > above and platform.contains(at.x, at.y):
 			deck = minf(deck, platform.height)
-	if deck == INF:
-		return NAN
-	return deck - ShipArt.PLANK - ShipArt.BEAM_DEPTH - STEAM_PIPE - 0.03
+	return NAN if deck == INF else deck
 
 
 ## The ship-plane point [param along] [param area]'s long axis and [param across] its
@@ -237,17 +261,16 @@ func _controls(mesh: ShipMesh, area: Rect2, along_x: bool, low: float, top: floa
 
 
 ## [param room]'s own: its engines (_machinery), the boilers in its forward bulkhead,
-## their main steam pipes overhead aft along the engine's side into it, and the
-## dressing on its walls (walls()).
+## their main steam pipes overhead aft along the engine's side into it
+## (steam_routes()), and the dressing on its walls (walls()).
 func build(mesh: ShipMesh, room: ShipRoom) -> void:
-	var machines := _space.machinery(room)
-	for machine: ShipBlocker in machines:
+	for machine: ShipBlocker in _space.machinery(room):
 		var top := machine.top - (ShipArt.PLANK if _space.deck_on(machine) else 0.0)
 		_machinery(mesh, machine, top)
 	for boiler: Array in _boilers(room):
 		_boiler(mesh, boiler)
-		if not machines.is_empty():
-			_steam_pipe(mesh, boiler, machines[0])
+	for route: Array[Vector3] in steam_routes(room):
+		_steam_pipe(mesh, route)
 	walls(mesh, room)
 
 
@@ -283,32 +306,70 @@ func walls(mesh: ShipMesh, room: ShipRoom) -> void:
 			RoomDressing.fire_buckets(mesh, wall, wall.middle())
 
 
-## The main steam pipe from [param boiler]'s stop valve up under the beams, along its
-## bulkhead to beside [param engine], aft along the engine's side and over into it — but
-## for a boiler under a gallery (#74), whose pipe goes up behind its bulkhead, clear of
-## the gallery and of any stair at its foot.
-func _steam_pipe(mesh: ShipMesh, boiler: Array, engine: ShipBlocker) -> void:
-	var wall: RoomDressing.Wall = boiler[0]
-	var radius: float = boiler[2]
-	var valve := wall.at(boiler[1], BOILER_FOOT + radius * 2.0 + 0.04, 0.16)
-	var inlet := _steam_inlet(engine, engine.top)
-	if is_nan(inlet.y) or _space.ceiling(wall.room, valve.x, valve.z) < inlet.y:
-		return
-	var beside := engine.area.grow(PIPE_OFFSET)
-	var over := Vector3(valve.x, inlet.y, valve.z)
-	var along := Vector3(clampf(valve.x, beside.position.x, beside.end.x), inlet.y, valve.z)
-	if wall.side % 2 == 1:
-		along = Vector3(valve.x, inlet.y, clampf(valve.z, beside.position.y, beside.end.y))
-	var aft := Vector3(inlet.x, inlet.y, along.z)
-	if wall.side % 2 == 0:
-		aft = Vector3(along.x, inlet.y, inlet.z)
-	var route: Array[Vector3] = [valve, over, along, aft, inlet]
+## A main steam pipe along [param route] (steam_routes()), with a flange at each bend.
+func _steam_pipe(mesh: ShipMesh, route: Array[Vector3]) -> void:
 	for index in route.size() - 1:
 		RoomDressing.pipe(mesh, route[index], route[index + 1], STEAM_PIPE)
 		if index > 0:
 			RoomDressing.flange(
 				mesh, route[index], (route[index + 1] - route[index]).normalized(), STEAM_PIPE
 			)
+
+
+## The bends of each main steam pipe in [param room], from each boiler's stop valve up
+## under the beams, along its bulkhead to beside its first engine, aft along the
+## engine's side and over into it — none for a boiler under a gallery (#74), whose
+## deckhead stands under the pipe's height, nor where a body climbing a stair would
+## reach the pipe (_over_a_stair).
+func steam_routes(room: ShipRoom) -> Array[Array]:
+	var routes: Array[Array] = []
+	var machines := _space.machinery(room)
+	if machines.is_empty():
+		return routes
+	var engine := machines[0]
+	var inlet := _steam_inlet(engine, engine.top)
+	if is_nan(inlet.y):
+		return routes
+	var beside := engine.area.grow(PIPE_OFFSET)
+	for boiler: Array in _boilers(room):
+		var wall: RoomDressing.Wall = boiler[0]
+		var radius: float = boiler[2]
+		var valve := wall.at(boiler[1], BOILER_FOOT + radius * 2.0 + 0.04, 0.16)
+		if _space.ceiling(wall.room, valve.x, valve.z) < inlet.y:
+			continue
+		var over := Vector3(valve.x, inlet.y, valve.z)
+		var along := Vector3(clampf(valve.x, beside.position.x, beside.end.x), inlet.y, valve.z)
+		if wall.side % 2 == 1:
+			along = Vector3(valve.x, inlet.y, clampf(valve.z, beside.position.y, beside.end.y))
+		var aft := Vector3(inlet.x, inlet.y, along.z)
+		if wall.side % 2 == 0:
+			aft = Vector3(along.x, inlet.y, inlet.z)
+		var route: Array[Vector3] = [valve, over, along, aft, inlet]
+		var clear := true
+		for index in route.size() - 1:
+			clear = clear and not _over_a_stair(route[index], route[index + 1])
+		if clear:
+			routes.append(route)
+	return routes
+
+
+## Whether a pipe from [param from] to [param to] passes over a stair a body climbing
+## would reach it from: its treads, anywhere within OVERHEAD_REACH of the pipe in plan,
+## stand less than a head's height under it (RoomDressing.HEADROOM).
+func _over_a_stair(from: Vector3, to: Vector3) -> bool:
+	var plan := Rect2(Vector2(from.x, from.z), Vector2.ZERO).expand(Vector2(to.x, to.z))
+	var near := plan.grow(OVERHEAD_REACH)
+	var low := minf(from.y, to.y) - RoomDressing.HEADROOM
+	var high := maxf(from.y, to.y)
+	for ramp: ShipRamp in _layout.ramps:
+		if not ramp.area.intersects(near):
+			continue
+		var under := ramp.area.intersection(near)
+		var one := ramp.height_at(under.position.x, under.position.y)
+		var other := ramp.height_at(under.end.x, under.end.y)
+		if minf(one, other) < high and maxf(one, other) > low:
+			return true
+	return false
 
 
 ## The middle of each lane beside [param room]'s machinery, across the room's long
