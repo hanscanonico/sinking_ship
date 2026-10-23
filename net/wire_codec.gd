@@ -19,11 +19,13 @@ extends RefCounted
 
 ## 7: BEGIN carries the match's pace, so a client of 6 — which would build its match
 ## paced and play the server's fast one out of step — is refused VERSION at its HELLO.
-const PROTOCOL_VERSION := 7
+## 8: a prop's holder rides in the snapshot and a frame may press Grab (#273), so a client
+## of 7, whose rules have neither, is refused VERSION at its HELLO.
+const PROTOCOL_VERSION := 8
 ## The build of what plays a match — core/, ai/ and net/ — bumped by hand whenever a
 ## change there would play the same data differently: part of every match's hash, so
 ## two builds that would not agree are refused as other data.
-const SIM_BUILD := 7
+const SIM_BUILD := 8
 const HASH_BYTES := 8
 ## How far apart, in quanta, two values within_quantum may be: a rounding on each side,
 ## and a single-precision Vector3's own error at a few tens of metres.
