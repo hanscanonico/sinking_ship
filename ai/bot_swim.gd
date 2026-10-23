@@ -15,6 +15,8 @@ extends RefCounted
 const PROBES := 8
 ## How far apart the open-water points a swimmer tries for a way round are, in metres.
 const SWIM_LEG := 1.5
+## Well past what single-precision points can round a ring's leg by, in metres.
+const RING_SLACK := 0.001
 
 ## The way out the last look found, and the point it swims through on the way — the
 ## open water round a wall, the next portal out of a flooded room, or a pocket; null and
@@ -112,6 +114,10 @@ func _round(within: float, now_pos: Vector3, pose: ShipPose) -> bool:
 	var eye := Vector3.UP * _eye_height
 	var best := INF
 	for ring in range(1, 4):
+		# Its legs alone — rounding and all — as long as the best way found, no point of
+		# this ring or past it finds a shorter one.
+		if SWIM_LEG * ring - RING_SLACK >= best:
+			break
 		for index in PROBES:
 			var direction := Vector2.from_angle(TAU * index / PROBES)
 			var point := now_pos + Vector3(direction.x, 0.0, direction.y) * SWIM_LEG * ring

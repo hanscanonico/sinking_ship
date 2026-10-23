@@ -616,7 +616,7 @@ func blocked(from_point: Vector3, to_point: Vector3, body_height: float, step: f
 	var head := maxf(from_point.y, to_point.y) + body_height
 	if _doors.crossed(start, end, feet, head) or _fallen.crossed(start, end, feet, head):
 		return true
-	for surface: int in _grid.near(Rect2(start, Vector2.ZERO).expand(end), feet, head):
+	for surface: int in _grid.along(start, end, feet, head):
 		if not _is_blocker_top(surface):
 			continue
 		var blocker := _blocker_of(surface)
@@ -644,7 +644,11 @@ func clear_stretches(
 	var end := Vector2(to_point.x, to_point.z)
 	var length := start.distance_to(end)
 	var covered: Array[Vector2] = []
-	for blocker: ShipBlocker in _blockers:
+	# A blocker the line meets twice covers the same stretch twice: no gap more or less.
+	for surface: int in _grid.along(start, end):
+		if not _is_blocker_top(surface):
+			continue
+		var blocker := _blocker_of(surface)
 		if not PlaneShapes.overlaps(from_point.y, body_height, step, blocker.bottom, blocker.top):
 			continue
 		var span := (
@@ -682,7 +686,7 @@ func line_of_sight(from_point: Vector3, to_point: Vector3, pose: ShipPose) -> bo
 	if _doors.crossed(start, end, low, high) or _fallen.crossed(start, end, low, high):
 		return false
 	var reach := Rect2(start, Vector2.ZERO).expand(end)
-	for surface: int in _grid.near(reach, low, high):
+	for surface: int in _grid.along(start, end, low, high):
 		if _tops[surface] <= low or _bottoms[surface] >= high:
 			continue
 		var area := _areas[surface]
@@ -743,14 +747,10 @@ func drops(from_point: Vector3, to_point: Vector3, step: float) -> bool:
 ## water stands at its floor, and a point on it is not wet by its height's last bit.
 func wet(ship_point: Vector3, pose: ShipPose) -> bool:
 	var height := pose.world_height(ship_point)
-	var level := pose.water_level(ship_point)
-	if height >= pose.highest_water() or height >= level:
+	# Over every water there is, no cell to look for (ShipPose.wet_at).
+	if height >= pose.highest_water():
 		return false
-	var cell := pose.cell_at(ship_point)
-	if cell == CellMap.NONE:
-		return true
-	var under := Vector3(ship_point.x, pose.cells.floor_of(cell), ship_point.z)
-	return level > pose.world_height(under) + CellMap.DRY
+	return pose.wet_at(ship_point, height, pose.cell_at(ship_point))
 
 
 ## Whether [param surface] is under the water at its middle.
@@ -863,7 +863,14 @@ func nearest_climb(feet: Vector3, pose: ShipPose, rules: BrawlRules, within: flo
 			towards.append(_ladder_normals[index])
 	var box := Rect2(point - Vector2(within, within), Vector2(within, within) * 2.0)
 	for surface: int in _grid.near(box):
-		if _gone[surface] == 1 or _is_round_top(surface):
+		# A level rectangle stands at its top wherever its nearest point lies: out of reach,
+		# it is passed over before that point is looked for — most of hers are.
+		var top := _tops[surface] - water
+		if (
+			_gone[surface] == 1
+			or _level_rects[surface] == 1 and (top < -rules.wade_depth or top > rules.climb_reach)
+			or _is_round_top(surface)
+		):
 			continue
 		var at := _waterline_point(surface, point, water)
 		var above := height_at(surface, Vector3(at.x, 0.0, at.y)) - water
@@ -871,21 +878,23 @@ func nearest_climb(feet: Vector3, pose: ShipPose, rules: BrawlRules, within: flo
 			continue
 		edges.append(at)
 		towards.append((at - point).normalized())
-	var best: Climb = null
-	var best_distance := within
+	# Nearest first, ties to the first found, so the first a climb takes is the one: in a
+	# ship awash, most of her decks are edges.
+	var order := PackedVector2Array()
 	for index in edges.size():
 		var distance := point.distance_to(edges[index])
-		if distance >= best_distance:
-			continue
+		if distance < within:
+			order.append(Vector2(distance, index))
+	order.sort()
+	for nearest: Vector2 in order:
+		var index := int(nearest.y)
 		var touching := edges[index] - towards[index] * rules.body_radius
 		var from := Vector3(touching.x, feet.y, touching.y)
-		if blocked(feet, from, rules.body_height, rules.step_height):
-			continue
-		var climb := climb_out(from, towards[index], pose, rules)
-		if climb != null:
-			best = climb
-			best_distance = distance
-	return best
+		if not blocked(feet, from, rules.body_height, rules.step_height):
+			var climb := climb_out(from, towards[index], pose, rules)
+			if climb != null:
+				return climb
+	return null
 
 
 ## The highest of the first [param surfaces] surfaces — crates' lids last, but
@@ -980,26 +989,13 @@ func _rail_contact(index: int, point: Vector2, radius: float) -> Contact:
 
 ## Each cell's platforms and their clearances, into _floors and _floor_clearances: the
 ## distance from a platform's height to the heights every other surface of the cell
-## stands at — a ramp anywhere between its ends — less CLEARANCE_SLACK.
+## stands at — a ramp anywhere between its ends — less CLEARANCE_SLACK (FloorClearances).
 func _index_floors() -> void:
-	for cell in _grid.cell_count():
-		var near := _grid.in_cell(cell)
-		var floors := PackedInt32Array()
-		var clearances := PackedFloat64Array()
-		for surface: int in near:
-			if surface >= _first_ramp:
-				continue
-			var height := _tops[surface]
-			var clearance := INF
-			for other: int in near:
-				if other == surface:
-					continue
-				var low := _bottoms[other] if is_ramp(other) else _tops[other]
-				clearance = minf(clearance, maxf(low - height, height - _tops[other]))
-			floors.append(surface)
-			clearances.append(clearance - CLEARANCE_SLACK)
-		_floors.append(floors)
-		_floor_clearances.append(clearances)
+	var index := FloorClearances.new(
+		_grid, _tops, _bottoms, _first_ramp, _first_top, CLEARANCE_SLACK
+	)
+	_floors = index.floors
+	_floor_clearances = index.clearances
 
 
 ## The surfaces whose areas reach the cell under [param ship_point]'s x/z, in the bands

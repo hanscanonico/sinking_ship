@@ -19,6 +19,11 @@ const KEPT_BLOCKS := 1024
 ## How far past its ends near() takes a query's heights: a caller's own sums of heights
 ## may round a hair past them.
 const ROUNDING := 0.000001
+## How many cells long the stretches of a line along() asks near() of are at most, and
+## how far each stretch's box reaches past it: well past what rounding moves a point of
+## the line by.
+const STRETCH_CELLS := 2.0
+const STRETCH_SLACK := 0.001
 
 var _origin: Vector2
 var _side: float
@@ -181,6 +186,27 @@ func near(box: Rect2, bottom := -INF, top := INF) -> PackedInt32Array:
 	if _blocks.size() == KEPT_BLOCKS:
 		_blocks.clear()
 	_blocks[block] = found
+	return found
+
+
+## The items whose areas may reach the straight line from [param start] to [param end]
+## (x/z), in the bands from [param bottom] up to [param top]: near() of the line's box
+## for a line no longer than STRETCH_CELLS cells, else of the box of each stretch of it
+## that long, a hair over, one after the other — an item over two stretches is there
+## twice, and the order is theirs. Every item whose area meets the line is among them:
+## for a question any one of them answers, so a line the length of her is never handed
+## every item she has, nor a box of cells mostly off the line.
+func along(start: Vector2, end: Vector2, bottom := -INF, top := INF) -> PackedInt32Array:
+	var stretches := ceili(start.distance_to(end) / (_side * STRETCH_CELLS))
+	if stretches <= 1:
+		return near(Rect2(start, Vector2.ZERO).expand(end), bottom, top)
+	var found := PackedInt32Array()
+	for stretch in stretches:
+		var from := start.lerp(end, float(stretch) / stretches)
+		var to := start.lerp(end, float(stretch + 1) / stretches)
+		found.append_array(
+			near(Rect2(from, Vector2.ZERO).expand(to).grow(STRETCH_SLACK), bottom, top)
+		)
 	return found
 
 

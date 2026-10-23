@@ -195,6 +195,44 @@ func above_water(ship_point: Vector3) -> float:
 	return world_height(ship_point)
 
 
+## above_water() of a point [param height] up in the world (world_height), every height
+## it reads found already (StillPoints): the cells under it down to the sea are
+## [param cells_down] from [param from] to [param to] (CellMap.cells_under), and the
+## points of their floors under it as this pose sets them in the world [param floors_up].
+func above_water_seen(
+	height: float, cells_down: PackedInt32Array, floors_up: PackedVector3Array, from: int, to: int
+) -> float:
+	if levels.is_empty():
+		return height
+	for at in range(from, to):
+		var cell := cells_down[at]
+		if levels[cell] > floors_up[at].y + CellMap.DRY:
+			return height - levels[cell]
+	return height
+
+
+## Whether [param ship_point], [param height] up in the world (world_height) in the cell
+## [param map_cell] of this pose's CellMap (CellMap.cell_at), is below the water there —
+## its cell's, or the sea's outside her — that cell holding more than CellMap.DRY over its
+## floor: a dry cell's water stands at its floor, and a point on it is not wet by its
+## height's last bit. The helper behind Surfaces.wet (D13), for a point whose height and
+## cell are found already.
+func wet_at(ship_point: Vector3, height: float, map_cell: int) -> bool:
+	if height >= highest_water():
+		return false
+	# A pose that keeps no cells has her inside the sea's water, as cell_at says.
+	var cell := CellMap.NONE if levels.is_empty() else map_cell
+	var level := 0.0 if cell == CellMap.NONE else levels[cell]
+	if height >= level:
+		return false
+	if cell == CellMap.NONE:
+		return true
+	return (
+		level
+		> world_height(Vector3(ship_point.x, cells.floor_of(cell), ship_point.z)) + CellMap.DRY
+	)
+
+
 ## The world's downward pull of [param strength], in ship space: its x/z part is
 ## the deck's downhill, whichever way the ship leans.
 func ship_gravity(strength: float) -> Vector3:
