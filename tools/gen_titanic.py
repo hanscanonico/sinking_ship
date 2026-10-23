@@ -1739,6 +1739,26 @@ for tag, sign in [("p", -1), ("s", 1)]:
     box("db_e_" + tag, BX["E"] - T, BX["E"] + T, *sorted((sign * (DB6_Z + T), sign * (DB_MID_Z[5] + T))), KEEL,
         TANK_TOP)
 
+# --- The boat deck's furniture (SB-III, est.), after every other platform, blocker and
+# room so none of theirs moves, each drawn as its shape says (DeckFurniture). On her centre
+# line between her funnels, the skylights of what lies under it — the first-class
+# lounge's between funnels 2 and 3, the engine room's and the after staircase's between
+# funnels 3 and 4 —, a hop up or more, clear of the funnels and the after expansion joint.
+# Along the boat deck's houses outside, between their doors, seat lockers — the lifejacket
+# boxes her passengers sat on —, a step and a half up. All clear of every seat's start.
+DECK_SKYLIGHTS = [("skylight_lounge", -11.0, -5.0, 2.0, 0.9),
+                  ("skylight_engine_room", -37.5, -27.5, 2.0, 1.0),
+                  ("skylight_aft_staircase", -48.5, -41.0, 2.5, 1.2)]
+for sid, x0, x1, half, high in DECK_SKYLIGHTS:
+    box(sid, x0, x1, -half, half, BOAT, BOAT + high)
+SEAT_LOCKER = (0.5, 0.45)  # out from its house's wall, and tall
+SEAT_LOCKERS = [(46.0, 49.5), (51.0, 56.5), (21.0, 24.0), (25.0, 28.5)]
+for k, (x0, x1) in enumerate(SEAT_LOCKERS):
+    for tag, sign in [("p", -1), ("s", 1)]:
+        face = sign * (6.0 + T)
+        box("seat_locker_%d_%s" % (k, tag), x0, x1, *sorted((face, face + sign * SEAT_LOCKER[0])), BOAT,
+            BOAT + SEAT_LOCKER[1])
+
 # Sixteen seats across her decks (SH21 takes more): six on the boat deck and one on her
 # bridge, two on A deck's promenade, one on B deck's open end, one on each well deck,
 # the forecastle and the poop, one in the first-class dining saloon, facing forward to the
