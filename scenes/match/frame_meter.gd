@@ -67,19 +67,22 @@ class Source:
 	extends InputSource
 	var _inner: InputSource
 	var _split: FrameSplit
+	var _searched := 0
 
 	func _init(inner: InputSource, split: FrameSplit) -> void:
 		_inner = inner
 		_split = split
 
 	func next_frame(tick: int) -> InputFrame:
-		var bot := _inner as BotInputSource
-		var searched := bot.replans() if bot != null else 0
 		var start := FrameMeter._now()
 		var frame := _inner.next_frame(tick)
 		FrameMeter._book(_split, &"bots", start)
-		if bot != null:
-			_split.add(&"replans", bot.replans() - searched)
+		# A bot's searches counted since its last frame: deciding ahead (BotsAhead), it
+		# searched before it was asked.
+		if _inner.has_method(&"replans"):
+			var searched: int = _inner.call(&"replans")
+			_split.add(&"replans", searched - _searched)
+			_searched = searched
 		return frame
 
 	func observe(snapshot: Dictionary, pose: ShipPose) -> void:

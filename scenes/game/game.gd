@@ -658,13 +658,15 @@ func _quit() -> void:
 # However the game quits — its Quit, a capture taken, the window closed — every ship being
 # dressed on a thread is finished first: left, its thread would wait on frames that never
 # come, and the game would never end (ShipDressing). A match being served is waited for
-# after them, never before: its task may wait on the pool's threads they hold.
+# after them, never before: its task may wait on the pool's threads they hold. And the
+# bots of a match left mid-beat finish deciding it (BotsAhead).
 func _exit_tree() -> void:
 	if _dressing != null:
 		_dressing.drop()
 		_dressing = null
 	ShipDressing.finish_all()
 	_serving.finish()
+	BotsAhead.finish_all()
 
 
 ## The pause's controls as the keys now stand, the settings having maybe rebound them.

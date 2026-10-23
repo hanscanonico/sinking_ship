@@ -357,9 +357,11 @@ static func serve(
 	if local != null:
 		played = LOCAL_SEAT
 		sources.append(null)
+		sources.append_array(BotInputSource.fill(config, profile, LOCAL_SEAT + 1))
 	else:
-		sources.append(BotInputSource.new(LOCAL_SEAT, profile, config))
-	sources.append_array(BotInputSource.fill(config, profile, LOCAL_SEAT + 1))
+		sources = BotInputSource.fill(config, profile)
+	# The bots decide each beat while the frames before it are drawn.
+	sources = BotsAhead.of(sources)
 	var conditions := net_sim if net_sim != null else NetConditions.new()
 	var serving := Served.new()
 	serving.local = local
