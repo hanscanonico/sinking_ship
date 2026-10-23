@@ -293,6 +293,7 @@ func _check_ship(file: String, layout: ShipLayout) -> void:
 	var rules := RunMatch.default_config(SEED).rules
 	var art := ShipArt.new()
 	root.add_child(art)
+	art.rules = rules
 	art.build(layout, rules.railing_height, rules.body_radius)
 	var faces := _ship_faces(art)
 	var cells := FaceCells.file(faces)
@@ -472,6 +473,7 @@ func _check_open_spans(file: String, layout: ShipLayout, rules: BrawlRules) -> v
 	root.add_child(art)
 	var none: Array[StringName] = []
 	var every := PackedInt32Array(range(layout.railings.size()))
+	art.rules = rules
 	art.build(layout, rules.railing_height, rules.body_radius, none, every)
 	var spans := PackedInt32Array()
 	var faces := _ship_faces(art, false, spans)

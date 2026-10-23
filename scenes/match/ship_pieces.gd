@@ -122,6 +122,7 @@ static func stretches_of(
 		dressed.name = "Stretch%d" % cut
 		dressed.cut_above = cut_above
 		dressed.span = cuts[cut]
+		dressed.rules = rules
 		dressed.build(bare, rules.railing_height, rules.body_radius, falls, fails, open_ports)
 		found.append(dressed)
 	return found
