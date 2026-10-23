@@ -73,6 +73,13 @@ const BULKHEAD_BAR := 0.012
 const BULKHEAD_DEPTH := LAMP_PLATE_DEPTH + BULKHEAD_GLOBE + BULKHEAD_BAR * 1.5
 const BULKHEAD_GAP := 0.06
 const BULKHEAD_HEIGHT := 1.45
+## A hanging door lamp stands clear of every deck whose edge is within DECK_NEAR of it:
+## its top DECK_CLEAR under it, more than a step, or its lowest point over it by more
+## than a jump — never a ledge past the deck's edge that looks like a step off it
+## (art-lint's false floors).
+const DECK_NEAR := 1.0
+const DECK_CLEAR := 0.4
+const DECK_OVER := 1.0
 ## A door is lit only where the deck before it lies open to the sky SKY_OUT out from
 ## it: not a door under the decks.
 const SKY_OUT := 1.2
@@ -97,6 +104,8 @@ var _space: ShipSpace
 ## How near a body's centre comes to a wall: how far round a lamp what a body stands on
 ## is looked for.
 var _reach: float
+## Her glass (ShipFittings.panes), which a bulkhead lamp keeps clear of.
+var _panes: Array[Array] = []
 ## Per light, its glass's own material, and the glow it was last shown at.
 var _materials: Array[StandardMaterial3D] = []
 var _glows := PackedFloat32Array()
@@ -115,6 +124,7 @@ func _init(
 ) -> void:
 	_space = space
 	_reach = body_radius
+	_panes = panes
 	for door: Array in break_doors:
 		_break_lamp(door[0], door[1])
 	for blocker: ShipBlocker in space.layout.blockers:
@@ -239,6 +249,7 @@ func _break_lamp(sill: Vector3, normal: Vector3) -> void:
 	if head == INF:
 		return
 	var mount := head - ShipFittings.CAP_DEPTH - UNDER_CAP - LAMP_PLATE.y * 0.5
+	mount = minf(mount, head - DECK_CLEAR - LAMP_BOX.end.y - ShipSpace.SLIVER)
 	var over := Vector3(sill.x, mount, sill.z)
 	var turn := RoomDressing.facing(normal)
 	var aside := ShipFittings.BREAK_DOOR_BOX.end.x + BULKHEAD_GAP + BULKHEAD_PLATE.x * 0.5
@@ -290,8 +301,10 @@ func _doorway_lamp(lintel: ShipBlocker) -> void:
 
 ## A door's lamp before a deck at [param deck] open to the sky, facing [param out], its
 ## power read at [param behind]: hung at [param over] where it hangs wholly over
-## HEADROOM above all a body stands on near it, else a bulkhead lamp flat on the face at
-## [param beside] — where a wall stands behind it, when [param on_a_wall].
+## HEADROOM above all a body stands on near it and clear of the decks (DECK_NEAR), else
+## a bulkhead lamp flat on the face at [param beside], or as far the door's other side
+## — where it stands clear of her glass, and a wall stands behind it when
+## [param on_a_wall].
 func _door_lamp(
 	over: Vector3, beside: Vector3, out: Vector3, deck: float, behind: Vector3, on_a_wall: bool
 ) -> void:
@@ -304,15 +317,52 @@ func _door_lamp(
 	for corner in 8:
 		var point := place * LAMP_BOX.get_endpoint(corner)
 		foot = foot.expand(Vector2(point.x, point.z))
-	if lowest >= _standing(foot.grow(_reach), lowest) + RoomDressing.HEADROOM:
+	var top := over.y + LAMP_BOX.end.y
+	if (
+		lowest >= _standing(foot.grow(_reach), lowest) + RoomDressing.HEADROOM
+		and _clear_of_decks(foot.grow(DECK_NEAR), lowest, top)
+	):
 		_add(Kind.DOOR, place, place * Vector3(0.0, -LAMP_DROP, LAMP_REACH), behind)
 		return
 	var out2 := Vector2(out.x, out.z)
-	var face := Vector2(beside.x, beside.z) + out2 * ShipSpace.SLIVER
-	if on_a_wall and not _space.walled(face, -out2, beside.y, ShipSpace.WALL_MAX):
+	var aside := (beside - over).dot(turn.x)
+	for at: Vector3 in [beside, beside - turn.x * aside * 2.0]:
+		var face := Vector2(at.x, at.z) + out2 * ShipSpace.SLIVER
+		if on_a_wall and not _space.walled(face, -out2, at.y, ShipSpace.WALL_MAX):
+			continue
+		if not _clear_of_panes(out, at, BULKHEAD_PLATE):
+			continue
+		place = Transform3D(turn, at)
+		_add(Kind.BULKHEAD, place, place * Vector3(0.0, 0.0, LAMP_PLATE_DEPTH), behind)
 		return
-	place = Transform3D(turn, beside)
-	_add(Kind.BULKHEAD, place, place * Vector3(0.0, 0.0, LAMP_PLATE_DEPTH), behind)
+
+
+## Whether a fitting of [param size] at [param at] on a wall facing [param out] stands
+## SIDELIGHT_MARGIN clear of every pane of her glass in that wall.
+func _clear_of_panes(out: Vector3, at: Vector3, size: Vector2) -> bool:
+	var right := RoomDressing.facing(out).x
+	for pane: Array in _panes:
+		var centre: Vector3 = pane[1]
+		if not (pane[2] as Vector3).is_equal_approx(-out):
+			continue
+		if absf((centre - at).dot(out)) > ShipSpace.WALL_MAX + SIDELIGHT_MARGIN:
+			continue
+		var apart := Vector2(absf((centre - at).dot(right)), absf(centre.y - at.y))
+		var reach := size * 0.5 + (pane[4] as Vector2) + Vector2.ONE * SIDELIGHT_MARGIN
+		if apart.x < reach.x and apart.y < reach.y:
+			return false
+	return true
+
+
+## Whether no deck over [param area] stands between [param lowest] less DECK_OVER and
+## [param top] and DECK_CLEAR.
+func _clear_of_decks(area: Rect2, lowest: float, top: float) -> bool:
+	for platform: ShipPlatform in _space.layout.platforms:
+		var height := platform.height
+		if height > lowest - DECK_OVER and height < top + DECK_CLEAR:
+			if platform.area.intersects(area):
+				return false
+	return true
 
 
 ## The highest top under [param height] of anything a body may stand on over

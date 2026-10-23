@@ -69,7 +69,7 @@ func test_the_steamer_has_a_lamp_over_each_door_onto_her_open_decks() -> void:
 		var nearest := INF
 		for lamp: Vector2 in lamps:
 			nearest = minf(nearest, lamp.distance_to(door))
-		assert_lt(nearest, 0.6, "a lamp at the door at %s" % door)
+		assert_lt(nearest, 0.8, "a lamp at the door at %s" % door)
 
 
 func test_her_wheelhouse_shows_red_to_port_and_green_to_starboard() -> void:
