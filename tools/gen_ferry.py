@@ -353,6 +353,18 @@ for side, sign in [("port", -1), ("starboard", 1)]:
 box("wheelhouse_roof", x0 - T, x1 + T, -half - T, half + T, TOP - T, TOP)
 FUNNEL_AT = (-8.0, 0.0, 1.0, 13.0)  # x, z, radius, top
 cylinder("funnel", FUNNEL_AT[0], FUNNEL_AT[1], FUNNEL_AT[2], BRIDGE, FUNNEL_AT[3])
+# Her deck furniture (est.), after every other blocker so none of theirs moves, each drawn
+# as its shape says (DeckFurniture): the engine room's skylight on the bridge deck abaft
+# the funnel, a hop up; and seat lockers, a step and a half up — against the wheelhouse's
+# after wall short of its door, against the house's after wall between its doors, and a
+# row of two across the open deck aft between its seats' starts.
+box("skylight_engine_room", -14.0, -11.0, -1.0, 1.0, BRIDGE, BRIDGE + 0.8)
+SEAT_LOCKER = (0.5, 0.45)  # deep, and tall
+box("seat_locker_wheelhouse", WHEEL[0] - T - SEAT_LOCKER[0], WHEEL[0] - T, -3.4, 1.2, BRIDGE,
+    BRIDGE + SEAT_LOCKER[1])
+box("seat_locker_house", HOUSE[0] - T - SEAT_LOCKER[0], HOUSE[0] - T, -1.6, 1.6, PASS, PASS + SEAT_LOCKER[1])
+for tag, (z0, z1) in [("port", (-2.6, -0.2)), ("starboard", (0.2, 2.6))]:
+    box("seat_locker_aft_" + tag, -24.5, -24.5 + SEAT_LOCKER[0], z0, z1, PASS, PASS + SEAT_LOCKER[1])
 
 # --- Railings: the passenger deck's edges all round — its open deck aft, the walkways,
 # the foredeck —, the bridge deck's, open where the stairs from the open deck land, and

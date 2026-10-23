@@ -6,9 +6,10 @@ extends Node3D
 ## dresses itself. A lofted hull (ShipHull); planked decks; walls white outside and
 ## painted inside under beamed ceilings, with wooden door frames; treads on every
 ## ramp; railings of stanchions and rails; a ladder down the hull side at every
-## boarding ladder (BoardingLadder); a buff funnel with a black top and smoke, a mast; a tarpaulined
-## hatch where a thick box stands outdoors, a planked roof where a slab stands over a
-## room; glass, furniture and lifeboats
+## boarding ladder (BoardingLadder); a buff funnel with a black top and smoke, a mast;
+## where a thick box stands outdoors, a tarpaulined hatch over a hatch opening, else a
+## skylight, a seat locker or a towing post as its shape says (DeckFurniture); a planked
+## roof where a slab stands over a room; glass, furniture and lifeboats
 ## (ShipFittings); and each room's own lining, fittings — an engine where one stands
 ## in a room — door signs and lamps (RoomDressing), the lamps ShipLamps.
 ## Drawn only — the sim never reads a mesh. The sinking's events are drawn as
@@ -774,10 +775,11 @@ static func is_funnel(layout: ShipLayout, blocker: ShipBlocker) -> bool:
 	return FunnelArt.fitting_of(layout, blocker) != null
 
 
-## A wall, a hatch, a funnel or a mast, by its shape and where it stands — an
-## engine standing in a room is the room's own (RoomDressing). A blocker a deck rests
-## on stops a plank short of its top, so the deck shows. A funnel the sinking can fell
-## stands over its foot on a piece of its own among [param pieces], its smoke with it.
+## A wall, a funnel, a mast or a box on an open deck (DeckFurniture), by its shape and
+## where it stands — an engine standing in a room is the room's own (RoomDressing). A
+## blocker a deck rests on stops a plank short of its top, so the deck shows. A funnel the
+## sinking can fell stands over its foot on a piece of its own among [param pieces], its
+## smoke with it.
 func _blocker(mesh: ShipMesh, blocker: ShipBlocker, pieces: Dictionary) -> void:
 	var top := blocker.top - (PLANK if _space.deck_on(blocker) else 0.0)
 	if blocker.shape == ShipBlocker.Shape.CYLINDER:
@@ -829,7 +831,7 @@ func _blocker(mesh: ShipMesh, blocker: ShipBlocker, pieces: Dictionary) -> void:
 		var faces := ShipMesh.ALL_FACES & ~ShipMesh.TOP
 		_lined_box(mesh, area, blocker.bottom, top, ShipPaints.wall, faces, faces)
 	elif _space.outdoors(Vector3(centre.x, (blocker.bottom + top) * 0.5, centre.y)):
-		DeckWorks.hatch(mesh, area, blocker.bottom, top)
+		DeckFurniture.build(mesh, _space, blocker, top)
 
 
 ## A box as ShipMesh.box() draws it in [param paint] — [param faces] of it — each

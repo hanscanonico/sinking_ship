@@ -381,14 +381,17 @@ static func rig(
 
 
 ## Whether [param blocker] is a hatch ShipArt draws (hatch): a box no wall, no slab
-## roofing a room, its middle outdoors.
+## roofing a room, its middle outdoors, and a hatch to DeckFurniture, not a skylight, a
+## seat locker, a towing post or a casing.
 static func _is_hatch(space: ShipSpace, blocker: ShipBlocker) -> bool:
 	if blocker.shape != ShipBlocker.Shape.BOX or space.is_wall(blocker):
 		return false
 	if blocker.top - blocker.bottom <= ShipSpace.WALL_MAX and space.roofs(blocker):
 		return false
 	var middle := blocker.area.get_center()
-	return space.outdoors(Vector3(middle.x, (blocker.bottom + blocker.top) * 0.5, middle.y))
+	if not space.outdoors(Vector3(middle.x, (blocker.bottom + blocker.top) * 0.5, middle.y)):
+		return false
+	return DeckFurniture.piece_of(space, blocker) == DeckFurniture.Piece.HATCH
 
 
 ## The cargo derrick on [param mast] working [param hatch]: its boom heeled on its
