@@ -407,6 +407,11 @@ for k, (x0, x1) in enumerate([(-78.8, -76.6), (-71.4, -69.2)]):
 for rid, x0, x1, half_in, half_out in [("crew", 73.6, 74.9, 3.6, 4.4), ("forward", 77.4, 80.6, 3.6, 4.4)]:
     for side, sign in [("port", -1), ("starboard", 1)]:
         mess_table("%s_%s" % (rid, side), x0, x1, half_in, half_out, 0, sign)
+# The mess: two tables either side of its middle, between the lane down it and the
+# stairs down to the engine room, clear of the seat and of the pendants over them.
+for k, (x0, x1) in enumerate([(-74.6, -72.4), (-69.6, -67.4)]):
+    for side, sign in [("port", -1), ("starboard", 1)]:
+        mess_table("mess_%s_%d" % (side, k + 1), x0, x1, 2.2, 3.0, 0, sign)
 
 # --- Railings: the spar deck's edges all round — down both her sides, the steps where it
 # narrows, her fantail and her stem —, the boat deck's and the bridge deck's, open where

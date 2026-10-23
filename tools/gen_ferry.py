@@ -365,6 +365,19 @@ box("seat_locker_wheelhouse", WHEEL[0] - T - SEAT_LOCKER[0], WHEEL[0] - T, -3.4,
 box("seat_locker_house", HOUSE[0] - T - SEAT_LOCKER[0], HOUSE[0] - T, -1.6, 1.6, PASS, PASS + SEAT_LOCKER[1])
 for tag, (z0, z1) in [("port", (-2.6, -0.2)), ("starboard", (0.2, 2.6))]:
     box("seat_locker_aft_" + tag, -24.5, -24.5 + SEAT_LOCKER[0], z0, z1, PASS, PASS + SEAT_LOCKER[1])
+# Her saloon's furniture, after her deck furniture so none of it moves, each drawn as its
+# shape says (FurnitureDressing): two booths either side — a table 0.75 m tall, a bench
+# 0.45 along each of its long sides — outboard of the way between its aft and forward
+# doors, between the ways in from its aft doors and its side doors and between those and
+# the stairs up through its floor, 0.5 m off the walls and clear of the seat and of the
+# pendants over its middle (est.).
+TABLE, BENCH = 0.75, 0.45
+for k, (x0, x1) in enumerate([(-17.0, -14.0), (-10.3, -7.3)]):
+    for tag, sign in [("port", -1), ("starboard", 1)]:
+        booth = "saloon_%s_%d" % (tag, k + 1)
+        box("table_" + booth, x0, x1, *sorted((sign * 3.0, sign * 3.6)), PASS, PASS + TABLE)
+        for side, (near, far) in [("in", (2.55, 2.9)), ("out", (3.7, 4.05))]:
+            box("bench_%s_%s" % (booth, side), x0, x1, *sorted((sign * near, sign * far)), PASS, PASS + BENCH)
 
 # --- Railings: the passenger deck's edges all round — its open deck aft, the walkways,
 # the foredeck —, the bridge deck's, open where the stairs from the open deck land, and
@@ -923,11 +936,14 @@ def clear_of_stairs(house, run, height):
             start = None
     return found
 
+FURNITURE_HEIGHT = 1.2  # a box on a floor no taller is furniture, not machinery (ShipSpace)
+
 def machinery_in(house):
     x0, x1, z0, z1, floor, _name = house
     return any(is_box and min(bx1 - bx0, bz1 - bz0) > WALL_MAX and abs(foot - floor) < 0.05
+               and top - foot > FURNITURE_HEIGHT
                and x0 <= (bx0 + bx1) * 0.5 <= x1 and z0 <= (bz0 + bz1) * 0.5 <= z1
-               for bx0, bx1, bz0, bz1, foot, _top, is_box in block_geo)
+               for bx0, bx1, bz0, bz1, foot, top, is_box in block_geo)
 
 def windows():
     """Her windows, as ShipFittings._windows places glass: the walls of her rooms that

@@ -1,10 +1,11 @@
 extends GutTest
 ## The smaller ships' rooms carry tables and benches on their floors, as the liner's do
-## (FurnitureDressing): the freighter's officers', crew's and forward cabins, the barque's
-## saloon and the trawler's crew mess — before, nothing stood on their floors but their
-## walls' dressing. Each is drawn as a table or a bench, no seat starts within a body of
-## one, none stands within a body's breadth of a doorway's way in, and none within 1.0 m
-## in plan of a pendant, where a body on a table would put its head in the lamp.
+## (FurnitureDressing): the freighter's mess and her officers', crew's and forward
+## cabins, the ferry's saloon, the barque's saloon and the trawler's crew mess — before,
+## nothing stood on their floors but their walls' dressing. Each is drawn as a table or
+## a bench, no seat starts within a body of one, none stands within a body's breadth of
+## a doorway's way in, and none within 1.0 m in plan of a pendant, where a body on a
+## table would put its head in the lamp.
 
 ## The rooms furnished, by ship: [room, its tables, its benches].
 const FURNISHED := {
@@ -13,7 +14,9 @@ const FURNISHED := {
 		[&"officers' cabins", 4, 8],
 		[&"crew cabins", 2, 4],
 		[&"forward cabins", 2, 4],
+		[&"mess", 4, 8],
 	],
+	&"ferry": [[&"saloon", 4, 8]],
 	&"barque": [[&"saloon", 2, 2]],
 	&"trawler": [[&"crew mess", 1, 1]],
 }
