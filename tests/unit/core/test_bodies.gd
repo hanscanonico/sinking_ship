@@ -2,8 +2,9 @@ extends GutTest
 ## Bodies push bodies (§6): their circles separate, and a body that runs into another
 ## hands over part of its speed — the two part along the line between them as bodies of
 ## one mass do, with body_restitution of the speed they closed at — and a staggered body
-## closing at body_impact_speed or more bowls the other over: staggered as by a shove,
-## and credited to whatever sent the first. Shoving into a crowd is a bowling ball.
+## running into one still on its feet at body_impact_speed or more bowls it over:
+## staggered as by a shove, and credited to whatever sent the first. Shoving into a crowd
+## is a bowling ball.
 
 const SHOVE := InputFrame.SHOVE
 const BRACE := InputFrame.BRACE
@@ -136,6 +137,41 @@ func test_walking_into_a_body_pushes_it_on_without_bowling_it_over() -> void:
 	var idler := sim.state.seats[1]
 	assert_gt(idler.pos.x - idle_from.x, 1.0, "pushed on ahead of the walker")
 	assert_almost_eq(idler.pos.x - walker.pos.x, rules.body_radius * 2.0, 0.0001, "touching")
+
+
+func test_a_walker_running_into_a_staggered_body_is_only_stopped_by_it() -> void:
+	var rules := _rules()
+	var sim := SimFixtures.sim(2)
+	# Seat 1 still staggered where it came to rest — from a fall, say — and seat 0 walking
+	# into it at full speed, faster than a bowling.
+	var rest := Vector3(-3.0 + rules.body_radius * 2.0 + 0.3, 0.0, 0.0)
+	SimFixtures.place(sim, 1, rest)
+	sim.state.seats[1].stagger_ticks = Ticks.from_seconds(rules.stagger)
+	SimFixtures.place(sim, 0, Vector3(-3.0, 0.0, 0.0))
+	sim.state.seats[0].vel = Vector3(rules.walk_speed, 0.0, 0.0)
+	assert_gte(rules.walk_speed, rules.body_impact_speed, "a walk as fast as an impact")
+	var bowled: Array[SimEvent] = []
+	for _tick in 10:
+		var events := SimFixtures.step(sim, {0: SimFixtures.frame(0, Vector2.RIGHT)})
+		bowled.append_array(_of(events, SimEvent.Kind.BOWLED))
+	assert_true(bowled.is_empty(), "nobody is bowled over")
+	assert_false(sim.state.seats[0].is_staggered(), "the walker keeps its feet")
+	assert_gt(sim.state.seats[1].pos.x, rest.x, "and pushes the other on")
+
+
+func test_bodies_already_off_their_feet_only_part() -> void:
+	var rules := _rules()
+	var sim := SimFixtures.sim(2)
+	_sliding(sim, 0, Vector3(-5.0, 0.0, 0.0), rules.knockback)
+	SimFixtures.place(sim, 1, Vector3(-5.0 + rules.body_radius * 2.0 + 0.05, 0.0, 0.0))
+	# Seat 1 is near the end of a stagger of its own: sent by the same shove, say.
+	var left := 5
+	sim.state.seats[1].stagger_ticks = left
+	var events := SimFixtures.step(sim)
+	assert_true(_of(events, SimEvent.Kind.BOWLED).is_empty(), "no bowling")
+	assert_gt(sim.state.seats[1].vel.x, 0.0, "though the speed is handed on")
+	assert_eq(sim.state.seats[1].stagger_ticks, left - 1, "and its stagger runs on as it was")
+	assert_eq(sim.state.seats[0].stagger_ticks, Ticks.from_seconds(rules.stagger) - 1)
 
 
 func test_a_front_brace_takes_the_speed_but_keeps_its_feet() -> void:

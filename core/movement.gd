@@ -10,8 +10,8 @@ extends RefCounted
 ## Bodies push bodies (§6): their circles separate, and two meeting part along the line
 ## between them as bodies of one mass do, with body_restitution of the speed they met
 ## at — a fast body hands over part of its speed to the one it hits. A staggered body
-## meeting another at body_impact_speed or more bowls it over: shoving into a crowd is a
-## bowling ball.
+## running into one still on its feet at body_impact_speed or more bowls it over:
+## shoving into a crowd is a bowling ball.
 ##
 ## A tick moves its bodies on whichever of her faces are floors then (SH32, §5b.3): the
 ## match stands in the frame of the axis Faces finds up — every body's points turned
@@ -505,28 +505,29 @@ func _push_apart(a: PlayerState, b: PlayerState, tick: int, events: Array[SimEve
 ## [param a] and [param b] touching along [param normal], from a to b: meeting, they part
 ## along it as bodies of one mass do, with body_restitution of the speed they met at —
 ## what one hands the other, the other gains, and the speed across the line between
-## them is theirs. A staggered one meeting the other at body_impact_speed or more bowls
-## it over (_bowl). A body frozen in a hit-stop holds the speed it will go on with
-## (D12), and parts with nobody until the stop ends.
+## them is theirs. A staggered one running into one still on its feet, the two meeting
+## at body_impact_speed or more and it as fast of itself, bowls it over (_bowl): a
+## walker running into a body still staggered is only stopped by it, and two bodies
+## already off their feet only part. A body frozen in a hit-stop holds the speed it
+## will go on with (D12), and parts with nobody until the stop ends.
 func _part(
 	a: PlayerState, b: PlayerState, normal: Vector2, tick: int, events: Array[SimEvent]
 ) -> void:
 	if a.is_frozen() or b.is_frozen():
 		return
-	var meeting := Vector2(a.vel.x - b.vel.x, a.vel.z - b.vel.z).dot(normal)
+	var toward := Vector2(a.vel.x, a.vel.z).dot(normal)
+	var back := -Vector2(b.vel.x, b.vel.z).dot(normal)
+	var meeting := toward + back
 	if meeting <= 0.0:
 		return
 	var handed := normal * (meeting * (1.0 + _rules.body_restitution) * 0.5)
 	a.vel -= Vector3(handed.x, 0.0, handed.y)
 	b.vel += Vector3(handed.x, 0.0, handed.y)
-	if meeting < _rules.body_impact_speed:
+	if meeting < _rules.body_impact_speed or a.is_staggered() == b.is_staggered():
 		return
-	# Who was flying is asked before either is bowled: a pin is not a bowler.
-	var a_flying := a.is_staggered()
-	var b_flying := b.is_staggered()
-	if a_flying:
+	if a.is_staggered() and toward >= _rules.body_impact_speed:
 		_bowl(b, a, normal, tick, events)
-	if b_flying:
+	elif b.is_staggered() and back >= _rules.body_impact_speed:
 		_bowl(a, b, -normal, tick, events)
 
 

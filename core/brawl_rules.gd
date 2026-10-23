@@ -15,9 +15,11 @@ extends Resource
 ## them, as bodies of one mass do (§6: a fast body hitting another hands over part of
 ## its speed); 0 sends them on together, 1 bounces them apart as fast. 0…1.
 @export var body_restitution: float
-## A staggered body meeting another this fast or faster bowls it over: staggered as by a
-## shove, and credited to whatever sent the first — shoving into a crowd is a bowling
-## ball (§6, est.). A walk never does: only a body that has lost its footing bowls.
+## A staggered body running into one still on its feet this fast or faster — the two
+## meeting so, and it of itself — bowls it over: staggered as by a shove, and credited
+## to whatever sent the first — shoving into a crowd is a bowling ball (§6, est.). A
+## walk never does: only a body that has lost its footing bowls, and only one on its
+## feet is bowled.
 @export var body_impact_speed: float
 
 @export_group("Shove")
