@@ -494,7 +494,8 @@ func _sea(crates: Array[PropState], pose: ShipPose, tick: int, events: Array[Sim
 
 
 ## Floats [param crate] on its cell's water under [param pose]: its underside
-## crate_draft under the water over its x/z, never under the floor beneath it. Set down
+## crate_draft under the water over its x/z — or half its height, for one less than
+## twice crate_draft tall, a ring — never under the floor beneath it. Set down
 ## on that floor once the water over it is shallower than wade_depth. True when it is
 ## lost: its top at the ceiling over it or, with none, the water over its floor
 ## crate_adrift_depth deep — or nothing under it at all.
@@ -511,7 +512,8 @@ func _float(crate: PropState, pose: ShipPose) -> bool:
 		crate.body = PropState.Body.GROUNDED
 		crate.pos.y = floor_height
 		return false
-	crate.pos.y = maxf(water - _rules.crate_draft, floor_height)
+	var draft := minf(_rules.crate_draft, prop.height * 0.5)
+	crate.pos.y = maxf(water - draft, floor_height)
 	var floor_point := Vector3(crate.pos.x, floor_height, crate.pos.z)
 	var roof := _surfaces.ceiling(floor_point, _rules.step_height)
 	if roof == INF:

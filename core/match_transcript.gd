@@ -3,9 +3,10 @@ extends RefCounted
 ## A match told as text: first its iceberg hit — when, which side, along where and
 ## the area it opens — and how the must-sink rule came to it; then one line per exit,
 ## per sinking event — the physics' flooding, filling and spilling cells and her going —
-## per railing broken, per crate afloat and per crate lost, and per seat a falling funnel
-## knocks down; one for the end; and where her sinking stood then, in physics time, how
-## its bake ends and the worst her bending came to:
+## per railing broken, per prop afloat and per prop lost, per prop grabbed, let go of or
+## knocked loose (#273), and per seat a falling funnel knocks down; one for the end; and
+## where her sinking stood then, in physics time, how its bake ends and the worst her
+## bending came to:
 ##   hit 00:21.4 · starboard · x 5.2…9.0 m · 0.034 m²
 ##   must 8 thrown · 2 bakes · rung 3
 ##   00:52.3 seat 4 out · cold · place 6
@@ -116,9 +117,19 @@ func add(events: Array[SimEvent]) -> void:
 			SimEvent.Kind.RAILING_BROKE:
 				_lines.append("%s railing %d broke" % [clock(event.tick), event.railing])
 			SimEvent.Kind.PROP_AFLOAT:
-				_lines.append("%s crate %d afloat" % [clock(event.tick), event.prop])
+				_lines.append("%s prop %d afloat" % [clock(event.tick), event.prop])
 			SimEvent.Kind.PROP_LOST:
-				_lines.append("%s crate %d lost" % [clock(event.tick), event.prop])
+				_lines.append("%s prop %d lost" % [clock(event.tick), event.prop])
+			SimEvent.Kind.PROP_GRABBED:
+				_lines.append(
+					"%s seat %d grabs prop %d" % [clock(event.tick), event.seat, event.prop]
+				)
+			SimEvent.Kind.PROP_LET_GO:
+				var let_go := "%s seat %d lets go of prop %d"
+				_lines.append(let_go % [clock(event.tick), event.seat, event.prop])
+			SimEvent.Kind.KNOCKED_LOOSE:
+				var loose := "%s seat %d's prop %d knocked loose by seat %d"
+				_lines.append(loose % [clock(event.tick), event.seat, event.prop, event.credit])
 			SimEvent.Kind.PLUNGE_BEGAN:
 				_lines.append("%s the plunge%s" % [clock(event.tick), _of_piece(event)])
 			SimEvent.Kind.CELL_FLOODING:

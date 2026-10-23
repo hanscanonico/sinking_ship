@@ -273,3 +273,42 @@ func test_a_match_with_rings_in_play_continues_from_its_snapshot() -> void:
 			)
 	for kind: SimEvent.Kind in [SimEvent.Kind.PROP_GRABBED, SimEvent.Kind.KNOCKED_LOOSE]:
 		assert_true(seen.has(kind), "the match played %s" % SimEvent.Kind.keys()[kind])
+
+
+## `make match` tells a ring's hands (#273): taken, knocked loose by whom, let go.
+func test_the_transcript_tells_who_took_a_ring_and_who_knocked_it_loose() -> void:
+	var rules := SimFixtures.rules()
+	var sim := _carrying(2)
+	var told := MatchTranscript.new()
+	told.add(_shoved_for(sim, Ticks.from_seconds(rules.charge_full)))
+	SimFixtures.place(sim, 1, sim.state.props[0].pos - Vector3(0.8, 0.0, 0.0), 0.0)
+	told.add(SimFixtures.step(sim, {1: _grab(1)}))
+	SimFixtures.step(sim, {1: SimFixtures.frame(1)})
+	told.add(SimFixtures.step(sim, {1: _grab(1)}))
+	var text := told.text()
+	assert_string_contains(text, "seat 0's prop 0 knocked loose by seat 1")
+	assert_string_contains(text, "seat 1 grabs prop 0")
+	assert_string_contains(text, "seat 1 lets go of prop 0")
+
+
+## A ring loose on a deck the water rises over floats as a crate does, but rides in the
+## water no deeper than half its own height: crate_draft is deeper than a ring is tall.
+func test_a_loose_ring_floats_at_the_water_on_a_flooding_deck() -> void:
+	var rules := SimFixtures.rules()
+	var deck := SimFixtures.low_deck(0.5)
+	var rising := SimFixtures.scenario([[0.0, 0.0, 0.0, 0.0], [2.0, 1.0, 0.0, 0.0]])
+	var layout := SimFixtures.crated([SimFixtures.lifebuoy(Vector3(-5.0, 0.0, 0.0))], deck)
+	var sim := SimFixtures.sim(1, rising, layout)
+	SimFixtures.place(sim, 0, Vector3(10.0, 0.0, 0.0))
+	var ring := sim.state.props[0]
+	var events := SimFixtures.step(sim, {}, Ticks.from_seconds(2.5))
+	assert_eq(ring.body, PropState.Body.FLOATING, "lifted off the deck")
+	assert_eq(_of(events, SimEvent.Kind.PROP_AFLOAT).size(), 1)
+	var water := sim.pose().water_height(ring.pos)
+	assert_gt(water - ring.pos.y, 0.0, "in the water")
+	assert_almost_eq(water - ring.pos.y, ring_height() * 0.5, 0.001, "half its height under")
+	assert_lt(rules.crate_draft, 1.0)
+
+
+func ring_height() -> float:
+	return PropKind.named(&"lifebuoy").height
