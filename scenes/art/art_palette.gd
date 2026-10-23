@@ -84,6 +84,11 @@ const LAMP_GLASS := Color("ffe2a8")
 const LAMP_LIGHT := Color("ffc47a")
 const EMERGENCY_GLASS := Color("ff6a4a")
 const EMERGENCY_LIGHT := Color("e2492e")
+## Her navigation lights' glass (DeckLights): the port sidelight red, the starboard
+## green, the stern light white.
+const PORT_LIGHT := Color("ff3a2a")
+const STARBOARD_LIGHT := Color("3cff8a")
+const STERN_LIGHT := Color("fff4e0")
 ## The faint fill round the eye in a room whose lamps have failed (EyeFill): a cool
 ## grey, so a dark room reads dark and the emergency lamps' red still reads red.
 const EYE_FILL := Color("a9b6c8")
