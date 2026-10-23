@@ -53,7 +53,7 @@ from the object, and says so if one is set.
 | `blocker` | a box mesh, or an upright cylinder mesh | `shape`, `area`, `centre`, `radius`, `bottom`, `top` | — |
 | `railing`, `ladder` | a thin box along a platform's edge, from its local −X end to its +X end | `from`, `to` | `platform`: the platform object's name |
 | `spawn` | an empty where a seat starts | the point | — |
-| `prop` | an upright cylinder mesh, its underside where it stands | `pos`, `radius`, `height` | `mass`, `friction`, `grip_angle_deg` |
+| `prop` | an upright cylinder mesh, its underside where it stands — a hung one's at its deck's height on its span | `pos`, `radius`, `height` | `kind` (`"lifebuoy"`; cargo when unset), `mass`, `friction`, `grip_angle_deg`; `railing`: the railing object's name a ring hangs on, as a railing names its platform |
 | `room` | a box mesh, its bottom the room's floor; its top is not data | `area`, `floor_height` | `name` |
 | `structure` | an empty | — | `waterline_y`, `keel_y`, the seakeeping numbers |
 | `section` | a hull section: the outline as the face at its local +Z end, extruded toward local −Z | `x`, `length`, `outline` | — |
