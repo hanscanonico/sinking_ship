@@ -309,7 +309,7 @@ func move(
 		for player: PlayerState in live:
 			player.pos += player.vel * dt
 		for contact_pass in CONTACT_PASSES:
-			var held := _blockers(live, feet_before, pose_now, clear_of_blockers)
+			var held := _blockers(state, live, feet_before, pose_now, tick, clear_of_blockers)
 			held = (
 				_railings(state, live, pose_now, tick, events, came_from, clear_of_railings) or held
 			)
@@ -342,12 +342,16 @@ func _ceilings(live: Array[PlayerState], feet_before: PackedFloat64Array) -> voi
 ## in _ground rather than being pushed off its edge. A swimmer steps as a swimmer
 ## does (_swim_step). A body on its feet ducks under whatever it has a floor to crawl
 ## under (Surfaces.obstacle_contacts), and crawls there (height_of); a body off them is
-## held by what its height there meets. A body still where [param clear] last found it
-## held by nothing is not asked again. True when it moved anyone.
+## held by what its height there meets. A crate is held to as a wall is, unless the body
+## slams into it (Hazards.slams): out of it then, it goes on at the speed the two part
+## at. A body still where [param clear] last found it held by nothing is not asked
+## again. True when it moved anyone.
 func _blockers(
+	state: MatchState,
 	live: Array[PlayerState],
 	feet_before: PackedFloat64Array,
 	pose_now: ShipPose,
+	tick: int,
 	clear: Dictionary[int, Vector3]
 ) -> bool:
 	var moved := false
@@ -369,7 +373,10 @@ func _blockers(
 		if contacts.is_empty():
 			clear[player.seat] = player.pos
 		for contact: Surfaces.Contact in contacts:
-			_hold(player, contact)
+			if contact.prop != -1 and _hazards.slams(state, player, contact, tick):
+				player.pos += Vector3(contact.normal.x, 0.0, contact.normal.y) * contact.depth
+			else:
+				_hold(player, contact)
 			moved = true
 	return moved
 
