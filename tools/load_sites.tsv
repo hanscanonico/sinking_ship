@@ -20,6 +20,8 @@ core/match_choices.gd	ResourceLoader.exists(path)	tests/fixtures/sinking/*.tres
 core/match_choices.gd	ResourceLoader.exists(scenario)	tests/fixtures/sinking/*.tres
 core/match_choices.gd	load(path)	tests/fixtures/sinking/*.tres
 core/match_choices.gd	load(scenario)	tests/fixtures/sinking/*.tres
+core/prop_kind.gd	ResourceLoader.exists(path)	data/props/*.tres
+core/prop_kind.gd	load(path)	data/props/*.tres
 scenes/art/ship_model.gd	load(MODELS.path_join(name).path_join(name + ".glb"))	assets/models/*.glb
 scenes/audio/audio_settings.gd	ResourceLoader.exists(path)	-
 scenes/audio/audio_settings.gd	ResourceLoader.load(path)	-
