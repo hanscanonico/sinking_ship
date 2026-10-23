@@ -21,7 +21,7 @@ func test_a_crate_stands_at_its_underside_and_a_loose_ring_lies_flat() -> void:
 	var layout := _ringed()
 	var ring := PropPlacing.of(_entry(PropState.Body.GROUNDED, at), layout, 1.0, [])
 	assert_almost_eq(ring.basis.z, Vector3.UP, Vector3.ONE * 0.001, "its face up")
-	assert_almost_eq(ring.origin.y, layout.props[0].height * 0.5, 0.001, "on the deck")
+	assert_almost_eq(ring.origin.y, 0.0, 0.001, "its back on the deck")
 
 
 func test_a_held_ring_is_drawn_before_its_holder_found_by_seat() -> void:

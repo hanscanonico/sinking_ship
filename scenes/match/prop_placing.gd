@@ -3,10 +3,11 @@ extends RefCounted
 ## Where a prop is drawn (#273), from a snapshot's entry of it (D5), in ship space: its
 ## node's origin and turn. A crate of cargo stands at its underside, unturned. A ring —
 ## any prop of the lifebuoy's kind — is drawn about its middle, its face along the node's
-## z: lying flat where it lies loose; hung on its span's outboard face under the cap rail,
-## facing the sea, as RailBuoys hangs one; held at its holder's chest, out ahead of it
-## where it looks, facing that way — before the eyes of the seat holding it — or, its
-## holder not among the snapshot's seats, where it rides at its feet.
+## z and its back at the origin, as the lifebelt model is: lying flat where it lies loose;
+## hung on its span's outboard face under the cap rail, facing the sea, as RailBuoys
+## hangs one; held at its holder's chest, out ahead of it where it looks, facing that way
+## — before the eyes of the seat holding it — or, its holder not among the snapshot's
+## seats, where it rides at its feet.
 
 ## How high over its holder's feet a held ring's middle is carried, and how far ahead:
 ## at the chest, its top arc in the foot of the holder's own view.
@@ -40,4 +41,4 @@ static func of(
 			var feet: Vector3 = holder["pos"]
 			var middle := feet + Vector3.UP * HELD_HEIGHT + normal * HELD_AHEAD
 			return Transform3D(RoomDressing.facing(normal), middle)
-	return Transform3D(RoomDressing.facing(Vector3.UP), pos + Vector3.UP * prop.height * 0.5)
+	return Transform3D(RoomDressing.facing(Vector3.UP), pos)
