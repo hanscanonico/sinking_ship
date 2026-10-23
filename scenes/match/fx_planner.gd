@@ -166,12 +166,21 @@ var _adrift_at := PackedVector2Array()
 var _adrift_way := PackedVector2Array()
 var _adrift_tick := PackedInt32Array()
 var _adrift_radius := PackedFloat32Array()
+## Her platforms' water, read once a pose (_floods); and their least corners, the
+## corner a deck's plane of heights is read from (_crossing).
+var _decks: FloodedDecks
+var _least: StillPoints
 
 
 func _init(config: MatchConfig, surfaces: Surfaces, schedule: SinkSchedule) -> void:
 	_layout = config.ship
 	_surfaces = surfaces
 	_schedule = schedule
+	_decks = FloodedDecks.new(config.ship)
+	var least := PackedVector3Array()
+	for deck: ShipPlatform in config.ship.platforms:
+		least.append(Vector3(deck.area.position.x, deck.height, deck.area.position.y))
+	_least = StillPoints.new(least)
 	var structure := config.ship.structure
 	if structure != null:
 		var boxes := InnerWater.boxes(structure, _layout.rooms)
@@ -304,9 +313,11 @@ func _waterlines(
 ) -> void:
 	var boost := PLUNGE_BOOST if plunging else 1.0
 	var uphill := -_downhill(pose_now)
+	_least.read(pose_now)
 	for index in _layout.platforms.size():
 		var platform := _layout.platforms[index]
-		if platform.name in pose_now.collapsed or not _crossing(platform, pose_now):
+		var low := _least.world_height(index)
+		if platform.name in pose_now.collapsed or not _crossing(platform, pose_now, low):
 			_spray[index * 2] = 0.0
 			_spray[index * 2 + 1] = 0.0
 			continue
@@ -348,7 +359,7 @@ func _waterlines(
 ## reaches the top of, never grains thrown about the room.
 func _floods(pose_then: ShipPose, pose_now: ShipPose, tick: int, cues: Array[FxCue]) -> void:
 	for index in _layout.platforms.size():
-		if not _surfaces.flooded(index, pose_now) or _surfaces.flooded(index, pose_then):
+		if not _decks.flooded(index, pose_now) or _decks.flooded(index, pose_then):
 			continue
 		var platform := _layout.platforms[index]
 		var middle := platform.area.get_center()
@@ -854,15 +865,15 @@ func _dust(at: Vector3, radius: float, strength: float, tick: int, cues: Array[F
 	cues.append(dust)
 
 
-## Whether the sea crosses [param platform] under [param pose]; if it does, the
-## line it crosses along is left in _line, its two ends on the deck's edge.
-func _crossing(platform: ShipPlatform, pose: ShipPose) -> bool:
+## Whether the sea crosses [param platform] under [param pose], its least corner
+## [param low] up in the world there; if it does, the line it crosses along is left in
+## _line, its two ends on the deck's edge.
+func _crossing(platform: ShipPlatform, pose: ShipPose, low: float) -> bool:
 	var area := platform.area
 	# The pose's world height over the deck is a plane: its corners' heights are its
 	# height at the least corner and its rise along x and z.
 	var basis := pose.transform.basis
 	var least := Vector3(area.position.x, platform.height, area.position.y)
-	var low := pose.world_height(least)
 	var along_x := basis.x.y * area.size.x
 	var along_z := basis.z.y * area.size.y
 	_heights[0] = low
