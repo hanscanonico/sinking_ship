@@ -394,6 +394,18 @@ func show_state(then: Dictionary, now: Dictionary, alpha: float, crawling := fal
 		_colour_disc()
 
 
+## Reaches the hands to either side of a ring carried at [param ring] — its middle, its
+## face along z, in the world — [param radius] across, over whatever the clip and the
+## pose drew: the carry (#273). Its x is the holder's left, as RoomDressing.facing turns
+## a face toward where the holder looks.
+func carry(ring: Transform3D, radius: float) -> void:
+	var to_skeleton := _skeleton.global_transform.affine_inverse()
+	var left := ring.basis.x.normalized() * radius
+	for arm in BrawlerPose.ARM_LIMBS:
+		var side := left if arm == 0 else -left
+		_poses.reach_arm(arm, to_skeleton * (ring.origin + side))
+
+
 ## Lays the disc on ground whose up is [param normal], in the space the brawler is
 ## placed in, so it follows a ramp instead of cutting into it.
 func show_ground(normal: Vector3) -> void:

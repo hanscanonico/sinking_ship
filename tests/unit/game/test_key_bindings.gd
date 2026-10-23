@@ -29,6 +29,17 @@ func test_bindings_round_trip_through_user_storage() -> void:
 	assert_true(KeyBindings.same_input(back.shown(&"brace"), _key(KEY_SHIFT)), "unchosen")
 
 
+## Grab (#273) is a key of play like the others: rebound, it takes G's place.
+func test_grab_is_rebound_like_every_key_of_play() -> void:
+	assert_true(&"grab" in KeyBindings.ACTIONS, "listed on the settings screen")
+	var keys := KeyBindings.new()
+	assert_true(KeyBindings.same_input(keys.shown(&"grab"), _key(KEY_G)), "G by default")
+	assert_true(keys.bind(&"grab", _key(KEY_T)))
+	keys.apply()
+	var grab := _key_events(&"grab")
+	assert_true(KeyBindings.same_input(grab[0], _key(KEY_T)), "T in G's place")
+
+
 func test_applying_replaces_only_the_keyboard_and_mouse() -> void:
 	var pad_before := _pad_events(&"move_up")
 	assert_false(pad_before.is_empty())
@@ -69,18 +80,18 @@ func test_a_key_another_action_holds_swaps_the_two() -> void:
 
 func test_a_key_keeps_the_click_and_a_click_keeps_the_key() -> void:
 	var keys := KeyBindings.new()
-	keys.bind(&"shove", _key(KEY_G))
+	keys.bind(&"shove", _key(KEY_H))
 	keys.bind(&"brace", _click(MOUSE_BUTTON_MIDDLE))
 	keys.apply()
 	var shove := _key_events(&"shove")
-	assert_eq(shove.size(), 2, "G in F's place")
-	assert_true(KeyBindings.same_input(shove[0], _key(KEY_G)), "the hints name it")
+	assert_eq(shove.size(), 2, "H in F's place")
+	assert_true(KeyBindings.same_input(shove[0], _key(KEY_H)), "the hints name it")
 	assert_true(KeyBindings.same_input(shove[1], _click(MOUSE_BUTTON_LEFT)), "a click shoves")
 	var brace := _key_events(&"brace")
 	assert_eq(brace.size(), 2, "the middle button in the right's place")
 	assert_true(KeyBindings.same_input(brace[0], _click(MOUSE_BUTTON_MIDDLE)))
 	assert_true(KeyBindings.same_input(brace[1], _key(KEY_SHIFT)), "Shift braces")
-	assert_eq(InputPrompts.word_for(InputMap.action_get_events(&"shove"), false), "G")
+	assert_eq(InputPrompts.word_for(InputMap.action_get_events(&"shove"), false), "H")
 
 
 func test_an_alternate_another_action_is_given_leaves_it_without_a_swap() -> void:

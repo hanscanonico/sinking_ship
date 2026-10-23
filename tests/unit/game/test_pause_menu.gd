@@ -43,7 +43,9 @@ func test_open_lists_the_controls_on_the_device_last_used() -> void:
 		assert_false(shove.is_empty())
 		assert_true(label.visible)
 		assert_string_contains(label.text, "%s — shove" % shove)
-		assert_eq(label.text.split("\n").size(), 6, "move, look, jump, shove, brace, pause")
+		var grab := InputPrompts.word_for(InputMap.action_get_events(&"grab"), pad)
+		assert_string_contains(label.text, "%s — grab" % grab)
+		assert_eq(label.text.split("\n").size(), 7, "move, look, jump, shove, brace, grab, pause")
 		assert_false(label.text.contains("switch view"), "nothing to switch while in")
 
 

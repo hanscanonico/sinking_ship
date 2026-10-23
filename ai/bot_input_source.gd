@@ -21,7 +21,7 @@ func _init(seat: int, profile: BotProfile, config: MatchConfig, floors: BotFloor
 		seat,
 		profile,
 		config.rules,
-		config.ship.props,
+		config.ship,
 		floors,
 		SeedStreams.derive(config.match_seed, seat),
 		config.goal

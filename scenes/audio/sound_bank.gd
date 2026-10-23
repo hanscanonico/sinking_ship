@@ -97,6 +97,8 @@ const FILES := {
 	["brawl/land_metal_0.wav", "brawl/land_metal_1.wav", "brawl/land_metal_2.wav"],
 	## The sea rushing in, higher and nearer: one opening's stream.
 	AudioCue.Kind.POUR: ["ship/flood_0.wav", "ship/flood_1.wav"],
+	## A footfall on planks, soft and high: a ring knocked against the hands.
+	AudioCue.Kind.GRAB: ["steps/wood_0.wav", "steps/wood_2.wav", "steps/wood_4.wav"],
 }
 ## How each kind carries: its level in dB; for a positional cue the distance it
 ## plays at that level ("near") and the farthest it is heard ("far"), in metres;
@@ -124,6 +126,7 @@ const CARRY := {
 	AudioCue.Kind.CRACK: {"db": -2.0, "near": 6.0, "far": 60.0, "pitch": 1.4},
 	AudioCue.Kind.HOLED: {"db": 3.0, "near": 40.0, "far": 250.0, "pitch": 0.4},
 	AudioCue.Kind.POUR: {"db": -4.0, "near": 6.0, "far": 50.0, "pitch": 1.3},
+	AudioCue.Kind.GRAB: {"db": -6.0, "near": 2.5, "far": 20.0, "pitch": 1.5},
 }
 
 var _streams := {}

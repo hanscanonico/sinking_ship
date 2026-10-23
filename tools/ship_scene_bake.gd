@@ -23,7 +23,8 @@ extends RefCounted
 ##   ladder     end, turned about y; metadata platform names its platform's node. An edge
 ##              with no railing is open: a gap is where no span is drawn
 ##   spawn      any Node3D, standing where a seat starts
-##   prop       a CSGCylinder3D, its underside where the crate stands
+##   prop       a CSGCylinder3D, its underside where the prop stands; metadata railing names
+##              the railing node a hung one hangs on (#273)
 ##   room       a CSGBox3D, its bottom the room's floor; its top is not data
 ##   structure  any node: the structure's numbers; her pieces below need one
 ##   section    a CSGPolygon3D extruded toward the bow from the aft end of its stretch:
@@ -117,7 +118,9 @@ func _init(root: Node) -> void:
 		layout.ramps.append(_ramp(node))
 	for node: Node in pieces.get(&"blocker", []):
 		layout.blockers.append(_blocker(node))
+	var railings := {}
 	for node: Node in pieces.get(&"railing", []):
+		railings[node.name] = layout.railings.size()
 		layout.railings.append(_line(ShipRailing.new(), node, platforms) as ShipRailing)
 	for node: Node in pieces.get(&"ladder", []):
 		layout.ladders.append(_line(ShipLadder.new(), node, platforms) as ShipLadder)
@@ -125,7 +128,7 @@ func _init(root: Node) -> void:
 		if _point(node):
 			layout.spawns.append(_snapped(_placed(node).origin))
 	for node: Node in pieces.get(&"prop", []):
-		layout.props.append(_prop(node))
+		layout.props.append(_prop(node, railings))
 	for node: Node in pieces.get(&"room", []):
 		layout.rooms.append(_room(node))
 	_structure(pieces)
@@ -236,6 +239,8 @@ func _fields(resource: Resource, node: Node, kind: StringName) -> void:
 		if key == TAG or key.begins_with("_"):
 			continue
 		if key == &"platform" and kind in [&"railing", &"ladder"]:
+			continue
+		if key == &"railing" and kind == &"prop":
 			continue
 		if not fields.has(key) or key in SHAPED[kind]:
 			problems.append("%s: %s is no field its metadata sets" % [_label(node), key])
@@ -375,9 +380,17 @@ func _line(line: Resource, node: Node, platforms: Dictionary) -> Resource:
 	return line
 
 
-func _prop(node: Node) -> ShipProp:
+## A prop from [param node]: hung on the railing its metadata names, among
+## [param railings] by node name, if it names one.
+func _prop(node: Node, railings: Dictionary) -> ShipProp:
 	var prop := ShipProp.new()
 	_fields(prop, node, &"prop")
+	var span := StringName(node.get_meta(&"railing", &""))
+	if not span.is_empty():
+		if railings.has(span):
+			prop.railing = railings[span]
+		else:
+			problems.append("%s: names no railing %s" % [_label(node), span])
 	var place := _placed(node)
 	if not node is CSGCylinder3D or not place.basis.is_equal_approx(Basis.IDENTITY):
 		problems.append("%s: must be a CSGCylinder3D standing upright" % _label(node))

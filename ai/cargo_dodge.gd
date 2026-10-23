@@ -1,6 +1,7 @@
 class_name CargoDodge
 extends RefCounted
-## The way out of the path of a crate a bot sees sliding at it (SH10), for one bot's
+## The way out of the path of a crate a bot sees sliding at it (SH10) — a solid prop:
+## any other cannot run into it (#273) — for one bot's
 ## profile: square to the path of the nearest one coming at it — ahead of it, no
 ## farther than it slides in the bot's reaction and stopping time plus the edge margin,
 ## and passing within a body's radius and the edge margin of the bot — toward the side
@@ -37,7 +38,7 @@ func way_out(seen: Dictionary, now_pos: Vector3, pose: ShipPose) -> Vector2:
 	var dodge := Vector2.ZERO
 	var nearest := INF
 	for entry: Dictionary in seen["props"]:
-		if entry["state"] == PropState.Body.LOST:
+		if entry["state"] == PropState.Body.LOST or not _cargo[entry["prop"]].prop_kind().solid:
 			continue
 		var vel: Vector3 = entry["vel"]
 		var path := Vector2(vel.x, vel.z)

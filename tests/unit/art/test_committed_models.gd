@@ -430,6 +430,8 @@ func _fills_every_cargo_crate_s_square(box: AABB) -> void:
 			continue
 		var layout: ShipLayout = load("res://data/ships".path_join(file))
 		for prop: ShipProp in layout.props:
+			if prop.kind != &"cargo":
+				continue
 			crates += 1
 			var half := prop.radius * ShipArt.CRATE_SIDE + ShipArt.CRATE_PROUD
 			var low := Vector3(-half, 0.0, -half)
@@ -472,8 +474,12 @@ func _fills_the_berth_s_length_and_depth_off_its_wall(box: AABB) -> void:
 
 
 ## A lifebelt: its ring LIFEBELT_RADIUS round its middle, standing LIFEBELT_DEPTH out
-## from its wall, its grab line no more than LIFEBELT_LINE past it.
+## from its wall, its grab line no more than LIFEBELT_LINE past it — the size of the
+## lifebuoy kind (#273), which the match moves: Godot's form, the model inside it.
 func _hangs_the_lifebelt_flat_on_its_wall(box: AABB) -> void:
+	var kind := PropKind.named(&"lifebuoy")
+	assert_eq(kind.radius, RoomDressing.LIFEBELT_RADIUS, "lifebelt: the lifebuoy kind's radius")
+	assert_eq(kind.height, RoomDressing.LIFEBELT_DEPTH, "lifebelt: its thickness")
 	var ring := RoomDressing.LIFEBELT_RADIUS
 	var line := ring + RoomDressing.LIFEBELT_LINE
 	assert_almost_eq(box.position.z, 0.0, TOLERANCE, "lifebelt: on its wall")

@@ -63,7 +63,7 @@ func test_sliding_crate_staggers_a_brawler() -> void:
 	var closing := 0.0
 	for _tick in 3 * Ticks.RATE:
 		closing = crate.vel.z
-		hits = _of(SimFixtures.step(sim), SimEvent.Kind.CRATE_HIT)
+		hits = _of(SimFixtures.step(sim), SimEvent.Kind.PROP_HIT)
 		if not hits.is_empty():
 			break
 	assert_eq(hits.size(), 1, "the crate runs into the brawler")
@@ -197,7 +197,7 @@ func test_a_crate_breaks_a_span_and_goes_through_it_into_the_sea() -> void:
 	assert_eq([broke[0].railing, broke[0].prop, broke[0].seat], [2, 0, -1])
 	assert_eq(sim.state.railing_hp[2], 0.0)
 	assert_eq(sim.state.railing_hp[0], rules.railing_hp, "the others stand whole")
-	assert_eq(_of(events, SimEvent.Kind.CRATE_LOST).size(), 1, "over the edge and lost to the sea")
+	assert_eq(_of(events, SimEvent.Kind.PROP_LOST).size(), 1, "over the edge and lost to the sea")
 	assert_eq(crate.body, PropState.Body.LOST)
 	assert_gt(crate.pos.z, edge)
 
@@ -286,7 +286,7 @@ func test_a_brace_halves_a_crate_s_knockback_but_does_not_stop_it() -> void:
 		var frame := SimFixtures.frame(0, Vector2.ZERO, BRACE if braced else 0)
 		var hits: Array[SimEvent] = []
 		for _tick in Ticks.RATE:
-			hits = _of(SimFixtures.step(sim, {0: frame}), SimEvent.Kind.CRATE_HIT)
+			hits = _of(SimFixtures.step(sim, {0: frame}), SimEvent.Kind.PROP_HIT)
 			if not hits.is_empty():
 				break
 		assert_eq(hits.size(), 1, "braced: %s, hit" % braced)
@@ -309,7 +309,7 @@ func test_a_crate_hit_freezes_the_brawler_and_the_crate_keeps_moving() -> void:
 	var player := sim.state.seats[0]
 	var hits: Array[SimEvent] = []
 	for _tick in Ticks.RATE:
-		hits = _of(SimFixtures.step(sim), SimEvent.Kind.CRATE_HIT)
+		hits = _of(SimFixtures.step(sim), SimEvent.Kind.PROP_HIT)
 		if not hits.is_empty():
 			break
 	assert_eq(hits.size(), 1, "the crate runs into the brawler")
@@ -346,7 +346,7 @@ func test_a_slow_crate_pushes_a_brawler_without_staggering_it() -> void:
 	assert_gt(player.vel.z, 0.0, "at the speed they share")
 	assert_almost_eq(player.vel.z, crate.vel.z, 0.0001)
 	events.append_array(SimFixtures.step(sim, {}, Ticks.RATE))
-	assert_true(_of(events, SimEvent.Kind.CRATE_HIT).is_empty(), "no impact")
+	assert_true(_of(events, SimEvent.Kind.PROP_HIT).is_empty(), "no impact")
 	assert_false(player.is_staggered())
 	assert_false(player.is_frozen())
 	assert_gte(
@@ -491,7 +491,7 @@ func test_the_water_floats_a_standing_crate_off_its_floor_and_it_rises_with_it()
 	SimFixtures.place(sim, 0, Vector3(-10.0, 0.0, 0.0))
 	var crate := sim.state.props[0]
 	var events := _until(sim, PropState.Body.FLOATING, 3 * Ticks.RATE)
-	var afloat := _of(events, SimEvent.Kind.CRATE_AFLOAT)
+	var afloat := _of(events, SimEvent.Kind.PROP_AFLOAT)
 	assert_eq(afloat.size(), 1, "the water lifts it off its floor")
 	assert_eq(afloat[0].prop, 0)
 	assert_eq(crate.body, PropState.Body.FLOATING)
@@ -509,8 +509,8 @@ func test_the_water_floats_a_standing_crate_off_its_floor_and_it_rises_with_it()
 	assert_gt(crate.pos.y, risen_from, "risen with it")
 	assert_eq(Vector2(crate.pos.x, crate.pos.z), Vector2(at.x, at.z), "where it lifted")
 	assert_eq(crate.surface, 0, "over the deck it stood on")
-	assert_true(_of(events, SimEvent.Kind.CRATE_AFLOAT).is_empty(), "lifted once")
-	assert_true(_of(events, SimEvent.Kind.CRATE_LOST).is_empty())
+	assert_true(_of(events, SimEvent.Kind.PROP_AFLOAT).is_empty(), "lifted once")
+	assert_true(_of(events, SimEvent.Kind.PROP_LOST).is_empty())
 
 
 func test_an_open_deck_s_crate_is_swept_away_at_crate_adrift_depth() -> void:
@@ -525,8 +525,8 @@ func test_an_open_deck_s_crate_is_swept_away_at_crate_adrift_depth() -> void:
 		events.append_array(SimFixtures.step(sim))
 		if crate.is_lost():
 			break
-	assert_eq(_of(events, SimEvent.Kind.CRATE_AFLOAT).size(), 1, "afloat first")
-	var lost := _of(events, SimEvent.Kind.CRATE_LOST)
+	assert_eq(_of(events, SimEvent.Kind.PROP_AFLOAT).size(), 1, "afloat first")
+	var lost := _of(events, SimEvent.Kind.PROP_LOST)
 	assert_eq(lost.size(), 1, "then the sea sweeps it away")
 	assert_eq(lost[0].prop, 0)
 	assert_lt(depth, rules.crate_adrift_depth, "not while the water was shallower")
@@ -555,7 +555,7 @@ func test_a_roofed_crate_is_lost_as_its_top_meets_the_ceiling() -> void:
 		events.append_array(SimFixtures.step(sim))
 		if crate.is_lost():
 			break
-	assert_eq(_of(events, SimEvent.Kind.CRATE_LOST).size(), 1, "lost under its roof")
+	assert_eq(_of(events, SimEvent.Kind.PROP_LOST).size(), 1, "lost under its roof")
 	assert_lt(top, roof, "not while its top was under the ceiling")
 	assert_gte(crate.pos.y + height, roof, "but once it met it")
 	assert_gt(_water(sim, crate.pos), rules.crate_adrift_depth, "past the open deck's depth")
@@ -606,8 +606,8 @@ func test_a_floating_crate_settles_on_its_floor_as_the_water_falls_back() -> voi
 	assert_eq(crate.surface, 0)
 	events.append_array(SimFixtures.step(sim, {}, Ticks.RATE))
 	assert_eq(crate.body, PropState.Body.GROUNDED, "and it stays there")
-	assert_eq(_of(events, SimEvent.Kind.CRATE_AFLOAT).size(), 1, "lifted once")
-	assert_true(_of(events, SimEvent.Kind.CRATE_LOST).is_empty(), "never lost")
+	assert_eq(_of(events, SimEvent.Kind.PROP_AFLOAT).size(), 1, "lifted once")
+	assert_true(_of(events, SimEvent.Kind.PROP_LOST).is_empty(), "never lost")
 
 
 func test_a_floating_crate_survives_snapshot_continuation() -> void:
@@ -688,7 +688,7 @@ func test_a_brawler_jumps_onto_a_still_crate_and_drops_off_a_sliding_one() -> vo
 	assert_eq(player.body, PlayerState.Body.GROUNDED)
 	assert_eq(player.surface, 0, "down on the deck")
 	assert_eq(player.pos.y, 0.0)
-	assert_true(_of(events, SimEvent.Kind.CRATE_HIT).is_empty(), "the lid slid out from under it")
+	assert_true(_of(events, SimEvent.Kind.PROP_HIT).is_empty(), "the lid slid out from under it")
 
 
 func test_a_crate_goes_down_a_stair_opening() -> void:
@@ -707,10 +707,15 @@ func test_the_steamer_s_crates_stand_clear_by_the_hatch() -> void:
 	var layout := SimFixtures.steamer()
 	var rules := _rules()
 	var surfaces := Surfaces.new(layout)
-	assert_eq(layout.props.size(), 4, "the hatch carries four crates")
+	# Her cargo: the props of hers that are crates, not her lifebuoys (#273).
+	var cargo: Array[int] = []
+	for index in layout.props.size():
+		if layout.props[index].kind == &"cargo":
+			cargo.append(index)
+	assert_eq(cargo.size(), 4, "the hatch carries four crates")
 	var hatch := Rect2(4.0, -1.0, 4.0, 2.0)
 	var on_the_lid := 0
-	for index in layout.props.size():
+	for index: int in cargo:
 		var prop := layout.props[index]
 		var under := surfaces.under(prop.pos, rules.step_height)
 		assert_ne(under, Surfaces.NONE, "crate %d stands on something" % index)

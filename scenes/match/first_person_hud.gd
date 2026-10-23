@@ -16,6 +16,9 @@ extends CanvasLayer
 ## observer camera only the inclinometer, the sinking's chips and banner, and where the
 ## watched seat stands show; from the free camera, too.
 
+## How far under the crosshair a prompt stands: the climb's, in the sea, and the grab's
+## on deck (#273).
+const PROMPT_BELOW := Vector2(0.0, 70.0)
 const FROST_SHADER := preload("res://scenes/match/frost.gdshader")
 ## The frost's crystal texture: its side in pixels, and how many crystals across it.
 const CRYSTAL_SIZE := 512
@@ -122,6 +125,8 @@ var _pieces: Pieces
 ## the sim's stays the sim's.
 var _surfaces: Surfaces
 var _rules: BrawlRules
+## The ship's layout: what each prop is (#273).
+var _layout: ShipLayout
 var _names := PackedStringArray()
 var _eyes: bool
 ## Whether the view is the free camera rather than the seat's eyes: drawn as the
@@ -183,6 +188,7 @@ func setup(sim: MatchSim, names: PackedStringArray, eyes: bool, prompts: InputPr
 		SeaPhysics.load_default().capsized_movement
 	)
 	_rules = sim.config.rules
+	_layout = sim.config.ship
 	_names = names
 	_eyes = eyes
 	_prompts = prompts
@@ -247,6 +253,10 @@ func _draw_hud() -> void:
 	var mine: Dictionary = framed["seats"][_seat]
 	if me["state"] == PlayerState.Body.SWIMMING:
 		_draw_climb_prompt(mine, here, faces.framed(pose, up))
+	else:
+		var words := grab_words(framed, _seat, _layout, _rules, here, _prompts.word(&"grab"))
+		if not words.is_empty():
+			_text(_canvas.size * 0.5 + PROMPT_BELOW, words, TEXT, READOUT_TEXT)
 	_draw_readouts(me, pose.world_height(me["pos"]))
 	_draw_chevrons(seen, deck, me["pos"], pose)
 	_draw_windup_wedges(mine["pos"], framed["seats"])
@@ -427,6 +437,52 @@ func _draw_readouts(me: Dictionary, above_sea: float) -> void:
 		var fill := _stamina_colour(me) if slot == "Stamina" else _cold_colour(me)
 		_canvas.draw_rect(Rect2(bar.position, Vector2(bar.size.x * share, bar.size.y)), fill)
 		_canvas.draw_rect(bar, Color(TEXT, 0.35), false, 1.5)
+		var lasting := warmth_words(_snapshot, _seat, _layout) if slot == "Warmth" else ""
+		if not lasting.is_empty():
+			var beside := at + Vector2(bar.end.x - at.x + 10.0, 0.0)
+			_text(beside, lasting, Color(TEXT, 0.6), READOUT_TEXT, HORIZONTAL_ALIGNMENT_LEFT)
+
+
+## What the prompt under the crosshair says of grabbing (#273) for [param seat] in
+## [param snapshot] of a match on [param layout], its key [param key]: what a Grab press
+## would take, as GrabReach says the sim would, or with the hands full what it would let
+## go of; empty with neither, and in the sea, where the climb's prompt stands.
+static func grab_words(
+	snapshot: Dictionary,
+	seat: int,
+	layout: ShipLayout,
+	rules: BrawlRules,
+	surfaces: Surfaces,
+	key: String
+) -> String:
+	var me := MatchState.entry_of(snapshot["seats"], seat)
+	if me.is_empty() or me["out"] or me["state"] == PlayerState.Body.SWIMMING:
+		return ""
+	var held := PropState.held_in(snapshot, seat)
+	if held != -1:
+		return "%s — let go of the %s" % [key, _prop_name(layout, held)]
+	var taken := GrabReach.would_take(snapshot, seat, layout, rules, surfaces)
+	if taken == -1:
+		return ""
+	return "%s — grab the %s" % [key, _prop_name(layout, taken)]
+
+
+## What the warmth readout says beside its bar for [param seat] in [param snapshot] of a
+## match on [param layout]: holding a prop that keeps it afloat, how many times longer
+## its meter lasts in the sea; empty otherwise.
+static func warmth_words(snapshot: Dictionary, seat: int, layout: ShipLayout) -> String:
+	var held := PropState.held_in(snapshot, seat)
+	if held == -1:
+		return ""
+	var rate := PropKind.sea_rate(layout.props[held].prop_kind())
+	if rate == 1.0:
+		return ""
+	return "%s ×%d" % [_prop_name(layout, held), roundi(1.0 / rate)]
+
+
+## Prop [param prop] of [param layout] in words: its kind's name.
+static func _prop_name(layout: ShipLayout, prop: int) -> String:
+	return String(layout.props[prop].kind).replace("_", " ")
 
 
 ## [param above_sea] metres from the feet to the sea, in words: above it, under it,
@@ -802,7 +858,7 @@ func _draw_climb_prompt(me: Dictionary, here: Surfaces, pose: ShipPose) -> void:
 		return
 	if here.climb_out(me["pos"], Vector2.from_angle(_yaw), pose, _rules) == null:
 		return
-	var at := _canvas.size * 0.5 + Vector2(0.0, 70.0)
+	var at := _canvas.size * 0.5 + PROMPT_BELOW
 	_text(at, "Hold %s to climb" % _prompts.word(&"move_up"), TEXT, READOUT_TEXT)
 
 

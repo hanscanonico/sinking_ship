@@ -16,6 +16,7 @@ func test_every_frame_comes_back_as_it_came() -> void:
 		null,
 		InputFrame.new(5, 39, Vector2i(-300, 900), 0xFF, -12),
 	]
+	sent[0].buttons |= InputFrame.GRAB
 	recorded.record(40, sent)
 	recorded.record(41, [null, null, null] as Array[InputFrame])
 	assert_eq([recorded.first_tick, recorded.last_tick()], [40, 41])

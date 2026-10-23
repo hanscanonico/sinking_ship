@@ -166,9 +166,13 @@ func problems() -> PackedStringArray:
 	found.append_array(rules.problems())
 	found.append_array(ship.problems(seats))
 	for prop: ShipProp in ship.props:
-		if rules.crate_draft >= prop.height:
+		var kind := prop.prop_kind()
+		if kind != null and kind.solid and rules.crate_draft >= prop.height:
 			found.append("match: crate_draft must be below every crate's height")
 			break
+	for kind: PropKind in _prop_kinds():
+		if kind != null:
+			found.append_array(kind.problems())
 	found.append_array(scenario.problems())
 	if scenario.hit != null and ship.structure == null:
 		found.append("match: the sinking's iceberg hit needs a ship with a structure")
@@ -176,13 +180,27 @@ func problems() -> PackedStringArray:
 
 
 ## A hash of every number the match loaded: the rules, ship and scenario, the
-## countdown, and the goal — but for the battle royale's, which the hash has always
-## left out, so its logs and wire stay as they were.
+## countdown, the kinds of her props (#273), and the goal — but for the battle royale's,
+## which the hash has always left out, so its logs and wire stay as they were.
 func data_hash() -> String:
-	var described: Array = [rules, ship, scenario, countdown_ticks]
+	var described: Array = [rules, ship, scenario, countdown_ticks, _prop_kinds()]
 	if goal != MatchRules.Goal.LAST_STANDING:
 		described.append(goal)
 	return _describe(described).sha256_text()
+
+
+## Every kind of prop her layout carries, once each, in the order of their names — as
+## Strings: StringNames sort by where they were interned, which two engines differ on.
+func _prop_kinds() -> Array[PropKind]:
+	var names := PackedStringArray()
+	for prop: ShipProp in ship.props:
+		if not String(prop.kind) in names:
+			names.append(String(prop.kind))
+	names.sort()
+	var kinds: Array[PropKind] = []
+	for kind_name: String in names:
+		kinds.append(PropKind.named(StringName(kind_name)))
+	return kinds
 
 
 static func _describe(value: Variant) -> String:

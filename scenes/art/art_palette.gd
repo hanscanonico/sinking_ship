@@ -125,6 +125,12 @@ const LIFEBELT := Color("cf3b2b")
 const FIRE_BUCKET := Color("b5302a")
 const MIRROR := Color("a7b8bf")
 const CHART := Color("e3d8b8")
+## A ferry's vehicle deck (VehicleDeck): its painted steel underfoot, the yellow of its
+## lanes and its marks to keep clear, and the red of the notices that it is no place to
+## smoke.
+const CAR_DECK := Color("58645b")
+const LANE_PAINT := Color("d8b13a")
+const NOTICE_RED := Color("b3271f")
 ## A galley's copper and tinned ware, a notice board's cork, a plate's blue.
 const COPPER := Color("b06a3e")
 const TIN := Color("9da3a6")

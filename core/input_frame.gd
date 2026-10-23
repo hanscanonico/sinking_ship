@@ -15,6 +15,9 @@ const SHOVE := 1
 const BRACE := 2
 ## Held; a jump is the sim's call, on the tick it is pressed.
 const JUMP := 4
+## Held; a press takes the nearest prop in reach that can be held, or lets go of the
+## one held (#273).
+const GRAB := 8
 const AXIS_MAX := 127
 const YAW_STEPS := 65536
 

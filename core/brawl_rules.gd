@@ -11,6 +11,16 @@ extends Resource
 @export var body_radius: float
 @export var body_height: float
 @export var gravity: float
+## How much of the speed two bodies meet at they part with, along the line between
+## them, as bodies of one mass do (§6: a fast body hitting another hands over part of
+## its speed); 0 sends them on together, 1 bounces them apart as fast. 0…1.
+@export var body_restitution: float
+## A staggered body running into one still on its feet this fast or faster — the two
+## meeting so, and it of itself — bowls it over: staggered as by a shove, and credited
+## to whatever sent the first — shoving into a crowd is a bowling ball (§6, est.). A
+## walk never does: only a body that has lost its footing bowls, and only one on its
+## feet is bowled.
+@export var body_impact_speed: float
 
 @export_group("Shove")
 @export var shove_windup: float
@@ -37,6 +47,12 @@ extends Resource
 @export var hitstop_braced: float
 ## Friction while staggered, in m/s².
 @export var stagger_friction: float
+
+@export_group("Grab")
+## How far beyond a body's and a prop's edges a Grab press reaches, in metres (#273).
+@export var grab_reach: float
+## Half-angle of the cone around its facing a Grab press takes a prop in.
+@export var grab_cone_deg: float
 
 @export_group("Slope and railings")
 ## The combined deck slope a body standing idle holds at; past it, the deck pulls.
@@ -258,9 +274,11 @@ func problems() -> PackedStringArray:
 		"body_radius",
 		"body_height",
 		"gravity",
+		"body_impact_speed",
 		"shove_windup",
 		"shove_active",
 		"shove_reach",
+		"grab_reach",
 		"knockback",
 		"stagger",
 		"stagger_friction",
@@ -322,7 +340,7 @@ func problems() -> PackedStringArray:
 	]:
 		if float(get(field)) < 0.0:
 			found.append("brawl rules: %s must not be negative" % field)
-	for field: String in ["shove_cone_deg", "autoaim_cone_deg", "brace_arc_deg"]:
+	for field: String in ["shove_cone_deg", "autoaim_cone_deg", "grab_cone_deg", "brace_arc_deg"]:
 		if float(get(field)) < 0.0 or float(get(field)) > 180.0:
 			found.append("brawl rules: %s must be within 0…180" % field)
 	if restagger_mult < 1.0:
@@ -341,7 +359,9 @@ func problems() -> PackedStringArray:
 		found.append("brawl rules: crawl_height must be below body_height")
 	if brace_reduction < 0.0 or brace_reduction > 1.0:
 		found.append("brawl rules: brace_reduction must be within 0…1")
-	for field: String in ["air_control", "crate_restitution", "crate_brace_reduction"]:
+	for field: String in [
+		"air_control", "body_restitution", "crate_restitution", "crate_brace_reduction"
+	]:
 		if float(get(field)) < 0.0 or float(get(field)) > 1.0:
 			found.append("brawl rules: %s must be within 0…1" % field)
 	# A railing must hold a jumper, so a perch keeps its defence.

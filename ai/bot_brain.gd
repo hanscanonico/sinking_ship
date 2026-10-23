@@ -40,7 +40,9 @@ extends RefCounted
 ## water or an unrailed drop and no nearer than its spar margin, weighed by
 ## lineup_weight — round to the far side of it, then the shove that puts it over; HUNT
 ## — through the walk graph to its target's zone, then at it, past the grip angle round
-## to its uphill side first.
+## to its uphill side first; TAKE_BUOY — its hands empty and buoy_from of her decks
+## under water — for the nearest lifebuoy it can walk to, by buoy_weight times that
+## share, and a Grab press once a press would take it (BotProps).
 ##
 ## Its target is a seat it perceives and can reach, scored by nearness and, by
 ## king_of_hill_bias, by how high it stands — less so on a crowded perch — and by how
@@ -61,8 +63,13 @@ extends RefCounted
 ## times a second, a lapse: mistake_seconds walking a heading of its choosing, neither
 ## bracing nor holding its shove for a line-up — still off the water, and off open drops
 ## too (and out of a crate's path) unless it is one of its profile's heedless lapses.
+## Holding a ring it braces at nothing, and swims as far as its slower cold lets it; a
+## tier that steals charges a seat for the ring in its hands, the charge that knocks it
+## loose (#273).
 
-enum Intent { SEEK_HIGH, LINE_UP, HUNT, GUARD, BRACE, RECOVER, RIDE, CLIMB_OUT, FLEE, SWIM_OUT }
+enum Intent {
+	SEEK_HIGH, LINE_UP, HUNT, GUARD, BRACE, RECOVER, RIDE, CLIMB_OUT, FLEE, SWIM_OUT, TAKE_BUOY
+}
 
 
 ## What one tick's intent asks for: a walk, a look, buttons, whether open drops may be
@@ -85,6 +92,9 @@ var _profile: BotProfile
 var _rules: BrawlRules
 ## Its way out of a sliding crate's path (SH10).
 var _dodge: CargoDodge
+## Its props, and the lifebuoy it goes for as the last think scored it (#273).
+var _props: BotProps
+var _buoy_score := 0.0
 ## The floors of the frame it stands in (BotFloors, SH32), and that frame's.
 var _floors: BotFloors
 var _up := -1
@@ -169,7 +179,7 @@ func _init(
 	bot_seat: int,
 	profile: BotProfile,
 	rules: BrawlRules,
-	cargo: Array[ShipProp],
+	layout: ShipLayout,
 	floors: BotFloors,
 	rng: RandomNumberGenerator,
 	plays_for := MatchRules.Goal.LAST_STANDING
@@ -178,7 +188,8 @@ func _init(
 	_plays_for = plays_for
 	_profile = profile
 	_rules = rules
-	_dodge = CargoDodge.new(profile, rules, cargo)
+	_dodge = CargoDodge.new(profile, rules, layout.props)
+	_props = BotProps.new(bot_seat, profile, rules, layout)
 	_floors = floors
 	_stand_on(Faces.Up.DECK)
 	_pacing = BotPacing.new(profile, plays_for, _targeting.carry)
@@ -218,7 +229,7 @@ func decide(view: BotView, tick: int) -> InputFrame:
 	_edge_also = now_pos if pose.slope_deg() > _rules.grip_angle_deg else _edge_from
 	if me["state"] == PlayerState.Body.SWIMMING:
 		intent = Intent.SWIM_OUT
-		return _swim_out(me, now_pos, pose, tick)
+		return _swim_out(seen, me, now_pos, pose, tick)
 	var mark := view.entry(target)
 	if intent == Intent.SWIM_OUT:
 		# Out of the sea: a fresh look round on deck.
@@ -249,7 +260,14 @@ func decide(view: BotView, tick: int) -> InputFrame:
 	_footing.heed_water = not _wading or _lapse > 0
 	_keep_off_edges(steer, me, mark, _edge_from, pose)
 	var buttons := steer.buttons
-	if _charge_held > 0:
+	# A Grab press goes alone: a shove pressed with it would start its windup, and a body
+	# winding up takes nothing.
+	var grab := 0
+	if intent == Intent.TAKE_BUOY:
+		grab = _props.grab(seen, me, now_pos, _look, _surfaces, tick)
+	if grab != 0:
+		buttons = grab
+	elif _charge_held > 0:
 		buttons = _hold_charge(seen, me)
 	elif not steer.hold_fire:
 		var shove := _shove(seen, me, mark, tick, pose)
@@ -328,9 +346,12 @@ func _by_walks(me: Dictionary, seen_tick: int, reckoned: Vector3) -> Vector3:
 ## last think found (BotSwim), through the open water or the portal on the way to it
 ## first, looking where it swims. It presses on into the edge that stops it, which is
 ## what starts the climb.
-func _swim_out(me: Dictionary, now_pos: Vector3, pose: ShipPose, tick: int) -> InputFrame:
+func _swim_out(
+	seen: Dictionary, me: Dictionary, now_pos: Vector3, pose: ShipPose, tick: int
+) -> InputFrame:
 	if _think_in <= 0:
-		_swim.find(me["cold"], now_pos, pose)
+		# Its seconds of swimming left: more, holding a ring that slows the cold.
+		_swim.find(me["cold"] / _props.drain(seen), now_pos, pose)
 		# With nowhere to make for, the next look round can wait a second.
 		_think_in = _profile.think_period if _swim.goal() != Vector3.INF else Ticks.RATE
 	_think_in -= 1
@@ -396,6 +417,7 @@ func _think(view: BotView, me: Dictionary, now_pos: Vector3, pose: ShipPose) -> 
 	var wade := _refuges.wade_out(my_zone, my_pos, my_surface, pose, refuge, _goal, _wading)
 	refuge = refuge if wade.is_empty() else wade.back().to_zone
 	target = _targeting.choose(seen, me, found, pose, highest, target, refuge, under)
+	_buoy_score = _props.choose(seen, me, found, _walk_graph, under, pose)
 	var mark := view.entry(target)
 	# It climbs until it stands where it was making for — off its feet, it stands
 	# nowhere — or, the ship not yet foundering, on a floor a body's height out of the
@@ -444,7 +466,7 @@ func _think(view: BotView, me: Dictionary, now_pos: Vector3, pose: ShipPose) -> 
 		and _flat(my_pos, mark["pos"]) < _targeting.carry * 2.0
 	)
 	_targeting.find_drop(mark if lines_up else {}, pose)
-	var swimmer := _swimmer_near(seen, my_pos)
+	var swimmer := _targeting.swimmer_near(seen, my_pos)
 	intent = _arbitrate(seen, me, mark, now_pos, pose, swimmer, highest)
 	if intent == Intent.GUARD:
 		target = swimmer
@@ -456,6 +478,9 @@ func _think(view: BotView, me: Dictionary, now_pos: Vector3, pose: ShipPose) -> 
 			_goal = refuge
 		Intent.GUARD:
 			_goal = WalkGraph.NONE
+		Intent.TAKE_BUOY:
+			var stand := _props.stand_by(_props.target(seen))
+			_goal = _walk_graph.zone_at(stand, _surfaces.under(stand, _rules.step_height))
 		_:
 			_goal = _zone_of(view.entry(target))
 	# The route it has, while its goal stands and every portal on it is open: two ways
@@ -509,16 +534,18 @@ func _arbitrate(
 		)
 	if not mark.is_empty():
 		scores[Intent.HUNT] = _profile.hunt_weight * _pacing.pressing
+	scores[Intent.TAKE_BUOY] = _buoy_score
 	var off_perch := _targeting.off_perch(mark)
 	if off_perch:
 		scores[Intent.LINE_UP] *= _profile.survival_hunt_scale
 		scores[Intent.HUNT] *= _profile.survival_hunt_scale
 		scores[Intent.SEEK_HIGH] = maxf(scores[Intent.SEEK_HIGH], _profile.wander_weight)
+	var scored: Array[Intent] = [Intent.SEEK_HIGH, Intent.LINE_UP, Intent.HUNT, Intent.TAKE_BUOY]
 	var kept := intent
-	if off_perch or kept != Intent.SEEK_HIGH and kept != Intent.LINE_UP and kept != Intent.HUNT:
+	if off_perch or not kept in scored:
 		kept = Intent.SEEK_HIGH
 	var best := kept
-	for candidate: Intent in [Intent.SEEK_HIGH, Intent.LINE_UP, Intent.HUNT]:
+	for candidate: Intent in scored:
 		if scores[candidate] > scores[best]:
 			best = candidate
 	if scores[kept] > 0.0 and scores[best] <= scores[kept] + _profile.hysteresis:
@@ -547,7 +574,12 @@ func _urgent(
 		urgent = Intent.RIDE
 	elif _slipping(me, mark, now_pos, pose):
 		urgent = Intent.RECOVER
-	elif bracing and not me["exhausted"] and not _threat(seen, me).is_empty():
+	elif (
+		bracing
+		and not me["exhausted"]
+		and _props.may_brace(seen)
+		and not _targeting.threat(seen, me).is_empty()
+	):
 		urgent = Intent.BRACE
 	elif swimmer != -1:
 		urgent = Intent.GUARD
@@ -571,6 +603,8 @@ func _steer(
 			_recover(steer, me, mark, now_pos, pose)
 		Intent.RIDE:
 			_ride(steer, me, mark, now_pos, pose)
+		Intent.TAKE_BUOY:
+			_take_buoy(steer, seen, me, mark, now_pos, pose)
 		_:
 			_hunt(steer, me, mark, now_pos, pose)
 	return steer
@@ -588,6 +622,32 @@ func _make_for_goal(
 	elif not mark.is_empty():
 		var mark_pos: Vector3 = mark["pos"]
 		steer.watch = Vector2(mark_pos.x - now_pos.x, mark_pos.z - now_pos.z)
+
+
+## Along the route to the lifebuoy it goes for (BotProps); there, to where it stands to
+## take it, looking at it — or, that ring gone from its view, hunting.
+func _take_buoy(
+	steer: Steer,
+	seen: Dictionary,
+	me: Dictionary,
+	mark: Dictionary,
+	now_pos: Vector3,
+	pose: ShipPose
+) -> void:
+	var ring := _props.target(seen)
+	if ring.is_empty():
+		_hunt(steer, me, mark, now_pos, pose)
+		return
+	if _follow_route(steer, me, now_pos, pose):
+		return
+	var stand := _props.stand_by(ring)
+	var at: Vector3 = ring["pos"]
+	var wish := Vector2(stand.x - now_pos.x, stand.z - now_pos.z)
+	steer.watch = Vector2(at.x - now_pos.x, at.z - now_pos.z)
+	if wish.length() > _rules.body_radius * 0.5:
+		steer.move = _footing.clear_heading(
+			now_pos, wish.normalized(), PackedInt32Array(), PackedInt32Array()
+		)
 
 
 ## Along the route to its target's zone; there, at it.
@@ -640,7 +700,7 @@ func _brace(
 	now_pos: Vector3,
 	pose: ShipPose
 ) -> void:
-	var threat := _threat(seen, me)
+	var threat := _targeting.threat(seen, me)
 	if threat.is_empty() or me["exhausted"]:
 		_hunt(steer, me, mark, now_pos, pose)
 		return
@@ -829,13 +889,14 @@ func _shove(seen: Dictionary, me: Dictionary, mark: Dictionary, tick: int, pose:
 	if _pacing.spar > 0.0 and _spared(seen, my_pos, pose):
 		return 0
 	if _profile.minds_its_back:
-		var threat := _threat(seen, me)
+		var threat := _targeting.threat(seen, me)
 		if not threat.is_empty() and threat["seat"] != victim["seat"]:
 			# Another could be winding up behind it: a shove thrown now leaves it open.
 			return 0
 	_pressed_at = tick
 	# Sparring, it never charges: a charge sends a body over a railing from metres off.
-	if victim["bracing"] and _reads_charge and _pacing.spar == 0.0:
+	var charge: bool = victim["bracing"] and _reads_charge or _props.steals_from(seen, victim)
+	if charge and _pacing.spar == 0.0:
 		_charge_held = 1
 	return InputFrame.SHOVE
 
@@ -905,67 +966,6 @@ func _jostled(seen: Dictionary, my_pos: Vector3) -> bool:
 		):
 			return true
 	return false
-
-
-## The nearest seat seen in the sea within guard_range_m of [param my_pos], or -1:
-## one there may climb out at the bot's feet.
-func _swimmer_near(seen: Dictionary, my_pos: Vector3) -> int:
-	var nearest := -1
-	var best := _profile.guard_range_m
-	for entry: Dictionary in seen["seats"]:
-		if (
-			entry["seat"] == seat
-			or entry["state"] != PlayerState.Body.SWIMMING
-			or entry.has(BotView.REMEMBERED)
-		):
-			continue
-		var distance := my_pos.distance_to(entry["pos"])
-		if distance < best:
-			best = distance
-			nearest = entry["seat"]
-	return nearest
-
-
-## The nearest seat whose shove would land on the bot as things stand and that
-## could be winding one up: seen in a windup or a charge, or idle and able to
-## start one. The view is reaction_ticks old, so this is a read, never a reaction
-## to a quick windup — that has landed before the bot could see it. Empty when
-## there is none.
-func _threat(seen: Dictionary, me: Dictionary) -> Dictionary:
-	var nearest := {}
-	var best := INF
-	var my_pos: Vector3 = me["pos"]
-	var mine := ShoveResolver.Candidate.new(
-		seat, my_pos, _rules.body_radius, _rules.height_at(_surfaces, my_pos)
-	)
-	for entry: Dictionary in seen["seats"]:
-		if (
-			entry["seat"] == seat
-			or entry["state"] != PlayerState.Body.GROUNDED
-			or entry.has(BotView.REMEMBERED)
-		):
-			continue
-		var action: PlayerState.Action = entry["action"]
-		if action == PlayerState.Action.ACTIVE or action == PlayerState.Action.RECOVERY:
-			continue
-		if entry["stagger"] > 0:
-			continue
-		if not ShoveResolver.lands(
-			entry["pos"],
-			_rules.body_radius,
-			Vector2.from_angle(entry["facing"]),
-			mine,
-			_rules.shove_reach,
-			_rules.shove_cone_deg,
-			_surfaces,
-			_rules.step_height
-		):
-			continue
-		var distance := my_pos.distance_squared_to(entry["pos"])
-		if distance < best:
-			best = distance
-			nearest = entry
-	return nearest
 
 
 ## Whether a lurch gives the bot a reason to ride it: the side it puts down within

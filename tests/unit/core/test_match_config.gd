@@ -216,3 +216,18 @@ func test_a_schedule_already_built_is_never_replaced() -> void:
 	var built := config.schedule()
 	assert_null(config.schedule_as(OwnSchedule), "nothing built over it")
 	assert_same(config.schedule(), built)
+
+
+## A prop kind's numbers (#273) are the match's data: a replay recorded with a ring that
+## kept the cold at bay longer refuses to play against one that keeps it less.
+func test_a_prop_kind_s_numbers_are_in_the_data_hash() -> void:
+	var layout := SimFixtures.crated([SimFixtures.lifebuoy(Vector3.ZERO)])
+	var config := SimFixtures.config(1, null, 1701, layout)
+	var before := config.data_hash()
+	var kind := PropKind.named(&"lifebuoy")
+	var rate := kind.sea_cold_rate
+	kind.sea_cold_rate = rate * 0.5
+	var after := config.data_hash()
+	kind.sea_cold_rate = rate
+	assert_ne(after, before, "another ring, another match")
+	assert_eq(config.data_hash(), before, "and its own again")

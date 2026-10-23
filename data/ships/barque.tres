@@ -2124,6 +2124,39 @@ hit_zone_x = Vector2(-23.5, 25.5)
 hit_zone_y = Vector2(-5.4, -0.2)
 sure_hit = SubResource("Sure_hit")
 
+[sub_resource type="Resource" id="Lifebuoy_0"]
+script = ExtResource("8_prop")
+kind = &"lifebuoy"
+railing = 10
+pos = Vector3(-19.25, 2.2, -4)
+radius = 0.33
+height = 0.075
+mass = 2.5
+grip_angle_deg = 20
+friction = 3
+
+[sub_resource type="Resource" id="Lifebuoy_1"]
+script = ExtResource("8_prop")
+kind = &"lifebuoy"
+railing = 22
+pos = Vector3(1.75, 0, 4.2)
+radius = 0.33
+height = 0.075
+mass = 2.5
+grip_angle_deg = 20
+friction = 3
+
+[sub_resource type="Resource" id="Lifebuoy_2"]
+script = ExtResource("8_prop")
+kind = &"lifebuoy"
+railing = 33
+pos = Vector3(21.625, 2.2, 1.8)
+radius = 0.33
+height = 0.075
+mass = 2.5
+grip_angle_deg = 20
+friction = 3
+
 [resource]
 script = ExtResource("5_layout")
 freeboard = 1.5
@@ -2136,7 +2169,7 @@ ladders = Array[ExtResource("7_ladder")]([SubResource("Ladder_port"), SubResourc
 spawns = Array[Vector3]([Vector3(-12.5, 0, 0), Vector3(-3.5, 0, 0), Vector3(3.5, 0, -3), Vector3(3.5, 0, 3), Vector3(13.5, 0, 0), Vector3(-15.5, 2.2, 0), Vector3(-22.5, 2.2, 0), Vector3(19.5, 2.2, 0)])
 min_seats = 1
 max_seats = 8
-props = Array[ExtResource("8_prop")]([SubResource("Prop_aft"), SubResource("Prop_forward")])
+props = Array[ExtResource("8_prop")]([SubResource("Prop_aft"), SubResource("Prop_forward"), SubResource("Lifebuoy_0"), SubResource("Lifebuoy_1"), SubResource("Lifebuoy_2")])
 rooms = Array[ExtResource("6_room")]([SubResource("Room_engine_room"), SubResource("Room_hold"), SubResource("Room_sail_locker"), SubResource("Room_berths"), SubResource("Room_mess"), SubResource("Room_saloon"), SubResource("Room_galley"), SubResource("Room_forecastle"), SubResource("Room_charthouse")])
 dressed = false
 structure = SubResource("Structure")

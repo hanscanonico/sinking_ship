@@ -24,6 +24,7 @@ const SHARES: Array[String] = [
 	"refuge_from",
 	"perch_lead",
 	"survival_hunt_scale",
+	"buoy_from",
 ]
 const NON_NEGATIVE: Array[String] = [
 	"aim_error_deg",
@@ -46,6 +47,8 @@ const NON_NEGATIVE: Array[String] = [
 	"hearing_m",
 	"memory_seconds",
 	"dark_sight_m",
+	"buoy_weight",
+	"buoy_range_m",
 ]
 
 ## Where the tier stands among the others, easiest first: the order the menu lists
@@ -153,6 +156,14 @@ const NON_NEGATIVE: Array[String] = [
 ## Whether a bot steps out of the path of a crate it sees sliding at it (SH10): the
 ## easy tier is caught by the cargo.
 @export var dodges_cargo: bool
+## Once this share of her deck area is under water, a bot with its hands empty goes for
+## the nearest lifebuoy it can walk to within buoy_range_m (#273), scored buoy_weight by
+## that share against its other intents: the easy tier only when it is late; and one
+## that steals charges a seat holding one, so as to take it as it falls.
+@export var buoy_from: float
+@export var buoy_weight: float
+@export var buoy_range_m: float
+@export var steals: bool
 ## How much better another intent or target must score than the bot's current one
 ## before it switches: what keeps it from dithering between two.
 @export var hysteresis: float

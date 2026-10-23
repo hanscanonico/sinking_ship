@@ -19124,6 +19124,50 @@ hit_zone_x = Vector2(-125.58, 127.5)
 hit_zone_y = Vector2(-19.6125, -0.2)
 sure_hit = SubResource("Sure_hit")
 
+[sub_resource type="Resource" id="Lifebuoy_0"]
+script = ExtResource("8_prop")
+kind = &"lifebuoy"
+railing = 7
+pos = Vector3(-46.75, 8.375, -13.55)
+radius = 0.33
+height = 0.075
+mass = 2.5
+grip_angle_deg = 20
+friction = 3
+
+[sub_resource type="Resource" id="Lifebuoy_1"]
+script = ExtResource("8_prop")
+kind = &"lifebuoy"
+railing = 57
+pos = Vector3(-25.75, 8.375, 13.55)
+radius = 0.33
+height = 0.075
+mass = 2.5
+grip_angle_deg = 20
+friction = 3
+
+[sub_resource type="Resource" id="Lifebuoy_2"]
+script = ExtResource("8_prop")
+kind = &"lifebuoy"
+railing = 22
+pos = Vector3(5.75, 8.375, -13.55)
+radius = 0.33
+height = 0.075
+mass = 2.5
+grip_angle_deg = 20
+friction = 3
+
+[sub_resource type="Resource" id="Lifebuoy_3"]
+script = ExtResource("8_prop")
+kind = &"lifebuoy"
+railing = 79
+pos = Vector3(47.25, 8.375, 13.55)
+radius = 0.33
+height = 0.075
+mass = 2.5
+grip_angle_deg = 20
+friction = 3
+
 [resource]
 script = ExtResource("5_layout")
 freeboard = 10
@@ -19136,7 +19180,7 @@ ladders = Array[ExtResource("7_ladder")]([SubResource("Ladder_aft_well_port"), S
 spawns = Array[Vector3]([Vector3(60, 8.375, 9.5), Vector3(60, 8.375, -9.5), Vector3(5, 8.375, 9.5), Vector3(5, 8.375, -9.5), Vector3(-40, 8.375, 9.5), Vector3(-40, 8.375, -9.5), Vector3(72, 8.375, 0), Vector3(-68, 8.375, 0), Vector3(45, 5.5, 11.5), Vector3(-20, 5.5, -11.5), Vector3(-85, 2.75, 5), Vector3(82, 0, 8), Vector3(-100, 0, -6), Vector3(100, 4.3125, 0), Vector3(-115, 3.3125, 0), Vector3(-6, -3.1875, 1)])
 min_seats = 4
 max_seats = 16
-props = Array[ExtResource("8_prop")]([])
+props = Array[ExtResource("8_prop")]([SubResource("Lifebuoy_0"), SubResource("Lifebuoy_1"), SubResource("Lifebuoy_2"), SubResource("Lifebuoy_3")])
 rooms = Array[ExtResource("6_room")]([SubResource("Room_officers"), SubResource("Room_wheelhouse"), SubResource("Room_gym"), SubResource("Room_gs_boat"), SubResource("Room_verandah"), SubResource("Room_smoking"), SubResource("Room_aft_entrance"), SubResource("Room_lounge"), SubResource("Room_reading"), SubResource("Room_gs_a"), SubResource("Room_restaurant"), SubResource("Room_b_corridor"), SubResource("Room_gs_b"), SubResource("Room_c_corridor"), SubResource("Room_gs_c"), SubResource("Room_purser"), SubResource("Room_general"), SubResource("Room_saloon_2"), SubResource("Room_d_corridor"), SubResource("Room_galley"), SubResource("Room_saloon_1"), SubResource("Room_reception"), SubResource("Room_d_corridor_fwd"), SubResource("Room_open_space"), SubResource("Room_road_1"), SubResource("Room_road_2"), SubResource("Room_road_3"), SubResource("Room_road_4"), SubResource("Room_gs_e"), SubResource("Room_saloon_3_aft"), SubResource("Room_saloon_3_fwd"), SubResource("Room_post_office"), SubResource("Room_berths"), SubResource("Room_crew"), SubResource("Room_corridor_br4"), SubResource("Room_corridor_br5"), SubResource("Room_turkish_bath"), SubResource("Room_swimming_bath"), SubResource("Room_squash_court"), SubResource("Room_squash_gallery"), SubResource("Room_f_landing"), SubResource("Room_boiler_room_2"), SubResource("Room_boiler_room_3"), SubResource("Room_boiler_room_4"), SubResource("Room_boiler_room_5"), SubResource("Room_boiler_room_6"), SubResource("Room_bunker_6"), SubResource("Room_f_br6"), SubResource("Room_passage"), SubResource("Room_db_br6"), SubResource("Room_db_hold_3"), SubResource("Room_db_hold_2"), SubResource("Room_db_hold_1"), SubResource("Room_db_hold_1_fwd"), SubResource("Room_hold_3_port"), SubResource("Room_hold_3_starboard"), SubResource("Room_hold_2_port"), SubResource("Room_hold_3_orlop"), SubResource("Room_hold_2_orlop"), SubResource("Room_hold_1"), SubResource("Room_hold_1_fwd"), SubResource("Room_hold_1_orlop"), SubResource("Room_hold_1_orlop_fwd"), SubResource("Room_hold_1_g"), SubResource("Room_hold_1_g_fwd"), SubResource("Room_hold_1_d"), SubResource("Room_fcsl_c"), SubResource("Room_fcsl_head_c"), SubResource("Room_fcsl_fwd_c"), SubResource("Room_forepeak_tank"), SubResource("Room_forepeak_stores"), SubResource("Room_boiler_room_1"), SubResource("Room_bunker_1"), SubResource("Room_f_br1"), SubResource("Room_engine_room"), SubResource("Room_turbine_room"), SubResource("Room_electric_room"), SubResource("Room_electric_room_g"), SubResource("Room_ahf_291"), SubResource("Room_ahf_215"), SubResource("Room_ahf_176"), SubResource("Room_aha_291"), SubResource("Room_aha_215"), SubResource("Room_aha_176"), SubResource("Room_ahe_291"), SubResource("Room_ahe_215"), SubResource("Room_ahe_176"), SubResource("Room_after_peak_tank"), SubResource("Room_after_peak_stores"), SubResource("Room_db_br1"), SubResource("Room_db_engine"), SubResource("Room_db_turbine"), SubResource("Room_db_electric"), SubResource("Room_db_ahf"), SubResource("Room_db_aha"), SubResource("Room_e_engine"), SubResource("Room_e_turbine"), SubResource("Room_e_electric"), SubResource("Room_e_ahf"), SubResource("Room_e_aha"), SubResource("Room_bunker_2"), SubResource("Room_db_br2"), SubResource("Room_bunker_3"), SubResource("Room_db_br3"), SubResource("Room_bunker_4"), SubResource("Room_db_br4"), SubResource("Room_bunker_5"), SubResource("Room_db_br5")])
 dressed = false
 white_above = 2.75
