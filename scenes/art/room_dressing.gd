@@ -67,8 +67,10 @@ const NAMED: Array[Array] = [
 	["staircase", Kind.STAIRCASE],
 	["deck corridor", Kind.FIRST_CORRIDOR],
 	["berths", Kind.BERTHS],
-	# Ahead of "office": the officers' quarters are berths.
+	# Ahead of "office": the officers' quarters are berths, and so is a block of cabins
+	# drawn as one room — the freighter's officers', crew's and forward cabins.
 	["quarters", Kind.BERTHS],
+	["cabins", Kind.BERTHS],
 	["galley", Kind.SERVICE],
 	["gymnasium", Kind.SERVICE],
 	["office", Kind.SERVICE],

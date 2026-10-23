@@ -377,6 +377,37 @@ for side, sign in [("port", -1), ("starboard", 1)]:
     wall_z_doors("pilothouse_" + side, sign * half, x0, x1, [(79.0, 79.0 + DOOR)], UPPER, TOP, SILL)
 box("pilothouse_roof", x0 - T, x1 + T, -half - T, half + T, TOP - T, TOP)
 
+# --- Furniture: tables and their benches on her cabins' floors, after every other
+# blocker so none of theirs moves. Each is drawn as its shape says (FurnitureDressing): a
+# table 0.75 m tall, a jump up, a bench 0.45 along its long sides, a step and a half.
+# Every one keeps clear a lane 1.5 m either side of a room's centre line, the ways in
+# from its doorways, and 1.0 m in plan from its pendant and its seat; and 1.0 m off a
+# wall's face, so a body standing on one keeps its head out of the berths slung along
+# the walls (LinerBerths: 0.7 m out, from 1.85 m over the floor) (est.).
+TABLE, BENCH = 0.75, 0.45
+BENCH_DEPTH, BENCH_GAP = 0.35, 0.1
+
+
+def mess_table(fid, x0, x1, half_in, half_out, floor, sign):
+    """A table from x0 to x1, from half_in to half_out off her centre line on her side
+    sign, and a bench along each of its long sides."""
+    box("table_" + fid, x0, x1, *sorted((sign * half_in, sign * half_out)), floor, floor + TABLE)
+    for tag, edge, away in [("in", half_in, -1), ("out", half_out, 1)]:
+        near, far = edge + away * BENCH_GAP, edge + away * (BENCH_GAP + BENCH_DEPTH)
+        box("bench_%s_%s" % (fid, tag), x0, x1, *sorted((sign * near, sign * far)), floor, floor + BENCH)
+
+
+# The officers' cabins: two tables either side of the way between their doors, clear of
+# the seat and the pendant over their middle.
+for k, (x0, x1) in enumerate([(-78.8, -76.6), (-71.4, -69.2)]):
+    for side, sign in [("port", -1), ("starboard", 1)]:
+        mess_table("officers_%s_%d" % (side, k + 1), x0, x1, 2.0, 2.9, UPPER, sign)
+# The crew's cabins and the forward cabins: a table either side, outboard of the ways in
+# from their doorways — the crew's past their side doors' way across them.
+for rid, x0, x1, half_in, half_out in [("crew", 73.6, 74.9, 3.6, 4.4), ("forward", 77.4, 80.6, 3.6, 4.4)]:
+    for side, sign in [("port", -1), ("starboard", 1)]:
+        mess_table("%s_%s" % (rid, side), x0, x1, half_in, half_out, 0, sign)
+
 # --- Railings: the spar deck's edges all round — down both her sides, the steps where it
 # narrows, her fantail and her stem —, the boat deck's and the bridge deck's, open where
 # their stairs land, and three sides of each hole down to the engine room, the fourth its
@@ -937,11 +968,14 @@ def clear_of_stairs(house, run, height):
             start = None
     return found
 
+FURNITURE_HEIGHT = 1.2  # a box on a floor no taller is furniture, not machinery (ShipSpace)
+
 def machinery_in(house):
     x0, x1, z0, z1, floor, _name = house
     return any(is_box and min(bx1 - bx0, bz1 - bz0) > WALL_MAX and abs(foot - floor) < 0.05
+               and top - foot > FURNITURE_HEIGHT
                and x0 <= (bx0 + bx1) * 0.5 <= x1 and z0 <= (bz0 + bz1) * 0.5 <= z1
-               for bx0, bx1, bz0, bz1, foot, _top, is_box in block_geo)
+               for bx0, bx1, bz0, bz1, foot, top, is_box in block_geo)
 
 def windows():
     """Her windows, as ShipFittings._windows places glass: the walls of her rooms that

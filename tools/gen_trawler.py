@@ -491,6 +491,13 @@ for side, sign in [("port", -1), ("starboard", 1)]:
         heights = (0.0, WING_FLOOR) if top == "x0" else (WING_FLOOR, 0.0)
         ramp("wing_%s_%d" % (side, k + 1), a, clear[0], b - a, clear[1] - clear[0], *heights, fitted=True)
 
+# The crew mess's table and its bench, after every other blocker so none of theirs moves,
+# each drawn as its shape says (FurnitureDressing): 0.75 m and 0.45 m tall, between the
+# stairs down through its floor and her starboard side, 0.5 m clear of the stairs and off
+# the wall, 1.0 m in plan from the pendant over the room's middle (est.).
+box("table_crew_mess", 7.8, 10.2, 1.2, 1.8, 0, 0.75)
+box("bench_crew_mess", 7.8, 10.2, 1.9, 2.25, 0, 0.45)
+
 # Three sides of every hatch railed, as the stair openings are: the fourth, its stair's
 # head, open. The wing passages' hatches leave their outboard sides open too: between them
 # and her bulwark no body stands.
@@ -1080,11 +1087,14 @@ def clear_of_stairs(house, run, height):
             start = None
     return found
 
+FURNITURE_HEIGHT = 1.2  # a box on a floor no taller is furniture, not machinery (ShipSpace)
+
 def machinery_in(house):
     x0, x1, z0, z1, floor, _name = house
     return any(is_box and min(bx1 - bx0, bz1 - bz0) > WALL_MAX and abs(foot - floor) < 0.05
+               and top - foot > FURNITURE_HEIGHT
                and x0 <= (bx0 + bx1) * 0.5 <= x1 and z0 <= (bz0 + bz1) * 0.5 <= z1
-               for bx0, bx1, bz0, bz1, foot, _top, is_box in block_geo)
+               for bx0, bx1, bz0, bz1, foot, top, is_box in block_geo)
 
 def windows():
     """Her windows, as ShipFittings._windows places glass: the walls of her rooms that
