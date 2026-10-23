@@ -129,38 +129,28 @@ func test_a_grab_needs_the_prop_in_reach_in_front_and_at_hand_height() -> void:
 
 ## Grabbing is never a way out of a hit, a swim or a shove.
 func test_no_grab_while_staggered_frozen_swimming_or_shoving() -> void:
-	var setups := {
-		"staggered": func(player: PlayerState) -> void: player.stagger_ticks = 5,
-		"frozen": func(player: PlayerState) -> void: player.hitstop = 5,
-		"in the air": func(player: PlayerState) -> void: player.body = PlayerState.Body.AIRBORNE,
-		"swimming": func(player: PlayerState) -> void: player.body = PlayerState.Body.SWIMMING,
-		"climbing":
-		func(player: PlayerState) -> void:
-## Grabbing (#273): one Grab button takes the nearest prop in reach that can be held,
-## and pressed again lets it go. A prop's holder is the one truth of who holds what.
-
-## A match of [param seats] on the flat deck carrying [param props] and nothing else.
-
-## A prop that is not solid is no surface and no blocker, and a shove never lands on it:
-## bodies walk through it.
-
-## Two seats pressing Grab at one prop on one tick: the nearer takes it, the other
-## nothing; of two as near, the lower seat.
-
-## Of two props as near, a press takes the lower; one is all a body holds.
-
-## Grabbing is never a way out of a hit, a swim or a shove.
-
-			player.body = PlayerState.Body.SWIMMING
-			player.climb_left = 5,
-		"winding up": func(player: PlayerState) -> void: player.action = PlayerState.Action.WINDUP,
-		"recovering":
-		func(player: PlayerState) -> void: player.action = PlayerState.Action.RECOVERY,
-	}
-	for what: String in setups:
+	for what: String in [
+		"staggered", "frozen", "in the air", "swimming", "climbing", "winding up", "recovering"
+	]:
 		var sim := _with(1, [SimFixtures.lifebuoy(Vector3(1.0, 0.0, 0.0))])
 		SimFixtures.place(sim, 0, Vector3.ZERO, 0.0)
-		(setups[what] as Callable).call(sim.state.seats[0])
+		var player := sim.state.seats[0]
+		match what:
+			"staggered":
+				player.stagger_ticks = 5
+			"frozen":
+				player.hitstop = 5
+			"in the air":
+				player.body = PlayerState.Body.AIRBORNE
+			"swimming":
+				player.body = PlayerState.Body.SWIMMING
+			"climbing":
+				player.body = PlayerState.Body.SWIMMING
+				player.climb_left = 5
+			"winding up":
+				player.action = PlayerState.Action.WINDUP
+			"recovering":
+				player.action = PlayerState.Action.RECOVERY
 		SimFixtures.step(sim, {0: _grab(0)})
 		assert_eq(sim.state.props[0].holder, -1, what)
 
