@@ -46,17 +46,25 @@ func test_no_break_face_is_painted_in_the_hull_s_dark() -> void:
 	var hull_faces := 0
 	var house_faces := 0
 	for part: Node in node.get_children():
-		var finish: int = paints.find_key((part as MeshInstance3D).mesh.surface_get_material(0))
-		var faces := (part as MeshInstance3D).mesh.get_faces()
-		for index in range(0, faces.size(), 3):
-			var middle := (faces[index] + faces[index + 1] + faces[index + 2]) / 3.0
-			# The poop's forward face: from the main deck up to the poop, across it.
-			if absf(middle.x + 14.0) > 0.02 or middle.y < 0.05 or middle.y > 1.15:
-				continue
-			if absf(middle.z) > 4.4:
-				continue
-			hull_faces += 1 if finish == ShipMesh.Finish.HULL else 0
-			house_faces += 1 if finish == ShipMesh.Finish.HOUSE else 0
+		# A surface per finish (ShipMesh.commit), each its triangles by index.
+		var drawn := (part as MeshInstance3D).mesh
+		for surface in drawn.get_surface_count():
+			var finish: int = paints.find_key(drawn.surface_get_material(surface))
+			var arrays := drawn.surface_get_arrays(surface)
+			var points: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+			var order: PackedInt32Array = arrays[Mesh.ARRAY_INDEX]
+			for index in range(0, order.size(), 3):
+				var middle := (
+					(points[order[index]] + points[order[index + 1]] + points[order[index + 2]])
+					/ 3.0
+				)
+				# The poop's forward face: from the main deck up to the poop, across it.
+				if absf(middle.x + 14.0) > 0.02 or middle.y < 0.05 or middle.y > 1.15:
+					continue
+				if absf(middle.z) > 4.4:
+					continue
+				hull_faces += 1 if finish == ShipMesh.Finish.HULL else 0
+				house_faces += 1 if finish == ShipMesh.Finish.HOUSE else 0
 	assert_eq(hull_faces, 0, "none of the poop's face in the hull's paint")
 	assert_gt(house_faces, 0, "the poop's face plated as a house")
 

@@ -126,8 +126,13 @@ func test_her_superstructure_s_side_is_white_over_her_black_hull() -> void:
 	var seen := [0, 0, 0]
 	# A house's side is its foot's dark kick up to FOOT over its foot's band (UV.x).
 	const FOOT := 0.12
+	var surfaces: Array[Array] = []
 	for part: Node in node.get_children():
-		var arrays := (part as MeshInstance3D).mesh.surface_get_arrays(0)
+		# A surface per finish (ShipMesh.commit).
+		var drawn := (part as MeshInstance3D).mesh
+		for surface in drawn.get_surface_count():
+			surfaces.append(drawn.surface_get_arrays(surface))
+	for arrays: Array in surfaces:
 		var points: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
 		var normals: PackedVector3Array = arrays[Mesh.ARRAY_NORMAL]
 		var colours: PackedColorArray = arrays[Mesh.ARRAY_COLOR]
