@@ -150,6 +150,8 @@ var _funnels := {}
 var _felled := false
 ## The glass the sinking can break (BrokenGlass).
 var _broken_glass: BrokenGlass
+## The lights on her open decks (DeckLights).
+var _deck_lights: DeckLights
 ## The pose the lamps and the glass were last shown (show_power): a pose is a tick's, so
 ## they are told again only as the tick changes.
 var _powered: ShipPose
@@ -249,6 +251,10 @@ func build(
 	var fittings := ShipFittings.new(_space, hull, body_radius, open_ports)
 	fittings.build(mesh, self, materials)
 	_broken_glass = BrokenGlass.new(layout, fittings.panes, self, materials)
+	_deck_lights = DeckLights.new(
+		_space, railing_height, body_radius, fittings.break_doors, fittings.panes
+	)
+	_deck_lights.build(self, materials, cut_above, span)
 	# Every furnishing stands in a room: its own mesh, which need not ask where it is.
 	var furnishings := ShipMesh.new(
 		func(_point: Vector3) -> bool: return false, _space.room_lines()
@@ -355,7 +361,8 @@ func show_sinking(
 
 ## Lights each room's lamp as [param pose] has its cell lit — on her generator, her
 ## emergency power or nothing (ShipPose.lit) — and puts out each fire the water of its
-## cell has reached; shows the glass the pose has broken (BrokenGlass). A pose without
+## cell has reached, and the lights on her open decks the same way (DeckLights); shows
+## the glass the pose has broken (BrokenGlass). A pose without
 ## cells leaves them lit. A new pose — a tick's — that turns her from the last wakes
 ## every lamp asleep (ShipLamp.wake), so none misses how she has moved.
 func show_power(pose: ShipPose) -> void:
@@ -375,6 +382,8 @@ func show_power(pose: ShipPose) -> void:
 		var lamp := _lamps[index]
 		lamp.power = pose.lit[cell]
 		lamp.drowned = pose.levels[cell] >= pose.world_height(_lamp_at[index])
+	if _deck_lights != null:
+		_deck_lights.show_power(pose)
 	if _broken_glass != null:
 		_broken_glass.show(pose)
 
