@@ -3,11 +3,11 @@ extends RefCounted
 ## A bot and her props (#273) as its delayed view shows them (D10) — every prop seen,
 ## walls or not, as the cargo is: what it holds; the lifebuoy it goes for, once
 ## buoy_from of her decks are under water and its hands are empty — the nearest it can
-## walk to within buoy_range_m, hung on its span or lying loose — and the Grab press that
-## takes it once a press would (GrabReach), never a second before its view shows the
-## first; whether, of a profile that steals, it would charge a seat for the ring in its
-## hands; and how fast its cold drains in the sea with what it holds. Nothing here rolls
-## the bot's stream.
+## walk to within buoy_range_m, hung on its span, lying loose or afloat at hand — and the
+## Grab press that takes it once a press would (GrabReach), never a second before its
+## view shows the first; whether, of a profile that steals, it would charge a seat for the
+## ring in its hands, once it would go for one itself; and how fast its cold drains in the
+## sea with what it holds. Nothing here rolls the bot's stream.
 
 var _seat: int
 var _profile: BotProfile
@@ -18,6 +18,9 @@ var _layout: ShipLayout
 var buoy := -1
 ## The tick of its last Grab press, or -1.
 var _pressed_at := -1
+## Whether, at the last think, it would go for a ring: buoy_from of her decks under water
+## and its hands empty.
+var _wanting := false
 
 
 func _init(seat: int, profile: BotProfile, rules: BrawlRules, layout: ShipLayout) -> void:
@@ -27,39 +30,30 @@ func _init(seat: int, profile: BotProfile, rules: BrawlRules, layout: ShipLayout
 	_layout = layout
 
 
-## The prop [param seat] holds in [param seen], or -1.
-static func holding(seen: Dictionary, seat: int) -> int:
-	for entry: Dictionary in seen["props"]:
-		if entry["holder"] == seat:
-			return entry["prop"]
-	return -1
-
-
 ## The kind of what the bot holds in [param seen], or null for empty hands.
 func held_kind(seen: Dictionary) -> PropKind:
-	var prop := holding(seen, _seat)
+	var prop := PropState.held_in(seen, _seat)
 	return _layout.props[prop].prop_kind() if prop != -1 else null
 
 
 ## Whether what it holds in [param seen] lets it brace.
 func may_brace(seen: Dictionary) -> bool:
-	var kind := held_kind(seen)
-	return kind == null or kind.carry_brace
+	return PropKind.lets_brace(held_kind(seen))
 
 
 ## The share of the open water's rate its cold drains at in the sea in [param seen]: less
 ## with a prop in its hands that keeps it afloat.
 func drain(seen: Dictionary) -> float:
-	var kind := held_kind(seen)
-	return kind.sea_cold_rate if kind != null and kind.afloat else 1.0
+	return PropKind.sea_rate(held_kind(seen))
 
 
-## Whether, its profile stealing and its own hands empty, it would charge [param victim]
-## — a seat in [param seen] — for the prop in its hands a charge knocks loose.
+## Whether, its profile stealing and wanting a ring as its last think found it, it would
+## charge [param victim] — a seat in [param seen] — for the prop in its hands a charge
+## knocks loose.
 func steals_from(seen: Dictionary, victim: Dictionary) -> bool:
-	if not _profile.steals or holding(seen, _seat) != -1:
+	if not _profile.steals or not _wanting or PropState.held_in(seen, _seat) != -1:
 		return false
-	var prop := holding(seen, victim["seat"])
+	var prop := PropState.held_in(seen, victim["seat"])
 	return prop != -1 and _layout.props[prop].prop_kind().loose_on_charge
 
 
@@ -71,18 +65,13 @@ func choose(
 	seen: Dictionary, me: Dictionary, found: WalkGraph.Search, graph: WalkGraph, under: float
 ) -> float:
 	buoy = -1
-	if (
-		under < _profile.buoy_from
-		or me["state"] != PlayerState.Body.GROUNDED
-		or holding(seen, _seat) != -1
-		or found.cost.is_empty()
-	):
+	_wanting = under >= _profile.buoy_from and PropState.held_in(seen, _seat) == -1
+	if not _wanting or me["state"] != PlayerState.Body.GROUNDED or found.cost.is_empty():
 		return 0.0
 	var my_pos: Vector3 = me["pos"]
 	var nearest := _profile.buoy_range_m
 	for entry: Dictionary in seen["props"]:
-		var state: PropState.Body = entry["state"]
-		if state != PropState.Body.GROUNDED and state != PropState.Body.HUNG:
+		if not PropState.within_grasp(entry["state"]):
 			continue
 		if not _layout.props[entry["prop"]].prop_kind().afloat:
 			continue
@@ -113,10 +102,7 @@ func target(seen: Dictionary) -> Dictionary:
 	if buoy == -1:
 		return {}
 	var entry: Dictionary = seen["props"][buoy]
-	var state: PropState.Body = entry["state"]
-	if state != PropState.Body.GROUNDED and state != PropState.Body.HUNG:
-		return {}
-	return entry
+	return entry if PropState.within_grasp(entry["state"]) else {}
 
 
 ## A Grab press on [param tick] when a press by the bot — [param me] in [param seen],

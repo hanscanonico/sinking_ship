@@ -260,14 +260,19 @@ func decide(view: BotView, tick: int) -> InputFrame:
 	_footing.heed_water = not _wading or _lapse > 0
 	_keep_off_edges(steer, me, mark, _edge_from, pose)
 	var buttons := steer.buttons
-	if _charge_held > 0:
+	# A Grab press goes alone: a shove pressed with it would start its windup, and a body
+	# winding up takes nothing.
+	var grab := 0
+	if intent == Intent.TAKE_BUOY:
+		grab = _props.grab(seen, me, now_pos, _look, _surfaces, tick)
+	if grab != 0:
+		buttons = grab
+	elif _charge_held > 0:
 		buttons = _hold_charge(seen, me)
 	elif not steer.hold_fire:
 		var shove := _shove(seen, me, mark, tick, pose)
 		if shove != 0:
 			buttons = shove
-	if intent == Intent.TAKE_BUOY:
-		buttons |= _props.grab(seen, me, now_pos, _look, _surfaces, tick)
 	if steer.move != Vector2.ZERO and not _walking:
 		_walked_from = tick
 	_walking = steer.move != Vector2.ZERO

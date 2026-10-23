@@ -123,3 +123,49 @@ func test_a_bot_sees_a_ring_only_as_old_as_its_view() -> void:
 	var move := Vector2(source.next_frame(sim.state.tick).move).normalized()
 	var toward := Vector2(STATION.x + 11.0, STATION.z - 1.0).normalized()
 	assert_gt(move.dot(toward), 0.7, "it still walks for the ring it saw")
+
+
+## A ring cannot run into a bot in this slice (#273): a bot that dodges cargo walks on
+## through a sliding ring's path.
+func test_a_bot_does_not_dodge_a_sliding_ring() -> void:
+	var walks := []
+	for ring_vel: Vector3 in [Vector3.ZERO, Vector3(-4.0, 0.0, 0.0)]:
+		var sim := _sim(2, [SimFixtures.lifebuoy(Vector3(3.0, 0.0, 0.0))], SimFixtures.calm())
+		SimFixtures.place(sim, 0, Vector3(0.0, 0.0, -0.3), 180.0)
+		SimFixtures.place(sim, 1, Vector3(-10.0, 0.0, 0.0))
+		sim.state.props[0].vel = ring_vel
+		var source := BotInputSource.new(0, _tier(&"normal"), sim.config)
+		source.observe(sim.snapshot(), sim.pose())
+		walks.append(Vector2(source.next_frame(sim.state.tick).move))
+	assert_eq(walks[1], walks[0], "a ring sliding at it changes nothing")
+
+
+## A hard bot charges a holder for the ring only once it would go for one: on a dry ship
+## it leaves a holder its ring.
+func test_a_hard_bot_does_not_charge_for_a_ring_on_a_dry_ship() -> void:
+	var sim := _sim(2, [SimFixtures.lifebuoy(Vector3(-9.0, 0.0, 0.0))], SimFixtures.calm())
+	SimFixtures.place(sim, 0, Vector3(-12.0, 0.0, 0.0), 0.0)
+	SimFixtures.place(sim, 1, Vector3(-9.0, 0.0, 0.0), 180.0)
+	SimFixtures.hand(sim, 1, 0)
+	var runner := _runner(sim, BotInputSource.new(0, _tier(&"hard"), sim.config))
+	var loosened: Array[SimEvent] = []
+	for _tick in Ticks.from_seconds(6.0):
+		runner.step()
+		for event: SimEvent in sim.state.events:
+			if event.kind == SimEvent.Kind.KNOCKED_LOOSE:
+				loosened.append(event)
+	assert_true(loosened.is_empty(), "no charge for a ring it does not want yet")
+
+
+## Going for a ring with a seat in its shove's reach, a bot presses Grab alone: a shove
+## pressed with it would start its windup and leave the press to nothing.
+func test_a_bot_reaching_a_ring_presses_grab_and_not_shove() -> void:
+	var sim := _sim(2, [SimFixtures.lifebuoy(Vector3(1.0, 0.0, 0.0))], _going_under())
+	SimFixtures.place(sim, 0, Vector3(-8.0, 0.0, 0.0), 0.0)
+	SimFixtures.place(sim, 1, Vector3(-6.7, 0.0, 0.5))
+	sim.state.props[0].pos = Vector3(-7.0, 0.0, 0.0)
+	var source := BotInputSource.new(0, _tier(&"normal"), sim.config)
+	source.observe(sim.snapshot(), sim.pose())
+	var frame := source.next_frame(sim.state.tick)
+	assert_true(frame.is_held(InputFrame.GRAB), "it presses Grab")
+	assert_false(frame.is_held(InputFrame.SHOVE), "and not Shove with it")
