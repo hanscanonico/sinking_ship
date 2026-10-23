@@ -134,6 +134,9 @@ var break_doors: Array[Array] = []
 var tackle: Array[Rect2] = []
 ## What she is moored by at her ends (MooringGear), as build() placed it.
 var mooring: MooringGear
+## Every lifeboat hung on its davits: the middle of its keel, with or without a ship to
+## hang them under.
+var lifeboats := PackedVector3Array()
 ## The middles of the portholes the hit left open: drawn open, their glass swung in.
 var _open_ports := PackedVector3Array()
 
@@ -840,8 +843,9 @@ func _banquette(mesh: ShipMesh, room: ShipRoom, run: Array) -> void:
 
 
 ## Lifeboats on davits beside the open long edges of every deck standing high
-## enough over the deck beneath, where the air beyond the edge is open: the davits in
-## [param mesh], each run of boats (their model) with their falls hung under
+## enough over the deck beneath, where the air beyond the edge is open — not the seam
+## where a deck cut round an opening meets another piece of itself (_open): the davits
+## in [param mesh], each run of boats (their model) with their falls hung under
 ## [param ship] from the line through the davits' heads.
 func _lifeboats(mesh: ShipMesh, ship: Node3D, paints: Dictionary) -> void:
 	for index in _layout.platforms.size():
@@ -861,7 +865,7 @@ func _lifeboats(mesh: ShipMesh, ship: Node3D, paints: Dictionary) -> void:
 				continue
 			var keel := platform.height + LIFEBOAT_LIFT
 			var reach := Rect2(area.position.x, minf(edge, outer), area.size.x, absf(outer - edge))
-			if not _open(reach, keel):
+			if not _open(reach, platform.height, keel):
 				continue
 			var count := floori(area.size.x / LIFEBOAT_SPACING)
 			var no_rooms: Array[PackedFloat32Array] = [
@@ -877,6 +881,7 @@ func _lifeboats(mesh: ShipMesh, ship: Node3D, paints: Dictionary) -> void:
 				if not mesh.kept(at - LIFEBOAT_LENGTH * 0.5, at + LIFEBOAT_LENGTH * 0.5):
 					continue
 				hanging = true
+				lifeboats.append(Vector3(at, keel, middle))
 				var boat_at := Transform3D(Basis.IDENTITY, Vector3(at, keel, middle))
 				hung.model(ShipModel.named(LIFEBOAT_MODEL), boat_at)
 				for end: float in [-1.0, 1.0]:
@@ -888,14 +893,16 @@ func _lifeboats(mesh: ShipMesh, ship: Node3D, paints: Dictionary) -> void:
 				run.setup(int(side), pivot, hung, paints, _layout)
 
 
-## Whether nothing of the ship stands in [param area] at or above [param height]: no
-## deck over it and no room round it — open air for a boat to hang in.
-func _open(area: Rect2, height: float) -> bool:
+## Whether nothing of the ship stands in [param area] from [param deck]'s height up — no
+## other piece of that deck, as at a seam where a deck cut round an opening meets
+## itself, and no deck over it — and no room stands round a boat whose keel hangs at
+## [param keel]: open air for a boat to hang in.
+func _open(area: Rect2, deck: float, keel: float) -> bool:
 	for platform: ShipPlatform in _layout.platforms:
-		if platform.height >= height and platform.area.intersects(area):
+		if platform.height >= deck - ShipSpace.SLIVER and platform.area.intersects(area):
 			return false
 	var middle := area.get_center()
-	return _space.outdoors(Vector3(middle.x, height + LIFEBOAT_DEPTH * 0.5, middle.y))
+	return _space.outdoors(Vector3(middle.x, keel + LIFEBOAT_DEPTH * 0.5, middle.y))
 
 
 ## Whether platform [param index] carries a railing along its edge at z [param edge].
