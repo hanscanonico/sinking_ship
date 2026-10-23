@@ -7,6 +7,12 @@ extends RefCounted
 ## stands where it asks Surfaces (D6, D13); a railing a vault damages, Hazards. The
 ## stamina, the shoves and the cold stay MatchSim's.
 ##
+## Bodies push bodies (§6): their circles separate, and two meeting part along the line
+## between them as bodies of one mass do, with body_restitution of the speed they met
+## at — a fast body hands over part of its speed to the one it hits. A staggered body
+## running into one still on its feet at body_impact_speed or more bowls it over:
+## shoving into a crowd is a bowling ball.
+##
 ## A tick moves its bodies on whichever of her faces are floors then (SH32, §5b.3): the
 ## match stands in the frame of the axis Faces finds up — every body's points turned
 ## into it for the tick, its heights along that up, its plane that of the floors — and
@@ -45,6 +51,8 @@ var _surfaces: Surfaces
 var _crowd: SpatialIndex
 var _crowd_up := Faces.Up.DECK
 var _climb_ticks: int
+var _stagger_ticks: int
+var _credit_window_ticks: int
 
 
 func _init(rules: BrawlRules, faces: Faces, hazards: Hazards, piece := 0) -> void:
@@ -55,6 +63,8 @@ func _init(rules: BrawlRules, faces: Faces, hazards: Hazards, piece := 0) -> voi
 	_crowd = _crowd_in(Faces.Up.DECK)
 	_hazards = hazards
 	_climb_ticks = Ticks.from_seconds(rules.climb_time)
+	_stagger_ticks = Ticks.from_seconds(rules.stagger)
+	_credit_window_ticks = Ticks.from_seconds(rules.credit_window)
 
 
 ## Stands [param state]'s match on the faces of its piece that are floors under
@@ -260,11 +270,11 @@ func _moving_seats(live: Array[PlayerState]) -> Array[PlayerState]:
 
 
 ## Integration, then contacts: blockers, then railings, then bodies pushing each
-## other apart pair by pair in seat order, pass after pass until nothing moves.
-## Walls and rails have the last word — the last pass stops before bodies push — so
-## a crowd may end a tick pressed together, never inside a wall. A climber is where
-## its climb has it, and takes no part. Returns each seat's feet height before it
-## moved, by seat of [param state].
+## other apart and parting pair by pair in seat order (_bodies), pass after pass until
+## nothing moves. Walls and rails have the last word — the last pass stops before
+## bodies push — so a crowd may end a tick pressed together, never inside a wall. A
+## climber is where its climb has it, and takes no part. Returns each seat's feet height
+## before it moved, by seat of [param state].
 func move(
 	state: MatchState,
 	live_seats: Array[PlayerState],
@@ -305,7 +315,7 @@ func move(
 			)
 			if contact_pass == CONTACT_PASSES - 1:
 				break
-			if not _bodies(live) and not held:
+			if not _bodies(live, tick, events) and not held:
 				break
 	_ceilings(live, feet_before)
 	return feet_before
@@ -428,9 +438,10 @@ func _railings(
 
 
 ## Bodies whose heights overlap push each other apart, pair by pair in seat order,
-## each moving half the overlap: the pairs the grid finds near enough (_pairs), and every
-## pair left once a body has been pushed CROWD_DRIFT. True when it moved anyone.
-func _bodies(live: Array[PlayerState]) -> bool:
+## each moving half the overlap, and part as they meet (_part): the pairs the grid finds
+## near enough (_pairs), and every pair left once a body has been pushed CROWD_DRIFT.
+## True when it moved anyone.
+func _bodies(live: Array[PlayerState], tick: int, events: Array[SimEvent]) -> bool:
 	var moved := false
 	var pairs := _pairs(live)
 	var pushed := PackedFloat64Array()
@@ -438,7 +449,7 @@ func _bodies(live: Array[PlayerState]) -> bool:
 	for at in range(0, pairs.size(), 2):
 		var first := pairs[at]
 		var second := pairs[at + 1]
-		var push := _push_apart(live[first], live[second])
+		var push := _push_apart(live[first], live[second], tick, events)
 		if push == 0.0:
 			continue
 		moved = true
@@ -447,7 +458,7 @@ func _bodies(live: Array[PlayerState]) -> bool:
 		if pushed[first] >= CROWD_DRIFT or pushed[second] >= CROWD_DRIFT:
 			for a in range(first, live.size()):
 				for b in range(second + 1 if a == first else a + 1, live.size()):
-					_push_apart(live[a], live[b])
+					_push_apart(live[a], live[b], tick, events)
 			return true
 	return moved
 
@@ -469,8 +480,8 @@ func _pairs(live: Array[PlayerState]) -> PackedInt32Array:
 
 ## Pushes [param a] and [param b] apart, each half the overlap, when their heights
 ## overlap — the higher one's feet under the lower one's head, a crawler's as low as it
-## is — and their circles do; how far each moved, or 0.
-func _push_apart(a: PlayerState, b: PlayerState) -> float:
+## is — and their circles do, and parts them (_part); how far each moved, or 0.
+func _push_apart(a: PlayerState, b: PlayerState, tick: int, events: Array[SimEvent]) -> float:
 	var reach := _rules.body_radius * 2.0
 	var a_pos := a.pos
 	var b_pos := b.pos
@@ -487,7 +498,58 @@ func _push_apart(a: PlayerState, b: PlayerState) -> float:
 	var push := normal * ((reach - distance) * 0.5)
 	a.pos -= Vector3(push.x, 0.0, push.y)
 	b.pos += Vector3(push.x, 0.0, push.y)
+	_part(a, b, normal, tick, events)
 	return (reach - distance) * 0.5
+
+
+## [param a] and [param b] touching along [param normal], from a to b: meeting, they part
+## along it as bodies of one mass do, with body_restitution of the speed they met at —
+## what one hands the other, the other gains, and the speed across the line between
+## them is theirs. A staggered one running into one still on its feet, the two meeting
+## at body_impact_speed or more and it as fast of itself, bowls it over (_bowl): a
+## walker running into a body still staggered is only stopped by it, and two bodies
+## already off their feet only part. A body frozen in a hit-stop holds the speed it
+## will go on with (D12), and parts with nobody until the stop ends.
+func _part(
+	a: PlayerState, b: PlayerState, normal: Vector2, tick: int, events: Array[SimEvent]
+) -> void:
+	if a.is_frozen() or b.is_frozen():
+		return
+	var toward := Vector2(a.vel.x, a.vel.z).dot(normal)
+	var back := -Vector2(b.vel.x, b.vel.z).dot(normal)
+	var meeting := toward + back
+	if meeting <= 0.0:
+		return
+	var handed := normal * (meeting * (1.0 + _rules.body_restitution) * 0.5)
+	a.vel -= Vector3(handed.x, 0.0, handed.y)
+	b.vel += Vector3(handed.x, 0.0, handed.y)
+	if meeting < _rules.body_impact_speed or a.is_staggered() == b.is_staggered():
+		return
+	if a.is_staggered() and toward >= _rules.body_impact_speed:
+		_bowl(b, a, normal, tick, events)
+	elif b.is_staggered() and back >= _rules.body_impact_speed:
+		_bowl(a, b, -normal, tick, events)
+
+
+## [param pin] bowled over by [param by], which ran into it along [param along]:
+## staggered as by a shove — unless it braces against it, a front brace rooting it —
+## and the shove or the crate that sent [param by], within credit_window, is what put
+## it there — never [param pin]'s own.
+func _bowl(
+	pin: PlayerState, by: PlayerState, along: Vector2, tick: int, events: Array[SimEvent]
+) -> void:
+	if pin.braced_against(along, _rules.brace_arc_deg):
+		return
+	pin.stagger_ticks = maxi(pin.stagger_ticks, _stagger_ticks)
+	pin.bracing = false
+	events.append(SimEvent.bowled(tick, pin.seat, by.seat))
+	if tick - by.last_hit_at >= _credit_window_ticks or by.last_hit_by == pin.seat:
+		return
+	if by.last_hit_by == -1 and by.last_hit_crate == -1:
+		return
+	pin.last_hit_by = by.last_hit_by
+	pin.last_hit_crate = by.last_hit_crate
+	pin.last_hit_at = tick
 
 
 ## Moves [param player] out of [param contact] in the deck plane and takes the
