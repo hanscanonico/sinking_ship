@@ -7,8 +7,11 @@ extends GutTest
 
 ## How far past its box a piece's faces may stand: the furniture's FLUSH and float noise.
 const OUTSIDE := 0.005
-## The Titanic's boat deck's height (tools/gen_titanic.py's BOAT).
+## The Titanic's boat deck's height (tools/gen_titanic.py's BOAT), and the ferry's
+## passenger and bridge decks' (tools/gen_ferry.py's PASS and BRIDGE).
 const BOAT_DECK := 8.375
+const FERRY_PASSENGER_DECK := 4.8
+const FERRY_BRIDGE_DECK := 7.6
 
 
 func _layout(ship: String) -> ShipLayout:
@@ -149,16 +152,38 @@ func test_her_seat_lockers_stand_back_to_their_houses() -> void:
 		)
 
 
-func test_no_seat_starts_on_her_new_furniture() -> void:
-	var titanic := _layout("titanic")
+func test_the_ferry_s_decks_are_furnished() -> void:
+	var ferry := _layout("ferry")
+	var pieces := {}
+	var backed := 0
+	for height: float in [FERRY_PASSENGER_DECK, FERRY_BRIDGE_DECK]:
+		for blocker: ShipBlocker in _on_deck(ferry, height):
+			var piece := _piece(ferry, blocker)
+			pieces[piece] = pieces.get(piece, 0) + 1
+			if (
+				piece == DeckFurniture.Piece.LOCKER
+				and DeckFurniture.back_of(ferry, blocker) != Vector2.ZERO
+			):
+				backed += 1
+	assert_eq(pieces.get(DeckFurniture.Piece.SKYLIGHT, 0), 1, "the engine room's, abaft the funnel")
+	assert_eq(pieces.get(DeckFurniture.Piece.LOCKER, 0), 4, "two against walls, two across aft")
+	assert_eq(backed, 2, "the wheelhouse's and the house's back onto their walls")
+
+
+func test_no_seat_starts_on_the_new_furniture() -> void:
 	var rules: BrawlRules = load("res://data/rules/brawl.tres")
-	for blocker: ShipBlocker in _on_deck(titanic, BOAT_DECK):
-		if _piece(titanic, blocker) == DeckFurniture.Piece.HATCH:
-			continue
-		var about := blocker.area.grow(rules.body_radius)
-		for spawn: Vector3 in titanic.spawns:
-			var on_deck := is_equal_approx(spawn.y, BOAT_DECK)
-			assert_false(on_deck and about.has_point(Vector2(spawn.x, spawn.z)), "%s" % spawn)
+	var decks := {"titanic": [BOAT_DECK], "ferry": [FERRY_PASSENGER_DECK, FERRY_BRIDGE_DECK]}
+	for ship: String in decks:
+		var layout := _layout(ship)
+		for height: float in decks[ship]:
+			for blocker: ShipBlocker in _on_deck(layout, height):
+				if _piece(layout, blocker) == DeckFurniture.Piece.HATCH:
+					continue
+				var about := blocker.area.grow(rules.body_radius)
+				for spawn: Vector3 in layout.spawns:
+					var on_it := is_equal_approx(spawn.y, height)
+					var start := Vector2(spawn.x, spawn.z)
+					assert_false(on_it and about.has_point(start), "%s: %s" % [ship, spawn])
 
 
 func test_a_low_narrow_box_is_a_seat_locker() -> void:
