@@ -209,6 +209,26 @@ func test_a_lost_crate_and_a_broken_rail_float_off_outboard() -> void:
 		assert_false(_over_a_deck(sim.config.ship, piece.end), "never comes down on a deck")
 
 
+## A lifebuoy gone into the sea (#273) — with its span, with its holder, or let go there —
+## floats off as the ring it is, never as a crate.
+func test_a_lost_lifebuoy_floats_off_as_a_ring() -> void:
+	var sim := _sim()
+	var tick := Ticks.from_seconds(60.0)
+	var ring := -1
+	for index in sim.config.ship.props.size():
+		if ring == -1 and sim.config.ship.props[index].kind == &"lifebuoy":
+			ring = index
+	assert_ne(ring, -1, "she carries a lifebuoy")
+	var lost := _at(sim, tick, [SimEvent.prop_lost(tick, ring)])
+	var thrown := _of(_planner(sim).plan(_at(sim, tick - 1), lost), FLOTSAM)
+	assert_eq(thrown.size(), 1, "the ring alone")
+	assert_eq(thrown[0].piece, FxCue.Piece.LIFEBELT)
+	var floating := _at(sim, tick - 1).duplicate(true)
+	floating["props"][ring]["state"] = PropState.Body.FLOATING
+	var adrift := _of(_planner(sim).plan(floating, lost), FLOTSAM)
+	assert_eq(adrift[0].piece, FxCue.Piece.LIFEBELT, "set adrift, a ring too")
+
+
 func test_a_crate_lost_while_afloat_stays_on_the_water_where_it_floated() -> void:
 	var sim := _sim()
 	var tick := Ticks.from_seconds(60.0)
