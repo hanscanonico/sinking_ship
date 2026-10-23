@@ -13,12 +13,9 @@ var _rules: BrawlRules = load("res://data/rules/brawl.tres")
 func _hung(layout: ShipLayout) -> Dictionary:
 	var drawn := {}
 	var props := PropState.from_layout(layout)
-	for crate: PropState in props:
-		if crate.body == PropState.Body.HUNG:
-			var prop := layout.props[crate.prop]
-			drawn[crate.prop] = PropPlacing.of(
-				crate.to_dict(), prop, layout, _rules.railing_height, []
-			)
+	for prop: PropState in props:
+		if prop.body == PropState.Body.HUNG:
+			drawn[prop.prop] = PropPlacing.of(prop.to_dict(), layout, _rules.railing_height, [])
 	return drawn
 
 

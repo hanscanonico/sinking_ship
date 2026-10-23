@@ -707,10 +707,15 @@ func test_the_steamer_s_crates_stand_clear_by_the_hatch() -> void:
 	var layout := SimFixtures.steamer()
 	var rules := _rules()
 	var surfaces := Surfaces.new(layout)
-	assert_eq(layout.props.size(), 4, "the hatch carries four crates")
+	# Her cargo: the props of hers that are crates, not her lifebuoys (#273).
+	var cargo: Array[int] = []
+	for index in layout.props.size():
+		if layout.props[index].kind == &"cargo":
+			cargo.append(index)
+	assert_eq(cargo.size(), 4, "the hatch carries four crates")
 	var hatch := Rect2(4.0, -1.0, 4.0, 2.0)
 	var on_the_lid := 0
-	for index in layout.props.size():
+	for index: int in cargo:
 		var prop := layout.props[index]
 		var under := surfaces.under(prop.pos, rules.step_height)
 		assert_ne(under, Surfaces.NONE, "crate %d stands on something" % index)

@@ -993,10 +993,9 @@ func _check_cargo(
 		if lost:
 			continue
 		moved = moved or then["pos"] != now["pos"]
-		var prop := config.ship.props[index]
 		var height := config.rules.railing_height
-		var was := PropPlacing.of(then, prop, config.ship, height, driver.previous["seats"])
-		var drawn := PropPlacing.of(now, prop, config.ship, height, driver.current["seats"])
+		var was := PropPlacing.of(then, config.ship, height, driver.previous["seats"])
+		var drawn := PropPlacing.of(now, config.ship, height, driver.current["seats"])
 		var feet: Vector3 = ship.global_transform * was.interpolate_with(drawn, driver.alpha).origin
 		var off := crates[index].global_position.distance_to(feet)
 		if off > CRATE_TOLERANCE and not misses.has(key):

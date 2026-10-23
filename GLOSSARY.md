@@ -65,8 +65,9 @@ _Avoid_: owner, carrier, wielder
 
 **Knocked loose**:
 Out of its holder's hands by a hit, at its feet: a lifebuoy only by a landed charged shove.
-Letting go by a Grab press is not being knocked loose.
-_Avoid_: disarmed, stolen, dropped
+Letting go by a Grab press is not being knocked loose; a bot that steals knocks a ring
+loose so as to take it.
+_Avoid_: disarmed, dropped
 
 ### Watching her again
 

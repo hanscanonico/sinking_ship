@@ -16,6 +16,9 @@ extends CanvasLayer
 ## observer camera only the inclinometer, the sinking's chips and banner, and where the
 ## watched seat stands show; from the free camera, too.
 
+## How far under the crosshair a prompt stands: the climb's, in the sea, and the grab's
+## on deck (#273).
+const PROMPT_BELOW := Vector2(0.0, 70.0)
 const FROST_SHADER := preload("res://scenes/match/frost.gdshader")
 ## The frost's crystal texture: its side in pixels, and how many crystals across it.
 const CRYSTAL_SIZE := 512
@@ -253,7 +256,7 @@ func _draw_hud() -> void:
 	else:
 		var words := grab_words(framed, _seat, _layout, _rules, here, _prompts.word(&"grab"))
 		if not words.is_empty():
-			_text(_canvas.size * 0.5 + Vector2(0.0, 70.0), words, TEXT, READOUT_TEXT)
+			_text(_canvas.size * 0.5 + PROMPT_BELOW, words, TEXT, READOUT_TEXT)
 	_draw_readouts(me, pose.world_height(me["pos"]))
 	_draw_chevrons(seen, deck, me["pos"], pose)
 	_draw_windup_wedges(mine["pos"], framed["seats"])
@@ -452,10 +455,10 @@ static func grab_words(
 	surfaces: Surfaces,
 	key: String
 ) -> String:
-	var me: Dictionary = snapshot["seats"][seat]
-	if me["out"] or me["state"] == PlayerState.Body.SWIMMING:
+	var me := MatchState.entry_of(snapshot["seats"], seat)
+	if me.is_empty() or me["out"] or me["state"] == PlayerState.Body.SWIMMING:
 		return ""
-	var held := _held_by(snapshot, seat)
+	var held := PropState.held_in(snapshot, seat)
 	if held != -1:
 		return "%s — let go of the %s" % [key, _prop_name(layout, held)]
 	var taken := GrabReach.would_take(snapshot, seat, layout, rules, surfaces)
@@ -468,21 +471,13 @@ static func grab_words(
 ## match on [param layout]: holding a prop that keeps it afloat, how many times longer
 ## its meter lasts in the sea; empty otherwise.
 static func warmth_words(snapshot: Dictionary, seat: int, layout: ShipLayout) -> String:
-	var held := _held_by(snapshot, seat)
+	var held := PropState.held_in(snapshot, seat)
 	if held == -1:
 		return ""
-	var kind := layout.props[held].prop_kind()
-	if not kind.afloat:
+	var rate := PropKind.sea_rate(layout.props[held].prop_kind())
+	if rate == 1.0:
 		return ""
-	return "%s ×%d" % [_prop_name(layout, held), roundi(1.0 / kind.sea_cold_rate)]
-
-
-## The prop [param seat] holds in [param snapshot], or -1.
-static func _held_by(snapshot: Dictionary, seat: int) -> int:
-	for entry: Dictionary in snapshot["props"]:
-		if entry["holder"] == seat:
-			return entry["prop"]
-	return -1
+	return "%s ×%d" % [_prop_name(layout, held), roundi(1.0 / rate)]
 
 
 ## Prop [param prop] of [param layout] in words: its kind's name.
@@ -863,7 +858,7 @@ func _draw_climb_prompt(me: Dictionary, here: Surfaces, pose: ShipPose) -> void:
 		return
 	if here.climb_out(me["pos"], Vector2.from_angle(_yaw), pose, _rules) == null:
 		return
-	var at := _canvas.size * 0.5 + Vector2(0.0, 70.0)
+	var at := _canvas.size * 0.5 + PROMPT_BELOW
 	_text(at, "Hold %s to climb" % _prompts.word(&"move_up"), TEXT, READOUT_TEXT)
 
 

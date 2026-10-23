@@ -42,11 +42,9 @@ var _bodies: Array[Brawler] = []
 ## Per seat, the facing it is drawn with, in its face's plane.
 var _facings := PackedFloat64Array()
 var _shadows: Array[MeshInstance3D] = []
-## Per prop of the layout, the node the ship drawn draws it under; the layout, and how
-## tall her railings stand.
+## Per prop of the layout, the node the ship drawn draws it under; and the layout.
 var _props: Array[Node3D] = []
 var _layout: ShipLayout
-var _railing_height: float
 ## The seat the camera looks out of, or -1 for none.
 var _eye_seat := -1
 ## The seat this player plays: drawn where its prediction has it, but for a
@@ -105,7 +103,6 @@ func setup(
 	var ship := sim.config.ship
 	var rules := sim.config.rules
 	_layout = ship
-	_railing_height = rules.railing_height
 	var leaves := ShipPieces.leaves_of(_schedule)
 	_broken = not leaves.is_empty()
 	_aft = leaves[0] if _broken else 0
@@ -519,11 +516,9 @@ func _show_props(then: Dictionary, now: Dictionary, alpha: float) -> void:
 		_props[index].visible = entry["state"] != PropState.Body.LOST
 		if not _props[index].visible:
 			continue
-		var prop := _layout.props[index]
-		var was := PropPlacing.of(
-			then["props"][index], prop, _layout, _railing_height, then["seats"]
-		)
-		var drawn := PropPlacing.of(entry, prop, _layout, _railing_height, now["seats"])
+		var height := _rules.railing_height
+		var was := PropPlacing.of(then["props"][index], _layout, height, then["seats"])
+		var drawn := PropPlacing.of(entry, _layout, height, now["seats"])
 		_props[index].transform = was.interpolate_with(drawn, alpha)
 
 

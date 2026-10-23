@@ -43,6 +43,20 @@ func is_loose() -> bool:
 	return body == Body.GROUNDED or body == Body.AIRBORNE or body == Body.FLOATING
 
 
+## Whether a Grab press may take a prop standing [param state]: lying on a deck, afloat at
+## hand, or hung on its span (GrabReach) — never one in the air, held or lost.
+static func within_grasp(state: Body) -> bool:
+	return state == Body.GROUNDED or state == Body.FLOATING or state == Body.HUNG
+
+
+## The prop [param seat] holds in [param snapshot] — a to_dict() of a match's — or -1.
+static func held_in(snapshot: Dictionary, seat: int) -> int:
+	for entry: Dictionary in snapshot["props"]:
+		if entry["holder"] == seat:
+			return entry["prop"]
+	return -1
+
+
 ## Every prop of [param layout] where it starts: at rest on the deck, or hung on the
 ## railing its entry names.
 static func from_layout(layout: ShipLayout) -> Array[PropState]:

@@ -417,9 +417,9 @@ func _jump(player: PlayerState, pose_now: ShipPose) -> void:
 func _count_hands() -> void:
 	_hands.resize(state.seats.size())
 	_hands.fill(-1)
-	for crate: PropState in state.props:
-		if crate.holder != -1:
-			_hands[crate.holder] = crate.prop
+	for prop: PropState in state.props:
+		if prop.holder != -1:
+			_hands[prop.holder] = prop.prop
 
 
 ## The kind of prop [param player] holds, or null for empty hands.
@@ -441,9 +441,9 @@ func _carry_caps() -> PackedFloat64Array:
 
 ## Every held prop where its holder's feet are now, as the snapshot draws it.
 func _ride_with_holders() -> void:
-	for crate: PropState in state.props:
-		if crate.holder != -1:
-			crate.pos = state.seats[crate.holder].pos
+	for prop: PropState in state.props:
+		if prop.holder != -1:
+			prop.pos = state.seats[prop.holder].pos
 
 
 ## The tick's Grab presses (#273), as _intent read them: a seat holding a prop lets go of
@@ -470,44 +470,42 @@ func _grabs(tick: int, events: Array[SimEvent]) -> void:
 		if not claims.has(prop) or _nearer(player, claims[prop], state.props[prop].pos):
 			claims[prop] = player
 	_grabbing.clear()
-	var taken := claims.keys()
-	taken.sort()
-	for prop: int in taken:
-		var crate := state.props[prop]
+	var claimed := claims.keys()
+	claimed.sort()
+	for prop: int in claimed:
+		var taken := state.props[prop]
 		var seat := claims[prop].seat
-		crate.body = PropState.Body.HELD
-		crate.holder = seat
-		crate.vel = Vector3.ZERO
-		crate.surface = Surfaces.NONE
+		taken.body = PropState.Body.HELD
+		taken.holder = seat
+		taken.vel = Vector3.ZERO
+		taken.surface = Surfaces.NONE
 		_hands[seat] = prop
 		events.append(SimEvent.prop_grabbed(tick, seat, prop))
 
 
 ## [param player] lets go of the prop it holds: at its feet, falling from there — lost
 ## at once where its piece stands on any face but her decks, where nothing stays stowed
-## (Hazards). Returns the prop.
-func _let_go(player: PlayerState, tick: int, events: Array[SimEvent]) -> int:
-	var prop := _hands[player.seat]
-	var crate := state.props[prop]
+## (Hazards).
+func _let_go(player: PlayerState, tick: int, events: Array[SimEvent]) -> void:
+	var held := state.props[_hands[player.seat]]
 	_hands[player.seat] = -1
-	crate.holder = -1
-	crate.vel = Vector3.ZERO
-	crate.surface = Surfaces.NONE
+	held.holder = -1
+	held.vel = Vector3.ZERO
+	held.surface = Surfaces.NONE
 	if state.up[player.piece] != Faces.Up.DECK:
-		_lose_prop(crate, tick, events)
-		return prop
-	crate.body = PropState.Body.AIRBORNE
-	crate.pos = player.pos
-	return prop
+		_lose_prop(held, tick, events)
+		return
+	held.body = PropState.Body.AIRBORNE
+	held.pos = player.pos
 
 
-## [param crate] gone into the sea, for the rest of the match.
-static func _lose_prop(crate: PropState, tick: int, events: Array[SimEvent]) -> void:
-	crate.body = PropState.Body.LOST
-	crate.holder = -1
-	crate.surface = Surfaces.NONE
-	crate.vel = Vector3.ZERO
-	events.append(SimEvent.prop_lost(tick, crate.prop))
+## [param prop] gone into the sea, for the rest of the match.
+static func _lose_prop(prop: PropState, tick: int, events: Array[SimEvent]) -> void:
+	prop.body = PropState.Body.LOST
+	prop.holder = -1
+	prop.surface = Surfaces.NONE
+	prop.vel = Vector3.ZERO
+	events.append(SimEvent.prop_lost(tick, prop.prop))
 
 
 ## Whether [param player] stands nearer [param point] (x/z) than [param other] does.
@@ -525,11 +523,10 @@ func _advance_action(player: PlayerState, live: Array[PlayerState]) -> void:
 	match player.action:
 		PlayerState.Action.WINDUP:
 			if held and player.action_ticks >= _charge_threshold_ticks:
-				var kind := _held_kind(player)
 				if (
 					player.exhausted
 					or player.stamina < _rules.charge_cost
-					or kind != null and not kind.carry_charge
+					or not PropKind.lets_charge(_held_kind(player))
 				):
 					_fire(player, live)
 				else:
@@ -582,10 +579,9 @@ func _brace_and_stamina(live: Array[PlayerState]) -> void:
 	for player: PlayerState in live:
 		if player.is_frozen():
 			continue
-		var kind := _held_kind(player)
 		player.bracing = (
 			player.last_buttons & InputFrame.BRACE != 0
-			and (kind == null or kind.carry_brace)
+			and PropKind.lets_brace(_held_kind(player))
 			and player.action == PlayerState.Action.IDLE
 			and player.body == PlayerState.Body.GROUNDED
 			and not player.is_staggered()
@@ -820,9 +816,7 @@ func _water(
 			continue
 		var head := player.pos + Vector3.UP * _rules.head_height(_movement.height_of(player))
 		var rate := _rules.pocket_cold_rate if pose_now.in_pocket(head) else 1.0
-		var kind := _held_kind(player)
-		if kind != null and kind.afloat:
-			rate = minf(rate, kind.sea_cold_rate)
+		rate = minf(rate, PropKind.sea_rate(_held_kind(player)))
 		player.cold = maxf(player.cold - dt * rate, 0.0)
 		if player.cold == 0.0:
 			_out(player, tick, events)

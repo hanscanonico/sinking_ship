@@ -55,6 +55,15 @@ static func up_of(snapshot: Dictionary, entry: Dictionary) -> int:
 	return snapshot["up"][entry["piece"]]
 
 
+## The entry of [param seat] among [param seats] — a snapshot's, listed by id and maybe
+## only some of them (SH22) — or none.
+static func entry_of(seats: Array, seat: int) -> Dictionary:
+	for entry: Dictionary in seats:
+		if entry["seat"] == seat:
+			return entry
+	return {}
+
+
 ## The railings, by index, that the match has broken: worked out again only when
 ## railing_hp has changed since. Shared with every caller, so read it, never edit it.
 func broken_railings() -> PackedInt32Array:

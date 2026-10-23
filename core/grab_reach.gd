@@ -1,10 +1,10 @@
 class_name GrabReach
 extends RefCounted
-## What a Grab press takes (#273): the nearest prop that can be held — loose on a deck or
-## hung on a railing — within grab_reach beyond the body's edge and the prop's, inside
-## grab_cone_deg of where the body faces, at a height it reaches — from step_height under
-## its feet up to its own height, a ring on a railing among them — with no blocker
-## between them; of two as near, the lower prop. Only a body on its feet on her decks,
+## What a Grab press takes (#273): the nearest prop that can be held — loose on a deck,
+## afloat at hand or hung on a railing — within grab_reach beyond the body's edge and the
+## prop's, inside grab_cone_deg of where the body faces, at a height it reaches — from
+## step_height under its feet up to its own height, a ring on a railing among them — with
+## no blocker between them; of two as near, the lower prop. Only a body on its feet on her decks,
 ## idle, neither staggered nor frozen and holding nothing, takes one. The sim's grabs and
 ## the HUD's prompt both ask here (D13), so the prompt names what a press would take.
 
@@ -35,25 +35,26 @@ static func take(
 	var cone := deg_to_rad(rules.grab_cone_deg)
 	var best := -1
 	var best_gap := INF
-	for crate: PropState in props:
-		if crate.holder == player.seat:
+	for candidate: PropState in props:
+		if candidate.holder == player.seat:
 			return -1
-		if crate.body != PropState.Body.GROUNDED and crate.body != PropState.Body.HUNG:
+		if not PropState.within_grasp(candidate.body):
 			continue
-		var prop := layout.props[crate.prop]
+		var prop := layout.props[candidate.prop]
 		if not prop.prop_kind().holdable:
 			continue
-		if crate.pos.y + prop.height < feet.y - rules.step_height or crate.pos.y > feet.y + height:
+		var at := candidate.pos
+		if at.y + prop.height < feet.y - rules.step_height or at.y > feet.y + height:
 			continue
-		var offset := Vector2(crate.pos.x - feet.x, crate.pos.z - feet.z)
+		var offset := Vector2(at.x - feet.x, at.z - feet.z)
 		var gap := offset.length() - rules.body_radius - prop.radius
 		if gap > rules.grab_reach or gap >= best_gap:
 			continue
 		if not offset.is_zero_approx() and absf(ahead.angle_to(offset)) > cone:
 			continue
-		if surfaces.blocked(feet, crate.pos, height, rules.step_height):
+		if surfaces.blocked(feet, at, height, rules.step_height):
 			continue
-		best = crate.prop
+		best = candidate.prop
 		best_gap = gap
 	return best
 

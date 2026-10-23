@@ -180,3 +180,13 @@ func test_the_reach_query_names_what_the_next_press_takes() -> void:
 		assert_eq(named, taken, "at %s facing %s" % case)
 		if taken != -1:
 			assert_eq(GrabReach.would_take(sim.snapshot(), 0, layout, rules, sim.surfaces), -1)
+
+
+## A ring afloat at hand — knocked loose where the water rises — is taken off the water
+## by a body standing beside it, as one lying on the deck is.
+func test_a_grab_takes_a_floating_ring_at_hand() -> void:
+	var sim := _with(1, [SimFixtures.lifebuoy(Vector3(1.0, 0.0, 0.0))])
+	SimFixtures.place(sim, 0, Vector3.ZERO, 0.0)
+	sim.state.props[0].body = PropState.Body.FLOATING
+	SimFixtures.step(sim, {0: _grab(0)})
+	assert_eq(sim.state.props[0].holder, 0)

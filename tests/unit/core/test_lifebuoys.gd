@@ -312,3 +312,20 @@ func test_a_loose_ring_floats_at_the_water_on_a_flooding_deck() -> void:
 
 func ring_height() -> float:
 	return PropKind.named(&"lifebuoy").height
+
+
+## The last swim (MatchVerdict.by_the_cold) goes to the most cold left: with every deck
+## under, two swimmers on meters alike, the one holding a ring — its cold coming slower —
+## wins it.
+func test_holding_a_ring_to_the_end_wins_the_last_swim() -> void:
+	var layout := SimFixtures.crated([SimFixtures.lifebuoy(Vector3.ZERO)])
+	var sim := SimFixtures.sim(2, SimFixtures.scenario([[0.0, 5.0, 0.0, 0.0]]), layout)
+	SimFixtures.swim(sim, 0, Vector3(-6.0, 0.0, 0.0))
+	SimFixtures.swim(sim, 1, Vector3(6.0, 0.0, 0.0))
+	SimFixtures.hand(sim, 1, 0)
+	for seat in 2:
+		sim.state.seats[seat].cold = 2.0
+	SimFixtures.step(sim)
+	assert_eq(sim.state.phase, MatchState.Phase.ENDED, "the last swim is over at once")
+	assert_eq(sim.state.winner(), 1, "the ring's holder has the more cold left")
+	assert_eq([sim.state.seats[0].place, sim.state.seats[1].place], [2, 1])

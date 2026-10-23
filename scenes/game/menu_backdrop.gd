@@ -248,11 +248,8 @@ func _wear() -> void:
 	var layout := _undressed.ship
 	var props := _art.props()
 	var railing_height := _undressed.rules.railing_height
-	for crate: PropState in PropState.from_layout(layout):
-		var prop := layout.props[crate.prop]
-		props[crate.prop].transform = PropPlacing.of(
-			crate.to_dict(), prop, layout, railing_height, []
-		)
+	for prop: PropState in PropState.from_layout(layout):
+		props[prop.prop].transform = PropPlacing.of(prop.to_dict(), layout, railing_height, [])
 	_corners = _outline()
 	_undressed = null
 	_frame()
