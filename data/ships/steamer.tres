@@ -4219,6 +4219,39 @@ hit_zone_x = Vector2(-19.5, 19.5)
 hit_zone_y = Vector2(-5.2, -0.2)
 sure_hit = SubResource("Sure_hit")
 
+[sub_resource type="Resource" id="Lifebuoy_0"]
+script = ExtResource("8_prop")
+kind = &"lifebuoy"
+railing = 2
+pos = Vector3(-5.25, 0, -5)
+radius = 0.33
+height = 0.075
+mass = 2.5
+grip_angle_deg = 20
+friction = 3
+
+[sub_resource type="Resource" id="Lifebuoy_1"]
+script = ExtResource("8_prop")
+kind = &"lifebuoy"
+railing = 12
+pos = Vector3(6.25, 0, 5)
+radius = 0.33
+height = 0.075
+mass = 2.5
+grip_angle_deg = 20
+friction = 3
+
+[sub_resource type="Resource" id="Lifebuoy_2"]
+script = ExtResource("8_prop")
+kind = &"lifebuoy"
+railing = 30
+pos = Vector3(17.75, 1.8, -4)
+radius = 0.33
+height = 0.075
+mass = 2.5
+grip_angle_deg = 20
+friction = 3
+
 [resource]
 script = ExtResource("5_layout")
 freeboard = 3.4
@@ -4231,6 +4264,6 @@ ladders = Array[ExtResource("7_ladder")]([SubResource("Ladder_port"), SubResourc
 spawns = Array[Vector3]([Vector3(8, -2.6, -2), Vector3(-2, -2.6, -3.2), Vector3(-7, -2.6, 2.8), Vector3(1.5, 0, -1.5), Vector3(-2.5, 0, 2.2), Vector3(-17.5, 1.2, -2.5), Vector3(-5, 0, -4.3), Vector3(7.4, 0, 4.2)])
 min_seats = 1
 max_seats = 8
-props = Array[ExtResource("8_prop")]([SubResource("Prop_hatch_aft"), SubResource("Prop_hatch_forward"), SubResource("Prop_forward_inboard"), SubResource("Prop_forward_outboard")])
+props = Array[ExtResource("8_prop")]([SubResource("Prop_hatch_aft"), SubResource("Prop_hatch_forward"), SubResource("Prop_forward_inboard"), SubResource("Prop_forward_outboard"), SubResource("Lifebuoy_0"), SubResource("Lifebuoy_1"), SubResource("Lifebuoy_2")])
 rooms = Array[ExtResource("6_room")]([SubResource("Room_forward_hold"), SubResource("Room_engine_room"), SubResource("Room_cabin_corridor"), SubResource("Room_cabin_port_aft"), SubResource("Room_cabin_port_middle"), SubResource("Room_cabin_port_forward"), SubResource("Room_cabin_starboard_aft"), SubResource("Room_cabin_starboard_middle"), SubResource("Room_cabin_starboard_forward"), SubResource("Room_saloon"), SubResource("Room_deckhouse_hall"), SubResource("Room_deckhouse_cabin_1"), SubResource("Room_deckhouse_cabin_2"), SubResource("Room_deckhouse_cabin_3"), SubResource("Room_deckhouse_cabin_4"), SubResource("Room_wheelhouse"), SubResource("Room_stokehold"), SubResource("Room_engine_room_forward"), SubResource("Room_engine_room_port"), SubResource("Room_engine_room_starboard"), SubResource("Room_double_bottom_port"), SubResource("Room_double_bottom_starboard"), SubResource("Room_lower_hold"), SubResource("Room_shaft_tunnel"), SubResource("Room_bilge_stores"), SubResource("Room_side_passage_port"), SubResource("Room_side_passage_starboard"), SubResource("Room_steering_gear"), SubResource("Room_aft_stores"), SubResource("Room_lower_aft_stores"), SubResource("Room_bosuns_store"), SubResource("Room_chain_locker")])
 structure = SubResource("Structure")

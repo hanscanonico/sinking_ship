@@ -3157,6 +3157,50 @@ hit_zone_x = Vector2(-29.5, 29.5)
 hit_zone_y = Vector2(-4, -0.2)
 sure_hit = SubResource("Sure_hit")
 
+[sub_resource type="Resource" id="Lifebuoy_0"]
+script = ExtResource("8_prop")
+kind = &"lifebuoy"
+railing = 9
+pos = Vector3(-20.75, 4.8, -6.4)
+radius = 0.33
+height = 0.075
+mass = 2.5
+grip_angle_deg = 20
+friction = 3
+
+[sub_resource type="Resource" id="Lifebuoy_1"]
+script = ExtResource("8_prop")
+kind = &"lifebuoy"
+railing = 43
+pos = Vector3(-10.25, 4.8, 6.4)
+radius = 0.33
+height = 0.075
+mass = 2.5
+grip_angle_deg = 20
+friction = 3
+
+[sub_resource type="Resource" id="Lifebuoy_2"]
+script = ExtResource("8_prop")
+kind = &"lifebuoy"
+railing = 15
+pos = Vector3(0.25, 4.8, -6.4)
+radius = 0.33
+height = 0.075
+mass = 2.5
+grip_angle_deg = 20
+friction = 3
+
+[sub_resource type="Resource" id="Lifebuoy_3"]
+script = ExtResource("8_prop")
+kind = &"lifebuoy"
+railing = 49
+pos = Vector3(10.75, 4.8, 6.4)
+radius = 0.33
+height = 0.075
+mass = 2.5
+grip_angle_deg = 20
+friction = 3
+
 [resource]
 script = ExtResource("5_layout")
 freeboard = 1.4
@@ -3169,7 +3213,7 @@ ladders = Array[ExtResource("7_ladder")]([SubResource("Ladder_port"), SubResourc
 spawns = Array[Vector3]([Vector3(-24, 0, 0), Vector3(-12, 0, -2), Vector3(-12, 0, 2), Vector3(8, 0, 0), Vector3(-27, 4.8, -2), Vector3(-27, 4.8, 2), Vector3(-10, 4.8, 0), Vector3(10, 4.8, -3), Vector3(-14, 7.6, -2), Vector3(0, 7.6, 2)])
 min_seats = 1
 max_seats = 10
-props = Array[ExtResource("8_prop")]([SubResource("Prop_aft_port"), SubResource("Prop_aft_starboard"), SubResource("Prop_forward_port"), SubResource("Prop_forward_starboard")])
+props = Array[ExtResource("8_prop")]([SubResource("Prop_aft_port"), SubResource("Prop_aft_starboard"), SubResource("Prop_forward_port"), SubResource("Prop_forward_starboard"), SubResource("Lifebuoy_0"), SubResource("Lifebuoy_1"), SubResource("Lifebuoy_2"), SubResource("Lifebuoy_3")])
 rooms = Array[ExtResource("6_room")]([SubResource("Room_engine_room"), SubResource("Room_crew_quarters"), SubResource("Room_car_deck"), SubResource("Room_saloon"), SubResource("Room_galley"), SubResource("Room_lounge"), SubResource("Room_wheelhouse")])
 dressed = false
 structure = SubResource("Structure")

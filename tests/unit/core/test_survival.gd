@@ -12,9 +12,10 @@ const SURVIVAL_MATCH := "res://data/match/survival.tres"
 ## paced clock, narrower hits and 1 h 30 bound, then #148's spaces in the steamer's old
 ## voids, their scuttles and the pieces' fitted mark, then the floating crates'
 ## crate_draft, crate_float_drag and crate_adrift_depth, then crate_float_drag's lighter
-## drag and crate_float_pull for their drift, then wade_speed_deep, then dunk_depth):
-## the goals must not move the battle royale's.
-const BATTLE_ROYALE_HASH := "800bfb3a0d42b0061d0644d425c31898f046fb2b5875fb171ab9e48ad8cf6a8f"
+## drag and crate_float_pull for their drift, then wade_speed_deep, then dunk_depth, then
+## #273's grab_reach and grab_cone_deg, her lifebuoys and the kinds of her props): the
+## goals must not move the battle royale's.
+const BATTLE_ROYALE_HASH := "0333922f443af1e2216b1c6a0ede402ae4ef4aa3bc0afff9c54e2be3b3c80316"
 
 
 func test_the_data_carries_the_goal_onto_the_match() -> void:

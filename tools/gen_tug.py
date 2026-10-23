@@ -43,6 +43,7 @@ def rect_xz(x0, x1, z0, z1):
 
 subs = []
 platforms, ramps, blockers, railings, ladders, rooms, props = [], [], [], [], [], [], []
+rail_geo = []  # per railing, (platform, from, to)
 used = set()
 # The same pieces as numbers, for the structure below: (x0, x1, z0, z1, height) per
 # platform; (x0, x1, z0, z1, axis, start, end) per ramp; (x0, x1, z0, z1, bottom, top,
@@ -189,6 +190,7 @@ def railing(rid, plat, a, b):
         f.append(("from", "Vector2(%s, %s)" % (num(ends[k][0]), num(ends[k][1]))))
         f.append(("to", "Vector2(%s, %s)" % (num(ends[k + 1][0]), num(ends[k + 1][1]))))
         railings.append(sub("Railing_" + rid + ("_%d" % k if len(ends) > 2 else ""), "4_rail", f))
+        rail_geo.append((on, ends[k], ends[k + 1]))
 
 def ladder(lid, plat, a, b):
     f = []
@@ -1116,6 +1118,32 @@ sub("Structure", "9_structure", [
     ("hit_zone_x", "Vector2(%s, %s)" % (num(HIT_ZONE_X[0]), num(HIT_ZONE_X[1]))),
     ("hit_zone_y", "Vector2(%s, %s)" % (num(HIT_ZONE_Y[0]), num(HIT_ZONE_Y[1]))),
     ("sure_hit", 'SubResource("%s")' % sub("Sure_hit", "15_hit", [(k, num(v)) for k, v in SURE_HIT]))])
+
+# Her lifebuoys (#273), each hung on a railing span along her side that faces the sea —
+# the layout lint holds every station to one: the span along `side` (1 starboard, -1 port)
+# of the deck `h` high that runs over `x`, the outermost there. It hangs between the two
+# posts nearest the span's middle, as her art draws a post every POST along a span; its
+# pos is the point of the span it hangs from, at its deck's height. Its size is the
+# lifebuoy kind's (data/props/lifebuoy.tres); she carries fewer than her seats.
+POST = 1.5
+LIFEBUOY = [("radius", 0.33), ("height", 0.075), ("mass", 2.5), ("grip_angle_deg", 20), ("friction", 3)]
+
+def lifebuoy(x, side, h):
+    found = [k for k, (on, a, b) in enumerate(rail_geo)
+             if a[1] == b[1] and a[1] * side > 0 and abs(plat_geo[on][4] - h) < 1e-6
+             and min(a[0], b[0]) < x < max(a[0], b[0])]
+    assert found, "no railing along side %s of the deck at %s over %s" % (side, h, x)
+    k = max(found, key=lambda k: abs(rail_geo[k][1][1]))
+    _on, a, b = rail_geo[k]
+    posts = max(1, math.ceil(math.hypot(b[0] - a[0], b[1] - a[1]) / POST))
+    t = (math.floor((posts - 1) * 0.5) + 0.5) / posts
+    at = (a[0] + (b[0] - a[0]) * t, h, a[1] + (b[1] - a[1]) * t)
+    f = [("kind", '&"lifebuoy"'), ("railing", str(k)), ("pos", "Vector3(%s, %s, %s)" % tuple(num(c) for c in at))]
+    f += [(field, num(v)) for field, v in LIFEBUOY]
+    props.append(sub("Lifebuoy_%d" % sum(1 for p in props if p.startswith("Lifebuoy_")), "8_prop", f))
+
+lifebuoy(-3.25, -1, 2.4)
+lifebuoy(8.5, 1, 2.4)
 
 head = """[gd_resource type="Resource" script_class="ShipLayout" format=3]
 

@@ -593,6 +593,9 @@ albedo_color = Color(0.8117647, 0.23137255, 0.16862746, 1)
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_ladr1"]
 albedo_color = Color(0.4392157, 0.45882353, 0.4862745, 1)
 
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_3iimb_props"]
+albedo_color = Color(0.6117647, 0.47843137, 0.29803923, 1)
+
 [node name="Titanic" type="Node3D" unique_id=123257851]
 metadata/ship = &"layout"
 metadata/freeboard = 10.0
@@ -12773,6 +12776,58 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, -3.1875, 1)
 metadata/ship = &"spawn"
 
 [node name="Props" type="Node3D" parent="." unique_id=2054238695]
+
+[node name="Lifebuoy_0" type="CSGCylinder3D" parent="Props" unique_id=731806855]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -46.75, 8.4125, -13.55)
+radius = 0.33
+height = 0.075
+sides = 16
+material = SubResource("StandardMaterial3D_3iimb_props")
+metadata/ship = &"prop"
+metadata/kind = &"lifebuoy"
+metadata/railing = 7
+metadata/mass = 2.5
+metadata/grip_angle_deg = 20.0
+metadata/friction = 3.0
+
+[node name="Lifebuoy_1" type="CSGCylinder3D" parent="Props" unique_id=530708614]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -25.75, 8.4125, 13.55)
+radius = 0.33
+height = 0.075
+sides = 16
+material = SubResource("StandardMaterial3D_3iimb_props")
+metadata/ship = &"prop"
+metadata/kind = &"lifebuoy"
+metadata/railing = 57
+metadata/mass = 2.5
+metadata/grip_angle_deg = 20.0
+metadata/friction = 3.0
+
+[node name="Lifebuoy_2" type="CSGCylinder3D" parent="Props" unique_id=1639520309]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.75, 8.4125, -13.55)
+radius = 0.33
+height = 0.075
+sides = 16
+material = SubResource("StandardMaterial3D_3iimb_props")
+metadata/ship = &"prop"
+metadata/kind = &"lifebuoy"
+metadata/railing = 22
+metadata/mass = 2.5
+metadata/grip_angle_deg = 20.0
+metadata/friction = 3.0
+
+[node name="Lifebuoy_3" type="CSGCylinder3D" parent="Props" unique_id=58963797]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 47.25, 8.4125, 13.55)
+radius = 0.33
+height = 0.075
+sides = 16
+material = SubResource("StandardMaterial3D_3iimb_props")
+metadata/ship = &"prop"
+metadata/kind = &"lifebuoy"
+metadata/railing = 79
+metadata/mass = 2.5
+metadata/grip_angle_deg = 20.0
+metadata/friction = 3.0
 
 [node name="Rooms" type="Node3D" parent="." unique_id=1747513145]
 visible = false

@@ -2746,6 +2746,45 @@ metadata/mass = 200.0
 metadata/grip_angle_deg = 8.0
 metadata/friction = 2.5
 
+[node name="Lifebuoy_0" type="CSGCylinder3D" parent="Props" unique_id=881408357]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.25, 0.0375, -5)
+radius = 0.33
+height = 0.075
+sides = 16
+material = SubResource("StandardMaterial3D_dhlwe")
+metadata/ship = &"prop"
+metadata/kind = &"lifebuoy"
+metadata/railing = 2
+metadata/mass = 2.5
+metadata/grip_angle_deg = 20.0
+metadata/friction = 3.0
+
+[node name="Lifebuoy_1" type="CSGCylinder3D" parent="Props" unique_id=1955179332]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6.25, 0.0375, 5)
+radius = 0.33
+height = 0.075
+sides = 16
+material = SubResource("StandardMaterial3D_dhlwe")
+metadata/ship = &"prop"
+metadata/kind = &"lifebuoy"
+metadata/railing = 12
+metadata/mass = 2.5
+metadata/grip_angle_deg = 20.0
+metadata/friction = 3.0
+
+[node name="Lifebuoy_2" type="CSGCylinder3D" parent="Props" unique_id=1589857125]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 17.75, 1.8375, -4)
+radius = 0.33
+height = 0.075
+sides = 16
+material = SubResource("StandardMaterial3D_dhlwe")
+metadata/ship = &"prop"
+metadata/kind = &"lifebuoy"
+metadata/railing = 30
+metadata/mass = 2.5
+metadata/grip_angle_deg = 20.0
+metadata/friction = 3.0
+
 [node name="Rooms" type="Node3D" parent="." unique_id=608163919]
 visible = false
 
