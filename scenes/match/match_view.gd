@@ -5,10 +5,11 @@ extends Node3D
 ## same moment, read off the schedule here and handed in, and every seat is a
 ## Brawler with a blob shadow, placed in ship space and standing up the frame of the
 ## faces the match stands on (Faces, SH32) — except the seat whose eyes the view is in,
-## which is not drawn (D14) — and every crate of the cargo is placed where the snapshots
-## have it, hidden once lost (SH10). Once she has broken (SH33) a seat stands in the space
-## of its piece, where that piece's pose has it in the world. It never moves a body
-## itself, and never reads a live PlayerState.
+## which is not drawn (D14) — and every prop is placed where the snapshots have it
+## (PropPlacing): a crate where it stands, a ring hung on its span or carried before its
+## holder, whose hands reach for it, hidden once lost (SH10, #273). Once she has broken
+## (SH33) a seat stands in the space of its piece, where that piece's pose has it in the
+## world. It never moves a body itself, and never reads a live PlayerState.
 
 ## The seat colours now live in ArtPalette; this name stays for code outside the art.
 const SEAT_COLOURS: Array[Color] = ArtPalette.SEAT_COLOURS
@@ -41,8 +42,11 @@ var _bodies: Array[Brawler] = []
 ## Per seat, the facing it is drawn with, in its face's plane.
 var _facings := PackedFloat64Array()
 var _shadows: Array[MeshInstance3D] = []
-## Per crate of the layout's cargo, the node the ship drawn draws it under.
-var _crates: Array[Node3D] = []
+## Per prop of the layout, the node the ship drawn draws it under; the layout, and how
+## tall her railings stand.
+var _props: Array[Node3D] = []
+var _layout: ShipLayout
+var _railing_height: float
 ## The seat the camera looks out of, or -1 for none.
 var _eye_seat := -1
 ## The seat this player plays: drawn where its prediction has it, but for a
@@ -100,20 +104,22 @@ func setup(
 	_rooms = sim.config.ship.rooms
 	var ship := sim.config.ship
 	var rules := sim.config.rules
+	_layout = ship
+	_railing_height = rules.railing_height
 	var leaves := ShipPieces.leaves_of(_schedule)
 	_broken = not leaves.is_empty()
 	_aft = leaves[0] if _broken else 0
 	var stretches: Array[ShipArt] = []
 	if _greybox.visible:
 		_greybox.build(_pieces.layout(leaves[0]) if _broken else ship, rules.railing_height)
-		_crates = _greybox.crates()
+		_props = _greybox.props()
 	else:
 		if dressing == null:
 			dressing = ShipDressing.new(sim.config, _art.cut_above)
 		dressing.finish()
 		_wear(dressing.art)
 		stretches = dressing.stretches
-		_crates = _art.crates()
+		_props = _art.props()
 	if _drawn_pieces == null:
 		_drawn_pieces = ShipPieces.new()
 		_drawn_pieces.name = "Pieces"
@@ -358,9 +364,13 @@ func _process(delta: float) -> void:
 	_show_sinking(
 		lerpf(previous["tick"], current["tick"], alpha), current["railing_hp"], pose_then, alpha
 	)
-	_show_cargo(previous["props"], current["props"], alpha)
+	_show_props(previous, current, alpha)
 	var seats_then: Array = previous["seats"]
 	var seats_now: Array = current["seats"]
+	var carried := {}
+	for entry: Dictionary in current["props"]:
+		if entry["holder"] != -1:
+			carried[entry["holder"]] = entry["prop"]
 	var wading: bool = current["tick"] != _waders_tick
 	var wet_feet := PackedVector3Array()
 	var wet_water := PackedFloat32Array()
@@ -417,6 +427,9 @@ func _process(delta: float) -> void:
 		# Posed even unseen, through its eyes: the hands of a body drawn reaching for it
 		# stop at its guard (Brawler.keep_apart).
 		body.show_state(then, now, alpha, _heights[seat] < _rules.body_height)
+		if carried.has(seat):
+			var ring := _props[carried[seat]]
+			body.carry(ring.global_transform, _layout.props[carried[seat]].radius)
 		if not body.visible:
 			continue
 		# A swimmer stands on nothing: no ring tilted to a deck under the sea, no shadow.
@@ -498,13 +511,20 @@ func _show_sinking(
 		_art.show_falls(pose.falls, tick)
 
 
-## Each crate [param alpha] of the way from where [param then] has it to where
-## [param now] does — the two snapshots' "props" — and hidden once it is lost.
-func _show_cargo(then: Array, now: Array, alpha: float) -> void:
-	for index in _crates.size():
-		var entry: Dictionary = now[index]
-		_crates[index].visible = entry["state"] != PropState.Body.LOST
-		_crates[index].position = (then[index]["pos"] as Vector3).lerp(entry["pos"], alpha)
+## Each prop [param alpha] of the way from where snapshot [param then] draws it to where
+## [param now] does (PropPlacing), and hidden once it is lost.
+func _show_props(then: Dictionary, now: Dictionary, alpha: float) -> void:
+	for index in _props.size():
+		var entry: Dictionary = now["props"][index]
+		_props[index].visible = entry["state"] != PropState.Body.LOST
+		if not _props[index].visible:
+			continue
+		var prop := _layout.props[index]
+		var was := PropPlacing.of(
+			then["props"][index], prop, _layout, _railing_height, then["seats"]
+		)
+		var drawn := PropPlacing.of(entry, prop, _layout, _railing_height, now["seats"])
+		_props[index].transform = was.interpolate_with(drawn, alpha)
 
 
 ## The up of [param surface] of [param here] under [param pos], in that Surfaces'

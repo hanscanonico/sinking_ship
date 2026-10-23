@@ -11,8 +11,8 @@ extends Node3D
 ## above [member cut_above] is drawn, so the observer can look inside. The sinking's
 ## events are drawn as MatchView hands them in: a deck about to give way flashes, a
 ## collapsed one falls onto the floor beneath and lies there broken as the dressed
-## ship's does (ShipArt.wrecked), a failed or broken railing is gone. Every crate of
-## the cargo is a box of its own, which MatchView places (crates()).
+## ship's does (ShipArt.wrecked), a failed or broken railing is gone. Every prop is a box
+## of its own — a ring's flat, about its middle — which MatchView places (props()).
 
 ## How far the hull block reaches below the waterline of a level, unsunk ship.
 const HULL_DRAFT := 2.0
@@ -55,6 +55,7 @@ const SLIVER := 0.01
 ## A deck about to give way is lit this colour while its telegraph blinks.
 const FLASH_COLOUR := ArtPalette.COLLAPSE_FLASH
 const CRATE_COLOUR := ArtPalette.CRATE
+const RING_COLOUR := ArtPalette.LIFEBELT
 
 ## Ship-local height: nothing of the ship at or above it is drawn — the observer's
 ## cut-away (--observer-cut). INF draws everything.
@@ -68,8 +69,9 @@ var _decks: Array[Node3D] = []
 var _floors := PackedFloat64Array()
 ## Per railing, the node its rail and posts hang from, or null.
 var _rails: Array[Node3D] = []
-## Per crate of the layout's cargo, the node its box hangs from at its underside.
-var _crates: Array[Node3D] = []
+## Per prop of the layout, the node its box hangs from: at a crate's underside, at a
+## ring's middle.
+var _props: Array[Node3D] = []
 var _flash: StandardMaterial3D
 ## Per room's lamp marker, its glow and the cell it hangs in (SH31): lit as the pose has
 ## the cell; and per funnel the sinking can fell, by name, the node its cylinder hangs
@@ -87,7 +89,7 @@ func build(layout: ShipLayout, railing_height: float) -> void:
 	_decks.clear()
 	_floors.clear()
 	_rails.clear()
-	_crates.clear()
+	_props.clear()
 	_glows.clear()
 	_glow_cells.clear()
 	_funnels.clear()
@@ -166,15 +168,19 @@ func build(layout: ShipLayout, railing_height: float) -> void:
 		var crate := Node3D.new()
 		add_child(crate)
 		crate.position = prop.pos
-		var side := prop.radius * ShipArt.CRATE_SIDE * 2.0
-		_box(Vector3(side, prop.height, side), Vector3.UP * prop.height * 0.5, CRATE_COLOUR, crate)
-		_crates.append(crate)
+		if prop.kind == &"lifebuoy":
+			var face := Vector3(prop.radius * 2.0, prop.radius * 2.0, prop.height)
+			_box(face, Vector3.ZERO, RING_COLOUR, crate)
+		else:
+			var side := prop.radius * ShipArt.CRATE_SIDE * 2.0
+			var box := Vector3(side, prop.height, side)
+			_box(box, Vector3.UP * prop.height * 0.5, CRATE_COLOUR, crate)
+		_props.append(crate)
 
 
-## Per crate of the layout's cargo, the node it is drawn under, its origin at the
-## crate's underside: where MatchView puts it.
-func crates() -> Array[Node3D]:
-	return _crates
+## Per prop of the layout, the node it is drawn under: where MatchView puts it.
+func props() -> Array[Node3D]:
+	return _props
 
 
 ## Draws what the sinking's events have done, as MatchView hands them in: a

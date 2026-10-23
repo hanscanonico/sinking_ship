@@ -135,12 +135,12 @@ var _room_boxes: Array[AABB] = []
 ## the blink they were last given, so it is set only as it changes.
 var _flashes := {}
 var _flashing := {}
-## Per crate of the layout's cargo, the node it is drawn under, and its own paints;
-## and where it stood and how far indoors it was when they were last told.
-var _crates: Array[Node3D] = []
-var _crate_paints: Array[Dictionary] = []
-var _crate_at := PackedVector3Array()
-var _crate_indoors := PackedFloat32Array()
+## Per prop of the layout (#273), the node it is drawn under, and its own paints; and
+## where it stood and how far indoors it was when they were last told.
+var _props: Array[Node3D] = []
+var _prop_paints: Array[Dictionary] = []
+var _prop_at := PackedVector3Array()
+var _prop_indoors := PackedFloat32Array()
 ## Which of the rooms' lamps light, and the graphics preset it was last told of.
 var _lamp_sight: LampSight
 ## Every room's lamp, and where it burns: what the sinking's lit state and water reach
@@ -194,10 +194,10 @@ func build(
 	_powered = null
 	_flashes.clear()
 	_flashing.clear()
-	_crates.clear()
-	_crate_paints.clear()
-	_crate_at.clear()
-	_crate_indoors.clear()
+	_props.clear()
+	_prop_paints.clear()
+	_prop_at.clear()
+	_prop_indoors.clear()
 	_lamps.clear()
 	_lamp_at.clear()
 	_funnels.clear()
@@ -239,8 +239,6 @@ func build(
 		DeckWorks.rig(mesh, layout, rules, span, _funnels, pieces)
 	var cap := Vector2(RAIL_WIDTH, RAIL_DEPTH)
 	_wreckage = RailingRemains.new(layout, railing_height, cap, Vector2.ONE * MID_RAIL, POST)
-	# A railing's lifebuoy hangs in its own piece: gone with it when it breaks.
-	var buoys := RailBuoys.of(_space, railing_height)
 	for index in layout.railings.size():
 		var railing := layout.railings[index]
 		var wreck := _wrecks[railing.platform]
@@ -250,8 +248,6 @@ func build(
 		if mesh.kept(minf(railing.from.x, railing.to.x), maxf(railing.from.x, railing.to.x)):
 			_railing(into, index, railing_height)
 			hull.staff(into, railing)
-			if buoys.has(index):
-				RoomDressing.lifebelt(into, buoys[index][0], buoys[index][1])
 		_remains.append(null)
 	for ladder: ShipLadder in layout.ladders:
 		if not mesh.kept(minf(ladder.from.x, ladder.to.x), maxf(ladder.from.x, ladder.to.x)):
@@ -294,9 +290,9 @@ func build(
 		var paints: Dictionary = materials if deck == -1 else _flashes[layout.platforms[deck].name]
 		(pieces[node] as ShipMesh).commit(node, paints)
 	for prop: ShipProp in layout.props:
-		_crates.append(_crate(prop, materials))
-		_crate_at.append(Vector3(NAN, NAN, NAN))
-		_crate_indoors.append(NAN)
+		_props.append(_prop(prop, materials))
+		_prop_at.append(Vector3(NAN, NAN, NAN))
+		_prop_indoors.append(NAN)
 
 
 ## Lets the rooms' lamps light as [param quality] allows: every room in sight, and
@@ -317,10 +313,10 @@ func show_span(kept: Vector2) -> void:
 	PieceClip.show(materials, span)
 
 
-## Per crate of the layout's cargo, the node it is drawn under, its origin at the
-## crate's underside: where MatchView puts it.
-func crates() -> Array[Node3D]:
-	return _crates
+## Per prop of the layout, the node it is drawn under: a crate's origin at its
+## underside, a ring's at its middle (PropPlacing), where MatchView puts it.
+func props() -> Array[Node3D]:
+	return _props
 
 
 ## Draws what the sinking's events have done, as MatchView hands them in: a
@@ -440,54 +436,55 @@ func _process(_delta: float) -> void:
 			span, (global_transform.affine_inverse() * _smoke.global_position).x
 		)
 		_smoke.emitting = _smoke.global_position.y > 0.0 and not _felled and aboard
-	for index in _crates.size():
-		_light_crate(index)
+	for index in _props.size():
+		_light_prop(index)
 	var camera := get_viewport().get_camera_3d()
 	if camera != null and _lamp_sight != null:
 		_lamp_sight.choose(global_transform.affine_inverse() * camera.global_position)
 
 
-## Takes crate [param index]'s paints as far indoors as the crate stands where
+## Takes prop [param index]'s paints as far indoors as the prop stands where
 ## MatchView has put it — lamp-lit and out of the sun in a room, as the room's faces
 ## are — so it goes from the one light to the other as it crosses a doorway. Only as
 ## it moves, and only as far as that changes it.
-func _light_crate(index: int) -> void:
-	var at := _crates[index].position
-	if at == _crate_at[index]:
+func _light_prop(index: int) -> void:
+	var at := _props[index].position
+	if at == _prop_at[index]:
 		return
-	_crate_at[index] = at
+	_prop_at[index] = at
 	var prop := _space.layout.props[index]
 	var half := prop.radius * CRATE_SIDE
 	var foot := Rect2(at.x - half, at.z - half, half * 2.0, half * 2.0)
 	var indoors := _space.indoors(foot, at.y + prop.height * 0.5)
-	if indoors == _crate_indoors[index]:
+	if indoors == _prop_indoors[index]:
 		return
-	_crate_indoors[index] = indoors
+	_prop_indoors[index] = indoors
 	for finish: int in PAINTS:
-		(_crate_paints[index][finish] as ShaderMaterial).set_shader_parameter("indoors", indoors)
+		(_prop_paints[index][finish] as ShaderMaterial).set_shader_parameter("indoors", indoors)
 
 
-## [param prop] as a crate, its model (CRATE_MODEL) — planked sides and lid, battens
-## round its foot and its lid, posts and braces, stencils and lashing — under a node of
-## its own at its underside: built outdoors, where the cargo stands, in paints of its
-## own that _light_crate() takes indoors.
-func _crate(prop: ShipProp, materials: Dictionary) -> Node3D:
+## [param prop] under a node of its own, built outdoors, where the cargo stands, in paints
+## of its own that _light_prop() takes indoors: a crate its model (CRATE_MODEL) — planked
+## sides and lid, battens round its foot and its lid, posts and braces, stencils and
+## lashing — at its underside; a lifebuoy the lifebelt about its middle, its face along z.
+func _prop(prop: ShipProp, materials: Dictionary) -> Node3D:
 	var node := Node3D.new()
-	node.name = "Crate%d" % _crates.size()
+	node.name = "%s%d" % [String(prop.kind).to_pascal_case(), _props.size()]
 	add_child(node)
 	node.position = prop.pos
 	var no_rooms: Array[PackedFloat32Array] = [
 		PackedFloat32Array(), PackedFloat32Array(), PackedFloat32Array()
 	]
 	var mesh := ShipMesh.new(func(_point: Vector3) -> bool: return true, no_rooms)
-	mesh.model(ShipModel.named(CRATE_MODEL), Transform3D.IDENTITY)
+	var model := RoomDressing.LIFEBELT_MODEL if prop.kind == &"lifebuoy" else CRATE_MODEL
+	mesh.model(ShipModel.named(model), Transform3D.IDENTITY)
 	var paints := _own_paints(materials)
 	mesh.commit(node, paints)
 	# Off the outdoor layer, so a lamp reaches it once it slides into a room; the
 	# paints take no lamp while it stands outdoors.
 	for part: Node in node.get_children():
 		(part as MeshInstance3D).layers = 1
-	_crate_paints.append(paints)
+	_prop_paints.append(paints)
 	return node
 
 

@@ -681,7 +681,7 @@ func _check_crate_light(file: String, layout: ShipLayout, art: ShipArt) -> void:
 		var middle := room.area.get_center()
 		spots.append(Vector3(middle.x, room.floor_height, middle.y))
 		wanted.append(1.0)
-	var crate := art.crates()[0]
+	var crate := art.props()[0]
 	var unlit := 1 << (ShipMesh.OUTDOOR_LAYER - 1)
 	for index in spots.size():
 		crate.position = spots[index]
@@ -917,7 +917,7 @@ func _check_seats() -> void:
 	_checks += 1
 	if brawlers.size() != SEATS:
 		_problems.append("art-lint: %d brawlers drawn for %d seats" % [brawlers.size(), SEATS])
-	var crates: Array[Node3D] = (scene.get_node("MatchView/Ship/ShipArt") as ShipArt).crates()
+	var crates: Array[Node3D] = (scene.get_node("MatchView/Ship/ShipArt") as ShipArt).props()
 	_checks += 1
 	if crates.size() != client.config.ship.props.size():
 		_problems.append(
@@ -930,7 +930,7 @@ func _check_seats() -> void:
 	var crates_moved := false
 	while not client.is_over() and driver.current["tick"] < Ticks.from_seconds(SEAT_SECONDS):
 		await process_frame
-		crates_moved = _check_cargo(ship, driver, crates, misses) or crates_moved
+		crates_moved = (_check_cargo(ship, driver, crates, client.config, misses) or crates_moved)
 		var seats_then: Array = driver.previous["seats"]
 		var seats_now: Array = driver.current["seats"]
 		for brawler: Brawler in brawlers:
@@ -973,7 +973,7 @@ func _check_seats() -> void:
 ## at its underside on the posed [param ship], or hidden once lost; the first miss
 ## per crate goes in [param misses]. True when any crate moved between the two.
 func _check_cargo(
-	ship: Node3D, driver: SimDriver, crates: Array[Node3D], misses: Dictionary
+	ship: Node3D, driver: SimDriver, crates: Array[Node3D], config: MatchConfig, misses: Dictionary
 ) -> bool:
 	var moved := false
 	for index in crates.size():
@@ -993,9 +993,11 @@ func _check_cargo(
 		if lost:
 			continue
 		moved = moved or then["pos"] != now["pos"]
-		var feet: Vector3 = (
-			ship.global_transform * (then["pos"] as Vector3).lerp(now["pos"], driver.alpha)
-		)
+		var prop := config.ship.props[index]
+		var height := config.rules.railing_height
+		var was := PropPlacing.of(then, prop, config.ship, height, driver.previous["seats"])
+		var drawn := PropPlacing.of(now, prop, config.ship, height, driver.current["seats"])
+		var feet: Vector3 = ship.global_transform * was.interpolate_with(drawn, driver.alpha).origin
 		var off := crates[index].global_position.distance_to(feet)
 		if off > CRATE_TOLERANCE and not misses.has(key):
 			misses[key] = (
