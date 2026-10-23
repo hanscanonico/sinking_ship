@@ -15,8 +15,9 @@ extends RefCounted
 ## GROUNDED as her hull first touches the bottom; and from SH33 HULL_HINGING as a hinge
 ## starts at a weak spot of hers, HULL_PARTED as her hull parts there. KNOCKED_DOWN is a
 ## rule's: a falling funnel landing on a body (Hazards, D12); PROP_AFLOAT too: a prop
-## its cell's water lifts off its floor. The props' (#273): a seat grabbing one, letting
-## go of it, and a landed shove knocking it loose.
+## its cell's water lifts off its floor; BOWLED: a staggered body running into another
+## and knocking it off its feet (Movement, §6); and the props' (#273): a seat grabbing
+## one, letting go of it, and a landed shove knocking it loose.
 
 enum Kind {
 	SEAT_OUT,
@@ -58,6 +59,7 @@ enum Kind {
 	HULL_HINGING,
 	HULL_PARTED,
 	PROP_AFLOAT,
+	BOWLED,
 	PROP_GRABBED,
 	PROP_LET_GO,
 	KNOCKED_LOOSE,
@@ -70,9 +72,9 @@ var tick: int
 ## SHOVE_LANDED: the shover. ENTERED_WATER: who started swimming. CLIMBED_OUT: who
 ## stood up out of the sea. KNOCKED_BACK_IN: the climber a shove sent back.
 ## PROP_HIT: the seat a prop ran into. RAILING_BROKE: the seat whose vault broke
-## the span, or -1. KNOCKED_DOWN: the seat a funnel landed on. PROP_GRABBED,
-## PROP_LET_GO, KNOCKED_LOOSE: the seat that took the prop, or held it. The sinking's
-## events, PROP_AFLOAT and PROP_LOST: -1.
+## the span, or -1. KNOCKED_DOWN: the seat a funnel landed on. BOWLED: the seat knocked
+## off its feet. PROP_GRABBED, PROP_LET_GO, KNOCKED_LOOSE: the seat that took the prop,
+## or held it. The sinking's events, PROP_AFLOAT and PROP_LOST: -1.
 var seat: int
 var place: int
 var cause: PlayerState.Cause = PlayerState.Cause.NONE
@@ -88,7 +90,7 @@ var prop: int = -1
 var surface: int = Surfaces.NONE
 ## LANDED: the ticks of stagger the drop cost.
 var stagger_ticks: int
-## SHOVE_LANDED: the seat the shove hit.
+## SHOVE_LANDED: the seat the shove hit. BOWLED: the seat that ran into it.
 var target: int = -1
 ## SHIP_LURCHING, SHIP_LURCHED: the heel the lurch swings by, signed as the pose's.
 var heel_deg: float
@@ -240,6 +242,14 @@ static func knocked_down(event_tick: int, struck_seat: int, funnel: StringName) 
 static func prop_hit(event_tick: int, hit_seat: int, crate: int) -> SimEvent:
 	var event := SimEvent.new(Kind.PROP_HIT, event_tick, hit_seat)
 	event.prop = crate
+	return event
+
+
+## [param bowled_seat] knocked off its feet by [param by], a staggered body running into
+## it (Movement).
+static func bowled(event_tick: int, bowled_seat: int, by: int) -> SimEvent:
+	var event := SimEvent.new(Kind.BOWLED, event_tick, bowled_seat)
+	event.target = by
 	return event
 
 

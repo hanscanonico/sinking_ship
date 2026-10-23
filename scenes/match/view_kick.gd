@@ -1,7 +1,8 @@
 class_name ViewKick
 extends RefCounted
 ## The eyes' share of a hit (D14): a short kick when the seat they are in lands a
-## shove or takes one, and a brief shake for a lurch. Both are an offset on the
+## shove or takes one — or a body flying into it bowls it over — and a brief shake for
+## a lurch. Both are an offset on the
 ## camera's rotation that decays to nothing — never written into the look, so the
 ## yaw a frame sends and the mouse's turning are untouched — and both are small and
 ## short against motion sickness (R15), scaled by ViewSettings' view_kick, 0 = off.
@@ -43,8 +44,9 @@ func set_strength(comfort: float) -> void:
 	_comfort = comfort
 
 
-## Kicks for the shoves [param seat] landed or took on [param snapshot]'s tick, as
-## seen along the ship-plane [param yaw]; once per tick. Switching seats never kicks.
+## Kicks for the shoves [param seat] landed or took on [param snapshot]'s tick, and for
+## a body bowling it over, as seen along the ship-plane [param yaw]; once per tick.
+## Switching seats never kicks.
 func follow(snapshot: Dictionary, seat: int, yaw: float) -> void:
 	var tick: int = snapshot["tick"]
 	if seat != _seat:
@@ -56,13 +58,19 @@ func follow(snapshot: Dictionary, seat: int, yaw: float) -> void:
 		return
 	_tick = tick
 	for event: Dictionary in snapshot["events"]:
-		if event["kind"] != SimEvent.Kind.SHOVE_LANDED:
-			continue
-		if event["target"] == seat:
-			var shover: Dictionary = snapshot["seats"][event["seat"]]
-			take(angle_difference(yaw, shover["shove_facing"]))
-		elif event["seat"] == seat:
-			land()
+		match event["kind"]:
+			SimEvent.Kind.SHOVE_LANDED:
+				if event["target"] == seat:
+					var shover: Dictionary = snapshot["seats"][event["seat"]]
+					take(angle_difference(yaw, shover["shove_facing"]))
+				elif event["seat"] == seat:
+					land()
+			SimEvent.Kind.BOWLED:
+				if event["seat"] == seat:
+					# Sent away from the body that ran into it.
+					var pin: Vector3 = snapshot["seats"][seat]["pos"]
+					var by: Vector3 = snapshot["seats"][event["target"]]["pos"]
+					take(angle_difference(yaw, Vector2(pin.x - by.x, pin.z - by.z).angle()))
 
 
 ## Your shove landed: the view nods forward.

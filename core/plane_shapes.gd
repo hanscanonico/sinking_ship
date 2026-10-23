@@ -144,7 +144,8 @@ static func segment_in_circle(
 
 
 ## Touching shapes facing the same way — two railing spans end to end, a deck over
-## the house it stands on — hold a body back once, not twice.
+## the house it stands on — hold a body back once, not twice; the deepest names what
+## holds it.
 static func deepest_per_direction(contacts: Array[Surfaces.Contact]) -> Array[Surfaces.Contact]:
 	if contacts.size() < 2:
 		return contacts
@@ -156,6 +157,7 @@ static func deepest_per_direction(contacts: Array[Surfaces.Contact]) -> Array[Su
 				if contact.depth > other.depth:
 					other.depth = contact.depth
 					other.railing = contact.railing
+					other.prop = contact.prop
 				merged = true
 				break
 		if not merged:

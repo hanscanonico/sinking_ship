@@ -34,6 +34,8 @@ class Contact:
 	var depth: float
 	## The layout's railing it is, by index, or -1 for anything else.
 	var railing: int
+	## The layout's crate it is, by index — one moves when met hard (Hazards) — or -1.
+	var prop := -1
 
 	func _init(outward: Vector2, overlap: float, span: int = -1) -> void:
 		normal = outward
@@ -249,10 +251,6 @@ func _is_blocker_top(surface: int) -> bool:
 	return surface >= _first_top and surface < _first_lid
 
 
-func _is_prop_top(surface: int) -> bool:
-	return surface >= _first_lid
-
-
 ## The surface number of the layout's ramp at [param ramp].
 func ramp_surface(ramp: int) -> int:
 	return _platforms.size() + ramp
@@ -361,7 +359,7 @@ func ceiling(ship_point: Vector3, clearance: float) -> float:
 ## where a body stepping off its middle comes down, past any other blocker top, or
 ## NONE when that is the sea; any other surface is its own.
 func footing(surface: int) -> int:
-	if _is_prop_top(surface):
+	if surface >= _first_lid:
 		if _gone[surface] == 1:
 			return NONE
 		return _highest_at_or_below(
@@ -403,7 +401,7 @@ func joins(ramp_surface_id: int) -> PackedInt32Array:
 ## each is measured from the stair carried on to it, not from the feet: the deck at its
 ## head and a wall's top flush with that deck are where it goes, not a step too high,
 ## and the stair going on down under a deck edge is a floor to crawl on. One contact per
-## direction, the deepest.
+## direction, the deepest; a crate's names it (Contact.prop).
 func obstacle_contacts(
 	ship_point: Vector3,
 	radius: float,
@@ -481,6 +479,7 @@ func obstacle_contacts(
 		var centre := Vector2(under_it.x, under_it.z)
 		var contact := PlaneShapes.circle_contact(centre, _prop_radii[prop], point, radius)
 		if contact != null:
+			contact.prop = prop
 			contacts.append(contact)
 	contacts.append_array(_doors.contacts(point, reach_up, head, radius))
 	contacts.append_array(_fallen.contacts(point, reach_up, head, radius))

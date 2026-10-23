@@ -24,7 +24,11 @@ extends RefCounted
 ## more, it staggers it and knocks it back through a hit-stop, as a shove does (D12),
 ## and keeps going, slowed; slower, it pushes it. Either way the two part with the
 ## closing speed by their masses. A shove sends a crate at its knockback weighed by
-## the two masses.
+## the two masses. Two crates meeting part the same way, by their masses — with
+## crate_restitution of the speed they met at from crate_impact_speed, together below
+## it — the one running into the other handing on its shover; and a staggered body
+## slamming into a crate at crate_impact_speed or more sends it off so (slams). A body
+## on its feet leans on a crate as on a wall: a laden crate does not give to a walk.
 ##
 ## Every prop of hers is stepped as a crate is (#273) while it lies loose — not hung on a
 ## railing nor held — but only a solid one (PropKind) holds bodies back, stands a lid,
@@ -270,7 +274,7 @@ func _move(
 			for crate: PropState in crates:
 				if moved:
 					_stand(state, pose)
-				var blocked := _blockers(crate, feet_before)
+				var blocked := _blockers(state, crate, feet_before, tick)
 				var railed := _railings(state, crate, came_from, pose, tick, events)
 				moved = blocked or railed
 				held = moved or held
@@ -280,16 +284,84 @@ func _move(
 
 
 ## Whatever stops [param crate] in the deck plane, met at the height its underside
-## stood at before this tick's move. True when it moved it.
-func _blockers(crate: PropState, feet_before: PackedFloat64Array) -> bool:
+## stood at before this tick's move: another crate takes its share of the speed
+## (_knock), anything else holds it. True when it moved it.
+func _blockers(
+	state: MatchState, crate: PropState, feet_before: PackedFloat64Array, tick: int
+) -> bool:
 	var prop := _props[crate.prop]
 	var feet := Vector3(crate.pos.x, feet_before[crate.prop], crate.pos.z)
 	var contacts := _surfaces.obstacle_contacts(
 		feet, prop.radius, prop.height, _rules.step_height, crate.prop
 	)
 	for contact: Surfaces.Contact in contacts:
-		_hold(crate, contact)
+		if contact.prop == -1:
+			_hold(crate, contact)
+		else:
+			_knock(crate, state.props[contact.prop], contact, tick)
 	return not contacts.is_empty()
+
+
+## Moves [param crate] out of [param other], the crate [param contact] is with, and
+## parts the two along it by their masses: with crate_restitution of the speed they met
+## at from crate_impact_speed, going on together below it. At an impact the one that
+## ran into the other — the faster of the two toward it — hands on its shover, within
+## credit_window.
+func _knock(crate: PropState, other: PropState, contact: Surfaces.Contact, tick: int) -> void:
+	var normal := contact.normal
+	crate.pos += Vector3(normal.x, 0.0, normal.y) * contact.depth
+	var mine := Vector2(crate.vel.x, crate.vel.z)
+	var theirs := Vector2(other.vel.x, other.vel.z)
+	var toward := -mine.dot(normal)
+	var back := theirs.dot(normal)
+	var meeting := toward + back
+	if meeting <= 0.0:
+		return
+	var impact := meeting >= _rules.crate_impact_speed
+	var parting := 1.0 + (_rules.crate_restitution if impact else 0.0)
+	var mass := _props[crate.prop].mass
+	var other_mass := _props[other.prop].mass
+	var total := mass + other_mass
+	mine += normal * (parting * other_mass / total * meeting)
+	theirs -= normal * (parting * mass / total * meeting)
+	crate.vel = Vector3(mine.x, crate.vel.y, mine.y)
+	other.vel = Vector3(theirs.x, other.vel.y, theirs.y)
+	if not impact:
+		return
+	var hitter := crate if toward >= back else other
+	var struck := other if toward >= back else crate
+	if hitter.shoved_by != -1 and tick - hitter.shoved_at < _credit_window_ticks:
+		struck.shoved_by = hitter.shoved_by
+		struck.shoved_at = tick
+
+
+## Whether [param player] slams into the crate [param contact] is with — off its feet,
+## staggered, as no walker is, and meeting it at crate_impact_speed or more: the two
+## then part along the contact by their masses with crate_restitution of the speed they
+## met at, as a crate running into a body does, and the crate is credited to the shove
+## that sent the body, within credit_window. Movement holds a body that does not, as a
+## wall would; a body frozen in a hit-stop never does.
+func slams(state: MatchState, player: PlayerState, contact: Surfaces.Contact, tick: int) -> bool:
+	if not player.is_staggered() or player.is_frozen():
+		return false
+	var crate := state.props[contact.prop]
+	var normal := contact.normal
+	var body := Vector2(player.vel.x, player.vel.z)
+	var cargo := Vector2(crate.vel.x, crate.vel.z)
+	var meeting := (cargo - body).dot(normal)
+	if meeting < _rules.crate_impact_speed:
+		return false
+	var mass := _props[crate.prop].mass
+	var total := mass + _rules.body_mass
+	var parting := 1.0 + _rules.crate_restitution
+	body += normal * (parting * mass / total * meeting)
+	cargo -= normal * (parting * _rules.body_mass / total * meeting)
+	player.vel = Vector3(body.x, player.vel.y, body.y)
+	crate.vel = Vector3(cargo.x, crate.vel.y, cargo.y)
+	if player.last_hit_by != -1 and tick - player.last_hit_at < _credit_window_ticks:
+		crate.shoved_by = player.last_hit_by
+		crate.shoved_at = tick
+	return true
 
 
 ## A railing holds [param crate] as it holds a body — in the air, only from the

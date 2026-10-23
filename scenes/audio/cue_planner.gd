@@ -341,6 +341,8 @@ func _from_event(event: Dictionary, now: Dictionary, pose: ShipPose, cues: Array
 			var thud := _at_seat(AudioCue.Kind.THUD, tick, now[seat])
 			thud.heavy = true
 			cues.append(thud)
+		SimEvent.Kind.BOWLED:
+			cues.append(_at_seat(AudioCue.Kind.IMPACT, tick, now[seat]))
 		SimEvent.Kind.PROP_GRABBED, SimEvent.Kind.PROP_LET_GO, SimEvent.Kind.KNOCKED_LOOSE:
 			cues.append(_at_seat(AudioCue.Kind.GRAB, tick, now[seat]))
 		SimEvent.Kind.RAILING_BROKE:

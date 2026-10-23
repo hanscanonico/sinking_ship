@@ -608,6 +608,8 @@ func test_bot_never_presses_a_shove_into_its_own_recovery() -> void:
 	# A braced seat in reach takes a tap without flying off, so the bot could shove it
 	# again at once — but its view of itself is reaction_ticks old. Tapping, or charging,
 	# no press it makes comes while it is still busy with its last: each one is heeded.
+	# A full charge breaks the brace and sends the seat flying, over a railing it may be,
+	# which ends the bout: a charging bot is held to a second press, a tapping one to more.
 	var rules := SimFixtures.rules()
 	for charge_read: float in [0.0, 1.0]:
 		var sim := SimFixtures.sim(2)
@@ -628,7 +630,8 @@ func test_bot_never_presses_a_shove_into_its_own_recovery() -> void:
 				presses += 1
 				unheeded += 1 if busy else 0
 			charged = charged or bot.action == PlayerState.Action.CHARGE
-		assert_gt(presses, 2, "charge read %s: it kept shoving" % charge_read)
+		var least := 2 if charge_read > 0.0 else 3
+		assert_gte(presses, least, "charge read %s: it kept shoving" % charge_read)
 		assert_eq(unheeded, 0, "charge read %s: and every press was heeded" % charge_read)
 		assert_eq(charged, charge_read > 0.0, "charge read %s: charging on the read" % charge_read)
 

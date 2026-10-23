@@ -84,6 +84,26 @@ func test_taking_a_shove_tips_the_view_the_way_it_is_sent() -> void:
 	assert_lt(nod.advance(at_peak).x, 0.0, "landing one nods the view forward")
 
 
+func test_being_bowled_over_tips_the_view_the_way_it_is_sent() -> void:
+	var rules := SimFixtures.rules()
+	var sim := SimFixtures.sim(2)
+	# Seat 0 slides in from astern, as a shove sends it, into seat 1 looking back at it.
+	SimFixtures.place(sim, 0, Vector3(-5.0, 0.0, 0.0))
+	sim.state.seats[0].vel = Vector3(rules.knockback, 0.0, 0.0)
+	sim.state.seats[0].stagger_ticks = Ticks.from_seconds(rules.stagger)
+	SimFixtures.place(sim, 1, Vector3(-5.0 + rules.body_radius * 2.0 + 0.05, 0.0, 0.0), 180.0)
+	var kick := ViewKick.new()
+	kick.follow(sim.snapshot(), 1, PI)
+	SimFixtures.step(sim)
+	var events: Array = sim.snapshot()["events"]
+	assert_eq(events.size(), 1)
+	assert_eq(events[0]["kind"], SimEvent.Kind.BOWLED, "bowled over this tick")
+	kick.follow(sim.snapshot(), 1, PI)
+	var back := Vector3(1.0, 0.0, 0.0) * deg_to_rad(ViewKick.TAKE_DEG)
+	var offset := kick.advance(ViewKick.KICK_RISE)
+	assert_almost_eq(offset, back, Vector3.ONE * 0.0001, "facing the one coming, sent back")
+
+
 func test_view_kick_zero_turns_it_off() -> void:
 	var seen := _shove_seen_by(1, 30, ViewKick.new(0.0))
 	var degrees: Array[float] = seen[0]

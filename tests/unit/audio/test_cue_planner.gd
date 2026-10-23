@@ -495,6 +495,22 @@ func test_a_crate_hit_thuds_on_the_brawler() -> void:
 	assert_true(on_the_brawler[0].heavy)
 
 
+func test_a_bowling_lands_an_impact_on_the_body_bowled_over() -> void:
+	var rules := SimFixtures.rules()
+	var sim := SimFixtures.sim(2)
+	SimFixtures.place(sim, 0, Vector3(-5.0, 0.0, 0.0))
+	sim.state.seats[0].vel = Vector3(rules.knockback, 0.0, 0.0)
+	sim.state.seats[0].stagger_ticks = Ticks.from_seconds(rules.stagger)
+	SimFixtures.place(sim, 1, Vector3(-5.0 + rules.body_radius * 2.0 + 0.05, 0.0, 0.0))
+	var rows := []
+	rows.resize(Ticks.RATE)
+	rows.fill({})
+	var impacts := _of(_play(_planner(sim, -1), sim, rows), AudioCue.Kind.IMPACT)
+	assert_eq(impacts.size(), 1, "one impact")
+	if not impacts.is_empty():
+		assert_eq(impacts[0].seat, 1, "on the body bowled over")
+
+
 ## A sinking whose poses a test may set tick by tick: every other tick is the bake's.
 class Posed:
 	extends SinkSchedule
