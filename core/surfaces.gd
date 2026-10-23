@@ -65,11 +65,12 @@ var _rail_normals := PackedVector2Array()
 var _platform_rails: Array[PackedInt32Array] = []
 ## The layout: her ladders, and where they hang (ShipLayout.ladder_at).
 var _layout: ShipLayout
-## Per crate, its radius and height, and where its underside stands as the last
-## honour() was told.
+## Per prop, its radius and height, where its underside stands as honour() was last
+## told, and 1 for a solid one (PropKind, #273): the only kind that stands here.
 var _prop_radii := PackedFloat64Array()
 var _prop_heights := PackedFloat64Array()
 var _prop_feet := PackedVector3Array()
+var _prop_solid := PackedByteArray()
 ## The numbers of the first ramp, the first blocker top and the first crate's lid:
 ## every surface before the lids is the ship's own.
 var _first_ramp: int
@@ -77,8 +78,7 @@ var _first_top: int
 var _first_lid: int
 ## Per ladder, the unit normal pointing onto its platform.
 var _ladder_normals := PackedVector2Array()
-## The grid of the surfaces, by number, over the layout's bounds; and of the railings,
-## by index.
+## The grid of the surfaces, by number, over the layout's bounds; and of the rails, by index.
 var _grid: SpatialIndex
 var _rail_grid: SpatialIndex
 ## Per surface, 1 while it is gone: a collapsed platform, and the tops of the blockers
@@ -94,10 +94,9 @@ var _honoured_broken := PackedInt32Array()
 var _honoured_pose: ShipPose
 var _honoured_by_match := PackedInt32Array()
 ## Per surface, its area, and how low its sides reach and how high it stands — what
-## holds a body back and hides what is behind it: a blocker from its bottom to its
-## top, a ramp from its base to its high end, a deck at its height — a deck over a
-## lower one is a slab, and a deck over none the top of the hull, solid all the way
-## down.
+## holds a body back and hides what is behind it: a blocker from its bottom to its top,
+## a ramp from its base to its high end, a deck at its height — a deck over a lower one
+## is a slab, and a deck over none the top of the hull, solid all the way down.
 var _areas: Array[Rect2] = []
 var _bottoms := PackedFloat64Array()
 var _tops := PackedFloat64Array()
@@ -125,6 +124,7 @@ func _init(layout: ShipLayout, grid: IndexRules = null) -> void:
 	for prop: ShipProp in layout.props:
 		_prop_radii.append(prop.radius)
 		_prop_heights.append(prop.height)
+		_prop_solid.append(1 if prop.prop_kind().solid else 0)
 	for platform in _platforms.size():
 		_platform_rails.append(PackedInt32Array())
 	for index in _railings.size():
@@ -194,12 +194,12 @@ func honour(pose: ShipPose, broken := PackedInt32Array(), props: Array[PropState
 	_stand_props(props)
 
 
-## Stands each crate of [param props] where it has it, and none of the others.
+## Stands each solid prop of [param props] loose where it has it, and none of the others.
 func _stand_props(props: Array[PropState]) -> void:
 	for prop in _prop_radii.size():
 		_gone[_first_lid + prop] = 1
 	for crate: PropState in props:
-		if not crate.is_lost():
+		if crate.is_loose() and _prop_solid[crate.prop] == 1:
 			_prop_feet[crate.prop] = crate.pos
 			_gone[_first_lid + crate.prop] = 0
 

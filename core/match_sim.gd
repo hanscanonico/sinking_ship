@@ -7,7 +7,7 @@ extends RefCounted
 ## and swim in that piece's space and frame, under its pose; a body that leaves its
 ## piece in the air or the sea over another is carried across through the world.
 
-const SNAPSHOT_VERSION := 10
+const SNAPSHOT_VERSION := 11
 
 var config: MatchConfig
 var schedule: SinkSchedule
@@ -37,6 +37,13 @@ var _hitstop_ticks: int
 var _hitstop_charged_ticks: int
 var _hitstop_braced_ticks: int
 var _credit_window_ticks: int
+## Per prop of the layout, its kind (#273).
+var _kinds: Array[PropKind] = []
+## Per seat, the prop it holds, or -1: asked of the props as the tick starts and kept
+## with them through it (PropState.holder is the truth).
+var _hands := PackedInt32Array()
+## The seats of the piece the tick stands on that pressed Grab, in seat order.
+var _grabbing: Array[PlayerState] = []
 
 
 func _init(match_config: MatchConfig) -> void:
@@ -69,6 +76,8 @@ func _init(match_config: MatchConfig) -> void:
 	_hitstop_charged_ticks = Ticks.from_seconds(_rules.hitstop_charged)
 	_hitstop_braced_ticks = Ticks.from_seconds(_rules.hitstop_braced)
 	_credit_window_ticks = Ticks.from_seconds(_rules.credit_window)
+	for prop: ShipProp in config.ship.props:
+		_kinds.append(prop.prop_kind())
 
 
 ## A new match: seats shuffled onto the layout's spawns by the match stream, each
@@ -146,6 +155,7 @@ func step(frames: Array[InputFrame]) -> Array[SimEvent]:
 	# Nobody goes out before _water: one list of the seats still in serves until then.
 	var live := _live_seats()
 	_take_frames(frames, tick, live)
+	_count_hands()
 	var pose_now := schedule.pose_at(tick)
 	_sinking_events(pose_now, tick, events)
 	_rehome(pose_now, tick, events)
@@ -167,8 +177,9 @@ func step(frames: Array[InputFrame]) -> Array[SimEvent]:
 					player.prev_buttons = player.last_buttons
 		else:
 			_intent(here, framed)
+			_grabs(tick, events)
 			_brace_and_stamina(here)
-			_movement.forces(here, framed)
+			_movement.forces(here, framed, _carry_caps())
 			var feet_before := _movement.move(state, here, framed, tick, events)
 			_movement.ground(here, tick, events, feet_before)
 			_thaw(here)
@@ -188,9 +199,10 @@ func step(frames: Array[InputFrame]) -> Array[SimEvent]:
 				left.append(player)
 		going.append_array(MatchVerdict.by_the_cold(left, _sunk.bind(pose_now.standing, framed_of)))
 		for player: PlayerState in going:
-			_out(player, tick)
+			_out(player, tick, events)
 			exits.append(player)
 		MatchVerdict.place(state, exits, tick, events, config.goal, schedule.end_tick())
+	_ride_with_holders()
 	state.tick += 1
 	if state.phase == MatchState.Phase.COUNTDOWN and state.tick >= config.countdown_ticks:
 		state.phase = MatchState.Phase.LIVE
@@ -354,6 +366,8 @@ func _intent(live: Array[PlayerState], pose_now: ShipPose) -> void:
 		player.prev_buttons = player.last_buttons
 		if player.is_staggered():
 			continue
+		if pressed & InputFrame.GRAB:
+			_grabbing.append(player)
 		if (
 			pressed & InputFrame.SHOVE
 			and player.action == PlayerState.Action.IDLE
@@ -399,6 +413,110 @@ func _jump(player: PlayerState, pose_now: ShipPose) -> void:
 	player.jumped = true
 
 
+## Who holds what, from the props: each seat's prop, or -1.
+func _count_hands() -> void:
+	_hands.resize(state.seats.size())
+	_hands.fill(-1)
+	for crate: PropState in state.props:
+		if crate.holder != -1:
+			_hands[crate.holder] = crate.prop
+
+
+## The kind of prop [param player] holds, or null for empty hands.
+func _held_kind(player: PlayerState) -> PropKind:
+	var held := _hands[player.seat]
+	return _kinds[held] if held != -1 else null
+
+
+## Per seat, the fastest what it holds lets it walk (PropKind.carry_walk); INF for none.
+func _carry_caps() -> PackedFloat64Array:
+	var caps := PackedFloat64Array()
+	caps.resize(_hands.size())
+	caps.fill(INF)
+	for seat in _hands.size():
+		if _hands[seat] != -1:
+			caps[seat] = _kinds[_hands[seat]].carry_walk
+	return caps
+
+
+## Every held prop where its holder's feet are now, as the snapshot draws it.
+func _ride_with_holders() -> void:
+	for crate: PropState in state.props:
+		if crate.holder != -1:
+			crate.pos = state.seats[crate.holder].pos
+
+
+## The tick's Grab presses (#273), as _intent read them: a seat holding a prop lets go of
+## it; one holding none takes what GrabReach says it would. Of two seats taking one prop,
+## the nearer takes it — of two as near, the lower — and the other takes nothing.
+func _grabs(tick: int, events: Array[SimEvent]) -> void:
+	var claims: Dictionary[int, PlayerState] = {}
+	for player: PlayerState in _grabbing:
+		if _hands[player.seat] != -1:
+			events.append(SimEvent.prop_let_go(tick, player.seat, _hands[player.seat]))
+			_let_go(player, tick, events)
+			continue
+		var prop := GrabReach.take(
+			player,
+			state.up[player.piece],
+			_movement.height_of(player),
+			state.props,
+			config.ship,
+			_rules,
+			_here()
+		)
+		if prop == -1:
+			continue
+		if not claims.has(prop) or _nearer(player, claims[prop], state.props[prop].pos):
+			claims[prop] = player
+	_grabbing.clear()
+	var taken := claims.keys()
+	taken.sort()
+	for prop: int in taken:
+		var crate := state.props[prop]
+		var seat := claims[prop].seat
+		crate.body = PropState.Body.HELD
+		crate.holder = seat
+		crate.vel = Vector3.ZERO
+		crate.surface = Surfaces.NONE
+		_hands[seat] = prop
+		events.append(SimEvent.prop_grabbed(tick, seat, prop))
+
+
+## [param player] lets go of the prop it holds: at its feet, falling from there — lost
+## at once where its piece stands on any face but her decks, where nothing stays stowed
+## (Hazards). Returns the prop.
+func _let_go(player: PlayerState, tick: int, events: Array[SimEvent]) -> int:
+	var prop := _hands[player.seat]
+	var crate := state.props[prop]
+	_hands[player.seat] = -1
+	crate.holder = -1
+	crate.vel = Vector3.ZERO
+	crate.surface = Surfaces.NONE
+	if state.up[player.piece] != Faces.Up.DECK:
+		_lose_prop(crate, tick, events)
+		return prop
+	crate.body = PropState.Body.AIRBORNE
+	crate.pos = player.pos
+	return prop
+
+
+## [param crate] gone into the sea, for the rest of the match.
+static func _lose_prop(crate: PropState, tick: int, events: Array[SimEvent]) -> void:
+	crate.body = PropState.Body.LOST
+	crate.holder = -1
+	crate.surface = Surfaces.NONE
+	crate.vel = Vector3.ZERO
+	events.append(SimEvent.prop_lost(tick, crate.prop))
+
+
+## Whether [param player] stands nearer [param point] (x/z) than [param other] does.
+static func _nearer(player: PlayerState, other: PlayerState, point: Vector3) -> bool:
+	var at := Vector2(point.x, point.z)
+	var mine := Vector2(player.pos.x, player.pos.z).distance_squared_to(at)
+	return mine < Vector2(other.pos.x, other.pos.z).distance_squared_to(at)
+
+
 ## Tap or hold is read here, from ticks held (D3): a shove released after its
 ## windup fires as a quick shove; one still held at charge_threshold becomes a
 ## charge, which fires, paid for, when it is let go.
@@ -407,7 +525,12 @@ func _advance_action(player: PlayerState, live: Array[PlayerState]) -> void:
 	match player.action:
 		PlayerState.Action.WINDUP:
 			if held and player.action_ticks >= _charge_threshold_ticks:
-				if player.exhausted or player.stamina < _rules.charge_cost:
+				var kind := _held_kind(player)
+				if (
+					player.exhausted
+					or player.stamina < _rules.charge_cost
+					or kind != null and not kind.carry_charge
+				):
 					_fire(player, live)
 				else:
 					player.charge = player.action_ticks
@@ -459,8 +582,10 @@ func _brace_and_stamina(live: Array[PlayerState]) -> void:
 	for player: PlayerState in live:
 		if player.is_frozen():
 			continue
+		var kind := _held_kind(player)
 		player.bracing = (
 			player.last_buttons & InputFrame.BRACE != 0
+			and (kind == null or kind.carry_brace)
 			and player.action == PlayerState.Action.IDLE
 			and player.body == PlayerState.Body.GROUNDED
 			and not player.is_staggered()
@@ -504,7 +629,9 @@ func _thaw(live: Array[PlayerState]) -> void:
 ## this tick's hits apply together, so simultaneous shoves both land. A landed shove
 ## freezes its shover and its target for a hit-stop, and the knockback and the
 ## recoil wait for it to end; a crate takes its share of the knockback at once
-## (Hazards.shove), and its shover rocks and stops as for a body.
+## (Hazards.shove), and its shover rocks and stops as for a body. A charged shove landing
+## on a body holding a prop its kind lets a charge knock loose knocks it out of its hands
+## at its feet (#273).
 func _shoves(live: Array[PlayerState], tick: int, events: Array[SimEvent]) -> void:
 	var attempts: Array[ShoveResolver.Attempt] = []
 	var origins := PackedVector2Array()
@@ -541,6 +668,7 @@ func _shoves(live: Array[PlayerState], tick: int, events: Array[SimEvent]) -> vo
 	var hit_by := PackedInt32Array()
 	hit_by.resize(count)
 	hit_by.fill(-1)
+	var charged_by := hit_by.duplicate()
 	var landed := PackedByteArray()
 	landed.resize(count)
 	var staggers := PackedByteArray()
@@ -569,6 +697,8 @@ func _shoves(live: Array[PlayerState], tick: int, events: Array[SimEvent]) -> vo
 		events.append(SimEvent.shove_landed(tick, hit.shover, hit.target))
 		if hit_by[hit.target] == -1:
 			hit_by[hit.target] = hit.shover
+		if shover.is_charged() and charged_by[hit.target] == -1:
+			charged_by[hit.target] = hit.shover
 	var crate_hits := ShoveResolver.resolve(
 		attempts,
 		_hazards.candidates(state, count),
@@ -596,6 +726,10 @@ func _shoves(live: Array[PlayerState], tick: int, events: Array[SimEvent]) -> vo
 			player.last_hit_by = hit_by[seat]
 			player.last_hit_crate = -1
 			player.last_hit_at = tick
+			var kind := _held_kind(player)
+			if charged_by[seat] != -1 and kind != null and kind.loose_on_charge:
+				events.append(SimEvent.knocked_loose(tick, seat, _hands[seat], charged_by[seat]))
+				_let_go(player, tick, events)
 			if player.is_climbing():
 				_knock_back_in(player, tick, events)
 			if staggers[seat] == 1:
@@ -646,11 +780,12 @@ func _braced_against(target: PlayerState, shover: PlayerState, direction: Vector
 ## that falls into it, swims. A swimmer comes to rest (Movement.come_to_rest), stands
 ## up where the bottom rises within stand_depth of the sea, and climbs out where it can
 ## (Movement.start_climb) — onto a dry face in a pocket as onto a deck edge; while it
-## swims and does not climb, its cold meter drains — at pocket_cold_rate of the open water's with
-## its head in trapped air (Q22) — and it is out when that is empty. Out of the sea the
-## meter refills at cold_regen. A seat frozen in a hit-stop holds its meter, and
-## neither falls in, stands, climbs nor settles until the stop ends. Returns who went
-## out.
+## swims and does not climb, its cold meter drains — at pocket_cold_rate of the open
+## water's with its head in trapped air (Q22), at the sea_cold_rate of a prop it holds
+## that keeps it afloat (#273), the lower of the two where both do — and it is out when
+## that is empty. Out of the sea the meter refills at cold_regen. A seat frozen in a
+## hit-stop holds its meter, and neither falls in, stands, climbs nor settles until the
+## stop ends. Returns who went out.
 func _water(
 	live: Array[PlayerState],
 	pose_now: ShipPose,
@@ -685,9 +820,12 @@ func _water(
 			continue
 		var head := player.pos + Vector3.UP * _rules.head_height(_movement.height_of(player))
 		var rate := _rules.pocket_cold_rate if pose_now.in_pocket(head) else 1.0
+		var kind := _held_kind(player)
+		if kind != null and kind.afloat:
+			rate = minf(rate, kind.sea_cold_rate)
 		player.cold = maxf(player.cold - dt * rate, 0.0)
 		if player.cold == 0.0:
-			_out(player, tick)
+			_out(player, tick, events)
 			exits.append(player)
 	return exits
 
@@ -713,7 +851,11 @@ func _knock_back_in(player: PlayerState, tick: int, events: Array[SimEvent]) -> 
 	events.append(SimEvent.knocked_back_in(tick, player.seat, player.last_hit_by))
 
 
-func _out(player: PlayerState, tick: int) -> void:
+## Out of the match, and whatever it held into the sea with it.
+func _out(player: PlayerState, tick: int, events: Array[SimEvent]) -> void:
+	if _hands[player.seat] != -1:
+		_lose_prop(state.props[_hands[player.seat]], tick, events)
+		_hands[player.seat] = -1
 	player.body = PlayerState.Body.OUT
 	player.out_tick = tick
 	player.out_cause = PlayerState.Cause.COLD

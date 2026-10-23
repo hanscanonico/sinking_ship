@@ -258,7 +258,7 @@ func _from_event(
 			var rise := lerpf(SPLASH_RISE.x, SPLASH_RISE.y, splash.strength)
 			splash.rise = minf(rise, _headroom(splash.position, pose))
 			cues.append(splash)
-		SimEvent.Kind.CRATE_LOST:
+		SimEvent.Kind.PROP_LOST:
 			var crate: Vector3 = current["props"][event["prop"]]["pos"]
 			if previous["props"][event["prop"]]["state"] == PropState.Body.FLOATING:
 				_set_adrift(event["prop"], crate, previous, pose, tick, cues)

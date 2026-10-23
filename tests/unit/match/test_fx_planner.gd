@@ -198,7 +198,7 @@ func test_a_collapse_sheds_dust_while_it_is_telegraphed_and_again_as_it_lands() 
 func test_a_lost_crate_and_a_broken_rail_float_off_outboard() -> void:
 	var sim := _sim()
 	var tick := Ticks.from_seconds(60.0)
-	var lost := SimEvent.crate_lost(tick, 0)
+	var lost := SimEvent.prop_lost(tick, 0)
 	var broken := SimEvent.railing_broke(tick, 3, -1, -1)
 	var cues := _planner(sim).plan(_at(sim, tick - 1), _at(sim, tick, [lost, broken]))
 	var thrown := _of(cues, FLOTSAM)
@@ -214,7 +214,7 @@ func test_a_crate_lost_while_afloat_stays_on_the_water_where_it_floated() -> voi
 	var tick := Ticks.from_seconds(60.0)
 	var floating := _at(sim, tick - 1).duplicate(true)
 	floating["props"][0]["state"] = PropState.Body.FLOATING
-	var cues := _planner(sim).plan(floating, _at(sim, tick, [SimEvent.crate_lost(tick, 0)]))
+	var cues := _planner(sim).plan(floating, _at(sim, tick, [SimEvent.prop_lost(tick, 0)]))
 	var thrown := _of(cues, FLOTSAM)
 	assert_eq(thrown.size(), 1, "the crate alone")
 	assert_eq(thrown[0].piece, FxCue.Piece.CRATE)
@@ -230,7 +230,7 @@ func test_a_crate_set_adrift_starts_clear_of_a_crate_floating_beside_it() -> voi
 	var tick := Ticks.from_seconds(60.0)
 	var floating := _at(sim, tick - 1).duplicate(true)
 	floating["props"][0]["state"] = PropState.Body.FLOATING
-	var lost := _at(sim, tick, [SimEvent.crate_lost(tick, 0)])
+	var lost := _at(sim, tick, [SimEvent.prop_lost(tick, 0)])
 	# A second crate floating just where the first, alone, would be set adrift.
 	var beside: Vector3 = _of(_planner(sim).plan(floating, lost), FLOTSAM)[0].end
 	floating["props"][1]["state"] = PropState.Body.FLOATING
@@ -255,7 +255,7 @@ func test_a_crate_set_adrift_keeps_out_of_the_way_of_one_floating_against_it() -
 	var against := crate + Vector3(0.0, 0.0, -width)
 	floating["props"][1]["state"] = PropState.Body.FLOATING
 	floating["props"][1]["pos"] = against
-	var lost := _at(sim, tick, [SimEvent.crate_lost(tick, 0)])
+	var lost := _at(sim, tick, [SimEvent.prop_lost(tick, 0)])
 	var thrown := _of(_planner(sim).plan(floating, lost), FLOTSAM)
 	assert_eq(thrown.size(), 1, "the crate alone")
 	var end := Vector2(thrown[0].end.x, thrown[0].end.z)
@@ -276,7 +276,7 @@ func test_a_crate_set_adrift_keeps_clear_of_one_set_adrift_before_it() -> void:
 	floating["props"][0]["state"] = PropState.Body.FLOATING
 	var crate: Vector3 = floating["props"][0]["pos"]
 	var first: FxCue = _of(
-		planner.plan(floating, _at(sim, tick, [SimEvent.crate_lost(tick, 0)])), FLOTSAM
+		planner.plan(floating, _at(sim, tick, [SimEvent.prop_lost(tick, 0)])), FLOTSAM
 	)[0]
 	# A second crate a second later floating where the first did, swept off after it.
 	var later := tick + Ticks.RATE
@@ -284,7 +284,7 @@ func test_a_crate_set_adrift_keeps_clear_of_one_set_adrift_before_it() -> void:
 	after["props"][0]["state"] = PropState.Body.LOST
 	after["props"][1]["state"] = PropState.Body.FLOATING
 	after["props"][1]["pos"] = crate
-	var swept := _at(sim, later, [SimEvent.crate_lost(later, 1)]).duplicate(true)
+	var swept := _at(sim, later, [SimEvent.prop_lost(later, 1)]).duplicate(true)
 	swept["props"][1]["pos"] = crate
 	var thrown := _of(planner.plan(after, swept), FLOTSAM)
 	assert_eq(thrown.size(), 1, "the second crate alone")

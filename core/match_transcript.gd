@@ -115,9 +115,9 @@ func add(events: Array[SimEvent]) -> void:
 				_lines.append("%s %s collapsed" % [clock(event.tick), event.platform])
 			SimEvent.Kind.RAILING_BROKE:
 				_lines.append("%s railing %d broke" % [clock(event.tick), event.railing])
-			SimEvent.Kind.CRATE_AFLOAT:
+			SimEvent.Kind.PROP_AFLOAT:
 				_lines.append("%s crate %d afloat" % [clock(event.tick), event.prop])
-			SimEvent.Kind.CRATE_LOST:
+			SimEvent.Kind.PROP_LOST:
 				_lines.append("%s crate %d lost" % [clock(event.tick), event.prop])
 			SimEvent.Kind.PLUNGE_BEGAN:
 				_lines.append("%s the plunge%s" % [clock(event.tick), _of_piece(event)])

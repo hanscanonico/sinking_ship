@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="PropKind" format=3]
+
+[ext_resource type="Script" path="res://core/prop_kind.gd" id="1_kind"]
+
+[resource]
+script = ExtResource("1_kind")
+holdable = true
+radius = 0.33
+height = 0.075
+carry_walk = 4.0
+loose_on_charge = true
+afloat = true
+sea_cold_rate = 0.2
+knockback = 3.0

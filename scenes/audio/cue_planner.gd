@@ -337,7 +337,7 @@ func _from_event(event: Dictionary, now: Dictionary, pose: ShipPose, cues: Array
 			var dripping := _at_seat(AudioCue.Kind.SPLASH, tick, now[seat])
 			dripping.gain = CLIMB_OUT_SPLASH
 			cues.append(dripping)
-		SimEvent.Kind.CRATE_HIT:
+		SimEvent.Kind.PROP_HIT:
 			var thud := _at_seat(AudioCue.Kind.THUD, tick, now[seat])
 			thud.heavy = true
 			cues.append(thud)

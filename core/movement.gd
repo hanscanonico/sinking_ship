@@ -171,10 +171,10 @@ func _reseat(player: PlayerState, tick: int, events: Array[SimEvent]) -> void:
 ## it has lost its grip — staggered, or idle on a deck steeper than the grip angle.
 ## On a floor tilted past stand_limit_deg nobody walks: a brace holds where it is up to
 ## brace_holds_to, anyone else slides into the corner and walks only along it (_slid).
-## Wading slows a walk, the more the deeper (_wade_speed), and crawling to crawl_speed;
-## swimming is _swim's. A body frozen in a hit-stop feels none of it, and its stagger
-## waits.
-func forces(live: Array[PlayerState], pose_now: ShipPose) -> void:
+## Wading slows a walk, the more the deeper (_wade_speed), crawling to crawl_speed, and
+## what a body holds to [param carry]'s cap for its seat (#273); swimming is _swim's. A
+## body frozen in a hit-stop feels none of it, and its stagger waits.
+func forces(live: Array[PlayerState], pose_now: ShipPose, carry := PackedFloat64Array()) -> void:
 	var dt := Ticks.SECONDS_PER_TICK
 	var gravity := pose_now.ship_gravity(_rules.gravity)
 	var downhill := Vector2(gravity.x, gravity.z) * dt
@@ -202,6 +202,8 @@ func forces(live: Array[PlayerState], pose_now: ShipPose) -> void:
 			wish = wish.limit_length(_wade_speed(player, pose_now))
 		if height_of(player) < _rules.body_height:
 			wish = wish.limit_length(_rules.crawl_speed)
+		if player.seat < carry.size():
+			wish = wish.limit_length(carry[player.seat])
 		# A brace is rooted: the deck past the grip angle does not pull it.
 		var pulled := steep and not (player.bracing and holds)
 		if player.is_staggered():

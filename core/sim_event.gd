@@ -14,8 +14,9 @@ extends RefCounted
 ## cell's water drowns its lamps, her hull creaks under its bending; from SH32
 ## GROUNDED as her hull first touches the bottom; and from SH33 HULL_HINGING as a hinge
 ## starts at a weak spot of hers, HULL_PARTED as her hull parts there. KNOCKED_DOWN is a
-## rule's: a falling funnel landing on a body (Hazards, D12); CRATE_AFLOAT too: a crate
-## its cell's water lifts off its floor.
+## rule's: a falling funnel landing on a body (Hazards, D12); PROP_AFLOAT too: a prop
+## its cell's water lifts off its floor. The props' (#273): a seat grabbing one, letting
+## go of it, and a landed shove knocking it loose.
 
 enum Kind {
 	SEAT_OUT,
@@ -33,8 +34,8 @@ enum Kind {
 	ENTERED_WATER,
 	CLIMBED_OUT,
 	KNOCKED_BACK_IN,
-	CRATE_HIT,
-	CRATE_LOST,
+	PROP_HIT,
+	PROP_LOST,
 	HOLED,
 	CELL_FLOODING,
 	CELL_FULL,
@@ -56,7 +57,10 @@ enum Kind {
 	GROUNDED,
 	HULL_HINGING,
 	HULL_PARTED,
-	CRATE_AFLOAT,
+	PROP_AFLOAT,
+	PROP_GRABBED,
+	PROP_LET_GO,
+	KNOCKED_LOOSE,
 }
 
 var kind: Kind
@@ -65,18 +69,20 @@ var tick: int
 ## who tipped over a railing. FELL: who went off an edge. LANDED: who came down.
 ## SHOVE_LANDED: the shover. ENTERED_WATER: who started swimming. CLIMBED_OUT: who
 ## stood up out of the sea. KNOCKED_BACK_IN: the climber a shove sent back.
-## CRATE_HIT: the seat a crate ran into. RAILING_BROKE: the seat whose vault broke
-## the span, or -1. KNOCKED_DOWN: the seat a funnel landed on. The sinking's events,
-## CRATE_AFLOAT and CRATE_LOST: -1.
+## PROP_HIT: the seat a prop ran into. RAILING_BROKE: the seat whose vault broke
+## the span, or -1. KNOCKED_DOWN: the seat a funnel landed on. PROP_GRABBED,
+## PROP_LET_GO, KNOCKED_LOOSE: the seat that took the prop, or held it. The sinking's
+## events, PROP_AFLOAT and PROP_LOST: -1.
 var seat: int
 var place: int
 var cause: PlayerState.Cause = PlayerState.Cause.NONE
 ## SEAT_OUT: the seat whose shove last landed on the one going out — or that shoved
-## the crate credited — or -1. KNOCKED_BACK_IN: the shover.
+## the crate credited — or -1. KNOCKED_BACK_IN, KNOCKED_LOOSE: the shover.
 var credit: int = -1
-## SEAT_OUT: the crate that last ran into the one going out, or -1. CRATE_HIT,
-## CRATE_AFLOAT, CRATE_LOST: the crate. RAILING_BROKE: the crate that broke the span, or -1. By
-## its index in the layout's props.
+## SEAT_OUT: the crate that last ran into the one going out, or -1. PROP_HIT,
+## PROP_AFLOAT, PROP_LOST, PROP_GRABBED, PROP_LET_GO, KNOCKED_LOOSE: the prop.
+## RAILING_BROKE: the crate that broke the span, or -1. By its index in the layout's
+## props.
 var prop: int = -1
 ## LANDED: the surface it came down on. CLIMBED_OUT: the surface it stands on.
 var surface: int = Surfaces.NONE
@@ -231,22 +237,44 @@ static func knocked_down(event_tick: int, struck_seat: int, funnel: StringName) 
 	return event
 
 
-static func crate_hit(event_tick: int, hit_seat: int, crate: int) -> SimEvent:
-	var event := SimEvent.new(Kind.CRATE_HIT, event_tick, hit_seat)
+static func prop_hit(event_tick: int, hit_seat: int, crate: int) -> SimEvent:
+	var event := SimEvent.new(Kind.PROP_HIT, event_tick, hit_seat)
 	event.prop = crate
 	return event
 
 
 ## [param crate] lifted off its floor by its cell's water (Hazards).
-static func crate_afloat(event_tick: int, crate: int) -> SimEvent:
-	var event := SimEvent.new(Kind.CRATE_AFLOAT, event_tick, -1)
+static func prop_afloat(event_tick: int, crate: int) -> SimEvent:
+	var event := SimEvent.new(Kind.PROP_AFLOAT, event_tick, -1)
 	event.prop = crate
 	return event
 
 
-static func crate_lost(event_tick: int, crate: int) -> SimEvent:
-	var event := SimEvent.new(Kind.CRATE_LOST, event_tick, -1)
+static func prop_lost(event_tick: int, crate: int) -> SimEvent:
+	var event := SimEvent.new(Kind.PROP_LOST, event_tick, -1)
 	event.prop = crate
+	return event
+
+
+## [param taking] taking [param taken] in its hands (#273).
+static func prop_grabbed(event_tick: int, taking: int, taken: int) -> SimEvent:
+	var event := SimEvent.new(Kind.PROP_GRABBED, event_tick, taking)
+	event.prop = taken
+	return event
+
+
+## [param holding] letting go of [param held].
+static func prop_let_go(event_tick: int, holding: int, held: int) -> SimEvent:
+	var event := SimEvent.new(Kind.PROP_LET_GO, event_tick, holding)
+	event.prop = held
+	return event
+
+
+## [param by]'s shove knocking [param held] out of [param holding]'s hands.
+static func knocked_loose(event_tick: int, holding: int, held: int, by: int) -> SimEvent:
+	var event := SimEvent.new(Kind.KNOCKED_LOOSE, event_tick, holding)
+	event.prop = held
+	event.credit = by
 	return event
 
 
