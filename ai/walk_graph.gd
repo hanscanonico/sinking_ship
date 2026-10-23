@@ -13,6 +13,9 @@ const NONE := -1
 ## How far apart two platforms' edges may be and still meet: the data's rectangles
 ## are single precision.
 const EDGE := 0.001
+## Past what rounding a sum of EDGE and an edge can lose: how much further along x a
+## platform's neighbours are looked for (_link_decks).
+const SWEEP_SLACK := 0.000001
 
 
 ## One way from a zone into the next: through a doorway, or along a ramp.
@@ -625,14 +628,40 @@ func toward(leg: Portal, from_pos: Vector3, from_surface: int) -> Vector3:
 func _link_decks() -> void:
 	var platforms := _layout.platforms
 	var parent := PackedInt32Array()
+	var heights := PackedFloat64Array()
+	var ends := PackedFloat64Array()
+	var near := PackedFloat64Array()
+	var far := PackedFloat64Array()
+	# Two platforms touch (_touch) only where their spans along x come within EDGE of
+	# each other: each is tried against those that start no further along x past its
+	# end, in the order they start — her thousands of faces' floors never all against all.
+	var starts := PackedVector2Array()
 	for index in platforms.size():
+		var area := platforms[index].area
 		parent.append(index)
-	for first in platforms.size():
-		for second in range(first + 1, platforms.size()):
-			if _touch(platforms[first], platforms[second]):
-				var a := _root(parent, first)
-				var b := _root(parent, second)
-				parent[maxi(a, b)] = mini(a, b)
+		heights.append(platforms[index].height)
+		ends.append(area.end.x)
+		near.append(area.position.y)
+		far.append(area.end.y)
+		starts.append(Vector2(area.position.x, index))
+	starts.sort()
+	for at in starts.size():
+		var first := int(starts[at].y)
+		var reach := ends[first] + EDGE + SWEEP_SLACK
+		for next in range(at + 1, starts.size()):
+			if starts[next].x > reach:
+				break
+			var second := int(starts[next].y)
+			# _touch's own first two tests, asked of the numbers in hand first.
+			if (
+				not is_equal_approx(heights[first], heights[second])
+				or minf(far[first], far[second]) - maxf(near[first], near[second]) < -EDGE
+				or not _touch(platforms[first], platforms[second])
+			):
+				continue
+			var a := _root(parent, first)
+			var b := _root(parent, second)
+			parent[maxi(a, b)] = mini(a, b)
 	_zone_count = _layout.rooms.size()
 	var zone_of_root := PackedInt32Array()
 	zone_of_root.resize(platforms.size())

@@ -985,26 +985,13 @@ func _rail_contact(index: int, point: Vector2, radius: float) -> Contact:
 
 ## Each cell's platforms and their clearances, into _floors and _floor_clearances: the
 ## distance from a platform's height to the heights every other surface of the cell
-## stands at — a ramp anywhere between its ends — less CLEARANCE_SLACK.
+## stands at — a ramp anywhere between its ends — less CLEARANCE_SLACK (FloorClearances).
 func _index_floors() -> void:
-	for cell in _grid.cell_count():
-		var near := _grid.in_cell(cell)
-		var floors := PackedInt32Array()
-		var clearances := PackedFloat64Array()
-		for surface: int in near:
-			if surface >= _first_ramp:
-				continue
-			var height := _tops[surface]
-			var clearance := INF
-			for other: int in near:
-				if other == surface:
-					continue
-				var low := _bottoms[other] if is_ramp(other) else _tops[other]
-				clearance = minf(clearance, maxf(low - height, height - _tops[other]))
-			floors.append(surface)
-			clearances.append(clearance - CLEARANCE_SLACK)
-		_floors.append(floors)
-		_floor_clearances.append(clearances)
+	var index := FloorClearances.new(
+		_grid, _tops, _bottoms, _first_ramp, _first_top, CLEARANCE_SLACK
+	)
+	_floors = index.floors
+	_floor_clearances = index.clearances
 
 
 ## The surfaces whose areas reach the cell under [param ship_point]'s x/z, in the bands
