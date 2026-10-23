@@ -4,7 +4,8 @@ extends RefCounted
 ## hatch's coaming under its tarpaulin, the funnel with its whistle and its waste pipe
 ## and the smoke from its top, the mast with its crosstree, masthead light and cleats.
 ## The funnel and the mast are drawn to their blockers' size; what is fixed to them is
-## modelled (ShipModel.named).
+## modelled (ShipModel.named). Over them, the rigging: the masts' halyards, stays and
+## derricks, drawn from the layout where no body can reach them (rigging).
 
 ## The funnel's and the mast's sides, in segments round.
 const FUNNEL_SEGMENTS := 20
@@ -64,6 +65,72 @@ const MASTHEAD_LIGHT_BOX := AABB(Vector3(-0.01, -0.2, -0.122), Vector3(0.282, 0.
 const CLEAT_MODEL := "mast_cleat"
 const CLEAT := 1.3
 const CLEAT_BOX := AABB(Vector3(-0.032, -0.15, -0.01), Vector3(0.064, 0.3, 0.104))
+## Her rigging (rigging), each line a square section that thick: a signal halyard's
+## rope, a stay's wire, an aerial's wire and the spreader that holds its wires apart.
+const HALYARD := 0.025
+const STAY := 0.04
+const AERIAL_WIRE := 0.02
+const AERIAL_SPREADER := 0.08
+## A halyard is rove through the crosstree's arm HALYARD_INBOARD in from its end and
+## leads down the mast HALYARD_OFF off its face to the cleat.
+const HALYARD_INBOARD := 0.05
+const HALYARD_OFF := 0.06
+## A stay is made fast STAY_UNDER under the top of each mast it joins, on its face; on a
+## funnel, at the foot of its rim (FUNNEL_RIM).
+const STAY_UNDER := 0.3
+## The wireless aerial between two mastheads: each spreader AERIAL_UNDER under its
+## mast's top, the wires hung from it so far either side of her centreline.
+const AERIAL_UNDER := 0.8
+const AERIAL_WIRES: Array[float] = [-0.6, -0.2, 0.2, 0.6]
+## How near a rig line may come to the face of a spar it is fixed to — as near as
+## art-lint lets a fitting stand into a body (FurnishingCheck.TOLERANCE) — and how far
+## apart along it its points are tried for their clearance (rigging).
+const RIG_TOLERANCE := 0.12
+const RIG_STEP := 0.1
+## A cargo derrick on a mast (_derrick) works the hatch whose middle stands on her
+## centreline DERRICK_REACH fore or aft of the mast, the nearest mast's: its boom
+## DERRICK thick, heeled on a gooseneck band GOOSENECK proud of the mast and tall, and
+## topped up DERRICK_TOPPED degrees toward the hatch's middle; its topping lift up to
+## the mast LIFT_UNDER under its top, LIFT thick; its cargo runner, RUNNER thick, down
+## to a hook block HOOK_BLOCK thick and tall.
+const DERRICK_REACH := Vector2(3.0, 12.0)
+const DERRICK := 0.14
+const GOOSENECK := Vector2(0.05, 0.16)
+const DERRICK_TOPPED := 25.0
+const LIFT_UNDER := 0.6
+const LIFT := 0.03
+const RUNNER := 0.025
+const HOOK_BLOCK := Vector2(0.12, 0.25)
+
+
+## One line of her rigging, in ship space: from [member from] to [member to], a square
+## section [member thickness] thick, in [member paint]; [member funnel] the funnel it is
+## fixed to, which it goes with if it falls, or null; [member spars] the spars it is
+## fixed to.
+class RigLine:
+	var from: Vector3
+	var to: Vector3
+	var thickness: float
+	var paint: ShipMesh.Paint
+	var funnel: ShipBlocker
+	var spars: Array[ShipBlocker] = []
+	## What it is: &"halyard", &"stay", &"aerial" or &"spreader".
+	var kind: StringName
+
+	func _init(
+		start: Vector3,
+		end: Vector3,
+		thick: float,
+		painted: ShipMesh.Paint,
+		what: StringName,
+		fixed_to: Array[ShipBlocker]
+	) -> void:
+		from = start
+		to = end
+		thickness = thick
+		paint = painted
+		kind = what
+		spars = fixed_to
 
 
 ## A wooden coaming under a tarpaulin drawn over its top and lashed with battens.
@@ -226,3 +293,286 @@ static func mast(mesh: ShipMesh, blocker: ShipBlocker, top: float, art: ShipArt)
 	light.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	light.visible = light.position.y < art.cut_above
 	art.add_child(light)
+
+
+## The rigging over [param layout]'s decks, every line of it clear of the space a body
+## of [param rules] can fill (_clears): a signal halyard from each arm of a mast's
+## crosstree down to its cleat on that side; a stay from a mast's head to the next
+## spar's along her, a mast's or a funnel's, and from mast to mast over what stands
+## between; on a ship of two masts, the wireless aerial between their heads; and a
+## cargo derrick on a mast over the hatch it works (_derrick). No stay comes down to
+## her deck: one would pass through a body at her railing.
+static func rigging(layout: ShipLayout, rules: BrawlRules) -> Array[RigLine]:
+	var spars: Array[ShipBlocker] = []
+	for blocker: ShipBlocker in layout.blockers:
+		if blocker.shape == ShipBlocker.Shape.CYLINDER:
+			spars.append(blocker)
+	spars.sort_custom(func(a: ShipBlocker, b: ShipBlocker) -> bool: return a.centre.x < b.centre.x)
+	var masts: Array[ShipBlocker] = []
+	for spar in spars:
+		if not ShipArt.is_funnel(layout, spar):
+			masts.append(spar)
+	var lines: Array[RigLine] = []
+	for mast in masts:
+		for side: float in [-1.0, 1.0]:
+			lines.append_array(_halyard(layout, rules, mast, side))
+	for index in spars.size() - 1:
+		var aft := spars[index]
+		var fore := spars[index + 1]
+		if masts.has(aft) or masts.has(fore):
+			lines.append(_stay(layout, aft, fore))
+	for index in masts.size() - 1:
+		var aft := masts[index]
+		var fore := masts[index + 1]
+		if spars.find(fore) - spars.find(aft) > 1:
+			lines.append(_stay(layout, aft, fore))
+	if masts.size() == 2:
+		lines.append_array(_aerial(masts[0], masts[1]))
+	var clear: Array[RigLine] = []
+	for line in lines:
+		if _clears(layout, rules, line):
+			clear.append(line)
+	var space := ShipSpace.new(layout)
+	var worked := {}
+	for blocker: ShipBlocker in layout.blockers:
+		if not _is_hatch(space, blocker):
+			continue
+		var middle := blocker.area.get_center()
+		var nearest: ShipBlocker = null
+		for mast in masts:
+			var off := absf(middle.x - mast.centre.x)
+			var on_line := (
+				blocker.area.position.y <= mast.centre.y and blocker.area.end.y >= mast.centre.y
+			)
+			if not on_line or off < DERRICK_REACH.x or off > DERRICK_REACH.y:
+				continue
+			if nearest == null or off < absf(middle.x - nearest.centre.x):
+				nearest = mast
+		if nearest != null:
+			worked[blocker] = nearest
+	for hatch: ShipBlocker in worked:
+		clear.append_array(_derrick(layout, rules, worked[hatch], hatch))
+	return clear
+
+
+## Draws [param line] (rigging) into [param mesh].
+static func rig(mesh: ShipMesh, line: RigLine) -> void:
+	mesh.beam(line.from, line.to, Vector2.ONE * line.thickness, line.paint, 0)
+
+
+## Whether [param blocker] is a hatch ShipArt draws (hatch): a box no wall, no slab
+## roofing a room, its middle outdoors.
+static func _is_hatch(space: ShipSpace, blocker: ShipBlocker) -> bool:
+	if blocker.shape != ShipBlocker.Shape.BOX or space.is_wall(blocker):
+		return false
+	if blocker.top - blocker.bottom <= ShipSpace.WALL_MAX and space.roofs(blocker):
+		return false
+	var middle := blocker.area.get_center()
+	return space.outdoors(Vector3(middle.x, (blocker.bottom + blocker.top) * 0.5, middle.y))
+
+
+## The cargo derrick on [param mast] working [param hatch]: its boom heeled on its
+## gooseneck band high enough to clear a body under the whole of it and topped up toward
+## the hatch's middle, its topping lift from the boom's head up to the mast, its runner
+## from the head down to its hook block, hung where a body standing on the hatch clears
+## it. None when any of it would not clear one (_clears), or the boom's head would stand
+## over the lift's foot on the mast.
+static func _derrick(
+	layout: ShipLayout, rules: BrawlRules, mast: ShipBlocker, hatch: ShipBlocker
+) -> Array[RigLine]:
+	var spars: Array[ShipBlocker] = [mast]
+	var middle := hatch.area.get_center()
+	var toward := (middle - mast.centre).normalized()
+	var face := mast.centre + toward * mast.radius
+	var headroom := rules.body_height + rules.jump_height
+	var under := -INF
+	for top in _tops_under(layout, rules, Vector3(face.x, 0.0, face.y), _flat(middle), spars):
+		under = maxf(under, top[1])
+	var band := under + headroom
+	var heel := Vector3(face.x, band + DERRICK * 0.5, face.y)
+	var reach := face.distance_to(middle)
+	var head := _flat(middle) + Vector3.UP * (heel.y + reach * tan(deg_to_rad(DERRICK_TOPPED)))
+	var lift := Vector3(face.x, mast.top - LIFT_UNDER, face.y)
+	if head.y >= lift.y:
+		return []
+	var hook := under + headroom + HOOK_BLOCK.y + HOOK_BLOCK.x
+	var round := Vector2.ONE * (mast.radius + GOOSENECK.x) * 2.0
+	var axis := _flat(mast.centre)
+	var lines: Array[RigLine] = [
+		RigLine.new(
+			axis + Vector3.UP * band,
+			axis + Vector3.UP * (band + GOOSENECK.y),
+			round.x,
+			ShipPaints.dark,
+			&"gooseneck",
+			spars
+		),
+		RigLine.new(heel, head, DERRICK, ShipPaints.mast, &"boom", spars),
+		RigLine.new(head, lift, LIFT, ShipPaints.dark, &"lift", spars),
+		RigLine.new(head, Vector3(head.x, hook, head.z), RUNNER, ShipPaints.rope, &"runner", spars),
+		RigLine.new(
+			Vector3(head.x, hook, head.z),
+			Vector3(head.x, hook - HOOK_BLOCK.y, head.z),
+			HOOK_BLOCK.x,
+			ShipPaints.dark,
+			&"hook",
+			spars
+		),
+	]
+	for line in lines:
+		if not _clears(layout, rules, line):
+			return []
+	return lines
+
+
+## Ship-plane point [param at] at height 0 in ship space.
+static func _flat(at: Vector2) -> Vector3:
+	return Vector3(at.x, 0.0, at.y)
+
+
+## The height of the crosstree on a mast from [param bottom] to [param top] (mast).
+static func _yard(bottom: float, top: float) -> float:
+	return top - (top - bottom) * CROSSTREE_DOWN
+
+
+## The signal halyard on [param side] of [param mast] (+1 to starboard): from its
+## crosstree's arm in toward the mast, high enough over what stands under it to clear a
+## body there, then down the mast's face to its cleat. None where the crosstree stands too
+## low for that.
+static func _halyard(
+	layout: ShipLayout, rules: BrawlRules, mast: ShipBlocker, side: float
+) -> Array[RigLine]:
+	var centre := mast.centre
+	var yard := _yard(mast.bottom, mast.top)
+	var arm := Vector3(
+		centre.x, yard, centre.y + side * (mast.radius + CROSSTREE_REACH - HALYARD_INBOARD)
+	)
+	var off := centre.y + side * (mast.radius + HALYARD_OFF)
+	var spars: Array[ShipBlocker] = [mast]
+	var tops := _tops_under(layout, rules, arm, Vector3(centre.x, arm.y, off), spars)
+	var under := -INF
+	for top in tops:
+		under = maxf(under, top[1])
+	var cleat := mast.bottom + CLEAT
+	var lead := maxf(under + rules.body_height + rules.jump_height + HALYARD * 0.5, cleat)
+	if lead >= yard:
+		return []
+	var turn := Vector3(centre.x, lead, off)
+	return [
+		RigLine.new(arm, turn, HALYARD, ShipPaints.rope, &"halyard", spars),
+		RigLine.new(
+			turn, Vector3(centre.x, cleat, off), HALYARD, ShipPaints.rope, &"halyard", spars
+		),
+	]
+
+
+## The stay between the heads of [param aft] and [param fore], fixed on the faces they
+## turn to each other: STAY_UNDER under a mast's top, at the foot of a funnel's rim.
+static func _stay(layout: ShipLayout, aft: ShipBlocker, fore: ShipBlocker) -> RigLine:
+	var spars: Array[ShipBlocker] = [aft, fore]
+	var ends: Array[Vector3] = []
+	for index in 2:
+		var spar := spars[index]
+		var out := spar.radius
+		var under := STAY_UNDER
+		if ShipArt.is_funnel(layout, spar):
+			out += FUNNEL_RIM.x
+			under = FUNNEL_RIM.y
+		var face := spar.centre.x + (out if index == 0 else -out)
+		ends.append(Vector3(face, spar.top - under, spar.centre.y))
+	var line := RigLine.new(ends[0], ends[1], STAY, ShipPaints.dark, &"stay", spars)
+	for spar in spars:
+		if ShipArt.is_funnel(layout, spar):
+			line.funnel = spar
+	return line
+
+
+## The wireless aerial between [param aft]'s and [param fore]'s heads: a spreader
+## athwart each, AERIAL_UNDER under its top on the face it turns to the other, and
+## a wire between them at each of AERIAL_WIRES.
+static func _aerial(aft: ShipBlocker, fore: ShipBlocker) -> Array[RigLine]:
+	var spars: Array[ShipBlocker] = [aft, fore]
+	var ends: Array[Vector3] = []
+	for index in 2:
+		var spar := spars[index]
+		var out := spar.radius + AERIAL_SPREADER * 0.5
+		var face := spar.centre.x + (out if index == 0 else -out)
+		ends.append(Vector3(face, spar.top - AERIAL_UNDER, spar.centre.y))
+	var lines: Array[RigLine] = []
+	var span := AERIAL_WIRES.back() as float + AERIAL_SPREADER
+	for at in ends:
+		var across := Vector3(0.0, 0.0, span)
+		lines.append(
+			RigLine.new(
+				at - across, at + across, AERIAL_SPREADER, ShipPaints.mast, &"spreader", spars
+			)
+		)
+	for wire: float in AERIAL_WIRES:
+		var across := Vector3(0.0, -AERIAL_SPREADER, wire)
+		lines.append(
+			RigLine.new(
+				ends[0] + across, ends[1] + across, AERIAL_WIRE, ShipPaints.steel, &"aerial", spars
+			)
+		)
+	return lines
+
+
+## Whether every point of [param line] stands within RIG_TOLERANCE of the face of a spar
+## it is fixed to, or a body's height and jump of [param rules] over every top a body
+## can stand on under it (_tops_under).
+static func _clears(layout: ShipLayout, rules: BrawlRules, line: RigLine) -> bool:
+	var half := line.thickness * 0.5
+	var headroom := rules.body_height + rules.jump_height
+	var tops := _tops_under(layout, rules, line.from, line.to, line.spars)
+	var steps := maxi(1, ceili(line.from.distance_to(line.to) / RIG_STEP))
+	for step in steps + 1:
+		var point := line.from.lerp(line.to, float(step) / steps)
+		var at := Vector2(point.x, point.z)
+		var held := false
+		for spar in line.spars:
+			if at.distance_to(spar.centre) + half <= spar.radius + RIG_TOLERANCE:
+				held = true
+		if not held and point.y - half < _top_at(tops, at) + headroom:
+			return false
+	return true
+
+
+## Every top a body of [param rules] can stand on whose round reaches over the ship
+## plane between [param from] and [param to] — a platform's, a ramp's, a blocker's
+## but [param spars]', a cylinder's by the square round it — each as
+## [its area grown by a body's radius, its height].
+static func _tops_under(
+	layout: ShipLayout, rules: BrawlRules, from: Vector3, to: Vector3, spars: Array[ShipBlocker]
+) -> Array[Array]:
+	var reach := rules.body_radius
+	var low := Vector2(minf(from.x, to.x), minf(from.z, to.z))
+	var high := Vector2(maxf(from.x, to.x), maxf(from.z, to.z))
+	var under := Rect2(low, high - low).grow(reach)
+	var tops: Array[Array] = []
+	for platform: ShipPlatform in layout.platforms:
+		tops.append([platform.area, platform.height])
+	for ramp: ShipRamp in layout.ramps:
+		tops.append([ramp.area, maxf(ramp.start_height, ramp.end_height)])
+	for blocker: ShipBlocker in layout.blockers:
+		if spars.has(blocker):
+			continue
+		var area := blocker.area
+		if blocker.shape == ShipBlocker.Shape.CYLINDER:
+			var round := Vector2.ONE * blocker.radius
+			area = Rect2(blocker.centre - round, round * 2.0)
+		tops.append([area, blocker.top])
+	var near: Array[Array] = []
+	for top in tops:
+		var area := (top[0] as Rect2).grow(reach)
+		if area.intersects(under, true):
+			near.append([area, top[1]])
+	return near
+
+
+## The highest of [param tops] (_tops_under) over ship-plane point [param at], or -INF.
+static func _top_at(tops: Array[Array], at: Vector2) -> float:
+	var highest := -INF
+	for top in tops:
+		if top[1] > highest and (top[0] as Rect2).has_point(at):
+			highest = top[1]
+	return highest

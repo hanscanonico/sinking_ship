@@ -170,6 +170,7 @@ func _dress() -> void:
 		_free_nodes()
 		return
 	if config == null:
+		art.rules = _rules
 		art.build(_ship, _rules.railing_height, _rules.body_radius)
 	else:
 		var schedule := config.schedule()
@@ -178,6 +179,7 @@ func _dress() -> void:
 		var fails := PackedInt32Array(range(_ship.railings.size()))
 		var ports := MatchView.open_ports_of(schedule, _ship.structure)
 		art.span = ShipPieces.first_span(schedule)
+		art.rules = _rules
 		art.build(_ship, _rules.railing_height, _rules.body_radius, falls, fails, ports)
 		stretches = ShipPieces.stretches_of(_ship, schedule, _rules, cut_above, falls, fails, ports)
 	_building.unlock()
