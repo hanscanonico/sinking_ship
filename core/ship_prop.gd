@@ -1,8 +1,16 @@
 class_name ShipProp
 extends Resource
-## A loose crate of cargo where the match starts it (D6, SH10): an upright circle
-## in the deck plane, as a body is, with a height, a mass and its own grip on the
-## deck. Where it is after that is the match's state (PropState), never this.
+## A prop of hers where the match starts it (D6, SH10, #273) — a crate of cargo unless
+## its kind says otherwise: an upright circle in the deck plane, as a body is, with a
+## height, a mass and its own grip on the deck. Where it is after that is the match's
+## state (PropState), never this.
+
+## Its kind (PropKind), by the name of its file under data/props/.
+@export var kind: StringName = &"cargo"
+## The railing span it hangs on at the start, by its index in ShipLayout.railings — a
+## lifebuoy's station; -1 for one that starts on the deck. Hung, its pos is the point of
+## the span it hangs from, at its deck's height.
+@export var railing: int = -1
 
 ## Where its underside stands at the start, ship-local.
 @export var pos: Vector3
@@ -18,9 +26,24 @@ extends Resource
 @export var friction: float
 
 
-## Every reason this crate cannot be loaded; empty when it can.
+## Its kind; null when there is no such kind.
+func prop_kind() -> PropKind:
+	return PropKind.named(kind)
+
+
+## Every reason this prop cannot be loaded; empty when it can.
 func problems() -> PackedStringArray:
 	var found := PackedStringArray()
+	var own := prop_kind()
+	if own == null:
+		found.append("ship: a prop's kind %s is not under %s" % [kind, PropKind.DIRECTORY])
+	elif (
+		own.radius > 0.0
+		and not (is_equal_approx(radius, own.radius) and is_equal_approx(height, own.height))
+	):
+		found.append("ship: a %s prop must be its kind's size" % kind)
+	elif railing != -1 and not own.holdable:
+		found.append("ship: only a prop that can be held hangs on a railing")
 	if radius <= 0.0 or height <= 0.0 or mass <= 0.0:
 		found.append("ship: a prop must have a radius, a height and a mass")
 	if grip_angle_deg <= 0.0 or grip_angle_deg >= 90.0:

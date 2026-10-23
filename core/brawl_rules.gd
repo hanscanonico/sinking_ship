@@ -48,6 +48,12 @@ extends Resource
 ## Friction while staggered, in m/s².
 @export var stagger_friction: float
 
+@export_group("Grab")
+## How far beyond a body's and a prop's edges a Grab press reaches, in metres (#273).
+@export var grab_reach: float
+## Half-angle of the cone around its facing a Grab press takes a prop in.
+@export var grab_cone_deg: float
+
 @export_group("Slope and railings")
 ## The combined deck slope a body standing idle holds at; past it, the deck pulls.
 @export var grip_angle_deg: float
@@ -272,6 +278,7 @@ func problems() -> PackedStringArray:
 		"shove_windup",
 		"shove_active",
 		"shove_reach",
+		"grab_reach",
 		"knockback",
 		"stagger",
 		"stagger_friction",
@@ -333,7 +340,7 @@ func problems() -> PackedStringArray:
 	]:
 		if float(get(field)) < 0.0:
 			found.append("brawl rules: %s must not be negative" % field)
-	for field: String in ["shove_cone_deg", "autoaim_cone_deg", "brace_arc_deg"]:
+	for field: String in ["shove_cone_deg", "autoaim_cone_deg", "grab_cone_deg", "brace_arc_deg"]:
 		if float(get(field)) < 0.0 or float(get(field)) > 180.0:
 			found.append("brawl rules: %s must be within 0…180" % field)
 	if restagger_mult < 1.0:

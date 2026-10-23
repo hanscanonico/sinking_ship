@@ -80,8 +80,10 @@ func _draw(layout: ShipLayout, title: String) -> Node3D:
 	for index in layout.blockers.size():
 		_blocker(group, layout.blockers[index], index)
 	group = _group(root, "Railings")
+	var railing_names := PackedStringArray()
 	for index in layout.railings.size():
-		_line(group, layout.railings[index], &"railing", index, layout, platform_names)
+		var line := _line(group, layout.railings[index], &"railing", index, layout, platform_names)
+		railing_names.append(line.name)
 	group = _group(root, "Ladders")
 	for index in layout.ladders.size():
 		_line(group, layout.ladders[index], &"ladder", index, layout, platform_names)
@@ -97,6 +99,9 @@ func _draw(layout: ShipLayout, title: String) -> Node3D:
 		var prop := layout.props[index]
 		var crate := _cylinder(group, prop, &"prop", index, prop.radius, prop.height)
 		crate.position = prop.pos + Vector3(0, prop.height * 0.5, 0)
+		# A hung prop names its span as a railing names its platform: by its node (#273).
+		if prop.railing != -1:
+			crate.set_meta(&"railing", StringName(railing_names[prop.railing]))
 	group = _group(root, "Rooms")
 	group.visible = false
 	for index in layout.rooms.size():
@@ -202,7 +207,7 @@ func _line(
 	index: int,
 	layout: ShipLayout,
 	platform_names: PackedStringArray
-) -> void:
+) -> Node3D:
 	var from: Vector2 = line.get(&"from")
 	var to: Vector2 = line.get(&"to")
 	var platform: int = line.get(&"platform")
@@ -215,6 +220,7 @@ func _line(
 	var middle := (from + to) * 0.5
 	var deck := layout.platforms[platform].height
 	box.position = Vector3(middle.x, deck + LINE_HEIGHT * 0.5, middle.y)
+	return box
 
 
 func _structure(root: Node, structure: ShipStructure) -> void:

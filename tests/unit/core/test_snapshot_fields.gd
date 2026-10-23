@@ -100,7 +100,7 @@ func test_to_dict_carries_the_table() -> void:
 	var sim := SimFixtures.sim(3, null, SimFixtures.steamer())
 	SimFixtures.step(sim, {}, 3)
 	var state := sim.state
-	state.events = [SimEvent.crate_hit(2, 1, 0)]
+	state.events = [SimEvent.prop_hit(2, 1, 0)]
 	var made: Array = [
 		["MatchState", MatchState.FIELDS, state.to_dict(MatchSim.SNAPSHOT_VERSION), state],
 		["PlayerState", PlayerState.FIELDS, state.seats[0].to_dict(), state.seats[0]],

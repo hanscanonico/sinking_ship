@@ -65,6 +65,8 @@ func _buttons() -> int:
 		buttons |= InputFrame.BRACE
 	if Input.is_action_pressed("jump"):
 		buttons |= InputFrame.JUMP
+	if Input.is_action_pressed("grab"):
+		buttons |= InputFrame.GRAB
 	return buttons
 
 

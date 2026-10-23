@@ -258,12 +258,12 @@ func _from_event(
 			var rise := lerpf(SPLASH_RISE.x, SPLASH_RISE.y, splash.strength)
 			splash.rise = minf(rise, _headroom(splash.position, pose))
 			cues.append(splash)
-		SimEvent.Kind.CRATE_LOST:
+		SimEvent.Kind.PROP_LOST:
 			var crate: Vector3 = current["props"][event["prop"]]["pos"]
 			if previous["props"][event["prop"]]["state"] == PropState.Body.FLOATING:
 				_set_adrift(event["prop"], crate, previous, pose, tick, cues)
 			else:
-				_throw(FxCue.Piece.CRATE, crate, _side_of(crate), tick, cues)
+				_throw(_piece_of(event["prop"]), crate, _side_of(crate), tick, cues)
 		SimEvent.Kind.RAILING_BROKE:
 			var span := _layout.railings[event["railing"]]
 			var middle := _layout.railing_middle(event["railing"], _railing_height * 0.5)
@@ -703,6 +703,12 @@ func _throw(
 ## (_crate_ways) than their radii, it turns from outboard, a step at a time each way,
 ## and hops up to a crate's width, until its way keeps clear of them all — still on the
 ## deck it floated over, or one as high; the least crowded way when none keeps clear.
+## The piece prop [param prop] floats off as: a ring for a lifebuoy (#273), a crate for
+## anything else.
+func _piece_of(prop: int) -> FxCue.Piece:
+	return FxCue.Piece.LIFEBELT if _layout.props[prop].kind == &"lifebuoy" else FxCue.Piece.CRATE
+
+
 func _set_adrift(
 	prop: int, crate: Vector3, previous: Dictionary, pose: ShipPose, tick: int, cues: Array[FxCue]
 ) -> void:
@@ -741,7 +747,7 @@ func _set_adrift(
 		if best >= -0.001:
 			break
 	var adrift := FxCue.new(FxCue.Kind.FLOTSAM, tick, crate)
-	adrift.piece = FxCue.Piece.CRATE
+	adrift.piece = _piece_of(prop)
 	# Flotsam times a flight by its drop, at least FLIGHT_LEAST, so a short one is defined.
 	adrift.end = Vector3(end.x, crate.y, end.y)
 	adrift.toward = outward

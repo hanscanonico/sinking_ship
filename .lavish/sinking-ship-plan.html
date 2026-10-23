@@ -178,7 +178,7 @@
       <h1 class="text-3xl md:text-4xl font-black mt-2">Sinking Ship — last one dry wins</h1>
       <p class="mt-3 max-w-3xl opacity-90">
         A battle royale on a ship that is going down. Eight brawlers on a small coastal steamer,
-        no loot and no weapons: you <strong>shove</strong>, you <strong>brace</strong>, you push
+        no loot and no damage: you <strong>shove</strong>, you <strong>brace</strong>, you push
         people into the sea. The rising water and the listing deck are the shrinking zone. Today the
         steamer sinks by the head on a script, so the bow goes under first, the stern climbs, the
         decks tilt until standing still is work, and the last one standing on dry planks wins. You play it in
@@ -456,7 +456,8 @@
             <li>Godot 4.7, 3D, renderer <code>gl_compatibility</code> (keeps web export open).</li>
             <li>Bots now, online multiplayer later — the simulation is structured to become
             server-authoritative without a rewrite.</li>
-            <li>A pure survival brawl: no loot, no weapons, melee and shoving only; push others into
+            <li>A pure survival brawl: no loot, no damage, melee and shoving only — and the loose things
+            of hers you can grab (SH36); push others into
             the water; last one standing on the highest dry spot wins; the rising water and the
             listing ship are the shrinking zone.</li>
             <li>A solo developer with 5–10 hours a week working through AI agents, on a 16 GB
@@ -955,15 +956,21 @@ var buttons: int</pre>
 
         <div class="card bg-base-100 border p-4 sk-locked">
           <div class="flex flex-wrap items-baseline gap-2">
-            <h3 class="font-black">D9 · No health, no items, one way out</h3>
-            <span class="badge badge-outline">locked</span>
+            <h3 class="font-black">D9 · No health, no damage, no loot, one way out</h3>
+            <span class="badge badge-outline">locked · reopened 2026-10-23 (#273)</span>
           </div>
           <p class="text-sm mt-2 max-w-3xl">
             Your brief as a rule the code can hold: <strong>the only elimination is the sea</strong>.
-            No damage numbers, no health, no pickups, no loadouts. Shove is the only verb in SH1–SH3;
+            No damage numbers, no health, no loot, no loadouts. Shove is the only verb in SH1–SH3;
             the second-verb set is Q2 (recommended: brace plus a charged shove on the same two
             buttons, with stamina governing brace and charge).
           </p>
+          <p class="text-xs mt-1 max-w-3xl opacity-80"><strong>Reopened 2026-10-23 (#273, SH36):</strong>
+            "no items, no pickups" gave way to <em>props</em>: loose things of hers — lifebuoys,
+            things to throw, light crates — that a Grab press takes and that work only through the
+            rules there already are, the shove, the slope and the water. What holds: the sea is the
+            only way out, nothing deals damage, nothing is loot or a loadout, every prop is put there
+            by her layout, and none comes back once it is gone.</p>
         </div>
 
         <div class="card bg-base-100 border p-4 sk-locked">
@@ -3145,6 +3152,7 @@ sequenceDiagram
             <tr><td class="mono">SH34</td><td>The Titanic</td><td>XL</td><td>Q11 · stop and ask</td><td>…brawl on the Titanic at full size as the physics sinks her.</td></tr>
             <tr><td class="mono">SH19</td><td>The big ship, greybox — <em>absorbed by SH34 (rev 4)</em></td><td>L</td><td>—</td><td>—</td></tr>
             <tr><td class="mono">SH35</td><td>The ferry — <em>proposed, outside your eleven steps</em></td><td>M</td><td>—</td><td>…pick a ro-ro ferry whose open car deck can roll her over in minutes.</td></tr>
+            <tr><td class="mono">SH36</td><td>Props you can grab (#273) — <em>three slices</em></td><td>L</td><td>D9 reopened</td><td>…race for a lifebuoy as she goes, throw a bottle at a perch, block a door with a crate.</td></tr>
             <tr><td class="mono">SH20</td><td>Bots at scale</td><td>M</td><td>—</td><td>…watch bots climb through many decks as the water comes.</td></tr>
             <tr><td class="mono">SH21</td><td>More seats</td><td>M</td><td>Q12 · build the recommendation</td><td>…play a crowded match on the big ship.</td></tr>
             <tr><td class="mono">SH22</td><td>Online at scale</td><td>L</td><td>—</td><td>…play a crowded room online from the mini PC within its upload.</td></tr>
@@ -4640,6 +4648,33 @@ sequenceDiagram
           <h4>Not in this milestone</h4>
           <ul class="sk-crosses text-sm">
             <li>Waves and a seaway (§13); vehicles on the car deck.</li>
+          </ul>
+        </div>
+
+        <!-- SH36 -->
+        <div class="card bg-base-100 border p-4 sk-ms" id="sh36">
+          <div class="flex flex-wrap items-baseline gap-2">
+            <h3 class="font-black">SH36 · Props you can grab <span class="badge badge-outline badge-sm">size L</span> <span class="badge badge-sm align-middle" style="background:var(--sk-deep); color:white; border:0;">post-MVP</span> <span class="badge badge-outline badge-sm align-middle">#273 · D9 reopened</span></h3>
+          </div>
+          <p class="text-sm mt-2 max-w-3xl"><strong>Ships:</strong> one Grab button and the loose things of hers it takes — lifebuoys on her side railings that slow the cold in the sea, bottles, buckets and deck chairs to throw, light crates to carry and set down — all of them working through the shove, the slope and the water. Three slices, each its own PR and playable alone, a playtest between them: grab, hold and let go with lifebuoys and the bots taking and stealing them; then throwables; then light crates.</p>
+          <h4>Builds</h4>
+          <ul class="sk-checks text-sm">
+            <li>A prop's kind (<code>PropKind</code>, <span class="sk-file">data/props/NAME.tres</span>) beside its layout entry: whether it can be held and what holding it costs, whether it is solid, what it does in the sea. Cargo is a kind: solid, never held.</li>
+            <li><code>InputFrame.GRAB</code>; <code>GrabReach</code>, the one Node-free answer to what a press takes, asked by the sim and the HUD alike; a prop's holder in the snapshot as the one truth of who holds what.</li>
+            <li>Lifebuoys hung on sea-facing spans by each ship's generator (2–4, fewer than her seats), lost with their span; held, a slower walk, no brace, no charge, knocked loose only by a charged shove, and a slower cold drain in the sea (est. 0.2), never none.</li>
+            <li>Bots take a lifebuoy as she floods, the hard tier charges a holder and takes the dropped ring, and a swimmer holding one plans for its slower drain.</li>
+          </ul>
+          <h4>Respects</h4>
+          <p class="text-sm">D1, D3, D4, D5, D6, D9 (reopened), D10, D11, D13, D14.</p>
+          <h4>Acceptance gates</h4>
+          <ul class="sk-gates text-sm">
+            <li><code>make verify</code> green; same seed and input log, same digest with props in play; <code>from_snapshot(snapshot())</code> continues mid-carry and with a ring in the sea.</li>
+            <li>The layout lint holds every lifebuoy to a sea-facing span; bake-check holds the authored ships' props field for field.</li>
+            <li><code>make run</code>: grab a ring as the water comes, lose it to a charge, swim to a ladder holding it.</li>
+          </ul>
+          <h4>Not in this milestone</h4>
+          <ul class="sk-crosses text-sm">
+            <li>Damage, health, loot, loadouts, anything that respawns; changing the water; a swimmer grabbing a ring in the sea; throws at swimmers; aiming throws by pitch (D14).</li>
           </ul>
         </div>
 

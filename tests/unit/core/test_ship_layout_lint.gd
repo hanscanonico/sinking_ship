@@ -482,3 +482,67 @@ func test_no_railing_crosses_a_stair_end() -> void:
 							% [path, railing.from, railing.to, index, end]
 						)
 					)
+
+
+## Every prop of hers (#273) starts where it can: on the deck, on a surface at its height
+## and held back by no blocker, wall or deck edge; hung, on its span's line between its
+## ends, at its deck's height.
+func test_props_start_on_a_surface_clear_of_blockers_or_on_their_span() -> void:
+	var layouts := _layouts()
+	var step := SimFixtures.rules().step_height
+	for path: String in layouts:
+		var layout: ShipLayout = layouts[path]
+		var surfaces := Surfaces.new(layout)
+		for index in layout.props.size():
+			var prop := layout.props[index]
+			var named := "%s: prop %d at %s" % [path, index, prop.pos]
+			if prop.railing != -1:
+				var span := layout.railings[prop.railing]
+				var at := Vector2(prop.pos.x, prop.pos.z)
+				var on := Geometry2D.get_closest_point_to_segment(at, span.from, span.to)
+				assert_almost_eq(on.distance_to(at), 0.0, 0.001, named + ": on its span")
+				var deck := layout.platforms[span.platform].height
+				assert_almost_eq(prop.pos.y, deck, 0.001, named + ": at its deck's height")
+				continue
+			var surface := surfaces.under(prop.pos, step, index)
+			assert_ne(surface, Surfaces.NONE, named + " stands on nothing")
+			if surface != Surfaces.NONE:
+				assert_almost_eq(surfaces.height_at(surface, prop.pos), prop.pos.y, 0.0001, named)
+			var contacts := surfaces.obstacle_contacts(
+				prop.pos, prop.radius, prop.height, step, index
+			)
+			assert_true(contacts.is_empty(), named + " is held back")
+
+
+## Her lifebuoys (#273) hang on spans that face the sea (RailBuoys.sea_facing) — one at
+## least on a ship of the fleet, and fewer than her seats — between two of each span's
+## posts.
+func test_lifebuoys_hang_on_sea_facing_spans_fewer_than_her_seats() -> void:
+	var layouts := _layouts()
+	var fleet := Fleet.names()
+	for path: String in layouts:
+		var layout: ShipLayout = layouts[path]
+		var space := ShipSpace.new(layout)
+		var rings := 0
+		for index in layout.props.size():
+			var prop := layout.props[index]
+			if prop.kind != &"lifebuoy":
+				continue
+			rings += 1
+			var named := "%s: lifebuoy %d" % [path, index]
+			assert_ne(prop.railing, -1, named + " hangs on no span")
+			if prop.railing == -1:
+				continue
+			assert_true(
+				RailBuoys.sea_facing(space, prop.railing), named + ": its span faces the sea"
+			)
+			var span := layout.railings[prop.railing]
+			var length := span.from.distance_to(span.to)
+			var posts := maxi(1, ceili(length / ShipArt.POST_SPACING))
+			var along := span.from.distance_to(Vector2(prop.pos.x, prop.pos.z)) / length * posts
+			var clear := (prop.radius + ShipArt.POST * 0.5) / length * posts
+			assert_gt(absf(along - roundf(along)), clear - 0.001, named + ": between two posts")
+		assert_lt(rings, layout.max_seats, "%s: fewer rings than her seats" % path)
+		var ship := path.get_file().get_basename()
+		if ship in fleet:
+			assert_gt(rings, 0, "%s: a lifebuoy at least" % path)

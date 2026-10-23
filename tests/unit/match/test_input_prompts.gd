@@ -73,11 +73,14 @@ func test_the_controls_hint_reads_the_input_map() -> void:
 	# positions; on AZERTY the same physical keys read Z Q S D.
 	assert_eq(
 		InputPrompts.controls_for(false),
-		"W A S D — move   ·   Space — jump   ·   Left click — shove   ·   Shift — brace"
+		(
+			"W A S D — move   ·   Space — jump   ·   Left click — shove   ·   Shift — brace"
+			+ "   ·   G — grab"
+		)
 	)
 	assert_eq(
 		InputPrompts.controls_for(true),
-		"Left stick — move   ·   A — jump   ·   RT — shove   ·   RB — brace"
+		"Left stick — move   ·   A — jump   ·   RT — shove   ·   RB — brace   ·   LB — grab"
 	)
 
 

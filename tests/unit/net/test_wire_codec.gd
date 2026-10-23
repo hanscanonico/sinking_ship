@@ -158,7 +158,7 @@ func test_input_redundancy_recovers_a_lost_packet() -> void:
 	for tick in range(20, 30):
 		var stick := Vector2(_rng.randf_range(-1.0, 1.0), _rng.randf_range(-1.0, 1.0))
 		var look := _rng.randi_range(0, InputFrame.YAW_STEPS - 1)
-		var buttons := _rng.randi_range(0, 7)
+		var buttons := _rng.randi_range(0, 15)
 		played.append(InputFrame.new(0, tick, InputFrame.quantize(stick), buttons, look))
 	var redundancy := NetRules.load_default().input_redundancy
 	assert_gt(redundancy, 1, "each packet repeats frames")

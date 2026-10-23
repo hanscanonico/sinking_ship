@@ -92,6 +92,16 @@ func railing_middle(railing: int, above: float) -> Vector3:
 	return Vector3(middle.x, platforms[span.platform].height + above, middle.y)
 
 
+## The unit normal, x/z, of railing [param railing]'s span pointing off its platform:
+## the way a lifebuoy hung on it faces (#273).
+func railing_outward(railing: int) -> Vector2:
+	var span := railings[railing]
+	var outward := (span.to - span.from).normalized().orthogonal()
+	if (platforms[span.platform].area.get_center() - span.from).dot(outward) > 0.0:
+		outward = -outward
+	return outward
+
+
 ## The unit normal, x/z, of [param ladder]'s stretch of edge pointing off its platform:
 ## the way it hangs outboard.
 func ladder_outward(ladder: ShipLadder) -> Vector2:
@@ -198,6 +208,8 @@ func problems(seats: int) -> PackedStringArray:
 			found.append("ship: a prop is missing")
 		else:
 			found.append_array(prop.problems())
+			if prop.railing < -1 or prop.railing >= railings.size():
+				found.append("ship: a prop hangs on railing %d" % prop.railing)
 	if min_seats < 1 or max_seats < min_seats:
 		found.append("ship: min_seats must be at least 1 and at most max_seats")
 	elif seats < min_seats or seats > max_seats:

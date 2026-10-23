@@ -42,6 +42,33 @@ Wherever a floor has headroom to crawl but not to stand: less than the rules'
 room holding one is marked a crawl space for the lint and the bots' routes.
 _Avoid_: crouch, crawlway, duct
 
+### What she carries
+
+**Prop**:
+A loose thing of hers that the match moves and keeps in the snapshot: a crate of cargo, a
+light crate, a lifebuoy, a bottle, a bucket, a deck chair. Each is put there by her layout
+(where it starts, its size, mass and grip) as one of a prop kind, and none comes back once
+the sea has it. Modelled art that only dresses her — the hero props and furniture of
+`assets/models` — is dressing, not props: never in the snapshot, never held.
+_Avoid_: item, pickup, object, loot
+
+**Prop kind**:
+What a kind of prop is, the same for every one of it: whether a Grab press takes it and
+what holding it costs, whether it is solid — a blocker, a surface, a shove's target — and
+what it does in the sea. One data file each, as the bot tiers are.
+_Avoid_: item type, prop class
+
+**Holder**:
+The seat holding a prop, kept on the prop and nowhere else: what a seat holds is asked of
+the props.
+_Avoid_: owner, carrier, wielder
+
+**Knocked loose**:
+Out of its holder's hands by a hit, at its feet: a lifebuoy only by a landed charged shove.
+Letting go by a Grab press is not being knocked loose; a bot that steals knocks a ring
+loose so as to take it.
+_Avoid_: disarmed, dropped
+
 ### Watching her again
 
 **Replay**:

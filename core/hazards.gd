@@ -30,6 +30,12 @@ extends RefCounted
 ## slamming into a crate at crate_impact_speed or more sends it off so (slams). A body
 ## on its feet leans on a crate as on a wall: a laden crate does not give to a walk.
 ##
+## Every prop of hers is stepped as a crate is (#273) while it lies loose — not hung on a
+## railing nor held — but only a solid one (PropKind) holds bodies back, stands a lid,
+## takes a shove, runs into a body or damages a railing: bodies walk through any other.
+## A prop hung on a span the sinking fails, the match breaks or a collapse takes is lost
+## with it.
+##
 ## A vault damages the span it goes over by vault_damage, and a crate crossing one at
 ## railing_break_speed or more by crate_damage; a span with no hits left is broken,
 ## gone from Surfaces like a failed one, and holds nothing.
@@ -46,7 +52,10 @@ extends RefCounted
 ## bodies on it and its railings, numbered among its own — a span's hits are hers.
 
 var _rules: BrawlRules
+var _layout: ShipLayout
 var _props: Array[ShipProp] = []
+## Per prop, 1 for a solid one.
+var _solid := PackedByteArray()
 var _surfaces: Surfaces
 ## The piece of her these are, and her pieces; null for a ship that never breaks.
 var _piece := 0
@@ -67,12 +76,15 @@ var _broken := PackedInt32Array()
 ## [param piece] of [param pieces], its decks' own.
 func _init(config: MatchConfig, surfaces: Surfaces, piece := 0, pieces: Pieces = null) -> void:
 	_rules = config.rules
+	_layout = config.ship
 	_props = config.ship.props
 	_surfaces = surfaces
 	_piece = piece
 	_pieces = pieces
 	_aboard.resize(_props.size())
 	_aboard.fill(1)
+	for prop: ShipProp in _props:
+		_solid.append(1 if prop.prop_kind().solid else 0)
 	_stagger_ticks = Ticks.from_seconds(_rules.stagger)
 	_hitstop_ticks = Ticks.from_seconds(_rules.hitstop)
 	_hitstop_braced_ticks = Ticks.from_seconds(_rules.hitstop_braced)
@@ -81,9 +93,9 @@ func _init(config: MatchConfig, surfaces: Surfaces, piece := 0, pieces: Pieces =
 
 
 ## One tick of the cargo, in [param state], under [param pose] — the whole ship's — and
-## before it, every funnel landing. Once the match stands on any face but its decks
-## (Faces), the piece has rolled past where cargo stays stowed: what is still aboard
-## breaks loose into the sea.
+## before it, every funnel landing; a prop hung on a span gone by now goes with it. Once
+## the match stands on any face but its decks (Faces), the piece has rolled past where
+## cargo stays stowed: what is still aboard and not held breaks loose into the sea.
 func step(state: MatchState, pose: ShipPose, tick: int, events: Array[SimEvent]) -> void:
 	var here := pose.of_piece(_piece)
 	# A funnel's strip lies on her decks: off them (SH32) its landing strikes nobody, and
@@ -91,16 +103,23 @@ func step(state: MatchState, pose: ShipPose, tick: int, events: Array[SimEvent])
 	if state.up[_piece] == Faces.Up.DECK:
 		_strike(state, here, tick, events)
 	_broken = state.broken_railings()
+	var rolled := state.up[_piece] != Faces.Up.DECK
 	var crates: Array[PropState] = []
+	var unhung: Array[PropState] = []
 	for crate: PropState in state.props:
 		if _pieces != null and _pieces.count() > 1:
 			var over := _pieces.piece_at(pose.standing, crate.pos.x)
 			_aboard[crate.prop] = 1 if over == _piece else 0
-		if not crate.is_lost() and _aboard[crate.prop] == 1:
+		if _aboard[crate.prop] == 0:
+			continue
+		if crate.is_loose():
 			crates.append(crate)
+		elif crate.body == PropState.Body.HUNG and (rolled or _span_gone(crate, pose)):
+			unhung.append(crate)
+	_lose(unhung, tick, events)
 	if crates.is_empty():
 		return
-	if state.up[_piece] != Faces.Up.DECK:
+	if rolled:
 		_lose(crates, tick, events)
 		return
 	_forces(crates, here)
@@ -110,6 +129,17 @@ func step(state: MatchState, pose: ShipPose, tick: int, events: Array[SimEvent])
 	_ground(crates, feet_before)
 	_sea(crates, here, tick, events)
 	_stand(state, pose)
+
+
+## Whether the span [param crate] hangs on is gone under [param pose]: failed by the
+## sinking, broken by the match, or gone with its deck.
+func _span_gone(crate: PropState, pose: ShipPose) -> bool:
+	var span := _props[crate.prop].railing
+	return (
+		span in _broken
+		or span in pose.broken_railings
+		or _layout.platforms[_layout.railings[span].platform].name in pose.collapsed
+	)
 
 
 ## The railing of hers that railing [param railing] of the Surfaces these are asked of
@@ -142,12 +172,12 @@ func _strike(state: MatchState, pose: ShipPose, tick: int, events: Array[SimEven
 			events.append(SimEvent.knocked_down(tick, player.seat, fall.fitting.name))
 
 
-## The crates still on board — over this piece, as of this tick's step — as a shove may
-## land on them, numbered from [param first]: crate n is candidate first + n.
+## The solid props still on board — over this piece, as of this tick's step — as a shove
+## may land on them, numbered from [param first]: crate n is candidate first + n.
 func candidates(state: MatchState, first: int) -> Array[ShoveResolver.Candidate]:
 	var found: Array[ShoveResolver.Candidate] = []
 	for crate: PropState in state.props:
-		if not crate.is_lost() and _aboard[crate.prop] == 1:
+		if crate.is_loose() and _aboard[crate.prop] == 1 and _solid[crate.prop] == 1:
 			var prop := _props[crate.prop]
 			found.append(
 				ShoveResolver.Candidate.new(first + crate.prop, crate.pos, prop.radius, prop.height)
@@ -358,6 +388,7 @@ func _railings(
 		var into := -Vector2(crate.vel.x, crate.vel.z).dot(contact.normal)
 		if (
 			into >= _rules.railing_break_speed
+			and _solid[crate.prop] == 1
 			and damage(
 				state,
 				rail(contact.railing),
@@ -393,6 +424,8 @@ func _run_into_bodies(
 	state: MatchState, crates: Array[PropState], tick: int, events: Array[SimEvent]
 ) -> void:
 	for crate: PropState in crates:
+		if _solid[crate.prop] == 0:
+			continue
 		var prop := _props[crate.prop]
 		var reach := prop.radius + _rules.body_radius
 		for player: PlayerState in state.seats:
@@ -460,7 +493,7 @@ func _collide(
 			stop = _hitstop_braced_ticks
 		player.stagger_ticks = maxi(player.stagger_ticks, _stagger_ticks)
 		player.bracing = false
-		events.append(SimEvent.crate_hit(tick, player.seat, crate.prop))
+		events.append(SimEvent.prop_hit(tick, player.seat, crate.prop))
 	body_planar += normal * (away - along)
 	player.freeze(Vector3(body_planar.x, moving.y, body_planar.y), stop)
 	if not impact and _credited_elsewhere(player, crate.prop, tick):
@@ -526,14 +559,15 @@ func _sea(crates: Array[PropState], pose: ShipPose, tick: int, events: Array[Sim
 				lost.append(crate)
 				continue
 			crate.body = PropState.Body.FLOATING
-			events.append(SimEvent.crate_afloat(tick, crate.prop))
+			events.append(SimEvent.prop_afloat(tick, crate.prop))
 		if _float(crate, pose):
 			lost.append(crate)
 	_lose(lost, tick, events)
 
 
 ## Floats [param crate] on its cell's water under [param pose]: its underside
-## crate_draft under the water over its x/z, never under the floor beneath it. Set down
+## crate_draft under the water over its x/z — or half its height, for one less than
+## twice crate_draft tall, a ring — never under the floor beneath it. Set down
 ## on that floor once the water over it is shallower than wade_depth. True when it is
 ## lost: its top at the ceiling over it or, with none, the water over its floor
 ## crate_adrift_depth deep — or nothing under it at all.
@@ -550,7 +584,8 @@ func _float(crate: PropState, pose: ShipPose) -> bool:
 		crate.body = PropState.Body.GROUNDED
 		crate.pos.y = floor_height
 		return false
-	crate.pos.y = maxf(water - _rules.crate_draft, floor_height)
+	var draft := minf(_rules.crate_draft, prop.height * 0.5)
+	crate.pos.y = maxf(water - draft, floor_height)
 	var floor_point := Vector3(crate.pos.x, floor_height, crate.pos.z)
 	var roof := _surfaces.ceiling(floor_point, _rules.step_height)
 	if roof == INF:
@@ -564,7 +599,7 @@ func _lose(crates: Array[PropState], tick: int, events: Array[SimEvent]) -> void
 		crate.body = PropState.Body.LOST
 		crate.surface = Surfaces.NONE
 		crate.vel = Vector3.ZERO
-		events.append(SimEvent.crate_lost(tick, crate.prop))
+		events.append(SimEvent.prop_lost(tick, crate.prop))
 
 
 ## Hands Surfaces the railings the match has broken and where its crates stand.

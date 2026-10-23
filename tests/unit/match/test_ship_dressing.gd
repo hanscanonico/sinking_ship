@@ -43,7 +43,7 @@ func test_a_ship_dressed_on_a_thread_is_the_one_dressed_here() -> void:
 	assert_true(here.done(), "dressed here at once")
 	assert_gt(threaded.art.get_child_count(), 0, "she is dressed")
 	assert_eq(_shape(threaded.art), _shape(here.art), "the same ship, part for part")
-	assert_eq(threaded.art.crates().size(), here.art.crates().size(), "every crate drawn")
+	assert_eq(threaded.art.props().size(), here.art.props().size(), "every crate drawn")
 	assert_true(threaded.stretches.is_empty(), "a hull that never breaks is one stretch")
 	threaded.drop()
 	here.drop()

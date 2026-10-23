@@ -169,8 +169,8 @@ func test_a_floating_crate_drifting_through_a_railing_gap_is_lost() -> void:
 		if crate.is_lost():
 			break
 		deepest = maxf(deepest, _water(sim, crate.pos))
-	assert_eq(_of(events, SimEvent.Kind.CRATE_AFLOAT).size(), 1, "afloat first")
-	assert_eq(_of(events, SimEvent.Kind.CRATE_LOST).size(), 1, "then over the side")
+	assert_eq(_of(events, SimEvent.Kind.PROP_AFLOAT).size(), 1, "afloat first")
+	assert_eq(_of(events, SimEvent.Kind.PROP_LOST).size(), 1, "then over the side")
 	assert_gt(crate.pos.z, gap.y, "lost out past her deck's edge, through the gap")
 	assert_lt(deepest, rules.crate_adrift_depth, "never swept off by the water's depth")
 

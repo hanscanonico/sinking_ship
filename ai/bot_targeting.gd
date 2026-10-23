@@ -268,3 +268,64 @@ func off_perch(entry: Dictionary) -> bool:
 
 func _zone_of(entry: Dictionary) -> int:
 	return _walk_graph.zone_at(entry["pos"], entry["surface"])
+
+
+## The nearest seat seen in the sea within guard_range_m of [param my_pos], or -1:
+## one there may climb out at the bot's feet.
+func swimmer_near(seen: Dictionary, my_pos: Vector3) -> int:
+	var nearest := -1
+	var best := _profile.guard_range_m
+	for entry: Dictionary in seen["seats"]:
+		if (
+			entry["seat"] == _seat
+			or entry["state"] != PlayerState.Body.SWIMMING
+			or entry.has(BotView.REMEMBERED)
+		):
+			continue
+		var distance := my_pos.distance_to(entry["pos"])
+		if distance < best:
+			best = distance
+			nearest = entry["seat"]
+	return nearest
+
+
+## The nearest seat whose shove would land on the bot as things stand and that
+## could be winding one up: seen in a windup or a charge, or idle and able to
+## start one. The view is reaction_ticks old, so this is a read, never a reaction
+## to a quick windup — that has landed before the bot could see it. Empty when
+## there is none.
+func threat(seen: Dictionary, me: Dictionary) -> Dictionary:
+	var nearest := {}
+	var best := INF
+	var my_pos: Vector3 = me["pos"]
+	var mine := ShoveResolver.Candidate.new(
+		_seat, my_pos, _rules.body_radius, _rules.height_at(_walk_graph.surfaces(), my_pos)
+	)
+	for entry: Dictionary in seen["seats"]:
+		if (
+			entry["seat"] == _seat
+			or entry["state"] != PlayerState.Body.GROUNDED
+			or entry.has(BotView.REMEMBERED)
+		):
+			continue
+		var action: PlayerState.Action = entry["action"]
+		if action == PlayerState.Action.ACTIVE or action == PlayerState.Action.RECOVERY:
+			continue
+		if entry["stagger"] > 0:
+			continue
+		if not ShoveResolver.lands(
+			entry["pos"],
+			_rules.body_radius,
+			Vector2.from_angle(entry["facing"]),
+			mine,
+			_rules.shove_reach,
+			_rules.shove_cone_deg,
+			_walk_graph.surfaces(),
+			_rules.step_height
+		):
+			continue
+		var distance := my_pos.distance_squared_to(entry["pos"])
+		if distance < best:
+			best = distance
+			nearest = entry
+	return nearest

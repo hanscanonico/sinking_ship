@@ -121,6 +121,23 @@ static func crate(at: Vector3) -> ShipProp:
 	return made
 
 
+## A lifebuoy (#273) at [param at] — its underside on the deck, or, hung on the railing
+## span [param railing], the point of the span it hangs from at its deck's height — of
+## its kind's size, as the ships carry them.
+static func lifebuoy(at: Vector3, railing := -1) -> ShipProp:
+	var kind := PropKind.named(&"lifebuoy")
+	var made := ShipProp.new()
+	made.kind = &"lifebuoy"
+	made.railing = railing
+	made.pos = at
+	made.radius = kind.radius
+	made.height = kind.height
+	made.mass = 2.5
+	made.grip_angle_deg = 20.0
+	made.friction = 3.0
+	return made
+
+
 ## [param layout] — the flat deck, when none is given — carrying [param crates] and
 ## no other.
 static func crated(crates: Array[ShipProp], layout: ShipLayout = null) -> ShipLayout:
@@ -289,6 +306,16 @@ static func place(match_sim: MatchSim, seat: int, pos: Vector3, facing_deg: floa
 	player.facing = InputFrame.yaw_angle(player.last_look)
 	player.body = PlayerState.Body.GROUNDED
 	player.surface = match_sim.surfaces.under(pos, match_sim.config.rules.step_height)
+
+
+## Puts prop [param prop] in [param seat]'s hands, as a Grab press would (#273).
+static func hand(match_sim: MatchSim, seat: int, prop: int) -> void:
+	var held := match_sim.state.props[prop]
+	held.body = PropState.Body.HELD
+	held.holder = seat
+	held.pos = match_sim.state.seats[seat].pos
+	held.vel = Vector3.ZERO
+	held.surface = Surfaces.NONE
 
 
 ## The ship-plane velocity [param player] moves at — or, frozen in a hit-stop, the
