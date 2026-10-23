@@ -417,7 +417,7 @@ func _think(view: BotView, me: Dictionary, now_pos: Vector3, pose: ShipPose) -> 
 	var wade := _refuges.wade_out(my_zone, my_pos, my_surface, pose, refuge, _goal, _wading)
 	refuge = refuge if wade.is_empty() else wade.back().to_zone
 	target = _targeting.choose(seen, me, found, pose, highest, target, refuge, under)
-	_buoy_score = _props.choose(seen, me, found, _walk_graph, under)
+	_buoy_score = _props.choose(seen, me, found, _walk_graph, under, pose)
 	var mark := view.entry(target)
 	# It climbs until it stands where it was making for — off its feet, it stands
 	# nowhere — or, the ship not yet foundering, on a floor a body's height out of the

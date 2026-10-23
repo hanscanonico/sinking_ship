@@ -58,17 +58,24 @@ func steals_from(seen: Dictionary, victim: Dictionary) -> bool:
 
 
 ## Picks the lifebuoy to go for at a think, from [param me] in [param seen] with
-## [param under] of her decks under water, among those [param found] — a search of
-## [param graph] from where it stands — reaches; returns its score, buoy_weight by
-## [param under], or 0 with none to go for.
+## [param under] of her decks under water under [param pose], among those [param found] — a
+## search of [param graph] from where it stands — reaches, but for any a body's height or
+## more nearer the sea than its own feet: it never goes down a deck toward the water for
+## one. Returns its score, buoy_weight by [param under], or 0 with none to go for.
 func choose(
-	seen: Dictionary, me: Dictionary, found: WalkGraph.Search, graph: WalkGraph, under: float
+	seen: Dictionary,
+	me: Dictionary,
+	found: WalkGraph.Search,
+	graph: WalkGraph,
+	under: float,
+	pose: ShipPose
 ) -> float:
 	buoy = -1
 	_wanting = under >= _profile.buoy_from and PropState.held_in(seen, _seat) == -1
 	if not _wanting or me["state"] != PlayerState.Body.GROUNDED or found.cost.is_empty():
 		return 0.0
 	var my_pos: Vector3 = me["pos"]
+	var lowest := pose.above_water(my_pos) - _rules.body_height
 	var nearest := _profile.buoy_range_m
 	for entry: Dictionary in seen["props"]:
 		if not PropState.within_grasp(entry["state"]):
@@ -76,6 +83,8 @@ func choose(
 		if not _layout.props[entry["prop"]].prop_kind().afloat:
 			continue
 		var stand := stand_by(entry)
+		if pose.above_water(stand) < lowest:
+			continue
 		var zone := graph.zone_at(stand, graph.surfaces().under(stand, _rules.step_height))
 		if zone == WalkGraph.NONE or found.cost[zone] == INF:
 			continue

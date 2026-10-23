@@ -169,3 +169,17 @@ func test_a_bot_reaching_a_ring_presses_grab_and_not_shove() -> void:
 	var frame := source.next_frame(sim.state.tick)
 	assert_true(frame.is_held(InputFrame.GRAB), "it presses Grab")
 	assert_false(frame.is_held(InputFrame.SHOVE), "and not Shove with it")
+
+
+## A bot never goes down toward the water for a ring: one a deck or more below where it
+## stands, nearer the sea, it leaves where it hangs.
+func test_a_bot_does_not_go_down_a_deck_for_a_ring() -> void:
+	var layout := SimFixtures.steamer().duplicate()
+	var by_the_head := SimFixtures.scenario([[0.0, 2.5, 4.0, 0.0], [10.0, 2.5, 8.0, 0.0]])
+	var sim := MatchSim.create(SimFixtures.config(2, by_the_head, SEED, layout))
+	var source := BotInputSource.new(0, _tier(&"normal"), sim.config)
+	SimFixtures.place(sim, 0, Vector3(-2.0, 2.5, 2.0), 0.0)
+	SimFixtures.place(sim, 1, Vector3(-2.5, 4.7, 0.0))
+	source.observe(sim.snapshot(), sim.pose())
+	source.next_frame(sim.state.tick)
+	assert_eq(source.brain._props.buoy, -1, "the main deck's rings are below the boat deck")
