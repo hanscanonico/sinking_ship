@@ -15,6 +15,9 @@ static var _probes := _directions()
 ## How far from water and open edges the bot keeps, in metres: its profile's
 ## edge_margin_m, or less once few dry decks are left to share.
 var margin: float
+## Whether the water is a danger, as it is but to a bot wading out (BotRefuge.wade_out):
+## then only open edges are.
+var heed_water := true
 
 var _surfaces: Surfaces
 var _walk_graph: WalkGraph
@@ -80,7 +83,7 @@ func dangers(
 ## up for a shove through it — nor one into the sea, when [param mark] is climbing out
 ## of it there. On a stair whose way on is [param stair_ahead], an open edge ahead of
 ## it is the stair's far end and its sides, and is no danger. Unless
-## [param heed_drops], only a wet one is.
+## [param heed_drops], only a wet one is; unless heed_water, only one past an edge.
 func danger_toward(
 	my_pos: Vector3,
 	my_surface: int,
@@ -91,7 +94,7 @@ func danger_toward(
 	heed_drops: bool
 ) -> bool:
 	var probe := my_pos + Vector3(direction.x, 0.0, direction.y) * margin
-	if _surfaces.wet(probe, pose):
+	if heed_water and _surfaces.wet(probe, pose):
 		var guarding: bool = not mark.is_empty() and mark["climb"] > 0
 		return not (guarding and _lined_up(my_pos, probe, mark))
 	return (
