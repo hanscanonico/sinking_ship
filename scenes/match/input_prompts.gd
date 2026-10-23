@@ -66,7 +66,7 @@ func pause_controls(spectating := false) -> String:
 	return pause_controls_for(pad, spectating)
 
 
-## Move, jump, shove and brace as the input map binds them, on the pad when
+## Move, jump, shove, brace and grab as the input map binds them, on the pad when
 ## [param on_pad], else on the keyboard and mouse — the four keys of the move by
 ## the layout's labels, so Z Q S D on AZERTY where QWERTY reads W A S D.
 static func controls_for(on_pad: bool) -> String:
@@ -76,12 +76,13 @@ static func controls_for(on_pad: bool) -> String:
 		[_word_of(&"jump", on_pad), "jump"],
 		[_word_of(&"shove", on_pad), "shove"],
 		[_word_of(&"brace", on_pad), "brace"],
+		[_word_of(&"grab", on_pad), "grab"],
 	]:
 		hints.append("%s — %s" % line)
 	return "   ·   ".join(hints)
 
 
-## Move, look, jump, shove, brace and pause as the input map binds them, one to a
+## Move, look, jump, shove, brace, grab and pause as the input map binds them, one to a
 ## line, on the pad when [param on_pad], else on the keyboard and mouse — the look
 ## being the mouse's, bound to no action — and, when [param spectating], what
 ## switches whose eyes the view is in and flies the free camera.
@@ -92,6 +93,7 @@ static func pause_controls_for(on_pad: bool, spectating := false) -> String:
 		[_word_of(&"jump", on_pad), "jump"],
 		[_word_of(&"shove", on_pad), "shove"],
 		[_word_of(&"brace", on_pad), "brace"],
+		[_word_of(&"grab", on_pad), "grab"],
 		[_word_of(&"pause", on_pad), "pause"],
 	]
 	if spectating:

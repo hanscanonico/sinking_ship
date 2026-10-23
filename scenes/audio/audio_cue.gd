@@ -34,6 +34,8 @@ enum Kind {
 	HOLED,
 	## Water starting to pour through an opening into a lower side.
 	POUR,
+	## A prop taken in the hands, let go of, or knocked out of them (#273).
+	GRAB,
 }
 ## What a footfall or a landing comes down on.
 enum Ground { WOOD, METAL, WET }

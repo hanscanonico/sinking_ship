@@ -1,7 +1,7 @@
 class_name KeyBindings
 extends RefCounted
 ## The keys of play the player chose over the project's: at most one key or mouse
-## button for each of the move's four ways, jump, shove, brace and pause, and for
+## button for each of the move's four ways, jump, shove, brace, grab and pause, and for
 ## the switch of view and the free camera once out — one set, so a key of play
 ## never also answers to watching (#257). An action left unchosen keeps the
 ## project's keys. A chosen one heads the action's keys in place of the project's
@@ -28,6 +28,7 @@ const ACTIONS: Array[StringName] = [
 	&"jump",
 	&"shove",
 	&"brace",
+	&"grab",
 	&"pause",
 	&"spectate_previous",
 	&"spectate_next",
@@ -42,6 +43,7 @@ const TITLES := {
 	&"jump": "Jump",
 	&"shove": "Shove",
 	&"brace": "Brace",
+	&"grab": "Grab",
 	&"pause": "Pause",
 	&"spectate_previous": "Previous view",
 	&"spectate_next": "Next view",

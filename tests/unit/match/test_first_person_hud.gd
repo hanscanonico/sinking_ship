@@ -236,3 +236,33 @@ func test_a_plate_stands_over_the_hat() -> void:
 				assert_gt(top, rules.body_height + 0.12, "a top hat stands tall")
 			Brawler.Hat.CAP:
 				assert_almost_eq(top, rules.body_height, 0.01, "a cap sits on the crown")
+
+
+## The prompt under the crosshair (#273) names what a Grab press would take — as the sim
+## would take it (GrabReach) — or, the hands full, what it would let go of; nothing with
+## neither, nor in the sea, where the climb's prompt stands.
+func test_the_grab_prompt_names_what_a_press_would_do() -> void:
+	var layout := SimFixtures.crated([SimFixtures.lifebuoy(Vector3(1.0, 0.0, 0.0))])
+	var sim := SimFixtures.sim(1, null, layout)
+	var rules := sim.config.rules
+	SimFixtures.place(sim, 0, Vector3.ZERO, 0.0)
+	var words := func() -> String:
+		return FirstPersonHud.grab_words(sim.snapshot(), 0, layout, rules, sim.surfaces, "G")
+	assert_eq(words.call(), "G — grab the lifebuoy")
+	SimFixtures.place(sim, 0, Vector3.ZERO, 180.0)
+	assert_eq(words.call(), "", "out of the cone: nothing")
+	SimFixtures.place(sim, 0, Vector3.ZERO, 0.0)
+	SimFixtures.hand(sim, 0, 0)
+	assert_eq(words.call(), "G — let go of the lifebuoy")
+	SimFixtures.swim(sim, 0, Vector3(0.0, 0.0, 6.0))
+	assert_eq(words.call(), "", "in the sea the climb's prompt stands")
+
+
+## Holding a ring that keeps it afloat, the warmth readout says how much longer it lasts.
+func test_the_warmth_reads_how_much_longer_a_ring_makes_it_last() -> void:
+	var layout := SimFixtures.crated([SimFixtures.lifebuoy(Vector3(1.0, 0.0, 0.0))])
+	var sim := SimFixtures.sim(1, null, layout)
+	assert_eq(FirstPersonHud.warmth_words(sim.snapshot(), 0, layout), "")
+	SimFixtures.hand(sim, 0, 0)
+	var lasts := roundi(1.0 / PropKind.named(&"lifebuoy").sea_cold_rate)
+	assert_eq(FirstPersonHud.warmth_words(sim.snapshot(), 0, layout), "lifebuoy ×%d" % lasts)

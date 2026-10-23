@@ -777,3 +777,18 @@ func test_a_real_sinking_floods_each_cell_and_pours_each_opening_once_a_while() 
 	assert_gt(heard[AudioCue.Kind.FLOOD], 0, "she floods")
 	assert_gt(heard[AudioCue.Kind.POUR], 0, "and pours")
 	assert_eq(again, [] as Array[String], "nothing sounds again before it has stood quiet")
+
+
+## A Grab press that takes a prop, and one that lets it go, each knock once at the
+## brawler (#273); a ring knocked loose too.
+func test_a_grab_and_a_let_go_knock_at_the_brawler() -> void:
+	var layout := SimFixtures.crated([SimFixtures.lifebuoy(Vector3(1.0, 0.0, 0.0))])
+	var sim := SimFixtures.sim(1, null, layout)
+	SimFixtures.place(sim, 0, Vector3.ZERO, 0.0)
+	var grab := {0: SimFixtures.frame(0, Vector2.ZERO, InputFrame.GRAB)}
+	var rest := {0: SimFixtures.frame(0)}
+	var knocks := _of(_play(_planner(sim, -1), sim, [grab, rest, grab, rest]), AudioCue.Kind.GRAB)
+	assert_eq(knocks.size(), 2, "one as it takes the ring, one as it lets go")
+	for knock: AudioCue in knocks:
+		assert_eq(knock.seat, 0)
+		assert_true(knock.positional)
