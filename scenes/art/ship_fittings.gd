@@ -90,6 +90,16 @@ const DECK_PIPE_RISE := 0.07
 ## bracket over its deck.
 const CHAIN_LINK := 0.25
 const BELL := 2.65
+## The least a fore deck takes the ground tackle on, along her and across her; and how
+## far round each point of a cable, and each deck pipe's middle, the deck is looked
+## over (_laid): a hawse pipe's flange.
+const TACKLE_DECK := Vector2(5.0, 4.0)
+const LAID := 0.2
+## How far in from the deck's end a hawse pipe stands; and how far a spurling pipe may,
+## the furthest first: where a stair goes down through the deck, the cable is led
+## short of it.
+const HAWSE_IN := 0.8
+const SPURLING_IN: Array[float] = [3.6, 3.0, 2.4, 1.8, 1.2]
 ## The modelled bell (assets/models/bell): its origin where its bracket meets the
 ## mast's after face, at BELL over the deck, the bracket reaching aft (−x) BELL_REACH
 ## and the bell hung under its end; and its box over all there.
@@ -119,6 +129,11 @@ var _depth: float
 var panes: Array[Array] = []
 ## Every door fitted in a break's face: [the foot of its sill's middle, its normal].
 var break_doors: Array[Array] = []
+## Where the ground tackle lies on the fore deck, each side's pipes and cable in a box
+## in the ship plane: what the mooring gear keeps clear of (MooringGear).
+var tackle: Array[Rect2] = []
+## What she is moored by at her ends (MooringGear), as build() placed it.
+var mooring: MooringGear
 ## The middles of the portholes the hit left open: drawn open, their glass swung in.
 var _open_ports := PackedVector3Array()
 
@@ -150,6 +165,8 @@ func build(mesh: ShipMesh, ship: Node3D = null, paints := {}) -> void:
 	for found: Array in breaks(_space):
 		_fit_break(mesh, found)
 	_ground_tackle(mesh)
+	mooring = MooringGear.new(_space, tackle)
+	mooring.build(mesh)
 
 
 ## Where a deck ends over a lower one with no room of that deck's under its edge, and
@@ -258,38 +275,60 @@ func _break_door(mesh: ShipMesh, sill: Vector3, normal: Vector3) -> void:
 ## height, where bodies walk: either side, a hawse pipe's mouth by the end railing and
 ## the chain cable run from it aft to the deck pipe down to the chain locker; a
 ## fairlead on the toe rail at the stem; and the ship's bell on the mast that stands
-## on that deck, over a jumping head.
+## on that deck, over a jumping head. The deck is the whole of the open deck at her
+## bow, every piece it is cut into round its openings (EndDeck); a side's spurling pipe
+## stands as far aft of its hawse pipe as SPURLING_IN lets all of the cable between
+## them lie on that deck (_laid), and where none does that side has neither.
 func _ground_tackle(mesh: ShipMesh) -> void:
-	var fore: ShipPlatform = null
-	for platform: ShipPlatform in _layout.platforms:
-		if fore == null or platform.area.end.x > fore.area.end.x + ShipMesh.SLIVER:
-			fore = platform
-		elif (
-			is_equal_approx(platform.area.end.x, fore.area.end.x) and platform.height > fore.height
-		):
-			fore = platform
-	var area := fore.area
+	var fore := EndDeck.of(_space, 1.0)
+	if fore == null:
+		return
+	var area := fore.spread
 	var deck := fore.height
 	var end := area.end.x
-	var middle := area.get_center().y
-	if area.size.x < 6.0 or area.size.y < 4.0:
+	if area.size.x < TACKLE_DECK.x or area.size.y < TACKLE_DECK.y:
 		return
+	var bow := fore.across(end - HAWSE_IN)
+	if bow == Vector2.INF:
+		return
+	var middle := (bow.x + bow.y) * 0.5
 	for side: float in [-1.0, 1.0]:
-		var hawse := Vector2(end - 0.8, middle + side * area.size.y * 0.33)
-		var pipe := Vector2(end - 3.6, middle + side * 0.45)
-		_deck_pipe(mesh, hawse, deck, 0.2)
-		_deck_pipe(mesh, pipe, deck, 0.13)
-		_chain(mesh, Vector3(hawse.x, deck, hawse.y), Vector3(pipe.x, deck, pipe.y))
+		var hawse := Vector2(end - HAWSE_IN, middle + side * (bow.y - bow.x) * 0.33)
+		for spurling: float in SPURLING_IN:
+			var pipe := Vector2(end - spurling, middle + side * 0.45)
+			if not _laid(fore, hawse, pipe):
+				continue
+			_deck_pipe(mesh, hawse, deck, 0.2)
+			_deck_pipe(mesh, pipe, deck, 0.13)
+			_chain(mesh, Vector3(hawse.x, deck, hawse.y), Vector3(pipe.x, deck, pipe.y))
+			tackle.append(Rect2(hawse, Vector2.ZERO).expand(pipe).grow(LAID))
+			break
 	var chock := Rect2(end - ShipHull.TOE_RAIL_WIDTH - 0.04, middle - 0.18, 0.12, 0.36)
-	mesh.box(chock, deck, deck + 0.12, ShipPaints.dark, ShipMesh.TOP | ShipMesh.SIDES)
+	if is_equal_approx(_space.deck_under(chock.get_center(), deck), deck):
+		mesh.box(chock, deck, deck + 0.12, ShipPaints.dark, ShipMesh.TOP | ShipMesh.SIDES)
 	for blocker: ShipBlocker in _layout.blockers:
 		if (
 			blocker.shape == ShipBlocker.Shape.CYLINDER
 			and is_equal_approx(blocker.bottom, deck)
-			and area.has_point(blocker.centre)
+			and fore.holds(blocker.centre)
 		):
 			_bell(mesh, blocker, deck)
 			return
+
+
+## Whether a cable from [param from] to [param to] — and the deck pipes at its ends —
+## lies all along on [param deck], open to the sky, with nothing but its floor within
+## LAID of any of it (EndDeck.bare).
+func _laid(deck: EndDeck, from: Vector2, to: Vector2) -> bool:
+	var steps := maxi(1, ceili(from.distance_to(to) / CHAIN_LINK))
+	for step in steps + 1:
+		var at := from.lerp(to, float(step) / steps)
+		var about := Rect2(at - Vector2.ONE * LAID, Vector2.ONE * LAID * 2.0)
+		if not deck.bare(_layout, about, DECK_PIPE_RISE):
+			return false
+		if not _space.outdoors(Vector3(at.x, deck.height + 0.5, at.y)):
+			return false
+	return true
 
 
 ## A deck pipe's mouth of [param radius] at [param at] on the deck at [param deck]

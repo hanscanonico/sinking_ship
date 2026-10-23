@@ -63,6 +63,9 @@ func _rows() -> Dictionary:
 		"break_door": ["furniture", _stands_the_break_door_in_its_frame_on_the_face],
 		"deck_pipe_13": ["furniture", _is_the_deck_pipe_made_for.bind(0.13, "deck_pipe_13")],
 		"deck_pipe_20": ["furniture", _is_the_deck_pipe_made_for.bind(0.2, "deck_pipe_20")],
+		"bitts": ["furniture", _lies_on_the_deck_under_a_step.bind(MooringGear.BITTS_BOX, "bitts")],
+		"rope_coil":
+		["furniture", _lies_on_the_deck_under_a_step.bind(MooringGear.COIL_BOX, "rope coil")],
 		"stowed_crate_62":
 		["furniture", _is_the_stowed_crate_made_for.bind(0.62, "stowed_crate_62")],
 		"stowed_crate_70":
@@ -284,6 +287,15 @@ func _hangs_the_bell_from_its_bracket_off_the_mast(box: AABB) -> void:
 func _fills_its_box(box: AABB, wanted: AABB, name: String) -> void:
 	assert_almost_eq(box.position, wanted.position, Vector3.ONE * TOLERANCE, name + ": low")
 	assert_almost_eq(box.end, wanted.end, Vector3.ONE * TOLERANCE, name + ": high")
+
+
+## A piece of the mooring gear (MooringGear): its box, on the deck and under a step over
+## it, where bodies walk with nothing to hold them off it.
+func _lies_on_the_deck_under_a_step(box: AABB, wanted: AABB, name: String) -> void:
+	_fills_its_box(box, wanted, name)
+	assert_gte(box.position.y, -0.001, name + ": nothing of it in the deck")
+	var rules: BrawlRules = load("res://data/rules/brawl.tres")
+	assert_lt(box.end.y, rules.step_height, name + ": under a step")
 
 
 ## A crosstree [param model] made for a mast of [param radius] (DeckWorks.CROSSTREES):

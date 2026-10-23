@@ -86,6 +86,8 @@ A prop placed a hundred times is parsed once.
 | `furnace_fire` | `ShipLamp`, a furnace's fire, under its own lamp node | furniture | 32 |
 | `break_door` | `ShipFittings._break_door`, in a break's face tall enough for it | furniture | 266 |
 | `deck_pipe_20`, `deck_pipe_13` | `ShipFittings._deck_pipe`, the hawse and spurling pipes' mouths, by radius (`DECK_PIPES`) | furniture | 288, 280 |
+| `bitts` | `MooringGear`, a pair by either side of the open deck at each end of her | furniture | 388 |
+| `rope_coil` | `MooringGear`, a coil of mooring line beside each pair of bitts | furniture | 376 |
 | `stowed_crate_80`, `stowed_crate_70`, `stowed_crate_62` | `CargoHold.crate`, a tween deck's stowed crates, the largest that fits (`STOWED_CRATES`) | furniture | 278 each |
 | `crosstree_15`, `crosstree_20`, `crosstree_60` | `DeckWorks.mast`, near each mast's head, the largest no bigger than the mast (`CROSSTREES`) | hero | 660, 660, 740 |
 | `masthead_light` | `DeckWorks.mast`, the steaming light on each mast's fore side | hero | 890 |
@@ -203,6 +205,13 @@ count as many times as it is placed. Each model belongs to a class with a ceilin
     round, one of `ShipFittings.DECK_PIPES`, its lip no higher than `DECK_PIPE_RISE`,
     under a toe rail; `RoomDressing.variant()` picks the largest no bigger than the
     radius asked for. The two sizes share `tools/deck_pipe.py`.
+  - `bitts`: on the deck under the middle of its base plate, its two posts along x;
+    its box over all is `MooringGear.BITTS_BOX`, under a step (`step_height`), where
+    bodies walk. Painted `dark`, so uninked.
+  - `rope_coil`: on the deck under the middle of its turns, its end led off toward +x,
+    which `MooringGear` turns toward the bitts; its box is `MooringGear.COIL_BOX`, under
+    a step. Painted `rope` and round all over, so uninked. Both are modelled in Blender,
+    with no build script: the `.blend` is the source.
   - `stowed_crate_NN`: the middle of its underside, NN hundredths of a metre square,
     as tall over all as `CargoHold.STOWED_CRATE_HEIGHTS` gives for its side, its
     lashing lying on its battens and over its lid inside that box, so a crate stacked
@@ -360,8 +369,9 @@ Godot's axes and its paints, ink and sharp edges set as above; the shared helper
 (`Part`, the paints' preview colours, the axis swap, and the turned, boxed and swept
 shapes `lathe`, `tube`, `cap`, `torus`, `sphere`, `box`, `turned_box`, `slab`, `panel`,
 `sweep` and `stud`) are in `tools/model_kit.py`.
-Every model so far is built so; the pilots' scripts rebuild `.blend`s whose export is
-byte for byte the committed `.glb`.
+Every model but the mooring gear's is built so; the pilots' scripts rebuild `.blend`s
+whose export is byte for byte the committed `.glb`. The mooring gear (`bitts`,
+`rope_coil`) was modelled in Blender through its MCP, and its `.blend`s are its source.
 
     make model-sources              # every NAME.py to its NAME.blend, Blender headless
     make model-sources MODEL=davit  # one
