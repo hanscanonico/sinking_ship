@@ -234,7 +234,8 @@ func build(
 			reach = Vector2(blocker.centre.x - blocker.radius, blocker.centre.x + blocker.radius)
 		if mesh.kept(reach.x, reach.y):
 			_blocker(mesh, blocker, pieces)
-	_rig(mesh, pieces)
+	if rules != null:
+		DeckWorks.rig(mesh, layout, rules, span, _funnels, pieces)
 	var cap := Vector2(RAIL_WIDTH, RAIL_DEPTH)
 	_wreckage = RailingRemains.new(layout, railing_height, cap, Vector2.ONE * MID_RAIL, POST)
 	# A railing's lifebuoy hangs in its own piece: gone with it when it breaks.
@@ -771,25 +772,6 @@ static func is_funnel(layout: ShipLayout, blocker: ShipBlocker) -> bool:
 	if layout.structure == null:
 		return blocker.radius >= FUNNEL_FROM
 	return FunnelArt.fitting_of(layout, blocker) != null
-
-
-## Her rigging (DeckWorks.rigging) by the rules, each line whose ends both stand in the
-## stretch this draws: one fixed to a funnel the sinking can fell drawn on the funnel's
-## own piece among [param pieces], so it goes with it as it falls.
-func _rig(mesh: ShipMesh, pieces: Dictionary) -> void:
-	if rules == null:
-		return
-	for line in DeckWorks.rigging(_space.layout, rules):
-		if not (PieceClip.holds(span, line.from.x) and PieceClip.holds(span, line.to.x)):
-			continue
-		var into := mesh
-		if line.funnel != null:
-			var felled := FunnelArt.fitting_of(_space.layout, line.funnel)
-			if felled != null:
-				if not _funnels.has(felled.name):
-					continue
-				into = pieces[_funnels[felled.name]]
-		DeckWorks.rig(into, line)
 
 
 ## A wall, a hatch, a funnel or a mast, by its shape and where it stands — an

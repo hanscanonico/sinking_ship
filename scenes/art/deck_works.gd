@@ -355,9 +355,29 @@ static func rigging(layout: ShipLayout, rules: BrawlRules) -> Array[RigLine]:
 	return clear
 
 
-## Draws [param line] (rigging) into [param mesh].
-static func rig(mesh: ShipMesh, line: RigLine) -> void:
-	mesh.beam(line.from, line.to, Vector2.ONE * line.thickness, line.paint, 0)
+## Draws [param layout]'s rigging (rigging()) by [param rules] into [param mesh], each
+## line whose ends both stand in [param span], the stretch drawn (PieceClip): one fixed to
+## a funnel the sinking can fell into that funnel's own piece — the node [param funnels]
+## holds under its fitting's name, among [param pieces] — so it goes with it as it falls.
+static func rig(
+	mesh: ShipMesh,
+	layout: ShipLayout,
+	rules: BrawlRules,
+	span: Vector2,
+	funnels: Dictionary,
+	pieces: Dictionary
+) -> void:
+	for line in rigging(layout, rules):
+		if not (PieceClip.holds(span, line.from.x) and PieceClip.holds(span, line.to.x)):
+			continue
+		var into := mesh
+		if line.funnel != null:
+			var felled := FunnelArt.fitting_of(layout, line.funnel)
+			if felled != null:
+				if not funnels.has(felled.name):
+					continue
+				into = pieces[funnels[felled.name]]
+		into.beam(line.from, line.to, Vector2.ONE * line.thickness, line.paint, 0)
 
 
 ## Whether [param blocker] is a hatch ShipArt draws (hatch): a box no wall, no slab
