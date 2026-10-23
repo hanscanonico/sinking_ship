@@ -91,6 +91,22 @@ func cell_at(ship_point: Vector3) -> int:
 	return NONE
 
 
+## The cells ShipPose.above_water looks down through from [param ship_point], in
+## order: the one it lies in, the one under that one's floor, and so on down to the sea
+## outside her. Geometry alone, whatever water they hold: a point that never moves in
+## her has them found once (ShipPose.above_water_through).
+func cells_under(ship_point: Vector3) -> PackedInt32Array:
+	var chain := PackedInt32Array()
+	var under := ship_point
+	var cell := cell_at(under)
+	while cell != NONE:
+		chain.append(cell)
+		under.y = floor_of(cell)
+		under.y -= DRY
+		cell = cell_at(under)
+	return chain
+
+
 ## The height of cell [param cell]'s floor, and of its ceiling.
 func floor_of(cell: int) -> float:
 	return _low[cell].y

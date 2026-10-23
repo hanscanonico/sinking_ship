@@ -729,3 +729,30 @@ func test_a_wade_goes_through_water_but_never_a_shut_door_or_a_flooded_zone() ->
 			flooded_swum += 1 if swim.cost[zone] < INF else 0
 	assert_gt(past_the_water, 0, "it wades on where the walk stops")
 	assert_gt(flooded_swum, 0, "where a swim goes on into a flooded zone")
+
+
+func test_a_shut_door_given_way_lets_the_walk_through_again() -> void:
+	# The shut doors a graph keeps from pose to pose are worked out again once one gives
+	# way (ShipPose.opened): the walk goes through it as through an open one, though
+	# every door is still shut as far in the pose.
+	var layout := SimFixtures.steamer()
+	var surfaces := Surfaces.new(layout)
+	var graph := _graph(layout, surfaces)
+	var start := Vector3(3.5, -2.6, 2.4)
+	var on := surfaces.under(start, SimFixtures.rules().step_height)
+	var dry := HeldPose.flooded(layout, -layout.freeboard, {})
+	surfaces.honour(dry)
+	var walked := graph.search(start, on, dry)
+	var shut := HeldPose.flooded(layout, -layout.freeboard, {})
+	var given := HeldPose.flooded(layout, -layout.freeboard, {})
+	for door: ShipOpening in layout.structure.openings:
+		if door.shuts_at_hit:
+			shut.doors_shut[door.name] = 1.0
+			given.doors_shut[door.name] = 1.0
+			given.opened[door.name] = 2
+	surfaces.honour(shut)
+	assert_ne(graph.search(start, on, shut).cost, walked.cost, "her shut doors cut it short")
+	surfaces.honour(given)
+	assert_eq(graph.search(start, on, given).cost, walked.cost, "given way, they let it by")
+	surfaces.honour(shut)
+	assert_ne(graph.search(start, on, shut).cost, walked.cost, "and shut again, not")

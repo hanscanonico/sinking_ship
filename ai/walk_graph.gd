@@ -147,7 +147,17 @@ var _pose_known: ShipPose
 var _flooded := PackedByteArray()
 var _doomed := PackedByteArray()
 var _portal_wet := PackedByteArray()
+## Per platform under that pose, as _flooded is per zone: whether the water stands over
+## its middle (Surfaces.flooded).
+var _platform_flooded := PackedByteArray()
+## Per portal, whether a watertight door is shut across it (_shut): worked out under the
+## doors shut, the openings failed and the funnels felled of the pose it was first asked
+## of, and good for every pose since that has them all the same — the line between a
+## doorway's sides crosses nothing else that moves (Surfaces.blocked).
 var _portal_shut := PackedByteArray()
+var _shut_doors: Dictionary[StringName, float] = {}
+var _shut_opened: Dictionary[StringName, int] = {}
+var _shut_felled: Array[FunnelFall] = []
 ## Per zone under that pose: how high it stands, and its floor's lowest corner; NAN
 ## until asked.
 var _heights := PackedFloat64Array()
@@ -160,6 +170,16 @@ var _portal_to := PackedInt32Array()
 var _portal_entry := PackedVector3Array()
 var _portal_exit := PackedVector3Array()
 var _portal_length := PackedFloat64Array()
+## The points of her the answers on the water read, none of which ever moves in her
+## (StillPoints), read against each pose asked: per portal its entry, then its exit; per
+## room the middle of its floor; per platform its middle (Surfaces.centre); and per zone
+## the corners of its floor — a room's area's, then each of an open deck's platforms' —
+## from _zone_corners[zone] to _zone_corners[zone + 1].
+var _ends: StillPoints
+var _middles: StillPoints
+var _centres: StillPoints
+var _corners: StillPoints
+var _zone_corners := PackedInt32Array()
 
 
 func _init(layout: ShipLayout, surfaces: Surfaces, rules: BrawlRules) -> void:
@@ -199,11 +219,37 @@ func _init(layout: ShipLayout, surfaces: Surfaces, rules: BrawlRules) -> void:
 	_lowest.resize(_zone_count)
 	_portal_wet.resize(_portals.size())
 	_portal_shut.resize(_portals.size())
+	_platform_flooded.resize(layout.platforms.size())
+	var ends := PackedVector3Array()
 	for portal: Portal in _portals:
 		_portal_to.append(portal.to_zone)
 		_portal_entry.append(portal.entry)
 		_portal_exit.append(portal.exit)
 		_portal_length.append(portal.entry.distance_to(portal.exit))
+		ends.append(portal.entry)
+		ends.append(portal.exit)
+	_ends = StillPoints.new(ends)
+	var middles := PackedVector3Array()
+	for room in layout.rooms.size():
+		middles.append(_room_middle(room))
+	_middles = StillPoints.new(middles)
+	# Each platform's middle at its height, where Surfaces.flooded reads its water.
+	var centres := PackedVector3Array()
+	for deck: ShipPlatform in layout.platforms:
+		var middle := deck.area.get_center()
+		centres.append(Vector3(middle.x, deck.height, middle.y))
+	_centres = StillPoints.new(centres)
+	var corners := PackedVector3Array()
+	for zone in _zone_count:
+		_zone_corners.append(corners.size())
+		if zone < layout.rooms.size():
+			_add_corners(corners, layout.rooms[zone].area, layout.rooms[zone].floor_height)
+		else:
+			for platform: int in _zone_platforms[zone]:
+				var deck := layout.platforms[platform]
+				_add_corners(corners, deck.area, deck.height)
+	_zone_corners.append(corners.size())
+	_corners = StillPoints.new(corners)
 
 
 ## The Surfaces it asks.
@@ -245,7 +291,7 @@ func flooded_share(pose: ShipPose) -> float:
 		for platform in _surfaces.platform_count():
 			var area := platform_area(platform)
 			whole += area
-			flooded += area if _surfaces.flooded(platform, pose) else 0.0
+			flooded += area if _platform_under(platform, pose) else 0.0
 		_flooded_share = flooded / whole if whole > 0.0 else 0.0
 	return _flooded_share
 
@@ -321,11 +367,11 @@ func world_height(zone: int, pose: ShipPose) -> float:
 	_know(pose)
 	if is_nan(_heights[zone]):
 		if zone < _layout.rooms.size():
-			_heights[zone] = pose.world_height(_room_middle(zone))
+			_heights[zone] = _middles.world_height(zone)
 		else:
 			_heights[zone] = -INF
 			for platform: int in _zone_platforms[zone]:
-				_heights[zone] = maxf(_heights[zone], _surfaces.world_height(platform, pose))
+				_heights[zone] = maxf(_heights[zone], _centres.world_height(platform))
 	return _heights[zone]
 
 
@@ -336,7 +382,7 @@ func world_height(zone: int, pose: ShipPose) -> float:
 func lowest_above_water(zone: int, pose: ShipPose) -> float:
 	_know(pose)
 	if is_nan(_lowest[zone]):
-		_lowest[zone] = _floor_lowest(zone, pose)
+		_lowest[zone] = _floor_lowest(zone)
 	return _lowest[zone]
 
 
@@ -349,27 +395,22 @@ func floor_height(zone: int, at: Vector3, pose: ShipPose) -> float:
 	return pose.above_water(at)
 
 
-func _floor_lowest(zone: int, pose: ShipPose) -> float:
-	var areas: Array[Rect2] = []
-	var heights := PackedFloat64Array()
-	if zone < _layout.rooms.size():
-		areas.append(_layout.rooms[zone].area)
-		heights.append(_layout.rooms[zone].floor_height)
-	else:
-		for platform: int in _zone_platforms[zone]:
-			areas.append(_layout.platforms[platform].area)
-			heights.append(_layout.platforms[platform].height)
+func _floor_lowest(zone: int) -> float:
 	var lowest := INF
-	for index in areas.size():
-		var area := areas[index]
-		for corner: Vector2 in [
-			area.position,
-			Vector2(area.end.x, area.position.y),
-			area.end,
-			Vector2(area.position.x, area.end.y)
-		]:
-			lowest = minf(lowest, pose.above_water(Vector3(corner.x, heights[index], corner.y)))
+	for corner in range(_zone_corners[zone], _zone_corners[zone + 1]):
+		lowest = minf(lowest, _corners.above_water(corner))
 	return lowest
+
+
+## Adds the four corners of [param area], [param height] up, to [param corners].
+static func _add_corners(corners: PackedVector3Array, area: Rect2, height: float) -> void:
+	for corner: Vector2 in [
+		area.position,
+		Vector2(area.end.x, area.position.y),
+		area.end,
+		Vector2(area.position.x, area.end.y)
+	]:
+		corners.append(Vector3(corner.x, height, corner.y))
 
 
 ## The portals from a body on [param from_surface] at [param from_pos] to the zone
@@ -768,8 +809,7 @@ func _closed(zone: int, pose: ShipPose) -> bool:
 func _wet(index: int, pose: ShipPose) -> bool:
 	_know(pose)
 	if _portal_wet[index] == 0:
-		var portal := _portals[index]
-		var wet := _surfaces.wet(portal.entry, pose) or _surfaces.wet(portal.exit, pose)
+		var wet := _ends.wet(index * 2) or _ends.wet(index * 2 + 1)
 		_portal_wet[index] = 2 if wet or _shut(index, pose) else 1
 	return _portal_wet[index] == 2
 
@@ -798,17 +838,36 @@ func _know(pose: ShipPose) -> void:
 	_flooded.fill(0)
 	_doomed.fill(0)
 	_portal_wet.fill(0)
-	_portal_shut.fill(0)
+	_platform_flooded.fill(0)
 	_heights.fill(NAN)
 	_lowest.fill(NAN)
 	_flooded_share = NAN
+	_ends.read(pose)
+	_middles.read(pose)
+	_centres.read(pose)
+	_corners.read(pose)
+	# What stands across a doorway moves only with a door's leaf or a funnel coming down.
+	if pose.doors_shut != _shut_doors or pose.opened != _shut_opened or pose.felled != _shut_felled:
+		_shut_doors = pose.doors_shut
+		_shut_opened = pose.opened
+		_shut_felled = pose.felled
+		_portal_shut.fill(0)
+
+
+## Whether the water stands over the middle of [param platform] under [param pose]
+## (Surfaces.flooded), worked out once a pose.
+func _platform_under(platform: int, pose: ShipPose) -> bool:
+	_know(pose)
+	if _platform_flooded[platform] == 0:
+		_platform_flooded[platform] = 2 if _centres.wet(platform) else 1
+	return _platform_flooded[platform] == 2
 
 
 func _is_flooded(zone: int, pose: ShipPose) -> bool:
 	if zone < _layout.rooms.size():
-		return _surfaces.wet(_room_middle(zone), pose)
+		return _middles.wet(zone)
 	for platform: int in _zone_platforms[zone]:
-		if not _surfaces.flooded(platform, pose):
+		if not _platform_under(platform, pose):
 			return false
 	return true
 

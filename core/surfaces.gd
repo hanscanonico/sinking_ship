@@ -743,14 +743,10 @@ func drops(from_point: Vector3, to_point: Vector3, step: float) -> bool:
 ## water stands at its floor, and a point on it is not wet by its height's last bit.
 func wet(ship_point: Vector3, pose: ShipPose) -> bool:
 	var height := pose.world_height(ship_point)
-	var level := pose.water_level(ship_point)
-	if height >= pose.highest_water() or height >= level:
+	# Over every water there is, no cell to look for (ShipPose.wet_at).
+	if height >= pose.highest_water():
 		return false
-	var cell := pose.cell_at(ship_point)
-	if cell == CellMap.NONE:
-		return true
-	var under := Vector3(ship_point.x, pose.cells.floor_of(cell), ship_point.z)
-	return level > pose.world_height(under) + CellMap.DRY
+	return pose.wet_at(ship_point, height, pose.cell_at(ship_point))
 
 
 ## Whether [param surface] is under the water at its middle.
