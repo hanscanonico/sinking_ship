@@ -231,6 +231,8 @@ func build(
 			_blocker(mesh, blocker, pieces)
 	var cap := Vector2(RAIL_WIDTH, RAIL_DEPTH)
 	_wreckage = RailingRemains.new(layout, railing_height, cap, Vector2.ONE * MID_RAIL, POST)
+	# A railing's lifebuoy hangs in its own piece: gone with it when it breaks.
+	var buoys := RailBuoys.of(_space, railing_height)
 	for index in layout.railings.size():
 		var railing := layout.railings[index]
 		var wreck := _wrecks[railing.platform]
@@ -240,6 +242,8 @@ func build(
 		if mesh.kept(minf(railing.from.x, railing.to.x), maxf(railing.from.x, railing.to.x)):
 			_railing(into, index, railing_height)
 			hull.staff(into, railing)
+			if buoys.has(index):
+				RoomDressing.lifebelt(into, buoys[index][0], buoys[index][1])
 		_remains.append(null)
 	for ladder: ShipLadder in layout.ladders:
 		if not mesh.kept(minf(ladder.from.x, ladder.to.x), maxf(ladder.from.x, ladder.to.x)):
