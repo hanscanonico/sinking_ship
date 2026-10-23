@@ -395,3 +395,42 @@ func test_long_line_scans_as_the_grid_gathers() -> void:
 		var seen := scan.line_of_sight(from + eye, to + eye, pose)
 		assert_eq(banded.line_of_sight(from + eye, to + eye, pose), seen, "through the grid")
 		assert_eq(falling_back.line_of_sight(from + eye, to + eye, pose), seen, "scanning")
+
+
+func test_along_a_line_every_item_meeting_it_is_among_those_found() -> void:
+	# along() hands a long line the items of its stretches' boxes, a short one near()'s
+	# own: every item whose area meets the line and whose heights meet the band is there,
+	# whatever the line's length and slant.
+	var dice := RandomNumberGenerator.new()
+	dice.seed = 2026
+	var bounds := Rect2(0.0, 0.0, 60.0, 30.0)
+	var grid := SpatialIndex.new(bounds, 1.0, Vector2(0.0, 12.0), 2.8, 256.0)
+	var areas: Array[Rect2] = []
+	var extents: Array[Vector2] = []
+	for item in 400:
+		var at := Vector2(dice.randf_range(0.0, 58.0), dice.randf_range(0.0, 28.0))
+		var size := Vector2(dice.randf_range(0.05, 6.0), dice.randf_range(0.05, 3.0))
+		var bottom := dice.randf_range(0.0, 10.0)
+		areas.append(Rect2(at, size))
+		extents.append(Vector2(bottom, bottom + dice.randf_range(0.0, 2.0)))
+		grid.insert(item, areas[item], extents[item].x, extents[item].y)
+	var long := 0
+	for line in 300:
+		var start := Vector2(dice.randf_range(0.0, 60.0), dice.randf_range(0.0, 30.0))
+		var end := Vector2(dice.randf_range(0.0, 60.0), dice.randf_range(0.0, 30.0))
+		if line % 3 == 0:
+			end = start + (end - start).limit_length(1.5)
+		var low := dice.randf_range(0.0, 9.0)
+		var high := low + 1.7
+		var found := grid.along(start, end, low, high)
+		if start.distance_to(end) <= 2.0:
+			var box := Rect2(start, Vector2.ZERO).expand(end)
+			assert_eq(found, grid.near(box, low, high), "a short line: its box's own")
+			continue
+		long += 1
+		for item in areas.size():
+			if extents[item].y < low or extents[item].x > high:
+				continue
+			if PlaneShapes.segment_meets_rect(start, end, areas[item]):
+				assert_true(item in found, "line %d meets item %d: found" % [line, item])
+	assert_gt(long, 100, "long lines among them")

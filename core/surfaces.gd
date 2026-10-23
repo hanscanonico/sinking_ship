@@ -616,7 +616,7 @@ func blocked(from_point: Vector3, to_point: Vector3, body_height: float, step: f
 	var head := maxf(from_point.y, to_point.y) + body_height
 	if _doors.crossed(start, end, feet, head) or _fallen.crossed(start, end, feet, head):
 		return true
-	for surface: int in _grid.near(Rect2(start, Vector2.ZERO).expand(end), feet, head):
+	for surface: int in _grid.along(start, end, feet, head):
 		if not _is_blocker_top(surface):
 			continue
 		var blocker := _blocker_of(surface)
@@ -644,7 +644,11 @@ func clear_stretches(
 	var end := Vector2(to_point.x, to_point.z)
 	var length := start.distance_to(end)
 	var covered: Array[Vector2] = []
-	for blocker: ShipBlocker in _blockers:
+	# A blocker the line meets twice covers the same stretch twice: no gap more or less.
+	for surface: int in _grid.along(start, end):
+		if not _is_blocker_top(surface):
+			continue
+		var blocker := _blocker_of(surface)
 		if not PlaneShapes.overlaps(from_point.y, body_height, step, blocker.bottom, blocker.top):
 			continue
 		var span := (
@@ -682,7 +686,7 @@ func line_of_sight(from_point: Vector3, to_point: Vector3, pose: ShipPose) -> bo
 	if _doors.crossed(start, end, low, high) or _fallen.crossed(start, end, low, high):
 		return false
 	var reach := Rect2(start, Vector2.ZERO).expand(end)
-	for surface: int in _grid.near(reach, low, high):
+	for surface: int in _grid.along(start, end, low, high):
 		if _tops[surface] <= low or _bottoms[surface] >= high:
 			continue
 		var area := _areas[surface]
