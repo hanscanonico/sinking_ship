@@ -14,8 +14,10 @@ var _points := PackedVector3Array()
 var _map: CellMap
 var _located := false
 var _chained := false
-## Per point, its cell (CellMap.NONE outside her, or for a pose that keeps no cells).
+## Per point, its cell (CellMap.NONE outside her, or for a pose that keeps no cells),
+## and the point straight down on that cell's floor (the point itself outside her).
 var _cells := PackedInt32Array()
+var _own_floors := PackedVector3Array()
 ## Per point, from _chain_from[point] to _chain_from[point + 1], the cells under it and
 ## the points of their floors under it.
 var _chain_from := PackedInt32Array()
@@ -27,6 +29,7 @@ var _pose: ShipPose
 var _world := PackedVector3Array()
 var _world_floors := PackedVector3Array()
 var _floors_set := false
+var _world_own_floors := PackedVector3Array()
 
 
 func _init(points: PackedVector3Array) -> void:
@@ -51,6 +54,7 @@ func read(pose: ShipPose) -> void:
 	_world.clear()
 	_world_floors.clear()
 	_floors_set = false
+	_world_own_floors.clear()
 	if pose.cells != _map:
 		_map = pose.cells
 		_located = false
@@ -74,18 +78,31 @@ func wet(index: int) -> bool:
 
 ## Per point, 1 where it is under the water of the pose read (wet): every point at
 ## once, for a caller that asks of them all — those over every water there is passed
-## over without asking their cells.
+## over without asking their cells, the rest judged as ShipPose.wet_at judges them, their
+## floors' heights worked out together.
 func wet_all() -> PackedByteArray:
 	if not _located:
 		_locate()
 	if _world.is_empty():
 		_world = _pose.transform * _points
 	var highest := _pose.highest_water()
+	var levels := _pose.levels
+	# A pose that keeps no cells has her inside the sea's water, as cell_at says.
+	var keeps := not levels.is_empty()
+	if keeps and _world_own_floors.is_empty():
+		_world_own_floors = _pose.transform * _own_floors
 	var found := PackedByteArray()
 	found.resize(_points.size())
 	for index in _points.size():
 		var height := _world[index].y
-		if height < highest and _pose.wet_at(_points[index], height, _cells[index]):
+		if height >= highest:
+			continue
+		var cell := _cells[index] if keeps else CellMap.NONE
+		if cell == CellMap.NONE:
+			found[index] = 1 if height < 0.0 else 0
+			continue
+		var level := levels[cell]
+		if height < level and level > _world_own_floors[index].y + CellMap.DRY:
 			found[index] = 1
 	return found
 
@@ -105,9 +122,16 @@ func above_water(index: int) -> float:
 
 func _locate() -> void:
 	_cells.resize(_points.size())
+	_own_floors.resize(_points.size())
 	for index in _points.size():
-		_cells[index] = CellMap.NONE if _map == null else _map.cell_at(_points[index])
+		var at := _points[index]
+		var cell := CellMap.NONE if _map == null else _map.cell_at(at)
+		_cells[index] = cell
+		_own_floors[index] = (
+			at if cell == CellMap.NONE else Vector3(at.x, _map.floor_of(cell), at.z)
+		)
 	_located = true
+	_world_own_floors.clear()
 
 
 func _chain() -> void:

@@ -26,10 +26,12 @@ func _init(layout: ShipLayout) -> void:
 ## Whether the water stands over the middle of platform [param platform] under
 ## [param pose].
 func flooded(platform: int, pose: ShipPose) -> bool:
-	return _of(pose)[platform] == 1
+	return of(pose)[platform] == 1
 
 
-func _of(pose: ShipPose) -> PackedByteArray:
+## Per platform, 1 where the water stands over its middle under [param pose]: for a
+## caller going through every platform, which reads them all at once.
+func of(pose: ShipPose) -> PackedByteArray:
 	for slot in 2:
 		if _poses[slot] == pose:
 			return _flooded[slot]
