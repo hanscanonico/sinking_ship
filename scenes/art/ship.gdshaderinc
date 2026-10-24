@@ -329,7 +329,7 @@ void fragment() {
 	vec3 world_pos = (INV_VIEW_MATRIX * vec4(VERTEX, 1.0)).xyz;
 	vec3 world_normal = (INV_VIEW_MATRIX * vec4(NORMAL, 0.0)).xyz;
 	float lap;
-	ALBEDO = sea_waterline(ALBEDO, world_pos, world_normal, finish == HULL, TIME, lap);
+	ALBEDO = sea_waterline(ALBEDO, world_pos, world_normal, TIME, lap);
 	ROUGHNESS = 1.0;
 	SPECULAR = 0.0;
 	AO = mix(indoor_ambient, 1.0, outdoor);
@@ -337,12 +337,11 @@ void fragment() {
 	ALBEDO = mix(ALBEDO, flash_colour.rgb, flash * flash_strength);
 	EMISSION = flash_colour.rgb * flash * flash_strength;
 	EMISSION += lap_colour.rgb * lap * 0.2;
-	// Fade into the sea after lighting: the lit albedo gives way to the sea's deep
-	// colour, added unlit, so the blend holds in shadow as in sun. Outdoors only — a
-	// dry room below the waterline stays as its lamps light it.
-	float fade = sea_fade(world_pos, TIME) * outdoor;
-	ALBEDO *= 1.0 - fade;
-	EMISSION = mix(EMISSION, SEA_DEEP, fade);
+	// Under the sea, lit by what light gets down to it, in shadow as in sun. Outdoors
+	// only — a dry room below the waterline stays as its lamps light it.
+	vec3 light_left = mix(vec3(1.0), sea_light(world_pos, TIME), outdoor);
+	ALBEDO *= light_left;
+	EMISSION *= light_left;
 #ifdef PIECE
 	if (!FRONT_FACING) {
 		ALBEDO = vec3(0.0);
