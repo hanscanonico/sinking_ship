@@ -151,8 +151,8 @@ func setup(end_tick: int, layout: ShipLayout, sea_depth: float = INF) -> void:
 	_lay_bottom(sea_depth)
 	_map_rooms(layout)
 	if layout.structure != null:
-		var boxes := InnerWater.boxes(layout.structure, layout.rooms)
-		for stack: Array in InnerWater.stacked(layout.structure, layout.rooms):
+		var boxes := CellBoxes.boxes(layout.structure, layout.rooms)
+		for stack: Array in CellBoxes.stacked(layout.structure, layout.rooms):
 			boxes.append(stack[1])
 		_mask_cells(boxes)
 	var bounds := layout.platforms[0].area
