@@ -20,8 +20,10 @@ enum Preset { LOW, MEDIUM, HIGH }
 ##   shadow_size: the sun's shadow map's side, in texels;
 ##   shadow_filter: how softly a shadow's edge is sampled (RenderingServer.ShadowQuality);
 ##   sea_detail: the share (0…1) of its full reach (water.gdshader's detail_reach,
-##       150 m) the sea's fine detail — its finest swell, streaks, sparkle, whitecaps
-##       and foam — is drawn to, fading out as much sooner; past it, none is worked out;
+##       150 m) the sea's fine detail — its glitter, whitecaps, foam and rings — is
+##       drawn to, fading out as much sooner; past it, none is worked out;
+##   sea_mirror: how many strides a ray off the water marches looking for what it
+##       mirrors (the water_mirror shader global): 0 mirrors the sky alone, none of the scene;
 ##   lamps: the most room lamps lit at once but for those of the rooms the eye can
 ##       see into, which always light (LampSight);
 ##   render_scale: the share of the window's pixels, across and down, the 3D view is
@@ -33,7 +35,8 @@ const PRESETS := {
 		"summary":
 		(
 			"Half the 3D resolution, short hard sun shadows, the sea's fine detail close"
-			+ " by only, few lamps behind walls, no smoothing of edges and no glow."
+			+ " by only, water that mirrors the sky alone, few lamps behind walls, no"
+			+ " smoothing of edges and no glow."
 		),
 		"msaa": Viewport.MSAA_DISABLED,
 		"glow": false,
@@ -42,6 +45,7 @@ const PRESETS := {
 		"shadow_size": 2048,
 		"shadow_filter": RenderingServer.SHADOW_QUALITY_HARD,
 		"sea_detail": 0.4,
+		"sea_mirror": 0,
 		"lamps": 4,
 		"render_scale": 0.5,
 	},
@@ -51,7 +55,8 @@ const PRESETS := {
 		"summary":
 		(
 			"Sun shadows over the whole ship, the sea's fine detail to the middle"
-			+ " distance, every lamp nearby, smoothed edges and glow."
+			+ " distance, the ship mirrored in the water, every lamp nearby, smoothed"
+			+ " edges and glow."
 		),
 		"msaa": Viewport.MSAA_2X,
 		"glow": true,
@@ -60,6 +65,7 @@ const PRESETS := {
 		"shadow_size": 4096,
 		"shadow_filter": RenderingServer.SHADOW_QUALITY_SOFT_LOW,
 		"sea_detail": 0.6,
+		"sea_mirror": 16,
 		"lamps": 999,
 		"render_scale": 1.0,
 	},
@@ -68,8 +74,9 @@ const PRESETS := {
 		"name": "High",
 		"summary":
 		(
-			"Sun shadows to 70 m, the sea's fine detail far out, every lamp nearby,"
-			+ " smoothed edges and glow: the look as tuned, whatever it costs."
+			"Sun shadows to 70 m, the sea's fine detail far out, the water mirroring"
+			+ " further, every lamp nearby, smoothed edges and glow: the look as tuned,"
+			+ " whatever it costs."
 		),
 		"msaa": Viewport.MSAA_2X,
 		"glow": true,
@@ -78,6 +85,7 @@ const PRESETS := {
 		"shadow_size": 4096,
 		"shadow_filter": RenderingServer.SHADOW_QUALITY_SOFT_LOW,
 		"sea_detail": 1.0,
+		"sea_mirror": 24,
 		"lamps": 999,
 		"render_scale": 1.0,
 	},
@@ -98,6 +106,7 @@ var shadow_mode: DirectionalLight3D.ShadowMode
 var shadow_size: int
 var shadow_filter: RenderingServer.ShadowQuality
 var sea_detail: float
+var sea_mirror: int
 var lamps: int
 var render_scale: float
 
@@ -118,6 +127,7 @@ static func of(chosen: int) -> GraphicsQuality:
 	quality.shadow_size = row["shadow_size"]
 	quality.shadow_filter = row["shadow_filter"]
 	quality.sea_detail = row["sea_detail"]
+	quality.sea_mirror = row["sea_mirror"]
 	quality.lamps = row["lamps"]
 	quality.render_scale = row["render_scale"]
 	return quality
