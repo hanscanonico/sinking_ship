@@ -88,7 +88,7 @@ A prop placed a hundred times is parsed once.
 | `deck_pipe_20`, `deck_pipe_13` | `ShipFittings._deck_pipe`, the hawse and spurling pipes' mouths, by radius (`DECK_PIPES`) | furniture | 288, 280 |
 | `bitts` | `MooringGear`, a pair by either side of the open deck at each end of her | furniture | 388 |
 | `rope_coil` | `MooringGear`, a coil of mooring line beside each pair of bitts | furniture | 376 |
-| `stowed_crate_80`, `stowed_crate_70`, `stowed_crate_62` | `CargoHold.crate`, a tween deck's stowed crates, the largest that fits (`STOWED_CRATES`) | furniture | 278 each |
+| `stowed_crate_80`, `stowed_crate_70`, `stowed_crate_62` | `CargoHold.crate`, a tween deck's stowed crates, the largest that fits (`STOWED_CRATES`), and `FurnitureDressing.stores`, a working space's stacks | furniture | 278 each |
 | `crosstree_15`, `crosstree_20`, `crosstree_60` | `DeckWorks.mast`, near each mast's head, the largest no bigger than the mast (`CROSSTREES`) | hero | 660, 660, 740 |
 | `masthead_light` | `DeckWorks.mast`, the steaming light on each mast's fore side | hero | 890 |
 | `mast_cleat` | `DeckWorks.mast`, either side of each mast over its foot | furniture | 198 |

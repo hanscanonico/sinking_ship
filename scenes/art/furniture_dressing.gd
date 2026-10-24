@@ -4,8 +4,9 @@ extends RefCounted
 ## sets there (ShipSpace.furniture()), which the rules hold bodies out of below its top
 ## and let a body jump onto, drawn as what its shape says it is, in its room's manner
 ## (LinerPublic.style_of) — a table laid with its cloth, a card table under its baize,
-## a writing desk or a restaurant's table laid for dinner; an armchair or a settee in
-## its room's upholstery; a bench, a counter, a galley range or a gymnasium's apparatus.
+## a writing desk, a restaurant's table laid for dinner or a crew's mess table; an
+## armchair or a settee in its room's upholstery; a bench, a counter, a galley range,
+## a gymnasium's apparatus or a working space's stack of stores.
 ## Each is drawn to its box and inside it: its sides stand where the box's do, from near
 ## its foot to its top, and its top is the box's, as art-lint holds every blocker drawn
 ## (the art aligns to the data, D6) — a body is held off the whole of it, so it reads
@@ -68,6 +69,14 @@ const BACK_RISE := 0.33
 ## other seat stands back to its room's nearest side.
 const SEAT_REACH := 1.6
 const BACK_REACH := 0.25
+## A crew's room — its name holds CREW — sits at mess tables, a long table with its
+## benches inside its box (LinerDining.mess_table); a working space — its name holds
+## WORKING — keeps its stores in stacks, an apparatus's shape there: stowed crates
+## STORES_CRATE a side or the most that fit across it, one on another to its top
+## (stores()).
+const CREW := "quarters"
+const WORKING := "working"
+const STORES_CRATE := 0.8
 ## A writing desk: its top board, the leather let into it INSET in from its edges, and
 ## a drawer's panel every DRAWER along its long sides.
 const DESK_BOARD := 0.035
@@ -87,10 +96,14 @@ static var _cushion := ShipMesh.Paint.new(ShipMesh.Finish.PLAIN, LinerPublic.CAF
 ## the manner of its room (LinerPublic.style_of).
 static func build(mesh: ShipMesh, room: ShipRoom, pieces: Array[ShipBlocker]) -> void:
 	var style := LinerPublic.style_of(room)
+	var named := String(room.name).to_lower()
 	for blocker: ShipBlocker in pieces:
 		match piece_of(blocker):
 			Piece.TABLE:
-				_table_in(mesh, style, blocker)
+				if CREW in named and LinerDining.long_table(blocker.area):
+					LinerDining.mess_table(mesh, blocker.area, blocker.bottom, blocker.top)
+				else:
+					_table_in(mesh, style, blocker)
 			Piece.BENCH:
 				bench(mesh, blocker.area, blocker.bottom, blocker.top)
 			Piece.COUNTER:
@@ -98,7 +111,10 @@ static func build(mesh: ShipMesh, room: ShipRoom, pieces: Array[ShipBlocker]) ->
 			Piece.RANGE:
 				range_stove(mesh, blocker.area, blocker.bottom, blocker.top)
 			Piece.APPARATUS:
-				apparatus(mesh, blocker.area, blocker.bottom, blocker.top)
+				if WORKING in named:
+					stores(mesh, blocker.area, blocker.bottom, blocker.top)
+				else:
+					apparatus(mesh, blocker.area, blocker.bottom, blocker.top)
 			Piece.ARMCHAIR, Piece.SETTEE:
 				var facing := facing_of(room, pieces, blocker)
 				seat(mesh, blocker, facing, _coverings(style))
@@ -171,6 +187,28 @@ static func writing_desk(mesh: ShipMesh, area: Rect2, bottom: float, top: float)
 			var at := Vector3(face.x, high, face.y)
 			var half := Vector2(length / drawers * 0.5 - 0.03, 0.05)
 			RoomDressing.panel(mesh, at, right, half, normal, _walnut)
+
+
+## Stores stacked over [param area] from [param bottom] to [param top]: stowed crates
+## (CargoHold.crate) side by side across it, STORES_CRATE a side or the most that fit, and
+## one on another, the largest that fits under its top, up to it.
+static func stores(mesh: ShipMesh, area: Rect2, bottom: float, top: float) -> void:
+	var across := Vector2i(
+		maxi(1, roundi(area.size.x / STORES_CRATE)), maxi(1, roundi(area.size.y / STORES_CRATE))
+	)
+	var cell := area.size / Vector2(across)
+	var model := CargoHold.stowed_crate(minf(cell.x, cell.y), top - bottom)
+	var height := 0.0
+	for made: float in CargoHold.STOWED_CRATES:
+		if CargoHold.STOWED_CRATES[made] == model:
+			height = CargoHold.STOWED_CRATE_HEIGHTS[made]
+	var levels := maxi(1, floori((top - bottom) / height + ShipSpace.SLIVER))
+	for i in across.x:
+		for j in across.y:
+			var spot := Rect2(area.position + cell * Vector2(i, j), cell)
+			for level in levels:
+				var foot := bottom + (top - bottom) * level / levels
+				CargoHold.crate(mesh, spot, foot, foot + (top - bottom) / levels)
 
 
 ## A seat [param blocker] — an armchair or a settee (ARMCHAIR_MODEL, SETTEE_MODEL) — on
