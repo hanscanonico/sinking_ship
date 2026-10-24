@@ -20,12 +20,14 @@ const ROOF_REACH := 1.0
 const SLIVER := 0.01
 ## How far apart walled() looks for a blocker.
 const WALL_STEP := 0.05
+## The side of the squares rooms_near() looks a point's rooms up in, in metres.
+const ROOM_CELL := 2.0
 ## Per side (0 to 3), its unit vector out of the room, ship plane (outward()).
 const OUTWARD: Array[Vector2] = [Vector2.UP, Vector2.RIGHT, Vector2.DOWN, Vector2.LEFT]
 
 var layout: ShipLayout
-## Per room, the platforms, by index, standing over its floor anywhere over its area:
-## the only ones roof() need look at, gathered the first time it is asked.
+## Per room, the platforms, by index, standing over its floor anywhere over its area,
+## lowest first: the only ones roof() need look at, gathered the first time it is asked.
 var _over := {}
 ## Per room, the slabs, by blocker index, over its floor and over its area: the only
 ## ones ceiling() need look at, gathered the first time it is asked.
@@ -35,15 +37,34 @@ var _slabs := {}
 var _hatches := {}
 ## Her walls, gathered the first time walled_between() is asked.
 var _walls: Array[ShipBlocker] = []
+## Her rooms on a grid of ROOM_CELL squares, each over its area grown by INSIDE
+## (rooms_near), built the first time it is asked.
+var _room_grid: SpatialIndex
 
 
 func _init(ship: ShipLayout) -> void:
 	layout = ship
 
 
+## The rooms, by index and in order, whose areas grown by INSIDE may reach
+## [param box] (x/z): every room a point or a piece there could stand in is among them,
+## of a liner's hundred, asked of a million points as she is dressed.
+func rooms_near(box: Rect2) -> PackedInt32Array:
+	if _room_grid == null:
+		var bounds := Rect2()
+		for index in layout.rooms.size():
+			var area := layout.rooms[index].area.grow(INSIDE)
+			bounds = area if index == 0 else bounds.merge(area)
+		_room_grid = SpatialIndex.new(bounds, ROOM_CELL)
+		for index in layout.rooms.size():
+			_room_grid.insert(index, layout.rooms[index].area.grow(INSIDE))
+	return _room_grid.near(box)
+
+
 ## Whether ship point [param point] stands outside every room.
 func outdoors(point: Vector3) -> bool:
-	for room: ShipRoom in layout.rooms:
+	for index: int in rooms_near(Rect2(point.x, point.z, 0.0, 0.0)):
+		var room := layout.rooms[index]
 		if point.y < room.floor_height - INSIDE:
 			continue
 		var area := room.area.grow(INSIDE)
@@ -60,7 +81,8 @@ func outdoors(point: Vector3) -> bool:
 ## what outdoors() says of a point, over a piece that moves between the two.
 func indoors(area: Rect2, height: float) -> float:
 	var inside := 0.0
-	for room: ShipRoom in layout.rooms:
+	for index: int in rooms_near(area):
+		var room := layout.rooms[index]
 		var overlap := room.area.intersection(area)
 		if not overlap.has_area() or height < room.floor_height - INSIDE:
 			continue
@@ -126,21 +148,27 @@ func hatch_over(room: ShipRoom, x: float, z: float) -> float:
 ## standing over its floor there; -1 where none does.
 func roof(room: ShipRoom, x: float, z: float) -> int:
 	if not _over.has(room):
-		var over := PackedInt32Array()
+		var over: Array[int] = []
 		for index in layout.platforms.size():
 			var platform := layout.platforms[index]
 			# Grown past where anyone asks of a room (outdoors() reaches INSIDE past it).
 			var reach := platform.area.grow(ROOF_REACH)
 			if platform.height > room.floor_height + SLIVER and reach.intersects(room.area, true):
 				over.append(index)
-		_over[room] = over
-	var lowest := -1
+		# Lowest first, ties to the lower number: the first standing over a point is it.
+		over.sort_custom(_lower_deck)
+		_over[room] = PackedInt32Array(over)
 	for index: int in _over[room]:
-		var platform := layout.platforms[index]
-		if platform.contains(x, z):
-			if lowest == -1 or platform.height < layout.platforms[lowest].height:
-				lowest = index
-	return lowest
+		if layout.platforms[index].contains(x, z):
+			return index
+	return -1
+
+
+## Whether platform [param a] stands lower than [param b], or as low and numbered first.
+func _lower_deck(a: int, b: int) -> bool:
+	var height_a := layout.platforms[a].height
+	var height_b := layout.platforms[b].height
+	return height_a < height_b or height_a == height_b and a < b
 
 
 ## The height of the highest platform under [param platform]'s middle and lower
@@ -315,7 +343,7 @@ func envelope(x: float) -> Vector4:
 
 ## The lowest thing inside the hull at [param x]: a deck's underside, [param plank]
 ## below its top, or a blocker's foot.
-func content_bottom(x: float, plank: float) -> float:
+func _content_bottom(x: float, plank: float) -> float:
 	var lowest := INF
 	for platform: ShipPlatform in layout.platforms:
 		if x >= platform.area.position.x - SLIVER and x <= platform.area.end.x + SLIVER:

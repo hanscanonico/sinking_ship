@@ -264,9 +264,10 @@ var _layout: ShipLayout
 ## Per room, its Kind.
 var _kinds: Array[Kind] = []
 ## The rooms, by index, that have a lining of their own, and each one's box from its
-## floor to its highest ceiling.
+## floor to its highest ceiling; and per room, 1 for one that has.
 var _lined := PackedInt32Array()
 var _lined_boxes: Array[AABB] = []
+var _has_lining := PackedByteArray()
 ## The x and the z of every edge of a room that has a lining.
 var _lines: Array[PackedFloat32Array] = [PackedFloat32Array(), PackedFloat32Array()]
 var _cut_above: float
@@ -309,6 +310,7 @@ func _init(space: ShipSpace, cut_above := INF) -> void:
 	for room: ShipRoom in _layout.rooms:
 		var kind := kind_of(space, room)
 		_kinds.append(kind)
+		_has_lining.append(0 if _linings(kind).is_empty() else 1)
 		if not _linings(kind).is_empty():
 			_lined.append(_kinds.size() - 1)
 			_lined_boxes.append(_box_of(space, room))
@@ -365,7 +367,7 @@ static func kind_of(space: ShipSpace, room: ShipRoom) -> Kind:
 ## The room of [param space], by index, ship point [param point] stands in; -1 for
 ## none.
 static func room_at(space: ShipSpace, point: Vector3) -> int:
-	for index in space.layout.rooms.size():
+	for index: int in space.rooms_near(Rect2(point.x, point.z, 0.0, 0.0)):
 		if _holds(space, space.layout.rooms[index], point):
 			return index
 	return -1
@@ -397,8 +399,8 @@ func overhead(piece: AABB) -> bool:
 ## The paint [param part] of the room ship point [param point] stands in takes, when
 ## that room has a lining of its own; null otherwise.
 func lining(point: Vector3, part: Part) -> ShipMesh.Paint:
-	for index: int in _lined:
-		if _holds(_space, _layout.rooms[index], point):
+	for index: int in _space.rooms_near(Rect2(point.x, point.z, 0.0, 0.0)):
+		if _has_lining[index] == 1 and _holds(_space, _layout.rooms[index], point):
 			return _linings(_kinds[index])[part]
 	return null
 
