@@ -25,6 +25,7 @@ func test_high_is_the_look_as_tuned() -> void:
 		)
 	)
 	assert_eq(high.sea_detail, 1.0)
+	assert_eq(high.sea_mirror, _mirror_global()["value"], "the water mirrors as tuned")
 	assert_gte(high.lamps, 999, "every lamp near the eye")
 	assert_eq(high.render_scale, 1.0)
 
@@ -49,6 +50,7 @@ func test_each_cheaper_preset_costs_no_more() -> void:
 		assert_lte(cheaper.shadow_size, dearer.shadow_size)
 		assert_lte(cheaper.shadow_filter, dearer.shadow_filter)
 		assert_lte(cheaper.sea_detail, dearer.sea_detail)
+		assert_lte(cheaper.sea_mirror, dearer.sea_mirror)
 		assert_lte(cheaper.lamps, dearer.lamps)
 		assert_lte(cheaper.render_scale, dearer.render_scale)
 		assert_false(cheaper.glow and not dearer.glow)
@@ -72,3 +74,14 @@ func test_the_sea_and_the_sun_take_a_preset() -> void:
 	assert_eq(sun.directional_shadow_mode, low.shadow_mode)
 	assert_eq(scene.dusk().glow_enabled, low.glow)
 	assert_eq(scene.water().get_shader_parameter(&"fine_share"), low.sea_detail)
+
+
+func test_every_water_has_the_mirror_global_to_read() -> void:
+	assert_eq(_mirror_global()["type"], "int", "a count of strides")
+
+
+## What project.godot declares of the shader global every water's mirror reads.
+func _mirror_global() -> Dictionary:
+	var setting := "shader_globals/" + String(SeaAndSky.WATER_MIRROR)
+	assert_true(ProjectSettings.has_setting(setting), setting)
+	return ProjectSettings.get_setting(setting, {"type": "", "value": -1})

@@ -236,3 +236,8 @@ eye_under={
 "type": "float",
 "value": 0.0
 }
+
+water_mirror={
+"type": "int",
+"value": 24
+}
