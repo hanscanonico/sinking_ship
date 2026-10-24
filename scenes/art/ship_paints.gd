@@ -27,6 +27,8 @@ static var white := ShipMesh.Paint.new(FINISH.PLAIN, ArtPalette.HOUSE)
 static var funnel := ShipMesh.Paint.new(
 	FINISH.FUNNEL, ArtPalette.FUNNEL, FINISH.PLATE, ArtPalette.CASING
 )
+## Her funnels' buff, plain: a ventilator's cowl and trunk.
+static var buff := ShipMesh.Paint.new(FINISH.PLAIN, ArtPalette.FUNNEL)
 static var mast := ShipMesh.Paint.new(FINISH.PLAIN, ArtPalette.MAST)
 ## A staff's flag: the jack at the bow, the ensign at the stern.
 static var jack := ShipMesh.Paint.new(FINISH.PLAIN, ArtPalette.JACK)
@@ -86,6 +88,7 @@ static var sacking := ShipMesh.Paint.new(FINISH.PLAIN, ArtPalette.SACKING)
 static var enamel := ShipMesh.Paint.new(FINISH.PLAIN, ArtPalette.ENAMEL)
 static var lifebelt := ShipMesh.Paint.new(FINISH.PLAIN, ArtPalette.LIFEBELT)
 static var fire_bucket := ShipMesh.Paint.new(FINISH.PLAIN, ArtPalette.FIRE_BUCKET)
+static var red_lead := ShipMesh.Paint.new(FINISH.PLAIN, ArtPalette.RED_LEAD)
 static var mirror := ShipMesh.Paint.new(FINISH.PLAIN, ArtPalette.MIRROR)
 static var chart := ShipMesh.Paint.new(FINISH.PLAIN, ArtPalette.CHART)
 static var copper := ShipMesh.Paint.new(FINISH.PLAIN, ArtPalette.COPPER)

@@ -26,6 +26,8 @@ const WORLD := "world"
 ## How far from its wall a furnishing may stand under a body's height (art-lint).
 const FurnishingCheck := preload("res://tools/furnishing_check.gd")
 
+var _rules: BrawlRules = load("res://data/rules/brawl.tres")
+
 
 ## Every committed model: its budget class and the check of its box (a method taking
 ## the model's box).
@@ -116,6 +118,12 @@ func _rows() -> Dictionary:
 		["furniture", _is_the_sideboard_made_for.bind(CabinDressing.SIDEBOARD, "sideboard_64")],
 		"dining_chair": ["wall decor", _seats_the_chair_inside_its_table_s_box],
 		"serving_hatch": ["furniture", _hangs_the_serving_hatch_in_its_wall],
+		"stowed_boat": ["hero", _fills_the_stowed_boat_s_box_over_its_keel],
+		"boat_davit": ["furniture", _fills_its_box.bind(DeckFurniture.DAVIT_BOX, "boat davit")],
+		"cowl_vent_45": ["hero", _is_the_ventilator_made_for.bind(0.45, "cowl_vent_45")],
+		"cowl_vent_30": ["hero", _is_the_ventilator_made_for.bind(0.3, "cowl_vent_30")],
+		"mushroom_vent": ["furniture", _is_the_ventilator_made_for.bind(0.25, "mushroom_vent")],
+		"deck_bench": ["furniture", _fills_the_bench_s_box_its_back_under_a_step],
 		"iceberg_tabular": [WORLD, _stands_to_the_iceberg_planner_s_measure],
 		"iceberg_drydock": [WORLD, _stands_to_the_iceberg_planner_s_measure],
 		"iceberg_wedge": [WORLD, _stands_to_the_iceberg_planner_s_measure],
@@ -294,8 +302,65 @@ func _fills_its_box(box: AABB, wanted: AABB, name: String) -> void:
 func _lies_on_the_deck_under_a_step(box: AABB, wanted: AABB, name: String) -> void:
 	_fills_its_box(box, wanted, name)
 	assert_gte(box.position.y, -0.001, name + ": nothing of it in the deck")
-	var rules: BrawlRules = load("res://data/rules/brawl.tres")
-	assert_lt(box.end.y, rules.step_height, name + ": under a step")
+	assert_lt(box.end.y, _rules.step_height, name + ": under a step")
+
+
+## The boat stowed on its chocks (DeckFurniture.BOAT_MODEL): from the deck under the
+## middle of its keel, STOWED_BOAT long over its stems and tall to its stem heads, and
+## BOAT_BEAM across.
+func _fills_the_stowed_boat_s_box_over_its_keel(box: AABB) -> void:
+	var half := Vector3(DeckFurniture.STOWED_BOAT.x, 0.0, DeckFurniture.BOAT_BEAM) * 0.5
+	var high := half + Vector3.UP * DeckFurniture.STOWED_BOAT.y
+	assert_almost_eq(box.position, -half, Vector3.ONE * TOLERANCE, "stowed boat: aft, keel, port")
+	assert_almost_eq(box.end, high, Vector3.ONE * TOLERANCE, "stowed boat: fore, stems, starboard")
+
+
+## A ventilator [param model] made for a trunk of [param radius] (DeckFurniture.VENTS):
+## on the deck at its trunk's axis, its trunk's back the radius behind it; nothing of it
+## outside the trunk's footprint under HEAD_ROOM, nor more than COWL_REACH past it over
+## that; and its top over its axis as tall as VENT_HEIGHTS gives.
+func _is_the_ventilator_made_for(box: AABB, radius: float, model: String) -> void:
+	assert_eq(DeckFurniture.VENTS.get(radius), model, "VENTS names it")
+	assert_almost_eq(box.position.y, 0.0, TOLERANCE, "%s: on the deck" % model)
+	assert_almost_eq(box.position.x, -radius, TOLERANCE, "%s: its trunk's back" % model)
+	var low_out := 0.0
+	var high_out := 0.0
+	var over_axis := -INF
+	var from := Vector3.UP * 100.0
+	for surface: ShipModel.Surface in ShipModel.named(model).surfaces:
+		for point: Vector3 in surface.points:
+			var out := Vector2(point.x, point.z).length()
+			if point.y < DeckFurniture.HEAD_ROOM:
+				low_out = maxf(low_out, out)
+			else:
+				high_out = maxf(high_out, out)
+		for index in range(0, surface.order.size(), 3):
+			var hit: Variant = Geometry3D.ray_intersects_triangle(
+				from,
+				Vector3.DOWN,
+				surface.points[surface.order[index]],
+				surface.points[surface.order[index + 1]],
+				surface.points[surface.order[index + 2]]
+			)
+			if hit != null:
+				over_axis = maxf(over_axis, (hit as Vector3).y)
+	assert_lte(low_out, radius + 0.005, "%s: inside its footprint under head height" % model)
+	assert_lte(high_out, radius + DeckFurniture.COWL_REACH, "%s: its cowl's reach" % model)
+	var height: float = DeckFurniture.VENT_HEIGHTS[radius]
+	assert_almost_eq(over_axis, height, TOLERANCE, "%s: its top over its axis" % model)
+
+
+## The deck bench (DeckFurniture.BENCH_MODEL): from the deck under its middle, BENCH long
+## and deep, its seat BENCH tall and its back BENCH_RISE over that, under a step.
+func _fills_the_bench_s_box_its_back_under_a_step(box: AABB) -> void:
+	var half := Vector3(DeckFurniture.BENCH.x, 0.0, DeckFurniture.BENCH.z) * 0.5
+	var high := half + Vector3.UP * (DeckFurniture.BENCH.y + DeckFurniture.BENCH_RISE)
+	assert_almost_eq(box.position, -half, Vector3.ONE * TOLERANCE, "deck bench: low")
+	assert_almost_eq(box.end, high, Vector3.ONE * TOLERANCE, "deck bench: high")
+	assert_lt(DeckFurniture.BENCH_RISE, _rules.step_height, "deck bench: its back under a step")
+	assert_lt(
+		DeckFurniture.ARM_RISE, DeckFurniture.BENCH_RISE, "deck bench: its arms under its back"
+	)
 
 
 ## A crosstree [param model] made for a mast of [param radius] (DeckWorks.CROSSTREES):
