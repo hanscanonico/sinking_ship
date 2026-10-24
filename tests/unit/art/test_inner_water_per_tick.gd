@@ -319,7 +319,7 @@ func test_a_doorway_pours_only_once_one_side_stands_pours_over_the_other() -> vo
 
 
 func test_a_stacked_box_s_sheet_follows_its_cell_s_water() -> void:
-	var stacks := InnerWater.stacked(_structure, _rooms)
+	var stacks := CellBoxes.stacked(_structure, _rooms)
 	assert_gt(stacks.size(), 0, "a cell drawn in a stack of boxes")
 	var water := _water()
 	assert_eq(water._stacks.size(), stacks.size(), "a sheet per stacked box")
