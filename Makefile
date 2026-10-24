@@ -683,8 +683,9 @@ gdtoolkit-each = NPROC=$(NPROC) tools/gdtoolkit_each.sh $(1)
 check:
 	GODOT="$(GODOT)" tools/check_scripts.sh
 
-# The error guard itself, against a stand-in engine that errors and exits 0; the
-# window lock, against sleeps on a private lock file; the test engine slots,
+# Make's own recipe shell, which has to have pipefail; the error guard itself,
+# against a stand-in engine that errors and exits 0; the window lock, against
+# sleeps on a private lock file; the test engine slots,
 # against sleeps on private ones — both again on Perl's lock, the one Git Bash on
 # Windows takes (tools/lib/fd_lock.sh); make fps's SPLIT, read off make -n; make test's
 # list of scripts, against a stand-in engine; make durations and make goldens, against
@@ -695,6 +696,8 @@ check:
 # gh's snapshots; and art-lint-changed's selection, against a throwaway repo and a
 # stand-in make.
 guard-check:
+	@if (set -o pipefail) 2>/dev/null; then echo "make-shell-check: ok"; else \
+		echo "make-shell-check: make runs recipes in $(SHELL), which has no pipefail" >&2; exit 1; fi
 	tools/engine_guard_check.sh
 	tools/window_lock_check.sh
 	tools/test_slot_check.sh
