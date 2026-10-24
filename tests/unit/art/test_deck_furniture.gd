@@ -7,11 +7,16 @@ extends GutTest
 
 ## How far past its box a piece's faces may stand: the furniture's FLUSH and float noise.
 const OUTSIDE := 0.005
-## The Titanic's boat deck's height (tools/gen_titanic.py's BOAT), and the ferry's
-## passenger and bridge decks' (tools/gen_ferry.py's PASS and BRIDGE).
+## The Titanic's boat deck's height (tools/gen_titanic.py's BOAT), her other open decks'
+## (A_DECK, B_DECK, her wells', POOP and the forecastle's FCSL), and the ferry's passenger
+## and bridge decks' (tools/gen_ferry.py's PASS and BRIDGE).
 const BOAT_DECK := 8.375
+const A_DECK := 5.5
+const TITANIC_OPEN_DECKS: Array[float] = [8.375, 5.5, 2.75, 0.0, 3.3125, 4.3125]
 const FERRY_PASSENGER_DECK := 4.8
 const FERRY_BRIDGE_DECK := 7.6
+
+var _rules: BrawlRules = load("res://data/rules/brawl.tres")
 
 
 func _layout(ship: String) -> ShipLayout:
@@ -84,8 +89,11 @@ func test_every_hatch_of_the_fleet_stays_a_hatch() -> void:
 
 func test_the_liner_s_casings_under_her_boat_deck_are_casings() -> void:
 	var titanic := _layout("titanic")
+	var space := ShipSpace.new(titanic)
 	var casings := 0
-	for blocker: ShipBlocker in _on_deck(titanic, 5.5):
+	for blocker: ShipBlocker in _on_deck(titanic, A_DECK):
+		if not space.deck_on(blocker):
+			continue
 		assert_eq(_piece(titanic, blocker), DeckFurniture.Piece.CASING, "%s" % blocker.area)
 		casings += 1
 	assert_eq(casings, 3, "funnel 2's and 3's casings, and the cabins round funnel 1")
@@ -127,16 +135,122 @@ func _on_deck(layout: ShipLayout, height: float) -> Array[ShipBlocker]:
 
 func test_the_liner_s_boat_deck_is_furnished() -> void:
 	var titanic := _layout("titanic")
-	var skylights := 0
-	var lockers := 0
+	var pieces := {}
 	for blocker: ShipBlocker in _on_deck(titanic, BOAT_DECK):
-		match _piece(titanic, blocker):
-			DeckFurniture.Piece.SKYLIGHT:
-				skylights += 1
-			DeckFurniture.Piece.LOCKER:
-				lockers += 1
+		var piece := _piece(titanic, blocker)
+		pieces[piece] = pieces.get(piece, 0) + 1
+	var skylights: int = pieces.get(DeckFurniture.Piece.SKYLIGHT, 0)
 	assert_eq(skylights, 3, "the lounge's, the engine room's and the after staircase's")
+	var lockers: int = pieces.get(DeckFurniture.Piece.LOCKER, 0)
 	assert_eq(lockers, 8, "two either side of each of her boat deck's two houses")
+	assert_eq(pieces.get(DeckFurniture.Piece.BOAT, 0), 16, "her sixteen boats on chocks")
+	assert_eq(pieces.get(DeckFurniture.Piece.BENCH, 0), 10, "benches along her skylights")
+
+
+func test_her_boats_stand_one_at_each_of_her_boat_stations() -> void:
+	var titanic := _layout("titanic")
+	var stations := {}
+	for fitting: ShipFitting in titanic.structure.fittings:
+		var named := String(fitting.name)
+		if fitting.kind == ShipFitting.Kind.LIFEBOAT and named.begins_with("boat_"):
+			stations[named] = fitting
+	assert_eq(stations.size(), 16, "her boats' stations")
+	for blocker: ShipBlocker in _on_deck(titanic, BOAT_DECK):
+		if _piece(titanic, blocker) != DeckFurniture.Piece.BOAT:
+			continue
+		var side := int(signf(blocker.area.get_center().y))
+		var found := ""
+		for named: String in stations:
+			var fitting: ShipFitting = stations[named]
+			var x := fitting.x
+			if fitting.side == side and blocker.area.position.x <= x and x <= blocker.area.end.x:
+				found = named
+		assert_ne(found, "", "the boat at %s stands at a station" % blocker.area)
+		stations.erase(found)
+		var size := Vector3(blocker.area.size.x, blocker.top - blocker.bottom, blocker.area.size.y)
+		assert_almost_eq(size, DeckFurniture.STOWED_BOAT, Vector3.ONE * 0.001, "%s" % found)
+	assert_eq(stations.size(), 0, "a boat at every station: %s" % [stations.keys()])
+
+
+func test_a_box_at_a_boat_station_short_of_the_deck_s_edge_is_no_boat() -> void:
+	var titanic := _layout("titanic")
+	var inboard := _blocker(Rect2(56.0, 6.5, 9.0, 3.15), BOAT_DECK, BOAT_DECK + 1.5)
+	assert_ne(_piece(titanic, inboard), DeckFurniture.Piece.BOAT, "clear of her edge")
+	var at_edge := _blocker(Rect2(56.0, 10.4, 9.0, 3.15), BOAT_DECK, BOAT_DECK + 1.5)
+	assert_eq(_piece(titanic, at_edge), DeckFurniture.Piece.BOAT, "out to her edge at boat 1's")
+
+
+func test_her_open_decks_are_furnished_with_benches() -> void:
+	var titanic := _layout("titanic")
+	var benches := {}
+	for height: float in TITANIC_OPEN_DECKS:
+		for blocker: ShipBlocker in _on_deck(titanic, height):
+			if _piece(titanic, blocker) != DeckFurniture.Piece.BENCH:
+				continue
+			benches[height] = benches.get(height, 0) + 1
+			var size := Vector3(
+				blocker.area.size.x, blocker.top - blocker.bottom, blocker.area.size.y
+			)
+			if size.x < size.z:
+				size = Vector3(size.z, size.y, size.x)
+			assert_almost_eq(size, DeckFurniture.BENCH, Vector3.ONE * 0.001, "%s" % blocker.area)
+			assert_ne(
+				DeckFurniture.back_of(titanic, blocker),
+				Vector2.ZERO,
+				"the bench at %s backs onto what stands behind it" % blocker.area
+			)
+	assert_eq(benches.get(BOAT_DECK, 0), 10, "along her boat deck's skylights")
+	assert_eq(benches.get(A_DECK, 0), 22, "along A deck's house, between its doors")
+	assert_eq(benches.get(2.75, 0), 4, "against the restaurant's after face")
+
+
+func test_a_short_box_seat_is_a_bench_and_a_long_one_a_locker() -> void:
+	var tug := _layout("tug")
+	var bench := _blocker(Rect2(0.0, 0.0, 1.8, 0.55), 0.0, 0.45)
+	assert_eq(_piece(tug, bench), DeckFurniture.Piece.BENCH)
+	var across := _blocker(Rect2(0.0, 0.0, 0.55, 1.8), 0.0, 0.45)
+	assert_eq(_piece(tug, across), DeckFurniture.Piece.BENCH, "laid across her")
+	var locker := _blocker(Rect2(0.0, 0.0, 2.4, 0.55), 0.0, 0.45)
+	assert_eq(_piece(tug, locker), DeckFurniture.Piece.LOCKER, "longer than a bench")
+
+
+func test_her_ventilators_stand_their_cowls_heights() -> void:
+	var titanic := _layout("titanic")
+	var vents := 0
+	for blocker: ShipBlocker in titanic.blockers:
+		if not DeckFurniture.is_vent(titanic, blocker):
+			continue
+		vents += 1
+		assert_has(DeckFurniture.VENTS, blocker.radius, "a trunk a cowl is made for")
+		var height: float = DeckFurniture.VENT_HEIGHTS.get(blocker.radius, NAN)
+		assert_almost_eq(blocker.top - blocker.bottom, height, 0.001, "%s" % blocker.centre)
+	assert_eq(vents, 24, "her boat deck's, her forecastle's, her wells' and her poop's")
+
+
+func test_no_funnel_or_mast_of_the_fleet_is_a_ventilator() -> void:
+	for ship: String in Fleet.names():
+		var layout := _layout(ship)
+		for blocker: ShipBlocker in layout.blockers:
+			if blocker.shape != ShipBlocker.Shape.CYLINDER:
+				continue
+			var tall := blocker.top - blocker.bottom > DeckFurniture.VENT_TALLEST
+			if ShipArt.is_funnel(layout, blocker) or tall:
+				var named := "%s's at %s" % [ship, blocker.centre]
+				assert_false(DeckFurniture.is_vent(layout, blocker), named)
+			else:
+				assert_eq(ship, "titanic", "only the liner carries ventilators")
+
+
+func test_no_seat_starts_by_a_ventilator() -> void:
+	var titanic := _layout("titanic")
+	for blocker: ShipBlocker in titanic.blockers:
+		if not DeckFurniture.is_vent(titanic, blocker):
+			continue
+		for spawn: Vector3 in titanic.spawns:
+			var on_its_deck := is_equal_approx(spawn.y, blocker.bottom)
+			var apart := Vector2(spawn.x, spawn.z).distance_to(blocker.centre)
+			var by := apart < blocker.radius + _rules.body_radius
+			assert_false(on_its_deck and by, "a seat at %s by %s" % [spawn, blocker.centre])
 
 
 func test_her_seat_lockers_stand_back_to_their_houses() -> void:
@@ -171,15 +285,14 @@ func test_the_ferry_s_decks_are_furnished() -> void:
 
 
 func test_no_seat_starts_on_the_new_furniture() -> void:
-	var rules: BrawlRules = load("res://data/rules/brawl.tres")
-	var decks := {"titanic": [BOAT_DECK], "ferry": [FERRY_PASSENGER_DECK, FERRY_BRIDGE_DECK]}
+	var decks := {"titanic": TITANIC_OPEN_DECKS, "ferry": [FERRY_PASSENGER_DECK, FERRY_BRIDGE_DECK]}
 	for ship: String in decks:
 		var layout := _layout(ship)
 		for height: float in decks[ship]:
 			for blocker: ShipBlocker in _on_deck(layout, height):
 				if _piece(layout, blocker) == DeckFurniture.Piece.HATCH:
 					continue
-				var about := blocker.area.grow(rules.body_radius)
+				var about := blocker.area.grow(_rules.body_radius)
 				for spawn: Vector3 in layout.spawns:
 					var on_it := is_equal_approx(spawn.y, height)
 					var start := Vector2(spawn.x, spawn.z)
@@ -208,17 +321,52 @@ func test_every_piece_is_drawn_inside_its_box() -> void:
 		_blocker(Rect2(2.0, 1.0, 2.4, 0.5), 0.0, 0.45),
 		_blocker(Rect2(2.0, 1.0, 0.5, 2.4), 0.0, 0.45),
 		_blocker(Rect2(-2.0, -1.5, 4.0, 3.0), 0.0, 0.9),
+		_blocker(Rect2(2.0, 1.0, 1.8, 0.55), 0.0, 0.45),
+		_blocker(Rect2(2.0, 1.0, 0.55, 1.8), 0.0, 0.45),
 	]
 	var over := maxf(DeckFurniture.HOOK_RISE, DeckFurniture.GUARD_RISE + DeckFurniture.GUARD * 0.5)
+	over = maxf(over, DeckFurniture.BENCH_RISE)
 	for blocker: ShipBlocker in pieces:
-		var faces := _drawn(tug, blocker)
-		var piece := _piece(tug, blocker)
-		assert_gt(faces.size(), 0, "%s drawn" % piece)
-		var area := blocker.area.grow(OUTSIDE)
+		_assert_drawn_inside(tug, blocker, over)
+
+
+func test_a_boat_and_its_davits_are_drawn_inside_its_box() -> void:
+	var titanic := _layout("titanic")
+	for blocker: ShipBlocker in _on_deck(titanic, BOAT_DECK):
+		if _piece(titanic, blocker) == DeckFurniture.Piece.BOAT:
+			var over := DeckFurniture.DAVIT_BOX.end.y - DeckFurniture.STOWED_BOAT.y
+			_assert_drawn_inside(titanic, blocker, over)
+
+
+func test_a_ventilator_is_drawn_in_its_trunk_s_footprint_under_head_height() -> void:
+	var titanic := _layout("titanic")
+	var drawn := {}
+	for blocker: ShipBlocker in titanic.blockers:
+		if not DeckFurniture.is_vent(titanic, blocker) or drawn.has(blocker.radius):
+			continue
+		drawn[blocker.radius] = true
+		var faces := _drawn(titanic, blocker)
+		assert_gt(faces.size(), 0, "the ventilator at %s drawn" % blocker.centre)
 		for corner: Vector3 in faces:
-			if not area.has_point(Vector2(corner.x, corner.z)):
-				fail_test("%s at %s: a face out of its footprint at %s" % [piece, area, corner])
+			var out := Vector2(corner.x, corner.z).distance_to(blocker.centre) - blocker.radius
+			var head := corner.y - blocker.bottom >= DeckFurniture.HEAD_ROOM
+			if out > (DeckFurniture.COWL_REACH if head else 0.0) + OUTSIDE:
+				fail_test("the ventilator at %s: a face out at %s" % [blocker.centre, corner])
 				break
-			if corner.y < blocker.bottom - OUTSIDE or corner.y > blocker.top + over + OUTSIDE:
-				fail_test("%s: a face out of its heights at %s" % [piece, corner])
-				break
+	assert_eq(drawn.size(), DeckFurniture.VENTS.size(), "every ventilator she carries")
+
+
+## Whether every face [param blocker] of [param layout] is drawn with stands in its
+## footprint, from its bottom to [param over] over its top.
+func _assert_drawn_inside(layout: ShipLayout, blocker: ShipBlocker, over: float) -> void:
+	var faces := _drawn(layout, blocker)
+	var piece := _piece(layout, blocker)
+	assert_gt(faces.size(), 0, "%s drawn" % piece)
+	var area := blocker.area.grow(OUTSIDE)
+	for corner: Vector3 in faces:
+		if not area.has_point(Vector2(corner.x, corner.z)):
+			fail_test("%s at %s: a face out of its footprint at %s" % [piece, area, corner])
+			return
+		if corner.y < blocker.bottom - OUTSIDE or corner.y > blocker.top + over + OUTSIDE:
+			fail_test("%s: a face out of its heights at %s" % [piece, corner])
+			return

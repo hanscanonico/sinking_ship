@@ -63,6 +63,7 @@ extends SceneTree
 
 const RunMatch := preload("res://tools/run_match.gd")
 const FurnishingCheck := preload("res://tools/furnishing_check.gd")
+const BoatCheck := preload("res://tools/boat_check.gd")
 const StructureSteel := preload("res://tools/structure_steel.gd")
 const MATCH_SCENE := "res://scenes/match/match.tscn"
 const SHIPS_DIR := "res://data/ships/"
@@ -774,7 +775,7 @@ func _check_tops(
 
 ## [param blocker]'s faces against the drawn ship: rays across each side at a spread
 ## of points, onto its top, and under a lintel; each probe is a point on a face and
-## the way out of it.
+## the way out of it. A boat stowed on chocks fills its box as a boat does (BoatCheck).
 func _check_blocker(
 	faces: PackedVector3Array,
 	cells: Dictionary,
@@ -784,13 +785,16 @@ func _check_blocker(
 ) -> void:
 	_checks += 1
 	var probes: Array[Array] = []
+	var space := ShipSpace.new(layout)
 	# A deck laid on its top stands in its planks' depth there: the deck's to draw.
-	var top := blocker.top - (ShipArt.PLANK if ShipSpace.new(layout).deck_on(blocker) else 0.0)
+	var top := blocker.top - (ShipArt.PLANK if space.deck_on(blocker) else 0.0)
 	var span := top - blocker.bottom
 	var heights: Array[float] = [
 		blocker.bottom + span * 0.25, blocker.bottom + span * 0.5, blocker.bottom + span * 0.75
 	]
-	if blocker.shape == ShipBlocker.Shape.CYLINDER:
+	if BoatCheck.stowed(space, blocker):
+		probes = BoatCheck.probes(blocker)
+	elif blocker.shape == ShipBlocker.Shape.CYLINDER:
 		var centre := Vector3(blocker.centre.x, 0.0, blocker.centre.y)
 		probes.append([Vector3(centre.x, blocker.top, centre.z), Vector3.UP])
 		for ray in CYLINDER_RAYS:
