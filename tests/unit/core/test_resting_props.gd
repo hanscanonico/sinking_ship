@@ -8,6 +8,11 @@ extends GutTest
 const SHOVE := InputFrame.SHOVE
 ## How long a match runs: calm, then flooding, heeling and draining.
 const SECONDS := 26.0
+const FAST_HIT := "res://tests/fixtures/sinking/hits/fast.tres"
+## The steamer's watertight door in her engine room's after bulkhead: the x of its wall,
+## and the floor of its doorway.
+const DOOR_X := -3.0
+const DOOR_FLOOR := -2.6
 
 
 func after_each() -> void:
@@ -118,6 +123,42 @@ func test_passing_over_crates_at_rest_changes_nothing() -> void:
 				lifted[entry["prop"]] = true
 	assert_gt(moved, 5, "the furniture was pushed and carried about")
 	assert_eq(lifted.size(), starts.size(), "and the water lifted every piece")
+
+
+## The steamer struck by the fast hit, a chair at rest in the doorway of her engine room's
+## after bulkhead, in its leaf's path: every snapshot from a second before the hit to a
+## second after the door is shut, crates at rest passed over or — [param stepping] —
+## every crate stepped every tick.
+func _door_shut_on_a_chair(stepping: bool) -> Array[Dictionary]:
+	Hazards.never_rest = stepping
+	var scenario: SinkScenario = load(SimFixtures.STEAMER_SINKING).duplicate()
+	scenario.explicit_hit = load(FAST_HIT)
+	var layout: ShipLayout = SimFixtures.steamer().duplicate()
+	layout.props = layout.props.duplicate()
+	layout.props.append(SimFixtures.chair(Vector3(DOOR_X + 0.1, DOOR_FLOOR, 0.0)))
+	var sim := SimFixtures.sim(1, scenario, layout)
+	SimFixtures.place(sim, 0, Vector3(-17.0, 1.2, 0.0))
+	sim.state.tick = sim.schedule.hit_tick() - Ticks.RATE
+	sim.state.phase = MatchState.Phase.LIVE
+	var snapshots: Array[Dictionary] = []
+	while sim.state.tick < sim.schedule.physics_tick(20.0) + Ticks.RATE:
+		SimFixtures.step(sim, {})
+		snapshots.append(sim.snapshot())
+	Hazards.never_rest = false
+	return snapshots
+
+
+func test_a_door_shutting_on_furniture_at_rest_pushes_it_as_when_every_crate_steps() -> void:
+	var passed_over := _door_shut_on_a_chair(false)
+	var stepped := _door_shut_on_a_chair(true)
+	assert_eq(passed_over.size(), stepped.size())
+	for tick in passed_over.size():
+		if passed_over[tick] != stepped[tick]:
+			fail_test("the two diverged %d ticks in" % tick)
+			return
+	var start := Vector3(DOOR_X + 0.1, DOOR_FLOOR, 0.0)
+	var chair: Dictionary = passed_over[-1]["props"][-1]
+	assert_gt((chair["pos"] as Vector3).distance_to(start), 0.1, "the leaf pushed the chair")
 
 
 func test_a_match_among_furniture_continues_from_any_snapshot() -> void:

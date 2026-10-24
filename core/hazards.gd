@@ -46,9 +46,10 @@ extends RefCounted
 ##
 ## A crate at rest — standing still on her own floor, clear of everything, since the last
 ## tick it was stepped — is passed over, as stepping it would leave it as it is, until
-## anything runs into it, the deck tilts past its grip, the water reaches it or her shape
-## changes (Surfaces.shapes): a saloon of furniture costs a tick only what moves in it.
-## What rests is never the match's state: stepped, it would come out the same.
+## anything runs into it, the deck tilts past its grip, the water reaches it, her shape
+## changes (Surfaces.shapes) or a door's leaf slides by it (DoorLeaves): a saloon of
+## furniture costs a tick only what moves in it, however her doors shut elsewhere. What
+## rests is never the match's state: stepped, it would come out the same.
 ##
 ## A vault damages the span it goes over by vault_damage, and a crate crossing one at
 ## railing_break_speed or more by crate_damage; a span with no hits left is broken,
@@ -104,6 +105,8 @@ var _broken := PackedInt32Array()
 var _at_rest: PropStands
 var _rested_on := PackedInt32Array()
 var _shapes := -1
+## Per door of her, how far shut it stood when last asked (_by_moved_doors).
+var _doors_shut := PackedFloat64Array()
 ## Per crate at rest, the cell of her it rests in (CellMap, CellMap.NONE outside them,
 ## UNKNOWN_CELL not yet looked for) and that cell's ceiling, in the cells they were
 ## looked for in; and the least grip of any crate: while the deck is no steeper, every
@@ -145,6 +148,7 @@ func _init(config: MatchConfig, surfaces: Surfaces, piece := 0, pieces: Pieces =
 	_rest_cells.resize(_props.size())
 	_rest_cells.fill(UNKNOWN_CELL)
 	_rest_roofs.resize(_props.size())
+	_doors_shut.resize(surfaces.doors.count())
 	_turn.resize(_props.size())
 	_feet_before.resize(_props.size())
 	_came_from.resize(_props.size())
@@ -170,6 +174,8 @@ func step(state: MatchState, pose: ShipPose, tick: int, events: Array[SimEvent])
 	if _surfaces.shapes != _shapes:
 		_shapes = _surfaces.shapes
 		_unrest()
+	for index: int in _by_moved_doors():
+		_at_rest.take(index)
 	var loose: Array[PropState] = []
 	var unhung: Array[PropState] = []
 	var crates := _stirring(state, pose, rolled, loose, unhung)
@@ -187,6 +193,8 @@ func step(state: MatchState, pose: ShipPose, tick: int, events: Array[SimEvent])
 		crates = loose.duplicate()
 		for crate: PropState in crates:
 			_turn[crate.prop] = Turn.STEPS
+	for index: int in _by_moved_doors():
+		_wake(crates, state.props[index])
 	if crates.size() < loose.size():
 		for crate: PropState in crates.duplicate():
 			_stir_near(state, crates, crate)
@@ -308,6 +316,22 @@ func _settle(crates: Array[PropState]) -> void:
 ## Every crate at rest stepped from the next tick on.
 func _unrest() -> void:
 	_at_rest.clear()
+
+
+## The crates at rest by the doorway of every door whose leaf has slid since this was
+## last asked — all a leaf of it reaches (DoorLeaves.doorway) — maybe one twice.
+func _by_moved_doors() -> PackedInt32Array:
+	var found := PackedInt32Array()
+	var doors := _surfaces.doors
+	for door in _doors_shut.size():
+		var shut := doors.shut_of(door)
+		if shut == _doors_shut[door]:
+			continue
+		_doors_shut[door] = shut
+		var way := doors.doorway(door)
+		var middle := way.get_center()
+		found.append_array(_at_rest.near(middle.x, middle.y, maxf(way.size.x, way.size.y) * 0.5))
+	return found
 
 
 ## Whether [param crate], grounded, touches anything that would move it were it stepped:

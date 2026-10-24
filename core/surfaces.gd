@@ -70,10 +70,12 @@ var _layout: ShipLayout
 ## Where her solid props stand as honour() was last told (PropKind, #273), on their own
 ## grid: Hazards tells it of each crate as it moves.
 var stands: PropStands
-## How many times a pose honoured has changed her for what stands on her: a door's leaf
-## moved, a funnel come down, a deck or a railing gone. A crate at rest is still at rest
-## only while this does not change (Hazards).
+## How many times a pose honoured has changed her for what stands on her: a funnel come
+## down, a deck or a railing gone. A crate at rest is still at rest only while this does
+## not change (Hazards) — and while no door's leaf has slid by it (doors).
 var shapes := 0
+## The watertight doors, as far shut as the last pose honoured has them.
+var doors: DoorLeaves
 ## The numbers of the first ramp, the first blocker top and the first crate's lid:
 ## every surface before the lids is the ship's own.
 var _first_ramp: int
@@ -111,9 +113,7 @@ var _level_rects := PackedByteArray()
 ## stands on it and nothing else there, but for a crate.
 var _floors: Array[PackedInt32Array] = []
 var _floor_clearances: Array[PackedFloat64Array] = []
-## The watertight doors, as far shut as the last pose honoured has them; and her
-## funnels, lying where the last one has them fallen.
-var _doors: DoorLeaves
+## Her funnels, lying where the last pose honoured has them fallen.
 var _fallen: FallenFunnels
 
 
@@ -166,7 +166,7 @@ func _init(layout: ShipLayout, grid: IndexRules = null) -> void:
 		_rail_grid.insert(index, Rect2(span.from, Vector2.ZERO).expand(span.to), deck, deck)
 	_index_floors()
 	stands = PropStands.new(layout, bounds)
-	_doors = DoorLeaves.new(layout.structure)
+	doors = DoorLeaves.new(layout.structure)
 	_fallen = FallenFunnels.new(layout)
 
 
@@ -181,8 +181,7 @@ func honour(pose: ShipPose, broken := PackedInt32Array(), props: Array[PropState
 	# copy, so a caller's list edited in place is not the one compared.
 	if pose != _honoured_pose or broken != _honoured_by_match:
 		_honoured_pose = pose
-		if _doors.honour(pose):
-			shapes += 1
+		doors.honour(pose)
 		if _fallen.honour(pose):
 			shapes += 1
 			for surface in range(_first_top, _first_lid):
@@ -461,7 +460,7 @@ func obstacle_contacts(
 		if contact != null:
 			contact.prop = prop
 			contacts.append(contact)
-	contacts.append_array(_doors.contacts(point, reach_up, head, radius))
+	contacts.append_array(doors.contacts(point, reach_up, head, radius))
 	contacts.append_array(_fallen.contacts(point, reach_up, head, radius))
 	return PlaneShapes.deepest_per_direction(contacts)
 
@@ -594,7 +593,7 @@ func blocked(from_point: Vector3, to_point: Vector3, body_height: float, step: f
 	var end := Vector2(to_point.x, to_point.z)
 	var feet := minf(from_point.y, to_point.y) + step
 	var head := maxf(from_point.y, to_point.y) + body_height
-	if _doors.crossed(start, end, feet, head) or _fallen.crossed(start, end, feet, head):
+	if doors.crossed(start, end, feet, head) or _fallen.crossed(start, end, feet, head):
 		return true
 	for surface: int in _grid.along(start, end, feet, head):
 		if not _is_blocker_top(surface):
@@ -663,7 +662,7 @@ func line_of_sight(from_point: Vector3, to_point: Vector3, pose: ShipPose) -> bo
 	var end := Vector2(to_point.x, to_point.z)
 	var low := minf(from_point.y, to_point.y)
 	var high := maxf(from_point.y, to_point.y)
-	if _doors.crossed(start, end, low, high) or _fallen.crossed(start, end, low, high):
+	if doors.crossed(start, end, low, high) or _fallen.crossed(start, end, low, high):
 		return false
 	var reach := Rect2(start, Vector2.ZERO).expand(end)
 	for surface: int in _grid.along(start, end, low, high):
