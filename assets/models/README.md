@@ -55,6 +55,11 @@ of its own under the lamp, every surface in the lamp's own material for its pain
 (`sconce_glass` its glass, `brass` its brass, a cargo lamp's `steel` its tin). Every
 lamp of a kind shares the one mesh.
 
+A prop of the match's (#273) is the other: it moves, so it is drawn apart from the
+ship's batches, where its snapshots have it (`PropArt`). A crate or a ring hangs under a
+node of its own; a piece of furniture — a dining table or chair — is an instance of its
+kind's one mesh, a MultiMesh to each square of her decks such pieces start in.
+
 The fitting code asks for a model by name, `ShipModel.named("davit")`. The first ask
 in a process loads the `.glb`, gathers it, reads every surface's arrays and judges
 whether `model()` can paint it; every later ask, and every placement, reuses that.
@@ -114,7 +119,8 @@ A prop placed a hundred times is parsed once.
 | `pool_ladder` | `LinerBath.pool`, over the swimming bath's rim at its aft end | furniture | 368 |
 | `electrolier` | `LinerDining._chandelier`, round each pendant of the first-class dining saloon | hero | 282 |
 | `sideboard_180`, `sideboard_64` | `LinerDining._sideboard` and `CabinDressing._sideboard`, by length (`CabinDressing.SIDEBOARDS`) | furniture | 288, 304 |
-| `dining_chair` | `LinerDining.laid_table`, one under each edge of a laid table | wall decor | 57 |
+| `dining_chair` | `PropArt`, a prop of its own: a chair at each quarter of a laid table, instanced by the hundred | wall decor | 144 |
+| `dining_table` | `PropArt`, a prop of its own: a laid table, round, with its four places, instanced | furniture | 400 |
 | `serving_hatch` | `LinerDining._hatch`, a plain dining saloon's wall nearest the galley | furniture | 120 |
 | `stowed_boat` | `DeckFurniture.boat`, a boat stowed on chocks at each of her boat stations | hero | 1350 |
 | `boat_davit` | `DeckFurniture.boat`, a Welin davit at either end of each boat stowed on chocks | furniture | 350 |
@@ -313,10 +319,14 @@ count as many times as it is placed. Each model belongs to a class with a ceilin
     `LinerDining.SIDEBOARD` long, deep and tall, its gallery `SIDEBOARD_GALLERY` over
     its top; the saloon's fills `CabinDressing.SIDEBOARD`. No deeper than a wall
     fitting. The two lengths share `tools/sideboard.py`.
-  - `dining_chair`: on the floor at the middle of a laid table box's side, x along it, z
-    out of the table; all of it inside the box, its back's face `ShipMesh.SLIVER` in,
-    `LinerDining.CHAIR` wide, its crest `CHAIR_HEIGHT` up, `CHAIR_UNDER` under the
-    table's top, its front legs `CHAIR_DEPTH` in. What the cloth hides is not drawn.
+  - `dining_chair`, `dining_table`: props of their own (`PropArt.FURNITURE`), each drawn
+    where the match has it: on the floor under the middle of its circle, inside its
+    kind's circle and height (`data/props/dining_chair.tres`, `dining_table.tres`), its
+    front along +z, which the prop's `facing_deg` turns. The table's top is its lid, where
+    a body stands: its cloth's top and its place settings no higher than the kind's
+    height. A chair has no lid; its back, the highest of it, stands behind its seat.
+    Each is drawn as instances of one mesh (MultiMesh), so its triangles count once per
+    piece standing in view.
   - `serving_hatch`: on the wall's face at the opening's middle, `LinerDining.HATCH_HEIGHT`
     over the floor, x along the wall, z out of it; the opening `HATCH` each way, its
     architrave `HATCH_RIM` round it, its shelf `HATCH_SILL` thick and out under that,
