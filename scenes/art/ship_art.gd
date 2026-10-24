@@ -160,6 +160,10 @@ var _deck_lights: DeckLights
 ## they are told again only as the tick changes.
 var _powered: ShipPose
 var _graphics := GraphicsQuality.of(GraphicsQuality.Preset.HIGH)
+## What it draws that hides what stands behind it (ShipOccluders), but for the decks
+## the sinking can collapse: falls.
+var _occluders: ShipOccluders
+var _falls: Array[StringName] = []
 
 
 ## Draws [param layout]; [param railing_height] and [param body_radius] are the
@@ -293,6 +297,9 @@ func build(
 		_props.append(_prop(prop, materials))
 		_prop_at.append(Vector3(NAN, NAN, NAN))
 		_prop_indoors.append(NAN)
+	_falls = falls
+	_occluders = ShipOccluders.new(_space, falls, span, cut_above)
+	add_child(_occluders)
 
 
 ## Lets the rooms' lamps light as [param quality] allows: every room in sight, and
@@ -311,6 +318,8 @@ func show_span(kept: Vector2) -> void:
 	for own: Dictionary in _flashes.values():
 		materials.append(own)
 	PieceClip.show(materials, span)
+	if _occluders != null:
+		_occluders.cut(_space, _falls, span, cut_above)
 
 
 ## Per prop of the layout, the node it is drawn under: a crate's origin at its
