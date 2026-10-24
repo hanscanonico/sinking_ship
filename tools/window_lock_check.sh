@@ -2,7 +2,9 @@
 #
 # `make guard-check`, its second half: tools/window_lock.sh serialises two runs,
 # lets a waiter through at once when the holder is killed with SIGKILL, has a
-# waiter name its holder but never a PID taken again, hands
+# waiter name its holder but never a PID taken again, has a waiter out of
+# WINDOW_LOCK_WAIT give up without running its command, says a holder is gone when
+# what it started still holds the lock, hands
 # back its command's exit status and does not wait on itself under a holder, and
 # tools/fps.sh takes it again when the lock it is told it holds is another file,
 # but not when it is the same file spelled another way —
@@ -27,12 +29,17 @@ fail() {
 }
 
 # Git Bash on Windows has no pgrep and a ps without -o: the lock serialises and
-# releases there as everywhere, but names no holder and its waiters' CPU cannot be read
-# off ps, so those cases are left out, and said so.
-names_holders=1
+# releases there as everywhere, and names its holder through /proc, but its waiters'
+# CPU cannot be read off ps, so that case is left out, and said so.
+reads_cpu=1
 if ! LC_ALL=C ps -o lstart= -p $$ >/dev/null 2>&1 || ! command -v pgrep >/dev/null; then
+	reads_cpu=0
+	echo "window-lock-check: no ps -o or pgrep here; waiters' CPU is not checked" >&2
+fi
+names_holders=1
+if ! LC_ALL=C ps -o lstart= -p $$ >/dev/null 2>&1 && [[ ! -r /proc/$$/environ ]]; then
 	names_holders=0
-	echo "window-lock-check: no ps -o or pgrep here; holders named and waiters' CPU are not checked" >&2
+	echo "window-lock-check: no ps -o or /proc here; holders named are not checked" >&2
 fi
 
 # Waits until the shell condition $1 holds, DEADLINE seconds at most.
@@ -140,7 +147,7 @@ tree_cpu() {
 	done
 	LC_ALL=C ps -o time= -p "$pids" | LC_ALL=C awk -F: '{ s += $(NF-1) * 60 + $NF } END { print s + 0 }'
 }
-if ((names_holders)); then
+if ((reads_cpu)); then
 	tools/window_lock.sh bash -c "touch '$WORK/c.start'; until [ -e '$WORK/c.release' ]; do sleep 0.1; done" &
 	PIDS+=($!)
 	holder=$!
@@ -160,6 +167,64 @@ if ((names_holders)); then
 	else
 		fail "the holder for the idle waiter never started"
 	fi
+fi
+
+# A waiter out of WINDOW_LOCK_WAIT gives up: it says so and exits 75 without running
+# its command, and the holder goes on. A WINDOW_LOCK_WAIT that is not whole seconds is
+# refused before anything runs.
+tools/window_lock.sh bash -c "touch '$WORK/t.start'; until [ -e '$WORK/t.release' ]; do sleep 0.1; done
+	touch '$WORK/t.end'" &
+PIDS+=($!)
+holder=$!
+if wait_for "[ -e '$WORK/t.start' ]"; then
+	(
+		WINDOW_LOCK_WAIT=1 tools/window_lock.sh touch "$WORK/t.ran" 2>"$WORK/t.err"
+		echo $? >"$WORK/t.status"
+	) &
+	PIDS+=($!)
+	wait_for "[ -s '$WORK/t.status' ]" || fail "a waiter given 1 s was still waiting after ${DEADLINE}s"
+	[[ "$(cat "$WORK/t.status" 2>/dev/null)" == 75 ]] ||
+		fail "a waiter out of time exited $(cat "$WORK/t.status" 2>/dev/null), not 75"
+	grep -q 'gave up after 1 s waiting for another game window' "$WORK/t.err" ||
+		fail "a waiter out of time never said it gave up: $(cat "$WORK/t.err")"
+	[[ -e "$WORK/t.ran" ]] && fail "a waiter out of time ran its command"
+	touch "$WORK/t.release"
+	wait "$holder"
+	[[ -e "$WORK/t.end" ]] || fail "the holder never went on past a waiter that gave up"
+else
+	fail "the holder for the waiter out of time never started"
+fi
+WINDOW_LOCK_WAIT=soon tools/window_lock.sh touch "$WORK/v.ran" 2>/dev/null
+status=$?
+((status == 2)) || fail "a WINDOW_LOCK_WAIT of 'soon' came back as $status, not 2"
+[[ -e "$WORK/v.ran" ]] && fail "a WINDOW_LOCK_WAIT of 'soon' still ran its command"
+
+# A holder that ends while something it started lives on: the lock stays with what it
+# started, a waiter says the holder is gone, and the lock goes once that is gone too.
+tools/window_lock.sh bash -c "sleep 600 >/dev/null 2>&1 & echo \$! >'$WORK/o.child'
+	touch '$WORK/o.start'" &
+PIDS+=($!)
+holder=$!
+if wait_for "[ -s '$WORK/o.child' ] && [ -e '$WORK/o.start' ]"; then
+	wait "$holder"
+	child=$(cat "$WORK/o.child")
+	PIDS+=("$child")
+	(
+		WINDOW_LOCK_WAIT=1 tools/window_lock.sh touch "$WORK/o.ran" 2>"$WORK/o.err"
+		echo $? >"$WORK/o.status"
+	) &
+	PIDS+=($!)
+	wait_for "[ -s '$WORK/o.status' ]" ||
+		fail "the waiter behind a gone holder was still waiting after ${DEADLINE}s"
+	[[ -e "$WORK/o.ran" ]] && fail "a waiter ran while what a gone holder started held the lock"
+	grep -q "its holder PID $holder gone" "$WORK/o.err" ||
+		fail "the waiter did not say its holder, PID $holder, is gone: $(cat "$WORK/o.err")"
+	kill "$child" 2>/dev/null
+	wait_for "! kill -0 '$child' 2>/dev/null" || fail "what the gone holder started never ended"
+	WINDOW_LOCK_WAIT=$DEADLINE tools/window_lock.sh true 2>"$WORK/o2.err" ||
+		fail "the lock outlived what the gone holder started: $(cat "$WORK/o2.err")"
+else
+	fail "the holder that leaves a process behind never started"
 fi
 
 # The command's own exit status.
