@@ -163,6 +163,9 @@ func _process(delta: float) -> void:
 func _build() -> void:
 	_viewport = SubViewport.new()
 	_viewport.own_world_3d = true
+	# As the window's own viewport does (project.godot): her decks and walls hide what
+	# stands inside her (ShipOccluders).
+	_viewport.use_occlusion_culling = true
 	add_child(_viewport)
 	_sea_and_sky = SEA_AND_SKY.instantiate()
 	_viewport.add_child(_sea_and_sky)
