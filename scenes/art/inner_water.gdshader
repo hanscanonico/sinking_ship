@@ -1,30 +1,41 @@
 // The water standing in one of her cells (InnerWater): the sea's own colours, lit as
 // an indoor face of the ship is (ship.gdshaderinc) — by the room's lamps and a little
 // of the sky's ambient, never the sun — so a dark room's water stays dark but for the
-// lamps' glints on its wobbling surface — and, seen low across it, the lit room mirrored
-// in it, so a grazing eye reads water, not a shadow on the floor. Over a floor just under it, see-through to the
-// planks; deeper, the sea's own deep; where it meets a wall, a body or anything standing
-// in it, the sea's lap of foam and lace, and rings spreading round a body wading or
-// swimming in it (wader_rings.gdshaderinc). Its foam is white water: lit by a warm lamp
-// it stays pale, not the lamp's hue. Seen from under it, a dim grey ceiling, silvered
-// where it meets a wall and as the eye looks low along it, not the lamps' hue. Its sheet
-// is level with the world, turned against her lean (CellSurface), and drawn only inside
-// its cell's box, in ship metres: so it piles into the box's low corner and never pokes
-// through a deck, a wall or her side. Under a pocket (SH29) it glows faintly, the sea's
-// light coming up through it, the only light a sealed space under water has. On an open
-// well's deck, under the sky, the sun and the sky's whole ambient light it instead.
+// lamps' glints on its wobbling surface. Through it, what lies under it — the planks of
+// a floor, a stair, a body — wavering with the surface and dimmed by the water on the
+// way up (water_optics.gdshaderinc): clear under a film of water, green and then lost
+// in the sea's own colour a couple of metres down; and, the more the lower the eye
+// looks across it, the room mirrored in it — its walls, its lamps, its doorways, where
+// a ray off it meets them on the screen, else the lit room's tone — so a grazing eye
+// reads water, not a shadow on the floor. Where it meets a wall, a body or anything
+// standing in it, the sea's lap of foam and lace, and rings spreading round a body
+// wading or swimming in it (wader_rings.gdshaderinc). Its foam is white water: lit by a
+// warm lamp it stays pale, not the lamp's hue. Seen from under it, a dim grey ceiling,
+// silvered where it meets a wall and as the eye looks low along it, not the lamps' hue.
+// Its sheet is level with the world, turned against her lean (CellSurface), and drawn
+// only inside its cell's box, in ship metres: so it piles into the box's low corner and
+// never pokes through a deck, a wall or her side. Under a pocket (SH29) it glows
+// faintly, the sea's light coming up through it, the only light a sealed space under
+// water has. On an open well's deck, under the sky, the sun and the sky's whole ambient
+// light it instead.
 shader_type spatial;
 render_mode blend_mix, depth_draw_never, cull_disabled;
 
 #include "res://scenes/art/wader_rings.gdshaderinc"
+#include "res://scenes/art/water_optics.gdshaderinc"
 
 uniform vec4 deep_colour : source_color = vec4(0.09, 0.27, 0.42, 1.0);
 uniform vec4 shallow_colour : source_color = vec4(0.1, 0.46, 0.53, 1.0);
 uniform vec4 foam_colour : source_color = vec4(0.97, 1.0, 0.99, 1.0);
-// Metres of water over which what lies under it fades from seen to hidden, and how
-// much of something just under the surface still shows through.
-uniform float clear_depth = 1.1;
-uniform float shallow_alpha = 0.45;
+// How much of each colour of light a metre of it takes out — murkier than the open
+// sea's (water.gdshader), churned up as it is inside her — and how far what lies under
+// it is thrown aside by the wobble, per metre it lies under the surface and per unit of
+// slope.
+uniform vec3 absorption = vec3(1.4, 0.75, 0.55);
+uniform float refraction = 0.3;
+// How far up and down the screen its ripples draw a mirrored image out, as a share of
+// its height, and that much again for every ~7 metres the ray ran to meet it.
+uniform float mirror_blur = 0.004;
 // Metres under the surface that foam: a frayed lap fading out over foam_depth, then
 // faint lace a little deeper, at most lace_strength of white.
 uniform float foam_depth = 0.15;
@@ -37,9 +48,11 @@ uniform float lamp_bounce = 0.35;
 // How bright a lamp's glint on it is, and how tight.
 uniform float glint = 0.9;
 uniform float glint_tightness = 70.0;
-// What a sheet seen low across it mirrors indoors: a lit room's tone, taken by the
-// lamps as the walls are, so a dark room's water mirrors only darkness. How fast the
-// mirror falls off as the eye looks down into it, and how much of it the sheet takes.
+// What a sheet seen low across it mirrors indoors where a ray off it meets nothing
+// drawn: a lit room's tone, taken by the lamps as the walls are, so a dark room's water
+// mirrors only darkness. How fast the mirror falls off as the eye looks down into it,
+// and how much of what it mirrors the sheet takes at the most — more than Fresnel's law
+// gives, so a dim room's water reads as water rather than a shadow on the floor.
 uniform vec4 indoor_tone : source_color = vec4(0.72, 0.68, 0.6, 1.0);
 uniform float mirror_falloff = 2.0;
 uniform float mirror_strength = 0.8;
@@ -71,8 +84,6 @@ uniform float outdoor = 0.0;
 // a rough wobble, broad bright streaks and white foam boiling up all over it. 0 is calm
 // water.
 uniform float inflow : hint_range(0.0, 1.0) = 0.0;
-
-uniform sampler2D depth_texture : hint_depth_texture, filter_nearest, repeat_disable;
 
 varying vec3 world;
 // The share of the lamps' hue this fragment sheds (foam, the underside), and the calm
@@ -175,19 +186,12 @@ void fragment() {
 	AO = mix(indoor_ambient, 1.0, outdoor);
 	AO_LIGHT_AFFECT = 0.0;
 	ROUGHNESS = 1.0;
-	float depth = texture(depth_texture, SCREEN_UV).r;
-#if CURRENT_RENDERER == RENDERER_COMPATIBILITY
-	vec3 ndc = vec3(SCREEN_UV, depth) * 2.0 - 1.0;
-#else
-	vec3 ndc = vec3(SCREEN_UV * 2.0 - 1.0, depth);
-#endif
-	vec4 view = INV_PROJECTION_MATRIX * vec4(ndc, 1.0);
-	view.xyz /= view.w;
+	vec3 view = water_drawn_at(SCREEN_UV, INV_PROJECTION_MATRIX);
 	if (!FRONT_FACING) {
 		// Seen from under it: a dim grey ceiling, silvered where it meets a wall — what
 		// is behind it lies within rim_width of it — and as the eye looks low along it,
 		// the light it turns back down, not the lamps' hue.
-		float gap = depth > 0.99999 ? 1e3 : max(VERTEX.z - view.z, 0.0);
+		float gap = max(VERTEX.z - view.z, 0.0);
 		float rim = 1.0 - smoothstep(0.0, rim_width, gap);
 		float sheen = pow(grazing, mirror_falloff) * underside_sheen;
 		float silver = max(rim, sheen);
@@ -196,22 +200,65 @@ void fragment() {
 		EMISSION = shallow_colour.rgb * pocket_glow + rim_colour.rgb * rim * rim_glow;
 		pale = mix(underside_pale, 1.0, silver);
 	} else {
-		vec3 behind = (INV_VIEW_MATRIX * vec4(view.xyz, 1.0)).xyz;
+		vec3 behind = (INV_VIEW_MATRIX * vec4(view, 1.0)).xyz;
 		// Vertical metres from the surface down to what is behind it; a depth sample
 		// nearer than the surface is the rim of something in front of it.
 		bool rim = view.z > VERTEX.z + 0.1;
-		float below = depth > 0.99999 || rim ? 1e3 : max(world.y - behind.y, 0.0);
-		float murk = floor(smoothstep(0.0, clear_depth, below) * 3.0 + 0.5) / 3.0;
-		vec3 colour = mix(shallow_colour.rgb, deep_colour.rgb, murk);
-		float alpha = mix(shallow_alpha, 0.95, murk);
-		// Indoors, the lit room mirrored in it, the more the lower the eye looks across it.
-		float mirror = pow(grazing, mirror_falloff);
-		mirror *= mirror_strength * (1.0 - outdoor);
-		colour = mix(colour, indoor_tone.rgb, mirror);
-		alpha = max(alpha, mirror);
+		float below = rim ? 1e3 : max(world.y - behind.y, 0.0);
+		// What lies under it — the floor, a stair, a body — thrown aside by the wobble,
+		// the further the deeper it lies, and dimmed by the water between it and the eye:
+		// clear under a film of water, green a little deeper, lost in the sea's own colour
+		// a couple of metres down. Looked up where it is drawn once thrown, unless what is
+		// drawn there stands in front of the surface.
+		vec3 through = vec3(0.0);
+		vec3 under = vec3(0.0);
+		if (below < 6.0) {
+			vec3 thrown = behind + vec3(slope.x, 0.0, slope.y) * wobble * min(below, 1.5)
+				* refraction;
+			vec2 uv = water_screen_uv((VIEW_MATRIX * vec4(thrown, 1.0)).xyz, PROJECTION_MATRIX);
+			vec3 there = water_drawn_at(uv, INV_PROJECTION_MATRIX);
+			bool off_screen = any(lessThan(uv, vec2(0.0))) || any(greaterThan(uv, vec2(1.0)));
+			if (off_screen || there.z > VERTEX.z - 0.02) {
+				uv = SCREEN_UV;
+				there = view;
+			}
+			through = exp(-absorption * distance(there, VERTEX));
+			under = water_screen(uv);
+		}
+		// What it mirrors, as much as Fresnel's law gives at the calm wobble — indoors, at
+		// least as much as the mirror's own falloff — what a ray off it meets over the
+		// water, drawn out a little up and down the screen as rippled water draws it;
+		// meeting nothing drawn, indoors, the lit room's tone, taken by the lamps as the
+		// walls are, so a dark room's water mirrors only darkness. Looked for only where
+		// the surface mirrors enough of it to see.
+		float sheen = pow(grazing, mirror_falloff) * mirror_strength * (1.0 - outdoor);
+		float mirroring = max(water_fresnel(1.0 - grazing), sheen);
+		vec4 found = vec4(0.0);
+		vec3 image = vec3(0.0);
+		if (water_mirror > 0 && mirroring > MIRROR_SEEN) {
+			found = water_mirror_trace(
+				VERTEX, reflect(-VIEW, calm), water_mirror, 0.1 + length(VERTEX) * 0.02,
+				world.y - 0.05, PROJECTION_MATRIX, INV_PROJECTION_MATRIX, INV_VIEW_MATRIX
+			);
+			found.z *= smoothstep(MIRROR_SEEN, MIRROR_SEEN * 2.0, mirroring);
+			if (found.z > 0.0) {
+				vec2 drawn_out = vec2(0.0, mirror_blur * (1.0 + found.w * 0.15));
+				image = water_screen(found.xy) * 0.5;
+				image += water_screen(found.xy + drawn_out) * 0.25;
+				image += water_screen(found.xy - drawn_out) * 0.25;
+			}
+		}
+		// Lit by the room: the water's own colour where what lies under it is lost, and
+		// the room's tone where the mirror meets nothing drawn. Lit already, and so
+		// given off as it is: what lies under it and what the mirror meets.
+		vec3 colour = deep_colour.rgb * (vec3(1.0) - through) * (1.0 - mirroring);
+		colour += indoor_tone.rgb * mirroring * (1.0 - found.z) * (1.0 - outdoor);
+		vec3 shown = under * through * (1.0 - mirroring) + image * mirroring * found.z;
 		// Drifting streaks on it, a little lighter and broken: water, not a painted floor.
 		float streak = broken_lace(world.xz * 0.9, t * 0.15, 0.03 + 0.06 * inflow);
-		colour = mix(colour, shallow_colour.rgb * 1.25, streak * (0.25 + 0.9 * inflow));
+		float streaking = streak * (0.25 + 0.9 * inflow);
+		colour = mix(colour, shallow_colour.rgb * 1.25, streaking);
+		shown *= 1.0 - streaking;
 		// Foam boiling up all over it while the sea pours in; none on calm water.
 		float boiling = 0.0;
 		if (inflow > 0.0) {
@@ -219,7 +266,6 @@ void fragment() {
 			boil = mix(boil, value_noise(world.xz * 7.0 + t * vec2(-1.6, 1.3) + 5.0), 0.35);
 			boiling = smoothstep(0.75 - 0.3 * inflow, 0.95, boil) * inflow;
 			colour = mix(colour, foam_colour.rgb, boiling);
-			alpha = max(alpha, boiling * 0.92);
 		}
 		float foamed = boiling;
 		if (below <= lace_depth) {
@@ -233,22 +279,21 @@ void fragment() {
 			float lacing = soft_lace(world.xz * 2.2, t, 0.14) * lace_strength * shallows;
 			float foam = max(edge, lacing);
 			colour = mix(colour, foam_colour.rgb, foam);
-			alpha = max(alpha, foam * 0.92);
 			foamed = max(foamed, foam);
 		}
 		// Rings spreading round the bodies wading or swimming in it.
 		if (wader_count > 0) {
 			float rings = wader_rings(world, t);
 			colour = mix(colour, foam_colour.rgb, rings);
-			alpha = max(alpha, rings * 0.92);
 			foamed = max(foamed, rings);
 		}
 		ALBEDO = colour;
 		// Its foam, white water, sheds the lamps' hue: pale under a warm lamp.
 		pale = foamed * foam_pale;
-		ALPHA = alpha;
+		ALPHA = 1.0;
+		EMISSION = shown * (1.0 - foamed);
 		// Brighter along the drifting streaks, as light through a moving surface is.
-		EMISSION = shallow_colour.rgb * pocket_glow * (0.6 + 0.8 * streak);
+		EMISSION += shallow_colour.rgb * pocket_glow * (0.6 + 0.8 * streak);
 		// Its boiling foam lights itself in part, white in a dim hold.
 		EMISSION += foam_colour.rgb * boiling * churn_glow;
 	}
