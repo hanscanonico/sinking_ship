@@ -22,11 +22,20 @@ class Facts:
 	var _railing_hp: PackedFloat64Array
 	var _props_of: Array
 
-	func _init(seen: Dictionary) -> void:
+	## [param seen]'s, its crates each made from its entry — or, the very entry
+	## [param earlier]'s snapshot had, the crate [param earlier] made of it: a laid saloon
+	## at rest is made once.
+	func _init(seen: Dictionary, earlier: Facts = null) -> void:
 		_railing_hp = seen["railing_hp"]
 		_props_of = seen["props"]
 		broken = MatchState.broken_in(_railing_hp)
-		props = PropState.from_snapshot(seen)
+		var before: Array = [] if earlier == null else earlier._props_of
+		for index in _props_of.size():
+			var entry: Dictionary = _props_of[index]
+			if index < before.size() and is_same(before[index], entry):
+				props.append(earlier.props[index])
+			else:
+				props.append(PropState.from_dict(entry))
 
 	## Whether these are [param seen]'s: worked out from its own railing and crate arrays.
 	func of(seen: Dictionary) -> bool:
@@ -44,6 +53,12 @@ var _facts: Dictionary[int, Facts] = {}
 ## How many snapshots' facts are kept: one for every tick from the newest a bot reading
 ## these floors reads to the oldest the slowest of them does (reads_back).
 var _kept := 1
+## The facts last worked out, whose crates the next may share (Facts).
+var _newest: Facts
+## Per footing honoured on its decks, its Surfaces, the pose and the facts it was last
+## honoured with: honoured again with the same, it is left as it stands — the bots of one
+## reaction read one snapshot, and a laid saloon is stood once for them all.
+var _honoured := {}
 var _worked_out := 0
 
 
@@ -99,6 +114,10 @@ func honour(at: int, pose: ShipPose, seen: Dictionary) -> void:
 		surfaces.honour(pose)
 		return
 	var facts := facts_of(seen)
+	var with := [surfaces, pose, facts]
+	if _honoured.get(at, []) == with:
+		return
+	_honoured[at] = with
 	if piece == 0:
 		surfaces.honour(pose, facts.broken, facts.props)
 	else:
@@ -119,8 +138,9 @@ func facts_of(seen: Dictionary) -> Facts:
 	if kept == null and _facts.size() >= _kept:
 		_facts.erase(_facts.keys().min())
 	_worked_out += 1
-	kept = Facts.new(seen)
+	kept = Facts.new(seen, _newest)
 	_facts[tick] = kept
+	_newest = kept
 	return kept
 
 

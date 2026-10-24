@@ -64,6 +64,8 @@ const THUD_DROP := 2.0
 const THUD_LOUD := 4.0
 ## A crate the water lifts off the deck splashes this soft.
 const AFLOAT_GAIN := 0.45
+## How many crates in a row a step asks at once whether they stand still as they stood.
+const QUIET_RUN := 16
 ## Water this far over the lowest corner of a cell's floor, in metres, is heard
 ## breaking in; and the least difference across an opening heard pouring. Twins of
 ## InnerWater.SHOWS and InnerWater.POURS, so a pour is heard as it starts being drawn.
@@ -107,8 +109,10 @@ var _hull: Rect2
 var _keel := INF
 ## How far through its stride each seat is, 0…1.
 var _stride := PackedFloat32Array()
-## How far through its scrape each crate is, 0…1.
+## How far through its scrape each crate is, 0…1; and the entry each last stood still at,
+## as the step before had it and not moving, or null.
 var _scrape := PackedFloat32Array()
+var _quiet: Array = []
 ## Per cell of her structure, its floor's middle and its half extent along the floor.
 var _floors := PackedVector3Array()
 var _floor_halves := PackedVector3Array()
@@ -165,6 +169,7 @@ func _init(
 	_stride.resize(config.seats)
 	_stride.fill(0.5)
 	_scrape.resize(_layout.props.size())
+	_quiet.resize(_layout.props.size())
 	var structure := _layout.structure
 	if structure != null:
 		_watch_structure(structure)
@@ -274,44 +279,79 @@ func _shove(then: Dictionary, now: Dictionary, tick: int, cues: Array[AudioCue])
 ## The cargo (SH10), crate by crate from [param then] to [param now] — the two
 ## snapshots' "props": a scrape each SCRAPE_STRIDE a crate slides along the deck, a
 ## thud as it comes down or loses THUD_DROP of its speed in a tick, and a splash as
-## it goes into the sea. The water lifting one off the deck splashes soft; afloat it
-## is silent, and drifting off adrift it makes no second splash.
+## it goes into the sea. The water lifting one off the deck splashes soft — a flooding
+## saloon's furniture one piece a tick at most; afloat it is silent, and drifting off
+## adrift it makes no second splash. One still and as it was makes nothing, and QUIET_RUN
+## in a row so are passed over at once.
 func _cargo(then: Array, now: Array, tick: int, cues: Array[AudioCue]) -> void:
-	for index in now.size():
-		var entry: Dictionary = now[index]
-		var before: Dictionary = then[index]
-		var state: PropState.Body = entry["state"]
-		var was_state: PropState.Body = before["state"]
-		if state == PropState.Body.LOST:
-			if was_state != PropState.Body.LOST and was_state != PropState.Body.FLOATING:
-				cues.append(_at_crate(AudioCue.Kind.SPLASH, tick, entry))
+	var furniture_lifted := false
+	for first in range(0, now.size(), QUIET_RUN):
+		var last := mini(first + QUIET_RUN, now.size())
+		var quiet := _quiet.slice(first, last)
+		if now.slice(first, last) == quiet and then.slice(first, last) == quiet:
 			continue
-		if state == PropState.Body.FLOATING:
-			if was_state != PropState.Body.FLOATING:
-				var lifted := _at_crate(AudioCue.Kind.SPLASH, tick, entry)
-				lifted.gain = AFLOAT_GAIN
-				cues.append(lifted)
-			continue
-		var vel: Vector3 = entry["vel"]
-		var was: Vector3 = before["vel"]
-		var speed := Vector2(vel.x, vel.z).length()
-		var lost := Vector2(was.x, was.z).length() - speed
-		var landed: bool = (
-			before["state"] == PropState.Body.AIRBORNE and state == PropState.Body.GROUNDED
-		)
-		if landed or lost >= THUD_DROP:
-			var thud := _at_crate(AudioCue.Kind.THUD, tick, entry)
-			thud.gain = lerpf(CARGO_SOFT, 1.0, clampf(maxf(lost, -was.y) / THUD_LOUD, 0.0, 1.0))
-			cues.append(thud)
-		if state != PropState.Body.GROUNDED:
-			continue
-		_scrape[index] += speed * Ticks.SECONDS_PER_TICK / SCRAPE_STRIDE
-		if _scrape[index] < 1.0:
-			continue
-		_scrape[index] = fposmod(_scrape[index], 1.0)
-		var scrape := _at_crate(AudioCue.Kind.SCRAPE, tick, entry)
-		scrape.gain = lerpf(CARGO_SOFT, 1.0, clampf(speed / SCRAPE_LOUD, 0.0, 1.0))
-		cues.append(scrape)
+		for index in range(first, last):
+			furniture_lifted = _crate(then[index], now[index], index, tick, cues, furniture_lifted)
+
+
+## The cues of crate [param index], from [param before] to [param entry], as _cargo's;
+## whether a flooding saloon's furniture has splashed this tick, as [param furniture_lifted]
+## says it had before it.
+func _crate(
+	before: Dictionary,
+	entry: Dictionary,
+	index: int,
+	tick: int,
+	cues: Array[AudioCue],
+	furniture_lifted: bool
+) -> bool:
+	if entry == before and entry["vel"] == Vector3.ZERO:
+		_quiet[index] = entry
+		return furniture_lifted
+	_quiet[index] = null
+	var state: PropState.Body = entry["state"]
+	var was_state: PropState.Body = before["state"]
+	if state == PropState.Body.LOST:
+		if was_state != PropState.Body.LOST and was_state != PropState.Body.FLOATING:
+			cues.append(_at_crate(AudioCue.Kind.SPLASH, tick, entry))
+	elif state == PropState.Body.FLOATING:
+		var furniture := PropArt.FURNITURE.has(_layout.props[index].kind)
+		if was_state != PropState.Body.FLOATING and not (furniture and furniture_lifted):
+			var lifted := _at_crate(AudioCue.Kind.SPLASH, tick, entry)
+			lifted.gain = AFLOAT_GAIN
+			cues.append(lifted)
+			furniture_lifted = furniture_lifted or furniture
+	else:
+		_sliding(before, entry, index, tick, cues)
+	return furniture_lifted
+
+
+## The thud and the scrapes of crate [param index], neither lost nor afloat, from
+## [param before] to [param entry], as _cargo's.
+func _sliding(
+	before: Dictionary, entry: Dictionary, index: int, tick: int, cues: Array[AudioCue]
+) -> void:
+	var state: PropState.Body = entry["state"]
+	var vel: Vector3 = entry["vel"]
+	var was: Vector3 = before["vel"]
+	var speed := Vector2(vel.x, vel.z).length()
+	var lost := Vector2(was.x, was.z).length() - speed
+	var landed: bool = (
+		before["state"] == PropState.Body.AIRBORNE and state == PropState.Body.GROUNDED
+	)
+	if landed or lost >= THUD_DROP:
+		var thud := _at_crate(AudioCue.Kind.THUD, tick, entry)
+		thud.gain = lerpf(CARGO_SOFT, 1.0, clampf(maxf(lost, -was.y) / THUD_LOUD, 0.0, 1.0))
+		cues.append(thud)
+	if state != PropState.Body.GROUNDED:
+		return
+	_scrape[index] += speed * Ticks.SECONDS_PER_TICK / SCRAPE_STRIDE
+	if _scrape[index] < 1.0:
+		return
+	_scrape[index] = fposmod(_scrape[index], 1.0)
+	var scrape := _at_crate(AudioCue.Kind.SCRAPE, tick, entry)
+	scrape.gain = lerpf(CARGO_SOFT, 1.0, clampf(speed / SCRAPE_LOUD, 0.0, 1.0))
+	cues.append(scrape)
 
 
 ## An effort as a body jumps; its landing is the LANDING event's thud.

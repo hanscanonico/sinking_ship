@@ -140,6 +140,24 @@ func test_snapshot_round_trip_within_quantum() -> void:
 	assert_eq(resumed.state.rng.state, sim.state.rng.state, "the match stream exactly")
 
 
+func test_a_prop_as_it_was_is_carried_as_the_entry_it_was() -> void:
+	var config := _config()
+	var codec := _codec(config)
+	var sim := MatchSim.create(config)
+	var taken := codec.decode_snapshot(codec.encode_snapshot(sim.snapshot(), -1, -1, 0)).snapshot
+	sim.state.props[1].pos += Vector3(0.25, 0.0, -0.5)
+	var sent := sim.snapshot()
+	var bytes := codec.encode_snapshot(sent, -1, -1, 0)
+	assert_eq(bytes, _codec(config).encode_snapshot(sent, -1, -1, 0), "as a new codec puts it")
+	var again := codec.decode_snapshot(bytes).snapshot
+	_within_quantum(sent, again, &"snapshot", "snapshot")
+	var props: Array = again["props"]
+	assert_gt(props.size(), 2)
+	for index in props.size():
+		var same := is_same(props[index], taken["props"][index])
+		assert_eq(same, index != 1, "prop %d the entry taken before: %s" % [index, same])
+
+
 func test_a_field_the_codec_forgets_is_lost_loudly() -> void:
 	var config := _config()
 	var codec := _codec(config)

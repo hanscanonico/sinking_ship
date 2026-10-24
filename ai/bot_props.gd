@@ -13,6 +13,8 @@ var _seat: int
 var _profile: BotProfile
 var _rules: BrawlRules
 var _layout: ShipLayout
+## The props a hand may hold (GrabReach.holdable_of): all a bot asks of, among the many.
+var _holdable: PackedInt32Array
 ## The lifebuoy it goes for, by its index in the layout's props, as the last think chose
 ## it; -1 for none.
 var buoy := -1
@@ -28,11 +30,12 @@ func _init(seat: int, profile: BotProfile, rules: BrawlRules, layout: ShipLayout
 	_profile = profile
 	_rules = rules
 	_layout = layout
+	_holdable = GrabReach.holdable_of(layout)
 
 
 ## The kind of what the bot holds in [param seen], or null for empty hands.
 func held_kind(seen: Dictionary) -> PropKind:
-	var prop := PropState.held_in(seen, _seat)
+	var prop := PropState.held_in(seen, _seat, _holdable)
 	return _layout.props[prop].prop_kind() if prop != -1 else null
 
 
@@ -51,9 +54,9 @@ func drain(seen: Dictionary) -> float:
 ## charge [param victim] — a seat in [param seen] — for the prop in its hands a charge
 ## knocks loose.
 func steals_from(seen: Dictionary, victim: Dictionary) -> bool:
-	if not _profile.steals or not _wanting or PropState.held_in(seen, _seat) != -1:
+	if not _profile.steals or not _wanting or PropState.held_in(seen, _seat, _holdable) != -1:
 		return false
-	var prop := PropState.held_in(seen, victim["seat"])
+	var prop := PropState.held_in(seen, victim["seat"], _holdable)
 	return prop != -1 and _layout.props[prop].prop_kind().loose_on_charge
 
 
@@ -71,13 +74,14 @@ func choose(
 	pose: ShipPose
 ) -> float:
 	buoy = -1
-	_wanting = under >= _profile.buoy_from and PropState.held_in(seen, _seat) == -1
+	_wanting = under >= _profile.buoy_from and PropState.held_in(seen, _seat, _holdable) == -1
 	if not _wanting or me["state"] != PlayerState.Body.GROUNDED or found.cost.is_empty():
 		return 0.0
 	var my_pos: Vector3 = me["pos"]
 	var lowest := pose.above_water(my_pos) - _rules.body_height
 	var nearest := _profile.buoy_range_m
-	for entry: Dictionary in seen["props"]:
+	for index: int in _holdable:
+		var entry: Dictionary = seen["props"][index]
 		if not PropState.within_grasp(entry["state"]):
 			continue
 		if not _layout.props[entry["prop"]].prop_kind().afloat:
@@ -126,8 +130,11 @@ func grab(
 	player.pos = now_pos
 	player.facing = InputFrame.yaw_angle(look)
 	var height := _rules.height_at(surfaces, now_pos)
-	var props := PropState.from_snapshot(seen)
-	if GrabReach.take(player, Faces.Up.DECK, height, props, _layout, _rules, surfaces) != buoy:
+	var props := PropState.some_of(seen, _holdable)
+	var takes := GrabReach.take(
+		player, Faces.Up.DECK, height, props, _layout, _rules, surfaces, _holdable
+	)
+	if takes != buoy:
 		return 0
 	_pressed_at = tick
 	return InputFrame.GRAB

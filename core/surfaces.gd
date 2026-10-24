@@ -67,12 +67,15 @@ var _rail_normals := PackedVector2Array()
 var _platform_rails: Array[PackedInt32Array] = []
 ## The layout: her ladders, and where they hang (ShipLayout.ladder_at).
 var _layout: ShipLayout
-## Per prop, its radius and height, where its underside stands as honour() was last
-## told, and 1 for a solid one (PropKind, #273): the only kind that stands here.
-var _prop_radii := PackedFloat64Array()
-var _prop_heights := PackedFloat64Array()
-var _prop_feet := PackedVector3Array()
-var _prop_solid := PackedByteArray()
+## Where her solid props stand as honour() was last told (PropKind, #273), on their own
+## grid: Hazards tells it of each crate as it moves.
+var stands: PropStands
+## How many times a pose honoured has changed her for what stands on her: a funnel come
+## down, a deck or a railing gone. A crate at rest is still at rest only while this does
+## not change (Hazards) — and while no door's leaf has slid by it (doors).
+var shapes := 0
+## The watertight doors, as far shut as the last pose honoured has them.
+var doors: DoorLeaves
 ## The numbers of the first ramp, the first blocker top and the first crate's lid:
 ## every surface before the lids is the ship's own.
 var _first_ramp: int
@@ -84,8 +87,8 @@ var _ladder_normals := PackedVector2Array()
 var _grid: SpatialIndex
 var _rail_grid: SpatialIndex
 ## Per surface, 1 while it is gone: a collapsed platform, and the tops of the blockers
-## standing flush under it — the roof's edge goes with the roof; and, after them, per
-## crate, 1 while honour() has not been told where it stands, or it is lost.
+## standing flush under it — the roof's edge goes with the roof. A crate's lid is gone
+## while its stand is (PropStands.gone).
 var _gone := PackedByteArray()
 ## Per railing, 1 while it has failed, or its platform is gone.
 var _rail_gone := PackedByteArray()
@@ -110,9 +113,7 @@ var _level_rects := PackedByteArray()
 ## stands on it and nothing else there, but for a crate.
 var _floors: Array[PackedInt32Array] = []
 var _floor_clearances: Array[PackedFloat64Array] = []
-## The watertight doors, as far shut as the last pose honoured has them; and her
-## funnels, lying where the last one has them fallen.
-var _doors: DoorLeaves
+## Her funnels, lying where the last pose honoured has them fallen.
 var _fallen: FallenFunnels
 
 
@@ -123,10 +124,6 @@ func _init(layout: ShipLayout, grid: IndexRules = null) -> void:
 	_blockers = layout.blockers.duplicate()
 	_railings = layout.railings.duplicate()
 	_layout = layout
-	for prop: ShipProp in layout.props:
-		_prop_radii.append(prop.radius)
-		_prop_heights.append(prop.height)
-		_prop_solid.append(1 if prop.prop_kind().solid else 0)
 	for platform in _platforms.size():
 		_platform_rails.append(PackedInt32Array())
 	for index in _railings.size():
@@ -138,8 +135,7 @@ func _init(layout: ShipLayout, grid: IndexRules = null) -> void:
 	_first_ramp = _platforms.size()
 	_first_top = _first_ramp + _ramps.size()
 	_first_lid = count()
-	_gone.resize(_first_lid + _prop_radii.size())
-	_prop_feet.resize(_prop_radii.size())
+	_gone.resize(_first_lid)
 	_rail_gone.resize(_railings.size())
 	for surface in count():
 		_areas.append(_area(surface))
@@ -169,8 +165,8 @@ func _init(layout: ShipLayout, grid: IndexRules = null) -> void:
 		var deck := _platforms[span.platform].height
 		_rail_grid.insert(index, Rect2(span.from, Vector2.ZERO).expand(span.to), deck, deck)
 	_index_floors()
-	_stand_props([])
-	_doors = DoorLeaves.new(layout.structure)
+	stands = PropStands.new(layout, bounds)
+	doors = DoorLeaves.new(layout.structure)
 	_fallen = FallenFunnels.new(layout)
 
 
@@ -185,32 +181,24 @@ func honour(pose: ShipPose, broken := PackedInt32Array(), props: Array[PropState
 	# copy, so a caller's list edited in place is not the one compared.
 	if pose != _honoured_pose or broken != _honoured_by_match:
 		_honoured_pose = pose
-		_doors.honour(pose)
+		doors.honour(pose)
 		if _fallen.honour(pose):
+			shapes += 1
 			for surface in range(_first_top, _first_lid):
 				_tops[surface] = _fallen.top_of(surface - _first_top, _blocker_of(surface).top)
 		_honoured_by_match = broken.duplicate()
 		var failed := pose.broken_railings.duplicate()
 		failed.append_array(broken)
-		_mask(pose.collapsed, failed)
-	_stand_props(props)
-
-
-## Stands each solid prop of [param props] loose where it has it, and none of the others.
-func _stand_props(props: Array[PropState]) -> void:
-	for prop in _prop_radii.size():
-		_gone[_first_lid + prop] = 1
-	for crate: PropState in props:
-		if crate.is_loose() and _prop_solid[crate.prop] == 1:
-			_prop_feet[crate.prop] = crate.pos
-			_gone[_first_lid + crate.prop] = 0
+		if _mask(pose.collapsed, failed):
+			shapes += 1
+	stands.stand_all(props)
 
 
 ## Takes the platforms [param collapsed] and the railings [param failed] as gone, and
-## the railings of a platform gone with it.
-func _mask(collapsed: Array[StringName], failed: PackedInt32Array) -> void:
+## the railings of a platform gone with it; whether they differ from those it had.
+func _mask(collapsed: Array[StringName], failed: PackedInt32Array) -> bool:
 	if collapsed == _honoured_collapsed and failed == _honoured_broken:
-		return
+		return false
 	_honoured_collapsed = collapsed.duplicate()
 	_honoured_broken = failed
 	for surface in count():
@@ -231,6 +219,7 @@ func _mask(collapsed: Array[StringName], failed: PackedInt32Array) -> void:
 	for index in _railings.size():
 		if index in failed or _gone[_railings[index].platform] == 1:
 			_rail_gone[index] = 1
+	return true
 
 
 ## How many surfaces there are, platforms, ramps and blocker tops together; the
@@ -259,7 +248,7 @@ func ramp_surface(ramp: int) -> int:
 ## How high [param surface] stands under [param ship_point]'s x/z.
 func height_at(surface: int, ship_point: Vector3) -> float:
 	if surface >= _first_lid:
-		return _prop_feet[surface - _first_lid].y + _prop_heights[surface - _first_lid]
+		return stands.top(surface - _first_lid)
 	if surface >= _first_top:
 		return _tops[surface]
 	if surface >= _first_ramp:
@@ -320,13 +309,10 @@ func under(ship_point: Vector3, step: float, except_prop: int = NONE) -> int:
 		if absf(height - ship_point.y) <= step and height > best_height:
 			best = surface
 			best_height = height
-	for prop in _prop_radii.size():
-		var feet := _prop_feet[prop]
-		if prop == except_prop or _gone[_first_lid + prop] == 1:
+	for prop: int in stands.near(x, z, 0.0, except_prop):
+		if stands.lids[prop] == 0 or not stands.covers(prop, x, z):
 			continue
-		if not (Vector2(x - feet.x, z - feet.z).length() <= _prop_radii[prop]):
-			continue
-		var height := feet.y + _prop_heights[prop]
+		var height := stands.top(prop)
 		if absf(height - ship_point.y) <= step and height > best_height:
 			best = _first_lid + prop
 			best_height = height
@@ -337,7 +323,7 @@ func under(ship_point: Vector3, step: float, except_prop: int = NONE) -> int:
 ## surface under it at or below its height — never the lid of the crate
 ## [param except_prop] — or NONE when nothing is: the sea.
 func landing(ship_point: Vector3, except_prop: int = NONE) -> int:
-	return _highest_at_or_below(ship_point, _gone.size(), except_prop)
+	return _highest_at_or_below(ship_point, _first_lid + stands.count(), except_prop)
 
 
 ## How high a head rising from [param ship_point] may go: the lowest underside over
@@ -360,10 +346,10 @@ func ceiling(ship_point: Vector3, clearance: float) -> float:
 ## NONE when that is the sea; any other surface is its own.
 func footing(surface: int) -> int:
 	if surface >= _first_lid:
-		if _gone[surface] == 1:
+		if stands.gone[surface - _first_lid] == 1:
 			return NONE
 		return _highest_at_or_below(
-			_prop_feet[surface - _first_lid], _platforms.size() + _ramps.size()
+			stands.feet[surface - _first_lid], _platforms.size() + _ramps.size()
 		)
 	if not _is_blocker_top(surface):
 		return surface
@@ -465,23 +451,16 @@ func obstacle_contacts(
 		)
 		if contact != null:
 			contacts.append(contact)
-	for prop in _prop_radii.size():
-		var under_it := _prop_feet[prop]
-		if prop == except_prop or _gone[_first_lid + prop] == 1:
-			continue
-		# A crate a reach away along either axis is farther than that: clear of the circle.
-		var offset := point - Vector2(under_it.x, under_it.z)
-		var reach := _prop_radii[prop] + radius
-		if absf(offset.x) >= reach or absf(offset.y) >= reach:
-			continue
-		if not (reach_up < under_it.y + _prop_heights[prop] and head > under_it.y):
+	for prop: int in stands.near(point.x, point.y, radius, except_prop):
+		var under_it := stands.feet[prop]
+		if not (reach_up < under_it.y + stands.heights[prop] and head > under_it.y):
 			continue
 		var centre := Vector2(under_it.x, under_it.z)
-		var contact := PlaneShapes.circle_contact(centre, _prop_radii[prop], point, radius)
+		var contact := PlaneShapes.circle_contact(centre, stands.radii[prop], point, radius)
 		if contact != null:
 			contact.prop = prop
 			contacts.append(contact)
-	contacts.append_array(_doors.contacts(point, reach_up, head, radius))
+	contacts.append_array(doors.contacts(point, reach_up, head, radius))
 	contacts.append_array(_fallen.contacts(point, reach_up, head, radius))
 	return PlaneShapes.deepest_per_direction(contacts)
 
@@ -614,7 +593,7 @@ func blocked(from_point: Vector3, to_point: Vector3, body_height: float, step: f
 	var end := Vector2(to_point.x, to_point.z)
 	var feet := minf(from_point.y, to_point.y) + step
 	var head := maxf(from_point.y, to_point.y) + body_height
-	if _doors.crossed(start, end, feet, head) or _fallen.crossed(start, end, feet, head):
+	if doors.crossed(start, end, feet, head) or _fallen.crossed(start, end, feet, head):
 		return true
 	for surface: int in _grid.along(start, end, feet, head):
 		if not _is_blocker_top(surface):
@@ -683,7 +662,7 @@ func line_of_sight(from_point: Vector3, to_point: Vector3, pose: ShipPose) -> bo
 	var end := Vector2(to_point.x, to_point.z)
 	var low := minf(from_point.y, to_point.y)
 	var high := maxf(from_point.y, to_point.y)
-	if _doors.crossed(start, end, low, high) or _fallen.crossed(start, end, low, high):
+	if doors.crossed(start, end, low, high) or _fallen.crossed(start, end, low, high):
 		return false
 	var reach := Rect2(start, Vector2.ZERO).expand(end)
 	for surface: int in _grid.along(start, end, low, high):
@@ -907,7 +886,7 @@ func _highest_at_or_below(ship_point: Vector3, surfaces: int, except_prop: int =
 	for surface: int in _with_lids(near, ship_point, except_prop):
 		if surface >= surfaces:
 			break
-		if _gone[surface] == 1 or not _contains(surface, ship_point):
+		if surface < _first_lid and _gone[surface] == 1 or not _contains(surface, ship_point):
 			continue
 		var height := height_at(surface, ship_point)
 		if height <= ship_point.y and height > best_height:
@@ -1010,21 +989,14 @@ func _at(ship_point: Vector3, bottom: float, top: float) -> PackedInt32Array:
 func _with_lids(near: PackedInt32Array, ship_point: Vector3, except_prop: int) -> PackedInt32Array:
 	var found := near
 	var copied := false
-	for prop in _prop_radii.size():
-		var lid := _first_lid + prop
-		if prop == except_prop or _gone[lid] == 1:
-			continue
-		# _contains(lid, ship_point), written out: every point query asks it of every crate.
-		var feet := _prop_feet[prop]
-		if not (
-			Vector2(ship_point.x - feet.x, ship_point.z - feet.z).length() <= _prop_radii[prop]
-		):
+	for prop: int in stands.near(ship_point.x, ship_point.z, 0.0, except_prop):
+		if stands.lids[prop] == 0 or not stands.covers(prop, ship_point.x, ship_point.z):
 			continue
 		if not copied:
 			# near may be a cell of the index itself: never add to it.
 			found = near.duplicate()
 			copied = true
-		found.append(lid)
+		found.append(_first_lid + prop)
 	return found
 
 
@@ -1052,9 +1024,7 @@ func _area(surface: int) -> Rect2:
 
 func _contains(surface: int, ship_point: Vector3) -> bool:
 	if surface >= _first_lid:
-		var feet := _prop_feet[surface - _first_lid]
-		var reach := _prop_radii[surface - _first_lid]
-		return Vector2(ship_point.x - feet.x, ship_point.z - feet.z).length() <= reach
+		return stands.covers(surface - _first_lid, ship_point.x, ship_point.z)
 	if surface >= _first_top and _blocker_of(surface).shape == ShipBlocker.Shape.CYLINDER:
 		var blocker := _blocker_of(surface)
 		return Vector2(ship_point.x, ship_point.z).distance_to(blocker.centre) <= blocker.radius

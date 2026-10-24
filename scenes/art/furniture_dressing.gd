@@ -4,9 +4,10 @@ extends RefCounted
 ## sets there (ShipSpace.furniture()), which the rules hold bodies out of below its top
 ## and let a body jump onto, drawn as what its shape says it is, in its room's manner
 ## (LinerPublic.style_of) — a table laid with its cloth, a card table under its baize,
-## a writing desk, a restaurant's table laid for dinner or a crew's mess table; an
-## armchair or a settee in its room's upholstery; a bench, a counter, a galley range,
-## a gymnasium's apparatus or a working space's stack of stores.
+## a writing desk or a crew's mess table; an armchair or a settee in its room's
+## upholstery; a bench, a counter, a galley range, a gymnasium's apparatus or a working
+## space's stack of stores. A laid dining table and its chairs are props of their own
+## (PropArt), no box of the layout's.
 ## Each is drawn to its box and inside it: its sides stand where the box's do, from near
 ## its foot to its top, and its top is the box's, as art-lint holds every blocker drawn
 ## (the art aligns to the data, D6) — a body is held off the whole of it, so it reads
@@ -147,8 +148,8 @@ static func piece_of(blocker: ShipBlocker) -> Piece:
 
 ## A table [param blocker] in [param room], of [param style]: a smoking room's card
 ## table under its baize, a reading and writing room's writing desk facing into the
-## room, a restaurant's table laid for dinner with its chairs (LinerDining.laid_table),
-## any other under its white cloth.
+## room, any other under its white cloth — a restaurant's laid tables are props of their
+## own (PropArt).
 static func _table_in(
 	mesh: ShipMesh, style: LinerPublic.Style, room: ShipRoom, blocker: ShipBlocker
 ) -> void:
@@ -158,8 +159,6 @@ static func _table_in(
 			table(mesh, area, blocker.bottom, blocker.top, _baize)
 		LinerPublic.Style.READING:
 			writing_desk(mesh, area, blocker.bottom, blocker.top, front_of(room, area))
-		LinerPublic.Style.RESTAURANT:
-			LinerDining.laid_table(mesh, area, blocker.bottom, blocker.top)
 		_:
 			table(mesh, area, blocker.bottom, blocker.top)
 
