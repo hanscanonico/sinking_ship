@@ -200,12 +200,14 @@ func stands_over_a_platform(platform: ShipPlatform) -> bool:
 	return false
 
 
-## Whether a platform rests on [param blocker]'s top.
+## Whether a platform rests on [param blocker]'s top: over more of it than a sliver, not
+## merely meeting it edge to edge.
 func deck_on(blocker: ShipBlocker) -> bool:
 	for platform: ShipPlatform in layout.platforms:
 		if not is_equal_approx(platform.height, blocker.top):
 			continue
-		if blocker.shape == ShipBlocker.Shape.BOX and platform.area.intersects(blocker.area):
+		var box := blocker.shape == ShipBlocker.Shape.BOX
+		if box and platform.area.grow(-SLIVER).intersects(blocker.area):
 			return true
 		if (
 			blocker.shape == ShipBlocker.Shape.CYLINDER

@@ -80,6 +80,24 @@ func test_a_room_roofed_by_a_slab_and_no_deck_has_the_slab_for_its_ceiling() -> 
 	assert_true(space.outdoors(over), "a step over its roof is out in the weather")
 
 
+func test_a_deck_meeting_a_slab_edge_to_edge_does_not_rest_on_it() -> void:
+	# The Titanic's roof over boiler room 4 beside E deck's landing (#300): in single
+	# precision the slab's end, 19.18 + 1.62, lies a hair past the landing's start at 20.8.
+	var layout := ShipLayout.new()
+	var slab := ShipBlocker.new()
+	slab.area = Rect2(19.18, -10.0, 1.62, 11.5)
+	slab.bottom = -6.1375
+	slab.top = -5.9375
+	layout.blockers.append(slab)
+	var landing := ShipPlatform.new()
+	landing.area = Rect2(20.8, -10.0, 12.1, 16.0)
+	landing.height = slab.top
+	layout.platforms.append(landing)
+	assert_false(ShipSpace.new(layout).deck_on(slab), "the landing, edge to edge with it")
+	landing.area = Rect2(20.0, -10.0, 12.9, 16.0)
+	assert_true(ShipSpace.new(layout).deck_on(slab), "the landing, laid over its end")
+
+
 func test_a_point_beside_a_wall_is_walled_toward_it_and_not_away() -> void:
 	# A wall 0.2 m thick, 0.1 m forward of the point, standing from 0 to 2.5 m.
 	var layout := ShipLayout.new()
