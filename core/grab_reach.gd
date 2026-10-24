@@ -9,10 +9,21 @@ extends RefCounted
 ## the HUD's prompt both ask here (D13), so the prompt names what a press would take.
 
 
+## The props of [param layout] a Grab press may take (PropKind.holdable), by index in
+## order: the only ones a hand ever holds — a laid saloon's furniture none of them.
+static func holdable_of(layout: ShipLayout) -> PackedInt32Array:
+	var found := PackedInt32Array()
+	for index in layout.props.size():
+		if layout.props[index].prop_kind().holdable:
+			found.append(index)
+	return found
+
+
 ## The prop [param player] — [param height] tall where it stands, in the frame
 ## [param up] — would take with a Grab press now, by its index in [param layout]'s props,
-## as [param props] has them; -1 for none. Two seats taking one prop on one tick are the
-## sim's to settle.
+## as [param props] has them — only [param holdable]'s (holdable_of) asked of, or of none
+## given every one; -1 for none. Two seats taking one prop on one tick are the sim's to
+## settle.
 static func take(
 	player: PlayerState,
 	up: int,
@@ -20,7 +31,8 @@ static func take(
 	props: Array[PropState],
 	layout: ShipLayout,
 	rules: BrawlRules,
-	surfaces: Surfaces
+	surfaces: Surfaces,
+	holdable := PackedInt32Array()
 ) -> int:
 	if (
 		up != Faces.Up.DECK
@@ -35,14 +47,13 @@ static func take(
 	var cone := deg_to_rad(rules.grab_cone_deg)
 	var best := -1
 	var best_gap := INF
-	for candidate: PropState in props:
+	for index: int in holdable if not holdable.is_empty() else holdable_of(layout):
+		var candidate := props[index]
 		if candidate.holder == player.seat:
 			return -1
 		if not PropState.within_grasp(candidate.body):
 			continue
 		var prop := layout.props[candidate.prop]
-		if not prop.prop_kind().holdable:
-			continue
 		var at := candidate.pos
 		if at.y + prop.height < feet.y - rules.step_height or at.y > feet.y + height:
 			continue
@@ -60,17 +71,23 @@ static func take(
 
 
 ## What a Grab press by [param seat] would take as [param snapshot] — of a match on
-## [param layout] — stands: the HUD's question, answered as the sim answers it.
+## [param layout] — stands: the HUD's question, answered as the sim answers it, among
+## [param holdable] (holdable_of) when given.
 static func would_take(
-	snapshot: Dictionary, seat: int, layout: ShipLayout, rules: BrawlRules, surfaces: Surfaces
+	snapshot: Dictionary,
+	seat: int,
+	layout: ShipLayout,
+	rules: BrawlRules,
+	surfaces: Surfaces,
+	holdable := PackedInt32Array()
 ) -> int:
+	var among := holdable if not holdable.is_empty() else holdable_of(layout)
 	for entry: Dictionary in snapshot["seats"]:
 		if entry["seat"] != seat or entry["out"]:
 			continue
 		var player := PlayerState.from_dict(entry)
 		var height := rules.height_at(surfaces, player.pos)
-		var props := PropState.from_snapshot(snapshot)
-		return take(
-			player, MatchState.up_of(snapshot, entry), height, props, layout, rules, surfaces
-		)
+		var props := PropState.some_of(snapshot, among)
+		var up := MatchState.up_of(snapshot, entry)
+		return take(player, up, height, props, layout, rules, surfaces, among)
 	return -1

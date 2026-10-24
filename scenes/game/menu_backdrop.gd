@@ -249,10 +249,10 @@ func _wear() -> void:
 	if _quality != null:
 		_art.show_graphics(_quality)
 	var layout := _undressed.ship
-	var props := _art.props()
 	var railing_height := _undressed.rules.railing_height
 	for prop: PropState in PropState.from_layout(layout):
-		props[prop.prop].transform = PropPlacing.of(prop.to_dict(), layout, railing_height, [])
+		var placed := PropPlacing.of(prop.to_dict(), layout, railing_height, [])
+		_art.prop_art.place(prop.prop, placed, true)
 	_corners = _outline()
 	_undressed = null
 	_frame()

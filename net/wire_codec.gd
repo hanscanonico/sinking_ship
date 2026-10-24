@@ -12,7 +12,9 @@ extends RefCounted
 ## 1 mm, 1 cm/s, 0.01° — with the client's ack: every number an int64, in the order of
 ## the records' own tables (MatchState.FIELDS and those it nests), the lot compressed.
 ## The engine packs and compresses, so the GDScript here only walks the fields, once
-## each way, every beat. Seats are listed by id, so a snapshot of only some is valid
+## each way, every beat — a prop's only when it is not as it was (Kept): a saloon of
+## furniture at rest costs a beat next to nothing. Seats are listed by id, so a snapshot
+## of only some is valid
 ## (SH22). A key a record's to_dict() gains and its table does not is pushed as an
 ## error here and lost on the wire, which test_wire_codec's round trip, walking the
 ## snapshot's own keys, fails on (R2).
@@ -33,6 +35,9 @@ const QUANTA_APART := 1.01
 const COMPRESSION := FileAccess.COMPRESSION_ZSTD
 ## The most a snapshot unpacks to, so a forged size cannot ask for more.
 const MOST_BYTES := 1 << 20
+## How many props in a row a codec asks at once whether they are as it last had them
+## (Kept): a laid saloon at rest is a few such questions, not one a piece.
+const KEPT_RUN := 16
 
 enum Kind {
 	INPUT,
@@ -121,11 +126,33 @@ class Values:
 		_at += 1
 		return ints[_at - 1]
 
+	## The next [param count] numbers, taken at once; none where the snapshot runs short.
+	func take_run(count: int) -> PackedInt64Array:
+		if _at + count > ints.size():
+			ok = false
+			return PackedInt64Array()
+		_at += count
+		return ints.slice(_at - count, _at)
+
 	func finished() -> bool:
 		return ok and _at == ints.size()
 
 
+## A snapshot's props as a codec last put or took them: each entry, and the numbers they
+## all came to, prop after prop. A crate at rest is one entry from snapshot to snapshot
+## (PropState.to_dict): put, a run of KEPT_RUN props alike — each entry as it was, by
+## == — is the numbers it came to then, unwalked; and taken, a prop whose numbers come as
+## they came before is the entry made of them then — what a client's history, prediction
+## and view pass over by is_same. Both ends compare a run at once, in the engine.
+class Kept:
+	extends RefCounted
+	var entries: Array[Dictionary] = []
+	var numbers := PackedInt64Array()
+
+
 var _hash: PackedByteArray
+var _sent_props := Kept.new()
+var _taken_props := Kept.new()
 
 
 ## A codec for the match whose match_hash() is [param data_hash].
@@ -185,7 +212,7 @@ func encode_snapshot(snapshot: Dictionary, ack: int, heard: int, early: int) -> 
 	values.put(ack)
 	values.put(heard)
 	values.put(early)
-	_put_record(values, snapshot, _walk(&"snapshot"))
+	_put_record(values, snapshot, _walk(&"snapshot"), _sent_props)
 	var packed := values.ints.to_byte_array()
 	var squeezed := packed.compress(COMPRESSION)
 	var out := header(Kind.SNAPSHOT)
@@ -213,7 +240,7 @@ func decode_snapshot(bytes: PackedByteArray) -> SnapshotPacket:
 	var ack := values.take()
 	var heard := values.take()
 	var early := values.take()
-	var snapshot := _record(values, _walk(&"snapshot"))
+	var snapshot := _record(values, _walk(&"snapshot"), _taken_props)
 	if not values.finished():
 		return null
 	return SnapshotPacket.new(snapshot, ack, heard, early)
@@ -341,14 +368,43 @@ static func _put_int(out: StreamPeerBuffer, value: int) -> void:
 		out.put_u8(low | 0x80)
 
 
-static func _put_record(values: Values, record: Dictionary, walk: Array) -> void:
+## [param record]'s numbers, walked as [param walk]; its props, where it is a snapshot,
+## as [param kept] has them.
+static func _put_record(values: Values, record: Dictionary, walk: Array, kept: Kept = null) -> void:
 	if record.size() != walk.size():
 		push_error("wire: a record of %s has keys the codec does not carry" % [record.keys()])
 	for field: Array in walk:
 		if field[1] == SnapshotField.Kind.INT:
 			values.ints.append(record.get(field[0]))
+		elif kept != null and field[0] == "props":
+			_put_kept(values, record.get(field[0]), field[2], kept)
 		else:
 			_put_field(values, record.get(field[0]), field)
+
+
+## [param records], the props, as the numbers [param kept] last put for them: only a prop
+## not as it was is walked as [param walk], into them, and kept for the next.
+static func _put_kept(values: Values, records: Array, walk: Array, kept: Kept) -> void:
+	var count := records.size()
+	var width := _width(walk)
+	values.put(count)
+	if kept.entries.size() != count:
+		kept.entries.resize(count)
+		kept.numbers.resize(count * width)
+	for first in range(0, count, KEPT_RUN):
+		var last := mini(first + KEPT_RUN, count)
+		if records.slice(first, last) == kept.entries.slice(first, last):
+			continue
+		for index in range(first, last):
+			var record: Dictionary = records[index]
+			if record == kept.entries[index]:
+				continue
+			var walked := Values.new()
+			_put_record(walked, record, walk)
+			for at in width:
+				kept.numbers[index * width + at] = walked.ints[at]
+			kept.entries[index] = record
+	values.ints.append_array(kept.numbers)
 
 
 static func _put_field(values: Values, value: Variant, field: Array) -> void:
@@ -381,15 +437,67 @@ static func _put_field(values: Values, value: Variant, field: Array) -> void:
 				values.put(whole)
 
 
-static func _record(values: Values, walk: Array) -> Dictionary:
+## The record [param values] hold next, walked as [param walk]; its props, where it is a
+## snapshot, as [param kept] has them.
+static func _record(values: Values, walk: Array, kept: Kept = null) -> Dictionary:
 	var record := {}
 	for field: Array in walk:
 		# Most fields are counts and enums: read here, without a call per field.
 		if field[1] == SnapshotField.Kind.INT:
 			record[field[0]] = values.take()
+		elif kept != null and field[0] == "props":
+			record[field[0]] = _take_kept(values, field[2], kept)
 		else:
 			record[field[0]] = _field(values, field)
 	return record
+
+
+## The props [param values] hold next: each whose numbers come as [param kept] last took
+## them the entry made of them then, every other walked as [param walk] and kept for the
+## next.
+static func _take_kept(values: Values, walk: Array, kept: Kept) -> Array[Dictionary]:
+	var count := _count(values)
+	var width := _width(walk)
+	var numbers := values.take_run(count * width)
+	if not values.ok:
+		var none: Array[Dictionary] = []
+		return none
+	if kept.entries.size() != count or kept.numbers.size() != numbers.size():
+		kept.entries.resize(count)
+		kept.numbers = PackedInt64Array()
+	var was := kept.numbers
+	for first in range(0, count, KEPT_RUN):
+		var last := mini(first + KEPT_RUN, count)
+		var from := first * width
+		var to := last * width
+		if not was.is_empty() and numbers.slice(from, to) == was.slice(from, to):
+			continue
+		for index in range(first, last):
+			var run := numbers.slice(index * width, (index + 1) * width)
+			if not was.is_empty() and run == was.slice(index * width, (index + 1) * width):
+				continue
+			var walked := Values.new()
+			walked.ints = run
+			kept.entries[index] = _record(walked, walk)
+	kept.numbers = numbers
+	return kept.entries.duplicate()
+
+
+## How many numbers a record walked as [param walk] comes to: every field of a prop is of
+## a size of its own.
+static func _width(walk: Array) -> int:
+	var width := 0
+	for field: Array in walk:
+		var kind: SnapshotField.Kind = field[1]
+		if kind == SnapshotField.Kind.INT or kind == SnapshotField.Kind.BOOL:
+			width += 1
+			continue
+		assert(
+			SnapshotField.quantized(kind) and SnapshotField.quanta_count(kind) > 0,
+			"every field of a prop of a size of its own"
+		)
+		width += SnapshotField.quanta_count(kind)
+	return width
 
 
 static func _field(values: Values, field: Array) -> Variant:

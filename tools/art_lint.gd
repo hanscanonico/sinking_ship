@@ -682,11 +682,13 @@ func _check_crate_light(file: String, layout: ShipLayout, art: ShipArt) -> void:
 		var middle := room.area.get_center()
 		spots.append(Vector3(middle.x, room.floor_height, middle.y))
 		wanted.append(1.0)
-	var crate := art.props()[0]
+	var crate := art.prop_art.node(0)
+	if crate == null:
+		return
 	var unlit := 1 << (ShipMesh.OUTDOOR_LAYER - 1)
 	for index in spots.size():
 		crate.position = spots[index]
-		art._process(0.0)
+		art.prop_art._process(0.0)
 		for part: Node in crate.get_children():
 			var drawn := part as MeshInstance3D
 			var paint := drawn.mesh.surface_get_material(0) as ShaderMaterial
@@ -921,13 +923,13 @@ func _check_seats() -> void:
 	_checks += 1
 	if brawlers.size() != SEATS:
 		_problems.append("art-lint: %d brawlers drawn for %d seats" % [brawlers.size(), SEATS])
-	var crates: Array[Node3D] = (scene.get_node("MatchView/Ship/ShipArt") as ShipArt).props()
+	var crates := (scene.get_node("MatchView/Ship/ShipArt") as ShipArt).prop_art
 	_checks += 1
-	if crates.size() != client.config.ship.props.size():
+	if crates.count() != client.config.ship.props.size():
 		_problems.append(
 			(
 				"art-lint: %d crates drawn for %d props"
-				% [crates.size(), client.config.ship.props.size()]
+				% [crates.count(), client.config.ship.props.size()]
 			)
 		)
 	var misses := {}
@@ -954,7 +956,7 @@ func _check_seats() -> void:
 	_checks += 1
 	if not crates_moved:
 		_problems.append("art-lint: no crate moved in %.0f s of seed %d" % [SEAT_SECONDS, SEED])
-	for index in crates.size():
+	for index in crates.count():
 		_checks += 1
 		if misses.has("crate %d" % index):
 			_problems.append(misses["crate %d" % index])
@@ -977,15 +979,15 @@ func _check_seats() -> void:
 ## at its underside on the posed [param ship], or hidden once lost; the first miss
 ## per crate goes in [param misses]. True when any crate moved between the two.
 func _check_cargo(
-	ship: Node3D, driver: SimDriver, crates: Array[Node3D], config: MatchConfig, misses: Dictionary
+	ship: Node3D, driver: SimDriver, crates: PropArt, config: MatchConfig, misses: Dictionary
 ) -> bool:
 	var moved := false
-	for index in crates.size():
+	for index in crates.count():
 		var then: Dictionary = driver.previous["props"][index]
 		var now: Dictionary = driver.current["props"][index]
 		var key := "crate %d" % index
 		var lost: bool = now["state"] == PropState.Body.LOST
-		if crates[index].visible == lost and not misses.has(key):
+		if crates.shown(index) == lost and not misses.has(key):
 			misses[key] = (
 				"art-lint: %s %s at tick %d"
 				% [
@@ -1001,7 +1003,7 @@ func _check_cargo(
 		var was := PropPlacing.of(then, config.ship, height, driver.previous["seats"])
 		var drawn := PropPlacing.of(now, config.ship, height, driver.current["seats"])
 		var feet: Vector3 = ship.global_transform * was.interpolate_with(drawn, driver.alpha).origin
-		var off := crates[index].global_position.distance_to(feet)
+		var off := crates.drawn(index).origin.distance_to(feet)
 		if off > CRATE_TOLERANCE and not misses.has(key):
 			misses[key] = (
 				"art-lint: %s drawn %.1f mm off its snapshot at tick %d"

@@ -57,7 +57,7 @@ func at(tick: int) -> Dictionary:
 		return view
 	var alpha := float(tick - before["tick"]) / span
 	view["seats"] = _between(before["seats"], after["seats"], alpha)
-	view["props"] = _between(before["props"], after["props"], alpha)
+	view["props"] = _between(before["props"], after["props"], alpha, true)
 	return view
 
 
@@ -78,12 +78,17 @@ static func _whole(snapshot: Dictionary, earlier: Dictionary) -> Dictionary:
 
 ## Each entry of [param then] — seats or crates, in the same order as [param now] —
 ## [param alpha] of the way to [param now]'s: where it is, how fast and, for a seat,
-## where it faces; the rest as [param then] has it.
-static func _between(then: Array, now: Array, alpha: float) -> Array[Dictionary]:
+## where it faces; the rest as [param then] has it. Where [param shared], one the two
+## hold alike is [param then]'s own — a crate is read, never edited: a laid saloon at
+## rest is copied nowhere.
+static func _between(then: Array, now: Array, alpha: float, shared := false) -> Array[Dictionary]:
 	var entries: Array[Dictionary] = []
 	for index in then.size():
 		var from: Dictionary = then[index]
 		var to: Dictionary = now[index]
+		if shared and from == to:
+			entries.append(from)
+			continue
 		var entry := from.duplicate()
 		entry["pos"] = (from["pos"] as Vector3).lerp(to["pos"], alpha)
 		entry["vel"] = (from["vel"] as Vector3).lerp(to["vel"], alpha)

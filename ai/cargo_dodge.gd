@@ -1,7 +1,7 @@
 class_name CargoDodge
 extends RefCounted
 ## The way out of the path of a crate a bot sees sliding at it (SH10) — a solid prop:
-## any other cannot run into it (#273) — for one bot's
+## any other cannot run into it (#273), and a harmless one only nudges it — for one bot's
 ## profile: square to the path of the nearest one coming at it — ahead of it, no
 ## farther than it slides in the bot's reaction and stopping time plus the edge margin,
 ## and passing within a body's radius and the edge margin of the bot — toward the side
@@ -13,14 +13,20 @@ extends RefCounted
 
 var _profile: BotProfile
 var _rules: BrawlRules
-## The layout's cargo: each crate's grip, against the deck's slope.
+## The layout's cargo: each crate's grip, against the deck's slope; and the crates worth
+## stepping out of the way of, by index.
 var _cargo: Array[ShipProp]
+var _dodged := PackedInt32Array()
 
 
 func _init(profile: BotProfile, rules: BrawlRules, cargo: Array[ShipProp]) -> void:
 	_profile = profile
 	_rules = rules
 	_cargo = cargo
+	for index in cargo.size():
+		var kind := cargo[index].prop_kind()
+		if kind.solid and not kind.harmless:
+			_dodged.append(index)
 
 
 ## The unit walk out of the path of the nearest crate in [param seen] coming at a bot
@@ -37,8 +43,10 @@ func way_out(seen: Dictionary, now_pos: Vector3, pose: ShipPose) -> Vector2:
 	var slope := pose.slope_deg()
 	var dodge := Vector2.ZERO
 	var nearest := INF
-	for entry: Dictionary in seen["props"]:
-		if entry["state"] == PropState.Body.LOST or not _cargo[entry["prop"]].prop_kind().solid:
+	var entries: Array = seen["props"]
+	for index: int in _dodged:
+		var entry: Dictionary = entries[index]
+		if entry["state"] == PropState.Body.LOST:
 			continue
 		var vel: Vector3 = entry["vel"]
 		var path := Vector2(vel.x, vel.z)

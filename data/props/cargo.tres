@@ -5,3 +5,4 @@
 [resource]
 script = ExtResource("1_kind")
 solid = true
+lid = true
