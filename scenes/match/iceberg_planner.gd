@@ -79,6 +79,7 @@ var _scrape_speed := 0.0
 var _reach := 0.0
 var _blade := Vector2.ZERO
 var _shape := PackedVector3Array()
+var _normals := PackedVector3Array()
 var _shades := PackedColorArray()
 
 ## Every model of BERGS read, by name: read once a process.
@@ -86,10 +87,13 @@ static var _models := {}
 
 
 ## A berg as modelled: its faces, three corners each, in its own frame at BERG_HEIGHT;
-## each face's colour, linear, as the model carries it; and its spur's blade, the
-## corners furthest along +z, as far out as they stand and halfway up between them.
+## each corner's normal, smooth across the ice and sharp at its ledges as the model
+## shades it; each face's colour, linear, as the model carries it; and its spur's
+## blade, the corners furthest along +z, as far out as they stand and halfway up
+## between them.
 class Model:
 	var corners := PackedVector3Array()
+	var normals := PackedVector3Array()
 	var shades := PackedColorArray()
 	var bounds := AABB()
 	var blade_z := 0.0
@@ -163,6 +167,12 @@ func shape() -> PackedVector3Array:
 	return _shape
 
 
+## Each corner's normal, in shape()'s order: as modelled, but flat across a face the
+## spur's blade was drawn out on.
+func normals() -> PackedVector3Array:
+	return _normals
+
+
 ## Each face's colour, one a face, in shape()'s order: linear, as a mesh's.
 func shades() -> PackedColorArray:
 	return _shades
@@ -230,6 +240,7 @@ static func model_of(name: String) -> Model:
 	for surface in mesh.get_surface_count():
 		var arrays := mesh.surface_get_arrays(surface)
 		var points: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+		var normals: PackedVector3Array = arrays[Mesh.ARRAY_NORMAL]
 		var colours: PackedColorArray = arrays[Mesh.ARRAY_COLOR]
 		var order := PackedInt32Array(range(points.size()))
 		if arrays[Mesh.ARRAY_INDEX] != null:
@@ -237,6 +248,7 @@ static func model_of(name: String) -> Model:
 		for index in range(0, order.size(), 3):
 			for corner in 3:
 				model.corners.append(points[order[index + corner]])
+				model.normals.append(normals[order[index + corner]])
 			model.shades.append(colours[order[index]])
 	model.blade_z = model.bounds.end.z
 	var blade := Vector2(INF, -INF)
@@ -259,12 +271,24 @@ func _build(model: Model, standoff: float) -> void:
 			inboard = maxf(inboard, corner.z * scale)
 	_reach = inboard + standoff
 	var foot := -depth * FOOT
-	for corner in model.corners:
+	var drawn_out := {}
+	for index in model.corners.size():
+		var corner := model.corners[index]
 		var point := corner * scale
 		if corner.z > model.blade_z - BLADE_NEAR:
 			point = Vector3(0.0, _blade.y if corner.y > model.blade_middle else _blade.x, _reach)
+			drawn_out[index / 3] = true
 		point.y = maxf(point.y, foot)
 		_shape.append(point)
+	# A face drawn out to the blade lies flat as it now lies.
+	_normals = model.normals.duplicate()
+	for face: int in drawn_out:
+		var at := face * 3
+		# Wound clockwise from outside: the cross product points in.
+		var a := _shape[at]
+		var flat := -(_shape[at + 1] - a).cross(_shape[at + 2] - a).normalized()
+		for corner in 3:
+			_normals[at + corner] = flat
 	_shades = model.shades
 
 

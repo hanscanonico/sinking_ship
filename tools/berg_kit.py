@@ -16,11 +16,14 @@ axes and metres:
   draws the blade out to her shell and up and down to the gash's depths.
 
 Each face carries its colour as the colour attribute `ice` on its corners, linear:
-ice facing up, shade on the steep faces, under-ice under the sea, no two faces quite
-alike. The scene's `colour_layer` tells tools/export_model.py to export `ice` in
-place of the props' `ink`.
+ice over the sea, under-ice under it; the shader lays the snow, the strata and the
+sea's wash over that. The scene's `colour_layer` tells tools/export_model.py to
+export `ice` in place of the props' `ink`. It is shaded smooth, as weathered ice
+is, but sharp across its ledges and fractures: wherever two faces meet at more than
+SHARP_ANGLE.
 """
 
+import math
 import random
 
 import bmesh
@@ -33,10 +36,10 @@ HEIGHT = 10.0
 DRAUGHT = 2.0
 FOOT = 1.05
 LAYER = "ice"
-# The ice facing up, on its steep faces and under the sea (the procedural berg's).
+# The ice over the sea and under it.
 ICE = "dfe8ee"
-ICE_SHADE = "a9c3d3"
 ICE_UNDER = "4f8f9e"
+SHARP_ANGLE = 40.0
 # The spur: how far its blade stands out past the rest, and its root's and blade's
 # heights, in metres, as modelled; the planner moves its blade.
 SPUR_OUT = 1.5
@@ -149,19 +152,10 @@ def fit(lofts, spread):
             p[2] = p[2] * scale
 
 
-def shade(normal, centre, rng):
-    """A face's colour, linear: ice, bluer the steeper; under-ice under the sea; each
-    face a little lighter or darker than the next."""
-    if centre.z < 0.0:
-        colour = srgb_plain(ICE_UNDER)
-    else:
-        up = abs(normal.z)
-        colour = [s + (i - s) * up for s, i in zip(srgb_plain(ICE_SHADE), srgb_plain(ICE))]
-    jitter = rng.uniform(0.9, 1.04)
-    out = []
-    for c in colour:
-        c = min(c * jitter, 1.0)
-        out.append(c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4)
+def shade(centre):
+    """A face's colour, linear: ice, or under-ice under the sea."""
+    colour = srgb_plain(ICE_UNDER if centre.z < 0.0 else ICE)
+    out = [c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4 for c in colour]
     return (*out, 1.0)
 
 
@@ -192,7 +186,7 @@ def build(name, lofts, spread, seed):
         if p[1] < 0.0:
             p[2] = min(p[2], inboard)
     faces.extend(spur(inboard))
-    return write(name, faces, rng)
+    return write(name, faces)
 
 
 def spur(inboard):
@@ -213,7 +207,7 @@ def spur(inboard):
     ]
 
 
-def write(name, faces, rng):
+def write(name, faces):
     collection = fresh_scene()
     bpy.context.scene["colour_layer"] = LAYER
     bm = bmesh.new()
@@ -239,15 +233,15 @@ def write(name, faces, rng):
     bmesh.ops.recalc_face_normals(bm, faces=bm.faces[:])
     bm.normal_update()
     for face in bm.faces:
-        face.smooth = False
-        centre = face.calc_center_median()
-        colour = shade(face.normal, centre, rng)
+        face.smooth = True
+        colour = shade(face.calc_center_median())
         for loop in face.loops:
             loop[layer] = colour
     mesh = bpy.data.meshes.new(name)
     bm.to_mesh(mesh)
     count = len(bm.faces)
     bm.free()
+    mesh.set_sharp_from_angle(angle=math.radians(SHARP_ANGLE))
     mesh.color_attributes.active_color_name = LAYER
     mesh.materials.append(material())
     obj = bpy.data.objects.new(name, mesh)
