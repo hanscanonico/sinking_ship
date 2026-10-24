@@ -241,3 +241,32 @@ func test_its_blade_is_drawn_out_to_the_gash_on_every_berg() -> void:
 				if corner.z > top.z - IcebergPlanner.BLADE_NEAR:
 					assert_true(corner == top or corner == bottom, "%s: the blade" % planner.berg)
 	assert_eq(seen.size(), IcebergPlanner.BERGS.size(), "every berg")
+
+
+func test_it_is_shaded_as_modelled_but_flat_where_its_blade_is_drawn_out() -> void:
+	var layout := SimFixtures.steamer()
+	var seen := {}
+	for seed_value in range(SEED, SEED + 30):
+		var planner := _planner(layout, 1, seed_value)
+		if seen.has(planner.berg):
+			continue
+		seen[planner.berg] = true
+		var model := IcebergPlanner.model_of(planner.berg)
+		var shape := planner.shape()
+		var normals := planner.normals()
+		assert_eq(normals.size(), shape.size(), "%s: a normal at every corner" % planner.berg)
+		for face in shape.size() / 3:
+			var at := face * 3
+			var drawn_out := false
+			for corner in 3:
+				var z := model.corners[at + corner].z
+				drawn_out = drawn_out or z > model.blade_z - IcebergPlanner.BLADE_NEAR
+			# Wound clockwise from outside: the cross product points in.
+			var flat := -(shape[at + 1] - shape[at]).cross(shape[at + 2] - shape[at]).normalized()
+			for corner in 3:
+				var normal := normals[at + corner]
+				if drawn_out:
+					assert_almost_eq(normal, flat, Vector3.ONE * 0.001, "flat on the blade")
+				else:
+					assert_eq(normal, model.normals[at + corner], "as modelled")
+	assert_eq(seen.size(), IcebergPlanner.BERGS.size(), "every berg")

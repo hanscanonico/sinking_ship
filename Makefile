@@ -96,6 +96,14 @@ match-args = $(if $(SEED),--seed=$(SEED)) $(if $(SEATS),--seats=$(SEATS)) $(if $
 	$(if $(SCENARIO),--scenario=$(SCENARIO)) $(if $(HIT),--hit=$(HIT)) $(if $(FAST),--fast=$(FAST)) \
 	$(if $(GOAL),--goal=$(GOAL))
 
+# run, replay, match, capture, fps and smoke pass --bake-cache: a sinking baked before for
+# the very same code under core/, data under data/, match data, seed and clock is read
+# back from user://bake_cache rather than baked again (BakeCache) — the Titanic's takes
+# ~100 s — and the transcript is the same either way. BAKE_CACHE=0 bakes every one
+# afresh. A test, an exported game and online play never use it.
+BAKE_CACHE ?= 1
+bake-cache-arg = $(if $(filter 0,$(BAKE_CACHE)),,--bake-cache)
+
 # The game plays her sinking on the match data's fast_clock (the menu's Fast sinking,
 # ticked for a player); FAST=0 plays it on her paced clock, unticked. A tool — match,
 # bake, a bot's ARGS=--autoplay — plays the paced clock unless FAST=1.
@@ -105,7 +113,7 @@ match-args = $(if $(SEED),--seed=$(SEED)) $(if $(SEATS),--seats=$(SEATS)) $(if $
 # whole number of 0 or more is refused, as the menu refuses it.
 run:
 	$(call require-godot)
-	$(GODOT) --path . -- $(match-args) $(ARGS)
+	$(GODOT) --path . -- $(match-args) $(bake-cache-arg) $(ARGS)
 
 # `make replay FILE=path/to/one.replay` watches a saved replay — one the game wrote
 # under user://replays, or any path — in the replay viewer (R4–R6); the game quits with
@@ -113,7 +121,7 @@ run:
 replay:
 	$(call require-godot)
 	@test -n "$(FILE)" || { echo "replay: FILE=<path to a .replay> is required" >&2; exit 1; }
-	$(GODOT) --path . -- --replay="$(FILE)" $(ARGS)
+	$(GODOT) --path . -- --replay="$(FILE)" $(bake-cache-arg) $(ARGS)
 
 # Every headless tool target, and capture, runs the engine through tools/engine_guard.sh:
 # the engine exits 0 after a SCRIPT ERROR or a renderer ERROR, so the guard fails the run
@@ -124,7 +132,7 @@ replay:
 match:
 	$(call require-godot)
 	@set -o pipefail; tools/engine_guard.sh $(GODOT) --headless --no-header --path . -s res://tools/run_match.gd \
-		-- $(match-args) $(if $(SECONDS),--seconds=$(SECONDS)) $(if $(STOP),--stop=$(STOP)) \
+		-- $(match-args) $(bake-cache-arg) $(if $(SECONDS),--seconds=$(SECONDS)) $(if $(STOP),--stop=$(STOP)) \
 		| grep -v '^\[godot_ai'
 
 # --fixed-fps steps one tick per drawn frame, so the capture lands on its exact
@@ -144,7 +152,7 @@ capture:
 		{ echo "capture: AT=<seconds of match time> or PHYS=<h:mm:ss of physics> is required" >&2; exit 1; }
 	@mkdir -p "$(dir $(CAPTURE))"
 	tools/window_lock.sh tools/engine_guard.sh $(GODOT) --path . $(if $(RES),--resolution $(RES)) --audio-driver Dummy --fixed-fps 30 -- \
-		$(match-args) $(if $(menu-screen),,--autoplay) --capture="$(CAPTURE)" \
+		$(match-args) $(bake-cache-arg) $(if $(menu-screen),,--autoplay) --capture="$(CAPTURE)" \
 		$(if $(AT),--capture-at=$(AT)) $(if $(PHYS),--phys=$(PHYS)) $(if $(JUMP),--jump) \
 		$(if $(EYE),--capture-eye=$(EYE)) \
 		$(if $(FROM),--capture-from=$(FROM)) $(if $(LOOK),--capture-look=$(LOOK)) \
@@ -159,7 +167,7 @@ DRY ?=
 OUT ?=
 smoke:
 	@SEED="$(SEED)" SHIP="$(SHIP)" FAST="$(FAST)" MAX="$(MAX)" DRY="$(DRY)" OUT="$(OUT)" \
-		GODOT="$(GODOT)" MAKE="$(MAKE)" tools/smoke.sh
+		BAKE_CACHE="$(BAKE_CACHE)" GODOT="$(GODOT)" MAKE="$(MAKE)" tools/smoke.sh
 
 # `make net-bench [SEED=] [SEATS=] [SECONDS=] [NET=latency:120,jitter:20,loss:5]`: one
 # match headless, seat 0 played through the client over a loopback lying as NET says
@@ -287,7 +295,7 @@ bench:
 fps:
 	GODOT="$(GODOT)" tools/fps.sh $(if $(SEED),--seed=$(SEED)) $(if $(SEATS),--seats=$(SEATS)) \
 		$(if $(SECONDS),--seconds=$(SECONDS)) $(if $(RES),--resolution=$(RES)) \
-		$(if $(filter-out 0,$(SPLIT)),--split) $(if $(ARGS),-- $(ARGS))
+		$(if $(filter-out 0,$(SPLIT)),--split) -- $(bake-cache-arg) $(ARGS)
 
 # `make arena SEEDS=200 [LOBBIES=normal,hard-easy] [STOP=15:00] [SCENARIO=]`: bots-only
 # lobbies of the default match, seeds 1…SEEDS each, headless, written up as
@@ -345,6 +353,13 @@ art-lint:
 	$(call require-godot)
 	@set -o pipefail; tools/engine_guard.sh $(GODOT) --headless --no-header --path . --fixed-fps 60 \
 		-s res://tools/art_lint.gd $(if $(SHIP),-- --ship=$(SHIP)) | grep -v -e '^\[godot_ai' -e '^match seed'
+
+# verify-changed's art gate (tools/art_lint_changed.sh): the whole art-lint when the
+# branch changed the art itself, each ship's alone when only her own files changed,
+# and none, saying so, when nothing the lint reads changed. Without a gate the lint
+# was run by hand, and main had gathered 25 problems by the time someone did (#270).
+art-lint-changed:
+	tools/art_lint_changed.sh
 
 # The GUT suite, headless. One script:
 #   make test TEST=tests/unit/core/test_ticks.gd
@@ -410,17 +425,18 @@ test-changed:
 	fi
 
 # The merge gate, in one command. Order is cheapest-feedback-first: parsing
-# fails fastest, style next, the suite last.
+# fails fastest, style next, the art lint and the suite last.
 #
 # Needs Godot 4.7+ and gdtoolkit 4.x for the lint and format steps:
 #   pipx install "gdtoolkit==4.*"
-verify: check guard-check ship-gen-check bake-check lint format-check test
+verify: check guard-check ship-gen-check bake-check lint format-check art-lint test
 
-# The local bar for done: every gate verify runs, with test-changed — the tests the
-# branch's changes can reach — in place of the whole suite. A branch that touches only
-# tooling or docs starts no test engine. CI runs the full verify on every PR, and
-# nothing merges until it is green on the PR head.
-verify-changed: check guard-check ship-gen-check bake-check lint format-check test-changed
+# The local bar for done: every gate verify runs, with art-lint-changed and
+# test-changed — the lint and the tests the branch's changes can reach — in place of
+# the whole lint and the whole suite. A branch that touches only tooling or docs starts
+# no test engine. CI runs the full verify on every PR, and nothing merges until it is
+# green on the PR head.
+verify-changed: check guard-check ship-gen-check bake-check lint format-check art-lint-changed test-changed
 
 # Each ship's layout and structure are generated by her tools/gen_NAME.py — the steamer's,
 # the trawler's (SH30), the ferry's (SH35), the tug's (SH36), the barque's (SH37), the
@@ -496,6 +512,10 @@ bake-check:
 		--check=data/ships/$$(basename $$blend .blend).tres | grep -v '^\[godot_ai'; \
 		status=$$?; rm -rf "$$dir"; test $$status -eq 0 || exit 1; done; fi
 
+# Over a scene already there, ship-scene keeps its ids (tools/ship_scene_ids.gd): a node
+# at a path it had keeps its unique_id, a sub-resource of unchanged content its id, and
+# the file its line endings. Redrawing unchanged data rewrites it byte for byte, and a
+# data change diffs as only the nodes and resources it adds, removes or alters.
 ship-scene:
 	$(call require-godot)
 	@test -n "$(SHIP)" || { echo "ship-scene: SHIP=<a ship under data/ships> is required" >&2; exit 1; }
@@ -670,7 +690,10 @@ check:
 # list of scripts, against a stand-in engine; make durations and make goldens, against
 # sample logs; verify running the float test once, read off make -n; the gdtoolkit targets'
 # warm-up and fan-out, against a stand-in tool; make test-changed's selection, against a
-# fixture project, and its list of runtime-built loads, against the code.
+# fixture project, and its list of runtime-built loads, against the code; the worktree
+# pruner, against a throwaway repo and a stand-in gh; the CI waiter, against a stand-in
+# gh's snapshots; and art-lint-changed's selection, against a throwaway repo and a
+# stand-in make.
 guard-check:
 	tools/engine_guard_check.sh
 	tools/window_lock_check.sh
@@ -685,6 +708,9 @@ guard-check:
 	tools/lint_warmup_check.sh
 	tools/test_changed_check.sh
 	tools/test_changed.py --check-sites
+	tools/prune_worktrees_check.sh
+	tools/ci_wait_check.sh
+	tools/art_lint_changed_check.sh
 
 # Style and smells. Rule overrides live in gdlintrc.
 lint:
@@ -710,6 +736,6 @@ format-check:
 
 .PHONY: import run replay match capture smoke net-bench sim-bench bench serve-local online-e2e export-server \
 	export-web export-mac export-win export-linux export-server-mac serve-web-local serve-web-local-stop fps arena \
-	hits bake census art-lint test test-changed durations goldens verify verify-changed check guard-check ship ship-gen-check ship-check bake-ship \
+	hits bake census art-lint art-lint-changed test test-changed durations goldens verify verify-changed check guard-check ship ship-gen-check ship-check bake-ship \
 	bake-check ship-scene preview \
 	ship-blend bake-blend models model-sources sailor crew-capture lint format format-check

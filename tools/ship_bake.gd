@@ -9,7 +9,9 @@ extends SceneTree
 ##       every authoring/NAME/NAME.tscn baked and held to data/ships/NAME.tres field for
 ##       field, every difference printed and the exit non-zero on any
 ##   make ship-scene SHIP=NAME
-##       data/ships/NAME.tres drawn as authoring/NAME/NAME.tscn (ShipSceneDraw)
+##       data/ships/NAME.tres drawn as authoring/NAME/NAME.tscn (ShipSceneDraw.save);
+##       over a scene already there, the ids of all that did not change and the file's
+##       line endings kept (ShipSceneIds), so an unchanged ship redraws byte for byte
 ##   make ship-blend SHIP=NAME
 ##       data/ships/NAME.tres drawn as the pieces (ShipGltf.pieces) tools/ship_blend.py
 ##       builds authoring/NAME/NAME.blend from, as JSON
@@ -114,13 +116,7 @@ func _draw(ship: String, scene: String) -> int:
 	if layout == null or scene.is_empty():
 		printerr("bake: no ship at %s, or no --scene= to draw her as" % ship)
 		return 1
-	var root := ShipSceneDraw.scene(layout, ship.get_file().get_basename())
-	var packed := PackedScene.new()
-	var status := packed.pack(root)
-	root.free()
-	if status == OK:
-		DirAccess.make_dir_recursive_absolute(scene.get_base_dir())
-		status = ResourceSaver.save(packed, scene)
+	var status := ShipSceneDraw.save(layout, ship.get_file().get_basename(), scene)
 	if status != OK:
 		printerr("bake: could not draw %s as %s: %s" % [ship, scene, error_string(status)])
 		return 1

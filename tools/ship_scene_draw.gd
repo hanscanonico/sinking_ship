@@ -34,6 +34,30 @@ static func scene(layout: ShipLayout, title: String) -> Node3D:
 	return ShipSceneDraw.new()._draw(layout, title)
 
 
+## [param layout] drawn as [member scene] and saved as [param path]. A scene already
+## there keeps its ids and its line endings (ShipSceneIds), so redrawing an unchanged
+## ship rewrites her file byte for byte.
+static func save(layout: ShipLayout, title: String, path: String) -> Error:
+	var old := FileAccess.get_file_as_string(path) if FileAccess.file_exists(path) else ""
+	var root := scene(layout, title)
+	var packed := PackedScene.new()
+	var status := packed.pack(root)
+	root.free()
+	if status != OK:
+		return status
+	DirAccess.make_dir_recursive_absolute(path.get_base_dir())
+	status = ResourceSaver.save(packed, path)
+	if status != OK or old.is_empty():
+		return status
+	var drawn := ShipSceneIds.kept(old, FileAccess.get_file_as_string(path))
+	var file := FileAccess.open(path, FileAccess.WRITE)
+	if file == null:
+		return FileAccess.get_open_error()
+	file.store_string(drawn)
+	file.close()
+	return OK
+
+
 ## The node name [param piece] goes by: its id in the file it was loaded from, else its
 ## [param kind] and [param index].
 static func _name_of(piece: Resource, kind: StringName, index: int) -> String:

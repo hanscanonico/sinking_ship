@@ -35,12 +35,13 @@ moments from the sim either way. `FROM=` on a capture is the seat's feet — the
 
 Running the engine (a `make match`, a capture): never from the main checkout — its class
 cache goes stale and captures draw no hull. Add a detached worktree at origin/main
-(`git -C /Users/hanscanonico/Projets/sinking_ship fetch origin main`, then `worktree add
---detach /Users/hanscanonico/Projets/sinking_ship-worktrees/scout-<topic> origin/main`),
-run `make import` there, run the engine from it, and remove it when done. Keep probes and
-logs in the session scratchpad. Never kill a process you did not start, never raise
-`TEST_SLOTS`, never script window focus; the window lock does not serve waiters in order,
-so a capture may wait 30–50 min — wait, never kill.
+(`git -C MAIN fetch origin main`, then `git -C MAIN worktree add --detach
+MAIN-worktrees/scout-<topic> origin/main`, where MAIN is the main checkout's path, which
+`dirname "$(git rev-parse --path-format=absolute --git-common-dir)"` prints from any
+checkout), run `make import` there, run the engine from it, and remove it when done.
+Keep probes and logs in the session scratchpad. Never kill a process you did not start,
+never raise `TEST_SLOTS`, never script window focus; the window lock does not serve
+waiters in order, so a capture may wait 30–50 min — wait, never kill.
 
 Prefer a small, certain change over a large, plausible one. Never propose scope the plan
 has not scheduled, a balance number moved without measurement, or work in an area the

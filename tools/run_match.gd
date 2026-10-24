@@ -6,7 +6,8 @@ extends SceneTree
 ## and, under survival, how many seats were still in at the plunge —, and where the
 ## sinking stood at the end and how its bake ends. STOP= (--stop) stops a match still on
 ## then, unfinished; the bake's time and the timeline's size go to stderr, as the time
-## is the machine's, not the match's.
+## is the machine's, not the match's. With --bake-cache a sinking baked before for the
+## same inputs is taken from the BakeCache rather than baked, the transcript the same.
 ##
 ##   godot --headless --path . -s res://tools/run_match.gd -- --seed=1701 --seats=8
 ##
@@ -89,13 +90,24 @@ func _initialize() -> void:
 		quit(1)
 		return
 	var started := Time.get_ticks_usec()
+	var cache := BakeCache.when(args.bake_cache)
+	var cached := cache != null and cache.take(config)
 	var timeline := config.schedule().timeline()
 	var took := (Time.get_ticks_usec() - started) / 1e6
+	if cache != null and not cached:
+		cache.store(config)
 	if timeline != null:
 		printerr(
 			(
-				"bake %.2f s · %d steps · %d of %d states kept · %.1f kB"
-				% [took, timeline.steps, timeline.count(), timeline.states, timeline.size() / 1e3]
+				"%s %.2f s · %d steps · %d of %d states kept · %.1f kB"
+				% [
+					"from the bake cache" if cached else "bake",
+					took,
+					timeline.steps,
+					timeline.count(),
+					timeline.states,
+					timeline.size() / 1e3
+				]
 			)
 		)
 	printraw(transcript(served(config), Ticks.from_seconds(args.seconds)))

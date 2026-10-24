@@ -13,8 +13,12 @@ it. If the task is fundamentally wrong or already done, stop and report that hon
 instead of forcing a change.
 
 Setup, exactly:
-1. `git -C /Users/hanscanonico/Projets/sinking_ship fetch origin main`
-2. `git -C /Users/hanscanonico/Projets/sinking_ship worktree add /Users/hanscanonico/Projets/sinking_ship-worktrees/improve-<slug> -b improve/<slug> origin/main`
+1. Find MAIN, the main checkout: `dirname "$(git rev-parse --path-format=absolute
+   --git-common-dir)"` prints its path from any checkout of the repo, a worktree
+   included. Shell variables do not outlive a command here, so write the path out in
+   each command below. Then `git -C MAIN fetch origin main`.
+2. `git -C MAIN worktree add MAIN-worktrees/improve-<slug> -b improve/<slug> origin/main`
+   — `MAIN-worktrees` is MAIN's path with `-worktrees` on the end, the directory beside it.
 3. `cd` into that worktree.
 4. `make import` — a fresh worktree needs the one-off headless import; skipping it looks
    like broken code, not a cold cache. Never run the engine from the main checkout: its
@@ -73,13 +77,13 @@ Captures:
   moment from the sim (`make match` transcript, a probe) rather than trusting a spec's
   stated moment or position; `FROM=` is the seat's feet — the eye is 1.6 m above it.
 - A before shot of main once you have edited: add a second, detached worktree at
-  origin/main (`git -C /Users/hanscanonico/Projets/sinking_ship worktree add --detach
-  /Users/hanscanonico/Projets/sinking_ship-worktrees/before-<slug> origin/main`, then
-  `make import` there), capture from it, and
+  origin/main (`git -C MAIN worktree add --detach MAIN-worktrees/before-<slug>
+  origin/main`, then `make import` there), capture from it, and
   remove it when done. Never check main's files out into your worktree, and never
   `git stash` — the stash is shared by every worktree of the repo.
 - Keep probe scripts and logs in the session scratchpad, never under the worktree (lint
-  picks up any `.gd`, captures/ included).
+  picks up any `.gd`, captures/ included), in a directory named for your slug: every agent
+  of the session shares that scratchpad, and a `gate.log` of its own overwrote another's.
 - `make capture` exiting non-zero: read what `tools/engine_guard.sh` complained about and
   report it; never set `ENGINE_GUARD_IGNORE` to get past it.
 - The window lock does not serve waiters in order: a capture may wait 30–50 min on a

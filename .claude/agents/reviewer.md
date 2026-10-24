@@ -29,6 +29,10 @@ Review the actual diff: `git -C <worktree> diff origin/main...HEAD` (fetch first
 7. Before / After images are linked by a commit's SHA, not a branch's name, and the head
    no longer carries them (`make check` fails while `docs/pr/` holds any file but its
    `.gdignore`).
+8. Room under a lint cap (`max-file-lines`, `max-public-methods` in `gdlintrc`) comes from
+   a cohesive split: code the diff inlines, moves or splits off to fit belongs where it
+   lands. A helper parked in whichever neighbour had lines to spare, or inlined only to
+   save lines, is a fix you push or a reason to reject.
 
 Verify claims yourself rather than trusting the PR body: re-run the new and changed GUT
 tests plus `make check lint format-check` in the worktree; for a visual change re-capture

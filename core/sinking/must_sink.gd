@@ -72,9 +72,9 @@ static func given(structure: ShipStructure, scenario: SinkScenario, sea: SeaPhys
 ## The Choice [param timeline] — baked by the host, with its origin — was baked from,
 ## drawn again here from [param sink_stream] as the host drew it, but never baked or
 ## quick-checked: the hits it drew, then the fallback's rungs or the sure hit as the
-## origin says, the doors and openings with them. Null when the hit drawn is not the
-## one the origin names: a client that cannot draw the host's hit does not play its
-## timeline (D4, D11).
+## origin says, the doors and openings with them — an explicit hit as given, its bake
+## counted as the origin counts it. Null when the hit drawn is not the one the origin
+## names: a client that cannot draw the host's hit does not play its timeline (D4, D11).
 static func replay(
 	structure: ShipStructure,
 	scenario: SinkScenario,
@@ -85,11 +85,13 @@ static func replay(
 	choice.timeline = timeline
 	choice.received = true
 	var bands := scenario.hit if scenario.hit != null else HitBands.new()
+	var origin := timeline.origin
 	if scenario.explicit_hit != null:
 		choice.hit = scenario.explicit_hit
 		choice.damage = HitMapper.map_explicit(choice.hit, structure, bands)
+		if origin.size() > Origin.BAKES:
+			choice.bakes = origin[Origin.BAKES]
 		return choice
-	var origin := timeline.origin
 	if origin.size() < Origin.WAVE_HEIGHT or origin[Origin.DRAWS] < 1:
 		return null
 	var wave_height := 0.0
