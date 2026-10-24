@@ -214,7 +214,10 @@ func step(state: MatchState, pose: ShipPose, tick: int, events: Array[SimEvent])
 ## into [param unhung]. A crate rests while it stands still where it came to rest and on
 ## the same floor (_settle), the deck no steeper than its grip and the water short of
 ## lifting it — as it surely is while the water of the cell it rests in stands lower than
-## its lift over its underside, and lower than that cell's ceiling (_water_short).
+## its lift over its underside, and lower than that cell's ceiling, past which
+## ShipPose.water_height reads a higher cell's, by DRY_MARGIN; where it may not, as
+## water_height tells. A pose keeping no cells reads the sea everywhere, as water_height
+## does: no cell is looked for in it, nor kept for the poses after.
 func _stirring(
 	state: MatchState,
 	pose: ShipPose,
@@ -230,9 +233,18 @@ func _stirring(
 		_looked_in = here.cells
 		_rest_cells.fill(UNKNOWN_CELL)
 	var broken := _pieces != null and _pieces.count() > 1
-	# Read here once, not of _at_rest per crate: a crate's own take() changes only its own.
+	# Read here once, not of _at_rest per crate: a crate's own take() changes only its own;
+	# and the pose's numbers every crate at rest asks of.
 	var resting := _at_rest.gone
 	var rested_at := _at_rest.feet
+	var passing := not never_rest
+	var up := here.transform.basis.y.y
+	var upright := up > DRY_MARGIN
+	var along_x := here.transform.basis.x.y
+	var along_z := here.transform.basis.z.y
+	var origin := here.transform.origin.y
+	var levels := here.levels
+	var celled := not levels.is_empty()
 	var crates: Array[PropState] = []
 	for crate: PropState in state.props:
 		var prop := crate.prop
@@ -248,7 +260,7 @@ func _stirring(
 					unhung.append(crate)
 			continue
 		loose.append(crate)
-		if not never_rest and resting[prop] == 0:
+		if passing and resting[prop] == 0:
 			var pos := crate.pos
 			if (
 				body == PropState.Body.GROUNDED
@@ -256,42 +268,39 @@ func _stirring(
 				and pos == rested_at[prop]
 				and crate.surface == _rested_on[prop]
 				and (all_hold or slope <= _grips[prop])
-				and (_water_short(prop, pos, here) or here.water_height(pos) - pos.y < _lifts[prop])
 			):
-				_turn[prop] = Turn.RESTS
-				continue
+				var short := false
+				if upright:
+					var level := 0.0
+					var roof := INF
+					if celled:
+						var cell := _rest_cells[prop]
+						if cell == UNKNOWN_CELL:
+							cell = _rest_cell(prop, pos, here)
+						if cell != CellMap.NONE:
+							level = levels[cell]
+							roof = _rest_roofs[prop]
+					var plane := along_x * pos.x + along_z * pos.z + origin
+					short = (
+						level < plane + up * (pos.y + _lifts[prop] - DRY_MARGIN)
+						and level < plane + up * roof - DRY_MARGIN
+					)
+				if short or here.water_height(pos) - pos.y < _lifts[prop]:
+					_turn[prop] = Turn.RESTS
+					continue
 			_at_rest.take(prop)
 		_turn[prop] = Turn.STEPS
 		crates.append(crate)
 	return crates
 
 
-## Whether, under [param pose], the water of the cell crate [param prop] rests in at
-## [param pos] surely stands short of lifting it — lower than its lift over its underside
-## and lower than the cell's ceiling, past which ShipPose.water_height reads a higher
-## cell's — by DRY_MARGIN; false when it may not, and only water_height can tell.
-func _water_short(prop: int, pos: Vector3, pose: ShipPose) -> bool:
-	var basis := pose.transform.basis
-	var up := basis.y.y
-	if up <= DRY_MARGIN:
-		return false
-	# A pose keeping no cells reads the sea everywhere, as water_height does: no cell is
-	# looked for in it, nor kept for the poses after.
-	var level := 0.0
-	var roof := INF
-	if not pose.levels.is_empty():
-		if _rest_cells[prop] == UNKNOWN_CELL:
-			var looked := pose.cell_at(pos)
-			_rest_cells[prop] = looked
-			_rest_roofs[prop] = INF if looked == CellMap.NONE else pose.cells.ceiling_of(looked)
-		if _rest_cells[prop] != CellMap.NONE:
-			level = pose.levels[_rest_cells[prop]]
-			roof = _rest_roofs[prop]
-	var plane := basis.x.y * pos.x + basis.z.y * pos.z + pose.transform.origin.y
-	return (
-		level < plane + up * (pos.y + _lifts[prop] - DRY_MARGIN)
-		and level < plane + up * roof - DRY_MARGIN
-	)
+## The cell of her crate [param prop] rests in at [param pos] under [param pose] (CellMap,
+## CellMap.NONE outside them), looked for once while it rests there, its ceiling kept.
+func _rest_cell(prop: int, pos: Vector3, pose: ShipPose) -> int:
+	var looked := pose.cell_at(pos)
+	_rest_cells[prop] = looked
+	_rest_roofs[prop] = INF if looked == CellMap.NONE else pose.cells.ceiling_of(looked)
+	return looked
 
 
 ## Every crate of [param crates] that came to rest this tick rests from the next: standing
