@@ -113,7 +113,7 @@ const _CORNERS: Array[Vector3] = [
 ]
 
 var _layout: ShipLayout
-## Per cell of her structure, 1 where its water is drawn (InnerWater.boxes): a room
+## Per cell of her structure, 1 where its water is drawn (CellBoxes.boxes): a room
 ## people walk in, or her open well.
 var _drawn := PackedByteArray()
 ## Where water wells up through a floor: each place on it, ship-local, how far round
@@ -183,7 +183,7 @@ func _init(config: MatchConfig, surfaces: Surfaces, schedule: SinkSchedule) -> v
 	_least = StillPoints.new(least)
 	var structure := config.ship.structure
 	if structure != null:
-		var boxes := InnerWater.boxes(structure, _layout.rooms)
+		var boxes := CellBoxes.boxes(structure, _layout.rooms)
 		for box: AABB in boxes:
 			_drawn.append(0 if box.size == Vector3.ZERO else 1)
 		_find_wells(structure, boxes)

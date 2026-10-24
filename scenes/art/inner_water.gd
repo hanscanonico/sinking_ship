@@ -18,23 +18,12 @@ extends Node3D
 ## Presentation only (D5): it reads the poses it is handed and the openings water can
 ## pass, and moves no water. It lives in ship space, under the drawn ship.
 
-## How far a cell's water stands in from a face of its box at her side or an outside
-## wall — inside the wall's thickness, never out past the hull.
-const INSET := 0.15
 ## How far under its highest corner a cell's water is drawn — not in a full cell, which
 ## has no surface — and how deep over its lowest corner its openings are drawn pouring.
 const SHOWS := 0.02
 ## The least depth over its lowest corner a cell's water is ever drawn at: under it, a
 ## sheet would fight a dry floor's planks.
 const CLEAR_OF_FLOOR := 0.005
-## A cell's shape at or over which its box counts as inside her: her generator rounds a
-## box the hull's curve barely touches to just under 1 (the steamer's lower rooms).
-const WHOLE := 0.999
-## How far past her shell a box round a cell's rooms may stand and count as inside her;
-## how far inside its top and bottom her shell is read, where her outline ends at a
-## box's top on her sheer.
-const SHELL_NEAR := 0.01
-const SHELL_IN := 1e-3
 ## The least difference across an opening that is drawn pouring, in metres, and the
 ## difference at which a pour is a solid sheet — where the pose has no flow through it.
 const POURS := 0.03
@@ -111,7 +100,7 @@ var _water: ShaderMaterial
 var _waders := PackedVector4Array()
 var _boxes: Array[AABB] = []
 ## Per cell, its surface, or null for a cell whose water is not drawn; and the rest of
-## a cell drawn in a stack of boxes (stacked), each as [cell, box, surface].
+## a cell drawn in a stack of boxes (CellBoxes.stacked), each as [cell, box, surface].
 var _surfaces: Array[MeshInstance3D] = []
 var _stacks: Array = []
 ## The ship as drawn at the moment last shown — her rotation and place, the poses'
@@ -184,152 +173,8 @@ var _levels := PackedFloat64Array()
 var _heights := PackedFloat64Array([0.0, 0.0])
 
 
-## The boxes of [param structure]'s cells whose water is drawn — every cell wholly
-## inside her, where people go: a room's, the deckhouse's, an open well's deck — each
-## standing in by INSET from any face no other cell's box shares, so its water ends
-## inside the wall there; a cell whose box pokes out of her, round its [param rooms]
-## only (_round_rooms), so neither its water nor the sea's mask (SeaAndSky) reaches past
-## her shell — the top of its stack where one box round them would (stacked); a zero box
-## for a cell whose water is not drawn — a void, a peak — in her cells' order.
-static func boxes(structure: ShipStructure, rooms: Array[ShipRoom]) -> Array[AABB]:
-	var found: Array[AABB] = []
-	for cell: FloodCell in structure.cells:
-		var open := cell.kind == FloodCell.Kind.OPEN_WELL
-		if cell.shape < 1.0 and cell.rooms.is_empty() and not open:
-			found.append(AABB())
-			continue
-		if cell.shape < WHOLE and not open:
-			found.append(_room_boxes(structure, cell, rooms)[0])
-			continue
-		var low := cell.low
-		var high := cell.high
-		for axis: int in [0, 2]:
-			if not _shared(structure, cell, axis, cell.low[axis]):
-				low[axis] += INSET
-			if not _shared(structure, cell, axis, cell.high[axis]):
-				high[axis] -= INSET
-		found.append(AABB(low, high - low))
-	return found
-
-
-## The rest of each cell drawn round its [param rooms] whose one box round them would
-## reach past [param structure]'s shell — rooms stacked down her run, the lower the
-## narrower (the steamer's aft peak, #148): each of its rooms in its own box, from its
-## floor up to the floor of the one over it or the cell's top, that one in boxes(); each
-## as [cell, box].
-static func stacked(structure: ShipStructure, rooms: Array[ShipRoom]) -> Array:
-	var found := []
-	for index in structure.cells.size():
-		var cell := structure.cells[index]
-		if cell.shape >= WHOLE or cell.rooms.is_empty() or cell.kind == FloodCell.Kind.OPEN_WELL:
-			continue
-		var drawn := _room_boxes(structure, cell, rooms)
-		for box: AABB in drawn.slice(1):
-			found.append([index, box])
-	return found
-
-
-## [param cell]'s boxes round its [param rooms]: the one round them all
-## (_round_rooms) where it stands inside [param structure]'s shell, else one per room,
-## stacked, each held inside her shell — none her shell closes to nothing — the one up
-## to the cell's top — the largest such — first.
-static func _room_boxes(
-	structure: ShipStructure, cell: FloodCell, rooms: Array[ShipRoom]
-) -> Array[AABB]:
-	var round := _round_rooms(cell, rooms)
-	var own: Array[ShipRoom] = []
-	for room: ShipRoom in rooms:
-		if room.name in cell.rooms:
-			own.append(room)
-	if own.size() < 2 or _within(structure, round):
-		return [round]
-	var found: Array[AABB] = []
-	for room: ShipRoom in own:
-		var top := cell.high.y
-		for other: ShipRoom in own:
-			if other.floor_height > room.floor_height and other.area.intersects(room.area):
-				top = minf(top, other.floor_height)
-		var low := Vector3(room.area.position.x, room.floor_height, room.area.position.y)
-		var box := AABB(low, Vector3(room.area.end.x, top, room.area.end.y) - low)
-		var shell := _shell(structure, box)
-		box.position.z = maxf(box.position.z, -shell.x)
-		box.end.z = minf(box.end.z, shell.y)
-		if box.size.z > 0.0:
-			found.append(box)
-	if found.is_empty():
-		return [round]
-	found.sort_custom(
-		func(a: AABB, b: AABB) -> bool:
-			if not is_equal_approx(a.end.y, b.end.y):
-				return a.end.y > b.end.y
-			return a.get_volume() > b.get_volume()
-	)
-	return found
-
-
-## Whether [param box] stands inside [param structure]'s shell at every height it spans,
-## within SHELL_NEAR.
-static func _within(structure: ShipStructure, box: AABB) -> bool:
-	var shell := _shell(structure, box)
-	return -box.position.z <= shell.x + SHELL_NEAR and box.end.z <= shell.y + SHELL_NEAR
-
-
-## How far out [param structure]'s shell stands to port and to starboard at its narrowest
-## over [param box] — 0 where her outline does not reach a height it spans: her shell is
-## straight between its outline's points, so its narrowest is at one of them or at the
-## box's top or bottom.
-static func _shell(structure: ShipStructure, box: AABB) -> Vector2:
-	var narrowest := Vector2(INF, INF)
-	for section: HullSection in structure.sections:
-		var half := section.length * 0.5
-		if section.x + half <= box.position.x or section.x - half >= box.end.x:
-			continue
-		var heights := PackedFloat32Array([box.position.y + SHELL_IN, box.end.y - SHELL_IN])
-		for point: Vector2 in section.outline:
-			if point.y > box.position.y and point.y < box.end.y:
-				heights.append(point.y)
-		for height: float in heights:
-			var port := -section.shell_at(height, -1)
-			var starboard := section.shell_at(height, 1)
-			narrowest.x = minf(narrowest.x, 0.0 if is_nan(port) else port)
-			narrowest.y = minf(narrowest.y, 0.0 if is_nan(starboard) else starboard)
-	return narrowest
-
-
-## The part of [param cell]'s box over the floors of its rooms among [param rooms]:
-## their areas together, from the lowest floor to the cell's top. A room's area runs
-## out to the middle of its walls, so its water already ends inside them.
-static func _round_rooms(cell: FloodCell, rooms: Array[ShipRoom]) -> AABB:
-	var area := Rect2()
-	var floor_y := INF
-	for room: ShipRoom in rooms:
-		if room.name in cell.rooms:
-			area = room.area if floor_y == INF else area.merge(room.area)
-			floor_y = minf(floor_y, room.floor_height)
-	var low := Vector3(area.position.x, floor_y, area.position.y)
-	return AABB(low, Vector3(area.end.x, cell.high.y, area.end.y) - low)
-
-
-## Whether another of [param structure]'s cells has a face on the plane where
-## [param axis] is [param at], overlapping [param cell]'s face there.
-static func _shared(structure: ShipStructure, cell: FloodCell, axis: int, at: float) -> bool:
-	var across := 2 - axis
-	for other: FloodCell in structure.cells:
-		if other == cell:
-			continue
-		var touches := is_equal_approx(other.low[axis], at) or is_equal_approx(other.high[axis], at)
-		if not touches:
-			continue
-		var overlaps := other.low.y < cell.high.y and other.high.y > cell.low.y
-		overlaps = overlaps and other.low[across] < cell.high[across]
-		overlaps = overlaps and other.high[across] > cell.low[across]
-		if overlaps:
-			return true
-	return false
-
-
 ## Draws the water in [param structure], round [param rooms] where her cells poke out
-## of her (boxes), with [param sea]'s material, pouring through [param passages] — the
+## of her (CellBoxes), with [param sea]'s material, pouring through [param passages] — the
 ## openings water can pass after the hit — and through [param failing] once each has
 ## given way (SinkSchedule.failing), and its doors' leaves in [param paints]
 ## (ShipArt.paints), none without them.
@@ -349,14 +194,14 @@ func setup(
 	_water.shader = WATER_SHADER
 	for colour: StringName in COLOURS:
 		_water.set_shader_parameter(colour, sea.get_shader_parameter(colour))
-	_boxes = boxes(structure, rooms)
+	_boxes = CellBoxes.boxes(structure, rooms)
 	_surfaces.clear()
 	for cell in _boxes.size():
 		var box := _boxes[cell]
 		var under_sky := structure.cells[cell].kind == FloodCell.Kind.OPEN_WELL
 		_surfaces.append(null if box.size == Vector3.ZERO else _surface(box, under_sky))
 	_stacks.clear()
-	for stack: Array in stacked(structure, rooms):
+	for stack: Array in CellBoxes.stacked(structure, rooms):
 		_stacks.append([stack[0], stack[1], _surface(stack[1], false)])
 	_leaves.clear()
 	_leaf_widths.clear()
