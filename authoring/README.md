@@ -7,6 +7,9 @@ files here are ways of drawing that data so a person can edit it:
 
 - `NAME.tscn`: the ship as a Godot scene of marked pieces (SH17). `make ship-scene
   SHIP=NAME` draws it from her data; `make bake-ship SCENE=… OUT=…` bakes it back.
+  A redraw keeps the ids of everything that did not change — each node's `unique_id`
+  by its path, each material's and mesh's id by its content — so it diffs as only what
+  the data changed; never hand-splice nodes into the scene to spare the diff.
 - `NAME.blend`: the same pieces as Blender objects (#125). `make ship-blend SHIP=NAME`
   draws it from her data; `make bake-blend SHIP=NAME [OUT=…]` exports it to `NAME.glb`
   beside it and bakes that. Blender authors the data only: no Blender mesh ever becomes

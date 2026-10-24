@@ -29,6 +29,12 @@ scenes/audio/match_audio.gd	load(SoundBank.DIR + file)	assets/audio/*
 scenes/audio/music_player.gd	load(path)	assets/audio/music/*
 scenes/audio/sound_bank.gd	load(DIR + file)	assets/audio/*
 scenes/audio/ui_sounds.gd	load(path)	assets/audio/ui/*
+scenes/game/bake_cache.gd	DirAccess.open(at)	core/*.gd data/*
+scenes/game/bake_cache.gd	DirAccess.open(dir)	-
+scenes/game/bake_cache.gd	FileAccess.file_exists(path)	-
+scenes/game/bake_cache.gd	FileAccess.get_file_as_bytes(file)	core/*.gd data/*
+scenes/game/bake_cache.gd	FileAccess.get_file_as_bytes(path)	-
+scenes/game/bake_cache.gd	FileAccess.open(aside)	-
 scenes/game/key_bindings.gd	FileAccess.open(path)	-
 scenes/match/iceberg_planner.gd	load(path)	assets/models/*.glb
 scenes/match/view_settings.gd	ResourceLoader.exists(path)	-
@@ -63,12 +69,19 @@ tests/unit/core/test_ship_scene_bake.gd	FileAccess.file_exists(blend)	authoring/
 tests/unit/core/test_ship_scene_bake.gd	ResourceLoader.exists(scene)	authoring/*.tscn
 tests/unit/core/test_ship_scene_bake.gd	load("res://data/ships/%s.tres" % ship)	@ship
 tests/unit/core/test_ship_scene_bake.gd	load(path)	data/ships/*
+tests/unit/core/test_ship_scene_ids.gd	FileAccess.file_exists(_path)	-
+tests/unit/core/test_ship_scene_ids.gd	FileAccess.get_file_as_string(_path)	-
+tests/unit/core/test_ship_scene_ids.gd	FileAccess.open(_path)	-
 tests/unit/core/test_ship_structure_lint.gd	load("%s/%s" % [SHIPS, file])	data/ships/*
 tests/unit/core/test_sink_schedule.gd	load(hit)	tests/fixtures/sinking/hits/*.tres
 tests/unit/core/test_sink_timeline.gd	load(path)	tests/fixtures/sinking/hits/*.tres
 tests/unit/core/test_survival_transcript.gd	load(RunMatch.DEFAULT_MATCH)	data/match/default.tres
 tests/unit/core/test_wrecks.gd	load(path)	tests/fixtures/wrecks/*.tres
 tests/unit/core/titanic_sisters.gd	load(HITS % hit_name)	tests/fixtures/sinking/hits/*.tres
+tests/unit/game/test_bake_cache.gd	FileAccess.file_exists(path)	-
+tests/unit/game/test_bake_cache.gd	FileAccess.get_file_as_bytes(path)	-
+tests/unit/game/test_bake_cache.gd	FileAccess.open(cache.entry_path(name))	-
+tests/unit/game/test_bake_cache.gd	FileAccess.open(path)	-
 tests/unit/game/test_credits_menu.gd	DirAccess.get_directories_at(folder)	assets/audio/* assets/fonts/*
 tests/unit/game/test_credits_menu.gd	DirAccess.get_files_at(folder)	assets/audio/* assets/fonts/*
 tests/unit/game/test_settings.gd	FileAccess.file_exists(path)	-
@@ -93,3 +106,6 @@ tools/ship_bake.gd	ResourceLoader.exists(scene)	authoring/* data/ships/* tests/f
 tools/ship_bake.gd	load(ship)	authoring/* data/ships/* tests/fixtures/ships/*
 tools/ship_bake.gd	load(wanted_path)	authoring/* data/ships/* tests/fixtures/ships/*
 tools/ship_scene_bake.gd	load(path)	authoring/*.tscn
+tools/ship_scene_draw.gd	FileAccess.file_exists(path)	authoring/*.tscn
+tools/ship_scene_draw.gd	FileAccess.get_file_as_string(path)	authoring/*.tscn
+tools/ship_scene_draw.gd	FileAccess.open(path)	authoring/*.tscn

@@ -139,6 +139,7 @@ func _ready() -> void:
 	if _args.frame_split >= 0.0:
 		_probe = FrameProbe.new(_args.frame_split)
 		add_child(_probe)
+	_baker.cache = BakeCache.when(_args.bake_cache)
 	add_child(_baker)
 	add_child(_hold)
 	_baker.baked.connect(_on_baked)

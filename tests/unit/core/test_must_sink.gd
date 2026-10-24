@@ -191,6 +191,20 @@ func test_explicit_hits_bypass_the_rule() -> void:
 	assert_eq(schedule.gone_tick(), -1, "never gone")
 
 
+func test_a_client_counts_an_explicit_hits_bake_as_the_host_did() -> void:
+	var given: SinkScenario = _scenario.duplicate()
+	given.explicit_hit = _light()
+	var host := MustSink.choose(_structure, given, SeedStreams.derive(1, "sink"), _sea)
+	var stream := SeedStreams.derive(1, "sink")
+	var client := MustSink.replay(_structure, given, stream, host.timeline)
+	assert_same(client.hit, given.explicit_hit, "struck as given")
+	assert_eq(
+		[client.draws, client.thrown, client.bakes],
+		[host.draws, host.thrown, host.bakes],
+		"baked once, as the host's origin says"
+	)
+
+
 func test_the_choice_is_pure_in_ship_scenario_and_seed() -> void:
 	for seed_value: int in [3, 1701]:
 		var told := PackedStringArray()
