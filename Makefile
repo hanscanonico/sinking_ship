@@ -96,6 +96,14 @@ match-args = $(if $(SEED),--seed=$(SEED)) $(if $(SEATS),--seats=$(SEATS)) $(if $
 	$(if $(SCENARIO),--scenario=$(SCENARIO)) $(if $(HIT),--hit=$(HIT)) $(if $(FAST),--fast=$(FAST)) \
 	$(if $(GOAL),--goal=$(GOAL))
 
+# run, replay, match, capture, fps and smoke pass --bake-cache: a sinking baked before for
+# the very same code under core/, data under data/, match data, seed and clock is read
+# back from user://bake_cache rather than baked again (BakeCache) — the Titanic's takes
+# ~100 s — and the transcript is the same either way. BAKE_CACHE=0 bakes every one
+# afresh. A test, an exported game and online play never use it.
+BAKE_CACHE ?= 1
+bake-cache-arg = $(if $(filter 0,$(BAKE_CACHE)),,--bake-cache)
+
 # The game plays her sinking on the match data's fast_clock (the menu's Fast sinking,
 # ticked for a player); FAST=0 plays it on her paced clock, unticked. A tool — match,
 # bake, a bot's ARGS=--autoplay — plays the paced clock unless FAST=1.
@@ -105,7 +113,7 @@ match-args = $(if $(SEED),--seed=$(SEED)) $(if $(SEATS),--seats=$(SEATS)) $(if $
 # whole number of 0 or more is refused, as the menu refuses it.
 run:
 	$(call require-godot)
-	$(GODOT) --path . -- $(match-args) $(ARGS)
+	$(GODOT) --path . -- $(match-args) $(bake-cache-arg) $(ARGS)
 
 # `make replay FILE=path/to/one.replay` watches a saved replay — one the game wrote
 # under user://replays, or any path — in the replay viewer (R4–R6); the game quits with
@@ -113,7 +121,7 @@ run:
 replay:
 	$(call require-godot)
 	@test -n "$(FILE)" || { echo "replay: FILE=<path to a .replay> is required" >&2; exit 1; }
-	$(GODOT) --path . -- --replay="$(FILE)" $(ARGS)
+	$(GODOT) --path . -- --replay="$(FILE)" $(bake-cache-arg) $(ARGS)
 
 # Every headless tool target, and capture, runs the engine through tools/engine_guard.sh:
 # the engine exits 0 after a SCRIPT ERROR or a renderer ERROR, so the guard fails the run
@@ -124,7 +132,7 @@ replay:
 match:
 	$(call require-godot)
 	@set -o pipefail; tools/engine_guard.sh $(GODOT) --headless --no-header --path . -s res://tools/run_match.gd \
-		-- $(match-args) $(if $(SECONDS),--seconds=$(SECONDS)) $(if $(STOP),--stop=$(STOP)) \
+		-- $(match-args) $(bake-cache-arg) $(if $(SECONDS),--seconds=$(SECONDS)) $(if $(STOP),--stop=$(STOP)) \
 		| grep -v '^\[godot_ai'
 
 # --fixed-fps steps one tick per drawn frame, so the capture lands on its exact
@@ -144,7 +152,7 @@ capture:
 		{ echo "capture: AT=<seconds of match time> or PHYS=<h:mm:ss of physics> is required" >&2; exit 1; }
 	@mkdir -p "$(dir $(CAPTURE))"
 	tools/window_lock.sh tools/engine_guard.sh $(GODOT) --path . $(if $(RES),--resolution $(RES)) --audio-driver Dummy --fixed-fps 30 -- \
-		$(match-args) $(if $(menu-screen),,--autoplay) --capture="$(CAPTURE)" \
+		$(match-args) $(bake-cache-arg) $(if $(menu-screen),,--autoplay) --capture="$(CAPTURE)" \
 		$(if $(AT),--capture-at=$(AT)) $(if $(PHYS),--phys=$(PHYS)) $(if $(JUMP),--jump) \
 		$(if $(EYE),--capture-eye=$(EYE)) \
 		$(if $(FROM),--capture-from=$(FROM)) $(if $(LOOK),--capture-look=$(LOOK)) \
@@ -159,7 +167,7 @@ DRY ?=
 OUT ?=
 smoke:
 	@SEED="$(SEED)" SHIP="$(SHIP)" FAST="$(FAST)" MAX="$(MAX)" DRY="$(DRY)" OUT="$(OUT)" \
-		GODOT="$(GODOT)" MAKE="$(MAKE)" tools/smoke.sh
+		BAKE_CACHE="$(BAKE_CACHE)" GODOT="$(GODOT)" MAKE="$(MAKE)" tools/smoke.sh
 
 # `make net-bench [SEED=] [SEATS=] [SECONDS=] [NET=latency:120,jitter:20,loss:5]`: one
 # match headless, seat 0 played through the client over a loopback lying as NET says
@@ -287,7 +295,7 @@ bench:
 fps:
 	GODOT="$(GODOT)" tools/fps.sh $(if $(SEED),--seed=$(SEED)) $(if $(SEATS),--seats=$(SEATS)) \
 		$(if $(SECONDS),--seconds=$(SECONDS)) $(if $(RES),--resolution=$(RES)) \
-		$(if $(filter-out 0,$(SPLIT)),--split) $(if $(ARGS),-- $(ARGS))
+		$(if $(filter-out 0,$(SPLIT)),--split) -- $(bake-cache-arg) $(ARGS)
 
 # `make arena SEEDS=200 [LOBBIES=normal,hard-easy] [STOP=15:00] [SCENARIO=]`: bots-only
 # lobbies of the default match, seeds 1…SEEDS each, headless, written up as

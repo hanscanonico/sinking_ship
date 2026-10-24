@@ -29,6 +29,12 @@ scenes/audio/match_audio.gd	load(SoundBank.DIR + file)	assets/audio/*
 scenes/audio/music_player.gd	load(path)	assets/audio/music/*
 scenes/audio/sound_bank.gd	load(DIR + file)	assets/audio/*
 scenes/audio/ui_sounds.gd	load(path)	assets/audio/ui/*
+scenes/game/bake_cache.gd	DirAccess.open(at)	core/*.gd data/*
+scenes/game/bake_cache.gd	DirAccess.open(dir)	-
+scenes/game/bake_cache.gd	FileAccess.file_exists(path)	-
+scenes/game/bake_cache.gd	FileAccess.get_file_as_bytes(file)	core/*.gd data/*
+scenes/game/bake_cache.gd	FileAccess.get_file_as_bytes(path)	-
+scenes/game/bake_cache.gd	FileAccess.open(aside)	-
 scenes/game/key_bindings.gd	FileAccess.open(path)	-
 scenes/match/iceberg_planner.gd	load(path)	assets/models/*.glb
 scenes/match/view_settings.gd	ResourceLoader.exists(path)	-
@@ -69,6 +75,10 @@ tests/unit/core/test_sink_timeline.gd	load(path)	tests/fixtures/sinking/hits/*.t
 tests/unit/core/test_survival_transcript.gd	load(RunMatch.DEFAULT_MATCH)	data/match/default.tres
 tests/unit/core/test_wrecks.gd	load(path)	tests/fixtures/wrecks/*.tres
 tests/unit/core/titanic_sisters.gd	load(HITS % hit_name)	tests/fixtures/sinking/hits/*.tres
+tests/unit/game/test_bake_cache.gd	FileAccess.file_exists(path)	-
+tests/unit/game/test_bake_cache.gd	FileAccess.get_file_as_bytes(path)	-
+tests/unit/game/test_bake_cache.gd	FileAccess.open(cache.entry_path(name))	-
+tests/unit/game/test_bake_cache.gd	FileAccess.open(path)	-
 tests/unit/game/test_credits_menu.gd	DirAccess.get_directories_at(folder)	assets/audio/* assets/fonts/*
 tests/unit/game/test_credits_menu.gd	DirAccess.get_files_at(folder)	assets/audio/* assets/fonts/*
 tests/unit/game/test_settings.gd	FileAccess.file_exists(path)	-
