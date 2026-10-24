@@ -55,6 +55,22 @@ func test_out_by_names_the_shove_that_sent_a_seat_out() -> void:
 	assert_eq(stats.seats[2].out_by, -1, "no credit, nobody")
 
 
+func test_out_cause_says_how_a_seat_went_out() -> void:
+	var stats := MatchStats.new(3, 0)
+	assert_eq(stats.seats[1].out_cause, PlayerState.Cause.NONE, "nothing, while dry")
+	(
+		stats
+		. add(
+			[
+				SimEvent.seat_out(60, 2, 3, COLD, -1),
+				SimEvent.seat_out(90, 1, 2, PlayerState.Cause.WITH_HER, -1),
+			]
+		)
+	)
+	assert_eq(stats.seats[2].out_cause, COLD, "the cold took it")
+	assert_eq(stats.seats[1].out_cause, PlayerState.Cause.WITH_HER, "inside her as she went")
+
+
 func test_stats_come_from_events_only() -> void:
 	# No sim at all: a three-seat match told only as events, the brawl starting
 	# on tick 90.
@@ -86,6 +102,7 @@ func test_stats_come_from_events_only() -> void:
 				"shoves_landed": 0,
 				"knockouts": 0,
 				"out_by": -1,
+				"out_cause": COLD,
 			},
 			{
 				"seat": 1,
@@ -94,6 +111,7 @@ func test_stats_come_from_events_only() -> void:
 				"shoves_landed": 2,
 				"knockouts": 1,
 				"out_by": -1,
+				"out_cause": PlayerState.Cause.NONE,
 			},
 			{
 				"seat": 2,
@@ -102,6 +120,7 @@ func test_stats_come_from_events_only() -> void:
 				"shoves_landed": 0,
 				"knockouts": 0,
 				"out_by": 1,
+				"out_cause": COLD,
 			},
 		],
 		"a shove hitting two bodies on one tick counts once"
@@ -132,6 +151,7 @@ func test_stats_come_from_events_only() -> void:
 		if entry["out"]:
 			var dry: int = entry["out_tick"] - runner.sim.config.countdown_ticks
 			assert_eq(line.dry_ticks, dry, "seat %d's time dry" % line.seat)
+			assert_eq(line.out_cause, entry["out_cause"], "seat %d's way out" % line.seat)
 	var landed := events.filter(
 		func(event: SimEvent) -> bool: return event.kind == SimEvent.Kind.SHOVE_LANDED
 	)

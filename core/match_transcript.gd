@@ -12,6 +12,7 @@ extends RefCounted
 ##   00:52.3 seat 4 out · cold · place 6
 ##   01:02.1 hold_bilge flooding
 ##   01:31.0 seat 1 out · cold · place 5 · credit crate 2
+##   02:21.0 seat 3 out · with her · place 2
 ##   winner seat 2 at 02:21.0 · digest 9f3c…
 ##   sinking at the end of the match: physics 0:02:18 (on the paced clock, Q20) ·
 ##     seen 25% · sea 1.21 m up her · trim +2.1° · list -0.4° · hold_bilge full · hold 0.3 m
@@ -22,7 +23,11 @@ extends RefCounted
 ##   3 of 8 seats in at the plunge 04:12.0
 ## What `make match` prints and what the golden files hold. Seats are sim seat ids.
 
-const CAUSES := {PlayerState.Cause.NONE: "none", PlayerState.Cause.COLD: "cold"}
+const CAUSES := {
+	PlayerState.Cause.NONE: "none",
+	PlayerState.Cause.COLD: "cold",
+	PlayerState.Cause.WITH_HER: "with her",
+}
 const DIGEST_LENGTH := 16
 ## How the results word her end (founders), by the label that tells it, the first
 ## found first.

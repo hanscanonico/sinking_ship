@@ -5,6 +5,7 @@ extends GutTest
 const MATCH := preload("res://scenes/match/match.tscn")
 const MATCH_DATA := "res://data/match/default.tres"
 const COLD := PlayerState.Cause.COLD
+const WITH_HER := PlayerState.Cause.WITH_HER
 const NAMES := ["You", "Bot 1", "Bot 2", "Bot 3"]
 
 
@@ -23,6 +24,17 @@ func test_you_is_the_own_seat_whatever_its_name() -> void:
 	assert_eq(KnockoutFeed.feed_line(names, 0, 2, 2), "You shoved Ann into the sea")
 	assert_eq(KnockoutFeed.feed_line(names, 2, 1, 2), "Bea shoved you into the sea")
 	assert_eq(KnockoutFeed.feed_line(names, 2, -1, 2), "You went into the sea")
+
+
+## Inside her as she went is no fall into the sea, however dry it stood and whoever
+## shoved it last: it went down with her.
+func test_a_seat_out_with_her_went_down_with_her() -> void:
+	var names := PackedStringArray(NAMES)
+	assert_eq(KnockoutFeed.feed_line(names, 0, -1, 0, WITH_HER), "You went down with her")
+	assert_eq(KnockoutFeed.feed_line(names, 3, 1, 0, WITH_HER), "Bot 3 went down with her")
+	var feed := _feed()
+	feed.add([SimEvent.seat_out(20, 2, 4, WITH_HER, -1)])
+	assert_eq(_lines(feed), ["Bot 2 went down with her"])
 
 
 func test_lines_come_from_seat_out_only_and_stand_four_at_most() -> void:
