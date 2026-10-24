@@ -35,6 +35,7 @@ make test JOBS=8                                # the suite as 8 shards side by 
 make test SHARD=2/8                             # one CI shard; tests/durations.tsv balances them
 make test TESTS="tests/unit/core/test_ticks.gd …"  # exactly these scripts, over JOBS shards (TESTS= runs none)
 make durations RUN=38882193885                  # rewrite tests/durations.tsv from that CI verify run's logs
+make goldens RUN=38882193885                    # write tests/golden/*.linux-x86_64.txt from what that CI run's golden tests printed (no RUN: this machine's)
 make test-changed                               # only the scripts the branch's changes can reach, each with its chain
 make run                                        # play: you and seven bots, windowed
 make replay FILE=path/to/one.replay             # watch a saved replay (every local match is kept under user://replays) in the replay viewer

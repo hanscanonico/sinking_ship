@@ -1,7 +1,7 @@
 extends GutTest
 ## The golden match is seed 1701 with eight seats, every one a bot — what
-## `make match SEED=1701` prints. Its transcript is recorded per platform (R6):
-##   make match SEED=1701 > tests/golden/golden_1701_8.<os>-<arch>.txt
+## `make match SEED=1701` prints. Its transcript is recorded per platform (R6, Goldens):
+##   tests/golden/golden_1701_8.<os>-<arch>.txt, written by `make goldens`.
 
 const RunMatch := preload("res://tools/run_match.gd")
 
@@ -256,13 +256,9 @@ func test_continuation_through_swimming_and_climbing() -> void:
 
 
 func test_golden_for_this_platform() -> void:
-	var platform := "%s-%s" % [OS.get_name().to_lower(), Engine.get_architecture_name()]
-	var path := "res://tests/golden/golden_%d_%d.%s.txt" % [GOLDEN_SEED, GOLDEN_SEATS, platform]
-	if not FileAccess.file_exists(path):
-		pending("no golden recorded for %s" % platform)
-		return
-	assert_true((_golden()[0] as MatchRunner).is_over(), "the golden match ends")
-	assert_eq(_golden()[1], FileAccess.get_file_as_string(path))
+	var golden := "golden_%d_%d" % [GOLDEN_SEED, GOLDEN_SEATS]
+	if Goldens.check(self, golden, _golden()[1], "golden"):
+		assert_true((_golden()[0] as MatchRunner).is_over(), "the golden match ends")
 
 
 ## Rebuilds a sim from [param snapshots] at [param start] and steps it up to a
