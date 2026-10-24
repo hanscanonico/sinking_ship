@@ -17,11 +17,11 @@ extends RefCounted
 ## Between a step over the floor and a body's height, nothing it draws stands more
 ## than FurnishingCheck.TOLERANCE (0.12 m) out from a wall — every piece there is
 ## DEPTH deep at most, flat on its wall, and none stands by a stair; over HEADROOM
-## (1.85 m) anything may: the coffers, the chandeliers, the dome, the baskets. These
-## rooms have no blocker inside them, and none is ever added to hide a piece (D6): no
-## furniture stands out in a room. The panelling is drawn over each wall, clear of its
-## glass, rather than lined (RoomDressing.Part), as one lining serves every public room
-## and landing alike.
+## (1.85 m) anything may: the coffers, the chandeliers, the dome, the baskets. What
+## stands on a room's floor is the layout's furniture, drawn in the room's manner by
+## FurnitureDressing; no blocker is ever added to hide a piece (D6). The panelling is
+## drawn over each wall, clear of its glass, rather than lined (RoomDressing.Part), as
+## one lining serves every public room and landing alike.
 
 ## What a room is dressed as, by its name.
 enum Style {SALOON, LANDING, ENTRANCE, SMOKING, LOUNGE, READING, CAFE, RESTAURANT, RECEPTION, THIRD}

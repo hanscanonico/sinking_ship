@@ -1845,6 +1845,161 @@ spawns = [
     (82.0, 0.0, 8.0), (-100.0, 0.0, -6.0), (100.0, FCSL[0], 0.0), (-115.0, POOP, 0.0),
     (-6.0, D_DECK, 1.0),
 ]
+# --- Her public rooms' furniture (SB-IV, est.), after every other platform, blocker and
+# room so none of theirs moves, each drawn as its shape and its room say
+# (FurnitureDressing): club chairs round the first-class smoking room's card tables; a
+# settee on each stretch of the lounge's side walls, a table and two armchairs before it;
+# writing desks along the reading and writing room's forward wall, each with its chair,
+# and a settee either side of its after door; wicker tables and chairs in the verandah
+# café and the reception room; and settees on the after entrance's forward wall. Every
+# piece keeps clear the lanes 1.5 m either side of a room's centre lines between its
+# doors, a doorway by DOOR_CLEAR, a stair by STAIR_CLEAR before its ends and 0.5 m beside
+# it, a wall by 0.5 m but for a seat's back against it, a pendant by 1.0 m in plan (a
+# table) and every seat's start (room_piece_problems()).
+ARMCHAIR = 0.8  # FurnitureDressing.ARMCHAIR: square, its seat SEAT_TOP over its floor
+SETTEE = (2.0, 0.8)  # FurnitureDressing.SETTEE: long and deep
+SEAT_TOP = 0.45
+CHAIR_GAP = 0.15  # between a table and a chair at it
+DESK = (1.2, 0.65, 0.76)  # a writing desk: long, deep and tall
+DOOR_CLEAR = 1.5
+ROOM_PIECES = []  # (bid, x0, x1, z0, z1, floor, top)
+
+def piece(bid, x0, x1, z0, z1, floor, top):
+    ROOM_PIECES.append((bid, x0, x1, z0, z1, floor, top))
+
+def armchair(bid, x, z, floor):
+    h = ARMCHAIR / 2
+    piece("armchair_" + bid, x - h, x + h, z - h, z + h, floor, floor + SEAT_TOP)
+
+def settee(bid, x, z, floor, along_x=True):
+    hx, hz = (SETTEE[0] / 2, SETTEE[1] / 2) if along_x else (SETTEE[1] / 2, SETTEE[0] / 2)
+    piece("settee_" + bid, x - hx, x + hx, z - hz, z + hz, floor, floor + SEAT_TOP)
+
+def table_group(gid, x, z, floor, half, top, sides=("px", "mx", "pz", "mz")):
+    """A table half each way round (x, z), top over its floor, with an armchair
+    CHAIR_GAP off each of its sides named (px its +x side, mz its -z side…)."""
+    piece("table_" + gid, x - half, x + half, z - half, z + half, floor, floor + top)
+    off = half + CHAIR_GAP + ARMCHAIR / 2
+    for s in sides:
+        sign = 1.0 if s[0] == "p" else -1.0
+        armchair("%s_%s" % (gid, s), x + (sign * off if s[1] == "x" else 0.0), z + (sign * off if s[1] == "z" else 0.0),
+                 floor)
+
+# The smoking room: four card tables either side of its centre line, clear of its doors'
+# lanes and its pendants, a club chair at each side.
+for k, x in enumerate([-66.6, -60.5, -54.2, -48.5]):
+    for tag, s in [("p", -1), ("s", 1)]:
+        table_group("smoking_%d%s" % (k, tag), x, s * 4.6, A_DECK, 0.45, 0.75)
+# The lounge: a settee against each stretch of its side walls either side of their
+# doors, a table before it and an armchair either side of the table.
+for k, x in enumerate([-13.2, -4.4]):
+    for tag, s in [("p", -1), ("s", 1)]:
+        wall = s * (A_HOUSE[2] - T)
+        settee("lounge_%d%s" % (k, tag), x, wall - s * SETTEE[1] / 2, A_DECK)
+        table_group("lounge_%d%s" % (k, tag), x, wall - s * (SETTEE[1] + CHAIR_GAP + 0.35), A_DECK, 0.35, 0.7,
+                    ("px", "mx"))
+# And a settee against its after wall, funnel 3's casing, either side of its centre line,
+# a table before it.
+LOUNGE_AFT = -16.4
+for tag, s in [("p", -1), ("s", 1)]:
+    settee("lounge_aft_%s" % tag, LOUNGE_AFT + SETTEE[1] / 2, s * 4.5, A_DECK, along_x=False)
+    table_group("lounge_aft_%s" % tag, LOUNGE_AFT + SETTEE[1] + CHAIR_GAP + 0.35, s * 4.5, A_DECK, 0.35, 0.7, ())
+# The reading and writing room: writing desks against its forward wall, each with its
+# chair, and a settee either side of its after door.
+READING_FORE = 7.8
+for tag, s in [("p", -1), ("s", 1)]:
+    for k, z in enumerate([3.0, 6.6]):
+        piece("desk_reading_%d%s" % (k, tag), READING_FORE - DESK[1], READING_FORE, s * z - DESK[0] / 2,
+              s * z + DESK[0] / 2, A_DECK, A_DECK + DESK[2])
+        armchair("reading_%d%s" % (k, tag), READING_FORE - DESK[1] - CHAIR_GAP - ARMCHAIR / 2, s * z, A_DECK)
+    settee("reading_%s" % tag, -0.8 + T + SETTEE[1] / 2, s * 4.5, A_DECK, along_x=False)
+# The verandah café: wicker tables either side of its doors' lane, a chair either side
+# of each along her.
+for k, x in enumerate([-75.45, -70.6]):
+    for tag, s in [("p", -1), ("s", 1)]:
+        for j, z in enumerate([3.0, 6.4]):
+            table_group("cafe_%d%d%s" % (k, j, tag), x, s * z, A_DECK, 0.35, 0.7, ("pz", "mz"))
+# The reception room: wicker tables either side of the grand staircase's foot, four chairs
+# at each by the stairs and two at each by the side walls.
+for tag, s in [("p", -1), ("s", 1)]:
+    for k, x in enumerate([22.9, 27.0, 31.0]):
+        table_group("reception_%d%s" % (k, tag), x, s * 5.6, D_DECK, 0.4, 0.7)
+    for k, x in enumerate([24.0, 29.6]):
+        table_group("reception_wall_%d%s" % (k, tag), x, s * 10.6, D_DECK, 0.4, 0.7, ("px", "mx"))
+# The after entrance: a settee either side of the clock on its forward wall.
+for tag, s in [("p", -1), ("s", 1)]:
+    settee("entrance_%s" % tag, -38.9 - SETTEE[1] / 2, s * 4.0, A_DECK, along_x=False)
+
+# Her crew's rooms and working spaces (SB-IV, est.): mess tables in the seamen's quarters
+# under the forecastle and in the crew quarters on E deck — a bench along each long side
+# of each inside its box (LinerDining.mess_table) — between their pendants and clear of
+# the lanes from their doors; and her stores stacked along the side walls of her E deck
+# working passages, stowed crates two high (FurnitureDressing.stores), STORES_OFF off
+# the wall, clear of its handrail, wherever a stack keeps to the rules above.
+MESS = (4.0, 1.2, 0.75)  # a mess table: long, deep with its benches, tall
+for k, (x0, z0, floor) in enumerate([(98.5, 2.2, 0.0), (98.5, -3.4, 0.0), (74.5, 1.7, E_DECK),
+                                     (74.5, -2.9, E_DECK)]):
+    piece("table_mess_%d" % k, x0, x0 + MESS[0], z0, z0 + MESS[1], floor, floor + MESS[2])
+STORES = (1.4, 0.7, 1.19)  # a stack of stores: long, deep and tall, 0.7 m crates two high,
+# no taller than furniture (ShipSpace.FURNITURE_HEIGHT), past which a box is machinery
+STORES_OFF = 0.15
+STORES_PITCH = 3.2
+
+
+def piece_problems(candidate):
+    """Every way a room's piece breaks the rules above: out of its room, by a doorway or
+    a stair, on another blocker or another piece, or by a seat's start."""
+    bid, x0, x1, z0, z1, floor, top = candidate
+    found = []
+    rooms_there = [r for r in room_geo if abs(r[4] - floor) < 1e-6 and r[0] <= x0 and x1 <= r[1]
+                   and r[2] <= z0 and z1 <= r[3]]
+    if not rooms_there:
+        found.append("%s stands in no room" % bid)
+    for axis, at, d0, d1, bottom in doorways:
+        if abs(bottom - floor) > 1e-6:
+            continue
+        mx, mz = ((at, (d0 + d1) / 2) if axis == 0 else ((d0 + d1) / 2, at))
+        dx = max(x0 - mx, 0.0, mx - x1)
+        dz = max(z0 - mz, 0.0, mz - z1)
+        if math.hypot(dx, dz) < DOOR_CLEAR:
+            found.append("%s by a doorway at (%s, %s)" % (bid, mx, mz))
+    for r in ramp_geo:
+        if min(r[5], r[6]) - 0.01 <= floor <= max(r[5], r[6]) + 0.01:
+            ex, ez = (STAIR_CLEAR, 0.5) if r[4] == 0 else (0.5, STAIR_CLEAR)
+            if r[0] - ex < x1 and x0 < r[1] + ex and r[2] - ez < z1 and z0 < r[3] + ez:
+                found.append("%s by a stair at %s" % (bid, r[:4]))
+    others = [b[:6] for b in block_geo] + [p[1:] for p in ROOM_PIECES if p[0] != bid]
+    for b in others:
+        if b[4] < top - 1e-6 and b[5] > floor + 1e-6 and b[0] < x1 - 1e-6 and x0 + 1e-6 < b[1] \
+                and b[2] < z1 - 1e-6 and z0 + 1e-6 < b[3]:
+            found.append("%s on a blocker at %s" % (bid, b[:4]))
+    for x, y, z in spawns:
+        if abs(y - floor) < 1e-6 and x0 - 0.4 < x < x1 + 0.4 and z0 - 0.4 < z < z1 + 0.4:
+            found.append("%s by a seat's start at %s" % (bid, (x, y, z)))
+    return found
+
+
+for rx0, rx1, rz0, rz1, floor, name in list(room_geo):
+    if not name.startswith("E deck working passage"):
+        continue
+    where = name.split(", ")[-1].replace(" ", "_")
+    for tag, s in [("p", -1), ("s", 1)]:
+        face = (rz1 if s > 0 else rz0) - s * T
+        z0, z1 = sorted((face - s * STORES_OFF, face - s * (STORES_OFF + STORES[1])))
+        k = 0
+        x = rx0 + T + 0.6
+        while x + STORES[0] <= rx1 - T - 0.6:
+            stack = ("stores_%s_%d%s" % (where, k, tag), x, x + STORES[0], z0, z1, floor, floor + STORES[2])
+            if not piece_problems(stack):
+                ROOM_PIECES.append(stack)
+                k += 1
+            x += STORES_PITCH
+
+_problems = [problem for candidate in ROOM_PIECES for problem in piece_problems(candidate)]
+assert not _problems, "\n".join(_problems)
+for bid, x0, x1, z0, z1, floor, top in ROOM_PIECES:
+    box(bid, x0, x1, z0, z1, floor, top)
+
 # The seats a match on her takes (§SH34): four to sixteen; more is SH21.
 SEATS = (4, 16)
 

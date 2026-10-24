@@ -687,7 +687,7 @@ static func slung_berth(
 
 ## The corridor's own: a handrail along each long wall, sloping up its stairs; a
 ## lifebelt on its longest stretch clear of a stair, fire buckets on a shelf
-## overhead across from it.
+## overhead across from it, clear of what stands under it (FurnitureDressing.clear_along).
 func _passage(mesh: ShipMesh, room: ShipRoom) -> void:
 	var along_x := room.area.size.x >= room.area.size.y
 	var longest: Wall = null
@@ -702,10 +702,13 @@ func _passage(mesh: ShipMesh, room: ShipRoom) -> void:
 	if longest == null:
 		return
 	lifebelt(mesh, longest.at(longest.middle(), 1.35), longest.normal)
+	var pieces := _space.furniture(room)
+	var size := FIRE_BUCKETS.size
 	for wall: Wall in around:
 		if wall.side == (longest.side + 2) % 4 and wall.length() >= 1.0:
-			if not _stair_beside(wall):
-				fire_buckets(mesh, wall, wall.middle())
+			var along := FurnitureDressing.clear_along(wall, pieces, size.x, size.z)
+			if not _stair_beside(wall) and not is_nan(along):
+				fire_buckets(mesh, wall, along)
 				return
 
 
