@@ -151,7 +151,7 @@ const baseNote = (bases) => {
 	const fetches = bases.map((b) => b.branch).join(' ')
 	return (
 		`\n\nBUILDS ON: ${list} — approved in review, possibly not merged yet. ` +
-		`In setup step 1 also fetch them (\`git -C /Users/hanscanonico/Projets/sinking_ship fetch origin ${fetches}\`) ` +
+		`In setup step 1 also fetch them (\`git -C MAIN fetch origin ${fetches}\`, MAIN the main checkout step 1 finds) ` +
 		`and in step 2 branch from \`origin/${first.branch}\` instead of \`origin/main\`` +
 		(rest.length
 			? `, then \`git merge --no-edit ${rest.map((b) => 'origin/' + b.branch).join(' ')}\` before you edit`
