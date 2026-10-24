@@ -14,9 +14,12 @@ on:
   workflow_dispatch:
 
 # A second push to a branch supersedes the first: the gate only ever answers for
-# the tip. Main keeps every run, so each commit there has its own verdict.
+# the tip. Main keeps every run, so each commit there has its own verdict: each of
+# its commits is a group of its own, as a group holds one pending run and cancels an
+# older one waiting behind a running one — on 2026-10-23 that cancelled main's run
+# for #264, the very merge that took ship_art.gd past the line cap.
 concurrency:
-  group: verify-${{ github.ref }}
+  group: verify-${{ github.ref == 'refs/heads/main' && github.sha || github.ref }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 # Untrusted PR code runs here: the token reads the repository and nothing more.
