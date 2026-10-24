@@ -1,12 +1,15 @@
 // Where the ship (ship.gdshaderinc) meets the sea: the world plane y = 0 (D7),
 // rippled as water.gdshader draws it (sea_ripple.gdshaderinc). A lap line of foam
 // where it meets a steep face and the paint darkened wet just above it — on every
-// finish, so the walls of a flooded room and a deck just clear of the water take
-// them too. Under the surface, whatever lies outdoors is lit only by what light gets
-// down to it (sea_light): the sun's and the sky's, each colour the less the deeper,
-// red first — so a drowned deck or the hull's boot-top goes green, then blue, then
-// dark as the sea takes it. The sea's own surface (water.gdshader) dims it again on
-// the way back up to an eye over the water, as the fog does for an eye under it.
+// finish, so a deckhouse's side and a deck just clear of the water take them too.
+// Under the surface, whatever lies outdoors is lit only by what light gets down to it
+// (sea_light): the sun's and the sky's, each colour the less the deeper, red first —
+// so a drowned deck or the hull's boot-top goes green, then blue, then dark as the sea
+// takes it. The sea's own surface (water.gdshader) dims it again on the way back up to
+// an eye over the water, as the fog does for an eye under it. The caller keeps all of
+// it to its outdoor faces: the sea never comes indoors, so a dry room under the
+// waterline keeps clean walls, and a flooded one's water draws its own lap where it
+// meets them (inner_water.gdshader).
 
 #include "res://scenes/art/sea_ripple.gdshaderinc"
 

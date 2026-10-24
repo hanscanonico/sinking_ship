@@ -328,8 +328,10 @@ void fragment() {
 	ALBEDO = mix(colour, ink.rgb, rim * rim_strength);
 	vec3 world_pos = (INV_VIEW_MATRIX * vec4(VERTEX, 1.0)).xyz;
 	vec3 world_normal = (INV_VIEW_MATRIX * vec4(NORMAL, 0.0)).xyz;
+	// The sea's lap line and wet paint, outdoors only: indoors no sea reaches.
 	float lap;
-	ALBEDO = sea_waterline(ALBEDO, world_pos, world_normal, TIME, lap);
+	ALBEDO = mix(ALBEDO, sea_waterline(ALBEDO, world_pos, world_normal, TIME, lap), outdoor);
+	lap *= outdoor;
 	ROUGHNESS = 1.0;
 	SPECULAR = 0.0;
 	AO = mix(indoor_ambient, 1.0, outdoor);
