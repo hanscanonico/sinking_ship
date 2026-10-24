@@ -113,10 +113,12 @@ var _scrape := PackedFloat32Array()
 var _floors := PackedVector3Array()
 var _floor_halves := PackedVector3Array()
 ## The openings water can pass (SinkSchedule.passages, then failing), but the unheard;
-## their two sides, by cell, -1 for the sea or the sky; 1 for one shut until it fails.
+## their two sides, by cell, -1 for the sea or the sky; 1 for one shut until it fails;
+## and each one's half extent.
 var _openings: Array[ShipOpening] = []
 var _sides := PackedInt32Array()
 var _shut := PackedByteArray()
+var _opening_halves := PackedVector3Array()
 ## What of the water has been heard, by slot — each cell's, then each opening's, then
 ## each platform's out of every cell: 1 once its coming on is heard, until it has stood
 ## off its rearm; and the tick it has stood off since, ON while it is on.
@@ -136,8 +138,8 @@ var _readings: Array[Reading] = [Reading.new(), Reading.new()]
 var _next_reading := 0
 
 
-## What a pose's water says of each cell — over its floor (_over_floor) — and of each
-## opening — carrying water (_pouring): 1 where it does.
+## What a pose's water says of each cell — over its floor — and of each opening —
+## carrying water (_reading): 1 where it does.
 class Reading:
 	var pose: ShipPose
 	var over := PackedByteArray()
@@ -194,6 +196,7 @@ func _watch_structure(structure: ShipStructure) -> void:
 		if opening.kind in UNHEARD or opening.joins.size() != 2:
 			continue
 		_openings.append(opening)
+		_opening_halves.append(opening.size * 0.5)
 		for place: StringName in opening.joins:
 			_sides.append(structure.cell_named(place))
 		_shut.append(1 if index >= openings.size() - failing.size() else 0)
@@ -500,14 +503,25 @@ func _water_coming_on(
 	var cells := _keeps_cells(pose_then) and _keeps_cells(pose_now)
 	var then := _reading(pose_then) if cells else null
 	var now := _reading(pose_now) if cells else null
+	# A slot whose water stays off, already seen off and not yet due to be heard again,
+	# is passed over: there _comes_on would change nothing and say no.
 	if cells:
 		for cell in _floors.size():
-			if _comes_on(cell, then.over[cell] == 1, now.over[cell] == 1, tick, _cell_rearm):
+			var on_now := now.over[cell] == 1
+			var off := _off_since[cell]
+			if not on_now and off != ON and (_heard[cell] == 0 or tick - off < _cell_rearm):
+				continue
+			if _comes_on(cell, then.over[cell] == 1, on_now, tick, _cell_rearm):
 				_flood_at(_floors[cell], tick, cues)
+	var decks_then := _decks.of(pose_then)
+	var decks_now := _decks.of(pose_now)
 	for platform in _layout.platforms.size():
-		var was := _decks.flooded(platform, pose_then)
 		var slot := _platform_slots[platform]
-		if not _comes_on(slot, was, _decks.flooded(platform, pose_now), tick, _cell_rearm):
+		var on_now := decks_now[platform] == 1
+		var off := _off_since[slot]
+		if not on_now and off != ON and (_heard[slot] == 0 or tick - off < _cell_rearm):
+			continue
+		if not _comes_on(slot, decks_then[platform] == 1, on_now, tick, _cell_rearm):
 			continue
 		var middle := _layout.platforms[platform].area.get_center()
 		_flood_at(Vector3(middle.x, _layout.platforms[platform].height, middle.y), tick, cues)
@@ -515,8 +529,11 @@ func _water_coming_on(
 		return
 	for index in _openings.size():
 		var slot := _floors.size() + index
-		var was := then.pouring[index] == 1
-		if not _comes_on(slot, was, now.pouring[index] == 1, tick, _pour_rearm):
+		var on_now := now.pouring[index] == 1
+		var off := _off_since[slot]
+		if not on_now and off != ON and (_heard[slot] == 0 or tick - off < _pour_rearm):
+			continue
+		if not _comes_on(slot, then.pouring[index] == 1, on_now, tick, _pour_rearm):
 			continue
 		var pour := AudioCue.new(AudioCue.Kind.POUR, tick)
 		pour.positional = true
@@ -525,7 +542,14 @@ func _water_coming_on(
 
 
 ## What [param pose]'s water says of every cell and opening: the one kept for it, or —
-## for a new pose — read now in place of the older of the two kept.
+## for a new pose — read now in place of the older of the two kept. A cell's water is
+## over its floor when it stands SHOWS over the floor's lowest corner. An opening carries
+## water when it is open — a door the ship has not shut, one shut until it fails once it
+## has — with one side's water over its bottom by SHOWS and over the other side's by
+## POURS; that side holds water: the sea's, at 0, or a cell's over its floor — a dry
+## cell's level is its floor, which stands over a doorway down into a lower cell. A box's
+## lowest corner in the world is its middle's height less its reach down under her turn:
+## the turn's row of heights taken once for the pose, every box worked out alike.
 func _reading(pose: ShipPose) -> Reading:
 	for kept: Reading in _readings:
 		if kept.pose == pose:
@@ -533,12 +557,41 @@ func _reading(pose: ShipPose) -> Reading:
 	var reading := _readings[_next_reading]
 	_next_reading = 1 - _next_reading
 	reading.pose = pose
+	var basis := pose.transform.basis
+	var row := Vector3(basis.x.y, basis.y.y, basis.z.y)
+	var across := absf(row.x)
+	var up := absf(row.y)
+	var along := absf(row.z)
+	var rise := pose.transform.origin.y
+	var levels := pose.levels
 	reading.over.resize(_floors.size())
 	for cell in _floors.size():
-		reading.over[cell] = 1 if _over_floor(cell, pose) else 0
+		var half := _floor_halves[cell]
+		var reach := across * half.x + up * half.y + along * half.z
+		var floor_low := row.dot(_floors[cell]) - reach + rise
+		reading.over[cell] = 1 if levels[cell] > floor_low + SHOWS else 0
 	reading.pouring.resize(_openings.size())
 	for index in _openings.size():
-		reading.pouring[index] = 1 if _pouring(index, pose, reading.over) else 0
+		reading.pouring[index] = 0
+		var opening := _openings[index]
+		var failed: int = pose.opened.get(opening.name, 0)
+		if failed == 0 and (_shut[index] == 1 or pose.doors_shut.get(opening.name, 0.0) >= 1.0):
+			continue
+		var first := _sides[index * 2]
+		var second := _sides[index * 2 + 1]
+		var first_level := 0.0 if first == -1 else levels[first]
+		var second_level := 0.0 if second == -1 else levels[second]
+		var high := first if first_level >= second_level else second
+		if high != -1 and reading.over[high] == 0:
+			continue
+		var half := _opening_halves[index]
+		var reach := across * half.x + up * half.y + along * half.z
+		var bottom := row.dot(opening.centre) - reach + rise
+		if (
+			maxf(first_level, second_level) > bottom + SHOWS
+			and absf(first_level - second_level) >= POURS
+		):
+			reading.pouring[index] = 1
 	return reading
 
 
@@ -568,54 +621,9 @@ func _comes_on(slot: int, was: bool, now_on: bool, tick: int, rearm: int) -> boo
 	return not was
 
 
-## Whether opening [param index] carries water under [param pose]: open — a door
-## the ship has not shut, one shut until it fails once it has — with one side's
-## water over its bottom by SHOWS and over the other side's by POURS. That side holds
-## water: the sea, or a cell wet over its floor — a dry cell's level is its floor, which
-## stands over a doorway down into a lower cell. [param over] is per cell whether its
-## water stands over its floor under [param pose] (_over_floor).
-func _pouring(index: int, pose: ShipPose, over: PackedByteArray) -> bool:
-	var opening := _openings[index]
-	var failed: int = pose.opened.get(opening.name, 0)
-	if failed == 0 and (_shut[index] == 1 or pose.doors_shut.get(opening.name, 0.0) >= 1.0):
-		return false
-	var first := _sides[index * 2]
-	var second := _sides[index * 2 + 1]
-	var first_level := _side_level(first, pose)
-	var second_level := _side_level(second, pose)
-	var high := first if first_level >= second_level else second
-	if high != -1 and over[high] == 0:
-		return false
-	var bottom := _lowest(pose, opening.centre, opening.size * 0.5)
-	return (
-		maxf(first_level, second_level) > bottom + SHOWS
-		and absf(first_level - second_level) >= POURS
-	)
-
-
-## The world height of the water on side [param cell] of an opening: its cell's, or
-## the sea's.
-func _side_level(cell: int, pose: ShipPose) -> float:
-	return 0.0 if cell == -1 else pose.levels[cell]
-
-
 ## Whether [param pose] keeps a level for each of her cells.
 func _keeps_cells(pose: ShipPose) -> bool:
 	return not _floors.is_empty() and pose.levels.size() == _floors.size()
-
-
-## Whether cell [param cell]'s water stands SHOWS over its floor's lowest corner.
-func _over_floor(cell: int, pose: ShipPose) -> bool:
-	return pose.levels[cell] > _lowest(pose, _floors[cell], _floor_halves[cell]) + SHOWS
-
-
-## The lowest world height under [param pose] of the box about [param centre] reaching
-## [param half] each way.
-static func _lowest(pose: ShipPose, centre: Vector3, half: Vector3) -> float:
-	var basis := pose.transform.basis
-	var row := Vector3(basis.x.y, basis.y.y, basis.z.y)
-	var reach := absf(row.x) * half.x + absf(row.y) * half.y + absf(row.z) * half.z
-	return row.dot(centre) - reach + pose.transform.origin.y
 
 
 func _at_crate(kind: AudioCue.Kind, tick: int, entry: Dictionary) -> AudioCue:

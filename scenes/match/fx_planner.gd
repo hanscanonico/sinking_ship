@@ -358,8 +358,10 @@ func _waterlines(
 ## the water drives out is InnerWater's: a burst on the water at the opening the water
 ## reaches the top of, never grains thrown about the room.
 func _floods(pose_then: ShipPose, pose_now: ShipPose, tick: int, cues: Array[FxCue]) -> void:
+	var now := _decks.of(pose_now)
+	var then := _decks.of(pose_then)
 	for index in _layout.platforms.size():
-		if not _decks.flooded(index, pose_now) or _decks.flooded(index, pose_then):
+		if now[index] == 0 or then[index] == 1:
 			continue
 		var platform := _layout.platforms[index]
 		var middle := platform.area.get_center()
