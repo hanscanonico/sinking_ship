@@ -45,10 +45,6 @@ tests/unit/art/test_deck_works.gd	load("res://data/ships/%s.tres" % ship)	@ship
 tests/unit/art/test_liner_boiler.gd	load("res://data/ships/%s.tres" % ship_name)	@ship
 tests/unit/art/test_room_dressing.gd	load("res://data/ships/%s.tres" % ship_name)	@ship
 tests/unit/art/test_sea_haze.gd	load("res://data/ships/%s.tres" % ship)	@ship
-tests/unit/core/test_battle_royale_digests.gd	FileAccess.file_exists(path)	tests/golden/battle_royale.*.txt
-tests/unit/core/test_battle_royale_digests.gd	FileAccess.get_file_as_string(path)	tests/golden/battle_royale.*.txt
-tests/unit/core/test_determinism.gd	FileAccess.file_exists(path)	tests/golden/golden_*.txt
-tests/unit/core/test_determinism.gd	FileAccess.get_file_as_string(path)	tests/golden/golden_*.txt
 tests/unit/core/test_match_choices.gd	load(HITS % "fast")	tests/fixtures/sinking/hits/*.tres
 tests/unit/core/test_match_choices.gd	load(HITS % "titanic_britannic_mine")	tests/fixtures/sinking/hits/*.tres
 tests/unit/core/test_match_choices.gd	load(HITS % "titanic_fast")	tests/fixtures/sinking/hits/*.tres
@@ -70,8 +66,6 @@ tests/unit/core/test_ship_scene_bake.gd	load(path)	data/ships/*
 tests/unit/core/test_ship_structure_lint.gd	load("%s/%s" % [SHIPS, file])	data/ships/*
 tests/unit/core/test_sink_schedule.gd	load(hit)	tests/fixtures/sinking/hits/*.tres
 tests/unit/core/test_sink_timeline.gd	load(path)	tests/fixtures/sinking/hits/*.tres
-tests/unit/core/test_survival_transcript.gd	FileAccess.file_exists(path)	tests/golden/survival_*.txt
-tests/unit/core/test_survival_transcript.gd	FileAccess.get_file_as_string(path)	tests/golden/survival_*.txt
 tests/unit/core/test_survival_transcript.gd	load(RunMatch.DEFAULT_MATCH)	data/match/default.tres
 tests/unit/core/test_wrecks.gd	load(path)	tests/fixtures/wrecks/*.tres
 tests/unit/core/titanic_sisters.gd	load(HITS % hit_name)	tests/fixtures/sinking/hits/*.tres
@@ -79,6 +73,8 @@ tests/unit/game/test_credits_menu.gd	DirAccess.get_directories_at(folder)	assets
 tests/unit/game/test_credits_menu.gd	DirAccess.get_files_at(folder)	assets/audio/* assets/fonts/*
 tests/unit/game/test_settings.gd	FileAccess.file_exists(path)	-
 tests/unit/game/test_ui_theme.gd	load(screen)	scenes/online/*.tscn
+tests/unit/goldens.gd	FileAccess.file_exists(path)	tests/golden/*.txt
+tests/unit/goldens.gd	FileAccess.get_file_as_string(path)	tests/golden/*.txt
 tests/unit/match/test_fx_planner.gd	FileAccess.get_file_as_string("res://scenes/match/" + file)	scenes/match/*.gd
 tests/unit/match/test_iceberg_planner.gd	load(path)	@ship
 tests/unit/online/test_online_play.gd	FileAccess.file_exists(path)	-

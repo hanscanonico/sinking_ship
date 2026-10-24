@@ -656,8 +656,8 @@ check:
 # window lock, against sleeps on a private lock file; the test engine slots,
 # against sleeps on private ones — both again on Perl's lock, the one Git Bash on
 # Windows takes (tools/lib/fd_lock.sh); make fps's SPLIT, read off make -n; make test's
-# list of scripts, against a stand-in engine; make durations, against a sample log;
-# verify running the float test once, read off make -n; and the gdtoolkit targets'
+# list of scripts, against a stand-in engine; make durations and make goldens, against
+# sample logs; verify running the float test once, read off make -n; and the gdtoolkit targets'
 # warm-up, read off make -n; make test-changed's selection, against a fixture project,
 # and its list of runtime-built loads, against the code.
 guard-check:
@@ -670,6 +670,7 @@ guard-check:
 	tools/run_tests_check.sh
 	tools/ship_check_once.sh
 	tools/test_durations_check.sh
+	tools/goldens_check.sh
 	tools/lint_warmup_check.sh
 	tools/test_changed_check.sh
 	tools/test_changed.py --check-sites
