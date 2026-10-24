@@ -374,11 +374,13 @@ test:
 		$(if $(test-list),--list - $(test-split),$(if $(TEST),-gselect=$(notdir $(TEST)),$(test-split)))
 
 # tests/durations.tsv, the seconds tools/test_shards.py balances the shards by, from
-# a finished CI verify run's logs (gh fetches them; RUN is its id):
-#   make durations RUN=38882193885
+# finished CI verify runs' logs (gh fetches them; RUN is their ids), each script the
+# longest any of them timed it — runs of different splits weigh a script as it costs
+# wherever it lands (tools/test_durations.py):
+#   make durations RUN="40058239619 40063262845"
 durations:
-	$(if $(RUN),,$(error make durations needs RUN=<verify run id>; gh run list --workflow verify))
-	tools/test_durations.py --run $(RUN)
+	$(if $(RUN),,$(error make durations needs RUN="<verify run id> …"; gh run list --workflow verify))
+	tools/test_durations.py $(foreach run,$(RUN),--run $(run))
 
 # The goldens (R6), tests/golden/NAME.<os>-<arch>.txt: a golden test prints the text it
 # works out when its platform's file is missing or no longer matches (Goldens,
