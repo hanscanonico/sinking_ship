@@ -901,22 +901,22 @@ box("well_hatch", *WELL_HATCH, 0.0, 0.8)
 # 0.5 m beside it, 0.5 m off a wall's face, a body round the seat in the first-class
 # dining saloon, and on B, C and F decks, where the ceiling is low over a body on a
 # table, 1.0 m in plan from the pendant under the middle of each 12 m square of a room
-# (RoomDressing.lights). Placings est., after SB-IV's deck plans.
+# (RoomDressing.lights). Placings est., after SB-IV's deck plans. Her laid tables are no
+# boxes: each is a round table with a chair at each quarter, every piece a prop of its
+# own (LAID, after her lifebuoys) that slides, is pushed about and floats.
 TABLE, BENCH, RANGE, COUNTER = 0.75, 0.45, 0.9, 1.0
-SQUARE_TABLE = 0.6  # a square table's half side
+LAID = []  # (tid, x, floor, z): the middle of a laid table
 # The first-class dining saloon (SB-IV): nine columns of tables, three rows either side
 # of its centre line.
 for k in range(9):
     x = -11.4 + 3.5 * k
     for j, z in enumerate([-9.0, -6.0, -3.0, 3.0, 6.0, 9.0]):
-        box("table_saloon_1_%d" % (k * 6 + j), x - SQUARE_TABLE, x + SQUARE_TABLE,
-            z - SQUARE_TABLE, z + SQUARE_TABLE, D_DECK, D_DECK + TABLE)
+        LAID.append(("saloon_1_%d" % (k * 6 + j), x, D_DECK, z))
 # The second-class dining saloon: four columns, three rows either side, clear of the
 # second-class staircase up to C deck from its centre line to starboard.
 for k, x in enumerate([-62.0, -59.0, -56.0, -53.0]):
     for j, z in enumerate([-9.6, -6.6, -3.6, 3.6, 6.6, 9.6]):
-        box("table_saloon_2_%d" % (k * 6 + j), x - SQUARE_TABLE, x + SQUARE_TABLE,
-            z - SQUARE_TABLE, z + SQUARE_TABLE, D_DECK, D_DECK + TABLE)
+        LAID.append(("saloon_2_%d" % (k * 6 + j), x, D_DECK, z))
 # The third-class dining saloons either side of bulkhead H: long tables, three in a row,
 # three rows either side, short of the pendants over z ±8.67 and the stairs to port.
 SALOON_3_ROWS = [(-7.5, -6.6), (-5.3, -4.4), (-3.1, -2.2), (2.2, 3.1), (4.4, 5.3), (6.6, 7.5)]
@@ -929,8 +929,7 @@ for rid, runs in [("saloon_3_aft", [(-14.75, -10.75), (-9.55, -5.55), (-4.35, -0
 # at z ±5 clear.
 for k, x in enumerate([-74.5, -71.5, -68.5, -65.5, -62.5]):
     for j, z in enumerate([-8.0, -2.5, 2.5, 8.0]):
-        box("table_restaurant_%d" % (k * 4 + j), x - SQUARE_TABLE, x + SQUARE_TABLE,
-            z - SQUARE_TABLE, z + SQUARE_TABLE, B_DECK, B_DECK + TABLE)
+        LAID.append(("restaurant_%d" % (k * 4 + j), x, B_DECK, z))
 # The galley's two ranges either side of its centre line.
 for k, (z0, z1) in enumerate([(-4.7, -3.5), (2.5, 3.7)]):
     box("range_galley_%d" % k, -26.0, -18.0, z0, z1, D_DECK, D_DECK + RANGE)
@@ -3092,6 +3091,39 @@ lifebuoy(-30.5, -1, 8.375)
 lifebuoy(-25.5, 1, 8.375)
 lifebuoy(6.0, -1, 8.375)
 lifebuoy(69.0, 1, 8.375)
+
+# Her laid tables (LAID), each a round table and a chair at each quarter facing it, the
+# chair CHAIR_GAP clear of the table so that nothing stands in anything as she sails —
+# props of their own (data/props/dining_table.tres, dining_chair.tres): each slides as the
+# deck tilts past its grip, gives way to a body walking into it and floats on her water.
+# A table's mass and grip are a dining table's of oak; a chair's a bentwood chair's.
+DINING_TABLE = [("radius", 0.55), ("height", 0.75), ("mass", 45), ("grip_angle_deg", 22), ("friction", 7)]
+DINING_CHAIR = [("radius", 0.25), ("height", 0.9), ("mass", 6), ("grip_angle_deg", 20), ("friction", 6.5)]
+CHAIR_GAP = 0.02
+LAID_REACH = 0.55 + CHAIR_GAP + 2 * 0.25  # from a table's middle to its chairs' backs
+
+def laid_problems(tid, x, floor, z):
+    """Every way a laid table and its chairs, a square LAID_REACH about its middle, break
+    the rules the room's pieces keep: out of its room, by a doorway or a stair, on a
+    blocker, or by a seat's start."""
+    return piece_problems(("laid_" + tid, x - LAID_REACH, x + LAID_REACH, z - LAID_REACH, z + LAID_REACH,
+                           floor, floor + 0.9))
+
+def furniture(kind, name, at, fields, facing=0.0):
+    f = [("kind", '&"%s"' % kind), ("pos", "Vector3(%s, %s, %s)" % tuple(num(c) for c in at))]
+    f += [(field, num(v)) for field, v in fields]
+    if facing:
+        f.append(("facing_deg", num(facing)))
+    props.append(sub(name, "8_prop", f))
+
+_laid = [problem for laid in LAID for problem in laid_problems(*laid)]
+assert not _laid, "\n".join(_laid)
+for tid, x, floor, z in LAID:
+    furniture("dining_table", "Table_" + tid, (x, floor, z), DINING_TABLE)
+    off = 0.55 + CHAIR_GAP + 0.25
+    for tag, dx, dz, facing in [("px", off, 0.0, 180), ("mx", -off, 0.0, 0), ("pz", 0.0, off, -90),
+                                ("mz", 0.0, -off, 90)]:
+        furniture("dining_chair", "Chair_%s_%s" % (tid, tag), (x + dx, floor, z + dz), DINING_CHAIR, facing)
 
 head = """[gd_resource type="Resource" script_class="ShipLayout" format=3]
 
