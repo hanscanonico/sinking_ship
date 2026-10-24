@@ -67,12 +67,22 @@ func test_a_body_inside_her_as_she_goes_is_out_with_her() -> void:
 	SimFixtures.swim(sim, 1, Vector3(0.0, 0.0, 12.0))
 	SimFixtures.swim(sim, 2, Vector3(0.0, 0.0, -12.0))
 	assert_ne(sim.pose().cell_at(sim.state.seats[0].pos), CellMap.NONE, "seat 0 is inside her")
+	var events := SimFixtures.step(sim, {}, 2)
 	var outs: Array[int] = []
-	for event: SimEvent in SimFixtures.step(sim, {}, 2):
+	var causes: Array[int] = []
+	for event: SimEvent in events:
 		if event.kind == SimEvent.Kind.SEAT_OUT:
 			outs.append(event.seat)
+			causes.append(event.cause)
 	assert_eq(outs, [0] as Array[int], "the one inside goes with her, the swimmers swim on")
 	assert_eq(sim.state.seats[0].out_tick, gone, "on the tick she goes")
+	# However dry it stands — a sealed hold can keep its air all the way down — it is
+	# not the cold that puts it out, and nothing may say so.
+	assert_eq(causes, [PlayerState.Cause.WITH_HER] as Array[int], "out with her, not by the cold")
+	assert_eq(sim.state.seats[0].out_cause, PlayerState.Cause.WITH_HER)
+	var told := MatchTranscript.new()
+	told.add(events)
+	assert_string_contains(told.text(), " seat 0 out · with her · place ", "and told so")
 	assert_eq(layout.structure.cell_named(&"saloon"), sim.pose().cell_at(Vector3(1.5, 0.0, 0.0)))
 
 
