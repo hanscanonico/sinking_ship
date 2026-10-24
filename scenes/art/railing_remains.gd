@@ -2,8 +2,9 @@ class_name RailingRemains
 extends RefCounted
 ## What a broken railing span leaves (ShipArt): at each of its ends a splintered
 ## stub of the cap rail drooping from the post it hung on and the middle rail's end
-## dangling over the side — or, where no other span shares that post, a splintered
-## stump of it — and near one end a stanchion bent out over the side from its foot.
+## dangling over the side — or, where no span still standing shares that post, a
+## splintered stump of it — and near one end a stanchion bent out over the side from
+## its foot.
 ## Nothing reaches more than STUB into the span or stands inboard of its line, so
 ## nothing drawn seems to bar the gap the rules leave open. Drawn only, and shown
 ## only once the span is broken.
@@ -42,8 +43,9 @@ func _init(layout: ShipLayout, height: float, cap: Vector2, middle: Vector2, pos
 	_post = post
 
 
-## The remains of railing [param index] into [param mesh].
-func build(mesh: ShipMesh, index: int) -> void:
+## The remains of railing [param index] into [param mesh], its ends held as
+## [param held] (held()) has them.
+func build(mesh: ShipMesh, index: int, held: int) -> void:
 	var railing := _layout.railings[index]
 	var platform := _layout.platforms[railing.platform]
 	var deck := platform.height
@@ -61,7 +63,7 @@ func build(mesh: ShipMesh, index: int) -> void:
 		var foot := Vector3(at.x, deck, at.y)
 		# A little twist per end, so no two breaks look stamped from one die.
 		var twist := sin(index * 2.3 + end * 1.7)
-		if _shared(index, at):
+		if held & (1 << end):
 			_stub(mesh, foot, into, out, reach, twist)
 		else:
 			_stump(mesh, foot, into, twist)
@@ -119,15 +121,29 @@ func _splinters(mesh: ShipMesh, tip: Vector3, direction: Vector3, twist: float) 
 		mesh.beam(from, from + way * length, Vector2.ONE * SPLINTER_WIDTH, ShipPaints.splinter, 0)
 
 
-## Whether another railing span at the same height ends at [param point], its post
-## still standing when railing [param index] is gone.
-func _shared(index: int, point: Vector2) -> bool:
+## Which ends of railing [param index] — bit 0 its from, bit 1 its to — hang on a
+## post still standing: one another span at the same height, none of
+## [param broken], ends at too.
+func held(index: int, broken: PackedInt32Array) -> int:
+	var railing := _layout.railings[index]
+	var ends := 0
+	for end in 2:
+		for other: int in sharing(index, railing.from if end == 0 else railing.to):
+			if other not in broken:
+				ends |= 1 << end
+	return ends
+
+
+## Every other railing span at the same height as railing [param index] that ends at
+## [param point]: the spans sharing its post there.
+func sharing(index: int, point: Vector2) -> PackedInt32Array:
 	var height := _layout.platforms[_layout.railings[index].platform].height
+	var found := PackedInt32Array()
 	for other_index in _layout.railings.size():
 		var other := _layout.railings[other_index]
 		var level := _layout.platforms[other.platform].height
 		if other_index == index or not is_equal_approx(level, height):
 			continue
 		if other.from.is_equal_approx(point) or other.to.is_equal_approx(point):
-			return true
-	return false
+			found.append(other_index)
+	return found
