@@ -236,6 +236,19 @@ if (($# == 0)); then
 		printf '%s\n' "$evidence" | head -5 >&2
 		failed=$((failed + 1))
 	fi
+
+	# A script make and CI run as a command is executable as git stores it, whatever
+	# this checkout's filesystem says: on Windows git keeps no mode of its own
+	# (core.filemode is off), so a new tools/*.sh commits as 100644 and CI's Linux
+	# answers "Permission denied" (#287, 2026-10-24). tools/lib/ holds the sourced
+	# ones, which need no bit.
+	unrunnable="$(git ls-files -s -- '*.sh' 2>/dev/null |
+		awk '$1 != "100755" && $4 !~ /^tools\/lib\// { print $4 }' || true)"
+	if [[ -n "$unrunnable" ]]; then
+		echo "check: these scripts are not executable in git — git update-index --chmod=+x them" >&2
+		printf '%s\n' "$unrunnable" >&2
+		failed=$((failed + 1))
+	fi
 fi
 
 if ((failed > 0)); then
