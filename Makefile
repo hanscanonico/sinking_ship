@@ -607,35 +607,11 @@ sailor:
 		"$(CURDIR)/assets/characters/sailor/hats.blend" "$(CURDIR)/assets/characters/sailor/hats.glb" \
 		| { grep '^gen_hats' || true; }
 
-# Every .gd file that is actually ours: skips the engine cache, vendored addons,
-# the engine binary, and .claude/worktrees, which holds whole nested checkouts of
-# this same repo and would otherwise be linted as if it were project source.
-#
-# Double quotes, not single: GNU make on Windows runs a $(shell …) line with no
-# shell metacharacters itself and strips only double quotes, and the MSYS find
-# then globs a bare pattern and finds nothing. Both quote styles read the same
-# through sh on Linux and macOS.
-#
-# Deferred, so only the three gdtoolkit targets below pay for the walk.
-SOURCES = $(shell find . -name "*.gd" \
-	-not -path "./.godot/*" -not -path "./addons/*" -not -path "./bin/*" \
-	-not -path "./.claude/*")
-
-# The gdtoolkit targets run over every core, NPROC workers of 60 files each,
-# fed NUL-delimited. xargs exits 123 when any one invocation fails, so a problem
-# in a single chunk still fails the target. Workers' output interleaves; each
-# chunk also prints its own summary line.
-#
-# The first file goes alone, before the fan-out, and its failure fails the
-# target: gdtoolkit builds its parser cache directory (~/.cache/gdtoolkit on
-# Linux, ~/Library/Caches/gdtoolkit on macOS) with a check-then-makedirs, so on a
-# fresh machine — every CI runner — parallel workers race to create it and the
-# losers report "Cannot open file '…': File exists" as a problem. The warm-up
-# creates the directory and its parser pickles first; do not remove it.
+# The gdtoolkit targets run their tool over every .gd file that is ours, on every
+# core, NPROC workers of 60 files each, after a warm-up on one file:
+# tools/gdtoolkit_each.sh says which files and why the warm-up stays.
 NPROC ?= $(shell getconf _NPROCESSORS_ONLN 2>/dev/null || echo 4)
-gdtoolkit-each = $(1) $(firstword $(SOURCES)) && \
-	printf '%s\0' $(wordlist 2,$(words $(SOURCES)),$(SOURCES)) | \
-	xargs -0 -P $(NPROC) -n 60 $(1)
+gdtoolkit-each = NPROC=$(NPROC) tools/gdtoolkit_each.sh $(1)
 
 # Parse/type check plus lightweight architecture invariants without booting the
 # scene tree. Rules live in tools/check_scripts.sh.
@@ -647,8 +623,8 @@ check:
 # against sleeps on private ones — both again on Perl's lock, the one Git Bash on
 # Windows takes (tools/lib/fd_lock.sh); make fps's SPLIT, read off make -n; make test's
 # list of scripts, against a stand-in engine; make durations, against a sample log;
-# verify running the float test once, read off make -n; and the gdtoolkit targets'
-# warm-up, read off make -n; make test-changed's selection, against a fixture project,
+# verify running the float test once, read off make -n; the gdtoolkit targets'
+# warm-up and fan-out, against a stand-in tool; make test-changed's selection, against a fixture project,
 # and its list of runtime-built loads, against the code.
 guard-check:
 	tools/engine_guard_check.sh
