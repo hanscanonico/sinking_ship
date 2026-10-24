@@ -8,8 +8,9 @@ extends GutTest
 ## passages' walls. Every seat faces its table or backs onto its room's side, and a
 ## writing desk's drawers its chair; none stands in a doorway's way in or by a seat's
 ## start, no table by a pendant; and a seat is drawn in its box, its arms and back under
-## a step over it.
+## a step over it, a stack of stores out to its box's sides.
 
+const ArtLint := preload("res://tools/art_lint.gd")
 const FurnishingCheck := preload("res://tools/furnishing_check.gd")
 
 ## The rooms furnished: [room, its tables, its armchairs, its settees, its stores].
@@ -168,6 +169,34 @@ func test_a_seat_is_drawn_in_its_box_its_arms_and_back_under_a_step() -> void:
 	assert_lt(FurnitureDressing.BACK_RISE, _rules.step_height, "a seat's back under a step")
 
 
+## Where art-lint probes a box's sides — a quarter, half and three quarters up them, a
+## fifth, half and four fifths along — a stack of stores is drawn: no seam between
+## two of its crates, one on another or side by side, is an open edge there.
+func test_a_stack_of_stores_is_drawn_out_to_its_box_s_sides() -> void:
+	var stack := _space.furniture(_room(&"E deck working passage, engine room"))[0]
+	var lines: Array[PackedFloat32Array] = [
+		PackedFloat32Array(), PackedFloat32Array(), PackedFloat32Array()
+	]
+	var mesh := ShipMesh.new(func(_point: Vector3) -> bool: return true, lines)
+	FurnitureDressing.stores(mesh, stack.area, stack.bottom, stack.top)
+	var faces := _faces(mesh)
+	var area := stack.area
+	for fraction: float in [0.2, 0.5, 0.8]:
+		var x := lerpf(area.position.x, area.end.x, fraction)
+		var z := lerpf(area.position.y, area.end.y, fraction)
+		for share: float in [0.25, 0.5, 0.75]:
+			var y := lerpf(stack.bottom, stack.top, share)
+			var probes: Array[Array] = [
+				[Vector3(x, y, area.position.y), Vector3.FORWARD],
+				[Vector3(x, y, area.end.y), Vector3.BACK],
+				[Vector3(area.position.x, y, z), Vector3.LEFT],
+				[Vector3(area.end.x, y, z), Vector3.RIGHT],
+			]
+			for probe: Array in probes:
+				var off := _off_side(faces, probe[0], probe[1])
+				assert_lt(off, ArtLint.BLOCKER_TOLERANCE, "its side drawn at %s" % probe[0])
+
+
 ## The middle of the table among [param pieces] nearest [param at] within
 ## FurnitureDressing.SEAT_REACH; Vector2.INF for none.
 func _nearest_table(pieces: Array[ShipBlocker], at: Vector2) -> Vector2:
@@ -180,6 +209,24 @@ func _nearest_table(pieces: Array[ShipBlocker], at: Vector2) -> Vector2:
 		if near and middle.distance_to(at) < best.distance_to(at):
 			best = middle
 	return best
+
+
+## How far from [param point], on a box's side, the nearest of [param faces] stands along
+## the line through it [param out] of the side, ArtLint.SIDE_REACH either way; INF for
+## none — art-lint's probe.
+func _off_side(faces: PackedVector3Array, point: Vector3, out: Vector3) -> float:
+	var reach := ArtLint.SIDE_REACH
+	var from := point + out * reach
+	var nearest := INF
+	for index in range(0, faces.size(), 3):
+		var hit: Variant = Geometry3D.ray_intersects_triangle(
+			from, -out, faces[index], faces[index + 1], faces[index + 2]
+		)
+		if hit != null:
+			var along := ((hit as Vector3) - from).dot(-out)
+			if along <= reach * 2.0:
+				nearest = minf(nearest, absf(along - reach))
+	return nearest
 
 
 ## How far apart [param a] and [param b] stand across the ship plane: 0 where they meet.

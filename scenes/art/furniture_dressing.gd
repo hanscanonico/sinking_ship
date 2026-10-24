@@ -77,6 +77,11 @@ const BACK_REACH := 0.25
 const CREW := "quarters"
 const WORKING := "working"
 const STORES_CRATE := 0.7
+## Behind a stack's crates, its box drawn STORES_CORE in from its sides, behind their
+## planking, in the dark: what a line across a seam between two crates meets — one on
+## another or side by side, where their posts leave the planking short of the corners —
+## where art-lint probes the box's sides.
+const STORES_CORE := 0.025
 ## A writing desk: its top board, the leather let into it INSET in from its edges, and
 ## a drawer's panel every DRAWER along its front.
 const DESK_BOARD := 0.035
@@ -244,8 +249,11 @@ static func clear_along(
 
 ## Stores stacked over [param area] from [param bottom] to [param top]: stowed crates
 ## (CargoHold.crate) side by side across it, STORES_CRATE a side or the most that fit, and
-## one on another, the largest that fits under its top, up to it.
+## one on another, the largest that fits under its top, up to it, round their dark
+## core STORES_CORE in from the box.
 static func stores(mesh: ShipMesh, area: Rect2, bottom: float, top: float) -> void:
+	var core := area.grow(-STORES_CORE)
+	mesh.box(core, bottom, top - STORES_CORE, ShipPaints.dark, ShipMesh.SIDES | ShipMesh.TOP)
 	var across := Vector2i(
 		maxi(1, roundi(area.size.x / STORES_CRATE)), maxi(1, roundi(area.size.y / STORES_CRATE))
 	)
