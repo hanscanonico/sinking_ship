@@ -17,7 +17,7 @@ const BEFORE := {
 }
 const TRAWLER_GALLEY_BEFORE := 440
 ## The most faces a room of service may stand in all, its modelled pans, pots, ladles,
-## dressers, wall bars and mail sacks too: her galley, the worst, draws 14554.
+## dressers, wall bars and mail sacks too: her galley, the worst, draws 14370.
 const CEILING := 15600
 
 var _rules: BrawlRules
