@@ -16,6 +16,7 @@ extends RefCounted
 ##   --quality=low|medium|high  --render-scale=F  --bake-budget=MS  --phys=H:MM:SS  --jump
 ##   --frame-split=S
 ##   --replay=PATH
+##   --bake-cache
 ## --seed, --seats, --ship, --scenario, --hit, --fast and --goal are the match choices
 ## (MatchChoices), each one not given the match data's — --ship a ship of
 ## the Fleet, by name, played in her open-sea scenario, or in --scenario's, one of hers
@@ -60,7 +61,9 @@ extends RefCounted
 ## the split of the frames drawn from the S-th second of the run on; without it nothing
 ## is timed. --replay opens the saved replay at PATH (a .replay the game wrote under
 ## user://replays, or any path) in the replay viewer instead of the menu (R4), and quits
-## with the reason when it cannot be played.
+## with the reason when it cannot be played. --bake-cache takes a sinking baked before
+## for the very same code, data, seed and clock from the BakeCache rather than baking it
+## again, and keeps each one baked — the make targets pass it (BAKE_CACHE=0 drops it).
 ## No menu reaches any of them (D14). --server serves
 ## rooms over WebSocket, headless, on --port and --bind (ServerRules' unless given),
 ## its matches' seeds drawn from --seed when given — its rooms' codes never are — until
@@ -143,6 +146,9 @@ var jump := false
 var frame_split := -1.0
 ## A saved replay to watch instead of playing (--replay, R4); "" to play.
 var replay_path: String = ""
+## Sinkings baked before taken from the BakeCache, and each one baked kept there: a dev
+## tool's, never a player's (--bake-cache).
+var bake_cache := false
 
 
 ## The seconds [param text] says: mm:ss, h:mm:ss or plain seconds.
@@ -224,6 +230,8 @@ static func parse(args: PackedStringArray) -> MatchArgs:
 				parsed.frame_split = value.to_float()
 			"--replay":
 				parsed.replay_path = value
+			"--bake-cache":
+				parsed.bake_cache = true
 			"--net-sim":
 				var conditions := NetConditions.parse(value)
 				if conditions == null:

@@ -7,7 +7,9 @@ extends Node
 ## the clock it reads is the wall's, outside the sim (D2). While the thread bakes a
 ## sinking nothing else may touch it, so whether one is made is asked of the baker
 ## (done()), never of its config; a config that took that very sinking from another
-## (MatchConfig.share_sinking) is the same bake under way.
+## (MatchConfig.share_sinking) is the same bake under way. Given a [member cache] (a dev
+## tool's --bake-cache), a sinking baked before for the very same inputs is taken from it
+## rather than baked, and one baked here is kept in it.
 
 signal baked(config: MatchConfig)
 
@@ -22,6 +24,8 @@ const FRAME_USEC := 16667
 ## The longest the thread rests between steps to keep to a budget, in microseconds.
 const LONGEST_REST := 1000000
 
+## Sinkings baked before, for a dev tool (BakeCache); null, the default, for none.
+var cache: BakeCache
 ## The config whose sinking is wanted, told of once it is made; null for none.
 var _config: MatchConfig
 ## The bake the thread works on — or one made at once, told of the next frame — and the
@@ -155,6 +159,8 @@ func _process(_delta: float) -> void:
 		var worked := _bake
 		_bake = null
 		if worked.made():
+			if cache != null:
+				cache.store(worked.config)
 			_report(worked.config)
 	if _next != null:
 		var next := _next
@@ -185,6 +191,13 @@ func _halt() -> void:
 ## Sets the thread on [param config]'s sinking.
 func _start(config: MatchConfig) -> void:
 	_started_usec = Time.get_ticks_usec()
+	if cache != null and not config.bake_some(0) and cache.take(config):
+		print(
+			(
+				"sinking taken from the bake cache in %.2f s"
+				% [(Time.get_ticks_usec() - _started_usec) / 1e6]
+			)
+		)
 	_bake = Bake.new(config, _budget_usec)
 	if not _bake.made():
 		_task = WorkerThreadPool.add_task(_bake.run, false, "Sinking bake")
