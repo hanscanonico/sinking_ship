@@ -67,6 +67,21 @@ got="$(tools/test_durations.py --log "$WORK/reprint_only.log" --out - | grep -v 
 [[ "$got" == "$(grep -v digests <<<"$expected")" ]] || fail "a path only reprinted in the Run Summary read as:
 $got"
 
+# Two runs, read each on its own (both name their jobs alike), weigh each script
+# the longest either gave it: here the stamina's passed line two minutes later in
+# the second, as if that run had worked out a fixture the first had found ready.
+sed 's/09:48:48\.4204033Z/09:50:48.4204033Z/' "$SAMPLE" >"$WORK/later.log"
+tools/test_durations.py --log "$SAMPLE" --log "$WORK/later.log" --run 38882193885 --run 40063262845 \
+	--out "$WORK/two.tsv" 2>/dev/null || fail "reading two logs failed"
+got="$(grep -v '^#' "$WORK/two.tsv")"
+[[ "$got" == "$(sed 's#test_stamina.gd\t1$#test_stamina.gd\t121#' <<<"$expected")" ]] ||
+	fail "two logs read as:
+$got"
+grep -q '^# .*verify runs 38882193885, 40063262845, 2026-10-16, each script.s longest' "$WORK/two.tsv" ||
+	fail "the header of two runs does not name them and say each script weighs its longest"
+grep -q 'make durations RUN="38882193885 40063262845"' "$WORK/two.tsv" ||
+	fail "the header of two runs does not say how to write the file again"
+
 # A log that times no script, and a run id that is not one, are refused.
 printf 'nothing here\n' | tools/test_durations.py --log - --out "$WORK/none.tsv" 2>/dev/null &&
 	fail "a log timing no script passed"

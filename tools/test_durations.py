@@ -1,5 +1,14 @@
 #!/usr/bin/env python3
-"""Write tests/durations.tsv from a CI verify run's logs: `make durations RUN=ID`.
+"""Write tests/durations.tsv from CI verify runs' logs: `make durations RUN="ID …"`.
+
+A script's seconds depend on the scripts that share its engine: whatever an engine
+works out once for every script that asks — SimFixtures.match_hits, a ship's loaded
+data — is paid by the first script that asks, and a script the shards move away
+from it pays it alone. One run times each script in that run's split, so a split
+dealt from it can land a script timed warm in a shard where it runs cold: dealt
+from run 40058239619 alone, the shards planned at 558 s ran 340–720 s. Given
+several runs, from different splits, each script weighs the longest any of them
+timed it, the most it costs wherever it lands.
 
 Every GitHub Actions log line carries an ISO timestamp. A test script's seconds
 run from GUT's header line for it (its res://tests/unit/... path, alone on the
@@ -18,9 +27,11 @@ them by October 2026); both are cut before a line is read. Left in, a written-ou
 escape hides every "N/M passed." line and the summary banner, and the last script
 of each job, never ended, drops out of the file.
 
-Usage:  tools/test_durations.py --run ID              # fetch run ID's logs with gh, write the file
-        tools/test_durations.py --log FILE [--run ID]  # read a saved log (- for stdin) instead
-        ... [--out FILE]                               # write FILE instead (- for stdout)
+Usage:  tools/test_durations.py --run ID [--run ID …]   # fetch each run's logs with gh, write the file
+        tools/test_durations.py --log FILE [--log FILE …] [--run ID …]
+                                                     # read saved logs (- for stdin) instead; the
+                                                     # runs, if given, only name them in the header
+        ... [--out FILE]                             # write FILE instead (- for stdout)
 """
 
 import re
@@ -76,9 +87,16 @@ def parse(lines) -> tuple[dict[str, float], str]:
     return seconds, first_day
 
 
-def render(seconds: dict[str, float], run: str, day: str) -> str:
-    source = f"verify run {run}, {day}" if run else f"a verify log, {day}"
-    command = f"make durations RUN={run}" if run else "tools/test_durations.py"
+def render(seconds: dict[str, float], runs: list[str], day: str, logs: int = 1) -> str:
+    if len(runs) > 1:
+        source = f"verify runs {', '.join(runs)}, {day}, each script's longest"
+        command = f'make durations RUN="{" ".join(runs)}"'
+    elif runs:
+        source = f"verify run {runs[0]}, {day}"
+        command = f"make durations RUN={runs[0]}"
+    else:
+        source = f"{logs} verify logs, {day}, each script's longest" if logs > 1 else f"a verify log, {day}"
+        command = "tools/test_durations.py"
     lines = [
         f"# Seconds each test script took on a hosted CI runner ({source}), written by `{command}`.",
         "# Timed from GUT's header line for the script to its passed line, or to the next script's when every test is pending; whole seconds.",
@@ -103,30 +121,49 @@ def fetch(run: str) -> list[str]:
     return result.stdout.splitlines()
 
 
+def read(log: str) -> list[str]:
+    if log == "-":
+        return sys.stdin.read().splitlines()
+    return Path(log).read_text(encoding="utf-8").splitlines()
+
+
 def main(argv: list[str]) -> int:
-    options = {"--run": "", "--log": "", "--out": str(DURATIONS)}
+    runs: list[str] = []
+    logs: list[str] = []
+    out = str(DURATIONS)
     while argv:
-        if len(argv) < 2 or argv[0] not in options:
+        if len(argv) < 2 or argv[0] not in ("--run", "--log", "--out"):
             print(__doc__, file=sys.stderr)
             return 2
-        options[argv[0]] = argv[1]
+        flag, value = argv[0], argv[1]
         argv = argv[2:]
-    run, log, out = options["--run"], options["--log"], options["--out"]
-    if run and not run.isdigit():
-        sys.exit(f"test_durations: {run} is not a run id")
-    if log == "-":
-        lines = sys.stdin.read().splitlines()
-    elif log:
-        lines = Path(log).read_text(encoding="utf-8").splitlines()
-    elif run:
-        lines = fetch(run)
+        if flag == "--run":
+            if not value.isdigit():
+                sys.exit(f"test_durations: {value} is not a run id")
+            runs.append(value)
+        elif flag == "--log":
+            logs.append(value)
+        else:
+            out = value
+    if logs:
+        sources = [read(log) for log in logs]
+    elif runs:
+        sources = [fetch(run) for run in runs]
     else:
         print(__doc__, file=sys.stderr)
         return 2
-    seconds, day = parse(lines)
+    # Each run is read on its own, its jobs named as every run names them, and each
+    # script weighs the longest time any run gave it.
+    seconds: dict[str, float] = {}
+    day = ""
+    for lines in sources:
+        timed, first_day = parse(lines)
+        day = day or first_day
+        for script, took in timed.items():
+            seconds[script] = max(seconds.get(script, 0.0), took)
     if not seconds:
         sys.exit("test_durations: the log times no test script")
-    text = render(seconds, run, day)
+    text = render(seconds, runs, day, len(sources))
     # LF whatever the platform: Windows would write CRLF, a whole-file diff of the
     # committed file on every refresh.
     if out == "-":
