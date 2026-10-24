@@ -126,6 +126,7 @@ A prop placed a hundred times is parsed once.
 | `iceberg_tabular` | `IcebergPlanner`, one berg a match, drawn by `Iceberg` | world | 2914 |
 | `iceberg_drydock` | `IcebergPlanner`, one berg a match, drawn by `Iceberg` | world | 2930 |
 | `iceberg_wedge` | `IcebergPlanner`, one berg a match, drawn by `Iceberg` | world | 2912 |
+| `growler_a`, `growler_b`, `growler_c` | `IcebergPlanner`, five to eight growlers round the berg | world | 498, 462, 446 |
 
 ## Triangle budgets
 
@@ -409,6 +410,16 @@ sea a little over the waterline; then decimated to about 2,200 triangles over th
 sea and 700 under it, the waterline cut through, the top, foot and width stood back
 to the measure, nothing under the sea left nearer her than the ice over it, and the
 spur put back on. Detail finer than a scallop is the shader's.
+
+The growlers are world models too, the bits of ice a berg has shed: `IcebergPlanner`
+floats five to eight of `GROWLERS` round its foot, on its side away from her, scaled
+as the berg is and by `GROWLER_SIZE` again, and `Iceberg` draws them with the berg's
+material. Each is modelled to `IcebergPlanner`'s measure for one: the sea at y = 0,
+every face wholly over or under it; its top `GROWLER_RISE` over the sea and its foot
+`GROWLER_DRAUGHT` under it; square on its middle each way and `GROWLER_SPAN` across
+the longer way; with the bergs' material, colours and shading, and no spur. They
+were worn from blobs the way the bergs were: remeshed, warped, scalloped, one cut
+flat where it calved, and decimated to a few hundred triangles each.
 
 ## Building by script
 
