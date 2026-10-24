@@ -116,6 +116,11 @@ A prop placed a hundred times is parsed once.
 | `sideboard_180`, `sideboard_64` | `LinerDining._sideboard` and `CabinDressing._sideboard`, by length (`CabinDressing.SIDEBOARDS`) | furniture | 288, 304 |
 | `dining_chair` | `LinerDining.laid_table`, one under each edge of a laid table | wall decor | 57 |
 | `serving_hatch` | `LinerDining._hatch`, a plain dining saloon's wall nearest the galley | furniture | 120 |
+| `stowed_boat` | `DeckFurniture.boat`, a boat stowed on chocks at each of her boat stations | hero | 1350 |
+| `boat_davit` | `DeckFurniture.boat`, a Welin davit at either end of each boat stowed on chocks | furniture | 350 |
+| `cowl_vent_45`, `cowl_vent_30` | `DeckFurniture.vent`, a ventilator by its trunk's radius (`VENTS`) | hero | 848 each |
+| `mushroom_vent` | `DeckFurniture.vent`, a ventilator a hop up (`VENTS`) | furniture | 276 |
+| `deck_bench` | `DeckFurniture.bench`, a short box seat on an open deck | furniture | 238 |
 | `iceberg_tabular` | `IcebergPlanner`, one berg a match, drawn by `Iceberg` | world | 764 |
 | `iceberg_drydock` | `IcebergPlanner`, one berg a match, drawn by `Iceberg` | world | 896 |
 | `iceberg_wedge` | `IcebergPlanner`, one berg a match, drawn by `Iceberg` | world | 596 |
@@ -315,6 +320,27 @@ count as many times as it is placed. Each model belongs to a class with a ceilin
     architrave `HATCH_RIM` round it, its shelf `HATCH_SILL` thick and out under that,
     its brackets `HATCH_BRACKET` under the shelf. Its shutters are painted `teak`,
     swapped for the saloon's shutter paint.
+  - `stowed_boat`: on the deck under the middle of its keel, x along it; its box over all
+    `DeckFurniture.STOWED_BOAT` long over its stems and tall to its stem heads,
+    `BOAT_BEAM` across, its keel on two chocks. Its blocker is the box from the deck's
+    edge in (`STOWED_BOAT.z`), the boat `BOAT_OFF` in from the edge. A boat curves away
+    from a box's corners, so art-lint holds its stem heads, its stems, its gunwale on
+    the inboard side and its davits' feet to the box (`_boat_probes`), not every face.
+  - `boat_davit`: on the deck at the deck's edge under the davit's middle, x along the
+    edge, z in from it; its frame in the `BOAT_OFF` the boat leaves, its arm leaning in
+    over the boat to its head at `DAVIT_HEAD`, its fall down to the boat's cover; its box
+    `DAVIT_BOX`, inside the boat's. `DeckFurniture.boat` stands one `DAVIT_IN` in from
+    each end of the box.
+  - `cowl_vent_NN`, `mushroom_vent`: on the deck at the trunk's axis, a cowl's mouth
+    forward (+x); made for a trunk NN hundredths of a metre round, one of
+    `DeckFurniture.VENTS`, and as tall over its axis as `VENT_HEIGHTS` gives, the
+    blocker's height. Under `HEAD_ROOM` nothing of it stands outside the trunk's
+    footprint; over it a cowl reaches no more than `COWL_REACH` past it. A cowl is
+    painted `buff` outside and `red_lead` inside.
+  - `deck_bench`: on the deck under the middle of its box, x along it, z out of its
+    front; `DeckFurniture.BENCH` long, tall to its seat and deep, solid under its seat,
+    its back `BENCH_RISE` and its arms `ARM_RISE` over the seat, under a step.
+    `DeckFurniture.bench` turns its back to whatever stands behind it (`back_of`).
 - **Paints.** One material per paint, named exactly after a `ShipPaints` entry
   (`white`, `teak`, `canvas`, `rope`, `dark`, `steel`, `brass`…). The material's
   name is all the game reads: the colour comes from the paint and the ship shader's
