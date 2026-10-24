@@ -63,10 +63,13 @@ func before_all() -> void:
 
 
 ## Whether [param middle] stands in one of [param room]'s furniture boxes, on its sides
-## or its top.
+## or its top — a seat's arms and back over it too (FurnitureDressing.BACK_RISE).
 func _in_furniture(room: ShipRoom, middle: Vector3) -> bool:
 	for box: ShipBlocker in _space.furniture(room):
-		var over := middle.y >= box.bottom - 0.01 and middle.y <= box.top + 0.01
+		var piece := FurnitureDressing.piece_of(box)
+		var seat := piece in [FurnitureDressing.Piece.ARMCHAIR, FurnitureDressing.Piece.SETTEE]
+		var top := box.top + (FurnitureDressing.BACK_RISE if seat else 0.0) + 0.01
+		var over := middle.y >= box.bottom - 0.01 and middle.y <= top
 		if over and box.area.grow(0.01).has_point(Vector2(middle.x, middle.z)):
 			return true
 	return false

@@ -88,7 +88,7 @@ A prop placed a hundred times is parsed once.
 | `deck_pipe_20`, `deck_pipe_13` | `ShipFittings._deck_pipe`, the hawse and spurling pipes' mouths, by radius (`DECK_PIPES`) | furniture | 288, 280 |
 | `bitts` | `MooringGear`, a pair by either side of the open deck at each end of her | furniture | 388 |
 | `rope_coil` | `MooringGear`, a coil of mooring line beside each pair of bitts | furniture | 376 |
-| `stowed_crate_80`, `stowed_crate_70`, `stowed_crate_62` | `CargoHold.crate`, a tween deck's stowed crates, the largest that fits (`STOWED_CRATES`) | furniture | 278 each |
+| `stowed_crate_80`, `stowed_crate_70`, `stowed_crate_62` | `CargoHold.crate`, a tween deck's stowed crates, the largest that fits (`STOWED_CRATES`), and `FurnitureDressing.stores`, a working space's stacks | furniture | 278 each |
 | `crosstree_15`, `crosstree_20`, `crosstree_60` | `DeckWorks.mast`, near each mast's head, the largest no bigger than the mast (`CROSSTREES`) | hero | 660, 660, 740 |
 | `masthead_light` | `DeckWorks.mast`, the steaming light on each mast's fore side | hero | 890 |
 | `mast_cleat` | `DeckWorks.mast`, either side of each mast over its foot | furniture | 198 |
@@ -121,6 +121,8 @@ A prop placed a hundred times is parsed once.
 | `cowl_vent_45`, `cowl_vent_30` | `DeckFurniture.vent`, a ventilator by its trunk's radius (`VENTS`) | hero | 848 each |
 | `mushroom_vent` | `DeckFurniture.vent`, a ventilator a hop up (`VENTS`) | furniture | 276 |
 | `deck_bench` | `DeckFurniture.bench`, a short box seat on an open deck | furniture | 238 |
+| `armchair` | `FurnitureDressing.seat`, a room's seat no larger either way than `ARMCHAIR_SIDE` | furniture | 376 |
+| `settee` | `FurnitureDressing.seat`, a room's seat `SETTEE_DEPTH` deep or deeper | hero | 476 |
 | `iceberg_tabular` | `IcebergPlanner`, one berg a match, drawn by `Iceberg` | world | 764 |
 | `iceberg_drydock` | `IcebergPlanner`, one berg a match, drawn by `Iceberg` | world | 896 |
 | `iceberg_wedge` | `IcebergPlanner`, one berg a match, drawn by `Iceberg` | world | 596 |
@@ -341,6 +343,13 @@ count as many times as it is placed. Each model belongs to a class with a ceilin
     front; `DeckFurniture.BENCH` long, tall to its seat and deep, solid under its seat,
     its back `BENCH_RISE` and its arms `ARM_RISE` over the seat, under a step.
     `DeckFurniture.bench` turns its back to whatever stands behind it (`back_of`).
+  - `armchair`, `settee`: on the floor under the middle of the seat's box, x along it, z
+    out of its front; `FurnitureDressing.ARMCHAIR` and `SETTEE` long, tall to the seat
+    and deep, solid to the seat on short feet, the arms `ARM_RISE` and the back
+    `BACK_RISE` over the seat, under a step, where a body standing on it has its feet.
+    The body is painted `upholstery`, the cushions `linen` and the feet and rail `teak`,
+    each swapped for its room's (`FurnitureDressing._coverings`): leather in the smoking
+    room, wicker under cushions in the café and the reception room, velvet elsewhere.
 - **Paints.** One material per paint, named exactly after a `ShipPaints` entry
   (`white`, `teak`, `canvas`, `rope`, `dark`, `steel`, `brass`…). The material's
   name is all the game reads: the colour comes from the paint and the ship shader's

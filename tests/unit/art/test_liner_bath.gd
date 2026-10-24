@@ -67,7 +67,8 @@ func _drawn(draw: Callable) -> PackedVector3Array:
 
 
 ## How many triangles of [param faces] stand in [param room]: their middle over its
-## area, between its floor and its ceiling.
+## area, between its floor and its ceiling — under it, for what stands on it is the
+## room's over it (the reception room's chairs, over the Turkish bath).
 func _in_room(faces: PackedVector3Array, room: ShipRoom) -> int:
 	var count := 0
 	for index in range(0, faces.size(), 3):
@@ -75,7 +76,7 @@ func _in_room(faces: PackedVector3Array, room: ShipRoom) -> int:
 		if not room.area.grow(0.05).has_point(Vector2(middle.x, middle.z)):
 			continue
 		var ceiling := _space.ceiling(room, middle.x, middle.z)
-		if middle.y >= room.floor_height - 0.05 and middle.y <= ceiling + 0.05:
+		if middle.y >= room.floor_height - 0.05 and middle.y < ceiling:
 			count += 1
 	return count
 
