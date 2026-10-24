@@ -274,12 +274,16 @@ func _shove(then: Dictionary, now: Dictionary, tick: int, cues: Array[AudioCue])
 ## The cargo (SH10), crate by crate from [param then] to [param now] — the two
 ## snapshots' "props": a scrape each SCRAPE_STRIDE a crate slides along the deck, a
 ## thud as it comes down or loses THUD_DROP of its speed in a tick, and a splash as
-## it goes into the sea. The water lifting one off the deck splashes soft; afloat it
-## is silent, and drifting off adrift it makes no second splash.
+## it goes into the sea. The water lifting one off the deck splashes soft — a flooding
+## saloon's furniture one piece a tick at most; afloat it is silent, and drifting off
+## adrift it makes no second splash. One still and as it was makes nothing.
 func _cargo(then: Array, now: Array, tick: int, cues: Array[AudioCue]) -> void:
+	var furniture_lifted := false
 	for index in now.size():
 		var entry: Dictionary = now[index]
 		var before: Dictionary = then[index]
+		if entry == before and entry["vel"] == Vector3.ZERO:
+			continue
 		var state: PropState.Body = entry["state"]
 		var was_state: PropState.Body = before["state"]
 		if state == PropState.Body.LOST:
@@ -287,10 +291,12 @@ func _cargo(then: Array, now: Array, tick: int, cues: Array[AudioCue]) -> void:
 				cues.append(_at_crate(AudioCue.Kind.SPLASH, tick, entry))
 			continue
 		if state == PropState.Body.FLOATING:
-			if was_state != PropState.Body.FLOATING:
+			var furniture := PropArt.FURNITURE.has(_layout.props[index].kind)
+			if was_state != PropState.Body.FLOATING and not (furniture and furniture_lifted):
 				var lifted := _at_crate(AudioCue.Kind.SPLASH, tick, entry)
 				lifted.gain = AFLOAT_GAIN
 				cues.append(lifted)
+				furniture_lifted = furniture_lifted or furniture
 			continue
 		var vel: Vector3 = entry["vel"]
 		var was: Vector3 = before["vel"]

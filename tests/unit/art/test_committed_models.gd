@@ -116,7 +116,8 @@ func _rows() -> Dictionary:
 		["furniture", _is_the_sideboard_made_for.bind(_dining_sideboard(), "sideboard_180")],
 		"sideboard_64":
 		["furniture", _is_the_sideboard_made_for.bind(CabinDressing.SIDEBOARD, "sideboard_64")],
-		"dining_chair": ["wall decor", _seats_the_chair_inside_its_table_s_box],
+		"dining_chair": ["wall decor", _stands_inside_its_prop.bind(&"dining_chair")],
+		"dining_table": ["furniture", _stands_inside_its_prop.bind(&"dining_table")],
 		"serving_hatch": ["furniture", _hangs_the_serving_hatch_in_its_wall],
 		"stowed_boat": ["hero", _fills_the_stowed_boat_s_box_over_its_keel],
 		"boat_davit": ["furniture", _fills_its_box.bind(DeckFurniture.DAVIT_BOX, "boat davit")],
@@ -862,16 +863,30 @@ func _is_the_sideboard_made_for(box: AABB, wanted: AABB, model: String) -> void:
 	assert_almost_eq(box.size.x, wanted.size.x, PART, "%s: its length" % model)
 
 
-## A dining chair tucked under a laid table: LinerDining.CHAIR wide, square across the
-## table box's side, its back ShipMesh.SLIVER inside it, its crest CHAIR_HEIGHT over the
-## floor, its front legs CHAIR_DEPTH in.
-func _seats_the_chair_inside_its_table_s_box(box: AABB) -> void:
-	assert_almost_eq(box.size.x, LinerDining.CHAIR.x, PART, "chair: its width")
-	assert_almost_eq(box.get_center().x, 0.0, PART, "chair: square on its side")
-	assert_almost_eq(box.position.y, 0.0, 0.001, "chair: on the floor")
-	assert_almost_eq(box.end.y, LinerDining.CHAIR_HEIGHT, PART, "chair: its crest")
-	assert_almost_eq(box.end.z, -ShipMesh.SLIVER, 0.001, "chair: its back inside the box")
-	assert_almost_eq(box.position.z, -LinerDining.CHAIR_DEPTH, PART, "chair: its front legs")
+## A piece of furniture that is a prop of its own (PropArt.FURNITURE): on the floor under
+## the middle of its circle, inside its kind's circle (PropKind.radius) and filling it, no
+## taller than its kind — its top its lid where a body stands on one (PropKind.lid) — and
+## its front along +z: a chair's back, the highest of it, behind its middle.
+func _stands_inside_its_prop(box: AABB, kind_name: StringName) -> void:
+	var kind := PropKind.named(kind_name)
+	var name := String(kind_name)
+	assert_almost_eq(box.position.y, 0.0, 0.001, name + ": on the floor")
+	assert_lte(box.end.y, kind.height + 0.0001, name + ": no taller than its kind")
+	if kind.lid:
+		assert_almost_eq(box.end.y, kind.height, TOLERANCE, name + ": its top its lid")
+	var reach := 0.0
+	var crest := -INF
+	var crest_z := 0.0
+	for surface: ShipModel.Surface in ShipModel.named(name).surfaces:
+		for point: Vector3 in surface.points:
+			reach = maxf(reach, Vector2(point.x, point.z).length())
+			if point.y > crest:
+				crest = point.y
+				crest_z = point.z
+	assert_lte(reach, kind.radius, name + ": inside its circle")
+	assert_gt(reach, kind.radius - 3.0 * TOLERANCE, name + ": filling it")
+	if not kind.lid:
+		assert_lt(crest_z, 0.0, name + ": its back behind it, its front along +z")
 
 
 ## A plain saloon's serving hatch: its opening LinerDining.HATCH each way from its

@@ -124,9 +124,15 @@ var _pieces: Pieces
 ## draws: what a climb, a shove or a look meets is the ship as that tick has it, and
 ## the sim's stays the sim's.
 var _surfaces: Surfaces
+## The crates of the snapshot drawn, and that snapshot's crate entries they were made
+## from: made again only for another snapshot's.
+var _crates: Array[PropState] = []
+var _crates_of: Array = []
 var _rules: BrawlRules
-## The ship's layout: what each prop is (#273).
+## The ship's layout: what each prop is (#273); and the props a hand may hold
+## (GrabReach.holdable_of).
 var _layout: ShipLayout
+var _holdable := PackedInt32Array()
 var _names := PackedStringArray()
 var _eyes: bool
 ## Whether the view is the free camera rather than the seat's eyes: drawn as the
@@ -189,6 +195,7 @@ func setup(sim: MatchSim, names: PackedStringArray, eyes: bool, prompts: InputPr
 	)
 	_rules = sim.config.rules
 	_layout = sim.config.ship
+	_holdable = GrabReach.holdable_of(_layout)
 	_names = names
 	_eyes = eyes
 	_prompts = prompts
@@ -225,7 +232,10 @@ func _draw_hud() -> void:
 	var pose := whole.of_piece(piece)
 	# As the snapshot has them: the railings the match has broken, and its crates.
 	var broken := MatchState.broken_in(_snapshot["railing_hp"])
-	var props := PropState.from_snapshot(_snapshot)
+	if not is_same(_crates_of, _snapshot["props"]):
+		_crates_of = _snapshot["props"]
+		_crates = PropState.from_snapshot(_snapshot)
+	var props := _crates
 	var deck := _surfaces
 	if piece == 0:
 		_surfaces.honour(whole, broken, props)
@@ -254,7 +264,8 @@ func _draw_hud() -> void:
 	if me["state"] == PlayerState.Body.SWIMMING:
 		_draw_climb_prompt(mine, here, faces.framed(pose, up))
 	else:
-		var words := grab_words(framed, _seat, _layout, _rules, here, _prompts.word(&"grab"))
+		var grab := _prompts.word(&"grab")
+		var words := grab_words(framed, _seat, _layout, _rules, here, grab, _holdable)
 		if not words.is_empty():
 			_text(_canvas.size * 0.5 + PROMPT_BELOW, words, TEXT, READOUT_TEXT)
 	_draw_readouts(me, pose.world_height(me["pos"]))
@@ -437,7 +448,9 @@ func _draw_readouts(me: Dictionary, above_sea: float) -> void:
 		var fill := _stamina_colour(me) if slot == "Stamina" else _cold_colour(me)
 		_canvas.draw_rect(Rect2(bar.position, Vector2(bar.size.x * share, bar.size.y)), fill)
 		_canvas.draw_rect(bar, Color(TEXT, 0.35), false, 1.5)
-		var lasting := warmth_words(_snapshot, _seat, _layout) if slot == "Warmth" else ""
+		var lasting := (
+			warmth_words(_snapshot, _seat, _layout, _holdable) if slot == "Warmth" else ""
+		)
 		if not lasting.is_empty():
 			var beside := at + Vector2(bar.end.x - at.x + 10.0, 0.0)
 			_text(beside, lasting, Color(TEXT, 0.6), READOUT_TEXT, HORIZONTAL_ALIGNMENT_LEFT)
@@ -446,22 +459,25 @@ func _draw_readouts(me: Dictionary, above_sea: float) -> void:
 ## What the prompt under the crosshair says of grabbing (#273) for [param seat] in
 ## [param snapshot] of a match on [param layout], its key [param key]: what a Grab press
 ## would take, as GrabReach says the sim would, or with the hands full what it would let
-## go of; empty with neither, and in the sea, where the climb's prompt stands.
+## go of; empty with neither, and in the sea, where the climb's prompt stands. Only
+## [param holdable] (GrabReach.holdable_of) are asked of, of none given every one.
 static func grab_words(
 	snapshot: Dictionary,
 	seat: int,
 	layout: ShipLayout,
 	rules: BrawlRules,
 	surfaces: Surfaces,
-	key: String
+	key: String,
+	holdable := PackedInt32Array()
 ) -> String:
 	var me := MatchState.entry_of(snapshot["seats"], seat)
 	if me.is_empty() or me["out"] or me["state"] == PlayerState.Body.SWIMMING:
 		return ""
-	var held := PropState.held_in(snapshot, seat)
+	var among := holdable if not holdable.is_empty() else GrabReach.holdable_of(layout)
+	var held := PropState.held_in(snapshot, seat, among)
 	if held != -1:
 		return "%s — let go of the %s" % [key, _prop_name(layout, held)]
-	var taken := GrabReach.would_take(snapshot, seat, layout, rules, surfaces)
+	var taken := GrabReach.would_take(snapshot, seat, layout, rules, surfaces, among)
 	if taken == -1:
 		return ""
 	return "%s — grab the %s" % [key, _prop_name(layout, taken)]
@@ -469,9 +485,11 @@ static func grab_words(
 
 ## What the warmth readout says beside its bar for [param seat] in [param snapshot] of a
 ## match on [param layout]: holding a prop that keeps it afloat, how many times longer
-## its meter lasts in the sea; empty otherwise.
-static func warmth_words(snapshot: Dictionary, seat: int, layout: ShipLayout) -> String:
-	var held := PropState.held_in(snapshot, seat)
+## its meter lasts in the sea; empty otherwise. Only [param holdable] are asked of.
+static func warmth_words(
+	snapshot: Dictionary, seat: int, layout: ShipLayout, holdable := PackedInt32Array()
+) -> String:
+	var held := PropState.held_in(snapshot, seat, holdable)
 	if held == -1:
 		return ""
 	var rate := PropKind.sea_rate(layout.props[held].prop_kind())

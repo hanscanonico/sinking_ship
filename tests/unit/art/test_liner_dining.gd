@@ -1,8 +1,9 @@
 extends GutTest
 ## LinerDining on the Titanic: her four dining saloons dressed by rule from their
-## walls — more to them than the saloon's dressing they had, within a budget. That
-## nothing the whole ship's dressing draws stands in a body's way is
-## test_dressing_clear's.
+## walls — more to them than the saloon's dressing they had, within a budget; her laid
+## tables and chairs props of their own (test_titanic_saloons), her third-class saloons'
+## long tables mess tables. That nothing the whole ship's dressing draws stands in a
+## body's way is test_dressing_clear's.
 
 const FurnishingCheck := preload("res://tools/furnishing_check.gd")
 const RunMatch := preload("res://tools/run_match.gd")
@@ -17,9 +18,9 @@ const SALOONS: Array[StringName] = [
 ## saloon's, the worst, 11616, its capitals, sconces, electroliers and sideboards
 ## modelled.
 const BUDGET := 12400
-## The most triangles a saloon may stand in all, its tables too: the first-class
-## saloon's draws 25376, its 216 chairs modelled.
-const CEILING := 27200
+## The most triangles a saloon may stand in all, its mess tables too — its laid tables
+## and chairs are props, drawn apart (PropArt): the first-class saloon's draws 11616.
+const CEILING := 12400
 
 var _titanic: ShipLayout
 var _rules: BrawlRules
@@ -156,8 +157,7 @@ func test_a_dining_saloon_lines_its_walls_floor_ceiling_and_beams() -> void:
 		assert_not_null(paint)
 
 
-## The faces of [param faces] wholly inside [param blocker]'s box, or lying on its top
-## no more than a setting over it.
+## The faces of [param faces] wholly inside [param blocker]'s box.
 func _in_box(faces: PackedVector3Array, blocker: ShipBlocker) -> int:
 	var area := blocker.area.grow(0.002)
 	var count := 0
@@ -167,7 +167,7 @@ func _in_box(faces: PackedVector3Array, blocker: ShipBlocker) -> int:
 			if (
 				not area.has_point(Vector2(corner.x, corner.z))
 				or corner.y < blocker.bottom - 0.002
-				or corner.y > blocker.top + LinerDining.SETTING + 0.002
+				or corner.y > blocker.top + 0.002
 			):
 				inside = false
 		if inside:
@@ -175,8 +175,8 @@ func _in_box(faces: PackedVector3Array, blocker: ShipBlocker) -> int:
 	return count
 
 
-func test_every_saloon_s_table_is_drawn_in_its_box_within_a_budget() -> void:
-	for room_name: StringName in SALOONS:
+func test_every_mess_table_is_drawn_in_its_box_within_a_budget() -> void:
+	for room_name: StringName in SALOONS.slice(2):
 		var tables := _space.furniture(_room(room_name))
 		assert_gt(tables.size(), 0, room_name)
 		for blocker: ShipBlocker in tables:
@@ -187,42 +187,14 @@ func test_every_saloon_s_table_is_drawn_in_its_box_within_a_budget() -> void:
 			)
 
 
-func test_every_laid_table_seats_its_chairs_under_its_top() -> void:
-	for room_name: StringName in SALOONS:
-		for blocker: ShipBlocker in _space.furniture(_room(room_name)):
-			if LinerDining.long_table(blocker.area):
-				continue
-			var tall := blocker.top - blocker.bottom
-			var name := "%s table at %s" % [room_name, blocker.area]
-			assert_gte(tall, LinerDining.CHAIR_HEIGHT + LinerDining.CHAIR_UNDER - 0.001, name)
-			var half := minf(blocker.area.size.x, blocker.area.size.y) * 0.5
-			assert_gte(half, LinerDining.CHAIR_DEPTH, name + ": its chairs' legs inside it")
-			assert_gte(half * 2.0, LinerDining.CHAIR.x, name + ": its chairs' backs along it")
-
-
-func test_square_tables_are_laid_and_long_ones_are_mess_tables() -> void:
+func test_only_the_third_class_saloons_keep_tables_of_the_layout_s_long_ones() -> void:
 	for room_name: StringName in SALOONS:
 		var third := String(room_name).begins_with("third")
-		for blocker: ShipBlocker in _space.furniture(_room(room_name)):
+		var tables := _space.furniture(_room(room_name))
+		assert_eq(tables.is_empty(), not third, "%s: its laid tables are props" % room_name)
+		for blocker: ShipBlocker in tables:
 			assert_eq(FurnitureDressing.piece_of(blocker), FurnitureDressing.Piece.TABLE)
-			assert_eq(LinerDining.long_table(blocker.area), third, room_name)
-
-
-func test_a_laid_table_seats_four_with_a_plate_each_all_inside_its_box() -> void:
-	var area := Rect2(-0.6, -0.6, 1.2, 1.2)
-	var faces := _drawn(func(mesh: ShipMesh) -> void: LinerDining.laid_table(mesh, area, 0.0, 0.75))
-	# A cloth's top and four sides, four chairs (CHAIR_MODEL), four plates.
-	var chair := ShipModel.named(LinerDining.CHAIR_MODEL).mesh.get_faces().size() / 3
-	assert_eq(faces.size() / 3, 10 + 4 * chair + 4 * 4)
-	assert_lte(chair, 60, "a chair in no more than sixty triangles")
-	var plates := 0
-	for index in range(0, faces.size(), 3):
-		for corner: Vector3 in faces.slice(index, index + 3):
-			assert_true(area.grow(0.001).has_point(Vector2(corner.x, corner.z)), str(corner))
-			assert_between(corner.y, 0.0, 0.75 + LinerDining.SETTING + 0.001)
-		if faces[index].y > 0.75:
-			plates += 1
-	assert_eq(plates, 4 * 4)
+			assert_true(LinerDining.long_table(blocker.area), room_name)
 
 
 func test_a_mess_table_s_benches_run_its_length_inside_its_box() -> void:
