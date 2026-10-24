@@ -147,3 +147,29 @@ func test_a_match_reset_to_an_earlier_snapshot_plays_it_again_the_same() -> void
 			fail_test("reset to tick %d, it diverged at tick %d" % [start, tick])
 			return
 	pass_test("the reset match matched")
+
+
+func test_a_match_reset_to_its_own_snapshot_keeps_its_crates_as_they_stand() -> void:
+	var played := _played(false)
+	var sim := _started()
+	var start := Ticks.from_seconds(3.0)
+	var then: Dictionary
+	for tick in Ticks.from_seconds(6.0):
+		if tick == start:
+			then = sim.snapshot()
+		sim.step(_frames(tick))
+	var crates := sim.state.props.duplicate()
+	sim.restore(then)
+	var kept := 0
+	for index in crates.size():
+		if is_same(sim.state.props[index], crates[index]):
+			kept += 1
+		assert_true(is_same(sim.state.props[index].to_dict(), then["props"][index]))
+	assert_gt(kept, 0, "a crate still as it stood is kept")
+	assert_lt(kept, crates.size(), "one moved since is made again")
+	for tick in range(start, start + 2 * Ticks.RATE):
+		sim.step(_frames(tick))
+		if sim.snapshot() != played[tick + 1]:
+			fail_test("reset to tick %d, it diverged at tick %d" % [start, tick])
+			return
+	pass_test("the reset match matched")

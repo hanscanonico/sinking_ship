@@ -234,7 +234,7 @@ func _draw_hud() -> void:
 	var broken := MatchState.broken_in(_snapshot["railing_hp"])
 	if not is_same(_crates_of, _snapshot["props"]):
 		_crates_of = _snapshot["props"]
-		_crates = PropState.from_snapshot(_snapshot)
+		_crates = PropState.from_snapshot(_snapshot, _crates)
 	var props := _crates
 	var deck := _surfaces
 	if piece == 0:

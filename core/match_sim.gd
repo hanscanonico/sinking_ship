@@ -128,9 +128,13 @@ static func from_snapshot(snapshot: Dictionary, match_config: MatchConfig) -> Ma
 
 ## Resets this match to [param snapshot], one of its own: what from_snapshot continues
 ## from, without building the ship again — a client predicting does it every snapshot.
+## A crate the snapshot has as this match has it is kept, not made again.
 func restore(snapshot: Dictionary) -> void:
 	assert(snapshot["v"] == SNAPSHOT_VERSION, "snapshot version %s" % snapshot["v"])
-	state = MatchState.from_dict(snapshot)
+	var kept: Array[PropState] = []
+	if state != null:
+		kept = state.props
+	state = MatchState.from_dict(snapshot, kept)
 	_honour(pose())
 
 
