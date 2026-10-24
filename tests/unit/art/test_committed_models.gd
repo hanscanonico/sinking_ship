@@ -124,6 +124,9 @@ func _rows() -> Dictionary:
 		"cowl_vent_30": ["hero", _is_the_ventilator_made_for.bind(0.3, "cowl_vent_30")],
 		"mushroom_vent": ["furniture", _is_the_ventilator_made_for.bind(0.25, "mushroom_vent")],
 		"deck_bench": ["furniture", _fills_the_bench_s_box_its_back_under_a_step],
+		"armchair":
+		["furniture", _fills_the_seat_s_box.bind(FurnitureDressing.ARMCHAIR, "armchair")],
+		"settee": ["hero", _fills_the_seat_s_box.bind(FurnitureDressing.SETTEE, "settee")],
 		"iceberg_tabular": [WORLD, _stands_to_the_iceberg_planner_s_measure],
 		"iceberg_drydock": [WORLD, _stands_to_the_iceberg_planner_s_measure],
 		"iceberg_wedge": [WORLD, _stands_to_the_iceberg_planner_s_measure],
@@ -361,6 +364,18 @@ func _fills_the_bench_s_box_its_back_under_a_step(box: AABB) -> void:
 	assert_lt(
 		DeckFurniture.ARM_RISE, DeckFurniture.BENCH_RISE, "deck bench: its arms under its back"
 	)
+
+
+## A room's seat (FurnitureDressing.ARMCHAIR_MODEL, SETTEE_MODEL): from the floor under the
+## middle of its box, [param size] long, tall to its seat and deep, its back BACK_RISE
+## over its seat and its arms ARM_RISE, both under a step.
+func _fills_the_seat_s_box(box: AABB, size: Vector3, name: String) -> void:
+	var half := Vector3(size.x, 0.0, size.z) * 0.5
+	var high := half + Vector3.UP * (size.y + FurnitureDressing.BACK_RISE)
+	assert_almost_eq(box.position, -half, Vector3.ONE * TOLERANCE, name + ": low")
+	assert_almost_eq(box.end, high, Vector3.ONE * TOLERANCE, name + ": high")
+	assert_lt(FurnitureDressing.BACK_RISE, _rules.step_height, name + ": its back under a step")
+	assert_lt(FurnitureDressing.ARM_RISE, FurnitureDressing.BACK_RISE, name + ": its arms under it")
 
 
 ## A crosstree [param model] made for a mast of [param radius] (DeckWorks.CROSSTREES):

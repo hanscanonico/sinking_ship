@@ -75,6 +75,10 @@ const MACHINE := Color("3b4a3f")
 const STEEL := Color("70757c")
 const BRASS := Color("b8913a")
 const UPHOLSTERY := Color("7a2e2a")
+## A public room's armchairs' and settees' velvet, and a card table's baize
+## (FurnitureDressing).
+const VELVET := Color("8c4f57")
+const BAIZE := Color("35603f")
 const BLANKET := Color("41557a")
 const LINEN := Color("e9e4d6")
 const CRATE := Color("9c7a4c")
