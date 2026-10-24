@@ -1782,9 +1782,9 @@ DECK_VENTS = [(name, x, sign * z, r, deck) for name, x, z, r, deck in [
     ("forward_well", 88.0, 7.0, 0.3, 0.0), ("after_well", -97.0, 4.5, 0.3, 0.0), ("poop", -112.0, 5.0, 0.3, POOP),
     ("lounge_mushroom", -15.0, 1.5, 0.25, BOAT)] for sign in (-1, 1)]
 DECK_VENTS += [("aft_staircase_mushroom", -51.5, 0.0, 0.25, BOAT), ("gymnasium_mushroom", 5.5, 0.0, 0.25, BOAT)]
-for name, x, z, r, deck in DECK_VENTS:
+for name, x, z, r, foot in DECK_VENTS:
     side = "" if z == 0.0 else ("_s" if z > 0.0 else "_p")
-    cylinder("vent_%s%s" % (name, side), x, z, r, deck, deck + VENTS[r])
+    cylinder("vent_%s%s" % (name, side), x, z, r, foot, foot + VENTS[r])
 # Benches, teak seats with low backs, BENCH long, deep and tall, each backed onto what
 # stands behind it: along her boat deck's skylights, facing out; along A deck's house on
 # both its promenades between its doors, a bench every BENCH_PITCH; and against the à la
@@ -1998,6 +1998,18 @@ _problems = [problem for candidate in ROOM_PIECES for problem in piece_problems(
 assert not _problems, "\n".join(_problems)
 for bid, x0, x1, z0, z1, floor, top in ROOM_PIECES:
     box(bid, x0, x1, z0, z1, floor, top)
+
+# --- The F deck rooms over boiler rooms 4 and 5 roofed under E deck, after every other
+# blocker so none of theirs moves: a slab on their walls' tops over each room, as the
+# houses' roofs are (no deck of anyone's: nothing over them is a place), inboard of
+# Scotland Road and round the grand staircase's own floor, capping the casings walled up
+# to it — without it the rooms, and the stokeholds up their fiddleys, stood open to the
+# void over them, and to the sea drawn in it once she sank by the head.
+for tag, x0, x1, side, holes in [("br4", BX["G"], BX["F"], SALOON_Z, [(GS[0], GS[1], SR_Z[1], 6.0)]),
+                                 ("br5", BX["F"], BX["E"], BR5_Z, [])]:
+    for rid, z0, z1 in [("corridor", SR_Z[1], BATHS_Z), ("baths", BATHS_Z, side)]:
+        for k, (a, b, s0, s1) in enumerate(deck_pieces(x0, x1, z0, z1, holes)):
+            box("%s_%s_roof_%d" % (rid, tag, k), a, b, s0, s1, E_DECK - 2 * T, E_DECK)
 
 # The seats a match on her takes (§SH34): four to sixteen; more is SH21.
 SEATS = (4, 16)

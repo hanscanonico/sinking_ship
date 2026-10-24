@@ -1,19 +1,24 @@
 class_name Iceberg
 extends Node3D
 ## The iceberg she strikes, drawn where IcebergPlanner has it at the drawn tick: on the
-## sea, level, whatever she does — in the frame she lay in as it struck. Nothing for a
-## match without a hit. Presentation only: no collision, nothing it does reaches the
-## sim (D12).
+## sea, level, whatever she does — in the frame she lay in as it struck — and the
+## growlers it has shed afloat round it, rocking. Nothing for a match without a hit.
+## Presentation only: no collision, nothing it does reaches the sim (D12).
 
 var _planner: IcebergPlanner
 ## From the sea's frame (IcebergPlanner) to the world: her ship-local x and z as she
 ## lay when it struck, level, the sea at y = 0.
 var _sea_to_world := Transform3D()
 var _mesh := MeshInstance3D.new()
+## One a growler, in IcebergPlanner.growlers()'s order, each in the berg's own frame.
+var _growlers: Array[MeshInstance3D] = []
 var _material := ShaderMaterial.new()
 var _sky: ShaderMaterial
 var _water: ShaderMaterial
 var _dusk: Environment
+
+## Each growler's model as a mesh, by name: made once a process.
+static var _growler_meshes := {}
 
 
 func _init() -> void:
@@ -32,6 +37,9 @@ func setup(
 ) -> void:
 	_planner = IcebergPlanner.for_match(schedule, layout, match_seed)
 	visible = _planner != null
+	for growler in _growlers:
+		growler.queue_free()
+	_growlers.clear()
 	if _planner == null:
 		return
 	var struck := schedule.pose_at(schedule.hit_tick()).transform
@@ -41,6 +49,14 @@ func setup(
 		Basis(bow, Vector3.UP, bow.cross(Vector3.UP)), Vector3(at_sea.x, 0.0, at_sea.z)
 	)
 	_mesh.mesh = mesh_of(_planner)
+	var growlers := _planner.growlers()
+	for index in growlers.size():
+		var growler := MeshInstance3D.new()
+		growler.name = "Growler%d" % index
+		growler.mesh = growler_mesh(growlers[index].model)
+		growler.material_override = _material
+		add_child(growler)
+		_growlers.append(growler)
 	_dusk = sea_and_sky.dusk()
 	_sky = _dusk.sky.sky_material
 	_material.set_shader_parameter(&"fog_begin", _dusk.fog_depth_begin)
@@ -58,6 +74,8 @@ func show_at(tick: float, under: bool) -> void:
 	if _planner == null:
 		return
 	global_transform = _sea_to_world * _planner.pose_at(tick)
+	for index in _growlers.size():
+		_growlers[index].transform = _planner.growler_at(index, tick)
 	_material.set_shader_parameter(&"under", under)
 	_take(_sky, [&"gloom"])
 	_material.set_shader_parameter(&"fog_colour", _dusk.fog_light_color)
@@ -74,8 +92,23 @@ func _take(material: ShaderMaterial, parameters: Array[StringName]) -> void:
 
 ## [param planner]'s berg as a mesh: shaded as modelled, each face its own colour.
 static func mesh_of(planner: IcebergPlanner) -> ArrayMesh:
-	var corners := planner.shape()
-	var shades := planner.shades()
+	return _faces(planner.shape(), planner.normals(), planner.shades())
+
+
+## The growler modelled as [param model] (IcebergPlanner.GROWLERS) as a mesh, as big as
+## modelled: shaded as modelled, each face its own colour.
+static func growler_mesh(model: String) -> ArrayMesh:
+	if not _growler_meshes.has(model):
+		var growler := IcebergPlanner.model_of(model)
+		_growler_meshes[model] = _faces(growler.corners, growler.normals, growler.shades)
+	return _growler_meshes[model]
+
+
+## A mesh of [param corners], three a face, with [param normals] at them and each
+## face's colour of [param shades].
+static func _faces(
+	corners: PackedVector3Array, normals: PackedVector3Array, shades: PackedColorArray
+) -> ArrayMesh:
 	var colours := PackedColorArray()
 	for face in corners.size() / 3:
 		for corner in 3:
@@ -83,7 +116,7 @@ static func mesh_of(planner: IcebergPlanner) -> ArrayMesh:
 	var arrays := []
 	arrays.resize(Mesh.ARRAY_MAX)
 	arrays[Mesh.ARRAY_VERTEX] = corners
-	arrays[Mesh.ARRAY_NORMAL] = planner.normals()
+	arrays[Mesh.ARRAY_NORMAL] = normals
 	arrays[Mesh.ARRAY_COLOR] = colours
 	var mesh := ArrayMesh.new()
 	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)

@@ -10,6 +10,7 @@ const SIZES: Array[Vector2] = [
 ## As match.tscn's Spectating label draws it.
 const FONT_SIZE := 22
 const OUTLINE := 6
+const WITH_HER := PlayerState.Cause.WITH_HER
 
 
 func test_the_line_names_whose_view_it_is() -> void:
@@ -70,12 +71,18 @@ func test_the_line_says_how_into_the_free_camera_and_back() -> void:
 		"Overboard — 3rd of 8   ·   watching Bot 3\nQ / E to switch",
 		"no free camera from the observer's"
 	)
+	assert_eq(
+		Hud.spectating_text("3rd", 8, "watching Bot 3", "Q", "E", "", false, WITH_HER),
+		"Sunk — 3rd of 8   ·   watching Bot 3\nQ / E to switch",
+		"inside her as she went, never overboard"
+	)
 
 
 ## The longest name the line shows — clipped to Hud.NAME_WIDTH as the HUD clips it, in
-## the font the HUD draws it in — with the keyboard's or the pad's prompts still fits
-## each line in the box, and the box stands clear of the plate and of every arrow a
-## wedge on the bottom edge points with, however wide the canvas.
+## the font the HUD draws it in — with the keyboard's or the pad's prompts, gone
+## overboard or sunk with her, still fits each line in the box, and the box stands
+## clear of the plate and of every arrow a wedge on the bottom edge points with,
+## however wide the canvas.
 func test_the_line_fits_clear_of_the_plate_and_the_wedges() -> void:
 	var narrowest := SIZES[0]
 	var box := Hud.spectating_box(narrowest)
@@ -89,9 +96,11 @@ func test_the_line_fits_clear_of_the_plate_and_the_wedges() -> void:
 		for observer: bool in [false, true]:
 			var whose := Hud.whose_view(widest, false, observer)
 			var key := "" if observer else free
-			lines.append_array(
-				Hud.spectating_text("16th", 16, whose, previous, next, key).split("\n")
-			)
+			for cause: PlayerState.Cause in [PlayerState.Cause.COLD, WITH_HER]:
+				var text := Hud.spectating_text(
+					"16th", 16, whose, previous, next, key, false, cause
+				)
+				lines.append_array(text.split("\n"))
 		lines.append_array(
 			Hud.spectating_text("16th", 16, "", previous, next, free, true).split("\n")
 		)

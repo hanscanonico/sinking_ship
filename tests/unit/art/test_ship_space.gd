@@ -136,12 +136,10 @@ func test_a_wall_up_to_its_ceiling_is_never_raised() -> void:
 
 
 func test_the_titanic_s_tall_rooms_reach_their_deckhead_along_her_hull_sides() -> void:
-	# The Turkish bath's starboard wall stops at E deck, which does not reach it: D deck
-	# roofs it there. The galley's port wall stops at C deck, which stops 1.3 m short of
-	# it: A deck roofs it there.
+	# The galley's port wall stops at C deck, which stops 1.3 m short of it: A deck roofs
+	# it there.
 	var space := ShipSpace.new(load("res://data/ships/titanic.tres"))
 	var cases := [
-		["the bath's", Rect2(19.08, 12.9, 17.48, 0.2), -3.1875],
 		["the galley's", Rect2(-30.1, -13.1, 16.3, 0.2), 5.5],
 	]
 	for case: Array in cases:
