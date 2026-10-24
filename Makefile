@@ -589,6 +589,39 @@ model-sources:
 		--python "$$dir/$$name.py" -- "$$dir/$$name.blend" | { grep -E "^$$name:|^Info: Saved" || true; } \
 		|| exit 1; done
 
+# `make preview SHIP=steamer [SPAN=-20,10] [CUT=6] [ANGLE=quarter] [EYE=x,y,z AT=x,y,z]
+# [LENS=35] [RES=1280x720] [OUT=captures/preview/NAME.png]`: SHIP's dressed art rendered
+# to a PNG with no game window — dressed headless as the menu's backdrop dresses her and
+# written beside OUT as a vertex-coloured .glb (tools/art_preview.gd, ArtGltf), then drawn
+# by Blender headless with Workbench (tools/art_preview.py). SPAN keeps only the stretch
+# along her from x0 aft to x1 fore, cut there; CUT cuts her away at and above that
+# height, as capture's does. EYE and AT are the eye and the point it looks at, in ship
+# space as capture's FROM= and LOOK= take them — the eye itself, not a seat's feet — and
+# LENS its focal length in mm; without them the camera frames all of her from ANGLE:
+# quarter (the default, a three-quarter view from fore and starboard above her), side,
+# top or bow, and the line it prints gives the EYE, AT and LENS it used, to move from. It
+# takes no window lock, so it works while no window can be opened. Not part of verify:
+# it needs Blender, as models does.
+ANGLE ?=
+LENS ?=
+SPAN ?=
+comma := ,
+preview-out = $(if $(OUT),$(OUT),captures/preview/$(SHIP)$(if $(SPAN),_$(subst $(comma),_,$(SPAN)))$(if $(ANGLE),_$(ANGLE))$(if $(EYE),_eye).png)
+preview:
+	$(call require-godot)
+	$(call require-blender)
+	@test -n "$(SHIP)" || { echo "preview: SHIP=<a ship of the fleet> is required" >&2; exit 1; }
+	@test -z "$(EYE)$(AT)" -o -n "$(EYE)" -a -n "$(AT)" || \
+		{ echo "preview: EYE=x,y,z and AT=x,y,z go together" >&2; exit 1; }
+	@mkdir -p "$(dir $(preview-out))"
+	@set -o pipefail; tools/engine_guard.sh $(GODOT) --headless --no-header --path . -s res://tools/art_preview.gd \
+		-- --ship=$(SHIP) --out="$(basename $(preview-out)).glb" $(if $(SPAN),--span=$(SPAN)) \
+		$(if $(CUT),--cut=$(CUT)) | grep -v '^\[godot_ai'
+	@set -o pipefail; "$(BLENDER)" --background --factory-startup --python-exit-code 1 --python tools/art_preview.py \
+		-- "$(basename $(preview-out)).glb" "$(preview-out)" $(if $(EYE),--eye=$(EYE) --at=$(AT)) \
+		$(if $(ANGLE),--view=$(ANGLE)) $(if $(LENS),--lens=$(LENS)) $(if $(RES),--res=$(RES)) \
+		| { grep '^art_preview' || true; }
+
 # `make crew-capture`: every move a brawler is drawn in, saved as one PNG
 # (tools/crew_gallery.gd): VIEW=crew (the default) stands them all on a deck, VIEW=arms
 # shows a seat's own arms in each through a first-person lens, in a grid, and VIEW=hats
@@ -623,35 +656,11 @@ sailor:
 		"$(CURDIR)/assets/characters/sailor/hats.blend" "$(CURDIR)/assets/characters/sailor/hats.glb" \
 		| { grep '^gen_hats' || true; }
 
-# Every .gd file that is actually ours: skips the engine cache, vendored addons,
-# the engine binary, and .claude/worktrees, which holds whole nested checkouts of
-# this same repo and would otherwise be linted as if it were project source.
-#
-# Double quotes, not single: GNU make on Windows runs a $(shell …) line with no
-# shell metacharacters itself and strips only double quotes, and the MSYS find
-# then globs a bare pattern and finds nothing. Both quote styles read the same
-# through sh on Linux and macOS.
-#
-# Deferred, so only the three gdtoolkit targets below pay for the walk.
-SOURCES = $(shell find . -name "*.gd" \
-	-not -path "./.godot/*" -not -path "./addons/*" -not -path "./bin/*" \
-	-not -path "./.claude/*")
-
-# The gdtoolkit targets run over every core, NPROC workers of 60 files each,
-# fed NUL-delimited. xargs exits 123 when any one invocation fails, so a problem
-# in a single chunk still fails the target. Workers' output interleaves; each
-# chunk also prints its own summary line.
-#
-# The first file goes alone, before the fan-out, and its failure fails the
-# target: gdtoolkit builds its parser cache directory (~/.cache/gdtoolkit on
-# Linux, ~/Library/Caches/gdtoolkit on macOS) with a check-then-makedirs, so on a
-# fresh machine — every CI runner — parallel workers race to create it and the
-# losers report "Cannot open file '…': File exists" as a problem. The warm-up
-# creates the directory and its parser pickles first; do not remove it.
+# The gdtoolkit targets run their tool over every .gd file that is ours, on every
+# core, NPROC workers of 60 files each, after a warm-up on one file:
+# tools/gdtoolkit_each.sh says which files and why the warm-up stays.
 NPROC ?= $(shell getconf _NPROCESSORS_ONLN 2>/dev/null || echo 4)
-gdtoolkit-each = $(1) $(firstword $(SOURCES)) && \
-	printf '%s\0' $(wordlist 2,$(words $(SOURCES)),$(SOURCES)) | \
-	xargs -0 -P $(NPROC) -n 60 $(1)
+gdtoolkit-each = NPROC=$(NPROC) tools/gdtoolkit_each.sh $(1)
 
 # Parse/type check plus lightweight architecture invariants without booting the
 # scene tree. Rules live in tools/check_scripts.sh.
@@ -663,9 +672,9 @@ check:
 # against sleeps on private ones — both again on Perl's lock, the one Git Bash on
 # Windows takes (tools/lib/fd_lock.sh); make fps's SPLIT, read off make -n; make test's
 # list of scripts, against a stand-in engine; make durations and make goldens, against
-# sample logs; verify running the float test once, read off make -n; and the gdtoolkit targets'
-# warm-up, read off make -n; make test-changed's selection, against a fixture project,
-# and its list of runtime-built loads, against the code.
+# sample logs; verify running the float test once, read off make -n; the gdtoolkit targets'
+# warm-up and fan-out, against a stand-in tool; make test-changed's selection, against a
+# fixture project, and its list of runtime-built loads, against the code.
 guard-check:
 	tools/engine_guard_check.sh
 	tools/window_lock_check.sh
@@ -706,5 +715,5 @@ format-check:
 .PHONY: import run replay match capture smoke net-bench sim-bench bench serve-local online-e2e export-server \
 	export-web export-mac export-win export-linux export-server-mac serve-web-local serve-web-local-stop fps arena \
 	hits bake census art-lint test test-changed durations goldens verify verify-changed check guard-check ship ship-gen-check ship-check bake-ship \
-	bake-check ship-scene \
+	bake-check ship-scene preview \
 	ship-blend bake-blend models model-sources sailor crew-capture lint format format-check

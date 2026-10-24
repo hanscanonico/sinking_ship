@@ -43,6 +43,7 @@ make match SEED=1701                            # one bots-only match, headless,
 make match SEED=1701 FAST=1                     # the same, her sinking on the fast clock (run's default; run FAST=0 plays the paced one)
 make match SEED=1701 GOAL=survival              # survival: everyone stays in as long as she lasts (GOAL= works for run too)
 make smoke                                      # the water capture sweep for QA: shots at the transcript's water moments into captures/smoke/ (MAX=3, DRY=1)
+make preview SHIP=steamer                       # her dressed art as a PNG, no game window: headless dress, Blender Workbench render (SPAN=, EYE= AT=; needs Blender)
 make ship                                       # regenerate data/ships/NAME.tres from tools/gen_NAME.py; SHIP=trawler for one
 make bake-ship SCENE=authoring/steamer/steamer.tscn OUT=…   # bake a marked greybox scene into a ShipLayout .tres (SH17)
 make bake-check                                 # every authoring/NAME/NAME.tscn bakes to data/ships/NAME.tres field for field
