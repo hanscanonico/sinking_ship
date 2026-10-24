@@ -32,6 +32,9 @@ const SIDE_FACING := 0.999
 ## Rooms by name, for the lint, the walk graph, the HUD and the greybox; no rule
 ## reads them (D6).
 @export var rooms: Array[ShipRoom] = []
+## Where bonuses can come aboard (#307): a point on a floor in each room below her main
+## deck, naming its room. No rule reads them yet (#308).
+@export var bonus_spots: Array[ShipBonusSpot] = []
 ## Whether the dressed art (ShipArt) lofts her hull as ShipHull does: her generator cut
 ## her sections from that loft, and `make art-lint` holds the two together. A ship
 ## lofted any other way is dressed all the same, her hull the shell her sections
@@ -210,6 +213,11 @@ func problems(seats: int) -> PackedStringArray:
 			found.append_array(prop.problems())
 			if prop.railing < -1 or prop.railing >= railings.size():
 				found.append("ship: a prop hangs on railing %d" % prop.railing)
+	for spot: ShipBonusSpot in bonus_spots:
+		if spot == null:
+			found.append("ship: a bonus spot is missing")
+		elif spot.room < 0 or spot.room >= rooms.size():
+			found.append("ship: a bonus spot names room %d" % spot.room)
 	if min_seats < 1 or max_seats < min_seats:
 		found.append("ship: min_seats must be at least 1 and at most max_seats")
 	elif seats < min_seats or seats > max_seats:

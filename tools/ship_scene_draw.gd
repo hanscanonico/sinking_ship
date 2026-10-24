@@ -4,7 +4,8 @@ extends RefCounted
 ## bake's inverse, piece for piece in its vocabulary, so baking what this draws gives the
 ## ship back field for field. `make ship-scene` drew the steamer's authoring scene with
 ## it from her generated data. Her rooms and her structure are drawn hidden, so the
-## scene opens as her greybox decks; show them in the editor to work on them.
+## scene opens as her greybox decks; show them in the editor to work on them. Her bonus
+## spots are markers, shown: a point to move by hand on its room's floor (#308).
 
 ## How tall a room's box and a railing's line are drawn, and how thick a line: not data.
 const ROOM_HEIGHT := 2.1
@@ -128,12 +129,20 @@ func _draw(layout: ShipLayout, title: String) -> Node3D:
 			crate.set_meta(&"railing", StringName(railing_names[prop.railing]))
 	group = _group(root, "Rooms")
 	group.visible = false
+	var room_names := PackedStringArray()
 	for index in layout.rooms.size():
 		var room := layout.rooms[index]
 		var box := _box(group, room, &"room", index)
+		room_names.append(box.name)
 		box.size = Vector3(room.area.size.x, ROOM_HEIGHT, room.area.size.y)
 		var middle := room.area.get_center()
 		box.position = Vector3(middle.x, room.floor_height + ROOM_HEIGHT * 0.5, middle.y)
+	group = _group(root, "BonusSpots")
+	for index in layout.bonus_spots.size():
+		var spot := layout.bonus_spots[index]
+		var marker := _marker(group, spot, &"bonus_spot", index, spot.point)
+		# A spot names its room as a railing names its platform: by its node (#308).
+		marker.set_meta(&"room", StringName(room_names[spot.room]))
 	if layout.structure != null:
 		_structure(root, layout.structure)
 	_own(root, root)
@@ -181,12 +190,13 @@ func _cylinder(
 
 
 ## A point piece: a marker at [param at].
-func _marker(parent: Node, piece: Resource, kind: StringName, index: int, at: Vector3) -> void:
+func _marker(parent: Node, piece: Resource, kind: StringName, index: int, at: Vector3) -> Marker3D:
 	var marker := Marker3D.new()
 	marker.name = _name_of(piece, kind, index)
 	marker.position = at
 	_tag(marker, piece, kind)
 	parent.add_child(marker)
+	return marker
 
 
 func _ramp(parent: Node, ramp: ShipRamp, index: int) -> void:

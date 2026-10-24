@@ -144,7 +144,10 @@ func _lay_out(ship: String, json: String) -> int:
 
 static func _counts(layout: ShipLayout) -> String:
 	var told := (
-		"%d platforms, %d ramps, %d blockers, %d railings, %d ladders, %d spawns, %d props, %d rooms"
+		(
+			"%d platforms, %d ramps, %d blockers, %d railings, %d ladders, %d spawns, %d props,"
+			+ " %d rooms, %d bonus spots"
+		)
 		% [
 			layout.platforms.size(),
 			layout.ramps.size(),
@@ -154,6 +157,7 @@ static func _counts(layout: ShipLayout) -> String:
 			layout.spawns.size(),
 			layout.props.size(),
 			layout.rooms.size(),
+			layout.bonus_spots.size(),
 		]
 	)
 	var structure := layout.structure

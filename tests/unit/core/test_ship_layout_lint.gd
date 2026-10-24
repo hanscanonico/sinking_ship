@@ -10,6 +10,8 @@ const MIN_DOOR := 1.0
 const WALL := 0.2
 ## How far apart the headroom rule looks over a room's floor.
 const HEADROOM_STEP := 0.25
+## How near two heights are to be one: a Vector3 holds a point's in single precision.
+const LEVEL := 0.0001
 
 
 ## Every layout under data/ships/, by path, and every ship drawn under authoring/ as a
@@ -90,6 +92,69 @@ func _headroom_problems(layout: ShipLayout) -> PackedStringArray:
 		if room.crawl_space and not crawled:
 			found.append("%s: a crawl space with headroom to stand everywhere" % room.name)
 	return found
+
+
+## Every reason a bonus spot of [param layout]'s (#308) is not where a bonus can lie,
+## described: each lies in one of her rooms below her main deck — a room whose floor
+## stands under zero — inside its area at its floor's height, on a platform there, on no
+## stair or ramp and in no blocker or wall.
+func _spot_problems(layout: ShipLayout) -> PackedStringArray:
+	var step := SimFixtures.rules().step_height
+	var surfaces := Surfaces.new(layout)
+	var found := PackedStringArray()
+	for index in layout.bonus_spots.size():
+		var spot := layout.bonus_spots[index]
+		var named := "bonus spot %d at %s" % [index, spot.point]
+		if spot.room < 0 or spot.room >= layout.rooms.size():
+			found.append(named + ": in no room of hers")
+			continue
+		var room := layout.rooms[spot.room]
+		if room.floor_height >= 0.0:
+			found.append("%s: in %s, not below her main deck" % [named, room.name])
+		if not room.holds(spot.point, step):
+			found.append("%s: outside %s" % [named, room.name])
+		var under := surfaces.under(spot.point, step)
+		var stair := under != Surfaces.NONE and surfaces.is_ramp(under)
+		if stair or _on_a_stair(layout, spot.point, step):
+			found.append(named + ": on a stair or a ramp")
+		elif _in_a_blocker(layout, spot.point, step):
+			found.append(named + ": inside a blocker or a wall")
+		elif (
+			under == Surfaces.NONE
+			or under >= surfaces.platform_count()
+			or absf(surfaces.height_at(under, spot.point) - spot.point.y) > LEVEL
+		):
+			found.append(named + ": on no floor")
+	return found
+
+
+## Whether [param point] lies on or under one of [param layout]'s stairs and ramps:
+## inside its plan, from [param step] under its foot up to [param step] over it there.
+func _on_a_stair(layout: ShipLayout, point: Vector3, step: float) -> bool:
+	for ramp: ShipRamp in layout.ramps:
+		if (
+			ramp.contains(point.x, point.z)
+			and point.y >= ramp.base() - step
+			and point.y <= ramp.height_at(point.x, point.z) + step
+		):
+			return true
+	return false
+
+
+## Whether [param point] lies in one of [param layout]'s blockers: inside its plan,
+## standing from no higher than [param step] over the point to above it — one flush
+## under its floor is under it.
+func _in_a_blocker(layout: ShipLayout, point: Vector3, step: float) -> bool:
+	var at := Vector2(point.x, point.z)
+	for blocker: ShipBlocker in layout.blockers:
+		var inside := (
+			at.distance_to(blocker.centre) < blocker.radius
+			if blocker.shape == ShipBlocker.Shape.CYLINDER
+			else blocker.area.has_point(at)
+		)
+		if inside and blocker.bottom <= point.y + step and blocker.top > point.y + LEVEL:
+			return true
+	return false
 
 
 ## The first platform standing at the main deck's height — the origin's (D6).
@@ -377,6 +442,77 @@ func test_the_headroom_rule_bites() -> void:
 		_headroom_problems(roofed.call(3.0, true)),
 		PackedStringArray(["under the roof: a crawl space with headroom to stand everywhere"])
 	)
+
+
+func test_every_bonus_spot_lies_on_a_floor_in_a_room_below_her_main_deck() -> void:
+	var layouts := _layouts()
+	for path: String in layouts:
+		assert_eq(_spot_problems(layouts[path]), PackedStringArray(), path)
+
+
+func test_the_bonus_spot_rule_bites() -> void:
+	# The flat deck with a hold under it, test data: its floor running on aft of it and
+	# stopping short of its fore end, a stair up out of it to port, a wall across it and
+	# a girder under it, flush with its floor, and a deckhouse on her main deck. One spot
+	# where a bonus can lie, over the girder, then one of each place it cannot. The hold's
+	# floor is as deep as the steamer's tank top, a height single precision holds a hair
+	# under the girder's top.
+	var spotted := func(point: Vector3, room: int) -> ShipLayout:
+		var layout: ShipLayout = SimFixtures.deck().duplicate()
+		var floor := ShipPlatform.new()
+		floor.name = &"hold"
+		floor.area = Rect2(-8.0, -3.0, 12.0, 6.0)
+		floor.height = -4.4
+		layout.platforms = layout.platforms.duplicate()
+		layout.platforms.append(floor)
+		var stair := ShipRamp.new()
+		stair.area = Rect2(-3.0, 1.9, 3.0, 1.1)
+		stair.start_height = -4.4
+		var ramps: Array[ShipRamp] = [stair]
+		layout.ramps = ramps
+		var wall := ShipBlocker.new()
+		wall.area = Rect2(1.9, -3.0, 0.2, 3.0)
+		wall.bottom = -4.4
+		var girder := ShipBlocker.new()
+		girder.area = Rect2(-6.0, -1.1, 12.0, 0.2)
+		girder.bottom = -5.3
+		girder.top = -4.4
+		var blockers: Array[ShipBlocker] = [wall, girder]
+		layout.blockers = blockers
+		var hold := ShipRoom.new()
+		hold.name = &"hold"
+		hold.area = Rect2(-6.0, -3.0, 12.0, 6.0)
+		hold.floor_height = -4.4
+		var deckhouse := ShipRoom.new()
+		deckhouse.name = &"deckhouse"
+		deckhouse.area = Rect2(8.0, -3.0, 4.0, 6.0)
+		var rooms: Array[ShipRoom] = [hold, deckhouse]
+		layout.rooms = rooms
+		var spot := ShipBonusSpot.new()
+		spot.point = point
+		spot.room = room
+		var spots: Array[ShipBonusSpot] = [spot]
+		layout.bonus_spots = spots
+		return layout
+	assert_eq(
+		_spot_problems(spotted.call(Vector3(-2.0, -4.4, -1.0), 0)),
+		PackedStringArray(),
+		"on the hold's floor"
+	)
+	var cases := [
+		[Vector3(5.0, -4.4, 0.0), 0, "on no floor"],
+		[Vector3(2.0, -4.4, -1.0), 0, "inside a blocker or a wall"],
+		[Vector3(-2.8, -4.4, 2.5), 0, "on a stair or a ramp"],
+		[Vector3(-7.0, -4.4, 0.0), 0, "outside hold"],
+		[Vector3(10.0, 0.0, 0.0), 1, "in deckhouse, not below her main deck"],
+		[Vector3(-2.0, -4.4, -1.0), 2, "in no room of hers"],
+	]
+	for case: Array in cases:
+		var point: Vector3 = case[0]
+		assert_eq(
+			_spot_problems(spotted.call(point, case[1])),
+			PackedStringArray(["bonus spot 0 at %s: %s" % [point, case[2]]])
+		)
 
 
 func test_every_lower_deck_has_two_stairs_up() -> void:

@@ -1,0 +1,40 @@
+extends GutTest
+## Bonus spots (#307): where a bonus can come aboard — a point on a floor in a room below
+## her main deck, naming its room, put there by her layout. Nothing in the match reads
+## them yet (#308).
+
+
+func test_a_layout_with_no_bonus_spots_loads_as_before() -> void:
+	var deck := SimFixtures.deck()
+	assert_eq(deck.bonus_spots.size(), 0, "the flat deck's file names none")
+	assert_eq(deck.problems(1), PackedStringArray())
+
+
+## A spot names its room by its index among hers, as a railing names its platform: one
+## that is not hers, or none at all, is a problem, and so is a spot that is missing.
+func test_a_bonus_spot_names_one_of_her_rooms() -> void:
+	var layout: ShipLayout = SimFixtures.deck().duplicate()
+	var hold := ShipRoom.new()
+	hold.name = &"hold"
+	hold.area = Rect2(-4.0, -3.0, 8.0, 6.0)
+	hold.floor_height = -2.0
+	var rooms: Array[ShipRoom] = [hold]
+	layout.rooms = rooms
+	var spots: Array[ShipBonusSpot] = []
+	for room: int in [0, 1, -1]:
+		var spot := ShipBonusSpot.new()
+		spot.point = Vector3(0.0, -2.0, 0.0)
+		spot.room = room
+		spots.append(spot)
+	spots.append(null)
+	layout.bonus_spots = spots
+	assert_eq(
+		layout.problems(1),
+		PackedStringArray(
+			[
+				"ship: a bonus spot names room 1",
+				"ship: a bonus spot names room -1",
+				"ship: a bonus spot is missing",
+			]
+		)
+	)

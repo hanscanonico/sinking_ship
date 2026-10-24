@@ -232,6 +232,8 @@ static func _blank(kind: StringName) -> Resource:
 			return ShipProp.new()
 		&"room":
 			return ShipRoom.new()
+		&"bonus_spot":
+			return ShipBonusSpot.new()
 		&"structure":
 			return ShipStructure.new()
 		&"section":
