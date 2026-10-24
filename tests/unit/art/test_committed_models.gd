@@ -895,6 +895,7 @@ func test_every_world_model_is_one_the_iceberg_planner_can_draw() -> void:
 		var berg := IcebergPlanner.model_of(model)
 		var corners := berg.corners
 		assert_eq(berg.shades.size() * 3, corners.size(), "%s: a colour on every face" % model)
+		_is_shaded_smooth_but_out_of_every_face(model, berg)
 		var inboard := -INF
 		var blade := PackedVector3Array()
 		for corner in corners:
@@ -930,6 +931,29 @@ func test_every_world_model_is_one_the_iceberg_planner_can_draw() -> void:
 		assert_lt(
 			lightest_under, darkest_over, "%s: under-ice darker than any over the sea" % model
 		)
+
+
+## A berg is shaded as weathered ice is: smooth across most of its faces, so most of
+## its corners turn off their own face's normal; but every corner still faces out of
+## its face, and a unit normal at each.
+func _is_shaded_smooth_but_out_of_every_face(model: String, berg: IcebergPlanner.Model) -> void:
+	var corners := berg.corners
+	assert_eq(berg.normals.size(), corners.size(), "%s: a normal at every corner" % model)
+	var smoothed := 0
+	for face in corners.size() / 3:
+		var at := face * 3
+		# Wound clockwise from outside: the cross product points in.
+		var flat := -(corners[at + 1] - corners[at]).cross(corners[at + 2] - corners[at])
+		if flat.length() < 1e-6:
+			continue
+		flat = flat.normalized()
+		for corner in 3:
+			var normal := berg.normals[at + corner]
+			assert_almost_eq(normal.length(), 1.0, 0.001, "%s: a unit normal" % model)
+			assert_gt(normal.dot(flat), 0.0, "%s: facing out of its face" % model)
+			if normal.dot(flat) < 0.999:
+				smoothed += 1
+	assert_gt(smoothed, corners.size() / 2, "%s: shaded smooth across most of it" % model)
 
 
 ## A berg stands to IcebergPlanner's measure, uniformly scaled from it: its top

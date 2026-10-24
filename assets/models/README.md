@@ -392,9 +392,12 @@ measure:
   furthest it reaches over the sea, but its spur, a ram whose blade is the two
   points furthest along +z, both at x = 0 and under the sea;
 - one material, `ice`, and its colour on each face as the colour attribute `ice`
-  (linear: ice facing up, shade on the steep faces, under-ice under the sea). The
-  scene's `colour_layer` names it, so `tools/export_model.py` exports it as the
-  vertex colour the shader reads, in place of `ink`.
+  (linear: ice over the sea, under-ice under it). The scene's `colour_layer` names
+  it, so `tools/export_model.py` exports it as the vertex colour the shader reads, in
+  place of `ink`. The shader lays the snow, the strata and the sea's wash over it;
+- shaded smooth, as weathered ice is, but sharp across its ledges and fractures,
+  wherever two faces meet at more than `SHARP_ANGLE`. The planner keeps the model's
+  normals, but for the faces it draws out to the blade, which it lays flat.
 
 ## Building by script
 
@@ -432,8 +435,9 @@ budget class and a check of its box or anchor against the placing code's constan
 (the lifeboat's box is `ShipFittings`' `LIFEBOAT_*`, the davit's head and foot its
 `DAVIT_*`, a berg's top, foot and width `IcebergPlanner`'s), within 2 cm. It holds
 every committed ship's `.glb` to its paints and its ink, every world model to what the
-planner and its shader read (a colour on every face, the waterline, its spur), and
-every model to its row's box and its class's budget. A model folder with no row
+planner and its shader read (a colour on every face, smooth normals facing out of
+every face, the waterline, its spur), and every model to its row's box and its
+class's budget. A model folder with no row
 fails, and so does a row with no folder: a new model lands with its row.
 
 ## Licence
