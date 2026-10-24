@@ -345,8 +345,9 @@ func _ceilings(live: Array[PlayerState], feet_before: PackedFloat64Array) -> voi
 ## under (Surfaces.obstacle_contacts), and crawls there (height_of); a body off them is
 ## held by what its height there meets. A crate is held to as a wall is, unless the body
 ## slams into it (Hazards.slams): out of it then, it goes on at the speed the two part
-## at. A body still where [param clear] last found it held by nothing is not asked
-## again. True when it moved anyone.
+## at — or it gives way, pushed before the body (Hazards.gives). A body still where
+## [param clear] last found it held by nothing is not asked again. True when it moved
+## anyone.
 func _blockers(
 	state: MatchState,
 	live: Array[PlayerState],
@@ -376,7 +377,7 @@ func _blockers(
 		for contact: Surfaces.Contact in contacts:
 			if contact.prop != -1 and _hazards.slams(state, player, contact, tick):
 				player.pos += Vector3(contact.normal.x, 0.0, contact.normal.y) * contact.depth
-			else:
+			elif contact.prop == -1 or not _hazards.gives(state, player, contact):
 				_hold(player, contact)
 			moved = true
 	return moved

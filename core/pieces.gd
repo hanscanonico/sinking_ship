@@ -104,6 +104,17 @@ func honour(piece: int, pose: ShipPose, broken: PackedInt32Array, props: Array[P
 	surfaces.honour(_posed[piece], gone(piece, broken), aboard)
 
 
+## Stands [param crate] alone on piece [param piece]'s decks' Surfaces as honour() stands
+## it with the rest under [param pose]: there while it is over the piece's stretch — the
+## whole ship takes every crate — and loose and solid. Told of one crate as it moves.
+func stand(piece: int, pose: ShipPose, crate: PropState) -> void:
+	var stands := faces(piece).surfaces(Faces.Up.DECK).stands
+	if piece == 0 or piece_at(pose.of_piece(piece).standing, crate.pos.x) == piece:
+		stands.stand(crate)
+	else:
+		stands.take(crate.prop)
+
+
 ## The railings of piece [param piece]'s layout that are among hers [param broken], by
 ## its own numbers: the list it last made while the same railings are broken, made
 ## again only when they change. Hers as they are for the whole ship.

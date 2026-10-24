@@ -38,10 +38,14 @@ func _init(structure: ShipStructure) -> void:
 		_shut.append(0.0)
 
 
-## Takes how far [param pose] has each door shut (shut_in).
-func honour(pose: ShipPose) -> void:
+## Takes how far [param pose] has each door shut (shut_in); whether any leaf has moved.
+func honour(pose: ShipPose) -> bool:
+	var moved := false
 	for door in _names.size():
-		_shut[door] = shut_in(pose, _names[door])
+		var shut := shut_in(pose, _names[door])
+		moved = moved or shut != _shut[door]
+		_shut[door] = shut
+	return moved
 
 
 ## How far [param pose] has the door called [param door] shut — none where it has given
