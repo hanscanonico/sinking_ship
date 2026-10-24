@@ -78,7 +78,7 @@ const CREW := "quarters"
 const WORKING := "working"
 const STORES_CRATE := 0.7
 ## A writing desk: its top board, the leather let into it INSET in from its edges, and
-## a drawer's panel every DRAWER along its long sides.
+## a drawer's panel every DRAWER along its front.
 const DESK_BOARD := 0.035
 const INSET := 0.06
 const DRAWER := 0.4
@@ -103,7 +103,7 @@ static func build(mesh: ShipMesh, room: ShipRoom, pieces: Array[ShipBlocker]) ->
 				if CREW in named and LinerDining.long_table(blocker.area):
 					LinerDining.mess_table(mesh, blocker.area, blocker.bottom, blocker.top)
 				else:
-					_table_in(mesh, style, blocker)
+					_table_in(mesh, style, room, blocker)
 			Piece.BENCH:
 				bench(mesh, blocker.area, blocker.bottom, blocker.top)
 			Piece.COUNTER:
@@ -135,16 +135,19 @@ static func piece_of(blocker: ShipBlocker) -> Piece:
 	return Piece.RANGE if minf(size.x, size.y) >= RANGE_DEPTH else Piece.COUNTER
 
 
-## A table [param blocker] in a room of [param style]: a smoking room's card table under
-## its baize, a reading and writing room's writing desk, a restaurant's table laid for
-## dinner with its chairs (LinerDining.laid_table), any other under its white cloth.
-static func _table_in(mesh: ShipMesh, style: LinerPublic.Style, blocker: ShipBlocker) -> void:
+## A table [param blocker] in [param room], of [param style]: a smoking room's card
+## table under its baize, a reading and writing room's writing desk facing into the
+## room, a restaurant's table laid for dinner with its chairs (LinerDining.laid_table),
+## any other under its white cloth.
+static func _table_in(
+	mesh: ShipMesh, style: LinerPublic.Style, room: ShipRoom, blocker: ShipBlocker
+) -> void:
 	var area := blocker.area
 	match style:
 		LinerPublic.Style.SMOKING:
 			table(mesh, area, blocker.bottom, blocker.top, _baize)
 		LinerPublic.Style.READING:
-			writing_desk(mesh, area, blocker.bottom, blocker.top)
+			writing_desk(mesh, area, blocker.bottom, blocker.top, front_of(room, area))
 		LinerPublic.Style.RESTAURANT:
 			LinerDining.laid_table(mesh, area, blocker.bottom, blocker.top)
 		_:
@@ -165,8 +168,10 @@ static func table(
 
 ## A writing desk over [param area]: a mahogany carcass from [param bottom] under a board
 ## at [param top], leather let into the board, and a drawer's panel every DRAWER along
-## each of its long sides.
-static func writing_desk(mesh: ShipMesh, area: Rect2, bottom: float, top: float) -> void:
+## its front, the long side [param front] points out of (front_of()).
+static func writing_desk(
+	mesh: ShipMesh, area: Rect2, bottom: float, top: float, front: Vector2
+) -> void:
 	mesh.box(area, bottom, top - DESK_BOARD, _mahogany, ShipMesh.SIDES)
 	mesh.box(area, top - DESK_BOARD, top, _mahogany, ShipMesh.SIDES | ShipMesh.TOP)
 	mesh.box(area.grow(-INSET), top, top + FLUSH, ShipPaints.leather, ShipMesh.TOP)
@@ -176,17 +181,26 @@ static func writing_desk(mesh: ShipMesh, area: Rect2, bottom: float, top: float)
 	var drawers := maxi(1, floori(length / DRAWER))
 	var middle := area.get_center()
 	var axis := Vector2.RIGHT if along_x else Vector2.DOWN
-	var across := Vector2.DOWN if along_x else Vector2.RIGHT
 	var right := Vector3(axis.x, 0.0, axis.y)
+	var normal := Vector3(front.x, 0.0, front.y)
 	var high := top - DESK_BOARD - 0.08
-	for side: float in [-1.0, 1.0]:
-		var normal := Vector3(across.x, 0.0, across.y) * side
-		for drawer in drawers:
-			var along := (drawer + 0.5) * length / drawers - length * 0.5
-			var face := middle + axis * along + across * side * (depth * 0.5 + FLUSH)
-			var at := Vector3(face.x, high, face.y)
-			var half := Vector2(length / drawers * 0.5 - 0.03, 0.05)
-			RoomDressing.panel(mesh, at, right, half, normal, _walnut)
+	for drawer in drawers:
+		var along := (drawer + 0.5) * length / drawers - length * 0.5
+		var face := middle + axis * along + front * (depth * 0.5 + FLUSH)
+		var at := Vector3(face.x, high, face.y)
+		var half := Vector2(length / drawers * 0.5 - 0.03, 0.05)
+		RoomDressing.panel(mesh, at, right, half, normal, _walnut)
+
+
+## The way out of [param area]'s long side that faces into [param room]: away from the
+## room's edge nearer its other long side, where a writing desk's sitter sits.
+static func front_of(room: ShipRoom, area: Rect2) -> Vector2:
+	var across := Vector2.DOWN if area.size.x >= area.size.y else Vector2.RIGHT
+	var middle := area.get_center()
+	var half := absf(across.dot(area.size)) * 0.5
+	var ahead := _side_off(room.area, middle + across * half, across)
+	var behind := _side_off(room.area, middle - across * half, -across)
+	return across if ahead >= behind else -across
 
 
 ## Stores stacked over [param area] from [param bottom] to [param top]: stowed crates

@@ -5,9 +5,10 @@ extends GutTest
 ## lounge, writing desks in the reading and writing room, wicker tables and chairs in the
 ## verandah café and the reception room, settees in the after entrance, mess tables in
 ## the seamen's and the crew quarters, and stores stacked along the E deck working
-## passages' walls. Every seat faces its table or backs onto its room's side; none stands
-## in a doorway's way in or by a seat's start, no table by a pendant; and a seat is drawn
-## in its box, its arms and back under a step over it.
+## passages' walls. Every seat faces its table or backs onto its room's side, and a
+## writing desk's drawers its chair; none stands in a doorway's way in or by a seat's
+## start, no table by a pendant; and a seat is drawn in its box, its arms and back under
+## a step over it.
 
 ## The rooms furnished: [room, its tables, its armchairs, its settees, its stores].
 const FURNISHED: Array[Array] = [
@@ -67,6 +68,23 @@ func test_every_seat_faces_its_table_or_backs_onto_its_room_s_side() -> void:
 			var table := _nearest_table(pieces, middle)
 			assert_true(table != Vector2.INF, named + " has a table near it")
 			assert_gt(facing.dot(table - middle), 0.0, named + " faces its table")
+
+
+func test_a_writing_desk_s_drawers_face_its_chair_not_its_wall() -> void:
+	var room := _room(&"reading and writing room")
+	var pieces := _space.furniture(room)
+	for desk: ShipBlocker in pieces:
+		if FurnitureDressing.piece_of(desk) != FurnitureDressing.Piece.TABLE:
+			continue
+		var middle := desk.area.get_center()
+		var chair := Vector2.INF
+		for other: ShipBlocker in pieces:
+			var at := other.area.get_center()
+			var armchair := FurnitureDressing.piece_of(other) == FurnitureDressing.Piece.ARMCHAIR
+			if armchair and at.distance_to(middle) < chair.distance_to(middle):
+				chair = at
+		var front := FurnitureDressing.front_of(room, desk.area)
+		assert_gt(front.dot(chair - middle), 0.0, "the desk at %s faces its chair" % desk.area)
 
 
 func test_no_doorway_seat_start_or_pendant_is_crowded() -> void:
