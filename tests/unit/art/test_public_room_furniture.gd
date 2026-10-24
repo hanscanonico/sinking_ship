@@ -10,6 +10,8 @@ extends GutTest
 ## start, no table by a pendant; and a seat is drawn in its box, its arms and back under
 ## a step over it.
 
+const FurnishingCheck := preload("res://tools/furnishing_check.gd")
+
 ## The rooms furnished: [room, its tables, its armchairs, its settees, its stores].
 const FURNISHED: Array[Array] = [
 	[&"first-class smoking room", 8, 32, 0, 0],
@@ -87,6 +89,29 @@ func test_a_writing_desk_s_drawers_face_its_chair_not_its_wall() -> void:
 		assert_gt(front.dot(chair - middle), 0.0, "the desk at %s faces its chair" % desk.area)
 
 
+## A body standing on a stack of stores stands in nothing hung over head height: the
+## fire buckets a passage's wall would take hang past a body's reach from every stack.
+func test_a_passage_s_fire_buckets_hang_out_of_reach_of_its_stores() -> void:
+	var rack := RoomDressing.FIRE_BUCKETS.size
+	var reach := _rules.body_radius - FurnishingCheck.TOLERANCE
+	for entry: Array in FURNISHED:
+		if entry[4] == 0:
+			continue
+		var room := _room(entry[0])
+		var pieces := _space.furniture(room)
+		var hung := 0
+		for wall: RoomDressing.Wall in RoomDressing.walls(_space, room):
+			var along := FurnitureDressing.clear_along(wall, pieces, rack.x, rack.z)
+			if is_nan(along):
+				continue
+			hung += 1
+			var area := wall.rect(along - rack.x * 0.5, along + rack.x * 0.5, 0.0, rack.z)
+			for piece: ShipBlocker in pieces:
+				var named := "%s: buckets at %s by the stack at %s" % [room.name, area, piece.area]
+				assert_gte(_apart(area, piece.area), reach, named)
+		assert_gt(hung, 0, "%s: a wall takes its buckets" % room.name)
+
+
 func test_no_doorway_seat_start_or_pendant_is_crowded() -> void:
 	var dressing := RoomDressing.new(_space)
 	var surfaces := Surfaces.new(_layout)
@@ -155,6 +180,13 @@ func _nearest_table(pieces: Array[ShipBlocker], at: Vector2) -> Vector2:
 		if near and middle.distance_to(at) < best.distance_to(at):
 			best = middle
 	return best
+
+
+## How far apart [param a] and [param b] stand across the ship plane: 0 where they meet.
+func _apart(a: Rect2, b: Rect2) -> float:
+	var dx := maxf(0.0, maxf(a.position.x - b.end.x, b.position.x - a.end.x))
+	var dz := maxf(0.0, maxf(a.position.y - b.end.y, b.position.y - a.end.y))
+	return Vector2(dx, dz).length()
 
 
 ## Every face [param mesh] holds, in the ship's space.

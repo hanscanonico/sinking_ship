@@ -82,6 +82,11 @@ const STORES_CRATE := 0.7
 const DESK_BOARD := 0.035
 const INSET := 0.06
 const DRAWER := 0.4
+## How far along its wall a fitting over head height hangs at least from a piece
+## standing by the wall, no farther out than the fitting's depth and this: past a
+## body's reach from the piece's side, where a body standing on it would stand in the
+## fitting (clear_along()).
+const FITTING_CLEAR := 0.4
 
 static var _baize := ShipMesh.Paint.new(ShipMesh.Finish.PLAIN, ArtPalette.BAIZE)
 static var _mahogany := ShipMesh.Paint.new(ShipMesh.Finish.PLAIN, LinerPublic.MAHOGANY)
@@ -201,6 +206,40 @@ static func front_of(room: ShipRoom, area: Rect2) -> Vector2:
 	var ahead := _side_off(room.area, middle + across * half, across)
 	var behind := _side_off(room.area, middle - across * half, -across)
 	return across if ahead >= behind else -across
+
+
+## Where along [param wall] the middle of a fitting [param width] wide and
+## [param depth] deep hangs over head height: nearest the wall's middle, FITTING_CLEAR
+## along it from each of [param pieces] standing by the wall — NAN where no spot is.
+static func clear_along(
+	wall: RoomDressing.Wall, pieces: Array[ShipBlocker], width: float, depth: float
+) -> float:
+	var half := width * 0.5
+	var reach := half + FITTING_CLEAR
+	var near := wall.rect(wall.from, wall.to, 0.0, depth + FITTING_CLEAR)
+	var spans: Array[Vector2] = []
+	var spots: Array[float] = [wall.middle()]
+	for piece: ShipBlocker in pieces:
+		if not piece.area.intersects(near):
+			continue
+		var span := Vector2(piece.area.position.x, piece.area.end.x)
+		if wall.side % 2 == 1:
+			span = Vector2(piece.area.position.y, piece.area.end.y)
+		spans.append(span)
+		spots.append(span.x - reach)
+		spots.append(span.y + reach)
+	var best := NAN
+	for along: float in spots:
+		if along - half < wall.from or along + half > wall.to:
+			continue
+		if not is_nan(best) and absf(along - wall.middle()) >= absf(best - wall.middle()):
+			continue
+		var clear := true
+		for span: Vector2 in spans:
+			clear = clear and (along + reach <= span.x or along - reach >= span.y)
+		if clear:
+			best = along
+	return best
 
 
 ## Stores stacked over [param area] from [param bottom] to [param top]: stowed crates
