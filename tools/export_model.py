@@ -9,7 +9,7 @@ attribute named `ink` (the rim's weight, ShipMesh.model), then writes the glTF
 binary: Godot's axes (+Y up), modifiers applied, normals and the ink layer as the
 vertex colour, materials by name only. No UVs, tangents, animation, cameras or lights.
 A world mesh that is no ship's prop names the colour attribute it carries instead in
-its scene's `colour_layer` (the iceberg's `ice`, tools/berg_kit.py).
+its scene's `colour_layer` (the iceberg's `ice`, assets/models/README.md).
 """
 
 import sys

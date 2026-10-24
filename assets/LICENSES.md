@@ -66,7 +66,7 @@ register covers every asset. `assets/models/README.md` says how they are authore
 | `sideboard_180/` and `sideboard_64/` — `.blend` and `.glb` each: a mahogany sideboard in two lengths — plinth, carcass, carved stiles, panelled doors, drawers, top and brass gallery rail, the shorter with a decanter and two glasses (288 and 304 triangles, about 0.1 MB each) | Original work, modelled for this project (2026-10-15) | The project's own |
 | `dining_chair/dining_chair.blend` and `dining_chair.glb` — a dining saloon's chair tucked under its table: back posts, arched crest rail, vase splat, leather seat and front legs (57 triangles, under 0.1 MB each) | Original work, modelled for this project (2026-10-15) | The project's own |
 | `serving_hatch/serving_hatch.blend` and `serving_hatch.glb` — a dining saloon's serving hatch: two panelled shutters, brass pulls, architrave, moulded head and a shelf on brackets (120 triangles, under 0.1 MB each) | Original work, modelled for this project (2026-10-15) | The project's own |
-| `iceberg_tabular/`, `iceberg_drydock/` and `iceberg_wedge/` (each `.blend` and `.glb`) — the iceberg she strikes: a flat-topped tabular berg, a drydock berg with two towers, and a wedge (764, 896 and 596 triangles, under 0.2 MB each) | Original work, modelled for this project (2026-10-14) | The project's own |
+| `iceberg_tabular/`, `iceberg_drydock/` and `iceberg_wedge/` (each `.blend` and `.glb`) — the iceberg she strikes: a flat-topped tabular berg, a drydock berg with two towers, and a wedge (2,914, 2,930 and 2,912 triangles, under 0.2 MB each) | Original work, modelled for this project (2026-10-14, reworked 2026-10-24) | The project's own |
 
 ### The sailor (`assets/characters/sailor/`)
 
