@@ -1000,11 +1000,11 @@ room("chain_locker", "chain locker", 15, 19, -LOCKER_SIDE, LOCKER_SIDE, LOCKER_F
 # stands under zero — where a bonus can come aboard, at the free point of its floor
 # nearest its middle (tools/floor_spots.py), naming the room by its index among hers.
 bonus_spots = []
-for k, below in enumerate(room_geo):
-    if below[4] >= 0:
+for k, geo in enumerate(room_geo):
+    if geo[4] >= 0:
         continue
-    at = free_floor_spot(below, plat_geo, ramp_geo, block_geo)
-    assert at is not None, "no free floor in the %s for a bonus spot" % below[5]
+    at = free_floor_spot(geo, plat_geo, ramp_geo, block_geo)
+    assert at is not None, "no free floor in the %s for a bonus spot" % geo[5]
     f = [("point", "Vector3(%s, %s, %s)" % tuple(num(c) for c in at)), ("room", str(k))]
     bonus_spots.append(sub(rooms[k].replace("Room_", "BonusSpot_", 1), "19_spot", f))
 

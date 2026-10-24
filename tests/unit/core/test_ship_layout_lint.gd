@@ -114,8 +114,8 @@ func _spot_problems(layout: ShipLayout) -> PackedStringArray:
 		if not room.holds(spot.point, step):
 			found.append("%s: outside %s" % [named, room.name])
 		var under := surfaces.under(spot.point, step)
-		var stair := under != Surfaces.NONE and surfaces.is_ramp(under)
-		if stair or _on_a_stair(layout, spot.point, step):
+		var on_ramp := under != Surfaces.NONE and surfaces.is_ramp(under)
+		if on_ramp or _on_a_stair(layout, spot.point, step):
 			found.append(named + ": on a stair or a ramp")
 		elif _in_a_blocker(layout, spot.point, step):
 			found.append(named + ": inside a blocker or a wall")

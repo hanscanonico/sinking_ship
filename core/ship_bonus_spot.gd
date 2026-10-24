@@ -7,5 +7,6 @@ extends Resource
 
 ## Where a bonus there lies, ship-local: a point on its room's floor.
 @export var point: Vector3
-## The room it lies in, by its index in [member ShipLayout.rooms]; -1 for none.
+## The room it lies in, by its index in [member ShipLayout.rooms]. Left unset, -1, it lies
+## in none, which ShipLayout.problems() refuses.
 @export var room: int = -1
