@@ -1,0 +1,16 @@
+# Every text file is LF, in the repository and in every checkout, whatever the
+# platform's core.autocrlf: Godot, the ship generators and the gate scripts all
+# write LF, so a CRLF checkout (Windows) showed every .import the engine touched as
+# changed, and broke whatever reads a file line by line (test_sailor.gd's regex).
+* text=auto eol=lf
+
+# Never converted, never diffed as text.
+*.png binary
+*.jpg binary
+*.glb binary
+*.blend binary
+*.blend1 binary
+*.wav binary
+*.ogg binary
+*.ttf binary
+*.fnt binary

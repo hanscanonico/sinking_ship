@@ -1371,7 +1371,7 @@ res = ["[resource]", 'script = ExtResource("5_layout")', "freeboard = " + num(FR
        "rooms = " + arr("6_room", rooms),
        "dressed = false",
        'structure = SubResource("Structure")']
-with open(out, "w") as f:
+with open(out, "w", encoding="utf-8", newline="\n") as f:
     f.write(head + "\n" + "\n\n".join(subs) + "\n\n" + "\n".join(res) + "\n")
 print(len(platforms), "platforms", len(ramps), "ramps", len(blockers), "blockers", len(railings), "railings", len(ladders), "ladders", len(props), "props", len(rooms), "rooms")
 print(len(sections), "sections", len(CELLS), "cells", len(walls), "walls", len(openings), "openings", len(MASS),
