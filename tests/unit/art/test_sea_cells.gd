@@ -5,8 +5,9 @@ extends GutTest
 ## the sea's shader reads, in order along her so it can stop past a point.
 
 const TITANIC := "res://data/ships/titanic.tres"
+const STEAMER := "res://data/ships/steamer.tres"
 ## How far inside a room's walls, floor and ceiling its points are read — clear of a
-## box's INSET from her side (InnerWater) — and how far apart.
+## box's INSET from her side (CellBoxes) — and how far apart.
 const INWARD := 0.3
 const STEP := 0.5
 const UNDER_E_DECK: Array[StringName] = [
@@ -17,12 +18,13 @@ const UNDER_E_DECK: Array[StringName] = [
 	&"boiler room 4",
 	&"boiler room 5",
 ]
+const UNDER_THE_POOP: Array[StringName] = [&"steering gear"]
 
 
 func test_every_drawn_cell_of_the_titanic_is_in_the_mask() -> void:
 	var layout: ShipLayout = load(TITANIC)
 	var drawn: Array[AABB] = []
-	for box: AABB in InnerWater.boxes(layout.structure, layout.rooms):
+	for box: AABB in CellBoxes.boxes(layout.structure, layout.rooms):
 		if box.size != Vector3.ZERO:
 			drawn.append(box)
 	assert_gt(drawn.size(), 16, "more cells than the sea once took")
@@ -48,15 +50,32 @@ func test_every_drawn_cell_of_the_titanic_is_in_the_mask() -> void:
 ## inside one of her cells, is in a box the sea leaves out — they once stood open to the
 ## void over them, the sea drawn in it as she sank by the head.
 func test_the_rooms_over_boiler_rooms_4_and_5_never_look_up_into_the_sea() -> void:
-	var layout: ShipLayout = load(TITANIC)
-	var masked := InnerWater.boxes(layout.structure, layout.rooms)
-	for stack: Array in InnerWater.stacked(layout.structure, layout.rooms):
+	assert_eq(
+		_open_points(load(TITANIC), UNDER_E_DECK), [], "points of her rooms the sea is drawn in"
+	)
+
+
+## The steamer's steering gear stands up into the space under her poop with no deck
+## between them: every point of it, from its floor to the poop deck, inside one of her
+## cells, is in a box the sea leaves out — its top once stood in that space, a void the
+## sea's mask left out, and as she sank by the stern the sea was drawn across the room
+## there, ending in a line over its dry floor.
+func test_the_steamers_steering_gear_never_looks_up_into_the_sea() -> void:
+	assert_eq(_open_points(load(STEAMER), UNDER_THE_POOP), [], "points of it the sea is drawn in")
+
+
+## Per room of [param layout] named in [param names], the first point found of it, from
+## its floor to whatever roofs it, inside one of her cells but in no box the sea leaves
+## out (CellBoxes.boxes and stacked); every one of the rooms hers.
+func _open_points(layout: ShipLayout, names: Array[StringName]) -> Array:
+	var masked := CellBoxes.boxes(layout.structure, layout.rooms)
+	for stack: Array in CellBoxes.stacked(layout.structure, layout.rooms):
 		masked.append(stack[1])
 	var space := ShipSpace.new(layout)
 	var open := []
 	var checked := 0
 	for room: ShipRoom in layout.rooms:
-		if not room.name in UNDER_E_DECK:
+		if not room.name in names:
 			continue
 		checked += 1
 		var area := room.area.grow(-INWARD)
@@ -70,8 +89,8 @@ func test_the_rooms_over_boiler_rooms_4_and_5_never_look_up_into_the_sea() -> vo
 					if _in_a_cell(layout.structure, point) and not _in_any(masked, point):
 						open.append("%s at %s" % [room.name, point.snappedf(0.01)])
 						break
-	assert_eq(checked, UNDER_E_DECK.size(), "every one of the rooms is hers")
-	assert_eq(open, [], "points of her rooms the sea is drawn in")
+	assert_eq(checked, names.size(), "every one of the rooms is hers")
+	return open
 
 
 func test_a_ship_with_no_drawn_cell_masks_nothing() -> void:
