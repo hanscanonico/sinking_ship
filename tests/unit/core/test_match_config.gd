@@ -164,6 +164,21 @@ func test_a_copy_of_her_scenario_shares_her_sinking_and_another_pace_does_not() 
 	assert_false(_hit_fast(1701, false).share_sinking(played), "never at another pace")
 
 
+func test_a_config_that_took_a_sinking_bakes_the_very_same_one() -> void:
+	var played := _hit_fast(1701, true)
+	var again := _hit_fast(1701, true)
+	assert_false(again.same_sinking(played), "neither has begun its bakes")
+	played.bake_some(1)
+	assert_true(played.same_sinking(played), "its own")
+	assert_false(again.same_sinking(played), "nor another's before it takes it")
+	again.share_sinking(played)
+	assert_true(again.same_sinking(played), "taken: the very bake")
+	assert_true(played.same_sinking(again), "either way round")
+	var other := _hit_fast(1702, true)
+	other.bake_some(1)
+	assert_false(other.same_sinking(played), "another seed's is another")
+
+
 func test_fast_mode_leaves_the_loaded_scenario_untouched() -> void:
 	var loaded: SinkScenario = load(SimFixtures.STEAMER_SINKING)
 	var fast := _fast(1701)

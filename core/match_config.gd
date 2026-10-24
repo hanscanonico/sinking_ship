@@ -144,6 +144,12 @@ func share_sinking(other: MatchConfig) -> bool:
 	return _choosing != null or _received != null
 
 
+## Whether [param other] bakes the very sinking this does, under way or made: one took
+## it from the other (share_sinking), or it is this one; never before its bakes begin.
+func same_sinking(other: MatchConfig) -> bool:
+	return other != null and _choosing != null and _choosing == other._choosing
+
+
 ## Plays [param timeline], the host's, with the hit it was baked from drawn again here
 ## (MustSink.replay) — never baked here (D11); false, and nothing taken, when this end
 ## cannot draw that hit.

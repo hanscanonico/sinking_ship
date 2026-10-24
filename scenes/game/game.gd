@@ -26,10 +26,10 @@ extends Node
 ## from the main menu and the pause menu, and its changes reach the window, the menu's
 ## backdrop and the match as they are made.
 ## A match's sinking is made before it starts, never during play (R20): the next
-## blank-seed match's is baked a slice a frame while the menu or the results show (its
-## seed drawn ahead), and one not yet made when Play is pressed holds the countdown —
-## its first number, with a bar, over the backdrop — until it is (BakeHold);
-## --bake-budget sets the held bake's slice of each frame, to measure or show the hold.
+## blank-seed match's is baked on a thread while the menu or the results show (its seed
+## drawn ahead; SinkingBaker), and one not yet made when Play is pressed holds the
+## countdown — its first number, with a bar, over the backdrop — until it is (BakeHold);
+## --bake-budget keeps the bake to that slice of each frame, to measure or show the hold.
 
 const MATCH_DATA := "res://data/match/default.tres"
 const MATCH_SCENE := preload("res://scenes/match/match.tscn")
@@ -37,10 +37,6 @@ const MATCH_SCENE := preload("res://scenes/match/match.tscn")
 const CAPTURE_SETTLE_FRAMES := 3
 ## Frames between silencing everything and quitting, for the mixer to let go.
 const QUIT_SETTLE_FRAMES := 4
-## The slice of each frame a sinking's bakes may take, in milliseconds: on the menu,
-## where it must not show, and holding the countdown, where little else is drawn.
-const MENU_BAKE_MS := 4.0
-const HOLD_BAKE_MS := 12.0
 ## A capture that jumps to a moment of the sinking starts this many seconds before it,
 ## so what the sinking shows — spray at the waterlines, wreckage out on the sea, wet
 ## decks — has settled into it rather than starting.
@@ -311,11 +307,11 @@ func _play(choices: MatchChoices, rematch: bool = false) -> void:
 	_menu.hide()
 	_holding = config
 	_hold.begin(Ticks.to_seconds(config.countdown_ticks))
-	if config.bake_some(0):
+	if _baker.done(config):
 		_dress_held()
 		return
 	_hold_over_backdrop()
-	_baker.bake(config, _args.bake_budget_ms if _args.bake_budget_ms > 0.0 else HOLD_BAKE_MS)
+	_baker.bake(config, _args.bake_budget_ms)
 
 
 ## The countdown held over the menu's backdrop, the ship at rest, while the held match's
@@ -351,9 +347,9 @@ func _bake_upcoming() -> void:
 	var next := _upcoming.config()
 	if next == null:
 		return
-	if not next.bake_some(0):
+	if not _baker.done(next):
 		if _baker.baking() == null:
-			_baker.bake(next, MENU_BAKE_MS)
+			_baker.bake(next)
 	# A frame split times the match's sinking as it is first built: dressing her builds it.
 	elif _probe == null:
 		_dressing_of(next)
@@ -580,11 +576,11 @@ func _start_replay(file: ReplayFile) -> void:
 	_holding = config
 	_holding_replay = file
 	_hold.begin(Ticks.to_seconds(config.countdown_ticks))
-	if config.bake_some(0):
+	if _baker.done(config):
 		_dress_held()
 		return
 	_hold_over_backdrop()
-	_baker.bake(config, _args.bake_budget_ms if _args.bake_budget_ms > 0.0 else HOLD_BAKE_MS)
+	_baker.bake(config, _args.bake_budget_ms)
 
 
 ## The match [param file] plays, on [param match_rules]; null when its choices no longer
