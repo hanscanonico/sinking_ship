@@ -69,6 +69,24 @@ Letting go by a Grab press is not being knocked loose; a bot that steals knocks 
 loose so as to take it.
 _Avoid_: disarmed, dropped
 
+### What comes aboard
+
+**Bonus**:
+Something that comes aboard during a match at a bonus spot in a dry room below her main
+deck. A Grab press takes it and uses it up at once, giving the seat that took it an edge,
+through a rule there already is, until that seat is out (Double life: until it is spent).
+A seat has one at a time.
+_Avoid_: power-up, pickup, item, perk, buff, boon, loot, stores (a room's name and a flood
+cell's kind)
+
+**Bonus kind**:
+What a kind of bonus is, the same for every one of it: its title, its size and mark, and
+what it changes for its taker. One data file each, as prop kinds are.
+
+**Bonus spot**:
+A point on a floor in a room below her main deck, one per such room, put there by her
+layout, where a bonus can come. The seed says which and when.
+
 ### Watching her again
 
 **Replay**:

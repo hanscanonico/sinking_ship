@@ -179,7 +179,8 @@
       <p class="mt-3 max-w-3xl opacity-90">
         A battle royale on a ship that is going down. Eight brawlers on a small coastal steamer,
         no loot and no damage: you <strong>shove</strong>, you <strong>brace</strong>, you push
-        people into the sea. The rising water and the listing deck are the shrinking zone. Today the
+        people into the sea, and you go <strong>below decks</strong> for a bonus while her rooms
+        are still dry. The rising water and the listing deck are the shrinking zone. Today the
         steamer sinks by the head on a script, so the bow goes under first, the stern climbs, the
         decks tilt until standing still is work, and the last one standing on dry planks wins. You play it in
         <strong>first person</strong>, through your own brawler's eyes, and the steamer has an
@@ -957,13 +958,17 @@ var buttons: int</pre>
         <div class="card bg-base-100 border p-4 sk-locked">
           <div class="flex flex-wrap items-baseline gap-2">
             <h3 class="font-black">D9 · No health, no damage, no loot, one way out</h3>
-            <span class="badge badge-outline">locked · reopened 2026-10-23 (#273)</span>
+            <span class="badge badge-outline">locked · reopened 2026-10-23 (#273) and 2026-10-24 (#307)</span>
           </div>
           <p class="text-sm mt-2 max-w-3xl">
-            Your brief as a rule the code can hold: <strong>the only elimination is the sea</strong>.
-            No damage numbers, no health, no loot, no loadouts. Shove is the only verb in SH1–SH3;
-            the second-verb set is Q2 (recommended: brace plus a charged shove on the same two
-            buttons, with stamina governing brace and charge).
+            Your brief as a rule the code can hold: <strong>the cold is the only way out</strong>,
+            and nothing deals damage — no damage numbers, no health, no loot, no loadouts.
+            <strong>Nothing respawns</strong>: a seat that is out stays out. <strong>Nothing carries
+            over between matches</strong>: no loadouts, no unlocks. A bonus only changes how a rule
+            that already exists treats the seat that took it, with no new verb and no new button,
+            and every bonus spot is put there by her layout, as every prop is. Shove is the only
+            verb in SH1–SH3; the second-verb set is Q2 (recommended: brace plus a charged shove on
+            the same two buttons, with stamina governing brace and charge).
           </p>
           <p class="text-xs mt-1 max-w-3xl opacity-80"><strong>Reopened 2026-10-23 (#273, SH36):</strong>
             "no items, no pickups" gave way to <em>props</em>: loose things of hers — lifebuoys,
@@ -971,6 +976,22 @@ var buttons: int</pre>
             rules there already are, the shove, the slope and the water. What holds: the sea is the
             only way out, nothing deals damage, nothing is loot or a loadout, every prop is put there
             by her layout, and none comes back once it is gone.</p>
+          <p class="text-xs mt-1 max-w-3xl opacity-80"><strong>Reopened again 2026-10-24 (#307, SH37):</strong>
+            "power-ups" came off §13's list as <em>bonuses</em>: each comes aboard while the match
+            goes on, at a bonus spot her layout puts in a room below her main deck that is still
+            dry — the seed says which spot and when — and a Grab press takes it, used up at once,
+            its edge the taker's until that seat is out. What holds is the rule above: the cold the
+            only way out, nothing dealing damage, nothing respawning, nothing carried over, no new
+            verb and no new button.</p>
+          <details class="sk-was text-sm mt-2 max-w-3xl">
+            <summary>Wording before 2026-10-24, kept for comparison</summary>
+<p class="text-sm mt-2 max-w-3xl">
+            Your brief as a rule the code can hold: <strong>the only elimination is the sea</strong>.
+            No damage numbers, no health, no loot, no loadouts. Shove is the only verb in SH1–SH3;
+            the second-verb set is Q2 (recommended: brace plus a charged shove on the same two
+            buttons, with stamina governing brace and charge).
+          </p>
+          </details>
         </div>
 
         <div class="card bg-base-100 border p-4 sk-locked">
@@ -3153,6 +3174,7 @@ sequenceDiagram
             <tr><td class="mono">SH19</td><td>The big ship, greybox — <em>absorbed by SH34 (rev 4)</em></td><td>L</td><td>—</td><td>—</td></tr>
             <tr><td class="mono">SH35</td><td>The ferry — <em>proposed, outside your eleven steps</em></td><td>M</td><td>—</td><td>…pick a ro-ro ferry whose open car deck can roll her over in minutes.</td></tr>
             <tr><td class="mono">SH36</td><td>Props you can grab (#273) — <em>three slices</em></td><td>L</td><td>D9 reopened</td><td>…race for a lifebuoy as she goes, throw a bottle at a perch, block a door with a crate.</td></tr>
+            <tr><td class="mono">SH37</td><td>Bonuses below decks (#307) — <em>ten slices</em></td><td>XL</td><td>D9 reopened again</td><td>…go below decks for a bonus while her rooms are dry, and keep its edge to the end of your match.</td></tr>
             <tr><td class="mono">SH20</td><td>Bots at scale</td><td>M</td><td>—</td><td>…watch bots climb through many decks as the water comes.</td></tr>
             <tr><td class="mono">SH21</td><td>More seats</td><td>M</td><td>Q12 · build the recommendation</td><td>…play a crowded match on the big ship.</td></tr>
             <tr><td class="mono">SH22</td><td>Online at scale</td><td>L</td><td>—</td><td>…play a crowded room online from the mini PC within its upload.</td></tr>
@@ -4678,6 +4700,34 @@ sequenceDiagram
           </ul>
         </div>
 
+        <!-- SH37 -->
+        <div class="card bg-base-100 border p-4 sk-ms" id="sh37">
+          <div class="flex flex-wrap items-baseline gap-2">
+            <h3 class="font-black">SH37 · Bonuses below decks <span class="badge badge-outline badge-sm">size XL</span> <span class="badge badge-sm align-middle" style="background:var(--sk-deep); color:white; border:0;">post-MVP</span> <span class="badge badge-outline badge-sm align-middle">#307 · D9 reopened again</span></h3>
+          </div>
+          <p class="text-sm mt-2 max-w-3xl"><strong>Ships:</strong> a reason to leave the high ground. Bonuses come aboard while the match goes on, a few at a time, each at a bonus spot in a room below her main deck that is still dry; the feed names its kind and its room, it glows softly and hums so that you find it once you are there, and a Grab press takes it, used up at once, its edge yours for the rest of your match — one at a time, a new one replacing the one you have, and each lost when the sea gets to it. Five kinds to begin with: double life, high jump, sure footing, steady and strong arms. Ten slices, each its own PR, a playtest after the third.</p>
+          <h4>Builds</h4>
+          <ul class="sk-checks text-sm">
+            <li>Bonus spots in her layout: a point on a floor in each room below her main deck, naming its room, written by her generator through one free-floor-spot helper the generators share, carried by her authoring scene and held by the layout lint.</li>
+            <li>A bonus kind — its title, its size and mark, and what it changes for its taker — and the bonus rules — the kinds and their odds, when the first comes, the interval and its jitter, the most aboard at once — as data the match config checks.</li>
+            <li>The bonus plan, drawn once at the start from its own seeded stream and quickened with her sinking on the fast clock; a planned bonus comes only to an open spot, in a room still dry as the water stands now, never by the timeline's future.</li>
+            <li>The bonuses aboard and each seat's bonus in the snapshot; the one reach query answering a bonus first, even with full hands, for the sim and the HUD's prompt alike; the rules a bonus can change worked out for each seat, every tick, from its bonus.</li>
+            <li>The feed's lines, the glow and the hum, the HUD's bonus and every holder's mark; bonuses a match choice, on by default, offline and online; bots going below decks for them at their tier's nerve.</li>
+          </ul>
+          <h4>Respects</h4>
+          <p class="text-sm">D2, D3, D4, D5, D6, D7, D9 (reopened again), D10, D11, D13.</p>
+          <h4>Acceptance gates</h4>
+          <ul class="sk-gates text-sm">
+            <li><code>make verify</code> green; same seed and input log, same digest with bonuses in play; <code>from_snapshot(snapshot())</code> continues with a bonus aboard, a seat holding one and a spare meter unspent; turning bonuses on or off leaves her sinking and the match stream's draws as they were.</li>
+            <li>The layout lint holds every bonus spot to a floor in a room below her main deck, one in each such room; bake-check holds the authored ships' spots field for field.</li>
+            <li><code>make run</code>: take a Double life below the steamer's decks and survive a second cold meter.</li>
+          </ul>
+          <h4>Not in this milestone</h4>
+          <ul class="sk-crosses text-sm">
+            <li>Health, damage, loot, loadouts, unlocks, anything that respawns or carries over between matches; holding or stacking more than one, and bonuses that last a set time; new verbs or buttons; walking faster; any arrow, marker or outline through a wall (§13); bonuses above her main deck, in the sea or adrift; placing them by the timeline's future.</li>
+          </ul>
+        </div>
+
         <!-- SH20 -->
         <div class="card bg-base-100 border p-4 sk-ms" id="sh20">
           <div class="flex flex-wrap items-baseline gap-2">
@@ -4848,6 +4898,9 @@ sequenceDiagram
           <p class="text-sm mt-1">Battle royales attract loot, skins, progression and ranked play.
           <strong>Mitigation:</strong> D9 and §13 fence it; anything on that list is a new plan,
           never a milestone's extra.</p>
+          <p class="text-xs mt-1 opacity-80"><strong>2026-10-24 (#307):</strong> bonuses, which were
+          §13's "power-ups", came in as a milestone of their own, SH37, by your decision over a new
+          plan; D9, reopened again, still fences what a bonus may be.</p>
         </div>
         <div class="card bg-base-100 border p-4 sk-risk-medium">
           <h3 class="font-black text-sm">R6 · medium — Float drift between platforms</h3>
@@ -5629,7 +5682,8 @@ sequenceDiagram
         <div class="card bg-base-100 border p-4">
           <h3 class="font-black">Explicitly out of scope</h3>
           <ul class="sk-crosses text-sm mt-2 grid gap-1">
-            <li><strong>Loot, weapons, items, power-ups, health</strong> — your brief, and D9.</li>
+            <li><strong>Loot, weapons, items, health</strong> — your brief, and D9 (power-ups came off
+            this list on 2026-10-24, as SH37's bonuses).</li>
             <li><strong>Classes, abilities, progression, unlocks, cosmetics shops, passes.</strong></li>
             <li><strong>Accounts, persistent stats, leaderboards, ranked play, matchmaking</strong>
             beyond room codes; text or voice chat.</li>
