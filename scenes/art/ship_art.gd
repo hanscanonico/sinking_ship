@@ -162,7 +162,7 @@ var _powered: ShipPose
 var _graphics := GraphicsQuality.of(GraphicsQuality.Preset.HIGH)
 ## What it draws that hides what stands behind it (ShipOccluders), but for the decks
 ## the sinking can collapse: falls.
-var _occluders: OccluderInstance3D
+var _occluders: ShipOccluders
 var _falls: Array[StringName] = []
 
 
@@ -298,9 +298,7 @@ func build(
 		_prop_at.append(Vector3(NAN, NAN, NAN))
 		_prop_indoors.append(NAN)
 	_falls = falls
-	_occluders = OccluderInstance3D.new()
-	_occluders.name = "Occluders"
-	_occluders.occluder = ShipOccluders.of(_space, falls, span, cut_above)
+	_occluders = ShipOccluders.new(_space, falls, span, cut_above)
 	add_child(_occluders)
 
 
@@ -321,7 +319,7 @@ func show_span(kept: Vector2) -> void:
 		materials.append(own)
 	PieceClip.show(materials, span)
 	if _occluders != null:
-		_occluders.occluder = ShipOccluders.of(_space, _falls, span, cut_above)
+		_occluders.cut(_space, _falls, span, cut_above)
 
 
 ## Per prop of the layout, the node it is drawn under: a crate's origin at its

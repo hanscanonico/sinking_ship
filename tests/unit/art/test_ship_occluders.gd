@@ -98,8 +98,9 @@ func test_every_standing_deck_and_wall_is_a_quad_and_a_deck_that_falls_none() ->
 
 
 func test_every_doorway_under_a_lintel_is_left_open() -> void:
-	for path: String in [STEAMER, TITANIC]:
-		var space := ShipSpace.new(load(path))
+	var ships := {"steamer": load(STEAMER), "titanic": load(TITANIC)}
+	for ship: String in ships:
+		var space := ShipSpace.new(ships[ship])
 		var occluder := ShipOccluders.of(space)
 		var open := 0
 		for doorway: Array in _doorways(space):
@@ -115,10 +116,10 @@ func test_every_doorway_under_a_lintel_is_left_open() -> void:
 						_crosses(occluder, probe[0], probe[1]),
 						(
 							"%s: the doorway under %s, %.2f along it, %.2f up"
-							% [path, lintel.area, along, up]
+							% [ship, lintel.area, along, up]
 						)
 					)
-		assert_gt(open, 30, "%s's doorways" % path)
+		assert_gt(open, 30, "the %s's doorways" % ship)
 
 
 func test_it_keeps_to_its_span_and_under_its_cut_away() -> void:
@@ -155,3 +156,29 @@ func test_the_dressed_ship_carries_its_occluder_cut_again_as_her_span_moves() ->
 	assert_lt(kept.indices.size(), whole.indices.size(), "fewer than all of her")
 	for point: Vector3 in kept.vertices:
 		assert_between(point.x, -2.0, 2.0, "within the stretch at %s" % point)
+
+
+func test_it_follows_her_only_once_she_has_moved_past_its_slip() -> void:
+	var ship := Node3D.new()
+	add_child_autofree(ship)
+	var occluders := ShipOccluders.new(ShipSpace.new(load(STEAMER)))
+	ship.add_child(occluders)
+	assert_eq(occluders.global_transform, ship.global_transform, "put where she is drawn")
+	var placed := occluders.global_transform
+	# A hair's turn and drop: at her furthest point well under SLIP.
+	ship.rotation = Vector3(0.0, 0.0, 1e-5)
+	ship.position = Vector3(0.0, -ShipOccluders.SLIP * 0.25, 0.0)
+	occluders._process(0.0)
+	assert_eq(occluders.global_transform, placed, "left where it was")
+	ship.position = Vector3(0.0, -ShipOccluders.SLIP * 1.5, 0.0)
+	occluders._process(0.0)
+	assert_eq(occluders.global_transform, ship.global_transform, "put again once past it")
+
+
+func test_a_turn_moves_her_furthest_point_by_its_angle_times_its_reach() -> void:
+	var placed := Transform3D.IDENTITY
+	var turned := Transform3D(Basis(Vector3.UP, ShipOccluders.SLIP / 200.0), Vector3.ZERO)
+	assert_false(ShipOccluders.moved_past(placed, turned, 100.0), "half of SLIP at 100 m")
+	assert_true(ShipOccluders.moved_past(placed, turned, 300.0), "one and a half at 300 m")
+	var slid := Transform3D(Basis.IDENTITY, Vector3(ShipOccluders.SLIP * 1.01, 0.0, 0.0))
+	assert_true(ShipOccluders.moved_past(placed, slid, 0.0), "SLIP along her")
