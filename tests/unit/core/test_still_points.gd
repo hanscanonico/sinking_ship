@@ -99,3 +99,19 @@ func test_another_cell_map_is_looked_through_afresh() -> void:
 	var other := _pose(layout, -1.0, 3.0, 1.0)
 	other.cells = CellMap.new(layout.structure, Basis(Vector3.UP, PI))
 	assert_eq(_differing(still, points, other, surfaces), 0, "and in another's")
+
+
+func test_every_point_read_at_once_is_wet_as_each_asked_alone() -> void:
+	var layout := SimFixtures.steamer()
+	var points := _points()
+	var still := StillPoints.new(points)
+	var wet := 0
+	for pose: ShipPose in [_pose(layout, -2.0, 0.0, 0.0), _pose(layout, 0.5, -12.0, 4.0)]:
+		still.read(pose)
+		var all := still.wet_all()
+		var differing := 0
+		for index in points.size():
+			differing += 1 if (all[index] == 1) != still.wet(index) else 0
+			wet += all[index]
+		assert_eq(differing, 0, "every point as asked alone")
+	assert_gt(wet, 0, "some of them wet")

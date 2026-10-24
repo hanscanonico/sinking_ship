@@ -72,6 +72,24 @@ func wet(index: int) -> bool:
 	return _pose.wet_at(_points[index], world_height(index), _cells[index])
 
 
+## Per point, 1 where it is under the water of the pose read (wet): every point at
+## once, for a caller that asks of them all — those over every water there is passed
+## over without asking their cells.
+func wet_all() -> PackedByteArray:
+	if not _located:
+		_locate()
+	if _world.is_empty():
+		_world = _pose.transform * _points
+	var highest := _pose.highest_water()
+	var found := PackedByteArray()
+	found.resize(_points.size())
+	for index in _points.size():
+		var height := _world[index].y
+		if height < highest and _pose.wet_at(_points[index], height, _cells[index]):
+			found[index] = 1
+	return found
+
+
 ## How far point [param index] stands above the water under it under the pose read
 ## (ShipPose.above_water).
 func above_water(index: int) -> float:

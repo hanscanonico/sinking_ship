@@ -150,8 +150,9 @@ var _pose_known: ShipPose
 var _flooded := PackedByteArray()
 var _doomed := PackedByteArray()
 var _portal_wet := PackedByteArray()
-## Per platform under that pose, as _flooded is per zone: whether the water stands over
-## its middle (Surfaces.flooded).
+## Per platform under that pose, 1 where the water stands over its middle
+## (Surfaces.flooded): every platform's read at once, the first time one is asked;
+## empty until then.
 var _platform_flooded := PackedByteArray()
 ## Per portal, whether a watertight door is shut across it (_shut): worked out under the
 ## doors shut, the openings failed and the funnels felled of the pose it was first asked
@@ -222,7 +223,6 @@ func _init(layout: ShipLayout, surfaces: Surfaces, rules: BrawlRules) -> void:
 	_lowest.resize(_zone_count)
 	_portal_wet.resize(_portals.size())
 	_portal_shut.resize(_portals.size())
-	_platform_flooded.resize(layout.platforms.size())
 	var ends := PackedVector3Array()
 	for portal: Portal in _portals:
 		_portal_to.append(portal.to_zone)
@@ -867,7 +867,7 @@ func _know(pose: ShipPose) -> void:
 	_flooded.fill(0)
 	_doomed.fill(0)
 	_portal_wet.fill(0)
-	_platform_flooded.fill(0)
+	_platform_flooded = PackedByteArray()
 	_heights.fill(NAN)
 	_lowest.fill(NAN)
 	_flooded_share = NAN
@@ -887,9 +887,9 @@ func _know(pose: ShipPose) -> void:
 ## (Surfaces.flooded), worked out once a pose.
 func _platform_under(platform: int, pose: ShipPose) -> bool:
 	_know(pose)
-	if _platform_flooded[platform] == 0:
-		_platform_flooded[platform] = 2 if _centres.wet(platform) else 1
-	return _platform_flooded[platform] == 2
+	if _platform_flooded.is_empty():
+		_platform_flooded = _centres.wet_all()
+	return _platform_flooded[platform] == 1
 
 
 func _is_flooded(zone: int, pose: ShipPose) -> bool:
