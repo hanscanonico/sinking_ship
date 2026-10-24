@@ -2,7 +2,8 @@ class_name KnockoutFeed
 extends CanvasLayer
 ## Who went into the sea, top right under the inclinometer's dials: a line per
 ## SEAT_OUT, "Bot 2 shoved Bot 5 into the sea" when a shove has the credit, "Bot 5
-## went into the sea" when none has — "You" when the local seat is either — the
+## went into the sea" when none has, "Bot 5 went down with her" when it was inside her
+## as she went — "You" when the local seat is either — the
 ## newest at the bottom, at most MAX_LINES, each fading out once it has stood
 ## LINE_SECONDS. Read from every stepped tick's events (SimDriver.stepped), so a
 ## hitch never eats one and nothing is posted twice; a replay sought clears it.
@@ -51,7 +52,7 @@ func setup(names: PackedStringArray, own_seat: int) -> void:
 func add(events: Array[SimEvent]) -> void:
 	for event: SimEvent in events:
 		if event.kind == SimEvent.Kind.SEAT_OUT:
-			_post(feed_line(_fitted(), event.seat, event.credit, _own_seat))
+			_post(feed_line(_fitted(), event.seat, event.credit, _own_seat, event.cause))
 
 
 ## Every line taken down.
@@ -60,14 +61,21 @@ func clear() -> void:
 		_drop(label)
 
 
-## The feed's line for [param out_seat] going into the sea, with [param credit] the seat
-## whose shove sent it, or -1; [param own_seat] is said as "You". [param names] labels
-## each seat.
+## The feed's line for [param out_seat] going out by [param cause]: into the sea, with
+## [param credit] the seat whose shove sent it, or -1 — or down with her, inside her as
+## she went, whoever shoved it last; [param own_seat] is said as "You". [param names]
+## labels each seat.
 static func feed_line(
-	names: PackedStringArray, out_seat: int, credit: int, own_seat: int
+	names: PackedStringArray,
+	out_seat: int,
+	credit: int,
+	own_seat: int,
+	cause := PlayerState.Cause.COLD
 ) -> String:
+	var gone := "You" if out_seat == own_seat else names[out_seat]
+	if cause == PlayerState.Cause.WITH_HER:
+		return "%s went down with her" % gone
 	if credit < 0:
-		var gone := "You" if out_seat == own_seat else names[out_seat]
 		return "%s went into the sea" % gone
 	var shover := "You" if credit == own_seat else names[credit]
 	var shoved := "you" if out_seat == own_seat else names[out_seat]

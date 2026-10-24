@@ -7,7 +7,11 @@ extends RefCounted
 enum Body { GROUNDED, AIRBORNE, SWIMMING, OUT }
 ## CHARGE: the shove held past charge_threshold, until it is released.
 enum Action { IDLE, WINDUP, ACTIVE, RECOVERY, CHARGE }
-enum Cause { NONE, COLD }
+## How a seat went out. COLD: its meter ran out in the water, or the sea settled it by
+## the cold once she was gone and every surface was under (MatchVerdict.by_the_cold).
+## WITH_HER: it was inside a piece of her on the tick that piece was gone
+## (MatchVerdict.gone_with) — dry, maybe, in a hold that kept its air all the way down.
+enum Cause { NONE, COLD, WITH_HER }
 
 var seat: int
 ## The piece of her hull it is on (Pieces, SH33): 0, the whole ship, until she breaks.
