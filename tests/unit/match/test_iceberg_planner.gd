@@ -3,7 +3,8 @@ extends GutTest
 ## of her from the match's start, grinds its spur aft along the gash as HOLED strikes,
 ## and lets it fall astern and away, every pose a pure function of (hit, ship, seed,
 ## tick) (D5). Built from hand-made hits on the shipped ships: no bake. The berg is one
-## of the models of IcebergPlanner.BERGS, picked by the seed and scaled alike every way.
+## of the models of IcebergPlanner.BERGS, picked by the seed and scaled alike every way;
+## the growlers it has shed float round it, of IcebergPlanner.GROWLERS.
 
 const SHIPS: Array[String] = [
 	"res://data/ships/trawler.tres", SimFixtures.STEAMER, "res://data/ships/titanic.tres"
@@ -270,3 +271,81 @@ func test_it_is_shaded_as_modelled_but_flat_where_its_blade_is_drawn_out() -> vo
 				else:
 					assert_eq(normal, model.normals[at + corner], "as modelled")
 	assert_eq(seen.size(), IcebergPlanner.BERGS.size(), "every berg")
+
+
+func test_its_growlers_float_clear_of_it_on_its_side_away_from_her() -> void:
+	var layout := SimFixtures.steamer()
+	var seen := {}
+	for seed_value in range(SEED, SEED + 40):
+		var planner := _planner(layout, 1, seed_value)
+		var growlers := planner.growlers()
+		var count := IcebergPlanner.GROWLER_COUNT
+		assert_between(growlers.size(), count.x, count.y, "as many as the seed sheds")
+		var middles: Array[Vector2] = []
+		var reaches: Array[float] = []
+		for index in growlers.size():
+			seen[growlers[index].model] = true
+			var at := planner.growler_at(index, 0.0)
+			assert_almost_eq(at.origin.y, 0.0, 0.0001, "afloat")
+			assert_lt(at.origin.z, 0.0, "on its side away from her")
+			# How far it reaches out from its middle, and from how deep to how high.
+			var reach := 0.0
+			var band := Vector2(INF, -INF)
+			for corner in IcebergPlanner.model_of(growlers[index].model).corners:
+				var point := at.basis * corner
+				reach = maxf(reach, Vector2(point.x, point.z).length())
+				band = Vector2(minf(band.x, point.y), maxf(band.y, point.y))
+			var middle := Vector2(at.origin.x, at.origin.z)
+			var nearest := INF
+			for corner in planner.shape():
+				if corner.y >= band.x and corner.y <= band.y:
+					nearest = minf(nearest, Vector2(corner.x, corner.z).distance_to(middle))
+			assert_gt(nearest, reach, "%s: clear of its ice" % planner.berg)
+			for other in middles.size():
+				var apart := middles[other].distance_to(middle)
+				assert_gt(apart, reaches[other] + reach, "clear of each other")
+			middles.append(middle)
+			reaches.append(reach)
+	assert_eq(seen.size(), IcebergPlanner.GROWLERS.size(), "every growler")
+
+
+func test_no_growler_cuts_into_her() -> void:
+	for path in SHIPS:
+		var layout: ShipLayout = load(path)
+		var span := IcebergPlanner._span(layout.structure)
+		for side in [1, -1]:
+			var planner := _planner(layout, side)
+			var closest := INF
+			var when := 0
+			for tick in range(0, planner.scrape_end + 600, 20):
+				var pose := planner.pose_at(tick)
+				var growlers := planner.growlers()
+				for index in growlers.size():
+					var at := pose * planner.growler_at(index, tick)
+					for corner in IcebergPlanner.model_of(growlers[index].model).corners:
+						var point := at * corner
+						if point.y < 0.0 or point.x < span.x or point.x > span.y:
+							continue
+						var off: float = point.z * side - _beam(layout, point.x)
+						if off < closest:
+							closest = off
+							when = tick
+			var named := "%s, side %d" % [path.get_file(), side]
+			assert_gt(closest, 0.0, "%s: clear of her side, nearest at tick %d" % [named, when])
+
+
+func test_its_growlers_rock_on_the_swell_the_same_whenever_asked() -> void:
+	var layout := SimFixtures.steamer()
+	var one := _planner(layout, 1)
+	var two := _planner(layout, 1)
+	assert_eq(one.growlers().size(), two.growlers().size(), "the same growlers for the seed")
+	var most := 0.0
+	for tick: float in [0.0, 37.5, 500.0, 1099.5, 1100.0, 1180.25, 9000.0]:
+		for index in one.growlers().size():
+			var pose := one.growler_at(index, tick)
+			assert_eq(two.growler_at(index, tick), pose, "the same whenever it is asked")
+			var tilt := rad_to_deg(pose.basis.y.normalized().angle_to(Vector3.UP))
+			var rock := IcebergPlanner.GROWLER_ROCK_DEG * sqrt(2.0)
+			assert_lte(tilt, rock + 0.01, "rocking gently")
+			most = maxf(most, tilt)
+	assert_gt(most, IcebergPlanner.GROWLER_ROCK_DEG * 0.3, "but rocking")

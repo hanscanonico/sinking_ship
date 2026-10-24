@@ -8,7 +8,8 @@ extends RefCounted
 ## then it falls astern and away from her, and stays in sight. Every pose is a pure
 ## function of (hit, ship, seed, tick), never of frame time, so a scrubbed or restored
 ## match shows it where it was (D5). Presentation only: it has no collision and
-## nothing it does reaches the sim (D12).
+## nothing it does reaches the sim (D12). Growlers it has shed float round its foot,
+## on its side away from her, and go where it goes, rocking on the swell.
 ##
 ## Poses are in the sea's frame: her ship-local x and z as she lies before the hit,
 ## level, and y over the sea. The berg's own frame has the sea at y = 0 and its spur
@@ -54,6 +55,27 @@ const BLADE_OVER := 0.4
 const BLADE_UNDER := 1.0
 const BLADE_TOP := -0.3
 const CLEAR := 0.4
+## The growlers, bits of ice it has shed, modelled in Blender (assets/models/NAME):
+## each GROWLER_SPAN metres across at most, GROWLER_RISE over the sea and
+## GROWLER_DRAUGHT under it at BERG_HEIGHT's measure, and scaled as the berg is and by
+## GROWLER_SIZE again, at least and at most. How many float round it, at least and at
+## most; how far out from its middle, as a share of the most a berg spreads (SPREAD.y
+## of its height), at least and at most; and how far round from straight away from
+## her they float, either way, in degrees — short of square across, so none is ever
+## between it and her.
+const GROWLERS: Array[String] = ["growler_a", "growler_b", "growler_c"]
+const GROWLER_SPAN := 2.4
+const GROWLER_RISE := 0.6
+const GROWLER_DRAUGHT := 1.6
+const GROWLER_SIZE := Vector2(0.6, 1.5)
+const GROWLER_COUNT := Vector2i(5, 8)
+const GROWLER_OUT := Vector2(1.45, 2.4)
+const GROWLER_ARC_DEG := 80.0
+## How far a growler rocks on the swell, in degrees, how often, in hertz, and how much
+## faster or slower one rocks than the next, at most, as a share.
+const GROWLER_ROCK_DEG := 4.0
+const GROWLER_ROCK_HZ := 0.2
+const GROWLER_ROCK_SPREAD := 0.25
 
 ## Ticks: the strike, as HOLED tells it, and the end of the scrape.
 var hit_tick := 0
@@ -81,16 +103,17 @@ var _blade := Vector2.ZERO
 var _shape := PackedVector3Array()
 var _normals := PackedVector3Array()
 var _shades := PackedColorArray()
+var _growlers: Array[Growler] = []
 
-## Every model of BERGS read, by name: read once a process.
+## Every model of BERGS and GROWLERS read, by name: read once a process.
 static var _models := {}
 
 
-## A berg as modelled: its faces, three corners each, in its own frame at BERG_HEIGHT;
-## each corner's normal, smooth across the ice and sharp at its ledges as the model
-## shades it; each face's colour, linear, as the model carries it; and its spur's
-## blade, the corners furthest along +z, as far out as they stand and halfway up
-## between them.
+## A berg or a growler as modelled: its faces, three corners each, in its own frame at
+## BERG_HEIGHT's measure; each corner's normal, smooth across the ice and sharp at its
+## ledges as the model shades it; each face's colour, linear, as the model carries it;
+## and, for a berg, its spur's blade, the corners furthest along +z, as far out as they
+## stand and halfway up between them.
 class Model:
 	var corners := PackedVector3Array()
 	var normals := PackedVector3Array()
@@ -98,6 +121,19 @@ class Model:
 	var bounds := AABB()
 	var blade_z := 0.0
 	var blade_middle := 0.0
+
+
+## A growler: its model, of GROWLERS; where it floats, in the berg's own frame, on the
+## sea; which way it is turned, in radians; how much bigger than modelled it is; where
+## in its rocking it is at the match's start, about x and about z, in radians; and how
+## fast it rocks, as a share of GROWLER_ROCK_HZ.
+class Growler:
+	var model := ""
+	var at := Vector3.ZERO
+	var yaw := 0.0
+	var size := 1.0
+	var phase := Vector2.ZERO
+	var pace := 1.0
 
 
 ## The berg [param hit], struck at [param struck] tick, makes on [param layout] in the
@@ -146,6 +182,7 @@ func _init(
 	_blade.x = maxf(_blade.x, -depth * 0.85)
 	_blade.y = maxf(_blade.y, _blade.x + 0.2)
 	_build(model, standoff + CLEAR)
+	_float_growlers(match_seed)
 
 
 ## The berg of [param schedule]'s hit on [param layout] in the match of
@@ -181,6 +218,24 @@ func shades() -> PackedColorArray:
 ## The spur's blade, its own frame: the point of it at [param y] over the sea.
 func spur(y: float) -> Vector3:
 	return Vector3(0.0, clampf(y, _blade.x, _blade.y), _reach)
+
+
+## The growlers floating round it, as the seed has them.
+func growlers() -> Array[Growler]:
+	return _growlers
+
+
+## Where growler [param index] floats at [param tick] — a fraction between two ticks
+## for a frame drawn between them — in the berg's own frame: on the sea where it lies,
+## turned its way, as big as it is, and rocking on the swell.
+func growler_at(index: int, tick: float) -> Transform3D:
+	var growler := _growlers[index]
+	var swing := TAU * GROWLER_ROCK_HZ * growler.pace * tick / Ticks.RATE
+	var rock := deg_to_rad(GROWLER_ROCK_DEG)
+	var tilt := Basis(Vector3.RIGHT, rock * sin(swing + growler.phase.x))
+	tilt *= Basis(Vector3.BACK, rock * sin(swing * 1.3 + growler.phase.y))
+	var basis := tilt * Basis(Vector3.UP, growler.yaw) * growler.size
+	return Transform3D(basis, growler.at)
 
 
 ## Where it stands at [param tick] — a fraction between two ticks for a frame drawn
@@ -228,8 +283,8 @@ func _yaw(tick: float) -> float:
 	return yaw
 
 
-## The model of BERGS named [param name], read from its .glb the first time it is
-## asked for and the same Model every time after.
+## The model of BERGS or GROWLERS named [param name], read from its .glb the first
+## time it is asked for and the same Model every time after.
 static func model_of(name: String) -> Model:
 	if _models.has(name):
 		return _models[name]
@@ -290,6 +345,42 @@ func _build(model: Model, standoff: float) -> void:
 		for corner in 3:
 			_normals[at + corner] = flat
 	_shades = model.shades
+
+
+## Floats its growlers round its foot as the match of [param match_seed] has them: as
+## many as GROWLER_COUNT allows, each on its side away from her, out past the most a
+## berg spreads, and none crowding another. A stream of their own, so the berg the
+## seed picks is the berg it picked before there were growlers.
+func _float_growlers(match_seed: int) -> void:
+	var rng := SeedStreams.derive(match_seed, "growlers")
+	var count := rng.randi_range(GROWLER_COUNT.x, GROWLER_COUNT.y)
+	var scale := height / BERG_HEIGHT
+	var spread := SPREAD.y * height
+	var arc := deg_to_rad(GROWLER_ARC_DEG)
+	for _try in count * 8:
+		if _growlers.size() == count:
+			return
+		var growler := Growler.new()
+		growler.model = GROWLERS[rng.randi_range(0, GROWLERS.size() - 1)]
+		growler.size = scale * rng.randf_range(GROWLER_SIZE.x, GROWLER_SIZE.y)
+		var bearing := rng.randf_range(-arc, arc)
+		var out := spread * rng.randf_range(GROWLER_OUT.x, GROWLER_OUT.y)
+		growler.at = Vector3(sin(bearing) * out, 0.0, -cos(bearing) * out)
+		growler.yaw = rng.randf_range(0.0, TAU)
+		growler.phase = Vector2(rng.randf_range(0.0, TAU), rng.randf_range(0.0, TAU))
+		growler.pace = 1.0 + rng.randf_range(-GROWLER_ROCK_SPREAD, GROWLER_ROCK_SPREAD)
+		if _clear_of_the_growlers(growler):
+			_growlers.append(growler)
+
+
+## Whether [param growler] floats clear of every growler afloat: a growler reaches no
+## further from its middle than across its span's corner.
+func _clear_of_the_growlers(growler: Growler) -> bool:
+	for other in _growlers:
+		var room := (growler.size + other.size) * GROWLER_SPAN * sqrt(0.5)
+		if growler.at.distance_to(other.at) < room:
+			return false
+	return true
 
 
 ## Her shell's line where [param hit] strikes [param structure], aft to fore,
