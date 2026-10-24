@@ -117,9 +117,11 @@ var _breakups: Array[DeckWreck] = []
 ## Per platform, the height of the floor beneath its middle: where it lands.
 var _floors := PackedFloat64Array()
 ## Per railing, the node it hangs from when an event can fail it, or null, and the
-## node its remains hang from, shown once it is broken — null until it first is.
+## node its remains hang from, shown once it is broken — null until it first is —
+## drawn again as the spans beside it break or mend (RailingRemains.held()).
 var _rails: Array[Node3D] = []
 var _remains: Array[Node3D] = []
+var _remains_held := PackedInt32Array()
 ## The broken railings the rails were last drawn for, so they are gone through only as
 ## those change — once a tick at most; [-1], none ever drawn, before they first are.
 var _railings_drawn := PackedInt32Array([-1])
@@ -194,6 +196,7 @@ func build(
 	_floors.clear()
 	_rails.clear()
 	_remains.clear()
+	_remains_held.clear()
 	_railings_drawn = PackedInt32Array([-1])
 	_powered = null
 	_flashes.clear()
@@ -253,6 +256,7 @@ func build(
 			_railing(into, index, railing_height)
 			hull.staff(into, railing)
 		_remains.append(null)
+		_remains_held.append(0)
 	for ladder: ShipLadder in layout.ladders:
 		if not mesh.kept(minf(ladder.from.x, ladder.to.x), maxf(ladder.from.x, ladder.to.x)):
 			continue
@@ -368,8 +372,13 @@ func show_sinking(
 			continue
 		var broken := index in broken_railings
 		_rails[index].visible = not broken
+		var held := _wreckage.held(index, broken_railings) if broken else 0
+		if broken and _remains[index] != null and held != _remains_held[index]:
+			_remains[index].free()
+			_remains[index] = null
 		if broken and _remains[index] == null:
-			_remains[index] = _remains_of(index)
+			_remains[index] = _remains_of(index, held)
+			_remains_held[index] = held
 		if _remains[index] != null:
 			_remains[index].visible = broken
 
@@ -414,15 +423,16 @@ func show_falls(falls: Array[FunnelFall], tick: float) -> void:
 			_felled = _felled or FunnelArt.down(fall, tick)
 
 
-## Railing [param index]'s remains (RailingRemains) under a node of their own beside
-## the span's, in the paints of the deck it stands on.
-func _remains_of(index: int) -> Node3D:
+## Railing [param index]'s remains (RailingRemains), its ends held as [param held]
+## has them, under a node of their own beside the span's, in the paints of the deck
+## it stands on.
+func _remains_of(index: int, held: int) -> Node3D:
 	var on := _rails[index].get_parent() as Node3D
 	var node := Node3D.new()
 	node.name = "Railing%dRemains" % index
 	on.add_child(node)
 	var mesh := _mesh()
-	_wreckage.build(mesh, index)
+	_wreckage.build(mesh, index, held)
 	var deck := _wrecks.find(on)
 	mesh.commit(node, _paints if deck == -1 else _flashes[_space.layout.platforms[deck].name])
 	return node
@@ -718,20 +728,10 @@ func _railing(mesh: ShipMesh, index: int, height: float) -> void:
 ## their width — a free end, or the span along x at a corner — 0 when they stop at
 ## it.
 func _overhang(index: int, point: Vector2) -> float:
-	var layout := _space.layout
-	var railing := layout.railings[index]
-	var along_x := is_equal_approx(railing.from.y, railing.to.y)
-	for other_index in layout.railings.size():
-		var other := layout.railings[other_index]
-		var level := layout.platforms[other.platform].height
-		if (
-			other_index == index
-			or not is_equal_approx(level, layout.platforms[railing.platform].height)
-		):
-			continue
-		if not (other.from.is_equal_approx(point) or other.to.is_equal_approx(point)):
-			continue
-		if along_x == is_equal_approx(other.from.y, other.to.y) or not along_x:
+	var railings := _space.layout.railings
+	var along_x := is_equal_approx(railings[index].from.y, railings[index].to.y)
+	for other: int in _wreckage.sharing(index, point):
+		if along_x == is_equal_approx(railings[other].from.y, railings[other].to.y) or not along_x:
 			return 0.0
 	return 1.0
 
