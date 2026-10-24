@@ -69,6 +69,9 @@ tests/unit/core/test_ship_scene_bake.gd	FileAccess.file_exists(blend)	authoring/
 tests/unit/core/test_ship_scene_bake.gd	ResourceLoader.exists(scene)	authoring/*.tscn
 tests/unit/core/test_ship_scene_bake.gd	load("res://data/ships/%s.tres" % ship)	@ship
 tests/unit/core/test_ship_scene_bake.gd	load(path)	data/ships/*
+tests/unit/core/test_ship_scene_ids.gd	FileAccess.file_exists(_path)	-
+tests/unit/core/test_ship_scene_ids.gd	FileAccess.get_file_as_string(_path)	-
+tests/unit/core/test_ship_scene_ids.gd	FileAccess.open(_path)	-
 tests/unit/core/test_ship_structure_lint.gd	load("%s/%s" % [SHIPS, file])	data/ships/*
 tests/unit/core/test_sink_schedule.gd	load(hit)	tests/fixtures/sinking/hits/*.tres
 tests/unit/core/test_sink_timeline.gd	load(path)	tests/fixtures/sinking/hits/*.tres
@@ -103,3 +106,6 @@ tools/ship_bake.gd	ResourceLoader.exists(scene)	authoring/* data/ships/* tests/f
 tools/ship_bake.gd	load(ship)	authoring/* data/ships/* tests/fixtures/ships/*
 tools/ship_bake.gd	load(wanted_path)	authoring/* data/ships/* tests/fixtures/ships/*
 tools/ship_scene_bake.gd	load(path)	authoring/*.tscn
+tools/ship_scene_draw.gd	FileAccess.file_exists(path)	authoring/*.tscn
+tools/ship_scene_draw.gd	FileAccess.get_file_as_string(path)	authoring/*.tscn
+tools/ship_scene_draw.gd	FileAccess.open(path)	authoring/*.tscn
