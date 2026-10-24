@@ -69,11 +69,19 @@ static func whose_view(name: String, own: bool, observer: bool) -> String:
 	return "through your own eyes" if own else "through %s's eyes" % name
 
 
-## The spectating line: the local seat's [param place] of [param seats] and
-## [param whose] view it is (whose_view) over what switches the view, [param previous]
-## and [param next] — the prompts on a line of their own, as long as a pad's are —
-## and, when [param free_key] names one, the key into the free camera, or back out of
-## it to the eyes while [param free] says the view is the free camera.
+## How a seat out of the match went, as the spectating line and the results' title say
+## it: sunk when it was inside her as she went ([param cause]), else overboard — a word
+## no wider than overboard, as the line has no room for more.
+static func out_word(cause: PlayerState.Cause) -> String:
+	return "Sunk" if cause == PlayerState.Cause.WITH_HER else "Overboard"
+
+
+## The spectating line: how the local seat went out by [param cause] (out_word), its
+## [param place] of [param seats] and [param whose] view it is (whose_view) over what
+## switches the view, [param previous] and [param next] — the prompts on a line of
+## their own, as long as a pad's are — and, when [param free_key] names one, the key
+## into the free camera, or back out of it to the eyes while [param free] says the view
+## is the free camera.
 static func spectating_text(
 	place: String,
 	seats: int,
@@ -81,12 +89,14 @@ static func spectating_text(
 	previous: String,
 	next: String,
 	free_key := "",
-	free := false
+	free := false,
+	cause := PlayerState.Cause.COLD
 ) -> String:
 	if free:
 		whose = FREE_VIEW
 	var text := (
-		"Overboard — %s of %d   ·   %s\n%s / %s to switch" % [place, seats, whose, previous, next]
+		"%s — %s of %d   ·   %s\n%s / %s to switch"
+		% [out_word(cause), place, seats, whose, previous, next]
 	)
 	if not free_key.is_empty():
 		text += "   ·   %s %s" % [free_key, "eyes" if free else "free camera"]

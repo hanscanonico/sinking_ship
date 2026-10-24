@@ -69,6 +69,36 @@ func test_the_title_names_who_shoved_you() -> void:
 	assert_eq(titles, ["Overboard — 3rd of 3 — shoved by Bot 2", "Overboard — 3rd of 3"])
 
 
+## Inside her as she went, the title says the local seat sank with her, never that it
+## went overboard nor who shoved it last; under survival after the time it lasted —
+## the last one in as she went is placed first, and nothing else would tell it why its
+## match ended dry.
+func test_the_title_says_you_went_down_with_her() -> void:
+	var names := PackedStringArray(["You", "Bot 1", "Bot 2"])
+	var gone := 134 * Ticks.RATE
+	var royale: Array[SimEvent] = [
+		SimEvent.seat_out(30 * Ticks.RATE, 2, 3, PlayerState.Cause.COLD, -1),
+		SimEvent.seat_out(gone, 0, 2, PlayerState.Cause.WITH_HER, 1),
+		SimEvent.match_ended(gone, 1),
+	]
+	var survival: Array[SimEvent] = [
+		SimEvent.seat_out(30 * Ticks.RATE, 2, 3, PlayerState.Cause.COLD, -1),
+		SimEvent.seat_out(60 * Ticks.RATE, 1, 2, PlayerState.Cause.COLD, -1),
+		SimEvent.seat_out(gone, 0, 1, PlayerState.Cause.WITH_HER, -1),
+		SimEvent.match_ended(gone, -1),
+	]
+	var titles: Array[String] = []
+	for told: Array[SimEvent] in [royale, survival]:
+		var scene: Node = MATCH_SCENE.instantiate()
+		add_child_autofree(scene)
+		var stats := MatchStats.new(3, 0)
+		stats.add(told)
+		var results: EndOverlay = scene.get_node("EndOverlay")
+		results.show_results(stats, 0, names, 1701, told == survival)
+		titles.append((results.get_node("%Title") as Label).text)
+	assert_eq(titles, ["Sunk — 2nd of 3", "Survived 02:14.0 · 1st — sunk with her"])
+
+
 func test_the_battle_royale_results_keep_their_words() -> void:
 	var scene: Node = MATCH_SCENE.instantiate()
 	add_child_autofree(scene)

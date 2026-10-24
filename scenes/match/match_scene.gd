@@ -944,5 +944,6 @@ func _spectating(snapshot: Dictionary, viewed: int) -> String:
 		_prompts.word(&"spectate_previous"),
 		_prompts.word(&"spectate_next"),
 		"" if _observer else _prompts.word(&"spectate_free"),
-		_free.active
+		_free.active,
+		mine["out_cause"]
 	)

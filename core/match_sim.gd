@@ -197,8 +197,11 @@ func step(frames: Array[InputFrame]) -> Array[SimEvent]:
 		for player: PlayerState in _live_seats():
 			if not player in going:
 				left.append(player)
-		going.append_array(MatchVerdict.by_the_cold(left, _sunk.bind(pose_now.standing, framed_of)))
+		var cold := MatchVerdict.by_the_cold(left, _sunk.bind(pose_now.standing, framed_of))
 		for player: PlayerState in going:
+			_out(player, tick, events, PlayerState.Cause.WITH_HER)
+			exits.append(player)
+		for player: PlayerState in cold:
 			_out(player, tick, events)
 			exits.append(player)
 		MatchVerdict.place(state, exits, tick, events, config.goal, schedule.end_tick())
@@ -845,14 +848,16 @@ func _knock_back_in(player: PlayerState, tick: int, events: Array[SimEvent]) -> 
 	events.append(SimEvent.knocked_back_in(tick, player.seat, player.last_hit_by))
 
 
-## Out of the match, and whatever it held into the sea with it.
-func _out(player: PlayerState, tick: int, events: Array[SimEvent]) -> void:
+## Out of the match by [param cause], and whatever it held into the sea with it.
+func _out(
+	player: PlayerState, tick: int, events: Array[SimEvent], cause := PlayerState.Cause.COLD
+) -> void:
 	if _hands[player.seat] != -1:
 		_lose_prop(state.props[_hands[player.seat]], tick, events)
 		_hands[player.seat] = -1
 	player.body = PlayerState.Body.OUT
 	player.out_tick = tick
-	player.out_cause = PlayerState.Cause.COLD
+	player.out_cause = cause
 	player.vel = Vector3.ZERO
 	player.stagger_ticks = 0
 	player.hitstop = 0

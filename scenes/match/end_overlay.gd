@@ -2,8 +2,9 @@ class_name EndOverlay
 extends CanvasLayer
 ## The results, once the match has ended: the local seat's verdict — "Last one
 ## dry!" or "Overboard — 4th of 6 — shoved by Bot 3" (the shove only if one sent it
-## over), or under survival how long it lasted and its place,
-## "Survived 02:14.0 · 3rd" — then every seat's place, time dry (time survived, under
+## over), "Sunk — 4th of 6" inside her as she went, or under survival how long it
+## lasted and its place, "Survived 02:14.0 · 3rd", and " — sunk with her" after it
+## inside her as she went — then every seat's place, time dry (time survived, under
 ## survival), shoves landed and knock-outs credited, all from MatchStats and so from the
 ## events
 ## alone (D5), with rematch and back to the menu — or, online, back to the room and
@@ -89,17 +90,19 @@ func show_results(
 	if visible or not stats.ended:
 		return
 	var mine := stats.seats[local_seat]
+	var gone := Hud.out_word(mine.out_cause)
 	if survival:
-		_title.text = survived(mine.dry_ticks, mine.place)
+		_title.text = survived(mine.dry_ticks, mine.place, mine.out_cause)
 	elif stats.winner == local_seat:
 		_title.text = "Last one dry!"
 	elif stats.seats.size() == 1:
-		_title.text = "Overboard — you stayed dry %s" % MatchTranscript.clock(mine.dry_ticks)
+		_title.text = "%s — you stayed dry %s" % [gone, MatchTranscript.clock(mine.dry_ticks)]
 	elif stats.winner == -1 and mine.place == 1:
 		_title.text = "The sea wins — nobody stays dry"
 	else:
-		_title.text = "Overboard — %s of %d" % [ordinal(mine.place), stats.seats.size()]
-		if mine.out_by >= 0:
+		_title.text = "%s — %s of %d" % [gone, ordinal(mine.place), stats.seats.size()]
+		# A shove long before she went is no shove over the side.
+		if mine.out_by >= 0 and mine.out_cause != PlayerState.Cause.WITH_HER:
 			_title.text += " — shoved by %s" % names[mine.out_by]
 	for child in _table.get_children():
 		_table.remove_child(child)
@@ -182,9 +185,14 @@ func _accept_presses() -> void:
 		_rematch.grab_focus()
 
 
-## A seat's survival, as its title says it: "Survived 02:14.0 · 3rd".
-static func survived(ticks: int, place: int) -> String:
-	return "Survived %s · %s" % [MatchTranscript.clock(ticks), ordinal(place)]
+## A seat's survival, as its title says it: "Survived 02:14.0 · 3rd" — and, gone out by
+## [param cause] inside her as she went, " — sunk with her" after it: the last one in
+## as she goes is placed first though nothing it could see put it out.
+static func survived(ticks: int, place: int, cause := PlayerState.Cause.COLD) -> String:
+	var title := "Survived %s · %s" % [MatchTranscript.clock(ticks), ordinal(place)]
+	if cause == PlayerState.Cause.WITH_HER:
+		title += " — sunk with her"
+	return title
 
 
 static func ordinal(place: int) -> String:
