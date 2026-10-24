@@ -123,6 +123,8 @@ const PANELLING := Color("7d5232")
 const ENAMEL := Color("f0ebdd")
 const LIFEBELT := Color("cf3b2b")
 const FIRE_BUCKET := Color("b5302a")
+## The red lead inside a ventilator's cowl, its mouth's colour from across a deck.
+const RED_LEAD := Color("a8382a")
 const MIRROR := Color("a7b8bf")
 const CHART := Color("e3d8b8")
 ## A ferry's vehicle deck (VehicleDeck): its painted steel underfoot, the yellow of its
