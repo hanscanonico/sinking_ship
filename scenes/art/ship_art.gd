@@ -837,8 +837,12 @@ func _blocker(mesh: ShipMesh, blocker: ShipBlocker, pieces: Dictionary) -> void:
 				mesh, piece, blocker.top, stretch.z, ShipPaints.wall, sides, sides, foot, stretch.z
 			)
 	elif blocker.top - blocker.bottom <= ShipSpace.WALL_MAX and _space.roofs(blocker):
-		# A slab over a room, no deck of its own: its roof, planked over its ceiling.
+		# A slab over a room, no deck of its own: its roof, planked over its ceiling —
+		# up to its own top where no deck laid on it covers it, as a wall stands.
 		mesh.box(area, blocker.bottom, top, ShipPaints.deck, ShipMesh.TOP)
+		if top < blocker.top:
+			for bare: Rect2 in _space.uncovered(area, blocker.top):
+				mesh.box(bare, top, blocker.top, ShipPaints.deck, ShipMesh.TOP | ShipMesh.SIDES)
 		var faces := ShipMesh.ALL_FACES & ~ShipMesh.TOP
 		_lined.box(mesh, area, blocker.bottom, top, ShipPaints.wall, faces, faces)
 	elif _space.outdoors(Vector3(centre.x, (blocker.bottom + top) * 0.5, centre.y)):
