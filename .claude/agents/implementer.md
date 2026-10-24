@@ -82,7 +82,8 @@ Captures:
   remove it when done. Never check main's files out into your worktree, and never
   `git stash` — the stash is shared by every worktree of the repo.
 - Keep probe scripts and logs in the session scratchpad, never under the worktree (lint
-  picks up any `.gd`, captures/ included).
+  picks up any `.gd`, captures/ included), in a directory named for your slug: every agent
+  of the session shares that scratchpad, and a `gate.log` of its own overwrote another's.
 - `make capture` exiting non-zero: read what `tools/engine_guard.sh` complained about and
   report it; never set `ENGINE_GUARD_IGNORE` to get past it.
 - The window lock does not serve waiters in order: a capture may wait 30–50 min on a
