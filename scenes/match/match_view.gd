@@ -24,6 +24,8 @@ const BLINK_TICKS := 6
 const FALL_SECONDS := 0.5
 ## The most bodies in water the water's rings are drawn round (water.gdshader).
 const MAX_WADERS := 8
+## How many props in a row a frame asks at once whether they are as last drawn.
+const STILL_RUN := 16
 
 var _driver: SimDriver
 var _schedule: SinkSchedule
@@ -44,10 +46,12 @@ var _facings := PackedFloat64Array()
 var _shadows: Array[MeshInstance3D] = []
 ## Her props as the ship drawn draws them: the dressed art's (PropArt), or per prop the
 ## greybox's node; per prop the snapshot entry it was last drawn still at, so a prop
-## that has not moved since is passed over; and the layout.
+## that has not moved since is passed over; the props a hand may hold (GrabReach); and
+## the layout.
 var _prop_art: PropArt
 var _props: Array[Node3D] = []
 var _still: Array = []
+var _holdable := PackedInt32Array()
 var _layout: ShipLayout
 ## The seat the camera looks out of, or -1 for none.
 var _eye_seat := -1
@@ -125,6 +129,7 @@ func setup(
 		_prop_art = _art.prop_art
 	_still.clear()
 	_still.resize(ship.props.size())
+	_holdable = GrabReach.holdable_of(ship)
 	if _drawn_pieces == null:
 		_drawn_pieces = ShipPieces.new()
 		_drawn_pieces.name = "Pieces"
@@ -373,9 +378,11 @@ func _process(delta: float) -> void:
 	var seats_then: Array = previous["seats"]
 	var seats_now: Array = current["seats"]
 	var carried := {}
-	for entry: Dictionary in current["props"]:
-		if entry["holder"] != -1:
-			carried[entry["holder"]] = entry["prop"]
+	var entries: Array = current["props"]
+	for index: int in _holdable:
+		var holder: int = entries[index]["holder"]
+		if holder != -1:
+			carried[holder] = index
 	var wading: bool = current["tick"] != _waders_tick
 	var wet_feet := PackedVector3Array()
 	var wet_water := PackedFloat32Array()
@@ -518,12 +525,24 @@ func _show_sinking(
 ## Each prop [param alpha] of the way from where snapshot [param then] draws it to where
 ## [param now] does (PropPlacing), and hidden once it is lost. One the two hold alike —
 ## not afloat, where it bobs, nor held, where it goes as its holder looks — and drawn so
-## last is left as it is: a laid saloon at rest costs a frame nothing.
+## last is left as it is: a laid saloon at rest costs a frame next to nothing, STILL_RUN
+## props at a time asked whether they are as drawn.
 func _show_props(then: Dictionary, now: Dictionary, alpha: float) -> void:
+	var then_props: Array = then["props"]
+	var now_props: Array = now["props"]
+	for first in range(0, now_props.size(), STILL_RUN):
+		var last := mini(first + STILL_RUN, now_props.size())
+		var drawn := _still.slice(first, last)
+		if now_props.slice(first, last) != drawn or then_props.slice(first, last) != drawn:
+			_show_props_of(then, now, alpha, first, last)
+
+
+## Props [param first] to [param last] of _show_props', one by one.
+func _show_props_of(then: Dictionary, now: Dictionary, alpha: float, first: int, last: int) -> void:
 	var height := _rules.railing_height
 	var then_props: Array = then["props"]
 	var now_props: Array = now["props"]
-	for index in now_props.size():
+	for index in range(first, last):
 		var entry: Dictionary = now_props[index]
 		var before: Dictionary = then_props[index]
 		var state: PropState.Body = entry["state"]
