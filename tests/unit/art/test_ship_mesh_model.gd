@@ -33,7 +33,10 @@ func _model(paints: Array[String], inked := true) -> ShipModel:
 	return ShipModel.new(mesh)
 
 
-## [param mesh] committed under a fresh node: its mesh instances by name.
+## [param mesh] committed under a fresh node: each finish's batch, by its finish and
+## where it is drawn — "finish_out", "finish_in_x_y_z" — as a mesh instance of its
+## own standing in for that surface of the instance it is drawn in (ShipMesh.commit:
+## a chunk's finishes share an instance), its layers and shadow the instance's.
 func _drawn(mesh: ShipMesh) -> Dictionary:
 	var node := Node3D.new()
 	add_child_autofree(node)
@@ -43,7 +46,19 @@ func _drawn(mesh: ShipMesh) -> Dictionary:
 	mesh.commit(node, materials)
 	var found := {}
 	for child: Node in node.get_children():
-		found[String(child.name)] = child
+		var instance := child as MeshInstance3D
+		for surface in instance.mesh.get_surface_count():
+			var finish: int = materials.find_key(instance.mesh.surface_get_material(surface))
+			var key := "%d_%s" % [finish, child.name]
+			# The glass is drawn alone, its instance named after its finish already.
+			if String(child.name).begins_with("%d_" % finish):
+				key = String(child.name)
+			var part: MeshInstance3D = autofree(MeshInstance3D.new())
+			part.mesh = instance.mesh
+			part.layers = instance.layers
+			part.cast_shadow = instance.cast_shadow
+			part.set_meta(&"surface", surface)
+			found[key] = part
 	return found
 
 
@@ -57,7 +72,7 @@ func _ship_mesh(outdoors := true) -> ShipMesh:
 
 
 func _arrays(instance: MeshInstance3D) -> Array:
-	return instance.mesh.surface_get_arrays(0)
+	return instance.mesh.surface_get_arrays(instance.get_meta(&"surface", 0))
 
 
 func test_each_surface_is_drawn_in_the_paint_its_material_names() -> void:
@@ -232,3 +247,40 @@ func test_a_model_in_a_fading_mesh_fades_as_one_piece() -> void:
 		for index in range(0, custom.size(), 4):
 			assert_eq(custom[index + 3], 1.0, "fades")
 			assert_almost_eq(custom[index], 2.5, 0.0001, "about the model's middle")
+
+
+func test_a_chunk_s_finishes_are_one_instance_a_surface_each_and_its_glass_its_own() -> void:
+	var mesh := _ship_mesh(false)
+	# Three metre squares facing up in the first chunk indoors: a deck's, a cabin wall's and a
+	# window's glass.
+	var paints: Array[ShipMesh.Paint] = [ShipPaints.deck, ShipPaints.wall, ShipPaints.glass_in]
+	for index in paints.size():
+		var y := index * 0.5
+		mesh.quad(
+			Vector3(0, y, 0),
+			Vector3(1, y, 0),
+			Vector3(1, y, 1),
+			Vector3(0, y, 1),
+			Vector3.UP,
+			paints[index]
+		)
+	var node := Node3D.new()
+	add_child_autofree(node)
+	var materials := {}
+	for finish: int in ShipMesh.Finish.values():
+		materials[finish] = StandardMaterial3D.new()
+	mesh.commit(node, materials)
+	var surfaces := {}
+	for child: Node in node.get_children():
+		var drawn := (child as MeshInstance3D).mesh
+		var finishes := []
+		for surface in drawn.get_surface_count():
+			finishes.append(materials.find_key(drawn.surface_get_material(surface)))
+		surfaces[String(child.name)] = finishes
+	assert_eq_deep(
+		surfaces,
+		{
+			"in_0_0_0": [ShipMesh.Finish.DECK, ShipMesh.Finish.CABIN],
+			"%d_in_0_0_0" % ShipMesh.Finish.GLASS_IN: [ShipMesh.Finish.GLASS_IN],
+		}
+	)

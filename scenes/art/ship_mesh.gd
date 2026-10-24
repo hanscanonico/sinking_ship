@@ -554,12 +554,20 @@ func kept(aft: float, fore: float) -> bool:
 	return fore >= keep.x - KEEP_MARGIN and aft <= keep.y + KEEP_MARGIN
 
 
-## Every batch as a mesh instance under [param parent].
+## Every batch as a surface of a mesh instance under [param parent]: one instance a
+## chunk indoors, and one outdoors, a surface for each finish — a moving ship moves as
+## few instances as she has chunks — but the glass, each finish its own instance.
 func commit(parent: Node3D, materials: Dictionary) -> void:
 	var keys := _batches.keys()
 	keys.sort()
+	var meshes := {}
+	var groups: Array[String] = []
 	for key: String in keys:
 		var batch: Batch = _batches[key]
+		var finish: int = _finishes[key]
+		var group := key.substr(key.find(" ") + 1)
+		if finish == Finish.GLASS_IN or finish == Finish.GLASS_OUT:
+			group = key
 		var arrays := []
 		arrays.resize(Mesh.ARRAY_MAX)
 		arrays[Mesh.ARRAY_VERTEX] = batch.vertices
@@ -576,13 +584,17 @@ func commit(parent: Node3D, materials: Dictionary) -> void:
 				Mesh.ARRAY_CUSTOM_RGBA_FLOAT << Mesh.ARRAY_FORMAT_CUSTOM0_SHIFT
 				| Mesh.ARRAY_CUSTOM_RGB_FLOAT << Mesh.ARRAY_FORMAT_CUSTOM1_SHIFT
 			)
-		var mesh := ArrayMesh.new()
+		if not meshes.has(group):
+			meshes[group] = ArrayMesh.new()
+			groups.append(group)
+		var mesh: ArrayMesh = meshes[group]
 		mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays, [], {}, format)
-		mesh.surface_set_material(0, materials[_finishes[key]])
+		mesh.surface_set_material(mesh.get_surface_count() - 1, materials[finish])
+	for group: String in groups:
 		var instance := MeshInstance3D.new()
-		instance.name = key.replace(" ", "_")
-		instance.mesh = mesh
-		if key.contains("out"):
+		instance.name = group.replace(" ", "_")
+		instance.mesh = meshes[group]
+		if group.contains("out"):
 			instance.layers = 1 << (OUTDOOR_LAYER - 1)
 		else:
 			instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
