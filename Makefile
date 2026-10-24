@@ -382,6 +382,16 @@ durations:
 	$(if $(RUN),,$(error make durations needs RUN="<verify run id> …"; gh run list --workflow verify))
 	tools/test_durations.py $(foreach run,$(RUN),--run $(run))
 
+# The goldens (R6), tests/golden/NAME.<os>-<arch>.txt: a golden test prints the text it
+# works out when its platform's file is missing or no longer matches (Goldens,
+# tests/unit/goldens.gd), and tools/goldens.py writes it. RUN=<verify run id> takes
+# CI's — linux-x86_64, the platform every PR is held to — from that run's logs;
+# without RUN the golden tests run here and this machine's platform is written:
+#   make goldens RUN=40058239619
+goldens:
+	$(call require-godot)
+	GODOT="$(GODOT)" tools/goldens.py $(if $(RUN),--run $(RUN),--here)
+
 # Only the test scripts the branch's changes can reach (tools/test_changed.py): its
 # commits and its uncommitted and untracked edits against the merge-base with
 # origin/main, each script printed with the chain that pulled it in, then run as a
@@ -624,10 +634,10 @@ check:
 # window lock, against sleeps on a private lock file; the test engine slots,
 # against sleeps on private ones — both again on Perl's lock, the one Git Bash on
 # Windows takes (tools/lib/fd_lock.sh); make fps's SPLIT, read off make -n; make test's
-# list of scripts, against a stand-in engine; make durations, against a sample log;
-# verify running the float test once, read off make -n; the gdtoolkit targets'
-# warm-up and fan-out, against a stand-in tool; make test-changed's selection, against a fixture project,
-# and its list of runtime-built loads, against the code.
+# list of scripts, against a stand-in engine; make durations and make goldens, against
+# sample logs; verify running the float test once, read off make -n; the gdtoolkit targets'
+# warm-up and fan-out, against a stand-in tool; make test-changed's selection, against a
+# fixture project, and its list of runtime-built loads, against the code.
 guard-check:
 	tools/engine_guard_check.sh
 	tools/window_lock_check.sh
@@ -638,6 +648,7 @@ guard-check:
 	tools/run_tests_check.sh
 	tools/ship_check_once.sh
 	tools/test_durations_check.sh
+	tools/goldens_check.sh
 	tools/lint_warmup_check.sh
 	tools/test_changed_check.sh
 	tools/test_changed.py --check-sites
@@ -666,6 +677,6 @@ format-check:
 
 .PHONY: import run replay match capture smoke net-bench sim-bench bench serve-local online-e2e export-server \
 	export-web export-mac export-win export-linux export-server-mac serve-web-local serve-web-local-stop fps arena \
-	hits bake census art-lint test test-changed durations verify verify-changed check guard-check ship ship-gen-check ship-check bake-ship \
+	hits bake census art-lint test test-changed durations goldens verify verify-changed check guard-check ship ship-gen-check ship-check bake-ship \
 	bake-check ship-scene \
 	ship-blend bake-blend models model-sources sailor crew-capture lint format format-check

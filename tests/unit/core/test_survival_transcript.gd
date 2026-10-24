@@ -2,8 +2,8 @@ extends GutTest
 ## A survival match told as `make match` tells it (#62): seed 1, eight bots, struck by the
 ## fast explicit hit and played on the fast clock — what
 ##   make match SEED=1 HIT=fast FAST=1 GOAL=survival
-## prints. Its transcript is recorded per platform, as the golden match is (R6):
-##   tests/golden/survival_1_8.<os>-<arch>.txt
+## prints. Its transcript is recorded per platform, as the golden match is (R6, Goldens):
+##   tests/golden/survival_1_8.<os>-<arch>.txt, written by `make goldens`.
 
 const RunMatch := preload("res://tools/run_match.gd")
 const ARGS: Array[String] = ["--seed=1", "--hit=fast", "--fast", "--goal=survival"]
@@ -33,9 +33,4 @@ func test_the_survival_transcript_says_its_goal_and_who_was_in_at_the_plunge() -
 
 
 func test_the_survival_transcript_for_this_platform() -> void:
-	var platform := "%s-%s" % [OS.get_name().to_lower(), Engine.get_architecture_name()]
-	var path := "res://tests/golden/survival_1_8.%s.txt" % platform
-	if not FileAccess.file_exists(path):
-		pending("no survival transcript recorded for %s" % platform)
-		return
-	assert_eq(_survival(), FileAccess.get_file_as_string(path))
+	Goldens.check(self, "survival_1_8", _survival(), "survival transcript")

@@ -28,6 +28,9 @@ const CHURN_RADIUS := 7.0
 const CHURN_TRIM_DEG := 10.0
 ## How far the stem reaches below the waterline of a level, unsunk ship (ShipHull).
 const STEM_DRAFT := 0.5
+## The shader global every water reads for how far a ray off it marches looking for
+## what it mirrors (water_optics.gdshaderinc).
+const WATER_MIRROR := &"water_mirror"
 ## A bottom shallower than this, in metres, is drawn: a coast's (SH32), where she can
 ## come to rest; and it is drawn this wide round the eye, stepping after it as the sea
 ## does.
@@ -191,13 +194,14 @@ func _lay_bottom(depth: float) -> void:
 	_bottom.global_position = Vector3(0.0, -depth, 0.0)
 
 
-## Draws the sun's shadows, the dusk's glow and the sea's fine detail as
-## [param quality] says.
+## Draws the sun's shadows, the dusk's glow, the sea's fine detail and what every
+## water mirrors as [param quality] says.
 func show_graphics(quality: GraphicsQuality) -> void:
 	_sun.directional_shadow_mode = quality.shadow_mode
 	_sun.directional_shadow_max_distance = quality.shadow_distance
 	_dusk.glow_enabled = quality.glow
 	_water.set_shader_parameter(&"fine_share", quality.sea_detail)
+	RenderingServer.global_shader_parameter_set(WATER_MIRROR, quality.sea_mirror)
 
 
 ## Draws rings on the sea round [param waders], the bodies in water nearest the eye
