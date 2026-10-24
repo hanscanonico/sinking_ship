@@ -585,6 +585,39 @@ model-sources:
 		--python "$$dir/$$name.py" -- "$$dir/$$name.blend" | { grep -E "^$$name:|^Info: Saved" || true; } \
 		|| exit 1; done
 
+# `make preview SHIP=steamer [SPAN=-20,10] [CUT=6] [ANGLE=quarter] [EYE=x,y,z AT=x,y,z]
+# [LENS=35] [RES=1280x720] [OUT=captures/preview/NAME.png]`: SHIP's dressed art rendered
+# to a PNG with no game window — dressed headless as the menu's backdrop dresses her and
+# written beside OUT as a vertex-coloured .glb (tools/art_preview.gd, ArtGltf), then drawn
+# by Blender headless with Workbench (tools/art_preview.py). SPAN keeps only the stretch
+# along her from x0 aft to x1 fore, cut there; CUT cuts her away at and above that
+# height, as capture's does. EYE and AT are the eye and the point it looks at, in ship
+# space as capture's FROM= and LOOK= take them — the eye itself, not a seat's feet — and
+# LENS its focal length in mm; without them the camera frames all of her from ANGLE:
+# quarter (the default, a three-quarter view from fore and starboard above her), side,
+# top or bow, and the line it prints gives the EYE, AT and LENS it used, to move from. It
+# takes no window lock, so it works while no window can be opened. Not part of verify:
+# it needs Blender, as models does.
+ANGLE ?=
+LENS ?=
+SPAN ?=
+comma := ,
+preview-out = $(if $(OUT),$(OUT),captures/preview/$(SHIP)$(if $(SPAN),_$(subst $(comma),_,$(SPAN)))$(if $(ANGLE),_$(ANGLE))$(if $(EYE),_eye).png)
+preview:
+	$(call require-godot)
+	$(call require-blender)
+	@test -n "$(SHIP)" || { echo "preview: SHIP=<a ship of the fleet> is required" >&2; exit 1; }
+	@test -z "$(EYE)$(AT)" -o -n "$(EYE)" -a -n "$(AT)" || \
+		{ echo "preview: EYE=x,y,z and AT=x,y,z go together" >&2; exit 1; }
+	@mkdir -p "$(dir $(preview-out))"
+	@set -o pipefail; tools/engine_guard.sh $(GODOT) --headless --no-header --path . -s res://tools/art_preview.gd \
+		-- --ship=$(SHIP) --out="$(basename $(preview-out)).glb" $(if $(SPAN),--span=$(SPAN)) \
+		$(if $(CUT),--cut=$(CUT)) | grep -v '^\[godot_ai'
+	@set -o pipefail; "$(BLENDER)" --background --factory-startup --python-exit-code 1 --python tools/art_preview.py \
+		-- "$(basename $(preview-out)).glb" "$(preview-out)" $(if $(EYE),--eye=$(EYE) --at=$(AT)) \
+		$(if $(ANGLE),--view=$(ANGLE)) $(if $(LENS),--lens=$(LENS)) $(if $(RES),--res=$(RES)) \
+		| { grep '^art_preview' || true; }
+
 # `make crew-capture`: every move a brawler is drawn in, saved as one PNG
 # (tools/crew_gallery.gd): VIEW=crew (the default) stands them all on a deck, VIEW=arms
 # shows a seat's own arms in each through a first-person lens, in a grid, and VIEW=hats
@@ -702,5 +735,5 @@ format-check:
 .PHONY: import run replay match capture smoke net-bench sim-bench bench serve-local online-e2e export-server \
 	export-web export-mac export-win export-linux export-server-mac serve-web-local serve-web-local-stop fps arena \
 	hits bake census art-lint test test-changed durations goldens verify verify-changed check guard-check ship ship-gen-check ship-check bake-ship \
-	bake-check ship-scene \
+	bake-check ship-scene preview \
 	ship-blend bake-blend models model-sources sailor crew-capture lint format format-check
