@@ -1,3 +1,10 @@
+# Every recipe runs in bash. Some twenty start `set -o pipefail`, so an engine's
+# failure outlives the `| grep` that trims its output, and make's default /bin/sh
+# is dash on Ubuntu, which has no pipefail: CI's first art-lint run died on it
+# (#305). The native make on Windows takes Git's sh.exe, bash as well, either way.
+# guard-check holds make to it.
+SHELL := /bin/bash
+
 # The engine: $GODOT when set (CI points it at the Linux build it fetches),
 # else a vendored bin/Godot.app when the checkout has one, else `godot` on PATH.
 # tools/lib/require_godot.sh resolves it the same way for the gate scripts.
