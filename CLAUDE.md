@@ -56,20 +56,26 @@ registered every `class_name`. The engine is `$GODOT`, else a vendored `bin/Godo
 `godot` on PATH; lint and format need `pipx install "gdtoolkit==4.*"`. A green
 `make verify-changed` is the local bar for done; CI runs the full `make verify` on every
 PR, and nothing merges until it is green on the PR head. `make verify` stays runnable
-locally whenever the whole suite is wanted.
+locally whenever the whole suite is wanted. A gate or capture tool that misbehaves gets a
+fix in its own PR, or a `needs-triage` issue when the fix is not yours to make; memory
+keeps only what no fix can change.
 
 Finished work ships without being asked: once a change is done, commit it on a branch,
-push, open the PR, wait for CI, and merge it yourself when it is green on the PR head.
-A red PR gets fixed, not merged. Ask first only when the change is not what was asked for
-or a decision is genuinely the user's.
+push, open the PR, wait for CI (`tools/ci_wait.sh N` in the background reports only what
+failed), and merge it yourself when it is green on the PR head.
+When main has moved since that run, `gh pr update-branch` first and merge on the new
+run's green: two PRs green apart can break main together. A red PR gets fixed, not
+merged. Ask first only when the change is not what was asked for or a decision is
+genuinely the user's.
 
 Every session works in its own worktree, never in the main checkout: several sessions share
 this machine, and one session's `checkout`, `switch` or `stash` moves every other session's
 HEAD with it. Before the first edit, `git worktree add ../sinking_ship-worktrees/<slug> -b
 <branch> origin/main`, `make import` in it, and work there (`git worktree list` shows what
 is taken). The main checkout stays on `main` and is only fetched; never stash (the stash is
-shared by every worktree). Once the PR is merged, `git worktree remove` it unless it holds
-uncommitted work.
+shared by every worktree). Once the PR is merged, remove its worktree:
+`tools/prune_worktrees.sh` names every worktree whose PR is merged and that holds nothing
+of its own, and `--remove` removes them.
 
 One game window at a time on this shared machine: `make capture` and `make fps` take the
 window lock themselves (`tools/window_lock.sh`, a kernel lock released on any exit) — never

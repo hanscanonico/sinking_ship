@@ -670,7 +670,9 @@ check:
 # list of scripts, against a stand-in engine; make durations and make goldens, against
 # sample logs; verify running the float test once, read off make -n; the gdtoolkit targets'
 # warm-up and fan-out, against a stand-in tool; make test-changed's selection, against a
-# fixture project, and its list of runtime-built loads, against the code.
+# fixture project, and its list of runtime-built loads, against the code; the worktree
+# pruner, against a throwaway repo and a stand-in gh; and the CI waiter, against a
+# stand-in gh's snapshots.
 guard-check:
 	tools/engine_guard_check.sh
 	tools/window_lock_check.sh
@@ -685,6 +687,8 @@ guard-check:
 	tools/lint_warmup_check.sh
 	tools/test_changed_check.sh
 	tools/test_changed.py --check-sites
+	tools/prune_worktrees_check.sh
+	tools/ci_wait_check.sh
 
 # Style and smells. Rule overrides live in gdlintrc.
 lint:
