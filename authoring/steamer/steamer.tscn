@@ -3016,6 +3016,133 @@ material = SubResource("StandardMaterial3D_tcuuq")
 metadata/ship = &"room"
 metadata/name = &"chain locker"
 
+[node name="BonusSpots" type="Node3D" parent="." unique_id=822240465]
+
+[node name="BonusSpot_forward_hold" type="Marker3D" parent="BonusSpots" unique_id=555621094]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9.5, -2.6, 0)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_forward_hold"
+
+[node name="BonusSpot_engine_room" type="Marker3D" parent="BonusSpots" unique_id=75770182]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.675, -2.6, 0)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_engine_room"
+
+[node name="BonusSpot_cabin_corridor" type="Marker3D" parent="BonusSpots" unique_id=1890284647]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, -2.6, 0)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_cabin_corridor"
+
+[node name="BonusSpot_cabin_port_aft" type="Marker3D" parent="BonusSpots" unique_id=773654864]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10.7, -2.6, -3.6)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_cabin_port_aft"
+
+[node name="BonusSpot_cabin_port_middle" type="Marker3D" parent="BonusSpots" unique_id=266850170]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -7.05, -2.6, -2.75)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_cabin_port_middle"
+
+[node name="BonusSpot_cabin_port_forward" type="Marker3D" parent="BonusSpots" unique_id=1464966218]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4, -2.6, -2.75)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_cabin_port_forward"
+
+[node name="BonusSpot_cabin_starboard_aft" type="Marker3D" parent="BonusSpots" unique_id=918996891]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10.7, -2.6, 3.6)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_cabin_starboard_aft"
+
+[node name="BonusSpot_cabin_starboard_middle" type="Marker3D" parent="BonusSpots" unique_id=201872556]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -7.05, -2.6, 2.75)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_cabin_starboard_middle"
+
+[node name="BonusSpot_cabin_starboard_forward" type="Marker3D" parent="BonusSpots" unique_id=974511333]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4, -2.6, 2.75)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_cabin_starboard_forward"
+
+[node name="BonusSpot_stokehold" type="Marker3D" parent="BonusSpots" unique_id=1512483990]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.5, -4.4, 0)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_stokehold"
+
+[node name="BonusSpot_engine_room_forward" type="Marker3D" parent="BonusSpots" unique_id=1032079631]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.5, -2.6, 0)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_engine_room_forward"
+
+[node name="BonusSpot_engine_room_port" type="Marker3D" parent="BonusSpots" unique_id=1505104829]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.875, -2.6, -3.2)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_engine_room_port"
+
+[node name="BonusSpot_engine_room_starboard" type="Marker3D" parent="BonusSpots" unique_id=1794039526]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.875, -2.6, 3.2)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_engine_room_starboard"
+
+[node name="BonusSpot_double_bottom_port" type="Marker3D" parent="BonusSpots" unique_id=1909699167]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.5, -5.3125, -1.9)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_double_bottom_port"
+
+[node name="BonusSpot_double_bottom_starboard" type="Marker3D" parent="BonusSpots" unique_id=1509383434]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.5, -5.3125, 1.9)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_double_bottom_starboard"
+
+[node name="BonusSpot_lower_hold" type="Marker3D" parent="BonusSpots" unique_id=814712029]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9.5, -5.3125, 0)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_lower_hold"
+
+[node name="BonusSpot_shaft_tunnel" type="Marker3D" parent="BonusSpots" unique_id=10232859]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, -5.3125, -1.9)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_shaft_tunnel"
+
+[node name="BonusSpot_bilge_stores" type="Marker3D" parent="BonusSpots" unique_id=90432465]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, -5.3125, 1.9)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_bilge_stores"
+
+[node name="BonusSpot_side_passage_port" type="Marker3D" parent="BonusSpots" unique_id=715736544]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.4, -1, -4.31)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_side_passage_port"
+
+[node name="BonusSpot_side_passage_starboard" type="Marker3D" parent="BonusSpots" unique_id=814481682]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.4, -1, 4.31)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_side_passage_starboard"
+
+[node name="BonusSpot_steering_gear" type="Marker3D" parent="BonusSpots" unique_id=192542302]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -17.9, -1, 0)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_steering_gear"
+
+[node name="BonusSpot_aft_stores" type="Marker3D" parent="BonusSpots" unique_id=1887333659]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -16.8, -3.1, 0)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_aft_stores"
+
+[node name="BonusSpot_lower_aft_stores" type="Marker3D" parent="BonusSpots" unique_id=219565500]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -13.5, -5.2, 0)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_lower_aft_stores"
+
+[node name="BonusSpot_bosuns_store" type="Marker3D" parent="BonusSpots" unique_id=818651202]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 19.3, -1.5, 0)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_bosuns_store"
+
+[node name="BonusSpot_chain_locker" type="Marker3D" parent="BonusSpots" unique_id=193660473]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 15.5, -4.5, 0)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_chain_locker"
+
 [node name="Structure" type="Node3D" parent="." unique_id=2026985640]
 visible = false
 metadata/ship = &"structure"

@@ -450,6 +450,24 @@ func test_every_bonus_spot_lies_on_a_floor_in_a_room_below_her_main_deck() -> vo
 		assert_eq(_spot_problems(layouts[path]), PackedStringArray(), path)
 
 
+## The steamer, the default ship, has one bonus spot in each room below her main deck,
+## 25 of them (#308); every ship has hers from #312.
+func test_the_steamer_has_a_bonus_spot_in_each_room_below_her_main_deck() -> void:
+	var layout := SimFixtures.steamer()
+	var spots := PackedInt32Array()
+	spots.resize(layout.rooms.size())
+	for spot: ShipBonusSpot in layout.bonus_spots:
+		spots[spot.room] += 1
+	var below := 0
+	for index in layout.rooms.size():
+		var room := layout.rooms[index]
+		if room.floor_height < 0.0:
+			below += 1
+			assert_eq(spots[index], 1, "%s: one bonus spot" % room.name)
+	assert_eq(below, 25, "her rooms below her main deck")
+	assert_eq(layout.bonus_spots.size(), below, "and none above it")
+
+
 func test_the_bonus_spot_rule_bites() -> void:
 	# The flat deck with a hold under it, test data: its floor running on aft of it and
 	# stopping short of its fore end, a stair up out of it to port, a wall across it and

@@ -146,6 +146,32 @@ func test_a_railing_on_no_platform_is_a_problem() -> void:
 	)
 
 
+## A bonus spot names its room as a railing names its platform: by the room's node (#308).
+func test_a_bonus_spot_in_no_room_is_a_problem() -> void:
+	var problems := _problems_after(
+		func(scene: Node) -> void:
+			scene.get_node("BonusSpots/BonusSpot_stokehold").set_meta(&"room", &"Nowhere")
+	)
+	assert_eq(
+		problems,
+		PackedStringArray(["bonus_spot BonusSpots/BonusSpot_stokehold: names no room Nowhere"])
+	)
+
+
+func test_two_rooms_of_one_name_are_a_problem() -> void:
+	var problems := _problems_after(
+		func(scene: Node) -> void:
+			var below := Node3D.new()
+			below.name = "Below"
+			scene.add_child(below)
+			below.add_child(scene.get_node("Rooms/Room_stokehold").duplicate())
+	)
+	assert_eq(
+		problems,
+		PackedStringArray(["room Below/Room_stokehold: another room is named Room_stokehold"])
+	)
+
+
 func test_two_platforms_of_one_name_are_a_problem() -> void:
 	var problems := _problems_after(
 		func(scene: Node) -> void:

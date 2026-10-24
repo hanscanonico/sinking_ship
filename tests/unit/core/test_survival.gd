@@ -16,7 +16,7 @@ const SURVIVAL_MATCH := "res://data/match/survival.tres"
 ## body_restitution and body_impact_speed, then #273's grab_reach and grab_cone_deg, her
 ## lifebuoys and the kinds of her props, then #308's bonus spots): the goals must not move
 ## the battle royale's.
-const BATTLE_ROYALE_HASH := "9d545e1824592e63f9c1a0eba47c760e542f85f0d62e1f3198997b12fd2c422b"
+const BATTLE_ROYALE_HASH := "56440d9e1a588c595af1957eb7943359bf58ac7310bbdfe170b1c3065f8f360b"
 
 
 func test_the_data_carries_the_goal_onto_the_match() -> void:
