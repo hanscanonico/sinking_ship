@@ -123,9 +123,9 @@ A prop placed a hundred times is parsed once.
 | `deck_bench` | `DeckFurniture.bench`, a short box seat on an open deck | furniture | 238 |
 | `armchair` | `FurnitureDressing.seat`, a room's seat no larger either way than `ARMCHAIR_SIDE` | furniture | 376 |
 | `settee` | `FurnitureDressing.seat`, a room's seat `SETTEE_DEPTH` deep or deeper | hero | 476 |
-| `iceberg_tabular` | `IcebergPlanner`, one berg a match, drawn by `Iceberg` | world | 764 |
-| `iceberg_drydock` | `IcebergPlanner`, one berg a match, drawn by `Iceberg` | world | 896 |
-| `iceberg_wedge` | `IcebergPlanner`, one berg a match, drawn by `Iceberg` | world | 596 |
+| `iceberg_tabular` | `IcebergPlanner`, one berg a match, drawn by `Iceberg` | world | 2914 |
+| `iceberg_drydock` | `IcebergPlanner`, one berg a match, drawn by `Iceberg` | world | 2930 |
+| `iceberg_wedge` | `IcebergPlanner`, one berg a match, drawn by `Iceberg` | world | 2912 |
 
 ## Triangle budgets
 
@@ -381,8 +381,8 @@ no paints and no ink, and stands outside the ship's batches as a mesh of its own
 iceberg is one: `IcebergPlanner` picks one of `BERGS` by the match's seed, reads its
 faces and their colours, scales it uniformly to the height it gives the match's berg
 and draws its spur's blade out to the gash; `Iceberg` draws it with
-`iceberg.gdshader`. Each berg is built by `tools/berg_kit.py` to the planner's
-measure:
+`iceberg.gdshader`. Each berg is modelled in Blender through its MCP, its `.blend`
+its source, to the planner's measure:
 
 - the sea at y = 0, every face wholly over or under it; its top at
   `IcebergPlanner.BERG_HEIGHT` (10 m) and its foot `DRAUGHT × FOOT` of that under;
@@ -395,9 +395,20 @@ measure:
   (linear: ice over the sea, under-ice under it). The scene's `colour_layer` names
   it, so `tools/export_model.py` exports it as the vertex colour the shader reads, in
   place of `ink`. The shader lays the snow, the strata and the sea's wash over it;
-- shaded smooth, as weathered ice is, but sharp across its ledges and fractures,
-  wherever two faces meet at more than `SHARP_ANGLE`. The planner keeps the model's
-  normals, but for the faces it draws out to the blade, which it lays flat.
+- shaded smooth, as weathered ice is, but sharp across its crests and fractures,
+  wherever two faces meet at more than 40° (Smooth by Angle). The planner keeps the
+  model's normals, but for the faces it draws out to the blade, which it lays flat.
+
+The bergs were first lofted by script, ring on ring, and stood like stacked blocks.
+Their rework (2026-10-24) kept each one's plan and wore it into ice: the masses
+voxel-remeshed into one and rounded off, the tabular berg's ledge kept only on her
+side, the drydock's towers worn down toward points; all of it warped so no ledge
+stays level nor any wall plumb, hollowed into scallops a few metres across with sharp
+crests between them (the drydock's towers fluted down instead), and notched by the
+sea a little over the waterline; then decimated to about 2,200 triangles over the
+sea and 700 under it, the waterline cut through, the top, foot and width stood back
+to the measure, nothing under the sea left nearer her than the ice over it, and the
+spur put back on. Detail finer than a scallop is the shader's.
 
 ## Building by script
 
@@ -407,9 +418,10 @@ Godot's axes and its paints, ink and sharp edges set as above; the shared helper
 (`Part`, the paints' preview colours, the axis swap, and the turned, boxed and swept
 shapes `lathe`, `tube`, `cap`, `torus`, `sphere`, `box`, `turned_box`, `slab`, `panel`,
 `sweep` and `stud`) are in `tools/model_kit.py`.
-Every model but the mooring gear's is built so; the pilots' scripts rebuild `.blend`s
-whose export is byte for byte the committed `.glb`. The mooring gear (`bitts`,
-`rope_coil`) was modelled in Blender through its MCP, and its `.blend`s are its source.
+Many models are built so; the pilots' scripts rebuild `.blend`s whose export is byte
+for byte the committed `.glb`. A model with no script was modelled in Blender through
+its MCP, and its `.blend` is its source: the mooring gear (`bitts`, `rope_coil`) was
+the first, and the bergs' rework retired their scripts.
 
     make model-sources              # every NAME.py to its NAME.blend, Blender headless
     make model-sources MODEL=davit  # one
