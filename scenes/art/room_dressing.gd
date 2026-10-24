@@ -263,13 +263,10 @@ var _space: ShipSpace
 var _layout: ShipLayout
 ## Per room, its Kind.
 var _kinds: Array[Kind] = []
-## The rooms, by index, that have a lining of their own, and each one's box from its
-## floor to its highest ceiling; and per room, 1 for one that has.
-var _lined := PackedInt32Array()
-var _lined_boxes: Array[AABB] = []
+## Per room, 1 for one that has a lining of its own, and that one's box from its floor
+## to its highest ceiling.
 var _has_lining := PackedByteArray()
-## The x and the z of every edge of a room that has a lining.
-var _lines: Array[PackedFloat32Array] = [PackedFloat32Array(), PackedFloat32Array()]
+var _lined_boxes: Array[AABB] = []
 var _cut_above: float
 var _engine: EngineRoom
 var _hold: CargoHold
@@ -310,12 +307,9 @@ func _init(space: ShipSpace, cut_above := INF) -> void:
 	for room: ShipRoom in _layout.rooms:
 		var kind := kind_of(space, room)
 		_kinds.append(kind)
-		_has_lining.append(0 if _linings(kind).is_empty() else 1)
-		if not _linings(kind).is_empty():
-			_lined.append(_kinds.size() - 1)
-			_lined_boxes.append(_box_of(space, room))
-			_lines[0].append_array([room.area.position.x, room.area.end.x])
-			_lines[1].append_array([room.area.position.y, room.area.end.y])
+		var lined := not _linings(kind).is_empty()
+		_has_lining.append(1 if lined else 0)
+		_lined_boxes.append(_box_of(space, room) if lined else AABB())
 
 
 ## [param room]'s box on [param space], from its floor to the highest of its ceiling
@@ -407,16 +401,34 @@ func lining(point: Vector3, part: Part) -> ShipMesh.Paint:
 
 ## Whether [param box] (ship space) reaches into a room with a lining of its own.
 func lined_near(box: AABB) -> bool:
-	for room: AABB in _lined_boxes:
-		if room.intersects(box):
-			return true
-	return false
+	return not _lined_in(box).is_empty()
 
 
-## Where a room with a lining begins or ends along [param axis] (0 x, 1 z): where a
-## face is cut so each piece lies in one room's lining or none.
-func lining_lines(axis: int) -> PackedFloat32Array:
-	return _lines[axis]
+## Where each room with a lining of its own that [param box] (ship space) reaches into
+## begins and ends, per axis x, y, z — none along y — each sorted: where a face over
+## the box may be cut so each piece lies in one room's lining or none (LinedFaces).
+func lining_lines(box: AABB) -> Array[PackedFloat32Array]:
+	var xs := PackedFloat32Array()
+	var zs := PackedFloat32Array()
+	for index: int in _lined_in(box):
+		var area := _layout.rooms[index].area
+		xs.append_array([area.position.x, area.end.x])
+		zs.append_array([area.position.y, area.end.y])
+	xs.sort()
+	zs.sort()
+	var lines: Array[PackedFloat32Array] = [xs, PackedFloat32Array(), zs]
+	return lines
+
+
+## The rooms, by index, with a lining of their own that [param box] (ship space)
+## reaches into.
+func _lined_in(box: AABB) -> PackedInt32Array:
+	var found := PackedInt32Array()
+	var area := Rect2(box.position.x, box.position.z, box.size.x, box.size.z)
+	for index: int in _space.rooms_near(area):
+		if _has_lining[index] == 1 and _lined_boxes[index].intersects(box):
+			found.append(index)
+	return found
 
 
 ## What [param kind] of room lines its walls, floor, ceiling and beams with, by Part

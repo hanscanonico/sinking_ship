@@ -38,7 +38,7 @@ const BEFORE := {
 ## its own, most of them its pilasters' modelled bases and capitals and its sconces.
 const BUDGET := 7800
 ## The most faces a room may stand in all, its modelled chandeliers' too: the smoking
-## room, the worst, draws 8220 — its pilasters and sconces modelled; the lounge 7354,
+## room, the worst, draws 8220 — its pilasters and sconces modelled; the lounge 7316,
 ## its own dressing, its sconces and four chandeliers.
 const CEILING := 8800
 

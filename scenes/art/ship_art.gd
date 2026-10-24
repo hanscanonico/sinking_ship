@@ -105,6 +105,8 @@ var rules: BrawlRules
 
 var _space: ShipSpace
 var _dressing: RoomDressing
+## The deck's and the walls' faces, in the linings of the rooms they look into.
+var _lined: LinedFaces
 var _smoke: CPUParticles3D
 ## Per platform, the node its deck hangs from — what falls when it collapses — or
 ## null when no event can collapse it.
@@ -187,6 +189,7 @@ func build(
 	_space = ShipSpace.new(layout)
 	_rooms_boxed()
 	_dressing = RoomDressing.new(_space, cut_above)
+	_lined = LinedFaces.new(_dressing)
 	_lamp_sight = LampSight.new(_space)
 	_lamp_sight.show_graphics(_graphics)
 	_smoke = null
@@ -585,8 +588,8 @@ func _deck(mesh: ShipMesh, platform: ShipPlatform, hidden: int) -> void:
 	if height >= cut_above:
 		return
 	var faces := (ShipMesh.TOP | ShipMesh.SIDES) & ~hidden
-	_lined_box(mesh, area, height - PLANK, height, ShipPaints.deck, faces, ShipMesh.TOP)
-	_lined_box(
+	_lined.box(mesh, area, height - PLANK, height, ShipPaints.deck, faces, ShipMesh.TOP)
+	_lined.box(
 		mesh, area, height - PLANK, height, ShipPaints.ceiling, ShipMesh.BOTTOM, ShipMesh.BOTTOM
 	)
 	if not _space.stands_over_a_platform(platform):
@@ -807,7 +810,7 @@ func _blocker(mesh: ShipMesh, blocker: ShipBlocker, pieces: Dictionary) -> void:
 	if _space.is_wall(blocker):
 		var deck := _space.deck_under(centre, blocker.bottom)
 		var foot := blocker.bottom if is_nan(deck) else deck
-		_lined_box(
+		_lined.box(
 			mesh,
 			area,
 			blocker.bottom,
@@ -830,128 +833,20 @@ func _blocker(mesh: ShipMesh, blocker: ShipBlocker, pieces: Dictionary) -> void:
 		for stretch: Vector3 in _space.short_of_ceiling(blocker):
 			var piece := ShipSpace.stretch_of(blocker, stretch)
 			var sides := ShipMesh.SIDES
-			_lined_box(
+			_lined.box(
 				mesh, piece, blocker.top, stretch.z, ShipPaints.wall, sides, sides, foot, stretch.z
 			)
 	elif blocker.top - blocker.bottom <= ShipSpace.WALL_MAX and _space.roofs(blocker):
-		# A slab over a room, no deck of its own: its roof, planked over its ceiling.
+		# A slab over a room, no deck of its own: its roof, planked over its ceiling —
+		# up to its own top where no deck laid on it covers it, as a wall stands.
 		mesh.box(area, blocker.bottom, top, ShipPaints.deck, ShipMesh.TOP)
+		if top < blocker.top:
+			for bare: Rect2 in _space.uncovered(area, blocker.top):
+				mesh.box(bare, top, blocker.top, ShipPaints.deck, ShipMesh.TOP | ShipMesh.SIDES)
 		var faces := ShipMesh.ALL_FACES & ~ShipMesh.TOP
-		_lined_box(mesh, area, blocker.bottom, top, ShipPaints.wall, faces, faces)
+		_lined.box(mesh, area, blocker.bottom, top, ShipPaints.wall, faces, faces)
 	elif _space.outdoors(Vector3(centre.x, (blocker.bottom + top) * 0.5, centre.y)):
 		DeckFurniture.build(mesh, _space, blocker, top)
-
-
-## A box as ShipMesh.box() draws it in [param paint] — [param faces] of it — each
-## face cut where a room with a lining of its own (RoomDressing) begins or ends and at
-## the chunk lines (_lined_face); a piece of the faces [param lined] names that looks
-## into such a room takes its lining for what it is: a top its floor, a bottom its
-## ceiling, a side its wall.
-func _lined_box(
-	mesh: ShipMesh,
-	area: Rect2,
-	bottom: float,
-	top: float,
-	paint: ShipMesh.Paint,
-	faces: int,
-	lined: int,
-	foot := NAN,
-	head := NAN
-) -> void:
-	foot = bottom if is_nan(foot) else foot
-	head = top if is_nan(head) else head
-	var x0 := area.position.x
-	var x1 := area.end.x
-	var z0 := area.position.y
-	var z1 := area.end.y
-	var dx := Vector3(area.size.x, 0.0, 0.0)
-	var dy := Vector3(0.0, top - bottom, 0.0)
-	var dz := Vector3(0.0, 0.0, area.size.y)
-	var floor := RoomDressing.Part.FLOOR
-	var wall := RoomDressing.Part.WALL
-	# The faces as ShipMesh.box() lays them out, each with what it is to a room.
-	var sides := [
-		[ShipMesh.TOP, Vector3(x0, top, z0), dz, dx, floor],
-		[ShipMesh.BOTTOM, Vector3(x0, bottom, z0), dx, dz, RoomDressing.Part.OVERHEAD],
-		[ShipMesh.POS_X, Vector3(x1, bottom, z0), dy, dz, wall],
-		[ShipMesh.NEG_X, Vector3(x0, bottom, z0), dz, dy, wall],
-		[ShipMesh.POS_Z, Vector3(x0, bottom, z1), dx, dy, wall],
-		[ShipMesh.NEG_Z, Vector3(x0, bottom, z0), dy, dx, wall],
-	]
-	for side: Array in sides:
-		if faces & side[0]:
-			var part: int = side[4] if lined & side[0] else -1
-			_lined_face(mesh, side[1], side[2], side[3], paint, part, foot, head)
-
-
-## A face from [param origin] along [param u] and [param v] in [param paint], cut at
-## the lined rooms' edges (RoomDressing.lining_lines) and the chunk lines, each piece
-## in the lining for [param part] (-1 for none) of the room it looks into, if any; only
-## the whole face's edges rimmed. A face too narrow for ShipMesh to cut — a plank's
-## edge, a wall's top — so still lies in one chunk's mesh, never a sliver the length
-## of the deck that every lamp along it reaches.
-func _lined_face(
-	mesh: ShipMesh,
-	origin: Vector3,
-	u: Vector3,
-	v: Vector3,
-	paint: ShipMesh.Paint,
-	part: int,
-	foot: float,
-	head: float
-) -> void:
-	var normal := u.cross(v).normalized()
-	var narrow := minf(u.length(), v.length()) < ShipMesh.NARROW
-	var box := AABB(origin, Vector3.ZERO).expand(origin + u + v).grow(ShipMesh.PROBE)
-	if not narrow and (part == -1 or not _dressing.lined_near(box)):
-		mesh.face(origin, u, v, paint, ShipMesh.RIM_ALL, foot, head)
-		return
-	var u_cuts := _lining_cuts(origin, u)
-	var v_cuts := _lining_cuts(origin, v)
-	for i in u_cuts.size() - 1:
-		for j in v_cuts.size() - 1:
-			var at := origin + u * u_cuts[i] + v * v_cuts[j]
-			var piece_u := u * (u_cuts[i + 1] - u_cuts[i])
-			var piece_v := v * (v_cuts[j + 1] - v_cuts[j])
-			var probe := at + (piece_u + piece_v) * 0.5 + normal * ShipMesh.PROBE
-			var lining := null if part == -1 else _dressing.lining(probe, part)
-			var rims := (
-				(ShipMesh.RIM_U0 if i == 0 else 0)
-				| (ShipMesh.RIM_U1 if i == u_cuts.size() - 2 else 0)
-				| (ShipMesh.RIM_V0 if j == 0 else 0)
-				| (ShipMesh.RIM_V1 if j == v_cuts.size() - 2 else 0)
-			)
-			mesh.face(at, piece_u, piece_v, paint if lining == null else lining, rims, foot, head)
-
-
-## Where along [param edge] from [param origin] (fractions 0…1) a lined room's edge
-## or a chunk line (ShipMesh.CHUNK) crosses it — along x or z alone.
-func _lining_cuts(origin: Vector3, edge: Vector3) -> PackedFloat32Array:
-	var cuts := PackedFloat32Array([0.0])
-	var axis := -1
-	if absf(edge.x) > ShipMesh.SLIVER and is_zero_approx(edge.y) and is_zero_approx(edge.z):
-		axis = 0
-	elif absf(edge.z) > ShipMesh.SLIVER and is_zero_approx(edge.x) and is_zero_approx(edge.y):
-		axis = 1
-	if axis != -1:
-		var start := origin.x if axis == 0 else origin.z
-		var length := edge.x if axis == 0 else edge.z
-		var lines := _dressing.lining_lines(axis).duplicate()
-		var step := ShipMesh.CHUNK.x if axis == 0 else ShipMesh.CHUNK.z
-		var line := ceilf(minf(start, start + length) / step) * step
-		while line < maxf(start, start + length):
-			lines.append(line)
-			line += step
-		for at: float in lines:
-			var fraction := (at - start) / length
-			if (
-				fraction * absf(length) > ShipMesh.SLIVER
-				and (1.0 - fraction) * absf(length) > ShipMesh.SLIVER
-			):
-				cuts.append(fraction)
-	cuts.append(1.0)
-	cuts.sort()
-	return cuts
 
 
 ## Posts either side of the doorway under [param lintel], from the deck to its
