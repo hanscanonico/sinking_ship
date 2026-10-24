@@ -1,20 +1,29 @@
 extends GutTest
-## The liner's public rooms carry furniture on their floors (FurnitureDressing), drawn in
-## each room's manner: club chairs round the smoking room's card tables, settees with a
-## table and armchairs in the lounge, writing desks in the reading and writing room,
-## wicker tables and chairs in the verandah café and the reception room, and settees in
-## the after entrance. Every seat faces its table or backs onto its room's side; none
-## stands in a doorway's way in or by a seat's start, no table by a pendant; and a seat is
-## drawn in its box, its arms and back under a step over it.
+## The liner's public rooms, her crew's quarters and her working passages carry
+## furniture on their floors (FurnitureDressing), drawn in each room's manner: club chairs
+## round the smoking room's card tables, settees with a table and armchairs in the
+## lounge, writing desks in the reading and writing room, wicker tables and chairs in the
+## verandah café and the reception room, settees in the after entrance, mess tables in
+## the seamen's and the crew quarters, and stores stacked along the E deck working
+## passages' walls. Every seat faces its table or backs onto its room's side; none stands
+## in a doorway's way in or by a seat's start, no table by a pendant; and a seat is drawn
+## in its box, its arms and back under a step over it.
 
-## The rooms furnished: [room, its tables, its armchairs, its settees].
+## The rooms furnished: [room, its tables, its armchairs, its settees, its stores].
 const FURNISHED: Array[Array] = [
-	[&"first-class smoking room", 8, 32, 0],
-	[&"first-class lounge", 6, 8, 6],
-	[&"reading and writing room", 4, 4, 2],
-	[&"verandah café", 8, 16, 0],
-	[&"reception room", 10, 32, 0],
-	[&"after entrance", 0, 0, 2],
+	[&"first-class smoking room", 8, 32, 0, 0],
+	[&"first-class lounge", 6, 8, 6, 0],
+	[&"reading and writing room", 4, 4, 2, 0],
+	[&"verandah café", 8, 16, 0, 0],
+	[&"reception room", 10, 32, 0, 0],
+	[&"after entrance", 0, 0, 2, 0],
+	[&"seamen's quarters", 2, 0, 0, 0],
+	[&"crew quarters", 2, 0, 0, 0],
+	[&"E deck working passage, engine room", 0, 0, 0, 12],
+	[&"E deck working passage, turbine room", 0, 0, 0, 10],
+	[&"E deck working passage, electric room", 0, 0, 0, 12],
+	[&"E deck working passage, after hold, forward", 0, 0, 0, 10],
+	[&"E deck working passage, after hold, aft", 0, 0, 0, 4],
 ]
 ## How far from a pendant, in plan, a table stands at least.
 const PENDANT_CLEAR := 1.0
@@ -36,6 +45,7 @@ func test_each_public_room_has_its_furniture() -> void:
 		assert_eq(counts.get(FurnitureDressing.Piece.TABLE, 0), entry[1], "%s: tables" % named)
 		assert_eq(counts.get(FurnitureDressing.Piece.ARMCHAIR, 0), entry[2], "%s: chairs" % named)
 		assert_eq(counts.get(FurnitureDressing.Piece.SETTEE, 0), entry[3], "%s: settees" % named)
+		assert_eq(counts.get(FurnitureDressing.Piece.APPARATUS, 0), entry[4], "%s: stores" % named)
 
 
 func test_every_seat_faces_its_table_or_backs_onto_its_room_s_side() -> void:

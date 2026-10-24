@@ -1834,6 +1834,17 @@ for k, (z0, z1) in enumerate(B_OPEN_BENCHES):
     assert not door_near(0, A_RUN[0], z0, z1, B_DECK, 1.0)
     box("bench_b_%d" % k, A_RUN[0] - T - BENCH[1], A_RUN[0] - T, z0, z1, B_DECK, B_DECK + BENCH[2])
 
+# Sixteen seats across her decks (SH21 takes more): six on the boat deck and one on her
+# bridge, two on A deck's promenade, one on B deck's open end, one on each well deck,
+# the forecastle and the poop, one in the first-class dining saloon, facing forward to the
+# grand staircase's foot.
+spawns = [
+    (60.0, BOAT, 9.5), (60.0, BOAT, -9.5), (5.0, BOAT, 9.5), (5.0, BOAT, -9.5), (-40.0, BOAT, 9.5),
+    (-40.0, BOAT, -9.5), (72.0, BOAT, 0.0), (-68.0, BOAT, 0.0),
+    (45.0, A_DECK, 11.5), (-20.0, A_DECK, -11.5), (-85.0, B_DECK, 5.0),
+    (82.0, 0.0, 8.0), (-100.0, 0.0, -6.0), (100.0, FCSL[0], 0.0), (-115.0, POOP, 0.0),
+    (-6.0, D_DECK, 1.0),
+]
 # --- Her public rooms' furniture (SB-IV, est.), after every other platform, blocker and
 # room so none of theirs moves, each drawn as its shape and its room say
 # (FurnitureDressing): club chairs round the first-class smoking room's card tables; a
@@ -1889,13 +1900,13 @@ for k, x in enumerate([-13.2, -4.4]):
                     ("px", "mx"))
 # And a settee against its after wall, funnel 3's casing, either side of its centre line,
 # a table before it.
-LOUNGE_AFT = -16.4 - T
+LOUNGE_AFT = -16.4
 for tag, s in [("p", -1), ("s", 1)]:
     settee("lounge_aft_%s" % tag, LOUNGE_AFT + SETTEE[1] / 2, s * 4.5, A_DECK, along_x=False)
     table_group("lounge_aft_%s" % tag, LOUNGE_AFT + SETTEE[1] + CHAIR_GAP + 0.35, s * 4.5, A_DECK, 0.35, 0.7, ())
 # The reading and writing room: writing desks against its forward wall, each with its
 # chair, and a settee either side of its after door.
-READING_FORE = 7.8 + T
+READING_FORE = 7.8
 for tag, s in [("p", -1), ("s", 1)]:
     for k, z in enumerate([3.0, 6.6]):
         piece("desk_reading_%d%s" % (k, tag), READING_FORE - DESK[1], READING_FORE, s * z - DESK[0] / 2,
@@ -1917,57 +1928,77 @@ for tag, s in [("p", -1), ("s", 1)]:
         table_group("reception_wall_%d%s" % (k, tag), x, s * 10.6, D_DECK, 0.4, 0.7, ("px", "mx"))
 # The after entrance: a settee either side of the clock on its forward wall.
 for tag, s in [("p", -1), ("s", 1)]:
-    settee("entrance_%s" % tag, -38.9 + T - SETTEE[1] / 2, s * 4.0, A_DECK, along_x=False)
+    settee("entrance_%s" % tag, -38.9 - SETTEE[1] / 2, s * 4.0, A_DECK, along_x=False)
 
-def room_piece_problems():
-    """Every way a room's piece breaks the rules above: out of its room (into its walls'
-    half, where a block is its wall), by a doorway or a stair, on another blocker or by a
-    seat's start."""
+# Her crew's rooms and working spaces (SB-IV, est.): mess tables in the seamen's quarters
+# under the forecastle and in the crew quarters on E deck — a bench along each long side
+# of each inside its box (LinerDining.mess_table) — between their pendants and clear of
+# the lanes from their doors; and her stores stacked along the side walls of her E deck
+# working passages, stowed crates two high (FurnitureDressing.stores), STORES_OFF off
+# the wall, clear of its handrail, wherever a stack keeps to the rules above.
+MESS = (4.0, 1.2, 0.75)  # a mess table: long, deep with its benches, tall
+for k, (x0, z0, floor) in enumerate([(98.5, 2.2, 0.0), (98.5, -3.4, 0.0), (74.5, 1.7, E_DECK),
+                                     (74.5, -2.9, E_DECK)]):
+    piece("table_mess_%d" % k, x0, x0 + MESS[0], z0, z0 + MESS[1], floor, floor + MESS[2])
+STORES = (1.6, 0.8, 1.36)  # a stack of stores: long, deep and tall, 0.8 m crates two high
+STORES_OFF = 0.15
+STORES_PITCH = 3.2
+
+
+def piece_problems(candidate):
+    """Every way a room's piece breaks the rules above: out of its room, by a doorway or
+    a stair, on another blocker or another piece, or by a seat's start."""
+    bid, x0, x1, z0, z1, floor, top = candidate
     found = []
-    for bid, x0, x1, z0, z1, floor, top in ROOM_PIECES:
-        rooms_there = [r for r in room_geo if abs(r[4] - floor) < 1e-6 and r[0] - T <= x0 and x1 <= r[1] + T
-                       and r[2] - T <= z0 and z1 <= r[3] + T]
-        if not rooms_there:
-            found.append("%s stands in no room" % bid)
-        for axis, at, d0, d1, bottom in doorways:
-            if abs(bottom - floor) > 1e-6:
-                continue
-            mx, mz = ((at, (d0 + d1) / 2) if axis == 0 else ((d0 + d1) / 2, at))
-            dx = max(x0 - mx, 0.0, mx - x1)
-            dz = max(z0 - mz, 0.0, mz - z1)
-            if math.hypot(dx, dz) < DOOR_CLEAR:
-                found.append("%s by a doorway at (%s, %s)" % (bid, mx, mz))
-        for r in ramp_geo:
-            if min(r[5], r[6]) - 0.01 <= floor <= max(r[5], r[6]) + 0.01:
-                ex, ez = (STAIR_CLEAR, 0.5) if r[4] == 0 else (0.5, STAIR_CLEAR)
-                if r[0] - ex < x1 and x0 < r[1] + ex and r[2] - ez < z1 and z0 < r[3] + ez:
-                    found.append("%s by a stair at %s" % (bid, r[:4]))
-        for b in block_geo:
-            if b[6] and b[4] < top - 1e-6 and b[5] > floor + 1e-6 and b[0] < x1 - 1e-6 and x0 + 1e-6 < b[1] \
-                    and b[2] < z1 - 1e-6 and z0 + 1e-6 < b[3]:
-                found.append("%s on a blocker at %s" % (bid, b[:4]))
-        for x, y, z in spawns_planned:
-            if abs(y - floor) < 1e-6 and x0 - 0.4 < x < x1 + 0.4 and z0 - 0.4 < z < z1 + 0.4:
-                found.append("%s by a seat's start at %s" % (bid, (x, y, z)))
+    rooms_there = [r for r in room_geo if abs(r[4] - floor) < 1e-6 and r[0] <= x0 and x1 <= r[1]
+                   and r[2] <= z0 and z1 <= r[3]]
+    if not rooms_there:
+        found.append("%s stands in no room" % bid)
+    for axis, at, d0, d1, bottom in doorways:
+        if abs(bottom - floor) > 1e-6:
+            continue
+        mx, mz = ((at, (d0 + d1) / 2) if axis == 0 else ((d0 + d1) / 2, at))
+        dx = max(x0 - mx, 0.0, mx - x1)
+        dz = max(z0 - mz, 0.0, mz - z1)
+        if math.hypot(dx, dz) < DOOR_CLEAR:
+            found.append("%s by a doorway at (%s, %s)" % (bid, mx, mz))
+    for r in ramp_geo:
+        if min(r[5], r[6]) - 0.01 <= floor <= max(r[5], r[6]) + 0.01:
+            ex, ez = (STAIR_CLEAR, 0.5) if r[4] == 0 else (0.5, STAIR_CLEAR)
+            if r[0] - ex < x1 and x0 < r[1] + ex and r[2] - ez < z1 and z0 < r[3] + ez:
+                found.append("%s by a stair at %s" % (bid, r[:4]))
+    others = [b[:6] for b in block_geo] + [p[1:] for p in ROOM_PIECES if p[0] != bid]
+    for b in others:
+        if b[4] < top - 1e-6 and b[5] > floor + 1e-6 and b[0] < x1 - 1e-6 and x0 + 1e-6 < b[1] \
+                and b[2] < z1 - 1e-6 and z0 + 1e-6 < b[3]:
+            found.append("%s on a blocker at %s" % (bid, b[:4]))
+    for x, y, z in spawns:
+        if abs(y - floor) < 1e-6 and x0 - 0.4 < x < x1 + 0.4 and z0 - 0.4 < z < z1 + 0.4:
+            found.append("%s by a seat's start at %s" % (bid, (x, y, z)))
     return found
 
-spawns_planned = [(-6.0, D_DECK, 1.0), (45.0, A_DECK, 11.5), (-20.0, A_DECK, -11.5)]
-_problems = room_piece_problems()
+
+for rx0, rx1, rz0, rz1, floor, name in list(room_geo):
+    if not name.startswith("E deck working passage"):
+        continue
+    where = name.split(", ")[-1].replace(" ", "_")
+    for tag, s in [("p", -1), ("s", 1)]:
+        face = (rz1 if s > 0 else rz0) - s * T
+        z0, z1 = sorted((face - s * STORES_OFF, face - s * (STORES_OFF + STORES[1])))
+        k = 0
+        x = rx0 + T + 0.6
+        while x + STORES[0] <= rx1 - T - 0.6:
+            stack = ("stores_%s_%d%s" % (where, k, tag), x, x + STORES[0], z0, z1, floor, floor + STORES[2])
+            if not piece_problems(stack):
+                ROOM_PIECES.append(stack)
+                k += 1
+            x += STORES_PITCH
+
+_problems = [problem for candidate in ROOM_PIECES for problem in piece_problems(candidate)]
 assert not _problems, "\n".join(_problems)
 for bid, x0, x1, z0, z1, floor, top in ROOM_PIECES:
     box(bid, x0, x1, z0, z1, floor, top)
 
-# Sixteen seats across her decks (SH21 takes more): six on the boat deck and one on her
-# bridge, two on A deck's promenade, one on B deck's open end, one on each well deck,
-# the forecastle and the poop, one in the first-class dining saloon, facing forward to the
-# grand staircase's foot.
-spawns = [
-    (60.0, BOAT, 9.5), (60.0, BOAT, -9.5), (5.0, BOAT, 9.5), (5.0, BOAT, -9.5), (-40.0, BOAT, 9.5),
-    (-40.0, BOAT, -9.5), (72.0, BOAT, 0.0), (-68.0, BOAT, 0.0),
-    (45.0, A_DECK, 11.5), (-20.0, A_DECK, -11.5), (-85.0, B_DECK, 5.0),
-    (82.0, 0.0, 8.0), (-100.0, 0.0, -6.0), (100.0, FCSL[0], 0.0), (-115.0, POOP, 0.0),
-    (-6.0, D_DECK, 1.0),
-]
 # The seats a match on her takes (§SH34): four to sixteen; more is SH21.
 SEATS = (4, 16)
 
