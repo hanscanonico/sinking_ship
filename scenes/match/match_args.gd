@@ -132,7 +132,7 @@ var capture_wet := NAN
 ## ViewSettings.AUTOMATIC when not given.
 var quality: int = ViewSettings.AUTOMATIC
 var render_scale: float = ViewSettings.AUTOMATIC
-## Milliseconds of each frame a held countdown's bake may take; 0 for the game's own.
+## Milliseconds of each frame a held countdown's bake may take on its thread; 0 for its full pace.
 var bake_budget_ms := 0.0
 ## The moment of the sinking a capture is taken at, in physics seconds after the hit;
 ## -1 for none. Whether the match jumps there rather than plays there.
