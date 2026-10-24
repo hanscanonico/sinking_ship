@@ -40,7 +40,7 @@ const SEA_SHARE := 0.9
 const FOOT := 1.05
 ## The least height of her top deck over the sea it is measured against, in metres.
 const DECK_LEAST := 3.0
-## The bergs, modelled in Blender (assets/models/NAME, tools/berg_kit.py), one picked
+## The bergs, modelled in Blender (assets/models/NAME and its README), one picked
 ## a match: each modelled BERG_HEIGHT metres over the sea, its foot DRAUGHT × FOOT of
 ## that under it, as wide as SPREAD allows, its spur toward her along +z.
 const BERGS: Array[String] = ["iceberg_tabular", "iceberg_drydock", "iceberg_wedge"]
