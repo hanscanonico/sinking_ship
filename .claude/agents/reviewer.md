@@ -26,6 +26,9 @@ Review the actual diff: `git -C <worktree> diff origin/main...HEAD` (fetch first
    that changes a gameplay dimension only in the model or its `NAME.py`, reads a size or
    placement from a mesh's bounds, adds new art as scripted vertex lists, or carries no
    renders of the new model.
+7. Before / After images are linked by a commit's SHA, not a branch's name, and the head
+   no longer carries them (`make check` fails while `docs/pr/` holds any file but its
+   `.gdignore`).
 
 Verify claims yourself rather than trusting the PR body: re-run the new and changed GUT
 tests plus `make check lint format-check` in the worktree; for a visual change re-capture
