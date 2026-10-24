@@ -37,8 +37,10 @@ var _hitstop_ticks: int
 var _hitstop_charged_ticks: int
 var _hitstop_braced_ticks: int
 var _credit_window_ticks: int
-## Per prop of the layout, its kind (#273).
+## Per prop of the layout, its kind (#273); and the props a hand may hold
+## (GrabReach.holdable_of).
 var _kinds: Array[PropKind] = []
+var _holdable := PackedInt32Array()
 ## Per seat, the prop it holds, or -1: asked of the props as the tick starts and kept
 ## with them through it (PropState.holder is the truth).
 var _hands := PackedInt32Array()
@@ -78,6 +80,7 @@ func _init(match_config: MatchConfig) -> void:
 	_credit_window_ticks = Ticks.from_seconds(_rules.credit_window)
 	for prop: ShipProp in config.ship.props:
 		_kinds.append(prop.prop_kind())
+	_holdable = GrabReach.holdable_of(config.ship)
 
 
 ## A new match: seats shuffled onto the layout's spawns by the match stream, each
@@ -125,9 +128,13 @@ static func from_snapshot(snapshot: Dictionary, match_config: MatchConfig) -> Ma
 
 ## Resets this match to [param snapshot], one of its own: what from_snapshot continues
 ## from, without building the ship again — a client predicting does it every snapshot.
+## A crate the snapshot has as this match has it is kept, not made again.
 func restore(snapshot: Dictionary) -> void:
 	assert(snapshot["v"] == SNAPSHOT_VERSION, "snapshot version %s" % snapshot["v"])
-	state = MatchState.from_dict(snapshot)
+	var kept: Array[PropState] = []
+	if state != null:
+		kept = state.props
+	state = MatchState.from_dict(snapshot, kept)
 	_honour(pose())
 
 
@@ -466,7 +473,8 @@ func _grabs(tick: int, events: Array[SimEvent]) -> void:
 			state.props,
 			config.ship,
 			_rules,
-			_here()
+			_here(),
+			_holdable
 		)
 		if prop == -1:
 			continue
@@ -700,7 +708,7 @@ func _shoves(live: Array[PlayerState], tick: int, events: Array[SimEvent]) -> vo
 			charged_by[hit.target] = hit.shover
 	var crate_hits := ShoveResolver.resolve(
 		attempts,
-		_hazards.candidates(state, count),
+		_hazards.candidates(state, count, origins, _rules.shove_reach),
 		_rules.shove_reach,
 		_rules.shove_cone_deg,
 		_here(),

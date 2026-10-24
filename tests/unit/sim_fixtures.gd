@@ -140,6 +140,34 @@ static func lifebuoy(at: Vector3, railing := -1) -> ShipProp:
 
 ## [param layout] — the flat deck, when none is given — carrying [param crates] and
 ## no other.
+## A dining table (data/props/dining_table.tres) or chair, facing [param facing_deg],
+## standing at [param at], of its kind's size and the mass, grip and friction her saloons'
+## carry (tools/gen_titanic.py).
+static func table(at: Vector3) -> ShipProp:
+	return _furniture(&"dining_table", at, 45.0, 22.0, 7.0)
+
+
+static func chair(at: Vector3, facing_deg := 0.0) -> ShipProp:
+	var made := _furniture(&"dining_chair", at, 6.0, 20.0, 6.5)
+	made.facing_deg = facing_deg
+	return made
+
+
+static func _furniture(
+	kind_name: StringName, at: Vector3, mass: float, grip_deg: float, friction: float
+) -> ShipProp:
+	var kind := PropKind.named(kind_name)
+	var made := ShipProp.new()
+	made.kind = kind_name
+	made.pos = at
+	made.radius = kind.radius
+	made.height = kind.height
+	made.mass = mass
+	made.grip_angle_deg = grip_deg
+	made.friction = friction
+	return made
+
+
 static func crated(crates: Array[ShipProp], layout: ShipLayout = null) -> ShipLayout:
 	var loaded: ShipLayout = (layout if layout != null else deck()).duplicate()
 	loaded.props = crates

@@ -44,6 +44,25 @@ func honour(pose: ShipPose) -> void:
 		_shut[door] = shut_in(pose, _names[door])
 
 
+func count() -> int:
+	return _names.size()
+
+
+## How far door [param door] — numbered among her openings that shut at the hit — stands
+## shut as the pose last honoured has it.
+func shut_of(door: int) -> float:
+	return _shut[door]
+
+
+## Door [param door]'s doorway in the ship plane (x/z): the line across it its leaf slides
+## along, from the jamb it slides from to the other — all a leaf of it ever reaches is a
+## circle over that line (contacts).
+func doorway(door: int) -> Rect2:
+	if _axes[door] == 0:
+		return Rect2(_planes[door], _jambs[door], 0.0, _widths[door])
+	return Rect2(_jambs[door], _planes[door], _widths[door], 0.0)
+
+
 ## How far [param pose] has the door called [param door] shut — none where it has given
 ## way (ShipPose.opened).
 static func shut_in(pose: ShipPose, door: StringName) -> float:

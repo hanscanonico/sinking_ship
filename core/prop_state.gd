@@ -28,6 +28,19 @@ var shoved_at: int = -1
 ## asked of the props, never kept on the seat. Held, its pos rides at its holder's feet.
 var holder: int = -1
 
+## The entry to_dict() last made, or from_dict() made it of, and the fields it holds:
+## handed out again while every field is as it was, so a crate at rest is one entry from
+## snapshot to snapshot — and from a host's to a client's (WireCodec) — what a reader
+## passes over by is_same. A snapshot's entries are never edited once made.
+var _entry: Dictionary = {}
+var _made_body := -1
+var _made_pos: Vector3
+var _made_vel: Vector3
+var _made_surface: int
+var _made_shoved_by: int
+var _made_shoved_at: int
+var _made_holder: int
+
 
 func _init(index: int = 0) -> void:
 	prop = index
@@ -49,9 +62,17 @@ static func within_grasp(state: Body) -> bool:
 	return state == Body.GROUNDED or state == Body.FLOATING or state == Body.HUNG
 
 
-## The prop [param seat] holds in [param snapshot] — a to_dict() of a match's — or -1.
-static func held_in(snapshot: Dictionary, seat: int) -> int:
-	for entry: Dictionary in snapshot["props"]:
+## The prop [param seat] holds in [param snapshot] — a to_dict() of a match's — or -1:
+## asked only of [param holdable] (GrabReach.holdable_of), the props a hand may hold,
+## when given.
+static func held_in(snapshot: Dictionary, seat: int, holdable := PackedInt32Array()) -> int:
+	var entries: Array = snapshot["props"]
+	if not holdable.is_empty():
+		for index: int in holdable:
+			if entries[index]["holder"] == seat:
+				return index
+		return -1
+	for entry: Dictionary in entries:
 		if entry["holder"] == seat:
 			return entry["prop"]
 	return -1
@@ -70,11 +91,29 @@ static func from_layout(layout: ShipLayout) -> Array[PropState]:
 	return props
 
 
-## The crates [param snapshot] holds.
-static func from_snapshot(snapshot: Dictionary) -> Array[PropState]:
+## The crates [param snapshot] holds of [param indices], each at its index, every other
+## null: the few a question asks of, never made of the many.
+static func some_of(snapshot: Dictionary, indices: PackedInt32Array) -> Array[PropState]:
+	var entries: Array = snapshot["props"]
 	var props: Array[PropState] = []
-	for entry: Dictionary in snapshot["props"]:
-		props.append(from_dict(entry))
+	props.resize(entries.size())
+	for index: int in indices:
+		props[index] = from_dict(entries[index])
+	return props
+
+
+## The crates [param snapshot] holds: each of [param kept] — the crates a match had till
+## now — whose entry is the snapshot's own as it stands, every other made anew.
+static func from_snapshot(snapshot: Dictionary, kept: Array[PropState] = []) -> Array[PropState]:
+	var entries: Array = snapshot["props"]
+	var props: Array[PropState] = []
+	props.resize(entries.size())
+	for index in entries.size():
+		var entry: Dictionary = entries[index]
+		if index < kept.size() and is_same(kept[index].to_dict(), entry):
+			props[index] = kept[index]
+		else:
+			props[index] = from_dict(entry)
 	return props
 
 
@@ -92,18 +131,32 @@ const FIELDS := [
 
 
 func to_dict() -> Dictionary:
-	return {
-		"prop": prop,
-		"state": body,
-		"pos": pos,
-		"vel": vel,
-		"surface": surface,
-		"shoved_by": shoved_by,
-		"shoved_at": shoved_at,
-		"holder": holder,
-	}
+	if (
+		_made_body == body
+		and _made_pos == pos
+		and _made_vel == vel
+		and _made_surface == surface
+		and _made_holder == holder
+		and _made_shoved_by == shoved_by
+		and _made_shoved_at == shoved_at
+	):
+		return _entry
+	_keep(
+		{
+			"prop": prop,
+			"state": body,
+			"pos": pos,
+			"vel": vel,
+			"surface": surface,
+			"shoved_by": shoved_by,
+			"shoved_at": shoved_at,
+			"holder": holder,
+		}
+	)
+	return _entry
 
 
+## The crate [param entry] holds, which hands that very entry out while it stays so.
 static func from_dict(entry: Dictionary) -> PropState:
 	var crate := PropState.new(entry["prop"])
 	crate.body = entry["state"]
@@ -113,4 +166,17 @@ static func from_dict(entry: Dictionary) -> PropState:
 	crate.shoved_by = entry["shoved_by"]
 	crate.shoved_at = entry["shoved_at"]
 	crate.holder = entry["holder"]
+	crate._keep(entry)
 	return crate
+
+
+## [param entry], of this crate as it stands, the one to_dict() hands out while it does.
+func _keep(entry: Dictionary) -> void:
+	_entry = entry
+	_made_body = body
+	_made_pos = pos
+	_made_vel = vel
+	_made_surface = surface
+	_made_holder = holder
+	_made_shoved_by = shoved_by
+	_made_shoved_at = shoved_at

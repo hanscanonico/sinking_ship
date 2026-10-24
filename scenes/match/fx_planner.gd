@@ -267,7 +267,7 @@ func _from_event(
 			var rise := lerpf(SPLASH_RISE.x, SPLASH_RISE.y, splash.strength)
 			splash.rise = minf(rise, _headroom(splash.position, pose))
 			cues.append(splash)
-		SimEvent.Kind.PROP_LOST:
+		SimEvent.Kind.PROP_LOST when not _layout.props[event["prop"]].kind in PropArt.FURNITURE:
 			var crate: Vector3 = current["props"][event["prop"]]["pos"]
 			if previous["props"][event["prop"]]["state"] == PropState.Body.FLOATING:
 				_set_adrift(event["prop"], crate, previous, pose, tick, cues)
@@ -777,12 +777,12 @@ func _set_adrift(
 		_adrift_radius.remove_at(0)
 
 
-## The way on the water of every crate but [param prop], floating at [param crate],
-## at [param tick], into [param ways] as pairs of ship-plane points — from where it is
-## to ADRIFT_WAY along it — and its radius into [param radii]. A crate still aboard in
-## [param previous] stays put, or, afloat, drifts downhill under [param pose] and,
-## resting against [param crate], into the place it leaves; one set adrift before
-## drifts on along its way from where it came down, as Flotsam drifts it.
+## The way on the water of every crate but [param prop] — furniture keeps to its rooms —
+## floating at [param crate], at [param tick], into [param ways] as pairs of ship-plane
+## points from where it is to ADRIFT_WAY along it, and its radius into [param radii]. A
+## crate still aboard in [param previous] stays put, or, afloat, drifts downhill under
+## [param pose] and, resting against [param crate], into the place it leaves; one set
+## adrift before drifts on along its way from where it came down, as Flotsam drifts it.
 func _crate_ways(
 	prop: int,
 	crate: Vector3,
@@ -798,7 +798,8 @@ func _crate_ways(
 	var downhill := Vector2(down.x, down.z)
 	for entry: Dictionary in previous["props"]:
 		var other: int = entry["prop"]
-		if other == prop or entry["state"] == PropState.Body.LOST:
+		var furniture := PropArt.FURNITURE.has(_layout.props[other].kind)
+		if other == prop or entry["state"] == PropState.Body.LOST or furniture:
 			continue
 		var pos: Vector3 = entry["pos"]
 		var at := Vector2(pos.x, pos.z)
