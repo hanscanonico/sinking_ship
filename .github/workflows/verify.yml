@@ -2,7 +2,8 @@
 # chains but bake-check. The static gates — check, guard-check, ship-gen-check,
 # lint and format-check — run in one job; the suite is dealt
 # across parallel shards by tools/test_shards.py, balanced on
-# tests/durations.tsv — run in one engine it took over 70 minutes (SH34).
+# tests/durations.tsv — run in one engine it took over 70 minutes (SH34) — and
+# art-lint runs in a job of its own beside them.
 # The `verify` job at the end is the one verdict: green only when every
 # other job is.
 name: verify
@@ -89,13 +90,29 @@ jobs:
       - name: test
         run: make test SHARD=${{ matrix.shard }}/8
 
+  # The art against the data and the snapshots (tools/art_lint.gd), every ship and a
+  # match, beside the shards rather than after them. Run only by hand before, it had
+  # gathered 25 problems on main by the time someone did (#270).
+  art-lint:
+    name: art-lint
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup-godot
+
+      - name: art-lint
+        run: make art-lint
+
   verify:
-    needs: [static, test]
+    needs: [static, test, art-lint]
     if: always()
     runs-on: ubuntu-24.04
     steps:
       - name: Every gate passed
         run: |
-          echo "static: ${{ needs.static.result }}, test: ${{ needs.test.result }}"
+          echo "static: ${{ needs.static.result }}, test: ${{ needs.test.result }}, art-lint: ${{ needs.art-lint.result }}"
           test "${{ needs.static.result }}" = success
           test "${{ needs.test.result }}" = success
+          test "${{ needs.art-lint.result }}" = success
