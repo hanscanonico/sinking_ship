@@ -78,10 +78,10 @@ const CREW := "quarters"
 const WORKING := "working"
 const STORES_CRATE := 0.7
 ## Behind a stack's crates, its box drawn STORES_CORE in from its sides, behind their
-## planking, in the dark: what a line across a seam between two crates meets — one on
-## another or side by side, where their posts leave the planking short of the corners —
-## where art-lint probes the box's sides.
-const STORES_CORE := 0.025
+## planking (3.1 cm in from a stowed crate's side), in the dark: what a line across a
+## seam between two crates meets — one on another or side by side, where their posts
+## leave the planking short of the corners — where art-lint probes the box's sides.
+const STORES_CORE := 0.04
 ## A writing desk: its top board, the leather let into it INSET in from its edges, and
 ## a drawer's panel every DRAWER along its front.
 const DESK_BOARD := 0.035

@@ -171,7 +171,8 @@ func test_a_seat_is_drawn_in_its_box_its_arms_and_back_under_a_step() -> void:
 
 ## Where art-lint probes a box's sides — a quarter, half and three quarters up them, a
 ## fifth, half and four fifths along — a stack of stores is drawn: no seam between
-## two of its crates, one on another or side by side, is an open edge there.
+## two of its crates, one on another or side by side, is an open edge there. Off its
+## seams its crates stand before its dark core, which shows in the seams alone.
 func test_a_stack_of_stores_is_drawn_out_to_its_box_s_sides() -> void:
 	var stack := _space.furniture(_room(&"E deck working passage, engine room"))[0]
 	var lines: Array[PackedFloat32Array] = [
@@ -195,6 +196,9 @@ func test_a_stack_of_stores_is_drawn_out_to_its_box_s_sides() -> void:
 			for probe: Array in probes:
 				var off := _off_side(faces, probe[0], probe[1])
 				assert_lt(off, ArtLint.BLOCKER_TOLERANCE, "its side drawn at %s" % probe[0])
+				if fraction != 0.5 and share != 0.5:
+					var core := FurnitureDressing.STORES_CORE - ShipMesh.SLIVER
+					assert_lt(off, core, "a crate before its core at %s" % probe[0])
 
 
 ## The middle of the table among [param pieces] nearest [param at] within
