@@ -496,6 +496,10 @@ bake-check:
 		--check=data/ships/$$(basename $$blend .blend).tres | grep -v '^\[godot_ai'; \
 		status=$$?; rm -rf "$$dir"; test $$status -eq 0 || exit 1; done; fi
 
+# Over a scene already there, ship-scene keeps its ids (tools/ship_scene_ids.gd): a node
+# at a path it had keeps its unique_id, a sub-resource of unchanged content its id, and
+# the file its line endings. Redrawing unchanged data rewrites it byte for byte, and a
+# data change diffs as only the nodes and resources it adds, removes or alters.
 ship-scene:
 	$(call require-godot)
 	@test -n "$(SHIP)" || { echo "ship-scene: SHIP=<a ship under data/ships> is required" >&2; exit 1; }
