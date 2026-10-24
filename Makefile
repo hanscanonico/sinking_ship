@@ -380,6 +380,16 @@ durations:
 	$(if $(RUN),,$(error make durations needs RUN=<verify run id>; gh run list --workflow verify))
 	tools/test_durations.py --run $(RUN)
 
+# The goldens (R6), tests/golden/NAME.<os>-<arch>.txt: a golden test prints the text it
+# works out when its platform's file is missing or no longer matches (Goldens,
+# tests/unit/goldens.gd), and tools/goldens.py writes it. RUN=<verify run id> takes
+# CI's — linux-x86_64, the platform every PR is held to — from that run's logs;
+# without RUN the golden tests run here and this machine's platform is written:
+#   make goldens RUN=40058239619
+goldens:
+	$(call require-godot)
+	GODOT="$(GODOT)" tools/goldens.py $(if $(RUN),--run $(RUN),--here)
+
 # Only the test scripts the branch's changes can reach (tools/test_changed.py): its
 # commits and its uncommitted and untracked edits against the merge-base with
 # origin/main, each script printed with the chain that pulled it in, then run as a
@@ -688,6 +698,6 @@ format-check:
 
 .PHONY: import run replay match capture smoke net-bench sim-bench bench serve-local online-e2e export-server \
 	export-web export-mac export-win export-linux export-server-mac serve-web-local serve-web-local-stop fps arena \
-	hits bake census art-lint test test-changed durations verify verify-changed check guard-check ship ship-gen-check ship-check bake-ship \
+	hits bake census art-lint test test-changed durations goldens verify verify-changed check guard-check ship ship-gen-check ship-check bake-ship \
 	bake-check ship-scene \
 	ship-blend bake-blend models model-sources sailor crew-capture lint format format-check
