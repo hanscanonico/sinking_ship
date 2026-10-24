@@ -14,8 +14,8 @@ hull). To sweep main, add a detached worktree at origin/main
 (`git -C MAIN fetch origin main`, then `git -C MAIN worktree add --detach
 MAIN-worktrees/qa-<batch> origin/main`, where MAIN is the main checkout's path, which
 `dirname "$(git rev-parse --path-format=absolute --git-common-dir)"` prints from any
-checkout), run `make import` there, sweep from it, and remove it when done. A worktree you are given has
-`make import` run in it before the sweep if it is fresh.
+checkout), run `make import` there, sweep from it, and remove it when done. A worktree
+you are given has `make import` run in it before the sweep if it is fresh.
 
 This role is dormant until the repo has a `make smoke` target that launches the game and
 captures frames headlessly. If `make smoke` does not exist in the checkout, stop and report

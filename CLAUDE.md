@@ -62,11 +62,10 @@ keeps only what no fix can change.
 
 Finished work ships without being asked: once a change is done, commit it on a branch,
 push, open the PR, wait for CI (`tools/ci_wait.sh N` in the background reports only what
-failed), and merge it yourself when it is green on the PR head.
-When main has moved since that run, `gh pr update-branch` first and merge on the new
-run's green: two PRs green apart can break main together. A red PR gets fixed, not
-merged. Ask first only when the change is not what was asked for or a decision is
-genuinely the user's.
+failed), and merge it yourself when it is green on the PR head. When main has moved
+since that run, `gh pr update-branch` first and merge on the new run's green: two PRs
+green apart can break main together. A red PR gets fixed, not merged. Ask first only
+when the change is not what was asked for or a decision is genuinely the user's.
 
 Every session works in its own worktree, never in the main checkout: several sessions share
 this machine, and one session's `checkout`, `switch` or `stash` moves every other session's
