@@ -72,23 +72,18 @@ func _take(material: ShaderMaterial, parameters: Array[StringName]) -> void:
 			_material.set_shader_parameter(parameter, value)
 
 
-## [param planner]'s berg as a mesh: flat faces, each its own colour.
+## [param planner]'s berg as a mesh: shaded as modelled, each face its own colour.
 static func mesh_of(planner: IcebergPlanner) -> ArrayMesh:
 	var corners := planner.shape()
 	var shades := planner.shades()
-	var normals := PackedVector3Array()
 	var colours := PackedColorArray()
 	for face in corners.size() / 3:
-		var a := corners[face * 3]
-		# Wound clockwise from outside: the cross product points in.
-		var normal := -(corners[face * 3 + 1] - a).cross(corners[face * 3 + 2] - a).normalized()
 		for corner in 3:
-			normals.append(normal)
 			colours.append(shades[face])
 	var arrays := []
 	arrays.resize(Mesh.ARRAY_MAX)
 	arrays[Mesh.ARRAY_VERTEX] = corners
-	arrays[Mesh.ARRAY_NORMAL] = normals
+	arrays[Mesh.ARRAY_NORMAL] = planner.normals()
 	arrays[Mesh.ARRAY_COLOR] = colours
 	var mesh := ArrayMesh.new()
 	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
