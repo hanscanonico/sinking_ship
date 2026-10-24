@@ -232,11 +232,6 @@ occlusion_culling/use_occlusion_culling=true
 
 [shader_globals]
 
-eye_under={
-"type": "float",
-"value": 0.0
-}
-
 water_mirror={
 "type": "int",
 "value": 24

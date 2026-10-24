@@ -8,8 +8,7 @@ extends CanvasLayer
 ## the brawler's breath bubbles up. The fog is thin enough that the hull stays a dark
 ## shape some way off. Presentation only (D12): it reads where the eye is drawn and how
 ## far over its water that is, and nothing else. is_under() is the one answer anything
-## else that changes under the water asks; the ship's paint asks the shader global
-## eye_under (waterline.gdshaderinc), which it keeps.
+## else that changes under the water asks.
 
 const OVERLAY := preload("res://scenes/match/underwater.gdshader")
 const FOG := Color(0.04, 0.2, 0.28)
@@ -31,8 +30,6 @@ const REFRACTION := 1.33
 ## How near over the water, in metres, the eye starts to see its rippling line cross
 ## the view, the tint under it and clear air over it.
 const MENISCUS := 0.15
-## The shader global the ship's paint reads to ease its sunk tint for an eye under the sea.
-const EYE_UNDER := &"eye_under"
 
 var _world: WorldEnvironment
 var _above: Environment
@@ -144,10 +141,6 @@ func is_under() -> bool:
 	return _under
 
 
-func _exit_tree() -> void:
-	RenderingServer.global_shader_parameter_set(EYE_UNDER, 0.0)
-
-
 ## Aims the tint and puts the motes and the breath's bubbles before the eye at
 ## [param eye], as the camera looks.
 func _follow(eye: Vector3) -> void:
@@ -166,7 +159,6 @@ func _follow(eye: Vector3) -> void:
 
 
 func _show_under(under: bool) -> void:
-	RenderingServer.global_shader_parameter_set(EYE_UNDER, 1.0 if under else 0.0)
 	for particles: CPUParticles3D in [_motes, _bubbles]:
 		particles.visible = under
 		particles.emitting = under
