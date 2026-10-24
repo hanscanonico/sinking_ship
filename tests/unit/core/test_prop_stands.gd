@@ -1,7 +1,8 @@
 extends GutTest
 ## Where her solid props stand, on a grid (PropStands): asked about a point, it answers
-## with every prop whose circle's box reaches it — exactly those, in index order, however
-## the props are spread over its cells, moved between them, taken off or off the grid.
+## with every prop whose circle's box, SLACK wider, reaches it — exactly those, in index
+## order, however the props are spread over its cells, moved between them, taken off or
+## off the grid — and so with every prop a question rounding the point finds.
 
 const COUNT := 120
 const AREA := Rect2(-20.0, -6.0, 40.0, 12.0)
@@ -22,8 +23,8 @@ func _layout(rng: RandomNumberGenerator, count: int) -> ShipLayout:
 	return SimFixtures.crated(props)
 
 
-## Every prop of [param stands] standing whose circle's box reaches within [param reach]
-## of [param x], [param z], but [param except_prop], one by one.
+## Every prop of [param stands] standing whose circle's box, SLACK wider, reaches within
+## [param reach] of [param x], [param z], but [param except_prop], one by one.
 func _reaching(
 	stands: PropStands, x: float, z: float, reach: float, except_prop := -1
 ) -> PackedInt32Array:
@@ -32,10 +33,23 @@ func _reaching(
 		if prop == except_prop or stands.gone[prop] == 1:
 			continue
 		var at := stands.feet[prop]
-		var within := stands.radii[prop] + reach
+		var within := stands.radii[prop] + reach + PropStands.SLACK
 		if absf(at.x - x) <= within and absf(at.z - z) <= within:
 			found.append(prop)
 	return found
+
+
+func test_near_finds_a_prop_a_point_is_on_once_rounded() -> void:
+	var crate := SimFixtures.crate(Vector3.ZERO)
+	crate.radius = 0.5
+	var props: Array[ShipProp] = [crate]
+	var layout := SimFixtures.crated(props)
+	var stands := PropStands.new(layout, AREA)
+	stands.stand_all(PropState.from_layout(layout))
+	var x := 0.5 + 1e-8
+	assert_gt(x, crate.radius, "a hair past its edge, in double precision")
+	assert_true(stands.covers(0, x, 0.0), "on it in single, as Surfaces asks")
+	assert_eq(stands.near(x, 0.0, 0.0), PackedInt32Array([0]), "and near() leaves it in")
 
 
 func test_near_answers_exactly_the_props_reaching_a_point_in_index_order() -> void:

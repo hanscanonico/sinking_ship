@@ -154,6 +154,28 @@ func test_a_shove_sends_a_light_prop_no_faster_than_itself() -> void:
 	assert_almost_eq(sent, weighed, 0.0001, "a laden crate still by the two masses")
 
 
+## A platform's goldens hold its matches to the bit: a crate heavier than a body is sent
+## as it always was, the shove's speed times the body's mass over the crate's in that
+## order — the weight worked out first rounds apart for some shoves.
+func test_a_laden_crate_is_sent_to_the_bit_as_before_furniture() -> void:
+	var crate: Array[ShipProp] = [SimFixtures.crate(Vector3(1.0, 0.0, 0.0))]
+	var sim := SimFixtures.sim(1, null, _laid(crate))
+	var hazards := Hazards.new(sim.config, sim.surfaces)
+	var body := _rules().body_mass
+	var mass := sim.config.ship.props[0].mass
+	var speed := _rules().knockback
+	assert_gt(mass, body, "laden")
+	var direction := Vector2.RIGHT
+	for degrees in 360:
+		direction = Vector2.RIGHT.rotated(deg_to_rad(degrees + 0.5))
+		if direction * speed * body / mass != direction * speed * (body / mass):
+			break
+	assert_ne(direction * speed * body / mass, direction * speed * (body / mass), "one apart")
+	hazards.shove(sim.state, ShoveResolver.Hit.new(0, 1, direction), 1, speed, 0)
+	var vel := sim.state.props[0].vel
+	assert_eq(Vector2(vel.x, vel.z), direction * speed * body / mass)
+
+
 func test_a_chair_running_into_a_body_never_staggers_it_as_a_table_does() -> void:
 	for kind: StringName in [&"dining_chair", &"dining_table"]:
 		var start := Vector3(-1.8, 0.0, 0.0)

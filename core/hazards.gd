@@ -422,8 +422,10 @@ func candidates(
 ## shover's, for its credit.
 func shove(state: MatchState, hit: ShoveResolver.Hit, first: int, speed: float, tick: int) -> void:
 	var crate := state.props[hit.target - first]
-	var weight := minf(_rules.body_mass / _props[crate.prop].mass, 1.0)
-	var sent := hit.direction * speed * weight
+	var mass := _props[crate.prop].mass
+	var sent := hit.direction * speed
+	if mass > _rules.body_mass:
+		sent = sent * _rules.body_mass / mass
 	crate.vel = Vector3(sent.x, crate.vel.y, sent.y)
 	crate.shoved_by = hit.shover
 	crate.shoved_at = tick

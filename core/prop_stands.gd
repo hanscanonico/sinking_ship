@@ -9,6 +9,9 @@ extends RefCounted
 
 ## How wide a cell of the grid is, in metres: a laid table and its chairs to a few cells.
 const CELL := 2.0
+## How much wider than its reach near() looks, in metres: past any rounding of a point's
+## distance, single precision or double, at her size.
+const SLACK := 0.001
 
 ## Per prop of the layout: its radius and height; 1 for a solid one, and 1 for a solid
 ## one whose top is a lid (PropKind.lid); where its underside stands as last told; and 1
@@ -138,12 +141,13 @@ func clear() -> void:
 
 
 ## Every prop standing whose circle may come within [param reach] of the ship-plane point
-## [param x], [param z] — a box about it, so some may not — in index order; never
+## [param x], [param z] — a box about it SLACK wider, so some may not, and none a
+## question's own rounding would find is left out — in index order; never
 ## [param except_prop].
 func near(x: float, z: float, reach: float, except_prop := -1) -> PackedInt32Array:
 	var found := PackedInt32Array()
-	var out := reach + _widest
-	if out <= CELL:
+	var out := reach + _widest + SLACK
+	if out <= CELL - SLACK:
 		# _cell(), written out: every question about a point is asked here first.
 		var column := clampi(floori((x - _origin.x) / CELL), 0, _columns - 1)
 		var row := clampi(floori((z - _origin.y) / CELL), 0, _rows - 1)
@@ -160,7 +164,7 @@ func near(x: float, z: float, reach: float, except_prop := -1) -> PackedInt32Arr
 			cells += 1
 			for prop: int in props:
 				var at := feet[prop]
-				var within := radii[prop] + reach
+				var within := radii[prop] + reach + SLACK
 				if prop != except_prop and absf(at.x - x) <= within and absf(at.z - z) <= within:
 					found.append(prop)
 	# Each cell is in index order; cells after cells are not.
