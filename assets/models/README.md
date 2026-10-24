@@ -121,8 +121,8 @@ A prop placed a hundred times is parsed once.
 | `cowl_vent_45`, `cowl_vent_30` | `DeckFurniture.vent`, a ventilator by its trunk's radius (`VENTS`) | hero | 848 each |
 | `mushroom_vent` | `DeckFurniture.vent`, a ventilator a hop up (`VENTS`) | furniture | 276 |
 | `deck_bench` | `DeckFurniture.bench`, a short box seat on an open deck | furniture | 238 |
-| `armchair` | `FurnitureDressing.seat`, a room's seat no larger either way than `ARMCHAIR_SIDE` | furniture | 366 |
-| `settee` | `FurnitureDressing.seat`, a room's seat `SETTEE_DEPTH` deep or deeper | hero | 466 |
+| `armchair` | `FurnitureDressing.seat`, a room's seat no larger either way than `ARMCHAIR_SIDE` | furniture | 376 |
+| `settee` | `FurnitureDressing.seat`, a room's seat `SETTEE_DEPTH` deep or deeper | hero | 476 |
 | `iceberg_tabular` | `IcebergPlanner`, one berg a match, drawn by `Iceberg` | world | 764 |
 | `iceberg_drydock` | `IcebergPlanner`, one berg a match, drawn by `Iceberg` | world | 896 |
 | `iceberg_wedge` | `IcebergPlanner`, one berg a match, drawn by `Iceberg` | world | 596 |

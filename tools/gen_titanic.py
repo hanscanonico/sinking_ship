@@ -1940,7 +1940,8 @@ MESS = (4.0, 1.2, 0.75)  # a mess table: long, deep with its benches, tall
 for k, (x0, z0, floor) in enumerate([(98.5, 2.2, 0.0), (98.5, -3.4, 0.0), (74.5, 1.7, E_DECK),
                                      (74.5, -2.9, E_DECK)]):
     piece("table_mess_%d" % k, x0, x0 + MESS[0], z0, z0 + MESS[1], floor, floor + MESS[2])
-STORES = (1.6, 0.8, 1.36)  # a stack of stores: long, deep and tall, 0.8 m crates two high
+STORES = (1.4, 0.7, 1.19)  # a stack of stores: long, deep and tall, 0.7 m crates two high,
+# no taller than furniture (ShipSpace.FURNITURE_HEIGHT), past which a box is machinery
 STORES_OFF = 0.15
 STORES_PITCH = 3.2
 

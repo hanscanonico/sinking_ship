@@ -76,7 +76,7 @@ const BACK_REACH := 0.25
 ## (stores()).
 const CREW := "quarters"
 const WORKING := "working"
-const STORES_CRATE := 0.8
+const STORES_CRATE := 0.7
 ## A writing desk: its top board, the leather let into it INSET in from its edges, and
 ## a drawer's panel every DRAWER along its long sides.
 const DESK_BOARD := 0.035

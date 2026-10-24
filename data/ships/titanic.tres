@@ -13112,291 +13112,291 @@ top = -5.1875
 
 [sub_resource type="Resource" id="Blocker_stores_engine_room_0p"]
 script = ExtResource("3_block")
-area = Rect2(-47.93, -13.05, 1.6, 0.8)
+area = Rect2(-47.93, -13.05, 1.4, 0.7)
 bottom = -5.9375
-top = -4.5775
+top = -4.7475
 
 [sub_resource type="Resource" id="Blocker_stores_engine_room_1p"]
 script = ExtResource("3_block")
-area = Rect2(-44.73, -13.05, 1.6, 0.8)
+area = Rect2(-44.73, -13.05, 1.4, 0.7)
 bottom = -5.9375
-top = -4.5775
+top = -4.7475
 
 [sub_resource type="Resource" id="Blocker_stores_engine_room_2p"]
 script = ExtResource("3_block")
-area = Rect2(-41.53, -13.05, 1.6, 0.8)
+area = Rect2(-41.53, -13.05, 1.4, 0.7)
 bottom = -5.9375
-top = -4.5775
+top = -4.7475
 
 [sub_resource type="Resource" id="Blocker_stores_engine_room_3p"]
 script = ExtResource("3_block")
-area = Rect2(-38.33, -13.05, 1.6, 0.8)
+area = Rect2(-38.33, -13.05, 1.4, 0.7)
 bottom = -5.9375
-top = -4.5775
+top = -4.7475
 
 [sub_resource type="Resource" id="Blocker_stores_engine_room_4p"]
 script = ExtResource("3_block")
-area = Rect2(-35.13, -13.05, 1.6, 0.8)
+area = Rect2(-35.13, -13.05, 1.4, 0.7)
 bottom = -5.9375
-top = -4.5775
+top = -4.7475
 
 [sub_resource type="Resource" id="Blocker_stores_engine_room_5p"]
 script = ExtResource("3_block")
-area = Rect2(-31.93, -13.05, 1.6, 0.8)
+area = Rect2(-31.93, -13.05, 1.4, 0.7)
 bottom = -5.9375
-top = -4.5775
+top = -4.7475
 
 [sub_resource type="Resource" id="Blocker_stores_engine_room_0s"]
 script = ExtResource("3_block")
-area = Rect2(-47.93, 12.25, 1.6, 0.8)
+area = Rect2(-47.93, 12.35, 1.4, 0.7)
 bottom = -5.9375
-top = -4.5775
+top = -4.7475
 
 [sub_resource type="Resource" id="Blocker_stores_engine_room_1s"]
 script = ExtResource("3_block")
-area = Rect2(-44.73, 12.25, 1.6, 0.8)
+area = Rect2(-44.73, 12.35, 1.4, 0.7)
 bottom = -5.9375
-top = -4.5775
+top = -4.7475
 
 [sub_resource type="Resource" id="Blocker_stores_engine_room_2s"]
 script = ExtResource("3_block")
-area = Rect2(-41.53, 12.25, 1.6, 0.8)
+area = Rect2(-41.53, 12.35, 1.4, 0.7)
 bottom = -5.9375
-top = -4.5775
+top = -4.7475
 
 [sub_resource type="Resource" id="Blocker_stores_engine_room_3s"]
 script = ExtResource("3_block")
-area = Rect2(-38.33, 12.25, 1.6, 0.8)
+area = Rect2(-38.33, 12.35, 1.4, 0.7)
 bottom = -5.9375
-top = -4.5775
+top = -4.7475
 
 [sub_resource type="Resource" id="Blocker_stores_engine_room_4s"]
 script = ExtResource("3_block")
-area = Rect2(-35.13, 12.25, 1.6, 0.8)
+area = Rect2(-35.13, 12.35, 1.4, 0.7)
 bottom = -5.9375
-top = -4.5775
+top = -4.7475
 
 [sub_resource type="Resource" id="Blocker_stores_engine_room_5s"]
 script = ExtResource("3_block")
-area = Rect2(-31.93, 12.25, 1.6, 0.8)
+area = Rect2(-31.93, 12.35, 1.4, 0.7)
 bottom = -5.9375
-top = -4.5775
+top = -4.7475
 
 [sub_resource type="Resource" id="Blocker_stores_turbine_room_0p"]
 script = ExtResource("3_block")
-area = Rect2(-65.32, -11.35, 1.6, 0.8)
+area = Rect2(-65.32, -11.35, 1.4, 0.7)
 bottom = -5.9375
-top = -4.5775
+top = -4.7475
 
 [sub_resource type="Resource" id="Blocker_stores_turbine_room_1p"]
 script = ExtResource("3_block")
-area = Rect2(-62.12, -11.35, 1.6, 0.8)
+area = Rect2(-62.12, -11.35, 1.4, 0.7)
 bottom = -5.9375
-top = -4.5775
+top = -4.7475
 
 [sub_resource type="Resource" id="Blocker_stores_turbine_room_2p"]
 script = ExtResource("3_block")
-area = Rect2(-58.92, -11.35, 1.6, 0.8)
+area = Rect2(-58.92, -11.35, 1.4, 0.7)
 bottom = -5.9375
-top = -4.5775
+top = -4.7475
 
 [sub_resource type="Resource" id="Blocker_stores_turbine_room_3p"]
 script = ExtResource("3_block")
-area = Rect2(-55.72, -11.35, 1.6, 0.8)
+area = Rect2(-55.72, -11.35, 1.4, 0.7)
 bottom = -5.9375
-top = -4.5775
+top = -4.7475
 
 [sub_resource type="Resource" id="Blocker_stores_turbine_room_4p"]
 script = ExtResource("3_block")
-area = Rect2(-52.52, -11.35, 1.6, 0.8)
+area = Rect2(-52.52, -11.35, 1.4, 0.7)
 bottom = -5.9375
-top = -4.5775
+top = -4.7475
 
 [sub_resource type="Resource" id="Blocker_stores_turbine_room_0s"]
 script = ExtResource("3_block")
-area = Rect2(-65.32, 10.55, 1.6, 0.8)
+area = Rect2(-65.32, 10.65, 1.4, 0.7)
 bottom = -5.9375
-top = -4.5775
+top = -4.7475
 
 [sub_resource type="Resource" id="Blocker_stores_turbine_room_1s"]
 script = ExtResource("3_block")
-area = Rect2(-62.12, 10.55, 1.6, 0.8)
+area = Rect2(-62.12, 10.65, 1.4, 0.7)
 bottom = -5.9375
-top = -4.5775
+top = -4.7475
 
 [sub_resource type="Resource" id="Blocker_stores_turbine_room_2s"]
 script = ExtResource("3_block")
-area = Rect2(-58.92, 10.55, 1.6, 0.8)
+area = Rect2(-58.92, 10.65, 1.4, 0.7)
 bottom = -5.9375
-top = -4.5775
+top = -4.7475
 
 [sub_resource type="Resource" id="Blocker_stores_turbine_room_3s"]
 script = ExtResource("3_block")
-area = Rect2(-55.72, 10.55, 1.6, 0.8)
+area = Rect2(-55.72, 10.65, 1.4, 0.7)
 bottom = -5.9375
-top = -4.5775
+top = -4.7475
 
 [sub_resource type="Resource" id="Blocker_stores_turbine_room_4s"]
 script = ExtResource("3_block")
-area = Rect2(-52.52, 10.55, 1.6, 0.8)
+area = Rect2(-52.52, 10.65, 1.4, 0.7)
 bottom = -5.9375
-top = -4.5775
+top = -4.7475
 
 [sub_resource type="Resource" id="Blocker_stores_electric_room_0p"]
 script = ExtResource("3_block")
-area = Rect2(-84.44, -10.55, 1.6, 0.8)
+area = Rect2(-84.44, -10.55, 1.4, 0.7)
 bottom = -5.9375
-top = -4.5775
+top = -4.7475
 
 [sub_resource type="Resource" id="Blocker_stores_electric_room_1p"]
 script = ExtResource("3_block")
-area = Rect2(-81.24, -10.55, 1.6, 0.8)
+area = Rect2(-81.24, -10.55, 1.4, 0.7)
 bottom = -5.9375
-top = -4.5775
+top = -4.7475
 
 [sub_resource type="Resource" id="Blocker_stores_electric_room_2p"]
 script = ExtResource("3_block")
-area = Rect2(-78.04, -10.55, 1.6, 0.8)
+area = Rect2(-78.04, -10.55, 1.4, 0.7)
 bottom = -5.9375
-top = -4.5775
+top = -4.7475
 
 [sub_resource type="Resource" id="Blocker_stores_electric_room_3p"]
 script = ExtResource("3_block")
-area = Rect2(-74.84, -10.55, 1.6, 0.8)
+area = Rect2(-74.84, -10.55, 1.4, 0.7)
 bottom = -5.9375
-top = -4.5775
+top = -4.7475
 
 [sub_resource type="Resource" id="Blocker_stores_electric_room_4p"]
 script = ExtResource("3_block")
-area = Rect2(-71.64, -10.55, 1.6, 0.8)
+area = Rect2(-71.64, -10.55, 1.4, 0.7)
 bottom = -5.9375
-top = -4.5775
+top = -4.7475
 
 [sub_resource type="Resource" id="Blocker_stores_electric_room_5p"]
 script = ExtResource("3_block")
-area = Rect2(-68.44, -10.55, 1.6, 0.8)
+area = Rect2(-68.44, -10.55, 1.4, 0.7)
 bottom = -5.9375
-top = -4.5775
+top = -4.7475
 
 [sub_resource type="Resource" id="Blocker_stores_electric_room_0s"]
 script = ExtResource("3_block")
-area = Rect2(-84.44, 9.75, 1.6, 0.8)
+area = Rect2(-84.44, 9.85, 1.4, 0.7)
 bottom = -5.9375
-top = -4.5775
+top = -4.7475
 
 [sub_resource type="Resource" id="Blocker_stores_electric_room_1s"]
 script = ExtResource("3_block")
-area = Rect2(-81.24, 9.75, 1.6, 0.8)
+area = Rect2(-81.24, 9.85, 1.4, 0.7)
 bottom = -5.9375
-top = -4.5775
+top = -4.7475
 
 [sub_resource type="Resource" id="Blocker_stores_electric_room_2s"]
 script = ExtResource("3_block")
-area = Rect2(-78.04, 9.75, 1.6, 0.8)
+area = Rect2(-78.04, 9.85, 1.4, 0.7)
 bottom = -5.9375
-top = -4.5775
+top = -4.7475
 
 [sub_resource type="Resource" id="Blocker_stores_electric_room_3s"]
 script = ExtResource("3_block")
-area = Rect2(-74.84, 9.75, 1.6, 0.8)
+area = Rect2(-74.84, 9.85, 1.4, 0.7)
 bottom = -5.9375
-top = -4.5775
+top = -4.7475
 
 [sub_resource type="Resource" id="Blocker_stores_electric_room_4s"]
 script = ExtResource("3_block")
-area = Rect2(-71.64, 9.75, 1.6, 0.8)
+area = Rect2(-71.64, 9.85, 1.4, 0.7)
 bottom = -5.9375
-top = -4.5775
+top = -4.7475
 
 [sub_resource type="Resource" id="Blocker_stores_electric_room_5s"]
 script = ExtResource("3_block")
-area = Rect2(-68.44, 9.75, 1.6, 0.8)
+area = Rect2(-68.44, 9.85, 1.4, 0.7)
 bottom = -5.9375
-top = -4.5775
+top = -4.7475
 
 [sub_resource type="Resource" id="Blocker_stores_forward_0p"]
 script = ExtResource("3_block")
-area = Rect2(-100.99, -7.85, 1.6, 0.8)
+area = Rect2(-100.99, -7.85, 1.4, 0.7)
 bottom = -5.9375
-top = -4.5775
+top = -4.7475
 
 [sub_resource type="Resource" id="Blocker_stores_forward_1p"]
 script = ExtResource("3_block")
-area = Rect2(-97.79, -7.85, 1.6, 0.8)
+area = Rect2(-97.79, -7.85, 1.4, 0.7)
 bottom = -5.9375
-top = -4.5775
+top = -4.7475
 
 [sub_resource type="Resource" id="Blocker_stores_forward_2p"]
 script = ExtResource("3_block")
-area = Rect2(-94.59, -7.85, 1.6, 0.8)
+area = Rect2(-94.59, -7.85, 1.4, 0.7)
 bottom = -5.9375
-top = -4.5775
+top = -4.7475
 
 [sub_resource type="Resource" id="Blocker_stores_forward_3p"]
 script = ExtResource("3_block")
-area = Rect2(-91.39, -7.85, 1.6, 0.8)
+area = Rect2(-91.39, -7.85, 1.4, 0.7)
 bottom = -5.9375
-top = -4.5775
+top = -4.7475
 
 [sub_resource type="Resource" id="Blocker_stores_forward_4p"]
 script = ExtResource("3_block")
-area = Rect2(-88.19, -7.85, 1.6, 0.8)
+area = Rect2(-88.19, -7.85, 1.4, 0.7)
 bottom = -5.9375
-top = -4.5775
+top = -4.7475
 
 [sub_resource type="Resource" id="Blocker_stores_forward_0s"]
 script = ExtResource("3_block")
-area = Rect2(-100.99, 7.05, 1.6, 0.8)
+area = Rect2(-100.99, 7.15, 1.4, 0.7)
 bottom = -5.9375
-top = -4.5775
+top = -4.7475
 
 [sub_resource type="Resource" id="Blocker_stores_forward_1s"]
 script = ExtResource("3_block")
-area = Rect2(-97.79, 7.05, 1.6, 0.8)
+area = Rect2(-97.79, 7.15, 1.4, 0.7)
 bottom = -5.9375
-top = -4.5775
+top = -4.7475
 
 [sub_resource type="Resource" id="Blocker_stores_forward_2s"]
 script = ExtResource("3_block")
-area = Rect2(-94.59, 7.05, 1.6, 0.8)
+area = Rect2(-94.59, 7.15, 1.4, 0.7)
 bottom = -5.9375
-top = -4.5775
+top = -4.7475
 
 [sub_resource type="Resource" id="Blocker_stores_forward_3s"]
 script = ExtResource("3_block")
-area = Rect2(-91.39, 7.05, 1.6, 0.8)
+area = Rect2(-91.39, 7.15, 1.4, 0.7)
 bottom = -5.9375
-top = -4.5775
+top = -4.7475
 
 [sub_resource type="Resource" id="Blocker_stores_forward_4s"]
 script = ExtResource("3_block")
-area = Rect2(-88.19, 7.05, 1.6, 0.8)
+area = Rect2(-88.19, 7.15, 1.4, 0.7)
 bottom = -5.9375
-top = -4.5775
+top = -4.7475
 
 [sub_resource type="Resource" id="Blocker_stores_aft_0p"]
 script = ExtResource("3_block")
-area = Rect2(-109.3, -6.2, 1.6, 0.8)
+area = Rect2(-109.3, -6.2, 1.4, 0.7)
 bottom = -5.9375
-top = -4.5775
+top = -4.7475
 
 [sub_resource type="Resource" id="Blocker_stores_aft_1p"]
 script = ExtResource("3_block")
-area = Rect2(-106.1, -6.2, 1.6, 0.8)
+area = Rect2(-106.1, -6.2, 1.4, 0.7)
 bottom = -5.9375
-top = -4.5775
+top = -4.7475
 
 [sub_resource type="Resource" id="Blocker_stores_aft_0s"]
 script = ExtResource("3_block")
-area = Rect2(-109.3, 5.4, 1.6, 0.8)
+area = Rect2(-109.3, 5.5, 1.4, 0.7)
 bottom = -5.9375
-top = -4.5775
+top = -4.7475
 
 [sub_resource type="Resource" id="Blocker_stores_aft_1s"]
 script = ExtResource("3_block")
-area = Rect2(-106.1, 5.4, 1.6, 0.8)
+area = Rect2(-106.1, 5.5, 1.4, 0.7)
 bottom = -5.9375
-top = -4.5775
+top = -4.7475
 
 [sub_resource type="Resource" id="Section_0"]
 script = ExtResource("10_section")

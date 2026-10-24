@@ -76,7 +76,8 @@ func test_no_doorway_seat_start_or_pendant_is_crowded() -> void:
 		var room := _room(entry[0])
 		var ways: Array[Rect2] = []
 		for door: ShipRoom.Door in room.doors(surfaces, _rules.body_height, _rules.step_height):
-			ways.append(_way_in(door))
+			if _leads_somewhere(room, door):
+				ways.append(_way_in(door))
 		for piece: ShipBlocker in _space.furniture(room):
 			for way: Rect2 in ways:
 				var named := "%s: %s in a doorway's way %s" % [room.name, piece.area, way]
@@ -150,6 +151,20 @@ func _faces(mesh: ShipMesh) -> PackedVector3Array:
 		faces.append_array((child as MeshInstance3D).mesh.get_faces())
 	holder.free()
 	return faces
+
+
+## Whether [param door] of [param room] leads somewhere: a body's breadth out of it,
+## no blocker stands from the floor to over a body's knees — not a casing standing a
+## hair off the room's side, which leaves no wall on the side itself.
+func _leads_somewhere(room: ShipRoom, door: ShipRoom.Door) -> bool:
+	var out := door.middle() + door.outward * _rules.body_radius * 2.0
+	for blocker: ShipBlocker in _layout.blockers:
+		if blocker.shape != ShipBlocker.Shape.BOX or not blocker.area.has_point(out):
+			continue
+		var floor := room.floor_height
+		if blocker.bottom <= floor + _rules.step_height and blocker.top >= floor + 0.6:
+			return false
+	return true
 
 
 ## The ship-plane strip a body takes into its room through [param door]: a body's
