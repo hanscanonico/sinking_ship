@@ -101,11 +101,16 @@ provided, add none — never a Co-Authored-By or generated-with line. Push with
 (concise body: what + why + how verified, ending with any footer the orchestrator
 provides). When the change is visible — UI, models, materials, animation, the landing
 page — the body must carry a **Before / After** section once a capture target exists:
-capture the same scene or asset on `main` and on the branch, upload both with `gh`
-(drag-and-drop is not available: attach via `gh pr create --body-file` after uploading
-images with `gh api`/a comment, or commit the pair under `docs/pr/<branch>/` if uploading
-fails) and show them side by side in a two-column table so the reviewer sees the change at
-a glance.
+capture the same scene or asset on `main` and on the branch and show them side by side in
+a two-column table so the reviewer sees the change at a glance. The images ride on the
+branch, never on main: commit the pair under `docs/pr/<branch>/` in a commit of their own,
+`git rm -r docs/pr/<branch>` in the next, and push both. Link each image by the first
+commit's full SHA —
+`https://raw.githubusercontent.com/hanscanonico/sinking_ship/<sha>/docs/pr/<branch>/<name>.png`
+— never by the branch's name: the PR's head ref keeps that commit through the squash merge
+and the branch's deletion, so the links outlive both, and `make check` fails while
+anything but `docs/pr/.gdignore` is tracked under `docs/pr/`. A new pair after a review
+goes the same way, linked by its own commit.
 
 Return: the PR URL, branch, worktree path, `local_gate`, `ci_green`, the head SHA, and a summary. If you
 stopped because the task is wrong or already done, say so and mark it abandoned rather
