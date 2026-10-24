@@ -14,6 +14,9 @@ extends Resource
 
 ## Where its underside stands at the start, ship-local.
 @export var pos: Vector3
+## The way its front faces, in degrees from her +x toward her +z as a body's facing
+## turns: a chair's toward its table. It slides, gives way and floats without turning.
+@export var facing_deg: float
 @export var radius: float
 ## How high its lid stands above its underside: a body jumps onto it, as onto a hatch.
 @export var height: float

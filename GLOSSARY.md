@@ -46,17 +46,26 @@ _Avoid_: crouch, crawlway, duct
 
 **Prop**:
 A loose thing of hers that the match moves and keeps in the snapshot: a crate of cargo, a
-light crate, a lifebuoy, a bottle, a bucket, a deck chair. Each is put there by her layout
-(where it starts, its size, mass and grip) as one of a prop kind, and none comes back once
-the sea has it. Modelled art that only dresses her — the hero props and furniture of
-`assets/models` — is dressing, not props: never in the snapshot, never held.
+light crate, a lifebuoy, a bottle, a bucket, a deck chair, a laid saloon's dining tables
+and chairs. Each is put there by her layout (where it starts and faces, its size, mass and
+grip) as one of a prop kind, and none comes back once the sea has it. Modelled art that
+only dresses her — the hero props and the rest of the furniture of `assets/models` — is
+dressing, not props: never in the snapshot, never held.
 _Avoid_: item, pickup, object, loot
 
 **Prop kind**:
 What a kind of prop is, the same for every one of it: whether a Grab press takes it and
-what holding it costs, whether it is solid — a blocker, a surface, a shove's target — and
-what it does in the sea. One data file each, as the bot tiers are.
+what holding it costs, whether it is solid — a blocker, a shove's target, its top a lid or
+not — how it meets the water and bodies while loose, and what it does in the sea. One data
+file each, as the bot tiers are.
 _Avoid_: item type, prop class
+
+**Furniture**:
+A prop of a kind that floats aboard and gives way: a laid saloon's dining tables and
+chairs. The water lifts a piece only at its own draft and it rides that deep, pressed
+under a ceiling rather than lost; a body walking into it pushes it before it; a chair is
+harmless — it never staggers anyone — and has no lid.
+_Avoid_: decor, object, debris
 
 **Holder**:
 The seat holding a prop, kept on the prop and nowhere else: what a seat holds is asked of

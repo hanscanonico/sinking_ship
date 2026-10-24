@@ -286,7 +286,9 @@ func _trusted(newest: Dictionary) -> bool:
 
 
 ## Whether [param newest] has this seat, the crates and the railings as the
-## prediction had them at its tick — [param then] — within a quantum.
+## prediction had them at its tick — [param then] — within a quantum. A crate the
+## prediction never moved from the entry it was reset to, which came again, is the same
+## entry (PropState.to_dict, WireCodec): one at rest is passed over unread.
 func _agrees(newest: Dictionary, then: Dictionary) -> bool:
 	if not WireCodec.within_quantum(&"seats", newest["seats"][seat], then["seat"]):
 		return false
@@ -298,6 +300,8 @@ func _agrees(newest: Dictionary, then: Dictionary) -> bool:
 	if crates.size() != held.size():
 		return false
 	for index in crates.size():
+		if is_same(crates[index], held[index]):
+			continue
 		if not WireCodec.within_quantum(&"props", crates[index], held[index]):
 			return false
 	return true

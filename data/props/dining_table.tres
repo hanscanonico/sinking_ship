@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="PropKind" format=3]
+
+[ext_resource type="Script" path="res://core/prop_kind.gd" id="1_kind"]
+
+[resource]
+script = ExtResource("1_kind")
+solid = true
+lid = true
+radius = 0.55
+height = 0.75
+draft = 0.6
+floats_aboard = true
+gives_way = true

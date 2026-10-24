@@ -24,6 +24,8 @@ const BLINK_TICKS := 6
 const FALL_SECONDS := 0.5
 ## The most bodies in water the water's rings are drawn round (water.gdshader).
 const MAX_WADERS := 8
+## How many props in a row a frame asks at once whether they are as last drawn.
+const STILL_RUN := 16
 
 var _driver: SimDriver
 var _schedule: SinkSchedule
@@ -42,8 +44,14 @@ var _bodies: Array[Brawler] = []
 ## Per seat, the facing it is drawn with, in its face's plane.
 var _facings := PackedFloat64Array()
 var _shadows: Array[MeshInstance3D] = []
-## Per prop of the layout, the node the ship drawn draws it under; and the layout.
+## Her props as the ship drawn draws them: the dressed art's (PropArt), or per prop the
+## greybox's node; per prop the snapshot entry it was last drawn still at, so a prop
+## that has not moved since is passed over; the props a hand may hold (GrabReach); and
+## the layout.
+var _prop_art: PropArt
 var _props: Array[Node3D] = []
+var _still: Array = []
+var _holdable := PackedInt32Array()
 var _layout: ShipLayout
 ## The seat the camera looks out of, or -1 for none.
 var _eye_seat := -1
@@ -110,13 +118,18 @@ func setup(
 	if _greybox.visible:
 		_greybox.build(_pieces.layout(leaves[0]) if _broken else ship, rules.railing_height)
 		_props = _greybox.props()
+		_prop_art = null
 	else:
 		if dressing == null:
 			dressing = ShipDressing.new(sim.config, _art.cut_above)
 		dressing.finish()
 		_wear(dressing.art)
 		stretches = dressing.stretches
-		_props = _art.props()
+		_props = []
+		_prop_art = _art.prop_art
+	_still.clear()
+	_still.resize(ship.props.size())
+	_holdable = GrabReach.holdable_of(ship)
 	if _drawn_pieces == null:
 		_drawn_pieces = ShipPieces.new()
 		_drawn_pieces.name = "Pieces"
@@ -365,9 +378,11 @@ func _process(delta: float) -> void:
 	var seats_then: Array = previous["seats"]
 	var seats_now: Array = current["seats"]
 	var carried := {}
-	for entry: Dictionary in current["props"]:
-		if entry["holder"] != -1:
-			carried[entry["holder"]] = entry["prop"]
+	var entries: Array = current["props"]
+	for index: int in _holdable:
+		var holder: int = entries[index]["holder"]
+		if holder != -1:
+			carried[holder] = index
 	var wading: bool = current["tick"] != _waders_tick
 	var wet_feet := PackedVector3Array()
 	var wet_water := PackedFloat32Array()
@@ -425,8 +440,7 @@ func _process(delta: float) -> void:
 		# stop at its guard (Brawler.keep_apart).
 		body.show_state(then, now, alpha, _heights[seat] < _rules.body_height)
 		if carried.has(seat):
-			var ring := _props[carried[seat]]
-			body.carry(ring.global_transform, _layout.props[carried[seat]].radius)
+			body.carry(_drawn(carried[seat]), _layout.props[carried[seat]].radius)
 		if not body.visible:
 			continue
 		# A swimmer stands on nothing: no ring tilted to a deck under the sea, no shadow.
@@ -509,17 +523,51 @@ func _show_sinking(
 
 
 ## Each prop [param alpha] of the way from where snapshot [param then] draws it to where
-## [param now] does (PropPlacing), and hidden once it is lost.
+## [param now] does (PropPlacing), and hidden once it is lost. One the two hold alike —
+## not afloat, where it bobs, nor held, where it goes as its holder looks — and drawn so
+## last is left as it is: a laid saloon at rest costs a frame next to nothing, STILL_RUN
+## props at a time asked whether they are as drawn.
 func _show_props(then: Dictionary, now: Dictionary, alpha: float) -> void:
-	for index in _props.size():
-		var entry: Dictionary = now["props"][index]
-		_props[index].visible = entry["state"] != PropState.Body.LOST
-		if not _props[index].visible:
+	var then_props: Array = then["props"]
+	var now_props: Array = now["props"]
+	for first in range(0, now_props.size(), STILL_RUN):
+		var last := mini(first + STILL_RUN, now_props.size())
+		var drawn := _still.slice(first, last)
+		if now_props.slice(first, last) != drawn or then_props.slice(first, last) != drawn:
+			_show_props_of(then, now, alpha, first, last)
+
+
+## Props [param first] to [param last] of _show_props', one by one.
+func _show_props_of(then: Dictionary, now: Dictionary, alpha: float, first: int, last: int) -> void:
+	var height := _rules.railing_height
+	var then_props: Array = then["props"]
+	var now_props: Array = now["props"]
+	for index in range(first, last):
+		var entry: Dictionary = now_props[index]
+		var before: Dictionary = then_props[index]
+		var state: PropState.Body = entry["state"]
+		var still := (
+			entry == before and state != PropState.Body.FLOATING and state != PropState.Body.HELD
+		)
+		if still and _still[index] == entry:
 			continue
-		var height := _rules.railing_height
-		var was := PropPlacing.of(then["props"][index], _layout, height, then["seats"])
-		var drawn := PropPlacing.of(entry, _layout, height, now["seats"])
-		_props[index].transform = was.interpolate_with(drawn, alpha)
+		_still[index] = entry if still else null
+		var shown := state != PropState.Body.LOST
+		var placed := Transform3D.IDENTITY
+		if shown:
+			var was := PropPlacing.of(before, _layout, height, then["seats"], then["tick"])
+			var drawn := PropPlacing.of(entry, _layout, height, now["seats"], now["tick"])
+			placed = was.interpolate_with(drawn, alpha)
+		if _prop_art != null:
+			_prop_art.place(index, placed, shown)
+		else:
+			_props[index].visible = shown
+			_props[index].transform = placed
+
+
+## Where prop [param index] is drawn now, in the world.
+func _drawn(index: int) -> Transform3D:
+	return _prop_art.drawn(index) if _prop_art != null else _props[index].global_transform
 
 
 ## The up of [param surface] of [param here] under [param pos], in that Surfaces'
