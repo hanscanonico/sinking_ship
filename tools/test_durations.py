@@ -12,6 +12,11 @@ script with a pending or failing test, and that reprint is no run.
 
 `gh run view ID --log` prefixes each line with its job and step, tab-separated;
 each job is read on its own. A bare log, one job's lines as they are, reads too.
+GUT paints its lines with colour escapes, which a log carries either as the escape
+character or written out as the two characters `^[` (as `gh run view --log` prints
+them by October 2026); both are cut before a line is read. Left in, a written-out
+escape hides every "N/M passed." line and the summary banner, and the last script
+of each job, never ended, drops out of the file.
 
 Usage:  tools/test_durations.py --run ID              # fetch run ID's logs with gh, write the file
         tools/test_durations.py --log FILE [--run ID]  # read a saved log (- for stdin) instead
@@ -28,7 +33,7 @@ ROOT = Path(__file__).resolve().parent.parent
 DURATIONS = ROOT / "tests" / "durations.tsv"
 
 STAMP = re.compile(r"^\ufeff?(\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d+)?)Z ?(.*)$")
-ANSI = re.compile(r"\x1b\[[0-9;]*m")
+ANSI = re.compile(r"(?:\x1b|\^\[)\[[0-9;]*m")
 HEADER = re.compile(r"^res://(tests/unit/\S+/test_\w+\.gd)\s*$")
 END = re.compile(r"^\d+/\d+ (?:passed|failed)")
 SUMMARY = "= Run Summary"
@@ -122,10 +127,13 @@ def main(argv: list[str]) -> int:
     if not seconds:
         sys.exit("test_durations: the log times no test script")
     text = render(seconds, run, day)
+    # LF whatever the platform: Windows would write CRLF, a whole-file diff of the
+    # committed file on every refresh.
     if out == "-":
+        sys.stdout.reconfigure(newline="\n")
         sys.stdout.write(text)
     else:
-        Path(out).write_text(text, encoding="utf-8")
+        Path(out).write_text(text, encoding="utf-8", newline="\n")
         print(f"test_durations: {len(seconds)} scripts to {out}", file=sys.stderr)
     return 0
 

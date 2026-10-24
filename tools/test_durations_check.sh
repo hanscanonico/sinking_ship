@@ -41,6 +41,17 @@ tools/test_durations.py --log - --run 38882193885 --out - <"$SAMPLE" >"$WORK/std
 	fail "reading the sample on stdin failed"
 cmp -s "$WORK/file.tsv" "$WORK/stdin.tsv" || fail "the sample on stdin read otherwise than from its file"
 
+# The sample with its colour escapes written out as `^[`, as gh prints a log by
+# October 2026, reads the same: read as text, the escape hid every passed line and
+# the summary banner, and each job's last script dropped out (run 40058239619 lost
+# test_must_sink.gd, its shard's only script).
+LC_ALL=C sed $'s/\x1b/^[/g' "$SAMPLE" >"$WORK/caret.log"
+grep -q '\^\[\[' "$WORK/caret.log" || fail "the written-out copy of the sample holds no ^[ escape"
+tools/test_durations.py --log "$WORK/caret.log" --run 38882193885 --out "$WORK/caret.tsv" 2>/dev/null ||
+	fail "reading the sample with written-out escapes failed"
+cmp -s "$WORK/file.tsv" "$WORK/caret.tsv" || fail "the sample with written-out escapes read as:
+$(grep -v '^#' "$WORK/caret.tsv")"
+
 # One job's log bare, with no job and step columns, reads the same for that job.
 grep '^test 5/8' "$SAMPLE" | cut -f3- >"$WORK/bare.log"
 got="$(tools/test_durations.py --log "$WORK/bare.log" --out - | grep -v '^#')"
