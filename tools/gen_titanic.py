@@ -1759,6 +1759,81 @@ for k, (x0, x1) in enumerate(SEAT_LOCKERS):
         box("seat_locker_%d_%s" % (k, tag), x0, x1, *sorted((face, face + sign * SEAT_LOCKER[0])), BOAT,
             BOAT + SEAT_LOCKER[1])
 
+# --- Her open decks' gear (SB-III, est.), after every other platform, blocker and room so
+# none of theirs moves, each drawn as its shape and where it stands say (DeckFurniture).
+# Her boats stowed on chocks under their davits, as she carried them (BOT), one at each
+# boat station along her boat deck's edges (DAVITS, her LIFEBOAT fittings below): a box
+# from the deck's edge in, as long as the boat over its stems and as tall as its gunwale
+# over its chocks. Bodies are held off a boat as off a house, and none jumps up onto one.
+DAVITS = [60.5, 50.2, 40.0, 29.7, -38.7, -48.5, -57.6, -67.1]  # SB-III, forward to aft
+STOWED_BOAT = (9.0, 3.15, 1.5)  # over its stems, in from the deck's edge, over the deck
+for k, x in enumerate(DAVITS):
+    for number, sign in [(2 * k + 1, 1), (2 * k + 2, -1)]:
+        box("stowed_boat_%d" % number, x - STOWED_BOAT[0] / 2, x + STOWED_BOAT[0] / 2,
+            *sorted((sign * BW, sign * (BW - STOWED_BOAT[1]))), BOAT, BOAT + STOWED_BOAT[2])
+# Her ventilators, each a trunk this round up to its cowl or its cap and this tall over its
+# deck (DeckFurniture.VENTS): big cowls abreast her funnels and on her forecastle, smaller
+# ones between her boat deck's houses and at its after end, on her well decks and her poop,
+# and mushroom tops on her boat deck's centre line, all with a lane a body wide round them.
+VENTS = {0.45: 3.4, 0.3: 2.5, 0.25: 0.8}
+DECK_VENTS = [(name, x, sign * z, r, deck) for name, x, z, r, deck in [
+    ("funnel_2", 13.9, 5.6, 0.45, BOAT), ("funnel_3", -22.4, 5.6, 0.45, BOAT),
+    ("funnel_4", -57.9, 5.6, 0.45, BOAT), ("forecastle", 93.0, 6.0, 0.45, FCSL[0]),
+    ("houses", 36.45, 3.0, 0.3, BOAT), ("lounge", -2.5, 3.5, 0.3, BOAT), ("boat_deck_aft", -66.0, 4.0, 0.3, BOAT),
+    ("forward_well", 88.0, 7.0, 0.3, 0.0), ("after_well", -97.0, 4.5, 0.3, 0.0), ("poop", -112.0, 5.0, 0.3, POOP),
+    ("lounge_mushroom", -15.0, 1.5, 0.25, BOAT)] for sign in (-1, 1)]
+DECK_VENTS += [("aft_staircase_mushroom", -51.5, 0.0, 0.25, BOAT), ("gymnasium_mushroom", 5.5, 0.0, 0.25, BOAT)]
+for name, x, z, r, deck in DECK_VENTS:
+    side = "" if z == 0.0 else ("_s" if z > 0.0 else "_p")
+    cylinder("vent_%s%s" % (name, side), x, z, r, deck, deck + VENTS[r])
+# Benches, teak seats with low backs, BENCH long, deep and tall, each backed onto what
+# stands behind it: along her boat deck's skylights, facing out; along A deck's house on
+# both its promenades between its doors, a bench every BENCH_PITCH; and against the à la
+# carte restaurant's after face on B deck's open end, either side of its doors.
+BENCH = (1.8, 0.55, 0.45)
+BENCH_PITCH = 9.0
+SKYLIGHT_BENCHES = [(-47.6, 2.5), (-43.7, 2.5), (-36.2, 2.0), (-30.6, 2.0), (-8.9, 2.0)]  # (x0, the skylight's half)
+for k, (x0, half) in enumerate(SKYLIGHT_BENCHES):
+    for tag, sign in [("p", -1), ("s", 1)]:
+        box("bench_boat_%d_%s" % (k, tag), x0, x0 + BENCH[0], *sorted((sign * half, sign * (half + BENCH[1]))), BOAT,
+            BOAT + BENCH[2])
+
+def door_near(axis, at, a, b, floor, clear):
+    """Whether a doorway of the wall along axis at lies within clear of a…b on floor."""
+    return any(d[0] == axis and abs(d[1] - at) < 1e-6 and abs(d[4] - floor) < 1e-6
+               and d[2] - clear < b and a < d[3] + clear for d in doorways)
+
+def house_face(x0, x1, sign):
+    """The face of A deck's house on side sign along x0…x1, a room's wall or a block's
+    side, from one blocker standing there over a bench's height; None for none."""
+    faces = [b[3] if sign > 0 else -b[2] for b in block_geo
+             if b[6] and b[4] <= A_DECK + 1e-6 and b[5] >= A_DECK + BENCH[2] and b[0] <= x0 and x1 <= b[1]
+             and 0.0 < (b[3] if sign > 0 else -b[2]) <= A_HOUSE[2] + T + 1e-6]
+    return max(faces) if faces else None
+
+STAIR_CLEAR = 0.8  # a bench's end from a stair's
+A_BENCHES = []
+for k in range(int((A_HOUSE[1] - A_RUN[0]) // BENCH_PITCH)):
+    x0 = A_RUN[0] + 1.0 + k * BENCH_PITCH
+    x1 = x0 + BENCH[0]
+    if x1 > A_HOUSE[1] - 1.0:
+        break
+    for tag, sign in [("p", -1), ("s", 1)]:
+        face = house_face(x0, x1, sign)
+        if face is None or door_near(2, sign * A_HOUSE[2], x0, x1, A_DECK, 1.0):
+            continue
+        z0, z1 = sorted((sign * face, sign * (face + BENCH[1])))
+        if any(r[0] - STAIR_CLEAR < x1 and x0 < r[1] + STAIR_CLEAR and r[2] < z1 and z0 < r[3] for r in ramp_geo
+               if max(r[5], r[6]) >= A_DECK - 0.01 and min(r[5], r[6]) <= A_DECK + 0.01):
+            continue
+        A_BENCHES.append(("bench_a_%d_%s" % (k, tag), x0, x1, z0, z1))
+for bid, x0, x1, z0, z1 in A_BENCHES:
+    box(bid, x0, x1, z0, z1, A_DECK, A_DECK + BENCH[2])
+B_OPEN_BENCHES = [(-8.8, -7.0), (-2.6, -0.8), (0.8, 2.6), (7.0, 8.8)]  # z, clear of its doors at z ±5
+for k, (z0, z1) in enumerate(B_OPEN_BENCHES):
+    assert not door_near(0, A_RUN[0], z0, z1, B_DECK, 1.0)
+    box("bench_b_%d" % k, A_RUN[0] - T - BENCH[1], A_RUN[0] - T, z0, z1, B_DECK, B_DECK + BENCH[2])
+
 # Sixteen seats across her decks (SH21 takes more): six on the boat deck and one on her
 # bridge, two on A deck's promenade, one on B deck's open end, one on each well deck,
 # the forecastle and the poop, one in the first-class dining saloon, facing forward to the
@@ -2677,8 +2752,8 @@ MOTION = [("roll_radius", round(0.4 * 2 * HALF, 2)), ("pitch_radius", round(0.25
 # Her twenty boats (BOT): fourteen lifeboats and two emergency cutters on davits, eight
 # a side in two groups where Plate III draws them (SB-III), odd numbers to starboard;
 # collapsibles C and D under the forward davits, A and B on the officers' house's roof.
-# Est.: each useless on the high side past 15° of list — old davits.
-DAVITS = [60.5, 50.2, 40.0, 29.7, -38.7, -48.5, -57.6, -67.1]  # SB-III, forward to aft
+# Est.: each useless on the high side past 15° of list — old davits. Her davits' stations
+# (DAVITS) are her boats' on chocks', with the boat deck's gear.
 LIFEBOATS = []
 for k, x in enumerate(DAVITS):
     LIFEBOATS += [("boat_%d" % (2 * k + 1), 1, x, 15.0), ("boat_%d" % (2 * k + 2), -1, x, 15.0)]
@@ -2849,14 +2924,19 @@ def lifebuoy(x, side, h):
     posts = max(1, math.ceil(math.hypot(b[0] - a[0], b[1] - a[1]) / POST))
     t = (math.floor((posts - 1) * 0.5) + 0.5) / posts
     at = (a[0] + (b[0] - a[0]) * t, h, a[1] + (b[1] - a[1]) * t)
+    # Never behind a boat stowed at the deck's edge (STOWED_BOAT), where no hand reaches it.
+    assert all(abs(at[0] - d) > STOWED_BOAT[0] / 2 + 0.5 for d in DAVITS) or abs(h - BOAT) > 1e-6, \
+        "a lifebuoy at %s hangs behind a boat" % (at,)
     f = [("kind", '&"lifebuoy"'), ("railing", str(k)), ("pos", "Vector3(%s, %s, %s)" % tuple(num(c) for c in at))]
     f += [(field, num(v)) for field, v in LIFEBUOY]
     props.append(sub("Lifebuoy_%d" % sum(1 for p in props if p.startswith("Lifebuoy_")), "8_prop", f))
 
-lifebuoy(-46.5, -1, 8.375)
+# On the boat deck's open stretches, clear of her boats: amidships either side, and to
+# starboard forward of her boats by the bridge.
+lifebuoy(-30.5, -1, 8.375)
 lifebuoy(-25.5, 1, 8.375)
 lifebuoy(6.0, -1, 8.375)
-lifebuoy(47.5, 1, 8.375)
+lifebuoy(69.0, 1, 8.375)
 
 head = """[gd_resource type="Resource" script_class="ShipLayout" format=3]
 
