@@ -4,9 +4,10 @@ extends GutTest
 ## it — the constants stay the prop's measure, whatever hangs off them. Every ship's
 ## model is one ShipMesh.model() can paint — every material a ShipPaints paint, every
 ## surface inked — and a folder with no row, or a row with no folder, fails. A world
-## model (the iceberg's) is no ship's: IcebergPlanner reads it and iceberg.gdshader
-## draws it, so it is held to what they read instead — its colour on every face, its
-## top, foot and width where the planner measures them, and its spur toward her.
+## model (a berg or a growler) is no ship's: IcebergPlanner reads it and
+## iceberg.gdshader draws it, so it is held to what they read instead — its colour on
+## every face, its top, foot and width where the planner measures them, and a berg's
+## spur toward her.
 
 const MODELS := "res://assets/models"
 ## How near a model's box stands to the constants, in metres.
@@ -130,6 +131,9 @@ func _rows() -> Dictionary:
 		"iceberg_tabular": [WORLD, _stands_to_the_iceberg_planner_s_measure],
 		"iceberg_drydock": [WORLD, _stands_to_the_iceberg_planner_s_measure],
 		"iceberg_wedge": [WORLD, _stands_to_the_iceberg_planner_s_measure],
+		"growler_a": [WORLD, _stands_to_the_growler_measure],
+		"growler_b": [WORLD, _stands_to_the_growler_measure],
+		"growler_c": [WORLD, _stands_to_the_growler_measure],
 	}
 
 
@@ -891,46 +895,59 @@ func test_every_world_model_is_one_the_iceberg_planner_can_draw() -> void:
 	for model: String in _rows():
 		if not _world(model) or not _committed(model):
 			continue
-		assert_has(IcebergPlanner.BERGS, model, "%s is one of the planner's bergs" % model)
-		var berg := IcebergPlanner.model_of(model)
-		var corners := berg.corners
-		assert_eq(berg.shades.size() * 3, corners.size(), "%s: a colour on every face" % model)
-		_is_shaded_smooth_but_out_of_every_face(model, berg)
-		var inboard := -INF
-		var blade := PackedVector3Array()
-		for corner in corners:
-			if corner.y >= 0.0:
-				inboard = maxf(inboard, corner.z)
-			if corner.z > berg.blade_z - IcebergPlanner.BLADE_NEAR and not blade.has(corner):
-				blade.append(corner)
-		assert_eq(blade.size(), 2, "%s: its spur's blade is two points" % model)
-		for point in blade:
-			assert_almost_eq(point.x, 0.0, TOLERANCE, "%s: its blade square ahead" % model)
-			assert_lt(point.y, 0.0, "%s: its blade under the sea" % model)
-			assert_gt(point.z, inboard, "%s: its blade out past the rest" % model)
-		var darkest_over := INF
-		var lightest_under := -INF
-		for face in corners.size() / 3:
-			var a := corners[face * 3]
-			var b := corners[face * 3 + 1]
-			var c := corners[face * 3 + 2]
-			var middle := (a + b + c) / 3.0
-			var over := a.y >= -TOLERANCE and b.y >= -TOLERANCE and c.y >= -TOLERANCE
-			var under := a.y <= TOLERANCE and b.y <= TOLERANCE and c.y <= TOLERANCE
-			assert_true(over or under, "%s: face %d wholly over or under the sea" % [model, face])
-			var light := berg.shades[face].get_luminance()
-			if middle.y >= 0.0:
-				darkest_over = minf(darkest_over, light)
-			else:
-				lightest_under = maxf(lightest_under, light)
-				for corner in [a, b, c]:
-					if corner.z <= berg.blade_z - IcebergPlanner.BLADE_NEAR:
-						assert_lte(
-							corner.z, inboard + TOLERANCE, "%s: under the sea clear of her" % model
-						)
-		assert_lt(
-			lightest_under, darkest_over, "%s: under-ice darker than any over the sea" % model
+		var growler := IcebergPlanner.GROWLERS.has(model)
+		assert_true(
+			IcebergPlanner.BERGS.has(model) or growler,
+			"%s is one of the planner's bergs or growlers" % model
 		)
+		var ice := IcebergPlanner.model_of(model)
+		assert_eq(ice.shades.size() * 3, ice.corners.size(), "%s: a colour on every face" % model)
+		_is_shaded_smooth_but_out_of_every_face(model, ice)
+		_lies_over_and_under_the_sea(model, ice)
+		if not growler:
+			_runs_its_spur_toward_her(model, ice)
+
+
+## Ice lies over the sea or under it, face by face, never across it, and the ice under
+## it is darker than any over it.
+func _lies_over_and_under_the_sea(model: String, ice: IcebergPlanner.Model) -> void:
+	var corners := ice.corners
+	var darkest_over := INF
+	var lightest_under := -INF
+	for face in corners.size() / 3:
+		var a := corners[face * 3]
+		var b := corners[face * 3 + 1]
+		var c := corners[face * 3 + 2]
+		var over := a.y >= -TOLERANCE and b.y >= -TOLERANCE and c.y >= -TOLERANCE
+		var under := a.y <= TOLERANCE and b.y <= TOLERANCE and c.y <= TOLERANCE
+		assert_true(over or under, "%s: face %d wholly over or under the sea" % [model, face])
+		var light := ice.shades[face].get_luminance()
+		if (a + b + c).y >= 0.0:
+			darkest_over = minf(darkest_over, light)
+		else:
+			lightest_under = maxf(lightest_under, light)
+	assert_lt(lightest_under, darkest_over, "%s: under-ice darker than any over the sea" % model)
+
+
+## A berg's spur stands toward her: its blade two points square ahead under the sea,
+## out past the rest, and nothing else under the sea nearer her than the most the ice
+## reaches over it.
+func _runs_its_spur_toward_her(model: String, berg: IcebergPlanner.Model) -> void:
+	var inboard := -INF
+	var blade := PackedVector3Array()
+	for corner in berg.corners:
+		if corner.y >= 0.0:
+			inboard = maxf(inboard, corner.z)
+		if corner.z > berg.blade_z - IcebergPlanner.BLADE_NEAR and not blade.has(corner):
+			blade.append(corner)
+	assert_eq(blade.size(), 2, "%s: its spur's blade is two points" % model)
+	for point in blade:
+		assert_almost_eq(point.x, 0.0, TOLERANCE, "%s: its blade square ahead" % model)
+		assert_lt(point.y, 0.0, "%s: its blade under the sea" % model)
+		assert_gt(point.z, inboard, "%s: its blade out past the rest" % model)
+	for corner in berg.corners:
+		if corner.y < 0.0 and corner.z <= berg.blade_z - IcebergPlanner.BLADE_NEAR:
+			assert_lte(corner.z, inboard + TOLERANCE, "%s: under the sea clear of her" % model)
 
 
 ## A berg is shaded as weathered ice is: smooth across most of its faces, so most of
@@ -967,3 +984,16 @@ func _stands_to_the_iceberg_planner_s_measure(box: AABB) -> void:
 	assert_almost_eq(box.get_center().x, 0.0, TOLERANCE, "berg: square across its middle")
 	var spread := box.size.x * 0.5 / height
 	assert_between(spread, IcebergPlanner.SPREAD.x, IcebergPlanner.SPREAD.y, "berg: its width")
+
+
+## A growler stands to IcebergPlanner's measure for one: its top GROWLER_RISE over the
+## sea, its foot GROWLER_DRAUGHT under it, square on its middle each way, and
+## GROWLER_SPAN across the longer way.
+func _stands_to_the_growler_measure(box: AABB) -> void:
+	assert_almost_eq(box.end.y, IcebergPlanner.GROWLER_RISE, TOLERANCE, "growler: its top")
+	var foot := -IcebergPlanner.GROWLER_DRAUGHT
+	assert_almost_eq(box.position.y, foot, TOLERANCE, "growler: its foot")
+	assert_almost_eq(box.get_center().x, 0.0, TOLERANCE, "growler: square across")
+	assert_almost_eq(box.get_center().z, 0.0, TOLERANCE, "growler: square along")
+	var span := maxf(box.size.x, box.size.z)
+	assert_almost_eq(span, IcebergPlanner.GROWLER_SPAN, TOLERANCE, "growler: its span")

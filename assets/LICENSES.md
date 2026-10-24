@@ -67,6 +67,7 @@ register covers every asset. `assets/models/README.md` says how they are authore
 | `dining_chair/dining_chair.blend` and `dining_chair.glb` — a dining saloon's chair tucked under its table: back posts, arched crest rail, vase splat, leather seat and front legs (57 triangles, under 0.1 MB each) | Original work, modelled for this project (2026-10-15) | The project's own |
 | `serving_hatch/serving_hatch.blend` and `serving_hatch.glb` — a dining saloon's serving hatch: two panelled shutters, brass pulls, architrave, moulded head and a shelf on brackets (120 triangles, under 0.1 MB each) | Original work, modelled for this project (2026-10-15) | The project's own |
 | `iceberg_tabular/`, `iceberg_drydock/` and `iceberg_wedge/` (each `.blend` and `.glb`) — the iceberg she strikes: a flat-topped tabular berg, a drydock berg with two towers, and a wedge (2,914, 2,930 and 2,912 triangles, under 0.2 MB each) | Original work, modelled for this project (2026-10-14, reworked 2026-10-24) | The project's own |
+| `growler_a/`, `growler_b/` and `growler_c/` (each `.blend` and `.glb`) — growlers, bits of ice the berg has shed floating round it: a low slab cut flat on top, a rounded lump, and a broken wedge (498, 462 and 446 triangles, under 0.1 MB each) | Original work, modelled for this project (2026-10-24) | The project's own |
 
 ### The sailor (`assets/characters/sailor/`)
 

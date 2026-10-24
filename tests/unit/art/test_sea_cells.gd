@@ -5,6 +5,18 @@ extends GutTest
 ## the sea's shader reads, in order along her so it can stop past a point.
 
 const TITANIC := "res://data/ships/titanic.tres"
+## How far inside a room's walls, floor and ceiling its points are read — clear of a
+## box's INSET from her side (InnerWater) — and how far apart.
+const INWARD := 0.3
+const STEP := 0.5
+const UNDER_E_DECK: Array[StringName] = [
+	&"F deck working corridor, boiler room 4",
+	&"F deck working corridor, boiler room 5",
+	&"Turkish bath",
+	&"swimming bath",
+	&"boiler room 4",
+	&"boiler room 5",
+]
 
 
 func test_every_drawn_cell_of_the_titanic_is_in_the_mask() -> void:
@@ -31,6 +43,37 @@ func test_every_drawn_cell_of_the_titanic_is_in_the_mask() -> void:
 		assert_true(found.has(_key(box)), "box at %s" % box.position)
 
 
+## The F deck rooms over boiler rooms 4 and 5, and the stokeholds under them, never look
+## up into her and see the sea: every point of them, from the floor to whatever roofs it,
+## inside one of her cells, is in a box the sea leaves out — they once stood open to the
+## void over them, the sea drawn in it as she sank by the head.
+func test_the_rooms_over_boiler_rooms_4_and_5_never_look_up_into_the_sea() -> void:
+	var layout: ShipLayout = load(TITANIC)
+	var masked := InnerWater.boxes(layout.structure, layout.rooms)
+	for stack: Array in InnerWater.stacked(layout.structure, layout.rooms):
+		masked.append(stack[1])
+	var space := ShipSpace.new(layout)
+	var open := []
+	var checked := 0
+	for room: ShipRoom in layout.rooms:
+		if not room.name in UNDER_E_DECK:
+			continue
+		checked += 1
+		var area := room.area.grow(-INWARD)
+		if not area.has_area():
+			continue
+		for x: float in _steps(area.position.x, area.end.x):
+			for z: float in _steps(area.position.y, area.end.y):
+				var top := space.ceiling(room, x, z) - INWARD
+				for y: float in _steps(room.floor_height + INWARD, top):
+					var point := Vector3(x, y, z)
+					if _in_a_cell(layout.structure, point) and not _in_any(masked, point):
+						open.append("%s at %s" % [room.name, point.snappedf(0.01)])
+						break
+	assert_eq(checked, UNDER_E_DECK.size(), "every one of the rooms is hers")
+	assert_eq(open, [], "points of her rooms the sea is drawn in")
+
+
 func test_a_ship_with_no_drawn_cell_masks_nothing() -> void:
 	var none: Array[AABB] = [AABB()]
 	assert_eq(SeaAndSky.cell_mask(none).get_width(), 1, "one empty texel, never a zero image")
@@ -39,3 +82,29 @@ func test_a_ship_with_no_drawn_cell_masks_nothing() -> void:
 
 func _key(box: AABB) -> String:
 	return "%s %s" % [box.position.snappedf(0.001), box.end.snappedf(0.001)]
+
+
+## From [param from] to [param to], STEP apart, and [param to] itself.
+func _steps(from: float, to: float) -> Array[float]:
+	var found: Array[float] = []
+	var at := from
+	while at < to:
+		found.append(at)
+		at += STEP
+	if to >= from:
+		found.append(to)
+	return found
+
+
+func _in_a_cell(structure: ShipStructure, point: Vector3) -> bool:
+	for cell: FloodCell in structure.cells:
+		if _in_any([AABB(cell.low, cell.high - cell.low)], point):
+			return true
+	return false
+
+
+func _in_any(boxes: Array, point: Vector3) -> bool:
+	for box: AABB in boxes:
+		if box.size != Vector3.ZERO and box.has_point(point):
+			return true
+	return false

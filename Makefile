@@ -1,3 +1,10 @@
+# Every recipe runs in bash. Some twenty start `set -o pipefail`, so an engine's
+# failure outlives the `| grep` that trims its output, and make's default /bin/sh
+# is dash on Ubuntu, which has no pipefail: CI's first art-lint run died on it
+# (#305). The native make on Windows takes Git's sh.exe, bash as well, either way.
+# guard-check holds make to it.
+SHELL := /bin/bash
+
 # The engine: $GODOT when set (CI points it at the Linux build it fetches),
 # else a vendored bin/Godot.app when the checkout has one, else `godot` on PATH.
 # tools/lib/require_godot.sh resolves it the same way for the gate scripts.
@@ -683,8 +690,9 @@ gdtoolkit-each = NPROC=$(NPROC) tools/gdtoolkit_each.sh $(1)
 check:
 	GODOT="$(GODOT)" tools/check_scripts.sh
 
-# The error guard itself, against a stand-in engine that errors and exits 0; the
-# window lock, against sleeps on a private lock file; the test engine slots,
+# Make's own recipe shell, which has to have pipefail; the error guard itself,
+# against a stand-in engine that errors and exits 0; the window lock, against
+# sleeps on a private lock file; the test engine slots,
 # against sleeps on private ones — both again on Perl's lock, the one Git Bash on
 # Windows takes (tools/lib/fd_lock.sh); make fps's SPLIT, read off make -n; make test's
 # list of scripts, against a stand-in engine; make durations and make goldens, against
@@ -695,6 +703,8 @@ check:
 # gh's snapshots; and art-lint-changed's selection, against a throwaway repo and a
 # stand-in make.
 guard-check:
+	@if (set -o pipefail) 2>/dev/null; then echo "make-shell-check: ok"; else \
+		echo "make-shell-check: make runs recipes in $(SHELL), which has no pipefail" >&2; exit 1; fi
 	tools/engine_guard_check.sh
 	tools/window_lock_check.sh
 	tools/test_slot_check.sh
