@@ -223,6 +223,19 @@ if (($# == 0)); then
 			failed=$((failed + 1))
 		fi
 	fi
+
+	# A PR's before/after images ride on its branch, never main: committed under
+	# docs/pr/<branch>/, linked by that commit's SHA, and removed in the next commit
+	# (.claude/agents/implementer.md). The PR's head ref keeps the commit, so the links
+	# outlive the merge. Kept on main, they had grown to 149 MB by October 2026 — most
+	# of the repository and of every worktree. Only what git tracks counts: a capture
+	# waiting in a worktree is no one else's business.
+	evidence="$(git ls-files -- docs/pr 2>/dev/null | grep -vx 'docs/pr/\.gdignore' || true)"
+	if [[ -n "$evidence" ]]; then
+		echo "check: docs/pr/ is not for main — link a PR's images by the commit that added them, then git rm them" >&2
+		printf '%s\n' "$evidence" | head -5 >&2
+		failed=$((failed + 1))
+	fi
 fi
 
 if ((failed > 0)); then
