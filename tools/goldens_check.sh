@@ -2,8 +2,10 @@
 #
 # `make guard-check`: tools/goldens.py reads the goldens a CI run printed as make
 # goldens does. Against tests/fixtures/ci/goldens_run.log, cut from run
-# 40064420995's: the battle royale's test printing its digests for linux-x86_64,
-# which had no golden yet, between Goldens.show's markers, then going pending.
+# 40198828570's: the battle royale's test printing its digests for linux-x86_64 between
+# Goldens.show's markers, then failing on the golden before them — the run the golden
+# committed now was recorded from (#329). A change that moves that golden cuts the sample
+# again from the run it records the golden from.
 
 set -uo pipefail
 cd "$(dirname "$0")/.." || exit 1
