@@ -3,6 +3,8 @@ extends GutTest
 ## events alone: a bonus aboard hums where it lies, faintly and only near it; taking one
 ## rings at the seat that took it, and a Double life spent sounds at the swimmer it kept in.
 
+const MATCH := preload("res://scenes/match/match.tscn")
+const MATCH_DATA := "res://data/match/default.tres"
 const GRAB := InputFrame.GRAB
 const HUM := AudioCue.Kind.HUM
 const TAKEN := AudioCue.Kind.BONUS_TAKEN
@@ -63,21 +65,29 @@ func test_a_bonus_aboard_hums_faintly_from_where_it_lies() -> void:
 		assert_eq(hums[0].position, SimFixtures.hold_spot(1), "the other hums on")
 
 
-## MatchAudio keeps a voice humming at each hum, where its bonus lies as the ship is drawn —
-## on the room's bus, at the hum's level and carry, looping — and lets it go as the bonus
-## goes, or as everything falls silent for a replay sought.
-func test_match_audio_keeps_a_voice_humming_where_each_bonus_lies() -> void:
-	var audio: MatchAudio = add_child_autofree(MatchAudio.new())
-	var hums: Array[AudioCue] = [AudioCue.new(HUM, 0), AudioCue.new(HUM, 0)]
-	hums[0].position = Vector3(1.0, -2.0, 3.0)
-	hums[1].position = Vector3(-4.0, -2.0, 0.5)
-	var drawn := Transform3D(Basis(Vector3.UP, 0.3), Vector3(0.0, 1.5, 2.0))
-	audio._keep_humming(hums, drawn)
-	var voices := audio.find_children("Hum*", "AudioStreamPlayer3D", false, false)
-	assert_eq(voices.size(), 2, "one per hum")
+## The match as heard keeps a voice humming where each bonus aboard its snapshot lies, as the
+## ship is drawn — on the room's bus, at the hum's level and carry, its file looping — one
+## voice to a bonus for as long as it lies there. The voice of a bonus gone goes with it,
+## and a replay sought silences every hum, to hum again as the snapshot has it.
+func test_the_match_hums_where_each_bonus_lies() -> void:
+	var scene: MatchScene = MATCH.instantiate()
+	add_child_autofree(scene)
+	var layout := SimFixtures.below_decks(2)
+	var config := SimFixtures.config(2, SimFixtures.calm_until(600.0), 1, layout)
+	config.bot_tier = (load(MATCH_DATA) as MatchRules).bot_tier
+	config.bonus_rules = SimFixtures.bonus_rules(600.0)
+	scene.start(config, true)
+	var audio: MatchAudio = scene.get_node("Audio")
+	var drawn := (scene.get_node("MatchView") as MatchView).ship_to_world()
+	var aboard: Array = scene._driver.current["bonuses"]
+	for spot in 2:
+		aboard.append(BonusState.new(-1, 0, spot).to_dict())
+	audio._process(0.0)
+	var voices := _humming(audio)
+	assert_eq(voices.size(), 2, "one per bonus aboard")
 	for index in mini(voices.size(), 2):
-		var voice := voices[index] as AudioStreamPlayer3D
-		var at := drawn * hums[index].position
+		var voice := voices[index]
+		var at := drawn * SimFixtures.hold_spot(index)
 		assert_almost_eq(voice.global_position, at, Vector3.ONE * 1e-5, "where it lies")
 		assert_eq(voice.bus, SoundBank.ROOM_BUS)
 		assert_eq(voice.volume_db, SoundBank.db(HUM))
@@ -85,13 +95,24 @@ func test_match_audio_keeps_a_voice_humming_where_each_bonus_lies() -> void:
 		assert_eq(voice.max_distance, SoundBank.far(HUM), "heard only near it")
 		var file := (voice.stream as AudioStreamRandomizer).get_stream(0) as AudioStreamWAV
 		assert_eq(file.loop_mode, AudioStreamWAV.LOOP_FORWARD, "kept up: it loops")
-	audio._keep_humming(hums.slice(0, 1), drawn)
-	await wait_process_frames(1)
-	var left := audio.find_children("Hum*", "AudioStreamPlayer3D", false, false)
-	assert_eq(left.size(), 1, "the bonus gone goes quiet")
-	audio._silence()
-	await wait_process_frames(1)
-	assert_eq(audio.find_children("Hum*", "", false, false), [], "and every hum with the rest")
+	aboard.remove_at(0)
+	audio._process(0.0)
+	assert_eq(_humming(audio), voices.slice(1), "the first gone goes quiet; the other hums on")
+	audio.rewind()
+	assert_eq(_humming(audio), [], "a replay sought: every hum silenced")
+	audio._process(0.0)
+	var again := _humming(audio)
+	assert_eq(again.size(), 1, "and humming again as the snapshot has it")
+	assert_false(again.has(voices[1]), "a voice begun anew")
+
+
+## The voices [param audio] keeps humming, in the order they began: none on its way out.
+func _humming(audio: MatchAudio) -> Array[AudioStreamPlayer3D]:
+	var voices: Array[AudioStreamPlayer3D] = []
+	for voice: Node in audio.find_children("Hum*", "AudioStreamPlayer3D", false, false):
+		if not voice.is_queued_for_deletion():
+			voices.append(voice)
+	return voices
 
 
 ## A bonus the sea takes (#311) hums no more; nor is there any hum without bonuses.

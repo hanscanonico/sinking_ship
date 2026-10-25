@@ -134,8 +134,8 @@ const CARRY := {
 	AudioCue.Kind.GRAB: {"db": -6.0, "near": 2.5, "far": 20.0, "pitch": 1.5},
 	AudioCue.Kind.BONUS_TAKEN: {"db": -8.0, "near": 3.0, "far": 30.0, "pitch": 1.8},
 	AudioCue.Kind.DOUBLE_LIFE_SPENT: {"db": -5.0, "near": 4.0, "far": 40.0},
-	## Faint, and out of earshot past its room: found once you are there, never through a
-	## wall from afar (§13).
+	## Faint, and heard only near it: silent 5 m off, so found once you are close (§13). A
+	## wall does not muffle it, so someone right beside it in the next room hears it too.
 	AudioCue.Kind.HUM: {"db": -14.0, "near": 1.0, "far": 5.0},
 }
 

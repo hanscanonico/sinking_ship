@@ -45,8 +45,9 @@ var _planner: CuePlanner
 var _bank := SoundBank.new()
 var _placed: Array[AudioStreamPlayer3D] = []
 var _head: Array[AudioStreamPlayer] = []
-## One voice per bonus aboard, humming where it lies (_keep_humming).
-var _hums: Array[AudioStreamPlayer3D] = []
+## One voice per bonus aboard, humming where it lies (_keep_humming), by where its hum
+## comes from in ship space: no two bonuses lie at one spot.
+var _hums: Dictionary[Vector3, AudioStreamPlayer3D] = {}
 var _next_placed := 0
 var _next_head := 0
 var _listener: AudioListener3D
@@ -283,28 +284,33 @@ static func _idle(voices: Array, from: int) -> int:
 	return from
 
 
-## Keeps a voice humming at each of [param hums] (CuePlanner.hums) — on the room's bus, at
-## the hum's level and carry, its file looping — where its bonus lies as [param to_world]
-## draws the ship now; a voice past the last of them goes, as its bonus went.
+## Keeps a voice humming at each of [param hums] (CuePlanner.hums) where its bonus lies as
+## [param to_world] draws the ship now — on the room's bus, its file looping, carried as
+## its kind and gain say (SoundBank), as _play carries a cue — the same voice for as long
+## as that bonus lies there; the voice of a bonus no longer humming goes with it.
 func _keep_humming(hums: Array[AudioCue], to_world: Transform3D) -> void:
-	while _hums.size() > hums.size():
-		var gone: AudioStreamPlayer3D = _hums.pop_back()
+	var kept: Dictionary[Vector3, AudioStreamPlayer3D] = {}
+	for hum: AudioCue in hums:
+		var voice: AudioStreamPlayer3D = _hums.get(hum.position)
+		if voice == null:
+			voice = AudioStreamPlayer3D.new()
+			voice.name = "Hum"
+			voice.stream = _bank.stream(hum.kind)
+			voice.bus = SoundBank.ROOM_BUS
+			add_child(voice, true)
+		_hums.erase(hum.position)
+		kept[hum.position] = voice
+		voice.volume_db = SoundBank.db(hum.kind) + linear_to_db(hum.gain)
+		voice.unit_size = SoundBank.near(hum.kind)
+		voice.max_distance = SoundBank.far(hum.kind)
+		voice.pitch_scale = SoundBank.pitch(hum.kind)
+		voice.global_position = to_world * hum.position
+		if SoundBank.audible() and not voice.playing:
+			voice.play()
+	for gone: AudioStreamPlayer3D in _hums.values():
 		gone.stop()
 		gone.queue_free()
-	for index in hums.size():
-		if index == _hums.size():
-			var voice := AudioStreamPlayer3D.new()
-			voice.name = "Hum%d" % index
-			voice.stream = _bank.stream(AudioCue.Kind.HUM)
-			voice.bus = SoundBank.ROOM_BUS
-			voice.volume_db = SoundBank.db(AudioCue.Kind.HUM)
-			voice.unit_size = SoundBank.near(AudioCue.Kind.HUM)
-			voice.max_distance = SoundBank.far(AudioCue.Kind.HUM)
-			add_child(voice)
-			_hums.append(voice)
-		_hums[index].global_position = to_world * hums[index].position
-		if SoundBank.audible() and not _hums[index].playing:
-			_hums[index].play()
+	_hums = kept
 
 
 ## Stops every cue still sounding, and every hum.
