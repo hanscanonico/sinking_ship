@@ -10,6 +10,23 @@ func test_a_layout_with_no_bonus_spots_loads_as_before() -> void:
 	assert_eq(deck.problems(1), PackedStringArray())
 
 
+## Every ship of the fleet has her bonus spots, written by her generator (#312): one in
+## each room below her main deck, as the layout lint holds, so many of them ship by ship —
+## so a bonus comes aboard whichever ship is picked.
+func test_every_ship_of_the_fleet_has_her_bonus_spots() -> void:
+	var spots := {
+		&"barque": 5,
+		&"ferry": 2,
+		&"freighter": 1,
+		&"steamer": 25,
+		&"titanic": 88,
+		&"trawler": 8,
+		&"tug": 2,
+	}
+	for ship_name: StringName in spots:
+		assert_eq(Fleet.layout(ship_name).bonus_spots.size(), spots[ship_name], String(ship_name))
+
+
 ## A spot names its room by its index among hers, as a railing names its platform: one
 ## that is not hers, or none at all, is a problem, and so is a spot that is missing.
 func test_a_bonus_spot_names_one_of_her_rooms() -> void:
