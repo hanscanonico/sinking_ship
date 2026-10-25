@@ -1,10 +1,11 @@
 class_name PropKind
 extends Resource
 ## What a kind of prop is (#273), the same for every prop of the kind: whether a Grab
-## press may take it and what holding it costs, whether it is solid, how it meets bodies
-## and the water while it lies loose, and what it does in the sea. What is about one
-## prop's form — where it starts, its size, mass and grip — is its layout entry's
-## (ShipProp). One file per kind, data/props/NAME.tres, as the bot tiers are one per tier.
+## press may take it and what holding it costs — its holder's rules read it (SeatRules) —
+## whether it is solid, how it meets bodies and the water while it lies loose, and what it
+## does in the sea. What is about one prop's form — where it starts, its size, mass and
+## grip — is its layout entry's (ShipProp). One file per kind, data/props/NAME.tres, as the
+## bot tiers are one per tier.
 
 const DIRECTORY := "res://data/props"
 
@@ -63,22 +64,6 @@ static func named(kind_name: StringName) -> PropKind:
 		var path := "%s/%s.tres" % [DIRECTORY, kind_name]
 		_loaded[kind_name] = load(path) as PropKind if ResourceLoader.exists(path) else null
 	return _loaded[kind_name]
-
-
-## Whether a body holding [param held] — a kind, or null for empty hands — may brace.
-static func lets_brace(held: PropKind) -> bool:
-	return held == null or held.carry_brace
-
-
-## Whether a body holding [param held] — a kind, or null — may charge a shove.
-static func lets_charge(held: PropKind) -> bool:
-	return held == null or held.carry_charge
-
-
-## The share of the open water's rate the cold meter of a swimmer holding [param held] — a
-## kind, or null — drains at: its sea_cold_rate for one that keeps it afloat, else 1.
-static func sea_rate(held: PropKind) -> float:
-	return held.sea_cold_rate if held != null and held.afloat else 1.0
 
 
 ## How deep the water over the underside of one of this kind lifts it: its draft, or

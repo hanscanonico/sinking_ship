@@ -16,9 +16,9 @@ extends RefCounted
 ## A tick moves its bodies on whichever of her faces are floors then (SH32, §5b.3): the
 ## match stands in the frame of the axis Faces finds up — every body's points turned
 ## into it for the tick, its heights along that up, its plane that of the floors — and
-## a body is upright to the world on any face. A floor tilted past stand_limit_deg is in
-## the band where nobody walks: a body that braces holds where it is, up to
-## brace_holds_to; anyone else slides down it into the corner and rests there, free to
+## a body is upright to the world on any face. A floor tilted past a body's stand limit
+## (SeatRules) is in the band where it does not walk: braced, it holds where it is, up
+## to brace_holds_to; else it slides down it into the corner and rests there, free to
 ## move along the corner, never away from it.
 ##
 ## Once she has broken (SH33) a Movement moves the bodies on one piece of her (Pieces):
@@ -176,21 +176,21 @@ func _reseat(player: PlayerState, tick: int, events: Array[SimEvent]) -> void:
 		player.fall_from = player.pos.y
 
 
-## Walking, friction and gravity, as velocity. Gravity is the world's, turned
-## into ship space by the pose; a grounded body feels its downhill part only once
-## it has lost its grip — staggered, or idle on a deck steeper than the grip angle.
-## On a floor tilted past stand_limit_deg nobody walks: a brace holds where it is up to
-## brace_holds_to, anyone else slides into the corner and walks only along it (_slid).
-## Wading slows a walk, the more the deeper (_wade_speed), crawling to crawl_speed, and
-## what a body holds to [param carry]'s cap for its seat (#273); swimming is _swim's. A
-## body frozen in a hit-stop feels none of it, and its stagger waits.
-func forces(live: Array[PlayerState], pose_now: ShipPose, carry: PackedFloat64Array) -> void:
+## Walking, friction and gravity, as velocity, each body by its own rules: its seat's of
+## [param rules_by_seat], indexed by seat (SeatRules). Gravity is the world's, turned
+## into ship space by the pose; a grounded body feels its downhill part only once it has
+## lost its grip — staggered, or idle on a deck steeper than its grip angle. On a floor
+## tilted past its stand limit it does not walk: a brace holds where it is up to
+## brace_holds_to, the same for everyone, and a body that does not brace slides into the
+## corner and walks only along it (_slid). Wading slows a walk, the more the deeper
+## (_wade_speed), crawling to crawl_speed, and what a body holds to its walk cap (#273);
+## swimming is _swim's. A body frozen in a hit-stop feels none of it, and its stagger
+## waits.
+func forces(live: Array[PlayerState], pose_now: ShipPose, rules_by_seat: Array[SeatRules]) -> void:
 	var dt := Ticks.SECONDS_PER_TICK
 	var gravity := pose_now.ship_gravity(_rules.gravity)
 	var downhill := Vector2(gravity.x, gravity.z) * dt
 	var slope := pose_now.slope_deg()
-	var steep := slope > _rules.grip_angle_deg
-	var banded := slope > _rules.stand_limit_deg
 	var holds := slope <= _rules.brace_holds_to
 	for player: PlayerState in live:
 		if player.is_frozen():
@@ -202,6 +202,7 @@ func forces(live: Array[PlayerState], pose_now: ShipPose, carry: PackedFloat64Ar
 		if player.body == PlayerState.Body.SWIMMING:
 			_swim(player, pose_now)
 			continue
+		var mine := rules_by_seat[player.seat]
 		var planar := Vector2(player.vel.x, player.vel.z)
 		var wish := Vector2(player.last_move) / InputFrame.AXIS_MAX * _rules.walk_speed
 		if player.action == PlayerState.Action.CHARGE:
@@ -212,15 +213,15 @@ func forces(live: Array[PlayerState], pose_now: ShipPose, carry: PackedFloat64Ar
 			wish = wish.limit_length(_wade_speed(player, pose_now))
 		if height_of(player) < _rules.body_height:
 			wish = wish.limit_length(_rules.crawl_speed)
-		wish = wish.limit_length(carry[player.seat])
+		wish = wish.limit_length(mine.walk_cap)
 		# A brace is rooted: the deck past the grip angle does not pull it.
-		var pulled := steep and not (player.bracing and holds)
+		var pulled := slope > mine.grip_angle_deg and not (player.bracing and holds)
 		if player.is_staggered():
 			planar = (planar + downhill).move_toward(Vector2.ZERO, _rules.stagger_friction * dt)
 			player.stagger_ticks -= 1
 		elif wish == Vector2.ZERO and pulled:
 			planar = (planar + downhill).move_toward(Vector2.ZERO, _rules.slide_friction * dt)
-		elif banded and pulled:
+		elif slope > mine.stand_limit_deg and pulled:
 			planar = _slid(planar, wish, downhill)
 		else:
 			if pulled:
@@ -769,18 +770,19 @@ func come_to_rest(player: PlayerState, feet_before: float, pose_now: ShipPose) -
 	player.vel.y = rise
 
 
-## A swimmer pressing toward a way out that Surfaces finds (climb_out) starts up it:
-## climb_time, or longer up a ladder at ladder_speed.
-func start_climb(player: PlayerState, pose_now: ShipPose) -> void:
+## A swimmer pressing toward a way out that Surfaces finds (climb_out) within its climb
+## reach starts up it: climb_time, or longer up a ladder at its ladder speed — both its
+## rules', [param mine] (SeatRules).
+func start_climb(player: PlayerState, pose_now: ShipPose, mine: SeatRules) -> void:
 	if player.is_staggered() or player.last_move == Vector2i.ZERO:
 		return
 	var climb := _surfaces.climb_out(
-		player.pos, Vector2(player.last_move).normalized(), pose_now, _rules
+		player.pos, Vector2(player.last_move).normalized(), pose_now, _rules, mine.climb_reach
 	)
 	if climb == null:
 		return
 	var rise := climb.stand.y - pose_now.water_height(climb.stand)
-	player.climb_left = maxi(_climb_ticks, Ticks.from_seconds(rise / _rules.ladder_speed))
+	player.climb_left = maxi(_climb_ticks, Ticks.from_seconds(rise / mine.ladder_speed))
 	player.climb_to = climb.stand
 	player.vel = Vector3.ZERO
 	player.jumped = false

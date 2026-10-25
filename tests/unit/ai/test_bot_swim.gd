@@ -19,7 +19,8 @@ func test_a_swimmer_in_a_flooded_corridor_swims_out_up_the_stair() -> void:
 	var swimmer := sim.state.seats[0]
 	var reach := swimmer.cold * rules.swim_speed
 	assert_null(
-		sim.surfaces.nearest_climb(swimmer.pos, sim.pose(), rules, reach), "no way out in sight"
+		sim.surfaces.nearest_climb(swimmer.pos, sim.pose(), rules, reach, rules.climb_reach),
+		"no way out in sight"
 	)
 	var bot := BotInputSource.new(0, BotProfile.for_tier(&"normal"), sim.config)
 	var runner := MatchRunner.new(sim, [bot, InputSource.new()] as Array[InputSource])

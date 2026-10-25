@@ -41,9 +41,15 @@ var _credit_window_ticks: int
 ## (GrabReach.holdable_of).
 var _kinds: Array[PropKind] = []
 var _holdable := PackedInt32Array()
-## Per seat, the prop it holds, or -1: asked of the props as the tick starts and kept
-## with them through it (PropState.holder is the truth).
+## Per seat, the prop it holds, or -1, and the rules as they stand for it with that in its
+## hands (SeatRules): asked of the props as the tick starts and kept with them through it
+## (PropState.holder is the truth), the two changed together (_hold).
 var _hands := PackedInt32Array()
+var _rules_by_seat: Array[SeatRules] = []
+## The rules for a seat with empty hands, and for one holding a prop of each kind, made
+## the first time a seat holds one.
+var _bare_rules: SeatRules
+var _held_rules: Dictionary[PropKind, SeatRules] = {}
 ## The seats of the piece the tick stands on that pressed Grab, in seat order.
 var _grabbing: Array[PlayerState] = []
 
@@ -81,6 +87,7 @@ func _init(match_config: MatchConfig) -> void:
 	for prop: ShipProp in config.ship.props:
 		_kinds.append(prop.prop_kind())
 	_holdable = GrabReach.holdable_of(config.ship)
+	_bare_rules = SeatRules.of(_rules, null)
 
 
 ## A new match: seats shuffled onto the layout's spawns by the match stream, each
@@ -186,7 +193,7 @@ func step(frames: Array[InputFrame]) -> Array[SimEvent]:
 			_intent(here, framed)
 			_grabs(tick, events)
 			_brace_and_stamina(here)
-			_movement.forces(here, framed, _carry_caps())
+			_movement.forces(here, framed, _rules_by_seat)
 			var feet_before := _movement.move(state, here, framed, tick, events)
 			_movement.ground(here, tick, events, feet_before)
 			_thaw(here)
@@ -392,10 +399,10 @@ func _intent(live: Array[PlayerState], pose_now: ShipPose) -> void:
 
 ## A jump is a press, never a hold, from the ground gravity holds it to: idle, its brace
 ## let go, standing — a crawler never jumps — and with jump_cost of stamina to spend. It
-## goes up along the world's up (D8) until its feet are jump_height above where it left
-## along the frame's — whatever the face's tilt, never over a railing — and gravity, the
-## world's turned by the pose, brings it down where it rose, on its way across the face
-## as it was walking.
+## goes up along the world's up (D8) until its feet are its jump height (SeatRules) above
+## where it left along the frame's — whatever the face's tilt, never over a railing — and
+## gravity, the world's turned by the pose, brings it down where it rose, on its way
+## across the face as it was walking.
 func _jump(player: PlayerState, pose_now: ShipPose) -> void:
 	if (
 		player.body != PlayerState.Body.GROUNDED
@@ -409,12 +416,13 @@ func _jump(player: PlayerState, pose_now: ShipPose) -> void:
 		return
 	_spend(player, _rules.jump_cost)
 	# The take-off speed up the frame whose apex, stepped tick by tick as Movement's forces
-	# and move step it, is jump_height: v² − g·dt·v − 2·g·h = 0; along the world's up,
+	# and move step it, is the jump height: v² − g·dt·v − 2·g·h = 0; along the world's up,
 	# gravity's own way back, it carries the share across the face that goes with it.
 	var gravity := pose_now.ship_gravity(_rules.gravity)
 	var fall := -gravity.y
 	var drop := fall * Ticks.SECONDS_PER_TICK
-	var rise := (drop + sqrt(drop * drop + 8.0 * fall * _rules.jump_height)) * 0.5
+	var height := _seat_rules(player).jump_height
+	var rise := (drop + sqrt(drop * drop + 8.0 * fall * height)) * 0.5
 	player.vel += Vector3(gravity.x * rise / gravity.y, 0.0, gravity.z * rise / gravity.y)
 	player.vel.y = rise
 	player.body = PlayerState.Body.AIRBORNE
@@ -423,13 +431,28 @@ func _jump(player: PlayerState, pose_now: ShipPose) -> void:
 	player.jumped = true
 
 
-## Who holds what, from the props: each seat's prop, or -1.
+## Who holds what, from the props: each seat's prop, or -1, and its rules with it.
 func _count_hands() -> void:
 	_hands.resize(state.seats.size())
 	_hands.fill(-1)
+	_rules_by_seat.resize(state.seats.size())
+	_rules_by_seat.fill(_bare_rules)
 	for prop: PropState in state.props:
 		if prop.holder != -1:
-			_hands[prop.holder] = prop.prop
+			_hold(prop.holder, prop.prop)
+
+
+## [param seat]'s hands hold [param prop] from now — -1 for none — and its rules are as
+## they stand for a seat holding that (SeatRules).
+func _hold(seat: int, prop: int) -> void:
+	_hands[seat] = prop
+	if prop == -1:
+		_rules_by_seat[seat] = _bare_rules
+		return
+	var kind := _kinds[prop]
+	if not _held_rules.has(kind):
+		_held_rules[kind] = SeatRules.of(_rules, kind)
+	_rules_by_seat[seat] = _held_rules[kind]
 
 
 ## The kind of prop [param player] holds, or null for empty hands.
@@ -438,15 +461,11 @@ func _held_kind(player: PlayerState) -> PropKind:
 	return _kinds[held] if held != -1 else null
 
 
-## Per seat, the fastest what it holds lets it walk (PropKind.carry_walk); INF for none.
-func _carry_caps() -> PackedFloat64Array:
-	var caps := PackedFloat64Array()
-	caps.resize(_hands.size())
-	caps.fill(INF)
-	for seat in _hands.size():
-		if _hands[seat] != -1:
-			caps[seat] = _kinds[_hands[seat]].carry_walk
-	return caps
+## The rules as they stand for [param player] now (SeatRules), by what its hands hold:
+## the tick reads every rule that may differ from seat to seat here, never off the brawl
+## rules.
+func _seat_rules(player: PlayerState) -> SeatRules:
+	return _rules_by_seat[player.seat]
 
 
 ## Every held prop where its holder's feet are now, as the snapshot draws it.
@@ -490,7 +509,7 @@ func _grabs(tick: int, events: Array[SimEvent]) -> void:
 		taken.holder = seat
 		taken.vel = Vector3.ZERO
 		taken.surface = Surfaces.NONE
-		_hands[seat] = prop
+		_hold(seat, prop)
 		events.append(SimEvent.prop_grabbed(tick, seat, prop))
 
 
@@ -499,7 +518,7 @@ func _grabs(tick: int, events: Array[SimEvent]) -> void:
 ## (Hazards).
 func _let_go(player: PlayerState, tick: int, events: Array[SimEvent]) -> void:
 	var held := state.props[_hands[player.seat]]
-	_hands[player.seat] = -1
+	_hold(player.seat, -1)
 	held.holder = -1
 	held.vel = Vector3.ZERO
 	held.surface = Surfaces.NONE
@@ -537,7 +556,7 @@ func _advance_action(player: PlayerState, live: Array[PlayerState]) -> void:
 				if (
 					player.exhausted
 					or player.stamina < _rules.charge_cost
-					or not PropKind.lets_charge(_held_kind(player))
+					or not _seat_rules(player).may_charge
 				):
 					_fire(player, live)
 				else:
@@ -592,7 +611,7 @@ func _brace_and_stamina(live: Array[PlayerState]) -> void:
 			continue
 		player.bracing = (
 			player.last_buttons & InputFrame.BRACE != 0
-			and PropKind.lets_brace(_held_kind(player))
+			and _seat_rules(player).may_brace
 			and player.action == PlayerState.Action.IDLE
 			and player.body == PlayerState.Body.GROUNDED
 			and not player.is_staggered()
@@ -634,8 +653,9 @@ func _thaw(live: Array[PlayerState]) -> void:
 
 ## Every active shove against the bodies and the crates as they stand now; all of
 ## this tick's hits apply together, so simultaneous shoves both land. A landed shove
-## freezes its shover and its target for a hit-stop, and the knockback and the
-## recoil wait for it to end; a crate takes its share of the knockback at once
+## freezes its shover and its target for a hit-stop, and the knockback — the share of it
+## its target's rules take (SeatRules.knockback_share), before a brace takes its own
+## off — and the recoil wait for it to end; a crate takes its share of the knockback at once
 ## (Hazards.shove), and its shover rocks and stops as for a body. A charged shove landing
 ## on a body holding a prop its kind lets a charge knock loose knocks it out of its hands
 ## at its feet (#273).
@@ -689,6 +709,7 @@ func _shoves(live: Array[PlayerState], tick: int, events: Array[SimEvent]) -> vo
 		var stop := _hitstop(shover)
 		if target.is_staggered():
 			speed *= _rules.restagger_mult
+		speed *= _seat_rules(target).knockback_share
 		if _braced_against(target, shover, hit.direction):
 			speed *= 1.0 - _rules.brace_reduction
 			stop = _hitstop_braced_ticks
@@ -822,12 +843,12 @@ func _water(
 		):
 			_movement.stand(player, ground, tick, events)
 			continue
-		_movement.start_climb(player, pose_now)
+		_movement.start_climb(player, pose_now, _seat_rules(player))
 		if player.is_climbing():
 			continue
 		var head := player.pos + Vector3.UP * _rules.head_height(_movement.height_of(player))
 		var rate := _rules.pocket_cold_rate if pose_now.in_pocket(head) else 1.0
-		rate = minf(rate, PropKind.sea_rate(_held_kind(player)))
+		rate = minf(rate, _seat_rules(player).sea_cold_rate)
 		player.cold = maxf(player.cold - dt * rate, 0.0)
 		if player.cold == 0.0:
 			_out(player, tick, events)
@@ -862,7 +883,7 @@ func _out(
 ) -> void:
 	if _hands[player.seat] != -1:
 		_lose_prop(state.props[_hands[player.seat]], tick, events)
-		_hands[player.seat] = -1
+		_hold(player.seat, -1)
 	player.body = PlayerState.Body.OUT
 	player.out_tick = tick
 	player.out_cause = cause

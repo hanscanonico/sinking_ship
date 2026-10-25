@@ -42,6 +42,12 @@ Wherever a floor has headroom to crawl but not to stand: less than the rules'
 room holding one is marked a crawl space for the lint and the bots' routes.
 _Avoid_: crouch, crawlway, duct
 
+**Seat rules**:
+The rules as they stand for one seat: the brawl rules, but for the few that what the seat
+has may change — what holding the prop in its hands costs it, and its bonus. Worked out
+from what the seat has, never kept in the snapshot.
+_Avoid_: stats, modifiers, buffs
+
 ### What she carries
 
 **Prop**:

@@ -6,8 +6,10 @@ extends RefCounted
 ## walk to within buoy_range_m, hung on its span, lying loose or afloat at hand — and the
 ## Grab press that takes it once a press would (GrabReach), never a second before its
 ## view shows the first; whether, of a profile that steals, it would charge a seat for the
-## ring in its hands, once it would go for one itself; and how fast its cold drains in the
-## sea with what it holds. Nothing here rolls the bot's stream.
+## ring in its hands, once it would go for one itself; and the rules as they stand for it
+## with what it holds (SeatRules) — whether it may brace, how fast its cold drains in the
+## sea, how high it climbs out of it, the slope it holds on. Nothing here rolls the bot's
+## stream.
 
 var _seat: int
 var _profile: BotProfile
@@ -33,21 +35,10 @@ func _init(seat: int, profile: BotProfile, rules: BrawlRules, layout: ShipLayout
 	_holdable = GrabReach.holdable_of(layout)
 
 
-## The kind of what the bot holds in [param seen], or null for empty hands.
-func held_kind(seen: Dictionary) -> PropKind:
-	var prop := PropState.held_in(seen, _seat, _holdable)
-	return _layout.props[prop].prop_kind() if prop != -1 else null
-
-
-## Whether what it holds in [param seen] lets it brace.
-func may_brace(seen: Dictionary) -> bool:
-	return PropKind.lets_brace(held_kind(seen))
-
-
-## The share of the open water's rate its cold drains at in the sea in [param seen]: less
-## with a prop in its hands that keeps it afloat.
-func drain(seen: Dictionary) -> float:
-	return PropKind.sea_rate(held_kind(seen))
+## The rules as they stand for it in [param seen] (SeatRules), by what it holds there: as
+## the sim has them for its seat as of its view.
+func rules(seen: Dictionary) -> SeatRules:
+	return SeatRules.in_snapshot(seen, _seat, _layout, _rules, _holdable)
 
 
 ## Whether, its profile stealing and wanting a ring as its last think found it, it would

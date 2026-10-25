@@ -2,9 +2,9 @@ class_name BotFooting
 extends RefCounted
 ## What a walk from where a bot stands would meet, for one bot's edge margin: the
 ## water, an open edge, the trench between two decks, a wall or a stair's solid side;
-## and what the deck round a seat would do with a shove.
-## Every answer is asked of Surfaces (D6, D13) under the pose handed in; nothing here
-## remembers a tick.
+## what the deck round a seat would do with a shove; and whether the deck pulls the bot,
+## by its seat's own rules. Every answer is asked of Surfaces (D6, D13) under the pose
+## handed in; nothing here remembers a tick.
 
 ## Directions probed round the bot.
 const PROBES := 8
@@ -18,6 +18,9 @@ var margin: float
 ## Whether the water is a danger, as it is but to a bot wading out (BotRefuge.wade_out):
 ## then only open edges are.
 var heed_water := true
+## The rules as they stand for the bot's seat, by what its view shows it holding
+## (SeatRules): set as it decides, as heed_water is; the shared ones until then.
+var seat_rules: SeatRules
 
 var _surfaces: Surfaces
 var _walk_graph: WalkGraph
@@ -36,6 +39,13 @@ func _init(
 	_rules = rules
 	margin = edge_margin
 	_look_ahead = edge_margin
+	seat_rules = SeatRules.of(rules, null)
+
+
+## Whether the deck under [param pose] is tilted past the bot's grip angle (seat_rules):
+## idle there it is pulled downhill, and wherever it walks it slides.
+func slides(pose: ShipPose) -> bool:
+	return pose.slope_deg() > seat_rules.grip_angle_deg
 
 
 ## The probe direction [param index], of PROBES.

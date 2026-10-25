@@ -262,7 +262,10 @@ func test_the_grab_prompt_names_what_a_press_would_do() -> void:
 func test_the_warmth_reads_how_much_longer_a_ring_makes_it_last() -> void:
 	var layout := SimFixtures.crated([SimFixtures.lifebuoy(Vector3(1.0, 0.0, 0.0))])
 	var sim := SimFixtures.sim(1, null, layout)
-	assert_eq(FirstPersonHud.warmth_words(sim.snapshot(), 0, layout), "")
+	assert_eq(FirstPersonHud.warmth_words(sim.snapshot(), 0, layout, sim.config.rules), "")
 	SimFixtures.hand(sim, 0, 0)
 	var lasts := roundi(1.0 / PropKind.named(&"lifebuoy").sea_cold_rate)
-	assert_eq(FirstPersonHud.warmth_words(sim.snapshot(), 0, layout), "lifebuoy ×%d" % lasts)
+	assert_eq(
+		FirstPersonHud.warmth_words(sim.snapshot(), 0, layout, sim.config.rules),
+		"lifebuoy ×%d" % lasts
+	)
