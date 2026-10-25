@@ -1,16 +1,16 @@
 class_name ShipMesh
 extends RefCounted
 ## The dressed ship's faces in ship space, gathered by paint, and indoors by chunk
-## too. An axis-aligned face is cut at every room's edge and each piece is classed
-## indoors or out on its own. Outdoor pieces share one mesh per paint on
-## OUTDOOR_LAYER, which no lamp lights (ShipLamp), so no lamp leaks through a wall
-## onto a deck. Indoor pieces cast no shadow — the outdoor shell does — and go in
-## one mesh per chunk: a lamp lights only the meshes its range reaches, and
-## Compatibility lights a mesh with eight at most, so no indoor mesh spans more
-## than a few rooms. Each face's rim fades toward the crew's ink
-## (ship.gdshaderinc), so a box reads bevelled. A mesh told which pieces fade out
-## near the eye (fading) gives each vertex its piece's box, for the shader to fade
-## the piece by.
+## too. An axis-aligned face is cut at the chunk lines and at the rooms' edges it
+## passes indoors or out at, and each piece is classed indoors or out on its own.
+## Outdoor pieces share one mesh per paint on OUTDOOR_LAYER, which no lamp lights
+## (ShipLamp), so no lamp leaks through a wall onto a deck. Indoor pieces cast no
+## shadow — the outdoor shell does — and go in one mesh per chunk: a lamp lights only
+## the meshes its range reaches, and Compatibility lights a mesh with eight at most,
+## so no indoor mesh spans more than a few rooms. Each face's rim fades toward the
+## crew's ink (ship.gdshaderinc), so a box reads bevelled. A mesh told which pieces
+## fade out near the eye (fading) gives each vertex its piece's box, for the shader to
+## fade the piece by.
 
 ## What a face is painted with (ship.gdshaderinc's finishes, then the glass, then
 ## the rooms' own: riveted steel and rough timber).
@@ -93,7 +93,7 @@ var fading := Callable()
 
 ## (point: Vector3) -> bool: whether a ship-space point stands outdoors.
 var _outdoors: Callable
-## Every line an axis-aligned face is cut at, per axis.
+## Every line an axis-aligned face may be cut at, per axis.
 var _cuts: Array[PackedFloat32Array] = []
 ## "finish out" or "finish in x y z" -> Batch
 var _batches := {}
@@ -109,7 +109,8 @@ var _reached: Array[Batch] = []
 
 
 ## [param outdoors] says whether a ship point is outdoors; [param room_cuts] holds,
-## per axis x, y, z, the lines a face is cut at besides the chunk lines.
+## per axis x, y, z, the lines a face may be cut at besides the chunk lines: those it
+## passes indoors or out at.
 func _init(outdoors: Callable, room_cuts: Array[PackedFloat32Array]) -> void:
 	_outdoors = outdoors
 	for axis in 3:
@@ -274,16 +275,25 @@ func polygon(
 
 
 ## A face from [param origin] along [param u] and [param v] — unless it is narrow,
-## its axis-aligned edges are cut at the chunk and room lines — facing
-## [param u] × [param v].
+## its axis-aligned edges are cut at the chunk lines and the room lines it passes
+## indoors or out at (needed()) — facing [param u] × [param v].
 func face(
 	origin: Vector3, u: Vector3, v: Vector3, paint: Paint, rims := RIM_ALL, foot := NAN, head := NAN
 ) -> void:
 	var normal := u.cross(v).normalized()
 	var whole := PackedFloat32Array([0.0, 1.0])
 	var narrow := minf(u.length(), v.length()) < NARROW
-	var u_cuts := whole if narrow else _splits(origin, u)
-	var v_cuts := whole if narrow else _splits(origin, v)
+	var u_cuts := whole if narrow else splits(origin, u, _cuts)
+	var v_cuts := whole if narrow else splits(origin, v, _cuts)
+	if u_cuts.size() > 2 or v_cuts.size() > 2:
+		var outdoors := []
+		for i in u_cuts.size() - 1:
+			for j in v_cuts.size() - 1:
+				var middle := _middle(origin, u, v, u_cuts, v_cuts, i, j)
+				outdoors.append(_outdoors.call(middle + normal * PROBE))
+		var kept := needed(origin, u, v, u_cuts, v_cuts, outdoors)
+		u_cuts = kept[0]
+		v_cuts = kept[1]
 	_open()
 	for i in u_cuts.size() - 1:
 		for j in v_cuts.size() - 1:
@@ -685,10 +695,12 @@ static func _bands(point: Vector3, foot: float, head: float) -> Vector2:
 	return Vector2(0.0 if is_nan(foot) else point.y - foot, 0.0 if is_nan(head) else head - point.y)
 
 
-## Where along [param edge] (a fraction 0…1 of it, from [param origin]) a face is
-## cut: its ends, every chunk line and every room line it crosses — only along an
-## axis-aligned edge.
-func _splits(origin: Vector3, edge: Vector3) -> PackedFloat32Array:
+## Where along [param edge] (a fraction 0…1 of it, from [param origin]) a face may be
+## cut: its ends, every chunk line and every line of [param lines] — per axis x, y, z,
+## each sorted — it crosses; only along an axis-aligned edge.
+static func splits(
+	origin: Vector3, edge: Vector3, lines: Array[PackedFloat32Array]
+) -> PackedFloat32Array:
 	var length := edge.length()
 	var fractions := PackedFloat32Array([0.0, 1.0])
 	if length < SLIVER:
@@ -703,15 +715,15 @@ func _splits(origin: Vector3, edge: Vector3) -> PackedFloat32Array:
 	var end := start + edge[axis]
 	var low := minf(start, end)
 	var high := maxf(start, end)
-	var lines := _between(_cuts[axis], low, high)
+	var crossed := _between(lines[axis], low, high)
 	var step := CHUNK[axis]
 	var line := ceilf(low / step) * step
 	while line < high:
-		lines.append(line)
+		crossed.append(line)
 		line += step
-	lines.sort()
+	crossed.sort()
 	var cut := PackedFloat32Array([0.0])
-	for at: float in lines:
+	for at: float in crossed:
 		var fraction := (at - start) / (end - start)
 		if fraction * length > SLIVER and (1.0 - fraction) * length > SLIVER:
 			cut.append(fraction)
@@ -726,10 +738,77 @@ func _splits(origin: Vector3, edge: Vector3) -> PackedFloat32Array:
 	return kept
 
 
+## Of the cuts [param u_cuts] and [param v_cuts] (splits()) of a face from
+## [param origin] along [param u] and [param v], those it needs, given what each piece
+## between them shows — [param shows], by column (u) then row (v): its ends, every
+## chunk line, and every other cut with pieces either side of it that show other
+## things, so a stretch of pieces that show the same is one. A cut kept runs the whole
+## face, so no piece's corner stands on another's edge.
+static func needed(
+	origin: Vector3,
+	u: Vector3,
+	v: Vector3,
+	u_cuts: PackedFloat32Array,
+	v_cuts: PackedFloat32Array,
+	shows: Array
+) -> Array[PackedFloat32Array]:
+	var columns := u_cuts.size() - 1
+	var rows := v_cuts.size() - 1
+	var kept_u := PackedFloat32Array([0.0])
+	for i in range(1, columns):
+		var keep := _on_chunk_line(origin, u, u_cuts[i])
+		for j in rows:
+			if keep:
+				break
+			keep = shows[(i - 1) * rows + j] != shows[i * rows + j]
+		if keep:
+			kept_u.append(u_cuts[i])
+	kept_u.append(1.0)
+	var kept_v := PackedFloat32Array([0.0])
+	for j in range(1, rows):
+		var keep := _on_chunk_line(origin, v, v_cuts[j])
+		for i in columns:
+			if keep:
+				break
+			keep = shows[i * rows + j - 1] != shows[i * rows + j]
+		if keep:
+			kept_v.append(v_cuts[j])
+	kept_v.append(1.0)
+	var kept: Array[PackedFloat32Array] = [kept_u, kept_v]
+	return kept
+
+
+## The middle of the piece of a face from [param origin] along [param u] and
+## [param v] between cuts [param i] and i + 1 of [param u_cuts] and [param j] and
+## j + 1 of [param v_cuts].
+static func _middle(
+	origin: Vector3,
+	u: Vector3,
+	v: Vector3,
+	u_cuts: PackedFloat32Array,
+	v_cuts: PackedFloat32Array,
+	i: int,
+	j: int
+) -> Vector3:
+	return origin + u * (u_cuts[i] + u_cuts[i + 1]) * 0.5 + v * (v_cuts[j] + v_cuts[j + 1]) * 0.5
+
+
+## Whether the cut [param fraction] of the way along [param edge] from [param origin]
+## (splits()) lies on a chunk line.
+static func _on_chunk_line(origin: Vector3, edge: Vector3, fraction: float) -> bool:
+	var length := edge.length()
+	for axis in 3:
+		if absf(edge[axis]) >= length - SLIVER:
+			var at := origin[axis] + edge[axis] * fraction
+			var step := CHUNK[axis]
+			return absf(at - roundf(at / step) * step) < SLIVER
+	return false
+
+
 ## [param low], every line of [param lines] strictly between, and [param high].
-func _between(lines: PackedFloat32Array, low: float, high: float) -> PackedFloat32Array:
+static func _between(lines: PackedFloat32Array, low: float, high: float) -> PackedFloat32Array:
 	var found := PackedFloat32Array([low])
-	# The lines are sorted (_init): only those from the first past low are looked at.
+	# The lines are sorted: only those from the first past low are looked at.
 	for index in range(lines.bsearch(low + SLIVER, false), lines.size()):
 		var at := lines[index]
 		if at >= high - SLIVER:

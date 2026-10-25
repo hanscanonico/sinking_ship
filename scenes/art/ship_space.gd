@@ -299,8 +299,8 @@ func under_a_ramp(point: Vector2, height: float) -> bool:
 	return false
 
 
-## Every room edge, deck edge and floor height, per axis x, y, z: where a face is
-## cut so each piece of it lies wholly in one room or wholly outside.
+## Every room edge, deck edge and floor height, per axis x, y, z: where a face may be
+## cut so each piece of it lies wholly indoors or wholly out (ShipMesh).
 func room_lines() -> Array[PackedFloat32Array]:
 	var xs := PackedFloat32Array()
 	var ys := PackedFloat32Array()
