@@ -3,15 +3,16 @@
 # `make guard-check`: tools/goldens.py reads the goldens a CI run printed as make
 # goldens does. Against tests/fixtures/ci/goldens_run.log, cut from run
 # 40198828570's: the battle royale's test printing its digests for linux-x86_64 between
-# Goldens.show's markers, then failing on the golden before them — the run the golden
-# committed now was recorded from (#329). A change that moves that golden cuts the sample
-# again from the run it records the golden from.
+# Goldens.show's markers, then failing on the golden before them (#329). What its block
+# decodes to is the sample's own, tests/fixtures/ci/goldens_run.expected.txt, never the
+# golden committed now: a change that moves the battle royale's golden leaves the sample
+# as it is (#330).
 
 set -uo pipefail
 cd "$(dirname "$0")/.." || exit 1
 
 SAMPLE=tests/fixtures/ci/goldens_run.log
-GOLDEN=tests/golden/battle_royale.linux-x86_64.txt
+EXPECTED=tests/fixtures/ci/goldens_run.expected.txt
 FILE=battle_royale.linux-x86_64.txt
 WORK=$(mktemp -d)
 trap 'rm -rf "$WORK"' EXIT
@@ -28,14 +29,14 @@ read_log() {
 	tools/goldens.py --log "$1" --out "$WORK/out" >/dev/null 2>&1
 }
 
-# The run's block is the golden committed from it, byte for byte.
+# The run's block is the text the run printed, byte for byte.
 read_log "$SAMPLE" || fail "reading $SAMPLE failed"
-cmp -s "$WORK/out/$FILE" "$GOLDEN" || fail "the sample's block did not decode to $GOLDEN"
+cmp -s "$WORK/out/$FILE" "$EXPECTED" || fail "the sample's block did not decode to $EXPECTED"
 
 # The same lines bare, with no job, step or timestamp, as a local run prints them.
 cut -f3- "$SAMPLE" | sed -E 's/^[0-9T:.-]+Z ?//' >"$WORK/bare.log"
 read_log "$WORK/bare.log" || fail "reading the bare lines failed"
-cmp -s "$WORK/out/$FILE" "$GOLDEN" || fail "the bare lines did not decode to $GOLDEN"
+cmp -s "$WORK/out/$FILE" "$EXPECTED" || fail "the bare lines did not decode to $EXPECTED"
 
 # The block printed twice, alike, is one golden; another run printing the same file
 # with other text, its own block sound, is a determinism bug.
