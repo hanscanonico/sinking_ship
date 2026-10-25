@@ -1,7 +1,8 @@
 extends GutTest
 ## The bonuses aboard, drawn in greybox (#310) from the snapshot: each at its bonus spot, a
-## shape of its kind's size in its kind's colour standing on the spot's floor — none once
-## it is no longer aboard, and none at all in a match without bonuses.
+## shape of its kind's size in its kind's colour standing on the spot's floor, lit from
+## within (#313) — none once it is no longer aboard, and none at all in a match without
+## bonuses.
 
 
 ## The shapes [param drawn] shows, in the order the snapshot lists its bonuses.
@@ -42,6 +43,29 @@ func test_each_bonus_aboard_is_drawn_at_its_spot() -> void:
 	sim.state.bonuses.clear()
 	drawn.show_bonuses(sim.snapshot())
 	assert_eq(_shown(drawn).size(), 0, "none aboard: none drawn")
+
+
+## A bonus aboard is lit from within (#313), so that it shows in a dark room: its kind's
+## colour given off as well as lit, at no less than the colour itself. Yet it is
+## depth-tested as any mesh, and casts no lamp's light, which would reach through a wall:
+## nothing of it shows through one (§13).
+func test_a_bonus_aboard_glows_but_never_through_a_wall() -> void:
+	var layout := SimFixtures.below_decks()
+	var bonuses := SimFixtures.bonus_rules()
+	var drawn: BonusGreybox = add_child_autofree(BonusGreybox.new())
+	drawn.setup(layout, bonuses)
+	var sim := SimFixtures.bonus_sim(bonuses, 1, layout)
+	SimFixtures.bring_aboard(sim, 0)
+	drawn.show_bonuses(sim.snapshot())
+	var shown := _shown(drawn)
+	assert_eq(shown.size(), 1)
+	if shown.size() == 1:
+		var material := (shown[0].mesh as PrimitiveMesh).material as StandardMaterial3D
+		assert_true(material.emission_enabled, "lit from within")
+		assert_eq(material.emission, SimFixtures.double_life().mark, "in its kind's colour")
+		assert_gte(material.emission_energy_multiplier, 1.0, "as bright as its colour, unlit")
+		assert_false(material.no_depth_test, "hidden behind a wall as any mesh is")
+	assert_eq(drawn.find_children("*", "Light3D", true, false), [], "no lamp")
 
 
 ## A bonus the sea takes (#311) leaves the snapshot, and its drawing goes with it.
