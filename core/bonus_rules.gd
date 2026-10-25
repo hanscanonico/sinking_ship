@@ -1,6 +1,6 @@
 class_name BonusRules
 extends Resource
-## How bonuses come aboard (#307), the match data's (MatchRules.bonuses): the kinds a bonus
+## How bonuses come aboard (#307), the match data's (MatchRules.bonus_rules): the kinds a bonus
 ## may be and their odds, when the first comes, how far apart the next ones come and by how
 ## much that varies, and the most aboard at once. Every time is on her sinking's clock,
 ## quickened with her on the fast clock (BonusPlan). A match without bonuses has none.

@@ -14,12 +14,12 @@ var _shapes: Array[MeshInstance3D] = []
 var _meshes: Dictionary[int, Mesh] = {}
 
 
-## Draws the bonuses of a match on [param layout] played with [param bonuses]; none for
+## Draws the bonuses of a match on [param layout] played with [param bonus_rules]; none for
 ## null.
-func setup(layout: ShipLayout, bonuses: BonusRules) -> void:
+func setup(layout: ShipLayout, bonus_rules: BonusRules) -> void:
 	_kinds.clear()
-	if bonuses != null:
-		_kinds.assign(bonuses.kinds)
+	if bonus_rules != null:
+		_kinds.assign(bonus_rules.kinds)
 	_spots = layout.bonus_spots
 	_meshes.clear()
 	for shape: MeshInstance3D in _shapes:
@@ -42,21 +42,21 @@ func show_bonuses(snapshot: Dictionary) -> void:
 			continue
 		var entry: Dictionary = aboard[index]
 		var kind: int = entry["kind"]
-		shape.mesh = _mesh(kind)
+		shape.mesh = _mesh_of(kind)
 		shape.position = _spots[entry["spot"]].point + Vector3.UP * _kinds[kind].height * 0.5
 
 
-## The shape every bonus of kind [param kind] is drawn as: an upright cylinder its size, in
-## its colour, made the first time.
-func _mesh(kind: int) -> Mesh:
-	if not _meshes.has(kind):
-		var made := _kinds[kind]
-		var shape := CylinderMesh.new()
-		shape.top_radius = made.radius
-		shape.bottom_radius = made.radius
-		shape.height = made.height
+## The mesh every bonus of the kind at [param index] is drawn with: an upright cylinder
+## its size, in its colour, made the first time.
+func _mesh_of(index: int) -> Mesh:
+	if not _meshes.has(index):
+		var kind := _kinds[index]
+		var mesh := CylinderMesh.new()
+		mesh.top_radius = kind.radius
+		mesh.bottom_radius = kind.radius
+		mesh.height = kind.height
 		var material := StandardMaterial3D.new()
-		material.albedo_color = made.mark
-		shape.material = material
-		_meshes[kind] = shape
-	return _meshes[kind]
+		material.albedo_color = kind.mark
+		mesh.material = material
+		_meshes[index] = mesh
+	return _meshes[index]

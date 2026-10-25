@@ -462,7 +462,7 @@ func test_a_bonus_taken_far_away_is_gone_from_the_prediction() -> void:
 	var layout := SimFixtures.below_decks()
 	layout.spawns = [Vector3(5.0, 0.0, 0.0), Vector3(12.0, 0.0, 2.0)] as Array[Vector3]
 	var config := SimFixtures.config(2, SimFixtures.calm_until(600.0), 3, layout)
-	config.bonuses = SimFixtures.bonus_rules(0.5)
+	config.bonus_rules = SimFixtures.bonus_rules(0.5)
 	var sources: Array[InputSource] = [null, InputSource.new()]
 	var played := LoopbackMatch.new(
 		config, NetRules.load_default(), NetConditions.parse(LAG), 0, Scripted.new(0), sources

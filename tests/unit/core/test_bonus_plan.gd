@@ -40,7 +40,7 @@ func _came(rules: BonusRules, holds: int, seconds: float, seed_value := 1) -> Pa
 	var config := SimFixtures.config(
 		1, SimFixtures.calm_until(600.0), seed_value, SimFixtures.below_decks(holds)
 	)
-	config.bonuses = rules
+	config.bonus_rules = rules
 	var sim := MatchSim.create(config)
 	var ticks := PackedInt32Array()
 	for event: SimEvent in SimFixtures.step(sim, {}, Ticks.from_seconds(seconds)):
@@ -102,7 +102,7 @@ func test_a_bonus_comes_to_the_open_spot_its_pick_lands_on() -> void:
 		var config := SimFixtures.config(
 			1, SimFixtures.calm_until(600.0), seed_value, SimFixtures.below_decks(3)
 		)
-		config.bonuses = SimFixtures.bonus_rules()
+		config.bonus_rules = SimFixtures.bonus_rules()
 		var sim := MatchSim.create(config)
 		SimFixtures.bring_aboard(sim, 1)
 		SimFixtures.step(sim, {}, Ticks.from_seconds(1.5))
@@ -129,11 +129,11 @@ func test_no_bonus_comes_without_bonuses_or_spots() -> void:
 func test_the_fast_clock_quickens_the_plan() -> void:
 	var rules := SimFixtures.bonus_rules(4.0, 10.0, 3.0, 9)
 	var paced := SimFixtures.config(1, SimFixtures.calm_until(600.0), 1, SimFixtures.below_decks(9))
-	paced.bonuses = rules
+	paced.bonus_rules = rules
 	var fast := SimFixtures.config(
 		1, MatchConfig.quickened(SimFixtures.calm_until(600.0), 2.0), 1, SimFixtures.below_decks(9)
 	)
-	fast.bonuses = rules
+	fast.bonus_rules = rules
 	var came := {}
 	for config: MatchConfig in [paced, fast]:
 		var ticks := PackedInt32Array()
@@ -163,7 +163,7 @@ func test_the_plan_moves_no_other_draw() -> void:
 		var spotless: ShipLayout = config.ship.duplicate()
 		spotless.bonus_spots = []
 		config.ship = spotless
-		config.bonuses = SimFixtures.bonus_rules(0.0, 1.0, 0.5, 9) if on else null
+		config.bonus_rules = SimFixtures.bonus_rules(0.0, 1.0, 0.5, 9) if on else null
 		var told := MatchTranscript.new()
 		told.hit(config.schedule())
 		hits.append(told.text())
@@ -182,7 +182,7 @@ func test_the_plan_moves_no_other_draw() -> void:
 ## The plan runs until her sinking is over: none comes after it.
 func test_no_bonus_is_planned_past_her_sinking_s_end() -> void:
 	var config := SimFixtures.config(1, SimFixtures.calm_until(10.0), 1, SimFixtures.below_decks(9))
-	config.bonuses = SimFixtures.bonus_rules(1.0, 2.0, 0.0, 9)
+	config.bonus_rules = SimFixtures.bonus_rules(1.0, 2.0, 0.0, 9)
 	var sim := MatchSim.create(config)
 	var events := SimFixtures.step(sim, {}, Ticks.from_seconds(30.0))
 	var came := _of(events, SimEvent.Kind.BONUS_CAME)

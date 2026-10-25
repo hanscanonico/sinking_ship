@@ -17,4 +17,4 @@ ship = ExtResource("3_efbn2")
 sinking = ExtResource("4_64jf7")
 fast_clock = 2.0
 goal = 1
-bonuses = ExtResource("5_bonus")
+bonus_rules = ExtResource("5_bonus")

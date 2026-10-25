@@ -26,7 +26,7 @@ enum Goal { LAST_STANDING, SURVIVAL }
 @export var goal: Goal = Goal.LAST_STANDING
 ## How bonuses come aboard (#307), the match config's to check (MatchConfig.problems); null
 ## for matches without bonuses.
-@export var bonuses: BonusRules
+@export var bonus_rules: BonusRules
 
 
 func problems() -> PackedStringArray:

@@ -98,9 +98,9 @@ func goal(config: MatchConfig) -> void:
 ## kind's title; without, by "bonus kind" and its index.
 func bonuses(config: MatchConfig) -> void:
 	_titles.clear()
-	if config.bonuses == null:
+	if config.bonus_rules == null:
 		return
-	for kind: BonusKind in config.bonuses.kinds:
+	for kind: BonusKind in config.bonus_rules.kinds:
 		_titles.append(kind.title)
 
 

@@ -55,7 +55,7 @@ var _still: Array = []
 var _holdable := PackedInt32Array()
 var _layout: ShipLayout
 ## The bonuses aboard, drawn at their spots (#307).
-var _bonuses: BonusGreybox
+var _bonus_greybox: BonusGreybox
 ## The seat the camera looks out of, or -1 for none.
 var _eye_seat := -1
 ## The seat this player plays: drawn where its prediction has it, but for a
@@ -133,11 +133,11 @@ func setup(
 	_still.clear()
 	_still.resize(ship.props.size())
 	_holdable = GrabReach.holdable_of(ship)
-	if _bonuses == null:
-		_bonuses = BonusGreybox.new()
-		_bonuses.name = "Bonuses"
-		_ship.add_child(_bonuses)
-	_bonuses.setup(ship, sim.config.bonuses)
+	if _bonus_greybox == null:
+		_bonus_greybox = BonusGreybox.new()
+		_bonus_greybox.name = "Bonuses"
+		_ship.add_child(_bonus_greybox)
+	_bonus_greybox.setup(ship, sim.config.bonus_rules)
 	if _drawn_pieces == null:
 		_drawn_pieces = ShipPieces.new()
 		_drawn_pieces.name = "Pieces"
@@ -383,7 +383,7 @@ func _process(delta: float) -> void:
 		lerpf(previous["tick"], current["tick"], alpha), current["railing_hp"], pose_then, alpha
 	)
 	_show_props(previous, current, alpha)
-	_bonuses.show_bonuses(current)
+	_bonus_greybox.show_bonuses(current)
 	var seats_then: Array = previous["seats"]
 	var seats_now: Array = current["seats"]
 	var carried := {}

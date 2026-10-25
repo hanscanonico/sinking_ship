@@ -316,10 +316,10 @@ static func bonus_taken(event_tick: int, taking: int, kind: int, at: int) -> Sim
 	return event
 
 
-## [param holding]'s bonus of [param kind] filling its cold meter again as it ran out in
-## the sea: its Double life spent.
-static func double_life_spent(event_tick: int, holding: int, kind: int) -> SimEvent:
-	var event := SimEvent.new(Kind.DOUBLE_LIFE_SPENT, event_tick, holding)
+## The bonus of [param kind] [param spending] has filling its cold meter again as it ran
+## out in the sea: its Double life spent.
+static func double_life_spent(event_tick: int, spending: int, kind: int) -> SimEvent:
+	var event := SimEvent.new(Kind.DOUBLE_LIFE_SPENT, event_tick, spending)
 	event.bonus = kind
 	return event
 

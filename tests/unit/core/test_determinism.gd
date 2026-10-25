@@ -263,7 +263,7 @@ func test_continuation_with_bonuses_in_play() -> void:
 	var config := SimFixtures.config(
 		2, SimFixtures.calm_until(600.0), GOLDEN_SEED, SimFixtures.below_decks()
 	)
-	config.bonuses = SimFixtures.bonus_rules(0.5, 1.0, 0.4, 2)
+	config.bonus_rules = SimFixtures.bonus_rules(0.5, 1.0, 0.4, 2)
 	var sim := MatchSim.create(config)
 	SimFixtures.place(sim, 0, SimFixtures.hold_spot(0) - Vector3(0.9, 0.0, 0.0), 0.0)
 	SimFixtures.swim(sim, 1, Vector3(0.0, 0.0, 6.0))
@@ -279,12 +279,12 @@ func test_continuation_with_bonuses_in_play() -> void:
 	for tick in 4 * Ticks.RATE:
 		sim.step(scene.call(tick))
 		played.append(sim.snapshot())
-	var covered := {"aboard": false, "held": false, "spare unspent": false, "spare spent": false}
+	var covered := {"aboard": false, "taken": false, "spare unspent": false, "spare spent": false}
 	for start in range(played.size() - 1):
 		var seats: Array = played[start]["seats"]
 		var in_flight := {
 			"aboard": not (played[start]["bonuses"] as Array).is_empty(),
-			"held": seats[0]["bonus"] != -1,
+			"taken": seats[0]["bonus"] != -1,
 			"spare unspent": seats[1]["bonus"] != -1,
 			"spare spent": seats[1]["bonus"] == -1 and not seats[1]["out"],
 		}

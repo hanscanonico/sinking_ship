@@ -31,6 +31,7 @@ func _with_a_bonus(seats := 1, layout: ShipLayout = null) -> MatchSim:
 
 func test_a_grab_press_takes_a_bonus_in_reach() -> void:
 	assert_eq(SimFixtures.hold_spot(0), SPOT, "the hold's spot")
+	assert_eq(SimFixtures.by_hold_spot(0), BESIDE, "and where a body takes its bonus")
 	var sim := _with_a_bonus()
 	var events := SimFixtures.step(sim, {0: _grab(0)})
 	assert_true(sim.state.bonuses.is_empty(), "used up at once: no longer aboard")
@@ -140,11 +141,7 @@ func test_no_bonus_while_staggered_frozen_in_the_air_swimming_climbing_or_shovin
 ## A seat has one bonus at a time: one it takes replaces the one it had, whatever kinds
 ## the two are.
 func test_a_bonus_taken_replaces_the_one_the_seat_had() -> void:
-	var other := BonusKind.new()
-	other.title = "Other"
-	other.radius = 0.15
-	other.height = 0.3
-	var kinds: Array[BonusKind] = [SimFixtures.double_life(), other]
+	var kinds: Array[BonusKind] = [SimFixtures.double_life(), SimFixtures.plain_kind()]
 	var rules := SimFixtures.bonus_rules(600.0, 45.0, 0.0, 2, kinds)
 	var sim := SimFixtures.bonus_sim(rules, 1, SimFixtures.below_decks(2))
 	SimFixtures.bring_aboard(sim, 0, 1)
@@ -153,7 +150,7 @@ func test_a_bonus_taken_replaces_the_one_the_seat_had() -> void:
 	sim.state.seats[0].bonus = 0
 	SimFixtures.step(sim, {0: _grab(0)})
 	assert_eq(sim.state.seats[0].bonus, 1, "the other kind, its Double life gone")
-	SimFixtures.place(sim, 0, SimFixtures.hold_spot(1) - Vector3(0.9, 0.0, 0.0), 0.0)
+	SimFixtures.place(sim, 0, SimFixtures.by_hold_spot(1), 0.0)
 	SimFixtures.step(sim, {0: SimFixtures.frame(0)})
 	SimFixtures.step(sim, {0: _grab(0)})
 	assert_eq(sim.state.seats[0].bonus, 0, "and a Double life again")
@@ -166,12 +163,8 @@ func test_an_out_seat_loses_its_bonus() -> void:
 	SimFixtures.place(sim, 1, Vector3(10.0, 0.0, 0.0))
 	SimFixtures.swim(sim, 0, Vector3(0.0, 0.0, 6.0))
 	var swimmer := sim.state.seats[0]
-	var other := BonusKind.new()
-	other.title = "Other"
-	other.radius = 0.15
-	other.height = 0.3
-	sim.config.bonuses.kinds.append(other)
-	sim.config.bonuses.odds.append(0.0)
+	sim.config.bonus_rules.kinds.append(SimFixtures.plain_kind())
+	sim.config.bonus_rules.odds.append(0.0)
 	swimmer.bonus = 1
 	swimmer.cold = 0.1
 	SimFixtures.step(sim, {}, Ticks.RATE)
@@ -193,27 +186,47 @@ func test_a_taken_bonus_s_spot_opens_again() -> void:
 	assert_eq(sim.state.bonuses.size(), 1)
 
 
-## The HUD's prompt asks GrabReach.would_take_bonus of the snapshot it draws: the bonus it
-## names is the one the next press takes, from wherever the seat stands.
-func test_the_reach_query_names_the_bonus_the_next_press_takes() -> void:
-	var layout := SimFixtures.below_decks(2)
+## The HUD's prompt asks GrabReach.would_press of the snapshot it draws, the one question
+## the sim's press asks (D13): what it names — the bonus taken, the ring grabbed or the ring
+## let go of — is what the next press does, wherever the seat stands and whatever it holds.
+func test_the_reach_query_names_what_the_next_press_does() -> void:
+	var ring := SimFixtures.lifebuoy(BESIDE - Vector3(0.75, 0.0, 0.0))
+	var layout := SimFixtures.crated([ring], SimFixtures.below_decks(2))
 	var rules := SimFixtures.rules()
+	# [where, facing, holding the ring, what a press does]
 	for case: Array in [
-		[BESIDE, 0.0],
-		[BESIDE, 180.0],
-		[SimFixtures.hold_spot(1) + Vector3(0.9, 0.0, 0.3), 180.0],
-		[Vector3(0.0, 0.0, 0.0), 0.0],
+		[BESIDE, 0.0, false, "takes the bonus in front, the ring behind"],
+		[BESIDE, 180.0, false, "grabs the ring in front, the bonus behind"],
+		[BESIDE, 0.0, true, "takes the bonus with the ring in its hands"],
+		[BESIDE, 180.0, true, "lets go of the ring, the bonus behind"],
+		[SimFixtures.hold_spot(1) + Vector3(0.9, 0.0, 0.3), 180.0, false, "the other hold's"],
+		[Vector3.ZERO, 0.0, false, "on deck: nothing"],
 	]:
 		var sim := SimFixtures.bonus_sim(SimFixtures.bonus_rules(600.0), 1, layout)
 		SimFixtures.bring_aboard(sim, 0)
 		SimFixtures.bring_aboard(sim, 1)
 		SimFixtures.place(sim, 0, case[0], case[1])
+		if case[2]:
+			SimFixtures.hand(sim, 0, 0)
 		SimFixtures.step(sim, {0: SimFixtures.frame(0)})
 		var aboard: Array = sim.snapshot()["bonuses"].duplicate()
-		var named := GrabReach.would_take_bonus(
-			sim.snapshot(), 0, layout, rules, sim.surfaces, sim.config.bonuses
-		)
+		var reach := GrabReach.new(layout, rules, sim.config.bonus_rules)
+		var said := reach.would_press(sim.snapshot(), 0, sim.surfaces)
 		var events := SimFixtures.step(sim, {0: _grab(0)})
-		var taken := _of(events, SimEvent.Kind.BONUS_TAKEN)
-		var spot: int = aboard[named]["spot"] if named != -1 else -1
-		assert_eq(spot, taken[0].spot if not taken.is_empty() else -1, "at %s facing %s" % case)
+		var spot: int = aboard[said.aboard]["spot"] if said.aboard != -1 else -1
+		assert_eq(
+			[spot, said.let_go, said.prop],
+			[
+				_named(events, SimEvent.Kind.BONUS_TAKEN, "spot"),
+				_named(events, SimEvent.Kind.PROP_LET_GO, "prop"),
+				_named(events, SimEvent.Kind.PROP_GRABBED, "prop"),
+			],
+			case[3]
+		)
+
+
+## What [param events] say of their one event of [param kind]: its [param field]; -1 with
+## none.
+func _named(events: Array[SimEvent], kind: SimEvent.Kind, field: String) -> int:
+	var found := _of(events, kind)
+	return found[0].get(field) if not found.is_empty() else -1

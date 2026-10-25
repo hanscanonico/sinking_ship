@@ -313,6 +313,12 @@ static func hold_spot(index: int) -> Vector3:
 	return Vector3(HOLD_AFT + index * (HOLD_LENGTH + 1.0) + HOLD_LENGTH * 0.5, HOLD_FLOOR, 0.0)
 
 
+## Where a body stands to take the bonus at below_decks' hold [param index]'s spot: aft of
+## it, its edge within grab reach of the bonus's facing the bow (0°).
+static func by_hold_spot(index := 0) -> Vector3:
+	return hold_spot(index) - Vector3(0.9, 0.0, 0.0)
+
+
 ## Bonus rules (#307) of [param kinds] — Double life alone when none are given, every one
 ## as likely — the first coming [param first] seconds in, then every [param interval]
 ## give or take [param jitter], at most [param most] aboard at once.
@@ -337,13 +343,22 @@ static func double_life() -> BonusKind:
 	return load(DOUBLE_LIFE)
 
 
+## A kind of bonus of Double life's size that gives nothing: a test's second kind.
+static func plain_kind() -> BonusKind:
+	var made := BonusKind.new()
+	made.title = "Plain"
+	made.radius = double_life().radius
+	made.height = double_life().height
+	return made
+
+
 ## A match of [param seats] on [param layout] — below_decks' one hold when none is given —
 ## played with [param rules], calm until [param ends] seconds.
 static func bonus_sim(
 	rules: BonusRules, seats := 1, layout: ShipLayout = null, ends := 600.0
 ) -> MatchSim:
 	var made := config(seats, calm_until(ends), 1, layout if layout != null else below_decks())
-	made.bonuses = rules
+	made.bonus_rules = rules
 	return MatchSim.create(made)
 
 

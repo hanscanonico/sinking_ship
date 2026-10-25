@@ -1,13 +1,86 @@
 class_name GrabReach
 extends RefCounted
-## What a Grab press takes (#273): the nearest prop that can be held — loose on a deck,
-## afloat at hand or hung on a railing — within grab_reach beyond the body's edge and the
-## prop's, inside grab_cone_deg of where the body faces, at a height it reaches — from
-## step_height under its feet up to its own height, a ring on a railing among them — with
-## no blocker between them; of two as near, the lower prop. Only a body on its feet on her decks,
-## idle, neither staggered nor frozen and holding nothing, takes one. Before any prop, a
-## bonus aboard reached the same way (#307), the hands full or not. The sim's grabs and the
-## HUD's prompt both ask here (D13), so the prompt names what a press would take.
+## What a Grab press does (#273, #307), in a match on one layout under its rules: one
+## question, which the sim's grabs and the HUD's prompt both ask (D13), so the prompt names
+## what a press would do. A press takes the nearest bonus aboard it reaches, whatever its
+## hands hold; else, holding a prop, it lets go of it; else it takes the nearest prop that can
+## be held — loose on a deck, afloat at hand or hung on a railing. It reaches a thing within
+## grab_reach beyond the body's edge and the thing's, inside grab_cone_deg of where the body
+## faces, at a height it reaches — from step_height under its feet up to its own height, a
+## ring on a railing among them — with no blocker between them; of two as near, the first:
+## the lower prop, the bonus aboard first. Only a body on its feet on her decks, idle,
+## neither staggered nor frozen, takes anything.
+
+
+## What one Grab press does (press): one of these at most; -1 for each it does not do.
+class Press:
+	extends RefCounted
+	## The bonus aboard it takes, by its place among the bonuses aboard.
+	var aboard := -1
+	## The prop it lets go of, the one in its hands, by its index in the layout's props.
+	var let_go := -1
+	## The prop it takes, by its index in the layout's props.
+	var prop := -1
+
+
+## The ship it reaches over, and the kinds of the match's bonuses (BonusRules.kinds) — none
+## in a match without bonuses: read them, never write them.
+var ship: ShipLayout
+var kinds: Array[BonusKind] = []
+var _rules: BrawlRules
+## The props a hand may hold (holdable_of).
+var _holdable: PackedInt32Array
+
+
+## The reach of a match on [param layout] under [param rules], played with
+## [param bonus_rules] (null for none).
+func _init(layout: ShipLayout, rules: BrawlRules, bonus_rules: BonusRules = null) -> void:
+	ship = layout
+	_rules = rules
+	if bonus_rules != null:
+		kinds.assign(bonus_rules.kinds)
+	_holdable = holdable_of(layout)
+
+
+## What a Grab press by [param player] does now — it [param height] tall where it stands,
+## in the frame [param up], its hands holding the prop [param held] (-1 for none) — with
+## the bonuses [param aboard] and [param props] as the match has them, and her as
+## [param surfaces] has her.
+func press(
+	player: PlayerState,
+	up: int,
+	height: float,
+	held: int,
+	aboard: Array[BonusState],
+	props: Array[PropState],
+	surfaces: Surfaces
+) -> Press:
+	var made := Press.new()
+	made.aboard = _bonus_taken(player, up, height, aboard, surfaces)
+	if made.aboard != -1:
+		return made
+	if held != -1:
+		made.let_go = held
+	else:
+		made.prop = take(player, up, height, props, ship, _rules, surfaces, _holdable)
+	return made
+
+
+## What a Grab press by [param seat] would do as [param snapshot] stands, her as
+## [param surfaces] has her then: the HUD's question, answered as the sim answers it.
+func would_press(snapshot: Dictionary, seat: int, surfaces: Surfaces) -> Press:
+	var entry := MatchState.entry_of(snapshot["seats"], seat)
+	if entry.is_empty() or entry["out"]:
+		return Press.new()
+	var aboard: Array[BonusState] = []
+	for bonus: Dictionary in snapshot["bonuses"]:
+		aboard.append(BonusState.from_dict(bonus))
+	var player := PlayerState.from_dict(entry)
+	var height := _rules.height_at(surfaces, player.pos)
+	var held := PropState.held_in(snapshot, seat, _holdable)
+	var props := PropState.some_of(snapshot, _holdable)
+	var up := MatchState.up_of(snapshot, entry)
+	return press(player, up, height, held, aboard, props, surfaces)
 
 
 ## The props of [param layout] a Grab press may take (PropKind.holdable), by index in
@@ -23,8 +96,8 @@ static func holdable_of(layout: ShipLayout) -> PackedInt32Array:
 ## The prop [param player] — [param height] tall where it stands, in the frame
 ## [param up] — would take with a Grab press now, by its index in [param layout]'s props,
 ## as [param props] has them — only [param holdable]'s (holdable_of) asked of, or of none
-## given every one; -1 for none. Two seats taking one prop on one tick are the sim's to
-## settle.
+## given every one; -1 for none, as with its hands full. What a press does with no bonus in
+## reach and nothing held (press), and what a bot asks of the ring it goes for.
 static func take(
 	player: PlayerState,
 	up: int,
@@ -55,31 +128,19 @@ static func take(
 	return best
 
 
-## The bonus aboard [param player] — [param height] tall where it stands, in the frame
-## [param up] — would take with a Grab press now, by its place in [param bonuses], each at
-## its spot of [param layout] and of its size among [param kinds]; -1 for none. It reaches
-## one as take() reaches a prop, the nearest, of two as near the one aboard first — but
-## whatever its hands hold: a press takes a bonus before any prop (#307). Two seats taking
-## one bonus on one tick are the sim's to settle.
-static func bonus(
-	player: PlayerState,
-	up: int,
-	height: float,
-	bonuses: Array[BonusState],
-	layout: ShipLayout,
-	kinds: Array[BonusKind],
-	rules: BrawlRules,
-	surfaces: Surfaces
+## The bonus of [param aboard] — its place among them — a Grab press by [param player]
+## takes, whatever its hands hold, as take() reaches a prop; -1 for none.
+func _bonus_taken(
+	player: PlayerState, up: int, height: float, aboard: Array[BonusState], surfaces: Surfaces
 ) -> int:
-	if not _grabs(player, up):
+	if aboard.is_empty() or not _grabs(player, up):
 		return -1
 	var best := -1
 	var best_gap := INF
-	for index in bonuses.size():
-		var aboard := bonuses[index]
-		var kind := kinds[aboard.kind]
-		var at := layout.bonus_spots[aboard.spot].point
-		var gap := _gap(player, height, at, kind.height, kind.radius, rules, surfaces, best_gap)
+	for index in aboard.size():
+		var kind := kinds[aboard[index].kind]
+		var at := ship.bonus_spots[aboard[index].spot].point
+		var gap := _gap(player, height, at, kind.height, kind.radius, _rules, surfaces, best_gap)
 		if gap < best_gap:
 			best = index
 			best_gap = gap
@@ -131,51 +192,3 @@ static func _gap(
 	if surfaces.blocked(feet, at, height, rules.step_height):
 		return INF
 	return gap
-
-
-## What a Grab press by [param seat] would take as [param snapshot] — of a match on
-## [param layout] — stands: the HUD's question, answered as the sim answers it, among
-## [param holdable] (holdable_of) when given.
-static func would_take(
-	snapshot: Dictionary,
-	seat: int,
-	layout: ShipLayout,
-	rules: BrawlRules,
-	surfaces: Surfaces,
-	holdable := PackedInt32Array()
-) -> int:
-	var among := holdable if not holdable.is_empty() else holdable_of(layout)
-	for entry: Dictionary in snapshot["seats"]:
-		if entry["seat"] != seat or entry["out"]:
-			continue
-		var player := PlayerState.from_dict(entry)
-		var height := rules.height_at(surfaces, player.pos)
-		var props := PropState.some_of(snapshot, among)
-		var up := MatchState.up_of(snapshot, entry)
-		return take(player, up, height, props, layout, rules, surfaces, among)
-	return -1
-
-
-## What a Grab press by [param seat] would take of the bonuses aboard as [param snapshot] —
-## of a match on [param layout] played with [param bonus_rules] — stands, by its place
-## among the snapshot's bonuses; -1 for none, as for a match without bonuses: the HUD's
-## question, answered as the sim answers it, and the press's first (would_take).
-static func would_take_bonus(
-	snapshot: Dictionary,
-	seat: int,
-	layout: ShipLayout,
-	rules: BrawlRules,
-	surfaces: Surfaces,
-	bonus_rules: BonusRules
-) -> int:
-	var aboard: Array = snapshot["bonuses"]
-	var entry := MatchState.entry_of(snapshot["seats"], seat)
-	if bonus_rules == null or aboard.is_empty() or entry.is_empty() or entry["out"]:
-		return -1
-	var bonuses: Array[BonusState] = []
-	for each: Dictionary in aboard:
-		bonuses.append(BonusState.from_dict(each))
-	var player := PlayerState.from_dict(entry)
-	var height := rules.height_at(surfaces, player.pos)
-	var up := MatchState.up_of(snapshot, entry)
-	return bonus(player, up, height, bonuses, layout, bonus_rules.kinds, rules, surfaces)

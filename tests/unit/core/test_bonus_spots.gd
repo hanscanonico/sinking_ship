@@ -1,7 +1,7 @@
 extends GutTest
 ## Bonus spots (#307): where a bonus can come aboard — a point on a floor in a room below
-## her main deck, naming its room, put there by her layout. Nothing in the match reads
-## them yet (#308).
+## her main deck, naming its room, put there by her layout; the bonus plan brings bonuses
+## to them (test_bonus_plan.gd).
 
 
 func test_a_layout_with_no_bonus_spots_loads_as_before() -> void:

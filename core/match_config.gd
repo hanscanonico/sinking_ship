@@ -21,7 +21,7 @@ var bot_tier: StringName
 var goal := MatchRules.Goal.LAST_STANDING
 ## How bonuses come aboard (#307): the match data's bonus rules, or null for a match
 ## without bonuses.
-var bonuses: BonusRules
+var bonus_rules: BonusRules
 ## Its sinking, baked once from the ship, the scenario and the seed (schedule()): match
 ## data every MatchSim of this match shares, so a sim resumed from a snapshot never
 ## bakes it again (D5). The must-sink rule's bake may run a slice at a time first
@@ -70,7 +70,7 @@ static func from_rules(
 	config.humans = match_rules.humans
 	config.bot_tier = match_rules.bot_tier
 	config.goal = match_rules.goal
-	config.bonuses = match_rules.bonuses
+	config.bonus_rules = match_rules.bonus_rules
 	return config
 
 
@@ -183,8 +183,8 @@ func problems() -> PackedStringArray:
 	for kind: PropKind in _prop_kinds():
 		if kind != null:
 			found.append_array(kind.problems())
-	if bonuses != null:
-		found.append_array(bonuses.problems())
+	if bonus_rules != null:
+		found.append_array(bonus_rules.problems())
 	found.append_array(scenario.problems())
 	if scenario.hit != null and ship.structure == null:
 		found.append("match: the sinking's iceberg hit needs a ship with a structure")
@@ -197,8 +197,8 @@ func problems() -> PackedStringArray:
 ## and wire stay as they were; and a match without bonuses hashes as before they came.
 func data_hash() -> String:
 	var described: Array = [rules, ship, scenario, countdown_ticks, _prop_kinds()]
-	if bonuses != null:
-		described.append(bonuses)
+	if bonus_rules != null:
+		described.append(bonus_rules)
 	if goal != MatchRules.Goal.LAST_STANDING:
 		described.append(goal)
 	return _describe(described).sha256_text()

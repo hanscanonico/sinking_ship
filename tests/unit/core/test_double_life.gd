@@ -1,5 +1,5 @@
 extends GutTest
-## Double life (#307, #310): when the cold meter of a seat holding it runs out in the sea,
+## Double life (#307, #310): when the cold meter of a seat that has it runs out in the sea,
 ## it fills up again, once, and the bonus is spent — whatever rate the meter drains at. An
 ## unspent spare counts as a full meter more of cold left in the last swim; going down with
 ## a piece of her that is gone, it saves nobody.
@@ -68,7 +68,7 @@ func test_the_spare_drains_at_whatever_rate_the_meter_does() -> void:
 
 	var steamer := SimFixtures.steamer()
 	var config := SimFixtures.config(2, null, 1, steamer)
-	config.bonuses = SimFixtures.bonus_rules(600.0)
+	config.bonus_rules = SimFixtures.bonus_rules(600.0)
 	var trapped := MatchSim.create(config)
 	var full := [1.0]
 	var flooded := {
@@ -98,12 +98,12 @@ func test_the_spare_drains_at_whatever_rate_the_meter_does() -> void:
 
 ## The last swim (MatchVerdict.by_the_cold) goes to the most cold left, and places by it:
 ## an unspent spare counts as a full meter more. With every deck under, a swimmer on a low
-## meter holding Double life outlasts one on a fuller meter without; and where two spares
+## meter with a Double life outlasts one on a fuller meter without; and where two spares
 ## tie for the most, all go out, the places by the cold each had left with its spare.
 func test_an_unspent_spare_counts_as_a_full_meter_more_in_the_last_swim() -> void:
 	var under := SimFixtures.scenario([[0.0, 5.0, 0.0, 0.0], [600.0, 5.0, 0.0, 0.0]])
 	var duel := SimFixtures.config(2, under, 1, SimFixtures.below_decks())
-	duel.bonuses = SimFixtures.bonus_rules(600.0)
+	duel.bonus_rules = SimFixtures.bonus_rules(600.0)
 	var sim := MatchSim.create(duel)
 	SimFixtures.swim(sim, 0, Vector3(-6.0, 0.0, 0.0))
 	SimFixtures.swim(sim, 1, Vector3(6.0, 0.0, 0.0))
@@ -117,7 +117,7 @@ func test_an_unspent_spare_counts_as_a_full_meter_more_in_the_last_swim() -> voi
 	assert_true(_of(events, SimEvent.Kind.DOUBLE_LIFE_SPENT).is_empty(), "never spent")
 
 	var three := SimFixtures.config(3, under, 1, SimFixtures.below_decks())
-	three.bonuses = SimFixtures.bonus_rules(600.0)
+	three.bonus_rules = SimFixtures.bonus_rules(600.0)
 	var tied := MatchSim.create(three)
 	for seat in 3:
 		SimFixtures.swim(tied, seat, Vector3(-6.0 + seat * 6.0, 0.0, 0.0))
@@ -132,9 +132,10 @@ func test_an_unspent_spare_counts_as_a_full_meter_more_in_the_last_swim() -> voi
 
 
 ## Inside a piece of her on the tick it is gone, a seat goes with her: Double life does not
-## save it, and is not spent.
-func test_double_life_does_not_save_a_seat_going_down_with_her() -> void:
-	var config := RunMatch.default_config(2, 3)
+## save it, is not spent, and places it no higher than a seat going down beside it on a meter
+## as full, without one.
+func test_double_life_does_not_help_a_seat_going_down_with_her() -> void:
+	var config := RunMatch.default_config(2, 4)
 	var given: SinkScenario = config.scenario.duplicate()
 	given.explicit_hit = load(FAST_HIT)
 	config.scenario = given
@@ -143,16 +144,23 @@ func test_double_life_does_not_save_a_seat_going_down_with_her() -> void:
 	sim.state.tick = gone - 1
 	sim.state.phase = MatchState.Phase.LIVE
 	SimFixtures.place(sim, 0, Vector3(1.5, 0.0, 0.0))
-	SimFixtures.swim(sim, 1, Vector3(0.0, 0.0, 12.0))
-	SimFixtures.swim(sim, 2, Vector3(0.0, 0.0, -12.0))
-	assert_ne(sim.pose().cell_at(sim.state.seats[0].pos), CellMap.NONE, "seat 0 is inside her")
+	SimFixtures.place(sim, 1, Vector3(1.5, 0.0, 1.2))
+	SimFixtures.swim(sim, 2, Vector3(0.0, 0.0, 12.0))
+	SimFixtures.swim(sim, 3, Vector3(0.0, 0.0, -12.0))
+	for seat: int in [0, 1]:
+		var at := sim.state.seats[seat].pos
+		assert_ne(sim.pose().cell_at(at), CellMap.NONE, "seat %d is inside her" % seat)
 	sim.state.seats[0].bonus = 0
 	var events := SimFixtures.step(sim, {}, 2)
-	var inside := sim.state.seats[0]
-	assert_true(inside.is_out(), "it goes with her")
-	assert_eq(inside.out_cause, PlayerState.Cause.WITH_HER)
-	assert_eq(inside.out_tick, gone)
-	assert_eq(inside.bonus, -1, "its bonus with it")
+	var spared := sim.state.seats[0]
+	var bare := sim.state.seats[1]
+	for inside: PlayerState in [spared, bare]:
+		assert_true(inside.is_out(), "seat %d goes with her" % inside.seat)
+		assert_eq(inside.out_cause, PlayerState.Cause.WITH_HER)
+		assert_eq(inside.out_tick, gone)
+	assert_eq(spared.cold, bare.cold, "both on full meters, dry inside her")
+	assert_eq(spared.place, bare.place, "they share a place: the spare counts for nothing")
+	assert_eq(spared.bonus, -1, "its bonus gone with it")
 	assert_true(_of(events, SimEvent.Kind.DOUBLE_LIFE_SPENT).is_empty(), "never spent")
 
 
@@ -160,7 +168,7 @@ func test_double_life_does_not_save_a_seat_going_down_with_her() -> void:
 ## spot — who took it, and a Double life spent.
 func test_the_transcript_tells_a_bonus_coming_taken_and_spent() -> void:
 	var sim := SimFixtures.bonus_sim(SimFixtures.bonus_rules(1.0), 2)
-	SimFixtures.place(sim, 0, Vector3(-10.4, -2.0, 0.0), 0.0)
+	SimFixtures.place(sim, 0, SimFixtures.by_hold_spot(), 0.0)
 	SimFixtures.place(sim, 1, Vector3(10.0, 0.0, 0.0))
 	var told := MatchTranscript.new()
 	told.bonuses(sim.config)

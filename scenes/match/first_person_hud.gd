@@ -140,8 +140,10 @@ var _rules: BrawlRules
 ## (GrabReach.holdable_of).
 var _layout: ShipLayout
 var _holdable := PackedInt32Array()
-## How the match's bonuses come and what each kind is (#307); null for none.
-var _bonuses: BonusRules
+## How the match's bonuses come and what each kind is (#307), null for none; and what a
+## Grab press does, which the prompt names (GrabReach).
+var _bonus_rules: BonusRules
+var _reach: GrabReach
 var _names := PackedStringArray()
 var _eyes: bool
 ## Whether the view is the free camera rather than the seat's eyes: drawn as the
@@ -205,7 +207,8 @@ func setup(sim: MatchSim, names: PackedStringArray, eyes: bool, prompts: InputPr
 	_rules = sim.config.rules
 	_layout = sim.config.ship
 	_holdable = GrabReach.holdable_of(_layout)
-	_bonuses = sim.config.bonuses
+	_bonus_rules = sim.config.bonus_rules
+	_reach = GrabReach.new(_layout, _rules, _bonus_rules)
 	_names = names
 	_eyes = eyes
 	_prompts = prompts
@@ -275,7 +278,7 @@ func _draw_hud() -> void:
 		_draw_climb_prompt(mine, here, faces.framed(pose, up))
 	else:
 		var grab := _prompts.word(&"grab")
-		var words := grab_words(framed, _seat, _layout, _rules, here, grab, _holdable, _bonuses)
+		var words := grab_words(framed, _seat, _reach, here, grab)
 		if not words.is_empty():
 			_text(_canvas.size * 0.5 + PROMPT_BELOW, words, TEXT, READOUT_TEXT)
 	_draw_readouts(me, pose.world_height(me["pos"]))
@@ -444,7 +447,7 @@ static func plate_rect(size: Vector2) -> Rect2:
 ## Bottom left: metres from [param me]'s feet to the sea, above or under it — or
 ## that it is in it — then the stamina and warmth slots, filled from [param me], a spare
 ## meter's strip under the warmth bar (spare_meter); and under the plate, in its kind's
-## colour, the bonus the seat has (bonus_words).
+## colour, the title of the bonus the seat has (bonus_kind).
 func _draw_readouts(me: Dictionary, above_sea: float) -> void:
 	var at := Vector2(24.0, _canvas.size.y - 120.0)
 	var colour := LOW if above_sea < 1.0 else TEXT
@@ -467,47 +470,35 @@ func _draw_readouts(me: Dictionary, above_sea: float) -> void:
 		if not lasting.is_empty():
 			var beside := at + Vector2(bar.end.x - at.x + 10.0, 0.0)
 			_text(beside, lasting, Color(TEXT, 0.6), READOUT_TEXT, HORIZONTAL_ALIGNMENT_LEFT)
-		if slot == "Warmth" and spare_meter(_snapshot, _seat, _bonuses):
+		if slot == "Warmth" and spare_meter(_snapshot, _seat, _bonus_rules):
 			var strip := Vector2(bar.position.x, bar.end.y + SPARE_GAP)
 			_canvas.draw_rect(Rect2(strip, Vector2(bar.size.x, SPARE_HEIGHT)), WARM)
-	var bonus := bonus_words(_snapshot, _seat, _bonuses)
-	if not bonus.is_empty():
+	var bonus := bonus_kind(_snapshot, _seat, _bonus_rules)
+	if bonus != null:
 		var under := Vector2(24.0, plate_rect(_canvas.size).end.y + BONUS_UNDER)
-		var mark := _bonuses.kinds[me["bonus"]].mark
-		_text(under, bonus, mark, READOUT_TEXT, HORIZONTAL_ALIGNMENT_LEFT)
+		_text(under, bonus.title, bonus.mark, READOUT_TEXT, HORIZONTAL_ALIGNMENT_LEFT)
 
 
 ## What the prompt under the crosshair says of grabbing (#273) for [param seat] in
-## [param snapshot] of a match on [param layout], its key [param key]: what a Grab press
-## would take, as GrabReach says the sim would — a bonus of [param bonuses]' in reach by
-## its kind's title first, whatever the hands hold (#307) — or with the hands full what it
-## would let go of; empty with neither, and in the sea, where the climb's prompt stands.
-## Only [param holdable] (GrabReach.holdable_of) are asked of, of none given every one.
+## [param snapshot], its key [param key]: what a Grab press would do, as [param reach] says
+## the sim's would (GrabReach) — take a bonus in reach, by its kind's title (#307), let go of
+## the prop in the hands, or grab a prop — with her as [param surfaces] has her; empty for
+## nothing, and in the sea, where the climb's prompt stands.
 static func grab_words(
-	snapshot: Dictionary,
-	seat: int,
-	layout: ShipLayout,
-	rules: BrawlRules,
-	surfaces: Surfaces,
-	key: String,
-	holdable := PackedInt32Array(),
-	bonuses: BonusRules = null
+	snapshot: Dictionary, seat: int, reach: GrabReach, surfaces: Surfaces, key: String
 ) -> String:
 	var me := MatchState.entry_of(snapshot["seats"], seat)
 	if me.is_empty() or me["out"] or me["state"] == PlayerState.Body.SWIMMING:
 		return ""
-	var bonus := GrabReach.would_take_bonus(snapshot, seat, layout, rules, surfaces, bonuses)
-	if bonus != -1:
-		var kind: int = snapshot["bonuses"][bonus]["kind"]
-		return "%s — take %s" % [key, bonuses.kinds[kind].title]
-	var among := holdable if not holdable.is_empty() else GrabReach.holdable_of(layout)
-	var held := PropState.held_in(snapshot, seat, among)
-	if held != -1:
-		return "%s — let go of the %s" % [key, _prop_name(layout, held)]
-	var taken := GrabReach.would_take(snapshot, seat, layout, rules, surfaces, among)
-	if taken == -1:
-		return ""
-	return "%s — grab the %s" % [key, _prop_name(layout, taken)]
+	var press := reach.would_press(snapshot, seat, surfaces)
+	if press.aboard != -1:
+		var kind: int = snapshot["bonuses"][press.aboard]["kind"]
+		return "%s — take %s" % [key, reach.kinds[kind].title]
+	if press.let_go != -1:
+		return "%s — let go of the %s" % [key, _prop_name(reach.ship, press.let_go)]
+	if press.prop != -1:
+		return "%s — grab the %s" % [key, _prop_name(reach.ship, press.prop)]
+	return ""
 
 
 ## What the warmth readout says beside its bar for [param seat] in [param snapshot] of a
@@ -530,22 +521,20 @@ static func warmth_words(
 	return "%s ×%d" % [_prop_name(layout, held), roundi(1.0 / rate)]
 
 
-## The bonus [param seat] has in [param snapshot] of a match played with [param bonuses]
-## (#307), in words: its kind's title; empty for none.
-static func bonus_words(snapshot: Dictionary, seat: int, bonuses: BonusRules) -> String:
+## The kind of the bonus [param seat] has in [param snapshot] of a match played with
+## [param bonus_rules] (#307); null for none, as in a match without bonuses.
+static func bonus_kind(snapshot: Dictionary, seat: int, bonus_rules: BonusRules) -> BonusKind:
 	var me := MatchState.entry_of(snapshot["seats"], seat)
-	if bonuses == null or me.is_empty() or me["bonus"] == -1:
-		return ""
-	return bonuses.kinds[me["bonus"]].title
+	if bonus_rules == null or me.is_empty() or me["bonus"] == -1:
+		return null
+	return bonus_rules.kinds[me["bonus"]]
 
 
-## Whether [param seat] in [param snapshot] of a match played with [param bonuses] has an
-## unspent spare cold meter (Double life, #307): its bonus gives one.
-static func spare_meter(snapshot: Dictionary, seat: int, bonuses: BonusRules) -> bool:
-	var me := MatchState.entry_of(snapshot["seats"], seat)
-	if bonuses == null or me.is_empty() or me["bonus"] == -1:
-		return false
-	return bonuses.kinds[me["bonus"]].spare_meter
+## Whether [param seat] in [param snapshot] of a match played with [param bonus_rules] has
+## an unspent spare cold meter (Double life, #307): its bonus gives one.
+static func spare_meter(snapshot: Dictionary, seat: int, bonus_rules: BonusRules) -> bool:
+	var kind := bonus_kind(snapshot, seat, bonus_rules)
+	return kind != null and kind.spare_meter
 
 
 ## Prop [param prop] of [param layout] in words: its kind's name.
