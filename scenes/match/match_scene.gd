@@ -105,7 +105,8 @@ var _free := FreeCamera.new()
 var _eye_fill := EyeFill.new()
 ## The water running off the lens once the eye comes up out of it.
 var _lens_drops := LensDrops.new()
-## Who went into the sea, and whose shove sent them, as it happens.
+## Who went into the sea, and whose shove sent them, as it happens; and each bonus come
+## aboard, and who took it.
 var _feed := KnockoutFeed.new()
 ## The replay's controls, made the first time a replay is watched (start_replay).
 var _replay_hud: ReplayHud
@@ -492,7 +493,7 @@ func _setup_view(
 	_stats = MatchStats.new(config.seats, config.countdown_ticks)
 	_order = SpectateOrder.new(_eye_seat, _stats)
 	_names = names
-	_feed.setup(names, local_seat)
+	_feed.setup(names, local_seat, config.ship, config.bonus_rules)
 	_greybox.cut_above = cut_of(observer, observer_cut)
 	_ship_art.cut_above = _greybox.cut_above
 	_greybox.visible = greybox
