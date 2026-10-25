@@ -22,9 +22,8 @@ const BEFORE := {
 const BUDGET := 200
 ## The most faces a block of berths may stand in all, its modelled berths
 ## (RoomDressing.BERTH_MODEL) and their chains and the cabin furniture's models too:
-## the crew quarters, the worst, draw 8816, their panels cut at every edge of every deck
-## across her (ShipSpace's room lines) — the decks of her old voids (#148) among them.
-const CEILING := 9300
+## the crew quarters, the worst, draw 7656.
+const CEILING := 8100
 
 var _layout: ShipLayout
 var _rules: BrawlRules

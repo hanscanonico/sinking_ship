@@ -12,8 +12,7 @@ const CORRIDORS: Array[StringName] = [
 ## and sconces, C deck's, the longest, 10252.
 const BUDGET := 11000
 ## The most triangles a corridor may stand in all, passage dressing and all: C deck's
-## draws 18870, its panels cut at every edge of every deck across her (ShipSpace's room
-## lines) — the decks of her old voids (#148) among them.
+## draws 18746.
 const CEILING := 20000
 
 var _layout: ShipLayout
