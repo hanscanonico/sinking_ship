@@ -3,13 +3,14 @@ extends Node3D
 ## The match as heard (D12). Every step the SimDriver takes, CuePlanner turns the
 ## two snapshots and the pose into cues, and they play — in the head for the seat
 ## whose eyes the view is in, from where they happen for everyone and everything
-## else. Under them the sea, the wind and the sea rushing in follow the listener's
-## height above the water and the sinking's pace, and the room's reverb and the
-## hull's muffling follow whether the seat heard through stands in a room, easing
-## across a doorway rather than snapping; with its eyes under the sea, the outside
-## is heard through the water, muffled, the wind gone. The listener rides the current
-## camera: a seat's eyes, a spectated seat's, or the observer's (D14). Reads
-## snapshots, events, SinkSchedule's pose, the layout's rooms and whether the eyes
+## else — and each bonus aboard the latest snapshot hums where it lies, a voice looping
+## for as long as it is there (CuePlanner.hums). Under them the sea, the wind and the
+## sea rushing in follow the listener's height above the water and the sinking's pace,
+## and the room's reverb and the hull's muffling follow whether the seat heard through
+## stands in a room, easing across a doorway rather than snapping; with its eyes under
+## the sea, the outside is heard through the water, muffled, the wind gone. The listener
+## rides the current camera: a seat's eyes, a spectated seat's, or the observer's (D14).
+## Reads snapshots, events, SinkSchedule's pose, the layout's rooms and whether the eyes
 ## are under (Underwater.is_under) only (D5, D6); nothing it does reaches the sim.
 
 signal cue_played(cue: AudioCue)
@@ -44,6 +45,9 @@ var _planner: CuePlanner
 var _bank := SoundBank.new()
 var _placed: Array[AudioStreamPlayer3D] = []
 var _head: Array[AudioStreamPlayer] = []
+## One voice per bonus aboard, humming where it lies (_keep_humming), by where its hum
+## comes from in ship space: no two bonuses lie at one spot.
+var _hums: Dictionary[Vector3, AudioStreamPlayer3D] = {}
 var _next_placed := 0
 var _next_head := 0
 var _listener: AudioListener3D
@@ -166,6 +170,7 @@ func _process(delta: float) -> void:
 	if _driver == null or not _driver.started() or camera == null:
 		return
 	_listener.global_transform = camera.global_transform
+	_keep_humming(_planner.hums(_driver.current), _view.ship_to_world())
 	# The sea is the world plane (D7), so the ears' height is their distance to it.
 	var above_sea := camera.global_position.y - FirstPersonCamera.eye_height_of(camera)
 	var tick: int = _driver.current["tick"]
@@ -279,12 +284,42 @@ static func _idle(voices: Array, from: int) -> int:
 	return from
 
 
-## Stops every cue still sounding.
+## Keeps a voice humming at each of [param hums] (CuePlanner.hums) where its bonus lies as
+## [param to_world] draws the ship now — on the room's bus, its file looping, carried as
+## its kind and gain say (SoundBank), as _play carries a cue — the same voice for as long
+## as that bonus lies there; the voice of a bonus no longer humming goes with it.
+func _keep_humming(hums: Array[AudioCue], to_world: Transform3D) -> void:
+	var kept: Dictionary[Vector3, AudioStreamPlayer3D] = {}
+	for hum: AudioCue in hums:
+		var voice: AudioStreamPlayer3D = _hums.get(hum.position)
+		if voice == null:
+			voice = AudioStreamPlayer3D.new()
+			voice.name = "Hum"
+			voice.stream = _bank.stream(hum.kind)
+			voice.bus = SoundBank.ROOM_BUS
+			add_child(voice, true)
+		_hums.erase(hum.position)
+		kept[hum.position] = voice
+		voice.volume_db = SoundBank.db(hum.kind) + linear_to_db(hum.gain)
+		voice.unit_size = SoundBank.near(hum.kind)
+		voice.max_distance = SoundBank.far(hum.kind)
+		voice.pitch_scale = SoundBank.pitch(hum.kind)
+		voice.global_position = to_world * hum.position
+		if SoundBank.audible() and not voice.playing:
+			voice.play()
+	for gone: AudioStreamPlayer3D in _hums.values():
+		gone.stop()
+		gone.queue_free()
+	_hums = kept
+
+
+## Stops every cue still sounding, and every hum.
 func _silence() -> void:
 	for voice: AudioStreamPlayer3D in _placed:
 		voice.stop()
 	for voice: AudioStreamPlayer in _head:
 		voice.stop()
+	_keep_humming([], Transform3D.IDENTITY)
 
 
 ## How enclosed [param seat]'s feet are on the latest snapshot: 1 in a room, 0 on

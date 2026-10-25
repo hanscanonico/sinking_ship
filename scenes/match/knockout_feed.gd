@@ -3,10 +3,13 @@ extends CanvasLayer
 ## Who went into the sea, top right under the inclinometer's dials: a line per
 ## SEAT_OUT, "Bot 2 shoved Bot 5 into the sea" when a shove has the credit, "Bot 5
 ## went into the sea" when none has, "Bot 5 went down with her" when it was inside her
-## as she went — "You" when the local seat is either — the
-## newest at the bottom, at most MAX_LINES, each fading out once it has stood
-## LINE_SECONDS. Read from every stepped tick's events (SimDriver.stepped), so a
-## hitch never eats one and nothing is posted twice; a replay sought clears it.
+## as she went — "You" when the local seat is either. Beside them the bonuses (#307), each
+## line in its kind's colour: one coming aboard, "Double life: engine room" — its kind's
+## title, and the room its bonus spot lies in as her layout names it — and one taken,
+## "Bot 3 took Double life". The newest at the bottom, at most MAX_LINES, each fading out
+## once it has stood LINE_SECONDS. Read from every stepped tick's events
+## (SimDriver.stepped), so a hitch never eats one and nothing is posted twice; a replay
+## sought clears it.
 
 ## The most lines standing at once: a newer one pushes the oldest off.
 const MAX_LINES := 4
@@ -21,6 +24,10 @@ const WIDTH := 420.0
 
 var _names := PackedStringArray()
 var _own_seat := -1
+## Her layout, whose bonus spots and rooms a bonus's line names, and the kinds the match's
+## bonuses may be (BonusRules.kinds): none in a match without bonuses.
+var _layout: ShipLayout
+var _kinds: Array[BonusKind] = []
 var _box := VBoxContainer.new()
 ## Each standing line's age in seconds, by its label.
 var _ages: Dictionary[Label, float] = {}
@@ -39,20 +46,40 @@ func _ready() -> void:
 
 
 ## A new match or replay: [param names] labels each seat, as the results do, and
-## [param own_seat] is the one said as "You".
-func setup(names: PackedStringArray, own_seat: int) -> void:
+## [param own_seat] is the one said as "You"; played on [param layout] with
+## [param bonus_rules], null for a match without bonuses.
+func setup(
+	names: PackedStringArray,
+	own_seat: int,
+	layout: ShipLayout = null,
+	bonus_rules: BonusRules = null
+) -> void:
 	_own_seat = own_seat
 	_names = PackedStringArray()
 	for seat_name in names:
 		_names.append(seat_name)
+	_layout = layout
+	_kinds.clear()
+	if bonus_rules != null:
+		_kinds.assign(bonus_rules.kinds)
 	clear()
 
 
-## Posts a line for each SEAT_OUT in [param events].
+## Posts a line for each SEAT_OUT in [param events], each bonus come aboard and each one
+## taken.
 func add(events: Array[SimEvent]) -> void:
 	for event: SimEvent in events:
-		if event.kind == SimEvent.Kind.SEAT_OUT:
-			_post(feed_line(_fitted(), event.seat, event.credit, _own_seat, event.cause))
+		match event.kind:
+			SimEvent.Kind.SEAT_OUT:
+				_post(feed_line(_fitted(), event.seat, event.credit, _own_seat, event.cause))
+			SimEvent.Kind.BONUS_CAME:
+				var kind := _kinds[event.bonus]
+				var room := _layout.rooms[_layout.bonus_spots[event.spot].room].name
+				_in_colour(_post("%s: %s" % [kind.title, room]), kind)
+			SimEvent.Kind.BONUS_TAKEN:
+				var kind := _kinds[event.bonus]
+				var taker := "You" if event.seat == _own_seat else _fitted()[event.seat]
+				_in_colour(_post("%s took %s" % [taker, kind.title]), kind)
 
 
 ## Every line taken down.
@@ -92,7 +119,8 @@ func _process(delta: float) -> void:
 		label.modulate.a = clampf((LINE_SECONDS - age) / FADE_SECONDS, 0.0, 1.0)
 
 
-func _post(text: String) -> void:
+## Posts [param text]: the newest line, which it returns.
+func _post(text: String) -> Label:
 	var label := Label.new()
 	label.text = text
 	label.theme_type_variation = UiTheme.HUD_LABEL
@@ -102,6 +130,12 @@ func _post(text: String) -> void:
 	_ages[label] = 0.0
 	while _ages.size() > MAX_LINES:
 		_drop(_box.get_child(0) as Label)
+	return label
+
+
+## Writes [param line] in the colour of bonus [param kind].
+static func _in_colour(line: Label, kind: BonusKind) -> void:
+	line.add_theme_color_override(&"font_color", kind.mark)
 
 
 func _drop(label: Label) -> void:

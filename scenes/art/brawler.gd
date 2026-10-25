@@ -112,6 +112,17 @@ const CLINCH_LOW := 0.75
 const CLINCH_HIGH := 1.8
 const CLINCH_WIDE := 0.4
 const CLINCH_FOLD := 0.18
+## A seat with a bonus wears its kind's mark (#307), in greybox until each kind's own is
+## made: a band round its chest in the kind's colour, lit from within as the bonus was
+## (BonusGreybox.lit_from_within), so it reads from every side, from above and in a dark
+## room. In the sailor's units, riding MARK_BONE: the band's middle at rest, its outer
+## half-widths across and front to back, its inner edge as a share of them — clear of the
+## thickest coat — and how deep it is.
+const MARK_BONE := &"spine_02"
+const MARK_AT := Vector3(0.0, 1.22, 0.005)
+const MARK_HALF := Vector2(0.235, 0.2)
+const MARK_INNER := 0.88
+const MARK_DEPTH := 0.07
 
 static var _disc_texture: GradientTexture2D
 ## The sailor's crown and the head bone's height at rest, in its units, and per
@@ -133,6 +144,10 @@ var _feet_disc: MeshInstance3D
 var _hat_node: MeshInstance3D
 ## The marker over the local seat, or null on any other.
 var _marker: MeshInstance3D
+## The band of a bonus's mark (wear_bonus), made as the first is worn, and the kind it is
+## the mark of: null for none.
+var _mark: MeshInstance3D
+var _bonus: BonusKind
 var _clothes: ShaderMaterial
 ## The clip for each move: the crew's, unless drawn as a seat's own arms.
 var _clips: Dictionary = BrawlerAnimation.CLIPS
@@ -297,6 +312,33 @@ static func own_arms(coat: Coat) -> MeshInstance3D:
 func show_marker(shown: bool) -> void:
 	if _marker != null:
 		_marker.visible = shown
+
+
+## Wears the mark of [param kind], the bonus the seat has (#307) — none for null: a band
+## round the chest in its colour, lit from within.
+func wear_bonus(kind: BonusKind) -> void:
+	if kind == _bonus:
+		return
+	_bonus = kind
+	if _mark == null:
+		var held := BoneAttachment3D.new()
+		held.bone_name = MARK_BONE
+		_skeleton.add_child(held)
+		var band := TorusMesh.new()
+		band.inner_radius = MARK_INNER
+		band.outer_radius = 1.0
+		_mark = MeshInstance3D.new()
+		_mark.name = "BonusMark"
+		_mark.mesh = band
+		_mark.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		# The unit ring stretched to the band: across, deep, front to back.
+		var stretch := Vector3(MARK_HALF.x, MARK_DEPTH / (1.0 - MARK_INNER), MARK_HALF.y)
+		var rest := _skeleton.get_bone_global_rest(_skeleton.find_bone(MARK_BONE))
+		_mark.transform = rest.affine_inverse() * Transform3D(Basis.from_scale(stretch), MARK_AT)
+		held.add_child(_mark)
+	_mark.visible = kind != null
+	if kind != null:
+		_mark.material_override = BonusGreybox.lit_from_within(kind)
 
 
 ## Draws only what a seat sees of itself (FirstPersonArms): its coat's own arms in

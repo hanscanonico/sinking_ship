@@ -8,7 +8,8 @@ extends Node3D
 ## which is not drawn (D14) — and every prop is placed where the snapshots have it
 ## (PropPlacing): a crate where it stands, a ring hung on its span or carried before its
 ## holder, whose hands reach for it, hidden once lost (SH10, #273); every bonus aboard at
-## its spot, in greybox (BonusGreybox, #307). Once she has broken
+## its spot, in greybox (BonusGreybox, #307), and every seat with a bonus wearing its kind's
+## mark (Brawler.wear_bonus). Once she has broken
 ## (SH33) a seat stands in the space of its piece, where that piece's pose has it in the
 ## world. It never moves a body itself, and never reads a live PlayerState.
 
@@ -54,8 +55,10 @@ var _props: Array[Node3D] = []
 var _still: Array = []
 var _holdable := PackedInt32Array()
 var _layout: ShipLayout
-## The bonuses aboard, drawn at their spots (#307).
+## The bonuses aboard, drawn at their spots (#307); and the kinds they may be, whose mark a
+## seat with one wears: none in a match without bonuses.
 var _bonus_greybox: BonusGreybox
+var _bonus_kinds: Array[BonusKind] = []
 ## The seat the camera looks out of, or -1 for none.
 var _eye_seat := -1
 ## The seat this player plays: drawn where its prediction has it, but for a
@@ -138,6 +141,9 @@ func setup(
 		_bonus_greybox.name = "Bonuses"
 		_ship.add_child(_bonus_greybox)
 	_bonus_greybox.setup(ship, sim.config.bonus_rules)
+	_bonus_kinds.clear()
+	if sim.config.bonus_rules != null:
+		_bonus_kinds.assign(sim.config.bonus_rules.kinds)
 	if _drawn_pieces == null:
 		_drawn_pieces = ShipPieces.new()
 		_drawn_pieces.name = "Pieces"
@@ -448,6 +454,8 @@ func _process(delta: float) -> void:
 		# Posed even unseen, through its eyes: the hands of a body drawn reaching for it
 		# stop at its guard (Brawler.keep_apart).
 		body.show_state(then, now, alpha, _heights[seat] < _rules.body_height)
+		var bonus: int = now["bonus"]
+		body.wear_bonus(_bonus_kinds[bonus] if bonus != -1 else null)
 		if carried.has(seat):
 			body.carry(_drawn(carried[seat]), _layout.props[carried[seat]].radius)
 		if not body.visible:

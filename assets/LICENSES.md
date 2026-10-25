@@ -85,11 +85,13 @@ Every sound below is CC0 1.0 (public domain dedication); no attribution is
 required, and it is given anyway. One-shots were cut, faded, mixed down to mono
 44.1 kHz 16-bit WAV and peak-normalised to −1 dBFS; the three beds were cut to a
 seamless loop (the last 3 s crossfaded into the first), levelled to −20 dB RMS and
-encoded as Ogg Vorbis; the two music tracks are the authors' files unmodified.
+encoded as Ogg Vorbis; the two music tracks are the authors' files unmodified. The
+bonuses' two are the project's own, synthesised as WAVs of the one-shots' format by
+`tools/bonus_sounds.py`, the hum a seamless loop it marks as one.
 Freesound only serves originals to signed-in users, so its sounds were taken from
 the page's high-quality Ogg preview — the same recording under the same licence,
 which each page states as "Creative Commons 0".
-12.9 MB in all.
+13.4 MB in all.
 
 | Files | Source (author, title, page) | License |
 |---|---|---|
@@ -114,6 +116,7 @@ which each page states as "Creative Commons 0".
 | `beds/rush.ogg` (60–103 s) | AugustSandberg, Sailboat Sailing Interior 2 — https://freesound.org/people/AugustSandberg/sounds/252670/ | CC0 1.0 |
 | `music/sailors_chant.ogg` (oga_jam_menu_music_loopable.ogg) — the menu | thimras, A sailor's chant — https://opengameart.org/content/a-sailors-chant | CC0 1.0 |
 | `music/iridescent_deep.ogg` (Iridescent Deep - Loop.ogg, from iridescent_deep_ogg.7z) — the match | Tsorthan Grove, Iridescent Deep — https://opengameart.org/content/iridescent-deep | CC0 1.0 |
+| `bonus/hum.wav` — a bonus aboard, `bonus/double_life.wav` — a Double life spent | Original work, synthesised for this project by `tools/bonus_sounds.py` (2026-10-25, #313) | CC0 1.0 (the project's own, dedicated) |
 
 ### The Titanic's sources (`tools/gen_titanic.py`, SH34)
 
