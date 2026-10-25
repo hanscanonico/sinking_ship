@@ -55,9 +55,10 @@ PLAYING
 -------
 
 Play starts a match against seven bots. The ship sinks fast by default; open
-Custom match and untick Fast sinking for the slower, paced sinking, or to pick
-a seed. The pause menu lists the controls. The results tally your points across
-rematches; the main menu's corner shows the game's version.
+Custom match and untick Fast sinking for the slower, paced sinking, untick
+Bonuses for a match with no bonuses below decks, or pick a seed. The pause menu
+lists the controls. The results tally your points across rematches; the main
+menu's corner shows the game's version.
 
 
 ONLINE
@@ -68,7 +69,7 @@ Play online in the main menu, enter the server address you were given
 (ws://HOST:PORT or wss://HOST), then Create a room and share its code, or Join
 one by its code. The game remembers the last server and name you played under.
 Online rooms sink at the pace the server sets, fast unless its host chose the
-paced clock.
+paced clock, and have bonuses unless its host turned them off.
 
 
 LICENSES
