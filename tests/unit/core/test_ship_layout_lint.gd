@@ -128,6 +128,22 @@ func _spot_problems(layout: ShipLayout) -> PackedStringArray:
 	return found
 
 
+## Every room of [param layout]'s below her main deck — its floor under zero — without
+## exactly one bonus spot (#312), described: each such room has one, and one only.
+func _room_spot_problems(layout: ShipLayout) -> PackedStringArray:
+	var spots := PackedInt32Array()
+	spots.resize(layout.rooms.size())
+	for spot: ShipBonusSpot in layout.bonus_spots:
+		if spot.room >= 0 and spot.room < layout.rooms.size():
+			spots[spot.room] += 1
+	var found := PackedStringArray()
+	for index in layout.rooms.size():
+		var room := layout.rooms[index]
+		if room.floor_height < 0.0 and spots[index] != 1:
+			found.append("room %d, %s: %d bonus spots, not one" % [index, room.name, spots[index]])
+	return found
+
+
 ## Whether [param point] lies on or under one of [param layout]'s stairs and ramps:
 ## inside its plan, from [param step] under its foot up to [param step] over it there.
 func _on_a_stair(layout: ShipLayout, point: Vector3, step: float) -> bool:
@@ -450,22 +466,18 @@ func test_every_bonus_spot_lies_on_a_floor_in_a_room_below_her_main_deck() -> vo
 		assert_eq(_spot_problems(layouts[path]), PackedStringArray(), path)
 
 
-## The steamer, the default ship, has one bonus spot in each room below her main deck,
-## 25 of them (#308); every ship has hers from #312.
-func test_the_steamer_has_a_bonus_spot_in_each_room_below_her_main_deck() -> void:
-	var layout := SimFixtures.steamer()
-	var spots := PackedInt32Array()
-	spots.resize(layout.rooms.size())
-	for spot: ShipBonusSpot in layout.bonus_spots:
-		spots[spot.room] += 1
+## Every ship has one bonus spot in each room below her main deck, written by her generator
+## and carried by her authoring scene where she has one (#312), so bonuses come aboard
+## whichever ship is picked.
+func test_every_room_below_her_main_deck_has_one_bonus_spot() -> void:
+	var layouts := _layouts()
 	var below := 0
-	for index in layout.rooms.size():
-		var room := layout.rooms[index]
-		if room.floor_height < 0.0:
-			below += 1
-			assert_eq(spots[index], 1, "%s: one bonus spot" % room.name)
-	assert_eq(below, 25, "her rooms below her main deck")
-	assert_eq(layout.bonus_spots.size(), below, "and none above it")
+	for path: String in layouts:
+		var layout: ShipLayout = layouts[path]
+		assert_eq(_room_spot_problems(layout), PackedStringArray(), path)
+		for room: ShipRoom in layout.rooms:
+			below += 1 if room.floor_height < 0.0 else 0
+	assert_gt(below, 0, "her rooms below her main deck")
 
 
 func test_the_bonus_spot_rule_bites() -> void:
@@ -531,6 +543,36 @@ func test_the_bonus_spot_rule_bites() -> void:
 			_spot_problems(spotted.call(point, case[1])),
 			PackedStringArray(["bonus spot 0 at %s: %s" % [point, case[2]]])
 		)
+
+
+## A room below her main deck has one bonus spot (#312): with none, or with two, the lint
+## fails it; a room on her main deck needs none. The flat deck with a deckhouse on her main
+## deck and a hold under it, test data.
+func test_the_one_spot_per_room_rule_bites() -> void:
+	var layout: ShipLayout = SimFixtures.deck().duplicate()
+	var deckhouse := ShipRoom.new()
+	deckhouse.name = &"deckhouse"
+	deckhouse.area = Rect2(8.0, -3.0, 4.0, 6.0)
+	var hold := ShipRoom.new()
+	hold.name = &"hold"
+	hold.area = Rect2(-6.0, -3.0, 12.0, 6.0)
+	hold.floor_height = -4.4
+	var rooms: Array[ShipRoom] = [deckhouse, hold]
+	layout.rooms = rooms
+	var told := {
+		0: PackedStringArray(["room 1, hold: 0 bonus spots, not one"]),
+		1: PackedStringArray(),
+		2: PackedStringArray(["room 1, hold: 2 bonus spots, not one"]),
+	}
+	for count: int in told:
+		var spots: Array[ShipBonusSpot] = []
+		for _spot in count:
+			var spot := ShipBonusSpot.new()
+			spot.point = Vector3(-2.0, -4.4, -1.0)
+			spot.room = 1
+			spots.append(spot)
+		layout.bonus_spots = spots
+		assert_eq(_room_spot_problems(layout), told[count], "%d in the hold" % count)
 
 
 func test_every_lower_deck_has_two_stairs_up() -> void:
