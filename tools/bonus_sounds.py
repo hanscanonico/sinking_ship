@@ -2,7 +2,7 @@
 
 Run from the repo's root:
 
-    python3 tools/gen_bonus_sounds.py
+    python3 tools/bonus_sounds.py
 
 It writes, as every sound of assets/audio/ is kept (assets/LICENSES.md) — mono 44.1 kHz
 16-bit WAV, peak-normalised to -1 dBFS — and the same bytes on every run:
