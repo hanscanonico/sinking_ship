@@ -1,5 +1,5 @@
-"""The free floor spot, one helper for every ship's generator to call (#307): the point
-of a room's floor where a thing can lie clear of all that stands there — where each room
+"""The free floor spot, one helper every ship's generator shares (#307): the point of a
+room's floor where a thing can lie clear of all that stands there — where each room
 below her main deck has its bonus spot. Every ship's generator writes her bonus spots
 through it (#308, #312).
 
@@ -51,10 +51,11 @@ def spots_below_decks(room_geo, plat_geo, ramp_geo, block_geo):
     bonus to lie."""
     spots = []
     for k, room in enumerate(room_geo):
-        if room[4] >= 0:
+        _x0, _x1, _z0, _z1, floor, name = room
+        if floor >= 0:
             continue
         at = free_floor_spot(room, plat_geo, ramp_geo, block_geo)
-        assert at is not None, "no free floor in the %s for a bonus spot" % room[5]
+        assert at is not None, "no free floor in the %s for a bonus spot" % name
         spots.append((k, at))
     return spots
 

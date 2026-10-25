@@ -128,22 +128,6 @@ func _spot_problems(layout: ShipLayout) -> PackedStringArray:
 	return found
 
 
-## Every room of [param layout]'s below her main deck — its floor under zero — without
-## exactly one bonus spot (#312), described: each such room has one, and one only.
-func _room_spot_problems(layout: ShipLayout) -> PackedStringArray:
-	var spots := PackedInt32Array()
-	spots.resize(layout.rooms.size())
-	for spot: ShipBonusSpot in layout.bonus_spots:
-		if spot.room >= 0 and spot.room < layout.rooms.size():
-			spots[spot.room] += 1
-	var found := PackedStringArray()
-	for index in layout.rooms.size():
-		var room := layout.rooms[index]
-		if room.floor_height < 0.0 and spots[index] != 1:
-			found.append("room %d, %s: %d bonus spots, not one" % [index, room.name, spots[index]])
-	return found
-
-
 ## Whether [param point] lies on or under one of [param layout]'s stairs and ramps:
 ## inside its plan, from [param step] under its foot up to [param step] over it there.
 func _on_a_stair(layout: ShipLayout, point: Vector3, step: float) -> bool:
@@ -171,6 +155,22 @@ func _in_a_blocker(layout: ShipLayout, point: Vector3, step: float) -> bool:
 		if inside and blocker.bottom <= point.y + step and blocker.top > point.y + LEVEL:
 			return true
 	return false
+
+
+## Every room of [param layout]'s below her main deck — its floor under zero — without
+## exactly one bonus spot (#312), described: each such room has one, and one only.
+func _room_spot_problems(layout: ShipLayout) -> PackedStringArray:
+	var spots := PackedInt32Array()
+	spots.resize(layout.rooms.size())
+	for spot: ShipBonusSpot in layout.bonus_spots:
+		if spot.room >= 0 and spot.room < layout.rooms.size():
+			spots[spot.room] += 1
+	var found := PackedStringArray()
+	for index in layout.rooms.size():
+		var room := layout.rooms[index]
+		if room.floor_height < 0.0 and spots[index] != 1:
+			found.append("room %d, %s: %d bonus spots, not one" % [index, room.name, spots[index]])
+	return found
 
 
 ## The first platform standing at the main deck's height — the origin's (D6).
