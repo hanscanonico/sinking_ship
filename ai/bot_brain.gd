@@ -219,6 +219,7 @@ func decide(view: BotView, tick: int) -> InputFrame:
 		_look = InputFrame.quantize_yaw(me["facing"])
 	var pose := view.pose()
 	_stand_on(view.up(), pose)
+	_footing.seat_rules = _props.rules(seen)
 	# As a player sees them, for the footing's probes too: broken railings, crates.
 	_floors.honour(_up, pose, seen)
 	# The route is followed from where its seen velocity carries it; the edges are kept
@@ -226,10 +227,10 @@ func decide(view: BotView, tick: int) -> InputFrame:
 	# past the grip angle, where it slides wherever it walks, from both.
 	var now_pos := _reckon(me)
 	_edge_from = _by_walks(me, seen["tick"], now_pos)
-	_edge_also = now_pos if pose.slope_deg() > _rules.grip_angle_deg else _edge_from
+	_edge_also = now_pos if _footing.slides(pose) else _edge_from
 	if me["state"] == PlayerState.Body.SWIMMING:
 		intent = Intent.SWIM_OUT
-		return _swim_out(seen, me, now_pos, pose, tick)
+		return _swim_out(me, now_pos, pose, tick)
 	var mark := view.entry(target)
 	if intent == Intent.SWIM_OUT:
 		# Out of the sea: a fresh look round on deck.
@@ -346,12 +347,10 @@ func _by_walks(me: Dictionary, seen_tick: int, reckoned: Vector3) -> Vector3:
 ## last think found (BotSwim), through the open water or the portal on the way to it
 ## first, looking where it swims. It presses on into the edge that stops it, which is
 ## what starts the climb.
-func _swim_out(
-	seen: Dictionary, me: Dictionary, now_pos: Vector3, pose: ShipPose, tick: int
-) -> InputFrame:
+func _swim_out(me: Dictionary, now_pos: Vector3, pose: ShipPose, tick: int) -> InputFrame:
 	if _think_in <= 0:
-		# By its own rules: more time, holding a ring that slows the cold.
-		_swim.find(me["cold"], now_pos, pose, _props.rules(seen))
+		# By its own rules: more time to swim, holding a ring that slows the cold.
+		_swim.find(me["cold"], now_pos, pose, _footing.seat_rules)
 		# With nowhere to make for, the next look round can wait a second.
 		_think_in = _profile.think_period if _swim.goal() != Vector3.INF else Ticks.RATE
 	_think_in -= 1
@@ -577,7 +576,7 @@ func _urgent(
 	elif (
 		bracing
 		and not me["exhausted"]
-		and _props.may_brace(seen)
+		and _footing.seat_rules.may_brace
 		and not _targeting.threat(seen, me).is_empty()
 	):
 		urgent = Intent.BRACE
@@ -990,7 +989,7 @@ func _near_low_side(me: Dictionary, now_pos: Vector3, pose: ShipPose, lurch: flo
 ## Whether the deck, tilted past the grip angle, would carry the bot toward water or
 ## an open edge within its edge margin.
 func _slipping(me: Dictionary, mark: Dictionary, now_pos: Vector3, pose: ShipPose) -> bool:
-	if not _edges_near or pose.slope_deg() <= _rules.grip_angle_deg:
+	if not _edges_near or not _footing.slides(pose):
 		return false
 	var away := BotFooting.away(_footing.dangers(now_pos, me["surface"], pose, mark, Vector2.ZERO))
 	var gravity := pose.ship_gravity(_rules.gravity)
@@ -1038,7 +1037,7 @@ func _going_under(legs: Array[WalkGraph.Portal], pose: ShipPose, below: float) -
 ## grip angle, where the bot first gets uphill of it so that its shove goes
 ## downhill.
 func _approach(my_pos: Vector3, target_pos: Vector3, pose: ShipPose) -> Vector3:
-	if pose.slope_deg() <= _rules.grip_angle_deg:
+	if not _footing.slides(pose):
 		return target_pos
 	var gravity := pose.ship_gravity(_rules.gravity)
 	var uphill := -Vector3(gravity.x, 0.0, gravity.z).normalized()

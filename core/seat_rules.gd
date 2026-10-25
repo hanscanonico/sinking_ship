@@ -4,11 +4,11 @@ extends RefCounted
 ## jumps, the slopes it holds on and stands on, the share of a shove's knockback it takes,
 ## how high it climbs out of the sea and how fast up a ladder — and what the prop in its
 ## hands costs it (#273). The brawl rules' own for a seat with empty hands; a held prop's
-## kind sets its carry costs. Derived from what the seat has whenever it is asked, never
-## kept: the props say who holds what (PropState.holder), so a snapshot needs nothing more,
-## and the sim, the bots and the HUD each derive it from what they read. Every other rule —
-## the brace's hold and the floor it flips to among them — is the brawl rules', the same
-## for every seat.
+## kind sets its carry costs. Derived from what the seat has, never in the snapshot: the
+## props say who holds what (PropState.holder), so a snapshot needs nothing more, and the
+## sim, the bots and the HUD each derive it from what they read. One is shared by every
+## seat it stands for, so read it, never write it. Every other rule — the brace's hold and
+## the floor it flips to among them — is the brawl rules', the same for every seat.
 
 ## How high a jump lifts its feet above where it left the ground (BrawlRules.jump_height).
 var jump_height: float
@@ -57,14 +57,14 @@ static func of(rules: BrawlRules, held: PropKind) -> SeatRules:
 	return seat
 
 
-## The rules under [param rules] for [param seat] as [param snapshot] — of a match on
-## [param layout] — has it: by the prop it holds there, asked only of [param holdable]
+## The rules for [param seat] as [param snapshot] — of a match on [param layout] under
+## [param rules] — has it: by the prop it holds there, asked only of [param holdable]
 ## (GrabReach.holdable_of) when given.
 static func in_snapshot(
 	snapshot: Dictionary,
 	seat: int,
-	rules: BrawlRules,
 	layout: ShipLayout,
+	rules: BrawlRules,
 	holdable := PackedInt32Array()
 ) -> SeatRules:
 	var held := PropState.held_in(snapshot, seat, holdable)

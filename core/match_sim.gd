@@ -45,11 +45,11 @@ var _holdable := PackedInt32Array()
 ## hands (SeatRules): asked of the props as the tick starts and kept with them through it
 ## (PropState.holder is the truth), the two changed together (_hold).
 var _hands := PackedInt32Array()
-var _rules_of: Array[SeatRules] = []
+var _rules_by_seat: Array[SeatRules] = []
 ## The rules for a seat with empty hands, and for one holding a prop of each kind, made
 ## the first time a seat holds one.
-var _bare: SeatRules
-var _carrying: Dictionary[PropKind, SeatRules] = {}
+var _bare_rules: SeatRules
+var _held_rules: Dictionary[PropKind, SeatRules] = {}
 ## The seats of the piece the tick stands on that pressed Grab, in seat order.
 var _grabbing: Array[PlayerState] = []
 
@@ -87,7 +87,7 @@ func _init(match_config: MatchConfig) -> void:
 	for prop: ShipProp in config.ship.props:
 		_kinds.append(prop.prop_kind())
 	_holdable = GrabReach.holdable_of(config.ship)
-	_bare = SeatRules.of(_rules, null)
+	_bare_rules = SeatRules.of(_rules, null)
 
 
 ## A new match: seats shuffled onto the layout's spawns by the match stream, each
@@ -193,7 +193,7 @@ func step(frames: Array[InputFrame]) -> Array[SimEvent]:
 			_intent(here, framed)
 			_grabs(tick, events)
 			_brace_and_stamina(here)
-			_movement.forces(here, framed, _rules_of)
+			_movement.forces(here, framed, _rules_by_seat)
 			var feet_before := _movement.move(state, here, framed, tick, events)
 			_movement.ground(here, tick, events, feet_before)
 			_thaw(here)
@@ -435,8 +435,8 @@ func _jump(player: PlayerState, pose_now: ShipPose) -> void:
 func _count_hands() -> void:
 	_hands.resize(state.seats.size())
 	_hands.fill(-1)
-	_rules_of.resize(state.seats.size())
-	_rules_of.fill(_bare)
+	_rules_by_seat.resize(state.seats.size())
+	_rules_by_seat.fill(_bare_rules)
 	for prop: PropState in state.props:
 		if prop.holder != -1:
 			_hold(prop.holder, prop.prop)
@@ -447,12 +447,12 @@ func _count_hands() -> void:
 func _hold(seat: int, prop: int) -> void:
 	_hands[seat] = prop
 	if prop == -1:
-		_rules_of[seat] = _bare
+		_rules_by_seat[seat] = _bare_rules
 		return
 	var kind := _kinds[prop]
-	if not _carrying.has(kind):
-		_carrying[kind] = SeatRules.of(_rules, kind)
-	_rules_of[seat] = _carrying[kind]
+	if not _held_rules.has(kind):
+		_held_rules[kind] = SeatRules.of(_rules, kind)
+	_rules_by_seat[seat] = _held_rules[kind]
 
 
 ## The kind of prop [param player] holds, or null for empty hands.
@@ -465,7 +465,7 @@ func _held_kind(player: PlayerState) -> PropKind:
 ## the tick reads every rule that may differ from seat to seat here, never off the brawl
 ## rules.
 func _seat_rules(player: PlayerState) -> SeatRules:
-	return _rules_of[player.seat]
+	return _rules_by_seat[player.seat]
 
 
 ## Every held prop where its holder's feet are now, as the snapshot draws it.

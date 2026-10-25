@@ -939,7 +939,7 @@ func _entry(seat: int) -> Dictionary:
 func _seat_rules() -> SeatRules:
 	if _entry(_seat).is_empty():
 		return SeatRules.of(_rules, null)
-	return SeatRules.in_snapshot(_snapshot, _seat, _rules, _layout, _holdable)
+	return SeatRules.in_snapshot(_snapshot, _seat, _layout, _rules, _holdable)
 
 
 static func _low(signed_deg: float, positive: String, negative: String) -> String:

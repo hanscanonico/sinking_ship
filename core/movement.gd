@@ -176,16 +176,17 @@ func _reseat(player: PlayerState, tick: int, events: Array[SimEvent]) -> void:
 		player.fall_from = player.pos.y
 
 
-## Walking, friction and gravity, as velocity, each body by its own rules — its seat's
-## of [param seats], indexed by seat (SeatRules). Gravity is the world's, turned into
-## ship space by the pose; a grounded body feels its downhill part only once it has lost
-## its grip — staggered, or idle on a deck steeper than its grip angle. On a floor tilted
-## past its stand limit it does not walk: a brace holds where it is up to brace_holds_to,
-## the same for everyone, and a body that does not brace slides into the corner and walks
-## only along it (_slid). Wading slows a walk, the more the deeper (_wade_speed),
-## crawling to crawl_speed, and what a body holds to its walk cap (#273); swimming is
-## _swim's. A body frozen in a hit-stop feels none of it, and its stagger waits.
-func forces(live: Array[PlayerState], pose_now: ShipPose, seats: Array[SeatRules]) -> void:
+## Walking, friction and gravity, as velocity, each body by its own rules: its seat's of
+## [param rules_by_seat], indexed by seat (SeatRules). Gravity is the world's, turned
+## into ship space by the pose; a grounded body feels its downhill part only once it has
+## lost its grip — staggered, or idle on a deck steeper than its grip angle. On a floor
+## tilted past its stand limit it does not walk: a brace holds where it is up to
+## brace_holds_to, the same for everyone, and a body that does not brace slides into the
+## corner and walks only along it (_slid). Wading slows a walk, the more the deeper
+## (_wade_speed), crawling to crawl_speed, and what a body holds to its walk cap (#273);
+## swimming is _swim's. A body frozen in a hit-stop feels none of it, and its stagger
+## waits.
+func forces(live: Array[PlayerState], pose_now: ShipPose, rules_by_seat: Array[SeatRules]) -> void:
 	var dt := Ticks.SECONDS_PER_TICK
 	var gravity := pose_now.ship_gravity(_rules.gravity)
 	var downhill := Vector2(gravity.x, gravity.z) * dt
@@ -201,7 +202,7 @@ func forces(live: Array[PlayerState], pose_now: ShipPose, seats: Array[SeatRules
 		if player.body == PlayerState.Body.SWIMMING:
 			_swim(player, pose_now)
 			continue
-		var mine := seats[player.seat]
+		var mine := rules_by_seat[player.seat]
 		var planar := Vector2(player.vel.x, player.vel.z)
 		var wish := Vector2(player.last_move) / InputFrame.AXIS_MAX * _rules.walk_speed
 		if player.action == PlayerState.Action.CHARGE:

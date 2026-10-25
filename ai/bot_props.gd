@@ -8,7 +8,8 @@ extends RefCounted
 ## view shows the first; whether, of a profile that steals, it would charge a seat for the
 ## ring in its hands, once it would go for one itself; and the rules as they stand for it
 ## with what it holds (SeatRules) — whether it may brace, how fast its cold drains in the
-## sea, how high it climbs out of it. Nothing here rolls the bot's stream.
+## sea, how high it climbs out of it, the slope it holds on. Nothing here rolls the bot's
+## stream.
 
 var _seat: int
 var _profile: BotProfile
@@ -34,21 +35,10 @@ func _init(seat: int, profile: BotProfile, rules: BrawlRules, layout: ShipLayout
 	_holdable = GrabReach.holdable_of(layout)
 
 
-## The kind of what the bot holds in [param seen], or null for empty hands.
-func held_kind(seen: Dictionary) -> PropKind:
-	var prop := PropState.held_in(seen, _seat, _holdable)
-	return _layout.props[prop].prop_kind() if prop != -1 else null
-
-
 ## The rules as they stand for it in [param seen] (SeatRules), by what it holds there: as
 ## the sim has them for its seat as of its view.
 func rules(seen: Dictionary) -> SeatRules:
-	return SeatRules.of(_rules, held_kind(seen))
-
-
-## Whether what it holds in [param seen] lets it brace.
-func may_brace(seen: Dictionary) -> bool:
-	return rules(seen).may_brace
+	return SeatRules.in_snapshot(seen, _seat, _layout, _rules, _holdable)
 
 
 ## Whether, its profile stealing and wanting a ring as its last think found it, it would
