@@ -739,22 +739,22 @@ func flooded(surface: int, pose: ShipPose) -> bool:
 
 ## Whether water stands anywhere on the floor over [param area] (x/z) at [param height]
 ## under [param pose]: on its lowest corner in the world, its first to go under, by the
-## water of the cell its middle lies in — or the sea's, outside her. A floor lies in one
-## cell of hers (FloodCell), so its corners, out on its walls' middles, are read in that
-## one, never in the cells past them.
+## water of the cell its middle lies in — or the sea's, outside her. A room's floor lies in
+## one cell of hers (FloodCell), its area drawn out to its walls' middles, where the cells
+## past them begin: its corners are read in its middle's cell, never in those.
 func floor_wet(area: Rect2, height: float, pose: ShipPose) -> bool:
 	var lowest := Vector3(area.position.x, height, area.position.y)
-	var low := pose.world_height(lowest)
+	var lowest_world := pose.world_height(lowest)
 	for corner: Vector2 in [
 		Vector2(area.end.x, area.position.y), area.end, Vector2(area.position.x, area.end.y)
 	]:
 		var at := Vector3(corner.x, height, corner.y)
-		var up := pose.world_height(at)
-		if up < low:
+		var world := pose.world_height(at)
+		if world < lowest_world:
 			lowest = at
-			low = up
+			lowest_world = world
 	var middle := area.get_center()
-	return pose.wet_at(lowest, low, pose.cell_at(Vector3(middle.x, height, middle.y)))
+	return pose.wet_at(lowest, lowest_world, pose.cell_at(Vector3(middle.x, height, middle.y)))
 
 
 ## How high the middle of [param surface] stands in the world under [param pose].

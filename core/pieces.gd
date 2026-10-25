@@ -172,6 +172,13 @@ func piece_at(standing: PackedInt32Array, x: float) -> int:
 	return -1
 
 
+## The part of [param area] (x/z) on piece [param piece]: cut to the stretch a body stands
+## on (piece_at), as the piece's layout cuts her rooms — all of it while she is whole.
+func on_piece(area: Rect2, piece: int) -> Rect2:
+	var span := _walked(piece)
+	return _cut_area(area, span.x, span.y)
+
+
 ## The stretch of piece [param piece] a body stands on: its span less the tear at every
 ## end of it that is a cut.
 func _walked(piece: int) -> Vector2:

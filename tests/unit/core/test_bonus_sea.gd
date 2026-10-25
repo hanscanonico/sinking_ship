@@ -13,6 +13,14 @@ const FLOODS := 2.0
 ## Trimmed this far by the stern, below_decks' first hold has the sea over its after end
 ## and short of its spot (_trimmed).
 const BY_THE_STERN := -5.0
+## The weak hull's room (test_breaking) whose bonus spot _broken keeps: just fore of the cut
+## she parts at on her pinned seed, in a room astride it.
+const ASTRIDE := &"middle port cabin"
+
+## The weak hull's match (_broken), made once — it bakes her sinking — and the first tick
+## it stands in two pieces of her.
+static var _weak: MatchConfig
+static var _parted := -1
 
 
 ## Her sinking with every piece of her gone — wholly under the sea and going down — on
@@ -64,6 +72,48 @@ func _ebbing() -> SinkScenario:
 ## short of its spot, the second hold none.
 func _trimmed() -> SinkScenario:
 	return SimFixtures.scenario([[0.0, 0.0, BY_THE_STERN, 0.0], [600.0, 0.0, BY_THE_STERN, 0.0]])
+
+
+## The weak hull's match on her pinned breaks_in_two seed, which parts her in two
+## (test_breaking), played with [param rules] and two bonus spots alone: ASTRIDE's, then one
+## of the test's own on her main deck on the cut she parts at, clear of the sea as she
+## parts. Her sinking is baked once for the suite.
+func _broken(rules: BonusRules) -> MatchConfig:
+	if _weak == null:
+		_weak = MatchConfig.from_rules(
+			load("res://data/match/default.tres"),
+			PinnedSeeds.seed_named(&"breaks_in_two"),
+			2,
+			&"steamer_weak"
+		)
+		_weak.countdown_ticks = 0
+		var schedule := _weak.schedule()
+		_parted = _parting(schedule)
+		var layout: ShipLayout = _weak.ship.duplicate()
+		var kept: Array[ShipBonusSpot] = []
+		for spot: ShipBonusSpot in layout.bonus_spots:
+			if layout.rooms[spot.room].name == ASTRIDE:
+				kept.append(spot)
+		var on_the_cut := ShipBonusSpot.new()
+		var fore := schedule.pose_at(_parted).standing[1]
+		on_the_cut.point = Vector3(schedule.span_of(fore).x, 0.0, 0.0)
+		on_the_cut.room = kept[0].room
+		kept.append(on_the_cut)
+		layout.bonus_spots = kept
+		_weak.ship = layout
+	_weak.bonus_rules = rules
+	return _weak
+
+
+## The first tick [param schedule]'s match stands in more than one piece of her.
+static func _parting(schedule: SinkSchedule) -> int:
+	for event: SinkTimeline.Event in schedule.timeline().events:
+		if event.kind == SinkTimeline.Kind.PARTED:
+			var tick := schedule.physics_tick(event.seconds) - Ticks.RATE
+			while schedule.pose_at(tick).standing.size() < 2:
+				tick += 1
+			return tick
+	return -1
 
 
 ## The spots bonuses came to, in order, over the first 1.5 s of a match on below_decks' two
@@ -156,6 +206,57 @@ func test_a_bonus_is_lost_with_the_piece_of_her_it_lies_in() -> void:
 	assert_eq(_ticks(events, SimEvent.Kind.BONUS_CAME), [Ticks.RATE], "one at 1 s, none at 3 s")
 	assert_eq(_ticks(events, SimEvent.Kind.BONUS_LOST), [gone], "lost as she went")
 	_assert_told_lost(sim, events, gone)
+
+
+## Her floor torn away between two pieces of her takes a bonus lying on it: on the weak
+## hull, a Double life at the spot on her main deck on the cut she parts at — clear of the
+## sea under either piece's pose — is lost on the first tick she stands in two pieces.
+func test_a_bonus_is_lost_where_she_parts_under_it() -> void:
+	var config := _broken(SimFixtures.bonus_rules(600.0))
+	var sim := MatchSim.from_snapshot(MatchJump.snapshot(config, _parted - 1), config)
+	SimFixtures.bring_aboard(sim, 1)
+	var spot := config.ship.bonus_spots[1].point
+	var parted := sim.schedule.pose_at(_parted)
+	assert_eq(sim.pieces.piece_at(parted.standing, spot.x), -1, "between her pieces as she parts")
+	for piece: int in parted.standing:
+		assert_false(sim.surfaces.wet(spot, parted.of_piece(piece)), "dry in piece %d" % piece)
+	var events := SimFixtures.step(sim, {}, 2)
+	assert_eq(_ticks(events, SimEvent.Kind.BONUS_LOST), [_parted], "lost as she parts")
+
+
+## Once she has parted, a spot on a piece of her opens by the part of its room on that piece,
+## in that piece's water — the rest went with another piece of her. On the weak hull, her
+## middle port cabin, astride the cut, has its floor read wet whole under its fore piece's
+## pose, yet dry on that piece, with no water at its spot: a Double life planned then comes
+## to it — the spot on the cut, between her pieces, never open.
+func test_a_room_astride_her_parting_opens_by_its_part_on_the_spot_s_piece() -> void:
+	var config := _broken(SimFixtures.bonus_rules(600.0))
+	var sim := MatchSim.new(config)
+	var at := config.ship.bonus_spots[0]
+	var room := config.ship.rooms[at.room]
+	var astride := -1
+	for tick in range(_parted, _parted + 10 * Ticks.RATE):
+		var pose := sim.schedule.pose_at(tick)
+		var piece := sim.pieces.piece_at(pose.standing, at.point.x)
+		var posed := pose.of_piece(piece)
+		var part := sim.pieces.on_piece(room.area, piece)
+		if (
+			sim.surfaces.floor_wet(room.area, room.floor_height, posed)
+			and not sim.surfaces.floor_wet(part, room.floor_height, posed)
+			and not sim.surfaces.wet(at.point, posed)
+		):
+			astride = tick
+			break
+	assert_ne(astride, -1, "a tick its floor reads wet whole, dry on its piece")
+	if astride == -1:
+		return
+	var first := Ticks.to_seconds(astride) * config.scenario.clock
+	config = _broken(SimFixtures.bonus_rules(first))
+	sim = MatchSim.from_snapshot(MatchJump.snapshot(config, astride), config)
+	var came := _of(SimFixtures.step(sim), SimEvent.Kind.BONUS_CAME)
+	assert_eq(came.size(), 1, "it came")
+	if came.size() == 1:
+		assert_eq([came[0].tick, came[0].spot], [astride, 0], "to the cabin's spot")
 
 
 ## A spot is open only while no water stands anywhere on its room's floor: the sea over the

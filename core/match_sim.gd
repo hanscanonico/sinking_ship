@@ -308,34 +308,33 @@ func _rehome(pose_now: ShipPose, tick: int, events: Array[SimEvent]) -> void:
 
 ## Every bonus aboard the sea has taken by [param tick] is lost (#311): one at a spot no
 ## bonus may lie at any more — she has turned past its floor, or the piece of her it lies in
-## is gone (_spot_pose) — or with water standing at it as the water stands now under
-## [param pose_now] (Surfaces.wet).
+## is gone (_spot_piece) — or with water standing at it as the water stands now under
+## [param pose_now], its piece's (Surfaces.wet).
 func _bonuses_lost(pose_now: ShipPose, tick: int, events: Array[SimEvent]) -> void:
 	if state.bonuses.is_empty():
 		return
 	var kept: Array[BonusState] = []
 	for bonus: BonusState in state.bonuses:
-		var posed := _spot_pose(bonus.spot, pose_now, tick)
-		if posed == null or surfaces.wet(config.ship.bonus_spots[bonus.spot].point, posed):
+		var at := config.ship.bonus_spots[bonus.spot].point
+		var piece := _spot_piece(at, pose_now, tick)
+		if piece == -1 or surfaces.wet(at, pose_now.of_piece(piece)):
 			events.append(SimEvent.bonus_lost(tick, bonus.kind, bonus.spot))
 		else:
 			kept.append(bonus)
 	state.bonuses = kept
 
 
-## The pose bonus spot [param spot] stands in on [param tick] under [param pose_now] — that
-## of the piece of her it lies in — or null where no bonus may lie any more: on a piece
-## standing on any face but her decks (Faces), its floors no floors since she turned past
-## them; on a piece gone (SinkSchedule.piece_gone_tick); or on none, its floor torn away
-## between two (Pieces.piece_at).
-func _spot_pose(spot: int, pose_now: ShipPose, tick: int) -> ShipPose:
-	var piece := pieces.piece_at(pose_now.standing, config.ship.bonus_spots[spot].point.x)
+## The piece of her a bonus lying at [param at] lies in on [param tick] under
+## [param pose_now] — or -1 where none may lie any more: on a piece standing on any face
+## but her decks (Faces), its floors no floors since she turned past them; on a piece gone
+## (SinkSchedule.piece_gone_tick); or on none, its floor torn away between two
+## (Pieces.piece_at).
+func _spot_piece(at: Vector3, pose_now: ShipPose, tick: int) -> int:
+	var piece := pieces.piece_at(pose_now.standing, at.x)
 	if piece == -1 or state.up[piece] != Faces.Up.DECK:
-		return null
+		return -1
 	var gone := schedule.piece_gone_tick(piece)
-	if gone != -1 and tick >= gone:
-		return null
-	return pose_now.of_piece(piece)
+	return -1 if gone != -1 and tick >= gone else piece
 
 
 ## The bonuses the plan brings aboard on [param tick] (BonusPlan), each to the open spot its
@@ -354,20 +353,23 @@ func _bonuses_come(pose_now: ShipPose, tick: int, events: Array[SimEvent]) -> vo
 
 
 ## Her open bonus spots on [param tick] under [param pose_now], by their index in her
-## layout, in its order: those no bonus lies at, where one may still lie (_spot_pose), whose
-## room has no water standing anywhere on its floor (Surfaces.floor_wet) — as the water
-## stands now, never as the timeline has it next (D10).
+## layout, in its order: those no bonus lies at, where one may still lie (_spot_piece),
+## whose room has no water standing anywhere on its floor (Surfaces.floor_wet) — on the
+## part of it on that piece, in that piece's water (Pieces.on_piece), the rest gone with
+## another piece of her — as the water stands now, never as the timeline has it next (D10).
 func _open_spots(pose_now: ShipPose, tick: int) -> PackedInt32Array:
 	var open := PackedInt32Array()
 	for spot in config.ship.bonus_spots.size():
 		var lies := false
 		for bonus: BonusState in state.bonuses:
 			lies = lies or bonus.spot == spot
-		if lies:
+		var at := config.ship.bonus_spots[spot]
+		var piece := -1 if lies else _spot_piece(at.point, pose_now, tick)
+		if piece == -1:
 			continue
-		var posed := _spot_pose(spot, pose_now, tick)
-		var room := config.ship.rooms[config.ship.bonus_spots[spot].room]
-		if posed != null and not surfaces.floor_wet(room.area, room.floor_height, posed):
+		var room := config.ship.rooms[at.room]
+		var floor := pieces.on_piece(room.area, piece)
+		if not surfaces.floor_wet(floor, room.floor_height, pose_now.of_piece(piece)):
 			open.append(spot)
 	return open
 

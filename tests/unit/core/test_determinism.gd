@@ -307,8 +307,8 @@ func test_continuation_with_bonuses_in_play() -> void:
 		assert_true(covered[field], "the scene resumes from a bonus %s" % field)
 
 
-## Whether a bonus is lost to the sea (#311) in the second [param snapshots] has after
-## [param start]: what a continuation from it plays through (_continues).
+## Whether a bonus is lost to the sea (#311) within the second after [param start] of
+## [param snapshots]: the stretch a continuation from it plays through (_continues).
 func _lost_within(snapshots: Array[Dictionary], start: int) -> bool:
 	for at in range(start + 1, mini(start + Ticks.RATE, snapshots.size() - 1) + 1):
 		for event: Dictionary in snapshots[at]["events"]:

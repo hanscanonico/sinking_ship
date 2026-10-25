@@ -30,7 +30,7 @@ const SIDE_FACING := 0.999
 ## The loose cargo (SH10), where each crate starts; the match moves them.
 @export var props: Array[ShipProp] = []
 ## Rooms by name, for the lint, the walk graph, the HUD and the greybox; one rule reads
-## a room's floor: a bonus comes to its spot only while that is dry (#311, D6).
+## a room's floor: a bonus comes to its spot only while that is dry (SH37, #311).
 @export var rooms: Array[ShipRoom] = []
 ## Where bonuses can come aboard (#307): a point on a floor in each room below her main
 ## deck, naming its room — the spots the bonus plan brings them to (BonusPlan).

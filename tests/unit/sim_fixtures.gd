@@ -280,15 +280,15 @@ static func calm_until(seconds: float) -> SinkScenario:
 
 ## A sinking that floods below_decks' holds (#311): settling on an even keel from the start,
 ## the sea level with their floors [param floods] seconds in — still dry — and over them
-## from the next tick on, a metre deep a second later and so until [param ends].
-static func flooding(floods: float, ends := 600.0) -> SinkScenario:
+## from the next tick on, a metre deep a second later and so until 600 s.
+static func flooding(floods: float) -> SinkScenario:
 	var floors := deck().freeboard + HOLD_FLOOR
 	return scenario(
 		[
 			[0.0, 0.0, 0.0, 0.0],
 			[floods, floors, 0.0, 0.0],
 			[floods + 1.0, floors + 1.0, 0.0, 0.0],
-			[ends, floors + 1.0, 0.0, 0.0],
+			[600.0, floors + 1.0, 0.0, 0.0],
 		]
 	)
 

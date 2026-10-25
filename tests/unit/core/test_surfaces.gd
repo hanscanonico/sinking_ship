@@ -613,7 +613,9 @@ func test_a_room_s_floor_is_wet_by_its_own_cell_s_water_alone() -> void:
 
 
 ## [param pose] — her cells' — trimmed [param trim_deg] by the head, each cell's water at
-## its floor's lowest corner: dry, as SinkSchedule has an authored pose's cells.
+## its floor's lowest corner: dry, as SinkSchedule has an authored pose's cells. Worked out
+## here, as it works them out, because it keeps cells only for a sinking with no keyframes:
+## a trimmed one has the sea in her.
 func _by_the_head(pose: ShipPose, trim_deg: float) -> ShipPose:
 	var made := SimFixtures.copy_of(pose)
 	made.transform = Transform3D(Basis(Vector3.BACK, -deg_to_rad(trim_deg)), pose.transform.origin)
