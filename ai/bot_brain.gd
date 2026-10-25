@@ -350,8 +350,8 @@ func _swim_out(
 	seen: Dictionary, me: Dictionary, now_pos: Vector3, pose: ShipPose, tick: int
 ) -> InputFrame:
 	if _think_in <= 0:
-		# Its seconds of swimming left: more, holding a ring that slows the cold.
-		_swim.find(me["cold"] / _props.drain(seen), now_pos, pose)
+		# By its own rules: more time, holding a ring that slows the cold.
+		_swim.find(me["cold"], now_pos, pose, _props.rules(seen))
 		# With nowhere to make for, the next look round can wait a second.
 		_think_in = _profile.think_period if _swim.goal() != Vector3.INF else Ticks.RATE
 	_think_in -= 1

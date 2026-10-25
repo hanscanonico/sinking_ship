@@ -292,9 +292,10 @@ func _show_frost() -> void:
 
 ## Two dials, top right: the heel as the hull seen from astern (starboard on the
 ## right) and the trim as the hull seen from starboard (the bow on the right), each
-## against a level line, signed and naming the low side.
+## against a level line, signed and naming the low side — steep past the grip angle of
+## the seat it shows (SeatRules).
 func _draw_inclinometer(pose: ShipPose) -> void:
-	var colour := STEEP if pose.slope_deg() > _rules.grip_angle_deg else TEXT
+	var colour := STEEP if pose.slope_deg() > _seat_rules().grip_angle_deg else TEXT
 	var width := _canvas.size.x
 	var heel_at := Vector2(width - 215.0, 60.0)
 	var trim_at := Vector2(width - 80.0, 60.0)
@@ -449,7 +450,7 @@ func _draw_readouts(me: Dictionary, above_sea: float) -> void:
 		_canvas.draw_rect(Rect2(bar.position, Vector2(bar.size.x * share, bar.size.y)), fill)
 		_canvas.draw_rect(bar, Color(TEXT, 0.35), false, 1.5)
 		var lasting := (
-			warmth_words(_snapshot, _seat, _layout, _holdable) if slot == "Warmth" else ""
+			warmth_words(_snapshot, _seat, _layout, _rules, _holdable) if slot == "Warmth" else ""
 		)
 		if not lasting.is_empty():
 			var beside := at + Vector2(bar.end.x - at.x + 10.0, 0.0)
@@ -484,15 +485,20 @@ static func grab_words(
 
 
 ## What the warmth readout says beside its bar for [param seat] in [param snapshot] of a
-## match on [param layout]: holding a prop that keeps it afloat, how many times longer
-## its meter lasts in the sea; empty otherwise. Only [param holdable] are asked of.
+## match on [param layout] under [param rules]: holding a prop that keeps it afloat, how
+## many times longer its meter lasts in the sea (SeatRules.sea_cold_rate); empty
+## otherwise. Only [param holdable] are asked of.
 static func warmth_words(
-	snapshot: Dictionary, seat: int, layout: ShipLayout, holdable := PackedInt32Array()
+	snapshot: Dictionary,
+	seat: int,
+	layout: ShipLayout,
+	rules: BrawlRules,
+	holdable := PackedInt32Array()
 ) -> String:
 	var held := PropState.held_in(snapshot, seat, holdable)
 	if held == -1:
 		return ""
-	var rate := PropKind.sea_rate(layout.props[held].prop_kind())
+	var rate := SeatRules.of(rules, layout.props[held].prop_kind()).sea_cold_rate
 	if rate == 1.0:
 		return ""
 	return "%s ×%d" % [_prop_name(layout, held), roundi(1.0 / rate)]
@@ -870,11 +876,13 @@ func _text(
 
 ## Under the crosshair, while [param me] swims and pressing on where it looks would
 ## start a climb out, as [param here] finds one under [param pose] in the frame [param me]
-## is in: the move-forward key by the layout's label, Z on AZERTY.
+## is in, within its own climb reach as the sim's climb is (SeatRules): the move-forward
+## key by the layout's label, Z on AZERTY.
 func _draw_climb_prompt(me: Dictionary, here: Surfaces, pose: ShipPose) -> void:
 	if me["climb"] > 0 or me["stagger"] > 0:
 		return
-	if here.climb_out(me["pos"], Vector2.from_angle(_yaw), pose, _rules) == null:
+	var toward := Vector2.from_angle(_yaw)
+	if here.climb_out(me["pos"], toward, pose, _rules, _seat_rules().climb_reach) == null:
 		return
 	var at := _canvas.size * 0.5 + PROMPT_BELOW
 	_text(at, "Hold %s to climb" % _prompts.word(&"move_up"), TEXT, READOUT_TEXT)
@@ -924,6 +932,14 @@ func _entry(seat: int) -> Dictionary:
 		if entry["seat"] == seat:
 			return entry
 	return {}
+
+
+## The rules as they stand for the seat the HUD shows, as the snapshot has it (SeatRules):
+## the shared ones when there is none to show.
+func _seat_rules() -> SeatRules:
+	if _entry(_seat).is_empty():
+		return SeatRules.of(_rules, null)
+	return SeatRules.in_snapshot(_snapshot, _seat, _rules, _layout, _holdable)
 
 
 static func _low(signed_deg: float, positive: String, negative: String) -> String:

@@ -597,14 +597,18 @@ func test_a_ladder_climbs_out_of_reach_and_only_where_it_hangs() -> void:
 	var feet := Vector3(
 		middle.x, pose.water_height(Vector3(middle.x, 0.0, outboard)) - rules.swim_depth, outboard
 	)
-	var climb := surfaces.climb_out(feet, Vector2(0.0, -1.0), pose, rules)
+	var climb := surfaces.climb_out(feet, Vector2(0.0, -1.0), pose, rules, rules.climb_reach)
 	assert_not_null(climb, "up the ladder")
 	assert_eq(SimFixtures.name_of(layout, climb.surface), &"main deck")
 	assert_eq(climb.stand.y, 0.0)
-	assert_null(surfaces.climb_out(feet, Vector2(0.0, 1.0), pose, rules), "facing away")
+	assert_null(
+		surfaces.climb_out(feet, Vector2(0.0, 1.0), pose, rules, rules.climb_reach), "facing away"
+	)
 	var aft := feet + Vector3(-4.0, 0.0, 0.0)
-	assert_null(surfaces.climb_out(aft, Vector2(0.0, -1.0), pose, rules), "away from it")
-	var found := surfaces.nearest_climb(aft, pose, rules, 10.0)
+	assert_null(
+		surfaces.climb_out(aft, Vector2(0.0, -1.0), pose, rules, rules.climb_reach), "away from it"
+	)
+	var found := surfaces.nearest_climb(aft, pose, rules, 10.0, rules.climb_reach)
 	assert_not_null(found, "the ladder is the nearest way out")
 	assert_almost_eq(found.stand.x, ladder.from.x, 0.0001, "its nearer, after end")
 
@@ -655,11 +659,19 @@ func test_a_collapsed_deck_takes_its_ladder() -> void:
 	var feet := Vector3(
 		middle.x, pose.water_height(Vector3(middle.x, 0.0, outboard)) - rules.swim_depth, outboard
 	)
-	assert_not_null(surfaces.climb_out(feet, Vector2(0.0, -1.0), pose, rules), "up it, standing")
+	assert_not_null(
+		surfaces.climb_out(feet, Vector2(0.0, -1.0), pose, rules, rules.climb_reach),
+		"up it, standing"
+	)
 	pose.collapsed = [&"main deck"] as Array[StringName]
 	surfaces.honour(pose)
-	assert_null(surfaces.climb_out(feet, Vector2(0.0, -1.0), pose, rules), "not up it, gone")
-	assert_null(surfaces.nearest_climb(feet, pose, rules, 10.0), "nor anywhere near")
+	assert_null(
+		surfaces.climb_out(feet, Vector2(0.0, -1.0), pose, rules, rules.climb_reach),
+		"not up it, gone"
+	)
+	assert_null(
+		surfaces.nearest_climb(feet, pose, rules, 10.0, rules.climb_reach), "nor anywhere near"
+	)
 
 
 ## honour keeps the broken spans it is handed, not the caller's list: the same list
@@ -695,8 +707,13 @@ func test_nobody_climbs_onto_a_round_blocker_top() -> void:
 	var pose := SimFixtures.sim(1, sinking, layout).pose()
 	var beside := funnel.centre + Vector2(0.0, funnel.radius + rules.body_radius + 0.05)
 	var feet := Vector3(beside.x, sea - rules.swim_depth, beside.y)
-	assert_null(surfaces.climb_out(feet, Vector2(0.0, -1.0), pose, rules), "not up a funnel")
-	assert_null(surfaces.nearest_climb(feet, pose, rules, 10.0), "nor is it a way out")
+	assert_null(
+		surfaces.climb_out(feet, Vector2(0.0, -1.0), pose, rules, rules.climb_reach),
+		"not up a funnel"
+	)
+	assert_null(
+		surfaces.nearest_climb(feet, pose, rules, 10.0, rules.climb_reach), "nor is it a way out"
+	)
 
 
 func test_line_of_sight_is_blocked_by_walls_not_by_doorways() -> void:

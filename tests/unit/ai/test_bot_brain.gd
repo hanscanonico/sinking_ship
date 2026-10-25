@@ -650,7 +650,8 @@ func test_swimmer_swims_round_to_a_way_out_it_cannot_reach_straight() -> void:
 	var swimmer := sim.state.seats[0]
 	var reach := swimmer.cold * rules.swim_speed
 	assert_null(
-		sim.surfaces.nearest_climb(swimmer.pos, sim.pose(), rules, reach), "no way straight out"
+		sim.surfaces.nearest_climb(swimmer.pos, sim.pose(), rules, reach, rules.climb_reach),
+		"no way straight out"
 	)
 	var runner: MatchRunner = _with_bot(sim, _profile())[1]
 	var events := runner.run(Ticks.from_seconds(rules.cold_meter + 2.0))

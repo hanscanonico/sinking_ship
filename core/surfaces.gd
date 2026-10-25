@@ -779,17 +779,19 @@ func sunk(pose: ShipPose, depth: float) -> bool:
 
 ## Where a swimmer with its feet at [param feet] gets out of the sea under
 ## [param pose] pressing along [param toward] (a unit vector, x/z), a body as
-## [param rules] size it: up a standing ladder it is at climb_reach over the water
-## (ShipLayout.ladder_at), however high; else onto the surface past an edge within a
-## radius of its circle that holds it back and stands no more than climb_reach above
-## the water it swims in — a railing never stops it, a deck over its head too low to
-## stand up under does: in a pocket it climbs onto a dry face inside it (Q22), never up
-## through the ceiling or out over a wall under it. Either way the climb ends with the
-## circle on a surface a radius past that edge — a deck, a stair or a
-## box's top, never a round blocker's — under less than wade_depth of the sea, clear
-## of everything that would hold it back, with no wall across the way at that height.
-## Null when there is no way out there.
-func climb_out(feet: Vector3, toward: Vector2, pose: ShipPose, rules: BrawlRules) -> Climb:
+## [param rules] size it, climbing as high as [param climb_reach] over the water — its
+## own (SeatRules): up a standing ladder it is at that reach of (ShipLayout.ladder_at),
+## however high; else onto the surface past an edge within a radius of its circle that
+## holds it back and stands no more than that above the water it swims in — a railing
+## never stops it, a deck over its head too low to stand up under does: in a pocket it
+## climbs onto a dry face inside it (Q22), never up through the ceiling or out over a
+## wall under it. Either way the climb ends with the circle on a surface a radius past
+## that edge — a deck, a stair or a box's top, never a round blocker's — under less than
+## wade_depth of the sea, clear of everything that would hold it back, with no wall
+## across the way at that height. Null when there is no way out there.
+func climb_out(
+	feet: Vector3, toward: Vector2, pose: ShipPose, rules: BrawlRules, climb_reach: float
+) -> Climb:
 	var radius := rules.body_radius
 	var step := rules.step_height
 	var point := Vector2(feet.x, feet.z)
@@ -798,7 +800,7 @@ func climb_out(feet: Vector3, toward: Vector2, pose: ShipPose, rules: BrawlRules
 		var ladder := _layout.ladders[index]
 		if _gone[ladder.platform] == 1 or toward.dot(normal) <= 0.0:
 			continue
-		var at := _layout.ladder_hold(ladder, point, pose.water_height(feet) + rules.climb_reach)
+		var at := _layout.ladder_hold(ladder, point, pose.water_height(feet) + climb_reach)
 		if (at - point).dot(normal) <= 0.0 or point.distance_to(at) > radius * 2.0:
 			continue
 		var top := _platforms[ladder.platform].height
@@ -810,7 +812,7 @@ func climb_out(feet: Vector3, toward: Vector2, pose: ShipPose, rules: BrawlRules
 			climb.aim = _layout.ladder_aim(ladder, at, climb.stand, radius * 2.0)
 			return climb
 	var probe := point + toward * radius * 2.0
-	var limit := pose.water_height(feet) + rules.climb_reach
+	var limit := pose.water_height(feet) + climb_reach
 	var ledge := landing(Vector3(probe.x, limit, probe.y))
 	if ledge == NONE or _contains(ledge, feet):
 		return null
@@ -821,13 +823,16 @@ func climb_out(feet: Vector3, toward: Vector2, pose: ShipPose, rules: BrawlRules
 
 
 ## The way out of the sea nearest a swimmer with its feet at [param feet], within
-## [param within] across the water and with no wall across the swim: a ladder where
-## climb_out takes hold of it, or the point of a surface nearest the swimmer — a ramp's, moved
-## along it to the waterline — when that point stands within climb_reach above the sea and no deeper
-## than wade_depth under it, and climb_out finds a way up there. A surface whose
-## nearest point is out of reach is passed over, even where another part of it is
-## not. Null when there is none.
-func nearest_climb(feet: Vector3, pose: ShipPose, rules: BrawlRules, within: float) -> Climb:
+## [param within] across the water and with no wall across the swim, climbing as high as
+## [param climb_reach] over the water (climb_out): a ladder where climb_out takes hold of
+## it, or the point of a surface nearest the swimmer — a ramp's, moved along it to the
+## waterline — when that point stands within that reach above the sea and no deeper than
+## wade_depth under it, and climb_out finds a way up there. A surface whose nearest point
+## is out of reach is passed over, even where another part of it is not. Null when there
+## is none.
+func nearest_climb(
+	feet: Vector3, pose: ShipPose, rules: BrawlRules, within: float, climb_reach: float
+) -> Climb:
 	var point := Vector2(feet.x, feet.z)
 	var edges := PackedVector2Array()
 	var towards := PackedVector2Array()
@@ -836,7 +841,7 @@ func nearest_climb(feet: Vector3, pose: ShipPose, rules: BrawlRules, within: flo
 		var ladder := _layout.ladders[index]
 		if _gone[ladder.platform] == 1:
 			continue
-		var at := _layout.ladder_hold(ladder, point, water + rules.climb_reach)
+		var at := _layout.ladder_hold(ladder, point, water + climb_reach)
 		if (at - point).dot(_ladder_normals[index]) > 0.0:
 			edges.append(at)
 			towards.append(_ladder_normals[index])
@@ -847,13 +852,13 @@ func nearest_climb(feet: Vector3, pose: ShipPose, rules: BrawlRules, within: flo
 		var top := _tops[surface] - water
 		if (
 			_gone[surface] == 1
-			or _level_rects[surface] == 1 and (top < -rules.wade_depth or top > rules.climb_reach)
+			or _level_rects[surface] == 1 and (top < -rules.wade_depth or top > climb_reach)
 			or _is_round_top(surface)
 		):
 			continue
 		var at := _waterline_point(surface, point, water)
 		var above := height_at(surface, Vector3(at.x, 0.0, at.y)) - water
-		if above < -rules.wade_depth or above > rules.climb_reach or at.is_equal_approx(point):
+		if above < -rules.wade_depth or above > climb_reach or at.is_equal_approx(point):
 			continue
 		edges.append(at)
 		towards.append((at - point).normalized())
@@ -870,7 +875,7 @@ func nearest_climb(feet: Vector3, pose: ShipPose, rules: BrawlRules, within: flo
 		var touching := edges[index] - towards[index] * rules.body_radius
 		var from := Vector3(touching.x, feet.y, touching.y)
 		if not blocked(feet, from, rules.body_height, rules.step_height):
-			var climb := climb_out(from, towards[index], pose, rules)
+			var climb := climb_out(from, towards[index], pose, rules, climb_reach)
 			if climb != null:
 				return climb
 	return null

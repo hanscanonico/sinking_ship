@@ -38,6 +38,8 @@ var _lag: float
 ## and the cell of the pocket it has set out from, or -1: once it goes, it goes.
 var _legs: Array[WalkGraph.Portal] = []
 var _leaving := -1
+## The highest over the water the swimmer climbs onto, as the last look had its rules.
+var _climb_reach: float
 
 
 func _init(walk_graph: WalkGraph, rules: BrawlRules, profile: BotProfile) -> void:
@@ -60,15 +62,18 @@ func goal() -> Vector3:
 
 
 ## Looks for the way out of the sea of a swimmer at [param now_pos] with [param cold]
-## seconds of its cold meter left: the nearest way out within the swim that leaves,
-## straight across the water; failing that, the nearest by way of a point of open water
-## a leg or a few off that nothing hides from it; failing that, the nearest pocket it
-## knows within that swim; failing that, the nearest way out within a whole cold
-## meter's swim, so it keeps swimming while there is one; and in a flooded room with
-## none of those, the next portal of the walk graph's way to dry ground. With its head
-## in a pocket it takes a dry face there at once, and anything else only once its meter
-## is down to what that swim costs.
-func find(cold: float, now_pos: Vector3, pose: ShipPose) -> void:
+## seconds of its cold meter left, by its own rules [param mine] (SeatRules): the meter
+## lasting the longer the slower it drains, and climbing out up to its climb reach. The
+## nearest way out within the swim that leaves, straight across the water; failing that,
+## the nearest by way of a point of open water a leg or a few off that nothing hides from
+## it; failing that, the nearest pocket it knows within that swim; failing that, the
+## nearest way out within a whole cold meter's swim, so it keeps swimming while there is
+## one; and in a flooded room with none of those, the next portal of the walk graph's way
+## to dry ground. With its head in a pocket it takes a dry face there at once, and
+## anything else only once its meter is down to what that swim costs.
+func find(cold: float, now_pos: Vector3, pose: ShipPose, mine: SeatRules) -> void:
+	cold /= mine.sea_cold_rate
+	_climb_reach = mine.climb_reach
 	var reach := cold * _rules.swim_speed
 	var head := now_pos + Vector3.UP * _rules.head_height(_rules.height_at(_surfaces, now_pos))
 	waiting = false
@@ -89,7 +94,7 @@ func find(cold: float, now_pos: Vector3, pose: ShipPose) -> void:
 func _find_out(reach: float, now_pos: Vector3, pose: ShipPose) -> void:
 	via = Vector3.INF
 	_legs = []
-	way_out = _surfaces.nearest_climb(now_pos, pose, _rules, reach)
+	way_out = _surfaces.nearest_climb(now_pos, pose, _rules, reach, _climb_reach)
 	if way_out != null:
 		return
 	if _round(reach, now_pos, pose):
@@ -124,7 +129,7 @@ func _round(within: float, now_pos: Vector3, pose: ShipPose) -> bool:
 			if not _surfaces.line_of_sight(now_pos + eye, point + eye, pose):
 				continue
 			var leg := now_pos.distance_to(point)
-			var climb := _surfaces.nearest_climb(point, pose, _rules, within - leg)
+			var climb := _surfaces.nearest_climb(point, pose, _rules, within - leg, _climb_reach)
 			if climb == null or leg + point.distance_to(climb.stand) >= best:
 				continue
 			best = leg + point.distance_to(climb.stand)
@@ -147,7 +152,7 @@ func _length(now_pos: Vector3, pose: ShipPose) -> float:
 		return length + _across(from, way_out.stand)
 	for leg: WalkGraph.Portal in _legs:
 		for point: Vector3 in [leg.entry, leg.exit]:
-			if point.y > pose.water_height(point) - _rules.climb_reach:
+			if point.y > pose.water_height(point) - _climb_reach:
 				return length + _across(from, point)
 	return length
 
