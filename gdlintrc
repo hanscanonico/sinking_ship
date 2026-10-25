@@ -12,7 +12,7 @@ disable:
 # Surfaces is the only door to spatial questions (D6, D13), so every query a rule,
 # a bot or the HUD asks is one public method on it; its index (SH18) lands behind
 # the same door. gdtoolkit's default is 20.
-max-public-methods: 26
+max-public-methods: 27
 
 # MatchSim is the one tick (D2): the brawl, the sinking and the sea are each private
 # steps of it in §4's order, and together outgrow the default 1000 lines.

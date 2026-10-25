@@ -4,11 +4,11 @@ extends RefCounted
 ## on within a step, how high a surface is under a point, where a falling body
 ## lands, what holds a body back in the deck plane, whether a shove's line is
 ## blocked, whether one body's eyes see another's, whether a walk ends in a drop,
-## whether a point is wet, and where a swimmer climbs out of the sea. Surfaces are
-## numbered platforms first, then ramps, then blocker tops, each in layout order. A
-## blocker's top is stood on and landed on like a platform's; a wall is a blocker
-## and its doorways are the gaps between walls. Nothing here assumes a size or a deck
-## count, and nothing reads the layout's rooms. What still stands is the pose's to say
+## whether a point or a floor is wet, and where a swimmer climbs out of the sea.
+## Surfaces are numbered platforms first, then ramps, then blocker tops, each in layout
+## order. A blocker's top is stood on and landed on like a platform's; a wall is a
+## blocker and its doorways are the gaps between walls. Nothing here assumes a size or a
+## deck count, and nothing reads the layout's rooms. What still stands is the pose's to say
 ## (D7): a collapsed platform, its ladders and a failed railing are gone from every
 ## answer once honour() has been handed a pose that says so. The match's own state
 ## comes in the same way (SH10): the railings it has broken are gone like failed
@@ -735,6 +735,26 @@ func wet(ship_point: Vector3, pose: ShipPose) -> bool:
 ## Whether [param surface] is under the water at its middle.
 func flooded(surface: int, pose: ShipPose) -> bool:
 	return wet(_centre(surface), pose)
+
+
+## Whether water stands anywhere on the floor over [param area] (x/z) at [param height]
+## under [param pose]: on its lowest corner in the world, its first to go under, by the
+## water of the cell its middle lies in — or the sea's, outside her. A room's floor lies in
+## one cell of hers (FloodCell), its area drawn out to its walls' middles, where the cells
+## past them begin: its corners are read in its middle's cell, never in those.
+func floor_wet(area: Rect2, height: float, pose: ShipPose) -> bool:
+	var lowest := Vector3(area.position.x, height, area.position.y)
+	var lowest_world := pose.world_height(lowest)
+	for corner: Vector2 in [
+		Vector2(area.end.x, area.position.y), area.end, Vector2(area.position.x, area.end.y)
+	]:
+		var at := Vector3(corner.x, height, corner.y)
+		var world := pose.world_height(at)
+		if world < lowest_world:
+			lowest = at
+			lowest_world = world
+	var middle := area.get_center()
+	return pose.wet_at(lowest, lowest_world, pose.cell_at(Vector3(middle.x, height, middle.y)))
 
 
 ## How high the middle of [param surface] stands in the world under [param pose].

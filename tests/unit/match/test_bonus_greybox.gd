@@ -44,6 +44,21 @@ func test_each_bonus_aboard_is_drawn_at_its_spot() -> void:
 	assert_eq(_shown(drawn).size(), 0, "none aboard: none drawn")
 
 
+## A bonus the sea takes (#311) leaves the snapshot, and its drawing goes with it.
+func test_a_bonus_lost_to_the_sea_is_drawn_no_more() -> void:
+	var layout := SimFixtures.below_decks()
+	var bonuses := SimFixtures.bonus_rules(600.0)
+	var drawn: BonusGreybox = add_child_autofree(BonusGreybox.new())
+	drawn.setup(layout, bonuses)
+	var sim := SimFixtures.bonus_sim(bonuses, 1, layout, SimFixtures.flooding(1.0))
+	SimFixtures.bring_aboard(sim, 0)
+	drawn.show_bonuses(sim.snapshot())
+	assert_eq(_shown(drawn).size(), 1, "drawn while it lies dry")
+	SimFixtures.step(sim, {}, Ticks.RATE + 2)
+	drawn.show_bonuses(sim.snapshot())
+	assert_eq(_shown(drawn).size(), 0, "lost to the sea: drawn no more")
+
+
 func test_a_match_without_bonuses_draws_none() -> void:
 	var drawn: BonusGreybox = add_child_autofree(BonusGreybox.new())
 	drawn.setup(SimFixtures.below_decks(), null)

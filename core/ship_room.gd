@@ -2,8 +2,9 @@ class_name ShipRoom
 extends Resource
 ## A named room in ship space (D6): an annotation over the platforms it stands on and
 ## the walls round it, read by the lint, the bots' walk graph, the HUD and the
-## greybox. No rule reads it — the walls are blockers and stop bodies as blockers do,
-## and the water inside is its cells' own, each at its level (D7).
+## greybox. One rule reads it, and only its floor: a bonus comes to the room's spot only
+## while no water stands anywhere on it (#311). The walls are blockers and stop bodies as
+## blockers do, and the water inside is its cells' own, each at its level (D7).
 
 
 ## A gap in a room's walls along one of its sides: a doorway, open, never closed.

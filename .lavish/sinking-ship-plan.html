@@ -771,7 +771,9 @@ var buttons: int</pre>
           walkable. <strong>A ceiling is not data</strong> until SH32: the platform above is the ceiling (a roof
           you can stand on is already a platform over walls), and nothing in the rules looks up. A
           <code>ShipRoom</code> annotation — name, area, floor — names a room for the lint, the walk
-          graph, the HUD and the drawing; the rules never read it. Walls stop bodies and shoves exactly
+          graph, the HUD and the drawing; the rules never read it, but for one question since SH37
+          (2026-10-25, #311): whether water stands anywhere on its floor, asked of
+          <code>Surfaces</code>, which decides if a bonus may come to its spot. Walls stop bodies and shoves exactly
           as blockers do: a body slammed into a wall stops, it never vaults one.</p>
           <p class="text-sm mt-2 max-w-3xl"><strong>The ship's structure (rev 4).</strong> From SH24 the
           same data carries what the physics reads: <strong>hull sections</strong> (the outline of

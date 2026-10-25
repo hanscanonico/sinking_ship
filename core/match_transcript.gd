@@ -5,16 +5,18 @@ extends RefCounted
 ## per sinking event — the physics' flooding, filling and spilling cells and her going —
 ## per railing broken, per prop afloat and per prop lost, per prop grabbed, let go of or
 ## knocked loose (#273), per seat a falling funnel knocks down, and per bonus come aboard,
-## taken or spent (#307), by its kind's title once the transcript knows the match's
-## (bonuses); one for the end; and where her sinking stood then, in physics time, how its
-## bake ends and the worst her bending came to:
+## taken, spent (#307) or lost to the sea (#311), by its kind's title once the transcript
+## knows the match's (bonuses); one for the end; and where her sinking stood then, in
+## physics time, how its bake ends and the worst her bending came to:
 ##   hit 00:21.4 · starboard · x 5.2…9.0 m · 0.034 m²
 ##   must 8 thrown · 2 bakes · rung 3
 ##   00:20.0 Double life aboard · spot 9
 ##   00:41.3 seat 2 takes Double life · spot 9
 ##   00:52.3 seat 4 out · cold · place 6
 ##   00:58.1 seat 2's Double life spent
+##   01:00.0 Double life aboard · spot 3
 ##   01:02.1 hold_bilge flooding
+##   01:20.4 Double life lost · spot 3
 ##   01:31.0 seat 1 out · cold · place 5 · credit crate 2
 ##   02:21.0 seat 3 out · with her · place 2
 ##   winner seat 2 at 02:21.0 · digest 9f3c…
@@ -167,6 +169,9 @@ func add(events: Array[SimEvent]) -> void:
 			SimEvent.Kind.DOUBLE_LIFE_SPENT:
 				var spent := "%s seat %d's %s spent"
 				_lines.append(spent % [clock(event.tick), event.seat, _titled(event.bonus)])
+			SimEvent.Kind.BONUS_LOST:
+				var lost := "%s %s lost · spot %d"
+				_lines.append(lost % [clock(event.tick), _titled(event.bonus), event.spot])
 			SimEvent.Kind.PLUNGE_BEGAN:
 				_lines.append("%s the plunge%s" % [clock(event.tick), _of_piece(event)])
 			SimEvent.Kind.CELL_FLOODING:

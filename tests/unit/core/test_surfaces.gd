@@ -583,6 +583,67 @@ func test_a_floor_under_the_sea_in_a_dry_cell_is_dry() -> void:
 		)
 
 
+## A room's floor lies in one cell of hers (FloodCell), its area out to its walls' middles,
+## where the cells past them begin: whether water stands anywhere on it (#311) is read in
+## its own cell alone. The steamer's cabin corridor trimmed by the head, its lowest corners
+## forward on the cell past its fore wall: water there leaves the corridor's floor dry; its
+## own cell's water over that corner wets it.
+func test_a_room_s_floor_is_wet_by_its_own_cell_s_water_alone() -> void:
+	var layout := _steamer()
+	var corridor: ShipRoom = null
+	for room: ShipRoom in layout.rooms:
+		if corridor == null and room.name == &"cabin corridor":
+			corridor = room
+	var area := corridor.area
+	var height := corridor.floor_height
+	var middle := Vector3(area.get_center().x, height, area.get_center().y)
+	var fore := Vector3(area.end.x, height, area.position.y)
+	var sim := SimFixtures.sim(1, SinkScenario.new(), layout)
+	var trimmed := _by_the_head(sim.pose(), 2.0)
+	var own := trimmed.cell_at(middle)
+	var past := trimmed.cell_at(fore)
+	assert_ne(past, own, "its fore corners lie in the cell past its fore wall")
+	assert_ne(past, CellMap.NONE)
+	assert_false(sim.surfaces.floor_wet(area, height, trimmed), "dry, every cell dry")
+	var next_door := _with_level(trimmed, past, trimmed.world_height(fore) + 1.0)
+	assert_true(sim.surfaces.wet(fore, next_door), "water past its wall over its fore corner")
+	assert_false(sim.surfaces.floor_wet(area, height, next_door), "its floor dry all the same")
+	var own_water := _with_level(trimmed, own, trimmed.world_height(fore) + 0.05)
+	assert_true(sim.surfaces.floor_wet(area, height, own_water), "its own cell's water over it")
+
+
+## [param pose] — her cells' — trimmed [param trim_deg] by the head, each cell's water at
+## its floor's lowest corner: dry, as SinkSchedule has an authored pose's cells. Worked out
+## here, as it works them out, because it keeps cells only for a sinking with no keyframes:
+## a trimmed one has the sea in her.
+func _by_the_head(pose: ShipPose, trim_deg: float) -> ShipPose:
+	var made := SimFixtures.copy_of(pose)
+	made.transform = Transform3D(Basis(Vector3.BACK, -deg_to_rad(trim_deg)), pose.transform.origin)
+	var levels := PackedFloat64Array()
+	for cell in pose.cells.count():
+		var box := pose.cells.box_of(cell)
+		var lowest := INF
+		for corner: Vector3 in [
+			box.position,
+			box.position + Vector3(box.size.x, 0.0, 0.0),
+			box.position + Vector3(0.0, 0.0, box.size.z),
+			box.position + Vector3(box.size.x, 0.0, box.size.z),
+		]:
+			lowest = minf(lowest, made.world_height(corner))
+		levels.append(lowest)
+	made.levels = levels
+	return made
+
+
+## A copy of [param pose] with cell [param cell]'s water at world height [param level].
+func _with_level(pose: ShipPose, cell: int, level: float) -> ShipPose:
+	var made := SimFixtures.copy_of(pose)
+	var levels := PackedFloat64Array(pose.levels)
+	levels[cell] = level
+	made.levels = levels
+	return made
+
+
 func test_a_ladder_climbs_out_of_reach_and_only_where_it_hangs() -> void:
 	# At the start the main deck stands 3.4 m out of the sea, past any edge's reach:
 	# up the starboard boarding ladder, and nowhere else along that side.

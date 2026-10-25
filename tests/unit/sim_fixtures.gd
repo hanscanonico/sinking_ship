@@ -278,6 +278,21 @@ static func calm_until(seconds: float) -> SinkScenario:
 	return scenario([[0.0, 0.0, 0.0, 0.0], [seconds, 0.0, 0.0, 0.0]])
 
 
+## A sinking that floods below_decks' holds (#311): settling on an even keel from the start,
+## the sea level with their floors [param floods] seconds in — still dry — and over them
+## from the next tick on, a metre deep a second later and so until 600 s.
+static func flooding(floods: float) -> SinkScenario:
+	var floors := deck().freeboard + HOLD_FLOOR
+	return scenario(
+		[
+			[0.0, 0.0, 0.0, 0.0],
+			[floods, floors, 0.0, 0.0],
+			[floods + 1.0, floors + 1.0, 0.0, 0.0],
+			[600.0, floors + 1.0, 0.0, 0.0],
+		]
+	)
+
+
 ## The flat deck with [param holds] holds under it (#307): rooms below her main deck,
 ## HOLD_FLOOR down, side by side aft to fore from the deck's after end, HOLD_LENGTH long
 ## and a gap apart, each its own floor and one bonus spot in its middle — where hold i's
@@ -353,11 +368,17 @@ static func plain_kind() -> BonusKind:
 
 
 ## A match of [param seats] on [param layout] — below_decks' one hold when none is given —
-## played with [param rules], calm until [param ends] seconds.
+## played with [param rules], sunk as [param sinking] has her: calm until 600 s when none
+## is given.
 static func bonus_sim(
-	rules: BonusRules, seats := 1, layout: ShipLayout = null, ends := 600.0
+	rules: BonusRules, seats := 1, layout: ShipLayout = null, sinking: SinkScenario = null
 ) -> MatchSim:
-	var made := config(seats, calm_until(ends), 1, layout if layout != null else below_decks())
+	var made := config(
+		seats,
+		sinking if sinking != null else calm_until(600.0),
+		1,
+		layout if layout != null else below_decks()
+	)
 	made.bonus_rules = rules
 	return MatchSim.create(made)
 

@@ -173,6 +173,22 @@ func test_an_out_seat_loses_its_bonus() -> void:
 	assert_eq(sim.snapshot()["seats"][0]["bonus"], -1)
 
 
+## A bonus comes aboard as its tick ends, every press of that tick done: a press on the tick
+## it comes takes none — no snapshot has shown it yet — and the next press takes it, as the
+## snapshot that tick leaves shows it (D13).
+func test_a_bonus_comes_as_its_tick_ends() -> void:
+	var sim := SimFixtures.bonus_sim(SimFixtures.bonus_rules(1.0))
+	SimFixtures.place(sim, 0, BESIDE, 0.0)
+	SimFixtures.step(sim, {0: SimFixtures.frame(0)}, Ticks.RATE)
+	var events := SimFixtures.step(sim, {0: _grab(0)})
+	assert_eq(_of(events, SimEvent.Kind.BONUS_CAME).size(), 1, "it came on that tick")
+	assert_true(_of(events, SimEvent.Kind.BONUS_TAKEN).is_empty(), "the press on it took none")
+	assert_eq(sim.snapshot()["bonuses"].size(), 1, "the snapshot it leaves shows it")
+	SimFixtures.step(sim, {0: SimFixtures.frame(0)})
+	SimFixtures.step(sim, {0: _grab(0)})
+	assert_eq(sim.state.seats[0].bonus, 0, "and the next press takes it")
+
+
 ## The spot a bonus was taken from is open again: a later planned bonus may come there.
 func test_a_taken_bonus_s_spot_opens_again() -> void:
 	var sim := SimFixtures.bonus_sim(SimFixtures.bonus_rules(1.0, 2.0, 0.0, 2))

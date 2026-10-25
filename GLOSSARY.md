@@ -90,7 +90,8 @@ _Avoid_: disarmed, dropped
 Something that comes aboard during a match at a bonus spot in a dry room below her main
 deck. A Grab press takes it and uses it up at once, giving the seat that took it an edge,
 through a rule there already is, until that seat is out (Double life: until it is spent).
-A seat has one at a time.
+A seat has one at a time. One nobody takes is lost when the sea gets to it: water at its
+spot, her turned past its floor, or the piece of her it lies in gone.
 _Avoid_: power-up, pickup, item, perk, buff, boon, loot, stores (a room's name and a flood
 cell's kind)
 
@@ -101,6 +102,12 @@ what it changes for its taker. One data file each, as prop kinds are.
 **Bonus spot**:
 A point on a floor in a room below her main deck, one per such room, put there by her
 layout, where a bonus can come. The seed says which and when.
+
+**Open spot**:
+A bonus spot a planned bonus may come to now: no bonus lies there, no water stands anywhere
+on its room's floor — as the water stands now, never as it will (D10) — and the piece of her
+it lies in still stands, on her decks.
+_Avoid_: free spot, empty spot
 
 **Bonus plan**:
 The bonuses a match plans to bring aboard, drawn once at its start from a seeded stream of

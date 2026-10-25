@@ -18,8 +18,8 @@ extends RefCounted
 ## its cell's water lifts off its floor; BOWLED: a staggered body running into another
 ## and knocking it off its feet (Movement, §6); the props' (#273): a seat grabbing
 ## one, letting go of it, and a landed shove knocking it loose; and the bonuses' (#307): one
-## coming aboard on the plan (BonusPlan), a seat taking one, and a seat's Double life spent
-## as its cold meter ran out.
+## coming aboard on the plan (BonusPlan), a seat taking one, a seat's Double life spent
+## as its cold meter ran out, and one lost to the sea (#311).
 
 enum Kind {
 	SEAT_OUT,
@@ -68,6 +68,7 @@ enum Kind {
 	BONUS_CAME,
 	BONUS_TAKEN,
 	DOUBLE_LIFE_SPENT,
+	BONUS_LOST,
 }
 
 var kind: Kind
@@ -80,7 +81,8 @@ var tick: int
 ## the span, or -1. KNOCKED_DOWN: the seat a funnel landed on. BOWLED: the seat knocked
 ## off its feet. PROP_GRABBED, PROP_LET_GO, KNOCKED_LOOSE: the seat that took the prop,
 ## or held it. BONUS_TAKEN: the seat that took it. DOUBLE_LIFE_SPENT: the seat whose meter
-## filled again. The sinking's events, PROP_AFLOAT, PROP_LOST and BONUS_CAME: -1.
+## filled again. The sinking's events, PROP_AFLOAT, PROP_LOST, BONUS_CAME and BONUS_LOST:
+## -1.
 var seat: int
 var place: int
 var cause: PlayerState.Cause = PlayerState.Cause.NONE
@@ -109,11 +111,11 @@ var railing: int = -1
 ## the side, port or starboard. FUNNEL_STRAINING, FUNNEL_FALLING, KNOCKED_DOWN: the
 ## funnel. POWER_LOST, POWER_BACK: her generator.
 var cell: StringName
-## BONUS_CAME, BONUS_TAKEN, DOUBLE_LIFE_SPENT: the bonus's kind, by its index among the
-## bonus rules' kinds (BonusRules.kinds).
+## BONUS_CAME, BONUS_TAKEN, DOUBLE_LIFE_SPENT, BONUS_LOST: the bonus's kind, by its index
+## among the bonus rules' kinds (BonusRules.kinds).
 var bonus: int = -1
-## BONUS_CAME, BONUS_TAKEN: the bonus spot it lies at, by its index in the layout's bonus
-## spots.
+## BONUS_CAME, BONUS_TAKEN, BONUS_LOST: the bonus spot it lies at, by its index in the
+## layout's bonus spots.
 var spot: int = -1
 
 
@@ -321,6 +323,14 @@ static func bonus_taken(event_tick: int, taking: int, kind: int, at: int) -> Sim
 static func double_life_spent(event_tick: int, spending: int, kind: int) -> SimEvent:
 	var event := SimEvent.new(Kind.DOUBLE_LIFE_SPENT, event_tick, spending)
 	event.bonus = kind
+	return event
+
+
+## The bonus of [param kind] lying at bonus spot [param at] lost to the sea (#311).
+static func bonus_lost(event_tick: int, kind: int, at: int) -> SimEvent:
+	var event := SimEvent.new(Kind.BONUS_LOST, event_tick, -1)
+	event.bonus = kind
+	event.spot = at
 	return event
 
 

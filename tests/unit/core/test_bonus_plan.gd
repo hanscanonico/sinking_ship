@@ -3,7 +3,8 @@ extends GutTest
 ## stream of their own — the first at its time, each next an interval on, give or take its
 ## jitter, until her sinking's end — each at the open bonus spot its pick lands on, never
 ## more than the bonus rules' most aboard at once, and on the fast clock quickened with her
-## sinking. Until the sea decides (#311), a spot is open whenever no bonus lies there.
+## sinking. Here every hold is dry, so a spot is open whenever no bonus lies there; what the
+## sea decides (#311) is test_bonus_sea's.
 
 const RunMatch := preload("res://tools/run_match.gd")
 ## The tug's seats: she bakes her drawn hit quickest of the fleet.
