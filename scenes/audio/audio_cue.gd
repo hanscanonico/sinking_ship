@@ -36,6 +36,13 @@ enum Kind {
 	POUR,
 	## A prop taken in the hands, let go of, or knocked out of them (#273).
 	GRAB,
+	## A bonus taken (#307), used up at once by the seat that took it.
+	BONUS_TAKEN,
+	## A Double life spent (#307): a swimmer's cold meter filling again as it ran out.
+	DOUBLE_LIFE_SPENT,
+	## A bonus aboard humming (#307), kept up for as long as it lies there
+	## (CuePlanner.hums), never one of a step's cues.
+	HUM,
 }
 ## What a footfall or a landing comes down on.
 enum Ground { WOOD, METAL, WET }

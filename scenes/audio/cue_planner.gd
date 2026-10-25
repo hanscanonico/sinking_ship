@@ -2,11 +2,11 @@ class_name CuePlanner
 extends RefCounted
 ## Turns one step of the match into the sounds it makes (D12): the snapshot before
 ## it, the snapshot after it with the events it carries, and the ship's pose at
-## both ticks as SinkSchedule answers them (D7). Nothing else — no live seat, no
-## sim (D5). Its own memory, how far through a stride each seat is, how far each
-## crate has slid since it last scraped, how far the hull has strained since it
-## last complained and which of her water it has heard, is presentation state;
-## nothing it does reaches the sim.
+## both ticks as SinkSchedule answers them (D7); and a snapshot into the hums its
+## bonuses aboard keep up (hums). Nothing else — no live seat, no sim (D5). Its own
+## memory, how far through a stride each seat is, how far each crate has slid since
+## it last scraped, how far the hull has strained since it last complained and which
+## of her water it has heard, is presentation state; nothing it does reaches the sim.
 
 ## Metres between footfalls, so steps land with the drawn feet: each locomotion
 ## clip's speed times its length (walk 1.33 s, run 0.93 s), over two feet.
@@ -231,6 +231,18 @@ func plan(previous: Dictionary, current: Dictionary) -> Array[AudioCue]:
 	return cues
 
 
+## The hum of every bonus aboard [param snapshot] has (#307), from its bonus spot: sounds
+## kept up for as long as each lies there (MatchAudio), not cues of a step (plan).
+func hums(snapshot: Dictionary) -> Array[AudioCue]:
+	var found: Array[AudioCue] = []
+	for entry: Dictionary in snapshot["bonuses"]:
+		var hum := AudioCue.new(AudioCue.Kind.HUM, snapshot["tick"])
+		hum.positional = true
+		hum.position = _layout.bonus_spots[entry["spot"]].point
+		found.append(hum)
+	return found
+
+
 ## A footfall each stride while the feet are drawn walking or running, and a stroke
 ## each SWIM_STROKE while a swimmer is drawn swimming along; a body frozen in a
 ## hit-stop holds its stride without a sound. Wading, the steps come louder and
@@ -402,6 +414,10 @@ func _from_event(event: Dictionary, now: Dictionary, pose: ShipPose, cues: Array
 			cues.append(_at_seat(AudioCue.Kind.IMPACT, tick, now[seat]))
 		SimEvent.Kind.PROP_GRABBED, SimEvent.Kind.PROP_LET_GO, SimEvent.Kind.KNOCKED_LOOSE:
 			cues.append(_at_seat(AudioCue.Kind.GRAB, tick, now[seat]))
+		SimEvent.Kind.BONUS_TAKEN:
+			cues.append(_at_seat(AudioCue.Kind.BONUS_TAKEN, tick, now[seat]))
+		SimEvent.Kind.DOUBLE_LIFE_SPENT:
+			cues.append(_at_seat(AudioCue.Kind.DOUBLE_LIFE_SPENT, tick, now[seat]))
 		SimEvent.Kind.RAILING_BROKE:
 			var crack := AudioCue.new(AudioCue.Kind.CRACK, tick)
 			crack.positional = true
