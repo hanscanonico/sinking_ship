@@ -75,11 +75,11 @@ func add(events: Array[SimEvent]) -> void:
 			SimEvent.Kind.BONUS_CAME:
 				var kind := _kinds[event.bonus]
 				var room := _layout.rooms[_layout.bonus_spots[event.spot].room].name
-				_post("%s: %s" % [kind.title, room], kind.mark)
+				_in_colour(_post("%s: %s" % [kind.title, room]), kind)
 			SimEvent.Kind.BONUS_TAKEN:
 				var kind := _kinds[event.bonus]
 				var taker := "You" if event.seat == _own_seat else _fitted()[event.seat]
-				_post("%s took %s" % [taker, kind.title], kind.mark)
+				_in_colour(_post("%s took %s" % [taker, kind.title]), kind)
 
 
 ## Every line taken down.
@@ -119,19 +119,23 @@ func _process(delta: float) -> void:
 		label.modulate.a = clampf((LINE_SECONDS - age) / FADE_SECONDS, 0.0, 1.0)
 
 
-## Posts [param text], in [param colour] when one is given.
-func _post(text: String, colour: Variant = null) -> void:
+## Posts [param text]: the newest line, which it returns.
+func _post(text: String) -> Label:
 	var label := Label.new()
 	label.text = text
 	label.theme_type_variation = UiTheme.HUD_LABEL
-	if colour != null:
-		label.add_theme_color_override(&"font_color", colour)
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_box.add_child(label)
 	_ages[label] = 0.0
 	while _ages.size() > MAX_LINES:
 		_drop(_box.get_child(0) as Label)
+	return label
+
+
+## Writes [param line] in the colour of bonus [param kind].
+static func _in_colour(line: Label, kind: BonusKind) -> void:
+	line.add_theme_color_override(&"font_color", kind.mark)
 
 
 func _drop(label: Label) -> void:
