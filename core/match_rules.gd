@@ -1,8 +1,8 @@
 class_name MatchRules
 extends Resource
 ## How a match is set up (data/match/*.tres): seats, the bot fill, the countdown,
-## and which rules, ship and sinking scenario it plays — the menu's default; the seat
-## counts a match takes are its ship's (ShipLayout).
+## and which rules, ship and sinking scenario it plays, and how bonuses come aboard — the
+## menu's default; the seat counts a match takes are its ship's (ShipLayout).
 
 ## What a seat plays for (#60): to be the last one in — the battle royale, over once one
 ## seat is left — or to stay in as long as she lasts — survival, over once none is left,
@@ -24,6 +24,9 @@ enum Goal { LAST_STANDING, SURVIVAL }
 @export var fast_clock: float = 2.0
 ## What the match is played for: the battle royale unless the data says survival.
 @export var goal: Goal = Goal.LAST_STANDING
+## How bonuses come aboard (#307), the match config's to check (MatchConfig.problems); null
+## for matches without bonuses.
+@export var bonus_rules: BonusRules
 
 
 func problems() -> PackedStringArray:

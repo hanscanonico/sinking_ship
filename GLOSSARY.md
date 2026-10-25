@@ -102,6 +102,17 @@ what it changes for its taker. One data file each, as prop kinds are.
 A point on a floor in a room below her main deck, one per such room, put there by her
 layout, where a bonus can come. The seed says which and when.
 
+**Bonus plan**:
+The bonuses a match plans to bring aboard, drawn once at its start from a seeded stream of
+their own, on her sinking's clock: when each comes, its kind, and which open spot it takes.
+A planned bonus with the most already aboard, or no spot open, never comes.
+_Avoid_: spawn schedule, drop table, loot table
+
+**Spare meter**:
+What Double life gives its taker: a second cold meter, filling the first again as it runs
+out in the sea, once. Unspent, it counts as a full meter more of cold left in the last swim.
+_Avoid_: extra life, respawn
+
 ### Watching her again
 
 **Replay**:

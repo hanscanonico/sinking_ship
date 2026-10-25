@@ -155,8 +155,9 @@ func test_no_grab_while_staggered_frozen_swimming_or_shoving() -> void:
 		assert_eq(sim.state.props[0].holder, -1, what)
 
 
-## The HUD's prompt asks GrabReach.would_take of the snapshot it draws: the prop it names
-## is the one the next press takes, and none is named while the hands are full.
+## The HUD's prompt asks GrabReach.would_press of the snapshot it draws: the prop it names
+## is the one the next press takes, and with the hands full it names none to take but the
+## one to let go of.
 func test_the_reach_query_names_what_the_next_press_takes() -> void:
 	var props: Array[ShipProp] = [
 		SimFixtures.lifebuoy(Vector3(1.0, 0.0, 0.6)),
@@ -164,22 +165,23 @@ func test_the_reach_query_names_what_the_next_press_takes() -> void:
 		SimFixtures.lifebuoy(Vector3(-3.0, 0.0, 0.0)),
 	]
 	var layout := SimFixtures.crated(props)
-	var rules := SimFixtures.rules()
+	var reach := GrabReach.new(layout, SimFixtures.rules())
 	for case: Array in [
 		[Vector3.ZERO, 0.0], [Vector3(-2.0, 0.0, 0.0), 180.0], [Vector3.ZERO, 90.0]
 	]:
 		var sim := SimFixtures.sim(1, null, layout)
 		SimFixtures.place(sim, 0, case[0], case[1])
 		SimFixtures.step(sim, {0: SimFixtures.frame(0)})
-		var named := GrabReach.would_take(sim.snapshot(), 0, layout, rules, sim.surfaces)
+		var named := reach.would_press(sim.snapshot(), 0, sim.surfaces)
 		SimFixtures.step(sim, {0: _grab(0)})
 		var taken := -1
 		for crate: PropState in sim.state.props:
 			if crate.holder == 0:
 				taken = crate.prop
-		assert_eq(named, taken, "at %s facing %s" % case)
+		assert_eq(named.prop, taken, "at %s facing %s" % case)
 		if taken != -1:
-			assert_eq(GrabReach.would_take(sim.snapshot(), 0, layout, rules, sim.surfaces), -1)
+			var full := reach.would_press(sim.snapshot(), 0, sim.surfaces)
+			assert_eq([full.prop, full.let_go], [-1, taken], "its hands full: it lets go")
 
 
 ## A ring afloat at hand — knocked loose where the water rises — is taken off the water

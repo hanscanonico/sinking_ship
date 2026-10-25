@@ -7,7 +7,7 @@ extends RefCounted
 ## and swim in that piece's space and frame, under its pose; a body that leaves its
 ## piece in the air or the sea over another is carried across through the world.
 
-const SNAPSHOT_VERSION := 11
+const SNAPSHOT_VERSION := 12
 
 var config: MatchConfig
 var schedule: SinkSchedule
@@ -37,10 +37,9 @@ var _hitstop_ticks: int
 var _hitstop_charged_ticks: int
 var _hitstop_braced_ticks: int
 var _credit_window_ticks: int
-## Per prop of the layout, its kind (#273); and the props a hand may hold
-## (GrabReach.holdable_of).
+## Per prop of the layout, its kind (#273); and what a Grab press does (GrabReach).
 var _kinds: Array[PropKind] = []
-var _holdable := PackedInt32Array()
+var _reach: GrabReach
 ## Per seat, the prop it holds, or -1, and the rules as they stand for it with that in its
 ## hands (SeatRules): asked of the props as the tick starts and kept with them through it
 ## (PropState.holder is the truth), the two changed together (_hold).
@@ -52,6 +51,9 @@ var _bare_rules: SeatRules
 var _held_rules: Dictionary[PropKind, SeatRules] = {}
 ## The seats of the piece the tick stands on that pressed Grab, in seat order.
 var _grabbing: Array[PlayerState] = []
+## The bonuses the match plans to bring aboard (#307), drawn once from the config and the
+## seed: none for a match without bonuses.
+var _plan: BonusPlan
 
 
 func _init(match_config: MatchConfig) -> void:
@@ -86,8 +88,11 @@ func _init(match_config: MatchConfig) -> void:
 	_credit_window_ticks = Ticks.from_seconds(_rules.credit_window)
 	for prop: ShipProp in config.ship.props:
 		_kinds.append(prop.prop_kind())
-	_holdable = GrabReach.holdable_of(config.ship)
+	_reach = GrabReach.new(config.ship, _rules, config.bonus_rules)
 	_bare_rules = SeatRules.of(_rules, null)
+	_plan = BonusPlan.drawn(
+		config.bonus_rules, config.match_seed, config.scenario.clock, schedule.end_tick()
+	)
 
 
 ## A new match: seats shuffled onto the layout's spawns by the match stream, each
@@ -173,6 +178,7 @@ func step(frames: Array[InputFrame]) -> Array[SimEvent]:
 	var pose_now := schedule.pose_at(tick)
 	_sinking_events(pose_now, tick, events)
 	_rehome(pose_now, tick, events)
+	_bonuses_come(tick, events)
 	var playing := tick >= config.countdown_ticks
 	var exits: Array[PlayerState] = []
 	var going: Array[PlayerState] = []
@@ -211,14 +217,18 @@ func step(frames: Array[InputFrame]) -> Array[SimEvent]:
 		for player: PlayerState in _live_seats():
 			if not player in going:
 				left.append(player)
-		var cold := MatchVerdict.by_the_cold(left, _sunk.bind(pose_now.standing, framed_of))
+		# The spares of the seats the last swim may put out, as they stand before any goes out
+		# — its bonus goes with a seat: one going down with her has none to count.
+		var spares := _spares(left)
+		var sunk := _sunk.bind(pose_now.standing, framed_of)
+		var cold := MatchVerdict.by_the_cold(left, sunk, spares)
 		for player: PlayerState in going:
 			_out(player, tick, events, PlayerState.Cause.WITH_HER)
 			exits.append(player)
 		for player: PlayerState in cold:
 			_out(player, tick, events)
 			exits.append(player)
-		MatchVerdict.place(state, exits, tick, events, config.goal, schedule.end_tick())
+		MatchVerdict.place(state, exits, tick, events, config.goal, schedule.end_tick(), spares)
 	_ride_with_holders()
 	state.tick += 1
 	if state.phase == MatchState.Phase.COUNTDOWN and state.tick >= config.countdown_ticks:
@@ -290,6 +300,33 @@ func _rehome(pose_now: ShipPose, tick: int, events: Array[SimEvent]) -> void:
 			player.jumped = false
 			player.fall_from = feet.y
 			events.append(SimEvent.fell(tick, player.seat))
+
+
+## The bonuses the plan brings aboard on [param tick] (BonusPlan), each to the open spot its
+## pick lands on — of her bonus spots, in her layout's order, those no bonus lies at — and
+## none while the most are aboard, or with no spot open: that one never comes.
+func _bonuses_come(tick: int, events: Array[SimEvent]) -> void:
+	for planned: int in _plan.due(tick):
+		if state.bonuses.size() >= config.bonus_rules.most_aboard:
+			continue
+		var open := _open_spots()
+		if open.is_empty():
+			continue
+		var bonus := BonusState.new(planned, _plan.kinds[planned], _plan.spot_of(planned, open))
+		state.bonuses.append(bonus)
+		events.append(SimEvent.bonus_came(tick, bonus.kind, bonus.spot))
+
+
+## Her bonus spots no bonus lies at, by their index in her layout, in its order.
+func _open_spots() -> PackedInt32Array:
+	var open := PackedInt32Array()
+	for spot in config.ship.bonus_spots.size():
+		var lies := false
+		for bonus: BonusState in state.bonuses:
+			lies = lies or bonus.spot == spot
+		if not lies:
+			open.append(spot)
+	return open
 
 
 ## The first of the two pieces [param piece] broke into, the aft one; the fore one is
@@ -475,31 +512,33 @@ func _ride_with_holders() -> void:
 			prop.pos = state.seats[prop.holder].pos
 
 
-## The tick's Grab presses (#273), as _intent read them: a seat holding a prop lets go of
-## it; one holding none takes what GrabReach says it would. Of two seats taking one prop,
-## the nearer takes it — of two as near, the lower — and the other takes nothing.
+## The tick's Grab presses (#273), as _intent read them, each doing what GrabReach says a
+## press does: taking the bonus in reach, whatever the hands hold (#307); else letting go of
+## the prop in the hands; else taking the prop in reach. Of two seats taking one bonus or
+## one prop, the nearer takes it — of two as near, the lower — and the other takes nothing.
 func _grabs(tick: int, events: Array[SimEvent]) -> void:
 	var claims: Dictionary[int, PlayerState] = {}
+	var bonus_claims: Dictionary[int, PlayerState] = {}
 	for player: PlayerState in _grabbing:
-		if _hands[player.seat] != -1:
-			events.append(SimEvent.prop_let_go(tick, player.seat, _hands[player.seat]))
-			_let_go(player, tick, events)
-			continue
-		var prop := GrabReach.take(
+		var press := _reach.press(
 			player,
 			state.up[player.piece],
 			_movement.height_of(player),
+			_hands[player.seat],
+			state.bonuses,
 			state.props,
-			config.ship,
-			_rules,
-			_here(),
-			_holdable
+			_here()
 		)
-		if prop == -1:
-			continue
-		if not claims.has(prop) or _nearer(player, claims[prop], state.props[prop].pos):
-			claims[prop] = player
+		if press.aboard != -1:
+			var spot := config.ship.bonus_spots[state.bonuses[press.aboard].spot]
+			_claim(bonus_claims, press.aboard, player, spot.point)
+		elif press.let_go != -1:
+			events.append(SimEvent.prop_let_go(tick, player.seat, press.let_go))
+			_let_go(player, tick, events)
+		elif press.prop != -1:
+			_claim(claims, press.prop, player, state.props[press.prop].pos)
 	_grabbing.clear()
+	_take_bonuses(bonus_claims, tick, events)
 	var claimed := claims.keys()
 	claimed.sort()
 	for prop: int in claimed:
@@ -511,6 +550,33 @@ func _grabs(tick: int, events: Array[SimEvent]) -> void:
 		taken.surface = Surfaces.NONE
 		_hold(seat, prop)
 		events.append(SimEvent.prop_grabbed(tick, seat, prop))
+
+
+## [param player] claiming [param claimed] — a bonus aboard, or a prop — lying at
+## [param at], in [param claims], each one's claimant so far: the claim is its with none
+## made yet, or standing nearer than the seat that made it — so of two as near, the lower
+## seat, which claims first, keeps it.
+static func _claim(
+	claims: Dictionary[int, PlayerState], claimed: int, player: PlayerState, at: Vector3
+) -> void:
+	if not claims.has(claimed) or _nearer(player, claims[claimed], at):
+		claims[claimed] = player
+
+
+## Each bonus aboard [param claims] names a taker of — by its place among those aboard —
+## used up at once: gone from aboard, and its kind its taker's bonus, replacing any it had.
+func _take_bonuses(
+	claims: Dictionary[int, PlayerState], tick: int, events: Array[SimEvent]
+) -> void:
+	var taken := claims.keys()
+	taken.sort()
+	for index: int in taken:
+		var bonus := state.bonuses[index]
+		claims[index].bonus = bonus.kind
+		events.append(SimEvent.bonus_taken(tick, claims[index].seat, bonus.kind, bonus.spot))
+	taken.reverse()
+	for index: int in taken:
+		state.bonuses.remove_at(index)
 
 
 ## [param player] lets go of the prop it holds: at its feet, falling from there — lost
@@ -811,9 +877,10 @@ func _braced_against(target: PlayerState, shover: PlayerState, direction: Vector
 ## swims and does not climb, its cold meter drains — at pocket_cold_rate of the open
 ## water's with its head in trapped air (Q22), at the sea_cold_rate of a prop it holds
 ## that keeps it afloat (#273), the lower of the two where both do — and it is out when
-## that is empty. Out of the sea the meter refills at cold_regen. A seat frozen in a
-## hit-stop holds its meter, and neither falls in, stands, climbs nor settles until the
-## stop ends. Returns who went out.
+## that is empty, but for a seat whose bonus gives a spare meter (Double life, #307): that
+## fills it again, once, and the bonus is spent. Out of the sea the meter refills at
+## cold_regen. A seat frozen in a hit-stop holds its meter, and neither falls in, stands,
+## climbs nor settles until the stop ends. Returns who went out.
 func _water(
 	live: Array[PlayerState],
 	pose_now: ShipPose,
@@ -850,10 +917,33 @@ func _water(
 		var rate := _rules.pocket_cold_rate if pose_now.in_pocket(head) else 1.0
 		rate = minf(rate, _seat_rules(player).sea_cold_rate)
 		player.cold = maxf(player.cold - dt * rate, 0.0)
-		if player.cold == 0.0:
+		if player.cold == 0.0 and _has_spare(player):
+			player.cold = _rules.cold_meter
+			events.append(SimEvent.double_life_spent(tick, player.seat, player.bonus))
+			player.bonus = -1
+		elif player.cold == 0.0:
 			_out(player, tick, events)
 			exits.append(player)
 	return exits
+
+
+## Whether [param player]'s bonus gives it a spare cold meter, unspent (BonusKind).
+func _has_spare(player: PlayerState) -> bool:
+	return player.bonus != -1 and config.bonus_rules.kinds[player.bonus].spare_meter
+
+
+## Per seat, the seconds of cold an unspent spare meter its bonus gives it adds — a full
+## meter (MatchVerdict.cold_left) — counted for [param seats] alone, none for any other; and
+## none at all in a match without bonuses.
+func _spares(seats: Array[PlayerState]) -> PackedFloat64Array:
+	var spares := PackedFloat64Array()
+	if config.bonus_rules == null:
+		return spares
+	spares.resize(state.seats.size())
+	for player: PlayerState in seats:
+		if _has_spare(player):
+			spares[player.seat] = _rules.cold_meter
+	return spares
 
 
 ## Into the sea: whatever [param player] was readying is dropped, and a shove or a
@@ -877,13 +967,15 @@ func _knock_back_in(player: PlayerState, tick: int, events: Array[SimEvent]) -> 
 	events.append(SimEvent.knocked_back_in(tick, player.seat, player.last_hit_by))
 
 
-## Out of the match by [param cause], and whatever it held into the sea with it.
+## Out of the match by [param cause], and whatever it held into the sea with it; its bonus
+## goes with it (#307).
 func _out(
 	player: PlayerState, tick: int, events: Array[SimEvent], cause := PlayerState.Cause.COLD
 ) -> void:
 	if _hands[player.seat] != -1:
 		_lose_prop(state.props[_hands[player.seat]], tick, events)
 		_hold(player.seat, -1)
+	player.bonus = -1
 	player.body = PlayerState.Body.OUT
 	player.out_tick = tick
 	player.out_cause = cause

@@ -23,11 +23,14 @@ static func gone_with(
 ## (gone_with) — the sea puts out once nothing but the cold can change: every one of them
 ## swims and [param sunk] says every surface of her still standing is wade_depth under
 ## the sea (Surfaces.sunk, asked only then). They all go out by the cold, but for the one
-## with the most cold left when it has the most alone. A tie for the most is a draw, the
-## sea's; the places go by the cold they had left (place). Nothing else ends a match: on a
-## wreck that keeps dry footing — on her side on the bottom, or upside down on her air —
-## it goes on until one seat is left, however long (Q21).
-static func by_the_cold(left: Array[PlayerState], sunk: Callable) -> Array[PlayerState]:
+## with the most cold left — its spare meter counted (cold_left, [param spares]) — when it
+## has the most alone. A tie for the most is a draw, the sea's; the places go by the cold
+## they had left (place). Nothing else ends a match: on a wreck that keeps dry footing — on
+## her side on the bottom, or upside down on her air — it goes on until one seat is left,
+## however long (Q21).
+static func by_the_cold(
+	left: Array[PlayerState], sunk: Callable, spares: PackedFloat64Array
+) -> Array[PlayerState]:
 	var going: Array[PlayerState] = []
 	if left.size() < 2:
 		return going
@@ -39,36 +42,47 @@ static func by_the_cold(left: Array[PlayerState], sunk: Callable) -> Array[Playe
 	var most := 0.0
 	var warmest := 0
 	for player: PlayerState in left:
-		if player.cold > most:
-			most = player.cold
+		var cold := cold_left(player, spares)
+		if cold > most:
+			most = cold
 			warmest = 0
-		if player.cold == most:
+		if cold == most:
 			warmest += 1
 	for player: PlayerState in left:
-		if warmest > 1 or player.cold != most:
+		if warmest > 1 or cold_left(player, spares) != most:
 			going.append(player)
 	return going
 
 
+## The cold [param player] has left, in seconds: its meter's, and an unspent spare meter
+## its bonus gives it (Double life, #307) a full meter more — [param spares] each seat's,
+## by seat, none when empty.
+static func cold_left(player: PlayerState, spares: PackedFloat64Array) -> float:
+	return player.cold + (spares[player.seat] if not spares.is_empty() else 0.0)
+
+
 ## Places [param exits], the seats out of [param state]'s match on [param tick], into
-## [param events]: seats out on the same tick share a place, unless their cold meters
-## differ — more cold left places higher. Under [param goal] LAST_STANDING, one or none
-## left as seats go out ends the match; under SURVIVAL none left does, or one once
-## [param tick] reaches [param over_tick] — the tick her sinking is over (end_tick) — so
-## a lone seat plays on until then, and a wreck that keeps dry footing (Q21) cannot.
+## [param events]: seats out on the same tick share a place, unless their cold differs —
+## more cold left places higher (cold_left): the spare meters of [param spares], those of
+## the seats the last swim put out (by_the_cold) as they stood before they went, counted
+## and no other's. Under [param goal] LAST_STANDING, one or none left as seats go out ends the
+## match; under SURVIVAL none left does, or one once [param tick] reaches [param over_tick] —
+## the tick her sinking is over (end_tick) — so a lone seat plays on until then, and a
+## wreck that keeps dry footing (Q21) cannot.
 static func place(
 	state: MatchState,
 	exits: Array[PlayerState],
 	tick: int,
 	events: Array[SimEvent],
 	goal := MatchRules.Goal.LAST_STANDING,
-	over_tick := -1
+	over_tick := -1,
+	spares := PackedFloat64Array()
 ) -> void:
 	var remaining := state.remaining()
 	for player: PlayerState in exits:
 		var warmer := 0
 		for other: PlayerState in exits:
-			if other.cold > player.cold:
+			if cold_left(other, spares) > cold_left(player, spares):
 				warmer += 1
 		player.place = remaining + 1 + warmer
 		events.append(

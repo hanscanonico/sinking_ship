@@ -33,7 +33,7 @@ const SIDE_FACING := 0.999
 ## reads them (D6).
 @export var rooms: Array[ShipRoom] = []
 ## Where bonuses can come aboard (#307): a point on a floor in each room below her main
-## deck, naming its room. No rule reads them yet (#308).
+## deck, naming its room — the spots the bonus plan brings them to (BonusPlan).
 @export var bonus_spots: Array[ShipBonusSpot] = []
 ## Whether the dressed art (ShipArt) lofts her hull as ShipHull does: her generator cut
 ## her sections from that loft, and `make art-lint` holds the two together. A ship

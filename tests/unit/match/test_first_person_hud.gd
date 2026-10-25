@@ -244,10 +244,10 @@ func test_a_plate_stands_over_the_hat() -> void:
 func test_the_grab_prompt_names_what_a_press_would_do() -> void:
 	var layout := SimFixtures.crated([SimFixtures.lifebuoy(Vector3(1.0, 0.0, 0.0))])
 	var sim := SimFixtures.sim(1, null, layout)
-	var rules := sim.config.rules
+	var reach := GrabReach.new(layout, sim.config.rules)
 	SimFixtures.place(sim, 0, Vector3.ZERO, 0.0)
 	var words := func() -> String:
-		return FirstPersonHud.grab_words(sim.snapshot(), 0, layout, rules, sim.surfaces, "G")
+		return FirstPersonHud.grab_words(sim.snapshot(), 0, reach, sim.surfaces, "G")
 	assert_eq(words.call(), "G — grab the lifebuoy")
 	SimFixtures.place(sim, 0, Vector3.ZERO, 180.0)
 	assert_eq(words.call(), "", "out of the cone: nothing")
@@ -256,6 +256,50 @@ func test_the_grab_prompt_names_what_a_press_would_do() -> void:
 	assert_eq(words.call(), "G — let go of the lifebuoy")
 	SimFixtures.swim(sim, 0, Vector3(0.0, 0.0, 6.0))
 	assert_eq(words.call(), "", "in the sea the climb's prompt stands")
+
+
+## A bonus in reach (#310) comes first in the prompt as in the press (GrabReach): named by
+## its kind's title before a prop in reach, and with the hands full too.
+func test_the_grab_prompt_names_a_bonus_in_reach_first() -> void:
+	var beside := SimFixtures.by_hold_spot()
+	var ring := SimFixtures.lifebuoy(beside + Vector3(0.8, 0.0, 0.5))
+	var layout := SimFixtures.crated([ring], SimFixtures.below_decks())
+	var sim := SimFixtures.bonus_sim(SimFixtures.bonus_rules(600.0), 1, layout)
+	var reach := GrabReach.new(layout, sim.config.rules, sim.config.bonus_rules)
+	SimFixtures.bring_aboard(sim, 0)
+	SimFixtures.place(sim, 0, beside, 0.0)
+	var words := func() -> String:
+		return FirstPersonHud.grab_words(sim.snapshot(), 0, reach, sim.surfaces, "G")
+	assert_eq(words.call(), "G — take Double life", "the bonus before the ring")
+	SimFixtures.hand(sim, 0, 0)
+	assert_eq(words.call(), "G — take Double life", "with the hands full too")
+	SimFixtures.place(sim, 0, beside, 180.0)
+	assert_eq(words.call(), "G — let go of the lifebuoy", "out of reach: what the hands do")
+	SimFixtures.place(sim, 0, beside, 0.0)
+	sim.state.bonuses.clear()
+	assert_eq(words.call(), "G — let go of the lifebuoy", "taken: as before")
+
+
+## The HUD names the bonus the seat has (#310), and shows an unspent spare meter on the
+## warmth bar: Double life's until it is spent, none for any other bonus or none at all.
+func test_the_hud_names_the_seat_s_bonus_and_its_spare_meter() -> void:
+	var kinds: Array[BonusKind] = [SimFixtures.double_life(), SimFixtures.plain_kind()]
+	var bonus_rules := SimFixtures.bonus_rules(600.0, 45.0, 0.0, 2, kinds)
+	var sim := SimFixtures.bonus_sim(bonus_rules)
+	var title := func() -> String:
+		var kind := FirstPersonHud.bonus_kind(sim.snapshot(), 0, bonus_rules)
+		return kind.title if kind != null else ""
+	var spare := func() -> bool: return FirstPersonHud.spare_meter(sim.snapshot(), 0, bonus_rules)
+	assert_eq(title.call(), "", "none to start with")
+	assert_false(spare.call())
+	sim.state.seats[0].bonus = 0
+	assert_eq(title.call(), "Double life")
+	assert_true(spare.call(), "a spare meter on the warmth bar")
+	sim.state.seats[0].bonus = 1
+	assert_eq(title.call(), "Plain")
+	assert_false(spare.call(), "no spare for a kind that gives none")
+	assert_null(FirstPersonHud.bonus_kind(sim.snapshot(), 0, null), "a match without bonuses")
+	assert_false(FirstPersonHud.spare_meter(sim.snapshot(), 0, null))
 
 
 ## Holding a ring that keeps it afloat, the warmth readout says how much longer it lasts.

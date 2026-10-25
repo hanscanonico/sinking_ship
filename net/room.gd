@@ -123,6 +123,7 @@ func start(
 	step_usec.clear()
 	transcript = MatchTranscript.new()
 	transcript.hit(host.runner.sim.schedule)
+	transcript.bonuses(config)
 	phase = Phase.PLAYING
 	since = beat
 

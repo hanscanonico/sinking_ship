@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="BonusRules" format=3]
+
+[ext_resource type="Script" path="res://core/bonus_rules.gd" id="1_rules"]
+[ext_resource type="Script" path="res://core/bonus_kind.gd" id="2_kind"]
+[ext_resource type="Resource" path="res://data/bonuses/double_life.tres" id="3_double"]
+
+[resource]
+script = ExtResource("1_rules")
+kinds = Array[ExtResource("2_kind")]([ExtResource("3_double")])
+odds = PackedFloat64Array(1)
+first = 20.0
+interval = 45.0
+jitter = 15.0
+most_aboard = 2

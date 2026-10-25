@@ -23,7 +23,9 @@ extends RefCounted
 ## paced and play the server's fast one out of step — is refused VERSION at its HELLO.
 ## 8: a prop's holder rides in the snapshot and a frame may press Grab (#273), so a client
 ## of 7, whose rules have neither, is refused VERSION at its HELLO.
-const PROTOCOL_VERSION := 8
+## 9: the bonuses aboard and each seat's bonus ride in the snapshot (#310), so a client of
+## 8, whose Grab takes no bonus, is refused VERSION at its HELLO.
+const PROTOCOL_VERSION := 9
 ## The build of what plays a match — core/, ai/ and net/ — bumped by hand whenever a
 ## change there would play the same data differently: part of every match's hash, so
 ## two builds that would not agree are refused as other data.
