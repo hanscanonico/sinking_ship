@@ -20874,6 +20874,448 @@ metadata/ship = &"room"
 metadata/name = &"boiler room 5 double bottom"
 metadata/crawl_space = true
 
+[node name="BonusSpots" type="Node3D" parent="." unique_id=1586374295]
+
+[node name="BonusSpot_saloon_2" type="Marker3D" parent="BonusSpots" unique_id=1540579695]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -56.5, -3.1875, 0)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_saloon_2"
+
+[node name="BonusSpot_d_corridor" type="Marker3D" parent="BonusSpots" unique_id=1779235444]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -39.5, -3.1875, 0)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_d_corridor"
+
+[node name="BonusSpot_galley" type="Marker3D" parent="BonusSpots" unique_id=1142680394]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -21.95, -3.1875, -3.1)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_galley"
+
+[node name="BonusSpot_saloon_1" type="Marker3D" parent="BonusSpots" unique_id=1803796544]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.45, -3.1875, 0)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_saloon_1"
+
+[node name="BonusSpot_reception" type="Marker3D" parent="BonusSpots" unique_id=1786822056]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 26.85, -3.1875, 0)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_reception"
+
+[node name="BonusSpot_d_corridor_fwd" type="Marker3D" parent="BonusSpots" unique_id=1865005739]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 53.27, -3.1875, 0)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_d_corridor_fwd"
+
+[node name="BonusSpot_open_space" type="Marker3D" parent="BonusSpots" unique_id=1010423687]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 86.32, -3.1875, 0)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_open_space"
+
+[node name="BonusSpot_road_1" type="Marker3D" parent="BonusSpots" unique_id=1240555334]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -22.23, -5.9375, -10.8)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_road_1"
+
+[node name="BonusSpot_road_2" type="Marker3D" parent="BonusSpots" unique_id=1515024281]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.215, -5.9375, -11.5)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_road_2"
+
+[node name="BonusSpot_road_3" type="Marker3D" parent="BonusSpots" unique_id=816579556]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 27.82, -5.9375, -11.5)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_road_3"
+
+[node name="BonusSpot_road_4" type="Marker3D" parent="BonusSpots" unique_id=1374870230]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 45.235, -5.9375, -11.5)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_road_4"
+
+[node name="BonusSpot_gs_e" type="Marker3D" parent="BonusSpots" unique_id=2103091788]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 26.85, -5.9375, -1.2)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_gs_e"
+
+[node name="BonusSpot_saloon_3_aft" type="Marker3D" parent="BonusSpots" unique_id=827876663]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -7.53, -8.5625, -1.1)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_saloon_3_aft"
+
+[node name="BonusSpot_saloon_3_fwd" type="Marker3D" parent="BonusSpots" unique_id=1676479236]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10.435, -8.5625, -1.1)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_saloon_3_fwd"
+
+[node name="BonusSpot_post_office" type="Marker3D" parent="BonusSpots" unique_id=1203994683]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 77.83, -11, 0)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_post_office"
+
+[node name="BonusSpot_berths" type="Marker3D" parent="BonusSpots" unique_id=1941513395]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 77.83, -8.5625, 0)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_berths"
+
+[node name="BonusSpot_crew" type="Marker3D" parent="BonusSpots" unique_id=1363638456]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 77.83, -5.9375, 0)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_crew"
+
+[node name="BonusSpot_corridor_br4" type="Marker3D" parent="BonusSpots" unique_id=1104086707]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 27.82, -8.5625, -5.75)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_corridor_br4"
+
+[node name="BonusSpot_corridor_br5" type="Marker3D" parent="BonusSpots" unique_id=287181015]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 45.235, -8.5625, -5.65)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_corridor_br5"
+
+[node name="BonusSpot_turkish_bath" type="Marker3D" parent="BonusSpots" unique_id=2027366893]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 27.82, -8.5625, 7.25)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_turkish_bath"
+
+[node name="BonusSpot_swimming_bath" type="Marker3D" parent="BonusSpots" unique_id=1232352398]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 45.235, -8.5625, 4.1)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_swimming_bath"
+
+[node name="BonusSpot_squash_court" type="Marker3D" parent="BonusSpots" unique_id=594147918]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 93.9, -11, 0)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_squash_court"
+
+[node name="BonusSpot_squash_gallery" type="Marker3D" parent="BonusSpots" unique_id=1765898446]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 87.9, -8.5625, 0)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_squash_gallery"
+
+[node name="BonusSpot_f_landing" type="Marker3D" parent="BonusSpots" unique_id=857303106]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 85.3, -8.5625, 0)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_f_landing"
+
+[node name="BonusSpot_boiler_room_2" type="Marker3D" parent="BonusSpots" unique_id=1147181802]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -13.035, -18.1875, -1.1)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_boiler_room_2"
+
+[node name="BonusSpot_boiler_room_3" type="Marker3D" parent="BonusSpots" unique_id=1129517650]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.455, -18.1875, -1.1)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_boiler_room_3"
+
+[node name="BonusSpot_boiler_room_4" type="Marker3D" parent="BonusSpots" unique_id=647792755]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 23.015, -18.1875, 0)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_boiler_room_4"
+
+[node name="BonusSpot_boiler_room_5" type="Marker3D" parent="BonusSpots" unique_id=881106423]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 45.34, -18.1875, 0)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_boiler_room_5"
+
+[node name="BonusSpot_boiler_room_6" type="Marker3D" parent="BonusSpots" unique_id=1412422283]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 60.905, -18.1875, 0)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_boiler_room_6"
+
+[node name="BonusSpot_bunker_6" type="Marker3D" parent="BonusSpots" unique_id=1808581272]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 69.28, -18.1875, 0)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_bunker_6"
+
+[node name="BonusSpot_f_br6" type="Marker3D" parent="BonusSpots" unique_id=289969067]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 62.935, -8.5625, 0)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_f_br6"
+
+[node name="BonusSpot_passage" type="Marker3D" parent="BonusSpots" unique_id=613195404]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 83.505, -18.1875, 3.3391)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_passage"
+
+[node name="BonusSpot_db_br6" type="Marker3D" parent="BonusSpots" unique_id=1771719468]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 62.385, -19.8125, 0)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_db_br6"
+
+[node name="BonusSpot_db_hold_3" type="Marker3D" parent="BonusSpots" unique_id=1055782668]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 78.53, -19.8125, 0)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_db_hold_3"
+
+[node name="BonusSpot_db_hold_2" type="Marker3D" parent="BonusSpots" unique_id=950530372]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 94.425, -19.8125, 0)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_db_hold_2"
+
+[node name="BonusSpot_db_hold_1" type="Marker3D" parent="BonusSpots" unique_id=1588555116]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 105.925, -19.8125, 0)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_db_hold_1"
+
+[node name="BonusSpot_db_hold_1_fwd" type="Marker3D" parent="BonusSpots" unique_id=990899203]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 112.905, -19.8125, 0)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_db_hold_1_fwd"
+
+[node name="BonusSpot_hold_3_port" type="Marker3D" parent="BonusSpots" unique_id=2088083488]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 78.53, -18.1875, -1.6555)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_hold_3_port"
+
+[node name="BonusSpot_hold_3_starboard" type="Marker3D" parent="BonusSpots" unique_id=2059524874]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 78.53, -18.1875, 4.9946)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_hold_3_starboard"
+
+[node name="BonusSpot_hold_2_port" type="Marker3D" parent="BonusSpots" unique_id=1155869934]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 94.275, -18.1875, -0.7554)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_hold_2_port"
+
+[node name="BonusSpot_hold_3_orlop" type="Marker3D" parent="BonusSpots" unique_id=130591447]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 78.53, -15.75, 0)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_hold_3_orlop"
+
+[node name="BonusSpot_hold_2_orlop" type="Marker3D" parent="BonusSpots" unique_id=878082092]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 93.9, -15.75, 0)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_hold_2_orlop"
+
+[node name="BonusSpot_hold_1" type="Marker3D" parent="BonusSpots" unique_id=26205241]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 105.925, -18.1875, 0.3)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_hold_1"
+
+[node name="BonusSpot_hold_1_fwd" type="Marker3D" parent="BonusSpots" unique_id=222074169]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 112.905, -18.1875, 0)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_hold_1_fwd"
+
+[node name="BonusSpot_hold_1_orlop" type="Marker3D" parent="BonusSpots" unique_id=1628532936]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 105.925, -13.4375, 0.3)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_hold_1_orlop"
+
+[node name="BonusSpot_hold_1_orlop_fwd" type="Marker3D" parent="BonusSpots" unique_id=30209375]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 112.905, -13.4375, 0)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_hold_1_orlop_fwd"
+
+[node name="BonusSpot_hold_1_g" type="Marker3D" parent="BonusSpots" unique_id=2119649295]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 105.925, -11, 0)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_hold_1_g"
+
+[node name="BonusSpot_hold_1_g_fwd" type="Marker3D" parent="BonusSpots" unique_id=1631992431]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 112.905, -11, 0)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_hold_1_g_fwd"
+
+[node name="BonusSpot_hold_1_d" type="Marker3D" parent="BonusSpots" unique_id=238437745]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 108.83, -3.1875, 0)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_hold_1_d"
+
+[node name="BonusSpot_forepeak_tank" type="Marker3D" parent="BonusSpots" unique_id=143913752]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 117.655, -18.1875, 0)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_forepeak_tank"
+
+[node name="BonusSpot_forepeak_stores" type="Marker3D" parent="BonusSpots" unique_id=1687200525]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 118.905, -13.4375, 0)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_forepeak_stores"
+
+[node name="BonusSpot_boiler_room_1" type="Marker3D" parent="BonusSpots" unique_id=781399626]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -25.625, -18.1875, 0)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_boiler_room_1"
+
+[node name="BonusSpot_bunker_1" type="Marker3D" parent="BonusSpots" unique_id=1746315005]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -18.545, -18.1875, 0)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_bunker_1"
+
+[node name="BonusSpot_f_br1" type="Marker3D" parent="BonusSpots" unique_id=1076970687]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -21.98, -8.5625, 0)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_f_br1"
+
+[node name="BonusSpot_engine_room" type="Marker3D" parent="BonusSpots" unique_id=1643565831]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -38.17, -17.9375, 0)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_engine_room"
+
+[node name="BonusSpot_turbine_room" type="Marker3D" parent="BonusSpots" unique_id=730868662]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -57.325, -18.1875, -2.4)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_turbine_room"
+
+[node name="BonusSpot_electric_room" type="Marker3D" parent="BonusSpots" unique_id=1325628678]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -75.58, -18.1875, 0)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_electric_room"
+
+[node name="BonusSpot_electric_room_g" type="Marker3D" parent="BonusSpots" unique_id=424314025]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -75.58, -11, 0)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_electric_room_g"
+
+[node name="BonusSpot_ahf_291" type="Marker3D" parent="BonusSpots" unique_id=1781473190]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -93.415, -18.1875, 0)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_ahf_291"
+
+[node name="BonusSpot_ahf_215" type="Marker3D" parent="BonusSpots" unique_id=1174264114]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -93.415, -13.4375, 0)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_ahf_215"
+
+[node name="BonusSpot_ahf_176" type="Marker3D" parent="BonusSpots" unique_id=1902645974]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -93.415, -11, 0)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_ahf_176"
+
+[node name="BonusSpot_aha_291" type="Marker3D" parent="BonusSpots" unique_id=1842371741]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -105.845, -18.1875, 0.4)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_aha_291"
+
+[node name="BonusSpot_aha_215" type="Marker3D" parent="BonusSpots" unique_id=1386740731]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -107.395, -13.4375, 0.4)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_aha_215"
+
+[node name="BonusSpot_aha_176" type="Marker3D" parent="BonusSpots" unique_id=1567698272]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -105.845, -11, 0)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_aha_176"
+
+[node name="BonusSpot_ahe_291" type="Marker3D" parent="BonusSpots" unique_id=160109972]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -114.485, -18.1875, 0)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_ahe_291"
+
+[node name="BonusSpot_ahe_215" type="Marker3D" parent="BonusSpots" unique_id=2086703765]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -114.485, -13.4375, 0)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_ahe_215"
+
+[node name="BonusSpot_ahe_176" type="Marker3D" parent="BonusSpots" unique_id=766783022]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -114.485, -11, 0)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_ahe_176"
+
+[node name="BonusSpot_after_peak_tank" type="Marker3D" parent="BonusSpots" unique_id=349992423]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -120.485, -18.1875, 0)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_after_peak_tank"
+
+[node name="BonusSpot_after_peak_stores" type="Marker3D" parent="BonusSpots" unique_id=852315791]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -120.485, -11, 0)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_after_peak_stores"
+
+[node name="BonusSpot_db_br1" type="Marker3D" parent="BonusSpots" unique_id=1825266661]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -22.23, -19.8125, 0)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_db_br1"
+
+[node name="BonusSpot_db_engine" type="Marker3D" parent="BonusSpots" unique_id=1594416074]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -38.17, -19.8125, 0)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_db_engine"
+
+[node name="BonusSpot_db_turbine" type="Marker3D" parent="BonusSpots" unique_id=1122915888]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -57.325, -19.8125, 0)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_db_turbine"
+
+[node name="BonusSpot_db_electric" type="Marker3D" parent="BonusSpots" unique_id=1597474907]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -75.58, -19.8125, 0)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_db_electric"
+
+[node name="BonusSpot_db_ahf" type="Marker3D" parent="BonusSpots" unique_id=233237602]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -93.415, -19.8125, 0)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_db_ahf"
+
+[node name="BonusSpot_db_aha" type="Marker3D" parent="BonusSpots" unique_id=345683174]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -105.845, -19.8125, 0)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_db_aha"
+
+[node name="BonusSpot_e_engine" type="Marker3D" parent="BonusSpots" unique_id=428382105]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -38.17, -5.9375, 0)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_e_engine"
+
+[node name="BonusSpot_e_turbine" type="Marker3D" parent="BonusSpots" unique_id=1624943430]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -57.325, -5.9375, 0)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_e_turbine"
+
+[node name="BonusSpot_e_electric" type="Marker3D" parent="BonusSpots" unique_id=176200429]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -75.58, -5.9375, 0)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_e_electric"
+
+[node name="BonusSpot_e_ahf" type="Marker3D" parent="BonusSpots" unique_id=123944818]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -93.415, -5.9375, 0)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_e_ahf"
+
+[node name="BonusSpot_e_aha" type="Marker3D" parent="BonusSpots" unique_id=1194927776]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -105.845, -5.9375, 0)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_e_aha"
+
+[node name="BonusSpot_bunker_2" type="Marker3D" parent="BonusSpots" unique_id=1599547911]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.365, -18.1875, 0)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_bunker_2"
+
+[node name="BonusSpot_db_br2" type="Marker3D" parent="BonusSpots" unique_id=1694968544]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -7.53, -19.8125, 0)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_db_br2"
+
+[node name="BonusSpot_bunker_3" type="Marker3D" parent="BonusSpots" unique_id=631968727]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 17.65, -18.1875, 0)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_bunker_3"
+
+[node name="BonusSpot_db_br3" type="Marker3D" parent="BonusSpots" unique_id=19035233]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10.435, -19.8125, 0)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_db_br3"
+
+[node name="BonusSpot_bunker_4" type="Marker3D" parent="BonusSpots" unique_id=381723099]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 34.905, -18.1875, 0)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_bunker_4"
+
+[node name="BonusSpot_db_br4" type="Marker3D" parent="BonusSpots" unique_id=1157203465]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 27.82, -19.8125, 0)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_db_br4"
+
+[node name="BonusSpot_bunker_5" type="Marker3D" parent="BonusSpots" unique_id=46001019]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 52.665, -18.1875, 0)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_bunker_5"
+
+[node name="BonusSpot_db_br5" type="Marker3D" parent="BonusSpots" unique_id=1348024568]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 45.235, -19.8125, 0)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_db_br5"
+
 [node name="Structure" type="Node3D" parent="." unique_id=1627120295]
 visible = false
 metadata/ship = &"structure"

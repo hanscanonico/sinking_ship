@@ -31,6 +31,8 @@ import re
 import struct
 import sys
 
+from floor_spots import spots_below_decks
+
 out = sys.argv[1]
 
 def num(v):
@@ -1243,6 +1245,14 @@ lifebuoy(-18.5, 1, 0.0)
 lifebuoy(13.0, -1, 0.0)
 lifebuoy(55.0, 1, 0.0)
 
+# Her bonus spots (#312): one in each room below her main deck — a room whose floor
+# stands under zero — where a bonus can come aboard, at the free point of its floor
+# nearest its middle (tools/floor_spots.py), naming the room by its index among hers.
+bonus_spots = []
+for k, at in spots_below_decks(room_geo, plat_geo, ramp_geo, block_geo):
+    f = [("point", "Vector3(%s, %s, %s)" % tuple(num(c) for c in at)), ("room", str(k))]
+    bonus_spots.append(sub(rooms[k].replace("Room_", "BonusSpot_", 1), "19_spot", f))
+
 head = """[gd_resource type="Resource" script_class="ShipLayout" format=3]
 
 [ext_resource type="Script" path="res://core/ship_platform.gd" id="1_plat"]
@@ -1263,6 +1273,7 @@ head = """[gd_resource type="Resource" script_class="ShipLayout" format=3]
 [ext_resource type="Script" path="res://core/sinking/ship_fitting.gd" id="16_fitting"]
 [ext_resource type="Script" path="res://core/sinking/girder_strength.gd" id="17_strength"]
 [ext_resource type="Script" path="res://core/sinking/weak_spot.gd" id="18_weak"]
+[ext_resource type="Script" path="res://core/ship_bonus_spot.gd" id="19_spot"]
 """
 res = ["[resource]", 'script = ExtResource("5_layout")', "freeboard = " + num(FREEBOARD),
        "deck_thickness = " + num(2 * T),
@@ -1275,11 +1286,12 @@ res = ["[resource]", 'script = ExtResource("5_layout")', "freeboard = " + num(FR
        "min_seats = %d" % SEATS[0], "max_seats = %d" % SEATS[1],
        "props = " + arr("8_prop", props),
        "rooms = " + arr("6_room", rooms),
+       "bonus_spots = " + arr("19_spot", bonus_spots),
        "dressed = false",
        'structure = SubResource("Structure")']
 with open(out, "w", encoding="utf-8", newline="\n") as f:
     f.write(head + "\n" + "\n\n".join(subs) + "\n\n" + "\n".join(res) + "\n")
-print(len(platforms), "platforms", len(ramps), "ramps", len(blockers), "blockers", len(railings), "railings", len(ladders), "ladders", len(props), "props", len(rooms), "rooms")
+print(len(platforms), "platforms", len(ramps), "ramps", len(blockers), "blockers", len(railings), "railings", len(ladders), "ladders", len(props), "props", len(rooms), "rooms", len(bonus_spots), "bonus spots")
 print(len(sections), "sections", len(CELLS), "cells", len(walls), "walls", len(openings), "openings", len(MASS),
       "masses: %.1f t, ore %.1f t at x %.3f z %.3f, GM %.2f m" % (weight / 1000, ore / 1000, ore_x,
                                                                  ore_z, GM))

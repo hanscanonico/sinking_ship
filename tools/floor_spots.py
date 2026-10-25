@@ -1,12 +1,12 @@
 """The free floor spot, one helper for every ship's generator to call (#307): the point
 of a room's floor where a thing can lie clear of all that stands there — where each room
-below her main deck has its bonus spot. The steamer's generator calls it (#308); the
-rest of the fleet's follow (#312).
+below her main deck has its bonus spot. Every ship's generator writes her bonus spots
+through it (#308, #312).
 
 Every generator keeps her pieces as numbers in the same shapes and hands them here as
 they are, in ship-local metres (x toward the bow, z to starboard, y up):
 
-    room       (x0, x1, z0, z1, floor, name)
+    room_geo   (x0, x1, z0, z1, floor, name) per room
     plat_geo   (x0, x1, z0, z1, height) per platform
     ramp_geo   (x0, x1, z0, z1, axis, start, end) per stair or ramp
     block_geo  (x0, x1, z0, z1, bottom, top, whether a box) per blocker, a cylinder's
@@ -14,8 +14,8 @@ they are, in ship-local metres (x toward the bow, z to starboard, y up):
 
 Usage, from a generator beside it in tools/, run from the repo's root as they all are:
 
-    from floor_spots import free_floor_spot
-    x, y, z = free_floor_spot(room, plat_geo, ramp_geo, block_geo)
+    from floor_spots import spots_below_decks
+    for k, (x, y, z) in spots_below_decks(room_geo, plat_geo, ramp_geo, block_geo): ...
 """
 import math
 import re
@@ -41,6 +41,22 @@ SPACING = 0.05
 PLACES = 4
 # How near two heights are to be one: a deck at a room's floor height is its floor.
 SAME_HEIGHT = 1e-6
+
+
+def spots_below_decks(room_geo, plat_geo, ramp_geo, block_geo):
+    """Her bonus spots: one in each of her rooms below her main deck — a room whose floor
+    stands under zero — at the free point of its floor nearest its middle
+    (free_floor_spot), as (the room's index in `room_geo`, (x, y, z)), in her rooms'
+    order. A room with no free floor stops her generator: there is nowhere in it for a
+    bonus to lie."""
+    spots = []
+    for k, room in enumerate(room_geo):
+        if room[4] >= 0:
+            continue
+        at = free_floor_spot(room, plat_geo, ramp_geo, block_geo)
+        assert at is not None, "no free floor in the %s for a bonus spot" % room[5]
+        spots.append((k, at))
+    return spots
 
 
 def free_floor_spot(room, plat_geo, ramp_geo, block_geo):

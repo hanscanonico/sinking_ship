@@ -17,6 +17,7 @@
 [ext_resource type="Script" path="res://core/sinking/iceberg_hit.gd" id="15_hit"]
 [ext_resource type="Script" path="res://core/sinking/ship_fitting.gd" id="16_fitting"]
 [ext_resource type="Script" path="res://core/sinking/girder_strength.gd" id="17_strength"]
+[ext_resource type="Script" path="res://core/ship_bonus_spot.gd" id="19_spot"]
 
 [sub_resource type="Resource" id="Platform_towing_deck"]
 script = ExtResource("1_plat")
@@ -1299,6 +1300,16 @@ mass = 2.5
 grip_angle_deg = 20
 friction = 3
 
+[sub_resource type="Resource" id="BonusSpot_engine_room"]
+script = ExtResource("19_spot")
+point = Vector3(-2.5, -2.6, 0)
+room = 0
+
+[sub_resource type="Resource" id="BonusSpot_crew_mess"]
+script = ExtResource("19_spot")
+point = Vector3(5.75, -2.6, 0)
+room = 1
+
 [resource]
 script = ExtResource("5_layout")
 freeboard = 0.7
@@ -1313,5 +1324,6 @@ min_seats = 1
 max_seats = 6
 props = Array[ExtResource("8_prop")]([SubResource("Prop_aft_port"), SubResource("Prop_aft_starboard"), SubResource("Lifebuoy_0"), SubResource("Lifebuoy_1")])
 rooms = Array[ExtResource("6_room")]([SubResource("Room_engine_room"), SubResource("Room_crew_mess"), SubResource("Room_casing"), SubResource("Room_galley"), SubResource("Room_wheelhouse")])
+bonus_spots = Array[ExtResource("19_spot")]([SubResource("BonusSpot_engine_room"), SubResource("BonusSpot_crew_mess")])
 dressed = false
 structure = SubResource("Structure")
