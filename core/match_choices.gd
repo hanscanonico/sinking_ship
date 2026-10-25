@@ -1,9 +1,9 @@
 class_name MatchChoices
 extends RefCounted
-## What a player picks before a match (GLOSSARY): ship, seats, bot tier, seed, pace and
-## goal, and, from the command line only, scenario and hit. A choice left unmade means
-## the match data's, and this is the only place that fills the data's value in. The menu
-## and the command line both start here; it answers for itself against the match rules
+## What a player picks before a match (GLOSSARY): ship, seats, bot tier, seed, pace, goal
+## and bonuses, and, from the command line only, scenario and hit. A choice left unmade
+## means the match data's, and this is the only place that fills the data's value in. The
+## menu and the command line both start here; it answers for itself against the match rules
 ## — its problems(), and the config() it makes — and resolves the same choices to the
 ## same config every time: it never draws a seed (D13). Each entry point fills a blank
 ## seed its own way before asking for a config: the command line with its default, the
@@ -34,6 +34,10 @@ var seed_text: String = ""
 var fast: bool = false
 ## What the match is played for, by name (GOALS); empty for the match data's.
 var goal: StringName = &""
+## Whether bonuses come aboard (#307) as the match data's bonus rules bring them — the
+## menu's Bonuses, ticked —, or none at all, in either goal: on unless the player or the
+## command line turns them off, for a player and a tool alike.
+var bonuses: bool = true
 ## One of a ship's scenarios by name (steamer_coast), whose ship it names when [member
 ## ship] does not, or a test fixture's by its res:// path; empty for her open sea. The
 ## command line's only.
@@ -56,7 +60,7 @@ func with_seed(text: String) -> MatchChoices:
 
 ## Whether these choices and [param other] shape the same sinking under [param
 ## match_rules]: the same ship, scenario, hit and pace — whatever their seeds, seats,
-## tiers and goals.
+## tiers, goals and bonuses: bonuses never touch her sinking (D7).
 func sinks_alike(other: MatchChoices, match_rules: MatchRules) -> bool:
 	return (
 		ship_name(match_rules) == other.ship_name(match_rules)
@@ -143,10 +147,11 @@ func seed_number() -> int:
 
 
 ## The match these choices make under [param match_rules]: every unmade choice the
-## data's. [param baked], when given, is the sinking they make, made already for another
-## match drawn on choices that sink alike (sinks_alike): played as it is, so the two
-## share its bake (NextMatch). Asking for one while they have problems, or before their
-## seed is filled in, is an error, and null.
+## data's, and its bonus rules too, unless bonuses are off — then it has none, and no
+## bonus ever comes. [param baked], when given, is the sinking they make, made already
+## for another match drawn on choices that sink alike (sinks_alike): played as it is, so
+## the two share its bake (NextMatch). Asking for one while they have problems, or
+## before their seed is filled in, is an error, and null.
 func config(match_rules: MatchRules, baked: SinkScenario = null) -> MatchConfig:
 	var found := problems(match_rules)
 	if seed_text.strip_edges().is_empty():
@@ -179,7 +184,7 @@ func config(match_rules: MatchRules, baked: SinkScenario = null) -> MatchConfig:
 	made.humans = match_rules.humans
 	made.bot_tier = full.bot_tier
 	made.goal = GOALS[full.goal]
-	made.bonus_rules = match_rules.bonus_rules
+	made.bonus_rules = match_rules.bonus_rules if bonuses else null
 	return made
 
 

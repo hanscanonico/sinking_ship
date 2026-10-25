@@ -3,7 +3,7 @@ extends GutTest
 ## baked of it so far; the match after draws a seed of its own, so a blank seed is never
 ## played twice — under --hit, and before the menu baked anything, too. It is drawn on
 ## the choices that shape her sinking — ship, scenario, hit and pace — and kept while
-## only the others change.
+## only the others change: seats, tier, goal and bonuses.
 
 const MATCH_DATA := "res://data/match/default.tres"
 const FAST_HIT := "res://tests/fixtures/sinking/hits/fast.tres"
@@ -11,11 +11,16 @@ const FAST_HIT := "res://tests/fixtures/sinking/hits/fast.tres"
 
 ## The next match on the menu's choices as [param arguments] set it up.
 func _next_match(arguments: PackedStringArray) -> NextMatch:
-	var seeds := RandomNumberGenerator.new()
-	seeds.seed = 1701
-	var next := NextMatch.new(load(MATCH_DATA), seeds)
+	var next := NextMatch.new(load(MATCH_DATA), _seeds())
 	next.aim(_choices(arguments))
 	return next
+
+
+## What the next matches' seeds are drawn from, seeded.
+func _seeds() -> RandomNumberGenerator:
+	var seeds := RandomNumberGenerator.new()
+	seeds.seed = 1701
+	return seeds
 
 
 ## The menu's choices as [param arguments] set it up, its seed [param seed_text].
@@ -105,6 +110,29 @@ func test_another_pace_drops_the_drawn_match_and_a_hit_stays() -> void:
 	assert_ne(played.match_seed, drawn.match_seed, "the normal one drawn ahead is dropped")
 	assert_eq(played.scenario.clock, (load(MATCH_DATA) as MatchRules).fast_clock)
 	assert_eq(played.scenario.explicit_hit, load(FAST_HIT), "struck by --hit still")
+
+
+## Bonuses never touch her sinking (D7, #314): turned off or on after the menu drew the next
+## match, they keep it and the sinking baked of it so far, and the match played has them as
+## chosen.
+func test_bonuses_keep_the_drawn_match_and_its_bake() -> void:
+	var arguments := PackedStringArray(["--hit=" + FAST_HIT])
+	for bonuses: bool in [false, true]:
+		var next := NextMatch.new(load(MATCH_DATA), _seeds())
+		var drawn_on := _choices(arguments)
+		drawn_on.bonuses = not bonuses
+		next.aim(drawn_on)
+		var ahead := next.config()
+		ahead.bake_some(1)
+		var chosen := _choices(arguments)
+		chosen.bonuses = bonuses
+		var played := _play(next, chosen)
+		var what := "bonuses %s" % ("on" if bonuses else "off")
+		assert_eq(played.match_seed, ahead.match_seed, "%s: the match drawn ahead" % what)
+		assert_true(played.same_sinking(ahead), "%s: its sinking, under way" % what)
+		assert_eq(played.bake_steps(), 1, "%s: as far as it was baked" % what)
+		var rules: BonusRules = (load(MATCH_DATA) as MatchRules).bonus_rules
+		assert_eq(played.bonus_rules, rules if bonuses else null, "%s: as chosen" % what)
 
 
 func test_seats_tier_and_goal_keep_the_drawn_match() -> void:

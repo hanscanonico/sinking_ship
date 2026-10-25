@@ -12,6 +12,7 @@ const HITS := "res://tests/fixtures/sinking/hits/%s.tres"
 const STEAMER := "res://data/ships/steamer.tres"
 const STEAMER_SEA := "res://data/sinking/steamer_open_sea.tres"
 const TRAWLER := "res://data/ships/trawler.tres"
+const BONUS_RULES := "res://data/rules/bonuses.tres"
 
 
 ## The command line's choices: [param flags] as `make match` passes them.
@@ -26,7 +27,8 @@ func _menu(
 	seed_text: String,
 	fast := false,
 	survival := false,
-	tier := &"normal"
+	tier := &"normal",
+	bonuses := true
 ) -> MatchChoices:
 	var choices := MatchChoices.new()
 	choices.ship = ship
@@ -35,6 +37,7 @@ func _menu(
 	choices.seed_text = seed_text
 	choices.fast = fast
 	choices.goal = &"survival" if survival else &"last_standing"
+	choices.bonuses = bonuses
 	return choices
 
 
@@ -64,6 +67,7 @@ func test_choices_make_configs() -> void:
 				"scenario": load(STEAMER_SEA),
 				"goal": MatchRules.Goal.LAST_STANDING,
 				"countdown_ticks": Ticks.from_seconds(3.0),
+				"bonus_rules": load(BONUS_RULES),
 			},
 		],
 		[
@@ -147,6 +151,18 @@ func test_choices_make_configs() -> void:
 			{"goal": MatchRules.Goal.LAST_STANDING},
 		],
 		[
+			"the command line's bonuses off, in survival too",
+			_cli(["--bonuses=0", "--goal=survival"]),
+			default,
+			{"bonus_rules": null, "goal": MatchRules.Goal.SURVIVAL},
+		],
+		[
+			"the command line's bonuses named on: the data's",
+			_cli(["--bonuses"]),
+			default,
+			{"bonus_rules": load(BONUS_RULES)},
+		],
+		[
 			"the menu's seed, seats and tier",
 			_menu(&"steamer", 5, " 1701 ", false, false, &"hard"),
 			default,
@@ -183,6 +199,24 @@ func test_choices_make_configs() -> void:
 			_menu(&"steamer", 8, "1"),
 			survival,
 			{"goal": MatchRules.Goal.LAST_STANDING},
+		],
+		[
+			"the menu's Bonuses ticked: the data's bonus rules",
+			_menu(&"trawler", 6, "1"),
+			default,
+			{"bonus_rules": load(BONUS_RULES)},
+		],
+		[
+			"the menu's Bonuses unticked: none",
+			_menu(&"steamer", 8, "1", false, false, &"normal", false),
+			default,
+			{"bonus_rules": null},
+		],
+		[
+			"the menu's Bonuses unticked in survival",
+			_menu(&"steamer", 8, "1", true, true, &"normal", false),
+			survival,
+			{"bonus_rules": null, "goal": MatchRules.Goal.SURVIVAL, "scenario.clock": 2.0},
 		],
 	]
 	for ship_name: String in Fleet.names():
@@ -310,6 +344,61 @@ func test_the_same_choices_make_the_same_match() -> void:
 		_cli([]).config(default).data_hash(),
 		"the command line's default is the rules' own match"
 	)
+
+
+## The data hash covers the bonus rules and their kinds whenever bonuses are on (#314), so
+## both ends of a match, and a replay and its log, agree on them; off, the match plays none
+## of them and hashes as one did before bonuses came, whatever they are.
+func test_the_data_hash_covers_the_bonuses_when_they_are_on() -> void:
+	var default: MatchRules = load(DEFAULT_MATCH)
+	var changes := {
+		"their numbers": func(rules: BonusRules) -> void: rules.interval += 1.0,
+		"a kind's": func(rules: BonusRules) -> void: rules.kinds[0].radius += 0.1,
+	}
+	var on := _cli([])
+	var off := _cli(["--bonuses=0"])
+	for what: String in changes:
+		var changed: MatchRules = default.duplicate()
+		changed.bonus_rules = default.bonus_rules.duplicate()
+		var kinds: Array[BonusKind] = []
+		for kind: BonusKind in default.bonus_rules.kinds:
+			kinds.append(kind.duplicate())
+		changed.bonus_rules.kinds = kinds
+		(changes[what] as Callable).call(changed.bonus_rules)
+		var hashed := on.config(changed).data_hash()
+		assert_ne(hashed, on.config(default).data_hash(), "on: %s" % what)
+		assert_eq(
+			off.config(changed).data_hash(), off.config(default).data_hash(), "off: %s" % what
+		)
+	var before := RunMatch.default_config(1701)
+	before.bonus_rules = null
+	assert_eq(off.config(default).data_hash(), before.data_hash(), "off: as before bonuses came")
+
+
+## Bonuses are a choice, on by default (#314): off, a match has none at all, in either goal
+## — its config carries no bonus rules, so none of those its rules would bring ever comes
+## aboard; on, they come as its rules bring them, here three holds' worth.
+func test_with_bonuses_off_no_bonus_ever_comes_in_either_goal() -> void:
+	var below: MatchRules = (load(DEFAULT_MATCH) as MatchRules).duplicate()
+	below.ship = SimFixtures.below_decks(3)
+	below.sinking = SimFixtures.calm_until(600.0)
+	below.seats = 1
+	below.countdown = 0.0
+	below.bonus_rules = SimFixtures.bonus_rules(1.0, 2.0, 0.0, 3)
+	for goal: StringName in MatchChoices.GOALS:
+		for bonuses: bool in [true, false]:
+			var chosen := MatchChoices.new()
+			chosen.seed_text = "1"
+			chosen.goal = goal
+			chosen.bonuses = bonuses
+			var sim := MatchSim.create(chosen.config(below))
+			var events := SimFixtures.step(sim, {}, Ticks.from_seconds(10.0))
+			var came := events.filter(
+				func(event: SimEvent) -> bool: return event.kind == SimEvent.Kind.BONUS_CAME
+			)
+			var what := "%s, bonuses %s" % [goal, "on" if bonuses else "off"]
+			assert_eq(came.size(), 3 if bonuses else 0, what)
+			assert_eq(sim.state.bonuses.size(), 3 if bonuses else 0, what + ": aboard")
 
 
 func test_the_menu_starts_from_the_data() -> void:

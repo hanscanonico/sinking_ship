@@ -157,18 +157,30 @@ text = "Seed"
 [node name="Seed" type="LineEdit" parent="MainMenu/Panel/Box/CustomChoices"]
 unique_name_in_owner = true
 focus_neighbor_top = NodePath("../../Custom")
-focus_neighbor_bottom = NodePath("../Fast")
+focus_neighbor_bottom = NodePath("../Rules/Fast")
 size_flags_horizontal = 3
 placeholder_text = "random"
 
-[node name="FastLabel" type="Label" parent="MainMenu/Panel/Box/CustomChoices"]
-text = "Sinking"
+[node name="RulesLabel" type="Label" parent="MainMenu/Panel/Box/CustomChoices"]
+text = "Rules"
 
-[node name="Fast" type="CheckButton" parent="MainMenu/Panel/Box/CustomChoices"]
+[node name="Rules" type="HBoxContainer" parent="MainMenu/Panel/Box/CustomChoices"]
+size_flags_horizontal = 3
+theme_override_constants/separation = 18
+
+[node name="Fast" type="CheckButton" parent="MainMenu/Panel/Box/CustomChoices/Rules"]
 unique_name_in_owner = true
-focus_neighbor_bottom = NodePath("../../Buttons/Play")
+focus_neighbor_right = NodePath("../Bonuses")
+focus_neighbor_bottom = NodePath("../../../Buttons/Play")
 size_flags_horizontal = 3
 text = "Fast sinking"
+
+[node name="Bonuses" type="CheckButton" parent="MainMenu/Panel/Box/CustomChoices/Rules"]
+unique_name_in_owner = true
+focus_neighbor_left = NodePath("../Fast")
+focus_neighbor_bottom = NodePath("../../../Buttons/Play")
+size_flags_horizontal = 3
+text = "Bonuses"
 
 [node name="Problem" type="Label" parent="MainMenu/Panel/Box"]
 unique_name_in_owner = true

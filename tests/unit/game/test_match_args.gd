@@ -1,7 +1,8 @@
 extends GutTest
-## The match flags — --seed, --seats, --ship, --scenario, --hit, --fast and --goal —
-## are parsed as they are given into the args' match choices, which answer for them
-## (test_match_choices); every one not given is left unmade, the seed blank.
+## The match flags — --seed, --seats, --ship, --scenario, --hit, --fast, --goal and
+## --bonuses — are parsed as they are given into the args' match choices, which answer for
+## them (test_match_choices); every one not given is left unmade, the seed blank, and
+## bonuses on.
 
 
 func test_the_match_flags_are_its_choices() -> void:
@@ -17,6 +18,7 @@ func test_the_match_flags_are_its_choices() -> void:
 					"--hit=light",
 					"--fast",
 					"--goal=tag",
+					"--bonuses=0",
 				]
 			)
 		)
@@ -29,6 +31,7 @@ func test_the_match_flags_are_its_choices() -> void:
 	assert_eq(choices.hit, "light")
 	assert_true(choices.fast)
 	assert_eq(choices.goal, &"tag")
+	assert_false(choices.bonuses, "--bonuses=0: none come aboard")
 
 
 func test_unmade_choices_are_left_to_the_data() -> void:
@@ -41,6 +44,21 @@ func test_unmade_choices_are_left_to_the_data() -> void:
 	assert_eq(choices.goal, &"", "the data's goal, not the battle royale's")
 	assert_eq(choices.scenario, &"")
 	assert_eq(choices.hit, "")
+	assert_true(choices.bonuses, "bonuses unless asked otherwise")
+
+
+## --bonuses=0 turns bonuses off, as make's BONUSES=0 passes it, and --bonuses or
+## --bonuses=1 leaves them on — for a player's match and a bot's autoplay alike: bonuses
+## are on for both by default, unlike the pace.
+func test_bonuses_take_a_zero_for_none() -> void:
+	var off := MatchArgs.parse(PackedStringArray(["--bonuses=0"]))
+	assert_false(off.choices.bonuses, "--bonuses=0: the plain brawl")
+	assert_false(off.player_choices().bonuses, "a player's match too")
+	for flag: String in ["--bonuses", "--bonuses=1"]:
+		assert_true(MatchArgs.parse(PackedStringArray([flag])).choices.bonuses, flag)
+	var bot := MatchArgs.parse(PackedStringArray(["--autoplay", "--bonuses=0"]))
+	assert_false(bot.player_choices().bonuses, "and a bot's autoplay")
+	assert_true(MatchArgs.parse(PackedStringArray(["--autoplay"])).player_choices().bonuses)
 
 
 func test_fast_takes_a_zero_for_the_paced_clock() -> void:

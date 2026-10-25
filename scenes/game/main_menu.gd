@@ -2,15 +2,16 @@ class_name MainMenu
 extends CanvasLayer
 ## Play vs bots: every ship of the Fleet, the seat counts the picked one takes, every
 ## bot tier there is a profile for, a seed — blank for a random one —, whether she
-## sinks fast and whether the match is survival (MatchRules.Goal), handed on as they
-## stand: one MatchChoices, which Game turns into a match (D13). Beside it, Play
-## online opens the Online screen (SH12). It stands over the ship at dusk
+## sinks fast, whether the match is survival (MatchRules.Goal) and whether bonuses come
+## aboard, handed on as they stand: one MatchChoices, which Game turns into a match (D13).
+## Beside it, Play online opens the Online screen (SH12). It stands over the ship at dusk
 ## (MenuBackdrop) under the wordmark in her livery: cream on a boot-top red rule
 ## between brass lines — and the online screens stand over the same, its own panel put
-## away (show_behind). The seed and the pace are a tester's knobs: folded under Custom
-## match — Fast sinking ticked for a player (MatchArgs.player_choices), unticked for her
-## slow, realistic pace —, closed unless the command line set a seed or that slow pace.
-## The build's version stands in
+## away (show_behind). The seed, the pace and the bonuses are a tester's knobs: folded
+## under Custom match — Fast sinking ticked for a player (MatchArgs.player_choices),
+## unticked for her slow, realistic pace, and Bonuses beside it, ticked unless the plain
+## brawl is wanted —, closed unless the command line set a seed, that slow pace or no
+## bonuses. The build's version stands in
 ## the bottom-right corner; Credits opens the credits (CreditsMenu).
 
 signal play_requested(choices: MatchChoices)
@@ -27,6 +28,7 @@ signal quit_requested
 @onready var _tier: OptionButton = %Tier
 @onready var _seed: LineEdit = %Seed
 @onready var _fast: CheckButton = %Fast
+@onready var _bonuses: CheckButton = %Bonuses
 @onready var _survival: CheckButton = %Survival
 @onready var _problem: Label = %Problem
 @onready var _play: Button = %Play
@@ -86,16 +88,17 @@ func setup(match_rules: MatchRules, choices: MatchChoices) -> void:
 			_tier.select(_tier.item_count - 1)
 	_seed.text = full.seed_text
 	_fast.button_pressed = full.fast
+	_bonuses.button_pressed = full.bonuses
 	_survival.button_pressed = full.goal == MatchChoices.SURVIVAL
-	# A seed, or a pace other than a player's, given on the command line is shown, not
-	# hidden under the fold.
+	# A seed, a pace other than a player's, or no bonuses, given on the command line is
+	# shown, not hidden under the fold.
 	_custom.button_pressed = (
-		not full.seed_text.is_empty() or full.fast != MatchChoices.PLAYERS_FAST
+		not full.seed_text.is_empty() or full.fast != MatchChoices.PLAYERS_FAST or not full.bonuses
 	)
 
 
-## The choices as they stand: the ship, seats, tier, seed, pace and goal picked here,
-## the rest as the menu was set up with them.
+## The choices as they stand: the ship, seats, tier, seed, pace, bonuses and goal picked
+## here, the rest as the menu was set up with them.
 func choices() -> MatchChoices:
 	var picked := _given.with_seed(_seed.text)
 	picked.ship = picked_ship()
@@ -104,6 +107,7 @@ func choices() -> MatchChoices:
 		StringName(_tier.get_item_text(_tier.selected)) if _tier.selected != -1 else &""
 	)
 	picked.fast = _fast.button_pressed
+	picked.bonuses = _bonuses.button_pressed
 	picked.goal = MatchChoices.SURVIVAL if _survival.button_pressed else MatchChoices.LAST_STANDING
 	return picked
 
@@ -144,7 +148,7 @@ func show_problem(text: String) -> void:
 	_problem.show()
 
 
-## Whether the seed and the pace are shown, under Custom match.
+## Whether the seed, the pace and the bonuses are shown, under Custom match.
 func custom_shown() -> bool:
 	return _custom_choices.visible
 
@@ -193,9 +197,9 @@ func _offer_seats(seats: int, otherwise: int) -> void:
 	_seats.select(seat_index)
 
 
-## Opens or folds the seed and the pace, the fold's mark and the way down from it
-## following. The mark is a plus or a minus: Playfair has no triangles, and a web build
-## has no system font to borrow one from.
+## Opens or folds the seed, the pace and the bonuses, the fold's mark and the way down
+## from it following. The mark is a plus or a minus: Playfair has no triangles, and a web
+## build has no system font to borrow one from.
 func _show_custom(shown: bool) -> void:
 	_custom_choices.visible = shown
 	_custom.text = ("− " if shown else "+ ") + "Custom match"
