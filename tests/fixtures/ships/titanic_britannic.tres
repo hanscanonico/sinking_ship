@@ -18,6 +18,7 @@
 [ext_resource type="Script" path="res://core/sinking/ship_fitting.gd" id="16_fitting"]
 [ext_resource type="Script" path="res://core/sinking/girder_strength.gd" id="17_strength"]
 [ext_resource type="Script" path="res://core/sinking/weak_spot.gd" id="18_weak"]
+[ext_resource type="Script" path="res://core/ship_bonus_spot.gd" id="19_spot"]
 
 [sub_resource type="Resource" id="Ramp_gs_boat_a"]
 script = ExtResource("2_ramp")
@@ -25459,6 +25460,446 @@ grip_angle_deg = 20
 friction = 6.5
 facing_deg = 90
 
+[sub_resource type="Resource" id="BonusSpot_saloon_2"]
+script = ExtResource("19_spot")
+point = Vector3(-56.5, -3.1875, 0)
+room = 17
+
+[sub_resource type="Resource" id="BonusSpot_d_corridor"]
+script = ExtResource("19_spot")
+point = Vector3(-39.5, -3.1875, 0)
+room = 18
+
+[sub_resource type="Resource" id="BonusSpot_galley"]
+script = ExtResource("19_spot")
+point = Vector3(-21.95, -3.1875, -3.1)
+room = 19
+
+[sub_resource type="Resource" id="BonusSpot_saloon_1"]
+script = ExtResource("19_spot")
+point = Vector3(3.45, -3.1875, 0)
+room = 20
+
+[sub_resource type="Resource" id="BonusSpot_reception"]
+script = ExtResource("19_spot")
+point = Vector3(26.85, -3.1875, 0)
+room = 21
+
+[sub_resource type="Resource" id="BonusSpot_d_corridor_fwd"]
+script = ExtResource("19_spot")
+point = Vector3(53.27, -3.1875, 0)
+room = 22
+
+[sub_resource type="Resource" id="BonusSpot_open_space"]
+script = ExtResource("19_spot")
+point = Vector3(86.32, -3.1875, 0)
+room = 23
+
+[sub_resource type="Resource" id="BonusSpot_road_1"]
+script = ExtResource("19_spot")
+point = Vector3(-22.23, -5.9375, -10.8)
+room = 24
+
+[sub_resource type="Resource" id="BonusSpot_road_2"]
+script = ExtResource("19_spot")
+point = Vector3(1.215, -5.9375, -11.5)
+room = 25
+
+[sub_resource type="Resource" id="BonusSpot_road_3"]
+script = ExtResource("19_spot")
+point = Vector3(27.82, -5.9375, -11.5)
+room = 26
+
+[sub_resource type="Resource" id="BonusSpot_road_4"]
+script = ExtResource("19_spot")
+point = Vector3(45.235, -5.9375, -11.5)
+room = 27
+
+[sub_resource type="Resource" id="BonusSpot_gs_e"]
+script = ExtResource("19_spot")
+point = Vector3(26.85, -5.9375, -1.2)
+room = 28
+
+[sub_resource type="Resource" id="BonusSpot_saloon_3_aft"]
+script = ExtResource("19_spot")
+point = Vector3(-7.53, -8.5625, -1.1)
+room = 29
+
+[sub_resource type="Resource" id="BonusSpot_saloon_3_fwd"]
+script = ExtResource("19_spot")
+point = Vector3(10.435, -8.5625, -1.1)
+room = 30
+
+[sub_resource type="Resource" id="BonusSpot_post_office"]
+script = ExtResource("19_spot")
+point = Vector3(77.83, -11, 0)
+room = 31
+
+[sub_resource type="Resource" id="BonusSpot_berths"]
+script = ExtResource("19_spot")
+point = Vector3(77.83, -8.5625, 0)
+room = 32
+
+[sub_resource type="Resource" id="BonusSpot_crew"]
+script = ExtResource("19_spot")
+point = Vector3(77.83, -5.9375, 0)
+room = 33
+
+[sub_resource type="Resource" id="BonusSpot_corridor_br4"]
+script = ExtResource("19_spot")
+point = Vector3(27.82, -8.5625, -5.75)
+room = 34
+
+[sub_resource type="Resource" id="BonusSpot_corridor_br5"]
+script = ExtResource("19_spot")
+point = Vector3(45.235, -8.5625, -5.65)
+room = 35
+
+[sub_resource type="Resource" id="BonusSpot_turkish_bath"]
+script = ExtResource("19_spot")
+point = Vector3(27.82, -8.5625, 7.25)
+room = 36
+
+[sub_resource type="Resource" id="BonusSpot_swimming_bath"]
+script = ExtResource("19_spot")
+point = Vector3(45.235, -8.5625, 4.1)
+room = 37
+
+[sub_resource type="Resource" id="BonusSpot_squash_court"]
+script = ExtResource("19_spot")
+point = Vector3(93.9, -11, 0)
+room = 38
+
+[sub_resource type="Resource" id="BonusSpot_squash_gallery"]
+script = ExtResource("19_spot")
+point = Vector3(87.9, -8.5625, 0)
+room = 39
+
+[sub_resource type="Resource" id="BonusSpot_f_landing"]
+script = ExtResource("19_spot")
+point = Vector3(85.3, -8.5625, 0)
+room = 40
+
+[sub_resource type="Resource" id="BonusSpot_boiler_room_2"]
+script = ExtResource("19_spot")
+point = Vector3(-13.035, -18.1875, -1.1)
+room = 41
+
+[sub_resource type="Resource" id="BonusSpot_boiler_room_3"]
+script = ExtResource("19_spot")
+point = Vector3(5.455, -18.1875, -1.1)
+room = 42
+
+[sub_resource type="Resource" id="BonusSpot_boiler_room_4"]
+script = ExtResource("19_spot")
+point = Vector3(23.015, -18.1875, 0)
+room = 43
+
+[sub_resource type="Resource" id="BonusSpot_boiler_room_5"]
+script = ExtResource("19_spot")
+point = Vector3(45.34, -18.1875, 0)
+room = 44
+
+[sub_resource type="Resource" id="BonusSpot_boiler_room_6"]
+script = ExtResource("19_spot")
+point = Vector3(60.905, -18.1875, 0)
+room = 45
+
+[sub_resource type="Resource" id="BonusSpot_bunker_6"]
+script = ExtResource("19_spot")
+point = Vector3(69.28, -18.1875, 0)
+room = 46
+
+[sub_resource type="Resource" id="BonusSpot_f_br6"]
+script = ExtResource("19_spot")
+point = Vector3(62.935, -8.5625, 0)
+room = 47
+
+[sub_resource type="Resource" id="BonusSpot_passage"]
+script = ExtResource("19_spot")
+point = Vector3(83.505, -18.1875, 3.3391)
+room = 48
+
+[sub_resource type="Resource" id="BonusSpot_db_br6"]
+script = ExtResource("19_spot")
+point = Vector3(62.385, -19.8125, 0)
+room = 49
+
+[sub_resource type="Resource" id="BonusSpot_db_hold_3"]
+script = ExtResource("19_spot")
+point = Vector3(78.53, -19.8125, 0)
+room = 50
+
+[sub_resource type="Resource" id="BonusSpot_db_hold_2"]
+script = ExtResource("19_spot")
+point = Vector3(94.425, -19.8125, 0)
+room = 51
+
+[sub_resource type="Resource" id="BonusSpot_db_hold_1"]
+script = ExtResource("19_spot")
+point = Vector3(105.925, -19.8125, 0)
+room = 52
+
+[sub_resource type="Resource" id="BonusSpot_db_hold_1_fwd"]
+script = ExtResource("19_spot")
+point = Vector3(112.905, -19.8125, 0)
+room = 53
+
+[sub_resource type="Resource" id="BonusSpot_hold_3_port"]
+script = ExtResource("19_spot")
+point = Vector3(78.53, -18.1875, -1.6555)
+room = 54
+
+[sub_resource type="Resource" id="BonusSpot_hold_3_starboard"]
+script = ExtResource("19_spot")
+point = Vector3(78.53, -18.1875, 4.9946)
+room = 55
+
+[sub_resource type="Resource" id="BonusSpot_hold_2_port"]
+script = ExtResource("19_spot")
+point = Vector3(94.275, -18.1875, -0.7554)
+room = 56
+
+[sub_resource type="Resource" id="BonusSpot_hold_3_orlop"]
+script = ExtResource("19_spot")
+point = Vector3(78.53, -15.75, 0)
+room = 57
+
+[sub_resource type="Resource" id="BonusSpot_hold_2_orlop"]
+script = ExtResource("19_spot")
+point = Vector3(93.9, -15.75, 0)
+room = 58
+
+[sub_resource type="Resource" id="BonusSpot_hold_1"]
+script = ExtResource("19_spot")
+point = Vector3(105.925, -18.1875, 0.3)
+room = 59
+
+[sub_resource type="Resource" id="BonusSpot_hold_1_fwd"]
+script = ExtResource("19_spot")
+point = Vector3(112.905, -18.1875, 0)
+room = 60
+
+[sub_resource type="Resource" id="BonusSpot_hold_1_orlop"]
+script = ExtResource("19_spot")
+point = Vector3(105.925, -13.4375, 0.3)
+room = 61
+
+[sub_resource type="Resource" id="BonusSpot_hold_1_orlop_fwd"]
+script = ExtResource("19_spot")
+point = Vector3(112.905, -13.4375, 0)
+room = 62
+
+[sub_resource type="Resource" id="BonusSpot_hold_1_g"]
+script = ExtResource("19_spot")
+point = Vector3(105.925, -11, 0)
+room = 63
+
+[sub_resource type="Resource" id="BonusSpot_hold_1_g_fwd"]
+script = ExtResource("19_spot")
+point = Vector3(112.905, -11, 0)
+room = 64
+
+[sub_resource type="Resource" id="BonusSpot_hold_1_d"]
+script = ExtResource("19_spot")
+point = Vector3(108.83, -3.1875, 0)
+room = 65
+
+[sub_resource type="Resource" id="BonusSpot_forepeak_tank"]
+script = ExtResource("19_spot")
+point = Vector3(117.655, -18.1875, 0)
+room = 69
+
+[sub_resource type="Resource" id="BonusSpot_forepeak_stores"]
+script = ExtResource("19_spot")
+point = Vector3(118.905, -13.4375, 0)
+room = 70
+
+[sub_resource type="Resource" id="BonusSpot_boiler_room_1"]
+script = ExtResource("19_spot")
+point = Vector3(-25.625, -18.1875, 0)
+room = 71
+
+[sub_resource type="Resource" id="BonusSpot_bunker_1"]
+script = ExtResource("19_spot")
+point = Vector3(-18.545, -18.1875, 0)
+room = 72
+
+[sub_resource type="Resource" id="BonusSpot_f_br1"]
+script = ExtResource("19_spot")
+point = Vector3(-21.98, -8.5625, 0)
+room = 73
+
+[sub_resource type="Resource" id="BonusSpot_engine_room"]
+script = ExtResource("19_spot")
+point = Vector3(-38.17, -17.9375, 0)
+room = 74
+
+[sub_resource type="Resource" id="BonusSpot_turbine_room"]
+script = ExtResource("19_spot")
+point = Vector3(-57.325, -18.1875, -2.4)
+room = 75
+
+[sub_resource type="Resource" id="BonusSpot_electric_room"]
+script = ExtResource("19_spot")
+point = Vector3(-75.58, -18.1875, 0)
+room = 76
+
+[sub_resource type="Resource" id="BonusSpot_electric_room_g"]
+script = ExtResource("19_spot")
+point = Vector3(-75.58, -11, 0)
+room = 77
+
+[sub_resource type="Resource" id="BonusSpot_ahf_291"]
+script = ExtResource("19_spot")
+point = Vector3(-93.415, -18.1875, 0)
+room = 78
+
+[sub_resource type="Resource" id="BonusSpot_ahf_215"]
+script = ExtResource("19_spot")
+point = Vector3(-93.415, -13.4375, 0)
+room = 79
+
+[sub_resource type="Resource" id="BonusSpot_ahf_176"]
+script = ExtResource("19_spot")
+point = Vector3(-93.415, -11, 0)
+room = 80
+
+[sub_resource type="Resource" id="BonusSpot_aha_291"]
+script = ExtResource("19_spot")
+point = Vector3(-105.845, -18.1875, 0.4)
+room = 81
+
+[sub_resource type="Resource" id="BonusSpot_aha_215"]
+script = ExtResource("19_spot")
+point = Vector3(-107.395, -13.4375, 0.4)
+room = 82
+
+[sub_resource type="Resource" id="BonusSpot_aha_176"]
+script = ExtResource("19_spot")
+point = Vector3(-105.845, -11, 0)
+room = 83
+
+[sub_resource type="Resource" id="BonusSpot_ahe_291"]
+script = ExtResource("19_spot")
+point = Vector3(-114.485, -18.1875, 0)
+room = 84
+
+[sub_resource type="Resource" id="BonusSpot_ahe_215"]
+script = ExtResource("19_spot")
+point = Vector3(-114.485, -13.4375, 0)
+room = 85
+
+[sub_resource type="Resource" id="BonusSpot_ahe_176"]
+script = ExtResource("19_spot")
+point = Vector3(-114.485, -11, 0)
+room = 86
+
+[sub_resource type="Resource" id="BonusSpot_after_peak_tank"]
+script = ExtResource("19_spot")
+point = Vector3(-120.485, -18.1875, 0)
+room = 87
+
+[sub_resource type="Resource" id="BonusSpot_after_peak_stores"]
+script = ExtResource("19_spot")
+point = Vector3(-120.485, -11, 0)
+room = 88
+
+[sub_resource type="Resource" id="BonusSpot_db_br1"]
+script = ExtResource("19_spot")
+point = Vector3(-22.23, -19.8125, 0)
+room = 89
+
+[sub_resource type="Resource" id="BonusSpot_db_engine"]
+script = ExtResource("19_spot")
+point = Vector3(-38.17, -19.8125, 0)
+room = 90
+
+[sub_resource type="Resource" id="BonusSpot_db_turbine"]
+script = ExtResource("19_spot")
+point = Vector3(-57.325, -19.8125, 0)
+room = 91
+
+[sub_resource type="Resource" id="BonusSpot_db_electric"]
+script = ExtResource("19_spot")
+point = Vector3(-75.58, -19.8125, 0)
+room = 92
+
+[sub_resource type="Resource" id="BonusSpot_db_ahf"]
+script = ExtResource("19_spot")
+point = Vector3(-93.415, -19.8125, 0)
+room = 93
+
+[sub_resource type="Resource" id="BonusSpot_db_aha"]
+script = ExtResource("19_spot")
+point = Vector3(-105.845, -19.8125, 0)
+room = 94
+
+[sub_resource type="Resource" id="BonusSpot_e_engine"]
+script = ExtResource("19_spot")
+point = Vector3(-38.17, -5.9375, 0)
+room = 95
+
+[sub_resource type="Resource" id="BonusSpot_e_turbine"]
+script = ExtResource("19_spot")
+point = Vector3(-57.325, -5.9375, 0)
+room = 96
+
+[sub_resource type="Resource" id="BonusSpot_e_electric"]
+script = ExtResource("19_spot")
+point = Vector3(-75.58, -5.9375, 0)
+room = 97
+
+[sub_resource type="Resource" id="BonusSpot_e_ahf"]
+script = ExtResource("19_spot")
+point = Vector3(-93.415, -5.9375, 0)
+room = 98
+
+[sub_resource type="Resource" id="BonusSpot_e_aha"]
+script = ExtResource("19_spot")
+point = Vector3(-105.845, -5.9375, 0)
+room = 99
+
+[sub_resource type="Resource" id="BonusSpot_bunker_2"]
+script = ExtResource("19_spot")
+point = Vector3(-0.365, -18.1875, 0)
+room = 100
+
+[sub_resource type="Resource" id="BonusSpot_db_br2"]
+script = ExtResource("19_spot")
+point = Vector3(-7.53, -19.8125, 0)
+room = 101
+
+[sub_resource type="Resource" id="BonusSpot_bunker_3"]
+script = ExtResource("19_spot")
+point = Vector3(17.65, -18.1875, 0)
+room = 102
+
+[sub_resource type="Resource" id="BonusSpot_db_br3"]
+script = ExtResource("19_spot")
+point = Vector3(10.435, -19.8125, 0)
+room = 103
+
+[sub_resource type="Resource" id="BonusSpot_bunker_4"]
+script = ExtResource("19_spot")
+point = Vector3(34.905, -18.1875, 0)
+room = 104
+
+[sub_resource type="Resource" id="BonusSpot_db_br4"]
+script = ExtResource("19_spot")
+point = Vector3(27.82, -19.8125, 0)
+room = 105
+
+[sub_resource type="Resource" id="BonusSpot_bunker_5"]
+script = ExtResource("19_spot")
+point = Vector3(52.665, -18.1875, 0)
+room = 106
+
+[sub_resource type="Resource" id="BonusSpot_db_br5"]
+script = ExtResource("19_spot")
+point = Vector3(45.235, -19.8125, 0)
+room = 107
+
 [resource]
 script = ExtResource("5_layout")
 freeboard = 10
@@ -25473,6 +25914,7 @@ min_seats = 4
 max_seats = 16
 props = Array[ExtResource("8_prop")]([SubResource("Lifebuoy_0"), SubResource("Lifebuoy_1"), SubResource("Lifebuoy_2"), SubResource("Lifebuoy_3"), SubResource("Table_saloon_1_0"), SubResource("Chair_saloon_1_0_px"), SubResource("Chair_saloon_1_0_mx"), SubResource("Chair_saloon_1_0_pz"), SubResource("Chair_saloon_1_0_mz"), SubResource("Table_saloon_1_1"), SubResource("Chair_saloon_1_1_px"), SubResource("Chair_saloon_1_1_mx"), SubResource("Chair_saloon_1_1_pz"), SubResource("Chair_saloon_1_1_mz"), SubResource("Table_saloon_1_2"), SubResource("Chair_saloon_1_2_px"), SubResource("Chair_saloon_1_2_mx"), SubResource("Chair_saloon_1_2_pz"), SubResource("Chair_saloon_1_2_mz"), SubResource("Table_saloon_1_3"), SubResource("Chair_saloon_1_3_px"), SubResource("Chair_saloon_1_3_mx"), SubResource("Chair_saloon_1_3_pz"), SubResource("Chair_saloon_1_3_mz"), SubResource("Table_saloon_1_4"), SubResource("Chair_saloon_1_4_px"), SubResource("Chair_saloon_1_4_mx"), SubResource("Chair_saloon_1_4_pz"), SubResource("Chair_saloon_1_4_mz"), SubResource("Table_saloon_1_5"), SubResource("Chair_saloon_1_5_px"), SubResource("Chair_saloon_1_5_mx"), SubResource("Chair_saloon_1_5_pz"), SubResource("Chair_saloon_1_5_mz"), SubResource("Table_saloon_1_6"), SubResource("Chair_saloon_1_6_px"), SubResource("Chair_saloon_1_6_mx"), SubResource("Chair_saloon_1_6_pz"), SubResource("Chair_saloon_1_6_mz"), SubResource("Table_saloon_1_7"), SubResource("Chair_saloon_1_7_px"), SubResource("Chair_saloon_1_7_mx"), SubResource("Chair_saloon_1_7_pz"), SubResource("Chair_saloon_1_7_mz"), SubResource("Table_saloon_1_8"), SubResource("Chair_saloon_1_8_px"), SubResource("Chair_saloon_1_8_mx"), SubResource("Chair_saloon_1_8_pz"), SubResource("Chair_saloon_1_8_mz"), SubResource("Table_saloon_1_9"), SubResource("Chair_saloon_1_9_px"), SubResource("Chair_saloon_1_9_mx"), SubResource("Chair_saloon_1_9_pz"), SubResource("Chair_saloon_1_9_mz"), SubResource("Table_saloon_1_10"), SubResource("Chair_saloon_1_10_px"), SubResource("Chair_saloon_1_10_mx"), SubResource("Chair_saloon_1_10_pz"), SubResource("Chair_saloon_1_10_mz"), SubResource("Table_saloon_1_11"), SubResource("Chair_saloon_1_11_px"), SubResource("Chair_saloon_1_11_mx"), SubResource("Chair_saloon_1_11_pz"), SubResource("Chair_saloon_1_11_mz"), SubResource("Table_saloon_1_12"), SubResource("Chair_saloon_1_12_px"), SubResource("Chair_saloon_1_12_mx"), SubResource("Chair_saloon_1_12_pz"), SubResource("Chair_saloon_1_12_mz"), SubResource("Table_saloon_1_13"), SubResource("Chair_saloon_1_13_px"), SubResource("Chair_saloon_1_13_mx"), SubResource("Chair_saloon_1_13_pz"), SubResource("Chair_saloon_1_13_mz"), SubResource("Table_saloon_1_14"), SubResource("Chair_saloon_1_14_px"), SubResource("Chair_saloon_1_14_mx"), SubResource("Chair_saloon_1_14_pz"), SubResource("Chair_saloon_1_14_mz"), SubResource("Table_saloon_1_15"), SubResource("Chair_saloon_1_15_px"), SubResource("Chair_saloon_1_15_mx"), SubResource("Chair_saloon_1_15_pz"), SubResource("Chair_saloon_1_15_mz"), SubResource("Table_saloon_1_16"), SubResource("Chair_saloon_1_16_px"), SubResource("Chair_saloon_1_16_mx"), SubResource("Chair_saloon_1_16_pz"), SubResource("Chair_saloon_1_16_mz"), SubResource("Table_saloon_1_17"), SubResource("Chair_saloon_1_17_px"), SubResource("Chair_saloon_1_17_mx"), SubResource("Chair_saloon_1_17_pz"), SubResource("Chair_saloon_1_17_mz"), SubResource("Table_saloon_1_18"), SubResource("Chair_saloon_1_18_px"), SubResource("Chair_saloon_1_18_mx"), SubResource("Chair_saloon_1_18_pz"), SubResource("Chair_saloon_1_18_mz"), SubResource("Table_saloon_1_19"), SubResource("Chair_saloon_1_19_px"), SubResource("Chair_saloon_1_19_mx"), SubResource("Chair_saloon_1_19_pz"), SubResource("Chair_saloon_1_19_mz"), SubResource("Table_saloon_1_20"), SubResource("Chair_saloon_1_20_px"), SubResource("Chair_saloon_1_20_mx"), SubResource("Chair_saloon_1_20_pz"), SubResource("Chair_saloon_1_20_mz"), SubResource("Table_saloon_1_21"), SubResource("Chair_saloon_1_21_px"), SubResource("Chair_saloon_1_21_mx"), SubResource("Chair_saloon_1_21_pz"), SubResource("Chair_saloon_1_21_mz"), SubResource("Table_saloon_1_22"), SubResource("Chair_saloon_1_22_px"), SubResource("Chair_saloon_1_22_mx"), SubResource("Chair_saloon_1_22_pz"), SubResource("Chair_saloon_1_22_mz"), SubResource("Table_saloon_1_23"), SubResource("Chair_saloon_1_23_px"), SubResource("Chair_saloon_1_23_mx"), SubResource("Chair_saloon_1_23_pz"), SubResource("Chair_saloon_1_23_mz"), SubResource("Table_saloon_1_24"), SubResource("Chair_saloon_1_24_px"), SubResource("Chair_saloon_1_24_mx"), SubResource("Chair_saloon_1_24_pz"), SubResource("Chair_saloon_1_24_mz"), SubResource("Table_saloon_1_25"), SubResource("Chair_saloon_1_25_px"), SubResource("Chair_saloon_1_25_mx"), SubResource("Chair_saloon_1_25_pz"), SubResource("Chair_saloon_1_25_mz"), SubResource("Table_saloon_1_26"), SubResource("Chair_saloon_1_26_px"), SubResource("Chair_saloon_1_26_mx"), SubResource("Chair_saloon_1_26_pz"), SubResource("Chair_saloon_1_26_mz"), SubResource("Table_saloon_1_27"), SubResource("Chair_saloon_1_27_px"), SubResource("Chair_saloon_1_27_mx"), SubResource("Chair_saloon_1_27_pz"), SubResource("Chair_saloon_1_27_mz"), SubResource("Table_saloon_1_28"), SubResource("Chair_saloon_1_28_px"), SubResource("Chair_saloon_1_28_mx"), SubResource("Chair_saloon_1_28_pz"), SubResource("Chair_saloon_1_28_mz"), SubResource("Table_saloon_1_29"), SubResource("Chair_saloon_1_29_px"), SubResource("Chair_saloon_1_29_mx"), SubResource("Chair_saloon_1_29_pz"), SubResource("Chair_saloon_1_29_mz"), SubResource("Table_saloon_1_30"), SubResource("Chair_saloon_1_30_px"), SubResource("Chair_saloon_1_30_mx"), SubResource("Chair_saloon_1_30_pz"), SubResource("Chair_saloon_1_30_mz"), SubResource("Table_saloon_1_31"), SubResource("Chair_saloon_1_31_px"), SubResource("Chair_saloon_1_31_mx"), SubResource("Chair_saloon_1_31_pz"), SubResource("Chair_saloon_1_31_mz"), SubResource("Table_saloon_1_32"), SubResource("Chair_saloon_1_32_px"), SubResource("Chair_saloon_1_32_mx"), SubResource("Chair_saloon_1_32_pz"), SubResource("Chair_saloon_1_32_mz"), SubResource("Table_saloon_1_33"), SubResource("Chair_saloon_1_33_px"), SubResource("Chair_saloon_1_33_mx"), SubResource("Chair_saloon_1_33_pz"), SubResource("Chair_saloon_1_33_mz"), SubResource("Table_saloon_1_34"), SubResource("Chair_saloon_1_34_px"), SubResource("Chair_saloon_1_34_mx"), SubResource("Chair_saloon_1_34_pz"), SubResource("Chair_saloon_1_34_mz"), SubResource("Table_saloon_1_35"), SubResource("Chair_saloon_1_35_px"), SubResource("Chair_saloon_1_35_mx"), SubResource("Chair_saloon_1_35_pz"), SubResource("Chair_saloon_1_35_mz"), SubResource("Table_saloon_1_36"), SubResource("Chair_saloon_1_36_px"), SubResource("Chair_saloon_1_36_mx"), SubResource("Chair_saloon_1_36_pz"), SubResource("Chair_saloon_1_36_mz"), SubResource("Table_saloon_1_37"), SubResource("Chair_saloon_1_37_px"), SubResource("Chair_saloon_1_37_mx"), SubResource("Chair_saloon_1_37_pz"), SubResource("Chair_saloon_1_37_mz"), SubResource("Table_saloon_1_38"), SubResource("Chair_saloon_1_38_px"), SubResource("Chair_saloon_1_38_mx"), SubResource("Chair_saloon_1_38_pz"), SubResource("Chair_saloon_1_38_mz"), SubResource("Table_saloon_1_39"), SubResource("Chair_saloon_1_39_px"), SubResource("Chair_saloon_1_39_mx"), SubResource("Chair_saloon_1_39_pz"), SubResource("Chair_saloon_1_39_mz"), SubResource("Table_saloon_1_40"), SubResource("Chair_saloon_1_40_px"), SubResource("Chair_saloon_1_40_mx"), SubResource("Chair_saloon_1_40_pz"), SubResource("Chair_saloon_1_40_mz"), SubResource("Table_saloon_1_41"), SubResource("Chair_saloon_1_41_px"), SubResource("Chair_saloon_1_41_mx"), SubResource("Chair_saloon_1_41_pz"), SubResource("Chair_saloon_1_41_mz"), SubResource("Table_saloon_1_42"), SubResource("Chair_saloon_1_42_px"), SubResource("Chair_saloon_1_42_mx"), SubResource("Chair_saloon_1_42_pz"), SubResource("Chair_saloon_1_42_mz"), SubResource("Table_saloon_1_43"), SubResource("Chair_saloon_1_43_px"), SubResource("Chair_saloon_1_43_mx"), SubResource("Chair_saloon_1_43_pz"), SubResource("Chair_saloon_1_43_mz"), SubResource("Table_saloon_1_44"), SubResource("Chair_saloon_1_44_px"), SubResource("Chair_saloon_1_44_mx"), SubResource("Chair_saloon_1_44_pz"), SubResource("Chair_saloon_1_44_mz"), SubResource("Table_saloon_1_45"), SubResource("Chair_saloon_1_45_px"), SubResource("Chair_saloon_1_45_mx"), SubResource("Chair_saloon_1_45_pz"), SubResource("Chair_saloon_1_45_mz"), SubResource("Table_saloon_1_46"), SubResource("Chair_saloon_1_46_px"), SubResource("Chair_saloon_1_46_mx"), SubResource("Chair_saloon_1_46_pz"), SubResource("Chair_saloon_1_46_mz"), SubResource("Table_saloon_1_47"), SubResource("Chair_saloon_1_47_px"), SubResource("Chair_saloon_1_47_mx"), SubResource("Chair_saloon_1_47_pz"), SubResource("Chair_saloon_1_47_mz"), SubResource("Table_saloon_1_48"), SubResource("Chair_saloon_1_48_px"), SubResource("Chair_saloon_1_48_mx"), SubResource("Chair_saloon_1_48_pz"), SubResource("Chair_saloon_1_48_mz"), SubResource("Table_saloon_1_49"), SubResource("Chair_saloon_1_49_px"), SubResource("Chair_saloon_1_49_mx"), SubResource("Chair_saloon_1_49_pz"), SubResource("Chair_saloon_1_49_mz"), SubResource("Table_saloon_1_50"), SubResource("Chair_saloon_1_50_px"), SubResource("Chair_saloon_1_50_mx"), SubResource("Chair_saloon_1_50_pz"), SubResource("Chair_saloon_1_50_mz"), SubResource("Table_saloon_1_51"), SubResource("Chair_saloon_1_51_px"), SubResource("Chair_saloon_1_51_mx"), SubResource("Chair_saloon_1_51_pz"), SubResource("Chair_saloon_1_51_mz"), SubResource("Table_saloon_1_52"), SubResource("Chair_saloon_1_52_px"), SubResource("Chair_saloon_1_52_mx"), SubResource("Chair_saloon_1_52_pz"), SubResource("Chair_saloon_1_52_mz"), SubResource("Table_saloon_1_53"), SubResource("Chair_saloon_1_53_px"), SubResource("Chair_saloon_1_53_mx"), SubResource("Chair_saloon_1_53_pz"), SubResource("Chair_saloon_1_53_mz"), SubResource("Table_saloon_2_0"), SubResource("Chair_saloon_2_0_px"), SubResource("Chair_saloon_2_0_mx"), SubResource("Chair_saloon_2_0_pz"), SubResource("Chair_saloon_2_0_mz"), SubResource("Table_saloon_2_1"), SubResource("Chair_saloon_2_1_px"), SubResource("Chair_saloon_2_1_mx"), SubResource("Chair_saloon_2_1_pz"), SubResource("Chair_saloon_2_1_mz"), SubResource("Table_saloon_2_2"), SubResource("Chair_saloon_2_2_px"), SubResource("Chair_saloon_2_2_mx"), SubResource("Chair_saloon_2_2_pz"), SubResource("Chair_saloon_2_2_mz"), SubResource("Table_saloon_2_3"), SubResource("Chair_saloon_2_3_px"), SubResource("Chair_saloon_2_3_mx"), SubResource("Chair_saloon_2_3_pz"), SubResource("Chair_saloon_2_3_mz"), SubResource("Table_saloon_2_4"), SubResource("Chair_saloon_2_4_px"), SubResource("Chair_saloon_2_4_mx"), SubResource("Chair_saloon_2_4_pz"), SubResource("Chair_saloon_2_4_mz"), SubResource("Table_saloon_2_5"), SubResource("Chair_saloon_2_5_px"), SubResource("Chair_saloon_2_5_mx"), SubResource("Chair_saloon_2_5_pz"), SubResource("Chair_saloon_2_5_mz"), SubResource("Table_saloon_2_6"), SubResource("Chair_saloon_2_6_px"), SubResource("Chair_saloon_2_6_mx"), SubResource("Chair_saloon_2_6_pz"), SubResource("Chair_saloon_2_6_mz"), SubResource("Table_saloon_2_7"), SubResource("Chair_saloon_2_7_px"), SubResource("Chair_saloon_2_7_mx"), SubResource("Chair_saloon_2_7_pz"), SubResource("Chair_saloon_2_7_mz"), SubResource("Table_saloon_2_8"), SubResource("Chair_saloon_2_8_px"), SubResource("Chair_saloon_2_8_mx"), SubResource("Chair_saloon_2_8_pz"), SubResource("Chair_saloon_2_8_mz"), SubResource("Table_saloon_2_9"), SubResource("Chair_saloon_2_9_px"), SubResource("Chair_saloon_2_9_mx"), SubResource("Chair_saloon_2_9_pz"), SubResource("Chair_saloon_2_9_mz"), SubResource("Table_saloon_2_10"), SubResource("Chair_saloon_2_10_px"), SubResource("Chair_saloon_2_10_mx"), SubResource("Chair_saloon_2_10_pz"), SubResource("Chair_saloon_2_10_mz"), SubResource("Table_saloon_2_11"), SubResource("Chair_saloon_2_11_px"), SubResource("Chair_saloon_2_11_mx"), SubResource("Chair_saloon_2_11_pz"), SubResource("Chair_saloon_2_11_mz"), SubResource("Table_saloon_2_12"), SubResource("Chair_saloon_2_12_px"), SubResource("Chair_saloon_2_12_mx"), SubResource("Chair_saloon_2_12_pz"), SubResource("Chair_saloon_2_12_mz"), SubResource("Table_saloon_2_13"), SubResource("Chair_saloon_2_13_px"), SubResource("Chair_saloon_2_13_mx"), SubResource("Chair_saloon_2_13_pz"), SubResource("Chair_saloon_2_13_mz"), SubResource("Table_saloon_2_14"), SubResource("Chair_saloon_2_14_px"), SubResource("Chair_saloon_2_14_mx"), SubResource("Chair_saloon_2_14_pz"), SubResource("Chair_saloon_2_14_mz"), SubResource("Table_saloon_2_15"), SubResource("Chair_saloon_2_15_px"), SubResource("Chair_saloon_2_15_mx"), SubResource("Chair_saloon_2_15_pz"), SubResource("Chair_saloon_2_15_mz"), SubResource("Table_saloon_2_16"), SubResource("Chair_saloon_2_16_px"), SubResource("Chair_saloon_2_16_mx"), SubResource("Chair_saloon_2_16_pz"), SubResource("Chair_saloon_2_16_mz"), SubResource("Table_saloon_2_17"), SubResource("Chair_saloon_2_17_px"), SubResource("Chair_saloon_2_17_mx"), SubResource("Chair_saloon_2_17_pz"), SubResource("Chair_saloon_2_17_mz"), SubResource("Table_saloon_2_18"), SubResource("Chair_saloon_2_18_px"), SubResource("Chair_saloon_2_18_mx"), SubResource("Chair_saloon_2_18_pz"), SubResource("Chair_saloon_2_18_mz"), SubResource("Table_saloon_2_19"), SubResource("Chair_saloon_2_19_px"), SubResource("Chair_saloon_2_19_mx"), SubResource("Chair_saloon_2_19_pz"), SubResource("Chair_saloon_2_19_mz"), SubResource("Table_saloon_2_20"), SubResource("Chair_saloon_2_20_px"), SubResource("Chair_saloon_2_20_mx"), SubResource("Chair_saloon_2_20_pz"), SubResource("Chair_saloon_2_20_mz"), SubResource("Table_saloon_2_21"), SubResource("Chair_saloon_2_21_px"), SubResource("Chair_saloon_2_21_mx"), SubResource("Chair_saloon_2_21_pz"), SubResource("Chair_saloon_2_21_mz"), SubResource("Table_saloon_2_22"), SubResource("Chair_saloon_2_22_px"), SubResource("Chair_saloon_2_22_mx"), SubResource("Chair_saloon_2_22_pz"), SubResource("Chair_saloon_2_22_mz"), SubResource("Table_saloon_2_23"), SubResource("Chair_saloon_2_23_px"), SubResource("Chair_saloon_2_23_mx"), SubResource("Chair_saloon_2_23_pz"), SubResource("Chair_saloon_2_23_mz"), SubResource("Table_restaurant_0"), SubResource("Chair_restaurant_0_px"), SubResource("Chair_restaurant_0_mx"), SubResource("Chair_restaurant_0_pz"), SubResource("Chair_restaurant_0_mz"), SubResource("Table_restaurant_1"), SubResource("Chair_restaurant_1_px"), SubResource("Chair_restaurant_1_mx"), SubResource("Chair_restaurant_1_pz"), SubResource("Chair_restaurant_1_mz"), SubResource("Table_restaurant_2"), SubResource("Chair_restaurant_2_px"), SubResource("Chair_restaurant_2_mx"), SubResource("Chair_restaurant_2_pz"), SubResource("Chair_restaurant_2_mz"), SubResource("Table_restaurant_3"), SubResource("Chair_restaurant_3_px"), SubResource("Chair_restaurant_3_mx"), SubResource("Chair_restaurant_3_pz"), SubResource("Chair_restaurant_3_mz"), SubResource("Table_restaurant_4"), SubResource("Chair_restaurant_4_px"), SubResource("Chair_restaurant_4_mx"), SubResource("Chair_restaurant_4_pz"), SubResource("Chair_restaurant_4_mz"), SubResource("Table_restaurant_5"), SubResource("Chair_restaurant_5_px"), SubResource("Chair_restaurant_5_mx"), SubResource("Chair_restaurant_5_pz"), SubResource("Chair_restaurant_5_mz"), SubResource("Table_restaurant_6"), SubResource("Chair_restaurant_6_px"), SubResource("Chair_restaurant_6_mx"), SubResource("Chair_restaurant_6_pz"), SubResource("Chair_restaurant_6_mz"), SubResource("Table_restaurant_7"), SubResource("Chair_restaurant_7_px"), SubResource("Chair_restaurant_7_mx"), SubResource("Chair_restaurant_7_pz"), SubResource("Chair_restaurant_7_mz"), SubResource("Table_restaurant_8"), SubResource("Chair_restaurant_8_px"), SubResource("Chair_restaurant_8_mx"), SubResource("Chair_restaurant_8_pz"), SubResource("Chair_restaurant_8_mz"), SubResource("Table_restaurant_9"), SubResource("Chair_restaurant_9_px"), SubResource("Chair_restaurant_9_mx"), SubResource("Chair_restaurant_9_pz"), SubResource("Chair_restaurant_9_mz"), SubResource("Table_restaurant_10"), SubResource("Chair_restaurant_10_px"), SubResource("Chair_restaurant_10_mx"), SubResource("Chair_restaurant_10_pz"), SubResource("Chair_restaurant_10_mz"), SubResource("Table_restaurant_11"), SubResource("Chair_restaurant_11_px"), SubResource("Chair_restaurant_11_mx"), SubResource("Chair_restaurant_11_pz"), SubResource("Chair_restaurant_11_mz"), SubResource("Table_restaurant_12"), SubResource("Chair_restaurant_12_px"), SubResource("Chair_restaurant_12_mx"), SubResource("Chair_restaurant_12_pz"), SubResource("Chair_restaurant_12_mz"), SubResource("Table_restaurant_13"), SubResource("Chair_restaurant_13_px"), SubResource("Chair_restaurant_13_mx"), SubResource("Chair_restaurant_13_pz"), SubResource("Chair_restaurant_13_mz"), SubResource("Table_restaurant_14"), SubResource("Chair_restaurant_14_px"), SubResource("Chair_restaurant_14_mx"), SubResource("Chair_restaurant_14_pz"), SubResource("Chair_restaurant_14_mz"), SubResource("Table_restaurant_15"), SubResource("Chair_restaurant_15_px"), SubResource("Chair_restaurant_15_mx"), SubResource("Chair_restaurant_15_pz"), SubResource("Chair_restaurant_15_mz"), SubResource("Table_restaurant_16"), SubResource("Chair_restaurant_16_px"), SubResource("Chair_restaurant_16_mx"), SubResource("Chair_restaurant_16_pz"), SubResource("Chair_restaurant_16_mz"), SubResource("Table_restaurant_17"), SubResource("Chair_restaurant_17_px"), SubResource("Chair_restaurant_17_mx"), SubResource("Chair_restaurant_17_pz"), SubResource("Chair_restaurant_17_mz"), SubResource("Table_restaurant_18"), SubResource("Chair_restaurant_18_px"), SubResource("Chair_restaurant_18_mx"), SubResource("Chair_restaurant_18_pz"), SubResource("Chair_restaurant_18_mz"), SubResource("Table_restaurant_19"), SubResource("Chair_restaurant_19_px"), SubResource("Chair_restaurant_19_mx"), SubResource("Chair_restaurant_19_pz"), SubResource("Chair_restaurant_19_mz")])
 rooms = Array[ExtResource("6_room")]([SubResource("Room_officers"), SubResource("Room_wheelhouse"), SubResource("Room_gym"), SubResource("Room_gs_boat"), SubResource("Room_verandah"), SubResource("Room_smoking"), SubResource("Room_aft_entrance"), SubResource("Room_lounge"), SubResource("Room_reading"), SubResource("Room_gs_a"), SubResource("Room_restaurant"), SubResource("Room_b_corridor"), SubResource("Room_gs_b"), SubResource("Room_c_corridor"), SubResource("Room_gs_c"), SubResource("Room_purser"), SubResource("Room_general"), SubResource("Room_saloon_2"), SubResource("Room_d_corridor"), SubResource("Room_galley"), SubResource("Room_saloon_1"), SubResource("Room_reception"), SubResource("Room_d_corridor_fwd"), SubResource("Room_open_space"), SubResource("Room_road_1"), SubResource("Room_road_2"), SubResource("Room_road_3"), SubResource("Room_road_4"), SubResource("Room_gs_e"), SubResource("Room_saloon_3_aft"), SubResource("Room_saloon_3_fwd"), SubResource("Room_post_office"), SubResource("Room_berths"), SubResource("Room_crew"), SubResource("Room_corridor_br4"), SubResource("Room_corridor_br5"), SubResource("Room_turkish_bath"), SubResource("Room_swimming_bath"), SubResource("Room_squash_court"), SubResource("Room_squash_gallery"), SubResource("Room_f_landing"), SubResource("Room_boiler_room_2"), SubResource("Room_boiler_room_3"), SubResource("Room_boiler_room_4"), SubResource("Room_boiler_room_5"), SubResource("Room_boiler_room_6"), SubResource("Room_bunker_6"), SubResource("Room_f_br6"), SubResource("Room_passage"), SubResource("Room_db_br6"), SubResource("Room_db_hold_3"), SubResource("Room_db_hold_2"), SubResource("Room_db_hold_1"), SubResource("Room_db_hold_1_fwd"), SubResource("Room_hold_3_port"), SubResource("Room_hold_3_starboard"), SubResource("Room_hold_2_port"), SubResource("Room_hold_3_orlop"), SubResource("Room_hold_2_orlop"), SubResource("Room_hold_1"), SubResource("Room_hold_1_fwd"), SubResource("Room_hold_1_orlop"), SubResource("Room_hold_1_orlop_fwd"), SubResource("Room_hold_1_g"), SubResource("Room_hold_1_g_fwd"), SubResource("Room_hold_1_d"), SubResource("Room_fcsl_c"), SubResource("Room_fcsl_head_c"), SubResource("Room_fcsl_fwd_c"), SubResource("Room_forepeak_tank"), SubResource("Room_forepeak_stores"), SubResource("Room_boiler_room_1"), SubResource("Room_bunker_1"), SubResource("Room_f_br1"), SubResource("Room_engine_room"), SubResource("Room_turbine_room"), SubResource("Room_electric_room"), SubResource("Room_electric_room_g"), SubResource("Room_ahf_291"), SubResource("Room_ahf_215"), SubResource("Room_ahf_176"), SubResource("Room_aha_291"), SubResource("Room_aha_215"), SubResource("Room_aha_176"), SubResource("Room_ahe_291"), SubResource("Room_ahe_215"), SubResource("Room_ahe_176"), SubResource("Room_after_peak_tank"), SubResource("Room_after_peak_stores"), SubResource("Room_db_br1"), SubResource("Room_db_engine"), SubResource("Room_db_turbine"), SubResource("Room_db_electric"), SubResource("Room_db_ahf"), SubResource("Room_db_aha"), SubResource("Room_e_engine"), SubResource("Room_e_turbine"), SubResource("Room_e_electric"), SubResource("Room_e_ahf"), SubResource("Room_e_aha"), SubResource("Room_bunker_2"), SubResource("Room_db_br2"), SubResource("Room_bunker_3"), SubResource("Room_db_br3"), SubResource("Room_bunker_4"), SubResource("Room_db_br4"), SubResource("Room_bunker_5"), SubResource("Room_db_br5")])
+bonus_spots = Array[ExtResource("19_spot")]([SubResource("BonusSpot_saloon_2"), SubResource("BonusSpot_d_corridor"), SubResource("BonusSpot_galley"), SubResource("BonusSpot_saloon_1"), SubResource("BonusSpot_reception"), SubResource("BonusSpot_d_corridor_fwd"), SubResource("BonusSpot_open_space"), SubResource("BonusSpot_road_1"), SubResource("BonusSpot_road_2"), SubResource("BonusSpot_road_3"), SubResource("BonusSpot_road_4"), SubResource("BonusSpot_gs_e"), SubResource("BonusSpot_saloon_3_aft"), SubResource("BonusSpot_saloon_3_fwd"), SubResource("BonusSpot_post_office"), SubResource("BonusSpot_berths"), SubResource("BonusSpot_crew"), SubResource("BonusSpot_corridor_br4"), SubResource("BonusSpot_corridor_br5"), SubResource("BonusSpot_turkish_bath"), SubResource("BonusSpot_swimming_bath"), SubResource("BonusSpot_squash_court"), SubResource("BonusSpot_squash_gallery"), SubResource("BonusSpot_f_landing"), SubResource("BonusSpot_boiler_room_2"), SubResource("BonusSpot_boiler_room_3"), SubResource("BonusSpot_boiler_room_4"), SubResource("BonusSpot_boiler_room_5"), SubResource("BonusSpot_boiler_room_6"), SubResource("BonusSpot_bunker_6"), SubResource("BonusSpot_f_br6"), SubResource("BonusSpot_passage"), SubResource("BonusSpot_db_br6"), SubResource("BonusSpot_db_hold_3"), SubResource("BonusSpot_db_hold_2"), SubResource("BonusSpot_db_hold_1"), SubResource("BonusSpot_db_hold_1_fwd"), SubResource("BonusSpot_hold_3_port"), SubResource("BonusSpot_hold_3_starboard"), SubResource("BonusSpot_hold_2_port"), SubResource("BonusSpot_hold_3_orlop"), SubResource("BonusSpot_hold_2_orlop"), SubResource("BonusSpot_hold_1"), SubResource("BonusSpot_hold_1_fwd"), SubResource("BonusSpot_hold_1_orlop"), SubResource("BonusSpot_hold_1_orlop_fwd"), SubResource("BonusSpot_hold_1_g"), SubResource("BonusSpot_hold_1_g_fwd"), SubResource("BonusSpot_hold_1_d"), SubResource("BonusSpot_forepeak_tank"), SubResource("BonusSpot_forepeak_stores"), SubResource("BonusSpot_boiler_room_1"), SubResource("BonusSpot_bunker_1"), SubResource("BonusSpot_f_br1"), SubResource("BonusSpot_engine_room"), SubResource("BonusSpot_turbine_room"), SubResource("BonusSpot_electric_room"), SubResource("BonusSpot_electric_room_g"), SubResource("BonusSpot_ahf_291"), SubResource("BonusSpot_ahf_215"), SubResource("BonusSpot_ahf_176"), SubResource("BonusSpot_aha_291"), SubResource("BonusSpot_aha_215"), SubResource("BonusSpot_aha_176"), SubResource("BonusSpot_ahe_291"), SubResource("BonusSpot_ahe_215"), SubResource("BonusSpot_ahe_176"), SubResource("BonusSpot_after_peak_tank"), SubResource("BonusSpot_after_peak_stores"), SubResource("BonusSpot_db_br1"), SubResource("BonusSpot_db_engine"), SubResource("BonusSpot_db_turbine"), SubResource("BonusSpot_db_electric"), SubResource("BonusSpot_db_ahf"), SubResource("BonusSpot_db_aha"), SubResource("BonusSpot_e_engine"), SubResource("BonusSpot_e_turbine"), SubResource("BonusSpot_e_electric"), SubResource("BonusSpot_e_ahf"), SubResource("BonusSpot_e_aha"), SubResource("BonusSpot_bunker_2"), SubResource("BonusSpot_db_br2"), SubResource("BonusSpot_bunker_3"), SubResource("BonusSpot_db_br3"), SubResource("BonusSpot_bunker_4"), SubResource("BonusSpot_db_br4"), SubResource("BonusSpot_bunker_5"), SubResource("BonusSpot_db_br5")])
 dressed = false
 white_above = 2.75
 structure = SubResource("Structure")
