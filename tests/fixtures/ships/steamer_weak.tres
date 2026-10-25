@@ -17,6 +17,7 @@
 [ext_resource type="Script" path="res://core/sinking/iceberg_hit.gd" id="15_hit"]
 [ext_resource type="Script" path="res://core/sinking/ship_fitting.gd" id="16_fitting"]
 [ext_resource type="Script" path="res://core/sinking/girder_strength.gd" id="17_strength"]
+[ext_resource type="Script" path="res://core/ship_bonus_spot.gd" id="19_spot"]
 [ext_resource type="Script" path="res://core/sinking/weak_spot.gd" id="18_weak"]
 
 [sub_resource type="Resource" id="Platform_main_deck"]
@@ -2453,6 +2454,131 @@ name = &"chain locker"
 area = Rect2(15, -1.8, 4, 3.6)
 floor_height = -4.5
 
+[sub_resource type="Resource" id="BonusSpot_forward_hold"]
+script = ExtResource("19_spot")
+point = Vector3(9.5, -2.6, 0)
+room = 0
+
+[sub_resource type="Resource" id="BonusSpot_engine_room"]
+script = ExtResource("19_spot")
+point = Vector3(-1.675, -2.6, 0)
+room = 1
+
+[sub_resource type="Resource" id="BonusSpot_cabin_corridor"]
+script = ExtResource("19_spot")
+point = Vector3(-8, -2.6, 0)
+room = 2
+
+[sub_resource type="Resource" id="BonusSpot_cabin_port_aft"]
+script = ExtResource("19_spot")
+point = Vector3(-10.7, -2.6, -3.6)
+room = 3
+
+[sub_resource type="Resource" id="BonusSpot_cabin_port_middle"]
+script = ExtResource("19_spot")
+point = Vector3(-7.05, -2.6, -2.75)
+room = 4
+
+[sub_resource type="Resource" id="BonusSpot_cabin_port_forward"]
+script = ExtResource("19_spot")
+point = Vector3(-4, -2.6, -2.75)
+room = 5
+
+[sub_resource type="Resource" id="BonusSpot_cabin_starboard_aft"]
+script = ExtResource("19_spot")
+point = Vector3(-10.7, -2.6, 3.6)
+room = 6
+
+[sub_resource type="Resource" id="BonusSpot_cabin_starboard_middle"]
+script = ExtResource("19_spot")
+point = Vector3(-7.05, -2.6, 2.75)
+room = 7
+
+[sub_resource type="Resource" id="BonusSpot_cabin_starboard_forward"]
+script = ExtResource("19_spot")
+point = Vector3(-4, -2.6, 2.75)
+room = 8
+
+[sub_resource type="Resource" id="BonusSpot_stokehold"]
+script = ExtResource("19_spot")
+point = Vector3(0.5, -4.4, 0)
+room = 16
+
+[sub_resource type="Resource" id="BonusSpot_engine_room_forward"]
+script = ExtResource("19_spot")
+point = Vector3(3.5, -2.6, 0)
+room = 17
+
+[sub_resource type="Resource" id="BonusSpot_engine_room_port"]
+script = ExtResource("19_spot")
+point = Vector3(1.875, -2.6, -3.2)
+room = 18
+
+[sub_resource type="Resource" id="BonusSpot_engine_room_starboard"]
+script = ExtResource("19_spot")
+point = Vector3(1.875, -2.6, 3.2)
+room = 19
+
+[sub_resource type="Resource" id="BonusSpot_double_bottom_port"]
+script = ExtResource("19_spot")
+point = Vector3(0.5, -5.3125, -1.9)
+room = 20
+
+[sub_resource type="Resource" id="BonusSpot_double_bottom_starboard"]
+script = ExtResource("19_spot")
+point = Vector3(0.5, -5.3125, 1.9)
+room = 21
+
+[sub_resource type="Resource" id="BonusSpot_lower_hold"]
+script = ExtResource("19_spot")
+point = Vector3(9.5, -5.3125, 0)
+room = 22
+
+[sub_resource type="Resource" id="BonusSpot_shaft_tunnel"]
+script = ExtResource("19_spot")
+point = Vector3(-8, -5.3125, -1.9)
+room = 23
+
+[sub_resource type="Resource" id="BonusSpot_bilge_stores"]
+script = ExtResource("19_spot")
+point = Vector3(-8, -5.3125, 1.9)
+room = 24
+
+[sub_resource type="Resource" id="BonusSpot_side_passage_port"]
+script = ExtResource("19_spot")
+point = Vector3(5.4, -1, -4.31)
+room = 25
+
+[sub_resource type="Resource" id="BonusSpot_side_passage_starboard"]
+script = ExtResource("19_spot")
+point = Vector3(5.4, -1, 4.31)
+room = 26
+
+[sub_resource type="Resource" id="BonusSpot_steering_gear"]
+script = ExtResource("19_spot")
+point = Vector3(-17.9, -1, 0)
+room = 27
+
+[sub_resource type="Resource" id="BonusSpot_aft_stores"]
+script = ExtResource("19_spot")
+point = Vector3(-16.8, -3.1, 0)
+room = 28
+
+[sub_resource type="Resource" id="BonusSpot_lower_aft_stores"]
+script = ExtResource("19_spot")
+point = Vector3(-13.5, -5.2, 0)
+room = 29
+
+[sub_resource type="Resource" id="BonusSpot_bosuns_store"]
+script = ExtResource("19_spot")
+point = Vector3(19.3, -1.5, 0)
+room = 30
+
+[sub_resource type="Resource" id="BonusSpot_chain_locker"]
+script = ExtResource("19_spot")
+point = Vector3(15.5, -4.5, 0)
+room = 31
+
 [sub_resource type="Resource" id="Section_0"]
 script = ExtResource("10_section")
 x = -21.13
@@ -4280,4 +4406,5 @@ min_seats = 1
 max_seats = 8
 props = Array[ExtResource("8_prop")]([SubResource("Prop_hatch_aft"), SubResource("Prop_hatch_forward"), SubResource("Prop_forward_inboard"), SubResource("Prop_forward_outboard"), SubResource("Lifebuoy_0"), SubResource("Lifebuoy_1"), SubResource("Lifebuoy_2")])
 rooms = Array[ExtResource("6_room")]([SubResource("Room_forward_hold"), SubResource("Room_engine_room"), SubResource("Room_cabin_corridor"), SubResource("Room_cabin_port_aft"), SubResource("Room_cabin_port_middle"), SubResource("Room_cabin_port_forward"), SubResource("Room_cabin_starboard_aft"), SubResource("Room_cabin_starboard_middle"), SubResource("Room_cabin_starboard_forward"), SubResource("Room_saloon"), SubResource("Room_deckhouse_hall"), SubResource("Room_deckhouse_cabin_1"), SubResource("Room_deckhouse_cabin_2"), SubResource("Room_deckhouse_cabin_3"), SubResource("Room_deckhouse_cabin_4"), SubResource("Room_wheelhouse"), SubResource("Room_stokehold"), SubResource("Room_engine_room_forward"), SubResource("Room_engine_room_port"), SubResource("Room_engine_room_starboard"), SubResource("Room_double_bottom_port"), SubResource("Room_double_bottom_starboard"), SubResource("Room_lower_hold"), SubResource("Room_shaft_tunnel"), SubResource("Room_bilge_stores"), SubResource("Room_side_passage_port"), SubResource("Room_side_passage_starboard"), SubResource("Room_steering_gear"), SubResource("Room_aft_stores"), SubResource("Room_lower_aft_stores"), SubResource("Room_bosuns_store"), SubResource("Room_chain_locker")])
+bonus_spots = Array[ExtResource("19_spot")]([SubResource("BonusSpot_forward_hold"), SubResource("BonusSpot_engine_room"), SubResource("BonusSpot_cabin_corridor"), SubResource("BonusSpot_cabin_port_aft"), SubResource("BonusSpot_cabin_port_middle"), SubResource("BonusSpot_cabin_port_forward"), SubResource("BonusSpot_cabin_starboard_aft"), SubResource("BonusSpot_cabin_starboard_middle"), SubResource("BonusSpot_cabin_starboard_forward"), SubResource("BonusSpot_stokehold"), SubResource("BonusSpot_engine_room_forward"), SubResource("BonusSpot_engine_room_port"), SubResource("BonusSpot_engine_room_starboard"), SubResource("BonusSpot_double_bottom_port"), SubResource("BonusSpot_double_bottom_starboard"), SubResource("BonusSpot_lower_hold"), SubResource("BonusSpot_shaft_tunnel"), SubResource("BonusSpot_bilge_stores"), SubResource("BonusSpot_side_passage_port"), SubResource("BonusSpot_side_passage_starboard"), SubResource("BonusSpot_steering_gear"), SubResource("BonusSpot_aft_stores"), SubResource("BonusSpot_lower_aft_stores"), SubResource("BonusSpot_bosuns_store"), SubResource("BonusSpot_chain_locker")])
 structure = SubResource("Structure")

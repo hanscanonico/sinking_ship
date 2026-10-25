@@ -26,6 +26,8 @@ extends RefCounted
 ##   prop       a CSGCylinder3D, its underside where the prop stands; metadata railing names
 ##              the railing node a hung one hangs on (#273)
 ##   room       a CSGBox3D, its bottom the room's floor; its top is not data
+##   bonus_spot any Node3D on its room's floor; metadata room names the room node it lies
+##              in, as a railing names its platform (#308)
 ##   structure  any node: the structure's numbers; her pieces below need one
 ##   section    a CSGPolygon3D extruded toward the bow from the aft end of its stretch:
 ##              its polygon the outline in (z, y), its depth the stretch's length
@@ -54,6 +56,7 @@ const SHAPED := {
 		&"spawns",
 		&"props",
 		&"rooms",
+		&"bonus_spots",
 		&"structure",
 	],
 	&"platform": [&"area", &"height"],
@@ -64,6 +67,7 @@ const SHAPED := {
 	&"spawn": [],
 	&"prop": [&"pos", &"radius", &"height"],
 	&"room": [&"area", &"floor_height"],
+	&"bonus_spot": [&"point", &"room"],
 	&"structure":
 	[&"sections", &"cells", &"walls", &"openings", &"mass", &"fittings", &"strength", &"sure_hit"],
 	&"section": [&"x", &"length", &"outline"],
@@ -129,8 +133,14 @@ func _init(root: Node) -> void:
 			layout.spawns.append(_snapped(_placed(node).origin))
 	for node: Node in pieces.get(&"prop", []):
 		layout.props.append(_prop(node, railings))
+	var rooms := {}
 	for node: Node in pieces.get(&"room", []):
+		if rooms.has(node.name):
+			problems.append("%s: another room is named %s" % [_label(node), node.name])
+		rooms[node.name] = layout.rooms.size()
 		layout.rooms.append(_room(node))
+	for node: Node in pieces.get(&"bonus_spot", []):
+		layout.bonus_spots.append(_bonus_spot(node, rooms))
 	_structure(pieces)
 
 
@@ -241,6 +251,8 @@ func _fields(resource: Resource, node: Node, kind: StringName) -> void:
 		if key == &"platform" and kind in [&"railing", &"ladder"]:
 			continue
 		if key == &"railing" and kind == &"prop":
+			continue
+		if key == &"room" and kind == &"bonus_spot":
 			continue
 		if not fields.has(key) or key in SHAPED[kind]:
 			problems.append("%s: %s is no field its metadata sets" % [_label(node), key])
@@ -410,6 +422,21 @@ func _room(node: Node) -> ShipRoom:
 		room.area = _plan(box)
 		room.floor_height = _snap(box[2])
 	return room
+
+
+## A bonus spot from [param node]: in the room its metadata names, among [param rooms] by
+## node name (#308).
+func _bonus_spot(node: Node, rooms: Dictionary) -> ShipBonusSpot:
+	var spot := ShipBonusSpot.new()
+	_fields(spot, node, &"bonus_spot")
+	var named := StringName(node.get_meta(&"room", &""))
+	if rooms.has(named):
+		spot.room = rooms[named]
+	else:
+		problems.append("%s: names no room %s" % [_label(node), named])
+	if _point(node):
+		spot.point = _snapped(_placed(node).origin)
+	return spot
 
 
 ## The structure, from the piece tagged structure and the pieces of her kinds in

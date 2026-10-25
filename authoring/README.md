@@ -58,6 +58,7 @@ from the object, and says so if one is set.
 | `spawn` | an empty where a seat starts | the point | — |
 | `prop` | an upright cylinder mesh, its underside where it stands — a hung one's at its deck's height on its span | `pos`, `radius`, `height` | `kind` (`"lifebuoy"`; cargo when unset), `mass`, `friction`, `grip_angle_deg`; `railing`: the railing object's name a ring hangs on, as a railing names its platform |
 | `room` | a box mesh, its bottom the room's floor; its top is not data | `area`, `floor_height` | `name` |
+| `bonus_spot` | an empty on its room's floor, where a bonus can come aboard | `point` | `room`: the room object's name it lies in, as a railing names its platform |
 | `structure` | an empty | — | `waterline_y`, `keel_y`, the seakeeping numbers |
 | `section` | a hull section: the outline as the face at its local +Z end, extruded toward local −Z | `x`, `length`, `outline` | — |
 | `cell` | a box mesh | `low`, `high` | `name`, `kind`, `permeability`, `rooms` |
@@ -113,7 +114,7 @@ viewport's grid scale (Overlays → Guides → Scale) at 0.1. Type an exact valu
 sidebar (N) for anything off the grid — and check a box's dimensions there, since the bake
 reads what the vertices are, not what they look like.
 
-## Adding a room, a door or a stair
+## Adding a room, a door, a stair or a bonus spot
 
 Duplicate a piece of the kind (Shift D) rather than starting from nothing: it keeps the
 `ship` property and the fields, and the copy goes under the same folder. Give it a new
@@ -135,6 +136,12 @@ cells it joins.
 its high end on the upper deck's, its top edge at the high end, turned about Z by quarter
 turns. The upper deck needs a gap over the stair (split its platform round it) and, where
 the stair passes a deck between two cells, a `STAIRWELL` opening joins them.
+
+**A bonus spot.** A room below her main deck — its floor under zero — has one, where a
+bonus can come aboard (#308): duplicate an empty under `BonusSpots`, set its `room` to the
+room object's name, and stand it on the room's floor, clear of its stairs, blockers and
+walls. The layout lint holds it there. A generated ship's spots are her generator's, each
+at the free point of its room's floor nearest the middle (`tools/floor_spots.py`).
 
 Then `make bake-blend SHIP=NAME OUT=…` bakes it and lints what it baked
 (`ShipLayout.problems`), saying what is wrong and where, before it saves anything.
