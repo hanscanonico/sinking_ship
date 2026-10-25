@@ -1,9 +1,10 @@
 extends GutTest
 ## Every brawler with a bonus wears its kind's mark (#313): a band round its chest in the
-## kind's colour, lit from within as the bonus was. MatchView draws it from the snapshot,
-## so it shows through any seat's eyes, from the orbit camera and in a replay alike; a seat
-## without one wears none. Through a seat's own eyes it is not drawn at all (D14): its HUD
-## names its bonus, in its kind's colour (FirstPersonHud).
+## kind's colour, lit from within as the bonus was. MatchView draws it from the snapshot on
+## every body it draws — through a seat's eyes every other seat's, from the orbit camera
+## every seat's, as from the observer's — and draws a replay the same way; a seat without
+## one wears none. The seat whose eyes the view is in is not drawn, mark and all (D14): its
+## HUD names its bonus, in its kind's colour (FirstPersonHud).
 
 const MATCH := preload("res://scenes/match/match.tscn")
 const MATCH_DATA := "res://data/match/default.tres"
@@ -45,3 +46,12 @@ func test_a_seat_with_a_bonus_wears_its_kind_s_mark() -> void:
 	assert_null(_mark(scene, 2), "seat 2 has none: no mark")
 	seats[1]["bonus"] = -1
 	assert_null(_mark(scene, 1), "spent, or the seat out: the mark goes")
+
+
+func test_no_mark_through_the_seat_s_own_eyes_but_every_one_from_the_orbit_camera() -> void:
+	var scene := _match()
+	var seats: Array = scene._driver.current["seats"]
+	seats[0]["bonus"] = 0
+	assert_null(_mark(scene, 0), "through seat 0's own eyes: no body, so no mark")
+	scene.get_node("MatchView").look_out_of(-1)
+	assert_not_null(_mark(scene, 0), "from the orbit camera, as from the observer's: its mark")

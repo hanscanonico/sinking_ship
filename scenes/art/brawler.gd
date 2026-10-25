@@ -331,9 +331,10 @@ func wear_bonus(kind: BonusKind) -> void:
 		_mark.name = "BonusMark"
 		_mark.mesh = band
 		_mark.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		var deep := Vector3(MARK_HALF.x, MARK_DEPTH / (1.0 - MARK_INNER), MARK_HALF.y)
+		# The unit ring stretched to the band: across, deep, front to back.
+		var stretch := Vector3(MARK_HALF.x, MARK_DEPTH / (1.0 - MARK_INNER), MARK_HALF.y)
 		var rest := _skeleton.get_bone_global_rest(_skeleton.find_bone(MARK_BONE))
-		_mark.transform = rest.affine_inverse() * Transform3D(Basis.from_scale(deep), MARK_AT)
+		_mark.transform = rest.affine_inverse() * Transform3D(Basis.from_scale(stretch), MARK_AT)
 		held.add_child(_mark)
 	_mark.visible = kind != null
 	if kind != null:
