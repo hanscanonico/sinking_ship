@@ -77,6 +77,7 @@ static func transcript(host: MatchHost, max_ticks: int) -> String:
 	var told := MatchTranscript.new()
 	told.hit(host.runner.sim.schedule)
 	told.goal(host.runner.sim.config)
+	told.bonuses(host.runner.sim.config)
 	while not host.is_over() and host.tick() < max_ticks:
 		told.add(host.step())
 	told.finish(host.runner)

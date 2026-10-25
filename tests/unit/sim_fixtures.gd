@@ -15,6 +15,12 @@ const STEAMER_SCRIPT := "res://tests/fixtures/sinking/steamer.tres"
 const NORMAL_BOT := "res://data/bots/normal.tres"
 ## A frame's look when none is given: step() sends the seat's own look instead.
 const KEEP_LOOK := -1
+const DOUBLE_LIFE := "res://data/bonuses/double_life.tres"
+## Where below_decks' holds start aft, how long each is, and how far under the main deck
+## their floors stand: under the deck, over the sea a freeboard down.
+const HOLD_AFT := -12.0
+const HOLD_LENGTH := 5.0
+const HOLD_FLOOR := -2.0
 
 ## The steamer's match hits on seeds 1, 2, …, as the must-sink rule chose them: worked
 ## out once for every suite that reads them (match_hits).
@@ -264,6 +270,87 @@ static func surface_points(layout: ShipLayout) -> Array[Vector3]:
 ## A ship that never moves.
 static func calm() -> SinkScenario:
 	return scenario([[0.0, 0.0, 0.0, 0.0]])
+
+
+## A ship that never moves, her sinking over at [param seconds]: a plan of bonuses
+## (BonusPlan) runs until then.
+static func calm_until(seconds: float) -> SinkScenario:
+	return scenario([[0.0, 0.0, 0.0, 0.0], [seconds, 0.0, 0.0, 0.0]])
+
+
+## The flat deck with [param holds] holds under it (#307): rooms below her main deck,
+## HOLD_FLOOR down, side by side aft to fore from the deck's after end, HOLD_LENGTH long
+## and a gap apart, each its own floor and one bonus spot in its middle — where hold i's
+## spot is, hold_spot(i).
+static func below_decks(holds := 1) -> ShipLayout:
+	var layout: ShipLayout = deck().duplicate()
+	var platforms := layout.platforms.duplicate()
+	var rooms: Array[ShipRoom] = []
+	var spots: Array[ShipBonusSpot] = []
+	for index in holds:
+		var bottom := ShipPlatform.new()
+		bottom.name = &"hold"
+		bottom.area = Rect2(HOLD_AFT + index * (HOLD_LENGTH + 1.0), -3.0, HOLD_LENGTH, 6.0)
+		bottom.height = HOLD_FLOOR
+		platforms.append(bottom)
+		var hold := ShipRoom.new()
+		hold.name = &"hold"
+		hold.area = bottom.area
+		hold.floor_height = HOLD_FLOOR
+		rooms.append(hold)
+		var spot := ShipBonusSpot.new()
+		spot.point = hold_spot(index)
+		spot.room = index
+		spots.append(spot)
+	layout.platforms = platforms
+	layout.rooms = rooms
+	layout.bonus_spots = spots
+	return layout
+
+
+## Where below_decks' hold [param index] has its bonus spot: the middle of its floor.
+static func hold_spot(index: int) -> Vector3:
+	return Vector3(HOLD_AFT + index * (HOLD_LENGTH + 1.0) + HOLD_LENGTH * 0.5, HOLD_FLOOR, 0.0)
+
+
+## Bonus rules (#307) of [param kinds] — Double life alone when none are given, every one
+## as likely — the first coming [param first] seconds in, then every [param interval]
+## give or take [param jitter], at most [param most] aboard at once.
+static func bonus_rules(
+	first := 1.0, interval := 45.0, jitter := 0.0, most := 2, kinds: Array[BonusKind] = []
+) -> BonusRules:
+	var made := BonusRules.new()
+	var playing: Array[BonusKind] = [double_life()]
+	if not kinds.is_empty():
+		playing = kinds
+	made.kinds = playing
+	made.odds.resize(made.kinds.size())
+	made.odds.fill(1.0)
+	made.first = first
+	made.interval = interval
+	made.jitter = jitter
+	made.most_aboard = most
+	return made
+
+
+static func double_life() -> BonusKind:
+	return load(DOUBLE_LIFE)
+
+
+## A match of [param seats] on [param layout] — below_decks' one hold when none is given —
+## played with [param rules], calm until [param ends] seconds.
+static func bonus_sim(
+	rules: BonusRules, seats := 1, layout: ShipLayout = null, ends := 600.0
+) -> MatchSim:
+	var made := config(seats, calm_until(ends), 1, layout if layout != null else below_decks())
+	made.bonuses = rules
+	return MatchSim.create(made)
+
+
+## A bonus of [param kind] — by its index among the match's bonus rules' kinds — lying at
+## bonus spot [param spot], as the plan would bring it aboard: of none of the plan's.
+static func bring_aboard(match_sim: MatchSim, spot: int, kind := 0) -> void:
+	match_sim.state.bonuses.append(BonusState.new(-1, kind, spot))
 
 
 ## A ship held at [param trim_deg] and [param heel_deg], lifted well clear of the

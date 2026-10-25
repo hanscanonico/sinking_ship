@@ -15,6 +15,8 @@ var rng: RandomNumberGenerator
 var seats: Array[PlayerState] = []
 ## The ship's loose cargo, indexed as [member ShipLayout.props] (SH10).
 var props: Array[PropState] = []
+## The bonuses aboard (#307), in the order they came.
+var bonuses: Array[BonusState] = []
 ## Per railing of the layout, the hits it has left; a span at 0 is broken (SH10).
 var railing_hp := PackedFloat64Array()
 ## Per piece of her (Pieces, SH33; the whole ship alone while she does not break), which
@@ -96,6 +98,7 @@ const FIELDS := [
 	{"name": "rng", "kind": SnapshotField.Kind.INT},
 	{"name": "seats", "kind": SnapshotField.Kind.RECORDS, "fields": PlayerState.FIELDS},
 	{"name": "props", "kind": SnapshotField.Kind.RECORDS, "fields": PropState.FIELDS},
+	{"name": "bonuses", "kind": SnapshotField.Kind.RECORDS, "fields": BonusState.FIELDS},
 	{"name": "railing_hp", "kind": SnapshotField.Kind.AMOUNTS},
 	{"name": "up", "kind": SnapshotField.Kind.INTS},
 	{
@@ -115,6 +118,9 @@ func to_dict(version: int) -> Dictionary:
 	var prop_entries: Array[Dictionary] = []
 	for crate: PropState in props:
 		prop_entries.append(crate.to_dict())
+	var bonus_entries: Array[Dictionary] = []
+	for bonus: BonusState in bonuses:
+		bonus_entries.append(bonus.to_dict())
 	var event_entries: Array[Dictionary] = []
 	for event: SimEvent in events:
 		event_entries.append(event.to_dict())
@@ -126,6 +132,7 @@ func to_dict(version: int) -> Dictionary:
 		"rng": rng.state,
 		"seats": seat_entries,
 		"props": prop_entries,
+		"bonuses": bonus_entries,
 		"railing_hp": railing_hp.duplicate(),
 		"up": Array(up),
 		"events": event_entries,
@@ -146,6 +153,8 @@ static func from_dict(snapshot: Dictionary, kept: Array[PropState] = []) -> Matc
 	for entry: Dictionary in snapshot["seats"]:
 		state.seats.append(PlayerState.from_dict(entry))
 	state.props = PropState.from_snapshot(snapshot, kept)
+	for entry: Dictionary in snapshot["bonuses"]:
+		state.bonuses.append(BonusState.from_dict(entry))
 	state.railing_hp = (snapshot["railing_hp"] as PackedFloat64Array).duplicate()
 	state.up = PackedInt32Array(snapshot["up"])
 	return state

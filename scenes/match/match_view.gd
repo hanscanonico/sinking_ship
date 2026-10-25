@@ -7,7 +7,8 @@ extends Node3D
 ## faces the match stands on (Faces, SH32) — except the seat whose eyes the view is in,
 ## which is not drawn (D14) — and every prop is placed where the snapshots have it
 ## (PropPlacing): a crate where it stands, a ring hung on its span or carried before its
-## holder, whose hands reach for it, hidden once lost (SH10, #273). Once she has broken
+## holder, whose hands reach for it, hidden once lost (SH10, #273); every bonus aboard at
+## its spot, in greybox (BonusGreybox, #307). Once she has broken
 ## (SH33) a seat stands in the space of its piece, where that piece's pose has it in the
 ## world. It never moves a body itself, and never reads a live PlayerState.
 
@@ -53,6 +54,8 @@ var _props: Array[Node3D] = []
 var _still: Array = []
 var _holdable := PackedInt32Array()
 var _layout: ShipLayout
+## The bonuses aboard, drawn at their spots (#307).
+var _bonuses: BonusGreybox
 ## The seat the camera looks out of, or -1 for none.
 var _eye_seat := -1
 ## The seat this player plays: drawn where its prediction has it, but for a
@@ -130,6 +133,11 @@ func setup(
 	_still.clear()
 	_still.resize(ship.props.size())
 	_holdable = GrabReach.holdable_of(ship)
+	if _bonuses == null:
+		_bonuses = BonusGreybox.new()
+		_bonuses.name = "Bonuses"
+		_ship.add_child(_bonuses)
+	_bonuses.setup(ship, sim.config.bonuses)
 	if _drawn_pieces == null:
 		_drawn_pieces = ShipPieces.new()
 		_drawn_pieces.name = "Pieces"
@@ -375,6 +383,7 @@ func _process(delta: float) -> void:
 		lerpf(previous["tick"], current["tick"], alpha), current["railing_hp"], pose_then, alpha
 	)
 	_show_props(previous, current, alpha)
+	_bonuses.show_bonuses(current)
 	var seats_then: Array = previous["seats"]
 	var seats_now: Array = current["seats"]
 	var carried := {}

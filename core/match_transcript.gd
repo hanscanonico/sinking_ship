@@ -4,12 +4,16 @@ extends RefCounted
 ## the area it opens — and how the must-sink rule came to it; then one line per exit,
 ## per sinking event — the physics' flooding, filling and spilling cells and her going —
 ## per railing broken, per prop afloat and per prop lost, per prop grabbed, let go of or
-## knocked loose (#273), and per seat a falling funnel knocks down; one for the end; and
-## where her sinking stood then, in physics time, how its bake ends and the worst her
-## bending came to:
+## knocked loose (#273), per seat a falling funnel knocks down, and per bonus come aboard,
+## taken or spent (#307), by its kind's title once the transcript knows the match's
+## (bonuses); one for the end; and where her sinking stood then, in physics time, how its
+## bake ends and the worst her bending came to:
 ##   hit 00:21.4 · starboard · x 5.2…9.0 m · 0.034 m²
 ##   must 8 thrown · 2 bakes · rung 3
+##   00:20.0 Double life aboard · spot 9
+##   00:41.3 seat 2 takes Double life · spot 9
 ##   00:52.3 seat 4 out · cold · place 6
+##   00:58.1 seat 2's Double life spent
 ##   01:02.1 hold_bilge flooding
 ##   01:31.0 seat 1 out · cold · place 5 · credit crate 2
 ##   02:21.0 seat 3 out · with her · place 2
@@ -45,6 +49,8 @@ const FOUNDERS := {
 var _lines := PackedStringArray()
 var _ended: SimEvent
 var _survival := false
+## The titles of the match's bonus kinds, by index (bonuses): none until it is told them.
+var _titles := PackedStringArray()
 
 
 ## Match time as mm:ss.t, from the tick count — tenths rounded down.
@@ -86,6 +92,21 @@ func goal(config: MatchConfig) -> void:
 	_survival = config.goal == MatchRules.Goal.SURVIVAL
 	if _survival:
 		_lines.insert(0, "goal survival")
+
+
+## The bonus kinds [param config] plays with (#307), so its bonuses' lines name each by its
+## kind's title; without, by "bonus kind" and its index.
+func bonuses(config: MatchConfig) -> void:
+	_titles.clear()
+	if config.bonuses == null:
+		return
+	for kind: BonusKind in config.bonuses.kinds:
+		_titles.append(kind.title)
+
+
+## A bonus of [param kind], by its index, in words: its kind's title (bonuses).
+func _titled(kind: int) -> String:
+	return _titles[kind] if kind >= 0 and kind < _titles.size() else "bonus kind %d" % kind
 
 
 ## " · sea 1.1 m" for a hit struck in waves 1.1 m high; nothing for a still sea.
@@ -135,6 +156,17 @@ func add(events: Array[SimEvent]) -> void:
 			SimEvent.Kind.KNOCKED_LOOSE:
 				var loose := "%s seat %d's prop %d knocked loose by seat %d"
 				_lines.append(loose % [clock(event.tick), event.seat, event.prop, event.credit])
+			SimEvent.Kind.BONUS_CAME:
+				var came := "%s %s aboard · spot %d"
+				_lines.append(came % [clock(event.tick), _titled(event.bonus), event.spot])
+			SimEvent.Kind.BONUS_TAKEN:
+				var taken := "%s seat %d takes %s · spot %d"
+				_lines.append(
+					taken % [clock(event.tick), event.seat, _titled(event.bonus), event.spot]
+				)
+			SimEvent.Kind.DOUBLE_LIFE_SPENT:
+				var spent := "%s seat %d's %s spent"
+				_lines.append(spent % [clock(event.tick), event.seat, _titled(event.bonus)])
 			SimEvent.Kind.PLUNGE_BEGAN:
 				_lines.append("%s the plunge%s" % [clock(event.tick), _of_piece(event)])
 			SimEvent.Kind.CELL_FLOODING:

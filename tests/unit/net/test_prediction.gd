@@ -455,6 +455,30 @@ func test_a_crate_moved_far_away_is_moved_in_the_prediction() -> void:
 	assert_between(caught_up, 0, Ticks.from_seconds(0.3), "moved in it within a round trip")
 
 
+## A bonus that came aboard on the plan (#310), then taken far from seat 0 — gone from the
+## host's snapshot, seat 0's record agreeing all the while — is gone from the prediction
+## too: a Grab press there would take what the host has, not what it had.
+func test_a_bonus_taken_far_away_is_gone_from_the_prediction() -> void:
+	var layout := SimFixtures.below_decks()
+	layout.spawns = [Vector3(5.0, 0.0, 0.0), Vector3(12.0, 0.0, 2.0)] as Array[Vector3]
+	var config := SimFixtures.config(2, SimFixtures.calm_until(600.0), 3, layout)
+	config.bonuses = SimFixtures.bonus_rules(0.5)
+	var sources: Array[InputSource] = [null, InputSource.new()]
+	var played := LoopbackMatch.new(
+		config, NetRules.load_default(), NetConditions.parse(LAG), 0, Scripted.new(0), sources
+	)
+	_play(played, SETTLE, {}, {})
+	assert_eq(played.client.sim.state.bonuses.size(), 1, "it came aboard in the prediction too")
+	played.host.runner.sim.state.bonuses.clear()
+	var taken := played.host.tick()
+	var gone_after := -1
+	for _beat in Ticks.RATE:
+		played.step()
+		if gone_after < 0 and played.client.sim.state.bonuses.is_empty():
+			gone_after = played.host.tick() - taken
+	assert_between(gone_after, 0, Ticks.from_seconds(0.3), "gone from it within a round trip")
+
+
 ## The other seat, swimming with its cold all but spent, is pulled out on the host the
 ## tick after: the prediction, which only repeats its last input, ends the match on it
 ## — and is not trusted on, so seat 0 walks on.

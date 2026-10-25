@@ -179,6 +179,7 @@ func config(match_rules: MatchRules, baked: SinkScenario = null) -> MatchConfig:
 	made.humans = match_rules.humans
 	made.bot_tier = full.bot_tier
 	made.goal = GOALS[full.goal]
+	made.bonuses = match_rules.bonuses
 	return made
 
 

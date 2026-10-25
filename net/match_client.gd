@@ -18,9 +18,10 @@ extends RefCounted
 ## beat, and the view is the host's snapshot of that beat, nothing re-run.
 ##
 ## A reset is skipped when it cannot change anything (R7): the newest snapshot has this
-## seat, the crates and the railings as the prediction had them for that tick, within a
-## quantum, nothing else could have touched the seat since (ContactWatch), and the
-## prediction was reset less than trust_limit ago — then only the new ticks are stepped.
+## seat, the crates, the railings and the bonuses aboard as the prediction had them for
+## that tick, within a quantum, nothing else could have touched the seat since
+## (ContactWatch), and the prediction was reset less than trust_limit ago — then only the
+## new ticks are stepped.
 ##
 ## What it exposes is a snapshot (D5): view(), the match as this player sees it.
 ## The verdict is the host's alone: the view ends when the host's last snapshot is
@@ -62,10 +63,10 @@ var _sampled: int
 var _frames := {}
 var _last_frame: InputFrame
 ## The prediction by tick, from the newest snapshot's on: this seat's record, the
-## crates' and the railings' — what a trusted prediction could get wrong unseen; the
-## other seats are ContactWatch's. The rest cannot part: the rng is spent at the start
-## alone, the phase moves on with the tick or ends (and the prediction with it), and
-## the sinking — collapses and scheduled breaks — is the tick's (D7).
+## crates', the railings' and the bonuses aboard — what a trusted prediction could get
+## wrong unseen; the other seats are ContactWatch's. The rest cannot part: the rng is
+## spent at the start alone, the phase moves on with the tick or ends (and the prediction
+## with it), and the sinking — collapses and scheduled breaks — is the tick's (D7).
 var _predicted := {}
 ## The tick of the snapshot the prediction was last reset to.
 var _reset_from: int
@@ -285,8 +286,8 @@ func _trusted(newest: Dictionary) -> bool:
 	)
 
 
-## Whether [param newest] has this seat, the crates and the railings as the
-## prediction had them at its tick — [param then] — within a quantum. A crate the
+## Whether [param newest] has this seat, the crates, the railings and the bonuses aboard
+## as the prediction had them at its tick — [param then] — within a quantum. A crate the
 ## prediction never moved from the entry it was reset to, which came again, is the same
 ## entry (PropState.to_dict, WireCodec): one at rest is passed over unread.
 func _agrees(newest: Dictionary, then: Dictionary) -> bool:
@@ -294,6 +295,8 @@ func _agrees(newest: Dictionary, then: Dictionary) -> bool:
 		return false
 	var hp: PackedFloat64Array = then["railing_hp"]
 	if not WireCodec.field_within_quantum(&"snapshot", "railing_hp", newest["railing_hp"], hp):
+		return false
+	if newest["bonuses"] != then["bonuses"]:
 		return false
 	var crates: Array = newest["props"]
 	var held: Array[Dictionary] = then["props"]
@@ -322,10 +325,14 @@ func _note_prediction() -> void:
 	var crates: Array[Dictionary] = []
 	for crate: PropState in sim.state.props:
 		crates.append(crate.to_dict())
+	var bonuses: Array[Dictionary] = []
+	for bonus: BonusState in sim.state.bonuses:
+		bonuses.append(bonus.to_dict())
 	_predicted[sim.state.tick] = {
 		"seat": sim.state.seats[seat].to_dict(),
 		"props": crates,
 		"railing_hp": sim.state.railing_hp.duplicate(),
+		"bonuses": bonuses,
 	}
 
 

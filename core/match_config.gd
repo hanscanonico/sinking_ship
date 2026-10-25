@@ -19,6 +19,9 @@ var humans: int
 var bot_tier: StringName
 ## What the seats play for (MatchRules.Goal): the battle royale unless the data says.
 var goal := MatchRules.Goal.LAST_STANDING
+## How bonuses come aboard (#307): the match data's bonus rules, or null for a match
+## without bonuses.
+var bonuses: BonusRules
 ## Its sinking, baked once from the ship, the scenario and the seed (schedule()): match
 ## data every MatchSim of this match shares, so a sim resumed from a snapshot never
 ## bakes it again (D5). The must-sink rule's bake may run a slice at a time first
@@ -67,6 +70,7 @@ static func from_rules(
 	config.humans = match_rules.humans
 	config.bot_tier = match_rules.bot_tier
 	config.goal = match_rules.goal
+	config.bonuses = match_rules.bonuses
 	return config
 
 
@@ -179,6 +183,8 @@ func problems() -> PackedStringArray:
 	for kind: PropKind in _prop_kinds():
 		if kind != null:
 			found.append_array(kind.problems())
+	if bonuses != null:
+		found.append_array(bonuses.problems())
 	found.append_array(scenario.problems())
 	if scenario.hit != null and ship.structure == null:
 		found.append("match: the sinking's iceberg hit needs a ship with a structure")
@@ -186,10 +192,13 @@ func problems() -> PackedStringArray:
 
 
 ## A hash of every number the match loaded: the rules, ship and scenario, the
-## countdown, the kinds of her props (#273), and the goal — but for the battle royale's,
-## which the hash has always left out, so its logs and wire stay as they were.
+## countdown, the kinds of her props (#273), the bonus rules and their kinds (#307), and
+## the goal — but for the battle royale's, which the hash has always left out, so its logs
+## and wire stay as they were; and a match without bonuses hashes as before they came.
 func data_hash() -> String:
 	var described: Array = [rules, ship, scenario, countdown_ticks, _prop_kinds()]
+	if bonuses != null:
+		described.append(bonuses)
 	if goal != MatchRules.Goal.LAST_STANDING:
 		described.append(goal)
 	return _describe(described).sha256_text()

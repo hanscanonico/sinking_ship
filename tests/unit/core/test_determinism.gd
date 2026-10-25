@@ -255,6 +255,50 @@ func test_continuation_through_swimming_and_climbing() -> void:
 		assert_true(covered[field], "the scene resumes from a %s in flight" % field)
 
 
+## The golden match's bots take no bonus, though bonuses come aboard in it, so a scripted
+## scene carries them (#310): bonuses come to a hold under the flat deck on a jittered plan,
+## seat 0 beside the hold's spot takes each that comes, and seat 1, swimming on the last of
+## its cold with a Double life, spends it — a sim rebuilt from any of it must continue.
+func test_continuation_with_bonuses_in_play() -> void:
+	var config := SimFixtures.config(
+		2, SimFixtures.calm_until(600.0), GOLDEN_SEED, SimFixtures.below_decks()
+	)
+	config.bonuses = SimFixtures.bonus_rules(0.5, 1.0, 0.4, 2)
+	var sim := MatchSim.create(config)
+	SimFixtures.place(sim, 0, SimFixtures.hold_spot(0) - Vector3(0.9, 0.0, 0.0), 0.0)
+	SimFixtures.swim(sim, 1, Vector3(0.0, 0.0, 6.0))
+	sim.state.seats[1].bonus = 0
+	sim.state.seats[1].cold = 1.0
+	var scene := func(tick: int) -> Array[InputFrame]:
+		var grab := InputFrame.GRAB if tick % 20 == 0 else 0
+		return [
+			SimFixtures.frame(0, Vector2.ZERO, grab, 0.0),
+			SimFixtures.frame(1, Vector2.ZERO, 0, 90.0),
+		]
+	var played: Array[Dictionary] = [sim.snapshot()]
+	for tick in 4 * Ticks.RATE:
+		sim.step(scene.call(tick))
+		played.append(sim.snapshot())
+	var covered := {"aboard": false, "held": false, "spare unspent": false, "spare spent": false}
+	for start in range(played.size() - 1):
+		var seats: Array = played[start]["seats"]
+		var in_flight := {
+			"aboard": not (played[start]["bonuses"] as Array).is_empty(),
+			"held": seats[0]["bonus"] != -1,
+			"spare unspent": seats[1]["bonus"] != -1,
+			"spare spent": seats[1]["bonus"] == -1 and not seats[1]["out"],
+		}
+		var seen := false
+		for field: String in in_flight:
+			if in_flight[field]:
+				covered[field] = true
+				seen = true
+		if seen and not _continues(played, start, config, scene):
+			return
+	for field: String in covered:
+		assert_true(covered[field], "the scene resumes from a bonus %s" % field)
+
+
 func test_golden_for_this_platform() -> void:
 	var golden := "golden_%d_%d" % [GOLDEN_SEED, GOLDEN_SEATS]
 	if Goldens.check(self, golden, _golden()[1], "golden"):

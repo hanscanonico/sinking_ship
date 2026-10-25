@@ -69,6 +69,10 @@ var last_hit_at: int = -1
 ## same terms as last_hit_by, which is then the seat that shoved the crate, if any
 ## did within credit_window; -1 otherwise (SH10).
 var last_hit_crate: int = -1
+## The bonus it took (#307), by its kind's index among the bonus rules' kinds, until it is
+## out — or, one with a spare cold meter, until that is spent; -1 for none. One at a time:
+## a bonus taken replaces the one it had.
+var bonus: int = -1
 ## 0 while still in; the shared finishing place once out.
 var place: int
 var out_tick: int = -1
@@ -166,6 +170,7 @@ const FIELDS := [
 	{"name": "last_hit_by", "kind": SnapshotField.Kind.INT},
 	{"name": "last_hit_at", "kind": SnapshotField.Kind.INT},
 	{"name": "last_hit_crate", "kind": SnapshotField.Kind.INT},
+	{"name": "bonus", "kind": SnapshotField.Kind.INT},
 	{"name": "prev_buttons", "kind": SnapshotField.Kind.INT},
 	{"name": "last_input", "kind": SnapshotField.Kind.INTS},
 ]
@@ -204,6 +209,7 @@ func to_dict() -> Dictionary:
 		"last_hit_by": last_hit_by,
 		"last_hit_at": last_hit_at,
 		"last_hit_crate": last_hit_crate,
+		"bonus": bonus,
 		"prev_buttons": prev_buttons,
 		"last_input": [last_move.x, last_move.y, last_look, last_buttons],
 	}
@@ -240,6 +246,7 @@ static func from_dict(entry: Dictionary) -> PlayerState:
 	player.last_hit_by = entry["last_hit_by"]
 	player.last_hit_at = entry["last_hit_at"]
 	player.last_hit_crate = entry["last_hit_crate"]
+	player.bonus = entry["bonus"]
 	player.prev_buttons = entry["prev_buttons"]
 	var last_input: Array = entry["last_input"]
 	player.last_move = Vector2i(last_input[0], last_input[1])

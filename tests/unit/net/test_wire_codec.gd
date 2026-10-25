@@ -23,15 +23,18 @@ func _config() -> MatchConfig:
 	return SimFixtures.config(3, null, 1, SimFixtures.steamer())
 
 
-## A snapshot of [param config]'s match carrying an event of every shape, with every
-## number in it, however deep, replaced by a roll of the same type.
+## A snapshot of [param config]'s match carrying an event of every shape and two bonuses
+## aboard (#310), with every number in it, however deep, replaced by a roll of the same
+## type — each seat's bonus among them.
 func _scrambled(config: MatchConfig) -> Dictionary:
 	var snapshot := MatchSim.create(config).snapshot()
 	var collapse := SimFixtures.collapse(4.0, &"bridge")
 	snapshot["events"] = [
 		SimEvent.sinking(9, collapse, true).to_dict(),
 		SimEvent.seat_out(9, 1, 3, PlayerState.Cause.COLD, 2, 0).to_dict(),
+		SimEvent.bonus_came(9, 0, 3).to_dict(),
 	]
+	snapshot["bonuses"] = [BonusState.new(0, 0, 3).to_dict(), BonusState.new(2, 0, 11).to_dict()]
 	assert_false(snapshot["props"].is_empty(), "the steamer carries crates")
 	assert_false(snapshot["railing_hp"].is_empty(), "and railings")
 	return _scramble(snapshot)
@@ -88,7 +91,7 @@ func _within_quantum(
 		var value: Variant = sent[key]
 		var back: Variant = received[key]
 		match typeof(value):
-			TYPE_ARRAY when key in ["seats", "props", "events"]:
+			TYPE_ARRAY when key in ["seats", "props", "bonuses", "events"]:
 				assert_eq((back as Array).size(), (value as Array).size(), where)
 				for index in mini((back as Array).size(), (value as Array).size()):
 					_within_quantum(value[index], back[index], key, "%s[%d]" % [where, index])

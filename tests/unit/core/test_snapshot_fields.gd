@@ -1,7 +1,8 @@
 extends GutTest
 ## Every snapshot record declares its persisted fields once, in FIELDS (SnapshotField):
 ## its to_dict() carries exactly those keys in that order, from_dict() takes every one
-## back, and the wire carries every one within its kind's quantum (D5, D11).
+## back, and the wire carries every one within its kind's quantum (D5, D11). A bonus aboard
+## and a seat's bonus (#310) among them.
 
 const SEED := 71
 ## Fields with no variable of their own: the format version, a seat's derived out and
@@ -22,6 +23,7 @@ func before_each() -> void:
 func _records() -> Array:
 	var seat := _filled(PlayerState.FIELDS)
 	var prop := _filled(PropState.FIELDS)
+	var bonus := _filled(BonusState.FIELDS)
 	var event := _filled(SimEvent.FIELDS)
 	var snapshot := _filled(MatchState.FIELDS)
 	snapshot["events"] = []
@@ -29,6 +31,7 @@ func _records() -> Array:
 		["MatchState", MatchState.FIELDS, snapshot, _again_match(snapshot)],
 		["PlayerState", PlayerState.FIELDS, seat, PlayerState.from_dict(seat).to_dict()],
 		["PropState", PropState.FIELDS, prop, PropState.from_dict(prop).to_dict()],
+		["BonusState", BonusState.FIELDS, bonus, BonusState.from_dict(bonus).to_dict()],
 		["SimEvent", SimEvent.FIELDS, event, SimEvent.from_dict(event).to_dict()],
 	]
 
@@ -99,12 +102,14 @@ func test_every_kind_has_its_quantum() -> void:
 func test_to_dict_carries_the_table() -> void:
 	var sim := SimFixtures.sim(3, null, SimFixtures.steamer())
 	SimFixtures.step(sim, {}, 3)
+	SimFixtures.bring_aboard(sim, 4)
 	var state := sim.state
 	state.events = [SimEvent.prop_hit(2, 1, 0)]
 	var made: Array = [
 		["MatchState", MatchState.FIELDS, state.to_dict(MatchSim.SNAPSHOT_VERSION), state],
 		["PlayerState", PlayerState.FIELDS, state.seats[0].to_dict(), state.seats[0]],
 		["PropState", PropState.FIELDS, state.props[0].to_dict(), state.props[0]],
+		["BonusState", BonusState.FIELDS, state.bonuses[0].to_dict(), state.bonuses[0]],
 		["SimEvent", SimEvent.FIELDS, state.events[0].to_dict(), state.events[0]],
 	]
 	for record: Array in made:
@@ -180,6 +185,7 @@ func test_only_the_version_the_events_and_out_stay_out_of_the_digest() -> void:
 		["MatchState", MatchState.FIELDS],
 		["PlayerState", PlayerState.FIELDS],
 		["PropState", PropState.FIELDS],
+		["BonusState", BonusState.FIELDS],
 		["SimEvent", SimEvent.FIELDS],
 	]:
 		for row: Dictionary in record[1]:

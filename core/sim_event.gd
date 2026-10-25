@@ -16,8 +16,10 @@ extends RefCounted
 ## starts at a weak spot of hers, HULL_PARTED as her hull parts there. KNOCKED_DOWN is a
 ## rule's: a falling funnel landing on a body (Hazards, D12); PROP_AFLOAT too: a prop
 ## its cell's water lifts off its floor; BOWLED: a staggered body running into another
-## and knocking it off its feet (Movement, §6); and the props' (#273): a seat grabbing
-## one, letting go of it, and a landed shove knocking it loose.
+## and knocking it off its feet (Movement, §6); the props' (#273): a seat grabbing
+## one, letting go of it, and a landed shove knocking it loose; and the bonuses' (#307): one
+## coming aboard on the plan (BonusPlan), a seat taking one, and a seat's Double life spent
+## as its cold meter ran out.
 
 enum Kind {
 	SEAT_OUT,
@@ -63,6 +65,9 @@ enum Kind {
 	PROP_GRABBED,
 	PROP_LET_GO,
 	KNOCKED_LOOSE,
+	BONUS_CAME,
+	BONUS_TAKEN,
+	DOUBLE_LIFE_SPENT,
 }
 
 var kind: Kind
@@ -74,7 +79,8 @@ var tick: int
 ## PROP_HIT: the seat a prop ran into. RAILING_BROKE: the seat whose vault broke
 ## the span, or -1. KNOCKED_DOWN: the seat a funnel landed on. BOWLED: the seat knocked
 ## off its feet. PROP_GRABBED, PROP_LET_GO, KNOCKED_LOOSE: the seat that took the prop,
-## or held it. The sinking's events, PROP_AFLOAT and PROP_LOST: -1.
+## or held it. BONUS_TAKEN: the seat that took it. DOUBLE_LIFE_SPENT: the seat whose meter
+## filled again. The sinking's events, PROP_AFLOAT, PROP_LOST and BONUS_CAME: -1.
 var seat: int
 var place: int
 var cause: PlayerState.Cause = PlayerState.Cause.NONE
@@ -103,6 +109,12 @@ var railing: int = -1
 ## the side, port or starboard. FUNNEL_STRAINING, FUNNEL_FALLING, KNOCKED_DOWN: the
 ## funnel. POWER_LOST, POWER_BACK: her generator.
 var cell: StringName
+## BONUS_CAME, BONUS_TAKEN, DOUBLE_LIFE_SPENT: the bonus's kind, by its index among the
+## bonus rules' kinds (BonusRules.kinds).
+var bonus: int = -1
+## BONUS_CAME, BONUS_TAKEN: the bonus spot it lies at, by its index in the layout's bonus
+## spots.
+var spot: int = -1
 
 
 func _init(event_kind: Kind, event_tick: int, event_seat: int) -> void:
@@ -288,6 +300,30 @@ static func knocked_loose(event_tick: int, holding: int, held: int, by: int) -> 
 	return event
 
 
+## A bonus of [param kind] coming aboard at bonus spot [param at] (#307).
+static func bonus_came(event_tick: int, kind: int, at: int) -> SimEvent:
+	var event := SimEvent.new(Kind.BONUS_CAME, event_tick, -1)
+	event.bonus = kind
+	event.spot = at
+	return event
+
+
+## [param taking] taking the bonus of [param kind] lying at bonus spot [param at].
+static func bonus_taken(event_tick: int, taking: int, kind: int, at: int) -> SimEvent:
+	var event := SimEvent.new(Kind.BONUS_TAKEN, event_tick, taking)
+	event.bonus = kind
+	event.spot = at
+	return event
+
+
+## [param holding]'s bonus of [param kind] filling its cold meter again as it ran out in
+## the sea: its Double life spent.
+static func double_life_spent(event_tick: int, holding: int, kind: int) -> SimEvent:
+	var event := SimEvent.new(Kind.DOUBLE_LIFE_SPENT, event_tick, holding)
+	event.bonus = kind
+	return event
+
+
 static func match_ended(event_tick: int, winner: int) -> SimEvent:
 	var event := SimEvent.new(Kind.MATCH_ENDED, event_tick, winner)
 	event.place = 1
@@ -310,6 +346,8 @@ const FIELDS := [
 	{"name": "railing", "kind": SnapshotField.Kind.INT},
 	{"name": "prop", "kind": SnapshotField.Kind.INT},
 	{"name": "cell", "kind": SnapshotField.Kind.NAME},
+	{"name": "bonus", "kind": SnapshotField.Kind.INT},
+	{"name": "spot", "kind": SnapshotField.Kind.INT},
 ]
 
 
@@ -329,6 +367,8 @@ func to_dict() -> Dictionary:
 		"railing": railing,
 		"prop": prop,
 		"cell": cell,
+		"bonus": bonus,
+		"spot": spot,
 	}
 
 
@@ -346,4 +386,6 @@ static func from_dict(entry: Dictionary) -> SimEvent:
 	event.railing = entry["railing"]
 	event.prop = entry["prop"]
 	event.cell = entry["cell"]
+	event.bonus = entry["bonus"]
+	event.spot = entry["spot"]
 	return event

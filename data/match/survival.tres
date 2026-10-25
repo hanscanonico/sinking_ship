@@ -4,6 +4,7 @@
 [ext_resource type="Script" path="res://core/match_rules.gd" id="2_cfls3"]
 [ext_resource type="Resource" path="res://data/ships/steamer.tres" id="3_efbn2"]
 [ext_resource type="Resource" path="res://data/sinking/steamer_open_sea.tres" id="4_64jf7"]
+[ext_resource type="Resource" path="res://data/rules/bonuses.tres" id="5_bonus"]
 
 [resource]
 script = ExtResource("2_cfls3")
@@ -16,3 +17,4 @@ ship = ExtResource("3_efbn2")
 sinking = ExtResource("4_64jf7")
 fast_clock = 2.0
 goal = 1
+bonuses = ExtResource("5_bonus")
