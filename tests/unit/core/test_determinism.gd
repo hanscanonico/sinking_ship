@@ -256,12 +256,13 @@ func test_continuation_through_swimming_and_climbing() -> void:
 
 
 ## The golden match's bots take no bonus, though bonuses come aboard in it, so a scripted
-## scene carries them (#310): bonuses come to a hold under the flat deck on a jittered plan,
-## seat 0 beside the hold's spot takes each that comes, and seat 1, swimming on the last of
+## scene carries them (#310, #311): bonuses come to two holds under the flat deck on a
+## jittered plan, seat 0 beside the first hold's spot takes each that comes there, the sea
+## floods both 3 s in and takes any lying in the second, and seat 1, swimming on the last of
 ## its cold with a Double life, spends it — a sim rebuilt from any of it must continue.
 func test_continuation_with_bonuses_in_play() -> void:
 	var config := SimFixtures.config(
-		2, SimFixtures.calm_until(600.0), GOLDEN_SEED, SimFixtures.below_decks()
+		2, SimFixtures.flooding(3.0), GOLDEN_SEED, SimFixtures.below_decks(2)
 	)
 	config.bonus_rules = SimFixtures.bonus_rules(0.5, 1.0, 0.4, 2)
 	var sim := MatchSim.create(config)
@@ -279,12 +280,19 @@ func test_continuation_with_bonuses_in_play() -> void:
 	for tick in 4 * Ticks.RATE:
 		sim.step(scene.call(tick))
 		played.append(sim.snapshot())
-	var covered := {"aboard": false, "taken": false, "spare unspent": false, "spare spent": false}
+	var covered := {
+		"aboard": false,
+		"taken": false,
+		"lost ahead": false,
+		"spare unspent": false,
+		"spare spent": false,
+	}
 	for start in range(played.size() - 1):
 		var seats: Array = played[start]["seats"]
 		var in_flight := {
 			"aboard": not (played[start]["bonuses"] as Array).is_empty(),
 			"taken": seats[0]["bonus"] != -1,
+			"lost ahead": _lost_within(played, start),
 			"spare unspent": seats[1]["bonus"] != -1,
 			"spare spent": seats[1]["bonus"] == -1 and not seats[1]["out"],
 		}
@@ -297,6 +305,16 @@ func test_continuation_with_bonuses_in_play() -> void:
 			return
 	for field: String in covered:
 		assert_true(covered[field], "the scene resumes from a bonus %s" % field)
+
+
+## Whether a bonus is lost to the sea (#311) in the second [param snapshots] has after
+## [param start]: what a continuation from it plays through (_continues).
+func _lost_within(snapshots: Array[Dictionary], start: int) -> bool:
+	for at in range(start + 1, mini(start + Ticks.RATE, snapshots.size() - 1) + 1):
+		for event: Dictionary in snapshots[at]["events"]:
+			if event["kind"] == SimEvent.Kind.BONUS_LOST:
+				return true
+	return false
 
 
 func test_golden_for_this_platform() -> void:

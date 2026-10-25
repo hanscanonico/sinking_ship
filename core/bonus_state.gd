@@ -1,8 +1,8 @@
 class_name BonusState
 extends RefCounted
 ## A bonus aboard (#307), as the match has it: which of the plan's bonuses it is (BonusPlan),
-## its kind and the spot it lies at. It never moves: it lies at its spot until it is taken.
-## Every field is in the snapshot (D5).
+## its kind and the spot it lies at. It never moves: it lies at its spot until it is taken,
+## or lost to the sea (#311). Every field is in the snapshot (D5).
 
 ## Its index in the match's bonus plan; -1 for one put aboard by hand.
 var planned: int

@@ -178,7 +178,6 @@ func step(frames: Array[InputFrame]) -> Array[SimEvent]:
 	var pose_now := schedule.pose_at(tick)
 	_sinking_events(pose_now, tick, events)
 	_rehome(pose_now, tick, events)
-	_bonuses_come(tick, events)
 	var playing := tick >= config.countdown_ticks
 	var exits: Array[PlayerState] = []
 	var going: Array[PlayerState] = []
@@ -211,6 +210,11 @@ func step(frames: Array[InputFrame]) -> Array[SimEvent]:
 				MatchVerdict.gone_with(_on(_live_seats(), piece), framed, tick, gone_tick)
 			)
 		_movement.unface(state)
+	# The bonuses aboard as the tick leaves them are those the next tick's presses find, as
+	# its snapshot shows them (D13): the sea takes its own and the plan brings what is due
+	# once every press of this one is done.
+	_bonuses_lost(pose_now, tick, events)
+	_bonuses_come(pose_now, tick, events)
 	if playing:
 		_carry(pose_now, live)
 		var left: Array[PlayerState] = []
@@ -302,14 +306,46 @@ func _rehome(pose_now: ShipPose, tick: int, events: Array[SimEvent]) -> void:
 			events.append(SimEvent.fell(tick, player.seat))
 
 
+## Every bonus aboard the sea has taken by [param tick] is lost (#311): one at a spot no
+## bonus may lie at any more — she has turned past its floor, or the piece of her it lies in
+## is gone (_spot_pose) — or with water standing at it as the water stands now under
+## [param pose_now] (Surfaces.wet).
+func _bonuses_lost(pose_now: ShipPose, tick: int, events: Array[SimEvent]) -> void:
+	if state.bonuses.is_empty():
+		return
+	var kept: Array[BonusState] = []
+	for bonus: BonusState in state.bonuses:
+		var posed := _spot_pose(bonus.spot, pose_now, tick)
+		if posed == null or surfaces.wet(config.ship.bonus_spots[bonus.spot].point, posed):
+			events.append(SimEvent.bonus_lost(tick, bonus.kind, bonus.spot))
+		else:
+			kept.append(bonus)
+	state.bonuses = kept
+
+
+## The pose bonus spot [param spot] stands in on [param tick] under [param pose_now] — that
+## of the piece of her it lies in — or null where no bonus may lie any more: on a piece
+## standing on any face but her decks (Faces), its floors no floors since she turned past
+## them; on a piece gone (SinkSchedule.piece_gone_tick); or on none, its floor torn away
+## between two (Pieces.piece_at).
+func _spot_pose(spot: int, pose_now: ShipPose, tick: int) -> ShipPose:
+	var piece := pieces.piece_at(pose_now.standing, config.ship.bonus_spots[spot].point.x)
+	if piece == -1 or state.up[piece] != Faces.Up.DECK:
+		return null
+	var gone := schedule.piece_gone_tick(piece)
+	if gone != -1 and tick >= gone:
+		return null
+	return pose_now.of_piece(piece)
+
+
 ## The bonuses the plan brings aboard on [param tick] (BonusPlan), each to the open spot its
-## pick lands on — of her bonus spots, in her layout's order, those no bonus lies at — and
-## none while the most are aboard, or with no spot open: that one never comes.
-func _bonuses_come(tick: int, events: Array[SimEvent]) -> void:
+## pick lands on (_open_spots) — and none while the most are aboard, or with no spot open:
+## that one never comes.
+func _bonuses_come(pose_now: ShipPose, tick: int, events: Array[SimEvent]) -> void:
 	for planned: int in _plan.due(tick):
 		if state.bonuses.size() >= config.bonus_rules.most_aboard:
 			continue
-		var open := _open_spots()
+		var open := _open_spots(pose_now, tick)
 		if open.is_empty():
 			continue
 		var bonus := BonusState.new(planned, _plan.kinds[planned], _plan.spot_of(planned, open))
@@ -317,14 +353,21 @@ func _bonuses_come(tick: int, events: Array[SimEvent]) -> void:
 		events.append(SimEvent.bonus_came(tick, bonus.kind, bonus.spot))
 
 
-## Her bonus spots no bonus lies at, by their index in her layout, in its order.
-func _open_spots() -> PackedInt32Array:
+## Her open bonus spots on [param tick] under [param pose_now], by their index in her
+## layout, in its order: those no bonus lies at, where one may still lie (_spot_pose), whose
+## room has no water standing anywhere on its floor (Surfaces.floor_wet) — as the water
+## stands now, never as the timeline has it next (D10).
+func _open_spots(pose_now: ShipPose, tick: int) -> PackedInt32Array:
 	var open := PackedInt32Array()
 	for spot in config.ship.bonus_spots.size():
 		var lies := false
 		for bonus: BonusState in state.bonuses:
 			lies = lies or bonus.spot == spot
-		if not lies:
+		if lies:
+			continue
+		var posed := _spot_pose(spot, pose_now, tick)
+		var room := config.ship.rooms[config.ship.bonus_spots[spot].room]
+		if posed != null and not surfaces.floor_wet(room.area, room.floor_height, posed):
 			open.append(spot)
 	return open
 
