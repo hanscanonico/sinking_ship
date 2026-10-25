@@ -25,7 +25,10 @@ extends RefCounted
 ## of 7, whose rules have neither, is refused VERSION at its HELLO.
 ## 9: the bonuses aboard and each seat's bonus ride in the snapshot (#310), so a client of
 ## 8, whose Grab takes no bonus, is refused VERSION at its HELLO.
-const PROTOCOL_VERSION := 9
+## 10: BEGIN carries whether the match has bonuses beside its pace (#314), so a client of 9
+## — which would build its match with bonuses whatever the server says, and read a BEGIN a
+## byte longer as none — is refused VERSION at its HELLO.
+const PROTOCOL_VERSION := 10
 ## The build of what plays a match — core/, ai/ and net/ — bumped by hand whenever a
 ## change there would play the same data differently: part of every match's hash, so
 ## two builds that would not agree are refused as other data.

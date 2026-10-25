@@ -32,3 +32,4 @@ log_interval = 10.0
 timeline_lead = 120.0
 timeline_bytes_per_beat = 8192
 fast = true
+bonuses = true

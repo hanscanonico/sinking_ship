@@ -411,8 +411,9 @@ func test_inputs_reach_only_their_own_seat() -> void:
 
 
 ## A server's packets are read as warily as a client's: a roster naming a player it
-## does not list or holding no room's code, and a BEGIN giving a seat past its seats or
-## a pace neither fast nor paced, are nothing, and a client is left as it was.
+## does not list or holding no room's code, and a BEGIN giving a seat past its seats, a
+## pace neither fast nor paced or bonuses neither on nor off, are nothing, and a client is
+## left as it was.
 func test_a_client_reads_impossible_server_packets_as_nothing() -> void:
 	var codec := RoomCodec.new(
 		RoomServer.data_hash(load(RoomFixtures.MATCH_DATA), NetRules.load_default())
@@ -424,12 +425,15 @@ func test_a_client_reads_impossible_server_packets_as_nothing() -> void:
 	assert_not_null(codec.decode(codec.encode_roster(roster)), "a roster as a server sends it")
 	assert_not_null(codec.decode(codec.encode_begin(1, 8, 7)), "and a BEGIN")
 	for fast: bool in [true, false]:
-		var begin := codec.decode(codec.encode_begin(1701, 8, 7, fast, "ab".repeat(32)))
-		assert_eq(
-			[begin.value, begin.seats, begin.seat, begin.fast, begin.text],
-			[1701, 8, 7, fast, "ab".repeat(32)],
-			"a BEGIN's pace comes through"
-		)
+		for bonuses: bool in [true, false]:
+			var begin := codec.decode(
+				codec.encode_begin(1701, 8, 7, fast, bonuses, "ab".repeat(32))
+			)
+			assert_eq(
+				[begin.value, begin.seats, begin.seat, begin.fast, begin.bonuses, begin.text],
+				[1701, 8, 7, fast, bonuses, "ab".repeat(32)],
+				"a BEGIN's pace and bonuses come through"
+			)
 	roster.you = 1
 	var past_you := codec.encode_roster(roster)
 	roster.you = 0
@@ -438,7 +442,9 @@ func test_a_client_reads_impossible_server_packets_as_nothing() -> void:
 	var past_seats := codec.encode_begin(1, 8, 8)
 	var no_pace := codec.encode_begin(1, 8, 0)
 	no_pace[2 + WireCodec.HASH_BYTES + 6] = 2
-	for bytes: PackedByteArray in [past_you, bad_code, past_seats, no_pace]:
+	var bad_bonuses := codec.encode_begin(1, 8, 0)
+	bad_bonuses[2 + WireCodec.HASH_BYTES + 7] = 2
+	for bytes: PackedByteArray in [past_you, bad_code, past_seats, no_pace, bad_bonuses]:
 		assert_null(codec.decode(bytes))
 	var server_end := LoopbackTransport.new(
 		RoomFixtures.SERVER_PEER, NetClock.new(), NetConditions.new(), SeedStreams.derive(1, 0)

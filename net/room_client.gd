@@ -5,8 +5,8 @@ extends RefCounted
 ## as the connection opens; then, on the caller's word, it creates a room, joins one
 ## by its code, starts the match as the room's host, or leaves. What the server says
 ## comes back as signals and in [member state] and [member roster]. As a match
-## begins, [signal began] gives its config — at the pace BEGIN said, the server's,
-## never this end's own — and this client's seat, and play() the
+## begins, [signal began] gives its config — at the pace and with the bonuses BEGIN
+## said, the server's, never this end's own — and this client's seat, and play() the
 ## RemoteMatch a SimDriver steps, the server's snapshots routed to it from here.
 ## poll() reads the wire: call it every frame, a match on or not.
 ##
@@ -185,7 +185,9 @@ func _begin(message: RoomCodec.Message) -> void:
 	var seats := message.seats
 	if seats < _match_rules.ship.min_seats or seats > _match_rules.ship.max_seats:
 		return
-	_config = RoomServer.config_for(_match_rules, message.value, message.fast, seats)
+	_config = RoomServer.config_for(
+		_match_rules, message.value, message.fast, message.bonuses, seats
+	)
 	_seat = message.seat
 	state = State.PLAYING
 	_digest = message.text

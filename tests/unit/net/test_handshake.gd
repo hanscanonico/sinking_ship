@@ -65,6 +65,33 @@ func test_fast_clock_mismatch_is_refused() -> void:
 	assert_false(fixture.logged("said hello"), "never welcomed")
 
 
+## Bonuses are the server's to say, told in BEGIN beside the pace (#314), so a match with
+## them may be the one played: a client whose bonus rules or bonus kinds differ would build
+## another match from a BEGIN with bonuses, and is refused as other data at its HELLO —
+## whether that server has them on or off, which no HELLO can know.
+func test_bonus_rules_mismatch_is_refused() -> void:
+	var changes := {
+		"its bonus rules": func(rules: BonusRules) -> void: rules.interval += 1.0,
+		"a bonus kind": func(rules: BonusRules) -> void: rules.kinds[0].radius += 0.1,
+	}
+	for bonuses: bool in [true, false]:
+		for what: String in changes:
+			var fixture := RoomFixtures.new(RoomFixtures.rules_with({"bonuses": bonuses}))
+			var changed: MatchRules = fixture.match_rules.duplicate()
+			changed.bonus_rules = changed.bonus_rules.duplicate()
+			var kinds: Array[BonusKind] = []
+			for kind: BonusKind in changed.bonus_rules.kinds:
+				kinds.append(kind.duplicate())
+			changed.bonus_rules.kinds = kinds
+			(changes[what] as Callable).call(changed.bonus_rules)
+			var client := fixture.connect_client("Changed", changed)
+			fixture.beat()
+			var said := "%s, on a server with bonuses %s" % [what, "on" if bonuses else "off"]
+			assert_eq(client.state, RoomClient.State.CLOSED, said)
+			assert_eq(client.close_reason, RoomCodec.Refusal.DATA, "%s: refused" % said)
+			assert_false(fixture.logged("said hello"), "%s: never welcomed" % said)
+
+
 ## A packet of the server's own, read by a client of another version, is the
 ## server's refusal too: either end can tell.
 func test_a_client_reads_another_version_as_a_refusal() -> void:
