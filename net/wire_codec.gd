@@ -33,7 +33,9 @@ const PROTOCOL_VERSION := 10
 ## change there would play the same data differently: part of every match's hash, so
 ## two builds that would not agree are refused as other data.
 ## 9: a bonus comes only into a dry room, and is lost to the sea (#311).
-const SIM_BUILD := 9
+## 10: bots go below decks for bonuses, and count a spare meter unspent as more time in
+## the sea (#315).
+const SIM_BUILD := 10
 const HASH_BYTES := 8
 ## How far apart, in quanta, two values within_quantum may be: a rounding on each side,
 ## and a single-precision Vector3's own error at a few tens of metres.

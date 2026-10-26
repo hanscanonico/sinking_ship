@@ -255,11 +255,12 @@ func test_continuation_through_swimming_and_climbing() -> void:
 		assert_true(covered[field], "the scene resumes from a %s in flight" % field)
 
 
-## The golden match's bots take no bonus, though bonuses come aboard in it, so a scripted
-## scene carries them (#310, #311): bonuses come to two holds under the flat deck on a
-## jittered plan, seat 0 beside the first hold's spot takes each that comes there, the sea
-## floods both 3 s in and takes any lying in the second, and seat 1, swimming on the last of
-## its cold with a Double life, spends it — a sim rebuilt from any of it must continue.
+## The golden match is bots' and may take no bonus, or spend no Double life, on a
+## platform, so a scripted scene carries them (#310, #311): bonuses come to two holds under
+## the flat deck on a jittered plan, seat 0 beside the first hold's spot takes each that
+## comes there, the sea floods both 3 s in and takes any lying in the second, and seat 1,
+## swimming on the last of its cold with a Double life, spends it — a sim rebuilt from any
+## of it must continue.
 func test_continuation_with_bonuses_in_play() -> void:
 	var config := SimFixtures.config(
 		2, SimFixtures.flooding(3.0), GOLDEN_SEED, SimFixtures.below_decks(2)

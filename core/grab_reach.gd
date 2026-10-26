@@ -56,7 +56,7 @@ func press(
 	surfaces: Surfaces
 ) -> Press:
 	var made := Press.new()
-	made.aboard = _bonus_taken(player, up, height, aboard, surfaces)
+	made.aboard = bonus_taken(player, up, height, aboard, surfaces)
 	if made.aboard != -1:
 		return made
 	if held != -1:
@@ -129,8 +129,9 @@ static func take(
 
 
 ## The bonus of [param aboard] — its place among them — a Grab press by [param player]
-## takes, whatever its hands hold, as take() reaches a prop; -1 for none.
-func _bonus_taken(
+## takes, whatever its hands hold, as take() reaches a prop; -1 for none. What a press does
+## first (press), and what a bot asks of the bonus it goes for.
+func bonus_taken(
 	player: PlayerState, up: int, height: float, aboard: Array[BonusState], surfaces: Surfaces
 ) -> int:
 	if aboard.is_empty() or not _grabs(player, up):

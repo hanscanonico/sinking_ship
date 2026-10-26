@@ -24,7 +24,8 @@ func _init(seat: int, profile: BotProfile, config: MatchConfig, floors: BotFloor
 		config.ship,
 		floors,
 		SeedStreams.derive(config.match_seed, seat),
-		config.goal
+		config.goal,
+		config.bonus_rules
 	)
 
 

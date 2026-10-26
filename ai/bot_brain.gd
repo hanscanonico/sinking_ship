@@ -42,7 +42,10 @@ extends RefCounted
 ## — through the walk graph to its target's zone, then at it, past the grip angle round
 ## to its uphill side first; TAKE_BUOY — its hands empty and buoy_from of her decks
 ## under water — for the nearest lifebuoy it can walk to, by buoy_weight times that
-## share, and a Grab press once a press would take it (BotProps).
+## share, and a Grab press once a press would take it (BotProps); TAKE_BONUS — a bonus
+## aboard worth more to it than its own, within bonus_range_m, its floor and its way there
+## bonus_margin_m above the water — below decks for it, down toward the water by design, by
+## bonus_weight, and a Grab press once a press would take it (BotBonuses).
 ##
 ## Its target is a seat it perceives and can reach, scored by nearness and, by
 ## king_of_hill_bias, by how high it stands — less so on a crowded perch — and by how
@@ -65,10 +68,22 @@ extends RefCounted
 ## too (and out of a crate's path) unless it is one of its profile's heedless lapses.
 ## Holding a ring it braces at nothing, and swims as far as its slower cold lets it; a
 ## tier that steals charges a seat for the ring in its hands, the charge that knocks it
-## loose (#273).
+## loose (#273). With a spare meter unspent (Double life, #307) it swims as far as that
+## lets it too.
 
 enum Intent {
-	SEEK_HIGH, LINE_UP, HUNT, GUARD, BRACE, RECOVER, RIDE, CLIMB_OUT, FLEE, SWIM_OUT, TAKE_BUOY
+	SEEK_HIGH,
+	LINE_UP,
+	HUNT,
+	GUARD,
+	BRACE,
+	RECOVER,
+	RIDE,
+	CLIMB_OUT,
+	FLEE,
+	SWIM_OUT,
+	TAKE_BUOY,
+	TAKE_BONUS
 }
 
 
@@ -95,6 +110,10 @@ var _dodge: CargoDodge
 ## Its props, and the lifebuoy it goes for as the last think scored it (#273).
 var _props: BotProps
 var _buoy_score := 0.0
+## The bonuses aboard and its own, and the score of the one it goes for as the last think
+## chose it (#307).
+var _bonuses: BotBonuses
+var _bonus_score := 0.0
 ## The floors of the frame it stands in (BotFloors, SH32), and that frame's.
 var _floors: BotFloors
 var _up := -1
@@ -156,10 +175,8 @@ var _stalled_since := 0
 var _edges_near := true
 ## In the sea, where it swims for.
 var _swim: BotSwim
-## The walks it has sent and the ticks it sent them on, for as long as its view lags:
-## what it pressed and has yet to see itself do. A tick of -1 is none.
-var _sent_moves := PackedVector2Array()
-var _sent_ticks := PackedInt32Array()
+## Where it stands now, its view being reaction_ticks old.
+var _reckoning: BotReckoning
 ## Where it keeps off the edges from this tick: reckoned by its walks, and past the
 ## grip angle by its seen velocity too — the same place on a deck that grips.
 var _edge_from := Vector3.ZERO
@@ -174,7 +191,8 @@ var _lead := 0.0
 var _replans := 0
 
 
-## [param rng] is this seat's own stream, SeedStreams' (match seed, seat).
+## [param rng] is this seat's own stream, SeedStreams' (match seed, seat); [param bonus_rules]
+## the match's (MatchConfig.bonus_rules), null for a match without bonuses.
 func _init(
 	bot_seat: int,
 	profile: BotProfile,
@@ -182,7 +200,8 @@ func _init(
 	layout: ShipLayout,
 	floors: BotFloors,
 	rng: RandomNumberGenerator,
-	plays_for := MatchRules.Goal.LAST_STANDING
+	plays_for := MatchRules.Goal.LAST_STANDING,
+	bonus_rules: BonusRules = null
 ) -> void:
 	seat = bot_seat
 	_plays_for = plays_for
@@ -190,15 +209,14 @@ func _init(
 	_rules = rules
 	_dodge = CargoDodge.new(profile, rules, layout.props)
 	_props = BotProps.new(bot_seat, profile, rules, layout)
+	_bonuses = BotBonuses.new(bot_seat, profile, rules, layout, bonus_rules)
+	_reckoning = BotReckoning.new(profile, rules)
 	_floors = floors
 	_stand_on(Faces.Up.DECK)
 	_pacing = BotPacing.new(profile, plays_for, _targeting.carry)
 	_rng = rng
 	_charge_full_ticks = Ticks.from_seconds(rules.charge_full)
 	_windup_ticks = Ticks.from_seconds(rules.shove_windup)
-	_sent_moves.resize(maxi(profile.reaction_ticks, 1))
-	_sent_ticks.resize(_sent_moves.size())
-	_sent_ticks.fill(-1)
 
 
 ## How many times it has searched the walk graph afresh because it strayed off the
@@ -225,8 +243,8 @@ func decide(view: BotView, tick: int) -> InputFrame:
 	# The route is followed from where its seen velocity carries it; the edges are kept
 	# from where its own walks have, which a turn toward one since cannot hide — and,
 	# past the grip angle, where it slides wherever it walks, from both.
-	var now_pos := _reckon(me)
-	_edge_from = _by_walks(me, seen["tick"], now_pos)
+	var now_pos := _reckoning.reckon(me)
+	_edge_from = _reckoning.by_walks(me, seen["tick"], now_pos)
 	_edge_also = now_pos if _footing.slides(pose) else _edge_from
 	if me["state"] == PlayerState.Body.SWIMMING:
 		intent = Intent.SWIM_OUT
@@ -266,6 +284,8 @@ func decide(view: BotView, tick: int) -> InputFrame:
 	var grab := 0
 	if intent == Intent.TAKE_BUOY:
 		grab = _props.grab(seen, me, now_pos, _look, _surfaces, tick)
+	elif intent == Intent.TAKE_BONUS:
+		grab = _bonuses.grab(seen, me, now_pos, _look, _surfaces, tick)
 	if grab != 0:
 		buttons = grab
 	elif _charge_held > 0:
@@ -280,8 +300,7 @@ func decide(view: BotView, tick: int) -> InputFrame:
 	_last_buttons = buttons
 	_turn_toward(steer.watch if steer.watch != Vector2.ZERO else steer.move)
 	var frame := InputFrame.new(seat, tick, InputFrame.quantize(steer.move), buttons, _look)
-	_sent_moves[tick % _sent_moves.size()] = frame.move_vector()
-	_sent_ticks[tick % _sent_ticks.size()] = tick
+	_reckoning.sent(frame)
 	return frame
 
 
@@ -294,6 +313,7 @@ func _stand_on(up: int, pose: ShipPose = null) -> void:
 	_walk_graph = _floors.graph(up, pose)
 	_surfaces = _walk_graph.surfaces()
 	_footing = BotFooting.new(_surfaces, _walk_graph, _rules, _profile.edge_margin_m)
+	_reckoning.stand_on(_footing, _surfaces)
 	_targeting = BotTargeting.new(seat, _profile, _rules, _footing, _walk_graph, _plays_for)
 	_swim = BotSwim.new(_walk_graph, _rules, _profile)
 	_refuges = BotRefuge.new(_walk_graph, _profile)
@@ -304,53 +324,15 @@ func _stand_on(up: int, pose: ShipPose = null) -> void:
 	_wading = false
 
 
-## Where the bot stands now, from where its view shows it: carried on by the velocity
-## it was seen at. Its feet have risen or sunk with the walk, up a stair or onto the
-## next deck.
-func _reckon(me: Dictionary) -> Vector3:
-	var seen_pos: Vector3 = me["pos"]
-	var my_vel: Vector3 = me["vel"]
-	var reaction_s := _profile.reaction_ticks * Ticks.SECONDS_PER_TICK
-	var now_pos := seen_pos + Vector3(my_vel.x, 0.0, my_vel.z) * reaction_s
-	if me["surface"] != Surfaces.NONE:
-		now_pos.y = _footing.feet_at(seen_pos, now_pos)
-	return now_pos
-
-
-## Where the bot stands now — on its feet and free to walk — by the walks it has sent
-## since its view's [param seen_tick], unless a wall or a railing stands across them:
-## it knows what it pressed, so a turn since is no surprise to it. Otherwise where
-## [param reckoned] by its seen velocity.
-func _by_walks(me: Dictionary, seen_tick: int, reckoned: Vector3) -> Vector3:
-	if me["state"] != PlayerState.Body.GROUNDED or me["stagger"] != 0 or me["hitstop"] != 0:
-		return reckoned
-	var seen_pos: Vector3 = me["pos"]
-	var walked := Vector2.ZERO
-	for index in _sent_ticks.size():
-		if _sent_ticks[index] >= seen_tick:
-			walked += _sent_moves[index]
-	var height := _rules.height_at(_surfaces, seen_pos)
-	var pace := _rules.walk_speed if height >= _rules.body_height else _rules.crawl_speed
-	walked *= pace * Ticks.SECONDS_PER_TICK
-	var walked_to := seen_pos + Vector3(walked.x, 0.0, walked.y)
-	if (
-		_surfaces.blocked(seen_pos, walked_to, height, _rules.step_height)
-		or _surfaces.railed(seen_pos, walked_to, me["surface"])
-	):
-		return reckoned
-	if me["surface"] != Surfaces.NONE:
-		walked_to.y = _footing.feet_at(seen_pos, walked_to)
-	return walked_to
-
-
 ## In the sea: nothing to press while a climb is under way; else for the way out the
 ## last think found (BotSwim), through the open water or the portal on the way to it
 ## first, looking where it swims. It presses on into the edge that stops it, which is
 ## what starts the climb.
 func _swim_out(me: Dictionary, now_pos: Vector3, pose: ShipPose, tick: int) -> InputFrame:
 	if _think_in <= 0:
-		# By its own rules: more time to swim, holding a ring that slows the cold.
-		_swim.find(me["cold"], now_pos, pose, _footing.seat_rules)
+		# By its own rules: more time to swim, holding a ring that slows the cold, or with a
+		# spare meter unspent.
+		_swim.find(me["cold"] + _bonuses.spare(me), now_pos, pose, _footing.seat_rules)
 		# With nowhere to make for, the next look round can wait a second.
 		_think_in = _profile.think_period if _swim.goal() != Vector3.INF else Ticks.RATE
 	_think_in -= 1
@@ -417,6 +399,7 @@ func _think(view: BotView, me: Dictionary, now_pos: Vector3, pose: ShipPose) -> 
 	refuge = refuge if wade.is_empty() else wade.back().to_zone
 	target = _targeting.choose(seen, me, found, pose, highest, target, refuge, under)
 	_buoy_score = _props.choose(seen, me, found, _walk_graph, under, pose)
+	_bonus_score = _bonuses.choose(seen, me, found, _walk_graph, pose)
 	var mark := view.entry(target)
 	# It climbs until it stands where it was making for — off its feet, it stands
 	# nowhere — or, the ship not yet foundering, on a floor a body's height out of the
@@ -477,9 +460,9 @@ func _think(view: BotView, me: Dictionary, now_pos: Vector3, pose: ShipPose) -> 
 			_goal = refuge
 		Intent.GUARD:
 			_goal = WalkGraph.NONE
-		Intent.TAKE_BUOY:
-			var stand := _props.stand_by(_props.target(seen))
-			_goal = _walk_graph.zone_at(stand, _surfaces.under(stand, _rules.step_height))
+		Intent.TAKE_BUOY, Intent.TAKE_BONUS:
+			var aim := _aim(seen)
+			_goal = _walk_graph.zone_at(aim[0], _surfaces.under(aim[0], _rules.step_height))
 		_:
 			_goal = _zone_of(view.entry(target))
 	# The route it has, while its goal stands and every portal on it is open: two ways
@@ -503,9 +486,10 @@ func _think(view: BotView, me: Dictionary, now_pos: Vector3, pose: ShipPose) -> 
 			_stalled_since = seen["tick"]
 
 
-## The arbiter: the first urgent intent whose reason holds, else the best of SEEK_HIGH,
-## LINE_UP and HUNT by score — the one the bot has, unless another beats it by its
-## profile's hysteresis. Standing in [param highest] already, there is no higher
+## The arbiter: the first urgent intent whose reason holds, else the best of the scored
+## ones by score — the one the bot has, unless another beats it by its profile's
+## hysteresis — and with none scoring at all, SEEK_HIGH: a lifebuoy or a bonus it went for
+## gone, its intent goes too. Standing in [param highest] already, there is no higher
 ## ground to seek: it goes at whoever it can — off its perch, survival_hunt_scale of it.
 func _arbitrate(
 	seen: Dictionary,
@@ -534,12 +518,15 @@ func _arbitrate(
 	if not mark.is_empty():
 		scores[Intent.HUNT] = _profile.hunt_weight * _pacing.pressing
 	scores[Intent.TAKE_BUOY] = _buoy_score
+	scores[Intent.TAKE_BONUS] = _bonus_score
 	var off_perch := _targeting.off_perch(mark)
 	if off_perch:
 		scores[Intent.LINE_UP] *= _profile.survival_hunt_scale
 		scores[Intent.HUNT] *= _profile.survival_hunt_scale
 		scores[Intent.SEEK_HIGH] = maxf(scores[Intent.SEEK_HIGH], _profile.wander_weight)
-	var scored: Array[Intent] = [Intent.SEEK_HIGH, Intent.LINE_UP, Intent.HUNT, Intent.TAKE_BUOY]
+	var scored: Array[Intent] = [
+		Intent.SEEK_HIGH, Intent.LINE_UP, Intent.HUNT, Intent.TAKE_BUOY, Intent.TAKE_BONUS
+	]
 	var kept := intent
 	if off_perch or not kept in scored:
 		kept = Intent.SEEK_HIGH
@@ -549,7 +536,7 @@ func _arbitrate(
 			best = candidate
 	if scores[kept] > 0.0 and scores[best] <= scores[kept] + _profile.hysteresis:
 		return kept
-	return best
+	return best if scores[best] > 0.0 else Intent.SEEK_HIGH
 
 
 ## The first of the urgent intents whose reason holds, in order of claim, or -1.
@@ -602,8 +589,8 @@ func _steer(
 			_recover(steer, me, mark, now_pos, pose)
 		Intent.RIDE:
 			_ride(steer, me, mark, now_pos, pose)
-		Intent.TAKE_BUOY:
-			_take_buoy(steer, seen, me, mark, now_pos, pose)
+		Intent.TAKE_BUOY, Intent.TAKE_BONUS:
+			_take(steer, _aim(seen), me, mark, now_pos, pose)
 		_:
 			_hunt(steer, me, mark, now_pos, pose)
 	return steer
@@ -623,24 +610,30 @@ func _make_for_goal(
 		steer.watch = Vector2(mark_pos.x - now_pos.x, mark_pos.z - now_pos.z)
 
 
-## Along the route to the lifebuoy it goes for (BotProps); there, to where it stands to
-## take it, looking at it — or, that ring gone from its view, hunting.
-func _take_buoy(
+## Where it stands to take what its take intent goes for, then where that lies — the
+## lifebuoy (BotProps) or the bonus (BotBonuses) — as [param seen] has it; empty once that
+## is gone.
+func _aim(seen: Dictionary) -> PackedVector3Array:
+	return _props.aim(seen) if intent == Intent.TAKE_BUOY else _bonuses.aim(seen)
+
+
+## Along the route to what it goes to take, [param aim] (_aim); there, to where it stands
+## to take it, looking at it — or, that gone from its view, hunting.
+func _take(
 	steer: Steer,
-	seen: Dictionary,
+	aim: PackedVector3Array,
 	me: Dictionary,
 	mark: Dictionary,
 	now_pos: Vector3,
 	pose: ShipPose
 ) -> void:
-	var ring := _props.target(seen)
-	if ring.is_empty():
+	if aim.is_empty():
 		_hunt(steer, me, mark, now_pos, pose)
 		return
 	if _follow_route(steer, me, now_pos, pose):
 		return
-	var stand := _props.stand_by(ring)
-	var at: Vector3 = ring["pos"]
+	var stand := aim[0]
+	var at := aim[1]
 	var wish := Vector2(stand.x - now_pos.x, stand.z - now_pos.z)
 	steer.watch = Vector2(at.x - now_pos.x, at.z - now_pos.z)
 	if wish.length() > _rules.body_radius * 0.5:

@@ -10,7 +10,8 @@ extends RefCounted
 ## current pose, the water with it. What a player sees on screen, never the
 ## schedule's future (Q16, R16). The cargo and the railings' hits left (SH10) come
 ## through as the delayed snapshot has them: for the MVP every crate is seen, walls or
-## not, and only bodies are looked for, heard and remembered. A bot thinks in the frame
+## not, and only bodies are looked for, heard and remembered. So do the bonuses aboard
+## (#307): the feed has told every player each one's kind and room. A bot thinks in the frame
 ## of the faces the match stood on then (Faces, SH32): the snapshot it reads has its
 ## bodies' points there, and the pose reads in it — "down" is the pose's. Once she has
 ## broken (SH33) it thinks on the piece of her it stood on then: its pose, its frame,

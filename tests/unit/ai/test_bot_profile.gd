@@ -20,10 +20,14 @@ func test_tiers_load_and_validate() -> void:
 	# §7's table.
 	assert_eq([easy.reaction_ticks, normal.reaction_ticks, hard.reaction_ticks], [12, 7, 4])
 	assert_eq([easy.think_period, normal.think_period, hard.think_period], [6, 4, 2])
-	for knob: String in ["aim_error_deg", "edge_margin_m", "mistake_rate"]:
+	# Below decks for a bonus (#315), easy goes only with a large margin over the water and
+	# a short range, normal with a moderate one, and hard deeper, later and farther, keener.
+	var bolder := ["brace_read", "charge_read", "lineup_weight", "king_of_hill_bias"]
+	bolder.append_array(["bonus_range_m", "bonus_weight"])
+	for knob: String in ["aim_error_deg", "edge_margin_m", "mistake_rate", "bonus_margin_m"]:
 		assert_gt(float(easy.get(knob)), float(normal.get(knob)), "%s: easy over normal" % knob)
 		assert_gt(float(normal.get(knob)), float(hard.get(knob)), "%s: normal over hard" % knob)
-	for knob: String in ["brace_read", "charge_read", "lineup_weight", "king_of_hill_bias"]:
+	for knob: String in bolder:
 		assert_lt(float(easy.get(knob)), float(normal.get(knob)), "%s: easy under normal" % knob)
 		assert_lt(float(normal.get(knob)), float(hard.get(knob)), "%s: normal under hard" % knob)
 	assert_eq(hard.mistake_rate, 0.0, "hard never lapses")
@@ -92,6 +96,47 @@ func test_each_knob_out_of_range_is_named() -> void:
 	var eager: BotProfile = normal.duplicate()
 	eager.hunt_at_seats = -1
 	assert_eq(eager.problems(), PackedStringArray(["bot: hunt_at_seats must not be negative"]))
+	var nowhere: BotProfile = normal.duplicate()
+	nowhere.bonus_range_m = 0.0
+	assert_eq(nowhere.problems(), PackedStringArray(["bot: bonus_range_m must be positive"]))
+
+
+## A bot climbs out of a floor within climb_margin_m of the sea: a bonus margin under it
+## would send a bot into a room its climb takes it straight back out of.
+func test_a_bonus_margin_is_no_less_than_the_climb_margin() -> void:
+	var normal := BotProfile.for_tier(&"normal")
+	for tier: String in BotProfile.tiers():
+		var profile := BotProfile.for_tier(StringName(tier))
+		assert_gte(profile.bonus_margin_m, profile.climb_margin_m, tier)
+	var reckless: BotProfile = normal.duplicate()
+	reckless.bonus_margin_m = normal.climb_margin_m - 0.01
+	assert_eq(
+		reckless.problems(),
+		PackedStringArray(["bot: bonus_margin_m must be at least climb_margin_m"])
+	)
+	var level: BotProfile = normal.duplicate()
+	level.bonus_margin_m = normal.climb_margin_m
+	assert_eq(level.problems(), PackedStringArray(), "as deep as its climb lets it")
+
+
+## A bot never goes for a bonus of a kind its tier leaves out of bonus_worth, so every tier
+## values every kind there is (data/bonuses), and none at less than nothing.
+func test_every_tier_values_every_kind_of_bonus() -> void:
+	var kinds: Array[BonusKind] = []
+	for file: String in ResourceLoader.list_directory("res://data/bonuses"):
+		if file.get_extension() == "tres":
+			kinds.append(load("res://data/bonuses/%s" % file))
+	assert_false(kinds.is_empty(), "there are kinds of bonus")
+	for tier: String in BotProfile.tiers():
+		var profile := BotProfile.for_tier(StringName(tier))
+		for kind: BonusKind in kinds:
+			assert_gt(profile.bonus_worth.get(kind, 0.0), 0.0, "%s: %s" % [tier, kind.title])
+	var spiteful: BotProfile = BotProfile.for_tier(&"normal").duplicate()
+	spiteful.bonus_worth = {kinds[0]: -1.0}
+	assert_eq(
+		spiteful.problems(),
+		PackedStringArray(["bot: bonus_worth must be of kinds there are, none negative"])
+	)
 
 
 ## The refuge reads what the bot has seen over a window of its own, and marks a zone

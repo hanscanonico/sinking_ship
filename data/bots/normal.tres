@@ -1,6 +1,8 @@
 [gd_resource type="Resource" script_class="BotProfile" format=3]
 
 [ext_resource type="Script" path="res://ai/bot_profile.gd" id="1_vibjn"]
+[ext_resource type="Script" path="res://core/bonus_kind.gd" id="2_kind"]
+[ext_resource type="Resource" path="res://data/bonuses/double_life.tres" id="3_double"]
 
 [resource]
 script = ExtResource("1_vibjn")
@@ -43,6 +45,13 @@ survival_hunt_scale = 0.1
 buoy_from = 0.15
 buoy_weight = 3.0
 buoy_range_m = 20.0
+bonus_weight = 0.9
+bonus_range_m = 25.0
+bonus_walk_share = 0.5
+bonus_margin_m = 0.7
+bonus_worth = Dictionary[ExtResource("2_kind"), float]({
+ExtResource("3_double"): 1.0
+})
 hysteresis = 0.15
 detour_after_s = 1.0
 eye_height_m = 1.6
