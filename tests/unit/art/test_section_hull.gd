@@ -5,7 +5,9 @@ extends GutTest
 ## keel under her; and a slab roofing a room — the trawler's wheelhouse roof — is drawn.
 ## The Titanic's shell is her hull's paint to her B deck and white over it where her
 ## superstructure stands (ShipLayout.white_above), her fo'c'sle hull to its top; and
-## where her sheer steps her shell meets itself, no slit between one run and the next.
+## where her sheer steps her shell meets itself, no slit between one run and the next,
+## and the higher run's end is closed from her side in to her decks' ends, so the sea
+## never shows through her bridge front — her fo'c'sle step, a railed edge, left open.
 ## Her deck plating is open over every stair coming up through a hole in a deck: the
 ## Titanic's from D deck onto her forward well deck show their way down, not planks.
 

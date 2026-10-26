@@ -25,13 +25,11 @@ const BULWARK_FROM := 0.1
 const PLATE_DROP := 0.01
 ## A piece of plating smaller than this, in square metres, is float noise.
 const SCRAP := 1e-4
-## How far past a stair's side or foot her deck is looked for, to tell its hole (_holed()).
+## How far past an edge her decks are looked for: a stair's side or foot, to tell its hole
+## (_holed()); either side of a step in her sheer, for what its end closes against.
 const BESIDE := 0.05
 ## Two heights this close are one.
 const LEVEL := 1e-3
-## How far to the higher run's side of a step in her sheer the decks its end closes
-## against are looked for.
-const STEP_IN := 0.05
 ## How far over her white_above her shell must stand for its side over that to be her
 ## superstructure's, painted white: a deck (the greybox's room height).
 const SUPERSTRUCTURE := ShipSpace.OPEN_ROOM_HEIGHT
@@ -363,8 +361,8 @@ static func _close_steps(
 			var out := 1.0 if side == 0 else -1.0
 			# The decks just inside the higher run, and those beside the joint under the
 			# lower sheer.
-			var inside := _decks_at(layout, joint - way * STEP_IN, high - LEVEL, out)
-			var beside := _decks_at(layout, joint + way * STEP_IN, low + LEVEL, out)
+			var inside := _decks_at(layout, joint - way * BESIDE, high - LEVEL, out)
+			var beside := _decks_at(layout, joint + way * BESIDE, low + LEVEL, out)
 			# Each band as (its bottom, how far out its deck reaches).
 			var bands := PackedVector2Array()
 			if not beside.is_empty():
