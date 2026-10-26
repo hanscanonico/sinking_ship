@@ -25,7 +25,8 @@ const BULWARK_FROM := 0.1
 const PLATE_DROP := 0.01
 ## A piece of plating smaller than this, in square metres, is float noise.
 const SCRAP := 1e-4
-## How far past a stair's side or foot her deck is looked for, to tell its hole (_holed()).
+## How far past an edge her decks are looked for: a stair's side or foot, to tell its hole
+## (_holed()); either side of a step in her sheer, for what its end closes against.
 const BESIDE := 0.05
 ## Two heights this close are one.
 const LEVEL := 1e-3
@@ -104,8 +105,9 @@ static func _length(line: PackedVector2Array) -> float:
 
 ## Draws [param layout]'s shell into [param mesh] from her sections' [param sides]
 ## (shell_sides()): in [param hull] paint — in [param white] over her white_above where
-## her shell stands a deck higher still, given one —, the inside of each bulwark in
-## [param bulwark], her deck plating in [param plating].
+## her shell stands a deck higher still, given one —, the inside of each bulwark and the
+## end of each run her sheer steps down from in [param bulwark], her deck plating in
+## [param plating].
 static func shell(
 	layout: ShipLayout,
 	mesh: ShipMesh,
@@ -120,6 +122,7 @@ static func shell(
 	for side in 2:
 		_loft_shell(mesh, paints, layout.white_above, sections, sides, side)
 	_close_end(mesh, hull, sections[0], sides[0], sides[1], -1.0)
+	_close_steps(mesh, bulwark, layout, sides)
 	for index in sections.size():
 		_bulwarks(mesh, bulwark, layout, sections[index], sides[index * 2], sides[index * 2 + 1])
 	_plate_decks(mesh, plating, layout)
@@ -327,6 +330,114 @@ static func _close_end(
 			var point := ring[triangles[index + corner]]
 			corners.append(Vector3(x, point.y, point.x))
 		mesh.triangle(corners, PackedFloat32Array([0.0, 0.0, 0.0]), normal, paint, NAN, head)
+
+
+## Where her sheer steps from one run to the next, the higher run's end over the lower
+## sheer — under it the two runs meet (_met()): across the joint, facing the lower run,
+## in bands each from her side in to the deck it stands on, whose end — a house's front,
+## a wall across her — closes the rest, its doors and all. The lowest, from the lower
+## sheer, stands on the deck under it beside the joint where that deck runs on into the
+## higher run; each deck over it starts another, up to the next or the higher sheer.
+## Where the deck under the lower sheer runs no further — her fo'c'sle deck, which a
+## stair climbs from to her forecastle head, railed beside it — her end stays open, as
+## a deck's railed edge is. Out past her decks' ends she stood open, where they stop
+## short of her shell, and her shell, drawn to be seen from outside, showed the sea.
+static func _close_steps(
+	mesh: ShipMesh, paint: ShipMesh.Paint, layout: ShipLayout, sides: Array[PackedVector2Array]
+) -> void:
+	var sections := layout.structure.sections
+	for index in range(1, sections.size()):
+		var joint := sections[index].x - sections[index].length * 0.5
+		for side in 2:
+			var aft := sides[(index - 1) * 2 + side]
+			var fore := sides[index * 2 + side]
+			var low := minf(_sheer_of(aft), _sheer_of(fore))
+			var high := maxf(_sheer_of(aft), _sheer_of(fore))
+			if high - low <= LEVEL:
+				continue
+			# The higher run's end as its loft ends it, and the way along x it faces.
+			var way := 1.0 if _sheer_of(aft) > _sheer_of(fore) else -1.0
+			var line := _met(aft, fore) if way > 0.0 else _met(fore, aft)
+			var out := 1.0 if side == 0 else -1.0
+			# The decks just inside the higher run, and those beside the joint under the
+			# lower sheer.
+			var inside := _decks_at(layout, joint - way * BESIDE, high - LEVEL, out)
+			var beside := _decks_at(layout, joint + way * BESIDE, low + LEVEL, out)
+			# Each band as (its bottom, how far out its deck reaches).
+			var bands := PackedVector2Array()
+			if not beside.is_empty():
+				var under := _deck_at(inside, beside[beside.size() - 1].x)
+				if under != Vector2.INF:
+					bands.append(Vector2(low, under.y))
+			for deck: Vector2 in inside:
+				if deck.x > low + LEVEL:
+					bands.append(deck)
+			for band in bands.size():
+				var top := bands[band + 1].x if band + 1 < bands.size() else high
+				_close_band(mesh, paint, joint, way, line, bands[band].y * out, bands[band].x, top)
+
+
+## The decks standing at [param x] under [param below], each as (its height, how far out
+## it reaches to [param out]'s side — 1 starboard, -1 port): the furthest of those at one
+## height, from the lowest up.
+static func _decks_at(layout: ShipLayout, x: float, below: float, out: float) -> PackedVector2Array:
+	var found: Array[Vector2] = []
+	for platform: ShipPlatform in layout.platforms:
+		var area := platform.area
+		if x < area.position.x or x > area.end.x or platform.height >= below:
+			continue
+		var reach := area.end.y if out > 0.0 else -area.position.y
+		if reach > 0.0:
+			found.append(Vector2(platform.height, reach))
+	found.sort_custom(func(a: Vector2, b: Vector2) -> bool: return a.x < b.x)
+	var decks := PackedVector2Array()
+	for deck: Vector2 in found:
+		var last := decks.size() - 1
+		if last >= 0 and deck.x - decks[last].x <= LEVEL:
+			decks[last] = Vector2(decks[last].x, maxf(decks[last].y, deck.y))
+		else:
+			decks.append(deck)
+	return decks
+
+
+## The one of [param decks] (_decks_at()) at [param height], or Vector2.INF.
+static func _deck_at(decks: PackedVector2Array, height: float) -> Vector2:
+	for deck: Vector2 in decks:
+		if absf(deck.x - height) <= LEVEL:
+			return deck
+	return Vector2.INF
+
+
+## A band of a step's end across the joint at [param x], facing [param way] along x,
+## from [param bottom] up to [param top]: out from [param edge] (z) to the higher run's
+## end [param line] (_met()); none where her shell stands no further out.
+static func _close_band(
+	mesh: ShipMesh,
+	paint: ShipMesh.Paint,
+	x: float,
+	way: float,
+	line: PackedVector2Array,
+	edge: float,
+	bottom: float,
+	top: float
+) -> void:
+	if top - bottom <= LEVEL:
+		return
+	var out := signf(line[line.size() - 1].x)
+	var heights := PackedFloat64Array([bottom])
+	for point: Vector2 in line:
+		if point.y > bottom + LEVEL and point.y < top - LEVEL:
+			heights.append(point.y)
+	heights.append(top)
+	var ring := PackedVector3Array([Vector3(x, bottom, edge)])
+	var open := false
+	for y: float in heights:
+		var past := (_out_at(line, y) - edge) * out
+		open = open or past > ShipMesh.SLIVER
+		ring.append(Vector3(x, y, edge + maxf(past, 0.0) * out))
+	ring.append(Vector3(x, top, edge))
+	if open:
+		mesh.polygon(ring, Vector3(way, 0.0, 0.0), paint, bottom, top)
 
 
 ## The inside of each bulwark along [param section]'s stretch: the shell of its sides
