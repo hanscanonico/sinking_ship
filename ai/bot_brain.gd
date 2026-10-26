@@ -156,10 +156,8 @@ var _stalled_since := 0
 var _edges_near := true
 ## In the sea, where it swims for.
 var _swim: BotSwim
-## The walks it has sent and the ticks it sent them on, for as long as its view lags:
-## what it pressed and has yet to see itself do. A tick of -1 is none.
-var _sent_moves := PackedVector2Array()
-var _sent_ticks := PackedInt32Array()
+## Where it stands now, its view being reaction_ticks old.
+var _reckoning: BotReckoning
 ## Where it keeps off the edges from this tick: reckoned by its walks, and past the
 ## grip angle by its seen velocity too — the same place on a deck that grips.
 var _edge_from := Vector3.ZERO
@@ -190,15 +188,13 @@ func _init(
 	_rules = rules
 	_dodge = CargoDodge.new(profile, rules, layout.props)
 	_props = BotProps.new(bot_seat, profile, rules, layout)
+	_reckoning = BotReckoning.new(profile, rules)
 	_floors = floors
 	_stand_on(Faces.Up.DECK)
 	_pacing = BotPacing.new(profile, plays_for, _targeting.carry)
 	_rng = rng
 	_charge_full_ticks = Ticks.from_seconds(rules.charge_full)
 	_windup_ticks = Ticks.from_seconds(rules.shove_windup)
-	_sent_moves.resize(maxi(profile.reaction_ticks, 1))
-	_sent_ticks.resize(_sent_moves.size())
-	_sent_ticks.fill(-1)
 
 
 ## How many times it has searched the walk graph afresh because it strayed off the
@@ -225,8 +221,8 @@ func decide(view: BotView, tick: int) -> InputFrame:
 	# The route is followed from where its seen velocity carries it; the edges are kept
 	# from where its own walks have, which a turn toward one since cannot hide — and,
 	# past the grip angle, where it slides wherever it walks, from both.
-	var now_pos := _reckon(me)
-	_edge_from = _by_walks(me, seen["tick"], now_pos)
+	var now_pos := _reckoning.reckon(me)
+	_edge_from = _reckoning.by_walks(me, seen["tick"], now_pos)
 	_edge_also = now_pos if _footing.slides(pose) else _edge_from
 	if me["state"] == PlayerState.Body.SWIMMING:
 		intent = Intent.SWIM_OUT
@@ -280,8 +276,7 @@ func decide(view: BotView, tick: int) -> InputFrame:
 	_last_buttons = buttons
 	_turn_toward(steer.watch if steer.watch != Vector2.ZERO else steer.move)
 	var frame := InputFrame.new(seat, tick, InputFrame.quantize(steer.move), buttons, _look)
-	_sent_moves[tick % _sent_moves.size()] = frame.move_vector()
-	_sent_ticks[tick % _sent_ticks.size()] = tick
+	_reckoning.sent(frame)
 	return frame
 
 
@@ -294,6 +289,7 @@ func _stand_on(up: int, pose: ShipPose = null) -> void:
 	_walk_graph = _floors.graph(up, pose)
 	_surfaces = _walk_graph.surfaces()
 	_footing = BotFooting.new(_surfaces, _walk_graph, _rules, _profile.edge_margin_m)
+	_reckoning.stand_on(_footing, _surfaces)
 	_targeting = BotTargeting.new(seat, _profile, _rules, _footing, _walk_graph, _plays_for)
 	_swim = BotSwim.new(_walk_graph, _rules, _profile)
 	_refuges = BotRefuge.new(_walk_graph, _profile)
@@ -302,45 +298,6 @@ func _stand_on(up: int, pose: ShipPose = null) -> void:
 	_refuge = WalkGraph.NONE
 	_climbing = false
 	_wading = false
-
-
-## Where the bot stands now, from where its view shows it: carried on by the velocity
-## it was seen at. Its feet have risen or sunk with the walk, up a stair or onto the
-## next deck.
-func _reckon(me: Dictionary) -> Vector3:
-	var seen_pos: Vector3 = me["pos"]
-	var my_vel: Vector3 = me["vel"]
-	var reaction_s := _profile.reaction_ticks * Ticks.SECONDS_PER_TICK
-	var now_pos := seen_pos + Vector3(my_vel.x, 0.0, my_vel.z) * reaction_s
-	if me["surface"] != Surfaces.NONE:
-		now_pos.y = _footing.feet_at(seen_pos, now_pos)
-	return now_pos
-
-
-## Where the bot stands now — on its feet and free to walk — by the walks it has sent
-## since its view's [param seen_tick], unless a wall or a railing stands across them:
-## it knows what it pressed, so a turn since is no surprise to it. Otherwise where
-## [param reckoned] by its seen velocity.
-func _by_walks(me: Dictionary, seen_tick: int, reckoned: Vector3) -> Vector3:
-	if me["state"] != PlayerState.Body.GROUNDED or me["stagger"] != 0 or me["hitstop"] != 0:
-		return reckoned
-	var seen_pos: Vector3 = me["pos"]
-	var walked := Vector2.ZERO
-	for index in _sent_ticks.size():
-		if _sent_ticks[index] >= seen_tick:
-			walked += _sent_moves[index]
-	var height := _rules.height_at(_surfaces, seen_pos)
-	var pace := _rules.walk_speed if height >= _rules.body_height else _rules.crawl_speed
-	walked *= pace * Ticks.SECONDS_PER_TICK
-	var walked_to := seen_pos + Vector3(walked.x, 0.0, walked.y)
-	if (
-		_surfaces.blocked(seen_pos, walked_to, height, _rules.step_height)
-		or _surfaces.railed(seen_pos, walked_to, me["surface"])
-	):
-		return reckoned
-	if me["surface"] != Surfaces.NONE:
-		walked_to.y = _footing.feet_at(seen_pos, walked_to)
-	return walked_to
 
 
 ## In the sea: nothing to press while a climb is under way; else for the way out the
