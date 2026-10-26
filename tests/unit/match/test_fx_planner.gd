@@ -114,6 +114,22 @@ func test_white_water_runs_where_the_sea_crosses_a_deck() -> void:
 		assert_gt(up_deck, 0.0, "the way the sea climbs is up the deck")
 
 
+func test_white_water_runs_out_on_deck_never_through_her_rooms() -> void:
+	# Her waterline passes under her deckhouse and along her lower deck as she goes; the
+	# sea outside reaches no room's floor (D7), so none of its white water lies in one.
+	var sim := _sim()
+	var space := ShipSpace.new(sim.config.ship)
+	var cues := _sink(_planner(sim), sim, 0, sim.schedule.end_tick(), Ticks.RATE)
+	var washes := _of(cues, WASH)
+	assert_gt(washes.size(), 0, "white water along her open decks")
+	var indoors := 0
+	for wash: FxCue in washes:
+		for share: float in [1.0 / 6.0, 0.5, 5.0 / 6.0]:
+			if not space.outdoors(wash.position.lerp(wash.end, share) + Vector3.UP * 0.5):
+				indoors += 1
+	assert_eq(indoors, 0, "none of it on a room's floor")
+
+
 func test_spray_bursts_where_the_waterline_meets_the_side_and_harder_in_the_plunge() -> void:
 	var sim := _sim()
 	var span := Ticks.from_seconds(4.0)
