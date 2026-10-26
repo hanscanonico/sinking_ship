@@ -41,6 +41,19 @@ func test_a_piece_crossing_into_a_room_is_indoors_by_the_share_inside() -> void:
 	assert_eq(_space.indoors(square, saloon.floor_height + 4.0), 0.0, "over its roof")
 
 
+func test_a_deck_s_air_stands_in_the_rooms_on_it_never_in_the_room_under_it() -> void:
+	# Half a metre over her main deck along her port side, from her deckhouse's after end
+	# to her forecastle: the deckhouse's rooms and the saloon hold it; the hold under the
+	# deck, whose ceiling the deck is, does not.
+	var rooms := _space.layout.rooms
+	var found := _space.rooms_at(Rect2(-7.5, -3.0, 21.0, 0.5), 0.5)
+	assert_has(found, rooms.find(_room(&"saloon")), "the saloon on the deck")
+	assert_has(found, rooms.find(_room(&"deckhouse hall")), "and the deckhouse's hall")
+	assert_does_not_have(found, rooms.find(_room(&"forward hold")), "never the hold under it")
+	for index: int in found:
+		assert_eq(rooms[index].floor_height, 0.0, "%s stands on the deck" % rooms[index].name)
+
+
 func test_a_room_s_ceiling_is_the_lowest_deck_over_it() -> void:
 	var hold := _room(&"forward hold")
 	assert_almost_eq(_space.ceiling(hold, 6.0, -2.0), 0.0, 0.001)

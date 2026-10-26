@@ -120,6 +120,28 @@ func test_a_deck_the_sea_reaches_is_soaked_then_dries() -> void:
 	assert_false(wetness.shows(main_deck), "nothing to draw")
 
 
+func test_the_sea_outside_never_soaks_a_deck_indoors() -> void:
+	var layout := SimFixtures.steamer()
+	var wetness := DeckWetness.new(layout)
+	var lower := SimFixtures.platform_named(layout, &"lower deck")
+	assert_false(lower in wetness.platforms, "a deck wholly in her rooms is not tracked")
+	# Sunk level with her main deck a hand over the sea: the sea outside stands as near
+	# the saloon's floor as her open deck's, but no room's floor is the sea's to soak.
+	var main_deck := wetness.platforms.find(0)
+	wetness.update(Transform3D(Basis(), Vector3(0.0, 0.1, 0.0)), 0.2)
+	assert_eq(wetness.wetness(main_deck, 8.0, -3.0), 1.0, "her open deck is soaked")
+	assert_eq(wetness.wetness(main_deck, 1.5, -3.0), 0.0, "the saloon's floor is not")
+	assert_eq(wetness.wetness(main_deck, -2.0, -3.0), 0.0, "nor the deckhouse hall's")
+	assert_eq(wetness.picture(main_deck).get_pixel(31, 1).r, 0.0, "and drawn so")
+
+	var high := Transform3D(Basis(), Vector3(0.0, 3.4, 0.0))
+	var sprayed := DeckWetness.new(layout)
+	sprayed.soak(Vector3(2.5, 0.0, -3.0), 1.0)
+	sprayed.update_one(main_deck, high, 0.0)
+	assert_eq(sprayed.wetness(main_deck, 2.25, -3.0), 0.0, "spray at the saloon's side stays out")
+	assert_eq(sprayed.wetness(main_deck, 3.25, -3.0), 1.0, "and soaks the open deck by it")
+
+
 func _names(layout: ShipLayout, platforms: PackedInt32Array) -> Array[StringName]:
 	var names: Array[StringName] = []
 	for index: int in platforms:

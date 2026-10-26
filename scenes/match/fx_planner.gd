@@ -304,10 +304,10 @@ func _from_event(
 			_gash.strike(tick, cues)
 
 
-## Where the sea crosses each deck still standing: white water along the line, and
-## spray bursting where the line meets the edge of an open deck — the sea climbing
-## the deck, harder the faster it climbs; in the plunge, the sea breaking over the
-## sides instead.
+## Where the sea crosses each deck still standing: white water along the line out on
+## deck, never through a room (D7: the sea outside reaches no room's floor), and spray
+## bursting where it meets an open deck's edge — the sea climbing the deck, harder the
+## faster it climbs; in the plunge, the sea breaking over the sides instead.
 func _waterlines(
 	pose_then: ShipPose, pose_now: ShipPose, tick: int, plunging: bool, cues: Array[FxCue]
 ) -> void:
@@ -326,12 +326,13 @@ func _waterlines(
 			(pose_then.world_height(middle) - pose_now.world_height(middle)) * Ticks.RATE
 		)
 		var strength := clampf(absf(climbing) / RUSH_SPEED * boost, WASH_LEAST, 1.0)
-		var wash := FxCue.new(FxCue.Kind.WASH, tick, _line[0])
-		wash.end = _line[1]
-		wash.toward = uphill
-		wash.strength = strength
-		wash.on_sea = true
-		cues.append(wash)
+		for run: Vector2 in DeckWetness.out_on_deck_along(_layout, index, _line[0], _line[1]):
+			var wash := FxCue.new(FxCue.Kind.WASH, tick, _line[0].lerp(_line[1], run.x))
+			wash.end = _line[0].lerp(_line[1], run.y)
+			wash.toward = uphill
+			wash.strength = strength
+			wash.on_sea = true
+			cues.append(wash)
 		# In the plunge the sea breaking over the sides (_swallowing) is the spray.
 		for end in 0 if plunging else 2:
 			var slot := index * 2 + end
