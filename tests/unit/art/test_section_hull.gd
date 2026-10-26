@@ -6,6 +6,8 @@ extends GutTest
 ## The Titanic's shell is her hull's paint to her B deck and white over it where her
 ## superstructure stands (ShipLayout.white_above), her fo'c'sle hull to its top; and
 ## where her sheer steps her shell meets itself, no slit between one run and the next.
+## Her deck plating is open over every stair coming up through a hole in a deck: the
+## Titanic's from D deck onto her forward well deck show their way down, not planks.
 
 const TRAWLER := "res://data/ships/trawler.tres"
 const TITANIC := "res://data/ships/titanic.tres"
@@ -16,6 +18,12 @@ const NEAR := 0.01
 ## How far apart two runs of her shell may end at a joint: the chords their own points
 ## cut across a knuckle of the curve both lie on.
 const GAP := 0.25
+## A face whose corners stand this close in height is level.
+const LEVEL := 1e-3
+## How far over a stair's tread a face must stand to lie over it.
+const CLEAR := 0.02
+## How far past a stair's side or foot the deck cut round it is looked for.
+const BESIDE := 0.05
 
 var _layout: ShipLayout
 var _hull: SectionHull
@@ -164,14 +172,7 @@ func test_her_shell_meets_itself_where_her_sheer_steps() -> void:
 	var hull := SectionHull.new(space, RAILING_HEIGHT)
 	var mesh := ShipMesh.new(func(_point: Vector3) -> bool: return true, space.room_lines())
 	hull.build(mesh)
-	var node: Node3D = autofree(Node3D.new())
-	var finishes := {}
-	for finish: int in ShipMesh.Finish.values():
-		finishes[finish] = null
-	mesh.commit(node, finishes)
-	var faces := PackedVector3Array()
-	for part: Node in node.get_children():
-		faces.append_array((part as MeshInstance3D).mesh.get_faces())
+	var faces := _committed_faces(mesh)
 	var sections := titanic.structure.sections
 	var sides := SectionHull.shell_sides(sections)
 	var steps := 0
@@ -209,6 +210,105 @@ func test_her_shell_meets_itself_where_her_sheer_steps() -> void:
 				gap, GAP, "x %.1f at %.2f m: %.3f m from the run forward" % [joint, point.x, gap]
 			)
 	assert_gt(steps, 3, "her sheer steps at her wells, poop and superstructure")
+
+
+func test_her_plating_is_open_over_every_stair_up_through_a_hole_in_a_deck() -> void:
+	# The Titanic's stairs up from D deck through her forward well deck, the barque's
+	# companionways up through her main deck: no level face of her shell — her deck
+	# plating — over a stair whose deck is cut round it, between its treads and its head.
+	var ships := 0
+	for ship: String in Fleet.names():
+		var layout := Fleet.layout(ship)
+		if layout.dressed:
+			continue
+		ships += 1
+		var space := ShipSpace.new(layout)
+		var mesh := ShipMesh.new(func(_point: Vector3) -> bool: return true, space.room_lines())
+		var sides := SectionHull.shell_sides(layout.structure.sections)
+		SectionHull.shell(layout, mesh, ShipPaints.hull, ShipPaints.wall, ShipPaints.deck, sides)
+		var level := _level(_committed_faces(mesh))
+		for ramp: ShipRamp in layout.ramps:
+			var head := maxf(ramp.start_height, ramp.end_height)
+			if not _cut_round(layout, ramp, head):
+				continue
+			for u: float in [0.25, 0.5, 0.75]:
+				for v: float in [0.25, 0.5, 0.75]:
+					var at := ramp.area.position + ramp.area.size * Vector2(u, v)
+					var tread := ramp.height_at(at.x, at.y)
+					var over := _level_over(level, at, tread + CLEAR, head)
+					assert_true(
+						is_nan(over),
+						(
+							"%s: her plating at %.3f over the stair at %s, tread %.3f"
+							% [ship, over, at, tread]
+						)
+					)
+	assert_gt(ships, 1, "the Titanic and the barque among the fleet's sectioned hulls")
+
+
+## Whether a deck of [param layout] at [param height] lies just past both sides of
+## [param ramp] and its foot: cut round the stair, a hole it comes up through.
+func _cut_round(layout: ShipLayout, ramp: ShipRamp, height: float) -> bool:
+	var area := ramp.area
+	var middle := area.get_center()
+	var rising := ramp.end_height > ramp.start_height
+	var past := PackedVector2Array()
+	if ramp.axis == ShipRamp.Axis.X:
+		past.append(Vector2(middle.x, area.position.y - BESIDE))
+		past.append(Vector2(middle.x, area.end.y + BESIDE))
+		past.append(Vector2(area.position.x - BESIDE if rising else area.end.x + BESIDE, middle.y))
+	else:
+		past.append(Vector2(area.position.x - BESIDE, middle.y))
+		past.append(Vector2(area.end.x + BESIDE, middle.y))
+		past.append(Vector2(middle.x, area.position.y - BESIDE if rising else area.end.y + BESIDE))
+	for point: Vector2 in past:
+		var decked := func(platform: ShipPlatform) -> bool:
+			return absf(platform.height - height) <= LEVEL and platform.contains(point.x, point.y)
+		if not layout.platforms.any(decked):
+			return false
+	return true
+
+
+## Every triangle of [param mesh], committed, in her ship space.
+func _committed_faces(mesh: ShipMesh) -> PackedVector3Array:
+	var node: Node3D = autofree(Node3D.new())
+	var finishes := {}
+	for finish: int in ShipMesh.Finish.values():
+		finishes[finish] = null
+	mesh.commit(node, finishes)
+	var faces := PackedVector3Array()
+	for part: Node in node.get_children():
+		faces.append_array((part as MeshInstance3D).mesh.get_faces())
+	return faces
+
+
+## The level triangles of [param faces], three corners each.
+func _level(faces: PackedVector3Array) -> PackedVector3Array:
+	var level := PackedVector3Array()
+	for index in range(0, faces.size(), 3):
+		var a := faces[index]
+		var b := faces[index + 1]
+		var c := faces[index + 2]
+		if absf(b.y - a.y) <= LEVEL and absf(c.y - a.y) <= LEVEL:
+			level.append_array([a, b, c])
+	return level
+
+
+## The height of a triangle of [param level] over [param at] (x/z) higher than
+## [param low] and no higher than [param high]; NAN where none is.
+func _level_over(level: PackedVector3Array, at: Vector2, low: float, high: float) -> float:
+	for index in range(0, level.size(), 3):
+		var a := level[index]
+		if a.y <= low or a.y > high:
+			continue
+		var b := level[index + 1]
+		var c := level[index + 2]
+		var triangle := PackedVector2Array(
+			[Vector2(a.x, a.z), Vector2(b.x, b.z), Vector2(c.x, c.z)]
+		)
+		if Geometry2D.is_point_in_polygon(at, triangle):
+			return a.y
+	return NAN
 
 
 ## A side's sheer: its last point's height (SectionHull.shell_sides()).
