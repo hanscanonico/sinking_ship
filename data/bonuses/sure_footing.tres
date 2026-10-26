@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="BonusKind" format=3]
+
+[ext_resource type="Script" path="res://core/bonus_kind.gd" id="1_kind"]
+
+[resource]
+script = ExtResource("1_kind")
+title = "Sure footing"
+radius = 0.15
+height = 0.3
+mark = Color(0.25, 0.8, 0.4, 1)
+grip_angle_deg = 22.0
+stand_limit_deg = 45.0

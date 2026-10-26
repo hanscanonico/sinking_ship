@@ -19,6 +19,7 @@ const DOUBLE_LIFE := "res://data/bonuses/double_life.tres"
 const HIGH_JUMP := "res://data/bonuses/high_jump.tres"
 const STEADY := "res://data/bonuses/steady.tres"
 const STRONG_ARMS := "res://data/bonuses/strong_arms.tres"
+const SURE_FOOTING := "res://data/bonuses/sure_footing.tres"
 ## Where below_decks' holds start aft, how long each is, and how far under the main deck
 ## their floors stand: under the deck, over the sea a freeboard down.
 const HOLD_AFT := -12.0
@@ -384,6 +385,10 @@ static func strong_arms() -> BonusKind:
 	return load(STRONG_ARMS)
 
 
+static func sure_footing() -> BonusKind:
+	return load(SURE_FOOTING)
+
+
 ## A kind of bonus of Double life's size that gives nothing: a test's second kind.
 static func plain_kind() -> BonusKind:
 	var made := BonusKind.new()
@@ -409,12 +414,14 @@ static func bonus_sim(
 	return MatchSim.create(made)
 
 
-## A match of [param seats] on [param layout], calm, played with [param kind] alone and none
-## of the plan's coming (bonus_sim) — seat 0 with a bonus of that kind when [param taken]
-## says so, as though it had taken one.
-static func kind_sim(kind: BonusKind, taken: bool, seats: int, layout: ShipLayout) -> MatchSim:
+## A match of [param seats] on [param layout], played with [param kind] alone and none of the
+## plan's coming (bonus_sim), sunk as [param sinking] has her — calm when none is given —
+## seat 0 with a bonus of that kind when [param taken] says so, as though it had taken one.
+static func kind_sim(
+	kind: BonusKind, taken: bool, seats: int, layout: ShipLayout, sinking: SinkScenario = null
+) -> MatchSim:
 	var kinds: Array[BonusKind] = [kind]
-	var made := bonus_sim(bonus_rules(600.0, 45.0, 0.0, 2, kinds), seats, layout)
+	var made := bonus_sim(bonus_rules(600.0, 45.0, 0.0, 2, kinds), seats, layout, sinking)
 	if taken:
 		made.state.seats[0].bonus = 0
 	return made
@@ -530,6 +537,13 @@ static func swim(match_sim: MatchSim, seat: int, pos: Vector3, facing_deg: float
 static func low_deck(freeboard: float) -> ShipLayout:
 	var layout: ShipLayout = deck().duplicate()
 	layout.freeboard = freeboard
+	return layout
+
+
+## The flat deck with its railings taken away: every side an open drop to the sea.
+static func open_deck() -> ShipLayout:
+	var layout: ShipLayout = deck().duplicate()
+	layout.railings = []
 	return layout
 
 

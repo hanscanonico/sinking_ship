@@ -60,6 +60,10 @@ static func of(rules: BrawlRules, held: PropKind, bonus: BonusKind = null) -> Se
 	if bonus != null:
 		if bonus.jump_height > 0.0:
 			seat.jump_height = bonus.jump_height
+		if bonus.grip_angle_deg > 0.0:
+			seat.grip_angle_deg = bonus.grip_angle_deg
+		if bonus.stand_limit_deg > 0.0:
+			seat.stand_limit_deg = bonus.stand_limit_deg
 		seat.knockback_share = bonus.knockback_share
 		if bonus.climb_reach > 0.0:
 			seat.climb_reach = bonus.climb_reach

@@ -1,5 +1,5 @@
 extends GutTest
-## Bonus kinds and bonus rules (#307, #310, #316) are data — data/bonuses/NAME.tres, and
+## Bonus kinds and bonus rules (#307, #310, #316, #317) are data — data/bonuses/NAME.tres, and
 ## data/rules/bonuses.tres, which the match data points at — checked with the match
 ## (MatchConfig.problems) as the kinds of her props are: a kind's title and size, and what
 ## it gives beside the brawl rules; the rules' kinds and their odds, their times and the
@@ -13,10 +13,10 @@ const MARKS_APART := 0.3
 
 
 ## The default match, and the survival one: bonuses are on in both goals, on the default
-## bonus rules — Double life, High jump, Steady and Strong arms, every one as likely, the
-## first 20 s in, then every 45 s ± 15 s, at most two aboard: estimates, to tune after a
-## playtest — and the command line's match plays them as the data does.
-func test_the_match_data_plays_four_kinds_on_the_default_bonus_rules() -> void:
+## bonus rules — Double life, High jump, Steady, Strong arms and Sure footing, every one as
+## likely, the first 20 s in, then every 45 s ± 15 s, at most two aboard: estimates, to tune
+## after a playtest — and the command line's match plays them as the data does.
+func test_the_match_data_plays_five_kinds_on_the_default_bonus_rules() -> void:
 	var rules: BonusRules = load(BONUS_RULES)
 	for match_rules: MatchRules in [load(DEFAULT_MATCH), load(SURVIVAL_MATCH)]:
 		var config := MatchConfig.from_rules(match_rules, 1701)
@@ -28,8 +28,8 @@ func test_the_match_data_plays_four_kinds_on_the_default_bonus_rules() -> void:
 	var titles: Array[String] = []
 	for kind: BonusKind in rules.kinds:
 		titles.append(kind.title)
-	assert_eq(titles, ["Double life", "High jump", "Steady", "Strong arms"])
-	assert_eq(rules.odds, PackedFloat64Array([1.0, 1.0, 1.0, 1.0]), "every one as likely")
+	assert_eq(titles, ["Double life", "High jump", "Steady", "Strong arms", "Sure footing"])
+	assert_eq(rules.odds, PackedFloat64Array([1.0, 1.0, 1.0, 1.0, 1.0]), "every one as likely")
 	assert_eq([rules.first, rules.interval, rules.jitter, rules.most_aboard], [20.0, 45.0, 15.0, 2])
 	assert_eq(rules.kinds[0], SimFixtures.double_life())
 	for kind: BonusKind in rules.kinds:
@@ -39,9 +39,9 @@ func test_the_match_data_plays_four_kinds_on_the_default_bonus_rules() -> void:
 
 ## What each kind gives its taker, and nothing more (est.): Double life a spare cold meter;
 ## High jump a 1.5 m jump; Steady three quarters of a shove's knockback; Strong arms a 1.2 m
-## reach out of the sea and ladders at 1.5 times the pace. A field a kind leaves unset — a
-## jump or a reach of 0, a share or a ladder's pace of 1 — leaves that rule the brawl
-## rules'.
+## reach out of the sea and ladders at 1.5 times the pace; Sure footing a 22° grip angle and
+## a 45° stand limit. A field a kind leaves unset — a jump, a slope or a reach of 0, a share
+## or a ladder's pace of 1 — leaves that rule the brawl rules'.
 func test_each_kind_gives_its_own_edge_and_leaves_the_rest_as_it_is() -> void:
 	var rules: BonusRules = load(BONUS_RULES)
 	var gives := {}
@@ -49,14 +49,17 @@ func test_each_kind_gives_its_own_edge_and_leaves_the_rest_as_it_is() -> void:
 		gives[kind.title] = [
 			kind.spare_meter,
 			kind.jump_height,
+			kind.grip_angle_deg,
+			kind.stand_limit_deg,
 			kind.knockback_share,
 			kind.climb_reach,
 			kind.ladder_speed_mult,
 		]
-	assert_eq(gives["Double life"], [true, 0.0, 1.0, 0.0, 1.0])
-	assert_eq(gives["High jump"], [false, 1.5, 1.0, 0.0, 1.0])
-	assert_eq(gives["Steady"], [false, 0.0, 0.75, 0.0, 1.0])
-	assert_eq(gives["Strong arms"], [false, 0.0, 1.0, 1.2, 1.5])
+	assert_eq(gives["Double life"], [true, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0])
+	assert_eq(gives["High jump"], [false, 1.5, 0.0, 0.0, 1.0, 0.0, 1.0])
+	assert_eq(gives["Steady"], [false, 0.0, 0.0, 0.0, 0.75, 0.0, 1.0])
+	assert_eq(gives["Strong arms"], [false, 0.0, 0.0, 0.0, 1.0, 1.2, 1.5])
+	assert_eq(gives["Sure footing"], [false, 0.0, 22.0, 45.0, 1.0, 0.0, 1.0])
 
 
 ## Every brawler with a bonus wears its kind's mark (#313): each kind's colour stands apart
@@ -127,6 +130,70 @@ func test_no_speed_a_kind_gives_reaches_the_fastest_the_rules_move_anything() ->
 		var kinds: Array[BonusKind] = [kind]
 		config.bonus_rules = SimFixtures.bonus_rules(1.0, 45.0, 0.0, 2, kinds)
 		var what := "a %.1f m jump, ladders at %.0f times the pace" % [case[0], case[1]]
+		assert_eq(config.problems().is_empty(), case[2], what)
+
+
+## A kind's slopes are checked beside the brawl rules (#317) as its taker plays by them
+## (SeatRules), a slope it leaves at 0 being theirs: its grip angle at most its stand limit,
+## its stand limit under the brace's hold — which, and the floor it flips to, stay the brawl
+## rules' for every seat — and, as theirs must be (BrawlRules.problems), its grip angle one
+## the deck pulls a body past against slide_friction. A grip angle as steep as its stand
+## limit plays: its taker never slides idle where it can walk.
+func test_a_kind_s_slopes_rise_from_its_grip_angle_to_under_the_brace_s_hold() -> void:
+	var config := MatchConfig.from_rules(load(DEFAULT_MATCH), 1701)
+	var rules := config.rules
+	var hold := rules.brace_holds_to
+	# Where the deck's pull comes to slide_friction: no grip angle may stand under it.
+	var pull := rad_to_deg(asin(rules.slide_friction / rules.gravity))
+	# A grip angle, a stand limit, and whether a kind giving them plays.
+	var cases := [
+		[22.0, 45.0, true],
+		[30.0, 30.0, true],
+		[rules.stand_limit_deg + 1.0, 0.0, false],
+		[0.0, rules.grip_angle_deg - 1.0, false],
+		[20.0, hold - 0.5, true],
+		[20.0, hold, false],
+		[pull + 0.5, 0.0, true],
+		[pull - 0.5, 0.0, false],
+		[-1.0, 0.0, false],
+		[0.0, -1.0, false],
+	]
+	for case: Array in cases:
+		var kind := SimFixtures.plain_kind()
+		kind.grip_angle_deg = case[0]
+		kind.stand_limit_deg = case[1]
+		var kinds: Array[BonusKind] = [kind]
+		config.bonus_rules = SimFixtures.bonus_rules(1.0, 45.0, 0.0, 2, kinds)
+		var what := "a %.1f° grip angle, a %.1f° stand limit" % [case[0], case[1]]
+		assert_eq(config.problems().is_empty(), case[2], what)
+
+
+## The brawl rules' own slopes are theirs to answer for (BrawlRules.problems), a kind only
+## for the slopes it sets: beside brawl rules whose stand limit is their brace's hold — as
+## they may have it — a kind that sets no slope plays, and so does one that sets only its
+## grip angle; a stand limit a kind sets itself must still stand under the brace's hold.
+## Beside brawl rules whose own slopes are out of order, a kind that sets none has no
+## problem of its own.
+func test_a_kind_answers_only_for_the_slopes_it_sets() -> void:
+	var config := MatchConfig.from_rules(load(DEFAULT_MATCH), 1701)
+	var flat: BrawlRules = config.rules.duplicate()
+	flat.grip_angle_deg = flat.stand_limit_deg + 1.0
+	assert_false(flat.problems().is_empty(), "out of order: the brawl rules' problem")
+	assert_eq(SimFixtures.plain_kind().problems(flat), PackedStringArray(), "not the kind's")
+	var steep: BrawlRules = config.rules.duplicate()
+	steep.stand_limit_deg = steep.brace_holds_to
+	assert_eq(steep.problems(), PackedStringArray(), "the brawl rules may stand to their hold")
+	config.rules = steep
+	var hold := steep.brace_holds_to
+	# A grip angle, a stand limit, and whether a kind giving them plays.
+	var cases := [[0.0, 0.0, true], [22.0, 0.0, true], [0.0, hold - 0.5, true], [0.0, hold, false]]
+	for case: Array in cases:
+		var kind := SimFixtures.plain_kind()
+		kind.grip_angle_deg = case[0]
+		kind.stand_limit_deg = case[1]
+		var kinds: Array[BonusKind] = [kind]
+		config.bonus_rules = SimFixtures.bonus_rules(1.0, 45.0, 0.0, 2, kinds)
+		var what := "a %.1f° grip angle, a %.1f° stand limit" % [case[0], case[1]]
 		assert_eq(config.problems().is_empty(), case[2], what)
 
 

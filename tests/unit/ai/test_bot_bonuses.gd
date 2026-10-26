@@ -3,8 +3,9 @@ extends GutTest
 ## decks for a bonus worth more to it than its own, down toward the water by design, while
 ## its tier's range and margin hold — the water as it stands now, never as the timeline has
 ## it next — and takes it with a Grab press; it drops one gone, or once the water comes
-## within its margin; and in the sea it counts the spare meter its Double life gives it,
-## unspent, as more time.
+## within its margin; in the sea it counts the spare meter its Double life gives it,
+## unspent, as more time; and on a listing deck its footing reads its own grip angle, Sure
+## footing's when it has one.
 
 ## Where on the steamer's main deck a bot sets out from: a walk of 13 m from her cabin
 ## corridor's bonus spot, down the stair aft of her deckhouse, every step of it 0.8 m or
@@ -12,6 +13,8 @@ extends GutTest
 const MAIN_DECK := Vector3(-12.0, 0.0, 3.5)
 ## Where the other two seats stand meanwhile, on her main deck well forward of the bot.
 const ASIDE := Vector3(4.0, 0.0, 4.2)
+## Where on the flat deck a bot stands a metre in from her starboard edge.
+const EDGE_BY := Vector3(0.0, 0.0, 3.0)
 
 
 func _tier(tier: StringName) -> BotProfile:
@@ -365,3 +368,42 @@ func test_a_swimmer_with_strong_arms_swims_for_a_way_out_only_it_can_reach() -> 
 			assert_lt(move.y, 0.0, "with Strong arms: for the deck")
 		else:
 			assert_eq(move, Vector2.ZERO, "without: nowhere it could climb onto")
+
+
+## A match of one on the flat deck with its railings taken away (SimFixtures.open_deck),
+## lifted clear of the sea and held at [param heel_deg] of list, starboard down, played with
+## Sure footing: the bot standing at EDGE_BY, with one when [param sure] says so.
+func _listing_alone(heel_deg: float, sure: bool) -> MatchSim:
+	var open := SimFixtures.open_deck()
+	var sinking := SimFixtures.tilted(0.0, heel_deg)
+	var sim := SimFixtures.kind_sim(SimFixtures.sure_footing(), sure, 1, open, sinking)
+	SimFixtures.place(sim, 0, EDGE_BY)
+	return sim
+
+
+## A bot with Sure footing stays on a deck it can stand on (#317): its footing reads its own
+## grip angle (BotFooting.slides, by its seat's rules), so on a deck listing past the brawl
+## rules' grip angle and under its kind's — 20° as shipped — a metre from her open low edge,
+## it holds its ground, stepping only out of its edge margin, where a bot without it, the
+## deck pulling it toward the edge, flees up the slope (RECOVER).
+func test_a_sure_footed_bot_holds_its_ground_on_a_deck_it_can_stand_on() -> void:
+	var heel := SimFixtures.sure_footing().grip_angle_deg - 2.0
+	var edge := SimFixtures.deck().platforms[0].area.end.y
+	var margin := _tier(&"normal").edge_margin_m
+	for sure: bool in [false, true]:
+		var sim := _listing_alone(heel, sure)
+		var source := BotInputSource.new(0, _tier(&"normal"), sim.config)
+		var runner := _runner(sim, source)
+		var recovered := false
+		for _tick in 2 * Ticks.RATE:
+			runner.step()
+			recovered = recovered or source.brain.intent == BotBrain.Intent.RECOVER
+		var bot := sim.state.seats[0]
+		var what := "Sure footing %s" % sure
+		assert_eq(bot.body, PlayerState.Body.GROUNDED, "%s: on her deck" % what)
+		assert_eq(recovered, not sure, "%s: fled up the slope" % what)
+		if sure:
+			assert_eq(bot.vel, Vector3.ZERO, "%s: standing" % what)
+			assert_lt(edge - bot.pos.z, margin + 0.5, "%s: a stride out of its margin" % what)
+		else:
+			assert_lt(bot.pos.z, EDGE_BY.z - 1.0, "%s: well up the slope" % what)

@@ -23,6 +23,12 @@ extends Resource
 ## at the stamina a jump costs anyone; 0 leaves the brawl rules'. A railing holds back no
 ## body whose feet are over its top, so a jump higher than one stands clears it.
 @export var jump_height: float
+## The combined deck slope its taker holds at standing idle, and the tilt past which a face
+## is no floor to it, in degrees (Sure footing; BrawlRules.grip_angle_deg,
+## BrawlRules.stand_limit_deg); 0 leaves the brawl rules'. The brace's hold, and the floor
+## it flips to past it, stay theirs (brace_holds_to): the same for every seat.
+@export var grip_angle_deg: float
+@export var stand_limit_deg: float
 ## The share of a shove's knockback its taker takes, quick or charged, before a brace takes
 ## its own share off (Steady); 1, the whole of it, as the brawl rules have it. 0…1. Nothing
 ## but a shove is touched: a crate's knockback, a falling funnel's and a body bowling it
@@ -48,19 +54,32 @@ func problems(rules: BrawlRules = null) -> PackedStringArray:
 		found.append("bonus kind: a shove share within 0…1")
 	if jump_height < 0.0 or climb_reach < 0.0 or ladder_speed_mult <= 0.0:
 		found.append("bonus kind: a jump and a climb reach of 0 or more, a ladder pace above 0")
+	if grip_angle_deg < 0.0 or stand_limit_deg < 0.0:
+		found.append("bonus kind: a grip angle and a stand limit of 0 or more")
 	if rules != null:
 		found.append_array(_problems_beside(rules))
 	return found
 
 
 ## Every reason this kind cannot be played beside [param rules], by what its taker plays by
-## (SeatRules): a climb reach lower than theirs; or a speed it gives — its jump's take-off
-## from a level deck (Movement.take_off), its pace up a ladder — as fast as the fastest the
-## rules move anything (BrawlRules.fastest_speed), which the online prediction bounds
-## everything that moves by (ContactWatch).
+## (SeatRules): of the slopes it sets — their own are theirs to answer for
+## (BrawlRules.problems) — a grip angle past the stand limit its taker would have, a stand
+## limit not under the brace's hold, which stays theirs for every seat, or a grip angle the
+## deck would not pull a body past against their slide_friction (BrawlRules.pulls_at); a
+## climb reach lower than theirs; or a speed it gives — its jump's take-off from a level
+## deck (Movement.take_off), its pace up a ladder — as fast as the fastest the rules move
+## anything (BrawlRules.fastest_speed), which the online prediction bounds everything that
+## moves by (ContactWatch).
 func _problems_beside(rules: BrawlRules) -> PackedStringArray:
 	var found := PackedStringArray()
 	var taker := SeatRules.of(rules, null, self)
+	var sets_slopes := grip_angle_deg > 0.0 or stand_limit_deg > 0.0
+	if sets_slopes and taker.grip_angle_deg > taker.stand_limit_deg:
+		found.append("bonus kind: a grip angle at most the stand limit its taker would have")
+	if stand_limit_deg >= rules.brace_holds_to:
+		found.append("bonus kind: a stand limit under the brace's hold")
+	if grip_angle_deg > 0.0 and not rules.pulls_at(grip_angle_deg):
+		found.append("bonus kind: a grip angle the deck pulls past against slide_friction")
 	if taker.climb_reach < rules.climb_reach:
 		found.append("bonus kind: a climb reach no lower than the brawl rules'")
 	var fastest := rules.fastest_speed()

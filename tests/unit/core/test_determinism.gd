@@ -352,6 +352,52 @@ func test_continuation_with_each_kind_s_edge_in_play() -> void:
 			return
 
 
+## Sure footing's slopes are worked out from the snapshot too (SeatRules, #317), and need a
+## tilted deck to show, so a scene of their own carries them: the flat deck lifted clear of
+## the sea lists, over two seconds, from just under the kind's grip angle to a little under
+## its stand limit — 20° to 40° as shipped — while seat 0, with Sure footing, and seat 1,
+## without, stand idle, then walk up the slope: seat 0 holding where seat 1 slides at first,
+## and walking on past the brawl rules' stand limit where seat 1 slides back. A sim rebuilt
+## from any tick of it continues exactly.
+func test_continuation_with_sure_footing_in_play() -> void:
+	var sure_footing := SimFixtures.sure_footing()
+	var from := sure_footing.grip_angle_deg - 2.0
+	var to := sure_footing.stand_limit_deg - 5.0
+	var listing := SimFixtures.scenario([[0.0, -10.0, 0.0, from], [2.0, -10.0, 0.0, to]])
+	var config := SimFixtures.config(2, listing, GOLDEN_SEED)
+	var kinds: Array[BonusKind] = [sure_footing]
+	config.bonus_rules = SimFixtures.bonus_rules(600.0, 45.0, 0.0, 2, kinds)
+	var sim := MatchSim.create(config)
+	SimFixtures.place(sim, 0, Vector3(-8.0, 0.0, 2.0))
+	SimFixtures.place(sim, 1, Vector3(8.0, 0.0, 2.0))
+	sim.state.seats[0].bonus = 0
+	var scene := func(tick: int) -> Array[InputFrame]:
+		var up := Vector2(0.0, -0.3) if tick >= 4 else Vector2.ZERO
+		return [SimFixtures.frame(0, up, 0, -90.0), SimFixtures.frame(1, up, 0, -90.0)]
+	var played: Array[Dictionary] = [sim.snapshot()]
+	var held := false
+	var walked_on := false
+	for tick in 2 * Ticks.RATE:
+		sim.step(scene.call(tick))
+		played.append(sim.snapshot())
+		var sure := sim.state.seats[0]
+		var base := sim.state.seats[1]
+		held = held or sure.vel == Vector3.ZERO and base.vel.z > 0.0
+		walked_on = (
+			walked_on
+			or (
+				sim.pose().slope_deg() > config.rules.stand_limit_deg
+				and sure.vel.z < 0.0
+				and base.vel.z > 0.0
+			)
+		)
+	assert_true(held, "seat 0 held where seat 1 slid")
+	assert_true(walked_on, "seat 0 walked up a slope seat 1 slid down")
+	for start in range(played.size() - 1):
+		if not _continues(played, start, config, scene):
+			return
+
+
 ## Whether a bonus is lost to the sea (#311) within the second after [param start] of
 ## [param snapshots]: the stretch a continuation from it plays through (_continues).
 func _lost_within(snapshots: Array[Dictionary], start: int) -> bool:
