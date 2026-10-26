@@ -29,6 +29,9 @@ const SCRAP := 1e-4
 const BESIDE := 0.05
 ## Two heights this close are one.
 const LEVEL := 1e-3
+## How far to the higher run's side of a step in her sheer the decks its end closes
+## against are looked for.
+const STEP_IN := 0.05
 ## How far over her white_above her shell must stand for its side over that to be her
 ## superstructure's, painted white: a deck (the greybox's room height).
 const SUPERSTRUCTURE := ShipSpace.OPEN_ROOM_HEIGHT
@@ -104,8 +107,9 @@ static func _length(line: PackedVector2Array) -> float:
 
 ## Draws [param layout]'s shell into [param mesh] from her sections' [param sides]
 ## (shell_sides()): in [param hull] paint — in [param white] over her white_above where
-## her shell stands a deck higher still, given one —, the inside of each bulwark in
-## [param bulwark], her deck plating in [param plating].
+## her shell stands a deck higher still, given one —, the inside of each bulwark and the
+## end of each run her sheer steps down from in [param bulwark], her deck plating in
+## [param plating].
 static func shell(
 	layout: ShipLayout,
 	mesh: ShipMesh,
@@ -120,6 +124,7 @@ static func shell(
 	for side in 2:
 		_loft_shell(mesh, paints, layout.white_above, sections, sides, side)
 	_close_end(mesh, hull, sections[0], sides[0], sides[1], -1.0)
+	_close_steps(mesh, bulwark, layout, sides)
 	for index in sections.size():
 		_bulwarks(mesh, bulwark, layout, sections[index], sides[index * 2], sides[index * 2 + 1])
 	_plate_decks(mesh, plating, layout)
@@ -327,6 +332,109 @@ static func _close_end(
 			var point := ring[triangles[index + corner]]
 			corners.append(Vector3(x, point.y, point.x))
 		mesh.triangle(corners, PackedFloat32Array([0.0, 0.0, 0.0]), normal, paint, NAN, head)
+
+
+## Where her sheer steps from one run to the next, the higher run's end over the lower
+## sheer — under it the two runs meet (_met()): across the joint, facing the lower run,
+## in bands from the lower sheer and from each deck over it up to the next or the higher
+## sheer, each from her side in to what it stands on there (_reach_under()). A deck's
+## end — a house's front, a wall across her — closes the rest, its doors and all; out
+## past it she stood open where her decks stop short of her shell, and her shell, drawn
+## to be seen from outside, showed the sea through her.
+static func _close_steps(
+	mesh: ShipMesh, paint: ShipMesh.Paint, layout: ShipLayout, sides: Array[PackedVector2Array]
+) -> void:
+	var sections := layout.structure.sections
+	for index in range(1, sections.size()):
+		var joint := sections[index].x - sections[index].length * 0.5
+		for side in 2:
+			var aft := sides[(index - 1) * 2 + side]
+			var fore := sides[index * 2 + side]
+			var low := minf(_sheer_of(aft), _sheer_of(fore))
+			var high := maxf(_sheer_of(aft), _sheer_of(fore))
+			if high - low <= LEVEL:
+				continue
+			# The higher run's end as its loft ends it, and the way along x it faces; what
+			# stands at the joint is looked for just inside that run.
+			var way := 1.0 if _sheer_of(aft) > _sheer_of(fore) else -1.0
+			var line := _met(aft, fore) if way > 0.0 else _met(fore, aft)
+			var out := 1.0 if side == 0 else -1.0
+			var x := joint - way * STEP_IN
+			var bottoms := PackedFloat64Array([low])
+			for platform: ShipPlatform in layout.platforms:
+				var height := platform.height
+				var over := height > low + LEVEL and height < high - LEVEL
+				if over and x >= platform.area.position.x and x <= platform.area.end.x:
+					bottoms.append(height)
+			bottoms.sort()
+			for band in bottoms.size():
+				var top := bottoms[band + 1] if band + 1 < bottoms.size() else high
+				var reach := _reach_under(layout, x, joint, bottoms[band], out)
+				if not is_nan(reach):
+					_close_band(mesh, paint, joint, way, line, reach * out, bottoms[band], top)
+
+
+## How far out to [param out]'s side — 1 starboard, -1 port — what a step's end at
+## [param joint] stands on at [param height] reaches: of the decks standing at [param x]
+## at that height or under it, and the stairs there meeting the joint so, the highest,
+## the furthest out of those at one height; NAN for none.
+static func _reach_under(
+	layout: ShipLayout, x: float, joint: float, height: float, out: float
+) -> float:
+	var under := -INF
+	var reach := NAN
+	var found: Array[Vector3] = []
+	for platform: ShipPlatform in layout.platforms:
+		var area := platform.area
+		if x >= area.position.x and x <= area.end.x:
+			found.append(Vector3(platform.height, area.position.y, area.end.y))
+	for ramp: ShipRamp in layout.ramps:
+		var area := ramp.area
+		if x >= area.position.x and x <= area.end.x:
+			var meets := ramp.height_at(joint, area.get_center().y)
+			found.append(Vector3(meets, area.position.y, area.end.y))
+	for standing: Vector3 in found:
+		var out_to := standing.z if out > 0.0 else -standing.y
+		if standing.x > height + LEVEL or out_to <= 0.0 or standing.x < under - LEVEL:
+			continue
+		if standing.x > under + LEVEL:
+			under = standing.x
+			reach = out_to
+		else:
+			reach = maxf(reach, out_to)
+	return reach
+
+
+## A band of a step's end across the joint at [param x], facing [param way] along x,
+## from [param bottom] up to [param top]: out from [param edge] (z) to the higher run's
+## end [param line] (_met()); none where her shell stands no further out.
+static func _close_band(
+	mesh: ShipMesh,
+	paint: ShipMesh.Paint,
+	x: float,
+	way: float,
+	line: PackedVector2Array,
+	edge: float,
+	bottom: float,
+	top: float
+) -> void:
+	if top - bottom <= LEVEL:
+		return
+	var out := signf(line[line.size() - 1].x)
+	var heights := PackedFloat64Array([bottom])
+	for point: Vector2 in line:
+		if point.y > bottom + LEVEL and point.y < top - LEVEL:
+			heights.append(point.y)
+	heights.append(top)
+	var ring := PackedVector3Array([Vector3(x, bottom, edge)])
+	var open := false
+	for y: float in heights:
+		var past := (_out_at(line, y) - edge) * out
+		open = open or past > ShipMesh.SLIVER
+		ring.append(Vector3(x, y, edge + maxf(past, 0.0) * out))
+	ring.append(Vector3(x, top, edge))
+	if open:
+		mesh.polygon(ring, Vector3(way, 0.0, 0.0), paint, bottom, top)
 
 
 ## The inside of each bulwark along [param section]'s stretch: the shell of its sides

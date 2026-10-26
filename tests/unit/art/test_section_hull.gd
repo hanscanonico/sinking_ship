@@ -24,6 +24,8 @@ const LEVEL := 1e-3
 const CLEAR := 0.02
 ## How far past a stair's side or foot the deck cut round it is looked for.
 const BESIDE := 0.05
+## How far short of her shell a deck may stop and leave nothing to close.
+const OPEN := 0.1
 
 var _layout: ShipLayout
 var _hull: SectionHull
@@ -311,6 +313,53 @@ func _level_over(level: PackedVector3Array, at: Vector2, low: float, high: float
 	return NAN
 
 
+func test_her_shell_closes_each_step_in_her_sheer_from_her_side_in_to_her_decks() -> void:
+	# Over the lower sheer the higher run's end is her shell too, from her side in to what
+	# stands at the joint at each height — a deck, whose end a house's front or a wall
+	# across her closes, or a stair up through it. The Titanic's bridge deck stood open
+	# there at its forward end, from her well deck up to A deck, and her shell, drawn to be
+	# seen from outside, showed the sea through her: from over the lower deck, near her
+	# side, her shell now stands across the joint, facing that deck.
+	var probed := {}
+	for ship_name: StringName in Fleet.names():
+		var layout := Fleet.layout(ship_name)
+		if layout.dressed:
+			continue
+		var faces := _shell_faces(layout)
+		var sections := layout.structure.sections
+		var sides := SectionHull.shell_sides(sections)
+		for index in range(1, sections.size()):
+			var joint := sections[index].x - sections[index].length * 0.5
+			for side in 2:
+				var aft := _sheer(sides[index * 2 - 2 + side])
+				var fore := _sheer(sides[index * 2 + side])
+				if is_equal_approx(aft, fore):
+					continue
+				# From over the lower run, toward the higher one.
+				var way := 1.0 if fore > aft else -1.0
+				var sign := 1.0 if side == 0 else -1.0
+				var x := joint + way * 0.05
+				for band: Vector3 in _bands(
+					layout, x, joint, minf(aft, fore), maxf(aft, fore), sign
+				):
+					var y := (band.x + band.y) * 0.5
+					var shell := _shell_end(faces, joint, sign, y)
+					if shell - band.z < OPEN:
+						continue
+					for share: float in [0.3, 0.7]:
+						var z := sign * lerpf(band.z, shell, share)
+						var from := Vector3(joint - way * 2.0, y, z)
+						var hit: Variant = _front_hit(faces, from, Vector3(way, 0.0, 0.0), 2.5)
+						var at := "%s, x %.2f, y %.2f, z %.2f" % [ship_name, joint, y, z]
+						assert_not_null(hit, "%s: her shell across the joint" % at)
+						if hit != null:
+							assert_almost_eq((hit as Vector3).x, joint, 0.02, "%s: on it" % at)
+						probed["%s %.2f" % [ship_name, joint]] = true
+	for step: String in ["titanic 73.64", "titanic -94.00", "titanic 91.79", "tug -5.00"]:
+		assert_true(probed.has(step), "%s: looked at" % step)
+	assert_gt(probed.size(), 6, "her poop, A deck's after end, the barque's raised decks too")
+
+
 ## A side's sheer: its last point's height (SectionHull.shell_sides()).
 func _sheer(side: PackedVector2Array) -> float:
 	return side[side.size() - 1].y
@@ -325,6 +374,102 @@ func _climbing(points: PackedVector2Array) -> PackedVector2Array:
 		if climbing.is_empty() or not point.is_equal_approx(climbing[climbing.size() - 1]):
 			climbing.append(point)
 	return climbing
+
+
+## Every triangle of [param layout]'s shell (SectionHull), alone, in her ship space.
+func _shell_faces(layout: ShipLayout) -> PackedVector3Array:
+	var space := ShipSpace.new(layout)
+	var mesh := ShipMesh.new(func(_point: Vector3) -> bool: return true, space.room_lines())
+	SectionHull.new(space, RAILING_HEIGHT).build(mesh)
+	return _committed_faces(mesh)
+
+
+## A step's end from [param low] to [param high] at [param joint], [param x] just inside
+## its higher run, in bands — from the lower sheer and from each deck standing at
+## [param x] over it, up to the next or the higher sheer — each as (bottom, top, how far
+## out to [param sign]'s side, 1 starboard or -1 port, what it stands on reaches): the
+## highest of the decks under it there and the stairs meeting the joint so, the furthest
+## out at that height. A band nothing stands under is left out.
+func _bands(
+	layout: ShipLayout, x: float, joint: float, low: float, high: float, sign: float
+) -> Array[Vector3]:
+	var standing: Array[Vector3] = []
+	var bottoms := [low]
+	for platform: ShipPlatform in layout.platforms:
+		var area := platform.area
+		if x >= area.position.x and x <= area.end.x:
+			standing.append(Vector3(platform.height, area.position.y, area.end.y))
+			if platform.height > low + 1e-3 and platform.height < high - 1e-3:
+				bottoms.append(platform.height)
+	for ramp: ShipRamp in layout.ramps:
+		var area := ramp.area
+		if x >= area.position.x and x <= area.end.x:
+			var meets := ramp.height_at(joint, area.get_center().y)
+			standing.append(Vector3(meets, area.position.y, area.end.y))
+	bottoms.sort()
+	var bands: Array[Vector3] = []
+	for index in bottoms.size():
+		var top: float = bottoms[index + 1] if index + 1 < bottoms.size() else high
+		var under := -INF
+		var reach := 0.0
+		for on: Vector3 in standing:
+			var out := on.z if sign > 0.0 else -on.y
+			if on.x > bottoms[index] + 1e-3 or out <= 0.0:
+				continue
+			if on.x > under + 1e-3:
+				under = on.x
+				reach = out
+			elif on.x > under - 1e-3:
+				reach = maxf(reach, out)
+		if under > -INF and top - bottoms[index] > 1e-3:
+			bands.append(Vector3(bottoms[index], top, reach))
+	return bands
+
+
+## How far out to [param sign]'s side her shell's end on [param joint] stands at height
+## [param y]: between the corners there of her side's faces — not of the step's end
+## across the joint — nearest under and over it, the outermost at each height; INF
+## where there are none.
+func _shell_end(faces: PackedVector3Array, joint: float, sign: float, y: float) -> float:
+	var under := Vector2(-INF, 0.0)
+	var over := Vector2(INF, 0.0)
+	for index in range(0, faces.size(), 3):
+		var a := faces[index]
+		var b := faces[index + 1]
+		var c := faces[index + 2]
+		if absf((b - a).cross(c - a).normalized().x) > 0.9:
+			continue
+		for corner: Vector3 in [a, b, c]:
+			if absf(corner.x - joint) >= 1e-3 or corner.z * sign <= 1.0:
+				continue
+			var at := Vector2(corner.y, absf(corner.z))
+			if at.x <= y:
+				if at.x > under.x + 1e-4 or (at.x > under.x - 1e-4 and at.y > under.y):
+					under = at
+			elif at.x < over.x - 1e-4 or (at.x < over.x + 1e-4 and at.y > over.y):
+				over = at
+	if is_inf(under.x) or is_inf(over.x):
+		return INF
+	return lerpf(under.y, over.y, (y - under.x) / (over.x - under.x))
+
+
+## Where a ray from [param from] along [param way] first meets the front of one of
+## [param faces] within [param reach], or null.
+func _front_hit(faces: PackedVector3Array, from: Vector3, way: Vector3, reach: float) -> Variant:
+	var nearest: Variant = null
+	var best := reach
+	for index in range(0, faces.size(), 3):
+		var a := faces[index]
+		var b := faces[index + 1]
+		var c := faces[index + 2]
+		# Godot's front faces wind clockwise: their normal is the cross reversed.
+		if (b - a).cross(c - a).dot(way) <= 0.0:
+			continue
+		var hit: Variant = Geometry3D.ray_intersects_triangle(from, way, a, b, c)
+		if hit != null and from.distance_to(hit as Vector3) < best:
+			best = from.distance_to(hit as Vector3)
+			nearest = hit
+	return nearest
 
 
 func _dressed() -> ShipArt:
