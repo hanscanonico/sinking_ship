@@ -2,7 +2,7 @@ class_name MatchArgs
 extends RefCounted
 ## The user arguments a match host takes after `--`:
 ##   --seed=N  --seats=N  --ship=NAME  --scenario=NAME  --stop=MM:SS  --hit=PATH|NAME  --fast[=0]
-##   --goal=last_standing|survival
+##   --goal=last_standing|survival  --bonuses[=0]
 ##   --autoplay
 ##   --capture=PATH
 ##   --capture-at=S
@@ -17,8 +17,8 @@ extends RefCounted
 ##   --frame-split=S
 ##   --replay=PATH
 ##   --bake-cache
-## --seed, --seats, --ship, --scenario, --hit, --fast and --goal are the match choices
-## (MatchChoices), each one not given the match data's — --ship a ship of
+## --seed, --seats, --ship, --scenario, --hit, --fast, --goal and --bonuses are the match
+## choices (MatchChoices), each one not given the match data's — --ship a ship of
 ## the Fleet, by name, played in her open-sea scenario, or in --scenario's, one of hers
 ## (steamer_coast, whose ship it names when --ship does not); --stop (or --seconds, in
 ## seconds) is the match time a headless run is stopped at and reported unfinished — a
@@ -30,7 +30,10 @@ extends RefCounted
 ## and --hit as with neither, and --fast=0 on her paced clock — it unticked: a player's
 ## match starts fast unless one of them is given (player_choices); --goal=survival
 ## plays survival (MatchRules.Goal) — the menu's Survival, ticked —, and without it the
-## data's goal; --autoplay presses its Play, and without it --capture saves the menu. A
+## data's goal; --bonuses=0 plays without bonuses, in either goal — the menu's Bonuses,
+## unticked —, and without it (or with --bonuses) bonuses come aboard as the match data's
+## bonus rules bring them, for a player and a tool alike; --autoplay presses its Play, and
+## without it --capture saves the menu. A
 ## capture is taken from the
 ## observer camera unless --capture-eye names the seat whose eyes it looks through;
 ## --observer opens the observer camera for QA, --observer-cut cuts its view of
@@ -73,8 +76,9 @@ extends RefCounted
 ## with --autoplay a bot, headless, whose creator starts the match once --start-at
 ## players are in.
 
-## The match choices --ship, --seats, --seed, --fast, --goal, --scenario and --hit
-## make; every one not given is the match data's, and the seed is blank (MatchChoices).
+## The match choices --ship, --seats, --seed, --fast, --goal, --bonuses, --scenario and
+## --hit make; every one not given is the match data's, and the seed is blank
+## (MatchChoices).
 var choices := MatchChoices.new()
 ## Whether --fast or --fast=0 chose the pace, rather than leaving it to who plays.
 var pace_given: bool = false
@@ -183,6 +187,8 @@ static func parse(args: PackedStringArray) -> MatchArgs:
 				parsed.pace_given = true
 			"--goal":
 				parsed.choices.goal = StringName(value)
+			"--bonuses":
+				parsed.choices.bonuses = value != "0"
 			"--autoplay":
 				parsed.autoplay = true
 			"--capture":

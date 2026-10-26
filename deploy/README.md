@@ -140,13 +140,15 @@ The server logs every room's tick time, each player's round trip and the snapsho
 bandwidth every 10 s, and a finished match's transcript:
 `docker compose -f deploy/compose.yml logs -f server`.
 
-## The pace of its matches
+## The pace of its matches, and their bonuses
 
 The server's rooms sink her fast, as a player's match on their own machine does
 (`fast = true` in `data/net/server.tres`). For the slow, realistic pace, set
 `fast = false` there and deploy: the server tells each player the pace as their match
-begins, so the builds already out need nothing. Each match's `match begins` log line
-says which it played.
+begins, so the builds already out need nothing. Bonuses come aboard its rooms' matches
+as they do a player's own (`bonuses = true`); for the plain brawl, set `bonuses = false`
+and deploy, and each player is told that the same way. Each match's `match begins` log
+line says which it played.
 
 ## Pointing the release builds at the server
 

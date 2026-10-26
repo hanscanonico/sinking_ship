@@ -5,7 +5,8 @@ extends RefCounted
 ## STARTs the match as the room's host, or LEAVEs; the server answers WELCOME, or
 ## REFUSED with a reason, sends the room's ROSTER whenever it changes and, as a match
 ## begins, BEGIN with its seed, its seat count, the client's seat, its pace — fast or
-## paced, the server's to say (ServerRules.fast) — and the digest of the sinking's
+## paced, the server's to say (ServerRules.fast) —, whether it has bonuses — the server's
+## too (ServerRules.bonuses) — and the digest of the sinking's
 ## timeline the server baked — then that timeline, a TIMELINE packet a
 ## section, its header first (SinkTimeline, D11). PING and PONG time the round trip.
 ## Every packet is read as hostile, the server's too: decode() answers null for
@@ -68,6 +69,9 @@ class Message:
 	var seat := -1
 	## BEGIN's pace: whether her sinking plays on the match data's fast_clock.
 	var fast := false
+	## BEGIN's bonuses: whether they come aboard as the match data's bonus rules bring
+	## them, or none do.
+	var bonuses := true
 	var roster: RoomRoster
 
 	func _init(message_kind: WireCodec.Kind) -> void:
@@ -132,17 +136,23 @@ func encode_stamp(kind: WireCodec.Kind, stamp: int) -> PackedByteArray:
 	return out.data_array
 
 
-## BEGIN: [param fast] whether her sinking plays on the fast clock, and
-## [param timeline_digest] the digest of the sinking's timeline, hex
-## (SinkTimeline.digest), "" for a match with none.
+## BEGIN: [param fast] whether her sinking plays on the fast clock, [param bonuses]
+## whether bonuses come aboard, and [param timeline_digest] the digest of the sinking's
+## timeline, hex (SinkTimeline.digest), "" for a match with none.
 func encode_begin(
-	match_seed: int, seats: int, seat: int, fast := false, timeline_digest: String = ""
+	match_seed: int,
+	seats: int,
+	seat: int,
+	fast := false,
+	bonuses := true,
+	timeline_digest: String = ""
 ) -> PackedByteArray:
 	var out := wire.header(WireCodec.Kind.BEGIN)
 	out.put_u32(match_seed & 0xFFFFFFFF)
 	out.put_u8(seats)
 	out.put_u8(seat)
 	out.put_u8(1 if fast else 0)
+	out.put_u8(1 if bonuses else 0)
 	var digest := timeline_digest.hex_decode()
 	digest.resize(DIGEST_BYTES)
 	out.put_data(digest)
@@ -197,10 +207,12 @@ func decode(bytes: PackedByteArray) -> Message:
 			message.seat = reader.byte()
 			var pace := reader.byte()
 			message.fast = pace == 1
+			var bonuses := reader.byte()
+			message.bonuses = bonuses == 1
 			var digest := reader.bytes(DIGEST_BYTES)
 			if digest.count(0) < DIGEST_BYTES:
 				message.text = digest.hex_encode()
-			if message.seat >= message.seats or pace > 1:
+			if message.seat >= message.seats or pace > 1 or bonuses > 1:
 				return null
 		WireCodec.Kind.TIMELINE:
 			message.value = reader.u32()

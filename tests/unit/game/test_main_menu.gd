@@ -1,8 +1,9 @@
 extends GutTest
 ## The main menu as a first-time player meets it: the build's version in its corner,
-## Ship, Seats, Bots and Survival up front, the seed and the pace folded under Custom
-## match — closed, unless the command line set a seed or the slow pace — and Credits
-## between Replays and Quit. A player's match sinks fast unless they untick it.
+## Ship, Seats, Bots and Survival up front, the seed, the pace and the bonuses folded under
+## Custom match — closed, unless the command line set a seed, the slow pace or no bonuses
+## — and Credits between Replays and Quit. A player's match sinks fast and has bonuses
+## unless they untick them.
 
 const GAME := "res://scenes/game/game.tscn"
 const MATCH_DATA := "res://data/match/default.tres"
@@ -40,11 +41,12 @@ func test_the_version_is_the_projects_or_dev() -> void:
 
 func test_the_custom_match_is_folded_by_default() -> void:
 	var menu := _menu()
-	assert_false(menu.custom_shown(), "the seed and the pace are folded away")
+	assert_false(menu.custom_shown(), "the seed, the pace and the bonuses are folded away")
 	for upfront: String in ["%Ship", "%Seats", "%Tier", "%Survival"]:
 		assert_true(menu.get_node(upfront).visible, "%s is up front" % upfront)
 	assert_false(menu.get_node("%Seed").is_visible_in_tree(), "no seed field up front")
 	assert_false(menu.get_node("%Fast").is_visible_in_tree(), "no fast sinking up front")
+	assert_false(menu.get_node("%Bonuses").is_visible_in_tree(), "no bonuses up front")
 
 
 func test_a_seed_or_a_pace_given_opens_the_fold() -> void:
@@ -76,6 +78,46 @@ func test_unticking_fast_plays_her_paced_clock() -> void:
 	var config := menu.choices().with_seed("1701").config(match_rules)
 	assert_false(menu.choices().fast)
 	assert_eq(config.scenario.clock, match_rules.sinking.clock, "the slow, realistic pace")
+
+
+## Bonuses is a tick under Custom match, beside Fast sinking (#314): ticked for every
+## player's match, the match data's bonus rules played. The pad goes across from Fast
+## sinking to it and back, and down from either to Play.
+func test_a_players_match_has_bonuses_by_default() -> void:
+	var menu := _menu()
+	var bonuses: CheckButton = menu.get_node("%Bonuses")
+	var fast: CheckButton = menu.get_node("%Fast")
+	assert_true(menu.get_node("%CustomChoices").is_ancestor_of(bonuses), "under Custom match")
+	assert_eq(bonuses.get_parent(), fast.get_parent(), "beside Fast sinking")
+	assert_true(bonuses.button_pressed, "Bonuses ticked")
+	assert_true(menu.choices().bonuses)
+	var match_rules: MatchRules = load(MATCH_DATA)
+	var config := menu.choices().with_seed("1701").config(match_rules)
+	assert_eq(config.bonus_rules, match_rules.bonus_rules, "the match with the data's bonuses")
+	assert_eq(fast.get_node(fast.focus_neighbor_right), bonuses, "across from Fast sinking")
+	assert_eq(bonuses.get_node(bonuses.focus_neighbor_left), fast, "and back")
+	for tick: CheckButton in [fast, bonuses]:
+		assert_eq(tick.get_node(tick.focus_neighbor_bottom), menu.get_node("%Play"), tick.name)
+
+
+func test_unticking_bonuses_plays_the_plain_brawl() -> void:
+	var menu := _menu()
+	(menu.get_node("%Bonuses") as CheckButton).button_pressed = false
+	assert_false(menu.choices().bonuses)
+	var config := menu.choices().with_seed("1701").config(load(MATCH_DATA))
+	assert_null(config.bonus_rules, "no bonus ever comes")
+
+
+## Bonuses turned off on the command line (make run BONUSES=0) are shown, not hidden under
+## the fold, as a seed or the slow pace is.
+func test_no_bonuses_given_opens_the_fold() -> void:
+	var off := _menu(PackedStringArray(["--bonuses=0"]))
+	assert_true(off.custom_shown(), "the plain brawl from the command line is shown")
+	assert_false((off.get_node("%Bonuses") as CheckButton).button_pressed, "Bonuses unticked")
+	assert_false(off.choices().bonuses, "and played")
+	var on := _menu(PackedStringArray(["--bonuses"]))
+	assert_false(on.custom_shown(), "bonuses on are a player's already: still folded")
+	assert_true(on.choices().bonuses)
 
 
 func test_the_fold_opens_and_closes() -> void:

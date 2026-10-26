@@ -354,6 +354,17 @@ static func bonus_rules(
 	return made
 
 
+## A copy of [param rules] and of each of their kinds, for a test to change without
+## changing the loaded data every other test reads.
+static func bonus_rules_copy(rules: BonusRules) -> BonusRules:
+	var copy: BonusRules = rules.duplicate()
+	var kinds: Array[BonusKind] = []
+	for kind: BonusKind in rules.kinds:
+		kinds.append(kind.duplicate())
+	copy.kinds = kinds
+	return copy
+
+
 static func double_life() -> BonusKind:
 	return load(DOUBLE_LIFE)
 

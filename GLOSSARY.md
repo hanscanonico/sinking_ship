@@ -9,8 +9,9 @@ Node-free simulation that scenes only draw; the design of record is
 ### Setting up a match
 
 **Match choices**:
-What a player picks before a match: ship, seats, bot tier, seed, pace and goal, and, from the
-command line only, scenario and hit. A choice left unmade means the match data's.
+What a player picks before a match: ship, seats, bot tier, seed, pace, goal and whether
+bonuses come aboard, and, from the command line only, scenario and hit. A choice left unmade
+means the match data's.
 _Avoid_: match settings, picks, match request, lobby (a lobby is the arena's bot-tier mix)
 
 ### The match's truth

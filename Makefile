@@ -94,6 +94,7 @@ SIDE ?=
 ARGS ?=
 FAST ?=
 GOAL ?=
+BONUSES ?=
 SCREEN ?=
 RES ?=
 PHYS ?=
@@ -101,7 +102,7 @@ JUMP ?=
 CAPTURE ?= $(CURDIR)/captures/match_$(SEED)_$(AT)$(if $(PHYS),phys$(subst :,-,$(PHYS)))$(if $(EYE),_eye$(EYE))$(if $(CUT),_cut$(CUT))$(if $(CELLS),_cells)$(if $(SCREEN),_$(SCREEN)).png
 match-args = $(if $(SEED),--seed=$(SEED)) $(if $(SEATS),--seats=$(SEATS)) $(if $(SHIP),--ship=$(SHIP)) \
 	$(if $(SCENARIO),--scenario=$(SCENARIO)) $(if $(HIT),--hit=$(HIT)) $(if $(FAST),--fast=$(FAST)) \
-	$(if $(GOAL),--goal=$(GOAL))
+	$(if $(GOAL),--goal=$(GOAL)) $(if $(BONUSES),--bonuses=$(BONUSES))
 
 # run, replay, match, capture, fps and smoke pass --bake-cache: a sinking baked before for
 # the very same code under core/, data under data/, match data, seed and clock is read
@@ -116,7 +117,10 @@ bake-cache-arg = $(if $(filter 0,$(BAKE_CACHE)),,--bake-cache)
 # bake, a bot's ARGS=--autoplay — plays the paced clock unless FAST=1.
 # GOAL=survival plays survival (the menu's Survival): everyone stays in as long as she
 # lasts. Without GOAL=, the match data's goal (the battle royale's in default.tres). It
-# works for match too, and with FAST=1. A SEED= that is not a
+# works for match too, and with FAST=1. BONUSES=0 plays the plain brawl, no bonus ever
+# coming aboard, in either goal (the menu's Bonuses, unticked); without it, or with
+# BONUSES=1, bonuses come as the match data's bonus rules bring them, for a player and a
+# tool alike. A SEED= that is not a
 # whole number of 0 or more is refused, as the menu refuses it.
 run:
 	$(call require-godot)
@@ -135,7 +139,8 @@ replay:
 # when either prints one.
 #
 # The engine helper autoload prints one line of its own on every boot; it is
-# filtered so stdout is the transcript alone. FAST=1 and GOAL=survival as for run.
+# filtered so stdout is the transcript alone. FAST=1, GOAL=survival and BONUSES=0 as for
+# run.
 match:
 	$(call require-godot)
 	@set -o pipefail; tools/engine_guard.sh $(GODOT) --headless --no-header --path . -s res://tools/run_match.gd \

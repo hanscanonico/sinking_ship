@@ -3,8 +3,8 @@ extends GutTest
 ## match seeds every player is shown; the host starts the match and bots take the seats
 ## nobody holds (D10); a player who goes mid-match leaves their seat to a bot and the
 ## match plays on; a full room refuses a join; a match sinks at the pace the server
-## says, its players' too; and a finished match is let go, its room waiting for its
-## host again. Over loopbacks, as RoomClients a menu would drive.
+## says, and has bonuses as it says, its players' too; and a finished match is let go, its
+## room waiting for its host again. Over loopbacks, as RoomClients a menu would drive.
 
 ## Long enough for every bot to have walked or shoved, the countdown behind them.
 const ACTING_BEATS := 8 * Ticks.RATE
@@ -318,6 +318,34 @@ func test_a_room_sinks_at_the_servers_pace() -> void:
 			played.step()
 			fixture.beat()
 		assert_gte(played.client.view()["tick"], Ticks.RATE, "fast %s: and played" % fast)
+
+
+## The server says whether its rooms have bonuses (#314) — they do as shipped, as a
+## player's local match does, or none at all — and BEGIN carries it beside the pace: its
+## player builds the match from what BEGIN said, never from its own default, so both ends
+## play the one match, its data hash the same.
+func test_a_room_has_bonuses_as_the_server_says() -> void:
+	assert_true(ServerRules.load_default().bonuses, "a server as shipped has bonuses")
+	assert_not_null(RoomFixtures.flat_rules().bonus_rules, "and its match data bonus rules")
+	for bonuses: bool in [true, false]:
+		var fixture := RoomFixtures.new(
+			RoomFixtures.rules_with({"bonuses": bonuses}), RoomFixtures.flat_rules()
+		)
+		var player := fixture.room_of(1)[0]
+		var begun: Array[MatchConfig] = []
+		player.began.connect(func(config: MatchConfig, _seat: int) -> void: begun.append(config))
+		player.start_match()
+		fixture.beat()
+		var what := "bonuses %s" % ("on" if bonuses else "off")
+		assert_eq(begun.size(), 1, "%s: the match began" % what)
+		if begun.is_empty():
+			continue
+		var served: MatchConfig = fixture.room(player).host.runner.sim.config
+		var rules: BonusRules = fixture.match_rules.bonus_rules if bonuses else null
+		assert_eq(served.bonus_rules, rules, "%s: the server's match" % what)
+		assert_eq(begun[0].bonus_rules, rules, "%s: the client's, as told" % what)
+		assert_eq(begun[0].data_hash(), served.data_hash(), "%s: one match" % what)
+		assert_true(fixture.logged("· %s ·" % what), "%s: logged" % what)
 
 
 func test_the_last_player_leaving_closes_the_room() -> void:

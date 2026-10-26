@@ -74,6 +74,10 @@ const NAME_PUNCTUATION := " -_.'"
 ## match does (MatchChoices.PLAYERS_FAST), rather than on her paced clock. The server's
 ## to say: BEGIN tells each player, whose match is built from it (RoomServer.config_for).
 @export var fast: bool = true
+## Whether bonuses come aboard its rooms' matches (#307), as the match data's bonus rules
+## bring them, as they do in a player's local match unless unticked (MatchChoices.bonuses),
+## or none at all. The server's to say, as the pace is: BEGIN tells each player beside it.
+@export var bonuses: bool = true
 
 
 static func load_default() -> ServerRules:
