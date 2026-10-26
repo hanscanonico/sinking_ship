@@ -27,8 +27,7 @@ func _menu(
 	seed_text: String,
 	fast := false,
 	survival := false,
-	tier := &"normal",
-	bonuses := true
+	tier := &"normal"
 ) -> MatchChoices:
 	var choices := MatchChoices.new()
 	choices.ship = ship
@@ -37,7 +36,12 @@ func _menu(
 	choices.seed_text = seed_text
 	choices.fast = fast
 	choices.goal = &"survival" if survival else &"last_standing"
-	choices.bonuses = bonuses
+	return choices
+
+
+## [param choices] with Bonuses unticked: the plain brawl.
+func _plain(choices: MatchChoices) -> MatchChoices:
+	choices.bonuses = false
 	return choices
 
 
@@ -208,13 +212,13 @@ func test_choices_make_configs() -> void:
 		],
 		[
 			"the menu's Bonuses unticked: none",
-			_menu(&"steamer", 8, "1", false, false, &"normal", false),
+			_plain(_menu(&"steamer", 8, "1")),
 			default,
 			{"bonus_rules": null},
 		],
 		[
-			"the menu's Bonuses unticked in survival",
-			_menu(&"steamer", 8, "1", true, true, &"normal", false),
+			"the menu's Bonuses unticked in a fast survival",
+			_plain(_menu(&"steamer", 8, "1", true, true)),
 			survival,
 			{"bonus_rules": null, "goal": MatchRules.Goal.SURVIVAL, "scenario.clock": 2.0},
 		],
@@ -359,17 +363,12 @@ func test_the_data_hash_covers_the_bonuses_when_they_are_on() -> void:
 	var off := _cli(["--bonuses=0"])
 	for what: String in changes:
 		var changed: MatchRules = default.duplicate()
-		changed.bonus_rules = default.bonus_rules.duplicate()
-		var kinds: Array[BonusKind] = []
-		for kind: BonusKind in default.bonus_rules.kinds:
-			kinds.append(kind.duplicate())
-		changed.bonus_rules.kinds = kinds
+		changed.bonus_rules = SimFixtures.bonus_rules_copy(default.bonus_rules)
 		(changes[what] as Callable).call(changed.bonus_rules)
 		var hashed := on.config(changed).data_hash()
 		assert_ne(hashed, on.config(default).data_hash(), "on: %s" % what)
-		assert_eq(
-			off.config(changed).data_hash(), off.config(default).data_hash(), "off: %s" % what
-		)
+		hashed = off.config(changed).data_hash()
+		assert_eq(hashed, off.config(default).data_hash(), "off: %s" % what)
 	var before := RunMatch.default_config(1701)
 	before.bonus_rules = null
 	assert_eq(off.config(default).data_hash(), before.data_hash(), "off: as before bonuses came")

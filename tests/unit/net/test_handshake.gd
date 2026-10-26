@@ -78,11 +78,7 @@ func test_bonus_rules_mismatch_is_refused() -> void:
 		for what: String in changes:
 			var fixture := RoomFixtures.new(RoomFixtures.rules_with({"bonuses": bonuses}))
 			var changed: MatchRules = fixture.match_rules.duplicate()
-			changed.bonus_rules = changed.bonus_rules.duplicate()
-			var kinds: Array[BonusKind] = []
-			for kind: BonusKind in changed.bonus_rules.kinds:
-				kinds.append(kind.duplicate())
-			changed.bonus_rules.kinds = kinds
+			changed.bonus_rules = SimFixtures.bonus_rules_copy(changed.bonus_rules)
 			(changes[what] as Callable).call(changed.bonus_rules)
 			var client := fixture.connect_client("Changed", changed)
 			fixture.beat()

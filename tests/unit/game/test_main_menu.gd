@@ -41,7 +41,7 @@ func test_the_version_is_the_projects_or_dev() -> void:
 
 func test_the_custom_match_is_folded_by_default() -> void:
 	var menu := _menu()
-	assert_false(menu.custom_shown(), "the seed and the pace are folded away")
+	assert_false(menu.custom_shown(), "the seed, the pace and the bonuses are folded away")
 	for upfront: String in ["%Ship", "%Seats", "%Tier", "%Survival"]:
 		assert_true(menu.get_node(upfront).visible, "%s is up front" % upfront)
 	assert_false(menu.get_node("%Seed").is_visible_in_tree(), "no seed field up front")

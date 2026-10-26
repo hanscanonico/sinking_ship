@@ -127,7 +127,8 @@ func _init(
 static func data_hash(match_rules: MatchRules, net_rules: NetRules) -> String:
 	var paces := PackedStringArray()
 	for fast: bool in [false, true]:
-		paces.append(WireCodec.match_hash(config_for(match_rules, 0, fast, true), net_rules))
+		var with_bonuses := config_for(match_rules, 0, fast, true)
+		paces.append(WireCodec.match_hash(with_bonuses, net_rules))
 	return "|".join(paces).sha256_text()
 
 
@@ -405,17 +406,15 @@ func _start(connection: Connection) -> void:
 			config.match_seed, config.seats, player.seat, _rules.fast, _rules.bonuses, digest
 		)
 		_wire.send(player.peer, begin)
+	var pace := "fast" if _rules.fast else "paced"
+	var bonuses := "on" if _rules.bonuses else "off"
 	_say(
 		(
-			"room %s: match begins · seed %d · %d seats · %s sinking · bonuses %s · %s · bots on the rest"
-			% [
-				at.code,
-				config.match_seed,
-				config.seats,
-				"fast" if _rules.fast else "paced",
-				"on" if _rules.bonuses else "off",
-				", ".join(players),
-			]
+			(
+				"room %s: match begins · seed %d · %d seats · %s sinking · bonuses %s · %s"
+				% [at.code, config.match_seed, config.seats, pace, bonuses, ", ".join(players)]
+			)
+			+ " · bots on the rest"
 		)
 	)
 	_send_rosters(at)

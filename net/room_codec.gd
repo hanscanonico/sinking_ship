@@ -71,7 +71,7 @@ class Message:
 	var fast := false
 	## BEGIN's bonuses: whether they come aboard as the match data's bonus rules bring
 	## them, or none do.
-	var bonuses := false
+	var bonuses := true
 	var roster: RoomRoster
 
 	func _init(message_kind: WireCodec.Kind) -> void:
