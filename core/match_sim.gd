@@ -497,14 +497,11 @@ func _jump(player: PlayerState, pose_now: ShipPose) -> void:
 	):
 		return
 	_spend(player, _rules.jump_cost)
-	# The take-off speed up the frame whose apex, stepped tick by tick as Movement's forces
-	# and move step it, is the jump height: v² − g·dt·v − 2·g·h = 0; along the world's up,
-	# gravity's own way back, it carries the share across the face that goes with it.
+	# The take-off speed up the frame whose apex is the jump height (Movement.take_off); along
+	# the world's up, gravity's own way back, it carries the share across the face that goes
+	# with it.
 	var gravity := pose_now.ship_gravity(_rules.gravity)
-	var fall := -gravity.y
-	var drop := fall * Ticks.SECONDS_PER_TICK
-	var height := _seat_rules(player).jump_height
-	var rise := (drop + sqrt(drop * drop + 8.0 * fall * height)) * 0.5
+	var rise := Movement.take_off(-gravity.y, _seat_rules(player).jump_height)
 	player.vel += Vector3(gravity.x * rise / gravity.y, 0.0, gravity.z * rise / gravity.y)
 	player.vel.y = rise
 	player.body = PlayerState.Body.AIRBORNE

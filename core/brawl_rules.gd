@@ -209,6 +209,15 @@ extends Resource
 @export var struck_stagger: float
 
 
+## The fastest these rules move anything across her deck — a walk, a vault, a shove's
+## knockback, quick or charged, a crate's: what the online prediction takes another body or
+## a crate to come at, at most (ContactWatch, R7).
+func fastest_speed() -> float:
+	return maxf(
+		maxf(walk_speed, vault_speed), maxf(charged_knockback, maxf(knockback, crate_knockback))
+	)
+
+
 ## How far over its feet a swimmer's head is reckoned, for whether it is in trapped air
 ## (Q22): halfway from the waterline it floats at, swim_depth, to the top of its head —
 ## of a body [param height] tall, so a crawler's as much lower as it is (swim_depth_of).
