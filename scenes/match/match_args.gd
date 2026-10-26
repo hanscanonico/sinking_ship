@@ -27,8 +27,8 @@ extends RefCounted
 ## (--ship=titanic --hit=night is titanic_night) before any ship's (fast) —, past the
 ## must-sink rule (§5b.1), so a tool can play a chosen sinking; --fast plays her sinking
 ## on the match data's fast_clock — the menu's Fast sinking, ticked —, with --scenario
-## and --hit as with neither, and --fast=0 on her paced clock — it unticked: a player's
-## match starts fast unless one of them is given (player_choices); --goal=survival
+## and --hit as with neither, and --fast=0 on her paced clock — it unticked —, where a
+## player's match starts unless --fast is given (player_choices); --goal=survival
 ## plays survival (MatchRules.Goal) — the menu's Survival, ticked —, and without it the
 ## data's goal; --bonuses=0 plays without bonuses, in either goal — the menu's Bonuses,
 ## unticked —, and without it (or with --bonuses) bonuses come aboard as the match data's
@@ -272,10 +272,10 @@ static func parse(args: PackedStringArray) -> MatchArgs:
 
 
 ## The choices a player's match starts from — the menu's, and so `make run`'s, its
-## rematches' and the next match's: [member choices], their pace fast
-## (MatchChoices.PLAYERS_FAST) unless --fast or --fast=0 chose one. A bot's autoplay
-## keeps the paced clock, as every tool does: captures and make fps are timed on the
-## transcripts make match prints.
+## rematches' and the next match's: [member choices], their pace a player's
+## (MatchChoices.PLAYERS_FAST: paced) unless --fast or --fast=0 chose one. A bot's
+## autoplay keeps the paced clock whatever a player's is, as every tool does: captures
+## and make fps are timed on the transcripts make match prints.
 func player_choices() -> MatchChoices:
 	var full := choices.with_seed(choices.seed_text)
 	if not pace_given and not autoplay:

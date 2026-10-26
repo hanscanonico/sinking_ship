@@ -290,11 +290,11 @@ func test_a_client_plays_its_seat_through_the_room() -> void:
 	assert_almost_eq(seen["pos"].z, host_seat["pos"].z, 0.5, "the client sees it there")
 
 
-## The server says the pace — fast as shipped, as a player's local match, or paced —
+## The server says the pace — paced as shipped, as a player's local match, or fast —
 ## and its player builds the match from what BEGIN said: both ends play the one match,
 ## its data hash the same, so the server's snapshots are the client's to read.
 func test_a_room_sinks_at_the_servers_pace() -> void:
-	assert_true(ServerRules.load_default().fast, "a server as shipped sinks her fast")
+	assert_false(ServerRules.load_default().fast, "a server as shipped plays her paced clock")
 	for fast: bool in [true, false]:
 		var fixture := RoomFixtures.new(
 			RoomFixtures.rules_with({"fast": fast}), RoomFixtures.flat_rules()
