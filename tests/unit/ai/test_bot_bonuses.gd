@@ -1,7 +1,10 @@
 extends GutTest
 ## Bots and bonuses (#307, #315), each bot behind its delayed view (D10): a bot goes below
-## decks for a bonus, down toward the water by design, and takes it with a Grab press; and
-## in the sea it counts the spare meter its Double life gives it, unspent, as more time.
+## decks for a bonus worth more to it than its own, down toward the water by design, while
+## its tier's range and margin hold — the water as it stands now, never as the timeline has
+## it next — and takes it with a Grab press; it drops one gone, or once the water comes
+## within its margin; and in the sea it counts the spare meter its Double life gives it,
+## unspent, as more time.
 
 ## Where on the steamer's main deck a bot sets out from: a walk of 13 m from her cabin
 ## corridor's bonus spot, down the stair aft of her deckhouse, every step of it 0.8 m or
@@ -55,8 +58,8 @@ func _in_the_hold(sink := 0.0, rules: BonusRules = null, layout: ShipLayout = nu
 	return sim
 
 
-## Bonus rules of Double life, kind 0, and Plain, kind 1 (SimFixtures.plain_kind), none of
-## the plan's coming.
+## Bonus rules of Double life, kind 0, and Plain, kind 1 (SimFixtures.plain_kind) — a kind
+## no tier values — none of the plan's coming.
 func _two_kinds() -> BonusRules:
 	var kinds: Array[BonusKind] = [SimFixtures.double_life(), SimFixtures.plain_kind()]
 	return SimFixtures.bonus_rules(600.0, 45.0, 0.0, 2, kinds)
@@ -164,6 +167,28 @@ func test_a_bot_heeds_the_lowest_point_of_its_way_to_a_bonus() -> void:
 		assert_eq(going, case[1], "the sea %.2f m up her" % case[0])
 
 
+## The floor of every room on its way counts too, by its lowest corner, as the bot's climb
+## reads a floor: listed 4° to port, her engine room — on the way from her deckhouse hall
+## down to her cabin corridor — has its port side within the bot's margin of the water while
+## its doorways and the corridor stand clear of it, and the bot stays; upright, it goes.
+func test_a_bot_heeds_the_floor_of_every_room_on_its_way() -> void:
+	var profile := _tier(&"normal")
+	profile.bonus_margin_m = 0.75
+	var hall := Vector3(-2.5, 0.0, 2.2)
+	for case: Array in [[-4.0, false], [0.0, true]]:
+		var sim := _steamer(SimFixtures.scenario([[0.0, -0.1, 0.0, case[0]]]))
+		var spot := _spot_in(sim, &"cabin corridor")
+		SimFixtures.bring_aboard(sim, spot)
+		SimFixtures.place(sim, 0, hall, 0.0)
+		var corridor := sim.pose().above_water(sim.config.ship.bonus_spots[spot].point)
+		assert_gt(corridor, profile.bonus_margin_m, "the corridor stands clear")
+		var source := BotInputSource.new(0, profile, sim.config)
+		source.observe(sim.snapshot(), sim.pose())
+		source.next_frame(sim.state.tick)
+		var going := source.brain.intent == BotBrain.Intent.TAKE_BONUS
+		assert_eq(going, case[1], "listed %.0f°" % case[0])
+
+
 ## A bot sees a bonus only as old as its view, reaction_ticks: one taken since is still
 ## aboard to it, and it goes on for it; once its view shows it gone, it lets it go.
 func test_a_bot_sees_a_bonus_only_as_old_as_its_view() -> void:
@@ -209,10 +234,29 @@ func test_a_bot_holding_a_ring_presses_for_a_bonus_only_once_its_view_has_it_in_
 		assert_eq(frame.is_held(InputFrame.GRAB), not holding, "a ring in its hands: %s" % holding)
 
 
+## A bot drops its intent once the bonus it went for is gone, even with nothing else to
+## score — a tier of the test's own that neither wanders, hunts nor lines up: it seeks high
+## ground instead.
+func test_a_bot_drops_a_bonus_gone_though_nothing_else_scores() -> void:
+	var profile := _tier(&"normal")
+	profile.wander_weight = 0.0
+	profile.hunt_weight = 0.0
+	profile.lineup_weight = 0.0
+	var sim := _in_the_hold(-1.0)
+	SimFixtures.place(sim, 0, Vector3(9.0, SimFixtures.HOLD_FLOOR, 0.0), 0.0)
+	var source := BotInputSource.new(0, profile, sim.config)
+	var runner := _runner(sim, source)
+	runner.step()
+	assert_eq(source.brain.intent, BotBrain.Intent.TAKE_BONUS, "it goes for the bonus")
+	sim.state.bonuses.clear()
+	runner.run(profile.reaction_ticks + profile.think_period + 1)
+	assert_eq(source.brain.intent, BotBrain.Intent.SEEK_HIGH, "gone, it is dropped")
+
+
 ## Each tier goes for a bonus only while the floor it lies on stands the tier's own margin
 ## over the water: a little more, it goes; a little less, it does not.
 func test_each_tier_goes_only_while_its_margin_holds() -> void:
-	var near := SimFixtures.HOLD_FLOOR * Vector3.UP + Vector3(11.0, 0.0, 0.0)
+	var near := Vector3(11.0, SimFixtures.HOLD_FLOOR, 0.0)
 	for tier: String in BotProfile.tiers():
 		var profile := _tier(StringName(tier))
 		for case: Array in [[0.05, true], [-0.05, false]]:
@@ -237,27 +281,31 @@ func test_each_tier_goes_only_within_its_range() -> void:
 
 ## A bot weighs a bonus's kind against its own bonus: it goes for one worth more to it than
 ## the one it has, or than none, and leaves one worth no more. Its tier here values Plain at
-## half what it values Double life.
+## half what it values Double life; the shipped tier, leaving Plain out, never goes for one.
 func test_a_bot_weighs_a_bonus_against_its_own() -> void:
+	var rules := _two_kinds()
 	var profile := _tier(&"normal")
-	profile.bonus_worth = {"Plain": 0.5}
+	profile.bonus_worth = {rules.kinds[0]: 1.0, rules.kinds[1]: 0.5}
 	var near := Vector3(11.0, SimFixtures.HOLD_FLOOR, 0.0)
 	# Its own bonus, the kind aboard — 0 Double life, 1 Plain, -1 none — and whether it goes.
 	for case: Array in [[-1, 1, true], [1, 0, true], [0, 1, false], [0, 0, false]]:
-		var sim := _in_the_hold(-1.0, _two_kinds())
+		var sim := _in_the_hold(-1.0, rules)
 		sim.state.bonuses[0].kind = case[1]
 		sim.state.seats[0].bonus = case[0]
-		assert_eq(
-			_goes(sim, profile, near), case[1 + 1], "its own %d, aboard %d" % case.slice(0, 2)
-		)
+		var goes := _goes(sim, profile, near)
+		assert_eq(goes, case[2], "its own %d, aboard %d" % case.slice(0, 2))
+	var plain := _in_the_hold(-1.0, rules)
+	plain.state.bonuses[0].kind = 1
+	assert_false(_goes(plain, _tier(&"normal"), near), "a kind its tier leaves out, never")
 
 
 ## A bot weighs a bonus's worth against the walk to it: of a Plain at its feet and a
 ## Double life it values more, it goes for the Double life a short walk off, and for the
 ## Plain once the Double life lies near the end of its range.
 func test_a_bot_weighs_a_bonus_against_the_walk_to_it() -> void:
+	var rules := _two_kinds()
 	var profile := _tier(&"normal")
-	profile.bonus_worth = {"Plain": 0.6}
+	profile.bonus_worth = {rules.kinds[0]: 1.0, rules.kinds[1]: 0.6}
 	profile.bonus_range_m = 25.0
 	# How far fore of the bot the Double life lies, and which way it walks: fore, or aft for
 	# the Plain a metre aft of it.
@@ -268,7 +316,7 @@ func test_a_bot_weighs_a_bonus_against_the_walk_to_it() -> void:
 		aft.point = bot_at - Vector3(1.0, 0.0, 0.0)
 		aft.room = 0
 		layout.bonus_spots.append(aft)
-		var sim := _in_the_hold(-1.0, _two_kinds(), layout)
+		var sim := _in_the_hold(-1.0, rules, layout)
 		SimFixtures.bring_aboard(sim, 1, 1)
 		SimFixtures.place(sim, 0, bot_at)
 		var source := BotInputSource.new(0, profile, sim.config)

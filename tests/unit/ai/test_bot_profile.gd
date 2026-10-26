@@ -119,6 +119,26 @@ func test_a_bonus_margin_is_no_less_than_the_climb_margin() -> void:
 	assert_eq(level.problems(), PackedStringArray(), "as deep as its climb lets it")
 
 
+## A bot never goes for a bonus of a kind its tier leaves out of bonus_worth, so every tier
+## values every kind there is (data/bonuses), and none at less than nothing.
+func test_every_tier_values_every_kind_of_bonus() -> void:
+	var kinds: Array[BonusKind] = []
+	for file: String in ResourceLoader.list_directory("res://data/bonuses"):
+		if file.get_extension() == "tres":
+			kinds.append(load("res://data/bonuses/%s" % file))
+	assert_false(kinds.is_empty(), "there are kinds of bonus")
+	for tier: String in BotProfile.tiers():
+		var profile := BotProfile.for_tier(StringName(tier))
+		for kind: BonusKind in kinds:
+			assert_gt(profile.bonus_worth.get(kind, 0.0), 0.0, "%s: %s" % [tier, kind.title])
+	var spiteful: BotProfile = BotProfile.for_tier(&"normal").duplicate()
+	spiteful.bonus_worth = {kinds[0]: -1.0}
+	assert_eq(
+		spiteful.problems(),
+		PackedStringArray(["bot: bonus_worth must be of kinds there are, none negative"])
+	)
+
+
 ## The refuge reads what the bot has seen over a window of its own, and marks a zone
 ## down by the water it saw rise there (BotRefuge): neither is ever nothing.
 func test_the_refuge_reads_a_window_of_what_was_seen() -> void:

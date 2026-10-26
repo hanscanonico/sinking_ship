@@ -486,9 +486,10 @@ func _think(view: BotView, me: Dictionary, now_pos: Vector3, pose: ShipPose) -> 
 			_stalled_since = seen["tick"]
 
 
-## The arbiter: the first urgent intent whose reason holds, else the best of SEEK_HIGH,
-## LINE_UP and HUNT by score — the one the bot has, unless another beats it by its
-## profile's hysteresis. Standing in [param highest] already, there is no higher
+## The arbiter: the first urgent intent whose reason holds, else the best of the scored
+## ones by score — the one the bot has, unless another beats it by its profile's
+## hysteresis — and with none scoring at all, SEEK_HIGH: a lifebuoy or a bonus it went for
+## gone, its intent goes too. Standing in [param highest] already, there is no higher
 ## ground to seek: it goes at whoever it can — off its perch, survival_hunt_scale of it.
 func _arbitrate(
 	seen: Dictionary,
@@ -535,7 +536,7 @@ func _arbitrate(
 			best = candidate
 	if scores[kept] > 0.0 and scores[best] <= scores[kept] + _profile.hysteresis:
 		return kept
-	return best
+	return best if scores[best] > 0.0 else Intent.SEEK_HIGH
 
 
 ## The first of the urgent intents whose reason holds, in order of claim, or -1.
@@ -610,7 +611,8 @@ func _make_for_goal(
 
 
 ## Where it stands to take what its take intent goes for, then where that lies — the
-## lifebuoy (BotProps) or the bonus (BotBonuses) — as [param seen] has it; empty, it gone.
+## lifebuoy (BotProps) or the bonus (BotBonuses) — as [param seen] has it; empty once that
+## is gone.
 func _aim(seen: Dictionary) -> PackedVector3Array:
 	return _props.aim(seen) if intent == Intent.TAKE_BUOY else _bonuses.aim(seen)
 

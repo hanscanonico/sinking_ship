@@ -32,6 +32,7 @@ const PROTOCOL_VERSION := 10
 ## The build of what plays a match — core/, ai/ and net/ — bumped by hand whenever a
 ## change there would play the same data differently: part of every match's hash, so
 ## two builds that would not agree are refused as other data.
+## 9: a bonus comes only into a dry room, and is lost to the sea (#311).
 ## 10: bots go below decks for bonuses, and count a spare meter unspent as more time in
 ## the sea (#315).
 const SIM_BUILD := 10

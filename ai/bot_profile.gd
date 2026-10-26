@@ -25,6 +25,7 @@ const SHARES: Array[String] = [
 	"perch_lead",
 	"survival_hunt_scale",
 	"buoy_from",
+	"bonus_walk_share",
 ]
 const NON_NEGATIVE: Array[String] = [
 	"aim_error_deg",
@@ -167,17 +168,18 @@ const NON_NEGATIVE: Array[String] = [
 @export var steals: bool
 ## A bot goes below decks for a bonus aboard (#307) worth more to it than its own bonus, a
 ## walk of bonus_range_m or less away, scored bonus_weight times how much more it is worth
-## — less by up to half the farther it lies within that range — against its other intents,
-## while the floor the bonus lies on and every portal of its way there stand bonus_margin_m
-## or more above the water: the easy tier only near and well clear of it, the hard one
-## deeper, later and farther. A bot climbs out of any floor nearer the sea than
-## climb_margin_m, so its bonus margin is never less (problems). What a bonus is worth to it
-## is bonus_worth's for its kind's title — the feed's name for it, all a player knows of
-## one — and 1 for a kind the table leaves out; none, nothing.
+## — less, by up to bonus_walk_share of that, the farther it lies within that range —
+## against its other intents, while the floor the bonus lies on, the floor of every room on
+## its way and both ends of every portal there stand bonus_margin_m or more above the water:
+## the easy tier only near and well clear of it, the hard one deeper, later and farther. A
+## bot climbs out of any floor nearer the sea than climb_margin_m, so its bonus margin is
+## never less (problems). What a bonus of each kind is worth to it is bonus_worth's; a kind
+## the table leaves out is worth nothing to it, and it never goes for one.
 @export var bonus_weight: float
 @export var bonus_range_m: float
+@export var bonus_walk_share: float
 @export var bonus_margin_m: float
-@export var bonus_worth: Dictionary[String, float] = {}
+@export var bonus_worth: Dictionary[BonusKind, float] = {}
 ## How much better another intent or target must score than the bot's current one
 ## before it switches: what keeps it from dithering between two.
 @export var hysteresis: float
@@ -241,6 +243,10 @@ func problems() -> PackedStringArray:
 		found.append("bot: bonus_range_m must be positive")
 	if bonus_margin_m < climb_margin_m:
 		found.append("bot: bonus_margin_m must be at least climb_margin_m")
+	for kind: BonusKind in bonus_worth:
+		if kind == null or bonus_worth[kind] < 0.0:
+			found.append("bot: bonus_worth must be of kinds there are, none negative")
+			break
 	var knobs := PackedStringArray()
 	for property: Dictionary in get_property_list():
 		knobs.append(property["name"])

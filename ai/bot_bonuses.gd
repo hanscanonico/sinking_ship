@@ -3,13 +3,14 @@ extends RefCounted
 ## A bot and the bonuses aboard (#307) as its delayed view shows them (D10) — every one,
 ## walls or not, as the props are: the feed has told every player each one's kind and room.
 ## The bonus it goes for, chosen at a think: of a kind worth more to it than its own bonus, a
-## walk of bonus_range_m or less away, while the floor it lies on and every portal of its way
-## there stand bonus_margin_m or more above the water as its view has the water now — never
-## as the timeline has it next; the best for how much more it is worth, less the farther it
-## lies. Unlike a lifebuoy, it goes down toward the water for one by design. Then the Grab
-## press that takes it once a press would (GrabReach), never a second before its view shows
-## the first. And the spare cold meter its own bonus gives it, unspent (Double life): more
-## time in the sea, which its swim counts on. Nothing here rolls the bot's stream.
+## walk of bonus_range_m or less away, while the floor it lies on and the lowest point of its
+## way there stand bonus_margin_m or more above the water as its view has the water now —
+## never as the timeline has it next; the best for how much more it is worth, less the
+## farther it lies. Unlike a lifebuoy, it goes down toward the water for one by design. Then
+## the Grab press that takes it once a press would (GrabReach), never a second before its
+## view shows the first. And the spare cold meter its own bonus gives it, unspent (Double
+## life): more time in the sea, which its swim counts on. Nothing here rolls the bot's
+## stream.
 
 ## The bonus spot of the bonus it goes for, by its index in the layout's, as the last think
 ## chose it; -1 for none.
@@ -21,6 +22,8 @@ var _rules: BrawlRules
 var _layout: ShipLayout
 ## What a Grab press reaches, in a match played with bonuses; null in one without.
 var _reach: GrabReach
+## The kinds of the match's bonuses (BonusRules.kinds): none in a match without bonuses.
+var _kinds: Array[BonusKind] = []
 ## The props a hand may hold (GrabReach.holdable_of).
 var _holdable: PackedInt32Array
 ## The tick of its last Grab press, or -1.
@@ -38,6 +41,7 @@ func _init(
 	_layout = layout
 	if bonus_rules != null:
 		_reach = GrabReach.new(layout, rules, bonus_rules)
+		_kinds.assign(bonus_rules.kinds)
 	_holdable = GrabReach.holdable_of(layout)
 
 
@@ -45,10 +49,10 @@ func _init(
 ## [param found] — a search of [param graph] from where it stands — reaches under
 ## [param pose]: of a kind worth more to it than its own bonus (worth), a walk of
 ## bonus_range_m or less away, its floor and its way there its margin above the water
-## (_clear) — the best by how much more it is worth, less by up to half the farther away it
-## lies. Returns its score, that by bonus_weight, or 0 with none to go for: none, too, off
-## her decks, where a body takes nothing (GrabReach) and her spots are no points of the
-## frame it finds its way in.
+## (_clear) — the best by how much more it is worth, less by up to bonus_walk_share of that
+## the farther away it lies. Returns its score, that by bonus_weight, or 0 with none to go
+## for: none, too, off her decks, where a body takes nothing (GrabReach) and her spots are
+## no points of the frame it finds its way in.
 func choose(
 	seen: Dictionary, me: Dictionary, found: WalkGraph.Search, graph: WalkGraph, pose: ShipPose
 ) -> float:
@@ -69,7 +73,8 @@ func choose(
 		var far := found.cost[zone] + Vector2(at.x - my_pos.x, at.z - my_pos.z).length()
 		if far > _profile.bonus_range_m or not _clear(graph, found, zone, at, pose):
 			continue
-		var score := _profile.bonus_weight * gain * (1.0 - 0.5 * far / _profile.bonus_range_m)
+		var walk := _profile.bonus_walk_share * far / _profile.bonus_range_m
+		var score := _profile.bonus_weight * gain * (1.0 - walk)
 		if score > best:
 			best = score
 			spot = entry["spot"]
@@ -77,11 +82,12 @@ func choose(
 
 
 ## What a bonus of [param kind] — by its index among the match's bonus kinds, -1 for none
-## — is worth to the bot: its tier's worth for the kind's title (BotProfile.bonus_worth).
+## — is worth to the bot: its tier's worth for the kind (BotProfile.bonus_worth), nothing
+## for one it leaves out.
 func worth(kind: int) -> float:
 	if kind == -1:
 		return 0.0
-	return _profile.bonus_worth.get(_reach.kinds[kind].title, 1.0)
+	return _profile.bonus_worth.get(_kinds[kind], 0.0)
 
 
 ## The bonus [param seen] has aboard at the spot it goes for, or empty: taken, lost, or
@@ -136,22 +142,26 @@ func grab(
 ## without one.
 func spare(me: Dictionary) -> float:
 	var kind: int = me["bonus"]
-	if kind == -1 or not _reach.kinds[kind].spare_meter:
+	if kind == -1 or not _kinds[kind].spare_meter:
 		return 0.0
 	return _rules.cold_meter
 
 
-## Whether the floor of [param zone], where a bonus lies at [param at] — a room's, by its
-## lowest corner — and both ends of every portal on the way [param found] has to it stand
-## bonus_margin_m or more above the water under [param pose]: the water as it stands now,
-## never as the timeline has it next.
+## Whether the floor of [param zone], where a bonus lies at [param at], and the lowest point
+## of the way [param found] has to it — both ends of every portal on it, and the floor of
+## every room it enters — stand bonus_margin_m or more above the water under [param pose]:
+## the water as it stands now, never as the timeline has it next. A room's floor stands as
+## high as its lowest corner, where the water comes in first, as the bot's climb reads it.
 func _clear(
 	graph: WalkGraph, found: WalkGraph.Search, zone: int, at: Vector3, pose: ShipPose
 ) -> bool:
-	if graph.floor_height(zone, at, pose) < _profile.bonus_margin_m:
+	var margin := _profile.bonus_margin_m
+	if graph.floor_height(zone, at, pose) < margin:
 		return false
 	for leg: WalkGraph.Portal in graph.route_in(found, zone):
+		if graph.is_room(leg.to_zone) and graph.lowest_above_water(leg.to_zone, pose) < margin:
+			return false
 		for end: Vector3 in [leg.entry, leg.exit]:
-			if pose.above_water(end) < _profile.bonus_margin_m:
+			if pose.above_water(end) < margin:
 				return false
 	return true

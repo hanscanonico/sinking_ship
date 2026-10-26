@@ -64,14 +64,14 @@ func goal() -> Vector3:
 ## Looks for the way out of the sea of a swimmer at [param now_pos] with [param cold]
 ## seconds of cold left — its meter's, and a spare meter's still unspent (BotBonuses.spare)
 ## — by its own rules [param mine] (SeatRules): the cold lasting the longer the slower it
-## drains, and climbing out up to its climb reach. The
-## nearest way out within the swim that leaves, straight across the water; failing that,
-## the nearest by way of a point of open water a leg or a few off that nothing hides from
-## it; failing that, the nearest pocket it knows within that swim; failing that, the
-## nearest way out within a whole cold meter's swim, so it keeps swimming while there is
-## one; and in a flooded room with none of those, the next portal of the walk graph's way
-## to dry ground. With its head in a pocket it takes a dry face there at once, and
-## anything else only once its meter is down to what that swim costs.
+## drains, and climbing out up to its climb reach. The nearest way out within the swim that
+## leaves, straight across the water; failing that, the nearest by way of a point of open
+## water a leg or a few off that nothing hides from it; failing that, the nearest pocket it
+## knows within that swim; failing that, the nearest way out within a whole cold meter's
+## swim, so it keeps swimming while there is one; and in a flooded room with none of those,
+## the next portal of the walk graph's way to dry ground. With its head in a pocket it takes
+## a dry face there at once, and anything else only once its cold is down to what that swim
+## costs.
 func find(cold: float, now_pos: Vector3, pose: ShipPose, mine: SeatRules) -> void:
 	cold /= mine.sea_cold_rate
 	_climb_reach = mine.climb_reach
