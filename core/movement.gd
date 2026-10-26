@@ -250,6 +250,14 @@ func _slid(planar: Vector2, wish: Vector2, downhill: Vector2) -> Vector2:
 	return across + down * sliding
 
 
+## The speed a jump [param height] high leaves the ground at, gravity pulling [param fall]
+## down the frame it rises in: the take-off whose apex, stepped tick by tick as forces and
+## move step it, is that height — v² − g·dt·v − 2·g·h = 0.
+static func take_off(fall: float, height: float) -> float:
+	var drop := fall * Ticks.SECONDS_PER_TICK
+	return (drop + sqrt(drop * drop + 8.0 * fall * height)) * 0.5
+
+
 ## A jumper steers toward its input at air_control of ground_accel, and keeps its
 ## speed when it gives none; a fall, a vault or a jumper staggered by a shove flies
 ## where it was sent.

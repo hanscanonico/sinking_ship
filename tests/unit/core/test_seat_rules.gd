@@ -3,7 +3,7 @@ extends GutTest
 ## and the HUD ask how high a seat jumps, the slopes it holds and stands on, how much of a
 ## shove it takes, how high and how fast it climbs out of the sea, and what the prop in its
 ## hands costs it. With empty hands the brawl rules' own; holding a prop, its kind's carry
-## costs, the rest as before.
+## costs, the rest as before; with a bonus, what its kind gives (#316).
 
 
 ## Brawl rules whose numbers here are none of brawl.tres's, so that a seat's rules can only
@@ -91,6 +91,66 @@ func test_a_seat_holding_her_lifebuoy_pays_its_carry_costs() -> void:
 	assert_lt(seat.sea_cold_rate, 1.0, "slower than the open water")
 
 
+## A kind of bonus that gives a jump of [param jump] m, takes [param share] of a shove's
+## knockback, climbs out of the sea [param reach] m and up a ladder [param ladder] times the
+## rules' pace: none of the shipped kinds' numbers.
+func _gives(jump: float, share: float, reach: float, ladder: float) -> BonusKind:
+	var kind := SimFixtures.plain_kind()
+	kind.jump_height = jump
+	kind.knockback_share = share
+	kind.climb_reach = reach
+	kind.ladder_speed_mult = ladder
+	return kind
+
+
+## A bonus gives its taker what its kind sets (#316) — its jump, its share of a shove's
+## knockback and its climb reach, and a ladder's pace times the rules' — and leaves every
+## rule it sets nothing for as the brawl rules have it. With a prop in the hands as well,
+## the prop costs what it costs and the bonus still gives.
+func test_a_bonus_gives_its_taker_what_its_kind_sets() -> void:
+	var rules := _rules()
+	var seat := SeatRules.of(rules, null, _gives(1.4, 0.6, 1.1, 2.5))
+	assert_eq(
+		[seat.jump_height, seat.knockback_share, seat.climb_reach, seat.ladder_speed],
+		[1.4, 0.6, 1.1, 5.0],
+		"its kind's jump, share and reach, and 2.5 times the rules' 2 m/s up a ladder"
+	)
+	assert_eq([seat.grip_angle_deg, seat.stand_limit_deg], [12.0, 30.0], "the slopes the rules'")
+	assert_eq([seat.walk_cap, seat.may_brace, seat.sea_cold_rate], [INF, true, 1.0], "empty hands")
+	var none := SeatRules.of(rules, null, SimFixtures.plain_kind())
+	assert_eq(
+		[none.jump_height, none.knockback_share, none.climb_reach, none.ladder_speed],
+		[0.8, 1.0, 0.5, 2.0],
+		"a kind that sets nothing: the rules' own"
+	)
+	var holding := SeatRules.of(rules, _kind(3.0, false, false, 0.25), _gives(1.4, 0.6, 1.1, 2.5))
+	assert_eq(
+		[holding.walk_cap, holding.may_brace, holding.sea_cold_rate],
+		[3.0, false, 0.25],
+		"what the hands hold costs what it costs"
+	)
+	assert_eq([holding.jump_height, holding.climb_reach], [1.4, 1.1], "and the bonus still gives")
+
+
+## A seat's bonus as a snapshot shows it — its kind among the match's bonus rules' — gives
+## what it gives for those that read a snapshot, the bots and the HUD; a seat without one,
+## or a match without bonuses, plays by the rules' own.
+func test_a_seats_rules_read_from_a_snapshot_follow_its_bonus() -> void:
+	var kinds: Array[BonusKind] = [SimFixtures.plain_kind(), _gives(1.4, 0.6, 1.1, 2.5)]
+	var bonus_rules := SimFixtures.bonus_rules(600.0, 45.0, 0.0, 2, kinds)
+	var sim := SimFixtures.bonus_sim(bonus_rules, 2)
+	var rules := sim.config.rules
+	var layout := sim.config.ship
+	sim.state.seats[1].bonus = 1
+	var snapshot := sim.snapshot()
+	var without := SeatRules.in_snapshot(snapshot, 0, layout, rules, bonus_rules)
+	var with := SeatRules.in_snapshot(snapshot, 1, layout, rules, bonus_rules)
+	assert_eq(without.climb_reach, rules.climb_reach, "seat 0 has none: the rules' reach")
+	assert_eq([with.climb_reach, with.knockback_share], [1.1, 0.6], "seat 1's bonus gives")
+	var unplayed := SeatRules.in_snapshot(snapshot, 1, layout, rules, null)
+	assert_eq(unplayed.climb_reach, rules.climb_reach, "a match without bonuses: none")
+
+
 ## A seat's rules as a snapshot shows them, for those that read a snapshot — the bots, the
 ## HUD: by the prop it holds there, of those a hand may hold.
 func test_a_seats_rules_read_from_a_snapshot_follow_what_it_holds() -> void:
@@ -100,8 +160,8 @@ func test_a_seats_rules_read_from_a_snapshot_follow_what_it_holds() -> void:
 	var holdable := GrabReach.holdable_of(layout)
 	SimFixtures.hand(sim, 1, 0)
 	var snapshot := sim.snapshot()
-	var bare := SeatRules.in_snapshot(snapshot, 0, layout, rules, holdable)
-	var holding := SeatRules.in_snapshot(snapshot, 1, layout, rules, holdable)
+	var bare := SeatRules.in_snapshot(snapshot, 0, layout, rules, null, holdable)
+	var holding := SeatRules.in_snapshot(snapshot, 1, layout, rules, null, holdable)
 	assert_eq(bare.walk_cap, INF, "seat 0's hands are empty")
 	assert_true(bare.may_brace)
 	assert_eq(holding.walk_cap, PropKind.named(&"lifebuoy").carry_walk, "seat 1 holds the ring")

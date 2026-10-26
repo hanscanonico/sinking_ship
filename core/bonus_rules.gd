@@ -19,8 +19,23 @@ extends Resource
 @export var most_aboard: int
 
 
-## Every reason these rules cannot be played; empty when they can.
-func problems() -> PackedStringArray:
+## The kind [param index] names among [param rules]' kinds — a seat's bonus, or a bonus
+## aboard's — or null: for -1, none, and in a match without bonuses (null rules).
+static func kind_of(rules: BonusRules, index: int) -> BonusKind:
+	return rules.kinds[index] if rules != null and index != -1 else null
+
+
+## The kind of the bonus [param seat] has in [param snapshot] — whose seats are listed by
+## id, maybe only some of them (SH22) — of a match played with [param rules] (kind_of); null
+## for none, or a seat the snapshot does not list.
+static func of_seat(rules: BonusRules, snapshot: Dictionary, seat: int) -> BonusKind:
+	var entry := MatchState.entry_of(snapshot["seats"], seat)
+	return kind_of(rules, entry["bonus"]) if not entry.is_empty() else null
+
+
+## Every reason these rules cannot be played — their kinds' beside [param brawl_rules], the
+## match's, when they are given (BonusKind.problems); empty when they can.
+func problems(brawl_rules: BrawlRules = null) -> PackedStringArray:
 	var found := PackedStringArray()
 	if kinds.is_empty() or odds.size() != kinds.size():
 		found.append("bonus rules: a kind or more, and odds for each")
@@ -41,5 +56,5 @@ func problems() -> PackedStringArray:
 		if kind == null:
 			found.append("bonus rules: a kind is missing")
 		else:
-			found.append_array(kind.problems())
+			found.append_array(kind.problems(brawl_rules))
 	return found

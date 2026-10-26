@@ -3,11 +3,14 @@
 [ext_resource type="Script" path="res://core/bonus_rules.gd" id="1_rules"]
 [ext_resource type="Script" path="res://core/bonus_kind.gd" id="2_kind"]
 [ext_resource type="Resource" path="res://data/bonuses/double_life.tres" id="3_double"]
+[ext_resource type="Resource" path="res://data/bonuses/high_jump.tres" id="4_high"]
+[ext_resource type="Resource" path="res://data/bonuses/steady.tres" id="5_steady"]
+[ext_resource type="Resource" path="res://data/bonuses/strong_arms.tres" id="6_strong"]
 
 [resource]
 script = ExtResource("1_rules")
-kinds = Array[ExtResource("2_kind")]([ExtResource("3_double")])
-odds = PackedFloat64Array(1)
+kinds = Array[ExtResource("2_kind")]([ExtResource("3_double"), ExtResource("4_high"), ExtResource("5_steady"), ExtResource("6_strong")])
+odds = PackedFloat64Array(1, 1, 1, 1)
 first = 20.0
 interval = 45.0
 jitter = 15.0

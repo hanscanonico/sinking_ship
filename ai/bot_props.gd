@@ -7,14 +7,16 @@ extends RefCounted
 ## Grab press that takes it once a press would (GrabReach), never a second before its
 ## view shows the first; whether, of a profile that steals, it would charge a seat for the
 ## ring in its hands, once it would go for one itself; and the rules as they stand for it
-## with what it holds (SeatRules) — whether it may brace, how fast its cold drains in the
-## sea, how high it climbs out of it, the slope it holds on. Nothing here rolls the bot's
-## stream.
+## with what it holds and its bonus (SeatRules) — whether it may brace, how fast its cold
+## drains in the sea, how high it climbs out of it, the slope it holds on. Nothing here
+## rolls the bot's stream.
 
 var _seat: int
 var _profile: BotProfile
 var _rules: BrawlRules
 var _layout: ShipLayout
+## The match's bonus rules (MatchConfig.bonus_rules), null for a match without bonuses.
+var _bonus_rules: BonusRules
 ## The props a hand may hold (GrabReach.holdable_of): all a bot asks of, among the many.
 var _holdable: PackedInt32Array
 ## The lifebuoy it goes for, by its index in the layout's props, as the last think chose
@@ -27,18 +29,23 @@ var _pressed_at := -1
 var _wanting := false
 
 
-func _init(seat: int, profile: BotProfile, rules: BrawlRules, layout: ShipLayout) -> void:
+## The props of [param seat]'s bot in a match on [param layout] under [param rules], played
+## with [param bonus_rules] (null for none).
+func _init(
+	seat: int, profile: BotProfile, rules: BrawlRules, layout: ShipLayout, bonus_rules: BonusRules
+) -> void:
 	_seat = seat
 	_profile = profile
 	_rules = rules
 	_layout = layout
+	_bonus_rules = bonus_rules
 	_holdable = GrabReach.holdable_of(layout)
 
 
-## The rules as they stand for it in [param seen] (SeatRules), by what it holds there: as
-## the sim has them for its seat as of its view.
+## The rules as they stand for it in [param seen] (SeatRules), by what it holds there and
+## its bonus: as the sim has them for its seat as of its view.
 func rules(seen: Dictionary) -> SeatRules:
-	return SeatRules.in_snapshot(seen, _seat, _layout, _rules, _holdable)
+	return SeatRules.in_snapshot(seen, _seat, _layout, _rules, _bonus_rules, _holdable)
 
 
 ## Whether, its profile stealing and wanting a ring as its last think found it, it would

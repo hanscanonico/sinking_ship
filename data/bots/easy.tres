@@ -3,6 +3,9 @@
 [ext_resource type="Script" path="res://ai/bot_profile.gd" id="1_vibjn"]
 [ext_resource type="Script" path="res://core/bonus_kind.gd" id="2_kind"]
 [ext_resource type="Resource" path="res://data/bonuses/double_life.tres" id="3_double"]
+[ext_resource type="Resource" path="res://data/bonuses/high_jump.tres" id="4_high"]
+[ext_resource type="Resource" path="res://data/bonuses/steady.tres" id="5_steady"]
+[ext_resource type="Resource" path="res://data/bonuses/strong_arms.tres" id="6_strong"]
 
 [resource]
 script = ExtResource("1_vibjn")
@@ -46,7 +49,10 @@ bonus_range_m = 12.0
 bonus_walk_share = 0.5
 bonus_margin_m = 1.2
 bonus_worth = Dictionary[ExtResource("2_kind"), float]({
-ExtResource("3_double"): 1.0
+ExtResource("3_double"): 1.0,
+ExtResource("4_high"): 0.2,
+ExtResource("5_steady"): 0.8,
+ExtResource("6_strong"): 0.6
 })
 hysteresis = 0.15
 detour_after_s = 1.0

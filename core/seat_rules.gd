@@ -3,12 +3,14 @@ extends RefCounted
 ## The rules as they stand for one seat (#307): those a bonus may change — how high it
 ## jumps, the slopes it holds on and stands on, the share of a shove's knockback it takes,
 ## how high it climbs out of the sea and how fast up a ladder — and what the prop in its
-## hands costs it (#273). The brawl rules' own for a seat with empty hands; a held prop's
-## kind sets its carry costs. Derived from what the seat has, never in the snapshot: the
-## props say who holds what (PropState.holder), so a snapshot needs nothing more, and the
-## sim, the bots and the HUD each derive it from what they read. One is shared by every
-## seat it stands for, so read it, never write it. Every other rule — the brace's hold and
-## the floor it flips to among them — is the brawl rules', the same for every seat.
+## hands costs it (#273). The brawl rules' own for a seat with empty hands and no bonus; a
+## held prop's kind sets its carry costs, and its bonus's kind what it gives (BonusKind).
+## Derived from what the seat has, never in the snapshot: the props say who holds what
+## (PropState.holder) and each seat what bonus it has (PlayerState.bonus), so a snapshot
+## needs nothing more, and the sim, the bots and the HUD each derive it from what they read.
+## One is shared by every seat it stands for, so read it, never write it. Every other rule
+## — the brace's hold and the floor it flips to among them — is the brawl rules', the same
+## for every seat.
 
 ## How high a jump lifts its feet above where it left the ground (BrawlRules.jump_height).
 var jump_height: float
@@ -35,8 +37,9 @@ var sea_cold_rate: float
 
 
 ## The rules under [param rules] for a seat holding [param held] — a kind, or null for
-## empty hands.
-static func of(rules: BrawlRules, held: PropKind) -> SeatRules:
+## empty hands — with a bonus of [param bonus] — a kind, or null for none: what that kind
+## sets in place of the brawl rules' own, a ladder's pace times theirs.
+static func of(rules: BrawlRules, held: PropKind, bonus: BonusKind = null) -> SeatRules:
 	var seat := SeatRules.new()
 	seat.jump_height = rules.jump_height
 	seat.grip_angle_deg = rules.grip_angle_deg
@@ -54,18 +57,28 @@ static func of(rules: BrawlRules, held: PropKind) -> SeatRules:
 		seat.may_charge = held.carry_charge
 		if held.afloat:
 			seat.sea_cold_rate = held.sea_cold_rate
+	if bonus != null:
+		if bonus.jump_height > 0.0:
+			seat.jump_height = bonus.jump_height
+		seat.knockback_share = bonus.knockback_share
+		if bonus.climb_reach > 0.0:
+			seat.climb_reach = bonus.climb_reach
+		seat.ladder_speed = rules.ladder_speed * bonus.ladder_speed_mult
 	return seat
 
 
 ## The rules for [param seat] as [param snapshot] — of a match on [param layout] under
-## [param rules] — has it: by the prop it holds there, asked only of [param holdable]
-## (GrabReach.holdable_of) when given.
+## [param rules], played with [param bonus_rules] (null for none) — has it: by the prop it
+## holds there, asked only of [param holdable] (GrabReach.holdable_of) when given, and by
+## its bonus (BonusRules.of_seat).
 static func in_snapshot(
 	snapshot: Dictionary,
 	seat: int,
 	layout: ShipLayout,
 	rules: BrawlRules,
+	bonus_rules: BonusRules,
 	holdable := PackedInt32Array()
 ) -> SeatRules:
 	var held := PropState.held_in(snapshot, seat, holdable)
-	return of(rules, layout.props[held].prop_kind() if held != -1 else null)
+	var bonus := BonusRules.of_seat(bonus_rules, snapshot, seat)
+	return of(rules, layout.props[held].prop_kind() if held != -1 else null, bonus)

@@ -3,13 +3,13 @@ extends RefCounted
 ## Whether anything but a seat's own frames can have moved it over a span of ticks
 ## (R7): no other body and no crate comes within touching distance of where the seat
 ## is predicted to be. Touching is a shove's reach between the two edges; how far the
-## other can have come is the fastest the rules move anything across the deck —
-## walking, vaulting, a charged knockback, a crate's — or its own speed when more,
-## with the most the deck pulls anything downhill over the span on top: gravity across
-## the ship plane, as the schedule tilts it (D7) — the steepest of her pieces' once she
-## breaks. Distances are across the ship plane, whatever the heights: a body on a deck
-## overhead counts as near, and one on another piece of her is seen from the seat's
-## (Pieces.seen_from).
+## other can have come is the fastest the rules move anything across the deck
+## (BrawlRules.fastest_speed: walking, vaulting, a charged knockback, a crate's) or its own
+## speed when more, with the most the deck pulls anything downhill over the span on top:
+## gravity across the ship plane, as the schedule tilts it (D7) — the steepest of her
+## pieces' once she breaks. Distances are across the ship plane, whatever the heights: a
+## body on a deck overhead counts as near, and one on another piece of her is seen from the
+## seat's (Pieces.seen_from).
 
 var _rules: BrawlRules
 var _schedule: SinkSchedule
@@ -25,10 +25,7 @@ func _init(config: MatchConfig, schedule: SinkSchedule) -> void:
 	_schedule = schedule
 	for prop: ShipProp in config.ship.props:
 		_crate_radii.append(prop.radius)
-	_fastest = maxf(
-		maxf(_rules.walk_speed, _rules.vault_speed),
-		maxf(_rules.charged_knockback, maxf(_rules.knockback, _rules.crate_knockback))
-	)
+	_fastest = _rules.fastest_speed()
 
 
 ## Whether, from [param snapshot]'s tick on, nothing in it but [param seat] can come

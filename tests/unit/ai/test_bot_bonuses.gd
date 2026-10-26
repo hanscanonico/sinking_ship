@@ -346,3 +346,22 @@ func test_a_swimmer_with_a_spare_meter_swims_for_a_way_out_only_it_can_reach() -
 			assert_lt(move.y, 0.0, "with a spare meter: for the deck, %.1f m off" % off)
 		else:
 			assert_eq(move, Vector2.ZERO, "without: nowhere it could reach")
+
+
+## A swimmer with Strong arms swims for a way out only its own reach gets to (#316): a deck
+## edge a hair under that reach out of the sea — past the brawl rules' — which its swim reads
+## off its seat's rules; without them, nothing it could climb onto.
+func test_a_swimmer_with_strong_arms_swims_for_a_way_out_only_it_can_reach() -> void:
+	var layout := SimFixtures.low_deck(SimFixtures.strong_arms().climb_reach - 0.05)
+	assert_gt(layout.freeboard, SimFixtures.rules().climb_reach, "past the brawl rules' reach")
+	for strong: bool in [false, true]:
+		var sim := SimFixtures.kind_sim(SimFixtures.strong_arms(), strong, 2, layout)
+		SimFixtures.place(sim, 1, Vector3(10.0, 0.0, 0.0))
+		SimFixtures.swim(sim, 0, Vector3(0.0, 0.0, 6.0), 0.0)
+		var source := BotInputSource.new(0, _tier(&"normal"), sim.config)
+		source.observe(sim.snapshot(), sim.pose())
+		var move := Vector2(source.next_frame(sim.state.tick).move)
+		if strong:
+			assert_lt(move.y, 0.0, "with Strong arms: for the deck")
+		else:
+			assert_eq(move, Vector2.ZERO, "without: nowhere it could climb onto")

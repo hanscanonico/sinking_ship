@@ -41,14 +41,15 @@ var _credit_window_ticks: int
 var _kinds: Array[PropKind] = []
 var _reach: GrabReach
 ## Per seat, the prop it holds, or -1, and the rules as they stand for it with that in its
-## hands (SeatRules): asked of the props as the tick starts and kept with them through it
-## (PropState.holder is the truth), the two changed together (_hold).
+## hands and its bonus (SeatRules): asked of the props and the seats as the tick starts and
+## kept with them through it (PropState.holder and PlayerState.bonus are the truth), the
+## rules changed with either (_hold, _give_bonus).
 var _hands := PackedInt32Array()
 var _rules_by_seat: Array[SeatRules] = []
-## The rules for a seat with empty hands, and for one holding a prop of each kind, made
-## the first time a seat holds one.
-var _bare_rules: SeatRules
-var _held_rules: Dictionary[PropKind, SeatRules] = {}
+## The rules for a seat by what it has, made the first time a seat has it: keyed by the prop
+## it holds (-1 for empty hands) and its bonus's kind, by its index among the bonus rules'
+## (-1 for none).
+var _made_rules: Dictionary[Vector2i, SeatRules] = {}
 ## The seats of the piece the tick stands on that pressed Grab, in seat order.
 var _grabbing: Array[PlayerState] = []
 ## The bonuses the match plans to bring aboard (#307), drawn once from the config and the
@@ -89,7 +90,6 @@ func _init(match_config: MatchConfig) -> void:
 	for prop: ShipProp in config.ship.props:
 		_kinds.append(prop.prop_kind())
 	_reach = GrabReach.new(config.ship, _rules, config.bonus_rules)
-	_bare_rules = SeatRules.of(_rules, null)
 	_plan = BonusPlan.drawn(
 		config.bonus_rules, config.match_seed, config.scenario.clock, schedule.end_tick()
 	)
@@ -497,14 +497,11 @@ func _jump(player: PlayerState, pose_now: ShipPose) -> void:
 	):
 		return
 	_spend(player, _rules.jump_cost)
-	# The take-off speed up the frame whose apex, stepped tick by tick as Movement's forces
-	# and move step it, is the jump height: v² − g·dt·v − 2·g·h = 0; along the world's up,
-	# gravity's own way back, it carries the share across the face that goes with it.
+	# The take-off speed up the frame whose apex is the jump height (Movement.take_off); along
+	# the world's up, gravity's own way back, it carries the share across the face that goes
+	# with it.
 	var gravity := pose_now.ship_gravity(_rules.gravity)
-	var fall := -gravity.y
-	var drop := fall * Ticks.SECONDS_PER_TICK
-	var height := _seat_rules(player).jump_height
-	var rise := (drop + sqrt(drop * drop + 8.0 * fall * height)) * 0.5
+	var rise := Movement.take_off(-gravity.y, _seat_rules(player).jump_height)
 	player.vel += Vector3(gravity.x * rise / gravity.y, 0.0, gravity.z * rise / gravity.y)
 	player.vel.y = rise
 	player.body = PlayerState.Body.AIRBORNE
@@ -513,28 +510,41 @@ func _jump(player: PlayerState, pose_now: ShipPose) -> void:
 	player.jumped = true
 
 
-## Who holds what, from the props: each seat's prop, or -1, and its rules with it.
+## Who holds what, from the props: each seat's prop, or -1, and its rules with it and its
+## bonus.
 func _count_hands() -> void:
 	_hands.resize(state.seats.size())
 	_hands.fill(-1)
-	_rules_by_seat.resize(state.seats.size())
-	_rules_by_seat.fill(_bare_rules)
 	for prop: PropState in state.props:
 		if prop.holder != -1:
-			_hold(prop.holder, prop.prop)
+			_hands[prop.holder] = prop.prop
+	_rules_by_seat.resize(state.seats.size())
+	for player: PlayerState in state.seats:
+		_rerule(player)
 
 
 ## [param seat]'s hands hold [param prop] from now — -1 for none — and its rules are as
-## they stand for a seat holding that (SeatRules).
+## they stand for a seat holding that (_rerule).
 func _hold(seat: int, prop: int) -> void:
 	_hands[seat] = prop
-	if prop == -1:
-		_rules_by_seat[seat] = _bare_rules
-		return
-	var kind := _kinds[prop]
-	if not _held_rules.has(kind):
-		_held_rules[kind] = SeatRules.of(_rules, kind)
-	_rules_by_seat[seat] = _held_rules[kind]
+	_rerule(state.seats[seat])
+
+
+## [param player]'s bonus is of [param kind] from now — by its index among the bonus rules'
+## kinds, -1 for none — and its rules are as they stand for a seat with that (_rerule).
+func _give_bonus(player: PlayerState, kind: int) -> void:
+	player.bonus = kind
+	_rerule(player)
+
+
+## [param player]'s rules as they stand now for a seat with what its hands hold and its
+## bonus (SeatRules): whenever either changes.
+func _rerule(player: PlayerState) -> void:
+	var has := Vector2i(_hands[player.seat], player.bonus)
+	if not _made_rules.has(has):
+		var bonus := BonusRules.kind_of(config.bonus_rules, has.y)
+		_made_rules[has] = SeatRules.of(_rules, _held_kind(player), bonus)
+	_rules_by_seat[player.seat] = _made_rules[has]
 
 
 ## The kind of prop [param player] holds, or null for empty hands.
@@ -543,9 +553,9 @@ func _held_kind(player: PlayerState) -> PropKind:
 	return _kinds[held] if held != -1 else null
 
 
-## The rules as they stand for [param player] now (SeatRules), by what its hands hold:
-## the tick reads every rule that may differ from seat to seat here, never off the brawl
-## rules.
+## The rules as they stand for [param player] now (SeatRules), by what its hands hold and
+## its bonus: the tick reads every rule that may differ from seat to seat here, never off
+## the brawl rules.
 func _seat_rules(player: PlayerState) -> SeatRules:
 	return _rules_by_seat[player.seat]
 
@@ -609,7 +619,8 @@ static func _claim(
 
 
 ## Each bonus aboard [param claims] names a taker of — by its place among those aboard —
-## used up at once: gone from aboard, and its kind its taker's bonus, replacing any it had.
+## used up at once: gone from aboard, and its kind its taker's bonus, replacing any it had,
+## its rules giving what that kind gives from now.
 func _take_bonuses(
 	claims: Dictionary[int, PlayerState], tick: int, events: Array[SimEvent]
 ) -> void:
@@ -617,7 +628,7 @@ func _take_bonuses(
 	taken.sort()
 	for index: int in taken:
 		var bonus := state.bonuses[index]
-		claims[index].bonus = bonus.kind
+		_give_bonus(claims[index], bonus.kind)
 		events.append(SimEvent.bonus_taken(tick, claims[index].seat, bonus.kind, bonus.spot))
 	taken.reverse()
 	for index: int in taken:
@@ -965,7 +976,7 @@ func _water(
 		if player.cold == 0.0 and _has_spare(player):
 			player.cold = _rules.cold_meter
 			events.append(SimEvent.double_life_spent(tick, player.seat, player.bonus))
-			player.bonus = -1
+			_give_bonus(player, -1)
 		elif player.cold == 0.0:
 			_out(player, tick, events)
 			exits.append(player)
@@ -974,7 +985,8 @@ func _water(
 
 ## Whether [param player]'s bonus gives it a spare cold meter, unspent (BonusKind).
 func _has_spare(player: PlayerState) -> bool:
-	return player.bonus != -1 and config.bonus_rules.kinds[player.bonus].spare_meter
+	var kind := BonusRules.kind_of(config.bonus_rules, player.bonus)
+	return kind != null and kind.spare_meter
 
 
 ## Per seat, the seconds of cold an unspent spare meter its bonus gives it adds — a full
@@ -1020,7 +1032,7 @@ func _out(
 	if _hands[player.seat] != -1:
 		_lose_prop(state.props[_hands[player.seat]], tick, events)
 		_hold(player.seat, -1)
-	player.bonus = -1
+	_give_bonus(player, -1)
 	player.body = PlayerState.Body.OUT
 	player.out_tick = tick
 	player.out_cause = cause

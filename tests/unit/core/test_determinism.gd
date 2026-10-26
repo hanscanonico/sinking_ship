@@ -308,6 +308,50 @@ func test_continuation_with_bonuses_in_play() -> void:
 		assert_true(covered[field], "the scene resumes from a bonus %s" % field)
 
 
+## What a seat's bonus gives it is worked out from the snapshot, never kept beside it
+## (SeatRules, #316): on a deck out of the sea a hair under Strong arms' reach, seat 0 with
+## High jump jumps twice, seat 2 shoves seat 1, which has Steady, and seat 3, swimming with
+## Strong arms, climbs out onto the deck — a sim rebuilt from any tick of it continues
+## exactly.
+func test_continuation_with_each_kind_s_edge_in_play() -> void:
+	var deck := SimFixtures.low_deck(SimFixtures.strong_arms().climb_reach - 0.05)
+	var config := SimFixtures.config(4, null, GOLDEN_SEED, deck)
+	var kinds: Array[BonusKind] = [
+		SimFixtures.high_jump(), SimFixtures.steady(), SimFixtures.strong_arms()
+	]
+	config.bonus_rules = SimFixtures.bonus_rules(600.0, 45.0, 0.0, 2, kinds)
+	var sim := MatchSim.create(config)
+	SimFixtures.place(sim, 0, Vector3(-8.0, 0.0, 0.0))
+	SimFixtures.place(sim, 1, Vector3(2.0, 0.0, 0.0), 180.0)
+	SimFixtures.place(sim, 2, Vector3(0.9, 0.0, 0.0), 0.0)
+	SimFixtures.swim(sim, 3, Vector3(8.0, 0.0, 4.6))
+	for seat: int in [0, 1, 3]:
+		sim.state.seats[seat].bonus = [0, 1, -1, 2][seat]
+	var scene := func(tick: int) -> Array[InputFrame]:
+		var again := tick % Ticks.RATE
+		return [
+			SimFixtures.frame(0, Vector2.ZERO, InputFrame.JUMP if again == 0 else 0, 0.0),
+			SimFixtures.frame(1, Vector2.ZERO, 0, 180.0),
+			SimFixtures.frame(2, Vector2.ZERO, InputFrame.SHOVE if again == 1 else 0, 0.0),
+			SimFixtures.frame(3, Vector2(0.0, -1.0), 0, -90.0),
+		]
+	var played: Array[Dictionary] = [sim.snapshot()]
+	var highest := 0.0
+	var shoved := 0
+	for tick in 2 * Ticks.RATE:
+		for event: SimEvent in sim.step(scene.call(tick)):
+			if event.kind == SimEvent.Kind.SHOVE_LANDED and event.target == 1:
+				shoved += 1
+		played.append(sim.snapshot())
+		highest = maxf(highest, sim.state.seats[0].pos.y)
+	assert_gt(highest, config.rules.railing_height, "seat 0 jumped over a railing's top")
+	assert_gt(shoved, 0, "seat 1 was shoved")
+	assert_eq(sim.state.seats[3].body, PlayerState.Body.GROUNDED, "seat 3 climbed out")
+	for start in range(played.size() - 1):
+		if not _continues(played, start, config, scene):
+			return
+
+
 ## Whether a bonus is lost to the sea (#311) within the second after [param start] of
 ## [param snapshots]: the stretch a continuation from it plays through (_continues).
 func _lost_within(snapshots: Array[Dictionary], start: int) -> bool:
