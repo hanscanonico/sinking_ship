@@ -336,11 +336,14 @@ static func _close_end(
 
 ## Where her sheer steps from one run to the next, the higher run's end over the lower
 ## sheer — under it the two runs meet (_met()): across the joint, facing the lower run,
-## in bands from the lower sheer and from each deck over it up to the next or the higher
-## sheer, each from her side in to what it stands on there (_reach_under()). A deck's
-## end — a house's front, a wall across her — closes the rest, its doors and all; out
-## past it she stood open where her decks stop short of her shell, and her shell, drawn
-## to be seen from outside, showed the sea through her.
+## in bands each from her side in to the deck it stands on, whose end — a house's front,
+## a wall across her — closes the rest, its doors and all. The lowest, from the lower
+## sheer, stands on the deck under it beside the joint where that deck runs on into the
+## higher run; each deck over it starts another, up to the next or the higher sheer.
+## Where the deck under the lower sheer runs no further — her fo'c'sle deck, which a
+## stair climbs from to her forecastle head, railed beside it — her end stays open, as
+## a deck's railed edge is. Out past her decks' ends she stood open, where they stop
+## short of her shell, and her shell, drawn to be seen from outside, showed the sea.
 static func _close_steps(
 	mesh: ShipMesh, paint: ShipMesh.Paint, layout: ShipLayout, sides: Array[PackedVector2Array]
 ) -> void:
@@ -354,55 +357,57 @@ static func _close_steps(
 			var high := maxf(_sheer_of(aft), _sheer_of(fore))
 			if high - low <= LEVEL:
 				continue
-			# The higher run's end as its loft ends it, and the way along x it faces; what
-			# stands at the joint is looked for just inside that run.
+			# The higher run's end as its loft ends it, and the way along x it faces.
 			var way := 1.0 if _sheer_of(aft) > _sheer_of(fore) else -1.0
 			var line := _met(aft, fore) if way > 0.0 else _met(fore, aft)
 			var out := 1.0 if side == 0 else -1.0
-			var x := joint - way * STEP_IN
-			var bottoms := PackedFloat64Array([low])
-			for platform: ShipPlatform in layout.platforms:
-				var height := platform.height
-				var over := height > low + LEVEL and height < high - LEVEL
-				if over and x >= platform.area.position.x and x <= platform.area.end.x:
-					bottoms.append(height)
-			bottoms.sort()
-			for band in bottoms.size():
-				var top := bottoms[band + 1] if band + 1 < bottoms.size() else high
-				var reach := _reach_under(layout, x, joint, bottoms[band], out)
-				if not is_nan(reach):
-					_close_band(mesh, paint, joint, way, line, reach * out, bottoms[band], top)
+			# The decks just inside the higher run, and those beside the joint under the
+			# lower sheer.
+			var inside := _decks_at(layout, joint - way * STEP_IN, high - LEVEL, out)
+			var beside := _decks_at(layout, joint + way * STEP_IN, low + LEVEL, out)
+			# Each band as (its bottom, how far out its deck reaches).
+			var bands := PackedVector2Array()
+			if not beside.is_empty():
+				var under := _deck_at(inside, beside[beside.size() - 1].x)
+				if under != Vector2.INF:
+					bands.append(Vector2(low, under.y))
+			for deck: Vector2 in inside:
+				if deck.x > low + LEVEL:
+					bands.append(deck)
+			for band in bands.size():
+				var top := bands[band + 1].x if band + 1 < bands.size() else high
+				_close_band(mesh, paint, joint, way, line, bands[band].y * out, bands[band].x, top)
 
 
-## How far out to [param out]'s side — 1 starboard, -1 port — what a step's end at
-## [param joint] stands on at [param height] reaches: of the decks standing at [param x]
-## at that height or under it, and the stairs there meeting the joint so, the highest,
-## the furthest out of those at one height; NAN for none.
-static func _reach_under(
-	layout: ShipLayout, x: float, joint: float, height: float, out: float
-) -> float:
-	var under := -INF
-	var reach := NAN
-	var found: Array[Vector3] = []
+## The decks standing at [param x] under [param below], each as (its height, how far out
+## it reaches to [param out]'s side — 1 starboard, -1 port): the furthest of those at one
+## height, from the lowest up.
+static func _decks_at(layout: ShipLayout, x: float, below: float, out: float) -> PackedVector2Array:
+	var found: Array[Vector2] = []
 	for platform: ShipPlatform in layout.platforms:
 		var area := platform.area
-		if x >= area.position.x and x <= area.end.x:
-			found.append(Vector3(platform.height, area.position.y, area.end.y))
-	for ramp: ShipRamp in layout.ramps:
-		var area := ramp.area
-		if x >= area.position.x and x <= area.end.x:
-			var meets := ramp.height_at(joint, area.get_center().y)
-			found.append(Vector3(meets, area.position.y, area.end.y))
-	for standing: Vector3 in found:
-		var out_to := standing.z if out > 0.0 else -standing.y
-		if standing.x > height + LEVEL or out_to <= 0.0 or standing.x < under - LEVEL:
+		if x < area.position.x or x > area.end.x or platform.height >= below:
 			continue
-		if standing.x > under + LEVEL:
-			under = standing.x
-			reach = out_to
+		var reach := area.end.y if out > 0.0 else -area.position.y
+		if reach > 0.0:
+			found.append(Vector2(platform.height, reach))
+	found.sort_custom(func(a: Vector2, b: Vector2) -> bool: return a.x < b.x)
+	var decks := PackedVector2Array()
+	for deck: Vector2 in found:
+		var last := decks.size() - 1
+		if last >= 0 and deck.x - decks[last].x <= LEVEL:
+			decks[last] = Vector2(decks[last].x, maxf(decks[last].y, deck.y))
 		else:
-			reach = maxf(reach, out_to)
-	return reach
+			decks.append(deck)
+	return decks
+
+
+## The one of [param decks] (_decks_at()) at [param height], or Vector2.INF.
+static func _deck_at(decks: PackedVector2Array, height: float) -> Vector2:
+	for deck: Vector2 in decks:
+		if absf(deck.x - height) <= LEVEL:
+			return deck
+	return Vector2.INF
 
 
 ## A band of a step's end across the joint at [param x], facing [param way] along x,

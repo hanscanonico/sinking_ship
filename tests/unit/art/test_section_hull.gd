@@ -314,12 +314,12 @@ func _level_over(level: PackedVector3Array, at: Vector2, low: float, high: float
 
 
 func test_her_shell_closes_each_step_in_her_sheer_from_her_side_in_to_her_decks() -> void:
-	# Over the lower sheer the higher run's end is her shell too, from her side in to what
-	# stands at the joint at each height — a deck, whose end a house's front or a wall
-	# across her closes, or a stair up through it. The Titanic's bridge deck stood open
-	# there at its forward end, from her well deck up to A deck, and her shell, drawn to be
-	# seen from outside, showed the sea through her: from over the lower deck, near her
-	# side, her shell now stands across the joint, facing that deck.
+	# Over the lower sheer the higher run's end is her shell too, from her side in to the
+	# deck at each height, whose end — a house's front, a wall across her — closes the
+	# rest. The Titanic's bridge deck stood open there at its forward end, from her well
+	# deck up to A deck, and her shell, drawn to be seen from outside, showed the sea
+	# through her: from over the lower deck, near her side, her shell now stands across the
+	# joint, facing that deck.
 	var probed := {}
 	for ship_name: StringName in Fleet.names():
 		var layout := Fleet.layout(ship_name)
@@ -338,10 +338,8 @@ func test_her_shell_closes_each_step_in_her_sheer_from_her_side_in_to_her_decks(
 				# From over the lower run, toward the higher one.
 				var way := 1.0 if fore > aft else -1.0
 				var sign := 1.0 if side == 0 else -1.0
-				var x := joint + way * 0.05
-				for band: Vector3 in _bands(
-					layout, x, joint, minf(aft, fore), maxf(aft, fore), sign
-				):
+				var low := minf(aft, fore)
+				for band: Vector3 in _bands(layout, joint, way, low, maxf(aft, fore), sign):
 					var y := (band.x + band.y) * 0.5
 					var shell := _shell_end(faces, joint, sign, y)
 					if shell - band.z < OPEN:
@@ -358,6 +356,18 @@ func test_her_shell_closes_each_step_in_her_sheer_from_her_side_in_to_her_decks(
 	for step: String in ["titanic 73.64", "titanic -94.00", "titanic 91.79", "tug -5.00"]:
 		assert_true(probed.has(step), "%s: looked at" % step)
 	assert_gt(probed.size(), 6, "her poop, A deck's after end, the barque's raised decks too")
+
+
+func test_her_fo_c_sle_step_stays_open_beside_its_stair() -> void:
+	# Her fo'c'sle deck runs no further than her forecastle head's end: a stair climbs from
+	# it to the head, and a railing guards its edge either side of the stair. Her shell's
+	# step there stays open, as a railed edge is, so a broken railing leaves its opening.
+	var titanic: ShipLayout = load(TITANIC)
+	var faces := _shell_faces(titanic)
+	for sign: float in [1.0, -1.0]:
+		var from := Vector3(106.5, 4.6, sign * 8.7)
+		var hit: Variant = _front_hit(faces, from, Vector3.RIGHT, 2.0)
+		assert_null(hit, "nothing across her end beside the stair, at z %.1f" % from.z)
 
 
 ## A side's sheer: its last point's height (SectionHull.shell_sides()).
@@ -384,46 +394,45 @@ func _shell_faces(layout: ShipLayout) -> PackedVector3Array:
 	return _committed_faces(mesh)
 
 
-## A step's end from [param low] to [param high] at [param joint], [param x] just inside
-## its higher run, in bands — from the lower sheer and from each deck standing at
-## [param x] over it, up to the next or the higher sheer — each as (bottom, top, how far
-## out to [param sign]'s side, 1 starboard or -1 port, what it stands on reaches): the
-## highest of the decks under it there and the stairs meeting the joint so, the furthest
-## out at that height. A band nothing stands under is left out.
+## A step's end from [param low] to [param high] at [param joint], its higher run that
+## [param way] along x, in bands each as (bottom, top, how far out to [param sign]'s side
+## — 1 starboard, -1 port — the deck it stands on reaches): from the lower sheer, where the
+## deck under it beside the joint runs on into the higher run, and from each deck of the
+## higher run over it, up to the next or the higher sheer.
 func _bands(
-	layout: ShipLayout, x: float, joint: float, low: float, high: float, sign: float
+	layout: ShipLayout, joint: float, way: float, low: float, high: float, sign: float
 ) -> Array[Vector3]:
-	var standing: Array[Vector3] = []
-	var bottoms := [low]
+	var inside := _reaches(layout, joint + way * 0.05, high - 1e-3, sign)
+	var beside := _reaches(layout, joint - way * 0.05, low + 1e-3, sign)
+	var starts: Array[Vector2] = []
+	if not beside.is_empty():
+		var under: float = beside.keys().max()
+		for height: float in inside:
+			if absf(height - under) <= 1e-3:
+				starts.append(Vector2(low, inside[height]))
+	for height: float in inside:
+		if height > low + 1e-3:
+			starts.append(Vector2(height, inside[height]))
+	starts.sort_custom(func(a: Vector2, b: Vector2) -> bool: return a.x < b.x)
+	var bands: Array[Vector3] = []
+	for index in starts.size():
+		var top := starts[index + 1].x if index + 1 < starts.size() else high
+		bands.append(Vector3(starts[index].x, top, starts[index].y))
+	return bands
+
+
+## How far out to [param sign]'s side the decks standing at [param x] under [param below]
+## reach, by height: the furthest at each.
+func _reaches(layout: ShipLayout, x: float, below: float, sign: float) -> Dictionary:
+	var reaches := {}
 	for platform: ShipPlatform in layout.platforms:
 		var area := platform.area
-		if x >= area.position.x and x <= area.end.x:
-			standing.append(Vector3(platform.height, area.position.y, area.end.y))
-			if platform.height > low + 1e-3 and platform.height < high - 1e-3:
-				bottoms.append(platform.height)
-	for ramp: ShipRamp in layout.ramps:
-		var area := ramp.area
-		if x >= area.position.x and x <= area.end.x:
-			var meets := ramp.height_at(joint, area.get_center().y)
-			standing.append(Vector3(meets, area.position.y, area.end.y))
-	bottoms.sort()
-	var bands: Array[Vector3] = []
-	for index in bottoms.size():
-		var top: float = bottoms[index + 1] if index + 1 < bottoms.size() else high
-		var under := -INF
-		var reach := 0.0
-		for on: Vector3 in standing:
-			var out := on.z if sign > 0.0 else -on.y
-			if on.x > bottoms[index] + 1e-3 or out <= 0.0:
-				continue
-			if on.x > under + 1e-3:
-				under = on.x
-				reach = out
-			elif on.x > under - 1e-3:
-				reach = maxf(reach, out)
-		if under > -INF and top - bottoms[index] > 1e-3:
-			bands.append(Vector3(bottoms[index], top, reach))
-	return bands
+		if x < area.position.x or x > area.end.x or platform.height >= below:
+			continue
+		var out := area.end.y if sign > 0.0 else -area.position.y
+		if out > 0.0:
+			reaches[platform.height] = maxf(reaches.get(platform.height, 0.0), out)
+	return reaches
 
 
 ## How far out to [param sign]'s side her shell's end on [param joint] stands at height
