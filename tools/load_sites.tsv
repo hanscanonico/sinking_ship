@@ -45,6 +45,7 @@ scenes/replay/replay_store.gd	FileAccess.file_exists(path)	-
 scenes/replay/replay_store.gd	FileAccess.get_file_as_bytes(path)	-
 scenes/replay/replay_store.gd	FileAccess.open(path)	-
 tests/unit/ai/test_bot_floors.gd	load("res://data/bots/%s.tres" % tiers[seat])	data/bots/*.tres
+tests/unit/ai/test_bot_profile.gd	load("res://data/bonuses/%s" % file)	data/bonuses/*.tres
 tests/unit/art/test_committed_models.gd	ResourceLoader.exists(MODELS.path_join(model).path_join(model + ".glb"))	assets/models/*.glb
 tests/unit/art/test_committed_models.gd	load("res://data/ships".path_join(file))	data/ships/*
 tests/unit/art/test_deck_works.gd	load("res://data/ships/%s.tres" % ship)	@ship
