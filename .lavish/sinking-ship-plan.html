@@ -898,7 +898,7 @@ var buttons: int</pre>
         <div class="card bg-base-100 border p-4 sk-locked">
           <div class="flex flex-wrap items-baseline gap-2">
             <h3 class="font-black">D8 · Bodies are upright circles on surfaces; a jump is a small vertical impulse from the ground</h3>
-            <span class="badge badge-outline">locked · reworded rev 4 · High jump noted 2026-10-26 (#316)</span>
+            <span class="badge badge-outline">locked · reworded rev 4 · High jump noted 2026-10-26 (#316) · Sure footing noted 2026-10-26 (#317)</span>
           </div>
           <p class="text-sm mt-2 max-w-3xl">
             A brawler is a 0.4 m-radius circle in the plane of the surface under it, upright to the
@@ -937,6 +937,14 @@ var buttons: int</pre>
           keeps its defence against everyone else: only the seat that took High jump gives it up. The
           brawl rules' own <code>jump_height</code> stays under <code>railing_height</code>
           (<code>BrawlRules.problems</code>).</p>
+          <p class="text-sm mt-2 max-w-3xl"><strong>SH37 (#317, 2026-10-26):</strong> a seat whose bonus
+          is Sure footing holds idle on a deck up to its kind's grip angle (est. 22° against the brawl
+          rules' 14°) and walks one up to its kind's stand limit (est. 45° against 35°), so for that seat
+          the band where nobody walks starts at 45°. The top of the band does not move: a brace holds
+          anyone up to the brawl rules' <code>brace_holds_to</code> (est. 55°), and the face that becomes
+          the floor past it is the same for every seat on a piece of her. A kind's grip angle stays at or
+          under its stand limit, and its stand limit under the brace's hold
+          (<code>BonusKind.problems</code>).</p>
           <details class="sk-was text-sm mt-2 max-w-3xl">
             <summary>Rev 3 wording, kept for comparison</summary>
 <p class="text-sm mt-2 max-w-3xl">
@@ -2437,7 +2445,9 @@ stages = [ flooding, attitude, air, failures, capsized_movement, breaking ]
           level</strong> (35°, est.). A deck stays a floor until it tilts past 35°; the wall beside it becomes
           a floor at 55° of roll. Between the two, nobody walks: a body that braces holds where it is, up to
           55° (est., a data value, D8), so a long heavy list stays playable; anyone else slides into the
-          corner where deck meets wall and rests there, free to move along the corner, not away from it. Past
+          corner where deck meets wall and rests there, free to move along the corner, not away from it. (A
+          seat whose bonus is Sure footing walks a deck up to its kind's stand limit, 45° est.; the wall
+          still becomes the floor at 55° for everyone, SH37, D8.) Past
           90° the old walls are
           floors; at 180° the undersides of the decks are. <strong>A doorway in a wall that has become a
           floor is a hole</strong> you can fall through into the room beyond; a stair opening in a deck that
@@ -4725,7 +4735,7 @@ sequenceDiagram
             <li>The feed's lines, the glow and the hum, the HUD's bonus and the mark every brawler with one wears; bonuses a match choice, on by default, offline and online; bots going below decks for them at their tier's nerve.</li>
           </ul>
           <h4>Respects</h4>
-          <p class="text-sm">D2, D3, D4, D5, D6, D7, D8 (a High jump clears a railing, #316), D9 (reopened again), D10, D11, D13.</p>
+          <p class="text-sm">D2, D3, D4, D5, D6, D7, D8 (a High jump clears a railing, #316; Sure footing walks a steeper deck, #317), D9 (reopened again), D10, D11, D13.</p>
           <h4>Acceptance gates</h4>
           <ul class="sk-gates text-sm">
             <li><code>make verify</code> green; same seed and input log, same digest with bonuses in play; <code>from_snapshot(snapshot())</code> continues with a bonus aboard, a seat with one and a spare meter unspent; turning bonuses on or off leaves her sinking and the match stream's draws as they were.</li>

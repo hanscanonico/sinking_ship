@@ -18,8 +18,9 @@ var margin: float
 ## Whether the water is a danger, as it is but to a bot wading out (BotRefuge.wade_out):
 ## then only open edges are.
 var heed_water := true
-## The rules as they stand for the bot's seat, by what its view shows it holding
-## (SeatRules): set as it decides, as heed_water is; the shared ones until then.
+## The rules as they stand for the bot's seat, by what its view shows it holding and its
+## bonus (SeatRules) — Sure footing's grip angle, say: set as it decides, as heed_water
+## is; the shared ones until then.
 var seat_rules: SeatRules
 
 var _surfaces: Surfaces
@@ -42,8 +43,9 @@ func _init(
 	seat_rules = SeatRules.of(rules, null)
 
 
-## Whether the deck under [param pose] is tilted past the bot's grip angle (seat_rules):
-## idle there it is pulled downhill, and wherever it walks it slides.
+## Whether the deck under [param pose] is tilted past the bot's own grip angle
+## (seat_rules): idle there it is pulled downhill, and wherever it walks it slides; under
+## it, it holds where it stands.
 func slides(pose: ShipPose) -> bool:
 	return pose.slope_deg() > seat_rules.grip_angle_deg
 

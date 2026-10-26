@@ -132,6 +132,32 @@ func test_a_bonus_gives_its_taker_what_its_kind_sets() -> void:
 	assert_eq([holding.jump_height, holding.climb_reach], [1.4, 1.1], "and the bonus still gives")
 
 
+## A bonus gives its taker the slopes its kind sets (Sure footing, #317) — the grip angle it
+## holds at standing idle and the stand limit past which a face is no floor to it — each on
+## its own: one the kind leaves at 0 is the brawl rules'. With a prop in the hands as well,
+## the prop costs what it costs and the slopes are still the bonus's.
+func test_a_bonus_gives_its_taker_the_slopes_its_kind_sets() -> void:
+	var rules := _rules()
+	# The kind's grip angle and stand limit, and the seat's.
+	var cases := [
+		[20.0, 40.0, 20.0, 40.0],
+		[20.0, 0.0, 20.0, 30.0],
+		[0.0, 40.0, 12.0, 40.0],
+		[0.0, 0.0, 12.0, 30.0],
+	]
+	for case: Array in cases:
+		var kind := SimFixtures.plain_kind()
+		kind.grip_angle_deg = case[0]
+		kind.stand_limit_deg = case[1]
+		var what := "a kind of %.0f° and %.0f°" % [case[0], case[1]]
+		for held: PropKind in [null, _kind(3.0, false, false, 0.25)]:
+			var seat := SeatRules.of(rules, held, kind)
+			var slopes := [seat.grip_angle_deg, seat.stand_limit_deg]
+			assert_eq(slopes, [case[2], case[3]], "%s, holding %s" % [what, held != null])
+			assert_eq(seat.walk_cap, INF if held == null else 3.0, "%s: the hands' cost" % what)
+			assert_eq([seat.jump_height, seat.climb_reach], [0.8, 0.5], "%s: the rest" % what)
+
+
 ## A seat's bonus as a snapshot shows it — its kind among the match's bonus rules' — gives
 ## what it gives for those that read a snapshot, the bots and the HUD; a seat without one,
 ## or a match without bonuses, plays by the rules' own.

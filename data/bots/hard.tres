@@ -6,6 +6,7 @@
 [ext_resource type="Resource" path="res://data/bonuses/high_jump.tres" id="4_high"]
 [ext_resource type="Resource" path="res://data/bonuses/steady.tres" id="5_steady"]
 [ext_resource type="Resource" path="res://data/bonuses/strong_arms.tres" id="6_strong"]
+[ext_resource type="Resource" path="res://data/bonuses/sure_footing.tres" id="7_sure"]
 
 [resource]
 script = ExtResource("1_vibjn")
@@ -58,7 +59,8 @@ bonus_worth = Dictionary[ExtResource("2_kind"), float]({
 ExtResource("3_double"): 1.0,
 ExtResource("4_high"): 0.2,
 ExtResource("5_steady"): 0.8,
-ExtResource("6_strong"): 0.6
+ExtResource("6_strong"): 0.6,
+ExtResource("7_sure"): 0.7
 })
 hysteresis = 0.15
 detour_after_s = 1.0

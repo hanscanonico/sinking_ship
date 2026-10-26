@@ -220,6 +220,13 @@ func fastest_speed() -> float:
 	)
 
 
+## Whether a deck tilted [param slope_deg] pulls a body standing idle on it harder than
+## slide_friction holds it back. A grip angle must be one where it does, or a body past it
+## would hold all the same — theirs (problems), and any a bonus gives (BonusKind.problems).
+func pulls_at(slope_deg: float) -> bool:
+	return gravity * sin(deg_to_rad(slope_deg)) > slide_friction
+
+
 ## How far over its feet a swimmer's head is reckoned, for whether it is in trapped air
 ## (Q22): halfway from the waterline it floats at, swim_depth, to the top of its head —
 ## of a body [param height] tall, so a crawler's as much lower as it is (swim_depth_of).
@@ -358,7 +365,7 @@ func problems() -> PackedStringArray:
 		found.append("brawl rules: restagger_mult must be at least 1")
 	if grip_angle_deg <= 0.0 or grip_angle_deg >= 90.0:
 		found.append("brawl rules: grip_angle_deg must be within 0…90")
-	elif gravity * sin(deg_to_rad(grip_angle_deg)) <= slide_friction:
+	elif not pulls_at(grip_angle_deg):
 		found.append("brawl rules: slide_friction must be below the pull at the grip angle")
 	if stand_limit_deg <= grip_angle_deg or brace_holds_to < stand_limit_deg:
 		found.append("brawl rules: the grip angle, stand limit and brace's hold must rise")

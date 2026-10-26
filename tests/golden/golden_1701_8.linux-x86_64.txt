@@ -6,7 +6,7 @@ must 2 thrown · 1 bakes · drawn
 00:20.9 hold_bilge flooding
 00:43.9 seat 7 out · cold · place 8
 00:47.3 seat 6 out · cold · place 7
-01:16.5 High jump aboard · spot 10
+01:16.5 Steady aboard · spot 10
 01:20.8 seat 5 out · cold · place 6
 01:31.2 hold flooding
 01:46.0 hold_bilge lamps drowned
@@ -23,7 +23,7 @@ must 2 thrown · 1 bakes · drawn
 02:50.9 railing 13 broke
 02:50.9 seat 0 out · cold · place 2
 02:50.9 seat 3 out · cold · place 2
-winner seat 2 at 02:50.9 · digest cc007e17010cc1e4
+winner seat 2 at 02:50.9 · digest 032e8e4849bca243
 sinking at the end of the match: physics 0:06:48 (on the paced clock, Q20) · seen 46% · sea 1.00 m up her · trim +5.7° · list +8.5° · engine_bilge_s full · engine_room 0.51 m · hold_bilge 4.76 m · hold 1.38 m · hold_wing_p 0.43 m · hold_wing_s 4.92 m · forepeak 3.21 m
 not played: gone at 0:14:37 · trim +87.5° · list -14.5° · founders by the head · fast · port boats useless · starboard boats useless · lights out · funnel fell
 bending peak 0.05 of strength, x -5.5 m, hogging
