@@ -62,8 +62,9 @@ func goal() -> Vector3:
 
 
 ## Looks for the way out of the sea of a swimmer at [param now_pos] with [param cold]
-## seconds of its cold meter left, by its own rules [param mine] (SeatRules): the meter
-## lasting the longer the slower it drains, and climbing out up to its climb reach. The
+## seconds of cold left — its meter's, and a spare meter's still unspent (BotBonuses.spare)
+## — by its own rules [param mine] (SeatRules): the cold lasting the longer the slower it
+## drains, and climbing out up to its climb reach. The
 ## nearest way out within the swim that leaves, straight across the water; failing that,
 ## the nearest by way of a point of open water a leg or a few off that nothing hides from
 ## it; failing that, the nearest pocket it knows within that swim; failing that, the

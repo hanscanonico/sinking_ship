@@ -100,6 +100,15 @@ func stand_by(entry: Dictionary) -> Vector3:
 	return pos + Vector3(inboard.x, 0.0, inboard.y) * _rules.body_radius
 
 
+## Where it stands to take the lifebuoy it goes for (stand_by), then where that lies, as
+## [param seen] has it; empty, the ring gone (target).
+func aim(seen: Dictionary) -> PackedVector3Array:
+	var ring := target(seen)
+	if ring.is_empty():
+		return PackedVector3Array()
+	return PackedVector3Array([stand_by(ring), ring["pos"]])
+
+
 ## The prop [param seen] has as the lifebuoy it goes for, or empty: gone from where it
 ## was, taken by another, or none chosen.
 func target(seen: Dictionary) -> Dictionary:
