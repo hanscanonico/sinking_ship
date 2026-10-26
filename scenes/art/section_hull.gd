@@ -7,9 +7,10 @@ extends ShipHull
 ## her stern and closed onto her centreline at her stem. ShipArt dresses the rest of her
 ## as it does any ship. Over the shell: the inside of a bulwark standing over a deck,
 ## painted as a house's side and capped in teak; her deck plating out to the shell where
-## her decks' rectangles stop short of it; a keel bar under her, a rudder and a bronze
-## propeller at her stern and an anchor stowed in a hawse either side of her bow, all
-## to her scale. The greybox (GreyboxHull) draws the same shell (shell()).
+## her decks' rectangles stop short of it, open over each stair up through a hole in a
+## deck; a keel bar under her, a rudder and a bronze propeller at her stern and an
+## anchor stowed in a hawse either side of her bow, all to her scale. The greybox
+## (GreyboxHull) draws the same shell (shell()).
 
 ## Points up each side of a section, keel to sheer, once resampled: at least
 ## SIDE_POINTS, and enough that none stands further than SIDE_SPACING from the next on
@@ -22,6 +23,10 @@ const BULWARK_FROM := 0.1
 ## A deck's plating stands this far under its planks' top, so the planks show where
 ## both are.
 const PLATE_DROP := 0.01
+## A piece of plating smaller than this, in square metres, is float noise.
+const SCRAP := 1e-4
+## How far past a stair's side or foot her deck is looked for, to tell its hole (_holed()).
+const BESIDE := 0.05
 ## Two heights this close are one.
 const LEVEL := 1e-3
 ## How far over her white_above her shell must stand for its side over that to be her
@@ -359,7 +364,8 @@ static func deck_beside(layout: ShipLayout, x: float, top: Vector2) -> float:
 
 
 ## Her deck plating: each section's level top at a deck's height, out to her shell —
-## lofted along each run of sections plated at that height on that side.
+## lofted along each run of sections plated at that height on that side —, open over
+## each stair coming up through a hole in the deck, as the deck is (_stairs_up()).
 static func _plate_decks(mesh: ShipMesh, paint: ShipMesh.Paint, layout: ShipLayout) -> void:
 	var sections := layout.structure.sections
 	var decks := PackedFloat64Array()
@@ -384,6 +390,7 @@ static func _plate_decks(mesh: ShipMesh, paint: ShipMesh.Paint, layout: ShipLayo
 			var fore := after if not after.is_empty() else top
 			var x0 := section.x - section.length * 0.5
 			var x1 := section.x + section.length * 0.5
+			var holes := _stairs_up(layout, top[0], x0, x1)
 			# Halfway to each neighbour plated alike, its own width out to its stretch's
 			# end where none is: the plating meets in the middle of each pair — and closes
 			# to her stem, as her shell does, past her last section's middle.
@@ -393,8 +400,47 @@ static func _plate_decks(mesh: ShipMesh, paint: ShipMesh.Paint, layout: ShipLayo
 				if index < sections.size() - 1
 				else PackedFloat64Array([top[0], 0.0, 0.0])
 			)
-			_plate(mesh, paint, x0, mid_aft, section.x, top, y)
-			_plate(mesh, paint, section.x, top, x1, mid_fore, y)
+			_plate(mesh, paint, x0, mid_aft, section.x, top, y, holes)
+			_plate(mesh, paint, section.x, top, x1, mid_fore, y, holes)
+
+
+## The footprints of [param layout]'s stairs from [param x0] to [param x1] along her
+## that come up through a hole in her deck at [param height] — from under it to it, or
+## past it, the deck cut round it (_holed()): the Titanic's from D deck onto her forward
+## well deck, the barque's companionways. Her plating is open over each, as the deck is.
+static func _stairs_up(layout: ShipLayout, height: float, x0: float, x1: float) -> Array[Rect2]:
+	var holes: Array[Rect2] = []
+	for ramp: ShipRamp in layout.ramps:
+		var head := maxf(ramp.start_height, ramp.end_height)
+		var through := ramp.base() < height - LEVEL and head > height - LEVEL
+		var here := ramp.area.end.x > x0 and ramp.area.position.x < x1
+		if through and here and _holed(layout, height, ramp):
+			holes.append(ramp.area)
+	return holes
+
+
+## Whether her deck at [param height] is cut round [param ramp]: a platform at that
+## height just past both its sides and its foot, as round a stair's hole — not at its
+## head alone, as where a stair climbs across her from one deck to the next (the
+## Titanic's fo'c'sle step), nor at one side, as up beside a deckhouse's roof.
+static func _holed(layout: ShipLayout, height: float, ramp: ShipRamp) -> bool:
+	var along := Vector2(1.0, 0.0) if ramp.axis == ShipRamp.Axis.X else Vector2(0.0, 1.0)
+	var across := Vector2(along.y, along.x)
+	var reach := ramp.area.size * 0.5 + Vector2(BESIDE, BESIDE)
+	var middle := ramp.area.get_center()
+	var downhill := -1.0 if ramp.end_height > ramp.start_height else 1.0
+	var beside := PackedVector2Array(
+		[middle + across * reach, middle - across * reach, middle + along * reach * downhill]
+	)
+	for point: Vector2 in beside:
+		var decked := false
+		for platform: ShipPlatform in layout.platforms:
+			if absf(platform.height - height) <= LEVEL and platform.contains(point.x, point.y):
+				decked = true
+				break
+		if not decked:
+			return false
+	return true
 
 
 ## A section's level tops at one of [param decks]' heights (sorted) — a deck, not a well
@@ -425,6 +471,9 @@ static func _between(a: PackedFloat64Array, b: PackedFloat64Array) -> PackedFloa
 	return PackedFloat64Array([a[0], (a[1] + b[1]) * 0.5, (a[2] + b[2]) * 0.5])
 
 
+## Plating at [param y] from [param x0], across her as [param from] is, to [param x1],
+## as [param to] is — but for [param holes]: each piece of it a quad, or a fan of
+## triangles where a hole leaves it some other shape.
 static func _plate(
 	mesh: ShipMesh,
 	paint: ShipMesh.Paint,
@@ -432,18 +481,79 @@ static func _plate(
 	from: PackedFloat64Array,
 	x1: float,
 	to: PackedFloat64Array,
-	y: float
+	y: float,
+	holes: Array[Rect2]
 ) -> void:
-	var corners := PackedVector3Array(
-		[
-			Vector3(x0, y, from[1]),
-			Vector3(x1, y, to[1]),
-			Vector3(x1, y, to[2]),
-			Vector3(x0, y, from[2]),
-		]
-	)
-	var normals := PackedVector3Array([Vector3.UP, Vector3.UP, Vector3.UP, Vector3.UP])
-	mesh.smooth_quad(corners, normals, paint)
+	var pieces: Array[PackedVector2Array] = [
+		PackedVector2Array(
+			[Vector2(x0, from[1]), Vector2(x1, to[1]), Vector2(x1, to[2]), Vector2(x0, from[2])]
+		)
+	]
+	for hole: Rect2 in holes:
+		var left: Array[PackedVector2Array] = []
+		for piece: PackedVector2Array in pieces:
+			left.append_array(_round(piece, hole))
+		pieces = left
+	for piece: PackedVector2Array in pieces:
+		var corners := PackedVector3Array()
+		for point: Vector2 in piece:
+			corners.append(Vector3(point.x, y, point.y))
+		if corners.size() == 4:
+			var normals := PackedVector3Array([Vector3.UP, Vector3.UP, Vector3.UP, Vector3.UP])
+			mesh.smooth_quad(corners, normals, paint)
+			continue
+		for index in range(1, corners.size() - 1):
+			var fan := PackedVector3Array([corners[0], corners[index], corners[index + 1]])
+			mesh.triangle(fan, PackedFloat32Array([0.0, 0.0, 0.0]), Vector3.UP, paint)
+
+
+## The convex [param ring] (x/z) less [param hole]: whole where the two do not overlap,
+## else its parts aft and forward of the hole and, alongside it, either side of it —
+## each convex, none a scrap.
+static func _round(ring: PackedVector2Array, hole: Rect2) -> Array[PackedVector2Array]:
+	var parts: Array[PackedVector2Array] = []
+	var bounds := Rect2(ring[0], Vector2.ZERO)
+	for point: Vector2 in ring:
+		bounds = bounds.expand(point)
+	if not bounds.intersects(hole):
+		parts.append(ring)
+		return parts
+	var alongside := _beyond(_beyond(ring, 0, hole.position.x, 1.0), 0, hole.end.x, -1.0)
+	for part: PackedVector2Array in [
+		_beyond(ring, 0, hole.position.x, -1.0),
+		_beyond(ring, 0, hole.end.x, 1.0),
+		_beyond(alongside, 1, hole.position.y, -1.0),
+		_beyond(alongside, 1, hole.end.y, 1.0),
+	]:
+		if _area(part) > SCRAP:
+			parts.append(part)
+	return parts
+
+
+## The part of the convex [param ring] (x/z) on [param way]'s side (1 past, -1 short)
+## of the line where its [param axis] (0 x, 1 z) is [param at].
+static func _beyond(
+	ring: PackedVector2Array, axis: int, at: float, way: float
+) -> PackedVector2Array:
+	var kept := PackedVector2Array()
+	for index in ring.size():
+		var a := ring[index]
+		var b := ring[(index + 1) % ring.size()]
+		var reach_a := (a[axis] - at) * way
+		var reach_b := (b[axis] - at) * way
+		if reach_a >= 0.0:
+			kept.append(a)
+		if reach_a * reach_b < 0.0:
+			kept.append(a.lerp(b, reach_a / (reach_a - reach_b)))
+	return kept
+
+
+## The area [param ring] (x/z) encloses.
+static func _area(ring: PackedVector2Array) -> float:
+	var twice := 0.0
+	for index in ring.size():
+		twice += ring[index].cross(ring[(index + 1) % ring.size()])
+	return absf(twice) * 0.5
 
 
 ## A teak capping along the top of every bulwark, and a toe rail where her shell stops
