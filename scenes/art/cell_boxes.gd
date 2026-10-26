@@ -23,9 +23,10 @@ const SHELL_IN := 1e-3
 ## standing in by INSET from any face no other cell's box shares, so its water ends
 ## inside the wall there; a cell whose box pokes out of her, round its [param rooms]
 ## only (_round_rooms), so neither its water nor the sea's mask (SeaAndSky) reaches past
-## her shell — the top of its stack where one box round them would (stacked); a void's
-## over a room under it that stands up into it (_opened); a zero box for a cell whose
-## water is not drawn — a void nobody sees into, a peak — in her cells' order.
+## her shell — the top of its stack where one box round them would (stacked) — and out
+## to the bulkheads it shares (_to_bulkheads); a void's over a room under it that
+## stands up into it (_opened); a zero box for a cell whose water is not drawn — a void
+## nobody sees into, a peak — in her cells' order.
 static func boxes(structure: ShipStructure, rooms: Array[ShipRoom]) -> Array[AABB]:
 	var found: Array[AABB] = []
 	for cell: FloodCell in structure.cells:
@@ -34,7 +35,7 @@ static func boxes(structure: ShipStructure, rooms: Array[ShipRoom]) -> Array[AAB
 			found.append(_opened(structure, cell))
 			continue
 		if cell.shape < WHOLE and not open:
-			found.append(_room_boxes(structure, cell, rooms)[0])
+			found.append(_to_bulkheads(structure, cell, _room_boxes(structure, cell, rooms), 0))
 			continue
 		var low := cell.low
 		var high := cell.high
@@ -50,8 +51,8 @@ static func boxes(structure: ShipStructure, rooms: Array[ShipRoom]) -> Array[AAB
 ## The rest of each cell drawn round its [param rooms] whose one box round them would
 ## reach past [param structure]'s shell — rooms stacked down her run, the lower the
 ## narrower (the steamer's aft peak, #148): each of its rooms in its own box, from its
-## floor up to the floor of the one over it or the cell's top, that one in boxes(); each
-## as [cell, box].
+## floor up to the floor of the one over it or the cell's top, that one in boxes(), and
+## out to the bulkheads it shares (_to_bulkheads); each as [cell, box].
 static func stacked(structure: ShipStructure, rooms: Array[ShipRoom]) -> Array:
 	var found := []
 	for index in structure.cells.size():
@@ -59,9 +60,51 @@ static func stacked(structure: ShipStructure, rooms: Array[ShipRoom]) -> Array:
 		if cell.shape >= WHOLE or cell.rooms.is_empty() or cell.kind == FloodCell.Kind.OPEN_WELL:
 			continue
 		var drawn := _room_boxes(structure, cell, rooms)
-		for box: AABB in drawn.slice(1):
-			found.append([index, box])
+		for at in range(1, drawn.size()):
+			found.append([index, _to_bulkheads(structure, cell, drawn, at)])
 	return found
+
+
+## [param drawn]'s box [param at], one of [param cell]'s boxes round its rooms, carried
+## out to each of the cell's own faces another of [param structure]'s cells shares —
+## the bulkhead between them, which her rooms stop short of where it is thick, and the
+## doorway through it — wherever all it gains stands inside her shell (_within) and in
+## none of the cell's other boxes: so the water either side of a bulkhead meets inside
+## it, as a whole cell's does (boxes), and the sea is never drawn across a doorway
+## through it.
+static func _to_bulkheads(
+	structure: ShipStructure, cell: FloodCell, drawn: Array[AABB], at: int
+) -> AABB:
+	var low := drawn[at].position
+	var high := drawn[at].end
+	for axis: int in [0, 2]:
+		if low[axis] > cell.low[axis] and _shared(structure, cell, axis, cell.low[axis]):
+			var gained_high := high
+			gained_high[axis] = low[axis]
+			var gained_low := low
+			gained_low[axis] = cell.low[axis]
+			if _gains(structure, drawn, at, AABB(gained_low, gained_high - gained_low)):
+				low[axis] = cell.low[axis]
+		if high[axis] < cell.high[axis] and _shared(structure, cell, axis, cell.high[axis]):
+			var gained_low := low
+			gained_low[axis] = high[axis]
+			var gained_high := high
+			gained_high[axis] = cell.high[axis]
+			if _gains(structure, drawn, at, AABB(gained_low, gained_high - gained_low)):
+				high[axis] = cell.high[axis]
+	return AABB(low, high - low)
+
+
+## Whether [param drawn]'s box [param at] may take [param gained] on: none of the cell's
+## other boxes holds any of it, and it stands inside [param structure]'s shell — read
+## over the sections it stands in, not the one past the bulkhead it ends at, which her
+## sections' rounded ends can have it touch by a few millimetres (bulkhead C's, the
+## Titanic's No. 3 hold's forward one).
+static func _gains(structure: ShipStructure, drawn: Array[AABB], at: int, gained: AABB) -> bool:
+	for other in drawn.size():
+		if other != at and drawn[other].intersects(gained):
+			return false
+	return _within(structure, gained, SHELL_NEAR)
 
 
 ## [param cell]'s boxes round its [param rooms]: the one round them all
@@ -138,21 +181,25 @@ static func _held(structure: ShipStructure, box: AABB) -> AABB:
 
 
 ## Whether [param box] stands inside [param structure]'s shell at every height it spans,
-## within SHELL_NEAR.
-static func _within(structure: ShipStructure, box: AABB) -> bool:
-	var shell := _shell(structure, box)
+## within SHELL_NEAR, read over the sections it reaches into by more than
+## [param touching] (_shell).
+static func _within(structure: ShipStructure, box: AABB, touching := 0.0) -> bool:
+	var shell := _shell(structure, box, touching)
 	return -box.position.z <= shell.x + SHELL_NEAR and box.end.z <= shell.y + SHELL_NEAR
 
 
 ## How far out [param structure]'s shell stands to port and to starboard at its narrowest
 ## over [param box] — 0 where her outline does not reach a height it spans: her shell is
 ## straight between its outline's points, so its narrowest is at one of them or at the
-## box's top or bottom.
-static func _shell(structure: ShipStructure, box: AABB) -> Vector2:
+## box's top or bottom. A section the box reaches into by no more than [param touching]
+## is not over it.
+static func _shell(structure: ShipStructure, box: AABB, touching := 0.0) -> Vector2:
 	var narrowest := Vector2(INF, INF)
 	for section: HullSection in structure.sections:
 		var half := section.length * 0.5
-		if section.x + half <= box.position.x or section.x - half >= box.end.x:
+		if section.x + half <= box.position.x + touching:
+			continue
+		if section.x - half >= box.end.x - touching:
 			continue
 		var heights := PackedFloat32Array([box.position.y + SHELL_IN, box.end.y - SHELL_IN])
 		for point: Vector2 in section.outline:

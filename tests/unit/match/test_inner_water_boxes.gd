@@ -3,10 +3,11 @@ extends GutTest
 ## (CellBoxes.boxes, SeaAndSky): none of any ship of the fleet reaches past her shell —
 ## a cell drawn for its rooms whose box pokes out of her, as the trawler's fore does at
 ## her bow, is drawn round its rooms only, each in its own box where one round them all
-## would poke out (the steamer's aft peak) — and a ship whose room cells stand inside her,
-## the steamer, keeps each cell's whole box, but for her engine room's, which runs out to
-## her shell round the stokehold (#74), and her old voids', people's places now (#148); a
-## void a room under it stands up into is drawn over that room (her poop's space).
+## would poke out (the steamer's aft peak), and out to the bulkheads it shares — and a
+## ship whose room cells stand inside her, the steamer, keeps each cell's whole box, but
+## for her engine room's, which runs out to her shell round the stokehold (#74), and her
+## old voids', people's places now (#148); a void a room under it stands up into is drawn
+## over that room (her poop's space).
 
 ## How far a drawn box may stand past her shell, in metres.
 const NEAR := 0.01
@@ -74,6 +75,44 @@ func test_a_cell_poking_out_of_her_is_drawn_round_its_rooms() -> void:
 	assert_almost_eq(box.end.x, mess.area.end.x, 1e-5, "forward")
 	assert_almost_eq(box.position.z, mess.area.position.y, 1e-5, "port")
 	assert_almost_eq(box.end.z, mess.area.end.y, 1e-5, "starboard")
+
+
+## A cell drawn round its rooms is drawn out to the bulkheads it shares, as a whole
+## cell is: the Titanic's No. 3 hold's tween deck, whose rooms stop short of bulkheads
+## D and C by the bulkheads' thickness, out to both, so its water meets boiler room 6's
+## inside bulkhead D and the sea is never drawn across the watertight door there. But a
+## box never takes on what another of its cell's boxes holds: No. 1 hold's, stacked
+## down her narrowing bow, keep to their own rooms short of the bulkhead forward of it.
+func test_a_cell_drawn_round_its_rooms_reaches_the_bulkheads_it_shares() -> void:
+	var layout := Fleet.layout(&"titanic")
+	var structure := layout.structure
+	var drawn := CellBoxes.boxes(structure, layout.rooms)
+	var index := structure.cell_named(&"hold_3_tween")
+	var hold_3 := structure.cells[index]
+	assert_lt(hold_3.shape, CellBoxes.WHOLE, "No. 3 hold's tween deck pokes past her shell")
+	var berths := _room(layout, &"third-class berths")
+	assert_gt(berths.area.position.x, hold_3.low.x + 0.1, "its rooms stop short of bulkhead D")
+	assert_almost_eq(drawn[index].position.x, hold_3.low.x, 1e-5, "out to bulkhead D")
+	assert_almost_eq(drawn[index].end.x, hold_3.high.x, 1e-5, "out to bulkhead C")
+	var boiler_room := drawn[structure.cell_named(&"boiler_room_6_tween")]
+	assert_almost_eq(boiler_room.end.x, hold_3.low.x, 1e-5, "meeting boiler room 6's")
+	var hold_1 := structure.cells[structure.cell_named(&"hold_1")]
+	var orlop := _room(layout, &"No. 1 hold, orlop")
+	var top := drawn[structure.cell_named(&"hold_1")]
+	assert_almost_eq(top.end.x, orlop.area.end.x, 1e-5, "No. 1 hold's keeps to its orlop")
+	assert_lt(top.end.x, hold_1.high.x - 1.0, "short of the bulkhead forward of it")
+	for stack: Array in CellBoxes.stacked(structure, layout.rooms):
+		var box: AABB = stack[1]
+		if structure.cells[stack[0]] == hold_1:
+			assert_false(box.intersects(top), "its stack keeps off its top box at %s" % box)
+
+
+## [param layout]'s room named [param name].
+func _room(layout: ShipLayout, name: StringName) -> ShipRoom:
+	for room: ShipRoom in layout.rooms:
+		if room.name == name:
+			return room
+	return null
 
 
 ## The space under the steamer's poop has no room of its own, but her steering gear
