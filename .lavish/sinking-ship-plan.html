@@ -898,7 +898,7 @@ var buttons: int</pre>
         <div class="card bg-base-100 border p-4 sk-locked">
           <div class="flex flex-wrap items-baseline gap-2">
             <h3 class="font-black">D8 · Bodies are upright circles on surfaces; a jump is a small vertical impulse from the ground</h3>
-            <span class="badge badge-outline">locked · reworded rev 4</span>
+            <span class="badge badge-outline">locked · reworded rev 4 · High jump noted 2026-10-26 (#316)</span>
           </div>
           <p class="text-sm mt-2 max-w-3xl">
             A brawler is a 0.4 m-radius circle in the plane of the surface under it, upright to the
@@ -929,6 +929,14 @@ var buttons: int</pre>
           it is up to the top of that band (a <code>BrawlRules</code> value, est. 55°), so a long heavy
           list stays playable; anyone else slides into the corner and rests there. Jumps, falls, ceilings
           and shoves keep their rules inside that frame.</p>
+          <p class="text-sm mt-2 max-w-3xl"><strong>SH37 (#316, 2026-10-26):</strong> a seat whose bonus
+          is High jump jumps its kind's height (est. 1.5 m) for the same <code>jump_cost</code>.
+          Railings keep their one rule — a railing holds back a body in the air only while its feet are
+          under the rail's top — so that seat clears a 1.0 m railing, and a shove landing on it in
+          mid-air, its feet over the top, carries it over. By your decision on #307 a railed perch
+          keeps its defence against everyone else: only the seat that took High jump gives it up. The
+          brawl rules' own <code>jump_height</code> stays under <code>railing_height</code>
+          (<code>BrawlRules.problems</code>).</p>
           <details class="sk-was text-sm mt-2 max-w-3xl">
             <summary>Rev 3 wording, kept for comparison</summary>
 <p class="text-sm mt-2 max-w-3xl">
@@ -4717,7 +4725,7 @@ sequenceDiagram
             <li>The feed's lines, the glow and the hum, the HUD's bonus and the mark every brawler with one wears; bonuses a match choice, on by default, offline and online; bots going below decks for them at their tier's nerve.</li>
           </ul>
           <h4>Respects</h4>
-          <p class="text-sm">D2, D3, D4, D5, D6, D7, D9 (reopened again), D10, D11, D13.</p>
+          <p class="text-sm">D2, D3, D4, D5, D6, D7, D8 (a High jump clears a railing, #316), D9 (reopened again), D10, D11, D13.</p>
           <h4>Acceptance gates</h4>
           <ul class="sk-gates text-sm">
             <li><code>make verify</code> green; same seed and input log, same digest with bonuses in play; <code>from_snapshot(snapshot())</code> continues with a bonus aboard, a seat with one and a spare meter unspent; turning bonuses on or off leaves her sinking and the match stream's draws as they were.</li>

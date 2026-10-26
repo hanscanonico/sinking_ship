@@ -35,7 +35,9 @@ const PROTOCOL_VERSION := 10
 ## 9: a bonus comes only into a dry room, and is lost to the sea (#311).
 ## 10: bots go below decks for bonuses, and count a spare meter unspent as more time in
 ## the sea (#315).
-const SIM_BUILD := 10
+## 11: a seat's bonus gives it what its kind sets — a jump, a share of a shove, a climb
+## reach and a ladder's pace — the sim's and the bots' alike (#316).
+const SIM_BUILD := 11
 const HASH_BYTES := 8
 ## How far apart, in quanta, two values within_quantum may be: a rounding on each side,
 ## and a single-precision Vector3's own error at a few tens of metres.

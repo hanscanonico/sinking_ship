@@ -80,7 +80,8 @@ extends Resource
 
 @export_group("Jump")
 ## How high a jump lifts the feet above where it left the ground, in metres: onto
-## a hatch, never over a railing.
+## a hatch, never over a railing — but for a seat whose bonus jumps higher (High jump,
+## BonusKind.jump_height).
 @export var jump_height: float
 ## The share of ground_accel a jumper steers with in the air; 0…1.
 @export var air_control: float
@@ -211,7 +212,8 @@ extends Resource
 
 ## The fastest these rules move anything across her deck — a walk, a vault, a shove's
 ## knockback, quick or charged, a crate's: what the online prediction takes another body or
-## a crate to come at, at most (ContactWatch, R7).
+## a crate to come at, at most (ContactWatch, R7). No bonus gives a speed as fast
+## (BonusKind.problems).
 func fastest_speed() -> float:
 	return maxf(
 		maxf(walk_speed, vault_speed), maxf(charged_knockback, maxf(knockback, crate_knockback))
@@ -373,7 +375,8 @@ func problems() -> PackedStringArray:
 	]:
 		if float(get(field)) < 0.0 or float(get(field)) > 1.0:
 			found.append("brawl rules: %s must be within 0…1" % field)
-	# A railing must hold a jumper, so a perch keeps its defence.
+	# A railing must hold a jumper, so a perch keeps its defence: only the seat that took High
+	# jump, by its kind's jump (BonusKind), gives that up.
 	if jump_height >= railing_height:
 		found.append("brawl rules: jump_height must be below railing_height")
 	# Compared in ticks, as the sim counts them: a threshold that rounds onto the

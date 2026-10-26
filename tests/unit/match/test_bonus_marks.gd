@@ -8,16 +8,17 @@ extends GutTest
 
 const MATCH := preload("res://scenes/match/match.tscn")
 const MATCH_DATA := "res://data/match/default.tres"
+const BONUS_RULES := "res://data/rules/bonuses.tres"
 
 
-## A match of three seats in below_decks' hold, bonuses played and none coming, seen
-## through seat 0's eyes.
-func _match() -> MatchScene:
+## A match of three seats in below_decks' hold, played with [param bonus_rules] — Double life
+## alone, none coming, when none are given — seen through seat 0's eyes.
+func _match(bonus_rules: BonusRules = null) -> MatchScene:
 	var scene: MatchScene = MATCH.instantiate()
 	add_child_autofree(scene)
 	var config := SimFixtures.config(3, SimFixtures.calm_until(600.0), 1, SimFixtures.below_decks())
 	config.bot_tier = (load(MATCH_DATA) as MatchRules).bot_tier
-	config.bonus_rules = SimFixtures.bonus_rules(600.0)
+	config.bonus_rules = bonus_rules if bonus_rules != null else SimFixtures.bonus_rules(600.0)
 	scene.start(config, true)
 	return scene
 
@@ -46,6 +47,23 @@ func test_a_seat_with_a_bonus_wears_its_kind_s_mark() -> void:
 	assert_null(_mark(scene, 2), "seat 2 has none: no mark")
 	seats[1]["bonus"] = -1
 	assert_null(_mark(scene, 1), "spent, or the seat out: the mark goes")
+
+
+## Whichever kind of the shipped bonus rules a seat has (#316), it wears that kind's mark in
+## that kind's colour.
+func test_each_kind_is_worn_in_its_own_colour() -> void:
+	var rules: BonusRules = load(BONUS_RULES)
+	var scene := _match(rules)
+	var seats: Array = scene._driver.current["seats"]
+	for kind in rules.kinds.size():
+		seats[1]["bonus"] = kind
+		var mark := _mark(scene, 1)
+		var title := rules.kinds[kind].title
+		assert_not_null(mark, "%s: its mark" % title)
+		if mark != null:
+			var material := mark.material_override as StandardMaterial3D
+			assert_eq(material.albedo_color, rules.kinds[kind].mark, "%s: in its colour" % title)
+			assert_eq(material.emission, rules.kinds[kind].mark, "%s: lit from within" % title)
 
 
 func test_no_mark_through_the_seat_s_own_eyes_but_every_one_from_the_orbit_camera() -> void:

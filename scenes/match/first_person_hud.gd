@@ -522,12 +522,10 @@ static func warmth_words(
 
 
 ## The kind of the bonus [param seat] has in [param snapshot] of a match played with
-## [param bonus_rules] (#307); null for none, as in a match without bonuses.
+## [param bonus_rules] (#307, BonusRules.of_seat); null for none, as in a match without
+## bonuses.
 static func bonus_kind(snapshot: Dictionary, seat: int, bonus_rules: BonusRules) -> BonusKind:
-	var me := MatchState.entry_of(snapshot["seats"], seat)
-	if bonus_rules == null or me.is_empty() or me["bonus"] == -1:
-		return null
-	return bonus_rules.kinds[me["bonus"]]
+	return BonusRules.of_seat(bonus_rules, snapshot, seat)
 
 
 ## Whether [param seat] in [param snapshot] of a match played with [param bonus_rules] has
@@ -967,12 +965,12 @@ func _entry(seat: int) -> Dictionary:
 	return {}
 
 
-## The rules as they stand for the seat the HUD shows, as the snapshot has it (SeatRules):
-## the shared ones when there is none to show.
+## The rules as they stand for the seat the HUD shows, as the snapshot has it (SeatRules) —
+## by what it holds and its bonus: the shared ones when there is none to show.
 func _seat_rules() -> SeatRules:
 	if _entry(_seat).is_empty():
 		return SeatRules.of(_rules, null)
-	return SeatRules.in_snapshot(_snapshot, _seat, _layout, _rules, _holdable)
+	return SeatRules.in_snapshot(_snapshot, _seat, _layout, _rules, _bonus_rules, _holdable)
 
 
 static func _low(signed_deg: float, positive: String, negative: String) -> String:

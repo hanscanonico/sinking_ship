@@ -16,6 +16,9 @@ const NORMAL_BOT := "res://data/bots/normal.tres"
 ## A frame's look when none is given: step() sends the seat's own look instead.
 const KEEP_LOOK := -1
 const DOUBLE_LIFE := "res://data/bonuses/double_life.tres"
+const HIGH_JUMP := "res://data/bonuses/high_jump.tres"
+const STEADY := "res://data/bonuses/steady.tres"
+const STRONG_ARMS := "res://data/bonuses/strong_arms.tres"
 ## Where below_decks' holds start aft, how long each is, and how far under the main deck
 ## their floors stand: under the deck, over the sea a freeboard down.
 const HOLD_AFT := -12.0
@@ -369,6 +372,18 @@ static func double_life() -> BonusKind:
 	return load(DOUBLE_LIFE)
 
 
+static func high_jump() -> BonusKind:
+	return load(HIGH_JUMP)
+
+
+static func steady() -> BonusKind:
+	return load(STEADY)
+
+
+static func strong_arms() -> BonusKind:
+	return load(STRONG_ARMS)
+
+
 ## A kind of bonus of Double life's size that gives nothing: a test's second kind.
 static func plain_kind() -> BonusKind:
 	var made := BonusKind.new()
@@ -392,6 +407,17 @@ static func bonus_sim(
 	)
 	made.bonus_rules = rules
 	return MatchSim.create(made)
+
+
+## A match of [param seats] on [param layout], calm, played with [param kind] alone and none
+## of the plan's coming (bonus_sim) — seat 0 with a bonus of that kind when [param taken]
+## says so, as though it had taken one.
+static func kind_sim(kind: BonusKind, taken: bool, seats: int, layout: ShipLayout) -> MatchSim:
+	var kinds: Array[BonusKind] = [kind]
+	var made := bonus_sim(bonus_rules(600.0, 45.0, 0.0, 2, kinds), seats, layout)
+	if taken:
+		made.state.seats[0].bonus = 0
+	return made
 
 
 ## A bonus of [param kind] — by its index among the match's bonus rules' kinds — lying at

@@ -208,7 +208,7 @@ func _init(
 	_profile = profile
 	_rules = rules
 	_dodge = CargoDodge.new(profile, rules, layout.props)
-	_props = BotProps.new(bot_seat, profile, rules, layout)
+	_props = BotProps.new(bot_seat, profile, rules, layout, bonus_rules)
 	_bonuses = BotBonuses.new(bot_seat, profile, rules, layout, bonus_rules)
 	_reckoning = BotReckoning.new(profile, rules)
 	_floors = floors
