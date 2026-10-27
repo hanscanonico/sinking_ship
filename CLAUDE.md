@@ -62,8 +62,9 @@ runnable locally whenever the whole suite is wanted. A gate or capture tool that
 misbehaves gets a fix in its own PR, or a `needs-triage` issue when the fix is not yours
 to make; memory keeps only what no fix can change.
 
-Finished work ships without being asked: once a change is done, commit it on a branch,
-push, open the PR, wait for CI (`tools/ci_wait.sh N` in the background reports only what
+Finished work ships without being asked. Push the branch and open its PR as a draft at
+the first commit, so the work outlives a session that stops; once the change is done,
+`gh pr ready` it, wait for CI (`tools/ci_wait.sh N` in the background reports only what
 failed), and merge it yourself when it is green on the PR head. When main has moved
 since that run, `gh pr update-branch` first and merge on the new run's green: two PRs
 green apart can break main together. A red PR gets fixed, not merged. Ask first only
@@ -80,9 +81,13 @@ of its own, and `--remove` removes them.
 
 One game window at a time on this shared machine: `make capture` and `make fps` take the
 window lock themselves (`tools/window_lock.sh`, a kernel lock released on any exit) — never
-hand-roll a lock around them. Test engines are capped the same way: each takes one of
-`TEST_SLOTS` machine-wide slots (`tools/test_slot.sh`, half the cores by default), so a run
-that says it is waiting for a slot is the machine being shared, not a hang.
+hand-roll a lock around them. Test engines are capped the same way, `make check`'s,
+art-lint's and bake-check's with them: each takes one of `TEST_SLOTS` machine-wide slots
+(`tools/test_slot.sh`, half the cores by default) and then waits for a tenth of the
+machine's memory to be free, so a run that says it is waiting for a slot or for memory is
+the machine being shared, not a hang. When Claude Code's memory guard stops a background
+task anyway, start it again at once and say so: `tools/ci_wait.sh` holds no memory, and a
+gate's engines wait in `tools/test_slot.sh` until there is memory for them.
 
 ## Architecture
 

@@ -85,6 +85,7 @@ FULL_SUITE_FILES = {
     "tools/run_tests.sh": "the test runner",
     "tools/test_shards.py": "the test runner: the shard split",
     "tools/test_slot.sh": "the test runner: its engine slots",
+    "tools/lib/free_memory.sh": "the test runner: its engine slots' memory floor",
     "tools/engine_guard.sh": "the test runner: its error guard",
     "tools/lib/require_godot.sh": "the test runner: its engine lookup",
     "tools/test_changed.py": "the test selector itself",

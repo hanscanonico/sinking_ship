@@ -108,7 +108,7 @@ report_path() {
 }
 
 # One engine boot per file, sharing nothing, so the files are checked in
-# parallel. xargs starts a fresh shell per file, which is why the worker is an
+# parallel. xargs starts a fresh shell per batch, which is why the worker is an
 # exported function over an exported environment rather than an inline body.
 check_one() {
 	local file="$1"
@@ -125,7 +125,19 @@ check_one() {
 	fi
 	return 0
 }
-export -f check_one report_path
+
+# A batch of files, checked one engine after another while the batch holds one of the
+# machine's test slots (tools/test_slot.sh): a make check booted an engine per core at
+# once here — 20 of about 150 MB each, beside every other session's gate — until
+# 2026-10-27. A file that fails leaves its report; the batch itself always passes.
+check_batch() {
+	local file
+	for file; do
+		check_one "$file"
+	done
+	return 0
+}
+export -f check_one check_batch report_path
 export GODOT ignore cascade
 
 WORK="$(mktemp -d)"
@@ -144,8 +156,22 @@ else
 	project_scripts >"$queue"
 fi
 
-xargs -0 -P "${CHECK_JOBS:-$(sysctl -n hw.ncpu 2>/dev/null || nproc)}" -n1 \
-	bash -c 'check_one "$0"' <"$queue"
+# CHECK_JOBS batches side by side, as many as test_slot.sh gives slots by default; one
+# that waits for a slot or for memory says so once for the whole run. A batch that
+# could not run at all is a failure: its files went unchecked.
+if [[ -n "${TEST_SLOTS-}" ]]; then
+	workers="$TEST_SLOTS"
+else
+	cores="$(getconf _NPROCESSORS_ONLN 2>/dev/null)"
+	workers=$((${cores:-2} / 2))
+	((workers >= 1)) || workers=1
+fi
+export TEST_SLOT_NAME=check TEST_SLOT_NOTICE_ONCE="$WORK/slot-notice"
+if ! xargs -0 -P "${CHECK_JOBS:-$workers}" -n 16 \
+	tools/test_slot.sh bash -c 'check_batch "$@"' check <"$queue"; then
+	echo "check: a batch of files could not take a test slot and went unchecked" >&2
+	exit 1
+fi
 
 # A count kept inside a worker would die with the worker's own process, so
 # the failures are read back off disk — in queue order, so a parallel run says

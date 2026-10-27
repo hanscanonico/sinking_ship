@@ -13,7 +13,7 @@ cd "$(dirname "$0")/.." || exit 1
 
 WORK=$(mktemp -d)
 trap 'rm -rf "$WORK"' EXIT
-export TEST_SLOT_LOCK="$WORK/slot" TEST_SLOTS=4
+export TEST_SLOT_LOCK="$WORK/slot" TEST_SLOTS=4 TEST_SLOT_MIN_FREE_MB=0
 unset TEST_SLOT_NOTICE_FD TEST_SLOT_NAME TESTS TEST SHARD JOBS
 
 # The stand-in: res:// paths of -gtest, or every script under tests/unit when the
