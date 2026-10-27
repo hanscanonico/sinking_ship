@@ -77,7 +77,9 @@ func setup(match_rules: MatchRules, choices: MatchChoices) -> void:
 	if not ships.has(String(full.ship)) and Fleet.layout(full.ship) != null:
 		ships.append(String(full.ship))
 	for offered: String in ships:
-		_ship.add_item(offered)
+		# Shown in words (small titanic), picked by her name.
+		_ship.add_item(offered.replace("_", " "))
+		_ship.set_item_metadata(_ship.item_count - 1, offered)
 		if offered == full.ship:
 			_ship.select(_ship.item_count - 1)
 	_offer_seats(full.seats, match_rules.seats)
@@ -179,7 +181,7 @@ static func leave_field(event: InputEvent, field: LineEdit) -> void:
 
 ## The ship picked, by name; empty when none is.
 func picked_ship() -> StringName:
-	return StringName(_ship.get_item_text(_ship.selected)) if _ship.selected != -1 else &""
+	return StringName(_ship.get_item_metadata(_ship.selected)) if _ship.selected != -1 else &""
 
 
 ## The seat counts the picked ship takes, [param seats] chosen where she takes it, else

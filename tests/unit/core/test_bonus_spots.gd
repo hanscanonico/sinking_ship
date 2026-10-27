@@ -18,6 +18,7 @@ func test_every_ship_of_the_fleet_has_her_bonus_spots() -> void:
 		&"barque": 5,
 		&"ferry": 2,
 		&"freighter": 1,
+		&"small_titanic": 88,
 		&"steamer": 25,
 		&"titanic": 88,
 		&"trawler": 8,
