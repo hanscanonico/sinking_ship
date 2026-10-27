@@ -33,6 +33,8 @@ var choices: MatchChoices
 ## A local match's replay, recorded once it ended or as it was left (save_replay): what
 ## the results offer to watch again; null until then, and for an online match.
 var last_replay: ReplayFile
+## What records a local match's replay and keeps it in the player's list (save_replay).
+var replays := ReplayRecorder.new()
 ## Her ship dressed for the next match or replay started here (ShipDressing), taken as it
 ## starts; with none she is dressed as it starts, a frame of seconds.
 var dressing: ShipDressing
@@ -543,7 +545,10 @@ func _setup_view(
 ## seat's frames — and saves it, once: as the results show, or as the match is left
 ## early, its log ending where play ended (R3). An online match is never saved: its host
 ## is elsewhere. A match started mid-way (a tool's jump) is recorded but not saved, as
-## no replay could rebuild its start (ReplayFile.playable).
+## no replay could rebuild its start (ReplayFile.playable). Nor is one nobody played —
+## a tool's autoplay, bots on every seat, as make capture and make fps run it: the list
+## keeps only the newest so many, and a session of captures would prune the player's
+## own matches out of it.
 func save_replay() -> void:
 	if last_replay != null or _loopback == null or choices == null:
 		return
@@ -551,13 +556,12 @@ func save_replay() -> void:
 	# A match left before a tick was stepped has nothing to watch again.
 	if runner.input_log.last_tick() < runner.input_log.first_tick:
 		return
-	var recorder := ReplayRecorder.new()
-	last_replay = recorder.record(choices, runner)
+	last_replay = replays.record(choices, runner)
 	_last_stats = _stats
 	var playable := last_replay.playable()
 	_end.offer_replay(playable)
-	if playable:
-		recorder.save(last_replay)
+	if playable and _local != null:
+		replays.save(last_replay)
 
 
 ## Counts the match in the session (SessionTally) once it has ended, the once: as its
@@ -930,11 +934,12 @@ static func _seat_names(seats: int) -> PackedStringArray:
 
 
 ## The banner while the eye seat is out and the match goes on, naming whose eyes
-## the view is in; empty otherwise.
+## the view is in; empty otherwise, and in a replay, whose own controls name them
+## where the banner would stand (ReplayHud).
 func _spectating(snapshot: Dictionary, viewed: int) -> String:
 	var seats: Array = snapshot["seats"]
 	var mine: Dictionary = seats[_eye_seat]
-	if not mine["out"] or snapshot["phase"] == MatchState.Phase.ENDED:
+	if not mine["out"] or snapshot["phase"] == MatchState.Phase.ENDED or _driver.replaying():
 		return ""
 	var seat_name := _hud.fit_name(_names[viewed])
 	var whose := Hud.whose_view(seat_name, viewed == _local_seat, _observer)
