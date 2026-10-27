@@ -724,7 +724,7 @@ check:
 # fixture project, and its list of runtime-built loads, against the code; the worktree
 # pruner, against a throwaway repo and a stand-in gh; the CI waiter, against a stand-in
 # gh's snapshots; and art-lint-changed's selection, against a throwaway repo and a
-# stand-in make.
+# stand-in make; and every deck traced off the Titanic's plates (#360), holding together.
 guard-check:
 	@if (set -o pipefail) 2>/dev/null; then echo "make-shell-check: ok"; else \
 		echo "make-shell-check: make runs recipes in $(SHELL), which has no pipefail" >&2; exit 1; fi
@@ -744,6 +744,7 @@ guard-check:
 	tools/prune_worktrees_check.sh
 	tools/ci_wait_check.sh
 	tools/art_lint_changed_check.sh
+	python3 tools/titanic_plates/deck_check.py
 
 # Style and smells. Rule overrides live in gdlintrc.
 lint:
