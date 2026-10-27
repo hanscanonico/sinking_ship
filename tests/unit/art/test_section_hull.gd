@@ -10,7 +10,8 @@ extends GutTest
 ## never shows through her bridge front — her fo'c'sle step, a railed edge, left open.
 ## Her deck plating is open over every stair coming up through a hole in a deck: the
 ## Titanic's from D deck onto her forward well deck show their way down, not planks.
-## Her stern gear stands clear of her shell, fitted to her run.
+## Her stern gear stands clear of her shell, fitted to her run, and her keel bar runs
+## under her keel alone.
 
 const TRAWLER := "res://data/ships/trawler.tres"
 const TITANIC := "res://data/ships/titanic.tres"
@@ -31,6 +32,9 @@ const BESIDE := 0.05
 const OPEN := 0.1
 ## How far a point may stand from her shell's face and still touch it.
 const TOUCH := 0.02
+## How far under her keel nothing but her keel bar reaches: the Titanic's plating over
+## her double bottom, a floor at her keel, stands a centimetre under it.
+const UNDER := 0.05
 
 var _layout: ShipLayout
 var _hull: SectionHull
@@ -338,6 +342,19 @@ func _bottom_under(faces: PackedVector3Array, cells: Dictionary, point: Vector3)
 	return highest
 
 
+## The height of the lowest of [param faces] (filed in [param cells]) straight over
+## [param point]; INF where none is.
+func _shell_over(faces: PackedVector3Array, cells: Dictionary, point: Vector3) -> float:
+	var lowest := INF
+	for index: int in FaceCells.at(cells, point):
+		var hit: Variant = Geometry3D.ray_intersects_triangle(
+			point, Vector3.UP, faces[index], faces[index + 1], faces[index + 2]
+		)
+		if hit != null:
+			lowest = minf(lowest, (hit as Vector3).y)
+	return lowest
+
+
 ## The level triangles of [param faces], three corners each.
 func _level(faces: PackedVector3Array) -> PackedVector3Array:
 	var level := PackedVector3Array()
@@ -461,6 +478,37 @@ func test_her_rudder_and_propeller_stand_clear_of_her_shell() -> void:
 		assert_gt(reach.y, waterline, "%s: her rudder up past her waterline" % ship)
 		assert_gt(_painted(gear, ShipPaints.brass), 0, "%s: her propeller, in bronze" % ship)
 	assert_true(checked.has(&"trawler"), "the trawler among the fleet's sectioned hulls")
+
+
+func test_her_keel_bar_runs_under_her_keel_alone() -> void:
+	# Her keel bar ran aft to where her gear's sternpost stood — on the Titanic 5.4 m aft
+	# of where her run comes down to her keel, 6.8 m under her there — and forward to her
+	# stem, under her forefoot as it rises from her keel: the trawler's 4.8 m under it at
+	# her stem. Straight up from each end of it, beside her keel line, her shell within
+	# the depth of the steamer's keel bar.
+	for ship: StringName in Fleet.names():
+		var layout := Fleet.layout(ship)
+		if layout.dressed:
+			continue
+		var keel := layout.structure.keel_y
+		var space := ShipSpace.new(layout)
+		var mesh := ShipMesh.new(func(_point: Vector3) -> bool: return true, space.room_lines())
+		SectionHull.new(space, RAILING_HEIGHT).build(mesh)
+		# Under her keel, her keel bar alone.
+		var ends := Vector2(INF, -INF)
+		for corner: Vector3 in _committed_faces(mesh):
+			if corner.y < keel - UNDER:
+				ends = Vector2(minf(ends.x, corner.x), maxf(ends.y, corner.x))
+		assert_lt(ends.x, ends.y, "%s: a keel bar under her keel" % ship)
+		var shell := _shell_alone(layout)
+		var cells := FaceCells.file(shell)
+		for x: float in [ends.x + TOUCH, ends.y - TOUCH]:
+			var over := _shell_over(shell, cells, Vector3(x, keel - LEVEL, TOUCH)) - keel
+			assert_lt(
+				over,
+				ShipHull.KEEL_BAR.y,
+				"%s: her shell %.2f m over her keel bar at x %.2f" % [ship, over, x]
+			)
 
 
 ## A side's sheer: its last point's height (SectionHull.shell_sides()).

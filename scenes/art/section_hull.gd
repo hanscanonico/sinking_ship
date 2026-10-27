@@ -717,11 +717,11 @@ func _caps(mesh: ShipMesh) -> void:
 			mesh.box(area, top, top + rail.y, ShipPaints.teak, ShipMesh.TOP | ShipMesh.SIDES)
 
 
-## A keel bar under her keel, from where her run comes down to it to her stem.
+## A keel bar under her keel, from where her run comes down to it to where her forefoot
+## rises from it.
 func _keel_bar(mesh: ShipMesh) -> void:
 	var from := _clear_to(_keel_y + LEVEL)
-	var last := _sections[_sections.size() - 1]
-	var to := last.x + last.length * 0.5
+	var to := _clear_to(_keel_y + LEVEL, true)
 	var bar := KEEL_BAR * _scale
 	mesh.box(
 		Rect2(from, -bar.x * 0.5, to - from, bar.x),
@@ -768,19 +768,21 @@ func _one_run(a: int, b: int) -> bool:
 	return true
 
 
-## How far forward something under her standing up to [param top] stays clear of her:
-## walking forward from her transom, where her bottom first comes down to that height —
-## her transom itself where she stands lower there already.
-func _clear_to(top: float) -> float:
-	for index in range(1, _bottoms.size()):
-		var aft := _bottoms[index - 1]
-		var fore := _bottoms[index]
-		if fore.y >= top:
+## How far along her something under her standing up to [param top] stays clear of her:
+## walking forward from her transom — or aft from her stem, [param from_stem] — where
+## her bottom first comes down to that height; the end it starts from where she stands
+## lower there already.
+func _clear_to(top: float, from_stem := false) -> float:
+	var count := _bottoms.size()
+	for step in range(1, count):
+		var near := _bottoms[count - step if from_stem else step - 1]
+		var far := _bottoms[count - 1 - step if from_stem else step]
+		if far.y >= top:
 			continue
-		if aft.y <= top:
-			return aft.x
-		return lerpf(aft.x, fore.x, (aft.y - top) / (aft.y - fore.y))
-	return _bottoms[_bottoms.size() - 1].x
+		if near.y <= top:
+			return near.x
+		return lerpf(near.x, far.x, (near.y - top) / (near.y - far.y))
+	return _bottoms[0 if from_stem else count - 1].x
 
 
 ## Her bottom at [param x] (_bottom_line()); aft of her transom, her transom's foot.
