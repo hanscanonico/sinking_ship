@@ -934,11 +934,12 @@ static func _seat_names(seats: int) -> PackedStringArray:
 
 
 ## The banner while the eye seat is out and the match goes on, naming whose eyes
-## the view is in; empty otherwise.
+## the view is in; empty otherwise, and in a replay, whose own controls name them
+## where the banner would stand (ReplayHud).
 func _spectating(snapshot: Dictionary, viewed: int) -> String:
 	var seats: Array = snapshot["seats"]
 	var mine: Dictionary = seats[_eye_seat]
-	if not mine["out"] or snapshot["phase"] == MatchState.Phase.ENDED:
+	if not mine["out"] or snapshot["phase"] == MatchState.Phase.ENDED or _driver.replaying():
 		return ""
 	var seat_name := _hud.fit_name(_names[viewed])
 	var whose := Hud.whose_view(seat_name, viewed == _local_seat, _observer)
