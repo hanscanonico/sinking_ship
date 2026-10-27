@@ -23470,26 +23470,26 @@ metadata/friction = 6.5
 [node name="Rooms" type="Node3D" parent="." unique_id=895553628]
 visible = false
 
-[node name="Room_boat_0_second_class_entrance" type="CSGBox3D" parent="Rooms" unique_id=174142370]
+[node name="Room_boat_0_second_class_entrance_boat_deck" type="CSGBox3D" parent="Rooms" unique_id=1479583816]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -70.375, 9.425, 0)
 size = Vector3(7, 2.1, 5.5)
 material = SubResource("StandardMaterial3D_wpyyv")
 metadata/ship = &"room"
-metadata/name = &"second-class entrance"
+metadata/name = &"second-class entrance, boat deck"
 
-[node name="Room_boat_1_tank_room" type="CSGBox3D" parent="Rooms" unique_id=600152517]
+[node name="Room_boat_1_tank_room_port" type="CSGBox3D" parent="Rooms" unique_id=792208885]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -32.3125, 9.425, -4.78125)
 size = Vector3(8.375, 2.1, 3.8125)
 material = SubResource("StandardMaterial3D_wpyyv")
 metadata/ship = &"room"
-metadata/name = &"tank room"
+metadata/name = &"tank room, port"
 
-[node name="Room_boat_2_tank_room" type="CSGBox3D" parent="Rooms" unique_id=1312132223]
+[node name="Room_boat_2_tank_room_starboard" type="CSGBox3D" parent="Rooms" unique_id=1846197095]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -32.3125, 9.425, 4.96875)
 size = Vector3(8.375, 2.1, 3.5625)
 material = SubResource("StandardMaterial3D_wpyyv")
 metadata/ship = &"room"
-metadata/name = &"tank room"
+metadata/name = &"tank room, starboard"
 
 [node name="Room_boat_3_mess_pantry" type="CSGBox3D" parent="Rooms" unique_id=906590429]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -21.75, 9.425, 4.1875)
@@ -23533,19 +23533,19 @@ material = SubResource("StandardMaterial3D_wpyyv")
 metadata/ship = &"room"
 metadata/name = &"grand staircase, boat deck"
 
-[node name="Room_boat_9_vestibule" type="CSGBox3D" parent="Rooms" unique_id=825364100]
+[node name="Room_boat_9_vestibule_boat_deck" type="CSGBox3D" parent="Rooms" unique_id=297299660]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 26.6875, 9.425, -7.28125)
 size = Vector3(2, 2.1, 1.8125)
 material = SubResource("StandardMaterial3D_wpyyv")
 metadata/ship = &"room"
-metadata/name = &"vestibule"
+metadata/name = &"vestibule, boat deck"
 
-[node name="Room_boat_10_vestibule" type="CSGBox3D" parent="Rooms" unique_id=1220309340]
+[node name="Room_boat_10_vestibule_boat_deck" type="CSGBox3D" parent="Rooms" unique_id=999220035]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 26.6875, 9.425, 7.375)
 size = Vector3(2, 2.1, 1.75)
 material = SubResource("StandardMaterial3D_wpyyv")
 metadata/ship = &"room"
-metadata/name = &"vestibule"
+metadata/name = &"vestibule, boat deck"
 
 [node name="Room_boat_11_marconi_operators_bedroom" type="CSGBox3D" parent="Rooms" unique_id=1339102397]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 36.625, 9.425, -4.625)
@@ -23575,12 +23575,12 @@ material = SubResource("StandardMaterial3D_wpyyv")
 metadata/ship = &"room"
 metadata/name = &"silent room"
 
-[node name="Room_boat_15_passage" type="CSGBox3D" parent="Rooms" unique_id=1065382469]
+[node name="Room_boat_15_officers_passage" type="CSGBox3D" parent="Rooms" unique_id=1517378155]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 43.25, 9.425, -1.75)
 size = Vector3(1.125, 2.1, 9.5)
 material = SubResource("StandardMaterial3D_wpyyv")
 metadata/ship = &"room"
-metadata/name = &"passage"
+metadata/name = &"officers\' passage"
 
 [node name="Room_boat_16_sixth_officer_s_cabin" type="CSGBox3D" parent="Rooms" unique_id=2096812953]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 44.9375, 9.425, -5.1875)
@@ -23596,12 +23596,12 @@ material = SubResource("StandardMaterial3D_wpyyv")
 metadata/ship = &"room"
 metadata/name = &"extra second officer\'s cabin"
 
-[node name="Room_boat_18_passage" type="CSGBox3D" parent="Rooms" unique_id=589806812]
+[node name="Room_boat_18_officers_passage" type="CSGBox3D" parent="Rooms" unique_id=1202799806]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 48.8125, 9.425, -5.1875)
 size = Vector3(1.25, 2.1, 2.625)
 material = SubResource("StandardMaterial3D_wpyyv")
 metadata/ship = &"room"
-metadata/name = &"passage"
+metadata/name = &"officers\' passage"
 
 [node name="Room_boat_19_first_officer_s_cabin" type="CSGBox3D" parent="Rooms" unique_id=1247371276]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 51.15625, 9.425, -5.1875)
@@ -23666,12 +23666,12 @@ material = SubResource("StandardMaterial3D_wpyyv")
 metadata/ship = &"room"
 metadata/name = &"officers\' lavatory"
 
-[node name="Room_boat_28_bathroom" type="CSGBox3D" parent="Rooms" unique_id=364504247]
+[node name="Room_boat_28_officers_bathroom" type="CSGBox3D" parent="Rooms" unique_id=1398093470]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 44.75, 9.425, 0.375)
 size = Vector3(1.875, 2.1, 1.875)
 material = SubResource("StandardMaterial3D_wpyyv")
 metadata/ship = &"room"
-metadata/name = &"bathroom"
+metadata/name = &"officers\' bathroom"
 
 [node name="Room_boat_29_lavatory" type="CSGBox3D" parent="Rooms" unique_id=1496512346]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 46.28125, 9.425, 0.375)
@@ -23722,12 +23722,12 @@ material = SubResource("StandardMaterial3D_wpyyv")
 metadata/ship = &"room"
 metadata/name = &"fourth officer\'s cabin"
 
-[node name="Room_boat_36_passage" type="CSGBox3D" parent="Rooms" unique_id=1020239933]
+[node name="Room_boat_36_officers_passage" type="CSGBox3D" parent="Rooms" unique_id=265919376]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 43.25, 9.425, 5.53125)
 size = Vector3(1.125, 2.1, 2.6875)
 material = SubResource("StandardMaterial3D_wpyyv")
 metadata/ship = &"room"
-metadata/name = &"passage"
+metadata/name = &"officers\' passage"
 
 [node name="Room_boat_37_third_officer_s_cabin" type="CSGBox3D" parent="Rooms" unique_id=462729878]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 45.15625, 9.425, 5.53125)
@@ -23743,12 +23743,12 @@ material = SubResource("StandardMaterial3D_wpyyv")
 metadata/ship = &"room"
 metadata/name = &"second officer\'s cabin"
 
-[node name="Room_boat_39_passage" type="CSGBox3D" parent="Rooms" unique_id=2116584317]
+[node name="Room_boat_39_officers_passage" type="CSGBox3D" parent="Rooms" unique_id=903540822]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 49.75, 9.425, 5.53125)
 size = Vector3(1.125, 2.1, 2.6875)
 material = SubResource("StandardMaterial3D_wpyyv")
 metadata/ship = &"room"
-metadata/name = &"passage"
+metadata/name = &"officers\' passage"
 
 [node name="Room_boat_40_captain_s_lavatory" type="CSGBox3D" parent="Rooms" unique_id=1857120492]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 51.5, 9.425, 5.53125)
@@ -23799,12 +23799,12 @@ material = SubResource("StandardMaterial3D_wpyyv")
 metadata/ship = &"room"
 metadata/name = &"verandah café and palm court"
 
-[node name="Room_a_2_second_class_entrance" type="CSGBox3D" parent="Rooms" unique_id=1415053627]
+[node name="Room_a_2_second_class_entrance_a_deck" type="CSGBox3D" parent="Rooms" unique_id=1208039969]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -70.84375, 6.55, 0)
 size = Vector3(5.9375, 2.1, 6.125)
 material = SubResource("StandardMaterial3D_wpyyv")
 metadata/ship = &"room"
-metadata/name = &"second-class entrance"
+metadata/name = &"second-class entrance, A deck"
 
 [node name="Room_a_3_bar" type="CSGBox3D" parent="Rooms" unique_id=1738638189]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -66.0625, 6.55, 0)
@@ -25771,145 +25771,131 @@ metadata/ship = &"section"
 
 [node name="Section_31" type="CSGPolygon3D" parent="Structure/Sections" unique_id=1048943882]
 transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 25.5875, 0, 0)
-polygon = PackedVector2Array(0, -19.8125, 11.4578, -19.8125, 11.8982, -19.7583, 12.3465, -19.5959, 12.7779, -19.3261, 13.1636, -18.95, 13.466, -18.4692, 13.6337, -17.8857, 13.8477, -15.5466, 13.9618, -12.3986, 14.018, -7.1562, 14.0208, 5.5, 9.85, 5.5, 9.85, 8.375, 8.35, 8.375, 8.35, 11, -8.2875, 11, -8.2875, 8.375, -9.85, 8.375, -9.85, 5.5, -14.0208, 5.5, -14.018, -7.1562, -13.9618, -12.3986, -13.8964, -14.5818, -13.7873, -16.4213, -13.6337, -17.8857, -13.466, -18.4692, -13.1636, -18.95, -12.7779, -19.3261, -12.3465, -19.5959, -11.8982, -19.7583, -11.4578, -19.8125)
-depth = 4.875
+polygon = PackedVector2Array(0, -19.8125, 11.454, -19.8125, 11.8944, -19.7583, 12.3427, -19.5959, 12.7743, -19.3261, 13.1602, -18.95, 13.4629, -18.4692, 13.6311, -17.8857, 13.8463, -15.5466, 13.9331, -13.5309, 13.9814, -11.1897, 14.018, -7.1562, 14.0208, 5.5, 9.85, 5.5, 9.85, 8.375, 8.35, 8.375, 8.35, 11, -8.2875, 11, -8.2875, 8.375, -9.85, 8.375, -9.85, 5.5, -14.0208, 5.5, -14.018, -7.1562, -13.9612, -12.3986, -13.8952, -14.5818, -13.7855, -16.4213, -13.6311, -17.8857, -13.4629, -18.4692, -13.1602, -18.95, -12.7743, -19.3261, -12.3427, -19.5959, -11.8944, -19.7583, -11.454, -19.8125)
+depth = 4.925
 material = SubResource("StandardMaterial3D_cks8b")
 metadata/ship = &"section"
 
 [node name="Section_32" type="CSGPolygon3D" parent="Structure/Sections" unique_id=1294432731]
-transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 30.4625, 0, 0)
-polygon = PackedVector2Array(0, -19.8125, 10.7645, -19.8125, 11.1902, -19.7583, 11.6391, -19.5959, 12.088, -19.3261, 12.508, -18.95, 12.8609, -18.4692, 13.0931, -17.8857, 13.3889, -16.4213, 13.6284, -14.5818, 13.7219, -13.5309, 13.8578, -11.1897, 13.9988, -7.1562, 14.0207, 5.5, 9.85, 5.5, 9.85, 8.375, 8.35, 8.375, 8.35, 11, -8.2875, 11, -8.2875, 8.375, -9.85, 8.375, -9.85, 5.5, -14.0207, 5.5, -13.9988, -7.1562, -13.8578, -11.1897, -13.7219, -13.5309, -13.5171, -15.5466, -13.3889, -16.4213, -13.0931, -17.8857, -12.8609, -18.4692, -12.508, -18.95, -12.088, -19.3261, -11.6391, -19.5959, -11.1902, -19.7583, -10.7645, -19.8125)
-depth = 4.875
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 30.5125, 0, 0)
+polygon = PackedVector2Array(0, -19.8125, 10.7542, -19.8125, 11.1797, -19.7583, 11.6286, -19.5959, 12.0776, -19.3261, 12.498, -18.95, 12.8515, -18.4692, 13.0845, -17.8857, 13.3823, -16.4213, 13.6236, -14.5818, 13.718, -13.5309, 13.8553, -11.1897, 13.9602, -8.5629, 14.0128, -5.6954, 14.0207, 5.5, 9.85, 5.5, 9.85, 8.375, 8.35, 8.375, 8.35, 11, -8.2875, 11, -8.2875, 8.375, -9.85, 8.375, -9.85, 5.5, -14.0207, 5.5, -14.0128, -5.6954, -13.9602, -8.5629, -13.8553, -11.1897, -13.718, -13.5309, -13.5114, -15.5466, -13.3823, -16.4213, -13.0845, -17.8857, -12.8515, -18.4692, -12.498, -18.95, -12.0776, -19.3261, -11.6286, -19.5959, -11.1797, -19.7583, -10.7542, -19.8125)
+depth = 4.925
 material = SubResource("StandardMaterial3D_cks8b")
 metadata/ship = &"section"
 
 [node name="Section_33" type="CSGPolygon3D" parent="Structure/Sections" unique_id=1488739533]
-transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 35.3375, 0, 0)
-polygon = PackedVector2Array(0, -19.8125, 10.4205, -19.8125, 10.8379, -19.7583, 11.2843, -19.5959, 11.7372, -19.3261, 12.1684, -18.95, 12.5399, -18.4692, 12.7979, -17.8857, 13.1552, -16.4213, 13.4567, -14.5818, 13.6814, -12.3986, 13.9173, -8.5629, 14.004, -5.6954, 14.0206, 5.5, 9.85, 5.5, 9.85, 8.375, 8.35, 8.375, 8.35, 11, -8.2875, 11, -8.2875, 8.375, 6.975, 8.375, 6.975, 11, -6.6, 11, -6.6, 8.375, -9.85, 8.375, -9.85, 5.5, -14.0206, 5.5, -14.004, -5.6954, -13.9173, -8.5629, -13.7647, -11.1897, -13.5791, -13.5309, -13.3148, -15.5466, -12.9808, -17.2021, -12.7979, -17.8857, -12.5399, -18.4692, -12.1684, -18.95, -11.7372, -19.3261, -11.2843, -19.5959, -10.8379, -19.7583, -10.4205, -19.8125)
-depth = 0.2
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 35.43755, 0, 0)
+polygon = PackedVector2Array(0, -19.8125, 10.3522, -19.8125, 10.7679, -19.7583, 11.2136, -19.5959, 11.667, -19.3261, 12.1001, -18.95, 12.4748, -18.4692, 12.7375, -17.8857, 13.1064, -16.4213, 13.4199, -14.5818, 13.6556, -12.3986, 13.9733, -7.1562, 14.0133, -4.1867, 14.0205, 5.5, 9.85, 5.5, 9.85, 8.375, 6.975, 8.375, 6.975, 11, -6.6, 11, -6.6, 8.375, -9.85, 8.375, -9.85, 5.5, -14.0205, 5.5, -14.0017, -5.6954, -13.9733, -7.1562, -13.7437, -11.1897, -13.548, -13.5309, -13.272, -15.5466, -12.9261, -17.2021, -12.7375, -17.8857, -12.4748, -18.4692, -12.1001, -18.95, -11.667, -19.3261, -11.2136, -19.5959, -10.7679, -19.7583, -10.3522, -19.8125)
+depth = 1.0225
 material = SubResource("StandardMaterial3D_cks8b")
 metadata/ship = &"section"
 
 [node name="Section_34" type="CSGPolygon3D" parent="Structure/Sections" unique_id=1520657023]
-transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 35.53755, 0, 0)
-polygon = PackedVector2Array(0, -19.8125, 10.3455, -19.8125, 10.7611, -19.7583, 11.2067, -19.5959, 11.6601, -19.3261, 12.0934, -18.95, 12.4685, -18.4692, 12.7316, -17.8857, 13.1016, -16.4213, 13.4162, -14.5818, 13.6531, -12.3986, 13.9728, -7.1562, 14.0132, -4.1867, 14.0205, 5.5, 9.85, 5.5, 9.85, 8.375, 6.975, 8.375, 6.975, 11, -6.6, 11, -6.6, 8.375, -9.85, 8.375, -9.85, 5.5, -14.0205, 5.5, -14.0014, -5.6954, -13.9728, -7.1562, -13.7416, -11.1897, -13.5449, -13.5309, -13.2677, -15.5466, -12.9207, -17.2021, -12.7316, -17.8857, -12.4685, -18.4692, -12.0934, -18.95, -11.6601, -19.3261, -11.2067, -19.5959, -10.7611, -19.7583, -10.3455, -19.8125)
-depth = 0.9225
-material = SubResource("StandardMaterial3D_cks8b")
-metadata/ship = &"section"
-
-[node name="Section_35" type="CSGPolygon3D" parent="Structure/Sections" unique_id=248407319]
 transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 36.46, 0, 0)
 polygon = PackedVector2Array(0, -19.8125, 9.7106, -19.8125, 10.1096, -19.7583, 10.5466, -19.5959, 11.0011, -19.3261, 11.4466, -18.95, 11.8463, -18.4692, 12.1472, -17.8857, 12.3827, -17.2021, 12.8316, -15.5466, 13.2135, -13.5309, 13.3714, -12.3986, 13.9043, -7.1562, 13.9963, -4.1867, 14.0194, 5.5, 9.85, 5.5, 9.85, 8.375, 6.975, 8.375, 6.975, 11, -6.6, 11, -6.6, 8.375, -9.85, 8.375, -9.85, 5.5, -14.0194, 5.5, -13.9963, -4.1867, -13.9043, -7.1562, -13.7773, -8.5629, -13.3714, -12.3986, -13.0328, -14.5818, -12.8316, -15.5466, -12.3827, -17.2021, -12.1472, -17.8857, -11.8463, -18.4692, -11.4466, -18.95, -11.0011, -19.3261, -10.5466, -19.5959, -10.1096, -19.7583, -9.7106, -19.8125)
 depth = 8.775
 material = SubResource("StandardMaterial3D_cks8b")
 metadata/ship = &"section"
 
-[node name="Section_36" type="CSGPolygon3D" parent="Structure/Sections" unique_id=1145643570]
+[node name="Section_35" type="CSGPolygon3D" parent="Structure/Sections" unique_id=248407319]
 transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 45.235, 0, 0)
 polygon = PackedVector2Array(0, -19.8125, 8.6048, -19.8125, 8.9726, -19.7583, 9.387, -19.5959, 9.8308, -19.3261, 10.2806, -18.95, 10.7027, -18.4692, 11.0474, -17.8857, 11.6394, -16.4213, 11.9297, -15.5466, 12.4699, -13.5309, 12.9252, -11.1897, 13.1149, -9.9093, 13.6728, -7.1562, 13.8281, -5.6954, 13.9162, -4.1867, 13.9915, -1.0514, 14.0092, 5.5, 9.85, 5.5, 9.85, 8.375, 6.975, 8.375, 6.975, 11, -6.6, 11, -6.6, 8.375, -9.85, 8.375, -9.85, 5.5, -14.0092, 5.5, -14.0056, 0.5618, -13.965, -2.6364, -13.9162, -4.1867, -13.8281, -5.6954, -13.6728, -7.1562, -13.1149, -9.9093, -12.9252, -11.1897, -12.4699, -13.5309, -11.9297, -15.5466, -11.6394, -16.4213, -11.0474, -17.8857, -10.7027, -18.4692, -10.2806, -18.95, -9.8308, -19.3261, -9.387, -19.5959, -8.9726, -19.7583, -8.6048, -19.8125)
 depth = 8.775
 material = SubResource("StandardMaterial3D_cks8b")
 metadata/ship = &"section"
 
-[node name="Section_37" type="CSGPolygon3D" parent="Structure/Sections" unique_id=191798972]
+[node name="Section_36" type="CSGPolygon3D" parent="Structure/Sections" unique_id=1145643570]
 transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 54.01, 0, 0)
-polygon = PackedVector2Array(0, -19.8125, 7.6203, -19.8125, 7.9583, -19.7583, 8.3466, -19.5959, 8.7706, -19.3261, 9.21, -18.95, 9.6347, -18.4692, 9.999, -17.8857, 10.6616, -16.4213, 10.9961, -15.5466, 11.6441, -13.5309, 12.2252, -11.1897, 12.4806, -9.9093, 13.3089, -7.1562, 13.579, -5.6954, 13.751, -4.1867, 13.8583, -2.6364, 13.9638, 0.5618, 13.9751, 5.5, 9.85, 5.5, 9.85, 8.375, 6.975, 8.375, 6.975, 11, -6.6, 11, -6.6, 8.375, -9.85, 8.375, -9.85, 5.5, -13.9751, 5.5, -13.9638, 0.5618, -13.9241, -1.0514, -13.8583, -2.6364, -13.751, -4.1867, -13.579, -5.6954, -13.3089, -7.1562, -12.4806, -9.9093, -12.2252, -11.1897, -11.6441, -13.5309, -10.9961, -15.5466, -10.6616, -16.4213, -9.999, -17.8857, -9.6347, -18.4692, -9.21, -18.95, -8.7706, -19.3261, -8.3466, -19.5959, -7.9583, -19.7583, -7.6203, -19.8125)
-depth = 7.39
+polygon = PackedVector2Array(0, -19.8125, 7.6143, -19.8125, 7.9521, -19.7583, 8.3402, -19.5959, 8.7641, -19.3261, 9.2034, -18.95, 9.6281, -18.4692, 9.9924, -17.8857, 10.6554, -16.4213, 10.9901, -15.5466, 11.6386, -13.5309, 12.2204, -11.1897, 12.4762, -9.9093, 13.3062, -7.1562, 13.577, -5.6954, 13.7496, -4.1867, 13.8573, -2.6364, 13.9634, 0.5618, 13.9748, 5.5, 9.85, 5.5, 9.85, 8.375, 6.975, 8.375, 6.975, 11, -6.6, 11, -6.6, 8.375, -9.85, 8.375, -9.85, 5.5, -13.9748, 5.5, -13.9634, 0.5618, -13.9234, -1.0514, -13.8573, -2.6364, -13.7496, -4.1867, -13.577, -5.6954, -13.3062, -7.1562, -12.4762, -9.9093, -12.2204, -11.1897, -11.6386, -13.5309, -10.9901, -15.5466, -10.6554, -16.4213, -9.9924, -17.8857, -9.6281, -18.4692, -9.2034, -18.95, -8.7641, -19.3261, -8.3402, -19.5959, -7.9521, -19.7583, -7.6143, -19.8125)
+depth = 7.49
+material = SubResource("StandardMaterial3D_cks8b")
+metadata/ship = &"section"
+
+[node name="Section_37" type="CSGPolygon3D" parent="Structure/Sections" unique_id=191798972]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 61.49995, 0, 0)
+polygon = PackedVector2Array(0, -19.8125, 6.8605, -19.8125, 7.1745, -19.7583, 7.5396, -19.5959, 7.9432, -19.3261, 8.3673, -18.95, 8.7847, -18.4692, 9.1533, -17.8857, 9.8459, -16.4213, 10.5577, -14.5818, 10.9081, -13.5309, 11.5672, -11.1897, 11.8668, -9.9093, 12.9018, -7.1562, 13.2743, -5.6954, 13.5296, -4.1867, 13.7014, -2.6364, 13.8152, -1.0514, 13.8895, 0.5618, 13.9121, 5.5, 9.85, 5.5, 9.85, 8.375, 4.2875, 8.375, 4.2875, 11, -3.975, 11, -3.975, 8.375, -9.85, 8.375, -9.85, 5.5, -13.9121, 5.5, -13.8895, 0.5618, -13.8152, -1.0514, -13.7014, -2.6364, -13.5296, -4.1867, -13.2743, -5.6954, -12.9018, -7.1562, -11.8668, -9.9093, -11.2463, -12.3986, -10.5577, -14.5818, -9.8459, -16.4213, -9.1533, -17.8857, -8.7847, -18.4692, -8.3673, -18.95, -7.9432, -19.3261, -7.5396, -19.5959, -7.1745, -19.7583, -6.8605, -19.8125)
+depth = 5.1625
 material = SubResource("StandardMaterial3D_cks8b")
 metadata/ship = &"section"
 
 [node name="Section_38" type="CSGPolygon3D" parent="Structure/Sections" unique_id=1152466971]
-transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 61.4, 0, 0)
-polygon = PackedVector2Array(0, -19.8125, 7.1665, -19.8125, 7.4903, -19.7583, 7.865, -19.5959, 8.2773, -19.3261, 8.7083, -18.95, 9.1295, -18.4692, 9.4974, -17.8857, 10.1804, -16.4213, 10.5289, -15.5466, 11.2146, -13.5309, 11.5391, -12.3986, 12.1273, -9.9093, 13.0803, -7.1562, 13.4105, -5.6954, 13.6306, -4.1867, 13.7744, -2.6364, 13.9255, 0.5618, 13.9429, 5.5, 9.85, 5.5, 9.85, 8.375, 6.975, 8.375, 6.975, 11, -6.6, 11, -6.6, 8.375, 4.2875, 8.375, 4.2875, 11, -3.975, 11, -3.975, 8.375, -9.85, 8.375, -9.85, 5.5, -13.9429, 5.5, -13.9255, 0.5618, -13.8669, -1.0514, -13.7744, -2.6364, -13.6306, -4.1867, -13.4105, -5.6954, -13.0803, -7.1562, -12.1273, -9.9093, -11.8445, -11.1897, -11.2146, -13.5309, -10.5289, -15.5466, -10.1804, -16.4213, -9.4974, -17.8857, -9.1295, -18.4692, -8.7083, -18.95, -8.2773, -19.3261, -7.865, -19.5959, -7.4903, -19.7583, -7.1665, -19.8125)
-depth = 0.2
-material = SubResource("StandardMaterial3D_cks8b")
-metadata/ship = &"section"
-
-[node name="Section_39" type="CSGPolygon3D" parent="Structure/Sections" unique_id=1604975527]
-transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 61.59995, 0, 0)
-polygon = PackedVector2Array(0, -19.8125, 6.8546, -19.8125, 7.1684, -19.7583, 7.5334, -19.5959, 7.9368, -19.3261, 8.3607, -18.95, 8.778, -18.4692, 9.1466, -17.8857, 9.8393, -16.4213, 10.5514, -14.5818, 10.9021, -13.5309, 11.5616, -11.1897, 11.8616, -9.9093, 12.8981, -7.1562, 13.2715, -5.6954, 13.5274, -4.1867, 13.6998, -2.6364, 13.814, -1.0514, 13.8887, 0.5618, 13.9115, 5.5, 9.85, 5.5, 9.85, 8.375, 4.2875, 8.375, 4.2875, 11, -3.975, 11, -3.975, 8.375, -9.85, 8.375, -9.85, 5.5, -13.9115, 5.5, -13.8887, 0.5618, -13.814, -1.0514, -13.6998, -2.6364, -13.5274, -4.1867, -13.2715, -5.6954, -12.8981, -7.1562, -11.8616, -9.9093, -11.2405, -12.3986, -10.5514, -14.5818, -9.8393, -16.4213, -9.1466, -17.8857, -8.778, -18.4692, -8.3607, -18.95, -7.9368, -19.3261, -7.5334, -19.5959, -7.1684, -19.7583, -6.8546, -19.8125)
-depth = 5.0625
-material = SubResource("StandardMaterial3D_cks8b")
-metadata/ship = &"section"
-
-[node name="Section_40" type="CSGPolygon3D" parent="Structure/Sections" unique_id=1810073459]
 transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 66.66245, 0, 0)
 polygon = PackedVector2Array(0, -19.8125, 6.3975, -19.8125, 6.6965, -19.7583, 7.0464, -19.5959, 7.4356, -19.3261, 7.8476, -18.95, 8.257, -18.4692, 8.624, -17.8857, 9.325, -16.4213, 10.0547, -14.5818, 10.7746, -12.3986, 11.4384, -9.9093, 12.5916, -7.1562, 13.0294, -5.6954, 13.3416, -4.1867, 13.5604, -2.6364, 13.7116, -1.0514, 13.8147, 0.5618, 13.8464, 2.1961, 13.8472, 5.5, 9.85, 5.5, 9.85, 8.375, -9.85, 8.375, -9.85, 5.5, -13.8472, 5.5, -13.8464, 2.1961, -13.8147, 0.5618, -13.7116, -1.0514, -13.5604, -2.6364, -13.3416, -4.1867, -13.0294, -5.6954, -12.5916, -7.1562, -11.4384, -9.9093, -10.7746, -12.3986, -10.0547, -14.5818, -9.325, -16.4213, -8.624, -17.8857, -8.257, -18.4692, -7.8476, -18.95, -7.4356, -19.3261, -7.0464, -19.5959, -6.6965, -19.7583, -6.3975, -19.8125)
 depth = 2.7125
 material = SubResource("StandardMaterial3D_cks8b")
 metadata/ship = &"section"
 
-[node name="Section_41" type="CSGPolygon3D" parent="Structure/Sections" unique_id=1067874083]
+[node name="Section_39" type="CSGPolygon3D" parent="Structure/Sections" unique_id=1604975527]
 transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 69.375, 0, 0)
 polygon = PackedVector2Array(0, -19.8125, 6.1582, -19.8125, 6.4494, -19.7583, 6.7911, -19.5959, 7.1723, -19.3261, 7.5774, -18.95, 7.9817, -18.4692, 8.3467, -17.8857, 9.0491, -16.4213, 9.7848, -14.5818, 10.5175, -12.3986, 11.2006, -9.9093, 12.4114, -7.1562, 12.8831, -5.6954, 13.2259, -4.1867, 13.4711, -2.6364, 13.6439, -1.0514, 13.7642, 0.5618, 13.8018, 2.1961, 13.8028, 5.5, -13.8028, 5.5, -13.8018, 2.1961, -13.7642, 0.5618, -13.6439, -1.0514, -13.4711, -2.6364, -13.2259, -4.1867, -12.8831, -5.6954, -12.4114, -7.1562, -11.2006, -9.9093, -10.5175, -12.3986, -9.7848, -14.5818, -9.0491, -16.4213, -8.3467, -17.8857, -7.9817, -18.4692, -7.5774, -18.95, -7.1723, -19.3261, -6.7911, -19.5959, -6.4494, -19.7583, -6.1582, -19.8125)
 depth = 1.385
 material = SubResource("StandardMaterial3D_cks8b")
 metadata/ship = &"section"
 
-[node name="Section_42" type="CSGPolygon3D" parent="Structure/Sections" unique_id=2025569383]
+[node name="Section_40" type="CSGPolygon3D" parent="Structure/Sections" unique_id=1810073459]
 transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 70.76, 0, 0)
 polygon = PackedVector2Array(0, -19.8125, 5.9102, -19.8125, 6.1933, -19.7583, 6.5263, -19.5959, 6.899, -19.3261, 7.2962, -18.95, 7.6945, -18.4692, 8.0567, -17.8857, 8.7587, -16.4213, 9.4982, -14.5818, 10.2416, -12.3986, 10.9424, -9.9093, 11.5378, -8.5629, 12.2096, -7.1562, 12.716, -5.6954, 13.0913, -4.1867, 13.365, -2.6364, 13.5619, -1.0514, 13.7018, 0.5618, 13.7462, 2.1961, 13.7475, 5.5, -13.7475, 5.5, -13.7462, 2.1961, -13.7018, 0.5618, -13.5619, -1.0514, -13.365, -2.6364, -13.0913, -4.1867, -12.716, -5.6954, -12.2096, -7.1562, -11.5378, -8.5629, -10.9424, -9.9093, -10.2416, -12.3986, -9.4982, -14.5818, -8.7587, -16.4213, -8.0567, -17.8857, -7.6945, -18.4692, -7.2962, -18.95, -6.899, -19.3261, -6.5263, -19.5959, -6.1933, -19.7583, -5.9102, -19.8125)
 depth = 2.88
 material = SubResource("StandardMaterial3D_cks8b")
 metadata/ship = &"section"
 
-[node name="Section_43" type="CSGPolygon3D" parent="Structure/Sections" unique_id=516539197]
+[node name="Section_41" type="CSGPolygon3D" parent="Structure/Sections" unique_id=1067874083]
 transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 73.64, 0, 0)
 polygon = PackedVector2Array(0, -19.8125, 5.3785, -19.8125, 5.6106, -19.7701, 5.8813, -19.643, 6.1844, -19.4318, 6.5118, -19.1374, 6.8512, -18.7611, 7.1842, -18.3044, 7.7852, -17.1581, 8.0975, -16.4735, 8.7406, -14.8958, 9.3991, -13.0633, 9.7242, -12.0611, 10.3485, -9.9062, 10.8605, -8.7628, 11.52, -7.5819, 12.055, -6.3685, 12.4843, -5.1279, 12.8254, -3.8652, 13.094, -2.5861, 13.3041, -1.2958, 13.4673, 0, -13.4673, 0, -13.3041, -1.2958, -13.094, -2.5861, -12.8254, -3.8652, -12.4843, -5.1279, -12.055, -6.3685, -11.52, -7.5819, -10.8605, -8.7628, -10.3485, -9.9062, -9.7242, -12.0611, -9.3991, -13.0633, -8.7406, -14.8958, -8.0975, -16.4735, -7.7852, -17.1581, -7.1842, -18.3044, -6.8512, -18.7611, -6.5118, -19.1374, -6.1844, -19.4318, -5.8813, -19.643, -5.6106, -19.7701, -5.3785, -19.8125)
 depth = 6.33
 material = SubResource("StandardMaterial3D_cks8b")
 metadata/ship = &"section"
 
-[node name="Section_44" type="CSGPolygon3D" parent="Structure/Sections" unique_id=824779981]
+[node name="Section_42" type="CSGPolygon3D" parent="Structure/Sections" unique_id=2025569383]
 transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 79.97, 0, 0)
 polygon = PackedVector2Array(0, -19.8125, 4.6551, -19.8125, 4.8656, -19.7701, 5.1122, -19.643, 5.3898, -19.4318, 5.6916, -19.1374, 6.0069, -18.7611, 6.3197, -18.3044, 6.8958, -17.1581, 7.8237, -14.8958, 8.8059, -12.0611, 9.4484, -9.9062, 9.9885, -8.7628, 10.7059, -7.5819, 11.311, -6.3685, 11.8161, -5.1279, 12.2341, -3.8652, 12.5772, -2.5861, 12.8569, -1.2958, 13.0835, 0, -13.0835, 0, -12.8569, -1.2958, -12.5772, -2.5861, -12.2341, -3.8652, -11.8161, -5.1279, -11.311, -6.3685, -10.7059, -7.5819, -9.9885, -8.7628, -9.4484, -9.9062, -8.8059, -12.0611, -7.8237, -14.8958, -6.8958, -17.1581, -6.3197, -18.3044, -6.0069, -18.7611, -5.6916, -19.1374, -5.3898, -19.4318, -5.1122, -19.643, -4.8656, -19.7701, -4.6551, -19.8125)
 depth = 6.33
 material = SubResource("StandardMaterial3D_cks8b")
 metadata/ship = &"section"
 
-[node name="Section_45" type="CSGPolygon3D" parent="Structure/Sections" unique_id=762675354]
+[node name="Section_43" type="CSGPolygon3D" parent="Structure/Sections" unique_id=516539197]
 transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 86.3, 0, 0)
 polygon = PackedVector2Array(0, -19.8125, 3.9869, -19.8125, 4.1771, -19.7701, 4.4005, -19.643, 4.6529, -19.4318, 4.9284, -19.1374, 5.2181, -18.7611, 5.5079, -18.3044, 6.0503, -17.1581, 6.9303, -14.8958, 7.8832, -12.0611, 8.5227, -9.9062, 9.0714, -8.7628, 9.8193, -7.5819, 10.4711, -6.3685, 11.0338, -5.1279, 11.5157, -3.8652, 11.9251, -2.5861, 12.2709, -1.2958, 12.5611, 0, -12.5611, 0, -12.2709, -1.2958, -11.9251, -2.5861, -11.5157, -3.8652, -11.0338, -5.1279, -10.4711, -6.3685, -9.8193, -7.5819, -9.0714, -8.7628, -8.5227, -9.9062, -7.8832, -12.0611, -6.9303, -14.8958, -6.0503, -17.1581, -5.5079, -18.3044, -5.2181, -18.7611, -4.9284, -19.1374, -4.6529, -19.4318, -4.4005, -19.643, -4.1771, -19.7701, -3.9869, -19.8125)
 depth = 5.4856
 material = SubResource("StandardMaterial3D_cks8b")
 metadata/ship = &"section"
 
-[node name="Section_46" type="CSGPolygon3D" parent="Structure/Sections" unique_id=332537272]
+[node name="Section_44" type="CSGPolygon3D" parent="Structure/Sections" unique_id=824779981]
 transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 91.7856, 0, 0)
 polygon = PackedVector2Array(0, -19.8125, 3.3972, -19.8125, 3.5889, -19.7608, 3.8168, -19.6061, 4.0763, -19.3489, 4.3599, -18.9905, 4.6554, -18.5322, 4.9422, -17.9761, 5.5115, -16.5804, 6.1293, -14.8271, 6.8011, -12.7465, 7.4997, -10.3739, 7.9423, -9.0906, 8.8213, -7.75, 9.6012, -6.3577, 10.2854, -4.9197, 10.8793, -3.4422, 11.39, -1.9315, 11.8254, -0.3941, 12.1938, 1.1636, 12.2138, 4.3125, -12.2138, 4.3125, -12.1938, 1.1636, -11.8254, -0.3941, -11.39, -1.9315, -10.8793, -3.4422, -10.2854, -4.9197, -9.6012, -6.3577, -8.8213, -7.75, -7.9423, -9.0906, -7.4997, -10.3739, -6.8011, -12.7465, -6.1293, -14.8271, -5.5115, -16.5804, -4.9422, -17.9761, -4.6554, -18.5322, -4.3599, -18.9905, -4.0763, -19.3489, -3.8168, -19.6061, -3.5889, -19.7608, -3.3972, -19.8125)
 depth = 5.0322
 material = SubResource("StandardMaterial3D_cks8b")
 metadata/ship = &"section"
 
-[node name="Section_47" type="CSGPolygon3D" parent="Structure/Sections" unique_id=200819700]
+[node name="Section_45" type="CSGPolygon3D" parent="Structure/Sections" unique_id=762675354]
 transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 96.8178, 0, 0)
 polygon = PackedVector2Array(0, -19.8125, 2.837, -19.8125, 3.0094, -19.7608, 3.2139, -19.6061, 3.4468, -19.3489, 3.7021, -18.9905, 3.9692, -18.5322, 4.2303, -17.9761, 4.4834, -17.3246, 5.026, -15.7467, 5.9349, -12.7465, 6.5909, -10.3739, 7.0125, -9.0906, 7.8654, -7.75, 8.643, -6.3577, 9.3448, -4.9197, 9.972, -3.4422, 10.5276, -1.9315, 11.016, -0.3941, 11.4422, 1.1636, 11.4677, 4.3125, -11.4677, 4.3125, -11.4422, 1.1636, -11.016, -0.3941, -10.5276, -1.9315, -9.972, -3.4422, -9.3448, -4.9197, -8.643, -6.3577, -7.8654, -7.75, -7.0125, -9.0906, -6.5909, -10.3739, -5.9349, -12.7465, -5.026, -15.7467, -4.4834, -17.3246, -4.2303, -17.9761, -3.9692, -18.5322, -3.7021, -18.9905, -3.4468, -19.3489, -3.2139, -19.6061, -3.0094, -19.7608, -2.837, -19.8125)
 depth = 5.0322
 material = SubResource("StandardMaterial3D_cks8b")
 metadata/ship = &"section"
 
-[node name="Section_48" type="CSGPolygon3D" parent="Structure/Sections" unique_id=613852847]
+[node name="Section_46" type="CSGPolygon3D" parent="Structure/Sections" unique_id=332537272]
 transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 101.85, 0, 0)
 polygon = PackedVector2Array(0, -19.8125, 2.219, -19.8125, 2.3697, -19.7608, 2.5477, -19.6061, 2.75, -19.3489, 3.2049, -18.5322, 3.6573, -17.3246, 4.1308, -15.7467, 4.9281, -12.7465, 5.516, -10.3739, 5.8996, -9.0906, 6.6899, -7.75, 7.4313, -6.3577, 8.1204, -4.9197, 8.7553, -3.4422, 9.3356, -1.9315, 9.8621, -0.3941, 10.3366, 1.1636, 10.3687, 4.3125, -10.3687, 4.3125, -10.3366, 1.1636, -9.8621, -0.3941, -9.3356, -1.9315, -8.7553, -3.4422, -8.1204, -4.9197, -7.4313, -6.3577, -6.6899, -7.75, -5.8996, -9.0906, -5.516, -10.3739, -4.9281, -12.7465, -4.1308, -15.7467, -3.6573, -17.3246, -3.2049, -18.5322, -2.75, -19.3489, -2.5477, -19.6061, -2.3697, -19.7608, -2.219, -19.8125)
 depth = 6.15
 material = SubResource("StandardMaterial3D_cks8b")
 metadata/ship = &"section"
 
-[node name="Section_49" type="CSGPolygon3D" parent="Structure/Sections" unique_id=389224061]
+[node name="Section_47" type="CSGPolygon3D" parent="Structure/Sections" unique_id=200819700]
 transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 108, 0, 0)
 polygon = PackedVector2Array(0, -19.8125, 1.4534, -19.8125, 1.5788, -19.7595, 1.7249, -19.6008, 1.8901, -19.3369, 2.2605, -18.499, 2.4471, -17.9285, 2.8192, -16.4966, 4.1263, -10.1293, 4.5314, -8.8129, 5.1962, -7.4375, 5.84, -6.0091, 6.4583, -4.5339, 7.0475, -3.0181, 7.605, -1.4683, 8.1289, 0.109, 8.4772, 1.707, 8.5025, 4.9375, -8.5025, 4.9375, -8.4772, 1.707, -8.1289, 0.109, -7.605, -1.4683, -7.0475, -3.0181, -6.4583, -4.5339, -5.84, -6.0091, -5.1962, -7.4375, -4.5314, -8.8129, -4.1263, -10.1293, -2.8192, -16.4966, -2.4471, -17.9285, -2.2605, -18.499, -1.8901, -19.3369, -1.7249, -19.6008, -1.5788, -19.7595, -1.4534, -19.8125)
 depth = 7.81
 material = SubResource("StandardMaterial3D_cks8b")
 metadata/ship = &"section"
 
-[node name="Section_50" type="CSGPolygon3D" parent="Structure/Sections" unique_id=1779669724]
+[node name="Section_48" type="CSGPolygon3D" parent="Structure/Sections" unique_id=613852847]
 transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 115.81, 0, 0)
 polygon = PackedVector2Array(0, -19.8125, 0.621, -19.8125, 0.716, -19.7595, 0.9423, -19.3369, 1.0709, -18.9692, 1.3372, -17.9285, 1.5905, -16.4966, 2.4133, -10.1293, 2.6775, -8.8129, 4.0111, -4.5339, 5.3107, 0.109, 5.6059, 1.707, 5.6443, 4.9375, -5.6443, 4.9375, -5.6059, 1.707, -5.3107, 0.109, -4.0111, -4.5339, -2.6775, -8.8129, -2.4133, -10.1293, -1.5905, -16.4966, -1.3372, -17.9285, -1.0709, -18.9692, -0.9423, -19.3369, -0.716, -19.7595, -0.621, -19.8125)
 depth = 7.495
 material = SubResource("StandardMaterial3D_cks8b")
 metadata/ship = &"section"
 
-[node name="Section_51" type="CSGPolygon3D" parent="Structure/Sections" unique_id=1584611191]
+[node name="Section_49" type="CSGPolygon3D" parent="Structure/Sections" unique_id=389224061]
 transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 123.305, 0, 0)
 polygon = PackedVector2Array(0, -19.4104, 0.2193, -18.1182, 0.3369, -16.8994, 0.6193, -9.8845, 0.7121, -8.5894, 1.6242, 0.1875, 1.7468, 1.7595, 1.8019, 4.9375, -1.8019, 4.9375, -1.7468, 1.7595, -1.6242, 0.1875, -0.7121, -8.5894, -0.6193, -9.8845, -0.3369, -16.8994, -0.2193, -18.1182)
 depth = 7.495
@@ -26319,7 +26305,7 @@ material = SubResource("StandardMaterial3D_7qh17")
 metadata/ship = &"cell"
 metadata/name = &"bunker_4"
 metadata/kind = "BUNKER"
-metadata/shape = 0.97
+metadata/shape = 0.9703
 metadata/rooms = Array[StringName]([&"coal bunker 4"])
 metadata/leak_area = 0.000813
 
@@ -26341,7 +26327,7 @@ size = Vector3(17.279999, 2.625, 28.0416)
 material = SubResource("StandardMaterial3D_7qh17")
 metadata/ship = &"cell"
 metadata/name = &"boiler_room_4_f"
-metadata/shape = 0.9989
+metadata/shape = 0.9988
 metadata/rooms = Array[StringName]([&"F deck working corridor, boiler room 4", &"Turkish bath"])
 metadata/leak_area = 0.00127
 
@@ -26351,7 +26337,7 @@ size = Vector3(17.279999, 2.75, 24.0208)
 material = SubResource("StandardMaterial3D_7qh17")
 metadata/ship = &"cell"
 metadata/name = &"boiler_room_4_e"
-metadata/shape = 0.9997
+metadata/shape = 0.9998
 metadata/rooms = Array[StringName]([&"grand staircase, E deck"])
 metadata/leak_area = 0.00114
 
@@ -26493,7 +26479,7 @@ size = Vector3(17.279999, 2.75, 4.0207996)
 material = SubResource("StandardMaterial3D_7qh17")
 metadata/ship = &"cell"
 metadata/name = &"scotland_road_3"
-metadata/shape = 0.9983
+metadata/shape = 0.9991
 metadata/rooms = Array[StringName]([&"Scotland Road, boiler room 4"])
 metadata/leak_area = 0.000191
 
@@ -26773,7 +26759,7 @@ size = Vector3(144.3125, 2.875, 19.7)
 material = SubResource("StandardMaterial3D_7qh17")
 metadata/ship = &"cell"
 metadata/name = &"a_deck"
-metadata/rooms = Array[StringName]([&"verandah café and palm court", &"verandah café and palm court", &"second-class entrance", &"bar", &"first-class smoking room", &"first-class smoking room", &"first-class smoking room", &"first-class smoking room", &"first-class smoking room", &"smoking room lavatory", &"after grand staircase, A deck", &"passage", &"lounge pantry and bar", &"lounge pantry and bar", &"lounge pantry and bar", &"cloak room", &"darkroom", &"first-class lounge", &"first-class lounge", &"first-class lounge", &"reading and writing room", &"reading and writing room", &"A deck corridor", &"grand staircase, A deck", &"grand staircase, A deck", &"vestibule", &"vestibule", &"grand staircase, A deck", &"A deck corridor", &"three-berth first-class stateroom", &"passage", &"first-class stateroom", &"first-class stateroom", &"passage", &"first-class stateroom", &"first-class stateroom", &"passage", &"first-class stateroom", &"first-class stateroom", &"first-class stateroom", &"first-class stateroom", &"passage", &"first-class stateroom", &"first-class stateroom", &"first-class stateroom", &"first-class stateroom", &"passage", &"first-class stateroom", &"first-class stateroom", &"three-berth first-class stateroom", &"A deck corridor", &"three-berth first-class stateroom", &"passage", &"first-class stateroom", &"first-class stateroom", &"passage", &"first-class stateroom", &"first-class stateroom", &"passage", &"first-class stateroom", &"first-class stateroom", &"first-class stateroom", &"first-class stateroom", &"passage", &"first-class stateroom", &"first-class stateroom", &"first-class stateroom", &"first-class stateroom", &"passage", &"first-class stateroom", &"first-class stateroom", &"three-berth first-class stateroom", &"bathroom", &"bathroom", &"bathroom", &"passage", &"stewardesses\' room", &"ladies\' lavatory", &"ladies\' lavatory", &"gentlemen\'s lavatory", &"servery", &"passage", &"bathroom", &"bathroom", &"pantry", &"first-class stateroom", &"first-class stateroom"])
+metadata/rooms = Array[StringName]([&"verandah café and palm court", &"verandah café and palm court", &"second-class entrance, A deck", &"bar", &"first-class smoking room", &"first-class smoking room", &"first-class smoking room", &"first-class smoking room", &"first-class smoking room", &"smoking room lavatory", &"after grand staircase, A deck", &"passage", &"lounge pantry and bar", &"lounge pantry and bar", &"lounge pantry and bar", &"cloak room", &"darkroom", &"first-class lounge", &"first-class lounge", &"first-class lounge", &"reading and writing room", &"reading and writing room", &"A deck corridor", &"grand staircase, A deck", &"grand staircase, A deck", &"vestibule", &"vestibule", &"grand staircase, A deck", &"A deck corridor", &"three-berth first-class stateroom", &"passage", &"first-class stateroom", &"first-class stateroom", &"passage", &"first-class stateroom", &"first-class stateroom", &"passage", &"first-class stateroom", &"first-class stateroom", &"first-class stateroom", &"first-class stateroom", &"passage", &"first-class stateroom", &"first-class stateroom", &"first-class stateroom", &"first-class stateroom", &"passage", &"first-class stateroom", &"first-class stateroom", &"three-berth first-class stateroom", &"A deck corridor", &"three-berth first-class stateroom", &"passage", &"first-class stateroom", &"first-class stateroom", &"passage", &"first-class stateroom", &"first-class stateroom", &"passage", &"first-class stateroom", &"first-class stateroom", &"first-class stateroom", &"first-class stateroom", &"passage", &"first-class stateroom", &"first-class stateroom", &"first-class stateroom", &"first-class stateroom", &"passage", &"first-class stateroom", &"first-class stateroom", &"three-berth first-class stateroom", &"bathroom", &"bathroom", &"bathroom", &"passage", &"stewardesses\' room", &"ladies\' lavatory", &"ladies\' lavatory", &"gentlemen\'s lavatory", &"servery", &"passage", &"bathroom", &"bathroom", &"pantry", &"first-class stateroom", &"first-class stateroom"])
 metadata/leak_area = 0.00817
 
 [node name="Cell_second_class_house" type="CSGBox3D" parent="Structure/Cells" unique_id=1839839658]
@@ -26783,7 +26769,7 @@ material = SubResource("StandardMaterial3D_7qh17")
 metadata/ship = &"cell"
 metadata/name = &"second_class_house"
 metadata/shape = 0.9954
-metadata/rooms = Array[StringName]([&"second-class entrance"])
+metadata/rooms = Array[StringName]([&"second-class entrance, boat deck"])
 metadata/leak_area = 0.000132
 
 [node name="Cell_tank_room_port" type="CSGBox3D" parent="Structure/Cells" unique_id=2128231128]
@@ -26792,7 +26778,7 @@ size = Vector3(8.574999, 2.625, 4.0125)
 material = SubResource("StandardMaterial3D_7qh17")
 metadata/ship = &"cell"
 metadata/name = &"tank_room_port"
-metadata/rooms = Array[StringName]([&"tank room"])
+metadata/rooms = Array[StringName]([&"tank room, port"])
 metadata/leak_area = 9.03e-05
 
 [node name="Cell_tank_room_starboard" type="CSGBox3D" parent="Structure/Cells" unique_id=1207999098]
@@ -26801,7 +26787,7 @@ size = Vector3(8.574999, 2.625, 3.7624998)
 material = SubResource("StandardMaterial3D_7qh17")
 metadata/ship = &"cell"
 metadata/name = &"tank_room_starboard"
-metadata/rooms = Array[StringName]([&"tank room"])
+metadata/rooms = Array[StringName]([&"tank room, starboard"])
 metadata/leak_area = 8.47e-05
 
 [node name="Cell_mess_house" type="CSGBox3D" parent="Structure/Cells" unique_id=540513072]
@@ -26832,31 +26818,31 @@ metadata/rooms = Array[StringName]([&"gymnasium"])
 metadata/leak_area = 0.000184
 
 [node name="Cell_staircase_house" type="CSGBox3D" parent="Structure/Cells" unique_id=173629304]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 30.5625, 9.6875, 0.03125)
-size = Vector3(9.949999, 2.625, 16.6375)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 30.5125, 9.6875, 0.03125)
+size = Vector3(9.85, 2.625, 16.6375)
 material = SubResource("StandardMaterial3D_7qh17")
 metadata/ship = &"cell"
 metadata/name = &"staircase_house"
-metadata/rooms = Array[StringName]([&"grand staircase, boat deck", &"grand staircase, boat deck", &"vestibule", &"vestibule"])
-metadata/leak_area = 0.000442
+metadata/rooms = Array[StringName]([&"grand staircase, boat deck", &"grand staircase, boat deck", &"vestibule, boat deck", &"vestibule, boat deck"])
+metadata/leak_area = 0.00043
 
 [node name="Cell_officers_house" type="CSGBox3D" parent="Structure/Cells" unique_id=75295158]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 48.46875, 9.6875, 0.1875)
-size = Vector3(26.262497, 2.625, 13.575)
+size = Vector3(26.0625, 2.625, 13.575)
 material = SubResource("StandardMaterial3D_7qh17")
 metadata/ship = &"cell"
 metadata/name = &"officers_house"
-metadata/rooms = Array[StringName]([&"Marconi operators\' bedroom", &"Marconi room", &"Marconi passage", &"silent room", &"passage", &"sixth officer\'s cabin", &"extra second officer\'s cabin", &"passage", &"first officer\'s cabin", &"chief officer\'s cabin", &"pilot\'s cabin", &"chart room", &"officers\' corridor", &"lift machinery room", &"officers\' pantry", &"officers\' smoking room", &"officers\' lavatory", &"bathroom", &"lavatory", &"officers\' store", &"lavatory", &"officers\' corridor", &"stewards\' cabin", &"fifth officer\'s cabin", &"fourth officer\'s cabin", &"passage", &"third officer\'s cabin", &"second officer\'s cabin", &"passage", &"captain\'s lavatory", &"captain\'s bathroom", &"captain\'s sitting room", &"navigating room"])
-metadata/leak_area = 0.000947
+metadata/rooms = Array[StringName]([&"Marconi operators\' bedroom", &"Marconi room", &"Marconi passage", &"silent room", &"officers\' passage", &"sixth officer\'s cabin", &"extra second officer\'s cabin", &"officers\' passage", &"first officer\'s cabin", &"chief officer\'s cabin", &"pilot\'s cabin", &"chart room", &"officers\' corridor", &"lift machinery room", &"officers\' pantry", &"officers\' smoking room", &"officers\' lavatory", &"officers\' bathroom", &"lavatory", &"officers\' store", &"lavatory", &"officers\' corridor", &"stewards\' cabin", &"fifth officer\'s cabin", &"fourth officer\'s cabin", &"officers\' passage", &"third officer\'s cabin", &"second officer\'s cabin", &"officers\' passage", &"captain\'s lavatory", &"captain\'s bathroom", &"captain\'s sitting room", &"navigating room"])
+metadata/leak_area = 0.000929
 
 [node name="Cell_wheelhouse" type="CSGBox3D" parent="Structure/Cells" unique_id=742287773]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 64.03125, 9.6875, 0.15625)
-size = Vector3(5.262497, 2.625, 8.2625)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 64.08125, 9.6875, 0.15625)
+size = Vector3(5.1624985, 2.625, 8.2625)
 material = SubResource("StandardMaterial3D_7qh17")
 metadata/ship = &"cell"
 metadata/name = &"wheelhouse"
 metadata/rooms = Array[StringName]([&"wheelhouse"])
-metadata/leak_area = 0.000118
+metadata/leak_area = 0.000112
 
 [node name="Walls" type="Node3D" parent="Structure" unique_id=215937780]
 
@@ -29295,7 +29281,7 @@ metadata/collapse_head = 8.0
 metadata/leak_area = 0.0025
 
 [node name="Opening_port_boiler_room_6_tween_p" type="CSGBox3D" parent="Structure/Openings" unique_id=130459157]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 62.385, -7.1125, -12.9093)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 62.385, -7.1125, -12.9129)
 size = Vector3(15.75, 0.32, 0)
 material = SubResource("StandardMaterial3D_nubv8")
 metadata/ship = &"opening"
@@ -29310,7 +29296,7 @@ metadata/collapse_head = 8.0
 metadata/leak_area = 0.0025
 
 [node name="Opening_port_boiler_room_6_tween_s" type="CSGBox3D" parent="Structure/Openings" unique_id=1861427842]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 62.385, -7.1125, 12.9093)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 62.385, -7.1125, 12.9129)
 size = Vector3(15.75, 0.32, 0)
 material = SubResource("StandardMaterial3D_nubv8")
 metadata/ship = &"opening"
@@ -29970,7 +29956,7 @@ metadata/collapse_head = 8.0
 metadata/leak_area = 0.0045
 
 [node name="Opening_port_d_deck_p4" type="CSGBox3D" parent="Structure/Openings" unique_id=1195823384]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 31.742, -1.7375, -14.0082)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 31.742, -1.7375, -14.0156)
 size = Vector3(26.932, 0.32, 0)
 material = SubResource("StandardMaterial3D_nubv8")
 metadata/ship = &"opening"
@@ -29985,7 +29971,7 @@ metadata/collapse_head = 8.0
 metadata/leak_area = 0.0045
 
 [node name="Opening_port_d_deck_p5" type="CSGBox3D" parent="Structure/Openings" unique_id=1411023669]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 59.674, -1.7375, -13.8956)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 59.674, -1.7375, -13.8948)
 size = Vector3(26.932, 0.32, 0)
 material = SubResource("StandardMaterial3D_nubv8")
 metadata/ship = &"opening"
@@ -30045,7 +30031,7 @@ metadata/collapse_head = 8.0
 metadata/leak_area = 0.0045
 
 [node name="Opening_port_d_deck_s4" type="CSGBox3D" parent="Structure/Openings" unique_id=970065435]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 31.742, -1.7375, 14.0082)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 31.742, -1.7375, 14.0156)
 size = Vector3(26.932, 0.32, 0)
 material = SubResource("StandardMaterial3D_nubv8")
 metadata/ship = &"opening"
@@ -30060,7 +30046,7 @@ metadata/collapse_head = 8.0
 metadata/leak_area = 0.0045
 
 [node name="Opening_port_d_deck_s5" type="CSGBox3D" parent="Structure/Openings" unique_id=445512560]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 59.674, -1.7375, 13.888)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 59.674, -1.7375, 13.8871)
 size = Vector3(26.932, 0.32, 0)
 material = SubResource("StandardMaterial3D_nubv8")
 metadata/ship = &"opening"
@@ -30104,50 +30090,6 @@ metadata/leak_head = 4.0
 metadata/collapse_head = 8.0
 metadata/leak_area = 0.0045
 
-[node name="Opening_window_second_class_house_p1" type="CSGBox3D" parent="Structure/Openings" unique_id=2035311291]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -71.7875, 9.825, -2.85)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_second_class_house_p1"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"second_class_house", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_second_class_house_p2" type="CSGBox3D" parent="Structure/Openings" unique_id=379005901]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -70.4875, 9.825, -2.85)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_second_class_house_p2"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"second_class_house", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_second_class_house_p3" type="CSGBox3D" parent="Structure/Openings" unique_id=92958374]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -69.1875, 9.825, -2.85)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_second_class_house_p3"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"second_class_house", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_second_class_house_p4" type="CSGBox3D" parent="Structure/Openings" unique_id=338872016]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -67.8875, 9.825, -2.85)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_second_class_house_p4"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"second_class_house", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
 [node name="Opening_window_second_class_house_f1" type="CSGBox3D" parent="Structure/Openings" unique_id=869618475]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -66.775, 9.825, -1.95)
 size = Vector3(0, 0.6, 0.55)
@@ -30187,50 +30129,6 @@ size = Vector3(0, 0.6, 0.55)
 material = SubResource("StandardMaterial3D_nubv8")
 metadata/ship = &"opening"
 metadata/name = &"window_second_class_house_f4"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"second_class_house", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_second_class_house_s1" type="CSGBox3D" parent="Structure/Openings" unique_id=1453962340]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -71.7875, 9.825, 2.85)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_second_class_house_s1"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"second_class_house", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_second_class_house_s2" type="CSGBox3D" parent="Structure/Openings" unique_id=1845924366]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -70.4875, 9.825, 2.85)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_second_class_house_s2"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"second_class_house", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_second_class_house_s3" type="CSGBox3D" parent="Structure/Openings" unique_id=159251317]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -69.1875, 9.825, 2.85)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_second_class_house_s3"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"second_class_house", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_second_class_house_s4" type="CSGBox3D" parent="Structure/Openings" unique_id=143443657]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -67.8875, 9.825, 2.85)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_second_class_house_s4"
 metadata/kind = "WINDOW"
 metadata/joins = Array[StringName]([&"second_class_house", &"sky"])
 metadata/starts = "SHUT"
@@ -30539,17 +30437,6 @@ size = Vector3(0.55, 0.6, 0)
 material = SubResource("StandardMaterial3D_nubv8")
 metadata/ship = &"opening"
 metadata/name = &"window_mess_house_s3"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"mess_house", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_mess_house_a2" type="CSGBox3D" parent="Structure/Openings" unique_id=2123372904]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20.6, 9.825, 6.4375)
-size = Vector3(0, 0.6, 0.55)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_mess_house_a2"
 metadata/kind = "WINDOW"
 metadata/joins = Array[StringName]([&"mess_house", &"sky"])
 metadata/starts = "SHUT"
@@ -30919,7 +30806,7 @@ metadata/starts = "SHUT"
 metadata/collapse_head = 2.0
 
 [node name="Opening_window_staircase_house_f1" type="CSGBox3D" parent="Structure/Openings" unique_id=347910547]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 35.5375, 9.825, -7.1188)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 35.4375, 9.825, -7.1188)
 size = Vector3(0, 0.6, 0.55)
 material = SubResource("StandardMaterial3D_nubv8")
 metadata/ship = &"opening"
@@ -30930,7 +30817,7 @@ metadata/starts = "SHUT"
 metadata/collapse_head = 2.0
 
 [node name="Opening_window_staircase_house_f2" type="CSGBox3D" parent="Structure/Openings" unique_id=1611335709]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 35.5375, 9.825, 7.1813)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 35.4375, 9.825, 7.1813)
 size = Vector3(0, 0.6, 0.55)
 material = SubResource("StandardMaterial3D_nubv8")
 metadata/ship = &"opening"
@@ -31260,7 +31147,7 @@ metadata/starts = "SHUT"
 metadata/collapse_head = 2.0
 
 [node name="Opening_window_officers_house_f1" type="CSGBox3D" parent="Structure/Openings" unique_id=1016771999]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 61.53, 9.825, -5.7675)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 61.5, 9.825, -5.7675)
 size = Vector3(0, 0.6, 0.55)
 material = SubResource("StandardMaterial3D_nubv8")
 metadata/ship = &"opening"
@@ -31271,7 +31158,7 @@ metadata/starts = "SHUT"
 metadata/collapse_head = 2.0
 
 [node name="Opening_window_officers_house_f2" type="CSGBox3D" parent="Structure/Openings" unique_id=943490544]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 61.53, 9.825, -4.4675)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 61.5, 9.825, -4.4675)
 size = Vector3(0, 0.6, 0.55)
 material = SubResource("StandardMaterial3D_nubv8")
 metadata/ship = &"opening"
@@ -31282,7 +31169,7 @@ metadata/starts = "SHUT"
 metadata/collapse_head = 2.0
 
 [node name="Opening_window_officers_house_s1" type="CSGBox3D" parent="Structure/Openings" unique_id=788243043]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 46.1562, 9.825, -2.5875)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 36.375, 9.825, 6.975)
 size = Vector3(0.55, 0.6, 0)
 material = SubResource("StandardMaterial3D_nubv8")
 metadata/ship = &"opening"
@@ -31292,19 +31179,8 @@ metadata/joins = Array[StringName]([&"officers_house", &"sky"])
 metadata/starts = "SHUT"
 metadata/collapse_head = 2.0
 
-[node name="Opening_window_officers_house_p14" type="CSGBox3D" parent="Structure/Openings" unique_id=554477446]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 46.0562, 9.825, -2.1)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_officers_house_p14"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"officers_house", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
 [node name="Opening_window_officers_house_s2" type="CSGBox3D" parent="Structure/Openings" unique_id=405100343]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 36.375, 9.825, 6.975)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 38.1313, 9.825, 6.975)
 size = Vector3(0.55, 0.6, 0)
 material = SubResource("StandardMaterial3D_nubv8")
 metadata/ship = &"opening"
@@ -31315,7 +31191,7 @@ metadata/starts = "SHUT"
 metadata/collapse_head = 2.0
 
 [node name="Opening_window_officers_house_s3" type="CSGBox3D" parent="Structure/Openings" unique_id=1225835789]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 38.1313, 9.825, 6.975)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 39.4312, 9.825, 6.975)
 size = Vector3(0.55, 0.6, 0)
 material = SubResource("StandardMaterial3D_nubv8")
 metadata/ship = &"opening"
@@ -31326,7 +31202,7 @@ metadata/starts = "SHUT"
 metadata/collapse_head = 2.0
 
 [node name="Opening_window_officers_house_s4" type="CSGBox3D" parent="Structure/Openings" unique_id=2039405800]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 39.4312, 9.825, 6.975)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 40.8188, 9.825, 6.975)
 size = Vector3(0.55, 0.6, 0)
 material = SubResource("StandardMaterial3D_nubv8")
 metadata/ship = &"opening"
@@ -31337,7 +31213,7 @@ metadata/starts = "SHUT"
 metadata/collapse_head = 2.0
 
 [node name="Opening_window_officers_house_s5" type="CSGBox3D" parent="Structure/Openings" unique_id=1628115193]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 40.8188, 9.825, 6.975)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 42.1187, 9.825, 6.975)
 size = Vector3(0.55, 0.6, 0)
 material = SubResource("StandardMaterial3D_nubv8")
 metadata/ship = &"opening"
@@ -31348,7 +31224,7 @@ metadata/starts = "SHUT"
 metadata/collapse_head = 2.0
 
 [node name="Opening_window_officers_house_s6" type="CSGBox3D" parent="Structure/Openings" unique_id=965019706]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 42.1187, 9.825, 6.975)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 44.5063, 9.825, 6.975)
 size = Vector3(0.55, 0.6, 0)
 material = SubResource("StandardMaterial3D_nubv8")
 metadata/ship = &"opening"
@@ -31359,7 +31235,7 @@ metadata/starts = "SHUT"
 metadata/collapse_head = 2.0
 
 [node name="Opening_window_officers_house_s7" type="CSGBox3D" parent="Structure/Openings" unique_id=1807804189]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 44.5063, 9.825, 6.975)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 45.8062, 9.825, 6.975)
 size = Vector3(0.55, 0.6, 0)
 material = SubResource("StandardMaterial3D_nubv8")
 metadata/ship = &"opening"
@@ -31370,7 +31246,7 @@ metadata/starts = "SHUT"
 metadata/collapse_head = 2.0
 
 [node name="Opening_window_officers_house_s8" type="CSGBox3D" parent="Structure/Openings" unique_id=1014804458]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 45.8062, 9.825, 6.975)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 47.1938, 9.825, 6.975)
 size = Vector3(0.55, 0.6, 0)
 material = SubResource("StandardMaterial3D_nubv8")
 metadata/ship = &"opening"
@@ -31381,7 +31257,7 @@ metadata/starts = "SHUT"
 metadata/collapse_head = 2.0
 
 [node name="Opening_window_officers_house_s9" type="CSGBox3D" parent="Structure/Openings" unique_id=1389534940]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 47.1938, 9.825, 6.975)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 48.4937, 9.825, 6.975)
 size = Vector3(0.55, 0.6, 0)
 material = SubResource("StandardMaterial3D_nubv8")
 metadata/ship = &"opening"
@@ -31392,7 +31268,7 @@ metadata/starts = "SHUT"
 metadata/collapse_head = 2.0
 
 [node name="Opening_window_officers_house_s10" type="CSGBox3D" parent="Structure/Openings" unique_id=382122241]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 48.4937, 9.825, 6.975)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 50.85, 9.825, 6.975)
 size = Vector3(0.55, 0.6, 0)
 material = SubResource("StandardMaterial3D_nubv8")
 metadata/ship = &"opening"
@@ -31403,7 +31279,7 @@ metadata/starts = "SHUT"
 metadata/collapse_head = 2.0
 
 [node name="Opening_window_officers_house_s11" type="CSGBox3D" parent="Structure/Openings" unique_id=447084943]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 50.85, 9.825, 6.975)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 52.15, 9.825, 6.975)
 size = Vector3(0.55, 0.6, 0)
 material = SubResource("StandardMaterial3D_nubv8")
 metadata/ship = &"opening"
@@ -31414,7 +31290,7 @@ metadata/starts = "SHUT"
 metadata/collapse_head = 2.0
 
 [node name="Opening_window_officers_house_s12" type="CSGBox3D" parent="Structure/Openings" unique_id=882320886]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 52.15, 9.825, 6.975)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 53.7188, 9.825, 6.975)
 size = Vector3(0.55, 0.6, 0)
 material = SubResource("StandardMaterial3D_nubv8")
 metadata/ship = &"opening"
@@ -31425,7 +31301,7 @@ metadata/starts = "SHUT"
 metadata/collapse_head = 2.0
 
 [node name="Opening_window_officers_house_s13" type="CSGBox3D" parent="Structure/Openings" unique_id=164017273]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 53.7188, 9.825, 6.975)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 55.575, 9.825, 6.975)
 size = Vector3(0.55, 0.6, 0)
 material = SubResource("StandardMaterial3D_nubv8")
 metadata/ship = &"opening"
@@ -31436,7 +31312,7 @@ metadata/starts = "SHUT"
 metadata/collapse_head = 2.0
 
 [node name="Opening_window_officers_house_s14" type="CSGBox3D" parent="Structure/Openings" unique_id=943363940]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 55.575, 9.825, 6.975)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 56.875, 9.825, 6.975)
 size = Vector3(0.55, 0.6, 0)
 material = SubResource("StandardMaterial3D_nubv8")
 metadata/ship = &"opening"
@@ -31447,7 +31323,7 @@ metadata/starts = "SHUT"
 metadata/collapse_head = 2.0
 
 [node name="Opening_window_officers_house_s15" type="CSGBox3D" parent="Structure/Openings" unique_id=1018996851]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 56.875, 9.825, 6.975)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 58.175, 9.825, 6.975)
 size = Vector3(0.55, 0.6, 0)
 material = SubResource("StandardMaterial3D_nubv8")
 metadata/ship = &"opening"
@@ -31457,19 +31333,8 @@ metadata/joins = Array[StringName]([&"officers_house", &"sky"])
 metadata/starts = "SHUT"
 metadata/collapse_head = 2.0
 
-[node name="Opening_window_officers_house_s16" type="CSGBox3D" parent="Structure/Openings" unique_id=400678763]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 58.175, 9.825, 6.975)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_officers_house_s16"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"officers_house", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
 [node name="Opening_window_officers_house_f3" type="CSGBox3D" parent="Structure/Openings" unique_id=825837976]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 61.6, 9.825, 4.7762)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 61.5, 9.825, 4.7762)
 size = Vector3(0, 0.6, 0.55)
 material = SubResource("StandardMaterial3D_nubv8")
 metadata/ship = &"opening"
@@ -31480,7 +31345,7 @@ metadata/starts = "SHUT"
 metadata/collapse_head = 2.0
 
 [node name="Opening_window_officers_house_f4" type="CSGBox3D" parent="Structure/Openings" unique_id=2128236695]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 61.6, 9.825, 6.0762)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 61.5, 9.825, 6.0762)
 size = Vector3(0, 0.6, 0.55)
 material = SubResource("StandardMaterial3D_nubv8")
 metadata/ship = &"opening"
@@ -31490,23 +31355,23 @@ metadata/joins = Array[StringName]([&"officers_house", &"sky"])
 metadata/starts = "SHUT"
 metadata/collapse_head = 2.0
 
-[node name="Opening_window_officers_house_s17" type="CSGBox3D" parent="Structure/Openings" unique_id=317989377]
+[node name="Opening_window_officers_house_s16" type="CSGBox3D" parent="Structure/Openings" unique_id=400678763]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 59.6, 9.825, 6.975)
 size = Vector3(0.55, 0.6, 0)
 material = SubResource("StandardMaterial3D_nubv8")
 metadata/ship = &"opening"
-metadata/name = &"window_officers_house_s17"
+metadata/name = &"window_officers_house_s16"
 metadata/kind = "WINDOW"
 metadata/joins = Array[StringName]([&"officers_house", &"sky"])
 metadata/starts = "SHUT"
 metadata/collapse_head = 2.0
 
-[node name="Opening_window_officers_house_s18" type="CSGBox3D" parent="Structure/Openings" unique_id=135914838]
+[node name="Opening_window_officers_house_s17" type="CSGBox3D" parent="Structure/Openings" unique_id=317989377]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 60.9, 9.825, 6.975)
 size = Vector3(0.55, 0.6, 0)
 material = SubResource("StandardMaterial3D_nubv8")
 metadata/ship = &"opening"
-metadata/name = &"window_officers_house_s18"
+metadata/name = &"window_officers_house_s17"
 metadata/kind = "WINDOW"
 metadata/joins = Array[StringName]([&"officers_house", &"sky"])
 metadata/starts = "SHUT"
@@ -31623,7 +31488,7 @@ metadata/starts = "SHUT"
 metadata/collapse_head = 2.0
 
 [node name="Opening_window_a_deck_p1" type="CSGBox3D" parent="Structure/Openings" unique_id=1184405674]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -74.2125, 6.95, -9.725)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -74.2125, 6.95, -9.85)
 size = Vector3(0.55, 0.6, 0)
 material = SubResource("StandardMaterial3D_nubv8")
 metadata/ship = &"opening"
@@ -31634,7 +31499,7 @@ metadata/starts = "SHUT"
 metadata/collapse_head = 2.0
 
 [node name="Opening_window_a_deck_p2" type="CSGBox3D" parent="Structure/Openings" unique_id=1061247839]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -72.9125, 6.95, -9.725)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -72.9125, 6.95, -9.85)
 size = Vector3(0.55, 0.6, 0)
 material = SubResource("StandardMaterial3D_nubv8")
 metadata/ship = &"opening"
@@ -31645,7 +31510,7 @@ metadata/starts = "SHUT"
 metadata/collapse_head = 2.0
 
 [node name="Opening_window_a_deck_p3" type="CSGBox3D" parent="Structure/Openings" unique_id=1531685146]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -71.6125, 6.95, -9.725)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -71.6125, 6.95, -9.85)
 size = Vector3(0.55, 0.6, 0)
 material = SubResource("StandardMaterial3D_nubv8")
 metadata/ship = &"opening"
@@ -31656,7 +31521,7 @@ metadata/starts = "SHUT"
 metadata/collapse_head = 2.0
 
 [node name="Opening_window_a_deck_p4" type="CSGBox3D" parent="Structure/Openings" unique_id=1361823535]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -70.3125, 6.95, -9.725)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -70.3125, 6.95, -9.85)
 size = Vector3(0.55, 0.6, 0)
 material = SubResource("StandardMaterial3D_nubv8")
 metadata/ship = &"opening"
@@ -31667,7 +31532,7 @@ metadata/starts = "SHUT"
 metadata/collapse_head = 2.0
 
 [node name="Opening_window_a_deck_p5" type="CSGBox3D" parent="Structure/Openings" unique_id=705887554]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -69.0125, 6.95, -9.725)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -69.0125, 6.95, -9.85)
 size = Vector3(0.55, 0.6, 0)
 material = SubResource("StandardMaterial3D_nubv8")
 metadata/ship = &"opening"
@@ -31678,7 +31543,7 @@ metadata/starts = "SHUT"
 metadata/collapse_head = 2.0
 
 [node name="Opening_window_a_deck_p6" type="CSGBox3D" parent="Structure/Openings" unique_id=399526437]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -67.7125, 6.95, -9.725)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -67.7125, 6.95, -9.85)
 size = Vector3(0.55, 0.6, 0)
 material = SubResource("StandardMaterial3D_nubv8")
 metadata/ship = &"opening"
@@ -31689,7 +31554,7 @@ metadata/starts = "SHUT"
 metadata/collapse_head = 2.0
 
 [node name="Opening_window_a_deck_p7" type="CSGBox3D" parent="Structure/Openings" unique_id=1299485976]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -66.4125, 6.95, -9.725)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -66.4125, 6.95, -9.85)
 size = Vector3(0.55, 0.6, 0)
 material = SubResource("StandardMaterial3D_nubv8")
 metadata/ship = &"opening"
@@ -31700,7 +31565,7 @@ metadata/starts = "SHUT"
 metadata/collapse_head = 2.0
 
 [node name="Opening_window_a_deck_a1" type="CSGBox3D" parent="Structure/Openings" unique_id=1668930611]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -75.0375, 6.95, -8.5688)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -74.9375, 6.95, -8.5688)
 size = Vector3(0, 0.6, 0.55)
 material = SubResource("StandardMaterial3D_nubv8")
 metadata/ship = &"opening"
@@ -31711,7 +31576,7 @@ metadata/starts = "SHUT"
 metadata/collapse_head = 2.0
 
 [node name="Opening_window_a_deck_a2" type="CSGBox3D" parent="Structure/Openings" unique_id=1441360744]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -75.0375, 6.95, -6.075)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -74.9375, 6.95, -6.075)
 size = Vector3(0, 0.6, 0.55)
 material = SubResource("StandardMaterial3D_nubv8")
 metadata/ship = &"opening"
@@ -31722,7 +31587,7 @@ metadata/starts = "SHUT"
 metadata/collapse_head = 2.0
 
 [node name="Opening_window_a_deck_a3" type="CSGBox3D" parent="Structure/Openings" unique_id=145769846]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -75.0375, 6.95, -4.775)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -74.9375, 6.95, -4.775)
 size = Vector3(0, 0.6, 0.55)
 material = SubResource("StandardMaterial3D_nubv8")
 metadata/ship = &"opening"
@@ -31732,85 +31597,8 @@ metadata/joins = Array[StringName]([&"a_deck", &"sky"])
 metadata/starts = "SHUT"
 metadata/collapse_head = 2.0
 
-[node name="Opening_window_a_deck_s1" type="CSGBox3D" parent="Structure/Openings" unique_id=1156298499]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -74.2125, 6.95, 9.0375)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_s1"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_s2" type="CSGBox3D" parent="Structure/Openings" unique_id=1224304350]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -72.9125, 6.95, 9.0375)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_s2"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_s3" type="CSGBox3D" parent="Structure/Openings" unique_id=45745512]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -71.6125, 6.95, 9.0375)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_s3"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_s4" type="CSGBox3D" parent="Structure/Openings" unique_id=1806143703]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -70.3125, 6.95, 9.0375)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_s4"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_s5" type="CSGBox3D" parent="Structure/Openings" unique_id=1746076336]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -69.0125, 6.95, 9.0375)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_s5"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_s6" type="CSGBox3D" parent="Structure/Openings" unique_id=1533790451]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -67.7125, 6.95, 9.0375)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_s6"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_s7" type="CSGBox3D" parent="Structure/Openings" unique_id=265606998]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -66.4125, 6.95, 9.0375)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_s7"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
 [node name="Opening_window_a_deck_a4" type="CSGBox3D" parent="Structure/Openings" unique_id=1741027069]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -75.0375, 6.95, 4.8625)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -74.9375, 6.95, 4.8625)
 size = Vector3(0, 0.6, 0.55)
 material = SubResource("StandardMaterial3D_nubv8")
 metadata/ship = &"opening"
@@ -31821,7 +31609,7 @@ metadata/starts = "SHUT"
 metadata/collapse_head = 2.0
 
 [node name="Opening_window_a_deck_a5" type="CSGBox3D" parent="Structure/Openings" unique_id=983053679]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -75.0375, 6.95, 7.0125)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -74.9375, 6.95, 7.0125)
 size = Vector3(0, 0.6, 0.55)
 material = SubResource("StandardMaterial3D_nubv8")
 metadata/ship = &"opening"
@@ -31832,7 +31620,7 @@ metadata/starts = "SHUT"
 metadata/collapse_head = 2.0
 
 [node name="Opening_window_a_deck_a6" type="CSGBox3D" parent="Structure/Openings" unique_id=89276489]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -75.0375, 6.95, 8.3125)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -74.9375, 6.95, 8.3125)
 size = Vector3(0, 0.6, 0.55)
 material = SubResource("StandardMaterial3D_nubv8")
 metadata/ship = &"opening"
@@ -31843,7 +31631,7 @@ metadata/starts = "SHUT"
 metadata/collapse_head = 2.0
 
 [node name="Opening_window_a_deck_p8" type="CSGBox3D" parent="Structure/Openings" unique_id=1638471010]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -64.7062, 6.95, -9.725)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -64.7062, 6.95, -9.85)
 size = Vector3(0.55, 0.6, 0)
 material = SubResource("StandardMaterial3D_nubv8")
 metadata/ship = &"opening"
@@ -31854,7 +31642,7 @@ metadata/starts = "SHUT"
 metadata/collapse_head = 2.0
 
 [node name="Opening_window_a_deck_p9" type="CSGBox3D" parent="Structure/Openings" unique_id=1152361127]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -63.4062, 6.95, -9.725)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -63.4062, 6.95, -9.85)
 size = Vector3(0.55, 0.6, 0)
 material = SubResource("StandardMaterial3D_nubv8")
 metadata/ship = &"opening"
@@ -31865,7 +31653,7 @@ metadata/starts = "SHUT"
 metadata/collapse_head = 2.0
 
 [node name="Opening_window_a_deck_p10" type="CSGBox3D" parent="Structure/Openings" unique_id=166473990]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -62.1063, 6.95, -9.725)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -62.1063, 6.95, -9.85)
 size = Vector3(0.55, 0.6, 0)
 material = SubResource("StandardMaterial3D_nubv8")
 metadata/ship = &"opening"
@@ -31876,7 +31664,7 @@ metadata/starts = "SHUT"
 metadata/collapse_head = 2.0
 
 [node name="Opening_window_a_deck_p11" type="CSGBox3D" parent="Structure/Openings" unique_id=303993276]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -60.8062, 6.95, -9.725)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -60.8062, 6.95, -9.85)
 size = Vector3(0.55, 0.6, 0)
 material = SubResource("StandardMaterial3D_nubv8")
 metadata/ship = &"opening"
@@ -31887,7 +31675,7 @@ metadata/starts = "SHUT"
 metadata/collapse_head = 2.0
 
 [node name="Opening_window_a_deck_p12" type="CSGBox3D" parent="Structure/Openings" unique_id=10845175]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -59.5063, 6.95, -9.725)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -59.5063, 6.95, -9.85)
 size = Vector3(0.55, 0.6, 0)
 material = SubResource("StandardMaterial3D_nubv8")
 metadata/ship = &"opening"
@@ -31898,7 +31686,7 @@ metadata/starts = "SHUT"
 metadata/collapse_head = 2.0
 
 [node name="Opening_window_a_deck_p13" type="CSGBox3D" parent="Structure/Openings" unique_id=37161312]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -58.2062, 6.95, -9.725)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -58.2062, 6.95, -9.85)
 size = Vector3(0.55, 0.6, 0)
 material = SubResource("StandardMaterial3D_nubv8")
 metadata/ship = &"opening"
@@ -31909,7 +31697,7 @@ metadata/starts = "SHUT"
 metadata/collapse_head = 2.0
 
 [node name="Opening_window_a_deck_p14" type="CSGBox3D" parent="Structure/Openings" unique_id=1621067017]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -56.9062, 6.95, -9.725)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -56.9062, 6.95, -9.85)
 size = Vector3(0.55, 0.6, 0)
 material = SubResource("StandardMaterial3D_nubv8")
 metadata/ship = &"opening"
@@ -31920,7 +31708,7 @@ metadata/starts = "SHUT"
 metadata/collapse_head = 2.0
 
 [node name="Opening_window_a_deck_p15" type="CSGBox3D" parent="Structure/Openings" unique_id=1844754144]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -55.6063, 6.95, -9.725)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -55.6063, 6.95, -9.85)
 size = Vector3(0.55, 0.6, 0)
 material = SubResource("StandardMaterial3D_nubv8")
 metadata/ship = &"opening"
@@ -31930,96 +31718,8 @@ metadata/joins = Array[StringName]([&"a_deck", &"sky"])
 metadata/starts = "SHUT"
 metadata/collapse_head = 2.0
 
-[node name="Opening_window_a_deck_s8" type="CSGBox3D" parent="Structure/Openings" unique_id=730999401]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -64.7062, 6.95, 9.0375)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_s8"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_s9" type="CSGBox3D" parent="Structure/Openings" unique_id=846002959]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -63.4062, 6.95, 9.0375)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_s9"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_s10" type="CSGBox3D" parent="Structure/Openings" unique_id=605590409]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -62.1063, 6.95, 9.0375)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_s10"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_s11" type="CSGBox3D" parent="Structure/Openings" unique_id=561268501]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -60.8062, 6.95, 9.0375)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_s11"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_s12" type="CSGBox3D" parent="Structure/Openings" unique_id=2061104157]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -59.5063, 6.95, 9.0375)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_s12"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_s13" type="CSGBox3D" parent="Structure/Openings" unique_id=1950263127]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -58.2062, 6.95, 9.0375)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_s13"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_s14" type="CSGBox3D" parent="Structure/Openings" unique_id=1395083444]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -56.9062, 6.95, 9.0375)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_s14"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_s15" type="CSGBox3D" parent="Structure/Openings" unique_id=477266047]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -55.6063, 6.95, 9.0375)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_s15"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
 [node name="Opening_window_a_deck_p16" type="CSGBox3D" parent="Structure/Openings" unique_id=108222060]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -54.0562, 6.95, -9.725)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -54.0562, 6.95, -9.85)
 size = Vector3(0.55, 0.6, 0)
 material = SubResource("StandardMaterial3D_nubv8")
 metadata/ship = &"opening"
@@ -32030,7 +31730,7 @@ metadata/starts = "SHUT"
 metadata/collapse_head = 2.0
 
 [node name="Opening_window_a_deck_p17" type="CSGBox3D" parent="Structure/Openings" unique_id=1178271440]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -52.7563, 6.95, -9.725)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -52.7563, 6.95, -9.85)
 size = Vector3(0.55, 0.6, 0)
 material = SubResource("StandardMaterial3D_nubv8")
 metadata/ship = &"opening"
@@ -32041,7 +31741,7 @@ metadata/starts = "SHUT"
 metadata/collapse_head = 2.0
 
 [node name="Opening_window_a_deck_p18" type="CSGBox3D" parent="Structure/Openings" unique_id=1990463611]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -51.4562, 6.95, -9.725)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -51.4562, 6.95, -9.85)
 size = Vector3(0.55, 0.6, 0)
 material = SubResource("StandardMaterial3D_nubv8")
 metadata/ship = &"opening"
@@ -32052,7 +31752,7 @@ metadata/starts = "SHUT"
 metadata/collapse_head = 2.0
 
 [node name="Opening_window_a_deck_p19" type="CSGBox3D" parent="Structure/Openings" unique_id=1361164990]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -50.1562, 6.95, -9.725)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -50.1562, 6.95, -9.85)
 size = Vector3(0.55, 0.6, 0)
 material = SubResource("StandardMaterial3D_nubv8")
 metadata/ship = &"opening"
@@ -32063,7 +31763,7 @@ metadata/starts = "SHUT"
 metadata/collapse_head = 2.0
 
 [node name="Opening_window_a_deck_p20" type="CSGBox3D" parent="Structure/Openings" unique_id=1337642460]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -48.8563, 6.95, -9.725)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -48.8563, 6.95, -9.85)
 size = Vector3(0.55, 0.6, 0)
 material = SubResource("StandardMaterial3D_nubv8")
 metadata/ship = &"opening"
@@ -32074,7 +31774,7 @@ metadata/starts = "SHUT"
 metadata/collapse_head = 2.0
 
 [node name="Opening_window_a_deck_p21" type="CSGBox3D" parent="Structure/Openings" unique_id=11353517]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -47.5562, 6.95, -9.725)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -47.5562, 6.95, -9.85)
 size = Vector3(0.55, 0.6, 0)
 material = SubResource("StandardMaterial3D_nubv8")
 metadata/ship = &"opening"
@@ -32085,88 +31785,11 @@ metadata/starts = "SHUT"
 metadata/collapse_head = 2.0
 
 [node name="Opening_window_a_deck_p22" type="CSGBox3D" parent="Structure/Openings" unique_id=1216967386]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -46.2563, 6.95, -9.725)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -46.2563, 6.95, -9.85)
 size = Vector3(0.55, 0.6, 0)
 material = SubResource("StandardMaterial3D_nubv8")
 metadata/ship = &"opening"
 metadata/name = &"window_a_deck_p22"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_s16" type="CSGBox3D" parent="Structure/Openings" unique_id=716021960]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -54.0562, 6.95, 9.0375)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_s16"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_s17" type="CSGBox3D" parent="Structure/Openings" unique_id=1209751940]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -52.7563, 6.95, 9.0375)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_s17"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_s18" type="CSGBox3D" parent="Structure/Openings" unique_id=767479311]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -51.4562, 6.95, 9.0375)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_s18"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_s19" type="CSGBox3D" parent="Structure/Openings" unique_id=483509226]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -50.1562, 6.95, 9.0375)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_s19"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_s20" type="CSGBox3D" parent="Structure/Openings" unique_id=132613714]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -48.8563, 6.95, 9.0375)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_s20"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_s21" type="CSGBox3D" parent="Structure/Openings" unique_id=1650812772]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -47.5562, 6.95, 9.0375)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_s21"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_s22" type="CSGBox3D" parent="Structure/Openings" unique_id=536048170]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -46.2563, 6.95, 9.0375)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_s22"
 metadata/kind = "WINDOW"
 metadata/joins = Array[StringName]([&"a_deck", &"sky"])
 metadata/starts = "SHUT"
@@ -32228,7 +31851,7 @@ metadata/starts = "SHUT"
 metadata/collapse_head = 2.0
 
 [node name="Opening_window_a_deck_f1" type="CSGBox3D" parent="Structure/Openings" unique_id=746921420]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -35.5325, 6.95, -9.085)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 69.375, 6.95, -8.9187)
 size = Vector3(0, 0.6, 0.55)
 material = SubResource("StandardMaterial3D_nubv8")
 metadata/ship = &"opening"
@@ -32239,7 +31862,7 @@ metadata/starts = "SHUT"
 metadata/collapse_head = 2.0
 
 [node name="Opening_window_a_deck_f2" type="CSGBox3D" parent="Structure/Openings" unique_id=2097615184]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -35.5325, 6.95, -7.785)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 69.375, 6.95, -7.6188)
 size = Vector3(0, 0.6, 0.55)
 material = SubResource("StandardMaterial3D_nubv8")
 metadata/ship = &"opening"
@@ -32250,7 +31873,7 @@ metadata/starts = "SHUT"
 metadata/collapse_head = 2.0
 
 [node name="Opening_window_a_deck_f3" type="CSGBox3D" parent="Structure/Openings" unique_id=1178330797]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -35.5325, 6.95, -6.485)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 69.375, 6.95, -6.3187)
 size = Vector3(0, 0.6, 0.55)
 material = SubResource("StandardMaterial3D_nubv8")
 metadata/ship = &"opening"
@@ -32261,7 +31884,7 @@ metadata/starts = "SHUT"
 metadata/collapse_head = 2.0
 
 [node name="Opening_window_a_deck_f4" type="CSGBox3D" parent="Structure/Openings" unique_id=1455980104]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -35.5325, 6.95, -5.185)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 69.375, 6.95, -5.0187)
 size = Vector3(0, 0.6, 0.55)
 material = SubResource("StandardMaterial3D_nubv8")
 metadata/ship = &"opening"
@@ -32272,7 +31895,7 @@ metadata/starts = "SHUT"
 metadata/collapse_head = 2.0
 
 [node name="Opening_window_a_deck_f5" type="CSGBox3D" parent="Structure/Openings" unique_id=1987173444]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -35.5325, 6.95, 6.785)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 69.375, 6.95, 4.8)
 size = Vector3(0, 0.6, 0.55)
 material = SubResource("StandardMaterial3D_nubv8")
 metadata/ship = &"opening"
@@ -32283,7 +31906,7 @@ metadata/starts = "SHUT"
 metadata/collapse_head = 2.0
 
 [node name="Opening_window_a_deck_f6" type="CSGBox3D" parent="Structure/Openings" unique_id=1890038147]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -35.5325, 6.95, 8.085)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 69.375, 6.95, 6.1)
 size = Vector3(0, 0.6, 0.55)
 material = SubResource("StandardMaterial3D_nubv8")
 metadata/ship = &"opening"
@@ -32293,492 +31916,8 @@ metadata/joins = Array[StringName]([&"a_deck", &"sky"])
 metadata/starts = "SHUT"
 metadata/collapse_head = 2.0
 
-[node name="Opening_window_a_deck_s23" type="CSGBox3D" parent="Structure/Openings" unique_id=1680026391]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -43.2563, 6.95, 9.0375)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_s23"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_s24" type="CSGBox3D" parent="Structure/Openings" unique_id=807755573]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -41.9562, 6.95, 9.0375)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_s24"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_s25" type="CSGBox3D" parent="Structure/Openings" unique_id=125140012]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -40.6562, 6.95, 9.0375)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_s25"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_s26" type="CSGBox3D" parent="Structure/Openings" unique_id=1445023553]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -39.3563, 6.95, 9.0375)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_s26"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_s27" type="CSGBox3D" parent="Structure/Openings" unique_id=957858822]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -38.0562, 6.95, 9.0375)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_s27"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_p28" type="CSGBox3D" parent="Structure/Openings" unique_id=965481228]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -34.5063, 6.95, -4.905)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_p28"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_p29" type="CSGBox3D" parent="Structure/Openings" unique_id=1772404168]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -33.2062, 6.95, -4.905)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_p29"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_p30" type="CSGBox3D" parent="Structure/Openings" unique_id=1999108179]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -31.9062, 6.95, -4.905)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_p30"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_p31" type="CSGBox3D" parent="Structure/Openings" unique_id=2100184923]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -30.6062, 6.95, -4.905)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_p31"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_p32" type="CSGBox3D" parent="Structure/Openings" unique_id=1921688286]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -29.3062, 6.95, -4.905)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_p32"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_p33" type="CSGBox3D" parent="Structure/Openings" unique_id=1100346533]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -28.0063, 6.95, -4.905)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_p33"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_p34" type="CSGBox3D" parent="Structure/Openings" unique_id=372977310]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -26.7063, 6.95, -4.905)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_p34"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_p35" type="CSGBox3D" parent="Structure/Openings" unique_id=1601936318]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -25.4062, 6.95, -4.905)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_p35"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_p36" type="CSGBox3D" parent="Structure/Openings" unique_id=703197567]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -24.1062, 6.95, -4.905)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_p36"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_p37" type="CSGBox3D" parent="Structure/Openings" unique_id=1800335638]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -22.8062, 6.95, -4.905)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_p37"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_p38" type="CSGBox3D" parent="Structure/Openings" unique_id=877541717]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -21.5063, 6.95, -4.905)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_p38"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_p39" type="CSGBox3D" parent="Structure/Openings" unique_id=1650913442]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20.2063, 6.95, -4.905)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_p39"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_s28" type="CSGBox3D" parent="Structure/Openings" unique_id=948778882]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -27.535, 6.95, 6.0925)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_s28"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_s29" type="CSGBox3D" parent="Structure/Openings" unique_id=636524229]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -26.235, 6.95, 6.0925)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_s29"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_s30" type="CSGBox3D" parent="Structure/Openings" unique_id=383745117]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -23.4963, 6.95, 6.0925)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_s30"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_s31" type="CSGBox3D" parent="Structure/Openings" unique_id=477933070]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -22.1963, 6.95, 6.0925)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_s31"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_s32" type="CSGBox3D" parent="Structure/Openings" unique_id=393791090]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20.8963, 6.95, 6.0925)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_s32"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_s33" type="CSGBox3D" parent="Structure/Openings" unique_id=489813447]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -19.5963, 6.95, 6.0925)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_s33"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_p40" type="CSGBox3D" parent="Structure/Openings" unique_id=249411271]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -18.4875, 6.95, -8.6)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_p40"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_p41" type="CSGBox3D" parent="Structure/Openings" unique_id=1017144468]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -17.1875, 6.95, -8.6)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_p41"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_p42" type="CSGBox3D" parent="Structure/Openings" unique_id=58120677]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -15.8875, 6.95, -8.6)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_p42"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_a7" type="CSGBox3D" parent="Structure/Openings" unique_id=370861422]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -19.225, 6.95, -7.9125)
-size = Vector3(0, 0.6, 0.55)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_a7"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_a8" type="CSGBox3D" parent="Structure/Openings" unique_id=1174422594]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -19.225, 6.95, -5.65)
-size = Vector3(0, 0.6, 0.55)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_a8"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_s34" type="CSGBox3D" parent="Structure/Openings" unique_id=243039539]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -18.3188, 6.95, 8.35)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_s34"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_s35" type="CSGBox3D" parent="Structure/Openings" unique_id=1279517771]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -15.9, 6.95, 8.35)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_s35"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_a9" type="CSGBox3D" parent="Structure/Openings" unique_id=1323412087]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -19.225, 6.95, 7.1562)
-size = Vector3(0, 0.6, 0.55)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_a9"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_p43" type="CSGBox3D" parent="Structure/Openings" unique_id=1823768429]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -13.0188, 6.95, -9.5375)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_p43"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_p44" type="CSGBox3D" parent="Structure/Openings" unique_id=1166703482]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -11.7188, 6.95, -9.5375)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_p44"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_p45" type="CSGBox3D" parent="Structure/Openings" unique_id=1480084922]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10.4187, 6.95, -9.5375)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_p45"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_p46" type="CSGBox3D" parent="Structure/Openings" unique_id=424257499]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9.1187, 6.95, -9.5375)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_p46"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_p47" type="CSGBox3D" parent="Structure/Openings" unique_id=1970853997]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -7.8187, 6.95, -9.5375)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_p47"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_p48" type="CSGBox3D" parent="Structure/Openings" unique_id=502062846]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.3625, 6.95, -9.5375)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_p48"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_p49" type="CSGBox3D" parent="Structure/Openings" unique_id=1166922582]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4.0625, 6.95, -9.5375)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_p49"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_p50" type="CSGBox3D" parent="Structure/Openings" unique_id=1904985678]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.7625, 6.95, -9.5375)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_p50"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_p51" type="CSGBox3D" parent="Structure/Openings" unique_id=216695869]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.4625, 6.95, -9.5375)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_p51"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_p52" type="CSGBox3D" parent="Structure/Openings" unique_id=1049993800]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.1625, 6.95, -9.5375)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_p52"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_p53" type="CSGBox3D" parent="Structure/Openings" unique_id=1601843134]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.1375, 6.95, -9.5375)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_p53"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_p54" type="CSGBox3D" parent="Structure/Openings" unique_id=1196318218]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.4375, 6.95, -9.5375)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_p54"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_a10" type="CSGBox3D" parent="Structure/Openings" unique_id=895061997]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -15.28, 6.95, -8.8975)
-size = Vector3(0, 0.6, 0.55)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_a10"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
 [node name="Opening_window_a_deck_f7" type="CSGBox3D" parent="Structure/Openings" unique_id=1726766399]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.1625, 6.95, 5.2062)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 69.375, 6.95, 7.4)
 size = Vector3(0, 0.6, 0.55)
 material = SubResource("StandardMaterial3D_nubv8")
 metadata/ship = &"opening"
@@ -32789,7 +31928,7 @@ metadata/starts = "SHUT"
 metadata/collapse_head = 2.0
 
 [node name="Opening_window_a_deck_f8" type="CSGBox3D" parent="Structure/Openings" unique_id=1936137364]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.1625, 6.95, 6.5062)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 69.375, 6.95, 8.7)
 size = Vector3(0, 0.6, 0.55)
 material = SubResource("StandardMaterial3D_nubv8")
 metadata/ship = &"opening"
@@ -32800,7 +31939,7 @@ metadata/starts = "SHUT"
 metadata/collapse_head = 2.0
 
 [node name="Opening_window_a_deck_f9" type="CSGBox3D" parent="Structure/Openings" unique_id=82505839]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.1625, 6.95, 7.8062)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 69.375, 6.95, -2.2125)
 size = Vector3(0, 0.6, 0.55)
 material = SubResource("StandardMaterial3D_nubv8")
 metadata/ship = &"opening"
@@ -32810,250 +31949,8 @@ metadata/joins = Array[StringName]([&"a_deck", &"sky"])
 metadata/starts = "SHUT"
 metadata/collapse_head = 2.0
 
-[node name="Opening_window_a_deck_s36" type="CSGBox3D" parent="Structure/Openings" unique_id=1498401592]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12.9875, 6.95, 8.9125)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_s36"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_s37" type="CSGBox3D" parent="Structure/Openings" unique_id=876737433]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -11.6875, 6.95, 8.9125)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_s37"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_s38" type="CSGBox3D" parent="Structure/Openings" unique_id=1678831961]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10.3875, 6.95, 8.9125)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_s38"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_s39" type="CSGBox3D" parent="Structure/Openings" unique_id=822426635]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9.0875, 6.95, 8.9125)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_s39"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_s40" type="CSGBox3D" parent="Structure/Openings" unique_id=24791566]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -7.7875, 6.95, 8.9125)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_s40"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_s41" type="CSGBox3D" parent="Structure/Openings" unique_id=3423604]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.3625, 6.95, 8.9125)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_s41"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_s42" type="CSGBox3D" parent="Structure/Openings" unique_id=213372646]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4.0625, 6.95, 8.9125)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_s42"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_s43" type="CSGBox3D" parent="Structure/Openings" unique_id=298696472]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.7625, 6.95, 8.9125)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_s43"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_s44" type="CSGBox3D" parent="Structure/Openings" unique_id=1375360448]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.4625, 6.95, 8.9125)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_s44"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_s45" type="CSGBox3D" parent="Structure/Openings" unique_id=1667059297]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.1625, 6.95, 8.9125)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_s45"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_s46" type="CSGBox3D" parent="Structure/Openings" unique_id=238812002]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.1375, 6.95, 8.9125)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_s46"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_s47" type="CSGBox3D" parent="Structure/Openings" unique_id=1729958264]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.4375, 6.95, 8.9125)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_s47"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_p55" type="CSGBox3D" parent="Structure/Openings" unique_id=376430226]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.5875, 6.95, -8.85)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_p55"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_p56" type="CSGBox3D" parent="Structure/Openings" unique_id=735884659]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.8875, 6.95, -8.85)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_p56"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_p57" type="CSGBox3D" parent="Structure/Openings" unique_id=550834439]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6.1875, 6.95, -8.85)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_p57"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_p58" type="CSGBox3D" parent="Structure/Openings" unique_id=1247817364]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7.4875, 6.95, -8.85)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_p58"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_p59" type="CSGBox3D" parent="Structure/Openings" unique_id=222344665]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8.7875, 6.95, -8.85)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_p59"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_p60" type="CSGBox3D" parent="Structure/Openings" unique_id=807802284]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10.0875, 6.95, -8.85)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_p60"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_p61" type="CSGBox3D" parent="Structure/Openings" unique_id=1315503588]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 11.3875, 6.95, -8.85)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_p61"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_p62" type="CSGBox3D" parent="Structure/Openings" unique_id=834326053]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12.6875, 6.95, -8.85)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_p62"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_p63" type="CSGBox3D" parent="Structure/Openings" unique_id=1134456039]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 13.9875, 6.95, -8.85)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_p63"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_p64" type="CSGBox3D" parent="Structure/Openings" unique_id=898514857]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 15.2875, 6.95, -8.85)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_p64"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
 [node name="Opening_window_a_deck_f10" type="CSGBox3D" parent="Structure/Openings" unique_id=624463479]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 15.9125, 6.95, -7.6)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 69.375, 6.95, -0.9125)
 size = Vector3(0, 0.6, 0.55)
 material = SubResource("StandardMaterial3D_nubv8")
 metadata/ship = &"opening"
@@ -33064,7 +31961,7 @@ metadata/starts = "SHUT"
 metadata/collapse_head = 2.0
 
 [node name="Opening_window_a_deck_f11" type="CSGBox3D" parent="Structure/Openings" unique_id=81091486]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 15.9125, 6.95, -4.9875)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 69.375, 6.95, 0.725)
 size = Vector3(0, 0.6, 0.55)
 material = SubResource("StandardMaterial3D_nubv8")
 metadata/ship = &"opening"
@@ -33075,7 +31972,7 @@ metadata/starts = "SHUT"
 metadata/collapse_head = 2.0
 
 [node name="Opening_window_a_deck_f12" type="CSGBox3D" parent="Structure/Openings" unique_id=1329271813]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 15.9125, 6.95, -3.6875)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 69.375, 6.95, 2.025)
 size = Vector3(0, 0.6, 0.55)
 material = SubResource("StandardMaterial3D_nubv8")
 metadata/ship = &"opening"
@@ -33085,1427 +31982,8 @@ metadata/joins = Array[StringName]([&"a_deck", &"sky"])
 metadata/starts = "SHUT"
 metadata/collapse_head = 2.0
 
-[node name="Opening_window_a_deck_s48" type="CSGBox3D" parent="Structure/Openings" unique_id=1875708622]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.8812, 6.95, 4.725)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_s48"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_s49" type="CSGBox3D" parent="Structure/Openings" unique_id=407553516]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.1813, 6.95, 4.725)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_s49"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_s50" type="CSGBox3D" parent="Structure/Openings" unique_id=1451251734]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6.4812, 6.95, 4.725)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_s50"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_s51" type="CSGBox3D" parent="Structure/Openings" unique_id=1058790456]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7.7812, 6.95, 4.725)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_s51"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_s52" type="CSGBox3D" parent="Structure/Openings" unique_id=1721903155]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9.0813, 6.95, 4.725)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_s52"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_s53" type="CSGBox3D" parent="Structure/Openings" unique_id=1832463029]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10.3812, 6.95, 4.725)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_s53"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_s54" type="CSGBox3D" parent="Structure/Openings" unique_id=1422809723]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 11.6813, 6.95, 4.725)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_s54"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_s55" type="CSGBox3D" parent="Structure/Openings" unique_id=2083265270]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12.9812, 6.95, 4.725)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_s55"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_s56" type="CSGBox3D" parent="Structure/Openings" unique_id=1863866869]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14.2812, 6.95, 4.725)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_s56"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_s57" type="CSGBox3D" parent="Structure/Openings" unique_id=957032624]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 15.5813, 6.95, 4.725)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_s57"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_s58" type="CSGBox3D" parent="Structure/Openings" unique_id=912007143]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 16.8813, 6.95, 4.725)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_s58"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_s59" type="CSGBox3D" parent="Structure/Openings" unique_id=855717935]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 18.1812, 6.95, 4.725)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_s59"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_s60" type="CSGBox3D" parent="Structure/Openings" unique_id=1880138853]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 19.4812, 6.95, 4.725)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_s60"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_s61" type="CSGBox3D" parent="Structure/Openings" unique_id=1393147974]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20.7812, 6.95, 4.725)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_s61"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_s62" type="CSGBox3D" parent="Structure/Openings" unique_id=1802079464]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 22.0813, 6.95, 4.725)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_s62"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_s63" type="CSGBox3D" parent="Structure/Openings" unique_id=133004327]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 23.3813, 6.95, 4.725)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_s63"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_s64" type="CSGBox3D" parent="Structure/Openings" unique_id=1378989126]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 24.6812, 6.95, 4.725)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_s64"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_p65" type="CSGBox3D" parent="Structure/Openings" unique_id=1172194014]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 28.3438, 6.95, -8.725)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_p65"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_p66" type="CSGBox3D" parent="Structure/Openings" unique_id=1742570862]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 29.6438, 6.95, -8.725)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_p66"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_p67" type="CSGBox3D" parent="Structure/Openings" unique_id=290847308]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 30.9438, 6.95, -8.725)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_p67"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_p68" type="CSGBox3D" parent="Structure/Openings" unique_id=1625791755]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 32.2437, 6.95, -8.725)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_p68"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_p69" type="CSGBox3D" parent="Structure/Openings" unique_id=1180816610]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 33.5438, 6.95, -8.725)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_p69"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_p70" type="CSGBox3D" parent="Structure/Openings" unique_id=649644864]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 34.8438, 6.95, -8.725)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_p70"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_f13" type="CSGBox3D" parent="Structure/Openings" unique_id=280159166]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 35.6, 6.95, -7.7312)
-size = Vector3(0, 0.6, 0.55)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_f13"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_f14" type="CSGBox3D" parent="Structure/Openings" unique_id=1258002965]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 35.6, 6.95, -6.4312)
-size = Vector3(0, 0.6, 0.55)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_f14"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_f15" type="CSGBox3D" parent="Structure/Openings" unique_id=1878043951]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 35.6, 6.95, -5.1312)
-size = Vector3(0, 0.6, 0.55)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_f15"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_f16" type="CSGBox3D" parent="Structure/Openings" unique_id=521707143]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 35.6, 6.95, 5.0062)
-size = Vector3(0, 0.6, 0.55)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_f16"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_f17" type="CSGBox3D" parent="Structure/Openings" unique_id=1712109137]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 35.6, 6.95, 6.3062)
-size = Vector3(0, 0.6, 0.55)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_f17"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_f18" type="CSGBox3D" parent="Structure/Openings" unique_id=41429593]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 35.6, 6.95, 7.6062)
-size = Vector3(0, 0.6, 0.55)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_f18"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_s65" type="CSGBox3D" parent="Structure/Openings" unique_id=1560859489]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 28.3438, 6.95, 8.6625)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_s65"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_s66" type="CSGBox3D" parent="Structure/Openings" unique_id=2059463731]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 29.6438, 6.95, 8.6625)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_s66"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_s67" type="CSGBox3D" parent="Structure/Openings" unique_id=64923107]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 30.9438, 6.95, 8.6625)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_s67"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_s68" type="CSGBox3D" parent="Structure/Openings" unique_id=1405616490]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 32.2437, 6.95, 8.6625)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_s68"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_s69" type="CSGBox3D" parent="Structure/Openings" unique_id=500561947]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 33.5438, 6.95, 8.6625)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_s69"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_s70" type="CSGBox3D" parent="Structure/Openings" unique_id=2009661824]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 34.8438, 6.95, 8.6625)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_s70"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_a11" type="CSGBox3D" parent="Structure/Openings" unique_id=1558916592]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 25.4, 6.95, -5.3625)
-size = Vector3(0, 0.6, 0.55)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_a11"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_a12" type="CSGBox3D" parent="Structure/Openings" unique_id=1073111985]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 25.4, 6.95, -4.0625)
-size = Vector3(0, 0.6, 0.55)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_a12"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_a13" type="CSGBox3D" parent="Structure/Openings" unique_id=1306374594]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 25.4, 6.95, 5.2562)
-size = Vector3(0, 0.6, 0.55)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_a13"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_p71" type="CSGBox3D" parent="Structure/Openings" unique_id=1015651950]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 26.5938, 6.95, -8.725)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_p71"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_s71" type="CSGBox3D" parent="Structure/Openings" unique_id=2045894996]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 26.5938, 6.95, 8.6625)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_s71"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_p72" type="CSGBox3D" parent="Structure/Openings" unique_id=1429851425]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 36.29, 6.95, -4.4675)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_p72"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_p73" type="CSGBox3D" parent="Structure/Openings" unique_id=207494459]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 37.59, 6.95, -4.4675)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_p73"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_p74" type="CSGBox3D" parent="Structure/Openings" unique_id=1419295032]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 36.3813, 6.95, -9.6625)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_p74"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_p75" type="CSGBox3D" parent="Structure/Openings" unique_id=1477271453]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 37.6812, 6.95, -9.6625)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_p75"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_s72" type="CSGBox3D" parent="Structure/Openings" unique_id=51077540]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 36.3813, 6.95, -5.5875)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_s72"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_s73" type="CSGBox3D" parent="Structure/Openings" unique_id=1290750600]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 37.6812, 6.95, -5.5875)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_s73"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_a14" type="CSGBox3D" parent="Structure/Openings" unique_id=1763446004]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 35.7125, 6.95, -8.925)
-size = Vector3(0, 0.6, 0.55)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_a14"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_a15" type="CSGBox3D" parent="Structure/Openings" unique_id=1590033834]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 35.7125, 6.95, -7.625)
-size = Vector3(0, 0.6, 0.55)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_a15"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_a16" type="CSGBox3D" parent="Structure/Openings" unique_id=1573213403]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 35.7125, 6.95, -6.325)
-size = Vector3(0, 0.6, 0.55)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_a16"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_p76" type="CSGBox3D" parent="Structure/Openings" unique_id=619786373]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 38.8438, 6.95, -8.725)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_p76"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_a17" type="CSGBox3D" parent="Structure/Openings" unique_id=753149422]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 38.15, 6.95, -5.5719)
-size = Vector3(0, 0.6, 0.55)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_a17"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_p77" type="CSGBox3D" parent="Structure/Openings" unique_id=1738508441]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 40.4125, 6.95, -9.6625)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_p77"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_p78" type="CSGBox3D" parent="Structure/Openings" unique_id=1607367983]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 41.7125, 6.95, -9.6625)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_p78"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_a18" type="CSGBox3D" parent="Structure/Openings" unique_id=515758229]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 39.4075, 6.95, -8.8375)
-size = Vector3(0, 0.6, 0.55)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_a18"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_p79" type="CSGBox3D" parent="Structure/Openings" unique_id=1197386045]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 43.25, 6.95, -9.6625)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_p79"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_p80" type="CSGBox3D" parent="Structure/Openings" unique_id=163944657]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 44.325, 6.95, -9.6625)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_p80"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_p81" type="CSGBox3D" parent="Structure/Openings" unique_id=1197223625]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 45.625, 6.95, -9.6625)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_p81"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_p82" type="CSGBox3D" parent="Structure/Openings" unique_id=1881290964]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 46.925, 6.95, -9.6625)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_p82"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_f19" type="CSGBox3D" parent="Structure/Openings" unique_id=81292519]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 47.4675, 6.95, -8.8375)
-size = Vector3(0, 0.6, 0.55)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_f19"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_p83" type="CSGBox3D" parent="Structure/Openings" unique_id=896968555]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 48, 6.95, -8.725)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_p83"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_p84" type="CSGBox3D" parent="Structure/Openings" unique_id=198962648]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 49.4438, 6.95, -9.6)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_p84"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_p85" type="CSGBox3D" parent="Structure/Openings" unique_id=320874504]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 50.7437, 6.95, -9.6)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_p85"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_a19" type="CSGBox3D" parent="Structure/Openings" unique_id=2033766677]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 48.5325, 6.95, -8.8694)
-size = Vector3(0, 0.6, 0.55)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_a19"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_p86" type="CSGBox3D" parent="Structure/Openings" unique_id=284936029]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 52.5375, 6.95, -9.6)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_p86"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_p87" type="CSGBox3D" parent="Structure/Openings" unique_id=20023441]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 53.8375, 6.95, -9.6)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_p87"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_f20" type="CSGBox3D" parent="Structure/Openings" unique_id=1216512636]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 54.78, 6.95, -8.8381)
-size = Vector3(0, 0.6, 0.55)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_f20"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_p88" type="CSGBox3D" parent="Structure/Openings" unique_id=1263477433]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 55.3438, 6.95, -8.6)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_p88"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_p89" type="CSGBox3D" parent="Structure/Openings" unique_id=513429540]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 56.8813, 6.95, -9.6)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_p89"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_p90" type="CSGBox3D" parent="Structure/Openings" unique_id=1194303070]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 58.1812, 6.95, -9.6)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_p90"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_a20" type="CSGBox3D" parent="Structure/Openings" unique_id=956747765]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 55.9075, 6.95, -8.8225)
-size = Vector3(0, 0.6, 0.55)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_a20"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_p91" type="CSGBox3D" parent="Structure/Openings" unique_id=382102411]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 59.975, 6.95, -9.6)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_p91"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_p92" type="CSGBox3D" parent="Structure/Openings" unique_id=318866801]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 61.275, 6.95, -9.6)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_p92"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_f21" type="CSGBox3D" parent="Structure/Openings" unique_id=831921082]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 62.155, 6.95, -8.8069)
-size = Vector3(0, 0.6, 0.55)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_f21"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_p93" type="CSGBox3D" parent="Structure/Openings" unique_id=643203397]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 62.7188, 6.95, -8.5375)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_p93"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_p94" type="CSGBox3D" parent="Structure/Openings" unique_id=1980869566]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 64.1937, 6.95, -9.6)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_p94"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_p95" type="CSGBox3D" parent="Structure/Openings" unique_id=1831535556]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 65.4938, 6.95, -9.6)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_p95"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_a21" type="CSGBox3D" parent="Structure/Openings" unique_id=828452329]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 63.2825, 6.95, -8.8069)
-size = Vector3(0, 0.6, 0.55)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_a21"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_p96" type="CSGBox3D" parent="Structure/Openings" unique_id=354596820]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 67.225, 6.95, -9.6)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_p96"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_p97" type="CSGBox3D" parent="Structure/Openings" unique_id=292292208]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 68.525, 6.95, -9.6)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_p97"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_f22" type="CSGBox3D" parent="Structure/Openings" unique_id=1846390923]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 69.475, 6.95, -8.9187)
-size = Vector3(0, 0.6, 0.55)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_f22"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_f23" type="CSGBox3D" parent="Structure/Openings" unique_id=364609707]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 69.475, 6.95, -7.6188)
-size = Vector3(0, 0.6, 0.55)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_f23"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_f24" type="CSGBox3D" parent="Structure/Openings" unique_id=1601733123]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 69.475, 6.95, -6.3187)
-size = Vector3(0, 0.6, 0.55)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_f24"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_f25" type="CSGBox3D" parent="Structure/Openings" unique_id=1141869215]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 69.475, 6.95, -5.0187)
-size = Vector3(0, 0.6, 0.55)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_f25"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_s74" type="CSGBox3D" parent="Structure/Openings" unique_id=1585014263]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 36.29, 6.95, 4.28)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_s74"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_s75" type="CSGBox3D" parent="Structure/Openings" unique_id=378090574]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 37.59, 6.95, 4.28)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_s75"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_p98" type="CSGBox3D" parent="Structure/Openings" unique_id=2077156071]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 36.3813, 6.95, 5.3375)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_p98"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_p99" type="CSGBox3D" parent="Structure/Openings" unique_id=1484237794]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 37.6812, 6.95, 5.3375)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_p99"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_s76" type="CSGBox3D" parent="Structure/Openings" unique_id=1304062185]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 36.3813, 6.95, 9.225)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_s76"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_s77" type="CSGBox3D" parent="Structure/Openings" unique_id=1430334301]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 37.6812, 6.95, 9.225)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_s77"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_a22" type="CSGBox3D" parent="Structure/Openings" unique_id=900635813]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 35.7125, 6.95, 5.9813)
-size = Vector3(0, 0.6, 0.55)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_a22"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_a23" type="CSGBox3D" parent="Structure/Openings" unique_id=568482619]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 35.7125, 6.95, 7.2812)
-size = Vector3(0, 0.6, 0.55)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_a23"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_a24" type="CSGBox3D" parent="Structure/Openings" unique_id=1867649787]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 35.7125, 6.95, 8.5813)
-size = Vector3(0, 0.6, 0.55)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_a24"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_s78" type="CSGBox3D" parent="Structure/Openings" unique_id=1662291068]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 38.8438, 6.95, 8.5375)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_s78"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_a25" type="CSGBox3D" parent="Structure/Openings" unique_id=1456331292]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 38.15, 6.95, 5.3688)
-size = Vector3(0, 0.6, 0.55)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_a25"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_s79" type="CSGBox3D" parent="Structure/Openings" unique_id=948775658]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 40.3813, 6.95, 9.225)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_s79"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_s80" type="CSGBox3D" parent="Structure/Openings" unique_id=1021361278]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 41.6812, 6.95, 9.225)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_s80"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_a26" type="CSGBox3D" parent="Structure/Openings" unique_id=1676814599]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 39.3375, 6.95, 8.525)
-size = Vector3(0, 0.6, 0.55)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_a26"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_s81" type="CSGBox3D" parent="Structure/Openings" unique_id=1832104202]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 43.2188, 6.95, 9.225)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_s81"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_f26" type="CSGBox3D" parent="Structure/Openings" unique_id=199504811]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 47.475, 6.95, 8.525)
-size = Vector3(0, 0.6, 0.55)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_f26"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_s82" type="CSGBox3D" parent="Structure/Openings" unique_id=1918844658]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 44.9438, 6.95, 9.225)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_s82"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_s83" type="CSGBox3D" parent="Structure/Openings" unique_id=923063900]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 46.2437, 6.95, 9.225)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_s83"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_s84" type="CSGBox3D" parent="Structure/Openings" unique_id=1487630548]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 47.9688, 6.95, 8.4125)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_s84"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_s85" type="CSGBox3D" parent="Structure/Openings" unique_id=1343238951]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 49.475, 6.95, 9.2875)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_s85"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_s86" type="CSGBox3D" parent="Structure/Openings" unique_id=1813656946]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 50.775, 6.95, 9.2875)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_s86"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_a27" type="CSGBox3D" parent="Structure/Openings" unique_id=137349173]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 48.4625, 6.95, 8.5531)
-size = Vector3(0, 0.6, 0.55)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_a27"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_f27" type="CSGBox3D" parent="Structure/Openings" unique_id=624598095]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 54.9125, 6.95, 8.5218)
-size = Vector3(0, 0.6, 0.55)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_f27"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_s87" type="CSGBox3D" parent="Structure/Openings" unique_id=2012820944]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 52.6, 6.95, 9.2875)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_s87"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_s88" type="CSGBox3D" parent="Structure/Openings" unique_id=1161106286]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 53.9, 6.95, 9.2875)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_s88"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_s89" type="CSGBox3D" parent="Structure/Openings" unique_id=1235328644]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 55.375, 6.95, 8.2875)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_s89"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_s90" type="CSGBox3D" parent="Structure/Openings" unique_id=1957387165]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 56.8188, 6.95, 9.2875)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_s90"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_s91" type="CSGBox3D" parent="Structure/Openings" unique_id=1491256820]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 58.1187, 6.95, 9.2875)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_s91"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_a28" type="CSGBox3D" parent="Structure/Openings" unique_id=164650694]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 55.8375, 6.95, 8.5218)
-size = Vector3(0, 0.6, 0.55)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_a28"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_f28" type="CSGBox3D" parent="Structure/Openings" unique_id=38933019]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 62.225, 6.95, 8.5218)
-size = Vector3(0, 0.6, 0.55)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_f28"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_s92" type="CSGBox3D" parent="Structure/Openings" unique_id=950006039]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 59.9125, 6.95, 9.2875)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_s92"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_s93" type="CSGBox3D" parent="Structure/Openings" unique_id=1597744510]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 61.2125, 6.95, 9.2875)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_s93"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_s94" type="CSGBox3D" parent="Structure/Openings" unique_id=147698583]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 62.6875, 6.95, 8.2875)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_s94"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_s95" type="CSGBox3D" parent="Structure/Openings" unique_id=491076057]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 64.1625, 6.95, 9.35)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_s95"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_s96" type="CSGBox3D" parent="Structure/Openings" unique_id=1515593520]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 65.4625, 6.95, 9.35)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_s96"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_a29" type="CSGBox3D" parent="Structure/Openings" unique_id=505804589]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 63.15, 6.95, 8.5844)
-size = Vector3(0, 0.6, 0.55)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_a29"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_f29" type="CSGBox3D" parent="Structure/Openings" unique_id=1401840170]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 69.475, 6.95, 4.8)
-size = Vector3(0, 0.6, 0.55)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_f29"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_f30" type="CSGBox3D" parent="Structure/Openings" unique_id=572832247]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 69.475, 6.95, 6.1)
-size = Vector3(0, 0.6, 0.55)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_f30"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_f31" type="CSGBox3D" parent="Structure/Openings" unique_id=2076798046]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 69.475, 6.95, 7.4)
-size = Vector3(0, 0.6, 0.55)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_f31"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_f32" type="CSGBox3D" parent="Structure/Openings" unique_id=1265320130]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 69.475, 6.95, 8.7)
-size = Vector3(0, 0.6, 0.55)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_f32"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_s97" type="CSGBox3D" parent="Structure/Openings" unique_id=96440637]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 67.225, 6.95, 9.35)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_s97"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_s98" type="CSGBox3D" parent="Structure/Openings" unique_id=948615163]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 68.525, 6.95, 9.35)
-size = Vector3(0.55, 0.6, 0)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_s98"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_f33" type="CSGBox3D" parent="Structure/Openings" unique_id=173560019]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 69.475, 6.95, -2.2125)
-size = Vector3(0, 0.6, 0.55)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_f33"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_f34" type="CSGBox3D" parent="Structure/Openings" unique_id=841442022]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 69.475, 6.95, -0.9125)
-size = Vector3(0, 0.6, 0.55)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_f34"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_f35" type="CSGBox3D" parent="Structure/Openings" unique_id=704741245]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 69.475, 6.95, 0.725)
-size = Vector3(0, 0.6, 0.55)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_f35"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
-[node name="Opening_window_a_deck_f36" type="CSGBox3D" parent="Structure/Openings" unique_id=304835777]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 69.475, 6.95, 2.025)
-size = Vector3(0, 0.6, 0.55)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"window_a_deck_f36"
-metadata/kind = "WINDOW"
-metadata/joins = Array[StringName]([&"a_deck", &"sky"])
-metadata/starts = "SHUT"
-metadata/collapse_head = 2.0
-
 [node name="Opening_window_b_deck_a1" type="CSGBox3D" parent="Structure/Openings" unique_id=1635924375]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -77.1, 4.2, -9.025)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -77, 4.2, -9.025)
 size = Vector3(0, 0.6, 0.55)
 material = SubResource("StandardMaterial3D_nubv8")
 metadata/ship = &"opening"
@@ -34516,7 +31994,7 @@ metadata/starts = "SHUT"
 metadata/collapse_head = 2.0
 
 [node name="Opening_window_b_deck_a2" type="CSGBox3D" parent="Structure/Openings" unique_id=545151068]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -77.1, 4.2, -7.725)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -77, 4.2, -7.725)
 size = Vector3(0, 0.6, 0.55)
 material = SubResource("StandardMaterial3D_nubv8")
 metadata/ship = &"opening"
@@ -34527,7 +32005,7 @@ metadata/starts = "SHUT"
 metadata/collapse_head = 2.0
 
 [node name="Opening_window_b_deck_a3" type="CSGBox3D" parent="Structure/Openings" unique_id=1707794589]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -77.1, 4.2, -6.425)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -77, 4.2, -6.425)
 size = Vector3(0, 0.6, 0.55)
 material = SubResource("StandardMaterial3D_nubv8")
 metadata/ship = &"opening"
@@ -34538,7 +32016,7 @@ metadata/starts = "SHUT"
 metadata/collapse_head = 2.0
 
 [node name="Opening_window_b_deck_a4" type="CSGBox3D" parent="Structure/Openings" unique_id=359553665]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -77.1, 4.2, -3.9)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -77, 4.2, -3.9)
 size = Vector3(0, 0.6, 0.55)
 material = SubResource("StandardMaterial3D_nubv8")
 metadata/ship = &"opening"
@@ -34549,7 +32027,7 @@ metadata/starts = "SHUT"
 metadata/collapse_head = 2.0
 
 [node name="Opening_window_b_deck_a5" type="CSGBox3D" parent="Structure/Openings" unique_id=1107157032]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -77.1, 4.2, -2.6)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -77, 4.2, -2.6)
 size = Vector3(0, 0.6, 0.55)
 material = SubResource("StandardMaterial3D_nubv8")
 metadata/ship = &"opening"
@@ -34560,7 +32038,7 @@ metadata/starts = "SHUT"
 metadata/collapse_head = 2.0
 
 [node name="Opening_window_b_deck_a6" type="CSGBox3D" parent="Structure/Openings" unique_id=566799476]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -77.1, 4.2, -1.3)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -77, 4.2, -1.3)
 size = Vector3(0, 0.6, 0.55)
 material = SubResource("StandardMaterial3D_nubv8")
 metadata/ship = &"opening"
@@ -34571,7 +32049,7 @@ metadata/starts = "SHUT"
 metadata/collapse_head = 2.0
 
 [node name="Opening_window_b_deck_a7" type="CSGBox3D" parent="Structure/Openings" unique_id=133023054]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -77.1, 4.2, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -77, 4.2, 0)
 size = Vector3(0, 0.6, 0.55)
 material = SubResource("StandardMaterial3D_nubv8")
 metadata/ship = &"opening"
@@ -34582,7 +32060,7 @@ metadata/starts = "SHUT"
 metadata/collapse_head = 2.0
 
 [node name="Opening_window_b_deck_a8" type="CSGBox3D" parent="Structure/Openings" unique_id=218348403]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -77.1, 4.2, 1.3)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -77, 4.2, 1.3)
 size = Vector3(0, 0.6, 0.55)
 material = SubResource("StandardMaterial3D_nubv8")
 metadata/ship = &"opening"
@@ -34593,7 +32071,7 @@ metadata/starts = "SHUT"
 metadata/collapse_head = 2.0
 
 [node name="Opening_window_b_deck_a9" type="CSGBox3D" parent="Structure/Openings" unique_id=161898741]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -77.1, 4.2, 2.6)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -77, 4.2, 2.6)
 size = Vector3(0, 0.6, 0.55)
 material = SubResource("StandardMaterial3D_nubv8")
 metadata/ship = &"opening"
@@ -34604,7 +32082,7 @@ metadata/starts = "SHUT"
 metadata/collapse_head = 2.0
 
 [node name="Opening_window_b_deck_a10" type="CSGBox3D" parent="Structure/Openings" unique_id=799605294]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -77.1, 4.2, 3.9)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -77, 4.2, 3.9)
 size = Vector3(0, 0.6, 0.55)
 material = SubResource("StandardMaterial3D_nubv8")
 metadata/ship = &"opening"
@@ -34615,7 +32093,7 @@ metadata/starts = "SHUT"
 metadata/collapse_head = 2.0
 
 [node name="Opening_window_b_deck_a11" type="CSGBox3D" parent="Structure/Openings" unique_id=808555604]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -77.1, 4.2, 6.425)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -77, 4.2, 6.425)
 size = Vector3(0, 0.6, 0.55)
 material = SubResource("StandardMaterial3D_nubv8")
 metadata/ship = &"opening"
@@ -34626,7 +32104,7 @@ metadata/starts = "SHUT"
 metadata/collapse_head = 2.0
 
 [node name="Opening_window_b_deck_a12" type="CSGBox3D" parent="Structure/Openings" unique_id=60158449]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -77.1, 4.2, 7.725)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -77, 4.2, 7.725)
 size = Vector3(0, 0.6, 0.55)
 material = SubResource("StandardMaterial3D_nubv8")
 metadata/ship = &"opening"
@@ -34637,7 +32115,7 @@ metadata/starts = "SHUT"
 metadata/collapse_head = 2.0
 
 [node name="Opening_window_b_deck_a13" type="CSGBox3D" parent="Structure/Openings" unique_id=2116580240]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -77.1, 4.2, 9.025)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -77, 4.2, 9.025)
 size = Vector3(0, 0.6, 0.55)
 material = SubResource("StandardMaterial3D_nubv8")
 metadata/ship = &"opening"
@@ -34648,7 +32126,7 @@ metadata/starts = "SHUT"
 metadata/collapse_head = 2.0
 
 [node name="Opening_window_c_deck_a1" type="CSGBox3D" parent="Structure/Openings" unique_id=379329000]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -94.1, 1.45, -0.975)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -94, 1.45, -0.975)
 size = Vector3(0, 0.6, 0.55)
 material = SubResource("StandardMaterial3D_nubv8")
 metadata/ship = &"opening"
@@ -34659,7 +32137,7 @@ metadata/starts = "SHUT"
 metadata/collapse_head = 2.0
 
 [node name="Opening_window_c_deck_a2" type="CSGBox3D" parent="Structure/Openings" unique_id=1929821029]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -94.1, 1.45, 0.975)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -94, 1.45, 0.975)
 size = Vector3(0, 0.6, 0.55)
 material = SubResource("StandardMaterial3D_nubv8")
 metadata/ship = &"opening"
@@ -34670,7 +32148,7 @@ metadata/starts = "SHUT"
 metadata/collapse_head = 2.0
 
 [node name="Opening_window_poop_f1" type="CSGBox3D" parent="Structure/Openings" unique_id=1169935893]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -105.8534, 1.45, -5.45)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -105.9534, 1.45, -5.45)
 size = Vector3(0, 0.6, 0.55)
 material = SubResource("StandardMaterial3D_nubv8")
 metadata/ship = &"opening"
@@ -34681,7 +32159,7 @@ metadata/starts = "SHUT"
 metadata/collapse_head = 2.0
 
 [node name="Opening_window_poop_f2" type="CSGBox3D" parent="Structure/Openings" unique_id=268168483]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -105.8534, 1.45, -4.15)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -105.9534, 1.45, -4.15)
 size = Vector3(0, 0.6, 0.55)
 material = SubResource("StandardMaterial3D_nubv8")
 metadata/ship = &"opening"
@@ -34692,7 +32170,7 @@ metadata/starts = "SHUT"
 metadata/collapse_head = 2.0
 
 [node name="Opening_window_poop_f3" type="CSGBox3D" parent="Structure/Openings" unique_id=1114993384]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -105.8534, 1.45, -1.55)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -105.9534, 1.45, -1.55)
 size = Vector3(0, 0.6, 0.55)
 material = SubResource("StandardMaterial3D_nubv8")
 metadata/ship = &"opening"
@@ -34703,7 +32181,7 @@ metadata/starts = "SHUT"
 metadata/collapse_head = 2.0
 
 [node name="Opening_window_poop_f4" type="CSGBox3D" parent="Structure/Openings" unique_id=1719295244]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -105.8534, 1.45, 1.55)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -105.9534, 1.45, 1.55)
 size = Vector3(0, 0.6, 0.55)
 material = SubResource("StandardMaterial3D_nubv8")
 metadata/ship = &"opening"
@@ -34714,7 +32192,7 @@ metadata/starts = "SHUT"
 metadata/collapse_head = 2.0
 
 [node name="Opening_window_poop_f5" type="CSGBox3D" parent="Structure/Openings" unique_id=633640401]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -105.8534, 1.45, 4.15)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -105.9534, 1.45, 4.15)
 size = Vector3(0, 0.6, 0.55)
 material = SubResource("StandardMaterial3D_nubv8")
 metadata/ship = &"opening"
@@ -34725,7 +32203,7 @@ metadata/starts = "SHUT"
 metadata/collapse_head = 2.0
 
 [node name="Opening_window_poop_f6" type="CSGBox3D" parent="Structure/Openings" unique_id=1864346451]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -105.8534, 1.45, 5.45)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -105.9534, 1.45, 5.45)
 size = Vector3(0, 0.6, 0.55)
 material = SubResource("StandardMaterial3D_nubv8")
 metadata/ship = &"opening"
@@ -34738,7 +32216,7 @@ metadata/collapse_head = 2.0
 [node name="Mass" type="Node3D" parent="Structure" unique_id=1603486576]
 
 [node name="Mass_hull_steel" type="Marker3D" parent="Structure/Mass" unique_id=1461213012]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, -10.6141, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, -10.6135, 0)
 metadata/ship = &"mass"
 metadata/name = &"hull steel"
 metadata/mass = 26000000.0
@@ -34808,11 +32286,11 @@ metadata/mass = 250000.0
 metadata/along = Vector2(-120, 120)
 
 [node name="Mass_water_ballast" type="Marker3D" parent="Structure/Mass" unique_id=1089361892]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 13.3071, -19.0125, 0.0011)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 13.3118, -19.0125, 0.002)
 metadata/ship = &"mass"
 metadata/name = &"water ballast"
-metadata/mass = 2111581.4
-metadata/along = Vector2(-1.6929, 28.3071)
+metadata/mass = 2111789.8
+metadata/along = Vector2(-1.6882, 28.3118)
 
 [node name="Fittings" type="Node3D" parent="Structure" unique_id=676888437]
 

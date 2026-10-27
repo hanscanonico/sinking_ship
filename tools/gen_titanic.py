@@ -2361,10 +2361,21 @@ def arr(script, ids):
 # The enclosed outline's top: her shell's (top_at), the B deck under A over B deck's
 # house — her plating "carried right up to the Boat deck" (BOT) —, and the houses over
 # it: A deck's between its promenades, and the boat deck's on it as Plate III draws them
-# (BOAT_PLAN), side by side. (x0, x1, z0, z1, foot, top), each a cell of its own.
+# (BOAT_PLAN), side by side. (x0, x1, z0, z1, foot, top), each a cell of its own: out
+# to its walls' outer faces, but where two houses share a wall, whose middle their cells
+# meet on — cells never overlap.
+def house_cell(house):
+    _name, x0, x1, z0, z1 = house
+    def shared(axis, at):
+        return any(other is not house and (abs((o_x0 if axis == 0 else o_z0) - at) < 1e-6
+                                            or abs((o_x1 if axis == 0 else o_z1) - at) < 1e-6)
+                   and ((o_z0 < z1 and o_z1 > z0) if axis == 0 else (o_x0 < x1 and o_x1 > x0))
+                   for other in BOAT_PLAN.houses for _o, o_x0, o_x1, o_z0, o_z1 in [other])
+    return (x0 - (0.0 if shared(0, x0) else T), x1 + (0.0 if shared(0, x1) else T),
+            z0 - (0.0 if shared(2, z0) else T), z1 + (0.0 if shared(2, z1) else T), BOAT, BOAT + HOUSE_TOP)
+
 A_HOUSE_TOP = (A_HOUSE[0], A_HOUSE[1], -(A_HOUSE[2] + T), A_HOUSE[2] + T, A_DECK, BOAT)
-HOUSES = [A_HOUSE_TOP] + [(x0 - T, x1 + T, z0 - T, z1 + T, BOAT, BOAT + HOUSE_TOP)
-                          for _name, x0, x1, z0, z1 in BOAT_PLAN.houses]
+HOUSES = [A_HOUSE_TOP] + [house_cell(house) for house in BOAT_PLAN.houses]
 HOUSE_CELLS = ["a_deck"] + [house[0] for house in BOAT_PLAN.houses]
 
 def shell_top(x):
@@ -3186,26 +3197,23 @@ def windows():
                 bx, bz = on_side(house, side, spot, -(half + PROBE))
                 if not outdoors(bx, height, bz) or under_a_ramp(bx, bz, height):
                     continue
+                # Under her shell's top, onto a cell of hers — its own too, where a house
+                # stands in from its cell's side (A deck's, one box over its stepped walls) —
+                # or into a block (a casing): no sky beyond it.
+                if height < shell_top(bx) or cell_at(bx, height, bz) is not None or in_a_block(bx, height, bz):
+                    continue
                 x, z = on_side(house, side, spot, 0)
                 away = OUTWARD[side]
                 holder = cell_at(x - away[0] * (half + 0.01), height, z - away[1] * (half + 0.01))
-                # Under her shell's top, onto another cell of hers or into a block (a
-                # casing): no sky beyond it. Onto her own, the open deck between a house's
-                # walls and its cell's side (A deck's promenades, its house narrower than
-                # its cell in places), there is.
-                beyond = cell_at(bx, height, bz)
-                if height < shell_top(bx) or beyond is not None and beyond != holder or in_a_block(bx, height, bz):
-                    continue
                 if holder is None:
                     unnamed.append(name)
                     continue
-                # In its wall's outer face: its cell's side where the wall is that.
-                fx, fz = on_side(house, side, spot, -half)
+                box_of = cell_box(holder)
                 if side % 2 == 0:
-                    centre = (x, height, fz)
+                    centre = (x, height, box_of[4] if away[1] < 0 else box_of[5])
                     extent = (size[0], size[1], 0)
                 else:
-                    centre = (fx, height, z)
+                    centre = (box_of[0] if away[0] < 0 else box_of[1], height, z)
                     extent = (0, size[1], size[0])
                 tag = "window_%s_%s" % (holder, SIDE_TAGS[side])
                 number = sum(1 for o in openings if o[0].startswith(tag)) + 1

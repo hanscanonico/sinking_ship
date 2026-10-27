@@ -38,7 +38,7 @@ ROOMS = [
     # The second-class landing: the boat deck's flight comes down into it to port of the
     # lift, B deck's goes down from it to starboard. The bar starts 47 px forward of the
     # plate's 3126 so B deck's flight has its run (see STAIRS).
-    ("second-class entrance", 2948, 4760, 3173, 4996),
+    ("second-class entrance, A deck", 2948, 4760, 3173, 4996),
     ("bar", 3173, 4756, 3310, 4996),
     # The first-class smoking room round the house in its middle (turbine engine casing,
     # its lavatory), as five rectangles that are one room.

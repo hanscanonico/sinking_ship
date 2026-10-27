@@ -33,10 +33,10 @@ DECKS = [
 ROOMS = [
     # The second-class entrance, aft: its landing round the lift and the two flights
     # down to A deck either side of it.
-    ("second-class entrance", 2960, 3478, 3226, 3694),
+    ("second-class entrance, boat deck", 2960, 3478, 3226, 3694),
     # The tank rooms either side of the reciprocating engine casing, opening outboard.
-    ("tank room", 4380, 3323, 4698, 3472),
-    ("tank room", 4380, 3707, 4699, 3847),
+    ("tank room, port", 4380, 3323, 4698, 3472),
+    ("tank room, starboard", 4380, 3707, 4699, 3847),
     # The officers' mess and its pantry, starboard of funnel 3's casing; the deck chair
     # store to port.
     ("mess pantry", 4891, 3707, 4987, 3785),
@@ -48,18 +48,18 @@ ROOMS = [
     # between its two vestibules, which open onto the promenades.
     ("grand staircase, boat deck", 6815, 3258, 7110, 3900),
     ("grand staircase, boat deck", 6740, 3329, 6815, 3833),
-    ("vestibule", 6740, 3258, 6815, 3329),
-    ("vestibule", 6740, 3833, 6815, 3900),
+    ("vestibule, boat deck", 6740, 3258, 6815, 3329),
+    ("vestibule, boat deck", 6740, 3833, 6815, 3900),
     # The officers' house. To port: the Marconi operators' bedroom, the Marconi room round
     # the silent room, the officers' cabins and the chart room, along the port corridor.
     ("Marconi operators' bedroom", 7109, 3322, 7200, 3466),
     ("Marconi room", 7200, 3322, 7270, 3466),
     ("Marconi passage", 7270, 3427, 7388, 3466),
     ("silent room", 7270, 3322, 7355, 3427),
-    ("passage", 7388, 3322, 7426, 3697),
+    ("officers' passage", 7388, 3322, 7426, 3697),
     ("sixth officer's cabin", 7426, 3322, 7512, 3427),
     ("extra second officer's cabin", 7512, 3322, 7593, 3427),
-    ("passage", 7593, 3322, 7641, 3428),
+    ("officers' passage", 7593, 3322, 7641, 3428),
     ("first officer's cabin", 7641, 3322, 7772, 3428),
     ("chief officer's cabin", 7772, 3322, 7906, 3428),
     ("pilot's cabin", 7906, 3322, 7985, 3428),
@@ -71,7 +71,7 @@ ROOMS = [
     ("officers' pantry", 7246, 3466, 7388, 3536),
     ("officers' smoking room", 7246, 3536, 7388, 3697),
     ("officers' lavatory", 7426, 3499, 7543, 3556),
-    ("bathroom", 7426, 3556, 7498, 3628),
+    ("officers' bathroom", 7426, 3556, 7498, 3628),
     ("lavatory", 7498, 3556, 7543, 3628),
     ("officers' store", 7426, 3628, 7478, 3697),
     ("lavatory", 7478, 3628, 7543, 3697),
@@ -81,10 +81,10 @@ ROOMS = [
     ("stewards' cabin", 7109, 3738, 7181, 3845),
     ("fifth officer's cabin", 7181, 3738, 7293, 3845),
     ("fourth officer's cabin", 7293, 3738, 7388, 3845),
-    ("passage", 7388, 3738, 7426, 3845),
+    ("officers' passage", 7388, 3738, 7426, 3845),
     ("third officer's cabin", 7426, 3738, 7529, 3845),
     ("second officer's cabin", 7529, 3738, 7636, 3845),
-    ("passage", 7636, 3738, 7670, 3845),
+    ("officers' passage", 7636, 3738, 7670, 3845),
     ("captain's lavatory", 7670, 3738, 7765, 3845),
     ("captain's bathroom", 7765, 3738, 7843, 3845),
     ("captain's sitting room", 7843, 3697, 8003, 3845),
