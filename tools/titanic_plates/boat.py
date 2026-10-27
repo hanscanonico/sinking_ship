@@ -46,15 +46,15 @@ ROOMS = [
     ("gymnasium", 6204, 3714, 6729, 3902),
     # The first-class entrance over the forward grand staircase: its hall, open aft
     # between its two vestibules, which open onto the promenades.
-    ("first-class entrance", 6815, 3258, 7110, 3900),
-    ("first-class entrance", 6740, 3329, 6815, 3833),
+    ("grand staircase, boat deck", 6815, 3258, 7110, 3900),
+    ("grand staircase, boat deck", 6740, 3329, 6815, 3833),
     ("vestibule", 6740, 3258, 6815, 3329),
     ("vestibule", 6740, 3833, 6815, 3900),
     # The officers' house. To port: the Marconi operators' bedroom, the Marconi room round
     # the silent room, the officers' cabins and the chart room, along the port corridor.
     ("Marconi operators' bedroom", 7109, 3322, 7200, 3466),
     ("Marconi room", 7200, 3322, 7270, 3466),
-    ("Marconi room", 7270, 3427, 7388, 3466),
+    ("Marconi passage", 7270, 3427, 7388, 3466),
     ("silent room", 7270, 3322, 7355, 3427),
     ("passage", 7388, 3322, 7426, 3697),
     ("sixth officer's cabin", 7426, 3322, 7512, 3427),
@@ -122,11 +122,26 @@ SOLIDS = [
     ("fans and trunks", 8022, 3469, 8100, 3697, None),
     # The bridge's front screen with its windows.
     ("the bridge's front screen", 8490, 3430, 8510, 3745, 1.2),
-    # The boats' electric winches.
-    ("electric winch", 4300, 3330, 4325, 3375, 1.0),
-    ("electric winch", 4300, 3800, 4325, 3845, 1.0),
-    ("electric winch", 7088, 3270, 7112, 3315, 1.0),
-    ("electric winch", 7088, 3855, 7112, 3900, 1.0),
+    # The boats' electric winches, on the open deck: aft of the tank rooms' house, and
+    # forward of the first-class entrance's outboard of the officers' house.
+    ("electric winch", 4320, 3400, 4349, 3438, 1.0),
+    ("electric winch", 4320, 3732, 4349, 3774, 1.0),
+    ("electric winch", 7140, 3215, 7175, 3286, 1.0),
+    ("electric winch", 7140, 3878, 7175, 3957, 1.0),
+]
+
+# Her houses on the boat deck, each roofed over at its walls' tops and a cell of its
+# own: (name, x0, y0, x1, y1), on its outer walls' middles.
+HOUSES = [
+    ("second_class_house", 2922, 3470, 3229, 3702),
+    ("tank_room_port", 4380, 3323, 4698, 3472),
+    ("tank_room_starboard", 4380, 3707, 4699, 3847),
+    ("mess_house", 4891, 3707, 5188, 3861),
+    ("deck_chair_store", 5048, 3397, 5188, 3472),
+    ("gymnasium_house", 6204, 3714, 6729, 3902),
+    ("staircase_house", 6740, 3258, 7110, 3900),
+    ("officers_house", 7109, 3322, 8100, 3845),
+    ("wheelhouse", 8100, 3425, 8292, 3740),
 ]
 
 RAISED = [
@@ -164,6 +179,8 @@ DOORS = [
 ]
 
 OPEN = [
+    # The first-class entrance's hall and its after strip between the vestibules.
+    (6809, 3329, 6821, 3833),
     # The Marconi room's two rectangles.
     (7264, 3427, 7276, 3466),
     # The cross passage into both corridors, and its side passages into theirs.
@@ -178,23 +195,24 @@ STAIRS = [
     # The second-class flight down to A deck, port of the lift, from the landing forward
     # of it. The plate draws flights either side, 78 px of treads (2.1 m) for 9 ft 6 in of
     # rise; a body climbs no steeper than tools/gen_titanic.py's STEEPEST, so one runs on
-    # 47 px aft over the landing and its foot comes down on A deck's (a.py), and the
+    # 52 px aft over the landing and its foot comes down on A deck's (a.py), and the
     # starboard one is floor.
-    ("second-class staircase", 3015, 3480, 3140, 3556, "fore", "a", "boat"),
+    ("second-class staircase", 3010, 3486, 3140, 3556, "fore", "a", "boat"),
     # The forward grand staircase's flight down to A deck, rising aft to its landing: the
     # port half of the plate's flight, A deck's going on down to starboard of it (a.py).
-    ("grand staircase", 6880, 3480, 7030, 3585, "aft", "a", "boat"),
-    # Up onto the raised roofs: the plate's ladders, as stairs.
-    ("ladder", 3221, 3368, 3273, 3407, "fore", "boat", "raised roof over the smoking room"),
-    ("ladder", 3221, 3754, 3273, 3793, "fore", "boat", "raised roof over the smoking room"),
-    ("ladder", 4034, 3368, 4086, 3407, "aft", "boat", "raised roof over the smoking room"),
-    ("ladder", 4034, 3754, 4086, 3793, "aft", "boat", "raised roof over the smoking room"),
-    ("ladder", 6386, 3397, 6438, 3436, "aft", "boat", "raised roof over the lounge"),
-    ("ladder", 5206, 3197, 5245, 3251, "starboard", "boat", "raised roof over the lounge"),
-    ("ladder", 5206, 3909, 5245, 3963, "port", "boat", "raised roof over the lounge"),
+    ("grand staircase", 6880, 3480, 7030, 3575, "aft", "a", "boat"),
+    # Up onto the raised roofs: the plate's ladders, as stairs a body climbs, 1.5 m long.
+    ("ladder", 3216, 3368, 3273, 3407, "fore", "boat", "raised roof over the smoking room"),
+    ("ladder", 3216, 3754, 3273, 3793, "fore", "boat", "raised roof over the smoking room"),
+    ("ladder", 4034, 3368, 4091, 3407, "aft", "boat", "raised roof over the smoking room"),
+    ("ladder", 4034, 3754, 4091, 3793, "aft", "boat", "raised roof over the smoking room"),
+    ("ladder", 6386, 3397, 6443, 3436, "aft", "boat", "raised roof over the lounge"),
+    ("ladder", 5206, 3193, 5245, 3251, "starboard", "boat", "raised roof over the lounge"),
+    ("ladder", 5206, 3909, 5245, 3967, "port", "boat", "raised roof over the lounge"),
     # At her forward end, a ladder each side up from A deck (BOT: "at the forward end of
     # the Boat deck there was on each side a ladder leading up from A deck"). The plate
-    # draws 67 px of it; as a stair a body climbs it runs on 59 px aft.
-    ("ladder", 8114, 3165, 8240, 3205, "fore", "a", "boat"),
-    ("ladder", 8114, 3955, 8240, 3995, "fore", "a", "boat"),
+    # draws 67 px of it; as a stair a body climbs it runs on 63 px aft, and stands 15 px
+    # outboard of the plate's, clear of A deck's house under it.
+    ("ladder", 8110, 3150, 8240, 3190, "fore", "a", "boat"),
+    ("ladder", 8110, 3970, 8240, 4010, "fore", "a", "boat"),
 ]

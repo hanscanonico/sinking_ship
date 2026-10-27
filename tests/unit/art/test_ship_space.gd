@@ -143,6 +143,35 @@ func test_a_doorway_is_a_gap_between_wall_runs() -> void:
 	assert_almost_eq(aft[1][1] - aft[0][2], 1.1, 0.01, "a 1.1 m doorway")
 
 
+func test_a_side_of_a_partition_and_a_steel_wall_takes_the_partition_s_face() -> void:
+	# A room 10 by 4 m whose z = 4 side is a partition 0.06 m thick to x 8.03, and from x
+	# 7.9 the steel of an outer wall 0.2 m thick: one run, its face the partition's — a
+	# sconce hung on it stands on the partition, never 0.07 m proud of it as on the steel.
+	var layout := ShipLayout.new()
+	for area: Rect2 in [Rect2(-0.03, 3.97, 8.06, 0.06), Rect2(7.9, 3.9, 2.2, 0.2)]:
+		var wall := ShipBlocker.new()
+		wall.area = area
+		wall.bottom = 0.0
+		wall.top = 2.5
+		layout.blockers.append(wall)
+	var deck := ShipPlatform.new()
+	deck.area = Rect2(-1.0, -1.0, 12.0, 6.0)
+	deck.height = 2.5
+	layout.platforms.append(deck)
+	var room := ShipRoom.new()
+	room.area = Rect2(0.0, 0.0, 10.0, 4.0)
+	layout.rooms.append(room)
+	var runs: Array = []
+	for run: Array in ShipSpace.new(layout).wall_runs(room):
+		if run[0] == 2:
+			runs.append(run)
+	assert_eq(runs.size(), 1, "one run, the side's")
+	if runs.size() == 1:
+		assert_almost_eq(runs[0][3], 0.03, 0.001, "the partition's face")
+		assert_almost_eq(runs[0][1], 0.03, 0.001, "from the corner")
+		assert_almost_eq(runs[0][2], 9.97, 0.001, "to the corner")
+
+
 func test_a_hull_side_wall_under_a_deck_stopping_short_of_it_reaches_the_deck_over() -> void:
 	# A room 10 by 4 m, its hull-side wall 2.5 m tall; the deck at 2.5 m stops a metre
 	# short of that wall, so the room's ceiling along it is the deck at 5 m (#147).

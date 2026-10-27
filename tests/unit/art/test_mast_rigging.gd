@@ -134,16 +134,20 @@ func test_the_steamer_s_mast_is_stayed_to_her_funnel() -> void:
 
 
 func test_the_liner_s_masts_are_stayed_and_carry_her_aerial() -> void:
-	var layout := Fleet.layout(&"titanic")
-	var fore := _cylinder(layout, Vector2(96.0, 0.0))
-	var main := _cylinder(layout, Vector2(-92.5, 0.0))
-	var lines := _rigging("titanic")
-	var between := func(line: DeckWorks.RigLine) -> bool:
-		return line.spars.has(fore) and line.spars.has(main)
-	assert_eq(_of_kind(lines, &"stay").filter(between).size(), 1, "a stay mast to mast")
-	var aerial := _of_kind(lines, &"aerial").filter(between)
-	assert_between(aerial.size(), 2, 4, "two to four aerial wires")
-	assert_eq(_of_kind(lines, &"spreader").size(), 2, "a spreader at each masthead")
+	# Her mainmast where each liner's plan puts it: the Titanic's her A deck's plate (#360).
+	for ship: String in ["small_titanic", "titanic"]:
+		var layout := Fleet.layout(StringName(ship))
+		var fore := _cylinder(layout, Vector2(96.0, 0.0))
+		var aft := -92.5 if ship == "small_titanic" else -91.6875
+		var main := _cylinder(layout, Vector2(aft, 0.0))
+		var lines := _rigging(ship)
+		var between := func(line: DeckWorks.RigLine) -> bool:
+			return line.spars.has(fore) and line.spars.has(main)
+		var stays := _of_kind(lines, &"stay").filter(between)
+		assert_eq(stays.size(), 1, "%s: a stay mast to mast" % ship)
+		var aerial := _of_kind(lines, &"aerial").filter(between)
+		assert_between(aerial.size(), 2, 4, "%s: two to four aerial wires" % ship)
+		assert_eq(_of_kind(lines, &"spreader").size(), 2, "%s: a spreader at each masthead" % ship)
 
 
 func test_the_steamer_s_mast_works_her_hatch_with_a_derrick() -> void:

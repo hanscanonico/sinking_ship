@@ -22,6 +22,8 @@ A deck's pieces, each a rectangle (x0, y0, x1, y1) in plate pixels unless said:
             metres over the deck.
     RAISED  [(name, x0, y0, x1, y1, height), …]: a floor height metres over the deck: a
             raised roof walked on.
+    HOUSES  [(name, x0, y0, x1, y1), …]: a house on an open deck, on its outer walls'
+            middles: what the generator roofs over and makes a cell of.
     DOORS   [(x, y), …]: a door's middle, on a room's edge, where the plate draws its
             swing.
     OPEN    [(x0, y0, x1, y1), …]: stretches of rooms' edges with no wall: two rooms
@@ -33,17 +35,24 @@ A deck's pieces, each a rectangle (x0, y0, x1, y1) in plate pixels unless said:
 Rooms snap to shared lines: edges within SNAP pixels of each other are one wall.
 """
 import importlib.util
+import math
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 # Edges this close, in plate pixels, are one line: the ink of a wall is ~5 px wide, and
 # two rooms read either side of it differ by about that.
 SNAP = 6.0
-# The grain a traced number is kept to, in metres.
-GRAIN = 0.01
+# The grain a traced number is kept to, in metres: a sixteenth, which single precision
+# holds exactly at her lengths, so a stair's end and the deck it meets, read off the same
+# pixel, meet in Godot's Rect2 too (the generators' joins()); finer than the plates read.
+GRAIN = 0.0625
+# The narrowest a passage or a corridor is laid, between its walls' middles: a body's
+# door (1 m, the layout lint's least) and its panelling either side, to the grain. The
+# plates' tandem passages are 0.8-1 m: they take what they lack from the rooms beside them.
+WAY_LEAST = 1.125
 # The rooms a cabin's door opens onto when the plate's swing is not given: a room whose
 # name holds one of these.
-PASSAGES = ("passage", "corridor", "entrance", "lobby")
+PASSAGES = ("passage", "corridor", "entrance", "lobby", "staircase")
 
 
 def _module(name):
@@ -137,12 +146,14 @@ class Deck:
         rooms = list(getattr(module, "ROOMS", []))
         solids = list(getattr(module, "SOLIDS", []))
         raised = list(getattr(module, "RAISED", []))
-        boxes = [r[1:5] for r in rooms] + [s[1:5] for s in solids] + [r[1:5] for r in raised]
-        metres = self._snapped(boxes)
-        n_rooms, n_solids = len(rooms), len(solids)
+        houses = list(getattr(module, "HOUSES", []))
+        boxes = [r[1:5] for r in rooms] + [s[1:5] for s in solids] + [r[1:5] for r in raised] + [h[1:5] for h in houses]
+        metres = self._snapped(boxes, [k for k, r in enumerate(rooms) if _passage(r[0])])
+        n_rooms, n_solids, n_raised = len(rooms), len(solids), len(raised)
         self.rooms = [(r[0],) + metres[k] for k, r in enumerate(rooms)]
         self.solids = [(s[0],) + metres[n_rooms + k] + (s[5],) for k, s in enumerate(solids)]
         self.raised = [(r[0],) + metres[n_rooms + n_solids + k] + (r[5],) for k, r in enumerate(raised)]
+        self.houses = [(h[0],) + metres[n_rooms + n_solids + n_raised + k] for k, h in enumerate(houses)]
         # The deck's own pieces: (x0, x1, z0, z1), z None for her whole breadth there.
         self.decks = []
         for x0, y0, x1, y1 in getattr(module, "DECKS", []):
@@ -154,17 +165,19 @@ class Deck:
                 c, d = sorted((kept(self.view.z(mid, y0)), kept(self.view.z(mid, y1))))
                 self.decks.append((a, b, c, d))
         self.doors = [(kept(self.view.x(x)), kept(self.view.z(x, y))) for x, y in getattr(module, "DOORS", [])]
-        self.open = [self.view.rect(*o) for o in getattr(module, "OPEN", [])]
+        self.open = [self._shared(self.view.rect(*o)) for o in getattr(module, "OPEN", [])]
         self.stairs = [(stair_name,) + self.view.rect(x0, y0, x1, y1) + (rises, lower, upper)
                        for stair_name, x0, y0, x1, y1, rises, lower, upper in getattr(module, "STAIRS", [])]
         self.walls = self._walls()
 
-    def _snapped(self, boxes):
+    def _snapped(self, boxes, ways=()):
         """Each plate box (x0, y0, x1, y1) as ship (x0, x1, z0, z1), its edges snapped to
         the lines they share: two edges of one kind within SNAP px of each other that
         touch along their length are one wall's two readings, and take its mean. A line
         along her is read in ship z at its own middle, so a centre line tilted over the
-        scan bends no wall."""
+        scan bends no wall. Each box of ways — a passage or a corridor — narrower across
+        than WAY_LEAST between its walls' middles has its two sides moved apart to it, and
+        every edge on either side's line with it: the rooms beside it give up the width."""
         edges = []  # [kind, value, lo, hi]: kind "x" an edge at plate x = value, "y" at plate y
         for x0, y0, x1, y1 in boxes:
             edges += [["x", x0, y0, y1], ["x", x1, y0, y1], ["y", y0, x0, x1], ["y", y1, x0, x1]]
@@ -197,11 +210,42 @@ class Deck:
                 v = kept(self.view.z((lo + hi) * 0.5, value))
             for k in members:
                 ship[k] = v
+        for k in ways:
+            x0, x1, z0, z1 = ship[4 * k], ship[4 * k + 1], ship[4 * k + 2], ship[4 * k + 3]
+            low, high = (4 * k, 4 * k + 1) if abs(x1 - x0) < abs(z1 - z0) else (4 * k + 2, 4 * k + 3)
+            width = abs(ship[high] - ship[low])
+            if width < WAY_LEAST - 1e-6:
+                grow = math.ceil((WAY_LEAST - width) / 2 / GRAIN - 1e-9) * GRAIN
+                for side, by in [(low, -grow), (high, grow)]:
+                    line = ship[side]
+                    for m in groups[root(side)]:
+                        ship[m] = kept(line + by)
         out = []
         for k in range(len(boxes)):
             x0, x1, y0, y1 = ship[4 * k], ship[4 * k + 1], ship[4 * k + 2], ship[4 * k + 3]
             out.append((min(x0, x1), max(x0, x1), min(y0, y1), max(y0, y1)))
         return out
+
+    def _shared(self, opening):
+        """An OPEN rectangle as the whole stretch of edge the two rooms it joins share, on
+        their snapped line: a passage widened for a body opens all of its mouth."""
+        x0, x1, z0, z1 = opening
+        across = (x1 - x0) < (z1 - z0)
+        mid = (x0 + x1) * 0.5 if across else (z0 + z1) * 0.5
+        lo, hi = (z0, z1) if across else (x0, x1)
+        best = None
+        for r in self.rooms:
+            for s in self.rooms:
+                ra, sa = (r[2], s[1]) if across else (r[4], s[3])
+                if r is s or abs(ra - sa) > 1e-6 or abs(ra - mid) > 0.2:
+                    continue
+                a, b = (max(r[3], s[3]), min(r[4], s[4])) if across else (max(r[1], s[1]), min(r[2], s[2]))
+                if b - a > 1e-6 and a < hi and b > lo and (best is None or abs(ra - mid) < abs(best[0] - mid)):
+                    best = (ra, a, b)
+        if best is None:
+            return opening
+        line, a, b = best
+        return (line - 0.01, line + 0.01, a, b) if across else (a, b, line - 0.01, line + 0.01)
 
     def _covered(self, axis, at, a, b, boxes):
         """The stretches of the line (axis, at) from a to b along that some box's side lies on."""
@@ -282,11 +326,15 @@ class Deck:
         return out
 
     def _open_on(self, axis, at):
+        """The open stretches of the line (axis, at): an OPEN rectangle drops only the wall
+        it runs along — a thin one across her the wall across her it lies on — never the
+        ends of the walls that run into its mouth."""
         out = []
         for x0, x1, z0, z1 in self.open:
-            if axis == 0 and x0 - 0.05 <= at <= x1 + 0.05:
+            across = (x1 - x0) < (z1 - z0)
+            if axis == 0 and across and x0 - 0.05 <= at <= x1 + 0.05:
                 out.append((z0, z1))
-            if axis == 2 and z0 - 0.05 <= at <= z1 + 0.05:
+            if axis == 2 and not across and z0 - 0.05 <= at <= z1 + 0.05:
                 out.append((x0, x1))
         return out
 

@@ -1,7 +1,8 @@
 extends GutTest
-## LinerPublic on the Titanic: her public rooms and her grand staircase's landings
-## each dressed by name. That nothing they draw stands in a body's way is
-## test_dressing_clear's.
+## LinerPublic on the small Titanic — the Titanic as she was before her plates were
+## traced (#362), whose rooms these budgets were measured in: her public rooms and her
+## grand staircase's landings each dressed by name. That nothing they draw stands in a
+## body's way is test_dressing_clear's, on the Titanic too.
 
 const FurnishingCheck := preload("res://tools/furnishing_check.gd")
 const RunMatch := preload("res://tools/run_match.gd")
@@ -45,7 +46,7 @@ const CEILING := 8800
 
 func before_all() -> void:
 	_rules = RunMatch.default_config(1701).rules
-	_layout = load("res://data/ships/titanic.tres")
+	_layout = load("res://data/ships/small_titanic.tres")
 	_space = ShipSpace.new(_layout)
 	var art := ShipArt.new()
 	art.build(_layout, _rules.railing_height, _rules.body_radius)

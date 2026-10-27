@@ -8,8 +8,10 @@ extends RefCounted
 ## fire buckets on a shelf overhead. A gymnasium on linoleum, with wall bars between
 ## the windows of one long wall, a tall mirror on the other, a notice board, a brass
 ## plaque and a clock beside it, and curtains at its windows. An office — the purser's,
-## the post office — on linoleum, with pigeonhole racks along its walls, a clock and a
-## notice board, and in the post office a row of mail sacks on hooks overhead.
+## the post office, the Marconi room, the chart room (OFFICES) — on linoleum, with
+## pigeonhole racks along its walls, a clock and a notice board, and in the post office
+## a row of mail sacks on hooks overhead. A lavatory, a pantry, any other room of
+## service is its tile alone.
 ## No range, hot press or counter stands out in a room: a body would walk through it,
 ## and none has a blocker to stand in yet (D6) — blocks() is where they will be drawn
 ## once the layout gives them one.
@@ -82,6 +84,12 @@ const PLAQUE_HEIGHT := 1.5
 const NOTICE_BOARD_MODEL := "notice_board"
 const NOTICE_BOARD := AABB(Vector3(-0.325, -0.245, 0.0), Vector3(0.65, 0.49, 0.026))
 const NOTICE_HEIGHT := 1.45
+## What a room of service's name holds when it is an office, "officer" read as no
+## "office": the purser's and the post office, and a liner's wireless rooms and her
+## bridge's chart and navigating rooms, whose racks take forms and charts.
+const OFFICES: Array[String] = [
+	"office", "marconi room", "silent room", "chart room", "navigating room"
+]
 
 static var tile := ShipMesh.Paint.new(FINISH.HOUSE, ArtPalette.HOUSE, FINISH.PLAIN, TILE)
 static var quarry := ShipMesh.Paint.new(FINISH.DECK, ArtPalette.DECK, FINISH.PLAIN, QUARRY)
@@ -97,9 +105,13 @@ func _init(space: ShipSpace, cabins: CabinDressing) -> void:
 	_cabins = cabins
 
 
-## Whether [param room], a room of service, is an office: what its name says.
+## Whether [param room], a room of service, is an office: what its name says (OFFICES).
 static func office(room: ShipRoom) -> bool:
-	return String(room.name).to_lower().contains("office")
+	var name := String(room.name).to_lower().replace("officer", "")
+	for word: String in OFFICES:
+		if name.contains(word):
+			return true
+	return false
 
 
 ## [param room]'s furnishings, into [param mesh]; [param glass] its panes

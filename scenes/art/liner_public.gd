@@ -886,13 +886,17 @@ func _chandelier(mesh: ShipMesh, room: ShipRoom, at: Vector2) -> void:
 ## its roof in a white rim, a white coaming stepped down round it, iron ribs across it.
 func _dome(mesh: ShipMesh, room: ShipRoom) -> void:
 	var middle := room.area.get_center()
+	var coaming := DOME + 0.12
+	# A landing laid as two rooms or more takes it in the one broad enough for its step:
+	# the hall, not a strip beside it.
+	if minf(room.area.size.x, room.area.size.y) < (coaming + 0.25) * 2.0:
+		return
 	var top := RoomDressing.under_ceiling(_space, room, middle)
 	if top.y - 0.1 < room.floor_height + RoomDressing.HEADROOM + 0.1:
 		return
 	var glass := top + Vector3.DOWN * 0.012
 	RoomDressing.disc(mesh, glass, Vector3.DOWN, DOME, ShipPaints.glass_in, 8)
 	var rim := top + Vector3.DOWN * 0.02
-	var coaming := DOME + 0.12
 	RoomDressing.ring(mesh, rim, Vector3.DOWN, DOME - 0.04, coaming, _white, 8)
 	var step := top + Vector3.DOWN * 0.1
 	RoomDressing.ring(mesh, step, Vector3.DOWN, coaming, coaming + 0.25, _white, 8)

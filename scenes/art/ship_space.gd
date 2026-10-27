@@ -377,9 +377,11 @@ static func x_reach(blocker: ShipBlocker) -> Vector2:
 ## The full walls standing on [param room]'s floor along its sides, as runs
 ## [side, from, to, half thickness]: side 0 at its least z, 1 at its greatest x,
 ## 2 at its greatest z, 3 at its least x; from and to along the side, merged where
-## pieces meet and held off the corners by the wall's half thickness. The gaps
-## between runs are its doorways. [param glazed], only the walls glass can go in: no
-## lining fitted inside her shell (#148).
+## pieces meet and held off the corners by the wall's half thickness — a run of a
+## partition and a steel wall the partition's, so nothing hung on it stands proud of
+## the thinner (the steel's own face behind it). The gaps between runs are its
+## doorways. [param glazed], only the walls glass can go in: no lining fitted inside
+## her shell (#148).
 func wall_runs(room: ShipRoom, glazed := false) -> Array:
 	var runs := []
 	var area := room.area
@@ -388,8 +390,8 @@ func wall_runs(room: ShipRoom, glazed := false) -> Array:
 		var line := side_line(room, side)
 		var low := area.position.x if along_x else area.position.y
 		var high := area.end.x if along_x else area.end.y
-		var pieces: Array[Vector2] = []
-		var half := 0.0
+		# Each piece (from, to, half its thickness).
+		var pieces: Array[Vector3] = []
 		for blocker: ShipBlocker in layout.blockers:
 			if not _full_wall_of(blocker, room) or (glazed and blocker.fitted):
 				continue
@@ -400,24 +402,26 @@ func wall_runs(room: ShipRoom, glazed := false) -> Array:
 				continue
 			if line < across_low - SLIVER or line > across_high + SLIVER:
 				continue
-			half = (across_high - across_low) * 0.5
 			var from := box.position.x if along_x else box.position.y
 			var to := box.end.x if along_x else box.end.y
-			pieces.append(Vector2(maxf(from, low), minf(to, high)))
-		pieces.sort_custom(func(a: Vector2, b: Vector2) -> bool: return a.x < b.x)
-		var merged: Array[Vector2] = []
-		for piece: Vector2 in pieces:
+			var half := (across_high - across_low) * 0.5
+			pieces.append(Vector3(maxf(from, low), minf(to, high), half))
+		pieces.sort_custom(func(a: Vector3, b: Vector3) -> bool: return a.x < b.x)
+		var merged: Array[Vector3] = []
+		for piece: Vector3 in pieces:
 			if piece.y - piece.x < SLIVER:
 				continue
-			if not merged.is_empty() and piece.x <= merged[merged.size() - 1].y + SLIVER:
-				merged[merged.size() - 1].y = maxf(merged[merged.size() - 1].y, piece.y)
+			var last := merged.size() - 1
+			if last >= 0 and piece.x <= merged[last].y + SLIVER:
+				merged[last].y = maxf(merged[last].y, piece.y)
+				merged[last].z = minf(merged[last].z, piece.z)
 			else:
 				merged.append(piece)
-		for piece: Vector2 in merged:
-			var from := maxf(piece.x, low + half)
-			var to := minf(piece.y, high - half)
+		for piece: Vector3 in merged:
+			var from := maxf(piece.x, low + piece.z)
+			var to := minf(piece.y, high - piece.z)
 			if to - from > SLIVER:
-				runs.append([side, from, to, half])
+				runs.append([side, from, to, piece.z])
 	return runs
 
 
