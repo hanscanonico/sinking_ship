@@ -53,7 +53,16 @@ func test_a_ship_is_named_and_struck_in_her_own_sea() -> void:
 	assert_eq(
 		Fleet.names(),
 		PackedStringArray(
-			["barque", "ferry", "freighter", "small_titanic", "steamer", "titanic", "trawler", "tug"]
+			[
+				"barque",
+				"ferry",
+				"freighter",
+				"small_titanic",
+				"steamer",
+				"titanic",
+				"trawler",
+				"tug"
+			]
 		),
 		"the fleet is data/ships/"
 	)
