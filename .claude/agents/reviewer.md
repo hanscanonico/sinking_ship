@@ -55,7 +55,7 @@ main for anything the retry touched beyond the reasons.
 
 The shared machine: never kill a process you did not start, never raise `TEST_SLOTS`,
 never script window focus, never `git stash` (the stash is shared by every worktree). Long
-commands run as a job waited for with foreground polls, as `implementer.md` describes.
+commands run in the background and wake you when they exit, as `implementer.md` describes.
 
 Return: verdict approve or reject, the reasons, exactly what you fixed (if anything), and
 `head_sha` — the PR head you reviewed, after any fix you pushed.
