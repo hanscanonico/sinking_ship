@@ -8,9 +8,10 @@ extends ShipHull
 ## as it does any ship. Over the shell: the inside of a bulwark standing over a deck,
 ## painted as a house's side and capped in teak; her deck plating out to the shell where
 ## her decks' rectangles stop short of it, open over each stair up through a hole in a
-## deck; a keel bar under her, a rudder and a bronze propeller at her stern and an
-## anchor stowed in a hawse either side of her bow, all to her scale. The greybox
-## (GreyboxHull) draws the same shell (shell()).
+## deck; a keel bar under her keel, a rudder and a bronze propeller at her stern and an
+## anchor stowed in a hawse either side of her bow, all to her scale. Her sections run
+## near flat to her transom, so her stern gear is fitted under her run, never into her
+## (stern_gear()). The greybox (GreyboxHull) draws the same shell (shell()).
 
 ## Points up each side of a section, keel to sheer, once resampled: at least
 ## SIDE_POINTS, and enough that none stands further than SIDE_SPACING from the next on
@@ -36,8 +37,15 @@ const SUPERSTRUCTURE := ShipSpace.OPEN_ROOM_HEIGHT
 ## A bulwark's teak capping: how wide, and how far it stands over the shell's top.
 const CAP := Vector2(0.14, 0.06)
 ## The draft the steamer's fittings are drawn for (ShipHull.DRAFT): a ship's rudder,
-## propeller and anchors are drawn to her own draft over it, never smaller.
+## propeller and anchors are drawn to her own draft over it, never smaller — but for a
+## propeller her run leaves less room for (_fit_gear()).
 const SCALE_DRAFT := 2.0
+## How far aft of her shell her rudder hangs, at the steamer's scale.
+const HANG := 0.05
+## A propeller her run leaves room for at less than this scale is not drawn.
+const SCREW_LEAST := 0.25
+## How many halvings find the propeller's scale.
+const FIT_STEPS := 24
 
 var _sections: Array[HullSection] = []
 ## Per section, its starboard and port sides resampled (shell_sides()).
@@ -45,6 +53,16 @@ var _sides: Array[PackedVector2Array] = []
 ## Her keel's height, and her drawn fittings' scale.
 var _keel_y := 0.0
 var _scale := 1.0
+## Her bottom along her, aft to fore (_bottom_line()).
+var _bottoms := PackedVector2Array()
+## Her stern gear, fitted to her run (_fit_gear()): the rudder's foot and its head along
+## it, aft to fore (x, y); the propeller's hub, its scale — 0 for none — and where its
+## shaft meets her.
+var _rudder_foot := 0.0
+var _rudder_head := PackedVector2Array()
+var _hub := Vector3.ZERO
+var _screw := 0.0
+var _shaft_to := 0.0
 
 
 ## The hull ShipArt draws [param space]'s ship with: ShipHull's loft when her sections
@@ -61,16 +79,24 @@ func _init(space: ShipSpace, railing_height: float) -> void:
 	_sides = shell_sides(_sections)
 	_keel_y = _layout.structure.keel_y
 	_scale = maxf(1.0, (_waterline - _keel_y) / SCALE_DRAFT)
+	_bottoms = _bottom_line()
+	_fit_gear()
 
 
 func build(mesh: ShipMesh) -> void:
 	shell(_layout, mesh, ShipPaints.hull, ShipPaints.wall, ShipPaints.deck, _sides, ShipPaints.wall)
 	_caps(mesh)
 	_keel_bar(mesh)
-	_rudder(mesh)
-	_propeller(mesh)
+	stern_gear(mesh)
 	for side in 2:
 		_anchor(mesh, side)
+
+
+## Her rudder, and her propeller where her run leaves it room: both clear of her shell
+## (_fit_gear()).
+func stern_gear(mesh: ShipMesh) -> void:
+	_rudder(mesh)
+	_propeller(mesh)
 
 
 ## The hull's half breadth on [param side] (0 port, 1 starboard) at (x, y): her
@@ -691,9 +717,9 @@ func _caps(mesh: ShipMesh) -> void:
 			mesh.box(area, top, top + rail.y, ShipPaints.teak, ShipMesh.TOP | ShipMesh.SIDES)
 
 
-## A keel bar under her from her sternpost to her stem.
+## A keel bar under her keel, from where her run comes down to it to her stem.
 func _keel_bar(mesh: ShipMesh) -> void:
-	var from := _post()
+	var from := _clear_to(_keel_y + LEVEL)
 	var last := _sections[_sections.size() - 1]
 	var to := last.x + last.length * 0.5
 	var bar := KEEL_BAR * _scale
@@ -708,48 +734,194 @@ func _keel_bar(mesh: ShipMesh) -> void:
 	)
 
 
-## Where her sternpost stands: a little forward of her stern, where the rudder hangs
-## clear of her transom.
-func _post() -> float:
+## Her bottom along her, aft to fore, as her loft draws it (_loft_shell()): (x, her
+## shell's lowest point there) — her first section's bottom from her transom to its
+## middle, each section's at its middle and straight from one to the next along a run of
+## her sheer, each run's own out to where it meets the next, and her last section's on
+## to her stem.
+func _bottom_line() -> PackedVector2Array:
 	var first := _sections[0]
-	return first.x - first.length * 0.5 + RUDDER_GAP * _scale + RUDDER_CHORD * _scale
+	var line := PackedVector2Array([Vector2(first.x - first.length * 0.5, _low(0))])
+	for index in _sections.size():
+		var section := _sections[index]
+		if index > 0 and not _one_run(index - 1, index):
+			var joint := section.x - section.length * 0.5
+			line.append(Vector2(joint, _low(index - 1)))
+			line.append(Vector2(joint, _low(index)))
+		line.append(Vector2(section.x, _low(index)))
+	var last := _sections[_sections.size() - 1]
+	line.append(Vector2(last.x + last.length * 0.5, _low(_sections.size() - 1)))
+	return line
 
 
-## The rudder, hung aft of the sternpost from her keel up toward her waterline.
-func _rudder(mesh: ShipMesh) -> void:
-	var post := _post()
+## The lowest of section [param index]'s sides: its keel.
+func _low(index: int) -> float:
+	return minf(_sides[index * 2][0].y, _sides[index * 2 + 1][0].y)
+
+
+## Whether sections [param a] and [param b] stand in one run of her sheer on both
+## sides, lofted one into the other (_loft_shell()).
+func _one_run(a: int, b: int) -> bool:
+	for side in 2:
+		if not is_equal_approx(_sheer_of(_sides[a * 2 + side]), _sheer_of(_sides[b * 2 + side])):
+			return false
+	return true
+
+
+## How far forward something under her standing up to [param top] stays clear of her:
+## walking forward from her transom, where her bottom first comes down to that height —
+## her transom itself where she stands lower there already.
+func _clear_to(top: float) -> float:
+	for index in range(1, _bottoms.size()):
+		var aft := _bottoms[index - 1]
+		var fore := _bottoms[index]
+		if fore.y >= top:
+			continue
+		if aft.y <= top:
+			return aft.x
+		return lerpf(aft.x, fore.x, (aft.y - top) / (aft.y - fore.y))
+	return _bottoms[_bottoms.size() - 1].x
+
+
+## Her bottom at [param x] (_bottom_line()); aft of her transom, her transom's foot.
+func _bottom_at(x: float) -> float:
+	for index in range(1, _bottoms.size()):
+		var aft := _bottoms[index - 1]
+		var fore := _bottoms[index]
+		if x <= fore.x and fore.x > aft.x:
+			return lerpf(aft.y, fore.y, clampf((x - aft.x) / (fore.x - aft.x), 0.0, 1.0))
+	return _bottoms[_bottoms.size() - 1].y
+
+
+## Fits her stern gear to her run, as ShipHull's counter fits the steamer's: her rudder
+## where ShipHull hangs one — or as far aft of there as it must hang for her run to rise
+## over its head, off her transom where her run never does —, its head up under her
+## bottom wherever it hangs under her; her propeller just forward of it, as ShipHull
+## turns one, as large as her draft has it (_scale) and no larger than her run leaves
+## room for over her keel; its shaft forward to her shell.
+func _fit_gear() -> void:
+	var stern := _bottoms[0].x
 	var chord := RUDDER_CHORD * _scale
 	var gap := RUDDER_GAP * _scale * 0.3
-	var thick := RUDDER_THICKNESS * _scale
-	var blade := Rect2(post - gap - chord, -thick * 0.5, chord, thick)
-	var top := _waterline + COUNTER_LIFT * _scale
-	mesh.box(
-		blade, _keel_y + 0.1 * _scale, top, ShipPaints.hull, ShipMesh.ALL_FACES, NAN, _fore_deck
+	var head := _waterline + COUNTER_LIFT * _scale
+	var fore := minf(
+		stern + (RUDDER_GAP + RUDDER_CHORD) * _scale - gap, _clear_to(head) - HANG * _scale
 	)
+	_rudder_foot = _keel_y + 0.1 * _scale
+	# Her bottom stands at its head or over it all along it: the head runs up to her
+	# bottom, step for step, wherever that stands higher — level with her transom's foot
+	# aft of her.
+	var under := PackedVector2Array([Vector2(fore - chord, _bottom_at(fore - chord))])
+	for point: Vector2 in _bottoms:
+		if point.x > fore - chord and point.x < fore:
+			under.append(point)
+	under.append(Vector2(fore, _bottom_at(fore)))
+	_rudder_head.clear()
+	for point: Vector2 in under:
+		_rudder_head.append(Vector2(point.x, maxf(point.y, head)))
+	var post := fore + gap
+	_screw = _scale
+	if not _turns(post, _screw):
+		var low := 0.0
+		for _step in FIT_STEPS:
+			var middle := (low + _screw) * 0.5
+			if _turns(post, middle):
+				low = middle
+			else:
+				_screw = middle
+		_screw = low if low >= SCREW_LEAST else 0.0
+	_hub = Vector3(post + HUB * _screw * 2.0, _keel_y + (0.1 + BLADE_REACH + HUB) * _screw, 0.0)
+	_shaft_to = _clear_to(_hub.y + HUB * _screw * 0.5)
 
 
-## A four-bladed bronze propeller on its shaft, just forward of the rudder.
+## Whether a propeller at [param screw] times the steamer's, turning just forward of
+## [param post] as _fit_gear() turns hers, sweeps clear under her run over its boss's
+## length.
+func _turns(post: float, screw: float) -> bool:
+	var sweep := _keel_y + (0.1 + 2.0 * (BLADE_REACH + HUB)) * screw
+	return _clear_to(sweep) >= post + HUB * 3.5 * screw
+
+
+## The rudder, hung from her keel up past her waterline where _fit_gear() fits it, its
+## head along her bottom where it hangs under her: a slab, its sides in bands between
+## the points of its head, and each edge of its outline across it.
+func _rudder(mesh: ShipMesh) -> void:
+	var half := Vector3(0.0, 0.0, RUDDER_THICKNESS * _scale * 0.5)
+	var low := _rudder_foot
+	var head := _rudder_head
+	var last := head.size() - 1
+	for index in last:
+		var a := head[index]
+		var b := head[index + 1]
+		if b.x - a.x <= ShipMesh.SLIVER:
+			continue
+		var rims := ShipMesh.RIM_V0 | ShipMesh.RIM_V1
+		rims |= ShipMesh.RIM_U0 if index == 0 else 0
+		rims |= ShipMesh.RIM_U1 if index == last - 1 else 0
+		for side: Vector3 in [-half, half]:
+			mesh.quad(
+				Vector3(a.x, low, 0.0) + side,
+				Vector3(b.x, low, 0.0) + side,
+				Vector3(b.x, b.y, 0.0) + side,
+				Vector3(a.x, a.y, 0.0) + side,
+				side.normalized(),
+				ShipPaints.hull,
+				rims,
+				low,
+				_fore_deck
+			)
+	# Round its outline from its foot's after end, up its fore edge and back along its
+	# head: each edge facing out of it.
+	var ring := PackedVector2Array([Vector2(head[0].x, low), Vector2(head[last].x, low)])
+	for index in range(last, -1, -1):
+		ring.append(head[index])
+	for index in ring.size():
+		var p := ring[index]
+		var q := ring[(index + 1) % ring.size()]
+		if p.distance_to(q) <= ShipMesh.SLIVER:
+			continue
+		var a := Vector3(p.x, p.y, 0.0)
+		var b := Vector3(q.x, q.y, 0.0)
+		var out := Vector3(q.y - p.y, p.x - q.x, 0.0).normalized()
+		mesh.quad(
+			a - half,
+			b - half,
+			b + half,
+			a + half,
+			out,
+			ShipPaints.hull,
+			ShipMesh.RIM_ALL,
+			low,
+			_fore_deck
+		)
+
+
+## A four-bladed bronze propeller on its shaft, just forward of the rudder, where
+## _fit_gear() fits it.
 func _propeller(mesh: ShipMesh) -> void:
-	var post := _post()
-	var reach := BLADE_REACH * _scale
-	var hub_r := HUB * _scale
-	var hub := Vector3(post + hub_r * 2.0, _keel_y + reach + hub_r + 0.1 * _scale, 0.0)
+	if _screw <= 0.0:
+		return
+	var reach := BLADE_REACH * _screw
+	var hub_r := HUB * _screw
 	var shaft := Basis.IDENTITY
-	var shaft_length := hub_r * 6.0
+	var shaft_length := _shaft_to - _hub.x
 	mesh.turned_box(
-		Transform3D(shaft, hub + Vector3.RIGHT * shaft_length * 0.5),
+		Transform3D(shaft, _hub + Vector3.RIGHT * shaft_length * 0.5),
 		Vector3(shaft_length, hub_r, hub_r),
 		ShipPaints.brass,
 		0
 	)
 	mesh.turned_box(
-		Transform3D(shaft, hub), Vector3(hub_r * 3.0, hub_r * 2.0, hub_r * 2.0), ShipPaints.brass, 0
+		Transform3D(shaft, _hub),
+		Vector3(hub_r * 3.0, hub_r * 2.0, hub_r * 2.0),
+		ShipPaints.brass,
+		0
 	)
 	for blade in 4:
 		var spin := Basis(Vector3.RIGHT, TAU * (blade + 0.5) / 4.0)
 		var pitch := Basis(Vector3.UP, BLADE_PITCH)
-		var centre := hub + spin * Vector3.UP * (hub_r + reach * 0.5)
-		var size := Vector3(0.05 * _scale, reach, BLADE_CHORD * _scale)
+		var centre := _hub + spin * Vector3.UP * (hub_r + reach * 0.5)
+		var size := Vector3(0.05 * _screw, reach, BLADE_CHORD * _screw)
 		mesh.turned_box(Transform3D(spin * pitch, centre), size, ShipPaints.brass, 0)
 
 
