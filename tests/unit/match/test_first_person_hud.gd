@@ -23,6 +23,14 @@ func test_the_height_reads_above_or_under_the_sea() -> void:
 	assert_eq(FirstPersonHud.height_words(0.0), "At the waterline")
 
 
+## A funnel straining at its stays is named on its chip in words, by its number when
+## she has several — never by its data name, as "THE FUNNEL_4 IS STRAINING" was.
+func test_a_straining_funnel_is_named_in_words() -> void:
+	assert_eq(FirstPersonHud.straining_words(&"funnel_4"), "FUNNEL 4 IS STRAINING")
+	assert_eq(FirstPersonHud.straining_words(&"funnel"), "THE FUNNEL IS STRAINING")
+	assert_eq(FirstPersonHud.straining_words(&"stack"), "THE STACK IS STRAINING")
+
+
 ## A place's name too long for the plate is parted onto a line over it where a comma,
 ## else a space, leaves the longest first line that fits, the plate growing up to hold
 ## it — never cut off mid-word, as "F Deck Working Corridor, B" was of boiler room 6's.

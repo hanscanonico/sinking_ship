@@ -369,7 +369,7 @@ func _draw_warnings(pose: ShipPose, tick: int) -> void:
 		warnings.append("THE %s IS GOING" % String(going).to_upper())
 	for fall: FunnelFall in pose.falls:
 		if tick < fall.falls_at:
-			warnings.append("THE %s IS STRAINING" % String(fall.fitting.name).to_upper())
+			warnings.append(straining_words(fall.fitting.name))
 	if warnings.is_empty() or tick / BLINK_TICKS % 2 == 1:
 		return
 	var at := Vector2(_canvas.size.x * 0.5, _canvas.size.y * 0.5 - 90.0)
@@ -379,6 +379,15 @@ func _draw_warnings(pose: ShipPose, tick: int) -> void:
 		_canvas.draw_rect(chip, WARNING, false, 2.5)
 		_text(at, warning, WARNING, CHIP_TEXT)
 		at.y -= 44.0
+
+
+## The chip for the funnel fitting [param named] straining at its stays: one of her
+## funnels by its number when she has several (funnel_4: FUNNEL 4), else by what it is.
+static func straining_words(named: StringName) -> String:
+	var words := String(named).replace("_", " ").to_upper()
+	if words.get_slice(" ", words.get_slice_count(" ") - 1).is_valid_int():
+		return "%s IS STRAINING" % words
+	return "THE %s IS STRAINING" % words
 
 
 ## Under the clock, the name of the sinking's phase for BANNER_SECONDS after it
