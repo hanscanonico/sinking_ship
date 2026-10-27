@@ -61,7 +61,8 @@ plumbing, small reads for triage.
    AND you have yourself read CI's verify check as concluded success on the PR head
    (`gh pr view N --json statusCheckRollup`) — `ci_green` is only what the implementer
    saw when it reported. Merge sequentially, dependencies first: `gh pr merge N
-   --squash`; on a stale-branch error `gh pr update-branch N`, wait ~25s, retry. After a
+   --squash` (`gh pr ready N` first while it is still the draft the implementer opened at
+   its first commit); on a stale-branch error `gh pr update-branch N`, wait ~25s, retry. After a
    merge, `gh pr update-branch` every PR that was `after` it and wait for its CI again. After each merged branch:
    `git -C <main checkout> worktree remove <worktree>`, using the `worktree` path the
    implementer returned, then delete the local branch. Without `--force`: a refusal means

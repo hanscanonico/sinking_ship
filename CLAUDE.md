@@ -54,11 +54,13 @@ make models                                     # re-export assets/models/NAME/N
 A fresh checkout fails `check` with phantom "not declared" errors until `make import` has
 registered every `class_name`. The engine is `$GODOT`, else a vendored `bin/Godot.app`, else
 `godot` on PATH; lint and format need `pipx install "gdtoolkit==4.*"`. A green
-`make verify-changed` is the local bar for done; CI runs the full `make verify` on every
-PR, and nothing merges until it is green on the PR head. `make verify` stays runnable
-locally whenever the whole suite is wanted. A gate or capture tool that misbehaves gets a
-fix in its own PR, or a `needs-triage` issue when the fix is not yours to make; memory
-keeps only what no fix can change.
+`make verify-changed` is the local bar for done. Run it once, on the head you will push,
+with `run_in_background`: the harness wakes you when it exits, and its log ends on
+`verify-changed: PASS` or `verify-changed: FAIL at <step>`. CI runs the full `make verify`
+on every PR, and nothing merges until it is green on the PR head. `make verify` stays
+runnable locally whenever the whole suite is wanted. A gate or capture tool that
+misbehaves gets a fix in its own PR, or a `needs-triage` issue when the fix is not yours
+to make; memory keeps only what no fix can change.
 
 Finished work ships without being asked: once a change is done, commit it on a branch,
 push, open the PR, wait for CI (`tools/ci_wait.sh N` in the background reports only what
