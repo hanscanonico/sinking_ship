@@ -1,13 +1,15 @@
 class_name WalkGraph
 extends RefCounted
 ## The ship as a bot finds its way round it (§7). The nodes are zones: the layout's
-## rooms, then its open decks — the platforms of one height that touch, outside every
-## room. The edges are portals: the doorways in the rooms' walls and the ramps, so a
-## path crosses a wall only through a doorway. A bot routes to a zone, then steers
-## locally. What stands where, what a ramp joins and which points are wet it asks
-## Surfaces; it never routes into a flooded zone or one giving way, nor through a
-## portal with an end under water — but for a swimmer's way ashore, which swims them,
-## and the wade out of rooms whose every dry way leads to floors about to go under.
+## rooms — each with the half nearer it of a door's depth into another where that is in
+## neither, a door through a bulkhead — then its open decks — the platforms of one
+## height that touch, outside every room. The edges are portals: the doorways in the
+## rooms' walls and the ramps, so a path crosses a wall only through a doorway. A bot
+## routes to a zone, then steers locally. What stands where, what a ramp joins and
+## which points are wet it asks Surfaces; it never routes into a flooded zone or one
+## giving way, nor through a portal with an end under water — but for a swimmer's way
+## ashore, which swims them, and the wade out of rooms whose every dry way leads to
+## floors about to go under.
 
 const NONE := -1
 ## How far apart two platforms' edges may be and still meet: the data's rectangles
@@ -142,6 +144,11 @@ var _zone_platforms: Array[PackedInt32Array] = []
 ## Per platform, the rooms standing on it, in layout order: the only ones a body on it
 ## can be in.
 var _platform_rooms: Array[PackedInt32Array] = []
+## Per door between two rooms whose depth is in neither — a door through a bulkhead, each
+## room stopping at its own wall — the half of that depth nearer the room it leads out
+## of, held as that room's (_zone_on): its floor's area, and the room.
+var _door_depth_areas: Array[Rect2] = []
+var _door_depth_rooms := PackedInt32Array()
 ## What the last pose asked about says of each zone and portal, worked out the first
 ## time it is asked — 0 not yet, 1 no, 2 yes — so a tick pays for each answer once,
 ## however many bots share the graph.
@@ -215,8 +222,10 @@ func _init(layout: ShipLayout, surfaces: Surfaces, rules: BrawlRules) -> void:
 	for room in layout.rooms.size():
 		if layout.rooms[room].crawl_space:
 			_pace[room] = rules.walk_speed / rules.crawl_speed
+	var doors := _wide_doors(rules.crawl_height)
+	_find_door_depths(doors)
 	_add_ramps()
-	_add_doors(rules.crawl_height)
+	_add_doors(doors)
 	_flooded.resize(_zone_count)
 	_doomed.resize(_zone_count)
 	_heights.resize(_zone_count)
@@ -703,28 +712,66 @@ func _add_ramps() -> void:
 		_ramp_portals.append(toward)
 
 
-## A portal out through every gap in a room's walls wide enough for a body — crawling,
-## [param body_height] tall, if it must — that gives onto another zone, and back in
-## from an open deck — a room's own scan adds the way back from a room.
-func _add_doors(body_height: float) -> void:
+## Per room, the gaps in its walls wide enough for a body — crawling,
+## [param body_height] tall, if it must.
+func _wide_doors(body_height: float) -> Array[Array]:
+	var found: Array[Array] = []
 	for room in _layout.rooms.size():
-		var floor_height := _layout.rooms[room].floor_height
+		var wide: Array[ShipRoom.Door] = []
 		for door: ShipRoom.Door in _layout.rooms[room].doors(_surfaces, body_height, _step):
-			if door.width() < _body_radius * 2.0:
+			if door.width() >= _body_radius * 2.0:
+				wide.append(door)
+		found.append(wide)
+	return found
+
+
+## The half nearer each room of the depth of every one of its [param doors] onto
+## another room — the floor between their walls, in neither: a door through a
+## bulkhead — held as that room's (_zone_on) before any portal is found, so a body
+## standing in it has a way on; none where the two rooms meet.
+func _find_door_depths(doors: Array[Array]) -> void:
+	for room in doors.size():
+		for door: ShipRoom.Door in doors[room]:
+			var other := _gives_onto(room, door)
+			if other == NONE or other >= _layout.rooms.size():
+				continue
+			var axis := 0 if door.outward.y == 0.0 else 1
+			var past := _layout.rooms[other].area
+			var edge := past.position[axis] if door.outward[axis] > 0.0 else past.end[axis]
+			var depth := (edge - door.middle()[axis]) * door.outward[axis]
+			if depth <= EDGE:
+				continue
+			var half := door.from + door.outward * depth * 0.5
+			_door_depth_areas.append(Rect2(door.from, Vector2.ZERO).expand(door.to).expand(half))
+			_door_depth_rooms.append(room)
+
+
+## A portal out through each of a room's [param doors] that gives onto another zone, and
+## back in from an open deck — a room's own scan adds the way back from a room.
+func _add_doors(doors: Array[Array]) -> void:
+	for room in doors.size():
+		var floor_height := _layout.rooms[room].floor_height
+		for door: ShipRoom.Door in doors[room]:
+			var other := _gives_onto(room, door)
+			if other == NONE:
 				continue
 			var middle := door.middle()
-			var beyond := middle + door.outward * _lead
-			var outside := Vector3(beyond.x, floor_height, beyond.y)
-			var surface := _surfaces.under(outside, _step)
-			if surface == Surfaces.NONE or _surfaces.is_ramp(surface):
-				continue
-			var other := zone_at(outside, surface)
-			if other == NONE or other == room:
-				continue
 			var at := Vector3(middle.x, floor_height, middle.y)
 			_add(Portal.new(Vector2i(room, other), at, at, door.outward, door.width(), NONE))
 			if other >= _layout.rooms.size():
 				_add(Portal.new(Vector2i(other, room), at, at, -door.outward, door.width(), NONE))
+
+
+## The zone [param door] out of [param room] gives onto, a body's width out through it:
+## NONE where that is on nothing, on a ramp, or the room again.
+func _gives_onto(room: int, door: ShipRoom.Door) -> int:
+	var beyond := door.middle() + door.outward * _lead
+	var outside := Vector3(beyond.x, _layout.rooms[room].floor_height, beyond.y)
+	var surface := _surfaces.under(outside, _step)
+	if surface == Surfaces.NONE or _surfaces.is_ramp(surface):
+		return NONE
+	var other := zone_at(outside, surface)
+	return NONE if other == room else other
 
 
 func _add(portal: Portal) -> int:
@@ -733,12 +780,19 @@ func _add(portal: Portal) -> int:
 	return _portals.size() - 1
 
 
-## The zone at [param point] (x/z) on [param platform]: the room holding it there,
-## else the platform's open deck.
+## The zone at [param point] (x/z) on [param platform]: the room holding it there, or
+## the one whose half of a door's depth holds it (_find_door_depths), else the
+## platform's open deck.
 func _zone_on(platform: int, point: Vector2) -> int:
-	var feet := Vector3(point.x, _layout.platforms[platform].height, point.y)
+	var height := _layout.platforms[platform].height
+	var feet := Vector3(point.x, height, point.y)
 	for room: int in _platform_rooms[platform]:
 		if _layout.rooms[room].holds(feet, _step):
+			return room
+	for index in _door_depth_areas.size():
+		var room := _door_depth_rooms[index]
+		var level := absf(height - _layout.rooms[room].floor_height) <= _step
+		if level and _door_depth_areas[index].has_point(point):
 			return room
 	return _decks[platform]
 
