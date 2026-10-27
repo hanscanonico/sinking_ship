@@ -3,9 +3,10 @@
 # `make guard-check`, its third part: tools/test_slot.sh lets no more than
 # TEST_SLOTS commands run at once, says once that a run waits — named, on its
 # notice descriptor when given one —, lets a waiter through at once when a holder
-# is killed with SIGKILL, defaults to half the cores and hands back its command's
-# exit status — on private lock files, with sleeps
-# standing in for test engines. Each step waits on what happened, never on how
+# is killed with SIGKILL, defaults to half the cores, holds a run with its slot until
+# its floor of memory is free, and hands back its command's exit status — on private
+# lock files, with sleeps standing in for test engines and FREE_MEMORY_FILE for the
+# system's free memory. Each step waits on what happened, never on how
 # long it took, so a loaded machine only makes it slower; DEADLINE seconds is how
 # long any one step may take before it fails.
 
@@ -15,7 +16,9 @@ cd "$(dirname "$0")/.." || exit 1
 DEADLINE=60
 WORK=$(mktemp -d)
 export TEST_SLOT_LOCK="$WORK/slot"
-unset TEST_SLOTS TEST_SLOT_NOTICE_FD TEST_SLOT_NAME
+# No floor but where a step sets one: the machine's own memory is no part of the check.
+export TEST_SLOT_MIN_FREE_MB=0
+unset TEST_SLOTS TEST_SLOT_NOTICE_FD TEST_SLOT_NAME TEST_SLOT_NOTICE_ONCE TEST_SLOT_MEMORY_WAIT FREE_MEMORY_FILE
 PIDS=()
 HOLDERS=()
 trap 'kill -9 ${PIDS[@]+"${PIDS[@]}"} 2>/dev/null; rm -rf "$WORK"' EXIT
@@ -147,6 +150,53 @@ for ((k = 1; k <= want; k++)); do
 done
 end_holders
 
+# The memory floor: with its slot taken, a run short of TEST_SLOT_MIN_FREE_MB waits,
+# says so once, and starts as soon as that much is free.
+export TEST_SLOTS=2 FREE_MEMORY_FILE="$WORK/free"
+echo 100 >"$WORK/free"
+TEST_SLOT_MIN_FREE_MB=500 tools/test_slot.sh touch "$WORK/m.ran" 2>"$WORK/m.err" &
+PIDS+=($!)
+short=$!
+wait_for "grep -q 'waiting for memory: 100 MB free, 500 MB wanted' '$WORK/m.err'" ||
+	fail "a run short of memory never said it was waiting for it"
+[[ -e "$WORK/m.ran" ]] && fail "a run started with less memory free than its floor"
+echo 600 >"$WORK/free"
+wait_for "[ -e '$WORK/m.ran' ]" || fail "the run short of memory never ran once it was free"
+wait "$short"
+(($(grep -c . "$WORK/m.err") == 1)) || fail "the run short of memory said $(grep -c . "$WORK/m.err") lines, not one"
+
+# Past TEST_SLOT_MEMORY_WAIT seconds it says so and runs anyway; at a floor of 0 it
+# never waits.
+echo 100 >"$WORK/free"
+TEST_SLOT_MIN_FREE_MB=500 TEST_SLOT_MEMORY_WAIT=2 tools/test_slot.sh touch "$WORK/p.ran" 2>"$WORK/p.err" ||
+	fail "a run out of patience failed"
+[[ -e "$WORK/p.ran" ]] || fail "a run out of patience never ran"
+grep -q 'memory still short after 2 s .*: running anyway' "$WORK/p.err" ||
+	fail "a run out of patience never said it ran anyway: $(cat "$WORK/p.err")"
+tools/test_slot.sh touch "$WORK/z.ran" 2>"$WORK/z.err"
+[[ -e "$WORK/z.ran" && ! -s "$WORK/z.err" ]] || fail "a floor of 0 still waited for memory"
+
+# Unset, the floor is a tenth of the machine's memory, at least 1024 MB.
+echo 1 >"$WORK/free"
+(unset TEST_SLOT_MIN_FREE_MB && TEST_SLOT_MEMORY_WAIT=0 tools/test_slot.sh touch "$WORK/f.ran" 2>"$WORK/f.err")
+grep -qE 'waiting for memory: 1 MB free, [0-9]{4,} MB wanted' "$WORK/f.err" ||
+	fail "unset, the floor was not a tenth of the memory, at least 1024 MB: $(cat "$WORK/f.err")"
+
+# Runs sharing a TEST_SLOT_NOTICE_ONCE path say a wait once between them.
+echo 100 >"$WORK/free"
+for k in 1 2; do
+	TEST_SLOT_MIN_FREE_MB=500 TEST_SLOT_NOTICE_ONCE="$WORK/once" \
+		tools/test_slot.sh touch "$WORK/o$k.ran" 2>"$WORK/o$k.err" &
+	PIDS+=($!)
+	HOLDERS+=($!)
+done
+wait_for "[ -d '$WORK/once.memory' ]" || fail "runs sharing a notice path never claimed it"
+echo 600 >"$WORK/free"
+end_holders
+said=$(cat "$WORK/o1.err" "$WORK/o2.err" | grep -c 'waiting for memory')
+((said == 1)) || fail "runs sharing TEST_SLOT_NOTICE_ONCE said they waited $said times, not once"
+unset TEST_SLOTS FREE_MEMORY_FILE
+
 # The command's own exit status; a count that is not one is refused, nothing run.
 tools/test_slot.sh bash -c 'exit 7' 2>/dev/null
 status=$?
@@ -156,6 +206,11 @@ for bad in 0 -1 two; do
 	TEST_SLOTS=$bad tools/test_slot.sh touch "$WORK/bad.ran" 2>/dev/null &&
 		fail "TEST_SLOTS=$bad was taken"
 	[[ -e "$WORK/bad.ran" ]] && fail "TEST_SLOTS=$bad ran its command"
+done
+for bad in -1 lots; do
+	TEST_SLOT_MIN_FREE_MB=$bad tools/test_slot.sh touch "$WORK/bad.ran" 2>/dev/null &&
+		fail "TEST_SLOT_MIN_FREE_MB=$bad was taken"
+	[[ -e "$WORK/bad.ran" ]] && fail "TEST_SLOT_MIN_FREE_MB=$bad ran its command"
 done
 
 ((fails == 0)) && echo "test-slot-check: ok"

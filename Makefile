@@ -360,10 +360,13 @@ census:
 # The art against the data (D6) and the snapshots (D5): drawn platform tops,
 # every seat's model on its feet, no live sim object named under scenes/art.
 # Rules live in tools/art_lint.gd. Two frames per tick, so the view interpolates.
-# SHIP=trawler checks that ship's art alone, and plays no match.
+# SHIP=trawler checks that ship's art alone, and plays no match. Its engine takes a test
+# slot (tools/test_slot.sh), as bake-check's do: each dresses whole ships.
+art-lint: export TEST_SLOT_NAME = art-lint
 art-lint:
 	$(call require-godot)
-	@set -o pipefail; tools/engine_guard.sh $(GODOT) --headless --no-header --path . --fixed-fps 60 \
+	@set -o pipefail; tools/engine_guard.sh tools/test_slot.sh $(GODOT) \
+		--headless --no-header --path . --fixed-fps 60 \
 		-s res://tools/art_lint.gd $(if $(SHIP),-- --ship=$(SHIP)) | grep -v -e '^\[godot_ai' -e '^match seed'
 
 # verify-changed's art gate (tools/art_lint_changed.sh): the whole art-lint when the
@@ -505,11 +508,13 @@ bake-ship:
 	@set -o pipefail; tools/engine_guard.sh $(GODOT) --headless --no-header --path . -s res://tools/ship_bake.gd \
 		-- --scene=$(SCENE) --out=$(OUT) | grep -v '^\[godot_ai'
 
+bake-check: export TEST_SLOT_NAME = bake-check
 bake-check:
 	$(call require-godot)
 	@set -o pipefail; for scene in authoring/*/*.tscn authoring/*/*.glb; do \
 		test -e "$$scene" || continue; ship=$$(basename $${scene%.*}); \
-		tools/engine_guard.sh $(GODOT) --headless --no-header --path . -s res://tools/ship_bake.gd -- --scene=$$scene \
+		tools/engine_guard.sh tools/test_slot.sh $(GODOT) --headless --no-header --path . \
+		-s res://tools/ship_bake.gd -- --scene=$$scene \
 		--check=data/ships/$$ship.tres | grep -v '^\[godot_ai' || exit 1; done
 	@for blend in authoring/*/*.blend; do test -e "$$blend" || continue; \
 		test -e "$${blend%.blend}.glb" || { \
@@ -519,8 +524,9 @@ bake-check:
 		echo "bake-check: no Blender at $(BLENDER) — each .blend held through the .glb committed beside it"; \
 	else set -o pipefail; for blend in authoring/*/*.blend; do test -e "$$blend" || continue; \
 		dir=$$(mktemp -d) && glb=$$dir/$$(basename $$blend .blend).glb \
-		&& $(call blend-export,$$blend,$$glb) \
-		&& tools/engine_guard.sh $(GODOT) --headless --no-header --path . -s res://tools/ship_bake.gd -- --scene=$$glb \
+		&& tools/test_slot.sh $(call blend-export,$$blend,$$glb) \
+		&& tools/engine_guard.sh tools/test_slot.sh $(GODOT) --headless --no-header --path . \
+		-s res://tools/ship_bake.gd -- --scene=$$glb \
 		--check=data/ships/$$(basename $$blend .blend).tres | grep -v '^\[godot_ai'; \
 		status=$$?; rm -rf "$$dir"; test $$status -eq 0 || exit 1; done; fi
 
