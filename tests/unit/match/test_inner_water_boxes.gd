@@ -1,13 +1,14 @@
 extends GutTest
 ## The boxes the water inside her is drawn in, and the sea is masked out of
-## (CellBoxes.boxes, SeaAndSky): none of any ship of the fleet reaches past her shell —
-## a cell drawn for its rooms whose box pokes out of her, as the trawler's fore does at
-## her bow, is drawn round its rooms only, each in its own box where one round them all
-## would poke out (the steamer's aft peak), and out to the bulkheads it shares — and a
-## ship whose room cells stand inside her, the steamer, keeps each cell's whole box, but
-## for her engine room's, which runs out to her shell round the stokehold (#74), and her
-## old voids', people's places now (#148); a void a room under it stands up into is drawn
-## over that room (her poop's space).
+## (CellBoxes.boxes, SeaAndSky): none of any ship of the fleet reaches past her shell,
+## nor two of a cell's overlap — a cell drawn for its rooms whose box pokes out of her,
+## as the trawler's fore does at her bow, is drawn round its rooms only, each in boxes
+## of its own where one round them all would poke out (the steamer's aft peak), up past
+## any room over only part of it (the Titanic's squash court), and out to the bulkheads
+## it shares — and a ship whose room cells stand inside her, the steamer, keeps each
+## cell's whole box, but for her engine room's, which runs out to her shell round the
+## stokehold (#74), and her old voids', people's places now (#148); a void a room under
+## it stands up into is drawn over that room (her poop's space).
 
 ## How far a drawn box may stand past her shell, in metres.
 const NEAR := 0.01
@@ -39,12 +40,7 @@ func test_no_drawn_box_reaches_past_her_shell() -> void:
 		var sections := structure.sections
 		var stern := sections[0].x - sections[0].length * 0.5
 		var stem := sections[-1].x + sections[-1].length * 0.5
-		var boxes := CellBoxes.boxes(structure, layout.rooms)
-		var drawn: Array = []
-		for index in boxes.size():
-			drawn.append([index, boxes[index]])
-		drawn.append_array(CellBoxes.stacked(structure, layout.rooms))
-		for each: Array in drawn:
+		for each: Array in _drawn(layout):
 			var box: AABB = each[1]
 			if box.size == Vector3.ZERO:
 				continue
@@ -113,6 +109,79 @@ func _room(layout: ShipLayout, name: StringName) -> ShipRoom:
 		if room.name == name:
 			return room
 	return null
+
+
+## A room another of its cell's rooms stands over only part of is drawn up to the cell's
+## top past that room, and to its floor under it: the Titanic's squash court, two decks
+## high to D deck, under its gallery only at its after end. Drawn a box per room, the
+## court's once stopped at the floor of a room over any of it, the court's whole length,
+## so the gallery's room was kept inside the court's width, for the court to be drawn in
+## one box — its sides in no room and so in no box. The gallery is drawn wall to wall,
+## out over its sides, from bulkhead C, whose door opens onto its port side.
+func test_a_room_partly_under_another_is_drawn_to_its_cells_top_past_it() -> void:
+	var layout := Fleet.layout(&"titanic")
+	var structure := layout.structure
+	var index := structure.cell_named(&"hold_2_tween")
+	var tween := structure.cells[index]
+	var drawn: Array[AABB] = []
+	for each: Array in _drawn(layout):
+		if each[0] == index:
+			drawn.append(each[1])
+	var court := _room(layout, &"squash court")
+	var gallery := _room(layout, &"squash court gallery")
+	assert_lt(gallery.area.end.x, court.area.end.x, "the gallery over the court's after end only")
+	var forward := Vector3(court.area.end.x - 1.0, court.floor_height + 0.1, 0.0)
+	assert_almost_eq(
+		_holding(drawn, forward).end.y, tween.high.y, 1e-5, "forward of it, the court's to D deck"
+	)
+	var under := Vector3(gallery.area.get_center().x, court.floor_height + 0.1, 0.0)
+	assert_almost_eq(
+		_holding(drawn, under).end.y, gallery.floor_height, 1e-5, "under it, to the gallery's floor"
+	)
+	var corner := Vector3(
+		tween.low.x + 0.1, gallery.floor_height + 0.1, gallery.area.position.y + 0.1
+	)
+	var side := _holding(drawn, corner)
+	assert_almost_eq(side.position.x, tween.low.x, 1e-5, "the gallery's from bulkhead C")
+	assert_almost_eq(side.position.z, gallery.area.position.y, 1e-5, "and wall to wall")
+
+
+## The one of [param boxes] holding [param point]; a zero box for none.
+func _holding(boxes: Array[AABB], point: Vector3) -> AABB:
+	for box: AABB in boxes:
+		if box.has_point(point):
+			return box
+	return AABB()
+
+
+## Every box [param layout]'s water is drawn in, each as [cell, box]: each of its cells'
+## (CellBoxes.boxes), a zero box where its water is not drawn, then the rest of those
+## drawn in a stack (CellBoxes.stacked).
+func _drawn(layout: ShipLayout) -> Array:
+	var boxes := CellBoxes.boxes(layout.structure, layout.rooms)
+	var drawn: Array = []
+	for index in boxes.size():
+		drawn.append([index, boxes[index]])
+	drawn.append_array(CellBoxes.stacked(layout.structure, layout.rooms))
+	return drawn
+
+
+## No two of a cell's boxes, on any ship of the fleet, hold the same water, so none is
+## drawn twice: a room's box under another's stops at that room's floor, and a box
+## carried out to a bulkhead never takes on what another holds.
+func test_no_two_of_a_cells_boxes_overlap() -> void:
+	for ship_name: String in Fleet.names():
+		var layout := Fleet.layout(ship_name)
+		var structure := layout.structure
+		var drawn := _drawn(layout)
+		for first in drawn.size():
+			for second in range(first + 1, drawn.size()):
+				var one: AABB = drawn[first][1]
+				var other: AABB = drawn[second][1]
+				if drawn[first][0] != drawn[second][0] or one.size == Vector3.ZERO:
+					continue
+				var cell := "%s's %s" % [ship_name, structure.cells[drawn[first][0]].name]
+				assert_false(one.intersects(other), "%s: %s and %s" % [cell, one, other])
 
 
 ## The space under the steamer's poop has no room of its own, but her steering gear

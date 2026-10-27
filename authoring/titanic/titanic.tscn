@@ -20379,7 +20379,7 @@ metadata/name = &"squash court"
 
 [node name="Room_squash_gallery" type="CSGBox3D" parent="Rooms" unique_id=433683860]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 87.9, -7.5125, 0)
-size = Vector3(3.2, 2.1, 10.9)
+size = Vector3(3.2, 2.1, 16.6)
 material = SubResource("StandardMaterial3D_wpyyv")
 metadata/ship = &"room"
 metadata/name = &"squash court gallery"

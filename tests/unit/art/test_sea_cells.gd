@@ -13,7 +13,7 @@ const INWARD := 0.3
 const STEP := 0.5
 ## How far in from a doorway's edges its points are read, and how far apart through
 ## its bulkhead; and how far past a door the room it leads into is looked for, past
-## any bulkhead's walls.
+## any bulkhead's walls — and its floor walked, where it leads into none.
 const DOOR_IN := 0.05
 const DOOR_STEP := 0.1
 const PAST_DOOR := 0.8
@@ -29,6 +29,7 @@ const UNDER_THE_POOP: Array[StringName] = [&"steering gear"]
 const AT_HER_BULKHEADS: Array[StringName] = [
 	&"No. 3 hold",
 	&"squash court",
+	&"squash court gallery",
 	&"E deck working passage, turbine room",
 ]
 const UNDER_THE_STEERING_GEAR: Array[StringName] = [&"aft stores"]
@@ -79,11 +80,13 @@ func test_the_steamers_steering_gear_never_looks_up_into_the_sea() -> void:
 
 ## A door through a bulkhead between two of her cells never shows the sea: every point
 ## of its doorway, from the plane the cells share out to the wall of the room it leads
-## into either side, is in a box the sea leaves out. The Titanic's No. 3 hold's rooms
-## stop short of bulkheads D and C by the bulkheads' thickness, and the box round them
-## once stopped there too: as she sank by the head the sea was drawn across her F deck
-## watertight doors, a strip at its own height foaming at their jambs, seen from boiler
-## room 6's working corridor through the door into the third-class berths.
+## into either side, or onto the floor there where it leads into none, is in a box the
+## sea leaves out. The Titanic's No. 3 hold's rooms stop short of bulkheads D and C by
+## the bulkheads' thickness, and the box round them once stopped there too: as she sank
+## by the head the sea was drawn across her F deck watertight doors, a strip at its own
+## height foaming at their jambs, seen from boiler room 6's working corridor through
+## the door into the third-class berths. Bulkhead C's door opens onto the squash court
+## gallery's side, once in no room and so in no box: the sea showed past it there.
 func test_no_doorway_through_a_bulkhead_shows_the_sea() -> void:
 	for ship_name: String in Fleet.names():
 		var open := _open_doorways(Fleet.layout(ship_name))
@@ -91,11 +94,13 @@ func test_no_doorway_through_a_bulkhead_shows_the_sea() -> void:
 
 
 ## Rooms standing up to a bulkhead their cell shares with the next never look into the
-## sea there — the Titanic's No. 3 hold and squash court, and E deck's working passage
-## by the turbine room where it stands up into D deck's cell; and the steamer's aft
-## stores, forward of her steering gear, whose box stops at the steering gear's floor:
-## the box round their cell's rooms reaches the bulkhead, as a whole cell's does, where
-## it once stopped at the rooms and left the sea a strip of them.
+## sea there — the Titanic's No. 3 hold, squash court and its gallery, and E deck's
+## working passage by the turbine room where it stands up into D deck's cell; and the
+## steamer's aft stores, forward of her steering gear: the box round their cell's rooms
+## reaches the bulkhead, as a whole cell's does, where it once stopped at the rooms and
+## left the sea a strip of them; and a room another stands over only part of — the
+## court under its gallery, the aft stores under the steering gear — is drawn up past
+## it, where a box per room once stopped at that room's floor the room's whole length.
 func test_rooms_at_a_bulkhead_never_look_into_the_sea() -> void:
 	assert_eq(
 		_open_points(load(TITANIC), AT_HER_BULKHEADS), [], "points of her rooms the sea is drawn in"
@@ -134,9 +139,9 @@ func _open_points(layout: ShipLayout, names: Array[StringName]) -> Array:
 
 ## Per door of [param layout]'s in a wall between two of her cells, the first point
 ## found of its doorway in no box the sea leaves out: each side, from the plane the
-## cells share out to the wall of the room the door leads into on its floor — none
-## where no room stands past it, which is the rooms' own walk's (_open_points) — across
-## its width and up its height, DOOR_IN in from its edges.
+## cells share out to the wall of the room the door leads into on its floor — past
+## that, the rooms' own walk's (_open_points) — or PAST_DOOR onto the floor there where
+## it leads into none, across its width and up its height, DOOR_IN in from its edges.
 func _open_doorways(layout: ShipLayout) -> Array:
 	var masked := _masked(layout)
 	var doors := [ShipOpening.Kind.DOOR, ShipOpening.Kind.WATERTIGHT_DOOR]
@@ -153,11 +158,11 @@ func _open_doorways(layout: ShipLayout) -> Array:
 		for side: float in [-1.0, 1.0]:
 			var past := opening.centre
 			past[axis] += side * PAST_DOOR
+			var through := PAST_DOOR
 			var room := _room_on(layout, past, bottom)
-			if room == null:
-				continue
-			var wall := room.area.position if side > 0.0 else room.area.end
-			var through := absf((wall.x if axis == 0 else wall.y) - opening.centre[axis])
+			if room != null:
+				var wall := room.area.position if side > 0.0 else room.area.end
+				through = absf((wall.x if axis == 0 else wall.y) - opening.centre[axis])
 			var found := ""
 			for depth: float in _steps(DOOR_IN, through - DOOR_IN, DOOR_STEP):
 				for across: float in _steps(DOOR_IN - half[along], half[along] - DOOR_IN):

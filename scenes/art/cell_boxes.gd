@@ -50,9 +50,10 @@ static func boxes(structure: ShipStructure, rooms: Array[ShipRoom]) -> Array[AAB
 
 ## The rest of each cell drawn round its [param rooms] whose one box round them would
 ## reach past [param structure]'s shell — rooms stacked down her run, the lower the
-## narrower (the steamer's aft peak, #148): each of its rooms in its own box, from its
-## floor up to the floor of the one over it or the cell's top, that one in boxes(), and
-## out to the bulkheads it shares (_to_bulkheads); each as [cell, box].
+## narrower (the steamer's aft peak, #148): each of its rooms in boxes of its own, from
+## its floor up to the floor of the one over each part of it or the cell's top (_under),
+## the first in boxes(), and out to the bulkheads it shares (_to_bulkheads); each as
+## [cell, box].
 static func stacked(structure: ShipStructure, rooms: Array[ShipRoom]) -> Array:
 	var found := []
 	for index in structure.cells.size():
@@ -108,9 +109,10 @@ static func _gains(structure: ShipStructure, drawn: Array[AABB], at: int, gained
 
 
 ## [param cell]'s boxes round its [param rooms]: the one round them all
-## (_round_rooms) where it stands inside [param structure]'s shell, else one per room,
-## stacked, each held inside her shell — none her shell closes to nothing — the one up
-## to the cell's top — the largest such — first.
+## (_round_rooms) where it stands inside [param structure]'s shell, else per room,
+## stacked, a box for each part of it up to the floor of the room over it there or the
+## cell's top (_under), each held inside her shell — none her shell closes to nothing —
+## the one up to the cell's top — the largest such — first.
 static func _room_boxes(
 	structure: ShipStructure, cell: FloodCell, rooms: Array[ShipRoom]
 ) -> Array[AABB]:
@@ -123,14 +125,13 @@ static func _room_boxes(
 		return [round]
 	var found: Array[AABB] = []
 	for room: ShipRoom in own:
-		var top := cell.high.y
-		for other: ShipRoom in own:
-			if other.floor_height > room.floor_height and other.area.intersects(room.area):
-				top = minf(top, other.floor_height)
-		var low := Vector3(room.area.position.x, room.floor_height, room.area.position.y)
-		var box := _held(structure, AABB(low, Vector3(room.area.end.x, top, room.area.end.y) - low))
-		if box.size.z > 0.0:
-			found.append(box)
+		for part: Array in _under(room, own, cell.high.y):
+			var area: Rect2 = part[0]
+			var top: float = part[1]
+			var low := Vector3(area.position.x, room.floor_height, area.position.y)
+			var box := _held(structure, AABB(low, Vector3(area.end.x, top, area.end.y) - low))
+			if box.size.z > 0.0:
+				found.append(box)
 	if found.is_empty():
 		return [round]
 	found.sort_custom(
@@ -139,6 +140,51 @@ static func _room_boxes(
 				return a.end.y > b.end.y
 			return a.get_volume() > b.get_volume()
 	)
+	return found
+
+
+## [param room]'s area in parts, each as [area, top]: its top the floor of the lowest of
+## [param own] standing over that part, else [param top] — so a room another stands
+## over only part of is drawn up past it there, as the Titanic's squash court is, two
+## decks high, forward of its gallery. Split only where a room over it lowers its top,
+## the lowest first.
+static func _under(room: ShipRoom, own: Array[ShipRoom], top: float) -> Array:
+	var over_it: Array[ShipRoom] = []
+	for other: ShipRoom in own:
+		if other.floor_height > room.floor_height:
+			over_it.append(other)
+	over_it.sort_custom(
+		func(a: ShipRoom, b: ShipRoom) -> bool: return a.floor_height < b.floor_height
+	)
+	var parts := [[room.area, top]]
+	for other: ShipRoom in over_it:
+		var split := []
+		for part: Array in parts:
+			var area: Rect2 = part[0]
+			var part_top: float = part[1]
+			var over := area.intersection(other.area)
+			if other.floor_height >= part_top or not over.has_area():
+				split.append(part)
+				continue
+			split.append([over, other.floor_height])
+			for rest: Rect2 in _around(area, over):
+				split.append([rest, part_top])
+		parts = split
+	return parts
+
+
+## [param area] less [param over], a part of it: the strips aft and forward of it,
+## [param area]'s whole width, and to port and starboard of it, its length.
+static func _around(area: Rect2, over: Rect2) -> Array[Rect2]:
+	var found: Array[Rect2] = []
+	for strip: Rect2 in [
+		Rect2(area.position.x, area.position.y, over.position.x - area.position.x, area.size.y),
+		Rect2(over.end.x, area.position.y, area.end.x - over.end.x, area.size.y),
+		Rect2(over.position.x, area.position.y, over.size.x, over.position.y - area.position.y),
+		Rect2(over.position.x, over.end.y, over.size.x, area.end.y - over.end.y),
+	]:
+		if strip.has_area():
+			found.append(strip)
 	return found
 
 

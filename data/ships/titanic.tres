@@ -5241,7 +5241,7 @@ floor_height = -11
 [sub_resource type="Resource" id="Room_squash_gallery"]
 script = ExtResource("6_room")
 name = &"squash court gallery"
-area = Rect2(86.3, -5.45, 3.2, 10.9)
+area = Rect2(86.3, -8.3, 3.2, 16.6)
 floor_height = -8.5625
 
 [sub_resource type="Resource" id="Room_f_landing"]
