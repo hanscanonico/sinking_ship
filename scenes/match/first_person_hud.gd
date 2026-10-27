@@ -77,6 +77,10 @@ const SPARE_HEIGHT := 4.0
 const SPARE_GAP := 3.0
 ## How far under the plate's bottom the seat's bonus is written: its baseline.
 const BONUS_UNDER := 26.0
+## The most lines a place's name takes on the plate (place_lines), and how far apart
+## they stand: a line of FONT_SIZE text.
+const PLACE_LINES := 2
+const PLACE_LEADING := 26.0
 ## The plate behind the readouts, bottom left.
 const PLATE := Color(INK, 0.55)
 const PLATE_EDGE := Color(TEXT, 0.12)
@@ -422,26 +426,60 @@ func _draw_where(layout: ShipLayout, feet: Vector3, surface: int) -> void:
 		where = layout.rooms[room].name
 	elif surface >= 0 and surface < layout.platforms.size():
 		where = layout.platforms[surface].name
-	_draw_plate(not where.is_empty())
-	var at := Vector2(24.0, _canvas.size.y - 150.0)
-	_text(at, where.capitalize(), TEXT, READOUT_TEXT, HORIZONTAL_ALIGNMENT_LEFT)
+	var lines := place_lines(where.capitalize(), _font, FONT_SIZE, READOUT_TEXT)
+	_draw_plate(not where.is_empty(), lines.size())
+	var at := Vector2(24.0, _canvas.size.y - 150.0 - PLACE_LEADING * (lines.size() - 1))
+	for line in lines:
+		_text(at, line, TEXT, READOUT_TEXT, HORIZONTAL_ALIGNMENT_LEFT)
+		at.y += PLACE_LEADING
 
 
-## Bottom left, behind what of the readouts shows — the place when [param named],
-## and from the eyes the rest of them — a dark plate, so they read over a bright deck.
-func _draw_plate(named: bool) -> void:
-	var rect := plate_rect(_canvas.size)
+## Bottom left, behind what of the readouts shows — the place when [param named], on
+## [param lines] lines, and from the eyes the rest of them — a dark plate, so they read
+## over a bright deck.
+func _draw_plate(named: bool, lines: int) -> void:
+	var rect := plate_rect(_canvas.size, lines if named else 1)
 	if not named:
 		rect = rect.grow_side(SIDE_TOP, -30.0)
 	if not _eyes or flying:
-		rect.size.y = 32.0 if named else 0.0
+		rect.size.y = 32.0 + PLACE_LEADING * (lines - 1) if named else 0.0
 	if rect.size.y > 0.0:
 		_canvas.draw_style_box(_plate, rect)
 
 
-## The whole plate behind the readouts on a screen of [param size], bottom left.
-static func plate_rect(size: Vector2) -> Rect2:
-	return Rect2(12.0, size.y - 172.0, 252.0, 128.0)
+## The whole plate behind the readouts on a screen of [param size], bottom left, for a
+## place's name on [param lines] lines: each past the first stands over the rest.
+static func plate_rect(size: Vector2, lines: int = 1) -> Rect2:
+	var over := PLACE_LEADING * (lines - 1)
+	return Rect2(12.0, size.y - 172.0 - over, 252.0, 128.0 + over)
+
+
+## [param text], a place's name, as the plate writes it in [param font] at
+## [param font_size] within [param width]: on one line when it fits, else parted onto
+## two where a comma, else a space, leaves the longest first line that fits — never cut
+## off mid-word — the second line cut short with an ellipsis (UiTheme.fit) should even
+## that not fit.
+static func place_lines(
+	text: String, font: Font, font_size: int, width: float
+) -> PackedStringArray:
+	if _fits(text, font, font_size, width):
+		return PackedStringArray([text])
+	for mark: String in [", ", " "]:
+		var at := text.rfind(mark)
+		# The first line keeps the comma and drops the space.
+		var keep := mark.length() - 1
+		while at > 0 and not _fits(text.left(at + keep), font, font_size, width):
+			at = text.rfind(mark, at - 1)
+		if at > 0:
+			var rest := text.substr(at + mark.length())
+			return PackedStringArray(
+				[text.left(at + keep), UiTheme.fit(rest, font, font_size, width)]
+			)
+	return PackedStringArray([UiTheme.fit(text, font, font_size, width)])
+
+
+static func _fits(text: String, font: Font, font_size: int, width: float) -> bool:
+	return font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x <= width
 
 
 ## Bottom left: metres from [param me]'s feet to the sea, above or under it — or

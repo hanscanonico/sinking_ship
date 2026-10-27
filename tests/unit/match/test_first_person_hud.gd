@@ -23,6 +23,47 @@ func test_the_height_reads_above_or_under_the_sea() -> void:
 	assert_eq(FirstPersonHud.height_words(0.0), "At the waterline")
 
 
+## A place's name too long for the plate is parted onto a line over it where a comma,
+## else a space, leaves the longest first line that fits, the plate growing up to hold
+## it — never cut off mid-word, as "F Deck Working Corridor, B" was of boiler room 6's.
+## Every room and deck of the fleet fits in two whole lines.
+func test_a_long_place_name_takes_a_line_over_the_plate() -> void:
+	var font := ThemeDB.fallback_font
+	var size := FirstPersonHud.FONT_SIZE
+	var width := FirstPersonHud.READOUT_TEXT
+	assert_eq(
+		FirstPersonHud.place_lines("Boat Deck", font, size, width), PackedStringArray(["Boat Deck"])
+	)
+	assert_eq(
+		FirstPersonHud.place_lines("F Deck Working Corridor, Boiler Room 6", font, size, width),
+		PackedStringArray(["F Deck Working Corridor,", "Boiler Room 6"])
+	)
+	assert_eq(
+		FirstPersonHud.place_lines("Boiler Room 6 Double Bottom", font, size, width),
+		PackedStringArray(["Boiler Room 6 Double", "Bottom"]),
+		"no comma: the last space that fits"
+	)
+	for ship_name in Fleet.names():
+		var layout := Fleet.layout(StringName(ship_name))
+		var places: Array[StringName] = []
+		for room: ShipRoom in layout.rooms:
+			places.append(room.name)
+		for platform: ShipPlatform in layout.platforms:
+			places.append(platform.name)
+		for place: StringName in places:
+			var shown := String(place).capitalize()
+			var lines := FirstPersonHud.place_lines(shown, font, size, width)
+			assert_lte(lines.size(), FirstPersonHud.PLACE_LINES, "%s: %s" % [ship_name, shown])
+			assert_eq(" ".join(lines), shown, "%s: whole" % ship_name)
+			for line in lines:
+				var wide := font.get_string_size(line, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x
+				assert_lte(wide, width, "%s: %s fits" % [ship_name, line])
+	var one := FirstPersonHud.plate_rect(SCREEN)
+	var two := FirstPersonHud.plate_rect(SCREEN, 2)
+	assert_eq(two.end, one.end, "the plate grows up from where it stands")
+	assert_eq(two.size.y - one.size.y, FirstPersonHud.PLACE_LEADING)
+
+
 func test_a_windup_wedge_stands_beside_or_below_toward_the_shove() -> void:
 	var beside := FirstPersonHud.wedge_on_side(SCREEN, deg_to_rad(60.0))
 	assert_eq(beside, Vector2(1152.0, 324.0), "just past the view: the side's edge, mid-height")
