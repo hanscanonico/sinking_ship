@@ -102,12 +102,23 @@ const BANDS := {
 		"gone within 20 min of physics": [0, 10],
 		"breaks (in two or three, SH33)": [1, 10],
 	},
+	# The Titanic as SH34 first built her, kept when the Titanic was rebuilt room by room:
+	# the same hull, subdivision and sea, so the same bands.
+	"small_titanic":
+	{
+		"survives": [20, 40],
+		"founders upright, by the head or the stern": [35, 60],
+		"heavy list (≥ 15° for ≥ 5 min afloat)": [5, 25],
+		"capsizes (rolled past 90°)": [0, 5],
+		"gone within 20 min of physics": [0, 10],
+		"breaks (in two or three, SH33)": [1, 10],
+	},
 }
 ## §5b.4's budgets — one bake's p95 and a match's bakes' p95 in seconds, the longest
 ## timeline in bytes —, the steamer's but where a ship has her own: the Titanic's (SH34)
 ## raised to what she measures, 2026-10-10, the user's decision; the plan's SH34 card
-## records it.
-const BUDGETS := {"titanic": [90.0, 150.0, 2000000]}
+## records it. The Small Titanic's are hers.
+const BUDGETS := {"titanic": [90.0, 150.0, 2000000], "small_titanic": [90.0, 150.0, 2000000]}
 const BAKE_BUDGET := 2.4
 const MATCH_BAKES_BUDGET := 5.0
 const SIZE_BUDGET := 200000

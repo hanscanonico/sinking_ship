@@ -238,7 +238,7 @@ func test_no_funnel_or_mast_of_the_fleet_is_a_ventilator() -> void:
 				var named := "%s's at %s" % [ship, blocker.centre]
 				assert_false(DeckFurniture.is_vent(layout, blocker), named)
 			else:
-				assert_eq(ship, "titanic", "only the liner carries ventilators")
+				assert_has(["titanic", "small_titanic"], ship, "only the liners carry ventilators")
 
 
 func test_no_seat_starts_by_a_ventilator() -> void:

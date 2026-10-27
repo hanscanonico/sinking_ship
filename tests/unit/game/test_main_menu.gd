@@ -39,6 +39,14 @@ func test_the_version_is_the_projects_or_dev() -> void:
 	assert_eq(label.text, MainMenu.version_text(), "the corner shows it")
 
 
+func test_a_ship_is_shown_in_words_and_picked_by_her_name() -> void:
+	var menu := _menu(PackedStringArray(["--ship=small_titanic"]))
+	var ship: OptionButton = menu.get_node("%Ship")
+	assert_eq(ship.get_item_text(ship.selected), "small titanic")
+	assert_eq(menu.picked_ship(), &"small_titanic")
+	assert_eq(menu.choices().ship, &"small_titanic", "the match she starts is hers")
+
+
 func test_the_custom_match_is_folded_by_default() -> void:
 	var menu := _menu()
 	assert_false(menu.custom_shown(), "the seed, the pace and the bonuses are folded away")
