@@ -1022,12 +1022,10 @@ for side, sign in [("p", -1), ("s", 1)]:
     wall_z("gallery_%s" % side, sign * GALLERY_Z, BX["C"], GALLERY_FWD, F_DECK, D_DECK)
     wall_x("gallery_%s_step" % side, GALLERY_FWD, *sorted((sign * COURT_Z, sign * GALLERY_Z)), F_DECK, D_DECK)
 room("squash_court", "squash court", BX["C"], COURT_FWD, -COURT_Z, COURT_Z, G_DECK)
-# The gallery's room inside the court's width, as the water drawn round a cell's rooms
-# stands inside her shell from G deck up (InnerWater), and short of bulkhead C's door,
-# its port side open onto the gallery's floor there. F deck's landing, between the berths'
-# forward wall and their landing wall, a room of its own, so the way from the gallery
-# to the berths runs door to door.
-room("squash_gallery", "squash court gallery", BX["C"], GALLERY_FWD, LANDING_DOOR[1], -LANDING_DOOR[1], F_DECK)
+# The gallery's room wall to wall, bulkhead C's door opening into it. F deck's landing,
+# between the berths' forward wall and their landing wall, a room of its own, so the way
+# from the gallery to the berths runs door to door.
+room("squash_gallery", "squash court gallery", BX["C"], GALLERY_FWD, -GALLERY_Z, GALLERY_Z, F_DECK)
 room("f_landing", "F deck landing corridor", H3_LANDING, h3_floor[1], -w, w, F_DECK)
 
 # --- Boiler rooms 2 to 5 at the tank top (SB-III, SB-IV), after every other platform,
