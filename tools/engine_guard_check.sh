@@ -95,6 +95,7 @@ fi
 # make itself, or on Windows, where a native make is out of Git Bash's sight, the
 # recipe's shell that dies with it.
 cat >"$WORK/Makefile" <<EOF
+SHELL := /bin/bash
 all:
 	@set -o pipefail; ENGINE_GUARD_WATCH_EVERY=1 ENGINE_GUARD_ARMED='$WORK/b.armed' '$PWD/tools/engine_guard.sh' bash -c 'echo \$\$\$\$ >"$WORK/b.pid"; exec sleep 600' | cat
 EOF
