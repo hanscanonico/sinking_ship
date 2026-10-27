@@ -81,6 +81,16 @@ func outdoors(point: Vector3) -> bool:
 ## what outdoors() says of a point, over a piece that moves between the two.
 func indoors(area: Rect2, height: float) -> float:
 	var inside := 0.0
+	for index: int in rooms_at(area, height):
+		inside += layout.rooms[index].area.intersection(area).get_area()
+	return clampf(inside / area.get_area(), 0.0, 1.0)
+
+
+## The rooms, by index, that [param height] stands in somewhere over [param area]
+## (x/z): what outdoors() asks of a point, asked of each room once, of its ceiling at
+## the middle of its overlap with the area.
+func rooms_at(area: Rect2, height: float) -> PackedInt32Array:
+	var found := PackedInt32Array()
 	for index: int in rooms_near(area):
 		var room := layout.rooms[index]
 		var overlap := room.area.intersection(area)
@@ -88,8 +98,8 @@ func indoors(area: Rect2, height: float) -> float:
 			continue
 		var middle := overlap.get_center()
 		if height <= ceiling(room, middle.x, middle.y) + INSIDE:
-			inside += overlap.get_area()
-	return clampf(inside / area.get_area(), 0.0, 1.0)
+			found.append(index)
+	return found
 
 
 ## The underside of what roofs [param room] over (x, z): the lowest deck standing

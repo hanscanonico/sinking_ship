@@ -7,10 +7,10 @@ extends Node3D
 ## in the dressed hull's paint (ship.gdshader's HULL: red oxide under the boot line, a
 ## pale riband under the sheer, the sea's lap along her waterline); the inside of a
 ## bulwark standing over a deck as a house's side; her deck plating out to the shell
-## where her decks' rectangles stop short of it; and a dark mark at each freeing port
-## and porthole of hers. ShipGreybox draws it under a ship with a structure, in place
-## of its hull blocks. Drawn only — the sim never reads a mesh — and nothing at or
-## above [member cut_above] is.
+## where her decks' rectangles stop short of it, open over each stair up through a hole
+## in a deck; and a dark mark at each freeing port and porthole of hers. ShipGreybox
+## draws it under a ship with a structure, in place of its hull blocks. Drawn only — the
+## sim never reads a mesh — and nothing at or above [member cut_above] is.
 
 ## How thick a freeing port's or a porthole's mark is, across the shell.
 const MARK := 0.08
