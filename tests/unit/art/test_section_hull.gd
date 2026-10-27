@@ -10,6 +10,8 @@ extends GutTest
 ## never shows through her bridge front — her fo'c'sle step, a railed edge, left open.
 ## Her deck plating is open over every stair coming up through a hole in a deck: the
 ## Titanic's from D deck onto her forward well deck show their way down, not planks.
+## Her stern gear stands clear of her shell, fitted to her run, and her keel bar runs
+## under her keel alone.
 
 const TRAWLER := "res://data/ships/trawler.tres"
 const TITANIC := "res://data/ships/titanic.tres"
@@ -28,6 +30,11 @@ const CLEAR := 0.02
 const BESIDE := 0.05
 ## How far short of her shell a deck may stop and leave nothing to close.
 const OPEN := 0.1
+## How far a point may stand from her shell's face and still touch it.
+const TOUCH := 0.02
+## How far under her keel nothing but her keel bar reaches: the Titanic's plating over
+## her double bottom, a floor at her keel, stands a centimetre under it.
+const UNDER := 0.05
 
 var _layout: ShipLayout
 var _hull: SectionHull
@@ -275,15 +282,77 @@ func _cut_round(layout: ShipLayout, ramp: ShipRamp, height: float) -> bool:
 
 ## Every triangle of [param mesh], committed, in her ship space.
 func _committed_faces(mesh: ShipMesh) -> PackedVector3Array:
+	return _faces_of(_committed(mesh))
+
+
+## [param mesh] committed under a node of its own.
+func _committed(mesh: ShipMesh) -> Node3D:
 	var node: Node3D = autofree(Node3D.new())
 	var finishes := {}
 	for finish: int in ShipMesh.Finish.values():
 		finishes[finish] = null
 	mesh.commit(node, finishes)
+	return node
+
+
+## Every triangle of a committed ShipMesh's [param node], in her ship space.
+func _faces_of(node: Node3D) -> PackedVector3Array:
 	var faces := PackedVector3Array()
 	for part: Node in node.get_children():
 		faces.append_array((part as MeshInstance3D).mesh.get_faces())
 	return faces
+
+
+## How many vertices of a committed ShipMesh's [param node] are in [param paint].
+func _painted(node: Node3D, paint: ShipMesh.Paint) -> int:
+	var count := 0
+	for part: Node in node.get_children():
+		var drawn := (part as MeshInstance3D).mesh
+		for surface in drawn.get_surface_count():
+			var colours: PackedColorArray = drawn.surface_get_arrays(surface)[Mesh.ARRAY_COLOR]
+			for colour: Color in colours:
+				if colour.is_equal_approx(paint.colour):
+					count += 1
+	return count
+
+
+## Every triangle of [param layout]'s shell alone (SectionHull.shell()), in her ship
+## space.
+func _shell_alone(layout: ShipLayout) -> PackedVector3Array:
+	var space := ShipSpace.new(layout)
+	var mesh := ShipMesh.new(func(_point: Vector3) -> bool: return true, space.room_lines())
+	var sides := SectionHull.shell_sides(layout.structure.sections)
+	SectionHull.shell(layout, mesh, ShipPaints.hull, ShipPaints.wall, ShipPaints.deck, sides)
+	return _committed_faces(mesh)
+
+
+## The height of the highest of [param faces] (filed in [param cells]) straight under
+## [param point] that faces down, as her bottom does; NAN where none is.
+func _bottom_under(faces: PackedVector3Array, cells: Dictionary, point: Vector3) -> float:
+	var highest := NAN
+	for index: int in FaceCells.at(cells, point):
+		var a := faces[index]
+		var b := faces[index + 1]
+		var c := faces[index + 2]
+		if FaceCells.facing(a, b, c) >= 0.0:
+			continue
+		var hit: Variant = Geometry3D.ray_intersects_triangle(point, Vector3.DOWN, a, b, c)
+		if hit != null and (is_nan(highest) or (hit as Vector3).y > highest):
+			highest = (hit as Vector3).y
+	return highest
+
+
+## The height of the lowest of [param faces] (filed in [param cells]) straight over
+## [param point]; INF where none is.
+func _shell_over(faces: PackedVector3Array, cells: Dictionary, point: Vector3) -> float:
+	var lowest := INF
+	for index: int in FaceCells.at(cells, point):
+		var hit: Variant = Geometry3D.ray_intersects_triangle(
+			point, Vector3.UP, faces[index], faces[index + 1], faces[index + 2]
+		)
+		if hit != null:
+			lowest = minf(lowest, (hit as Vector3).y)
+	return lowest
 
 
 ## The level triangles of [param faces], three corners each.
@@ -370,6 +439,76 @@ func test_her_fo_c_sle_step_stays_open_beside_its_stair() -> void:
 		var from := Vector3(106.5, 4.6, sign * 8.7)
 		var hit: Variant = _front_hit(faces, from, Vector3.RIGHT, 2.0)
 		assert_null(hit, "nothing across her end beside the stair, at z %.1f" % from.z)
+
+
+func test_her_rudder_and_propeller_stand_clear_of_her_shell() -> void:
+	# Her sections run near flat to her transom, and her gear hung where ShipHull hangs the
+	# steamer's stood inside her, up through any room over it: the trawler's propeller
+	# through her steering gear room's floor and into the stair down to her double bottom,
+	# her rudder 1.2 m over that floor (#349). Straight under every corner of her rudder
+	# and her propeller, no bottom of hers — no face of her shell facing down, as her
+	# bottom does seen from inside her; and both are drawn, the rudder from by her keel up
+	# past her waterline, the propeller in bronze.
+	var checked: Array[StringName] = []
+	for ship: StringName in Fleet.names():
+		var layout := Fleet.layout(ship)
+		if layout.dressed:
+			continue
+		checked.append(ship)
+		var shell := _shell_alone(layout)
+		var cells := FaceCells.file(shell)
+		var space := ShipSpace.new(layout)
+		var mesh := ShipMesh.new(func(_point: Vector3) -> bool: return true, space.room_lines())
+		SectionHull.new(space, RAILING_HEIGHT).stern_gear(mesh)
+		var gear := _committed(mesh)
+		var inside := 0
+		var first := ""
+		var reach := Vector2(INF, -INF)
+		for corner: Vector3 in _faces_of(gear):
+			reach = Vector2(minf(reach.x, corner.y), maxf(reach.y, corner.y))
+			var under := _bottom_under(shell, cells, corner)
+			if not is_nan(under) and under < corner.y - TOUCH:
+				inside += 1
+				if first.is_empty():
+					first = "%s, her shell %.2f m under it" % [corner, corner.y - under]
+		assert_eq(inside, 0, "%s: no corner of her gear inside her; first: %s" % [ship, first])
+		var keel := layout.structure.keel_y
+		var waterline := -layout.freeboard
+		assert_lt(reach.x, keel + (waterline - keel) * 0.1, "%s: her rudder by her keel" % ship)
+		assert_gt(reach.y, waterline, "%s: her rudder up past her waterline" % ship)
+		assert_gt(_painted(gear, ShipPaints.brass), 0, "%s: her propeller, in bronze" % ship)
+	assert_true(checked.has(&"trawler"), "the trawler among the fleet's sectioned hulls")
+
+
+func test_her_keel_bar_runs_under_her_keel_alone() -> void:
+	# Her keel bar ran aft to where her gear's sternpost stood — on the Titanic 5.4 m aft
+	# of where her run comes down to her keel, 6.8 m under her there — and forward to her
+	# stem, under her forefoot as it rises from her keel: the trawler's 4.8 m under it at
+	# her stem. Straight up from each end of it, beside her keel line, her shell within
+	# the depth of the steamer's keel bar.
+	for ship: StringName in Fleet.names():
+		var layout := Fleet.layout(ship)
+		if layout.dressed:
+			continue
+		var keel := layout.structure.keel_y
+		var space := ShipSpace.new(layout)
+		var mesh := ShipMesh.new(func(_point: Vector3) -> bool: return true, space.room_lines())
+		SectionHull.new(space, RAILING_HEIGHT).build(mesh)
+		# Under her keel, her keel bar alone.
+		var ends := Vector2(INF, -INF)
+		for corner: Vector3 in _committed_faces(mesh):
+			if corner.y < keel - UNDER:
+				ends = Vector2(minf(ends.x, corner.x), maxf(ends.y, corner.x))
+		assert_lt(ends.x, ends.y, "%s: a keel bar under her keel" % ship)
+		var shell := _shell_alone(layout)
+		var cells := FaceCells.file(shell)
+		for x: float in [ends.x + TOUCH, ends.y - TOUCH]:
+			var over := _shell_over(shell, cells, Vector3(x, keel - LEVEL, TOUCH)) - keel
+			assert_lt(
+				over,
+				ShipHull.KEEL_BAR.y,
+				"%s: her shell %.2f m over her keel bar at x %.2f" % [ship, over, x]
+			)
 
 
 ## A side's sheer: its last point's height (SectionHull.shell_sides()).

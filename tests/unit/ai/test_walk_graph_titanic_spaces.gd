@@ -209,3 +209,44 @@ func test_a_body_walks_aft_along_the_working_passage_through_a_bulkhead_s_door()
 	var passed: Array[int] = _walk(sim, graph, goal, 30.0)[0]
 	assert_eq(passed.front(), _room(&"E deck working passage, electric room"))
 	assert_eq(passed.back(), goal, "through the bulkhead's door")
+
+
+## A body standing still in the depth of a door through a bulkhead — floor in no room,
+## between the rooms either side, each stopping at its own wall: bulkhead D's and C's on
+## F deck (wtd_f_d, wtd_f_c) — stands in the room nearer it, and walks on through the
+## door into the other, either way. It once stood on F deck's open floor, whose only
+## way out lay at the squash court's gallery: from bulkhead D's door it turned back for
+## there at every step aft.
+func test_a_body_standing_in_a_bulkhead_door_s_depth_walks_on_through_it() -> void:
+	var graph := _graph(Surfaces.new(_layout))
+	var dry := HeldPose.flooded(_layout, -_layout.freeboard, {})
+	for door: Array in [
+		[&"wtd_f_d", &"F deck working corridor, boiler room 6", &"third-class berths"],
+		[&"wtd_f_c", &"F deck landing corridor", &"squash court gallery"],
+	]:
+		var aft := _room(door[1])
+		var fore := _room(door[2])
+		var from_x := _layout.rooms[aft].area.end.x
+		var depth := _layout.rooms[fore].area.position.x - from_x
+		assert_gt(depth, 0.1, "%s's depth is in neither room" % door[0])
+		# A quarter of the way through from each side, bound for the room across.
+		for ends: Array in [[aft, fore, 0.25], [fore, aft, 0.75]]:
+			var nearer: int = ends[0]
+			var across: int = ends[1]
+			var at: float = ends[2]
+			var start := Vector3(from_x + depth * at, F_DECK, _opening(door[0]).centre.z)
+			var sim := SimFixtures.sim(2, null, _layout)
+			SimFixtures.place(sim, 0, start)
+			SimFixtures.place(sim, 1, Vector3(60.0, 0.0, 9.0))
+			HeldPose.hold(sim, dry)
+			var passed: Array[int] = _walk(sim, graph, across, 10.0)[0]
+			assert_eq(passed.front(), nearer, "in %s's depth at x %s" % [door[0], start.x])
+			assert_eq(passed.back(), across, "on through %s from x %s" % [door[0], start.x])
+
+
+## Her opening named [param opening_name].
+func _opening(opening_name: StringName) -> ShipOpening:
+	for opening: ShipOpening in _layout.structure.openings:
+		if opening.name == opening_name:
+			return opening
+	return null
