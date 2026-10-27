@@ -129,10 +129,25 @@ float hash(vec2 p) {
 }
 
 // 1 on a line of half-width [param half] about 0 of [param d], faded out once the
-// line would be thinner than a pixel.
-float line(float d, float half) {
-	float fw = max(fwidth(d), 1e-5);
+// line would be thinner than a pixel, a pixel spanning [param fw] of [param d].
+float line_over(float d, float half, float fw) {
+	fw = max(fw, 1e-5);
 	return (1.0 - smoothstep(half - fw, half + fw, abs(d))) * clamp(half * 2.0 / fw - 0.5, 0.0, 1.0);
+}
+
+// line_over() of a seam [param d] away, of a pattern repeating along [param at]. A distance
+// that folds back at every repeat changes little from one pixel to the next once the
+// repeats pass under a pixel, so its own fwidth would never fade the line, and the seams
+// far off would shimmer into arcs: the pixel's span is read off [param at] instead.
+float seam_line(float d, float half, float at) {
+	return line_over(d, half, fwidth(at));
+}
+
+// How much of a pattern repeating every [param period] along [param d] still shows: 0
+// once a repeat is narrower than a few pixels, so a fine pattern fades to its mean
+// colour with distance rather than shimmering.
+float shows(float d, float period) {
+	return 1.0 - smoothstep(0.15, 0.5, fwidth(d) / period);
 }
 
 // 1 on a rivet of the row riding [param over] above each seam of [param d], whose
@@ -148,7 +163,7 @@ float rivets(float along, float d, float over) {
 // Steel deck plating: plates bow_plate_size square, seams riveted.
 vec3 plated() {
 	vec2 seam = (fract(ship_pos.xz / bow_plate_size + 0.5) - 0.5) * bow_plate_size;
-	float plating = max(line(seam.x, 0.006), line(seam.y, 0.006));
+	float plating = max(seam_line(seam.x, 0.006, ship_pos.x), seam_line(seam.y, 0.006, ship_pos.z));
 	plating = max(plating, 0.8 * rivets(ship_pos.z, seam.x, 0.03));
 	return bow_plate.rgb * (1.0 - 0.3 * plating);
 }
@@ -169,12 +184,14 @@ vec3 planks(vec3 base) {
 	float along = ship_pos.x / plank_length + hash(vec2(row, 7.0));
 	float piece = floor(along);
 	float butt = (fract(along) - 0.5) * plank_length;
-	float tone = mix(0.86, 1.1, hash(vec2(row, piece)));
-	float grain = 0.96 + 0.04 * sin(ship_pos.x * 7.0 + hash(vec2(piece, row)) * 40.0 + sin(ship_pos.z * 31.0));
+	// Each plank's tone, and its grain, fade to their mean as planks narrow far off.
+	float tone = mix(0.98, mix(0.86, 1.1, hash(vec2(row, piece))), shows(z, plank_width));
+	float grain = sin(ship_pos.x * 7.0 + hash(vec2(piece, row)) * 40.0 + sin(ship_pos.z * 31.0));
+	grain = 0.96 + 0.04 * grain * shows(ship_pos.z, 0.2);
 	vec3 colour = base * tone * grain * (1.0 - 0.28 * margin);
 	float seam = max(
-		line(abs(across) - plank_width * 0.5, seam_width),
-		line(abs(butt) - plank_length * 0.5, seam_width)
+		seam_line(abs(across) - plank_width * 0.5, seam_width, z),
+		seam_line(abs(butt) - plank_length * 0.5, seam_width, ship_pos.x)
 	);
 	return mix(colour, seam_colour.rgb, seam * 0.85);
 }
@@ -183,7 +200,7 @@ vec3 hull(vec3 base) {
 	float y = ship_pos.y;
 	vec3 colour = y < boot_height ? bottom_colour.rgb : base;
 	float strake = (fract((y - boot_height) / strake_height) - 0.5) * strake_height;
-	colour *= 1.0 - 0.25 * line(abs(strake) - strake_height * 0.5, 0.01);
+	colour *= 1.0 - 0.25 * seam_line(abs(strake) - strake_height * 0.5, 0.01, y);
 	return bands.y < riband_depth ? riband_colour.rgb : colour;
 }
 
@@ -202,7 +219,7 @@ vec3 house(vec3 base) {
 	float along = wall_along();
 	float seam_d = (fract(bands.x / plate_height + 0.5) - 0.5) * plate_height;
 	float butt_d = (fract(along / plate_width + 0.5) - 0.5) * plate_width;
-	float plating = max(line(seam_d, 0.006), 0.7 * line(butt_d, 0.005));
+	float plating = max(seam_line(seam_d, 0.006, bands.x), 0.7 * seam_line(butt_d, 0.005, along));
 	plating = max(plating, 0.8 * rivets(along, seam_d, 0.035));
 	float column = floor(along / 0.06);
 	float length_ = mix(0.3, 1.4, hash(vec2(column, 3.0)));
@@ -220,17 +237,10 @@ vec3 cabin(vec3 base) {
 	}
 	if (bands.x < rail) {
 		float along = ship_pos.x + ship_pos.z;
-		float groove = line((fract(along / panel_width) - 0.5) * panel_width, 0.008);
+		float groove = seam_line((fract(along / panel_width) - 0.5) * panel_width, 0.008, along);
 		return foot_colour.rgb * (1.0 - 0.3 * groove);
 	}
 	return base;
-}
-
-// How much of a pattern repeating every [param period] along [param d] still shows: 0
-// once a repeat is narrower than a few pixels, so a fine pattern fades to its mean
-// colour with distance rather than shimmering.
-float shows(float d, float period) {
-	return 1.0 - smoothstep(0.15, 0.5, fwidth(d) / period);
 }
 
 vec3 plate(vec3 base) {
@@ -241,11 +251,13 @@ vec3 plate(vec3 base) {
 		float lug = 1.0 - smoothstep(0.8, 1.0, abs(f.x) / 0.5 + abs(f.y) / 0.14);
 		vec3 colour = base * (0.9 + 0.3 * lug * shows(ship_pos.x, lugs));
 		vec2 seam = (fract(ship_pos.xz / tread_plate + 0.5) - 0.5) * tread_plate;
-		return colour * (1.0 - 0.35 * max(line(seam.x, 0.006), line(seam.y, 0.006)));
+		float seams = max(seam_line(seam.x, 0.006, ship_pos.x), seam_line(seam.y, 0.006, ship_pos.z));
+		return colour * (1.0 - 0.35 * seams);
 	}
 	if (ship_normal.y < -0.5) {
 		vec2 seam = (fract(ship_pos.xz / bulkhead_plate.xx + 0.5) - 0.5) * bulkhead_plate.x;
-		return base * (1.0 - 0.25 * max(line(seam.x, 0.006), line(seam.y, 0.006)));
+		float seams = max(seam_line(seam.x, 0.006, ship_pos.x), seam_line(seam.y, 0.006, ship_pos.z));
+		return base * (1.0 - 0.25 * seams);
 	}
 	if (bands.x < kick_height) {
 		return foot_colour.rgb;
@@ -253,7 +265,7 @@ vec3 plate(vec3 base) {
 	float along = wall_along();
 	float seam_d = (fract((bands.x - kick_height) / bulkhead_plate.y + 0.5) - 0.5) * bulkhead_plate.y;
 	float butt_d = (fract(along / bulkhead_plate.x + 0.5) - 0.5) * bulkhead_plate.x;
-	float plating = max(line(seam_d, 0.006), 0.8 * line(butt_d, 0.006));
+	float plating = max(seam_line(seam_d, 0.006, bands.x), 0.8 * seam_line(butt_d, 0.006, along));
 	plating = max(plating, 0.8 * rivets(along, seam_d, 0.035));
 	plating = max(plating, 0.8 * rivets(bands.x, butt_d, 0.035));
 	float dirt = 1.0 - smoothstep(0.0, 0.5, bands.x - kick_height);
@@ -270,10 +282,13 @@ vec3 rough(vec3 base) {
 	float run = along / rough_length + hash(vec2(row, 5.0));
 	float piece = floor(run);
 	float butt = (fract(run) - 0.5) * rough_length;
-	float tone = mix(0.78, 1.12, hash(vec2(row, piece)));
+	float tone = mix(0.95, mix(0.78, 1.12, hash(vec2(row, piece))), shows(across, width));
 	float grain = 0.92 + 0.08 * sin(along * 8.0 + hash(vec2(piece, row)) * 30.0 + sin(across * 27.0) * 2.0);
 	vec3 colour = base * tone * mix(1.0, grain, shows(across, width));
-	float seam = max(line(abs(gap) - width * 0.5, 0.012), line(abs(butt) - rough_length * 0.5, 0.008));
+	float seam = max(
+		seam_line(abs(gap) - width * 0.5, 0.012, across),
+		seam_line(abs(butt) - rough_length * 0.5, 0.008, along)
+	);
 	return mix(colour, seam_colour.rgb * 0.55, seam * 0.9);
 }
 
