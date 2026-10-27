@@ -70,10 +70,11 @@ const NAME_PUNCTUATION := " -_.'"
 ## countdown ends and a long timeline never floods a connection.
 @export var timeline_lead: float
 @export var timeline_bytes_per_beat: int
-## Whether its rooms' matches sink on the match data's fast_clock, as a player's local
-## match does (MatchChoices.PLAYERS_FAST), rather than on her paced clock. The server's
-## to say: BEGIN tells each player, whose match is built from it (RoomServer.config_for).
-@export var fast: bool = true
+## Whether its rooms' matches sink on the match data's fast_clock, or on her paced clock
+## as a player's local match does unless they tick Fast sinking (MatchChoices.PLAYERS_FAST).
+## The server's to say: BEGIN tells each player, whose match is built from it
+## (RoomServer.config_for).
+@export var fast: bool = false
 ## Whether bonuses come aboard its rooms' matches (#307), as the match data's bonus rules
 ## bring them, as they do in a player's local match unless unticked (MatchChoices.bonuses),
 ## or none at all. The server's to say, as the pace is: BEGIN tells each player beside it.

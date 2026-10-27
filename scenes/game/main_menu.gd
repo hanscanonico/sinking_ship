@@ -8,11 +8,11 @@ extends CanvasLayer
 ## (MenuBackdrop) under the wordmark in her livery: cream on a boot-top red rule
 ## between brass lines — and the online screens stand over the same, its own panel put
 ## away (show_behind). The seed, the pace and the bonuses are a tester's knobs: folded
-## under Custom match — Fast sinking ticked for a player (MatchArgs.player_choices),
-## unticked for her slow, realistic pace, and Bonuses beside it, ticked unless the plain
-## brawl is wanted —, closed unless the command line set a seed, that slow pace or no
-## bonuses. The build's version stands in
-## the bottom-right corner; Credits opens the credits (CreditsMenu).
+## under Custom match — Fast sinking unticked for a player (MatchArgs.player_choices),
+## her slow, realistic pace, ticked for the fast clock, and Bonuses beside it, ticked
+## unless the plain brawl is wanted —, closed unless the command line set a seed, the
+## fast clock or no bonuses. The build's version stands in the bottom-right corner;
+## Credits opens the credits (CreditsMenu).
 
 signal play_requested(choices: MatchChoices)
 ## The picker has moved to [param ship], by name.

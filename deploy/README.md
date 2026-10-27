@@ -142,9 +142,9 @@ bandwidth every 10 s, and a finished match's transcript:
 
 ## The pace of its matches, and their bonuses
 
-The server's rooms sink her fast, as a player's match on their own machine does
-(`fast = true` in `data/net/server.tres`). For the slow, realistic pace, set
-`fast = false` there and deploy: the server tells each player the pace as their match
+The server's rooms sink her at her slow, realistic pace, as a player's match on their
+own machine does (`fast = false` in `data/net/server.tres`). For the fast clock, set
+`fast = true` there and deploy: the server tells each player the pace as their match
 begins, so the builds already out need nothing. Bonuses come aboard its rooms' matches
 as they do a player's own (`bonuses = true`); for the plain brawl, set `bonuses = false`
 and deploy, and each player is told that the same way. Each match's `match begins` log

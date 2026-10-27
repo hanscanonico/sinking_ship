@@ -49,7 +49,7 @@ func test_unmade_choices_are_left_to_the_data() -> void:
 
 ## --bonuses=0 turns bonuses off, as make's BONUSES=0 passes it, and --bonuses or
 ## --bonuses=1 leaves them on — for a player's match and a bot's autoplay alike: bonuses
-## are on for both by default, unlike the pace.
+## are on for both by default.
 func test_bonuses_take_a_zero_for_none() -> void:
 	var off := MatchArgs.parse(PackedStringArray(["--bonuses=0"]))
 	assert_false(off.choices.bonuses, "--bonuses=0: the plain brawl")
@@ -71,15 +71,16 @@ func test_fast_takes_a_zero_for_the_paced_clock() -> void:
 	assert_false(MatchArgs.parse(PackedStringArray()).pace_given)
 
 
-## A player's match sinks fast unless the command line asks for the paced clock; a
-## bot's autoplay, like every tool, keeps the paced clock its transcript is timed on.
-func test_a_players_choices_sink_fast_unless_asked_otherwise() -> void:
+## A player's match sinks at her paced clock unless the command line asks for the fast
+## one; so does a bot's autoplay, like every tool, on the clock its transcript is timed on.
+func test_a_players_choices_sink_paced_unless_asked_otherwise() -> void:
 	var given := MatchArgs.parse(PackedStringArray(["--seed=7"]))
-	assert_true(given.player_choices().fast, "a player's default pace is fast")
+	assert_false(given.player_choices().fast, "a player's default pace is her paced clock")
 	assert_eq(given.player_choices().seed_text, "7", "the other choices as given")
-	assert_false(given.choices.fast, "the args' own choices stay paced")
+	var fast := MatchArgs.parse(PackedStringArray(["--fast"]))
+	assert_true(fast.player_choices().fast, "the fast clock asked for")
 	var slow := MatchArgs.parse(PackedStringArray(["--fast=0"]))
-	assert_false(slow.player_choices().fast, "the slow pace asked for")
+	assert_false(slow.player_choices().fast, "the paced one asked for")
 	var bot := MatchArgs.parse(PackedStringArray(["--autoplay"]))
 	assert_false(bot.player_choices().fast, "a bot's autoplay is a tool's: paced")
 	var fast_bot := MatchArgs.parse(PackedStringArray(["--autoplay", "--fast"]))

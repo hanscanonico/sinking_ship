@@ -46,7 +46,7 @@ func test_client_plays_the_hosts_timeline() -> void:
 	var config := _begun(fixture, player)
 	assert_not_null(config, "the match began")
 	var served: MatchConfig = fixture.room(player).host.runner.sim.config
-	assert_eq(config.scenario.clock, fixture.match_rules.fast_clock, "fast, as the server says")
+	assert_eq(config.scenario.clock, fixture.match_rules.sinking.clock, "paced, as the server says")
 	assert_eq(config.data_hash(), served.data_hash(), "the server's match, to its data")
 	var host := fixture.room(player).host.runner.sim.schedule
 	var choice := config.sinking()

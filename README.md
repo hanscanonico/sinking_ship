@@ -27,9 +27,9 @@ zip's `README.txt` says more.
 
 Every key but Rematch can be rebound under Settings > Keys (saved to
 `user://key_bindings.json`); Settings also holds sound, mouse, field of view, window
-mode, VSync and the frame cap. A match sinks on the fast clock by default: untick Fast
-sinking under Custom match (or `make run FAST=0`) for the paced one. Bonuses come aboard
-below decks by default too: untick Bonuses beside it (or `make run BONUSES=0`) for the
+mode, VSync and the frame cap. A match sinks at her slow, realistic pace by default: tick
+Fast sinking under Custom match (or `make run FAST=1`) for the fast clock. Bonuses come
+aboard below decks by default: untick Bonuses beside it (or `make run BONUSES=0`) for the
 plain brawl. The Credits screen carries the licences.
 
 Online play needs a game server: enter its `ws://` or `wss://` address under Play
