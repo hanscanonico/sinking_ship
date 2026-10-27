@@ -54,12 +54,14 @@ else
 	((slots >= 1)) || slots=1
 fi
 
-for knob in TEST_SLOT_MIN_FREE_MB TEST_SLOT_MEMORY_WAIT; do
-	if [[ -n "${!knob-}" && ! "${!knob}" =~ ^[0-9]+$ ]]; then
-		echo "test: $knob takes a count of 0 or more, not '${!knob}'" >&2
-		exit 1
-	fi
-done
+# Knob $1, set to $2, is a count of 0 or more, or unset.
+count_or_none() {
+	[[ -z "$2" || "$2" =~ ^[0-9]+$ ]] && return 0
+	echo "test: $1 takes a count of 0 or more, not '$2'" >&2
+	exit 1
+}
+count_or_none TEST_SLOT_MIN_FREE_MB "${TEST_SLOT_MIN_FREE_MB-}"
+count_or_none TEST_SLOT_MEMORY_WAIT "${TEST_SLOT_MEMORY_WAIT-}"
 
 source "$(dirname "$0")/lib/fd_lock.sh" || exit 1
 if [[ -z "$FD_LOCK_TOOL" ]]; then
