@@ -112,9 +112,9 @@ match-args = $(if $(SEED),--seed=$(SEED)) $(if $(SEATS),--seats=$(SEATS)) $(if $
 BAKE_CACHE ?= 1
 bake-cache-arg = $(if $(filter 0,$(BAKE_CACHE)),,--bake-cache)
 
-# The game plays her sinking on the match data's fast_clock (the menu's Fast sinking,
-# ticked for a player); FAST=0 plays it on her paced clock, unticked. A tool — match,
-# bake, a bot's ARGS=--autoplay — plays the paced clock unless FAST=1.
+# The game plays her sinking on her paced clock (the menu's Fast sinking, unticked for a
+# player), as a tool — match, bake, a bot's ARGS=--autoplay — does; FAST=1 plays it on
+# the match data's fast_clock, ticked.
 # GOAL=survival plays survival (the menu's Survival): everyone stays in as long as she
 # lasts. Without GOAL=, the match data's goal (the battle royale's in default.tres). It
 # works for match too, and with FAST=1. BONUSES=0 plays the plain brawl, no bonus ever
