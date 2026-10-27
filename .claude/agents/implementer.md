@@ -43,7 +43,9 @@ balance numbers in data/, match surrounding style, let `make format` settle whit
 Implement the task and nothing more.
 
 Gate: `make verify-changed` must pass in your worktree, plus any area gate the task names
-— every gate of `make verify` with only the tests your change can reach. `make verify`
+— every gate of `make verify` with only the tests your change can reach. Run it once, on
+the head you will report: finish the change, and any fixes your own review brings, before
+you start it — a gate whose head then moves has to run again. `make verify`
 stays available and is what CI runs on the PR; a merge waits for CI's full verify to be
 green on the PR head, so a red CI run is yours to fix too. For a
 visual change, capture the affected scene and read the frame as an image once the repo has
@@ -61,16 +63,17 @@ Report the gate as `local_gate`, exactly one of:
 and `ci_green` separately: true only when you saw CI's verify check conclude success on
 the PR head you last pushed (`gh pr view --json statusCheckRollup`); false when it is red,
 still running, or you did not look. Also return `head_sha`, the PR head when you report.
-Push and open the PR as soon as the local gate is green; CI then runs while you report.
+Mark the PR ready (`gh pr ready`) as soon as the local gate is green; CI then runs while
+you report.
 
-Long commands under the harness cap. The harness caps one shell call at about 120 s and
-moves it to the background whatever timeout you pass, so a 10-minute `make smoke` or
-`make verify-changed` cannot run in one foreground call. Run it as a job writing to a log
-(`nohup make verify-changed > <scratchpad>/gate.log 2>&1 &`, or `run_in_background` on
-that one call), then wait for it with foreground polls each under 120 s (`for i in 1 2 3
-4 5 6 7 8 9 10; do sleep 10; grep -q '<end marker>' <log> && break; done`, repeated), and
-read the log's end — and, for a capture, every frame it wrote — before reporting. Never
-report "waiting on background work"; never report before the job ended.
+Long commands. Start any command that can outlast two minutes — `make verify-changed`,
+`make capture`, `make smoke`, a Titanic probe — with `run_in_background`, its output in a
+log in your scratchpad: `make verify-changed > <scratchpad>/<slug>/gate.log 2>&1`. Then
+end your turn: the harness wakes you when the command exits. The gate's log ends on
+`verify-changed: PASS` or `verify-changed: FAIL at <step>`; read the log's end — and, for
+a capture, every frame it wrote — before you report. Give a shorter command the Bash
+tool's own `timeout` (up to 600000 ms), and run make bare: a `timeout` wrapper kills make
+and leaves its engines running. Report only once the job has ended.
 
 Captures:
 - Take the before capture right after `make import`, before editing. Re-derive the capture
@@ -101,15 +104,16 @@ say so rather than falling back to a script.
 Ship: commit in repo style (present-tense imperative subject, focused body only if
 needed). Add only the commit trailers the orchestrator provides in the task; if none were
 provided, add none — never a Co-Authored-By or generated-with line. Push with
-`git push -u origin improve/<slug>` and open a PR with `gh pr create --base main`
-(concise body: what + why + how verified, ending with any footer the orchestrator
-provides). When the change is visible — UI, models, materials, animation, the landing
-page — the body must carry a **Before / After** section once a capture target exists:
-capture the same scene or asset on `main` and on the branch and show them side by side in
-a two-column table so the reviewer sees the change at a glance. The images ride on the
-branch, never on main: commit the pair under `docs/pr/<branch>/` in a commit of their own,
-`git rm -r docs/pr/<branch>` in the next, and push both. Link each image by the first
-commit's full SHA —
+`git push -u origin improve/<slug>` at your first commit and open the PR then, as a
+draft, with `gh pr create --draft --base main`: the work outlives a stopped session, and
+CI starts on it early (concise body: what + why + how verified, ending with any footer
+the orchestrator provides). When the change is visible — UI, models, materials,
+animation, the landing page — the body must carry a **Before / After** section once a
+capture target exists: capture the same scene or asset on `main` and on the branch and
+show them side by side in a two-column table so the reviewer sees the change at a
+glance. The images ride on the branch, never on main: commit the pair under
+`docs/pr/<branch>/` in a commit of their own, `git rm -r docs/pr/<branch>` in the next,
+and push both. Link each image by the first commit's full SHA —
 `https://raw.githubusercontent.com/hanscanonico/sinking_ship/<sha>/docs/pr/<branch>/<name>.png`
 — never by the branch's name: the PR's head ref keeps that commit through the squash merge
 and the branch's deletion, so the links outlive both, and `make check` fails while
