@@ -26,14 +26,12 @@ slowness is not failure). Then read every captured frame as an image — a sweep
 checks a frame was written passes a blank or half-drawn one. Prioritise the scenes the
 brief names, but look at all of them.
 
-Long commands under the harness cap. The harness caps one shell call at about 120 s and
-moves it to the background whatever timeout you pass, so a 10-minute `make smoke` or
-`make verify-changed` cannot run in one foreground call. Run it as a job writing to a log
-(`nohup make smoke > <scratchpad>/smoke.log 2>&1 &`, or `run_in_background` on
-that one call), then wait for it with foreground polls each under 120 s (`for i in 1 2 3
-4 5 6 7 8 9 10; do sleep 10; grep -q '<end marker>' <log> && break; done`, repeated), and
-read the log's end — and, for a capture, every frame it wrote — before reporting. Never
-report "waiting on background work"; never report before the job ended.
+Long commands. Start `make smoke`, and anything else that can outlast two minutes, with
+`run_in_background`, its output in a log in your scratchpad: `make smoke >
+<scratchpad>/smoke.log 2>&1`. Then end your turn: the harness wakes you when the command
+exits. Read the log's end and every frame it wrote before you report. Give a shorter
+command the Bash tool's own `timeout` (up to 600000 ms), and run make bare: a `timeout`
+wrapper kills make and leaves its engines running. Report only once the job has ended.
 
 A non-zero exit from a capture: read what `tools/engine_guard.sh` complained about and
 report it; never set `ENGINE_GUARD_IGNORE`. The window lock does not serve waiters in
