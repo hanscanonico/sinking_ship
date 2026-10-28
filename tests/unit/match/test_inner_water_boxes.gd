@@ -104,25 +104,44 @@ func test_a_cell_drawn_round_its_rooms_reaches_the_bulkheads_it_shares() -> void
 
 
 ## A cell whose rooms end where a section of her shell ends is drawn in one box round
-## them: her sections' ends are rounded, and the one past that end — the Titanic's after
-## well, aft of her C deck under B deck's tapered end — is not over them for the
-## fraction of a millimetre its rounding has it reach in. Read as over them, its well
-## deck's shell would have her C deck drawn room by room, and its rooms' boxes, meeting
-## end to end in her floats, overlap.
+## them: her sections' ends are rounded, and the one past that end is not over them for
+## the fraction of a millimetre its rounding has it reach in — the Titanic's D deck over
+## her electric engine room, its rooms from bulkhead N to bulkhead M, where her sections
+## end. Read as over them, the next section's shell would have it drawn room by room,
+## and its rooms' boxes, meeting end to end in her floats, overlap. (Her C deck showed it
+## first, under B deck's tapered end; laid as her plate draws it, out to her shell, it
+## is drawn room by room.)
 func test_rooms_ending_where_a_section_ends_are_drawn_in_one_box() -> void:
 	var layout := Fleet.layout(&"titanic")
 	var structure := layout.structure
-	var index := structure.cell_named(&"c_deck")
-	var c_deck := structure.cells[index]
-	assert_lt(c_deck.shape, CellBoxes.WHOLE, "her C deck's box pokes past her shell")
-	assert_almost_eq(
-		_room(layout, &"C deck corridor").area.position.x,
-		c_deck.low.x,
-		1e-5,
-		"its corridor runs to its after end, where her after well's section ends"
-	)
+	var index := structure.cell_named(&"electric_room_d")
+	var cell := structure.cells[index]
+	assert_lt(cell.shape, CellBoxes.WHOLE, "its box pokes past her shell")
+	var saloon := _room(layout, &"second-class dining saloon")
+	assert_almost_eq(saloon.area.position.x, cell.low.x, 1e-5, "its saloon runs aft to bulkhead N")
+	var ends := false
+	for section: HullSection in structure.sections:
+		ends = ends or absf(section.x + section.length * 0.5 - cell.low.x) < 1e-3
+	assert_true(ends, "where a section of her shell ends")
 	for stack: Array in CellBoxes.stacked(structure, layout.rooms):
-		assert_ne(stack[0], index, "C deck is drawn in one box, not room by room")
+		assert_ne(stack[0], index, "it is drawn in one box, not room by room")
+
+
+## Each of a cell's boxes, on any ship of the fleet, stands inside the cell's own box:
+## the rooms a cell names stand in it, and no other cell names them — the Titanic's D
+## deck's passages, aft of bulkhead P and forward of it, are two names. Named in two
+## cells, a room's water was drawn round it in both, out of the next cell's box.
+func test_a_cells_boxes_stand_inside_its_own_box() -> void:
+	for ship_name: String in Fleet.names():
+		var layout := Fleet.layout(ship_name)
+		var structure := layout.structure
+		for each: Array in _drawn(layout):
+			var box: AABB = each[1]
+			if box.size == Vector3.ZERO:
+				continue
+			var cell := structure.cells[each[0]]
+			var own := AABB(cell.low, cell.high - cell.low).grow(NEAR)
+			assert_true(own.encloses(box), "%s's %s: %s in %s" % [ship_name, cell.name, box, own])
 
 
 ## [param layout]'s room named [param name].
@@ -190,7 +209,8 @@ func _drawn(layout: ShipLayout) -> Array:
 
 ## No two of a cell's boxes, on any ship of the fleet, hold the same water, so none is
 ## drawn twice: a room's box under another's stops at that room's floor, and a box
-## carried out to a bulkhead never takes on what another holds.
+## carried out to a bulkhead never takes on what another holds. Two that run a hair into
+## each other only meet (CellBoxes.MEET): single precision has a room's far side so.
 func test_no_two_of_a_cells_boxes_overlap() -> void:
 	for ship_name: String in Fleet.names():
 		var layout := Fleet.layout(ship_name)
@@ -203,7 +223,8 @@ func test_no_two_of_a_cells_boxes_overlap() -> void:
 				if drawn[first][0] != drawn[second][0] or one.size == Vector3.ZERO:
 					continue
 				var cell := "%s's %s" % [ship_name, structure.cells[drawn[first][0]].name]
-				assert_false(one.intersects(other), "%s: %s and %s" % [cell, one, other])
+				var held := one.grow(-CellBoxes.MEET)
+				assert_false(held.intersects(other), "%s: %s and %s" % [cell, one, other])
 
 
 ## The space under the steamer's poop has no room of its own, but her steering gear
