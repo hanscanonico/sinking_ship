@@ -147,13 +147,21 @@ var _checks := 0
 func _initialize() -> void:
 	# The root joins the tree only once the main loop runs.
 	await process_frame
-	# --ship=NAME checks that ship alone, and nothing that plays a match.
+	# --ship=NAME checks that ship alone, and nothing that plays a match; --skip=NAME,NAME
+	# every ship but those, and what plays a match too: CI checks the biggest ships beside
+	# the rest (.github/workflows/verify.yml).
 	var only := ""
+	var skipped := PackedStringArray()
 	for arg: String in OS.get_cmdline_user_args():
 		if arg.begins_with("--ship="):
 			only = arg.trim_prefix("--ship=") + ".tres"
+		elif arg.begins_with("--skip="):
+			for ship: String in arg.trim_prefix("--skip=").split(",", false):
+				skipped.append(ship + ".tres")
 	for file: String in DirAccess.get_files_at(SHIPS_DIR):
-		if file.ends_with(".tres") and (only.is_empty() or file == only):
+		if not file.ends_with(".tres") or file in skipped:
+			continue
+		if only.is_empty() or file == only:
 			_check_ship(file, load(SHIPS_DIR + file))
 	if not only.is_empty():
 		_report()
