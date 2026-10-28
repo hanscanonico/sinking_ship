@@ -754,7 +754,7 @@ SOLIDS = [
     # (est. 1 m).
     ("closet", 1671, 4947, 1697, 4996.5, None),
     ("No. 5 hatch", 1837.5, 4738.5, 1977.5, 4949, None),
-    ("stairwell", 2080, 4792, 2152, 4875, 1.0),
+    ("stairwell", 2080, 4798.5, 2152, 4875, 1.0),
     # Between N and M: No. 4 hatch's trunks; the W.C.s of the lavatories and their linen
     # lockers (the plate's L); the potatoes' bin (POTATOES), across M as the plate draws
     # it; the forward second-class lift; a closet in the steward's room.
@@ -803,16 +803,21 @@ SOLIDS = [
     ("fans and trunks", 5256.5, 4753, 5343, 4929.5, None),
     ("linen locker", 4960, 5301, 4997, 5343, None),
     ("linen locker", 5206.5, 5302, 5239.5, 5340, None),
-    # Forward of K's section: the ash places' escape ladders from the boiler rooms below
-    # (BOT: "From each boiler room an escape or emergency ladder was provided ... into the
-    # working passage on E deck"; est. that the plate's ladders in them are those), the
-    # stewards' lavatories' W.C.s; amidships the ladies' and gentlemen's W.C.s, a linen
-    # locker (L), a closet; funnel 2's boiler casing between its fans and trunks; the
-    # first-class lifts; funnel 1's boiler casing's after fans and the W.C.s beside them; at
-    # her side the linen lockers at the short passages' ends, and a trunk with a ladder in it
-    # beside the store (est.: the plate labels neither).
-    ("escape ladder", 5687, 4355, 5713.5, 4411, None),
-    ("escape ladder", 7662.5, 4338, 7686, 4409, None),
+    # Forward of K's section: the boiler rooms' escapes (BOT: "From each boiler room an
+    # escape or emergency ladder was provided direct to the Boat deck by the fidleys, in the
+    # boiler casings, and also into the working passage on E deck"): est., the ladders the
+    # plate draws in the two ash places, in the room between the saloon waiters' and in the
+    # lobby by the forward ash place, standing at bulkheads H, G and E and over no floor
+    # F deck's plate draws (f.py: a boiler casing, a void), so trunks down to the stokeholds
+    # no body climbs, as solids; the stewards' lavatories' W.C.s; amidships the ladies' and
+    # gentlemen's W.C.s, a linen locker (L), a closet; funnel 2's boiler casing between its
+    # fans and trunks; the first-class lifts; funnel 1's boiler casing's after fans and the
+    # W.C.s beside them; at her side the linen lockers at the short passages' ends, and a
+    # trunk with a ladder in it beside the store (est.: the plate labels neither).
+    ("escape trunk", 5687, 4355, 5713.5, 4411, None),
+    ("escape trunk", 7662.5, 4338, 7686, 4409, None),
+    ("escape trunk", 6283, 4532.5, 6377, 4589, None),
+    ("escape trunk", 7546, 4542.5, 7640, 4580.5, None),
     ("W.C.s", 6683, 4280, 6757, 4513, None),
     ("W.C.s", 7577, 4285, 7655, 4505, None),
     ("W.C.s", 5343, 4753, 5416, 4851, None),
@@ -1134,8 +1139,9 @@ STAIRS = [
     # The main third-class stairway (BOT: "The effective width of this stairway was 16 ft.
     # to E deck. From E to F it was 8 ft. wide"): the plate draws four lanes of treads, 120
     # px (3.1 m). D deck's flight comes down the port lane (d.py), so this one takes the two
-    # starboard lanes, 2.5 m, rising aft as D's does.
-    ("third-class stairway", 1195.5, 4852, 1318.5, 4947, "aft", "f", "e"),
+    # starboard lanes, 2.3 m clear of F deck's flight down to G (f.py), rising aft as D's
+    # does.
+    ("third-class stairway", 1195.5, 4857, 1318.5, 4943.5, "aft", "f", "e"),
     # A ladder under the fifth and sixth groups of rooms between O and N: its 85 px of treads
     # (2.2 m) run on 35 px forward, its head at the passage's mouth.
     ("ladder", 2078, 4602, 2201, 4656, "fore", "f", "e"),
@@ -1166,13 +1172,9 @@ STAIRS = [
     # ft. wide"): the plate's four ladders side by side, 233.5 px (6.2 m) across, rising aft
     # to their landing; their 115 px of rungs run on 3 px aft.
     ("third-class ladderway", 5560.5, 4693, 5681.5, 4926.5, "aft", "f", "e"),
-    # Three ladders down to F deck in rooms off the working passage, as the plate draws them,
-    # each run on to the slope a body climbs over the floor beside it: between the saloon
-    # waiters' rooms (127.5 px, its head aft); and in the lobby by the ash place forward of
-    # funnel 1's boiler casing (97 px run on 17 px forward). The second-class stewards' lobby's
-    # ladder is D deck's stair from its port entrance (d.py).
-    ("ladder", 6249.5, 4532.5, 6377, 4589, "aft", "f", "e"),
-    ("ladder", 7546, 4542.5, 7663, 4580.5, "fore", "f", "e"),
+    # The ladders the plate draws between the saloon waiters' rooms and in the lobby by the
+    # forward ash place are the boiler rooms' escapes (SOLIDS); the second-class stewards'
+    # lobby's is D deck's stair from its port entrance (d.py).
     # Two ladders among the rooms forward of funnel 1's casing: to port, 106 px (2.8 m) run on
     # 12 px forward to its head at the cross passage; to starboard beside the store, 103 px
     # run on 15 px aft to its head at the landing.
