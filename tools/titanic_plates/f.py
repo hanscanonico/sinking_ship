@@ -38,7 +38,7 @@ CROP = (440, 460, 10400, 1620)
 # put them (Plate III's elevation steps G aft to 18.32 between F and E decks, and draws
 # M at -66.03 and B at 99.28 there). Her stern reads 0.08 m from where O-N's scale carries
 # it, her stem 0.36 m from C-A's. No bulkhead P is drawn here, its place falling in the
-# stern rooms' passages; B is drawn at px 9245, 99.67 m by C and A, 2.18 m aft of
+# stern rooms' passages; B is drawn at px 9245, 99.65 m by C and A, 2.20 m aft of
 # BULKHEADS' 101.85, as on G deck (g.py), so it is no control.
 X = [
     (465, -129.58, "her stern at F deck, the double lines' meeting: X_AP"),
@@ -1047,8 +1047,8 @@ STAIRS = [
     # (BOT: "a vertical spiral staircase leading to the forward end of a tunnel"), as D
     # deck's: each a straight flight as wide as the plate's spiral (47-50 px), from its
     # place forward over the landing to 110 px (2.86 m for 2.44 m), its head forward, by
-    # the doors into the quarters. The plate draws the spirals' middles at z -1.97 and
-    # +1.94 m.
+    # the doors into the quarters. The plate draws the spirals' middles at z -1.96 and
+    # +1.93 m.
     ("firemen's spiral staircase", 9277.5, 893, 9387.5, 940.5, "fore", "g", "f"),
     ("firemen's spiral staircase", 9277.5, 1042, 9387.5, 1090, "fore", "g", "f"),
 ]
