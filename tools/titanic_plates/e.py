@@ -55,6 +55,11 @@ CROP = (560, 4230, 10500, 5420)
 # m forward of D deck's. Nor is A: the trimmers' forward compartment's after wall reads
 # 113.56 and the store's after wall 120.03, the latter 0.46 m off the elevation's upper line
 # of A (119.57; BOT: "A extended to C deck").
+# Between K and the spirals the view draws no bulkhead, and against F deck's view (f.py,
+# read on its bulkheads G and E) it is good to about 1 m: F reads the two ladders this view
+# draws by the working passage 0.94 m forward of this view's reading at G and 0.31-0.38 m
+# aft of it at E, this view 3.9% longer between them. The flights down to F there stand at
+# F's reading (STAIRS).
 X = [
     (1696.7, -101.69, "bulkhead O"),
     (2336.5, -85.14, "bulkhead N"),
@@ -450,9 +455,9 @@ ROOMS = [
     ("saloon waiters' quarters, E deck", 5786, 4279, 5976.5, 4589),
     ("saloon waiters' quarters, E deck", 5976.5, 4279, 6277.5, 4532.5),
     ("saloon waiters' quarters, E deck", 5976.5, 4532.5, 6249.5, 4589),
-    ("ladderway, E deck", 6249.5, 4532.5, 6377, 4589),
+    ("ladderway, E deck", 6249.5, 4532.5, 6440, 4589),
     ("saloon waiters' quarters, E deck", 6277.5, 4278, 6552, 4532.5),
-    ("saloon waiters' quarters, E deck", 6377, 4532.5, 6552, 4589),
+    ("saloon waiters' quarters, E deck", 6440, 4532.5, 6552, 4589),
     ("stewards' lavatory, E deck", 6552, 4276.5, 6683, 4580.5),
     ("bathroom, E deck", 6683, 4513, 6757, 4580.5),
     ("assistant stewards' quarters, E deck", 6757, 4273.5, 6900, 4580.5),
@@ -461,10 +466,9 @@ ROOMS = [
     ("passage, E deck", 6952.5, 4531, 7039, 4580.5),
     ("second-class stewards' quarters, E deck", 7039, 4273.5, 7318, 4580.5),
     ("plate washers' quarters, E deck", 7318, 4275, 7450.5, 4580.5),
-    ("stewards' lavatory, E deck", 7450.5, 4276, 7546, 4580.5),
-    ("stewards' lavatory, E deck", 7546, 4278, 7577, 4505),
-    ("passage, E deck", 7546, 4505, 7640, 4580.5),
-    ("passage, E deck", 7640, 4505, 7679.5, 4580.5),
+    ("stewards' lavatory, E deck", 7450.5, 4276, 7502.3, 4580.5),
+    ("stewards' lavatory, E deck", 7502.3, 4278, 7577, 4505),
+    ("ladderway, E deck", 7502.3, 4505, 7679.5, 4580.5),
     ("ash place, E deck", 7655, 4281.5, 7759.5, 4505),
     ("bathroom, E deck", 7679.5, 4505, 7759.5, 4580.5),
     # The working passage on to the forward cross passage.
@@ -806,18 +810,15 @@ SOLIDS = [
     # Forward of K's section: the boiler rooms' escapes (BOT: "From each boiler room an
     # escape or emergency ladder was provided direct to the Boat deck by the fidleys, in the
     # boiler casings, and also into the working passage on E deck"): est., the ladders the
-    # plate draws in the two ash places, in the room between the saloon waiters' and in the
-    # lobby by the forward ash place, standing at bulkheads H, G and E and over no floor
-    # F deck's plate draws (f.py: a boiler casing, a void), so trunks down to the stokeholds
-    # no body climbs, as solids; the stewards' lavatories' W.C.s; amidships the ladies' and
-    # gentlemen's W.C.s, a linen locker (L), a closet; funnel 2's boiler casing between its
-    # fans and trunks; the first-class lifts; funnel 1's boiler casing's after fans and the
-    # W.C.s beside them; at her side the linen lockers at the short passages' ends, and a
-    # trunk with a ladder in it beside the store (est.: the plate labels neither).
+    # plate draws in the two ash places off the working passage, standing over F deck's
+    # ash ejectors' trunks (f.py): trunks down to the stokeholds no body climbs, solids. The
+    # stewards' lavatories' W.C.s; amidships the ladies' and gentlemen's W.C.s, a linen
+    # locker (L), a closet; funnel 2's boiler casing between its fans and trunks; the
+    # first-class lifts; funnel 1's boiler casing's after fans and the W.C.s beside them; at
+    # her side the linen lockers at the short passages' ends, and a trunk with a ladder in it
+    # beside the store (est.: the plate labels neither).
     ("escape trunk", 5687, 4355, 5713.5, 4411, None),
     ("escape trunk", 7662.5, 4338, 7686, 4409, None),
-    ("escape trunk", 6283, 4532.5, 6377, 4589, None),
-    ("escape trunk", 7546, 4542.5, 7640, 4580.5, None),
     ("W.C.s", 6683, 4280, 6757, 4513, None),
     ("W.C.s", 7577, 4285, 7655, 4505, None),
     ("W.C.s", 5343, 4753, 5416, 4851, None),
@@ -937,7 +938,7 @@ DOORS = [
     # and the bath's from the lobby by the third ladder (est.).
     (6268, 4589), (5430, 4589), (5624, 4589), (5724, 4589), (5740, 4519.5), (5865, 4589),
     (6106, 4589), (6465, 4589), (6650, 4580.5), (6720, 4580.5), (6813, 4580.5), (6925, 4531),
-    (7135, 4580.5), (7387, 4580.5), (7500, 4580.5), (7660, 4580.5), (7667, 4505),
+    (7135, 4580.5), (7387, 4580.5), (7476, 4580.5), (7660, 4580.5), (7667, 4505),
     (7679.5, 4545),
     # Amidships: the lavatories into their passages; the two-berth rooms onto the starboard
     # passage; the bath and the gentlemen's lavatory into their lobby; the emergency door
@@ -1058,12 +1059,12 @@ OPEN = [
     (4960, 5066, 4997, 5078), (5206.5, 5066, 5239.5, 5078), (4789, 5170, 4812, 5182),
     (4824, 5170, 4845.5, 5182), (5346.5, 5167.5, 5375.5, 5179.5),
     # Forward of K's section: the waiters' rooms' two pieces round the ladder; the second-
-    # class stewards' ladder and lobby into the working passage; the third ladder's space
-    # into its lobby and the working passage; the
-    # stewards' lavatory's strip; the working passage's two pieces at 5420.
-    (5976.5, 4526.5, 6249.5, 4538.5), (6377, 4526.5, 6552, 4538.5),
+    # class stewards' ladder and lobby into the working passage; the stewards' lavatory's
+    # two pieces round the linen drying room's ladder; the working passage's two pieces at
+    # 5420.
+    (5976.5, 4526.5, 6249.5, 4538.5), (6450, 4526.5, 6545, 4538.5),
     (6905, 4574.5, 6948, 4586.5), (6957, 4574.5, 7034, 4586.5), (6946.5, 4531, 6958.5, 4580.5),
-    (7634, 4505, 7646, 4580.5), (7546, 4574.5, 7640, 4586.5), (7540, 4280, 7552, 4505),
+    (7496.3, 4280, 7508.3, 4500),
     (5414, 4600, 5426, 4680), (5481, 4600, 5493, 4680),
     # Amidships: the ladderway's landing into the working passage and its two pieces; the
     # lavatories' passages into the starboard passage; the gentlemen's lavatory's two pieces.
@@ -1172,9 +1173,33 @@ STAIRS = [
     # ft. wide"): the plate's four ladders side by side, 233.5 px (6.2 m) across, rising aft
     # to their landing; their 115 px of rungs run on 3 px aft.
     ("third-class ladderway", 5560.5, 4693, 5681.5, 4926.5, "aft", "f", "e"),
-    # The ladders the plate draws between the saloon waiters' rooms and in the lobby by the
-    # forward ash place are the boiler rooms' escapes (SOLIDS); the second-class stewards'
-    # lobby's is D deck's stair from its port entrance (d.py).
+    # Three flights laid where F deck's plate draws their feet, at its reading (f.py, read
+    # on F's bulkheads G and E), against this view's own reading between K and the lifts
+    # and the spirals, which draws no bulkhead there (see X):
+    # - the stewards' ladder down to their landing on F, between the saloon waiters' rooms:
+    #   F draws it from G's line forward, 19.19-21.56; this plate draws its treads at px
+    #   6283-6377, 18.25-20.69, so F's reading is 0.94 m forward of this view's. Run on
+    #   forward over F's landing to 3.06 m, its head aft by the enclosure's door, 0.13 m
+    #   clear of G's line; the enclosure (ROOMS) is run on 63 px forward of the plate's
+    #   line to hold it.
+    # - the linen drying room's ladder: F draws it at 51.50-54.00, against bulkhead E; this
+    #   plate at px 7543-7640, 51.81-54.38, so F's reading is 0.31-0.38 m aft of this
+    #   view's. Its head forward, 0.26 m clear of E's line, it runs on aft over F's linen
+    #   drying room to 3.06 m; its room here (ROOMS) is run on 44 px aft of the plate's line
+    #   to hold it. F's plate draws it 0.5-0.7 m further inboard than this one does (z
+    #   -6.06 to -5.19, two thirds of it over this deck's working passage), so it stands at
+    #   this plate's z, 0.6-0.7 m outboard of F's drawing, still on F's floor.
+    # - the stair down into the Turkish bath's lobby on F (The Shipbuilder: the Turkish
+    #   bath on F deck), as F draws it, 1.69 m wide and athwart her, run on to 3.06 m; its
+    #   head to port in the grand staircase's hall, by the second row of treads this plate
+    #   draws there (px 6756-6850 x 4775-4845, a flight along her the plates do not stack
+    #   with F's: est. its upper part). D deck's flight down (d.py) passes 1.9-2.75 m over
+    #   its head.
+    # The second-class stewards' lobby's ladder is D deck's stair from its port entrance
+    # (d.py).
+    ("stewards' ladder", 6324.2, 4537.2, 6440.1, 4575, "aft", "f", "e"),
+    ("linen drying room's ladder", 7502.3, 4541.9, 7616.2, 4579.6, "fore", "f", "e"),
+    ("Turkish bath stair", 6827.9, 4765.7, 6891.7, 4881.4, "port", "f", "e"),
     # Two ladders among the rooms forward of funnel 1's casing: to port, 106 px (2.8 m) run on
     # 12 px forward to its head at the cross passage; to starboard beside the store, 103 px
     # run on 15 px aft to its head at the landing.
