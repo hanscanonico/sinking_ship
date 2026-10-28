@@ -31,7 +31,13 @@ CROP = (430, 2935, 10625, 4095)
 # the pantry 57 for 56, the dining saloon 115 for The Shipbuilder's 114, the reception
 # room 54 for its 54). Her funnel casings forward are drawn larger here than on A and C
 # decks, their middles up to 0.75 m off A deck's (funnel 2's after end 1.2 m aft, funnel
-# 3's forward end 1 m forward), as the plate draws them: they are no control.
+# 3's forward end 1 m forward), as the plate draws them: they are no control. Aft of the
+# lift the view is read on her stern, as C deck's is (c.py) and B deck's after end on the
+# elevation (b_aft.py), never on the mainmast's ring, which this view does not draw.
+# Unlike theirs, this view is not drawn larger aft of the lift than forward of it: its
+# stern stands 84 px forward of C deck's view's. So the after second-class stairway's
+# well reads 0.5 m aft of B deck's (b_aft.py); calibrated to stack with it, her stern
+# would stand 1.4 m short of X_AFT and the wall over bulkhead P 1.2 m off it.
 X = [
     (464, -138.26, "her stern, the hull's double line's middle"),
     (3074, -70.11, "the second-class lift's middle; A deck's at px 3087.5 on Plate III"),
