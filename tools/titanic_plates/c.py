@@ -578,7 +578,7 @@ SOLIDS = [
     # The house's after end: the bathrooms' W.C.s; the lavatories' W.C.s; the space the
     # plate calls "Engr." and the tanks aft of the turbine engine casing; the light and
     # air trunks to the galley on D deck (the plate's "L & A to Gal." and "L & A"), the
-    # second in the passage behind the after grand staircase's hall, 7 px shorter at each
+    # second in the passage behind the after grand staircase's hall, 9 px shorter at each
     # end so each of the passage's doors from the hall has a body's width of wall; a
     # wardrobe.
     ("W.C.", 3659, 1781, 3683, 1880, None),
@@ -667,15 +667,15 @@ SOLIDS = [
     ("electric winch", 8652, 2306, 8740, 2350, 1.0),
     ("bunker hatch", 8760, 2168, 8902, 2405, 0.8),
     ("No. 2 hatch", 9007, 2166, 9194, 2419, 0.8),
-    # Under the forecastle: the closets in its block amidships, the fan room and No. 1
-    # hatch's trunk; the chain pipes down to the cable lockers, each as a block round
-    # the plate's pipe and trunk; the windlass engines and the cable lifters, and
-    # forward of bulkhead A the warping engine, est. 1.5 m and 1.0 m high.
-    ("closet", 9383, 2191, 9415, 2270, None),
-    ("closet", 9311, 2270, 9415, 2308, None),
     # The forecastle's after bulkhead across her in front of the block amidships, 30 px
     # aft of the block's own wall: a void between them narrower than a body.
     ("the forecastle's after bulkhead", 9192, 2170, 9225, 2430, None),
+    # Under the forecastle: the closets in its block amidships, the fan room and No. 1
+    # hatch's trunk; the chain pipes down to the cable lockers, each as a block round
+    # the plate's pipe and trunk; the windlass engines and the cable lifters, and
+    # forward of the wall across her the warping engine, est. 1.5 m and 1.0 m high.
+    ("closet", 9383, 2191, 9415, 2270, None),
+    ("closet", 9311, 2270, 9415, 2308, None),
     ("fans", 9464, 2191, 9567, 2369, None),
     ("No. 1 hatch trunk", 9655, 2191, 9790, 2369, None),
     ("chain pipe", 9822, 2091, 9845, 2132, None),
