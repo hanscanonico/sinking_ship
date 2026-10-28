@@ -18,10 +18,12 @@ For the Titanic, The Shipbuilder (vol. VI (1911-12), "The White Star Liner Titan
 increased", and draws no deck below B, so this is the plate's.
 
 The plate draws no watertight door through any bulkhead on this deck (E deck's plate
-draws them as crosses on the line), and every bulkhead line unbroken but D's: its
-opening by the forward well's ladderways is the one door through a bulkhead here (see
-DOORS). The flights down from E deck are E deck's file's (e.py); this file's STAIRS are
-the flights from F deck down to G, each over the foot G deck's plate draws (g.py).
+draws them as crosses on the line), and every bulkhead line whole but D's (H's runs on
+under the working passage's ladderway, drawn over it). D's two openings, by the forward
+well's ladderways and into the racquet court's stairway, are the doors through a
+bulkhead here (see DOORS). The flights down from E deck are E deck's file's (e.py); this
+file's STAIRS are the flights from F deck down to G, each over the foot G deck's plate
+draws (g.py).
 """
 PLATE = "V"
 CROP = (440, 460, 10400, 1620)
@@ -256,8 +258,8 @@ ROOMS = [
     # class passengers on E deck in the compartment abreast the turbine casing on the
     # starboard side, and also those on F deck on both sides below could pass through M
     # watertight bulkhead to the forward second class main stairway"). Port, aft to
-    # forward: rooms off short passages to her side, a closet (L) at each one's end; a
-    # lavatory (its label blotted), its W.C.s and a store (S), two bathrooms and the linen
+    # forward: rooms off short passages to her side, a closet (L) at each one's end; the
+    # gentlemen's lavatory (GENT LAV), its W.C.s and a store (S), two bathrooms and the linen
     # room off a cross passage; the corridor along the casing.
     ("four-berth second-class stateroom, F deck", 2916.2, 518, 3017.5, 668.5),
     ("passage, F deck", 3017.5, 555.5, 3056, 746.5),
@@ -269,7 +271,7 @@ ROOMS = [
     ("four-berth second-class stateroom, F deck", 3298.5, 511, 3408.5, 636),
     ("four-berth second-class stateroom, F deck", 3298.5, 636, 3408.5, 746.5),
     ("passage, F deck", 3408.5, 551, 3448, 746.5),
-    ("lavatory, F deck", 3448, 504, 3522, 642),
+    ("gentlemen's lavatory, F deck", 3448, 504, 3522, 642),
     ("store, F deck", 3522, 586.5, 3598.25, 642),
     ("passage, F deck", 3448, 642, 3598.25, 678.5),
     ("bathroom, F deck", 3448, 678.5, 3523.5, 743),
@@ -304,15 +306,18 @@ ROOMS = [
     # Between L and K, the engineers (BOT: "The engineers' accommodation was in the next
     # compartment directly alongside the casing of the reciprocating engine room"), each
     # room named by its plate label (3RD ENG, JUNR 2ND ENG, 2 ASS 4TH E, ...). Port, aft to
-    # forward: their lavatory round its W.C.s, the walled stair box down to G deck (see
-    # STAIRS), the junior second engineer's room over it in an L; pairs of rooms off short
-    # passages to her side, each pair's inner room an L reaching her side past the outer
-    # one; a room whose label is blotted (2 S...); the corridor along the casing.
-    ("engineers' lavatory", 3598.25, 622.5, 3691, 743),
-    ("engineers' lavatory", 3691, 678, 3721, 743),
+    # forward: their lavatory (ENG LAV), an L round its W.C.s, its part before them a lobby
+    # (so deck.py gives it no door of its own: the passage beyond bulkhead L is M-L's); the
+    # walled stair box down to G deck (see STAIRS), the junior second engineer's room over
+    # it in an L; pairs of rooms off short passages to her side, each pair's inner room an
+    # L reaching her side past the outer one; a room whose label is blotted (2 S...); the
+    # corridor along the casing.
+    ("engineers' lavatory lobby", 3598.25, 622.5, 3691, 678),
+    ("engineers' lavatory", 3598.25, 678, 3721, 743),
     ("junior second engineer's room", 3691, 504, 3789.5, 598),
     ("junior second engineer's room", 3691, 598, 3765, 642),
     ("passage, F deck", 3765, 598, 3789.5, 678),
+    ("engineers' stairway", 3691, 642, 3765, 678),
     ("passage, F deck", 3721, 678, 3789.5, 739.5),
     ("third engineer's room", 3789.5, 504, 3866.5, 638),
     ("bathroom, F deck", 3789.5, 638, 3866.5, 704),
@@ -384,7 +389,8 @@ ROOMS = [
     # ash ejector's trunk (the plate's A.E.) and, to starboard, a cupboard (C). The saloons
     # meet at H under the working passage's ladderway (BOT: "direct access was obtained to
     # the third class dining rooms on the deck below by means of a ladderway 20 ft. wide"),
-    # which the plate draws over H, H's line broken under it: E deck's flights (e.py).
+    # which the plate draws as two flights either side of H, H's line unbroken between
+    # them: E deck's flights (e.py), one down into each saloon.
     ("third-class pantry", 4798.8, 497, 4967.5, 638.5),
     ("third-class pantry", 4798.75, 638.5, 4933, 797.5),
     ("third-class dining saloon", 4967.5, 497, 5197, 797.5),
@@ -403,13 +409,14 @@ ROOMS = [
     ("third-class dining saloon", 5496.8, 1449.5, 5561, 1568),
     # Between G and F (BOT: "stewards' accommodation on the port side, and the Turkish
     # baths on the starboard side"). Port: 15 cooks and others (15 COOKS &c) and 42
-    # third-class stewards (42 3RD C STEWARDS) off a lobby at their ladderway up to E deck
-    # (e.py); the Turkish bath attendants' room (T.B. ATTEND), a passage past an ash
+    # third-class stewards (42 3RD C STEWARDS) off the landing at their ladderway up to E
+    # deck (e.py): a landing, not a passage, so deck.py gives the saloon beyond G no door
+    # into it; the Turkish bath attendants' room (T.B. ATTEND), a passage past an ash
     # ejector's trunk and a closet (L) to the Turkish bath's pantry and lobby; the two
     # electric bath rooms (ELEC B. RM) off the lobby, where a stair comes down from E deck
     # (e.py) by the fans.
     ("cooks' quarters", 6131, 490, 6268.5, 745),
-    ("passage, F deck", 6131, 745, 6339, 787),
+    ("landing, F deck", 6131, 745, 6339, 787),
     ("third-class stewards' quarters", 6268.5, 490, 6573, 745),
     ("third-class stewards' quarters", 6339, 745, 6573, 787),
     ("Turkish bath attendants' room", 6573, 483, 6683, 598),
@@ -607,6 +614,23 @@ ROOMS = [
     ("firemen's quarters", 9536.5, 770, 9650, 1197),
     ("firemen's quarters", 9650, 805, 9768, 1169),
     ("firemen's quarters", 9768, 833, 9863, 1141),
+    # Between F and E (BOT: "In the next watertight compartment were the swimming bath and
+    # linen rooms"). Port: two linen rooms (LINEN), the soiled linen room and the linen
+    # drying room, where E deck's ladder comes down (e.py), off a passage along F; round
+    # boiler room 5's casing the two drying rooms (DRY RM) either side of the fans.
+    ("linen room", 6860.75, 490, 6962, 766),
+    ("linen room", 6962, 490, 7062, 766),
+    ("soiled linen room", 7062, 490, 7175.5, 808.5),
+    ("linen drying room", 7175.5, 490, 7491, 808.5),
+    ("passage, F deck", 6860.75, 766, 7062, 808.5),
+    ("passage, F deck", 6860.8, 808.5, 6936.5, 1547),
+    ("drying room", 6936.5, 808.5, 7084, 888.5),
+    ("drying room", 6936.5, 1158.5, 7084, 1230),
+    # Starboard, the swimming bath (The Shipbuilder: "32 ft. long by 13 ft. wide"; the
+    # plate's pool, 380 px, reads 10.6 m at this compartment's scale, 9.9 m at the view's
+    # usual one), its showers and its row of dressing boxes along the casing, an ash
+    # ejector's trunk standing in its after corner.
+    ("swimming bath", 6936.5, 1285, 7491, 1540),
 ]
 
 SOLIDS = [
@@ -704,6 +728,7 @@ SOLIDS = [
     ("closet", 6719, 490, 6756, 598, None),
     ("linen locker", 6728.5, 801.5, 6773.5, 880.5, None),
     ("boiler casing", 6131, 787, 6550.5, 1263.5, None),
+    ("boiler casing", 6550.5, 787, 6573, 880.5, None),
     ("fans", 6550.5, 880.5, 6693.5, 1167, None),
     ("hot air tanks", 6131, 1263.5, 6308, 1361.5, None),
     ("closet", 6240, 1513.5, 6275.5, 1554, None),
@@ -730,6 +755,11 @@ SOLIDS = [
     ("recess", 8234.5, 668, 8310.5, 696.5, None),
     ("squash court", 8134.75, 882, 8488.5, 1125.5, None),
     ("bunker hatch", 8488.5, 882, 8624.5, 1125.5, None),
+    # Spaces narrower than a body: a recess by the hatch over the third six-berth room, a
+    # closet beside the store, one in the column of rooms along C.
+    ("recess", 8517.5, 1125.5, 8590, 1150.5, None),
+    ("closet", 8280, 1224.5, 8309.5, 1266, None),
+    ("closet", 8656.5, 956, 8733.25, 992.5, None),
     # Between C and B: No. 2 hatch's trunk; a closet at the passage's starboard end.
     ("No. 2 hatch", 8733.25, 875, 8932, 1118, None),
     ("closet", 9129.5, 1268.5, 9161, 1316, None),
@@ -737,13 +767,27 @@ SOLIDS = [
     # between the greasers' room and the hatch, narrower than a body (0.8 m). Forward of A,
     # the chain locker and the store in her eyes, no door drawn on F deck (est. solids).
     ("W.C.s", 9320.5, 707, 9368.5, 813.5, None),
-    ("closet", 9368.5, 714, 9392.5, 774.5, None),
+    ("closet", 9368.5, 714, 9392.5, 868, None),
     ("closet", 9366.5, 1114.5, 9392.5, 1253, None),
     ("No. 1 hatch", 9392.5, 909, 9536.5, 1068, None),
     ("recess", 9505.5, 1068, 9536.5, 1218, None),
     ("chain locker", 9863, 868, 10007, 1106, None),
     ("store", 10007, 910, 10200, 1057, None),
     ("store", 10200, 952, 10331, 1008, None),
+    # Between F and E: an ash ejector's trunk (A.E.) in the linen room's corner and one by
+    # the swimming bath; the lockers (L) along F and in the drying room; boiler room 5's
+    # casing and the fans; the swimming bath's two showers (its arches) and its thirteen
+    # dressing boxes (DRESSING BOXES), each 0.86 m wide, narrower than a body and a door;
+    # the pool, a box on the bath's floor as tools/gen_titanic.py lays it (est. 1 m).
+    ("ash ejector", 6932.5, 490, 6962, 627, None),
+    ("lockers", 7175.5, 779.5, 7313, 808.5, None),
+    ("closets", 6860.75, 875.5, 6888.5, 987, None),
+    ("boiler casing", 7084, 808.5, 7491, 1230, None),
+    ("fans", 6936.5, 888.5, 7084, 1158.5, None),
+    ("showers", 6936.5, 1230, 7045, 1285, None),
+    ("dressing boxes", 7045, 1230, 7491, 1285, None),
+    ("pool", 7045, 1353, 7425, 1505.5, 1.0),
+    ("ash ejector", 6936.5, 1422.5, 6973.5, 1528, None),
 ]
 
 DOORS = [
@@ -788,7 +832,8 @@ DOORS = [
     # Between L and K, as the swings stand: the lavatory; the rooms off their passages;
     # starboard, the lavatory, the second engineers' and third engineers' pairs, the chief
     # engineer's lavatory (est.) and room. The rest from their passages (deck.py).
-    (3721, 708), (3765, 620), (3789.5, 600), (3993.5, 565), (3993.5, 648), (4034, 556), (4034, 640),
+    (3721, 708), (3765, 620), (3765, 660), (3789.5, 600), (3993.5, 565), (3993.5, 648), (4034, 556),
+    (4034, 640),
     (4238, 545), (4238, 676), (4282.5, 600), (4282.5, 667),
     (3700, 1391.5), (4113.5, 1440), (4113.5, 1548), (4140, 1445), (4286, 1440), (4272, 1471.5),
     # Between K and J: the stewards' quarters onto the landing (est.: the plate's label
@@ -797,10 +842,10 @@ DOORS = [
     # galley's two.
     (4622.5, 720), (4655, 689.5), (4785, 689.5), (4540, 1275.5), (4526.5, 1345), (4526.5, 1445),
     (4538, 1471.5), (4605, 1322.5), (4740, 1322.5),
-    # Between J and G: the pantries into the saloon (est. where the plate draws no swing);
-    # the watertight door through H between the saloons, under the ladderway (est.: the
-    # plate breaks H's line there; tools/gen_titanic.py's door between the saloons).
-    (4933, 675), (5001, 1350), (5496.75, 1030),
+    # Between J and G: the pantries into the saloon (est.: the plate draws no swing). The
+    # plate draws H unbroken between the saloons, under the ladderway, so no door through
+    # it (tools/gen_titanic.py lays one there today).
+    (4933, 675), (5001, 1350),
     # Between G and F: the cooks' and the stewards' off their lobby; the stewards' into the
     # passage (est.: the plate's label runs over the wall); the attendants'; the electric
     # bath rooms; the pantry; the Turkish bath's rooms (est. where the plate draws none:
@@ -809,23 +854,28 @@ DOORS = [
     (6248, 745), (6339, 766), (6573, 618), (6640, 598), (6728.5, 690), (6728.5, 790), (6835, 636),
     (6671, 1195), (6671, 1390), (6448.5, 1420), (6275.5, 1420), (6200, 1484.5), (6718, 1359.5),
     (6813, 1359.5),
-    # Between E and D, as their swings stand: port, the rooms off their passages; the
-    # squash stairway from the lobby (est.: the plate draws its pocket shut); starboard.
-    # The opening the plate draws in bulkhead D, from the lobby to the landing forward of
-    # it: a watertight door (BOT: "On both the F and E decks nearly all the bulkheads had
-    # watertight doors").
-    (7565, 766), (7525, 804), (7667, 630), (7667, 735), (7667, 845), (7702, 625), (7702, 735), (7702, 845),
-    (7846, 630), (7846, 735), (7846, 845), (7876.5, 715), (7876.5, 840), (8020, 635), (8020, 720), (8020, 835),
+    # Between E and D, as their swings stand: port, then starboard, the rooms off their
+    # passages. The two openings the plate draws in bulkhead D, its line broken: to port
+    # from the lobby to the landing forward of it, to starboard from the passage along the
+    # racquet court into the squash stairway's pocket (BOT: "On both the F and E decks
+    # nearly all the bulkheads had watertight doors").
+    (7565, 766), (7525, 804), (7667, 630), (7667, 735), (7667, 845), (7702, 625), (7702, 735),
+    (7702, 845),
+    (7846, 630), (7846, 735), (7846, 845), (7876.5, 715), (7876.5, 840), (8020, 635), (8020, 720),
+    (8020, 835),
     (8095, 696.5), (8095, 611),
-    (8114.5, 882), (8134.75, 737),
+    (8134.75, 737), (8134.75, 1186),
     (7523, 1175), (7668, 1180), (7705, 1175), (7846, 1180), (7880, 1165), (8020, 1170),
-    (7505, 1367.5), (7670, 1320), (7670, 1405), (7706, 1310), (7706, 1400), (7852, 1320), (7852, 1405),
+    (7505, 1367.5), (7670, 1320), (7670, 1405), (7706, 1310), (7706, 1400), (7852, 1320),
+    (7852, 1405),
     (7882.5, 1300), (8020, 1305), (8020, 1405), (8059.5, 1320), (8059.5, 1385),
     # Between D and C, as their swings stand (est. where none is drawn: the linen rooms,
     # the store, the rooms by C's lower end).
-    (8222, 696.5), (8389, 625), (8420.5, 600), (8175, 780.5), (8264, 780.5), (8450, 740), (8624.5, 700), (8624.5, 750),
+    (8222, 696.5), (8389, 625), (8420.5, 600), (8175, 780.5), (8264, 780.5), (8450, 740),
+    (8624.5, 700), (8624.5, 750),
     (8664, 690), (8664, 745), (8664, 800), (8664, 850), (8664, 925), (8664, 1015), (8664, 1080),
-    (8270, 1266), (8400, 1266), (8492, 1266), (8590, 1200), (8664, 1163), (8664, 1239), (8664, 1321),
+    (8270, 1266), (8400, 1266), (8492, 1266), (8590, 1200), (8664, 1163), (8664, 1239),
+    (8664, 1321),
     (8175, 1320), (8160, 1353), (8392.5, 1330), (8392.5, 1385), (8422.5, 1335), (8631, 1325),
     # Between C and B, as their swings stand (est. where none is drawn: the two-berth
     # rooms amidships and by the ladderway).
@@ -836,6 +886,11 @@ DOORS = [
     # Forward of B: the W.C.s from the landing; the firemen's quarters and the greasers'
     # room from it (est.: the plate draws the firemen's swing at the landing's port end).
     (9325, 868), (9340, 1114.5), (9392.5, 885), (9392.5, 1090),
+    # Between F and E, as their swings stand: the linen rooms and the soiled linen room
+    # onto their passage; the drying room from the soiled linen room; the drying rooms and
+    # the swimming bath from the passage along F.
+    (6900, 766), (6990, 766), (7062, 790), (7175.5, 760), (6936.5, 850), (6936.5, 1195),
+    (6936.5, 1390),
 ]
 
 OPEN = [
@@ -854,44 +909,55 @@ OPEN = [
     (1417, 1203.5, 1450, 1215.5), (1449.5, 1171, 1461.5, 1192),
     # Between O and N: the passages into the corridors, the corridors' two pieces each, the
     # four-berth room round its recess.
-    (1672, 900, 1684, 938), (1805, 900, 1817, 920), (1815, 862.5, 1842, 874.5), (2032, 862.5, 2062, 874.5),
+    (1672, 900, 1684, 938), (1805, 900, 1817, 920), (1815, 862.5, 1842, 874.5),
+    (2032, 862.5, 2062, 874.5),
     (1672, 1160, 1684, 1215), (1805, 1175, 1817, 1215), (1787, 1215.5, 1808, 1227.5),
     (2039, 1221, 2063, 1233), (1545, 1309.5, 1570, 1321.5),
     # Between N and M: the passages into the corridors; the cross passages; the entrance
     # into both corridors and into its stair box; the stair's room into its cross passage;
     # each inner room into its leg.
     (2275, 863, 2309, 875), (2522, 863, 2554, 875), (2663, 863, 2697, 875),
-    (2315, 921, 2339, 933), (2315, 1161, 2339, 1173), (2304, 1036, 2316, 1055), (2489, 921, 2511, 933),
+    (2315, 921, 2339, 933), (2315, 1161, 2339, 1173), (2304, 1036, 2316, 1055),
+    (2489, 921, 2511, 933),
     (2287, 1216, 2316, 1228), (2570, 1216, 2600, 1228), (2734, 1173, 2746, 1216),
     (2645, 921, 2734, 933), (2645, 1161, 2734, 1173), (2734, 935, 2746, 1155),
-    (2770, 712, 2910, 724), (2696, 723, 2708, 746), (2610, 1431, 2632, 1443), (2435, 1439, 2457, 1451),
+    (2770, 712, 2910, 724), (2696, 723, 2708, 746), (2610, 1431, 2632, 1443),
+    (2435, 1439, 2457, 1451),
     # Between M and L: the passages into the corridors; the corridors round the casing's
     # after end; the passages into the cross passages; each inner room into its leg.
-    (3022, 740.5, 3051, 752.5), (3268, 740.5, 3294, 752.5), (3412, 740.5, 3444, 752.5), (3011.5, 762, 3023.5, 793),
-    (3442, 646, 3454, 675), (2920, 791, 2980, 803), (2920, 1291, 2980, 1303), (2920, 1339, 2985, 1351),
+    (3022, 740.5, 3051, 752.5), (3268, 740.5, 3294, 752.5), (3412, 740.5, 3444, 752.5),
+    (3011.5, 762, 3023.5, 793),
+    (3442, 646, 3454, 675), (2920, 791, 2980, 803), (2920, 1291, 2980, 1303),
+    (2920, 1339, 2985, 1351),
     (3274, 1339, 3311, 1351), (3417, 1339, 3441, 1351), (3438.5, 1423, 3450.5, 1455),
     (3104, 1454.5, 3128, 1466.5), (3136, 1452.5, 3157, 1464.5),
     # Between L and K: the lavatory's two rectangles; the passages into each other and
     # into the corridor; each L room into its leg; the ladder's space into the starboard
     # corridor, and the passages off it.
-    (3685, 682, 3697, 739), (3769, 672, 3785, 684), (3791, 708, 3803, 735),
-    (3870, 616, 3890, 628), (3998, 698, 4030, 710), (4109, 617, 4135, 629), (4143, 616.5, 4159, 628.5),
+    (3604, 672, 3685, 684), (3769, 672, 3785, 684), (3791, 708, 3803, 735),
+    (3870, 616, 3890, 628), (3998, 698, 4030, 710), (4109, 617, 4135, 629),
+    (4143, 616.5, 4159, 628.5),
     (4242, 698, 4278, 710), (4347, 630.5, 4377, 642.5),
     (3602, 1347.5, 3634, 1359.5), (3835, 1385.5, 3868, 1397.5), (4117, 1385.5, 4136, 1397.5),
     (4265, 1385.5, 4282, 1397.5), (3730, 1468, 3752, 1480), (3947, 1465.5, 3967, 1477.5),
     (3975, 1465.5, 3999, 1477.5), (4144, 1465.5, 4172, 1477.5),
     # Between K and J: the stewards' quarters' two rectangles, the bakery's two; the
     # passages round the casing into each other.
-    (4548.5, 693, 4560.5, 795), (4450, 1167, 4462, 1272), (4729, 793, 4795, 805), (4729, 1272, 4795, 1284),
+    (4548.5, 693, 4560.5, 795), (4450, 1167, 4462, 1272), (4729, 793, 4795, 805),
+    (4729, 1272, 4795, 1284),
     (4529, 1316.5, 4548, 1328.5),
     # Between J and G: each saloon's rectangles.
-    (4961.5, 645, 4973.5, 794), (5191, 520, 5203, 794), (5338, 895.5, 5492, 907.5), (5338, 1169.5, 5492, 1181.5),
-    (5191, 1279, 5203, 1560), (5596, 658, 5608, 783), (5596, 791, 5608, 892), (5606, 781, 5738, 793),
-    (5596, 1171, 5608, 1260), (5596, 1267, 5608, 1445), (5606, 1257.5, 5738, 1269.5), (5501, 1443.5, 5557, 1455.5),
+    (4961.5, 645, 4973.5, 794), (5191, 520, 5203, 794), (5338, 895.5, 5492, 907.5),
+    (5338, 1169.5, 5492, 1181.5),
+    (5191, 1279, 5203, 1560), (5596, 658, 5608, 783), (5596, 800, 5608, 885),
+    (5606, 781, 5738, 793),
+    (5596, 1171, 5608, 1260), (5596, 1267, 5608, 1445), (5606, 1257.5, 5738, 1269.5),
+    (5501, 1443.5, 5557, 1455.5),
     (4913, 1415.5, 4997, 1427.5), (4804, 632.5, 4929, 644.5),
     # Between G and F: the pantry's two rectangles; the passage into the lobby; the
     # lobby's three rectangles; the cooling room's and the temperate room's two.
-    (6794, 592, 6856, 604), (6733, 630, 6786, 642), (6343, 739, 6569, 751), (6778, 874.5, 6856, 886.5), (6698, 1161, 6856, 1173),
+    (6794, 592, 6856, 604), (6733, 630, 6786, 642), (6343, 739, 6569, 751),
+    (6778, 874.5, 6856, 886.5), (6698, 1161, 6856, 1173),
     (6555, 1257.5, 6667, 1269.5), (6312, 1355.5, 6444, 1367.5),
     # Between E and D: the side passages into the passages along her; the lobby's two
     # rectangles; the starboard passages into the passage along her.
@@ -903,18 +969,23 @@ OPEN = [
     # Between D and C: the passages into each other round the stair's room; the passages
     # along the court and down by the bunker hatch into the starboard passage along her;
     # the short passages to her side into it.
-    (8393, 662, 8416, 674), (8420, 745, 8432, 829), (8304.5, 700, 8316.5, 776), (8200.5, 700, 8212.5, 776), (8140, 827, 8414, 839),
-    (8420, 838, 8432, 878), (8511.5, 788, 8523.5, 878), (8618.5, 788, 8630.5, 878), (8628, 876, 8652, 888),
+    (8393, 662, 8416, 674), (8420, 745, 8432, 829), (8304.5, 700, 8316.5, 776),
+    (8200.5, 700, 8212.5, 776), (8140, 827, 8414, 839),
+    (8420, 838, 8432, 878), (8511.5, 788, 8523.5, 878), (8618.5, 788, 8630.5, 878),
+    (8628, 876, 8652, 888),
     (8418, 734, 8426, 746), (8169, 1270, 8181, 1290),
     (8140, 1157.5, 8303, 1169.5), (8140, 1218.5, 8171, 1230.5), (8628, 1119.5, 8652, 1131.5),
     (8396, 1292, 8419, 1304), (8634, 1288, 8653, 1300), (8584, 1270, 8596, 1290),
     # Between C and B: the passages into each other round the hatch and the rooms; the
     # firemen's quarters' steps.
-    (8930.5, 819, 8961.5, 831), (8965, 837, 8977, 871), (9123.5, 837, 9135.5, 871), (8936, 869, 8965, 881),
-    (8936, 1112, 8965, 1124), (8900.5, 1147.5, 8963.5, 1159.5), (8971, 1147.5, 9070, 1159.5),
+    (8930.5, 819, 8961.5, 831), (8965, 837, 8977, 871), (9123.5, 837, 9135.5, 871),
+    (8936, 869, 8965, 881),
+    (8936, 1112, 8965, 1124), (8900.5, 1147.5, 8963.5, 1159.5), (8980, 1147.5, 9065, 1159.5),
     (9078, 1147.5, 9126, 1159.5), (9123.5, 1122, 9135.5, 1150), (8937, 1275.5, 8963.5, 1287.5),
     (9068.5, 1160, 9080.5, 1268),
     (9530.5, 780, 9542.5, 905), (9644, 810, 9656, 1160), (9762, 840, 9774, 1130),
+    # Between F and E: the passages into each other.
+    (6865, 802.5, 6930, 814.5),
 ]
 
 STAIRS = [
@@ -958,14 +1029,16 @@ STAIRS = [
     # - the stair down to G deck's first-class baggage room, the inboard flight of the
     #   plate's two, run on 6.5 px aft to 110 px; its head aft est.;
     # - the stair down to the post office, the forward flight of the two along the court
-    #   (the aft one E deck's, est.), 112 px (2.9 m); its head aft est.;
+    #   (the aft one E deck's, est.): the plate draws its treads at px 8315-8395, G deck's
+    #   its foot at 8277-8369 (g.py), so it runs 110 px (2.86 m) from 8259 to its foot at
+    #   8369 by G's flight on down to the mail room; its head aft est.;
     # - the racquet court's stair down to the court's door on G deck, in its pocket aft of
-    #   D (E to D's squash stairway), 100 px of treads run on 10 px to starboard; its head
-    #   to port est., by the door from the lobby.
+    #   D (E to D's squash stairway), 100 px of treads run on 10 px to port; its head to
+    #   starboard, by the opening in D the pocket is entered through.
     ("stair", 8203, 700, 8313, 738.5, "aft", "g", "f"),
     ("stair", 8414, 784.5, 8524, 825, "aft", "g", "f"),
-    ("stair", 8309.5, 1125.5, 8421.5, 1163.5, "aft", "g", "f"),
-    ("racquet court stair", 8094.5, 890, 8134.75, 1000, "port", "g", "f"),
+    ("stair", 8259, 1125.5, 8369, 1163.5, "aft", "g", "f"),
+    ("racquet court stair", 8094.5, 890, 8134.75, 1000, "starboard", "g", "f"),
     # Between C and B, the ladderway's flight down to G deck: the port row of the plate's
     # two (G deck's plate draws its foot there, g.py), as a stair; its 106 px of treads run
     # on 4 px aft to 110 px (2.86 m), its head aft est. The starboard row is E deck's.
