@@ -38,7 +38,10 @@ CROP = (430, 4330, 10260, 5500)
 # Plate VIII agrees: on one scale its turbine room and reciprocating engine room hold M at
 # -64.72, and The Shipbuilder's text gives the turbine room as "54ft. long" (16.46 m: M at
 # -65.09). B is drawn where BULKHEADS has it: read between C and A it is at 101.77, 0.08 m
-# off (G and F decks' views draw B at 99.5; the elevation's second B line is at 100.10).
+# off, as the orlop's view draws it too (G and F decks' views draw it at 99.5). The
+# firemen's passage's forward end round the spiral stairs starts at 100.19, abaft B, as the
+# orlop's spiral trunk does (orlop.py: the elevation's second B line, at 100.10, is the
+# trunk's after wall).
 # A straight line through the others (38.05 px a metre) leaves them +0.53 m (P), +0.10 (O),
 # +0.05 (N), -0.62 (L), -0.43 (K), -0.29 (J), -0.05 (H), +0.11 (G), +0.08 (F), +0.21 (E),
 # +0.28 (D), +0.23 (C) and -0.20 (A) off, B +0.09, M's step -0.29 (BULKHEADS' M -1.44).
@@ -47,7 +50,7 @@ X = [
     (795.5, -118.97, "bulkhead P"),
     (1469.5, -101.69, "bulkhead O"),
     (2101.0, -85.14, "bulkhead N"),
-    (2885.2, -64.87, "bulkhead M, where Plate III's elevation steps it between the orlop and F deck"),
+    (2885.2, -64.87, "bulkhead M, as Plate III's elevation steps it between the orlop and F deck"),
     (3515.5, -48.63, "bulkhead L"),
     (4304.5, -27.71, "bulkhead K"),
     (4716.0, -16.75, "bulkhead J"),
@@ -163,19 +166,20 @@ SOLIDS = [
     # The turbine engine room, as Plate VIII draws it in plan (calibrated on M at its step,
     # L and K; its centre line; across her at its length's scale less 1.2%, as its circles
     # draw), carried here through ship metres. Heights off Plate VII's elevation where it
-    # draws them (the condensers' tops 6.7 m over the tank top); the rest est. Plate V's own
-    # sketch of the condensers stands up to 1 m aft of Plate VIII's. The circulating pumps
-    # and their engines are drawn out to Plate VIII's sides, 1-2 m wider there than this
-    # view's: they stop at the room's side.
+    # draws them: the starboard condenser's top 6.7 m over the tank top, the turbine's 6.6 m
+    # where it shows past the condenser's end, the thrust blocks' 3.4 m; the rest est.
+    # Plate V's own sketch of the condensers stands up to 1 m aft of Plate VIII's. The
+    # circulating pumps and their engines are drawn out to Plate VIII's sides, 1-2 m wider
+    # there than this view's: they stop at the room's side.
     ("main condenser", 2988.8, 4580.3, 3176.9, 4753.4, 6.7),
     ("main condenser", 2987.0, 5130.4, 3173.2, 5296.8, 6.7),
-    ("low-pressure turbine and its exhausts", 3011.4, 4796.6, 3228.0, 5084.7, 5.0),
+    ("low-pressure turbine and its exhausts", 3011.4, 4796.6, 3228.0, 5084.7, 6.6),
     ("turbine bearing", 2976.9, 4884.5, 3011.4, 4999.1, 2.5),
     ("turbine bearings and coupling", 3228.0, 4891.4, 3315.6, 4990.8, 2.5),
     ("change valve", 3337.2, 4799.8, 3451.5, 4899.2, 3.5),
     ("change valve", 3337.2, 4987.8, 3451.5, 5087.2, 3.5),
-    ("thrust block", 3225.0, 4704.9, 3501.2, 4752.4, 2.0),
-    ("thrust block", 3225.0, 5132.8, 3501.2, 5178.2, 2.0),
+    ("thrust block", 3225.0, 4704.9, 3501.2, 4752.4, 3.4),
+    ("thrust block", 3225.0, 5132.8, 3501.2, 5178.2, 3.4),
     ("feed tank", 3393.3, 4607.2, 3451.5, 4674.2, 2.5),
     ("feed tank", 3393.3, 5201.6, 3451.5, 5268.6, 2.5),
     ("air pump", 2987.7, 4754.8, 3033.0, 4794.8, 3.0),
