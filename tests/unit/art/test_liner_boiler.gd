@@ -4,7 +4,7 @@ extends GutTest
 ## boiler rooms by LinerBoiler alone — boilers in the boxes, their fronts and fires on
 ## the boxes' ends, a coal face on the bunker's — lit over their firing aisles, no lamp
 ## hung inside a boiler. That nothing the whole ship's dressing draws stands in a
-## body's way is test_dressing_clear's.
+## body's way is art-lint's (FurnishingCheck), on every ship.
 
 const FurnishingCheck := preload("res://tools/furnishing_check.gd")
 const RunMatch := preload("res://tools/run_match.gd")
