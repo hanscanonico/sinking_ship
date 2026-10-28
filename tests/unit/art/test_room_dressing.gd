@@ -382,6 +382,31 @@ func test_a_plate_flat_on_a_cabin_wall_stands_in_nobody_s_way() -> void:
 	assert_eq(FurnishingCheck.intrusions(_layout, _rules, faces), PackedStringArray())
 
 
+func test_a_face_by_a_box_s_far_corner_is_inside_it_squares_from_its_own() -> void:
+	# A table metres across the saloon's floor, filed by every square its footprint
+	# covers (FurnishingCheck.CELL): a face by its far corner, squares from where its
+	# footprint starts, is inside it, and the same face reaching past its side is not.
+	var saloon := _room(&"saloon")
+	var table := Rect2(saloon.area.get_center() - Vector2(1.0, 2.2), Vector2(2.0, 4.4))
+	var layout := _with_a_box(saloon, table, 0.75)
+	var boxes: Dictionary = FurnishingCheck._boxes_by_cell(layout)
+	var corner := table.end - Vector2.ONE * 0.3
+	var squares := (corner / FurnishingCheck.CELL).floor()
+	squares -= (table.position / FurnishingCheck.CELL).floor()
+	assert_true(squares.x >= 1.0 and squares.y >= 3.0, "squares from its own: %s" % squares)
+	var low := saloon.floor_height + 0.3
+	var face := PackedVector3Array(
+		[
+			Vector3(corner.x, low, corner.y),
+			Vector3(corner.x + 0.2, low, corner.y),
+			Vector3(corner.x, low + 0.4, corner.y + 0.2),
+		]
+	)
+	assert_true(FurnishingCheck._inside_a_blocker(layout, boxes, face), "by its far corner")
+	face[1].x = table.end.x + 0.05
+	assert_false(FurnishingCheck._inside_a_blocker(layout, boxes, face), "past its side")
+
+
 func test_a_shelf_over_head_height_stands_in_nobody_s_way() -> void:
 	var cabin := _room(&"aft port cabin")
 	var shelf := Rect2(-9.1, -3.0, 0.6, 1.0)
