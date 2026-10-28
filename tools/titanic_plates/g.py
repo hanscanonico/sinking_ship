@@ -263,33 +263,37 @@ ROOMS = [
     # To port, where the plate draws the Olympic's "3rd CL. OPEN BERTHS", seven
     # third-class rooms for 34 (est., BOT, "Decks and Accommodation", G deck), patterned on
     # F deck's rooms over them (two eight-berth rooms, the double stair and the linen
-    # room): rooms off a landing under F's stair and a passage to the baggage room's wall.
+    # room): rooms off a landing under F's stair and the passages from it. Rooms, not
+    # passages, line the baggage room's wall, so deck.py gives the baggage room no door
+    # into them.
     ("eight-berth third-class room, G deck", 8126.4, 1847, 8226.6, 2014),
     ("four-berth third-class room, G deck", 8226.6, 1856, 8301, 1970),
     ("eight-berth third-class room, G deck", 8301, 1866.5, 8416, 1970),
-    ("passage, G deck", 8226.6, 1970, 8416, 2014),
+    ("passage, G deck", 8226.6, 1970, 8345, 2014),
     ("passage, G deck", 8180, 2014, 8301, 2091),
-    ("passage, G deck", 8372, 2014, 8416, 2143.5),
+    ("passage, G deck", 8301, 2014, 8345, 2143.5),
     ("two-berth third-class room, G deck", 8126.4, 2014, 8180, 2143.5),
     ("two-berth third-class room, G deck", 8180, 2091, 8301, 2143.5),
-    ("six-berth third-class room, G deck", 8301, 2014, 8372, 2143.5),
+    ("six-berth third-class room, G deck", 8345, 1970, 8416, 2143.5),
     ("four-berth third-class room, G deck", 8236.5, 2143.5, 8475.5, 2194.5),
     # Between C and B, where the plate draws the Olympic's "THIRD CLASS OPEN BERTHS" round
     # No. 2 hatch's trunk, third class in 26 rooms for 106 (est., BOT, "Decks and
     # Accommodation", G deck), patterned on F deck's rooms over them, clipped to G's sides.
     # F deck's single ladder comes down to their starboard passage (BOT: "continued to F
     # deck as a double ladder and to G deck as a single ladder"), where the plate draws its
-    # foot. Port: a block either side of a short passage to her side, a cross passage.
+    # foot. Port: a block either side of a short passage to her side, a cross passage. The
+    # cross passage starts clear of C, a room against C instead, so deck.py gives the
+    # baggage room beyond C no door into it.
     ("eight-berth third-class room, G deck", 8722.1, 1942, 8913, 2032),
-    ("six-berth third-class room, G deck", 8722.1, 2032, 8846, 2143),
-    ("four-berth third-class room, G deck", 8846, 2032, 8913, 2143),
+    ("eight-berth third-class room, G deck", 8722.1, 2032, 8846, 2193.5),
+    ("two-berth third-class room, G deck", 8846, 2032, 8913, 2143),
     ("passage, G deck", 8913, 1964, 8957, 2143),
     ("four-berth third-class room, G deck", 8957, 1975, 9038.5, 2089),
     ("two-berth third-class room, G deck", 8957, 2089, 9038.5, 2143),
     ("two-berth third-class room, G deck", 9038.5, 1990.5, 9105, 2070),
     ("two-berth third-class room, G deck", 9038.5, 2070, 9105, 2143),
     ("passage, G deck", 9105, 2002.5, 9149.3, 2143),
-    ("passage, G deck", 8722.1, 2143, 9149.3, 2193.5),
+    ("passage, G deck", 8846, 2143, 9149.3, 2193.5),
     # Amidships: a block of six forward of the hatch's trunk, between passages.
     ("passage, G deck", 8924.5, 2193.5, 8968, 2434.5),
     ("four-berth third-class room, G deck", 8968, 2193.5, 9043, 2274),
@@ -455,6 +459,13 @@ DOORS = [
     # The firemen's: their W.C.s and wash place off the landing, and its doors into the
     # leading firemen's and the greasers' quarters.
     (9345, 2180), (9355, 2425), (9381, 2198), (9381, 2404),
+    # The rooms (est.) along bulkhead B, each off the passages abaft it: given here, so
+    # deck.py gives none of them a door through B onto the firemen's landing.
+    (9149.3, 2044), (9149.3, 2100), (9149.3, 2160), (9149.3, 2226), (9149.3, 2308), (9149.3, 2389),
+    (9149.3, 2460), (9149.3, 2545),
+    # The room (est.) under the ladder's landing, from the passage abaft it, clear of the
+    # ladder.
+    (8958.5, 2562),
 ]
 
 OPEN = [
@@ -482,7 +493,7 @@ OPEN = [
     (8478, 2137, 8719, 2143), (8621, 2191, 8719, 2197), (8621, 2432, 8719, 2438), (8478, 2567, 8719, 2573),
     (8129, 2567, 8337, 2573),
     # The seven rooms' (est.) passages into each other.
-    (8229, 2011, 8298, 2017), (8375, 2011, 8413, 2017),
+    (8229, 2011, 8298, 2017), (8304, 2011, 8342, 2017),
     # The 26 rooms' (est.) passages: the short passages into the cross passages, the
     # passages either side of the block, the ladder's landing, the passages to starboard.
     (8916, 2140, 8954, 2146), (9108, 2140, 9146, 2146), (8927, 2190, 8965, 2196), (9121, 2190, 9146, 2196),
