@@ -46,13 +46,14 @@ func _blocker(area: Rect2, bottom: float, top: float) -> ShipBlocker:
 	return blocker
 
 
-## Every face [param blocker] is drawn with, as DeckFurniture.build draws it.
-func _drawn(layout: ShipLayout, blocker: ShipBlocker) -> PackedVector3Array:
+## Every face [param blocker] is drawn with, as DeckFurniture.build draws it to
+## [param top]: its own top, or as ShipArt draws a box a deck rests on, a plank short.
+func _drawn(layout: ShipLayout, blocker: ShipBlocker, top := INF) -> PackedVector3Array:
 	var lines: Array[PackedFloat32Array] = [
 		PackedFloat32Array(), PackedFloat32Array(), PackedFloat32Array()
 	]
 	var mesh := ShipMesh.new(func(_point: Vector3) -> bool: return true, lines)
-	DeckFurniture.build(mesh, ShipSpace.new(layout), blocker, blocker.top)
+	DeckFurniture.build(mesh, ShipSpace.new(layout), blocker, minf(top, blocker.top))
 	var materials := {}
 	for finish: int in ShipMesh.Finish.values():
 		materials[finish] = StandardMaterial3D.new()
@@ -98,6 +99,32 @@ func test_the_liner_s_casings_under_her_boat_deck_are_casings() -> void:
 		assert_eq(_piece(titanic, blocker), DeckFurniture.Piece.CASING, "%s" % blocker.area)
 		casings += 1
 	assert_eq(casings, 3, "funnel 2's and 3's casings, and the cabins round funnel 1")
+
+
+## A casing a deck rests on over only part of its top stands up to its own top where the
+## deck stops short of its edge, as a wall under a deck does: the Titanic's No. 4 hatch
+## trunks, under the end of A deck's step, were drawn open-topped.
+func test_a_casing_a_deck_half_covers_is_topped_where_the_deck_is_not() -> void:
+	var tug: ShipLayout = _layout("tug").duplicate()
+	var deck := ShipPlatform.new()
+	deck.area = Rect2(10.0, -2.0, 1.0, 4.0)
+	deck.height = 3.0
+	var platforms := tug.platforms.duplicate()
+	platforms.append(deck)
+	tug.platforms = platforms
+	var trunk := _blocker(Rect2(9.0, -1.0, 2.0, 2.0), 0.0, 3.0)
+	assert_eq(_piece(tug, trunk), DeckFurniture.Piece.CASING, "the deck rests on half of it")
+	var topped := false
+	var faces := _drawn(tug, trunk, trunk.top - ShipArt.PLANK)
+	var bare := Rect2(9.0, -1.0, 1.0, 2.0)
+	for index in range(0, faces.size(), 3):
+		var corners := faces.slice(index, index + 3)
+		var flat := true
+		for corner: Vector3 in corners:
+			flat = flat and is_equal_approx(corner.y, 3.0)
+		var middle := (corners[0] + corners[1] + corners[2]) / 3.0
+		topped = topped or (flat and bare.has_point(Vector2(middle.x, middle.z)))
+	assert_true(topped, "its top drawn aft of the deck")
 
 
 func test_the_small_craft_s_skylights_are_skylights() -> void:
