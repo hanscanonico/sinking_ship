@@ -861,8 +861,12 @@ func _lifeboats(mesh: ShipMesh, ship: Node3D, paints: Dictionary) -> void:
 			var middle := edge + side * (LIFEBOAT_OUT + LIFEBOAT_BEAM * 0.5)
 			var outer := edge + side * (LIFEBOAT_OUT + LIFEBOAT_BEAM + 0.2)
 			var x := area.get_center().x
-			var below := _space.deck_under(Vector2(x, outer), platform.height - LIFEBOAT_HEADROOM)
-			if is_nan(below) or is_nan(_space.deck_under(Vector2(x, middle), below)):
+			# The deck beneath the boat's place, the nearest under it, LIFEBOAT_HEADROOM or
+			# more down: a raised roof's edge stands over the deck it is raised on.
+			var below := _space.deck_under(Vector2(x, outer), platform.height - ShipSpace.SLIVER)
+			if is_nan(below) or platform.height - below < LIFEBOAT_HEADROOM:
+				continue
+			if is_nan(_space.deck_under(Vector2(x, middle), below)):
 				continue
 			var keel := platform.height + LIFEBOAT_LIFT
 			var reach := Rect2(area.position.x, minf(edge, outer), area.size.x, absf(outer - edge))

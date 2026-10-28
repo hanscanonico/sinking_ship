@@ -7,9 +7,10 @@ extends GutTest
 
 ## How far past its box a piece's faces may stand: the furniture's FLUSH and float noise.
 const OUTSIDE := 0.005
-## The Titanic's boat deck's height (tools/gen_titanic.py's BOAT), her other open decks'
-## (A_DECK, B_DECK, her wells', POOP and the forecastle's FCSL), and the ferry's passenger
-## and bridge decks' (tools/gen_ferry.py's PASS and BRIDGE).
+## The Small Titanic's boat deck's height (tools/gen_small_titanic.py's BOAT), her other
+## open decks' (A_DECK, B_DECK, her wells', POOP and the forecastle's FCSL), and the
+## ferry's passenger and bridge decks' (tools/gen_ferry.py's PASS and BRIDGE). The liner's
+## furniture is checked on her: the Titanic's traced decks (#360) are held by the lints.
 const BOAT_DECK := 8.375
 const A_DECK := 5.5
 const TITANIC_OPEN_DECKS: Array[float] = [8.375, 5.5, 2.75, 0.0, 3.3125, 4.3125]
@@ -88,7 +89,7 @@ func test_every_hatch_of_the_fleet_stays_a_hatch() -> void:
 
 
 func test_the_liner_s_casings_under_her_boat_deck_are_casings() -> void:
-	var titanic := _layout("titanic")
+	var titanic := _layout("small_titanic")
 	var space := ShipSpace.new(titanic)
 	var casings := 0
 	for blocker: ShipBlocker in _on_deck(titanic, A_DECK):
@@ -134,7 +135,7 @@ func _on_deck(layout: ShipLayout, height: float) -> Array[ShipBlocker]:
 
 
 func test_the_liner_s_boat_deck_is_furnished() -> void:
-	var titanic := _layout("titanic")
+	var titanic := _layout("small_titanic")
 	var pieces := {}
 	for blocker: ShipBlocker in _on_deck(titanic, BOAT_DECK):
 		var piece := _piece(titanic, blocker)
@@ -148,7 +149,7 @@ func test_the_liner_s_boat_deck_is_furnished() -> void:
 
 
 func test_her_boats_stand_one_at_each_of_her_boat_stations() -> void:
-	var titanic := _layout("titanic")
+	var titanic := _layout("small_titanic")
 	var stations := {}
 	for fitting: ShipFitting in titanic.structure.fittings:
 		var named := String(fitting.name)
@@ -173,7 +174,7 @@ func test_her_boats_stand_one_at_each_of_her_boat_stations() -> void:
 
 
 func test_a_box_at_a_boat_station_short_of_the_deck_s_edge_is_no_boat() -> void:
-	var titanic := _layout("titanic")
+	var titanic := _layout("small_titanic")
 	var inboard := _blocker(Rect2(56.0, 6.5, 9.0, 3.15), BOAT_DECK, BOAT_DECK + 1.5)
 	assert_ne(_piece(titanic, inboard), DeckFurniture.Piece.BOAT, "clear of her edge")
 	var at_edge := _blocker(Rect2(56.0, 10.4, 9.0, 3.15), BOAT_DECK, BOAT_DECK + 1.5)
@@ -181,7 +182,7 @@ func test_a_box_at_a_boat_station_short_of_the_deck_s_edge_is_no_boat() -> void:
 
 
 func test_her_open_decks_are_furnished_with_benches() -> void:
-	var titanic := _layout("titanic")
+	var titanic := _layout("small_titanic")
 	var benches := {}
 	for height: float in TITANIC_OPEN_DECKS:
 		for blocker: ShipBlocker in _on_deck(titanic, height):
@@ -215,7 +216,7 @@ func test_a_short_box_seat_is_a_bench_and_a_long_one_a_locker() -> void:
 
 
 func test_her_ventilators_stand_their_cowls_heights() -> void:
-	var titanic := _layout("titanic")
+	var titanic := _layout("small_titanic")
 	var vents := 0
 	for blocker: ShipBlocker in titanic.blockers:
 		if not DeckFurniture.is_vent(titanic, blocker):
@@ -242,7 +243,7 @@ func test_no_funnel_or_mast_of_the_fleet_is_a_ventilator() -> void:
 
 
 func test_no_seat_starts_by_a_ventilator() -> void:
-	var titanic := _layout("titanic")
+	var titanic := _layout("small_titanic")
 	for blocker: ShipBlocker in titanic.blockers:
 		if not DeckFurniture.is_vent(titanic, blocker):
 			continue
@@ -254,7 +255,7 @@ func test_no_seat_starts_by_a_ventilator() -> void:
 
 
 func test_her_seat_lockers_stand_back_to_their_houses() -> void:
-	var titanic := _layout("titanic")
+	var titanic := _layout("small_titanic")
 	for blocker: ShipBlocker in _on_deck(titanic, BOAT_DECK):
 		if _piece(titanic, blocker) != DeckFurniture.Piece.LOCKER:
 			continue
@@ -285,7 +286,9 @@ func test_the_ferry_s_decks_are_furnished() -> void:
 
 
 func test_no_seat_starts_on_the_new_furniture() -> void:
-	var decks := {"titanic": TITANIC_OPEN_DECKS, "ferry": [FERRY_PASSENGER_DECK, FERRY_BRIDGE_DECK]}
+	var decks := {
+		"small_titanic": TITANIC_OPEN_DECKS, "ferry": [FERRY_PASSENGER_DECK, FERRY_BRIDGE_DECK]
+	}
 	for ship: String in decks:
 		var layout := _layout(ship)
 		for height: float in decks[ship]:
@@ -331,7 +334,7 @@ func test_every_piece_is_drawn_inside_its_box() -> void:
 
 
 func test_a_boat_and_its_davits_are_drawn_inside_its_box() -> void:
-	var titanic := _layout("titanic")
+	var titanic := _layout("small_titanic")
 	for blocker: ShipBlocker in _on_deck(titanic, BOAT_DECK):
 		if _piece(titanic, blocker) == DeckFurniture.Piece.BOAT:
 			var over := DeckFurniture.DAVIT_BOX.end.y - DeckFurniture.STOWED_BOAT.y
@@ -339,7 +342,7 @@ func test_a_boat_and_its_davits_are_drawn_inside_its_box() -> void:
 
 
 func test_a_ventilator_is_drawn_in_its_trunk_s_footprint_under_head_height() -> void:
-	var titanic := _layout("titanic")
+	var titanic := _layout("small_titanic")
 	var drawn := {}
 	for blocker: ShipBlocker in titanic.blockers:
 		if not DeckFurniture.is_vent(titanic, blocker) or drawn.has(blocker.radius):

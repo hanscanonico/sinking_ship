@@ -33,6 +33,11 @@ repo and never committed.
    its plate label, and fix what the draft got wrong: a corridor network comes out as one
    shape, a centre line or a label's underline splits a room, an L-shaped room fills
    half its box. Rooms are rectangles: cut an L into two and join them with `OPEN`.
+   A name is also what the art dresses a room by (`RoomDressing.NAMED`,
+   `LinerPublic.STYLES`), so a few take the game's own: a grand staircase's landing is
+   "grand staircase, A deck" (its chandeliers, the boat deck's dome), a first-class
+   cabin corridor "A deck corridor", a stateroom's berths "three-berth …" (a block of
+   "berths" is a crew's).
 4. **What nobody enters.** Casings, shafts, lifts, closets narrower than a body (W.C.s,
    wardrobes, lockers) go in `SOLIDS`; a raised roof walked on in `RAISED`.
 5. **Doors and stairs.** A door stands where the plate draws its swing (`DOORS`). A room

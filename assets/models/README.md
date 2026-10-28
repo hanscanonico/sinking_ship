@@ -69,8 +69,8 @@ A prop placed a hundred times is parsed once.
 |---|---|---|---|
 | `lifeboat` | `ShipFittings._lifeboats`, hung in the `Lifeboat` node | lifeboat | 2928 |
 | `davit` | `ShipFittings._davit`, two per boat | hero | 556 |
-| `wheel_stand` | `RoomDressing._wheel_wall`, a wheelhouse's forward wall | hero | 1461 |
-| `chart_case` | `RoomDressing._chart_wall`, a wheelhouse's after wall | hero | 444 |
+| `wheel_stand` | `HelmDressing._wheel_wall`, a wheelhouse's forward wall | hero | 1461 |
+| `chart_case` | `HelmDressing._chart_wall`, a wheelhouse's after wall | hero | 444 |
 | `bell` | `ShipFittings._bell`, on the foremast | hero | 620 |
 | `gauge_small` | `RoomDressing.gauge()`, by radius (`GAUGES`) | furniture | 113 |
 | `handwheel_large` | `RoomDressing.wheel()`, by radius (`HANDWHEELS`) | furniture | 190 |

@@ -6,6 +6,76 @@ extends GutTest
 const FurnishingCheck := preload("res://tools/furnishing_check.gd")
 const RunMatch := preload("res://tools/run_match.gd")
 
+## The Titanic's boat deck and A deck as her plates draw them (#360), each room's kind by
+## its name: a liner's small rooms of service tiled, her bridge's and her wireless's rooms
+## offices, an officer's cabin a cabin with no "office" in it, and no helm on her top
+## deck but her wheelhouse.
+const TRACED := {
+	&"wheelhouse": RoomDressing.Kind.HELM,
+	&"chart room": RoomDressing.Kind.SERVICE,
+	&"navigating room": RoomDressing.Kind.SERVICE,
+	&"Marconi room": RoomDressing.Kind.SERVICE,
+	&"silent room": RoomDressing.Kind.SERVICE,
+	&"Marconi passage": RoomDressing.Kind.PASSAGE,
+	&"Marconi operators' bedroom": RoomDressing.Kind.CABIN,
+	&"captain's sitting room": RoomDressing.Kind.SALOON,
+	&"captain's bathroom": RoomDressing.Kind.BATH,
+	&"captain's lavatory": RoomDressing.Kind.SERVICE,
+	&"pilot's cabin": RoomDressing.Kind.CABIN,
+	&"chief officer's cabin": RoomDressing.Kind.CABIN,
+	&"first officer's cabin": RoomDressing.Kind.CABIN,
+	&"second officer's cabin": RoomDressing.Kind.CABIN,
+	&"extra second officer's cabin": RoomDressing.Kind.CABIN,
+	&"third officer's cabin": RoomDressing.Kind.CABIN,
+	&"fourth officer's cabin": RoomDressing.Kind.CABIN,
+	&"fifth officer's cabin": RoomDressing.Kind.CABIN,
+	&"sixth officer's cabin": RoomDressing.Kind.CABIN,
+	&"officers' corridor": RoomDressing.Kind.PASSAGE,
+	&"officers' mess": RoomDressing.Kind.SALOON,
+	&"officers' pantry": RoomDressing.Kind.SERVICE,
+	&"officers' smoking room": RoomDressing.Kind.PUBLIC,
+	&"officers' lavatory": RoomDressing.Kind.SERVICE,
+	&"officers' store": RoomDressing.Kind.HOLD,
+	&"stewards' cabin": RoomDressing.Kind.CABIN,
+	&"mess pantry": RoomDressing.Kind.SERVICE,
+	&"bathroom": RoomDressing.Kind.BATH,
+	&"officers' bathroom": RoomDressing.Kind.BATH,
+	&"lavatory": RoomDressing.Kind.SERVICE,
+	&"passage": RoomDressing.Kind.PASSAGE,
+	&"officers' passage": RoomDressing.Kind.PASSAGE,
+	&"vestibule": RoomDressing.Kind.PASSAGE,
+	&"vestibule, boat deck": RoomDressing.Kind.PASSAGE,
+	&"lift machinery room": RoomDressing.Kind.TANK,
+	&"tank room, port": RoomDressing.Kind.TANK,
+	&"tank room, starboard": RoomDressing.Kind.TANK,
+	&"deck chair store": RoomDressing.Kind.HOLD,
+	&"gymnasium": RoomDressing.Kind.SERVICE,
+	&"grand staircase, boat deck": RoomDressing.Kind.STAIRCASE,
+	&"second-class entrance, boat deck": RoomDressing.Kind.PUBLIC,
+	&"second-class entrance, A deck": RoomDressing.Kind.PUBLIC,
+	&"verandah café and palm court": RoomDressing.Kind.PUBLIC,
+	&"first-class smoking room": RoomDressing.Kind.PUBLIC,
+	&"smoking room lavatory": RoomDressing.Kind.SERVICE,
+	&"bar": RoomDressing.Kind.SALOON,
+	&"after grand staircase, A deck": RoomDressing.Kind.STAIRCASE,
+	&"lounge pantry and bar": RoomDressing.Kind.SERVICE,
+	&"cloak room": RoomDressing.Kind.SERVICE,
+	&"darkroom": RoomDressing.Kind.SERVICE,
+	&"first-class lounge": RoomDressing.Kind.PUBLIC,
+	&"reading and writing room": RoomDressing.Kind.PUBLIC,
+	&"A deck corridor": RoomDressing.Kind.FIRST_CORRIDOR,
+	&"grand staircase, A deck": RoomDressing.Kind.STAIRCASE,
+	&"first-class stateroom": RoomDressing.Kind.CABIN,
+	&"three-berth first-class stateroom": RoomDressing.Kind.CABIN,
+	&"stewardesses' room": RoomDressing.Kind.CABIN,
+	&"pantry": RoomDressing.Kind.SERVICE,
+	&"servery": RoomDressing.Kind.SERVICE,
+	&"ladies' lavatory": RoomDressing.Kind.SERVICE,
+	&"gentlemen's lavatory": RoomDressing.Kind.SERVICE,
+}
+## The small Titanic's rooms on those decks that the Titanic's plates have no more.
+const UNTRACED: Array[StringName] = [&"officers' quarters", &"verandah café", &"after entrance"]
+
 var _layout: ShipLayout
 var _rules: BrawlRules
 var _space: ShipSpace
@@ -60,8 +130,7 @@ func test_each_room_of_the_steamer_is_what_its_shape_says() -> void:
 
 
 func test_a_room_whose_name_says_what_it_is_is_that() -> void:
-	var titanic := _ship("titanic")
-	var space := ShipSpace.new(titanic)
+	# The small Titanic's rooms (#362), and the Titanic's: hers but on her traced decks.
 	var kinds := {
 		&"officers' quarters": RoomDressing.Kind.BERTHS,
 		&"wheelhouse": RoomDressing.Kind.HELM,
@@ -179,12 +248,26 @@ func test_a_room_whose_name_says_what_it_is_is_that() -> void:
 		&"E deck working passage, after hold, forward": RoomDressing.Kind.PASSAGE,
 		&"E deck working passage, after hold, aft": RoomDressing.Kind.PASSAGE,
 	}
-	for room: ShipRoom in titanic.rooms:
-		assert_true(kinds.has(room.name), "pinned: %s" % room.name)
+	_pinned(_ship("small_titanic"), kinds)
+	for gone: StringName in UNTRACED:
+		kinds.erase(gone)
+	kinds.merge(TRACED, true)
+	_pinned(_ship("titanic"), kinds)
+
+
+## Each room of [param ship] is the kind [param kinds] pins its name to, and each name
+## pinned is one of her rooms'.
+func _pinned(ship: ShipLayout, kinds: Dictionary) -> void:
+	var space := ShipSpace.new(ship)
+	var named := ship.resource_path.get_file().get_basename()
+	var unseen := kinds.duplicate()
+	for room: ShipRoom in ship.rooms:
+		assert_true(kinds.has(room.name), "%s pinned: %s" % [named, room.name])
 		if kinds.has(room.name):
-			assert_eq(RoomDressing.kind_of(space, room), kinds[room.name], String(room.name))
-			kinds.erase(room.name)
-	assert_true(kinds.is_empty(), "the Titanic has each: %s" % [kinds.keys()])
+			var kind := RoomDressing.kind_of(space, room)
+			assert_eq(kind, kinds[room.name], "%s: %s" % [named, room.name])
+			unseen.erase(room.name)
+	assert_true(unseen.is_empty(), "%s has each: %s" % [named, unseen.keys()])
 
 
 func test_the_trawler_s_rooms_keep_their_dressing() -> void:
@@ -212,21 +295,31 @@ func test_the_trawler_s_rooms_keep_their_dressing() -> void:
 
 
 func test_a_liner_s_office_is_one_and_her_officers_quarters_are_not() -> void:
-	var titanic := _ship("titanic")
-	var space := ShipSpace.new(titanic)
+	var offices := {
+		&"gymnasium": false,
+		&"purser's office": true,
+		&"galley": false,
+		&"post office": true,
+	}
+	assert_eq(_offices(_ship("small_titanic")), offices)
+	# Her traced decks' (#360): her wireless's and her bridge's rooms are offices, and no
+	# officers' room is one for its name.
+	for office: StringName in [&"Marconi room", &"silent room", &"chart room", &"navigating room"]:
+		offices[office] = true
+	for room_name: StringName in TRACED:
+		if TRACED[room_name] == RoomDressing.Kind.SERVICE and not offices.has(room_name):
+			offices[room_name] = false
+	assert_eq(_offices(_ship("titanic")), offices)
+
+
+## Per name of a room of service of [param ship], whether it is an office.
+func _offices(ship: ShipLayout) -> Dictionary:
+	var space := ShipSpace.new(ship)
 	var offices := {}
-	for room: ShipRoom in titanic.rooms:
+	for room: ShipRoom in ship.rooms:
 		if RoomDressing.kind_of(space, room) == RoomDressing.Kind.SERVICE:
 			offices[room.name] = LinerService.office(room)
-	assert_eq(
-		offices,
-		{
-			&"gymnasium": false,
-			&"purser's office": true,
-			&"galley": false,
-			&"post office": true,
-		}
-	)
+	return offices
 
 
 # A room of service lines itself in tile (test_liner_service.gd).

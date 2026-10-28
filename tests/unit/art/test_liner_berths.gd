@@ -1,8 +1,10 @@
 extends GutTest
-## LinerBerths on the Titanic: berths hung one after another along every stretch of
-## her berths' and quarters' walls long enough, none across a doorway or over a stair,
-## under a budget, every third with its washstand. Her ShipArt is built once, for
-## every test. That nothing they draw stands in a body's way is test_dressing_clear's.
+## LinerBerths on the small Titanic — the Titanic before her plates were traced (#362),
+## her five blocks of berths the officers' quarters among them: berths hung one after
+## another along every stretch of her berths' and quarters' walls long enough, none
+## across a doorway or over a stair, under a budget, every third with its washstand.
+## Her ShipArt is built once, for every test. That nothing they draw stands in a body's
+## way is test_dressing_clear's, on the Titanic too.
 
 const FurnishingCheck := preload("res://tools/furnishing_check.gd")
 const RunMatch := preload("res://tools/run_match.gd")
@@ -32,7 +34,7 @@ var _faces: PackedVector3Array
 
 
 func before_all() -> void:
-	_layout = load("res://data/ships/titanic.tres")
+	_layout = load("res://data/ships/small_titanic.tres")
 	_rules = RunMatch.default_config(1701).rules
 	_space = ShipSpace.new(_layout)
 	var art := ShipArt.new()

@@ -38,7 +38,7 @@ ROOMS = [
     # The second-class landing: the boat deck's flight comes down into it to port of the
     # lift, B deck's goes down from it to starboard. The bar starts 47 px forward of the
     # plate's 3126 so B deck's flight has its run (see STAIRS).
-    ("second-class entrance", 2948, 4760, 3173, 4996),
+    ("second-class entrance, A deck", 2948, 4760, 3173, 4996),
     ("bar", 3173, 4756, 3310, 4996),
     # The first-class smoking room round the house in its middle (turbine engine casing,
     # its lavatory), as five rectangles that are one room.
@@ -46,10 +46,10 @@ ROOMS = [
     ("first-class smoking room", 3310, 4756, 3676, 4996),
     ("first-class smoking room", 3255, 4996, 3676, 5226),
     ("first-class smoking room", 3676, 4497, 4015, 4753),
-    ("first-class smoking room", 3676, 4989, 4015, 5226),
-    ("smoking room lavatory", 3878, 4801, 4015, 4989),
+    ("first-class smoking room", 3676, 4996, 4015, 5226),
+    ("smoking room lavatory", 3878, 4801, 4015, 4996),
     # The after first-class entrance and its staircase down to B deck.
-    ("first-class entrance", 4015, 4489, 4398, 5226),
+    ("after grand staircase, A deck", 4015, 4489, 4398, 5226),
     # Between it and the lounge: the passage along the casings to port, the lounge
     # pantry and bar to starboard, the cloak room and the darkroom out on the
     # promenades.
@@ -68,19 +68,19 @@ ROOMS = [
     # starboard of it.
     ("reading and writing room", 5860, 4524, 6340, 4744),
     ("reading and writing room", 5860, 4744, 6169, 4980),
-    ("corridor", 5860, 4980, 6705, 5049),
+    ("A deck corridor", 5860, 4980, 6705, 5049),
     # The forward first-class entrance: its hall round the grand staircase, its
     # vestibules on the promenades, and the lifts' landing forward of the lifts.
-    ("first-class entrance", 6788, 4524, 7083, 5200),
-    ("first-class entrance", 6705, 4608, 6788, 5109),
+    ("grand staircase, A deck", 6788, 4524, 7083, 5200),
+    ("grand staircase, A deck", 6705, 4608, 6788, 5109),
     ("vestibule", 6705, 4524, 6788, 4608),
     ("vestibule", 6705, 5109, 6788, 5200),
-    ("first-class entrance", 7167, 4740, 7285, 4971),
+    ("grand staircase, A deck", 7167, 4740, 7285, 4971),
     # The forward staterooms (BOT: "At the forward end it contained 34 state-rooms"),
     # an outer room and an inner one either side of each short passage off the
     # corridors. Port, aft to forward:
-    ("corridor", 7083, 4687, 8364, 4740),
-    ("first-class stateroom, three berths", 7095, 4487, 7194, 4640),
+    ("A deck corridor", 7083, 4687, 8364, 4740),
+    ("three-berth first-class stateroom", 7095, 4487, 7194, 4640),
     ("passage", 7194, 4523, 7226, 4687),
     ("first-class stateroom", 7226, 4487, 7357, 4595),
     ("first-class stateroom", 7226, 4595, 7357, 4687),
@@ -100,10 +100,10 @@ ROOMS = [
     ("passage", 8095, 4529, 8131, 4687),
     ("first-class stateroom", 8131, 4487, 8251, 4595),
     ("first-class stateroom", 8131, 4595, 8251, 4687),
-    ("first-class stateroom, three berths", 8251, 4487, 8364, 4687),
+    ("three-berth first-class stateroom", 8251, 4487, 8364, 4687),
     # Starboard, aft to forward.
-    ("corridor", 7083, 4971, 8364, 5028),
-    ("first-class stateroom, three berths", 7095, 5078, 7194, 5222),
+    ("A deck corridor", 7083, 4971, 8364, 5028),
+    ("three-berth first-class stateroom", 7095, 5078, 7194, 5222),
     ("passage", 7194, 5028, 7226, 5195),
     ("first-class stateroom", 7226, 5028, 7356, 5123),
     ("first-class stateroom", 7226, 5123, 7356, 5222),
@@ -123,7 +123,7 @@ ROOMS = [
     ("passage", 8094, 5028, 8128, 5181),
     ("first-class stateroom", 8128, 5028, 8251, 5124),
     ("first-class stateroom", 8128, 5124, 8251, 5222),
-    ("first-class stateroom, three berths", 8251, 5028, 8364, 5222),
+    ("three-berth first-class stateroom", 8251, 5028, 8364, 5222),
     # Amidships of them: three bathrooms, the stewardesses' room and the ladies'
     # lavatory aft of funnel 1's casing; the gentlemen's lavatory and the servery
     # forward of it; two bathrooms and a pantry; two staterooms at her front; and the
@@ -146,13 +146,15 @@ ROOMS = [
 ]
 
 SOLIDS = [
-    # Aft: the two lamp rooms (LR), the fans, and the second-class lift.
+    # Aft: the two lamp rooms (LR), the fans, and the second-class lift — its port side
+    # read on the boat deck's line (6 px inboard of this plate's ink), where the flight
+    # down from the boat deck runs past it.
     ("lamp room", 2801, 4703, 2905, 4750, None),
     ("lamp room", 2803, 4996, 2905, 5052, None),
     ("fans", 2801, 4753, 2948, 4996, None),
-    ("second-class lift", 3049, 4841, 3126, 4905, None),
+    ("second-class lift", 3049, 4847, 3126, 4905, None),
     # The house in the smoking room: the turbine engine casing and its shafts.
-    ("turbine engine casing", 3676, 4753, 3878, 4989, None),
+    ("turbine engine casing", 3676, 4753, 3878, 4996, None),
     ("shafts", 3878, 4753, 4015, 4801, None),
     # The after entrance's lavatories either side of its staircase.
     ("lavatories", 4015, 4787, 4049, 4953, None),
@@ -202,7 +204,7 @@ DOORS = [
 
 OPEN = [
     # The smoking room's five rectangles.
-    (3670, 4497, 3682, 4753), (3670, 4989, 3682, 5226),
+    (3670, 4497, 3682, 4753), (3670, 4996, 3682, 5226),
     (3310, 4750, 3676, 4762), (3310, 4990, 3676, 5002),
     # The lounge pantry and bar's three.
     (4675, 4981, 4813, 4993), (5084, 4987, 5096, 5108),
@@ -225,8 +227,8 @@ OPEN = [
 STAIRS = [
     # Down off its after end's first step to B deck's open end, port and starboard: the
     # plate's ladders, as stairs.
-    ("ladder", 2323, 4600, 2442, 4640, "fore", "b", "a"),
-    ("ladder", 2323, 5118, 2442, 5158, "fore", "b", "a"),
+    ("ladder", 2312, 4600, 2442, 4640, "fore", "b", "a"),
+    ("ladder", 2312, 5118, 2442, 5158, "fore", "b", "a"),
     # The second-class flight down to B deck, starboard of the lift, from the landing
     # aft. The plate draws 82 px of treads (2.2 m) for 9 ft of rise; a body climbs no
     # steeper than tools/gen_titanic.py's STEEPEST, so it runs on 43 px into what the
@@ -236,5 +238,5 @@ STAIRS = [
     ("after grand staircase", 4150, 4790, 4290, 4950, "aft", "b", "a"),
     # The forward grand staircase's flight down to B deck: the starboard half of the
     # plate's flight, the boat deck's coming down to port of it (boat.py).
-    ("grand staircase", 6882, 4866, 7011, 4980, "fore", "b", "a"),
+    ("grand staircase", 6882, 4868, 7011, 4980, "fore", "b", "a"),
 ]

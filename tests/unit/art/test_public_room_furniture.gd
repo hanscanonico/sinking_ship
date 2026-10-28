@@ -1,6 +1,7 @@
 extends GutTest
-## The liner's public rooms, her crew's quarters and her working passages carry
-## furniture on their floors (FurnitureDressing), drawn in each room's manner: club chairs
+## The small Titanic's public rooms, her crew's quarters and her working passages — the
+## Titanic before her plates were traced (#362) — carry furniture on their floors
+## (FurnitureDressing), drawn in each room's manner: club chairs
 ## round the smoking room's card tables, settees with a table and armchairs in the
 ## lounge, writing desks in the reading and writing room, wicker tables and chairs in the
 ## verandah café and the reception room, settees in the after entrance, mess tables in
@@ -8,7 +9,8 @@ extends GutTest
 ## passages' walls. Every seat faces its table or backs onto its room's side, and a
 ## writing desk's drawers its chair; none stands in a doorway's way in or by a seat's
 ## start, no table by a pendant; and a seat is drawn in its box, its arms and back under
-## a step over it, a stack of stores out to its box's sides.
+## a step over it, a stack of stores out to its box's sides. The Titanic's traced public
+## rooms (#360) are held to the same rules.
 
 const ArtLint := preload("res://tools/art_lint.gd")
 const FurnishingCheck := preload("res://tools/furnishing_check.gd")
@@ -29,14 +31,25 @@ const FURNISHED: Array[Array] = [
 	[&"E deck working passage, after hold, forward", 0, 0, 0, 10],
 	[&"E deck working passage, after hold, aft", 0, 0, 0, 4],
 ]
+## The Titanic's traced public rooms (#360), all of a name's rooms together: [name, its
+## tables, its armchairs, its settees] — a writing desk is a table.
+const TRACED: Array[Array] = [
+	[&"first-class smoking room", 8, 32, 0],
+	[&"first-class lounge", 15, 30, 6],
+	[&"reading and writing room", 3, 3, 1],
+	[&"verandah café and palm court", 4, 8, 0],
+	[&"after grand staircase, A deck", 0, 0, 1],
+]
 ## How far from a pendant, in plan, a table stands at least.
 const PENDANT_CLEAR := 1.0
 ## How far past its box a seat's faces may stand: the models' rims and float noise.
 const OUTSIDE := 0.005
 
 var _rules: BrawlRules = load("res://data/rules/brawl.tres")
-var _layout: ShipLayout = Fleet.layout(&"titanic")
+var _layout: ShipLayout = Fleet.layout(&"small_titanic")
 var _space := ShipSpace.new(_layout)
+var _titanic: ShipLayout = Fleet.layout(&"titanic")
+var _titanic_space := ShipSpace.new(_titanic)
 
 
 func test_each_public_room_has_its_furniture() -> void:
@@ -52,10 +65,28 @@ func test_each_public_room_has_its_furniture() -> void:
 		assert_eq(counts.get(FurnitureDressing.Piece.APPARATUS, 0), entry[4], "%s: stores" % named)
 
 
+func test_the_titanic_s_traced_public_rooms_have_their_furniture() -> void:
+	for entry: Array in TRACED:
+		var counts := {}
+		var rooms := 0
+		for room: ShipRoom in _titanic.rooms:
+			if room.name != entry[0]:
+				continue
+			rooms += 1
+			for piece: ShipBlocker in _titanic_space.furniture(room):
+				var kind := FurnitureDressing.piece_of(piece)
+				counts[kind] = counts.get(kind, 0) + 1
+		var named: StringName = entry[0]
+		assert_gt(rooms, 0, "%s: a room of hers" % named)
+		assert_eq(counts.get(FurnitureDressing.Piece.TABLE, 0), entry[1], "%s: tables" % named)
+		assert_eq(counts.get(FurnitureDressing.Piece.ARMCHAIR, 0), entry[2], "%s: chairs" % named)
+		assert_eq(counts.get(FurnitureDressing.Piece.SETTEE, 0), entry[3], "%s: settees" % named)
+
+
 func test_every_seat_faces_its_table_or_backs_onto_its_room_s_side() -> void:
-	for entry: Array in FURNISHED:
-		var room := _room(entry[0])
-		var pieces := _space.furniture(room)
+	for held: Array in _held():
+		var room: ShipRoom = held[1]
+		var pieces := (held[0] as ShipSpace).furniture(room)
 		for piece: ShipBlocker in pieces:
 			var kind := FurnitureDressing.piece_of(piece)
 			if kind != FurnitureDressing.Piece.ARMCHAIR and kind != FurnitureDressing.Piece.SETTEE:
@@ -74,8 +105,13 @@ func test_every_seat_faces_its_table_or_backs_onto_its_room_s_side() -> void:
 
 
 func test_a_writing_desk_s_drawers_face_its_chair_not_its_wall() -> void:
-	var room := _room(&"reading and writing room")
-	var pieces := _space.furniture(room)
+	for held: Array in _held():
+		var room: ShipRoom = held[1]
+		if room.name == &"reading and writing room":
+			_desks_face_their_chairs(room, (held[0] as ShipSpace).furniture(room))
+
+
+func _desks_face_their_chairs(room: ShipRoom, pieces: Array[ShipBlocker]) -> void:
 	for desk: ShipBlocker in pieces:
 		if FurnitureDressing.piece_of(desk) != FurnitureDressing.Piece.TABLE:
 			continue
@@ -114,20 +150,25 @@ func test_a_passage_s_fire_buckets_hang_out_of_reach_of_its_stores() -> void:
 
 
 func test_no_doorway_seat_start_or_pendant_is_crowded() -> void:
-	var dressing := RoomDressing.new(_space)
-	var surfaces := Surfaces.new(_layout)
-	for entry: Array in FURNISHED:
-		var room := _room(entry[0])
+	var dressings := {
+		_space: RoomDressing.new(_space), _titanic_space: RoomDressing.new(_titanic_space)
+	}
+	var surfaces := {_space: Surfaces.new(_layout), _titanic_space: Surfaces.new(_titanic)}
+	for held: Array in _held():
+		var space: ShipSpace = held[0]
+		var room: ShipRoom = held[1]
+		var dressing: RoomDressing = dressings[space]
 		var ways: Array[Rect2] = []
-		for door: ShipRoom.Door in room.doors(surfaces, _rules.body_height, _rules.step_height):
-			if _leads_somewhere(room, door):
+		var doors := room.doors(surfaces[space], _rules.body_height, _rules.step_height)
+		for door: ShipRoom.Door in doors:
+			if _leads_somewhere(space.layout, room, door):
 				ways.append(_way_in(door))
-		for piece: ShipBlocker in _space.furniture(room):
+		for piece: ShipBlocker in space.furniture(room):
 			for way: Rect2 in ways:
 				var named := "%s: %s in a doorway's way %s" % [room.name, piece.area, way]
 				assert_false(piece.area.intersects(way), named)
 			var round := piece.area.grow(_rules.body_radius)
-			for seat: Vector3 in _layout.spawns:
+			for seat: Vector3 in space.layout.spawns:
 				var on := round.has_point(Vector2(seat.x, seat.z))
 				on = on and absf(seat.y - room.floor_height) < 0.5
 				assert_false(on, "%s: a seat starts at %s by %s" % [room.name, seat, piece.area])
@@ -254,12 +295,25 @@ func _faces(mesh: ShipMesh) -> PackedVector3Array:
 	return faces
 
 
-## Whether [param door] of [param room] leads somewhere: a body's breadth out of it,
-## no blocker stands from the floor to over a body's knees — not a casing standing a
-## hair off the room's side, which leaves no wall on the side itself.
-func _leads_somewhere(room: ShipRoom, door: ShipRoom.Door) -> bool:
+## Every room these tests hold to their rules, each [its ship's space, the room]: the
+## small Titanic's FURNISHED, and each of the Titanic's rooms TRACED names.
+func _held() -> Array[Array]:
+	var found: Array[Array] = []
+	for entry: Array in FURNISHED:
+		found.append([_space, _room(entry[0])])
+	for entry: Array in TRACED:
+		for room: ShipRoom in _titanic.rooms:
+			if room.name == entry[0]:
+				found.append([_titanic_space, room])
+	return found
+
+
+## Whether [param door] of [param room] of [param layout] leads somewhere: a body's
+## breadth out of it, no blocker stands from the floor to over a body's knees — not a
+## casing standing a hair off the room's side, which leaves no wall on the side itself.
+func _leads_somewhere(layout: ShipLayout, room: ShipRoom, door: ShipRoom.Door) -> bool:
 	var out := door.middle() + door.outward * _rules.body_radius * 2.0
-	for blocker: ShipBlocker in _layout.blockers:
+	for blocker: ShipBlocker in layout.blockers:
 		if blocker.shape != ShipBlocker.Shape.BOX or not blocker.area.has_point(out):
 			continue
 		var floor := room.floor_height

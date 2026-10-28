@@ -11,7 +11,8 @@ extends RefCounted
 ## a berth slung overhead, a washstand, a locker and curtains at the portholes, and
 ## the deckhouse's narrow cabins and saloon (CabinDressing, with the cabins' wall
 ## fittings); a corridor with handrails, a lifebelt and fire buckets; a wheelhouse
-## panelled in teak with its wheel, binnacle, telegraph and chart against its walls;
+## panelled in teak with its wheel, binnacle, telegraph and chart against its walls
+## (HelmDressing);
 ## the tables, benches, counters and ranges the layout stands on a room's floor, each
 ## drawn inside its box (FurnitureDressing);
 ## and over every doorway out of a corridor, an engine room or a hold, a plate naming
@@ -56,8 +57,9 @@ enum Part { WALL, FLOOR, OVERHEAD, BEAM }
 ## A room narrower than CORRIDOR is a passage when it opens onto two rooms or more,
 ## else a cuddy too narrow for furniture; one below the main deck this big is a hold,
 ## a smaller one a cabin; one above it this big is a saloon, a smaller one a cabin,
-## and the highest room, if small, the helm. A room whose name says what it is — the
-## first of NAMED its name holds, any case — is that, though: a liner's saloons stand
+## and the highest room, if small, the helm — but on a ship that names her wheelhouse,
+## which is. A room whose name says what it is — the first of NAMED its name holds, any
+## case, "officer" read as no "office" — is that, though: a liner's saloons stand
 ## below her main deck, and her holds' shape is a saloon's; a name says it ahead of the
 ## machinery a room holds, so a boiler room with its boilers is one. Her own kinds come
 ## first, so a "dining saloon" dines and a "deck corridor" is first class; the engine
@@ -72,6 +74,24 @@ const NAMED: Array[Array] = [
 	# drawn as one room — the freighter's officers', crew's and forward cabins.
 	["quarters", Kind.BERTHS],
 	["cabins", Kind.BERTHS],
+	# A liner's stateroom is a cabin, however big.
+	["stateroom", Kind.CABIN],
+	# A liner's small rooms of service, ahead of her public rooms' words, so the smoking
+	# room's lavatory and the lounge's pantry are tiled too; the wireless's rooms and the
+	# bridge's chart and navigating rooms are offices (LinerService.OFFICES); a vestibule
+	# off a promenade a passage; her tank and machinery rooms bare, as a tank is.
+	["lavatory", Kind.SERVICE],
+	["pantry", Kind.SERVICE],
+	["servery", Kind.SERVICE],
+	["cloak room", Kind.SERVICE],
+	["darkroom", Kind.SERVICE],
+	["marconi room", Kind.SERVICE],
+	["silent room", Kind.SERVICE],
+	["chart room", Kind.SERVICE],
+	["navigating room", Kind.SERVICE],
+	["vestibule", Kind.PASSAGE],
+	["tank room", Kind.TANK],
+	["machinery room", Kind.TANK],
 	["galley", Kind.SERVICE],
 	["gymnasium", Kind.SERVICE],
 	["office", Kind.SERVICE],
@@ -279,6 +299,7 @@ var _berths: LinerBerths
 var _boiler: LinerBoiler
 var _bath: LinerBath
 var _squash: LinerSquash
+var _helm: HelmDressing
 var _lower: LowerSpaces
 var _vehicle: VehicleDeck
 ## How many lower-deck cabins build() has dressed so far: the next one's number.
@@ -302,6 +323,7 @@ func _init(space: ShipSpace, cut_above := INF) -> void:
 	_boiler = LinerBoiler.new(_engine)
 	_bath = LinerBath.new(space, _cabins)
 	_squash = LinerSquash.new(space, _cabins)
+	_helm = HelmDressing.new(space)
 	_lower = LowerSpaces.new(space)
 	_vehicle = VehicleDeck.new(space, cut_above)
 	for room: ShipRoom in _layout.rooms:
@@ -334,7 +356,7 @@ static func _box_of(space: ShipSpace, room: ShipRoom) -> AABB:
 ## its shape and where it stands on [param space].
 static func kind_of(space: ShipSpace, room: ShipRoom) -> Kind:
 	var size := room.area.size
-	var name := String(room.name).to_lower()
+	var name := String(room.name).to_lower().replace("officer", "")
 	for named: Array in NAMED:
 		if name.contains(named[0]):
 			return named[1]
@@ -348,10 +370,12 @@ static func kind_of(space: ShipSpace, room: ShipRoom) -> Kind:
 				doorways += 1 if _beyond(space, room, side, gap) != -1 else 0
 		return Kind.PASSAGE if doorways >= 2 else Kind.CUDDY
 	var top_floor := -INF
+	var wheelhouse := false
 	for other: ShipRoom in space.layout.rooms:
 		top_floor = maxf(top_floor, other.floor_height)
+		wheelhouse = wheelhouse or String(other.name).to_lower().contains("wheelhouse")
 	var area := size.x * size.y
-	if room.floor_height >= top_floor and area < SALOON_AREA:
+	if room.floor_height >= top_floor and area < SALOON_AREA and not wheelhouse:
 		return Kind.HELM
 	if room.floor_height < 0.0:
 		return Kind.HOLD if area >= HOLD_AREA else Kind.STEERAGE
@@ -532,7 +556,7 @@ func build(mesh: ShipMesh, signs: Node3D, panes: Array[Array]) -> void:
 			Kind.STEERAGE:
 				_next_cabin(mesh, room, glass)
 			Kind.HELM:
-				_helm(mesh, room, glass)
+				_helm.build(mesh, room, glass)
 			Kind.CUDDY:
 				_cabins.cuddy(mesh, room, cuddy, glass)
 				cuddy += 1
@@ -823,62 +847,6 @@ func _hand_height(wall: Wall, along: float) -> Vector3:
 ## (LIFEBELT_MODEL): a red ring with four white bands and its grab line.
 static func lifebelt(mesh: ShipMesh, centre: Vector3, normal: Vector3) -> void:
 	mesh.model(ShipModel.named(LIFEBELT_MODEL), Transform3D(facing(normal), centre))
-
-
-## The wheelhouse's own, against its walls: the wheel on its steering box in the
-## forward wall between a binnacle and an engine-order telegraph, a clock over it and
-## voice pipes in the corners; a chart over its chart case on the after wall, between
-## the windows; and a teak surround and sill at each window.
-func _helm(mesh: ShipMesh, room: ShipRoom, glass: Array[Array]) -> void:
-	for wall: Wall in walls(_space, room):
-		if wall.side == 1:
-			_wheel_wall(mesh, wall)
-		elif wall.side == 3:
-			_chart_wall(mesh, wall)
-	for pane: Array in glass:
-		if pane[3]:
-			continue
-		var half: Vector2 = pane[4] + Vector2.ONE * (ShipFittings.WINDOW_FRAME + 0.05)
-		var centre: Vector3 = pane[1]
-		var normal: Vector3 = pane[2]
-		var right := normal.cross(Vector3.UP).normalized()
-		for bar: Rect2 in [
-			Rect2(-half.x, half.y - 0.05, half.x * 2.0, 0.05),
-			Rect2(-half.x, -half.y, 0.05, half.y * 2.0),
-			Rect2(half.x - 0.05, -half.y, 0.05, half.y * 2.0),
-		]:
-			var middle := centre + right * bar.get_center().x + Vector3.UP * bar.get_center().y
-			panel(mesh, middle + normal * 0.02, right, bar.size * 0.5, normal, ShipPaints.frame)
-		var sill := centre - Vector3.UP * (half.y + 0.02)
-		var at := Vector2(sill.x, sill.z)
-		var across := Vector2(right.x, right.z) * half.x
-		var ledge := Rect2(at - across, Vector2.ZERO).expand(
-			at + across + Vector2(normal.x, normal.z) * 0.08
-		)
-		block(mesh, ledge, sill.y - 0.03, sill.y + 0.02, ShipPaints.frame)
-
-
-## The wheelhouse's forward wall: the wheel on its pedestal between the binnacle and
-## the telegraph (WHEEL_STAND_MODEL), a clock over the wheel and voice pipes either side
-## of it, clear of the windows by the corners.
-func _wheel_wall(mesh: ShipMesh, wall: Wall) -> void:
-	var middle := wall.middle()
-	mesh.model(ShipModel.named(WHEEL_STAND_MODEL), wall.place(wall.at(middle, 0.0)))
-	var clock := wall.at(middle, 1.75, 0.02)
-	disc(mesh, clock, wall.normal, 0.11, ShipPaints.enamel, 12)
-	ring(mesh, clock + wall.normal * 0.004, wall.normal, 0.1, 0.13, ShipPaints.brass, 12)
-	for beside: float in [middle - 0.2, middle + 0.2]:
-		var pipe := wall.at(beside, 1.3, 0.04)
-		var ceiling := _space.ceiling(wall.room, pipe.x, pipe.z) - ShipArt.PLANK
-		pipe(mesh, pipe, Vector3(pipe.x, ceiling, pipe.z), 0.025, ShipPaints.brass)
-		var mouth := Vector2(pipe.x, pipe.z)
-		mesh.cylinder(mouth, 0.045, pipe.y - 0.08, pipe.y, 8, ShipPaints.brass)
-
-
-## The wheelhouse's after wall: a chart pinned in a frame between its windows, over a
-## shallow chart case of two drawers (CHART_CASE_MODEL).
-func _chart_wall(mesh: ShipMesh, wall: Wall) -> void:
-	mesh.model(ShipModel.named(CHART_CASE_MODEL), wall.place(wall.at(wall.middle(), 0.0)))
 
 
 ## A plate over every doorway of [param room] onto another room, on the doorway's

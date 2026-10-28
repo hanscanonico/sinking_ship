@@ -29,6 +29,19 @@ func test_no_boat_hangs_over_a_deck_of_its_own_height() -> void:
 				assert_false(over and platform.height >= deck - 0.01, named)
 
 
+func test_no_boat_hangs_over_a_deck_nearer_than_its_headroom() -> void:
+	# The Titanic's raised roofs stand 1.2 m over her boat deck (#360): no boat hangs
+	# beside their edges, over the deck they are raised on.
+	for ship: String in Fleet.names():
+		var space := ShipSpace.new(Fleet.layout(StringName(ship)))
+		for keel: Vector3 in _fitted(StringName(ship)).lifeboats:
+			var deck := keel.y - ShipFittings.LIFEBOAT_LIFT
+			var beneath := space.deck_under(Vector2(keel.x, keel.z), deck - 0.01)
+			var room := deck - beneath
+			var named := "%s's boat at %s, %.2f m over the deck beneath" % [ship, keel, room]
+			assert_true(is_nan(beneath) or room >= ShipFittings.LIFEBOAT_HEADROOM, named)
+
+
 func test_the_steamer_keeps_her_boats_over_her_boat_deck_s_open_edges() -> void:
 	var boats := _fitted(&"steamer").lifeboats
 	var sides := {-1.0: 0, 1.0: 0}

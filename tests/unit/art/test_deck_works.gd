@@ -18,19 +18,31 @@ func _layout(ship: String) -> ShipLayout:
 	return load("res://data/ships/%s.tres" % ship)
 
 
+## Where each liner's masts and funnels stand along her: the small Titanic's where her
+## old plan put them, the Titanic's where her plates draw them (#360).
+const MASTS := {"small_titanic": [96.0, -92.5], "titanic": [96.0, -91.6875]}
+const FUNNELS := {
+	"small_titanic": [50.2, 13.9, -22.4, -57.9],
+	"titanic": [54.38, 18.29, -18.76, -55.43],
+}
+
+
 func test_the_liner_s_masts_are_masts_however_stout() -> void:
-	var titanic := _layout("titanic")
-	for at: Vector2 in [Vector2(96.0, 0.0), Vector2(-92.5, 0.0)]:
-		var mast := _cylinder(titanic, at)
-		assert_not_null(mast, "a mast at %s" % at)
-		assert_gte(mast.radius, ShipArt.FUNNEL_FROM, "as stout as a small funnel")
-		assert_false(ShipArt.is_funnel(titanic, mast), "the mast at %s is a mast" % at)
+	for ship: String in MASTS:
+		var layout := _layout(ship)
+		for x: float in MASTS[ship]:
+			var mast := _cylinder(layout, Vector2(x, 0.0))
+			assert_not_null(mast, "%s: a mast at %.2f" % [ship, x])
+			assert_gte(mast.radius, ShipArt.FUNNEL_FROM, "as stout as a small funnel")
+			assert_false(ShipArt.is_funnel(layout, mast), "%s: the mast at %.2f" % [ship, x])
 
 
 func test_the_liner_s_four_funnels_are_funnels() -> void:
-	var titanic := _layout("titanic")
-	for x: float in [50.2, 13.9, -22.4, -57.9]:
-		assert_true(ShipArt.is_funnel(titanic, _cylinder(titanic, Vector2(x, 0.0))), "%.1f" % x)
+	for ship: String in FUNNELS:
+		var layout := _layout(ship)
+		for x: float in FUNNELS[ship]:
+			var funnel := _cylinder(layout, Vector2(x, 0.0))
+			assert_true(ShipArt.is_funnel(layout, funnel), "%s: %.2f" % [ship, x])
 
 
 func test_the_trawler_s_mast_is_a_mast() -> void:
