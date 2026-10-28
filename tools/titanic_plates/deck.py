@@ -64,6 +64,9 @@ PASSAGES = ("passage", "corridor", "entrance", "lobby", "staircase")
 JOIN = 0.3
 # An outer wall this near her side, in metres, is her side's (Deck's side).
 SIDE_REACH = 0.3
+# A piece's end this near a deck's end over it, in metres, is that end's (Deck's ends),
+# unless the load gives a reach of its own.
+END_REACH = 0.2
 
 
 def _module(name):
@@ -156,9 +159,15 @@ class Deck:
     side, when given, is her half breadth a room's outer wall's middle may take from x0
     to x1, side(x0, x1): every room, solid, raised floor and house reaching it, or within
     SIDE_REACH of it, is held to it — her side as the generator lays her hull, inside
-    the deck's own edge."""
+    the deck's own edge.
 
-    def __init__(self, name, side=None):
+    ends, when given, are lines across her (ship x) a piece's end within reach (END_REACH
+    unless given) of is held to: where the generator ends a deck over this one — a deck's
+    front over the rooms under it, read off another view — so the rooms under it end
+    where it does; or where it parts her water into cells, so a room ends where its cell
+    does."""
+
+    def __init__(self, name, side=None, ends=(), reach=END_REACH):
         module = _module(name)
         self.name = name
         if hasattr(module, "PARTS"):
@@ -177,6 +186,8 @@ class Deck:
         self.stairs = [s for p in parts for s in p.stairs]
         if len(parts) > 1:
             self._join(parts)
+        if ends:
+            self._ended(ends, reach)
         if side is not None:
             self._held(side)
         self.open = [self._shared(o) for p in parts for o in p.open]
@@ -264,6 +275,17 @@ class Deck:
                 piece[1:5] = [min(x0, x1), max(x0, x1), min(z0, z1), max(z0, z1)]
                 pieces[index] = tuple(piece)
 
+    def _ended(self, ends, reach):
+        """Every piece's end within reach of one of ends held to it."""
+        def held(v):
+            near = min(ends, key=lambda e: abs(e - v))
+            return near if abs(near - v) <= reach else v
+
+        for list_name in ("rooms", "solids", "raised", "houses"):
+            pieces = getattr(self, list_name)
+            for k, piece in enumerate(pieces):
+                pieces[k] = piece[:1] + (held(piece[1]), held(piece[2])) + piece[3:]
+
     def _held(self, side):
         """Every piece reaching her side, or within SIDE_REACH of it, held to it."""
         for list_name in ("rooms", "solids", "raised", "houses"):
@@ -279,7 +301,10 @@ class Deck:
 
     def _shared(self, opening):
         """An OPEN rectangle as the whole stretch of edge the two rooms it joins share, on
-        their snapped line: a passage widened for a body opens all of its mouth."""
+        their snapped line: a passage widened for a body opens all of its mouth. Of the
+        pairs of rooms on its line, the one whose shared stretch it lies along the furthest
+        — an OPEN read a little past a room's corner runs on along the next pair's edge
+        for a few pixels, which no join is — then the nearest its middle."""
         x0, x1, z0, z1 = opening
         across = (x1 - x0) < (z1 - z0)
         mid = (x0 + x1) * 0.5 if across else (z0 + z1) * 0.5
@@ -291,11 +316,13 @@ class Deck:
                 if r is s or abs(ra - sa) > 1e-6 or abs(ra - mid) > 0.2:
                     continue
                 a, b = (max(r[3], s[3]), min(r[4], s[4])) if across else (max(r[1], s[1]), min(r[2], s[2]))
-                if b - a > 1e-6 and a < hi and b > lo and (best is None or abs(ra - mid) < abs(best[0] - mid)):
-                    best = (ra, a, b)
+                along = min(b, hi) - max(a, lo)
+                if b - a > 1e-6 and along > 0 and (
+                        best is None or (along, -abs(ra - mid)) > (best[3], -abs(best[0] - mid))):
+                    best = (ra, a, b, along)
         if best is None:
             return opening
-        line, a, b = best
+        line, a, b, _along = best
         return (line - 0.01, line + 0.01, a, b) if across else (a, b, line - 0.01, line + 0.01)
 
     def _covered(self, axis, at, a, b, boxes):
@@ -369,9 +396,12 @@ class Deck:
                     for w_axis, w_at, w_a, w_b in edges_of(way):
                         if w_axis != axis or abs(w_at - at) > 1e-6:
                             continue
-                        # Of the edge they share, the stretches no solid's side stands on.
-                        for lo, hi in _minus(max(a, w_a), min(b, w_b), self._covered(axis, at, max(a, w_a),
-                                                                                      min(b, w_b), solid_boxes)):
+                        # Of the edge they share, the stretches no solid's side stands on
+                        # and no OPEN opens: an open edge is no wall for a door.
+                        s0, s1 = max(a, w_a), min(b, w_b)
+                        gaps = self._covered(axis, at, s0, s1, solid_boxes) + [
+                            (max(o0, s0), min(o1, s1)) for o0, o1 in self._open_on(axis, at) if o1 > s0 and o0 < s1]
+                        for lo, hi in _minus(s0, s1, gaps):
                             if hi - lo > 0.9 and (best is None or hi - lo > best[0]):
                                 mid = (lo + hi) * 0.5
                                 best = (hi - lo, (at, mid) if axis == 0 else (mid, at))
@@ -541,5 +571,5 @@ def _joined(walls):
     return out
 
 
-def load(name, side=None):
-    return Deck(name, side)
+def load(name, side=None, ends=(), reach=END_REACH):
+    return Deck(name, side, ends, reach)
