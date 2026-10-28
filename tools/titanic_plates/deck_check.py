@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """`make guard-check`: every traced deck beside this file holds together (#360).
 
-For each deck file (one with a PLATE), through deck.py as tools/gen_titanic.py reads it:
+For each deck file (one with a PLATE, or PARTS that have), through deck.py as
+tools/gen_titanic.py reads it — a deck drawn in several views whole, its parts joined:
 - it loads, every door on a wall (deck.py asserts that);
 - no two rooms overlap, nor two solids, nor a room and a solid but for a solid standing
   wholly inside a room (a lift in its landing);
@@ -126,11 +127,13 @@ def check(name):
 
 def main():
     problems = []
-    for file in sorted(os.listdir(HERE)):
-        name, ext = os.path.splitext(file)
-        if ext != ".py" or name in ("__init__", "deck", "kit", "deck_check"):
-            continue
-        problems += check(name)
+    names = [os.path.splitext(f)[0] for f in sorted(os.listdir(HERE))
+             if f.endswith(".py") and os.path.splitext(f)[0] not in ("__init__", "deck", "kit", "deck_check")]
+    # A deck drawn in several views is checked whole, never a part of it alone.
+    parts = {p for name in names for p in getattr(deck._module(name), "PARTS", [])}
+    for name in names:
+        if name not in parts:
+            problems += check(name)
     for problem in problems:
         print("deck-check: " + problem, file=sys.stderr)
     sys.exit(1 if problems else 0)

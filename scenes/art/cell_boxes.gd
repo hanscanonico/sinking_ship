@@ -109,10 +109,12 @@ static func _gains(structure: ShipStructure, drawn: Array[AABB], at: int, gained
 
 
 ## [param cell]'s boxes round its [param rooms]: the one round them all
-## (_round_rooms) where it stands inside [param structure]'s shell, else per room,
-## stacked, a box for each part of it up to the floor of the room over it there or the
-## cell's top (_under), each held inside her shell — none her shell closes to nothing —
-## the one up to the cell's top — the largest such — first.
+## (_round_rooms) where it stands inside [param structure]'s shell — read over the
+## sections it stands in, not one past the end it shares with a section's, which her
+## sections' rounded ends can have it touch (the Titanic's C deck at her B deck's after
+## end) — else per room, stacked, a box for each part of it up to the floor of the room
+## over it there or the cell's top (_under), each held inside her shell — none her
+## shell closes to nothing — the one up to the cell's top — the largest such — first.
 static func _room_boxes(
 	structure: ShipStructure, cell: FloodCell, rooms: Array[ShipRoom]
 ) -> Array[AABB]:
@@ -121,7 +123,7 @@ static func _room_boxes(
 	for room: ShipRoom in rooms:
 		if room.name in cell.rooms:
 			own.append(room)
-	if own.size() < 2 or _within(structure, round):
+	if own.size() < 2 or _within(structure, round, SHELL_NEAR):
 		return [round]
 	var found: Array[AABB] = []
 	for room: ShipRoom in own:
