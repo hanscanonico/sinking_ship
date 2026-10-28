@@ -16,7 +16,11 @@ CROP = (360, 1700, 10660, 2900)
 # aft, her funnels' casings and the first-class lifts forward; and her stern, which no
 # deck above draws, at the generator's X_AFT. Aft of the lift the plate draws about 6%
 # longer than forward of it, aft of the mast 6% shorter: piecewise, as the creased scans
-# need. Forward of funnel 1 her stem reads 129.81, her stem at C deck 129.78.
+# need. Forward of funnel 1 her stem reads 129.81, her stem at C deck 129.78. Aft, the
+# mast's ring (the one A, B and C decks all draw on her centre line) holds the stairs
+# that stack to B deck's, but sets the poop's front 0.8 m aft of where the elevation
+# draws it (1.4 m aft of the generator's POOP_TO): calibrated on her stern and the lift
+# alone, it would read within 0.2 m of the elevation, and the ring at -87.0.
 X = [
     (380, -138.26, "her stern, its shell's outer line on the centre line: X_AFT"),
     (2405, -88.64, "the mainmast's middle; B deck's at px 2393, A deck's at 2385"),
@@ -27,7 +31,7 @@ X = [
     (7787.75, 54.18, "funnel 1's; A deck's at 7790"),
 ]
 # The centre line as drawn, fitted to it from her stern to her stem (it bows 3 px over
-# the scan); across her, her shell's outer lines 1085 px apart at px 6000 (ship x 6) for
+# the scan); across her, her shell's outer lines 1085 px apart at px 6000 (ship x 6.7) for
 # her 92 ft moulded.
 Z = dict(centre=((500, 2334.4), (10500, 2274.6)), scale=0.025845)
 
@@ -125,10 +129,11 @@ ROOMS = [
     ("three-berth first-class stateroom", 3841, 2041, 3968, 2193),
     ("one-berth first-class stateroom", 3968, 2041, 4052, 2193),
     # Starboard of the cross passage: the restaurant manager's, the assistant doctor's
-    # and the doctor's rooms (the plate's "Rest. man.", "Ass. Dr's", "Dr's"); the
+    # and the doctor's rooms (the plate's "Rest. man.", "Ass. Dr's", "Dr's"; the first
+    # called his quarters, as "restaurant" would dress it as the restaurant); the
     # ladies' lavatory, its W.C.s and its servery; two bathrooms, the stewardesses' room
     # and three staterooms.
-    ("restaurant manager's room", 3280, 2298, 3378, 2401),
+    ("restaurant manager's quarters", 3280, 2298, 3378, 2401),
     ("assistant doctor's room", 3280, 2401, 3378, 2488),
     ("doctor's room", 3280, 2488, 3378, 2584),
     ("ladies' lavatory", 3416, 2318, 3490, 2466),
@@ -514,9 +519,12 @@ ROOMS = [
     ("lamp trimmer's and storekeeper's berths", 9845, 2464, 9950, 2606),
     # Forward of them, the windlass room across her (BOT: "the machinery required for
     # working the anchors and cables and for the warping of the ship"), in steps to her
-    # stem; bulkhead A across it (watertight only to D deck, BOT), a door est. through
-    # it beside the warping engine: the plate draws its ends open by her side, which the
-    # steps inside her curve close.
+    # stem; through the wall across her forward of its engines (Plate III's elevation
+    # draws a bulkhead there from below up to C deck, its px 10322, 119.6 m), a door est.
+    # beside the warping engine. Bulkhead A (BOT: "A extended to C deck, but it was
+    # watertight only to D deck") the plate draws only as short webs from her sides, at
+    # px 10128 (116.6 m; BULKHEADS has it at 115.81): not laid. The plate leaves the
+    # room's ends open by her side, which the steps inside her curve close.
     ("windlass machinery room", 9845, 2091, 9946, 2464),
     ("windlass machinery room", 9946, 1976.5, 10042, 2578),
     ("windlass machinery room", 10042, 2027.5, 10181, 2525.5),
@@ -665,6 +673,9 @@ SOLIDS = [
     # forward of bulkhead A the warping engine, est. 1.5 m and 1.0 m high.
     ("closet", 9383, 2191, 9415, 2270, None),
     ("closet", 9311, 2270, 9415, 2308, None),
+    # The forecastle's after bulkhead across her in front of the block amidships, 30 px
+    # aft of the block's own wall: a void between them narrower than a body.
+    ("the forecastle's after bulkhead", 9192, 2170, 9225, 2430, None),
     ("fans", 9464, 2191, 9567, 2369, None),
     ("No. 1 hatch trunk", 9655, 2191, 9790, 2369, None),
     ("chain pipe", 9822, 2091, 9845, 2132, None),
@@ -901,8 +912,9 @@ STAIRS = [
     # 4 ft wide side by side (BOT), their 85-91 px of treads run on aft over their
     # entrances' floors; the crew's stairs at the alleys' sides, their 94-104 px run on
     # over their lobbies' landings; and the middle ladder, rising to port from the
-    # plate's D deck flight (d.py) to its lobby's door, its 95 px of treads run on 24 px
-    # starboard into the surgery's corner.
+    # plate's D deck flight (d.py) to its lobby's door, its 95 px of treads run on to the
+    # lobby's whole length, 143 px. The steepest of C deck's flights, the ladderways and
+    # these crew's flights, climb 0.864 (STEEPEST 0.875).
     ("third-class ladderway", 9231, 2008, 9370, 2108, "aft", "d", "c"),
     ("third-class ladderway", 9234, 2465, 9373, 2556, "aft", "d", "c"),
     ("crew's stair", 9479, 2077, 9618, 2125, "aft", "d", "c"),
