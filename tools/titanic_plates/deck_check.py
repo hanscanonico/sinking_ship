@@ -19,7 +19,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from titanic_plates import deck  # noqa: E402
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-DECKS = ("boat", "a", "b", "c", "d", "e", "f", "g", "orlop", "tanktop", "forecastle", "poop")
+DECKS = ("boat", "a", "b", "c", "d", "e", "f", "g", "orlop", "lower_orlop", "tanktop", "forecastle", "poop")
 # The narrowest stretch of wall a door stands in: a body's width and a hand.
 DOOR_ROOM = 0.9
 EPS = 1e-6
