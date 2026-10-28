@@ -103,6 +103,28 @@ func test_a_cell_drawn_round_its_rooms_reaches_the_bulkheads_it_shares() -> void
 			assert_false(box.intersects(top), "its stack keeps off its top box at %s" % box)
 
 
+## A cell whose rooms end where a section of her shell ends is drawn in one box round
+## them: her sections' ends are rounded, and the one past that end — the Titanic's after
+## well, aft of her C deck under B deck's tapered end — is not over them for the
+## fraction of a millimetre its rounding has it reach in. Read as over them, its well
+## deck's shell would have her C deck drawn room by room, and its rooms' boxes, meeting
+## end to end in her floats, overlap.
+func test_rooms_ending_where_a_section_ends_are_drawn_in_one_box() -> void:
+	var layout := Fleet.layout(&"titanic")
+	var structure := layout.structure
+	var index := structure.cell_named(&"c_deck")
+	var c_deck := structure.cells[index]
+	assert_lt(c_deck.shape, CellBoxes.WHOLE, "her C deck's box pokes past her shell")
+	assert_almost_eq(
+		_room(layout, &"C deck corridor").area.position.x,
+		c_deck.low.x,
+		1e-5,
+		"its corridor runs to its after end, where her after well's section ends"
+	)
+	for stack: Array in CellBoxes.stacked(structure, layout.rooms):
+		assert_ne(stack[0], index, "C deck is drawn in one box, not room by room")
+
+
 ## [param layout]'s room named [param name].
 func _room(layout: ShipLayout, name: StringName) -> ShipRoom:
 	for room: ShipRoom in layout.rooms:

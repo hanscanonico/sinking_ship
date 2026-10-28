@@ -1,16 +1,20 @@
 #!/usr/bin/env python3
 """`make guard-check`: every traced deck beside this file holds together (#360).
 
-For each deck file (one with a PLATE), through deck.py as tools/gen_titanic.py reads it:
+For each deck file (one with a PLATE, or PARTS that have), through deck.py as
+tools/gen_titanic.py reads it — a deck drawn in several views whole, its parts joined:
 - it loads, every door on a wall (deck.py asserts that);
 - no two rooms overlap, nor two solids, nor a room and a solid but for a solid standing
   wholly inside a room (a lift in its landing);
 - every door is in a stretch of wall wider than a door a body passes;
 - every stair goes from one deck or raised floor to another, both of them named;
-- every room is reached from her open deck or a stair, through doors and open joins.
+- every room is reached from her open deck or a stair standing in it, through doors and
+  open joins: a stair of its own deck's, or a flight another deck's file brings down or
+  up to it.
 
 Usage: python3 tools/titanic_plates/deck_check.py   (exits 1 and says why on a problem)
 """
+import functools
 import os
 import sys
 
@@ -40,9 +44,24 @@ def on_edge(x, z, box, slack=0.3):
     return on_x or on_z
 
 
+# Each deck file read once: for its own check, and for the flights it brings to others.
+load = functools.lru_cache(maxsize=None)(deck.load)
+
+
+@functools.lru_cache(maxsize=None)
+def flights():
+    """Every deck file's stairs, each as (the deck it is the file of, the stair), read as
+    tools/gen_titanic.py reads them: a deck drawn in several views whole, never one of
+    its PARTS alone."""
+    names = [os.path.splitext(f)[0] for f in sorted(os.listdir(HERE))
+             if f.endswith(".py") and os.path.splitext(f)[0] not in ("__init__", "deck", "kit", "deck_check")]
+    parts = {p for name in names for p in getattr(deck._module(name), "PARTS", [])}
+    return tuple((name, stair) for name in names if name not in parts for stair in load(name).stairs)
+
+
 def check(name):
     found = []
-    traced = deck.load(name)
+    traced = load(name)
     rooms = [r[1:5] for r in traced.rooms]
     solids = [s[1:5] for s in traced.solids]
     for i in range(len(rooms)):
@@ -70,7 +89,8 @@ def check(name):
             found.append("stair %s neither leaves nor reaches %s deck" % (stair_name, name))
     # Reach: each room joined to its neighbours through a door on their shared wall or an
     # open stretch of it; to the open deck through a door no other room shares; to
-    # another deck through a stair standing in it.
+    # another deck through a stair standing in it, its own deck's or a flight another
+    # deck's file brings to it (landing).
     reach = {"out"}
     links = {k: set() for k in range(len(rooms))}
     for x, z in traced.doors + traced._auto_doors(traced.walls):
@@ -88,8 +108,9 @@ def check(name):
             for q in holders:
                 if p != q:
                     links[p].add(q)
+    landing = [stair[1:5] for owner, stair in flights() if owner != name and name in stair[6:8]]
     for k, room in enumerate(rooms):
-        if any(overlap(room, s) for s in stair_boxes):
+        if any(overlap(room, s) for s in stair_boxes + landing):
             links[k].add("out")
     changed = True
     while changed:
@@ -106,11 +127,13 @@ def check(name):
 
 def main():
     problems = []
-    for file in sorted(os.listdir(HERE)):
-        name, ext = os.path.splitext(file)
-        if ext != ".py" or name in ("__init__", "deck", "kit", "deck_check"):
-            continue
-        problems += check(name)
+    names = [os.path.splitext(f)[0] for f in sorted(os.listdir(HERE))
+             if f.endswith(".py") and os.path.splitext(f)[0] not in ("__init__", "deck", "kit", "deck_check")]
+    # A deck drawn in several views is checked whole, never a part of it alone.
+    parts = {p for name in names for p in getattr(deck._module(name), "PARTS", [])}
+    for name in names:
+        if name not in parts:
+            problems += check(name)
     for problem in problems:
         print("deck-check: " + problem, file=sys.stderr)
     sys.exit(1 if problems else 0)

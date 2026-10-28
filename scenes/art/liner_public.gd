@@ -112,6 +112,9 @@ const BASKET_DROP := 0.35
 const BASKET_MODEL := "hanging_basket"
 const BASKET_DEPTH := 0.16
 const BASKET_SPREAD := 0.24
+## How far past a basket's leaves a body standing on a table or a chair under it reaches:
+## a body's radius (data/rules/brawl.tres).
+const BASKET_CLEAR := 0.4
 ## A bookcase: its bays' width at most, its bottom and top over the floor, its shelves.
 const BAY := 1.3
 const BOOKCASE := Vector2(0.95, 2.35)
@@ -796,12 +799,18 @@ func _matting(mesh: ShipMesh, room: ShipRoom) -> void:
 			mesh.quad(a, Vector3(c.x, y, a.z), c, Vector3(a.x, y, c.z), Vector3.UP, _wicker, rims)
 
 
-## A basket of green hung from [param room]'s ceiling over [param at], over HEADROOM
-## (BASKET_MODEL).
+## A basket of green hung from [param room]'s ceiling over [param at] (BASKET_MODEL),
+## HEADROOM over what a body stands on under it: the floor, or the room's furniture
+## within a body's reach of its leaves (BASKET_CLEAR) — under a low deckhead, none over
+## a table (the Titanic's Café Parisien, B deck).
 func _basket(mesh: ShipMesh, room: ShipRoom, at: Vector2) -> void:
 	var hook := RoomDressing.under_ceiling(_space, room, at)
 	var bottom := hook.y - BASKET_DROP - BASKET_DEPTH
-	if bottom < room.floor_height + RoomDressing.HEADROOM + 0.05:
+	var stood := room.floor_height
+	for piece: ShipBlocker in _space.furniture(room):
+		if piece.area.grow(BASKET_SPREAD + BASKET_CLEAR).has_point(at):
+			stood = maxf(stood, piece.top)
+	if bottom < stood + RoomDressing.HEADROOM + 0.05:
 		return
 	var paints := {ShipPaints.rope: _wicker, ShipPaints.canvas: _foliage}
 	mesh.model(ShipModel.named(BASKET_MODEL), Transform3D(Basis.IDENTITY, hook), paints)
