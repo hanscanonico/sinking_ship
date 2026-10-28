@@ -9,11 +9,18 @@ PLATE = "IV"
 CROP = (2040, 400, 8720, 1600)
 
 # Calibrated on the shafts that stack, at the ship x A deck's calibration gives them
-# (a.py), as A deck was on the boat deck's: her mainmast and her second-class lift aft,
-# her funnels' casings forward. Aft of the lift the plate draws about 3% longer than
-# forward of it, as A deck's does not: piecewise, as the creased scans need.
+# (a.py), as A deck was on the boat deck's: her second-class lift, her funnels' casings
+# forward. Aft of the lift, on her after end where Plate III's elevation draws it, as C
+# deck's view is on her stern (c.py, #374): the after second-class entrance's after
+# wall, her superstructure's after face from C deck to A deck, stands at the elevation's
+# px 2200 there, over C deck's own (c.py px 2110). Aft of the lift the plate draws about
+# 3% larger than forward of it, as C deck's view does between the lift and her stern:
+# piecewise, as the creased scans need. The mainmast's ring on her centre line (px 2393)
+# so reads -87.5, 1.1 m forward of where A deck's plan draws its own (a.py: -88.64, the
+# generator's mast); pegged on that ring, as this deck first was, her after end stood
+# 1.6 m aft of the elevation's, and C deck's 1.4 m.
 X = [
-    (2393, -88.64, "the mainmast's middle; A deck's at px 2385 on Plate III"),
+    (2120, -94.40, "the after second-class entrance's after wall: the elevation's px 2200"),
     (3082, -70.11, "the second-class lift's middle; A deck's at px 3088"),
     (5102, -17.48, "funnel 3's casing and shafts' middle; A deck's at 5084.5"),
     (6449, 18.38, "funnel 2's; A deck's at 6437"),
@@ -38,14 +45,12 @@ ROOMS = [
     # D, E, F and G decks (BOT: "another second class stairway"), her mainmast through it.
     ("second-class entrance, B deck, aft", 2120, 912, 2425, 1140),
     # The second-class smoking room (the plate's "2nd class smoke room"), its bar and
-    # lavatory at its after corners, and between them its after part. The bar's and the
-    # lavatory's after walls under A deck's step over them (a.py), 25 px (0.7 m) forward
-    # of the plate's px 2424 (est.): A deck's ladders down onto this promenade come down
-    # where the plate puts them.
+    # lavatory at its after corners, and between them its after part, under A deck's
+    # step: A deck's ladders down onto this promenade come down aft of them (a.py).
     ("second-class smoking room", 2580, 656, 2931, 1385),
     ("second-class smoking room", 2505, 846, 2580, 1194),
-    ("second-class smoking room bar", 2449, 728, 2580, 846),
-    ("second-class smoking room lavatory", 2449, 1194, 2584, 1314),
+    ("second-class smoking room bar", 2424, 728, 2580, 846),
+    ("second-class smoking room lavatory", 2424, 1194, 2584, 1314),
     # The second-class entrance forward of it, round its staircase and lift; its forward
     # wall where the Titanic's plan draws the restaurant's after wall (b_mid.py), 16 px
     # (0.4 m) forward of this plate's px 3142 (est.). Its vestibules on the promenades,
@@ -60,11 +65,10 @@ SOLIDS = [
     # The well of the after stairway between its flights.
     ("stairwell", 2200, 986, 2265, 1056, None),
     # No. 4 hatch's trunk up through the smoking room's after corners, carried aft to the
-    # bar's and the lavatory's after walls (est.: the plate's start 30 px forward of
-    # them, where its bar and lavatory end 25 px aft of these), so the house's corners
-    # are square, no open deck in them.
-    ("No. 4 hatch trunk", 2449, 651, 2580, 728, None),
-    ("No. 4 hatch trunk", 2449, 1314, 2584, 1390, None),
+    # bar's and the lavatory's after walls (est.: the plate's start 54 px forward of
+    # them), so the house's corners are square, no open deck in them.
+    ("No. 4 hatch trunk", 2424, 651, 2580, 728, None),
+    ("No. 4 hatch trunk", 2424, 1314, 2584, 1390, None),
     # The ventilators along the smoking room's forward wall.
     ("ventilators", 2865, 896, 2931, 1145, None),
     # The second-class lift, its starboard side under A deck's flight's port side (a.py),
@@ -79,7 +83,7 @@ SOLIDS = [
 # in the house forward of it).
 HOUSES = [
     ("after_entrance_house", 2120, 912, 2425, 1140),
-    ("smoking_room_house", 2449, 656, 2931, 1385),
+    ("smoking_room_house", 2424, 656, 2931, 1385),
     ("second_class_entrance_house", 2931, 695, 3158, 1338),
 ]
 
@@ -99,7 +103,7 @@ OPEN = [
 
 STAIRS = [
     # The after second-class stairway down to C deck: its port flight, 61 px of treads
-    # (1.6 m) for 9 ft of rise, run on forward to a slope a body climbs, from the treads'
+    # (1.5 m) for 9 ft of rise, run on forward to a slope a body climbs, from the treads'
     # forward end, where her side steps in: no further aft, where the after well is under
     # B deck. Its inboard 25 px est. floor, clear of the C deck corridor's wall under it
     # (est., until C deck is traced); the starboard flight is floor.

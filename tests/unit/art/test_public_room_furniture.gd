@@ -39,7 +39,7 @@ const TRACED: Array[Array] = [
 	[&"reading and writing room", 3, 3, 1],
 	[&"verandah café and palm court", 4, 8, 0],
 	[&"after grand staircase, A deck", 0, 0, 1],
-	[&"second-class smoking room", 8, 32, 0],
+	[&"second-class smoking room", 7, 28, 0],
 	[&"Café Parisien", 5, 10, 0],
 	[&"reception room, B deck", 5, 10, 0],
 ]

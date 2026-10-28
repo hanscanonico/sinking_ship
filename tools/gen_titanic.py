@@ -846,9 +846,12 @@ outline_rails("a", A_PIECES, a_deck, heads + [(0, A_RUN[1], z0, z1) for z0, z1 i
                  for x0, x1, _z0, half in A_PIECES if x1 > SCREEN_RUN[0] for sign in (-1, 1)])
 # B deck's: her open after end and her assembling area forward, but where her house stands
 # to her side (B_HOUSE), a gap at the head of each ladder down to her wells, and none
-# under A deck's ladders, whose flights come down past her front from A deck's.
+# under A deck's ladders, whose flights come down past her front from A deck's. A deck's
+# after ladders come down onto her where her side steps in, as both plates draw them:
+# a gap at each one's foot.
 b_heads = [(0, s[2] if s[5] == "fore" else s[1], s[3], s[4]) for s in B_OUTLINE.stairs if s[7] == "b" and s[5] in ("fore", "aft")]
-outline_rails("b", B_PIECES, b_deck, b_heads + [(0, B_RUN[1], z0, z1) for z0, z1 in lanes_of("a_fwd_")]
+a_feet = [(0, s[1] if s[5] == "fore" else s[2], s[3], s[4]) for s in A_PLAN.stairs if s[6] == "b" and s[5] in ("fore", "aft")]
+outline_rails("b", B_PIECES, b_deck, b_heads + a_feet + [(0, B_RUN[1], z0, z1) for z0, z1 in lanes_of("a_fwd_")]
               + [(2, z, max(x0, B_HOUSE[0]), min(x1, B_HOUSE[1])) for x0, x1, z0, z1 in B_PIECES
                  if x0 < B_HOUSE[1] and x1 > B_HOUSE[0] for z in (z0, z1)])
 rail_line("well_port", well, 2, -CW, WELL[0], WELL[1])
@@ -971,7 +974,9 @@ for k, x in enumerate(FUNNELS):
     cylinder("funnel_%d" % (k + 1), x, 0.0, FUNNEL_RADIUS, FUNNEL_FOOT, FUNNEL_TOP)
 cylinder("foremast", 96.0, 0.0, 0.6, FCSL[0], FCSL[0] + 40.0)       # est., SB-III
 # The mainmast, up through A deck's after end and B deck's after second-class entrance,
-# where both plans draw its circle (Plate III px 2385, Plate IV px 2393).
+# where A deck's plan draws its circle (Plate III px 2385). B deck's plan draws its own
+# 1.1 m forward of it, calibrated on her after end (b_aft.py), and Plate III's elevation
+# its foot at her superstructure's after face, 6 m aft: est. on A deck's.
 cylinder("mainmast", plates.kept(A_PLAN.view.x(2385)), 0.0, 0.6, B_DECK, B_DECK + 40.0)
 
 # B deck as the Titanic sailed (B_PLAN): her house under A deck from her restaurant's

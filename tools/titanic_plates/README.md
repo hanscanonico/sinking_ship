@@ -106,12 +106,20 @@ lifeboats are spaced ~8% wider than the elevation's davits.
 
 B deck (#367):
 
-- **Plate IV's B deck view** reads on A deck's shafts: the second-class lift (px 3082), the
-  casings of funnels 3, 2 and 1, and aft the mainmast, which both plans draw as a circle on
-  her centre line (Plate III px 2385, Plate IV px 2393). Aft of the lift the plate draws 3%
-  longer than forward of it, as A deck's does not. Across her, her sides are 1088 px apart
+- **Plate IV's B deck view** reads on A deck's shafts: the second-class lift (px 3082) and
+  the casings of funnels 3, 2 and 1. Aft of the lift it reads on her after end where
+  Plate III's elevation draws it — her superstructure's after face, the after second-class
+  entrance's after wall (px 2120; the elevation's px 2200, x -94.40) — as C deck's view
+  reads on her stern (#374): there the plate draws 3% larger than forward of the lift, as
+  C deck's does between the lift and her stern. Across her, her sides are 1088 px apart
   for 92 ft (0.025773 m a pixel), about the centre line it draws, bowed 4 px over the scan.
   Her deck's forward end there (75.3 m) agrees with Plate III's elevation within 0.4 m.
+- **The mainmast's ring** on her centre line, which Plate III's A deck plan (px 2385) and
+  Plate IV's B and C deck plans (px 2393, 2405) all draw, does not stack: B deck's reads
+  -87.5 and C deck's -87.0 on their after ends, A deck's -88.6 on its lift, and the
+  elevation draws the mast's foot at the superstructure's after face (-94.4). Pegged on A
+  deck's ring, as B deck first was, B deck's after end stood 1.6 m aft of the
+  elevation's, and C deck's poop front 0.8 m. The generator stands the mast on A deck's.
 - **The 1912 plan**, The Shipbuilder vol. VI (1911-12), "The White Star Liner Titanic",
   Fig. 2 (pp. 222-223; Internet Archive the_shipbuilder_vol6, leaves n237 and n238, Public
   Domain Mark 1.0): "First-class accommodation on bridge deck B", her B deck from her
@@ -122,9 +130,10 @@ B deck (#367):
   on the wall both pages draw (a 240 px overlap; the binding's curl leaves the stretch from
   funnel 3's casing to funnel 2's at one scale, 2.5% larger than the pages' middles).
 - Where the two disagree: the plan puts the restaurant's after wall 0.4 m forward of Plate
-  IV's, and its second-class stair well 0.6 m shallower; and Plate IV's second-class bar
-  and lavatory reach 0.7 m aft of A deck's step over them, where A deck's ladders come
-  down. Each deck file says which reading it keeps (est.).
+  IV's, and its second-class stair well 0.6 m shallower. Each deck file says which
+  reading it keeps (est.).
 - Plate IV's poop and forecastle views: the forecastle's 125 ft (BOT) and its after end
-  agree with `FCSL_FROM` within 0.6 m; the poop's view cannot share B deck's calibration
-  (it would put her stern 5 m past her counter), so `POOP_TO` stays the texts'.
+  agree with `FCSL_FROM` within 0.6 m. On B deck's calibration the poop's front stands
+  within 0.4 m of the elevation's (px 1740 there, x -106.55, 0.6 m aft of `POOP_TO`, the
+  texts' 106 ft), but its view draws the poop a quarter longer than her stern allows, so
+  `POOP_TO` stays the texts'.
