@@ -21,8 +21,16 @@ bottom, and the peaks, are not traced here.
 
 The deck is her tank top, the generator's TANK_TOP; under the reciprocating engines the
 double bottom is a foot deeper (ENGINE_TANK_TOP), so that room's floor stands 0.3 m higher.
-A solid's height is metres over the tank top. The 1912 Titanic is the plate here: BOT and
-The Shipbuilder vol. VI give no difference below G deck.
+A solid's height is metres over the floor it stands on: the tank top, or that room's floor.
+The 1912 Titanic is the plate here: BOT and The Shipbuilder vol. VI give no difference below
+G deck.
+
+Her sides are the plate's: the T-marked line aft of N (the shaft tunnels) and the single line
+forward of boiler room 4, where it draws her shell at the tank top. From boiler room 4
+forward they stand 1-4 m outside the generator's est. lines at TANK_TOP (her bilge there is
+fuller on the plate: boiler room 6's four boilers abreast reach 10.4 m out, where the
+generator's hull is 8.5-9.8 m), and up to 1.6 m in the after tunnels and the turbine room;
+deck.py's side holding (Deck's side) takes them to her hull.
 
 The plate draws no flight on the tank top, and the tank top has none down: STAIRS is empty.
 Every ladder and stair up from it belongs to the deck at its top (see STAIRS).
@@ -92,34 +100,24 @@ ROOMS = [
     # in it from end to end, so it takes no steps.
     ("turbine engine room", 2885.2, 4480.0, 3515.5, 5400.0),
     ("reciprocating engine room", 3515.5, 4416.4, 4304.5, 5449.4),
-    # The boiler rooms, each from its after bulkhead or bunker's face to its forward bunker's
-    # face, her side to her side, its boilers standing in it. Boiler rooms 5 and 6, where her
-    # sides close in, in three pieces each: the after stokehold, the boilers', the forward
-    # stokehold.
+    # The boiler rooms (the stokeholds), each from its after bulkhead or bunker's face to its
+    # forward bunker's face, her side to her side, its boilers standing in it.
     ("boiler room 1", 4304.5, 4392.7, 4570, 5465.0),
     ("boiler room 2", 4818.5, 4383.8, 5257, 5466.9),
     ("boiler room 3", 5514.5, 4378.3, 5961, 5464.3),
     ("boiler room 4", 6175.5, 4378.0, 6612, 5455.1),
-    ("boiler room 5", 6858.5, 4394.4, 6958, 5437.0),
-    ("boiler room 5", 6958, 4404.1, 7188.5, 5427.3),
-    ("boiler room 5", 7188.5, 4413.8, 7292.5, 5413.8),
-    ("boiler room 6", 7487.5, 4439.4, 7581.5, 5385.0),
-    ("boiler room 6", 7581.5, 4459.8, 7815, 5365.2),
-    ("boiler room 6", 7815, 4486.1, 7916, 5343.5),
-    # The passage through each cross bunker, from boiler room to boiler room through the
-    # bulkhead in the bunker's middle: a door from the stokehold aft of it, the watertight
-    # door in the bulkhead, and on through the bunker's forward half, which the plate leaves
-    # open to the stokehold forward of it: that half is the forward boiler room's.
-    ("passage, tank top", 4570, 5009, 4716, 5080),
-    ("boiler room 2", 4716, 5009, 4818.5, 5080),
-    ("passage, tank top", 5257, 4996, 5408.4, 5074.5),
-    ("boiler room 3", 5408.4, 4996, 5514.5, 5074.5),
-    ("passage, tank top", 5961, 4995, 6067.9, 5066),
-    ("boiler room 4", 6067.9, 4995, 6175.5, 5066),
-    ("passage, tank top", 6612, 4988.5, 6726.5, 5065.5),
-    ("boiler room 5", 6726.5, 4988.5, 6858.5, 5065.5),
-    ("passage, tank top", 7292.5, 4989.5, 7389.2, 5064),
-    ("boiler room 6", 7389.2, 4989.5, 7487.5, 5064),
+    ("boiler room 5", 6858.5, 4404.1, 7292.5, 5427.3),
+    ("boiler room 6", 7487.5, 4459.8, 7916, 5365.2),
+    # The passage through each cross bunker from J to E, boiler room to boiler room, as the
+    # firemen's passage goes through D: its watertight door ("W.T.D") in the after bunker's
+    # face, where its tunnel through the coal begins; through the bulkhead in the bunker's
+    # middle, which the plate draws open there (it draws the bulkhead's line up to the
+    # tunnel's sides and on from them); open into the stokehold forward of it.
+    ("passage, tank top", 4570, 5009, 4818.5, 5080),
+    ("passage, tank top", 5257, 4996, 5514.5, 5074.5),
+    ("passage, tank top", 5961, 4995, 6175.5, 5066),
+    ("passage, tank top", 6612, 4988.5, 6858.5, 5065.5),
+    ("passage, tank top", 7292.5, 4989.5, 7487.5, 5064),
     # The firemen's passage ("FIREMEN'S PASSAGE & PIPE TUNNEL"): its after end through the
     # forward cross bunker of boiler room 6, from its watertight door in the bunker's after
     # face (BOT: "at its after-end was closed by a watertight vertical sliding door"); then
@@ -194,13 +192,13 @@ SOLIDS = [
     ("evaporator", 2885.2, 5253.6, 2935.9, 5304.4, 3.0),
     ("evaporator", 2885.2, 5327.1, 2935.9, 5380.0, 3.0),
     # The reciprocating engine room, off Plate VIII the same way: the two four-cylinder
-    # engines (BOT: "two sets of four-cylinder reciprocating engines"), their cylinder covers
-    # 11.2 m over the tank top on Plate VII (Plate V's sketch of them within 0.2 m of these,
-    # but 0.7-1 m wider inboard); in the wings the refrigerating engines (port), the
+    # engines (BOT: "two sets of four-cylinder reciprocating engines"), their cylinders' domed
+    # covers 11.0 m over the room's floor on Plate VII (Plate V's sketch of them within 0.2 m
+    # of these, but 0.7-1 m wider inboard); in the wings the refrigerating engines (port), the
     # auxiliary pumps and the auxiliary condenser (starboard), the hotwell and main feed
     # pumps and the feed filters either side (est. heights).
-    ("reciprocating engine", 3555.7, 4624.7, 4267.9, 4829.8, 11.2),
-    ("reciprocating engine", 3553.0, 5048.8, 4259.5, 5250.2, 11.2),
+    ("reciprocating engine", 3555.7, 4624.7, 4267.9, 4829.8, 11.0),
+    ("reciprocating engine", 3553.0, 5048.8, 4259.5, 5250.2, 11.0),
     ("refrigerating engine", 3570.2, 4495.5, 3723.9, 4585.2, 2.5),
     ("refrigerating engine", 3738.4, 4494.3, 3917.0, 4584.0, 2.5),
     ("hotwell pumps and tank", 3941.9, 4441.3, 4066.5, 4529.9, 2.5),
@@ -307,12 +305,10 @@ SOLIDS = [
 ]
 
 DOORS = [
-    # The watertight doors the plate marks ("W.T.D") in O, N, M, L and K, and the gaps it
-    # leaves in J, H, G, F and E where the bunkers' passages go through.
+    # The watertight doors the plate marks ("W.T.D") in O, N, M, L and K.
     (1469.5, 5012), (2101, 5005), (2885.2, 5104), (3515.5, 5000), (4304.5, 5040),
-    (4716, 5044.5), (5408.4, 5035.25), (6067.9, 5030.5), (6726.5, 5027), (7389.2, 5026.75),
-    # The bunkers' passages from the stokeholds abaft them, where the plate marks a door in
-    # the bunker's face.
+    # The watertight doors it marks into the bunkers' passages from the stokeholds abaft
+    # them, each in the bunker's after face (the passage then goes through J, H, G, F or E).
     (4570, 5044.5), (5257, 5035.25), (5961, 5030.5), (6612, 5027), (7292.5, 5026.75),
     # The firemen's passage: its watertight door into boiler room 6's forward stokehold, and
     # the two doors whose swings the plate draws from its after end through D into No. 3
@@ -323,8 +319,6 @@ DOORS = [
 OPEN = [
     # The shaft tunnels' steps.
     (1017, 4892, 1023, 5027), (1242, 4852, 1248, 5074), (1677, 4746, 1683, 5175), (1887, 4689, 1893, 5216),
-    # Boiler rooms 5 and 6's pieces.
-    (6955, 4405, 6961, 5427), (7185, 4414, 7191, 5413), (7578, 4460, 7584, 5365), (7812, 4487, 7818, 5343),
     # Each bunker's passage into the stokehold forward of it.
     (4815.5, 5009, 4821.5, 5080), (5511.5, 4996, 5517.5, 5074.5), (6172.5, 4995, 6178.5, 5066),
     (6855.5, 4988.5, 6861.5, 5065.5), (7484.5, 4989.5, 7490.5, 5064),
