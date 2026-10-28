@@ -24,7 +24,7 @@ changed=$({
 } 2>/dev/null | sort -u)
 
 # The lint reads the art's code, the scenes it draws a match with, and what they load.
-art=$(grep -E '^(scenes/(art|match)/|assets/(models|characters)/|tools/(art_lint|furnishing_check|structure_steel|underside_check|wreck_check)\.gd$)' <<<"$changed")
+art=$(grep -E '^(scenes/(art|match)/|assets/(models|characters)/|tools/(art_lint|furnishing_check|open_span_check|structure_steel|underside_check|wreck_check)\.gd$)' <<<"$changed")
 if [[ -n "$art" ]]; then
 	echo "art-lint-changed: the whole lint, as the art changed: $(head -3 <<<"$art" | paste -sd' ' -)$(
 		(($(grep -c . <<<"$art") > 3)) && printf ' …'

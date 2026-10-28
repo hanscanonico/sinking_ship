@@ -20,7 +20,8 @@ extends SceneTree
 ##   opening it leaves stands open as drawn: nothing across it between a step over its
 ##   deck and a body's height, from its line out to a body's breadth past it (no lamp
 ##   is a barrier; a span walled within a body's radius has no body behind it, and a
-##   blocker's own faces stand where the rules hold every body out). Steel her
+##   blocker's own faces stand where the rules hold every body out;
+##   tools/open_span_check.gd). Steel her
 ##   structure has stands where it stands, though: on a section's outline — the
 ##   plating and the bulwark where a deck stops short of her shell (SectionHull) — or
 ##   on a face closing her ends, as a transom (StructureSteel), it is no false floor,
@@ -65,6 +66,7 @@ const RunMatch := preload("res://tools/run_match.gd")
 const FurnishingCheck := preload("res://tools/furnishing_check.gd")
 const BoatCheck := preload("res://tools/boat_check.gd")
 const StructureSteel := preload("res://tools/structure_steel.gd")
+const OpenSpanCheck := preload("res://tools/open_span_check.gd")
 const MATCH_SCENE := "res://scenes/match/match.tscn"
 const SHIPS_DIR := "res://data/ships/"
 const ART_DIR := "res://scenes/art/"
@@ -85,8 +87,6 @@ const HULL_TOLERANCE := 0.05
 const PANE_TOLERANCE := 0.05
 ## How far along her from a section's x its outline is probed.
 const HULL_NUDGE := 0.01
-## A lamp's triangles' span in _ship_faces(): it fades near the eye (ShipLamp.fade_near).
-const LAMP := -2
 ## How far past a platform's edge the false-floor probes stand, how far apart along
 ## it, and how near upright a face must turn to read as floor; past an edge that
 ## ends the decks, probes stand BEYOND_STEP apart out to END_BEYOND, past the stem
@@ -95,13 +95,6 @@ const BEYOND: Array[float] = [0.25, 0.6, 1.0]
 const BEYOND_STEP := 0.5
 const END_BEYOND := 6.0
 const FLOOR_FACING := 0.7
-## Through a broken railing span: probes stand OPENING_STEP apart along it, at least
-## OPENING_INSET in from its ends where the posts it shares and its remains stand,
-## at heights OPENING_RISE apart; they start OPENING_INBOARD inboard of its line.
-const OPENING_STEP := 0.4
-const OPENING_INSET := 0.6
-const OPENING_RISE := 0.15
-const OPENING_INBOARD := 0.05
 const SEAT_TOLERANCE := 0.001
 const CRATE_TOLERANCE := 0.001
 const SOLE_TOLERANCE := 0.02
@@ -347,7 +340,11 @@ func _check_ship(file: String, layout: ShipLayout) -> void:
 	for problem in FurnishingCheck.intrusions(layout, rules, FurnishingCheck.furnishings(art)):
 		_problems.append("art-lint: %s: %s" % [file, problem])
 	art.free()
-	_check_open_spans(file, layout, rules)
+	var spans: Array = OpenSpanCheck.check(
+		root, file, layout, rules, _ship_faces, BLOCKER_TOLERANCE
+	)
+	_problems.append_array(spans[0])
+	_checks += spans[1]
 
 
 ## Each section of [param layout]'s structure below the sheer — the hull's, not a
@@ -471,131 +468,6 @@ func _check_false_floor(art: ShipArt, file: String, layout: ShipLayout, rules: B
 					)
 				)
 				break
-
-
-## [param layout] dressed with every railing breakable, then each span broken in
-## turn: through the opening it leaves, from a step over its deck up to a body's
-## height, no face is drawn across its line or out to a body's breadth past it —
-## across it, or straight down over it — neither the hull, its ends, the fittings,
-## its neighbours nor its own remains: the gap the rules leave open is open as drawn
-## (D6).
-func _check_open_spans(file: String, layout: ShipLayout, rules: BrawlRules) -> void:
-	var art := ShipArt.new()
-	root.add_child(art)
-	var none: Array[StringName] = []
-	var every := PackedInt32Array(range(layout.railings.size()))
-	art.rules = rules
-	art.build(layout, rules.railing_height, rules.body_radius, none, every)
-	var spans := PackedInt32Array()
-	var faces := _ship_faces(art, false, spans)
-	var cells := FaceCells.file(faces)
-	var breadth := rules.body_radius * 2.0
-	var space := ShipSpace.new(layout)
-	for index in layout.railings.size():
-		_checks += 1
-		var railing := layout.railings[index]
-		var platform := layout.platforms[railing.platform]
-		var along := (railing.to - railing.from).normalized()
-		var outward := along.orthogonal()
-		if (platform.area.get_center() - railing.from).dot(outward) > 0.0:
-			outward = -outward
-		var low := platform.height + rules.step_height
-		# A span too short for a body to pass leaves no opening to keep open, and so does
-		# one with a wall within a body's radius behind it all along: no body stands there.
-		var walled := Array(_along_span(railing)).all(
-			func(at: Vector2) -> bool: return space.walled(at, -outward, low, rules.body_radius)
-		)
-		if walled or railing.from.distance_to(railing.to) < breadth:
-			continue
-		art.show_sinking(none, {}, PackedInt32Array([index]), false)
-		var remains := _ship_faces(
-			art.find_child("Railing%dRemains" % index, true, false) as Node3D
-		)
-		var high := platform.height + rules.body_height
-		var segments: Array[PackedVector3Array] = []
-		for point in _along_span(railing):
-			var height := low
-			while height <= high + 0.001:
-				var from := point - outward * OPENING_INBOARD
-				var to := point + outward * breadth
-				segments.append(
-					PackedVector3Array(
-						[Vector3(from.x, height, from.y), Vector3(to.x, height, to.y)]
-					)
-				)
-				height += OPENING_RISE
-			var out := OPENING_STEP * 0.25
-			while out <= breadth:
-				var over := point + outward * out
-				segments.append(
-					PackedVector3Array(
-						[Vector3(over.x, high, over.y), Vector3(over.x, low, over.y)]
-					)
-				)
-				out += OPENING_STEP * 0.5
-		for segment: PackedVector3Array in segments:
-			if _blocked(faces, cells, spans, index, remains, segment, layout):
-				_problems.append(
-					(
-						"art-lint: %s railing %d: drawn face across its opening, broken, on %s"
-						% [file, index, segment]
-					)
-				)
-				break
-	art.free()
-
-
-## Points along [param railing]'s line OPENING_STEP apart, OPENING_INSET in from
-## its ends — its middle alone when it is too short for more.
-func _along_span(railing: ShipRailing) -> PackedVector2Array:
-	var length := railing.from.distance_to(railing.to)
-	var inset := minf(OPENING_INSET, length * 0.5)
-	var count := floori((length - inset * 2.0) / OPENING_STEP)
-	var points := PackedVector2Array()
-	for step in count + 1:
-		var share := 0.5 if count == 0 else (inset + (length - inset * 2.0) * step / count) / length
-		points.append(railing.from.lerp(railing.to, share))
-	return points
-
-
-## Whether [param segment] (from, to) crosses a face of [param faces] — but those of
-## span [param broken], per [param spans], a lamp's (LAMP), and [param layout]'s
-## structure's own steel and its blockers' faces (StructureSteel) — or one of
-## [param remains].
-func _blocked(
-	faces: PackedVector3Array,
-	cells: Dictionary,
-	spans: PackedInt32Array,
-	broken: int,
-	remains: PackedVector3Array,
-	segment: PackedVector3Array,
-	layout: ShipLayout
-) -> bool:
-	var from := segment[0]
-	var to := segment[1]
-	for index in range(0, remains.size(), 3):
-		var hit: Variant = Geometry3D.segment_intersects_triangle(
-			from, to, remains[index], remains[index + 1], remains[index + 2]
-		)
-		if hit != null:
-			return true
-	var low := FaceCells.cell_of(Vector3(minf(from.x, to.x), 0.0, minf(from.z, to.z)))
-	var high := FaceCells.cell_of(Vector3(maxf(from.x, to.x), 0.0, maxf(from.z, to.z)))
-	for x in range(low.x, high.x + 1):
-		for z in range(low.y, high.y + 1):
-			for index: int in cells.get(Vector2i(x, z), []):
-				if spans[index / 3] == broken:
-					continue
-				var hit: Variant = Geometry3D.segment_intersects_triangle(
-					from, to, faces[index], faces[index + 1], faces[index + 2]
-				)
-				if hit == null or StructureSteel.holds(layout, hit):
-					continue
-				if StructureSteel.in_a_blocker(layout, hit, BLOCKER_TOLERANCE):
-					continue
-				if spans[index / 3] != LAMP:
-					return true
-	return false
 
 
 ## Points of the ship plane BEYOND [param area]'s edges, BEYOND_STEP apart along each
@@ -847,8 +719,8 @@ func _check_blocker(
 
 ## Every triangle drawn under [param art], in the ship's space — those shown now
 ## alone when [param shown] says so. Into [param spans], when given, per triangle the
-## railing span it is drawn under (ShipArt's "Railing<n>" nodes), LAMP for a lamp's,
-## or -1.
+## railing span it is drawn under (ShipArt's "Railing<n>" nodes), OpenSpanCheck.LAMP
+## for a lamp's, or -1.
 func _ship_faces(art: Node3D, shown := false, spans := PackedInt32Array()) -> PackedVector3Array:
 	var faces := PackedVector3Array()
 	var ship := art
@@ -866,7 +738,7 @@ func _ship_faces(art: Node3D, shown := false, spans := PackedInt32Array()) -> Pa
 			if found != null:
 				span = found.get_string(1).to_int()
 			if up is ShipLamp:
-				span = LAMP
+				span = OpenSpanCheck.LAMP
 			up = up.get_parent()
 		var to_ship := ship.global_transform.affine_inverse() * mesh_instance.global_transform
 		var corners := mesh_instance.mesh.get_faces()
