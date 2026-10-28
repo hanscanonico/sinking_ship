@@ -335,12 +335,13 @@ BUNKERS = {"br6": 67.80, "br5": 51.32, "br4": 33.35, "br3": 16.12, "br2": -2.42,
 FUNNELS = [54.38, 18.29, -18.76, -55.43]
 FUNNEL_TOP = LOAD_WL + 42.2
 FUNNEL_RADIUS = 2.9
-# Her superstructure's runs (SB-III, SB-text): the forecastle 128 ft and the poop 106 ft
-# at its height; the open well decks at C between them and B deck. (Plate IV's views of
-# them agree with these to within their calibration's 0.6 m at the forecastle; its poop's
-# view would put her stern 5 m past her counter on B deck's, so the texts' lengths stand.)
+# Her superstructure's runs (SB-III, SB-text): the forecastle 128 ft at its height; the
+# open well decks at C between it, B deck and the poop. (Plate IV's views agree with it to
+# within their calibration's 0.6 m, and C deck's view puts the rooms under it within 0.1
+# m of it.) The poop's front where C deck's view draws it (c.py, #368), the third-class
+# entrance's forward wall under it: -106.63 against the elevation's -106.55 (SB-III); the
+# texts' 106 ft would put it 0.7 m forward, into No. 6 hatch's coaming.
 FCSL_FROM = X_FORE - 128 * FT
-POOP_TO = X_AFT + 106 * FT
 # Plates III and IV's decks, traced room by room (#360): their rooms, walls, doors, stairs
 # and casings in ship metres (tools/titanic_plates). The boat deck runs from its after end
 # to the bridge's wings, the navigating bridge forward of them; A deck from where it steps
@@ -355,9 +356,11 @@ POOP_TO = X_AFT + 106 * FT
 BOAT_PLAN = plates.load("boat")
 A_PLAN = plates.load("a")
 B_OUTLINE = plates.load("b")
+C_OUTLINE = plates.load("c")
 BOAT_RUN = BOAT_PLAN.decks[0][:2]
 B_RUN = B_OUTLINE.decks[0][:2]
 A_RUN = (A_PLAN.decks[0][0], max(A_PLAN.decks[0][1], B_RUN[1]))
+POOP_TO = next(r[2] for r in C_OUTLINE.rooms if r[0] == "third-class entrance, C deck")
 
 def in_house(room, houses):
     """Whether room's middle stands in one of houses (name, x0, x1, z0, z1)."""
@@ -401,8 +404,58 @@ def stern_x(y):
     t = clamp((y - KNUCKLE) / (D_DECK - KNUCKLE), 0.0, 1.0)
     return X_AP + (X_AFT - X_AP) * math.sqrt(1 - (1 - t) ** 2)
 
+# Her counter (#360, #368, #369): over her load waterline her stern is a broad round
+# counter, as Plate IV's C, D and E deck views draw her shell aft — 9 m out from her
+# centre line 8 m from her stern's tip at C deck, 11 m at 20 m, where her lines' law
+# above left 3 m and 6.5 m, and her traced decks' rooms stand. Each deck's half breadth
+# by the distance from her stern's tip there (stern_x), read off its view: her shell's
+# outer line, both sides' mean less its plating; C deck's from C deck up, D deck's and E
+# deck's at theirs (E deck's view on D deck's scale from its own tip), and between them,
+# and up from her load waterline (none) to E deck, in proportion to her height. Where her
+# lines are fuller they stand; under her load waterline, where her displacement, her trim
+# and her stability are (the night's draught is 0.7 m under it), nothing changes.
+COUNTER_PLANS = [  # (height, [(distance from her stern's tip, half breadth)])
+    (E_DECK, [(0.0, 0.0), (0.8, 0.85), (1.8, 2.25), (2.9, 3.35), (3.9, 4.3), (5.0, 5.05), (6.0, 5.75),
+              (8.1, 6.85), (10.2, 7.7), (12.3, 8.4), (14.4, 9.0), (16.4, 9.5), (18.5, 9.95), (20.6, 10.35),
+              (22.7, 10.7), (24.8, 11.0), (26.9, 11.3), (27.9, 11.45), (35.2, 12.2), (43.6, 12.85),
+              (50.9, 13.25), (55.1, 13.4), (64.5, 13.5), (67.6, 13.55), (88.0, 14.02)]),
+    (D_DECK, [(0.0, 0.0), (0.4, 3.65), (1.5, 5.45), (2.5, 6.55), (3.6, 7.4), (4.6, 7.95), (5.6, 8.4),
+              (6.7, 8.75), (7.7, 9.15), (8.8, 9.35), (9.8, 9.75), (10.9, 9.95), (11.9, 10.1),
+              (13.0, 10.3), (14.0, 10.5), (15.0, 10.65), (16.1, 10.8), (17.1, 10.95), (18.2, 11.1),
+              (19.2, 11.25), (20.3, 11.35), (21.3, 11.45), (22.4, 11.55), (23.4, 11.65), (24.4, 11.75),
+              (25.5, 11.85), (26.5, 11.9), (27.6, 12.0), (28.6, 12.1), (30.7, 12.2), (32.8, 12.35),
+              (34.9, 12.45), (37.0, 12.6), (39.1, 12.7), (41.2, 12.85), (43.2, 12.95), (45.3, 13.05),
+              (47.4, 13.15), (50.6, 13.25), (54.7, 13.45), (58.9, 13.6), (63.1, 13.7), (67.3, 13.8),
+              (70.4, 13.9), (88.0, 14.02)]),
+    (0.0, [(0.0, 0.0), (0.5, 3.9), (1.5, 5.65), (2.5, 6.65), (3.5, 7.35), (4.5, 7.85), (5.5, 8.3),
+           (6.5, 8.65), (7.5, 8.95), (8.6, 9.25), (9.6, 9.5), (10.6, 9.75), (11.6, 9.95), (12.7, 10.15),
+           (13.7, 10.35), (14.7, 10.55), (15.7, 10.7), (16.7, 10.85), (17.7, 11.0), (18.7, 11.15),
+           (19.7, 11.3), (20.8, 11.4), (21.8, 11.55), (22.8, 11.7), (23.8, 11.8), (24.8, 11.9), (25.8, 12.0),
+           (26.8, 12.1), (27.8, 12.2), (28.9, 12.3), (29.9, 12.4), (30.9, 12.5), (33.9, 12.65),
+           (36.9, 12.75), (39.0, 12.8), (41.0, 13.05), (44.0, 13.2), (48.0, 13.35), (55.0, 13.5),
+           (62.0, 13.7), (70.0, 13.8), (88.0, 14.02)]),
+]
+
+def plan_half(table, s):
+    """table's half breadth at s, read linearly between its points; past its last, that."""
+    for (s0, h0), (s1, h1) in zip(table, table[1:]):
+        if s <= s1:
+            return h0 + (h1 - h0) * (s - s0) / (s1 - s0)
+    return table[-1][1]
+
+def counter_half(x, y):
+    """Her counter's half breadth at (x, y), over her load waterline (COUNTER_PLANS)."""
+    s = x - stern_x(y)
+    below_y, below = LOAD_WL, 0.0
+    for height, table in COUNTER_PLANS:
+        here = plan_half(table, s)
+        if y <= height:
+            return below + (here - below) * (y - below_y) / (height - below_y)
+        below_y, below = height, here
+    return below
+
 def breadth(x, y):
-    """Her half breadth at (x, y)."""
+    """Her half breadth at (x, y): her lines, and over her load waterline aft her counter."""
     if y < KEEL or x >= stem_x(y) or x <= stern_x(y):
         return 0.0
     rise = y - KEEL
@@ -415,11 +468,17 @@ def breadth(x, y):
     if x < AFT_BODY:
         power = FINE_AFT * (LOW_AFT + (1 - LOW_AFT) * up) if up <= 1.0 else FINE_AFT * (1.0 + 1.2 * min(up - 1.0, 1.0))
         after = 1.0 - ((AFT_BODY - x) / (AFT_BODY - stern_x(y))) ** power
+        if y > LOAD_WL:
+            return max(side * fore * after, min(counter_half(x, y), HALF))
     return side * fore * after
 
 # Her forecastle and poop decks stepped to her sheer: C deck's sheer over amidships
-# off Plate III (SB-III), 2.2 m at x 110 and 0.6 m at x −110, on B deck's height.
-FCSL_STEP = 108.0
+# off Plate III (SB-III), 2.2 m at x 110 and 0.6 m at x −110, on B deck's height. The
+# forecastle's step over the wall C deck's plan draws across her under it, between the
+# crew's messes and the berths and windlass room forward of them (c.py px 9848; est.:
+# the plates draw her sheer, no step), so each room under her forecastle stands under
+# one deck and in one of its two cells (forecastle, forecastle_head).
+FCSL_STEP = 109.0625
 FCSL = (q(B_DECK + 1.56), q(B_DECK + 2.16))  # SB-III: C's sheer at x 91–108 and 108–128
 POOP = q(B_DECK + 0.56)                    # SB-III: C's sheer at x −107…−130
 
@@ -568,15 +627,70 @@ holes = {"boat": [], "a": [], "b": [], "c": [], "d": [], "e": [], "f": [], "well
 # The traced decks' stairs, each from the deck it leaves to the deck or the raised roof it
 # rises to, the hole it leaves in a deck there. Where the plate's flight is steeper than a
 # body climbs (STEEPEST), its deck file runs it on and says so.
-PLAN_DECKS = {"boat": BOAT, "a": A_DECK, "b": B_DECK, "c": 0.0}
+PLAN_DECKS = {"boat": BOAT, "a": A_DECK, "b": B_DECK, "c": 0.0, "d": D_DECK, "e": E_DECK}
+D_OUTLINE = plates.load("d")
 
 def slug(name):
     return re.sub(r"[^a-z0-9]+", "_", name.lower()).strip("_")
 
-for plan in (BOAT_PLAN, A_PLAN, B_OUTLINE):
+def foot(flight):
+    """A traced flight's low end's middle, (x, z)."""
+    _name, x0, x1, z0, z1, rises, _lower, _upper = flight
+    return {"fore": (x0, (z0 + z1) * 0.5), "aft": (x1, (z0 + z1) * 0.5),
+            "starboard": ((x0 + x1) * 0.5, z0), "port": ((x0 + x1) * 0.5, z1)}[rises]
+
+# D deck's flights down to E deck in No. 2 hold — the firemen's spiral staircases down to
+# their tunnel, the open space's forward starboard ladder, the bay's ladder — are not laid
+# until E deck is (#371): her estimated squash court fills that hold from G deck up to D,
+# where the plates put it in No. 3 hold (#360), and has no E deck for their feet.
+def unlaid(plan, flight):
+    x, _z = foot(flight)
+    return plan is D_OUTLINE and flight[6] == "e" and BX["C"] < x < BX["B"]
+
+# A traced flight's sides held off the walls they run along on the traced decks it joins:
+# the plates draw a flight to its room's edge, a wall's middle, and a stair wants no wall
+# in a body's way on it or a body's width past its ends (the layout lint). Each side moves
+# in, on the decks' grain, past every wall whose box (its ends' overlap past its corners
+# too) reaches no further into the flight than SIDE_STRIP — one further in stands across
+# it, and is cut under it (under_flights) or is the flight's to clear.
+SIDE_STRIP = 0.25
+TRACED = {"b": B_OUTLINE, "c": C_OUTLINE, "d": D_OUTLINE}
+
+def clear_sides(flight):
+    name, x0, x1, z0, z1, rises, lower, upper = flight
+    along_x = rises in ("fore", "aft")
+    lo, hi = (z0, z1) if along_x else (x0, x1)
+    a, b = (x0, x1) if along_x else (z0, z1)
+    lead = 2 * rule("body_radius")
+    for deck_name in (lower, upper):
+        plan = TRACED.get(deck_name)
+        boxes = []
+        for axis, at, w0, w1, kind, _doors in plan.walls if plan else []:
+            half = T if kind == "steel" else 0.03
+            boxes.append((at - half, at + half, w0 - half, w1 + half) if axis == 0
+                         else (w0 - half, w1 + half, at - half, at + half))
+        # And its solids, each a box or, standing in a room, its sides (plan_layer).
+        boxes += [(sx0 - 0.03, sx1 + 0.03, sz0 - 0.03, sz1 + 0.03) for _w, sx0, sx1, sz0, sz1, _t in
+                  (plan.solids if plan else [])]
+        for wx0, wx1, wz0, wz1 in boxes:
+            s0, s1, c0, c1 = (wx0, wx1, wz0, wz1) if along_x else (wz0, wz1, wx0, wx1)
+            if s1 <= a - lead + 1e-3 or s0 >= b + lead - 1e-3 or c1 <= lo + 1e-3 or c0 >= hi - 1e-3:
+                continue
+            if c1 - lo <= SIDE_STRIP:
+                lo = max(lo, math.ceil((c1 + 0.002) / plates.GRAIN) * plates.GRAIN)
+            elif hi - c0 <= SIDE_STRIP:
+                hi = min(hi, math.floor((c0 - 0.002) / plates.GRAIN) * plates.GRAIN)
+    return (name, x0, x1, lo, hi, rises, lower, upper) if along_x else (name, lo, hi, z0, z1, rises, lower, upper)
+
+for plan in (BOAT_PLAN, A_PLAN, B_OUTLINE, C_OUTLINE, D_OUTLINE):
     floors = dict(PLAN_DECKS)
     floors.update({name: PLAN_DECKS[plan.name] + h for name, _x0, _x1, _z0, _z1, h in plan.raised})
-    for k, (name, x0, x1, z0, z1, rises, lower, upper) in enumerate(plan.stairs):
+    for k, flight in enumerate(plan.stairs):
+        if unlaid(plan, flight):
+            continue
+        if plan.name in TRACED:
+            flight = clear_sides(flight)
+        name, x0, x1, z0, z1, rises, lower, upper = flight
         sid = "%s_%s_%d" % (plan.name, slug(name), k)
         into = holes[upper] if upper in holes else []
         if rises in ("fore", "aft"):
@@ -586,25 +700,16 @@ for plan in (BOAT_PLAN, A_PLAN, B_OUTLINE):
             ends = (z0, z1) if rises == "starboard" else (z1, z0)
             stair_z(sid, ends[0], ends[1], x0, x1, floors[lower], floors[upper], into)
 
-# The grand staircase from C deck to E deck: flights along x in its middle, the flights
-# down from each landing alternating port and starboard of her centre line. A deck's and B
-# deck's flights come down onto C deck forward of them (A_PLAN, B_PLAN).
-GS_RUN = (24.0, 28.0)
-LANES = [(-3.0, -3.0 + STAIR), (1.6, 1.6 + STAIR)]
-FLIGHTS = [("gs_c_d", "c", D_DECK, 0.0, LANES[1]), ("gs_d_e", "d", E_DECK, D_DECK, LANES[0])]
-for sid, above, low, high, lane in FLIGHTS:
-    stair(sid, GS_RUN[0], GS_RUN[1], lane[0], lane[1], low, high, holes[above])
 # Her F, E and G decks in No. 3 hold, one over the other: the post office on G deck
 # (BOT: the mail room "on the Orlop deck", the sorting room over it), third-class
-# berths on F, crew quarters on E (SB-IV) — each with two stairs up, the last two onto
-# the forward well deck through the third-class open space on D deck.
+# berths on F, crew quarters on E (SB-IV) — each with two stairs up, E deck's the third-
+# class ladders up into the open space on D deck (D_PLAN's), and C deck's ladderways on
+# up from it into the forecastle (C_PLAN's).
 HOLD3 = (BX["D"], BX["C"])
 H3_LANDING = 84.6  # each room's forward wall, a landing before bulkhead C beyond it
 H3_FLIGHTS = [  # (id, deck above, low, high, x from, x to, lane's z)
     ("g_f", "f", G_DECK, F_DECK, 79.0, 82.4, 5.0),
     ("f_e", "e", F_DECK, E_DECK, 73.0, 76.4, 6.6),
-    ("e_d", "d", E_DECK, D_DECK, 76.0, 79.8, 5.0),
-    ("d_well", "well", D_DECK, 0.0, 80.0, 84.2, 3.0),
 ]
 for sid, above, low, high, xa, xb, z in H3_FLIGHTS:
     for side, sign in [("p", -1), ("s", 1)]:
@@ -615,27 +720,29 @@ for sid, above, low, high, xa, xb, z in H3_FLIGHTS:
 # 3 m wide, 1 m in from her shell. The third-class dining saloons on F deck under it, two
 # rooms either side of bulkhead H ("the dining saloons, which occupy the space of two
 # watertight compartments on the middle deck amidships ... 100 ft", SB-1914, of
-# Britannic's alike), a stair up into the road from each; the road's own stair up to D
-# deck aft, into the galley.
+# Britannic's alike), a stair up into the road from each; the road up to D deck by the
+# grand staircase's foot beside it (D_PLAN), by the landings off it at the feet of D deck's
+# flights (E_LANDINGS, below), and by a stair of its own up into the first-class dining
+# saloon's forward port bay (est.), where D deck's plan leaves a run for it.
 SR = (BX["K"], BX["E"])
 SR_Z = (-13.0, -10.0)
 SALOON_Z = 13.0
 stair("f_sr_fwd", 10.0, 13.4, -12.6, -12.6 + STAIR, F_DECK, E_DECK, holes["e"])
 stair("f_sr_aft", -8.0, -4.6, -12.6, -12.6 + STAIR, F_DECK, E_DECK, holes["e"])
-stair("sr_d", -26.0, -22.2, -12.6, -12.6 + STAIR, E_DECK, D_DECK, holes["d"])
-# The second-class staircase aft, D deck up to C, in the second-class dining saloon.
-stair("second_class", -56.0, -52.0, 0.0, STAIR, D_DECK, 0.0, holes["c"])
-# Down off her open decks, two of each, port and starboard (est.): A deck's forward end
-# onto the forward well; the forecastle's and the poop's from their wells. (A deck's after
-# end comes down onto B deck's by its own ladders, A_PLAN's; B deck's ends onto her wells
-# by theirs, B_PLAN's.)
+stair("sr_d", 8.0, 11.75, -12.6, -12.6 + STAIR, E_DECK, D_DECK, holes["d"])
+# Down off her open decks, two of each, port and starboard: A deck's forward end onto the
+# forward well (est.); the forecastle's and the poop's from their wells, where C deck's
+# view draws their ladders against their fronts (Plate IV px 9130-9190 and 1630-1700),
+# run on to stairs a body climbs. (A deck's after end comes down onto B deck's by its own
+# ladders, A_PLAN's; B deck's ends onto her wells by theirs, B_PLAN's.)
 SIDE_LANE = (10.2, 10.2 + STAIR)  # outboard of A deck's house
-for side, sign in [("p", -1), ("s", 1)]:
+FCSL_LANES = [(-5.5625, -4.1625), (5.3125, 6.7125)]
+POOP_LANES = [(-7.3125, -5.9125), (6.1875, 7.5875)]
+for k, (side, sign) in enumerate([("p", -1), ("s", 1)]):
     lane = sorted((sign * SIDE_LANE[0], sign * SIDE_LANE[1]))
     stair("a_fwd_" + side, A_RUN[1] + 7.0, A_RUN[1], lane[0], lane[1], 0.0, A_DECK, [])
-    lane = sorted((sign * 2.0, sign * (2.0 + STAIR)))
-    stair("forecastle_" + side, FCSL_FROM - 5.8, FCSL_FROM, lane[0], lane[1], 0.0, FCSL[0], [])
-    stair("poop_" + side, POOP_TO + 5.5, POOP_TO, lane[0], lane[1], 0.0, POOP, [])
+    stair("forecastle_" + side, FCSL_FROM - 5.8, FCSL_FROM, *FCSL_LANES[k], 0.0, FCSL[0], [])
+    stair("poop_" + side, POOP_TO + 5.5, POOP_TO, *POOP_LANES[k], 0.0, POOP, [])
 
 def rail_line(rid, plats, axis, at, a, b, gaps=()):
     """Railings along the line where x (axis 0) or z (axis 2) is at, from a to b along
@@ -747,19 +854,64 @@ def b_side(x0, x1):
     return min(min(-z0, z1) for p0, p1, z0, z1 in B_PIECES if p0 < x1 and p1 > x0) - T
 
 B_PLAN = plates.load("b", side=b_side)
-CWD = fit(B_RUN[0], B_RUN[1], 0.0, 0.05)
-c_deck = deck("c", "C deck", B_RUN[0], B_RUN[1], -CWD, CWD, 0.0, holes["c"])
-# D deck, her length from the turbine room's after bulkhead to No. 2 hold, narrowing
-# forward with her hull.
-d_deck, d_ranges = [], []  # its pieces; per stretch of it, (its pieces, its half width)
-for x0, x1 in [(-64.5, 60.0), (60.0, 85.0), (85.0, 100.5)]:
-    w = fit(x0, x1, D_DECK, 0.2)
-    cut = [h for h in holes["d"] if x0 <= h[0] < x1]
-    made = deck("d_%d" % len(d_deck), "D deck", x0, x1, -w, w, D_DECK, cut)
-    d_ranges.append((made, w))
-    d_deck += made
+# C deck and D deck as Plate IV draws them (c.py, d.py; #368, #369), in strips as wide as
+# her hull is over each — her counter aft, her bow forward — shorter where she narrows, her
+# side narrowing STRIP_STEP at most along a strip: each room's outer wall then stands on
+# its strip's edge, as B deck's do. C deck under her poop, her bridge deck and her
+# forecastle, from the aftmost room's after wall to the foremost's forward one, her wells
+# between them (well, aft_well); D deck from her stern's store to her stem's.
+STRIP_STEP = 0.3
+
+def hull_strips(x0, x1, height, margin=0.05):
+    """Strips (a, b, -half, half) from x0 to x1 at height, each at most DECK_STRIP long and
+    as wide as her hull all along it, less margin, her side narrowing at most STRIP_STEP
+    along it; their ends on the traced decks' grain."""
+    out, a = [], x0
+    while a < x1 - 1e-9:
+        b = min(a + DECK_STRIP, x1)
+        while b - a > 0.25 and abs(breadth(a + 0.01, height) - breadth(b - 0.01, height)) > STRIP_STEP:
+            b = max(plates.kept(a + (b - a) * 0.5), a + 0.25)
+        half = fit(a, b, height, margin)
+        out.append((a, b, -half, half))
+        a = b
+    return out
+
+def held_to(pieces):
+    """The side the rooms over pieces (x0, x1, z0, z1) are held to (deck.py): the half
+    breadth of the narrowest piece under them, less a wall's half."""
+    def side(x0, x1):
+        over = [min(-z0, z1) for p0, p1, z0, z1 in pieces if p0 < x1 and p1 > x0]
+        return (min(over) if over else HALF) - T
+    return side
+
+C_ENDS = (min(r[1] for r in C_OUTLINE.rooms) - T, max(r[2] for r in C_OUTLINE.rooms) + T)
+C_PIECES = (hull_strips(C_ENDS[0], POOP_TO, 0.0) + hull_strips(B_RUN[0], B_RUN[1], 0.0)
+            + hull_strips(FCSL_FROM, C_ENDS[1], 0.0))
+c_deck = [i for k, (x0, x1, z0, z1) in enumerate(C_PIECES)
+          for i in deck("c_%d" % k, "C deck", x0, x1, z0, z1, 0.0, holes["c"])]
+# Under B deck's tapered after end, over her after well, C deck's after second-class
+# entrance's walls stand where the plate draws them, as B deck's after end's steps are est.
+B_TAIL = [p for p in B_OUTLINE.decks if p[2] is not None]
+C_PLAN = plates.load("c", side=held_to(C_PIECES), ends=(POOP_TO, B_RUN[0], B_RUN[1], FCSL_FROM))
+D_ENDS = (min(r[1] for r in D_OUTLINE.rooms) - T, max(r[2] for r in D_OUTLINE.rooms) + T)
+D_PIECES = hull_strips(*D_ENDS, D_DECK)
+d_deck = [i for k, (x0, x1, z0, z1) in enumerate(D_PIECES)
+          for i in deck("d_%d" % k, "D deck", x0, x1, z0, z1, D_DECK, holes["d"])]
+# D deck's cells part where a bulkhead's measured top stands over her flat D deck — P,
+# O, N and M aft, B and A forward: her sheer lifts their tops over it (BULKHEADS; her
+# sisters' raised ones part theirs too, their rooms hers) — and at her bridge deck's
+# front (d_deck, d_deck_forward). The plate draws walls over P, O and M within 0.25 m
+# and others over a line within D_REACH: each held to its line. A room the plate draws
+# over a line is split along it (named_pieces).
+D_CUTS = sorted({x for letter, x, _deck, feet in BULKHEADS if letter != "MN" and LOAD_WL + feet * FT > D_DECK + 1e-6}
+                | {B_RUN[1]})
+D_REACH = 0.4
+D_PLAN = plates.load("d", side=held_to(D_PIECES), ends=D_CUTS, reach=D_REACH)
 e_road = deck("e_road", "E deck", SR[0] + T, SR[1] - T, SR_Z[0], SR_Z[1], E_DECK, holes["e"])
-e_landing = deck("e_landing", "E deck", GS[0], GS[1], SR_Z[1], 6.0, E_DECK, holes["e"])
+# E deck's landing at the grand staircase's foot, on forward under D deck's flight down to
+# it (D_PLAN) to its head's end.
+GS_E = (GS[0], plates.kept(next(s[2] for s in D_OUTLINE.stairs if s[0] == "grand staircase") + 0.4))
+e_landing = deck("e_landing", "E deck", GS_E[0], GS_E[1], SR_Z[1], 6.0, E_DECK, holes["e"])
 f_saloons = deck("f_saloons", "F deck", BX["J"], BX["G"], -SALOON_Z, SALOON_Z, F_DECK, [])
 H3W = {h: fit(HOLD3[0], HOLD3[1], h, 0.3) for h in (E_DECK, F_DECK, G_DECK)}
 h3_floor = (HOLD3[0] + 0.3, HOLD3[1] - 0.3)
@@ -808,11 +960,11 @@ fc2 = [s[0] for s in FC2]
 FC1W = FC1[0][3]
 FCRW = min(FC1[-1][3], FC2[0][3])
 ramp("forecastle_step", FC_RAMP[0], FC_RAMP[1], -FCRW, FCRW, 0, FCSL[0], FCSL[1])
-POOP_STRIPS = tapered("poop", "poop deck", POOP_TO, -134.0, POOP, 4.0, 0.05)
+# The poop deck from over C deck's rooms under it (C_PLAN) to her counter's end, in strips
+# as C deck's (hull_strips).
+POOP_STRIPS = [(platform("poop_%d" % k, "poop deck", a, b, z0, z1, POOP), a, b, z1)
+               for k, (a, b, z0, z1) in enumerate(hull_strips(X_AFT + 0.25, POOP_TO, POOP))]
 poop = [s[0] for s in POOP_STRIPS]
-GENERAL = (BX["P"], POOP_TO)
-GW = fit(GENERAL[0], GENERAL[1], 0.0, 0.2)
-c_general = deck("c_general", "C deck", GENERAL[0], GENERAL[1], -GW, GW, 0.0, [])
 
 # --- Railings: the open decks' edges, round their stairs' feet and heads; three sides of
 # every hole a stair leaves in a deck.
@@ -861,6 +1013,26 @@ rail_line("aft_well_starboard", aft_well, 2, AW, AFT_WELL[0], AFT_WELL[1])
 rail_taper("fcsl", FC1, [(FCSL_FROM, lanes_of("forecastle_")), (FCSL_STEP, [(-FCRW, FCRW)])])
 rail_taper("fcsl_head", FC2, [(FC_RAMP[1], [(-FCRW, FCRW)])])
 rail_taper("poop", POOP_STRIPS, [(POOP_TO, lanes_of("poop_"))])
+# C deck's: along her side under the decks over it where no room of hers stands by it — her
+# second-class promenades aft (BOT: "sheltered by bulwarks"), the third-class alcoves under
+# the poop's front — and never at its ends on her wells, which it runs on into, nor at its
+# own ends, behind its end rooms' walls.
+C_SIDE_ROOM = 2.2  # a room's wall this near her side leaves no deck a body walks by it
+
+def c_covered(sign, x0, x1, half):
+    """The stretches of C deck's side (sign) over x0..x1 its rooms stand by."""
+    return [(max(x0, r[1] - T), min(x1, r[2] + T)) for r in C_PLAN.rooms + C_PLAN.solids
+            if r[1] < x1 and r[2] > x0 and (r[4] if sign > 0 else -r[3]) >= half - C_SIDE_ROOM]
+
+c_gaps = [(0, at, -HALF, HALF) for at in (POOP_TO, B_RUN[0], B_RUN[1], FCSL_FROM) + C_ENDS]
+for x0, x1, z0, z1 in C_PIECES:
+    for sign, z in [(-1, z0), (1, z1)]:
+        c_gaps += [(2, z, a, b) for a, b in c_covered(sign, x0, x1, z1)]
+        # The step to the next strip, where its rooms stand to her side either side of it.
+        for edge in (x0, x1):
+            if c_covered(sign, edge - 0.05, edge + 0.05, z1):
+                c_gaps.append((0, edge, -HALF, HALF))
+outline_rails("c", C_PIECES, c_deck, c_gaps)
 DECKS_AT = {BOAT: boat, A_DECK: a_deck, B_DECK: b_deck, 0.0: c_deck + well, D_DECK: d_deck,
             E_DECK: e_road + e_landing + e_crew, F_DECK: f_berths}
 for name, _lo, _hi, _z0, _z1, high, _x_low in list(stairs):
@@ -899,12 +1071,27 @@ for tag, plats, middle, side in [("aft_well", aft_well, sum(AFT_WELL) / 2, AW), 
 PARTITION = 0.06
 DOOR_LEAST = 1.0   # the layout lint's least door
 
-def plan_layer(prefix, plan, floor, ceiling):
-    """A traced deck's rooms, walls, doors and solid blocks, from floor to ceiling."""
+NO_ROOM = []  # (deck, axis, at, along, room, wall from, wall to): a door its wall has no room for
+
+def plan_layer(prefix, plan, floor, ceiling, breaks=(), parted_at=(), place=None, main=None):
+    """A traced deck's rooms, walls, doors and solid blocks, from floor to ceiling: a
+    height, or the height of the deck over ship x, ceiling(x), which changes only at
+    breaks — a wall along her under two decks is laid in a piece under each. Given
+    place, its rooms as her cells hold them: split along parted_at, named for where
+    they stand (named_pieces)."""
+    over = ceiling if callable(ceiling) else (lambda _x: ceiling)
+
+    def under(lo, hi):
+        """lo..hi along her cut where the deck over it changes — but within a wall's end
+        past a corner, which takes the deck over the rest: [(from, to, its height)]."""
+        cuts = [lo] + [v for v in sorted(breaks) if lo + 2 * T < v < hi - 2 * T] + [hi]
+        return [(p, q, over((p + q) * 0.5)) for p, q in zip(cuts, cuts[1:])]
+
     def door_room(axis, at, a, b, along):
         """The stretch of the wall (axis, at) from a to b a door at along may take: up to the
         nearest wall meeting it either side, clear of that wall's thickness (none past a
-        casing, whose face is its line)."""
+        casing, whose face is its line), and up to a line her cells part along (parted_at),
+        where a room the plate draws whole is two, a door in one of them."""
         low, high = a, b
         for w in plan.walls:
             if w[0] == axis or not (w[2] - 1e-6 <= at <= w[3] + 1e-6) or not (a - 1e-6 <= w[1] <= b + 1e-6):
@@ -914,16 +1101,25 @@ def plan_layer(prefix, plan, floor, ceiling):
                 low = max(low, w[1] + half)
             else:
                 high = min(high, w[1] - half)
+        for c in parted_at if axis != 0 else ():
+            if a < c < b:
+                if c <= along:
+                    low = max(low, c)
+                else:
+                    high = min(high, c)
         return low + 0.01, high - 0.01
 
-    for k, (name, x0, x1, z0, z1) in enumerate(plan.rooms):
+    rooms = plan.rooms if place is None else named_pieces(plan.rooms, parted_at, place, main)
+    for k, (name, x0, x1, z0, z1) in enumerate(rooms):
         room("%s_%d_%s" % (prefix, k, slug(name)), name, x0, x1, z0, z1, floor)
     for k, (axis, at, a, b, kind, doors) in enumerate(plan.walls):
         half = T if kind == "steel" else PARTITION / 2
         cuts = []
         for along in sorted(doors):
             low, high = door_room(axis, at, a, b, along)
-            assert high - low >= DOOR_LEAST, ("no room for a door", prefix, axis, at, along)
+            if high - low < DOOR_LEAST:
+                NO_ROOM.append((prefix, axis, at, along, round(high - low, 3), a, b))
+                continue
             width = min(DOOR, high - low)
             mid = min(max(along, low + width / 2), high - width / 2)
             cuts.append((round(mid - width / 2, 4), round(mid + width / 2, 4)))
@@ -934,18 +1130,21 @@ def plan_layer(prefix, plan, floor, ceiling):
             if hi - lo > 0.005:
                 tag = "%s_%d" % (bid, i // 2) if cuts else bid
                 if axis == 0:
-                    box(tag, at - half, at + half, lo, hi, floor, ceiling)
+                    box(tag, at - half, at + half, lo, hi, floor, over(at))
                 else:
-                    box(tag, lo, hi, at - half, at + half, floor, ceiling)
+                    parts = under(lo, hi)
+                    for j, (p, q, top) in enumerate(parts):
+                        box(tag if len(parts) == 1 else "%s_u%d" % (tag, j), p, q, at - half, at + half, floor, top)
         for i, (c0, c1) in enumerate(cuts):
-            if floor + LINTEL < ceiling and c1 - c0 < b - a:
+            top = over(at if axis == 0 else (c0 + c1) * 0.5)
+            if floor + LINTEL < top and c1 - c0 < b - a:
                 if axis == 0:
-                    box("%s_lintel_%d" % (bid, i), at - half, at + half, c0, c1, floor + LINTEL, ceiling)
+                    box("%s_lintel_%d" % (bid, i), at - half, at + half, c0, c1, floor + LINTEL, top)
                 else:
-                    box("%s_lintel_%d" % (bid, i), c0, c1, at - half, at + half, floor + LINTEL, ceiling)
+                    box("%s_lintel_%d" % (bid, i), c0, c1, at - half, at + half, floor + LINTEL, top)
             doorways.append((axis, at, c0, c1, floor))
     for k, (what, x0, x1, z0, z1, top) in enumerate(plan.solids):
-        sid, high = "%s_%d_%s" % (prefix, k, slug(what)), ceiling if top is None else floor + top
+        sid, high = "%s_%d_%s" % (prefix, k, slug(what)), over((x0 + x1) * 0.5) if top is None else floor + top
         if top is not None or not any(r[1] < (x0 + x1) / 2 < r[2] and r[3] < (z0 + z1) / 2 < r[4] for r in plan.rooms):
             box(sid, x0, x1, z0, z1, floor, high)
             continue
@@ -1001,81 +1200,90 @@ for name, *house in B_PLAN.houses:
     # Over its rooms, to its walls' middles: its walls stand up to A deck's top themselves.
     for k, (a, b, s0, s1) in enumerate(deck_pieces(*house, A_PIECES + B_TRUNKS)):
         box("%s_roof_%d" % (name, k), a, b, s0, s1, A_DECK - 2 * T, A_DECK)
-CORRIDOR = 1.5
+# C deck as Plate IV draws it (C_PLAN, #368): under her poop, her bridge deck and her
+# forecastle, each room up to the deck over it (c_over) — the poop's, B deck's, the
+# forecastle's, under its step no higher than the step's foot —; on her wells only what
+# stands on them at its own height, her hatches, winches and cranes. D deck as Plate IV
+# draws it too (D_PLAN, #369), from her stern to her stem under C deck.
+C_TAIL = min(p[0] for p in B_TAIL)
 
-def open_wall(bid, axis, at, a, b, bottom, top, gaps):
-    """A wall across her at x = at (axis 0) or along her at z = at, from a to b, open over
-    gaps [(from, to)] with nothing over them: where a flight comes down through it."""
-    edges = [a - T] + [v for g in sorted(gaps) for v in g] + [b + T]
-    for i in range(0, len(edges), 2):
-        lo, hi = edges[i], edges[i + 1]
-        if axis == 0:
-            box("%s_%d" % (bid, i // 2), at - T, at + T, lo, hi, bottom, top)
-        else:
-            box("%s_%d" % (bid, i // 2), lo, hi, at - T, at + T, bottom, top)
+def c_over(x):
+    """The height of the deck over C deck at ship x, where C deck has rooms."""
+    if x <= POOP_TO + 1e-6:
+        return POOP
+    if C_TAIL - 1e-6 <= x <= B_RUN[1] + 1e-6:
+        return B_DECK
+    assert x >= FCSL_FROM - 1e-6, "no deck over C deck at x %.3f: a wall on her open wells" % x
+    return FCSL[0] if x < FC_RAMP[1] else FCSL[1]
 
-# C deck under B: the grand staircase and the purser's office, a corridor aft to the
-# bridge deck's after face and the after well (SB-IV); her bridge deck's fronts at C;
-# under the poop, the third-class general room (SB-IV, "3rd class general room"). B
-# deck's flights come down onto it where her plans put them (B_PLAN): the grand
-# staircase's through its landing's forward wall, the wall open over it, nothing over it;
-# the others outside the corridor, until C deck is traced.
-PURSER = (GS[1], 37.9)
-wall_x("c_aft_face", B_RUN[0], -CWD, CWD, 0.0, B_DECK, [door_at(0.0)])
-wall_x("c_fwd_face", B_RUN[1], -CWD, CWD, 0.0, B_DECK)
-# Under B deck's tapered after end, where her second-class stairway's entrance stands on
-# it, C deck's second-class space runs on aft to "two doors at the after-end into the
-# after-well" (BOT): est. as wide as the narrowest step of that end, until C deck is
-# traced; a house of hers on the after well (HOUSES), B deck's after end its roof.
-C_AFT_END = (min(p[0] for p in B_OUTLINE.decks), B_RUN[0],
-             *min((p for p in B_OUTLINE.decks if p[2] is not None), key=lambda p: p[3] - p[2])[2:])
-wall_x("c_aft_end", C_AFT_END[0], C_AFT_END[2], C_AFT_END[3], 0.0, B_DECK, [door_at(-2.0), door_at(2.0)])
-for tag, z in [("p", C_AFT_END[2]), ("s", C_AFT_END[3])]:
-    wall_z("c_aft_end_" + tag, z, C_AFT_END[0], C_AFT_END[1], 0.0, B_DECK)
-room("c_aft_end", "second-class vestibule, C deck", *C_AFT_END, 0.0)
-for tag, z in [("p", -CORRIDOR), ("s", CORRIDOR)]:
-    wall_z("c_corridor_" + tag, z, B_RUN[0], GS[0], 0.0, B_DECK)
-room("c_corridor", "C deck corridor", B_RUN[0], GS[0], -CORRIDOR, CORRIDOR, 0.0)
-wall_x("gs_c_aft", GS[0], -6.0, 6.0, 0.0, B_DECK, [door_at(0.0)])
-gs_flight = next(s[1:5] for s in B_PLAN.stairs if s[0] == "grand staircase")
-gs_gaps = sorted([(gs_flight[2] - 0.05, gs_flight[3] + 0.05), door_at(0.0)])
-open_wall("gs_c_fwd", 0, GS[1], -6.0, 6.0, 0.0, B_DECK,
-          [(gs_gaps[0][0], max(g[1] for g in gs_gaps))] if gs_gaps[1][0] <= gs_gaps[0][1] else gs_gaps)
-wall_x("purser_fwd", PURSER[1], -6.0, 6.0, 0.0, B_DECK)
-for tag, z in [("p", -6.0), ("s", 6.0)]:
-    wall_z("gs_c_" + tag, z, GS[0], PURSER[1], 0.0, B_DECK)
-room("gs_c", "grand staircase, C deck", GS[0], GS[1], -6.0, 6.0, 0.0)
-room("purser", "purser's office", PURSER[0], PURSER[1], -6.0, 6.0, 0.0)
-wall_x("forecastle_face", FCSL_FROM, -CW, CW, 0.0, FCSL[0])
-wall_x("poop_face", POOP_TO, -AW, AW, 0.0, POOP, [door_at(0.0)])
-wall_x("general_aft", GENERAL[0], -GW, GW, 0.0, POOP)
-for tag, z in [("p", -GW), ("s", GW)]:
-    wall_z("general_" + tag, z, GENERAL[0], POOP_TO, 0.0, POOP)
-room("general", "third-class general room", GENERAL[0], POOP_TO, -GW, GW, 0.0)
+def named_pieces(rooms, cuts, place, main):
+    """A traced deck's rooms as her cells hold them, as her structure's lint asks — each
+    room in one cell, and each name in one (FloodCell.rooms names a cell's): each split
+    along every line of cuts it runs over, where her cells part under a room the plate
+    draws whole; and a name the plate gives rooms in more than one place kept in one —
+    main, its deck's main place, where it stands there, else where most of its floor is
+    — and told apart in every other by where it stands there, place(x)'s words it does
+    not already say. A name a deck laid before has is told apart everywhere."""
+    pieces = []
+    for name, x0, x1, z0, z1 in rooms:
+        lines = [x0] + [c for c in cuts if x0 + 1e-6 < c < x1 - 1e-6] + [x1]
+        pieces += [(name, a, b, z0, z1) for a, b in zip(lines, lines[1:])]
+    taken = {r[5] for r in room_geo}
+    floor_area = {}
+    for name, x0, x1, z0, z1 in pieces:
+        where = place((x0 + x1) * 0.5)
+        floor_area[(name, where)] = floor_area.get((name, where), 0.0) + (x1 - x0) * (z1 - z0)
+    home = {}
+    for (name, where), _area in sorted(floor_area.items(), key=lambda item: -item[1]):
+        if name not in taken:
+            home.setdefault(name, main if (name, main) in floor_area else where)
+    out = []
+    for name, x0, x1, z0, z1 in pieces:
+        where = place((x0 + x1) * 0.5)
+        if home.get(name) != where:
+            said = name.split(", ")
+            name = ", ".join([name] + [w for w in where if w not in said])
+        out.append((name, x0, x1, z0, z1))
+    held = {}
+    for name, x0, x1, _z0, _z1 in out:
+        held.setdefault(name, set()).add(place((x0 + x1) * 0.5))
+    twice = {name: sorted(w) for name, w in held.items() if len(w) > 1}
+    assert not twice and not taken & set(held), ("a name in two places", twice, sorted(taken & set(held)))
+    return out
 
-# D deck (SB-IV): from aft the second-class dining saloon, a corridor, the galley, the
-# first-class dining saloon and the reception room at the grand staircase's foot, a
-# corridor forward through the cabins to the third-class open space under the well.
-D_ROOMS = [("saloon_2", "second-class dining saloon", -64.0, -49.0, -12.5, 12.5),
-           ("d_corridor", "D deck corridor", -49.0, -30.0, -CORRIDOR, CORRIDOR),
-           ("galley", "galley", -30.0, -13.9, -13.0, 6.0),
-           ("saloon_1", "first-class dining saloon", -13.9, GS[0], -13.0, 13.0),
-           ("reception", "reception room", GS[0], GS[1], -13.0, 13.0),
-           ("d_corridor_fwd", "D deck corridor, forward", GS[1], B_RUN[1], -CORRIDOR, CORRIDOR),
-           ("open_space", "third-class open space", B_RUN[1], 99.0, -8.0, 8.0)]
-for k, (rid, name, x0, x1, z0, z1) in enumerate(D_ROOMS):
-    room(rid, name, x0, x1, z0, z1, D_DECK)
-    wall_z(rid + "_p", z0, x0, x1, D_DECK, 0.0)
-    wall_z(rid + "_s", z1, x0, x1, D_DECK, 0.0)
-    if k == 0:
-        wall_x(rid + "_aft", x0, z0, z1, D_DECK, 0.0)
-    nz0, nz1 = (D_ROOMS[k + 1][4], D_ROOMS[k + 1][5]) if k + 1 < len(D_ROOMS) else (z0, z1)
-    wall_x(rid + "_fwd", x1, min(z0, nz0), max(z1, nz1), D_DECK, 0.0,
-           [] if k + 1 == len(D_ROOMS) else [door_at(0.0)])
+def c_place(x):
+    """Where on C deck ship x stands, as her cells part it: under her poop; in the house
+    round her after entrance's after end on her after well; under her bridge deck, her
+    main place; under her forecastle, or under its head forward of its step."""
+    if x < POOP_TO:
+        return ("poop",)
+    if x < B_RUN[0]:
+        return ("C deck", "after end")
+    if x < FCSL_FROM:
+        return ("C deck",)
+    return ("forecastle",) if x < FCSL_STEP else ("forecastle head",)
+
+def d_place(x):
+    """Where on D deck ship x stands, between the lines her cells part along (D_CUTS):
+    from bulkhead M to her bridge deck's front, her main place; aft of it, aft of the
+    bulkhead forward of it; forward of it, forward of the bulkhead aft of it, or aft of
+    bulkhead B under her forward well."""
+    letter = {round(b[1], 4): b[0] for b in BULKHEADS}
+    if BX["M"] <= x < B_RUN[1]:
+        return ("D deck",)
+    after = max([c for c in D_CUTS if c <= x], default=None)
+    if x > BX["M"] and round(after, 4) in letter:
+        return ("D deck", "forward of bulkhead %s" % letter[round(after, 4)])
+    return ("D deck", "aft of bulkhead %s" % letter[round(min(c for c in D_CUTS if c > x), 4)])
+
+plan_layer("c", C_PLAN, 0.0, c_over, (POOP_TO, C_TAIL, B_RUN[1], FCSL_FROM, FC_RAMP[1]),
+           parted_at=(POOP_TO, B_RUN[0], B_RUN[1], FCSL_FROM, FCSL_STEP), place=c_place, main=("C deck",))
+plan_layer("d", D_PLAN, D_DECK, 0.0, parted_at=D_CUTS, place=d_place, main=("D deck",))
+assert not NO_ROOM, "no room for a door: %s" % NO_ROOM
 
 # E deck: Scotland Road and the grand staircase's foot beside it.
 wall_z("road_out", SR_Z[0], SR[0], SR[1], E_DECK, D_DECK)
-wall_z("road_in", SR_Z[1], SR[0], SR[1], E_DECK, D_DECK, [door_at(26.9)])
+ROAD_DOORS = [door_at(26.9)]  # and the E landings' (below)
 wall_x("road_aft", SR[0], SR_Z[0], SR_Z[1], E_DECK, D_DECK)
 wall_x("road_fwd", SR[1], SR_Z[0], SR_Z[1], E_DECK, D_DECK)
 # One room for each stretch of it between the bulkheads whose tops rise over its floor,
@@ -1084,10 +1292,37 @@ ROAD = [(SR[0], BX["J"], "boiler room 1"), (BX["J"], BX["G"], "boiler rooms 2 an
         (BX["G"], BX["F"], "boiler room 4"), (BX["F"], SR[1], "boiler room 5")]
 for k, (x0, x1, by) in enumerate(ROAD):
     room("road_%d" % (k + 1), "Scotland Road, " + by, x0, x1, SR_Z[0], SR_Z[1], E_DECK)
-wall_x("gs_e_aft", GS[0], SR_Z[1], 6.0, E_DECK, D_DECK)
-wall_x("gs_e_fwd", GS[1], SR_Z[1], 6.0, E_DECK, D_DECK)
-wall_z("gs_e_s", 6.0, GS[0], GS[1], E_DECK, D_DECK)
-room("gs_e", "grand staircase, E deck", GS[0], GS[1], SR_Z[1], 6.0, E_DECK)
+wall_x("gs_e_aft", GS_E[0], SR_Z[1], 6.0, E_DECK, D_DECK)
+wall_x("gs_e_fwd", GS_E[1], SR_Z[1], 6.0, E_DECK, D_DECK)
+wall_z("gs_e_s", 6.0, GS_E[0], GS_E[1], E_DECK, D_DECK)
+room("gs_e", "grand staircase, E deck", GS_E[0], GS_E[1], SR_Z[1], 6.0, E_DECK)
+# Landings on E deck at the feet of D deck's flights down to it where her estimated E deck
+# has none (est., until E deck is traced, #371): the stewards' staircase's over boiler
+# room 1, from bulkhead K's wall; the stair's down from the port first-class entrance over
+# boiler room 5, from bulkhead F. Each a room walled up to D deck from Scotland Road, a
+# door into it, to past its flight's foot (its wall under the flight cut to its underside,
+# under_flights).
+def d_flight(name, x_from):
+    return next(s for s in D_PLAN.stairs if s[0] == name and s[1] > x_from)
+
+E_LANDINGS = []
+for rid, name, flight, aft in [("e_stewards", "stewards' stair, E deck", d_flight("stewards' staircase", -60.0), "K"),
+                               ("e_entrance", "first-class stair, E deck", d_flight("stair", BX["F"] - 2.0), "F")]:
+    _n, x0, x1, z0, z1, rises, _lo, _up = flight
+    # From the bulkhead aft of it, on past its foot by a body's lead and a half (1.2 m), past
+    # its sides by less: the stewards' clear of boiler room 1's fiddley casing forward of it.
+    across = rises in ("port", "starboard")
+    area = (BX[aft], plates.kept(x1 + (0.6 if across else 1.2)), SR_Z[1], plates.kept(z1 + (1.2 if across else 0.6)))
+    E_LANDINGS.append(area)
+    deck(rid, "E deck", *area, E_DECK, [])
+    ax0, ax1, az0, az1 = area
+    wall_z(rid + "_s", az1, ax0, ax1, E_DECK, D_DECK)
+    wall_x(rid + "_f", ax1, az0, az1, E_DECK, D_DECK)
+    if aft != "K":  # bulkhead K's wall stands there already (aft_k, below)
+        wall_x(rid + "_a", ax0, az0, az1, E_DECK, D_DECK)
+    room(rid, name, *area, E_DECK)
+wall_z("road_in", SR_Z[1], SR[0], SR[1], E_DECK, D_DECK,
+       sorted(ROAD_DOORS + [door_at((a[0] + a[1]) * 0.5) for a in E_LANDINGS]))
 
 # F deck: the third-class dining saloons either side of bulkhead H, a watertight door
 # between them (BOT: "On both the F and E decks nearly all the bulkheads had watertight
@@ -1123,11 +1358,6 @@ for rid, name, h, top in [("post_office", "post office", G_DECK, F_DECK),
     for tag, z in [("p", -w), ("s", w)]:
         wall_z("%s_%s" % (rid, tag), z, h3_floor[0], h3_floor[1], h, top)
 
-# The forward well's cargo hatch to starboard, its cover a hop up (est., SB-III's No. 2
-# hatch).
-WELL_HATCH = (76.0, 79.0, 3.0, 7.0)
-box("well_hatch", *WELL_HATCH, 0.0, 0.8)
-
 # --- Furniture: the boxes standing on her rooms' floors, after every other blocker so
 # none of theirs moves. Each is drawn inside its box (FurnitureDressing): tables 0.75 m
 # tall, a jump up; benches 0.45, a step and a half; ranges 0.9; counters and the
@@ -1141,17 +1371,6 @@ box("well_hatch", *WELL_HATCH, 0.0, 0.8)
 # own (LAID, after her lifebuoys) that slides, is pushed about and floats.
 TABLE, BENCH, RANGE, COUNTER = 0.75, 0.45, 0.9, 1.0
 LAID = []  # (tid, x, floor, z): the middle of a laid table
-# The first-class dining saloon (SB-IV): nine columns of tables, three rows either side
-# of its centre line.
-for k in range(9):
-    x = -11.4 + 3.5 * k
-    for j, z in enumerate([-9.0, -6.0, -3.0, 3.0, 6.0, 9.0]):
-        LAID.append(("saloon_1_%d" % (k * 6 + j), x, D_DECK, z))
-# The second-class dining saloon: four columns, three rows either side, clear of the
-# second-class staircase up to C deck from its centre line to starboard.
-for k, x in enumerate([-62.0, -59.0, -56.0, -53.0]):
-    for j, z in enumerate([-9.6, -6.6, -3.6, 3.6, 6.6, 9.6]):
-        LAID.append(("saloon_2_%d" % (k * 6 + j), x, D_DECK, z))
 # The third-class dining saloons either side of bulkhead H: long tables, three in a row,
 # three rows either side, short of the pendants over z ±8.67 and the stairs to port.
 SALOON_3_ROWS = [(-7.5, -6.6), (-5.3, -4.4), (-3.1, -2.2), (2.2, 3.1), (4.4, 5.3), (6.6, 7.5)]
@@ -1160,18 +1379,10 @@ for rid, runs in [("saloon_3_aft", [(-14.75, -10.75), (-9.55, -5.55), (-4.35, -0
     for k, (x0, x1) in enumerate(runs):
         for j, (z0, z1) in enumerate(SALOON_3_ROWS):
             box("table_%s_%d" % (rid, k * 6 + j), x0, x1, z0, z1, F_DECK, F_DECK + TABLE)
-# (The à la carte restaurant's are laid with B deck's other rooms' furniture, below.)
-# The galley's two ranges either side of its centre line.
-for k, (z0, z1) in enumerate([(-4.7, -3.5), (2.5, 3.7)]):
-    box("range_galley_%d" % k, -26.0, -18.0, z0, z1, D_DECK, D_DECK + RANGE)
-# Benches in the third-class general room and the open space, two either side.
-BENCH_ROWS = [(-5.8, -5.3), (-3.0, -2.5), (2.5, 3.0), (5.3, 5.8)]
-for rid, x0, x1, floor in [("general", -117.0, -108.0, 0.0), ("open_space", 87.0, 97.0, D_DECK)]:
-    for j, (z0, z1) in enumerate(BENCH_ROWS):
-        box("bench_%s_%d" % (rid, j), x0, x1, z0, z1, floor, floor + BENCH)
-# The purser's counter and the post office's, either side of the way in.
-for rid, x0, x1, floor, rows in [("purser", 35.4, 36.0, 0.0, [(-5.0, -1.5), (1.5, 5.0)]),
-                                 ("post_office", 73.0, 73.8, G_DECK, [(-6.0, -1.5), (1.5, 6.0)])]:
+# (The à la carte restaurant's are laid with B deck's other rooms' furniture, the dining
+# saloons', the galley's, C and D decks' rooms' with theirs, below.)
+# The post office's counter, either side of the way in.
+for rid, x0, x1, floor, rows in [("post_office", 73.0, 73.8, G_DECK, [(-6.0, -1.5), (1.5, 6.0)])]:
     for j, (z0, z1) in enumerate(rows):
         box("counter_%s_%d" % (rid, j), x0, x1, z0, z1, floor, floor + COUNTER)
 # The gymnasium's rowing machine and electric camel, against its after wall.
@@ -1531,28 +1742,23 @@ deck("g_strip_d", "G deck", BX["D"] + T, h3_floor[0], -H3P, H3P, G_DECK, [])
 room("hold_3_orlop", "No. 3 hold", BX["D"], BX["C"], -H3P, H3P, PASSAGE_TOP)
 room("hold_2_orlop", "No. 2 hold", BX["C"], COURT_FWD, -H2P, H2P, PASSAGE_TOP)
 
-# No. 1 hold, deck over deck from its tank top to the forecastle: an orlop deck, G deck and
-# D deck in it (est.), two flights side by side up each, the last onto C deck under the forecastle, its
-# seamen's quarters and its stores (SB-IV), and out through the forecastle's door onto the
-# forward well (door_forecastle). Each deck narrows forward of H1_SPLIT with her bow. The
-# forepeak's tank and its stores forward of bulkhead A, each through a door in it from the
-# hold's deck at its floor.
+# No. 1 hold, deck over deck from its tank top to D deck: an orlop deck and G deck in it
+# (est.), two flights side by side up each but the last, one up into the firemen's
+# quarters on D deck (D_PLAN), aft of No. 1 hatch's cover there and to port of it, its
+# walls under it cut to its underside (under_flights) — and out from them by the crew's
+# stairs up to the forecastle and its door onto the forward well (door_forecastle). Each
+# deck narrows forward of H1_SPLIT with her bow. The forepeak's tank and its stores
+# forward of bulkhead A, each through a door in it from the hold's deck at its floor.
 H1T = (fit(BX["B"], H1_SPLIT, TANK_TOP, 0.3), fit(H1_SPLIT, BX["A"], TANK_TOP, 0.3))
 H1O = (fit(BX["B"], H1_SPLIT, ORLOP, 0.3), fit(H1_SPLIT, BX["A"], ORLOP, 0.3))
 H1G = (fit(BX["B"], H1_SPLIT, G_DECK, 0.3), fit(H1_SPLIT, BX["A"], G_DECK, 0.3))
-H1D = fit(BX["B"], BX["A"], D_DECK, 0.3)
-FC_C = (fit(FCSL_FROM, FCSL_STEP, 0.0, 0.3), fit(FCSL_STEP, 116.0, 0.0, 0.3))
-FORE_STORES = 116.0  # where the forecastle stores narrow with her bow (est.)
-h1o_holes, h1g_holes, h1d_holes, c_holes = [], [], [], []
+h1o_holes, h1g_holes, h1d_holes = [], [], []
 for sid, foot, head, (z0, z1), low, high, holes_above in [
         ("space_h1_or_1", 108.625, 103.0, (-2.1, -1.1), TANK_TOP, ORLOP, h1o_holes),
         ("space_h1_or_2", 108.625, 103.0, (-1.1, -0.1), TANK_TOP, ORLOP, h1o_holes),
         ("space_h1_g_1", 105.5, 108.5, (1.2, 2.25), ORLOP, G_DECK, h1g_holes),
         ("space_h1_g_2", 105.5, 108.5, (2.25, 3.3), ORLOP, G_DECK, h1g_holes),
-        ("space_h1_d_1", 113.5, 104.125, (-2.6, -1.55), G_DECK, D_DECK, h1d_holes),
-        ("space_h1_d_2", 113.5, 104.125, (-1.55, -0.5), G_DECK, D_DECK, h1d_holes),
-        ("space_h1_c_1", 108.5, 112.25, (1.0, 2.05), D_DECK, 0.0, c_holes),
-        ("space_h1_c_2", 108.5, 112.25, (2.05, 3.1), D_DECK, 0.0, c_holes)]:
+        ("space_h1_d", 104.0, 113.375, (-3.75, -2.7), G_DECK, D_DECK, h1d_holes)]:
     stair(sid, foot, head, z0, z1, low, high, holes_above)
 FP_TANK = (119.5, fit(BX["A"], 119.5, TANK_TOP, 0.3))
 FP_STORES = (122.0, fit(BX["A"], 122.0, ORLOP, 0.3))
@@ -1567,32 +1773,15 @@ for level, h, widths, holes, top in [("tank", TANK_TOP, H1T, h1_holes, ORLOP), (
     walled("hold_1_%s_fwd" % level, H1_SPLIT, BX["A"], -widths[1], widths[1], h, top, "ps")
     for tag, sign in [("p", -1), ("s", 1)]:
         wall_x("hold_1_%s_step_%s" % (level, tag), H1_SPLIT, *sorted((sign * widths[1], sign * widths[0])), h, top)
-h1_decks["d"] = deck("hold_1_d", "D deck", BX["B"], BX["A"], -H1D, H1D, D_DECK, h1d_holes)
-fcsl_c = deck("fcsl_c", "C deck", FCSL_FROM, FCSL_STEP, -FC_C[0], FC_C[0], 0.0, [])
-fcsl_c += deck("fcsl_head_c", "C deck", FCSL_STEP, FORE_STORES, -FC_C[1], FC_C[1], 0.0, c_holes)
 deck("forepeak_tank", "tank top", BX["A"], FP_TANK[0], -FP_TANK[1], FP_TANK[1], TANK_TOP, [])
 deck("forepeak_stores", "orlop deck", BX["A"], FP_STORES[0], -FP_STORES[1], FP_STORES[1], ORLOP, [])
-# The forecastle stores on forward over the forepeak, roofing it: its stores open up to them.
-FC_FWD = fit(FORE_STORES, FP_STORES[0], 0.0, 0.3)
-fcsl_c += deck("fcsl_fwd_c", "C deck", FORE_STORES, FP_STORES[0], -FC_FWD, FC_FWD, 0.0, [])
 wall_x("tank_a", BX["A"], -H1T[1], H1T[1], TANK_TOP, ORLOP, [sealed_door("sealed_a_tank", "A", TANK_TOP, 0.0)])
 wall_x("orlop_a", BX["A"], -H1O[1], H1O[1], ORLOP, G_DECK, [sealed_door("sealed_a_orlop", "A", ORLOP, 0.0)])
 wall_x("g_b", BX["B"], -H1G[0], H1G[0], G_DECK, D_DECK)
 wall_x("g_a", BX["A"], -H1G[1], H1G[1], G_DECK, D_DECK)
-walled("hold_1_d", BX["B"], BX["A"], -H1D, H1D, D_DECK, 0.0)
 walled("forepeak_tank", BX["A"], FP_TANK[0], -FP_TANK[1], FP_TANK[1], TANK_TOP, ORLOP, "psf")
-walled("forepeak_stores", BX["A"], FP_STORES[0], -FP_STORES[1], FP_STORES[1], ORLOP, 0.0, "psf")
-# Under the forecastle, its walls up to its deck, under the step on to its head no higher
-# than the step's foot; the forecastle's front given its door (door_forecastle).
-door_in("forecastle_face", FCSL_FROM, -CW, CW, 0.0, FCSL[0], 6.0)
-walled("fcsl_c", FCSL_FROM, FCSL_STEP, -FC_C[0], FC_C[0], 0.0, FCSL[0], "ps")
-for tag, sign in [("p", -1), ("s", 1)]:
-    wall_x("fcsl_c_step_" + tag, FCSL_STEP, *sorted((sign * FC_C[1], sign * FC_C[0])), 0.0, FCSL[0])
-    wall_z("fcsl_head_c_" + tag, sign * FC_C[1], FCSL_STEP, FC_RAMP[1], 0.0, FCSL[0])
-    wall_z("fcsl_head_c_%s_fwd" % tag, sign * FC_C[1], FC_RAMP[1], FORE_STORES, 0.0, FCSL[1])
-for tag, sign in [("p", -1), ("s", 1)]:
-    wall_x("fcsl_head_c_step_" + tag, FORE_STORES, *sorted((sign * FC_FWD, sign * FC_C[1])), 0.0, FCSL[1])
-walled("fcsl_fwd_c", FORE_STORES, FP_STORES[0], -FC_FWD, FC_FWD, 0.0, FCSL[1], "psf")
+# The forepeak's stores from its orlop up to D deck over them (D_PLAN, its store in her eyes).
+walled("forepeak_stores", BX["A"], FP_STORES[0], -FP_STORES[1], FP_STORES[1], ORLOP, D_DECK, "psf")
 # G deck over it a passage between its flights, no hold: under the 'tween deck a hold's
 # dressing stows (CargoHold), its flights up would climb through cargo.
 for rid, name, x1, widths, h in [("hold_1", "No. 1 hold", H1_SPLIT, H1T, TANK_TOP),
@@ -1600,13 +1789,6 @@ for rid, name, x1, widths, h in [("hold_1", "No. 1 hold", H1_SPLIT, H1T, TANK_TO
                                  ("hold_1_g", "G deck passage, No. 1 hold", H1_SPLIT, H1G, G_DECK)]:
     room(rid, name, BX["B"], x1, -widths[0], widths[0], h)
     room(rid + "_fwd", name + ", forward", x1, BX["A"], -widths[1], widths[1], h)
-room("hold_1_d", "firemen's quarters", BX["B"], BX["A"], -H1D, H1D, D_DECK)
-# The quarters a metre in from the forecastle's front, past a lobby inside its door: glass
-# in a room's wall onto the well (windows, below) would be openings into her she never had.
-FCSL_LOBBY = 1.0
-room("fcsl_c", "seamen's quarters", FCSL_FROM + FCSL_LOBBY, FCSL_STEP, -FC_C[0], FC_C[0], 0.0)
-room("fcsl_head_c", "forecastle stores", FCSL_STEP, FORE_STORES, -FC_C[1], FC_C[1], 0.0)
-room("fcsl_fwd_c", "forecastle stores, forward", FORE_STORES, FP_STORES[0], -FC_FWD, FC_FWD, 0.0)
 room("forepeak_tank", "forepeak tank", BX["A"], FP_TANK[0], -FP_TANK[1], FP_TANK[1], TANK_TOP)
 room("forepeak_stores", "forepeak stores", BX["A"], FP_STORES[0], -FP_STORES[1], FP_STORES[1], ORLOP)
 
@@ -1617,8 +1799,7 @@ for decks, sids in [(f6, ["stokehold_6_s", "stokehold_6_p"]), (br6_plates, ["spa
                     (pt3, ["space_h3_a", "space_h3_b", "space_h3_c", "space_h3_d"]),
                     (pt2, ["space_h2_a", "space_h2_b", "space_spiral"]), (g_post, ["space_h3_g_1", "space_h3_g_2"]),
                     (h1_decks["orlop"], ["space_h1_or_1", "space_h1_or_2"]),
-                    (h1_decks["g"], ["space_h1_g_1", "space_h1_g_2"]),
-                    (h1_decks["d"], ["space_h1_d_1", "space_h1_d_2"]), (fcsl_c, ["space_h1_c_1", "space_h1_c_2"])]:
+                    (h1_decks["g"], ["space_h1_g_1", "space_h1_g_2"])]:
     for sid in sids:
         hole_rails(decks, sid)
 
@@ -1718,7 +1899,8 @@ room("electric_room_g", "G deck stores, electric room", *ELEC, -ELEC_G, ELEC_G, 
 # tank top up through the watertight orlop deck, two up to G deck (their orlops' stair
 # openings stand for them), two up to E deck. The after one narrows aft of AFT_HOLD with
 # her run (est.), its decks on to bulkhead P, and on through it, each through a door at its
-# floor as the forepeak's are, to the after peak's tank and its stores over it.
+# floor as the forepeak's are, to the after peak's tank and its stores over it, up to D
+# deck (D_PLAN).
 AFT_HOLD = -110.0
 AHF = (BX["O"], BX["N"])
 AHA = (AFT_HOLD, BX["O"])
@@ -1745,8 +1927,6 @@ for hold, span, name, end in [("ahf", AHF, "after hold, forward", ""), ("aha", A
                                ("ahe", AHE, "after hold, aft", ", after end")]:
     widths = AH_Z[hold]
     for h, top, level in [(TANK_TOP, ORLOP, ""), (ORLOP, G_DECK, ", orlop"), (G_DECK, E_DECK, ", G deck")]:
-        # The after end's G deck roofed by no E deck, its walls up to C deck over it.
-        top = 0.0 if (hold, h) == ("ahe", G_DECK) else top
         walled("%s_%d" % (hold, int(-h * 16)), *span, -widths[h], widths[h], h, top, "ps")
         room("%s_%d" % (hold, int(-h * 16)), name + level + end, *span, -widths[h], widths[h], h)
         if hold == "ahe":
@@ -1757,14 +1937,12 @@ AFTER_PEAK = -122.0  # the after peak's spaces' after end, where her counter clo
 AP_TANK = fit(BX["P"] - 3.0, BX["P"], TANK_TOP, 0.3)
 AP_STORES = fit(BX["P"] - 3.0, BX["P"], G_DECK, 0.45)  # inside her section there, coarser than her lines
 for rid, name, h, w, top in [("after_peak_tank", "after peak tank", TANK_TOP, AP_TANK, G_DECK),
-                             ("after_peak_stores", "after peak stores", G_DECK, AP_STORES, POOP)]:
+                             ("after_peak_stores", "after peak stores", G_DECK, AP_STORES, D_DECK)]:
     deck(rid, "tank top" if h == TANK_TOP else "G deck", AFTER_PEAK, BX["P"], -w, w, h, [])
     walled(rid, AFTER_PEAK, BX["P"], -w, w, h, top, "psa")
     room(rid, name, AFTER_PEAK, BX["P"], -w, w, h)
 sealed_door("sealed_p_tank", "P", TANK_TOP, 0.0)
 sealed_door("sealed_p_g", "P", G_DECK, 0.0)
-bulkhead_wall("aft_p", BX["P"], [(TANK_TOP, ORLOP, AH_Z["ahe"][TANK_TOP]), (ORLOP, G_DECK, AH_Z["ahe"][ORLOP]),
-                                 (G_DECK, 0.0, AH_Z["ahe"][G_DECK])], [(0.0, TANK_TOP), (0.0, G_DECK)])
 
 # The double bottoms aft, crawl spaces as the bow's — but the engine room's, a foot deeper
 # under its engines (SB-text), where a body stands — each down two manholes.
@@ -1808,41 +1986,36 @@ for letter, at, bands in [
 
 # The working passage along E deck aft, a room for each compartment it runs through, over
 # the engine and turbine rooms' casings (their openings stand for the shafts the machinery
-# fills under it); its two stairs up to D deck, the first into the D deck corridor, the
-# second into the second-class dining saloon (stair_engine_room_tween and
+# fills under it), and on aft over her after holds to bulkhead P, where D deck's
+# third-class stairway comes down (D_PLAN); its two stairs up to D deck, the first into the
+# galley, the second into the second-class pantry (stair_engine_room_tween and
 # stair_turbine_room_tween stand for them).
 E_AFT = [("e_engine", "E deck working passage, engine room", *ENG),
          ("e_turbine", "E deck working passage, turbine room", *TURB),
          ("e_electric", "E deck working passage, electric room", *ELEC),
          ("e_ahf", "E deck working passage, after hold, forward", *AHF),
-         ("e_aha", "E deck working passage, after hold, aft", *AHA)]
-# Each as wide as her hull lets it be, and no wider than the deck over it: D deck over the
-# engine and turbine rooms, C deck, the after well and the poop's general room aft (as the
-# boiler rooms are held to the F deck over them).
+         ("e_aha", "E deck working passage, after hold, aft", *AHA),
+         ("e_ahe", "E deck working passage, after hold, after end", *AHE)]
+# Each as wide as her hull lets it be, and no wider than D deck over it (as the boiler
+# rooms are held to the F deck over them).
 def roofed(x0, x1):
-    over = [(D_DECK, -64.5, 100.5, d_ranges[0][1]), (0.0, B_RUN[0], B_RUN[1], CWD), (0.0, AFT_WELL[0], AFT_WELL[1], AW),
-            (0.0, GENERAL[0], GENERAL[1], GW)]
-    least = math.inf
-    for k in range(int((x1 - x0) / 0.25) + 1):
-        x = min(x0 + 0.25 * k + 0.01, x1 - 0.01)
-        least = min(least, min((h, w) for h, a, b, w in over if a <= x <= b)[1])
-    return least - T
+    """D deck's half breadth over x0..x1, its narrowest strip there, less a wall's half."""
+    return min(min(-z0, z1) for p0, p1, z0, z1 in D_PIECES if p0 < x1 and p1 > x0) - T
 
 E_AFT_Z = {rid: min(fit(x0, x1, E_DECK, 0.3), roofed(x0, x1)) for rid, _n, x0, x1 in E_AFT}
 d_aft_holes = []
 stair("space_e_d_engine", -47.6, -44.35, -NARROW_STAIR * 0.5, NARROW_STAIR * 0.5, E_DECK, D_DECK, d_aft_holes)
-stair("space_e_d_turbine", -65.1, -61.85, -1.45, -0.05, E_DECK, D_DECK, d_aft_holes)
+stair("space_e_d_turbine", -61.75, -58.5, -1.45, -0.05, E_DECK, D_DECK, d_aft_holes)
 e_aft = []
 for rid, name, x0, x1 in E_AFT:
     w = E_AFT_Z[rid]
     # The engine room's short of bulkhead K, as boiler room 1's F deck is (above).
     e_aft += deck(rid, "E deck", x0, x1 - 2 * T if rid == "e_engine" else x1, -w, w, E_DECK, e_holes)
-    # Its walls up to D deck under it, to C deck aft of D deck's end (-64.5): the turbine
-    # room's passage runs under both, and its walls stop at the second-class saloon's floor.
-    for a, b in [(x0, min(x1, -64.5)), (max(x0, -64.5), x1)]:
-        if b > a:
-            walled(rid if a == x0 else rid + "_d", a, b, -w, w, E_DECK, D_DECK if a >= -64.5 else 0.0, "ps")
+    walled(rid, x0, x1, -w, w, E_DECK, D_DECK, "ps")
     room(rid, name, x0, x1, -w, w, E_DECK)
+bulkhead_wall("aft_p", BX["P"], [(TANK_TOP, ORLOP, AH_Z["ahe"][TANK_TOP]), (ORLOP, G_DECK, AH_Z["ahe"][ORLOP]),
+                                 (G_DECK, E_DECK, max(AH_Z["ahe"][G_DECK], AP_STORES)),
+                                 (E_DECK, D_DECK, max(E_AFT_Z["e_ahe"], AP_STORES))], [(0.0, TANK_TOP), (0.0, G_DECK)])
 
 # Her compartments' floors aft, touching end to end through her bulkheads' walls: boiler
 # room 1's plates and its bunker's, the engine room's plates, the turbine and electric
@@ -1870,17 +2043,17 @@ walled("electric_room_g", *ELEC, -ELEC_G, ELEC_G, G_DECK, E_DECK, "ps")
 for letter, at, bands in [
         ("k", BX["K"], [(TANK_TOP, F_DECK, BR1_Z), (F_DECK, E_DECK, BR1_Z), (E_DECK, D_DECK, E_AFT_Z["e_engine"])]),
         ("l", BX["L"], [(TANK_TOP, E_DECK, ENG_Z), (E_DECK, D_DECK, E_AFT_Z["e_engine"])]),
-        ("m", BX["M"], [(TANK_TOP, E_DECK, TURB_Z), (E_DECK, 0.0, E_AFT_Z["e_turbine"])]),
-        ("n", BX["N"], [(TANK_TOP, G_DECK, ELEC_Z), (G_DECK, E_DECK, ELEC_G), (E_DECK, 0.0, E_AFT_Z["e_electric"])]),
+        ("m", BX["M"], [(TANK_TOP, E_DECK, TURB_Z), (E_DECK, D_DECK, E_AFT_Z["e_turbine"])]),
+        ("n", BX["N"], [(TANK_TOP, G_DECK, ELEC_Z), (G_DECK, E_DECK, ELEC_G), (E_DECK, D_DECK, E_AFT_Z["e_electric"])]),
         ("o", BX["O"], [(TANK_TOP, ORLOP, AH_Z["ahf"][TANK_TOP]), (ORLOP, G_DECK, AH_Z["ahf"][ORLOP]),
-                        (G_DECK, E_DECK, AH_Z["ahf"][G_DECK]), (E_DECK, 0.0, E_AFT_Z["e_ahf"])]),
-        ("aft_hold", AFT_HOLD, [(E_DECK, 0.0, E_AFT_Z["e_aha"])])]:
+                        (G_DECK, E_DECK, AH_Z["ahf"][G_DECK]), (E_DECK, D_DECK, E_AFT_Z["e_ahf"])]),
+        ("aft_hold", AFT_HOLD, [(E_DECK, D_DECK, max(E_AFT_Z["e_aha"], E_AFT_Z["e_ahe"]))])]:
     # Bulkhead O's door a half metre inboard of the others, the after hold's passage there
     # narrower than they: as wide, the same door (wtd_e_o).
     bulkhead_wall("aft_" + letter, at, bands, [(-5.5 if letter == "o" else -6.0, E_DECK)] if letter in "lmno" else [])
-# D deck over the engine and turbine rooms cut for the passage's two stairs up, and
-# Scotland Road for boiler room 1's.
-d_aft = split(d_ranges[0][0], "d_0", "D deck", D_DECK, d_aft_holes)
+# D deck cut for the passage's two stairs up and No. 1 hold's, and Scotland Road for
+# boiler room 1's.
+d_deck = split(d_deck, "d_late", "D deck", D_DECK, d_aft_holes + h1d_holes)
 e_road = split(e_road, "e_road", "E deck", E_DECK, road_holes)
 
 for decks, sids in [(f1, []),
@@ -1897,7 +2070,7 @@ for decks, sids in [(f1, []),
                     (e_aft, ["space_engine_p", "space_engine_s", "space_turbine_p", "space_turbine_s",
                              "space_electric_e_p", "space_electric_e_s", "space_ahf_e_1", "space_ahf_e_2",
                              "space_aha_e_1", "space_aha_e_2"]),
-                    (d_aft, ["space_e_d_engine", "space_e_d_turbine"]), (e_road, ["space_br1_road"])]:
+                    (d_deck, ["space_e_d_engine", "space_e_d_turbine", "space_h1_d"]), (e_road, ["space_br1_road"])]:
     for sid in sids:
         hole_rails(decks, sid)
 for sid in ("space_br1_p", "space_br1_s"):
@@ -1946,6 +2119,73 @@ for k in (2, 3, 4, 5):
 for tag, sign in [("p", -1), ("s", 1)]:
     box("db_e_" + tag, BX["E"] - T, BX["E"] + T, *sorted((sign * (DB6_Z + T), sign * (DB_MID_Z[5] + T))), KEEL,
         TANK_TOP)
+
+# Every wall a flight comes down over cut to the flight's underside there, and every lintel
+# it comes down through, the deck it lands on drawn whole by the plates under it (est.):
+# C deck's crew's stairs over D deck's firemen's landing's after wall (d.py, #369), C
+# deck's third-class stairway through D deck's matron's doors, No. 1 hold's flight over
+# its G deck's step, the E landings' walls. A wall under a flight along it is cut in steps
+# CUT_STEP long, each to the flight's underside over it.
+CUT_STEP = 0.5
+BODY_HEIGHT = rule("body_height")
+
+def under_flights():
+    def height(ramp, v):
+        rx0, rx1, rz0, rz1, axis, start, end = ramp
+        a, b = (rx0, rx1) if axis == 0 else (rz0, rz1)
+        return start + (end - start) * (min(max(v, a), b) - a) / (b - a)
+
+    def conflict():
+        for i, (bx0, bx1, bz0, bz1, foot, top, is_box) in enumerate(block_geo):
+            if not is_box or min(bx1 - bx0, bz1 - bz0) > 0.3:
+                continue
+            for ramp in ramp_geo:
+                rx0, rx1, rz0, rz1, axis, start, end = ramp
+                ox0, ox1, oz0, oz1 = max(bx0, rx0), min(bx1, rx1), max(bz0, rz0), min(bz1, rz1)
+                if ox1 - ox0 < 1e-3 or oz1 - oz0 < 1e-3:
+                    continue
+                lo, hi = (ox0, ox1) if axis == 0 else (oz0, oz1)
+                under = min(height(ramp, lo), height(ramp, hi))
+                over = max(height(ramp, lo), height(ramp, hi))
+                # A wall standing on the deck the flight comes down to, or a lintel over a
+                # door it comes down through: up through it from under it — or a lintel over
+                # it where a body on it puts its head.
+                if (foot < under - 0.01 and top > under + 1e-3) or (
+                        "_lintel_" in blockers[i] and under - 0.01 <= foot < over + BODY_HEIGHT):
+                    return i, ramp, (ox0, ox1, oz0, oz1)
+        return None
+
+    found = conflict()
+    while found:
+        i, ramp, (ox0, ox1, oz0, oz1) = found
+        bx0, bx1, bz0, bz1, foot, top, _is_box = block_geo[i]
+        bid = blockers[i][len("Blocker_"):]
+        along_x = bx1 - bx0 >= bz1 - bz0
+        lo, hi, o0, o1 = (bx0, bx1, ox0, ox1) if along_x else (bz0, bz1, oz0, oz1)
+        parts = [(lo, o0, top), (o1, hi, top)]
+        lintel = "_lintel_" in blockers[i] and foot >= min(height(ramp, ox0 if ramp[4] == 0 else oz0),
+                                                         height(ramp, ox1 if ramp[4] == 0 else oz1)) - 0.01
+        steps = 0 if lintel else max(1, math.ceil((o1 - o0) / CUT_STEP - 1e-9)) if along_x == (ramp[4] == 0) else 1
+        for k in range(steps):
+            a, b = lerp(o0, o1, k / steps), lerp(o0, o1, (k + 1) / steps)
+            if along_x == (ramp[4] == 0):
+                under = min(height(ramp, a), height(ramp, b))
+            else:
+                under = min(height(ramp, ox0 if ramp[4] == 0 else oz0), height(ramp, ox1 if ramp[4] == 0 else oz1))
+            parts.append((a, b, round(under - 0.01, 4)))
+        parts = [(a, b, t) for a, b, t in parts if b - a > 0.005 and t - foot > 0.05]
+        for k, (a, b, t) in enumerate(parts):
+            area = (a, b, bz0, bz1) if along_x else (bx0, bx1, a, b)
+            if k == 0:
+                relay_box(bid, *area, foot, t)
+            else:
+                box("%s_u%d" % (bid, sum(1 for name in blockers if name.startswith("Blocker_%s_u" % bid))),
+                    *area, foot, t)
+        if not parts:
+            relay_box(bid, bx0, bx1, bz0, bz1, foot, foot + 0.05)
+        found = conflict()
+
+under_flights()
 
 def free_stretches(lo, hi, cuts, least):
     """The stretches of lo…hi no cut [(from, to)] falls in, each at least least long."""
@@ -2122,13 +2362,7 @@ def table_group(gid, x, z, floor, half, top, sides=("px", "mx", "pz", "mz")):
                  floor)
 
 # A deck's rooms are furnished below, where each piece is tried and kept only if it keeps
-# every rule (A_FURNITURE). The reception room: wicker tables either side of the grand staircase's foot, four chairs
-# at each by the stairs and two at each by the side walls.
-for tag, s in [("p", -1), ("s", 1)]:
-    for k, x in enumerate([22.9, 27.0, 31.0]):
-        table_group("reception_%d%s" % (k, tag), x, s * 5.6, D_DECK, 0.4, 0.7)
-    for k, x in enumerate([24.0, 29.6]):
-        table_group("reception_wall_%d%s" % (k, tag), x, s * 10.6, D_DECK, 0.4, 0.7, ("px", "mx"))
+# every rule (A_FURNITURE).
 
 # Her crew's rooms and working spaces (SB-IV, est.): mess tables in the seamen's quarters
 # under the forecastle and in the crew quarters on E deck — a bench along each long side
@@ -2137,9 +2371,8 @@ for tag, s in [("p", -1), ("s", 1)]:
 # working passages, stowed crates two high (FurnitureDressing.stores), STORES_OFF off
 # the wall, clear of its handrail, wherever a stack keeps to the rules above.
 MESS = (4.0, 1.2, 0.75)  # a mess table: long, deep with its benches, tall
-for k, (x0, z0, floor) in enumerate([(98.5, 2.2, 0.0), (98.5, -3.4, 0.0), (74.5, 1.7, E_DECK),
-                                     (74.5, -2.9, E_DECK)]):
-    piece("table_mess_%d" % k, x0, x0 + MESS[0], z0, z0 + MESS[1], floor, floor + MESS[2])
+for k, (x0, z0, floor) in enumerate([(74.5, 1.7, E_DECK), (74.5, -2.9, E_DECK)]):
+    piece("table_mess_%d" % (k + 2), x0, x0 + MESS[0], z0, z0 + MESS[1], floor, floor + MESS[2])
 STORES = (1.4, 0.7, 1.19)  # a stack of stores: long, deep and tall, 0.7 m crates two high,
 # no taller than furniture (ShipSpace.FURNITURE_HEIGHT), past which a box is machinery
 STORES_OFF = 0.15
@@ -2388,6 +2621,29 @@ for k, (_n, x0, x1, z0, z1) in enumerate(b_rooms("Café Parisien")):
 for k, (_n, x0, x1, z0, z1) in enumerate(b_rooms("reception room, B deck")):
     best_laid(scattered("reception_b_%d" % k, x0, x1, z0, z1, 2.6,
                         lambda gid, x, z: table_group(gid, x, z, B_DECK, 0.35, 0.7, ("px", "mx"))))
+# C and D decks' public rooms as Plate IV draws them (C_PLAN, D_PLAN), as A and B decks':
+# tables with a chair either side in the third-class smoking room and general room and the
+# second-class library; wicker tables, an armchair either end, in the first-class reception
+# room. (The crew's messes under the forecastle are too small for a mess table clear of
+# their pendants.) The dining saloons' are laid tables (LAID, below).
+def c_rooms(name):
+    return [r for r in C_PLAN.rooms if r[0] == name]
+
+def d_rooms(name):
+    return [r for r in D_PLAN.rooms if r[0] == name]
+
+
+for name, tag, floor, pitch, make in [
+        ("third-class smoking room", "smoking_c", 0.0, 2.6,
+         lambda gid, x, z: table_group(gid, x, z, 0.0, 0.4, 0.75, ("pz", "mz"))),
+        ("third-class general room", "general_c", 0.0, 3.0,
+         lambda gid, x, z: table_group(gid, x, z, 0.0, 0.4, 0.75, ("pz", "mz"))),
+        ("second-class library", "library_c", 0.0, 3.0,
+         lambda gid, x, z: table_group(gid, x, z, 0.0, 0.4, 0.75, ("pz", "mz"))),
+        ("reception room", "reception_d", D_DECK, 2.6,
+         lambda gid, x, z: table_group(gid, x, z, D_DECK, 0.35, 0.7, ("px", "mx")))]:
+    for k, (_n, x0, x1, z0, z1) in enumerate((d_rooms if floor < 0 else c_rooms)(name)):
+        best_laid(scattered("%s_%d" % (tag, k), x0, x1, z0, z1, pitch, make))
 
 _problems = [problem for candidate in ROOM_PIECES for problem in piece_problems(candidate)]
 assert not _problems, "\n".join(_problems)
@@ -2400,8 +2656,8 @@ for bid, x0, x1, z0, z1, floor, top in ROOM_PIECES:
 # Scotland Road and round the grand staircase's own floor, capping the casings walled up
 # to it — without it the rooms, and the stokeholds up their fiddleys, stood open to the
 # void over them, and to the sea drawn in it once she sank by the head.
-for tag, x0, x1, side, holes in [("br4", BX["G"], BX["F"], SALOON_Z, [(GS[0], GS[1], SR_Z[1], 6.0)]),
-                                 ("br5", BX["F"], BX["E"], BR5_Z, [])]:
+for tag, x0, x1, side, holes in [("br4", BX["G"], BX["F"], SALOON_Z, [(GS_E[0], GS_E[1], SR_Z[1], 6.0)] + E_LANDINGS),
+                                 ("br5", BX["F"], BX["E"], BR5_Z, E_LANDINGS)]:
     for rid, z0, z1 in [("corridor", SR_Z[1], BATHS_Z), ("baths", BATHS_Z, side)]:
         for k, (a, b, s0, s1) in enumerate(deck_pieces(x0, x1, z0, z1, holes)):
             box("%s_%s_roof_%d" % (rid, tag, k), a, b, s0, s1, E_DECK - 2 * T, E_DECK)
@@ -2434,13 +2690,31 @@ def house_cell(house):
             z0 - (0.0 if shared(2, z0) else T), z1 + (0.0 if shared(2, z1) else T), BOAT, BOAT + HOUSE_TOP)
 
 A_HOUSE_TOP = (A_HOUSE[0], A_HOUSE[1], -(A_HOUSE[2] + T), A_HOUSE[2] + T, A_DECK, BOAT)
+
+def c_aft_houses():
+    """C deck's after second-class entrance's after end, on her after well under B deck's
+    tapered end (C_PLAN): a house for each step of its rooms' outline, from C deck to B,
+    out to its walls' outer faces and on to the next step, the last to B deck's house."""
+    pieces = [p[1:5] for p in C_PLAN.rooms + [s for s in C_PLAN.solids if s[5] is None]
+              if C_TAIL - 1e-6 <= p[1] and p[2] <= B_RUN[0] + 1e-6]
+    cuts = sorted({v for p in pieces for v in p[:2]} | {B_RUN[0]})
+    steps = []
+    for a, b in zip(cuts, cuts[1:]):
+        half = max(max(-p[2], p[3]) for p in pieces if p[0] < b - 1e-6 and p[1] > a + 1e-6)
+        if steps and abs(steps[-1][2] - half) < 1e-6:
+            steps[-1][1] = b
+        else:
+            steps.append([a, b, half])
+    steps[0][0] -= T
+    return [(a, b, -(half + T), half + T, 0.0, B_DECK) for a, b, half in steps]
+
+C_AFT_HOUSES = c_aft_houses()
 # And B deck's second-class houses on her after promenade (B_PLAN), up to A deck; under
-# her tapered after end, over the after well, C deck's space from the well up to it.
+# her tapered after end, over the after well, C deck's after entrance up to it.
 HOUSES = ([A_HOUSE_TOP] + [house_cell(house) for house in BOAT_PLAN.houses]
-          + [b_house_box(house) + (B_DECK, A_DECK) for house in B_PLAN.houses]
-          + [(C_AFT_END[0] - T, C_AFT_END[1], C_AFT_END[2] - T, C_AFT_END[3] + T, 0.0, B_DECK)])
+          + [b_house_box(house) + (B_DECK, A_DECK) for house in B_PLAN.houses] + C_AFT_HOUSES)
 HOUSE_CELLS = (["a_deck"] + [house[0] for house in BOAT_PLAN.houses] + [house[0] for house in B_PLAN.houses]
-               + ["c_deck_aft"])
+               + ["c_deck_aft" + ("" if k == 0 else "_%d" % (k + 1)) for k in range(len(C_AFT_HOUSES))])
 
 def shell_top(x):
     return A_DECK if B_HOUSE[0] <= x <= B_HOUSE[1] else top_at(x)
@@ -2795,6 +3069,23 @@ def cell_at(x, y, z):
 def cell_box(name):
     return next(c for c in CELLS if c[0] == name)[1:7]
 
+# Each room in one cell, wholly, its name in that cell alone (test_ship_structure_lint):
+# her traced decks' rooms are split and named so where her cells part under them
+# (named_pieces). Her sisters' cells part where their raised bulkheads do too; their
+# rooms are hers.
+if not variant:
+    in_cells = {}
+    for x0, x1, z0, z1, floor, name in room_geo:
+        middle = ((x0 + x1) * 0.5, floor + 0.01, (z0 + z1) * 0.5)
+        holding = [c for c in CELLS if all(c[1 + 2 * a] + 1e-3 <= middle[a] <= c[2 + 2 * a] - 1e-3 for a in range(3))]
+        assert len(holding) == 1, ("a room in %d cells" % len(holding), name, x0, x1, floor)
+        c = holding[0]
+        assert (c[1] - 0.01 <= x0 and x1 <= c[2] + 0.01 and c[5] - 0.01 <= z0 and z1 <= c[6] + 0.01
+                and c[3] - 0.01 <= floor <= c[4] + 0.01), ("a room past its cell", name, (x0, x1, z0, z1), c[0])
+        in_cells.setdefault(name, set()).add(c[0])
+    twice = {name: sorted(cs) for name, cs in in_cells.items() if len(cs) > 1}
+    assert not twice, ("a name in two cells", twice)
+
 def parted(axis, at, y0, y1, along0, along1):
     """The cells with a face on the plane where axis (0 x, 2 z) is at, overlapping the
     wall from y0 to y1 and from along0 to along1 along its other axis."""
@@ -2956,7 +3247,9 @@ for axis, at, d0, d1, foot in doorways:
     size = (0, LINTEL, d1 - d0) if axis == 0 else (d1 - d0, LINTEL, 0)
     merged[key] = [centre, (d1 - d0) * LINTEL, size]
 for (a, b, axis, face, foot), (centre, area, size) in merged.items():
-    if axis == 0 and face in bulkhead_x and b is not None:
+    # On D deck and over it her bulkheads have ended ("up to the underside of D deck"): a
+    # doorway there on a bulkhead's line is her rooms' door, no watertight one.
+    if axis == 0 and face in bulkhead_x and b is not None and foot < D_DECK - 1e-6:
         letter = next(bulkhead[0] for bulkhead in BULKHEADS if round(bulkhead[1], 4) == face)
         opening("wtd_%s_%s" % (a, b), "WATERTIGHT_DOOR", a, b, centre, size, **deck_door(letter, foot))
         continue
@@ -2969,14 +3262,17 @@ for (a, b, axis, face, foot), (centre, area, size) in merged.items():
 opening("door_forecastle", "DOOR", "forecastle", SKY, (FCSL_FROM, 0.06 + 0.75, 6.0), (0, 1.5, 0.75),
         starts="SHUT", leak_head=1.0, collapse_head=2.0, leak_area=0.01)
 # A traced deck's open join between two rooms of two cells, open as they are: on B deck,
-# the second-class staircase's well forward of its lift, in her house under A deck.
-for plan, floor, roof_y in ((BOAT_PLAN, BOAT, BOAT + HOUSE_TOP), (A_PLAN, A_DECK, BOAT), (B_PLAN, B_DECK, A_DECK)):
+# the second-class staircase's well forward of its lift, in her house under A deck; on C
+# deck, her after second-class entrance's hall at B deck's after end.
+for plan, floor, over in ((BOAT_PLAN, BOAT, BOAT + HOUSE_TOP), (A_PLAN, A_DECK, BOAT), (B_PLAN, B_DECK, A_DECK),
+                          (C_PLAN, 0.0, c_over), (D_PLAN, D_DECK, 0.0)):
     for ox0, ox1, oz0, oz1 in plan.open:
         axis = 0 if (ox1 - ox0) < (oz1 - oz0) else 2
         at, a, b = ((ox0 + ox1) * 0.5, oz0, oz1) if axis == 0 else ((oz0 + oz1) * 0.5, ox0, ox1)
         sides = [cell_at(p, floor + 1.0, (a + b) * 0.5) if axis == 0 else cell_at((a + b) * 0.5, floor + 1.0, p)
                  for p in (at - T - 0.01, at + T + 0.01)]
         if sides[0] != sides[1] and None not in sides:
+            roof_y = over((ox0 + ox1) * 0.5) if callable(over) else over
             middle = ((floor + roof_y) * 0.5, (a + b) * 0.5)
             centre = (at,) + middle if axis == 0 else (middle[1], middle[0], at)
             size = (0, roof_y - floor, b - a) if axis == 0 else (b - a, roof_y - floor, 0)
@@ -3032,12 +3328,21 @@ for name, x, z, size, kind in [
 for name, x in [("after_hold_fwd", -93.0), ("after_hold_aft", -110.0)]:
     through("hatch_" + name, "HATCH", x, 0.0, 3.0, 3.0, name, starts="SHUT", leak_head=1.0, collapse_head=3.0,
             leak_area=0.05)
-for name, x in [("after_hold_fwd_d", -98.0), ("after_hold_aft_d", -103.8)]:
-    through("hatch_" + name, "HATCH", x, 0.0, 2.5, 3.0, name, SKY, starts="SHUT", leak_head=0.3,
-            collapse_head=1.0, leak_area=0.05)
-x0, x1, z0, z1 = WELL_HATCH
-through("hatch_well", "HATCH", (x0 + x1) * 0.5, (z0 + z1) * 0.5, x1 - x0, z1 - z0, "d_deck_forward", SKY, starts="SHUT",
-        leak_head=0.3, collapse_head=1.0, leak_area=0.05)
+# Her wells' hatches as C deck's plan draws them (C_PLAN): Nos. 6 and 5 aft, the bunker
+# hatch and No. 2 forward, each over the D deck space under it.
+for what, below in [("No. 6 hatch", "after_hold_aft_d"), ("No. 5 hatch", "after_hold_fwd_d"),
+                    ("bunker hatch", "d_deck_forward"), ("No. 2 hatch", "d_deck_forward")]:
+    _w, x0, x1, z0, z1, _h = next(p for p in C_PLAN.solids if p[0] == what)
+    through("hatch_" + slug(what), "HATCH", (x0 + x1) * 0.5, (z0 + z1) * 0.5, x1 - x0, z1 - z0, below, SKY,
+            starts="SHUT", leak_head=0.3, collapse_head=1.0, leak_area=0.05)
+# The doors through the bulkheads across C deck's second-class promenades aft (BOT: "two
+# doors at the after-end into the after-well"), from the well under B deck's end: each the
+# gap between two of a bulkhead's pieces (C_PLAN), opening on B deck's end.
+for side in (-1, 1):
+    pieces = sorted((p[3], p[4]) for p in C_PLAN.solids if p[0] == "bulkhead" and p[3] * side > 0)
+    for k, ((_a0, a1), (b0, _b1)) in enumerate(zip(pieces, pieces[1:])):
+        opening("door_c_deck_sky_%s%d" % ("ps"[side > 0], k), "DOOR", piece("c_deck", B_RUN[0] + 0.01), SKY,
+                (B_RUN[0], LINTEL * 0.5, (a1 + b0) * 0.5), (0, LINTEL, b0 - a1), starts="OPEN")
 for k in range(6, 0, -1):
     name = "boiler_room_%d" % k
     b = cell_box(name)
@@ -3583,18 +3888,22 @@ def furniture(kind, name, at, fields, facing=0.0):
         f.append(("facing_deg", num(facing)))
     props.append(sub(name, "8_prop", f))
 
-# The à la carte restaurant's (B_PLAN), 3 m apart over each of its rectangles, on the grid
-# of those shifted a quarter pitch at a time each way under which the most keep every rule.
-for k, (_n, x0, x1, z0, z1) in enumerate(b_rooms("à la carte restaurant")):
-    best = []
-    for sx in SHIFTS:
-        for sz in SHIFTS:
-            grid = [(x, z) for x in lattice(x0, x1, 3.0, sx) for z in lattice(z0, z1, 3.0, sz)]
-            laid = [("restaurant_%d_%d" % (k, i), x, B_DECK, z) for i, (x, z) in enumerate(grid)]
-            laid = [t for t in laid if not laid_problems(*t)]
-            if len(laid) > len(best):
-                best = laid
-    LAID.extend(best)
+# The à la carte restaurant's (B_PLAN) and the dining saloons' (D_PLAN), 3 m apart over
+# each of their rectangles, on the grid of those shifted a quarter pitch at a time each way
+# under which the most keep every rule.
+for tag, floor, rects in [("restaurant", B_DECK, b_rooms("à la carte restaurant")),
+                          ("saloon_1", D_DECK, d_rooms("first-class dining saloon")),
+                          ("saloon_2", D_DECK, d_rooms("second-class dining saloon"))]:
+    for k, (_n, x0, x1, z0, z1) in enumerate(rects):
+        best = []
+        for sx in SHIFTS:
+            for sz in SHIFTS:
+                grid = [(x, z) for x in lattice(x0, x1, 3.0, sx) for z in lattice(z0, z1, 3.0, sz)]
+                laid = [("%s_%d_%d" % (tag, k, i), x, floor, z) for i, (x, z) in enumerate(grid)]
+                laid = [t for t in laid if not laid_problems(*t)]
+                if len(laid) > len(best):
+                    best = laid
+        LAID.extend(best)
 
 _laid = [problem for laid in LAID for problem in laid_problems(*laid)]
 assert not _laid, "\n".join(_laid)
