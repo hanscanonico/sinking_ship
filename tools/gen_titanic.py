@@ -671,17 +671,31 @@ AWD = fit(A_RUN[0], A_RUN[1], A_DECK, 0.05)
 
 # Where the plate gives a deck her whole breadth it is laid in strips no longer than
 # DECK_STRIP, each as wide as her hull is over it, so her deck's edge stays her side's
-# all along — as the forecastle's and the poop's are (tapered) —, broken where a boat's
-# stowed (STOWED_BOAT, at DAVITS) so each boat lies on one strip out to its edge, but
-# for a break within STRIP_LEAST of the last, whose strip runs on over the gap.
+# all along — as the forecastle's and the poop's are (tapered). Under each row of her
+# boats (STOWED_BOAT, at DAVITS, ROW_GAP or less apart) the strips are one breadth, the
+# row's narrowest, from ROW_MARGIN past its end boats — on to the deck's end where less
+# than ROW_GAP is left — so each boat stows to its deck's edge, and no step in that edge
+# stands by a davit, whose foot over it would read as deck where there is none.
 DECK_STRIP = 12.0
-STRIP_LEAST = 1.0
 DAVITS = [60.5, 50.2, 40.0, 29.7, -38.7, -48.5, -57.6, -67.1]  # SB-III, forward to aft
 STOWED_BOAT = (9.0, 3.15, 1.5)  # over its stems, in from the deck's edge, over the deck
+ROW_GAP = 2.0
+ROW_MARGIN = 1.5
 
-def plan_pieces(plan, run, height, breaks=()):
+def boat_rows():
+    """Her rows of boats, (from, to) along her: each boat's stems, ROW_MARGIN past the ends."""
+    rows = []
+    for x in sorted(DAVITS):
+        a, b = x - STOWED_BOAT[0] / 2, x + STOWED_BOAT[0] / 2
+        if rows and a - rows[-1][1] <= ROW_GAP:
+            rows[-1][1] = b
+        else:
+            rows.append([a, b])
+    return [(round(a - ROW_MARGIN, 4), round(b + ROW_MARGIN, 4)) for a, b in rows]
+
+def plan_pieces(plan, run, height, rows=()):
     """A traced deck's pieces (x0, x1, z0, z1): in strips her breadth there where the plate
-    gives none, broken at breaks, its first piece over run."""
+    gives none — under each of rows, the row's narrowest — its first piece over run."""
     pieces = []
     for k, (x0, x1, z0, z1) in enumerate(plan.decks):
         if k == 0:
@@ -689,20 +703,19 @@ def plan_pieces(plan, run, height, breaks=()):
         if z0 is not None:
             pieces.append((x0, x1, z0, z1))
             continue
-        ends = [x0]
-        for b in sorted(breaks):
-            if ends[-1] + STRIP_LEAST <= b <= x1 - STRIP_LEAST:
-                ends.append(b)
-        ends.append(x1)
+        held = [(x0 if r0 - x0 < ROW_GAP else r0, x1 if x1 - r1 < ROW_GAP else r1)
+                for r0, r1 in rows if r0 < x1 and r1 > x0]
+        ends = sorted({x0, x1} | {v for row in held for v in row})
         for lo, hi in zip(ends, ends[1:]):
+            row = next(((r0, r1) for r0, r1 in held if r0 <= lo + 1e-6 and hi <= r1 + 1e-6), None)
             count = max(1, math.ceil((hi - lo) / DECK_STRIP))
             for i in range(count):
                 a, b = round(lerp(lo, hi, i / count), 4), round(lerp(lo, hi, (i + 1) / count), 4)
-                half = fit(a, b, height, 0.05)
+                half = fit(*(row or (a, b)), height, 0.05)
                 pieces.append((a, b, -half, half))
     return pieces
 
-BOAT_PIECES = plan_pieces(BOAT_PLAN, BOAT_RUN, BOAT, [x + end * STOWED_BOAT[0] / 2 for x in DAVITS for end in (-1, 1)])
+BOAT_PIECES = plan_pieces(BOAT_PLAN, BOAT_RUN, BOAT, boat_rows())
 # The boat deck's raised roofs walked on, each a deck of its own over the block it stands on
 # (plan_layer), cut round what stands on it.
 raised_roofs = []
@@ -803,9 +816,11 @@ def outline_rails(rid, pieces, plats, gaps=()):
 
 # The boat deck's edges, its bridge's front clear of its screen; A deck's, the 1912 steel
 # screen with large windows along its forward 192 ft for its sides (BOT: "protected
-# against the weather by a steel screen, 192 ft. long, with large windows in it"), a gap
-# at the head of each stair that comes up onto an edge of it.
-SCREEN_RUN = (A_PLAN.decks[0][1] - 192 * FT, A_RUN[1])
+# against the weather by a steel screen, 192 ft. long, with large windows in it") up to
+# the boat deck's underside — so no further forward than the boat deck's full breadth
+# runs, where A deck's railing takes over —, a gap at the head of each stair that comes
+# up onto an edge of it.
+SCREEN_RUN = (A_PLAN.decks[0][1] - 192 * FT, min(A_RUN[1], BOAT_RUN[1]))
 screen = [s for s in BOAT_PLAN.solids if s[0] == "the bridge's front screen"][0]
 outline_rails("boat", BOAT_PIECES, boat, [(0, BOAT_PIECES[-1][1], screen[3], screen[4])])
 heads = [(0, s[1] if s[5] == "aft" else s[2], s[3], s[4]) for s in A_PLAN.stairs if s[7] == "a" and s[5] in ("fore", "aft")]
