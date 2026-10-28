@@ -360,14 +360,16 @@ census:
 # The art against the data (D6) and the snapshots (D5): drawn platform tops,
 # every seat's model on its feet, no live sim object named under scenes/art.
 # Rules live in tools/art_lint.gd. Two frames per tick, so the view interpolates.
-# SHIP=trawler checks that ship's art alone, and plays no match. Its engine takes a test
-# slot (tools/test_slot.sh), as bake-check's do: each dresses whole ships.
+# SHIP=trawler checks that ship's art alone, and plays no match; SKIP=titanic,small_titanic
+# every ship but those, and the match too (CI's three art-lint jobs). Its engine takes a
+# test slot (tools/test_slot.sh), as bake-check's do: each dresses whole ships.
 art-lint: export TEST_SLOT_NAME = art-lint
 art-lint:
 	$(call require-godot)
 	@set -o pipefail; tools/engine_guard.sh tools/test_slot.sh $(GODOT) \
 		--headless --no-header --path . --fixed-fps 60 \
-		-s res://tools/art_lint.gd $(if $(SHIP),-- --ship=$(SHIP)) | grep -v -e '^\[godot_ai' -e '^match seed'
+		-s res://tools/art_lint.gd $(if $(SHIP)$(SKIP),--) $(if $(SHIP),--ship=$(SHIP)) \
+		$(if $(SKIP),--skip=$(SKIP)) | grep -v -e '^\[godot_ai' -e '^match seed'
 
 # verify-changed's art gate (tools/art_lint_changed.sh): the whole art-lint when the
 # branch changed the art itself, each ship's alone when only her own files changed,
