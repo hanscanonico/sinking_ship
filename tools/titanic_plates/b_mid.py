@@ -162,8 +162,8 @@ ROOMS = [
 ]
 
 SOLIDS = [
-    # The buffet, a counter across the restaurant's forward end (est. 1 m high).
-    ("buffet", 753, 1038, 838, 1335, 1.0),
+    # The buffet across the restaurant's forward end, its shelves up to the deckhead.
+    ("buffet", 753, 1038, 838, 1335, None),
     # The casings and shafts between her corridors.
     ("turbine engine casing", 841, 1035, 1111, 1338, None),
     ("reciprocating engine casing", 1762.5, 1047, 2156.5, 1338, None),

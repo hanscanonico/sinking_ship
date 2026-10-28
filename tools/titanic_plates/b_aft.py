@@ -26,11 +26,11 @@ Z = dict(centre=((2000, 1024.8), (8650, 974.0)), scale=0.025773)
 # The deck itself, each piece (x0, y0, x1, y1), its y None for her whole breadth: from
 # where her side steps in aft to her forward end, the assembling area forward of her
 # house (BOT); and aft of the step, her after end tapering to its middle, est. as two
-# steps on the plate's diagonals.
+# steps on the plate's diagonals, each about her centre line.
 DECKS = [
     (2271, None, 8618, None),
-    (2185, 802, 2271, 1228),
-    (2100, 860, 2185, 1175),
+    (2185, 810, 2271, 1236),
+    (2100, 865, 2185, 1183),
 ]
 
 ROOMS = [
@@ -59,9 +59,12 @@ ROOMS = [
 SOLIDS = [
     # The well of the after stairway between its flights.
     ("stairwell", 2200, 986, 2265, 1056, None),
-    # No. 4 hatch's trunk up through the smoking room's after corners.
-    ("No. 4 hatch trunk", 2479, 651, 2580, 728, None),
-    ("No. 4 hatch trunk", 2485, 1314, 2584, 1390, None),
+    # No. 4 hatch's trunk up through the smoking room's after corners, carried aft to the
+    # bar's and the lavatory's after walls (est.: the plate's start 30 px forward of
+    # them, where its bar and lavatory end 25 px aft of these), so the house's corners
+    # are square, no open deck in them.
+    ("No. 4 hatch trunk", 2449, 651, 2580, 728, None),
+    ("No. 4 hatch trunk", 2449, 1314, 2584, 1390, None),
     # The ventilators along the smoking room's forward wall.
     ("ventilators", 2865, 896, 2931, 1145, None),
     # The second-class lift, its starboard side under A deck's flight's port side (a.py),
@@ -71,11 +74,13 @@ SOLIDS = [
 
 # Her houses on her open after end, each roofed by A deck over it (where A deck is not,
 # a roof of its own) and a cell of its own: (name, x0, y0, x1, y1), on its outer walls'
-# middles; the smoking room's to the restaurant's after wall, its well beyond it in the
-# house forward of it.
+# middles: her shell's outline over her promenade there (the smoking room's, and the
+# narrower entrance's forward of it to the restaurant's after wall, its well beyond it
+# in the house forward of it).
 HOUSES = [
     ("after_entrance_house", 2120, 912, 2425, 1140),
-    ("smoking_room_house", 2449, 656, 3158, 1385),
+    ("smoking_room_house", 2449, 656, 2931, 1385),
+    ("second_class_entrance_house", 2931, 695, 3158, 1338),
 ]
 
 DOORS = [
@@ -98,16 +103,16 @@ STAIRS = [
     # forward end, where her side steps in: no further aft, where the after well is under
     # B deck. Its inboard 25 px est. floor, clear of the C deck corridor's wall under it
     # (est., until C deck is traced); the starboard flight is floor.
-    ("second-class stairway", 2275, 917, 2408, 958, "aft", "c", "b"),
+    ("second-class stairway", 2271, 917, 2404, 958, "aft", "c", "b"),
     # The forward second-class staircase down to C deck, port of the lift: its 83 px of
     # treads run on aft over the entrance's floor, its inboard 15 px floor as the after
     # stairway's; the starboard flight is floor.
     ("second-class staircase", 2988, 904, 3118, 954, "aft", "c", "b"),
     # Down off her after end to the after third-class promenade on C deck (BOT: "two
     # ladders"): the plate's ladders on the diagonals, as stairs a body climbs along her
-    # from the after step's edge.
-    ("ladder", 2050, 812, 2185, 858, "fore", "c", "b"),
-    ("ladder", 2050, 1178, 2185, 1224, "fore", "c", "b"),
+    # from the after step's edge, outboard of the narrower step's walls under it.
+    ("ladder", 2050, 811, 2185, 855, "fore", "c", "b"),
+    ("ladder", 2050, 1193, 2185, 1237, "fore", "c", "b"),
     # Down off the assembling area forward to the forward third-class promenade (BOT: "a
     # ladderway"), where the plate draws it, run on to a slope a body climbs.
     ("ladder", 8618, 830, 8750, 870, "aft", "c", "b"),
