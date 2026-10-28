@@ -3,7 +3,8 @@
 # lint and format-check — run in one job; the suite is dealt
 # across parallel shards by tools/test_shards.py, balanced on
 # tests/durations.tsv — run in one engine it took over 70 minutes (SH34) — and
-# art-lint runs in a job of its own beside them.
+# art-lint runs beside them in three jobs: each Titanic alone, the rest of the fleet
+# and the match together.
 # The `verify` job at the end is the one verdict: green only when every
 # other job is.
 name: verify
@@ -92,18 +93,31 @@ jobs:
 
   # The art against the data and the snapshots (tools/art_lint.gd), every ship and a
   # match, beside the shards rather than after them. Run only by hand before, it had
-  # gathered 25 problems on main by the time someone did (#270).
+  # gathered 25 problems on main by the time someone did (#270). Each Titanic is a job
+  # of its own: the traced one alone outgrew the 40 minutes the whole fleet had taken 24
+  # of (#364).
   art-lint:
-    name: art-lint
+    name: art-lint ${{ matrix.part }}
     runs-on: ubuntu-24.04
     timeout-minutes: 40
+    strategy:
+      # Every part reports, so one red run names every ship with a problem.
+      fail-fast: false
+      matrix:
+        include:
+          - part: titanic
+            args: SHIP=titanic
+          - part: small_titanic
+            args: SHIP=small_titanic
+          - part: fleet
+            args: SKIP=titanic,small_titanic
     steps:
       - uses: actions/checkout@v4
 
       - uses: ./.github/actions/setup-godot
 
       - name: art-lint
-        run: make art-lint
+        run: make art-lint ${{ matrix.args }}
 
   verify:
     needs: [static, test, art-lint]
