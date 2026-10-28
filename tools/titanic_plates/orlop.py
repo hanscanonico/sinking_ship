@@ -98,8 +98,8 @@ ROOMS = [
     ("cargo hold", 1372, 3334.5, 1530, 3888.5),
     # Between O and N, the refrigerated cargo holds, port and starboard of a wall on her
     # centre line, inside their insulation: the plate draws their lining 55-90 px inside
-    # her sides and her bulkheads, the air trunks between (its boxes along her sides), and
-    # that space is nobody's. Each in three pieces round the foot of No. 5 hatch's trunk on
+    # her sides and her bulkheads, and the space between, its frames drawn along her
+    # sides, is nobody's. Each in three pieces round the foot of No. 5 hatch's trunk on
     # the centre line (the plate's "No. 5 HATCH (OVER)": its hatch is in the decks above),
     # which opens into both holds through the doors the plate draws in its coaming.
     ("refrigerated cargo hold", 1588, 3376.5, 1664, 3613),
@@ -110,12 +110,13 @@ ROOMS = [
     ("refrigerated cargo hold", 1839, 3613, 2097, 3917.5),
     ("refrigerated cargo hold, No. 5 hatch", 1664, 3499.5, 1839, 3726.5),
     # Between N and M, the stores (BOT: "abaft the turbine engine room, were some store
-    # rooms containing stores for ship's use"), as the plate labels them. To port, the
-    # bulk store, an L along N with two trunks in it, No. 4 hatch's port trunk over it
-    # (dashed: G deck's); forward of it the grocery, the fruit and vegetable store (an
-    # insulated room, drawn double) and the wine and spirit store along her side, a
-    # passage between them and the stewards' working stores, the mineral water store
-    # and the air space over the dynamos, and the champagne store at the passage's end.
+    # rooms containing stores for ship's use"), as the plate labels them. Along N, the
+    # bulk store, an L from her port side to starboard of her centre line with two trunks
+    # in it, No. 4 hatch's port trunk over it (dashed: G deck's); forward of it the
+    # grocery, the fruit and vegetable store (an insulated room, drawn double) and the wine
+    # and spirit store along her port side, a passage between them and the stewards'
+    # working stores, the mineral water store and the air space over the dynamos, and the
+    # champagne store at the passage's end.
     # The plate draws the centre line through the bulk store, the empties and the mineral
     # water store, no wall.
     ("bulk store", 2152, 3164.5, 2368, 3388),
