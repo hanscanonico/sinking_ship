@@ -113,6 +113,9 @@ const SAMPLES_ACROSS := 3
 ## height.
 const SIDE_REACH := 0.3
 const CYLINDER_RAYS := 8
+## How long a stretch of her the furnishings go to one part in (--part, _dealt), in
+## metres.
+const DEALT_STRETCH := 8.0
 ## What art may not name: the live match and the queries only rules make. Enum
 ## reads off PlayerState are allowed, a PlayerState itself is not.
 const LIVE: PackedStringArray = [
@@ -135,6 +138,8 @@ const LIVE_PLAYER := "\\bPlayerState\\b(?!\\.(Body|Action|Cause)\\b)"
 
 var _problems := PackedStringArray()
 var _checks := 0
+## The share of a ship's checks this run makes (--part): part x of y, counting from 1.
+var _part := Vector2i(1, 1)
 
 
 func _initialize() -> void:
@@ -142,7 +147,8 @@ func _initialize() -> void:
 	await process_frame
 	# --ship=NAME checks that ship alone, and nothing that plays a match; --skip=NAME,NAME
 	# every ship but those, and what plays a match too: CI checks the biggest ships beside
-	# the rest (.github/workflows/verify.yml).
+	# the rest (.github/workflows/verify.yml). --part=K/N, with --ship, checks her share K
+	# of N alone (_check_ship): CI lints the traced Titanic in parts side by side.
 	var only := ""
 	var skipped := PackedStringArray()
 	for arg: String in OS.get_cmdline_user_args():
@@ -151,6 +157,16 @@ func _initialize() -> void:
 		elif arg.begins_with("--skip="):
 			for ship: String in arg.trim_prefix("--skip=").split(",", false):
 				skipped.append(ship + ".tres")
+		elif arg.begins_with("--part="):
+			_part = _part_of(arg.trim_prefix("--part="))
+			if _part == Vector2i.ZERO:
+				printerr("art-lint: %s is no part — --part=K/N takes K from 1 to N" % arg)
+				quit(1)
+				return
+	if _part.y > 1 and only.is_empty():
+		printerr("art-lint: --part deals one ship's checks — name her with --ship=NAME")
+		quit(1)
+		return
 	for file: String in DirAccess.get_files_at(SHIPS_DIR):
 		if not file.ends_with(".tres") or file in skipped:
 			continue
@@ -171,6 +187,15 @@ func _initialize() -> void:
 	_problems.append_array(overhead[0])
 	_checks += overhead[1]
 	_report()
+
+
+## Part K of N, as (K, N), of [param given] ("K/N"); Vector2i.ZERO when it names none.
+static func _part_of(given: String) -> Vector2i:
+	var numbers := given.split("/")
+	if numbers.size() != 2 or not (numbers[0].is_valid_int() and numbers[1].is_valid_int()):
+		return Vector2i.ZERO
+	var part := Vector2i(numbers[0].to_int(), numbers[1].to_int())
+	return part if part.x >= 1 and part.x <= part.y else Vector2i.ZERO
 
 
 func _report() -> void:
@@ -291,16 +316,35 @@ func _scripts_under(dir: String) -> PackedStringArray:
 	return found
 
 
-## Each platform, blocker and ramp of [param layout] against the ship as drawn.
+## [param layout]'s art against her data: the ship as drawn, then her railings' open
+## spans in a build of their own. In parts (--part=K/N) each builds her once: the last
+## checks her open spans, and every other part its share of the rest (_mine).
 func _check_ship(file: String, layout: ShipLayout) -> void:
 	var rules := RunMatch.default_config(SEED).rules
+	if _part.x < _part.y or _part.y == 1:
+		_check_drawn(file, layout, rules)
+	if _part.x == _part.y:
+		var spans: Array = OpenSpanCheck.check(
+			root, file, layout, rules, _ship_faces, BLOCKER_TOLERANCE
+		)
+		_problems.append_array(spans[0])
+		_checks += spans[1]
+
+
+## Each platform, blocker and ramp of [param layout] against the ship as drawn, and her
+## furnishings — those _mine() deals this part — and in its first part her hull, panes,
+## undersides and crate light, each checked whole.
+func _check_drawn(file: String, layout: ShipLayout, rules: BrawlRules) -> void:
 	var art := ShipArt.new()
 	root.add_child(art)
 	art.rules = rules
 	art.build(layout, rules.railing_height, rules.body_radius)
 	var faces := _ship_faces(art)
 	var cells := FaceCells.file(faces)
+	var first := _part.x == 1
 	for index in layout.platforms.size():
+		if not _mine(index):
+			continue
 		var platform := layout.platforms[index]
 		_check_tops(
 			faces,
@@ -310,12 +354,15 @@ func _check_ship(file: String, layout: ShipLayout) -> void:
 			func(_point: Vector2) -> float: return platform.height,
 			PLATFORM_TOLERANCE
 		)
-	_problems.append_array(
-		UndersideCheck.check(
-			layout, art.cut_above, file, faces, cells, _samples, PLATFORM_TOLERANCE
+	if first:
+		_problems.append_array(
+			UndersideCheck.check(
+				layout, art.cut_above, file, faces, cells, _samples, PLATFORM_TOLERANCE
+			)
 		)
-	)
 	for index in layout.ramps.size():
+		if not _mine(index):
+			continue
 		var ramp := layout.ramps[index]
 		_check_tops(
 			faces,
@@ -326,25 +373,47 @@ func _check_ship(file: String, layout: ShipLayout) -> void:
 			RAMP_TOLERANCE
 		)
 	for index in layout.blockers.size():
-		_check_blocker(
-			faces, cells, "%s blocker %d" % [file, index], layout.blockers[index], layout
-		)
+		if _mine(index):
+			_check_blocker(
+				faces, cells, "%s blocker %d" % [file, index], layout.blockers[index], layout
+			)
 	for index in layout.ladders.size():
-		_check_ladder(faces, cells, "%s ladder %d" % [file, index], layout.ladders[index], layout)
-	if layout.structure != null:
+		if _mine(index):
+			_check_ladder(
+				faces, cells, "%s ladder %d" % [file, index], layout.ladders[index], layout
+			)
+	if first and layout.structure != null:
 		_check_hull(faces, cells, file, layout)
 		_check_panes(file, layout, rules)
 	_check_false_floor(art, file, layout, rules)
-	_check_crate_light(file, layout, art)
-	_checks += 1
-	for problem in FurnishingCheck.intrusions(layout, rules, FurnishingCheck.furnishings(art)):
+	if first:
+		_check_crate_light(file, layout, art)
+		_checks += 1
+	var furnishings := _dealt(FurnishingCheck.furnishings(art))
+	for problem in FurnishingCheck.intrusions(layout, rules, furnishings):
 		_problems.append("art-lint: %s: %s" % [file, problem])
 	art.free()
-	var spans: Array = OpenSpanCheck.check(
-		root, file, layout, rules, _ship_faces, BLOCKER_TOLERANCE
-	)
-	_problems.append_array(spans[0])
-	_checks += spans[1]
+
+
+## Whether this part checks item [param index] of one of a ship's lists: the parts
+## but the last of several (--part) deal each list between them, one item each in turn.
+func _mine(index: int) -> bool:
+	return posmod(index, maxi(_part.y - 1, 1)) == _part.x - 1
+
+
+## The triangles of [param faces] this part checks: those whose first corner stands in
+## a stretch of her length, DEALT_STRETCH long, that _mine() deals it. The check works
+## out the footing round a face once, for every face near it (FurnishingCheck), so a
+## part's faces stand together: dealt one by one, each part of the Titanic's worked out
+## 96% of her footing again; in 8 m stretches the parts between them work out 17% more.
+func _dealt(faces: PackedVector3Array) -> PackedVector3Array:
+	if _part.y <= 2:
+		return faces
+	var mine := PackedVector3Array()
+	for index in range(0, faces.size(), 3):
+		if _mine(floori(faces[index].x / DEALT_STRETCH)):
+			mine.append_array(faces.slice(index, index + 3))
+	return mine
 
 
 ## Each section of [param layout]'s structure below the sheer — the hull's, not a
@@ -435,7 +504,8 @@ func _check_panes(file: String, layout: ShipLayout, rules: BrawlRules) -> void:
 ## [param art] shows in that band, straight down, does not face up: nothing drawn
 ## looks like deck a body could stand on where the rules have none (D6). Past an edge
 ## walled from the deck to over a jump no body goes, so nothing there is looked at: a
-## space fitted in behind her hold's wall, or her hull behind a peak's (#148).
+## space fitted in behind her hold's wall, or her hull behind a peak's (#148). Only the
+## platforms _mine() deals this part.
 func _check_false_floor(art: ShipArt, file: String, layout: ShipLayout, rules: BrawlRules) -> void:
 	var faces := _ship_faces(art, true)
 	var cells := FaceCells.file(faces)
@@ -444,6 +514,8 @@ func _check_false_floor(art: ShipArt, file: String, layout: ShipLayout, rules: B
 	for platform: ShipPlatform in layout.platforms:
 		ends = Vector2(minf(ends.x, platform.area.position.x), maxf(ends.y, platform.area.end.x))
 	for index in layout.platforms.size():
+		if not _mine(index):
+			continue
 		var platform := layout.platforms[index]
 		var low := platform.height - rules.step_height
 		var high := platform.height + rules.jump_height
