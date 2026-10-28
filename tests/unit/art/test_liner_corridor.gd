@@ -1,7 +1,7 @@
 extends GutTest
 ## LinerCorridor on the Titanic: her first-class corridors' stateroom doors and sconces
 ## stand where their spacing says, and they add to what the passage dressing drew.
-## That nothing the dressing draws stands in a body's way is test_dressing_clear's.
+## That nothing the dressing draws stands in a body's way is art-lint's (FurnishingCheck).
 
 const FurnishingCheck := preload("res://tools/furnishing_check.gd")
 const RunMatch := preload("res://tools/run_match.gd")

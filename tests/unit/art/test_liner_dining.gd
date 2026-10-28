@@ -3,7 +3,7 @@ extends GutTest
 ## walls — more to them than the saloon's dressing they had, within a budget; her laid
 ## tables and chairs props of their own (test_titanic_saloons), her third-class saloons'
 ## long tables mess tables. That nothing the whole ship's dressing draws stands in a
-## body's way is test_dressing_clear's.
+## body's way is art-lint's (FurnishingCheck), on every ship.
 
 const FurnishingCheck := preload("res://tools/furnishing_check.gd")
 const RunMatch := preload("res://tools/run_match.gd")
