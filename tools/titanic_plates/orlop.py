@@ -24,12 +24,11 @@ flat, and D to her stem.
 
 The plate draws no way into her holds but their hatches, from the decks above, and none
 into the switchboard platform, the CO2 evaporator room or the specie room but from spaces
-nobody walks. So, est. and each said beside it: a hold ladder down from each hold the
-stores' and the post office's stairs don't reach to the hold or deck under it, along her
-where today's generator lays its flights between them; a ladder down from the CO2
-evaporator room to the engine room's floor; and three doors. The flights down into the
-holds from above are the decks above's (G deck's, or the hatches' from the well decks),
-and none is traced yet: the lay lays them, as today's generator does from G deck.
+nobody walks. So, est. and each said beside it: a hold ladder down from each hold G
+deck's stairs don't reach, to the hold or deck under it, along her; a ladder down from
+the CO2 evaporator room to the engine room's floor; and three doors. The flights down
+into the holds from above are the decks above's (G deck's, or the hatches' from the well
+decks), and none is traced yet: the lay lays them, as today's generator does from G deck.
 """
 PLATE = "V"
 CROP = (440, 3020, 10340, 4160)
@@ -38,13 +37,14 @@ CROP = (440, 3020, 10340, 4160)
 # tools/gen_titanic.py's BULKHEADS, and on her ends: the view's after end on her rudder
 # post (X_AP, her stern below KNUCKLE), its forward end on her stem at this height (X_FP
 # raked, gen_titanic.py's stem_x). Each bulkhead's plate x is its ink's middle at her
-# centre line; O and N are drawn double, read at their two lines' middle. Two read as G
-# deck's do (g.py):
-# - M at Plate III's elevation's step between the orlop and F deck, -64.87: a straight
-#   line through the others reads it at -64.70 here, 1.32 m forward of BULKHEADS' -66.02.
-# - B is a control here: this view draws it at BULKHEADS' 101.85 (the straight line reads
-#   101.97), not at F's and G's 99.5. The firemen's spiral trunk stands aft of it, its
-#   after wall at 100.18: the elevation's second line at 100.10 is that trunk's.
+# centre line; O and N are drawn double, read at their two lines' middle. Of the two
+# G deck's view draws off BULKHEADS (g.py):
+# - M stands at Plate III's elevation's step between the orlop and F deck, -64.87, as on
+#   G: a straight line through the others reads it at -64.70, 1.32 m forward of
+#   BULKHEADS' -66.02.
+# - B stands at BULKHEADS' 101.85 (the straight line reads 101.97), not at F's and G's
+#   99.5, so it is a control here. The firemen's spiral trunk stands aft of it, its after
+#   wall at 100.18: the elevation's second line at 100.10, low down, is that trunk's.
 # A straight line through O to A (38.08 px a metre) leaves them -0.07 m (O), -0.29 (N),
 # +0.17 (M's step), +0.35 (L), +0.19 (K), +0.12 (J), -0.06 (H), -0.19 (G), -0.08 (F), -0.20
 # (E), -0.26 (D), -0.21 (C), +0.12 (B) and +0.39 (A) off; P -0.56. Piecewise every control
@@ -95,9 +95,9 @@ ROOMS = [
     # Between O and N, the refrigerated cargo holds, port and starboard of a wall on her
     # centre line, inside their insulation: the plate draws their lining 55-90 px inside
     # her sides and her bulkheads, the air trunks between (its boxes along her sides), and
-    # that space is nobody's. Each in three pieces round No. 5 hatch's trunk on the centre
-    # line ("No. 5 HATCH (OVER)": over the tunnels, so the orlop deck closes it below). The
-    # trunk's foot opens into both holds through the doors the plate draws in its coaming.
+    # that space is nobody's. Each in three pieces round the foot of No. 5 hatch's trunk on
+    # the centre line (the plate's "No. 5 HATCH (OVER)": its hatch is in the decks above),
+    # which opens into both holds through the doors the plate draws in its coaming.
     ("refrigerated cargo hold", 1588, 3376.5, 1664, 3613),
     ("refrigerated cargo hold", 1664, 3352, 1839, 3499.5),
     ("refrigerated cargo hold", 1839, 3310, 2097, 3613),
@@ -126,15 +126,18 @@ ROOMS = [
     ("empties store", 2299, 3553, 2446, 3772),
     ("mineral water store", 2446, 3442, 2576, 3772),
     # The lobby by M where G deck's stores' stair comes down (g.py), between the wine and
-    # spirit store and the champagne store, west of the stair's foot to the fruit store
-    # (the plate's alcove there, open to the wine store, est. the lobby's) and on to the
-    # passage. The plate's passage turns up to it at 45 degrees between the champagne
-    # store's cut corner and the switchboard platform's: here the lobby steps down to the
-    # passage's line, and the champagne store keeps its corner. The plate's box at M by
-    # the lobby's foot (54 by 43 px, a door swing at its west side) is the lobby's: no
-    # door through M is drawn.
+    # spirit store and the champagne store: the stair's foot by M at the wine store's
+    # door, its head end aft by the plate's alcove against the fruit store, which the plate
+    # leaves open to the wine store (est. the lobby's). From the stair's foot the lobby
+    # goes down past a small room on M's face, unlabelled, its door from the lobby, to the
+    # passage: the plate's passage turns up to it at 45 degrees between the champagne
+    # store's cut corner and the switchboard platform's, here a step to the passage's
+    # line, the champagne store keeping its corner. No door through M is drawn.
     ("passage, orlop deck", 2693, 3212, 2941.5, 3283),
-    ("passage, orlop deck", 2840, 3283, 2941.5, 3442),
+    ("passage, orlop deck", 2840, 3283, 2880, 3442),
+    ("passage, orlop deck", 2880, 3283, 2941.5, 3323),
+    ("passage, orlop deck", 2880, 3367, 2941.5, 3442),
+    ("room, orlop deck", 2880, 3323, 2941.5, 3367),
     # The switchboard platform, over the electric engine room's dynamos beside their air
     # space, its diagonal head read on the passage's line.
     ("switchboard platform", 2789, 3442, 2941.5, 3898.5),
@@ -216,8 +219,9 @@ SOLIDS = [
     ("coal bunker", 7982, 3121.2, 8090.4, 4040, None),
     # Between D and C: the bunker hatch's trunk down to the lower hold (its coaming's
     # doors into the baggage room, the mail room and the specie room, where the plate
-    # draws them, are the trunk's); the boxes marked S along her sides, est. vent trunks,
-    # each held inside its room's side; two trunks on D's face in the mail room.
+    # draws them, are the trunk's); the six boxes the plate marks S along her sides,
+    # unexplained, each held inside its room's side; two trunks on D's face in the mail
+    # room.
     ("bunker hatch", 8444, 3462, 8579, 3693, None),
     ("trunk", 8229, 3155, 8260, 3204, None),
     ("trunk", 8405, 3168, 8438, 3227, None),
@@ -246,8 +250,8 @@ DOORS = [
     # The stores off the passage, and the empties from the bulk store.
     (2535, 3388), (2635, 3388), (2380, 3442), (2552, 3442), (2299, 3750),
     # The wine and spirit store from the lobby; the champagne store, whose swing stands
-    # on its cut corner, on its side into the lobby.
-    (2892, 3212), (2840, 3330),
+    # on its cut corner, on its side into the lobby; the small room on M.
+    (2892, 3212), (2840, 3330), (2880, 3340),
     # The switchboard platform from the lobby, est.: the plate draws it shut off from the
     # stores, reached from the dynamos below.
     (2908, 3442),
@@ -263,10 +267,11 @@ OPEN = [
     (1057, 3470, 1063, 3760), (1212, 3425, 1218, 3800), (1369, 3380, 1375, 3845),
     # The refrigerated holds' pieces either side of No. 5 hatch.
     (1661, 3380, 1667, 3495), (1836, 3355, 1842, 3495), (1661, 3730, 1667, 3855), (1836, 3730, 1842, 3875),
-    # The bulk store's three; the refrigerated cargo hold's two; the lobby's two and the
-    # passage into it.
+    # The bulk store's three; the refrigerated cargo hold's two; the lobby's four round the
+    # small room, and the passage into it.
     (2155, 3385, 2345, 3391), (2155, 3439, 2296, 3445), (2786, 3901, 2792, 4085),
-    (2843, 3280, 2938, 3286), (2837, 3391, 2843, 3439),
+    (2843, 3280, 2877, 3286), (2883, 3280, 2938, 3286), (2877, 3286, 2883, 3320), (2877, 3370, 2883, 3439),
+    (2837, 3391, 2843, 3439),
     # The baggage room's three, the mail room's two.
     (8441, 3210, 8447, 3459), (8582, 3459, 8681, 3465), (8441, 3696, 8447, 3940),
     # No. 2 hold's seven.

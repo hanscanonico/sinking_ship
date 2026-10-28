@@ -5,10 +5,9 @@ Read in the plate's own pixels, as deck.py says, as the orlop's (orlop.py). The 
 orlop is a partial deck "extending only through the forepeak and No. 1 hold" (BOT,
 "Decks and Accommodation", Below G deck), and the plate draws it so: from bulkhead B to
 her stem, No. 1 hold's cargo round No. 1 hatch, the peak tank forward of A. Aft of B the
-view draws only the firemen's spiral trunk, the spirals passing down through it to their
-tunnel (orlop.py's flights), and two unlabelled lines slanting in from her sides to B,
-where the view ends. The plate draws the Olympic; nothing in 1912 text sets the Titanic's
-apart here.
+view draws only her sides, running on aft a little way, and the firemen's spiral trunk
+between them, the spirals passing down through it to their tunnel (orlop.py's flights).
+The plate draws the Olympic; nothing in 1912 text sets the Titanic's apart here.
 
 Its height is the lay's: Plate III's elevation draws it 84 px (2.2 m) under No. 1 hold's
 orlop and 4.8 m over her tank top, No. 1 hold's orlop standing 33 px over No. 2 hold's;
