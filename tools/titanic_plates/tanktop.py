@@ -340,8 +340,8 @@ OPEN = [
 # Her tank top has no flights down. The ladders and stairs up from it belong to the decks
 # at their tops (the plate draws none of them on the tank top):
 # - the firemen's spiral stairs, from the firemen's passage's forward end abaft B, their
-#   feet at px 9152-9198 by 4825-4872 (port) and 4967-5014 (starboard): x 100.3-101.6,
-#   z -2.1 to -0.9 and +1.5 to +2.7, up to the orlop and on to the firemen's quarters;
+#   feet at px 9152-9198 by 4825-4872 (port) and 4967-5014 (starboard): x 100.2-101.4,
+#   z -2.1 to -0.8 and +1.6 to +2.8, up to the orlop and on to the firemen's quarters;
 # - each boiler room's ladders up from its stokeholds by its bunkers' faces (Plate VI's
 #   elevation: in boiler room 1 by its forward bunker, x -20.9 to -20.5; in boiler room 2
 #   by its after bunker, x -14.9 to -13.5, and by its forward one, x -3.6 to -3.2), and the
@@ -349,5 +349,6 @@ OPEN = [
 # - the engine rooms' ladders and gratings (BOT: "direct access to the Boat deck");
 # - the escapes from the electric engine room and the after tunnels to E deck's working
 #   passage (BOT), where the plate draws a small trunk on N's and O's forward faces to
-#   port, px 2100-2125 by 4826-4865 and 1462-1490 by 4850-4885.
+#   port, px 2100-2125 by 4826-4865 (x -85.2 to -84.5, z -3.1 to -2.1) and 1462-1490 by
+#   4850-4885 (x -101.9 to -101.2, z -2.6 to -1.7).
 STAIRS = []
