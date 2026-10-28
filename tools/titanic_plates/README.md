@@ -99,10 +99,23 @@ on its own, piecewise, on features whose ship x is known:
   its scale (0.026348 m a pixel): funnels 1–3's casings against the elevation's funnel
   bases, and the bridge's front.
 
+Plate IV's C deck view (`c.py`) stretches unevenly along her: aft of the second-class lift
+it draws about 6% longer than forward of it, and aft of the mainmast 6% shorter again, so
+it is calibrated piecewise on the mast's ring A deck's plan gives, the lifts and the
+casings A and B decks give, and on her stern at `X_AFT`; her stem then reads within
+0.03 m of the generator's. (B deck's view reads its after part on the elevation instead:
+see B deck's, below.) Its side lines in her forward body are C deck's own; the dashed line
+inside them is D deck's side.
+
 What the calibration has shown so far (#360's findings): today's `FUNNELS` stand 2.5–4.4 m
 aft of the elevation's funnel bases; the plates put the squash court and the mail room in
 No. 3 hold; Plate IV's E deck view's bow does not fit its aft bulkheads' scale; the plan's
 lifeboats are spaced ~8% wider than the elevation's davits.
+
+Plate IV's D deck view (`d.py`) is calibrated on its two lift wells and her ends: it is
+1.7% longer forward of the lifts than aft of them. The walls standing over bulkheads K–P
+come out within 0.3 m of `BULKHEADS`, but its funnel casings are drawn larger than A
+deck's, their middles up to 1 m off, so they are no control there.
 
 B deck (#367):
 
@@ -110,16 +123,17 @@ B deck (#367):
   the casings of funnels 3, 2 and 1. Aft of the lift it reads on her after end where
   Plate III's elevation draws it — her superstructure's after face, the after second-class
   entrance's after wall (px 2120; the elevation's px 2200, x -94.40) — as C deck's view
-  reads on her stern (#374): there the plate draws 3% larger than forward of the lift, as
-  C deck's does between the lift and her stern. Across her, her sides are 1088 px apart
+  reads on her stern: there the plate draws 3% larger than forward of the lift, as C
+  deck's view does between the lift and her stern. Across her, her sides are 1088 px apart
   for 92 ft (0.025773 m a pixel), about the centre line it draws, bowed 4 px over the scan.
   Her deck's forward end there (75.3 m) agrees with Plate III's elevation within 0.4 m.
 - **The mainmast's ring** on her centre line, which Plate III's A deck plan (px 2385) and
   Plate IV's B and C deck plans (px 2393, 2405) all draw, does not stack: B deck's reads
-  -87.5 and C deck's -87.0 on their after ends, A deck's -88.6 on its lift, and the
-  elevation draws the mast's foot at the superstructure's after face (-94.4). Pegged on A
-  deck's ring, as B deck first was, B deck's after end stood 1.6 m aft of the
-  elevation's, and C deck's poop front 0.8 m. The generator stands the mast on A deck's.
+  -87.5 on its after end, C deck's -87.0 on her stern and the lift alone (`c.py` still
+  holds it at A deck's), A deck's -88.6 on its lift, and the elevation draws the mast's
+  foot at the superstructure's after face (-94.4). Pegged on A deck's ring, as B deck
+  first was, B deck's after end stood 1.6 m aft of the elevation's, and C deck's poop
+  front 0.8 m. The generator stands the mast on A deck's.
 - **The 1912 plan**, The Shipbuilder vol. VI (1911-12), "The White Star Liner Titanic",
   Fig. 2 (pp. 222-223; Internet Archive the_shipbuilder_vol6, leaves n237 and n238, Public
   Domain Mark 1.0): "First-class accommodation on bridge deck B", her B deck from her
