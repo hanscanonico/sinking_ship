@@ -38,18 +38,22 @@ ROOMS = [
     # D, E, F and G decks (BOT: "another second class stairway"), her mainmast through it.
     ("second-class entrance, B deck, aft", 2120, 912, 2425, 1140),
     # The second-class smoking room (the plate's "2nd class smoke room"), its bar and
-    # lavatory at its after corners, and between them its after part.
+    # lavatory at its after corners, and between them its after part. The bar's and the
+    # lavatory's after walls under A deck's step over them (a.py), 25 px (0.7 m) forward
+    # of the plate's px 2424 (est.): A deck's ladders down onto this promenade come down
+    # where the plate puts them.
     ("second-class smoking room", 2580, 656, 2931, 1385),
     ("second-class smoking room", 2505, 846, 2580, 1194),
-    ("smoking room bar", 2424, 728, 2580, 846),
-    ("smoking room lavatory", 2432, 1194, 2584, 1314),
-    # The second-class entrance forward of it, round its staircase and lift, its well
-    # forward of the lift in the restaurant's after wall, where A deck's flight comes
-    # down (a.py). Its forward wall where the Titanic's plan draws the restaurant's after
-    # wall (b_mid.py), 16 px (0.4 m) forward of this plate's px 3142 (est.). Its
-    # vestibules on the promenades, est. as its corners: their doors open into it.
+    ("second-class smoking room bar", 2449, 728, 2580, 846),
+    ("second-class smoking room lavatory", 2449, 1194, 2584, 1314),
+    # The second-class entrance forward of it, round its staircase and lift; its forward
+    # wall where the Titanic's plan draws the restaurant's after wall (b_mid.py), 16 px
+    # (0.4 m) forward of this plate's px 3142 (est.). Its vestibules on the promenades,
+    # est. as its corners: their doors open into it. Forward of the lift, open to it, the
+    # staircase's well in the restaurant's after wall, where A deck's flight comes down
+    # (a.py): under her house's deck, in its cell, so a room of its own.
     ("second-class entrance, B deck", 2931, 695, 3158, 1338),
-    ("second-class entrance, B deck", 3158, 892, 3215, 1139),
+    ("second-class staircase, B deck", 3158, 892, 3215, 1139),
 ]
 
 SOLIDS = [
@@ -60,8 +64,9 @@ SOLIDS = [
     ("No. 4 hatch trunk", 2485, 1314, 2584, 1390, None),
     # The ventilators along the smoking room's forward wall.
     ("ventilators", 2865, 896, 2931, 1145, None),
-    # The second-class lift.
-    ("second-class lift", 3035, 973, 3122, 1054, None),
+    # The second-class lift, its starboard side under A deck's flight's port side (a.py),
+    # 7 px inboard of the plate's (est.).
+    ("second-class lift", 3035, 973, 3122, 1047, None),
 ]
 
 # Her houses on her open after end, each roofed by A deck over it (where A deck is not,
@@ -70,7 +75,7 @@ SOLIDS = [
 # house forward of it.
 HOUSES = [
     ("after_entrance_house", 2120, 912, 2425, 1140),
-    ("smoking_room_house", 2424, 656, 3158, 1385),
+    ("smoking_room_house", 2449, 656, 3158, 1385),
 ]
 
 DOORS = [
@@ -91,9 +96,9 @@ STAIRS = [
     # The after second-class stairway down to C deck: its port flight, 61 px of treads
     # (1.6 m) for 9 ft of rise, run on forward to a slope a body climbs, from the treads'
     # forward end, where her side steps in: no further aft, where the after well is under
-    # B deck. Its inboard 19 px est. floor, clear of the C deck corridor's wall under it
+    # B deck. Its inboard 25 px est. floor, clear of the C deck corridor's wall under it
     # (est., until C deck is traced); the starboard flight is floor.
-    ("second-class stairway", 2275, 922, 2408, 964, "aft", "c", "b"),
+    ("second-class stairway", 2275, 917, 2408, 958, "aft", "c", "b"),
     # The forward second-class staircase down to C deck, port of the lift: its 83 px of
     # treads run on aft over the entrance's floor, its inboard 15 px floor as the after
     # stairway's; the starboard flight is floor.

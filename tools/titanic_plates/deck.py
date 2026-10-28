@@ -161,7 +161,10 @@ class Deck:
     def __init__(self, name, side=None):
         module = _module(name)
         self.name = name
-        parts = [_Part(p, _module(p)) for p in module.PARTS] if hasattr(module, "PARTS") else [_Part(name, module)]
+        if hasattr(module, "PARTS"):
+            parts = [_Part(p, _module(p), widen=False) for p in module.PARTS]
+        else:
+            parts = [_Part(name, module)]
         self.parts = parts
         self.plate = parts[0].plate
         self.view = parts[0].view if len(parts) == 1 else None
@@ -184,7 +187,8 @@ class Deck:
         different parts within JOIN of each other that touch along their length take the
         mean of the parts' readings, each part's once, and every edge on them with it. A
         part reading two lines of one wall (another part's line touching both) is a trace
-        to fix, and is refused."""
+        to fix, and is refused. Then each passage or corridor narrower than WAY_LEAST is
+        widened on the joined lines, as a deck of one view's are in its own (_snapped)."""
         lists = ("rooms", "solids", "raised", "houses")
         offsets = {}  # (part, list name) -> where the part's pieces start in the deck's list
         for list_name in lists:
@@ -214,27 +218,48 @@ class Deck:
         groups = {}
         for k in range(len(lines)):
             groups.setdefault(root(k), []).append(k)
-        moved = {}  # (list name, deck index, slot) -> value
-        for members in groups.values():
+        value_of, line_of = {}, {}  # a joined line's value; (list, deck index, slot) -> its line
+        for g, members in groups.items():
             readings = {}
             for k in members:
                 readings.setdefault(lines[k][0], set()).add(lines[k][2])
-            if len(readings) < 2:
-                continue
             for p_index, values in readings.items():
                 assert len(values) == 1, "deck %s: part %s reads %s as one wall's line" % (
                     self.name, parts[p_index].name, sorted(values))
-            value = kept(sum(next(iter(v)) for v in readings.values()) / len(readings))
+            value_of[g] = kept(sum(next(iter(v)) for v in readings.values()) / len(readings))
             for k in members:
                 for list_name, index, slot in lines[k][5]:
-                    moved[(list_name, offsets[(lines[k][0], list_name)] + index, slot)] = value
+                    line_of[(list_name, offsets[(lines[k][0], list_name)] + index, slot)] = g
+        # Each passage's two sides across it; a side two passages share — one either side of
+        # it — is held, and the passage widened from its other side alone.
+        narrow = {}
+        for index, room in enumerate(self.rooms):
+            if _passage(room[0]):
+                ends = [line_of[("rooms", index, slot)] for slot in (1, 2, 3, 4)]
+                x0, x1, z0, z1 = (value_of[g] for g in ends)
+                narrow[index] = (ends[0], ends[1]) if abs(x1 - x0) < abs(z1 - z0) else (ends[2], ends[3])
+        shared = {}
+        for low, high in narrow.values():
+            for g in (low, high):
+                shared[g] = shared.get(g, 0) + 1
+        for index, (low, high) in narrow.items():
+            if value_of[low] > value_of[high]:
+                low, high = high, low
+            width = value_of[high] - value_of[low]
+            if width < WAY_LEAST - 1e-6:
+                grow = math.ceil((WAY_LEAST - width) / 2 / GRAIN - 1e-9) * GRAIN
+                if shared[high] > 1 and shared[low] == 1:
+                    value_of[low] = kept(value_of[low] - 2 * grow)
+                elif shared[low] > 1 and shared[high] == 1:
+                    value_of[high] = kept(value_of[high] + 2 * grow)
+                else:
+                    value_of[low], value_of[high] = kept(value_of[low] - grow), kept(value_of[high] + grow)
         for list_name in lists:
             pieces = getattr(self, list_name)
             for index, piece in enumerate(pieces):
                 piece = list(piece)
                 for slot in (1, 2, 3, 4):
-                    if (list_name, index, slot) in moved:
-                        piece[slot] = moved[(list_name, index, slot)]
+                    piece[slot] = value_of[line_of[(list_name, index, slot)]]
                 x0, x1, z0, z1 = piece[1:5]
                 piece[1:5] = [min(x0, x1), max(x0, x1), min(z0, z1), max(z0, z1)]
                 pieces[index] = tuple(piece)
@@ -372,7 +397,7 @@ class _Part:
     """One view of a deck: its pieces in ship metres, read through the view's calibration
     and snapped to its own lines in its own pixels."""
 
-    def __init__(self, name, module):
+    def __init__(self, name, module, widen=True):
         self.name = name
         self.plate = module.PLATE
         self.view = View(module.X, module.Z)
@@ -383,7 +408,8 @@ class _Part:
         boxes = [r[1:5] for r in rooms] + [s[1:5] for s in solids] + [r[1:5] for r in raised] + [h[1:5] for h in houses]
         n_rooms, n_solids, n_raised = len(rooms), len(solids), len(raised)
         self._counts = (n_rooms, n_solids, n_raised)
-        metres = self._snapped(boxes, [k for k, r in enumerate(rooms) if _passage(r[0])])
+        # A part of a deck of several views leaves its passages' widening to the deck.
+        metres = self._snapped(boxes, [k for k, r in enumerate(rooms) if _passage(r[0])] if widen else [])
         self.rooms = [(r[0],) + metres[k] for k, r in enumerate(rooms)]
         self.solids = [(s[0],) + metres[n_rooms + k] + (s[5],) for k, s in enumerate(solids)]
         self.raised = [(r[0],) + metres[n_rooms + n_solids + k] + (r[5],) for k, r in enumerate(raised)]
