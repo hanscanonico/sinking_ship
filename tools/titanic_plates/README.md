@@ -2,7 +2,8 @@
 
 The real Titanic (#360) is laid out room by room from the general arrangement plates of
 *The Shipbuilder*, June 1911 — Plates III, IV and V, every deck from the boat deck to the
-tank top, cabin by cabin (public domain; `plates.tsv` names each leaf and its SHA-256).
+tank top, cabin by cabin — and where she changed before she sailed, from The Shipbuilder's
+1912 plans of her as built (public domain; `plates.tsv` names each leaf and its SHA-256).
 Each deck traced from them is a Python data file here (`boat.py`, `a.py`, …), every piece
 in the plate's own pixels, read as the plate draws it. `deck.py` turns a deck file into
 ship metres for `tools/gen_titanic.py`; it needs nothing beyond Python, so CI runs it.
@@ -52,6 +53,25 @@ Edges within 6 px of each other that touch along their length are one wall's two
 readings and are snapped together; two readings further apart than that are two walls,
 so put a shared wall on one line.
 
+A room's name is also how her cells list it (a cell names the rooms it holds), so a name
+belongs to one cell: one another deck's house uses too takes its deck's name after it
+("passage, B deck", as "grand staircase, A deck").
+
+## A deck drawn in several views
+
+A deck no one view draws whole is a file naming its parts (`b.py`'s `PARTS`), each a
+deck file of its own in its own view's pixels: B deck's after end off Plate IV, and the
+rest off the two pages of the 1912 plan, which overlap at the gutter. `deck.py` reads
+each part as it reads a deck, then joins them in metres: lines two parts read of one
+wall within 0.3 m of each other (`JOIN`) take their mean, each part's whole line with it
+— so trace a wall both views draw (where they meet) as one line in each, or `deck.py`
+refuses it — and the narrow passages are widened on the joined lines. A part may give
+the deck's outline (`DECKS`) alone. `kit.py overlay PART` draws the whole deck's walls
+back over the part's view, and `deck_check.py` checks the deck whole.
+
+`deck.load(name, side)` holds the rooms reaching her side to it: `side(x0, x1)` the half
+breadth an outer wall's middle takes there, from the generator's strips of her deck.
+
 ## Where a body forces a change
 
 Bodies are 0.8 m across (`data/rules/brawl.tres`); the plates' passages and doors were
@@ -83,3 +103,28 @@ What the calibration has shown so far (#360's findings): today's `FUNNELS` stand
 aft of the elevation's funnel bases; the plates put the squash court and the mail room in
 No. 3 hold; Plate IV's E deck view's bow does not fit its aft bulkheads' scale; the plan's
 lifeboats are spaced ~8% wider than the elevation's davits.
+
+B deck (#367):
+
+- **Plate IV's B deck view** reads on A deck's shafts: the second-class lift (px 3082), the
+  casings of funnels 3, 2 and 1, and aft the mainmast, which both plans draw as a circle on
+  her centre line (Plate III px 2385, Plate IV px 2393). Aft of the lift the plate draws 3%
+  longer than forward of it, as A deck's does not. Across her, her sides are 1088 px apart
+  for 92 ft (0.025773 m a pixel), about the centre line it draws, bowed 4 px over the scan.
+  Her deck's forward end there (75.3 m) agrees with Plate III's elevation within 0.4 m.
+- **The 1912 plan**, The Shipbuilder vol. VI (1911-12), "The White Star Liner Titanic",
+  Fig. 2 (pp. 222-223; Internet Archive the_shipbuilder_vol6, leaves n237 and n238, Public
+  Domain Mark 1.0): "First-class accommodation on bridge deck B", her B deck from her
+  restaurant's after wall to her house's front as she was built — her cabins out to her
+  sides, the parlour suites' private promenades, the Café Parisien, the restaurant's
+  reception room. It is drawn about 5% larger across her than along (her sides 1331-1340 px
+  apart for her 92 ft 6 in extreme), reads on the casings and the lifts, and at its gutter
+  on the wall both pages draw (a 240 px overlap; the binding's curl leaves the stretch from
+  funnel 3's casing to funnel 2's at one scale, 2.5% larger than the pages' middles).
+- Where the two disagree: the plan puts the restaurant's after wall 0.4 m forward of Plate
+  IV's, and its second-class stair well 0.6 m shallower; and Plate IV's second-class bar
+  and lavatory reach 0.7 m aft of A deck's step over them, where A deck's ladders come
+  down. Each deck file says which reading it keeps (est.).
+- Plate IV's poop and forecastle views: the forecastle's 125 ft (BOT) and its after end
+  agree with `FCSL_FROM` within 0.6 m; the poop's view cannot share B deck's calibration
+  (it would put her stern 5 m past her counter), so `POOP_TO` stays the texts'.

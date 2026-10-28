@@ -424,7 +424,7 @@ func test_her_shell_closes_each_step_in_her_sheer_from_her_side_in_to_her_decks(
 						if hit != null:
 							assert_almost_eq((hit as Vector3).x, joint, 0.02, "%s: on it" % at)
 						probed["%s %.2f" % [ship_name, joint]] = true
-	for step: String in ["titanic 73.64", "titanic -94.00", "titanic 91.79", "tug -5.00"]:
+	for step: String in ["titanic 75.25", "titanic -91.94", "titanic 91.79", "tug -5.00"]:
 		assert_true(probed.has(step), "%s: looked at" % step)
 	assert_gt(probed.size(), 6, "her poop, A deck's after end, the barque's raised decks too")
 
