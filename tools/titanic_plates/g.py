@@ -528,4 +528,19 @@ STAIRS = [
     # flights down to G stand on the same spirals: the lay keeps them clear of each other.
     ("firemen's spiral staircase", 9266, 2203, 9380, 2249, "fore", "orlop", "g"),
     ("firemen's spiral staircase", 9266, 2361, 9380, 2407, "fore", "orlop", "g"),
+    # The hold ladders down to the orlop's after cargo hold (P-O) and refrigerated cargo
+    # holds (O-N), est.: the plates draw no access to these holds but their hatches, and
+    # the tank top under them is her shaft tunnels, no floor (tanktop.py). Each runs 3.0 m
+    # for 2.44 m, 0.9 m wide, at its hold's hatch where G has room for a ladder's head.
+    # - The after hold's: along the cross passage's starboard side, beside the foot of F
+    #   deck's main third-class stairway, its head forward by that foot. The passages
+    #   along No. 6 hatch's trunk each have a stub's mouth halfway along them, so a ladder
+    #   there would shut the rooms beyond it off. Its foot lands in the hold forward of
+    #   the trunk on P's face.
+    # - The refrigerated holds': along No. 5 hatch's trunk on its port side, its head aft
+    #   by the passage along O, its foot in the port hold clear of the hatch's coaming
+    #   (orlop.py), whose doors open into the starboard hold. The passage round the trunk
+    #   to starboard keeps the way past it.
+    ("hold ladder", 1089, 2372, 1207, 2406.5, "fore", "orlop", "g"),
+    ("hold ladder", 1701.5, 2194, 1815.5, 2228, "aft", "orlop", "g"),
 ]
