@@ -2,7 +2,8 @@ class_name DeckFurniture
 extends RefCounted
 ## What stands on her open decks as a box or a short cylinder (ShipArt), drawn as what it
 ## is, as FurnitureDressing draws a room's furniture: a box a deck rests on is a casing,
-## plated and painted as her houses are; a box over one of her structure's hatch openings
+## plated and painted as her houses are, topped where the deck stops short of its edge;
+## a box over one of her structure's hatch openings
 ## in the deck it stands on is the hatch's coaming under its tarpaulin (DeckWorks.hatch);
 ## a box at one of her boat stations, out to her deck's edge, is a boat stowed on chocks
 ## under its davits; any other is, by its shape, a skylight, a seat locker, a bench or a
@@ -110,6 +111,11 @@ static func build(mesh: ShipMesh, space: ShipSpace, blocker: ShipBlocker, top: f
 			DeckWorks.hatch(mesh, area, blocker.bottom, top)
 		Piece.CASING:
 			mesh.box(area, blocker.bottom, top, ShipPaints.wall, ShipMesh.SIDES)
+			# Where the deck resting on it stops short of its edge, it stands up to its own
+			# top there, as a wall does under a deck (ShipArt): the Titanic's No. 4 hatch
+			# trunks, under the end of A deck's step.
+			for bare: Rect2 in space.uncovered(area, blocker.top):
+				mesh.box(bare, top, blocker.top, ShipPaints.wall, ShipMesh.TOP | ShipMesh.SIDES)
 		Piece.SKYLIGHT:
 			skylight(mesh, area, blocker.bottom, top)
 		Piece.LOCKER:
