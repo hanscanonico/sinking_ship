@@ -22,11 +22,14 @@ room's after port corner, and the cross bunkers either side of each boiler room'
 bulkheads, coal from the tank top up (SOLIDS). Its floor (DECKS) is her stern to M, that
 flat, and D to her stem.
 
-Nobody's way into her holds is drawn but their hatches, from the decks above. The hold
-ladders here (STAIRS) are est.: one down from each hold to the one under it, where
-today's generator lays its flights between them, so each hold is joined to a deck. The
-flights down into each hold from above are G deck's (or the hatches' from the well decks):
-the lay lays them.
+The plate draws no way into her holds but their hatches, from the decks above, and none
+into the switchboard platform, the CO2 evaporator room or the specie room but from spaces
+nobody walks. So, est. and each said beside it: a hold ladder down from each hold the
+stores' and the post office's stairs don't reach to the hold or deck under it, along her
+where today's generator lays its flights between them; a ladder down from the CO2
+evaporator room to the engine room's floor; and three doors. The flights down into the
+holds from above are the decks above's (G deck's, or the hatches' from the well decks),
+and none is traced yet: the lay lays them, as today's generator does from G deck.
 """
 PLATE = "V"
 CROP = (440, 3020, 10340, 4160)
@@ -286,13 +289,13 @@ STAIRS = [
     ("firemen's spiral staircase", 9000, 3488, 9224, 3528, "fore", "tanktop", "orlop"),
     ("firemen's spiral staircase", 9000, 3613, 9224, 3653, "fore", "tanktop", "orlop"),
     # The hold ladders, est. (see above), each at the run STEEPEST allows. The after hold's
-    # down to the tank top, under No. 6 hatch, where today's generator lays the after hold's
-    # flights (5.62 m for 4.75 m); the refrigerated holds' down No. 5 hatch's trunk across
-    # her, clear of its doors (5.66 m); No. 2 hold's along her port side (5.76 m); No. 1
-    # hold's down to the lower orlop (2.65 m for the 2.2 m Plate III's elevation draws
-    # between them there, est.).
-    ("hold ladder", 1244, 3568.5, 1464, 3606.5, "fore", "tanktop", "orlop"),
-    ("hold ladder", 1790, 3505, 1830, 3720, "port", "tanktop", "orlop"),
+    # and the port refrigerated hold's down to the tank top, along her where today's
+    # generator lays the after holds' flights, but out to port, over the space the tank
+    # top's view leaves between her side and the port shaft tunnel (5.62 m and 5.63 m for
+    # 4.75 m); No. 2 hold's along her port side (5.76 m); No. 1 hold's down to the lower
+    # orlop (2.65 m for the 2.2 m Plate III's elevation draws between them there, est.).
+    ("hold ladder", 1244, 3416.5, 1464, 3454.5, "fore", "tanktop", "orlop"),
+    ("hold ladder", 1631, 3377, 1842.5, 3415, "fore", "tanktop", "orlop"),
     ("hold ladder", 8900, 3400, 9124, 3440, "fore", "tanktop", "orlop"),
     ("hold ladder", 9520, 3440, 9623, 3480, "aft", "lower_orlop", "orlop"),
     # The CO2 evaporator room's ladder down to the reciprocating engine room's floor, est.:
