@@ -510,7 +510,9 @@ STAIRS = [
     # The stores' stair down to the orlop's (BOT: "on the former deck, abaft the turbine
     # engine room, were some store rooms"), where the plate draws it and the orlop's view
     # under it: 110 px of treads (2.84 m) for 2.44 m, run on 5 px aft to a margin under
-    # STEEPEST (2.97 m); its head forward est.
+    # STEEPEST (2.97 m); its head aft est., in the passage's open end by the ice store's
+    # and the ice making machine room's doors. F deck's plate draws its flight down to G
+    # over the same treads: the lay offsets the two.
     ("stair", 2779, 1955.5, 2894, 1990.5, "aft", "orlop", "g"),
     # The post office's stair down to the mail room (BOT: the post office "over the mail
     # room on the orlop"): of the plate's two flights side by side, the starboard one (est.;
