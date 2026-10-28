@@ -89,3 +89,8 @@ What the calibration has shown so far (#360's findings): today's `FUNNELS` stand
 aft of the elevation's funnel bases; the plates put the squash court and the mail room in
 No. 3 hold; Plate IV's E deck view's bow does not fit its aft bulkheads' scale; the plan's
 lifeboats are spaced ~8% wider than the elevation's davits.
+
+Plate IV's D deck view (`d.py`) is calibrated on its two lift wells and her ends: it is
+1.7% longer forward of the lifts than aft of them. The walls standing over bulkheads K–P
+come out within 0.3 m of `BULKHEADS`, but its funnel casings are drawn larger than A
+deck's, their middles up to 1 m off, so they are no control there.
