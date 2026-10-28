@@ -6,10 +6,10 @@ extends GutTest
 const FurnishingCheck := preload("res://tools/furnishing_check.gd")
 const RunMatch := preload("res://tools/run_match.gd")
 
-## The Titanic's boat deck and A deck as her plates draw them (#360), each room's kind by
-## its name: a liner's small rooms of service tiled, her bridge's and her wireless's rooms
-## offices, an officer's cabin a cabin with no "office" in it, and no helm on her top
-## deck but her wheelhouse.
+## The Titanic's boat deck and A deck as her plates draw them (#360), and B deck as her
+## 1912 plan does (#367), each room's kind by its name: a liner's small rooms of service
+## tiled, her bridge's and her wireless's rooms offices, an officer's cabin a cabin with no
+## "office" in it, and no helm on her top deck but her wheelhouse.
 const TRACED := {
 	&"wheelhouse": RoomDressing.Kind.HELM,
 	&"chart room": RoomDressing.Kind.SERVICE,
@@ -72,6 +72,35 @@ const TRACED := {
 	&"servery": RoomDressing.Kind.SERVICE,
 	&"ladies' lavatory": RoomDressing.Kind.SERVICE,
 	&"gentlemen's lavatory": RoomDressing.Kind.SERVICE,
+	# B deck as she sailed in 1912 (#367): a name another deck's cell holds too takes the
+	# deck's, as a cell names its rooms.
+	&"second-class entrance, B deck, aft": RoomDressing.Kind.PUBLIC,
+	&"second-class smoking room": RoomDressing.Kind.PUBLIC,
+	&"second-class smoking room bar": RoomDressing.Kind.PUBLIC,
+	&"second-class smoking room lavatory": RoomDressing.Kind.SERVICE,
+	&"second-class entrance, B deck": RoomDressing.Kind.PUBLIC,
+	&"second-class staircase, B deck": RoomDressing.Kind.STAIRCASE,
+	&"Café Parisien": RoomDressing.Kind.PUBLIC,
+	&"restaurant galley": RoomDressing.Kind.SERVICE,
+	&"restaurant pantry": RoomDressing.Kind.SERVICE,
+	&"restaurant vestibule": RoomDressing.Kind.PASSAGE,
+	&"reception room, B deck": RoomDressing.Kind.PUBLIC,
+	&"first-class stateroom, B deck": RoomDressing.Kind.CABIN,
+	&"three-berth first-class stateroom, B deck": RoomDressing.Kind.CABIN,
+	&"single-berth first-class stateroom, B deck": RoomDressing.Kind.CABIN,
+	&"passage, B deck": RoomDressing.Kind.PASSAGE,
+	&"bathroom, B deck": RoomDressing.Kind.BATH,
+	&"lavatory, B deck": RoomDressing.Kind.SERVICE,
+	&"gentlemen's lavatory, B deck": RoomDressing.Kind.SERVICE,
+	&"ladies' lavatory, B deck": RoomDressing.Kind.SERVICE,
+	&"stewardesses' room, B deck": RoomDressing.Kind.CABIN,
+	&"stewards' pantry": RoomDressing.Kind.SERVICE,
+	&"parlour suite stateroom": RoomDressing.Kind.CABIN,
+	&"parlour suite sitting room": RoomDressing.Kind.SALOON,
+	&"private promenade": RoomDressing.Kind.SALOON,
+	&"first-class entrance, B deck": RoomDressing.Kind.PUBLIC,
+	# Under B deck's tapered after end, C deck's (est. until C deck is traced).
+	&"second-class vestibule, C deck": RoomDressing.Kind.PASSAGE,
 }
 ## The small Titanic's rooms on those decks that the Titanic's plates have no more.
 const UNTRACED: Array[StringName] = [&"officers' quarters", &"verandah café", &"after entrance"]
