@@ -50,7 +50,8 @@ CROP = (440, 3020, 10340, 4160)
 # (E), -0.26 (D), -0.21 (C), +0.12 (B) and +0.39 (A) off; P -0.56. Piecewise every control
 # reads exactly, each compartment at 37.6-39.0 px a metre but P-O's, 39.2. The cross
 # bunkers' after faces then read within 0.17 m of gen_titanic.py's BUNKERS. Her stem sits
-# 54 px short of A's scale (forward of A the view is 10% short), her rudder post 15 px.
+# 54 px short of B-A's scale (forward of A the view is 10% short), her rudder post 29 px
+# short of P-O's (aft of P, 7%).
 X = [
     (467, -129.58, "her rudder post, the view's after end (X_AP)"),
     (853.2, -118.97, "bulkhead P"),
@@ -72,8 +73,8 @@ X = [
 ]
 # The centre line, fitted to its dashes as drawn from px 600 to 10200 (1132 columns, 1.4
 # px rms, every 1000 px stretch within 4 px of the line); across her, her sides' double
-# lines' middles 1065.7 px apart from px 3900 to 6000 for her 92 ft moulded. Her sides'
-# middle stands within 1 px of the drawn centre line amidships.
+# lines' middles 1065.6 px apart from px 3900 to 6000 (1060.5-1070) for her 92 ft
+# moulded. Her sides' middle stands within 1.3 px of the drawn centre line there.
 Z = dict(centre=((600, 3609.1), (10200, 3574.4)), scale=0.02631)
 
 # The deck itself: her stern to M; the flat under the CO2 evaporator and brine pump rooms,
@@ -155,9 +156,9 @@ ROOMS = [
     # specie and parcel room, and to the lower hold"), round the bunker hatch's trunk and
     # the specie room forward of it; G deck's post office stair comes down into the mail
     # room (g.py). Each in two steps to her sides.
-    ("first and second class baggage room", 8090.4, 3155, 8444, 3580.5),
-    ("first and second class baggage room", 8444, 3206, 8684.1, 3462),
-    ("first and second class baggage room", 8579, 3462, 8684.1, 3580.5),
+    ("first- and second-class baggage room", 8090.4, 3155, 8444, 3580.5),
+    ("first- and second-class baggage room", 8444, 3206, 8684.1, 3462),
+    ("first- and second-class baggage room", 8579, 3462, 8684.1, 3580.5),
     ("mail room", 8090.4, 3580.5, 8444, 4001),
     ("mail room", 8444, 3693, 8684.1, 3945.5),
     ("specie room", 8579, 3580.5, 8684.1, 3693),
@@ -165,8 +166,8 @@ ROOMS = [
     # in three steps to her sides, and the trunk of the firemen's spiral staircases against
     # B (BOT: "a vertical spiral staircase leading to the forward end of a tunnel,
     # immediately above the tank top"), its ends 17 px out to No. 2 hatch's lines so the
-    # hold closes round both. G deck's spiral flights come down into it (g.py); the plate
-    # draws no door into it.
+    # hold closes round both. G deck's spiral flights come down into it (g.py), and the
+    # flights on down leave it (STAIRS); the plate draws no door into it.
     ("cargo or motor car hold", 8684.1, 3249, 8886, 3459),
     ("cargo or motor car hold", 8886, 3288, 9087, 3459),
     ("cargo or motor car hold", 9087, 3328.5, 9288.9, 3459),
@@ -278,26 +279,33 @@ OPEN = [
 
 STAIRS = [
     # The flights from the orlop down; those coming down onto it are G deck's (g.py).
-    # The firemen's spiral staircases down to their tunnel at the tank top (BOT), past the
-    # lower orlop's height in their trunk (lower_orlop.py): a spiral has no run a body
-    # climbs, so each is a straight flight as wide as the plate's spiral (40 px), at its
-    # place across her, from the trunk's after wall aft to the run STEEPEST allows for her
-    # orlop's 4.75 m over her tank top (224 px, 5.76 m): it runs 5.6 m aft of the trunk,
-    # through No. 2 hold, where the plate draws only the trunk. G deck's flights land in
-    # the trunk at its after end. The lay picks one shaft for D deck's, E's, F's, G's and
-    # these, which the plates draw a little apart (g.py's notes).
-    ("firemen's spiral staircase", 9000, 3488, 9224, 3528, "fore", "tanktop", "orlop"),
-    ("firemen's spiral staircase", 9000, 3613, 9224, 3653, "fore", "tanktop", "orlop"),
+    # The firemen's spiral staircases down to their tunnel at the tank top (BOT: "a
+    # vertical spiral staircase leading to the forward end of a tunnel, immediately above
+    # the tank top"), past the lower orlop's height in their trunk (lower_orlop.py). A
+    # spiral has no run a body climbs, so each is a straight flight as wide as the plate's
+    # spiral (38 px), its head in the trunk 1 m short of B, where a body coming down G
+    # deck's flights turns, and run aft to the run STEEPEST allows for her orlop's 4.75 m
+    # over her tank top (224 px, 5.75 m): through the trunk's after wall below the orlop's
+    # floor, under No. 2 hold, to feet in the firemen's passage, which Plate V's tank top
+    # draws running aft from the trunk between the spirals (est.: the flights stand
+    # inboard of the plate's spirals, at z -1.84 and +1.45 here, so their feet land in
+    # the passage). The lay picks one shaft for D deck's, E's, F's, G's and these, which
+    # the plates draw a little apart (g.py's notes).
+    ("firemen's spiral staircase", 9027, 3538, 9251, 3576, "fore", "tanktop", "orlop"),
+    ("firemen's spiral staircase", 9027, 3595, 9251, 3633, "fore", "tanktop", "orlop"),
     # The hold ladders, est. (see above), each at the run STEEPEST allows. The after hold's
     # and the port refrigerated hold's down to the tank top, along her where today's
-    # generator lays the after holds' flights, but out to port, over the space the tank
-    # top's view leaves between her side and the port shaft tunnel (5.62 m and 5.63 m for
-    # 4.75 m); No. 2 hold's along her port side (5.76 m); No. 1 hold's down to the lower
-    # orlop (2.65 m for the 2.2 m Plate III's elevation draws between them there, est.).
+    # generator lays the after holds' flights, but out to port (5.62 m and 5.63 m for
+    # 4.75 m): Plate V's tank top draws the shaft tunnels under both holds, the strip
+    # outboard of them narrowing forward to nothing, so these feet stand over the port
+    # tunnel's outer line there, and the lay fits them, or lays hatch ladders down from G
+    # deck instead. No. 2 hold's along her port side, port of the firemen's passage
+    # (5.76 m); No. 1 hold's down to the lower orlop (2.65 m for the 2.2 m Plate III's
+    # elevation draws between them there, est.).
     ("hold ladder", 1244, 3416.5, 1464, 3454.5, "fore", "tanktop", "orlop"),
     ("hold ladder", 1631, 3377, 1842.5, 3415, "fore", "tanktop", "orlop"),
     ("hold ladder", 8900, 3400, 9124, 3440, "fore", "tanktop", "orlop"),
-    ("hold ladder", 9520, 3440, 9623, 3480, "aft", "lower_orlop", "orlop"),
+    ("hold ladder", 9520, 3448, 9623, 3488.5, "aft", "lower_orlop", "orlop"),
     # The CO2 evaporator room's ladder down to the reciprocating engine room's floor, est.:
     # 5.42 m for its 4.5 m, along the room's inboard side.
     ("ladder", 3600, 3205, 3805, 3245, "aft", "tanktop", "orlop"),

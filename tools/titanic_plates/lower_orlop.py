@@ -64,8 +64,8 @@ OPEN = [
 ]
 
 STAIRS = [
-    # The hold ladder down to the tank top, est. (orlop.py's notes): along her starboard
-    # side, clear of the orlop's coming down, 3.1 m for the 2.55 m left on her generator's
-    # heights between the 2.2 m est. above and her tank top.
-    ("hold ladder", 9660, 4300, 9780, 4340, "fore", "tanktop", "lower_orlop"),
+    # The hold ladder down to the tank top, est. (orlop.py's notes): starboard of the
+    # orlop's coming down, its head aft by that one's foot, 3.1 m for the 2.55 m left on
+    # her generator's heights between the 2.2 m est. above and her tank top.
+    ("hold ladder", 9635.5, 4301, 9756.5, 4339, "aft", "tanktop", "lower_orlop"),
 ]
