@@ -14,8 +14,11 @@ const STEP := 0.08
 const RINGS: Array[float] = [0.0, 0.6, 0.95]
 const SPOKES := 10
 const GRID := 0.05
-## The squares of the ship plane the heights a body may stand at are filed under.
+## The squares of the ship plane the heights a body may stand at, and the box blockers,
+## are filed under.
 const CELL := 1.0
+## How far past a box blocker's sides, top and bottom a face still stands inside it.
+const INSIDE := 0.002
 
 
 ## Every face of the rooms' furnishings (RoomDressing) [param art] draws, under its
@@ -52,11 +55,12 @@ static func intrusions(
 	var surfaces := Surfaces.new(layout)
 	var reach := rules.body_radius - TOLERANCE
 	var bands := _standing_bands(layout, reach)
+	var boxes := _boxes_by_cell(layout)
 	var standing := {}
 	var found := PackedStringArray()
 	for index in range(0, faces.size(), 3):
 		var triangle := faces.slice(index, index + 3)
-		if _inside_a_blocker(layout, triangle) or not _in_a_band(bands, triangle, rules):
+		if _inside_a_blocker(layout, boxes, triangle) or not _in_a_band(bands, triangle, rules):
 			continue
 		for point in _spread(triangle):
 			var feet := _body_round(surfaces, rules, standing, point, reach)
@@ -122,19 +126,44 @@ static func _in_a_band(bands: Dictionary, triangle: PackedVector3Array, rules: B
 	return false
 
 
-## Whether [param triangle] stands wholly inside one of [param layout]'s box
-## blockers, which hold every body a radius off: an engine's own faces.
-static func _inside_a_blocker(layout: ShipLayout, triangle: PackedVector3Array) -> bool:
-	for blocker: ShipBlocker in layout.blockers:
+## Per CELL square of the ship plane, the box blockers of [param layout], by index,
+## whose footprints grown by INSIDE reach into it: of a liner's thousands, the few
+## _inside_a_blocker() need look at for a face whose first corner stands there.
+static func _boxes_by_cell(layout: ShipLayout) -> Dictionary:
+	var boxes := {}
+	for index in layout.blockers.size():
+		var blocker := layout.blockers[index]
 		if blocker.shape != ShipBlocker.Shape.BOX:
 			continue
-		var area := blocker.area.grow(0.002)
+		var area := blocker.area.grow(INSIDE)
+		var low := Vector2i((area.position / CELL).floor())
+		var high := Vector2i((area.end / CELL).floor())
+		for x in range(low.x, high.x + 1):
+			for z in range(low.y, high.y + 1):
+				var cell := Vector2i(x, z)
+				var filed: PackedInt32Array = boxes.get(cell, PackedInt32Array())
+				filed.append(index)
+				boxes[cell] = filed
+	return boxes
+
+
+## Whether [param triangle] stands wholly inside one of [param layout]'s box
+## blockers, which hold every body a radius off: an engine's own faces. One it stands
+## in holds its first corner, so only those [param boxes] (_boxes_by_cell) files
+## there are asked.
+static func _inside_a_blocker(
+	layout: ShipLayout, boxes: Dictionary, triangle: PackedVector3Array
+) -> bool:
+	var first := Vector2(triangle[0].x, triangle[0].z)
+	for index: int in boxes.get(Vector2i((first / CELL).floor()), PackedInt32Array()):
+		var blocker := layout.blockers[index]
+		var area := blocker.area.grow(INSIDE)
 		var inside := true
 		for corner: Vector3 in triangle:
 			if (
 				not area.has_point(Vector2(corner.x, corner.z))
-				or corner.y < blocker.bottom - 0.002
-				or corner.y > blocker.top + 0.002
+				or corner.y < blocker.bottom - INSIDE
+				or corner.y > blocker.top + INSIDE
 			):
 				inside = false
 				break
