@@ -28,11 +28,14 @@ top in No. 2 hold and 0.9 m higher again in No. 1 hold, where today's generator 
 
 The plate draws no way into her holds but their hatches, from the decks above, and none
 into the switchboard platform, the CO2 evaporator room or the specie room but from spaces
-nobody walks. So, est. and each said beside it: a hold ladder down from each hold G
-deck's stairs don't reach, to the hold or deck under it, along her; a ladder down from
-the CO2 evaporator room to the engine room's floor; and three doors. The flights down
-into the holds from above are the decks above's (G deck's, or the hatches' from the well
-decks), and none is traced yet: the lay lays them, as today's generator does from G deck.
+nobody walks. So, est. and each said beside it: hold ladders down from No. 2 hold to its
+tank top either side of the firemen's passage, and from No. 1 hold to the lower orlop;
+a ladder down from the CO2 evaporator room into the aisle inboard of the refrigerating
+engines; and four doors. Between P and N there is no floor under the orlop but the shaft
+tunnels in the run of her stern (tanktop.py), so the after hold and the refrigerated
+holds have no flight down: G deck's hatch ladders down into them (est., g.py) reach
+them. Every flight down onto the orlop is the deck above's, as the hatch ladders from
+the well decks are.
 """
 PLATE = "V"
 CROP = (440, 3020, 10340, 4160)
@@ -155,7 +158,7 @@ ROOMS = [
     # Between L and K, in the reciprocating engine room's after port corner on a flat at
     # the orlop: the CO2 evaporator room ("CO2 EVAPORAT. ROOM") and the brine pump room.
     # The plate draws no way into either: a door between them, est.; the evaporator
-    # room's ladder down to the engine room, est. (STAIRS).
+    # room's door out onto its ladder down to the engine room, est. (STAIRS).
     ("CO2 evaporator room", 3566.9, 3065, 3873, 3256),
     ("brine pump room", 3873, 3065, 3974, 3256),
     # Between D and C (No. 3 hold): the first- and second-class baggage room to port and
@@ -260,8 +263,9 @@ DOORS = [
     # The switchboard platform from the lobby, est.: the plate draws it shut off from the
     # stores, reached from the dynamos below.
     (2908, 3442),
-    # The brine pump room from the CO2 evaporator room, est.
-    (3873, 3200),
+    # The brine pump room from the CO2 evaporator room, est.; the CO2 evaporator room onto
+    # the head of its ladder down, est. (STAIRS).
+    (3873, 3200), (3789, 3256),
     # The baggage room from the mail room; the specie room into the mail room, est. (the
     # plate draws its door into the bunker hatch's trunk).
     (8273, 3580.5), (8631, 3693),
@@ -303,20 +307,17 @@ STAIRS = [
     # the plates draw a little apart (g.py's notes).
     ("firemen's spiral staircase", 9027, 3538, 9251, 3576, "fore", "tanktop", "orlop"),
     ("firemen's spiral staircase", 9027, 3595, 9251, 3633, "fore", "tanktop", "orlop"),
-    # The hold ladders, est. (see above), each at the run STEEPEST allows. The after hold's
-    # and the port refrigerated hold's down to the tank top, along her where today's
-    # generator lays the after holds' flights, but out to port (5.62 m each for 4.75 m):
-    # Plate V's tank top draws the shaft tunnels under both holds, the strip outboard of
-    # them narrowing forward to nothing, so these feet stand over the port tunnel's outer
-    # line there, and the lay fits them, or lays hatch ladders down from G deck instead.
-    # No. 2 hold's along her port side, port of the firemen's passage (5.75 m); No. 1
-    # hold's down to the lower orlop (2.62 m for the 2.2 m Plate III's elevation draws
-    # between them there, est.).
-    ("hold ladder", 1244, 3416.5, 1464, 3454.5, "fore", "tanktop", "orlop"),
-    ("hold ladder", 1631, 3377, 1842.5, 3415, "fore", "tanktop", "orlop"),
+    # The hold ladders, est. (see above), each at the run STEEPEST allows. No. 2 hold's
+    # down to its tank top either side of the firemen's passage, its two halves there
+    # walled apart by the passage's steel sides (tanktop.py), each foot on its half's
+    # floor (5.75 m for 4.75 m); No. 1 hold's down to the lower orlop (2.62 m for the 2.2 m
+    # Plate III's elevation draws between them there, est.).
     ("hold ladder", 8900, 3400, 9124, 3440, "fore", "tanktop", "orlop"),
+    ("hold ladder", 8900, 3717, 9124, 3757, "fore", "tanktop", "orlop"),
     ("hold ladder", 9520, 3448, 9623, 3488.5, "aft", "lower_orlop", "orlop"),
     # The CO2 evaporator room's ladder down to the reciprocating engine room's floor, est.:
-    # 5.44 m for its 4.5 m, along the room's inboard side.
-    ("ladder", 3600, 3205, 3805, 3245, "aft", "tanktop", "orlop"),
+    # 5.44 m for its 4.5 m, along the room's inboard wall, out of the door at its head
+    # (DOORS), down the 1 m aisle Plate VIII leaves between the refrigerating engines under
+    # the room and the port engine (tanktop.py), its foot aft of both on the open floor.
+    ("ladder", 3600, 3256, 3805, 3294, "fore", "tanktop", "orlop"),
 ]
