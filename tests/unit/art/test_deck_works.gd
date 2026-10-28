@@ -20,7 +20,7 @@ func _layout(ship: String) -> ShipLayout:
 
 ## Where each liner's masts and funnels stand along her: the small Titanic's where her
 ## old plan put them, the Titanic's where her plates draw them (#360).
-const MASTS := {"small_titanic": [96.0, -92.5], "titanic": [96.0, -91.6875]}
+const MASTS := {"small_titanic": [96.0, -92.5], "titanic": [96.0, -88.625]}
 const FUNNELS := {
 	"small_titanic": [50.2, 13.9, -22.4, -57.9],
 	"titanic": [54.38, 18.29, -18.76, -55.43],
