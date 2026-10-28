@@ -20,7 +20,7 @@ CROP = (9060, 3990, 10300, 4530)
 # BULKHEADS, and on her stem at this height (X_FP raked, gen_titanic.py's stem_x, for the
 # 2.2 m under the orlop est. above). The view sits 28 px aft of the orlop's, at its scale
 # between them (38.77 px a metre against the orlop's 38.80), so B is at BULKHEADS' 101.85
-# here too: at F's and G's 99.5, B-A would be drawn 14% short. Her stem sits 85 px short
+# here too: at F's and G's 99.5, B-A would be drawn 14% short. Her stem sits 90 px short
 # of A's scale (forward of A the view is 17% short).
 X = [
     (9261.3, 101.85, "bulkhead B"),

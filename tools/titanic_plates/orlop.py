@@ -22,6 +22,10 @@ room's after port corner, and the cross bunkers either side of each boiler room'
 bulkheads, coal from the tank top up (SOLIDS). Its floor (DECKS) is her stern to M, that
 flat, and D to her stem.
 
+Its height is the lay's: Plate III's elevation draws it with sheer, 6.1 m over the tank
+top in No. 2 hold and 0.9 m higher again in No. 1 hold, where today's generator lays it
+4.75 m over the tank top all along her. The flights here run on today's heights.
+
 The plate draws no way into her holds but their hatches, from the decks above, and none
 into the switchboard platform, the CO2 evaporator room or the specie room but from spaces
 nobody walks. So, est. and each said beside it: a hold ladder down from each hold G
