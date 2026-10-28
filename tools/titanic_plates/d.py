@@ -18,22 +18,24 @@ PLATE = "IV"
 CROP = (430, 2935, 10625, 4095)
 
 # Calibrated piecewise on what stacks deck to deck, at the ship x A deck's calibration
-# (a.py) gives it — the two lift wells, drawn alike on every deck — and on her ends: the
-# view's after end on her stern (tools/gen_titanic.py's X_AFT), its forward end on her
-# stem at this height (X_FP raked, gen_titanic.py's stem_x). The view is about 1.7% longer
-# forward of the lifts than aft of them, as E deck's bow is short of its bulkheads' scale
-# (#360). The walls over her watertight bulkheads (BULKHEADS) come out within 0.3 m of
-# them: P under the third-class entrance's after wall, O under the second-class cross
-# passage's middle, M under the second-class dining saloon's forward wall, L under the
-# galley's after wall, K under the reciprocating engine casing's forward wall; and BOT's
-# lengths come out to a foot or two (the pantry 57 ft for 56, the galley 46 for 45, the
-# saloon 114 for The Shipbuilder's 114). Her funnel casings are drawn larger here than on
-# A and C decks: their middles stand 0.1-1.0 m off A deck's (funnel 3's forward, funnel
-# 2's aft), as the plate draws them; calibrated on them instead, the saloon would come
-# out 119 ft.
+# (a.py) gives it — the two lift wells and the reciprocating engine casing, which A, C and
+# D decks draw alike (C deck at the same px as this view) — and on her ends: the view's
+# after end on her stern (tools/gen_titanic.py's X_AFT), its forward end on her stem at
+# this height (X_FP raked, gen_titanic.py's stem_x). The view's scale grows forward, 3%
+# from aft of the casing to forward of the lifts, as E deck's bow is short of its
+# bulkheads' scale (#360). So the turbine engine casing, the stewards' staircase and
+# funnel 3's casing's after end stack with C deck's (c.py) within 0.1 m. The walls over
+# watertight bulkheads P, O and M (BULKHEADS) come out within 0.25 m: the third-class
+# entrance's after wall, the second-class cross passage's middle, the second-class dining
+# saloon's forward wall. BOT's lengths come out to a foot or so (the galley 45 ft for 45,
+# the pantry 57 for 56, the dining saloon 115 for The Shipbuilder's 114, the reception
+# room 54 for its 54). Her funnel casings forward are drawn larger here than on A and C
+# decks, their middles up to 0.75 m off A deck's (funnel 2's after end 1.2 m aft, funnel
+# 3's forward end 1 m forward), as the plate draws them: they are no control.
 X = [
     (464, -138.26, "her stern, the hull's double line's middle"),
     (3074, -70.11, "the second-class lift's middle; A deck's at px 3087.5 on Plate III"),
+    (4543.5, -31.93, "the reciprocating engine casing's middle; A deck's at 4536.5, C deck's at 4543.5"),
     (7122.25, 36.58, "the first-class lifts' middle; A deck's at px 7125"),
     (10592, 129.68, "her stem at D deck, the double line's middle"),
 ]
@@ -421,7 +423,12 @@ ROOMS = [
     ("third-class open space", 8987, 3045, 9183.5, 3916.5),
     ("third-class open space", 9183.5, 3072, 9400, 3887),
     ("third-class open space", 9400, 3097, 9429.5, 3360.5),
-    ("passage, D deck", 9400, 3360.5, 9490, 3528),
+    # The bay's landing, and the lanes of its two ladders: C deck's comes down the after one
+    # into the T.R.S., which the plate draws at the ladders' feet (c.py), so that lane opens
+    # into it; the one down to E deck goes from the landing down the forward one.
+    ("passage, D deck", 9400, 3360.5, 9490, 3422),
+    ("passage, D deck", 9400, 3422, 9445, 3528),
+    ("passage, D deck", 9445, 3422, 9490, 3528),
     ("third-class open space", 9400, 3587, 9431, 3861),
     ("T.R.S.", 9400, 3528, 9490, 3587),
     # Abaft the firemen's quarters, the landing at the heads of the two spiral staircases
@@ -484,13 +491,16 @@ SOLIDS = [
     ("closet", 2350, 3254, 2398.5, 3290, None),
     ("closet", 2324, 4002, 2357.5, 4041.5, None),
     ("closet", 2183, 3811, 2212.5, 3855.5, None),
-    # The after second-class stairway's well between its flights.
-    ("stairwell", 2201.5, 3507, 2268, 3580, None),
+    # The after second-class stairway's well between its flights, its starboard side 10 px
+    # inboard of the plate's, so C deck's flight down to starboard of it (c.py) clears it.
+    ("stairwell", 2201.5, 3507, 2268, 3570, None),
     # The forward second-class entrance's ventilators and its lift.
     ("ventilator", 2885, 3421.5, 2920.5, 3482, None),
     ("ventilator", 2885, 3482, 2920.5, 3596.5, None),
     ("ventilator", 2885, 3596.5, 2920.5, 3658, None),
-    ("second-class lift", 3029.5, 3496.5, 3118.5, 3582.5, None),
+    # The lift's starboard side 10 px inboard of the plate's line, on C deck's lift's
+    # (c.py), so the shaft stacks and C deck's flight down to starboard of it clears it.
+    ("second-class lift", 3029.5, 3496.5, 3118.5, 3572, None),
     # In the service lobby: a W.C. and the plate's H (est. a hydrant's box, 1.2 m high).
     ("W.C.", 3361, 3008, 3406, 3088, None),
     ("H", 3240, 3160, 3302, 3202.5, 1.2),
@@ -528,11 +538,10 @@ SOLIDS = [
     ("funnel 2's casing", 6226, 3388, 6385, 3623.5, None),
     ("funnel 2's casing", 6385, 3388, 6625.5, 3623.5, None),
     ("fans and trunks", 6625.5, 3388, 6694, 3623.5, None),
-    # The grand staircase's three lifts, and the wells either side of its flights,
-    # behind their balustrades (est. 1 m).
+    # The grand staircase's three lifts. The plate's WELLs either side of the foot of C
+    # deck's flight are the openings down to E deck beside it: here the flights down to D
+    # and to E deck take their halves, and no block stands in them.
     ("first-class lifts", 7078.5, 3380.5, 7166, 3614.5, None),
-    ("stair well", 6893, 3380.5, 7006, 3445, 1.0),
-    ("stair well", 6893, 3548, 7006, 3614.5, 1.0),
     # The stateroom block: the closets at the starboard passages' ends and the one too
     # narrow for a body at a stateroom's side; the ladies' W.C.s, funnel 1's casing
     # between its shafts, the gentlemen's W.C.s.
@@ -699,7 +708,7 @@ OPEN = [
     # The open space's steps, its strips forward, and the bay's mouth.
     (8741.5, 3028, 8753.5, 3937.5), (8981, 3051, 8993, 3910.5), (9177.5, 3078, 9189.5, 3881),
     (9394, 3103, 9406, 3354.5), (9394, 3366.5, 9406, 3415), (9394, 3593, 9406, 3855),
-    (9406, 3354.5, 9423.5, 3366.5),
+    (9406, 3354.5, 9423.5, 3366.5), (9406, 3416, 9439, 3428), (9451, 3416, 9484, 3428), (9406, 3522, 9439, 3534),
     # The wash place's and the W.C.s' pieces.
     (9435.5, 3275.5, 9484, 3287.5), (9512, 3125, 9524, 3275.5),
     (9514, 3689, 9526, 3831.5), (9437, 3677, 9484, 3689),
@@ -711,8 +720,10 @@ OPEN = [
 
 STAIRS = [
     # The main third-class stairway down to E deck, as the plate draws it: 125 px of
-    # treads (3.3 m) for 2.75 m, 16 ft wide (BOT); the way it rises est.
-    ("third-class stairway", 1313, 3441.5, 1438, 3650.5, "aft", "e", "d"),
+    # treads (3.3 m) for 2.75 m, rising aft (est.) to where C deck's flight down lands.
+    # The plate draws the 16 ft (BOT) in three lanes; C deck's flight down comes down the
+    # middle and starboard ones (c.py), so this one takes the port lane, 1.35 m wide.
+    ("third-class stairway", 1313, 3441.5, 1438, 3493, "aft", "e", "d"),
     # The after second-class stairway's flight down to E deck: the port flight, as the
     # stairways above alternate (B deck's port, b_aft.py), rising aft as B deck's does. The
     # plate draws 66.5 px of treads (1.7 m) for 2.75 m: it runs on 58.5 px aft over the
@@ -731,13 +742,18 @@ STAIRS = [
     # The stewards' staircase down to E deck (BOT: "between the reciprocating engine
     # casing and the third funnel casing there was a stewards' stairway, which
     # communicated with all the decks below as far as E deck"), as the plate draws it:
-    # 160 px of treads (4.2 m) for 2.75 m. Its head to port est.
+    # 160 px of treads (4.2 m) for 2.75 m. Its head to port: E deck draws its foot at the
+    # starboard end, a passage going on to starboard from it. C deck draws its flight down
+    # to D in the same 1 m well (c.py), rising to starboard: the plates stack the two in
+    # one footprint, a switchback no body walks (see the PR's notes for the lay).
     ("stewards' staircase", 4783, 3434, 4822, 3594, "port", "e", "d"),
-    # The grand staircase's flight down to E deck, rising forward to the lifts as the
-    # flights above do (a.py, b_fwd.py) and E deck's comes up: the port half of the plate's
-    # middle flight, C deck's coming down to starboard of it, as the decks above alternate
-    # halves; run on from the lifts aft to the run STEEPEST allows (127 px, 3.35 m).
-    ("grand staircase", 6951, 3445, 7078, 3496.5, "fore", "e", "d"),
+    # The grand staircase's flight down to E deck, rising forward to the lifts' landing as
+    # the flights above do (a.py, b_fwd.py, c.py): the port half of the plate's flight, C
+    # deck's coming down the starboard half (c.py), as the decks above alternate halves.
+    # The plate's WELLs either side of the fan are the openings the flights go down
+    # through, not blocks. Its 127 px (3.35 m) run aft from where C deck's flight's head
+    # stands, 1.8 m short of the lifts, so a landing stays in front of them, as on C deck.
+    ("grand staircase", 6883, 3384, 7010, 3496, "fore", "e", "d"),
     # A stair down from the port entrance, over the one the plate's E deck draws under it:
     # its 86 px of treads run on forward to 127 px. Its head aft est.
     ("stair", 7080, 3238, 7207, 3279, "aft", "e", "d"),
@@ -753,13 +769,16 @@ STAIRS = [
     ("firemen's spiral staircase", 9500, 3495, 9627, 3561, "fore", "e", "d"),
     # The open space's ladderways down to E deck (BOT: "four separate ladderways with two
     # ladders, 4 ft. wide to each ... one, the starboard, led to E deck ... The two ladder
-    # ways at the after end led to E deck on both sides"): both after ones whole, the
-    # forward starboard one's outboard ladder (the plate's E deck has its foot there); the
-    # rest go up to C deck. Each is a stair a body climbs: run on from the plate's 107-115
-    # px to 125 px (3.35 m for 2.75 m), the way each rises est.
+    # ways at the after end led to E deck on both sides"): both after ones whole, run on
+    # from the plate's 107-115 px to 125 px (3.35 m for 2.75 m), the way each rises est.
+    # The forward starboard one's two ladders the plate draws once for the ladderway up to
+    # C deck and down to E: C deck's flight down comes down both (c.py), its foot at px
+    # ~9365, so the outboard ladder down to E deck runs from 56 px aft of the plate's, its
+    # head aft under C deck's flight, both rising aft, and its foot 0.35 m short of where
+    # that one lands.
     ("third-class ladder", 8665, 3186, 8790, 3296, "aft", "e", "d"),
     ("third-class ladder", 8668.5, 3676, 8790, 3791, "aft", "e", "d"),
-    ("third-class ladder", 9271, 3704, 9396, 3755, "aft", "e", "d"),
+    ("third-class ladder", 9215, 3704, 9340, 3755, "aft", "e", "d"),
     # The crew's ladder down to E deck in the bay at the middle line, starboard of the one
     # up to C deck: run on from the plate's 106 px to 125 px, its head to port est.
     ("ladder", 9448.5, 3403, 9483.5, 3528, "port", "e", "d"),
