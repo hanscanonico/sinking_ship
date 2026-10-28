@@ -6,10 +6,11 @@ extends GutTest
 const FurnishingCheck := preload("res://tools/furnishing_check.gd")
 const RunMatch := preload("res://tools/run_match.gd")
 
-## The Titanic's boat deck and A deck as her plates draw them (#360), and B deck as her
-## 1912 plan does (#367), each room's kind by its name: a liner's small rooms of service
-## tiled, her bridge's and her wireless's rooms offices, an officer's cabin a cabin with no
-## "office" in it, and no helm on her top deck but her wheelhouse.
+## The Titanic's boat deck and A deck as her plates draw them (#360), B deck as her 1912
+## plan does (#367), and C and D decks as Plate IV does (#368, #369), each room's kind by
+## its name: a liner's small rooms of service tiled, her bridge's and her wireless's
+## rooms offices, an officer's cabin a cabin with no "office" in it, and no helm on her
+## top deck but her wheelhouse.
 const TRACED := {
 	&"wheelhouse": RoomDressing.Kind.HELM,
 	&"chart room": RoomDressing.Kind.SERVICE,
@@ -99,11 +100,160 @@ const TRACED := {
 	&"parlour suite sitting room": RoomDressing.Kind.SALOON,
 	&"private promenade": RoomDressing.Kind.SALOON,
 	&"first-class entrance, B deck": RoomDressing.Kind.PUBLIC,
-	# Under B deck's tapered after end, C deck's (est. until C deck is traced).
-	&"second-class vestibule, C deck": RoomDressing.Kind.PASSAGE,
+	# C and D decks as Plate IV draws them (#368, #369): a name more than one of her
+	# cells would hold told apart by where it stands; her crew's rooms, her hospitals,
+	# workrooms and messes, and her third class's each a kind of its own; her stores
+	# holds, but for her cold store.
+	&"E deck working passage, after hold, after end": RoomDressing.Kind.PASSAGE,
+	&"Marconi operators' saloon": RoomDressing.Kind.SALOON,
+	&"T.R.S.": RoomDressing.Kind.SERVICE,
+	&"after grand staircase, C deck": RoomDressing.Kind.STAIRCASE,
+	&"assistant doctor's room": RoomDressing.Kind.CABIN,
+	&"bake house": RoomDressing.Kind.SERVICE,
+	&"baker's shop": RoomDressing.Kind.SERVICE,
+	&"bar, D deck": RoomDressing.Kind.SALOON,
+	&"bar, poop": RoomDressing.Kind.SALOON,
+	&"barber's shop": RoomDressing.Kind.SERVICE,
+	&"bathroom, C deck": RoomDressing.Kind.BATH,
+	&"bathroom, D deck": RoomDressing.Kind.BATH,
+	&"bathroom, D deck, aft of bulkhead O": RoomDressing.Kind.BATH,
+	&"bathroom, D deck, aft of bulkhead P": RoomDressing.Kind.BATH,
+	&"bread room": RoomDressing.Kind.SERVICE,
+	&"butcher's shop": RoomDressing.Kind.SERVICE,
+	&"carpenter's shop": RoomDressing.Kind.SERVICE,
+	&"chef's office": RoomDressing.Kind.SERVICE,
+	&"chief steward's room": RoomDressing.Kind.CABIN,
+	&"china pantry": RoomDressing.Kind.SERVICE,
+	&"cloak room, C deck": RoomDressing.Kind.SERVICE,
+	&"coal": RoomDressing.Kind.HOLD,
+	&"coke": RoomDressing.Kind.HOLD,
+	&"cold store": RoomDressing.Kind.SERVICE,
+	&"corridor, D deck": RoomDressing.Kind.PASSAGE,
+	&"corridor, D deck, aft of bulkhead N": RoomDressing.Kind.PASSAGE,
+	&"corridor, D deck, aft of bulkhead O": RoomDressing.Kind.PASSAGE,
+	&"crew's galley": RoomDressing.Kind.SERVICE,
+	&"crew's ladder": RoomDressing.Kind.PASSAGE,
+	&"crew's stair": RoomDressing.Kind.PASSAGE,
+	&"deck men's berths": RoomDressing.Kind.BERTHS,
+	&"doctor's room": RoomDressing.Kind.CABIN,
+	&"emergency dynamos": RoomDressing.Kind.ENGINE,
+	&"enquiry office": RoomDressing.Kind.SERVICE,
+	&"firemen's W.C.s": RoomDressing.Kind.SERVICE,
+	&"firemen's W.C.s, D deck, forward of bulkhead B": RoomDressing.Kind.SERVICE,
+	&"firemen's mess": RoomDressing.Kind.SALOON,
+	&"firemen's quarters, D deck, forward of bulkhead A": RoomDressing.Kind.BERTHS,
+	&"firemen's wash place": RoomDressing.Kind.SERVICE,
+	&"firemen's wash place, D deck, forward of bulkhead B": RoomDressing.Kind.SERVICE,
+	&"first-class entrance, D deck": RoomDressing.Kind.PUBLIC,
+	&"first-class galley scullery": RoomDressing.Kind.SERVICE,
+	&"first-class pantry": RoomDressing.Kind.SERVICE,
+	&"first-class pantry scullery": RoomDressing.Kind.SERVICE,
+	&"first-class stair, E deck": RoomDressing.Kind.PASSAGE,
+	&"four-berth second-class stateroom, D deck": RoomDressing.Kind.CABIN,
+	&"four-berth second-class stateroom, D deck, aft of bulkhead O": RoomDressing.Kind.CABIN,
+	&"galley store": RoomDressing.Kind.SERVICE,
+	&"gentlemen's lavatory, C deck": RoomDressing.Kind.SERVICE,
+	&"gentlemen's lavatory, D deck": RoomDressing.Kind.SERVICE,
+	&"gentlemen's lavatory, D deck, aft of bulkhead O": RoomDressing.Kind.SERVICE,
+	&"glass pantry": RoomDressing.Kind.SERVICE,
+	&"grand staircase, D deck": RoomDressing.Kind.STAIRCASE,
+	&"greasers' mess": RoomDressing.Kind.SALOON,
+	&"hospital": RoomDressing.Kind.BERTHS,
+	&"hospital attendants' room": RoomDressing.Kind.CABIN,
+	&"hospital, D deck": RoomDressing.Kind.BERTHS,
+	&"infectious hospital": RoomDressing.Kind.BERTHS,
+	&"knives": RoomDressing.Kind.SERVICE,
+	&"ladies' lavatory, C deck": RoomDressing.Kind.SERVICE,
+	&"ladies' lavatory, D deck": RoomDressing.Kind.SERVICE,
+	&"ladies' lavatory, D deck, aft of bulkhead O": RoomDressing.Kind.SERVICE,
+	&"lamp room": RoomDressing.Kind.SERVICE,
+	&"lamp trimmer's and storekeeper's berths": RoomDressing.Kind.BERTHS,
+	&"larder": RoomDressing.Kind.SERVICE,
+	&"lavatory, C deck": RoomDressing.Kind.SERVICE,
+	&"linen room": RoomDressing.Kind.SERVICE,
+	&"maids' and valets' pantry": RoomDressing.Kind.SERVICE,
+	&"maids' and valets' saloon": RoomDressing.Kind.SALOON,
+	&"mess stewards' room": RoomDressing.Kind.CABIN,
+	&"one-berth first-class stateroom": RoomDressing.Kind.CABIN,
+	&"one-berth first-class stateroom, D deck": RoomDressing.Kind.CABIN,
+	&"pantry, C deck": RoomDressing.Kind.SERVICE,
+	&"pantry, D deck": RoomDressing.Kind.SERVICE,
+	&"passage, C deck": RoomDressing.Kind.PASSAGE,
+	&"passage, D deck": RoomDressing.Kind.PASSAGE,
+	&"passage, D deck, aft of bulkhead B": RoomDressing.Kind.PASSAGE,
+	&"passage, D deck, aft of bulkhead N": RoomDressing.Kind.PASSAGE,
+	&"passage, D deck, aft of bulkhead O": RoomDressing.Kind.PASSAGE,
+	&"passage, D deck, aft of bulkhead P": RoomDressing.Kind.PASSAGE,
+	&"passage, D deck, forward of bulkhead B": RoomDressing.Kind.PASSAGE,
+	&"passage, forecastle": RoomDressing.Kind.PASSAGE,
+	&"plate pantry": RoomDressing.Kind.SERVICE,
+	&"printer's room": RoomDressing.Kind.SERVICE,
+	&"purser's room": RoomDressing.Kind.CABIN,
+	&"restaurant manager's quarters": RoomDressing.Kind.BERTHS,
+	&"room marked L": RoomDressing.Kind.SERVICE,
+	&"salad pantry": RoomDressing.Kind.SERVICE,
+	&"saloon bar": RoomDressing.Kind.SALOON,
+	&"seamen's mess": RoomDressing.Kind.SALOON,
+	&"second steward's room": RoomDressing.Kind.CABIN,
+	&"second-class dining saloon, D deck, aft of bulkhead N": RoomDressing.Kind.DINING,
+	&"second-class entrance, C deck": RoomDressing.Kind.PUBLIC,
+	&"second-class entrance, C deck, aft": RoomDressing.Kind.PUBLIC,
+	&"second-class entrance, C deck, aft, after end": RoomDressing.Kind.PUBLIC,
+	&"second-class entrance, D deck": RoomDressing.Kind.PUBLIC,
+	&"second-class entrance, D deck, aft": RoomDressing.Kind.PUBLIC,
+	&"second-class library": RoomDressing.Kind.PUBLIC,
+	&"second-class pantry": RoomDressing.Kind.SERVICE,
+	&"servery, C deck": RoomDressing.Kind.SERVICE,
+	&"servery, D deck": RoomDressing.Kind.SERVICE,
+	&"servery, D deck, aft of bulkhead M": RoomDressing.Kind.SERVICE,
+	&"silver pantry": RoomDressing.Kind.SERVICE,
+	&"sitting room": RoomDressing.Kind.SALOON,
+	&"six-berth third-class room, D deck": RoomDressing.Kind.CABIN,
+	&"steering gear room": RoomDressing.Kind.STEERING,
+	&"stewardesses' room, C deck": RoomDressing.Kind.CABIN,
+	&"stewardesses' room, D deck": RoomDressing.Kind.CABIN,
+	&"stewards' office": RoomDressing.Kind.SERVICE,
+	&"stewards' stair, E deck": RoomDressing.Kind.PASSAGE,
+	&"store": RoomDressing.Kind.HOLD,
+	&"store, C deck, after end": RoomDressing.Kind.HOLD,
+	&"store, D deck": RoomDressing.Kind.HOLD,
+	&"store, D deck, aft of bulkhead P": RoomDressing.Kind.HOLD,
+	&"store, D deck, forward of bulkhead A": RoomDressing.Kind.HOLD,
+	&"store, forecastle": RoomDressing.Kind.HOLD,
+	&"store, poop": RoomDressing.Kind.HOLD,
+	&"surgery": RoomDressing.Kind.SERVICE,
+	&"surgery, forecastle": RoomDressing.Kind.SERVICE,
+	&"third-class entrance": RoomDressing.Kind.PUBLIC,
+	&"third-class entrance, C deck": RoomDressing.Kind.PUBLIC,
+	&"third-class ladderway": RoomDressing.Kind.PASSAGE,
+	&"third-class matron's room": RoomDressing.Kind.CABIN,
+	&"third-class men's lavatory": RoomDressing.Kind.SERVICE,
+	&"third-class men's lavatory, D deck, aft of bulkhead O": RoomDressing.Kind.SERVICE,
+	&"third-class smoking room": RoomDressing.Kind.PUBLIC,
+	&"third-class surgery": RoomDressing.Kind.SERVICE,
+	&"third-class women's lavatory": RoomDressing.Kind.SERVICE,
+	&"third-class women's lavatory, D deck, aft of bulkhead O": RoomDressing.Kind.SERVICE,
+	&"three-berth first-class stateroom, C deck": RoomDressing.Kind.CABIN,
+	&"three-berth first-class stateroom, D deck": RoomDressing.Kind.CABIN,
+	&"two-berth first-class stateroom": RoomDressing.Kind.CABIN,
+	&"two-berth first-class stateroom, D deck": RoomDressing.Kind.CABIN,
+	&"two-berth second-class stateroom, D deck": RoomDressing.Kind.CABIN,
+	&"two-berth second-class stateroom, D deck, aft of bulkhead O": RoomDressing.Kind.CABIN,
+	&"two-berth third-class room, D deck": RoomDressing.Kind.CABIN,
+	&"vegetable preparing room": RoomDressing.Kind.SERVICE,
+	&"wardrobe room": RoomDressing.Kind.SERVICE,
+	&"windlass machinery room": RoomDressing.Kind.TANK,
 }
 ## The small Titanic's rooms on those decks that the Titanic's plates have no more.
-const UNTRACED: Array[StringName] = [&"officers' quarters", &"verandah café", &"after entrance"]
+const UNTRACED: Array[StringName] = [
+	&"officers' quarters",
+	&"verandah café",
+	&"after entrance",
+	&"D deck corridor, forward",
+	&"seamen's quarters",
+	&"forecastle stores",
+	&"forecastle stores, forward",
+]
 
 var _layout: ShipLayout
 var _rules: BrawlRules
@@ -331,9 +481,19 @@ func test_a_liner_s_office_is_one_and_her_officers_quarters_are_not() -> void:
 		&"post office": true,
 	}
 	assert_eq(_offices(_ship("small_titanic")), offices)
-	# Her traced decks' (#360): her wireless's and her bridge's rooms are offices, and no
+	# Her traced decks' (#360): her wireless's and her bridge's rooms are offices, and C
+	# and D decks' enquiry office and chef's and stewards' offices (#368, #369); no
 	# officers' room is one for its name.
-	for office: StringName in [&"Marconi room", &"silent room", &"chart room", &"navigating room"]:
+	var traced_offices: Array[StringName] = [
+		&"Marconi room",
+		&"silent room",
+		&"chart room",
+		&"navigating room",
+		&"enquiry office",
+		&"chef's office",
+		&"stewards' office",
+	]
+	for office: StringName in traced_offices:
 		offices[office] = true
 	for room_name: StringName in TRACED:
 		if TRACED[room_name] == RoomDressing.Kind.SERVICE and not offices.has(room_name):

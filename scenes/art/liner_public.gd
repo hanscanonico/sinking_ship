@@ -8,9 +8,10 @@ extends RefCounted
 ## white, its inside walls lined with bookcases, with a clock; the verandah café's walls
 ## a green trellis over a wicker floor, baskets hung from its ceiling; the restaurant
 ## warm walnut panels with mirrors, sconces and coffers; the reception room white panels
-## between pilasters, a long mirror on its after wall; third class's general room and
-## open space plain enamel over the ship's own planks, a notice board, fire buckets and
-## a clock; the after entrance and each landing oak panelling round a carved clock
+## between pilasters, a long mirror on its after wall; third class's general room, open
+## space, smoking room and entrances plain enamel over the ship's own planks, a notice
+## board, fire buckets and a clock; the second-class library as the reading and writing
+## room; the after entrance and each landing oak panelling round a carved clock
 ## panel — each landing a chandelier for each pendant, the boat deck's under a glass
 ## dome. Every window keeps its curtains; a room named for none of them keeps a
 ## saloon's dressing (CabinDressing.saloon).
@@ -28,11 +29,15 @@ enum Style {SALOON, LANDING, ENTRANCE, SMOKING, LOUNGE, READING, CAFE, RESTAURAN
 
 ## The first of these a room's name holds, any case, says its Style.
 const STYLES: Array[Array] = [
+	# Third class's own, ahead of the first class's oak and mahogany.
+	["third-class entrance", Style.THIRD],
+	["third-class smoking", Style.THIRD],
 	["staircase", Style.LANDING],
 	["entrance", Style.ENTRANCE],
 	["smoking", Style.SMOKING],
 	["lounge", Style.LOUNGE],
 	["reading", Style.READING],
+	["library", Style.READING],
 	["café", Style.CAFE],
 	["restaurant", Style.RESTAURANT],
 	["reception", Style.RECEPTION],
