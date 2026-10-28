@@ -300,18 +300,18 @@ STAIRS = [
     ("firemen's spiral staircase", 9027, 3595, 9251, 3633, "fore", "tanktop", "orlop"),
     # The hold ladders, est. (see above), each at the run STEEPEST allows. The after hold's
     # and the port refrigerated hold's down to the tank top, along her where today's
-    # generator lays the after holds' flights, but out to port (5.62 m and 5.63 m for
-    # 4.75 m): Plate V's tank top draws the shaft tunnels under both holds, the strip
-    # outboard of them narrowing forward to nothing, so these feet stand over the port
-    # tunnel's outer line there, and the lay fits them, or lays hatch ladders down from G
-    # deck instead. No. 2 hold's along her port side, port of the firemen's passage
-    # (5.76 m); No. 1 hold's down to the lower orlop (2.65 m for the 2.2 m Plate III's
-    # elevation draws between them there, est.).
+    # generator lays the after holds' flights, but out to port (5.62 m each for 4.75 m):
+    # Plate V's tank top draws the shaft tunnels under both holds, the strip outboard of
+    # them narrowing forward to nothing, so these feet stand over the port tunnel's outer
+    # line there, and the lay fits them, or lays hatch ladders down from G deck instead.
+    # No. 2 hold's along her port side, port of the firemen's passage (5.75 m); No. 1
+    # hold's down to the lower orlop (2.62 m for the 2.2 m Plate III's elevation draws
+    # between them there, est.).
     ("hold ladder", 1244, 3416.5, 1464, 3454.5, "fore", "tanktop", "orlop"),
     ("hold ladder", 1631, 3377, 1842.5, 3415, "fore", "tanktop", "orlop"),
     ("hold ladder", 8900, 3400, 9124, 3440, "fore", "tanktop", "orlop"),
     ("hold ladder", 9520, 3448, 9623, 3488.5, "aft", "lower_orlop", "orlop"),
     # The CO2 evaporator room's ladder down to the reciprocating engine room's floor, est.:
-    # 5.42 m for its 4.5 m, along the room's inboard side.
+    # 5.44 m for its 4.5 m, along the room's inboard side.
     ("ladder", 3600, 3205, 3805, 3245, "aft", "tanktop", "orlop"),
 ]
