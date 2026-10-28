@@ -79,6 +79,12 @@ on its own, piecewise, on features whose ship x is known:
   its scale (0.026348 m a pixel): funnels 1–3's casings against the elevation's funnel
   bases, and the bridge's front.
 
+Plate IV's C deck view (`c.py`) stretches unevenly along her: aft of the second-class lift
+it draws about 6% longer than forward of it, and aft of the mainmast 6% shorter again, so
+it is calibrated piecewise on the mast, the lifts and the casings A and B decks give, and on
+her stern at `X_AFT`; her stem then reads within 0.03 m of the generator's. Its side lines
+in her forward body are C deck's own; the dashed line inside them is D deck's side.
+
 What the calibration has shown so far (#360's findings): today's `FUNNELS` stand 2.5–4.4 m
 aft of the elevation's funnel bases; the plates put the squash court and the mail room in
 No. 3 hold; Plate IV's E deck view's bow does not fit its aft bulkheads' scale; the plan's
