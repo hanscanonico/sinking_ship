@@ -33,6 +33,12 @@ A deck's pieces, each a rectangle (x0, y0, x1, y1) in plate pixels unless said:
             the deck called lower to the one called upper.
 
 Rooms snap to shared lines: edges within SNAP pixels of each other are one wall.
+
+A deck drawn in more than one view — B deck, on Plate IV and on both pages of The
+Shipbuilder's 1912 plan of the Titanic's — is a file naming its parts:
+
+    PARTS   [name, …]: each a deck file of its own (PLATE, CROP, X, Z and its pieces),
+            read in its own view's pixels, the deck the parts joined in metres (JOIN).
 """
 import importlib.util
 import math
@@ -53,6 +59,11 @@ WAY_LEAST = 1.125
 # The rooms a cabin's door opens onto when the plate's swing is not given: a room whose
 # name holds one of these.
 PASSAGES = ("passage", "corridor", "entrance", "lobby", "staircase")
+# How far apart, in metres, two views' readings of one wall may stand and still be
+# joined onto one line: each view is calibrated on its own, good to about 0.2 m.
+JOIN = 0.3
+# An outer wall this near her side, in metres, is her side's (Deck's side).
+SIDE_REACH = 0.3
 
 
 def _module(name):
@@ -136,52 +147,53 @@ class Deck:
     Every rectangle is (x0, x1, z0, z1). Walls are (axis, at, from, to, kind, doors):
     axis 0 a wall across her at x = at from z from to z to, axis 2 one along her at
     z = at; kind "steel" where it faces the open deck or a solid, else "partition";
-    doors the (from, to) of each door in it, along it."""
+    doors the (from, to) of each door in it, along it.
 
-    def __init__(self, name):
+    A deck drawn in more views than one names them in PARTS, each a file of its own in
+    its view's pixels (b.py's): every part read as a deck of its own is, then its pieces
+    joined in metres, the edges two parts read of one wall moved onto one line (JOIN).
+
+    side, when given, is her half breadth a room's outer wall's middle may take from x0
+    to x1, side(x0, x1): every room, solid, raised floor and house reaching it, or within
+    SIDE_REACH of it, is held to it — her side as the generator lays her hull, inside
+    the deck's own edge."""
+
+    def __init__(self, name, side=None):
         module = _module(name)
         self.name = name
-        self.plate = module.PLATE
-        self.view = View(module.X, module.Z)
-        rooms = list(getattr(module, "ROOMS", []))
-        solids = list(getattr(module, "SOLIDS", []))
-        raised = list(getattr(module, "RAISED", []))
-        houses = list(getattr(module, "HOUSES", []))
-        boxes = [r[1:5] for r in rooms] + [s[1:5] for s in solids] + [r[1:5] for r in raised] + [h[1:5] for h in houses]
-        metres = self._snapped(boxes, [k for k, r in enumerate(rooms) if _passage(r[0])])
-        n_rooms, n_solids, n_raised = len(rooms), len(solids), len(raised)
-        self.rooms = [(r[0],) + metres[k] for k, r in enumerate(rooms)]
-        self.solids = [(s[0],) + metres[n_rooms + k] + (s[5],) for k, s in enumerate(solids)]
-        self.raised = [(r[0],) + metres[n_rooms + n_solids + k] + (r[5],) for k, r in enumerate(raised)]
-        self.houses = [(h[0],) + metres[n_rooms + n_solids + n_raised + k] for k, h in enumerate(houses)]
-        # The deck's own pieces: (x0, x1, z0, z1), z None for her whole breadth there.
-        self.decks = []
-        for x0, y0, x1, y1 in getattr(module, "DECKS", []):
-            a, b = sorted((kept(self.view.x(x0)), kept(self.view.x(x1))))
-            if y0 is None:
-                self.decks.append((a, b, None, None))
-            else:
-                mid = (x0 + x1) * 0.5
-                c, d = sorted((kept(self.view.z(mid, y0)), kept(self.view.z(mid, y1))))
-                self.decks.append((a, b, c, d))
-        self.doors = [(kept(self.view.x(x)), kept(self.view.z(x, y))) for x, y in getattr(module, "DOORS", [])]
-        self.open = [self._shared(self.view.rect(*o)) for o in getattr(module, "OPEN", [])]
-        self.stairs = [(stair_name,) + self.view.rect(x0, y0, x1, y1) + (rises, lower, upper)
-                       for stair_name, x0, y0, x1, y1, rises, lower, upper in getattr(module, "STAIRS", [])]
+        parts = [_Part(p, _module(p)) for p in module.PARTS] if hasattr(module, "PARTS") else [_Part(name, module)]
+        self.parts = parts
+        self.plate = parts[0].plate
+        self.view = parts[0].view if len(parts) == 1 else None
+        self.rooms = [r for p in parts for r in p.rooms]
+        self.solids = [s for p in parts for s in p.solids]
+        self.raised = [r for p in parts for r in p.raised]
+        self.houses = [h for p in parts for h in p.houses]
+        self.decks = [d for p in parts for d in p.decks]
+        self.doors = [d for p in parts for d in p.doors]
+        self.stairs = [s for p in parts for s in p.stairs]
+        if len(parts) > 1:
+            self._join(parts)
+        if side is not None:
+            self._held(side)
+        self.open = [self._shared(o) for p in parts for o in p.open]
         self.walls = self._walls()
 
-    def _snapped(self, boxes, ways=()):
-        """Each plate box (x0, y0, x1, y1) as ship (x0, x1, z0, z1), its edges snapped to
-        the lines they share: two edges of one kind within SNAP px of each other that
-        touch along their length are one wall's two readings, and take its mean. A line
-        along her is read in ship z at its own middle, so a centre line tilted over the
-        scan bends no wall. Each box of ways — a passage or a corridor — narrower across
-        than WAY_LEAST between its walls' middles has its two sides moved apart to it, and
-        every edge on either side's line with it: the rooms beside it give up the width."""
-        edges = []  # [kind, value, lo, hi]: kind "x" an edge at plate x = value, "y" at plate y
-        for x0, y0, x1, y1 in boxes:
-            edges += [["x", x0, y0, y1], ["x", x1, y0, y1], ["y", y0, x0, x1], ["y", y1, x0, x1]]
-        parent = list(range(len(edges)))
+    def _join(self, parts):
+        """The lines two parts read of one wall moved onto one: of each kind, lines of
+        different parts within JOIN of each other that touch along their length take the
+        mean of the parts' readings, each part's once, and every edge on them with it. A
+        part reading two lines of one wall (another part's line touching both) is a trace
+        to fix, and is refused."""
+        lists = ("rooms", "solids", "raised", "houses")
+        offsets = {}  # (part, list name) -> where the part's pieces start in the deck's list
+        for list_name in lists:
+            at = 0
+            for p_index, p in enumerate(parts):
+                offsets[(p_index, list_name)] = at
+                at += len(getattr(p, list_name))
+        lines = [(p_index,) + line for p_index, p in enumerate(parts) for line in p.lines]
+        parent = list(range(len(lines)))
 
         def root(k):
             while parent[k] != k:
@@ -189,42 +201,56 @@ class Deck:
                 k = parent[k]
             return k
 
-        order = sorted(range(len(edges)), key=lambda k: (edges[k][0], edges[k][1]))
+        # each line: (part, kind, value, lo, hi, [(list name, index, slot)])
+        order = sorted(range(len(lines)), key=lambda k: (lines[k][1], lines[k][2]))
         for i, a in enumerate(order):
             for b in order[i + 1:]:
-                if edges[b][0] != edges[a][0] or edges[b][1] - edges[a][1] > SNAP:
+                if lines[b][1] != lines[a][1] or lines[b][2] - lines[a][2] > JOIN:
                     break
-                if edges[b][2] <= edges[a][3] + SNAP and edges[a][2] <= edges[b][3] + SNAP:
+                if lines[a][0] == lines[b][0]:
+                    continue
+                if lines[b][3] <= lines[a][4] + JOIN and lines[a][3] <= lines[b][4] + JOIN:
                     parent[root(b)] = root(a)
         groups = {}
-        for k in range(len(edges)):
+        for k in range(len(lines)):
             groups.setdefault(root(k), []).append(k)
-        ship = {}
+        moved = {}  # (list name, deck index, slot) -> value
         for members in groups.values():
-            value = sum(edges[k][1] for k in members) / len(members)
-            lo = min(edges[k][2] for k in members)
-            hi = max(edges[k][3] for k in members)
-            if edges[members[0]][0] == "x":
-                v = kept(self.view.x(value))
-            else:
-                v = kept(self.view.z((lo + hi) * 0.5, value))
+            readings = {}
             for k in members:
-                ship[k] = v
-        for k in ways:
-            x0, x1, z0, z1 = ship[4 * k], ship[4 * k + 1], ship[4 * k + 2], ship[4 * k + 3]
-            low, high = (4 * k, 4 * k + 1) if abs(x1 - x0) < abs(z1 - z0) else (4 * k + 2, 4 * k + 3)
-            width = abs(ship[high] - ship[low])
-            if width < WAY_LEAST - 1e-6:
-                grow = math.ceil((WAY_LEAST - width) / 2 / GRAIN - 1e-9) * GRAIN
-                for side, by in [(low, -grow), (high, grow)]:
-                    line = ship[side]
-                    for m in groups[root(side)]:
-                        ship[m] = kept(line + by)
-        out = []
-        for k in range(len(boxes)):
-            x0, x1, y0, y1 = ship[4 * k], ship[4 * k + 1], ship[4 * k + 2], ship[4 * k + 3]
-            out.append((min(x0, x1), max(x0, x1), min(y0, y1), max(y0, y1)))
-        return out
+                readings.setdefault(lines[k][0], set()).add(lines[k][2])
+            if len(readings) < 2:
+                continue
+            for p_index, values in readings.items():
+                assert len(values) == 1, "deck %s: part %s reads %s as one wall's line" % (
+                    self.name, parts[p_index].name, sorted(values))
+            value = kept(sum(next(iter(v)) for v in readings.values()) / len(readings))
+            for k in members:
+                for list_name, index, slot in lines[k][5]:
+                    moved[(list_name, offsets[(lines[k][0], list_name)] + index, slot)] = value
+        for list_name in lists:
+            pieces = getattr(self, list_name)
+            for index, piece in enumerate(pieces):
+                piece = list(piece)
+                for slot in (1, 2, 3, 4):
+                    if (list_name, index, slot) in moved:
+                        piece[slot] = moved[(list_name, index, slot)]
+                x0, x1, z0, z1 = piece[1:5]
+                piece[1:5] = [min(x0, x1), max(x0, x1), min(z0, z1), max(z0, z1)]
+                pieces[index] = tuple(piece)
+
+    def _held(self, side):
+        """Every piece reaching her side, or within SIDE_REACH of it, held to it."""
+        for list_name in ("rooms", "solids", "raised", "houses"):
+            pieces = getattr(self, list_name)
+            for k, piece in enumerate(pieces):
+                x0, x1, z0, z1 = piece[1:5]
+                half = side(x0, x1)
+                if z0 < -(half - SIDE_REACH):
+                    z0 = -half
+                if z1 > half - SIDE_REACH:
+                    z1 = half
+                pieces[k] = piece[:1] + (x0, x1, z0, z1) + piece[5:]
 
     def _shared(self, opening):
         """An OPEN rectangle as the whole stretch of edge the two rooms it joins share, on
@@ -307,6 +333,7 @@ class Deck:
             return False
 
         ways = [r for r in self.rooms if _passage(r[0])]
+        solid_boxes = [s[1:5] for s in self.solids]
         out = []
         for room in self.rooms:
             if _passage(room[0]) or any(on_edge(x, z, room) for x, z in self.doors):
@@ -317,10 +344,12 @@ class Deck:
                     for w_axis, w_at, w_a, w_b in edges_of(way):
                         if w_axis != axis or abs(w_at - at) > 1e-6:
                             continue
-                        lo, hi = max(a, w_a), min(b, w_b)
-                        if hi - lo > 0.9 and (best is None or hi - lo > best[0]):
-                            mid = (lo + hi) * 0.5
-                            best = (hi - lo, (at, mid) if axis == 0 else (mid, at))
+                        # Of the edge they share, the stretches no solid's side stands on.
+                        for lo, hi in _minus(max(a, w_a), min(b, w_b), self._covered(axis, at, max(a, w_a),
+                                                                                      min(b, w_b), solid_boxes)):
+                            if hi - lo > 0.9 and (best is None or hi - lo > best[0]):
+                                mid = (lo + hi) * 0.5
+                                best = (hi - lo, (at, mid) if axis == 0 else (mid, at))
             if best is not None:
                 out.append(best[1])
         return out
@@ -336,6 +365,130 @@ class Deck:
                 out.append((z0, z1))
             if axis == 2 and not across and z0 - 0.05 <= at <= z1 + 0.05:
                 out.append((x0, x1))
+        return out
+
+
+class _Part:
+    """One view of a deck: its pieces in ship metres, read through the view's calibration
+    and snapped to its own lines in its own pixels."""
+
+    def __init__(self, name, module):
+        self.name = name
+        self.plate = module.PLATE
+        self.view = View(module.X, module.Z)
+        rooms = list(getattr(module, "ROOMS", []))
+        solids = list(getattr(module, "SOLIDS", []))
+        raised = list(getattr(module, "RAISED", []))
+        houses = list(getattr(module, "HOUSES", []))
+        boxes = [r[1:5] for r in rooms] + [s[1:5] for s in solids] + [r[1:5] for r in raised] + [h[1:5] for h in houses]
+        n_rooms, n_solids, n_raised = len(rooms), len(solids), len(raised)
+        self._counts = (n_rooms, n_solids, n_raised)
+        metres = self._snapped(boxes, [k for k, r in enumerate(rooms) if _passage(r[0])])
+        self.rooms = [(r[0],) + metres[k] for k, r in enumerate(rooms)]
+        self.solids = [(s[0],) + metres[n_rooms + k] + (s[5],) for k, s in enumerate(solids)]
+        self.raised = [(r[0],) + metres[n_rooms + n_solids + k] + (r[5],) for k, r in enumerate(raised)]
+        self.houses = [(h[0],) + metres[n_rooms + n_solids + n_raised + k] for k, h in enumerate(houses)]
+        # The deck's own pieces: (x0, x1, z0, z1), z None for her whole breadth there.
+        self.decks = []
+        for x0, y0, x1, y1 in getattr(module, "DECKS", []):
+            a, b = sorted((kept(self.view.x(x0)), kept(self.view.x(x1))))
+            if y0 is None:
+                self.decks.append((a, b, None, None))
+            else:
+                mid = (x0 + x1) * 0.5
+                c, d = sorted((kept(self.view.z(mid, y0)), kept(self.view.z(mid, y1))))
+                self.decks.append((a, b, c, d))
+        self.doors = [(kept(self.view.x(x)), kept(self.view.z(x, y))) for x, y in getattr(module, "DOORS", [])]
+        # OPEN as ship rectangles; the deck takes each as the edge its rooms share (_shared).
+        self.open = [self.view.rect(*o) for o in getattr(module, "OPEN", [])]
+        self.stairs = [(stair_name,) + self.view.rect(x0, y0, x1, y1) + (rises, lower, upper)
+                       for stair_name, x0, y0, x1, y1, rises, lower, upper in getattr(module, "STAIRS", [])]
+
+    def _owner(self, box):
+        """The list and index of box, by its place among the rooms, solids, raised floors
+        and houses."""
+        n_rooms, n_solids, n_raised = self._counts
+        for name, count in (("rooms", n_rooms), ("solids", n_solids), ("raised", n_raised)):
+            if box < count:
+                return (name, box)
+            box -= count
+        return ("houses", box)
+
+    def _snapped(self, boxes, ways=()):
+        """Each plate box (x0, y0, x1, y1) as ship (x0, x1, z0, z1), its edges snapped to
+        the lines they share: two edges of one kind within SNAP px of each other that
+        touch along their length are one wall's two readings, and take its mean. A line
+        along her is read in ship z at its own middle, so a centre line tilted over the
+        scan bends no wall. Each box of ways — a passage or a corridor — narrower across
+        than WAY_LEAST between its walls' middles has its two sides moved apart to it, and
+        every edge on either side's line with it: the rooms beside it give up the width."""
+        edges = []  # [kind, value, lo, hi]: kind "x" an edge at plate x = value, "y" at plate y
+        for x0, y0, x1, y1 in boxes:
+            edges += [["x", x0, y0, y1], ["x", x1, y0, y1], ["y", y0, x0, x1], ["y", y1, x0, x1]]
+        parent = list(range(len(edges)))
+
+        def root(k):
+            while parent[k] != k:
+                parent[k] = parent[parent[k]]
+                k = parent[k]
+            return k
+
+        order = sorted(range(len(edges)), key=lambda k: (edges[k][0], edges[k][1]))
+        for i, a in enumerate(order):
+            for b in order[i + 1:]:
+                if edges[b][0] != edges[a][0] or edges[b][1] - edges[a][1] > SNAP:
+                    break
+                if edges[b][2] <= edges[a][3] + SNAP and edges[a][2] <= edges[b][3] + SNAP:
+                    parent[root(b)] = root(a)
+        groups = {}
+        for k in range(len(edges)):
+            groups.setdefault(root(k), []).append(k)
+        ship = {}
+        for members in groups.values():
+            value = sum(edges[k][1] for k in members) / len(members)
+            lo = min(edges[k][2] for k in members)
+            hi = max(edges[k][3] for k in members)
+            if edges[members[0]][0] == "x":
+                v = kept(self.view.x(value))
+            else:
+                v = kept(self.view.z((lo + hi) * 0.5, value))
+            for k in members:
+                ship[k] = v
+        for k in ways:
+            x0, x1, z0, z1 = ship[4 * k], ship[4 * k + 1], ship[4 * k + 2], ship[4 * k + 3]
+            low, high = (4 * k, 4 * k + 1) if abs(x1 - x0) < abs(z1 - z0) else (4 * k + 2, 4 * k + 3)
+            width = abs(ship[high] - ship[low])
+            if width < WAY_LEAST - 1e-6:
+                grow = math.ceil((WAY_LEAST - width) / 2 / GRAIN - 1e-9) * GRAIN
+                for side, by in [(low, -grow), (high, grow)]:
+                    line = ship[side]
+                    for m in groups[root(side)]:
+                        ship[m] = kept(line + by)
+        out = []
+        for k in range(len(boxes)):
+            x0, x1, y0, y1 = ship[4 * k], ship[4 * k + 1], ship[4 * k + 2], ship[4 * k + 3]
+            out.append((min(x0, x1), max(x0, x1), min(y0, y1), max(y0, y1)))
+        # Its lines, for a deck of several parts to join (Deck._join): (kind, value, from,
+        # to, [(list, index, slot)]), from and to along the line in ship metres.
+        self.lines = []
+        for members in groups.values():
+            kind = "x" if edges[members[0]][0] == "x" else "z"
+            value = ship[members[0]]
+            lo = min(edges[k][2] for k in members)
+            hi = max(edges[k][3] for k in members)
+            if kind == "x":
+                px = sum(edges[k][1] for k in members) / len(members)
+                ends = sorted((self.view.z(px, lo), self.view.z(px, hi)))
+            else:
+                ends = sorted((self.view.x(lo), self.view.x(hi)))
+            slots = []
+            for k in members:
+                box = k // 4
+                x0, x1, z0, z1 = out[box]
+                first = (x0, z0)[(k % 4) // 2]
+                slot = 1 + 2 * ((k % 4) // 2) + (0 if abs(ship[k] - first) < 1e-9 else 1)
+                slots.append(self._owner(box) + (slot,))
+            self.lines.append((kind, value, ends[0], ends[1], slots))
         return out
 
 
@@ -362,5 +515,5 @@ def _joined(walls):
     return out
 
 
-def load(name):
-    return Deck(name)
+def load(name, side=None):
+    return Deck(name, side)
