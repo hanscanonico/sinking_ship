@@ -165,9 +165,11 @@ class Deck:
     unless given) of is held to: where the generator ends a deck over this one — a deck's
     front over the rooms under it, read off another view — so the rooms under it end
     where it does; or where it parts her water into cells, so a room ends where its cell
-    does."""
+    does. Given lead too, a room's end past one of them by less than lead is pushed out
+    to lead from it: the generator splits a room the line runs through (its cells part
+    there), and each part keeps a body's step into it."""
 
-    def __init__(self, name, side=None, ends=(), reach=END_REACH):
+    def __init__(self, name, side=None, ends=(), reach=END_REACH, lead=0.0):
         module = _module(name)
         self.name = name
         if hasattr(module, "PARTS"):
@@ -187,7 +189,7 @@ class Deck:
         if len(parts) > 1:
             self._join(parts)
         if ends:
-            self._ended(ends, reach)
+            self._ended(ends, reach, lead)
         if side is not None:
             self._held(side)
         self.open = [self._shared(o) for p in parts for o in p.open]
@@ -275,9 +277,24 @@ class Deck:
                 piece[1:5] = [min(x0, x1), max(x0, x1), min(z0, z1), max(z0, z1)]
                 pieces[index] = tuple(piece)
 
-    def _ended(self, ends, reach):
-        """Every piece's end within reach of one of ends held to it."""
+    def _ended(self, ends, reach, lead):
+        """Every piece's end within reach of one of ends held to it, and a room's end past
+        one by less than lead (and more than reach) pushed out to lead from it — each a
+        line across her, every piece's end on it moved with it. An OPEN across her on a
+        line held to an end moves with it, so it still finds the two rooms it joins
+        (_shared)."""
+        pushed = {}
+        for room in self.rooms if lead else ():
+            for e in ends:
+                if room[1] + 1e-6 < e < room[2] - 1e-6:
+                    if reach < e - room[1] < lead:
+                        pushed[room[1]] = e - lead
+                    if reach < room[2] - e < lead:
+                        pushed[room[2]] = e + lead
+
         def held(v):
+            if v in pushed:
+                return pushed[v]
             near = min(ends, key=lambda e: abs(e - v))
             return near if abs(near - v) <= reach else v
 
@@ -285,6 +302,11 @@ class Deck:
             pieces = getattr(self, list_name)
             for k, piece in enumerate(pieces):
                 pieces[k] = piece[:1] + (held(piece[1]), held(piece[2])) + piece[3:]
+        for part in self.parts:
+            for k, (x0, x1, z0, z1) in enumerate(part.open):
+                if x1 - x0 < z1 - z0:
+                    shift = held((x0 + x1) * 0.5) - (x0 + x1) * 0.5
+                    part.open[k] = (x0 + shift, x1 + shift, z0, z1)
 
     def _held(self, side):
         """Every piece reaching her side, or within SIDE_REACH of it, held to it."""
@@ -571,5 +593,5 @@ def _joined(walls):
     return out
 
 
-def load(name, side=None, ends=(), reach=END_REACH):
-    return Deck(name, side, ends, reach)
+def load(name, side=None, ends=(), reach=END_REACH, lead=0.0):
+    return Deck(name, side, ends, reach, lead)

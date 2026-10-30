@@ -110,7 +110,8 @@ func test_a_cell_drawn_round_its_rooms_reaches_the_bulkheads_it_shares() -> void
 ## end. Read as over them, the next section's shell would have it drawn room by room,
 ## and its rooms' boxes, meeting end to end in her floats, overlap. (Her C deck showed it
 ## first, under B deck's tapered end; laid as her plate draws it, out to her shell, it
-## is drawn room by room.)
+## is drawn room by room.) D deck's walls on a bulkhead's line stand on the 1/128 m grid
+## her decks are cut on, within a millimetre of it.
 func test_rooms_ending_where_a_section_ends_are_drawn_in_one_box() -> void:
 	var layout := Fleet.layout(&"titanic")
 	var structure := layout.structure
@@ -118,7 +119,7 @@ func test_rooms_ending_where_a_section_ends_are_drawn_in_one_box() -> void:
 	var cell := structure.cells[index]
 	assert_lt(cell.shape, CellBoxes.WHOLE, "its box pokes past her shell")
 	var saloon := _room(layout, &"second-class dining saloon")
-	assert_almost_eq(saloon.area.position.x, cell.low.x, 1e-5, "its saloon runs aft to bulkhead N")
+	assert_almost_eq(saloon.area.position.x, cell.low.x, 1e-3, "its saloon runs aft to bulkhead N")
 	var ends := false
 	for section: HullSection in structure.sections:
 		ends = ends or absf(section.x + section.length * 0.5 - cell.low.x) < 1e-3

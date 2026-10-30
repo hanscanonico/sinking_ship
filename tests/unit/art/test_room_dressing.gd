@@ -132,7 +132,6 @@ const TRACED := {
 	&"corridor, D deck, aft of bulkhead N": RoomDressing.Kind.PASSAGE,
 	&"corridor, D deck, aft of bulkhead O": RoomDressing.Kind.PASSAGE,
 	&"crew's galley": RoomDressing.Kind.SERVICE,
-	&"crew's ladder": RoomDressing.Kind.PASSAGE,
 	&"crew's stair": RoomDressing.Kind.PASSAGE,
 	&"deck men's berths": RoomDressing.Kind.BERTHS,
 	&"doctor's room": RoomDressing.Kind.CABIN,

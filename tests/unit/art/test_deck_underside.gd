@@ -1,9 +1,9 @@
 extends GutTest
-## Every deck drawn has an underside, whatever lies under it (ShipArt): the Titanic's
-## forecastle head, with no deck beneath it, shows a ceiling from below and never the
-## sky through it.
+## Every deck drawn has an underside, whatever lies under it (ShipArt): the small
+## Titanic's forecastle head, with no deck beneath it, shows a ceiling from below and never
+## the sky through it. (The Titanic's has C and D decks under it, as her plates draw them.)
 
-const TITANIC := "res://data/ships/titanic.tres"
+const SHIP := "res://data/ships/small_titanic.tres"
 const RAILING_HEIGHT := 1.0
 const BODY_RADIUS := 0.35
 ## How far under the planking's underside a drawn face may stand.
@@ -11,7 +11,7 @@ const NEAR := 0.02
 
 
 func test_the_forecastle_head_is_closed_from_below() -> void:
-	var layout: ShipLayout = load(TITANIC)
+	var layout: ShipLayout = load(SHIP)
 	var head := _head(layout)
 	assert_false(ShipSpace.new(layout).stands_over_a_platform(head), "no deck under her head")
 	var art := ShipArt.new()
@@ -28,7 +28,7 @@ func test_the_forecastle_head_is_closed_from_below() -> void:
 
 func test_a_deck_that_can_fall_is_closed_from_below_with_nothing_under_it() -> void:
 	# Her forecastle drawn to break (DeckWreck): its shards, whole, keep their underside.
-	var layout: ShipLayout = load(TITANIC)
+	var layout: ShipLayout = load(SHIP)
 	var head := _head(layout)
 	var art := ShipArt.new()
 	add_child_autofree(art)
@@ -53,7 +53,7 @@ func _head(layout: ShipLayout) -> ShipPlatform:
 		var level := head != null and is_equal_approx(platform.height, head.height)
 		if higher or (level and platform.area.position.x > head.area.position.x):
 			head = platform
-	assert_not_null(head, "the Titanic has a forecastle")
+	assert_not_null(head, "the small Titanic has a forecastle")
 	return head
 
 

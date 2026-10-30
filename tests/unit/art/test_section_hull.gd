@@ -390,7 +390,8 @@ func test_her_shell_closes_each_step_in_her_sheer_from_her_side_in_to_her_decks(
 	# rest. The Titanic's bridge deck stood open there at its forward end, from her well
 	# deck up to A deck, and her shell, drawn to be seen from outside, showed the sea
 	# through her: from over the lower deck, near her side, her shell now stands across the
-	# joint, facing that deck.
+	# joint, facing that deck. (At B deck's after end her traced C deck, #368, reaches her
+	# side, and leaves her shell nothing to close; her poop's front is looked at instead.)
 	var probed := {}
 	for ship_name: StringName in Fleet.names():
 		var layout := Fleet.layout(ship_name)
@@ -424,7 +425,7 @@ func test_her_shell_closes_each_step_in_her_sheer_from_her_side_in_to_her_decks(
 						if hit != null:
 							assert_almost_eq((hit as Vector3).x, joint, 0.02, "%s: on it" % at)
 						probed["%s %.2f" % [ship_name, joint]] = true
-	for step: String in ["titanic 75.25", "titanic -90.56", "titanic 91.79", "tug -5.00"]:
+	for step: String in ["titanic 75.25", "titanic -106.63", "titanic 91.79", "tug -5.00"]:
 		assert_true(probed.has(step), "%s: looked at" % step)
 	assert_gt(probed.size(), 6, "her poop, A deck's after end, the barque's raised decks too")
 

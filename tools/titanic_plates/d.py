@@ -795,8 +795,9 @@ STAIRS = [
     # stands, 1.8 m short of the lifts, so a landing stays in front of them, as on C deck.
     ("grand staircase", 6883, 3384, 7010, 3496, "fore", "e", "d"),
     # A stair down from the port entrance, over the one the plate's E deck draws under it:
-    # its 86 px of treads run on forward to 127 px. Its head aft est.
-    ("stair", 7080, 3238, 7207, 3279, "aft", "e", "d"),
+    # its 86 px of treads run on forward to 127 px. Its head forward (est.), so its foot is
+    # in the passage E deck's plate draws there (e.py), not in the stewards' room forward.
+    ("stair", 7080, 3238, 7207, 3279, "fore", "e", "d"),
     # Not laid: the stair the plate draws down to E deck from the bay at 8218-8299 by the
     # starboard cross passage, 81 px of treads (2.1 m) with no room in the block to run on
     # to a slope a body climbs (the cross passage aft, a stateroom forward).
@@ -810,16 +811,19 @@ STAIRS = [
     # The open space's ladderways down to E deck (BOT: "four separate ladderways with two
     # ladders, 4 ft. wide to each ... one, the starboard, led to E deck ... The two ladder
     # ways at the after end led to E deck on both sides"): both after ones whole, run on
-    # from the plate's 107-115 px to 125 px (3.35 m for 2.75 m), the way each rises est.
+    # from the plate's 107-115 px to 125 px (3.35 m for 2.75 m), each rising forward (est.),
+    # its foot in the passage E deck's plate draws aft of them (e.py): to port clear of the
+    # opening of E deck's own ladder down to F under it, to starboard of its lavatory.
     # The forward starboard one's two ladders the plate draws once for the ladderway up to
     # C deck and down to E: C deck's flight down comes down both (c.py), its foot at px
     # ~9365, so the outboard ladder down to E deck runs from 56 px aft of the plate's, its
     # head aft under C deck's flight, both rising aft, and its foot 0.35 m short of where
     # that one lands.
-    ("third-class ladder", 8665, 3186, 8790, 3296, "aft", "e", "d"),
-    ("third-class ladder", 8668.5, 3676, 8790, 3791, "aft", "e", "d"),
+    ("third-class ladder", 8665, 3186, 8790, 3296, "fore", "e", "d"),
+    ("third-class ladder", 8668.5, 3676, 8790, 3791, "fore", "e", "d"),
     ("third-class ladder", 9215, 3704, 9340, 3755, "aft", "e", "d"),
     # The crew's ladder down to E deck in the bay at the middle line, starboard of the one
-    # up to C deck: run on from the plate's 106 px to 125 px, its head to port est.
-    ("ladder", 9448.5, 3403, 9483.5, 3528, "port", "e", "d"),
+    # up to C deck: run on from the plate's 106 px to 125 px, its head to starboard (est.),
+    # its foot in E deck's passage, not in the four-berth room beside it (e.py).
+    ("ladder", 9448.5, 3403, 9483.5, 3528, "starboard", "e", "d"),
 ]

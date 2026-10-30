@@ -180,6 +180,11 @@ func test_the_gallery_s_front_is_faced_over_head_height_between_its_stairs() -> 
 		faced += 1
 		assert_gte(corner.y, court.floor_height + RoomDressing.HEADROOM, str(corner))
 		for ramp: ShipRamp in _titanic.ramps:
+			# A stair whose foot is over the face, on a deck above the court — her forward
+			# well's up to the forecastle, by C deck's doors there (#368) — is none it
+			# stands over.
+			if minf(ramp.start_height, ramp.end_height) > corner.y:
+				continue
 			var over := Vector2(GALLERY_FRONT + 0.05, corner.z)
 			assert_false(ramp.area.grow(-0.01).has_point(over), "over a stair: %s" % corner)
 	assert_gt(faced, 0)

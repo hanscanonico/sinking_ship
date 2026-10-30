@@ -47,9 +47,10 @@ ROOMS = [
     ("steering gear room", 790, 2031, 1025, 2627.5),
     ("steering gear room", 790, 1957, 936, 2031),
     ("steering gear room", 790, 2627.5, 936, 2695),
-    # Its after step 5 px aft of the plate's, so the capstan gear stands clear of it.
-    ("steering gear room", 585, 2017, 790, 2639),
-    ("steering gear room", 460, 2098, 585, 2560),
+    # Its after step 14 px aft of the plate's, so the capstan gear stands a body's radius
+    # clear of it and a body steps through it by the gear.
+    ("steering gear room", 576, 2017, 790, 2639),
+    ("steering gear room", 460, 2098, 576, 2560),
     ("store", 936, 1928, 1025, 2031),
     # The plate's "St", its after wall on the port store's line (10 px aft of the
     # plate's) so the steering gear room's forward end is one wall.
@@ -502,8 +503,9 @@ ROOMS = [
     ("hospital", 9225, 2191, 9311, 2283),
     ("hospital", 9225, 2283, 9311, 2369),
     ("galley store", 9311, 2191, 9383, 2270),
-    ("crew's ladder", 9415, 2191, 9464, 2334),
-    ("surgery", 9311, 2308, 9415, 2334),
+    # (The crew's ladder's lobby, the stairwell its flight fills, is no room: a body is on
+    # the ladder there, from the passage to D deck.)
+    ("surgery", 9311, 2301, 9415, 2334),
     ("surgery", 9311, 2334, 9464, 2369),
     ("carpenter's shop", 9567, 2191, 9655, 2369),
     # Starboard, aft to forward: the third-class ladderway; the
@@ -517,7 +519,8 @@ ROOMS = [
     ("firemen's mess", 9373, 2434, 9466, 2556),
     ("firemen's mess", 9466, 2494, 9604, 2556),
     ("firemen's mess", 9604, 2434, 9750, 2556),
-    ("crew's stair", 9466, 2434, 9604, 2494),
+    # (The starboard crew's stair's lobby, the stairwell its flight fills, is no room: a
+    # body is on the stair there, from the firemen's mess to D deck.)
     ("greasers' mess", 9750, 2434, 9845, 2634.5),
     ("lamp trimmer's and storekeeper's berths", 9845, 2464, 9950, 2606),
     # Forward of them, the windlass room across her (BOT: "the machinery required for
@@ -678,7 +681,7 @@ SOLIDS = [
     # the plate's pipe and trunk; the windlass engines and the cable lifters, and
     # forward of the wall across her the warping engine, est. 1.5 m and 1.0 m high.
     ("closet", 9383, 2191, 9415, 2270, None),
-    ("closet", 9311, 2270, 9415, 2308, None),
+    ("closet", 9311, 2270, 9415, 2301, None),
     ("fans", 9464, 2191, 9567, 2369, None),
     ("No. 1 hatch trunk", 9655, 2191, 9790, 2369, None),
     ("chain pipe", 9822, 2091, 9845, 2132, None),
@@ -689,7 +692,7 @@ SOLIDS = [
     ("cable lifter", 9958, 2300, 10042, 2372, 1.0),
     ("windlass engine", 10042, 2166, 10181, 2384, 1.5),
     ("warping engine", 10257, 2211, 10320, 2350, 1.5),
-    ("warping engine", 10320, 2211, 10392, 2350, 1.5),
+    ("warping engine", 10320, 2211, 10382, 2350, 1.5),
 ]
 
 DOORS = [
@@ -832,7 +835,7 @@ DOORS = [
 OPEN = [
     # The steering gear room's steps.
     (790, 2025, 936, 2037), (790, 2621.5, 936, 2633.5), (784, 2031, 796, 2627.5),
-    (579, 2098, 591, 2560),
+    (570, 2098, 582, 2560),
     # The smoking room's and the general room's.
     (1154, 1913, 1166, 2326), (1294, 1894, 1306, 2326), (1348, 1877, 1360, 2160),
     (1154, 2342, 1166, 2737), (1294, 2342, 1306, 2754), (1348, 2491, 1360, 2772),
@@ -907,8 +910,9 @@ STAIRS = [
     ("second-class stairway", 2122, 2353, 2267, 2436, "fore", "d", "c"),
     # The forward second-class staircase down to D deck, starboard of the lift, rising
     # aft to the hall: its 88 px of treads run on forward into the well forward of the
-    # lift, which the plate draws them going down into.
-    ("second-class staircase", 3029, 2357.25, 3176, 2432.5, "aft", "d", "c"),
+    # lift, which the plate draws them going down into, to the lane's forward end, its
+    # head 33 px forward of the hall, a landing a body steps onto the lane by (est.).
+    ("second-class staircase", 3062, 2357.25, 3206, 2432.5, "aft", "d", "c"),
     # The stewards' staircase down to D deck, as the plate draws it in its round well:
     # 97 px of treads (2.5 m) for 3.2 m, run on to 145 px; rising to starboard, so its
     # foot meets the head of D deck's flight to port (d.py's, est.).

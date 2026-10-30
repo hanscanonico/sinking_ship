@@ -1,7 +1,9 @@
 extends GutTest
-## LinerCorridor on the Titanic: her first-class corridors' stateroom doors and sconces
-## stand where their spacing says, and they add to what the passage dressing drew.
-## That nothing the dressing draws stands in a body's way is test_dressing_clear's.
+## LinerCorridor on the small Titanic — the Titanic before her plates were traced (#362),
+## whose B, C and D deck corridors these budgets were measured in: her first-class
+## corridors' stateroom doors and sconces stand where their spacing says, and they add to
+## what the passage dressing drew. That nothing the dressing draws stands in a body's way
+## is test_dressing_clear's, on the Titanic too.
 
 const FurnishingCheck := preload("res://tools/furnishing_check.gd")
 const RunMatch := preload("res://tools/run_match.gd")
@@ -22,7 +24,7 @@ var _faces: PackedVector3Array
 
 
 func before_all() -> void:
-	_layout = load("res://data/ships/titanic.tres")
+	_layout = load("res://data/ships/small_titanic.tres")
 	_rules = RunMatch.default_config(1701).rules
 	_space = ShipSpace.new(_layout)
 	var art := ShipArt.new()
