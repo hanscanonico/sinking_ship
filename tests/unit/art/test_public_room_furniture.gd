@@ -31,8 +31,9 @@ const FURNISHED: Array[Array] = [
 	[&"E deck working passage, after hold, forward", 0, 0, 0, 10],
 	[&"E deck working passage, after hold, aft", 0, 0, 0, 4],
 ]
-## The Titanic's traced public rooms (#360; B deck's, #367), all of a name's rooms
-## together: [name, its tables, its armchairs, its settees] — a writing desk is a table.
+## The Titanic's traced public rooms (#360; B deck's, #367; C and D decks', #368 and
+## #369), all of a name's rooms together: [name, its tables, its armchairs, its
+## settees] — a writing desk is a table.
 const TRACED: Array[Array] = [
 	[&"first-class smoking room", 8, 32, 0],
 	[&"first-class lounge", 15, 30, 6],
@@ -40,8 +41,12 @@ const TRACED: Array[Array] = [
 	[&"verandah café and palm court", 4, 8, 0],
 	[&"after grand staircase, A deck", 0, 0, 1],
 	[&"second-class smoking room", 7, 28, 0],
-	[&"Café Parisien", 5, 10, 0],
+	[&"Café Parisien", 7, 14, 0],
 	[&"reception room, B deck", 5, 10, 0],
+	[&"second-class library", 13, 26, 0],
+	[&"third-class smoking room", 4, 8, 0],
+	[&"third-class general room", 3, 6, 0],
+	[&"reception room", 40, 80, 0],
 ]
 ## How far from a pendant, in plan, a table stands at least.
 const PENDANT_CLEAR := 1.0

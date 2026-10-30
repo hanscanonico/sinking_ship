@@ -12,18 +12,18 @@ PLATE = "IV"
 CROP = (360, 1700, 10660, 2900)
 
 # Calibrated on the shafts that stack, at the ship x A deck's calibration gives them
-# (a.py), as B deck's after end is (b_aft.py): her mainmast and her second-class lift
-# aft, her funnels' casings and the first-class lifts forward; and her stern, which no
-# deck above draws, at the generator's X_AFT. Aft of the lift the plate draws about 6%
-# longer than forward of it, aft of the mast 6% shorter: piecewise, as the creased scans
-# need. Forward of funnel 1 her stem reads 129.81, her stem at C deck 129.78. Aft, the
-# mast's ring (the one A, B and C decks all draw on her centre line) holds the stairs
-# that stack to B deck's, but sets the poop's front 0.8 m aft of where the elevation
-# draws it (1.4 m aft of the generator's POOP_TO): calibrated on her stern and the lift
-# alone, it would read within 0.2 m of the elevation, and the ring at -87.0.
+# (a.py): her second-class lift aft, her funnels' casings and the first-class lifts
+# forward; and her stern, which no deck above draws, at the generator's X_AFT. Forward of
+# funnel 1 her stem reads 129.81, her stem at C deck 129.78. Aft of the lift the view is
+# read on her stern alone, as B deck's after end is on Plate III's elevation (b_aft.py):
+# the plate draws about 3% larger there than forward of the lift, as B deck's view does,
+# so the after second-class entrance's after wall reads -94.48 (B deck's -94.40, the
+# elevation's) and the poop's front -106.63 (the elevation's -106.55). The mainmast's ring
+# on her centre line (px 2405) then reads -87.0, 1.6 m forward of A deck's: no control,
+# as on B deck (b_aft.py). Pegged on it, as this view first was, the poop's front stood
+# 0.8 m aft of the elevation's and the after entrance's after wall 1.4 m.
 X = [
     (380, -138.26, "her stern, its shell's outer line on the centre line: X_AFT"),
-    (2405, -88.64, "the mainmast's middle; B deck's at px 2393, A deck's at 2385"),
     (3073.25, -70.11, "the second-class lift's middle; A deck's at px 3088, B deck's 3082"),
     (5091.5, -17.48, "funnel 3's casing and shafts' middle; A deck's at 5084.5"),
     (6436.75, 18.38, "funnel 2's; A deck's at 6437"),
@@ -47,8 +47,10 @@ ROOMS = [
     ("steering gear room", 790, 2031, 1025, 2627.5),
     ("steering gear room", 790, 1957, 936, 2031),
     ("steering gear room", 790, 2627.5, 936, 2695),
-    ("steering gear room", 590, 2017, 790, 2639),
-    ("steering gear room", 460, 2098, 590, 2560),
+    # Its after step 14 px aft of the plate's, so the capstan gear stands a body's radius
+    # clear of it and a body steps through it by the gear.
+    ("steering gear room", 576, 2017, 790, 2639),
+    ("steering gear room", 460, 2098, 576, 2560),
     ("store", 936, 1928, 1025, 2031),
     # The plate's "St", its after wall on the port store's line (10 px aft of the
     # plate's) so the steering gear room's forward end is one wall.
@@ -68,11 +70,12 @@ ROOMS = [
     # The main third-class entrance (BOT: "leading directly down to G deck").
     ("third-class entrance, C deck", 1354, 2160, 1630, 2491),
     # The after second-class entrance under B deck's after end, round its stairway: the
-    # hall, its after part between the plate's diagonal corners (est. as a step), its bay
-    # into the library, and the well its flight down to D deck runs on into; the stores
-    # in its after corners (the plate's "Ok" and "St").
+    # hall, its after part between the plate's diagonal corners (est. as a step, as wide
+    # as the stores aft of it, so her after well's house round it is one), its bay into
+    # the library, and the well its flight down to D deck runs on into; the stores in its
+    # after corners (the plate's "Ok" and "St").
     ("second-class entrance, C deck, aft", 2264, 2036.75, 2424, 2606.25),
-    ("second-class entrance, C deck, aft", 2198, 2121, 2264, 2522),
+    ("second-class entrance, C deck, aft", 2198, 2160, 2264, 2485),
     ("second-class entrance, C deck, aft", 2424, 2207, 2461, 2441),
     ("second-class entrance, C deck, aft", 2110, 2324, 2198, 2436),
     ("store", 2110, 2160, 2198, 2212),
@@ -136,8 +139,9 @@ ROOMS = [
     ("restaurant manager's quarters", 3280, 2298, 3378, 2401),
     ("assistant doctor's room", 3280, 2401, 3378, 2488),
     ("doctor's room", 3280, 2488, 3378, 2584),
-    ("ladies' lavatory", 3416, 2318, 3490, 2466),
-    ("servery", 3416, 2466, 3490, 2584),
+    # The lavatory's side on the passage 6 px longer than the plate's, for a body's door.
+    ("ladies' lavatory", 3416, 2318, 3490, 2472),
+    ("servery", 3416, 2472, 3490, 2584),
     ("passage", 3490, 2428, 3525, 2584),
     ("bathroom", 3525, 2428, 3595, 2497),
     ("bathroom", 3525, 2497, 3595, 2584),
@@ -366,9 +370,9 @@ ROOMS = [
     # locker at its end (the plate's "L"). Port:
     ("three-berth first-class stateroom", 7331, 1759, 7433, 1924),
     ("bathroom", 7331, 1924, 7433, 2019),
-    ("three-berth first-class stateroom", 7433, 1758.5, 7470, 1923),
+    ("three-berth first-class stateroom", 7433, 1758.5, 7475, 1923),
     ("three-berth first-class stateroom", 7433, 1923, 7564, 2019),
-    ("three-berth first-class stateroom", 7470, 1758, 7564, 1923),
+    ("three-berth first-class stateroom", 7475, 1758, 7564, 1923),
     ("passage", 7564, 1793, 7602, 2019),
     ("three-berth first-class stateroom", 7602, 1757, 7708, 1922),
     ("bathroom", 7602, 1922, 7708, 2018),
@@ -378,9 +382,9 @@ ROOMS = [
     ("passage", 7848, 1796, 7884, 2018),
     ("three-berth first-class stateroom", 7884, 1763.5, 7991, 1920),
     ("bathroom", 7884, 1920, 7991, 2017),
-    ("three-berth first-class stateroom", 7991, 1772.5, 8030, 1919),
+    ("three-berth first-class stateroom", 7991, 1772.5, 8033, 1919),
     ("three-berth first-class stateroom", 7991, 1919, 8126, 2016),
-    ("three-berth first-class stateroom", 8030, 1772, 8126, 1919),
+    ("three-berth first-class stateroom", 8033, 1772, 8126, 1919),
     ("passage", 8126, 1815, 8168, 2016),
     ("three-berth first-class stateroom", 8168, 1771, 8272, 1919),
     ("bathroom", 8168, 1919, 8272, 2015),
@@ -392,20 +396,20 @@ ROOMS = [
     ("bathroom", 7331, 2558, 7436, 2662),
     ("three-berth first-class stateroom", 7331, 2662, 7436, 2822.5),
     ("three-berth first-class stateroom", 7436, 2558, 7568, 2664),
-    ("three-berth first-class stateroom", 7436, 2664, 7462, 2822),
-    ("three-berth first-class stateroom", 7462, 2664, 7568, 2821.5),
+    ("three-berth first-class stateroom", 7436, 2664, 7477, 2822),
+    ("three-berth first-class stateroom", 7477, 2664, 7568, 2821.5),
     ("passage", 7568, 2558, 7604, 2795),
     ("bathroom", 7604, 2558, 7712, 2660),
     ("three-berth first-class stateroom", 7604, 2660, 7712, 2821),
     ("three-berth first-class stateroom", 7712, 2558, 7849, 2660),
-    ("three-berth first-class stateroom", 7712, 2660, 7738, 2820.5),
-    ("three-berth first-class stateroom", 7738, 2660, 7849, 2820),
+    ("three-berth first-class stateroom", 7712, 2660, 7753, 2820.5),
+    ("three-berth first-class stateroom", 7753, 2660, 7849, 2820),
     ("passage", 7849, 2558, 7885, 2790),
     ("bathroom", 7885, 2558, 7990, 2658),
     ("three-berth first-class stateroom", 7885, 2658, 7990, 2819),
     ("three-berth first-class stateroom", 7990, 2558, 8129, 2659),
-    ("three-berth first-class stateroom", 7990, 2659, 8015, 2810.5),
-    ("three-berth first-class stateroom", 8015, 2659, 8129, 2810),
+    ("three-berth first-class stateroom", 7990, 2659, 8031, 2810.5),
+    ("three-berth first-class stateroom", 8031, 2659, 8129, 2810),
     ("passage", 8129, 2558, 8167, 2769),
     ("bathroom", 8167, 2558, 8271, 2657),
     ("three-berth first-class stateroom", 8167, 2657, 8271, 2801.5),
@@ -499,8 +503,9 @@ ROOMS = [
     ("hospital", 9225, 2191, 9311, 2283),
     ("hospital", 9225, 2283, 9311, 2369),
     ("galley store", 9311, 2191, 9383, 2270),
-    ("crew's ladder", 9415, 2191, 9464, 2334),
-    ("surgery", 9311, 2308, 9415, 2334),
+    # (The crew's ladder's lobby, the stairwell its flight fills, is no room: a body is on
+    # the ladder there, from the passage to D deck.)
+    ("surgery", 9311, 2301, 9415, 2334),
     ("surgery", 9311, 2334, 9464, 2369),
     ("carpenter's shop", 9567, 2191, 9655, 2369),
     # Starboard, aft to forward: the third-class ladderway; the
@@ -514,7 +519,8 @@ ROOMS = [
     ("firemen's mess", 9373, 2434, 9466, 2556),
     ("firemen's mess", 9466, 2494, 9604, 2556),
     ("firemen's mess", 9604, 2434, 9750, 2556),
-    ("crew's stair", 9466, 2434, 9604, 2494),
+    # (The starboard crew's stair's lobby, the stairwell its flight fills, is no room: a
+    # body is on the stair there, from the firemen's mess to D deck.)
     ("greasers' mess", 9750, 2434, 9845, 2634.5),
     ("lamp trimmer's and storekeeper's berths", 9845, 2464, 9950, 2606),
     # Forward of them, the windlass room across her (BOT: "the machinery required for
@@ -578,8 +584,8 @@ SOLIDS = [
     # The house's after end: the bathrooms' W.C.s; the lavatories' W.C.s; the space the
     # plate calls "Engr." and the tanks aft of the turbine engine casing; the light and
     # air trunks to the galley on D deck (the plate's "L & A to Gal." and "L & A"), the
-    # second in the passage behind the after grand staircase's hall, 9 px shorter at each
-    # end so each of the passage's doors from the hall has a body's width of wall; a
+    # second in the passage behind the after grand staircase's hall, 16 px shorter at each
+    # end so each of the passage's doors from the hall has a body's door of wall; a
     # wardrobe.
     ("W.C.", 3659, 1781, 3683, 1880, None),
     ("W.C.", 3731, 1880, 3762, 1985.5, None),
@@ -589,10 +595,10 @@ SOLIDS = [
     ("tanks", 3554, 2318, 3662, 2428, None),
     ("turbine engine casing", 3662, 2193, 3875, 2428, None),
     ("light and air trunk to the galley", 3875, 2193, 3965, 2428, None),
-    ("light and air trunk", 4014, 2229, 4052, 2388, None),
-    # The plate's wardrobe off the stateroom aft, 7 px shorter so the one-berth room's
+    ("light and air trunk", 4014, 2236, 4052, 2381, None),
+    # The plate's wardrobe off the stateroom aft, 10 px shorter so the one-berth room's
     # door has a body's width beside it.
-    ("wardrobe", 3968, 2041, 4012, 2067, None),
+    ("wardrobe", 3968, 2041, 4009, 2067, None),
     ("W.C.", 3737, 2638, 3774, 2737, None),
     ("W.C.", 3669, 2737, 3700, 2844.5, None),
     # The ladder from the surgery down to the hospital on D deck: 74 px of treads (1.9 m)
@@ -675,7 +681,7 @@ SOLIDS = [
     # the plate's pipe and trunk; the windlass engines and the cable lifters, and
     # forward of the wall across her the warping engine, est. 1.5 m and 1.0 m high.
     ("closet", 9383, 2191, 9415, 2270, None),
-    ("closet", 9311, 2270, 9415, 2308, None),
+    ("closet", 9311, 2270, 9415, 2301, None),
     ("fans", 9464, 2191, 9567, 2369, None),
     ("No. 1 hatch trunk", 9655, 2191, 9790, 2369, None),
     ("chain pipe", 9822, 2091, 9845, 2132, None),
@@ -686,7 +692,7 @@ SOLIDS = [
     ("cable lifter", 9958, 2300, 10042, 2372, 1.0),
     ("windlass engine", 10042, 2166, 10181, 2384, 1.5),
     ("warping engine", 10257, 2211, 10320, 2350, 1.5),
-    ("warping engine", 10320, 2211, 10399, 2350, 1.5),
+    ("warping engine", 10320, 2211, 10382, 2350, 1.5),
 ]
 
 DOORS = [
@@ -723,12 +729,12 @@ DOORS = [
     # Forward of the after entrance, port: staterooms and bathrooms; the barber's shop
     # from the hall; the pantry from its passage and into the saloon; the saloon from
     # the hall.
-    (4277, 1985.5), (4470, 1985.5), (4625, 1985.5), (4762, 1985.5), (4376, 1875),
+    (4330, 1985.5), (4470, 1985.5), (4625, 1985.5), (4762, 1985.5), (4376, 1875),
     (4736, 1869), (4863, 1872), (4151, 1830), (4256, 1935), (4604, 1840), (4499, 1930),
     (4292, 2160), (4560, 2039), (4620, 2039), (4765, 2039), (4731, 2188.5), (4760, 2424.5),
     (4292, 2461),
     # Starboard: staterooms and bathrooms.
-    (4294, 2632), (4488, 2632), (4633, 2632), (4766, 2632), (4266, 2690), (4157, 2790),
+    (4315, 2632), (4488, 2632), (4633, 2632), (4766, 2632), (4266, 2690), (4157, 2790),
     (4509, 2690), (4616, 2790),
     # From funnel 3 to funnel 2, port, at her side: the staterooms off the corridor and
     # through to the next; the private lobbies into the staterooms either side, the
@@ -748,11 +754,14 @@ DOORS = [
     # valets' saloon; the mess stewards' room and the ladies' lavatory off their cross
     # passage.
     (4955.5, 2038), (5025.5, 2037), (5203.5, 2037), (5269, 2037), (5450, 2037),
-    (5478, 2316), (5482, 2509.5), (5420, 2500), (4882, 2525.5),
+    (5478, 2290), (5482, 2509.5), (5420, 2500), (4882, 2525.5),
     (5086, 2574), (5160, 2573), (5281, 2573),
     (5587.5, 2036), (5722, 2104), (5722, 2247.5), (5722, 2359.5), (5698.5, 2572),
     (5768, 2099.5), (5894, 2035), (5768, 2246.5), (5768, 2352.5), (5895.5, 2571),
     (6011, 2078), (6130, 2034.5), (6011, 2347), (6080.5, 2569.5), (6181, 2569.5),
+    # The alcove's bathroom from the stateroom beside it (est.: its side on the alcove is
+    # narrower than a body's door).
+    (6140, 2186),
     (6312.5, 2034), (6361.5, 2034), (6543, 2034), (6608.5, 2034),
     (6297, 2568.5), (6361, 2568), (6487.5, 2567.5), (6609.5, 2567),
     # Starboard, at her side, as to port; two lobbies (at 4999-5106 and 6328-6431) the
@@ -779,21 +788,21 @@ DOORS = [
     # bath, and the pair's inner room; the bath onto the corridor; the pair's rooms into
     # the passage forward, and through the outer room's slanting end into the inner.
     (7331, 1854.5), (7348.5, 1924), (7433, 1835.5), (7354.5, 2019), (7564, 1983.5),
-    (7564, 1840), (7470, 1885),
+    (7564, 1840), (7475, 1885),
     (7602, 1861), (7621, 1922), (7708, 1820.5), (7622, 2018), (7848, 1982.5), (7848, 1879),
     (7750, 1873),
     (7884, 1858.5), (7901.5, 1920), (7991, 1819.5), (7907, 2017), (8126, 1980.5),
-    (8126, 1878.5), (8030, 1840),
+    (8126, 1878.5), (8033, 1840),
     (8168, 1869), (8185, 1919), (8272, 1833), (8186, 2015), (8402, 1975), (8402, 1855.5),
     (8312, 1860),
     # Starboard, the same; where the plate draws a stateroom one swing in its corner by
     # its bath, it opens into the bath and its door aft is est.
     (7362, 2558), (7352, 2662), (7331, 2700), (7436, 2737.5), (7568, 2625.5), (7568, 2745),
-    (7462, 2745),
+    (7477, 2745),
     (7634, 2558), (7624, 2660), (7604, 2719.5), (7712, 2773), (7849, 2611.5), (7849, 2716),
-    (7738, 2740),
+    (7753, 2740),
     (7912.5, 2558), (7905, 2658), (7885, 2721.5), (7990, 2774), (8129, 2611), (8129, 2731.5),
-    (8015, 2735),
+    (8031, 2735),
     (8191, 2558), (8181.5, 2657), (8167, 2700), (8271, 2754.5), (8402, 2608.5), (8402, 2720),
     (8310, 2725),
     # Between the corridors: the pantry, the purser's room, the ladies' lavatory from
@@ -809,27 +818,29 @@ DOORS = [
     (8446, 1867.5), (8446, 1981), (8446, 2096.5), (8446, 2240.5), (8446, 2330), (8446, 2481),
     (8446, 2584), (8446, 2702.5),
     # Under the forecastle: the lamp room onto the deck (est., BOT); the third-class
-    # entrances; the alleys' double doors; the hospitals, the galley store, the middle
-    # ladder's lobby and the surgery; the crew's galley, the port stair's lobby, the
-    # seamen's mess and the store; the carpenter's shop; the deck men's berths from the
-    # mess; the firemen's mess, the starboard stair's lobby and the greasers' mess; the
-    # windlass room from the cross passage, between the chain pipes; the lamp trimmer's
-    # and storekeeper's berths from it (est.).
+    # entrances; the alleys' double doors; the hospitals (from the alleys, 35 px forward
+    # of the plate's swings on the covered gaps, whose walls are narrower than a body's
+    # door), the galley store, the middle ladder's lobby and the surgery; the crew's
+    # galley, the port stair's lobby, the seamen's mess and the store; the carpenter's
+    # shop; the deck men's berths from the mess; the firemen's mess (the starboard stair's
+    # lobby open into it) and the greasers' mess, each door clear of the joint of the
+    # alleys' two pieces (est.); the windlass room from the cross passage, between the
+    # chain pipes; the lamp trimmer's and storekeeper's berths from it (est.).
     (9201, 1925), (9222, 2108), (9222, 2465), (9259, 2150), (9259, 2417),
-    (9250, 2191), (9250, 2369), (9355, 2191), (9435, 2191), (9350, 2369),
+    (9285, 2191), (9285, 2369), (9337, 2191), (9435, 2191), (9350, 2369),
     (9420, 2132), (9460, 2132), (9640, 2132), (9736, 2132), (9600, 2191), (9848, 1977),
-    (9450, 2434), (9480, 2434), (9752, 2434), (9845, 2282), (9900, 2464), (10246, 2395),
+    (9431, 2434), (9817, 2434), (9845, 2282), (9900, 2464), (10246, 2395),
 ]
 
 OPEN = [
     # The steering gear room's steps.
     (790, 2025, 936, 2037), (790, 2621.5, 936, 2633.5), (784, 2031, 796, 2627.5),
-    (584, 2098, 596, 2560),
+    (570, 2098, 582, 2560),
     # The smoking room's and the general room's.
     (1154, 1913, 1166, 2326), (1294, 1894, 1306, 2326), (1348, 1877, 1360, 2160),
     (1154, 2342, 1166, 2737), (1294, 2342, 1306, 2754), (1348, 2491, 1360, 2772),
     # The after second-class entrance's four, and the library's four.
-    (2258, 2121, 2270, 2522), (2418, 2207, 2430, 2441), (2192, 2324, 2204, 2436),
+    (2258, 2160, 2270, 2485), (2418, 2207, 2430, 2441), (2192, 2324, 2204, 2436),
     (2455, 2036.75, 2467, 2207), (2455, 2441, 2467, 2606.25),
     (2560, 2036.75, 2572, 2606.25),
     # The forward second-class entrance's: its corners, its lanes and its well.
@@ -856,9 +867,9 @@ OPEN = [
     # Forward of it: the pairs' two pieces each; the ladies' lavatory's three; the
     # gentlemen's two; the corridors into the cross passages aft and forward and into the
     # short passages; the cross passage between them into both.
-    (7439, 1917, 7464, 1929), (7714, 1914, 7744, 1926), (7997, 1913, 8024, 1925),
-    (8278, 1911, 8306, 1923), (7442, 2658, 7456, 2670), (7718, 2654, 7732, 2666),
-    (7996, 2653, 8009, 2665), (8277, 2651, 8304, 2663),
+    (7439, 1917, 7469, 1929), (7714, 1914, 7744, 1926), (7997, 1913, 8027, 1925),
+    (8278, 1911, 8306, 1923), (7442, 2658, 7471, 2670), (7718, 2654, 7747, 2666),
+    (7996, 2653, 8025, 2665), (8277, 2651, 8304, 2663),
     (7408, 2220, 7439, 2232), (7408, 2353, 7439, 2365), (8132, 2284, 8187, 2296),
     (7325, 2022, 7337, 2066), (7325, 2511, 7337, 2552), (8396, 2022, 8408, 2066),
     (8396, 2511, 8408, 2552), (7570, 2013, 7596, 2025), (7854, 2012, 7878, 2024),
@@ -871,6 +882,9 @@ OPEN = [
     (9414, 1869, 9426, 2008), (9370, 2002, 9447, 2014), (9441, 2008, 9453, 2070),
     (9612, 1902, 9624, 2070), (9618, 2085, 9666, 2097), (9744, 1923, 9756, 2091),
     (9364, 2132, 9376, 2191), (9367, 2369, 9379, 2434), (9784, 2132, 9796, 2191),
+    # The starboard crew's stair's lobby into the firemen's mess aft of it, the stair's
+    # head on its after wall (est.: a body steps off it there).
+    (9460, 2434, 9472, 2494),
     (9784, 2369, 9796, 2434), (9311, 2328, 9415, 2340),
     (9367, 2556, 9379, 2703), (9460, 2556, 9472, 2682), (9598, 2556, 9610, 2656),
     (9373, 2550, 9466, 2562), (9466, 2550, 9604, 2562), (9604, 2550, 9750, 2562),
@@ -886,17 +900,20 @@ STAIRS = [
     # forward to its landing: the plate's middle and starboard lanes, its port lane left
     # for the poop's flight down. The plate draws 94 px of treads (2.3 m) for 10 ft 6 in
     # of rise; a body climbs no steeper than tools/gen_titanic.py's STEEPEST, so it runs on
-    # 64 px forward over the landing.
-    ("third-class stairway", 1358, 2272.5, 1516, 2438, "fore", "d", "c"),
+    # 43.5 px forward over the landing, its foot 20.5 px aft of the plate's so its head stops at
+    # D deck's matron's wall.
+    ("third-class stairway", 1337.5, 2272.5, 1495.5, 2438, "fore", "d", "c"),
     # The after second-class stairway down to D deck, its starboard flight (B deck's
     # comes down to port, b_aft.py), rising forward to the hall: the plate's 59 px of
     # treads run on aft through the wall into the box the plate draws them going down
-    # into, to a slope a body climbs.
-    ("second-class stairway", 2112, 2353, 2267, 2436, "fore", "d", "c"),
+    # into, to a slope a body climbs, its foot 10 px short of the plate's box so a body
+    # steps off it clear of D deck's after entrance's after wall (d.py).
+    ("second-class stairway", 2119.5, 2353, 2264.5, 2436, "fore", "d", "c"),
     # The forward second-class staircase down to D deck, starboard of the lift, rising
     # aft to the hall: its 88 px of treads run on forward into the well forward of the
-    # lift, which the plate draws them going down into.
-    ("second-class staircase", 3029, 2357.25, 3176, 2432.5, "aft", "d", "c"),
+    # lift, which the plate draws them going down into, to the lane's forward end, its
+    # head 33 px forward of the hall, a landing a body steps onto the lane by (est.).
+    ("second-class staircase", 3062, 2357.25, 3206, 2432.5, "aft", "d", "c"),
     # The stewards' staircase down to D deck, as the plate draws it in its round well:
     # 97 px of treads (2.5 m) for 3.2 m, run on to 145 px; rising to starboard, so its
     # foot meets the head of D deck's flight to port (d.py's, est.).
@@ -917,7 +934,7 @@ STAIRS = [
     # these crew's flights, climb 0.864 (STEEPEST 0.875).
     ("third-class ladderway", 9231, 2008, 9370, 2108, "aft", "d", "c"),
     ("third-class ladderway", 9234, 2465, 9373, 2556, "aft", "d", "c"),
-    ("crew's stair", 9479, 2077, 9618, 2125, "aft", "d", "c"),
+    ("crew's stair", 9483.5, 2077, 9620.5, 2125, "aft", "d", "c"),
     ("crew's stair", 9465, 2437, 9604, 2491, "aft", "d", "c"),
-    ("crew's ladder", 9421, 2191, 9456, 2334, "port", "d", "c"),
+    ("crew's ladder", 9423.5, 2191, 9454, 2334, "port", "d", "c"),
 ]

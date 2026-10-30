@@ -1,9 +1,10 @@
 extends GutTest
-## LinerDining on the Titanic: her four dining saloons dressed by rule from their
-## walls — more to them than the saloon's dressing they had, within a budget; her laid
-## tables and chairs props of their own (test_titanic_saloons), her third-class saloons'
-## long tables mess tables. That nothing the whole ship's dressing draws stands in a
-## body's way is art-lint's (FurnishingCheck), on every ship.
+## LinerDining on the small Titanic — the Titanic before her plates were traced (#362),
+## whose saloons these budgets were measured in: her four dining saloons dressed by rule
+## from their walls — more to them than the saloon's dressing they had, within a budget;
+## her laid tables and chairs props of their own (test_titanic_saloons), her third-class
+## saloons' long tables mess tables. That nothing the whole ship's dressing draws stands
+## in a body's way is art-lint's (FurnishingCheck), on every ship.
 
 const FurnishingCheck := preload("res://tools/furnishing_check.gd")
 const RunMatch := preload("res://tools/run_match.gd")
@@ -22,7 +23,7 @@ const BUDGET := 12400
 ## and chairs are props, drawn apart (PropArt): the first-class saloon's draws 11616.
 const CEILING := 12400
 
-var _titanic: ShipLayout
+var _ship: ShipLayout
 var _rules: BrawlRules
 var _space: ShipSpace
 var _faces: PackedVector3Array
@@ -30,16 +31,16 @@ var _faces: PackedVector3Array
 
 func before_all() -> void:
 	_rules = RunMatch.default_config(1701).rules
-	_titanic = load("res://data/ships/titanic.tres")
-	_space = ShipSpace.new(_titanic)
+	_ship = load("res://data/ships/small_titanic.tres")
+	_space = ShipSpace.new(_ship)
 	var art := ShipArt.new()
-	art.build(_titanic, _rules.railing_height, _rules.body_radius)
+	art.build(_ship, _rules.railing_height, _rules.body_radius)
 	_faces = FurnishingCheck.furnishings(art)
 	art.free()
 
 
 func _room(room_name: StringName) -> ShipRoom:
-	for room: ShipRoom in _titanic.rooms:
+	for room: ShipRoom in _ship.rooms:
 		if room.name == room_name:
 			return room
 	return null

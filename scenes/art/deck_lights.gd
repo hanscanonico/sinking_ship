@@ -332,6 +332,10 @@ func _door_lamp(
 			continue
 		if not _clear_of_panes(out, at, BULKHEAD_PLATE):
 			continue
+		# Not where a body stands higher than the door's deck by it: a hatch's cover, a stair.
+		var by := Rect2(Vector2(at.x, at.z), Vector2.ZERO).grow(_reach)
+		if _standing(by, at.y) > deck + RoomDressing.HEADROOM - BULKHEAD_HEIGHT:
+			continue
 		place = Transform3D(turn, at)
 		_add(Kind.BULKHEAD, place, place * Vector3(0.0, 0.0, LAMP_PLATE_DEPTH), behind)
 		return

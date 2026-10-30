@@ -16,6 +16,11 @@ const WHOLE := 0.999
 ## box's top on her sheer.
 const SHELL_NEAR := 0.01
 const SHELL_IN := 1e-3
+## How far two of a cell's boxes may run into each other and still only meet: a room's
+## far side is its corner plus its size in single precision (Rect2), a hair off the next
+## room's corner where its own is no multiple of a power of two — on her side, on a
+## bulkhead's line (the Titanic's C and D decks).
+const MEET := 1e-4
 
 
 ## The boxes of [param structure]'s cells whose water is drawn — every cell wholly
@@ -97,13 +102,13 @@ static func _to_bulkheads(
 
 
 ## Whether [param drawn]'s box [param at] may take [param gained] on: none of the cell's
-## other boxes holds any of it, and it stands inside [param structure]'s shell — read
-## over the sections it stands in, not the one past the bulkhead it ends at, which her
-## sections' rounded ends can have it touch by a few millimetres (bulkhead C's, the
-## Titanic's No. 3 hold's forward one).
+## other boxes holds any of it but a hair (MEET), and it stands inside
+## [param structure]'s shell — read over the sections it stands in, not the one past the
+## bulkhead it ends at, which her sections' rounded ends can have it touch by a few
+## millimetres (bulkhead C's, the Titanic's No. 3 hold's forward one).
 static func _gains(structure: ShipStructure, drawn: Array[AABB], at: int, gained: AABB) -> bool:
 	for other in drawn.size():
-		if other != at and drawn[other].intersects(gained):
+		if other != at and drawn[other].intersects(gained.grow(-MEET)):
 			return false
 	return _within(structure, gained, SHELL_NEAR)
 

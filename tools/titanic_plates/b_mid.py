@@ -232,5 +232,5 @@ STAIRS = [
     # either side of A deck's curved one (a.py) run 70 px (1.4 m) for 9 ft of rise; one
     # runs on aft to a slope a body climbs, starboard of A deck's flight, whose 4 m leave
     # no other lane in the room.
-    ("after grand staircase", 1300, 1286, 1470, 1337, "fore", "c", "b"),
+    ("after grand staircase", 1347.5, 1286, 1517.5, 1337, "fore", "c", "b"),
 ]

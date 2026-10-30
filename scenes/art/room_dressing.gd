@@ -76,6 +76,22 @@ const NAMED: Array[Array] = [
 	["cabins", Kind.BERTHS],
 	# A liner's stateroom is a cabin, however big.
 	["stateroom", Kind.CABIN],
+	# So are her crew's and officers' rooms of their own and her third-class rooms (the
+	# Titanic's C and D decks); her hospitals are berths, but for their attendants'
+	# room; her crew's messes are saloons, and a suite's sitting room, no berth in it.
+	["doctor's room", Kind.CABIN],
+	["purser's room", Kind.CABIN],
+	["steward's room", Kind.CABIN],
+	["stewardesses' room", Kind.CABIN],
+	["matron's room", Kind.CABIN],
+	["attendants' room", Kind.CABIN],
+	["mess stewards' room", Kind.CABIN],
+	["third-class room", Kind.CABIN],
+	["hospital", Kind.BERTHS],
+	["firemen's mess", Kind.SALOON],
+	["greasers' mess", Kind.SALOON],
+	["seamen's mess", Kind.SALOON],
+	["sitting room", Kind.SALOON],
 	# A liner's small rooms of service, ahead of her public rooms' words, so the smoking
 	# room's lavatory and the lounge's pantry are tiled too; the wireless's rooms and the
 	# bridge's chart and navigating rooms are offices (LinerService.OFFICES); a vestibule
@@ -95,6 +111,25 @@ const NAMED: Array[Array] = [
 	["galley", Kind.SERVICE],
 	["gymnasium", Kind.SERVICE],
 	["office", Kind.SERVICE],
+	# Her workrooms and her galleys' rooms tiled too: her shops and surgeries, her lamp,
+	# linen and wardrobe rooms, the printer's, the bakers', her cold store; her firemen's
+	# wash place and W.C.s; the plate's T.R.S. and its room marked L (est. linen).
+	["shop", Kind.SERVICE],
+	["surgery", Kind.SERVICE],
+	["lamp room", Kind.SERVICE],
+	["linen room", Kind.SERVICE],
+	["wardrobe room", Kind.SERVICE],
+	["printer's room", Kind.SERVICE],
+	["bake house", Kind.SERVICE],
+	["bread room", Kind.SERVICE],
+	["vegetable", Kind.SERVICE],
+	["larder", Kind.SERVICE],
+	["knives", Kind.SERVICE],
+	["cold store", Kind.SERVICE],
+	["wash place", Kind.SERVICE],
+	["w.c.", Kind.SERVICE],
+	["t.r.s.", Kind.SERVICE],
+	["room marked l", Kind.SERVICE],
 	["café", Kind.PUBLIC],
 	["restaurant", Kind.PUBLIC],
 	["lounge", Kind.PUBLIC],
@@ -104,12 +139,17 @@ const NAMED: Array[Array] = [
 	["entrance", Kind.PUBLIC],
 	["general room", Kind.PUBLIC],
 	["open space", Kind.PUBLIC],
+	["library", Kind.PUBLIC],
 	# The spaces in her old voids (#148, LowerSpaces): her stores are holds, and so are a
 	# liner's coal bunkers; a peak's tank is a tank, the firemen's passage a passage.
 	["double bottom", Kind.TANK],
 	["side passage", Kind.TANK],
 	["peak tank", Kind.TANK],
 	["passage", Kind.PASSAGE],
+	# A crew's stair or ladder, and a landing at a stair's foot, plain (no grand
+	# staircase's: "staircase" says that, ahead of these).
+	["ladder", Kind.PASSAGE],
+	["stair", Kind.PASSAGE],
 	["shaft tunnel", Kind.SHAFT],
 	["steering gear", Kind.STEERING],
 	["chain locker", Kind.LOCKER],
@@ -117,13 +157,18 @@ const NAMED: Array[Array] = [
 	["car deck", Kind.VEHICLE],
 	["store", Kind.HOLD],
 	["bunker", Kind.HOLD],
+	["coal", Kind.HOLD],
+	["coke", Kind.HOLD],
 	["engine", Kind.ENGINE],
 	# Ahead of "hold": a stokehold is where her engine stands, no cargo hold.
 	["stokehold", Kind.ENGINE],
+	["dynamo", Kind.ENGINE],
 	["hold", Kind.HOLD],
 	["wheelhouse", Kind.HELM],
 	["corridor", Kind.PASSAGE],
 	["road", Kind.PASSAGE],
+	# A bar is a small saloon, as her A deck's is, the saloon bar too.
+	["bar", Kind.SALOON],
 	["saloon", Kind.SALOON],
 	["engine", Kind.ENGINE],
 	["boiler", Kind.BOILER],
@@ -588,9 +633,10 @@ func build(mesh: ShipMesh, signs: Node3D, panes: Array[Array]) -> void:
 		# An engine room draws its machinery, a hold its cargo, a dining saloon its
 		# tables (LinerDining.tables()), a bath its pool (LinerBath.build()) and the
 		# spaces in her old voids their shaft, steering engine and chain bins
-		# (LowerSpaces); every other room's furniture is FurnitureDressing's.
+		# (LowerSpaces); every other room's furniture is FurnitureDressing's, a steering
+		# gear room's capstan gear with it.
 		var own := [Kind.ENGINE, Kind.HOLD, Kind.DINING, Kind.BATH]
-		if _kinds[index] not in own + [Kind.SHAFT, Kind.STEERING, Kind.LOCKER]:
+		if _kinds[index] not in own + [Kind.SHAFT, Kind.LOCKER]:
 			FurnitureDressing.build(mesh, room, _space.furniture(room))
 		var signed := [Kind.ENGINE, Kind.BOILER, Kind.HOLD, Kind.PASSAGE, Kind.FIRST_CORRIDOR]
 		if _kinds[index] in signed:
@@ -868,6 +914,9 @@ func _signs(mesh: ShipMesh, signs: Node3D, room: ShipRoom) -> void:
 			var right := Vector3.RIGHT if side % 2 == 0 else Vector3.BACK
 			var at := _space.on_side(room, side, (gap.x + gap.y) * 0.5, 0.1)
 			var centre := Vector3(at.x, room.floor_height + SIGN_HEIGHT, at.y)
+			# None over a doorway a flight comes through: a body on it would stand in the sign.
+			if over_a_ramp(_layout, Rect2(at, Vector2.ONE * 0.01), room.floor_height, centre.y):
+				continue
 			var rim := half + Vector2.ONE * 0.012
 			panel(mesh, centre + normal * 0.01, right, rim, normal, ShipPaints.brass)
 			panel(mesh, centre + normal * 0.014, right, half, normal, ShipPaints.enamel)

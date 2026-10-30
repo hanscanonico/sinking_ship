@@ -93,17 +93,23 @@ ROOMS = [
     ("gentlemen's lavatory, D deck", 1420.5, 3305, 1562.5, 3355),
     ("bathroom, D deck", 1488, 3093, 1562.5, 3219),
     ("bathroom, D deck", 1488, 3219, 1562.5, 3305),
-    ("ladies' lavatory, D deck", 1430, 3778, 1499.5, 3935),
-    ("ladies' lavatory, D deck", 1430, 3747, 1575.5, 3778),
-    ("bathroom, D deck", 1499.5, 3778, 1575.5, 3857),
+    # The ladies' lavatory's strip along the passage 18 px wider than the plate's, for a
+    # body's door.
+    ("ladies' lavatory, D deck", 1430, 3796, 1499.5, 3935),
+    ("ladies' lavatory, D deck", 1430, 3747, 1575.5, 3796),
+    ("bathroom, D deck", 1499.5, 3796, 1575.5, 3857),
     ("bathroom, D deck", 1499.5, 3857, 1575.5, 4002.5),
     # The main third-class entrance (BOT: "the main third class entrance for the
     # after-end of the vessel, leading directly down to G deck ... The effective width of
     # this stairway was 16 ft. to E deck"), and forward of it the third-class matron's room
-    # (the plate's "3rd C. MAT^S RM", est. matron's) and surgery, entered from it.
-    ("third-class entrance", 1207.5, 3355, 1540, 3747),
-    ("third-class matron's room", 1540, 3441, 1637.5, 3546.5),
-    ("third-class surgery", 1540, 3546.5, 1637.5, 3661.5),
+    # (the plate's "3rd C. MAT^S RM", est. matron's) and surgery, entered from it, their
+    # after wall 26.5 px forward of the plate's, where C deck's stairway's head comes down.
+    ("third-class entrance", 1207.5, 3355, 1566.5, 3747),
+    ("third-class matron's room", 1566.5, 3441, 1637.5, 3546.5),
+    ("third-class surgery", 1566.5, 3546.5, 1637.5, 3661.5),
+    # (Each inner room's strip by her side is drawn a little wider than the plate's, at
+    # the outer room's expense, to a body's door where it opens into the rest of it:
+    # here and in the first-class block forward, #369's lay.)
     # Second class (BOT: "In the next 88 ft. of length there were 38 second class rooms
     # and the necessary baths and lavatories"): the plate draws 39, as The Shipbuilder's
     # Table VI counts them (19 two-berth, 20 four-berth, 118 passengers). Along each side,
@@ -116,22 +122,22 @@ ROOMS = [
     ("bathroom, D deck", 1594, 3241.5, 1693.5, 3315),
     ("bathroom, D deck", 1594, 3315, 1693.5, 3391),
     ("passage, D deck", 1693.5, 3080.5, 1729.5, 3391),
-    ("two-berth second-class stateroom, D deck", 1729.5, 3077, 1823.5, 3198.5),
+    ("two-berth second-class stateroom, D deck", 1729.5, 3077, 1819, 3198.5),
     ("four-berth second-class stateroom, D deck", 1729.5, 3198.5, 1862.5, 3292),
-    ("four-berth second-class stateroom, D deck", 1823.5, 3071, 1862.5, 3198.5),
-    ("four-berth second-class stateroom, D deck", 1899, 3064.5, 1996.5, 3191.5),
+    ("four-berth second-class stateroom, D deck", 1819, 3071, 1862.5, 3198.5),
+    ("four-berth second-class stateroom, D deck", 1905, 3064.5, 1996.5, 3191.5),
     ("four-berth second-class stateroom, D deck", 1862.5, 3191.5, 1996.5, 3292),
-    ("four-berth second-class stateroom, D deck", 1862.5, 3068, 1899, 3191.5),
+    ("four-berth second-class stateroom, D deck", 1862.5, 3068, 1905, 3191.5),
     ("two-berth second-class stateroom, D deck", 1729.5, 3292, 1822.5, 3391),
     ("two-berth second-class stateroom, D deck", 1822.5, 3292, 1910.5, 3391),
     ("two-berth second-class stateroom, D deck", 1910.5, 3292, 1996.5, 3391),
     ("passage, D deck", 1996.5, 3060, 2032.5, 3391),
-    ("four-berth second-class stateroom, D deck", 2032.5, 3056.5, 2135.5, 3185.5),
+    ("four-berth second-class stateroom, D deck", 2032.5, 3056.5, 2131, 3185.5),
     ("four-berth second-class stateroom, D deck", 2032.5, 3185.5, 2173.5, 3278.5),
-    ("four-berth second-class stateroom, D deck", 2135.5, 3053, 2173.5, 3185.5),
-    ("four-berth second-class stateroom, D deck", 2208.5, 3048.5, 2315, 3178.5),
+    ("four-berth second-class stateroom, D deck", 2131, 3053, 2173.5, 3185.5),
+    ("four-berth second-class stateroom, D deck", 2216, 3048.5, 2315, 3178.5),
     ("four-berth second-class stateroom, D deck", 2173.5, 3178.5, 2315, 3278.5),
-    ("four-berth second-class stateroom, D deck", 2173.5, 3051, 2208.5, 3178.5),
+    ("four-berth second-class stateroom, D deck", 2173.5, 3051, 2216, 3178.5),
     ("two-berth second-class stateroom, D deck", 2032.5, 3278.5, 2129.5, 3375.5),
     ("two-berth second-class stateroom, D deck", 2129.5, 3278.5, 2222.5, 3375.5),
     ("two-berth second-class stateroom, D deck", 2222.5, 3278.5, 2315, 3375.5),
@@ -150,18 +156,19 @@ ROOMS = [
     ("two-berth second-class stateroom, D deck", 1831.5, 3716, 1920.5, 3813),
     ("two-berth second-class stateroom, D deck", 1920.5, 3716, 2010, 3813),
     ("four-berth second-class stateroom, D deck", 1743, 3813, 1879.5, 3903.5),
-    ("four-berth second-class stateroom, D deck", 1844, 3903.5, 1879.5, 4021),
-    ("two-berth second-class stateroom, D deck", 1743, 3903.5, 1844, 4017.5),
+    # (This pair's strip wider still, its forward end held to bulkhead O's line.)
+    ("four-berth second-class stateroom, D deck", 1822, 3903.5, 1879.5, 4021),
+    ("two-berth second-class stateroom, D deck", 1743, 3903.5, 1822, 4017.5),
     ("four-berth second-class stateroom, D deck", 1879.5, 3813, 2010, 3903.5),
-    ("four-berth second-class stateroom, D deck", 1879.5, 3903.5, 1913.5, 4022.5),
-    ("four-berth second-class stateroom, D deck", 1913.5, 3903.5, 2010, 4025),
+    ("four-berth second-class stateroom, D deck", 1879.5, 3903.5, 1922, 4022.5),
+    ("four-berth second-class stateroom, D deck", 1922, 3903.5, 2010, 4025),
     ("passage, D deck", 2010, 3716, 2049.5, 4028),
     ("two-berth second-class stateroom, D deck", 2049.5, 3716, 2131.5, 3811),
     ("two-berth second-class stateroom, D deck", 2131.5, 3716, 2232, 3811),
     ("two-berth second-class stateroom, D deck", 2232, 3716, 2324, 3811),
     ("four-berth second-class stateroom, D deck", 2049.5, 3811, 2183, 3908),
-    ("four-berth second-class stateroom, D deck", 2153.5, 3908, 2183, 4034.5),
-    ("four-berth second-class stateroom, D deck", 2049.5, 3908, 2153.5, 4031),
+    ("four-berth second-class stateroom, D deck", 2140.5, 3908, 2183, 4034.5),
+    ("four-berth second-class stateroom, D deck", 2049.5, 3908, 2140.5, 4031),
     ("four-berth second-class stateroom, D deck", 2183, 3811, 2324, 3908),
     ("four-berth second-class stateroom, D deck", 2183, 3908, 2229.5, 4036),
     ("four-berth second-class stateroom, D deck", 2229.5, 3908, 2324, 4038.5),
@@ -170,21 +177,23 @@ ROOMS = [
     ("two-berth second-class stateroom, D deck", 2357.5, 3832.5, 2469.5, 3908),
     ("four-berth second-class stateroom, D deck", 2357.5, 3908, 2469.5, 4044),
     # Amidships, either side of the cross passage over bulkhead O; No. 6 and No. 5
-    # hatches' trunks aft and forward of them.
-    ("four-berth second-class stateroom, D deck", 1750.5, 3441, 1846, 3543),
-    ("two-berth second-class stateroom, D deck", 1750.5, 3569, 1846, 3661.5),
-    ("passage, D deck", 1846, 3441, 1875, 3661.5),
-    ("four-berth second-class stateroom, D deck", 1875, 3441, 1970, 3541),
-    ("two-berth second-class stateroom, D deck", 1875, 3566, 1970, 3661.5),
+    # hatches' trunks aft and forward of them. The passage 17 px (0.44 m) aft of the
+    # plate's, its forward wall on bulkhead O's line (est.: the plate draws it astride the
+    # line, where her D deck's cells part; gen_titanic.py's D_CUTS).
+    ("four-berth second-class stateroom, D deck", 1750.5, 3441, 1829, 3543),
+    ("two-berth second-class stateroom, D deck", 1750.5, 3569, 1829, 3661.5),
+    ("passage, D deck", 1829, 3441, 1858, 3661.5),
+    ("four-berth second-class stateroom, D deck", 1858, 3441, 1970, 3541),
+    ("two-berth second-class stateroom, D deck", 1858, 3566, 1970, 3661.5),
     # The corridors, port (its outer wall stepping in forward of the third passage) and
     # starboard.
-    ("corridor, D deck", 1540, 3391, 2032.5, 3441),
-    ("corridor, D deck", 2032.5, 3375.5, 2290, 3430),
-    ("corridor, D deck", 1540, 3661.5, 2290, 3716),
+    ("corridor, D deck", 1566.5, 3391, 2032.5, 3441),
+    ("corridor, D deck", 2032.5, 3375.5, 2290, 3436),
+    ("corridor, D deck", 1566.5, 3661.5, 2290, 3716),
     # The after second-class stairway (BOT: "another second class stairway, which gave
     # access to C, D, E, F and G decks"): its enclosure round the flights and their well,
     # and forward of it a landing from corridor to corridor before the saloon's doors.
-    ("second-class entrance, D deck, aft", 2110, 3430, 2290, 3661.5),
+    ("second-class entrance, D deck, aft", 2110, 3436, 2290, 3661.5),
     ("second-class entrance, D deck, aft", 2290, 3375.5, 2398.5, 3716),
     # The second-class dining saloon (BOT: "the second class saloon occupying 70 ft. of
     # the length"), round the forward second-class entrance: five rectangles that are one
@@ -230,8 +239,10 @@ ROOMS = [
     # series of rooms used for hospitals and their attendants"): a bath and W.C., the two
     # infectious hospitals, the attendants' room and three hospitals, off passages from
     # the corridor; the second infectious hospital's top 20 px up to the passage (est.).
-    ("bathroom, D deck", 3240, 3809, 3332, 3889),
-    ("passage, D deck", 3332, 3809, 3470.5, 3921.5),
+    # The passage to the infectious hospitals 12 px further aft than the plate's, so the
+    # first of them has a body's door of wall on it.
+    ("bathroom, D deck", 3240, 3809, 3320, 3889),
+    ("passage, D deck", 3320, 3809, 3470.5, 3921.5),
     ("infectious hospital", 3240, 3921.5, 3364.5, 4062.5),
     ("infectious hospital", 3364.5, 3921.5, 3470.5, 4062.5),
     ("passage, D deck", 3470.5, 3809, 3817, 3853.5),
@@ -305,8 +316,11 @@ ROOMS = [
     # the corridors forward (each with doors in her side, not laid), and the cross
     # passage between them abaft the stateroom block.
     ("first-class entrance, D deck", 7002, 2965.5, 7355, 3286.5),
-    ("first-class entrance, D deck", 7010, 3734.5, 7363, 4026),
-    ("passage, D deck", 7289, 3286.5, 7358.5, 3734.5),
+    ("first-class entrance, D deck", 7010, 3734.5, 7289, 4026),
+    # Its forward end on the cross passage's line, the starboard corridor opening into it
+    # whole (est.: the plate's corridor end straddles the passage's corner).
+    ("first-class entrance, D deck", 7289, 3700, 7363, 4026),
+    ("passage, D deck", 7289, 3286.5, 7358.5, 3700),
     # The block of first-class staterooms round funnel 1's casing (BOT: "a block of 50
     # first class staterooms. This surrounded the forward funnel"). Along each side,
     # seven pairs of three-berth rooms: an outer room at her side, and an inner one by the
@@ -319,16 +333,16 @@ ROOMS = [
     ("three-berth first-class stateroom, D deck", 7355, 2966, 7491.5, 3138.5),
     ("three-berth first-class stateroom, D deck", 7355, 3138.5, 7491.5, 3231),
     ("passage, D deck", 7491.5, 2966, 7523.5, 3231),
-    ("three-berth first-class stateroom, D deck", 7523.5, 2966, 7623.5, 3136.5),
+    ("three-berth first-class stateroom, D deck", 7523.5, 2966, 7613, 3136.5),
     ("three-berth first-class stateroom, D deck", 7523.5, 3136.5, 7654.5, 3231),
-    ("three-berth first-class stateroom, D deck", 7623.5, 2966, 7654.5, 3136.5),
+    ("three-berth first-class stateroom, D deck", 7613, 2966, 7654.5, 3136.5),
     ("three-berth first-class stateroom, D deck", 7695, 2969, 7798.5, 3136.5),
     ("three-berth first-class stateroom, D deck", 7654.5, 3136.5, 7798.5, 3231),
     ("three-berth first-class stateroom, D deck", 7654.5, 2969, 7695, 3136.5),
     ("passage, D deck", 7798.5, 2973, 7832, 3231),
-    ("three-berth first-class stateroom, D deck", 7832, 2973, 7931.5, 3135.5),
+    ("three-berth first-class stateroom, D deck", 7832, 2973, 7922, 3135.5),
     ("three-berth first-class stateroom, D deck", 7832, 3135.5, 7964, 3231),
-    ("three-berth first-class stateroom, D deck", 7931.5, 2973, 7964, 3135.5),
+    ("three-berth first-class stateroom, D deck", 7922, 2973, 7964, 3135.5),
     ("three-berth first-class stateroom, D deck", 8009, 2976.5, 8111, 3133.5),
     ("three-berth first-class stateroom, D deck", 7964, 3133.5, 8111, 3231),
     ("three-berth first-class stateroom, D deck", 7964, 2976.5, 8009, 3133.5),
@@ -345,11 +359,11 @@ ROOMS = [
     ("three-berth first-class stateroom, D deck", 7363, 3857, 7494, 4022),
     ("passage, D deck", 7494, 3755, 7527.5, 3978.5),
     ("three-berth first-class stateroom, D deck", 7527.5, 3755, 7661, 3855.5),
-    ("three-berth first-class stateroom, D deck", 7527.5, 3855.5, 7630, 4018.5),
-    ("three-berth first-class stateroom, D deck", 7630, 3855.5, 7661, 4018.5),
+    ("three-berth first-class stateroom, D deck", 7527.5, 3855.5, 7619.5, 4018.5),
+    ("three-berth first-class stateroom, D deck", 7619.5, 3855.5, 7661, 4018.5),
     ("three-berth first-class stateroom, D deck", 7661, 3755, 7804.5, 3855),
-    ("three-berth first-class stateroom, D deck", 7661, 3855, 7700, 4015),
-    ("three-berth first-class stateroom, D deck", 7700, 3855, 7804.5, 4015),
+    ("three-berth first-class stateroom, D deck", 7661, 3855, 7704, 4015),
+    ("three-berth first-class stateroom, D deck", 7704, 3855, 7804.5, 4015),
     ("passage, D deck", 7804.5, 3755, 7838, 4010),
     ("three-berth first-class stateroom, D deck", 7838, 3755, 7970.5, 3854),
     ("three-berth first-class stateroom, D deck", 7838, 3854, 7945.5, 4010),
@@ -361,8 +375,8 @@ ROOMS = [
     ("three-berth first-class stateroom, D deck", 8154.5, 3851, 8252.5, 3996),
     ("three-berth first-class stateroom, D deck", 8252.5, 3851, 8296, 3996),
     ("three-berth first-class stateroom, D deck", 8296, 3755, 8433.5, 3850),
-    ("three-berth first-class stateroom, D deck", 8296, 3850, 8328, 3988.5),
-    ("three-berth first-class stateroom, D deck", 8328, 3850, 8433.5, 3988.5),
+    ("three-berth first-class stateroom, D deck", 8296, 3850, 8338, 3988.5),
+    ("three-berth first-class stateroom, D deck", 8338, 3850, 8433.5, 3988.5),
     ("passage, D deck", 8433.5, 3755, 8467, 3948.5),
     # Across her forward end, eight staterooms side by side.
     ("three-berth first-class stateroom, D deck", 8465.5, 2996.5, 8573, 3131.5),
@@ -428,15 +442,18 @@ ROOMS = [
     ("third-class open space", 8747.5, 3022, 8987, 3943.5),
     ("third-class open space", 8987, 3045, 9183.5, 3916.5),
     ("third-class open space", 9183.5, 3072, 9400, 3887),
-    ("third-class open space", 9400, 3097, 9429.5, 3360.5),
+    ("third-class open space", 9400, 3097, 9441, 3360.5),
     # The bay's landing, and the lanes of its two ladders: C deck's comes down the after one
     # into the T.R.S., which the plate draws at the ladders' feet (c.py), so that lane opens
-    # into it; the one down to E deck goes from the landing down the forward one.
+    # into it, and is no room — its floor is all under the ladder, the well it comes down
+    # (#369's lay); the one down to E deck goes from the landing down the forward one.
     ("passage, D deck", 9400, 3360.5, 9490, 3422),
-    ("passage, D deck", 9400, 3422, 9445, 3528),
     ("passage, D deck", 9445, 3422, 9490, 3528),
     ("third-class open space", 9400, 3587, 9431, 3861),
-    ("T.R.S.", 9400, 3528, 9490, 3587),
+    # The T.R.S. round the after lane C deck's ladder comes down (c.py), its floor at the
+    # ladder's foot, in two (est.: the lane alone, all under the ladder, is no room).
+    ("T.R.S.", 9400, 3422, 9445, 3587),
+    ("T.R.S.", 9445, 3528, 9490, 3587),
     # Abaft the firemen's quarters, the landing at the heads of the two spiral staircases
     # down to their tunnel (BOT: "On each side of the middle line immediately abaft the
     # firemen's quarters there was a vertical spiral staircase"); their wash place to port
@@ -444,9 +461,9 @@ ROOMS = [
     # firemen's quarters at the sides of the ship"), each in two steps to her side and an L
     # round the landing's corner. None of it opens onto the passengers' decks.
     ("passage, D deck", 9490, 3281.5, 9633.5, 3683),
-    ("firemen's wash place", 9429.5, 3101, 9518, 3281.5),
+    ("firemen's wash place", 9441, 3101, 9518, 3281.5),
     ("firemen's wash place", 9518, 3119, 9606, 3281.5),
-    ("firemen's wash place", 9429.5, 3281.5, 9490, 3360.5),
+    ("firemen's wash place", 9441, 3281.5, 9490, 3360.5),
     ("firemen's W.C.s", 9431, 3683, 9520, 3855.5),
     ("firemen's W.C.s", 9520, 3683, 9610.5, 3837.5),
     ("firemen's W.C.s", 9431, 3587, 9490, 3683),
@@ -491,8 +508,8 @@ SOLIDS = [
     ("No. 4 hatch", 2469.5, 3835, 2574.5, 3908, None),
     # Closets narrower than a body: between the middle rooms, at the passages' ends by
     # her hull, by the saloon's after wall, in an inner stateroom's corner.
-    ("closet", 1750.5, 3543, 1846, 3569, None),
-    ("closet", 1875, 3541, 1970, 3566, None),
+    ("closet", 1750.5, 3543, 1829, 3569, None),
+    ("closet", 1858, 3541, 1970, 3566, None),
     ("closet", 2315, 3043, 2350, 3088.5, None),
     ("closet", 2350, 3254, 2398.5, 3290, None),
     ("closet", 2324, 4002, 2357.5, 4041.5, None),
@@ -507,13 +524,13 @@ SOLIDS = [
     # The lift's starboard side 10 px inboard of the plate's line, on C deck's lift's
     # (c.py), so the shaft stacks and C deck's flight down to starboard of it clears it.
     ("second-class lift", 3029.5, 3496.5, 3118.5, 3572, None),
-    # In the service lobby: a W.C. and the plate's H (est. a hydrant's box, 1.2 m high).
+    # In the service lobby: a W.C. and the plate's H (est. a hydrant's box, to the deck over it).
     ("W.C.", 3361, 3008, 3406, 3088, None),
-    ("H", 3240, 3160, 3302, 3202.5, 1.2),
+    ("H", 3240, 3160, 3302, 3202.5, None),
     # The turbine engine casing (BOT: "the turbine engine hatch"), its fan in its corner.
     ("turbine engine casing", 3665.5, 3407, 3878, 3645.5, None),
     # The hospitals' W.C.s and closets, 0.8-0.9 m wide.
-    ("W.C.", 3240, 3889, 3332, 3921.5, None),
+    ("W.C.", 3240, 3889, 3320, 3921.5, None),
     ("closet", 3604.5, 3944, 3636, 4063, None),
     ("closet", 3782, 3944, 3817, 4063.5, None),
     ("W.C.", 3845, 3879, 3927.5, 3915.5, None),
@@ -521,15 +538,16 @@ SOLIDS = [
     ("H", 3941, 3136, 3981.5, 3202.5, None),
     # The first-class pantry's casings: the reciprocating engine's, and funnel 3's between
     # its fans and trunks, across the saloon's after wall; its two long counters (est.
-    # 1 m, as the generator's), and the sink in its pantry.
+    # 1 m, as the generator's), and the sink in its pantry, against its after wall and
+    # off its forward half (est.), so a body stands at it.
     ("reciprocating engine casing", 4406, 3403, 4681, 3641, None),
     ("fans and trunks", 4822, 3398.5, 4886.5, 3633.5, None),
     ("funnel 3's casing", 4886.5, 3398.5, 5064, 3633.5, None),
     ("funnel 3's casing", 5064, 3398.5, 5294.5, 3633.5, None),
     ("fans and trunks", 5294.5, 3398.5, 5394.5, 3633.5, None),
-    ("counter", 4576, 3123, 4952.5, 3282, 1.0),
+    ("counter", 4576, 3123, 4950, 3282, 1.0),
     ("counter", 4642.5, 3752.5, 4959, 3901.5, 1.0),
-    ("sink", 4418, 3719.5, 4507, 3770, 1.0),
+    ("sink", 4418, 3719.5, 4469, 3750, 1.0),
     # The saloon's screens, each a stem from her side and a cross-piece at its end; and
     # funnel 2's casing across its forward wall.
     ("screen", 5509.5, 2975.5, 5517.5, 3172, None),
@@ -583,12 +601,12 @@ DOORS = [
     (745.5, 3550), (880, 3550), (880, 3462), (880, 3650),
     (905.5, 3400), (1062, 3400), (905.5, 3465), (1062, 3465),
     (914.5, 3640), (1068, 3640), (914.5, 3700), (1068, 3700),
-    (1150, 3528), (1150, 3569), (1102, 3358), (1102, 3750),
+    (1150, 3528), (1150, 3569), (1102, 3407), (1102, 3697),
     (1562.5, 3330), (1562.5, 3190), (1562.5, 3280),
-    (1575.5, 3762), (1575.5, 3815), (1575.5, 3900),
+    (1575.5, 3771), (1575.5, 3826), (1575.5, 3900),
     # The third-class entrance from the stern rooms' passage; its matron's room and
     # surgery.
-    (1207.5, 3549), (1540, 3490), (1540, 3600),
+    (1207.5, 3549), (1566.5, 3490), (1566.5, 3600),
     # The second-class rooms, port: off the first passage, the second, the third, the
     # corridor and the fourth.
     (1594, 3290), (1594, 3365), (1693.5, 3200),
@@ -605,10 +623,11 @@ DOORS = [
     (2324, 3790), (2324, 3860), (2324, 3950),
     (2357.5, 3760), (2357.5, 3870), (2357.5, 3950),
     # Amidships, off the cross passage.
-    (1846, 3490), (1846, 3615), (1875, 3490), (1875, 3615),
+    (1829, 3490), (1829, 3615), (1858, 3490), (1858, 3615),
     # The saloon's double doors from the after landing, the forward entrance's from the
     # saloon either side; the servery's from the saloon and into the pantry.
     (2398.5, 3545), (2945, 3421.5), (2945, 3658), (3240, 3330), (3240, 3707), (3342.5, 3500),
+
     # The saloon into the service lobby and its passage; the shops, the bread room and the
     # bake house from the passage; the bar and the pantry; the dynamos; the china, glass and
     # plate pantries and the pantry from the corridor; the corridor and the passage into
@@ -619,7 +638,10 @@ DOORS = [
     # The saloon into the hospitals' corridor; the hospitals' rooms off their passages.
     (3240, 3782), (3288, 3809), (3400, 3809), (3490, 3809), (3652, 3809), (3831, 3809),
     (3340, 3921.5), (3420, 3921.5), (3509.5, 3895), (3509.5, 3990), (3669.5, 3895),
-    (3669.5, 3990), (3870, 3809), (3831, 3915.5),
+    (3669.5, 3990), (3831, 3915.5),
+    # The bathroom by the galley from the passage beside it (est.: its side on the corridor
+    # is narrower than a body's door).
+    (3845, 3845),
     # The galley's rooms: coal and coke, the chef's office, the scullery and the knife
     # room; to starboard its four rooms; into the pantry.
     (3981.5, 3100), (3910, 3202.5), (4235, 3087), (4273.5, 3145), (4340, 3271),
@@ -628,7 +650,7 @@ DOORS = [
     # The first-class pantry: into its small rooms, the stewards' staircase at each end;
     # into the saloon (its swinging doors and double doors), and the saloon into the
     # reception room.
-    (4475, 3145), (4813.5, 3090), (4950, 3087.5), (4516.5, 3380), (4518.5, 3690), (4518.5, 3730),
+    (4475, 3081), (4813.5, 3090), (4950, 3087.5), (4516.5, 3380), (4518.5, 3690), (4518.5, 3730),
     (4523.5, 3915), (4523.5, 4010), (4945, 3935.5), (4802, 3401), (4802, 3637), (4783, 3414),
     (5064, 3170), (5064, 3365), (5064, 3670), (5064, 3858), (6385, 3355), (6385, 3665),
     # The entrances' double doors from the reception room.
@@ -641,7 +663,7 @@ DOORS = [
     (7494, 3815), (7494, 3936), (7527.5, 3807), (7527.5, 3941), (7804.5, 3807), (7804.5, 3939),
     (7838, 3808), (7838, 3937), (8114, 3804), (8114, 3932), (8154.5, 3804), (8154.5, 3927),
     (8433.5, 3810), (8433.5, 3918),
-    (8465.5, 3075), (8465.5, 3215), (8465.5, 3320), (8465.5, 3420), (8465.5, 3545), (8465.5, 3660),
+    (8465.5, 3075), (8465.5, 3180), (8465.5, 3320), (8465.5, 3420), (8465.5, 3545), (8465.5, 3660),
     (8465.5, 3790), (8465.5, 3900),
     # The block round the casing: the bathrooms from their passages, the ladies'
     # lavatory from both; the stewards' rooms and staterooms from the corridors; the
@@ -662,21 +684,24 @@ OPEN = [
     (886, 3489, 899.5, 3501), (886, 3605, 908.5, 3617), (1068, 3489, 1087, 3501), (1074, 3605, 1092, 3617),
     (1095, 3536, 1107, 3561),
     # The lavatories' two rectangles each.
-    (1099, 3349, 1201.5, 3361), (1104, 3741, 1201.5, 3753), (1426.5, 3299, 1482, 3311), (1436, 3772, 1493.5, 3784),
+    (1099, 3349, 1201.5, 3361), (1104, 3741, 1201.5, 3753), (1426.5, 3299, 1482, 3311), (1436, 3790, 1493.5, 3802),
     # The second-class passages into the corridors, port and starboard.
     (1568.5, 3385, 1588, 3397), (1699.5, 3385, 1723.5, 3397), (2002.5, 3385, 2026.5, 3397),
     (2321, 3369.5, 2344, 3381.5),
     (1581.5, 3710, 1601, 3722), (1713.5, 3710, 1737, 3722), (2016, 3710, 2043.5, 3722),
     (2330, 3710, 2351.5, 3722),
     # The inner rooms' two pieces each.
-    (1829.5, 3192.5, 1856.5, 3204.5), (1868.5, 3185.5, 1893, 3197.5),
-    (2141.5, 3179.5, 2167.5, 3191.5), (2179.5, 3172.5, 2202.5, 3184.5),
-    (1850, 3897.5, 1873.5, 3909.5), (1885.5, 3897.5, 1907.5, 3909.5),
-    (2159.5, 3902, 2177, 3914), (2189, 3902, 2223.5, 3914),
+    (1825, 3192.5, 1856.5, 3204.5), (1868.5, 3185.5, 1899, 3197.5),
+    (2137, 3179.5, 2167.5, 3191.5), (2179.5, 3172.5, 2210, 3184.5),
+    (1828, 3897.5, 1873.5, 3909.5), (1885.5, 3897.5, 1916, 3909.5),
+    (2146.5, 3902, 2177, 3914), (2189, 3902, 2223.5, 3914),
     # The corridors: port's two pieces; the cross passage into both; the after landing
     # into both and into the stairway's enclosure.
-    (2026.5, 3397, 2038.5, 3424), (1852, 3435, 1869, 3447), (1852, 3655.5, 1869, 3667.5),
+    (2026.5, 3397, 2038.5, 3424), (1835, 3435, 1852, 3447), (1835, 3655.5, 1852, 3667.5),
     (2284, 3381.5, 2296, 3424), (2284, 3667.5, 2296, 3710), (2284, 3436, 2296, 3655.5),
+    # The entrance open into the servery where C deck's second-class staircase comes down
+    # by it (est.: a body steps off the stair there, c.py).
+    (3195, 3569, 3207, 3646),
     # The second-class saloon's five rectangles; the servery's two.
     (2463.5, 3248, 2879, 3260), (2475.5, 3829, 2879, 3841), (2879, 3260, 2891, 3415.5),
     (2879, 3664, 2891, 3829), (2879, 3033.5, 2891, 3248), (2879, 3841, 2891, 4047.5), (3234, 3446, 3246, 3634),
@@ -697,14 +722,14 @@ OPEN = [
     (6391, 3728.5, 6887, 3740.5), (6899, 3728.5, 7004, 3740.5),
     # The entrances into the corridors and the cross passage, and the cross passage into
     # the starboard corridor.
-    (7349, 3237, 7361, 3275), (7295, 3280.5, 7349, 3292.5), (7352.5, 3706, 7364.5, 3728.5),
-    (7359, 3738, 7365, 3752), (7295, 3728.5, 7352.5, 3740.5),
+    (7349, 3237, 7361, 3275), (7295, 3280.5, 7349, 3292.5), (7354, 3706, 7366, 3749),
+    (7295, 3694, 7352.5, 3706), (7283, 3740.5, 7295, 4020),
     # Each inner stateroom's two pieces, port and starboard.
-    (7629.5, 3130.5, 7648.5, 3142.5), (7660.5, 3130.5, 7689, 3142.5),
-    (7937.5, 3129.5, 7958, 3141.5), (7970, 3127.5, 8003, 3139.5), (8255.5, 3127, 8284, 3139),
+    (7619, 3130.5, 7648.5, 3142.5), (7660.5, 3130.5, 7689, 3142.5),
+    (7928, 3129.5, 7958, 3141.5), (7970, 3127.5, 8003, 3139.5), (8255.5, 3127, 8284, 3139),
     (8296, 3125.5, 8324.5, 3137.5),
-    (7636, 3849.5, 7655, 3861.5), (7667, 3849, 7694, 3861),
-    (7976.5, 3846.5, 8008, 3858.5), (8258.5, 3845, 8290, 3857), (8302, 3844, 8322, 3856),
+    (7625.5, 3849.5, 7655, 3861.5), (7667, 3849, 7698, 3861),
+    (7976.5, 3846.5, 8008, 3858.5), (8258.5, 3845, 8290, 3857), (8302, 3844, 8332, 3856),
     # The passages off the corridors, and the cross passages into them.
     (7497.5, 3225, 7517.5, 3237), (7804.5, 3225, 7826, 3237), (8117, 3225, 8143, 3237), (8436, 3225, 8459.5, 3237),
     (7500, 3749, 7521.5, 3761), (7810.5, 3749, 7832, 3761), (8120, 3749, 8148.5, 3761), (8439.5, 3749, 8461, 3761),
@@ -714,9 +739,9 @@ OPEN = [
     # The open space's steps, its strips forward, and the bay's mouth.
     (8741.5, 3028, 8753.5, 3937.5), (8981, 3051, 8993, 3910.5), (9177.5, 3078, 9189.5, 3881),
     (9394, 3103, 9406, 3354.5), (9394, 3366.5, 9406, 3415), (9394, 3593, 9406, 3855),
-    (9406, 3354.5, 9423.5, 3366.5), (9406, 3416, 9439, 3428), (9451, 3416, 9484, 3428), (9406, 3522, 9439, 3534),
+    (9406, 3354.5, 9435, 3366.5), (9406, 3416, 9439, 3428), (9451, 3416, 9484, 3428), (9439, 3534, 9451, 3581),
     # The wash place's and the W.C.s' pieces.
-    (9435.5, 3275.5, 9484, 3287.5), (9512, 3125, 9524, 3275.5),
+    (9447, 3275.5, 9484, 3287.5), (9512, 3125, 9524, 3275.5),
     (9514, 3689, 9526, 3831.5), (9437, 3677, 9484, 3689),
     # The firemen's quarters' steps, port and starboard, and the store's.
     (9770, 3188, 9782, 3458), (9864, 3217.5, 9876, 3458), (9984, 3251.5, 9996, 3458), (10097.5, 3290.5, 10109.5, 3458),
@@ -733,26 +758,36 @@ STAIRS = [
     # The after second-class stairway's flight down to E deck: the port flight, as the
     # stairways above alternate (B deck's port, b_aft.py), rising aft as B deck's does. The
     # plate draws 66.5 px of treads (1.7 m) for 2.75 m: it runs on 58.5 px aft over the
-    # landing to a slope a body climbs, 125 px (3.25 m) in all, as the flights below.
-    ("second-class stairway", 2143, 3430, 2268, 3507, "aft", "e", "d"),
+    # landing to a slope a body climbs, 125 px (3.25 m) in all, as the flights below, its
+    # head 5 px forward of the plate's so a body steps off it clear of the entrance's after
+    # wall.
+    ("second-class stairway", 2145.5, 3436, 2270.5, 3507, "aft", "e", "d"),
     # The forward second-class staircase's flight down to E deck: the port one, as the boat
     # deck's, B deck's and (est.) D deck's alternate (boat.py, a.py, b_aft.py), rising aft.
     # The plate draws 89 px of treads (2.3 m): it runs on 36 px aft over the landing.
     ("second-class staircase", 2993.5, 3421.5, 3118.5, 3496.5, "aft", "e", "d"),
-    # The stair from E deck up into the serving space (BOT), as the plate draws it, 127 px
-    # (3.3 m) athwart her; its head to port est.
-    ("stair", 3205, 3531, 3245.5, 3658, "port", "e", "d"),
+    # The stair from E deck up into the serving space (BOT), 127 px (3.3 m) athwart her as
+    # the plate draws it, 36 px forward of the plate's (est.): on E deck clear of bulkhead
+    # M's wall under the saloon's forward wall, on D deck all in the serving space, its
+    # well clear of that wall. Its head to port est.
+    ("stair", 3241, 3531, 3281.5, 3658, "port", "e", "d"),
     # A stair down from the service lobby by the shops, over the one the plate's E deck
-    # draws: its 75 px of treads (2 m) run on 50 px forward; its head forward est.
-    ("stair", 3246, 3116, 3371, 3160, "fore", "e", "d"),
+    # draws: its 75 px of treads (2 m) are 2.75 m of rise, and run on along her, in the
+    # lobby, to a slope a body climbs, its foot on E deck would stand against bulkhead M's
+    # wall there, its head against the lobby's forward wall: so it runs across her in the
+    # lobby (est.), its head to port by her side, 124 px (3.25 m).
+    ("stair", 3309, 3043, 3350, 3167, "port", "e", "d"),
     # The stewards' staircase down to E deck (BOT: "between the reciprocating engine
     # casing and the third funnel casing there was a stewards' stairway, which
     # communicated with all the decks below as far as E deck"), as the plate draws it:
     # 160 px of treads (4.2 m) for 2.75 m. Its head to port: E deck draws its foot at the
     # starboard end, a passage going on to starboard from it. C deck draws its flight down
     # to D in the same 1 m well (c.py), rising to starboard: the plates stack the two in
-    # one footprint, a switchback no body walks (see the PR's notes for the lay).
-    ("stewards' staircase", 4783, 3434, 4822, 3594, "port", "e", "d"),
+    # one footprint, a switchback no body walks — C deck's flight and one a body climbs
+    # down to E need 6.8 m end to end, and cross with under 1.7 m over a head for 0.9 m.
+    # So this one runs in the pantry's bay beside the well, 2.6 m wide (est., #369's lay),
+    # its door into the well at its head; C deck's comes down the well.
+    ("stewards' staircase", 4712, 3434, 4751, 3594, "port", "e", "d"),
     # The grand staircase's flight down to E deck, rising forward to the lifts' landing as
     # the flights above do (a.py, b_fwd.py, c.py): the port half of the plate's flight, C
     # deck's coming down the starboard half (c.py), as the decks above alternate halves.
@@ -761,8 +796,9 @@ STAIRS = [
     # stands, 1.8 m short of the lifts, so a landing stays in front of them, as on C deck.
     ("grand staircase", 6883, 3384, 7010, 3496, "fore", "e", "d"),
     # A stair down from the port entrance, over the one the plate's E deck draws under it:
-    # its 86 px of treads run on forward to 127 px. Its head aft est.
-    ("stair", 7080, 3238, 7207, 3279, "aft", "e", "d"),
+    # its 86 px of treads run on forward to 127 px. Its head forward (est.), so its foot is
+    # in the passage E deck's plate draws there (e.py), not in the stewards' room forward.
+    ("stair", 7080, 3238, 7207, 3279, "fore", "e", "d"),
     # Not laid: the stair the plate draws down to E deck from the bay at 8218-8299 by the
     # starboard cross passage, 81 px of treads (2.1 m) with no room in the block to run on
     # to a slope a body climbs (the cross passage aft, a stateroom forward).
@@ -776,16 +812,19 @@ STAIRS = [
     # The open space's ladderways down to E deck (BOT: "four separate ladderways with two
     # ladders, 4 ft. wide to each ... one, the starboard, led to E deck ... The two ladder
     # ways at the after end led to E deck on both sides"): both after ones whole, run on
-    # from the plate's 107-115 px to 125 px (3.35 m for 2.75 m), the way each rises est.
+    # from the plate's 107-115 px to 125 px (3.35 m for 2.75 m), each rising forward (est.),
+    # its foot in the passage E deck's plate draws aft of them (e.py): to port clear of the
+    # opening of E deck's own ladder down to F under it, to starboard of its lavatory.
     # The forward starboard one's two ladders the plate draws once for the ladderway up to
     # C deck and down to E: C deck's flight down comes down both (c.py), its foot at px
     # ~9365, so the outboard ladder down to E deck runs from 56 px aft of the plate's, its
     # head aft under C deck's flight, both rising aft, and its foot 0.35 m short of where
     # that one lands.
-    ("third-class ladder", 8665, 3186, 8790, 3296, "aft", "e", "d"),
-    ("third-class ladder", 8668.5, 3676, 8790, 3791, "aft", "e", "d"),
+    ("third-class ladder", 8665, 3186, 8790, 3296, "fore", "e", "d"),
+    ("third-class ladder", 8668.5, 3676, 8790, 3791, "fore", "e", "d"),
     ("third-class ladder", 9215, 3704, 9340, 3755, "aft", "e", "d"),
     # The crew's ladder down to E deck in the bay at the middle line, starboard of the one
-    # up to C deck: run on from the plate's 106 px to 125 px, its head to port est.
-    ("ladder", 9448.5, 3403, 9483.5, 3528, "port", "e", "d"),
+    # up to C deck: run on from the plate's 106 px to 125 px, its head to starboard (est.),
+    # its foot in E deck's passage, not in the four-berth room beside it (e.py).
+    ("ladder", 9448.5, 3403, 9483.5, 3528, "starboard", "e", "d"),
 ]

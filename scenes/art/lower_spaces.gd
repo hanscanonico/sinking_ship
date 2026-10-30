@@ -61,6 +61,16 @@ func build(mesh: ShipMesh, room: ShipRoom, kind: RoomDressing.Kind) -> void:
 		RoomDressing.Kind.SHAFT:
 			for shaft: ShipBlocker in _space.furniture(room):
 				_shaft(mesh, shaft)
+		RoomDressing.Kind.TANK:
+			for machine: ShipBlocker in _space.machinery(room):
+				RoomDressing.block(
+					mesh,
+					machine.area,
+					machine.bottom,
+					machine.top,
+					ShipPaints.engine,
+					ShipMesh.RIM_ALL
+				)
 		RoomDressing.Kind.STEERING:
 			for engine: ShipBlocker in _space.machinery(room):
 				_steering(mesh, engine)

@@ -2,10 +2,9 @@ extends GutTest
 ## A room's wall along her side is drawn up to the room's ceiling (ShipArt): where the
 ## deck over a room stops short of its hull-side wall, the room reaches up to the next
 ## deck, and from inside it nothing shows her shell's outside — the sky — over the wall
-## (#147): the Titanic's galley, roofed by A deck along its port side where C and B deck
-## stop short.
+## (#147): the small Titanic's galley, roofed by A deck along its port side where C and B
+## deck stop short. (The Titanic's traced C deck, #368, reaches her side.)
 
-const TITANIC := "res://data/ships/titanic.tres"
 const RAILING_HEIGHT := 1.0
 const BODY_RADIUS := 0.35
 ## How far past a wall's line its face may stand: half its thickness and a little.
@@ -15,7 +14,7 @@ const NEAR := 0.15
 func test_a_tall_room_s_hull_side_shows_its_wall_up_to_its_deckhead() -> void:
 	var art := ShipArt.new()
 	add_child_autofree(art)
-	art.build(load(TITANIC), RAILING_HEIGHT, BODY_RADIUS)
+	art.build(Fleet.layout(&"small_titanic"), RAILING_HEIGHT, BODY_RADIUS)
 	var faces := _faces(art)
 	# [what, eye, the way to her side, the wall's line]: each eye a metre and more over
 	# its room's wall's top.
