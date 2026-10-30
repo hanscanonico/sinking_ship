@@ -2,7 +2,7 @@ extends GutTest
 ## LinerSquash on the Titanic: her squash court lined in white plaster over maple, its
 ## red lines painted flat on its walls at a court's heights, the gallery's front faced
 ## over head height. That nothing the whole ship's dressing draws stands in a body's
-## way is test_dressing_clear's.
+## way is art-lint's (FurnishingCheck), on every ship.
 
 const FurnishingCheck := preload("res://tools/furnishing_check.gd")
 const RunMatch := preload("res://tools/run_match.gd")

@@ -2,7 +2,7 @@ extends GutTest
 ## LinerBath on the Titanic: her Turkish bath tiled and lit in bronze, her swimming
 ## bath's pool drawn inside its box — its top within art-lint's reach all over, the
 ## water too — more to each than the saloon's dressing they had. That nothing the
-## whole ship's dressing draws stands in a body's way is test_dressing_clear's.
+## whole ship's dressing draws stands in a body's way is art-lint's (FurnishingCheck).
 
 const FurnishingCheck := preload("res://tools/furnishing_check.gd")
 const RunMatch := preload("res://tools/run_match.gd")

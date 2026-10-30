@@ -3,7 +3,7 @@ extends GutTest
 ## whose B, C and D deck corridors these budgets were measured in: her first-class
 ## corridors' stateroom doors and sconces stand where their spacing says, and they add to
 ## what the passage dressing drew. That nothing the dressing draws stands in a body's way
-## is test_dressing_clear's, on the Titanic too.
+## is art-lint's (FurnishingCheck).
 
 const FurnishingCheck := preload("res://tools/furnishing_check.gd")
 const RunMatch := preload("res://tools/run_match.gd")
