@@ -62,6 +62,7 @@ expect() {
 
 whole='--no-print-directory art-lint'
 expect art 'echo more >>scenes/art/ship_art.gd' "$whole" 0
+expect lint-check 'echo check >tools/face_cells.gd' "$whole" 0
 expect ship-data 'echo more >>data/ships/tug.tres' "$whole SHIP=tug" 0
 expect each-ship-once 'echo more >>tools/gen_steamer.py; echo more >>authoring/steamer/steamer.tscn
 	echo more >>data/ships/tug.tres' "$whole SHIP=steamer;$whole SHIP=tug" 0
