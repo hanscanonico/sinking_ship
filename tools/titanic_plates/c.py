@@ -900,9 +900,9 @@ STAIRS = [
     # forward to its landing: the plate's middle and starboard lanes, its port lane left
     # for the poop's flight down. The plate draws 94 px of treads (2.3 m) for 10 ft 6 in
     # of rise; a body climbs no steeper than tools/gen_titanic.py's STEEPEST, so it runs on
-    # 54 px forward over the landing, its foot 10 px aft of the plate's so its head stops at
+    # 51.5 px forward over the landing, its foot 12.5 px aft of the plate's so its head stops at
     # D deck's matron's wall.
-    ("third-class stairway", 1348, 2272.5, 1506, 2438, "fore", "d", "c"),
+    ("third-class stairway", 1345.5, 2272.5, 1503.5, 2438, "fore", "d", "c"),
     # The after second-class stairway down to D deck, its starboard flight (B deck's
     # comes down to port, b_aft.py), rising forward to the hall: the plate's 59 px of
     # treads run on aft through the wall into the box the plate draws them going down
