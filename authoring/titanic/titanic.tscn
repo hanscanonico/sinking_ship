@@ -33439,42 +33439,6 @@ size = Vector3(0.8, 0.45, 0.8)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
-[node name="Blocker_table_general_c_3_0" type="CSGBox3D" parent="Blockers" unique_id=1294817706]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -112.125, 0.375, 6.4375)
-size = Vector3(0.8, 0.75, 0.8)
-material = SubResource("StandardMaterial3D_jiew5")
-metadata/ship = &"blocker"
-
-[node name="Blocker_armchair_general_c_3_0_pz" type="CSGBox3D" parent="Blockers" unique_id=1620751993]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -112.125, 0.225, 7.3875003)
-size = Vector3(0.8, 0.45, 0.8)
-material = SubResource("StandardMaterial3D_jiew5")
-metadata/ship = &"blocker"
-
-[node name="Blocker_armchair_general_c_3_0_mz" type="CSGBox3D" parent="Blockers" unique_id=123939229]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -112.125, 0.225, 5.4875)
-size = Vector3(0.8, 0.45, 0.8)
-material = SubResource("StandardMaterial3D_jiew5")
-metadata/ship = &"blocker"
-
-[node name="Blocker_table_general_c_3_1" type="CSGBox3D" parent="Blockers" unique_id=378403028]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -112.125, 0.375, 9.4375)
-size = Vector3(0.8, 0.75, 0.8)
-material = SubResource("StandardMaterial3D_jiew5")
-metadata/ship = &"blocker"
-
-[node name="Blocker_armchair_general_c_3_1_pz" type="CSGBox3D" parent="Blockers" unique_id=139889077]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -112.125, 0.225, 10.3875)
-size = Vector3(0.8, 0.45, 0.8)
-material = SubResource("StandardMaterial3D_jiew5")
-metadata/ship = &"blocker"
-
-[node name="Blocker_armchair_general_c_3_1_mz" type="CSGBox3D" parent="Blockers" unique_id=1201133563]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -112.125, 0.225, 8.487499)
-size = Vector3(0.8, 0.45, 0.8)
-material = SubResource("StandardMaterial3D_jiew5")
-metadata/ship = &"blocker"
-
 [node name="Blocker_table_library_c_0_0" type="CSGBox3D" parent="Blockers" unique_id=2137489505]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -81.4375, 0.375, -6)
 size = Vector3(0.8, 0.75, 0.8)

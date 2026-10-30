@@ -2696,7 +2696,7 @@ def d_rooms(name):
     return [r for r in D_PLAN.rooms if r[0] == name]
 
 
-WALL_CLEAR = 0.85
+WALL_CLEAR = 1.1
 LAMP_CLEAR = 0.6  # under these decks' low pendants, a body on a table would stand in one
 for name, tag, floor, pitch, make in [
         ("third-class smoking room", "smoking_c", 0.0, 2.6,

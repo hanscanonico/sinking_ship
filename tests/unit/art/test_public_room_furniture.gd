@@ -45,7 +45,7 @@ const TRACED: Array[Array] = [
 	[&"reception room, B deck", 5, 10, 0],
 	[&"second-class library", 13, 26, 0],
 	[&"third-class smoking room", 4, 8, 0],
-	[&"third-class general room", 5, 10, 0],
+	[&"third-class general room", 3, 6, 0],
 	[&"reception room", 40, 80, 0],
 ]
 ## How far from a pendant, in plan, a table stands at least.
