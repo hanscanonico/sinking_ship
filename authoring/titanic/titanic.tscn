@@ -1622,50 +1622,57 @@ metadata/ship = &"platform"
 metadata/name = &"C deck"
 
 [node name="Platform_c_31_0" type="CSGBox3D" parent="Platforms" unique_id=1565051898]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -115.25, -0.1, 0)
-size = Vector3(2.5, 0.2, 22.9)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -115.28125, -0.1, 0)
+size = Vector3(2.4375, 0.2, 22.9)
+material = SubResource("StandardMaterial3D_b7bnx")
+metadata/ship = &"platform"
+metadata/name = &"C deck"
+
+[node name="Platform_c_31_1" type="CSGBox3D" parent="Platforms" unique_id=209842596]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -114.03125, -0.1, -6.44375)
+size = Vector3(0.0625, 0.2, 10.0125)
+material = SubResource("StandardMaterial3D_b7bnx")
+metadata/ship = &"platform"
+metadata/name = &"C deck"
+
+[node name="Platform_c_31_2" type="CSGBox3D" parent="Platforms" unique_id=2053796358]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -114.03125, -0.1, 7.13125)
+size = Vector3(0.0625, 0.2, 8.6375)
 material = SubResource("StandardMaterial3D_b7bnx")
 metadata/ship = &"platform"
 metadata/name = &"C deck"
 
 [node name="Platform_c_32_0" type="CSGBox3D" parent="Platforms" unique_id=1943672110]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -113.90625, -0.1, 0)
-size = Vector3(0.1875, 0.2, 23.5)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -113.0625, -0.1, -6.59375)
+size = Vector3(1.875, 0.2, 10.3125)
 material = SubResource("StandardMaterial3D_b7bnx")
 metadata/ship = &"platform"
 metadata/name = &"C deck"
 
 [node name="Platform_c_32_1" type="CSGBox3D" parent="Platforms" unique_id=433394153]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -112.96875, -0.1, -6.59375)
-size = Vector3(1.6875, 0.2, 10.3125)
-material = SubResource("StandardMaterial3D_b7bnx")
-metadata/ship = &"platform"
-metadata/name = &"C deck"
-
-[node name="Platform_c_32_2" type="CSGBox3D" parent="Platforms" unique_id=270482679]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -112.96875, -0.1, 7.28125)
-size = Vector3(1.6875, 0.2, 8.9375)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -113.0625, -0.1, 7.28125)
+size = Vector3(1.875, 0.2, 8.9375)
 material = SubResource("StandardMaterial3D_b7bnx")
 metadata/ship = &"platform"
 metadata/name = &"C deck"
 
 [node name="Platform_c_33_0" type="CSGBox3D" parent="Platforms" unique_id=2034805211]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -110.96875, -0.1, -6.69375)
-size = Vector3(2.3125, 0.2, 10.5125)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -111.09375, -0.1, -6.69375)
+size = Vector3(2.0625, 0.2, 10.5125)
 material = SubResource("StandardMaterial3D_b7bnx")
 metadata/ship = &"platform"
 metadata/name = &"C deck"
 
 [node name="Platform_c_33_1" type="CSGBox3D" parent="Platforms" unique_id=51134779]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -110.96875, -0.1, 7.38125)
-size = Vector3(2.3125, 0.2, 9.1375)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -111.09375, -0.1, 7.38125)
+size = Vector3(2.0625, 0.2, 9.1375)
 material = SubResource("StandardMaterial3D_b7bnx")
 metadata/ship = &"platform"
 metadata/name = &"C deck"
 
 [node name="Platform_c_33_2" type="CSGBox3D" parent="Platforms" unique_id=747528897]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -109.59375, -0.1, 0)
-size = Vector3(0.4375, 0.2, 23.9)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -109.71875, -0.1, 0)
+size = Vector3(0.6875, 0.2, 23.9)
 material = SubResource("StandardMaterial3D_b7bnx")
 metadata/ship = &"platform"
 metadata/name = &"C deck"
@@ -2366,6 +2373,41 @@ metadata/name = &"C deck"
 [node name="Platform_c_96_0" type="CSGBox3D" parent="Platforms" unique_id=74257372]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 125.8625, -0.1, 0)
 size = Vector3(0.475, 0.2, 4.1)
+material = SubResource("StandardMaterial3D_b7bnx")
+metadata/ship = &"platform"
+metadata/name = &"C deck"
+
+[node name="Platform_c_97_0" type="CSGBox3D" parent="Platforms" unique_id=1011902043]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 126.362495, -0.1, 0)
+size = Vector3(0.525, 0.2, 3.5)
+material = SubResource("StandardMaterial3D_b7bnx")
+metadata/ship = &"platform"
+metadata/name = &"C deck"
+
+[node name="Platform_c_98_0" type="CSGBox3D" parent="Platforms" unique_id=1617463099]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 126.8125, -0.1, 0)
+size = Vector3(0.375, 0.2, 3.1)
+material = SubResource("StandardMaterial3D_b7bnx")
+metadata/ship = &"platform"
+metadata/name = &"C deck"
+
+[node name="Platform_c_99_0" type="CSGBox3D" parent="Platforms" unique_id=1557328297]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 127.125, -0.1, 0)
+size = Vector3(0.25, 0.2, 2.8)
+material = SubResource("StandardMaterial3D_b7bnx")
+metadata/ship = &"platform"
+metadata/name = &"C deck"
+
+[node name="Platform_c_100_0" type="CSGBox3D" parent="Platforms" unique_id=1217446140]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 127.46875, -0.1, 0)
+size = Vector3(0.4375, 0.2, 2.3)
+material = SubResource("StandardMaterial3D_b7bnx")
+metadata/ship = &"platform"
+metadata/name = &"C deck"
+
+[node name="Platform_c_101_0" type="CSGBox3D" parent="Platforms" unique_id=1208660892]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 127.89375, -0.1, 0)
+size = Vector3(0.4125, 0.2, 1.9)
 material = SubResource("StandardMaterial3D_b7bnx")
 metadata/ship = &"platform"
 metadata/name = &"C deck"
@@ -6002,7 +6044,7 @@ mesh = SubResource("PrismMesh_41f7b")
 metadata/ship = &"ramp"
 
 [node name="Ramp_c_third_class_stairway_0" type="MeshInstance3D" parent="Ramps" unique_id=1452823660]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -111.8125, -1.59375, 0.6875)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -112.0625, -1.59375, 0.6875)
 mesh = SubResource("PrismMesh_en4uo")
 metadata/ship = &"ramp"
 
@@ -38387,18 +38429,18 @@ metadata/ship = &"railing"
 metadata/platform = &"Platform_b_10_0"
 
 [node name="Railing_c_third_class_stairway_0_e_0" type="CSGBox3D" parent="Railings" unique_id=1182013001]
-transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -113.8125, 0.5, -0.4375)
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -114.0625, 0.5, -0.4375)
 size = Vector3(2, 1, 0.05)
 material = SubResource("StandardMaterial3D_r6eh1")
 metadata/ship = &"railing"
-metadata/platform = &"Platform_c_32_0"
+metadata/platform = &"Platform_c_31_0"
 
 [node name="Railing_c_third_class_stairway_0_e_1" type="CSGBox3D" parent="Railings" unique_id=883727698]
-transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -113.8125, 0.5, 1.6875)
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -114.0625, 0.5, 1.6875)
 size = Vector3(2.25, 1, 0.05)
 material = SubResource("StandardMaterial3D_r6eh1")
 metadata/ship = &"railing"
-metadata/platform = &"Platform_c_32_0"
+metadata/platform = &"Platform_c_31_0"
 
 [node name="Railing_c_second_class_staircase_2_p_0" type="CSGBox3D" parent="Railings" unique_id=720349150]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -69.375, 0.5, 1.0625)
@@ -55970,7 +56012,7 @@ metadata/ship = &"bonus_spot"
 metadata/room = &"Room_d_35_bathroom_d_deck_aft_of_o"
 
 [node name="BonusSpot_d_36_third_class_entrance" type="Marker3D" parent="BonusSpots" unique_id=52685349]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -114.3281, -3.1875, 0.0625)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -114.4781, -3.1875, 0.0625)
 metadata/ship = &"bonus_spot"
 metadata/room = &"Room_d_36_third_class_entrance"
 
@@ -61088,7 +61130,7 @@ metadata/kind = "STAIRWELL"
 metadata/joins = Array[StringName]([&"c_deck", &"b_deck"])
 
 [node name="Opening_stair_c_third_class_stairway_0" type="CSGBox3D" parent="Structure/Openings" unique_id=904359541]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -111.8125, 0, 0.6875)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -112.0625, 0, 0.6875)
 size = Vector3(4, 0, 4.25)
 material = SubResource("StandardMaterial3D_nubv8")
 metadata/ship = &"opening"

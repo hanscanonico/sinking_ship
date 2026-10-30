@@ -903,8 +903,10 @@ def held_to(pieces):
 
 C_ENDS = (min(r[1] for r in C_OUTLINE.rooms) - T, max(r[2] for r in C_OUTLINE.rooms) + T)
 C_TIP = X_AFT + 0.25  # C deck's after end, her poop's (POOP_STRIPS)
+C_NOSE = max(r[2] for r in D_OUTLINE.rooms) + T  # over D deck's foremost store, shut off as her stern's tip is
 C_PIECES = (hull_strips(C_TIP, C_ENDS[0], 0.0) + hull_strips(C_ENDS[0], POOP_TO, 0.0)
-            + hull_strips(B_RUN[0], B_RUN[1], 0.0) + hull_strips(FCSL_FROM, C_ENDS[1], 0.0))
+            + hull_strips(B_RUN[0], B_RUN[1], 0.0) + hull_strips(FCSL_FROM, C_ENDS[1], 0.0)
+            + hull_strips(C_ENDS[1], C_NOSE, 0.0))
 c_deck = [i for k, (x0, x1, z0, z1) in enumerate(C_PIECES)
           for i in deck("c_%d" % k, "C deck", x0, x1, z0, z1, 0.0, holes["c"])]
 # Under B deck's tapered after end, over her after well, C deck's after second-class
@@ -1049,9 +1051,9 @@ def c_covered(sign, x0, x1, half):
     return [(max(x0, r[1] - T), min(x1, r[2] + T)) for r in C_PLAN.rooms + C_PLAN.solids
             if r[1] < x1 and r[2] > x0 and (r[4] if sign > 0 else -r[3]) >= half - C_SIDE_ROOM]
 
-c_gaps = [(0, at, -HALF, HALF) for at in (POOP_TO, B_RUN[0], B_RUN[1], FCSL_FROM, C_TIP) + C_ENDS]
+c_gaps = [(0, at, -HALF, HALF) for at in (POOP_TO, B_RUN[0], B_RUN[1], FCSL_FROM, C_TIP, C_NOSE) + C_ENDS]
 for x0, x1, z0, z1 in C_PIECES:
-    tip = x1 <= C_ENDS[0] + 1e-6
+    tip = x1 <= C_ENDS[0] + 1e-6 or x0 >= C_ENDS[1] - 1e-6
     for sign, z in [(-1, z0), (1, z1)]:
         c_gaps += [(2, z, x0, x1)] if tip else [(2, z, a, b) for a, b in c_covered(sign, x0, x1, z1)]
         # The step to the next strip, where its rooms stand to her side either side of it.
@@ -2695,6 +2697,7 @@ def d_rooms(name):
 
 
 WALL_CLEAR = 0.85
+LAMP_CLEAR = 0.6  # under these decks' low pendants, a body on a table would stand in one
 for name, tag, floor, pitch, make in [
         ("third-class smoking room", "smoking_c", 0.0, 2.6,
          lambda gid, x, z: table_group(gid, x, z, 0.0, 0.4, 0.75, ("pz", "mz"))),
@@ -2706,7 +2709,11 @@ for name, tag, floor, pitch, make in [
          lambda gid, x, z: table_group(gid, x, z, D_DECK, 0.35, 0.7, ("px", "mx")))]:
     for k, (_n, x0, x1, z0, z1) in enumerate((d_rooms if floor < 0 else c_rooms)(name)):
         # Each table a body could stand on clear of what hangs on the walls at its ends.
-        best_laid([[m for m in grid if x0 + WALL_CLEAR <= m.args[1] <= x1 - WALL_CLEAR]
+        lamps = [lamp[:2] for r in room_geo if abs(r[4] - floor) < 1e-6 and r[0] < x1 and r[1] > x0
+                 and r[2] < z1 and r[3] > z0 for lamp in hung_over(r)]
+        best_laid([[m for m in grid if x0 + WALL_CLEAR <= m.args[1] <= x1 - WALL_CLEAR
+                    and all(math.hypot(max(abs(m.args[1] - hx) - 0.4, 0.0), max(abs(m.args[2] - hz) - 0.75, 0.0))
+                            >= LAMP_CLEAR for hx, hz in lamps)]
                    for grid in scattered("%s_%d" % (tag, k), x0, x1, z0, z1, pitch, make)])
 
 _problems = [problem for candidate in ROOM_PIECES for problem in piece_problems(candidate)]
