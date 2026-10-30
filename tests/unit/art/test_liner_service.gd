@@ -1,8 +1,10 @@
 extends GutTest
-## LinerService on the Titanic and the trawler: the rooms of service — her galley,
-## gymnasium, purser's office and post office, the trawler's galley — each dressed by
-## its name, a galley's pans hung overhead along its walls, and nothing the trawler's
-## dressing draws standing in a body's way; the Titanic's is test_dressing_clear's.
+## LinerService on the small Titanic — frozen before her plates were traced (#362), so
+## this script's time does not grow with the decks the real one lays — and the trawler:
+## the rooms of service — her galley, gymnasium, purser's office and post office, the
+## trawler's galley — each dressed by its name, a galley's pans hung overhead along its
+## walls, and nothing the trawler's dressing draws standing in a body's way; both
+## Titanics' are art-lint's (FurnishingCheck).
 
 const FurnishingCheck := preload("res://tools/furnishing_check.gd")
 const RunMatch := preload("res://tools/run_match.gd")
@@ -22,17 +24,20 @@ const CEILING := 15600
 
 var _rules: BrawlRules
 var _titanic: ShipLayout
-var _faces: PackedVector3Array
 var _trawler: ShipLayout
 var _trawler_faces: PackedVector3Array
+## Per ShipRoom of either ship, the middles of the faces standing in it: over its floor
+## and under its ceiling.
+var _middles := {}
 
 
 func before_all() -> void:
 	_rules = RunMatch.default_config(1701).rules
-	_titanic = load("res://data/ships/titanic.tres")
-	_faces = _furnishings(_titanic)
+	_titanic = load("res://data/ships/small_titanic.tres")
+	_sort_into_rooms(_titanic, _furnishings(_titanic))
 	_trawler = load("res://data/ships/trawler.tres")
 	_trawler_faces = _furnishings(_trawler)
+	_sort_into_rooms(_trawler, _trawler_faces)
 
 
 ## Every face of the furnishings [param layout]'s ShipArt draws (FurnishingCheck).
@@ -52,16 +57,16 @@ func _room(layout: ShipLayout, room_name: StringName) -> ShipRoom:
 	return null
 
 
-## The middles of those of [param faces] standing in [param room] of [param space]:
-## over its floor and under its ceiling.
-func _in(space: ShipSpace, faces: PackedVector3Array, room: ShipRoom) -> PackedVector3Array:
-	var index := space.layout.rooms.find(room)
-	var found := PackedVector3Array()
+## Adds each of [param faces], by its middle, to the room of [param layout] it stands in.
+func _sort_into_rooms(layout: ShipLayout, faces: PackedVector3Array) -> void:
+	var space := ShipSpace.new(layout)
+	for room: ShipRoom in layout.rooms:
+		_middles[room] = PackedVector3Array()
 	for at in range(0, faces.size(), 3):
 		var middle := (faces[at] + faces[at + 1] + faces[at + 2]) / 3.0
-		if RoomDressing.room_at(space, middle) == index:
-			found.append(middle)
-	return found
+		var index := RoomDressing.room_at(space, middle)
+		if index != -1:
+			_middles[layout.rooms[index]].append(middle)
 
 
 ## Whether [param middle] stands in one of [param room]'s furniture boxes in
@@ -89,37 +94,33 @@ func test_a_room_of_service_is_lined_in_white_tile_over_quarry_tile() -> void:
 
 
 func test_each_of_her_rooms_of_service_is_dressed_more_than_it_was() -> void:
-	var space := ShipSpace.new(_titanic)
 	for room_name: StringName in BEFORE:
-		var count := _in(space, _faces, _room(_titanic, room_name)).size()
+		var count: int = _middles[_room(_titanic, room_name)].size()
 		assert_gt(count, BEFORE[room_name], String(room_name))
 
 
 func test_the_trawler_s_galley_is_dressed_more_than_it_was() -> void:
-	var space := ShipSpace.new(_trawler)
-	var count := _in(space, _trawler_faces, _room(_trawler, &"galley")).size()
+	var count: int = _middles[_room(_trawler, &"galley")].size()
 	assert_gt(count, TRAWLER_GALLEY_BEFORE)
 
 
 func test_each_room_of_service_stands_within_its_ceiling() -> void:
-	var ships: Array[Array] = [[_titanic, _faces], [_trawler, _trawler_faces]]
-	for ship: Array in ships:
-		var layout: ShipLayout = ship[0]
+	var ships: Array[ShipLayout] = [_titanic, _trawler]
+	for layout: ShipLayout in ships:
 		var space := ShipSpace.new(layout)
 		for room: ShipRoom in layout.rooms:
 			if RoomDressing.kind_of(space, room) != RoomDressing.Kind.SERVICE:
 				continue
-			var count := _in(space, ship[1], room).size()
+			var count: int = _middles[room].size()
 			assert_lt(count, CEILING, "%s: %s" % [layout.resource_path, room.name])
 
 
 func test_a_galley_hangs_pans_overhead_along_each_full_wall() -> void:
-	var galleys: Array[Array] = [[_titanic, _faces], [_trawler, _trawler_faces]]
-	for galley: Array in galleys:
-		var layout: ShipLayout = galley[0]
+	var ships: Array[ShipLayout] = [_titanic, _trawler]
+	for layout: ShipLayout in ships:
 		var space := ShipSpace.new(layout)
 		var room := _room(layout, &"galley")
-		var middles := _in(space, galley[1], room)
+		var middles: PackedVector3Array = _middles[room]
 		for wall: RoomDressing.Wall in RoomDressing.walls(space, room):
 			if wall.length() < LinerService.RACK_BAY * 2.0:
 				continue
@@ -135,16 +136,15 @@ func test_a_galley_hangs_pans_overhead_along_each_full_wall() -> void:
 
 
 func test_away_from_its_walls_a_room_of_service_is_dressed_only_overhead_or_underfoot() -> void:
-	var ships: Array[Array] = [[_titanic, _faces], [_trawler, _trawler_faces]]
-	for ship: Array in ships:
-		var layout: ShipLayout = ship[0]
+	var ships: Array[ShipLayout] = [_titanic, _trawler]
+	for layout: ShipLayout in ships:
 		var space := ShipSpace.new(layout)
 		for room: ShipRoom in layout.rooms:
 			if RoomDressing.kind_of(space, room) != RoomDressing.Kind.SERVICE:
 				continue
 			var middle_of := room.area.grow(-0.25)
 			var stray := 0
-			for middle: Vector3 in _in(space, ship[1], room):
+			for middle: Vector3 in _middles[room]:
 				if not middle_of.has_point(Vector2(middle.x, middle.z)):
 					continue
 				# Its counters, ranges and apparatus stand there, drawn to their boxes.
