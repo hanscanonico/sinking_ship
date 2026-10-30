@@ -1793,8 +1793,8 @@ h1o_holes, h1g_holes, h1d_holes = [], [], []
 for sid, foot, head, (z0, z1), low, high, holes_above in [
         ("space_h1_or_1", 108.625, 103.0, (-2.1, -1.1), TANK_TOP, ORLOP, h1o_holes),
         ("space_h1_or_2", 108.625, 103.0, (-1.1, -0.1), TANK_TOP, ORLOP, h1o_holes),
-        ("space_h1_g_1", 105.5, 108.5, (0.1, 1.15), ORLOP, G_DECK, h1g_holes),
-        ("space_h1_g_2", 105.5, 108.5, (1.15, 2.2), ORLOP, G_DECK, h1g_holes),
+        ("space_h1_g_1", 105.5, 108.5, (0.5, 1.55), ORLOP, G_DECK, h1g_holes),
+        ("space_h1_g_2", 105.5, 108.5, (1.55, 2.6), ORLOP, G_DECK, h1g_holes),
         ("space_h1_d", 104.0, 113.375, (-3.75, -2.7), G_DECK, D_DECK, h1d_holes),
         ("space_h1_d_2", 104.0, 113.375, (2.7, 3.75), G_DECK, D_DECK, h1d_holes)]:
     stair(sid, foot, head, z0, z1, low, high, holes_above)
@@ -2215,9 +2215,7 @@ def under_flights():
         bid = blockers[i][len("Blocker_"):]
         along_x = bx1 - bx0 >= bz1 - bz0
         lo, hi, o0, o1 = (bx0, bx1, ox0, ox1) if along_x else (bz0, bz1, oz0, oz1)
-        # (What is left over C deck of a wall beside a flight under SLIVER long is no wall: under
-        # it, a gap at a wall's foot would read as a door.)
-        parts = [(a, b, top) for a, b in ((lo, o0), (o1, hi)) if b - a >= SLIVER or foot < 0.0]
+        parts = [(lo, o0, top), (o1, hi, top)]
         lintel = "_lintel_" in blockers[i] and foot >= min(height(ramp, ox0 if ramp[4] == 0 else oz0),
                                                          height(ramp, ox1 if ramp[4] == 0 else oz1)) - 0.01
         steps = 0 if lintel else max(1, math.ceil((o1 - o0) / CUT_STEP - 1e-9)) if along_x == (ramp[4] == 0) else 1
@@ -2228,7 +2226,10 @@ def under_flights():
             else:
                 under = min(height(ramp, ox0 if ramp[4] == 0 else oz0), height(ramp, ox1 if ramp[4] == 0 else oz1))
             parts.append((a, b, round(under - 0.01, 4)))
-        parts = [(a, b, t) for a, b, t in parts if b - a > 0.005 and t - foot > 0.05]
+        # (What is left over C deck of a wall by a flight under SLIVER long is no wall: under
+        # it, a gap at a wall's foot would read as a door.)
+        parts = [(a, b, t) for a, b, t in parts
+                 if b - a > (SLIVER if foot >= 0.0 else 0.005) and t - foot > 0.05]
         # Each piece a hair past the next where they meet, so no gap opens between them
         # where single precision rounds their ends (the layout lint's doors).
         parts.sort()
