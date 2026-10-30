@@ -256,12 +256,15 @@ def overlay(name, out, scale=1.0, crop_box=None):
         cv2.circle(image, p(*high), 6, (0, 140, 200), -1)
     for _what, x_a, y_a, x_b, y_b, _h in getattr(module, "RAISED", []):
         cv2.rectangle(image, p(x_a, y_a), p(x_b, y_b), (0, 150, 90), 2)
-    # The walls deck.py derives, drawn back on the plate through the view's inverse.
+    # The walls deck.py derives, drawn back on the plate through the view's inverse; for a
+    # part of a deck drawn in several views (deck.py's PARTS), the whole deck's, joined.
     sys.path.insert(0, str(HERE))
     import deck as deck_module  # noqa: E402
 
-    traced = deck_module.load(name)
-    view = traced.view
+    whole = next((f.stem for f in sorted(HERE.glob("*.py")) if f.stem not in ("deck", "kit", "deck_check", "__init__")
+                  and name in getattr(deck_file(f.stem), "PARTS", [])), None)
+    traced = deck_module.load(whole or name)
+    view = deck_module.View(module.X, module.Z)
     for axis, at, a, b, kind, doors in traced.walls:
         if axis == 0:
             px = view.px(at)

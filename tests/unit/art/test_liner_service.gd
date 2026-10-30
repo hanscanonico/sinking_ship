@@ -2,7 +2,7 @@ extends GutTest
 ## LinerService on the Titanic and the trawler: the rooms of service — her galley,
 ## gymnasium, purser's office and post office, the trawler's galley — each dressed by
 ## its name, a galley's pans hung overhead along its walls, and nothing the trawler's
-## dressing draws standing in a body's way; the Titanic's is test_dressing_clear's.
+## dressing draws standing in a body's way; the Titanic's is art-lint's (FurnishingCheck).
 
 const FurnishingCheck := preload("res://tools/furnishing_check.gd")
 const RunMatch := preload("res://tools/run_match.gd")

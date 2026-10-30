@@ -138,7 +138,7 @@ func test_the_liner_s_masts_are_stayed_and_carry_her_aerial() -> void:
 	for ship: String in ["small_titanic", "titanic"]:
 		var layout := Fleet.layout(StringName(ship))
 		var fore := _cylinder(layout, Vector2(96.0, 0.0))
-		var aft := -92.5 if ship == "small_titanic" else -91.6875
+		var aft := -92.5 if ship == "small_titanic" else -88.625
 		var main := _cylinder(layout, Vector2(aft, 0.0))
 		var lines := _rigging(ship)
 		var between := func(line: DeckWorks.RigLine) -> bool:

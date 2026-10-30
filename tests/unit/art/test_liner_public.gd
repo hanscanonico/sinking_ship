@@ -2,7 +2,7 @@ extends GutTest
 ## LinerPublic on the small Titanic — the Titanic as she was before her plates were
 ## traced (#362), whose rooms these budgets were measured in: her public rooms and her
 ## grand staircase's landings each dressed by name. That nothing they draw stands in a
-## body's way is test_dressing_clear's, on the Titanic too.
+## body's way is art-lint's (FurnishingCheck), on both Titanics.
 
 const FurnishingCheck := preload("res://tools/furnishing_check.gd")
 const RunMatch := preload("res://tools/run_match.gd")

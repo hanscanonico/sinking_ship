@@ -6,10 +6,10 @@ extends GutTest
 const FurnishingCheck := preload("res://tools/furnishing_check.gd")
 const RunMatch := preload("res://tools/run_match.gd")
 
-## The Titanic's boat deck and A deck as her plates draw them (#360), each room's kind by
-## its name: a liner's small rooms of service tiled, her bridge's and her wireless's rooms
-## offices, an officer's cabin a cabin with no "office" in it, and no helm on her top
-## deck but her wheelhouse.
+## The Titanic's boat deck and A deck as her plates draw them (#360), and B deck as her
+## 1912 plan does (#367), each room's kind by its name: a liner's small rooms of service
+## tiled, her bridge's and her wireless's rooms offices, an officer's cabin a cabin with no
+## "office" in it, and no helm on her top deck but her wheelhouse.
 const TRACED := {
 	&"wheelhouse": RoomDressing.Kind.HELM,
 	&"chart room": RoomDressing.Kind.SERVICE,
@@ -72,6 +72,35 @@ const TRACED := {
 	&"servery": RoomDressing.Kind.SERVICE,
 	&"ladies' lavatory": RoomDressing.Kind.SERVICE,
 	&"gentlemen's lavatory": RoomDressing.Kind.SERVICE,
+	# B deck as she sailed in 1912 (#367): a name another deck's cell holds too takes the
+	# deck's, as a cell names its rooms.
+	&"second-class entrance, B deck, aft": RoomDressing.Kind.PUBLIC,
+	&"second-class smoking room": RoomDressing.Kind.PUBLIC,
+	&"second-class smoking room bar": RoomDressing.Kind.PUBLIC,
+	&"second-class smoking room lavatory": RoomDressing.Kind.SERVICE,
+	&"second-class entrance, B deck": RoomDressing.Kind.PUBLIC,
+	&"second-class staircase, B deck": RoomDressing.Kind.STAIRCASE,
+	&"Café Parisien": RoomDressing.Kind.PUBLIC,
+	&"restaurant galley": RoomDressing.Kind.SERVICE,
+	&"restaurant pantry": RoomDressing.Kind.SERVICE,
+	&"restaurant vestibule": RoomDressing.Kind.PASSAGE,
+	&"reception room, B deck": RoomDressing.Kind.PUBLIC,
+	&"first-class stateroom, B deck": RoomDressing.Kind.CABIN,
+	&"three-berth first-class stateroom, B deck": RoomDressing.Kind.CABIN,
+	&"single-berth first-class stateroom, B deck": RoomDressing.Kind.CABIN,
+	&"passage, B deck": RoomDressing.Kind.PASSAGE,
+	&"bathroom, B deck": RoomDressing.Kind.BATH,
+	&"lavatory, B deck": RoomDressing.Kind.SERVICE,
+	&"gentlemen's lavatory, B deck": RoomDressing.Kind.SERVICE,
+	&"ladies' lavatory, B deck": RoomDressing.Kind.SERVICE,
+	&"stewardesses' room, B deck": RoomDressing.Kind.CABIN,
+	&"stewards' pantry": RoomDressing.Kind.SERVICE,
+	&"parlour suite stateroom": RoomDressing.Kind.CABIN,
+	&"parlour suite sitting room": RoomDressing.Kind.SALOON,
+	&"private promenade": RoomDressing.Kind.SALOON,
+	&"first-class entrance, B deck": RoomDressing.Kind.PUBLIC,
+	# Under B deck's tapered after end, C deck's (est. until C deck is traced).
+	&"second-class vestibule, C deck": RoomDressing.Kind.PASSAGE,
 }
 ## The small Titanic's rooms on those decks that the Titanic's plates have no more.
 const UNTRACED: Array[StringName] = [&"officers' quarters", &"verandah café", &"after entrance"]
@@ -380,6 +409,31 @@ func test_a_plate_flat_on_a_cabin_wall_stands_in_nobody_s_way() -> void:
 	var plate := Rect2(-8.58, -3.0, 0.08, 1.0)
 	var faces := _box(plate, cabin.floor_height + 0.4, cabin.floor_height + 1.6)
 	assert_eq(FurnishingCheck.intrusions(_layout, _rules, faces), PackedStringArray())
+
+
+func test_a_face_by_a_box_s_far_corner_is_inside_it_squares_from_its_own() -> void:
+	# A table metres across the saloon's floor, filed by every square its footprint
+	# covers (FurnishingCheck.CELL): a face by its far corner, squares from where its
+	# footprint starts, is inside it, and the same face reaching past its side is not.
+	var saloon := _room(&"saloon")
+	var table := Rect2(saloon.area.get_center() - Vector2(1.0, 2.2), Vector2(2.0, 4.4))
+	var layout := _with_a_box(saloon, table, 0.75)
+	var boxes: Dictionary = FurnishingCheck._boxes_by_cell(layout)
+	var corner := table.end - Vector2.ONE * 0.3
+	var squares := (corner / FurnishingCheck.CELL).floor()
+	squares -= (table.position / FurnishingCheck.CELL).floor()
+	assert_true(squares.x >= 1.0 and squares.y >= 3.0, "squares from its own: %s" % squares)
+	var low := saloon.floor_height + 0.3
+	var face := PackedVector3Array(
+		[
+			Vector3(corner.x, low, corner.y),
+			Vector3(corner.x + 0.2, low, corner.y),
+			Vector3(corner.x, low + 0.4, corner.y + 0.2),
+		]
+	)
+	assert_true(FurnishingCheck._inside_a_blocker(layout, boxes, face), "by its far corner")
+	face[1].x = table.end.x + 0.05
+	assert_false(FurnishingCheck._inside_a_blocker(layout, boxes, face), "past its side")
 
 
 func test_a_shelf_over_head_height_stands_in_nobody_s_way() -> void:
