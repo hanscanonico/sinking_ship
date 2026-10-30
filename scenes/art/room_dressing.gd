@@ -915,7 +915,7 @@ func _signs(mesh: ShipMesh, signs: Node3D, room: ShipRoom) -> void:
 			var at := _space.on_side(room, side, (gap.x + gap.y) * 0.5, 0.1)
 			var centre := Vector3(at.x, room.floor_height + SIGN_HEIGHT, at.y)
 			# None over a doorway a flight comes through: a body on it would stand in the sign.
-			if over_a_ramp(_layout, Rect2(at, Vector2.ZERO).grow(0.01), room.floor_height, centre.y):
+			if over_a_ramp(_layout, Rect2(at, Vector2.ONE * 0.01), room.floor_height, centre.y):
 				continue
 			var rim := half + Vector2.ONE * 0.012
 			panel(mesh, centre + normal * 0.01, right, rim, normal, ShipPaints.brass)
