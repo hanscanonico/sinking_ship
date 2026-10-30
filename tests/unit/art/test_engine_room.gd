@@ -57,7 +57,8 @@ func test_nothing_stands_in_a_body_on_an_engine_it_could_stand_on() -> void:
 		var space := ShipSpace.new(layout)
 		for room: ShipRoom in layout.rooms:
 			var engines := space.machinery(room)
-			if engines.is_empty():
+			# Only an engine room's are EngineRoom's: a steering gear's are LowerSpaces'.
+			if engines.is_empty() or RoomDressing.kind_of(space, room) != RoomDressing.Kind.ENGINE:
 				continue
 			var faces := _drawn(space, room)
 			for engine: ShipBlocker in engines:

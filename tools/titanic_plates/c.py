@@ -907,7 +907,7 @@ STAIRS = [
     # treads run on aft through the wall into the box the plate draws them going down
     # into, to a slope a body climbs, its foot 10 px short of the plate's box so a body
     # steps off it clear of D deck's after entrance's after wall (d.py).
-    ("second-class stairway", 2122, 2353, 2267, 2436, "fore", "d", "c"),
+    ("second-class stairway", 2119.5, 2353, 2264.5, 2436, "fore", "d", "c"),
     # The forward second-class staircase down to D deck, starboard of the lift, rising
     # aft to the hall: its 88 px of treads run on forward into the well forward of the
     # lift, which the plate draws them going down into, to the lane's forward end, its
@@ -933,7 +933,7 @@ STAIRS = [
     # these crew's flights, climb 0.864 (STEEPEST 0.875).
     ("third-class ladderway", 9231, 2008, 9370, 2108, "aft", "d", "c"),
     ("third-class ladderway", 9234, 2465, 9373, 2556, "aft", "d", "c"),
-    ("crew's stair", 9481, 2077, 9618, 2125, "aft", "d", "c"),
+    ("crew's stair", 9483.5, 2077, 9620.5, 2125, "aft", "d", "c"),
     ("crew's stair", 9465, 2437, 9604, 2491, "aft", "d", "c"),
-    ("crew's ladder", 9421, 2191, 9454, 2334, "port", "d", "c"),
+    ("crew's ladder", 9423.5, 2191, 9454, 2334, "port", "d", "c"),
 ]

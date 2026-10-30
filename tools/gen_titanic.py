@@ -740,7 +740,7 @@ for sid, above, low, high, xa, xb, z in H3_FLIGHTS:
 SR = (BX["K"], BX["E"])
 SR_Z = (-13.0, -10.0)
 SALOON_Z = 13.0
-stair("f_sr_fwd", 10.0, 13.4, -12.6, -12.6 + STAIR, F_DECK, E_DECK, holes["e"])
+stair("f_sr_fwd", 11.8, 15.2, -12.6, -12.6 + STAIR, F_DECK, E_DECK, holes["e"])
 stair("f_sr_aft", -8.0, -4.6, -12.6, -12.6 + STAIR, F_DECK, E_DECK, holes["e"])
 stair("sr_d", 8.0, 11.75, -12.6, -12.6 + STAIR, E_DECK, D_DECK, holes["d"])
 # Down off her open decks, two of each, port and starboard: A deck's forward end onto the
@@ -1058,6 +1058,14 @@ for x0, x1, z0, z1 in C_PIECES:
         for edge in (x0, x1):
             if tip or c_covered(sign, edge - 0.05, edge + 0.05, z1):
                 c_gaps.append((0, edge, -HALF, HALF))
+# Where her shell stands over C deck's open edge (her poop's sides, B deck's) a body at the
+# edge is at her side, not at a railing over the sea: the edge is lined, deck to deck (est.).
+C_LINED = [(1, -111.025, -109.5), (-1, -109.0875, -106.625), (1, -109.0875, -106.625),
+           (-1, -80.7125, -78.5625), (1, -80.7125, -78.5625)]
+for k, (sign, x0, x1) in enumerate(C_LINED):
+    z = next(p[3] if sign > 0 else -p[2] for p in C_PIECES if p[0] <= x0 < p[1])
+    c_gaps.append((2, sign * z, x0, x1))
+    box("c_lining_%d" % k, x0, x1, *sorted((sign * z, sign * (z - 0.1))), 0.0, top_at(x0))
 outline_rails("c", C_PIECES, c_deck, c_gaps)
 DECKS_AT = {BOAT: boat, A_DECK: a_deck, B_DECK: b_deck, 0.0: c_deck + well, D_DECK: d_deck,
             E_DECK: e_road + e_landing + e_crew, F_DECK: f_berths}
@@ -1269,6 +1277,8 @@ def named_pieces(rooms, cuts, place, main):
         if home.get(name) != where:
             said = name.split(", ")
             name = ", ".join([name] + [w for w in where if w not in said])
+            # (Short enough for the place plate's two lines: FirstPersonHud.place_lines.)
+            name = name.replace("D deck, aft", "D deck aft").replace("D deck, forward", "D deck forward")
         out.append((name, x0, x1, z0, z1))
     held = {}
     for name, x0, x1, _z0, _z1 in out:
@@ -1300,8 +1310,8 @@ def d_place(x):
         return ("D deck",)
     after = max([c for c in D_CUTS if c <= x], default=None)
     if x > m and round(after, 4) in letter:
-        return ("D deck", "forward of bulkhead %s" % letter[round(after, 4)])
-    return ("D deck", "aft of bulkhead %s" % letter[round(min(c for c in D_CUTS if c > x), 4)])
+        return ("D deck", "forward of %s" % letter[round(after, 4)])
+    return ("D deck", "aft of %s" % letter[round(min(c for c in D_CUTS if c > x), 4)])
 
 plan_layer("c", C_PLAN, 0.0, c_over, (POOP_TO, C_TAIL, B_RUN[1], FCSL_FROM, FC_RAMP[1]),
            parted_at=(POOP_TO, B_RUN[0], B_RUN[1], FCSL_FROM, FCSL_STEP), place=c_place, main=("C deck",))
@@ -1783,8 +1793,8 @@ h1o_holes, h1g_holes, h1d_holes = [], [], []
 for sid, foot, head, (z0, z1), low, high, holes_above in [
         ("space_h1_or_1", 108.625, 103.0, (-2.1, -1.1), TANK_TOP, ORLOP, h1o_holes),
         ("space_h1_or_2", 108.625, 103.0, (-1.1, -0.1), TANK_TOP, ORLOP, h1o_holes),
-        ("space_h1_g_1", 105.5, 108.5, (1.2, 2.25), ORLOP, G_DECK, h1g_holes),
-        ("space_h1_g_2", 105.5, 108.5, (2.25, 3.3), ORLOP, G_DECK, h1g_holes),
+        ("space_h1_g_1", 105.5, 108.5, (0.1, 1.15), ORLOP, G_DECK, h1g_holes),
+        ("space_h1_g_2", 105.5, 108.5, (1.15, 2.2), ORLOP, G_DECK, h1g_holes),
         ("space_h1_d", 104.0, 113.375, (-3.75, -2.7), G_DECK, D_DECK, h1d_holes),
         ("space_h1_d_2", 104.0, 113.375, (2.7, 3.75), G_DECK, D_DECK, h1d_holes)]:
     stair(sid, foot, head, z0, z1, low, high, holes_above)
@@ -1927,9 +1937,11 @@ ELEC = (BX["N"], BX["M"])
 ELEC_Z = fit(*ELEC, TANK_TOP, 0.3)
 ELEC_G = fit(*ELEC, G_DECK, 0.3)
 elec_holes, elec_g_holes = [], []
-for tag, sign in [("p", -1), ("s", 1)]:
+# (The port flight up to E deck stands clear of D deck's after second-class stairway's
+# flight down onto E deck, over it at z -2.875..-1.0625.)
+for tag, sign, up in [("p", -1, (-4.4, -3.2)), ("s", 1, (2.0, 3.2))]:
     stair("space_electric_g_" + tag, -83.5, -75.0, *sorted((sign * 5.0, sign * 6.2)), TANK_TOP, G_DECK, elec_g_holes)
-    stair("space_electric_e_" + tag, -70.0, -76.0, *sorted((sign * 2.0, sign * 3.2)), G_DECK, E_DECK, e_holes)
+    stair("space_electric_e_" + tag, -70.0, -76.0, *up, G_DECK, E_DECK, e_holes)
 for j, (z0, z1) in enumerate([(-4.0, -1.0), (1.0, 4.0)]):
     box("generators_%d" % j, -81.5, -69.5, z0, z1, TANK_TOP, G_DECK - UPTAKE_CLEAR)
 room("electric_room", "electric engine room", *ELEC, -ELEC_Z, ELEC_Z, TANK_TOP)
@@ -2167,6 +2179,7 @@ for tag, sign in [("p", -1), ("s", 1)]:
 # its G deck's step, the E landings' walls. A wall under a flight along it is cut in steps
 # CUT_STEP long, each to the flight's underside over it.
 CUT_STEP = 0.5
+SLIVER = 0.1
 BODY_HEIGHT = rule("body_height")
 
 def under_flights():
@@ -2202,7 +2215,9 @@ def under_flights():
         bid = blockers[i][len("Blocker_"):]
         along_x = bx1 - bx0 >= bz1 - bz0
         lo, hi, o0, o1 = (bx0, bx1, ox0, ox1) if along_x else (bz0, bz1, oz0, oz1)
-        parts = [(lo, o0, top), (o1, hi, top)]
+        # (What is left over C deck of a wall beside a flight under SLIVER long is no wall: under
+        # it, a gap at a wall's foot would read as a door.)
+        parts = [(a, b, top) for a, b in ((lo, o0), (o1, hi)) if b - a >= SLIVER or foot < 0.0]
         lintel = "_lintel_" in blockers[i] and foot >= min(height(ramp, ox0 if ramp[4] == 0 else oz0),
                                                          height(ramp, ox1 if ramp[4] == 0 else oz1)) - 0.01
         steps = 0 if lintel else max(1, math.ceil((o1 - o0) / CUT_STEP - 1e-9)) if along_x == (ramp[4] == 0) else 1
@@ -2678,6 +2693,7 @@ def d_rooms(name):
     return [r for r in D_PLAN.rooms if r[0] == name]
 
 
+WALL_CLEAR = 0.85
 for name, tag, floor, pitch, make in [
         ("third-class smoking room", "smoking_c", 0.0, 2.6,
          lambda gid, x, z: table_group(gid, x, z, 0.0, 0.4, 0.75, ("pz", "mz"))),
@@ -2688,7 +2704,9 @@ for name, tag, floor, pitch, make in [
         ("reception room", "reception_d", D_DECK, 2.6,
          lambda gid, x, z: table_group(gid, x, z, D_DECK, 0.35, 0.7, ("px", "mx")))]:
     for k, (_n, x0, x1, z0, z1) in enumerate((d_rooms if floor < 0 else c_rooms)(name)):
-        best_laid(scattered("%s_%d" % (tag, k), x0, x1, z0, z1, pitch, make))
+        # Each table a body could stand on clear of what hangs on the walls at its ends.
+        best_laid([[m for m in grid if x0 + WALL_CLEAR <= m.args[1] <= x1 - WALL_CLEAR]
+                   for grid in scattered("%s_%d" % (tag, k), x0, x1, z0, z1, pitch, make)])
 
 _problems = [problem for candidate in ROOM_PIECES for problem in piece_problems(candidate)]
 assert not _problems, "\n".join(_problems)

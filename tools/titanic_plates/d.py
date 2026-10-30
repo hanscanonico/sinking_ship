@@ -102,10 +102,11 @@ ROOMS = [
     # The main third-class entrance (BOT: "the main third class entrance for the
     # after-end of the vessel, leading directly down to G deck ... The effective width of
     # this stairway was 16 ft. to E deck"), and forward of it the third-class matron's room
-    # (the plate's "3rd C. MAT^S RM", est. matron's) and surgery, entered from it.
-    ("third-class entrance", 1207.5, 3355, 1540, 3747),
-    ("third-class matron's room", 1540, 3441, 1637.5, 3546.5),
-    ("third-class surgery", 1540, 3546.5, 1637.5, 3661.5),
+    # (the plate's "3rd C. MAT^S RM", est. matron's) and surgery, entered from it, their
+    # after wall 26.5 px forward of the plate's, where C deck's stairway's head comes down.
+    ("third-class entrance", 1207.5, 3355, 1566.5, 3747),
+    ("third-class matron's room", 1566.5, 3441, 1637.5, 3546.5),
+    ("third-class surgery", 1566.5, 3546.5, 1637.5, 3661.5),
     # (Each inner room's strip by her side is drawn a little wider than the plate's, at
     # the outer room's expense, to a body's door where it opens into the rest of it:
     # here and in the first-class block forward, #369's lay.)
@@ -186,9 +187,9 @@ ROOMS = [
     ("two-berth second-class stateroom, D deck", 1858, 3566, 1970, 3661.5),
     # The corridors, port (its outer wall stepping in forward of the third passage) and
     # starboard.
-    ("corridor, D deck", 1540, 3391, 2032.5, 3441),
+    ("corridor, D deck", 1566.5, 3391, 2032.5, 3441),
     ("corridor, D deck", 2032.5, 3375.5, 2290, 3436),
-    ("corridor, D deck", 1540, 3661.5, 2290, 3716),
+    ("corridor, D deck", 1566.5, 3661.5, 2290, 3716),
     # The after second-class stairway (BOT: "another second class stairway, which gave
     # access to C, D, E, F and G decks"): its enclosure round the flights and their well,
     # and forward of it a landing from corridor to corridor before the saloon's doors.
@@ -523,9 +524,9 @@ SOLIDS = [
     # The lift's starboard side 10 px inboard of the plate's line, on C deck's lift's
     # (c.py), so the shaft stacks and C deck's flight down to starboard of it clears it.
     ("second-class lift", 3029.5, 3496.5, 3118.5, 3572, None),
-    # In the service lobby: a W.C. and the plate's H (est. a hydrant's box, 1.2 m high).
+    # In the service lobby: a W.C. and the plate's H (est. a hydrant's box, to the deck over it).
     ("W.C.", 3361, 3008, 3406, 3088, None),
-    ("H", 3240, 3160, 3302, 3202.5, 1.2),
+    ("H", 3240, 3160, 3302, 3202.5, None),
     # The turbine engine casing (BOT: "the turbine engine hatch"), its fan in its corner.
     ("turbine engine casing", 3665.5, 3407, 3878, 3645.5, None),
     # The hospitals' W.C.s and closets, 0.8-0.9 m wide.
@@ -605,7 +606,7 @@ DOORS = [
     (1575.5, 3771), (1575.5, 3826), (1575.5, 3900),
     # The third-class entrance from the stern rooms' passage; its matron's room and
     # surgery.
-    (1207.5, 3549), (1540, 3490), (1540, 3600),
+    (1207.5, 3549), (1566.5, 3490), (1566.5, 3600),
     # The second-class rooms, port: off the first passage, the second, the third, the
     # corridor and the fourth.
     (1594, 3290), (1594, 3365), (1693.5, 3200),
@@ -760,7 +761,7 @@ STAIRS = [
     # landing to a slope a body climbs, 125 px (3.25 m) in all, as the flights below, its
     # head 5 px forward of the plate's so a body steps off it clear of the entrance's after
     # wall.
-    ("second-class stairway", 2148, 3436, 2273, 3507, "aft", "e", "d"),
+    ("second-class stairway", 2145.5, 3436, 2270.5, 3507, "aft", "e", "d"),
     # The forward second-class staircase's flight down to E deck: the port one, as the boat
     # deck's, B deck's and (est.) D deck's alternate (boat.py, a.py, b_aft.py), rising aft.
     # The plate draws 89 px of treads (2.3 m): it runs on 36 px aft over the landing.

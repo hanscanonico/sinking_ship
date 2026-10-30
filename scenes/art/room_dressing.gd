@@ -633,9 +633,10 @@ func build(mesh: ShipMesh, signs: Node3D, panes: Array[Array]) -> void:
 		# An engine room draws its machinery, a hold its cargo, a dining saloon its
 		# tables (LinerDining.tables()), a bath its pool (LinerBath.build()) and the
 		# spaces in her old voids their shaft, steering engine and chain bins
-		# (LowerSpaces); every other room's furniture is FurnitureDressing's.
+		# (LowerSpaces); every other room's furniture is FurnitureDressing's, a steering
+		# gear room's capstan gear with it.
 		var own := [Kind.ENGINE, Kind.HOLD, Kind.DINING, Kind.BATH]
-		if _kinds[index] not in own + [Kind.SHAFT, Kind.STEERING, Kind.LOCKER]:
+		if _kinds[index] not in own + [Kind.SHAFT, Kind.LOCKER]:
 			FurnitureDressing.build(mesh, room, _space.furniture(room))
 		var signed := [Kind.ENGINE, Kind.BOILER, Kind.HOLD, Kind.PASSAGE, Kind.FIRST_CORRIDOR]
 		if _kinds[index] in signed:
