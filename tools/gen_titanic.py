@@ -676,6 +676,10 @@ def foot(flight):
 # past her estimated G deck, one past her lines themselves (the third-class stairway's, O-N
 # port) and one past the electric room's stores (the stores' stair, N-M port).
 def unlaid(plan, flight):
+    # (F deck's third-class ladder in No. 2 hold too, through its ladderway's wall, its foot
+    # past her estimated G deck there: bulkhead C's way down is the firemen's.)
+    if plan is F_OUTLINE and flight[0] == "third-class ladder":
+        return True
     # (D deck's ladder at the head of the firemen's passage, E deck's room under it too short
     # for its foot and a body's lead, waits too: E deck's firemen's way serves it.)
     if plan is D_OUTLINE:
@@ -749,11 +753,40 @@ SALOON_Z = 13.0  # the half breadth of the stokeholds' F deck (est.)
 # wider than a body opens one short hole in a traced room's floor, not one its whole length.
 HEAD_RUN = 2.25
 F_HOLES = []  # (the flight's id, the hole, the hole's closed end along its axis)
+F_WELLS = holes["f"]  # the traced flights' wells in it
 
-def up_to_f(sid, x_low, x_high, z0, z1, low):
+def f_head(xa, xb, run, z0, z1):
+    """Where along xa..xb a flight run long up to F deck from under it comes up clear (x_low,
+    x_high), nearest xa's end and rising forward first: on no traced wall, solid or well of
+    F deck, nor any wall a body's lead past its head (the layout lint)."""
+    lead = 2 * rule("body_radius")
+    boxes = [s[1:5] for s in F_PLAN.solids] + list(F_WELLS) + [e[1] for e in F_HOLES]
+    for axis, at, w0, w1, kind, _doors in F_PLAN.walls:
+        half = T if kind == "steel" else 0.03
+        boxes.append((at - half, at + half, w0, w1) if axis == 0 else (w0, w1, at - half, at + half))
+    for k in range(int((xb - xa) * 16) + 1):
+        for x_low, x_high in ((xa + k / 16, xa + k / 16 + run), (xb - k / 16, xb - k / 16 - run)):
+            # (Its foot wants its lead under the deck; its head, over it, none of those walls.)
+            if not xa - lead <= x_high <= xb + lead:
+                continue
+            sign = 1 if x_high > x_low else -1
+            rx = sorted((x_high - sign * HEAD_RUN, x_high + sign * lead))
+            if not any(b[0] < rx[1] and b[1] > rx[0] and b[2] < z1 + 0.05 and b[3] > z0 - 0.05 for b in boxes):
+                return x_low, x_high
+    return None
+
+def up_to_f(sid, xa, xb, run, z0, z1, low):
+    """A flight up to F deck where it comes up clear (f_head), if it does anywhere: whether."""
+    # (Its run cut to the steepest a body climbs with a margin, if it must be, 0.86.)
+    found = (f_head(math.ceil(xa * 16) / 16, math.floor(xb * 16) / 16, run, z0, z1)
+             or f_head(math.ceil(xa * 16) / 16, math.floor(xb * 16) / 16, math.ceil((F_DECK - low) / 0.86 * 16) / 16, z0, z1))
+    if found is None:
+        return False
+    x_low, x_high = found
     stair(sid, x_low, x_high, z0, z1, low, F_DECK, [])
     a = x_high - HEAD_RUN if x_high > x_low else x_high + HEAD_RUN
     F_HOLES.append((sid, (min(a, x_high), max(a, x_high), z0, z1), a, 0))
+    return True
 
 def up_to_f_z(sid, z_low, z_high, x0, x1, low):
     stair_z(sid, z_low, z_high, x0, x1, low, F_DECK, [])
@@ -1171,6 +1204,17 @@ def plan_layer(prefix, plan, floor, ceiling, breaks=(), parted_at=(), place=None
                     low = max(low, c)
                 else:
                     high = min(high, c)
+        # Nor past a room's corner on the line, where it opens into the next (an OPEN, no
+        # wall across): a door there would be two gaps too narrow, one for each room.
+        for r in plan.rooms:
+            ends, r_at = ((r[3], r[4]), (r[1], r[2])) if axis == 0 else ((r[1], r[2]), (r[3], r[4]))
+            if at in r_at and ends[0] < b and ends[1] > a:
+                for c in ends:
+                    if a + 1e-6 < c < b - 1e-6 and abs(c - along) < DOOR:
+                        if c <= along:
+                            low = max(low, c)
+                        else:
+                            high = min(high, c)
         return low + 0.01, high - 0.01
 
     rooms = plan.rooms if place is None else named_pieces(plan.rooms, parted_at, place, main)
@@ -1472,8 +1516,9 @@ for k, aft, rows, back, deck_w in STOKEHOLDS:
     # Its foot on a sixteenth of a metre, as its run, so its head meets the deck cut
     # round it exactly in single precision.
     low = math.ceil((floor_x[0] + FLIGHT_LEAD) * 16) / 16
-    for tag, (z0, z1) in lanes:
-        up_to_f("stokehold_%d_%s" % (k, tag), low, low + STOKEHOLD_RUN, z0, z1, TANK_TOP)
+    ways = [up_to_f("stokehold_%d_%s" % (k, tag), low, floor_x[1] - FLIGHT_LEAD, STOKEHOLD_RUN, z0, z1, TANK_TOP)
+            for tag, (z0, z1) in lanes]
+    assert any(ways), ("no way up out of boiler room", k)
     # The boiler farthest from the flights first: an engine room's steam pipes run beside
     # its first machine's sides under the deck, where a body climbing a flight beside it
     # would put its head (EngineRoom).
@@ -1550,8 +1595,9 @@ BUNKER6_Z = min(fit(BR6[1], BX["D"], TANK_TOP, 0.3), BR6_Z)
 br6_holes = []
 side = BR6_Z - T
 low6 = math.ceil((BR6[0] + T + FLIGHT_LEAD) * 16) / 16
-for tag, (z0, z1) in [("s", (side - STAIR, side)), ("p", (-side, STAIR - side))]:
-    up_to_f("stokehold_6_" + tag, low6, low6 + STOKEHOLD_RUN, z0, z1, TANK_TOP)
+ways = [up_to_f("stokehold_6_" + tag, low6, BR6[1] - T - FLIGHT_LEAD, STOKEHOLD_RUN, z0, z1, TANK_TOP)
+        for tag, (z0, z1) in [("s", (side - STAIR, side)), ("p", (-side, STAIR - side))]]
+assert any(ways), "no way up out of boiler room 6"
 middle6 = (BR6[0] + T + BR6[1]) * 0.5
 for j, (z0, z1) in enumerate(abreast(2, 0.6, 2.0)):
     box("boiler_6_%d" % j, middle6 - BOILER[0] * 0.5, middle6 + BOILER[0] * 0.5, z0, z1, TANK_TOP,
@@ -1682,8 +1728,9 @@ for sid, foot, head, (z0, z1), low, high, holes_above in [
         ("space_h1_g_2", 105.5, 108.5, (1.55, 2.6), ORLOP, G_DECK, h1g_holes)]:
     stair(sid, foot, head, z0, z1, low, high, holes_above)
 # Up from G deck into the firemen's quarters on F deck either side of No. 1 hatch (est.).
-for sid, (z0, z1) in [("space_h1_f", (-3.75, -2.7)), ("space_h1_f_2", (2.7, 3.75))]:
-    up_to_f(sid, 104.0, 107.125, z0, z1, G_DECK)
+ways = [up_to_f(sid, BX["B"] + T + FLIGHT_LEAD, H1_SPLIT - FLIGHT_LEAD, 3.125, z0, z1, G_DECK)
+        for sid, (z0, z1) in [("space_h1_f", (-3.75, -2.7)), ("space_h1_f_2", (2.7, 3.75))]]
+assert any(ways), "no way up out of No. 1 hold's G deck"
 # Each flight's opening in D deck screened along its inboard side forward of No. 1 hatch's
 # cover (est.), so the joint between the quarters' pieces it runs under is two doors, each
 # a step onto the deck either side of the opening, not one whose middle is over it. So
@@ -1768,9 +1815,7 @@ BR1_FLIGHT = (-27.5, -26.1)
 BR1_RUN = 11.5  # a flight's run across her up to F deck, 40°: as long as her side leaves room for
 # (Their feet by her centre line, their heads outboard: F deck draws the stokehold fans
 # over the middle of this end, x -27.69..-23.19.)
-for tag, sign in [("p", -1), ("s", 1)]:
-    foot_z = sign * 0.5
-    up_to_f_z("space_br1_" + tag, foot_z, foot_z + sign * BR1_RUN, *BR1_FLIGHT, TANK_TOP)
+up_to_f_z("space_br1_p", -0.5, -0.5 - BR1_RUN, *BR1_FLIGHT, TANK_TOP)
 for j, (z0, z1) in enumerate([(-7.0, -3.0), (-2.0, 2.0), (3.0, 7.0)]):
     box("boiler_1_%d" % j, -25.2, -22.5, z0, z1, TANK_TOP, F_DECK - UPTAKE_CLEAR)
 walled("stokehold_1", BR1[0], BR1[1], -BR1_PLATES, BR1_PLATES, TANK_TOP, F_DECK, "ps")
@@ -1790,8 +1835,11 @@ room("bunker_1", "coal bunker 1", BR1[1], BX["J"], -BUNKER1_Z, BUNKER1_Z, TANK_T
 ENG = (BX["L"], BX["K"])
 ENG_Z = fit(*ENG, ENGINE_TANK_TOP, 0.3)
 eng_holes = []
-for tag, (z0, z1) in [("p", (-11.4, -10.0)), ("s", (10.0, 11.4))]:
-    up_to_f("space_engine_" + tag, -46.25, -34.5, z0, z1, ENGINE_TANK_TOP)
+# (Each in the first lane outboard of its engine that comes up clear of F deck's rooms.)
+ways = [any(up_to_f("space_engine_" + tag, BX["L"] + T + FLIGHT_LEAD, BX["K"] - T - FLIGHT_LEAD, 11.75,
+                    *sorted((sign * z / 16, sign * (z / 16 + 1.25))), ENGINE_TANK_TOP) for z in range(148, 196, 2))
+        for tag, sign in [("p", -1), ("s", 1)]]
+assert any(ways), "no way up out of the engine room"
 for j, (z0, z1) in enumerate([(-9.0, -1.5), (1.5, 9.0)]):
     box("engine_%d" % j, -45.0, -31.0, z0, z1, ENGINE_TANK_TOP, F_DECK - UPTAKE_CLEAR)
 room("engine_room", "engine room", *ENG, -ENG_Z, ENG_Z, ENGINE_TANK_TOP)
@@ -1801,8 +1849,11 @@ room("engine_room", "engine room", *ENG, -ENG_Z, ENG_Z, ENGINE_TANK_TOP)
 TURB = (BX["M"], BX["L"])
 TURB_Z = fit(*TURB, TANK_TOP, 0.3)
 turb_holes = []
-for tag, (z0, z1) in [("p", (-8.4, -7.0)), ("s", (7.0, 8.4))]:
-    up_to_f("space_turbine_" + tag, -64.5, -52.625, z0, z1, TANK_TOP)
+ways = [any(up_to_f("space_turbine_" + tag, BX["M"] + T + FLIGHT_LEAD, BX["L"] - T - FLIGHT_LEAD, 11.875,
+                    *sorted((sign * z / 16, sign * (z / 16 + 1.25))), TANK_TOP)
+            for z in range(110, int((TURB_Z - 1.45) * 16), 2))
+        for tag, sign in [("p", -1), ("s", 1)]]
+assert any(ways), "no way up out of the turbine room"
 box("turbine", -62.0, -52.0, -2.0, 2.0, TANK_TOP, F_DECK - UPTAKE_CLEAR)
 room("turbine_room", "turbine engine room", *TURB, -TURB_Z, TURB_Z, TANK_TOP)
 # The electric engine room (BOT: "a separate watertight compartment ... at the level of
@@ -1817,7 +1868,8 @@ elec_holes, elec_g_holes = [], []
 # flight down onto E deck, over it at z -2.875..-1.0625.)
 for tag, sign in [("p", -1), ("s", 1)]:
     stair("space_electric_g_" + tag, -83.5, -75.0, *sorted((sign * 5.0, sign * 6.2)), TANK_TOP, G_DECK, elec_g_holes)
-    up_to_f("space_electric_f_" + tag, -70.0, -73.0, *sorted((sign * 3.3, sign * 4.4)), G_DECK)
+    assert up_to_f("space_electric_f_" + tag, BX["N"] + T + FLIGHT_LEAD, BX["M"] - T - FLIGHT_LEAD, 3.0,
+                   *sorted((sign * 3.3, sign * 4.4)), G_DECK) or tag == "s", "no way up out of the electric room's stores"
 for j, (z0, z1) in enumerate([(-4.0, -1.0), (1.0, 4.0)]):
     box("generators_%d" % j, -81.5, -69.5, z0, z1, TANK_TOP, G_DECK - UPTAKE_CLEAR)
 room("electric_room", "electric engine room", *ELEC, -ELEC_Z, ELEC_Z, TANK_TOP)
@@ -3158,9 +3210,12 @@ for (a, b, axis, face, foot), (centre, area, size) in merged.items():
     # doorway there on a bulkhead's line is her rooms' door, no watertight one.
     # (A traced wall held to a bulkhead's line stands on the 1/128 m grain, within 4 mm of it.)
     on_line = next((bulkhead for bulkhead in BULKHEADS if abs(bulkhead[1] - face) < 0.01), None)
-    if axis == 0 and on_line and b is not None and foot < D_DECK - 1e-6:
+    # (Under a bulkhead's top: over one that stops short, E deck over C to J, it is a room's.)
+    if axis == 0 and on_line and b is not None and foot < D_DECK - 1e-6 and foot + LINTEL * 0.5 < TOPS[on_line[0]]:
         centre = (on_line[1],) + tuple(centre[1:])
-        opening("wtd_%s_%s" % (a, b), "WATERTIGHT_DOOR", a, b, centre, size, **deck_door(on_line[0], foot))
+        tag = "wtd_%s_%s" % (a, b)
+        seen = sum(1 for o in openings if o[0] == tag or o[0].startswith(tag + "_"))
+        opening(tag + ("_%d" % seen if seen else ""), "WATERTIGHT_DOOR", a, b, centre, size, **deck_door(on_line[0], foot))
         continue
     tag = "door_%s_%s" % (a, b or SKY)
     single = abs(area - size[1] * (size[0] + size[2])) < 1e-6

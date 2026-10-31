@@ -1069,6 +1069,20 @@ STAIRS = [
 
 # Lines moved off the plate so a door fits (deck.py's NUDGES, DOOR_MOVES; DOOR_LEAST 1 m):
 NUDGES = [
+    # The cross passages and vestibule the plate draws over where P's line stands (it draws
+    # no P here), aft of it, so no way through parts in two under a door's width.
+    (0, -119.5, -120.0625, -5.4, -1.7),
+    (0, -118.3125, -118.96875, -5.4, -1.7),
+    (0, -119.375, -120.0625, 1.8, 5.2),
+    (0, -118.25, -118.96875, 1.8, 5.8),
+    (0, -119.4375, -120.0625, -0.4, 0.6),
+    (0, -118.0, -118.96875, -0.4, 0.6),
+    (2, 5.25, 5.5, 69.6, 70.8),  # bulkhead D's starboard door, where the plate draws it
+    (2, 10.125, 10.1875, 31.9, 33.6),  # the Turkish bath's lobby's way into its cooling room
+    (0, -95.5, -96.0, 4.5, 11.6),  # a side passage clear of two corridors' join
+    (0, -94.3125, -94.75, 4.5, 11.6),  # likewise
+    (2, -3.1875, -3.0625, -94.7, -85.2),  # the corridor's neck by the after entrance
+    (2, -10.375, -10.25, -43.3, -41.4),  # the third engineer's door
     (2, 0.4375, 0.625, -121.3, -116.4),  # the vestibule by P's line, and the rooms off it
     (2, 1.5625, 1.75, -121.3, -116.4),  # the passage beside it, a door's width still
     (2, -6.9375, -7.1875, -88.0, -85.0),  # the bathroom's door
@@ -1076,15 +1090,19 @@ NUDGES = [
     (2, 9.625, 9.25, 74.5, 77.3),  # the four-berth room's door
     (2, -7.3125, -7.1875, 86.2, 92.6),  # the eight-berth room's door
     (2, 7.4375, 7.25, 86.2, 92.6),  # the eight-berth room's door
-    (0, 78.375, 78.4375, -11.0, -8.7),  # the room's door off the passage's end
+    (0, 78.375, 78.4375, -11.0, -3.0),  # the room's door off the passage's end
     (0, -24.125, -24.3125, 6.4, 11.5),  # the bakery's door
     (0, 55.0, 55.125, 3.6, 9.5),  # the six-berth room's door
+    (0, 56.75, 57.25, -8.3, -6.4),  # room for boiler room 6's flight up (est.) and a body's lead
 ]
 DOOR_MOVES = [
     ((102.125, 3.1875), (100.75, 3.1875)),  # the firemen's W.C.s' door aft of bulkhead B's line
+    ((73.0, -7.9375), (72.0, -7.9375)),  # the eight-berth room's, clear of the passages' join
+    (None, (-43.25, -10.8125)),  # the third engineer's, which the plate draws no swing for (est.)
     ((92.4375, 7.9375), None),  # the two-berth room her side leaves narrower than a body
 ]
-# Inboard, onto her estimated G deck's floor in No. 2 hold, clear of E's flight down (e.py):
+# A body's lead clear of the passage's forward wall at their heads (the layout lint):
 STAIR_MOVES = [
-    (("third-class ladder", 92.3125, 4.8125), (92.3125, 95.1875, 4.4375, 5.6875)),
+    (("firemen's spiral staircase", 100.5, -2.5625), (99.75, 102.625, -2.5625, -1.3125)),
+    (("firemen's spiral staircase", 100.5, 1.3125), (99.75, 102.625, 1.3125, 2.5625)),
 ]

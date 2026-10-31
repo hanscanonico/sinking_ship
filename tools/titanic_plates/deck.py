@@ -239,6 +239,9 @@ class Deck:
             # (x0, x1, z0, z1), and the way it rises where that changes.
             self.stairs[k] = self.stairs[k][:1] + new[:4] + new[4:] + self.stairs[k][5 + len(new[4:]):]
         for old, new in getattr(module, "DOOR_MOVES", ()):
+            if old is None:
+                self.doors.append(new)
+                continue
             near = min(self.doors, key=lambda d: abs(d[0] - old[0]) + abs(d[1] - old[1]))
             assert abs(near[0] - old[0]) + abs(near[1] - old[1]) < 0.2, ("no such door", old)
             self.doors.remove(near)
