@@ -1009,7 +1009,7 @@ def plan_ends(plan):
 # E and F decks' floors stop at the stores her stem takes (e.py, f.py), past which no body
 # comes and she has no deck.
 E_STEM = 126.4375
-F_STEM = 119.6875
+F_STEM = 122.125
 E_PIECES = hull_strips(plan_ends(E_OUTLINE)[0], E_STEM, E_DECK, edges=sorted({h[k] for h in holes["e"] for k in (0, 1)}))
 F_PIECES = hull_strips(plan_ends(F_OUTLINE)[0], F_STEM, F_DECK, edges=sorted({h[k] for h in holes["f"] for k in (0, 1)}))
 e_deck = [i for k, (x0, x1, z0, z1) in enumerate(E_PIECES)
@@ -1886,7 +1886,7 @@ elec_holes, elec_g_holes = [], []
 for tag, sign in [("p", -1), ("s", 1)]:
     stair("space_electric_g_" + tag, -83.5, -75.0, *sorted((sign * 5.0, sign * 6.2)), TANK_TOP, G_DECK, elec_g_holes)
     assert up_to_f("space_electric_f_" + tag, BX["N"] + T + FLIGHT_LEAD, BX["M"] - T - FLIGHT_LEAD, 3.0,
-                   *sorted((sign * 3.3, sign * 4.4)), G_DECK) or tag == "s", "no way up out of the electric room's stores"
+                   *sorted((sign * 3.45, sign * 4.55)), G_DECK) or tag == "s", "no way up out of the electric room's stores"
 for j, (z0, z1) in enumerate([(-4.0, -1.0), (1.0, 4.0)]):
     box("generators_%d" % j, -81.5, -69.5, z0, z1, TANK_TOP, G_DECK - UPTAKE_CLEAR)
 room("electric_room", "electric engine room", *ELEC, -ELEC_Z, ELEC_Z, TANK_TOP)
@@ -3910,7 +3910,9 @@ for tid, x, floor, z in LAID:
 
 # Her staterooms' berths and sofas (#390), by rule off their names, after every other
 # blocker so none of theirs moves.
-CABINS = furnish(room_geo, block_geo, ways_in, spawns)
+# (A flight's hole counts as standing there: no berth over a well.)
+_wells = [(r[0], r[1], r[2], r[3], min(r[5], r[6]), max(r[5], r[6]) + 0.01) for r in ramp_geo]
+CABINS = furnish(room_geo, list(block_geo) + _wells, ways_in, spawns)
 for k, (geo, lowers, uppers, sofa, _folded) in enumerate(CABINS):
     for n, (x0, x1, z0, z1) in enumerate(lowers):
         box("berth_%d_%d" % (k, n), x0, x1, z0, z1, geo[4], geo[4] + BERTH_RISE)

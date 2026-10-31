@@ -565,8 +565,7 @@ func lights(room: ShipRoom) -> Array[Light]:
 		Kind.SQUASH:
 			found = _squash.lights(room)
 	if found.is_empty():
-		# A pendant under the middle of each LAMP_SPACING square of it: one in all but a
-		# liner's great rooms.
+		# A pendant under the middle of each LAMP_SPACING square of it, clear of a flight's head.
 		var across := Vector2i(
 			maxi(1, ceili(area.size.x / LAMP_SPACING)), maxi(1, ceili(area.size.y / LAMP_SPACING))
 		)
@@ -574,7 +573,8 @@ func lights(room: ShipRoom) -> Array[Light]:
 			for j in across.y:
 				var share := Vector2((i + 0.5) / across.x, (j + 0.5) / across.y)
 				var at := area.position + area.size * share
-				found.append(Light.new(under_ceiling(_space, room, at), ShipLamp.Kind.PENDANT))
+				if not _space.under_a_ramp(at, under_ceiling(_space, room, at).y - 1.2):
+					found.append(Light.new(under_ceiling(_space, room, at), ShipLamp.Kind.PENDANT))
 	return found
 
 
