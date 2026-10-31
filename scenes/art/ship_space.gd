@@ -37,9 +37,6 @@ var _slabs := {}
 var _hatches := {}
 ## Her walls, gathered the first time walled_between() is asked.
 var _walls: Array[ShipBlocker] = []
-## How far over a body's feet its head reaches (by_a_ramp).
-const BODY_REACH := 1.7
-
 ## Her rooms on a grid of ROOM_CELL squares, each over its area grown by INSIDE
 ## (rooms_near), built the first time it is asked.
 var _room_grid: SpatialIndex
@@ -308,19 +305,6 @@ func clear(area: Rect2, bottom: float, top: float) -> bool:
 func under_a_ramp(point: Vector2, height: float) -> bool:
 	for ramp: ShipRamp in layout.ramps:
 		if ramp.contains(point.x, point.y) and ramp.height_at(point.x, point.y) > height - 0.5:
-			return true
-	return false
-
-
-## Whether a body on a ramp, within [param reach] of [param point] (x/z), stands under
-## [param height] with its head, BODY_REACH over its feet, up to it.
-func by_a_ramp(point: Vector2, height: float, reach: float) -> bool:
-	for ramp: ShipRamp in layout.ramps:
-		if not ramp.area.grow(reach).has_point(point):
-			continue
-		var on := point.clamp(ramp.area.position, ramp.area.end)
-		var feet := ramp.height_at(on.x, on.y)
-		if feet < height and feet > height - BODY_REACH:
 			return true
 	return false
 
