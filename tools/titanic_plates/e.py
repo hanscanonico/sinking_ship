@@ -1271,15 +1271,19 @@ OPENED = [
 ]
 # Ladderways the flight fills; a landing whose every door opens over its well; a strip
 # narrower than a body the lavatory leaves.
+# The lockers' faces only touch the passage's edge: walled like any other, its fittings' depth holds.
+WALLED_SOLIDS = [(-64.2, -7.6), (-64.2, -5.8)]
 NOT_ROOMS = [(-90.0, -5.3), (-20.0, -6.7), (20.0, -6.7), (37.0, -6.4), (52.0, -6.7), (72.0, 3.8), (74.0, -7.5),
-             (79.5, 6.0), (127.5, 0.0)]
+             (79.5, 6.0)]
+# The store her stem takes: no floor of hers reaches it (E_STEM).
+GONE = [(127.5, 0.0)]
 # A bathroom by J's line and a store too small for a door; a store her stem takes.
 MADE_SOLID = [(-17.0, -6.5), (-64.4, -9.1), (82.6, -5.4)]
 # Flights the plate stacks over F deck's flights down (f.py), side by side or they'd land
 # in each other's holes:
 STAIR_MOVES = [
     # Aft of the pendant over the second-class entrance on F deck, a body under it on its foot:
-    (("second-class staircase", -72.0625, 1.3125), (-72.3125, -69.1875, 1.3125, 3.25)),
+    (("second-class staircase", -72.0625, 1.3125), (-72.3125, -69.1875, 1.1875, 2.25)),
     (("third-class ladder", 93.375, 5.25), (95.25, 98.4375, 4.75, 5.8125)),
     (("ladder", 72.4375, -7.375), (72.4375, 75.625, -6.8125, -5.625)),
     (("third-class ladder", 78.25, -6.25), (78.25, 81.375, -6.6875, -5.5625)),

@@ -460,8 +460,8 @@ func _mesh() -> ShipMesh:
 ## Whether ship point [param point] stands outdoors, as ShipSpace.outdoors says —
 ## asked only where the point stands in some room's box; outside every one it does.
 func _outdoors(point: Vector3) -> bool:
-	for box: AABB in _room_boxes:
-		if box.has_point(point):
+	for room: int in _space.rooms_near(Rect2(point.x, point.z, 0.0, 0.0)):
+		if _room_boxes[room].has_point(point):
 			return _space.outdoors(point)
 	return true
 

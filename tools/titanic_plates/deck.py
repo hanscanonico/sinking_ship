@@ -210,7 +210,8 @@ class Deck:
         (x0, x1, z0, z1) instead, off the plate so its foot finds a floor. OPENED, a join
         (x0, x1, z0, z1) a landing's way in needs, just so long. NOT_ROOMS, each (x, z) in a well and no
         room once her cells have split it, its flight taking all a body could stand on
-        behind its door: its walls stay, its floor is no room's. WALLED_SOLIDS, a
+        behind its door: its walls stay, its floor is no room's. GONE, the room or solid at
+        each (x, z) her hull takes, walls and all. WALLED_SOLIDS, a
         solid at each (x, z) whose face only touches a room's edge, the edge walled."""
         for axis, at, to, lo, hi in getattr(module, "NUDGES", ()):
             found = False
@@ -258,6 +259,9 @@ class Deck:
                 part.open[:] = kept
         for x, z in getattr(module, "MADE_SOLID", ()):
             self._solid(next(r for r in self.rooms if r[1] < x < r[2] and r[3] < z < r[4]))
+        for x, z in getattr(module, "GONE", ()):
+            pieces = self.rooms if any(r[1] < x < r[2] and r[3] < z < r[4] for r in self.rooms) else self.solids
+            pieces.remove(next(r for r in pieces if r[1] < x < r[2] and r[3] < z < r[4]))
         self.not_rooms = list(getattr(module, "NOT_ROOMS", ()))
         self.walled_solids = list(getattr(module, "WALLED_SOLIDS", ()))
 

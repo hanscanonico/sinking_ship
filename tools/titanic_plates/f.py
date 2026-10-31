@@ -1112,8 +1112,10 @@ OPENED = [
     (4.5525, 4.5725, -5.875, -3.25),
     (72.9275, 72.9475, -5.75, -4.375),  # the linen room's two pieces
 ]
-# The passage two flights fill side by side; the engineers' stairway its stair fills; the store her stem takes.
-NOT_ROOMS = [(74.0, -7.0), (-45.3, -9.7), (126.0, 0.0)]
+# The passage two flights fill side by side; the engineers' stairway its stair fills.
+NOT_ROOMS = [(74.0, -7.0), (-45.3, -9.7)]
+# The store her stem takes: no floor of hers reaches it (F_STEM).
+GONE = [(126.0, 0.0)]
 # Two closets whose faces only touch the rooms over them: walled, or those rooms read open.
 WALLED_SOLIDS = [(-101.3, -8.0), (-97.6, -8.0)]
 # A body's lead clear of the passage's forward wall at their heads (the layout lint):

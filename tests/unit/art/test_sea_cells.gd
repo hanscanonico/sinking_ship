@@ -68,7 +68,9 @@ func test_every_drawn_cell_of_the_titanic_is_in_the_mask() -> void:
 ## void over them, the sea drawn in it as she sank by the head.
 func test_the_rooms_over_boiler_rooms_4_and_5_never_look_up_into_the_sea() -> void:
 	assert_eq(
-		_open_points(load(SMALL_TITANIC), UNDER_E_DECK), [], "points of her rooms the sea is drawn in"
+		_open_points(load(SMALL_TITANIC), UNDER_E_DECK),
+		[],
+		"points of her rooms the sea is drawn in"
 	)
 
 
@@ -106,7 +108,9 @@ func test_no_doorway_through_a_bulkhead_shows_the_sea() -> void:
 ## it, where a box per room once stopped at that room's floor the room's whole length.
 func test_rooms_at_a_bulkhead_never_look_into_the_sea() -> void:
 	assert_eq(
-		_open_points(load(SMALL_TITANIC), AT_HER_BULKHEADS), [], "points of her rooms the sea is drawn in"
+		_open_points(load(SMALL_TITANIC), AT_HER_BULKHEADS),
+		[],
+		"points of her rooms the sea is drawn in"
 	)
 	assert_eq(
 		_open_points(load(STEAMER), UNDER_THE_STEERING_GEAR), [], "points of it the sea is drawn in"

@@ -470,7 +470,9 @@ def counter_half(x, y, lines):
     her shell's side there (SectionHull._side()), her sheer read down at it."""
     s = x - stern_x(y)
     below_y, table = COUNTER_PLANS[0]
-    below = plan_half(table, s)
+    # F deck's, read off its rooms' sides, never past E deck's over it: her shell above
+    # F deck stays her shell's.
+    below = min(plan_half(table, s), plan_half(COUNTER_PLANS[1][1], s))
     if y <= below_y:
         t = (y - LOAD_WL) / (below_y - LOAD_WL)
         return lines + max(below - lines, 0.0) * t * t * (3.0 - 2.0 * t)
