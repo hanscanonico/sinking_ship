@@ -7,6 +7,7 @@ extends GutTest
 const BODY := 0.4
 const STEP := 0.35
 const HEIGHT := 1.7
+const CELLS: Array[float] = [0.2, 0.05]
 ## Each class's cabins: how many name a count, the boxes they stand and the berths they
 ## fold. Moves only with the plates' rooms or the rule.
 const PINNED := {
@@ -81,19 +82,19 @@ func test_a_body_gets_in_at_each_door_and_stands_inside() -> void:
 	var surfaces := Surfaces.new(_layout)
 	var space := ShipSpace.new(_layout)
 	for room: ShipRoom in _rooms:
-		var free := _free_cells(surfaces, room)
-		assert_false(free.is_empty(), "%s at %s: somewhere to stand" % [room.name, room.area])
+		var doors: Array[Vector2] = []
 		var runs := space.wall_runs(room)
-		var starts: Array[Vector2i] = []
 		for side in 4:
 			for gap: Vector2 in RoomDressing._gaps(room, side, runs):
-				if RoomDressing._beyond(space, room, side, gap) == -1:
-					continue
-				var inside := space.on_side(room, side, (gap.x + gap.y) * 0.5, BODY + 0.05)
-				starts.append(_nearest(free, inside))
-		var reached := _flood(free, starts[0] if not starts.is_empty() else Vector2i.ZERO)
-		for start: Vector2i in starts:
-			assert_true(reached.has(start), "%s at %s: door cut off" % [room.name, room.area])
+				if RoomDressing._beyond(space, room, side, gap) != -1:
+					doors.append(space.on_side(room, side, (gap.x + gap.y) * 0.5, BODY + 0.05))
+		var got_in := false
+		# Coarse first, for most stand open; a way barely a body wide wants the fine grid.
+		for cell: float in CELLS:
+			got_in = got_in or _doors_meet(surfaces, room, doors, cell)
+		assert_true(
+			got_in, "%s at %s: nowhere to stand, or a door cut off" % [room.name, room.area]
+		)
 
 
 func _standing(room: ShipRoom) -> int:
@@ -110,13 +111,28 @@ func _class_of(room: ShipRoom) -> String:
 	return "none"
 
 
-## The 0.2 m cells of [param room] a body's middle stands in with nothing holding it off.
-func _free_cells(surfaces: Surfaces, room: ShipRoom) -> Dictionary:
+## Whether a body stands somewhere in [param room] that every one of [param doors] reaches,
+## on a grid of [param cell].
+func _doors_meet(surfaces: Surfaces, room: ShipRoom, doors: Array[Vector2], cell: float) -> bool:
+	var free := _free_cells(surfaces, room, cell)
+	if free.is_empty():
+		return false
+	var first := _nearest(free, doors[0] if not doors.is_empty() else room.area.get_center())
+	var reached := _flood(free, first)
+	for door: Vector2 in doors:
+		if not reached.has(_nearest(free, door)):
+			return false
+	return true
+
+
+## The cells of side [param cell] of [param room] a body's middle stands in with nothing
+## holding it off.
+func _free_cells(surfaces: Surfaces, room: ShipRoom, cell: float) -> Dictionary:
 	var free := {}
-	var count := Vector2i((room.area.size / 0.2).ceil())
+	var count := Vector2i((room.area.size / cell).ceil())
 	for i in count.x:
 		for k in count.y:
-			var at := room.area.position + (Vector2(i, k) + Vector2.ONE * 0.5) * 0.2
+			var at := room.area.position + (Vector2(i, k) + Vector2.ONE * 0.5) * cell
 			var feet := Vector3(at.x, room.floor_height, at.y)
 			if surfaces.obstacle_contacts(feet, BODY, HEIGHT, STEP).is_empty():
 				free[Vector2i(i, k)] = at

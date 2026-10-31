@@ -12,8 +12,8 @@ import math
 import re
 
 BERTH = (1.9, 0.7)
-BERTH_RISE = 0.46
-UPPER_BOTTOM = 1.3
+BERTH_RISE = 0.44
+UPPER_BOTTOM = 1.72
 SOFA = (2.0, 0.8)
 SOFA_TOP = 0.45
 # A first-class stateroom at least this large stands a sofa (est., the plates).

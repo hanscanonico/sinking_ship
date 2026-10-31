@@ -38,14 +38,18 @@ const SIDEBOARDS := {0.64: "sideboard_64", 1.8: "sideboard_180"}
 const SIDEBOARD := AABB(Vector3(-0.32, 0.0, 0.0), Vector3(0.64, 0.99, 0.11))
 ## A traced stateroom's berths (tools/titanic_cabins.py lays their boxes out by its name):
 ## each BERTH_RISE tall on RoomDressing.BERTH's footprint, a lower one on the floor and an
-## upper one UPPER_BOTTOM over it. The rules hold a body out of both, the art aligns to
-## them (D6), and an upper shoves a body back off the lower it jumped on. Inside each box
-## a core CORE_INSET in from its sides under its bedding is what a body meets; an upper
-## stands on a post of side POST at each outer corner.
-const BERTH_RISE := 0.46
-const UPPER_BOTTOM := 1.3
+## upper one UPPER_BOTTOM over it, over a body's height, so a cabin is no crawl space. The
+## rules hold a body out of both, the art aligns to them (D6), and an upper shoves a body
+## back off the lower it jumped on. Each is a solid
+## bed base CORE_INSET in from its box's sides up to CORE_UNDER under its top, with the
+## berth's model on it MODEL_LIFT over the box's foot: the mattress's top (0.19 over the
+## model's underside) at the box's, and its ends under a step over that. An upper stands
+## on a post of side POST at each outer corner.
+const BERTH_RISE := 0.44
+const UPPER_BOTTOM := 1.72
+const MODEL_LIFT := 0.25
 const CORE_INSET := 0.03
-const CORE_BELOW_TOP := 0.1
+const CORE_UNDER := 0.01
 const POST := 0.05
 ## The names of the rooms furnished so, and the counts a name's first word gives.
 const STATEROOMS: Array[String] = ["stateroom", "third-class room"]
@@ -375,18 +379,19 @@ static func _berth_normal(room: ShipRoom, box: ShipBlocker) -> Vector3:
 
 
 ## The berth [param box] stands for (RoomDressing.BERTH_MODEL), its back on its wall, its
-## blanket in [param blanket], round a core for what a body meets.
+## blanket in [param blanket], on its bed base.
 func _standing_berth(
 	mesh: ShipMesh, room: ShipRoom, box: ShipBlocker, blanket: ShipMesh.Paint
 ) -> void:
 	var normal := _berth_normal(room, box)
 	var centre := box.area.get_center()
-	var point := Vector3(centre.x, box.bottom, centre.y) - normal * RoomDressing.BERTH.y * 0.5
+	var foot := Vector3(centre.x, box.bottom + MODEL_LIFT, centre.y)
+	var point := foot - normal * RoomDressing.BERTH.y * 0.5
 	var turn := Basis(Vector3.UP.cross(normal), Vector3.UP, normal)
 	var model := ShipModel.named(RoomDressing.BERTH_MODEL)
 	mesh.model(model, Transform3D(turn, point), {ShipPaints.blanket: blanket})
 	var core := box.area.grow(-CORE_INSET)
-	mesh.box(core, box.bottom, box.top - CORE_BELOW_TOP, ShipPaints.frame, ShipMesh.SIDES)
+	mesh.box(core, box.bottom, box.top - CORE_UNDER, ShipPaints.frame)
 
 
 ## A post under each outer corner of upper berth [param box], down to the lower's top.
