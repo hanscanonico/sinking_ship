@@ -309,6 +309,18 @@ func under_a_ramp(point: Vector2, height: float) -> bool:
 	return false
 
 
+## Whether a body on a ramp, within [param reach] of [param point] (x/z), stands high
+## enough there for its head to reach [param height].
+func by_a_ramp(point: Vector2, height: float, reach: float) -> bool:
+	for ramp: ShipRamp in layout.ramps:
+		if not ramp.area.grow(reach).has_point(point):
+			continue
+		var on := point.clamp(ramp.area.position, ramp.area.end)
+		if ramp.height_at(on.x, on.y) > height - 0.5:
+			return true
+	return false
+
+
 ## Every room edge, deck edge and floor height, per axis x, y, z: where a face may be
 ## cut so each piece of it lies wholly indoors or wholly out (ShipMesh).
 func room_lines() -> Array[PackedFloat32Array]:

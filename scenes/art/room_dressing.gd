@@ -573,7 +573,7 @@ func lights(room: ShipRoom) -> Array[Light]:
 			for j in across.y:
 				var share := Vector2((i + 0.5) / across.x, (j + 0.5) / across.y)
 				var at := area.position + area.size * share
-				if not _space.under_a_ramp(at, under_ceiling(_space, room, at).y - 1.2):
+				if not _space.by_a_ramp(at, under_ceiling(_space, room, at).y - 1.2, 0.3):
 					found.append(Light.new(under_ceiling(_space, room, at), ShipLamp.Kind.PENDANT))
 	return found
 
