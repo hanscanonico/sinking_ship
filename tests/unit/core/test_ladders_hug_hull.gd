@@ -98,7 +98,8 @@ func test_a_climber_up_the_titanic_hangs_outside_her_shell() -> void:
 	var sim := SimFixtures.sim(2, SimFixtures.calm(), layout)
 	SimFixtures.place(sim, 1, Vector3(82.0, 0.0, 0.0))
 	var middle := (ladder.from + ladder.to) * 0.5
-	var foot := layout.ladder_at(ladder, -layout.freeboard)
+	# Just off it where a swimmer takes hold, a reach up her flare over the water.
+	var foot := layout.ladder_at(ladder, -layout.freeboard + rules.climb_reach)
 	var out := foot[0].y - rules.body_radius - 0.2
 	SimFixtures.swim(sim, 0, Vector3(middle.x, 0.0, out))
 	var climber := sim.state.seats[0]
@@ -134,7 +135,7 @@ func test_a_climber_inside_her_shell_is_left_where_it_is() -> void:
 	var before := Vector3(-100.0, -6.0, -2.0)
 	var after := Vector3(-100.0, -5.9, -2.0)
 	assert_eq(structure.off_hull(before, after, 0.4), after)
-	var outside := Vector3(-100.0, -9.0, -7.0)
+	var outside := Vector3(-100.0, -11.0, -7.0)
 	var rising := Vector3(-100.0, -2.0, -7.0)
 	var shell := structure.half_breadth(-100.0, -2.0, -1)
 	assert_almost_eq(structure.off_hull(outside, rising, 0.4).z, -(shell + 0.4), NEAR, "out")

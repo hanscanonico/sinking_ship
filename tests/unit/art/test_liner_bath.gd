@@ -1,5 +1,6 @@
 extends GutTest
-## LinerBath on the Titanic: her Turkish bath tiled and lit in bronze, her swimming
+## LinerBath on the small Titanic (the Titanic's own baths, laid as her plate draws them
+## on F deck, are rooms of other names): her Turkish bath tiled and lit in bronze, her swimming
 ## bath's pool drawn inside its box — its top within art-lint's reach all over, the
 ## water too — more to each than the saloon's dressing they had. That nothing the
 ## whole ship's dressing draws stands in a body's way is art-lint's (FurnishingCheck).
@@ -27,7 +28,7 @@ var _faces: PackedVector3Array
 
 func before_all() -> void:
 	_rules = RunMatch.default_config(1701).rules
-	_titanic = load("res://data/ships/titanic.tres")
+	_titanic = load("res://data/ships/small_titanic.tres")
 	_space = ShipSpace.new(_titanic)
 	var art := ShipArt.new()
 	art.build(_titanic, _rules.railing_height, _rules.body_radius)
