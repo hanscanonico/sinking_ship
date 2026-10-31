@@ -627,12 +627,11 @@ def hole_rails(plats, sid):
     for name, lo, hi, z0, z1, high, x_low in [s for s in stairs if s[0] == sid]:
         open_end = hi if x_low == lo else lo
         closed = lo if open_end == hi else hi
-        # Under the foot of the flight up from this deck, whose treads cover its hole: a
-        # railing there would stand across them.
-        if any(min(r[5], r[6]) == high and r[2] <= z0 and z1 <= r[3] and r[0] < hi and r[1] > lo
-               for r in ramp_geo):
-            continue
         for tag, a, b in [("p", (lo, z0), (hi, z0)), ("s", (lo, z1), (hi, z1)), ("e", (closed, z0), (closed, z1))]:
+            # Not across the treads of a flight up from this deck, its foot over the hole.
+            if any(min(r[5], r[6]) == high and r[0] < max(a[0], b[0]) + 1e-6 and r[1] > min(a[0], b[0]) - 1e-6
+                   and r[2] < max(a[1], b[1]) + 1e-6 and r[3] > min(a[1], b[1]) - 1e-6 for r in ramp_geo):
+                continue
             on = edge_platform(plats, a, b)
             if on is not None:
                 railing("%s_%s" % (name, tag), on, a, b)
@@ -1009,7 +1008,7 @@ def plan_ends(plan):
 # E and F decks' floors stop at the stores her stem takes (e.py, f.py), past which no body
 # comes and she has no deck.
 E_STEM = 126.4375
-F_STEM = 124.875
+F_STEM = 123.0
 E_PIECES = hull_strips(plan_ends(E_OUTLINE)[0], E_STEM, E_DECK, edges=sorted({h[k] for h in holes["e"] for k in (0, 1)}))
 F_PIECES = hull_strips(plan_ends(F_OUTLINE)[0], F_STEM, F_DECK, edges=sorted({h[k] for h in holes["f"] for k in (0, 1)}))
 e_deck = [i for k, (x0, x1, z0, z1) in enumerate(E_PIECES)

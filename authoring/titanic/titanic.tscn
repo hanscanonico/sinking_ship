@@ -5691,106 +5691,85 @@ metadata/ship = &"platform"
 metadata/name = &"F deck"
 
 [node name="Platform_f_108_0" type="CSGBox3D" parent="Platforms" unique_id=148946078]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 112.75, -8.6625, 0)
-size = Vector3(0.75, 0.2, 8.6)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 112.6875, -8.6625, 0)
+size = Vector3(0.625, 0.2, 8.6)
 material = SubResource("StandardMaterial3D_b7bnx")
 metadata/ship = &"platform"
 metadata/name = &"F deck"
 
 [node name="Platform_f_109_0" type="CSGBox3D" parent="Platforms" unique_id=1426642055]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 113.5, -8.6625, 0)
-size = Vector3(0.75, 0.2, 8.2)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 113.625, -8.6625, 0)
+size = Vector3(1.25, 0.2, 8)
 material = SubResource("StandardMaterial3D_b7bnx")
 metadata/ship = &"platform"
 metadata/name = &"F deck"
 
 [node name="Platform_f_110_0" type="CSGBox3D" parent="Platforms" unique_id=743963023]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 114.21875, -8.6625, 0)
-size = Vector3(0.6875, 0.2, 7.9)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 114.8125, -8.6625, 0)
+size = Vector3(1.125, 0.2, 7.5)
 material = SubResource("StandardMaterial3D_b7bnx")
 metadata/ship = &"platform"
 metadata/name = &"F deck"
 
 [node name="Platform_f_111_0" type="CSGBox3D" parent="Platforms" unique_id=599767684]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 114.90625, -8.6625, 0)
-size = Vector3(0.6875, 0.2, 7.6)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 115.84375, -8.6625, 0)
+size = Vector3(0.9375, 0.2, 7)
 material = SubResource("StandardMaterial3D_b7bnx")
 metadata/ship = &"platform"
 metadata/name = &"F deck"
 
 [node name="Platform_f_112_0" type="CSGBox3D" parent="Platforms" unique_id=1536217356]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 115.84375, -8.6625, 0)
-size = Vector3(1.1875, 0.2, 7)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 116.71875, -8.6625, 0)
+size = Vector3(0.8125, 0.2, 6.6)
 material = SubResource("StandardMaterial3D_b7bnx")
 metadata/ship = &"platform"
 metadata/name = &"F deck"
 
 [node name="Platform_f_113_0" type="CSGBox3D" parent="Platforms" unique_id=493650495]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 116.96875, -8.6625, 0)
-size = Vector3(1.0625, 0.2, 6.4)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 117.5, -8.6625, 0)
+size = Vector3(0.75, 0.2, 6.2)
 material = SubResource("StandardMaterial3D_b7bnx")
 metadata/ship = &"platform"
 metadata/name = &"F deck"
 
 [node name="Platform_f_114_0" type="CSGBox3D" parent="Platforms" unique_id=501001006]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 117.96875, -8.6625, 0)
-size = Vector3(0.9375, 0.2, 6)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 118.1875, -8.6625, 0)
+size = Vector3(0.625, 0.2, 5.9)
 material = SubResource("StandardMaterial3D_b7bnx")
 metadata/ship = &"platform"
 metadata/name = &"F deck"
 
 [node name="Platform_f_115_0" type="CSGBox3D" parent="Platforms" unique_id=1283214799]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 118.84375, -8.6625, 0)
-size = Vector3(0.8125, 0.2, 5.5)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 119.0625, -8.6625, 0)
+size = Vector3(1.125, 0.2, 5.3)
 material = SubResource("StandardMaterial3D_b7bnx")
 metadata/ship = &"platform"
 metadata/name = &"F deck"
 
 [node name="Platform_f_116_0" type="CSGBox3D" parent="Platforms" unique_id=1923418887]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 119.59375, -8.6625, 0)
-size = Vector3(0.6875, 0.2, 5.2)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 120.0625, -8.6625, 0)
+size = Vector3(0.875, 0.2, 4.9)
 material = SubResource("StandardMaterial3D_b7bnx")
 metadata/ship = &"platform"
 metadata/name = &"F deck"
 
 [node name="Platform_f_117_0" type="CSGBox3D" parent="Platforms" unique_id=2109177142]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 120.21875, -8.6625, 0)
-size = Vector3(0.5625, 0.2, 4.9)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 120.8125, -8.6625, 0)
+size = Vector3(0.625, 0.2, 4.5)
 material = SubResource("StandardMaterial3D_b7bnx")
 metadata/ship = &"platform"
 metadata/name = &"F deck"
 
 [node name="Platform_f_118_0" type="CSGBox3D" parent="Platforms" unique_id=1990107711]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 121.0625, -8.6625, 0)
-size = Vector3(1.125, 0.2, 4.3)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 121.59375, -8.6625, 0)
+size = Vector3(0.9375, 0.2, 4)
 material = SubResource("StandardMaterial3D_b7bnx")
 metadata/ship = &"platform"
 metadata/name = &"F deck"
 
 [node name="Platform_f_119_0" type="CSGBox3D" parent="Platforms" unique_id=111371125]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 122.03125, -8.6625, 0)
-size = Vector3(0.8125, 0.2, 3.8)
-material = SubResource("StandardMaterial3D_b7bnx")
-metadata/ship = &"platform"
-metadata/name = &"F deck"
-
-[node name="Platform_f_120_0" type="CSGBox3D" parent="Platforms" unique_id=989566940]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 122.71875, -8.6625, 0)
-size = Vector3(0.5625, 0.2, 3.5)
-material = SubResource("StandardMaterial3D_b7bnx")
-metadata/ship = &"platform"
-metadata/name = &"F deck"
-
-[node name="Platform_f_121_0" type="CSGBox3D" parent="Platforms" unique_id=1628150126]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 123.46875, -8.6625, 0)
-size = Vector3(0.9375, 0.2, 3)
-material = SubResource("StandardMaterial3D_b7bnx")
-metadata/ship = &"platform"
-metadata/name = &"F deck"
-
-[node name="Platform_f_122_0" type="CSGBox3D" parent="Platforms" unique_id=430337682]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 124.40625, -8.6625, 0)
-size = Vector3(0.9375, 0.2, 2.5)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 122.53125, -8.6625, 0)
+size = Vector3(0.9375, 0.2, 3.5)
 material = SubResource("StandardMaterial3D_b7bnx")
 metadata/ship = &"platform"
 metadata/name = &"F deck"
@@ -7370,399 +7349,399 @@ material = SubResource("StandardMaterial3D_b7bnx")
 metadata/ship = &"platform"
 metadata/name = &"double bottom"
 
-[node name="Platform_f_late_154" type="CSGBox3D" parent="Platforms" unique_id=50415873]
+[node name="Platform_f_late_151" type="CSGBox3D" parent="Platforms" unique_id=308619532]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -82.9375, -8.6625, 4.7749996)
 size = Vector3(1, 0.2, 16.15)
 material = SubResource("StandardMaterial3D_b7bnx")
 metadata/ship = &"platform"
 metadata/name = &"F deck"
 
-[node name="Platform_f_late_155" type="CSGBox3D" parent="Platforms" unique_id=2056108790]
+[node name="Platform_f_late_152" type="CSGBox3D" parent="Platforms" unique_id=700278989]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -81.875, -8.6625, -8.625)
 size = Vector3(1.125, 0.2, 8.45)
 material = SubResource("StandardMaterial3D_b7bnx")
 metadata/ship = &"platform"
 metadata/name = &"F deck"
 
-[node name="Platform_f_late_156" type="CSGBox3D" parent="Platforms" unique_id=1848077769]
+[node name="Platform_f_late_153" type="CSGBox3D" parent="Platforms" unique_id=808502914]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -81.875, -8.6625, 8.625)
 size = Vector3(1.125, 0.2, 8.45)
 material = SubResource("StandardMaterial3D_b7bnx")
 metadata/ship = &"platform"
 metadata/name = &"F deck"
 
-[node name="Platform_f_late_157" type="CSGBox3D" parent="Platforms" unique_id=10483540]
+[node name="Platform_f_late_154" type="CSGBox3D" parent="Platforms" unique_id=50415873]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -82.9375, -8.6625, -8.625)
 size = Vector3(1, 0.2, 8.45)
 material = SubResource("StandardMaterial3D_b7bnx")
 metadata/ship = &"platform"
 metadata/name = &"F deck"
 
-[node name="Platform_f_late_158" type="CSGBox3D" parent="Platforms" unique_id=857718744]
+[node name="Platform_f_late_155" type="CSGBox3D" parent="Platforms" unique_id=2056108790]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -81.875, -8.6625, 0)
 size = Vector3(1.125, 0.2, 6.6)
 material = SubResource("StandardMaterial3D_b7bnx")
 metadata/ship = &"platform"
 metadata/name = &"F deck"
 
-[node name="Platform_f_late_159" type="CSGBox3D" parent="Platforms" unique_id=1584882638]
+[node name="Platform_f_late_156" type="CSGBox3D" parent="Platforms" unique_id=1848077769]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -80.6875, -8.6625, -4.875)
 size = Vector3(1, 0.2, 16.35)
 material = SubResource("StandardMaterial3D_b7bnx")
 metadata/ship = &"platform"
 metadata/name = &"F deck"
 
-[node name="Platform_f_late_160" type="CSGBox3D" parent="Platforms" unique_id=542453098]
+[node name="Platform_f_late_157" type="CSGBox3D" parent="Platforms" unique_id=10483540]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -80.6875, -8.6625, 8.725)
 size = Vector3(1, 0.2, 8.65)
 material = SubResource("StandardMaterial3D_b7bnx")
 metadata/ship = &"platform"
 metadata/name = &"F deck"
 
-[node name="Platform_f_late_161" type="CSGBox3D" parent="Platforms" unique_id=1891535224]
+[node name="Platform_f_late_158" type="CSGBox3D" parent="Platforms" unique_id=857718744]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -81.25, -8.6625, -8.725)
 size = Vector3(0.125, 0.2, 8.65)
 material = SubResource("StandardMaterial3D_b7bnx")
 metadata/ship = &"platform"
 metadata/name = &"F deck"
 
-[node name="Platform_f_late_162" type="CSGBox3D" parent="Platforms" unique_id=884091304]
+[node name="Platform_f_late_159" type="CSGBox3D" parent="Platforms" unique_id=1584882638]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -81.25, -8.6625, 8.725)
 size = Vector3(0.125, 0.2, 8.65)
 material = SubResource("StandardMaterial3D_b7bnx")
 metadata/ship = &"platform"
 metadata/name = &"F deck"
 
-[node name="Platform_f_late_163" type="CSGBox3D" parent="Platforms" unique_id=486229917]
+[node name="Platform_f_late_160" type="CSGBox3D" parent="Platforms" unique_id=542453098]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -81.25, -8.6625, 0)
 size = Vector3(0.125, 0.2, 6.6)
 material = SubResource("StandardMaterial3D_b7bnx")
 metadata/ship = &"platform"
 metadata/name = &"F deck"
 
-[node name="Platform_f_late_164" type="CSGBox3D" parent="Platforms" unique_id=1456948057]
+[node name="Platform_f_late_161" type="CSGBox3D" parent="Platforms" unique_id=1891535224]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -61.6875, -8.6625, -2.7249994)
 size = Vector3(2.25, 0.2, 21.45)
 material = SubResource("StandardMaterial3D_b7bnx")
 metadata/ship = &"platform"
 metadata/name = &"F deck"
 
-[node name="Platform_f_late_165" type="CSGBox3D" parent="Platforms" unique_id=1690046150]
+[node name="Platform_f_late_162" type="CSGBox3D" parent="Platforms" unique_id=884091304]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -63.0625, -8.6625, 0)
 size = Vector3(0.5, 0.2, 26.9)
 material = SubResource("StandardMaterial3D_b7bnx")
 metadata/ship = &"platform"
 metadata/name = &"F deck"
 
-[node name="Platform_f_late_166" type="CSGBox3D" parent="Platforms" unique_id=2099007226]
+[node name="Platform_f_late_163" type="CSGBox3D" parent="Platforms" unique_id=486229917]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -61.6875, -8.6625, 11.35)
 size = Vector3(2.25, 0.2, 4.2)
 material = SubResource("StandardMaterial3D_b7bnx")
 metadata/ship = &"platform"
 metadata/name = &"F deck"
 
-[node name="Platform_f_late_167" type="CSGBox3D" parent="Platforms" unique_id=57373630]
+[node name="Platform_f_late_164" type="CSGBox3D" parent="Platforms" unique_id=1456948057]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -39.875, -8.6625, 2.2250004)
 size = Vector3(1.125, 0.2, 22.95)
 material = SubResource("StandardMaterial3D_b7bnx")
 metadata/ship = &"platform"
 metadata/name = &"F deck"
 
-[node name="Platform_f_late_168" type="CSGBox3D" parent="Platforms" unique_id=1046707728]
+[node name="Platform_f_late_165" type="CSGBox3D" parent="Platforms" unique_id=1690046150]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -39.875, -8.6625, -12.099999)
 size = Vector3(1.125, 0.2, 3.2)
 material = SubResource("StandardMaterial3D_b7bnx")
 metadata/ship = &"platform"
 metadata/name = &"F deck"
 
-[node name="Platform_f_late_169" type="CSGBox3D" parent="Platforms" unique_id=602560417]
+[node name="Platform_f_late_166" type="CSGBox3D" parent="Platforms" unique_id=2099007226]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -37.28125, -8.6625, -2.2249994)
 size = Vector3(1.8125, 0.2, 23.45)
 material = SubResource("StandardMaterial3D_b7bnx")
 metadata/ship = &"platform"
 metadata/name = &"F deck"
 
-[node name="Platform_f_late_170" type="CSGBox3D" parent="Platforms" unique_id=2121295088]
+[node name="Platform_f_late_167" type="CSGBox3D" parent="Platforms" unique_id=57373630]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -38.96875, -8.6625, 2.3500004)
 size = Vector3(0.6875, 0.2, 23.2)
 material = SubResource("StandardMaterial3D_b7bnx")
 metadata/ship = &"platform"
 metadata/name = &"F deck"
 
-[node name="Platform_f_late_171" type="CSGBox3D" parent="Platforms" unique_id=1071089955]
+[node name="Platform_f_late_168" type="CSGBox3D" parent="Platforms" unique_id=1046707728]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -38.40625, -8.6625, 0.125)
 size = Vector3(0.4375, 0.2, 18.75)
 material = SubResource("StandardMaterial3D_b7bnx")
 metadata/ship = &"platform"
 metadata/name = &"F deck"
 
-[node name="Platform_f_late_172" type="CSGBox3D" parent="Platforms" unique_id=472470887]
+[node name="Platform_f_late_169" type="CSGBox3D" parent="Platforms" unique_id=602560417]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -37.28125, -8.6625, 12.35)
 size = Vector3(1.8125, 0.2, 3.2)
 material = SubResource("StandardMaterial3D_b7bnx")
 metadata/ship = &"platform"
 metadata/name = &"F deck"
 
-[node name="Platform_f_late_173" type="CSGBox3D" parent="Platforms" unique_id=701645143]
+[node name="Platform_f_late_170" type="CSGBox3D" parent="Platforms" unique_id=2121295088]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -27.40625, -8.6625, 2.1000004)
 size = Vector3(0.1875, 0.2, 23.7)
 material = SubResource("StandardMaterial3D_b7bnx")
 metadata/ship = &"platform"
 metadata/name = &"F deck"
 
-[node name="Platform_f_late_174" type="CSGBox3D" parent="Platforms" unique_id=1059817309]
+[node name="Platform_f_late_171" type="CSGBox3D" parent="Platforms" unique_id=1071089955]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -38.96875, -8.6625, -12.224999)
 size = Vector3(0.6875, 0.2, 3.45)
 material = SubResource("StandardMaterial3D_b7bnx")
 metadata/ship = &"platform"
 metadata/name = &"F deck"
 
-[node name="Platform_f_late_175" type="CSGBox3D" parent="Platforms" unique_id=1060405727]
+[node name="Platform_f_late_172" type="CSGBox3D" parent="Platforms" unique_id=472470887]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -38.40625, -8.6625, -12.224999)
 size = Vector3(0.4375, 0.2, 3.45)
 material = SubResource("StandardMaterial3D_b7bnx")
 metadata/ship = &"platform"
 metadata/name = &"F deck"
 
-[node name="Platform_f_late_176" type="CSGBox3D" parent="Platforms" unique_id=324263636]
+[node name="Platform_f_late_173" type="CSGBox3D" parent="Platforms" unique_id=701645143]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -38.40625, -8.6625, 12.35)
 size = Vector3(0.4375, 0.2, 3.2)
 material = SubResource("StandardMaterial3D_b7bnx")
 metadata/ship = &"platform"
 metadata/name = &"F deck"
 
-[node name="Platform_f_late_177" type="CSGBox3D" parent="Platforms" unique_id=1200064411]
+[node name="Platform_f_late_174" type="CSGBox3D" parent="Platforms" unique_id=1059817309]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -27.40625, -8.6625, -12.974999)
 size = Vector3(0.1875, 0.2, 1.95)
 material = SubResource("StandardMaterial3D_b7bnx")
 metadata/ship = &"platform"
 metadata/name = &"F deck"
 
-[node name="Platform_f_late_178" type="CSGBox3D" parent="Platforms" unique_id=2130448234]
+[node name="Platform_f_late_175" type="CSGBox3D" parent="Platforms" unique_id=1060405727]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -26.70625, -8.6625, 2.1000004)
 size = Vector3(1.2125, 0.2, 23.7)
 material = SubResource("StandardMaterial3D_b7bnx")
 metadata/ship = &"platform"
 metadata/name = &"F deck"
 
-[node name="Platform_f_late_179" type="CSGBox3D" parent="Platforms" unique_id=1107091949]
+[node name="Platform_f_late_176" type="CSGBox3D" parent="Platforms" unique_id=324263636]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -26.70625, -8.6625, -12.974999)
 size = Vector3(1.2125, 0.2, 1.95)
 material = SubResource("StandardMaterial3D_b7bnx")
 metadata/ship = &"platform"
 metadata/name = &"F deck"
 
-[node name="Platform_f_late_180" type="CSGBox3D" parent="Platforms" unique_id=118837420]
+[node name="Platform_f_late_177" type="CSGBox3D" parent="Platforms" unique_id=1200064411]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.0625, -8.6625, 0)
 size = Vector3(2.25, 0.2, 22.8)
 material = SubResource("StandardMaterial3D_b7bnx")
 metadata/ship = &"platform"
 metadata/name = &"F deck"
 
-[node name="Platform_f_late_181" type="CSGBox3D" parent="Platforms" unique_id=514371912]
+[node name="Platform_f_late_178" type="CSGBox3D" parent="Platforms" unique_id=2130448234]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.625, -8.6625, 0)
 size = Vector3(0.625, 0.2, 27.9)
 material = SubResource("StandardMaterial3D_b7bnx")
 metadata/ship = &"platform"
 metadata/name = &"F deck"
 
-[node name="Platform_f_late_182" type="CSGBox3D" parent="Platforms" unique_id=2074844410]
+[node name="Platform_f_late_179" type="CSGBox3D" parent="Platforms" unique_id=1107091949]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.0625, -8.6625, -13.375)
 size = Vector3(2.25, 0.2, 1.15)
 material = SubResource("StandardMaterial3D_b7bnx")
 metadata/ship = &"platform"
 metadata/name = &"F deck"
 
-[node name="Platform_f_late_183" type="CSGBox3D" parent="Platforms" unique_id=1104168229]
+[node name="Platform_f_late_180" type="CSGBox3D" parent="Platforms" unique_id=118837420]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.0625, -8.6625, 13.375)
 size = Vector3(2.25, 0.2, 1.15)
 material = SubResource("StandardMaterial3D_b7bnx")
 metadata/ship = &"platform"
 metadata/name = &"F deck"
 
-[node name="Platform_f_late_184" type="CSGBox3D" parent="Platforms" unique_id=1503673087]
+[node name="Platform_f_late_181" type="CSGBox3D" parent="Platforms" unique_id=514371912]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10.46875, -8.6625, 0)
 size = Vector3(3.5625, 0.2, 27.9)
 material = SubResource("StandardMaterial3D_b7bnx")
 metadata/ship = &"platform"
 metadata/name = &"F deck"
 
-[node name="Platform_f_late_185" type="CSGBox3D" parent="Platforms" unique_id=1803758240]
+[node name="Platform_f_late_182" type="CSGBox3D" parent="Platforms" unique_id=2074844410]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 13.375, -8.6625, 0)
 size = Vector3(2.25, 0.2, 22.8)
 material = SubResource("StandardMaterial3D_b7bnx")
 metadata/ship = &"platform"
 metadata/name = &"F deck"
 
-[node name="Platform_f_late_186" type="CSGBox3D" parent="Platforms" unique_id=904755089]
+[node name="Platform_f_late_183" type="CSGBox3D" parent="Platforms" unique_id=1104168229]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20.40625, -8.6625, 1.5)
 size = Vector3(0.5625, 0.2, 24.9)
 material = SubResource("StandardMaterial3D_b7bnx")
 metadata/ship = &"platform"
 metadata/name = &"F deck"
 
-[node name="Platform_f_late_187" type="CSGBox3D" parent="Platforms" unique_id=1901927435]
+[node name="Platform_f_late_184" type="CSGBox3D" parent="Platforms" unique_id=1503673087]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 13.375, -8.6625, -13.375)
 size = Vector3(2.25, 0.2, 1.15)
 material = SubResource("StandardMaterial3D_b7bnx")
 metadata/ship = &"platform"
 metadata/name = &"F deck"
 
-[node name="Platform_f_late_188" type="CSGBox3D" parent="Platforms" unique_id=902697509]
+[node name="Platform_f_late_185" type="CSGBox3D" parent="Platforms" unique_id=1803758240]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 13.375, -8.6625, 13.375)
 size = Vector3(2.25, 0.2, 1.15)
 material = SubResource("StandardMaterial3D_b7bnx")
 metadata/ship = &"platform"
 metadata/name = &"F deck"
 
-[node name="Platform_f_late_189" type="CSGBox3D" parent="Platforms" unique_id=1133641152]
+[node name="Platform_f_late_186" type="CSGBox3D" parent="Platforms" unique_id=904755089]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20.40625, -8.6625, -13.15)
 size = Vector3(0.5625, 0.2, 1.6)
 material = SubResource("StandardMaterial3D_b7bnx")
 metadata/ship = &"platform"
 metadata/name = &"F deck"
 
-[node name="Platform_f_late_190" type="CSGBox3D" parent="Platforms" unique_id=1593460282]
+[node name="Platform_f_late_187" type="CSGBox3D" parent="Platforms" unique_id=1901927435]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 21.53125, -8.6625, 1.4750004)
 size = Vector3(1.6875, 0.2, 24.85)
 material = SubResource("StandardMaterial3D_b7bnx")
 metadata/ship = &"platform"
 metadata/name = &"F deck"
 
-[node name="Platform_f_late_191" type="CSGBox3D" parent="Platforms" unique_id=1113694281]
+[node name="Platform_f_late_188" type="CSGBox3D" parent="Platforms" unique_id=902697509]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 21.53125, -8.6625, -13.125)
 size = Vector3(1.6875, 0.2, 1.55)
 material = SubResource("StandardMaterial3D_b7bnx")
 metadata/ship = &"platform"
 metadata/name = &"F deck"
 
-[node name="Platform_f_late_192" type="CSGBox3D" parent="Platforms" unique_id=293671857]
+[node name="Platform_f_late_189" type="CSGBox3D" parent="Platforms" unique_id=1133641152]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 48.125, -8.6625, 2.1999998)
 size = Vector3(2.25, 0.2, 22.1)
 material = SubResource("StandardMaterial3D_b7bnx")
 metadata/ship = &"platform"
 metadata/name = &"F deck"
 
-[node name="Platform_f_late_193" type="CSGBox3D" parent="Platforms" unique_id=846541646]
+[node name="Platform_f_late_190" type="CSGBox3D" parent="Platforms" unique_id=1593460282]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 49.96875, -8.6625, 0)
 size = Vector3(1.4375, 0.2, 26.5)
 material = SubResource("StandardMaterial3D_b7bnx")
 metadata/ship = &"platform"
 metadata/name = &"F deck"
 
-[node name="Platform_f_late_194" type="CSGBox3D" parent="Platforms" unique_id=1299122379]
+[node name="Platform_f_late_191" type="CSGBox3D" parent="Platforms" unique_id=1113694281]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 48.125, -8.6625, -11.75)
 size = Vector3(2.25, 0.2, 3)
 material = SubResource("StandardMaterial3D_b7bnx")
 metadata/ship = &"platform"
 metadata/name = &"F deck"
 
-[node name="Platform_f_late_195" type="CSGBox3D" parent="Platforms" unique_id=153680255]
+[node name="Platform_f_late_192" type="CSGBox3D" parent="Platforms" unique_id=293671857]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 54.3125, -8.6625, 0)
 size = Vector3(1.25, 0.2, 25.8)
 material = SubResource("StandardMaterial3D_b7bnx")
 metadata/ship = &"platform"
 metadata/name = &"F deck"
 
-[node name="Platform_f_late_196" type="CSGBox3D" parent="Platforms" unique_id=1729530615]
+[node name="Platform_f_late_193" type="CSGBox3D" parent="Platforms" unique_id=846541646]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 55.8125, -8.6625, -10.474999)
 size = Vector3(1.75, 0.2, 4.85)
 material = SubResource("StandardMaterial3D_b7bnx")
 metadata/ship = &"platform"
 metadata/name = &"F deck"
 
-[node name="Platform_f_late_197" type="CSGBox3D" parent="Platforms" unique_id=1503974624]
+[node name="Platform_f_late_194" type="CSGBox3D" parent="Platforms" unique_id=1299122379]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 56.9375, -8.6625, 2.9999995)
 size = Vector3(0.5, 0.2, 19.3)
 material = SubResource("StandardMaterial3D_b7bnx")
 metadata/ship = &"platform"
 metadata/name = &"F deck"
 
-[node name="Platform_f_late_198" type="CSGBox3D" parent="Platforms" unique_id=1932797891]
+[node name="Platform_f_late_195" type="CSGBox3D" parent="Platforms" unique_id=153680255]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 56.9375, -8.6625, -10.349999)
 size = Vector3(0.5, 0.2, 4.6)
 material = SubResource("StandardMaterial3D_b7bnx")
 metadata/ship = &"platform"
 metadata/name = &"F deck"
 
-[node name="Platform_f_late_199" type="CSGBox3D" parent="Platforms" unique_id=99847032]
+[node name="Platform_f_late_196" type="CSGBox3D" parent="Platforms" unique_id=1729530615]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 103.5, -8.6625, 0)
 size = Vector3(0.25, 0.2, 12.6)
 material = SubResource("StandardMaterial3D_b7bnx")
 metadata/ship = &"platform"
 metadata/name = &"F deck"
 
-[node name="Platform_f_late_200" type="CSGBox3D" parent="Platforms" unique_id=482809608]
+[node name="Platform_f_late_197" type="CSGBox3D" parent="Platforms" unique_id=1503974624]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 103.875, -8.6625, -5.025)
 size = Vector3(0.5, 0.2, 2.55)
 material = SubResource("StandardMaterial3D_b7bnx")
 metadata/ship = &"platform"
 metadata/name = &"F deck"
 
-[node name="Platform_f_late_201" type="CSGBox3D" parent="Platforms" unique_id=1368498771]
+[node name="Platform_f_late_198" type="CSGBox3D" parent="Platforms" unique_id=1932797891]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 104.5, -8.6625, -4.95)
 size = Vector3(0.75, 0.2, 2.4)
 material = SubResource("StandardMaterial3D_b7bnx")
 metadata/ship = &"platform"
 metadata/name = &"F deck"
 
-[node name="Platform_f_late_202" type="CSGBox3D" parent="Platforms" unique_id=1357282871]
+[node name="Platform_f_late_199" type="CSGBox3D" parent="Platforms" unique_id=99847032]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 105.25, -8.6625, -4.875)
 size = Vector3(0.75, 0.2, 2.25)
 material = SubResource("StandardMaterial3D_b7bnx")
 metadata/ship = &"platform"
 metadata/name = &"F deck"
 
-[node name="Platform_f_late_203" type="CSGBox3D" parent="Platforms" unique_id=1379036005]
+[node name="Platform_f_late_200" type="CSGBox3D" parent="Platforms" unique_id=482809608]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 105.75, -8.6625, 1.575)
 size = Vector3(0.25, 0.2, 8.55)
 material = SubResource("StandardMaterial3D_b7bnx")
 metadata/ship = &"platform"
 metadata/name = &"F deck"
 
-[node name="Platform_f_late_204" type="CSGBox3D" parent="Platforms" unique_id=1643423009]
+[node name="Platform_f_late_201" type="CSGBox3D" parent="Platforms" unique_id=1368498771]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 105.75, -8.6625, -4.8)
 size = Vector3(0.25, 0.2, 2.1)
 material = SubResource("StandardMaterial3D_b7bnx")
 metadata/ship = &"platform"
 metadata/name = &"F deck"
 
-[node name="Platform_f_late_205" type="CSGBox3D" parent="Platforms" unique_id=1525959563]
+[node name="Platform_f_late_202" type="CSGBox3D" parent="Platforms" unique_id=1357282871]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 107.21875, -8.6625, 0)
 size = Vector3(0.1875, 0.2, 11)
 material = SubResource("StandardMaterial3D_b7bnx")
 metadata/ship = &"platform"
 metadata/name = &"F deck"
 
-[node name="Platform_f_late_206" type="CSGBox3D" parent="Platforms" unique_id=498851863]
+[node name="Platform_f_late_203" type="CSGBox3D" parent="Platforms" unique_id=1379036005]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 107.59375, -8.6625, 4.625)
 size = Vector3(0.5625, 0.2, 1.75)
 material = SubResource("StandardMaterial3D_b7bnx")
 metadata/ship = &"platform"
 metadata/name = &"F deck"
 
-[node name="Platform_f_late_207" type="CSGBox3D" parent="Platforms" unique_id=193645066]
+[node name="Platform_f_late_204" type="CSGBox3D" parent="Platforms" unique_id=1643423009]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 108.25, -8.6625, 4.55)
 size = Vector3(0.75, 0.2, 1.6)
 material = SubResource("StandardMaterial3D_b7bnx")
 metadata/ship = &"platform"
 metadata/name = &"F deck"
 
-[node name="Platform_f_late_208" type="CSGBox3D" parent="Platforms" unique_id=1675227892]
+[node name="Platform_f_late_205" type="CSGBox3D" parent="Platforms" unique_id=1525959563]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 109, -8.6625, 4.45)
 size = Vector3(0.75, 0.2, 1.4)
 material = SubResource("StandardMaterial3D_b7bnx")
 metadata/ship = &"platform"
 metadata/name = &"F deck"
 
-[node name="Platform_f_late_209" type="CSGBox3D" parent="Platforms" unique_id=1509725718]
+[node name="Platform_f_late_206" type="CSGBox3D" parent="Platforms" unique_id=498851863]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 109.46875, -8.6625, -1.1500001)
 size = Vector3(0.1875, 0.2, 7.7)
 material = SubResource("StandardMaterial3D_b7bnx")
 metadata/ship = &"platform"
 metadata/name = &"F deck"
 
-[node name="Platform_f_late_210" type="CSGBox3D" parent="Platforms" unique_id=1647576409]
+[node name="Platform_f_late_207" type="CSGBox3D" parent="Platforms" unique_id=193645066]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 109.46875, -8.6625, 4.375)
 size = Vector3(0.1875, 0.2, 1.25)
 material = SubResource("StandardMaterial3D_b7bnx")
@@ -45221,38 +45200,38 @@ material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
 [node name="Blocker_f_wall_327" type="CSGBox3D" parent="Blockers" unique_id=1042459812]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 110.25, -7.25, -4.3500004)
-size = Vector3(0.2, 2.625, 0.9)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 110.25, -7.25, -4.3)
+size = Vector3(0.2, 2.625, 1)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
 [node name="Blocker_f_wall_328" type="CSGBox3D" parent="Blockers" unique_id=1732016180]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 110.25, -7.25, 4.35)
-size = Vector3(0.2, 2.625, 0.9)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 110.25, -7.25, 4.3)
+size = Vector3(0.2, 2.625, 1)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
 [node name="Blocker_f_wall_329" type="CSGBox3D" parent="Blockers" unique_id=1866685824]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 113.3125, -7.25, -3.6999998)
-size = Vector3(0.2, 2.625, 0.8)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 113.3125, -7.25, -3.65)
+size = Vector3(0.2, 2.625, 0.7)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
 [node name="Blocker_f_wall_330" type="CSGBox3D" parent="Blockers" unique_id=1274800763]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 113.3125, -7.25, 3.7)
-size = Vector3(0.2, 2.625, 0.8)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 113.3125, -7.25, 3.6499999)
+size = Vector3(0.2, 2.625, 0.7)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
 [node name="Blocker_f_wall_331" type="CSGBox3D" parent="Blockers" unique_id=592611948]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 115.8125, -7.25, -2.95)
-size = Vector3(0.2, 2.625, 1.1)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 115.8125, -7.25, -2.875)
+size = Vector3(0.2, 2.625, 1.25)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
 [node name="Blocker_f_wall_332" type="CSGBox3D" parent="Blockers" unique_id=976240012]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 115.8125, -7.25, 2.95)
-size = Vector3(0.2, 2.625, 1.1)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 115.8125, -7.25, 2.875)
+size = Vector3(0.2, 2.625, 1.25)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
@@ -46391,7 +46370,7 @@ material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
 [node name="Blocker_f_wall_470" type="CSGBox3D" parent="Blockers" unique_id=504500727]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 111.78125, -7.25, -4)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 111.78125, -7.25, -3.9)
 size = Vector3(3.2625, 2.625, 0.2)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
@@ -46871,7 +46850,7 @@ material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
 [node name="Blocker_f_wall_528" type="CSGBox3D" parent="Blockers" unique_id=339567293]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 111.78125, -7.25, 4)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 111.78125, -7.25, 3.8999999)
 size = Vector3(3.2625, 2.625, 0.2)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
@@ -48996,13 +48975,13 @@ metadata/ship = &"blocker"
 
 [node name="Blocker_f_107_chain_locker" type="CSGBox3D" parent="Blockers" unique_id=1169657953]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 117.75, -7.25, 0)
-size = Vector3(3.875, 2.625, 5)
+size = Vector3(3.875, 2.625, 4.7)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
 [node name="Blocker_f_108_store" type="CSGBox3D" parent="Blockers" unique_id=1923573578]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 122.28125, -7.25, 0)
-size = Vector3(5.1875, 2.625, 2.3)
+size = Vector3(5.1875, 2.625, 3.3)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
@@ -57189,13 +57168,6 @@ material = SubResource("StandardMaterial3D_r6eh1")
 metadata/ship = &"railing"
 metadata/platform = &"Platform_c_57_4"
 
-[node name="Railing_d_third_class_stairway_0_e" type="CSGBox3D" parent="Railings" unique_id=198724032]
-transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -112.8125, -2.6875, -2.125)
-size = Vector3(1.375, 1, 0.05)
-material = SubResource("StandardMaterial3D_r6eh1")
-metadata/ship = &"railing"
-metadata/platform = &"Platform_d_30_2"
-
 [node name="Railing_d_second_class_stairway_1_p" type="CSGBox3D" parent="Railings" unique_id=774249175]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -92.71875, -2.6875, -2.6875)
 size = Vector3(3.3125, 1, 0.05)
@@ -57293,13 +57265,6 @@ size = Vector3(2.625, 1, 0.05)
 material = SubResource("StandardMaterial3D_r6eh1")
 metadata/ship = &"railing"
 metadata/platform = &"Platform_d_54_2"
-
-[node name="Railing_d_third_class_ladder_12_e" type="CSGBox3D" parent="Railings" unique_id=1136711417]
-transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 96.0625, -2.6875, 6.5625)
-size = Vector3(1.375, 1, 0.05)
-material = SubResource("StandardMaterial3D_r6eh1")
-metadata/ship = &"railing"
-metadata/platform = &"Platform_d_64_2"
 
 [node name="Railing_e_third_class_stairway_0_e" type="CSGBox3D" parent="Railings" unique_id=289868142]
 transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -111.5, -5.4375, 1.6875)
@@ -57454,13 +57419,6 @@ size = Vector3(1.3125, 1, 0.05)
 material = SubResource("StandardMaterial3D_r6eh1")
 metadata/ship = &"railing"
 metadata/platform = &"Platform_f_50_2"
-
-[node name="Railing_f_stair_6_e" type="CSGBox3D" parent="Railings" unique_id=729226764]
-transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 75.375, -8.0625, -7.3125)
-size = Vector3(1, 1, 0.05)
-material = SubResource("StandardMaterial3D_r6eh1")
-metadata/ship = &"railing"
-metadata/platform = &"Platform_f_76_3"
 
 [node name="Railing_f_stair_7_e" type="CSGBox3D" parent="Railings" unique_id=607009460]
 transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 80.875, -8.0625, -5)
@@ -58524,14 +58482,14 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.0625, -8.0625, 11.4)
 size = Vector3(2.25, 1, 0.05)
 material = SubResource("StandardMaterial3D_r6eh1")
 metadata/ship = &"railing"
-metadata/platform = &"Platform_f_late_180"
+metadata/platform = &"Platform_f_late_177"
 
 [node name="Railing_stokehold_2_s_s" type="CSGBox3D" parent="Railings" unique_id=831893982]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.0625, -8.0625, 12.8)
 size = Vector3(2.25, 1, 0.05)
 material = SubResource("StandardMaterial3D_r6eh1")
 metadata/ship = &"railing"
-metadata/platform = &"Platform_f_late_183"
+metadata/platform = &"Platform_f_late_180"
 
 [node name="Railing_stokehold_2_s_e" type="CSGBox3D" parent="Railings" unique_id=24213551]
 transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -6.1875, -8.0625, 12.1)
@@ -58545,14 +58503,14 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.0625, -8.0625, -12.8)
 size = Vector3(2.25, 1, 0.05)
 material = SubResource("StandardMaterial3D_r6eh1")
 metadata/ship = &"railing"
-metadata/platform = &"Platform_f_late_182"
+metadata/platform = &"Platform_f_late_179"
 
 [node name="Railing_stokehold_2_p_s" type="CSGBox3D" parent="Railings" unique_id=1764437395]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.0625, -8.0625, -11.4)
 size = Vector3(2.25, 1, 0.05)
 material = SubResource("StandardMaterial3D_r6eh1")
 metadata/ship = &"railing"
-metadata/platform = &"Platform_f_late_180"
+metadata/platform = &"Platform_f_late_177"
 
 [node name="Railing_stokehold_2_p_e" type="CSGBox3D" parent="Railings" unique_id=1199819006]
 transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -6.1875, -8.0625, -12.1)
@@ -58566,42 +58524,42 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 13.375, -8.0625, 11.4)
 size = Vector3(2.25, 1, 0.05)
 material = SubResource("StandardMaterial3D_r6eh1")
 metadata/ship = &"railing"
-metadata/platform = &"Platform_f_late_185"
+metadata/platform = &"Platform_f_late_182"
 
 [node name="Railing_stokehold_3_s_s" type="CSGBox3D" parent="Railings" unique_id=384681032]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 13.375, -8.0625, 12.8)
 size = Vector3(2.25, 1, 0.05)
 material = SubResource("StandardMaterial3D_r6eh1")
 metadata/ship = &"railing"
-metadata/platform = &"Platform_f_late_188"
+metadata/platform = &"Platform_f_late_185"
 
 [node name="Railing_stokehold_3_s_e" type="CSGBox3D" parent="Railings" unique_id=1005521339]
 transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 12.25, -8.0625, 12.1)
 size = Vector3(1.4000006, 1, 0.05)
 material = SubResource("StandardMaterial3D_r6eh1")
 metadata/ship = &"railing"
-metadata/platform = &"Platform_f_late_184"
+metadata/platform = &"Platform_f_late_181"
 
 [node name="Railing_stokehold_3_p_p" type="CSGBox3D" parent="Railings" unique_id=1859020579]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 13.375, -8.0625, -12.8)
 size = Vector3(2.25, 1, 0.05)
 material = SubResource("StandardMaterial3D_r6eh1")
 metadata/ship = &"railing"
-metadata/platform = &"Platform_f_late_187"
+metadata/platform = &"Platform_f_late_184"
 
 [node name="Railing_stokehold_3_p_s" type="CSGBox3D" parent="Railings" unique_id=691994792]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 13.375, -8.0625, -11.4)
 size = Vector3(2.25, 1, 0.05)
 material = SubResource("StandardMaterial3D_r6eh1")
 metadata/ship = &"railing"
-metadata/platform = &"Platform_f_late_185"
+metadata/platform = &"Platform_f_late_182"
 
 [node name="Railing_stokehold_3_p_e" type="CSGBox3D" parent="Railings" unique_id=825006804]
 transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 12.25, -8.0625, -12.1)
 size = Vector3(1.4000006, 1, 0.05)
 material = SubResource("StandardMaterial3D_r6eh1")
 metadata/ship = &"railing"
-metadata/platform = &"Platform_f_late_184"
+metadata/platform = &"Platform_f_late_181"
 
 [node name="Railing_stokehold_4_p_e" type="CSGBox3D" parent="Railings" unique_id=270020423]
 transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 22.375, -8.0625, -11.65)
@@ -58615,14 +58573,14 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 48.125, -8.0625, -10.25)
 size = Vector3(2.25, 1, 0.05)
 material = SubResource("StandardMaterial3D_r6eh1")
 metadata/ship = &"railing"
-metadata/platform = &"Platform_f_late_194"
+metadata/platform = &"Platform_f_late_191"
 
 [node name="Railing_stokehold_5_p_s" type="CSGBox3D" parent="Railings" unique_id=1194228318]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 48.125, -8.0625, -8.85)
 size = Vector3(2.25, 1, 0.05)
 material = SubResource("StandardMaterial3D_r6eh1")
 metadata/ship = &"railing"
-metadata/platform = &"Platform_f_late_192"
+metadata/platform = &"Platform_f_late_189"
 
 [node name="Railing_stokehold_5_p_e" type="CSGBox3D" parent="Railings" unique_id=1342600668]
 transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 47, -8.0625, -9.55)
@@ -58643,14 +58601,14 @@ transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 103.625, -8.0625, -3.225)
 size = Vector3(1.05, 1, 0.05)
 material = SubResource("StandardMaterial3D_r6eh1")
 metadata/ship = &"railing"
-metadata/platform = &"Platform_f_late_199"
+metadata/platform = &"Platform_f_late_196"
 
 [node name="Railing_space_h1_f_2_e" type="CSGBox3D" parent="Railings" unique_id=1500741451]
 transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 107.3125, -8.0625, 3.225)
 size = Vector3(1.05, 1, 0.05)
 material = SubResource("StandardMaterial3D_r6eh1")
 metadata/ship = &"railing"
-metadata/platform = &"Platform_f_late_205"
+metadata/platform = &"Platform_f_late_202"
 
 [node name="Railing_space_br1_p_a" type="CSGBox3D" parent="Railings" unique_id=1285929604]
 transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -27.5, -8.0625, -10.875)
@@ -58671,28 +58629,28 @@ transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -38.1875, -8.0625, -9.875)
 size = Vector3(1.25, 1, 0.05)
 material = SubResource("StandardMaterial3D_r6eh1")
 metadata/ship = &"railing"
-metadata/platform = &"Platform_f_late_169"
+metadata/platform = &"Platform_f_late_166"
 
 [node name="Railing_space_engine_s_e" type="CSGBox3D" parent="Railings" unique_id=1373244201]
 transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -38.625, -8.0625, 10.125)
 size = Vector3(1.25, 1, 0.05)
 material = SubResource("StandardMaterial3D_r6eh1")
 metadata/ship = &"railing"
-metadata/platform = &"Platform_f_late_170"
+metadata/platform = &"Platform_f_late_167"
 
 [node name="Railing_space_turbine_s_p" type="CSGBox3D" parent="Railings" unique_id=1391443939]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -61.6875, -8.0625, 8)
 size = Vector3(2.25, 1, 0.05)
 material = SubResource("StandardMaterial3D_r6eh1")
 metadata/ship = &"railing"
-metadata/platform = &"Platform_f_late_164"
+metadata/platform = &"Platform_f_late_161"
 
 [node name="Railing_space_turbine_s_s" type="CSGBox3D" parent="Railings" unique_id=1895563400]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -61.6875, -8.0625, 9.25)
 size = Vector3(2.25, 1, 0.05)
 material = SubResource("StandardMaterial3D_r6eh1")
 metadata/ship = &"railing"
-metadata/platform = &"Platform_f_late_166"
+metadata/platform = &"Platform_f_late_163"
 
 [node name="Railing_space_turbine_s_e" type="CSGBox3D" parent="Railings" unique_id=1272218921]
 transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -60.5625, -8.0625, 8.625)
@@ -58713,7 +58671,7 @@ transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -82.4375, -8.0625, 3.85)
 size = Vector3(1.1000001, 1, 0.05)
 material = SubResource("StandardMaterial3D_r6eh1")
 metadata/ship = &"railing"
-metadata/platform = &"Platform_f_late_154"
+metadata/platform = &"Platform_f_late_151"
 
 [node name="Ladders" type="Node3D" parent="." unique_id=356567887]
 
@@ -76508,33 +76466,33 @@ material = SubResource("StandardMaterial3D_wpyyv")
 metadata/ship = &"room"
 metadata/name = &"passage, E deck aft of D"
 
-[node name="Room_e_439_three_berth_room_e_deck_aft_of_d" type="CSGBox3D" parent="Rooms" unique_id=516001498]
+[node name="Room_e_439_three_berth_stateroom_e_deck_aft_of_d" type="CSGBox3D" parent="Rooms" unique_id=188115093]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 69.28515, -4.8875, -1.78125)
 size = Vector3(2.9453, 2.1, 2.6875)
 material = SubResource("StandardMaterial3D_wpyyv")
 metadata/ship = &"room"
-metadata/name = &"three-berth room, E deck aft of D"
+metadata/name = &"three-berth stateroom, E deck aft of D"
 
-[node name="Room_e_440_three_berth_room_e_deck" type="CSGBox3D" parent="Rooms" unique_id=1455986302]
+[node name="Room_e_440_three_berth_stateroom_e_deck" type="CSGBox3D" parent="Rooms" unique_id=2002133921]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 71.1828, -4.8875, -1.78125)
 size = Vector3(0.85, 2.1, 2.6875)
 material = SubResource("StandardMaterial3D_wpyyv")
 metadata/ship = &"room"
-metadata/name = &"three-berth room, E deck"
+metadata/name = &"three-berth stateroom, E deck"
 
-[node name="Room_e_441_four_berth_room_e_deck_aft_of_d" type="CSGBox3D" parent="Rooms" unique_id=1914816943]
+[node name="Room_e_441_four_berth_stateroom_e_deck_aft_of_d" type="CSGBox3D" parent="Rooms" unique_id=2099221336]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 69.28515, -4.8875, 0.84375)
 size = Vector3(2.9453, 2.1, 2.5625)
 material = SubResource("StandardMaterial3D_wpyyv")
 metadata/ship = &"room"
-metadata/name = &"four-berth room, E deck aft of D"
+metadata/name = &"four-berth stateroom, E deck aft of D"
 
-[node name="Room_e_442_four_berth_room_e_deck" type="CSGBox3D" parent="Rooms" unique_id=1047240013]
+[node name="Room_e_442_four_berth_stateroom_e_deck" type="CSGBox3D" parent="Rooms" unique_id=220291219]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 71.1828, -4.8875, 0.84375)
 size = Vector3(0.85, 2.1, 2.5625)
 material = SubResource("StandardMaterial3D_wpyyv")
 metadata/ship = &"room"
-metadata/name = &"four-berth room, E deck"
+metadata/name = &"four-berth stateroom, E deck"
 
 [node name="Room_e_443_passage_e_deck" type="CSGBox3D" parent="Rooms" unique_id=470672937]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 72.1789, -4.8875, 0.0625)
@@ -76543,19 +76501,19 @@ material = SubResource("StandardMaterial3D_wpyyv")
 metadata/ship = &"room"
 metadata/name = &"passage, E deck"
 
-[node name="Room_e_444_three_berth_room_e_deck" type="CSGBox3D" parent="Rooms" unique_id=2033327316]
+[node name="Room_e_444_three_berth_stateroom_e_deck" type="CSGBox3D" parent="Rooms" unique_id=957684987]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 74.09375, -4.8875, -1.59375)
 size = Vector3(2.6875, 2.1, 3.0625)
 material = SubResource("StandardMaterial3D_wpyyv")
 metadata/ship = &"room"
-metadata/name = &"three-berth room, E deck"
+metadata/name = &"three-berth stateroom, E deck"
 
-[node name="Room_e_445_four_berth_room_e_deck" type="CSGBox3D" parent="Rooms" unique_id=1761296883]
+[node name="Room_e_445_four_berth_stateroom_e_deck" type="CSGBox3D" parent="Rooms" unique_id=1104204042]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 74.09375, -4.8875, 1.59375)
 size = Vector3(2.6875, 2.1, 3.3125)
 material = SubResource("StandardMaterial3D_wpyyv")
 metadata/ship = &"room"
-metadata/name = &"four-berth room, E deck"
+metadata/name = &"four-berth stateroom, E deck"
 
 [node name="Room_e_446_passage_e_deck_aft_of_d" type="CSGBox3D" parent="Rooms" unique_id=565494337]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 69.66015, -4.8875, 2.6875)
@@ -80115,7 +80073,7 @@ metadata/name = &"firemen\'s quarters, F deck aft of A"
 
 [node name="Room_f_416_firemen_s_quarters_f_deck_aft_of_a" type="CSGBox3D" parent="Rooms" unique_id=228290765]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 111.78125, -7.5125, 0)
-size = Vector3(3.0625, 2.1, 8)
+size = Vector3(3.0625, 2.1, 7.8)
 material = SubResource("StandardMaterial3D_wpyyv")
 metadata/ship = &"room"
 metadata/name = &"firemen\'s quarters, F deck aft of A"
@@ -84339,40 +84297,40 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 67.5, -5.9375, 5.125)
 metadata/ship = &"bonus_spot"
 metadata/room = &"Room_e_438_passage_e_deck_aft_of_d"
 
-[node name="BonusSpot_e_439_three_berth_room_e_deck_aft_of_d" type="Marker3D" parent="BonusSpots" unique_id=2051155185]
+[node name="BonusSpot_e_439_three_berth_stateroom_e_deck_aft_of_d" type="Marker3D" parent="BonusSpots" unique_id=1119818190]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 69.2852, -5.9375, -1.7812)
 metadata/ship = &"bonus_spot"
-metadata/room = &"Room_e_439_three_berth_room_e_deck_aft_of_d"
+metadata/room = &"Room_e_439_three_berth_stateroom_e_deck_aft_of_d"
 
-[node name="BonusSpot_e_440_three_berth_room_e_deck" type="Marker3D" parent="BonusSpots" unique_id=881271947]
+[node name="BonusSpot_e_440_three_berth_stateroom_e_deck" type="Marker3D" parent="BonusSpots" unique_id=564570466]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 71.1828, -5.9375, -1.7812)
 metadata/ship = &"bonus_spot"
-metadata/room = &"Room_e_440_three_berth_room_e_deck"
+metadata/room = &"Room_e_440_three_berth_stateroom_e_deck"
 
-[node name="BonusSpot_e_441_four_berth_room_e_deck_aft_of_d" type="Marker3D" parent="BonusSpots" unique_id=669457082]
+[node name="BonusSpot_e_441_four_berth_stateroom_e_deck_aft_of_d" type="Marker3D" parent="BonusSpots" unique_id=338141956]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 69.2852, -5.9375, 0.8438)
 metadata/ship = &"bonus_spot"
-metadata/room = &"Room_e_441_four_berth_room_e_deck_aft_of_d"
+metadata/room = &"Room_e_441_four_berth_stateroom_e_deck_aft_of_d"
 
-[node name="BonusSpot_e_442_four_berth_room_e_deck" type="Marker3D" parent="BonusSpots" unique_id=1224777803]
+[node name="BonusSpot_e_442_four_berth_stateroom_e_deck" type="Marker3D" parent="BonusSpots" unique_id=1644982955]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 71.1828, -5.9375, 1.0437)
 metadata/ship = &"bonus_spot"
-metadata/room = &"Room_e_442_four_berth_room_e_deck"
+metadata/room = &"Room_e_442_four_berth_stateroom_e_deck"
 
 [node name="BonusSpot_e_443_passage_e_deck" type="Marker3D" parent="BonusSpots" unique_id=765715615]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 72.1789, -5.9375, 0.0625)
 metadata/ship = &"bonus_spot"
 metadata/room = &"Room_e_443_passage_e_deck"
 
-[node name="BonusSpot_e_444_three_berth_room_e_deck" type="Marker3D" parent="BonusSpots" unique_id=1896900118]
+[node name="BonusSpot_e_444_three_berth_stateroom_e_deck" type="Marker3D" parent="BonusSpots" unique_id=1067300692]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 74.0938, -5.9375, -1.5938)
 metadata/ship = &"bonus_spot"
-metadata/room = &"Room_e_444_three_berth_room_e_deck"
+metadata/room = &"Room_e_444_three_berth_stateroom_e_deck"
 
-[node name="BonusSpot_e_445_four_berth_room_e_deck" type="Marker3D" parent="BonusSpots" unique_id=1199862105]
+[node name="BonusSpot_e_445_four_berth_stateroom_e_deck" type="Marker3D" parent="BonusSpots" unique_id=1654117907]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 74.0938, -5.9375, 1.5938)
 metadata/ship = &"bonus_spot"
-metadata/room = &"Room_e_445_four_berth_room_e_deck"
+metadata/room = &"Room_e_445_four_berth_stateroom_e_deck"
 
 [node name="BonusSpot_e_446_passage_e_deck_aft_of_d" type="Marker3D" parent="BonusSpots" unique_id=562894210]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 69.6602, -5.9375, 2.6875)
@@ -87922,7 +87880,7 @@ material = SubResource("StandardMaterial3D_7qh17")
 metadata/ship = &"cell"
 metadata/name = &"hold_3_tween"
 metadata/shape = 0.8514
-metadata/rooms = Array[StringName]([&"passage, E deck", &"passage, E deck", &"four-berth third-class room, E deck aft of C", &"passage, E deck", &"passage, E deck", &"six-berth third-class room, E deck aft of C", &"six-berth third-class room, E deck aft of C", &"three-berth room, E deck", &"four-berth room, E deck", &"passage, E deck", &"three-berth room, E deck", &"four-berth room, E deck", &"passage, E deck", &"store, E deck aft of C", &"pantry, E deck aft of C", &"three-berth first-class stateroom, E deck aft of C", &"three-berth first-class stateroom, E deck aft of C", &"passage, E deck", &"two-berth first-class stateroom, E deck", &"two-berth first-class stateroom, E deck", &"passage, E deck", &"passage, E deck", &"passage, E deck", &"masters-at-arms\' room, E deck", &"four-berth third-class room, E deck aft of C", &"passage, E deck", &"men\'s lavatory, E deck aft of C", &"men\'s lavatory, E deck aft of C", &"passage, E deck", &"bathroom, E deck aft of C", &"passage, E deck", &"four-berth third-class room, E deck aft of C", &"two-berth third-class room, E deck aft of C", &"four-berth third-class room, E deck aft of C", &"passage, E deck", &"bar, E deck", &"women\'s lavatory, E deck", &"eight-berth third-class room, F deck", &"eight-berth third-class room, F deck", &"passage, F deck aft of C", &"passage, F deck aft of C", &"passage, F deck aft of C", &"linen room, F deck aft of C", &"linen room, F deck aft of C", &"passage, F deck aft of C", &"eight-berth third-class room, F deck", &"passage, F deck aft of C", &"six-berth third-class room, F deck", &"four-berth third-class room, F deck aft of C", &"passage, F deck aft of C", &"passage, F deck aft of C", &"four-berth third-class room, F deck aft of C", &"two-berth third-class room, F deck aft of C", &"two-berth third-class room, F deck aft of C", &"third-class room, F deck", &"two-berth third-class room, F deck aft of C", &"two-berth third-class room, F deck aft of C", &"two-berth third-class room, F deck aft of C", &"passage, F deck aft of C", &"passage, F deck aft of C", &"passage, F deck aft of C", &"passage, F deck aft of C", &"store, F deck aft of C", &"six-berth third-class room, F deck", &"six-berth third-class room, F deck", &"six-berth third-class room, F deck", &"passage, F deck aft of C", &"third-class room, F deck", &"third-class room, F deck", &"third-class room, F deck", &"passage, F deck aft of C", &"two-berth third-class room, F deck aft of C", &"mail clerks\' room", &"four-berth third-class room, F deck aft of C", &"four-berth third-class room, F deck aft of C", &"passage, F deck aft of C", &"six-berth third-class room, F deck", &"six-berth third-class room, F deck", &"passage, F deck aft of C", &"post office"])
+metadata/rooms = Array[StringName]([&"passage, E deck", &"passage, E deck", &"four-berth third-class room, E deck aft of C", &"passage, E deck", &"passage, E deck", &"six-berth third-class room, E deck aft of C", &"six-berth third-class room, E deck aft of C", &"three-berth stateroom, E deck", &"four-berth stateroom, E deck", &"passage, E deck", &"three-berth stateroom, E deck", &"four-berth stateroom, E deck", &"passage, E deck", &"store, E deck aft of C", &"pantry, E deck aft of C", &"three-berth first-class stateroom, E deck aft of C", &"three-berth first-class stateroom, E deck aft of C", &"passage, E deck", &"two-berth first-class stateroom, E deck", &"two-berth first-class stateroom, E deck", &"passage, E deck", &"passage, E deck", &"passage, E deck", &"masters-at-arms\' room, E deck", &"four-berth third-class room, E deck aft of C", &"passage, E deck", &"men\'s lavatory, E deck aft of C", &"men\'s lavatory, E deck aft of C", &"passage, E deck", &"bathroom, E deck aft of C", &"passage, E deck", &"four-berth third-class room, E deck aft of C", &"two-berth third-class room, E deck aft of C", &"four-berth third-class room, E deck aft of C", &"passage, E deck", &"bar, E deck", &"women\'s lavatory, E deck", &"eight-berth third-class room, F deck", &"eight-berth third-class room, F deck", &"passage, F deck aft of C", &"passage, F deck aft of C", &"passage, F deck aft of C", &"linen room, F deck aft of C", &"linen room, F deck aft of C", &"passage, F deck aft of C", &"eight-berth third-class room, F deck", &"passage, F deck aft of C", &"six-berth third-class room, F deck", &"four-berth third-class room, F deck aft of C", &"passage, F deck aft of C", &"passage, F deck aft of C", &"four-berth third-class room, F deck aft of C", &"two-berth third-class room, F deck aft of C", &"two-berth third-class room, F deck aft of C", &"third-class room, F deck", &"two-berth third-class room, F deck aft of C", &"two-berth third-class room, F deck aft of C", &"two-berth third-class room, F deck aft of C", &"passage, F deck aft of C", &"passage, F deck aft of C", &"passage, F deck aft of C", &"passage, F deck aft of C", &"store, F deck aft of C", &"six-berth third-class room, F deck", &"six-berth third-class room, F deck", &"six-berth third-class room, F deck", &"passage, F deck aft of C", &"third-class room, F deck", &"third-class room, F deck", &"third-class room, F deck", &"passage, F deck aft of C", &"two-berth third-class room, F deck aft of C", &"mail clerks\' room", &"four-berth third-class room, F deck aft of C", &"four-berth third-class room, F deck aft of C", &"passage, F deck aft of C", &"six-berth third-class room, F deck", &"six-berth third-class room, F deck", &"passage, F deck aft of C", &"post office"])
 metadata/leak_area = 0.00277
 
 [node name="Cell_firemens_passage" type="CSGBox3D" parent="Structure/Cells" unique_id=1053595385]
@@ -87965,7 +87923,7 @@ material = SubResource("StandardMaterial3D_7qh17")
 metadata/ship = &"cell"
 metadata/name = &"boiler_room_6_tween"
 metadata/shape = 0.9529
-metadata/rooms = Array[StringName]([&"ladderway, E deck aft of D", &"ash place, E deck aft of D", &"bathroom, E deck aft of D", &"passage, E deck aft of D", &"passage, E deck aft of D", &"bathroom, E deck aft of D", &"quartermasters\' quarters, E deck", &"carpenter and joiner\'s room, E deck", &"petty officers\' lavatory, E deck", &"passage, E deck aft of D", &"passage, E deck aft of D", &"boatswain and mate\'s room, E deck", &"boatswain and mate\'s room, E deck", &"four-berth third-class room, E deck aft of D", &"passage, E deck aft of D", &"four-berth third-class room, E deck aft of D", &"six-berth third-class room, E deck aft of D", &"passage, E deck aft of D", &"four-berth third-class room, E deck aft of D", &"four-berth third-class room, E deck aft of D", &"four-berth third-class room, E deck aft of D", &"passage, E deck aft of D", &"six-berth third-class room, E deck aft of D", &"one-berth first-class stateroom, E deck aft of D", &"one-berth first-class stateroom, E deck aft of D", &"linen room, E deck", &"bathroom, E deck aft of D", &"bathroom, E deck aft of D", &"gentlemen\'s lavatory, E deck", &"gentlemen\'s lavatory, E deck", &"bathroom, E deck aft of D", &"bathroom, E deck aft of D", &"passage, E deck aft of D", &"three-berth room, E deck aft of D", &"four-berth room, E deck aft of D", &"passage, E deck aft of D", &"passage, E deck aft of D", &"three-berth first-class stateroom, E deck aft of D", &"three-berth first-class stateroom, E deck aft of D", &"passage, E deck aft of D", &"three-berth first-class stateroom, E deck aft of D", &"three-berth first-class stateroom, E deck aft of D", &"three-berth first-class stateroom, E deck aft of D", &"three-berth first-class stateroom, E deck aft of D", &"three-berth first-class stateroom, E deck aft of D", &"three-berth first-class stateroom, E deck aft of D", &"passage, E deck aft of D", &"three-berth first-class stateroom, E deck aft of D", &"three-berth first-class stateroom, E deck aft of D", &"three-berth first-class stateroom, E deck aft of D", &"three-berth first-class stateroom, E deck aft of D", &"three-berth first-class stateroom, E deck aft of D", &"three-berth first-class stateroom, E deck aft of D", &"four-berth third-class room, F deck", &"six-berth third-class room, F deck aft of D", &"six-berth third-class room, F deck aft of D", &"two-berth third-class room, F deck aft of D", &"four-berth third-class room, F deck", &"passage, F deck", &"passage, F deck", &"four-berth third-class room, F deck", &"six-berth third-class room, F deck aft of D", &"four-berth third-class room, F deck", &"four-berth third-class room, F deck", &"four-berth third-class room, F deck", &"four-berth third-class room, F deck", &"passage, F deck", &"passage, F deck", &"ten-berth third-class room, F deck", &"four-berth third-class room, F deck", &"four-berth third-class room, F deck", &"four-berth third-class room, F deck", &"four-berth third-class room, F deck", &"passage, F deck", &"passage, F deck", &"two-berth third-class room, F deck aft of D", &"two-berth third-class room, F deck aft of D", &"passage, F deck", &"passage, F deck", &"squash stairway", &"passage, F deck", &"four-berth third-class room, F deck", &"four-berth third-class room, F deck", &"passage, F deck", &"four-berth third-class room, F deck", &"four-berth third-class room, F deck", &"passage, F deck", &"four-berth third-class room, F deck", &"four-berth third-class room, F deck", &"passage, F deck", &"four-berth third-class room, F deck", &"six-berth third-class room, F deck aft of D", &"four-berth third-class room, F deck", &"six-berth third-class room, F deck aft of D", &"passage, F deck", &"four-berth third-class room, F deck", &"four-berth third-class room, F deck", &"four-berth third-class room, F deck", &"six-berth third-class room, F deck aft of D", &"passage, F deck", &"four-berth third-class room, F deck", &"four-berth third-class room, F deck", &"ten-berth third-class room, F deck", &"passage, F deck", &"two-berth third-class room, F deck aft of D", &"four-berth third-class room, F deck"])
+metadata/rooms = Array[StringName]([&"ladderway, E deck aft of D", &"ash place, E deck aft of D", &"bathroom, E deck aft of D", &"passage, E deck aft of D", &"passage, E deck aft of D", &"bathroom, E deck aft of D", &"quartermasters\' quarters, E deck", &"carpenter and joiner\'s room, E deck", &"petty officers\' lavatory, E deck", &"passage, E deck aft of D", &"passage, E deck aft of D", &"boatswain and mate\'s room, E deck", &"boatswain and mate\'s room, E deck", &"four-berth third-class room, E deck aft of D", &"passage, E deck aft of D", &"four-berth third-class room, E deck aft of D", &"six-berth third-class room, E deck aft of D", &"passage, E deck aft of D", &"four-berth third-class room, E deck aft of D", &"four-berth third-class room, E deck aft of D", &"four-berth third-class room, E deck aft of D", &"passage, E deck aft of D", &"six-berth third-class room, E deck aft of D", &"one-berth first-class stateroom, E deck aft of D", &"one-berth first-class stateroom, E deck aft of D", &"linen room, E deck", &"bathroom, E deck aft of D", &"bathroom, E deck aft of D", &"gentlemen\'s lavatory, E deck", &"gentlemen\'s lavatory, E deck", &"bathroom, E deck aft of D", &"bathroom, E deck aft of D", &"passage, E deck aft of D", &"three-berth stateroom, E deck aft of D", &"four-berth stateroom, E deck aft of D", &"passage, E deck aft of D", &"passage, E deck aft of D", &"three-berth first-class stateroom, E deck aft of D", &"three-berth first-class stateroom, E deck aft of D", &"passage, E deck aft of D", &"three-berth first-class stateroom, E deck aft of D", &"three-berth first-class stateroom, E deck aft of D", &"three-berth first-class stateroom, E deck aft of D", &"three-berth first-class stateroom, E deck aft of D", &"three-berth first-class stateroom, E deck aft of D", &"three-berth first-class stateroom, E deck aft of D", &"passage, E deck aft of D", &"three-berth first-class stateroom, E deck aft of D", &"three-berth first-class stateroom, E deck aft of D", &"three-berth first-class stateroom, E deck aft of D", &"three-berth first-class stateroom, E deck aft of D", &"three-berth first-class stateroom, E deck aft of D", &"three-berth first-class stateroom, E deck aft of D", &"four-berth third-class room, F deck", &"six-berth third-class room, F deck aft of D", &"six-berth third-class room, F deck aft of D", &"two-berth third-class room, F deck aft of D", &"four-berth third-class room, F deck", &"passage, F deck", &"passage, F deck", &"four-berth third-class room, F deck", &"six-berth third-class room, F deck aft of D", &"four-berth third-class room, F deck", &"four-berth third-class room, F deck", &"four-berth third-class room, F deck", &"four-berth third-class room, F deck", &"passage, F deck", &"passage, F deck", &"ten-berth third-class room, F deck", &"four-berth third-class room, F deck", &"four-berth third-class room, F deck", &"four-berth third-class room, F deck", &"four-berth third-class room, F deck", &"passage, F deck", &"passage, F deck", &"two-berth third-class room, F deck aft of D", &"two-berth third-class room, F deck aft of D", &"passage, F deck", &"passage, F deck", &"squash stairway", &"passage, F deck", &"four-berth third-class room, F deck", &"four-berth third-class room, F deck", &"passage, F deck", &"four-berth third-class room, F deck", &"four-berth third-class room, F deck", &"passage, F deck", &"four-berth third-class room, F deck", &"four-berth third-class room, F deck", &"passage, F deck", &"four-berth third-class room, F deck", &"six-berth third-class room, F deck aft of D", &"four-berth third-class room, F deck", &"six-berth third-class room, F deck aft of D", &"passage, F deck", &"four-berth third-class room, F deck", &"four-berth third-class room, F deck", &"four-berth third-class room, F deck", &"six-berth third-class room, F deck aft of D", &"passage, F deck", &"four-berth third-class room, F deck", &"four-berth third-class room, F deck", &"ten-berth third-class room, F deck", &"passage, F deck", &"two-berth third-class room, F deck aft of D", &"four-berth third-class room, F deck"])
 metadata/leak_area = 0.00238
 
 [node name="Cell_bunker_5" type="CSGBox3D" parent="Structure/Cells" unique_id=1854724048]

@@ -79,6 +79,7 @@ const NAMED: Array[Array] = [
 	# So are her crew's and officers' rooms of their own and her third-class rooms (the
 	# Titanic's C and D decks); her hospitals are berths, but for their attendants'
 	# room; her crew's messes are saloons, and a suite's sitting room, no berth in it.
+	["printer's room", Kind.SERVICE],
 	["'s room", Kind.CABIN],
 	["s' room", Kind.CABIN],
 	["third-class room", Kind.CABIN],
@@ -118,7 +119,6 @@ const NAMED: Array[Array] = [
 	["ash place", Kind.SERVICE],
 	["instrument room", Kind.SERVICE],
 	["wardrobe room", Kind.SERVICE],
-	["printer's room", Kind.SERVICE],
 	["bake house", Kind.SERVICE],
 	["bread room", Kind.SERVICE],
 	["vegetable", Kind.SERVICE],
