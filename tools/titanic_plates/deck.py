@@ -64,6 +64,7 @@ PASSAGES = ("passage", "corridor", "entrance", "lobby", "staircase")
 JOIN = 0.3
 # An outer wall this near her side, in metres, is her side's (Deck's side).
 SIDE_REACH = 0.3
+BODY_WIDTH = 0.8
 # A piece's end this near a deck's end over it, in metres, is that end's (Deck's ends),
 # unless the load gives a reach of its own.
 END_REACH = 0.2
@@ -188,12 +189,42 @@ class Deck:
         self.stairs = [s for p in parts for s in p.stairs]
         if len(parts) > 1:
             self._join(parts)
+        self._nudged(module)
         if ends:
             self._ended(ends, reach, lead)
         if side is not None:
             self._held(side)
         self.open = [self._shared(o) for p in parts for o in p.open]
         self.walls = self._walls()
+
+    def _nudged(self, module):
+        """NUDGES, a deck file's lines moved so a door fits where the plate's rooms leave it
+        under DOOR_LEAST: (axis, at, to, lo, hi), the end of every piece at x (axis 0) or z
+        (axis 2) at, overlapping lo..hi the other way, moved to to. DOOR_MOVES, each door
+        (x, z) moved to (x, z) likewise."""
+        for axis, at, to, lo, hi in getattr(module, "NUDGES", ()):
+            found = False
+            for list_name in ("rooms", "solids"):
+                pieces = getattr(self, list_name)
+                for k, p in enumerate(pieces):
+                    x0, x1, z0, z1 = p[1:5]
+                    if axis == 0 and z0 < hi and z1 > lo and at in (x0, x1):
+                        x0, x1 = (to if x0 == at else x0), (to if x1 == at else x1)
+                    elif axis == 2 and x0 < hi and x1 > lo and at in (z0, z1):
+                        z0, z1 = (to if z0 == at else z0), (to if z1 == at else z1)
+                    else:
+                        continue
+                    pieces[k] = p[:1] + (x0, x1, z0, z1) + p[5:]
+                    found = True
+            assert found, ("a nudge moves nothing", axis, at)
+            for k, (x, z) in enumerate(self.doors):
+                if axis == 0 and abs(x - at) < 0.3 and lo < z < hi:
+                    self.doors[k] = (x + to - at, z)
+                elif axis == 2 and abs(z - at) < 0.3 and lo < x < hi:
+                    self.doors[k] = (x, z + to - at)
+        for old, new in getattr(module, "DOOR_MOVES", ()):
+            assert old in self.doors, ("no such door", old)
+            self.doors[self.doors.index(old)] = new
 
     def _join(self, parts):
         """The lines two parts read of one wall moved onto one: of each kind, lines of
@@ -282,7 +313,7 @@ class Deck:
         one by less than lead (and more than reach) pushed out to lead from it — each a
         line across her, every piece's end on it moved with it. An OPEN across her on a
         line held to an end moves with it, so it still finds the two rooms it joins
-        (_shared)."""
+        (_shared), and a door in its end too."""
         pushed = {}
         for room in self.rooms if lead else ():
             for e in ends:
@@ -298,6 +329,12 @@ class Deck:
             near = min(ends, key=lambda e: abs(e - v))
             return near if abs(near - v) <= reach else v
 
+        # A door in a room's end moves with it, so it still finds its wall (_walls).
+        for k, (x, z) in enumerate(self.doors):
+            ends_at = [v for r in self.rooms if r[3] + 0.05 < z < r[4] - 0.05 for v in (r[1], r[2]) if abs(v - x) < 0.3]
+            if ends_at:
+                v = min(ends_at, key=lambda e: abs(e - x))
+                self.doors[k] = (x + held(v) - v, z)
         for list_name in ("rooms", "solids", "raised", "houses"):
             pieces = getattr(self, list_name)
             for k, piece in enumerate(pieces):
@@ -320,6 +357,12 @@ class Deck:
                 if z1 > half - SIDE_REACH:
                     z1 = half
                 pieces[k] = piece[:1] + (x0, x1, z0, z1) + piece[5:]
+        # A room her side leaves narrower than a body is no room but a solid block, its
+        # doors gone with it (#360: "a space narrower than a body").
+        for room in [r for r in self.rooms if r[4] - r[3] < BODY_WIDTH]:
+            self.rooms.remove(room)
+            self.solids.append((room[0], room[1], room[2], room[3], room[4], None))
+            self.doors = [d for d in self.doors if not (room[1] - 0.3 < d[0] < room[2] + 0.3 and room[3] - 0.3 < d[1] < room[4] + 0.3 and (abs(d[0] - room[1]) < 0.3 or abs(d[0] - room[2]) < 0.3 or abs(d[1] - room[3]) < 0.3 or abs(d[1] - room[4]) < 0.3))]
 
     def _shared(self, opening):
         """An OPEN rectangle as the whole stretch of edge the two rooms it joins share, on

@@ -1066,3 +1066,20 @@ STAIRS = [
     ("firemen's spiral staircase", 9277.5, 893, 9387.5, 940.5, "fore", "g", "f"),
     ("firemen's spiral staircase", 9277.5, 1042, 9387.5, 1090, "fore", "g", "f"),
 ]
+
+# Lines moved off the plate so a door fits (deck.py's NUDGES, DOOR_MOVES; DOOR_LEAST 1 m):
+NUDGES = [
+    (2, 0.4375, 0.625, -121.3, -116.4),  # the vestibule by P's line, and the rooms off it
+    (2, 1.5625, 1.75, -121.3, -116.4),  # the passage beside it, a door's width still
+    (2, -6.9375, -7.1875, -88.0, -85.0),  # the bathroom's door
+    (2, -9.25, -9.1875, -46.2, -43.2),  # the engineers' stairway's door
+    (2, 9.625, 9.25, 74.5, 77.3),  # the four-berth room's door
+    (2, -7.3125, -7.1875, 86.2, 92.6),  # the eight-berth room's door
+    (2, 7.4375, 7.25, 86.2, 92.6),  # the eight-berth room's door
+    (0, 78.375, 78.4375, -11.0, -8.7),  # the room's door off the passage's end
+    (0, -24.125, -24.3125, 6.4, 11.5),  # the bakery's door
+    (0, 55.0, 55.125, 3.6, 9.5),  # the six-berth room's door
+]
+DOOR_MOVES = [
+    ((102.125, 3.1875), (100.75, 3.1875)),  # the firemen's W.C.s' door aft of bulkhead B's line
+]

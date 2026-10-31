@@ -1220,3 +1220,14 @@ STAIRS = [
     # feet.
     ("firemen's spiral staircase", 9351, 4757, 9469, 4804, "aft", "f", "e"),
 ]
+
+# Lines moved off the plate so a door fits (deck.py's NUDGES, DOOR_MOVES; DOOR_LEAST 1 m):
+NUDGES = [
+    (0, 69.875, 69.6875, -13.0, -8.9),  # the four-berth room's door, short of bulkhead D's line
+    (0, 55.4375, 55.875, -7.7, -5.7),  # the ash place's door past the bathroom's wall
+    (0, -17.6875, -17.875, -7.1, -5.7),  # the bathroom's door by bulkhead J's line
+    (0, 90.8125, 90.625, 4.6, 7.4),  # the men's lavatory's door
+]
+DOOR_MOVES = [
+    ((35.1875, -7.125), (37.0, -7.125)),  # the stewards' door past bulkhead F's line
+]
