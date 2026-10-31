@@ -3827,7 +3827,7 @@ for tid, x, floor, z in LAID:
 # stands under zero — where a bonus can come aboard, at the free point of its floor
 # nearest its middle (tools/floor_spots.py), naming the room by its index among hers.
 bonus_spots = []
-for k, at in spots_below_decks(room_geo, plat_geo, ramp_geo, block_geo):
+for k, at in spots_below_decks(room_geo, plat_geo, ramp_geo, block_geo, short_wells=True):
     f = [("point", "Vector3(%s, %s, %s)" % tuple(num(c) for c in at)), ("room", str(k))]
     bonus_spots.append(sub(rooms[k].replace("Room_", "BonusSpot_", 1), "19_spot", f))
 
