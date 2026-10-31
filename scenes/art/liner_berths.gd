@@ -101,6 +101,21 @@ static func linings() -> Array[ShipMesh.Paint]:
 	return paints
 
 
+## Whether what stands on [param floor] under [param area] is low enough for a body on
+## it to stand in a berth hung there.
+static func _over_furniture(space: ShipSpace, area: Rect2, floor: float) -> bool:
+	for blocker: ShipBlocker in space.layout.blockers:
+		if (
+			blocker.shape == ShipBlocker.Shape.BOX
+			and is_equal_approx(blocker.bottom, floor)
+			and not space.is_wall(blocker)
+			and blocker.top < floor + 1.5
+			and blocker.area.intersects(area)
+		):
+			return true
+	return false
+
+
 ## Where [param room] of [param space] hangs its berths: PITCH apart along each stretch
 ## of its walls long enough, in order round the room, none over a stair coming up or
 ## going down nor too near its deckhead to hang.
@@ -122,6 +137,8 @@ static func spots(space: ShipSpace, room: ShipRoom) -> Array[Spot]:
 			var a := start + index * PITCH
 			var area := wall.rect(a, a + berth.x, 0.0, berth.y)
 			if RoomDressing.over_a_ramp(space.layout, area, floor - 0.5, floor + 2.4):
+				continue
+			if _over_furniture(space, area, floor):
 				continue
 			var hook := wall.at(a + berth.x * 0.5, 0.0, berth.y * 0.5)
 			var ceiling := space.ceiling(room, hook.x, hook.z) - ShipArt.PLANK

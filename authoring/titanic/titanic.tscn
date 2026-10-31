@@ -43096,19 +43096,19 @@ material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
 [node name="Blocker_f_wall_169_0" type="CSGBox3D" parent="Blockers" unique_id=881854768]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -21.375, -7.25, -8.75875)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -21.875, -7.25, -8.75875)
 size = Vector3(0.06, 2.625, 0.2925)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
 [node name="Blocker_f_wall_169_1" type="CSGBox3D" parent="Blockers" unique_id=202713135]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -21.375, -7.25, -7.3809996)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -21.875, -7.25, -7.3809996)
 size = Vector3(0.06, 2.625, 0.263)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
 [node name="Blocker_f_wall_169_lintel_0" type="CSGBox3D" parent="Blockers" unique_id=600056964]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -21.375, -6.2, -8.0625)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -21.875, -6.2, -8.0625)
 size = Vector3(0.06, 0.525, 1.1)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
@@ -50584,13 +50584,13 @@ material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
 [node name="Blocker_f_wall_169_1_u0" type="CSGBox3D" parent="Blockers" unique_id=929198112]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -21.375, -7.4776, -6.74975)
-size = Vector3(0.06, 2.1698, 1.0005)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -21.875, -7.2676, -6.74975)
+size = Vector3(0.06, 2.5898, 1.0005)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
 [node name="Blocker_f_wall_169_1_u1" type="CSGBox3D" parent="Blockers" unique_id=1431186191]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -21.375, -7.25, -6.11)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -21.875, -7.25, -6.11)
 size = Vector3(0.06, 2.625, 0.28)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
@@ -89328,19 +89328,19 @@ material = SubResource("StandardMaterial3D_wpyyv")
 metadata/ship = &"room"
 metadata/name = &"chief engineer\'s room"
 
-[node name="Room_f_219_third_class_stewards_quarters" type="CSGBox3D" parent="Rooms" unique_id=1815371421]
+[node name="Room_f_219_third_class_stewards_quarters_f_deck_aft_of_j" type="CSGBox3D" parent="Rooms" unique_id=626343855]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -25.4492, -7.5125, -8.33125)
 size = Vector3(4.5234, 2.1, 11.0375)
 material = SubResource("StandardMaterial3D_wpyyv")
 metadata/ship = &"room"
-metadata/name = &"third-class stewards\' quarters"
+metadata/name = &"third-class stewards\' quarters, F deck aft of J"
 
-[node name="Room_f_220_third_class_stewards_quarters" type="CSGBox3D" parent="Rooms" unique_id=991206104]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -22.28125, -7.5125, -7.4375)
-size = Vector3(1.8125, 2.1, 2.875)
+[node name="Room_f_220_third_class_stewards_quarters_f_deck_aft_of_j" type="CSGBox3D" parent="Rooms" unique_id=1157112075]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -22.53125, -7.5125, -7.4375)
+size = Vector3(1.3125, 2.1, 2.875)
 material = SubResource("StandardMaterial3D_wpyyv")
 metadata/ship = &"room"
-metadata/name = &"third-class stewards\' quarters"
+metadata/name = &"third-class stewards\' quarters, F deck aft of J"
 
 [node name="Room_f_221_bakers_quarters" type="CSGBox3D" parent="Rooms" unique_id=639217336]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -21.46875, -7.5125, -11.3625)
@@ -89357,8 +89357,8 @@ metadata/ship = &"room"
 metadata/name = &"butchers\' quarters"
 
 [node name="Room_f_223_passage_f_deck_aft_of_j" type="CSGBox3D" parent="Rooms" unique_id=905816603]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -19.0625, -7.5125, -7.4375)
-size = Vector3(4.625, 2.1, 2.875)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -19.3125, -7.5125, -7.4375)
+size = Vector3(5.125, 2.1, 2.875)
 material = SubResource("StandardMaterial3D_wpyyv")
 metadata/ship = &"room"
 metadata/name = &"passage, F deck aft of J"
@@ -89552,19 +89552,19 @@ material = SubResource("StandardMaterial3D_wpyyv")
 metadata/ship = &"room"
 metadata/name = &"landing, F deck"
 
-[node name="Room_f_251_third_class_stewards_quarters_f_deck_aft_of_f" type="CSGBox3D" parent="Rooms" unique_id=450865391]
+[node name="Room_f_251_third_class_stewards_quarters" type="CSGBox3D" parent="Rooms" unique_id=1504155019]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 26.03125, -7.5125, -10.43125)
 size = Vector3(7.1875, 2.1, 6.7375)
 material = SubResource("StandardMaterial3D_wpyyv")
 metadata/ship = &"room"
-metadata/name = &"third-class stewards\' quarters, F deck aft of F"
+metadata/name = &"third-class stewards\' quarters"
 
-[node name="Room_f_252_third_class_stewards_quarters_f_deck_aft_of_f" type="CSGBox3D" parent="Rooms" unique_id=74392927]
+[node name="Room_f_252_third_class_stewards_quarters" type="CSGBox3D" parent="Rooms" unique_id=1499691156]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 26.875, -7.5125, -6.53125)
 size = Vector3(5.5, 2.1, 1.0625)
 material = SubResource("StandardMaterial3D_wpyyv")
 metadata/ship = &"room"
-metadata/name = &"third-class stewards\' quarters, F deck aft of F"
+metadata/name = &"third-class stewards\' quarters"
 
 [node name="Room_f_253_turkish_bath_attendants_room" type="CSGBox3D" parent="Rooms" unique_id=1761343771]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 30.9375, -7.5125, -12.337501)
@@ -96523,15 +96523,15 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -30.4492, -8.5625, 12.6438)
 metadata/ship = &"bonus_spot"
 metadata/room = &"Room_f_218_chief_engineer_s_room"
 
-[node name="BonusSpot_f_219_third_class_stewards_quarters" type="Marker3D" parent="BonusSpots" unique_id=1422561498]
+[node name="BonusSpot_f_219_third_class_stewards_quarters_f_deck_aft_of_j" type="Marker3D" parent="BonusSpots" unique_id=1739869665]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -25.4492, -8.5625, -8.3313)
 metadata/ship = &"bonus_spot"
-metadata/room = &"Room_f_219_third_class_stewards_quarters"
+metadata/room = &"Room_f_219_third_class_stewards_quarters_f_deck_aft_of_j"
 
-[node name="BonusSpot_f_220_third_class_stewards_quarters" type="Marker3D" parent="BonusSpots" unique_id=1306240444]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -22.2812, -8.5625, -7.4375)
+[node name="BonusSpot_f_220_third_class_stewards_quarters_f_deck_aft_of_j" type="Marker3D" parent="BonusSpots" unique_id=243923012]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -22.5312, -8.5625, -7.4375)
 metadata/ship = &"bonus_spot"
-metadata/room = &"Room_f_220_third_class_stewards_quarters"
+metadata/room = &"Room_f_220_third_class_stewards_quarters_f_deck_aft_of_j"
 
 [node name="BonusSpot_f_221_bakers_quarters" type="Marker3D" parent="BonusSpots" unique_id=288331984]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -21.4688, -8.5625, -11.3625)
@@ -96544,7 +96544,7 @@ metadata/ship = &"bonus_spot"
 metadata/room = &"Room_f_222_butchers_quarters"
 
 [node name="BonusSpot_f_223_passage_f_deck_aft_of_j" type="Marker3D" parent="BonusSpots" unique_id=988010123]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -19.0625, -8.5625, -7.6875)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -19.3125, -8.5625, -7.6875)
 metadata/ship = &"bonus_spot"
 metadata/room = &"Room_f_223_passage_f_deck_aft_of_j"
 
@@ -96683,15 +96683,15 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 22.8023, -8.5625, -6.5312)
 metadata/ship = &"bonus_spot"
 metadata/room = &"Room_f_250_landing_f_deck"
 
-[node name="BonusSpot_f_251_third_class_stewards_quarters_f_deck_aft_of_f" type="Marker3D" parent="BonusSpots" unique_id=1931047140]
+[node name="BonusSpot_f_251_third_class_stewards_quarters" type="Marker3D" parent="BonusSpots" unique_id=707770720]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 26.0312, -8.5625, -10.4313)
 metadata/ship = &"bonus_spot"
-metadata/room = &"Room_f_251_third_class_stewards_quarters_f_deck_aft_of_f"
+metadata/room = &"Room_f_251_third_class_stewards_quarters"
 
-[node name="BonusSpot_f_252_third_class_stewards_quarters_f_deck_aft_of_f" type="Marker3D" parent="BonusSpots" unique_id=1522782788]
+[node name="BonusSpot_f_252_third_class_stewards_quarters" type="Marker3D" parent="BonusSpots" unique_id=293083657]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 26.875, -8.5625, -6.5312)
 metadata/ship = &"bonus_spot"
-metadata/room = &"Room_f_252_third_class_stewards_quarters_f_deck_aft_of_f"
+metadata/room = &"Room_f_252_third_class_stewards_quarters"
 
 [node name="BonusSpot_f_253_turkish_bath_attendants_room" type="Marker3D" parent="BonusSpots" unique_id=240984169]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 30.9375, -8.5625, -12.3375)
@@ -98636,7 +98636,7 @@ material = SubResource("StandardMaterial3D_7qh17")
 metadata/ship = &"cell"
 metadata/name = &"boiler_room_4_f"
 metadata/shape = 0.9988
-metadata/rooms = Array[StringName]([&"cooks\' quarters", &"landing, F deck", &"third-class stewards\' quarters, F deck aft of F", &"third-class stewards\' quarters, F deck aft of F", &"Turkish bath attendants\' room", &"pantry, F deck", &"pantry, F deck", &"passage, F deck aft of F", &"electric bath room", &"electric bath room", &"Turkish bath lobby", &"Turkish bath lobby", &"Turkish bath lobby", &"Turkish bath, hot room", &"Turkish bath, steam room", &"Turkish bath, temperate room", &"Turkish bath, temperate room", &"Turkish bath, cooling room", &"Turkish bath, cooling room", &"Turkish bath, shampooing room", &"Turkish bath, shampooing room", &"Turkish bath lobby"])
+metadata/rooms = Array[StringName]([&"cooks\' quarters", &"landing, F deck", &"third-class stewards\' quarters", &"third-class stewards\' quarters", &"Turkish bath attendants\' room", &"pantry, F deck", &"pantry, F deck", &"passage, F deck aft of F", &"electric bath room", &"electric bath room", &"Turkish bath lobby", &"Turkish bath lobby", &"Turkish bath lobby", &"Turkish bath, hot room", &"Turkish bath, steam room", &"Turkish bath, temperate room", &"Turkish bath, temperate room", &"Turkish bath, cooling room", &"Turkish bath, cooling room", &"Turkish bath, shampooing room", &"Turkish bath, shampooing room", &"Turkish bath lobby"])
 metadata/leak_area = 0.00127
 
 [node name="Cell_boiler_room_4_e" type="CSGBox3D" parent="Structure/Cells" unique_id=2133007972]
@@ -98754,7 +98754,7 @@ size = Vector3(10.959999, 2.625, 28.0416)
 material = SubResource("StandardMaterial3D_7qh17")
 metadata/ship = &"cell"
 metadata/name = &"boiler_room_1_f"
-metadata/rooms = Array[StringName]([&"third-class stewards\' quarters", &"third-class stewards\' quarters", &"bakers\' quarters", &"butchers\' quarters", &"passage, F deck aft of J", &"passage, F deck aft of J", &"bakery", &"bakery", &"bread room, F deck aft of J", &"butcher\'s shop, F deck aft of J", &"potato washing place", &"passage, F deck aft of J", &"passage, F deck aft of J", &"third-class galley"])
+metadata/rooms = Array[StringName]([&"third-class stewards\' quarters, F deck aft of J", &"third-class stewards\' quarters, F deck aft of J", &"bakers\' quarters", &"butchers\' quarters", &"passage, F deck aft of J", &"passage, F deck aft of J", &"bakery", &"bakery", &"bread room, F deck aft of J", &"butcher\'s shop, F deck aft of J", &"potato washing place", &"passage, F deck aft of J", &"passage, F deck aft of J", &"third-class galley"])
 metadata/leak_area = 0.000807
 
 [node name="Cell_boiler_room_1_e" type="CSGBox3D" parent="Structure/Cells" unique_id=1996077471]

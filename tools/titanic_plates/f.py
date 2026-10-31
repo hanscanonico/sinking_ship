@@ -1069,6 +1069,7 @@ STAIRS = [
 
 # Lines moved off the plate so a door fits (deck.py's NUDGES, DOOR_MOVES; DOOR_LEAST 1 m):
 NUDGES = [
+    (0, -21.375, -21.875, -8.875, -6.0),  # the stewards' wall at the head of E's ladder, not under its treads
     # The cross passages and vestibule the plate draws over where P's line stands (it draws
     # no P here), aft of it, so no way through parts in two under a door's width.
     (0, -119.5, -120.0625, -5.4, -1.7),

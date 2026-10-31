@@ -253,7 +253,7 @@ const KINDS := {
 	&"third-class room, F deck": RoomDressing.Kind.CABIN,
 	&"third-class stairway, F deck": RoomDressing.Kind.PASSAGE,
 	&"third-class stewards' quarters": RoomDressing.Kind.BERTHS,
-	&"third-class stewards' quarters, F deck aft of F": RoomDressing.Kind.BERTHS,
+	&"third-class stewards' quarters, F deck aft of J": RoomDressing.Kind.BERTHS,
 	&"three-berth first-class stateroom, E deck": RoomDressing.Kind.CABIN,
 	&"three-berth first-class stateroom, E deck aft of C": RoomDressing.Kind.CABIN,
 	&"three-berth first-class stateroom, E deck aft of D": RoomDressing.Kind.CABIN,

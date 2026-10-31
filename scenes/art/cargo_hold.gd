@@ -308,6 +308,9 @@ func _hatch_beams(mesh: ShipMesh, room: ShipRoom) -> void:
 		var middle := area.get_center()
 		if not area.has_area():
 			continue
+		# None a body on a flight would stand in, a body's reach beside it.
+		if RoomDressing.over_a_ramp(_layout, area.grow(0.4), room.floor_height, blocker.bottom):
+			continue
 		if not is_equal_approx(_space.ceiling(room, middle.x, middle.y), blocker.bottom):
 			continue
 		var under := blocker.bottom - ShipArt.PLANK
