@@ -832,6 +832,8 @@ STAIRS = [
 # Clear of E deck's walls (e.py) under their feet, which would have been cut to the flights'
 # undersides:
 STAIR_MOVES = [
+    # Its head clear of the storekeepers' wall, whose cornice would hang over its treads:
+    (("stewards' staircase", -27.4375, -2.25), (-27.4375, -26.4375, -1.625, 2.25)),
     (("third-class ladder", 78.0, -7.75), (78.0, 81.3125, -7.4375, -4.875)),
     (("third-class ladder", 78.0625, 5.0625), (78.0625, 81.3125, 5.0625, 7.6875)),
     # The firemen's spirals as straight flights athwart her, either side of E deck's flight

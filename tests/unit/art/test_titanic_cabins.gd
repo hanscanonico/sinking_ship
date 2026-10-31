@@ -11,9 +11,10 @@ const CELLS: Array[float] = [0.2, 0.05]
 ## Each class's cabins: how many name a count, the boxes they stand and the berths they
 ## fold. Moves only with the plates' rooms or the rule.
 const PINNED := {
-	"first-class": [270, 546, 68],
-	"second-class": [49, 98, 56],
-	"third-class": [11, 36, 14],
+	"first-class": [331, 658, 111],
+	"second-class": [183, 490, 128],
+	"third-class": [192, 387, 324],
+	"none": [6, 14, 7],
 }
 
 var _layout: ShipLayout

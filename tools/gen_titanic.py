@@ -1009,7 +1009,7 @@ def plan_ends(plan):
 # E and F decks' floors stop at the stores her stem takes (e.py, f.py), past which no body
 # comes and she has no deck.
 E_STEM = 126.4375
-F_STEM = 123.0
+F_STEM = 119.6875
 E_PIECES = hull_strips(plan_ends(E_OUTLINE)[0], E_STEM, E_DECK, edges=sorted({h[k] for h in holes["e"] for k in (0, 1)}))
 F_PIECES = hull_strips(plan_ends(F_OUTLINE)[0], F_STEM, F_DECK, edges=sorted({h[k] for h in holes["f"] for k in (0, 1)}))
 e_deck = [i for k, (x0, x1, z0, z1) in enumerate(E_PIECES)
@@ -2625,6 +2625,19 @@ for name, tag, floor, pitch, make in [
                     and all(math.hypot(max(abs(m.args[1] - hx) - 0.4, 0.0), max(abs(m.args[2] - hz) - 0.75, 0.0))
                             >= LAMP_CLEAR for hx, hz in lamps)]
                    for grid in scattered("%s_%d" % (tag, k), x0, x1, z0, z1, pitch, make)])
+
+# F deck's third-class dining saloons: long tables in rows along her, a bench along each
+# side inside the box (LinerDining.mess_table), kept as the rules above keep any piece; a
+# shorter table in what the long ones' rows leave between her pendants and her doors.
+def saloon_table(half, gid, x, z):
+    piece("table_" + gid, x - half, x + half, z - 0.45, z + 0.45, F_DECK, F_DECK + TABLE)
+
+for tag, half, pitch in [("a", 1.5, 3.6), ("b", 1.0, 2.6)]:
+    for k, (_n, x0, x1, z0, z1) in enumerate(r for r in F_PLAN.rooms if r[0] == "third-class dining saloon"):
+        best_laid([[functools.partial(saloon_table, half, "saloon_3%s_%d_%d" % (tag, k, i), x, z)
+                    for i, (x, z) in enumerate((x, z) for x in lattice(x0, x1, pitch, sx) for z in lattice(z0, z1, 2.2, sz))
+                    if x0 + 0.3 <= x - half and x + half <= x1 - 0.3]
+                   for sx in SHIFTS for sz in SHIFTS])
 
 _problems = [problem for candidate in ROOM_PIECES for problem in piece_problems(candidate)]
 assert not _problems, "\n".join(_problems)
