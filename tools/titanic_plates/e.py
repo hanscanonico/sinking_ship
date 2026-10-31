@@ -1257,10 +1257,22 @@ DOOR_MOVES = [
     ((-4.3125, -5.8125), (-3.625, -5.8125)),  # the rooms' door, clear of two passages' join
     ((62.125, -9.375), (62.125, -9.6875)),  # likewise
     ((104.0, -3.5), (104.0, -4.125)),  # likewise
+    (None, (-70.625, -12.0)),  # the potato room's way past the ladder laid along its door
 ]
-SHUT = [(69.0, -7.8125), (126.4, 0.2)]  # less than a door's width either side of D's line; the store her stem takes
+# Less than a door's width either side of D's line; the store her stem takes; the joins
+# over the 20 ft ladderway's well and the engineers' ladder's, opened beside them below.
+SHUT = [(69.0, -7.8125), (126.4, 0.2), (-1.0, -3.125), (-45.0, -9.125)]
+OPENED = [
+    (-118.13, -118.11, 1.0, 2.125),  # her stern passage, on to its last piece
+    (-2.8125, -0.875, -3.135, -3.115),  # the head of the 20 ft ladderway
+    (2.4375, 4.625, -3.135, -3.115),  # past the foot of its well, forward of G
+    (-44.125, -42.625, -9.135, -9.115),  # past the foot of the engineers' ladder
+]
+# Ladderways the flight fills; a landing whose every door opens over its well; a strip
+# narrower than a body the lavatory leaves.
+NOT_ROOMS = [(-90.0, -5.3), (-65.5, 10.0), (-20.0, -6.7), (20.0, -6.7), (52.0, -6.7), (72.0, 3.8), (74.0, -7.5)]
 # A bathroom by J's line and a store too small for a door; a store her stem takes.
-MADE_SOLID = [(-17.0, -6.5), (-64.4, -9.1), (127.5, 0.0)]
+MADE_SOLID = [(-17.0, -6.5), (-64.4, -9.1), (127.5, 0.0), (82.6, -5.4)]
 # Flights the plate stacks over F deck's flights down (f.py), side by side or they'd land
 # in each other's holes:
 STAIR_MOVES = [

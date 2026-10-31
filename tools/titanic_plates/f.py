@@ -1100,7 +1100,20 @@ DOOR_MOVES = [
     ((73.0, -7.9375), (72.0, -7.9375)),  # the eight-berth room's, clear of the passages' join
     (None, (-43.25, -10.8125)),  # the third engineer's, which the plate draws no swing for (est.)
     ((92.4375, 7.9375), None),  # the two-berth room her side leaves narrower than a body
+    ((-38.0625, -10.0625), (-40.875, -8.6875)),  # the electricians', past their stair's head
+    ((55.9375, -6.25), (54.625, -6.3125)),  # the four-berth room's, past boiler room 6's stair
+    (None, (1.6875, -6.4375)),  # the saloons', either side of the ladderway's feet at H (est.)
+    (None, (1.6875, 7.5)),
 ]
+# Each saloon's bay aft of the casing keeps its own way in, a pier in the wide join:
+SHUT = [(4.5625, -6.0)]
+OPENED = [
+    (4.5525, 4.5725, -9.5625, -6.125),
+    (4.5525, 4.5725, -5.875, -3.25),
+    (72.9275, 72.9475, -5.75, -4.375),  # the linen room's two pieces
+]
+# The passage two flights fill side by side.
+NOT_ROOMS = [(74.0, -7.0)]
 # A body's lead clear of the passage's forward wall at their heads (the layout lint):
 STAIR_MOVES = [
     (("firemen's spiral staircase", 100.5, -2.5625), (99.75, 102.625, -2.5625, -1.3125)),

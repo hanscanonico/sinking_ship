@@ -1218,6 +1218,7 @@ def plan_layer(prefix, plan, floor, ceiling, breaks=(), parted_at=(), place=None
         return low + 0.01, high - 0.01
 
     rooms = plan.rooms if place is None else named_pieces(plan.rooms, parted_at, place, main)
+    rooms = [r for r in rooms if not any(r[1] < x < r[2] and r[3] < z < r[4] for x, z in plan.not_rooms)]
     for k, (name, x0, x1, z0, z1) in enumerate(rooms):
         room("%s_%d_%s" % (prefix, k, slug(name)), name, x0, x1, z0, z1, floor)
     for k, (axis, at, a, b, kind, doors) in enumerate(plan.walls):

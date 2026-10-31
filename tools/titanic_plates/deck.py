@@ -195,7 +195,7 @@ class Deck:
             self._ended(ends, reach, lead)
         if side is not None:
             self._held(side)
-        self.open = [self._shared(o) for p in parts for o in p.open]
+        self.open = [self._shared(o) for p in parts for o in p.open] + list(getattr(module, "OPENED", ()))
         if lead:
             self._alcoves()
         self.walls = self._walls()
@@ -207,7 +207,10 @@ class Deck:
         (x, z) moved to (x, z) likewise, or gone with its room (None).
         SHUT, the open join at each (x, z) walled. MADE_SOLID, the room at each (x, z) a
         solid block, too small for a door. STAIR_MOVES, each flight (name, x0, z0) laid over
-        (x0, x1, z0, z1) instead, off the plate so its foot finds a floor."""
+        (x0, x1, z0, z1) instead, off the plate so its foot finds a floor. OPENED, a join
+        (x0, x1, z0, z1) a landing's way in needs, just so long. NOT_ROOMS, each (x, z) in a well and no
+        room once her cells have split it, its flight taking all a body could stand on
+        behind its door: its walls stay, its floor is no room's."""
         for axis, at, to, lo, hi in getattr(module, "NUDGES", ()):
             found = False
             for list_name in ("rooms", "solids"):
@@ -254,6 +257,7 @@ class Deck:
                 part.open[:] = kept
         for x, z in getattr(module, "MADE_SOLID", ()):
             self._solid(next(r for r in self.rooms if r[1] < x < r[2] and r[3] < z < r[4]))
+        self.not_rooms = list(getattr(module, "NOT_ROOMS", ()))
 
     def _join(self, parts):
         """The lines two parts read of one wall moved onto one: of each kind, lines of
