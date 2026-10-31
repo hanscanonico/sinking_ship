@@ -34708,8 +34708,8 @@ material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
 [node name="Blocker_e_wall_259" type="CSGBox3D" parent="Blockers" unique_id=1058021738]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 38.25, -4.5625, -10.21475)
-size = Vector3(0.06, 2.75, 6.9305)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 38.9375, -4.5625, -9.700001)
+size = Vector3(0.06, 2.75, 7.96)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
@@ -36844,8 +36844,8 @@ material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
 [node name="Blocker_e_wall_478_1" type="CSGBox3D" parent="Blockers" unique_id=141488367]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 37.92545, -4.5625, -7.125)
-size = Vector3(0.7091, 2.75, 0.06)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 38.2692, -4.5625, -7.125)
+size = Vector3(1.3966, 2.75, 0.06)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
@@ -37078,8 +37078,8 @@ material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
 [node name="Blocker_e_wall_492_0" type="CSGBox3D" parent="Blockers" unique_id=927761649]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 39.241253, -4.5625, -5.75)
-size = Vector3(2.0425, 2.75, 0.06)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 39.585003, -4.5625, -5.75)
+size = Vector3(1.355, 2.75, 0.06)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
@@ -50496,18 +50496,6 @@ metadata/ship = &"blocker"
 [node name="Blocker_d_wall_234_lintel_0_u0" type="CSGBox3D" parent="Blockers" unique_id=119492395]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 100.125, -0.54375, -3.75625)
 size = Vector3(0.06, 1.0875, 0.4875)
-material = SubResource("StandardMaterial3D_jiew5")
-metadata/ship = &"blocker"
-
-[node name="Blocker_e_wall_259_u0" type="CSGBox3D" parent="Blockers" unique_id=177601170]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 38.25, -4.8295, -6.281)
-size = Vector3(0.06, 2.216, 0.938)
-material = SubResource("StandardMaterial3D_jiew5")
-metadata/ship = &"blocker"
-
-[node name="Blocker_e_wall_259_u1" type="CSGBox3D" parent="Blockers" unique_id=1530412952]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 38.25, -4.5625, -5.76625)
-size = Vector3(0.06, 2.75, 0.0925)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
@@ -86088,8 +86076,8 @@ metadata/ship = &"room"
 metadata/name = &"second-class stewards\' quarters, E deck aft of F"
 
 [node name="Room_e_294_second_class_stewards_quarters_e_deck" type="CSGBox3D" parent="Rooms" unique_id=1929768562]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 37.35545, -4.8875, -10.3875)
-size = Vector3(1.7891, 2.1, 6.525)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 37.6992, -4.8875, -10.3875)
+size = Vector3(2.4766, 2.1, 6.525)
 material = SubResource("StandardMaterial3D_wpyyv")
 metadata/ship = &"room"
 metadata/name = &"second-class stewards\' quarters, E deck"
@@ -86102,8 +86090,8 @@ metadata/ship = &"room"
 metadata/name = &"passage, E deck aft of F"
 
 [node name="Room_e_296_second_class_stewards_quarters_e_deck" type="CSGBox3D" parent="Rooms" unique_id=1954169784]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 42, -4.8875, -9.7)
-size = Vector3(7.5, 2.1, 7.9)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 42.34375, -4.8875, -9.7)
+size = Vector3(6.8125, 2.1, 7.9)
 material = SubResource("StandardMaterial3D_wpyyv")
 metadata/ship = &"room"
 metadata/name = &"second-class stewards\' quarters, E deck"
@@ -94209,17 +94197,17 @@ metadata/ship = &"bonus_spot"
 metadata/room = &"Room_e_293_second_class_stewards_quarters_e_deck_aft_of_f"
 
 [node name="BonusSpot_e_294_second_class_stewards_quarters_e_deck" type="Marker3D" parent="BonusSpots" unique_id=496409151]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 37.3555, -5.9375, -10.3875)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 37.6992, -5.9375, -10.3875)
 metadata/ship = &"bonus_spot"
 metadata/room = &"Room_e_294_second_class_stewards_quarters_e_deck"
 
-[node name="BonusSpot_e_295_passage_e_deck_aft_of_f" type="Marker3D" parent="BonusSpots" unique_id=1381167528]
+[node name="BonusSpot_e_295_passage_e_deck_aft_of_f" type="Marker3D" parent="BonusSpots" unique_id=492541348]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 35.0117, -5.9375, -6.4375)
 metadata/ship = &"bonus_spot"
 metadata/room = &"Room_e_295_passage_e_deck_aft_of_f"
 
 [node name="BonusSpot_e_296_second_class_stewards_quarters_e_deck" type="Marker3D" parent="BonusSpots" unique_id=1392367749]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 42, -5.9375, -9.7)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 42.3438, -5.9375, -9.7)
 metadata/ship = &"bonus_spot"
 metadata/room = &"Room_e_296_second_class_stewards_quarters_e_deck"
 

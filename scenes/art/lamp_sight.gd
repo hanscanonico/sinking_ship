@@ -11,8 +11,6 @@ extends RefCounted
 
 ## A gap at least this wide along a room's side, between its full walls
 ## (ShipSpace.wall_runs), is a doorway the eye can see into the room through.
-## How far over a body's feet its head reaches (by_a_ramp).
-const BODY_REACH := 1.7
 const DOORWAY := 0.5
 
 ## The most lamps burning at once but for those of the rooms in sight: the graphics
@@ -135,16 +133,3 @@ static func doorway_sides(space: ShipSpace, room: ShipRoom) -> PackedInt32Array:
 		if length - 2.0 * half - walled >= DOORWAY:
 			sides.append(side)
 	return sides
-
-
-## Whether a body on one of [param layout]'s ramps, within [param reach] of [param point]
-## (x/z), stands under [param height] with its head, BODY_REACH over its feet, up to it.
-static func by_a_ramp(layout: ShipLayout, point: Vector2, height: float, reach: float) -> bool:
-	for ramp: ShipRamp in layout.ramps:
-		if not ramp.area.grow(reach).has_point(point):
-			continue
-		var on := point.clamp(ramp.area.position, ramp.area.end)
-		var feet := ramp.height_at(on.x, on.y)
-		if feet < height and feet > height - BODY_REACH:
-			return true
-	return false
