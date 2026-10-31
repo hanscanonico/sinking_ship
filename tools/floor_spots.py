@@ -47,15 +47,18 @@ def spots_below_decks(room_geo, plat_geo, ramp_geo, block_geo):
     """Her bonus spots: one in each of her rooms below her main deck — a room whose floor
     stands under zero — at the free point of its floor nearest its middle
     (free_floor_spot), as (the room's index in `room_geo`, (x, y, z)), in her rooms'
-    order. A room with no free floor stops her generator: there is nowhere in it for a
-    bonus to lie."""
+    order. A room a flight's well or a stair all but fills has none; any other with no
+    free floor stops her generator: there is nowhere in it for a bonus to lie."""
     spots = []
     for k, room in enumerate(room_geo):
         _x0, _x1, _z0, _z1, floor, name = room
         if floor >= 0:
             continue
         at = free_floor_spot(room, plat_geo, ramp_geo, block_geo)
-        assert at is not None, "no free floor in the %s for a bonus spot" % name
+        if at is None:
+            assert _holes(room, plat_geo) or any(_overlap(r[:4], room[:4]) for r in ramp_geo), (
+                "no free floor in the %s for a bonus spot" % name)
+            continue
         spots.append((k, at))
     return spots
 
@@ -135,9 +138,10 @@ def _in_the_way(room, plat_geo, ramp_geo, block_geo):
 
     rects, circles = [], []
     for rx0, rx1, rz0, rz1, _axis, start, end in ramp_geo:
-        # A stair up from the floor, or down from it through a stairwell, alike.
+        # A stair up from the floor. One coming up to it from under it is in the way only
+        # where the floor has its hole (_holes): the deck over its lower run is floor.
         plan = (rx0, rx1, rz0, rz1)
-        if max(start, end) >= floor - SAME_HEIGHT and reaches(plan, min(start, end)):
+        if max(start, end) > floor + SAME_HEIGHT and reaches(plan, min(start, end)):
             rects.append(plan)
     for bx0, bx1, bz0, bz1, bottom, top, box in block_geo:
         if top <= floor + SAME_HEIGHT or not reaches((bx0, bx1, bz0, bz1), bottom):

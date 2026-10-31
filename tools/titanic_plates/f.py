@@ -1082,4 +1082,9 @@ NUDGES = [
 ]
 DOOR_MOVES = [
     ((102.125, 3.1875), (100.75, 3.1875)),  # the firemen's W.C.s' door aft of bulkhead B's line
+    ((92.4375, 7.9375), None),  # the two-berth room her side leaves narrower than a body
+]
+# Inboard, onto her estimated G deck's floor in No. 2 hold, clear of E's flight down (e.py):
+STAIR_MOVES = [
+    (("third-class ladder", 92.3125, 4.8125), (92.3125, 95.1875, 4.4375, 5.6875)),
 ]

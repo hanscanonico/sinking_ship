@@ -152,6 +152,14 @@ def box(bid, x0, x1, z0, z1, bottom, top):
     f.append(("top", num(top)))
     blockers.append(sub("Blocker_" + bid, "3_block", f))
 
+def drop_box(bid):
+    """Box bid taken away."""
+    kind_id = "Blocker_" + bid
+    at = blockers.index(kind_id)
+    del blockers[at], block_geo[at]
+    subs[:] = [text for text in subs if not text.startswith('[sub_resource type="Resource" id="%s"]' % kind_id)]
+    used.discard(kind_id)
+
 def relay_box(bid, x0, x1, z0, z1, bottom, top):
     """Box bid laid again over (x0..x1, z0..z1) from bottom to top, keeping its place and id."""
     kind_id = "Blocker_" + bid
@@ -664,12 +672,19 @@ def foot(flight):
 # F deck's flights down to G deck wait for G deck's lay where her estimated G deck has no
 # floor for their feet: the racquet court's stair (its court on G deck, g.py, between D and
 # C; her estimated G deck has a bunker's top there) and the two the plate draws into the
-# reciprocating engine room's G deck flats (x -48.7..-27.7).
+# reciprocating engine room's G deck flats (x -48.7..-27.7); and the two whose feet stand
+# past her estimated G deck, one past her lines themselves (the third-class stairway's, O-N
+# port) and one past the electric room's stores (the stores' stair, N-M port).
 def unlaid(plan, flight):
+    # (D deck's ladder at the head of the firemen's passage, E deck's room under it too short
+    # for its foot and a body's lead, waits too: E deck's firemen's way serves it.)
+    if plan is D_OUTLINE:
+        return flight[0] == "ladder" and flight[1] == 99.0
     if plan is not F_OUTLINE:
         return False
     x, _z = foot(flight)
-    return flight[0] == "racquet court stair" or BX["L"] - 0.1 < x < BX["K"]
+    return (flight[0] == "racquet court stair" or BX["L"] - 0.1 < x < BX["K"]
+            or (x < BX["L"] and flight[3] < -8.0))
 
 # A traced flight's sides held off the walls they run along on the traced decks it joins:
 # the plates draw a flight to its room's edge, a wall's middle, and a stair wants no wall
@@ -732,7 +747,7 @@ SALOON_Z = 13.0  # the half breadth of the stokeholds' F deck (est.)
 # A flight up to F deck from her estimated spaces under it: the deck is cut only over the
 # flight's last HEAD_RUN, where a body on it would put its head through, so a flight no
 # wider than a body opens one short hole in a traced room's floor, not one its whole length.
-HEAD_RUN = 2.5
+HEAD_RUN = 2.25
 F_HOLES = []  # (the flight's id, the hole, the hole's closed end along its axis)
 
 def up_to_f(sid, x_low, x_high, z0, z1, low):
@@ -953,7 +968,9 @@ e_deck = [i for k, (x0, x1, z0, z1) in enumerate(E_PIECES)
 f_deck = [i for k, (x0, x1, z0, z1) in enumerate(F_PIECES)
           for i in deck("f_%d" % k, "F deck", x0, x1, z0, z1, F_DECK, holes["f"])]
 EF_CUTS = sorted({round(x * 128) / 128 for letter, x, _deck, _feet in BULKHEADS if letter != "MN"})
-E_PLAN = plates.load("e", side=held_to(E_PIECES), ends=EF_CUTS, reach=D_REACH, lead=D_LEAD)
+# (E's view draws no line for J to B and A, and reads good to 1 m between K and B: its walls
+# take a bulkhead's line from further.)
+E_PLAN = plates.load("e", side=held_to(E_PIECES), ends=EF_CUTS, reach=0.6, lead=D_LEAD)
 F_PLAN = plates.load("f", side=held_to(F_PIECES), ends=EF_CUTS, reach=D_REACH, lead=D_LEAD)
 H3W = {h: fit(HOLD3[0], HOLD3[1], h, 0.3) for h in (E_DECK, F_DECK, G_DECK)}
 h3_floor = (HOLD3[0] + 0.3, HOLD3[1] - 0.3)
@@ -1164,6 +1181,13 @@ def plan_layer(prefix, plan, floor, ceiling, breaks=(), parted_at=(), place=None
         cuts = []
         for along in sorted(doors):
             low, high = door_room(axis, at, a, b, along)
+            if high - low < DOOR_LEAST and axis != 0:
+                # Over a line her cells part along, the room a door takes is beyond it.
+                for c in parted_at:
+                    if abs(c - along) < 0.5 and a < c < b:
+                        beyond = door_room(axis, at, a, b, c + (0.01 if along < c else -0.01))
+                        if beyond[1] - beyond[0] >= DOOR_LEAST:
+                            low, high = beyond
             if high - low < DOOR_LEAST:
                 NO_ROOM.append((prefix, axis, at, along, round(high - low, 3), a, b))
                 continue
@@ -1793,6 +1817,7 @@ elec_holes, elec_g_holes = [], []
 # flight down onto E deck, over it at z -2.875..-1.0625.)
 for tag, sign in [("p", -1), ("s", 1)]:
     stair("space_electric_g_" + tag, -83.5, -75.0, *sorted((sign * 5.0, sign * 6.2)), TANK_TOP, G_DECK, elec_g_holes)
+    up_to_f("space_electric_f_" + tag, -70.0, -73.0, *sorted((sign * 3.3, sign * 4.4)), G_DECK)
 for j, (z0, z1) in enumerate([(-4.0, -1.0), (1.0, 4.0)]):
     box("generators_%d" % j, -81.5, -69.5, z0, z1, TANK_TOP, G_DECK - UPTAKE_CLEAR)
 room("electric_room", "electric engine room", *ELEC, -ELEC_Z, ELEC_Z, TANK_TOP)
@@ -1815,8 +1840,8 @@ ah_holes = {(hold, h): [] for hold in AH_Z for h in (TANK_TOP, ORLOP, G_DECK, E_
 for sid, foot, head, (z0, z1), low, high, hold in [
         ("space_ahf_or_1", -99.0, -93.375, (2.0, 3.0), TANK_TOP, ORLOP, "ahf"),
         ("space_ahf_or_2", -99.0, -93.375, (3.0, 4.0), TANK_TOP, ORLOP, "ahf"),
-        ("space_ahf_g_1", -88.0, -91.0, (-6.0, -5.0), ORLOP, G_DECK, "ahf"),
-        ("space_ahf_g_2", -88.0, -91.0, (-5.0, -4.0), ORLOP, G_DECK, "ahf"),
+        ("space_ahf_g_1", -88.0, -91.0, (-4.875, -3.875), ORLOP, G_DECK, "ahf"),
+        ("space_ahf_g_2", -88.0, -91.0, (-3.875, -2.875), ORLOP, G_DECK, "ahf"),
         ("space_aha_or_1", -109.0, -103.375, (-2.0, -1.0), TANK_TOP, ORLOP, "aha"),
         ("space_aha_or_2", -109.0, -103.375, (-1.0, 0.0), TANK_TOP, ORLOP, "aha"),
         ("space_aha_g_1", -104.0, -107.0, (0.5, 1.5), ORLOP, G_DECK, "aha"),
@@ -2002,8 +2027,11 @@ def under_flights():
         a, b = (rx0, rx1) if axis == 0 else (rz0, rz1)
         return start + (end - start) * (min(max(v, a), b) - a) / (b - a)
 
-    def conflict():
-        for i, (bx0, bx1, bz0, bz1, foot, top, is_box) in enumerate(block_geo):
+    def conflict(first):
+        """The first conflict from block first on: those before it have none, each piece of
+        a wall cut being laid at its place or after every other."""
+        for i in range(first, len(block_geo)):
+            bx0, bx1, bz0, bz1, foot, top, is_box = block_geo[i]
             if not is_box or min(bx1 - bx0, bz1 - bz0) > 0.3:
                 continue
             for ramp in ramp_geo:
@@ -2022,10 +2050,13 @@ def under_flights():
                     return i, ramp, (ox0, ox1, oz0, oz1)
         return None
 
-    found = conflict()
+    found = conflict(0)
+    cut_before = set()
     while found:
         i, ramp, (ox0, ox1, oz0, oz1) = found
         bx0, bx1, bz0, bz1, foot, top, _is_box = block_geo[i]
+        assert (blockers[i], block_geo[i], ramp) not in cut_before, ("a wall cut again to itself", blockers[i], ramp)
+        cut_before.add((blockers[i], block_geo[i], ramp))
         bid = blockers[i][len("Blocker_"):]
         along_x = bx1 - bx0 >= bz1 - bz0
         lo, hi, o0, o1 = (bx0, bx1, ox0, ox1) if along_x else (bz0, bz1, oz0, oz1)
@@ -2057,8 +2088,8 @@ def under_flights():
                 box("%s_u%d" % (bid, sum(1 for name in blockers if name.startswith("Blocker_%s_u" % bid))),
                     *area, foot, t)
         if not parts:
-            relay_box(bid, bx0, bx1, bz0, bz1, foot, foot + 0.05)
-        found = conflict()
+            drop_box(bid)
+        found = conflict(i)
 
 under_flights()
 
@@ -3154,7 +3185,9 @@ for plan, floor, over in ((BOAT_PLAN, BOAT, BOAT + HOUSE_TOP), (A_PLAN, A_DECK, 
             middle = ((floor + roof_y) * 0.5, (a + b) * 0.5)
             centre = (at,) + middle if axis == 0 else (middle[1], middle[0], at)
             size = (0, roof_y - floor, b - a) if axis == 0 else (b - a, roof_y - floor, 0)
-            opening("open_%s_%s" % tuple(sides), "OPEN", sides[0], sides[1], centre, size, starts="OPEN")
+            tag = "open_%s_%s" % tuple(sides)
+            seen = sum(1 for o in openings if o[0] == tag or o[0].startswith(tag + "_"))
+            opening(tag + ("_%d" % seen if seen else ""), "OPEN", sides[0], sides[1], centre, size, starts="OPEN")
 opening("open_d_deck", "OPEN", piece("d_deck", B_RUN[1] - 0.01), "d_deck_forward", (B_RUN[1], D_DECK * 0.5, 0.0),
         (0, -D_DECK, 2 * fit(B_RUN[1] - 0.5, B_RUN[1] + 0.5, D_DECK, 0.0)), starts="OPEN")
 opening("open_forecastle", "OPEN", "forecastle", "forecastle_head", (FCSL_STEP, FCSL[0] * 0.5, 0.0),
