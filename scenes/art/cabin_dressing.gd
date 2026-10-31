@@ -4,7 +4,8 @@ extends RefCounted
 ## fittings every cabin's walls take — a washstand under a mirror, a locker, curtains
 ## at the glass, a luggage shelf, a picture, a coat on a hook — and the dressing of a
 ## deckhouse cabin too narrow for furniture, with its berth folded up flat, and of a
-## saloon. Each stands flat on its wall, within a fitting's depth, or over HEADROOM.
+## saloon. Each stands flat on its wall, within a fitting's depth, or over HEADROOM; and
+## a traced stateroom's berths, on boxes of the layout's (stateroom()).
 
 ## How far along a wall either side of a pane's middle a fitting keeps clear of it,
 ## and how finely a wall is searched for a clear stretch.
@@ -36,8 +37,37 @@ const FOLDED_BERTH := AABB(Vector3(0.0, 0.41, 0.0), Vector3(0.0, 1.22, 0.1))
 ## box over all of the saloon's, a decanter on its top.
 const SIDEBOARDS := {0.64: "sideboard_64", 1.8: "sideboard_180"}
 const SIDEBOARD := AABB(Vector3(-0.32, 0.0, 0.0), Vector3(0.64, 0.99, 0.11))
+## A traced stateroom's berths (tools/titanic_cabins.py lays their boxes out by its name):
+## each BERTH_RISE tall on RoomDressing.BERTH's footprint, a lower one on the floor and an
+## upper one UPPER_BOTTOM over it, over a body's height, so a cabin is no crawl space. The
+## rules hold a body out of both, the art aligns to them (D6), and an upper shoves a body
+## back off the lower it jumped on. Each is a solid
+## bed base CORE_INSET in from its box's sides up to CORE_UNDER under its top, with the
+## berth's model on it MODEL_LIFT over the box's foot: the mattress's top (0.19 over the
+## model's underside) at the box's, and its ends under a step over that. An upper stands
+## on a post of side POST at each outer corner.
+const BERTH_RISE := 0.44
+const UPPER_BOTTOM := 1.72
+const MODEL_LIFT := 0.25
+const CORE_INSET := 0.03
+const CORE_UNDER := 0.01
+const POST := 0.05
+## The names of the rooms furnished so, and the counts a name's first word gives.
+const STATEROOMS: Array[String] = ["stateroom", "third-class room"]
+const BERTH_COUNTS := {"single": 1, "one": 1, "two": 2, "three": 3, "four": 4, "six": 6}
+## How much wall a folded berth takes beyond its length, and how long a stretch a
+## washstand wants.
+const FOLD_CLEAR := 0.1
+const WASHSTAND_WALL := 0.85
+## How far out from its wall what stands there leaves no room for a fitting.
+const FITTING_OUT := 0.15
 
 var _space: ShipSpace
+## How many staterooms have been dressed: the next one's blanket and curtains.
+var _staterooms := 0
+## Her boxes thicker than a wall by the height they stand at, in centimetres (_boxes_at()).
+var _boxes := {}
+var _filed := false
 
 
 func _init(space: ShipSpace) -> void:
@@ -256,3 +286,201 @@ func saloon(mesh: ShipMesh, room: ShipRoom, glass: Array[Array]) -> void:
 func _sideboard(mesh: ShipMesh, wall: RoomDressing.Wall, along: float) -> void:
 	var sideboard := RoomDressing.variant(SIDEBOARDS, SIDEBOARD.size.x)
 	mesh.model(ShipModel.named(sideboard), wall.place(wall.at(along, 0.0)))
+
+
+## Whether [param room] is a traced stateroom, by its name: furnished by rule.
+static func is_stateroom(room: ShipRoom) -> bool:
+	var named := String(room.name).to_lower()
+	for word: String in STATEROOMS:
+		if word in named:
+			return true
+	return false
+
+
+## How many berths [param room]'s name says it sleeps, or 0 when it gives no count.
+static func berths_named(room: ShipRoom) -> int:
+	var named := String(room.name).to_lower()
+	var dash := named.find("-berth")
+	return BERTH_COUNTS.get(named.substr(0, dash), 0) if dash > 0 else 0
+
+
+## Whether [param blocker] is a berth's box: RoomDressing.BERTH's footprint, BERTH_RISE
+## tall.
+static func is_berth(blocker: ShipBlocker) -> bool:
+	if blocker.shape != ShipBlocker.Shape.BOX:
+		return false
+	var size := blocker.area.size
+	return (
+		absf(maxf(size.x, size.y) - RoomDressing.BERTH.x) < ShipSpace.SLIVER
+		and absf(minf(size.x, size.y) - RoomDressing.BERTH.y) < ShipSpace.SLIVER
+		and absf(blocker.top - blocker.bottom - BERTH_RISE) < ShipSpace.SLIVER
+	)
+
+
+## The berth boxes of [param room] standing [param over] its floor.
+func berth_boxes(room: ShipRoom, over: float) -> Array[ShipBlocker]:
+	var found: Array[ShipBlocker] = []
+	for blocker: ShipBlocker in _boxes_at(room, over):
+		if is_berth(blocker):
+			found.append(blocker)
+	return found
+
+
+## The boxes thicker than a wall of [param room], their middles in it, standing
+## [param over] its floor: of her thousands of blockers, filed once, for a stateroom asks
+## many times.
+func _boxes_at(room: ShipRoom, over: float) -> Array[ShipBlocker]:
+	if not _filed:
+		_filed = true
+		for blocker: ShipBlocker in _space.layout.blockers:
+			if blocker.shape == ShipBlocker.Shape.BOX and not _space.is_wall(blocker):
+				var height := roundi(blocker.bottom * 100.0)
+				if not _boxes.has(height):
+					_boxes[height] = []
+				(_boxes[height] as Array).append(blocker)
+	var found: Array[ShipBlocker] = []
+	for blocker: ShipBlocker in _boxes.get(roundi((room.floor_height + over) * 100.0), []):
+		if room.area.has_point(blocker.area.get_center()):
+			found.append(blocker)
+	return found
+
+
+## A traced stateroom's own, by rule off its name: the berths its boxes stand for, those
+## it could not stand folded flat on the walls with the longest clear stretch, a washstand
+## where a wall has room left, and curtains at each of [param glass]. A room that is not
+## one draws nothing here.
+func stateroom(mesh: ShipMesh, room: ShipRoom, glass: Array[Array]) -> void:
+	if not is_stateroom(room):
+		return
+	var blankets := ArtPalette.CABIN_BLANKETS
+	var hangings := ArtPalette.CABIN_CURTAINS
+	var finish := ShipMesh.Finish.PLAIN
+	var blanket := ShipMesh.Paint.new(finish, blankets[_staterooms % blankets.size()])
+	var curtain := ShipMesh.Paint.new(finish, hangings[_staterooms % hangings.size()])
+	_staterooms += 1
+	var lowers := berth_boxes(room, 0.0)
+	var uppers := berth_boxes(room, UPPER_BOTTOM)
+	for lower: ShipBlocker in lowers:
+		_standing_berth(mesh, room, lower, blanket)
+	for upper: ShipBlocker in uppers:
+		_standing_berth(mesh, room, upper, blanket)
+		_posts(mesh, room, upper)
+	var folds := maxi(0, berths_named(room) - lowers.size() - uppers.size())
+	_stand_washstand(mesh, _fold_berths(mesh, room, folds, glass, blanket))
+	for pane: Array in glass:
+		curtains(mesh, pane[1], pane[2], curtain)
+
+
+## The way out of [param box]'s long back into [param room], off the wall it stands on.
+static func _berth_normal(room: ShipRoom, box: ShipBlocker) -> Vector3:
+	var off := room.area.get_center() - box.area.get_center()
+	if box.area.size.x >= box.area.size.y:
+		return Vector3.BACK if off.y >= 0.0 else Vector3.FORWARD
+	return Vector3.RIGHT if off.x >= 0.0 else Vector3.LEFT
+
+
+## The berth [param box] stands for (RoomDressing.BERTH_MODEL), its back on its wall, its
+## blanket in [param blanket], on its bed base.
+func _standing_berth(
+	mesh: ShipMesh, room: ShipRoom, box: ShipBlocker, blanket: ShipMesh.Paint
+) -> void:
+	var normal := _berth_normal(room, box)
+	var centre := box.area.get_center()
+	var foot := Vector3(centre.x, box.bottom + MODEL_LIFT, centre.y)
+	var point := foot - normal * RoomDressing.BERTH.y * 0.5
+	var turn := Basis(Vector3.UP.cross(normal), Vector3.UP, normal)
+	var model := ShipModel.named(RoomDressing.BERTH_MODEL)
+	mesh.model(model, Transform3D(turn, point), {ShipPaints.blanket: blanket})
+	var core := box.area.grow(-CORE_INSET)
+	mesh.box(core, box.bottom, box.top - CORE_UNDER, ShipPaints.frame)
+
+
+## A post under each outer corner of upper berth [param box], down to the lower's top.
+func _posts(mesh: ShipMesh, room: ShipRoom, box: ShipBlocker) -> void:
+	var normal := _berth_normal(room, box)
+	var along := Vector3.UP.cross(normal)
+	var centre := box.area.get_center()
+	var out := normal * (RoomDressing.BERTH.y * 0.5 - POST)
+	var middle := Vector3(centre.x, room.floor_height + BERTH_RISE, centre.y) + out
+	for end: float in [-1.0, 1.0]:
+		var foot := middle + along * end * (RoomDressing.BERTH.x * 0.5 - POST)
+		var head := Vector3(foot.x, box.bottom, foot.z)
+		mesh.beam(foot, head, Vector2.ONE * POST, ShipPaints.frame, 0)
+
+
+## [param count] berths folded flat, each on the wall with the longest clear stretch left
+## (FOLDED_BERTHS), in [param blanket]. Returns what each wall has left, as
+## [Wall, Vector2 stretch] pairs, for what stands on them next.
+func _fold_berths(
+	mesh: ShipMesh, room: ShipRoom, count: int, glass: Array[Array], blanket: ShipMesh.Paint
+) -> Array[Array]:
+	var standing := _boxes_at(room, 0.0) + _boxes_at(room, UPPER_BOTTOM)
+	var left: Array[Array] = []
+	for wall: RoomDressing.Wall in RoomDressing.walls(_space, room):
+		left.append([wall, _open_stretch(wall, glass, standing)])
+	var length := RoomDressing.BERTH.x
+	for _fold in count:
+		var best := _longest(left)
+		var span: Vector2 = best[1] if not best.is_empty() else Vector2.ZERO
+		if span.y - span.x < length + FOLD_CLEAR:
+			break
+		var from := span.x + FOLD_CLEAR * 0.5
+		_folded_berth(mesh, best[0], from, from + length, blanket)
+		best[1] = Vector2(from + length, span.y)
+	return left
+
+
+## The longest stretch (from, to) along [param wall] that none of [param standing] stands
+## a fitting's depth out from and none of [param glass] is in: _clear_stretch() for a
+## room whose boxes are known, which need not ask the whole ship for each.
+func _open_stretch(
+	wall: RoomDressing.Wall, glass: Array[Array], standing: Array[ShipBlocker]
+) -> Vector2:
+	var along_x := wall.side % 2 == 0
+	var strip := wall.rect(wall.from, wall.to, 0.0, FITTING_OUT)
+	var cuts: Array[Vector2] = []
+	for box: ShipBlocker in standing:
+		if strip.intersects(box.area):
+			var area := box.area
+			cuts.append(
+				(
+					Vector2(area.position.x, area.end.x)
+					if along_x
+					else Vector2(area.position.y, area.end.y)
+				)
+			)
+	for pane: Array in glass:
+		var centre: Vector3 = pane[1]
+		if (pane[2] as Vector3).is_equal_approx(wall.normal):
+			var middle := centre.x if along_x else centre.z
+			cuts.append(Vector2(middle - GLASS_CLEAR, middle + GLASS_CLEAR))
+	cuts.sort()
+	var best := Vector2.ZERO
+	var reached := wall.from
+	for cut: Vector2 in cuts + [Vector2(wall.to, wall.to)]:
+		if minf(cut.x, wall.to) - reached > best.y - best.x:
+			best = Vector2(reached, minf(cut.x, wall.to))
+		reached = maxf(reached, cut.y)
+	return best
+
+
+## A washstand on the longest stretch [param left] (_fold_berths) if that holds one.
+func _stand_washstand(mesh: ShipMesh, left: Array[Array]) -> void:
+	var best := _longest(left)
+	if best.is_empty():
+		return
+	var span: Vector2 = best[1]
+	if span.y - span.x >= WASHSTAND_WALL:
+		# Its box runs further toward its towel rail than its mirror: centre the box.
+		washstand(mesh, best[0], (span.x + span.y) * 0.5 - WASHSTAND.get_center().x)
+
+
+## The pair of [param left] (_fold_berths) with the longest stretch; empty when none.
+static func _longest(left: Array[Array]) -> Array:
+	var best: Array = []
+	for pair: Array in left:
+		var span: Vector2 = pair[1]
+		var most: Vector2 = best[1] if not best.is_empty() else Vector2(0.0, -1.0)
+		if span.y - span.x > most.y - most.x:
+			best = pair
+	return best
