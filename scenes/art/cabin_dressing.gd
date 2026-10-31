@@ -4,7 +4,8 @@ extends RefCounted
 ## fittings every cabin's walls take — a washstand under a mirror, a locker, curtains
 ## at the glass, a luggage shelf, a picture, a coat on a hook — and the dressing of a
 ## deckhouse cabin too narrow for furniture, with its berth folded up flat, and of a
-## saloon. Each stands flat on its wall, within a fitting's depth, or over HEADROOM.
+## saloon. Each stands flat on its wall, within a fitting's depth, or over HEADROOM; and
+## a traced stateroom's berths, on boxes of the layout's (stateroom()).
 
 ## How far along a wall either side of a pane's middle a fitting keeps clear of it,
 ## and how finely a wall is searched for a clear stretch.

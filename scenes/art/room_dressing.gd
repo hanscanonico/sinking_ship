@@ -608,7 +608,7 @@ func build(mesh: ShipMesh, signs: Node3D, panes: Array[Array]) -> void:
 			Kind.SALOON:
 				_cabins.saloon(mesh, room, glass)
 			Kind.CABIN:
-				# A small room over the main deck: its berth is ShipFittings'.
+				# A small room over the main deck: its berth is ShipFittings', a stateroom's its own.
 				_cabins.stateroom(mesh, room, glass)
 			Kind.DINING:
 				_dining.build(mesh, room, glass)
