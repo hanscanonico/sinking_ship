@@ -769,8 +769,8 @@ SOLIDS = [
     ("W.C.s", 2714.5, 4326, 2783, 4516, None),
     ("potatoes", 2894, 4503, 3071.5, 4652, None),
     ("potatoes", 3071.5, 4503, 3137.5, 4634, None),
-    ("locker", 3137.5, 4503, 3173, 4572, None),
-    ("locker", 3137.5, 4572, 3173, 4634, None),
+    ("potatoes", 3137.5, 4503, 3173, 4572, None),
+    ("potatoes", 3137.5, 4572, 3173, 4634, None),
     ("W.C.s", 2400.5, 4716, 2472.9, 4853.5, None),
     ("linen locker", 2472.9, 4716, 2506.5, 4782.5, None),
     ("linen locker", 2472.9, 4782.5, 2506.5, 4841, None),
@@ -1258,6 +1258,7 @@ DOOR_MOVES = [
     ((62.125, -9.375), (62.125, -9.6875)),  # likewise
     ((104.0, -3.5), (104.0, -4.125)),  # likewise
     (None, (-70.625, -12.0)),  # the potato room's way past the ladder laid along its door
+    (None, (-64.9375, 12.4)),  # the passage behind M's ladder, through the room it served
 ]
 # Less than a door's width either side of D's line; the store her stem takes; the joins
 # over the 20 ft ladderway's well and the engineers' ladder's, opened beside them below.
@@ -1270,12 +1271,15 @@ OPENED = [
 ]
 # Ladderways the flight fills; a landing whose every door opens over its well; a strip
 # narrower than a body the lavatory leaves.
-NOT_ROOMS = [(-90.0, -5.3), (-65.5, 10.0), (-20.0, -6.7), (20.0, -6.7), (52.0, -6.7), (72.0, 3.8), (74.0, -7.5)]
+NOT_ROOMS = [(-90.0, -5.3), (-20.0, -6.7), (20.0, -6.7), (37.0, -6.4), (52.0, -6.7), (72.0, 3.8), (74.0, -7.5),
+             (79.5, 6.0), (127.5, 0.0)]
 # A bathroom by J's line and a store too small for a door; a store her stem takes.
-MADE_SOLID = [(-17.0, -6.5), (-64.4, -9.1), (127.5, 0.0), (82.6, -5.4)]
+MADE_SOLID = [(-17.0, -6.5), (-64.4, -9.1), (82.6, -5.4)]
 # Flights the plate stacks over F deck's flights down (f.py), side by side or they'd land
 # in each other's holes:
 STAIR_MOVES = [
+    # Aft of the pendant over the second-class entrance on F deck, a body under it on its foot:
+    (("second-class staircase", -72.0625, 1.3125), (-72.3125, -69.1875, 1.3125, 3.25)),
     (("third-class ladder", 93.375, 5.25), (95.25, 98.4375, 4.75, 5.8125)),
     (("ladder", 72.4375, -7.375), (72.4375, 75.625, -6.8125, -5.625)),
     (("third-class ladder", 78.25, -6.25), (78.25, 81.375, -6.6875, -5.5625)),

@@ -80,7 +80,8 @@ func test_a_cell_poking_out_of_her_is_drawn_round_its_rooms() -> void:
 ## box never takes on what another of its cell's boxes holds: No. 1 hold's, stacked
 ## down her narrowing bow, keep to their own rooms short of the bulkhead forward of it.
 func test_a_cell_drawn_round_its_rooms_reaches_the_bulkheads_it_shares() -> void:
-	var layout := Fleet.layout(&"titanic")
+	# Her smaller sister: the Titanic's No. 3 hold's rooms are laid to bulkheads D and C.
+	var layout: ShipLayout = load("res://data/ships/small_titanic.tres")
 	var structure := layout.structure
 	var drawn := CellBoxes.boxes(structure, layout.rooms)
 	var index := structure.cell_named(&"hold_3_tween")
@@ -161,7 +162,8 @@ func _room(layout: ShipLayout, name: StringName) -> ShipRoom:
 ## one box — its sides in no room and so in no box. The gallery is drawn wall to wall,
 ## out over its sides, from bulkhead C, whose door opens onto its port side.
 func test_a_room_partly_under_another_is_drawn_to_its_cells_top_past_it() -> void:
-	var layout := Fleet.layout(&"titanic")
+	# Her smaller sister keeps the squash court this reads; the Titanic's waits for G deck.
+	var layout: ShipLayout = load("res://data/ships/small_titanic.tres")
 	var structure := layout.structure
 	var index := structure.cell_named(&"hold_2_tween")
 	var tween := structure.cells[index]

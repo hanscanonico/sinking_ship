@@ -107,9 +107,13 @@ static func _to_bulkheads(
 ## bulkhead it ends at, which her sections' rounded ends can have it touch by a few
 ## millimetres (bulkhead C's, the Titanic's No. 3 hold's forward one).
 static func _gains(structure: ShipStructure, drawn: Array[AABB], at: int, gained: AABB) -> bool:
-	for other in drawn.size():
-		if other != at and drawn[other].intersects(gained.grow(-MEET)):
-			return false
+	var held := gained.grow(-MEET)
+	# A strip no thicker than the hair either side (a room ending that near a bulkhead)
+	# holds nothing of another box's.
+	if held.size.x > 0.0 and held.size.y > 0.0 and held.size.z > 0.0:
+		for other in drawn.size():
+			if other != at and drawn[other].intersects(held):
+				return false
 	return _within(structure, gained, SHELL_NEAR)
 
 
@@ -137,7 +141,7 @@ static func _room_boxes(
 			var top: float = part[1]
 			var low := Vector3(area.position.x, room.floor_height, area.position.y)
 			var box := _held(structure, AABB(low, Vector3(area.end.x, top, area.end.y) - low))
-			if box.size.z > 0.0:
+			if box.size.x > 2.0 * MEET and box.size.z > 2.0 * MEET:
 				found.append(box)
 	if found.is_empty():
 		return [round]

@@ -625,6 +625,11 @@ def hole_rails(plats, sid):
     for name, lo, hi, z0, z1, high, x_low in [s for s in stairs if s[0] == sid]:
         open_end = hi if x_low == lo else lo
         closed = lo if open_end == hi else hi
+        # Under the foot of the flight up from this deck, whose treads cover its hole: a
+        # railing there would stand across them.
+        if any(min(r[5], r[6]) == high and r[2] <= z0 and z1 <= r[3] and r[0] < hi and r[1] > lo
+               for r in ramp_geo):
+            continue
         for tag, a, b in [("p", (lo, z0), (hi, z0)), ("s", (lo, z1), (hi, z1)), ("e", (closed, z0), (closed, z1))]:
             on = edge_platform(plats, a, b)
             if on is not None:
@@ -929,15 +934,20 @@ B_PLAN = plates.load("b", side=b_side)
 # poop beside its after step, and its end over that store read as a break in her decks.
 STRIP_STEP = 0.3
 
-def hull_strips(x0, x1, height, margin=0.05):
+STRIP_SNAP = 0.25
+
+def hull_strips(x0, x1, height, margin=0.05, edges=()):
     """Strips (a, b, -half, half) from x0 to x1 at height, each at most DECK_STRIP long and
     as wide as her hull all along it, less margin, her side narrowing at most STRIP_STEP
-    along it; their ends on the traced decks' grain."""
+    along it; their ends on the traced decks' grain, and on an edge of edges within
+    STRIP_SNAP, a hole's, or the two would leave a sliver of deck between them."""
     out, a = [], x0
     while a < x1 - 1e-9:
         b = min(a + DECK_STRIP, x1)
         while b - a > 0.25 and abs(breadth(a + 0.01, height) - breadth(b - 0.01, height)) > STRIP_STEP:
             b = max(plates.kept(a + (b - a) * 0.5), a + 0.25)
+        near = [e for e in edges if a + 0.25 < e < x1 and abs(e - b) < STRIP_SNAP]
+        b = min(near, key=lambda e: abs(e - b)) if near else b
         half = fit(a, b, height, margin)
         out.append((a, b, -half, half))
         a = b
@@ -994,8 +1004,12 @@ def plan_ends(plan):
     pieces = plan.rooms + plan.solids
     return min(r[1] for r in pieces) - T, max(r[2] for r in pieces) + T
 
-E_PIECES = hull_strips(*plan_ends(E_OUTLINE), E_DECK)
-F_PIECES = hull_strips(*plan_ends(F_OUTLINE), F_DECK)
+# E and F decks' floors stop at the stores her stem takes (e.py, f.py), past which no body
+# comes and she has no deck.
+E_STEM = 126.4375
+F_STEM = 124.875
+E_PIECES = hull_strips(plan_ends(E_OUTLINE)[0], E_STEM, E_DECK, edges=sorted({h[k] for h in holes["e"] for k in (0, 1)}))
+F_PIECES = hull_strips(plan_ends(F_OUTLINE)[0], F_STEM, F_DECK, edges=sorted({h[k] for h in holes["f"] for k in (0, 1)}))
 e_deck = [i for k, (x0, x1, z0, z1) in enumerate(E_PIECES)
           for i in deck("e_%d" % k, "E deck", x0, x1, z0, z1, E_DECK, holes["e"])]
 f_deck = [i for k, (x0, x1, z0, z1) in enumerate(F_PIECES)

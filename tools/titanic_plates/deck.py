@@ -210,7 +210,8 @@ class Deck:
         (x0, x1, z0, z1) instead, off the plate so its foot finds a floor. OPENED, a join
         (x0, x1, z0, z1) a landing's way in needs, just so long. NOT_ROOMS, each (x, z) in a well and no
         room once her cells have split it, its flight taking all a body could stand on
-        behind its door: its walls stay, its floor is no room's."""
+        behind its door: its walls stay, its floor is no room's. WALLED_SOLIDS, a
+        solid at each (x, z) whose face only touches a room's edge, the edge walled."""
         for axis, at, to, lo, hi in getattr(module, "NUDGES", ()):
             found = False
             for list_name in ("rooms", "solids"):
@@ -258,6 +259,7 @@ class Deck:
         for x, z in getattr(module, "MADE_SOLID", ()):
             self._solid(next(r for r in self.rooms if r[1] < x < r[2] and r[3] < z < r[4]))
         self.not_rooms = list(getattr(module, "NOT_ROOMS", ()))
+        self.walled_solids = list(getattr(module, "WALLED_SOLIDS", ()))
 
     def _join(self, parts):
         """The lines two parts read of one wall moved onto one: of each kind, lines of
@@ -471,7 +473,8 @@ class Deck:
         for k, (_name, x0, x1, z0, z1) in enumerate(self.rooms):
             for axis, at, a, b in [(0, x0, z0, z1), (0, x1, z0, z1), (2, z0, x0, x1), (2, z1, x0, x1)]:
                 edges.setdefault((axis, at), []).append((a, b, k))
-        solid_boxes = [s[1:5] for s in self.solids]
+        solid_boxes = [s[1:5] for s in self.solids
+                       if not any(s[1] < x < s[2] and s[3] < z < s[4] for x, z in self.walled_solids)]
         walls = []
         for (axis, at), spans in sorted(edges.items()):
             cuts = sorted({v for a, b, _k in spans for v in (a, b)})
