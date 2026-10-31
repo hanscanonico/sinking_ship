@@ -83,7 +83,7 @@ A prop placed a hundred times is parsed once.
 | `luggage_rack` | `CabinDressing._rack`, over a narrow cabin's folded berth | furniture | 264 |
 | `coat` | `CabinDressing.coat()`, on a cabin's wall | furniture | 261 |
 | `folded_berth_190` | `CabinDressing._folded_berth`, by length (`FOLDED_BERTHS`) | furniture | 282 |
-| `berth` | `RoomDressing.slung_berth`, every cabin's and block of berths' (`LinerBerths`) | furniture | 234 |
+| `berth` | `RoomDressing.slung_berth`, every cabin's and block of berths' (`LinerBerths`); `CabinDressing._standing_berth`, a stateroom's | furniture | 234 |
 | `lifebelt` | `RoomDressing.lifebelt`, in passages and holds and on deckhouses (`ShipFittings`) | furniture | 192 |
 | `fire_buckets` | `RoomDressing.fire_buckets`, a rack over head height | furniture | 344 |
 | `pendant_lamp` | `ShipLamp`, a room's pendant, under its own lamp node | wall decor | 130 |

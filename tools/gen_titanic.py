@@ -32,6 +32,7 @@ import struct
 import sys
 
 from floor_spots import spots_below_decks
+from titanic_cabins import BERTH_RISE, SOFA_TOP, UPPER_BOTTOM, furnish
 from titanic_plates import deck as plates
 
 out = sys.argv[1]
@@ -3998,6 +3999,17 @@ for tid, x, floor, z in LAID:
     for tag, dx, dz, facing in [("px", off, 0.0, 180), ("mx", -off, 0.0, 0), ("pz", 0.0, off, -90),
                                 ("mz", 0.0, -off, 90)]:
         furniture("dining_chair", "Chair_%s_%s" % (tid, tag), (x + dx, floor, z + dz), DINING_CHAIR, facing)
+
+# Her staterooms' berths and sofas (#390), by rule off their names, after every other
+# blocker so none of theirs moves.
+CABINS = furnish(room_geo, block_geo, ways_in, spawns)
+for k, (geo, lowers, uppers, sofa, _folded) in enumerate(CABINS):
+    for n, (x0, x1, z0, z1) in enumerate(lowers):
+        box("berth_%d_%d" % (k, n), x0, x1, z0, z1, geo[4], geo[4] + BERTH_RISE)
+    for n, (x0, x1, z0, z1) in enumerate(uppers):
+        box("upper_%d_%d" % (k, n), x0, x1, z0, z1, geo[4] + UPPER_BOTTOM, geo[4] + UPPER_BOTTOM + BERTH_RISE)
+    if sofa:
+        box("sofa_%d" % k, sofa[0], sofa[1], sofa[2], sofa[3], geo[4], geo[4] + SOFA_TOP)
 
 # Her bonus spots (#312): one in each room below her main deck — a room whose floor
 # stands under zero — where a bonus can come aboard, at the free point of its floor
