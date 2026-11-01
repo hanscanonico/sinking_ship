@@ -1799,8 +1799,8 @@ def low_named(plan, level):
 
 on_floor(ORLOP_PLAN, ORLOP_PIECES + ORLOP_PLAN.decks[1:2])
 on_floor(LOWER_PLAN, LOWER_PIECES)
-# (B's own thickness by the spiral stairs: her line holds it, and nothing is left of the piece.)
-TT_PLAN.solids[:] = [s for s in TT_PLAN.solids if s[2] - s[1] > 1e-3]
+# (B's own thickness by the spiral stairs: her line takes the piece to nothing, so a wall's.)
+TT_PLAN.solids[:] = [s[:1] + (s[1] - T, s[1] + T) + s[3:] if s[2] - s[1] <= 1e-3 else s for s in TT_PLAN.solids]
 low_named(TT_PLAN, "tt")
 low_named(ORLOP_PLAN, "orlop")
 low_named(LOWER_PLAN, "lower")
@@ -1826,6 +1826,13 @@ plan_layer("tt", TT_PLAN, tt_floor, tt_over, breaks=[BX[k] for k in "MLKDB"] + [
            wall_top=lambda z, x: ORLOP if z < -9.0 and BX["L"] < x < -37.875 else tt_over(x))
 plan_layer("orlop", ORLOP_PLAN, orlop_at, lambda _x: G_DECK, water=False)
 plan_layer("lower_orlop", LOWER_PLAN, LOWER_ORLOP, ORLOP_FWD, water=False)
+# Where the coal and the trunk the plates draw against them stood nothing now does (on_floor):
+# D on the orlop outboard of the bunker abaft it, K on G deck in the wings, B by the spirals on
+# the lower orlop.
+for tag, sign in [("p", -1), ("s", 1)]:
+    box("orlop_d_" + tag, BX["D"] - T, BX["D"] + T, *sorted((sign * 8.8, sign * 9.7)), ORLOP_FWD, G_DECK)
+    box("g_k_" + tag, BX["K"] - T, BX["K"] + T, *sorted((sign * 12.8, sign * 13.85)), G_DECK, F_DECK)
+box("lower_orlop_b", BX["B"] - T, BX["B"] + T, -2.2, -1.5, LOWER_ORLOP, ORLOP_FWD)
 
 for k, (_w, x0, x1, z0, z1, high) in enumerate(ENGINE_COVERS):
     casing = next(c for c in F_PLAN.solids if c[5] is None and c[1] <= (x0 + x1) * 0.5 <= c[2] and c[3] <= (z0 + z1) * 0.5 <= c[4])
@@ -2044,15 +2051,8 @@ for at in ends_db:
 tt_decks = [i for k, (x0, x1, z0, z1) in enumerate(TT_PIECES)
             for i in deck("tt_%d" % k, "engine room floor" if BX["L"] <= x0 and x1 <= BX["K"] else "tank top", x0, x1, z0, z1,
                           tt_floor((x0 + x1) * 0.5), TT_HOLES)]
-# (No floor in the refrigerated holds' insulation along O and N, nobody's.)
-ORLOP_GAPS = []
-at_x = BX["P"]
-for r in sorted((r for r in ORLOP_PLAN.rooms if r[2] <= BX["M"] + 0.01), key=lambda r: r[1]):
-    if r[1] > at_x + 0.05:
-        ORLOP_GAPS.append((at_x, r[1], -HALF, HALF))
-    at_x = max(at_x, r[2])
 for k, (x0, x1, z0, z1) in enumerate(ORLOP_PIECES):
-    deck("orlop_%d" % k, "orlop deck", x0, x1, z0, z1, orlop_at(x0 + 0.01), holes["orlop"] + ORLOP_GAPS)
+    deck("orlop_%d" % k, "orlop deck", x0, x1, z0, z1, orlop_at(x0 + 0.01), holes["orlop"])
 for k, (x0, x1, z0, z1) in enumerate(ORLOP_PLAN.decks[1:2]):
     deck("orlop_flat_%d" % k, "orlop deck", x0, x1, max(z0, -fit(x0, x1, ORLOP, 0.05)), z1, ORLOP, holes["orlop"])
 # The landing at the head of the CO2 evaporator room's ladder, out of its door (orlop.py, est.).

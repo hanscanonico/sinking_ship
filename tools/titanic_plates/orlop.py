@@ -102,15 +102,16 @@ ROOMS = [
     # Between O and N, the refrigerated cargo holds, port and starboard of a wall on her
     # centre line, inside their insulation: the plate draws their lining 55-90 px inside
     # her sides and her bulkheads, and the space between, its frames drawn along her
-    # sides, is nobody's. Each in three pieces round the foot of No. 5 hatch's trunk on
+    # sides, is nobody's; along O and N the lay takes them out to the bulkheads (1.5 m, 1.5 m),
+    # so her orlop is one deck with its ways up. Each in three pieces round the foot of No. 5 hatch's trunk on
     # the centre line (the plate's "No. 5 HATCH (OVER)": its hatch is in the decks above),
     # which opens into both holds through the doors the plate draws in its coaming.
-    ("refrigerated cargo hold", 1588, 3376.5, 1664, 3613),
+    ("refrigerated cargo hold", 1530, 3376.5, 1664, 3613),
     ("refrigerated cargo hold", 1664, 3352, 1839, 3499.5),
-    ("refrigerated cargo hold", 1839, 3310, 2097, 3613),
-    ("refrigerated cargo hold", 1588, 3613, 1664, 3858.5),
+    ("refrigerated cargo hold", 1839, 3310, 2152, 3613),
+    ("refrigerated cargo hold", 1530, 3613, 1664, 3858.5),
     ("refrigerated cargo hold", 1664, 3726.5, 1839, 3880),
-    ("refrigerated cargo hold", 1839, 3613, 2097, 3917.5),
+    ("refrigerated cargo hold", 1839, 3613, 2152, 3917.5),
     ("refrigerated cargo hold, No. 5 hatch", 1664, 3499.5, 1839, 3726.5),
     # Between N and M, the stores (BOT: "abaft the turbine engine room, were some store
     # rooms containing stores for ship's use"), as the plate labels them. Along N, the
