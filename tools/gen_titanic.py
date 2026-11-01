@@ -1260,6 +1260,15 @@ G_CUTS = sorted({round((BX["M"] if letter == "M" else line_of(letter)) * 128) / 
 E_PLAN = plates.load("e", side=held_to(E_PIECES), ends=EF_CUTS, reach=0.6, lead=D_LEAD)
 F_PLAN = plates.load("f", side=held_to(F_PIECES), ends=EF_CUTS, reach=D_REACH, lead=D_LEAD)
 G_PLAN = plates.load("g", side=held_to(G_PIECES), ends=G_CUTS, reach=D_REACH, lead=D_LEAD)
+
+def on_floor(plan, pieces):
+    """A plan's solids that stand on its floor: over her boiler rooms G deck's casings and
+    bunkers, and the orlop's, stand on nothing, the tank top's solids and F deck's casings
+    filling that; nor is a peak's tank or a trunk past her side a place's."""
+    plan.solids[:] = [s for s in plan.solids if any(p[0] <= (s[1] + s[2]) * 0.5 <= p[1] and p[2] <= (s[3] + s[4]) * 0.5 <= p[3]
+                                                    for p in pieces)]
+
+on_floor(G_PLAN, G_PIECES)
 h3_floor = (HOLD3[0] + 0.3, HOLD3[1] - 0.3)
 def tapered(pid, name, x0, x1, h, strip, margin):
     """A deck from x0 to x1 at h in strips about strip long, each as wide as her hull
@@ -1788,6 +1797,10 @@ def low_named(plan, level):
         rooms.append((name, x0, x1, z0, z1))
     plan.rooms[:] = rooms
 
+on_floor(ORLOP_PLAN, ORLOP_PIECES + ORLOP_PLAN.decks[1:2])
+on_floor(LOWER_PLAN, LOWER_PIECES)
+# (B's own thickness by the spiral stairs: her line holds it, and nothing is left of the piece.)
+TT_PLAN.solids[:] = [s for s in TT_PLAN.solids if s[2] - s[1] > 1e-3]
 low_named(TT_PLAN, "tt")
 low_named(ORLOP_PLAN, "orlop")
 low_named(LOWER_PLAN, "lower")
@@ -1888,7 +1901,7 @@ for k, r in enumerate((r for r in TT_PLAN.rooms if r[0].startswith("boiler room"
     aft, fore = min(s[1] for s in boilers), max(s[2] for s in boilers)
     doors = [(x, z) for axis, at, w0, w1, _kind, gaps in TT_PLAN.walls if axis == 0 and at in (r[1], r[2])
              and r[3] <= w0 and w1 <= r[4] for z in gaps for x in (at,)]
-    ways = [aisle_flight("stokehold_%d_f" % k, r[2] - T - 0.0625 - LOW_LANE, fore + 0.0625, doors, TANK_TOP)
+    ways = [aisle_flight("stokehold_%d_f" % k, fore + 0.0625, r[2] - T - 0.0625 - LOW_LANE, doors, TANK_TOP)
             if r[2] - fore >= LOW_LANE + 0.5 else False,
             aisle_flight("stokehold_%d_a" % k, r[1] + T + 0.0625, aft - 0.0625 - LOW_LANE, doors, TANK_TOP)
             if aft - r[1] >= LOW_LANE + 0.5 else False]
@@ -2031,8 +2044,15 @@ for at in ends_db:
 tt_decks = [i for k, (x0, x1, z0, z1) in enumerate(TT_PIECES)
             for i in deck("tt_%d" % k, "engine room floor" if BX["L"] <= x0 and x1 <= BX["K"] else "tank top", x0, x1, z0, z1,
                           tt_floor((x0 + x1) * 0.5), TT_HOLES)]
+# (No floor in the refrigerated holds' insulation along O and N, nobody's.)
+ORLOP_GAPS = []
+at_x = BX["P"]
+for r in sorted((r for r in ORLOP_PLAN.rooms if r[2] <= BX["M"] + 0.01), key=lambda r: r[1]):
+    if r[1] > at_x + 0.05:
+        ORLOP_GAPS.append((at_x, r[1], -HALF, HALF))
+    at_x = max(at_x, r[2])
 for k, (x0, x1, z0, z1) in enumerate(ORLOP_PIECES):
-    deck("orlop_%d" % k, "orlop deck", x0, x1, z0, z1, orlop_at(x0 + 0.01), holes["orlop"])
+    deck("orlop_%d" % k, "orlop deck", x0, x1, z0, z1, orlop_at(x0 + 0.01), holes["orlop"] + ORLOP_GAPS)
 for k, (x0, x1, z0, z1) in enumerate(ORLOP_PLAN.decks[1:2]):
     deck("orlop_flat_%d" % k, "orlop deck", x0, x1, max(z0, -fit(x0, x1, ORLOP, 0.05)), z1, ORLOP, holes["orlop"])
 # The landing at the head of the CO2 evaporator room's ladder, out of its door (orlop.py, est.).

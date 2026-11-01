@@ -60,8 +60,6 @@ func test_a_gash_along_each_old_void_of_her_gash_band_opens_a_place_people_can_b
 		&"hold_2": _hit(1, 90.0, 95.0, 4.0, 0.5),
 		&"hold_1": _hit(1, 104.0, 108.0, 6.0, 0.5),
 		&"hold_1_tween": _hit(-1, 104.0, 108.0, 0.5, 0.5),
-		&"forepeak_tank": _hit(1, 116.0, 119.0, 7.0, 0.5),
-		&"forepeak": _hit(-1, 116.0, 120.0, 2.0, 0.5),
 		&"db_boiler_room_1": _hit(1, -26.0, -18.0, 9.0, 0.5),
 		&"boiler_room_1": _hit(-1, -27.0, -21.0, 6.0, 0.5),
 		&"bunker_1": _hit(1, -20.0, -17.0, 6.0, 0.5),
@@ -80,7 +78,6 @@ func test_a_gash_along_each_old_void_of_her_gash_band_opens_a_place_people_can_b
 		&"after_hold_aft": _hit(1, -109.0, -103.0, 6.0, 0.5),
 		&"after_hold_aft_orlop": _hit(-1, -109.0, -103.0, 2.5, 0.5),
 		&"after_hold_aft_tween": _hit(1, -109.0, -103.0, 0.5, 0.5),
-		&"after_peak_tank": _hit(-1, -120.0, -119.2, 5.0, 0.5),
 		&"after_peak_tween": _hit(1, -120.0, -119.2, 0.5, 0.5),
 		&"bunker_2": _hit(-1, -2.0, 1.0, 6.0, 0.5),
 		&"bunker_3": _hit(1, 16.5, 18.5, 6.0, 0.5),
@@ -96,6 +93,25 @@ func test_a_gash_along_each_old_void_of_her_gash_band_opens_a_place_people_can_b
 		assert_not_null(into, "the gash opens the %s" % cell)
 		if into != null:
 			assert_true(_layout.opens_place(into), "into a place people can be in the %s" % cell)
+
+
+func test_the_small_titanic_s_peaks_are_places_people_can_be() -> void:
+	# The plates draw hers as tanks and stores nobody enters: her estimated ones stay on the
+	# Small Titanic.
+	_layout = Fleet.layout(&"small_titanic")
+	_sinking = Fleet.scenario(&"small_titanic")
+	var gashes := {
+		&"forepeak_tank": _hit(1, 116.0, 119.0, 7.0, 0.5),
+		&"forepeak": _hit(-1, 116.0, 120.0, 2.0, 0.5),
+		&"after_peak_tank": _hit(-1, -120.0, -119.2, 5.0, 0.5),
+	}
+	for cell: StringName in gashes:
+		var into := _into(_mapped(gashes[cell]), cell)
+		assert_not_null(into, "the gash opens the %s" % cell)
+		if into != null:
+			assert_true(_layout.opens_place(into), "into a place people can be in the %s" % cell)
+	_layout = Fleet.layout(&"titanic")
+	_sinking = Fleet.scenario(&"titanic")
 
 
 func test_a_deep_gash_under_no_1_hold_s_narrowing_floor_opens_its_double_bottom() -> void:
