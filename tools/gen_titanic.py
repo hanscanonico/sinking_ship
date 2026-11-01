@@ -3427,6 +3427,14 @@ for hold in ("hold_2", "hold_3"):
                 starts="OPEN")
 opening("stair_firemens_passage", "STAIRWELL", "firemens_passage", "hold_2",
         (BX["B"] - 1.0, PASSAGE_TOP, (PASSAGE_Z[0] + PASSAGE_Z[1]) * 0.5), (1.0, 0, 1.0), starts="OPEN")
+# The two hinged doors the plate's tank top draws through D from the passage's after end into
+# No. 3 hold (70.75, -1.75 and +2.13). BOT says the passage "was made thoroughly watertight
+# throughout its length" and names no door but the sliding one at its after end, and these
+# aren't that: est. shut that night, the passage's way to reserve coal, weeping through their
+# edges, a 3 mm gap round a door 1.1 by 2.1 m.
+for tag, side, z in [("p", "port", -1.75), ("s", "starboard", 2.125)]:
+    opening("door_passage_hold_3_" + tag, "LEAK", "firemens_passage", "hold_3_" + side,
+            (BX["D"], TANK_TOP + LINTEL * 0.5, z), (0, LINTEL, DOOR), area=0.02, starts="OPEN")
 # Her sisters' inner skin: each wing leaks into the room inside it (est. 0.002 m², as
 # the trawler's linings) and breathes through an air pipe into the deck over it.
 for c in [c for c in CELLS if "_wing_" in c[0]]:
