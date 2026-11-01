@@ -15,8 +15,9 @@ extends RefCounted
 ## it stands out of its footprint where a body does (FurnishingCheck). The box is sim
 ## data and never grows to fit a piece.
 
-## What a box of furniture is drawn as (piece_of()).
-enum Piece { TABLE, BENCH, COUNTER, RANGE, APPARATUS, ARMCHAIR, SETTEE }
+## What a box of furniture is drawn as (piece_of()); a stateroom's berth is
+## CabinDressing's own, which draws it with the upper over it.
+enum Piece { TABLE, BENCH, COUNTER, RANGE, APPARATUS, ARMCHAIR, SETTEE, BERTH }
 
 ## A piece no taller than BENCH_TOP is a seat — an armchair when no larger either way
 ## than ARMCHAIR_SIDE, a settee when SETTEE_DEPTH deep or deeper, else a bench; one
@@ -135,6 +136,8 @@ static func build(mesh: ShipMesh, room: ShipRoom, pieces: Array[ShipBlocker]) ->
 static func piece_of(blocker: ShipBlocker) -> Piece:
 	var height := blocker.top - blocker.bottom
 	var size := blocker.area.size
+	if CabinDressing.is_berth(blocker):
+		return Piece.BERTH
 	if height <= BENCH_TOP + ShipSpace.SLIVER:
 		if maxf(size.x, size.y) <= ARMCHAIR_SIDE:
 			return Piece.ARMCHAIR

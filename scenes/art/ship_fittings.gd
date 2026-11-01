@@ -780,6 +780,8 @@ func _furnish(mesh: ShipMesh, room: ShipRoom) -> void:
 	var saloon := kind in seated and not office
 	if not saloon and not office and kind != RoomDressing.Kind.CABIN:
 		return
+	if CabinDressing.is_stateroom(room):
+		return
 	var runs := _space.wall_runs(room)
 	runs.sort_custom(func(a: Array, b: Array) -> bool: return a[2] - a[1] > b[2] - b[1])
 	if saloon:
