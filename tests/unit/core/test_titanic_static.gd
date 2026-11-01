@@ -37,11 +37,13 @@ const SETTLED := 1e-4
 const STEPS := 80
 ## The research's: two adjacent compartments leave half a metre to her bulkhead deck;
 ## 0.19° of trim for each 1 000 long tons she takes in forward, ± 30 %, about a point
-## 176–180 m from her bow — read with the night's six damaged compartments open.
+## 176–180 m from her bow — read with the night's six damaged compartments open. Her lines
+## were once tuned to that band; the owner moved it to 176–182 m on 2026-11-01 (#395), because
+## her side now follows the plates and Fig. 22, which widen her waterplane aft.
 const SPARE := 0.5
 const TRIM_PER_THOUSAND := 0.19
 const TRIM_SHARE := 0.3
-const PIVOT := Vector2(176.0, 180.0)
+const PIVOT := Vector2(176.0, 182.0)
 ## Her bow, where her stem meets her waterline: her forward perpendicular, read off The
 ## Shipbuilder's Plate III as her generator does (tools/gen_titanic.py, X_FP).
 const BOW := 129.5
@@ -241,7 +243,9 @@ func test_trim_per_thousand_tons_forward_about_her_pivot() -> void:
 	# The research's: 0.19° a 1 000 long tons taken in forward, pivoting 176–180 m from
 	# her bow — read with the six compartments the night opened flooded to the sea (BOT:
 	# "the forepeak, No. 1 hold, No. 2 hold, No. 3 hold, No. 6 boiler room, No. 5 boiler
-	# room").
+	# room"). Her lines were once tuned to that band; the owner moved it to 176–182 m on
+	# 2026-11-01 (#395), because her side now follows the plates and Fig. 22, which widen
+	# her waterplane aft.
 	var intact := _float([] as Array[int])
 	var floated := _float([0, 1, 2, 3, 4, 5] as Array[int])
 	var tons := floated.water * _sea.sea_density / LONG_TON
@@ -260,7 +264,7 @@ func test_trim_per_thousand_tons_forward_about_her_pivot() -> void:
 	assert_almost_eq(
 		per_thousand, TRIM_PER_THOUSAND, TRIM_PER_THOUSAND * TRIM_SHARE, "0.19° a 1 000 tons"
 	)
-	assert_between(BOW - pivot_x, PIVOT.x, PIVOT.y, "pivoting 176–180 m from her bow")
+	assert_between(BOW - pivot_x, PIVOT.x, PIVOT.y, "pivoting 176–182 m from her bow")
 
 
 func test_the_nights_damage_is_the_inquirys() -> void:
