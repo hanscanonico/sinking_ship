@@ -1882,12 +1882,13 @@ for sid, foot, head, lane, holes_above in [
         ("space_h3_c", 75.0, 72.0, starboard, pt3_holes), ("space_h3_d", 82.3125, 85.3125, starboard, pt3_holes),
         ("space_h2_a", 90.25, 87.25, inboard, pt2_holes), ("space_h2_b", 97.75, 100.75, inboard, pt2_holes)]:
     stair(sid, foot, head, lane[0], lane[1], TANK_TOP, PASSAGE_TOP, holes_above)
-# The post office's stair down to the hold's orlop (g.py draws it down to the mail room, an
-# orlop her estimated hold has lower, so it runs long aft of the plate's head). The firemen's
+# The hold's way up from its orlop, into the first-class baggage store (est.: g.py draws the
+# post office's stair down to the mail room, on an orlop her estimated hold has lower; its long
+# run, its head where the post office's dressing stands, is #379's to lay). The firemen's
 # spirals (g.py) as two flights side by side, from the hold's orlop up to their landing
 # between F deck's two: their head short of the orlop's bulkhead B, so the firemen's way
 # down reaches the passage's stair (Wilding), one shaft for the plates' four readings (est.).
-assert up_to_g("space_post_office", BX["D"] + T + FLIGHT_LEAD, 79.0, 5.625, 5.3125, 6.6875, PASSAGE_TOP), "post office"
+assert up_to_g("space_baggage", 76.0, 85.0, 5.625, -7.5, -6.25, PASSAGE_TOP), "No. 3 hold's way up"
 SPIRAL_RUN = 5.625
 for tag, (z0, z1) in [("p", (-1.125, -0.125)), ("s", (0.125, 1.125))]:
     head_flight("space_spiral_g_" + tag, 101.6875 - SPIRAL_RUN, 101.6875, z0, z1, PASSAGE_TOP, 99.625)
@@ -3660,7 +3661,10 @@ def section_shell(x, y, side):
     return best
 for c in CELLS:
     name = c[0]
-    if name.endswith("_tween") or (name.startswith("boiler_room") and name.endswith("_f")) or name == "forepeak":
+    # (Over the electric room her ports stand in the cell over F deck: bulkhead M's step parts
+    # its 'tween deck there, electric_room_tween being G deck's, under the sea.)
+    if ((name.endswith("_tween") and name != "electric_room_tween") or name == "electric_room_f"
+            or (name.startswith("boiler_room") and name.endswith("_f")) or name == "forepeak"):
         row = F_DECK + ROW
     elif name.endswith("_e"):
         row = E_DECK + ROW

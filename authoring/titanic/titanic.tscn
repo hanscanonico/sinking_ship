@@ -496,10 +496,10 @@ material = SubResource("StandardMaterial3D_swvke")
 left_to_right = 1.0
 size = Vector3(3, 2.4375, 1.4)
 
-[sub_resource type="PrismMesh" id="PrismMesh_c0db8"]
+[sub_resource type="PrismMesh" id="PrismMesh_81d36"]
 material = SubResource("StandardMaterial3D_swvke")
 left_to_right = 1.0
-size = Vector3(5.625, 4.75, 1.375)
+size = Vector3(5.625, 4.75, 1.25)
 
 [sub_resource type="PrismMesh" id="PrismMesh_8itcc"]
 material = SubResource("StandardMaterial3D_swvke")
@@ -6477,43 +6477,43 @@ metadata/ship = &"platform"
 metadata/name = &"G deck"
 
 [node name="Platform_g_64_0" type="CSGBox3D" parent="Platforms" unique_id=571915361]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 74.40625, -11.1, 0)
-size = Vector3(1.3125, 0.2, 22.1)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 74.5, -11.1, 0)
+size = Vector3(1.5, 0.2, 22.1)
 material = SubResource("StandardMaterial3D_b7bnx")
 metadata/ship = &"platform"
 metadata/name = &"G deck"
 
 [node name="Platform_g_65_0" type="CSGBox3D" parent="Platforms" unique_id=2024811761]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 76, -11.1, -2.71875)
-size = Vector3(1.5, 0.2, 16.0625)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 76, -11.1, 0)
+size = Vector3(1.5, 0.2, 21.5)
 material = SubResource("StandardMaterial3D_b7bnx")
 metadata/ship = &"platform"
 metadata/name = &"G deck"
 
 [node name="Platform_g_66_0" type="CSGBox3D" parent="Platforms" unique_id=754031501]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 77.78125, -11.1, 0)
-size = Vector3(0.9375, 0.2, 21)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 77.5, -11.1, 0)
+size = Vector3(1.5, 0.2, 21)
 material = SubResource("StandardMaterial3D_b7bnx")
 metadata/ship = &"platform"
 metadata/name = &"G deck"
 
 [node name="Platform_g_67_0" type="CSGBox3D" parent="Platforms" unique_id=537488681]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 79, -11.1, 0)
-size = Vector3(1.5, 0.2, 20.5)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 78.8125, -11.1, 0)
+size = Vector3(1.125, 0.2, 20.5)
 material = SubResource("StandardMaterial3D_b7bnx")
 metadata/ship = &"platform"
 metadata/name = &"G deck"
 
 [node name="Platform_g_68_0" type="CSGBox3D" parent="Platforms" unique_id=1588501591]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 80.5, -11.1, 0)
-size = Vector3(1.5, 0.2, 19.9)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 80.5, -11.1, 1.8500004)
+size = Vector3(1.5, 0.2, 16.2)
 material = SubResource("StandardMaterial3D_b7bnx")
 metadata/ship = &"platform"
 metadata/name = &"G deck"
 
 [node name="Platform_g_69_0" type="CSGBox3D" parent="Platforms" unique_id=1155401091]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 82, -11.1, 0)
-size = Vector3(1.5, 0.2, 19.4)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 82.1875, -11.1, 0)
+size = Vector3(1.125, 0.2, 19.4)
 material = SubResource("StandardMaterial3D_b7bnx")
 metadata/ship = &"platform"
 metadata/name = &"G deck"
@@ -8402,36 +8402,36 @@ metadata/ship = &"platform"
 metadata/name = &"G deck"
 
 [node name="Platform_g_late_129" type="CSGBox3D" parent="Platforms" unique_id=47445951]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 75.15625, -11.1, -2.8687506)
-size = Vector3(0.1875, 0.2, 16.3625)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 79.5625, -11.1, 2)
+size = Vector3(0.375, 0.2, 16.5)
 material = SubResource("StandardMaterial3D_b7bnx")
 metadata/ship = &"platform"
 metadata/name = &"G deck"
 
 [node name="Platform_g_late_130" type="CSGBox3D" parent="Platforms" unique_id=778416215]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 75.15625, -11.1, 8.86875)
-size = Vector3(0.1875, 0.2, 4.3625)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 79.5625, -11.1, -8.875)
+size = Vector3(0.375, 0.2, 2.75)
 material = SubResource("StandardMaterial3D_b7bnx")
 metadata/ship = &"platform"
 metadata/name = &"G deck"
 
 [node name="Platform_g_late_131" type="CSGBox3D" parent="Platforms" unique_id=496140382]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 76, -11.1, 8.71875)
-size = Vector3(1.5, 0.2, 4.0625)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 80.5, -11.1, -8.724999)
+size = Vector3(1.5, 0.2, 2.45)
 material = SubResource("StandardMaterial3D_b7bnx")
 metadata/ship = &"platform"
 metadata/name = &"G deck"
 
 [node name="Platform_g_late_132" type="CSGBox3D" parent="Platforms" unique_id=951314604]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 77.03125, -11.1, -2.59375)
-size = Vector3(0.5625, 0.2, 15.8125)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 81.4375, -11.1, 1.7249999)
+size = Vector3(0.375, 0.2, 15.95)
 material = SubResource("StandardMaterial3D_b7bnx")
 metadata/ship = &"platform"
 metadata/name = &"G deck"
 
 [node name="Platform_g_late_133" type="CSGBox3D" parent="Platforms" unique_id=891131188]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 77.03125, -11.1, 8.59375)
-size = Vector3(0.5625, 0.2, 3.8125)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 81.4375, -11.1, -8.599999)
+size = Vector3(0.375, 0.2, 2.2)
 material = SubResource("StandardMaterial3D_b7bnx")
 metadata/ship = &"platform"
 metadata/name = &"G deck"
@@ -9054,9 +9054,9 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 99.25, -16.96875, 1.45)
 mesh = SubResource("PrismMesh_abrv4")
 metadata/ship = &"ramp"
 
-[node name="Ramp_space_post_office" type="MeshInstance3D" parent="Ramps" unique_id=1963584336]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 74.5, -13.375, 6)
-mesh = SubResource("PrismMesh_c0db8")
+[node name="Ramp_space_baggage" type="MeshInstance3D" parent="Ramps" unique_id=302958023]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 78.8125, -13.375, -6.875)
+mesh = SubResource("PrismMesh_81d36")
 metadata/ship = &"ramp"
 
 [node name="Ramp_space_spiral_g_p" type="MeshInstance3D" parent="Ramps" unique_id=1961233199]
@@ -68903,36 +68903,12 @@ material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
 [node name="Blocker_berth_856_0" type="CSGBox3D" parent="Blockers" unique_id=720995431]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 77.862495, -10.78, -7.8125)
-size = Vector3(0.7, 0.44, 1.9)
-material = SubResource("StandardMaterial3D_jiew5")
-metadata/ship = &"blocker"
-
-[node name="Blocker_berth_856_1" type="CSGBox3D" parent="Blockers" unique_id=1230034291]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 76.8175, -10.78, -7.8125)
-size = Vector3(0.7, 0.44, 1.9)
-material = SubResource("StandardMaterial3D_jiew5")
-metadata/ship = &"blocker"
-
-[node name="Blocker_berth_856_2" type="CSGBox3D" parent="Blockers" unique_id=1717618956]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 77.65, -10.78, -5.2625003)
 size = Vector3(0.7, 0.44, 1.9)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
 [node name="Blocker_upper_856_0" type="CSGBox3D" parent="Blockers" unique_id=1026456251]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 77.862495, -9.06, -7.8125)
-size = Vector3(0.7, 0.44, 1.9)
-material = SubResource("StandardMaterial3D_jiew5")
-metadata/ship = &"blocker"
-
-[node name="Blocker_upper_856_1" type="CSGBox3D" parent="Blockers" unique_id=1253156997]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 76.8175, -9.06, -7.8125)
-size = Vector3(0.7, 0.44, 1.9)
-material = SubResource("StandardMaterial3D_jiew5")
-metadata/ship = &"blocker"
-
-[node name="Blocker_upper_856_2" type="CSGBox3D" parent="Blockers" unique_id=563809173]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 77.65, -9.06, -5.2625003)
 size = Vector3(0.7, 0.44, 1.9)
 material = SubResource("StandardMaterial3D_jiew5")
@@ -73613,6 +73589,20 @@ material = SubResource("StandardMaterial3D_r6eh1")
 metadata/ship = &"railing"
 metadata/platform = &"Platform_pt_hold_3_2"
 
+[node name="Railing_space_h3_c_s" type="CSGBox3D" parent="Railings" unique_id=609748772]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 73.5, -15.25, 5.36)
+size = Vector3(3, 1, 0.05)
+material = SubResource("StandardMaterial3D_r6eh1")
+metadata/ship = &"railing"
+metadata/platform = &"Platform_pt_hold_3_3"
+
+[node name="Railing_space_h3_c_e" type="CSGBox3D" parent="Railings" unique_id=1759655786]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 75, -15.25, 4.91)
+size = Vector3(0.9000001, 1, 0.05)
+material = SubResource("StandardMaterial3D_r6eh1")
+metadata/ship = &"railing"
+metadata/platform = &"Platform_pt_hold_3_4"
+
 [node name="Railing_space_h3_d_e" type="CSGBox3D" parent="Railings" unique_id=1873435040]
 transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 82.3125, -15.25, 4.91)
 size = Vector3(0.9000001, 1, 0.05)
@@ -74348,12 +74338,12 @@ material = SubResource("StandardMaterial3D_r6eh1")
 metadata/ship = &"railing"
 metadata/platform = &"Platform_f_58_0"
 
-[node name="Railing_space_post_office_e" type="CSGBox3D" parent="Railings" unique_id=582152827]
-transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 75.0625, -10.5, 6)
-size = Vector3(1.375, 1, 0.05)
+[node name="Railing_space_baggage_e" type="CSGBox3D" parent="Railings" unique_id=1668164356]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 79.375, -10.5, -6.875)
+size = Vector3(1.25, 1, 0.05)
 material = SubResource("StandardMaterial3D_r6eh1")
 metadata/ship = &"railing"
-metadata/platform = &"Platform_g_64_0"
+metadata/platform = &"Platform_g_67_0"
 
 [node name="Railing_space_h1_g_e" type="CSGBox3D" parent="Railings" unique_id=1076494187]
 transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 109.4375, -10.5, 0.75)
@@ -104481,7 +104471,7 @@ metadata/ship = &"bonus_spot"
 metadata/room = &"Room_g_133_first_class_baggage_store"
 
 [node name="BonusSpot_g_134_post_office" type="Marker3D" parent="BonusSpots" unique_id=621361999]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 75.3477, -11, 4.9125)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 75.3477, -11, 5.0625)
 metadata/ship = &"bonus_spot"
 metadata/room = &"Room_g_134_post_office"
 
@@ -104536,7 +104526,7 @@ metadata/ship = &"bonus_spot"
 metadata/room = &"Room_g_144_two_berth_third_class_room_g_deck_aft_of_c"
 
 [node name="BonusSpot_g_145_six_berth_third_class_room_g_deck_aft_of_c" type="Marker3D" parent="BonusSpots" unique_id=1283765300]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 76.925, -11, -6.4313)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 77.375, -11, -6.6312)
 metadata/ship = &"bonus_spot"
 metadata/room = &"Room_g_145_six_berth_third_class_room_g_deck_aft_of_c"
 
@@ -109448,14 +109438,14 @@ metadata/leak_head = 4.0
 metadata/collapse_head = 8.0
 metadata/leak_area = 0.0025
 
-[node name="Opening_port_electric_room_tween_p" type="CSGBox3D" parent="Structure/Openings" unique_id=1326862506]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -75.0075, -7.1125, -13.4225)
-size = Vector3(19.265, 0.32, 0)
+[node name="Opening_port_electric_room_f_p" type="CSGBox3D" parent="Structure/Openings" unique_id=938760670]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -75.58, -7.1125, -13.4225)
+size = Vector3(18.12, 0.32, 0)
 material = SubResource("StandardMaterial3D_nubv8")
 metadata/ship = &"opening"
-metadata/name = &"port_electric_room_tween_p"
+metadata/name = &"port_electric_room_f_p"
 metadata/kind = "PORTHOLE"
-metadata/joins = Array[StringName]([&"electric_room_tween", &"sea"])
+metadata/joins = Array[StringName]([&"electric_room_f", &"sea"])
 metadata/area = 0.4825
 metadata/starts = "SHUT"
 metadata/flip_chance = 0.05
@@ -109463,14 +109453,14 @@ metadata/leak_head = 4.0
 metadata/collapse_head = 8.0
 metadata/leak_area = 0.003
 
-[node name="Opening_port_electric_room_tween_s" type="CSGBox3D" parent="Structure/Openings" unique_id=1298120102]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -75.0075, -7.1125, 13.4225)
-size = Vector3(19.265, 0.32, 0)
+[node name="Opening_port_electric_room_f_s" type="CSGBox3D" parent="Structure/Openings" unique_id=666979886]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -75.58, -7.1125, 13.4225)
+size = Vector3(18.12, 0.32, 0)
 material = SubResource("StandardMaterial3D_nubv8")
 metadata/ship = &"opening"
-metadata/name = &"port_electric_room_tween_s"
+metadata/name = &"port_electric_room_f_s"
 metadata/kind = "PORTHOLE"
-metadata/joins = Array[StringName]([&"electric_room_tween", &"sea"])
+metadata/joins = Array[StringName]([&"electric_room_f", &"sea"])
 metadata/area = 0.4825
 metadata/starts = "SHUT"
 metadata/flip_chance = 0.05
