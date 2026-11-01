@@ -452,9 +452,11 @@ func _hold_stiff(
 
 
 ## Lets go of [param group], whose solve together did not close: each cell's head where
-## its water stands, for the capped sweep to move — but a group holding squeezed air,
-## which the sweep would set chattering (R22), has each of its cells solved alone in
-## turn instead, the heads solved before it standing.
+## its water stands, for the capped sweep to move — but a cell holding squeezed air, which
+## the sweep would set chattering (R22), is solved alone in turn instead, the heads let go
+## and solved before it standing. Only those: cells solved alone in turn level with one
+## another each step, what one should have passed on left in its own water, past what its
+## box holds.
 func _release(
 	group: PackedInt32Array,
 	state: FloodState,
@@ -462,15 +464,13 @@ func _release(
 	sea: float,
 	seconds: float
 ) -> void:
-	var squeezed := false
 	for cell: int in group:
-		squeezed = squeezed or _air.holds(cell)
-	for cell: int in group:
-		if squeezed:
-			heads[cell] = _balanced(cell, state.water[cell], heads, sea, state.seconds, seconds)
-		else:
+		if not _air.holds(cell):
 			_held[cell] = 0
 			heads[cell] = head(cell, state.water[cell])
+	for cell: int in group:
+		if _air.holds(cell):
+			heads[cell] = _balanced(cell, state.water[cell], heads, sea, state.seconds, seconds)
 
 
 ## [param held] cut into groups that hold each other: cells joined, directly or along
