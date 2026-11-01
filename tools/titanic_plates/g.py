@@ -559,10 +559,16 @@ NUDGES = [
     (2, 7.5625, 7.25, -98.0, -94.5),  # the three-berth room's door, its side taken by hers
     (2, 4.875, 4.75, 97.6, 99.4),  # the four-berth room's along B
     (2, -3.125, -3.375, 99.6, 103.3),  # the leading firemen's door
+    (2, -2.25, -1.875, 103.4, 108.4),  # the leading firemen's two parts' join, her side taking it
+    (2, 7.5625, 5.75, 86.3, 91.3),  # the eight-berth room along her side, which hers would leave none
+    (0, -43.0625, -43.5625, -10.6, -8.6),  # the engine oil tanks, no gaps a body can't take
+    (0, -38.625, -38.0, -10.6, -8.6),
     (2, 8.0625, 7.9375, -93.2, -91.0),  # the four-berth room's, off its passage's end
     (2, 5.9375, 5.75, 92.5, 95.1),  # the six-berth room's, F deck's ladder's foot beside it
 ]
 DOOR_MOVES = [
+    (None, (-89.25, -9.0)),  # the L's far part, its middle made solid, off F deck's stair's foot
+    ((-45.9375, -10.6875), (-47.75, -10.625)),  # the brine tank room's, clear of F deck's stair
     ((-122.9375, -1.0625), None),  # the store in her run her side leaves solid (MADE_SOLID)
     ((-115.3125, -2.3125), (-117.5, -1.6875)),  # the rooms abaft the passage's mouths, her side
     ((-115.25, 3.0625), (-117.5, 1.875)),  # leaving them no stretch at the plate's swing
@@ -575,11 +581,18 @@ DOOR_MOVES = [
     ((97.375, 6.3125), (97.5625, 5.375)),  # the four-berth room's along B, inside her side
 ]
 # The store in her run: the plate draws it no door, and her side leaves it no room for one.
-MADE_SOLID = [(-124.5, 0.0)]
+# And the piece of an L her side leaves narrower than a body (its room is whole without it).
+MADE_SOLID = [(-124.5, 0.0), (-91.3, -9.4), (-98.6, -7.5), (-98.6, 7.7)]
 # F deck's ladder's foot, in the passage beside its own:
-OPENED = [(92.4275, 92.4475, 4.5625, 5.75)]
+OPENED = [(92.4275, 92.4475, 4.5625, 5.75), (75.3025, 75.3225, -7.625, -6.5), (91.25, 92.4375, 5.74, 5.76)]
+# The stub's join her side leaves no stub for (OPENED has its way):
+SHUT = [(91.84, 7.55)]
 # Her boiler rooms under F deck stay her estimated ones until #379 lays them, K to D (their
 # casings and bunkers), and her forepeak's stores forward of A: these solids wait for it.
+STAIR_MOVES = [
+    # Clear of the orlop's wall along it (her estimated orlop, #379):
+    (("hold ladder", -113.5, 0.8125), (-113.5, -110.5, 0.625, 1.5625)),
+]
 AWAITS = [(-27.71, 70.75), (115.81, 140.0)]
 # The tip of her run, which her side at G deck leaves no room for: no floor of hers reaches it.
 GONE = [(-127.0, 0.0)]

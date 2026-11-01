@@ -1088,6 +1088,7 @@ NUDGES = [
     (2, 1.5625, 1.75, -121.3, -116.4),  # the passage beside it, a door's width still
     (2, -6.9375, -7.1875, -88.0, -85.0),  # the bathroom's door
     (2, -9.25, -9.1875, -46.2, -43.2),  # the engineers' stairway's door
+    (0, -46.125, -47.125, -10.3, -9.2),  # the engineers' stairway's enclosure, for its run to G deck
     (2, 9.625, 9.25, 74.5, 77.3),  # the four-berth room's door
     (2, -7.3125, -7.1875, 86.2, 92.6),  # the eight-berth room's door
     (2, 7.4375, 7.25, 86.2, 92.6),  # the eight-berth room's door
@@ -1113,8 +1114,9 @@ OPENED = [
     (4.5525, 4.5725, -5.875, -3.25),
     (72.9275, 72.9475, -5.75, -4.375),  # the linen room's two pieces
 ]
-# The passage two flights fill side by side; the engineers' stairway its stair fills.
-NOT_ROOMS = [(74.0, -7.0), (-45.3, -9.7)]
+# The passage two flights fill side by side; the engineers' stairway its stair fills; the
+# passage along L's ladder fills.
+NOT_ROOMS = [(74.0, -7.0), (-45.3, -9.7), (-48.0, 6.0)]
 # The store her stem takes: no floor of hers reaches it (F_STEM).
 GONE = [(126.0, 0.0), (122.0, 0.0)]
 # The racquet court's upper half, open to its floor on G deck (COURT_F, gen_titanic.py).
@@ -1124,6 +1126,11 @@ WALLED_SOLIDS = [(-101.3, -8.0), (-97.6, -8.0)]
 # A body's lead clear of the passage's forward wall at their heads (the layout lint):
 STAIR_MOVES = [
     (("firemen's spiral staircase", 100.5, -2.5625), (99.75, 102.625, -2.5625, -1.3125)),
+    # Short of bulkhead M's lockers a body's lead past its head, its width kept:
+    (("stair", -69.75, -9.875), (-69.875, -66.875, -9.875, -8.9375)),
+    # Aft of E deck's ladder's foot, in its enclosure run aft (NUDGES), its head short of the
+    # foot the plate stacks it under:
+    (("stair", -46.4375, -10.25), (-47.0625, -44.1875, -10.25, -9.375)),
     # On G deck's landing the passage is too short along her for a flight and a lead each end
     # (its aft wall bulkhead B's line): athwart her, aft of her way on down (one shaft, the
     # generator's), its foot to starboard. The port one's the generator leaves out.

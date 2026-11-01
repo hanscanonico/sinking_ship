@@ -835,14 +835,12 @@ def foot(flight):
 # G deck's flights down wait where her estimated orlop (#379) has no floor for their feet,
 # or none at the height the plate draws: the generator lays her firemen's, her post office's
 # and her stores' ways down itself (up_to_g, below). The two hold ladders land on it as drawn.
-# And F deck's engineers' stair: E deck's ladder's foot stands on its well (the plate stacks
-# them), and the engineers' ladder along L reaches the same flats; F deck's port spiral, one
+# And F deck's port spiral, one
 # flight athwart her serving the landing (f.py). D deck's ladder at the head of the firemen's
 # passage still waits: E deck's room under it has no lead for its foot, and E deck's firemen's
 # way serves it.
 def unlaid(plan, flight):
     return (plan is G_OUTLINE and flight[0] != "hold ladder"
-            or plan is F_OUTLINE and flight[0] == "stair" and flight[1] == -46.4375
             or plan is F_OUTLINE and flight[0].startswith("firemen's spiral") and flight[3] < -2.0
             or plan is D_OUTLINE and flight[0] == "ladder" and flight[1] == 99.0)
 
@@ -1634,10 +1632,13 @@ def up_to_g(sid, xa, xb, run, z0, z1, low):
     head_flight(sid, found[0], found[1], z0, z1, low)
     return True
 
-def head_flight(sid, x_low, x_high, z0, z1, low):
+def head_flight(sid, x_low, x_high, z0, z1, low, wall_at=None):
+    """A flight with its head in G deck; wall_at, where the hole stops at a wall, unrailed."""
     stair(sid, x_low, x_high, z0, z1, low, G_DECK, [])
     a = x_high - HEAD_RUN if x_high > x_low else x_high + HEAD_RUN
-    G_HOLES.append((sid, (min(a, x_high), max(a, x_high), z0, z1), a, 0))
+    if wall_at is not None:
+        a = wall_at
+    G_HOLES.append((sid, (min(a, x_high), max(a, x_high), z0, z1), None if wall_at is not None else a, 0))
 
 # --- Furniture: the boxes standing on her rooms' floors, after every other blocker so
 # none of theirs moves. Each is drawn inside its box (FurnitureDressing): tables 0.75 m
@@ -1853,10 +1854,10 @@ for sid, foot, head, lane, holes_above in [
 # spirals (g.py) as two flights side by side, from the hold's orlop up to their landing
 # between F deck's two: their head short of the orlop's bulkhead B, so the firemen's way
 # down reaches the passage's stair (Wilding), one shaft for the plates' four readings (est.).
-assert up_to_g("space_post_office", BX["D"] + T + FLIGHT_LEAD, 79.0, 5.625, 4.9375, 5.9375, PASSAGE_TOP), "post office"
+assert up_to_g("space_post_office", BX["D"] + T + FLIGHT_LEAD, 79.0, 5.625, 5.3125, 6.3125, PASSAGE_TOP), "post office"
 SPIRAL_RUN = 5.625
 for tag, (z0, z1) in [("p", (-1.125, -0.125)), ("s", (0.125, 1.125))]:
-    head_flight("space_spiral_g_" + tag, 101.6875 - SPIRAL_RUN, 101.6875, z0, z1, PASSAGE_TOP)
+    head_flight("space_spiral_g_" + tag, 101.6875 - SPIRAL_RUN, 101.6875, z0, z1, PASSAGE_TOP, 99.625)
 
 # The double bottoms (#148): crawl spaces on her bottom plating under the tank top, 5 ft 3
 # in (SB-text), each entered through two manholes in the tank top over it, a stair down each.
@@ -1935,6 +1936,7 @@ for sid, foot, head, (z0, z1), low, high, holes_above in [
 # Up from its orlop into the greasers' quarters, forward of No. 1 hatch and the flights from
 # its tank top (est.: g.py draws no way down there; her real hold's ways are #379's).
 assert up_to_g("space_h1_g", 108.75, H1_SPLIT + 3.0, 2.9375, 0.25, 1.25, ORLOP), "no way up out of No. 1 hold's orlop"
+assert up_to_g("space_h1_g_p", 108.75, H1_SPLIT + 3.0, 2.9375, -1.875, -0.875, ORLOP), "a second way up, the leading firemen's"
 # Each flight's opening in D deck screened along its inboard side forward of No. 1 hatch's
 # cover (est.), so the joint between the quarters' pieces it runs under is two doors, each
 # a step onto the deck either side of the opening, not one whose middle is over it. So
@@ -2039,6 +2041,7 @@ ways = [any(up_to_g("space_engine_" + tag, BX["L"] + T + FLIGHT_LEAD, BX["K"] - 
                     *sorted((sign * z / 16, sign * (z / 16 + 1.25))), ENGINE_TANK_TOP) for z in range(148, 180, 2))
         for tag, sign in [("s", 1)]]
 assert any(ways), "no way up out of the engine room"
+assert up_to_g("space_engine_p", -44.0, BX["K"] - T - FLIGHT_LEAD, 8.25, -12.0, -10.75, ENGINE_TANK_TOP), "the engine room's way up to port"
 for j, (z0, z1) in enumerate([(-9.0, -1.5), (1.5, 9.0)]):
     box("engine_%d" % j, -45.0, -31.0, z0, z1, ENGINE_TANK_TOP, G_DECK - UPTAKE_CLEAR)
 room("engine_room", "engine room", *ENG, -ENG_Z, ENG_Z, ENGINE_TANK_TOP)
@@ -2050,8 +2053,8 @@ TURB_Z = fit(*TURB, TANK_TOP, 0.3)
 turb_holes = []
 # (Up across her into G deck's flour store, to port past its casing: her bilge leaves a flight
 # along her no foot outboard of the casing's side; to starboard G deck's stores no room.)
-stair_z("space_turbine_p", -4.0, -12.5, -60.5, -59.25, TANK_TOP, G_DECK, [])
-G_HOLES.append(("space_turbine_p", (-60.5, -59.25, -12.5, -12.5 + HEAD_RUN), -12.5 + HEAD_RUN, 2))
+stair_z("space_turbine_p", -3.5625, -12.0625, -60.5, -59.25, TANK_TOP, G_DECK, [])
+G_HOLES.append(("space_turbine_p", (-60.5, -59.25, -12.0625, -10.0625), None, 2))
 box("turbine", -62.0, -52.0, -2.0, 2.0, TANK_TOP, G_DECK - UPTAKE_CLEAR)
 room("turbine_room", "turbine engine room", *TURB, -TURB_Z, TURB_Z, TANK_TOP)
 # The electric engine room (BOT: "a separate watertight compartment ... at the level of
@@ -2250,6 +2253,8 @@ for sid, (hx0, hx1, hz0, hz1), closed, axis in G_HOLES:
     sides = ([("p", (hx0, hz0), (hx1, hz0)), ("s", (hx0, hz1), (hx1, hz1)), ("e", (closed, hz0), (closed, hz1))] if axis == 0
              else [("a", (hx0, hz0), (hx0, hz1)), ("f", (hx1, hz0), (hx1, hz1)), ("e", (hx0, closed), (hx1, closed))])
     for tag, a, b in sides:
+        if tag == "e" and closed is None:
+            continue
         on = edge_platform(g_deck, a, b)
         if on is not None:
             railing("%s_%s" % (sid, tag), on, a, b)

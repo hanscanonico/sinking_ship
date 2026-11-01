@@ -197,6 +197,11 @@ static func breaks(space: ShipSpace) -> Array:
 					var room := RoomDressing.room_at(space, Vector3(x - out * 0.3, foot + 1.0, z))
 					if room != -1 and is_equal_approx(space.layout.rooms[room].floor_height, foot):
 						foot = NAN
+				if not is_nan(foot):
+					# (Nor over a room's own floor in front of it: a court two decks high.)
+					var over := RoomDressing.room_at(space, Vector3(x + out * 0.3, foot + 1.0, z))
+					if over != -1 and is_equal_approx(space.layout.rooms[over].floor_height, foot):
+						foot = NAN
 				if not run.is_empty() and not is_equal_approx(run[3], foot):
 					found.append(run)
 					run = []
