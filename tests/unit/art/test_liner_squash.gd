@@ -22,7 +22,8 @@ var _faces: PackedVector3Array
 
 func before_all() -> void:
 	_rules = RunMatch.default_config(1701).rules
-	_titanic = load("res://data/ships/titanic.tres")
+	# Her smaller sister: the Titanic's squash court waits for G deck's lay.
+	_titanic = load("res://data/ships/small_titanic.tres")
 	_space = ShipSpace.new(_titanic)
 	var art := ShipArt.new()
 	art.build(_titanic, _rules.railing_height, _rules.body_radius)
