@@ -1967,7 +1967,7 @@ for at in ends_db:
     if at == H1_SPLIT:
         wall_x("db_1", at, -w, w, KEEL, top, [door_at(0.0)])
     else:
-        wall_x("db_x%d" % int(at * 16), at, -w, w, KEEL, top)
+        wall_x("db_x%d" % int((at + 200.0) * 16), at, -w, w, KEEL, top)
 
 # Her floors: the tank top, the orlop, the lower orlop, their stairs' holes railed.
 tt_decks = [i for k, (x0, x1, z0, z1) in enumerate(TT_PIECES)

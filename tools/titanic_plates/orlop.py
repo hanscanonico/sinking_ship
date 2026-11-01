@@ -183,11 +183,11 @@ ROOMS = [
     ("cargo or motor car hold", 8684.1, 3249, 8886, 3459),
     ("cargo or motor car hold", 8886, 3288, 9087, 3459),
     ("cargo or motor car hold", 9087, 3328.5, 9288.9, 3459),
-    ("cargo or motor car hold", 8886, 3459, 9193, 3693),
+    ("cargo or motor car hold", 8886, 3459, 9190, 3693),
     ("cargo or motor car hold", 8684.1, 3693, 8886, 3901.5),
     ("cargo or motor car hold", 8886, 3693, 9087, 3859.5),
     ("cargo or motor car hold", 9087, 3693, 9288.9, 3816.5),
-    ("firemen's spiral trunk", 9193, 3459, 9288.9, 3693),
+    ("firemen's spiral trunk", 9190, 3459, 9288.9, 3693),
     # Between B and A (No. 1 hold): the plate's "CARGO" round No. 1 hatch, in steps to her
     # sides.
     ("cargo hold", 9288.9, 3370, 9490, 3507),
@@ -273,7 +273,7 @@ DOORS = [
     (8273, 3580.5), (8631, 3693),
     # The trunk's after wall, into No. 2 hold, est.: the plate draws no way into the hold but
     # its hatch, and none into the trunk, where the spirals turn.
-    (9193, 3500),
+    (9190, 3516),
 ]
 
 OPEN = [
@@ -289,8 +289,8 @@ OPEN = [
     # The baggage room's three, the mail room's two.
     (8441, 3210, 8447, 3459), (8582, 3459, 8681, 3465), (8441, 3696, 8447, 3940),
     # No. 2 hold's seven.
-    (8883, 3290, 8889, 3456), (9084, 3330, 9090, 3456), (8889, 3456, 9084, 3462), (9090, 3456, 9190, 3462),
-    (8889, 3690, 9084, 3696), (9090, 3690, 9190, 3696), (8883, 3696, 8889, 3857), (9084, 3696, 9090, 3814),
+    (8883, 3290, 8889, 3456), (9084, 3330, 9090, 3456), (8889, 3456, 9084, 3462), (9090, 3456, 9187, 3462),
+    (8889, 3690, 9084, 3696), (9090, 3690, 9187, 3696), (8883, 3696, 8889, 3857), (9084, 3696, 9090, 3814),
     # No. 1 hold's five.
     (9291, 3504, 9343, 3510), (9291, 3645, 9343, 3651), (9487, 3415, 9493, 3504), (9487, 3651, 9493, 3725),
     (9682, 3451, 9688, 3687),
@@ -328,7 +328,7 @@ STAIRS = [
 ]
 
 # The trunk's after wall over the flights down out of it (STAIRS), which come up through it.
-OPENED = [(99.365, 99.385, -1.0625, 1.4375)]
+OPENED = [(99.3025, 99.3225, -1.0625, 1.4375)]
 
 STAIR_MOVES = [
     # In from her side at the lower orlop's height, under the orlop her G deck leaves room for:
