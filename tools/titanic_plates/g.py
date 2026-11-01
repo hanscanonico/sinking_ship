@@ -195,7 +195,7 @@ ROOMS = [
     ("egg store", 2571.5, 2041, 2689, 2135),
     ("ice cream store", 2722.5, 1875.5, 2893.5, 1950),
     ("passage, G deck", 2722.5, 1950, 2893.5, 2040.5),
-    ("ice making machine room", 2689, 2040.5, 2893.5, 2140.5),
+    ("ice making machine store", 2689, 2040.5, 2893.5, 2140.5),
     ("passage, G deck", 2893.5, 1820, 2967.9, 2262),
     ("passage, G deck", 2892, 2262, 2967.9, 2745),
     ("bacon, ham and cheese store", 2259, 2223, 2433, 2357.5),
@@ -207,7 +207,7 @@ ROOMS = [
     ("egg and potato store", 2779.5, 2372.5, 2892, 2563.5),
     ("bacon store", 2779.5, 2563.5, 2892, 2645),
     ("poultry and game store", 2609, 2464.5, 2779.5, 2645),
-    ("thawing room", 2321, 2516.5, 2609, 2645),
+    ("thawing store", 2321, 2516.5, 2609, 2645),
     ("W.B. beef store", 2298.5, 2645, 2548.5, 2789),
     ("E.B. beef store", 2548.5, 2645, 2779.5, 2792),
     ("meat and poultry store", 2779.5, 2645, 2892, 2745),
@@ -252,14 +252,14 @@ ROOMS = [
     ("squash court", 8126.4, 2194.5, 8475.5, 2435.5),
     # The baggage room steps forward abaft the court: its wall there read 5 px lower than
     # the plate's (2135) so it is one line with the rooms' beside it.
-    ("first-class baggage room", 8416, 1898.7, 8722.1, 2140),
-    ("first-class baggage room", 8475.5, 2140, 8722.1, 2194.5),
-    ("first-class baggage room", 8618.5, 2194.5, 8722.1, 2435.5),
-    ("first-class baggage room", 8475.5, 2435.5, 8722.1, 2570.5),
-    ("first-class baggage room", 8445.8, 2570.5, 8722.1, 2718.2),
+    ("first-class baggage store", 8416, 1898.7, 8722.1, 2140),
+    ("first-class baggage store", 8475.5, 2140, 8722.1, 2194.5),
+    ("first-class baggage store", 8618.5, 2194.5, 8722.1, 2435.5),
+    ("first-class baggage store", 8475.5, 2435.5, 8722.1, 2570.5),
+    ("first-class baggage store", 8445.8, 2570.5, 8722.1, 2718.2),
     ("post office", 8126.4, 2435.5, 8475.5, 2570.5),
     ("post office", 8126.4, 2570.5, 8340, 2769.5),
-    ("registered letters room", 8340, 2570.5, 8445.8, 2715.5),
+    ("registered letters office", 8340, 2570.5, 8445.8, 2715.5),
     # To port, where the plate draws the Olympic's "3rd CL. OPEN BERTHS", seven
     # third-class rooms for 34 (est., BOT, "Decks and Accommodation", G deck), patterned on
     # F deck's rooms over them (two eight-berth rooms, the double stair and the linen
@@ -567,9 +567,8 @@ NUDGES = [
     (2, 5.9375, 5.75, 92.5, 95.1),  # the six-berth room's, F deck's ladder's foot beside it
 ]
 DOOR_MOVES = [
-    (None, (-89.25, -9.0)),  # the L's far part, its middle made solid, off F deck's stair's foot
     ((-45.9375, -10.6875), (-47.75, -10.625)),  # the brine tank room's, clear of F deck's stair
-    ((-122.9375, -1.0625), None),  # the store in her run her side leaves solid (MADE_SOLID)
+    ((-122.9375, -1.0625), None),  # the store in her run (GONE)
     ((-115.3125, -2.3125), (-117.5, -1.6875)),  # the rooms abaft the passage's mouths, her side
     ((-115.25, 3.0625), (-117.5, 1.875)),  # leaving them no stretch at the plate's swing
     ((-108.8125, -1.9375), (-107.75, -2.625)),  # the two-berth rooms off O's cross passage
@@ -580,9 +579,8 @@ DOOR_MOVES = [
     ((-115.9375, 0.0625), (-116.8125, 0.5)),  # the two-berth room's, between P's doors' passages
     ((97.375, 6.3125), (97.5625, 5.375)),  # the four-berth room's along B, inside her side
 ]
-# The store in her run: the plate draws it no door, and her side leaves it no room for one.
-# And the piece of an L her side leaves narrower than a body (its room is whole without it).
-MADE_SOLID = [(-124.5, 0.0), (-91.3, -9.4), (-98.6, -7.5), (-98.6, 7.7)]
+# The pieces of Ls her side leaves narrower than a body, or past one (each room whole without).
+MADE_SOLID = [(-91.3, -9.4), (-90.0, -9.5), (-98.6, -7.5), (-98.6, 7.7)]
 # F deck's ladder's foot, in the passage beside its own:
 OPENED = [(92.4275, 92.4475, 4.5625, 5.75), (75.3025, 75.3225, -7.625, -6.5), (91.25, 92.4375, 5.74, 5.76)]
 # The stub's join her side leaves no stub for (OPENED has its way):
@@ -594,5 +592,8 @@ STAIR_MOVES = [
     (("hold ladder", -113.5, 0.8125), (-113.5, -110.5, 0.625, 1.5625)),
 ]
 AWAITS = [(-27.71, 70.75), (115.81, 140.0)]
-# The tip of her run, which her side at G deck leaves no room for: no floor of hers reaches it.
-GONE = [(-127.0, 0.0)]
+# Her run, which her side at G deck leaves no room for and the plate no door into: no floor of
+# hers reaches it.
+GONE = [(-127.0, 0.0), (-124.5, 0.0)]
+# The passages F deck's flights fill, each foot's own way out past its end.
+NOT_ROOMS = [(-90.0, -8.3), (93.8, 5.2)]

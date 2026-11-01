@@ -1135,6 +1135,8 @@ STAIR_MOVES = [
     # (its aft wall bulkhead B's line): athwart her, aft of her way on down (one shaft, the
     # generator's), its foot to starboard. The port one's the generator leaves out.
     (("firemen's spiral staircase", 100.5, 1.3125), (100.1875, 101.1875, -0.5, 2.375, "port")),
+    # Short of the wall over its foot (no wall left hanging over its hole):
+    (("third-class stairway", -91.9375, -8.9375), (-92.0625, -89.125, -8.9375, -7.6875)),
     # A body's lead clear of G deck's wall at their feet (the layout lint):
     (("second-class stairway", -92.4375, -2.5), (-92.6875, -89.75, -2.5, -1.1875)),
     # Rising forward, its foot in G deck's passage clear of her side's rooms, inside G deck's

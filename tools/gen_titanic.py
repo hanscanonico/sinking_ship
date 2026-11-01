@@ -2156,7 +2156,7 @@ for tag, sign in [("a", -1), ("b", 1)]:
 manholes_aft = [
     ("space_dbengine_a", -31.0, -28.75, (-5.0, -4.1), ENGINE_TANK_TOP, eng_holes),
     ("space_dbengine_b", -31.0, -28.75, (4.1, 5.0), ENGINE_TANK_TOP, eng_holes),
-    ("space_dbturbine_a", -61.75, -64.0, (3.5, 4.4), TANK_TOP, turb_holes),
+    ("space_dbturbine_a", -61.25, -63.5, (3.5, 4.4), TANK_TOP, turb_holes),
     ("space_dbturbine_b", -52.75, -50.5, (-4.4, -3.5), TANK_TOP, turb_holes),
     ("space_dbelectric_a", -81.75, -84.0, (-0.45, 0.45), TANK_TOP, elec_holes),
     ("space_dbelectric_b", -69.25, -67.0, (-0.45, 0.45), TANK_TOP, elec_holes),
@@ -2997,7 +2997,7 @@ def simplified(outline, tolerance):
 # them.
 SECTION_COUNT = 40
 FRAME_BREAKS = sorted({round(v, 4) for v in [X_AFT, X_FORE, FCSL_FROM, FCSL_STEP, POOP_TO, B_RUN[0], B_RUN[1],
-                                             B_HOUSE[0], B_HOUSE[1]] + [b[1] for b in BULKHEADS] + list(UPPER.values())})
+                                             B_HOUSE[0], B_HOUSE[1]] + [UPPER["M"] if b[0] == "M" else b[1] for b in BULKHEADS]})
 
 def section_spans(longest):
     return sum(math.ceil((b - a) / longest - 1e-9) for a, b in zip(FRAME_BREAKS, FRAME_BREAKS[1:]))
@@ -3007,7 +3007,10 @@ SECTION_MAX = next(m / 100 for m in range(4000, 100, -1) if section_spans(m / 10
 # its ends: a house no section's middle stood in would be a cell with no room in her,
 # and a section's outline holds a house all along it — one running past the house's end
 # would enclose a slice of air no cell holds, buoyant however deep she went.
-SECTION_BREAKS = sorted(set(FRAME_BREAKS) | {round(x, 4) for x0, x1, *_r in HOUSES for x in (x0, x1)})
+# (And her stepped bulkheads' other stretches, so her cells' faces stand on breaks, her frames
+# otherwise as they stood.)
+SECTION_BREAKS = sorted(set(FRAME_BREAKS) | {round(x, 4) for x0, x1, *_r in HOUSES for x in (x0, x1)}
+                        | {BX["M"], UPPER["B"]})
 # Each section from one break to the next, its ends shared with its neighbours', so they
 # tile her: a point on a bulkhead's line is in one of them, the one forward of it
 # (HullSection's span takes its after end, not its forward one). Each end stands one or two
@@ -3176,8 +3179,8 @@ for name, floor in [("engine_room", ENGINE_TANK_TOP), ("turbine_room", TANK_TOP)
     cell(name + "_tween", UPPER["M"] if name == "turbine_room" else x0, x1, F_DECK, D_DECK, -HALF, HALF, "ACCOMMODATION")
 x0, x1 = COMP["electric_room"]
 cell("electric_room", x0, x1, TANK_TOP, G_DECK, -HALF, HALF, "MACHINERY", MACHINERY)
-cell("electric_room_g", x0, x1, G_DECK, F_DECK, -HALF, HALF, "ACCOMMODATION")
-cell("electric_room_tween", x0, UPPER["M"], F_DECK, D_DECK, -HALF, HALF, "ACCOMMODATION")
+cell("electric_room_tween", x0, x1, G_DECK, F_DECK, -HALF, HALF, "ACCOMMODATION")
+cell("electric_room_f", x0, UPPER["M"], F_DECK, D_DECK, -HALF, HALF, "ACCOMMODATION")
 cell("electric_room_d", x0, UPPER["M"], D_DECK, 0.0, -HALF, HALF, "ACCOMMODATION")
 for name in ("after_hold_fwd", "after_hold_aft"):
     x0, x1 = COMP[name]
@@ -3522,8 +3525,8 @@ for name, x, z, size, kind in [
     ("hold_3", 72.6, -6.0, 2.0, "STAIRWELL"),
     ("boiler_room_6_tween", 62.0, 4.0, 2.0, "STAIRWELL"),
     ("engine_room_tween", -38.0, 4.0, 2.0, "STAIRWELL"), ("turbine_room_tween", -57.0, 4.0, 2.0, "STAIRWELL"),
-    ("electric_room", -78.0, 0.0, 2.0, "STAIRWELL"), ("electric_room_g", -78.0, 0.0, 2.0, "STAIRWELL"),
-    ("electric_room_tween", -78.0, 0.0, 2.0, "STAIRWELL"),
+    ("electric_room", -78.0, 0.0, 2.0, "STAIRWELL"), ("electric_room_tween", -78.0, 0.0, 2.0, "STAIRWELL"),
+    ("electric_room_f", -78.0, 0.0, 2.0, "STAIRWELL"),
     ("electric_room_d", -78.0, 4.0, 2.0, "STAIRWELL"),
     ("after_hold_fwd_orlop", -93.0, 0.0, 3.0, "STAIRWELL"), ("after_hold_fwd_tween", -93.0, 0.0, 2.0, "STAIRWELL"),
     ("after_hold_fwd_d", -88.0, 0.0, 2.0, "STAIRWELL"),

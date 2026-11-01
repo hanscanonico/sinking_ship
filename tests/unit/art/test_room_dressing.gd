@@ -524,6 +524,7 @@ func test_a_liner_s_office_is_one_and_her_officers_quarters_are_not() -> void:
 		&"stewards' office",
 		&"engineers' office, E deck",
 		&"assistant purser's office, E deck",
+		&"registered letters office",
 	]
 	for office: StringName in traced_offices:
 		offices[office] = true
