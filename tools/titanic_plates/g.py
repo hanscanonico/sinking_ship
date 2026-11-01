@@ -585,13 +585,14 @@ MADE_SOLID = [(-91.3, -9.4), (-90.0, -9.5), (-98.6, -7.5), (-98.6, 7.7)]
 OPENED = [(92.4275, 92.4475, 4.5625, 5.75), (75.3025, 75.3225, -7.625, -6.5), (91.25, 92.4375, 5.74, 5.76)]
 # The stub's join her side leaves no stub for (OPENED has its way):
 SHUT = [(91.84, 7.55)]
-# Her boiler rooms under F deck stay her estimated ones until #379 lays them, K to D (their
-# casings and bunkers), and her forepeak's stores forward of A: these solids wait for it.
 STAIR_MOVES = [
     # Clear of the orlop's wall along it (her estimated orlop, #379):
     (("hold ladder", -113.5, 0.8125), (-113.5, -110.5, 0.625, 1.5625)),
+    # Her spirals' feet in their trunk on the orlop, at the run her orlop's height there leaves
+    # them, a body's lead clear of the landing's forward wall:
+    (("firemen's spiral staircase", 100.375, -2.5625), (100.1875, 102.5, -2.5625, -1.375)),
+    (("firemen's spiral staircase", 100.375, 1.5625), (100.1875, 102.5, 1.5625, 2.75)),
 ]
-AWAITS = [(-27.71, 70.75), (115.81, 140.0)]
 # Her run, which her side at G deck leaves no room for and the plate no door into: no floor of
 # hers reaches it.
 GONE = [(-127.0, 0.0), (-124.5, 0.0)]

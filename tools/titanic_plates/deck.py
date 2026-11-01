@@ -259,9 +259,6 @@ class Deck:
                 part.open[:] = kept
         for x, z in getattr(module, "MADE_SOLID", ()):
             self._solid(next(r for r in self.rooms if r[1] < x < r[2] and r[3] < z < r[4]))
-        # AWAITS, the stretches (x0, x1) whose solids wait for the spaces under them to be laid.
-        for x0, x1 in getattr(module, "AWAITS", ()):
-            self.solids[:] = [s for s in self.solids if not x0 < (s[1] + s[2]) * 0.5 < x1]
         for x, z in getattr(module, "GONE", ()):
             pieces = self.rooms if any(r[1] < x < r[2] and r[3] < z < r[4] for r in self.rooms) else self.solids
             pieces.remove(next(r for r in pieces if r[1] < x < r[2] and r[3] < z < r[4]))
