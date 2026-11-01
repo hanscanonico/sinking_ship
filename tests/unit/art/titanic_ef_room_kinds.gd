@@ -214,7 +214,7 @@ const KINDS := {
 	&"six-berth third-class room, E deck aft of M": RoomDressing.Kind.CABIN,
 	&"six-berth third-class room, F deck": RoomDressing.Kind.CABIN,
 	&"six-berth third-class room, F deck aft of B": RoomDressing.Kind.CABIN,
-	&"six-berth third-class room, F deck aft of D": RoomDressing.Kind.CABIN,
+	&"six-berth third-class room, F deck aft of C": RoomDressing.Kind.CABIN,
 	&"six-berth third-class room, F deck aft of O": RoomDressing.Kind.CABIN,
 	&"sixth engineers' room": RoomDressing.Kind.CABIN,
 	&"soiled linen room": RoomDressing.Kind.SERVICE,

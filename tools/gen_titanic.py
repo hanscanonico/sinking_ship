@@ -1814,7 +1814,7 @@ inboard = (PASSAGE_Z[0] - T - STAIR, PASSAGE_Z[0] - T)
 starboard = (PASSAGE_Z[1] + T + 0.11, PASSAGE_Z[1] + T + 0.11 + NARROW_STAIR)
 for sid, foot, head, lane, holes_above in [
         ("space_h3_a", 75.0, 72.0, inboard, pt3_holes), ("space_h3_b", 82.0, 85.0, inboard, pt3_holes),
-        ("space_h3_c", 74.75, 71.75, starboard, pt3_holes), ("space_h3_d", 82.3125, 85.3125, starboard, pt3_holes),
+        ("space_h3_c", 75.0, 72.0, starboard, pt3_holes), ("space_h3_d", 82.3125, 85.3125, starboard, pt3_holes),
         ("space_h2_a", 90.25, 87.25, inboard, pt2_holes), ("space_h2_b", 97.75, 100.75, inboard, pt2_holes)]:
     stair(sid, foot, head, lane[0], lane[1], TANK_TOP, PASSAGE_TOP, holes_above)
 g3_holes = []
@@ -1917,7 +1917,7 @@ for k, flight in enumerate(f for f in D_PLAN.stairs if f[0] == "third-class ladd
     _n, lx0, lx1, lz0, lz1, *_rest = clear_sides(flight)
     inboard = (lz1, lz1 + 0.1) if lz1 < 0.0 else (lz0 - 0.1, lz0)
     box("ladderway_screen_%d" % k, lx0, lx1, *inboard, D_DECK, 0.0)
-FP_TANK = (119.5, fit(BX["A"], 119.5, TANK_TOP, 0.3))
+FP_TANK = (118.5, fit(BX["A"], 118.5, TANK_TOP, 0.1))
 FP_STORES = (122.0, fit(BX["A"], 122.0, ORLOP, 0.3))
 h1_decks = {}
 for level, h, widths, holes, top in [("tank", TANK_TOP, H1T, h1_holes, ORLOP), ("orlop", ORLOP, H1O, h1o_holes, G_DECK),
@@ -2623,7 +2623,7 @@ def piece_problems(candidate):
     for r in ramp_geo:
         if min(r[5], r[6]) - 0.01 <= floor <= max(r[5], r[6]) + 0.01:
             ex, ez = (STAIR_CLEAR, 0.5) if r[4] == 0 else (0.5, STAIR_CLEAR)
-            if r[0] - ex < x1 and x0 < r[1] + ex and r[2] - ez < z1 and z0 < r[3] + ez:
+            if r[0] - ex < x1 and x0 < r[1] + ex and r[2] - ez < z1 + 1e-3 and z0 < r[3] + ez + 1e-3:
                 found.append("%s by a stair at %s" % (bid, r[:4]))
     others = blocks_about(floor) + [p[1:] for p in ROOM_PIECES if p[0] != bid]
     for b in others:
