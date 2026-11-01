@@ -547,6 +547,8 @@ F_SIDE = [(46.1, 13.68), (55.3, 13.31), (62.9, 13.12), (65.9, 13.03), (69.8, 12.
           (79.6, 11.68), (82.0, 11.28), (85.4, 10.85), (88.8, 10.22), (91.9, 9.56), (93.5, 9.21), (95.9, 8.75),
           (98.5, 8.12), (101.1, 7.47), (105.0, 6.56), (108.8, 5.56), (111.8, 4.72), (114.5, 4.0), (117.8, 3.09)]
 
+V_FROM, V_AT = 60.0, 110.0
+
 def station(table, x):
     """table's half breadth at x, linear between its stations; None where the plate is silent,
     across a None in it and past its ends."""
@@ -575,16 +577,24 @@ def plan_at(table, x, h):
     return (lines + (a[1] - lines_half(a[0], h)) * max(1.0 - t * 4.0, 0.0)
             + (b[1] - lines_half(b[0], h)) * max(t * 4.0 - 3.0, 0.0))
 
+def plan_sheer(x):
+    """How far over its flat height here a plan forward of amidships truly stands: her decks' sheer,
+    as C deck's off Plate III (FCSL), 1.56 m at x 100. Her decks are laid flat; her plates
+    were drawn on her. (Aft it comes to half a metre at her stern, under what the plans read.)"""
+    return 1.56 * (x / 100.0) ** 2 if x > 0.0 else 0.0
+
 @functools.lru_cache(maxsize=None)
 def low_nodes(x):
     """Her side's heights and half breadths at x, from the lowest plan's up to F deck, and on
     to E deck where F deck's plan widened her, each never wider than the one over it, so her
     side never turns in as it climbs (SectionHull._side())."""
-    at_f = lines_half(x, F_DECK)
+    lift = plan_sheer(x)
+    at_f = lines_half(x, F_DECK + lift)
     widened = station(F_SIDE, x)
     widened = 0.0 if widened is None else min(widened, lines_half(x, E_DECK))
-    ys, zs = [F_DECK], [max(at_f, widened)]
+    ys, zs = [F_DECK + lift], [max(at_f, widened)]
     for height, table in reversed(LOW_PLANS):
+        height += 0.0 if table is LOW_PLANS[0][1] else lift
         ys.insert(0, height)
         zs.insert(0, min(plan_at(table, x, height), zs[0]))
     if zs[-1] > at_f:
@@ -626,12 +636,23 @@ def breadth(x, y):
     if y >= ys[-1]:
         return lines_half(x, y)
     if y >= ys[0]:
-        return fair(ys, zs, y)
+        side = fair(ys, zs, y)
+        # Over her load waterline forward, never in from her lines: F deck's rooms stand.
+        return max(side, lines_half(x, y)) if y >= LOAD_WL else side
     turn = MIDSHIP[0][0]
     flat = turn * lines_half(x, KEEL + 1e-6) / lines_half(0.0, KEEL + 1e-6)
-    v = midship_half((y - KEEL) / (ys[0] - KEEL) * MIDSHIP[-1][1])
-    bilge = flat + (zs[0] - flat) * (v - turn) / (MIDSHIP[-1][0] - turn)
-    return min(bilge, lines_half(x, y) * zs[0] / max(lines_half(x, ys[0]), 1e-6))
+    up = (y - KEEL) / (ys[0] - KEEL)
+    round_turn = (midship_half(up * MIDSHIP[-1][1]) - turn) / (MIDSHIP[-1][0] - turn)
+    # Fig. 44's section at the forward cradle's fore end, 64 ft abaft her forward perpendicular
+    # (x 110, its text's standing ways; its scale off its ways, 25 ft apart): no turn of
+    # bilge left, her side about straight from her keel. Between it and her parallel body in
+    # proportion (est.); her floor stays, the double bottoms stand on it.
+    v_shape = clamp((x - V_FROM) / (V_AT - V_FROM), 0.0, 1.0)
+    bilge = flat + (zs[0] - flat) * (round_turn + (up - round_turn) * v_shape)
+    if x > stem_x(KEEL):
+        # Her forefoot: off her keel, her lines close on her stem.
+        return min(bilge, lines_half(x, y) * zs[0] / max(lines_half(x, ys[0]), 1e-6))
+    return bilge
 
 # Her forecastle and poop decks stepped to her sheer: C deck's sheer over amidships
 # off Plate III (SB-III), 2.2 m at x 110 and 0.6 m at x −110, on B deck's height. The
@@ -1689,8 +1710,9 @@ for k, aft, rows, back, deck_w in STOKEHOLDS:
 # outer skin of the ship", in No. 2 hold): est. 2 m wide and 8 ft high, its starboard
 # side 3 ft 6 in inside her shell at its middle height in No. 2 hold.
 PASSAGE_TOP = q(TANK_TOP + 8.0 * FT)
-PASSAGE_Z = (round(breadth(94.0, (TANK_TOP + PASSAGE_TOP) * 0.5) - 3.5 * FT - 2.0, 4),
-             round(breadth(94.0, (TANK_TOP + PASSAGE_TOP) * 0.5) - 3.5 * FT, 4))
+# (Its floor inside her bilge at its forward end, PASSAGE_END below.)
+PASSAGE_OUT = min(breadth(94.0, (TANK_TOP + PASSAGE_TOP) * 0.5) - 3.5 * FT, breadth(96.25, TANK_TOP) - 0.05)
+PASSAGE_Z = (round(PASSAGE_OUT - 2.0, 4), round(PASSAGE_OUT, 4))
 
 # --- Every cell a place a body can be (#148), the bow: boiler room 6, its bunker and the
 # firemen's passage forward of it, Nos. 3, 2 and 1 holds deck by deck, the forepeak and its
@@ -1804,6 +1826,7 @@ g_post = recut(g_post, "g_post", "G deck", h3_floor[0], h3_floor[1], -H3W[G_DECK
 DB6_Z = fit(BX["E"], BX["D"], KEEL, 0.3)
 DB3_Z = fit(BX["D"], BX["C"], KEEL, 0.3)
 DB2_Z = fit(BX["C"], BX["B"], KEEL, 0.3)
+H1_TANK_SPLIT = 108.875  # where her bilge narrows No. 1 hold's tank top (Fig. 44)
 H1_SPLIT = 110.0  # where No. 1 hold's floors narrow (est.)
 DB1_Z = fit(BX["B"], H1_SPLIT, KEEL, 0.2)
 h1_holes = []
@@ -1868,19 +1891,19 @@ room("hold_2_orlop", "No. 2 hold", BX["C"], COURT_FWD, -H2P, H2P, PASSAGE_TOP)
 # crew's stairs up to the forecastle and its door onto the forward well (door_forecastle).
 # Each deck narrows forward of H1_SPLIT with her bow. The forepeak's tank and its stores
 # forward of bulkhead A, each through a door in it from the hold's deck at its floor.
-H1T = (fit(BX["B"], H1_SPLIT, TANK_TOP, 0.3), fit(H1_SPLIT, BX["A"], TANK_TOP, 0.3))
+H1T = (fit(BX["B"], H1_TANK_SPLIT, TANK_TOP, 0.2), fit(H1_TANK_SPLIT, BX["A"], TANK_TOP, 0.3))
 H1O = (fit(BX["B"], H1_SPLIT, ORLOP, 0.3), fit(H1_SPLIT, BX["A"], ORLOP, 0.3))
 H1G = (fit(BX["B"], H1_SPLIT, G_DECK, 0.3), fit(H1_SPLIT, BX["A"], G_DECK, 0.3))
 h1o_holes, h1g_holes = [], []
 for sid, foot, head, (z0, z1), low, high, holes_above in [
-        ("space_h1_or_1", 108.625, 103.0, (-2.1, -1.1), TANK_TOP, ORLOP, h1o_holes),
-        ("space_h1_or_2", 108.625, 103.0, (-1.1, -0.1), TANK_TOP, ORLOP, h1o_holes),
+        ("space_h1_or_1", 103.0, 108.625, (-H1T[0], -H1T[0] * 0.5), TANK_TOP, ORLOP, h1o_holes),
+        ("space_h1_or_2", 103.0, 108.625, (-H1T[0] * 0.5, 0.0), TANK_TOP, ORLOP, h1o_holes),
         ("space_h1_g_1", 105.5, 108.5, (0.5, 1.55), ORLOP, G_DECK, h1g_holes),
         ("space_h1_g_2", 105.5, 108.5, (1.55, 2.6), ORLOP, G_DECK, h1g_holes)]:
     stair(sid, foot, head, z0, z1, low, high, holes_above)
 # Up from G deck into the firemen's quarters on F deck either side of No. 1 hatch (est.).
-ways = [up_to_f(sid, BX["B"] + T + FLIGHT_LEAD, H1_SPLIT - FLIGHT_LEAD, 3.125, z0, z1, G_DECK)
-        for sid, (z0, z1) in [("space_h1_f", (-3.75, -2.7)), ("space_h1_f_2", (2.7, 3.75))]]
+ways = [up_to_f(sid, BX["B"] + T + FLIGHT_LEAD, 106.0, 3.125, z0, z1, G_DECK)
+        for sid, (z0, z1) in [("space_h1_f", (-3.35, -2.3)), ("space_h1_f_2", (2.3, 3.35))]]
 assert any(ways), "no way up out of No. 1 hold's G deck"
 # Each flight's opening in D deck screened along its inboard side forward of No. 1 hatch's
 # cover (est.), so the joint between the quarters' pieces it runs under is two doors, each
@@ -1898,13 +1921,14 @@ h1_decks = {}
 for level, h, widths, holes, top in [("tank", TANK_TOP, H1T, h1_holes, ORLOP), ("orlop", ORLOP, H1O, h1o_holes, G_DECK),
                                      ("g", G_DECK, H1G, h1g_holes, F_DECK)]:
     name = {"tank": "tank top", "orlop": "orlop deck", "g": "G deck"}[level]
-    made = deck("hold_1_" + level, name, BX["B"], H1_SPLIT, -widths[0], widths[0], h, holes)
-    made += deck("hold_1_%s_fwd" % level, name, H1_SPLIT, BX["A"], -widths[1], widths[1], h, holes)
+    step_x = H1_TANK_SPLIT if level == "tank" else H1_SPLIT
+    made = deck("hold_1_" + level, name, BX["B"], step_x, -widths[0], widths[0], h, holes)
+    made += deck("hold_1_%s_fwd" % level, name, step_x, BX["A"], -widths[1], widths[1], h, holes)
     h1_decks[level] = made
-    walled("hold_1_" + level, BX["B"], H1_SPLIT, -widths[0], widths[0], h, top, "ps")
-    walled("hold_1_%s_fwd" % level, H1_SPLIT, BX["A"], -widths[1], widths[1], h, top, "ps")
+    walled("hold_1_" + level, BX["B"], step_x, -widths[0], widths[0], h, top, "ps")
+    walled("hold_1_%s_fwd" % level, step_x, BX["A"], -widths[1], widths[1], h, top, "ps")
     for tag, sign in [("p", -1), ("s", 1)]:
-        wall_x("hold_1_%s_step_%s" % (level, tag), H1_SPLIT, *sorted((sign * widths[1], sign * widths[0])), h, top)
+        wall_x("hold_1_%s_step_%s" % (level, tag), step_x, *sorted((sign * widths[1], sign * widths[0])), h, top)
 deck("forepeak_tank", "tank top", BX["A"], FP_TANK[0], -FP_TANK[1], FP_TANK[1], TANK_TOP, [])
 deck("forepeak_stores", "orlop deck", BX["A"], FP_STORES[0], -FP_STORES[1], FP_STORES[1], ORLOP, [])
 wall_x("tank_a", BX["A"], -H1T[1], H1T[1], TANK_TOP, ORLOP, [sealed_door("sealed_a_tank", "A", TANK_TOP, 0.0)])
@@ -1916,7 +1940,7 @@ walled("forepeak_tank", BX["A"], FP_TANK[0], -FP_TANK[1], FP_TANK[1], TANK_TOP, 
 walled("forepeak_stores", BX["A"], FP_STORES[0], -FP_STORES[1], FP_STORES[1], ORLOP, F_DECK, "psf")
 # G deck over it a passage between its flights, no hold: under the 'tween deck a hold's
 # dressing stows (CargoHold), its flights up would climb through cargo.
-for rid, name, x1, widths, h in [("hold_1", "No. 1 hold", H1_SPLIT, H1T, TANK_TOP),
+for rid, name, x1, widths, h in [("hold_1", "No. 1 hold", H1_TANK_SPLIT, H1T, TANK_TOP),
                                  ("hold_1_orlop", "No. 1 hold, orlop", H1_SPLIT, H1O, ORLOP),
                                  ("hold_1_g", "G deck passage, No. 1 hold", H1_SPLIT, H1G, G_DECK)]:
     room(rid, name, BX["B"], x1, -widths[0], widths[0], h)
@@ -2181,7 +2205,7 @@ for k in (2, 3, 4, 5):
     room("bunker_%d" % k, "coal bunker %d" % k, bunker, fwd, -wb, wb, TANK_TOP)
     holes_k = []
     for tag, sign in [("a", -1), ("b", 1)]:
-        stair_z("space_dbbr%d_%s" % (k, tag), sign * 5.5, sign * 3.5, bunker + 0.9, bunker + 1.8, KEEL, TANK_TOP,
+        stair_z("space_dbbr%d_%s" % (k, tag), sign * 5.25, sign * 3.25, bunker + 0.9, bunker + 1.8, KEEL, TANK_TOP,
                 holes_k)
     # On to boiler room 6's plates, which start at bulkhead E; the others' a wall's half on.
     floor_k = deck("bunker_%d" % k, "tank top", bunker - T, fwd + (T if k < 5 else 0.0), -wb, wb, TANK_TOP, holes_k)
@@ -2930,7 +2954,8 @@ SECTION_MAX = next(m / 100 for m in range(4000, 100, -1) if section_spans(m / 10
 # its ends: a house no section's middle stood in would be a cell with no room in her,
 # and a section's outline holds a house all along it — one running past the house's end
 # would enclose a slice of air no cell holds, buoyant however deep she went.
-SECTION_BREAKS = sorted(set(FRAME_BREAKS) | {round(x, 4) for x0, x1, *_r in HOUSES for x in (x0, x1)})
+# (And one where the plates narrow her fast aft of bulkhead M, her shell's runs meeting fair.)
+SECTION_BREAKS = sorted(set(FRAME_BREAKS) | {round(x, 4) for x0, x1, *_r in HOUSES for x in (x0, x1)} | {-71.0})
 # Each section from one break to the next, its ends shared with its neighbours', so they
 # tile her: a point on a bulkhead's line is in one of them, the one forward of it
 # (HullSection's span takes its after end, not its forward one). Each end stands one or two
