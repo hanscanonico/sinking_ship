@@ -67,10 +67,11 @@ STAIRS = [
     # The hold ladder down to the tank top, est. (orlop.py's notes): starboard of the
     # orlop's coming down, its head aft by that one's foot, 3.95 m for the 3.39 m her
     # generator's heights leave between her tank top and this deck, under her orlop.
-    ("hold ladder", 9603.5, 4301, 9756.5, 4339, "aft", "tanktop", "lower_orlop"),
+    ("hold ladder", 9603.5, 4301, 9756.5, 4339, "fore", "tanktop", "lower_orlop"),
 ]
 
 STAIR_MOVES = [
-    # In from her side at the tank top, where her floor stops well inside this plan's side:
-    (("hold ladder", 110.6875, 1.1875), (110.6875, 114.625, -0.5, 0.5)),
+    # In from her side at the tank top, where her floor stops well inside this plan's side, its
+    # head clear of the join into the hold's forward piece:
+    (("hold ladder", 110.6875, 1.1875), (108.9375, 112.875, 0.25, 1.25)),
 ]

@@ -16,6 +16,17 @@ const KEEL := -19.8125
 const ENGINE_TANK_TOP := -17.9375
 ## Each space by name, and a point on its floor clear of its stairs, holes and machinery.
 const SPACES := {
+	&"boiler room 6": Vector3(66.5, TANK_TOP, 7.0),
+	&"firemen's passage, by its door": Vector3(69.5, TANK_TOP, 0.0),
+	&"mail room": Vector3(75.0, -12.9375, 3.0),
+	&"bulk store": Vector3(-83.5, ORLOP, -3.0),
+	&"electric engine room": Vector3(-80.0, TANK_TOP, 1.0),
+	&"turbine engine room": Vector3(-50.0, TANK_TOP, 1.0),
+	&"reciprocating engine room": Vector3(-30.0, ENGINE_TANK_TOP, 0.0),
+	&"shaft tunnel, O to N": Vector3(-95.0, TANK_TOP, 0.0),
+}
+## Her estimated spaces, as the Small Titanic keeps them.
+const ESTIMATED_SPACES := {
 	&"boiler room 6": Vector3(55.5, TANK_TOP, 4.0),
 	&"coal bunker 6": Vector3(69.3, TANK_TOP, 0.0),
 	&"firemen's passage": Vector3(80.0, TANK_TOP, 3.34),
@@ -123,6 +134,11 @@ func test_every_new_space_has_a_way_up_to_the_forward_well_deck() -> void:
 	_has_a_way_up(SPACES)
 
 
+func test_the_small_titanic_s_estimated_spaces_have_a_way_up_to_the_forward_well_deck() -> void:
+	_layout = load(SMALL_TITANIC)
+	_has_a_way_up(ESTIMATED_SPACES)
+
+
 func test_the_small_titanic_s_working_passages_have_a_way_up_to_the_forward_well_deck() -> void:
 	_layout = load(SMALL_TITANIC)
 	_has_a_way_up(SMALL_SPACES)
@@ -147,6 +163,7 @@ func _has_a_way_up(spaces: Dictionary) -> void:
 
 
 func test_a_body_crawls_out_of_no_3_hold_s_double_bottom_and_none_goes_into_it_flooded() -> void:
+	_layout = load(SMALL_TITANIC)
 	# Out from under No. 3 hold's tank top on hands and knees and up through a manhole into
 	# the hold's port part.
 	var surfaces := Surfaces.new(_layout)
@@ -174,6 +191,7 @@ func test_a_body_crawls_out_of_no_3_hold_s_double_bottom_and_none_goes_into_it_f
 
 
 func test_a_body_walks_up_the_firemen_s_passage_s_stair_into_no_2_hold() -> void:
+	_layout = load(SMALL_TITANIC)
 	var graph := _graph(Surfaces.new(_layout))
 	var hold := _room(&"No. 2 hold")
 	var dry := HeldPose.flooded(_layout, -_layout.freeboard, {})
@@ -187,6 +205,7 @@ func test_a_body_walks_up_the_firemen_s_passage_s_stair_into_no_2_hold() -> void
 
 
 func test_a_body_crawls_out_of_the_turbine_room_s_double_bottom() -> void:
+	_layout = load(SMALL_TITANIC)
 	var graph := _graph(Surfaces.new(_layout))
 	var room := _room(&"turbine engine room")
 	var dry := HeldPose.flooded(_layout, -_layout.freeboard, {})

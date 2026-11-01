@@ -1423,21 +1423,25 @@ DOOR_LEAST = 1.0   # the layout lint's least door
 
 NO_ROOM = []  # (deck, axis, at, along, room, wall from, wall to): a door its wall has no room for
 
-def plan_layer(prefix, plan, floor, ceiling, breaks=(), parted_at=(), place=None, main=None, water=True):
+def plan_layer(prefix, plan, floor, ceiling, breaks=(), parted_at=(), place=None, main=None, water=True, wall_top=None):
     """A traced deck's rooms, walls, doors and solid blocks, from floor to ceiling: a
     height, or the height of the deck over ship x, ceiling(x), which changes only at
     breaks — a wall along her under two decks is laid in a piece under each. Given
     place, its rooms as her cells hold them: split along parted_at, named for where
     they stand (named_pieces). floor may be a height over ship x too; water false, its doors
-    are the ship's to open to her water (none of the doorways')."""
+    are the ship's to open to her water (none of the doorways'). wall_top, a wall along her
+    at z over ship x its top, where it isn't the deck's over it."""
     over = ceiling if callable(ceiling) else (lambda _x: ceiling)
     level = floor if callable(floor) else (lambda _x: floor)
+
+    at_now = [0.0]
 
     def under(lo, hi):
         """lo..hi along her cut where the deck over it changes — but within a wall's end
         past a corner, which takes the deck over the rest: [(from, to, its height)]."""
         cuts = [lo] + [v for v in sorted(breaks) if lo + 2 * T < v < hi - 2 * T] + [hi]
-        return [(p, q, over((p + q) * 0.5)) for p, q in zip(cuts, cuts[1:])]
+        tops = (lambda x: wall_top(at_now[0], x)) if wall_top else over
+        return [(p, q, tops((p + q) * 0.5)) for p, q in zip(cuts, cuts[1:])]
 
     def door_room(axis, at, a, b, along):
         """The stretch of the wall (axis, at) from a to b a door at along may take: up to the
@@ -1478,6 +1482,7 @@ def plan_layer(prefix, plan, floor, ceiling, breaks=(), parted_at=(), place=None
         room("%s_%d_%s" % (prefix, k, slug(name)), name, x0, x1, z0, z1, level((x0 + x1) * 0.5))
     for k, (axis, at, a, b, kind, doors) in enumerate(plan.walls):
         floor = level(at if axis == 0 else (a + b) * 0.5)
+        at_now[0] = at
         half = T if kind == "steel" else PARTITION / 2
         cuts = []
         for along in sorted(doors):
@@ -1742,7 +1747,7 @@ ORLOP_PIECES = (hull_strips(BX["P"], BX["M"], ORLOP)
                 + hull_strips(round(BX["D"] * 128) / 128, BX["A"], ORLOP_FWD))
 LOWER_PIECES = hull_strips(round(BX["B"] * 128) / 128, BX["A"], LOWER_ORLOP)
 TT_PLAN = plates.load("tanktop", side=held_to(TT_PIECES), ends=LOW_CUTS, reach=D_REACH, lead=D_LEAD)
-ORLOP_PLAN = plates.load("orlop", side=held_to(ORLOP_PIECES), ends=LOW_CUTS, reach=D_REACH, lead=D_LEAD)
+ORLOP_PLAN = plates.load("orlop", side=held_to(ORLOP_PIECES + hull_strips(BX["L"], -37.875, ORLOP)), ends=LOW_CUTS, reach=D_REACH, lead=D_LEAD)
 LOWER_PLAN = plates.load("lower_orlop", side=held_to(LOWER_PIECES), ends=LOW_CUTS, reach=D_REACH, lead=D_LEAD)
 LOW_BOILERS = {(s[1], s[2], round(s[3] + s[4])): s for s in TT_OUTLINE.solids if s[0].endswith("boiler")}
 TT_PLAN.solids[:] = [next((b for k, b in LOW_BOILERS.items() if k[0] == s[1] and k[1] == s[2]
@@ -1796,12 +1801,16 @@ def tt_floor(x):
     return ENGINE_TANK_TOP if BX["L"] + 1e-3 < x < BX["K"] - 1e-3 else TANK_TOP
 
 def tt_over(x):
-    """The deck over the tank top at x: the orlop to M, G deck to K, F deck to D, the orlop to
-    B, the lower orlop on."""
-    return (ORLOP if x < BX["M"] - 1e-3 else G_DECK if x < BX["K"] - 1e-3 else F_DECK if x < BX["D"] + 1e-3
-            else ORLOP_FWD if x < BX["B"] + 1e-3 else LOWER_ORLOP)
+    """The deck over the tank top at x: the orlop to M, G deck to K, F deck to boiler room 6's
+    forward bunker, G deck's pocket over that (the court's stair comes down to it), the orlop
+    to B, the lower orlop on."""
+    return (ORLOP if x < BX["M"] - 1e-3 else G_DECK if x < BX["K"] - 1e-3 else F_DECK if x < BUNKERS["br6"] + 1e-3
+            else G_DECK if x < BX["D"] + 1e-3 else ORLOP_FWD if x < BX["B"] + 1e-3 else LOWER_ORLOP)
 
-plan_layer("tt", TT_PLAN, tt_floor, tt_over, breaks=[BX[k] for k in "MLKDB"], water=False)
+# (The reciprocating engine room's side wall stops under the CO2 flat, which runs out past it
+# to her side.)
+plan_layer("tt", TT_PLAN, tt_floor, tt_over, breaks=[BX[k] for k in "MLKDB"] + [-37.875], water=False,
+           wall_top=lambda z, x: ORLOP if z < -9.0 and BX["L"] < x < -37.875 else tt_over(x))
 plan_layer("orlop", ORLOP_PLAN, orlop_at, lambda _x: G_DECK, water=False)
 plan_layer("lower_orlop", LOWER_PLAN, LOWER_ORLOP, ORLOP_FWD, water=False)
 
@@ -1835,6 +1844,10 @@ def tt_clear(x0, x1, z0, z1):
 def head_clear(plan, wells, a, b, c0, c1, along_x):
     """Whether a flight's head, a..b along it and c0..c1 across it, comes up clear of plan."""
     boxes = low_boxes(plan) + list(wells)
+    # (And the mouth of each door of the deck it comes up in.)
+    for axis, at, _w0, _w1, _kind, doors in plan.walls:
+        for along in doors:
+            boxes.append((at - 0.85, at + 0.85, along - 0.6, along + 0.6) if axis == 0 else (along - 0.6, along + 0.6, at - 0.85, at + 0.85))
     if along_x:
         return not any(e[0] < b and e[1] > a and e[2] < c1 + 0.05 and e[3] > c0 - 0.05 for e in boxes)
     return not any(e[2] < b and e[3] > a and e[0] < c1 + 0.05 and e[1] > c0 - 0.05 for e in boxes)
@@ -1881,6 +1894,55 @@ for k, r in enumerate((r for r in TT_PLAN.rooms if r[0].startswith("boiler room"
             if aft - r[1] >= LOW_LANE + 0.5 else False]
     assert any(ways), ("no way up out of boiler room", k)
 
+def low_flight(sid, x0, x1, z0, z1, low, high, plan_low, plan_up, wells, width=1.0):
+    """A flight along her from floor low up to high, in plan_low's room over x0..x1, z0..z1,
+    where its floor is clear and plan_up lets its head come up in a room: whether."""
+    run = math.ceil((high - low) / 0.86 * 16) / 16
+    lead = 2 * rule("body_radius")
+    boxes = low_boxes(plan_low)
+    for i in range(int((z1 - z0 - width) * 8) + 1):
+        lane = (z0 + i / 8, z0 + i / 8 + width)
+        for k in range(int((x1 - x0) * 8) + 1):
+            for x_low, sign in ((x0 + k / 8, 1), (x1 - k / 8, -1)):
+                head = x_low + sign * run
+                a, b = sorted((x_low - sign * lead, head + sign * lead))
+                up = sorted((head - sign * HEAD_RUN, head + sign * lead))
+                if (x0 <= a and b <= x1
+                        and not any(e[0] < b and e[1] > a and e[2] < lane[1] and e[3] > lane[0] for e in boxes)
+                        and not any(r[0] < b and r[1] > a and r[2] < lane[1] and r[3] > lane[0] and min(r[5], r[6]) <= high + 0.5
+                                    and max(r[5], r[6]) >= low - 0.5 for r in ramp_geo)
+                        and all(any(r[1] <= v <= r[2] and r[3] <= lane[0] and lane[1] <= r[4] for r in plan_low.rooms) for v in (a, b))
+                        and any(r[1] <= up[0] and up[1] <= r[2] and r[3] <= lane[0] and lane[1] <= r[4] for r in plan_up.rooms)
+                        and head_clear(plan_up, wells(), up[0], up[1], lane[0], lane[1], True)):
+                    if high == G_DECK:
+                        head_flight(sid, x_low, head, lane[0], lane[1], low)
+                    else:
+                        stair(sid, x_low, head, lane[0], lane[1], low, high, [])
+                        holes["orlop"].append((up[0] if sign > 0 else head, head if sign > 0 else up[0] + HEAD_RUN - lead, lane[0], lane[1]))
+                    return True
+    return False
+
+G_WELLS = lambda: list(G_FEET) + [e[1] for e in G_HOLES]
+ORLOP_WELLS = lambda: holes["orlop"]
+# The ways up her machinery's floors want (each deck two: the layout lint), est., none drawn:
+# the plates' ladders and escape trunks here go up to E deck and the boat deck through decks
+# whose rooms leave them no place. The electric engine room's two up to its stores, each a
+# flight on its floor; the reciprocating engine room's own up to G deck; the CO2 flat's two up
+# to G deck.
+LOW_WAYS = [
+    ("space_electric_a", -85.0, -65.0, -5.0, 5.0, TANK_TOP, ORLOP, TT_PLAN, ORLOP_PLAN, ORLOP_WELLS),
+    ("space_electric_b", -101.5, -85.25, -5.0, 5.0, TANK_TOP, ORLOP, TT_PLAN, ORLOP_PLAN, ORLOP_WELLS),
+    ("space_co2_a", -48.5625, -37.875, -14.0, -9.0, ORLOP, G_DECK, ORLOP_PLAN, G_PLAN, G_WELLS),
+    ("space_co2_b", -48.5625, -37.875, -14.0, -9.0, ORLOP, G_DECK, ORLOP_PLAN, G_PLAN, G_WELLS),
+]
+for way in LOW_WAYS:
+    assert low_flight(*way), ("no way up", way[0])
+# The reciprocating engine room's along her starboard engine, over its pump, into the workshop.
+head_flight("space_engine_g", -30.25, -38.375, 8.75, 9.75, ENGINE_TANK_TOP)
+
+# Up from the baggage room into the first-class baggage store on G deck (est.: the plate draws
+# the hatch between them; the court's end of G deck has no other way).
+assert up_to_g("space_baggage", 76.0, 85.0, 2.3125, -7.5, -6.25, ORLOP_FWD), "the baggage room's way up"
 # Up from No. 1 hold's orlop into the greasers' and leading firemen's quarters, forward of
 # No. 1 hatch (est.: g.py draws no way down there).
 assert up_to_g("space_h1_g", 108.75, 113.0, 2.9375, 0.25, 1.25, ORLOP_FWD), "no way up out of No. 1 hold's orlop"
