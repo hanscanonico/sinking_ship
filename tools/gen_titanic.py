@@ -536,9 +536,10 @@ MIDSHIP = [(9.81, 0.0), (11.0, 0.53), (12.17, 1.06), (13.12, 1.89), (13.65, 2.96
 # So a low plan's side is no section at its floor: Plate V's tank top reads 13.97 m amidships,
 # which Fig. 22 reaches 3.75 m over that floor. Each plan here is read as true some height over
 # its own floor, the height a plan is cut at: the tank top's measured so; the orlop's and G
-# deck's 2.0 m (est., a reading, no plate says so): at their floors the plates displace 7.9%
-# over the inquiry's 52 310 tons, a block coefficient of 0.73 for its 0.67; from about 1.8 m to
-# G deck's limit of 2.4 m she displaces within 1% of it (the run prints it).
+# deck's 2.0 m (est., a reading, no plate says so; Fig. 44 supports it only forward, with her
+# sheer added, plan_sheer()): at their floors the plates displace 7.9% over the inquiry's
+# 52 310 tons, a block coefficient of 0.73 for its 0.67; so she displaces within 1% of it (the
+# run prints it).
 # Stations: each side-reaching room's middle along her (rooms are drawn in steps, true at
 # their middles), both sides' mean, from its file in tools/titanic_plates. A None is the
 # plate silent or no side, and her estimated lines stand: her middle body; the engine room's
@@ -552,12 +553,14 @@ LOW_PLANS = [  # (the height the plan is true at, [(x, half breadth)])
                           (27.6, 13.94), (36.6, 13.78), (45.6, 13.22), (54.0, 12.59), (62.3, 11.72), (74.1, 11.1),
                           (81.0, 9.9), (85.4, 9.12), (89.8, 8.06), (96.6, 6.62), (101.0, 5.75), (104.1, 4.72),
                           (108.8, 3.75), (113.5, 2.85), (118.8, 1.85), (125.6, 0.65)]),
-    (q(ORLOP + 2.0), [(-127.1, 0.75), (-121.7, 2.22), (-118.3, 3.22), (-115.7, 3.97), (-111.7, 5.12), (-107.7, 6.19),
+    (q(ORLOP + 2.0), [  # est.
+                      (-127.1, 0.75), (-121.7, 2.22), (-118.3, 3.22), (-115.7, 3.97), (-111.7, 5.12), (-107.7, 6.19),
                       (-103.7, 7.28), (-83.7, 11.47), (-80.9, 11.87), (-76.9, 12.25), (-72.7, 12.47), (-66.9, 12.97),
                       None, (36.6, 13.85), (53.7, 13.37), (69.3, 12.09), (75.4, 11.12), (83.2, 9.75), (88.9, 8.6),
                       (94.1, 7.5), (99.2, 6.4), (104.4, 5.28), (109.6, 4.15), (113.9, 3.19), (117.8, 2.34),
                       (122.4, 1.44), (127.2, 0.47)]),
-    (q(G_DECK + 2.0), [(-127.2, 0.72), (-124.5, 1.62), (-121.0, 2.85), (-117.4, 4.12), (-113.4, 5.4), (-111.4, 6.12),
+    (q(G_DECK + 2.0), [  # est.
+                       (-127.2, 0.72), (-124.5, 1.62), (-121.0, 2.85), (-117.4, 4.12), (-113.4, 5.4), (-111.4, 6.12),
                        (-108.1, 7.1), (-106.1, 7.69), (-102.7, 8.5), (-100.4, 9.15), (-98.5, 9.62), (-96.2, 10.15),
                        (-92.6, 10.9), (-89.9, 11.4), (-86.5, 11.9), (-83.7, 12.22), (-65.9, 13.38), (-60.9, 13.56), None,
                        (46.6, 13.87), (53.8, 13.5), (62.1, 13.03), (69.3, 12.4), (72.0, 12.03), (74.4, 11.9),
