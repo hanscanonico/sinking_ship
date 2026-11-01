@@ -3185,15 +3185,22 @@ def floor_of(x, z, y):
 # two at K (est.: bulkhead K's pair, either side of the engine room's centre line).
 # Est.: each jams open one time in twenty; shut, it weeps 0.005 m² round its seals once
 # the water stands at its bulkhead's top over its sill and gives way at 1.5× that.
-VERTICAL_DOORS = [("D", PASSAGE_Z[0] + 1.0), ("E", 0.0), ("F", 0.0), ("G", 0.0), ("H", 0.0), ("J", 0.0),
-                  ("K", -4.0), ("K", 4.0), ("L", 0.0), ("M", 0.0), ("N", 0.0), ("O", 0.0)]
-for k, (letter, z) in enumerate(VERTICAL_DOORS):
-    x = BX[letter]
-    sill = max(floor_of(x - 0.05, z, -16.0), floor_of(x + 0.05, z, -16.0))
-    tag = letter.lower() + ("_" + ("p" if z < 0 else "s") if letter == "K" else "")
-    across("wtd_" + tag, "WATERTIGHT_DOOR", x, sill + LINTEL * 0.5, z, LINTEL, DOOR, starts="OPEN",
-           shuts_at_hit=True, shut_time=30.0, flip_chance=0.05, leak_head=TOPS[letter] - sill,
-           collapse_head=1.5 * (TOPS[letter] - sill), leak_area=0.005)
+# Where Plate V's tank top marks each ("W.T.D"): through O, N, M, L and K (one at K; BOT counts
+# twelve, the plate eleven); from J to E in the after face of the forward cross bunker, whose
+# tunnel goes on through the bulkhead, which the plate draws open there, into the next room;
+# the firemen's passage's in the after face of boiler room 6's, through D as through C with no
+# door. A tunnel's water is too little to be a cell's (est.): each door joins the room abaft
+# it to the room or passage its tunnel opens into.
+VERTICAL_DOORS = [("O", BX["O"], 1.625), ("N", BX["N"], 1.5625), ("M", BX["M"], 4.1875), ("L", BX["L"], 1.625),
+                  ("K", BX["K"], 2.75), ("J", BUNKERS["br1"], 2.9375), ("H", BUNKERS["br2"], 2.8125),
+                  ("G", BUNKERS["br3"], 2.75), ("F", BUNKERS["br4"], 2.75), ("E", BUNKERS["br5"], 2.875),
+                  ("D", BUNKERS["br6"], 0.625)]
+for letter, x, z in VERTICAL_DOORS:
+    sill = max(floor_of(x - 0.05, z, -16.0), floor_of(BX[letter] + 0.05, z, -16.0))
+    a_cell, b_cell = cell_at(x - 0.01, sill + 1.0, z), cell_at(BX[letter] + 0.01, sill + 1.0, z)
+    opening("wtd_" + letter.lower(), "WATERTIGHT_DOOR", a_cell, b_cell, (x, sill + LINTEL * 0.5, z), (0, LINTEL, DOOR), starts="OPEN",
+            shuts_at_hit=True, shut_time=30.0, flip_chance=0.05, leak_head=TOPS[letter] - sill,
+            collapse_head=1.5 * (TOPS[letter] - sill), leak_area=0.005)
 # The horizontal sliding doors on F and E decks (BOT: "On both the F and E decks nearly
 # all the bulkheads had watertight doors ... workable by hand"), open as she steamed and
 # never shut by the ship (Boxhall's evidence, in BOT): each where the traced plates draw
