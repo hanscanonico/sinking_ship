@@ -623,11 +623,11 @@ ROOMS = [
     ("bathroom, E deck", 8073, 4838, 8140, 4898.5),
     ("bathroom, E deck", 8073, 4898.5, 8168, 4969.5),
     ("passage, E deck", 8073, 4969.5, 8168, 5007),
-    ("three-berth room, E deck", 8140, 4682, 8279, 4776),
-    ("four-berth room, E deck", 8140, 4776, 8279, 4876),
+    ("three-berth stateroom, E deck", 8140, 4682, 8279, 4776),
+    ("four-berth stateroom, E deck", 8140, 4776, 8279, 4876),
     ("passage, E deck", 8279, 4682, 8313.5, 4913.5),
-    ("three-berth room, E deck", 8313.5, 4682, 8424, 4790),
-    ("four-berth room, E deck", 8313.5, 4790, 8424, 4913.5),
+    ("three-berth stateroom, E deck", 8313.5, 4682, 8424, 4790),
+    ("four-berth stateroom, E deck", 8313.5, 4790, 8424, 4913.5),
     ("passage, E deck", 8168, 4876, 8279, 4913.5),
     ("passage, E deck", 8168, 4913.5, 8238.5, 5007),
     ("passage, E deck", 8238.5, 4913.5, 8341.5, 4957),
@@ -769,8 +769,8 @@ SOLIDS = [
     ("W.C.s", 2714.5, 4326, 2783, 4516, None),
     ("potatoes", 2894, 4503, 3071.5, 4652, None),
     ("potatoes", 3071.5, 4503, 3137.5, 4634, None),
-    ("locker", 3137.5, 4503, 3173, 4572, None),
-    ("locker", 3137.5, 4572, 3173, 4634, None),
+    ("potatoes", 3137.5, 4503, 3173, 4572, None),
+    ("potatoes", 3137.5, 4572, 3173, 4634, None),
     ("W.C.s", 2400.5, 4716, 2472.9, 4853.5, None),
     ("linen locker", 2472.9, 4716, 2506.5, 4782.5, None),
     ("linen locker", 2472.9, 4782.5, 2506.5, 4841, None),
@@ -1219,4 +1219,79 @@ STAIRS = [
     # on down is one straight flight between them, 47 px (1.25 m) wide, its head aft by their
     # feet.
     ("firemen's spiral staircase", 9351, 4757, 9469, 4804, "aft", "f", "e"),
+]
+
+# Lines moved off the plate so a door fits (deck.py's NUDGES, DOOR_MOVES; DOOR_LEAST 1 m):
+NUDGES = [
+    (0, 38.25, 38.9375, -13.7, -5.7),  # the stewards' wall forward of D's stair's head, not under its treads
+    (0, 69.875, 69.6875, -13.0, -8.9),  # the four-berth room's door, short of bulkhead D's line
+    (0, 55.4375, 55.875, -7.7, -5.7),  # the ash place's door past the bathroom's wall
+    (0, -16.125, -16.75, -14.0, -5.7),  # the passage and lavatories onto bulkhead J's line
+    (0, -114.8125, -115.0625, -3.8, 4.3),  # a side passage's mouth
+    (0, -113.9375, -113.875, -9.5, -3.8),  # likewise
+    (2, -2.875, -2.75, -94.5, -85.13),  # the working passage's neck by the after entrance
+    (2, 7.625, 8.0, -70.5, -65.9),  # the door through M's line to the starboard passage
+    (0, -67.0, -67.125, 7.6, 13.7),  # a side passage's mouth
+    (0, -49.6875, -49.75, 8.1, 13.2),  # likewise
+    (2, -6.875, -6.8125, -48.6, -27.6),  # the working passage at L's door
+    (0, -65.1875, -64.9375, -3.1, 3.1),  # the passages by M, round D deck's serving-space stair
+    (0, -64.0, -63.875, 0.65, 6.8),  # likewise
+    (0, -63.9375, -63.875, -2.9, -0.6),  # likewise
+    (0, -63.5, -64.0625, -9.74, -5.0),  # the passage under D deck's stair's foot
+    (0, -25.0, -24.875, -1.4, 5.7),  # a side passage's mouth
+    (0, 2.3125, 1.6875, -3.2, 5.7),  # the passages onto H's line
+    (0, 71.5, 71.625, -13.2, -5.7),  # the cross passage's after side, past D's line
+    (0, 72.625, 72.75, -13.2, 3.3),  # its forward side
+    (0, 55.8125, 55.9375, 6.9, 12.9),  # a side passage's mouth
+    (0, 81.8125, 82.25, -11.1, -4.4),  # a body's lead before the ladder's head
+    (0, 99.0, 99.3125, 3.4, 7.9),  # a body's lead before the forward ladder's head
+    (2, -7.5, -7.75, 78.2, 82.3),  # the door into the lavatory beyond it
+    (2, -8.1875, -8.6875, -75.4, -73.4),  # the men's lavatory's way in, under a body's width
+    (0, 66.0, 66.4375, 1.2, 5.7),  # the gentlemen's lavatory's way to its baths, likewise
+    (2, -10.1875, -10.3125, 60.6, 65.3),  # the boatswain and mate's door
+    (0, 90.8125, 90.625, 4.6, 7.4),  # the men's lavatory's door
+]
+DOOR_MOVES = [
+    ((35.1875, -7.125), (37.0, -7.125)),  # the stewards' door past bulkhead F's line
+    ((-66.0, 7.75), (-66.0, 7.4375)),  # M's starboard passage door, clear of both rooms' corners
+    ((-48.625, -7.4375), (-48.625, -7.375)),  # L's working passage door, clear of the passage's corner
+    ((-4.3125, -5.8125), (-3.625, -5.8125)),  # the rooms' door, clear of two passages' join
+    ((62.125, -9.375), (62.125, -9.6875)),  # likewise
+    ((104.0, -3.5), (104.0, -4.125)),  # likewise
+    (None, (-70.625, -12.0)),  # the potato room's way past the ladder laid along its door
+    (None, (-64.9375, 12.4)),  # the passage behind M's ladder, through the room it served
+]
+# Less than a door's width either side of D's line; the store her stem takes; the joins
+# over the 20 ft ladderway's well and the engineers' ladder's, opened beside them below.
+SHUT = [(69.0, -7.8125), (126.4, 0.2), (-1.0, -3.125), (-45.0, -9.125)]
+OPENED = [
+    (-118.13, -118.11, 1.0, 2.125),  # her stern passage, on to its last piece
+    (-2.8125, -0.875, -3.135, -3.115),  # the head of the 20 ft ladderway
+    (2.4375, 4.625, -3.135, -3.115),  # past the foot of its well, forward of G
+    (-44.125, -42.625, -9.135, -9.115),  # past the foot of the engineers' ladder
+]
+# Ladderways the flight fills; a landing whose every door opens over its well; a strip
+# narrower than a body the lavatory leaves.
+# The lockers' faces only touch the passage's edge: walled like any other, its fittings' depth holds.
+WALLED_SOLIDS = [(-64.2, -7.6), (-64.2, -5.8)]
+NOT_ROOMS = [(-90.0, -5.3), (-20.0, -6.7), (20.0, -6.7), (37.0, -6.4), (52.0, -6.7), (72.0, 3.8), (74.0, -7.5),
+             (79.5, 6.0)]
+# The store her stem takes: no floor of hers reaches it (E_STEM).
+GONE = [(127.5, 0.0)]
+# A bathroom by J's line and a store too small for a door; a store her stem takes.
+MADE_SOLID = [(-17.0, -6.5), (-64.4, -9.1), (82.6, -5.4)]
+# Flights the plate stacks over F deck's flights down (f.py), side by side or they'd land
+# in each other's holes:
+STAIR_MOVES = [
+    # Aft of the pendant over the second-class entrance on F deck, a body under it on its foot:
+    (("second-class staircase", -72.0625, 1.3125), (-72.3125, -69.1875, 1.1875, 2.25)),
+    (("third-class ladder", 93.375, 5.25), (95.25, 98.4375, 4.75, 5.8125)),
+    (("ladder", 72.4375, -7.375), (72.4375, 75.625, -6.8125, -5.625)),
+    (("third-class ladder", 78.25, -6.25), (78.25, 81.375, -6.6875, -5.5625)),
+    # A body's lead clear of the wall before each end (the layout lint):
+    (("ladder", -69.3125, -10.6875), (-70.0625, -66.875, -10.6875, -9.75)),
+    (("ladder", -47.0625, -10.375), (-47.25, -44.125, -10.375, -9.375)),
+    # The firemen's way on down athwart her between D deck's flights (d.py), the passage
+    # too short along her for a flight and a lead each end.
+    (("firemen's spiral staircase", 100.375, -0.75), (101.4375, 102.4375, -0.8125, 2.375, "starboard")),
 ]

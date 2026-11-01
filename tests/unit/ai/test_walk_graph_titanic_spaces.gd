@@ -18,7 +18,6 @@ const ENGINE_TANK_TOP := -17.9375
 const SPACES := {
 	&"boiler room 6": Vector3(55.5, TANK_TOP, 4.0),
 	&"coal bunker 6": Vector3(69.3, TANK_TOP, 0.0),
-	&"F deck working corridor, boiler room 6": Vector3(58.0, F_DECK, -4.0),
 	&"firemen's passage": Vector3(80.0, TANK_TOP, 3.34),
 	&"No. 3 hold, port": Vector3(78.9, TANK_TOP, -4.5),
 	&"No. 3 hold, starboard": Vector3(78.0, TANK_TOP, 5.0),
@@ -41,7 +40,6 @@ const SPACES := {
 	&"No. 1 hold double bottom, forward": Vector3(113.0, KEEL, 0.0),
 	&"boiler room 1": Vector3(-21.4, TANK_TOP, 0.0),
 	&"coal bunker 1": Vector3(-17.5, TANK_TOP, 5.0),
-	&"F deck working corridor, boiler room 1": Vector3(-18.0, F_DECK, -6.0),
 	&"engine room": Vector3(-47.0, ENGINE_TANK_TOP, 0.0),
 	&"turbine engine room": Vector3(-50.0, TANK_TOP, 0.0),
 	&"electric engine room": Vector3(-84.3, TANK_TOP, 2.5),
@@ -52,11 +50,6 @@ const SPACES := {
 	&"after hold, aft": Vector3(-102.3, TANK_TOP, 2.2),
 	&"after hold, aft, orlop": Vector3(-102.4, ORLOP, -2.7),
 	&"after hold, aft, G deck": Vector3(-102.5, G_DECK, 1.0),
-	&"E deck working passage, engine room": Vector3(-30.0, E_DECK, -6.0),
-	&"E deck working passage, turbine room": Vector3(-55.0, E_DECK, -6.0),
-	&"E deck working passage, electric room": Vector3(-80.0, E_DECK, -6.0),
-	&"E deck working passage, after hold, forward": Vector3(-95.0, E_DECK, -6.0),
-	&"E deck working passage, after hold, aft": Vector3(-106.0, E_DECK, -5.0),
 	&"boiler room 1 double bottom": Vector3(-24.0, KEEL, 0.0),
 	&"engine room double bottom": Vector3(-40.0, KEEL, 0.0),
 	&"turbine room double bottom": Vector3(-57.0, KEEL, 0.0),
@@ -78,10 +71,23 @@ const SPACES := {
 	&"boiler room 5 double bottom": Vector3(44.0, KEEL, 0.0),
 }
 
+## The working passages E and F decks had before their plates laid them, kept by her
+## smaller sister.
+const SMALL_SPACES := {
+	&"F deck working corridor, boiler room 6": Vector3(58.0, F_DECK, -4.0),
+	&"F deck working corridor, boiler room 1": Vector3(-18.0, F_DECK, -6.0),
+	&"E deck working passage, engine room": Vector3(-30.0, E_DECK, -6.0),
+	&"E deck working passage, turbine room": Vector3(-55.0, E_DECK, -6.0),
+	&"E deck working passage, electric room": Vector3(-80.0, E_DECK, -6.0),
+	&"E deck working passage, after hold, forward": Vector3(-95.0, E_DECK, -6.0),
+	&"E deck working passage, after hold, aft": Vector3(-106.0, E_DECK, -5.0),
+}
+const SMALL_TITANIC := "res://data/ships/small_titanic.tres"
+
 var _layout: ShipLayout
 
 
-func before_all() -> void:
+func before_each() -> void:
 	_layout = Fleet.layout(&"titanic")
 
 
@@ -121,14 +127,23 @@ func _walk(sim: MatchSim, graph: WalkGraph, goal: int, seconds: float) -> Array:
 
 
 func test_every_new_space_has_a_way_up_to_the_forward_well_deck() -> void:
+	_has_a_way_up(SPACES)
+
+
+func test_the_small_titanic_s_working_passages_have_a_way_up_to_the_forward_well_deck() -> void:
+	_layout = load(SMALL_TITANIC)
+	_has_a_way_up(SMALL_SPACES)
+
+
+func _has_a_way_up(spaces: Dictionary) -> void:
 	# Level and dry inside her, as the physics has her before the hit.
 	var surfaces := Surfaces.new(_layout)
 	var graph := _graph(surfaces)
 	var step := SimFixtures.rules().step_height
 	var deck := graph.deck_of(SimFixtures.platform_named(_layout, &"forward well deck"))
 	var dry := HeldPose.flooded(_layout, -_layout.freeboard, {})
-	for space: StringName in SPACES:
-		var start: Vector3 = SPACES[space]
+	for space: StringName in spaces:
+		var start: Vector3 = spaces[space]
 		var on := surfaces.under(start, step)
 		assert_ne(_room(space), WalkGraph.NONE, "%s is one of her rooms" % space)
 		assert_eq(graph.zone_at(start, on), _room(space), "it starts in the %s" % space)
@@ -194,13 +209,14 @@ func test_a_body_crawls_out_of_the_turbine_room_s_double_bottom() -> void:
 
 
 func test_a_body_walks_aft_along_the_working_passage_through_a_bulkhead_s_door() -> void:
+	_layout = load(SMALL_TITANIC)
 	# From over the electric room through bulkhead N's E deck door (wtd_e_n) to over the
 	# forward after hold.
 	var graph := _graph(Surfaces.new(_layout))
 	var goal := _room(&"E deck working passage, after hold, forward")
 	var dry := HeldPose.flooded(_layout, -_layout.freeboard, {})
 	var sim := SimFixtures.sim(2, null, _layout)
-	SimFixtures.place(sim, 0, SPACES[&"E deck working passage, electric room"])
+	SimFixtures.place(sim, 0, SMALL_SPACES[&"E deck working passage, electric room"])
 	SimFixtures.place(sim, 1, Vector3(60.0, 0.0, 9.0))
 	HeldPose.hold(sim, dry)
 	var passed: Array[int] = _walk(sim, graph, goal, 30.0)[0]
@@ -215,6 +231,7 @@ func test_a_body_walks_aft_along_the_working_passage_through_a_bulkhead_s_door()
 ## way out lay at the squash court's gallery: from bulkhead D's door it turned back for
 ## there at every step aft.
 func test_a_body_standing_in_a_bulkhead_door_s_depth_walks_on_through_it() -> void:
+	_layout = load(SMALL_TITANIC)
 	var graph := _graph(Surfaces.new(_layout))
 	var dry := HeldPose.flooded(_layout, -_layout.freeboard, {})
 	for door: Array in [

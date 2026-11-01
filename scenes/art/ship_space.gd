@@ -513,7 +513,8 @@ func short_of_ceiling(blocker: ShipBlocker) -> Array[Vector3]:
 	var axis := 0 if box.size.x >= box.size.y else 1
 	var line := box.get_center()[1 - axis]
 	var half := box.size[1 - axis] * 0.5
-	for room: ShipRoom in layout.rooms:
+	for near: int in rooms_near(box.grow(INSIDE)):
+		var room := layout.rooms[near]
 		if not _full_wall_of(blocker, room):
 			continue
 		var area := room.area
@@ -580,8 +581,9 @@ func _ceiling_cuts(room: ShipRoom, axis: int, low: float, high: float) -> Packed
 		edges.append(layout.platforms[index].area)
 	for index: int in _slabs[room]:
 		edges.append(layout.blockers[index].area)
-	for other: ShipRoom in layout.rooms:
-		edges.append(other.area)
+	# Of the rooms, those a point just inside this room's wall or past it can stand in.
+	for near: int in rooms_near(room.area.grow(WALL_MAX + INSIDE * 2.0)):
+		edges.append(layout.rooms[near].area)
 	var cuts := PackedFloat64Array([low, high])
 	for edge: Rect2 in edges:
 		for at: float in [edge.position[axis], edge.end[axis]]:
@@ -595,7 +597,8 @@ func _ceiling_cuts(room: ShipRoom, axis: int, low: float, high: float) -> Packed
 ## over [param point]; INF where none stands.
 func _floor_over(room: ShipRoom, point: Vector2, bottom: float) -> float:
 	var lowest := INF
-	for other: ShipRoom in layout.rooms:
+	for near: int in rooms_near(Rect2(point, Vector2.ZERO)):
+		var other := layout.rooms[near]
 		if other == room or other.floor_height < bottom - SLIVER:
 			continue
 		if other.area.grow(INSIDE).has_point(point):

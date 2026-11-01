@@ -191,6 +191,8 @@ static func breaks(space: ShipSpace) -> Array:
 					foot = NAN
 				if not is_nan(foot) and _deck_between(space, platform, foot, x, z, out):
 					foot = NAN
+				if not is_nan(foot) and _hole_past(space, platform, x, z, out):
+					foot = NAN
 				if not is_nan(foot):
 					var room := RoomDressing.room_at(space, Vector3(x - out * 0.3, foot + 1.0, z))
 					if room != -1 and is_equal_approx(space.layout.rooms[room].floor_height, foot):
@@ -206,6 +208,25 @@ static func breaks(space: ShipSpace) -> Array:
 			if not run.is_empty():
 				found.append(run)
 	return found.filter(func(run: Array) -> bool: return run[2] - run[1] >= BREAK_SPAN)
+
+
+## Whether [param platform]'s edge at [param x], [param z] is the side of a flight's hole
+## in its deck, not a break: a stair stands at it facing [param out], and the deck goes on
+## past the stair at its height.
+static func _hole_past(
+	space: ShipSpace, platform: ShipPlatform, x: float, z: float, out: float
+) -> bool:
+	for ramp: ShipRamp in space.layout.ramps:
+		var area := ramp.area
+		if z < area.position.y or z > area.end.y:
+			continue
+		var from := area.position.x if out > 0.0 else area.end.x
+		if not is_equal_approx(from, x):
+			continue
+		var past := Vector2((area.end.x if out > 0.0 else area.position.x) + out * 0.05, z)
+		if is_equal_approx(space.deck_under(past, platform.height + 0.01), platform.height):
+			return true
+	return false
 
 
 ## Whether a deck higher than [param foot] and lower than [param platform] lies under

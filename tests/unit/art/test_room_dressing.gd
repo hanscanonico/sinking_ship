@@ -11,6 +11,8 @@ const RunMatch := preload("res://tools/run_match.gd")
 ## its name: a liner's small rooms of service tiled, her bridge's and her wireless's
 ## rooms offices, an officer's cabin a cabin with no "office" in it, and no helm on her
 ## top deck but her wheelhouse.
+## Her E and F decks' rooms, as her plate draws them, kept beside this script.
+const TRACED_E_F: Dictionary = preload("res://tests/unit/art/titanic_ef_room_kinds.gd").KINDS
 const TRACED := {
 	&"wheelhouse": RoomDressing.Kind.HELM,
 	&"chart room": RoomDressing.Kind.SERVICE,
@@ -104,7 +106,6 @@ const TRACED := {
 	# cells would hold told apart by where it stands; her crew's rooms, her hospitals,
 	# workrooms and messes, and her third class's each a kind of its own; her stores
 	# holds, but for her cold store.
-	&"E deck working passage, after hold, after end": RoomDressing.Kind.PASSAGE,
 	&"Marconi operators' saloon": RoomDressing.Kind.SALOON,
 	&"T.R.S.": RoomDressing.Kind.SERVICE,
 	&"after grand staircase, C deck": RoomDressing.Kind.STAIRCASE,
@@ -147,7 +148,6 @@ const TRACED := {
 	&"first-class galley scullery": RoomDressing.Kind.SERVICE,
 	&"first-class pantry": RoomDressing.Kind.SERVICE,
 	&"first-class pantry scullery": RoomDressing.Kind.SERVICE,
-	&"first-class stair, E deck": RoomDressing.Kind.PASSAGE,
 	&"four-berth second-class stateroom, D deck": RoomDressing.Kind.CABIN,
 	&"four-berth second-class stateroom, D deck aft of O": RoomDressing.Kind.CABIN,
 	&"galley store": RoomDressing.Kind.SERVICE,
@@ -212,7 +212,6 @@ const TRACED := {
 	&"stewardesses' room, C deck": RoomDressing.Kind.CABIN,
 	&"stewardesses' room, D deck": RoomDressing.Kind.CABIN,
 	&"stewards' office": RoomDressing.Kind.SERVICE,
-	&"stewards' stair, E deck": RoomDressing.Kind.PASSAGE,
 	&"store": RoomDressing.Kind.HOLD,
 	&"store, C deck, after end": RoomDressing.Kind.HOLD,
 	&"store, D deck": RoomDressing.Kind.HOLD,
@@ -245,6 +244,30 @@ const TRACED := {
 }
 ## The small Titanic's rooms on those decks that the Titanic's plates have no more.
 const UNTRACED: Array[StringName] = [
+	&"Scotland Road, boiler room 1",
+	&"Scotland Road, boiler rooms 2 and 3",
+	&"Scotland Road, boiler room 4",
+	&"Scotland Road, boiler room 5",
+	&"third-class dining saloon, aft",
+	&"third-class dining saloon, forward",
+	&"third-class berths",
+	&"crew quarters",
+	&"F deck working corridor, boiler room 4",
+	&"F deck working corridor, boiler room 5",
+	&"Turkish bath",
+	&"squash court",
+	&"squash court gallery",
+	&"F deck landing corridor",
+	&"F deck working corridor, boiler room 6",
+	&"F deck working corridor, boiler room 1",
+	&"E deck working passage, engine room",
+	&"E deck working passage, turbine room",
+	&"E deck working passage, electric room",
+	&"E deck working passage, after hold, forward",
+	&"E deck working passage, after hold, aft",
+	&"E deck working passage, after hold, after end",
+	&"first-class stair, E deck",
+	&"stewards\' stair, E deck",
 	&"officers' quarters",
 	&"verandah café",
 	&"after entrance",
@@ -430,6 +453,7 @@ func test_a_room_whose_name_says_what_it_is_is_that() -> void:
 	for gone: StringName in UNTRACED:
 		kinds.erase(gone)
 	kinds.merge(TRACED, true)
+	kinds.merge(TRACED_E_F, true)
 	_pinned(_ship("titanic"), kinds)
 
 
@@ -491,11 +515,15 @@ func test_a_liner_s_office_is_one_and_her_officers_quarters_are_not() -> void:
 		&"enquiry office",
 		&"chef's office",
 		&"stewards' office",
+		&"engineers' office, E deck",
+		&"assistant purser's office, E deck",
 	]
 	for office: StringName in traced_offices:
 		offices[office] = true
-	for room_name: StringName in TRACED:
-		if TRACED[room_name] == RoomDressing.Kind.SERVICE and not offices.has(room_name):
+	var traced := TRACED.duplicate()
+	traced.merge(TRACED_E_F)
+	for room_name: StringName in traced:
+		if traced[room_name] == RoomDressing.Kind.SERVICE and not offices.has(room_name):
 			offices[room_name] = false
 	assert_eq(_offices(_ship("titanic")), offices)
 

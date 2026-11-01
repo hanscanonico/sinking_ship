@@ -79,18 +79,13 @@ const NAMED: Array[Array] = [
 	# So are her crew's and officers' rooms of their own and her third-class rooms (the
 	# Titanic's C and D decks); her hospitals are berths, but for their attendants'
 	# room; her crew's messes are saloons, and a suite's sitting room, no berth in it.
-	["doctor's room", Kind.CABIN],
-	["purser's room", Kind.CABIN],
-	["steward's room", Kind.CABIN],
-	["stewardesses' room", Kind.CABIN],
-	["matron's room", Kind.CABIN],
-	["attendants' room", Kind.CABIN],
-	["mess stewards' room", Kind.CABIN],
+	["printer's room", Kind.SERVICE],
+	["'s room", Kind.CABIN],
+	["s' room", Kind.CABIN],
 	["third-class room", Kind.CABIN],
 	["hospital", Kind.BERTHS],
-	["firemen's mess", Kind.SALOON],
-	["greasers' mess", Kind.SALOON],
-	["seamen's mess", Kind.SALOON],
+	["'s mess", Kind.SALOON],
+	["s' mess", Kind.SALOON],
 	["sitting room", Kind.SALOON],
 	# A liner's small rooms of service, ahead of her public rooms' words, so the smoking
 	# room's lavatory and the lounge's pantry are tiled too; the wireless's rooms and the
@@ -118,9 +113,12 @@ const NAMED: Array[Array] = [
 	["surgery", Kind.SERVICE],
 	["lamp room", Kind.SERVICE],
 	["linen room", Kind.SERVICE],
+	["drying room", Kind.SERVICE],
+	["potato", Kind.SERVICE],
+	["ash place", Kind.SERVICE],
+	["instrument room", Kind.SERVICE],
 	["wardrobe room", Kind.SERVICE],
-	["printer's room", Kind.SERVICE],
-	["bake house", Kind.SERVICE],
+	["bake", Kind.SERVICE],
 	["bread room", Kind.SERVICE],
 	["vegetable", Kind.SERVICE],
 	["larder", Kind.SERVICE],
@@ -150,6 +148,7 @@ const NAMED: Array[Array] = [
 	# staircase's: "staircase" says that, ahead of these).
 	["ladder", Kind.PASSAGE],
 	["stair", Kind.PASSAGE],
+	["landing", Kind.PASSAGE],
 	["shaft tunnel", Kind.SHAFT],
 	["steering gear", Kind.STEERING],
 	["chain locker", Kind.LOCKER],
@@ -401,7 +400,7 @@ static func _box_of(space: ShipSpace, room: ShipRoom) -> AABB:
 ## its shape and where it stands on [param space].
 static func kind_of(space: ShipSpace, room: ShipRoom) -> Kind:
 	var size := room.area.size
-	var name := String(room.name).to_lower().replace("officer", "")
+	var name := String(room.name).to_lower().replace("officer", "").replace("engineer", "")
 	for named: Array in NAMED:
 		if name.contains(named[0]):
 			return named[1]
@@ -914,8 +913,9 @@ func _signs(mesh: ShipMesh, signs: Node3D, room: ShipRoom) -> void:
 			var right := Vector3.RIGHT if side % 2 == 0 else Vector3.BACK
 			var at := _space.on_side(room, side, (gap.x + gap.y) * 0.5, 0.1)
 			var centre := Vector3(at.x, room.floor_height + SIGN_HEIGHT, at.y)
-			# None over a doorway a flight comes through: a body on it would stand in the sign.
-			if over_a_ramp(_layout, Rect2(at, Vector2.ONE * 0.01), room.floor_height, centre.y):
+			# None where a flight comes through under it: a body on it would stand in the sign.
+			var plate := Vector2(right.x, right.z).abs() * half.x + Vector2.ONE * 0.25
+			if over_a_ramp(_layout, Rect2(at - plate, plate * 2.0), room.floor_height, centre.y):
 				continue
 			var rim := half + Vector2.ONE * 0.012
 			panel(mesh, centre + normal * 0.01, right, rim, normal, ShipPaints.brass)
