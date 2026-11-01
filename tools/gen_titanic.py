@@ -2948,8 +2948,8 @@ for name, x0, x1 in COMPARTMENTS[1:-1]:
     top = ENGINE_TANK_TOP if name == "engine_room" else TANK_TOP
     cell("db_" + name, x0, x1, KEEL, top, -HALF, HALF, "VOID")
 x0, x1 = COMP["forepeak"]
-cell("forepeak_tank", x0, x1, KEEL, ORLOP, -HALF, HALF, "VOID")
-cell("forepeak", x0, x1, ORLOP, D_DECK, -HALF, HALF, "STORES")
+cell("forepeak_tank", x0, x1, KEEL, ORLOP_FWD, -HALF, HALF, "VOID")
+cell("forepeak", x0, x1, ORLOP_FWD, D_DECK, -HALF, HALF, "STORES")
 cell("forepeak_d", x0, x1, D_DECK, 0.0, -HALF, HALF, "ACCOMMODATION")
 x0, x1 = COMP["hold_1"]
 cell("hold_1", x0, x1, TANK_TOP, G_DECK, -HALF, HALF, "CARGO", HOLD)
@@ -2957,11 +2957,11 @@ cell("hold_1_tween", UPPER["B"], x1, G_DECK, D_DECK, -HALF, HALF, "ACCOMMODATION
 cell("hold_1_d", x0, x1, D_DECK, 0.0, -HALF, HALF, "ACCOMMODATION")
 for hold in ("hold_2", "hold_3"):
     x0, x1 = COMP[hold]
-    cell(hold + "_port", x0, x1, TANK_TOP, PASSAGE_TOP, -HALF, PASSAGE_Z[0], "CARGO", HOLD)
-    cell(hold + "_starboard", x0, x1, TANK_TOP, PASSAGE_TOP, PASSAGE_Z[1], HALF, "CARGO", HOLD)
-    cell(hold, x0, x1, PASSAGE_TOP, G_DECK, -HALF, HALF, "CARGO", HOLD)
+    cell(hold + "_port", x0, x1, TANK_TOP, ORLOP_FWD, -HALF, PASSAGE_Z[0], "CARGO", HOLD)
+    cell(hold + "_starboard", x0, x1, TANK_TOP, ORLOP_FWD, PASSAGE_Z[1], HALF, "CARGO", HOLD)
+    cell(hold, x0, x1, ORLOP_FWD, G_DECK, -HALF, HALF, "CARGO", HOLD)
     cell(hold + "_tween", x0, min(x1, UPPER["B"]), G_DECK, D_DECK, -HALF, HALF, "ACCOMMODATION")
-cell("firemens_passage", BX["D"], BX["B"], TANK_TOP, PASSAGE_TOP, PASSAGE_Z[0], PASSAGE_Z[1], "ACCOMMODATION")
+cell("firemens_passage", BX["D"], BX["B"], TANK_TOP, ORLOP_FWD, PASSAGE_Z[0], PASSAGE_Z[1], "ACCOMMODATION")
 for k in range(6, 0, -1):
     name = "boiler_room_%d" % k
     x0, x1 = COMP[name]
@@ -3418,15 +3418,15 @@ for hold in ("hold_2", "hold_3"):
     xm = (hb[0] + hb[1]) * 0.5
     for side, z in [("port", PASSAGE_Z[0]), ("starboard", PASSAGE_Z[1])]:
         opening("leak_passage_%s_%s" % (hold, side), "LEAK", "firemens_passage", "%s_%s" % (hold, side),
-                (xm, (TANK_TOP + PASSAGE_TOP) * 0.5, z), (hb[1] - hb[0] - 1.0, PASSAGE_TOP - TANK_TOP - 0.2, 0),
+                (xm, (TANK_TOP + ORLOP_FWD) * 0.5, z), (hb[1] - hb[0] - 1.0, ORLOP_FWD - TANK_TOP - 0.2, 0),
                 area=0.01, starts="OPEN")
     for side in ("port", "starboard"):
         sb = cell_box("%s_%s" % (hold, side))
         opening("open_%s_%s" % (hold, side), "OPEN", "%s_%s" % (hold, side), hold,
-                ((sb[0] + sb[1]) * 0.5, PASSAGE_TOP, (sb[4] + sb[5]) * 0.5), (sb[1] - sb[0], 0, sb[5] - sb[4]),
+                ((sb[0] + sb[1]) * 0.5, ORLOP_FWD, (sb[4] + sb[5]) * 0.5), (sb[1] - sb[0], 0, sb[5] - sb[4]),
                 starts="OPEN")
 opening("stair_firemens_passage", "STAIRWELL", "firemens_passage", "hold_2",
-        (BX["B"] - 1.0, PASSAGE_TOP, (PASSAGE_Z[0] + PASSAGE_Z[1]) * 0.5), (1.0, 0, 1.0), starts="OPEN")
+        (BX["B"] - 1.0, ORLOP_FWD, (PASSAGE_Z[0] + PASSAGE_Z[1]) * 0.5), (1.0, 0, 1.0), starts="OPEN")
 # The two hinged doors the plate's tank top draws through D from the passage's after end into
 # No. 3 hold (70.75, -1.75 and +2.13). BOT says the passage "was made thoroughly watertight
 # throughout its length" and names no door but the sliding one at its after end, and these
