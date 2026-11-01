@@ -655,12 +655,13 @@ def top_at(x):
         return 0.0
     return POOP
 
-def fit(x0, x1, h, margin):
+def fit(x0, x1, h, margin, moved=False):
     """The half breadth a deck at height h may take from x0 to x1: the least of her
     hull's there, less margin, to the nearest 5 cm. Under F deck, until its plates are laid
     (#373, #379), a room stands where her estimated lines stood it: her side moved out takes
-    nothing with it, and moved in, holds it."""
-    least = min(min(breadth(x, h), lines_half(x, h)) if h < F_DECK else breadth(x, h)
+    nothing with it, and moved in, holds it; moved, it goes with her side all the same (the
+    holds' tank tops, beside the firemen's passage her side carries)."""
+    least = min(min(breadth(x, h), lines_half(x, h)) if h < F_DECK and not moved else breadth(x, h)
                 for x in (x0 + 0.01, (x0 + x1) * 0.5, x1 - 0.01))
     return math.floor((least - margin) * 20) / 20
 
@@ -1688,9 +1689,8 @@ for k, aft, rows, back, deck_w in STOKEHOLDS:
 # outer skin of the ship", in No. 2 hold): est. 2 m wide and 8 ft high, its starboard
 # side 3 ft 6 in inside her shell at its middle height in No. 2 hold.
 PASSAGE_TOP = q(TANK_TOP + 8.0 * FT)
-# Where her estimated lines stood it (est.): her side moved off it, the passage stays.
-PASSAGE_Z = (round(lines_half(94.0, (TANK_TOP + PASSAGE_TOP) * 0.5) - 3.5 * FT - 2.0, 4),
-             round(lines_half(94.0, (TANK_TOP + PASSAGE_TOP) * 0.5) - 3.5 * FT, 4))
+PASSAGE_Z = (round(breadth(94.0, (TANK_TOP + PASSAGE_TOP) * 0.5) - 3.5 * FT - 2.0, 4),
+             round(breadth(94.0, (TANK_TOP + PASSAGE_TOP) * 0.5) - 3.5 * FT, 4))
 
 # --- Every cell a place a body can be (#148), the bow: boiler room 6, its bunker and the
 # firemen's passage forward of it, Nos. 3, 2 and 1 holds deck by deck, the forepeak and its
@@ -1774,7 +1774,7 @@ room("bunker_6", "coal bunker 6", BR6[1], BX["D"], -BUNKER6_Z, BUNKER6_Z, TANK_T
 PASSAGE_END = 96.25
 pt3_holes, pt2_holes, h3_holes, h2_holes = [], [], [], []
 stair("space_spiral", PASSAGE_END - T - FLIGHT_LEAD - 0.1 - SPACE_FLIGHT, PASSAGE_END - T - FLIGHT_LEAD - 0.1,
-      PASSAGE_MID - STAIR * 0.5, PASSAGE_MID + STAIR * 0.5, TANK_TOP, PASSAGE_TOP, pt2_holes)
+      PASSAGE_MID - 0.25 - STAIR * 0.5, PASSAGE_MID - 0.25 + STAIR * 0.5, TANK_TOP, PASSAGE_TOP, pt2_holes)
 walled("passage", BX["D"], PASSAGE_END, PASSAGE_Z[0], PASSAGE_Z[1], TANK_TOP, PASSAGE_TOP, "psf")
 room("passage", "firemen's passage", BX["D"], PASSAGE_END, PASSAGE_Z[0], PASSAGE_Z[1], TANK_TOP)
 
@@ -1783,10 +1783,10 @@ room("passage", "firemen's passage", BX["D"], PASSAGE_END, PASSAGE_Z[0], PASSAGE
 # starboard part too narrow for anybody, its cell left nobody's; over the passage's top an
 # orlop deck across each hold (est.), No. 2's reached through bulkhead C from No. 3's;
 # No. 3's two flights up into the post office on G deck (stair_hold_3 stands for them).
-H3T = fit(BX["D"], BX["C"], TANK_TOP, 0.3)
-H2T = fit(BX["C"], BX["B"], TANK_TOP, 0.3)
-H3P = fit(BX["D"], BX["C"], PASSAGE_TOP, 0.3)
-H2P = fit(BX["C"], BX["B"], PASSAGE_TOP, 0.3)
+H3T = fit(BX["D"], BX["C"], TANK_TOP, 0.3, moved=True)
+H2T = fit(BX["C"], BX["B"], TANK_TOP, 0.3, moved=True)
+H3P = fit(BX["D"], BX["C"], PASSAGE_TOP, 0.3, moved=True)
+H2P = fit(BX["C"], BX["B"], PASSAGE_TOP, 0.3, moved=True)
 inboard = (PASSAGE_Z[0] - T - STAIR, PASSAGE_Z[0] - T)
 starboard = (PASSAGE_Z[1] + T + 0.11, PASSAGE_Z[1] + T + 0.11 + NARROW_STAIR)
 for sid, foot, head, lane, holes_above in [
@@ -1805,14 +1805,14 @@ DB6_Z = fit(BX["E"], BX["D"], KEEL, 0.3)
 DB3_Z = fit(BX["D"], BX["C"], KEEL, 0.3)
 DB2_Z = fit(BX["C"], BX["B"], KEEL, 0.3)
 H1_SPLIT = 110.0  # where No. 1 hold's floors narrow (est.)
-DB1_Z = fit(BX["B"], H1_SPLIT, KEEL, 0.3)
+DB1_Z = fit(BX["B"], H1_SPLIT, KEEL, 0.2)
 h1_holes = []
 for sid, foot, head, (z0, z1), holes_above in [
         ("space_db6_a", 57.0, 55.0, (-2.0, -1.1), br6_holes), ("space_db6_b", 64.75, 66.75, (1.1, 2.0), br6_holes),
         ("space_db3_a", 78.0, 76.0, (-3.0, -2.1), h3_holes), ("space_db3_b", 79.8125, 81.8125, (-3.0, -2.1), h3_holes),
         ("space_db2_a", 94.0, 92.0, (-0.45, 0.45), h2_holes),
         ("space_db2_b", 95.8125, 97.8125, (-0.45, 0.45), h2_holes),
-        ("space_db1_a", 105.0, 103.0, (0.1, 1.0), h1_holes), ("space_db1_b", 106.8125, 108.8125, (0.1, 1.0), h1_holes)]:
+        ("space_db1_a", 105.0, 103.0, (0.0, 0.9), h1_holes), ("space_db1_b", 106.8125, 108.8125, (0.0, 0.9), h1_holes)]:
     stair(sid, foot, head, z0, z1, KEEL, TANK_TOP, holes_above)
 for rid, name, x0, x1, w in [("db_br6", "boiler room 6 double bottom", BX["E"], BX["D"], DB6_Z),
                              ("db_hold_3", "No. 3 hold double bottom", BX["D"], BX["C"], DB3_Z),
@@ -1825,7 +1825,7 @@ for letter, at, w in [("e", BX["E"], DB6_Z), ("d", BX["D"], DB6_Z), ("c", BX["C"
     wall_x("db_" + letter, at, -w, w, KEEL, TANK_TOP)
 # No. 1 hold's on forward of its manholes to bulkhead A, as narrow as her forefoot leaves it,
 # through a door in their wall.
-DB1F_Z = fit(H1_SPLIT, BX["A"], KEEL, 0.3)
+DB1F_Z = fit(H1_SPLIT, BX["A"], KEEL, 0.2)
 wall_x("db_1", H1_SPLIT, -DB1_Z, DB1_Z, KEEL, TANK_TOP, [door_at(0.0)])
 deck("db_hold_1_fwd", "double bottom", H1_SPLIT, BX["A"], -DB1F_Z, DB1F_Z, KEEL, [])
 walled("db_hold_1_fwd", H1_SPLIT, BX["A"], -DB1F_Z, DB1F_Z, KEEL, TANK_TOP, "psf")
@@ -2042,7 +2042,7 @@ for hold, span in [("ahf", AHF), ("aha", AHA), ("ahe", AHE)]:
 ah_holes = {(hold, h): [] for hold in AH_Z for h in (TANK_TOP, ORLOP, G_DECK, E_DECK)}
 for sid, foot, head, (z0, z1), low, high, hold in [
         ("space_ahf_or_1", -99.0, -93.375, (2.0, 3.0), TANK_TOP, ORLOP, "ahf"),
-        ("space_ahf_or_2", -99.0, -93.375, (3.0, 4.0), TANK_TOP, ORLOP, "ahf"),
+        ("space_ahf_or_2", -99.0, -93.375, (1.0, 2.0), TANK_TOP, ORLOP, "ahf"),
         ("space_ahf_g_1", -88.0, -91.0, (-4.875, -3.875), ORLOP, G_DECK, "ahf"),
         ("space_ahf_g_2", -88.0, -91.0, (-3.875, -2.875), ORLOP, G_DECK, "ahf"),
         ("space_aha_or_1", -109.0, -103.375, (-2.0, -1.0), TANK_TOP, ORLOP, "aha"),
@@ -2181,7 +2181,7 @@ for k in (2, 3, 4, 5):
     room("bunker_%d" % k, "coal bunker %d" % k, bunker, fwd, -wb, wb, TANK_TOP)
     holes_k = []
     for tag, sign in [("a", -1), ("b", 1)]:
-        stair_z("space_dbbr%d_%s" % (k, tag), sign * 6.0, sign * 4.0, bunker + 0.9, bunker + 1.8, KEEL, TANK_TOP,
+        stair_z("space_dbbr%d_%s" % (k, tag), sign * 5.5, sign * 3.5, bunker + 0.9, bunker + 1.8, KEEL, TANK_TOP,
                 holes_k)
     # On to boiler room 6's plates, which start at bulkhead E; the others' a wall's half on.
     floor_k = deck("bunker_%d" % k, "tank top", bunker - T, fwd + (T if k < 5 else 0.0), -wb, wb, TANK_TOP, holes_k)
