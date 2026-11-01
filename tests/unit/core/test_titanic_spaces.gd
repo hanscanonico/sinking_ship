@@ -107,7 +107,7 @@ func test_a_deep_gash_under_no_1_hold_s_narrowing_floor_opens_its_double_bottom(
 
 
 func test_a_deep_bite_through_no_3_hold_s_starboard_part_holes_the_firemen_s_passage() -> void:
-	var deep := _mapped(_hit(1, 76.0, 80.0, 7.0, 4.0))
+	var deep := _mapped(_hit(1, 82.0, 86.0, 7.0, 4.0))
 	var passage := _into(deep, &"firemens_passage")
 	assert_not_null(passage, "a bite past the hold's starboard part holes the passage")
 	if passage != null:

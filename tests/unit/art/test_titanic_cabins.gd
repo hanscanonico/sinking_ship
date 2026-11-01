@@ -13,7 +13,7 @@ const CELLS: Array[float] = [0.2, 0.05]
 const PINNED := {
 	"first-class": [331, 658, 111],
 	"second-class": [183, 484, 134],
-	"third-class": [192, 375, 336],
+	"third-class": [192, 381, 330],
 	"none": [6, 14, 7],
 }
 

@@ -207,7 +207,9 @@ func test_her_shell_meets_itself_where_her_sheer_steps() -> void:
 			var run := 0 if (a.x + b.x + c.x) / 3.0 < joint else 1
 			for corner: Vector3 in [a, b, c]:
 				var on_joint := absf(corner.x - joint) < 1e-3 and corner.z > 1.0
-				if on_joint and corner.y < low - 0.05 and corner.y > -8.0:
+				# (Forward, a corner lower too: each point aft is read against her side
+				# either side of it, not against where the run was cut off.)
+				if on_joint and corner.y < low - 0.05 and corner.y > (-8.0 if run == 0 else -9.0):
 					runs[run].append(Vector2(corner.y, corner.z))
 		assert_gt(runs[0].size(), 2, "the run aft of x %.1f ends on it" % joint)
 		assert_gt(runs[1].size(), 2, "the run forward of x %.1f starts on it" % joint)
