@@ -230,17 +230,38 @@ func _heads_across(state: FloodState, stepper: SinkStepper) -> PackedFloat64Arra
 		return _across
 	_across_state = state
 	_across.resize(_index.size())
+	var surface := _highest_surface(state, stepper)
 	for watched in _index.size():
 		var sides := stepper.opening_sides(_index[watched])
 		var sill := stepper.sill_of(_index[watched])
-		var pushing := state.sea if sides.x == SinkStepper.OUTSIDE else state.heads[sides.x]
-		var pushed := state.sea if sides.y == SinkStepper.OUTSIDE else state.heads[sides.y]
+		var pushing := _push_of(sides.x, state, stepper, surface)
+		var pushed := _push_of(sides.y, state, stepper, surface)
 		_across[watched] = 0.0
 		if pushing > sill or pushed > sill:
 			pushing += _air.lift(sides.x, sides.y, state.heads)
 			pushed += _air.lift(sides.y, sides.x, state.heads)
 			_across[watched] = maxf(pushing, sill) - maxf(pushed, sill)
 	return _across
+
+
+## The highest any water of [param state] stands with a surface of its own: the sea, or a
+## cell not full, by what its pocket adds to its push. Nothing in her pushes higher.
+func _highest_surface(state: FloodState, stepper: SinkStepper) -> float:
+	var highest := state.sea
+	for cell in state.heads.size():
+		if state.heads[cell] < stepper.ceiling_of(cell):
+			var lifted := _air.lift(cell, SinkStepper.OUTSIDE, state.heads)
+			highest = maxf(highest, state.heads[cell] + lifted)
+	return highest
+
+
+## The head [param side] — a cell, or the sea — truly pushes with at [param state]: its
+## own, but over its ceiling no higher than [param surface] drives it. Past that it is
+## only water over its box on the thin surface, a step's slip reading as metres of head.
+func _push_of(side: int, state: FloodState, stepper: SinkStepper, surface: float) -> float:
+	if side == SinkStepper.OUTSIDE:
+		return state.sea
+	return minf(state.heads[side], maxf(stepper.ceiling_of(side), surface))
 
 
 ## How far under the head at which watched opening [param watched] gives way the head

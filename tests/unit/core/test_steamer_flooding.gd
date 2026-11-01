@@ -192,10 +192,10 @@ func test_stern_down_trims_her_by_the_stern_before_the_end() -> void:
 
 
 func test_heavy_list_holds_15_degrees_for_5_minutes_afloat() -> void:
-	# A gash along her starboard side (re-pinned when Q20 narrowed her hits): her water all
-	# on one side, she lies over to starboard 15° or more for 5 minutes and longer while
-	# afloat — about half an hour, measured — her port boats useless and her starboard ones
-	# not, until she goes by the head 36–39 min on.
+	# A gash along her side (re-pinned when her walls stopped bursting on a slip's false
+	# head, #393): her water all on one side, she lies over 15° or more for 5 minutes and
+	# longer while afloat — about 8½ minutes, measured — the boats on her high side useless
+	# and those on her low side not, until she goes 30–34 min on.
 	for scale: float in MARGINS:
 		var timeline := _pinned(&"heavy_list", scale)
 		var end := timeline.gone_at if timeline.gone_at >= 0.0 else timeline.length()
@@ -408,19 +408,12 @@ func test_fwd_pocket_traps_the_air_under_the_forecastle_till_her_last_minute() -
 		var timeline := _pinned(&"fwd_pocket", scale)
 		var what := "× %s" % scale
 		assert_eq(timeline.end, SinkTimeline.End.GONE, what + ": gone")
-		# #393: what sinks her here is a burst on a slip's phantom head. Measured.
-		var labels := OutcomeClassifier.labels(timeline)
-		if not OutcomeClassifier.Outcome.BY_THE_HEAD in labels:
-			pending("#393 %s: by the head, not %s" % [what, OutcomeClassifier.told(labels)])
+		assert_true(OutcomeClassifier.Outcome.BY_THE_HEAD in OutcomeClassifier.labels(timeline))
 		var trapped := _first(timeline, SinkTimeline.Kind.TRAPPED, &"hold_fwd_top")
 		assert_gte(trapped, 0.0, what + ": its air trapped")
-		if timeline.gone_at - trapped <= 600.0:
-			pending(
-				(
-					"#393 %s: trapped ten minutes and more before she goes, not %.0f s"
-					% [what, timeline.gone_at - trapped]
-				)
-			)
+		assert_gt(
+			timeline.gone_at - trapped, 600.0, what + ": ten minutes and more before she goes"
+		)
 		var held := timeline.gone_at - LAST_MINUTE
 		var vented := _first(timeline, SinkTimeline.Kind.VENTED, &"hold_fwd_top")
 		assert_true(vented < 0.0 or vented >= held, what + ": held till her last minute")
@@ -453,9 +446,7 @@ func test_door_gives_way_bursts_a_watertight_door_before_she_goes() -> void:
 		var timeline := _pinned(&"door_gives_way", scale)
 		var what := "× %s" % scale
 		var bursts := _before_gone(timeline, SinkTimeline.Kind.GAVE_WAY, "wtd_")
-		# #393: a burst on a slip's phantom head can be a second door's. Measured.
-		if bursts.size() != 1:
-			pending("#393 %s: one watertight door bursts, not %d" % [what, bursts.size()])
+		assert_eq(bursts.size(), 1, what + ": one watertight door bursts")
 		if bursts.is_empty():
 			continue
 		var door := bursts[0]
@@ -488,12 +479,13 @@ func test_funnel_on_the_bridge_falls_forward_onto_the_wheelhouse_roof() -> void:
 		assert_eq(fall.lands_on(layout, surfaces), [&"bridge"], what + ": onto the bridge")
 
 
-func test_lights_out_early_puts_her_dark_long_before_she_goes() -> void:
-	# Her generator stops in her first half — her list or trim past its limit — and the
-	# engine room goes dark at once, on no emergency power, while the saloon burns dim on
-	# it; it runs again once she is back within its margin, and stops again. Once the
+func test_lights_out_early_puts_her_dark_and_afloat() -> void:
+	# Her generator stops in the first half of her bake — her list or trim past its limit —
+	# and the engine room goes dark at once, on no emergency power, while the saloon burns
+	# dim on it; it runs again once she is back within its margin, and stops again. Once the
 	# emergency minutes are spent — counted while the generator does not run — nothing
-	# lights her, ten minutes and more before she goes (SH31).
+	# lights her, and she floats on in the dark to the bake's end (SH31). She used to sink:
+	# her walls burst on a slip's false head, which no water truly pushed with (#393).
 	var engine := _structure.cell_named(&"engine_room")
 	var saloon := _structure.cell_named(&"saloon")
 	var generator: ShipFitting
@@ -505,7 +497,8 @@ func test_lights_out_early_puts_her_dark_long_before_she_goes() -> void:
 		var timeline := _bake(damage, scale)
 		var what := "× %s" % scale
 		var stopped := _first(timeline, SinkTimeline.Kind.POWER_LOST, generator.name)
-		assert_between(stopped, 0.0, timeline.gone_at * 0.5, what + ": in her first half")
+		assert_lt(timeline.gone_at, 0.0, what + ": afloat")
+		assert_between(stopped, 0.0, timeline.length() * 0.5, what + ": in her first half")
 		var frame := timeline.frame_at(stopped)
 		assert_eq(timeline.lit(frame, engine), ShipPower.Power.DARK, what + ": engine room dark")
 		assert_eq(timeline.lit(frame, saloon), ShipPower.Power.EMERGENCY, what + ": saloon dim")
@@ -526,14 +519,7 @@ func test_lights_out_early_puts_her_dark_long_before_she_goes() -> void:
 		assert_gt(backs, 0, what + ": running again within its margin")
 		var minutes := generator.emergency_minutes * 60.0
 		assert_almost_eq(off, minutes, 1e-3, what + ": dark once its minutes are spent")
-		# #393: when she goes hangs on bursts on a slip's phantom head. Measured.
-		if dark >= timeline.gone_at - 600.0:
-			pending(
-				(
-					"#393 %s: dark ten minutes and more before she goes, not %.0f s"
-					% [what, timeline.gone_at - dark]
-				)
-			)
+		assert_lt(dark, timeline.length() - 600.0, what + ": ten minutes and more before the end")
 
 
 ## How high her highest cell corner stands over the sea at [param timeline]'s kept step
