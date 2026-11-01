@@ -106381,37 +106381,26 @@ metadata/leak_area = 0.002
 metadata/cells = Array[StringName]([&"db_hold_1", &"forepeak_tank", &"forepeak", &"forepeak_d", &"hold_1", &"hold_1_tween", &"hold_1_d"])
 
 [node name="Wall_bulkhead_b" type="CSGBox3D" parent="Structure/Walls" unique_id=196403971]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 101.85, -15.40625, 0)
-size = Vector3(0, 8.8125, 11.3936)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 101.85, -10.5006, 0)
+size = Vector3(0, 18.6238, 20.5564)
 material = SubResource("StandardMaterial3D_6htbw")
 metadata/ship = &"wall"
 metadata/name = &"bulkhead_b"
 metadata/collapse_head = 27.9357
 metadata/leak_head = 23.2797
 metadata/leak_area = 0.002
-metadata/cells = Array[StringName]([&"db_hold_2", &"db_hold_1", &"hold_1", &"hold_2_port", &"hold_2_starboard", &"hold_2", &"firemens_passage"])
+metadata/cells = Array[StringName]([&"db_hold_2", &"db_hold_1", &"hold_1", &"hold_1_d", &"hold_2_port", &"hold_2_starboard", &"hold_2", &"firemens_passage", &"d_deck_forward"])
 
-[node name="Wall_bulkhead_b_1" type="CSGBox3D" parent="Structure/Walls" unique_id=1801037598]
+[node name="Wall_bulkhead_b_upper" type="CSGBox3D" parent="Structure/Walls" unique_id=1326540997]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 99.5625, -7.09375, 0)
 size = Vector3(0, 7.8125, 20.0526)
 material = SubResource("StandardMaterial3D_6htbw")
 metadata/ship = &"wall"
-metadata/name = &"bulkhead_b_1"
+metadata/name = &"bulkhead_b_upper"
 metadata/collapse_head = 27.9357
 metadata/leak_head = 23.2797
 metadata/leak_area = 0.002
 metadata/cells = Array[StringName]([&"hold_1_tween", &"hold_2_tween"])
-
-[node name="Wall_bulkhead_b_2" type="CSGBox3D" parent="Structure/Walls" unique_id=670042294]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 101.85, -2.1881, 0)
-size = Vector3(0, 1.9988, 20.5564)
-material = SubResource("StandardMaterial3D_6htbw")
-metadata/ship = &"wall"
-metadata/name = &"bulkhead_b_2"
-metadata/collapse_head = 27.9357
-metadata/leak_head = 23.2797
-metadata/leak_area = 0.002
-metadata/cells = Array[StringName]([&"hold_1_d", &"d_deck_forward"])
 
 [node name="Wall_bulkhead_c" type="CSGBox3D" parent="Structure/Walls" unique_id=1058993292]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 86.3, -12.16175, 0)
@@ -106513,8 +106502,8 @@ metadata/leak_area = 0.002
 metadata/cells = Array[StringName]([&"db_turbine_room", &"db_engine_room", &"engine_room", &"engine_room_tween", &"turbine_room", &"turbine_room_tween"])
 
 [node name="Wall_bulkhead_m" type="CSGBox3D" parent="Structure/Walls" unique_id=445933567]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -64.875, -14.1875, 0)
-size = Vector3(0, 11.25, 27.0066)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -64.875, -11.47595, 0)
+size = Vector3(0, 16.6731, 27.7)
 material = SubResource("StandardMaterial3D_6htbw")
 metadata/ship = &"wall"
 metadata/name = &"bulkhead_m"
@@ -106523,12 +106512,12 @@ metadata/leak_head = 20.8414
 metadata/leak_area = 0.002
 metadata/cells = Array[StringName]([&"db_electric_room", &"db_turbine_room", &"turbine_room", &"electric_room", &"electric_room_tween"])
 
-[node name="Wall_bulkhead_m_1" type="CSGBox3D" parent="Structure/Walls" unique_id=815762460]
+[node name="Wall_bulkhead_m_upper" type="CSGBox3D" parent="Structure/Walls" unique_id=13528481]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -66.02, -5.85095, 0)
 size = Vector3(0, 5.4231, 27.7)
 material = SubResource("StandardMaterial3D_6htbw")
 metadata/ship = &"wall"
-metadata/name = &"bulkhead_m_1"
+metadata/name = &"bulkhead_m_upper"
 metadata/collapse_head = 25.0096
 metadata/leak_head = 20.8414
 metadata/leak_area = 0.002

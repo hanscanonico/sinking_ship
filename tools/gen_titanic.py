@@ -3324,13 +3324,21 @@ def covered(x, top, out):
     return reach
 
 walls = []  # (name, axis, at, span, bottom, top, collapse, cells)
-for letter, *_rest in BULKHEADS:
-    for k, (x, bottom, top) in enumerate(bulkhead_bands(letter)):
-        hull_half = max(breadth(x, y) for y in (top, (top + bottom) * 0.5, max(bottom, KEEL + BILGE)))
-        half = round(min(hull_half, covered(x, top, 1), covered(x, top, -1)), 4)
-        # (Each stretch built as her whole bulkhead is, for the head to its top.)
-        walls.append(("bulkhead_%s%s" % (letter.lower(), "_%d" % k if k else ""), "ACROSS", x, (-half, half), bottom, top,
-                      1.5 * built_for(TOPS[letter]), parted(0, x, bottom, top, -half, half)))
+def wall_half(x, bottom, top):
+    hull_half = max(breadth(x, y) for y in (top, (top + bottom) * 0.5, max(bottom, KEEL + BILGE)))
+    return round(min(hull_half, covered(x, top, 1), covered(x, top, -1)), 4)
+
+for letter, x, *_rest in BULKHEADS:
+    top = TOPS[letter]
+    half = wall_half(x, KEEL, top)
+    walls.append(("bulkhead_" + letter.lower(), "ACROSS", x, (-half, half), KEEL, top, 1.5 * built_for(top),
+                  parted(0, x, KEEL, top, -half, half)))
+    # A stepped one's stretch off that line, a wall of its own built as the whole of it is.
+    if letter in UPPER:
+        _x, bottom, high = bulkhead_bands(letter)[1]
+        half = wall_half(UPPER[letter], bottom, high)
+        walls.append(("bulkhead_%s_upper" % letter.lower(), "ACROSS", UPPER[letter], (-half, half), bottom, high,
+                      1.5 * built_for(top), parted(0, UPPER[letter], bottom, high, -half, half)))
 # Her sisters' inner skin, a wall along her either side of each compartment it runs
 # through, to F deck (est.), built as her bulkheads are.
 for name, x0, x1 in SKINNED:
