@@ -1223,6 +1223,7 @@ STAIRS = [
 
 # Lines moved off the plate so a door fits (deck.py's NUDGES, DOOR_MOVES; DOOR_LEAST 1 m):
 NUDGES = [
+    (0, 98.8125, 98.4375, -1.9, 1.1),  # the passage's way past B's line (#373)
     (0, 38.25, 38.9375, -13.7, -5.7),  # the stewards' wall forward of D's stair's head, not under its treads
     (0, 69.875, 69.6875, -13.0, -8.9),  # the four-berth room's door, short of bulkhead D's line
     (0, 55.4375, 55.875, -7.7, -5.7),  # the ash place's door past the bathroom's wall
@@ -1252,6 +1253,7 @@ NUDGES = [
     (0, 90.8125, 90.625, 4.6, 7.4),  # the men's lavatory's door
 ]
 DOOR_MOVES = [
+    ((95.6875, 7.875), (94.0, 7.375)),  # the four-berth room's, her side at B's line (#373) leaving it no stretch
     ((35.1875, -7.125), (37.0, -7.125)),  # the stewards' door past bulkhead F's line
     ((-66.0, 7.75), (-66.0, 7.4375)),  # M's starboard passage door, clear of both rooms' corners
     ((-48.625, -7.4375), (-48.625, -7.375)),  # L's working passage door, clear of the passage's corner
