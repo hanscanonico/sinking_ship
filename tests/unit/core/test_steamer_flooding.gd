@@ -453,9 +453,7 @@ func test_door_gives_way_bursts_a_watertight_door_before_she_goes() -> void:
 		var timeline := _pinned(&"door_gives_way", scale)
 		var what := "× %s" % scale
 		var bursts := _before_gone(timeline, SinkTimeline.Kind.GAVE_WAY, "wtd_")
-		# #393: a burst on a slip's phantom head can be a second door's. Measured.
-		if bursts.size() != 1:
-			pending("#393 %s: one watertight door bursts, not %d" % [what, bursts.size()])
+		assert_eq(bursts.size(), 1, what + ": one watertight door bursts")
 		if bursts.is_empty():
 			continue
 		var door := bursts[0]
