@@ -1117,10 +1117,20 @@ OPENED = [
 NOT_ROOMS = [(74.0, -7.0), (-45.3, -9.7)]
 # The store her stem takes: no floor of hers reaches it (F_STEM).
 GONE = [(126.0, 0.0), (122.0, 0.0)]
+# The racquet court's upper half, open to its floor on G deck (COURT_F, gen_titanic.py).
+GONE += [(75.0, 0.0)]
 # Two closets whose faces only touch the rooms over them: walled, or those rooms read open.
 WALLED_SOLIDS = [(-101.3, -8.0), (-97.6, -8.0)]
 # A body's lead clear of the passage's forward wall at their heads (the layout lint):
 STAIR_MOVES = [
     (("firemen's spiral staircase", 100.5, -2.5625), (99.75, 102.625, -2.5625, -1.3125)),
-    (("firemen's spiral staircase", 100.5, 1.3125), (99.75, 102.625, 1.3125, 2.5625)),
+    # On G deck's landing the passage is too short along her for a flight and a lead each end
+    # (its aft wall bulkhead B's line): athwart her, aft of her way on down (one shaft, the
+    # generator's), its foot to starboard. The port one's the generator leaves out.
+    (("firemen's spiral staircase", 100.5, 1.3125), (100.1875, 101.1875, -0.5, 2.375, "port")),
+    # A body's lead clear of G deck's wall at their feet (the layout lint):
+    (("second-class stairway", -92.4375, -2.5), (-92.6875, -89.75, -2.5, -1.1875)),
+    # Rising forward, its foot in G deck's passage clear of her side's rooms, inside G deck's
+    # rooms' wall (g.py): the plate draws no way it rises.
+    (("third-class ladder", 92.3125, 4.8125), (92.3125, 95.125, 4.6875, 5.6875, "fore")),
 ]

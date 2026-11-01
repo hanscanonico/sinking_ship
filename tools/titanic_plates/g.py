@@ -544,3 +544,42 @@ STAIRS = [
     ("hold ladder", 1089, 2372, 1207, 2406.5, "fore", "orlop", "g"),
     ("hold ladder", 1701.5, 2194, 1815.5, 2228, "aft", "orlop", "g"),
 ]
+
+# Lines moved off the plate so a door fits (deck.py's NUDGES, DOOR_MOVES; DOOR_LEAST 1 m), her
+# side held at G deck's floor taking what her low plan's line has over it (#396):
+NUDGES = [
+    # The court meets F deck's upper half of it, which reads 0.19 m to port and 0.06 m forward
+    # of this view's.
+    (2, -2.875, -3.0625, 70.9, 83.7),
+    (2, 3.375, 3.1875, 70.9, 83.7),
+    (0, 79.875, 79.9375, -3.1, 3.4),
+    (0, 71.875, 72.0, -4.3, -3.0),  # the court's door off its lobby
+    (2, -0.5625, -0.5, -119.1, -115.9),  # P's doors, where the plate draws them
+    (2, 0.75, 0.5, -119.1, -115.9),
+    (2, 7.5625, 7.25, -98.0, -94.5),  # the three-berth room's door, its side taken by hers
+    (2, 4.875, 4.75, 97.6, 99.4),  # the four-berth room's along B
+    (2, -3.125, -3.375, 99.6, 103.3),  # the leading firemen's door
+    (2, 8.0625, 7.9375, -93.2, -91.0),  # the four-berth room's, off its passage's end
+    (2, 5.9375, 5.75, 92.5, 95.1),  # the six-berth room's, F deck's ladder's foot beside it
+]
+DOOR_MOVES = [
+    ((-122.9375, -1.0625), None),  # the store in her run her side leaves solid (MADE_SOLID)
+    ((-115.3125, -2.3125), (-117.5, -1.6875)),  # the rooms abaft the passage's mouths, her side
+    ((-115.25, 3.0625), (-117.5, 1.875)),  # leaving them no stretch at the plate's swing
+    ((-108.8125, -1.9375), (-107.75, -2.625)),  # the two-berth rooms off O's cross passage
+    ((-108.8125, 2.0), (-107.75, 2.6875)),
+    ((-104.25, -4.0625), (-102.875, -3.75)),  # the two-berth room's, past its passage's end
+    ((-94.3125, 9.0), (-94.4375, 7.8125)),  # the three-berth room's, inside her side
+    ((-93.4375, 9.25), (-93.3125, 8.8125)),  # the four-berth room's, off her side's wall
+    ((-115.9375, 0.0625), (-116.8125, 0.5)),  # the two-berth room's, between P's doors' passages
+    ((97.375, 6.3125), (97.5625, 5.375)),  # the four-berth room's along B, inside her side
+]
+# The store in her run: the plate draws it no door, and her side leaves it no room for one.
+MADE_SOLID = [(-124.5, 0.0)]
+# F deck's ladder's foot, in the passage beside its own:
+OPENED = [(92.4275, 92.4475, 4.5625, 5.75)]
+# Her boiler rooms under F deck stay her estimated ones until #379 lays them, K to D (their
+# casings and bunkers), and her forepeak's stores forward of A: these solids wait for it.
+AWAITS = [(-27.71, 70.75), (115.81, 140.0)]
+# The tip of her run, which her side at G deck leaves no room for: no floor of hers reaches it.
+GONE = [(-127.0, 0.0)]

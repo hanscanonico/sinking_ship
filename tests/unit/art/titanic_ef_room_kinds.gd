@@ -2,7 +2,6 @@ extends RefCounted
 ## The Titanic's E and F decks' rooms and what each is dressed as (test_room_dressing).
 
 const KINDS := {
-	&"No. 2 hold, G deck": RoomDressing.Kind.HOLD,
 	&"S.R. men's quarters, E deck": RoomDressing.Kind.BERTHS,
 	&"Turkish bath attendants' room": RoomDressing.Kind.CABIN,
 	&"Turkish bath lobby": RoomDressing.Kind.BATH,
