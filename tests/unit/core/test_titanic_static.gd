@@ -74,7 +74,9 @@ func before_all() -> void:
 	_structure = layout.structure
 	_sea = SeaPhysics.load_default()
 	for wall: ShipWall in _structure.walls:
-		if wall.axis == ShipWall.Axis.ACROSS:
+		# She has fifteen bulkheads: a stepped one's stretch off its line (B's, M's, *_step)
+		# is a second piece of it, no sixteenth.
+		if wall.axis == ShipWall.Axis.ACROSS and not String(wall.name).ends_with("_step"):
 			_walls.append(wall)
 	_walls.sort_custom(func(a: ShipWall, b: ShipWall) -> bool: return a.at > b.at)
 	assert_eq(_walls.size(), COMPARTMENTS.size() - 1, "fifteen bulkheads part her into sixteen")
@@ -334,6 +336,9 @@ func test_her_sisters_carry_their_bulkheads() -> void:
 		for wall: ShipWall in structure.walls:
 			if wall.axis == ShipWall.Axis.ALONG:
 				skin += 1
+				continue
+			# (A stepped bulkhead's second piece, *_step, is no bulkhead of its own.)
+			if String(wall.name).ends_with("_step"):
 				continue
 			bulkheads += 1
 			if wall.top > 0.0:

@@ -1810,13 +1810,9 @@ for k, (_w, x0, x1, z0, z1, high) in enumerate(ENGINE_COVERS):
     box("engine_covers_%d" % k, max(x0, casing[1]), min(x1, casing[2]), max(z0, casing[3]), min(z1, casing[4]), F_DECK,
         ENGINE_TANK_TOP + high)
 
-# The tunnels through her cross bunkers (tanktop.py's "passage, tank top") and the firemen's
-# passage (BOT: "thoroughly watertight"; est. 8 ft high, as the plate's sides are) under their
-# own roofs: no deck, nobody's floor, their flights through the firemen's.
+# The firemen's passage's cell's top (BOT: "thoroughly watertight"; est. 8 ft, as the plate's
+# steel sides beside it are).
 PASSAGE_TOP = q(TANK_TOP + 8.0 * FT)
-for k, r in enumerate(r for r in TT_OUTLINE.rooms if r[0] == "passage, tank top" or r[0] == "firemen's passage"):
-    deck("passage_roof_%d" % k, "passage roof", r[1], r[2], r[3], r[4], PASSAGE_TOP, holes["orlop"])
-
 def low_boxes(plan):
     """A deck plan's walls and solids as boxes (x0, x1, z0, z1)."""
     boxes = [s[1:5] for s in plan.solids]
@@ -3373,7 +3369,10 @@ def section_shell(x, y, side):
     return best
 for c in CELLS:
     name = c[0]
-    if name.endswith("_tween") or (name.startswith("boiler_room") and name.endswith("_f")) or name == "forepeak":
+    # (Over the electric room her ports stand in the cell over F deck: bulkhead M's step parts
+    # its 'tween deck there, electric_room_tween being G deck's, under the sea.)
+    if ((name.endswith("_tween") and name != "electric_room_tween") or name == "electric_room_f"
+            or (name.startswith("boiler_room") and name.endswith("_f")) or name == "forepeak"):
         row = F_DECK + ROW
     elif name.endswith("_e"):
         row = E_DECK + ROW
