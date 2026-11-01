@@ -382,15 +382,12 @@ B_HOUSE = (min(r[1] for r in B_OUTLINE.rooms if not in_house(r, B_OUTLINE.houses
 # and over the after end of boiler room 1 (SB-III).
 JOINTS = [("aft_joint", -26.6), ("forward_joint", 43.6)]
 
-# --- Her lines (est., tuned to the inquiry and the research): a flat-bottomed midship
+# --- Her estimated lines, what the plates leave silent (est.; low_nodes() below lays her
+# low hull over them off the plates): a flat-bottomed midship
 # section with a round bilge of BILGE radius; waterlines full over her parallel middle
 # body from AFT_BODY to FWD_BODY and closing on her stem and her stern as one less a
 # power of the way there — FINE_FWD and FINE_AFT at her load waterline, LOW_FWD and
-# LOW_AFT of that at her keel, fuller above it as her flare is. Tuned so that at 34 ft
-# 7 in she displaces 53 029 t against the inquiry's 52 310 tons (53 149 t, BOT), 49 089 t
-# at the night's draught against the research's 49 075 t, and with the six compartments
-# the night opened flooded to the sea she trims 0.19° a 1 000 tons pivoting 179 m from
-# her bow, as the research has her (test_titanic_static.gd). Her stem is near plumb,
+# LOW_AFT of that at her keel, fuller above it as her flare is. Her stem is near plumb,
 # raked STEM_RAKE per metre up, rounding into her keel over FOREFOOT; her counter
 # springs from her rudder post at KNUCKLE over the load waterline out to her stern.
 BILGE = 1.9
@@ -484,8 +481,8 @@ def counter_half(x, y, lines):
         below_y, below = height, here
     return below
 
-def breadth(x, y):
-    """Her half breadth at (x, y): her lines, and over her load waterline aft her counter."""
+def lines_half(x, y):
+    """Her estimated half breadth at (x, y): her lines, and over her load waterline aft her counter."""
     if y < KEEL or x >= stem_x(y) or x <= stern_x(y):
         return 0.0
     rise = y - KEEL
@@ -502,6 +499,139 @@ def breadth(x, y):
             lines = side * fore * after
             return max(lines, min(counter_half(x, y, lines), HALF))
     return side * fore * after
+
+# Her low hull off the plates (#395). Fig. 22 of The Shipbuilder's special number draws her
+# midship section, dimensioned: (half breadth, height over her keel), read at 165.5 px a
+# metre off its 46 ft moulded half breadth. Her bilge turns from 9.8 m out, up to her full
+# breadth about 5.8 m over her keel: at her tank top, 1.6 m over it, she is 12.8 m out.
+# (Fig. 54's section through a boiler room agrees: 13.05 m there.) It draws her floor rising 12
+# in to that turn; here it is flat, as her decks are, her double bottom's floor on her keel.
+MIDSHIP = [(9.81, 0.0), (11.0, 0.53), (12.17, 1.06), (13.12, 1.89), (13.65, 2.96), (13.89, 4.14), (14.0, 5.79)]
+# So a low plan's side is no section at its floor: Plate V's tank top reads 13.97 m amidships,
+# which Fig. 22 reaches 3.75 m over that floor. Each plan here is read as true some height over
+# its own floor, the height a plan is cut at: the tank top's measured so; the orlop's and G
+# deck's 2.0 m (est., a reading, no plate says so): at their floors the plates displace 7.9%
+# over the inquiry's 52 310 tons, a block coefficient of 0.73 for its 0.67; from about 1.8 m to
+# G deck's limit of 2.4 m she displaces within 1% of it (the run prints it).
+# Stations: each side-reaching room's middle along her (rooms are drawn in steps, true at
+# their middles), both sides' mean, from its file in tools/titanic_plates. A None is the
+# plate silent or no side, and her estimated lines stand: her middle body; the engine room's
+# side on the tank top (13.37 m, Fig. 22's 0.8 m over that floor: Fig. 22 stands); the
+# refrigerated rooms' on the orlop, inside their insulation; G's stores at x -82 to -67,
+# short of her side (from x -83.7 straight on to -65.9). The tank top's table runs on forward
+# of bulkhead A with the lower orlop's, within 0.1 m of it where they overlap.
+LOW_PLANS = [  # (the height the plan is true at, [(x, half breadth)])
+    (q(TANK_TOP + 3.75), [(-118.97, 1.8), (-116.1, 1.75), (-110.2, 2.87), (-104.5, 4.15), (-98.9, 5.56), (-93.4, 6.81),
+                          (-87.9, 7.9), (-81.9, 9.1), (-75.1, 10.15), (-68.1, 11.1), (-56.7, 11.91), None,
+                          (27.6, 13.94), (36.6, 13.78), (45.6, 13.22), (54.0, 12.59), (62.3, 11.72), (74.1, 11.1),
+                          (81.0, 9.9), (85.4, 9.12), (89.8, 8.06), (96.6, 6.62), (101.0, 5.75), (104.1, 4.72),
+                          (108.8, 3.75), (113.5, 2.85), (118.8, 1.85), (125.6, 0.65)]),
+    (q(ORLOP + 2.0), [(-127.1, 0.75), (-121.7, 2.22), (-118.3, 3.22), (-115.7, 3.97), (-111.7, 5.12), (-107.7, 6.19),
+                      (-103.7, 7.28), (-83.7, 11.47), (-80.9, 11.87), (-76.9, 12.25), (-72.7, 12.47), (-66.9, 12.97),
+                      None, (36.6, 13.85), (53.7, 13.37), (69.3, 12.09), (75.4, 11.12), (83.2, 9.75), (88.9, 8.6),
+                      (94.1, 7.5), (99.2, 6.4), (104.4, 5.28), (109.6, 4.15), (113.9, 3.19), (117.8, 2.34),
+                      (122.4, 1.44), (127.2, 0.47)]),
+    (q(G_DECK + 2.0), [(-127.2, 0.72), (-124.5, 1.62), (-121.0, 2.85), (-117.4, 4.12), (-113.4, 5.4), (-111.4, 6.12),
+                       (-108.1, 7.1), (-106.1, 7.69), (-102.7, 8.5), (-100.4, 9.15), (-98.5, 9.62), (-96.2, 10.15),
+                       (-92.6, 10.9), (-89.9, 11.4), (-86.5, 11.9), (-83.7, 12.22), (-65.9, 13.38), (-60.9, 13.56), None,
+                       (46.6, 13.87), (53.8, 13.5), (62.1, 13.03), (69.3, 12.4), (72.0, 12.03), (74.4, 11.9),
+                       (82.4, 10.69), (88.8, 9.56), (91.8, 9.0), (93.4, 8.65), (95.6, 8.25), (97.0, 7.97), (98.5, 7.62),
+                       (101.4, 6.87), (105.3, 5.9), (110.3, 4.75), (114.0, 3.85), (117.9, 2.91), (122.3, 1.81),
+                       (127.0, 0.69)]),
+]
+# F deck's forward: wider than her estimated lines from x 46 to 118 (f.py), and G's would
+# stand outside them, her side turning in. Read at F deck itself, where its rooms stand, and
+# fading out by E deck, whose rooms her lines hold: nothing changes at E deck or over it.
+# Aft, F deck's flare stands (COUNTER_PLANS).
+F_SIDE = [(46.1, 13.68), (55.3, 13.31), (62.9, 13.12), (65.9, 13.03), (69.8, 12.75), (72.0, 12.56), (75.9, 12.03),
+          (79.6, 11.68), (82.0, 11.28), (85.4, 10.85), (88.8, 10.22), (91.9, 9.56), (93.5, 9.21), (95.9, 8.75),
+          (98.5, 8.12), (101.1, 7.47), (105.0, 6.56), (108.8, 5.56), (111.8, 4.72), (114.5, 4.0), (117.8, 3.09)]
+
+def station(table, x):
+    """table's half breadth at x, linear between its stations; None where the plate is silent,
+    across a None in it and past its ends."""
+    for a, b in zip(table, table[1:]):
+        if a is not None and b is not None and a[0] <= x <= b[0]:
+            return a[1] + (b[1] - a[1]) * (x - a[0]) / (b[0] - a[0])
+    return None
+
+def plan_at(table, x, h):
+    """A plan's half breadth at x, its height h: its station's; where it is silent her
+    estimated lines', an end's difference from them dying away to her stem or her stern, or
+    over the first and last quarters of the gap in it."""
+    here = station(table, x)
+    if here is not None:
+        return here
+    rows = [p for p in table if p is not None]
+    lines = lines_half(x, h)
+    if x < rows[0][0]:
+        return max(lines + (rows[0][1] - lines_half(rows[0][0], h)) * (x - X_AP) / (rows[0][0] - X_AP), 0.0)
+    if x > rows[-1][0]:
+        end = stem_x(h)
+        return max(lines + (rows[-1][1] - lines_half(rows[-1][0], h)) * (end - x) / (end - rows[-1][0]), 0.0)
+    gap = table.index(None)
+    a, b = table[gap - 1], table[gap + 1]
+    t = (x - a[0]) / (b[0] - a[0])
+    return (lines + (a[1] - lines_half(a[0], h)) * max(1.0 - t * 4.0, 0.0)
+            + (b[1] - lines_half(b[0], h)) * max(t * 4.0 - 3.0, 0.0))
+
+@functools.lru_cache(maxsize=None)
+def low_nodes(x):
+    """Her side's heights and half breadths at x, from the lowest plan's up to F deck, and on
+    to E deck where F deck's plan widened her, each never wider than the one over it, so her
+    side never turns in as it climbs (SectionHull._side())."""
+    at_f = lines_half(x, F_DECK)
+    widened = station(F_SIDE, x)
+    widened = 0.0 if widened is None else min(widened, lines_half(x, E_DECK))
+    ys, zs = [F_DECK], [max(at_f, widened)]
+    for height, table in reversed(LOW_PLANS):
+        ys.insert(0, height)
+        zs.insert(0, min(plan_at(table, x, height), zs[0]))
+    if zs[-1] > at_f:
+        ys.append(E_DECK)
+        zs.append(lines_half(x, E_DECK))
+    return ys, zs
+
+def fair(ys, zs, y):
+    """zs over ys at y, a monotone cubic: through every node, no knuckle, never overshooting."""
+    gaps = [b - a for a, b in zip(ys, ys[1:])]
+    slopes = [(b - a) / g for a, b, g in zip(zs, zs[1:], gaps)]
+    tangents = [slopes[0]] + [0.0] * (len(ys) - 2) + [slopes[-1]]
+    for i in range(1, len(ys) - 1):
+        if slopes[i - 1] * slopes[i] > 0.0:
+            w0, w1 = 2.0 * gaps[i] + gaps[i - 1], gaps[i] + 2.0 * gaps[i - 1]
+            tangents[i] = (w0 + w1) / (w0 / slopes[i - 1] + w1 / slopes[i])
+    for i, g in enumerate(gaps):
+        if y <= ys[i + 1]:
+            t = (y - ys[i]) / g
+            return ((2 * t ** 3 - 3 * t * t + 1) * zs[i] + (t ** 3 - 2 * t * t + t) * g * tangents[i]
+                    + (3 * t * t - 2 * t ** 3) * zs[i + 1] + (t ** 3 - t * t) * g * tangents[i + 1])
+    return zs[-1]
+
+def midship_half(rise):
+    """Fig. 22's half breadth at rise over her keel."""
+    for (z0, y0), (z1, y1) in zip(MIDSHIP, MIDSHIP[1:]):
+        if rise <= y1:
+            return z0 + (z1 - z0) * (rise - y0) / (y1 - y0)
+    return MIDSHIP[-1][0]
+
+def breadth(x, y):
+    """Her half breadth at (x, y): under her lowest plan, Fig. 22's bilge carried out to the
+    plan's side and in to her estimated keel run, never fuller than her lines scaled to that
+    side; from it up to F deck, or to E deck where F deck widened her, her plates; over that
+    her lines and her counter."""
+    if y < KEEL or x >= stem_x(y) or x <= stern_x(y):
+        return 0.0
+    ys, zs = low_nodes(x)
+    if y >= ys[-1]:
+        return lines_half(x, y)
+    if y >= ys[0]:
+        return fair(ys, zs, y)
+    turn = MIDSHIP[0][0]
+    flat = turn * lines_half(x, KEEL + 1e-6) / lines_half(0.0, KEEL + 1e-6)
+    v = midship_half((y - KEEL) / (ys[0] - KEEL) * MIDSHIP[-1][1])
+    bilge = flat + (zs[0] - flat) * (v - turn) / (MIDSHIP[-1][0] - turn)
+    return min(bilge, lines_half(x, y) * zs[0] / max(lines_half(x, ys[0]), 1e-6))
 
 # Her forecastle and poop decks stepped to her sheer: C deck's sheer over amidships
 # off Plate III (SB-III), 2.2 m at x 110 and 0.6 m at x −110, on B deck's height. The
@@ -527,8 +657,11 @@ def top_at(x):
 
 def fit(x0, x1, h, margin):
     """The half breadth a deck at height h may take from x0 to x1: the least of her
-    hull's there, less margin, to the nearest 5 cm."""
-    least = min(breadth(x, h) for x in (x0 + 0.01, (x0 + x1) * 0.5, x1 - 0.01))
+    hull's there, less margin, to the nearest 5 cm. Under F deck, until its plates are laid
+    (#373, #379), a room stands where her estimated lines stood it: her side moved out takes
+    nothing with it, and moved in, holds it."""
+    least = min(min(breadth(x, h), lines_half(x, h)) if h < F_DECK else breadth(x, h)
+                for x in (x0 + 0.01, (x0 + x1) * 0.5, x1 - 0.01))
     return math.floor((least - margin) * 20) / 20
 
 def deck_pieces(x0, x1, z0, z1, holes):
@@ -1555,8 +1688,9 @@ for k, aft, rows, back, deck_w in STOKEHOLDS:
 # outer skin of the ship", in No. 2 hold): est. 2 m wide and 8 ft high, its starboard
 # side 3 ft 6 in inside her shell at its middle height in No. 2 hold.
 PASSAGE_TOP = q(TANK_TOP + 8.0 * FT)
-PASSAGE_Z = (round(breadth(94.0, (TANK_TOP + PASSAGE_TOP) * 0.5) - 3.5 * FT - 2.0, 4),
-             round(breadth(94.0, (TANK_TOP + PASSAGE_TOP) * 0.5) - 3.5 * FT, 4))
+# Where her estimated lines stood it (est.): her side moved off it, the passage stays.
+PASSAGE_Z = (round(lines_half(94.0, (TANK_TOP + PASSAGE_TOP) * 0.5) - 3.5 * FT - 2.0, 4),
+             round(lines_half(94.0, (TANK_TOP + PASSAGE_TOP) * 0.5) - 3.5 * FT, 4))
 
 # --- Every cell a place a body can be (#148), the bow: boiler room 6, its bunker and the
 # firemen's passage forward of it, Nos. 3, 2 and 1 holds deck by deck, the forepeak and its
@@ -3970,6 +4104,10 @@ res = ["[resource]", 'script = ExtResource("5_layout")', "freeboard = " + num(FR
 with open(out, "w", encoding="utf-8", newline="\n") as f:
     f.write(head + "\n" + "\n\n".join(subs) + "\n\n" + "\n".join(res) + "\n")
 print(len(platforms), "platforms", len(ramps), "ramps", len(blockers), "blockers", len(railings), "railings", len(ladders), "ladders", len(props), "props", len(rooms), "rooms", len(bonus_spots), "bonus spots")
+at_load = sum(area_and_centre(under)[0] * length for x, length, under in
+              ((x, length, clip(outline, 1, LOAD_WL, True)) for x, length, outline in sections) if len(under) >= 3)
+print("displaced at 34 ft 7 in: %.0f t against the inquiry's 53 149 t (52 310 tons); at the night's draught: %.0f t"
+      % (at_load * SEA_DENSITY / 1000, weight / 1000))
 print(len(sections), "sections", len(CELLS), "cells", len(walls), "walls", len(openings), "openings", len(MASS),
       "masses: %.1f t, ballast %.1f t at x %.3f z %.3f; steel %.2f m over her keel for GM %.2f m"
       % (weight / 1000, ballast / 1000, ballast_x, ballast_z, steel_y - KEEL, GM))
