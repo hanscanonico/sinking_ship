@@ -1887,7 +1887,7 @@ for sid, foot, head, lane, holes_above in [
 # spirals (g.py) as two flights side by side, from the hold's orlop up to their landing
 # between F deck's two: their head short of the orlop's bulkhead B, so the firemen's way
 # down reaches the passage's stair (Wilding), one shaft for the plates' four readings (est.).
-assert up_to_g("space_post_office", BX["D"] + T + FLIGHT_LEAD, 79.0, 5.625, 5.3125, 6.3125, PASSAGE_TOP), "post office"
+assert up_to_g("space_post_office", BX["D"] + T + FLIGHT_LEAD, 79.0, 5.625, 5.3125, 6.6875, PASSAGE_TOP), "post office"
 SPIRAL_RUN = 5.625
 for tag, (z0, z1) in [("p", (-1.125, -0.125)), ("s", (0.125, 1.125))]:
     head_flight("space_spiral_g_" + tag, 101.6875 - SPIRAL_RUN, 101.6875, z0, z1, PASSAGE_TOP, 99.625)
@@ -3328,17 +3328,19 @@ def wall_half(x, bottom, top):
     hull_half = max(breadth(x, y) for y in (top, (top + bottom) * 0.5, max(bottom, KEEL + BILGE)))
     return round(min(hull_half, covered(x, top, 1), covered(x, top, -1)), 4)
 
-for letter, x, *_rest in BULKHEADS:
+for letter, *_rest in BULKHEADS:
     top = TOPS[letter]
+    # On the line it tops out on; a stepped one's stretch off that line a wall of its own,
+    # built as the whole of it is.
+    x = bulkhead_bands(letter)[-1][0]
     half = wall_half(x, KEEL, top)
     walls.append(("bulkhead_" + letter.lower(), "ACROSS", x, (-half, half), KEEL, top, 1.5 * built_for(top),
                   parted(0, x, KEEL, top, -half, half)))
-    # A stepped one's stretch off that line, a wall of its own built as the whole of it is.
     if letter in UPPER:
-        _x, bottom, high = bulkhead_bands(letter)[1]
-        half = wall_half(UPPER[letter], bottom, high)
-        walls.append(("bulkhead_%s_upper" % letter.lower(), "ACROSS", UPPER[letter], (-half, half), bottom, high,
-                      1.5 * built_for(top), parted(0, UPPER[letter], bottom, high, -half, half)))
+        at, bottom, high = next(band for band in bulkhead_bands(letter) if abs(band[0] - x) > 1e-6)
+        half = wall_half(at, bottom, high)
+        walls.append(("bulkhead_%s_step" % letter.lower(), "ACROSS", at, (-half, half), bottom, high,
+                      1.5 * built_for(top), parted(0, at, bottom, high, -half, half)))
 # Her sisters' inner skin, a wall along her either side of each compartment it runs
 # through, to F deck (est.), built as her bulkheads are.
 for name, x0, x1 in SKINNED:

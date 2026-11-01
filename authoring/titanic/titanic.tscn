@@ -496,10 +496,10 @@ material = SubResource("StandardMaterial3D_swvke")
 left_to_right = 1.0
 size = Vector3(3, 2.4375, 1.4)
 
-[sub_resource type="PrismMesh" id="PrismMesh_sqri1"]
+[sub_resource type="PrismMesh" id="PrismMesh_c0db8"]
 material = SubResource("StandardMaterial3D_swvke")
 left_to_right = 1.0
-size = Vector3(5.625, 4.75, 1)
+size = Vector3(5.625, 4.75, 1.375)
 
 [sub_resource type="PrismMesh" id="PrismMesh_8itcc"]
 material = SubResource("StandardMaterial3D_swvke")
@@ -8409,15 +8409,15 @@ metadata/ship = &"platform"
 metadata/name = &"G deck"
 
 [node name="Platform_g_late_130" type="CSGBox3D" parent="Platforms" unique_id=778416215]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 75.15625, -11.1, 8.68125)
-size = Vector3(0.1875, 0.2, 4.7375)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 75.15625, -11.1, 8.86875)
+size = Vector3(0.1875, 0.2, 4.3625)
 material = SubResource("StandardMaterial3D_b7bnx")
 metadata/ship = &"platform"
 metadata/name = &"G deck"
 
 [node name="Platform_g_late_131" type="CSGBox3D" parent="Platforms" unique_id=496140382]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 76, -11.1, 8.53125)
-size = Vector3(1.5, 0.2, 4.4375)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 76, -11.1, 8.71875)
+size = Vector3(1.5, 0.2, 4.0625)
 material = SubResource("StandardMaterial3D_b7bnx")
 metadata/ship = &"platform"
 metadata/name = &"G deck"
@@ -8430,8 +8430,8 @@ metadata/ship = &"platform"
 metadata/name = &"G deck"
 
 [node name="Platform_g_late_133" type="CSGBox3D" parent="Platforms" unique_id=891131188]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 77.03125, -11.1, 8.40625)
-size = Vector3(0.5625, 0.2, 4.1875)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 77.03125, -11.1, 8.59375)
+size = Vector3(0.5625, 0.2, 3.8125)
 material = SubResource("StandardMaterial3D_b7bnx")
 metadata/ship = &"platform"
 metadata/name = &"G deck"
@@ -9055,8 +9055,8 @@ mesh = SubResource("PrismMesh_abrv4")
 metadata/ship = &"ramp"
 
 [node name="Ramp_space_post_office" type="MeshInstance3D" parent="Ramps" unique_id=1963584336]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 74.5, -13.375, 5.8125)
-mesh = SubResource("PrismMesh_sqri1")
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 74.5, -13.375, 6)
+mesh = SubResource("PrismMesh_c0db8")
 metadata/ship = &"ramp"
 
 [node name="Ramp_space_spiral_g_p" type="MeshInstance3D" parent="Ramps" unique_id=1961233199]
@@ -74349,8 +74349,8 @@ metadata/ship = &"railing"
 metadata/platform = &"Platform_f_58_0"
 
 [node name="Railing_space_post_office_e" type="CSGBox3D" parent="Railings" unique_id=582152827]
-transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 75.0625, -10.5, 5.8125)
-size = Vector3(1, 1, 0.05)
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 75.0625, -10.5, 6)
+size = Vector3(1.375, 1, 0.05)
 material = SubResource("StandardMaterial3D_r6eh1")
 metadata/ship = &"railing"
 metadata/platform = &"Platform_g_64_0"
@@ -106391,12 +106391,12 @@ metadata/leak_head = 23.2797
 metadata/leak_area = 0.002
 metadata/cells = Array[StringName]([&"db_hold_2", &"db_hold_1", &"hold_1", &"hold_1_d", &"hold_2_port", &"hold_2_starboard", &"hold_2", &"firemens_passage", &"d_deck_forward"])
 
-[node name="Wall_bulkhead_b_upper" type="CSGBox3D" parent="Structure/Walls" unique_id=1326540997]
+[node name="Wall_bulkhead_b_step" type="CSGBox3D" parent="Structure/Walls" unique_id=1456544887]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 99.5625, -7.09375, 0)
 size = Vector3(0, 7.8125, 20.0526)
 material = SubResource("StandardMaterial3D_6htbw")
 metadata/ship = &"wall"
-metadata/name = &"bulkhead_b_upper"
+metadata/name = &"bulkhead_b_step"
 metadata/collapse_head = 27.9357
 metadata/leak_head = 23.2797
 metadata/leak_area = 0.002
@@ -106502,7 +106502,7 @@ metadata/leak_area = 0.002
 metadata/cells = Array[StringName]([&"db_turbine_room", &"db_engine_room", &"engine_room", &"engine_room_tween", &"turbine_room", &"turbine_room_tween"])
 
 [node name="Wall_bulkhead_m" type="CSGBox3D" parent="Structure/Walls" unique_id=445933567]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -64.875, -11.47595, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -66.02, -11.47595, 0)
 size = Vector3(0, 16.6731, 27.7)
 material = SubResource("StandardMaterial3D_6htbw")
 metadata/ship = &"wall"
@@ -106510,18 +106510,18 @@ metadata/name = &"bulkhead_m"
 metadata/collapse_head = 25.0096
 metadata/leak_head = 20.8414
 metadata/leak_area = 0.002
-metadata/cells = Array[StringName]([&"db_electric_room", &"db_turbine_room", &"turbine_room", &"electric_room", &"electric_room_tween"])
+metadata/cells = Array[StringName]([&"turbine_room_tween", &"electric_room_f", &"electric_room_d", &"d_deck"])
 
-[node name="Wall_bulkhead_m_upper" type="CSGBox3D" parent="Structure/Walls" unique_id=13528481]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -66.02, -5.85095, 0)
-size = Vector3(0, 5.4231, 27.7)
+[node name="Wall_bulkhead_m_step" type="CSGBox3D" parent="Structure/Walls" unique_id=1633806025]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -64.875, -14.1875, 0)
+size = Vector3(0, 11.25, 27.0066)
 material = SubResource("StandardMaterial3D_6htbw")
 metadata/ship = &"wall"
-metadata/name = &"bulkhead_m_upper"
+metadata/name = &"bulkhead_m_step"
 metadata/collapse_head = 25.0096
 metadata/leak_head = 20.8414
 metadata/leak_area = 0.002
-metadata/cells = Array[StringName]([&"turbine_room_tween", &"electric_room_f", &"electric_room_d", &"d_deck"])
+metadata/cells = Array[StringName]([&"db_electric_room", &"db_turbine_room", &"turbine_room", &"electric_room", &"electric_room_tween"])
 
 [node name="Wall_bulkhead_n" type="CSGBox3D" parent="Structure/Walls" unique_id=1424592739]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -85.14, -11.3693, 0)
