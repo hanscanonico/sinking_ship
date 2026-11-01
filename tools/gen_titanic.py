@@ -1711,7 +1711,8 @@ for k, aft, rows, back, deck_w in STOKEHOLDS:
 # side 3 ft 6 in inside her shell at its middle height in No. 2 hold.
 PASSAGE_TOP = q(TANK_TOP + 8.0 * FT)
 # (Its floor inside her bilge at its forward end, PASSAGE_END below.)
-PASSAGE_OUT = min(breadth(94.0, (TANK_TOP + PASSAGE_TOP) * 0.5) - 3.5 * FT, breadth(96.25, TANK_TOP) - 0.05)
+PASSAGE_OUT = math.floor(min(breadth(94.0, (TANK_TOP + PASSAGE_TOP) * 0.5) - 3.5 * FT,
+                             breadth(96.25, TANK_TOP) - 0.05) * 16) / 16
 PASSAGE_Z = (round(PASSAGE_OUT - 2.0, 4), round(PASSAGE_OUT, 4))
 
 # --- Every cell a place a body can be (#148), the bow: boiler room 6, its bunker and the
@@ -1796,7 +1797,7 @@ room("bunker_6", "coal bunker 6", BR6[1], BX["D"], -BUNKER6_Z, BUNKER6_Z, TANK_T
 PASSAGE_END = 96.25
 pt3_holes, pt2_holes, h3_holes, h2_holes = [], [], [], []
 stair("space_spiral", PASSAGE_END - T - FLIGHT_LEAD - 0.1 - SPACE_FLIGHT, PASSAGE_END - T - FLIGHT_LEAD - 0.1,
-      PASSAGE_MID - 0.25 - STAIR * 0.5, PASSAGE_MID - 0.25 + STAIR * 0.5, TANK_TOP, PASSAGE_TOP, pt2_holes)
+      PASSAGE_MID - STAIR * 0.5, PASSAGE_MID + STAIR * 0.5, TANK_TOP, PASSAGE_TOP, pt2_holes)
 walled("passage", BX["D"], PASSAGE_END, PASSAGE_Z[0], PASSAGE_Z[1], TANK_TOP, PASSAGE_TOP, "psf")
 room("passage", "firemen's passage", BX["D"], PASSAGE_END, PASSAGE_Z[0], PASSAGE_Z[1], TANK_TOP)
 
@@ -1823,10 +1824,10 @@ g_post = recut(g_post, "g_post", "G deck", h3_floor[0], h3_floor[1], -H3W[G_DECK
 
 # The double bottoms (#148): crawl spaces on her bottom plating under the tank top, 5 ft 3
 # in (SB-text), each entered through two manholes in the tank top over it, a stair down each.
-DB6_Z = fit(BX["E"], BX["D"], KEEL, 0.3)
+DB6_Z = math.floor(fit(BX["E"], BX["D"], KEEL, 0.3) * 16) / 16
 DB3_Z = fit(BX["D"], BX["C"], KEEL, 0.3)
 DB2_Z = fit(BX["C"], BX["B"], KEEL, 0.3)
-H1_TANK_SPLIT = 108.875  # where her bilge narrows No. 1 hold's tank top (Fig. 44)
+H1_TANK_SPLIT = 108.875  # where her bilge narrows its tank top (Fig. 44)
 H1_SPLIT = 110.0  # where No. 1 hold's floors narrow (est.)
 DB1_Z = fit(BX["B"], H1_SPLIT, KEEL, 0.2)
 h1_holes = []
@@ -1844,7 +1845,7 @@ for rid, name, x0, x1, w in [("db_br6", "boiler room 6 double bottom", BX["E"], 
     deck(rid, "double bottom", x0, x1, -w, w, KEEL, [])
     walled(rid, x0, x1, -w, w, KEEL, TANK_TOP, "ps")
     room(rid, name, x0, x1, -w, w, KEEL, crawl_space=TANK_TOP - KEEL < rule("body_height"))
-for letter, at, w in [("e", BX["E"], DB6_Z), ("d", BX["D"], DB6_Z), ("c", BX["C"], DB3_Z), ("b", BX["B"], DB2_Z)]:
+for letter, at, w in [("e", BX["E"], DB6_Z + 2 * T), ("d", BX["D"], DB6_Z), ("c", BX["C"], DB3_Z), ("b", BX["B"], DB2_Z)]:
     wall_x("db_" + letter, at, -w, w, KEEL, TANK_TOP)
 # No. 1 hold's on forward of its manholes to bulkhead A, as narrow as her forefoot leaves it,
 # through a door in their wall.
@@ -1891,19 +1892,20 @@ room("hold_2_orlop", "No. 2 hold", BX["C"], COURT_FWD, -H2P, H2P, PASSAGE_TOP)
 # crew's stairs up to the forecastle and its door onto the forward well (door_forecastle).
 # Each deck narrows forward of H1_SPLIT with her bow. The forepeak's tank and its stores
 # forward of bulkhead A, each through a door in it from the hold's deck at its floor.
-H1T = (fit(BX["B"], H1_TANK_SPLIT, TANK_TOP, 0.2), fit(H1_TANK_SPLIT, BX["A"], TANK_TOP, 0.3))
+H1T = (fit(BX["B"], H1_TANK_SPLIT, TANK_TOP, 0.2), fit(H1_TANK_SPLIT, BX["A"], TANK_TOP, 0.1))
 H1O = (fit(BX["B"], H1_SPLIT, ORLOP, 0.3), fit(H1_SPLIT, BX["A"], ORLOP, 0.3))
 H1G = (fit(BX["B"], H1_SPLIT, G_DECK, 0.3), fit(H1_SPLIT, BX["A"], G_DECK, 0.3))
 h1o_holes, h1g_holes = [], []
 for sid, foot, head, (z0, z1), low, high, holes_above in [
-        ("space_h1_or_1", 103.0, 108.625, (-H1T[0], -H1T[0] * 0.5), TANK_TOP, ORLOP, h1o_holes),
-        ("space_h1_or_2", 103.0, 108.625, (-H1T[0] * 0.5, 0.0), TANK_TOP, ORLOP, h1o_holes),
-        ("space_h1_g_1", 105.5, 108.5, (0.5, 1.55), ORLOP, G_DECK, h1g_holes),
-        ("space_h1_g_2", 105.5, 108.5, (1.55, 2.6), ORLOP, G_DECK, h1g_holes)]:
+        ("space_h1_or_1", 103.0, 108.625, (-H1T[0] + 0.15, -H1T[0] * 0.5 + 0.075), TANK_TOP, ORLOP, h1o_holes),
+        ("space_h1_or_2", 103.0, 108.625, (-H1T[0] * 0.5 + 0.075, 0.0), TANK_TOP, ORLOP, h1o_holes),
+        ("space_h1_g_1", 105.5, 108.5, (0.1, 1.1), ORLOP, G_DECK, h1g_holes),
+        ("space_h1_g_2", 105.5, 108.5, (1.1, 2.1), ORLOP, G_DECK, h1g_holes)]:
     stair(sid, foot, head, z0, z1, low, high, holes_above)
 # Up from G deck into the firemen's quarters on F deck either side of No. 1 hatch (est.).
-ways = [up_to_f(sid, BX["B"] + T + FLIGHT_LEAD, 106.0, 3.125, z0, z1, G_DECK)
-        for sid, (z0, z1) in [("space_h1_f", (-3.35, -2.3)), ("space_h1_f_2", (2.3, 3.35))]]
+ways = [up_to_f(sid, BX["B"] + T + FLIGHT_LEAD, H1_SPLIT - FLIGHT_LEAD, 3.125, z0, z1, G_DECK)
+        for sid, (z0, z1) in [("space_h1_f", (-3.25, -2.2)), ("space_h1_f_2", (2.2, 3.25))]]
+assert all(ways), "two ways up out of No. 1 hold's G deck"
 assert any(ways), "no way up out of No. 1 hold's G deck"
 # Each flight's opening in D deck screened along its inboard side forward of No. 1 hatch's
 # cover (est.), so the joint between the quarters' pieces it runs under is two doors, each
@@ -2889,8 +2891,10 @@ def section_outline(x):
     starboard side, over her houses, down her port side."""
     low, top = bottom(x), shell_top(x)
     side = []
-    for i in range(SIDE_POINTS + 1):
-        y = top - (top - low) * math.sin(math.pi * 0.5 * i / SIDE_POINTS)
+    # (Every section samples her side at its plans' heights too, where it turns.)
+    heights = {top - (top - low) * math.sin(math.pi * 0.5 * i / SIDE_POINTS) for i in range(SIDE_POINTS + 1)}
+    heights |= {y for y in low_nodes(x)[0] if low < y < top}
+    for y in sorted(heights, reverse=True):
         side.append((breadth(x, min(max(y, low + 1e-6), top)), y))
     side.reverse()
     points = [(0.0, low)] + side
@@ -2954,8 +2958,7 @@ SECTION_MAX = next(m / 100 for m in range(4000, 100, -1) if section_spans(m / 10
 # its ends: a house no section's middle stood in would be a cell with no room in her,
 # and a section's outline holds a house all along it — one running past the house's end
 # would enclose a slice of air no cell holds, buoyant however deep she went.
-# (And one where the plates narrow her fast aft of bulkhead M, her shell's runs meeting fair.)
-SECTION_BREAKS = sorted(set(FRAME_BREAKS) | {round(x, 4) for x0, x1, *_r in HOUSES for x in (x0, x1)} | {-71.0})
+SECTION_BREAKS = sorted(set(FRAME_BREAKS) | {round(x, 4) for x0, x1, *_r in HOUSES for x in (x0, x1)})
 # Each section from one break to the next, its ends shared with its neighbours', so they
 # tile her: a point on a bulkhead's line is in one of them, the one forward of it
 # (HullSection's span takes its after end, not its forward one). Each end stands one or two
