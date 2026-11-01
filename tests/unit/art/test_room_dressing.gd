@@ -244,6 +244,13 @@ const TRACED := {
 }
 ## The small Titanic's rooms on those decks that the Titanic's plates have no more.
 const UNTRACED: Array[StringName] = [
+	&"G deck passage, No. 1 hold",
+	&"G deck passage, No. 1 hold, forward",
+	&"G deck stores, electric room",
+	&"after hold, forward, G deck",
+	&"after hold, aft, G deck",
+	&"after hold, aft, G deck, after end",
+	&"after peak stores",
 	&"Scotland Road, boiler room 1",
 	&"Scotland Road, boiler rooms 2 and 3",
 	&"Scotland Road, boiler room 4",
@@ -399,8 +406,6 @@ func test_a_room_whose_name_says_what_it_is_is_that() -> void:
 		&"No. 1 hold, forward": RoomDressing.Kind.HOLD,
 		&"No. 1 hold, orlop": RoomDressing.Kind.HOLD,
 		&"No. 1 hold, orlop, forward": RoomDressing.Kind.HOLD,
-		&"G deck passage, No. 1 hold": RoomDressing.Kind.PASSAGE,
-		&"G deck passage, No. 1 hold, forward": RoomDressing.Kind.PASSAGE,
 		&"firemen's quarters": RoomDressing.Kind.BERTHS,
 		&"seamen's quarters": RoomDressing.Kind.BERTHS,
 		&"forecastle stores": RoomDressing.Kind.HOLD,
@@ -414,13 +419,10 @@ func test_a_room_whose_name_says_what_it_is_is_that() -> void:
 		&"engine room": RoomDressing.Kind.ENGINE,
 		&"turbine engine room": RoomDressing.Kind.ENGINE,
 		&"electric engine room": RoomDressing.Kind.ENGINE,
-		&"G deck stores, electric room": RoomDressing.Kind.HOLD,
 		&"after hold, forward": RoomDressing.Kind.HOLD,
 		&"after hold, forward, orlop": RoomDressing.Kind.HOLD,
-		&"after hold, forward, G deck": RoomDressing.Kind.HOLD,
 		&"after hold, aft": RoomDressing.Kind.HOLD,
 		&"after hold, aft, orlop": RoomDressing.Kind.HOLD,
-		&"after hold, aft, G deck": RoomDressing.Kind.HOLD,
 		&"boiler room 1 double bottom": RoomDressing.Kind.TANK,
 		&"engine room double bottom": RoomDressing.Kind.TANK,
 		&"turbine room double bottom": RoomDressing.Kind.TANK,
@@ -429,9 +431,7 @@ func test_a_room_whose_name_says_what_it_is_is_that() -> void:
 		&"after hold, aft, double bottom": RoomDressing.Kind.TANK,
 		&"after hold, aft, after end": RoomDressing.Kind.HOLD,
 		&"after hold, aft, orlop, after end": RoomDressing.Kind.HOLD,
-		&"after hold, aft, G deck, after end": RoomDressing.Kind.HOLD,
 		&"after peak tank": RoomDressing.Kind.TANK,
-		&"after peak stores": RoomDressing.Kind.HOLD,
 		# And amidships.
 		&"coal bunker 2": RoomDressing.Kind.HOLD,
 		&"coal bunker 3": RoomDressing.Kind.HOLD,
@@ -443,6 +443,13 @@ func test_a_room_whose_name_says_what_it_is_is_that() -> void:
 		&"boiler room 5 double bottom": RoomDressing.Kind.TANK,
 		# A working passage along E deck is a plain passage, ahead of the engine room it
 		# runs over.
+		&"G deck passage, No. 1 hold": RoomDressing.Kind.PASSAGE,
+		&"G deck passage, No. 1 hold, forward": RoomDressing.Kind.PASSAGE,
+		&"G deck stores, electric room": RoomDressing.Kind.HOLD,
+		&"after hold, forward, G deck": RoomDressing.Kind.HOLD,
+		&"after hold, aft, G deck": RoomDressing.Kind.HOLD,
+		&"after hold, aft, G deck, after end": RoomDressing.Kind.HOLD,
+		&"after peak stores": RoomDressing.Kind.HOLD,
 		&"E deck working passage, engine room": RoomDressing.Kind.PASSAGE,
 		&"E deck working passage, turbine room": RoomDressing.Kind.PASSAGE,
 		&"E deck working passage, electric room": RoomDressing.Kind.PASSAGE,
@@ -517,6 +524,7 @@ func test_a_liner_s_office_is_one_and_her_officers_quarters_are_not() -> void:
 		&"stewards' office",
 		&"engineers' office, E deck",
 		&"assistant purser's office, E deck",
+		&"registered letters office",
 	]
 	for office: StringName in traced_offices:
 		offices[office] = true

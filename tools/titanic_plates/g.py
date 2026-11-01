@@ -195,7 +195,7 @@ ROOMS = [
     ("egg store", 2571.5, 2041, 2689, 2135),
     ("ice cream store", 2722.5, 1875.5, 2893.5, 1950),
     ("passage, G deck", 2722.5, 1950, 2893.5, 2040.5),
-    ("ice making machine room", 2689, 2040.5, 2893.5, 2140.5),
+    ("ice making machine store", 2689, 2040.5, 2893.5, 2140.5),
     ("passage, G deck", 2893.5, 1820, 2967.9, 2262),
     ("passage, G deck", 2892, 2262, 2967.9, 2745),
     ("bacon, ham and cheese store", 2259, 2223, 2433, 2357.5),
@@ -207,7 +207,7 @@ ROOMS = [
     ("egg and potato store", 2779.5, 2372.5, 2892, 2563.5),
     ("bacon store", 2779.5, 2563.5, 2892, 2645),
     ("poultry and game store", 2609, 2464.5, 2779.5, 2645),
-    ("thawing room", 2321, 2516.5, 2609, 2645),
+    ("thawing store", 2321, 2516.5, 2609, 2645),
     ("W.B. beef store", 2298.5, 2645, 2548.5, 2789),
     ("E.B. beef store", 2548.5, 2645, 2779.5, 2792),
     ("meat and poultry store", 2779.5, 2645, 2892, 2745),
@@ -252,14 +252,14 @@ ROOMS = [
     ("squash court", 8126.4, 2194.5, 8475.5, 2435.5),
     # The baggage room steps forward abaft the court: its wall there read 5 px lower than
     # the plate's (2135) so it is one line with the rooms' beside it.
-    ("first-class baggage room", 8416, 1898.7, 8722.1, 2140),
-    ("first-class baggage room", 8475.5, 2140, 8722.1, 2194.5),
-    ("first-class baggage room", 8618.5, 2194.5, 8722.1, 2435.5),
-    ("first-class baggage room", 8475.5, 2435.5, 8722.1, 2570.5),
-    ("first-class baggage room", 8445.8, 2570.5, 8722.1, 2718.2),
+    ("first-class baggage store", 8416, 1898.7, 8722.1, 2140),
+    ("first-class baggage store", 8475.5, 2140, 8722.1, 2194.5),
+    ("first-class baggage store", 8618.5, 2194.5, 8722.1, 2435.5),
+    ("first-class baggage store", 8475.5, 2435.5, 8722.1, 2570.5),
+    ("first-class baggage store", 8445.8, 2570.5, 8722.1, 2718.2),
     ("post office", 8126.4, 2435.5, 8475.5, 2570.5),
     ("post office", 8126.4, 2570.5, 8340, 2769.5),
-    ("registered letters room", 8340, 2570.5, 8445.8, 2715.5),
+    ("registered letters office", 8340, 2570.5, 8445.8, 2715.5),
     # To port, where the plate draws the Olympic's "3rd CL. OPEN BERTHS", seven
     # third-class rooms for 34 (est., BOT, "Decks and Accommodation", G deck), patterned on
     # F deck's rooms over them (two eight-berth rooms, the double stair and the linen
@@ -544,3 +544,56 @@ STAIRS = [
     ("hold ladder", 1089, 2372, 1207, 2406.5, "fore", "orlop", "g"),
     ("hold ladder", 1701.5, 2194, 1815.5, 2228, "aft", "orlop", "g"),
 ]
+
+# Lines moved off the plate so a door fits (deck.py's NUDGES, DOOR_MOVES; DOOR_LEAST 1 m), her
+# side held at G deck's floor taking what her low plan's line has over it (#396):
+NUDGES = [
+    # The court meets F deck's upper half of it, which reads 0.19 m to port and 0.06 m forward
+    # of this view's.
+    (2, -2.875, -3.0625, 70.9, 83.7),
+    (2, 3.375, 3.1875, 70.9, 83.7),
+    (0, 79.875, 79.9375, -3.1, 3.4),
+    (0, 71.875, 72.0, -4.3, -3.0),  # the court's door off its lobby
+    (2, -0.5625, -0.5, -119.1, -115.9),  # P's doors, where the plate draws them
+    (2, 0.75, 0.5, -119.1, -115.9),
+    (2, 7.5625, 7.25, -98.0, -94.5),  # the three-berth room's door, its side taken by hers
+    (2, 4.875, 4.75, 97.6, 99.4),  # the four-berth room's along B
+    (2, -3.125, -3.375, 99.6, 103.3),  # the leading firemen's door
+    (2, -2.25, -1.875, 103.4, 108.4),  # the leading firemen's two parts' join, her side taking it
+    (2, 7.5625, 5.75, 86.3, 91.3),  # the eight-berth room along her side, which hers would leave none
+    (0, -43.0625, -43.5625, -10.6, -8.6),  # the engine oil tanks, no gaps a body can't take
+    (0, -38.625, -38.0, -10.6, -8.6),
+    (2, 8.0625, 7.9375, -93.2, -91.0),  # the four-berth room's, off its passage's end
+    (2, 5.9375, 5.75, 92.5, 95.1),  # the six-berth room's, F deck's ladder's foot beside it
+]
+DOOR_MOVES = [
+    ((-45.9375, -10.6875), (-47.75, -10.625)),  # the brine tank room's, clear of F deck's stair
+    ((-122.9375, -1.0625), None),  # the store in her run (GONE)
+    ((-115.3125, -2.3125), (-117.5, -1.6875)),  # the rooms abaft the passage's mouths, her side
+    ((-115.25, 3.0625), (-117.5, 1.875)),  # leaving them no stretch at the plate's swing
+    ((-108.8125, -1.9375), (-107.75, -2.625)),  # the two-berth rooms off O's cross passage
+    ((-108.8125, 2.0), (-107.75, 2.6875)),
+    ((-104.25, -4.0625), (-102.875, -3.75)),  # the two-berth room's, past its passage's end
+    ((-94.3125, 9.0), (-94.4375, 7.8125)),  # the three-berth room's, inside her side
+    ((-93.4375, 9.25), (-93.3125, 8.8125)),  # the four-berth room's, off her side's wall
+    ((-115.9375, 0.0625), (-116.8125, 0.5)),  # the two-berth room's, between P's doors' passages
+    ((97.375, 6.3125), (97.5625, 5.375)),  # the four-berth room's along B, inside her side
+]
+# The pieces of Ls her side leaves narrower than a body, or past one (each room whole without).
+MADE_SOLID = [(-91.3, -9.4), (-90.0, -9.5), (-98.6, -7.5), (-98.6, 7.7)]
+# F deck's ladder's foot, in the passage beside its own:
+OPENED = [(92.4275, 92.4475, 4.5625, 5.75), (75.3025, 75.3225, -7.625, -6.5), (91.25, 92.4375, 5.74, 5.76)]
+# The stub's join her side leaves no stub for (OPENED has its way):
+SHUT = [(91.84, 7.55)]
+# Her boiler rooms under F deck stay her estimated ones until #379 lays them, K to D (their
+# casings and bunkers), and her forepeak's stores forward of A: these solids wait for it.
+STAIR_MOVES = [
+    # Clear of the orlop's wall along it (her estimated orlop, #379):
+    (("hold ladder", -113.5, 0.8125), (-113.5, -110.5, 0.625, 1.5625)),
+]
+AWAITS = [(-27.71, 70.75), (115.81, 140.0)]
+# Her run, which her side at G deck leaves no room for and the plate no door into: no floor of
+# hers reaches it.
+GONE = [(-127.0, 0.0), (-124.5, 0.0)]
+# The passages F deck's flights fill, each foot's own way out past its end.
+NOT_ROOMS = [(-90.0, -8.3), (93.8, 5.2)]
