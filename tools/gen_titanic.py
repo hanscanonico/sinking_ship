@@ -1779,14 +1779,12 @@ def low_named(plan, level):
             rooms.append(("passage, tank top, forward of " + letter, round(at * 128) / 128, x1, z0, z1))
             continue
         if name == "firemen's passage" and x0 > BX["C"]:
-            rooms.append(("firemen's passage, forward end, port", x0, x1, z0, PASSAGE_Z[0]))
-            rooms.append(("firemen's passage, forward end", x0, x1, PASSAGE_Z[0], PASSAGE_Z[1]))
-            rooms.append(("firemen's passage, forward end, starboard", x0, x1, PASSAGE_Z[1], z1))
-            continue
+            name = "firemen's passage, forward end"
         if name == "firemen's passage" and x1 <= BX["D"] + 0.01:
             name = "firemen's passage, by its door"
         elif "hold, tank top" in name:
             name += ", port" if z1 <= PASSAGE_Z[0] + 0.01 else ", starboard" if z0 >= PASSAGE_Z[1] - 0.01 else ""
+            name += ", forward" if x0 > 100.0 and "No. 2" in name else ""
         elif name == "shaft tunnel":
             name += ", P to O" if middle < BX["O"] else ", O to N"
         elif name == "cargo hold":
@@ -2001,6 +1999,7 @@ DOUBLE_BOTTOMS = [
     ("db_hold_1_fwd", "No. 1 hold double bottom, forward", H1_SPLIT, BX["A"]),
 ]
 TT_HOLES = []
+ORLOP_ROOF_END = 93.75  # short of where a body climbing the spirals puts its head (orlop.py)
 MANHOLE = (0.9, 2.0)  # across its stair and along it
 DB_Z = {rid: fit(x0, x1, KEEL, 0.2 if rid.startswith("db_hold_1") else 0.3) for rid, _n, x0, x1 in DOUBLE_BOTTOMS}
 
@@ -2047,6 +2046,11 @@ for at in ends_db:
     else:
         wall_x("db_x%d" % int((at + 200.0) * 16), at, -w, w, KEEL, top)
 
+# The roofs of her tunnels through the coal and of the firemen's passage aft of where the
+# spirals come up through it: 8 ft over the plates (est., PASSAGE_TOP), a thin slab no deck.
+for k, r in enumerate(r for r in TT_OUTLINE.rooms if r[0] == "passage, tank top" or (r[0] == "firemen's passage" and r[1] < 90.0)):
+    x1 = min(r[2], ORLOP_ROOF_END)
+    box("passage_roof_%d" % k, r[1], x1, r[3], r[4], PASSAGE_TOP, PASSAGE_TOP + 2 * T)
 # Her floors: the tank top, the orlop, the lower orlop, their stairs' holes railed.
 tt_decks = [i for k, (x0, x1, z0, z1) in enumerate(TT_PIECES)
             for i in deck("tt_%d" % k, "engine room floor" if BX["L"] <= x0 and x1 <= BX["K"] else "tank top", x0, x1, z0, z1,
@@ -2951,23 +2955,49 @@ x0, x1 = COMP["forepeak"]
 cell("forepeak_tank", x0, x1, KEEL, ORLOP_FWD, -HALF, HALF, "VOID")
 cell("forepeak", x0, x1, ORLOP_FWD, D_DECK, -HALF, HALF, "STORES")
 cell("forepeak_d", x0, x1, D_DECK, 0.0, -HALF, HALF, "ACCOMMODATION")
+PASSAGE_FWD_X, PASSAGE_FWD_Z = next((r[1], (r[3], r[4])) for r in TT_PLAN.rooms if r[0] == "firemen's passage, forward end")
 x0, x1 = COMP["hold_1"]
 cell("hold_1", x0, x1, TANK_TOP, G_DECK, -HALF, HALF, "CARGO", HOLD)
 cell("hold_1_tween", UPPER["B"], x1, G_DECK, D_DECK, -HALF, HALF, "ACCOMMODATION")
 cell("hold_1_d", x0, x1, D_DECK, 0.0, -HALF, HALF, "ACCOMMODATION")
 for hold in ("hold_2", "hold_3"):
     x0, x1 = COMP[hold]
+    if hold == "hold_2":
+        x1 = PASSAGE_FWD_X
+        cell(hold + "_port_fwd", x1, COMP[hold][1], TANK_TOP, ORLOP_FWD, -HALF, PASSAGE_FWD_Z[0], "CARGO", HOLD)
+        cell(hold + "_starboard_fwd", x1, COMP[hold][1], TANK_TOP, ORLOP_FWD, PASSAGE_FWD_Z[1], HALF, "CARGO", HOLD)
     cell(hold + "_port", x0, x1, TANK_TOP, ORLOP_FWD, -HALF, PASSAGE_Z[0], "CARGO", HOLD)
     cell(hold + "_starboard", x0, x1, TANK_TOP, ORLOP_FWD, PASSAGE_Z[1], HALF, "CARGO", HOLD)
+    x1 = COMP[hold][1]
     cell(hold, x0, x1, ORLOP_FWD, G_DECK, -HALF, HALF, "CARGO", HOLD)
     cell(hold + "_tween", x0, min(x1, UPPER["B"]), G_DECK, D_DECK, -HALF, HALF, "ACCOMMODATION")
-cell("firemens_passage", BX["D"], BX["B"], TANK_TOP, ORLOP_FWD, PASSAGE_Z[0], PASSAGE_Z[1], "ACCOMMODATION")
+# The firemen's passage as Plate V's tank top draws it: wide at its after end, through boiler
+# room 6's forward bunker, and at its forward end, round the spirals; joined OPEN through D.
+cell("firemens_passage", BX["D"], PASSAGE_FWD_X, TANK_TOP, ORLOP_FWD, PASSAGE_Z[0], PASSAGE_Z[1], "ACCOMMODATION")
+cell("firemens_passage_fwd", PASSAGE_FWD_X, BX["B"], TANK_TOP, ORLOP_FWD, *PASSAGE_FWD_Z, "ACCOMMODATION")
+# Each cross bunker's tunnel from its after face through the bulkhead (tanktop.py), and the
+# firemen's passage's after end: (its side to port, to starboard, its cell).
+TUNNELS = {k: (r[3], r[4], "tunnel_%d" % k) for k, r in enumerate(sorted(
+    (r for r in TT_PLAN.rooms if r[0].startswith("passage, tank top, aft of")), key=lambda r: r[1]), 1)}
+TUNNELS[6] = next((r[3], r[4], "firemens_passage_aft") for r in TT_PLAN.rooms if r[0] == "firemen's passage, by its door")
 for k in range(6, 0, -1):
     name = "boiler_room_%d" % k
     x0, x1 = COMP[name]
     # Boiler room 5's forward bunker was empty that night (BOT: "At the time of the
     # collision this bunker had no coal in it").
-    cell("bunker_%d" % k, BUNKERS["br%d" % k], x1, TANK_TOP, F_DECK, -HALF, HALF, "BUNKER", 0.95 if k == 5 else None)
+    # Its coal either side of and over the tunnel through it (TUNNELS), a cell for each: the
+    # one to starboard keeps the bunker's name, as her hit and her bunker door know it. Boiler
+    # room 6's forward one under G deck's pocket over it, the coal over that a cell too.
+    t0, t1, tunnel = TUNNELS[k]
+    coal_top = G_DECK if k == 6 else F_DECK
+    coal = 0.95 if k == 5 else None
+    b5 = BUNKERS["br%d" % k]
+    cell("bunker_%d" % k, b5, x1, TANK_TOP, coal_top, t1, HALF, "BUNKER", coal)
+    cell("bunker_%d_p" % k, b5, x1, TANK_TOP, coal_top, -HALF, t0, "BUNKER", coal)
+    cell("bunker_%d_o" % k, b5, x1, PASSAGE_TOP, coal_top, t0, t1, "BUNKER", coal)
+    cell(tunnel, b5, x1, TANK_TOP, PASSAGE_TOP, t0, t1, "ACCOMMODATION")
+    if k == 6:
+        cell("bunker_6_u", b5, x1, G_DECK, F_DECK, -HALF, HALF, "BUNKER")
     cell(name, x0, BUNKERS["br%d" % k], TANK_TOP, F_DECK, -HALF, HALF, "MACHINERY", MACHINERY)
     if k == 6:
         cell(name + "_tween", x0, x1, F_DECK, D_DECK, -HALF, HALF, "ACCOMMODATION")
@@ -3033,7 +3063,7 @@ SKIN_Z = {name: round(min(breadth(x, (TANK_TOP + F_DECK) * 0.5) for x in (x0 + 0
 for name, x0, x1 in SKINNED:
     for c in list(CELLS):
         if x0 <= c[1] and c[2] <= x1 and c[3] >= TANK_TOP - 0.31 and c[4] <= F_DECK + 1e-6:
-            c[5], c[6] = -SKIN_Z[name], SKIN_Z[name]
+            c[5], c[6] = max(c[5], -SKIN_Z[name]), min(c[6], SKIN_Z[name])
     floor = ENGINE_TANK_TOP if name == "engine_room" else TANK_TOP
     cell(name + "_wing_p", x0, x1, floor, F_DECK, -HALF, -SKIN_Z[name], "VOID")
     cell(name + "_wing_s", x0, x1, floor, F_DECK, SKIN_Z[name], HALF, "VOID")
@@ -3139,6 +3169,11 @@ for letter, *_rest in BULKHEADS:
         half = wall_half(at, bottom, high)
         walls.append(("bulkhead_%s_step" % letter.lower(), "ACROSS", at, (-half, half), bottom, high,
                       1.5 * built_for(top), parted(0, at, bottom, high, -half, half)))
+# Each tunnel's after face, the wall its watertight door stands in, built as its bulkhead is;
+# the rest of a bunker's face isn't a wall yet.
+for (k, (t0, t1, _tunnel)), letter in zip(sorted(TUNNELS.items()), "JHGFED"):
+    walls.append(("bulkhead_%s_face" % letter.lower(), "ACROSS", BUNKERS["br%d" % k], (t0, t1), TANK_TOP, PASSAGE_TOP,
+                  1.5 * built_for(TOPS[letter]), parted(0, BUNKERS["br%d" % k], TANK_TOP, PASSAGE_TOP, t0, t1)))
 # Her sisters' inner skin, a wall along her either side of each compartment it runs
 # through, to F deck (est.), built as her bulkheads are.
 for name, x0, x1 in SKINNED:
@@ -3189,15 +3224,15 @@ def floor_of(x, z, y):
 # twelve, the plate eleven); from J to E in the after face of the forward cross bunker, whose
 # tunnel goes on through the bulkhead, which the plate draws open there, into the next room;
 # the firemen's passage's in the after face of boiler room 6's, through D as through C with no
-# door. A tunnel's water is too little to be a cell's (est.): each door joins the room abaft
-# it to the room or passage its tunnel opens into.
+# door. Each door joins the room abaft it to its tunnel, whose hole through the bulkhead (OPEN,
+# below) joins that to the next room.
 VERTICAL_DOORS = [("O", BX["O"], 1.625), ("N", BX["N"], 1.5625), ("M", BX["M"], 4.1875), ("L", BX["L"], 1.625),
                   ("K", BX["K"], 2.75), ("J", BUNKERS["br1"], 2.9375), ("H", BUNKERS["br2"], 2.8125),
                   ("G", BUNKERS["br3"], 2.75), ("F", BUNKERS["br4"], 2.75), ("E", BUNKERS["br5"], 2.875),
                   ("D", BUNKERS["br6"], 0.625)]
 for letter, x, z in VERTICAL_DOORS:
     sill = max(floor_of(x - 0.05, z, -16.0), floor_of(BX[letter] + 0.05, z, -16.0))
-    a_cell, b_cell = cell_at(x - 0.01, sill + 1.0, z), cell_at(BX[letter] + 0.01, sill + 1.0, z)
+    a_cell, b_cell = cell_at(x - 0.01, sill + 1.0, z), cell_at(x + 0.01, sill + 1.0, z)
     opening("wtd_" + letter.lower(), "WATERTIGHT_DOOR", a_cell, b_cell, (x, sill + LINTEL * 0.5, z), (0, LINTEL, DOOR), starts="OPEN",
             shuts_at_hit=True, shut_time=30.0, flip_chance=0.05, leak_head=TOPS[letter] - sill,
             collapse_head=1.5 * (TOPS[letter] - sill), leak_area=0.005)
@@ -3220,11 +3255,26 @@ def deck_door(letter, deck):
 # under 3 m; the bunker's plating and its coal scuttles leak (est.).
 for k in range(6, 0, -1):
     x = BUNKERS["br%d" % k]
-    across("bunker_door_%d" % k, "DOOR", x, TANK_TOP + 0.6 + 0.5, 3.0, 1.0, 1.0, starts="SHUT",
+    across("bunker_door_%d" % k, "DOOR", x, TANK_TOP + 0.6 + 0.5, 6.0, 1.0, 1.0, starts="SHUT",
            leak_head=1.5, collapse_head=3.0, leak_area=0.005)
     b = cell_box("bunker_%d" % k)
     opening("leak_bunker_%d" % k, "LEAK", "boiler_room_%d" % k, "bunker_%d" % k,
-            (x, (b[2] + b[3]) * 0.5, -6.0), (0, b[3] - b[2], 2.0), area=0.01, starts="OPEN")
+            (x, (b[2] + b[3]) * 0.5, 8.0), (0, b[3] - b[2], 2.0), area=0.01, starts="OPEN")
+    # Its coal one across and over its tunnel; the tunnel's hole through the bulkhead.
+    t0, t1, tunnel = TUNNELS[k]
+    fwd = COMP["boiler_room_%d" % k][1]
+    top_c = cell_box("bunker_%d_o" % k)[3]
+    for tag, z, part in [("p", t0, "bunker_%d_p" % k), ("s", t1, "bunker_%d" % k)]:
+        opening("open_bunker_%d_%s" % (k, tag), "OPEN", part, "bunker_%d_o" % k, ((x + fwd) * 0.5, (PASSAGE_TOP + top_c) * 0.5, z),
+                (fwd - x, top_c - PASSAGE_TOP, 0), starts="OPEN")
+    if k == 6:
+        opening("open_bunker_6_u", "OPEN", "bunker_6_o", "bunker_6_u", ((x + fwd) * 0.5, G_DECK, (t0 + t1) * 0.5), (fwd - x, 0, t1 - t0), starts="OPEN")
+        opening("open_firemens_passage_aft", "OPEN", tunnel, "firemens_passage",
+                (BX["D"], (TANK_TOP + PASSAGE_TOP) * 0.5, (PASSAGE_Z[0] + PASSAGE_Z[1]) * 0.5),
+                (0, PASSAGE_TOP - TANK_TOP, PASSAGE_Z[1] - PASSAGE_Z[0]), starts="OPEN")
+    else:
+        opening("open_tunnel_%d" % k, "OPEN", tunnel, "boiler_room_%d" % (k + 1), (fwd, (TANK_TOP + PASSAGE_TOP) * 0.5, (t0 + t1) * 0.5),
+                (0, PASSAGE_TOP - TANK_TOP, t1 - t0), starts="OPEN")
     through("scuttle_bunker_%d" % k, "LEAK", (b[0] + b[1]) * 0.5, 8.0, 1.0, 1.0, "bunker_%d" % k, area=0.05,
             starts="OPEN")
 
@@ -3415,6 +3465,7 @@ for name, x0, x1, z0, z1, high, _x_low in stairs + stairs_z:
 # metre square into No. 2 hold over it.
 for hold in ("hold_2", "hold_3"):
     hb = cell_box(hold)
+    hb = (max(hb[0], BX["D"]), min(hb[1], PASSAGE_FWD_X))
     xm = (hb[0] + hb[1]) * 0.5
     for side, z in [("port", PASSAGE_Z[0]), ("starboard", PASSAGE_Z[1])]:
         opening("leak_passage_%s_%s" % (hold, side), "LEAK", "firemens_passage", "%s_%s" % (hold, side),
@@ -3425,7 +3476,16 @@ for hold in ("hold_2", "hold_3"):
         opening("open_%s_%s" % (hold, side), "OPEN", "%s_%s" % (hold, side), hold,
                 ((sb[0] + sb[1]) * 0.5, ORLOP_FWD, (sb[4] + sb[5]) * 0.5), (sb[1] - sb[0], 0, sb[5] - sb[4]),
                 starts="OPEN")
-opening("stair_firemens_passage", "STAIRWELL", "firemens_passage", "hold_2",
+# Its forward end, the holds' pieces beside it, and the spirals up out of it (Wilding).
+opening("open_firemens_passage_fwd", "OPEN", "firemens_passage", "firemens_passage_fwd",
+        (PASSAGE_FWD_X, (TANK_TOP + ORLOP_FWD) * 0.5, (PASSAGE_Z[0] + PASSAGE_Z[1]) * 0.5),
+        (0, ORLOP_FWD - TANK_TOP, PASSAGE_Z[1] - PASSAGE_Z[0]), starts="OPEN")
+for side in ("port", "starboard"):
+    pb, fb = cell_box("hold_2_" + side), cell_box("hold_2_%s_fwd" % side)
+    z0, z1 = max(pb[4], fb[4]), min(pb[5], fb[5])
+    opening("open_hold_2_%s_fwd" % side, "OPEN", "hold_2_" + side, "hold_2_%s_fwd" % side,
+            (PASSAGE_FWD_X, (TANK_TOP + ORLOP_FWD) * 0.5, (z0 + z1) * 0.5), (0, ORLOP_FWD - TANK_TOP, z1 - z0), starts="OPEN")
+opening("stair_firemens_passage", "STAIRWELL", "firemens_passage_fwd", "hold_2",
         (BX["B"] - 1.0, ORLOP_FWD, (PASSAGE_Z[0] + PASSAGE_Z[1]) * 0.5), (1.0, 0, 1.0), starts="OPEN")
 # The two hinged doors the plate's tank top draws through D from the passage's after end into
 # No. 3 hold (70.75, -1.75 and +2.13). BOT says the passage "was made thoroughly watertight
@@ -3433,7 +3493,7 @@ opening("stair_firemens_passage", "STAIRWELL", "firemens_passage", "hold_2",
 # aren't that: est. shut that night, the passage's way to reserve coal, weeping through their
 # edges, a 3 mm gap round a door 1.1 by 2.1 m.
 for tag, side, z in [("p", "port", -1.75), ("s", "starboard", 2.125)]:
-    opening("door_passage_hold_3_" + tag, "LEAK", "bunker_6", "hold_3_" + side,
+    opening("door_passage_hold_3_" + tag, "LEAK", "firemens_passage_aft", "hold_3_" + side,
             (BX["D"], TANK_TOP + LINTEL * 0.5, z), (0, LINTEL, DOOR), area=0.02, starts="OPEN")
 # Her sisters' inner skin: each wing leaks into the room inside it (est. 0.002 m², as
 # the trawler's linings) and breathes through an air pipe into the deck over it.

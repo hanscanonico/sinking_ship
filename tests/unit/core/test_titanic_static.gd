@@ -76,7 +76,7 @@ func before_all() -> void:
 	for wall: ShipWall in _structure.walls:
 		# She has fifteen bulkheads: a stepped one's stretch off its line (B's, M's, *_step)
 		# is a second piece of it, no sixteenth.
-		if wall.axis == ShipWall.Axis.ACROSS and not String(wall.name).ends_with("_step"):
+		if wall.axis == ShipWall.Axis.ACROSS and not String(wall.name).ends_with("_step") and not String(wall.name).ends_with("_face"):
 			_walls.append(wall)
 	_walls.sort_custom(func(a: ShipWall, b: ShipWall) -> bool: return a.at > b.at)
 	assert_eq(_walls.size(), COMPARTMENTS.size() - 1, "fifteen bulkheads part her into sixteen")
@@ -337,8 +337,9 @@ func test_her_sisters_carry_their_bulkheads() -> void:
 			if wall.axis == ShipWall.Axis.ALONG:
 				skin += 1
 				continue
-			# (A stepped bulkhead's second piece, *_step, is no bulkhead of its own.)
-			if String(wall.name).ends_with("_step"):
+			# (A stepped bulkhead's second piece, *_step, and a tunnel's after face, *_face, are no
+			# bulkheads of their own.)
+			if String(wall.name).ends_with("_step") or String(wall.name).ends_with("_face"):
 				continue
 			bulkheads += 1
 			if wall.top > 0.0:
