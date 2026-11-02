@@ -1789,6 +1789,10 @@ TT_PLAN.solids[:] = [next((b for k, b in LOW_BOILERS.items() if k[0] == s[1] and
 # Each room in one cell, its name in that cell alone (test_ship_structure_lint): a tunnel cut
 # at the bulkhead it goes through, the firemen's passage's wider forward end at its cell's
 # sides, the plates' repeated labels told apart by where they stand.
+# Plate IV against BOT, the owner's ruling: the plate stands, and BOT's "3 1/2 ft" from her skin to
+# the passage is read as its forward end, where the gash holes it. At the gash's height in her
+# stepped sections the plate's 2.98 m beam there leaves 1.48 m, the 3.15 m it is laid at 1.31 m,
+# against BOT's 1.07 m; a 1.5 m bite reaches it, and only there.
 PASSAGE_Z = tuple(next((r[3], r[4]) for r in TT_PLAN.rooms if r[0] == "firemen's passage" and r[2] > 90.0 and r[1] < 75.0))
 
 def low_named(plan, level):
