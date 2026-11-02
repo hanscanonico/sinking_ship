@@ -268,9 +268,7 @@ func step(state: FloodState, seconds: float) -> FloodState:
 	var sea := next.sea
 	var held := _hold_stiff(state, heads, sea, seconds)
 	_shipped.ship(next, heads, _held, _boxes, seconds)
-	# What a held cell's solve stood its neighbours at: the sweep moves them, but the held
-	# cell's openings pass what it solved for, or a small cell held beside a filling room
-	# takes all the room's rise as though it were the sea.
+	# A held cell's openings pass what its solve said: the sweep's heads overfill a small one.
 	var solved := heads.duplicate()
 	for turn in count:
 		var index := turn if state.steps % 2 == 0 else count - 1 - turn
@@ -278,10 +276,8 @@ func step(state: FloodState, seconds: float) -> FloodState:
 		var first := _first[index]
 		var second := _second[index]
 		var bottom := _bottom[index]
-		var beside_held := (first != OUTSIDE and _held[first] == 1) or (
-			second != OUTSIDE and _held[second] == 1
-		)
-		var standing := solved if beside_held else heads
+		var by_held := (first >= 0 and _held[first] == 1) or (second >= 0 and _held[second] == 1)
+		var standing := solved if by_held else heads
 		if (
 			(sea if first == OUTSIDE else standing[first]) <= bottom
 			and (sea if second == OUTSIDE else standing[second]) <= bottom
@@ -292,7 +288,7 @@ func step(state: FloodState, seconds: float) -> FloodState:
 		# A cell passing what a solve said gives no more than it holds: its neighbours' caps
 		# may have kept back some of what the solve counted on coming in.
 		var giver := first if amount > 0.0 else second
-		if giver != OUTSIDE and beside_held:
+		if giver != OUTSIDE and by_held:
 			var holds := maxf(next.water[giver], 0.0)
 			amount = clampf(amount, -holds, holds)
 		next.moved[index] = amount
