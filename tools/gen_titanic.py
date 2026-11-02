@@ -1794,6 +1794,10 @@ TT_PLAN.solids[:] = [next((b for k, b in LOW_BOILERS.items() if k[0] == s[1] and
 # stepped sections the plate's 2.98 m beam there leaves 1.48 m, the 3.15 m it is laid at 1.31 m,
 # against BOT's 1.07 m; a 1.5 m bite reaches it, and only there.
 PASSAGE_Z = tuple(next((r[3], r[4]) for r in TT_PLAN.rooms if r[0] == "firemen's passage" and r[2] > 90.0 and r[1] < 75.0))
+# The passage's sides along her, a wall's thickness on its cell's sides, as a room's wall is
+# read (ShipSpace.wall_runs): the handrail along them stands off the steel's face, not in air.
+TT_PLAN.solids[:] = [s[:3] + ((PASSAGE_Z[s[3] > 0] - T, PASSAGE_Z[s[3] > 0] + T)) + s[5:]
+                     if s[0] == "firemen's passage's side" and s[4] - s[3] < s[2] - s[1] else s for s in TT_PLAN.solids]
 
 def low_named(plan, level):
     rooms = []
@@ -1851,8 +1855,8 @@ plan_layer("tt", TT_PLAN, tt_floor, tt_over, breaks=[BX[k] for k in "MLKDB"] + [
            wall_top=lambda z, x: ORLOP if z < -9.0 and BX["L"] < x < -37.875 else tt_over(x))
 plan_layer("orlop", ORLOP_PLAN, orlop_at, lambda _x: G_DECK, water=False)
 plan_layer("lower_orlop", LOWER_PLAN, LOWER_ORLOP, ORLOP_FWD, water=False)
-# The S box hard against the mail room's side abaft No. 2 hold: no room's walls draw it.
-walled("orlop_s_box", 82.6875, 83.5, 8.3125, 9.2, ORLOP_FWD, G_DECK)
+# The S box hard against her side abaft No. 2 hold: no room's walls draw it, her shell its outside.
+walled("orlop_s_box", 82.6875, 83.5, 8.3125, 9.3, ORLOP_FWD, G_DECK, "paf")
 # Each boiler room's coal face where its bunker door stands: the bunker's plating, proud of
 # the coal to starboard of the tunnel (and clear of its door's frame).
 for k in range(1, 7):

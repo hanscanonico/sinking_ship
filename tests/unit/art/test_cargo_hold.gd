@@ -62,3 +62,28 @@ func test_a_hold_too_low_for_them_has_no_door_signs_or_hatch_beams_at_a_body_s_h
 		assert_eq(parent.get_child_count(), 0, "no hatch's timbers")
 		parent.free()
 	assert_gt(checked, 0, "she has the room")
+
+
+func test_a_stringer_along_a_hold_s_side_stays_under_a_deck_over_part_of_it() -> void:
+	var ship: ShipLayout = load(SHIP)
+	var space := ShipSpace.new(ship)
+	var hold := CargoHold.new(space)
+	var checked := 0
+	for room: ShipRoom in ship.rooms:
+		if room.name != &"No. 2 hold, tank top, port" or room.area.position.x < 90.0:
+			continue
+		checked += 1
+		var mesh := ShipMesh.new(func(_point: Vector3) -> bool: return false, space.room_lines())
+		hold.build(mesh, room)
+		var parent := Node3D.new()
+		var materials := {}
+		for finish: int in ShipMesh.Finish.values():
+			materials[finish] = StandardMaterial3D.new()
+		mesh.commit(parent, materials)
+		var deck := space.ceiling(room, 97.0, room.area.position.y + 0.2)
+		for node: Node in parent.get_children():
+			for corner: Vector3 in (node as MeshInstance3D).mesh.get_faces():
+				if corner.x > 96.0 and corner.x < 98.0:
+					assert_lte(corner.y, deck + 0.001, "under the deck over it")
+		parent.free()
+	assert_gt(checked, 0, "she has the room")

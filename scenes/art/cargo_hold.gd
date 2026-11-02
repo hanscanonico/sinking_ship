@@ -85,8 +85,11 @@ func build(mesh: ShipMesh, room: ShipRoom) -> void:
 			var frame := wall.rect(along - 0.05, along + 0.05, 0.0, 0.06)
 			RoomDressing.block(mesh, frame, floor, head, ShipPaints.hold_frame)
 			along += FRAME_SPACING
-		var low := wall.at(wall.from, 0.0)
-		var high := _space.ceiling(room, low.x, low.z) - floor - 0.3
+		var high := INF
+		# Under the lowest of its ceiling along it: none through a deck over part of it.
+		for share: float in [0.0, 0.5, 1.0]:
+			var low := wall.at(lerpf(wall.from, wall.to, share), 0.0)
+			high = minf(high, _space.ceiling(room, low.x, low.z) - floor - 0.3)
 		var height := STRINGER_SPACING
 		while height < high:
 			var stringer := wall.rect(wall.from, wall.to, 0.0, 0.09)
