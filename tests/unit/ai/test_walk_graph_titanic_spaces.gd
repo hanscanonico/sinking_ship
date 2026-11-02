@@ -25,6 +25,8 @@ const SPACES := {
 	&"reciprocating engine room": Vector3(-30.0, ENGINE_TANK_TOP, 0.0),
 	&"shaft tunnel, O to N": Vector3(-99.0, TANK_TOP, 0.0),
 }
+## How finely a boiler room's floor is walked: a body's gap between boilers is wider by more.
+const FLOOR_GRID := 0.1
 ## Her estimated spaces, as the Small Titanic keeps them.
 const ESTIMATED_SPACES := {
 	&"boiler room 6": Vector3(55.5, TANK_TOP, 4.0),
@@ -142,6 +144,46 @@ func test_the_small_titanic_s_estimated_spaces_have_a_way_up_to_the_forward_well
 func test_the_small_titanic_s_working_passages_have_a_way_up_to_the_forward_well_deck() -> void:
 	_layout = load(SMALL_TITANIC)
 	_has_a_way_up(SMALL_SPACES)
+
+
+func test_every_boiler_room_s_aisles_join_on_the_floor_between_her_boilers() -> void:
+	var surfaces := Surfaces.new(_layout)
+	var rules := SimFixtures.rules()
+	var space := ShipSpace.new(_layout)
+	for number in range(1, 7):
+		var name := StringName("boiler room %d" % number)
+		var room := _layout.rooms[_room(name)]
+		var ends := Vector2(INF, -INF)
+		for box: ShipBlocker in space.machinery(room):
+			ends = Vector2(minf(ends.x, box.area.position.x), maxf(ends.y, box.area.end.x))
+		assert_true(_aisles_join(surfaces, rules, room, ends), "%s's aisles join" % name)
+
+
+## Whether a body of [param rules] walks [param room]'s floor, on a grid of FLOOR_GRID, from
+## anywhere aft of [param ends] (its boilers' ends along her) to half a metre forward of them.
+func _aisles_join(surfaces: Surfaces, rules: BrawlRules, room: ShipRoom, ends: Vector2) -> bool:
+	var area := room.area
+	var free := {}
+	var stack: Array[Vector2i] = []
+	for i in int(area.size.x / FLOOR_GRID):
+		for j in int(area.size.y / FLOOR_GRID):
+			var at := area.position + Vector2(i + 0.5, j + 0.5) * FLOOR_GRID
+			var feet := Vector3(at.x, room.floor_height, at.y)
+			var contacts := surfaces.obstacle_contacts(
+				feet, rules.body_radius, rules.body_height, rules.step_height
+			)
+			if contacts.is_empty():
+				free[Vector2i(i, j)] = true
+				if at.x < ends.x:
+					stack.append(Vector2i(i, j))
+	while not stack.is_empty():
+		var cell: Vector2i = stack.pop_back()
+		if area.position.x + (cell.x + 0.5) * FLOOR_GRID > ends.y + 0.5:
+			return true
+		for step: Vector2i in [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]:
+			if free.erase(cell + step):
+				stack.append(cell + step)
+	return false
 
 
 func _has_a_way_up(spaces: Dictionary) -> void:

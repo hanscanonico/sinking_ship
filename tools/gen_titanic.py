@@ -1785,6 +1785,30 @@ LOW_BOILERS = {(s[1], s[2], round(s[3] + s[4])): s for s in TT_OUTLINE.solids if
 TT_PLAN.solids[:] = [next((b for k, b in LOW_BOILERS.items() if k[0] == s[1] and k[1] == s[2]
                            and s[3] < (b[3] + b[4]) * 0.5 < s[4]), s) if s[0].endswith("boiler") else s
                      for s in TT_PLAN.solids]
+# Off the plate so a body fits: the plate's gaps between her boilers are 0.5-0.7 m, under the
+# game's body, where her men walked between them. In each boiler room the inner gap needing the
+# least is widened by moving the two boilers either side of it apart, by no more than 0.3 m each;
+# her outermost boilers don't move, so her shell keeps its clearance.
+BOILER_GAP = 0.9
+BOILER_GAP_OVER = {next(s[1] for s in TT_PLAN.solids if s[0].endswith("boiler") and BX["J"] < s[1] < BX["H"]): 0.1}
+def boilers_apart(solids):
+    rows = {}
+    for s in solids:
+        if s[0].endswith("boiler"):
+            rows.setdefault(s[1], []).append(s)
+    moved = {}
+    for x0, row in rows.items():
+        row.sort(key=lambda s: s[3])
+        need, _last, at = min((BOILER_GAP - (b[3] - a[4]), -k, k) for k, (a, b) in enumerate(zip(row, row[1:])) if 0 < k < len(row) - 2)
+        each = max(need, 0.0) * 0.5
+        # Boiler room 2's gap a little to starboard, or it opens where the flight in its forward
+        # aisle has climbed past a step.
+        over = BOILER_GAP_OVER.get(x0, 0.0)
+        assert each + over <= 0.3, "boilers at %s: %.3f m each" % (x0, each + over)
+        moved[row[at]] = row[at][:3] + (row[at][3] - each + over, row[at][4] - each + over) + row[at][5:]
+        moved[row[at + 1]] = row[at + 1][:3] + (row[at + 1][3] + each + over, row[at + 1][4] + each + over) + row[at + 1][5:]
+    return [moved.get(s, s) for s in solids]
+TT_PLAN.solids[:] = boilers_apart(TT_PLAN.solids)
 
 # Each room in one cell, its name in that cell alone (test_ship_structure_lint): a tunnel cut
 # at the bulkhead it goes through, the firemen's passage's wider forward end at its cell's

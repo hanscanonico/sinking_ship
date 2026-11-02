@@ -67213,13 +67213,13 @@ top = -12.5875
 
 [sub_resource type="Resource" id="Blocker_tt_54_single_ended_boiler"]
 script = ExtResource("3_block")
-area = Rect2(-26.6875, -2.1875, 3.5, 4.5)
+area = Rect2(-26.6875, -2.325, 3.5, 4.5)
 bottom = -18.1875
 top = -12.5875
 
 [sub_resource type="Resource" id="Blocker_tt_55_single_ended_boiler"]
 script = ExtResource("3_block")
-area = Rect2(-26.6875, 2.9375, 3.5, 4.75)
+area = Rect2(-26.6875, 3.075, 3.5, 4.75)
 bottom = -18.1875
 top = -12.5875
 
@@ -67243,13 +67243,13 @@ top = -12.5875
 
 [sub_resource type="Resource" id="Blocker_tt_59_double_ended_boiler"]
 script = ExtResource("3_block")
-area = Rect2(-11.3125, -2.1875, 6.25, 4.4375)
+area = Rect2(-11.3125, -2.1938, 6.25, 4.4375)
 bottom = -18.1875
 top = -12.5875
 
 [sub_resource type="Resource" id="Blocker_tt_60_double_ended_boiler"]
 script = ExtResource("3_block")
-area = Rect2(-11.3125, 2.9375, 6.25, 4.6875)
+area = Rect2(-11.3125, 3.1438, 6.25, 4.6875)
 bottom = -18.1875
 top = -12.5875
 
@@ -67273,13 +67273,13 @@ top = -12.5875
 
 [sub_resource type="Resource" id="Blocker_tt_64_double_ended_boiler"]
 script = ExtResource("3_block")
-area = Rect2(7.6875, -2.0625, 6.125, 4.375)
+area = Rect2(7.6875, -2.1688, 6.125, 4.375)
 bottom = -18.1875
 top = -12.5875
 
 [sub_resource type="Resource" id="Blocker_tt_65_double_ended_boiler"]
 script = ExtResource("3_block")
-area = Rect2(7.6875, 3, 6.125, 4.625)
+area = Rect2(7.6875, 3.1063, 6.125, 4.625)
 bottom = -18.1875
 top = -12.5875
 
@@ -67303,13 +67303,13 @@ top = -12.5875
 
 [sub_resource type="Resource" id="Blocker_tt_69_double_ended_boiler"]
 script = ExtResource("3_block")
-area = Rect2(24.8125, -2.1875, 6, 4.5)
+area = Rect2(24.8125, -2.2625, 6, 4.5)
 bottom = -18.1875
 top = -12.5875
 
 [sub_resource type="Resource" id="Blocker_tt_70_double_ended_boiler"]
 script = ExtResource("3_block")
-area = Rect2(24.8125, 3.0625, 6, 4.5625)
+area = Rect2(24.8125, 3.1375, 6, 4.5625)
 bottom = -18.1875
 top = -12.5875
 
@@ -67333,13 +67333,13 @@ top = -12.5875
 
 [sub_resource type="Resource" id="Blocker_tt_74_double_ended_boiler"]
 script = ExtResource("3_block")
-area = Rect2(42.5625, -2.0625, 6.125, 4.5)
+area = Rect2(42.5625, -2.1375, 6.125, 4.5)
 bottom = -18.1875
 top = -12.5875
 
 [sub_resource type="Resource" id="Blocker_tt_75_double_ended_boiler"]
 script = ExtResource("3_block")
-area = Rect2(42.5625, 3.1875, 6.125, 4.5625)
+area = Rect2(42.5625, 3.2625, 6.125, 4.5625)
 bottom = -18.1875
 top = -12.5875
 
@@ -67357,13 +67357,13 @@ top = -12.5875
 
 [sub_resource type="Resource" id="Blocker_tt_78_double_ended_boiler"]
 script = ExtResource("3_block")
-area = Rect2(59.0625, -4.8125, 6.1875, 4.75)
+area = Rect2(59.0625, -4.9813, 6.1875, 4.75)
 bottom = -18.1875
 top = -12.5875
 
 [sub_resource type="Resource" id="Blocker_tt_79_double_ended_boiler"]
 script = ExtResource("3_block")
-area = Rect2(59.0625, 0.5, 6.1875, 4.5625)
+area = Rect2(59.0625, 0.6687, 6.1875, 4.5625)
 bottom = -18.1875
 top = -12.5875
 
@@ -109318,27 +109318,27 @@ room = 2166
 
 [sub_resource type="Resource" id="BonusSpot_tt_10_boiler_room_2"]
 script = ExtResource("19_spot")
-point = Vector3(-11.7562, -18.1875, 0)
+point = Vector3(-8.1562, -18.1875, 2.65)
 room = 2167
 
 [sub_resource type="Resource" id="BonusSpot_tt_11_boiler_room_3"]
 script = ExtResource("19_spot")
-point = Vector3(7.2875, -18.1875, 0)
+point = Vector3(10.4375, -18.1875, 2.65)
 room = 2168
 
 [sub_resource type="Resource" id="BonusSpot_tt_12_boiler_room_4"]
 script = ExtResource("19_spot")
-point = Vector3(24.3687, -18.1875, 0)
+point = Vector3(27.7188, -18.1875, 2.65)
 room = 2169
 
 [sub_resource type="Resource" id="BonusSpot_tt_13_boiler_room_5"]
 script = ExtResource("19_spot")
-point = Vector3(42.1375, -18.1875, 0)
+point = Vector3(45.6875, -18.1875, 2.8)
 room = 2170
 
 [sub_resource type="Resource" id="BonusSpot_tt_14_boiler_room_6"]
 script = ExtResource("19_spot")
-point = Vector3(65.6813, -18.1875, 1)
+point = Vector3(62.2812, -18.1875, 0.2)
 room = 2171
 
 [sub_resource type="Resource" id="BonusSpot_tt_15_passage_tank_top_aft_of_j"]

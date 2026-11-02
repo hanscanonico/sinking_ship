@@ -56538,13 +56538,13 @@ material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
 [node name="Blocker_tt_54_single_ended_boiler" type="CSGBox3D" parent="Blockers" unique_id=1226158768]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -24.9375, -15.3875, 0.0625)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -24.9375, -15.3875, -0.07500005)
 size = Vector3(3.5, 5.6, 4.5)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
 [node name="Blocker_tt_55_single_ended_boiler" type="CSGBox3D" parent="Blockers" unique_id=1168405873]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -24.9375, -15.3875, 5.3125)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -24.9375, -15.3875, 5.45)
 size = Vector3(3.5, 5.6, 4.75)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
@@ -56568,13 +56568,13 @@ material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
 [node name="Blocker_tt_59_double_ended_boiler" type="CSGBox3D" parent="Blockers" unique_id=1905930789]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8.1875, -15.3875, 0.03125)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8.1875, -15.3875, 0.024950027)
 size = Vector3(6.25, 5.6, 4.4375)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
 [node name="Blocker_tt_60_double_ended_boiler" type="CSGBox3D" parent="Blockers" unique_id=955694084]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8.1875, -15.3875, 5.28125)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8.1875, -15.3875, 5.48755)
 size = Vector3(6.25, 5.6, 4.6875)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
@@ -56598,13 +56598,13 @@ material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
 [node name="Blocker_tt_64_double_ended_boiler" type="CSGBox3D" parent="Blockers" unique_id=2051752346]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10.75, -15.3875, 0.125)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10.75, -15.3875, 0.018699884)
 size = Vector3(6.125, 5.6, 4.375)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
 [node name="Blocker_tt_65_double_ended_boiler" type="CSGBox3D" parent="Blockers" unique_id=1226500098]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10.75, -15.3875, 5.3125)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10.75, -15.3875, 5.4188004)
 size = Vector3(6.125, 5.6, 4.625)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
@@ -56628,13 +56628,13 @@ material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
 [node name="Blocker_tt_69_double_ended_boiler" type="CSGBox3D" parent="Blockers" unique_id=1687272977]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 27.8125, -15.3875, 0.0625)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 27.8125, -15.3875, -0.012500048)
 size = Vector3(6, 5.6, 4.5)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
 [node name="Blocker_tt_70_double_ended_boiler" type="CSGBox3D" parent="Blockers" unique_id=546468217]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 27.8125, -15.3875, 5.34375)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 27.8125, -15.3875, 5.41875)
 size = Vector3(6, 5.6, 4.5625)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
@@ -56658,13 +56658,13 @@ material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
 [node name="Blocker_tt_74_double_ended_boiler" type="CSGBox3D" parent="Blockers" unique_id=556197773]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 45.625, -15.3875, 0.1875)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 45.625, -15.3875, 0.11249995)
 size = Vector3(6.125, 5.6, 4.5)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
 [node name="Blocker_tt_75_double_ended_boiler" type="CSGBox3D" parent="Blockers" unique_id=1130709396]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 45.625, -15.3875, 5.46875)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 45.625, -15.3875, 5.54375)
 size = Vector3(6.125, 5.6, 4.5625)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
@@ -56682,13 +56682,13 @@ material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
 [node name="Blocker_tt_78_double_ended_boiler" type="CSGBox3D" parent="Blockers" unique_id=1319362954]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 62.15625, -15.3875, -2.4375)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 62.15625, -15.3875, -2.6062999)
 size = Vector3(6.1875, 5.6, 4.75)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
 [node name="Blocker_tt_79_double_ended_boiler" type="CSGBox3D" parent="Blockers" unique_id=1934896062]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 62.15625, -15.3875, 2.78125)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 62.15625, -15.3875, 2.94995)
 size = Vector3(6.1875, 5.6, 4.5625)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
@@ -108731,27 +108731,27 @@ metadata/ship = &"bonus_spot"
 metadata/room = &"Room_tt_9_boiler_room_1"
 
 [node name="BonusSpot_tt_10_boiler_room_2" type="Marker3D" parent="BonusSpots" unique_id=1814615066]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -11.7562, -18.1875, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8.1562, -18.1875, 2.65)
 metadata/ship = &"bonus_spot"
 metadata/room = &"Room_tt_10_boiler_room_2"
 
 [node name="BonusSpot_tt_11_boiler_room_3" type="Marker3D" parent="BonusSpots" unique_id=942272043]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7.2875, -18.1875, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10.4375, -18.1875, 2.65)
 metadata/ship = &"bonus_spot"
 metadata/room = &"Room_tt_11_boiler_room_3"
 
 [node name="BonusSpot_tt_12_boiler_room_4" type="Marker3D" parent="BonusSpots" unique_id=1845512841]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 24.3687, -18.1875, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 27.7188, -18.1875, 2.65)
 metadata/ship = &"bonus_spot"
 metadata/room = &"Room_tt_12_boiler_room_4"
 
 [node name="BonusSpot_tt_13_boiler_room_5" type="Marker3D" parent="BonusSpots" unique_id=240312495]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 42.1375, -18.1875, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 45.6875, -18.1875, 2.8)
 metadata/ship = &"bonus_spot"
 metadata/room = &"Room_tt_13_boiler_room_5"
 
 [node name="BonusSpot_tt_14_boiler_room_6" type="Marker3D" parent="BonusSpots" unique_id=1411115922]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 65.6813, -18.1875, 1)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 62.2812, -18.1875, 0.2)
 metadata/ship = &"bonus_spot"
 metadata/room = &"Room_tt_14_boiler_room_6"
 
