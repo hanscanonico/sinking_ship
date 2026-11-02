@@ -215,3 +215,26 @@ func test_a_mess_table_s_benches_run_its_length_inside_its_box() -> void:
 	# Each bench's seat, from end to end.
 	assert_eq(seats, 2 * 2)
 	assert_lte(faces.size() / 3, LinerDining.TABLE_BUDGET)
+
+
+func test_fire_buckets_hang_clear_of_a_table_a_body_could_stand_on() -> void:
+	var ship: ShipLayout = load("res://data/ships/titanic.tres")
+	var space := ShipSpace.new(ship)
+	var checked := 0
+	for room: ShipRoom in ship.rooms:
+		if room.name != &"third-class dining saloon, F deck aft of H":
+			continue
+		for wall: RoomDressing.Wall in RoomDressing.walls(space, room):
+			if wall.side % 2 != 0 or wall.length() < 3.0:
+				continue
+			var along := LinerDining.bay_clear_of_tables(space, wall)
+			if is_nan(along):
+				continue
+			checked += 1
+			var size := RoomDressing.FIRE_BUCKETS.size
+			var rack := wall.rect(along - size.x * 0.5, along + size.x * 0.5, 0.0, size.z)
+			for blocker: ShipBlocker in ship.blockers:
+				var above := blocker.top - wall.floor
+				if above > 0.1 and above < 1.0:
+					assert_false(blocker.area.intersects(rack), "over a table at %s" % along)
+	assert_gt(checked, 0, "her walls hold a rack")

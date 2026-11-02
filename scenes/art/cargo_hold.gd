@@ -119,6 +119,8 @@ func _rack(mesh: ShipMesh, wall: RoomDressing.Wall, from: float, end: float) -> 
 	var at := wall.at(from, 0.0)
 	var head := _space.ceiling(wall.room, at.x, at.z) - wall.floor - ShipArt.PLANK
 	head -= ShipArt.BEAM_DEPTH + 0.03
+	if head <= shelf:
+		return
 	var low := wall.floor + shelf
 	RoomDressing.block(
 		mesh, wall.rect(from, end, 0.0, RACK), low - 0.04, low, ShipPaints.hold_floor

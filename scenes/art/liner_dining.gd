@@ -501,7 +501,9 @@ func _service(mesh: ShipMesh, room: ShipRoom, glass: Array[Array]) -> void:
 		if _free(forward, along - CLOCK, along + CLOCK, glass):
 			_clock(mesh, forward, along)
 	if side != null:
-		RoomDressing.fire_buckets(mesh, side, _bay_by_middle(side))
+		var along := bay_clear_of_tables(_space, side)
+		if not is_nan(along):
+			RoomDressing.fire_buckets(mesh, side, along)
 
 
 ## The ship's galley; null when she has none.
@@ -524,6 +526,30 @@ static func _bay_by_middle(wall: RoomDressing.Wall) -> float:
 	var gap := INF
 	for along: float in bays(pilasters(wall, PLAIN_PITCH, false)):
 		if absf(along - wall.middle()) < gap:
+			gap = absf(along - wall.middle())
+			best = along
+	return best
+
+
+## The bay of [param wall] nearest its middle whose fire buckets hang out of reach of a
+## body stood on a table under them; NAN for none.
+static func bay_clear_of_tables(space: ShipSpace, wall: RoomDressing.Wall) -> float:
+	var size := RoomDressing.FIRE_BUCKETS.size
+	var reach := 0.4
+	var best := NAN
+	var gap := INF
+	var bays_of: Array = bays(pilasters(wall, PLAIN_PITCH, false))
+	if bays_of.is_empty():
+		bays_of = [wall.middle()]
+	for along: float in bays_of:
+		var rack := wall.rect(along - size.x * 0.5, along + size.x * 0.5, 0.0, size.z).grow(reach)
+		var clear := true
+		for blocker: ShipBlocker in space.layout.blockers:
+			var above := blocker.top - wall.floor
+			if above > 0.1 and above < 1.0 and blocker.area.intersects(rack):
+				clear = false
+				break
+		if clear and absf(along - wall.middle()) < gap:
 			gap = absf(along - wall.middle())
 			best = along
 	return best

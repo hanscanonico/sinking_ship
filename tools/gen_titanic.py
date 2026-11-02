@@ -1265,7 +1265,7 @@ f_deck = [i for k, (x0, x1, z0, z1) in enumerate(F_PIECES)
 # bulkhead K and from D to A: the boiler rooms stay her estimated rooms under F deck until
 # their plates are laid (#379), but for the pocket abaft D the racquet court's stair comes
 # down to, and forward of A her forepeak's stores do too.
-G_EDGES = sorted({h[k] for h in holes["g"] if h not in G_WAITED for k in (0, 1)} | {82.6875})  # (the orlop's flight's head, a late hole)
+G_EDGES = sorted({h[k] for h in holes["g"] if h not in G_WAITED for k in (0, 1)} | {82.6875, 109.4375})  # (the orlop's flights' heads, late holes)
 G_POCKET = next(r for r in G_OUTLINE.rooms if r[1] < 70.0 < r[2] and r[3] < -2.0 < r[4])
 G_PIECES = (hull_strips(plan_ends(G_OUTLINE)[0], BX["K"], G_DECK, edges=G_EDGES)
             + [(G_POCKET[1] - T, round(BX["D"] * 128) / 128, G_POCKET[3] - T, G_POCKET[4] + T)]
@@ -1847,6 +1847,9 @@ plan_layer("tt", TT_PLAN, tt_floor, tt_over, breaks=[BX[k] for k in "MLKDB"] + [
            wall_top=lambda z, x: ORLOP if z < -9.0 and BX["L"] < x < -37.875 else tt_over(x))
 plan_layer("orlop", ORLOP_PLAN, orlop_at, lambda _x: G_DECK, water=False)
 plan_layer("lower_orlop", LOWER_PLAN, LOWER_ORLOP, ORLOP_FWD, water=False)
+# The S box hard against the mail room's side abaft No. 2 hold: no room past it, so no wall of
+# a room draws its outer face.
+box("orlop_s_face", 82.6875, 83.5, 9.18, 9.22, ORLOP_FWD, G_DECK)
 # Each boiler room's coal face where its bunker door stands: the bunker's plating, proud of
 # the coal to starboard of the tunnel (and clear of its door's frame).
 for k in range(1, 7):
