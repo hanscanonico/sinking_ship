@@ -226,8 +226,8 @@ func girder() -> HullGirder:
 ## The head across every watched opening at [param state], [param stepper] turned to
 ## it: each side's push — the sea's outside — lifted by its pocket's as the stepper's
 ## flow is, no higher than any surface in her, and no lower than its sill, its first's less
-## its second's; none dry on both sides. Worked out once for each state, which a step's failures and the bake's landing
-## both ask of.
+## its second's; none dry on both sides. Worked out once for each state, which a step's
+## failures and the bake's landing both ask of.
 func _heads_across(state: FloodState, stepper: SinkStepper) -> PackedFloat64Array:
 	if state == _across_state:
 		return _across
