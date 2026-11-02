@@ -21,6 +21,9 @@ extends RefCounted
 const REACHED := 1e-3
 ## What an opening's failure leaves it (FloodState.opened): given way.
 const GAVE_WAY := 1.0
+## What ends the name of the stretch of a bulkhead a door stands in off the bulkhead's own
+## line, in a bunker's face: part of that bulkhead, weakened with it.
+const FACE := "_face"
 
 ## Per opening that can fail, in the stepper's order: its index there, the seconds the
 ## ship takes to shut it (SinkStepper.open_share: under 0 for one shut from the start) —
@@ -284,7 +287,7 @@ func _gives_way_gap(watched: int, across: float) -> float:
 ## parts — and all of them for any other.
 static func kept_share(structure: ShipStructure, damage: HitDamage, opening: ShipOpening) -> float:
 	for wall: ShipWall in structure.walls:
-		if not wall.name in damage.weakened:
+		if not wall.name in damage.weakened and not wall.name.trim_suffix(FACE) in damage.weakened:
 			continue
 		var axis := 0 if wall.axis == ShipWall.Axis.ACROSS else 2
 		if opening.facing() != axis or not is_equal_approx(opening.centre[axis], wall.at):

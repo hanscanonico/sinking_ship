@@ -77601,7 +77601,7 @@ top = -4.8768
 collapse_head = 22.4036
 leak_head = 18.6696
 leak_area = 0.002
-cells = Array[StringName]([&"db_boiler_room_6", &"db_hold_3", &"hold_3_port", &"hold_3_starboard", &"hold_3", &"hold_3_tween", &"firemens_passage", &"bunker_6", &"bunker_6_p", &"bunker_6_o", &"firemens_passage_aft", &"bunker_6_u", &"boiler_room_6_tween"])
+cells = Array[StringName]([&"db_boiler_room_6", &"db_hold_3", &"hold_3_port", &"hold_3_starboard", &"hold_3", &"hold_3_tween", &"firemens_passage", &"bunker_6", &"bunker_6_p", &"bunker_6_o", &"bunker_6_u", &"boiler_room_6_tween"])
 
 [sub_resource type="Resource" id="Wall_bulkhead_e"]
 script = ExtResource("12_wall")
@@ -77613,7 +77613,7 @@ top = -5.2426
 collapse_head = 21.8548
 leak_head = 18.2124
 leak_area = 0.002
-cells = Array[StringName]([&"db_boiler_room_5", &"db_boiler_room_6", &"boiler_room_6", &"boiler_room_6_tween", &"bunker_5", &"bunker_5_p", &"bunker_5_o", &"tunnel_5", &"boiler_room_5_f", &"boiler_room_5_e"])
+cells = Array[StringName]([&"db_boiler_room_5", &"db_boiler_room_6", &"boiler_room_6", &"boiler_room_6_tween", &"bunker_5", &"bunker_5_p", &"bunker_5_o", &"boiler_room_5_f", &"boiler_room_5_e"])
 
 [sub_resource type="Resource" id="Wall_bulkhead_f"]
 script = ExtResource("12_wall")
@@ -77625,7 +77625,7 @@ top = -5.5169
 collapse_head = 21.4434
 leak_head = 17.8695
 leak_area = 0.002
-cells = Array[StringName]([&"db_boiler_room_4", &"db_boiler_room_5", &"boiler_room_5", &"boiler_room_5_f", &"boiler_room_5_e", &"bunker_4", &"bunker_4_p", &"bunker_4_o", &"tunnel_4", &"boiler_room_4_f", &"boiler_room_4_e"])
+cells = Array[StringName]([&"db_boiler_room_4", &"db_boiler_room_5", &"boiler_room_5", &"boiler_room_5_f", &"boiler_room_5_e", &"bunker_4", &"bunker_4_p", &"bunker_4_o", &"boiler_room_4_f", &"boiler_room_4_e"])
 
 [sub_resource type="Resource" id="Wall_bulkhead_g"]
 script = ExtResource("12_wall")
@@ -77637,7 +77637,7 @@ top = -5.7912
 collapse_head = 21.032
 leak_head = 17.5266
 leak_area = 0.002
-cells = Array[StringName]([&"db_boiler_room_3", &"db_boiler_room_4", &"boiler_room_4", &"boiler_room_4_f", &"boiler_room_4_e", &"bunker_3", &"bunker_3_p", &"bunker_3_o", &"tunnel_3", &"boiler_room_3_f", &"boiler_room_3_e"])
+cells = Array[StringName]([&"db_boiler_room_3", &"db_boiler_room_4", &"boiler_room_4", &"boiler_room_4_f", &"boiler_room_4_e", &"bunker_3", &"bunker_3_p", &"bunker_3_o", &"boiler_room_3_f", &"boiler_room_3_e"])
 
 [sub_resource type="Resource" id="Wall_bulkhead_h"]
 script = ExtResource("12_wall")
@@ -77649,7 +77649,7 @@ top = -5.9436
 collapse_head = 20.8034
 leak_head = 17.3361
 leak_area = 0.002
-cells = Array[StringName]([&"db_boiler_room_2", &"db_boiler_room_3", &"boiler_room_3", &"boiler_room_3_f", &"bunker_2", &"bunker_2_p", &"bunker_2_o", &"tunnel_2", &"boiler_room_2_f"])
+cells = Array[StringName]([&"db_boiler_room_2", &"db_boiler_room_3", &"boiler_room_3", &"boiler_room_3_f", &"bunker_2", &"bunker_2_p", &"bunker_2_o", &"boiler_room_2_f"])
 
 [sub_resource type="Resource" id="Wall_bulkhead_j"]
 script = ExtResource("12_wall")
@@ -77661,7 +77661,7 @@ top = -5.8826
 collapse_head = 20.8948
 leak_head = 17.4124
 leak_area = 0.002
-cells = Array[StringName]([&"db_boiler_room_1", &"db_boiler_room_2", &"boiler_room_2", &"boiler_room_2_f", &"boiler_room_2_e", &"bunker_1", &"bunker_1_p", &"bunker_1_o", &"tunnel_1", &"boiler_room_1_f", &"boiler_room_1_e"])
+cells = Array[StringName]([&"db_boiler_room_1", &"db_boiler_room_2", &"boiler_room_2", &"boiler_room_2_f", &"boiler_room_2_e", &"bunker_1", &"bunker_1_p", &"bunker_1_o", &"boiler_room_1_f", &"boiler_room_1_e"])
 
 [sub_resource type="Resource" id="Wall_bulkhead_k"]
 script = ExtResource("12_wall")
