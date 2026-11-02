@@ -32,3 +32,33 @@ func test_a_hold_no_taller_than_head_height_has_no_racks_through_its_deck() -> v
 		parent.free()
 		assert_lte(highest, head + 0.001, "nothing of it through its deck")
 	assert_gt(checked, 0, "she has the room")
+
+
+func test_a_hold_too_low_for_them_has_no_door_signs_or_hatch_beams_at_a_body_s_height() -> void:
+	var ship: ShipLayout = load(SHIP)
+	var space := ShipSpace.new(ship)
+	var dressing := RoomDressing.new(space, INF)
+	var hold := CargoHold.new(space)
+	var checked := 0
+	for room: ShipRoom in ship.rooms:
+		if room.name != LOW_HOLD:
+			continue
+		checked += 1
+		var head := CargoHold.headroom(space, room)
+		var beams := head - ShipArt.PLANK - ShipArt.BEAM_DEPTH - 0.06
+		var signs := Node3D.new()
+		var mesh := ShipMesh.new(func(_point: Vector3) -> bool: return false, space.room_lines())
+		dressing._signs(mesh, signs, room)
+		assert_eq(signs.get_child_count(), 0, "no sign over a door in a room under its height")
+		signs.free()
+		mesh = ShipMesh.new(func(_point: Vector3) -> bool: return false, space.room_lines())
+		hold._hatch_beams(mesh, room)
+		var parent := Node3D.new()
+		var materials := {}
+		for finish: int in ShipMesh.Finish.values():
+			materials[finish] = StandardMaterial3D.new()
+		mesh.commit(parent, materials)
+		assert_lt(beams, RoomDressing.HEADROOM, "it is that low")
+		assert_eq(parent.get_child_count(), 0, "no hatch's timbers")
+		parent.free()
+	assert_gt(checked, 0, "she has the room")

@@ -903,7 +903,7 @@ func _signs(mesh: ShipMesh, signs: Node3D, room: ShipRoom) -> void:
 	for side in 4:
 		for gap: Vector2 in _gaps(room, side, runs):
 			var other := _beyond(_space, room, side, gap)
-			if other == -1:
+			if other == -1 or CargoHold.headroom(_space, room) < SIGN_HEIGHT:
 				continue
 			var text := String(_layout.rooms[other].name).capitalize()
 			var width := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, SIGN_FONT).x

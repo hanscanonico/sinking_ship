@@ -300,6 +300,12 @@ func _net(mesh: ShipMesh, corner: Vector3, width: float, height: float) -> void:
 			mesh.beam(from, from + Vector3.BACK * width / pieces, thread, ShipPaints.rope, 0)
 
 
+## How high [param room]'s ceiling on [param space] stands over its floor at its middle.
+static func headroom(space: ShipSpace, room: ShipRoom) -> float:
+	var middle := room.area.get_center()
+	return space.ceiling(room, middle.x, middle.y) - room.floor_height
+
+
 ## Under every hatch standing on a deck that roofs [param room]: its coaming's
 ## timbers round the opening and strongbacks across it, under the deck, overhead.
 func _hatch_beams(mesh: ShipMesh, room: ShipRoom) -> void:
@@ -317,6 +323,9 @@ func _hatch_beams(mesh: ShipMesh, room: ShipRoom) -> void:
 			continue
 		var under := blocker.bottom - ShipArt.PLANK
 		var low := under - ShipArt.BEAM_DEPTH - 0.06
+		# None hanging into a body's height in a hold too low for it (her orlop forward).
+		if low < room.floor_height + RoomDressing.HEADROOM:
+			continue
 		# Kept to the hold: a timber past its bulkhead would show in the room beyond.
 		var rim := area.grow(0.12).intersection(room.area)
 		for edge: Rect2 in [

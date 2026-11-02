@@ -1851,9 +1851,8 @@ plan_layer("tt", TT_PLAN, tt_floor, tt_over, breaks=[BX[k] for k in "MLKDB"] + [
            wall_top=lambda z, x: ORLOP if z < -9.0 and BX["L"] < x < -37.875 else tt_over(x))
 plan_layer("orlop", ORLOP_PLAN, orlop_at, lambda _x: G_DECK, water=False)
 plan_layer("lower_orlop", LOWER_PLAN, LOWER_ORLOP, ORLOP_FWD, water=False)
-# The S box hard against the mail room's side abaft No. 2 hold: no room past it, so no wall of
-# a room draws its outer face.
-box("orlop_s_face", 82.6875, 83.5, 9.18, 9.22, ORLOP_FWD, G_DECK)
+# The S box hard against the mail room's side abaft No. 2 hold: no room's walls draw it.
+walled("orlop_s_box", 82.6875, 83.5, 8.3125, 9.2, ORLOP_FWD, G_DECK)
 # Each boiler room's coal face where its bunker door stands: the bunker's plating, proud of
 # the coal to starboard of the tunnel (and clear of its door's frame).
 for k in range(1, 7):
