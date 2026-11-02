@@ -172,7 +172,7 @@ func test_a_body_crawls_out_of_no_3_hold_s_double_bottom_and_none_goes_into_it_f
 	var hold := _room(&"No. 3 hold, port")
 	var dry := HeldPose.flooded(_layout, -_layout.freeboard, {})
 	var sim := SimFixtures.sim(2, null, _layout)
-	SimFixtures.place(sim, 0, SPACES[&"No. 3 hold double bottom"])
+	SimFixtures.place(sim, 0, ESTIMATED_SPACES[&"No. 3 hold double bottom"])
 	SimFixtures.place(sim, 1, Vector3(60.0, 0.0, 9.0))
 	HeldPose.hold(sim, dry)
 	var walked := _walk(sim, graph, hold, 30.0)
@@ -182,7 +182,7 @@ func test_a_body_crawls_out_of_no_3_hold_s_double_bottom_and_none_goes_into_it_f
 	assert_eq(passed.back(), hold, "crawled out of it into the hold")
 
 	var step := SimFixtures.rules().step_height
-	var start: Vector3 = SPACES[&"No. 3 hold, port"]
+	var start: Vector3 = ESTIMATED_SPACES[&"No. 3 hold, port"]
 	var on := surfaces.under(start, step)
 	assert_false(graph.route(start, on, double_bottom, dry).is_empty(), "down into it, dry")
 	var flooded := HeldPose.flooded(_layout, -_layout.freeboard, {&"db_hold_3": [-18.5]})
@@ -196,7 +196,7 @@ func test_a_body_walks_up_the_firemen_s_passage_s_stair_into_no_2_hold() -> void
 	var hold := _room(&"No. 2 hold")
 	var dry := HeldPose.flooded(_layout, -_layout.freeboard, {})
 	var sim := SimFixtures.sim(2, null, _layout)
-	SimFixtures.place(sim, 0, SPACES[&"firemen's passage"])
+	SimFixtures.place(sim, 0, ESTIMATED_SPACES[&"firemen's passage"])
 	SimFixtures.place(sim, 1, Vector3(60.0, 0.0, 9.0))
 	HeldPose.hold(sim, dry)
 	var passed: Array[int] = _walk(sim, graph, hold, 40.0)[0]
@@ -210,7 +210,7 @@ func test_a_body_crawls_out_of_the_turbine_room_s_double_bottom() -> void:
 	var room := _room(&"turbine engine room")
 	var dry := HeldPose.flooded(_layout, -_layout.freeboard, {})
 	var sim := SimFixtures.sim(2, null, _layout)
-	SimFixtures.place(sim, 0, SPACES[&"turbine room double bottom"])
+	SimFixtures.place(sim, 0, ESTIMATED_SPACES[&"turbine room double bottom"])
 	SimFixtures.place(sim, 1, Vector3(60.0, 0.0, 9.0))
 	HeldPose.hold(sim, dry)
 	var walked := _walk(sim, graph, room, 40.0)
