@@ -9,7 +9,7 @@ seeds = Dictionary[StringName, int]({
 &"breaks_in_three": 26,
 &"breaks_in_two": 2,
 &"capsize_inverted": 237,
-&"door_gives_way": 3,
+&"door_gives_way": 14,
 &"funnel_on_the_bridge": 2,
 &"fwd_pocket": 85,
 &"heavy_list": 130,
