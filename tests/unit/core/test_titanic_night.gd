@@ -122,6 +122,15 @@ func _forecastle_under() -> float:
 	return -1.0
 
 
+## What she does with no break: her forecastle's going under at [param under], and her end.
+func _unbroken(under: float) -> String:
+	var gone := _first(_timeline, SinkTimeline.Kind.GONE)
+	return (
+		"%.1f° of trim as her forecastle goes under at %s, whole, gone at %s"
+		% [_leans(under)[0], _clock(under), _clock(gone)]
+	)
+
+
 func _clock(seconds: float) -> String:
 	return MatchTranscript.physics_clock(seconds)
 
@@ -147,9 +156,11 @@ func test_her_trim_from_a_degree_to_the_plateau_and_the_plunge() -> void:
 	var settling := (_leans(SETTLING.y)[0] - _leans(SETTLING.x)[0]) / (SETTLING.y - SETTLING.x)
 	var under := _forecastle_under()
 	var hinge := _event(SinkTimeline.Kind.HINGING)
-	assert_not_null(hinge, "she breaks")
 	if hinge == null:
+		# The owner's ruling: pending while she does not break; #399 restores it.
+		pending("she does not break (#399): %s" % _unbroken(under))
 		return
+	assert_not_null(hinge, "she breaks")
 	var late := (_leans(hinge.seconds)[0] - _leans(under)[0]) / (hinge.seconds - under)
 	gut.p(
 		(
@@ -268,10 +279,12 @@ func test_her_forecastle_head_goes_under() -> void:
 func test_she_breaks_where_and_when_she_did() -> void:
 	var hinge := _event(SinkTimeline.Kind.HINGING)
 	var parted := _event(SinkTimeline.Kind.PARTED)
+	if hinge == null or parted == null:
+		# The owner's ruling: pending while she does not break; #399 restores it.
+		pending("she does not break (#399): %s" % _unbroken(_forecastle_under()))
+		return
 	assert_not_null(hinge, "she breaks")
 	assert_not_null(parted, "in two")
-	if hinge == null or parted == null:
-		return
 	var trim := _leans(hinge.seconds)[0]
 	var bow := _structure.cells[_structure.cell_named(STEM)].high.x
 	assert_lt(hinge.seconds, parted.seconds, "a hinge, then the parting")
@@ -308,6 +321,10 @@ func test_her_lights_burn_until_the_break() -> void:
 	gut.p(
 		"her mains stopped %.0f s, her lights out %.0f s, she parts %.0f s" % [mains, out, parted]
 	)
+	if parted < 0.0:
+		# The owner's ruling: pending while she does not break; #399 restores it.
+		pending("she does not break (#399): %s" % _unbroken(_forecastle_under()))
+		return
 	assert_gt(parted, 0.0, "she breaks")
 	assert_true(mains < 0.0 or mains >= parted - LIGHTS, "her mains run until the break")
 	if out < 0.0 or absf(out - parted) > LIGHTS:

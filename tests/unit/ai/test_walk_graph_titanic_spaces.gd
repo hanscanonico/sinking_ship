@@ -16,6 +16,19 @@ const KEEL := -19.8125
 const ENGINE_TANK_TOP := -17.9375
 ## Each space by name, and a point on its floor clear of its stairs, holes and machinery.
 const SPACES := {
+	&"boiler room 6": Vector3(66.5, TANK_TOP, 7.0),
+	&"firemen's passage, by its door": Vector3(69.5, TANK_TOP, 0.0),
+	&"mail room": Vector3(75.0, -12.9375, 3.0),
+	&"bulk store": Vector3(-83.5, ORLOP, -7.5),
+	&"electric engine room": Vector3(-80.0, TANK_TOP, 1.0),
+	&"turbine engine room": Vector3(-50.0, TANK_TOP, 1.0),
+	&"reciprocating engine room": Vector3(-30.0, ENGINE_TANK_TOP, 0.0),
+	&"shaft tunnel, O to N": Vector3(-99.0, TANK_TOP, 0.0),
+}
+## How finely a boiler room's floor is walked: a body's gap between boilers is wider by more.
+const FLOOR_GRID := 0.1
+## Her estimated spaces, as the Small Titanic keeps them.
+const ESTIMATED_SPACES := {
 	&"boiler room 6": Vector3(55.5, TANK_TOP, 4.0),
 	&"coal bunker 6": Vector3(69.3, TANK_TOP, 0.0),
 	&"firemen's passage": Vector3(80.0, TANK_TOP, 3.34),
@@ -28,7 +41,7 @@ const SPACES := {
 	&"No. 1 hold, forward": Vector3(113.0, TANK_TOP, 0.0),
 	&"No. 1 hold, orlop": Vector3(109.5, ORLOP, 0.0),
 	&"No. 1 hold, orlop, forward": Vector3(113.0, ORLOP, 0.0),
-	&"firemen's quarters": Vector3(105.0, D_DECK, -5.5),
+	&"firemen's quarters": Vector3(105.0, D_DECK, -5.0),
 	&"forepeak tank": Vector3(117.5, TANK_TOP, 0.0),
 	&"forepeak stores": Vector3(119.0, ORLOP, 0.0),
 	&"boiler room 6 double bottom": Vector3(60.0, KEEL, 0.0),
@@ -123,9 +136,54 @@ func test_every_new_space_has_a_way_up_to_the_forward_well_deck() -> void:
 	_has_a_way_up(SPACES)
 
 
+func test_the_small_titanic_s_estimated_spaces_have_a_way_up_to_the_forward_well_deck() -> void:
+	_layout = load(SMALL_TITANIC)
+	_has_a_way_up(ESTIMATED_SPACES)
+
+
 func test_the_small_titanic_s_working_passages_have_a_way_up_to_the_forward_well_deck() -> void:
 	_layout = load(SMALL_TITANIC)
 	_has_a_way_up(SMALL_SPACES)
+
+
+func test_every_boiler_room_s_aisles_join_on_the_floor_between_her_boilers() -> void:
+	var surfaces := Surfaces.new(_layout)
+	var rules := SimFixtures.rules()
+	var space := ShipSpace.new(_layout)
+	for number in range(1, 7):
+		var name := StringName("boiler room %d" % number)
+		var room := _layout.rooms[_room(name)]
+		var ends := Vector2(INF, -INF)
+		for box: ShipBlocker in space.machinery(room):
+			ends = Vector2(minf(ends.x, box.area.position.x), maxf(ends.y, box.area.end.x))
+		assert_true(_aisles_join(surfaces, rules, room, ends), "%s's aisles join" % name)
+
+
+## Whether a body of [param rules] walks [param room]'s floor, on a grid of FLOOR_GRID, from
+## anywhere aft of [param ends] (its boilers' ends along her) to half a metre forward of them.
+func _aisles_join(surfaces: Surfaces, rules: BrawlRules, room: ShipRoom, ends: Vector2) -> bool:
+	var area := room.area
+	var free := {}
+	var stack: Array[Vector2i] = []
+	for i in int(area.size.x / FLOOR_GRID):
+		for j in int(area.size.y / FLOOR_GRID):
+			var at := area.position + Vector2(i + 0.5, j + 0.5) * FLOOR_GRID
+			var feet := Vector3(at.x, room.floor_height, at.y)
+			var contacts := surfaces.obstacle_contacts(
+				feet, rules.body_radius, rules.body_height, rules.step_height
+			)
+			if contacts.is_empty():
+				free[Vector2i(i, j)] = true
+				if at.x < ends.x:
+					stack.append(Vector2i(i, j))
+	while not stack.is_empty():
+		var cell: Vector2i = stack.pop_back()
+		if area.position.x + (cell.x + 0.5) * FLOOR_GRID > ends.y + 0.5:
+			return true
+		for step: Vector2i in [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]:
+			if free.erase(cell + step):
+				stack.append(cell + step)
+	return false
 
 
 func _has_a_way_up(spaces: Dictionary) -> void:
@@ -147,6 +205,7 @@ func _has_a_way_up(spaces: Dictionary) -> void:
 
 
 func test_a_body_crawls_out_of_no_3_hold_s_double_bottom_and_none_goes_into_it_flooded() -> void:
+	_layout = load(SMALL_TITANIC)
 	# Out from under No. 3 hold's tank top on hands and knees and up through a manhole into
 	# the hold's port part.
 	var surfaces := Surfaces.new(_layout)
@@ -155,7 +214,7 @@ func test_a_body_crawls_out_of_no_3_hold_s_double_bottom_and_none_goes_into_it_f
 	var hold := _room(&"No. 3 hold, port")
 	var dry := HeldPose.flooded(_layout, -_layout.freeboard, {})
 	var sim := SimFixtures.sim(2, null, _layout)
-	SimFixtures.place(sim, 0, SPACES[&"No. 3 hold double bottom"])
+	SimFixtures.place(sim, 0, ESTIMATED_SPACES[&"No. 3 hold double bottom"])
 	SimFixtures.place(sim, 1, Vector3(60.0, 0.0, 9.0))
 	HeldPose.hold(sim, dry)
 	var walked := _walk(sim, graph, hold, 30.0)
@@ -165,7 +224,7 @@ func test_a_body_crawls_out_of_no_3_hold_s_double_bottom_and_none_goes_into_it_f
 	assert_eq(passed.back(), hold, "crawled out of it into the hold")
 
 	var step := SimFixtures.rules().step_height
-	var start: Vector3 = SPACES[&"No. 3 hold, port"]
+	var start: Vector3 = ESTIMATED_SPACES[&"No. 3 hold, port"]
 	var on := surfaces.under(start, step)
 	assert_false(graph.route(start, on, double_bottom, dry).is_empty(), "down into it, dry")
 	var flooded := HeldPose.flooded(_layout, -_layout.freeboard, {&"db_hold_3": [-18.5]})
@@ -174,11 +233,12 @@ func test_a_body_crawls_out_of_no_3_hold_s_double_bottom_and_none_goes_into_it_f
 
 
 func test_a_body_walks_up_the_firemen_s_passage_s_stair_into_no_2_hold() -> void:
+	_layout = load(SMALL_TITANIC)
 	var graph := _graph(Surfaces.new(_layout))
 	var hold := _room(&"No. 2 hold")
 	var dry := HeldPose.flooded(_layout, -_layout.freeboard, {})
 	var sim := SimFixtures.sim(2, null, _layout)
-	SimFixtures.place(sim, 0, SPACES[&"firemen's passage"])
+	SimFixtures.place(sim, 0, ESTIMATED_SPACES[&"firemen's passage"])
 	SimFixtures.place(sim, 1, Vector3(60.0, 0.0, 9.0))
 	HeldPose.hold(sim, dry)
 	var passed: Array[int] = _walk(sim, graph, hold, 40.0)[0]
@@ -187,11 +247,12 @@ func test_a_body_walks_up_the_firemen_s_passage_s_stair_into_no_2_hold() -> void
 
 
 func test_a_body_crawls_out_of_the_turbine_room_s_double_bottom() -> void:
+	_layout = load(SMALL_TITANIC)
 	var graph := _graph(Surfaces.new(_layout))
 	var room := _room(&"turbine engine room")
 	var dry := HeldPose.flooded(_layout, -_layout.freeboard, {})
 	var sim := SimFixtures.sim(2, null, _layout)
-	SimFixtures.place(sim, 0, SPACES[&"turbine room double bottom"])
+	SimFixtures.place(sim, 0, ESTIMATED_SPACES[&"turbine room double bottom"])
 	SimFixtures.place(sim, 1, Vector3(60.0, 0.0, 9.0))
 	HeldPose.hold(sim, dry)
 	var walked := _walk(sim, graph, room, 40.0)

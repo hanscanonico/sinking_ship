@@ -78,21 +78,34 @@ func build(mesh: ShipMesh, room: ShipRoom) -> void:
 			continue
 		if wall.side % 2 == 0:
 			_racks(mesh, wall, tween)
+		# Her frames and stringers where no flight climbs beside the side: a body on it
+		# would stand in them.
+		var whole := Vector2(wall.from, wall.to)
+		var clear := RoomDressing.clear_of_stairs(_layout, wall, whole, STAIR_REACH)
 		var along := wall.from + FRAME_SPACING * 0.5
 		while along < wall.to - 0.1:
 			var foot := wall.at(along, 0.0)
 			var head := _space.ceiling(room, foot.x, foot.z) - ShipArt.PLANK
 			var frame := wall.rect(along - 0.05, along + 0.05, 0.0, 0.06)
-			RoomDressing.block(mesh, frame, floor, head, ShipPaints.hold_frame)
+			if clear.any(func(run: Vector2) -> bool: return along > run.x and along < run.y):
+				RoomDressing.block(mesh, frame, floor, head, ShipPaints.hold_frame)
 			along += FRAME_SPACING
-		var low := wall.at(wall.from, 0.0)
-		var high := _space.ceiling(room, low.x, low.z) - floor - 0.3
+		var high := INF
+		# Under the lowest of its ceiling along it: none through a deck over part of it.
+		for share: float in [0.0, 0.5, 1.0]:
+			var low := wall.at(lerpf(wall.from, wall.to, share), 0.0)
+			high = minf(high, _space.ceiling(room, low.x, low.z) - floor - 0.3)
 		var height := STRINGER_SPACING
 		while height < high:
-			var stringer := wall.rect(wall.from, wall.to, 0.0, 0.09)
-			RoomDressing.block(
-				mesh, stringer, floor + height - 0.07, floor + height + 0.07, ShipPaints.hold_frame
-			)
+			for run: Vector2 in clear:
+				var stringer := wall.rect(run.x, run.y, 0.0, 0.09)
+				RoomDressing.block(
+					mesh,
+					stringer,
+					floor + height - 0.07,
+					floor + height + 0.07,
+					ShipPaints.hold_frame
+				)
 			height += STRINGER_SPACING
 	if tween.has_area():
 		_tween_deck(mesh, room, tween)
@@ -119,6 +132,8 @@ func _rack(mesh: ShipMesh, wall: RoomDressing.Wall, from: float, end: float) -> 
 	var at := wall.at(from, 0.0)
 	var head := _space.ceiling(wall.room, at.x, at.z) - wall.floor - ShipArt.PLANK
 	head -= ShipArt.BEAM_DEPTH + 0.03
+	if head <= shelf:
+		return
 	var low := wall.floor + shelf
 	RoomDressing.block(
 		mesh, wall.rect(from, end, 0.0, RACK), low - 0.04, low, ShipPaints.hold_floor
@@ -170,8 +185,9 @@ func _tween_area(room: ShipRoom) -> Rect2:
 			if blocker.top > floor + TWEEN and blocker.bottom < floor + TWEEN + 0.5:
 				area = _clear_of(area, blocker.area)
 		for ramp: ShipRamp in _layout.ramps:
-			if ramp.area.intersects(area) and ramp.base() < floor + TWEEN + 0.5:
-				area = _clear_of(area, ramp.area)
+			var reach := ramp.area.grow(RACK_CLEAR)
+			if reach.intersects(area) and ramp.base() < floor + TWEEN + 0.5:
+				area = _clear_of(area, reach)
 		return area
 	return Rect2()
 
@@ -298,6 +314,12 @@ func _net(mesh: ShipMesh, corner: Vector3, width: float, height: float) -> void:
 			mesh.beam(from, from + Vector3.BACK * width / pieces, thread, ShipPaints.rope, 0)
 
 
+## How high [param room]'s ceiling on [param space] stands over its floor at its middle.
+static func headroom(space: ShipSpace, room: ShipRoom) -> float:
+	var middle := room.area.get_center()
+	return space.ceiling(room, middle.x, middle.y) - room.floor_height
+
+
 ## Under every hatch standing on a deck that roofs [param room]: its coaming's
 ## timbers round the opening and strongbacks across it, under the deck, overhead.
 func _hatch_beams(mesh: ShipMesh, room: ShipRoom) -> void:
@@ -315,6 +337,9 @@ func _hatch_beams(mesh: ShipMesh, room: ShipRoom) -> void:
 			continue
 		var under := blocker.bottom - ShipArt.PLANK
 		var low := under - ShipArt.BEAM_DEPTH - 0.06
+		# None hanging into a body's height in a hold too low for it (her orlop forward).
+		if low < room.floor_height + RoomDressing.HEADROOM:
+			continue
 		# Kept to the hold: a timber past its bulkhead would show in the room beyond.
 		var rim := area.grow(0.12).intersection(room.area)
 		for edge: Rect2 in [

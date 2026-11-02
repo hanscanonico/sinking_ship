@@ -171,6 +171,8 @@ func _open_doorways(layout: ShipLayout) -> Array:
 				var wall := room.area.position if side > 0.0 else room.area.end
 				through = absf((wall.x if axis == 0 else wall.y) - opening.centre[axis])
 			var found := ""
+			if room == null and _filled_past(layout, opening, axis, side):
+				continue
 			for depth: float in _steps(DOOR_IN, through - DOOR_IN, DOOR_STEP):
 				for across: float in _steps(DOOR_IN - half[along], half[along] - DOOR_IN):
 					for height: float in _steps(bottom + DOOR_IN, top - DOOR_IN):
@@ -183,6 +185,28 @@ func _open_doorways(layout: ShipLayout) -> Array:
 			if not found.is_empty():
 				open.append(found)
 	return open
+
+
+## Whether a solid of [param layout]'s fills [param opening]'s doorway PAST_DOOR on
+## [param side] along [param axis]: a bunker door shut on her coal, nobody's room, no sea
+## to see past it.
+func _filled_past(layout: ShipLayout, opening: ShipOpening, axis: int, side: float) -> bool:
+	var half := opening.size * 0.5
+	var along := 2 - axis
+	var deep := opening.centre[axis] + side * PAST_DOOR
+	for blocker: ShipBlocker in layout.blockers:
+		var low := blocker.area.position
+		var high := blocker.area.end
+		var lows := [low.x, 0.0, low.y]
+		var highs := [high.x, 0.0, high.y]
+		var reaches: bool = lows[axis] <= minf(opening.centre[axis] + side * DOOR_IN, deep)
+		reaches = reaches and highs[axis] >= maxf(opening.centre[axis] + side * DOOR_IN, deep)
+		var across: bool = lows[along] <= opening.centre[along] - half[along]
+		across = across and highs[along] >= opening.centre[along] + half[along]
+		var tall := blocker.bottom <= opening.centre.y - half.y
+		if reaches and across and tall and blocker.top >= opening.centre.y + half.y:
+			return true
+	return false
 
 
 ## The room of [param layout]'s with its floor at [param floor_height] whose area holds

@@ -102,15 +102,16 @@ ROOMS = [
     # Between O and N, the refrigerated cargo holds, port and starboard of a wall on her
     # centre line, inside their insulation: the plate draws their lining 55-90 px inside
     # her sides and her bulkheads, and the space between, its frames drawn along her
-    # sides, is nobody's. Each in three pieces round the foot of No. 5 hatch's trunk on
+    # sides, is nobody's; along O and N the lay takes them out to the bulkheads (1.5 m, 1.5 m),
+    # so her orlop is one deck with its ways up. Each in three pieces round the foot of No. 5 hatch's trunk on
     # the centre line (the plate's "No. 5 HATCH (OVER)": its hatch is in the decks above),
     # which opens into both holds through the doors the plate draws in its coaming.
-    ("refrigerated cargo hold", 1588, 3376.5, 1664, 3613),
+    ("refrigerated cargo hold", 1530, 3376.5, 1664, 3613),
     ("refrigerated cargo hold", 1664, 3352, 1839, 3499.5),
-    ("refrigerated cargo hold", 1839, 3310, 2097, 3613),
-    ("refrigerated cargo hold", 1588, 3613, 1664, 3858.5),
+    ("refrigerated cargo hold", 1839, 3310, 2152, 3613),
+    ("refrigerated cargo hold", 1530, 3613, 1664, 3858.5),
     ("refrigerated cargo hold", 1664, 3726.5, 1839, 3880),
-    ("refrigerated cargo hold", 1839, 3613, 2097, 3917.5),
+    ("refrigerated cargo hold", 1839, 3613, 2152, 3917.5),
     ("refrigerated cargo hold, No. 5 hatch", 1664, 3499.5, 1839, 3726.5),
     # Between N and M, the stores (BOT: "abaft the turbine engine room, were some store
     # rooms containing stores for ship's use"), as the plate labels them. Along N, the
@@ -177,21 +178,22 @@ ROOMS = [
     # in three steps to her sides, and the trunk of the firemen's spiral staircases against
     # B (BOT: "a vertical spiral staircase leading to the forward end of a tunnel,
     # immediately above the tank top"), its ends 17 px out to No. 2 hatch's lines so the
-    # hold closes round both. G deck's spiral flights come down into it (g.py), and the
+    # hold closes round both; its after wall 0.8 m aft of the plate's, for a body's lead off
+    # G deck's flight. G deck's spiral flights come down into it (g.py), and the
     # flights on down leave it (STAIRS); the plate draws no door into it.
     ("cargo or motor car hold", 8684.1, 3249, 8886, 3459),
     ("cargo or motor car hold", 8886, 3288, 9087, 3459),
     ("cargo or motor car hold", 9087, 3328.5, 9288.9, 3459),
-    ("cargo or motor car hold", 8886, 3459, 9224, 3693),
+    ("cargo or motor car hold", 8886, 3459, 9190, 3693),
     ("cargo or motor car hold", 8684.1, 3693, 8886, 3901.5),
     ("cargo or motor car hold", 8886, 3693, 9087, 3859.5),
     ("cargo or motor car hold", 9087, 3693, 9288.9, 3816.5),
-    ("firemen's spiral trunk", 9224, 3459, 9288.9, 3693),
+    ("firemen's spiral trunk", 9190, 3459, 9288.9, 3693),
     # Between B and A (No. 1 hold): the plate's "CARGO" round No. 1 hatch, in steps to her
     # sides.
-    ("cargo hold", 9288.9, 3370, 9490, 3492),
-    ("cargo hold", 9288.9, 3492, 9346, 3658),
-    ("cargo hold", 9288.9, 3658, 9490, 3772.5),
+    ("cargo hold", 9288.9, 3370, 9490, 3507),
+    ("cargo hold", 9288.9, 3507, 9346, 3648),
+    ("cargo hold", 9288.9, 3648, 9490, 3772.5),
     ("cargo hold", 9490, 3412.5, 9685, 3728),
     ("cargo hold", 9685, 3448.5, 9830.6, 3690),
 ]
@@ -239,9 +241,10 @@ SOLIDS = [
     ("trunk", 8546, 3896, 8576, 3945.5, None),
     ("trunk", 8090.4, 3748, 8131, 3798, None),
     ("trunk", 8090.4, 3798, 8151, 3844, None),
-    # No. 2 hatch against C, and No. 1 hatch, open down to the holds under them.
+    # No. 2 hatch against C, and No. 1 hatch, open down to the holds under them; No. 1's 0.3 m
+    # narrower each side than the plate's, for a body past it inside her side at this height.
     ("No. 2 hatch", 8684.1, 3459, 8886, 3693, None),
-    ("No. 1 hatch", 9346, 3492, 9490, 3658, None),
+    ("No. 1 hatch", 9346, 3507, 9490, 3648, None),
     # Forward of A, the collision bulkhead: the chain locker, and the store in her eyes,
     # in two steps to her stem. The plate draws no way into the store on the orlop.
     ("chain locker", 9830.6, 3478.5, 9975, 3657, None),
@@ -265,10 +268,13 @@ DOORS = [
     (2908, 3442),
     # The brine pump room from the CO2 evaporator room, est.; the CO2 evaporator room onto
     # the head of its ladder down, est. (STAIRS).
-    (3873, 3200), (3789, 3256),
+    (3873, 3200), (3809, 3256),
     # The baggage room from the mail room; the specie room into the mail room, est. (the
     # plate draws its door into the bunker hatch's trunk).
     (8273, 3580.5), (8631, 3693),
+    # The trunk's after wall, into No. 2 hold, est.: the plate draws no way into the hold but
+    # its hatch, and none into the trunk, where the spirals turn.
+    (9190, 3516),
 ]
 
 OPEN = [
@@ -284,10 +290,10 @@ OPEN = [
     # The baggage room's three, the mail room's two.
     (8441, 3210, 8447, 3459), (8582, 3459, 8681, 3465), (8441, 3696, 8447, 3940),
     # No. 2 hold's seven.
-    (8883, 3290, 8889, 3456), (9084, 3330, 9090, 3456), (8889, 3456, 9084, 3462), (9090, 3456, 9221, 3462),
-    (8889, 3690, 9084, 3696), (9090, 3690, 9221, 3696), (8883, 3696, 8889, 3857), (9084, 3696, 9090, 3814),
+    (8883, 3290, 8889, 3456), (9084, 3330, 9090, 3456), (8889, 3456, 9084, 3462), (9090, 3456, 9187, 3462),
+    (8889, 3690, 9084, 3696), (9090, 3690, 9187, 3696), (8883, 3696, 8889, 3857), (9084, 3696, 9090, 3814),
     # No. 1 hold's five.
-    (9291, 3489, 9343, 3495), (9291, 3655, 9343, 3661), (9487, 3415, 9493, 3489), (9487, 3661, 9493, 3725),
+    (9291, 3504, 9343, 3510), (9291, 3645, 9343, 3651), (9487, 3415, 9493, 3504), (9487, 3651, 9493, 3725),
     (9682, 3451, 9688, 3687),
 ]
 
@@ -297,27 +303,40 @@ STAIRS = [
     # vertical spiral staircase leading to the forward end of a tunnel, immediately above
     # the tank top"), past the lower orlop's height in their trunk (lower_orlop.py). A
     # spiral has no run a body climbs, so each is a straight flight as wide as the plate's
-    # spiral (38 px), its head in the trunk 1 m short of B, where a body coming down G
-    # deck's flights turns, and run aft to the run STEEPEST allows for her orlop's 4.75 m
-    # over her tank top (224 px, 5.75 m): through the trunk's after wall below the orlop's
+    # spiral (38 px), its head just inside the trunk, where a body coming down G deck's
+    # flight turns, and run aft to the run STEEPEST allows for her orlop's 4.75 m
+    # over her tank top, 5.33 m once laid forward (244 px, 6.25 m): through the trunk's after wall below the orlop's
     # floor, under No. 2 hold, to feet in the firemen's passage, which Plate V's tank top
     # draws running aft from the trunk between the spirals (est.: the flights stand
     # inboard of the plate's spirals, at z -1.84 and +1.45 here, so their feet land in
     # the passage). The lay picks one shaft for D deck's, E's, F's, G's and these, which
     # the plates draw a little apart (g.py's notes).
-    ("firemen's spiral staircase", 9027, 3538, 9251, 3576, "fore", "tanktop", "orlop"),
-    ("firemen's spiral staircase", 9027, 3595, 9251, 3633, "fore", "tanktop", "orlop"),
+    ("firemen's spiral staircase", 8952, 3538, 9195, 3576, "fore", "tanktop", "orlop"),
+    ("firemen's spiral staircase", 8952, 3595, 9195, 3633, "fore", "tanktop", "orlop"),
     # The hold ladders, est. (see above), each at the run STEEPEST allows. No. 2 hold's
     # down to its tank top either side of the firemen's passage, its two halves there
     # walled apart by the passage's steel sides (tanktop.py), each foot on its half's
     # floor (5.75 m for 4.75 m); No. 1 hold's down to the lower orlop (2.62 m for the 2.2 m
     # Plate III's elevation draws between them there, est.).
-    ("hold ladder", 8900, 3400, 9124, 3440, "fore", "tanktop", "orlop"),
-    ("hold ladder", 8900, 3717, 9124, 3757, "fore", "tanktop", "orlop"),
+    ("hold ladder", 8881, 3400, 9124, 3440, "fore", "tanktop", "orlop"),
+    ("hold ladder", 8881, 3717, 9124, 3757, "fore", "tanktop", "orlop"),
     ("hold ladder", 9520, 3448, 9623, 3488.5, "aft", "lower_orlop", "orlop"),
+    # A second, est.: every deck under her main deck has two ways up.
+    ("hold ladder", 9525, 3627, 9627.5, 3665, "aft", "lower_orlop", "orlop"),
     # The CO2 evaporator room's ladder down to the reciprocating engine room's floor, est.:
     # 5.44 m for its 4.5 m, along the room's inboard wall, out of the door at its head
     # (DOORS), down the 1 m aisle Plate VIII leaves between the refrigerating engines under
     # the room and the port engine (tanktop.py), its foot aft of both on the open floor.
     ("ladder", 3600, 3256, 3805, 3294, "fore", "tanktop", "orlop"),
+]
+
+# The trunk's after wall over the flights down out of it (STAIRS), which come up through it.
+OPENED = [(99.3025, 99.3225, -1.0625, 1.4375)]
+
+STAIR_MOVES = [
+    # In from her side at the lower orlop's height, under the orlop her G deck leaves room for:
+    (("hold ladder", 107.8125, -3.375), (107.9375, 110.5625, -2.5, -1.5)),
+    # Inside her side at the tank top, each foot on its half's floor:
+    (("hold ladder", 91.375, -4.6875), (91.375, 97.625, -3.25, -2.25)),
+    (("hold ladder", 91.375, 3.625), (91.375, 97.625, 2.25, 3.25)),
 ]
