@@ -87,3 +87,56 @@ func test_a_stringer_along_a_hold_s_side_stays_under_a_deck_over_part_of_it() ->
 					assert_lte(corner.y, deck + 0.001, "under the deck over it")
 		parent.free()
 	assert_gt(checked, 0, "she has the room")
+
+
+func test_nothing_of_a_hold_s_side_stands_in_a_flight_climbing_beside_it() -> void:
+	var ship: ShipLayout = load(SHIP)
+	var space := ShipSpace.new(ship)
+	var hold := CargoHold.new(space)
+	var mesh_of := func(room: ShipRoom) -> Array:
+		var mesh := ShipMesh.new(func(_point: Vector3) -> bool: return false, space.room_lines())
+		hold.build(mesh, room)
+		var parent := Node3D.new()
+		var materials := {}
+		for finish: int in ShipMesh.Finish.values():
+			materials[finish] = StandardMaterial3D.new()
+		mesh.commit(parent, materials)
+		var corners := []
+		for node: Node in parent.get_children():
+			corners.append_array((node as MeshInstance3D).mesh.get_faces())
+		parent.free()
+		return corners
+	var checked := 0
+	for room: ShipRoom in ship.rooms:
+		if room.name != &"No. 2 hold, tank top, port" or room.area.position.x < 90.0:
+			continue
+		for ramp: ShipRamp in ship.ramps:
+			if ramp.base() > room.floor_height + 0.1 or not ramp.area.intersects(room.area):
+				continue
+			checked += 1
+			for corner: Vector3 in mesh_of.call(room):
+				var at := Vector2(corner.x, corner.z)
+				assert_false(
+					ramp.area.grow(-0.01).has_point(at) and corner.y > ramp.base() + 2.0,
+					"nothing of it at %s over the flight" % corner
+				)
+	assert_gt(checked, 0, "a flight climbs in the room")
+
+
+func test_a_tween_deck_stands_a_body_s_reach_off_a_flight_through_its_hold() -> void:
+	var ship: ShipLayout = load(SHIP)
+	var space := ShipSpace.new(ship)
+	var hold := CargoHold.new(space)
+	var checked := 0
+	for room: ShipRoom in ship.rooms:
+		if room.name != &"No. 2 hold, tank top, port":
+			continue
+		checked += 1
+		var tween := hold._tween_area(room)
+		if not tween.has_area():
+			continue
+		for ramp: ShipRamp in ship.ramps:
+			if ramp.base() < room.floor_height + CargoHold.TWEEN + 0.5:
+				var near := ramp.area.grow(CargoHold.RACK_CLEAR - 0.01)
+				assert_false(near.intersects(tween), "clear of the flight at %s" % ramp.area)
+	assert_gt(checked, 0, "she has the room")

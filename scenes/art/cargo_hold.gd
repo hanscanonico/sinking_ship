@@ -78,12 +78,17 @@ func build(mesh: ShipMesh, room: ShipRoom) -> void:
 			continue
 		if wall.side % 2 == 0:
 			_racks(mesh, wall, tween)
+		# Her frames and stringers where no flight climbs beside the side: a body on it
+		# would stand in them.
+		var whole := Vector2(wall.from, wall.to)
+		var clear := RoomDressing.clear_of_stairs(_layout, wall, whole, STAIR_REACH)
 		var along := wall.from + FRAME_SPACING * 0.5
 		while along < wall.to - 0.1:
 			var foot := wall.at(along, 0.0)
 			var head := _space.ceiling(room, foot.x, foot.z) - ShipArt.PLANK
 			var frame := wall.rect(along - 0.05, along + 0.05, 0.0, 0.06)
-			RoomDressing.block(mesh, frame, floor, head, ShipPaints.hold_frame)
+			if clear.any(func(run: Vector2) -> bool: return along > run.x and along < run.y):
+				RoomDressing.block(mesh, frame, floor, head, ShipPaints.hold_frame)
 			along += FRAME_SPACING
 		var high := INF
 		# Under the lowest of its ceiling along it: none through a deck over part of it.
@@ -92,10 +97,15 @@ func build(mesh: ShipMesh, room: ShipRoom) -> void:
 			high = minf(high, _space.ceiling(room, low.x, low.z) - floor - 0.3)
 		var height := STRINGER_SPACING
 		while height < high:
-			var stringer := wall.rect(wall.from, wall.to, 0.0, 0.09)
-			RoomDressing.block(
-				mesh, stringer, floor + height - 0.07, floor + height + 0.07, ShipPaints.hold_frame
-			)
+			for run: Vector2 in clear:
+				var stringer := wall.rect(run.x, run.y, 0.0, 0.09)
+				RoomDressing.block(
+					mesh,
+					stringer,
+					floor + height - 0.07,
+					floor + height + 0.07,
+					ShipPaints.hold_frame
+				)
 			height += STRINGER_SPACING
 	if tween.has_area():
 		_tween_deck(mesh, room, tween)
@@ -175,8 +185,9 @@ func _tween_area(room: ShipRoom) -> Rect2:
 			if blocker.top > floor + TWEEN and blocker.bottom < floor + TWEEN + 0.5:
 				area = _clear_of(area, blocker.area)
 		for ramp: ShipRamp in _layout.ramps:
-			if ramp.area.intersects(area) and ramp.base() < floor + TWEEN + 0.5:
-				area = _clear_of(area, ramp.area)
+			var reach := ramp.area.grow(RACK_CLEAR)
+			if reach.intersects(area) and ramp.base() < floor + TWEEN + 0.5:
+				area = _clear_of(area, reach)
 		return area
 	return Rect2()
 
