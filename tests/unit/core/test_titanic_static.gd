@@ -76,7 +76,8 @@ func before_all() -> void:
 	for wall: ShipWall in _structure.walls:
 		# She has fifteen bulkheads: a stepped one's stretch off its line (B's, M's, *_step)
 		# is a second piece of it, no sixteenth.
-		if wall.axis == ShipWall.Axis.ACROSS and not String(wall.name).ends_with("_step") and not String(wall.name).ends_with("_face"):
+		var piece := String(wall.name).ends_with("_step") or String(wall.name).ends_with("_face")
+		if wall.axis == ShipWall.Axis.ACROSS and not piece:
 			_walls.append(wall)
 	_walls.sort_custom(func(a: ShipWall, b: ShipWall) -> bool: return a.at > b.at)
 	assert_eq(_walls.size(), COMPARTMENTS.size() - 1, "fifteen bulkheads part her into sixteen")

@@ -19,11 +19,11 @@ const SPACES := {
 	&"boiler room 6": Vector3(66.5, TANK_TOP, 7.0),
 	&"firemen's passage, by its door": Vector3(69.5, TANK_TOP, 0.0),
 	&"mail room": Vector3(75.0, -12.9375, 3.0),
-	&"bulk store": Vector3(-83.5, ORLOP, -3.0),
+	&"bulk store": Vector3(-83.5, ORLOP, -7.5),
 	&"electric engine room": Vector3(-80.0, TANK_TOP, 1.0),
 	&"turbine engine room": Vector3(-50.0, TANK_TOP, 1.0),
 	&"reciprocating engine room": Vector3(-30.0, ENGINE_TANK_TOP, 0.0),
-	&"shaft tunnel, O to N": Vector3(-95.0, TANK_TOP, 0.0),
+	&"shaft tunnel, O to N": Vector3(-99.0, TANK_TOP, 0.0),
 }
 ## Her estimated spaces, as the Small Titanic keeps them.
 const ESTIMATED_SPACES := {
@@ -39,7 +39,7 @@ const ESTIMATED_SPACES := {
 	&"No. 1 hold, forward": Vector3(113.0, TANK_TOP, 0.0),
 	&"No. 1 hold, orlop": Vector3(109.5, ORLOP, 0.0),
 	&"No. 1 hold, orlop, forward": Vector3(113.0, ORLOP, 0.0),
-	&"firemen's quarters": Vector3(105.0, D_DECK, -5.5),
+	&"firemen's quarters": Vector3(105.0, D_DECK, -5.0),
 	&"forepeak tank": Vector3(117.5, TANK_TOP, 0.0),
 	&"forepeak stores": Vector3(119.0, ORLOP, 0.0),
 	&"boiler room 6 double bottom": Vector3(60.0, KEEL, 0.0),

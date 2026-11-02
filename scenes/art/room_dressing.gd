@@ -63,15 +63,13 @@ enum Part { WALL, FLOOR, OVERHEAD, BEAM }
 ## below her main deck, and her holds' shape is a saloon's; a name says it ahead of the
 ## machinery a room holds, so a boiler room with its boilers is one. Her own kinds come
 ## first, so a "dining saloon" dines and a "deck corridor" is first class; the engine
-## and boiler rooms, her baths and her court last, so "Scotland Road, boiler room 1" is
-## a road.
+## and boiler rooms, her baths and her court last: "Scotland Road, boiler room 1" a road.
 const NAMED: Array[Array] = [
 	["dining", Kind.DINING],
 	["staircase", Kind.STAIRCASE],
 	["deck corridor", Kind.FIRST_CORRIDOR],
 	["berths", Kind.BERTHS],
-	# Ahead of "office": the officers' quarters are berths, and so is a block of cabins
-	# drawn as one room — the freighter's officers', crew's and forward cabins.
+	# Ahead of "office": officers' quarters are berths, so is a block of cabins as one room.
 	["quarters", Kind.BERTHS],
 	["cabins", Kind.BERTHS],
 	# A liner's stateroom is a cabin, however big.
@@ -163,6 +161,8 @@ const NAMED: Array[Array] = [
 	["stokehold", Kind.ENGINE],
 	["dynamo", Kind.ENGINE],
 	["hold", Kind.HOLD],
+	["baggage", Kind.HOLD],
+	["mail room", Kind.HOLD],
 	["wheelhouse", Kind.HELM],
 	["corridor", Kind.PASSAGE],
 	["road", Kind.PASSAGE],

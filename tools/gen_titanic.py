@@ -718,6 +718,27 @@ def fit(x0, x1, h, margin):
     least = min(breadth(x, h) for x in (x0 + 0.01, (x0 + x1) * 0.5, x1 - 0.01))
     return math.floor((least - margin) * 20) / 20
 
+DECK_SLIVER = 0.1
+
+def snap_ends(pieces, holes):
+    """Strips (x0, x1, z0, z1), each pair's shared end moved onto a hole's within DECK_SLIVER of
+    it, as hull_strips' edges do for the holes known when it runs, or the two would leave a
+    sliver of deck: the strip that grows as narrow as the other. None moves off a bulkhead's line,
+    where her floor may change."""
+    out = [list(p) for p in pieces]
+    for a, b in zip(out, out[1:]):
+        if abs(a[1] - b[0]) > 1e-6 or any(abs(a[1] - x) < 1e-3 for x in BX.values()):
+            continue
+        ends = [e for h in holes for e in h[:2] if 1e-6 < abs(e - a[1]) < DECK_SLIVER
+                and h[2] < max(a[3], b[3]) and h[3] > min(a[2], b[2])]
+        if ends:
+            to = min(ends, key=lambda e: abs(e - a[1]))
+            grown = a if to > a[1] else b
+            half = min(a[3], b[3])
+            grown[2:] = [-half, half]
+            a[1] = b[0] = to
+    return [tuple(p) for p in out]
+
 def deck_pieces(x0, x1, z0, z1, holes):
     """A deck's rectangles from x0 to x1 and z0 to z1 round its holes, as (x0, x1, z0, z1)."""
     cuts = sorted({x0, x1} | {v for hx0, hx1, _a, _b in holes for v in (hx0, hx1) if x0 < v < x1})
@@ -1244,7 +1265,7 @@ f_deck = [i for k, (x0, x1, z0, z1) in enumerate(F_PIECES)
 # bulkhead K and from D to A: the boiler rooms stay her estimated rooms under F deck until
 # their plates are laid (#379), but for the pocket abaft D the racquet court's stair comes
 # down to, and forward of A her forepeak's stores do too.
-G_EDGES = sorted({h[k] for h in holes["g"] if h not in G_WAITED for k in (0, 1)})
+G_EDGES = sorted({h[k] for h in holes["g"] if h not in G_WAITED for k in (0, 1)} | {82.6875})  # (the orlop's flight's head, a late hole)
 G_POCKET = next(r for r in G_OUTLINE.rooms if r[1] < 70.0 < r[2] and r[3] < -2.0 < r[4])
 G_PIECES = (hull_strips(plan_ends(G_OUTLINE)[0], BX["K"], G_DECK, edges=G_EDGES)
             + [(G_POCKET[1] - T, round(BX["D"] * 128) / 128, G_POCKET[3] - T, G_POCKET[4] + T)]
@@ -1688,6 +1709,8 @@ def ef_place(level, cuts=None):
 plan_layer("e", E_PLAN, E_DECK, D_DECK, parted_at=EF_CUTS, place=ef_place("E"))
 plan_layer("f", F_PLAN, F_DECK, E_DECK, parted_at=EF_CUTS, place=ef_place("F"))
 plan_layer("g", G_PLAN, G_DECK, F_DECK, parted_at=G_CUTS, place=ef_place("G", G_CUTS))
+# The pocket abaft D the racquet court's stair comes down in, past its door through D.
+room("g_pocket", "passage, G deck, abaft D", G_POCKET[1], round(BX["D"] * 128) / 128, G_POCKET[3], G_POCKET[4], G_DECK)
 assert not NO_ROOM, "no room for a door: %s" % NO_ROOM
 
 # Flights up to G deck from her estimated orlops and machinery spaces (#379 traces them): cut
@@ -1806,7 +1829,7 @@ low_named(LOWER_PLAN, "lower")
 # Her engines' covers rise 11.0 m over their floor (Plate VII), through G and F decks in their
 # casings: their boxes to F deck, and over it as wide as its casing (engine_covers, below).
 ENGINE_COVERS = [s for s in TT_PLAN.solids if s[0] == "reciprocating engine"]
-TT_PLAN.solids[:] = [s[:5] + (q(F_DECK - ENGINE_TANK_TOP),) if s[0] == "reciprocating engine" else s for s in TT_PLAN.solids]
+TT_PLAN.solids[:] = [s[:5] + (q(F_DECK - 0.0625 - ENGINE_TANK_TOP),) if s[0] == "reciprocating engine" else s for s in TT_PLAN.solids]
 
 def tt_floor(x):
     return ENGINE_TANK_TOP if BX["L"] + 1e-3 < x < BX["K"] - 1e-3 else TANK_TOP
@@ -1824,6 +1847,12 @@ plan_layer("tt", TT_PLAN, tt_floor, tt_over, breaks=[BX[k] for k in "MLKDB"] + [
            wall_top=lambda z, x: ORLOP if z < -9.0 and BX["L"] < x < -37.875 else tt_over(x))
 plan_layer("orlop", ORLOP_PLAN, orlop_at, lambda _x: G_DECK, water=False)
 plan_layer("lower_orlop", LOWER_PLAN, LOWER_ORLOP, ORLOP_FWD, water=False)
+# Each boiler room's coal face where its bunker door stands: the bunker's plating, proud of
+# the coal to starboard of the tunnel (and clear of its door's frame).
+for k in range(1, 7):
+    at = BUNKERS["br%d" % k]
+    coal = next(s for s in TT_PLAN.solids if abs(s[1] - at) < 0.1 and s[3] > 0.0)
+    box("coal_face_%d" % k, at - 0.03, at + 0.03, coal[3] + 0.05, coal[4], TANK_TOP, G_DECK if k == 6 else F_DECK)
 # Where the coal and the trunk the plates draw against them stood nothing now does (on_floor):
 # D on the orlop outboard of the bunker abaft it, K on G deck in the wings, B by the spirals on
 # the lower orlop.
@@ -2052,17 +2081,17 @@ for k, r in enumerate(r for r in TT_OUTLINE.rooms if r[0] == "passage, tank top"
     x1 = min(r[2], ORLOP_ROOF_END)
     box("passage_roof_%d" % k, r[1], x1, r[3], r[4], PASSAGE_TOP, PASSAGE_TOP + 2 * T)
 # Her floors: the tank top, the orlop, the lower orlop, their stairs' holes railed.
-tt_decks = [i for k, (x0, x1, z0, z1) in enumerate(TT_PIECES)
+tt_decks = [i for k, (x0, x1, z0, z1) in enumerate(snap_ends(TT_PIECES, TT_HOLES))
             for i in deck("tt_%d" % k, "engine room floor" if BX["L"] <= x0 and x1 <= BX["K"] else "tank top", x0, x1, z0, z1,
                           tt_floor((x0 + x1) * 0.5), TT_HOLES)]
-for k, (x0, x1, z0, z1) in enumerate(ORLOP_PIECES):
+for k, (x0, x1, z0, z1) in enumerate(snap_ends(ORLOP_PIECES, holes["orlop"])):
     deck("orlop_%d" % k, "orlop deck", x0, x1, z0, z1, orlop_at(x0 + 0.01), holes["orlop"])
 for k, (x0, x1, z0, z1) in enumerate(ORLOP_PLAN.decks[1:2]):
     deck("orlop_flat_%d" % k, "orlop deck", x0, x1, max(z0, -fit(x0, x1, ORLOP, 0.05)), z1, ORLOP, holes["orlop"])
 # The landing at the head of the CO2 evaporator room's ladder, out of its door (orlop.py, est.).
 _n, co2_x0, co2_x1, co2_z0, co2_z1, *_rest = next(f for f in ORLOP_OUTLINE.stairs if f[0] == "ladder")
 platform("co2_landing", "orlop deck", co2_x1, co2_x1 + 1.0625, co2_z0, co2_z1, ORLOP)
-for k, (x0, x1, z0, z1) in enumerate(LOWER_PIECES):
+for k, (x0, x1, z0, z1) in enumerate(snap_ends(LOWER_PIECES, holes["lower_orlop"])):
     deck("lower_orlop_%d" % k, "lower orlop deck", x0, x1, z0, z1, LOWER_ORLOP, holes["lower_orlop"])
 for name, x0, x1, z0, z1, _high, _low in stairs:
     if name.startswith("space_db"):
