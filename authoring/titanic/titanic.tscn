@@ -113057,7 +113057,7 @@ material = SubResource("StandardMaterial3D_nubv8")
 metadata/ship = &"opening"
 metadata/name = &"door_passage_hold_3_p"
 metadata/kind = "LEAK"
-metadata/joins = Array[StringName]([&"firemens_passage", &"hold_3_port"])
+metadata/joins = Array[StringName]([&"bunker_6", &"hold_3_port"])
 metadata/area = 0.02
 
 [node name="Opening_door_passage_hold_3_s" type="CSGBox3D" parent="Structure/Openings" unique_id=1042870324]
@@ -113067,7 +113067,7 @@ material = SubResource("StandardMaterial3D_nubv8")
 metadata/ship = &"opening"
 metadata/name = &"door_passage_hold_3_s"
 metadata/kind = "LEAK"
-metadata/joins = Array[StringName]([&"firemens_passage", &"hold_3_starboard"])
+metadata/joins = Array[StringName]([&"bunker_6", &"hold_3_starboard"])
 metadata/area = 0.02
 
 [node name="Opening_port_forepeak_p" type="CSGBox3D" parent="Structure/Openings" unique_id=5131250]
