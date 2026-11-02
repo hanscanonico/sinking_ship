@@ -39,18 +39,19 @@ ROOMS = [
     # No. 1 hold's lower 'tween deck (the plate's "CARGO") round No. 1 hatch, in steps to
     # her narrowing sides. The orlop's hold ladder comes down into its forward part
     # (orlop.py).
-    ("cargo hold", 9261.3, 4079, 9470, 4185),
-    ("cargo hold", 9261.3, 4185, 9314, 4344),
-    ("cargo hold", 9261.3, 4344, 9470, 4440.5),
+    ("cargo hold", 9261.3, 4079, 9470, 4198),
+    ("cargo hold", 9261.3, 4198, 9314, 4312),
+    ("cargo hold", 9261.3, 4312, 9470, 4440.5),
     ("cargo hold", 9470, 4121.5, 9636, 4396.5),
     ("cargo hold", 9636, 4152.5, 9802.5, 4364),
 ]
 
 SOLIDS = [
     # The firemen's spiral trunk aft of B, its spirals passing (orlop.py's flights): nobody's
-    # floor at this height; No. 1 hatch, open down to the hold under it.
+    # floor at this height; No. 1 hatch, open down to the hold under it, narrower than the
+    # plate's by 0.3-0.8 m a side, for a body past it inside her side at this height.
     ("firemen's spiral trunk", 9196.1, 4158, 9261.3, 4372, None),
-    ("No. 1 hatch", 9314, 4185, 9470, 4344, None),
+    ("No. 1 hatch", 9314, 4198, 9470, 4312, None),
     # Forward of A, the forepeak tank (the plate's "PEAK TANK"), in two steps to her stem.
     ("peak tank", 9802.5, 4187, 10000, 4325, None),
     ("peak tank", 10000, 4229, 10236, 4280, None),
@@ -58,13 +59,19 @@ SOLIDS = [
 
 OPEN = [
     # The hold's five pieces.
-    (9264, 4182, 9311, 4188), (9264, 4341, 9311, 4347), (9467, 4124, 9473, 4182), (9467, 4347, 9473, 4393),
+    (9264, 4195, 9311, 4201), (9264, 4309, 9311, 4315), (9467, 4124, 9473, 4195), (9467, 4315, 9473, 4393),
     (9633, 4155, 9639, 4361),
 ]
 
 STAIRS = [
     # The hold ladder down to the tank top, est. (orlop.py's notes): starboard of the
-    # orlop's coming down, its head aft by that one's foot, 3.1 m for the 2.55 m left on
-    # her generator's heights between the 2.2 m est. above and her tank top.
-    ("hold ladder", 9635.5, 4301, 9756.5, 4339, "aft", "tanktop", "lower_orlop"),
+    # orlop's coming down, its head aft by that one's foot, 3.95 m for the 3.39 m her
+    # generator's heights leave between her tank top and this deck, under her orlop.
+    ("hold ladder", 9603.5, 4301, 9756.5, 4339, "fore", "tanktop", "lower_orlop"),
+]
+
+STAIR_MOVES = [
+    # In from her side at the tank top, where her floor stops well inside this plan's side, its
+    # head clear of the join into the hold's forward piece:
+    (("hold ladder", 110.6875, 1.1875), (108.9375, 112.875, 0.25, 1.25)),
 ]
