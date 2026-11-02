@@ -24,9 +24,10 @@
 #
 # It tries every slot once without waiting; when all are taken, it says so in one
 # line — on stderr, or on the descriptor TEST_SLOT_NOTICE_FD numbers, which it closes
-# before it runs COMMAND, prefixed with TEST_SLOT_NAME when set — and tries them
-# again every half second as long as it takes. It says the same of a wait for
-# memory. Runs that share a TEST_SLOT_NOTICE_ONCE path, the many of one make check,
+# before it runs COMMAND, prefixed with TEST_SLOT_NAME when set — and blocks in
+# fd_lock_watch, starting about a process a minute on most systems, until one looks
+# free, a second or so after it is, as long as it takes. It says the same of a wait for
+# memory, which looks again every five seconds. Runs that share a TEST_SLOT_NOTICE_ONCE path, the many of one make check,
 # say each of them once between them. The exit status is COMMAND's.
 # The lock is tools/lib/fd_lock.sh's: flock(1), lockf(1) or Perl, whichever the
 # system has; with none it fails and runs nothing.
@@ -79,25 +80,46 @@ notice() {
 	echo "test: ${TEST_SLOT_NAME:+$TEST_SLOT_NAME }$2" >&"${TEST_SLOT_NOTICE_FD:-2}"
 }
 
-# Opens each slot's file on fd 8 in turn and keeps the first it locks there.
-take_slot() {
-	local k
-	for ((k = 1; k <= slots; k++)); do
-		exec 8>>"$LOCK.$k.flock" || {
-			echo "test: cannot open $LOCK.$k.flock" >&2
-			exit 1
-		}
-		fd_lock_try 8 && return 0
-	done
+# Opens slot $1's file on fd 8 and keeps it there if it locks.
+take_slot_of() {
+	exec 8>>"$LOCK.$1.flock" || {
+		echo "test: cannot open $LOCK.$1.flock" >&2
+		exit 1
+	}
+	fd_lock_try 8 && return 0
 	exec 8>&-
 	return 1
 }
 
+# The first slot that locks, on fd 8.
+take_slot() {
+	local k
+	for ((k = 1; k <= slots; k++)); do
+		take_slot_of "$k" && return 0
+	done
+	return 1
+}
+
+# Blocked in the lock's watcher until a slot looks free, as a try at every slot starts a
+# process per slot, and takes that one. One lost to another run naps a second, so that
+# a lock the watcher reads wrong can never spin.
+wait_for_slot() {
+	local k worth files=()
+	for ((k = 1; k <= slots; k++)); do
+		files+=("$LOCK.$k.flock")
+	done
+	while :; do
+		worth="$(fd_lock_watch "${files[@]}")"
+		for k in $worth; do
+			take_slot_of "$k" && return 0
+		done
+		[[ -z "$worth" ]] || sleep 1
+	done
+}
+
 if ! take_slot; then
 	notice slot "waiting for a test engine slot: $slots in use across the machine ($LOCK.*.flock)"
-	until take_slot; do
-		sleep 0.5
-	done
+	wait_for_slot
 fi
 
 if [[ -n "${TEST_SLOT_MIN_FREE_MB-}" ]]; then
@@ -117,8 +139,10 @@ if ((min_free > 0)) && [[ -n "$free" ]] && ((free < min_free)); then
 			notice memory-late "memory still short after $patience s ($free MB free, $min_free MB wanted): running anyway"
 			break
 		fi
-		sleep 2
-		waited=$((waited + 2))
+		nap=$((patience - waited))
+		((nap <= 5)) || nap=5
+		sleep "$nap"
+		waited=$((waited + nap))
 	done
 fi
 

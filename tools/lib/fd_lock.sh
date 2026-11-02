@@ -12,6 +12,15 @@
 # second, as lockf waiting on a descriptor spins a core — and returns 1 when the time
 # is up. FD_LOCK_TOOL names the one picked, empty when there is none, and then both
 # fail.
+#
+# fd_lock_watch FILE… waits, about a minute at most, for those worth a try without
+# holding anything, and prints their positions, 1 up: nothing when the time is up. It is
+# what a wait across many locks should block in, as a process per lock per try is what
+# costs on Windows, where each one a Git Bash forks strands a kernel token until reboot
+# (#400). One Perl tries them all once a second, on descriptors of its own that it lets
+# go of, and ends when it sees one free or the shell that asked is gone; the caller
+# then takes that one the usual way, and may lose it to another. Where there is no Perl,
+# or with FD_LOCK_WATCHER=shell (the checks), it naps four seconds and names them all.
 
 # Perl's flock on descriptor $1 with operation $2, given up after $3 seconds when $3 is
 # above 0: the alarm ends a blocked flock by ending Perl (a handler of Perl's own would
@@ -23,6 +32,33 @@ fd_lock_perl() {
 			'alarm($ARGV[2] // 0); open(my $fh, ">&=", $ARGV[0]) or exit 2;
 			exit(flock($fh, $ARGV[1]) ? 0 : 1)' "$@"
 	} 2>/dev/null
+}
+
+fd_lock_watch() {
+	if [[ "${FD_LOCK_WATCHER-}" != shell ]] && command -v perl >/dev/null; then
+		{
+			perl -MFcntl=:flock -e \
+				'my $asker = shift;
+				for my $second (1 .. 60) {
+					for my $k (0 .. $#ARGV) {
+						open(my $fh, ">>", $ARGV[$k]) or next;
+						next unless flock($fh, LOCK_EX | LOCK_NB);
+						flock($fh, LOCK_UN);
+						close($fh);
+						print $k + 1, "\n";
+						exit 0;
+					}
+					exit 0 unless kill(0, $asker);
+					sleep 1;
+				}' "$$" "$@"
+		} 2>/dev/null
+		return 0
+	fi
+	sleep 4
+	local k
+	for ((k = 1; k <= $#; k++)); do
+		echo "$k"
+	done
 }
 
 FD_LOCK_TOOL=${FD_LOCK-}
