@@ -245,11 +245,12 @@ func _heads_across(state: FloodState, stepper: SinkStepper) -> PackedFloat64Arra
 
 
 ## The highest any water of [param state] stands with a surface of its own: the sea, or a
-## cell not full, by what its pocket adds to its push. Nothing in her pushes higher.
+## cell wet and not full, by what its pocket adds to its push — a dry cell's head is only
+## its floor. Nothing in her pushes higher.
 func _highest_surface(state: FloodState, stepper: SinkStepper) -> float:
 	var highest := state.sea
 	for cell in state.heads.size():
-		if state.heads[cell] < stepper.ceiling_of(cell):
+		if state.water[cell] > 0.0 and state.heads[cell] < stepper.ceiling_of(cell):
 			var lifted := _air.lift(cell, SinkStepper.OUTSIDE, state.heads)
 			highest = maxf(highest, state.heads[cell] + lifted)
 	return highest
