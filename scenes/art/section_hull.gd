@@ -363,7 +363,9 @@ static func _close_end(
 ## in bands each from her side in to the deck it stands on, whose end — a house's front,
 ## a wall across her — closes the rest, its doors and all. The lowest, from the lower
 ## sheer, stands on the deck under it beside the joint where that deck runs on into the
-## higher run; each deck over it starts another, up to the next or the higher sheer.
+## higher run — or, where it runs on into none, on the higher run's highest deck under it
+## that ends on the joint, a house's front (_house_under()); each deck over it starts
+## another, up to the next or the higher sheer.
 ## Where the deck under the lower sheer runs no further — her fo'c'sle deck, which a
 ## stair climbs from to her forecastle head, railed beside it — her end stays open, as
 ## a deck's railed edge is. Out past her decks' ends she stood open, where they stop
@@ -393,6 +395,8 @@ static func _close_steps(
 			var bands := PackedVector2Array()
 			if not beside.is_empty():
 				var under := _deck_at(inside, beside[beside.size() - 1].x)
+				if under == Vector2.INF:
+					under = _house_under(inside, beside, low)
 				if under != Vector2.INF:
 					bands.append(Vector2(low, under.y))
 			for deck: Vector2 in inside:
@@ -424,6 +428,22 @@ static func _decks_at(layout: ShipLayout, x: float, below: float, out: float) ->
 		else:
 			decks.append(deck)
 	return decks
+
+
+## Where the deck under the lower sheer [param low] beside the joint runs on into none of
+## the higher run's: the highest of [param inside] under [param low] that ends on the
+## joint — none of [param beside] at its height — its end a house's front standing up past
+## the lower sheer, her bridge deck's front over her raised well; else Vector2.INF.
+static func _house_under(
+	inside: PackedVector2Array, beside: PackedVector2Array, low: float
+) -> Vector2:
+	var house := Vector2.INF
+	for deck: Vector2 in inside:
+		if deck.x < low - LEVEL:
+			house = deck
+	if house == Vector2.INF or _deck_at(beside, house.x) != Vector2.INF:
+		return Vector2.INF
+	return house
 
 
 ## The one of [param decks] (_decks_at()) at [param height], or Vector2.INF.
