@@ -364,15 +364,17 @@ census:
 # every ship but those, and the match too (CI's art-lint jobs). PART=K/N with SHIP checks
 # her share K of N alone, each building her once: the last part her railings' open
 # spans, the others the rest dealt between them; the N parts' checks are her whole lint
-# (CI's art-lint titanic K/N jobs). Its engine takes a test slot (tools/test_slot.sh),
+# (CI's art-lint titanic K/N jobs). COSTS=FILE appends each ship check's microseconds
+# to FILE (tools/art_lint_costs.gd). Its engine takes a test slot (tools/test_slot.sh),
 # as bake-check's do: each dresses whole ships.
 art-lint: export TEST_SLOT_NAME = art-lint
 art-lint:
 	$(call require-godot)
 	@set -o pipefail; tools/engine_guard.sh tools/test_slot.sh $(GODOT) \
 		--headless --no-header --path . --fixed-fps 60 \
-		-s res://tools/art_lint.gd $(if $(SHIP)$(SKIP)$(PART),--) $(if $(SHIP),--ship=$(SHIP)) \
-		$(if $(SKIP),--skip=$(SKIP)) $(if $(PART),--part=$(PART)) \
+		-s res://tools/art_lint.gd $(if $(SHIP)$(SKIP)$(PART)$(COSTS),--) \
+		$(if $(SHIP),--ship=$(SHIP)) $(if $(SKIP),--skip=$(SKIP)) $(if $(PART),--part=$(PART)) \
+		$(if $(COSTS),--costs=$(abspath $(COSTS))) \
 		| grep -v -e '^\[godot_ai' -e '^match seed'
 
 # verify-changed's art gate (tools/art_lint_changed.sh): the whole art-lint when the

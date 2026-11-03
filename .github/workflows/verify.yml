@@ -137,7 +137,16 @@ jobs:
       - uses: ./.github/actions/setup-godot
 
       - name: art-lint
-        run: make art-lint SHIP=titanic PART=${{ matrix.part }}/${{ strategy.job-total }}
+        run: make art-lint SHIP=titanic PART=${{ matrix.part }}/${{ strategy.job-total }} COSTS=art-lint-costs.tsv
+
+      # What each of her checks took, for tools/art_lint_costs.py to deal the parts by.
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: art-lint-costs-titanic-${{ matrix.part }}
+          path: art-lint-costs.tsv
+          if-no-files-found: ignore
+          retention-days: 90
 
   verify:
     needs: [static, test, art-lint, art-lint-titanic]

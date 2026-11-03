@@ -67,6 +67,7 @@ const FurnishingCheck := preload("res://tools/furnishing_check.gd")
 const BoatCheck := preload("res://tools/boat_check.gd")
 const StructureSteel := preload("res://tools/structure_steel.gd")
 const OpenSpanCheck := preload("res://tools/open_span_check.gd")
+const ArtLintCosts := preload("res://tools/art_lint_costs.gd")
 const MATCH_SCENE := "res://scenes/match/match.tscn"
 const SHIPS_DIR := "res://data/ships/"
 const ART_DIR := "res://scenes/art/"
@@ -140,6 +141,9 @@ var _problems := PackedStringArray()
 var _checks := 0
 ## The share of a ship's checks this run makes (--part): part x of y, counting from 1.
 var _part := Vector2i(1, 1)
+## Each ship check's cost this run, and the file --costs=FILE appends them to.
+var _costs := ArtLintCosts.new()
+var _costs_file := ""
 
 
 func _initialize() -> void:
@@ -163,6 +167,8 @@ func _initialize() -> void:
 				printerr("art-lint: %s is no part — --part=K/N takes K from 1 to N" % arg)
 				quit(1)
 				return
+		elif arg.begins_with("--costs="):
+			_costs_file = arg.trim_prefix("--costs=")
 	if _part.y > 1 and only.is_empty():
 		printerr("art-lint: --part deals one ship's checks — name her with --ship=NAME")
 		quit(1)
@@ -321,30 +327,42 @@ func _scripts_under(dir: String) -> PackedStringArray:
 ## checks her open spans, and every other part its share of the rest (_mine).
 func _check_ship(file: String, layout: ShipLayout) -> void:
 	var rules := RunMatch.default_config(SEED).rules
+	_costs = ArtLintCosts.new()
 	if _part.x < _part.y or _part.y == 1:
 		_check_drawn(file, layout, rules)
 	if _part.x == _part.y:
+		var since := Time.get_ticks_usec()
 		var spans: Array = OpenSpanCheck.check(
 			root, file, layout, rules, _ship_faces, BLOCKER_TOLERANCE
 		)
+		_costs.timed("spans", 0, since)
 		_problems.append_array(spans[0])
 		_checks += spans[1]
+	for line in _costs.summary():
+		print("art-lint: %s part %d/%d: %s" % [file, _part.x, _part.y, line])
+	if not _costs_file.is_empty():
+		_costs.write(_costs_file, file.get_basename())
 
 
 ## Each platform, blocker and ramp of [param layout] against the ship as drawn, and her
 ## furnishings — those _mine() deals this part — and in its first part her hull, panes,
 ## undersides and crate light, each checked whole.
 func _check_drawn(file: String, layout: ShipLayout, rules: BrawlRules) -> void:
+	var since := Time.get_ticks_usec()
 	var art := ShipArt.new()
 	root.add_child(art)
 	art.rules = rules
 	art.build(layout, rules.railing_height, rules.body_radius)
+	_costs.timed("build", 0, since)
+	since = Time.get_ticks_usec()
 	var faces := _ship_faces(art)
 	var cells := FaceCells.file(faces)
+	_costs.timed("faces", 0, since)
 	var first := _part.x == 1
 	for index in layout.platforms.size():
 		if not _mine(index):
 			continue
+		since = Time.get_ticks_usec()
 		var platform := layout.platforms[index]
 		_check_tops(
 			faces,
@@ -354,15 +372,19 @@ func _check_drawn(file: String, layout: ShipLayout, rules: BrawlRules) -> void:
 			func(_point: Vector2) -> float: return platform.height,
 			PLATFORM_TOLERANCE
 		)
+		_costs.timed("platform", index, since)
+	since = Time.get_ticks_usec()
 	if first:
 		_problems.append_array(
 			UndersideCheck.check(
 				layout, art.cut_above, file, faces, cells, _samples, PLATFORM_TOLERANCE
 			)
 		)
+		_costs.timed("undersides", 0, since)
 	for index in layout.ramps.size():
 		if not _mine(index):
 			continue
+		since = Time.get_ticks_usec()
 		var ramp := layout.ramps[index]
 		_check_tops(
 			faces,
@@ -372,25 +394,42 @@ func _check_drawn(file: String, layout: ShipLayout, rules: BrawlRules) -> void:
 			func(point: Vector2) -> float: return ramp.height_at(point.x, point.y),
 			RAMP_TOLERANCE
 		)
+		_costs.timed("ramp", index, since)
 	for index in layout.blockers.size():
 		if _mine(index):
+			since = Time.get_ticks_usec()
 			_check_blocker(
 				faces, cells, "%s blocker %d" % [file, index], layout.blockers[index], layout
 			)
+			_costs.timed("blocker", index, since)
 	for index in layout.ladders.size():
 		if _mine(index):
+			since = Time.get_ticks_usec()
 			_check_ladder(
 				faces, cells, "%s ladder %d" % [file, index], layout.ladders[index], layout
 			)
+			_costs.timed("ladder", index, since)
 	if first and layout.structure != null:
+		since = Time.get_ticks_usec()
 		_check_hull(faces, cells, file, layout)
+		_costs.timed("hull", 0, since)
+		since = Time.get_ticks_usec()
 		_check_panes(file, layout, rules)
+		_costs.timed("panes", 0, since)
 	_check_false_floor(art, file, layout, rules)
+	since = Time.get_ticks_usec()
 	if first:
 		_check_crate_light(file, layout, art)
 		_checks += 1
+		_costs.timed("crate", 0, since)
+	since = Time.get_ticks_usec()
 	var furnishings := _dealt(FurnishingCheck.furnishings(art))
-	for problem in FurnishingCheck.intrusions(layout, rules, furnishings):
+	_costs.timed("furnished", 0, since)
+	var stretches := {}
+	var found := FurnishingCheck.intrusions(layout, rules, furnishings, stretches, DEALT_STRETCH)
+	for stretch: int in stretches:
+		_costs.costs["stretch	%d" % stretch] = stretches[stretch]
+	for problem in found:
 		_problems.append("art-lint: %s: %s" % [file, problem])
 	art.free()
 
@@ -507,8 +546,10 @@ func _check_panes(file: String, layout: ShipLayout, rules: BrawlRules) -> void:
 ## space fitted in behind her hold's wall, or her hull behind a peak's (#148). Only the
 ## platforms _mine() deals this part.
 func _check_false_floor(art: ShipArt, file: String, layout: ShipLayout, rules: BrawlRules) -> void:
+	var since := Time.get_ticks_usec()
 	var faces := _ship_faces(art, true)
 	var cells := FaceCells.file(faces)
+	_costs.timed("shown", 0, since)
 	var space := ShipSpace.new(layout)
 	var ends := Vector2(INF, -INF)
 	for platform: ShipPlatform in layout.platforms:
@@ -516,6 +557,7 @@ func _check_false_floor(art: ShipArt, file: String, layout: ShipLayout, rules: B
 	for index in layout.platforms.size():
 		if not _mine(index):
 			continue
+		since = Time.get_ticks_usec()
 		var platform := layout.platforms[index]
 		var low := platform.height - rules.step_height
 		var high := platform.height + rules.jump_height
@@ -540,6 +582,7 @@ func _check_false_floor(art: ShipArt, file: String, layout: ShipLayout, rules: B
 					)
 				)
 				break
+		_costs.timed("floor", index, since)
 
 
 ## Points of the ship plane BEYOND [param area]'s edges, BEYOND_STEP apart along each
