@@ -98,6 +98,9 @@ tools/art_lint.gd	DirAccess.get_directories_at(dir)	scenes/art/*
 tools/art_lint.gd	DirAccess.get_files_at(dir)	scenes/art/*
 tools/art_lint.gd	FileAccess.get_file_as_string(ART_DIR + file)	scenes/art/*
 tools/art_lint.gd	load(SHIPS_DIR + file)	data/ships/*
+tools/art_lint_costs.gd	FileAccess.file_exists(path)	tools/art_lint_costs.tsv
+tools/art_lint_costs.gd	FileAccess.get_file_as_string(path)	tools/art_lint_costs.tsv
+tools/art_lint_costs.gd	FileAccess.open(path)	tools/art_lint_costs.tsv
 tools/census.gd	FileAccess.open(OUT if ship == DEFAULT_SHIP else SHIP_OUT % ship)	docs/census*.md
 tools/census.gd	load(RunMatch.DEFAULT_MATCH)	data/match/default.tres
 tools/online_e2e.gd	FileAccess.file_exists(_settings)	-
