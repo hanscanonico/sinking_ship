@@ -392,19 +392,23 @@ func test_a_pump_beats_a_hole_while_its_generator_runs() -> void:
 	)
 
 
-## A bulkhead and the stretch of it in a bunker's face, off its line, a door in that stretch.
+## A bulkhead and the stretch of it in a bunker's face, 2.5 m aft of its line, a door in
+## that stretch.
 func _faced_bulkhead() -> Array:
 	var structure := ShipStructure.new()
 	var bulkhead := ShipWall.new()
 	bulkhead.name = &"bulkhead_e"
-	bulkhead.axis = ShipWall.Axis.ACROSS
 	bulkhead.at = 54.0
 	bulkhead.cells = [&"room", &"tunnel"] as Array[StringName]
 	var face := ShipWall.new()
 	face.name = &"bulkhead_e_face"
-	face.axis = ShipWall.Axis.ACROSS
 	face.at = 51.5
 	face.cells = [&"tunnel", &"next_room"] as Array[StringName]
+	for wall: ShipWall in [bulkhead, face]:
+		wall.axis = ShipWall.Axis.ACROSS
+		wall.span = Vector2(-10.0, 10.0)
+		wall.bottom = -19.0
+		wall.top = -3.0
 	structure.walls = [bulkhead, face] as Array[ShipWall]
 	var door := ShipOpening.new()
 	door.joins = [&"next_room", &"tunnel"] as Array[StringName]
@@ -413,17 +417,27 @@ func _faced_bulkhead() -> Array:
 	return [structure, door]
 
 
-func test_a_door_in_a_weakened_bulkhead_s_face_is_weakened_with_it() -> void:
-	var faced := _faced_bulkhead()
+## The damage of a gash whose aft end is at [param end_x] on her starboard shell, its
+## walls within a metre of either end weakened to half (HitMapper).
+func _gash_ending_at(structure: ShipStructure, end_x: float) -> HitDamage:
 	var damage := HitDamage.new()
-	damage.weakened = [&"bulkhead_e"] as Array[StringName]
 	damage.weakened_to = 0.5
+	var ends := PackedFloat64Array([end_x, -17.0, 9.0, end_x + 60.0, -17.0, 9.0])
+	HitMapper._weaken(structure, 1.0, ends, damage)
+	return damage
+
+
+func test_a_door_in_a_face_out_of_the_gash_s_reach_keeps_its_heads() -> void:
+	var faced := _faced_bulkhead()
+	var damage := _gash_ending_at(faced[0], 54.6)
+	assert_eq(damage.weakened, [&"bulkhead_e"] as Array[StringName], "the bulkhead beside its end")
+	assert_eq(
+		SinkFailures.kept_share(faced[0], damage, faced[1]), 1.0, "3.1 m from it: all of them"
+	)
+
+
+func test_a_door_in_a_face_the_gash_ends_beside_is_weakened() -> void:
+	var faced := _faced_bulkhead()
+	var damage := _gash_ending_at(faced[0], 52.0)
+	assert_eq(damage.weakened, [&"bulkhead_e_face"] as Array[StringName], "the face beside its end")
 	assert_eq(SinkFailures.kept_share(faced[0], damage, faced[1]), 0.5, "half its heads")
-
-
-func test_a_door_in_a_face_keeps_its_heads_when_its_bulkhead_is_not_weakened() -> void:
-	var faced := _faced_bulkhead()
-	var damage := HitDamage.new()
-	damage.weakened = [&"bulkhead_f"] as Array[StringName]
-	damage.weakened_to = 0.5
-	assert_eq(SinkFailures.kept_share(faced[0], damage, faced[1]), 1.0, "all of them")
