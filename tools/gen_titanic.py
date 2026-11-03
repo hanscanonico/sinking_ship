@@ -715,16 +715,17 @@ POOP = q(B_DECK + 0.56)                    # SB-III: C's sheer at x −107…−
 #   are each one box: a step at B or her forecastle's would leave a cell a step thin over
 #   No. 1's 'tween, and 1.94 m over-reads E deck's 1.06-1.43 m at D and C by 0.5-0.9 m.
 # - C deck: under her forecastle her plates' own sheer, the 1.56 m FCSL stands on B deck's
-#   height, so each room under it keeps B deck's 2.75 m of headroom; forward of its step a
-#   step on, 1.875 m (the plates' 2.16 m is 0.625 m on, more than a body steps through the
-#   doors in the wall there). Her forward well the forecastle's 1.56 m too, run on aft to her
+#   height, so each room under it keeps B deck's 2.75 m of headroom; forward of its step too
+#   (the plates' 2.16 m is 0.6 m on, more than a body steps through the doors in the wall
+#   there, and a step a body walks up is no ramp to a deck). Her forward well the
+#   forecastle's 1.56 m too, run on aft to her
 #   bridge deck's front (plan_sheer reads 0.9-1.3 m there), so D deck under it has C deck over
 #   it 9 ft 3 in (BOT: 9 ft at her forward end).
 # E deck stays flat: its rooms forward stand to D deck, its flights up to D run on (run_on),
 # and no cell of hers parts at E deck forward of boiler room 5 ('tweens run from G deck to D).
 # Each (from x, the deck's height forward of it).
 D_SHEER = [(B_RUN[1], -1.25), (round(BX["A"] * 128) / 128, -0.9375)]
-C_SHEER = [(B_RUN[1], 1.5625), (FCSL_STEP, 1.875)]
+C_SHEER = [(B_RUN[1], 1.5625)]
 
 def stepped(flat, steps, x, up=False):
     """A deck's height at x, flat aft of its first step, each step's height forward of it: on a
@@ -1329,15 +1330,15 @@ d_deck = [i for k, (x0, x1, z0, z1) in enumerate(D_PIECES)
 # D deck's cells part where a bulkhead's measured top stands over her flat D deck — P,
 # O, N and M aft, B and A forward: her sheer lifts their tops over it (BULKHEADS; her
 # sisters' raised ones part theirs too, their rooms hers) — and at her bridge deck's
-# front (d_deck, d_deck_forward), and at her forecastle's step, where her sheer steps D deck
-# and C deck over it (D_SHEER, C_SHEER). The plate draws walls over P, O and M within 0.25 m
+# front (d_deck, d_deck_forward), where her sheer steps D deck and C deck over it (D_SHEER,
+# C_SHEER). The plate draws walls over P, O and M within 0.25 m
 # and others over a line within D_REACH: each held to its line. A room the plate draws
 # over a line is split along it (named_pieces). Each line on the 1/128 m grain, within
 # 4 mm of its cells' faces: a room's far side is its corner plus its size in single
 # precision, and off the grain it stood a hair off a solid's face on the same line,
 # a gap the layout lint read as a door.
 D_CUTS = sorted({round((UPPER["M"] if letter == "M" else x) * 128) / 128 for letter, x, _deck, feet in BULKHEADS
-                 if letter != "MN" and LOAD_WL + feet * FT > D_DECK + 1e-6} | {B_RUN[1], FCSL_STEP})
+                 if letter != "MN" and LOAD_WL + feet * FT > D_DECK + 1e-6} | {B_RUN[1]})
 D_REACH = 0.4
 # A room the plate draws over a line is split along it, each part at least a body's lead
 # (two of its radii) and a margin deep, or a body stepping through the line would stand in
@@ -1814,7 +1815,7 @@ def d_place(x):
         return ("D deck", "forward of %s" % letter[round(after, 4)])
     return ("D deck", "aft of %s" % letter[round(min(c for c in D_CUTS if c > x), 4)])
 
-plan_layer("c", C_PLAN, c_at, c_over, (POOP_TO, C_TAIL, B_RUN[1], FCSL_FROM, FCSL_STEP, FC_RAMP[1]),
+plan_layer("c", C_PLAN, c_at, c_over, (POOP_TO, C_TAIL, B_RUN[1], FCSL_FROM, FC_RAMP[1]),
            parted_at=(POOP_TO, B_RUN[0], B_RUN[1], FCSL_FROM, FCSL_STEP), place=c_place, main=("C deck",))
 plan_layer("d", D_PLAN, d_at, lambda x: c_at(x, True), [at for at, _h in D_SHEER + C_SHEER], parted_at=D_CUTS,
            place=d_place, main=("D deck",))
@@ -3155,9 +3156,7 @@ PASSAGE_FWD_X, PASSAGE_FWD_Z = next((r[1], (r[3], r[4])) for r in TT_PLAN.rooms 
 x0, x1 = COMP["hold_1"]
 cell("hold_1", x0, x1, TANK_TOP, G_DECK, -HALF, HALF, "CARGO", HOLD)
 cell("hold_1_tween", UPPER["B"], x1, G_DECK, d_at(x1 - 0.01), -HALF, HALF, "ACCOMMODATION")
-# Under her forecastle's step C deck steps up (C_SHEER): No. 1's D deck space a cell each side.
-cell("hold_1_d", x0, FCSL_STEP, d_at(x0 + 0.01), c_at(FCSL_STEP - 0.01), -HALF, HALF, "ACCOMMODATION")
-cell("hold_1_fwd_d", FCSL_STEP, x1, d_at(x1 - 0.01), c_at(FCSL_STEP + 0.01), -HALF, HALF, "ACCOMMODATION")
+cell("hold_1_d", x0, x1, d_at(x0 + 0.01), c_at(x0 + 0.01), -HALF, HALF, "ACCOMMODATION")
 for hold in ("hold_2", "hold_3"):
     x0, x1 = COMP[hold]
     if hold == "hold_2":
@@ -3567,7 +3566,7 @@ for plan, plan_floor, over in ((BOAT_PLAN, BOAT, BOAT + HOUSE_TOP), (A_PLAN, A_D
             opening(tag + ("_%d" % seen if seen else ""), "OPEN", sides[0], sides[1], centre, size, starts="OPEN")
 # Where her sheer steps her decks (D_SHEER, C_SHEER), each space's two cells either side of
 # the step open to each other where their faces meet: D deck's at her bridge deck's front over
-# the step, No. 1's D deck space and her forecastle at its step; No. 3's 'tween open up into the
+# the step, her forecastle at its step; No. 3's 'tween open up into the
 # space over it under her stepped D deck.
 def open_face(name, a, b, x):
     """An OPEN in the plane x between cells a and b over all their faces share there."""
@@ -3577,7 +3576,6 @@ def open_face(name, a, b, x):
 
 open_face("open_d_deck", piece("d_deck", B_RUN[1] - 0.01), "d_deck_forward", B_RUN[1])
 open_face("open_forecastle", "forecastle", "forecastle_head", FCSL_STEP)
-open_face("open_hold_1_d", "hold_1_d", "hold_1_fwd_d", FCSL_STEP)
 UPPER_3 = cell_box("hold_3_upper")
 opening("open_hold_3_upper", "OPEN", "hold_3_tween", "hold_3_upper", ((UPPER_3[0] + UPPER_3[1]) * 0.5, D_DECK, 0.0),
         (UPPER_3[1] - UPPER_3[0], 0, min(UPPER_3[5], cell_box("hold_3_tween")[5]) * 2), starts="OPEN")
