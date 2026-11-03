@@ -22,6 +22,9 @@ const SLIVER := 0.01
 const WALL_STEP := 0.05
 ## The side of the squares rooms_near() looks a point's rooms up in, in metres.
 const ROOM_CELL := 2.0
+## How far past what is asked _blockers_near() and _platforms_near() look: well past any
+## margin their callers test within.
+const NEAR_SLACK := 0.25
 ## Per side (0 to 3), its unit vector out of the room, ship plane (outward()).
 const OUTWARD: Array[Vector2] = [Vector2.UP, Vector2.RIGHT, Vector2.DOWN, Vector2.LEFT]
 
@@ -40,6 +43,25 @@ var _walls: Array[ShipBlocker] = []
 ## Her rooms on a grid of ROOM_CELL squares, each over its area grown by INSIDE
 ## (rooms_near), built the first time it is asked.
 var _room_grid: SpatialIndex
+## Per room, by index, five numbers: the height under its floor and the bounds of its
+## area grown by INSIDE, x then z (_outdoors_among); and per square of the plane, the
+## rooms over it (_rooms_over) — both built the first time either is asked.
+var _room_bounds := PackedFloat64Array()
+var _point_rooms: Array[PackedInt32Array] = []
+var _grid_origin := Vector2.ZERO
+var _grid_size := Vector2i.ONE
+## Her blockers and her platforms on grids of ROOM_CELL squares, each over its footprint
+## (_blockers_near, _platforms_near), built the first time they are asked.
+var _blocker_grid: SpatialIndex
+var _platform_grid: SpatialIndex
+## Per room, what ceiling() answers over each cell between the edges of what roofs it
+## (_ceiling_map), gathered as it is asked.
+var _ceilings := {}
+## Per room, its wall runs (wall_runs), the glazed apart; and the boxes on its floor
+## (_on_floor).
+var _runs := {}
+var _glazed_runs := {}
+var _floor_boxes := {}
 
 
 func _init(ship: ShipLayout) -> void:
@@ -48,8 +70,11 @@ func _init(ship: ShipLayout) -> void:
 
 ## The rooms, by index and in order, whose areas grown by INSIDE may reach
 ## [param box] (x/z): every room a point or a piece there could stand in is among them,
-## of a liner's hundred, asked of a million points as she is dressed.
+## of a liner's hundred, asked of a million points as she is dressed: of a point, in one
+## step (_rooms_over).
 func rooms_near(box: Rect2) -> PackedInt32Array:
+	if box.size == Vector2.ZERO:
+		return _rooms_over(box.position.x, box.position.y)
 	if _room_grid == null:
 		var bounds := Rect2()
 		for index in layout.rooms.size():
@@ -61,18 +86,91 @@ func rooms_near(box: Rect2) -> PackedInt32Array:
 	return _room_grid.near(box)
 
 
-## Whether ship point [param point] stands outside every room.
-func outdoors(point: Vector3) -> bool:
-	for index: int in rooms_near(Rect2(point.x, point.z, 0.0, 0.0)):
+## The blockers, by index and in order, whose footprints may reach [param box] (x/z):
+## every one a scan of them all would find there is among them.
+func _blockers_near(box: Rect2) -> PackedInt32Array:
+	if _blocker_grid == null:
+		_blocker_grid = SpatialIndex.new(SpatialIndex.bounds_of(layout), ROOM_CELL)
+		for index in layout.blockers.size():
+			var blocker := layout.blockers[index]
+			var reach := x_reach(blocker)
+			var footprint := blocker.area
+			if blocker.shape == ShipBlocker.Shape.CYLINDER:
+				var radius := blocker.radius
+				footprint = Rect2(reach.x, blocker.centre.y - radius, radius * 2.0, radius * 2.0)
+			_blocker_grid.insert(index, footprint.grow(NEAR_SLACK))
+	return _blocker_grid.near(box.grow(NEAR_SLACK))
+
+
+## The platforms, by index and in order, whose areas may reach [param box] (x/z).
+func _platforms_near(box: Rect2) -> PackedInt32Array:
+	if _platform_grid == null:
+		_platform_grid = SpatialIndex.new(SpatialIndex.bounds_of(layout), ROOM_CELL)
+		for index in layout.platforms.size():
+			_platform_grid.insert(index, layout.platforms[index].area.grow(NEAR_SLACK))
+	return _platform_grid.near(box.grow(NEAR_SLACK))
+
+
+## Whether ship point [param point] stands outside every room: of [param near] when
+## given, the rooms rooms_near() gave of it.
+func outdoors(point: Vector3, near := PackedInt32Array()) -> bool:
+	if near.is_empty():
+		near = _rooms_over(point.x, point.z)
+	return _outdoors_among(point, near)
+
+
+## The rooms, by index, whose areas grown by INSIDE may hold ship-plane point (
+## [param x], [param z]): every room a point there could stand in is among them, as of
+## rooms_near(), but looked up in one step — what outdoors() asks of a million points
+## as she is dressed.
+func _rooms_over(x: float, z: float) -> PackedInt32Array:
+	if _point_rooms.is_empty():
+		_rooms_gridded()
+	var column := clampi(floori((x - _grid_origin.x) / ROOM_CELL), 0, _grid_size.x - 1)
+	var row := clampi(floori((z - _grid_origin.y) / ROOM_CELL), 0, _grid_size.y - 1)
+	return _point_rooms[row * _grid_size.x + column]
+
+
+## Builds _rooms_over()'s grid, and _outdoors_among()'s bounds of each room.
+func _rooms_gridded() -> void:
+	var bounds := Rect2()
+	for index in layout.rooms.size():
+		var area := layout.rooms[index].area.grow(INSIDE + NEAR_SLACK)
+		bounds = area if index == 0 else bounds.merge(area)
+	_grid_origin = bounds.position
+	_grid_size = Vector2i(
+		floori(bounds.size.x / ROOM_CELL) + 1, floori(bounds.size.y / ROOM_CELL) + 1
+	)
+	_point_rooms.resize(_grid_size.x * _grid_size.y)
+	for cell in _point_rooms.size():
+		_point_rooms[cell] = PackedInt32Array()
+	for index in layout.rooms.size():
 		var room := layout.rooms[index]
-		if point.y < room.floor_height - INSIDE:
+		var grown := room.area.grow(INSIDE)
+		var floor_line := room.floor_height - INSIDE
+		_room_bounds.append_array([floor_line, grown.position.x, grown.end.x])
+		_room_bounds.append_array([grown.position.y, grown.end.y])
+		var area := grown.grow(NEAR_SLACK)
+		var low := Vector2i(((area.position - _grid_origin) / ROOM_CELL).floor())
+		var high := Vector2i(((area.end - _grid_origin) / ROOM_CELL).floor())
+		for row in range(maxi(low.y, 0), mini(high.y, _grid_size.y - 1) + 1):
+			for column in range(maxi(low.x, 0), mini(high.x, _grid_size.x - 1) + 1):
+				_point_rooms[row * _grid_size.x + column].append(index)
+
+
+## Whether ship point [param point] stands outside every room of [param near].
+func _outdoors_among(point: Vector3, near: PackedInt32Array) -> bool:
+	if _point_rooms.is_empty():
+		_rooms_gridded()
+	for index: int in near:
+		var at := index * 5
+		if point.y < _room_bounds[at]:
 			continue
-		var area := room.area.grow(INSIDE)
-		if point.x < area.position.x or point.x > area.end.x:
+		if point.x < _room_bounds[at + 1] or point.x > _room_bounds[at + 2]:
 			continue
-		if point.z < area.position.y or point.z > area.end.y:
+		if point.z < _room_bounds[at + 3] or point.z > _room_bounds[at + 4]:
 			continue
-		if point.y <= ceiling(room, point.x, point.z) + INSIDE:
+		if point.y <= ceiling(layout.rooms[index], point.x, point.z) + INSIDE:
 			return false
 	return true
 
@@ -107,6 +205,68 @@ func rooms_at(area: Rect2, height: float) -> PackedInt32Array:
 ## under a hatch, the deck it is in where no deck stands lower over it (#148) — or a
 ## slab roofing it lower than any (the trawler's wheelhouse roof).
 func ceiling(room: ShipRoom, x: float, z: float) -> float:
+	var map: Array = _ceilings.get(room, [])
+	if map.is_empty():
+		map = _ceiling_map(room)
+	# The answer is the same over each open cell between the edges of what roofs the
+	# room — every test it makes is of a point against those edges — so it is asked once
+	# a cell, and afresh only of a point on an edge, to double precision or to the
+	# single precision the hatches' and slabs' tests take it at.
+	var xs: PackedFloat64Array = map[0]
+	var zs: PackedFloat64Array = map[1]
+	var single := Vector2(x, z)
+	var column := xs.bsearch(x)
+	var row := zs.bsearch(z)
+	if (
+		is_nan(x)
+		or is_nan(z)
+		or _on_edge(xs, column, x)
+		or _on_edge(zs, row, z)
+		or _on_edge(xs, xs.bsearch(single.x), single.x)
+		or _on_edge(zs, zs.bsearch(single.y), single.y)
+	):
+		return _ceiling_at(room, x, z)
+	var cells: Dictionary = map[2]
+	var cell := column * (zs.size() + 1) + row
+	var height: Variant = cells.get(cell)
+	if height == null:
+		height = _ceiling_at(room, x, z)
+		cells[cell] = height
+	return height
+
+
+## [param room]'s ceiling map (ceiling()): the x and the z of every edge of the decks,
+## hatches and slabs over it, each sorted, and its ceiling by cell, gathered as asked.
+func _ceiling_map(room: ShipRoom) -> Array:
+	# Asked once so the decks, hatches and slabs over the room are gathered.
+	var middle := room.area.get_center()
+	_ceiling_at(room, middle.x, middle.y)
+	var edges: Array[Rect2] = []
+	for index: int in _over[room]:
+		edges.append(layout.platforms[index].area)
+	for hatch: Array in _hatches[room]:
+		edges.append(hatch[0])
+	for index: int in _slabs[room]:
+		edges.append(layout.blockers[index].area.grow(INSIDE))
+	var xs := PackedFloat64Array()
+	var zs := PackedFloat64Array()
+	for edge: Rect2 in edges:
+		xs.append_array([edge.position.x, edge.end.x])
+		zs.append_array([edge.position.y, edge.end.y])
+	xs.sort()
+	zs.sort()
+	var map := [xs, zs, {}]
+	_ceilings[room] = map
+	return map
+
+
+## Whether [param at] is the edge [param index] of [param edges] (its bsearch()).
+static func _on_edge(edges: PackedFloat64Array, index: int, at: float) -> bool:
+	return index < edges.size() and edges[index] == at
+
+
+## ceiling() worked out.
+func _ceiling_at(room: ShipRoom, x: float, z: float) -> float:
 	var over := roof(room, x, z)
 	var height := room.floor_height + OPEN_ROOM_HEIGHT
 	if over != -1:
@@ -195,7 +355,8 @@ func floor_beneath(platform: ShipPlatform) -> float:
 ## The highest deck at or below [param height] under [param point]; NAN when none.
 func deck_under(point: Vector2, height: float) -> float:
 	var deck := NAN
-	for platform: ShipPlatform in layout.platforms:
+	for index: int in _platforms_near(Rect2(point, Vector2.ZERO)):
+		var platform := layout.platforms[index]
 		if platform.height <= height + SLIVER and platform.contains(point.x, point.y):
 			if is_nan(deck) or platform.height > deck:
 				deck = platform.height
@@ -383,8 +544,21 @@ static func x_reach(blocker: ShipBlocker) -> Vector2:
 ## doorways. [param glazed], only the walls glass can go in: no lining fitted inside
 ## her shell (#148).
 func wall_runs(room: ShipRoom, glazed := false) -> Array:
+	var kept: Dictionary = _glazed_runs if glazed else _runs
+	if not kept.has(room):
+		kept[room] = _wall_runs(room, glazed)
+	return (kept[room] as Array).duplicate(true)
+
+
+func _wall_runs(room: ShipRoom, glazed: bool) -> Array:
 	var runs := []
 	var area := room.area
+	# Her full walls round the room, in order: none further off is one of them.
+	var walls: Array[ShipBlocker] = []
+	for index: int in _blockers_near(area.grow(INSIDE)):
+		var blocker := layout.blockers[index]
+		if _full_wall_of(blocker, room) and not (glazed and blocker.fitted):
+			walls.append(blocker)
 	for side in 4:
 		var along_x := side % 2 == 0
 		var line := side_line(room, side)
@@ -392,9 +566,7 @@ func wall_runs(room: ShipRoom, glazed := false) -> Array:
 		var high := area.end.x if along_x else area.end.y
 		# Each piece (from, to, half its thickness).
 		var pieces: Array[Vector3] = []
-		for blocker: ShipBlocker in layout.blockers:
-			if not _full_wall_of(blocker, room) or (glazed and blocker.fitted):
-				continue
+		for blocker: ShipBlocker in walls:
 			var box := blocker.area
 			var across_low := box.position.y if along_x else box.position.x
 			var across_high := box.end.y if along_x else box.end.x
@@ -473,8 +645,12 @@ func furniture(room: ShipRoom) -> Array[ShipBlocker]:
 ## The boxes thicker than a wall standing on [param room]'s floor, their middle
 ## inside it.
 func _on_floor(room: ShipRoom) -> Array[ShipBlocker]:
+	if _floor_boxes.has(room):
+		return _floor_boxes[room]
 	var found: Array[ShipBlocker] = []
-	for blocker: ShipBlocker in layout.blockers:
+	_floor_boxes[room] = found
+	for index: int in _blockers_near(room.area):
+		var blocker := layout.blockers[index]
 		if (
 			blocker.shape == ShipBlocker.Shape.BOX
 			and not is_wall(blocker)
@@ -608,7 +784,8 @@ func _floor_over(room: ShipRoom, point: Vector2, bottom: float) -> float:
 
 ## Whether a wall other than [param blocker] stands at [param point] at [param height].
 func _other_wall(blocker: ShipBlocker, point: Vector2, height: float) -> bool:
-	for other: ShipBlocker in layout.blockers:
+	for index: int in _blockers_near(Rect2(point, Vector2.ZERO)):
+		var other := layout.blockers[index]
 		if other == blocker or not is_wall(other):
 			continue
 		if (
