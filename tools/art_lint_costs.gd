@@ -2,15 +2,44 @@ extends RefCounted
 ## What art-lint's checks of a ship cost (tools/art_lint.gd), and its parts dealt by
 ## them (--part). Per check, by its kind and index ("blocker\t12"), the microseconds
 ## it took, gathered as the lint runs (--costs=FILE) and kept by each CI part as an
-## artifact; tools/art_lint_costs.py writes TABLE from a run's. The parts deal the
-## checks by TABLE's costs, the dearest first to the part with the least so far, as
-## tools/test_shards.py deals test scripts: dealt by count, the Titanic's four parts
-## ran 10 to 23 minutes (run 41554654682).
+## artifact; tools/art_lint_costs.py writes TABLE from a run's, in milliseconds: the
+## dear checks one by one, and per kind what its cheap ones cost each ("kind\t*").
+## The parts deal the checks by TABLE's costs, the dearest first to the part with the
+## least so far, as tools/test_shards.py deals test scripts: dealt by count, the
+## Titanic's four parts ran 10 to 23 minutes (run 41554654682).
 
 const TABLE := "res://tools/art_lint_costs.tsv"
 
 ## Every check's microseconds so far, "kind\tindex" to them.
 var costs := {}
+
+
+## Every check art-lint deals of [param layout] (tools/art_lint.gd, _deal), as
+## "kind\tindex": a platform's top and the floor past its edges, each ramp, blocker
+## and ladder, each [param stretch]-long stretch of her length a face of
+## [param furnished] stands in, her undersides, crate light, hull and panes.
+static func units(
+	layout: ShipLayout, furnished: PackedVector3Array, stretch: float
+) -> PackedStringArray:
+	var found := PackedStringArray(["undersides\t0", "crate\t0"])
+	if layout.structure != null:
+		found.append_array(["hull\t0", "panes\t0"])
+	var lists := {
+		"platform": layout.platforms.size(),
+		"floor": layout.platforms.size(),
+		"ramp": layout.ramps.size(),
+		"blocker": layout.blockers.size(),
+		"ladder": layout.ladders.size(),
+	}
+	for kind: String in lists:
+		for index in lists[kind]:
+			found.append("%s\t%d" % [kind, index])
+	var stretches := {}
+	for index in range(0, furnished.size(), 3):
+		stretches[floori(furnished[index].x / stretch)] = true
+	for at: int in stretches:
+		found.append("stretch\t%d" % at)
+	return found
 
 
 ## [param ship]'s rows of the cost table at [param path], "kind\tindex" to their cost:
@@ -26,8 +55,9 @@ static func table(path: String, ship: String) -> Dictionary:
 	return found
 
 
-## What each of [param units] weighs by [param known]: its cost there, else the
-## middle of its kind's there, else the middle of every one there, else 1.
+## What each of [param units] weighs by [param known]: its cost there, else its
+## kind's cheap checks' ("kind\t*", the table's row for every one it does not list),
+## else the middle of its kind's there, else the middle of every one there, else 1.
 static func weights(units: PackedStringArray, known: Dictionary) -> PackedFloat64Array:
 	var kinds := {}
 	for unit: String in known:
@@ -37,7 +67,7 @@ static func weights(units: PackedStringArray, known: Dictionary) -> PackedFloat6
 		kinds[kind].append(known[unit])
 	var middles := {}
 	for kind: String in kinds:
-		middles[kind] = _middle(kinds[kind])
+		middles[kind] = known.get(kind + "\t*", _middle(kinds[kind]))
 	var every := _middle(PackedFloat64Array(known.values())) if not known.is_empty() else 1.0
 	var weighed := PackedFloat64Array()
 	for unit in units:

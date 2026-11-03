@@ -436,29 +436,10 @@ func _check_drawn(file: String, layout: ShipLayout, rules: BrawlRules) -> void:
 	art.free()
 
 
-## Deals [param layout]'s checks among the parts but the last of several (--part), by
-## what ArtLintCosts.TABLE has each cost [param file]'s ship: a platform's top and the
-## floor past its edges, each ramp, blocker and ladder, each DEALT_STRETCH stretch of
-## her length [param furnished] stands in, her hull, panes, undersides and crate light.
+## Deals [param layout]'s checks (ArtLintCosts.units) among the parts but the last of
+## several (--part), by what ArtLintCosts.TABLE has each cost [param file]'s ship.
 func _deal(file: String, layout: ShipLayout, furnished: PackedVector3Array) -> void:
-	var units := PackedStringArray(["undersides\t0", "crate\t0"])
-	if layout.structure != null:
-		units.append_array(["hull\t0", "panes\t0"])
-	var lists := {
-		"platform": layout.platforms.size(),
-		"floor": layout.platforms.size(),
-		"ramp": layout.ramps.size(),
-		"blocker": layout.blockers.size(),
-		"ladder": layout.ladders.size(),
-	}
-	for kind: String in lists:
-		for index in lists[kind]:
-			units.append("%s\t%d" % [kind, index])
-	var stretches := {}
-	for index in range(0, furnished.size(), 3):
-		stretches[floori(furnished[index].x / DEALT_STRETCH)] = true
-	for stretch: int in stretches:
-		units.append("stretch\t%d" % stretch)
+	var units := ArtLintCosts.units(layout, furnished, DEALT_STRETCH)
 	var known := ArtLintCosts.table(ArtLintCosts.TABLE, file.get_basename())
 	_dealt_to = ArtLintCosts.deal(units, known, maxi(_part.y - 1, 1))
 

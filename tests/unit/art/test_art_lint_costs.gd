@@ -5,6 +5,7 @@ extends GutTest
 ## made exactly once, in the same part on every run.
 
 const ArtLintCosts := preload("res://tools/art_lint_costs.gd")
+const SAMPLE := "user://art_lint_costs_test.tsv"
 
 
 func _units(count: int) -> PackedStringArray:
@@ -67,13 +68,38 @@ func test_a_check_the_table_has_not_timed_weighs_its_kind_s_middle() -> void:
 	)
 
 
+func test_a_cheap_check_weighs_what_its_kind_s_cheap_ones_cost() -> void:
+	# The table lists only the dear checks one by one, and per kind what the rest cost.
+	var costs := {"floor\t3": 900.0, "floor\t8": 700.0, "floor\t*": 2.5}
+	var weighed := ArtLintCosts.weights(PackedStringArray(["floor\t3", "floor\t4"]), costs)
+	assert_eq(weighed[0], 900.0, "a dear one its own")
+	assert_eq(weighed[1], 2.5, "a cheap one its kind's")
+
+
 func test_the_table_reads_one_ship_s_rows() -> void:
-	var path := "user://art_lint_costs_test.tsv"
-	var out := FileAccess.open(path, FileAccess.WRITE)
+	var out := FileAccess.open(SAMPLE, FileAccess.WRITE)
 	out.store_string(
 		"# a comment\ntitanic\tblocker\t3\t12.5\ntug\tblocker\t3\t99\n\ntitanic\thull\t0\t7\n"
 	)
 	out.close()
-	assert_eq(ArtLintCosts.table(path, "titanic"), {"blocker\t3": 12.5, "hull\t0": 7.0})
+	assert_eq(ArtLintCosts.table(SAMPLE, "titanic"), {"blocker\t3": 12.5, "hull\t0": 7.0})
 	assert_eq(ArtLintCosts.table("user://no_such_table.tsv", "titanic"), {}, "no file, no costs")
-	DirAccess.remove_absolute(path)
+	DirAccess.remove_absolute(SAMPLE)
+
+
+func test_a_ship_s_checks_are_listed_once_each() -> void:
+	var layout := Fleet.layout(&"trawler")
+	var furnished := PackedVector3Array([Vector3(-9.0, 1, 0), Vector3.ZERO, Vector3.ZERO])
+	furnished.append_array([Vector3(3.0, 1, 0), Vector3.ZERO, Vector3.ZERO])
+	furnished.append_array([Vector3(5.0, 1, 0), Vector3.ZERO, Vector3.ZERO])
+	var units := ArtLintCosts.units(layout, furnished, 8.0)
+	var once := {}
+	for unit in units:
+		once[unit] = true
+	assert_eq(once.size(), units.size(), "no check twice")
+	var lists := layout.platforms.size() * 2 + layout.ramps.size()
+	lists += layout.blockers.size() + layout.ladders.size()
+	assert_eq(units.size(), lists + 4 + 2, "her lists, her four whole checks, two stretches")
+	assert_true(
+		once.has("stretch\t-2") and once.has("stretch\t0"), "the stretches the faces stand in"
+	)

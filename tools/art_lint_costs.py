@@ -31,6 +31,10 @@ ROOT = Path(__file__).resolve().parent.parent
 TABLE = ROOT / "tools" / "art_lint_costs.tsv"
 # What every part pays whatever it is dealt (tools/art_lint.gd's _costs.timed).
 OVERHEAD = {"build", "faces", "furnished", "shown", "spans"}
+# A check under CHEAP milliseconds is not listed: its kind's "*" row, what its cheap
+# ones cost each, weighs it. The Titanic's 13,200 checks timed one by one were a
+# 332 KB table; the some 460 of 100 ms or more hold 80% of her dealt time.
+CHEAP = 100.0
 
 
 def parse(lines) -> dict[tuple[str, str, int], float]:
@@ -81,11 +85,20 @@ def render(costs: dict[tuple[str, str, int], float], runs: list[str]) -> str:
         command = "tools/art_lint_costs.py"
     lines = [
         f"# Milliseconds each of art-lint's dealt ship checks took on a hosted CI runner ({source}), written by `{command}`.",
-        "# ship, kind, index, milliseconds; tools/art_lint.gd deals a ship's parts (--part) by them, a check not listed by its kind's middle.",
+        f"# ship, kind, index, milliseconds; tools/art_lint.gd deals a ship's parts (--part) by them. A check under {CHEAP:.0f} ms is not listed: its kind's * row is what each of those cost.",
         "# Regenerate the file when her parts drift apart.",
     ]
-    for ship, kind, index in sorted(costs):
-        lines.append(f"{ship}\t{kind}\t{index}\t{costs[(ship, kind, index)]:.1f}")
+    cheap: dict[tuple[str, str], list[float]] = {}
+    rows = []
+    for (ship, kind, index), took in costs.items():
+        if took < CHEAP:
+            cheap.setdefault((ship, kind), []).append(took)
+        else:
+            rows.append(((ship, kind, 0, index), str(index), took))
+    for (ship, kind), took in cheap.items():
+        rows.append(((ship, kind, 1, 0), "*", sum(took) / len(took)))
+    for (ship, kind, _, _), index, took in sorted(rows):
+        lines.append(f"{ship}\t{kind}\t{index}\t{took:.1f}")
     return "\n".join(lines) + "\n"
 
 

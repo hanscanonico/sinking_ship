@@ -363,8 +363,8 @@ census:
 # SHIP=trawler checks that ship's art alone, and plays no match; SKIP=titanic,small_titanic
 # every ship but those, and the match too (CI's art-lint jobs). PART=K/N with SHIP checks
 # her share K of N alone, each building her once: the last part her railings' open
-# spans, the others the rest dealt between them; the N parts' checks are her whole lint
-# (CI's art-lint titanic K/N jobs). COSTS=FILE appends each ship check's microseconds
+# spans, the others the rest dealt between them by cost (tools/art_lint_costs.tsv); the
+# N parts' checks are her whole lint (CI's art-lint titanic K/N jobs). COSTS=FILE appends each ship check's microseconds
 # to FILE (tools/art_lint_costs.gd). Its engine takes a test slot (tools/test_slot.sh),
 # as bake-check's do: each dresses whole ships.
 art-lint: export TEST_SLOT_NAME = art-lint
