@@ -138,7 +138,18 @@ func outdoors_over(
 	var inside := PackedByteArray()
 	boxed.resize(columns * rows)
 	inside.resize(columns * rows)
-	for index: int in _rooms_reaching(face.low(), face.high()):
+	var low := face.low()
+	var high := face.high()
+	for index: int in _rooms_reaching(low, high):
+		# A room whose bounds miss the face's probes holds none of them: no box of it
+		# reaches past them.
+		var at := index * 5
+		if _bounds[at] > high.y + SLACK:
+			continue
+		if _bounds[at + 1] > high.x + SLACK or _bounds[at + 2] < low.x - SLACK:
+			continue
+		if _bounds[at + 3] > high.z + SLACK or _bounds[at + 4] < low.z - SLACK:
+			continue
 		if not boxes.is_empty():
 			_mark_box(boxes[index], face, boxed)
 		_mark_room(index, face, inside)
@@ -259,30 +270,28 @@ func _mark_room(index: int, face: FaceProbes, marked: PackedByteArray) -> void:
 	if by[1] == 2:
 		_mark_level(index, face, Vector4i(u.x, u.y, v.x, v.y), columns, rows, marked)
 		return
-	var xs_at := face.values[0]
-	var ys_at := face.values[1]
-	var zs_at := face.values[2]
-	for i in range(u.x, u.y):
-		for j in range(v.x, v.y):
-			var cell := i * face.rows + j
-			if marked[cell] == 1:
-				continue
-			# Which of the column, the row or the face's one value each coordinate is.
-			var pick_x := i if by[0] == 0 else (j if by[0] == 1 else 0)
-			var pick_y := i if by[1] == 0 else (j if by[1] == 1 else 0)
-			var pick_z := i if by[2] == 0 else (j if by[2] == 1 else 0)
-			var x := xs_at[pick_x]
-			var y := ys_at[pick_y]
-			var z := zs_at[pick_z]
-			var column := columns[pick_x]
-			var row := rows[pick_z]
-			var height := 0.0
-			if column == -1 or row == -1:
-				height = _ceiling_at.call(room, x, z)
-			else:
-				height = _cell_ceiling(index, cells, column * (zs.size() + 1) + row, x, z)
-			if y <= height + ShipSpace.INSIDE:
-				marked[cell] = 1
+	# An upright face: its height goes by one of column and row, and its place along her
+	# or across her by the other, the room's ceiling over it with it.
+	var along := 0 if by[0] != 2 else 2
+	var x_at := face.values[0]
+	var z_at := face.values[2]
+	var depth := zs.size() + 1
+	for k in range(spans[along].x, spans[along].y):
+		var pick_x := k if by[0] != 2 else 0
+		var pick_z := k if by[2] != 2 else 0
+		var x := x_at[pick_x]
+		var z := z_at[pick_z]
+		var column := columns[pick_x]
+		var row := rows[pick_z]
+		var height := 0.0
+		if column == -1 or row == -1:
+			height = _ceiling_at.call(room, x, z)
+		else:
+			height = _cell_ceiling(index, cells, column * depth + row, x, z)
+		# The probes over its floor and under its ceiling there.
+		var under := face.span(1, _bounds[at], height + ShipSpace.INSIDE)
+		for j in range(under.x, under.y):
+			marked[k * face.rows + j if by[1] == 1 else j * face.rows + k] = 1
 
 
 ## _mark_room() of a level face: its probes at one height, each piece of the room's
@@ -323,10 +332,16 @@ func _mark_level(
 					for at in range(i, i_end):
 						for on in range(j, j_end):
 							marked[at * face.rows + on] = 1
-			elif marked[i * face.rows + j] == 0:
-				# On an edge of the map: its run is this one probe.
-				if y <= _ceiling_at.call(room, x, z) + ShipSpace.INSIDE:
-					marked[i * face.rows + j] = 1
+			else:
+				# On an edge of the map: each probe of the block worked out alone.
+				for at in range(i, i_end):
+					for on in range(j, j_end):
+						var cell := at * face.rows + on
+						var probe_x := xs_at[at if x_by_column else on]
+						var probe_z := zs_at[on if x_by_column else at]
+						if marked[cell] == 0:
+							if y <= _ceiling_at.call(room, probe_x, probe_z) + ShipSpace.INSIDE:
+								marked[cell] = 1
 			j = j_end
 		i = i_end
 
