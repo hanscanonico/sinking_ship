@@ -452,6 +452,7 @@ func _process(_delta: float) -> void:
 ## The faces of the ship, gathered for one commit.
 func _mesh() -> ShipMesh:
 	var mesh := ShipMesh.new(_outdoors, _space.room_lines())
+	mesh.outdoors_over = _space.rooms_grid.outdoors_over.bind(_room_boxes)
 	mesh.cut_above = cut_above
 	mesh.keep = span
 	return mesh
@@ -460,10 +461,7 @@ func _mesh() -> ShipMesh:
 ## Whether ship point [param point] stands outdoors, as ShipSpace.outdoors says —
 ## asked only where the point stands in some room's box; outside every one it does.
 func _outdoors(point: Vector3) -> bool:
-	for room: int in _space.rooms_near(Rect2(point.x, point.z, 0.0, 0.0)):
-		if _room_boxes[room].has_point(point):
-			return _space.outdoors(point)
-	return true
+	return _space.outdoors(point, _room_boxes)
 
 
 ## Per room, a box holding all of it: its area and floor, up to the highest deck over
