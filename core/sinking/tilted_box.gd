@@ -29,6 +29,8 @@ var _size := PackedFloat64Array([0.0, 0.0, 0.0])
 ## full (§5b.1), in m² per metre of head.
 var _capacity: float
 var _full_area: float
+## The share of its water's shift across her, athwartships, that counts (FloodCell.sideways).
+var _sideways := 1.0
 ## At the attitude it was last turned to: whether each axis runs up (1) or down (0)
 ## along the world's up; the height of its lowest and highest corner; the axes widest
 ## first and their widths a ≥ b ≥ c; how many of them count (3, 2 or 1); and how far
@@ -53,13 +55,15 @@ var _answer := NAN
 
 
 ## The box from [param low] to [param high] holding [param capacity] m³ of water, with
-## [param full_area] of surface over its ceiling once full; turned level.
-func _init(low: Vector3, high: Vector3, capacity: float, full_area: float) -> void:
+## [param full_area] of surface over its ceiling once full, its water's shift across her
+## counted at [param sideways] of itself; turned level.
+func _init(low: Vector3, high: Vector3, capacity: float, full_area: float, sideways := 1.0) -> void:
 	for axis in 3:
 		_low[axis] = low[axis]
 		_size[axis] = float(high[axis]) - low[axis]
 	_capacity = capacity
 	_full_area = full_area
+	_sideways = sideways
 	turn(0.0, 1.0, 0.0)
 
 
@@ -215,7 +219,8 @@ func _height(water: float) -> float:
 ## Where the water under [param height] has its centre, x, y, z: along a spread that
 ## counts, where its share of the sum's mean lies; across one that does not, its middle
 ## less its width times the rate the share rises at over twelve times the share — how
-## the water leans across it, to first order. A full box's is its middle.
+## the water leans across it, to first order. A full box's is its middle. Athwartships,
+## its way from the box's middle counts at the box's sideways share.
 func centre(height: float) -> PackedFloat64Array:
 	var along := PackedFloat64Array([0.5, 0.5, 0.5])
 	var t := height - _bottom - _shift
@@ -237,6 +242,8 @@ func centre(height: float) -> PackedFloat64Array:
 	var found := PackedFloat64Array([0.0, 0.0, 0.0])
 	for axis in 3:
 		var share := along[axis] if _rising[axis] == 1 else 1.0 - along[axis]
+		if axis == 2 and _sideways != 1.0:
+			share = 0.5 + (share - 0.5) * _sideways
 		found[axis] = _low[axis] + _size[axis] * share
 	return found
 

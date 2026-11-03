@@ -16,6 +16,10 @@ enum Kind { ACCOMMODATION, MACHINERY, CARGO, STORES, VOID, BUNKER, OPEN_WELL }
 @export var permeability: float = -1.0
 ## The share of the box inside the hull, where the box pokes outside its curve.
 @export var shape: float = 1.0
+## The share of the shift across her its water makes as she heels that counts — its
+## centre's way from the box's middle athwartships: 1 for a box water crosses freely, less
+## where cabins, corridors, casings or machinery break it up across (TiltedBox).
+@export var sideways: float = 1.0
 ## The ShipRooms inside it, by name.
 @export var rooms: Array[StringName] = []
 ## The area its air leaks out through — rivets, seams, vents — in m².
@@ -47,6 +51,8 @@ func problems() -> PackedStringArray:
 		found.append("structure: cell %s's permeability must be within 0…1" % name)
 	if shape <= 0.0 or shape > 1.0:
 		found.append("structure: cell %s's shape must be within 0…1" % name)
+	if sideways < 0.0 or sideways > 1.0:
+		found.append("structure: cell %s's sideways share must be within 0…1" % name)
 	if leak_area < 0.0:
 		found.append("structure: cell %s's leak area must not be negative" % name)
 	if shipping_edges.size() % 2 == 1:

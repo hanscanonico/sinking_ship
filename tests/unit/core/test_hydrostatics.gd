@@ -237,3 +237,39 @@ func test_tilted_box_water_matches_the_cut_at_random_attitudes() -> void:
 			var centre := box.centre(height)
 			var off := Vector3(centre[0] - cut.x, centre[1] - cut.y, centre[2] - cut.z)
 			assert_lt(off.length(), 1e-6, "centre, attitude %d" % attitude)
+
+
+func test_tilted_box_sideways_share_scales_its_water_shift_across() -> void:
+	# The same water in the same box at the same heel: with a sideways share of 0.25 its
+	# centre lies a quarter as far across from the box's middle as with the whole shift,
+	# and along her and up it lies where the whole box puts it.
+	var low := Vector3(-40.0, -3.0, -14.0)
+	var high := Vector3(40.0, 0.0, 14.0)
+	var capacity := 80.0 * 3.0 * 28.0 * 0.95
+	var heel := deg_to_rad(12.0)
+	var whole := TiltedBox.new(low, high, capacity, 1.0)
+	var quarter := TiltedBox.new(low, high, capacity, 1.0, 0.25)
+	var water := capacity * 0.3
+	for box: TiltedBox in [whole, quarter]:
+		box.turn(0.0, cos(heel), sin(heel))
+	var full := whole.centre(whole.height(water))
+	var cut := quarter.centre(quarter.height(water))
+	assert_gt(absf(full[2]), 1.0, "the whole shift moves her water across")
+	assert_almost_eq(cut[2], full[2] * 0.25, 1e-9, "a quarter as far across")
+	assert_eq(cut[0], full[0], "along her as the whole box")
+	assert_eq(cut[1], full[1], "up as the whole box")
+
+
+func test_a_cell_shifts_its_water_wholly_unless_told() -> void:
+	# A cell's sideways share is 1 unless its data says otherwise, and a box given it is
+	# the box given none, to the last bit.
+	assert_eq(FloodCell.new().sideways, 1.0, "a cell's water shifts wholly by default")
+	var low := Vector3(4.0, -2.5, -3.75)
+	var high := Vector3(15.0, 0.0, 3.75)
+	var capacity := 11.0 * 2.5 * 7.5
+	var plain := TiltedBox.new(low, high, capacity, 1.0)
+	var whole := TiltedBox.new(low, high, capacity, 1.0, 1.0)
+	for box: TiltedBox in [plain, whole]:
+		box.turn(0.28, 0.95, 0.14)
+	var water := capacity * 0.4
+	assert_eq(whole.centre(whole.height(water)), plain.centre(plain.height(water)))

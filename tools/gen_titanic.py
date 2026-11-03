@@ -4089,6 +4089,13 @@ AIR_LEAK = 1e-6  # 10⁻³ m² per 1 000 m³ (est.), as every ship's
 # their ends' rounding is whole: a cell under 1 pokes out of her (CellMap), each point of
 # it asked whether her hull holds it, and that by the luck of the fourth decimal.
 SHAPE_WHOLE = 0.9999
+# A cell as wide as most of her 28 m beam — a deck, a tween, a boiler or engine room — holds
+# water that would run from side to side across her middle as she heels, but her cabins,
+# corridors, casings and machinery break it up, roughly as a split down her middle: two
+# halves shift their water a quarter as far as one box (est.; no source gives the share).
+# Under 20 m a cell is a wing space or a deckhouse, already split across her.
+WIDE_CELL = 20.0
+WIDE_SIDEWAYS = 0.25
 cell_ids = []
 for name, x0, x1, y0, y1, z0, z1, kind, permeability in CELLS:
     inside = hull_in(x0, x1, y0, y1, z0, z1)
@@ -4101,6 +4108,8 @@ for name, x0, x1, y0, y1, z0, z1, kind, permeability in CELLS:
         f.append(("permeability", num(permeability)))
     fill = inside / box_volume
     f.append(("shape", num(1.0 if fill >= SHAPE_WHOLE else fill)))
+    if z1 - z0 >= WIDE_CELL:
+        f.append(("sideways", num(WIDE_SIDEWAYS)))
     if inner:
         f.append(("rooms", names(inner)))
     f.append(("leak_area", ("%.8f" % float("%.3g" % (inside * AIR_LEAK))).rstrip("0")))

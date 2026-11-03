@@ -147,7 +147,9 @@ func _init(structure: ShipStructure, damage: HitDamage, sea: SeaPhysics) -> void
 		var capacity := area * (float(cell.high.y) - cell.low.y)
 		_cell_names.append(cell.name)
 		_capacity.append(capacity)
-		_boxes.append(TiltedBox.new(cell.low, cell.high, capacity, area * sea.full_surface))
+		_boxes.append(
+			TiltedBox.new(cell.low, cell.high, capacity, area * sea.full_surface, cell.sideways)
+		)
 		_air.add_cell(_boxes.back(), capacity, cell.leak_area)
 	_floor.resize(_boxes.size())
 	_ceiling.resize(_boxes.size())
