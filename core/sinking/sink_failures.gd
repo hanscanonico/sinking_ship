@@ -21,6 +21,9 @@ extends RefCounted
 const REACHED := 1e-3
 ## What an opening's failure leaves it (FloodState.opened): given way.
 const GAVE_WAY := 1.0
+## What ends the name of the stretch of a bulkhead a door stands in off the bulkhead's own
+## line, in a bunker's face: part of that bulkhead, weakened with it.
+const FACE := "_face"
 
 ## Per opening that can fail, in the stepper's order: its index there, the seconds the
 ## ship takes to shut it (SinkStepper.open_share: under 0 for one shut from the start) —
@@ -222,9 +225,9 @@ func girder() -> HullGirder:
 
 ## The head across every watched opening at [param state], [param stepper] turned to
 ## it: each side's push — the sea's outside — lifted by its pocket's as the stepper's
-## flow is and no lower than its sill, its first's less its second's; none dry on both
-## sides. Worked out once for each state, which a step's failures and the bake's landing
-## both ask of.
+## flow is, no higher than any surface in her, and no lower than its sill, its first's less
+## its second's; none dry on both sides. Worked out once for each state, which a step's
+## failures and the bake's landing both ask of.
 func _heads_across(state: FloodState, stepper: SinkStepper) -> PackedFloat64Array:
 	if state == _across_state:
 		return _across
@@ -238,20 +241,20 @@ func _heads_across(state: FloodState, stepper: SinkStepper) -> PackedFloat64Arra
 		var pushed := _push_of(sides.y, state, stepper, surface)
 		_across[watched] = 0.0
 		if pushing > sill or pushed > sill:
-			pushing += _air.lift(sides.x, sides.y, state.heads)
-			pushed += _air.lift(sides.y, sides.x, state.heads)
+			pushing = minf(pushing + _air.lift(sides.x, sides.y, state.heads), surface)
+			pushed = minf(pushed + _air.lift(sides.y, sides.x, state.heads), surface)
 			_across[watched] = maxf(pushing, sill) - maxf(pushed, sill)
 	return _across
 
 
 ## The highest any water of [param state] stands with a surface of its own: the sea, or a
-## cell not full, by what its pocket adds to its push. Nothing in her pushes higher.
+## cell wet and not full — a dry cell's head is only its floor. Nothing in her pushes
+## higher, a pocket no more than the water squeezing it: past that it is a step's slip.
 func _highest_surface(state: FloodState, stepper: SinkStepper) -> float:
 	var highest := state.sea
 	for cell in state.heads.size():
-		if state.heads[cell] < stepper.ceiling_of(cell):
-			var lifted := _air.lift(cell, SinkStepper.OUTSIDE, state.heads)
-			highest = maxf(highest, state.heads[cell] + lifted)
+		if state.water[cell] > 0.0 and state.heads[cell] < stepper.ceiling_of(cell):
+			highest = maxf(highest, state.heads[cell])
 	return highest
 
 
@@ -283,7 +286,7 @@ func _gives_way_gap(watched: int, across: float) -> float:
 ## parts — and all of them for any other.
 static func kept_share(structure: ShipStructure, damage: HitDamage, opening: ShipOpening) -> float:
 	for wall: ShipWall in structure.walls:
-		if not wall.name in damage.weakened:
+		if not wall.name in damage.weakened and not wall.name.trim_suffix(FACE) in damage.weakened:
 			continue
 		var axis := 0 if wall.axis == ShipWall.Axis.ACROSS else 2
 		if opening.facing() != axis or not is_equal_approx(opening.centre[axis], wall.at):

@@ -3241,9 +3241,12 @@ for letter, *_rest in BULKHEADS:
                       1.5 * built_for(top), parted(0, at, bottom, high, -half, half)))
 # Each tunnel's after face, the wall its watertight door stands in, built as its bulkhead is;
 # the rest of a bunker's face isn't a wall yet.
-for (k, (t0, t1, _tunnel)), letter in zip(sorted(TUNNELS.items()), "JHGFED"):
+for (k, (t0, t1, tunnel)), letter in zip(sorted(TUNNELS.items()), "JHGFED"):
     walls.append(("bulkhead_%s_face" % letter.lower(), "ACROSS", BUNKERS["br%d" % k], (t0, t1), TANK_TOP, PASSAGE_TOP,
                   1.5 * built_for(TOPS[letter]), parted(0, BUNKERS["br%d" % k], TANK_TOP, PASSAGE_TOP, t0, t1)))
+    # The bulkhead forward of that face has its tunnel's hole through it, open (OPEN, below):
+    # no panel of it stands there to give way.
+    next(w for w in walls if w[0] == "bulkhead_" + letter.lower())[-1].remove(tunnel)
 # Her sisters' inner skin, a wall along her either side of each compartment it runs
 # through, to F deck (est.), built as her bulkheads are.
 for name, x0, x1 in SKINNED:

@@ -11,6 +11,9 @@ const CEILING := 3.0
 const TALL_CEILING := 12.0
 ## A slip of wet's: 5 m³ over its 200, on its 1 m² of thin surface.
 const WET := 205.0
+## A room higher up her, dry: its floor over wet's ceiling and the door's collapse head.
+const LOFT_FLOOR := 6.0
+const LOFT_CEILING := 8.0
 
 
 func _stepper() -> SinkStepper:
@@ -19,6 +22,7 @@ func _stepper() -> SinkStepper:
 	barge.cell(&"wet", Vector3(0.0, FLOOR, 0.0), Vector3(10.0, CEILING, 10.0))
 	barge.cell(&"dry", Vector3(10.0, FLOOR, 0.0), Vector3(20.0, CEILING, 10.0))
 	barge.cell(&"tall", Vector3(-10.0, FLOOR, 0.0), Vector3(0.0, TALL_CEILING, 10.0))
+	barge.cell(&"loft", Vector3(0.0, LOFT_FLOOR, 0.0), Vector3(10.0, LOFT_CEILING, 10.0))
 	var door := ShipOpening.new()
 	door.name = &"door"
 	door.kind = ShipOpening.Kind.DOOR
@@ -32,6 +36,15 @@ func _stepper() -> SinkStepper:
 	sea.air = false
 	barge.openings.append(door)
 	return SinkStepper.new(barge.structure(), HitDamage.new(), sea)
+
+
+## A pocket squeezed past anything that drives it: wet's air reading [member PUSH] m of sea.
+class SqueezedPocket:
+	extends SinkAir
+	const PUSH := 50.0
+
+	func lift(cell: int, _other: int, _heads: PackedFloat64Array) -> float:
+		return PUSH if cell == 0 else 0.0
 
 
 ## Whether the door has given way at [param state], its heads worked out from its water.
@@ -60,3 +73,29 @@ func test_a_full_cell_a_surface_stands_over_still_bursts() -> void:
 	state.water[2] = 900.0
 	assert_gt(stepper.head(2, 900.0), stepper.head(0, WET), "a surface higher still")
 	assert_true(_bursts(stepper, state), "the door gives way")
+
+
+func test_a_dry_room_s_floor_is_no_surface_to_drive_a_slip() -> void:
+	var stepper := _stepper()
+	var state := stepper.start()
+	state.water[0] = WET
+	assert_gt(LOFT_FLOOR, FLOOR + COLLAPSE_HEAD, "the loft's floor stands over the door's head")
+	assert_lt(stepper.head(3, 0.0), stepper.ceiling_of(3), "dry, it reads its floor")
+	assert_false(_bursts(stepper, state), "no water there, so nothing drives the slip")
+
+
+func test_a_pocket_pushes_no_higher_than_anything_drives_it() -> void:
+	var stepper := _stepper()
+	stepper.failures()._air = SqueezedPocket.new(SeaPhysics.load_default())
+	var state := stepper.start()
+	state.water[0] = 100.0
+	assert_false(_bursts(stepper, state), "over the sea, its water alone stands there")
+
+
+func test_a_pocket_under_the_sea_pushes_as_far_as_the_sea_does() -> void:
+	var stepper := _stepper()
+	stepper.failures()._air = SqueezedPocket.new(SeaPhysics.load_default())
+	var state := stepper.start()
+	state.water[0] = 100.0
+	state.sea = FLOOR + COLLAPSE_HEAD + 1.0
+	assert_true(_bursts(stepper, state), "the sea truly stands that high: the door gives way")
