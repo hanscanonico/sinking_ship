@@ -17,8 +17,9 @@ const SURVIVAL_MATCH := "res://data/match/survival.tres"
 ## lifebuoys and the kinds of her props, then a prop kind's lid, draft and ways with
 ## bodies and a prop's facing, then #308's bonus spots, then #310's bonus rules and Double
 ## life, then #316's High jump, Steady and Strong arms and what every kind gives, then #317's
-## Sure footing and the slopes a kind gives): the goals must not move the battle royale's.
-const BATTLE_ROYALE_HASH := "6468c55dc48d3a313833fd1c6be6f7d16af5dbd19820d75958be81d7246deaf1"
+## Sure footing and the slopes a kind gives, then #409's cell sideways share): the goals must
+## not move the battle royale's.
+const BATTLE_ROYALE_HASH := "ed16fe70497b9890190425910acfa547852bf1c0256caf9b4b0f7db1e467269a"
 
 
 func test_the_data_carries_the_goal_onto_the_match() -> void:

@@ -67,6 +67,15 @@ func _init(low: Vector3, high: Vector3, capacity: float, full_area: float, sidew
 	turn(0.0, 1.0, 0.0)
 
 
+## [param cell]'s box under [param sea]: the water its permeability and shape leave room
+## for, the thin surface over its ceiling once full, and its sideways share.
+static func of(cell: FloodCell, sea: SeaPhysics) -> TiltedBox:
+	var plan := (float(cell.high.x) - cell.low.x) * (float(cell.high.z) - cell.low.z)
+	var area := plan * cell.permeability_in(sea) * cell.shape
+	var capacity := area * (float(cell.high.y) - cell.low.y)
+	return TiltedBox.new(cell.low, cell.high, capacity, area * sea.full_surface, cell.sideways)
+
+
 ## Turns the box to the attitude where the world's up is ([param up_x], [param up_y],
 ## [param up_z]) in the ship's axes, a unit vector.
 func turn(up_x: float, up_y: float, up_z: float) -> void:
