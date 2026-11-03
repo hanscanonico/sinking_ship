@@ -123,9 +123,9 @@ jobs:
   # to lay. Each part builds her once, the last to check her railings' open spans and
   # the others to deal the rest of her checks between them by what each costs
   # (tools/art_lint_costs.tsv, make art-lint-costs RUN=), so a part costs a build of her
-  # — 8 minutes of a hosted runner's, the same in every part — and its share: 22
-  # minutes between them in run 41571719294, the open spans 2 or so after their own
-  # build. N is how many parts are listed here: one more is one number.
+  # — 7 to 10 minutes, as fast as the runner it lands on, the same in every part — and
+  # its share: 22 minutes between them in run 41571719294, the open spans 2 or so after
+  # their own build. N is how many parts are listed here: one more is one number.
   art-lint-titanic:
     name: art-lint titanic ${{ matrix.part }}/${{ strategy.job-total }}
     runs-on: ubuntu-24.04
