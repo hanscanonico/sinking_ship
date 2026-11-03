@@ -43,7 +43,7 @@ const LEVEL_HEAD := 1e-2
 ## HEAD_TOLERANCE metres in at most TRIES tries, first REACH metres out where its slope
 ## cannot say how far.
 const SURPLUS_TOLERANCE := 1e-2
-const NEWTON_TRIES := 6
+const NEWTON_TRIES := 25
 const HALVINGS := 12
 const NUDGE := 1e-7
 const HEAD_TOLERANCE := 1e-9
