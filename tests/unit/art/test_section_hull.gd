@@ -202,14 +202,19 @@ func test_her_shell_meets_itself_where_her_sheer_steps() -> void:
 			var a := faces[at]
 			var b := faces[at + 1]
 			var c := faces[at + 2]
-			if absf((b - a).cross(c - a).normalized().y) > 0.9:
+			var normal := (b - a).cross(c - a).normalized()
+			if absf(normal.y) > 0.9:
 				continue
 			var run := 0 if (a.x + b.x + c.x) / 3.0 < joint else 1
+			# (Forward, a corner lower and one higher too, up to the lower sheer on her side
+			# — not on a step's end across the joint: each point aft is read against her
+			# side either side of it, not against where the run was cut off.)
+			var top := low - 0.05
+			if run == 1 and absf(normal.x) <= 0.9:
+				top = low + LEVEL
 			for corner: Vector3 in [a, b, c]:
 				var on_joint := absf(corner.x - joint) < 1e-3 and corner.z > 1.0
-				# (Forward, a corner lower too: each point aft is read against her side
-				# either side of it, not against where the run was cut off.)
-				if on_joint and corner.y < low - 0.05 and corner.y > (-8.0 if run == 0 else -9.0):
+				if on_joint and corner.y < top and corner.y > (-8.0 if run == 0 else -9.0):
 					runs[run].append(Vector2(corner.y, corner.z))
 		assert_gt(runs[0].size(), 2, "the run aft of x %.1f ends on it" % joint)
 		assert_gt(runs[1].size(), 2, "the run forward of x %.1f starts on it" % joint)
@@ -542,7 +547,8 @@ func _shell_faces(layout: ShipLayout) -> PackedVector3Array:
 ## [param way] along x, in bands each as (bottom, top, how far out to [param sign]'s side
 ## — 1 starboard, -1 port — the deck it stands on reaches): from the lower sheer, where the
 ## deck under it beside the joint runs on into the higher run, and from each deck of the
-## higher run over it, up to the next or the higher sheer.
+## higher run over it, up to the next or the higher sheer — or, where none runs on, from
+## the higher run's highest deck under the lower sheer where that deck ends on the joint.
 func _bands(
 	layout: ShipLayout, joint: float, way: float, low: float, high: float, sign: float
 ) -> Array[Vector3]:
@@ -551,9 +557,23 @@ func _bands(
 	var starts: Array[Vector2] = []
 	if not beside.is_empty():
 		var under: float = beside.keys().max()
+		var runs_on := false
 		for height: float in inside:
 			if absf(height - under) <= 1e-3:
 				starts.append(Vector2(low, inside[height]))
+				runs_on = true
+		# Where it does not, the highest deck of the higher run under it that ends on the
+		# joint — no deck beside at its height — stands its end, a house's front, up past
+		# the lower sheer: her bridge deck's front over her raised well.
+		var house := -INF
+		for height: float in inside:
+			if height < low - 1e-3 and height > house:
+				house = height
+		var ends := not runs_on and not is_inf(house)
+		for height: float in beside:
+			ends = ends and absf(height - house) > 1e-3
+		if ends:
+			starts.append(Vector2(low, inside[house]))
 	for height: float in inside:
 		if height > low + 1e-3:
 			starts.append(Vector2(height, inside[height]))
