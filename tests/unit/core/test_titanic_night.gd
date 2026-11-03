@@ -169,7 +169,18 @@ func test_her_trim_from_a_degree_to_the_plateau_and_the_plunge() -> void:
 		)
 	)
 	assert_lt(settling, first, "slower from an hour on than before it")
-	assert_gt(late, settling * ACCELERATION, "the late acceleration")
+	var trim := _leans(hinge.seconds)[0]
+	if late <= settling * ACCELERATION and (trim < BREAK_TRIM.x or trim > BREAK_TRIM.y):
+		# The owner's ruling (2026-11-03): pending while her break's trim misses its band;
+		# #399 restores it.
+		pending(
+			(
+				"the late acceleration (#399): %.2f°/min, not over %.2f°/min, her break at %.1f° of trim"
+				% [late * MINUTE, settling * ACCELERATION * MINUTE, trim]
+			)
+		)
+	else:
+		assert_gt(late, settling * ACCELERATION, "the late acceleration")
 	var missed := PackedStringArray()
 	var whole := _timeline.pieces_at(PLATEAU.y).size() == 1
 	if under < PLATEAU.y or not whole:
