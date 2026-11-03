@@ -197,6 +197,108 @@ said=$(cat "$WORK/o1.err" "$WORK/o2.err" | grep -c 'waiting for memory')
 ((said == 1)) || fail "runs sharing TEST_SLOT_NOTICE_ONCE said they waited $said times, not once"
 unset TEST_SLOTS FREE_MEMORY_FILE
 
+# Waiting is cheap: on the Windows box each process a waiter starts costs a kernel token
+# until reboot (#400). Shims in front of its PATH log every lock tool and nap it starts,
+# with its PID and arguments, then go on as the real one; only what it starts once it
+# has said it waits counts. A loaded machine only starts fewer, so those bounds hold
+# however slow it is; SLOT_BOUND, the seconds a freed slot may stay free, is well above
+# the wait's own few for the same reason.
+SLOT_BOUND=20
+SHIMS="$WORK/shims"
+STARTS="$WORK/starts"
+mkdir -p "$SHIMS"
+for tool in perl flock sleep; do
+	real=$(command -v "$tool") || continue
+	cat >"$SHIMS/$tool" <<EOF
+#!/usr/bin/env bash
+args="\$*"
+echo "$tool \$\$ \${args//\$'\n'/ }" >>"$STARTS"
+exec "$real" "\$@"
+EOF
+	chmod +x "$SHIMS/$tool"
+done
+starts() {
+	grep -c "^${1-}" "$STARTS"
+}
+
+# Three holders, one at a time so each has the next slot; a waiter on them starts about
+# one process a second at most, whichever way it watches, and soon takes the slot of the
+# last holder, not one it may be blocked on, when that frees.
+export TEST_SLOTS=3
+for watcher in perl shell; do
+	for name in "c1$watcher" "c2$watcher" "c3$watcher"; do
+		hold "$name"
+		wait_for "[ -e '$WORK/$name.start' ]" || fail "cheap wait: holder $name never started"
+	done
+	: >"$STARTS"
+	PATH="$SHIMS:$PATH" FD_LOCK_WATCHER=$watcher tools/test_slot.sh touch "$WORK/$watcher.ran" 2>"$WORK/$watcher.err" &
+	PIDS+=($!)
+	waiter=$!
+	wait_for "grep -q 'waiting for a test engine slot' '$WORK/$watcher.err'" ||
+		fail "cheap wait ($watcher): the waiter never said it was waiting"
+	before=$(starts)
+	begun=$SECONDS
+	sleep 6
+	took=$(($(starts) - before))
+	elapsed=$((SECONDS - begun))
+	((took <= elapsed + 2)) ||
+		fail "cheap wait ($watcher): a waiter started $took processes in $elapsed s"
+	[[ -e "$WORK/$watcher.ran" ]] && fail "cheap wait ($watcher): the waiter ran with every slot held"
+	begun=$SECONDS
+	touch "$WORK/c3$watcher.release"
+	wait_for "[ -e '$WORK/$watcher.ran' ]" || fail "cheap wait ($watcher): the waiter never took the freed slot"
+	((SECONDS - begun <= SLOT_BOUND)) ||
+		fail "cheap wait ($watcher): a freed slot stayed free for $((SECONDS - begun)) s"
+	wait "$waiter"
+	touch "$WORK/c1$watcher.release" "$WORK/c2$watcher.release"
+	end_holders
+done
+
+# A waiter killed with SIGKILL leaves no watcher behind to hold its descriptors open
+# for whoever reads them.
+export TEST_SLOTS=1
+if command -v perl >/dev/null; then
+	hold k1
+	wait_for "[ -e '$WORK/k1.start' ]" || fail "the holder before the killed waiter never started"
+	: >"$STARTS"
+	PATH="$SHIMS:$PATH" tools/test_slot.sh touch "$WORK/k2.ran" 2>"$WORK/k2.err" &
+	PIDS+=($!)
+	waiter=$!
+	if wait_for "grep -q '^perl .*slot\.1\.flock' '$STARTS'"; then
+		watching=$(grep '^perl .*slot\.1\.flock' "$STARTS" | tail -n 1 | cut -d' ' -f2)
+		kill -9 "$waiter"
+		wait "$waiter" 2>/dev/null
+		wait_for "! kill -0 '$watching' 2>/dev/null" || fail "a killed waiter's watcher (PID $watching) lived on"
+	else
+		fail "the waiter to kill never watched its slot with Perl"
+	fi
+	touch "$WORK/k1.release"
+	end_holders
+fi
+
+# A wait for memory naps every five seconds, not faster, and still goes on soon after
+# the memory is there.
+export TEST_SLOTS=2 FREE_MEMORY_FILE="$WORK/free"
+echo 100 >"$WORK/free"
+: >"$STARTS"
+PATH="$SHIMS:$PATH" TEST_SLOT_MIN_FREE_MB=500 tools/test_slot.sh touch "$WORK/q.ran" 2>"$WORK/q.err" &
+PIDS+=($!)
+short=$!
+wait_for "grep -q 'waiting for memory' '$WORK/q.err'" || fail "cheap wait: the run short of memory never said so"
+before=$(starts sleep)
+begun=$SECONDS
+sleep 10
+took=$(($(starts sleep) - before))
+elapsed=$((SECONDS - begun))
+((took <= elapsed / 4 + 1)) || fail "cheap wait: a wait for memory napped $took times in $elapsed s"
+begun=$SECONDS
+echo 600 >"$WORK/free"
+wait_for "[ -e '$WORK/q.ran' ]" || fail "cheap wait: the run short of memory never ran once it was free"
+((SECONDS - begun <= SLOT_BOUND)) ||
+	fail "cheap wait: memory stayed free for $((SECONDS - begun)) s before the run went on"
+wait "$short"
+unset TEST_SLOTS FREE_MEMORY_FILE
+
 # The command's own exit status; a count that is not one is refused, nothing run.
 tools/test_slot.sh bash -c 'exit 7' 2>/dev/null
 status=$?
