@@ -1,9 +1,81 @@
-## What art-lint's checks of a ship cost (tools/art_lint.gd, --costs): per check, by
-## its kind and index ("blocker 12"), the microseconds it took, gathered as the lint
-## runs and written out as a table a CI run keeps.
+extends RefCounted
+## What art-lint's checks of a ship cost (tools/art_lint.gd), and its parts dealt by
+## them (--part). Per check, by its kind and index ("blocker\t12"), the microseconds
+## it took, gathered as the lint runs (--costs=FILE) and kept by each CI part as an
+## artifact; tools/art_lint_costs.py writes TABLE from a run's. The parts deal the
+## checks by TABLE's costs, the dearest first to the part with the least so far, as
+## tools/test_shards.py deals test scripts: dealt by count, the Titanic's four parts
+## ran 10 to 23 minutes (run 41554654682).
+
+const TABLE := "res://tools/art_lint_costs.tsv"
 
 ## Every check's microseconds so far, "kind\tindex" to them.
 var costs := {}
+
+
+## [param ship]'s rows of the cost table at [param path], "kind\tindex" to their cost:
+## lines "ship\tkind\tindex\tcost", # a comment; none when there is no file.
+static func table(path: String, ship: String) -> Dictionary:
+	var found := {}
+	if not FileAccess.file_exists(path):
+		return found
+	for line: String in FileAccess.get_file_as_string(path).split("\n", false):
+		var fields := line.strip_edges().split("\t")
+		if not line.begins_with("#") and fields.size() == 4 and fields[0] == ship:
+			found["%s\t%s" % [fields[1], fields[2]]] = fields[3].to_float()
+	return found
+
+
+## What each of [param units] weighs by [param known]: its cost there, else the
+## middle of its kind's there, else the middle of every one there, else 1.
+static func weights(units: PackedStringArray, known: Dictionary) -> PackedFloat64Array:
+	var kinds := {}
+	for unit: String in known:
+		var kind := unit.get_slice("\t", 0)
+		if not kinds.has(kind):
+			kinds[kind] = PackedFloat64Array()
+		kinds[kind].append(known[unit])
+	var middles := {}
+	for kind: String in kinds:
+		middles[kind] = _middle(kinds[kind])
+	var every := _middle(PackedFloat64Array(known.values())) if not known.is_empty() else 1.0
+	var weighed := PackedFloat64Array()
+	for unit in units:
+		weighed.append(known.get(unit, middles.get(unit.get_slice("\t", 0), every)))
+	return weighed
+
+
+## [param units] dealt among [param parts] parts by what [param known] says they cost
+## (weights): unit to part, from 0. The dearest first, each to the part with the
+## least so far, the lowest of those; equal costs go in the units' sorted order, so
+## a deal is the same however the units are listed.
+static func deal(units: PackedStringArray, known: Dictionary, parts: int) -> Dictionary:
+	var sorted := units.duplicate()
+	sorted.sort()
+	var weighed := weights(sorted, known)
+	var order := range(sorted.size())
+	order.sort_custom(
+		func(a: int, b: int) -> bool:
+			return weighed[a] > weighed[b] or (weighed[a] == weighed[b] and a < b)
+	)
+	var loads := PackedFloat64Array()
+	loads.resize(parts)
+	var dealt := {}
+	for index: int in order:
+		var lightest := 0
+		for part in parts:
+			if loads[part] < loads[lightest]:
+				lightest = part
+		loads[lightest] += weighed[index]
+		dealt[sorted[index]] = lightest
+	return dealt
+
+
+static func _middle(values: PackedFloat64Array) -> float:
+	var sorted := values.duplicate()
+	sorted.sort()
+	var half := sorted.size() / 2
+	return sorted[half] if sorted.size() % 2 == 1 else (sorted[half - 1] + sorted[half]) * 0.5
 
 
 ## Adds the time since [param since] (Time.get_ticks_usec) to check [param kind]

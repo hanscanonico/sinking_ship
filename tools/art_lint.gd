@@ -144,6 +144,8 @@ var _part := Vector2i(1, 1)
 ## Each ship check's cost this run, and the file --costs=FILE appends them to.
 var _costs := ArtLintCosts.new()
 var _costs_file := ""
+## Which part, from 0, checks each of a ship's checks: "kind\tindex" to it (_deal).
+var _dealt_to := {}
 
 
 func _initialize() -> void:
@@ -344,9 +346,8 @@ func _check_ship(file: String, layout: ShipLayout) -> void:
 		_costs.write(_costs_file, file.get_basename())
 
 
-## Each platform, blocker and ramp of [param layout] against the ship as drawn, and her
-## furnishings — those _mine() deals this part — and in its first part her hull, panes,
-## undersides and crate light, each checked whole.
+## Each platform, blocker and ramp of [param layout] against the ship as drawn, her
+## furnishings, hull, panes, undersides and crate light: those _mine() deals this part.
 func _check_drawn(file: String, layout: ShipLayout, rules: BrawlRules) -> void:
 	var since := Time.get_ticks_usec()
 	var art := ShipArt.new()
@@ -357,10 +358,11 @@ func _check_drawn(file: String, layout: ShipLayout, rules: BrawlRules) -> void:
 	since = Time.get_ticks_usec()
 	var faces := _ship_faces(art)
 	var cells := FaceCells.file(faces)
+	var furnished := FurnishingCheck.furnishings(art)
 	_costs.timed("faces", 0, since)
-	var first := _part.x == 1
+	_deal(file, layout, furnished)
 	for index in layout.platforms.size():
-		if not _mine(index):
+		if not _mine("platform", index):
 			continue
 		since = Time.get_ticks_usec()
 		var platform := layout.platforms[index]
@@ -374,7 +376,7 @@ func _check_drawn(file: String, layout: ShipLayout, rules: BrawlRules) -> void:
 		)
 		_costs.timed("platform", index, since)
 	since = Time.get_ticks_usec()
-	if first:
+	if _mine("undersides", 0):
 		_problems.append_array(
 			UndersideCheck.check(
 				layout, art.cut_above, file, faces, cells, _samples, PLATFORM_TOLERANCE
@@ -382,7 +384,7 @@ func _check_drawn(file: String, layout: ShipLayout, rules: BrawlRules) -> void:
 		)
 		_costs.timed("undersides", 0, since)
 	for index in layout.ramps.size():
-		if not _mine(index):
+		if not _mine("ramp", index):
 			continue
 		since = Time.get_ticks_usec()
 		var ramp := layout.ramps[index]
@@ -396,48 +398,75 @@ func _check_drawn(file: String, layout: ShipLayout, rules: BrawlRules) -> void:
 		)
 		_costs.timed("ramp", index, since)
 	for index in layout.blockers.size():
-		if _mine(index):
+		if _mine("blocker", index):
 			since = Time.get_ticks_usec()
 			_check_blocker(
 				faces, cells, "%s blocker %d" % [file, index], layout.blockers[index], layout
 			)
 			_costs.timed("blocker", index, since)
 	for index in layout.ladders.size():
-		if _mine(index):
+		if _mine("ladder", index):
 			since = Time.get_ticks_usec()
 			_check_ladder(
 				faces, cells, "%s ladder %d" % [file, index], layout.ladders[index], layout
 			)
 			_costs.timed("ladder", index, since)
-	if first and layout.structure != null:
+	if _mine("hull", 0):
 		since = Time.get_ticks_usec()
 		_check_hull(faces, cells, file, layout)
 		_costs.timed("hull", 0, since)
+	if _mine("panes", 0):
 		since = Time.get_ticks_usec()
 		_check_panes(file, layout, rules)
 		_costs.timed("panes", 0, since)
 	_check_false_floor(art, file, layout, rules)
 	since = Time.get_ticks_usec()
-	if first:
+	if _mine("crate", 0):
 		_check_crate_light(file, layout, art)
 		_checks += 1
 		_costs.timed("crate", 0, since)
-	since = Time.get_ticks_usec()
-	var furnishings := _dealt(FurnishingCheck.furnishings(art))
-	_costs.timed("furnished", 0, since)
 	var stretches := {}
-	var found := FurnishingCheck.intrusions(layout, rules, furnishings, stretches, DEALT_STRETCH)
+	var found := FurnishingCheck.intrusions(
+		layout, rules, _dealt(furnished), stretches, DEALT_STRETCH
+	)
 	for stretch: int in stretches:
-		_costs.costs["stretch	%d" % stretch] = stretches[stretch]
+		_costs.costs["stretch\t%d" % stretch] = stretches[stretch]
 	for problem in found:
 		_problems.append("art-lint: %s: %s" % [file, problem])
 	art.free()
 
 
-## Whether this part checks item [param index] of one of a ship's lists: the parts
-## but the last of several (--part) deal each list between them, one item each in turn.
-func _mine(index: int) -> bool:
-	return posmod(index, maxi(_part.y - 1, 1)) == _part.x - 1
+## Deals [param layout]'s checks among the parts but the last of several (--part), by
+## what ArtLintCosts.TABLE has each cost [param file]'s ship: a platform's top and the
+## floor past its edges, each ramp, blocker and ladder, each DEALT_STRETCH stretch of
+## her length [param furnished] stands in, her hull, panes, undersides and crate light.
+func _deal(file: String, layout: ShipLayout, furnished: PackedVector3Array) -> void:
+	var units := PackedStringArray(["undersides\t0", "crate\t0"])
+	if layout.structure != null:
+		units.append_array(["hull\t0", "panes\t0"])
+	var lists := {
+		"platform": layout.platforms.size(),
+		"floor": layout.platforms.size(),
+		"ramp": layout.ramps.size(),
+		"blocker": layout.blockers.size(),
+		"ladder": layout.ladders.size(),
+	}
+	for kind: String in lists:
+		for index in lists[kind]:
+			units.append("%s\t%d" % [kind, index])
+	var stretches := {}
+	for index in range(0, furnished.size(), 3):
+		stretches[floori(furnished[index].x / DEALT_STRETCH)] = true
+	for stretch: int in stretches:
+		units.append("stretch\t%d" % stretch)
+	var known := ArtLintCosts.table(ArtLintCosts.TABLE, file.get_basename())
+	_dealt_to = ArtLintCosts.deal(units, known, maxi(_part.y - 1, 1))
+
+
+## Whether this part checks item [param index] of [param kind] (_deal): the parts but
+## the last of several (--part) deal them between them.
+func _mine(kind: String, index: int) -> bool:
+	return _dealt_to.get("%s\t%d" % [kind, index], -1) == _part.x - 1
 
 
 ## The triangles of [param faces] this part checks: those whose first corner stands in
@@ -450,7 +479,7 @@ func _dealt(faces: PackedVector3Array) -> PackedVector3Array:
 		return faces
 	var mine := PackedVector3Array()
 	for index in range(0, faces.size(), 3):
-		if _mine(floori(faces[index].x / DEALT_STRETCH)):
+		if _mine("stretch", floori(faces[index].x / DEALT_STRETCH)):
 			mine.append_array(faces.slice(index, index + 3))
 	return mine
 
@@ -555,7 +584,7 @@ func _check_false_floor(art: ShipArt, file: String, layout: ShipLayout, rules: B
 	for platform: ShipPlatform in layout.platforms:
 		ends = Vector2(minf(ends.x, platform.area.position.x), maxf(ends.y, platform.area.end.x))
 	for index in layout.platforms.size():
-		if not _mine(index):
+		if not _mine("floor", index):
 			continue
 		since = Time.get_ticks_usec()
 		var platform := layout.platforms[index]

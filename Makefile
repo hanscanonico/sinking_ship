@@ -420,6 +420,14 @@ durations:
 	$(if $(RUN),,$(error make durations needs RUN="<verify run id> …"; gh run list --workflow verify))
 	tools/test_durations.py $(foreach run,$(RUN),--run $(run))
 
+# tools/art_lint_costs.tsv, the milliseconds art-lint deals the Titanic's parts by,
+# from finished CI verify runs' art-lint-costs-* artifacts (gh fetches them; RUN is
+# their ids), each check the longest any of them timed it (tools/art_lint_costs.py):
+#   make art-lint-costs RUN=41554654682
+art-lint-costs:
+	$(if $(RUN),,$(error make art-lint-costs needs RUN="<verify run id> …"; gh run list --workflow verify))
+	tools/art_lint_costs.py $(foreach run,$(RUN),--run $(run))
+
 # The goldens (R6), tests/golden/NAME.<os>-<arch>.txt: a golden test prints the text it
 # works out when its platform's file is missing or no longer matches (Goldens,
 # tests/unit/goldens.gd), and tools/goldens.py writes it. RUN=<verify run id> takes
@@ -727,7 +735,7 @@ check:
 # against sleeps on private ones — both again on Perl's lock, the one Git Bash on
 # Windows takes (tools/lib/fd_lock.sh); make fps's SPLIT, read off make -n; make test's
 # list of scripts, against a stand-in engine; make durations and make goldens, against
-# sample logs; verify running the float test once, read off make -n; the gdtoolkit targets'
+# sample logs; make art-lint-costs, against made-up runs' tables; verify running the float test once, read off make -n; the gdtoolkit targets'
 # warm-up and fan-out, against a stand-in tool; make test-changed's selection, against a
 # fixture project, and its list of runtime-built loads, against the code; the worktree
 # pruner, against a throwaway repo and a stand-in gh; the CI waiter, against a stand-in
@@ -745,6 +753,7 @@ guard-check:
 	tools/run_tests_check.sh
 	tools/ship_check_once.sh
 	tools/test_durations_check.sh
+	tools/art_lint_costs_check.sh
 	tools/goldens_check.sh
 	tools/lint_warmup_check.sh
 	tools/test_changed_check.sh
@@ -778,6 +787,6 @@ format-check:
 
 .PHONY: import run replay match capture smoke net-bench sim-bench bench serve-local online-e2e export-server \
 	export-web export-mac export-win export-linux export-server-mac serve-web-local serve-web-local-stop fps arena \
-	hits bake census art-lint art-lint-changed test test-changed durations goldens verify verify-changed check guard-check ship ship-gen-check ship-check bake-ship \
+	hits bake census art-lint art-lint-changed art-lint-costs test test-changed durations goldens verify verify-changed check guard-check ship ship-gen-check ship-check bake-ship \
 	bake-check ship-scene preview \
 	ship-blend bake-blend models model-sources sailor crew-capture lint format format-check
