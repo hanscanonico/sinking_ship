@@ -70,26 +70,27 @@ jobs:
         run: make format-check
 
   test:
-    name: test ${{ matrix.shard }}/8
+    name: test ${{ matrix.shard }}/10
     runs-on: ubuntu-24.04
     # A guard against a hung engine, not a budget: the shards are dealt about
-    # 7 minutes apiece (tests/durations.tsv), the longest single script
-    # test_must_sink.gd, most of it working out the steamer's 40 match hits
-    # (SimFixtures.match_hits) in its own engine.
+    # 11 minutes apiece (tests/durations.tsv), the longest single script
+    # test_liner_boiler.gd, 10. Ten shards, as the Titanic's art-lint is seven parts:
+    # with the static job and the other two art-lint jobs that is 20, as many jobs as
+    # GitHub runs at once for the repository.
     timeout-minutes: 40
     strategy:
       # Every shard reports, so one red run names every failing script.
       fail-fast: false
       matrix:
-        # Change the 8 in SHARD and the job name with this list.
-        shard: [1, 2, 3, 4, 5, 6, 7, 8]
+        # Change the 10 in SHARD and the job name with this list.
+        shard: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
     steps:
       - uses: actions/checkout@v4
 
       - uses: ./.github/actions/setup-godot
 
       - name: test
-        run: make test SHARD=${{ matrix.shard }}/8
+        run: make test SHARD=${{ matrix.shard }}/10
 
   # The art against the data and the snapshots (tools/art_lint.gd), every ship and a
   # match, beside the shards rather than after them. Run only by hand before, it had
@@ -120,8 +121,11 @@ jobs:
   # The traced Titanic's lint in parts side by side (make art-lint PART=K/N): in one
   # job it took 29 minutes once B deck was laid (#370), with her decks from C down still
   # to lay. Each part builds her once, the last to check her railings' open spans and
-  # the others to deal the rest of her checks between them, so a part costs a build of
-  # her and its share. N is how many parts are listed here: one more is one number.
+  # the others to deal the rest of her checks between them by what each costs
+  # (tools/art_lint_costs.tsv, make art-lint-costs RUN=), so a part costs a build of her
+  # — 7 to 10 minutes, as fast as the runner it lands on, the same in every part — and
+  # its share: 22 minutes between them in run 41571719294, the open spans 2 or so after
+  # their own build. N is how many parts are listed here: one more is one number.
   art-lint-titanic:
     name: art-lint titanic ${{ matrix.part }}/${{ strategy.job-total }}
     runs-on: ubuntu-24.04
@@ -130,14 +134,23 @@ jobs:
       # Every part reports, so one red run names all her problems.
       fail-fast: false
       matrix:
-        part: [1, 2, 3, 4]
+        part: [1, 2, 3, 4, 5, 6, 7]
     steps:
       - uses: actions/checkout@v4
 
       - uses: ./.github/actions/setup-godot
 
       - name: art-lint
-        run: make art-lint SHIP=titanic PART=${{ matrix.part }}/${{ strategy.job-total }}
+        run: make art-lint SHIP=titanic PART=${{ matrix.part }}/${{ strategy.job-total }} COSTS=art-lint-costs.tsv
+
+      # What each of her checks took, for tools/art_lint_costs.py to deal the parts by.
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: art-lint-costs-titanic-${{ matrix.part }}
+          path: art-lint-costs.tsv
+          if-no-files-found: ignore
+          retention-days: 90
 
   verify:
     needs: [static, test, art-lint, art-lint-titanic]

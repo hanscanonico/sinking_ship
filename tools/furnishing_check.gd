@@ -48,9 +48,15 @@ static func furnishings(art: ShipArt) -> PackedVector3Array:
 ## the tolerance, of a centre Surfaces lets a body stand at, between a step over what
 ## that body stands on and its height over it. A face inside a blocker, or wholly over
 ## or under every body that could stand within reach of it, is passed over unsampled.
-## One line per face found so, at most a few.
+## One line per face found so, at most a few. Into [param stretches], when
+## [param stretch] is given, the microseconds the faces whose first corner stands in
+## each [param stretch]-long stretch of her length took, by its index along her.
 static func intrusions(
-	layout: ShipLayout, rules: BrawlRules, faces: PackedVector3Array
+	layout: ShipLayout,
+	rules: BrawlRules,
+	faces: PackedVector3Array,
+	stretches := {},
+	stretch := 0.0
 ) -> PackedStringArray:
 	var surfaces := Surfaces.new(layout)
 	var reach := rules.body_radius - TOLERANCE
@@ -59,18 +65,26 @@ static func intrusions(
 	var standing := {}
 	var found := PackedStringArray()
 	for index in range(0, faces.size(), 3):
+		var since := Time.get_ticks_usec()
 		var triangle := faces.slice(index, index + 3)
-		if _inside_a_blocker(layout, boxes, triangle) or not _in_a_band(bands, triangle, rules):
-			continue
-		for point in _spread(triangle):
-			var feet := _body_round(surfaces, rules, standing, point, reach)
-			if feet.x == INF:
-				continue
-			var into := rules.body_radius - Vector2(point.x - feet.x, point.z - feet.z).length()
-			found.append(
-				"furnishing at %s stands %.2f m into a body standing at %s" % [point, into, feet]
-			)
-			break
+		if not (
+			_inside_a_blocker(layout, boxes, triangle) or not _in_a_band(bands, triangle, rules)
+		):
+			for point in _spread(triangle):
+				var feet := _body_round(surfaces, rules, standing, point, reach)
+				if feet.x == INF:
+					continue
+				var into := rules.body_radius - Vector2(point.x - feet.x, point.z - feet.z).length()
+				found.append(
+					(
+						"furnishing at %s stands %.2f m into a body standing at %s"
+						% [point, into, feet]
+					)
+				)
+				break
+		if stretch > 0.0:
+			var at := floori(triangle[0].x / stretch)
+			stretches[at] = stretches.get(at, 0) + Time.get_ticks_usec() - since
 		if found.size() >= 5:
 			break
 	return found
