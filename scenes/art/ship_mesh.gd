@@ -90,6 +90,10 @@ var keep := Vector2(-INF, INF)
 ## (piece: AABB) -> bool, ship space, when set: whether a piece — what one call
 ## draws, a box, a cylinder, a face — fades out near the eye (ship_near.gdshader).
 var fading := Callable()
+## (origin, u, v, u_cuts, v_cuts, normal, probe) -> Array, when set: what the outdoors
+## callable says of every piece of a cut face at once (IndoorGrid.outdoors_over) — empty
+## where it cannot, and each piece is asked alone.
+var outdoors_over := Callable()
 
 ## (point: Vector3) -> bool: whether a ship-space point stands outdoors.
 var _outdoors: Callable
@@ -99,6 +103,9 @@ var _cuts: Array[PackedFloat32Array] = []
 var _batches := {}
 ## The same keys -> Finish
 var _finishes := {}
+## Vector4i(finish, chunk) -> its Batch (_batch_for), the chunk Vector3i.MIN outdoors:
+## the batches by their keys' numbers, with no key written out to find one.
+var _placed := {}
 ## Whether the piece _batch_for() last placed stands outdoors.
 var _last_outdoors := true
 ## While fading: how many calls deep the piece being drawn is, its box so far, and
@@ -287,10 +294,13 @@ func face(
 	var v_cuts := whole if narrow else splits(origin, v, _cuts)
 	if u_cuts.size() > 2 or v_cuts.size() > 2:
 		var outdoors := []
-		for i in u_cuts.size() - 1:
-			for j in v_cuts.size() - 1:
-				var middle := _middle(origin, u, v, u_cuts, v_cuts, i, j)
-				outdoors.append(_outdoors.call(middle + normal * PROBE))
+		if outdoors_over.is_valid():
+			outdoors = outdoors_over.call(origin, u, v, u_cuts, v_cuts, normal, PROBE)
+		if outdoors.is_empty():
+			for i in u_cuts.size() - 1:
+				for j in v_cuts.size() - 1:
+					var middle := _middle(origin, u, v, u_cuts, v_cuts, i, j)
+					outdoors.append(_outdoors.call(middle + normal * PROBE))
 		var kept := needed(origin, u, v, u_cuts, v_cuts, outdoors)
 		u_cuts = kept[0]
 		v_cuts = kept[1]
@@ -611,6 +621,7 @@ func commit(parent: Node3D, materials: Dictionary) -> void:
 		parent.add_child(instance)
 	_batches.clear()
 	_finishes.clear()
+	_placed.clear()
 
 
 ## The batch a piece centred on [param middle] and facing [param normal] goes in:
@@ -619,13 +630,21 @@ func commit(parent: Node3D, materials: Dictionary) -> void:
 func _batch_for(middle: Vector3, normal: Vector3, paint: Paint) -> Batch:
 	_last_outdoors = _outdoors.call(middle + normal * PROBE)
 	var finish := paint.finish if _last_outdoors else paint.finish_in
+	# Outdoors a finish's one batch, filed under no chunk.
+	var chunk := Vector3i.MIN
+	if not _last_outdoors:
+		chunk = Vector3i((middle / CHUNK).floor())
+	var place := Vector4i(finish, chunk.x, chunk.y, chunk.z)
+	var found: Batch = _placed.get(place)
+	if found != null:
+		return found
 	var key := "%d out" % finish
 	if not _last_outdoors:
-		var chunk := Vector3i((middle / CHUNK).floor())
 		key = "%d in %d %d %d" % [finish, chunk.x, chunk.y, chunk.z]
 	if not _batches.has(key):
 		_batches[key] = Batch.new()
 		_finishes[key] = finish
+	_placed[place] = _batches[key]
 	return _batches[key]
 
 
@@ -643,14 +662,17 @@ func _emit(
 	uv2s: PackedVector2Array
 ) -> void:
 	var base := batch.vertices.size()
-	for index in points.size():
-		batch.vertices.append(points[index])
-		batch.normals.append(normals[index])
-		batch.colours.append(colour)
-		batch.uvs.append(uvs[index])
-		batch.uv2s.append(uv2s[index])
-	for index in order:
-		batch.indices.append(base + index)
+	batch.vertices.append_array(points)
+	batch.normals.append_array(normals)
+	batch.colours.resize(base + points.size())
+	for index in range(base, batch.colours.size()):
+		batch.colours[index] = colour
+	batch.uvs.append_array(uvs)
+	batch.uv2s.append_array(uv2s)
+	var first := batch.indices.size()
+	batch.indices.append_array(order)
+	for index in range(first, batch.indices.size()):
+		batch.indices[index] += base
 	if not fading.is_valid():
 		return
 	if _reached.is_empty():
