@@ -4037,6 +4037,12 @@ GENERATOR["cell"] = cell_at(GENERATOR["base"][0], GENERATOR["base"][1] + 0.01, G
 # A cell a sister's bulkhead cut is lit in every piece of it.
 GENERATOR["emergency"] = [c[0] for name in GENERATOR["emergency"] for c in CELLS
                           if c[0] == name or c[0].rpartition("_")[0] == name and c[0].rpartition("_")[2].isdigit()]
+# Her generators' steam (BOT: her dynamos' engines fed from her boilers): from boiler
+# rooms 1-6, the mains stopping for good once none stays dry, a generator's metre of water
+# over its floor (est.: her furnaces drowned).
+GENERATOR["boilers"] = [c[0] for k in range(1, 7) for c in CELLS
+                        if c[0] == "boiler_room_%d" % k or c[0].rpartition("_")[0] == "boiler_room_%d" % k
+                        and c[0].rpartition("_")[2].isdigit()]
 # Her pumps (BOT): five ballast and bilge pumps of 250 tons an hour and three bilge pumps
 # of 150 — three of the first in three boiler rooms (est. 5, 3 and 1), two ballast and
 # two bilge pumps in the reciprocating engine room, a bilge pump in the turbine room.
@@ -4167,7 +4173,7 @@ fitting_ids.append(sub("Fitting_" + GENERATOR["name"], "16_fitting", [
     ("base", vec3(GENERATOR["base"])), ("drowns_at", num(GENERATOR["drowns"])),
     ("recovers_deg", num(GENERATOR["recovers"])),
     ("emergency_minutes", num(GENERATOR["minutes"])),
-    ("emergency_cells", names(GENERATOR["emergency"])), ("cell", '&"%s"' % GENERATOR["cell"])]))
+    ("emergency_cells", names(GENERATOR["emergency"])), ("boiler_cells", names(GENERATOR["boilers"])), ("cell", '&"%s"' % GENERATOR["cell"])]))
 for name, cell_name, rate in PUMPS:
     fitting_ids.append(sub("Fitting_" + name, "16_fitting", [
         ("kind", "3"), ("name", '&"%s"' % name), ("cell", '&"%s"' % cell_name), ("rate", num(rate))]))

@@ -39,6 +39,10 @@ enum Kind { LIFEBOAT, FUNNEL, GENERATOR, PUMP }
 @export var recovers_deg: float
 @export var emergency_minutes: float
 @export var emergency_cells: Array[StringName] = []
+## GENERATOR: the cells, by name, whose boilers raise its steam: it stops for good once
+## none of them aboard stays dry — drowns_at of water over its floor's middle — and runs
+## as its own limits say when none is named.
+@export var boiler_cells: Array[StringName] = []
 ## GENERATOR, PUMP: the cell it stands in, by name. PUMP: the water it lifts out of it
 ## to the sea, in m³ a second, while the generator runs.
 @export var cell: StringName

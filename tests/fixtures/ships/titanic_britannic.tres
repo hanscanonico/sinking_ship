@@ -85138,6 +85138,7 @@ drowns_at = 1
 recovers_deg = 3
 emergency_minutes = 1
 emergency_cells = Array[StringName]([&"staircase_house", &"officers_house", &"a_deck", &"b_deck", &"c_deck_1", &"c_deck_2", &"c_deck_3", &"c_deck_4", &"c_deck_5", &"c_deck_6", &"d_deck_1", &"d_deck_2", &"d_deck_3", &"d_deck_4", &"d_deck_5", &"d_deck_6"])
+boiler_cells = Array[StringName]([&"boiler_room_1", &"boiler_room_2", &"boiler_room_3", &"boiler_room_4", &"boiler_room_5", &"boiler_room_6"])
 cell = &"electric_room_1"
 
 [sub_resource type="Resource" id="Fitting_pump_br5"]

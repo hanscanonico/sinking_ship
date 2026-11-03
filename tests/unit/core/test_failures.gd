@@ -266,11 +266,15 @@ func _schedule(structure: ShipStructure, layout: ShipLayout) -> SinkSchedule:
 
 
 ## A barge whose generator room is holed: its generator drowned once 0.5 m stands over
-## its foot, its emergency power lighting the room for [param minutes].
-func _powered_barge(minutes: float) -> ShipStructure:
+## its foot, its emergency power lighting the room for [param minutes]; with a dry
+## stokehold aft of it when [param stokehold], its boilers raising the generator's steam
+## when [param steamed].
+func _powered_barge(minutes: float, stokehold := false, steamed := false) -> ShipStructure:
 	var barge := BoxBarge.new(40.0, 10.0, 8.0, 3.0, 3.0)
 	barge.section_length = 2.0
 	var room := barge.cell(&"engine_room", Vector3(-5.0, -3.0, -5.0), Vector3(5.0, 1.0, 5.0))
+	if stokehold:
+		barge.cell(&"stokehold", Vector3(5.0, -3.0, -5.0), Vector3(15.0, 1.0, 5.0))
 	var rooms: Array[StringName] = [&"engine room"]
 	room.rooms = rooms
 	barge.hole(&"engine_room", Vector3(0.0, -3.0, 0.0), 0.05, true)
@@ -287,6 +291,9 @@ func _powered_barge(minutes: float) -> ShipStructure:
 	generator.emergency_minutes = minutes
 	var lit: Array[StringName] = [&"engine_room"]
 	generator.emergency_cells = lit
+	if steamed:
+		var boilers: Array[StringName] = [&"stokehold"]
+		generator.boiler_cells = boilers
 	barge.fittings.append(generator)
 	return barge.structure()
 
@@ -441,3 +448,25 @@ func test_a_door_in_a_face_the_gash_ends_beside_is_weakened() -> void:
 	var damage := _gash_ending_at(faced[0], 52.0)
 	assert_eq(damage.weakened, [&"bulkhead_e_face"] as Array[StringName], "the face beside its end")
 	assert_eq(SinkFailures.kept_share(faced[0], damage, faced[1]), 0.5, "half its heads")
+
+
+func test_her_mains_stop_once_no_boiler_room_stays_dry() -> void:
+	# Her generator's steam from her stokehold: with it dry, or her water under the
+	# generator's 0.5 m over its floor, her mains run; with 0.6 m over it they stop and her
+	# emergency power takes over. A generator naming no boiler room runs as before.
+	var powers := PackedInt32Array()
+	for case: Array in [[true, 0.4], [true, 0.6], [false, 0.6]]:
+		var structure := _powered_barge(30.0, true, case[0])
+		var power := ShipPower.new(structure, _sea())
+		var state := FloodState.new()
+		var stokehold := structure.cell_named(&"stokehold")
+		state.heads = PackedFloat64Array([-100.0, -100.0])
+		state.heads[stokehold] = -3.0 + float(case[1])
+		assert_eq(structure.cells.size(), 2, "her engine room and her stokehold")
+		power.start(state)
+		var next := state.copy()
+		power.follow(state, next, 1.0)
+		powers.append(next.power)
+	var main := ShipPower.Power.MAIN
+	var emergency := ShipPower.Power.EMERGENCY
+	assert_eq(powers, PackedInt32Array([main, emergency, main]), "dry, drowned, none named")
