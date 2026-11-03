@@ -3454,9 +3454,7 @@ for c in CELLS:
 WIDE = 4.0
 for name, x, z, size, kind in [
     ("forepeak", 120.0, 0.0, 1.0, "STAIRWELL"), ("forepeak_d", 118.0, 0.0, 1.0, "STAIRWELL"),
-    ("hold_1", 108.8, 0.0, WIDE, "STAIRWELL"), ("hold_1_tween", 108.8, 0.0, 2.0, "STAIRWELL"),
-    ("hold_1_d", 105.0, 0.0, 2.0, "STAIRWELL"),
-    ("hold_2", 94.0, 0.0, WIDE, "STAIRWELL"), ("hold_2_tween", 94.0, 0.0, 2.0, "STAIRWELL"),
+    ("hold_1", 108.8, 0.0, WIDE, "STAIRWELL"), ("hold_2", 94.0, 0.0, WIDE, "STAIRWELL"),
     ("hold_3", 72.6, -6.0, 2.0, "STAIRWELL"),
     ("boiler_room_6_tween", 62.0, 4.0, 2.0, "STAIRWELL"),
     ("engine_room_tween", -38.0, 4.0, 2.0, "STAIRWELL"), ("turbine_room_tween", -57.0, 4.0, 2.0, "STAIRWELL"),
@@ -3470,6 +3468,19 @@ for name, x, z, size, kind in [
     ("after_peak_tween", -122.0, 0.0, 1.0, "STAIRWELL"), ("after_peak_d", -125.0, 0.0, 1.0, "STAIRWELL"),
 ]:
     through("stair_" + name, kind, x, z, size, size, name, starts="OPEN")
+# Her forward cargo hatches shut where her plates draw them shut (#399, the owner's ruling
+# of 2026-11-03): the covers on D deck of Nos. 1 and 2 and the bunker hatch (D_PLAN, "a hop
+# up"), each over the 'tween under it; No. 1's trunk is enclosed through C deck under her
+# forecastle (C_PLAN), so no way leads from D deck's space there into it. Est., no source
+# for their strength: each weeps 0.05 m² under 0.3 m of water and gives way under 1 m, as
+# her wells' covers, and breathes through a 100 mm air pipe.
+for what, below in [("No. 1 hatch", "hold_1_tween"), ("No. 2 hatch", "hold_2_tween"), ("bunker hatch", "hold_3_tween")]:
+    for _w, x0, x1, z0, z1, _h in [p for p in D_PLAN.solids if p[0] == what]:
+        name = "cover_" + slug(what) + ("" if abs(z0 + z1) < 0.5 else "_port" if z0 + z1 < 0 else "_starboard")
+        through(name, "HATCH", (x0 + x1) * 0.5, (z0 + z1) * 0.5, x1 - x0, z1 - z0, below, starts="SHUT",
+                leak_head=0.3, collapse_head=1.0, leak_area=0.05)
+        through("pipe_" + name, "VENT", (x0 + x1) * 0.5, (z0 + z1) * 0.5, 0.09, 0.09, below, area=AIR_PIPE,
+                starts="OPEN")
 # The after holds under her watertight orlop deck (BOT): their hatches battened, est.
 # weeping 0.05 m² under 1 m of water and giving way under 3 m; the after well's two cargo
 # hatches likewise, under 0.3 m and 1 m, as the steamer's.
