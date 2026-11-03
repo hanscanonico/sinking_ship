@@ -709,11 +709,12 @@ POOP = q(B_DECK + 0.56)                    # SB-III: C's sheer at x −107…−
 # as it must; the decks' grain.
 # - D deck: her bulkhead tops measured off Plate III (BULKHEADS) are the truth: D deck 2.00 m
 #   over its amidships height at B and 2.67 m at A, E deck 1.43 m at C. (plan_sheer, C deck's
-#   curve through its steps, reads 0.3-0.6 m under each.) From her bridge deck's front to A
-#   1.94 m, B's top 6 cm over it, so B stands watertight to D as its plate draws it; forward of
-#   A a step on, 2.25 m. One height from her bridge deck's front to A, as her 'tweens under it
-#   are each one box: a step at B or her forecastle's would leave a cell a step thin over
-#   No. 1's 'tween, and 1.94 m over-reads E deck's 1.06-1.43 m at D and C by 0.5-0.9 m.
+#   curve through its steps, reads 0.3-0.6 m under each.) From her bridge deck's front to her
+#   stem 1.94 m, B's top 6 cm over it, so B stands watertight to D as its plate draws it. One
+#   height, as her 'tweens under it are each one box: a step at B or her forecastle's would
+#   leave a cell a step thin over No. 1's 'tween, and a step at A, through her firemen's
+#   quarters, is no ramp to the deck forward of it. So it reads 0.73 m under A's 2.67 m, and
+#   over E deck's 1.06-1.43 m at D and C by 0.5-0.9 m.
 # - C deck: under her forecastle her plates' own sheer, the 1.56 m FCSL stands on B deck's
 #   height, so each room under it keeps B deck's 2.75 m of headroom; forward of its step too
 #   (the plates' 2.16 m is 0.6 m on, more than a body steps through the doors in the wall
@@ -724,7 +725,7 @@ POOP = q(B_DECK + 0.56)                    # SB-III: C's sheer at x −107…−
 # E deck stays flat: its rooms forward stand to D deck, its flights up to D run on (run_on),
 # and no cell of hers parts at E deck forward of boiler room 5 ('tweens run from G deck to D).
 # Each (from x, the deck's height forward of it).
-D_SHEER = [(B_RUN[1], -1.25), (round(BX["A"] * 128) / 128, -0.9375)]
+D_SHEER = [(B_RUN[1], -1.25)]
 C_SHEER = [(B_RUN[1], 1.5625)]
 
 def stepped(flat, steps, x, up=False):
@@ -1187,7 +1188,7 @@ def lanes_of(prefix):
 # the lints walk from (D6).
 WELL = (B_RUN[1], FCSL_FROM)
 WELL_DECK = c_at(sum(WELL) * 0.5)
-CW = fit(WELL[0], WELL[1], WELL_DECK, 0.2)
+CW = fit(WELL[0], WELL[1], 0.0, 0.2)  # (as wide as she laid it at C deck's flat height)
 well = deck("fwd_well", "forward well deck", WELL[0], WELL[1], -CW, CW, WELL_DECK, holes["well"])
 AFT_WELL = (POOP_TO, B_RUN[0])
 AW = fit(AFT_WELL[0], AFT_WELL[1], 0.0, 0.2)
@@ -1819,6 +1820,17 @@ plan_layer("c", C_PLAN, c_at, c_over, (POOP_TO, C_TAIL, B_RUN[1], FCSL_FROM, FC_
            parted_at=(POOP_TO, B_RUN[0], B_RUN[1], FCSL_FROM, FCSL_STEP), place=c_place, main=("C deck",))
 plan_layer("d", D_PLAN, d_at, lambda x: c_at(x, True), [at for at, _h in D_SHEER + C_SHEER], parted_at=D_CUTS,
            place=d_place, main=("D deck",))
+# Her stepped D deck's riser at her bridge deck's front, across her where the plate's wall on
+# that line leaves a gap (the trunk's forward of it): steel from the deck aft up to the one
+# forward, so nobody aft looks into the space under the deck forward.
+RISER = (B_RUN[1], D_DECK, d_at(B_RUN[1] + 0.01))
+riser_half = next(p[3] for p in D_PIECES if p[0] < RISER[0] < p[1] or abs(p[1] - RISER[0]) < 1e-6)
+covered_z = sorted((w[2], w[3]) for w in D_PLAN.walls if w[0] == 0 and abs(w[1] - RISER[0]) < 1e-6)
+at_z = -riser_half
+for k, (w0, w1) in enumerate(covered_z + [(riser_half, riser_half)]):
+    if w0 - at_z > 0.005:
+        box("d_riser_%d" % k, RISER[0] - T, RISER[0] + T, at_z, w0, RISER[1], RISER[2])
+    at_z = max(at_z, w1)
 
 def ef_place(level, cuts=None):
     """Where on a deck under D ship x stands: each stretch between two bulkheads its cell."""
@@ -2447,7 +2459,7 @@ for k, x in enumerate(FUNNELS[1:], 2):
                 DECK_VENTS.append(("funnel_%d" % k, x, sign * z, 0.45, BOAT))
                 break
 DECK_VENTS += [(name, x, sign * z, r, deck) for name, x, z, r, deck in [
-    ("forecastle", 93.0, 6.0, 0.45, FCSL[0]), ("forward_well", 88.0, 7.0, 0.3, 0.0),
+    ("forecastle", 93.0, 6.0, 0.45, FCSL[0]), ("forward_well", 88.0, 7.0, 0.3, WELL_DECK),
     ("after_well", -100.5, 5.5, 0.3, 0.0), ("poop", -112.0, 5.0, 0.3, POOP)] for sign in (-1, 1)]
 for name, x, z, r, foot in DECK_VENTS:
     side = "" if z == 0.0 else ("_s" if z > 0.0 else "_p")
