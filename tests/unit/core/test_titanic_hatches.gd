@@ -1,9 +1,10 @@
 extends GutTest
 ## The Titanic's forward cargo hatches shut where her plates draw them shut (#399): the covers
-## on D deck of Nos. 1 and 2 and the bunker hatch (tools/titanic_plates/d.py) and No. 1's
-## trunk enclosed through C deck under her forecastle (c.py), each a shut cover between the
-## cells it parts, weeping under 0.3 m of water and giving way under 1 m (est.), an air pipe
-## through it, where her generator laid open hatchways.
+## on D deck of Nos. 1 and 2 and the bunker hatch (tools/titanic_plates/d.py), each a shut
+## cover between the cells it parts, weeping under 0.3 m of water and giving way under 1 m
+## (est.), an air pipe through it; and No. 1's trunk enclosed through C deck under her
+## forecastle (c.py), no way from D deck's space into it. None of the open hatchways her
+## generator laid there is left.
 
 const SHIP := "res://data/ships/titanic.tres"
 const COVERS: Dictionary[StringName, Array] = {
@@ -11,7 +12,6 @@ const COVERS: Dictionary[StringName, Array] = {
 	&"cover_no_1_hatch_starboard": [&"hold_1_tween", &"hold_1_d"],
 	&"cover_no_2_hatch": [&"hold_2_tween", &"d_deck_forward"],
 	&"cover_bunker_hatch": [&"hold_3_tween", &"d_deck_forward"],
-	&"cover_no_1_hatch_trunk": [&"hold_1_d", &"forecastle"],
 }
 ## The open hatchways her generator once laid there, 2 m square (est.).
 const HATCHWAYS: Array[StringName] = [
@@ -60,3 +60,6 @@ func test_each_forward_hatch_is_a_shut_cover_that_gives_way_at_a_metre() -> void
 func test_no_open_hatchway_stands_where_her_plates_draw_a_cover() -> void:
 	for hatchway: StringName in HATCHWAYS:
 		assert_null(_named(hatchway), "%s, open where her plates draw a cover" % hatchway)
+	for opening: ShipOpening in _structure.openings:
+		var into_trunk := opening.joins.has(&"hold_1_d") and opening.joins.has(&"forecastle")
+		assert_false(into_trunk, "%s, a way into No. 1's enclosed trunk" % opening.name)

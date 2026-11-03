@@ -112629,29 +112629,6 @@ metadata/kind = "VENT"
 metadata/joins = Array[StringName]([&"hold_3_tween", &"d_deck_forward"])
 metadata/area = 0.008
 
-[node name="Opening_cover_no_1_hatch_trunk" type="CSGBox3D" parent="Structure/Openings" unique_id=2122156534]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 105.7812, 0, 0)
-size = Vector3(3.5625, 0, 4.625)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"cover_no_1_hatch_trunk"
-metadata/kind = "HATCH"
-metadata/joins = Array[StringName]([&"hold_1_d", &"forecastle"])
-metadata/starts = "SHUT"
-metadata/leak_head = 0.3
-metadata/collapse_head = 1.0
-metadata/leak_area = 0.05
-
-[node name="Opening_pipe_cover_no_1_hatch_trunk" type="CSGBox3D" parent="Structure/Openings" unique_id=1785645903]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 105.7812, 0, 0)
-size = Vector3(0.09, 0, 0.09)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"pipe_cover_no_1_hatch_trunk"
-metadata/kind = "VENT"
-metadata/joins = Array[StringName]([&"hold_1_d", &"forecastle"])
-metadata/area = 0.008
-
 [node name="Opening_hatch_after_hold_fwd" type="CSGBox3D" parent="Structure/Openings" unique_id=1889735786]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -93, -13.4375, 0)
 size = Vector3(3, 0, 3)
