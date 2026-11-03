@@ -112384,24 +112384,6 @@ metadata/name = &"stair_hold_1"
 metadata/kind = "STAIRWELL"
 metadata/joins = Array[StringName]([&"hold_1", &"hold_1_tween"])
 
-[node name="Opening_stair_hold_1_tween" type="CSGBox3D" parent="Structure/Openings" unique_id=548650662]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 108.8, -3.1875, 0)
-size = Vector3(2, 0, 2)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"stair_hold_1_tween"
-metadata/kind = "STAIRWELL"
-metadata/joins = Array[StringName]([&"hold_1_tween", &"hold_1_d"])
-
-[node name="Opening_stair_hold_1_d" type="CSGBox3D" parent="Structure/Openings" unique_id=474387255]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 105, 0, 0)
-size = Vector3(2, 0, 2)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"stair_hold_1_d"
-metadata/kind = "STAIRWELL"
-metadata/joins = Array[StringName]([&"hold_1_d", &"forecastle"])
-
 [node name="Opening_stair_hold_2" type="CSGBox3D" parent="Structure/Openings" unique_id=351233416]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 94, -11, 0)
 size = Vector3(4, 0, 4)
@@ -112410,15 +112392,6 @@ metadata/ship = &"opening"
 metadata/name = &"stair_hold_2"
 metadata/kind = "STAIRWELL"
 metadata/joins = Array[StringName]([&"hold_2", &"hold_2_tween"])
-
-[node name="Opening_stair_hold_2_tween" type="CSGBox3D" parent="Structure/Openings" unique_id=1188781828]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 94, -3.1875, 0)
-size = Vector3(2, 0, 2)
-material = SubResource("StandardMaterial3D_nubv8")
-metadata/ship = &"opening"
-metadata/name = &"stair_hold_2_tween"
-metadata/kind = "STAIRWELL"
-metadata/joins = Array[StringName]([&"hold_2_tween", &"d_deck_forward"])
 
 [node name="Opening_stair_hold_3" type="CSGBox3D" parent="Structure/Openings" unique_id=897116476]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 72.6, -11, -6)
@@ -112563,6 +112536,121 @@ metadata/ship = &"opening"
 metadata/name = &"stair_after_peak_d"
 metadata/kind = "STAIRWELL"
 metadata/joins = Array[StringName]([&"after_peak_d", &"poop"])
+
+[node name="Opening_cover_no_1_hatch_port" type="CSGBox3D" parent="Structure/Openings" unique_id=206180189]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 106, -3.1875, -1.0938)
+size = Vector3(3.625, 0, 2.1875)
+material = SubResource("StandardMaterial3D_nubv8")
+metadata/ship = &"opening"
+metadata/name = &"cover_no_1_hatch_port"
+metadata/kind = "HATCH"
+metadata/joins = Array[StringName]([&"hold_1_tween", &"hold_1_d"])
+metadata/starts = "SHUT"
+metadata/leak_head = 0.3
+metadata/collapse_head = 1.0
+metadata/leak_area = 0.05
+
+[node name="Opening_pipe_cover_no_1_hatch_port" type="CSGBox3D" parent="Structure/Openings" unique_id=208783672]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 106, -3.1875, -1.0938)
+size = Vector3(0.09, 0, 0.09)
+material = SubResource("StandardMaterial3D_nubv8")
+metadata/ship = &"opening"
+metadata/name = &"pipe_cover_no_1_hatch_port"
+metadata/kind = "VENT"
+metadata/joins = Array[StringName]([&"hold_1_tween", &"hold_1_d"])
+metadata/area = 0.008
+
+[node name="Opening_cover_no_1_hatch_starboard" type="CSGBox3D" parent="Structure/Openings" unique_id=1074504094]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 106, -3.1875, 1.0938)
+size = Vector3(3.625, 0, 2.1875)
+material = SubResource("StandardMaterial3D_nubv8")
+metadata/ship = &"opening"
+metadata/name = &"cover_no_1_hatch_starboard"
+metadata/kind = "HATCH"
+metadata/joins = Array[StringName]([&"hold_1_tween", &"hold_1_d"])
+metadata/starts = "SHUT"
+metadata/leak_head = 0.3
+metadata/collapse_head = 1.0
+metadata/leak_area = 0.05
+
+[node name="Opening_pipe_cover_no_1_hatch_starboard" type="CSGBox3D" parent="Structure/Openings" unique_id=463088520]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 106, -3.1875, 1.0938)
+size = Vector3(0.09, 0, 0.09)
+material = SubResource("StandardMaterial3D_nubv8")
+metadata/ship = &"opening"
+metadata/name = &"pipe_cover_no_1_hatch_starboard"
+metadata/kind = "VENT"
+metadata/joins = Array[StringName]([&"hold_1_tween", &"hold_1_d"])
+metadata/area = 0.008
+
+[node name="Opening_cover_no_2_hatch" type="CSGBox3D" parent="Structure/Openings" unique_id=796073859]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 89.25, -3.1875, 0.125)
+size = Vector3(5.25, 0, 5.75)
+material = SubResource("StandardMaterial3D_nubv8")
+metadata/ship = &"opening"
+metadata/name = &"cover_no_2_hatch"
+metadata/kind = "HATCH"
+metadata/joins = Array[StringName]([&"hold_2_tween", &"d_deck_forward"])
+metadata/starts = "SHUT"
+metadata/leak_head = 0.3
+metadata/collapse_head = 1.0
+metadata/leak_area = 0.05
+
+[node name="Opening_pipe_cover_no_2_hatch" type="CSGBox3D" parent="Structure/Openings" unique_id=1619750828]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 89.25, -3.1875, 0.125)
+size = Vector3(0.09, 0, 0.09)
+material = SubResource("StandardMaterial3D_nubv8")
+metadata/ship = &"opening"
+metadata/name = &"pipe_cover_no_2_hatch"
+metadata/kind = "VENT"
+metadata/joins = Array[StringName]([&"hold_2_tween", &"d_deck_forward"])
+metadata/area = 0.008
+
+[node name="Opening_cover_bunker_hatch" type="CSGBox3D" parent="Structure/Openings" unique_id=309850347]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 82, -3.1875, 0.0625)
+size = Vector3(3.625, 0, 5.75)
+material = SubResource("StandardMaterial3D_nubv8")
+metadata/ship = &"opening"
+metadata/name = &"cover_bunker_hatch"
+metadata/kind = "HATCH"
+metadata/joins = Array[StringName]([&"hold_3_tween", &"d_deck_forward"])
+metadata/starts = "SHUT"
+metadata/leak_head = 0.3
+metadata/collapse_head = 1.0
+metadata/leak_area = 0.05
+
+[node name="Opening_pipe_cover_bunker_hatch" type="CSGBox3D" parent="Structure/Openings" unique_id=31422367]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 82, -3.1875, 0.0625)
+size = Vector3(0.09, 0, 0.09)
+material = SubResource("StandardMaterial3D_nubv8")
+metadata/ship = &"opening"
+metadata/name = &"pipe_cover_bunker_hatch"
+metadata/kind = "VENT"
+metadata/joins = Array[StringName]([&"hold_3_tween", &"d_deck_forward"])
+metadata/area = 0.008
+
+[node name="Opening_cover_no_1_hatch_trunk" type="CSGBox3D" parent="Structure/Openings" unique_id=2122156534]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 105.7812, 0, 0)
+size = Vector3(3.5625, 0, 4.625)
+material = SubResource("StandardMaterial3D_nubv8")
+metadata/ship = &"opening"
+metadata/name = &"cover_no_1_hatch_trunk"
+metadata/kind = "HATCH"
+metadata/joins = Array[StringName]([&"hold_1_d", &"forecastle"])
+metadata/starts = "SHUT"
+metadata/leak_head = 0.3
+metadata/collapse_head = 1.0
+metadata/leak_area = 0.05
+
+[node name="Opening_pipe_cover_no_1_hatch_trunk" type="CSGBox3D" parent="Structure/Openings" unique_id=1785645903]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 105.7812, 0, 0)
+size = Vector3(0.09, 0, 0.09)
+material = SubResource("StandardMaterial3D_nubv8")
+metadata/ship = &"opening"
+metadata/name = &"pipe_cover_no_1_hatch_trunk"
+metadata/kind = "VENT"
+metadata/joins = Array[StringName]([&"hold_1_d", &"forecastle"])
+metadata/area = 0.008
 
 [node name="Opening_hatch_after_hold_fwd" type="CSGBox3D" parent="Structure/Openings" unique_id=1889735786]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -93, -13.4375, 0)
