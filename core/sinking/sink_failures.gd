@@ -283,11 +283,15 @@ func _gives_way_gap(watched: int, across: float) -> float:
 ## parts — and all of them for any other.
 static func kept_share(structure: ShipStructure, damage: HitDamage, opening: ShipOpening) -> float:
 	for wall: ShipWall in structure.walls:
-		if not wall.name in damage.weakened:
-			continue
-		var axis := 0 if wall.axis == ShipWall.Axis.ACROSS else 2
-		if opening.facing() != axis or not is_equal_approx(opening.centre[axis], wall.at):
-			continue
-		if opening.joins[0] in wall.cells and opening.joins[1] in wall.cells:
+		if wall.name in damage.weakened and in_wall(wall, opening):
 			return damage.weakened_to
 	return 1.0
+
+
+## Whether [param opening] is a panel of [param wall] or an opening in it: flat across its
+## axis, on its plane, between two of the cells it parts.
+static func in_wall(wall: ShipWall, opening: ShipOpening) -> bool:
+	var axis := 0 if wall.axis == ShipWall.Axis.ACROSS else 2
+	if opening.facing() != axis or not is_equal_approx(opening.centre[axis], wall.at):
+		return false
+	return opening.joins[0] in wall.cells and opening.joins[1] in wall.cells

@@ -9,3 +9,7 @@ extends Resource
 @export var x: float
 ## The share of her strength (GirderStrength) her hull keeps here, 0…1.
 @export var share: float = 1.0
+## The watertight walls (ShipWall names) her parting here wrecks: each gives way as she
+## parts here — every panel of it and every opening in it — and never before, nor when she
+## parts anywhere else (HullBreak). Est. for every ship.
+@export var wrecks: Array[StringName] = []

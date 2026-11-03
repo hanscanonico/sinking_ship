@@ -4054,6 +4054,12 @@ for name, x, rate in [("pump_br5", 44.0, BIG), ("pump_br3", 9.0, BIG), ("pump_br
 # GN·m, inside the research's ± 15 % — and at her two expansion joints, which keep its
 # whole (est.: nothing in the plates or the research weakens them further).
 STRENGTH = (4.6e9, 4.6e9 * 110 / 120)
+# Parted over boiler room 2, she wrecks bulkheads J (and its face on the firemen's passage)
+# and K, opening boiler room 1 and the engine room to the sea as she parts (est.; owner's
+# ruling, 2026-11-03): on the wreck boiler room 1 lies in the debris between her bow and
+# her stern, and no source gives her bulkheads' failure. Her expansion joints wreck
+# nothing.
+WRECKS = {"boiler_rooms_1_2": ["bulkhead_j", "bulkhead_j_face", "bulkhead_k"]}
 WEAK_SPOTS = sorted([(name, x, 1.0) for name, x in JOINTS] + [("boiler_rooms_1_2", -7.5, 0.93)],
                     key=lambda spot: spot[1])
 # Where along her and up her shell an iceberg's gash can be at all (est.): clear of her
@@ -4156,7 +4162,9 @@ fitting_ids.append(sub("Fitting_" + GENERATOR["name"], "16_fitting", [
 for name, cell_name, rate in PUMPS:
     fitting_ids.append(sub("Fitting_" + name, "16_fitting", [
         ("kind", "3"), ("name", '&"%s"' % name), ("cell", '&"%s"' % cell_name), ("rate", num(rate))]))
-spots = [sub("Weak_" + name, "18_weak", [("name", '&"%s"' % name), ("x", num(x)), ("share", num(share))])
+assert all(w in {wall[0] for wall in walls} for wrecked in WRECKS.values() for w in wrecked), WRECKS
+spots = [sub("Weak_" + name, "18_weak", [("name", '&"%s"' % name), ("x", num(x)), ("share", num(share))]
+             + ([("wrecks", names(WRECKS[name]))] if name in WRECKS else []))
          for name, x, share in WEAK_SPOTS]
 sub("Structure", "9_structure", [
     ("waterline_y", num(WATERLINE)), ("keel_y", num(KEEL)),
