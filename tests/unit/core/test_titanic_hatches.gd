@@ -11,7 +11,8 @@ const COVERS: Dictionary[StringName, Array] = {
 	&"cover_no_1_hatch_port": [&"hold_1_tween", &"hold_1_d"],
 	&"cover_no_1_hatch_starboard": [&"hold_1_tween", &"hold_1_d"],
 	&"cover_no_2_hatch": [&"hold_2_tween", &"d_deck_forward"],
-	&"cover_bunker_hatch": [&"hold_3_tween", &"d_deck_forward"],
+	# (No. 3's 'tween runs aft under her flat D deck: the space under her stepped D deck over it.)
+	&"cover_bunker_hatch": [&"hold_3_upper", &"d_deck_forward"],
 }
 ## The open hatchways her generator once laid there, 2 m square (est.).
 const HATCHWAYS: Array[StringName] = [
