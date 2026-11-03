@@ -49,8 +49,8 @@ const BREAK_FROM_BOW := Vector2(130.0, 160.0)
 const LIGHTS := 2.0 * MINUTE
 const STERN_AFTER := Vector2(1.0 * MINUTE, 5.0 * MINUTE)
 const GONE_AT := Vector2(130.0 * MINUTE, 190.0 * MINUTE)
-## Her stem's head, where her forecastle deck meets her stem: the forecastle head's
-## fore top corner, and her bow there.
+## Her stem's head, where her forecastle deck meets her stem: the forecastle head's fore
+## top edge on her centre line, and her bow there.
 const STEM := &"forecastle_head"
 ## The hole's area from about 9 to about 15 square feet (Wilding's 12 between).
 const SQUARE_FOOT := 0.3048 * 0.3048
@@ -112,7 +112,7 @@ func _event(kind: SinkTimeline.Kind) -> SinkTimeline.Event:
 ## The second her stem's head first stands under the sea, or -1.
 func _forecastle_under() -> float:
 	var cell := _structure.cells[_structure.cell_named(STEM)]
-	var stem := cell.high
+	var stem := Vector3(cell.high.x, cell.high.y, 0.0)
 	var leaf := _timeline.leaf_of(0)
 	for frame in _timeline.count():
 		var r := _timeline.rotation_of(frame, leaf)
