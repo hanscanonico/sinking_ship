@@ -84278,6 +84278,7 @@ script = ExtResource("18_weak")
 name = &"boiler_rooms_1_2"
 x = -7.5
 share = 0.93
+wrecks = Array[StringName]([&"bulkhead_j", &"bulkhead_j_face", &"bulkhead_k"])
 
 [sub_resource type="Resource" id="Weak_forward_joint"]
 script = ExtResource("18_weak")

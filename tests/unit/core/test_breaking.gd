@@ -232,6 +232,66 @@ func test_a_cut_cell_splits_its_water_by_volume() -> void:
 			assert_gt(aft_air / trapped, 0.4, "by the head, more room aft of the cut")
 
 
+## The barge of [param spots] (_barge), the wall between her aft and middle cells, at x
+## -4, watertight and never giving way of itself, and her first weak spot wrecking it.
+func _walled_barge(spots: Array, strength: float) -> ShipStructure:
+	var structure := _barge(spots, strength)
+	var wall := ShipWall.new()
+	wall.name = &"wall_a"
+	wall.axis = ShipWall.Axis.ACROSS
+	wall.at = -4.0
+	wall.span = Vector2(-5.0, 5.0)
+	wall.bottom = -4.0
+	wall.top = 4.0
+	var cells: Array[StringName] = [&"aft", &"middle"]
+	wall.cells = cells
+	var walls: Array[ShipWall] = [wall]
+	structure.walls = walls
+	var wrecks: Array[StringName] = [&"wall_a"]
+	structure.strength.weak[0].wrecks = wrecks
+	return structure
+
+
+func test_a_wall_the_spot_wrecks_gives_way_as_she_parts_there() -> void:
+	# Her weak spot a third of her length from her bow wrecks the wall aft of it: it stands
+	# while she is whole, and gives way in her aft piece the second she parts there.
+	var spots := [[&"joint", 6.0, 1.0]]
+	var strength := 1e9 * _peak(_walled_barge(spots, 1e9), 6.0) / 1.5
+	var timeline := _baked(_walled_barge(spots, strength), _sea(true)).timeline()
+	var parts := _events_of(timeline, SinkTimeline.Kind.PARTED)
+	assert_eq(parts.size(), 1, "she parts")
+	var gave := _events_of(timeline, SinkTimeline.Kind.GAVE_WAY)
+	assert_eq(gave.size(), 1, "the wall gives way once")
+	if parts.size() != 1 or gave.size() != 1:
+		return
+	assert_eq(String(gave[0].name), "panel_wall_a_aft_middle", "its panel")
+	assert_eq(gave[0].seconds, parts[0].seconds, "as she parts, never before")
+	assert_almost_eq(timeline.span_of(gave[0].piece).y, 6.0, 1e-6, "in her aft piece")
+
+
+func test_a_parting_elsewhere_leaves_the_wall_standing() -> void:
+	# Parted at the weak spot that names it, the wall's panel has given way in the piece
+	# that has it; parted at another, it stands shut, and nothing gives way.
+	var structure := _walled_barge([[&"joint", 6.0, 1.0], [&"other", -12.0, 1.0]], 1e9)
+	var sea := SeaPhysics.load_default()
+	var breaking := HullBreak.of(structure, HitDamage.new(), sea)
+	for spot in 2:
+		var stepper := SinkStepper.new(structure, HitDamage.new(), sea)
+		var piece := BakePiece.new(stepper, sea, stepper.start(), 0)
+		piece.hinge = spot
+		var parts := breaking.split(piece, PieceStructure.span_of(structure), 1)
+		var holder := parts[0] if spot == 0 else parts[1]
+		var panel := holder.stepper.opening_names().find(&"panel_wall_a_aft_middle")
+		assert_ne(panel, -1, "the piece has the wall, parted at %d" % spot)
+		var wrecked := SinkFailures.GAVE_WAY if spot == 0 else 0.0
+		assert_eq(holder.state.opened[panel], wrecked, "given way only where she parts at it")
+		var gave := 0
+		for part: BakePiece in parts:
+			for event: SinkTimeline.Event in part.events():
+				gave += 1 if event.kind == SinkTimeline.Kind.GAVE_WAY else 0
+		assert_eq(gave, 1 if spot == 0 else 0, "and the event with it, parted at %d" % spot)
+
+
 func test_three_pieces_at_most() -> void:
 	# Four weak spots keeping almost nothing, and hinges quick enough to part before the
 	# barge's pieces go under: she breaks — but into three pieces at most, none shorter

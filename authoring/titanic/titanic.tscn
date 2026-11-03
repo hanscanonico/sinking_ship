@@ -117832,6 +117832,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -7.5, 0, 0)
 metadata/ship = &"weak_spot"
 metadata/name = &"boiler_rooms_1_2"
 metadata/share = 0.93
+metadata/wrecks = Array[StringName]([&"bulkhead_j", &"bulkhead_j_face", &"bulkhead_k"])
 
 [node name="Weak_forward_joint" type="Marker3D" parent="Structure/Strength" unique_id=1237506441]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 43.6, 0, 0)

@@ -11,7 +11,8 @@ extends RefCounted
 ## bending check — carrying on from the piece's state: the same second, attitude and
 ## motion; each cell's water, a cell cut in two sharing it by the volume each half holds at
 ## its level; its air the same way; what had given way and what had fallen. The piece away
-## from her generator is dark from then on: the break cuts the cables. Never more than
+## from her generator is dark from then on: the break cuts the cables. The watertight walls
+## the weak spot wrecks (WeakSpot.wrecks) give way as she parts there. Never more than
 ## most_pieces pieces, none shorter than shortest_piece of her length (SeaPhysics, est.).
 ## Every threshold is a gap the bake lands a step on (gaps), never a draw (D4). Only +, −,
 ## ×, ÷ on 64-bit floats run here (R21).
@@ -122,7 +123,8 @@ func follow(piece: BakePiece, span: Vector2, pieces: int) -> int:
 
 ## [param piece], spanning [param span], parted at the weak spot it hinged at: the piece
 ## aft of it, then the piece fore of it, numbered [param aft_id] and [param aft_id] + 1.
-## The PARTED event goes to [param piece].
+## The PARTED event goes to [param piece]; each wall the spot wrecks gives way in the
+## piece that has it, its GAVE_WAY events that piece's, at the parting's second.
 func split(piece: BakePiece, span: Vector2, aft_id: int) -> Array[BakePiece]:
 	var spot := _spots[piece.hinge]
 	var parted := SinkTimeline.Event.new(
@@ -141,11 +143,21 @@ func split(piece: BakePiece, span: Vector2, aft_id: int) -> Array[BakePiece]:
 			structure, PieceStructure.damaged(_damage, structure, from, to), _sea
 		)
 		var state := _carried(piece, structure, stepper)
+		var wrecked := PackedInt32Array()
+		for index: int in _wrecked(structure, stepper, spot.wrecks):
+			if state.opened[index] < SinkFailures.GAVE_WAY:
+				state.opened[index] = SinkFailures.GAVE_WAY
+				wrecked.append(index)
 		var more := PackedFloat64Array()
 		more.resize(count())
 		more.fill(INF)
 		var child := BakePiece.new(stepper, _sea, state, aft_id + side, more)
 		child.carry_news(piece)
+		var names := stepper.opening_names()
+		for index: int in wrecked:
+			child.add(
+				SinkTimeline.Event.new(state.seconds, SinkTimeline.Kind.GAVE_WAY, names[index])
+			)
 		made.append(child)
 	return made
 
@@ -223,3 +235,28 @@ func _carried(parent: BakePiece, structure: ShipStructure, stepper: SinkStepper)
 		state.heads[cell] = stepper.head(cell, state.water[cell])
 	state.above = stepper.above(state)
 	return state
+
+
+## The indices among [param stepper]'s openings of every panel of, and opening in, a wall
+## of [param structure] named in [param walls] (SinkFailures.in_wall), in their order.
+static func _wrecked(
+	structure: ShipStructure, stepper: SinkStepper, walls: Array[StringName]
+) -> PackedInt32Array:
+	var found := PackedInt32Array()
+	if walls.is_empty():
+		return found
+	var openings: Array[ShipOpening] = structure.openings.duplicate()
+	openings.append_array(SinkFailures.panels(structure))
+	var named := {}
+	for opening: ShipOpening in openings:
+		named[opening.name] = opening
+	var names := stepper.opening_names()
+	for index in names.size():
+		var opening: ShipOpening = named.get(names[index])
+		if opening == null:
+			continue
+		for wall: ShipWall in structure.walls:
+			if wall.name in walls and SinkFailures.in_wall(wall, opening):
+				found.append(index)
+				break
+	return found
