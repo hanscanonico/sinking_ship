@@ -142,13 +142,11 @@ func _init(structure: ShipStructure, damage: HitDamage, sea: SeaPhysics) -> void
 	if sea.attitude:
 		_motion = ShipMotion.new(structure, sea, _rest, damage.sea_depth)
 	for cell: FloodCell in structure.cells:
-		var plan := (float(cell.high.x) - cell.low.x) * (float(cell.high.z) - cell.low.z)
-		var area := plan * cell.permeability_in(sea) * cell.shape
-		var capacity := area * (float(cell.high.y) - cell.low.y)
+		var box := TiltedBox.of(cell, sea)
 		_cell_names.append(cell.name)
-		_capacity.append(capacity)
-		_boxes.append(TiltedBox.new(cell.low, cell.high, capacity, area * sea.full_surface))
-		_air.add_cell(_boxes.back(), capacity, cell.leak_area)
+		_capacity.append(box.capacity())
+		_boxes.append(box)
+		_air.add_cell(box, box.capacity(), cell.leak_area)
 	_floor.resize(_boxes.size())
 	_ceiling.resize(_boxes.size())
 	_area.resize(_boxes.size())

@@ -76926,6 +76926,7 @@ low = Vector3(-85.14, -19.8125, -10.625)
 high = Vector3(-64.875, -18.1875, 10.625)
 kind = 4
 shape = 0.7387
+sideways = 0.25
 rooms = Array[StringName]([&"electric room double bottom"])
 leak_area = 0.000517
 
@@ -76936,6 +76937,7 @@ low = Vector3(-64.875, -19.8125, -12.5625)
 high = Vector3(-48.63, -18.1875, 12.5625)
 kind = 4
 shape = 0.7886
+sideways = 0.25
 rooms = Array[StringName]([&"turbine room double bottom"])
 leak_area = 0.000523
 
@@ -76946,6 +76948,7 @@ low = Vector3(-48.63, -19.8125, -13.1875)
 high = Vector3(-27.71, -17.9375, 13.1875)
 kind = 4
 shape = 0.8861
+sideways = 0.25
 rooms = Array[StringName]([&"engine room double bottom"])
 leak_area = 0.000917
 
@@ -76956,6 +76959,7 @@ low = Vector3(-27.71, -19.8125, -12.9375)
 high = Vector3(-16.75, -18.1875, 12.9375)
 kind = 4
 shape = 0.8967
+sideways = 0.25
 rooms = Array[StringName]([&"boiler room 1 double bottom"])
 leak_area = 0.000413
 
@@ -76966,6 +76970,7 @@ low = Vector3(-16.75, -19.8125, -12.9375)
 high = Vector3(1.69, -18.1875, 12.9375)
 kind = 4
 shape = 0.8967
+sideways = 0.25
 rooms = Array[StringName]([&"boiler room 2 double bottom"])
 leak_area = 0.000695
 
@@ -76976,6 +76981,7 @@ low = Vector3(1.69, -19.8125, -12.9375)
 high = Vector3(19.18, -18.1875, 12.9375)
 kind = 4
 shape = 0.8967
+sideways = 0.25
 rooms = Array[StringName]([&"boiler room 3 double bottom"])
 leak_area = 0.000659
 
@@ -76986,6 +76992,7 @@ low = Vector3(19.18, -19.8125, -12.9375)
 high = Vector3(36.46, -18.1875, 12.9375)
 kind = 4
 shape = 0.869
+sideways = 0.25
 rooms = Array[StringName]([&"boiler room 4 double bottom"])
 leak_area = 0.000631
 
@@ -76996,6 +77003,7 @@ low = Vector3(36.46, -19.8125, -12.0625)
 high = Vector3(54.01, -18.1875, 12.0625)
 kind = 4
 shape = 0.819
+sideways = 0.25
 rooms = Array[StringName]([&"boiler room 5 double bottom"])
 leak_area = 0.000564
 
@@ -77006,6 +77014,7 @@ low = Vector3(54.01, -19.8125, -10.625)
 high = Vector3(70.76, -18.1875, 10.625)
 kind = 4
 shape = 0.7716
+sideways = 0.25
 rooms = Array[StringName]([&"boiler room 6 double bottom"])
 leak_area = 0.000446
 
@@ -77084,6 +77093,7 @@ name = &"hold_1_tween"
 low = Vector3(99.5625, -11, -10.5)
 high = Vector3(115.81, -1.25, 10.5)
 shape = 0.6357
+sideways = 0.25
 rooms = Array[StringName]([&"firemen's wash place, E deck", &"firemen's wash place, E deck", &"passage, E deck aft of A", &"store, E deck aft of A", &"passage, E deck aft of A", &"firemen's W.C.s, E deck", &"trimmers' quarters, E deck", &"trimmers' quarters, E deck", &"trimmers' quarters, E deck", &"trimmers' quarters, E deck", &"passage, E deck aft of A", &"passage, E deck aft of A", &"passage, E deck aft of A", &"trimmers' quarters, E deck", &"trimmers' quarters, E deck", &"trimmers' quarters, E deck", &"trimmers' quarters, E deck", &"trimmers' quarters, E deck", &"firemen's W.C.s, F deck aft of A", &"passage, F deck aft of A", &"firemen's W.C.s, F deck aft of A", &"firemen's quarters, F deck aft of A", &"greasers' quarters", &"firemen's quarters, F deck aft of A", &"firemen's quarters, F deck aft of A", &"firemen's quarters, F deck aft of A", &"firemen's W.C.s, G deck, aft of A", &"passage, G deck, aft of A", &"firemen's wash place, G deck, aft of A", &"leading firemen's quarters", &"leading firemen's quarters", &"leading firemen's quarters", &"greasers' quarters, G deck, aft of A", &"greasers' quarters, G deck, aft of A", &"greasers' quarters, G deck, aft of A", &"greasers' quarters, G deck, aft of A"])
 leak_area = 0.00211
 
@@ -77093,6 +77103,7 @@ name = &"hold_1_d"
 low = Vector3(101.85, -1.25, -10.25)
 high = Vector3(115.81, 1.5625, 10.25)
 shape = 0.8727
+sideways = 0.25
 rooms = Array[StringName]([&"passage, D deck forward of B", &"firemen's wash place, D deck forward of B", &"firemen's W.C.s, D deck forward of B", &"firemen's quarters", &"firemen's quarters", &"firemen's quarters", &"firemen's quarters", &"firemen's quarters", &"firemen's quarters", &"firemen's quarters", &"firemen's quarters"])
 leak_area = 0.000702
 
@@ -77155,6 +77166,7 @@ name = &"hold_2_tween"
 low = Vector3(86.3, -11, -12.3125)
 high = Vector3(99.5625, -1.25, 12.3125)
 shape = 0.7936
+sideways = 0.25
 rooms = Array[StringName]([&"seamen's quarters, E deck", &"seamen's quarters, E deck", &"seamen's quarters, E deck", &"seamen's lavatory, E deck", &"seamen's wash place, E deck", &"passage, E deck aft of B", &"passage, E deck aft of B", &"passage, E deck aft of B", &"four-berth third-class room, E deck aft of B", &"two-berth third-class room, E deck aft of B", &"two-berth third-class room, E deck aft of B", &"four-berth third-class room, E deck aft of B", &"passage, E deck aft of B", &"passage, E deck aft of B", &"passage, E deck aft of B", &"four-berth third-class room, E deck aft of B", &"passage, E deck aft of B", &"passage, E deck aft of B", &"four-berth third-class room, E deck aft of B", &"passage, E deck aft of B", &"men's lavatory, E deck aft of B", &"men's lavatory, E deck aft of B", &"eight-berth third-class room, F deck aft of B", &"six-berth third-class room, F deck aft of B", &"four-berth third-class room, F deck aft of B", &"passage, F deck aft of B", &"passage, F deck aft of B", &"four-berth third-class room, F deck aft of B", &"two-berth third-class room, F deck aft of B", &"six-berth third-class room, F deck aft of B", &"passage, F deck aft of B", &"passage, F deck aft of B", &"passage, F deck aft of B", &"four-berth third-class room, F deck aft of B", &"four-berth third-class room, F deck aft of B", &"two-berth third-class room, F deck aft of B", &"two-berth third-class room, F deck aft of B", &"four-berth third-class room, F deck aft of B", &"four-berth third-class room, F deck aft of B", &"passage, F deck aft of B", &"six-berth third-class room, F deck aft of B", &"six-berth third-class room, F deck aft of B", &"eight-berth third-class room, F deck aft of B", &"passage, F deck aft of B", &"passage, F deck aft of B", &"third-class ladderway, F deck", &"passage, F deck aft of B", &"four-berth third-class room, F deck aft of B", &"two-berth third-class room, F deck aft of B", &"four-berth third-class room, F deck aft of B", &"two-berth third-class room, F deck aft of B", &"four-berth third-class room, F deck aft of B", &"two-berth third-class room, F deck aft of B", &"four-berth third-class room, F deck aft of B", &"eight-berth third-class room, G deck", &"two-berth third-class room, G deck, aft of B", &"passage, G deck, aft of B", &"four-berth third-class room, G deck, aft of B", &"two-berth third-class room, G deck, aft of B", &"two-berth third-class room, G deck, aft of B", &"passage, G deck, aft of B", &"passage, G deck, aft of B", &"passage, G deck, aft of B", &"four-berth third-class room, G deck, aft of B", &"four-berth third-class room, G deck, aft of B", &"four-berth third-class room, G deck, aft of B", &"four-berth third-class room, G deck, aft of B", &"four-berth third-class room, G deck, aft of B", &"four-berth third-class room, G deck, aft of B", &"passage, G deck, aft of B", &"two-berth third-class room, G deck, aft of B", &"two-berth third-class room, G deck, aft of B", &"four-berth third-class room, G deck, aft of B", &"four-berth third-class room, G deck, aft of B", &"four-berth third-class room, G deck, aft of B", &"two-berth third-class room, G deck, aft of B", &"four-berth third-class room, G deck, aft of B", &"passage, G deck, aft of B", &"six-berth third-class room, G deck, aft of B", &"six-berth third-class room, G deck, aft of B", &"eight-berth third-class room, G deck", &"passage, G deck, aft of B", &"passage, G deck, aft of B", &"six-berth third-class room, G deck, aft of B", &"four-berth third-class room, G deck, aft of B"])
 leak_area = 0.00253
 
@@ -77188,6 +77200,7 @@ high = Vector3(86.3, -11, 11.75)
 kind = 2
 permeability = 0.75
 shape = 0.8884
+sideways = 0.25
 rooms = Array[StringName]([&"first- and second-class baggage room", &"first- and second-class baggage room", &"first- and second-class baggage room", &"mail room", &"mail room", &"specie room"])
 leak_area = 0.000629
 
@@ -77197,6 +77210,7 @@ name = &"hold_3_tween"
 low = Vector3(70.76, -11, -13.375)
 high = Vector3(86.3, -3.1875, 13.375)
 shape = 0.8695
+sideways = 0.25
 rooms = Array[StringName]([&"passage, E deck", &"passage, E deck", &"four-berth third-class room, E deck aft of C", &"passage, E deck", &"passage, E deck", &"six-berth third-class room, E deck aft of C", &"six-berth third-class room, E deck aft of C", &"three-berth stateroom, E deck", &"four-berth stateroom, E deck", &"passage, E deck", &"three-berth stateroom, E deck", &"four-berth stateroom, E deck", &"passage, E deck", &"store, E deck aft of C", &"pantry, E deck aft of C", &"three-berth first-class stateroom, E deck aft of C", &"three-berth first-class stateroom, E deck aft of C", &"passage, E deck", &"two-berth first-class stateroom, E deck", &"two-berth first-class stateroom, E deck", &"passage, E deck", &"passage, E deck", &"passage, E deck", &"masters-at-arms' room, E deck", &"four-berth third-class room, E deck aft of C", &"passage, E deck", &"men's lavatory, E deck aft of C", &"men's lavatory, E deck aft of C", &"passage, E deck", &"bathroom, E deck aft of C", &"passage, E deck", &"four-berth third-class room, E deck aft of C", &"two-berth third-class room, E deck aft of C", &"four-berth third-class room, E deck aft of C", &"passage, E deck", &"bar, E deck", &"women's lavatory, E deck", &"eight-berth third-class room, F deck", &"eight-berth third-class room, F deck", &"passage, F deck aft of C", &"passage, F deck aft of C", &"passage, F deck aft of C", &"linen room, F deck aft of C", &"linen room, F deck aft of C", &"passage, F deck aft of C", &"eight-berth third-class room, F deck", &"passage, F deck aft of C", &"six-berth third-class room, F deck aft of C", &"four-berth third-class room, F deck aft of C", &"passage, F deck aft of C", &"passage, F deck aft of C", &"four-berth third-class room, F deck aft of C", &"two-berth third-class room, F deck aft of C", &"two-berth third-class room, F deck aft of C", &"third-class room, F deck", &"two-berth third-class room, F deck aft of C", &"two-berth third-class room, F deck aft of C", &"two-berth third-class room, F deck aft of C", &"passage, F deck aft of C", &"passage, F deck aft of C", &"passage, F deck aft of C", &"passage, F deck aft of C", &"store, F deck aft of C", &"six-berth third-class room, F deck aft of C", &"six-berth third-class room, F deck aft of C", &"six-berth third-class room, F deck aft of C", &"passage, F deck aft of C", &"third-class room, F deck", &"third-class room, F deck", &"third-class room, F deck", &"passage, F deck aft of C", &"two-berth third-class room, F deck aft of C", &"mail clerks' room", &"four-berth third-class room, F deck aft of C", &"four-berth third-class room, F deck aft of C", &"passage, F deck aft of C", &"six-berth third-class room, F deck aft of C", &"six-berth third-class room, F deck aft of C", &"passage, F deck aft of C", &"passage, G deck, aft of C", &"room, G deck", &"squash court", &"first-class baggage store", &"first-class baggage store", &"first-class baggage store", &"first-class baggage store", &"first-class baggage store", &"post office", &"post office", &"registered letters office", &"eight-berth third-class room, G deck, aft of C", &"four-berth third-class room, G deck, aft of C", &"eight-berth third-class room, G deck, aft of C", &"passage, G deck, aft of C", &"passage, G deck, aft of C", &"passage, G deck, aft of C", &"two-berth third-class room, G deck, aft of C", &"two-berth third-class room, G deck, aft of C", &"six-berth third-class room, G deck, aft of C", &"four-berth third-class room, G deck, aft of C"])
 leak_area = 0.00282
 
@@ -77206,6 +77220,7 @@ name = &"hold_3_upper"
 low = Vector3(75.25, -3.1875, -13.25)
 high = Vector3(86.3, -1.25, 13.25)
 shape = 0.9691
+sideways = 0.25
 leak_area = 0.00055
 
 [sub_resource type="Resource" id="Cell_firemens_passage"]
@@ -77269,6 +77284,7 @@ low = Vector3(67.9375, -11, -12.5)
 high = Vector3(70.76, -8.5625, 12.5)
 kind = 5
 shape = 0.9748
+sideways = 0.25
 rooms = Array[StringName]([&"passage, G deck, abaft D"])
 leak_area = 0.000168
 
@@ -77280,6 +77296,7 @@ high = Vector3(67.9375, -8.5625, 13.25)
 kind = 1
 permeability = 0.8
 shape = 0.9146
+sideways = 0.25
 rooms = Array[StringName]([&"boiler room 6", &"passage, tank top, forward of E"])
 leak_area = 0.00325
 
@@ -77289,6 +77306,7 @@ name = &"boiler_room_6_tween"
 low = Vector3(54.01, -8.5625, -13.875)
 high = Vector3(70.76, -3.1875, 13.875)
 shape = 0.9602
+sideways = 0.25
 rooms = Array[StringName]([&"ladderway, E deck aft of D", &"ash place, E deck aft of D", &"bathroom, E deck aft of D", &"passage, E deck aft of D", &"passage, E deck aft of D", &"bathroom, E deck aft of D", &"quartermasters' quarters, E deck", &"carpenter and joiner's room, E deck", &"petty officers' lavatory, E deck", &"passage, E deck aft of D", &"passage, E deck aft of D", &"boatswain and mate's room, E deck", &"boatswain and mate's room, E deck", &"four-berth third-class room, E deck aft of D", &"passage, E deck aft of D", &"four-berth third-class room, E deck aft of D", &"six-berth third-class room, E deck aft of D", &"passage, E deck aft of D", &"four-berth third-class room, E deck aft of D", &"four-berth third-class room, E deck aft of D", &"four-berth third-class room, E deck aft of D", &"passage, E deck aft of D", &"six-berth third-class room, E deck aft of D", &"one-berth first-class stateroom, E deck aft of D", &"one-berth first-class stateroom, E deck aft of D", &"linen room, E deck", &"bathroom, E deck aft of D", &"bathroom, E deck aft of D", &"gentlemen's lavatory, E deck", &"gentlemen's lavatory, E deck", &"bathroom, E deck aft of D", &"bathroom, E deck aft of D", &"passage, E deck aft of D", &"three-berth stateroom, E deck aft of D", &"four-berth stateroom, E deck aft of D", &"passage, E deck aft of D", &"passage, E deck aft of D", &"three-berth first-class stateroom, E deck aft of D", &"three-berth first-class stateroom, E deck aft of D", &"passage, E deck aft of D", &"three-berth first-class stateroom, E deck aft of D", &"three-berth first-class stateroom, E deck aft of D", &"three-berth first-class stateroom, E deck aft of D", &"three-berth first-class stateroom, E deck aft of D", &"three-berth first-class stateroom, E deck aft of D", &"three-berth first-class stateroom, E deck aft of D", &"passage, E deck aft of D", &"three-berth first-class stateroom, E deck aft of D", &"three-berth first-class stateroom, E deck aft of D", &"three-berth first-class stateroom, E deck aft of D", &"three-berth first-class stateroom, E deck aft of D", &"three-berth first-class stateroom, E deck aft of D", &"three-berth first-class stateroom, E deck aft of D", &"four-berth third-class room, F deck", &"six-berth third-class room, F deck", &"six-berth third-class room, F deck", &"two-berth third-class room, F deck aft of D", &"four-berth third-class room, F deck", &"passage, F deck", &"passage, F deck", &"four-berth third-class room, F deck", &"six-berth third-class room, F deck", &"four-berth third-class room, F deck", &"four-berth third-class room, F deck", &"four-berth third-class room, F deck", &"four-berth third-class room, F deck", &"passage, F deck", &"passage, F deck", &"ten-berth third-class room, F deck", &"four-berth third-class room, F deck", &"four-berth third-class room, F deck", &"four-berth third-class room, F deck", &"four-berth third-class room, F deck", &"passage, F deck", &"passage, F deck", &"two-berth third-class room, F deck aft of D", &"two-berth third-class room, F deck aft of D", &"passage, F deck", &"passage, F deck", &"squash stairway", &"passage, F deck", &"four-berth third-class room, F deck", &"four-berth third-class room, F deck", &"passage, F deck", &"four-berth third-class room, F deck", &"four-berth third-class room, F deck", &"passage, F deck", &"four-berth third-class room, F deck", &"four-berth third-class room, F deck", &"passage, F deck", &"four-berth third-class room, F deck", &"six-berth third-class room, F deck", &"four-berth third-class room, F deck", &"six-berth third-class room, F deck", &"passage, F deck", &"four-berth third-class room, F deck", &"four-berth third-class room, F deck", &"four-berth third-class room, F deck", &"six-berth third-class room, F deck", &"passage, F deck", &"four-berth third-class room, F deck", &"four-berth third-class room, F deck", &"ten-berth third-class room, F deck", &"passage, F deck", &"two-berth third-class room, F deck aft of D", &"four-berth third-class room, F deck"])
 leak_area = 0.0024
 
@@ -77339,6 +77357,7 @@ high = Vector3(51.4375, -8.5625, 13.8125)
 kind = 1
 permeability = 0.8
 shape = 0.9614
+sideways = 0.25
 rooms = Array[StringName]([&"boiler room 5", &"passage, tank top, forward of F"])
 leak_area = 0.00383
 
@@ -77348,6 +77367,7 @@ name = &"boiler_room_5_f"
 low = Vector3(36.46, -8.5625, -14)
 high = Vector3(54.01, -5.9375, 14)
 shape = 0.9834
+sideways = 0.25
 rooms = Array[StringName]([&"linen room, F deck aft of E", &"linen room, F deck aft of E", &"soiled linen room", &"linen drying room", &"passage, F deck aft of E", &"passage, F deck aft of E", &"drying room", &"drying room", &"swimming bath"])
 leak_area = 0.00127
 
@@ -77357,6 +77377,7 @@ name = &"boiler_room_5_e"
 low = Vector3(36.46, -5.9375, -14.0208)
 high = Vector3(54.01, -3.1875, 14.0208)
 shape = 0.9938
+sideways = 0.25
 rooms = Array[StringName]([&"second-class stewards' quarters, E deck", &"second-class stewards' quarters, E deck", &"plate washers' quarters, E deck", &"stewards' lavatory, E deck aft of E", &"stewards' lavatory, E deck aft of E", &"passage, E deck aft of E", &"one-berth first-class stateroom, E deck aft of E", &"grand staircase, E deck aft of E", &"ladies' lavatory, E deck", &"drying room, E deck", &"passage, E deck aft of E", &"bathroom, E deck aft of E", &"passage, E deck aft of E", &"bathroom, E deck aft of E", &"steward's room, E deck aft of E", &"one-berth first-class stateroom, E deck aft of E", &"one-berth first-class stateroom, E deck aft of E", &"passage, E deck aft of E", &"three-berth first-class stateroom, E deck", &"three-berth first-class stateroom, E deck", &"passage, E deck aft of E", &"three-berth first-class stateroom, E deck", &"three-berth first-class stateroom, E deck", &"three-berth first-class stateroom, E deck", &"three-berth first-class stateroom, E deck", &"three-berth first-class stateroom, E deck", &"three-berth first-class stateroom, E deck", &"passage, E deck aft of E", &"three-berth first-class stateroom, E deck", &"three-berth first-class stateroom, E deck", &"three-berth first-class stateroom, E deck", &"three-berth first-class stateroom, E deck", &"three-berth first-class stateroom, E deck"])
 leak_area = 0.00134
 
@@ -77404,6 +77425,7 @@ high = Vector3(33.4375, -8.5625, 14.0208)
 kind = 1
 permeability = 0.8
 shape = 0.9879
+sideways = 0.25
 rooms = Array[StringName]([&"boiler room 4", &"passage, tank top, forward of G"])
 leak_area = 0.0038
 
@@ -77413,6 +77435,7 @@ name = &"boiler_room_4_f"
 low = Vector3(19.18, -8.5625, -14.0208)
 high = Vector3(36.46, -5.9375, 14.0208)
 shape = 0.9987
+sideways = 0.25
 rooms = Array[StringName]([&"cooks' quarters", &"landing, F deck", &"third-class stewards' quarters", &"third-class stewards' quarters", &"Turkish bath attendants' room", &"pantry, F deck", &"pantry, F deck", &"passage, F deck aft of F", &"electric bath room", &"electric bath room", &"Turkish bath lobby", &"Turkish bath lobby", &"Turkish bath lobby", &"Turkish bath, hot room", &"Turkish bath, steam room", &"Turkish bath, temperate room", &"Turkish bath, temperate room", &"Turkish bath, cooling room", &"Turkish bath, cooling room", &"Turkish bath, shampooing room", &"Turkish bath, shampooing room", &"Turkish bath lobby"])
 leak_area = 0.00127
 
@@ -77422,6 +77445,7 @@ name = &"boiler_room_4_e"
 low = Vector3(19.18, -5.9375, -14.0208)
 high = Vector3(36.46, -3.1875, 14.0208)
 shape = 0.9995
+sideways = 0.25
 rooms = Array[StringName]([&"saloon waiters' quarters, E deck aft of F", &"saloon waiters' quarters, E deck aft of F", &"stewards' lavatory, E deck", &"bathroom, E deck aft of F", &"assistant stewards' quarters, E deck", &"second-class stewards' quarters, E deck aft of F", &"passage, E deck aft of F", &"passage, E deck aft of F", &"one-berth first-class stateroom, E deck aft of F", &"one-berth first-class stateroom, E deck aft of F", &"store, E deck aft of F", &"pantry, E deck", &"grand staircase, E deck", &"grand staircase, E deck", &"one-berth first-class stateroom, E deck aft of F", &"one-berth first-class stateroom, E deck aft of F", &"passage, E deck aft of F", &"passage, E deck aft of F", &"three-berth first-class stateroom, E deck aft of F", &"three-berth first-class stateroom, E deck aft of F", &"passage, E deck aft of F", &"three-berth first-class stateroom, E deck aft of F", &"three-berth first-class stateroom, E deck aft of F", &"three-berth first-class stateroom, E deck aft of F", &"three-berth first-class stateroom, E deck aft of F", &"three-berth first-class stateroom, E deck aft of F", &"three-berth first-class stateroom, E deck aft of F", &"passage, E deck aft of F", &"store, E deck aft of F", &"three-berth first-class stateroom, E deck aft of F", &"three-berth first-class stateroom, E deck aft of F", &"three-berth first-class stateroom, E deck aft of F"])
 leak_area = 0.00133
 
@@ -77469,6 +77493,7 @@ high = Vector3(16.375, -8.5625, 14.0208)
 kind = 1
 permeability = 0.8
 shape = 0.9917
+sideways = 0.25
 rooms = Array[StringName]([&"boiler room 3", &"passage, tank top, forward of H"])
 leak_area = 0.00393
 
@@ -77478,6 +77503,7 @@ name = &"boiler_room_3_f"
 low = Vector3(1.69, -8.5625, -14.0208)
 high = Vector3(19.18, -5.9375, 14.0208)
 shape = 1
+sideways = 0.25
 rooms = Array[StringName]([&"third-class dining saloon", &"third-class dining saloon", &"third-class dining saloon", &"third-class dining saloon", &"third-class dining saloon", &"third-class dining saloon"])
 leak_area = 0.00129
 
@@ -77487,6 +77513,7 @@ name = &"boiler_room_3_e"
 low = Vector3(1.69, -5.9375, -14.0208)
 high = Vector3(19.18, -3.1875, 14.0208)
 shape = 1
+sideways = 0.25
 rooms = Array[StringName]([&"ash place, E deck", &"fan tank room, E deck", &"saloon waiters' quarters, E deck", &"saloon waiters' quarters, E deck", &"saloon waiters' quarters, E deck", &"ladderway, E deck aft of G", &"saloon waiters' quarters, E deck", &"passage, E deck aft of G", &"passage, E deck aft of G", &"bathroom, E deck", &"gentlemen's lavatory, E deck aft of G", &"gentlemen's lavatory, E deck aft of G", &"passage, E deck aft of G", &"passage, E deck aft of G", &"bathroom, E deck", &"bathroom, E deck", &"bathroom, E deck", &"one-berth first-class stateroom, E deck", &"one-berth first-class stateroom, E deck", &"one-berth first-class stateroom, E deck", &"one-berth first-class stateroom, E deck", &"passage, E deck aft of G", &"passage, E deck aft of G", &"four-berth second-class stateroom, E deck aft of G", &"four-berth second-class stateroom, E deck aft of G", &"four-berth second-class stateroom, E deck aft of G", &"four-berth second-class stateroom, E deck aft of G", &"passage, E deck aft of G", &"four-berth second-class stateroom, E deck aft of G", &"four-berth second-class stateroom, E deck aft of G", &"three-berth first-class stateroom, E deck aft of G", &"three-berth first-class stateroom, E deck aft of G", &"three-berth first-class stateroom, E deck aft of G", &"passage, E deck aft of G", &"three-berth first-class stateroom, E deck aft of G", &"three-berth first-class stateroom, E deck aft of G", &"three-berth first-class stateroom, E deck aft of G"])
 leak_area = 0.00135
 
@@ -77534,6 +77561,7 @@ high = Vector3(-2.3125, -8.5625, 14.0208)
 kind = 1
 permeability = 0.8
 shape = 0.9917
+sideways = 0.25
 rooms = Array[StringName]([&"boiler room 2", &"passage, tank top, forward of J"])
 leak_area = 0.00386
 
@@ -77543,6 +77571,7 @@ name = &"boiler_room_2_f"
 low = Vector3(-16.75, -8.5625, -14.0208)
 high = Vector3(1.69, -5.9375, 14.0208)
 shape = 1
+sideways = 0.25
 rooms = Array[StringName]([&"third-class pantry", &"third-class pantry", &"third-class dining saloon, F deck aft of H", &"third-class dining saloon, F deck aft of H", &"third-class dining saloon, F deck aft of H", &"third-class dining saloon, F deck aft of H", &"third-class dining saloon, F deck aft of H", &"third-class dining saloon, F deck aft of H", &"third-class pantry", &"third-class pantry"])
 leak_area = 0.00136
 
@@ -77552,6 +77581,7 @@ name = &"boiler_room_2_e"
 low = Vector3(-16.75, -5.9375, -14.0208)
 high = Vector3(1.69, -3.1875, 14.0208)
 shape = 1
+sideways = 0.25
 rooms = Array[StringName]([&"passage, E deck aft of H", &"bathroom, E deck aft of H", &"stewards' lavatory, E deck aft of H", &"first-class cooks' quarters, E deck", &"passage, E deck aft of H", &"drying room, E deck aft of H", &"two-berth second-class stateroom, E deck", &"two-berth second-class stateroom, E deck", &"two-berth second-class stateroom, E deck", &"two-berth second-class stateroom, E deck", &"passage, E deck aft of H", &"passage, E deck aft of H", &"ash place, E deck aft of H", &"four-berth second-class stateroom, E deck aft of H", &"four-berth second-class stateroom, E deck aft of H", &"passage, E deck aft of H", &"four-berth second-class stateroom, E deck aft of H", &"four-berth second-class stateroom, E deck aft of H", &"four-berth second-class stateroom, E deck aft of H", &"first-class stewards' quarters, E deck", &"assistant stewards' quarters, E deck aft of H", &"passage, E deck aft of H", &"passage, E deck aft of H", &"linen room, E deck aft of H", &"ladies' lavatory, E deck aft of H", &"bathroom, E deck aft of H", &"bathroom, E deck aft of H", &"passage, E deck aft of H", &"passage, E deck aft of H", &"two-berth second-class stateroom, E deck", &"two-berth second-class stateroom, E deck", &"passage, E deck aft of H", &"passage, E deck aft of H", &"four-berth second-class stateroom, E deck aft of H", &"four-berth second-class stateroom, E deck aft of H", &"four-berth second-class stateroom, E deck aft of H", &"passage, E deck aft of H", &"four-berth second-class stateroom, E deck aft of H", &"four-berth second-class stateroom, E deck aft of H"])
 leak_area = 0.00142
 
@@ -77599,6 +77629,7 @@ high = Vector3(-20.625, -8.5625, 14.0208)
 kind = 1
 permeability = 0.8
 shape = 0.9917
+sideways = 0.25
 rooms = Array[StringName]([&"boiler room 1"])
 leak_area = 0.0019
 
@@ -77608,6 +77639,7 @@ name = &"boiler_room_1_f"
 low = Vector3(-27.71, -8.5625, -14.0208)
 high = Vector3(-16.75, -5.9375, 14.0208)
 shape = 1
+sideways = 0.25
 rooms = Array[StringName]([&"third-class stewards' quarters, F deck aft of J", &"third-class stewards' quarters, F deck aft of J", &"bakers' quarters", &"butchers' quarters", &"passage, F deck aft of J", &"passage, F deck aft of J", &"bakery", &"bakery", &"bread room, F deck aft of J", &"butcher's shop, F deck aft of J", &"potato washing place", &"passage, F deck aft of J", &"passage, F deck aft of J", &"third-class galley"])
 leak_area = 0.000807
 
@@ -77617,6 +77649,7 @@ name = &"boiler_room_1_e"
 low = Vector3(-27.71, -5.9375, -14.0208)
 high = Vector3(-16.75, -3.1875, 14.0208)
 shape = 1
+sideways = 0.25
 rooms = Array[StringName]([&"chef's room, E deck", &"chief baker's and second chef's room, E deck", &"passage, E deck aft of J", &"storekeepers' quarters, E deck", &"assistant stewards' quarters, E deck aft of J", &"passage, E deck aft of J", &"passage, E deck aft of J", &"stewards' lavatory, E deck aft of J", &"passage, E deck aft of J", &"passage, E deck aft of J", &"passage, E deck aft of J", &"storekeepers' quarters, E deck", &"engineers' stewards' quarters, E deck", &"pantry, E deck aft of J", &"two-berth second-class stateroom, E deck aft of J", &"passage, E deck aft of J", &"passage, E deck aft of J", &"passage, E deck aft of J", &"two-berth second-class stateroom, E deck aft of J", &"two-berth second-class stateroom, E deck aft of J", &"two-berth second-class stateroom, E deck aft of J", &"passage, E deck aft of J", &"passage, E deck aft of J", &"store, E deck aft of J", &"four-berth second-class stateroom, E deck aft of J", &"passage, E deck aft of J", &"four-berth second-class stateroom, E deck aft of J", &"four-berth second-class stateroom, E deck aft of J", &"four-berth second-class stateroom, E deck aft of J", &"four-berth second-class stateroom, E deck aft of J"])
 leak_area = 0.000845
 
@@ -77628,6 +77661,7 @@ high = Vector3(-27.71, -8.5625, 14.0208)
 kind = 1
 permeability = 0.8
 shape = 0.9871
+sideways = 0.25
 rooms = Array[StringName]([&"brine tank room", &"paint store", &"passage, G deck, aft of K", &"passage, G deck, aft of K", &"passage, G deck, aft of K", &"passage, G deck, aft of K", &"engineers' store", &"passage, G deck, aft of K", &"workshop", &"engineers' store", &"reciprocating engine room", &"CO2 evaporator room", &"brine pump room"])
 leak_area = 0.00543
 
@@ -77637,6 +77671,7 @@ name = &"engine_room_tween"
 low = Vector3(-48.63, -8.5625, -14.0208)
 high = Vector3(-27.71, -3.1875, 14.0208)
 shape = 0.9999
+sideways = 0.25
 rooms = Array[StringName]([&"passage, E deck aft of K", &"engineers' office, E deck", &"engineers' pantry, E deck", &"passage, E deck aft of K", &"engineers' mess, E deck", &"stewardesses' room, E deck", &"chief storekeeper's room, E deck", &"passage, E deck aft of K", &"sorters' room, E deck", &"butcher's room, E deck", &"passage, E deck aft of K", &"passage, E deck aft of K", &"four-berth second-class stateroom, E deck aft of K", &"four-berth second-class stateroom, E deck aft of K", &"passage, E deck aft of K", &"four-berth second-class stateroom, E deck aft of K", &"four-berth second-class stateroom, E deck aft of K", &"four-berth second-class stateroom, E deck aft of K", &"four-berth second-class stateroom, E deck aft of K", &"passage, E deck aft of K", &"four-berth second-class stateroom, E deck aft of K", &"four-berth second-class stateroom, E deck aft of K", &"bathroom, E deck aft of K", &"bathroom, E deck aft of K", &"bathroom, E deck aft of K", &"passage, E deck aft of K", &"ladies' lavatory, E deck aft of K", &"engineers' lavatory lobby", &"engineers' lavatory", &"junior second engineer's room", &"junior second engineer's room", &"passage, F deck aft of K", &"passage, F deck aft of K", &"third engineer's room", &"bathroom, F deck aft of K", &"assistant electrical engineers' room", &"fourth engineers' room", &"passage, F deck aft of K", &"assistant fourth engineers' room", &"assistant engineers' room", &"fifth engineers' room", &"sixth engineers' room", &"passage, F deck aft of K", &"engineers' room", &"assistant electrical engineers' room", &"corridor, F deck aft of K", &"corridor, F deck aft of K", &"bathroom, F deck aft of K", &"engineers' lavatory", &"engineers' room", &"two-berth engineers' room", &"passage, F deck aft of K", &"writers' room", &"third engineer's room", &"assistant second engineers' room", &"senior second engineer's room", &"passage, F deck aft of K", &"assistant third engineers' room", &"passage, F deck aft of K", &"chief engineer's lavatory", &"chief engineer's room"])
 leak_area = 0.00315
 
@@ -77648,6 +77683,7 @@ high = Vector3(-48.63, -8.5625, 14)
 kind = 1
 permeability = 0.8
 shape = 0.9084
+sideways = 0.25
 rooms = Array[StringName]([&"flour store", &"passage, G deck, aft of L", &"fish store, G deck, aft of L", &"milk store", &"ice store, G deck, aft of L", &"grocery bulk store", &"turbine engine room"])
 leak_area = 0.00398
 
@@ -77657,6 +77693,7 @@ name = &"turbine_room_tween"
 low = Vector3(-66.02, -8.5625, -14.0208)
 high = Vector3(-48.63, -3.1875, 14.0208)
 shape = 0.9863
+sideways = 0.25
 rooms = Array[StringName]([&"musicians' quarters, E deck", &"passage, E deck aft of L", &"passage, E deck aft of L", &"passage, E deck aft of L", &"waiters' quarters, E deck", &"chef's room, E deck aft of L", &"head waiter's room, E deck", &"S.R. men's quarters, E deck", &"passage, E deck aft of L", &"bar men's quarters, E deck", &"bathroom, E deck aft of L", &"waiters' lavatory, E deck", &"cooks' quarters, E deck", &"cooks' quarters, E deck", &"passage, E deck aft of L", &"passage, E deck aft of L", &"passage, E deck aft of L", &"passage, E deck aft of L", &"passage, E deck aft of L", &"passage, E deck aft of L", &"bathroom, E deck aft of L", &"bathroom, E deck aft of L", &"gentlemen's lavatory, E deck aft of L", &"gentlemen's lavatory, E deck aft of L", &"passage, E deck aft of L", &"passage, E deck aft of L", &"store, E deck aft of L", &"bathroom, E deck aft of L", &"fan store, E deck", &"electrical store, E deck", &"second-class barber shop, E deck", &"four-berth second-class stateroom, E deck", &"four-berth second-class stateroom, E deck", &"four-berth second-class stateroom, E deck", &"four-berth second-class stateroom, E deck", &"passage, E deck aft of L", &"passage, E deck aft of L", &"four-berth second-class stateroom, E deck", &"four-berth second-class stateroom, E deck", &"passage, E deck aft of L", &"four-berth second-class stateroom, E deck", &"four-berth second-class stateroom, E deck", &"passage, E deck aft of L", &"four-berth second-class stateroom, E deck", &"four-berth second-class stateroom, E deck", &"four-berth second-class stateroom, E deck", &"four-berth second-class stateroom, E deck", &"passage, E deck aft of L", &"four-berth second-class stateroom, F deck aft of L", &"passage, F deck aft of L", &"four-berth second-class stateroom, F deck aft of L", &"four-berth second-class stateroom, F deck aft of L", &"four-berth second-class stateroom, F deck aft of L", &"four-berth second-class stateroom, F deck aft of L", &"passage, F deck aft of L", &"four-berth second-class stateroom, F deck aft of L", &"four-berth second-class stateroom, F deck aft of L", &"passage, F deck aft of L", &"gentlemen's lavatory, F deck aft of L", &"store, F deck aft of L", &"passage, F deck aft of L", &"bathroom, F deck aft of L", &"bathroom, F deck aft of L", &"linen room, F deck aft of L", &"corridor, F deck aft of L", &"corridor, F deck aft of L", &"passage, F deck aft of L", &"corridor, F deck aft of L", &"passage, F deck aft of L", &"four-berth second-class stateroom, F deck aft of L", &"four-berth second-class stateroom, F deck aft of L", &"four-berth second-class stateroom, F deck aft of L", &"four-berth second-class stateroom, F deck aft of L", &"passage, F deck aft of L", &"four-berth second-class stateroom, F deck aft of L", &"four-berth second-class stateroom, F deck aft of L", &"passage, F deck aft of L", &"linen room, F deck aft of L", &"bathroom, F deck aft of L", &"bathroom, F deck aft of L", &"passage, F deck aft of L", &"ladies' lavatory, F deck aft of L"])
 leak_area = 0.00259
 
@@ -77668,6 +77705,7 @@ high = Vector3(-64.875, -11, 13.5)
 kind = 1
 permeability = 0.8
 shape = 0.7846
+sideways = 0.25
 rooms = Array[StringName]([&"electric engine room", &"bulk store", &"bulk store", &"bulk store", &"grocery store", &"fruit and vegetable store", &"wine and spirit store", &"champagne store", &"passage, orlop deck", &"stewards' working stores", &"empties store", &"mineral water store", &"passage, orlop deck", &"passage, orlop deck", &"passage, orlop deck", &"passage, orlop deck", &"room, orlop deck", &"switchboard platform", &"passage, orlop deck", &"refrigerated cargo hold, N to M", &"refrigerated cargo hold, N to M"])
 leak_area = 0.00309
 
@@ -77677,6 +77715,7 @@ name = &"electric_room_tween"
 low = Vector3(-85.14, -11, -13.625)
 high = Vector3(-64.875, -8.5625, 13.625)
 shape = 0.9289
+sideways = 0.25
 rooms = Array[StringName]([&"passage, G deck", &"passage, G deck", &"passage, G deck", &"passage, G deck", &"fruit store", &"milk and butter store", &"ice store", &"egg store", &"ice cream store", &"passage, G deck", &"ice making machine store", &"passage, G deck", &"passage, G deck", &"bacon, ham and cheese store", &"fruit and flowers store", &"mutton store", &"fish store", &"vegetable store", &"vegetable store", &"egg and potato store", &"bacon store", &"poultry and game store", &"thawing store", &"W.B. beef store", &"E.B. beef store", &"meat and poultry store", &"meat and poultry store"])
 leak_area = 0.00125
 
@@ -77686,6 +77725,7 @@ name = &"electric_room_f"
 low = Vector3(-85.14, -8.5625, -13.9375)
 high = Vector3(-66.02, -3.1875, 13.9375)
 shape = 0.9677
+sideways = 0.25
 rooms = Array[StringName]([&"store entry, E deck", &"four-berth third-class room, E deck aft of M", &"passage, E deck aft of M", &"women's lavatory, E deck aft of M", &"women's lavatory, E deck aft of M", &"six-berth third-class room, E deck aft of M", &"passage, E deck aft of M", &"men's lavatory, E deck", &"men's lavatory, E deck", &"six-berth third-class room, E deck aft of M", &"men's lavatory, E deck", &"passage, E deck aft of M", &"potato washing room, E deck", &"passage, E deck aft of M", &"passage, E deck aft of M", &"ladies' lavatory, E deck aft of M", &"passage, E deck aft of M", &"store, E deck aft of M", &"bathroom, E deck aft of M", &"gentlemen's lavatory, E deck aft of M", &"bathroom, E deck aft of M", &"bathroom, E deck aft of M", &"passage, E deck aft of M", &"bathroom, E deck aft of M", &"bathroom, E deck aft of M", &"bathroom, E deck aft of M", &"passage, E deck aft of M", &"second-class entrance, E deck", &"second-class entrance, E deck", &"second-class entrance, E deck", &"two-berth stewards' quarters, E deck", &"second-class entrance, E deck", &"passage, E deck aft of M", &"steward's room, E deck", &"store entry, E deck", &"passage, E deck aft of M", &"two-berth second-class stateroom, E deck aft of M", &"two-berth second-class stateroom, E deck aft of M", &"four-berth second-class stateroom, E deck aft of M", &"four-berth second-class stateroom, E deck aft of M", &"passage, E deck aft of M", &"two-berth second-class stateroom, E deck aft of M", &"two-berth second-class stateroom, E deck aft of M", &"four-berth second-class stateroom, E deck aft of M", &"four-berth second-class stateroom, E deck aft of M", &"four-berth second-class stateroom, E deck aft of M", &"four-berth second-class stateroom, E deck aft of M", &"passage, E deck aft of M", &"four-berth second-class stateroom, F deck", &"four-berth second-class stateroom, F deck", &"passage, F deck aft of M", &"four-berth second-class stateroom, F deck", &"two-berth second-class stateroom, F deck", &"four-berth second-class stateroom, F deck", &"four-berth second-class stateroom, F deck", &"two-berth second-class stateroom, F deck", &"four-berth second-class stateroom, F deck", &"passage, F deck aft of M", &"four-berth second-class stateroom, F deck", &"two-berth second-class stateroom, F deck", &"four-berth second-class stateroom, F deck", &"passage, F deck aft of M", &"two-berth second-class stateroom, F deck", &"two-berth second-class stateroom, F deck", &"passage, F deck aft of M", &"passage, F deck aft of M", &"four-berth second-class stateroom, F deck", &"four-berth second-class stateroom, F deck", &"corridor, F deck", &"bathroom, F deck aft of M", &"bathroom, F deck aft of M", &"passage, F deck aft of M", &"ladies' lavatory, F deck aft of M", &"passage, F deck aft of M", &"room marked 3L CL", &"gentlemen's lavatory, F deck aft of M", &"store, F deck aft of M", &"passage, F deck aft of M", &"bathroom, F deck aft of M", &"bathroom, F deck aft of M", &"bathroom, F deck aft of M", &"second-class entrance, F deck", &"second-class entrance, F deck", &"corridor, F deck", &"two-berth second-class stateroom, F deck", &"two-berth second-class stateroom, F deck", &"four-berth second-class stateroom, F deck", &"passage, F deck aft of M", &"four-berth second-class stateroom, F deck", &"two-berth second-class stateroom, F deck", &"four-berth second-class stateroom, F deck", &"two-berth second-class stateroom, F deck", &"four-berth second-class stateroom, F deck", &"four-berth second-class stateroom, F deck", &"four-berth second-class stateroom, F deck", &"passage, F deck aft of M", &"two-berth second-class stateroom, F deck", &"two-berth second-class stateroom, F deck", &"four-berth second-class stateroom, F deck", &"four-berth second-class stateroom, F deck", &"passage, F deck aft of M", &"two-berth second-class stateroom, F deck", &"two-berth second-class stateroom, F deck", &"four-berth second-class stateroom, F deck", &"four-berth second-class stateroom, F deck"])
 leak_area = 0.00277
 
@@ -77695,6 +77735,7 @@ name = &"electric_room_d"
 low = Vector3(-85.14, -3.1875, -13.9375)
 high = Vector3(-66.02, 0, 13.9375)
 shape = 0.9819
+sideways = 0.25
 rooms = Array[StringName]([&"second-class dining saloon", &"second-class dining saloon", &"second-class dining saloon", &"second-class dining saloon", &"second-class dining saloon", &"second-class entrance, D deck", &"servery, D deck aft of M"])
 leak_area = 0.00167
 
@@ -77706,6 +77747,7 @@ high = Vector3(-85.14, -13.4375, 10)
 kind = 2
 permeability = 0.75
 shape = 0.6699
+sideways = 0.25
 rooms = Array[StringName]([&"shaft tunnel, O to N", &"shaft tunnel, O to N", &"shaft tunnel, O to N"])
 leak_area = 0.00105
 
@@ -77716,6 +77758,7 @@ low = Vector3(-101.69, -13.4375, -11.8125)
 high = Vector3(-85.14, -11, 11.8125)
 kind = 3
 shape = 0.7433
+sideways = 0.25
 rooms = Array[StringName]([&"refrigerated cargo hold", &"refrigerated cargo hold", &"refrigerated cargo hold", &"refrigerated cargo hold", &"refrigerated cargo hold", &"refrigerated cargo hold", &"refrigerated cargo hold, No. 5 hatch"])
 leak_area = 0.000708
 
@@ -77725,6 +77768,7 @@ name = &"after_hold_fwd_tween"
 low = Vector3(-101.69, -11, -13.5)
 high = Vector3(-85.14, -3.1875, 13.5)
 shape = 0.8861
+sideways = 0.25
 rooms = Array[StringName]([&"four-berth third-class room, E deck aft of N", &"two-berth third-class room, E deck aft of N", &"two-berth third-class room, E deck aft of N", &"passage, E deck aft of N", &"four-berth third-class room, E deck aft of N", &"two-berth third-class room, E deck aft of N", &"four-berth third-class room, E deck aft of N", &"four-berth third-class room, E deck aft of N", &"four-berth third-class room, E deck aft of N", &"four-berth third-class room, E deck aft of N", &"passage, E deck aft of N", &"four-berth third-class room, E deck aft of N", &"two-berth third-class room, E deck aft of N", &"two-berth third-class room, E deck aft of N", &"two-berth third-class room, E deck aft of N", &"passage, E deck aft of N", &"four-berth third-class room, E deck aft of N", &"two-berth third-class room, E deck aft of N", &"two-berth third-class room, E deck aft of N", &"four-berth third-class room, E deck aft of N", &"two-berth third-class room, E deck aft of N", &"two-berth third-class room, E deck aft of N", &"passage, E deck aft of N", &"four-berth third-class room, E deck aft of N", &"two-berth third-class room, E deck aft of N", &"two-berth third-class room, E deck aft of N", &"two-berth third-class room, E deck aft of N", &"passage, E deck aft of N", &"passage, E deck aft of N", &"attendant's room, E deck", &"ladies' lavatory, E deck aft of N", &"passage, E deck aft of N", &"bathroom, E deck aft of N", &"bathroom, E deck aft of N", &"second-class entrance, E deck, aft", &"second-class entrance, E deck, aft", &"assistant purser's office, E deck", &"assistant purser's room, E deck", &"passage, E deck aft of N", &"passage, E deck aft of N", &"linen room, E deck aft of N", &"instrument room, E deck", &"passage, E deck aft of N", &"musicians' room, E deck", &"three-berth purser's clerks' room, E deck", &"two-berth second-class stateroom, E deck aft of N", &"four-berth second-class stateroom, E deck aft of N", &"passage, E deck aft of N", &"two-berth second-class stateroom, E deck aft of N", &"two-berth second-class stateroom, E deck aft of N", &"four-berth second-class stateroom, E deck aft of N", &"four-berth second-class stateroom, E deck aft of N", &"passage, E deck aft of N", &"four-berth second-class stateroom, E deck aft of N", &"four-berth second-class stateroom, E deck aft of N", &"four-berth second-class stateroom, E deck aft of N", &"two-berth second-class stateroom, F deck aft of N", &"four-berth second-class stateroom, F deck aft of N", &"bathroom, F deck", &"passage, F deck aft of N", &"four-berth second-class stateroom, F deck aft of N", &"four-berth second-class stateroom, F deck aft of N", &"passage, F deck aft of N", &"two-berth second-class stateroom, F deck aft of N", &"two-berth second-class stateroom, F deck aft of N", &"third-class stairway, F deck", &"passage, F deck aft of N", &"four-berth second-class stateroom, F deck aft of N", &"two-berth second-class stateroom, F deck aft of N", &"bathroom, F deck", &"corridor, F deck aft of N", &"corridor, F deck aft of N", &"ladies' lavatory, F deck", &"second-class entrance, F deck, aft", &"gentlemen's lavatory, F deck", &"corridor, F deck aft of N", &"corridor, F deck aft of N", &"bathroom, F deck", &"four-berth second-class stateroom, F deck aft of N", &"two-berth second-class stateroom, F deck aft of N", &"passage, F deck aft of N", &"four-berth second-class stateroom, F deck aft of N", &"four-berth second-class stateroom, F deck aft of N", &"passage, F deck aft of N", &"four-berth second-class stateroom, F deck aft of N", &"four-berth second-class stateroom, F deck aft of N", &"two-berth second-class stateroom, F deck aft of N", &"assistant second steward's room", &"four-berth second-class stateroom, F deck aft of N", &"passage, F deck aft of N", &"bathroom, F deck", &"four-berth second-class stateroom, F deck aft of N", &"four-berth second-class stateroom, F deck aft of N", &"four-berth third-class room, G deck", &"four-berth third-class room, G deck", &"four-berth third-class room, G deck", &"four-berth third-class room, G deck", &"four-berth third-class room, G deck", &"four-berth third-class room, G deck", &"passage, G deck, aft of N", &"three-berth third-class room, G deck", &"two-berth third-class room, G deck", &"two-berth third-class room, G deck", &"two-berth third-class room, G deck", &"two-berth third-class room, G deck", &"two-berth third-class room, G deck", &"two-berth third-class room, G deck", &"two-berth third-class room, G deck", &"two-berth third-class room, G deck", &"three-berth third-class room, G deck", &"passage, G deck, aft of N", &"passage, G deck, aft of N", &"passage, G deck, aft of N", &"passage, G deck, aft of N", &"second-class entrance, G deck", &"passage, G deck, aft of N", &"passage, G deck, aft of N", &"two-berth third-class room, G deck", &"two-berth third-class room, G deck", &"two-berth third-class room, G deck", &"four-berth third-class room, G deck", &"two-berth third-class room, G deck", &"two-berth third-class room, G deck", &"two-berth third-class room, G deck", &"two-berth third-class room, G deck", &"two-berth third-class room, G deck", &"two-berth third-class room, G deck", &"four-berth third-class room, G deck", &"four-berth third-class room, G deck", &"four-berth third-class room, G deck", &"passage, G deck, aft of N", &"two-berth third-class room, G deck", &"two-berth third-class room, G deck", &"four-berth third-class room, G deck", &"two-berth third-class room, G deck", &"four-berth third-class room, G deck", &"four-berth third-class room, G deck", &"four-berth third-class room, G deck", &"two-berth third-class room, G deck", &"two-berth third-class room, G deck", &"four-berth third-class room, G deck"])
 leak_area = 0.00309
 
@@ -77734,6 +77778,7 @@ name = &"after_hold_fwd_d"
 low = Vector3(-101.69, -3.1875, -13.5625)
 high = Vector3(-85.14, 0, 13.5625)
 shape = 0.9648
+sideways = 0.25
 rooms = Array[StringName]([&"four-berth second-class stateroom, D deck", &"four-berth second-class stateroom, D deck", &"four-berth second-class stateroom, D deck", &"two-berth second-class stateroom, D deck", &"two-berth second-class stateroom, D deck", &"passage, D deck aft of N", &"four-berth second-class stateroom, D deck", &"four-berth second-class stateroom, D deck", &"four-berth second-class stateroom, D deck", &"four-berth second-class stateroom, D deck", &"four-berth second-class stateroom, D deck", &"four-berth second-class stateroom, D deck", &"two-berth second-class stateroom, D deck", &"two-berth second-class stateroom, D deck", &"two-berth second-class stateroom, D deck", &"passage, D deck aft of N", &"four-berth second-class stateroom, D deck", &"two-berth second-class stateroom, D deck", &"room marked L", &"two-berth second-class stateroom, D deck", &"two-berth second-class stateroom, D deck", &"four-berth second-class stateroom, D deck", &"four-berth second-class stateroom, D deck", &"four-berth second-class stateroom, D deck", &"passage, D deck aft of N", &"two-berth second-class stateroom, D deck", &"two-berth second-class stateroom, D deck", &"two-berth second-class stateroom, D deck", &"four-berth second-class stateroom, D deck", &"four-berth second-class stateroom, D deck", &"four-berth second-class stateroom, D deck", &"four-berth second-class stateroom, D deck", &"four-berth second-class stateroom, D deck", &"four-berth second-class stateroom, D deck", &"passage, D deck aft of N", &"room marked L", &"two-berth second-class stateroom, D deck", &"four-berth second-class stateroom, D deck", &"four-berth second-class stateroom, D deck", &"two-berth second-class stateroom, D deck", &"corridor, D deck aft of N", &"corridor, D deck aft of N", &"corridor, D deck aft of N", &"second-class entrance, D deck, aft", &"second-class entrance, D deck, aft", &"second-class dining saloon, D deck aft of N", &"second-class dining saloon, D deck aft of N", &"second-class dining saloon, D deck aft of N"])
 leak_area = 0.00138
 
@@ -77764,6 +77809,7 @@ name = &"after_hold_aft_tween"
 low = Vector3(-118.97, -11, -12.8125)
 high = Vector3(-101.69, -3.1875, 12.8125)
 shape = 0.7357
+sideways = 0.25
 rooms = Array[StringName]([&"chief third-class steward's room, E deck", &"passage, E deck aft of O", &"two-berth third-class room, E deck", &"passage, E deck aft of O", &"four-berth third-class room, E deck", &"six-berth third-class room, E deck", &"passage, E deck aft of O", &"four-berth third-class room, E deck", &"two-berth third-class room, E deck", &"four-berth third-class room, E deck", &"four-berth third-class room, E deck", &"passage, E deck aft of O", &"four-berth third-class room, E deck", &"two-berth third-class room, E deck", &"two-berth third-class room, E deck", &"passage, E deck aft of O", &"passage, E deck aft of O", &"four-berth third-class room, E deck", &"two-berth third-class room, E deck", &"four-berth third-class room, E deck", &"passage, E deck aft of O", &"six-berth third-class room, E deck", &"two-berth third-class room, E deck", &"four-berth third-class room, E deck", &"passage, E deck aft of O", &"two-berth third-class room, E deck", &"four-berth third-class room, E deck", &"two-berth third-class room, E deck", &"two-berth third-class room, E deck", &"four-berth third-class room, E deck", &"passage, E deck aft of O", &"two-berth third-class room, E deck", &"two-berth third-class room, E deck", &"six-berth third-class room, E deck", &"passage, E deck aft of O", &"third-class entrance, E deck", &"passage, E deck aft of O", &"passage, E deck aft of O", &"pantry, E deck aft of O", &"four-berth third-class room, E deck", &"four-berth third-class room, E deck", &"four-berth third-class room, E deck", &"passage, F deck aft of O", &"two-berth third-class room, F deck", &"passage, F deck aft of O", &"four-berth third-class room, F deck aft of O", &"two-berth third-class room, F deck", &"two-berth third-class room, F deck", &"passage, F deck aft of O", &"four-berth third-class room, F deck aft of O", &"two-berth third-class room, F deck", &"four-berth third-class room, F deck aft of O", &"four-berth third-class room, F deck aft of O", &"passage, F deck aft of O", &"six-berth third-class room, F deck aft of O", &"four-berth third-class room, F deck aft of O", &"two-berth third-class room, F deck", &"passage, F deck aft of O", &"four-berth third-class room, F deck aft of O", &"two-berth third-class room, F deck", &"two-berth third-class room, F deck", &"passage, F deck aft of O", &"passage, F deck aft of O", &"passage, F deck aft of O", &"four-berth third-class room, F deck aft of O", &"three-berth third-class room, F deck", &"passage, F deck aft of O", &"four-berth third-class room, F deck aft of O", &"five-berth third-class room, F deck", &"passage, F deck aft of O", &"six-berth third-class room, F deck aft of O", &"two-berth third-class room, F deck", &"four-berth third-class room, F deck aft of O", &"passage, F deck aft of O", &"two-berth third-class room, F deck", &"two-berth third-class room, F deck", &"four-berth third-class room, F deck aft of O", &"passage, F deck aft of O", &"passage, F deck aft of O", &"third-class entrance, F deck", &"third-class entrance, F deck", &"two-berth third-class room, F deck", &"four-berth third-class room, F deck aft of O", &"two-berth third-class room, F deck", &"four-berth third-class room, F deck aft of O", &"four-berth third-class room, F deck aft of O", &"four-berth third-class room, G deck, aft of O", &"passage, G deck, aft of O", &"two-berth third-class room, G deck, aft of O", &"passage, G deck, aft of O", &"four-berth third-class room, G deck, aft of O", &"passage, G deck, aft of O", &"passage, G deck, aft of O", &"passage, G deck, aft of O", &"four-berth third-class room, G deck, aft of O", &"six-berth third-class room, G deck, aft of O", &"four-berth third-class room, G deck, aft of O", &"six-berth third-class room, G deck, aft of O", &"passage, G deck, aft of O", &"passage, G deck, aft of O", &"passage, G deck, aft of O", &"passage, G deck, aft of O", &"four-berth third-class room, G deck, aft of O", &"four-berth third-class room, G deck, aft of O", &"passage, G deck, aft of O", &"four-berth third-class room, G deck, aft of O", &"two-berth third-class room, G deck, aft of O", &"passage, G deck, aft of O", &"two-berth third-class room, G deck, aft of O", &"four-berth third-class room, G deck, aft of O", &"two-berth third-class room, G deck, aft of O", &"four-berth third-class room, G deck, aft of O", &"four-berth third-class room, G deck, aft of O", &"passage, G deck, aft of O", &"four-berth third-class room, G deck, aft of O", &"four-berth third-class room, G deck, aft of O", &"passage, G deck, aft of O", &"two-berth third-class room, G deck, aft of O", &"four-berth third-class room, G deck, aft of O"])
 leak_area = 0.00254
 
@@ -77773,6 +77819,7 @@ name = &"after_hold_aft_d"
 low = Vector3(-118.97, -3.1875, -13)
 high = Vector3(-101.69, 0, 13)
 shape = 0.928
+sideways = 0.25
 rooms = Array[StringName]([&"third-class men's lavatory, D deck aft of O", &"third-class women's lavatory, D deck aft of O", &"gentlemen's lavatory, D deck aft of O", &"gentlemen's lavatory, D deck aft of O", &"bathroom, D deck aft of O", &"bathroom, D deck aft of O", &"ladies' lavatory, D deck aft of O", &"ladies' lavatory, D deck aft of O", &"bathroom, D deck aft of O", &"bathroom, D deck aft of O", &"third-class entrance", &"third-class matron's room", &"third-class surgery", &"passage, D deck aft of O", &"four-berth second-class stateroom, D deck aft of O", &"bathroom, D deck aft of O", &"bathroom, D deck aft of O", &"passage, D deck aft of O", &"two-berth second-class stateroom, D deck aft of O", &"four-berth second-class stateroom, D deck aft of O", &"four-berth second-class stateroom, D deck aft of O", &"two-berth second-class stateroom, D deck aft of O", &"two-berth second-class stateroom, D deck aft of O", &"passage, D deck aft of O", &"two-berth second-class stateroom, D deck aft of O", &"bathroom, D deck aft of O", &"four-berth second-class stateroom, D deck aft of O", &"passage, D deck aft of O", &"two-berth second-class stateroom, D deck aft of O", &"two-berth second-class stateroom, D deck aft of O", &"four-berth second-class stateroom, D deck aft of O", &"four-berth second-class stateroom, D deck aft of O", &"two-berth second-class stateroom, D deck aft of O", &"four-berth second-class stateroom, D deck aft of O", &"two-berth second-class stateroom, D deck aft of O", &"passage, D deck aft of O", &"corridor, D deck aft of O", &"corridor, D deck aft of O"])
 leak_area = 0.00133
 
@@ -77792,6 +77839,7 @@ low = Vector3(-138.2622, -11, -11.5)
 high = Vector3(-118.97, -3.1875, 11.5)
 kind = 3
 shape = 0.3721
+sideways = 0.25
 rooms = Array[StringName]([&"store, E deck", &"store, E deck", &"store, E deck", &"four-berth third-class room, E deck aft of P", &"four-berth third-class room, E deck aft of P", &"passage, E deck aft of P", &"four-berth third-class room, E deck aft of P", &"passage, E deck aft of P", &"four-berth third-class room, E deck aft of P", &"store, F deck", &"store, F deck", &"four-berth third-class room, F deck aft of P", &"four-berth third-class room, F deck aft of P", &"passage, F deck aft of P", &"two-berth third-class room, F deck aft of P", &"vestibule, F deck", &"passage, F deck aft of P", &"two-berth third-class room, F deck aft of P", &"passage, F deck aft of P", &"two-berth third-class room, F deck aft of P", &"passage, F deck aft of P", &"six-berth third-class room, G deck", &"six-berth third-class room, G deck"])
 leak_area = 0.00129
 
@@ -77801,6 +77849,7 @@ name = &"after_peak_d"
 low = Vector3(-138.2622, -3.1875, -11.6875)
 high = Vector3(-118.97, 0, 11.6875)
 shape = 0.7863
+sideways = 0.25
 rooms = Array[StringName]([&"store, D deck aft of P", &"store, D deck aft of P", &"store, D deck aft of P", &"six-berth third-class room, D deck", &"six-berth third-class room, D deck", &"six-berth third-class room, D deck", &"passage, D deck aft of P", &"passage, D deck aft of P", &"six-berth third-class room, D deck", &"six-berth third-class room, D deck", &"two-berth third-class room, D deck", &"two-berth third-class room, D deck", &"two-berth third-class room, D deck", &"two-berth third-class room, D deck", &"six-berth third-class room, D deck", &"six-berth third-class room, D deck", &"passage, D deck aft of P", &"passage, D deck aft of P", &"passage, D deck aft of P", &"passage, D deck aft of P", &"bathroom, D deck aft of P", &"bathroom, D deck aft of P", &"third-class men's lavatory", &"third-class men's lavatory", &"third-class women's lavatory", &"third-class women's lavatory"])
 leak_area = 0.00113
 
@@ -77810,6 +77859,7 @@ name = &"d_deck"
 low = Vector3(-66.02, -3.1875, -14.0208)
 high = Vector3(75.25, 0, 14.0208)
 shape = 0.996
+sideways = 0.25
 rooms = Array[StringName]([&"servery, D deck", &"passage, D deck", &"passage, D deck", &"butcher's shop", &"baker's shop", &"bar, D deck", &"second-class pantry", &"second-class pantry", &"second-class pantry", &"bread room", &"bake house", &"emergency dynamos", &"china pantry", &"china pantry", &"glass pantry", &"plate pantry", &"corridor, D deck", &"bathroom, D deck", &"passage, D deck", &"infectious hospital", &"infectious hospital", &"passage, D deck", &"passage, D deck", &"hospital attendants' room", &"hospital, D deck", &"passage, D deck", &"hospital, D deck", &"hospital, D deck", &"passage, D deck", &"bathroom, D deck", &"hospital, D deck", &"galley", &"galley", &"galley", &"galley", &"galley", &"coal", &"coke", &"chef's office", &"first-class pantry scullery", &"knives", &"vegetable preparing room", &"first-class galley scullery", &"coal", &"larder", &"salad pantry", &"first-class pantry", &"printer's room", &"stewards' office", &"first-class pantry", &"first-class pantry", &"first-class pantry", &"first-class pantry", &"silver pantry", &"first-class pantry", &"first-class pantry", &"passage, D deck", &"china pantry", &"pantry, D deck", &"first-class pantry", &"first-class pantry", &"first-class pantry", &"cold store", &"glass pantry", &"first-class pantry", &"saloon bar", &"first-class pantry", &"first-class dining saloon", &"reception room", &"reception room", &"reception room", &"grand staircase, D deck", &"first-class entrance, D deck", &"first-class entrance, D deck", &"first-class entrance, D deck", &"passage, D deck", &"three-berth first-class stateroom, D deck", &"three-berth first-class stateroom, D deck", &"passage, D deck", &"three-berth first-class stateroom, D deck", &"three-berth first-class stateroom, D deck", &"three-berth first-class stateroom, D deck", &"three-berth first-class stateroom, D deck", &"three-berth first-class stateroom, D deck", &"three-berth first-class stateroom, D deck", &"passage, D deck", &"three-berth first-class stateroom, D deck", &"three-berth first-class stateroom, D deck", &"three-berth first-class stateroom, D deck", &"three-berth first-class stateroom, D deck", &"three-berth first-class stateroom, D deck", &"three-berth first-class stateroom, D deck", &"passage, D deck", &"three-berth first-class stateroom, D deck", &"three-berth first-class stateroom, D deck", &"three-berth first-class stateroom, D deck", &"three-berth first-class stateroom, D deck", &"three-berth first-class stateroom, D deck", &"three-berth first-class stateroom, D deck", &"passage, D deck", &"three-berth first-class stateroom, D deck", &"three-berth first-class stateroom, D deck", &"passage, D deck", &"three-berth first-class stateroom, D deck", &"three-berth first-class stateroom, D deck", &"three-berth first-class stateroom, D deck", &"three-berth first-class stateroom, D deck", &"three-berth first-class stateroom, D deck", &"three-berth first-class stateroom, D deck", &"passage, D deck", &"three-berth first-class stateroom, D deck", &"three-berth first-class stateroom, D deck", &"three-berth first-class stateroom, D deck", &"three-berth first-class stateroom, D deck", &"three-berth first-class stateroom, D deck", &"passage, D deck", &"three-berth first-class stateroom, D deck", &"three-berth first-class stateroom, D deck", &"three-berth first-class stateroom, D deck", &"three-berth first-class stateroom, D deck", &"three-berth first-class stateroom, D deck", &"three-berth first-class stateroom, D deck", &"passage, D deck", &"three-berth first-class stateroom, D deck", &"two-berth first-class stateroom, D deck", &"two-berth first-class stateroom, D deck", &"two-berth first-class stateroom, D deck", &"two-berth first-class stateroom, D deck", &"two-berth first-class stateroom, D deck", &"two-berth first-class stateroom, D deck", &"three-berth first-class stateroom, D deck", &"D deck corridor", &"D deck corridor", &"passage, D deck", &"passage, D deck", &"bathroom, D deck", &"passage, D deck", &"bathroom, D deck", &"chief steward's room", &"second steward's room", &"one-berth first-class stateroom, D deck", &"one-berth first-class stateroom, D deck", &"one-berth first-class stateroom, D deck", &"one-berth first-class stateroom, D deck", &"bathroom, D deck", &"one-berth first-class stateroom, D deck", &"ladies' lavatory, D deck", &"gentlemen's lavatory, D deck", &"bathroom, D deck", &"bathroom, D deck", &"bathroom, D deck", &"two-berth first-class stateroom, D deck", &"two-berth first-class stateroom, D deck", &"bathroom, D deck", &"passage, D deck", &"bathroom, D deck", &"stewardesses' room, D deck", &"one-berth first-class stateroom, D deck", &"one-berth first-class stateroom, D deck", &"one-berth first-class stateroom, D deck", &"one-berth first-class stateroom, D deck", &"pantry, D deck", &"store, D deck", &"passage, D deck", &"one-berth first-class stateroom, D deck"])
 leak_area = 0.0126
 
@@ -77819,6 +77869,7 @@ name = &"d_deck_forward"
 low = Vector3(75.25, -1.25, -13.5625)
 high = Vector3(101.85, 1.5625, 13.5625)
 shape = 0.9186
+sideways = 0.25
 rooms = Array[StringName]([&"third-class open space", &"third-class open space", &"third-class open space", &"third-class open space", &"third-class open space", &"passage, D deck aft of B", &"passage, D deck aft of B", &"third-class open space", &"T.R.S.", &"T.R.S.", &"passage, D deck aft of B", &"firemen's wash place", &"firemen's wash place", &"firemen's wash place", &"firemen's W.C.s", &"firemen's W.C.s", &"firemen's W.C.s"])
 leak_area = 0.00186
 
@@ -77828,6 +77879,7 @@ name = &"forecastle"
 low = Vector3(91.7856, 1.5625, -12.0625)
 high = Vector3(109.0625, 4.3125, 12.0625)
 shape = 0.9258
+sideways = 0.25
 rooms = Array[StringName]([&"lamp room", &"third-class ladderway", &"crew's galley", &"crew's galley", &"crew's galley", &"crew's galley", &"crew's stair", &"seamen's mess", &"seamen's mess", &"seamen's mess", &"seamen's mess", &"store, forecastle", &"passage, forecastle", &"passage, forecastle", &"passage, forecastle", &"passage, forecastle", &"passage, forecastle", &"hospital", &"hospital", &"galley store", &"surgery, forecastle", &"surgery, forecastle", &"carpenter's shop", &"third-class ladderway", &"firemen's mess", &"firemen's mess", &"firemen's mess", &"firemen's mess", &"firemen's mess", &"firemen's mess", &"firemen's mess", &"greasers' mess"])
 leak_area = 0.00106
 
@@ -77846,6 +77898,7 @@ name = &"c_deck"
 low = Vector3(-90.5625, 0, -14.0208)
 high = Vector3(75.25, 2.75, 14.0208)
 shape = 0.9939
+sideways = 0.25
 rooms = Array[StringName]([&"second-class entrance, C deck, aft", &"second-class entrance, C deck, aft", &"second-class library", &"second-class library", &"second-class library", &"second-class library", &"second-class entrance, C deck", &"second-class entrance, C deck", &"second-class entrance, C deck", &"second-class entrance, C deck", &"second-class entrance, C deck", &"second-class entrance, C deck", &"C deck corridor", &"two-berth first-class stateroom", &"two-berth first-class stateroom", &"two-berth first-class stateroom", &"bathroom, C deck", &"bathroom, C deck", &"two-berth first-class stateroom", &"two-berth first-class stateroom", &"two-berth first-class stateroom", &"one-berth first-class stateroom", &"passage, C deck", &"servery, C deck", &"passage, C deck", &"gentlemen's lavatory, C deck", &"bathroom, C deck", &"bathroom, C deck", &"three-berth first-class stateroom, C deck", &"three-berth first-class stateroom, C deck", &"three-berth first-class stateroom, C deck", &"one-berth first-class stateroom", &"restaurant manager's quarters", &"assistant doctor's room", &"doctor's room", &"ladies' lavatory, C deck", &"servery, C deck", &"passage, C deck", &"bathroom, C deck", &"bathroom, C deck", &"stewardesses' room, C deck", &"three-berth first-class stateroom, C deck", &"three-berth first-class stateroom, C deck", &"three-berth first-class stateroom, C deck", &"C deck corridor", &"passage, C deck", &"surgery", &"two-berth first-class stateroom", &"two-berth first-class stateroom", &"bathroom, C deck", &"bathroom, C deck", &"two-berth first-class stateroom", &"two-berth first-class stateroom", &"after grand staircase, C deck", &"after grand staircase, C deck", &"passage, C deck", &"two-berth first-class stateroom", &"bathroom, C deck", &"bathroom, C deck", &"two-berth first-class stateroom", &"two-berth first-class stateroom", &"bathroom, C deck", &"bathroom, C deck", &"two-berth first-class stateroom", &"two-berth first-class stateroom", &"C deck corridor", &"barber's shop", &"three-berth first-class stateroom, C deck", &"three-berth first-class stateroom, C deck", &"passage, C deck", &"three-berth first-class stateroom, C deck", &"maids' and valets' pantry", &"maids' and valets' saloon", &"C deck corridor", &"two-berth first-class stateroom", &"bathroom, C deck", &"bathroom, C deck", &"two-berth first-class stateroom", &"two-berth first-class stateroom", &"bathroom, C deck", &"bathroom, C deck", &"two-berth first-class stateroom", &"two-berth first-class stateroom", &"two-berth first-class stateroom", &"bathroom, C deck", &"passage, C deck", &"wardrobe room", &"wardrobe room", &"two-berth first-class stateroom", &"two-berth first-class stateroom", &"two-berth first-class stateroom", &"passage, C deck", &"bathroom, C deck", &"wardrobe room", &"wardrobe room", &"two-berth first-class stateroom", &"two-berth first-class stateroom", &"two-berth first-class stateroom", &"bathroom, C deck", &"passage, C deck", &"wardrobe room", &"wardrobe room", &"two-berth first-class stateroom", &"three-berth first-class stateroom, C deck", &"three-berth first-class stateroom, C deck", &"three-berth first-class stateroom, C deck", &"three-berth first-class stateroom, C deck", &"three-berth first-class stateroom, C deck", &"gentlemen's lavatory, C deck", &"gentlemen's lavatory, C deck", &"pantry, C deck", &"pantry, C deck", &"Marconi operators' saloon", &"three-berth first-class stateroom, C deck", &"three-berth first-class stateroom, C deck", &"three-berth first-class stateroom, C deck", &"passage, C deck", &"two-berth first-class stateroom", &"two-berth first-class stateroom", &"bathroom, C deck", &"bathroom, C deck", &"bathroom, C deck", &"bathroom, C deck", &"linen room", &"two-berth first-class stateroom", &"two-berth first-class stateroom", &"three-berth first-class stateroom, C deck", &"passage, C deck", &"two-berth first-class stateroom", &"two-berth first-class stateroom", &"two-berth first-class stateroom", &"two-berth first-class stateroom", &"bathroom, C deck", &"bathroom, C deck", &"bathroom, C deck", &"two-berth first-class stateroom", &"two-berth first-class stateroom", &"passage, C deck", &"passage, C deck", &"mess stewards' room", &"three-berth first-class stateroom, C deck", &"lavatory, C deck", &"bathroom, C deck", &"ladies' lavatory, C deck", &"two-berth first-class stateroom", &"two-berth first-class stateroom", &"two-berth first-class stateroom", &"wardrobe room", &"wardrobe room", &"passage, C deck", &"bathroom, C deck", &"two-berth first-class stateroom", &"two-berth first-class stateroom", &"two-berth first-class stateroom", &"wardrobe room", &"wardrobe room", &"passage, C deck", &"bathroom, C deck", &"two-berth first-class stateroom", &"two-berth first-class stateroom", &"two-berth first-class stateroom", &"wardrobe room", &"wardrobe room", &"passage, C deck", &"bathroom, C deck", &"two-berth first-class stateroom", &"two-berth first-class stateroom", &"bathroom, C deck", &"passage, C deck", &"wardrobe room", &"wardrobe room", &"two-berth first-class stateroom", &"sitting room", &"three-berth first-class stateroom, C deck", &"three-berth first-class stateroom, C deck", &"three-berth first-class stateroom, C deck", &"three-berth first-class stateroom, C deck", &"three-berth first-class stateroom, C deck", &"three-berth first-class stateroom, C deck", &"two-berth first-class stateroom", &"three-berth first-class stateroom, C deck", &"two-berth first-class stateroom", &"wardrobe room", &"wardrobe room", &"passage, C deck", &"bathroom, C deck", &"two-berth first-class stateroom", &"sitting room", &"grand staircase, C deck", &"grand staircase, C deck", &"cloak room, C deck", &"three-berth first-class stateroom, C deck", &"passage, C deck", &"three-berth first-class stateroom, C deck", &"bathroom, C deck", &"three-berth first-class stateroom, C deck", &"three-berth first-class stateroom, C deck", &"three-berth first-class stateroom, C deck", &"enquiry office", &"purser's office", &"passage, C deck", &"three-berth first-class stateroom, C deck", &"bathroom, C deck", &"three-berth first-class stateroom, C deck", &"three-berth first-class stateroom, C deck", &"three-berth first-class stateroom, C deck", &"passage, C deck", &"three-berth first-class stateroom, C deck", &"bathroom, C deck", &"three-berth first-class stateroom, C deck", &"three-berth first-class stateroom, C deck", &"three-berth first-class stateroom, C deck", &"passage, C deck", &"three-berth first-class stateroom, C deck", &"bathroom, C deck", &"three-berth first-class stateroom, C deck", &"three-berth first-class stateroom, C deck", &"three-berth first-class stateroom, C deck", &"passage, C deck", &"three-berth first-class stateroom, C deck", &"bathroom, C deck", &"three-berth first-class stateroom, C deck", &"three-berth first-class stateroom, C deck", &"three-berth first-class stateroom, C deck", &"passage, C deck", &"three-berth first-class stateroom, C deck", &"bathroom, C deck", &"three-berth first-class stateroom, C deck", &"three-berth first-class stateroom, C deck", &"three-berth first-class stateroom, C deck", &"C deck corridor", &"bathroom, C deck", &"three-berth first-class stateroom, C deck", &"three-berth first-class stateroom, C deck", &"three-berth first-class stateroom, C deck", &"three-berth first-class stateroom, C deck", &"passage, C deck", &"bathroom, C deck", &"three-berth first-class stateroom, C deck", &"three-berth first-class stateroom, C deck", &"three-berth first-class stateroom, C deck", &"three-berth first-class stateroom, C deck", &"passage, C deck", &"bathroom, C deck", &"three-berth first-class stateroom, C deck", &"three-berth first-class stateroom, C deck", &"three-berth first-class stateroom, C deck", &"three-berth first-class stateroom, C deck", &"passage, C deck", &"bathroom, C deck", &"three-berth first-class stateroom, C deck", &"three-berth first-class stateroom, C deck", &"three-berth first-class stateroom, C deck", &"three-berth first-class stateroom, C deck", &"C deck corridor", &"bathroom, C deck", &"store", &"pantry, C deck", &"bathroom, C deck", &"passage, C deck", &"purser's room", &"ladies' lavatory, C deck", &"ladies' lavatory, C deck", &"ladies' lavatory, C deck", &"passage, C deck", &"one-berth first-class stateroom", &"one-berth first-class stateroom", &"one-berth first-class stateroom", &"one-berth first-class stateroom", &"one-berth first-class stateroom", &"one-berth first-class stateroom", &"one-berth first-class stateroom", &"one-berth first-class stateroom", &"one-berth first-class stateroom", &"one-berth first-class stateroom", &"one-berth first-class stateroom", &"one-berth first-class stateroom", &"gentlemen's lavatory, C deck", &"gentlemen's lavatory, C deck", &"bathroom, C deck", &"bathroom, C deck", &"bathroom, C deck", &"lavatory, C deck", &"passage, C deck", &"two-berth first-class stateroom", &"two-berth first-class stateroom", &"two-berth first-class stateroom", &"passage, C deck", &"two-berth first-class stateroom", &"two-berth first-class stateroom", &"two-berth first-class stateroom", &"two-berth first-class stateroom", &"two-berth first-class stateroom", &"two-berth first-class stateroom", &"two-berth first-class stateroom", &"two-berth first-class stateroom"])
 leak_area = 0.0127
 
@@ -77855,6 +77908,7 @@ name = &"poop"
 low = Vector3(-138.2622, 0, -12.6875)
 high = Vector3(-106.625, 3.3125, 12.6875)
 shape = 0.8103
+sideways = 0.25
 rooms = Array[StringName]([&"steering gear room", &"steering gear room", &"steering gear room", &"steering gear room", &"steering gear room", &"store, poop", &"store, poop", &"third-class smoking room", &"third-class smoking room", &"third-class smoking room", &"third-class smoking room", &"third-class general room", &"third-class general room", &"third-class general room", &"third-class general room", &"bar, poop", &"third-class entrance, C deck"])
 leak_area = 0.00215
 
@@ -77864,6 +77918,7 @@ name = &"b_deck"
 low = Vector3(-68.125, 2.75, -14.0208)
 high = Vector3(71.8125, 5.5, 14.0208)
 shape = 0.9984
+sideways = 0.25
 rooms = Array[StringName]([&"second-class staircase, B deck", &"à la carte restaurant", &"à la carte restaurant", &"à la carte restaurant", &"Café Parisien", &"restaurant galley", &"restaurant galley", &"restaurant pantry", &"restaurant pantry", &"restaurant vestibule", &"restaurant vestibule", &"reception room, B deck", &"reception room, B deck", &"reception room, B deck", &"three-berth first-class stateroom, B deck", &"first-class stateroom, B deck", &"first-class stateroom, B deck", &"passage, B deck", &"three-berth first-class stateroom, B deck", &"first-class stateroom, B deck", &"first-class stateroom, B deck", &"passage, B deck", &"B deck corridor", &"B deck corridor", &"passage, B deck", &"gentlemen's lavatory, B deck", &"stewards' pantry", &"passage, B deck", &"bathroom, B deck", &"bathroom, B deck", &"bathroom, B deck", &"three-berth first-class stateroom, B deck", &"three-berth first-class stateroom, B deck", &"passage, B deck", &"three-berth first-class stateroom, B deck", &"three-berth first-class stateroom, B deck", &"bathroom, B deck", &"bathroom, B deck", &"first-class stateroom, B deck", &"single-berth first-class stateroom, B deck", &"passage, B deck", &"first-class stateroom, B deck", &"bathroom, B deck", &"passage, B deck", &"first-class stateroom, B deck", &"single-berth first-class stateroom, B deck", &"passage, B deck", &"first-class stateroom, B deck", &"bathroom, B deck", &"passage, B deck", &"first-class stateroom, B deck", &"single-berth first-class stateroom, B deck", &"passage, B deck", &"first-class stateroom, B deck", &"bathroom, B deck", &"passage, B deck", &"first-class stateroom, B deck", &"single-berth first-class stateroom, B deck", &"passage, B deck", &"first-class stateroom, B deck", &"bathroom, B deck", &"passage, B deck", &"first-class stateroom, B deck", &"single-berth first-class stateroom, B deck", &"passage, B deck", &"first-class stateroom, B deck", &"bathroom, B deck", &"passage, B deck", &"first-class stateroom, B deck", &"single-berth first-class stateroom, B deck", &"passage, B deck", &"first-class stateroom, B deck", &"single-berth first-class stateroom, B deck", &"passage, B deck", &"first-class stateroom, B deck", &"bathroom, B deck", &"passage, B deck", &"first-class stateroom, B deck", &"single-berth first-class stateroom, B deck", &"passage, B deck", &"first-class stateroom, B deck", &"bathroom, B deck", &"passage, B deck", &"first-class stateroom, B deck", &"single-berth first-class stateroom, B deck", &"passage, B deck", &"first-class stateroom, B deck", &"bathroom, B deck", &"passage, B deck", &"first-class stateroom, B deck", &"single-berth first-class stateroom, B deck", &"passage, B deck", &"first-class stateroom, B deck", &"bathroom, B deck", &"passage, B deck", &"first-class stateroom, B deck", &"single-berth first-class stateroom, B deck", &"passage, B deck", &"first-class stateroom, B deck", &"bathroom, B deck", &"passage, B deck", &"first-class stateroom, B deck", &"single-berth first-class stateroom, B deck", &"passage, B deck", &"passage, B deck", &"stewardesses' room, B deck", &"ladies' lavatory, B deck", &"B deck corridor", &"B deck corridor", &"first-class stateroom, B deck", &"bathroom, B deck", &"passage, B deck", &"first-class stateroom, B deck", &"bathroom, B deck", &"passage, B deck", &"private promenade", &"parlour suite stateroom", &"bathroom, B deck", &"parlour suite stateroom", &"parlour suite sitting room", &"private promenade", &"parlour suite stateroom", &"bathroom, B deck", &"parlour suite stateroom", &"parlour suite sitting room", &"grand staircase, B deck", &"first-class entrance, B deck", &"first-class entrance, B deck", &"B deck corridor", &"B deck corridor", &"B deck corridor", &"B deck corridor", &"B deck corridor", &"bathroom, B deck", &"bathroom, B deck", &"bathroom, B deck", &"passage, B deck", &"ladies' lavatory, B deck", &"gentlemen's lavatory, B deck", &"stewards' pantry", &"lavatory, B deck", &"passage, B deck", &"bathroom, B deck", &"bathroom, B deck", &"bathroom, B deck", &"passage, B deck", &"first-class stateroom, B deck", &"first-class stateroom, B deck", &"three-berth first-class stateroom, B deck", &"three-berth first-class stateroom, B deck", &"three-berth first-class stateroom, B deck", &"three-berth first-class stateroom, B deck", &"passage, B deck", &"three-berth first-class stateroom, B deck", &"single-berth first-class stateroom, B deck", &"single-berth first-class stateroom, B deck", &"passage, B deck", &"three-berth first-class stateroom, B deck", &"single-berth first-class stateroom, B deck", &"single-berth first-class stateroom, B deck", &"three-berth first-class stateroom, B deck", &"single-berth first-class stateroom, B deck", &"single-berth first-class stateroom, B deck", &"passage, B deck", &"three-berth first-class stateroom, B deck", &"single-berth first-class stateroom, B deck", &"single-berth first-class stateroom, B deck", &"three-berth first-class stateroom, B deck", &"single-berth first-class stateroom, B deck", &"single-berth first-class stateroom, B deck", &"passage, B deck", &"single-berth first-class stateroom, B deck", &"single-berth first-class stateroom, B deck", &"passage, B deck", &"first-class stateroom, B deck", &"single-berth first-class stateroom, B deck", &"three-berth first-class stateroom, B deck", &"three-berth first-class stateroom, B deck", &"three-berth first-class stateroom, B deck", &"three-berth first-class stateroom, B deck", &"passage, B deck", &"three-berth first-class stateroom, B deck", &"single-berth first-class stateroom, B deck", &"single-berth first-class stateroom, B deck", &"passage, B deck", &"three-berth first-class stateroom, B deck", &"single-berth first-class stateroom, B deck", &"single-berth first-class stateroom, B deck", &"three-berth first-class stateroom, B deck", &"single-berth first-class stateroom, B deck", &"single-berth first-class stateroom, B deck", &"passage, B deck", &"three-berth first-class stateroom, B deck", &"single-berth first-class stateroom, B deck", &"single-berth first-class stateroom, B deck", &"three-berth first-class stateroom, B deck", &"single-berth first-class stateroom, B deck", &"single-berth first-class stateroom, B deck", &"passage, B deck", &"single-berth first-class stateroom, B deck", &"single-berth first-class stateroom, B deck", &"passage, B deck", &"first-class stateroom, B deck", &"single-berth first-class stateroom, B deck"])
 leak_area = 0.0108
 
@@ -84209,6 +84264,7 @@ drowns_at = 1
 recovers_deg = 3
 emergency_minutes = 1
 emergency_cells = Array[StringName]([&"staircase_house", &"officers_house", &"a_deck", &"b_deck", &"c_deck", &"d_deck"])
+boiler_cells = Array[StringName]([&"boiler_room_1", &"boiler_room_2", &"boiler_room_3", &"boiler_room_4", &"boiler_room_5", &"boiler_room_6"])
 cell = &"electric_room"
 
 [sub_resource type="Resource" id="Fitting_pump_br5"]

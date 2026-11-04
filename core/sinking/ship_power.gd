@@ -25,6 +25,11 @@ var _trim: float
 var _back_list: float
 var _back_trim: float
 var _emergency := 0.0
+## Whether boilers raise her generator's steam; and per one aboard, its cell and its
+## floor's middle, x, y, z.
+var _steamed := false
+var _boilers := PackedInt32Array()
+var _floors := PackedFloat64Array()
 ## Per cell: its lamps' place, x, y, z — NAN for a cell without any — and 1 where her
 ## emergency power lights it.
 var _lamps := PackedFloat64Array()
@@ -60,6 +65,16 @@ func _init(structure: ShipStructure, sea: SeaPhysics) -> void:
 		_emergency = fitting.emergency_minutes * 60.0
 		for named: StringName in fitting.emergency_cells:
 			_emergency_cells[structure.cell_named(named)] = 1
+		_steamed = not fitting.boiler_cells.is_empty()
+		for named: StringName in fitting.boiler_cells:
+			var boiler := structure.cell_named(named)
+			if boiler < 0:
+				continue
+			var cell := structure.cells[boiler]
+			_boilers.append(boiler)
+			_floors.append_array(
+				[(cell.low.x + cell.high.x) * 0.5, cell.low.y, (cell.low.z + cell.high.z) * 0.5]
+			)
 
 
 ## Her generator, or null.
@@ -151,9 +166,21 @@ func _gaps(state: FloodState) -> PackedFloat64Array:
 	var list := absf(rotation[7])
 	var trim := absf(rotation[3])
 	var upright := rotation[4]
+	var drowning := foot + _generator.drowns_at - state.heads[_cell]
+	if _steamed:
+		# Her driest boiler room's furnaces: a metre under them when none is aboard.
+		var steam := -1.0
+		for at in _boilers.size():
+			var floor_at := (
+				rotation[3] * _floors[at * 3]
+				+ rotation[4] * _floors[at * 3 + 1]
+				+ rotation[5] * _floors[at * 3 + 2]
+			)
+			steam = maxf(steam, floor_at + _generator.drowns_at - state.heads[_boilers[at]])
+		drowning = minf(drowning, steam)
 	return PackedFloat64Array(
 		[
-			foot + _generator.drowns_at - state.heads[_cell],
+			drowning,
 			minf(_list - list, upright),
 			minf(_trim - trim, upright),
 			maxf(maxf(list - _back_list, trim - _back_trim), -upright),

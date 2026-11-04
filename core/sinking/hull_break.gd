@@ -198,14 +198,8 @@ func _carried(parent: BakePiece, structure: ShipStructure, stepper: SinkStepper)
 		var from: int = cells[cell.name]
 		var head := before.heads[from]
 		var whole := parent.stepper.volume_at(from, head)
-		var area := (
-			(float(cell.high.x) - cell.low.x)
-			* (float(cell.high.z) - cell.low.z)
-			* cell.permeability_in(_sea)
-			* cell.shape
-		)
-		var capacity := area * (float(cell.high.y) - cell.low.y)
-		var box := TiltedBox.new(cell.low, cell.high, capacity, area * _sea.full_surface)
+		var box := TiltedBox.of(cell, _sea)
+		var capacity := box.capacity()
 		box.turn(up[0], up[1], up[2])
 		var water := before.water[from] * box.volume(head) / whole if whole > 0.0 else 0.0
 		state.water.append(water)
