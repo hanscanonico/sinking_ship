@@ -111,10 +111,10 @@ static func lap_db(depth: float, ears_under: bool) -> float:
 	return maxf(LAP_DB + linear_to_db(share), SILENT_DB)
 
 
-## 1 when feet at [param feet] stand in one of [param layout]'s rooms, within
+## 1 when feet at [param feet] stand in one of the rooms [param rooms] indexes, within
 ## [param step] of its floor; 0 on open deck.
-static func enclosure(layout: ShipLayout, feet: Vector3, step: float) -> float:
-	return 1.0 if layout.room_at(feet, step) != -1 else 0.0
+static func enclosure(rooms: RoomIndex, feet: Vector3, step: float) -> float:
+	return 1.0 if rooms.room_at(feet, step) != -1 else 0.0
 
 
 ## The cutoff of everything heard from outside, by how enclosed the listener is, or

@@ -37,7 +37,8 @@ var _underwater: Underwater
 var _sim: MatchSim
 var _local_seat := -1
 var _schedule: SinkSchedule
-var _layout: ShipLayout
+## Her rooms, indexed for the feet asked of every frame (RoomIndex).
+var _rooms: RoomIndex
 var _step_height: float
 ## How enclosed the mix is now, 0…1, easing toward the room the seat stands in.
 var _enclosure := 0.0
@@ -128,7 +129,7 @@ func setup(
 	_sim = sim
 	_local_seat = local_seat
 	_schedule = sim.schedule
-	_layout = sim.config.ship
+	_rooms = RoomIndex.new(sim.config.ship)
 	_step_height = sim.config.rules.step_height
 	_planner = CuePlanner.new(sim.config, sim.surfaces, sim.schedule, local_seat)
 	_mixed_tick = -1
@@ -330,7 +331,7 @@ func _enclosure_at(seat: int) -> float:
 	var entry: Dictionary = _driver.current["seats"][seat]
 	if entry["out"]:
 		return 0.0
-	return AmbienceMix.enclosure(_layout, entry["pos"], _step_height)
+	return AmbienceMix.enclosure(_rooms, entry["pos"], _step_height)
 
 
 ## The room's reverb, and the outside heard through the hull — or the sea; with the

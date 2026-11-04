@@ -95,7 +95,7 @@ func test_water_laps_in_a_part_flooded_room() -> void:
 
 
 func test_feet_in_a_room_are_enclosed_and_open_deck_is_not() -> void:
-	var steamer := SimFixtures.steamer()
+	var steamer := RoomIndex.new(SimFixtures.steamer())
 	var step := SimFixtures.rules().step_height
 	assert_eq(AmbienceMix.enclosure(steamer, Vector3(8.0, -2.6, -2.0), step), 1.0, "the hold")
 	assert_eq(AmbienceMix.enclosure(steamer, Vector3(-1.5, 0.0, 0.0), step), 1.0, "deckhouse")
