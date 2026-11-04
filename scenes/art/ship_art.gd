@@ -104,6 +104,10 @@ var span := Vector2(-INF, INF)
 ## The rules of the match she is drawn for: her rigging (DeckWorks.rigging) stands clear
 ## of the bodies they make, and without them none is drawn. Set it before build().
 var rules: BrawlRules
+## The ShipSpace of the layout build() is given, when another art of it made one: what
+## it works out once, every stretch of her asks again (ShipPieces.stretches_of). Set it
+## before build(); one of another layout is not taken.
+var shared_space: ShipSpace
 
 var _space: ShipSpace
 var _dressing: RoomDressing
@@ -187,7 +191,8 @@ func build(
 	for child: Node in get_children():
 		remove_child(child)
 		child.queue_free()
-	_space = ShipSpace.new(layout)
+	var shared := shared_space != null and shared_space.layout == layout
+	_space = shared_space if shared else ShipSpace.new(layout)
 	_rooms_boxed()
 	_dressing = RoomDressing.new(_space, cut_above)
 	_lined = LinedFaces.new(_dressing)

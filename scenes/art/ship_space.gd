@@ -35,6 +35,10 @@ var _over := {}
 ## Per room, the slabs, by blocker index, over its floor and over its area: the only
 ## ones ceiling() need look at, gathered the first time it is asked.
 var _slabs := {}
+## Every blocker, by index, thin enough to be a slab and no wall: what each room's
+## slabs are picked from, gathered the first time they are.
+var _thin := PackedInt32Array()
+var _thin_gathered := false
 ## Per room, the hatches in a deck over its floor over its area, each as its
 ## [footprint, height]: the only ones ceiling() need look at.
 var _hatches := {}
@@ -189,12 +193,17 @@ func _ceiling_at(room: ShipRoom, x: float, z: float) -> float:
 	if hatch < INF and (over == -1 or hatch < height):
 		height = hatch
 	if not _slabs.has(room):
+		if not _thin_gathered:
+			_thin_gathered = true
+			for index in layout.blockers.size():
+				var blocker := layout.blockers[index]
+				if blocker.top - blocker.bottom <= WALL_MAX and not is_wall(blocker):
+					_thin.append(index)
 		var slabs := PackedInt32Array()
-		for index in layout.blockers.size():
+		for index: int in _thin:
 			var blocker := layout.blockers[index]
-			var thin := blocker.top - blocker.bottom <= WALL_MAX
 			var above := blocker.bottom > room.floor_height + SLIVER
-			if thin and above and not is_wall(blocker) and blocker.area.intersects(room.area):
+			if above and blocker.area.intersects(room.area):
 				slabs.append(index)
 		_slabs[room] = slabs
 	for index: int in _slabs[room]:

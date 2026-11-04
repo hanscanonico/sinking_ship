@@ -117,12 +117,15 @@ static func stretches_of(
 		return found
 	var bare: ShipLayout = ship.duplicate()
 	bare.props = []
+	# One ShipSpace for them all: what it works out of her is the same for each stretch.
+	var space := ShipSpace.new(bare)
 	for cut in range(1, cuts.size()):
 		var dressed := ShipArt.new()
 		dressed.name = "Stretch%d" % cut
 		dressed.cut_above = cut_above
 		dressed.span = cuts[cut]
 		dressed.rules = rules
+		dressed.shared_space = space
 		dressed.build(bare, rules.railing_height, rules.body_radius, falls, fails, open_ports)
 		found.append(dressed)
 	return found

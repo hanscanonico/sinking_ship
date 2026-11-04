@@ -364,7 +364,8 @@ static func room_map(layout: ShipLayout) -> Image:
 			var cell := Rect2(bounds.position + Vector2(column, row) * ROOM_CELL, Vector2.ONE)
 			cell.size *= ROOM_CELL
 			var span := Vector2(INF, -INF)
-			for room: ShipRoom in layout.rooms:
+			for index: int in space.rooms_near(cell):
+				var room := layout.rooms[index]
 				if room.area.intersects(cell):
 					var at := cell.get_center().clamp(room.area.position, room.area.end)
 					# Down to INSIDE under its floor, as ShipSpace.outdoors reads a room:
@@ -382,6 +383,7 @@ static func room_map(layout: ShipLayout) -> Image:
 ## reads it, a wall runs where it stands rather than along the cells', so no strip of
 ## a room by its wall takes the sky, nor of the sea by the hull loses it.
 static func room_edges(layout: ShipLayout) -> Image:
+	var space := ShipSpace.new(layout)
 	var bounds := room_bounds(layout)
 	var size := _cells(bounds)
 	var edges := Image.create_empty(size.x, size.y, false, Image.FORMAT_RH)
@@ -389,8 +391,9 @@ static func room_edges(layout: ShipLayout) -> Image:
 		for column in size.x:
 			var at := bounds.position + (Vector2(column, row) + Vector2(0.5, 0.5)) * ROOM_CELL
 			var inside := -EDGE_REACH
-			for room: ShipRoom in layout.rooms:
-				inside = maxf(inside, _inside(room.area, at))
+			# A room further off than EDGE_REACH stands less than it inside.
+			for index: int in space.rooms_near(Rect2(at, Vector2.ZERO).grow(EDGE_REACH)):
+				inside = maxf(inside, _inside(layout.rooms[index].area, at))
 			edges.set_pixel(column, row, Color(minf(inside + EDGE_GRACE, EDGE_REACH), 0.0, 0.0))
 	return edges
 

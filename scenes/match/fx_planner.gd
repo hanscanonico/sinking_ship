@@ -87,8 +87,6 @@ const COLLAPSE_PIECES := 2
 ## drowns the machine, in seconds at full.
 const STEAM_FIRST := 4.0
 const STEAM_DROWNED := 6.0
-## How many vents a machinery room breathes through, at most.
-const VENTS := 2
 ## The funnel belches as its top comes down to this height over the sea, in metres.
 const FUNNEL_DIP := 6.0
 ## Bubbles over a deck that has just gone under, and where the ship has gone.
@@ -140,13 +138,8 @@ var _centre := Vector3.ZERO
 var _funnel := Vector3(NAN, NAN, NAN)
 ## The funnel that top is of, or null.
 var _funnel_blocker: ShipBlocker
-## Per room, the openings air blows out of as it floods: points and their outward.
-var _openings: Array[PackedVector3Array] = []
-var _outwards: Array[PackedVector3Array] = []
-## Per room, the top of the machine standing in it, or NAN for none; and the vents
-## its steam comes up through.
-var _machines := PackedVector3Array()
-var _vents: Array[PackedVector3Array] = []
+## Per room, the openings air blows out of as it floods, and its machine's vents.
+var _outlets: RoomOutlets
 ## Their floors and machines going under, read once a pose.
 var _machinery_water: MachineryWater
 ## Per platform end of its waterline, how near its next burst of spray is, 0…1.
@@ -210,14 +203,12 @@ func _init(config: MatchConfig, surfaces: Surfaces, schedule: SinkSchedule) -> v
 		if blocker.shape == ShipBlocker.Shape.CYLINDER and ShipArt.is_funnel(_layout, blocker):
 			_funnel = Vector3(blocker.centre.x, blocker.top, blocker.centre.y)
 			_funnel_blocker = blocker
-	for room: ShipRoom in _layout.rooms:
-		_find_openings(room, config.rules)
-		_find_machine(room)
-	_machinery_water = MachineryWater.new(_layout, _machines)
-	for index in _openings.size():
-		_blasts.append_array(_openings[index])
-		_blast_ways.append_array(_outwards[index])
-		for vent: Vector3 in _vents[index]:
+	_outlets = RoomOutlets.new(_layout, _space, surfaces, config.rules)
+	_machinery_water = MachineryWater.new(_layout, _outlets.machines)
+	for index in _outlets.openings.size():
+		_blasts.append_array(_outlets.openings[index])
+		_blast_ways.append_array(_outlets.outwards[index])
+		for vent: Vector3 in _outlets.vents[index]:
 			_blasts.append(vent)
 			_blast_ways.append(Vector3.UP)
 	_spray.resize(_layout.platforms.size() * 2)
@@ -436,9 +427,9 @@ func _machinery(
 	for slot in _machinery_water.rooms.size():
 		var index := _machinery_water.rooms[slot]
 		if went[slot * 2] == 1:
-			_steam(_vents[index], STEAM_FIRST, 0.6, tick, cues)
+			_steam(_outlets.vents[index], STEAM_FIRST, 0.6, tick, cues)
 		if went[slot * 2 + 1] == 1:
-			_steam(_vents[index], STEAM_DROWNED, 1.0, tick, cues)
+			_steam(_outlets.vents[index], STEAM_DROWNED, 1.0, tick, cues)
 			if not is_nan(_funnel.x):
 				_steam(PackedVector3Array([_funnel]), STEAM_DROWNED, 1.0, tick, cues)
 
@@ -996,58 +987,6 @@ func _sunk(pose: ShipPose) -> bool:
 	return highest == Surfaces.NONE or _surfaces.flooded(highest, pose)
 
 
-## [param room]'s doorways out onto the open deck, at chest height, and every hatch
-## standing on a deck over it, at its top: what the air in it blows out through as
-## it floods, where it can be seen.
-func _find_openings(room: ShipRoom, rules: BrawlRules) -> void:
-	var points := PackedVector3Array()
-	var outwards := PackedVector3Array()
-	for door: ShipRoom.Door in room.doors(_surfaces, rules.body_height, rules.step_height):
-		var middle := door.middle()
-		var at := Vector3(middle.x, room.floor_height + rules.body_height * 0.6, middle.y)
-		var outward := Vector3(door.outward.x, 0.0, door.outward.y)
-		if not _space.outdoors(at + outward * 0.6):
-			continue
-		points.append(at)
-		outwards.append(outward)
-	for blocker: ShipBlocker in _layout.blockers:
-		if _is_hatch(blocker) and blocker.bottom > room.floor_height:
-			var middle := blocker.area.get_center()
-			if room.area.has_point(middle):
-				points.append(Vector3(middle.x, blocker.top, middle.y))
-				outwards.append(Vector3.UP)
-	_openings.append(points)
-	_outwards.append(outwards)
-
-
-## The machine standing in [param room] — a box that is not a wall, indoors, as
-## ShipArt draws an engine — and the vents up from it: skylights in the open deck
-## straight over the room, along its middle.
-func _find_machine(room: ShipRoom) -> void:
-	var machine := Vector3(NAN, NAN, NAN)
-	for blocker: ShipBlocker in _layout.blockers:
-		if blocker.shape != ShipBlocker.Shape.BOX or _space.is_wall(blocker):
-			continue
-		var middle := blocker.area.get_center()
-		var inside := Vector3(middle.x, (blocker.bottom + blocker.top) * 0.5, middle.y)
-		var on_floor := absf(blocker.bottom - room.floor_height) < 0.05
-		if on_floor and room.area.has_point(middle) and not _space.outdoors(inside):
-			machine = Vector3(middle.x, blocker.top, middle.y)
-	_machines.append(machine)
-	var vents := PackedVector3Array()
-	if not is_nan(machine.x):
-		var area := room.area
-		for share in VENTS:
-			var at := Vector2(
-				area.position.x + area.size.x * (share + 1.0) / (VENTS + 1.0), area.get_center().y
-			)
-			var deck := _space.deck_under(at, INF)
-			var vent := Vector3(at.x, deck, at.y)
-			if not is_nan(deck) and _space.outdoors(vent + Vector3.UP * 0.5):
-				vents.append(vent)
-	_vents.append(vents)
-
-
 ## Where water wells up through [param structure]'s floors: every floor's gaps from a
 ## void, whose water is not drawn, up into a cell whose water is, in [param boxes] —
 ## WELLS places spread along the part of the floor in the drawn box, staggered across it.
@@ -1089,11 +1028,3 @@ func _find_wells(structure: ShipStructure, boxes: Array[AABB]) -> void:
 			_well_reach.append(minf(spacing, walked.size[1 - along]) * 0.4)
 			_well_cells.append(over)
 			_well_cells.append(under)
-
-
-## A box standing outdoors on a deck that is not a wall: ShipArt's tarpaulined hatch.
-func _is_hatch(blocker: ShipBlocker) -> bool:
-	if blocker.shape != ShipBlocker.Shape.BOX or _space.is_wall(blocker):
-		return false
-	var middle := blocker.area.get_center()
-	return _space.outdoors(Vector3(middle.x, (blocker.bottom + blocker.top) * 0.5, middle.y))
