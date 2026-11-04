@@ -41,7 +41,7 @@ func test_it_answers_as_reading_every_pose_afresh() -> void:
 		var middle := room.area.get_center()
 		machines.append(Vector3(middle.x, room.floor_height + 1.0, middle.y))
 	machines[0] = Vector3(NAN, NAN, NAN)
-	var water := MachineryWater.new(layout, machines, sim.surfaces)
+	var water := MachineryWater.new(layout, machines)
 	assert_eq(water.rooms.size(), layout.rooms.size() - 1, "the room with no machine left out")
 	var went_any := 0
 	var tick := 0

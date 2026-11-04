@@ -210,7 +210,7 @@ func _init(config: MatchConfig, surfaces: Surfaces, schedule: SinkSchedule) -> v
 	for room: ShipRoom in _layout.rooms:
 		_find_openings(room, config.rules)
 		_find_machine(room)
-	_machinery_water = MachineryWater.new(_layout, _machines, surfaces)
+	_machinery_water = MachineryWater.new(_layout, _machines)
 	for index in _openings.size():
 		_blasts.append_array(_openings[index])
 		_blast_ways.append_array(_outwards[index])

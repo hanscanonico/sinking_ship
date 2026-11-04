@@ -2,23 +2,20 @@ class_name MachineryWater
 extends RefCounted
 ## Which machinery rooms' floors and machines the sea comes to over a step (FxPlanner's
 ## steam): every room's four floor corners and its machine's top read wet once a pose,
-## their cells found once a cell map — the Titanic has thousands, read every step.
+## all together (StillPoints) — the Titanic has thousands, read every step.
 
 ## The rooms with a machine, in order.
 var rooms := PackedInt32Array()
 ## Per room, its floor's four corners then its machine's top, in ship space.
-var _points := PackedVector3Array()
-var _surfaces: Surfaces
-## Per cell map, the cell each point lies in under it.
-var _cells := {}
+var _points: StillPoints
 ## What each point read under the pose at _tick, a byte a point; -1 before any.
 var _tick := -1
 var _wet := PackedByteArray()
 
 
 ## [param machines] holds per room of [param layout] its machine's top, NAN for none.
-func _init(layout: ShipLayout, machines: PackedVector3Array, surfaces: Surfaces) -> void:
-	_surfaces = surfaces
+func _init(layout: ShipLayout, machines: PackedVector3Array) -> void:
+	var points := PackedVector3Array()
 	for index in layout.rooms.size():
 		if is_nan(machines[index].x):
 			continue
@@ -31,8 +28,9 @@ func _init(layout: ShipLayout, machines: PackedVector3Array, surfaces: Surfaces)
 			area.end,
 			Vector2(area.position.x, area.end.y)
 		]:
-			_points.append(Vector3(corner.x, room.floor_height, corner.y))
-		_points.append(machines[index])
+			points.append(Vector3(corner.x, room.floor_height, corner.y))
+		points.append(machines[index])
+	_points = StillPoints.new(points)
 
 
 ## Per room, two bytes: 1 where the sea reaches its floor, then 1 where it drowns its
@@ -60,16 +58,5 @@ func went_under(
 
 ## Whether each point is wet under [param pose], a byte a point.
 func _read(pose: ShipPose) -> PackedByteArray:
-	var wet := PackedByteArray()
-	wet.resize(_points.size())
-	var cells: PackedInt32Array = _cells.get(pose.cells, PackedInt32Array())
-	if cells.size() != _points.size():
-		cells.resize(_points.size())
-		for index in _points.size():
-			cells[index] = pose.cell_at(_points[index])
-		if not pose.levels.is_empty():
-			_cells[pose.cells] = cells
-	for index in _points.size():
-		if _surfaces.wet(_points[index], pose, cells[index]):
-			wet[index] = 1
-	return wet
+	_points.read(pose)
+	return _points.wet_all()
