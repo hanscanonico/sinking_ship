@@ -158,6 +158,10 @@ class Kept:
 	extends RefCounted
 	var entries: Array[Dictionary] = []
 	var numbers := PackedInt64Array()
+	## The snapshot's railings' hits as last put or taken, and the numbers they came to:
+	## the Titanic's 721 are walked only on a tick that hits one (#410).
+	var amounts := PackedFloat64Array()
+	var amount_numbers := PackedInt64Array()
 
 
 var _hash: PackedByteArray
@@ -388,8 +392,23 @@ static func _put_record(values: Values, record: Dictionary, walk: Array, kept: K
 			values.ints.append(record.get(field[0]))
 		elif kept != null and field[0] == "props":
 			_put_kept(values, record.get(field[0]), field[2], kept)
+		elif kept != null and field[1] == SnapshotField.Kind.AMOUNTS:
+			_put_amounts(values, record.get(field[0]), field, kept)
 		else:
 			_put_field(values, record.get(field[0]), field)
+
+
+## [param amounts], the railings' hits, as the numbers [param kept] last put for them while
+## they are as they were then; walked as [param field] says, into them, when not.
+static func _put_amounts(
+	values: Values, amounts: PackedFloat64Array, field: Array, kept: Kept
+) -> void:
+	if amounts != kept.amounts or kept.amount_numbers.is_empty():
+		var walked := Values.new()
+		_put_field(walked, amounts, field)
+		kept.amounts = amounts.duplicate()
+		kept.amount_numbers = walked.ints
+	values.ints.append_array(kept.amount_numbers)
 
 
 ## [param records], the props, as the numbers [param kept] last put for them: only a prop
@@ -457,9 +476,26 @@ static func _record(values: Values, walk: Array, kept: Kept = null) -> Dictionar
 			record[field[0]] = values.take()
 		elif kept != null and field[0] == "props":
 			record[field[0]] = _take_kept(values, field[2], kept)
+		elif kept != null and field[1] == SnapshotField.Kind.AMOUNTS:
+			record[field[0]] = _take_amounts(values, field, kept)
 		else:
 			record[field[0]] = _field(values, field)
 	return record
+
+
+## The railings' hits [param values] hold next: the hits [param kept] last took while their
+## numbers come as they came then, else walked as [param field] says and kept for the next.
+static func _take_amounts(values: Values, field: Array, kept: Kept) -> PackedFloat64Array:
+	var count := _count(values)
+	var numbers := values.take_run(count)
+	if not values.ok:
+		return PackedFloat64Array()
+	var whole := PackedInt64Array([count])
+	whole.append_array(numbers)
+	if whole != kept.amount_numbers:
+		kept.amount_numbers = whole
+		kept.amounts = SnapshotField.from_quanta(field[1], numbers)
+	return kept.amounts.duplicate()
 
 
 ## The props [param values] hold next: each whose numbers come as [param kept] last took
