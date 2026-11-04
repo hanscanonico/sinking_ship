@@ -24,6 +24,9 @@ const PARTS: Array[Array] = [
 	[&"reconcile", "client reconcile", &"match"],
 	[&"draw", "drawing", &"frame"],
 	[&"render", "render CPU", &"draw"],
+	[&"settle", "after the scripts, before drawing", &"frame"],
+	[&"loop", "after drawing: events, physics", &"frame"],
+	[&"flush", "before the scripts: flushes", &"frame"],
 ]
 ## What each parent's measured parts leave of it, by name.
 const RESTS := {
@@ -166,6 +169,12 @@ func report() -> PackedStringArray:
 		"  GPU %s (beside the CPU, not added)" % ("%.2f ms" % gpu if gpu > 0.0 else "not measured")
 	)
 	lines.append("  draw calls %.0f, primitives %.0f" % [mean(&"draw_calls"), mean(&"primitives")])
+	lines.append(
+		(
+			"  physics frames %.2f, nodes %.0f, objects %.0f (per frame)"
+			% [mean(&"physics_frames"), mean(&"nodes"), mean(&"objects")]
+		)
+	)
 	var undrawn: int = _sums.get(&"undrawn", 0)
 	if undrawn > 0:
 		lines.append("  %d frames not drawn (the window out of sight), nothing rendered" % undrawn)
@@ -208,4 +217,17 @@ static func _line(label: String, ms: float, depth: int) -> String:
 
 
 static func _is_count(part: StringName) -> bool:
-	return part in [&"poses", &"replans", &"steps", &"draw_calls", &"primitives", &"undrawn"]
+	return (
+		part
+		in [
+			&"poses",
+			&"replans",
+			&"steps",
+			&"draw_calls",
+			&"primitives",
+			&"undrawn",
+			&"physics_frames",
+			&"nodes",
+			&"objects",
+		]
+	)
