@@ -13,6 +13,11 @@ extends RefCounted
 ## so the main thread never just waits on one — dress_now, finish and finish_all keep that
 ## work flowing while they wait — and every one is finished before the game quits
 ## (finish_all), or its thread would wait on frames that never come.
+##
+## A match that breaks her is dressed as its StretchPlan has it: when her stretches can be
+## built behind the match, her art is the whole of her, and done() says so as soon as it
+## is — the match can start — while the stretches go on being built on the same thread,
+## taken once they all are (take_stretches) to draw her in their place (MatchView).
 
 ## How long the main thread sleeps between flushes as it waits on a dressing, in µs.
 const WAIT_USEC := 200
@@ -27,9 +32,14 @@ var config: MatchConfig
 ## The height above which her art is cut away (ShipArt.cut_above).
 var cut_above: float
 ## Her art: the stretch the ship's own node draws (ShipPieces.first_span) — all of her
-## when she never breaks — and the rest, aft to fore, each to hang on its piece.
+## when she never breaks, or until her stretches are in (plan) — and the rest, aft to
+## fore, each to hang on its piece: built before the match unless the plan has them later
+## (take_stretches).
 var art: ShipArt
 var stretches: Array[ShipArt] = []
+## Which of her stretches are built before the match starts, and which behind it; null
+## for a ship at rest.
+var plan: StretchPlan
 
 var _ship: ShipLayout
 var _rules: BrawlRules
@@ -39,6 +49,22 @@ var _dressed := false
 var _guard := Mutex.new()
 var _built := false
 var _dropped := false
+## Her art and every stretch built before the match is: done() may say she is dressed.
+var _art_ready := false
+## The stretches built behind the match are no longer wanted: those not yet built are
+## not, and those built are freed (stop_later).
+var _stop_later := false
+## Per stretch, aft to fore, the one built (null until it is), and whether they have
+## been taken (take_stretches).
+var _cut: Array[ShipArt] = []
+var _handed := false
+## What her stretches are built of: her layout bare of props, one ShipSpace of it for them
+## all, and what of her the sinking can fell, fail and leave open.
+var _bare: ShipLayout
+var _space: ShipSpace
+var _falls: Array[StringName] = []
+var _fails := PackedInt32Array()
+var _ports := PackedVector3Array()
 
 
 ## [param dressed]'s ship to dress as its match draws her, cut away above [param cut] as
@@ -68,6 +94,11 @@ func start() -> ShipDressing:
 	if _task >= 0 or _dressed:
 		return self
 	_see_through()
+	# A match's dressing begun means the match before is over: its stretches are no longer
+	# wanted.
+	for other: ShipDressing in _under_way:
+		if config != null and other.config != null:
+			other.stop_later()
 	_under_way.append(self)
 	_task = WorkerThreadPool.add_task(_dress, false, "Dressing a ship")
 	return self
@@ -86,19 +117,52 @@ func finish() -> void:
 	if _task < 0:
 		dress_now()
 		return
-	while not WorkerThreadPool.is_task_completed(_task):
+	while not done():
 		_flush()
-	done()
 
 
-## Whether she is dressed: art and stretches are ready to take.
+## Whether she is dressed: art — and stretches, but those her plan builds later — are
+## ready to take.
 func done() -> bool:
 	if _task >= 0 and WorkerThreadPool.is_task_completed(_task):
 		WorkerThreadPool.wait_for_task_completion(_task)
 		_task = -1
 		_dressed = true
 		_under_way.erase(self)
+	elif _task >= 0 and not _dressed:
+		_guard.lock()
+		_dressed = _art_ready
+		_guard.unlock()
 	return _dressed
+
+
+## Whether every stretch of hers is built, those her plan builds behind the match too.
+func stretched() -> bool:
+	return done() and _task < 0
+
+
+## Her stretches, aft to fore, once every one is built (stretched) when her art is all of
+## her (StretchPlan.whole): the first to take the art's place, the rest each to hang on
+## its piece; none before then, nor twice.
+func take_stretches() -> Array[ShipArt]:
+	var found: Array[ShipArt] = []
+	if plan == null or not plan.whole or _handed or not stretched():
+		return found
+	_handed = true
+	found.assign(_cut)
+	_cut.clear()
+	return found
+
+
+## Stops building the stretches her plan builds behind the match, once the one under way
+## is: those built are freed, never taken. Her art is left as it is.
+func stop_later() -> void:
+	_guard.lock()
+	_stop_later = true
+	var built := _built or _task < 0
+	_guard.unlock()
+	if built and not _handed:
+		_free_stretches()
 
 
 ## Whether this dresses [param other]'s ship as its match draws her, cut away above
@@ -134,7 +198,9 @@ func drop() -> void:
 ## what the game does before it quits.
 static func finish_all() -> void:
 	for dressing: ShipDressing in _under_way.duplicate():
-		dressing.finish()
+		dressing.stop_later()
+		while not dressing.stretched():
+			_flush()
 
 
 ## Waits for, and forgets, every dressing under way whose task is over.
@@ -174,14 +240,22 @@ func _dress() -> void:
 		art.build(_ship, _rules.railing_height, _rules.body_radius)
 	else:
 		var schedule := config.schedule()
-		var falls := MatchView.falls_of(schedule)
+		_falls = MatchView.falls_of(schedule)
 		# Any railing may break (SH10), not only those the scenario fails.
-		var fails := PackedInt32Array(range(_ship.railings.size()))
-		var ports := MatchView.open_ports_of(schedule, _ship.structure)
-		art.span = ShipPieces.first_span(schedule)
+		_fails = PackedInt32Array(range(_ship.railings.size()))
+		_ports = MatchView.open_ports_of(schedule, _ship.structure)
+		plan = StretchPlan.for_schedule(schedule, _ship)
 		art.rules = _rules
-		art.build(_ship, _rules.railing_height, _rules.body_radius, falls, fails, ports)
-		stretches = ShipPieces.stretches_of(_ship, schedule, _rules, cut_above, falls, fails, ports)
+		# All of her when the plan has her stretches in later to take her place.
+		if not plan.whole:
+			art.span = ShipPieces.first_span(schedule)
+		art.build(_ship, _rules.railing_height, _rules.body_radius, _falls, _fails, _ports)
+		if plan.whole:
+			_dress_stretches(plan.before)
+		else:
+			stretches = ShipPieces.stretches_of(
+				_ship, schedule, _rules, cut_above, _falls, _fails, _ports
+			)
 	_building.unlock()
 	# Her sea's maps of her rooms too, which her match's sea takes as it starts: a liner's
 	# take seconds (SeaAndSky.maps_of); and which of her decks stand in her rooms, which
@@ -189,11 +263,41 @@ func _dress() -> void:
 	SeaAndSky.maps_of(_ship)
 	DeckWetness.out_on_deck(_ship)
 	_guard.lock()
+	_art_ready = true
+	_guard.unlock()
+	# The stretches the plan builds behind the match, one dressing building at a time.
+	if plan != null and plan.whole:
+		_building.lock()
+		_dress_stretches(plan.later)
+		_building.unlock()
+	_guard.lock()
 	_built = true
 	dropped = _dropped
+	var stopped := _stop_later
 	_guard.unlock()
 	if dropped:
 		_free_nodes()
+	elif stopped and not _handed:
+		_free_stretches()
+
+
+## Builds the stretches [param which] of hers (ShipPieces.cuts_of), aft to fore, as
+## ShipPieces.stretches_of does — but stopped once she is let go (drop, stop_later).
+func _dress_stretches(which: PackedInt32Array) -> void:
+	var cuts := ShipPieces.cuts_of(config.schedule())
+	_cut.resize(cuts.size())
+	if _bare == null:
+		_bare = ShipPieces.bare(_ship)
+		_space = ShipSpace.new(_bare)
+	for cut in which:
+		_guard.lock()
+		var stopped := _dropped or _stop_later
+		_guard.unlock()
+		if stopped:
+			return
+		_cut[cut] = ShipPieces.stretch_of(
+			_bare, _space, cuts, cut, _rules, cut_above, _falls, _fails, _ports
+		)
 
 
 func _free_nodes() -> void:
@@ -203,3 +307,12 @@ func _free_nodes() -> void:
 	for stretch: ShipArt in stretches:
 		stretch.free()
 	stretches.clear()
+	_free_stretches()
+
+
+## Frees the stretches built for the plan's later ones, never taken.
+func _free_stretches() -> void:
+	for stretch: ShipArt in _cut:
+		if stretch != null:
+			stretch.free()
+	_cut.clear()
