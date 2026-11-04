@@ -9,6 +9,11 @@ extends Node3D
 ## torn back as the piece's decks are, tear metres from a cut, once the cut is made; as
 ## the greybox, each piece is its own layout (Pieces.layout). Each piece's water and lamps
 ## are its own pose's (ShipPose.of_piece). It reads the schedule only, never the sim (D5).
+##
+## Her stretches may come in after the match starts (StretchPlan): until then her whole
+## art draws her on the ship's own node, and should she part before they are in, it is
+## drawn as her largest piece is posed, the other pieces' water hidden — never a bare hull
+## — until they are (dress).
 
 var _schedule: SinkSchedule
 var _pieces: Pieces
@@ -26,6 +31,11 @@ var _torn := PackedInt32Array()
 var _arts: Array[ShipArt] = []
 var _cuts := PackedVector2Array()
 var _cut_leaf := PackedInt32Array()
+## Whether her art is her whole, her stretches still to come (dress); the leaf, by its
+## place in _leaves, it is drawn as, the longest; and the tick she first parts.
+var _whole := false
+var _largest := 0
+var _parted := 1 << 62
 
 
 ## The pieces of [param schedule]'s sinking she ends in, aft to fore — however she broke
@@ -40,9 +50,14 @@ static func leaves_of(schedule: SinkSchedule) -> PackedInt32Array:
 ## Draws every piece of [param sim]'s ship past the first, which [param ship] — its node
 ## — [param art] and [param greybox] draw: dressed as [param art] is, each stretch past the
 ## first one of [param stretches] (stretches_of), or as the greybox while [param greybox]
-## is visible.
+## is visible; [param whole] when [param art] is all of her, the stretches to come (dress).
 func setup(
-	sim: MatchSim, ship: Node3D, art: ShipArt, greybox: ShipGreybox, stretches: Array[ShipArt]
+	sim: MatchSim,
+	ship: Node3D,
+	art: ShipArt,
+	greybox: ShipGreybox,
+	stretches: Array[ShipArt],
+	whole: bool = false
 ) -> void:
 	for child: Node in get_children():
 		child.queue_free()
@@ -56,8 +71,9 @@ func setup(
 	_spans.clear()
 	_torn.clear()
 	_arts.clear()
-	_cuts = cuts_of(_schedule)
-	_cut_leaf.clear()
+	_whole = whole and not greybox.visible
+	_largest = 0
+	_parted = 1 << 62
 	var rules := sim.config.rules
 	for at in _leaves.size():
 		var leaf := _leaves[at]
@@ -76,13 +92,42 @@ func setup(
 			_greyboxes[at].cut_above = greybox.cut_above
 			holder.add_child(_greyboxes[at])
 			_greyboxes[at].build(_pieces.layout(leaf), rules.railing_height)
+		var longest := _spans[_largest].y - _spans[_largest].x
+		if _spans[at].y - _spans[at].x > longest:
+			_largest = at
+		_parted = mini(_parted, mini(_torn[at * 2], _torn[at * 2 + 1]))
+	if _whole:
+		_cuts = PackedVector2Array([Vector2(-INF, INF)])
+		_cut_leaf = PackedInt32Array([0])
+		_arts = [art]
+	else:
+		_hang(art, stretches, greybox.visible)
+
+
+## Draws her as [param art] — her first stretch, the ship's own node's art now — and
+## [param stretches], the rest, aft to fore, each hung on its piece, in place of her whole
+## art (setup's whole).
+func dress(art: ShipArt, stretches: Array[ShipArt]) -> void:
+	_whole = false
+	for water: InnerWater in _waters:
+		if water != null:
+			water.visible = true
+	_hang(art, stretches, false)
+
+
+## Keeps [param art] and [param stretches] (setup) as the stretches her art is cut into
+## (cuts_of), each the piece's it lies in — none dressed when [param undressed].
+func _hang(art: ShipArt, stretches: Array[ShipArt], undressed: bool) -> void:
+	_cuts = cuts_of(_schedule)
+	_cut_leaf.clear()
+	_arts.clear()
 	for cut in _cuts.size():
 		var middle := (_cuts[cut].x + _cuts[cut].y) * 0.5
 		var at := 0
 		while _spans[at].y < middle:
 			at += 1
 		_cut_leaf.append(at)
-		if greybox.visible:
+		if undressed:
 			_arts.append(null)
 		elif cut == 0:
 			_arts.append(art)
@@ -115,20 +160,46 @@ static func stretches_of(
 	var cuts := cuts_of(schedule)
 	if cuts.size() < 2:
 		return found
-	var bare: ShipLayout = ship.duplicate()
-	bare.props = []
+	var stripped := bare(ship)
 	# One ShipSpace for them all: what it works out of her is the same for each stretch.
-	var space := ShipSpace.new(bare)
+	var space := ShipSpace.new(stripped)
 	for cut in range(1, cuts.size()):
-		var dressed := ShipArt.new()
-		dressed.name = "Stretch%d" % cut
-		dressed.cut_above = cut_above
-		dressed.span = cuts[cut]
-		dressed.rules = rules
-		dressed.shared_space = space
-		dressed.build(bare, rules.railing_height, rules.body_radius, falls, fails, open_ports)
-		found.append(dressed)
+		found.append(
+			stretch_of(stripped, space, cuts, cut, rules, cut_above, falls, fails, open_ports)
+		)
 	return found
+
+
+## [param ship] without her props, which her first stretch draws: what every stretch of
+## hers is built of (stretches_of).
+static func bare(ship: ShipLayout) -> ShipLayout:
+	var stripped: ShipLayout = ship.duplicate()
+	stripped.props = []
+	return stripped
+
+
+## The stretch [param cut] of [param cuts] (cuts_of) of [param ship] — bare of props
+## (bare), [param space] its ShipSpace — built as stretches_of builds each; the first, built
+## to take her whole art's place (ShipDressing), named as her art is.
+static func stretch_of(
+	ship: ShipLayout,
+	space: ShipSpace,
+	cuts: PackedVector2Array,
+	cut: int,
+	rules: BrawlRules,
+	cut_above: float,
+	falls: Array[StringName],
+	fails: PackedInt32Array,
+	open_ports: PackedVector3Array
+) -> ShipArt:
+	var dressed := ShipArt.new()
+	dressed.name = "ShipArt" if cut == 0 else "Stretch%d" % cut
+	dressed.cut_above = cut_above
+	dressed.span = cuts[cut]
+	dressed.rules = rules
+	dressed.shared_space = space
+	dressed.build(ship, rules.railing_height, rules.body_radius, falls, fails, open_ports)
+	return dressed
 
 
 ## The stretches her dressed art is cut into, aft to fore, when [param schedule]'s
@@ -166,7 +237,9 @@ func flood_with(sea: ShaderMaterial, first: InnerWater) -> void:
 			water.name = "InnerWater"
 			_holders[at].add_child(water)
 		_waters[at] = water
-		var dressed := _arts[_cut_leaf.find(at)] if not _arts.is_empty() else null
+		var dressed: ShipArt = null
+		if not _arts.is_empty():
+			dressed = _arts[0 if _whole else _cut_leaf.find(at)]
 		var paints: Dictionary = dressed.paints() if dressed != null else {}
 		var structure := _schedule.structure_of(leaf)
 		var layout := _pieces.layout(leaf)
@@ -213,6 +286,11 @@ func show_pieces(
 			_greyboxes[at].show_sinking(collapsing, fallen, _local(leaf, broken), lit)
 			_greyboxes[at].show_power(own_now)
 			_greyboxes[at].show_falls(now.falls, tick)
+	if _whole:
+		_show_whole(then, now, alpha, tick)
+		_arts[0].show_sinking(collapsing, fallen, broken, lit)
+		_arts[0].show_falls(now.falls, tick)
+		return
 	for cut in _arts.size():
 		var dressed := _arts[cut]
 		if dressed == null:
@@ -228,6 +306,23 @@ func show_pieces(
 		dressed.show_sinking(collapsing, fallen, broken, lit)
 		dressed.show_power(now.of_piece(_leaves[at]))
 		dressed.show_falls(now.falls, tick)
+
+
+## Her whole art, while her stretches are not in (setup's whole), drawn as the largest
+## piece she ends in is posed: one with every piece before she parts, and once she has,
+## no other piece's water drawn, which no hull of theirs holds.
+func _show_whole(then: ShipPose, now: ShipPose, alpha: float, tick: float) -> void:
+	var own := then.of_piece(_leaves[0]).transform.interpolate_with(
+		now.of_piece(_leaves[0]).transform, alpha
+	)
+	var largest := then.of_piece(_leaves[_largest]).transform.interpolate_with(
+		now.of_piece(_leaves[_largest]).transform, alpha
+	)
+	_arts[0].transform = own.affine_inverse() * largest
+	_arts[0].show_power(now.of_piece(_leaves[_largest]))
+	for at in _waters.size():
+		if _waters[at] != null:
+			_waters[at].visible = at == _largest or tick < _parted
 
 
 ## The tick leaf [param leaf]'s aft end — or fore end — is torn: when the piece whose cut

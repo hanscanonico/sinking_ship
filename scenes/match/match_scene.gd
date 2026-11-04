@@ -909,6 +909,8 @@ func _hold() -> void:
 func _show_graphics(quality: GraphicsQuality) -> void:
 	_sea_and_sky.show_graphics(quality)
 	_underwater.show_graphics(quality)
+	# Her art may have changed since: her stretches in behind the match (MatchView).
+	_ship_art = _view.art()
 	_ship_art.show_graphics(quality)
 
 
