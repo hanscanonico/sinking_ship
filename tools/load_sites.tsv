@@ -91,6 +91,7 @@ tests/unit/goldens.gd	FileAccess.file_exists(path)	tests/golden/*.txt
 tests/unit/goldens.gd	FileAccess.get_file_as_string(path)	tests/golden/*.txt
 tests/unit/match/test_fx_planner.gd	FileAccess.get_file_as_string("res://scenes/match/" + file)	scenes/match/*.gd
 tests/unit/match/test_iceberg_planner.gd	load(path)	@ship
+tests/unit/match/test_room_outlets.gd	load("res://data/ships/%s.tres" % ship)	@ship
 tests/unit/online/test_online_play.gd	FileAccess.file_exists(path)	-
 tools/arena.gd	FileAccess.get_file_as_string(path)	docs/arena*.md
 tools/arena.gd	FileAccess.open(path)	docs/arena*.md
