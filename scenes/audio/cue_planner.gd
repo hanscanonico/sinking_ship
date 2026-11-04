@@ -629,16 +629,18 @@ func _reading(pose: ShipPose) -> Reading:
 	reading.pouring.resize(_openings.size())
 	for index in _openings.size():
 		reading.pouring[index] = 0
-		var opening := _openings[index]
-		var failed: int = pose.opened.get(opening.name, 0)
-		if failed == 0 and (_shut[index] == 1 or pose.doors_shut.get(opening.name, 0.0) >= 1.0):
-			continue
+		# Its higher side dry first: most of the Titanic's openings, asked before the
+		# pose's doors are looked up.
 		var first := _sides[index * 2]
 		var second := _sides[index * 2 + 1]
 		var first_level := 0.0 if first == -1 else levels[first]
 		var second_level := 0.0 if second == -1 else levels[second]
 		var high := first if first_level >= second_level else second
 		if high != -1 and reading.over[high] == 0:
+			continue
+		var opening := _openings[index]
+		var failed: int = pose.opened.get(opening.name, 0)
+		if failed == 0 and (_shut[index] == 1 or pose.doors_shut.get(opening.name, 0.0) >= 1.0):
 			continue
 		var half := _opening_halves[index]
 		var reach := across * half.x + up * half.y + along * half.z
