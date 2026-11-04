@@ -31,6 +31,8 @@ const GLASS_SHADER := preload("res://scenes/art/glass.gdshader")
 
 ## A deck's planking: its top is the platform's height.
 const PLANK := 0.06
+## How near the eye a lamp is woken to swing as she turns, in metres (_wake_lamps).
+const LAMP_WAKE_REACH := 40.0
 ## The boot line, above the waterline of a level, unsunk ship.
 const BOOT_ABOVE := 0.35
 ## The tallest a stair's step rises: the stair's top stands within half of it of
@@ -386,8 +388,7 @@ func show_power(pose: ShipPose) -> void:
 	if pose == _powered:
 		return
 	if _powered == null or pose.transform.basis != _powered.transform.basis:
-		for lamp: ShipLamp in _lamps:
-			lamp.wake()
+		_wake_lamps()
 	_powered = pose
 	if pose.lit.is_empty():
 		return
@@ -407,6 +408,18 @@ func show_power(pose: ShipPose) -> void:
 		_deck_lights.show_power(pose)
 	if _broken_glass != null:
 		_broken_glass.show(pose)
+
+
+## Wakes every lamp within LAMP_WAKE_REACH of the eye drawing her — every one with no
+## eye — to swing as she turns: the Titanic hangs 897 a piece, and a lamp further off
+## catches up as the eye nears it, the next tick she turns.
+func _wake_lamps() -> void:
+	var camera := get_viewport().get_camera_3d() if is_inside_tree() else null
+	var eye := to_local(camera.global_position) if camera != null else Vector3.INF
+	var reach := LAMP_WAKE_REACH * LAMP_WAKE_REACH
+	for index in _lamps.size():
+		if camera == null or _lamp_at[index].distance_squared_to(eye) <= reach:
+			_lamps[index].wake()
 
 
 ## Turns each funnel [param falls] (ShipPose.falls) names about its foot as far as it has
