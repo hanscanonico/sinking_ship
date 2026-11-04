@@ -68,6 +68,7 @@ const BoatCheck := preload("res://tools/boat_check.gd")
 const StructureSteel := preload("res://tools/structure_steel.gd")
 const OpenSpanCheck := preload("res://tools/open_span_check.gd")
 const ArtLintCosts := preload("res://tools/art_lint_costs.gd")
+const ShipFaces := preload("res://tools/ship_faces.gd")
 const MATCH_SCENE := "res://scenes/match/match.tscn"
 const SHIPS_DIR := "res://data/ships/"
 const ART_DIR := "res://scenes/art/"
@@ -353,6 +354,8 @@ func _check_drawn(file: String, layout: ShipLayout, rules: BrawlRules) -> void:
 	var art := ShipArt.new()
 	root.add_child(art)
 	art.rules = rules
+	# Packed as a match draws her: what a player sees.
+	art.pack = true
 	art.build(layout, rules.railing_height, rules.body_radius)
 	_costs.timed("build", 0, since)
 	since = Time.get_ticks_usec()
@@ -842,36 +845,9 @@ func _check_blocker(
 		)
 
 
-## Every triangle drawn under [param art], in the ship's space — those shown now
-## alone when [param shown] says so. Into [param spans], when given, per triangle the
-## railing span it is drawn under (ShipArt's "Railing<n>" nodes), OpenSpanCheck.LAMP
-## for a lamp's, or -1.
+## Every triangle drawn under [param art] (ShipFaces.of).
 func _ship_faces(art: Node3D, shown := false, spans := PackedInt32Array()) -> PackedVector3Array:
-	var faces := PackedVector3Array()
-	var ship := art
-	while ship != null and not ship is ShipArt:
-		ship = ship.get_parent() as Node3D
-	var span_name := RegEx.create_from_string("^Railing(\\d+)$")
-	for node: Node in art.find_children("*", "MeshInstance3D", true, false):
-		var mesh_instance := node as MeshInstance3D
-		if shown and not mesh_instance.is_visible_in_tree():
-			continue
-		var span := -1
-		var up := mesh_instance.get_parent()
-		while up != null and up != ship:
-			var found := span_name.search(up.name)
-			if found != null:
-				span = found.get_string(1).to_int()
-			if up is ShipLamp:
-				span = OpenSpanCheck.LAMP
-			up = up.get_parent()
-		var to_ship := ship.global_transform.affine_inverse() * mesh_instance.global_transform
-		var corners := mesh_instance.mesh.get_faces()
-		for corner: Vector3 in corners:
-			faces.append(to_ship * corner)
-		for _triangle in corners.size() / 3:
-			spans.append(span)
-	return faces
+	return ShipFaces.of(art, shown, spans)
 
 
 func _samples(area: Rect2) -> PackedVector2Array:

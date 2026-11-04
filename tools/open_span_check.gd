@@ -42,6 +42,7 @@ static func check(
 	var none: Array[StringName] = []
 	var every := PackedInt32Array(range(layout.railings.size()))
 	art.rules = rules
+	art.pack = true
 	art.build(layout, rules.railing_height, rules.body_radius, none, every)
 	var spans := PackedInt32Array()
 	var faces: PackedVector3Array = ship_faces.call(art, false, spans)

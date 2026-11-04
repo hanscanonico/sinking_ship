@@ -22,10 +22,16 @@ const INSIDE := 0.002
 
 
 ## Every face of the rooms' furnishings (RoomDressing) [param art] draws, under its
-## Dressing node, in the ship's space: their meshes and their signs' letters.
+## Dressing node, in the ship's space: their meshes and their signs' letters — packed
+## (ShipArt.pack), the surfaces of its chunks named for furnishings and every sign its
+## SignPool holds, drawn or not.
 static func furnishings(art: ShipArt) -> PackedVector3Array:
 	var faces := PackedVector3Array()
+	var parts: Array[Node] = art.get_node("Dressing").get_children()
 	for node: Node in art.get_node("Dressing").get_children():
+		if node is SignPool:
+			parts.append_array((node as SignPool).signs())
+	for node: Node in parts:
 		var place := (node as Node3D).transform
 		if node is MeshInstance3D:
 			for corner: Vector3 in (node as MeshInstance3D).mesh.get_faces():
@@ -40,7 +46,30 @@ static func furnishings(art: ShipArt) -> PackedVector3Array:
 			]
 			for index: int in [0, 1, 2, 0, 2, 3]:
 				faces.append(place * corners[index])
+	for node: Node in art.get_children():
+		if node is MeshInstance3D:
+			faces.append_array(packed_faces((node as MeshInstance3D).mesh, ShipArt.FURNISHING))
 	return faces
+
+
+## The triangles' corners of every surface of [param mesh] named [param surface_name],
+## read as Mesh.get_faces() reads a mesh of those surfaces alone.
+static func packed_faces(mesh: Mesh, surface_name: StringName) -> PackedVector3Array:
+	var named := ArrayMesh.new()
+	var arrays := mesh as ArrayMesh
+	if arrays == null:
+		return PackedVector3Array()
+	for surface in arrays.get_surface_count():
+		if arrays.surface_get_name(surface) == String(surface_name):
+			var data := arrays.surface_get_arrays(surface)
+			var corners := []
+			corners.resize(Mesh.ARRAY_MAX)
+			corners[Mesh.ARRAY_VERTEX] = data[Mesh.ARRAY_VERTEX]
+			corners[Mesh.ARRAY_INDEX] = data[Mesh.ARRAY_INDEX]
+			named.add_surface_from_arrays(arrays.surface_get_primitive_type(surface), corners)
+	if named.get_surface_count() == 0:
+		return PackedVector3Array()
+	return named.get_faces()
 
 
 ## Where [param faces] stand more than TOLERANCE into the space a body of

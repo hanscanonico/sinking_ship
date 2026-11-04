@@ -132,10 +132,10 @@ func show(fallen: float) -> void:
 	_rim.visible = fallen <= 0.0
 	if _torn == null:
 		return
-	_debris.visible = fallen >= 1.0
+	ShipArt.show_apart(_debris, fallen >= 1.0)
 	for splinters: Node3D in _splintered:
-		splinters.visible = fallen > BREAK_AT
-	_torn.visible = fallen > 0.0
+		ShipArt.show_apart(splinters, fallen > BREAK_AT)
+	ShipArt.show_apart(_torn, fallen > 0.0)
 
 
 ## A node named [param piece_name] under [param parent] with a mesh of its own, filed

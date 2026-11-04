@@ -197,6 +197,7 @@ static func stretch_of(
 	dressed.cut_above = cut_above
 	dressed.span = cuts[cut]
 	dressed.rules = rules
+	dressed.pack = true
 	dressed.shared_space = space
 	dressed.build(ship, rules.railing_height, rules.body_radius, falls, fails, open_ports)
 	return dressed
