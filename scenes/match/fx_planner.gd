@@ -74,6 +74,9 @@ const DEBRIS_REACH := 7.0
 ## A deck whose highest corner stands this little over the sea has nothing loose
 ## left to slide, in metres.
 const SLIDE_DRY := 0.3
+## How far past a deck's plane every corner must stand from the sea to be passed over
+## unasked, in metres: wide of any rounding of _crossing's.
+const CLEAR_OF_SEA := 0.01
 ## A deck about to give way sheds dust every TRICKLE_TICKS; one that has gone
 ## lands FALL_SECONDS later (MatchView draws it falling that long).
 const TRICKLE_TICKS := 18
@@ -317,10 +320,18 @@ func _waterlines(
 	var boost := PLUNGE_BOOST if plunging else 1.0
 	var uphill := -_downhill(pose_now)
 	_least.read(pose_now)
+	var basis := pose_now.transform.basis
 	for index in _layout.platforms.size():
 		var platform := _layout.platforms[index]
 		var low := _least.world_height(index)
-		if platform.name in pose_now.collapsed or not _crossing(platform, pose_now, low):
+		# Every corner clear of the sea, over or under it, by more than its plane rises
+		# across it: no line to find (_crossing), on most of the Titanic's 1,349 decks.
+		var rise := absf(basis.x.y * platform.area.size.x) + absf(basis.z.y * platform.area.size.y)
+		if (
+			absf(low) > rise + CLEAR_OF_SEA
+			or platform.name in pose_now.collapsed
+			or not _crossing(platform, pose_now, low)
+		):
 			_spray[index * 2] = 0.0
 			_spray[index * 2 + 1] = 0.0
 			continue
