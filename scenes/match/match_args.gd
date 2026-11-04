@@ -14,7 +14,7 @@ extends RefCounted
 ##   --capture-screen=SCREEN  --capture-from=X,Y,Z,YAW[,PITCH]  --capture-look=X,Y,Z
 ##   --capture-sway=S  --capture-wet=S
 ##   --quality=low|medium|high  --render-scale=F  --bake-budget=MS  --phys=H:MM:SS  --jump
-##   --frame-split=S
+##   --frame-split=S  --match-seconds=S
 ##   --replay=PATH
 ##   --bake-cache
 ## --seed, --seats, --ship, --scenario, --hit, --fast, --goal and --bonuses are the match
@@ -61,9 +61,12 @@ extends RefCounted
 ## --capture-at's match time, and with --jump the match starts a little before it —
 ## every seat on what is dry then (MatchJump) — rather than hours of brawl before it.
 ## --frame-split times where each frame goes (FrameProbe, make fps SPLIT=1) and prints
-## the split of the frames drawn from the S-th second of the run on; without it nothing
-## is timed. --replay opens the saved replay at PATH (a .replay the game wrote under
-## user://replays, or any path) in the replay viewer instead of the menu (R4), and quits
+## the split of the frames drawn from the S-th second of the match on; without it
+## nothing is timed. --match-seconds prints when the match's first frame is drawn, in
+## seconds after launch, and quits S seconds after it (make fps: its clock is the
+## match's, never a held ship's dressing). --replay opens the saved replay at PATH (a
+## .replay the game wrote under user://replays, or any path) in the replay viewer
+## instead of the menu (R4), and quits
 ## with the reason when it cannot be played. --bake-cache takes a sinking baked before
 ## for the very same code, data, seed and clock from the BakeCache rather than baking it
 ## again, and keeps each one baked — the make targets pass it (BAKE_CACHE=0 drops it).
@@ -145,9 +148,12 @@ var bake_budget_ms := 0.0
 ## -1 for none. Whether the match jumps there rather than plays there.
 var phys_seconds := -1.0
 var jump := false
-## The seconds of the run --frame-split leaves out before keeping frames; -1 times
+## The seconds of the match --frame-split leaves out before keeping frames; -1 times
 ## nothing.
 var frame_split := -1.0
+## The seconds the game runs from the match's first frame before it quits
+## (--match-seconds); -1 for no end.
+var match_seconds := -1.0
 ## A saved replay to watch instead of playing (--replay, R4); "" to play.
 var replay_path: String = ""
 ## Sinkings baked before taken from the BakeCache, and each one baked kept there: a dev
@@ -234,6 +240,8 @@ static func parse(args: PackedStringArray) -> MatchArgs:
 				parsed.jump = true
 			"--frame-split":
 				parsed.frame_split = value.to_float()
+			"--match-seconds":
+				parsed.match_seconds = value.to_float()
 			"--replay":
 				parsed.replay_path = value
 			"--bake-cache":

@@ -3,10 +3,15 @@
 # `make fps`: how fast the game draws a bots-only match, windowed, with nothing
 # else in the way. The game runs with V-Sync off and its window always on top,
 # silent (the Dummy driver), and prints its own frame rate once a second (the
-# engine's --print-fps); the first SKIP samples, the loading and the countdown's
-# first seconds, are dropped and the rest summed up: their median, their 10th
-# percentile (interpolated) and the 1-minute load average as the run starts and
-# ends. A bot plays the local seat, so the view is its first-person eyes unless
+# engine's --print-fps). Its clock is the match's: the game prints when the
+# match's first frame is drawn (--match-seconds) and quits --seconds after it, so a
+# ship dressing for minutes while the match holds is waited out, never timed; the
+# time from launch to that frame is printed as the load line. Of the samples after
+# it the first SKIP, the countdown's first seconds, are dropped and the rest summed
+# up (tools/lib/fps_samples.awk): their median, their 10th percentile
+# (interpolated) and the 1-minute load average as the run starts and ends. A match
+# that has not started LOAD_LIMIT seconds after launch fails the run, as does a
+# split that kept no match frames: a hold's numbers are never printed as a match's. A bot plays the local seat, so the view is its first-person eyes unless
 # ARGS says --observer.
 #
 # A window the system is not drawing — covered, minimised, on another Space —
@@ -27,11 +32,12 @@
 # summary alone.
 #
 # Usage:  tools/fps.sh [--seed=4] [--seats=8] [--seconds=40] [--resolution=1440x900]
-#                      [--project=DIR] [--split] [-- MORE USER ARGS]
+#                      [--load-limit=600] [--project=DIR] [--split] [-- MORE USER ARGS]
 #
 # --project runs another checkout of the game (an A/B against main) with this
-# script's rules. The engine runs under `timeout`, which ends it after --seconds,
-# and kills it KILL_AFTER seconds later if it has not quit by then.
+# script's rules. The engine runs under `timeout`, which ends it LOAD_LIMIT seconds
+# past --seconds — the game quits by itself --seconds after the match starts — and
+# kills it KILL_AFTER seconds later if it has not quit by then.
 
 set -uo pipefail
 # Decimal points, whatever the machine's locale writes numbers with.
@@ -55,6 +61,7 @@ RESOLUTION=1440x900
 PROJECT=.
 SKIP=8
 KILL_AFTER=10
+LOAD_LIMIT=600
 SPLIT=0
 EXTRA=()
 
@@ -64,6 +71,7 @@ while (($#)); do
 	--seats=*) SEATS="${1#*=}" ;;
 	--seconds=*) SECONDS_RUN="${1#*=}" ;;
 	--resolution=*) RESOLUTION="${1#*=}" ;;
+	--load-limit=*) LOAD_LIMIT="${1#*=}" ;;
 	--project=*) PROJECT="${1#*=}" ;;
 	--split) SPLIT=1 ;;
 	--)
@@ -87,7 +95,7 @@ load() {
 	fi
 }
 
-# The split keeps the frames from the SKIP-th second on, as the samples below do.
+# The split keeps the frames from the match's SKIP-th second on, as the samples below do.
 SPLIT_ARGS=()
 ((SPLIT)) && SPLIT_ARGS=(--frame-split="$SKIP")
 
@@ -95,14 +103,21 @@ LOG=$(mktemp)
 trap 'rm -f "$LOG"' EXIT
 
 START_LOAD=$(load)
-# timeout's own status (124) is how every run ends: the run is judged by its samples.
-timeout -k "$KILL_AFTER" "$SECONDS_RUN" "$GODOT" --path "$PROJECT" --disable-vsync --print-fps \
-	--always-on-top --resolution "$RESOLUTION" --audio-driver Dummy -- \
-	--seed="$SEED" --seats="$SEATS" --autoplay ${SPLIT_ARGS[@]+"${SPLIT_ARGS[@]}"} \
-	${EXTRA[@]+"${EXTRA[@]}"} >"$LOG" 2>&1
+# The run is judged by its samples, not by how the engine ended.
+timeout -k "$KILL_AFTER" "$((LOAD_LIMIT + SECONDS_RUN))" "$GODOT" --path "$PROJECT" \
+	--disable-vsync --print-fps --always-on-top --resolution "$RESOLUTION" --audio-driver Dummy -- \
+	--seed="$SEED" --seats="$SEATS" --autoplay --match-seconds="$SECONDS_RUN" \
+	${SPLIT_ARGS[@]+"${SPLIT_ARGS[@]}"} ${EXTRA[@]+"${EXTRA[@]}"} >"$LOG" 2>&1
 END_LOAD=$(load)
 
-grep -o 'Project FPS: [0-9]*' "$LOG" | awk '{print $3}' | tail -n +$((SKIP + 1)) | sort -n |
+LOADED=$(grep -m1 -o '^first match frame [0-9.]* s' "$LOG" | awk '{print $4}')
+if [[ -z $LOADED ]]; then
+	echo "fps: FAILED: the match never started within ${LOAD_LIMIT} s of launch (--load-limit)" >&2
+	exit 1
+fi
+echo "load: first match frame ${LOADED} s after launch"
+
+awk -v skip="$SKIP" -f tools/lib/fps_samples.awk "$LOG" | sort -n |
 	awk -v start="$START_LOAD" -v end="$END_LOAD" -v args="${EXTRA[*]-}" \
 		-v seed="$SEED" -v seats="$SEATS" '
 	{ fps[NR] = $1 }
@@ -129,6 +144,10 @@ STATUS=$?
 
 # The last split the game printed, whole: it prints them all so far once a second.
 if ((SPLIT)); then
+	if ! grep -q '^frame split over' "$LOG"; then
+		echo "fps: FAILED: the split kept no match frames" >&2
+		exit 1
+	fi
 	awk '/^frame split over/ { n = 0; inside = 1; block[n++] = $0; next }
 		inside && /^  / { block[n++] = $0; next }
 		{ inside = 0 }
