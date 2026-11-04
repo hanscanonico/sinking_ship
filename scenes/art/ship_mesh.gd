@@ -94,6 +94,11 @@ var fading := Callable()
 ## callable says of every piece of a cut face at once (IndoorGrid.outdoors_over) — empty
 ## where it cannot, and each piece is asked alone.
 var outdoors_over := Callable()
+## When set, where commit() hands its indoor chunks instead of drawing each (PackedChunks):
+## every mesh of one art its chunk shares, drawn as one instance a chunk; their surfaces
+## named [member packed_as].
+var packed: PackedChunks
+var packed_as := &""
 
 ## (point: Vector3) -> bool: whether a ship-space point stands outdoors.
 var _outdoors: Callable
@@ -604,6 +609,9 @@ func commit(parent: Node3D, materials: Dictionary) -> void:
 				Mesh.ARRAY_CUSTOM_RGBA_FLOAT << Mesh.ARRAY_FORMAT_CUSTOM0_SHIFT
 				| Mesh.ARRAY_CUSTOM_RGB_FLOAT << Mesh.ARRAY_FORMAT_CUSTOM1_SHIFT
 			)
+		if packed != null and group.begins_with("in "):
+			packed.add(group, arrays, format, materials[finish], packed_as)
+			continue
 		if not meshes.has(group):
 			meshes[group] = ArrayMesh.new()
 			groups.append(group)

@@ -240,6 +240,7 @@ func _dress() -> void:
 		return
 	if config == null:
 		art.rules = _rules
+		art.pack = true
 		art.build(_ship, _rules.railing_height, _rules.body_radius)
 	else:
 		var schedule := config.schedule()
@@ -250,6 +251,7 @@ func _dress() -> void:
 		plan = StretchPlan.for_schedule(schedule, _ship)
 		_cuts = ShipPieces.cuts_of(schedule)
 		art.rules = _rules
+		art.pack = true
 		# All of her when the plan has her stretches in later to take her place.
 		if not plan.whole:
 			art.span = ShipPieces.first_span(schedule)
