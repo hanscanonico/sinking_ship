@@ -49,8 +49,8 @@ func _init(layout: ShipLayout, panes: Array[Array], art: Node3D, paints: Diction
 			_window(mesh, centre, pane[2], pane[4])
 		var node := Node3D.new()
 		node.name = "Broken_%s" % glass[found[0]].name
-		node.visible = false
 		art.add_child(node)
+		ShipArt.show_apart(node, false)
 		mesh.commit(node, paints)
 		_nodes[glass[found[0]].name] = node
 
@@ -61,7 +61,7 @@ func show(pose: ShipPose) -> void:
 		var node: Node3D = _nodes[opening]
 		var broken: bool = pose.opened.get(opening, 0) == 2
 		if node.visible != broken:
-			node.visible = broken
+			ShipArt.show_apart(node, broken)
 
 
 ## A porthole's glass gone at [param centre], facing [param normal] into its room: the

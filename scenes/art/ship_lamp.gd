@@ -128,6 +128,11 @@ var _glass: StandardMaterial3D
 ## so each is set only as it changes.
 var _shown := -1.0
 var _energy := -1.0
+## Its model's node, drawn under it (_draw) until LampGlobes takes it: then the globes
+## that draw it, and its slot in them.
+var _part: MeshInstance3D
+var _globes: LampGlobes
+var _globe := -1
 
 
 ## How bright a lamp burns, 0…1, on [param power] (ShipPower.Power) — full on her
@@ -282,6 +287,30 @@ func wake() -> void:
 	set_process(true)
 
 
+## What the lamp is (Kind).
+func kind() -> Kind:
+	return _kind
+
+
+## The node its model is drawn by under it, null once LampGlobes draws it.
+func model_part() -> MeshInstance3D:
+	return _part if _globes == null else null
+
+
+## Its slot in the globes that draw its model (hang_in), -1 while it draws its own.
+func globe() -> int:
+	return _globe
+
+
+## Has [param globes] draw its model from now, as its [param slot] (LampGlobes.take):
+## posed and glowing as the lamp is.
+func hang_in(globes: LampGlobes, slot: int) -> void:
+	_globes = globes
+	_globe = slot
+	_part = null
+	_show_globe()
+
+
 func _process(delta: float) -> void:
 	var ship := get_parent_node_3d()
 	if ship == null:
@@ -325,6 +354,14 @@ func _process(delta: float) -> void:
 		if _kind != Kind.FIRE:
 			basis = Basis(Quaternion(Vector3.DOWN, _hang))
 		set_process(false)
+	if _globes != null:
+		_show_globe()
+
+
+## Hands its globes (hang_in) its pose and its glass's glow, as its model would show them.
+func _show_globe() -> void:
+	var emergency := _glass.emission == ArtPalette.EMERGENCY_GLASS
+	_globes.draw_lamp(_globe, transform, visible, _glass.emission_energy_multiplier, emergency)
 
 
 ## Shows [param light] or hides it. Hidden, it stands apart from the lamp (top level),
@@ -370,4 +407,5 @@ func _draw(model: String, materials: Dictionary) -> MeshInstance3D:
 		part.set_surface_override_material(surface, materials[paint])
 	part.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(part)
+	_part = part
 	return part

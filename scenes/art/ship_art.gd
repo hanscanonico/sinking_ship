@@ -29,6 +29,10 @@ const CUT_SHADER := preload("res://scenes/art/ship_cut.gdshader")
 const NEAR_SHADER := preload("res://scenes/art/ship_near.gdshader")
 const GLASS_SHADER := preload("res://scenes/art/glass.gdshader")
 
+## The name a furnishing's surface keeps in a packed chunk (pack, PackedChunks).
+const FURNISHING := &"furnishing"
+## Where a node hidden apart from her hangs under its parent (show_apart).
+const HUNG_AT := &"hung_at"
 ## A deck's planking: its top is the platform's height.
 const PLANK := 0.06
 ## How near the eye a lamp is woken to swing as she turns, in metres (_wake_lamps).
@@ -108,6 +112,12 @@ var rules: BrawlRules
 ## it works out once, every stretch of her asks again (ShipPieces.stretches_of). Set it
 ## before build(); one of another layout is not taken.
 var shared_space: ShipSpace
+## Whether build() draws her still art in as few nodes as it can, as the match does: each
+## indoor chunk's furnishings in one instance with its walls (PackedChunks), the rooms'
+## hanging lamps by MultiMesh (LampGlobes) and the door signs' letters only near the eye
+## (SignPool) — every node of hers moves as she does. Unpacked, each is a node of its own.
+## Set it before build().
+var pack := false
 
 var _space: ShipSpace
 var _dressing: RoomDressing
@@ -223,6 +233,8 @@ func build(
 	var materials := _materials(layout, hull.bow_sweep())
 	_paints = materials
 	var mesh := _mesh()
+	var chunks := PackedChunks.new() if pack else null
+	mesh.packed = chunks
 	# Each piece that can fall or fail gathers its faces apart, to commit under its node.
 	var pieces := {}
 	for index in layout.platforms.size():
@@ -286,6 +298,8 @@ func build(
 	furnishings.cut_above = cut_above
 	furnishings.keep = span
 	furnishings.fading = _dressing.overhead
+	furnishings.packed = chunks
+	furnishings.packed_as = FURNISHING
 	var dressed := Node3D.new()
 	dressed.name = "Dressing"
 	add_child(dressed)
@@ -307,6 +321,8 @@ func build(
 			deck = _wrecks.find(node.get_parent())
 		var paints: Dictionary = materials if deck == -1 else _flashes[layout.platforms[deck].name]
 		(pieces[node] as ShipMesh).commit(node, paints)
+	if pack:
+		_pack(chunks, dressed)
 	prop_art = PropArt.new()
 	prop_art.name = "Props"
 	add_child(prop_art)
@@ -314,6 +330,42 @@ func build(
 	_falls = falls
 	_occluders = ShipOccluders.new(_space, falls, span, cut_above)
 	add_child(_occluders)
+
+
+## Draws what build() packs (pack): [param chunks] under it, its lamps by LampGlobes and
+## the signs under [param dressed] by a SignPool.
+func _pack(chunks: PackedChunks, dressed: Node3D) -> void:
+	chunks.commit(self)
+	var globes := LampGlobes.new()
+	globes.name = "Globes"
+	add_child(globes)
+	globes.take(_lamps)
+	var labels: Array[Label3D] = []
+	for child: Node in dressed.get_children():
+		if child is Label3D:
+			labels.append(child)
+	var signs := SignPool.new()
+	signs.name = "Signs"
+	dressed.add_child(signs)
+	signs.take(labels)
+
+
+## Shows [param node] or hides it. Hidden, it stands apart from her (top level), so her
+## moving every frame spends nothing on it — the Titanic's unbroken panes' shards and her
+## decks' splinters, 2,300 meshes hidden until the sinking reaches them — and shown, it
+## hangs where it hung before (meta HUNG_AT keeps where while it is hidden).
+static func show_apart(node: Node3D, shown: bool) -> void:
+	if node.visible == shown and node.top_level != shown:
+		return
+	if shown:
+		node.top_level = false
+		node.transform = node.get_meta(HUNG_AT, node.transform)
+		node.visible = true
+		return
+	if not node.top_level:
+		node.set_meta(HUNG_AT, node.transform)
+	node.visible = false
+	node.top_level = true
 
 
 ## The graphics preset it was last told of (show_graphics).
