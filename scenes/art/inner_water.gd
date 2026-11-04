@@ -21,6 +21,9 @@ extends Node3D
 ## How far under its highest corner a cell's water is drawn — not in a full cell, which
 ## has no surface — and how deep over its lowest corner its openings are drawn pouring.
 const SHOWS := 0.02
+## How far past a cell's stacks' span its water is still asked of each (_may_show), in
+## metres.
+const STACK_SLACK := 0.001
 ## The least depth over its lowest corner a cell's water is ever drawn at: under it, a
 ## sheet would fight a dry floor's planks.
 const CLEAR_OF_FLOOR := 0.005
@@ -118,6 +121,13 @@ var _boxes: Array[AABB] = []
 ## a cell drawn in a stack of boxes (CellBoxes.stacked), each as [cell, box, surface].
 var _surfaces: Array[MeshInstance3D] = []
 var _stacks: Array = []
+## The cells drawn in stacks, ascending; per one, its stacks by index into _stacks, a box
+## holding them all and how many of them show: a cell's stacks none of which shows, and
+## none of which its water reaches in that box's span (_may_show), are passed over.
+var _stack_cells := PackedInt32Array()
+var _cell_stacks: Array[PackedInt32Array] = []
+var _stack_bounds: Array[AABB] = []
+var _stacks_shown := PackedInt32Array()
 ## The ship as drawn at the moment last shown — her rotation and place, the poses'
 ## between them — the world's up in her axes, and a basis that lays a sheet level with
 ## the world in her space.
@@ -221,8 +231,21 @@ func setup(
 		var under_sky := structure.cells[cell].kind == FloodCell.Kind.OPEN_WELL
 		_surfaces.append(null if box.size == Vector3.ZERO else _surface(box, under_sky))
 	_stacks.clear()
+	_stack_cells.clear()
+	_cell_stacks.clear()
+	_stack_bounds.clear()
 	for stack: Array in CellBoxes.stacked(structure, rooms):
-		_stacks.append([stack[0], stack[1], _surface(stack[1], false)])
+		var cell: int = stack[0]
+		var box: AABB = stack[1]
+		if _stack_cells.is_empty() or _stack_cells[-1] != cell:
+			_stack_cells.append(cell)
+			_cell_stacks.append(PackedInt32Array())
+			_stack_bounds.append(box)
+		_cell_stacks[-1].append(_stacks.size())
+		_stack_bounds[-1] = _stack_bounds[-1].merge(box)
+		_stacks.append([cell, box, _surface(box, false)])
+	_stacks_shown.resize(_stack_cells.size())
+	_stacks_shown.fill(0)
 	_leaves.clear()
 	_leaf_widths.clear()
 	if not paints.is_empty():
@@ -340,8 +363,20 @@ func show_water(then: ShipPose, now: ShipPose, alpha: float) -> void:
 		_levels[cell] = level
 		if _surfaces[cell] != null:
 			_show_surface(_surfaces[cell], _boxes[cell], level, to_ship)
-	for stack: Array in _stacks:
-		_show_surface(stack[2], stack[1], _levels[stack[0]], to_ship)
+	for at in _stack_cells.size():
+		var level := _levels[_stack_cells[at]]
+		if (
+			_stacks_shown[at] == 0
+			and not _may_show(level, CellSurface.reach(_ship, _stack_bounds[at]))
+		):
+			continue
+		var shown := 0
+		for index: int in _cell_stacks[at]:
+			var stack: Array = _stacks[index]
+			var surface: MeshInstance3D = stack[2]
+			_show_surface(surface, stack[1], level, to_ship)
+			shown += 1 if surface.visible else 0
+		_stacks_shown[at] = shown
 	if now != _inflow_now:
 		_show_inflows(then, now)
 	for door: StringName in _leaves:
@@ -516,6 +551,14 @@ func _show_surface(surface: MeshInstance3D, box: AABB, level: float, to_ship: Tr
 			_param(surface, &"world_to_ship", to_ship)
 
 
+## Whether a cell's water standing at world height [param level] may be drawn in some
+## box inside one whose lowest and highest corners stand at [param reach]'s x and y: as
+## shows() has it, give or take STACK_SLACK, well past what rounding moves a corner by.
+static func _may_show(level: float, reach: Vector2) -> bool:
+	var first := maxf(SinkTimeline.FIRST_WATER, CLEAR_OF_FLOOR)
+	return level >= reach.x + first - STACK_SLACK and level < reach.y - SHOWS + STACK_SLACK
+
+
 ## Whether a cell's water standing at world height [param level] is drawn in a box whose
 ## lowest and highest corners stand at [param reach]'s x and y: from its first water
 ## (SinkTimeline.FIRST_WATER, when the transcript says the cell is flooding) — never so
@@ -557,9 +600,16 @@ func _show_inflows(then: ShipPose, now: ShipPose) -> void:
 		_inflows[cell] = churn
 		if _surfaces[cell] != null:
 			_param(_surfaces[cell], &"inflow", churn)
-		for stack: Array in _stacks:
-			if stack[0] == cell:
-				_param(stack[2], &"inflow", churn)
+		for index: int in _stacks_of(cell):
+			_param(_stacks[index][2], &"inflow", churn)
+
+
+## The stacks [param cell] is drawn in, by index into _stacks: none for most.
+func _stacks_of(cell: int) -> PackedInt32Array:
+	var at := _stack_cells.bsearch(cell)
+	if at < _stack_cells.size() and _stack_cells[at] == cell:
+		return _cell_stacks[at]
+	return PackedInt32Array()
 
 
 ## Sets [param drawn]'s own material's [param parameter] to [param value].
@@ -856,9 +906,8 @@ func _show_pockets(pose: ShipPose, levels: PackedFloat64Array) -> void:
 		var glow := POCKET_GLOW if held else 0.0
 		if _surfaces[cell] != null and _glows[cell] != glow:
 			_param(_surfaces[cell], &"pocket_glow", glow)
-			for stack: Array in _stacks:
-				if stack[0] == cell:
-					_param(stack[2], &"pocket_glow", glow)
+			for index: int in _stacks_of(cell):
+				_param(_stacks[index][2], &"pocket_glow", glow)
 			_glows[cell] = glow
 		if held and cell == eye_cell:
 			lit = cell

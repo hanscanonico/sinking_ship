@@ -338,6 +338,35 @@ func test_a_stacked_box_s_sheet_follows_its_cell_s_water() -> void:
 		)
 
 
+func test_every_stacked_sheet_shows_as_its_own_box_says_however_she_leans() -> void:
+	var water := _water()
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 410
+	# Each cell's water swept up its stacks' boxes and down again, the ship leaning anew
+	# each frame: cells passed over as out of their stacks' reach show nothing either.
+	for frame in 24:
+		var lean := Basis.from_euler(
+			Vector3(
+				rng.randf_range(-0.3, 0.3), rng.randf_range(-0.2, 0.2), rng.randf_range(-0.3, 0.3)
+			)
+		)
+		var pose := _pose()
+		pose.transform = Transform3D(lean, Vector3.UP * LIFT)
+		var share := 1.2 - absf(frame - 12.0) / 10.0
+		for stack: Array in water._stacks:
+			var reach := CellSurface.reach(pose.transform, stack[1])
+			pose.levels[stack[0]] = lerpf(reach.x, reach.y, share)
+		water.show_water(pose, pose, 0.0)
+		for stack: Array in water._stacks:
+			var reach := CellSurface.reach(water._ship, stack[1])
+			var sheet: MeshInstance3D = stack[2]
+			assert_eq(
+				sheet.visible,
+				InnerWater.shows(pose.levels[stack[0]], reach),
+				"frame %d, cell %d's stacked sheet" % [frame, stack[0]]
+			)
+
+
 ## What [param water] draws: each sheet's and pour's visibility and, shown, its transform.
 func _drawn(water: InnerWater) -> Array:
 	var drawn := []
