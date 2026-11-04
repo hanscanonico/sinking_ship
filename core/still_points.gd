@@ -69,6 +69,13 @@ func world_height(index: int) -> float:
 	return _world[index].y
 
 
+## The cell point [param index] lies in by the cell map of the pose read (CellMap.cell_at).
+func cell(index: int) -> int:
+	if not _located:
+		_locate()
+	return _cells[index]
+
+
 ## Whether point [param index] is under the water of the pose read (Surfaces.wet).
 func wet(index: int) -> bool:
 	if not _located:

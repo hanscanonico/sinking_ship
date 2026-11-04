@@ -52,6 +52,7 @@ static func _differing(
 			still.world_height(index) != pose.world_height(point)
 			or still.wet(index) != surfaces.wet(point, pose)
 			or still.above_water(index) != pose.above_water(point)
+			or not pose.levels.is_empty() and still.cell(index) != pose.cell_at(point)
 		):
 			differing += 1
 	return differing

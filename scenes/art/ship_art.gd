@@ -147,6 +147,9 @@ var _lamp_sight: LampSight
 ## through the cell it hangs in (show_power).
 var _lamps: Array[ShipLamp] = []
 var _lamp_at := PackedVector3Array()
+## The same points, their cells found once a cell map and their heights worked out
+## together each pose (StillPoints); null until show_power first asks.
+var _lamp_points: StillPoints
 ## Per funnel the sinking can fell, by its fitting's name, the node its standing part
 ## hangs from, turned about its foot as it falls (show_falls).
 var _funnels := {}
@@ -202,6 +205,7 @@ func build(
 	_flashing.clear()
 	_lamps.clear()
 	_lamp_at.clear()
+	_lamp_points = null
 	_funnels.clear()
 	_felled = false
 	var hull := SectionHull.of(_space, railing_height)
@@ -387,14 +391,18 @@ func show_power(pose: ShipPose) -> void:
 	_powered = pose
 	if pose.lit.is_empty():
 		return
-	for index in _lamps.size():
+	if _lamp_points == null or _lamp_points.size() != _lamp_at.size():
+		_lamp_points = StillPoints.new(_lamp_at)
+	_lamp_points.read(pose)
+	# A pose that keeps no cells has no lamp in one (ShipPose.cell_at).
+	for index in _lamps.size() if not pose.levels.is_empty() else 0:
 		# The cell it hangs in as the pose has her cells — a piece's own, once she breaks.
-		var cell := pose.cell_at(_lamp_at[index])
+		var cell := _lamp_points.cell(index)
 		if cell == CellMap.NONE:
 			continue
 		var lamp := _lamps[index]
 		lamp.power = pose.lit[cell]
-		lamp.drowned = pose.levels[cell] >= pose.world_height(_lamp_at[index])
+		lamp.drowned = pose.levels[cell] >= _lamp_points.world_height(index)
 	if _deck_lights != null:
 		_deck_lights.show_power(pose)
 	if _broken_glass != null:
