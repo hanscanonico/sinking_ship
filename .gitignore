@@ -46,3 +46,10 @@ captures/
 # Python caches from the generators
 __pycache__/
 *.pyc
+
+# The GDExtension's build (make native, tools/native_build.sh): godot-cpp's checkout and
+# objects under native/build/, the library and its .gdextension under native/lib/.
+native/lib/
+native/src/*.os
+native/src/*.o
+native/.sconsign*.dblite

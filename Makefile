@@ -29,6 +29,17 @@ import:
 	$(call require-godot)
 	$(GODOT) --headless --path . --import
 
+# The game's GDExtension (native/, #410) for this machine: the bots' walk search in C++,
+# the same answers as the GDScript it stands in for. Not tracked and not in verify — CI
+# builds Linux's for the test shards; without it the game runs the GDScript. Needs
+# scons (SCONS=<path>) and a C++ compiler — on Windows llvm-mingw, LLVM_MINGW=<folder>.
+# The first build is followed by an import, which registers the extension with Godot.
+native:
+	$(call require-godot)
+	tools/native_build.sh
+	@grep -qs 'native/lib/sinking_native.gdextension' .godot/extension_list.cfg || \
+		$(GODOT) --headless --path . --import
+
 # One match's knobs, handed to the scene and tools/run_match.gd as user args:
 #   make run [SEED=] [SEATS=] [SHIP=] [SCENARIO=] [ARGS=]  the game, windowed, from the menu
 #       they fill in; SHIP picks a ship of the fleet by name (trawler), the default data's
@@ -790,7 +801,7 @@ format-check:
 # test is already one of test's scripts.
 .NOTPARALLEL:
 
-.PHONY: import run replay match capture smoke net-bench sim-bench bench serve-local online-e2e export-server \
+.PHONY: import native run replay match capture smoke net-bench sim-bench bench serve-local online-e2e export-server \
 	export-web export-mac export-win export-linux export-server-mac serve-web-local serve-web-local-stop fps arena \
 	hits bake census art-lint art-lint-changed art-lint-costs test test-changed durations goldens verify verify-changed check guard-check ship ship-gen-check ship-check bake-ship \
 	bake-check ship-scene preview \
