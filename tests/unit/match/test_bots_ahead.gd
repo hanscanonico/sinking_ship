@@ -42,6 +42,24 @@ func test_bots_deciding_ahead_play_the_match_they_play_when_asked() -> void:
 	assert_eq(differing, 0, "the same snapshot at every one of %d ticks" % asked.size())
 
 
+func test_bots_dealt_round_floors_of_their_own_play_the_same_match_side_by_side() -> void:
+	var config := _config()
+	var profile: BotProfile = load(SimFixtures.NORMAL_BOT)
+	var asked := _played(config, BotInputSource.fill(config, profile), TICKS)
+	var shared := BotInputSource.fill(config, profile, 0, 3)
+	var floors := {}
+	for bot: InputSource in shared:
+		floors[(bot as BotInputSource).floors()] = true
+	assert_eq(floors.size(), 3, "three floors among them")
+	var ahead := _played(config, BotsAhead.of(shared), TICKS)
+	assert_eq(ahead.size(), asked.size(), "as many ticks")
+	var differing := 0
+	for tick in mini(ahead.size(), asked.size()):
+		if ahead[tick] != asked[tick]:
+			differing += 1
+	assert_eq(differing, 0, "the same snapshot at every one of %d ticks" % asked.size())
+
+
 func test_a_seat_that_is_no_bot_is_left_as_it_is() -> void:
 	# Seat 0 walks straight on, its own way, among bots deciding ahead.
 	var config := _config()

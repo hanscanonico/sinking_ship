@@ -360,10 +360,11 @@ static func serve(
 	if local != null:
 		played = LOCAL_SEAT
 		sources.append(null)
-		sources.append_array(BotInputSource.fill(config, profile, LOCAL_SEAT + 1))
+		var shares := BotsAhead.shares(config, config.seats - LOCAL_SEAT - 1)
+		sources.append_array(BotInputSource.fill(config, profile, LOCAL_SEAT + 1, shares))
 	else:
-		sources = BotInputSource.fill(config, profile)
-	# The bots decide each beat while the frames before it are drawn.
+		sources = BotInputSource.fill(config, profile, 0, BotsAhead.shares(config, config.seats))
+	# The bots decide each beat while the frames before it are drawn, side by side.
 	sources = BotsAhead.of(sources)
 	var conditions := net_sim if net_sim != null else NetConditions.new()
 	var serving := Served.new()

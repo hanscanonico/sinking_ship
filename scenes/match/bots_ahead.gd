@@ -1,6 +1,6 @@
 class_name BotsAhead
 extends RefCounted
-## A served match's bots (D10) deciding each beat a beat ahead, on a worker thread, while
+## A served match's bots (D10) deciding each beat a beat ahead, on worker threads, while
 ## the frames before it are drawn: once every bot of them has been shown the snapshot a
 ## step made (InputSource.observe), their frames for the next tick are worked out — each
 ## bot's next_frame, in seat order, as the host's runner asks them at its next step — and
@@ -8,39 +8,62 @@ extends RefCounted
 ## Nothing any bot decides changes, nor when: a bot reads only what it has been shown, so
 ## deciding as soon as it has been shown is deciding when asked; and it shares nothing
 ## with the rest of the match but what nobody changes — the snapshots and poses handed it
-## — its views, floors, walk graphs and Surfaces its own. Only which thread does the
-## work, and when, is this class's: the beat's own time, outside the sim (D2).
+## — its views, floors, walk graphs and Surfaces its own. The bots sharing floors
+## (BotInputSource.floors) decide on one thread, in seat order; each share of them on
+## floors of its own (BotInputSource.fill) decides on a thread of its own, side by side.
+## Only which thread does the work, and when, is this class's: the beat's own time,
+## outside the sim (D2).
+
+## A ship of at least this many rooms is worth floors of their own for each share of her
+## bots (shares): on a smaller one a tick's searches are too short for threads to pay.
+const SHARED_ROOMS := 200
+## The most shares the bots of one match are dealt round: each builds walk graphs of its
+## own, which cost memory and start-up.
+const MOST_SHARES := 8
 
 ## Every one with a beat under way: kept until that beat is waited for, so none is freed
-## while its thread works on it, and the game, quitting, waits for them all.
+## while its threads work on it, and the game, quitting, waits for them all.
 static var _under_way: Array[BotsAhead] = []
 
 var _bots: Array[InputSource] = []
+## The bots by the floors they share, each share's in seat order.
+var _shares: Array[Share] = []
 ## How many of them have been shown the latest snapshot.
 var _shown := 0
-## The tick the frames worked out ahead are for, and per bot its frame and whether it is
-## there to take.
+## The tick the frames worked out ahead are for.
 var _tick := -1
-var _frames: Array[InputFrame] = []
-var _ready := PackedByteArray()
-## The worker's task deciding them, or -1.
+## The workers' group task deciding them, a share a task, or -1.
 var _task := -1
 
 
+## How many shares of floors (BotInputSource.fill) [param config]'s [param bots] bots
+## are best dealt round on this machine: one on a small ship, else one a bot, up to
+## MOST_SHARES and the threads the machine has to spare beside the game's own.
+static func shares(config: MatchConfig, bots: int) -> int:
+	if config.ship.rooms.size() < SHARED_ROOMS:
+		return 1
+	return clampi(mini(bots, OS.get_processor_count() - 2), 1, MOST_SHARES)
+
+
 ## [param sources], one per seat, with each bot among them deciding ahead: one BotsAhead
-## for them all, so they decide on one thread in seat order. Any other source — a seat's
-## buffer, a bot's timer — is left as it is.
+## for them all, the bots sharing floors deciding on one thread in seat order. Any other
+## source — a seat's buffer, a bot's timer — is left as it is.
 static func of(sources: Array[InputSource]) -> Array[InputSource]:
 	var group := BotsAhead.new()
 	var made: Array[InputSource] = []
+	var by_floors := {}
 	for source: InputSource in sources:
 		if source is BotInputSource:
-			made.append(Seat.new(group, group._bots.size()))
+			var index := group._bots.size()
+			made.append(Seat.new(group, index))
 			group._bots.append(source)
+			var floors := (source as BotInputSource).floors()
+			if not by_floors.has(floors):
+				by_floors[floors] = Share.new()
+				group._shares.append(by_floors[floors])
+			(by_floors[floors] as Share).add(index, source)
 		else:
 			made.append(source)
-	group._frames.resize(group._bots.size())
-	group._ready.resize(group._bots.size())
 	return made
 
 
@@ -64,32 +87,35 @@ func _observe(index: int, snapshot: Dictionary, pose: ShipPose) -> void:
 	if _shown < _bots.size():
 		return
 	_shown = 0
-	_ready.fill(0)
+	for share: Share in _shares:
+		share.ready.fill(0)
 	if snapshot["phase"] == MatchState.Phase.ENDED:
 		return
 	# The one thing of a pose worked out on first asking, worked out here: the rest of
-	# the match reads the same pose meanwhile, so the bots' thread only reads it.
+	# the match reads the same pose meanwhile, so the bots' threads only read it.
 	for piece: ShipPose in [pose] + pose.pieces:
 		piece.highest_water()
 	_tick = snapshot["tick"]
 	_under_way.append(self)
-	_task = WorkerThreadPool.add_task(_decide, false, "Bots deciding ahead")
+	_task = WorkerThreadPool.add_group_task(
+		_decide, _shares.size(), _shares.size(), false, "Bots deciding ahead"
+	)
 
 
-## On the worker: every bot's frame for the tick ahead, in seat order.
-func _decide() -> void:
-	for index in _bots.size():
-		_frames[index] = _bots[index].next_frame(_tick)
-		_ready[index] = 1
+## On a worker: share [param index]'s frames for the tick ahead, in seat order.
+func _decide(index: int) -> void:
+	_shares[index].decide(_tick)
 
 
 ## Bot [param index]'s frame for [param tick]: the one decided ahead, once its beat is
 ## done — else, for a tick it was not decided for, decided now.
 func _frame(index: int, tick: int) -> InputFrame:
 	_finish()
-	if tick == _tick and _ready[index] == 1:
-		_ready[index] = 0
-		return _frames[index]
+	if tick == _tick:
+		for share: Share in _shares:
+			var frame := share.take(index)
+			if frame != null:
+				return frame
 	return _bots[index].next_frame(tick)
 
 
@@ -102,9 +128,39 @@ func _replans(index: int) -> int:
 func _finish() -> void:
 	if _task < 0:
 		return
-	WorkerThreadPool.wait_for_task_completion(_task)
+	WorkerThreadPool.wait_for_group_task_completion(_task)
 	_task = -1
 	_under_way.erase(self)
+
+
+## The bots sharing one floors, and per bot its frame decided ahead and whether it is
+## there to take: written by one thread at a time.
+class Share:
+	extends RefCounted
+	var indices := PackedInt32Array()
+	var bots: Array[InputSource] = []
+	var frames: Array[InputFrame] = []
+	var ready := PackedByteArray()
+
+	func add(index: int, bot: InputSource) -> void:
+		indices.append(index)
+		bots.append(bot)
+		frames.append(null)
+		ready.append(0)
+
+	func decide(tick: int) -> void:
+		for at in bots.size():
+			frames[at] = bots[at].next_frame(tick)
+			ready[at] = 1
+
+	## Bot [param index]'s frame decided ahead, taken: null when it is not one of these,
+	## or not there to take.
+	func take(index: int) -> InputFrame:
+		var at := indices.find(index)
+		if at < 0 or ready[at] == 0:
+			return null
+		ready[at] = 0
+		return frames[at]
 
 
 ## A bot's seat, its frames decided ahead with the rest of the match's bots.
