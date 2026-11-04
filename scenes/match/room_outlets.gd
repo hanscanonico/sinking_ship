@@ -63,20 +63,19 @@ func _find_openings(room: ShipRoom, surfaces: Surfaces, rules: BrawlRules) -> vo
 	outwards.append(ways)
 
 
-## The machine standing in [param room] — a box that is not a wall, indoors, as
-## ShipArt draws an engine — and the vents up from it: skylights in the open deck
-## straight over the room, along its middle.
+## The machine standing in [param room] — in a room dressed as an engine or boiler
+## room (RoomDressing.kind_of), one of the boxes ShipArt draws as its machinery
+## (ShipSpace.machinery) standing indoors, the last there is — and the vents up from it:
+## skylights in the open deck straight over the room, along its middle. A cabin's berth
+## or a saloon's table is no machine.
 func _find_machine(room: ShipRoom) -> void:
 	var machine := Vector3(NAN, NAN, NAN)
-	for index: int in _boxes.near(room.area.grow(ShipSpace.NEAR_SLACK)):
-		var blocker := _layout.blockers[index]
-		if _space.is_wall(blocker):
-			continue
-		var middle := blocker.area.get_center()
-		if absf(blocker.bottom - room.floor_height) >= 0.05 or not room.area.has_point(middle):
-			continue
-		if not _space.outdoors(Vector3(middle.x, (blocker.bottom + blocker.top) * 0.5, middle.y)):
-			machine = Vector3(middle.x, blocker.top, middle.y)
+	if _space.machinery_in(room) and _dressed_as_machinery(room):
+		for blocker: ShipBlocker in _space.machinery(room):
+			var middle := blocker.area.get_center()
+			var inside := Vector3(middle.x, (blocker.bottom + blocker.top) * 0.5, middle.y)
+			if not _space.outdoors(inside):
+				machine = Vector3(middle.x, blocker.top, middle.y)
 	machines.append(machine)
 	var found := PackedVector3Array()
 	if not is_nan(machine.x):
@@ -90,6 +89,13 @@ func _find_machine(room: ShipRoom) -> void:
 			if not is_nan(deck) and _space.outdoors(vent + Vector3.UP * 0.5):
 				found.append(vent)
 	vents.append(found)
+
+
+## Whether [param room] is dressed as machinery: an engine room, a stokehold, a dynamo
+## room or a boiler room (RoomDressing).
+func _dressed_as_machinery(room: ShipRoom) -> bool:
+	var kind := RoomDressing.kind_of(_space, room)
+	return kind == RoomDressing.Kind.ENGINE or kind == RoomDressing.Kind.BOILER
 
 
 ## Whether the blocker at [param index], a box, is one standing outdoors on a deck that
