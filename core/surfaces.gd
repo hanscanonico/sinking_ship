@@ -724,12 +724,14 @@ func drops(from_point: Vector3, to_point: Vector3, step: float) -> bool:
 ## schedule's pose — its cell's, found by the pose's CellMap, or the sea's outside her.
 ## A cell holding no more than CellMap.DRY over its floor there is dry: a dry cell's
 ## water stands at its floor, and a point on it is not wet by its height's last bit.
-func wet(ship_point: Vector3, pose: ShipPose) -> bool:
+## [param cell], when given, is the point's pose.cell_at found already: a point that
+## never moves in her keeps it while her poses share one cell map.
+func wet(ship_point: Vector3, pose: ShipPose, cell := UNASKED) -> bool:
 	var height := pose.world_height(ship_point)
 	# Over every water there is, no cell to look for (ShipPose.wet_at).
 	if height >= pose.highest_water():
 		return false
-	return pose.wet_at(ship_point, height, pose.cell_at(ship_point))
+	return pose.wet_at(ship_point, height, pose.cell_at(ship_point) if cell == UNASKED else cell)
 
 
 ## Whether [param surface] is under the water at its middle.

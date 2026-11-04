@@ -837,3 +837,30 @@ func test_line_of_sight_is_blocked_by_walls_not_by_doorways() -> void:
 	assert_false(surfaces.line_of_sight(at_the_rail, under_the_side, calm), "the hull")
 	var off_the_side := Vector3(-17.0, -layout.freeboard + 0.15, 12.0)
 	assert_true(surfaces.line_of_sight(at_the_rail, off_the_side, calm), "the open sea")
+
+
+func test_wet_in_a_cell_found_once_answers_as_wet() -> void:
+	# A point that never moves in her keeps its cell while her poses share a cell map:
+	# wet given it answers as wet finding it, dry and flooding alike.
+	var layout := _steamer()
+	var sinking: SinkScenario = load(SimFixtures.STEAMER_SINKING).duplicate()
+	sinking.explicit_hit = SimFixtures.explicit_hit(1, -2.0, 19.0, 1.0, 0.05, 1.5)
+	var sim := SimFixtures.sim(1, sinking, layout)
+	var points := PackedVector3Array()
+	for room: ShipRoom in layout.rooms:
+		points.append(Vector3(room.area.position.x, room.floor_height, room.area.position.y))
+		points.append(Vector3(room.area.end.x, room.floor_height + 0.3, room.area.end.y))
+	var cells := {}
+	var wet_seen := 0
+	for tick in range(0, sim.schedule.end_tick(), Ticks.RATE * 5):
+		var pose := sim.schedule.pose_at(tick)
+		if not cells.has(pose.cells):
+			var found := PackedInt32Array()
+			for point: Vector3 in points:
+				found.append(pose.cell_at(point))
+			cells[pose.cells] = found
+		for index in points.size():
+			var wet := sim.surfaces.wet(points[index], pose)
+			wet_seen += 1 if wet else 0
+			assert_eq(sim.surfaces.wet(points[index], pose, cells[pose.cells][index]), wet)
+	assert_gt(wet_seen, 0, "some of them go under")

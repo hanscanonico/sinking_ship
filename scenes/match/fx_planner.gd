@@ -144,6 +144,8 @@ var _outwards: Array[PackedVector3Array] = []
 ## its steam comes up through.
 var _machines := PackedVector3Array()
 var _vents: Array[PackedVector3Array] = []
+## Their floors and machines going under, read once a pose.
+var _machinery_water: MachineryWater
 ## Per platform end of its waterline, how near its next burst of spray is, 0…1.
 var _spray := PackedFloat32Array()
 ## Per platform, whether what was loose on it has floated off.
@@ -208,6 +210,7 @@ func _init(config: MatchConfig, surfaces: Surfaces, schedule: SinkSchedule) -> v
 	for room: ShipRoom in _layout.rooms:
 		_find_openings(room, config.rules)
 		_find_machine(room)
+	_machinery_water = MachineryWater.new(_layout, _machines, surfaces)
 	for index in _openings.size():
 		_blasts.append_array(_openings[index])
 		_blast_ways.append_array(_outwards[index])
@@ -237,7 +240,7 @@ func plan(previous: Dictionary, current: Dictionary) -> Array[FxCue]:
 	_failures.plan(previous, current, pose_now, cues)
 	_waterlines(pose_then, pose_now, tick, plunging, cues)
 	_floods(pose_then, pose_now, tick, cues)
-	_machinery(pose_then, pose_now, tick, cues)
+	_machinery(pose_then, pose_now, previous["tick"], tick, cues)
 	_collapses(pose_now, fired, tick, cues)
 	_funnel_going(pose_then, pose_now, tick, cues)
 	_smoke_level(tick, plunging, pose_now, cues)
@@ -415,16 +418,15 @@ func _welling(from_tick: int, tick: int, pose: ShipPose, cues: Array[FxCue]) -> 
 
 ## Steam from a machinery room's vents as the sea first reaches its floor, and
 ## again, with the funnel, as it drowns the machine.
-func _machinery(pose_then: ShipPose, pose_now: ShipPose, tick: int, cues: Array[FxCue]) -> void:
-	for index in _layout.rooms.size():
-		var machine := _machines[index]
-		if is_nan(machine.x):
-			continue
-		var room := _layout.rooms[index]
-		var reached := _first_wet(room.area, room.floor_height, pose_now)
-		if reached and not _first_wet(room.area, room.floor_height, pose_then):
+func _machinery(
+	pose_then: ShipPose, pose_now: ShipPose, from_tick: int, tick: int, cues: Array[FxCue]
+) -> void:
+	var went := _machinery_water.went_under(pose_then, pose_now, from_tick, tick)
+	for slot in _machinery_water.rooms.size():
+		var index := _machinery_water.rooms[slot]
+		if went[slot * 2] == 1:
 			_steam(_vents[index], STEAM_FIRST, 0.6, tick, cues)
-		if _surfaces.wet(machine, pose_now) and not _surfaces.wet(machine, pose_then):
+		if went[slot * 2 + 1] == 1:
 			_steam(_vents[index], STEAM_DROWNED, 1.0, tick, cues)
 			if not is_nan(_funnel.x):
 				_steam(PackedVector3Array([_funnel]), STEAM_DROWNED, 1.0, tick, cues)
@@ -975,20 +977,6 @@ func _named(platform_name: StringName) -> Array[ShipPlatform]:
 func _underside(platform: ShipPlatform) -> Vector3:
 	var middle := platform.area.get_center()
 	return Vector3(middle.x, platform.height - ShipArt.PLANK, middle.y)
-
-
-## Whether the water has reached any corner of [param area] at [param height]: its
-## cell's, or the sea's (Surfaces.wet).
-func _first_wet(area: Rect2, height: float, pose: ShipPose) -> bool:
-	for corner: Vector2 in [
-		area.position,
-		Vector2(area.end.x, area.position.y),
-		area.end,
-		Vector2(area.position.x, area.end.y)
-	]:
-		if _surfaces.wet(Vector3(corner.x, height, corner.y), pose):
-			return true
-	return false
 
 
 ## Whether every deck still standing has its middle under the sea.
