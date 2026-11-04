@@ -28,12 +28,31 @@ arch = env["arch"]
 name = "libsinking_native.{}.{}".format(platform, arch)
 library = env.SharedLibrary("lib/" + name + env["SHLIBSUFFIX"], source=sources)
 
-feature = "macos" if platform == "macos" else "{}.{}".format(platform, arch)
+# Every platform's library in lib/ is listed, not only this build's: a library built
+# elsewhere (CI's native-* artifacts) put beside this one is exported with the game for
+# its platform (make export-win on a Mac, say), each export taking its own.
+LIBRARY_SUFFIXES = (".so", ".dll", ".dylib")
+
+
+def library_feature(name):
+    # libsinking_native.<platform>.<arch>.<ext>; a macOS build is universal.
+    platform, arch = name.split(".")[1:3]
+    return "macos" if platform == "macos" else "{}.{}".format(platform, arch)
+
+
+def libraries_in_lib():
+    names = set()
+    for node in Glob("lib/libsinking_native.*"):
+        name = os.path.basename(str(node))
+        if name.endswith(LIBRARY_SUFFIXES) and len(name.split(".")) == 4:
+            names.add(name)
+    return names
 
 
 def write_gdextension(target, source, env):
+    names = libraries_in_lib() | {os.path.basename(str(source[0]))}
     lines = [
-        "; Written by `make native` (native/SConstruct) beside the library it loads.",
+        "; Written by `make native` (native/SConstruct) beside the libraries it loads.",
         "[configuration]",
         "",
         'entry_symbol = "sinking_native_init"',
@@ -42,12 +61,15 @@ def write_gdextension(target, source, env):
         "",
         "[libraries]",
         "",
-        '{} = "res://native/lib/{}"'.format(feature, os.path.basename(str(source[0]))),
-        "",
     ]
+    for name in sorted(names):
+        lines.append('{} = "res://native/lib/{}"'.format(library_feature(name), name))
+    lines.append("")
     with open(str(target[0]), "w", encoding="utf-8", newline="\n") as out:
         out.write("\n".join(lines))
 
 
-extension = env.Command("lib/sinking_native.gdextension", library, write_gdextension)
+# Rewritten when the set of libraries in lib/ changes, as well as on a new build.
+listed = env.Value(sorted(libraries_in_lib()))
+extension = env.Command("lib/sinking_native.gdextension", [library, listed], write_gdextension)
 Default(library, extension)
