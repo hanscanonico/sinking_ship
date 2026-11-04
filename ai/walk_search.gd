@@ -6,8 +6,17 @@ extends RefCounted
 ## cheapest ways a Dijkstra that settles zones only until the one asked for is — in the
 ## same order, ties to the lower zone, as one run to its end — so a zone's cost and way
 ## are the same whenever they are asked.
+##
+## Native (#410): where the game's extension is loaded (native/, make native), a search
+## over a graph laid out for it (native_graph) hands every question to a NativeWalkSearch,
+## the code below in C++ answering the same bit for bit (test_walk_search_native); this
+## GDScript is the reference, and what runs wherever the extension is not — the web.
 
 const NONE := -1
+const NATIVE_GRAPH := &"NativeWalkGraph"
+
+## The NativeWalkSearch every question goes to, or null where this one answers them.
+var _native: Object = null
 
 ## Per zone, the distance walked to reach it, or INF; final once the zone is settled.
 var _cost := PackedFloat64Array()
@@ -37,8 +46,12 @@ var _pace := PackedFloat64Array()
 
 
 ## A search over [param zones] zones with nothing reached: one standing on nothing,
-## until start() and reach() give it where it starts.
-func _init(zones := 0) -> void:
+## until start() and reach() give it where it starts — in [param native], a
+## native_graph(), when it is given one.
+func _init(zones := 0, native: Object = null) -> void:
+	if native != null and zones > 0:
+		_native = native.start(zones)
+		return
 	_cost.resize(zones)
 	_cost.fill(INF)
 	_came_by.resize(zones)
@@ -60,6 +73,9 @@ func walk(
 	pace: PackedFloat64Array,
 	closed: PackedByteArray
 ) -> void:
+	if _native != null:
+		_native.walk(closed)
+		return
 	_out = out
 	_portal_to = portal_to
 	_portal_entry = portal_entry
@@ -72,6 +88,9 @@ func walk(
 ## Starts it in [param zone], [param cost] walked to [param at] — through [param portal]
 ## or NONE — unless it starts there cheaper already.
 func reach(zone: int, cost: float, at: Vector3, portal := NONE) -> void:
+	if _native != null:
+		_native.reach(zone, cost, at, portal)
+		return
 	if cost >= _cost[zone]:
 		return
 	_cost[zone] = cost
@@ -83,17 +102,23 @@ func reach(zone: int, cost: float, at: Vector3, portal := NONE) -> void:
 
 ## Whether it stands on nothing: it reaches no zone.
 func is_empty() -> bool:
+	if _native != null:
+		return _native.is_empty()
 	return _cost.is_empty()
 
 
 ## Whether it reaches [param zone].
 func reaches(zone: int) -> bool:
+	if _native != null:
+		return _native.reaches(zone)
 	return zone >= 0 and zone < _cost.size() and reached()[zone] == 1
 
 
 ## Per zone, 1 where it reaches: every zone a portal not closed leads on to from where it
 ## starts — those a search run to its end gives a cost.
 func reached() -> PackedByteArray:
+	if _native != null:
+		return _native.reached()
 	if _asked:
 		return _reach
 	_asked = true
@@ -117,6 +142,8 @@ func reached() -> PackedByteArray:
 ## The distance walked to [param zone] — INF where it does not reach it, or where that
 ## is more than [param within]: its settling stops there.
 func cost_to(zone: int, within := INF) -> float:
+	if _native != null:
+		return _native.cost_to(zone, within)
 	if not reaches(zone):
 		return INF
 	_settle(zone, within)
@@ -125,6 +152,8 @@ func cost_to(zone: int, within := INF) -> float:
 
 ## Per zone, the distance walked to it, or INF: every zone settled.
 func costs() -> PackedFloat64Array:
+	if _native != null:
+		return _native.costs()
 	_settle(NONE, INF)
 	return _cost
 
@@ -132,6 +161,8 @@ func costs() -> PackedFloat64Array:
 ## The portals, by index, of the cheapest way to [param zone], in order; empty where it
 ## does not reach it or starts there.
 func way_to(zone: int) -> PackedInt32Array:
+	if _native != null:
+		return _native.way_to(zone)
 	var legs := PackedInt32Array()
 	if cost_to(zone) == INF:
 		return legs
@@ -142,6 +173,24 @@ func way_to(zone: int) -> PackedInt32Array:
 			break
 	legs.reverse()
 	return legs
+
+
+## The graph laid out once for the native searches over it — per zone its portals out
+## and its pace, per portal where it leads, is entered and left and its length, as
+## walk() takes them — or null where the extension is not loaded.
+static func native_graph(
+	out: Array[PackedInt32Array],
+	portal_to: PackedInt32Array,
+	portal_entry: PackedVector3Array,
+	portal_exit: PackedVector3Array,
+	portal_length: PackedFloat64Array,
+	pace: PackedFloat64Array
+) -> Object:
+	if not ClassDB.class_exists(NATIVE_GRAPH):
+		return null
+	var graph: Object = ClassDB.instantiate(NATIVE_GRAPH)
+	graph.build(out, portal_to, portal_entry, portal_exit, portal_length, pace)
+	return graph
 
 
 func _push(cost: float, zone: int) -> void:

@@ -69,8 +69,42 @@ jobs:
       - name: format-check
         run: make format-check
 
+  # The game's GDExtension (native/, #410) built for Linux, for the shards to load: they
+  # test the native walk search the game runs, and test_walk_search_native holds it to
+  # the GDScript it stands in for. godot-cpp's objects are cached on its pinned commit.
+  native:
+    name: native (linux)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install SCons
+        run: pip install scons
+
+      - name: Cache godot-cpp
+        uses: actions/cache@v4
+        with:
+          path: native/build
+          key: godot-cpp-linux-${{ hashFiles('tools/native_build.sh', 'native/build_profile.json') }}
+
+      - name: Build
+        run: tools/native_build.sh
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: native-linux
+          path: native/lib/
+          if-no-files-found: error
+          retention-days: 7
+
   test:
     name: test ${{ matrix.shard }}/10
+    needs: native
     runs-on: ubuntu-24.04
     # A guard against a hung engine, not a budget: the shards are dealt about
     # 11 minutes apiece (tests/durations.tsv), the longest single script
@@ -87,10 +121,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Before setup-godot: its import registers the extension it finds.
+      - uses: actions/download-artifact@v4
+        with:
+          name: native-linux
+          path: native/lib/
+
       - uses: ./.github/actions/setup-godot
 
       - name: test
         run: make test SHARD=${{ matrix.shard }}/10
+        env:
+          SINKING_NATIVE_REQUIRED: "1"
 
   # The art against the data and the snapshots (tools/art_lint.gd), every ship and a
   # match, beside the shards rather than after them. Run only by hand before, it had
@@ -153,14 +195,15 @@ jobs:
           retention-days: 90
 
   verify:
-    needs: [static, test, art-lint, art-lint-titanic]
+    needs: [static, native, test, art-lint, art-lint-titanic]
     if: always()
     runs-on: ubuntu-24.04
     steps:
       - name: Every gate passed
         run: |
-          echo "static: ${{ needs.static.result }}, test: ${{ needs.test.result }}, art-lint: ${{ needs.art-lint.result }}, art-lint-titanic: ${{ needs.art-lint-titanic.result }}"
+          echo "static: ${{ needs.static.result }}, native: ${{ needs.native.result }}, test: ${{ needs.test.result }}, art-lint: ${{ needs.art-lint.result }}, art-lint-titanic: ${{ needs.art-lint-titanic.result }}"
           test "${{ needs.static.result }}" = success
+          test "${{ needs.native.result }}" = success
           test "${{ needs.test.result }}" = success
           test "${{ needs.art-lint.result }}" = success
           test "${{ needs.art-lint-titanic.result }}" = success
