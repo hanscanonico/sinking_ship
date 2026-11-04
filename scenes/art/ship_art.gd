@@ -153,6 +153,9 @@ var _lamp_sight: LampSight
 ## through the cell it hangs in (show_power).
 var _lamps: Array[ShipLamp] = []
 var _lamp_at := PackedVector3Array()
+## Per lamp, the power and drowning last handed it (power * 2 + drowned), -1 before any:
+## each lamp is handed only what changed, not 2,700 of them every tick on the Titanic.
+var _lamp_shown := PackedInt32Array()
 ## The same points, their cells found once a cell map and their heights worked out
 ## together each pose (StillPoints); null until show_power first asks.
 var _lamp_points: StillPoints
@@ -212,6 +215,7 @@ func build(
 	_flashing.clear()
 	_lamps.clear()
 	_lamp_at.clear()
+	_lamp_shown.clear()
 	_lamp_points = null
 	_funnels.clear()
 	_felled = false
@@ -418,15 +422,24 @@ func show_power(pose: ShipPose) -> void:
 	if _lamp_points == null or _lamp_points.size() != _lamp_at.size():
 		_lamp_points = StillPoints.new(_lamp_at)
 	_lamp_points.read(pose)
+	if _lamp_shown.size() != _lamps.size():
+		_lamp_shown.resize(_lamps.size())
+		_lamp_shown.fill(-1)
 	# A pose that keeps no cells has no lamp in one (ShipPose.cell_at).
 	for index in _lamps.size() if not pose.levels.is_empty() else 0:
 		# The cell it hangs in as the pose has her cells — a piece's own, once she breaks.
 		var cell := _lamp_points.cell(index)
 		if cell == CellMap.NONE:
 			continue
+		var power: int = pose.lit[cell]
+		var drowned := pose.levels[cell] >= _lamp_points.world_height(index)
+		var shown := power * 2 + (1 if drowned else 0)
+		if shown == _lamp_shown[index]:
+			continue
+		_lamp_shown[index] = shown
 		var lamp := _lamps[index]
-		lamp.power = pose.lit[cell]
-		lamp.drowned = pose.levels[cell] >= _lamp_points.world_height(index)
+		lamp.power = power
+		lamp.drowned = drowned
 	if _deck_lights != null:
 		_deck_lights.show_power(pose)
 	if _broken_glass != null:
