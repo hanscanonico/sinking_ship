@@ -750,3 +750,27 @@ func test_effects_come_from_snapshots_and_the_pose_only() -> void:
 		for index in source.size():
 			var found := live.search(source[index].get_slice("#", 0))
 			assert_null(found, "%s:%d names the live match" % [file, index + 1])
+
+
+func test_a_deck_passed_over_clear_of_the_sea_has_no_line_across_it() -> void:
+	# _waterlines asks no deck whose every corner stands clear of the sea by more than
+	# its plane rises across it: none such has a line the sea crosses it along.
+	var sim := _sim()
+	var planner := _planner(sim)
+	var layout := sim.config.ship
+	var passed := 0
+	var crossed := 0
+	for tick in range(0, sim.schedule.end_tick(), Ticks.RATE * 4):
+		var pose := sim.schedule.pose_at(tick)
+		var basis := pose.transform.basis
+		for platform: ShipPlatform in layout.platforms:
+			var area := platform.area
+			var low := pose.world_height(Vector3(area.position.x, platform.height, area.position.y))
+			var rise := absf(basis.x.y * area.size.x) + absf(basis.z.y * area.size.y)
+			var across := planner._crossing(platform, pose, low)
+			crossed += 1 if across else 0
+			if absf(low) > rise + FxPlanner.CLEAR_OF_SEA:
+				passed += 1
+				assert_false(across, "%s at %d" % [platform.name, tick])
+	assert_gt(passed, 0, "decks passed over")
+	assert_gt(crossed, 0, "and decks the sea crosses")

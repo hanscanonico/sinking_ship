@@ -31,6 +31,8 @@ const GLASS_SHADER := preload("res://scenes/art/glass.gdshader")
 
 ## A deck's planking: its top is the platform's height.
 const PLANK := 0.06
+## How near the eye a lamp is woken to swing as she turns, in metres (_wake_lamps).
+const LAMP_WAKE_REACH := 40.0
 ## The boot line, above the waterline of a level, unsunk ship.
 const BOOT_ABOVE := 0.35
 ## The tallest a stair's step rises: the stair's top stands within half of it of
@@ -147,6 +149,9 @@ var _lamp_sight: LampSight
 ## through the cell it hangs in (show_power).
 var _lamps: Array[ShipLamp] = []
 var _lamp_at := PackedVector3Array()
+## The same points, their cells found once a cell map and their heights worked out
+## together each pose (StillPoints); null until show_power first asks.
+var _lamp_points: StillPoints
 ## Per funnel the sinking can fell, by its fitting's name, the node its standing part
 ## hangs from, turned about its foot as it falls (show_falls).
 var _funnels := {}
@@ -202,6 +207,7 @@ func build(
 	_flashing.clear()
 	_lamps.clear()
 	_lamp_at.clear()
+	_lamp_points = null
 	_funnels.clear()
 	_felled = false
 	var hull := SectionHull.of(_space, railing_height)
@@ -382,23 +388,38 @@ func show_power(pose: ShipPose) -> void:
 	if pose == _powered:
 		return
 	if _powered == null or pose.transform.basis != _powered.transform.basis:
-		for lamp: ShipLamp in _lamps:
-			lamp.wake()
+		_wake_lamps()
 	_powered = pose
 	if pose.lit.is_empty():
 		return
-	for index in _lamps.size():
+	if _lamp_points == null or _lamp_points.size() != _lamp_at.size():
+		_lamp_points = StillPoints.new(_lamp_at)
+	_lamp_points.read(pose)
+	# A pose that keeps no cells has no lamp in one (ShipPose.cell_at).
+	for index in _lamps.size() if not pose.levels.is_empty() else 0:
 		# The cell it hangs in as the pose has her cells — a piece's own, once she breaks.
-		var cell := pose.cell_at(_lamp_at[index])
+		var cell := _lamp_points.cell(index)
 		if cell == CellMap.NONE:
 			continue
 		var lamp := _lamps[index]
 		lamp.power = pose.lit[cell]
-		lamp.drowned = pose.levels[cell] >= pose.world_height(_lamp_at[index])
+		lamp.drowned = pose.levels[cell] >= _lamp_points.world_height(index)
 	if _deck_lights != null:
 		_deck_lights.show_power(pose)
 	if _broken_glass != null:
 		_broken_glass.show(pose)
+
+
+## Wakes every lamp within LAMP_WAKE_REACH of the eye drawing her — every one with no
+## eye — to swing as she turns: the Titanic hangs 897 a piece, and a lamp further off
+## catches up as the eye nears it, the next tick she turns.
+func _wake_lamps() -> void:
+	var camera := get_viewport().get_camera_3d() if is_inside_tree() else null
+	var eye := to_local(camera.global_position) if camera != null else Vector3.INF
+	var reach := LAMP_WAKE_REACH * LAMP_WAKE_REACH
+	for index in _lamps.size():
+		if camera == null or _lamp_at[index].distance_squared_to(eye) <= reach:
+			_lamps[index].wake()
 
 
 ## Turns each funnel [param falls] (ShipPose.falls) names about its foot as far as it has
