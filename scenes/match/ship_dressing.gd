@@ -58,8 +58,11 @@ var _stop_later := false
 ## been taken (take_stretches).
 var _cut: Array[ShipArt] = []
 var _handed := false
-## What her stretches are built of: her layout bare of props, one ShipSpace of it for them
-## all, and what of her the sinking can fell, fail and leave open.
+## What her stretches are built of: where each runs (ShipPieces.cuts_of), worked out
+## before her match starts — after, her schedule is the match's to read —, her layout bare
+## of props, one ShipSpace of it for them all, and what of her the sinking can fell, fail
+## and leave open.
+var _cuts := PackedVector2Array()
 var _bare: ShipLayout
 var _space: ShipSpace
 var _falls: Array[StringName] = []
@@ -245,6 +248,7 @@ func _dress() -> void:
 		_fails = PackedInt32Array(range(_ship.railings.size()))
 		_ports = MatchView.open_ports_of(schedule, _ship.structure)
 		plan = StretchPlan.for_schedule(schedule, _ship)
+		_cuts = ShipPieces.cuts_of(schedule)
 		art.rules = _rules
 		# All of her when the plan has her stretches in later to take her place.
 		if not plan.whole:
@@ -284,8 +288,7 @@ func _dress() -> void:
 ## Builds the stretches [param which] of hers (ShipPieces.cuts_of), aft to fore, as
 ## ShipPieces.stretches_of does — but stopped once she is let go (drop, stop_later).
 func _dress_stretches(which: PackedInt32Array) -> void:
-	var cuts := ShipPieces.cuts_of(config.schedule())
-	_cut.resize(cuts.size())
+	_cut.resize(_cuts.size())
 	if _bare == null:
 		_bare = ShipPieces.bare(_ship)
 		_space = ShipSpace.new(_bare)
@@ -296,7 +299,7 @@ func _dress_stretches(which: PackedInt32Array) -> void:
 		if stopped:
 			return
 		_cut[cut] = ShipPieces.stretch_of(
-			_bare, _space, cuts, cut, _rules, cut_above, _falls, _fails, _ports
+			_bare, _space, _cuts, cut, _rules, cut_above, _falls, _fails, _ports
 		)
 
 
