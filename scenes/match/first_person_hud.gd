@@ -143,6 +143,8 @@ var _rules: BrawlRules
 ## The ship's layout: what each prop is (#273); and the props a hand may hold
 ## (GrabReach.holdable_of).
 var _layout: ShipLayout
+## Per layout the eye has stood in, its rooms indexed (RoomIndex).
+var _room_indexes := {}
 var _holdable := PackedInt32Array()
 ## How the match's bonuses come and what each kind is (#307), null for none; and what a
 ## Grab press does, which the prompt names (GrabReach).
@@ -430,7 +432,9 @@ func _draw_crosshair(lit: bool) -> void:
 ## [param feet] stand in, else of the platform [param surface] is.
 func _draw_where(layout: ShipLayout, feet: Vector3, surface: int) -> void:
 	var where := ""
-	var room := layout.room_at(feet, _rules.step_height)
+	if not _room_indexes.has(layout):
+		_room_indexes[layout] = RoomIndex.new(layout)
+	var room: int = _room_indexes[layout].room_at(feet, _rules.step_height)
 	if room != -1:
 		where = layout.rooms[room].name
 	elif surface >= 0 and surface < layout.platforms.size():

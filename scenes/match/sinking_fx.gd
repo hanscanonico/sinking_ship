@@ -137,7 +137,7 @@ var _view: MatchView
 var _sim: MatchSim
 var _schedule: SinkSchedule
 ## The ship's layout, and the step a room's floor is told from the deck by.
-var _layout: ShipLayout
+var _rooms: RoomIndex
 var _step := 0.0
 var _planner: FxPlanner
 var _wetness: DeckWetness
@@ -323,7 +323,7 @@ func setup(
 	_view = view
 	_sim = sim
 	_schedule = sim.schedule
-	_layout = sim.config.ship
+	_rooms = RoomIndex.new(sim.config.ship)
 	_step = sim.config.rules.step_height
 	_flotsam.setup(sim.config.ship, sim.config.rules.wade_depth)
 	var falls: Array[StringName] = []
@@ -458,7 +458,7 @@ func _on_stepped(_events: Array[SimEvent]) -> void:
 	var eye_room := -1
 	if _view.eye_seat() >= 0:
 		var feet: Vector3 = _driver.current["seats"][_view.eye_seat()]["pos"]
-		eye_room = _layout.room_at(feet, _step)
+		eye_room = _rooms.room_at(feet, _step)
 	play(cues, ship, get_viewport().get_camera_3d(), eye_room)
 	# Against the ship as stepped, not as last drawn: a deck righting under a piece
 	# sends it under before the deck is wadeable.
