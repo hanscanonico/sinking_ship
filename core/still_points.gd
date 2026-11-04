@@ -30,10 +30,19 @@ var _world := PackedVector3Array()
 var _world_floors := PackedVector3Array()
 var _floors_set := false
 var _world_own_floors := PackedVector3Array()
+## The NativeWater the loops over every point go to (#410), or null where they run here:
+## the same answers either way (test_water_native).
+var water: Object = null
 
 
-func _init(points: PackedVector3Array) -> void:
+func _init(points: PackedVector3Array, native: Object = null) -> void:
 	_points = points
+	water = native
+
+
+## A NativeWater where the game's extension is loaded (native/, make native), else null.
+static func native_water() -> Object:
+	return ClassDB.instantiate(&"NativeWater") if ClassDB.class_exists(&"NativeWater") else null
 
 
 func size() -> int:
@@ -98,6 +107,8 @@ func wet_all() -> PackedByteArray:
 	var keeps := not levels.is_empty()
 	if keeps and _world_own_floors.is_empty():
 		_world_own_floors = _pose.transform * _own_floors
+	if water != null:
+		return water.wet_all(_world, _cells, keeps, levels, _world_own_floors, highest, CellMap.DRY)
 	var found := PackedByteArray()
 	found.resize(_points.size())
 	for index in _points.size():
@@ -125,6 +136,36 @@ func above_water(index: int) -> float:
 	return _pose.above_water_seen(
 		world_height(index), _chain_cells, _world_floors, _chain_from[index], _chain_from[index + 1]
 	)
+
+
+## Per group of points — from [param groups][group] to [param groups][group + 1] — the
+## least of their above_water, INF for none.
+func lowest_of(groups: PackedInt32Array) -> PackedFloat64Array:
+	if not _chained:
+		_chain()
+	if not _floors_set:
+		_world_floors = _pose.transform * _chain_points
+		_floors_set = true
+	if _world.is_empty():
+		_world = _pose.transform * _points
+	if water != null:
+		return water.lowest_of(
+			groups, _world, _chain_from, _chain_cells, _world_floors, _pose.levels, CellMap.DRY
+		)
+	var lowest := PackedFloat64Array()
+	lowest.resize(maxi(groups.size() - 1, 0))
+	for group in lowest.size():
+		lowest[group] = INF
+		for index in range(groups[group], groups[group + 1]):
+			lowest[group] = minf(lowest[group], above_water(index))
+	return lowest
+
+
+## Every point set in the world under the pose read.
+func world_all() -> PackedVector3Array:
+	if _world.is_empty():
+		_world = _pose.transform * _points
+	return _world
 
 
 func _locate() -> void:

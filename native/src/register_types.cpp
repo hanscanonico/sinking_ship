@@ -2,6 +2,7 @@
 // level, before any script that asks ClassDB for them runs.
 
 #include "walk_search_native.h"
+#include "water_native.h"
 
 #include <gdextension_interface.h>
 #include <godot_cpp/core/class_db.hpp>
@@ -16,6 +17,7 @@ static void initialize_sinking_native(ModuleInitializationLevel p_level) {
 	}
 	GDREGISTER_CLASS(NativeWalkGraph);
 	GDREGISTER_CLASS(NativeWalkSearch);
+	GDREGISTER_CLASS(NativeWater);
 }
 
 static void uninitialize_sinking_native(ModuleInitializationLevel p_level) {
