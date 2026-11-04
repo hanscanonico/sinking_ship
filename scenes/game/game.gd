@@ -381,11 +381,13 @@ func _dress_held() -> void:
 
 
 ## Whether the held match is served (MatchScene.serve): a match served on a thread, which
-## starts once that is done — but a replay, which no loopback serves, and a tool's jump or
-## frame split, which start() serves itself.
+## starts once that is done, a tool's jump and frame split with it — but a replay, which
+## no loopback serves, and a frame split of the greybox, whose sinking start() times as
+## it is built and so serves itself. Served there, a liner's host, bots and effects would
+## hold the first match frame for seconds.
 func _served_held() -> bool:
-	var jumps := _args.phys_seconds >= 0.0 and _args.jump
-	if _holding_replay != null or jumps or _probe != null:
+	var greybox_split := _probe != null and _args.greybox
+	if _holding_replay != null or greybox_split:
 		return true
 	var config := _holding
 	if _serving.ready_for(config):
@@ -396,10 +398,25 @@ func _served_held() -> bool:
 	# Her ship dressed, her sinking is built: nothing else builds it meanwhile.
 	var local := MatchScene.local_for(config, _args.autoplay)
 	var net_sim := _args.net_sim
+	var jump_to := _jump_tick(config)
+	var split: FrameSplit = _probe.split if _probe != null else null
 	_serving.serve(
-		config, func() -> MatchScene.Served: return MatchScene.serve(config, local, net_sim)
+		config,
+		func() -> MatchScene.Served:
+			var from := MatchJump.snapshot(config, jump_to) if jump_to >= 0 else {}
+			return MatchScene.serve(config, local, net_sim, from, split)
 	)
 	return false
+
+
+## The tick a tool's jump (--phys-seconds with --jump) starts [param config]'s match at,
+## JUMP_LEAD ahead of its capture; -1 for none, the match from its first.
+func _jump_tick(config: MatchConfig) -> int:
+	if _args.phys_seconds < 0.0 or not _args.jump:
+		return -1
+	return maxi(
+		config.schedule().physics_tick(_args.phys_seconds) - Ticks.from_seconds(JUMP_LEAD), 0
+	)
 
 
 ## The held match, or its replay, starts: its sinking is made and its ship dressed.
@@ -475,11 +492,9 @@ func _start(config: MatchConfig) -> void:
 		# A dressed ship's dressing timed her sinking (_dressing_of); the greybox has none.
 		if _args.greybox and not FrameMeter.time_schedule(config, split):
 			push_warning("frame split: the match's sinking was built already; its poses untimed")
-	var jump_to := -1
 	if _args.phys_seconds >= 0.0:
 		_capture_tick = config.schedule().physics_tick(_args.phys_seconds)
-		if _args.jump:
-			jump_to = maxi(_capture_tick - Ticks.from_seconds(JUMP_LEAD), 0)
+	var jump_to := _jump_tick(config)
 	_match.choices = _playing
 	_match.session = _session
 	_match.dressing = _take_dressing(config)
