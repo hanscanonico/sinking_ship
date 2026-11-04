@@ -12,10 +12,12 @@ var view: BotView
 ## [param floors] — the walk graphs and the Surfaces they were built over — may be
 ## shared by the bots of one match: they only ever answer for the pose they are handed,
 ## so sharing them shares what each tick costs to work out, never a decision. Without
-## them, the bot builds its own.
+## them, the bot builds its own. On a big ship it thinks as its profile says for one
+## (BotProfile.for_ship).
 func _init(seat: int, profile: BotProfile, config: MatchConfig, floors: BotFloors = null) -> void:
 	if floors == null:
 		floors = floors_of(config)
+	profile = profile.for_ship(floors.graph(Faces.Up.DECK).zone_count())
 	view = BotView.new(seat, profile, floors)
 	brain = BotBrain.new(
 		seat,
