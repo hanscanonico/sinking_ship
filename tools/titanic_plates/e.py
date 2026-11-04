@@ -1251,6 +1251,12 @@ NUDGES = [
     (0, 66.0, 66.4375, 1.2, 5.7),  # the gentlemen's lavatory's way to its baths, likewise
     (2, -10.1875, -10.3125, 60.6, 65.3),  # the boatswain and mate's door
     (0, 90.8125, 90.625, 4.6, 7.4),  # the men's lavatory's door
+    # Her stern passage to starboard, the only way into the three rooms off it (#414): the
+    # plate draws it 32 px (0.83 m) wide over P's line, widened to WAY_LEAST, then held aft
+    # to P's line (EF_CUTS) and left 0.79 m clear. Its forward side moves forward so it keeps
+    # WAY_LEAST past the line, the two rooms forward of it giving up the width, as the plates'
+    # tandem passages take what they lack from the rooms beside them.
+    (0, -118.25, -117.8125, 0.9, 8.8),
 ]
 DOOR_MOVES = [
     ((95.6875, 7.875), (94.0, 7.375)),  # the four-berth room's, her side at B's line (#373) leaving it no stretch
@@ -1267,7 +1273,7 @@ DOOR_MOVES = [
 # over the 20 ft ladderway's well and the engineers' ladder's, opened beside them below.
 SHUT = [(69.0, -7.8125), (126.4, 0.2), (-1.0, -3.125), (-45.0, -9.125)]
 OPENED = [
-    (-118.13, -118.11, 1.0, 2.125),  # her stern passage, on to its last piece
+    (-117.8225, -117.8025, 1.0, 2.125),  # her stern passage, on to its last piece
     (-2.8125, -0.875, -3.135, -3.115),  # the head of the 20 ft ladderway
     (2.4375, 4.625, -3.135, -3.115),  # past the foot of its well, forward of G
     (-44.125, -42.625, -9.135, -9.115),  # past the foot of the engineers' ladder

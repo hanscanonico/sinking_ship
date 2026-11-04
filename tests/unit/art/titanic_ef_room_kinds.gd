@@ -370,7 +370,6 @@ const KINDS := {
 	&"bulk store": RoomDressing.Kind.HOLD,
 	&"grocery store": RoomDressing.Kind.HOLD,
 	&"fruit and vegetable store": RoomDressing.Kind.SERVICE,
-	&"wine and spirit store": RoomDressing.Kind.HOLD,
 	&"champagne store": RoomDressing.Kind.HOLD,
 	&"passage, orlop deck": RoomDressing.Kind.PASSAGE,
 	&"stewards' working stores": RoomDressing.Kind.HOLD,

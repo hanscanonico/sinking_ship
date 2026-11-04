@@ -260,8 +260,9 @@ DOORS = [
     (2348, 3415), (2200, 3772), (2269.5, 3868),
     # The stores off the passage, and the empties from the bulk store.
     (2535, 3388), (2635, 3388), (2380, 3442), (2552, 3442), (2299, 3750),
-    # The wine and spirit store from the lobby; the champagne store, whose swing stands
-    # on its cut corner, on its side into the lobby; the small room on M.
+    # The wine and spirit store from the lobby (gone with it: MADE_SOLID); the champagne
+    # store, whose swing stands on its cut corner, on its side into the lobby; the small
+    # room on M.
     (2892, 3212), (2840, 3330), (2880, 3340),
     # The switchboard platform from the lobby, est.: the plate draws it shut off from the
     # stores, reached from the dynamos below.
@@ -332,6 +333,12 @@ STAIRS = [
 
 # The trunk's after wall over the flights down out of it (STAIRS), which come up through it.
 OPENED = [(99.3025, 99.3225, -1.0625, 1.4375)]
+
+# The wine and spirit store, a solid block (#414): the plate draws it 2.85 m deep from her
+# side to the lobby, but at the height the lay puts her orlop her side stands 0.8 m from
+# the lobby's wall, 0.67 m clear between the walls' faces, narrower than a body (#360: "a
+# space narrower than a body"). Its door from the lobby goes with it; nothing lies behind it.
+MADE_SOLID = [(-68.0, -10.6)]
 
 STAIR_MOVES = [
     # In from her side at the lower orlop's height, under the orlop her G deck leaves room for:
