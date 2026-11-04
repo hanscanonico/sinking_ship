@@ -312,6 +312,24 @@ func build(
 	add_child(_occluders)
 
 
+## The graphics preset it was last told of (show_graphics).
+func graphics() -> GraphicsQuality:
+	return _graphics
+
+
+## Draws [param other]'s props in place of its own, as they are placed: those of the art
+## it takes the place of (MatchView), which is left without.
+func take_props(other: ShipArt) -> void:
+	if other.prop_art == null:
+		return
+	if prop_art != null:
+		remove_child(prop_art)
+		prop_art.free()
+	prop_art = other.prop_art
+	other.remove_child(prop_art)
+	add_child(prop_art)
+
+
 ## Lets the rooms' lamps light as [param quality] allows: every room in sight, and
 ## those out of sight within its limit, nearest first (LampSight).
 func show_graphics(quality: GraphicsQuality) -> void:
