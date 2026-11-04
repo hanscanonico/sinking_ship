@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+#
+# `make guard-check`: which of a `make fps` run's once-a-second samples count
+# (tools/lib/fps_samples.awk), against made-up logs, so no engine runs. Only the
+# match's count — those printed after the game's first-match-frame line, less the
+# first SKIP of them — never a held ship's dressing; a run whose match never
+# started keeps none and says so.
+
+set -uo pipefail
+cd "$(dirname "$0")/.." || exit 1
+
+fails=0
+log=$(mktemp)
+trap 'rm -f "$log"' EXIT
+
+# The samples kept from the log, one line, space-separated.
+kept() {
+	awk -v skip=2 -f tools/lib/fps_samples.awk "$log" | tr '\n' ' '
+}
+
+{
+	for _ in 1 2 3 4 5; do echo "Project FPS: 981 (1.01 mspf)"; done
+	echo "first match frame 342.5 s after launch"
+	for fps in 30 20 4 5 3 4; do echo "Project FPS: $fps (250.00 mspf)"; done
+} >"$log"
+[[ $(kept) == "4 5 3 4 " ]] || {
+	echo "fps-samples-check: a held dressing's samples counted: kept $(kept)" >&2
+	fails=1
+}
+
+for _ in 1 2 3 4 5 6 7 8; do echo "Project FPS: 981 (1.01 mspf)"; done >"$log"
+if out=$(kept 2>&1); then
+	echo "fps-samples-check: a run whose match never started passed, keeping $out" >&2
+	fails=1
+fi
+exit "$fails"

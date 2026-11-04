@@ -111,6 +111,12 @@ func test_the_frame_split_is_asked_for_with_the_seconds_it_skips() -> void:
 	assert_eq(args.frame_split, 8.0, "frames from the eighth second on are kept")
 
 
+func test_a_timed_run_counts_its_seconds_from_the_match() -> void:
+	assert_eq(MatchArgs.parse(PackedStringArray()).match_seconds, -1.0, "play never ends itself")
+	var args := MatchArgs.parse(PackedStringArray(["--match-seconds=60"]))
+	assert_eq(args.match_seconds, 60.0, "the run quits a minute after the match's first frame")
+
+
 func test_a_capture_looks_from_chosen_feet_at_a_chosen_point_in_ship_space() -> void:
 	# The eye stands EYE_HEIGHT over the feet; its yaw runs from the bow toward
 	# starboard, its pitch up from the horizon (FirstPersonCamera.look_from).

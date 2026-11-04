@@ -8,9 +8,9 @@ extends Node
 ## frame_pre_draw to its frame_post_draw — the render's CPU time within it, as the
 ## RenderingServer measured it, the rest the buffer swap and the wait on the GPU, which
 ## the Compatibility renderer cannot time itself.
-## The frames drawn while a match plays from the skip-th second of the run on are kept
-## — the run's own clock, as --print-fps counts its seconds; the menu's and a held
-## countdown's bake are not the match's — and the split of them all so far is printed
+## The frames drawn while a match plays from the skip-th second after it started on are
+## kept — the menu's, a held countdown's bake and a held ship's dressing are not the
+## match's, however long they take — and the split of them all so far is printed
 ## once a second, lines starting "frame split", for tools/fps.sh to show the last.
 ##
 ## The display scripts are timed node by node from outside, nothing in the nodes
@@ -31,9 +31,12 @@ var split := FrameSplit.new()
 var playing := false:
 	set(value):
 		_starting = value and not playing
+		if _starting:
+			_playing_since = Time.get_ticks_usec()
 		playing = value
 
 var _skip_us: int
+var _playing_since := 0
 var _frame_start := -1
 var _process_start := 0
 var _reported := 0
@@ -141,7 +144,7 @@ func _close(now: int) -> void:
 	var drawn := Engine.get_frames_drawn()
 	var did_draw := drawn != _drawn
 	_drawn = drawn
-	if _frame_start < _skip_us or not playing or _starting:
+	if _frame_start < _playing_since + _skip_us or not playing or _starting:
 		_starting = false
 		split.drop()
 		return
