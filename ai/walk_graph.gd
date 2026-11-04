@@ -189,6 +189,18 @@ var _zone_corners := PackedInt32Array()
 ## The graph laid out for the native search (WalkSearch.native_graph), or null where the
 ## extension is not loaded and the searches are GDScript.
 var _native_graph: Object = null
+## The NativeWater the loops over every zone and portal go to (StillPoints.native_water),
+## or null where they run in GDScript; what they read of the layout laid out flat for it:
+## each zone's platforms, from _zone_platforms_from[zone], and each platform's area.
+var _water: Object = null
+var _zone_platforms_from := PackedInt32Array()
+var _zone_platforms_flat := PackedInt32Array()
+var _platform_areas := PackedFloat64Array()
+## Whether every portal's _portal_shut is known, and every zone's _heights and _lowest
+## under the pose known.
+var _shut_known := false
+var _heights_known := false
+var _lowest_known := false
 
 
 func _init(layout: ShipLayout, surfaces: Surfaces, rules: BrawlRules) -> void:
@@ -230,6 +242,13 @@ func _init(layout: ShipLayout, surfaces: Surfaces, rules: BrawlRules) -> void:
 	_lowest.resize(_zone_count)
 	_portal_wet.resize(_portals.size())
 	_portal_shut.resize(_portals.size())
+	_water = StillPoints.native_water()
+	for zone in _zone_count:
+		_zone_platforms_from.append(_zone_platforms_flat.size())
+		_zone_platforms_flat.append_array(_zone_platforms[zone])
+	_zone_platforms_from.append(_zone_platforms_flat.size())
+	for platform in layout.platforms.size():
+		_platform_areas.append(platform_area(platform))
 	var ends := PackedVector3Array()
 	for portal: Portal in _portals:
 		_portal_to.append(portal.to_zone)
@@ -238,17 +257,17 @@ func _init(layout: ShipLayout, surfaces: Surfaces, rules: BrawlRules) -> void:
 		_portal_length.append(portal.entry.distance_to(portal.exit))
 		ends.append(portal.entry)
 		ends.append(portal.exit)
-	_ends = StillPoints.new(ends)
+	_ends = StillPoints.new(ends, _water)
 	var middles := PackedVector3Array()
 	for room in layout.rooms.size():
 		middles.append(_room_middle(room))
-	_middles = StillPoints.new(middles)
+	_middles = StillPoints.new(middles, _water)
 	# Each platform's middle at its height, where Surfaces.flooded reads its water.
 	var centres := PackedVector3Array()
 	for deck: ShipPlatform in layout.platforms:
 		var middle := deck.area.get_center()
 		centres.append(Vector3(middle.x, deck.height, middle.y))
-	_centres = StillPoints.new(centres)
+	_centres = StillPoints.new(centres, _water)
 	var corners := PackedVector3Array()
 	for zone in _zone_count:
 		_zone_corners.append(corners.size())
@@ -259,7 +278,7 @@ func _init(layout: ShipLayout, surfaces: Surfaces, rules: BrawlRules) -> void:
 				var deck := layout.platforms[platform]
 				_add_corners(corners, deck.area, deck.height)
 	_zone_corners.append(corners.size())
-	_corners = StillPoints.new(corners)
+	_corners = StillPoints.new(corners, _water)
 	_native_graph = WalkSearch.native_graph(
 		_out, _portal_to, _portal_entry, _portal_exit, _portal_length, _pace
 	)
@@ -298,6 +317,8 @@ func platform_area(platform: int) -> float:
 ## floods little of her. Worked out once per pose, however many bots ask.
 func flooded_share(pose: ShipPose) -> float:
 	_know(pose)
+	if is_nan(_flooded_share) and _water != null:
+		_flooded_share = _water.share(_platform_areas, _platforms_wet(pose))
 	if is_nan(_flooded_share):
 		var flooded := 0.0
 		var whole := 0.0
@@ -554,6 +575,9 @@ func highest_reachable(from_pos: Vector3, from_surface: int, pose: ShipPose) -> 
 
 ## The highest zone of those [param found] reaches, as highest_reachable().
 func highest_in(found: WalkSearch, pose: ShipPose) -> int:
+	# Natively unless something gives way: then doomed() reads the pose's decks by name.
+	if _water != null and pose.collapsing.is_empty() and pose.collapsed.is_empty():
+		return _water.highest(found.reached(), false, _doomed, heights_all(pose))
 	var best := NONE
 	var best_height := -INF
 	var reached := found.reached()
@@ -857,6 +881,13 @@ func _closed_ways(pose: ShipPose, swim: bool, wade: bool) -> PackedByteArray:
 			_flood_every_zone(pose)
 			if not wade:
 				_wet_every_portal(pose)
+		if _water != null and not falling:
+			if not swim:
+				_shut_every_portal(pose)
+			_portals_closed[way] = _water.closed(
+				_portal_to, false, _doomed, swim, wade, _flooded, _portal_shut, _portal_wet
+			)
+			return _portals_closed[way]
 		var closed := PackedByteArray()
 		closed.resize(_portal_to.size())
 		for index in closed.size():
@@ -876,6 +907,16 @@ func _closed_ways(pose: ShipPose, swim: bool, wade: bool) -> PackedByteArray:
 func _flood_every_zone(pose: ShipPose) -> void:
 	var rooms := _layout.rooms.size()
 	var middles := _middles.wet_all()
+	if _water != null:
+		_flooded = _water.flooded(
+			_flooded,
+			rooms,
+			middles,
+			_zone_platforms_from,
+			_zone_platforms_flat,
+			_platforms_wet(pose)
+		)
+		return
 	for zone in _zone_count:
 		if _flooded[zone] != 0:
 			continue
@@ -886,6 +927,10 @@ func _flood_every_zone(pose: ShipPose) -> void:
 ## Works out _wet for every portal under the pose known at once: their ends read together.
 func _wet_every_portal(pose: ShipPose) -> void:
 	var ends := _ends.wet_all()
+	if _water != null:
+		_shut_every_portal(pose)
+		_portal_wet = _water.portals_wet(_portal_wet, ends, _portal_shut)
+		return
 	for index in _portal_wet.size():
 		if _portal_wet[index] != 0:
 			continue
@@ -936,6 +981,8 @@ func _know(pose: ShipPose) -> void:
 	_heights.fill(NAN)
 	_lowest.fill(NAN)
 	_flooded_share = NAN
+	_heights_known = false
+	_lowest_known = false
 	for way in _portals_closed.size():
 		_portals_closed[way] = PackedByteArray()
 	_ends.read(pose)
@@ -948,15 +995,63 @@ func _know(pose: ShipPose) -> void:
 		_shut_opened = pose.opened
 		_shut_felled = pose.felled
 		_portal_shut.fill(0)
+		_shut_known = false
 
 
 ## Whether the water stands over the middle of [param platform] under [param pose]
 ## (Surfaces.flooded), worked out once a pose.
 func _platform_under(platform: int, pose: ShipPose) -> bool:
+	return _platforms_wet(pose)[platform] == 1
+
+
+## Per platform, 1 where the water stands over its middle under [param pose].
+func _platforms_wet(pose: ShipPose) -> PackedByteArray:
 	_know(pose)
 	if _platform_flooded.is_empty():
 		_platform_flooded = _centres.wet_all()
-	return _platform_flooded[platform] == 1
+	return _platform_flooded
+
+
+## Works out _shut for every portal at once, until the doors move (_know).
+func _shut_every_portal(pose: ShipPose) -> void:
+	_know(pose)
+	if _shut_known:
+		return
+	for index in _portal_shut.size():
+		_shut(index, pose)
+	_shut_known = true
+
+
+## Per zone, world_height under [param pose]: every zone's at once.
+func heights_all(pose: ShipPose) -> PackedFloat64Array:
+	_know(pose)
+	if not _heights_known:
+		if _water != null:
+			_heights = _water.heights(
+				_layout.rooms.size(),
+				_middles.world_all(),
+				_zone_platforms_from,
+				_zone_platforms_flat,
+				_centres.world_all()
+			)
+		else:
+			for zone in _zone_count:
+				world_height(zone, pose)
+		_heights_known = true
+	return _heights
+
+
+## Per zone, lowest_above_water under [param pose]: every zone's at once.
+func lowest_all(pose: ShipPose) -> PackedFloat64Array:
+	_know(pose)
+	if not _lowest_known:
+		if _water != null:
+			_lowest = _corners.lowest_of(_zone_corners)
+		else:
+			for zone in _zone_count:
+				lowest_above_water(zone, pose)
+		_lowest_known = true
+	return _lowest
 
 
 func _is_flooded(zone: int, pose: ShipPose) -> bool:

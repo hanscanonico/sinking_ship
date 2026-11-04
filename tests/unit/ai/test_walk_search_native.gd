@@ -86,7 +86,7 @@ func test_her_ships_answer_alike_as_she_sinks() -> void:
 	rng.seed = 1912
 	for path in SHIPS:
 		var layout: ShipLayout = load(path)
-		var sim := SimFixtures.sim(1, load(SimFixtures.STEAMER_SINKING), layout)
+		var sim := SimFixtures.sim(1, _sinking(path), layout)
 		var graph := WalkGraph.new(layout, sim.surfaces, SimFixtures.rules())
 		var native: Object = graph._native_graph
 		assert_not_null(native, "%s lays its graph out for the native search" % path)
@@ -166,3 +166,14 @@ func _assert_alike(native: Array, reference: Array, what: String) -> void:
 			)
 			return
 	fail_test("%s: %d answers natively, %d in GDScript" % [what, native.size(), reference.size()])
+
+
+## Her sinking: the steamer's own, baked from a hit, her cells flooding one by one; the
+## small Titanic's keyframed — settling by the head and heeling — as baking the steamer's
+## hit into her structure takes minutes.
+func _sinking(path: String) -> SinkScenario:
+	if path.ends_with("steamer.tres"):
+		return load(SimFixtures.STEAMER_SINKING)
+	return SimFixtures.scenario(
+		[[0.0, 0.0, 0.0, 0.0], [60.0, 6.0, 3.0, 2.0], [120.0, 14.0, 8.0, 5.0]]
+	)
