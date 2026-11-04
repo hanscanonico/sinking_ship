@@ -44,6 +44,10 @@ var _viewport: RID
 var _drawn := 0
 var _draw_start := 0
 var _draw_end := 0
+## When the scripts of the open frame ended, and when the SceneTree began its frame.
+var _scripts_end := 0
+var _tree_frame := 0
+var _physics_frames := 0
 ## When the last lap was booked, this frame.
 var _lap := 0
 ## Whether the match started in the open frame: one not kept.
@@ -66,6 +70,8 @@ func _ready() -> void:
 	RenderingServer.frame_pre_draw.connect(_on_pre_draw)
 	RenderingServer.frame_post_draw.connect(_on_post_draw)
 	get_tree().node_added.connect(_on_node_added)
+	get_tree().process_frame.connect(_on_process_frame)
+	get_tree().physics_frame.connect(_on_physics_frame)
 	_watch_all(get_tree().root)
 
 
@@ -73,6 +79,8 @@ func _exit_tree() -> void:
 	RenderingServer.frame_pre_draw.disconnect(_on_pre_draw)
 	RenderingServer.frame_post_draw.disconnect(_on_post_draw)
 	get_tree().node_added.disconnect(_on_node_added)
+	get_tree().process_frame.disconnect(_on_process_frame)
+	get_tree().physics_frame.disconnect(_on_physics_frame)
 
 
 ## Books the time since the last lap to [param node_class]'s _process.
@@ -127,6 +135,14 @@ func _on_post_draw() -> void:
 	_draw_end = Time.get_ticks_usec()
 
 
+func _on_process_frame() -> void:
+	_tree_frame = Time.get_ticks_usec()
+
+
+func _on_physics_frame() -> void:
+	_physics_frames += 1
+
+
 func _process(_delta: float) -> void:
 	var now := Time.get_ticks_usec()
 	if _frame_start >= 0:
@@ -141,6 +157,8 @@ func _process(_delta: float) -> void:
 
 ## The frame that started at _frame_start, its render just done, closed at [param now].
 func _close(now: int) -> void:
+	var physics_frames := _physics_frames
+	_physics_frames = 0
 	var drawn := Engine.get_frames_drawn()
 	var did_draw := drawn != _drawn
 	_drawn = drawn
@@ -160,6 +178,16 @@ func _close(now: int) -> void:
 	)
 	if _draw_start >= _frame_start and _draw_end >= _draw_start:
 		split.add(&"draw", _draw_end - _draw_start)
+		# The engine's own work around the draw: from the scripts' end to it, from it
+		# to the next frame's SceneTree frame, and from that to the next scripts.
+		if _scripts_end >= _frame_start and _draw_start >= _scripts_end:
+			split.add(&"settle", _draw_start - _scripts_end)
+		if _tree_frame >= _draw_end and now >= _tree_frame:
+			split.add(&"loop", _tree_frame - _draw_end)
+			split.add(&"flush", now - _tree_frame)
+	split.add(&"physics_frames", physics_frames)
+	split.add(&"nodes", int(Performance.get_monitor(Performance.OBJECT_NODE_COUNT)))
+	split.add(&"objects", int(Performance.get_monitor(Performance.OBJECT_COUNT)))
 	split.add(&"render", int(render_ms * 1000.0))
 	split.add(
 		&"gpu", int(RenderingServer.viewport_get_measured_render_time_gpu(_viewport) * 1000.0)
@@ -174,7 +202,8 @@ func _close(now: int) -> void:
 
 
 func scripts_done() -> void:
-	split.add(&"process", Time.get_ticks_usec() - _process_start)
+	_scripts_end = Time.get_ticks_usec()
+	split.add(&"process", _scripts_end - _process_start)
 
 
 ## The last node to process in a frame: where the frame's scripts end.

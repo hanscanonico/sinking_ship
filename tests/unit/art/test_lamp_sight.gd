@@ -125,3 +125,24 @@ func _box(room: int) -> AABB:
 		Vector3(area.position.x, _layout.rooms[room].floor_height, area.position.y),
 		Vector3(area.size.x, 2.6, area.size.y)
 	)
+
+
+func test_a_choice_made_again_after_lamps_go_out_is_one_made_afresh() -> void:
+	# The choice hands each room's lamps only what changed, and counts the lamps
+	# burning only once one has gone out: what it lights owes nothing to what came before.
+	var kept := _sight(GraphicsQuality.Preset.LOW)
+	var eyes: Array[Vector3] = [BESIDE_AFT_CABIN, BESIDE_AFT_CABIN + Vector3(6.0, 0.0, 0.0)]
+	kept.choose(eyes[0])
+	kept.choose(eyes[1])
+	for index in kept._lamps.size():
+		if index % 2 == 0:
+			kept._lamps[index].burning = false
+	kept.choose(eyes[0])
+	var fresh := _sight(GraphicsQuality.Preset.LOW)
+	for index in fresh._lamps.size():
+		fresh._lamps[index].burning = kept._lamps[index].burning
+	fresh.choose(eyes[0])
+	for room in _layout.rooms.size():
+		assert_eq(kept.lights(room), fresh.lights(room), "room %d lit alike" % room)
+	for index in kept._lamps.size():
+		assert_eq(kept._lamps[index].wanted, fresh._lamps[index].wanted, "lamp %d alike" % index)

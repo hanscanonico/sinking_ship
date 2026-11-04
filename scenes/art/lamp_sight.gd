@@ -31,6 +31,12 @@ var _door_ways: Array[PackedVector2Array] = []
 var _burning := PackedInt32Array()
 var _reach := PackedFloat32Array()
 var _lit := PackedByteArray()
+## Per room, its lamps by index into _lamps, and what they were last handed: 1 wanted, 0
+## not, 2 nothing yet. Each choice hands only the rooms whose choice changed, and counts
+## the lamps burning again only once one has changed (_recount).
+var _room_lamps: Array[PackedInt32Array] = []
+var _handed := PackedByteArray()
+var _recount := true
 
 
 func _init(space: ShipSpace) -> void:
@@ -42,7 +48,11 @@ func _init(space: ShipSpace) -> void:
 	_burning.resize(rooms)
 	_reach.resize(rooms)
 	_lit.resize(rooms)
+	_room_lamps.resize(rooms)
+	_handed.resize(rooms)
+	_handed.fill(2)
 	for index in rooms:
+		_room_lamps[index] = PackedInt32Array()
 		var room := space.layout.rooms[index]
 		var lines := PackedVector2Array()
 		var ways := PackedVector2Array()
@@ -60,19 +70,29 @@ func show_graphics(quality: GraphicsQuality) -> void:
 
 ## [param lamp] hangs in room [param room], whose box (ship space) is [param box].
 func add(lamp: ShipLamp, room: int, box: AABB) -> void:
+	_room_lamps[room].append(_lamps.size())
 	_lamps.append(lamp)
 	_rooms.append(room)
 	_boxes[room] = box
+	_handed[room] = 2
+	_recount = true
+	lamp.burning_changed.connect(_on_burning_changed)
+
+
+func _on_burning_changed() -> void:
+	_recount = true
 
 
 ## Wants lit the lamps of every room near the eye at [param eye] (ship space) that it
 ## can see into, then of the rooms near it out of sight, nearest first, until the next
 ## one's would take the lamps burning past the limit.
 func choose(eye: Vector3) -> void:
-	_burning.fill(0)
-	for index in _lamps.size():
-		if _lamps[index].burning:
-			_burning[_rooms[index]] += 1
+	if _recount:
+		_recount = false
+		_burning.fill(0)
+		for index in _lamps.size():
+			if _lamps[index].burning:
+				_burning[_rooms[index]] += 1
 	var burning := 0
 	for room in _boxes.size():
 		_lit[room] = 0
@@ -95,8 +115,13 @@ func choose(eye: Vector3) -> void:
 			break
 		_lit[next] = 1
 		burning += _burning[next]
-	for index in _lamps.size():
-		_lamps[index].wanted = _lit[_rooms[index]] == 1
+	for room in _lit.size():
+		var lit := _lit[room]
+		if lit == _handed[room]:
+			continue
+		_handed[room] = lit
+		for index: int in _room_lamps[room]:
+			_lamps[index].wanted = lit == 1
 
 
 ## Whether the last choice lit room [param room]'s lamps.

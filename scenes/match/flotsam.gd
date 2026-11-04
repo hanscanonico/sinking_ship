@@ -12,6 +12,11 @@ extends Node3D
 signal landed(at: Vector3, strength: float)
 
 const CAP := 18
+## The side, in metres, of the grid the decks are looked up in under a piece, and how
+## far past its edges a deck is filed: the Titanic lays thousands, and a piece over
+## the sea is over none of them.
+const DECK_CELL := 4.0
+const DECK_SLACK := 0.01
 const GRAVITY := 9.8
 ## Seconds a piece is in the air, at least and at most.
 const FLIGHT_LEAST := 0.45
@@ -72,6 +77,7 @@ var _rng := RandomNumberGenerator.new()
 ## The decks a piece may come to float over, and how far under the sea one must
 ## stand for a piece to stay afloat over it.
 var _decks: Array[ShipPlatform] = []
+var _deck_grid: SpatialIndex
 var _shallow := 0.0
 ## The ship (ship to world) as last stepped, which a piece coming down between steps
 ## is sent under against; none before the first.
@@ -129,6 +135,9 @@ func throw(piece: FxCue.Piece, from: Vector3, to: Vector3, away: Vector2) -> voi
 ## [param wade] of the sea, from a clean start.
 func setup(layout: ShipLayout, wade: float) -> void:
 	_decks = layout.platforms
+	_deck_grid = SpatialIndex.new(SpatialIndex.bounds_of(layout), DECK_CELL)
+	for index in _decks.size():
+		_deck_grid.insert(index, _decks[index].area.grow(DECK_SLACK))
 	_shallow = wade + UNDER_LEAD
 	clear()
 
@@ -150,8 +159,11 @@ func _go_under_if_shallow(index: int) -> void:
 	if not _stepped:
 		return
 	var on_ship := _ship.affine_inverse() * _pieces[index].position
-	for deck: ShipPlatform in _decks:
-		if not deck.area.has_point(Vector2(on_ship.x, on_ship.z)):
+	var point := Vector2(on_ship.x, on_ship.z)
+	# Only the decks filed over the cell under it can hold it.
+	for deck_index: int in _deck_grid.in_cell(_deck_grid.cell_at(point)):
+		var deck := _decks[deck_index]
+		if not deck.area.has_point(point):
 			continue
 		if (_ship * Vector3(on_ship.x, deck.height, on_ship.z)).y > -_shallow:
 			_state[index] = State.SINKING
