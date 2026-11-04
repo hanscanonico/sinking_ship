@@ -8,6 +8,8 @@
 #   LLVM_MINGW  Windows only: an unpacked llvm-mingw (github.com/mstorsjo/llvm-mingw),
 #               whose bin/ holds x86_64-w64-mingw32-clang++; nothing goes on PATH
 #   JOBS        compile jobs (default: the cores)
+#   PLATFORM    windows on Linux: cross-compile the Windows library with mingw-w64
+#               (x86_64-w64-mingw32-g++ on PATH), as CI's native (windows) job does
 set -euo pipefail
 
 # godot-cpp 10.0.0-stable, which carries the Godot 4.7 API (api_version=4.7 below).
@@ -25,7 +27,16 @@ if ! command -v "$scons" >/dev/null 2>&1; then
 fi
 
 args=(target=template_release api_version=4.7 lto=none "build_profile=$root/native/build_profile.json")
-case "$(uname -s)" in
+host="$(uname -s)"
+if [[ -n "${PLATFORM:-}" ]]; then
+	if [[ "$PLATFORM" != windows || "$host" != Linux ]]; then
+		echo "native: PLATFORM=$PLATFORM — only PLATFORM=windows, on Linux, cross-compiles" >&2
+		exit 1
+	fi
+	host=cross-windows
+fi
+case "$host" in
+cross-windows) args+=(platform=windows arch=x86_64 use_mingw=yes) ;;
 MINGW* | MSYS* | CYGWIN*)
 	if [[ -z "${LLVM_MINGW:-}" ]]; then
 		echo "native: LLVM_MINGW is not set — unpack llvm-mingw's ucrt-x86_64 release" >&2

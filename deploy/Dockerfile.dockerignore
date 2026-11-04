@@ -1,6 +1,9 @@
 # What the export stage needs is the project; none of this is it.
 .git
 .godot
+# The GDExtension's build and libraries: the image builds its own for Linux.
+native/build
+native/lib
 .claude
 .lavish
 bin

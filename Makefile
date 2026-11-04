@@ -31,7 +31,8 @@ import:
 
 # The game's GDExtension (native/, #410) for this machine: the bots' walk search in C++,
 # the same answers as the GDScript it stands in for. Not tracked and not in verify — CI
-# builds Linux's for the test shards; without it the game runs the GDScript. Needs
+# builds Linux's for the test shards, macOS's and Windows's beside it, and the desktop
+# exports ship it (native/README.md); without it the game runs the GDScript. Needs
 # scons (SCONS=<path>) and a C++ compiler — on Windows llvm-mingw, LLVM_MINGW=<folder>.
 # The first build is followed by an import, which registers the extension with Godot.
 native:
@@ -245,30 +246,37 @@ online-e2e:
 # when they are missing (tools/export_templates.sh). No export ships the godot_ai
 # helper autoload (R11): the plugin's export hook strips it from every pack, and every
 # preset leaves addons/ out.
+#
+# Every desktop export ships the game's GDExtension for its platform (native/, #410):
+# Godot copies the library native/lib/sinking_native.gdextension lists for it beside
+# the binary. A missing one stops the export first, saying how to get it
+# (tools/native_export_check.sh); NATIVE=0 exports without it, and the game then runs
+# the GDScript. The web never has it: it has no threads.
 define export-preset
 	$(call require-godot)
 	@tools/export_templates.sh "$(GODOT)"
+	$(if $(3),@NATIVE="$(NATIVE)" tools/native_export_check.sh $(3))
 	@mkdir -p "$(dir $(2))" && touch build/.gdignore
 	timeout 1200 $(GODOT) --headless --path . --export-release "$(1)" "$(2)"
 endef
 
 export-server:
-	$(call export-preset,Linux Server,build/server/sinking_ship_server.x86_64)
+	$(call export-preset,Linux Server,build/server/sinking_ship_server.x86_64,linux.x86_64)
 
 export-web:
 	$(call export-preset,Web,build/web/index.html)
 
 export-mac:
-	$(call export-preset,macOS,build/mac/LastOneDry.app)
+	$(call export-preset,macOS,build/mac/LastOneDry.app,macos)
 
 export-win:
-	$(call export-preset,Windows Desktop,build/win/LastOneDry.exe)
+	$(call export-preset,Windows Desktop,build/win/LastOneDry.exe,windows.x86_64)
 
 export-linux:
-	$(call export-preset,Linux Desktop,build/linux/LastOneDry.x86_64)
+	$(call export-preset,Linux Desktop,build/linux/LastOneDry.x86_64,linux.x86_64)
 
 export-server-mac:
-	$(call export-preset,macOS Server,build/server-mac/SinkingShipServer.app)
+	$(call export-preset,macOS Server,build/server-mac/SinkingShipServer.app,macos)
 
 # `make serve-web-local [WEB_PORT=47984] [WS_PORT=47985]`: the browser build over HTTP
 # and an exported server, both on 127.0.0.1 and left running, with the address to open

@@ -102,6 +102,117 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+  # The same extension for macOS (universal), built on an Apple-silicon runner and held
+  # to the GDScript there by the two cross-check scripts alone: on arm64 the engine's
+  # own float code could contract a * b + c where ours (-ffp-contract=off) does not, and
+  # these would tell. Not the suite: the Linux shards run that.
+  native-macos:
+    name: native (macos)
+    runs-on: macos-latest
+    timeout-minutes: 30
+    env:
+      GODOT: bin/Godot.app/Contents/MacOS/Godot
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install SCons
+        run: pip install scons
+
+      - name: Cache godot-cpp
+        uses: actions/cache@v4
+        with:
+          path: native/build
+          key: godot-cpp-macos-${{ hashFiles('tools/native_build.sh', 'native/build_profile.json') }}
+
+      - name: Build
+        run: tools/native_build.sh
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: native-macos
+          path: native/lib/
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Cache Godot ${{ env.GODOT_VERSION }}
+        id: godot-bin
+        uses: actions/cache@v4
+        with:
+          path: bin/Godot.app
+          key: godot-bin-${{ env.GODOT_VERSION }}-macos
+
+      - name: Fetch Godot ${{ env.GODOT_VERSION }}
+        if: steps.godot-bin.outputs.cache-hit != 'true'
+        run: |
+          set -euo pipefail
+          url="https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}/Godot_v${GODOT_VERSION}_macos.universal.zip"
+          curl -sSfL -o /tmp/godot.zip "$url"
+          mkdir -p bin
+          unzip -q /tmp/godot.zip -d bin
+
+      - name: Check Godot runs
+        run: '"$GODOT" --headless --version && uname -m'
+
+      - name: Cache imported assets
+        uses: actions/cache@v4
+        with:
+          path: .godot
+          key: godot-${{ env.GODOT_VERSION }}-macos-import-${{ hashFiles('assets/**', 'data/**', '**/*.import', 'project.godot') }}
+
+      # After the build: the import registers the extension it finds.
+      - name: Import assets
+        run: make import
+
+      - name: Cross-check native against GDScript
+        run: make test JOBS=1 TESTS="tests/unit/ai/test_walk_search_native.gd tests/unit/ai/test_water_native.gd"
+        env:
+          SINKING_NATIVE_REQUIRED: "1"
+
+  # The Windows library, cross-compiled here with mingw-w64 for the Windows export
+  # (make export-win). Not run in CI: the cross-checks pass on Windows by hand.
+  native-windows:
+    name: native (windows)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install SCons and mingw-w64
+        run: |
+          pip install scons
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends g++-mingw-w64-x86-64
+
+      - name: Cache godot-cpp
+        uses: actions/cache@v4
+        with:
+          path: native/build
+          key: godot-cpp-windows-${{ hashFiles('tools/native_build.sh', 'native/build_profile.json') }}
+
+      - name: Build
+        run: tools/native_build.sh
+        env:
+          PLATFORM: windows
+
+      # What the DLL needs at run time: Windows' own DLLs, nothing from mingw.
+      - name: Imports
+        run: x86_64-w64-mingw32-objdump -p native/lib/libsinking_native.windows.x86_64.dll | grep 'DLL Name'
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: native-windows
+          path: native/lib/
+          if-no-files-found: error
+          retention-days: 7
+
   test:
     name: test ${{ matrix.shard }}/10
     needs: native
@@ -195,15 +306,17 @@ jobs:
           retention-days: 90
 
   verify:
-    needs: [static, native, test, art-lint, art-lint-titanic]
+    needs: [static, native, native-macos, native-windows, test, art-lint, art-lint-titanic]
     if: always()
     runs-on: ubuntu-24.04
     steps:
       - name: Every gate passed
         run: |
-          echo "static: ${{ needs.static.result }}, native: ${{ needs.native.result }}, test: ${{ needs.test.result }}, art-lint: ${{ needs.art-lint.result }}, art-lint-titanic: ${{ needs.art-lint-titanic.result }}"
+          echo "static: ${{ needs.static.result }}, native: ${{ needs.native.result }}, native-macos: ${{ needs.native-macos.result }}, native-windows: ${{ needs.native-windows.result }}, test: ${{ needs.test.result }}, art-lint: ${{ needs.art-lint.result }}, art-lint-titanic: ${{ needs.art-lint-titanic.result }}"
           test "${{ needs.static.result }}" = success
           test "${{ needs.native.result }}" = success
+          test "${{ needs.native-macos.result }}" = success
+          test "${{ needs.native-windows.result }}" = success
           test "${{ needs.test.result }}" = success
           test "${{ needs.art-lint.result }}" = success
           test "${{ needs.art-lint-titanic.result }}" = success
