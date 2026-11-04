@@ -200,9 +200,9 @@ func test_bots_think_less_often_only_past_the_small_titanics_zones() -> void:
 		var big := profile.for_ship(profile.big_ship_zones + 1)
 		assert_eq(big.think_period, profile.big_ship_think_period, "%s past it" % tier)
 		assert_ne(profile.think_period, big.think_period, "%s's own left as it was" % tier)
-		for ship: String in ["steamer", "small_titanic"]:
-			var layout: ShipLayout = load("res://data/ships/%s.tres" % ship)
+		for layout: ShipLayout in [
+			load("res://data/ships/steamer.tres"), load("res://data/ships/small_titanic.tres")
+		]:
 			var zones := WalkGraph.new(layout, Surfaces.new(layout), rules).zone_count()
-			assert_eq(
-				profile.for_ship(zones), profile, "%s on the %s's %d zones" % [tier, ship, zones]
-			)
+			var ship := layout.resource_path.get_file()
+			assert_eq(profile.for_ship(zones), profile, "%s on %s's %d zones" % [tier, ship, zones])
