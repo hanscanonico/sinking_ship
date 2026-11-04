@@ -295,7 +295,9 @@ bench:
 # a window, V-Sync off and always on top, a bot at the local seat's eyes (ARGS=--observer
 # for the observer camera; ARGS=--quality=high or --render-scale=1 to try a setting), its
 # frame rate summed up from the engine's own once-a-second --print-fps: the median and the
-# 10th percentile of the samples after the first 8, and the load average. A window the
+# 10th percentile of the samples after the match's first 8, and the load average. SECONDS
+# count from the match's first frame, a held ship's dressing waited out (up to 600 s) and
+# printed as the load line, never timed; a match that never starts fails. A window the
 # system is not drawing idles at a flat ~145 fps: such a run prints NOT DRAWING and fails.
 # SPLIT=1 (any value but 0) also prints where each frame's time goes over the match's
 # drawn frames from the same second on — the bots, the host's step, snapshot and digest,
@@ -733,7 +735,7 @@ check:
 # against a stand-in engine that errors and exits 0; the window lock, against
 # sleeps on a private lock file; the test engine slots,
 # against sleeps on private ones — both again on Perl's lock, the one Git Bash on
-# Windows takes (tools/lib/fd_lock.sh); make fps's SPLIT, read off make -n; make test's
+# Windows takes (tools/lib/fd_lock.sh); make fps's SPLIT, read off make -n, and the samples it keeps, against made-up logs; make test's
 # list of scripts, against a stand-in engine; make durations and make goldens, against
 # sample logs; make art-lint-costs, against made-up runs' tables; verify running the float test once, read off make -n; the gdtoolkit targets'
 # warm-up and fan-out, against a stand-in tool; make test-changed's selection, against a
@@ -750,6 +752,7 @@ guard-check:
 	FD_LOCK=perl tools/window_lock_check.sh
 	FD_LOCK=perl tools/test_slot_check.sh
 	tools/fps_split_check.sh
+	tools/fps_samples_check.sh
 	tools/run_tests_check.sh
 	tools/ship_check_once.sh
 	tools/test_durations_check.sh

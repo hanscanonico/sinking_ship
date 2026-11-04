@@ -98,6 +98,10 @@ var _held_since := 0
 var _serving := MatchServing.new()
 ## Where each frame's time goes, when --frame-split asks (make fps SPLIT=1); null else.
 var _probe: FrameProbe
+## When the first match started, in msec after launch; -1 before (--match-seconds).
+var _match_since_ms := -1
+## Whether --match-seconds' quit has been asked for.
+var _timed_out := false
 var _hold := BakeHold.new()
 
 @onready var _menu: MainMenu = $MainMenu
@@ -188,6 +192,8 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
+	if _timed_run_over():
+		return
 	# A server, a headless client of one, or a boot stopped on bad arguments never
 	# reaches the menu's matches.
 	if _upcoming == null:
@@ -458,6 +464,10 @@ func _start(config: MatchConfig) -> void:
 	var capturing := not _args.capture_path.is_empty()
 	var observer := _observer()
 	var eye := _args.capture_eye if capturing and _args.capture_eye >= 0 else MatchScene.LOCAL_SEAT
+	if _match_since_ms < 0:
+		_match_since_ms = Time.get_ticks_msec()
+		if _args.match_seconds >= 0.0:
+			print("first match frame %.1f s after launch" % (_match_since_ms / 1000.0))
 	var split: FrameSplit = null
 	if _probe != null:
 		split = _probe.split
@@ -493,6 +503,20 @@ func _start(config: MatchConfig) -> void:
 		_match.watch_from(_args.observer_side)
 	if observer and _args.observer_cells:
 		_match.show_cells()
+
+
+## Whether a run --match-seconds times is over: quits once it has run that long from
+## its first match's start, however long a held ship took to dress before it.
+func _timed_run_over() -> bool:
+	if _timed_out:
+		return true
+	if _args == null or _args.match_seconds < 0.0 or _match_since_ms < 0:
+		return false
+	if Time.get_ticks_msec() - _match_since_ms < _args.match_seconds * 1000.0:
+		return false
+	_timed_out = true
+	_quit()
+	return true
 
 
 ## The match scene, made the first time a match or a replay needs it.
