@@ -13,9 +13,9 @@ fails=0
 log=$(mktemp)
 trap 'rm -f "$log"' EXIT
 
-# The samples kept from the log, one line, space-separated.
+# The samples kept from the log, one line, space-separated, past the first SKIP (2).
 kept() {
-	awk -v skip=2 -f tools/lib/fps_samples.awk "$log" | tr '\n' ' '
+	awk -v skip="${1:-2}" -f tools/lib/fps_samples.awk "$log" | tr '\n' ' '
 }
 
 {
@@ -25,6 +25,13 @@ kept() {
 } >"$log"
 [[ $(kept) == "4 5 3 4 " ]] || {
 	echo "fps-samples-check: a held dressing's samples counted: kept $(kept)" >&2
+	fails=1
+}
+
+# A longer skip (make fps SKIP=, past a ship's background stretch build) drops that many
+# of the match's samples, counted from its first frame, not from launch.
+[[ $(kept 4) == "3 4 " ]] || {
+	echo "fps-samples-check: SKIP=4 kept $(kept 4), not the match's last two samples" >&2
 	fails=1
 }
 
