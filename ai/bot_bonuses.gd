@@ -54,10 +54,10 @@ func _init(
 ## for: none, too, off her decks, where a body takes nothing (GrabReach) and her spots are
 ## no points of the frame it finds its way in.
 func choose(
-	seen: Dictionary, me: Dictionary, found: WalkGraph.Search, graph: WalkGraph, pose: ShipPose
+	seen: Dictionary, me: Dictionary, found: WalkSearch, graph: WalkGraph, pose: ShipPose
 ) -> float:
 	spot = -1
-	if _reach == null or me["state"] != PlayerState.Body.GROUNDED or found.cost.is_empty():
+	if _reach == null or me["state"] != PlayerState.Body.GROUNDED or found.is_empty():
 		return 0.0
 	if seen["up"][me["piece"]] != Faces.Up.DECK:
 		return 0.0
@@ -68,9 +68,13 @@ func choose(
 		var gain := worth(entry["kind"]) - mine
 		var at := _layout.bonus_spots[entry["spot"]].point
 		var zone := graph.zone_at(at, graph.surfaces().under(at, _rules.step_height))
-		if gain <= 0.0 or zone == WalkGraph.NONE or found.cost[zone] == INF:
+		if gain <= 0.0 or zone == WalkGraph.NONE:
 			continue
-		var far := found.cost[zone] + Vector2(at.x - my_pos.x, at.z - my_pos.z).length()
+		# Past its range, it need not know how far: the search stops there.
+		var walked := found.cost_to(zone, _profile.bonus_range_m)
+		if walked == INF:
+			continue
+		var far := walked + Vector2(at.x - my_pos.x, at.z - my_pos.z).length()
 		if far > _profile.bonus_range_m or not _clear(graph, found, zone, at, pose):
 			continue
 		var walk := _profile.bonus_walk_share * far / _profile.bonus_range_m
@@ -152,9 +156,7 @@ func spare(me: Dictionary) -> float:
 ## every room it enters — stand bonus_margin_m or more above the water under [param pose]:
 ## the water as it stands now, never as the timeline has it next. A room's floor stands as
 ## high as its lowest corner, where the water comes in first, as the bot's climb reads it.
-func _clear(
-	graph: WalkGraph, found: WalkGraph.Search, zone: int, at: Vector3, pose: ShipPose
-) -> bool:
+func _clear(graph: WalkGraph, found: WalkSearch, zone: int, at: Vector3, pose: ShipPose) -> bool:
 	var margin := _profile.bonus_margin_m
 	if graph.floor_height(zone, at, pose) < margin:
 		return false

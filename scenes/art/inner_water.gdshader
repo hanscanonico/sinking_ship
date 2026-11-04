@@ -72,8 +72,14 @@ uniform float rim_width = 0.18;
 uniform float rim_glow = 0.35;
 uniform float underside_sheen = 0.45;
 
-// The world to her ship space, as drawn this frame (InnerWater), and the box this sheet's
-// cell stands in there.
+// The world to her ship space, as drawn this frame (InnerWater): the global of its slot,
+// set once a frame for every sheet, or with none free (slot -1) its own; and the box this
+// sheet's cell stands in there.
+global uniform mat4 inner_water_to_ship_0;
+global uniform mat4 inner_water_to_ship_1;
+global uniform mat4 inner_water_to_ship_2;
+global uniform mat4 inner_water_to_ship_3;
+uniform int slot = -1;
 uniform mat4 world_to_ship = mat4(1.0);
 uniform vec3 clip_low = vec3(0.0);
 uniform vec3 clip_high = vec3(0.0);
@@ -160,7 +166,17 @@ void vertex() {
 }
 
 void fragment() {
-	vec3 ship = (world_to_ship * vec4(world, 1.0)).xyz;
+	mat4 to_ship = world_to_ship;
+	if (slot == 0) {
+		to_ship = inner_water_to_ship_0;
+	} else if (slot == 1) {
+		to_ship = inner_water_to_ship_1;
+	} else if (slot == 2) {
+		to_ship = inner_water_to_ship_2;
+	} else if (slot == 3) {
+		to_ship = inner_water_to_ship_3;
+	}
+	vec3 ship = (to_ship * vec4(world, 1.0)).xyz;
 	if (any(lessThan(ship, clip_low)) || any(greaterThan(ship, clip_high))) {
 		discard;
 	}

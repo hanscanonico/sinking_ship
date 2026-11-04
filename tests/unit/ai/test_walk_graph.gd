@@ -547,7 +547,7 @@ func test_one_search_finds_the_cheapest_routes_and_the_high_ground() -> void:
 			var reference := _reference_costs(graph, surfaces, start, pose)
 			for zone in graph.zone_count():
 				assert_almost_eq(
-					found.cost[zone], reference[zone], 0.0001, "%s to %d" % [start, zone]
+					found.costs()[zone], reference[zone], 0.0001, "%s to %d" % [start, zone]
 				)
 				assert_eq(
 					graph.route_in(found, zone),
@@ -555,6 +555,41 @@ func test_one_search_finds_the_cheapest_routes_and_the_high_ground() -> void:
 					"route %d" % zone
 				)
 			assert_eq(graph.highest_in(found, pose), graph.highest_reachable(start, on, pose))
+
+
+func test_a_search_asked_lazily_answers_as_one_run_to_its_end() -> void:
+	# The think asks a search a few zones' costs and ways, and which zones it reaches:
+	# asked in any order, settling only so far, it answers as one run to its end — and
+	# what it reaches is every zone that run gives a cost.
+	var layout := SimFixtures.steamer()
+	var surfaces := Surfaces.new(layout)
+	var graph := _graph(layout, surfaces)
+	var flooding := _pose(layout, SimFixtures.scenario([[0.0, layout.freeboard - 2.0, 4.0, 0.0]]))
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 410
+	for pose: ShipPose in [_pose(layout, SimFixtures.calm()), flooding]:
+		for start: Vector3 in [
+			Vector3(-10.5, 0.0, 2.5), Vector3(-2.0, -2.6, -3.5), Vector3(-17.0, 1.2, 0.0)
+		]:
+			var on := surfaces.under(start, 0.1)
+			var whole := graph.search(start, on, pose)
+			var costs := whole.costs()
+			var lazy := graph.search(start, on, pose)
+			var reached := lazy.reached()
+			var order := range(graph.zone_count())
+			for at in order.size():
+				var other := rng.randi_range(at, order.size() - 1)
+				var swap: int = order[at]
+				order[at] = order[other]
+				order[other] = swap
+			for zone: int in order:
+				assert_eq(reached[zone] == 1, costs[zone] < INF, "reaches %d" % zone)
+				var within := rng.randf_range(0.0, 40.0)
+				var near := lazy.cost_to(zone, within)
+				assert_eq(near, costs[zone] if costs[zone] <= within else INF, "within %d" % zone)
+				assert_eq(lazy.cost_to(zone), costs[zone], "cost to %d" % zone)
+				assert_eq(lazy.way_to(zone), whole.way_to(zone), "way to %d" % zone)
+			assert_eq(lazy.costs(), costs)
 
 
 func test_flood_answers_are_worked_out_afresh_for_each_pose() -> void:
@@ -686,7 +721,9 @@ func test_a_crawl_space_is_costed_at_crawl_speed() -> void:
 		assert_eq(graph.zone_at(start, on), 0, "in the room")
 		var found := graph.search(start, on, _pose(layout, SimFixtures.calm()))
 		var pace := rules.walk_speed / rules.crawl_speed if crawl_space else 1.0
-		assert_almost_eq(found.cost[graph.deck_of(0)], pace, 0.0001, "crawl space %s" % crawl_space)
+		assert_almost_eq(
+			found.costs()[graph.deck_of(0)], pace, 0.0001, "crawl space %s" % crawl_space
+		)
 
 
 func test_a_wade_goes_through_water_but_never_a_shut_door_or_a_flooded_zone() -> void:
@@ -703,15 +740,17 @@ func test_a_wade_goes_through_water_but_never_a_shut_door_or_a_flooded_zone() ->
 	var dry := HeldPose.flooded(layout, -layout.freeboard, {})
 	surfaces.honour(dry)
 	var walked := graph.search(start, on, dry)
-	assert_eq(graph.search(start, on, dry, false, true).cost, walked.cost, "dry, a wade walks")
+	assert_eq(
+		graph.search(start, on, dry, false, true).costs(), walked.costs(), "dry, a wade walks"
+	)
 	var shut := HeldPose.flooded(layout, -layout.freeboard, {})
 	for door: ShipOpening in layout.structure.openings:
 		if door.shuts_at_hit:
 			shut.doors_shut[door.name] = 1.0
 	surfaces.honour(shut)
 	var walled := graph.search(start, on, shut)
-	assert_ne(walled.cost, walked.cost, "her shut doors cut the walk short")
-	assert_eq(graph.search(start, on, shut, false, true).cost, walled.cost, "and the wade")
+	assert_ne(walled.costs(), walked.costs(), "her shut doors cut the walk short")
+	assert_eq(graph.search(start, on, shut, false, true).costs(), walled.costs(), "and the wade")
 
 	var settled := _pose(layout, SimFixtures.scenario([[0.0, 1.04, -2.0, 0.0]]))
 	surfaces.honour(settled)
@@ -721,12 +760,12 @@ func test_a_wade_goes_through_water_but_never_a_shut_door_or_a_flooded_zone() ->
 	var swim := graph.search(start, on, settled, true)
 	var past_the_water := 0
 	var flooded_swum := 0
-	for zone in wade.cost.size():
-		if wade.cost[zone] < INF and dry_way.cost[zone] == INF:
+	for zone in wade.costs().size():
+		if wade.costs()[zone] < INF and dry_way.costs()[zone] == INF:
 			past_the_water += 1
 		if zone != here and graph.flooded(zone, settled):
-			assert_eq(wade.cost[zone], INF, "never into flooded zone %d" % zone)
-			flooded_swum += 1 if swim.cost[zone] < INF else 0
+			assert_eq(wade.costs()[zone], INF, "never into flooded zone %d" % zone)
+			flooded_swum += 1 if swim.costs()[zone] < INF else 0
 	assert_gt(past_the_water, 0, "it wades on where the walk stops")
 	assert_gt(flooded_swum, 0, "where a swim goes on into a flooded zone")
 
@@ -751,11 +790,11 @@ func test_a_shut_door_given_way_lets_the_walk_through_again() -> void:
 			given.doors_shut[door.name] = 1.0
 			given.opened[door.name] = 2
 	surfaces.honour(shut)
-	assert_ne(graph.search(start, on, shut).cost, walked.cost, "her shut doors cut it short")
+	assert_ne(graph.search(start, on, shut).costs(), walked.costs(), "her shut doors cut it short")
 	surfaces.honour(given)
-	assert_eq(graph.search(start, on, given).cost, walked.cost, "given way, they let it by")
+	assert_eq(graph.search(start, on, given).costs(), walked.costs(), "given way, they let it by")
 	surfaces.honour(shut)
-	assert_ne(graph.search(start, on, shut).cost, walked.cost, "and shut again, not")
+	assert_ne(graph.search(start, on, shut).costs(), walked.costs(), "and shut again, not")
 
 
 func test_each_way_of_searching_keeps_its_own_closed_portals() -> void:
@@ -779,10 +818,13 @@ func test_each_way_of_searching_keeps_its_own_closed_portals() -> void:
 			for way: Array in order:
 				var fresh := _graph(layout, surfaces).search(start, surface, pose, way[0], way[1])
 				var found := shared.search(start, surface, pose, way[0], way[1])
-				assert_eq(found.cost, fresh.cost, "at %d, swim %s wade %s" % [tick, way[0], way[1]])
-				assert_eq(found.came_by, fresh.came_by)
+				assert_eq(
+					found.costs(), fresh.costs(), "at %d, swim %s wade %s" % [tick, way[0], way[1]]
+				)
+				for zone in shared.zone_count():
+					assert_eq(found.way_to(zone), fresh.way_to(zone), "way to %d" % zone)
 				if way == ways[0]:
-					walked = found.cost
-				elif found.cost != walked:
+					walked = found.costs()
+				elif found.costs() != walked:
 					differ = true
 	assert_true(differ, "the ways part somewhere as she floods")

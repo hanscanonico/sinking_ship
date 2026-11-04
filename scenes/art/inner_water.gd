@@ -83,14 +83,29 @@ const TICK_SLACK := 0.05
 const INFLOW_FULL := 0.3
 const INFLOW_EASE := 0.2
 const INFLOW_CALM := 1e-3
+## The global shader parameters her water's world to ship space is set in, one a frame
+## for every cell's surface at once (inner_water.gdshader): one per InnerWater drawn —
+## hers whole, or each piece's once she breaks (ShipPieces) — each held by the one that
+## took it till it goes. One past them sets its own on each surface it shows.
+const TO_SHIP: Array[StringName] = [
+	&"inner_water_to_ship_0",
+	&"inner_water_to_ship_1",
+	&"inner_water_to_ship_2",
+	&"inner_water_to_ship_3",
+]
 ## The sea's colours the water inside her takes.
 const COLOURS: Array[StringName] = [&"deep_colour", &"shallow_colour", &"foam_colour"]
 const WATER_SHADER := preload("res://scenes/art/inner_water.gdshader")
 const SPILL_SHADER := preload("res://scenes/art/spill.gdshader")
 const FROTH_SHADER := preload("res://scenes/art/froth.gdshader")
 
+## Per TO_SHIP slot, 1 while an InnerWater holds it.
+static var _slots_held := PackedByteArray([0, 0, 0, 0])
+
 var _structure: ShipStructure
 var _sea: ShaderMaterial
+## The TO_SHIP slot this one sets, or -1 for none free: then each surface its own.
+var _slot := -1
 ## The water's material every cell's surface takes a copy of. Each surface, pour and
 ## froth keeps its values in its own material, never in instance uniforms: the
 ## compatibility renderer holds those for about 256 drawn things at most, fewer than a
@@ -192,6 +207,11 @@ func setup(
 	_sea = sea
 	_water = ShaderMaterial.new()
 	_water.shader = WATER_SHADER
+	if _slot == -1:
+		_slot = _slots_held.find(0)
+		if _slot != -1:
+			_slots_held[_slot] = 1
+	_water.set_shader_parameter(&"slot", _slot)
 	for colour: StringName in COLOURS:
 		_water.set_shader_parameter(colour, sea.get_shader_parameter(colour))
 	_boxes = CellBoxes.boxes(structure, rooms)
@@ -312,6 +332,8 @@ func show_water(then: ShipPose, now: ShipPose, alpha: float) -> void:
 	_level = _ship.basis.inverse().orthonormalized()
 	_up = _level * Vector3.UP
 	var to_ship := _ship.affine_inverse()
+	if _slot != -1:
+		RenderingServer.global_shader_parameter_set(TO_SHIP[_slot], Projection(to_ship))
 	_levels.resize(_surfaces.size())
 	for cell in _surfaces.size():
 		var level := lerpf(_level_of(then, cell), _level_of(now, cell), alpha)
@@ -490,7 +512,8 @@ func _show_surface(surface: MeshInstance3D, box: AABB, level: float, to_ship: Tr
 		surface.visible = showing
 	if showing:
 		surface.transform = CellSurface.placed(_ship, _level, box, level)
-		_param(surface, &"world_to_ship", to_ship)
+		if _slot == -1:
+			_param(surface, &"world_to_ship", to_ship)
 
 
 ## Whether a cell's water standing at world height [param level] is drawn in a box whose
@@ -925,6 +948,11 @@ func _froth() -> MeshInstance3D:
 	froth.visible = false
 	add_child(froth)
 	return froth
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_PREDELETE and _slot != -1:
+		_slots_held[_slot] = 0
 
 
 ## Ages the bursts of air on the water, each gone once it has broken; idle while none
