@@ -60,6 +60,11 @@ const NON_NEGATIVE: Array[String] = [
 @export var reaction_ticks: int
 ## Ticks between thinks: re-scoring its intents and re-choosing its target.
 @export var think_period: int
+## On a ship whose decks' walk graph has more than big_ship_zones zones, the ticks
+## between thinks instead (for_ship): a think there costs many times what it does on a
+## small ship. 0 zones for none.
+@export var big_ship_zones: int
+@export var big_ship_think_period: int
 ## Each choice of heading is off by up to this many degrees either way.
 @export var aim_error_deg: float
 ## The fastest a bot turns its look, so that none turns faster than a person.
@@ -227,12 +232,26 @@ static func tiers() -> PackedStringArray:
 	return names
 
 
+## This profile as a bot plays it on a ship whose decks' walk graph has [param zones]
+## zones: itself, or past big_ship_zones a copy thinking every big_ship_think_period.
+func for_ship(zones: int) -> BotProfile:
+	if big_ship_zones <= 0 or zones <= big_ship_zones:
+		return self
+	var big: BotProfile = duplicate()
+	big.think_period = big_ship_think_period
+	return big
+
+
 func problems() -> PackedStringArray:
 	var found := PackedStringArray()
 	if reaction_ticks < 0:
 		found.append("bot: reaction_ticks must not be negative")
 	if think_period < 1:
 		found.append("bot: think_period must be at least 1")
+	if big_ship_zones < 0:
+		found.append("bot: big_ship_zones must not be negative")
+	if big_ship_zones > 0 and big_ship_think_period < 1:
+		found.append("bot: big_ship_think_period must be at least 1")
 	if turn_rate_deg <= 0.0:
 		found.append("bot: turn_rate_deg must be positive")
 	if crowd_seats < 1:

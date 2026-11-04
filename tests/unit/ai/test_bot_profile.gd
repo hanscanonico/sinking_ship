@@ -186,3 +186,23 @@ func test_the_spar_margin_fades_as_the_match_goes_on() -> void:
 			profile.spar_margin(profile.spar_until * 0.75, spar_for * 0.5), full * 0.25, 1e-9, tier
 		)
 		assert_gte(profile.hunt_at_seats, 2, "%s: the last two hunt each other" % tier)
+
+
+func test_bots_think_less_often_only_past_the_small_titanics_zones() -> void:
+	# A think on the traced Titanic costs many times one on a small ship (#410): past
+	# big_ship_zones a tier thinks every big_ship_think_period, twice its own; the
+	# steamer's and the Small Titanic's bots think as ever.
+	var rules := SimFixtures.rules()
+	for tier: String in BotProfile.tiers():
+		var profile := BotProfile.for_tier(StringName(tier))
+		assert_eq(profile.big_ship_think_period, profile.think_period * 2, tier)
+		assert_eq(profile.for_ship(profile.big_ship_zones), profile, "%s at the line" % tier)
+		var big := profile.for_ship(profile.big_ship_zones + 1)
+		assert_eq(big.think_period, profile.big_ship_think_period, "%s past it" % tier)
+		assert_ne(profile.think_period, big.think_period, "%s's own left as it was" % tier)
+		for ship: String in ["steamer", "small_titanic"]:
+			var layout: ShipLayout = load("res://data/ships/%s.tres" % ship)
+			var zones := WalkGraph.new(layout, Surfaces.new(layout), rules).zone_count()
+			assert_eq(
+				profile.for_ship(zones), profile, "%s on the %s's %d zones" % [tier, ship, zones]
+			)
