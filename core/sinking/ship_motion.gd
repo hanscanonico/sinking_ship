@@ -68,6 +68,12 @@ var _plan: float
 ## Where a section's outline crosses the sea's line, along the line then z and y, while
 ## it is cut: more than two only where the line crosses a deckhouse too.
 var _crossings := PackedFloat64Array()
+## The last lift_under() worked out — the bake asks it again of each state it keeps, to
+## move her on from it and to measure her bending: the bits of the rotation and the sea
+## it was asked of, and its answer with each section's share.
+var _lift_asked := PackedByteArray()
+var _lift_made := PackedFloat64Array()
+var _lift_shares := PackedFloat64Array()
 ## The bottom under her, or null where the sea is too deep for her to reach it.
 var _seabed: Seabed
 
@@ -350,7 +356,18 @@ func _stiffness(rotation: PackedFloat64Array, lift: PackedFloat64Array) -> Packe
 func lift_under(
 	rotation: PackedFloat64Array, sea: float, by_section := PackedFloat64Array()
 ) -> PackedFloat64Array:
-	var shares := by_section.size() == _x.size()
+	var asked := rotation.to_byte_array()
+	asked.append_array(PackedFloat64Array([sea]).to_byte_array())
+	var wanted := by_section.size() == _x.size()
+	if asked == _lift_asked:
+		if wanted:
+			for section in _x.size():
+				by_section[section] = _lift_shares[section]
+		return _lift_made.duplicate()
+	# Each section's share, kept with the answer whether asked for or not.
+	if not wanted:
+		by_section = PackedFloat64Array()
+		by_section.resize(_x.size())
 	var ux := rotation[3]
 	var uy := rotation[4]
 	var uz := rotation[5]
@@ -373,15 +390,13 @@ func lift_under(
 			low = minf(low, off)
 			high = maxf(high, off)
 		highest = maxf(highest, high - level)
-		if shares:
-			by_section[section] = 0.0
+		by_section[section] = 0.0
 		if low > level:
 			continue
 		if high <= level:
 			var whole := _whole[section * 3]
 			var piece := whole * 0.5 * _length[section]
-			if shares:
-				by_section[section] = piece
+			by_section[section] = piece
 			volume += piece
 			mx += piece * x
 			mz += piece * _whole[section * 3 + 1] / (3.0 * whole)
@@ -448,8 +463,7 @@ func lift_under(
 		sum_y += (last_y + first_y) * closing
 		if twice > EPSILON:
 			var part := twice * 0.5 * _length[section]
-			if shares:
-				by_section[section] = part
+			by_section[section] = part
 			volume += part
 			mx += part * x
 			mz += part * sum_z / (3.0 * twice)
@@ -466,6 +480,9 @@ func lift_under(
 		made[Lift.X] = mx / volume
 		made[Lift.Y] = my / volume
 		made[Lift.Z] = mz / volume
+	_lift_asked = asked
+	_lift_made = made.duplicate()
+	_lift_shares = by_section.duplicate()
 	return made
 
 
