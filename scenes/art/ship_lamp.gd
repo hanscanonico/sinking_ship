@@ -116,6 +116,9 @@ var _since := INF
 var _light: OmniLight3D
 ## A fire's light out of its wall: null for a lamp.
 var _spot: SpotLight3D
+## Where its light and its spot hang under it, kept while either is hidden (_show_light).
+var _light_at := Transform3D.IDENTITY
+var _spot_at := Transform3D.IDENTITY
 var _glass: StandardMaterial3D
 ## The glow its glass was last given, and the share of its full light its light was,
 ## so each is set only as it changes.
@@ -305,10 +308,10 @@ func _process(delta: float) -> void:
 		_energy = energy
 		if _light != null:
 			_light.light_energy = (CARGO_ENERGY if _kind == Kind.CARGO else ENERGY) * energy
-			_light.visible = energy > 0.0
+			_show_light(_light, energy > 0.0)
 		if _spot != null:
 			_spot.light_energy = FIRE_ENERGY * energy
-			_spot.visible = energy > 0.0
+			_show_light(_spot, energy > 0.0)
 	if level != _shown:
 		_shown = level
 		_glass.emission_energy_multiplier = level
@@ -318,6 +321,26 @@ func _process(delta: float) -> void:
 		if _kind != Kind.FIRE:
 			basis = Basis(Quaternion(Vector3.DOWN, _hang))
 		set_process(false)
+
+
+## Shows [param light] or hides it. Hidden, it stands apart from the lamp (top level),
+## so her moving every frame spends nothing on it — the Titanic hangs 2,700 lamps, all
+## but a few dark — and shown, it hangs where it hung before, as it always did.
+func _show_light(light: Light3D, shown: bool) -> void:
+	if light.visible == shown:
+		return
+	var spot := light == _spot
+	if shown:
+		light.top_level = false
+		light.transform = _spot_at if spot else _light_at
+		light.visible = true
+		return
+	if spot:
+		_spot_at = light.transform
+	else:
+		_light_at = light.transform
+	light.visible = false
+	light.top_level = true
 
 
 ## A lamp on her emergency power burns red, on her generator its own warm light.

@@ -535,6 +535,9 @@ func _surface(box: AABB, under_sky: bool) -> MeshInstance3D:
 	_param(surface, &"clip_high", box.end)
 	_param(surface, &"outdoor", 1.0 if under_sky else 0.0)
 	surface.visible = false
+	# Hidden, it stands apart from her (top level), so her moving every frame spends
+	# nothing on it: on the Titanic most of her two thousand sheets are dry.
+	surface.top_level = true
 	add_child(surface)
 	return surface
 
@@ -545,6 +548,7 @@ func _show_surface(surface: MeshInstance3D, box: AABB, level: float, to_ship: Tr
 	var showing := shows(level, CellSurface.reach(_ship, box))
 	if surface.visible != showing:
 		surface.visible = showing
+		surface.top_level = not showing
 	if showing:
 		surface.transform = CellSurface.placed(_ship, _level, box, level)
 		if _slot == -1:
