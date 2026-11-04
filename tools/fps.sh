@@ -36,8 +36,8 @@
 #                      [--resolution=1440x900] [--load-limit=600] [--project=DIR] [--split]
 #                      [-- MORE USER ARGS]
 #
-# --seconds counts the match's time from its first frame, the skipped seconds with it;
-# a --skip that leaves fewer than 5 of them fails the run before the engine starts.
+# --seconds counts the match's time from its first frame, the skipped seconds with it:
+# a --skip that leaves fewer than 5 samples fails the run, as a short one does.
 #
 # --project runs another checkout of the game (an A/B against main) with this
 # script's rules. The engine runs under `timeout`, which ends it LOAD_LIMIT seconds
@@ -95,10 +95,6 @@ done
 
 if ! [[ $SKIP =~ ^[0-9]+$ && $SECONDS_RUN =~ ^[0-9]+$ ]]; then
 	echo "fps: --skip and --seconds take whole seconds: $SKIP, $SECONDS_RUN" >&2
-	exit 2
-fi
-if ((SECONDS_RUN - SKIP < 5)); then
-	echo "fps: --seconds=$SECONDS_RUN keeps under 5 s past --skip=$SKIP: nothing to sum up" >&2
 	exit 2
 fi
 
