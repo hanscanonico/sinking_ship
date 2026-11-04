@@ -13,8 +13,8 @@ extends RefCounted
 ## What a stretch of her art costs to build, measured on the Titanic on a Windows laptop
 ## (#411): about a second for her outside and decks, and SECONDS_PER_ROOM for each of her
 ## rooms whose middle stands on it (PieceClip.holds), in seconds.
-const SECONDS_EACH := 1.0
-const SECONDS_PER_ROOM := 0.03
+const SECONDS_EACH := 13.0
+const SECONDS_PER_ROOM := 0.027
 ## How many times longer a stretch takes to build behind the match than before it, and
 ## the seconds a stretch built behind it is to be ready by ahead of her first parting.
 const BEHIND := 2.0
