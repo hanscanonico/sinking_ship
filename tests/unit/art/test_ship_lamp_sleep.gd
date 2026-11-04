@@ -111,3 +111,26 @@ func test_a_lamp_is_still_only_done_fading_steady_and_plumb() -> void:
 	var fire := ShipLamp.Kind.FIRE
 	assert_false(ShipLamp.still(fire, true, 0.8, INF, none, none), "a fire burning")
 	assert_true(ShipLamp.still(fire, true, 0.0, INF, none, none), "a fire out")
+
+
+func test_a_light_put_out_stands_apart_and_lit_again_hangs_where_it_hung() -> void:
+	for kind: ShipLamp.Kind in [ShipLamp.Kind.PENDANT, ShipLamp.Kind.FIRE]:
+		_hang(kind)
+		_lamp.burning = true
+		_lamp.wanted = true
+		_run(SETTLE)
+		var light: Light3D = _lamp._spot if kind == ShipLamp.Kind.FIRE else _lamp._light
+		var hung := light.transform
+		assert_true(light.visible and not light.top_level, "lit, it hangs from the lamp")
+		_lamp.wanted = false
+		_lamp.wake()
+		_run(SETTLE)
+		assert_false(light.visible, "put out, it is hidden")
+		assert_true(light.top_level, "and stands apart from her, which moving never reaches")
+		_ship.position += Vector3(3.0, 1.0, 0.0)
+		_lamp.wanted = true
+		_lamp.wake()
+		_run(SETTLE)
+		assert_true(light.visible and not light.top_level, "lit again, it hangs from the lamp")
+		assert_eq(light.transform, hung, "where it hung, to the bit")
+		_ship.position = Vector3.ZERO
