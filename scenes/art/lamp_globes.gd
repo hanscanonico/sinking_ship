@@ -11,10 +11,13 @@ extends Node3D
 const GLASS_SHADER := preload("res://scenes/art/lamp_glass.gdshader")
 const METAL_SHADER := preload("res://scenes/art/lamp_metal.gdshader")
 const TIN_SHADER := preload("res://scenes/art/lamp_tin.gdshader")
-## The box of her, in ship metres, whose lamps share a MultiMesh: drawn, lit and culled
-## as one, so it holds a stretch of a deck's rooms, never more lamps than Compatibility
-## lights a mesh with between them.
-const CELL := Vector3(6.0, 2.5, 6.0)
+## The box of her, in ship metres, whose lamps share a MultiMesh: drawn and culled as
+## one, a storey high, a stretch of a deck's rooms long and half her beam wide — on the
+## Titanic about seven lamps a cell, 354 cells for her 2,574 hanging lamps. A lamp drawn
+## alone already stands within reach of more lights than Compatibility lights a mesh with
+## (a median of 23 on the Titanic, if all burned); a cell, of 38. Only the glass, unshaded,
+## shows a lamp lit, and the brass a light misses is a few pixels.
+const CELL := Vector3(12.0, 2.5, 15.0)
 ## Where a hidden lamp's instance is drawn: nowhere.
 const HIDDEN := Transform3D(Vector3.ZERO, Vector3.ZERO, Vector3.ZERO, Vector3.ZERO)
 
