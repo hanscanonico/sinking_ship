@@ -312,13 +312,18 @@ func show_pieces(
 ## piece she ends in is posed: one with every piece before she parts, and once she has,
 ## no other piece's water drawn, which no hull of theirs holds.
 func _show_whole(then: ShipPose, now: ShipPose, alpha: float, tick: float) -> void:
-	var own := then.of_piece(_leaves[0]).transform.interpolate_with(
-		now.of_piece(_leaves[0]).transform, alpha
-	)
-	var largest := then.of_piece(_leaves[_largest]).transform.interpolate_with(
-		now.of_piece(_leaves[_largest]).transform, alpha
-	)
-	_arts[0].transform = own.affine_inverse() * largest
+	var own_then := then.of_piece(_leaves[0]).transform
+	var own_now := now.of_piece(_leaves[0]).transform
+	var largest_then := then.of_piece(_leaves[_largest]).transform
+	var largest_now := now.of_piece(_leaves[_largest]).transform
+	# Posed as her own piece is — all of her, before she parts — it stands where her
+	# node does: set again, it would move every node of her art for nothing.
+	var placed := Transform3D.IDENTITY
+	if own_then != largest_then or own_now != largest_now:
+		var own := own_then.interpolate_with(own_now, alpha)
+		placed = own.affine_inverse() * largest_then.interpolate_with(largest_now, alpha)
+	if _arts[0].transform != placed:
+		_arts[0].transform = placed
 	_arts[0].show_power(now.of_piece(_leaves[_largest]))
 	for at in _waters.size():
 		if _waters[at] != null:
