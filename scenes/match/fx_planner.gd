@@ -165,9 +165,12 @@ var _adrift_way := PackedVector2Array()
 var _adrift_tick := PackedInt32Array()
 var _adrift_radius := PackedFloat32Array()
 ## Her platforms' water, read once a pose (_floods); and their least corners, the
-## corner a deck's plane of heights is read from (_crossing).
+## corner a deck's plane of heights is read from (_crossing), and their sizes along x
+## and z: what _waterlines reads of every deck, a tick, without touching one.
 var _decks: FloodedDecks
-var _least: StillPoints
+var _least := PackedVector3Array()
+var _size_x := PackedFloat64Array()
+var _size_z := PackedFloat64Array()
 
 
 func _init(config: MatchConfig, surfaces: Surfaces, schedule: SinkSchedule) -> void:
@@ -175,10 +178,10 @@ func _init(config: MatchConfig, surfaces: Surfaces, schedule: SinkSchedule) -> v
 	_surfaces = surfaces
 	_schedule = schedule
 	_decks = FloodedDecks.new(config.ship)
-	var least := PackedVector3Array()
 	for deck: ShipPlatform in config.ship.platforms:
-		least.append(Vector3(deck.area.position.x, deck.height, deck.area.position.y))
-	_least = StillPoints.new(least)
+		_least.append(Vector3(deck.area.position.x, deck.height, deck.area.position.y))
+		_size_x.append(deck.area.size.x)
+		_size_z.append(deck.area.size.y)
 	var structure := config.ship.structure
 	if structure != null:
 		var boxes := CellBoxes.boxes(structure, _layout.rooms)
@@ -310,21 +313,25 @@ func _waterlines(
 ) -> void:
 	var boost := PLUNGE_BOOST if plunging else 1.0
 	var uphill := -_downhill(pose_now)
-	_least.read(pose_now)
 	var basis := pose_now.transform.basis
-	for index in _layout.platforms.size():
-		var platform := _layout.platforms[index]
-		var low := _least.world_height(index)
+	var lows := pose_now.transform * _least
+	var size_x := _size_x
+	var size_z := _size_z
+	var spray_at := _spray
+	for index in lows.size():
+		var low := lows[index].y
 		# Every corner clear of the sea, over or under it, by more than its plane rises
-		# across it: no line to find (_crossing), on most of the Titanic's 1,349 decks.
-		var rise := absf(basis.x.y * platform.area.size.x) + absf(basis.z.y * platform.area.size.y)
-		if (
-			absf(low) > rise + CLEAR_OF_SEA
-			or platform.name in pose_now.collapsed
-			or not _crossing(platform, pose_now, low)
-		):
-			_spray[index * 2] = 0.0
-			_spray[index * 2 + 1] = 0.0
+		# across it: no line to find (_crossing), on most of the Titanic's 1,349 decks —
+		# told from the packed arrays alone, no deck read.
+		var rise := absf(basis.x.y * size_x[index]) + absf(basis.z.y * size_z[index])
+		if absf(low) > rise + CLEAR_OF_SEA:
+			spray_at[index * 2] = 0.0
+			spray_at[index * 2 + 1] = 0.0
+			continue
+		var platform := _layout.platforms[index]
+		if platform.name in pose_now.collapsed or not _crossing(platform, pose_now, low):
+			spray_at[index * 2] = 0.0
+			spray_at[index * 2 + 1] = 0.0
 			continue
 		var middle := (_line[0] + _line[1]) * 0.5
 		var climbing := (
@@ -341,10 +348,10 @@ func _waterlines(
 		# In the plunge the sea breaking over the sides (_swallowing) is the spray.
 		for end in 0 if plunging else 2:
 			var slot := index * 2 + end
-			_spray[slot] += SPRAY_RATE * strength * Ticks.SECONDS_PER_TICK
-			if _spray[slot] < 1.0:
+			spray_at[slot] += SPRAY_RATE * strength * Ticks.SECONDS_PER_TICK
+			if spray_at[slot] < 1.0:
 				continue
-			_spray[slot] = fposmod(_spray[slot], 1.0)
+			spray_at[slot] = fposmod(spray_at[slot], 1.0)
 			# Out on deck only: below decks the edge is the hull, and the spray would
 			# come out through it.
 			if not _at_edge(platform, _line[end]) or not _space.outdoors(_line[end] + Vector3.UP):
