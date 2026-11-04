@@ -7,7 +7,8 @@
 # match's first frame is drawn (--match-seconds) and quits --seconds after it, so a
 # ship dressing for minutes while the match holds is waited out, never timed; the
 # time from launch to that frame is printed as the load line. Of the samples after
-# it the first SKIP, the countdown's first seconds, are dropped and the rest summed
+# it the first SKIP, the countdown's first seconds (--skip, 8 by default; more to wait
+# out a ship's background stretch build), are dropped and the rest summed
 # up (tools/lib/fps_samples.awk): their median, their 10th percentile
 # (interpolated) and the 1-minute load average as the run starts and ends. A match
 # that has not started LOAD_LIMIT seconds after launch fails the run, as does a
@@ -31,8 +32,12 @@
 # unaccounted rests with it. Without it nothing is timed and the output is the
 # summary alone.
 #
-# Usage:  tools/fps.sh [--seed=4] [--seats=8] [--seconds=40] [--resolution=1440x900]
-#                      [--load-limit=600] [--project=DIR] [--split] [-- MORE USER ARGS]
+# Usage:  tools/fps.sh [--seed=4] [--seats=8] [--seconds=40] [--skip=8]
+#                      [--resolution=1440x900] [--load-limit=600] [--project=DIR] [--split]
+#                      [-- MORE USER ARGS]
+#
+# --seconds counts the match's time from its first frame, the skipped seconds with it:
+# a --skip that leaves fewer than 5 samples fails the run, as a short one does.
 #
 # --project runs another checkout of the game (an A/B against main) with this
 # script's rules. The engine runs under `timeout`, which ends it LOAD_LIMIT seconds
@@ -70,6 +75,7 @@ while (($#)); do
 	--seed=*) SEED="${1#*=}" ;;
 	--seats=*) SEATS="${1#*=}" ;;
 	--seconds=*) SECONDS_RUN="${1#*=}" ;;
+	--skip=*) SKIP="${1#*=}" ;;
 	--resolution=*) RESOLUTION="${1#*=}" ;;
 	--load-limit=*) LOAD_LIMIT="${1#*=}" ;;
 	--project=*) PROJECT="${1#*=}" ;;
@@ -86,6 +92,11 @@ while (($#)); do
 	esac
 	shift
 done
+
+if ! [[ $SKIP =~ ^[0-9]+$ && $SECONDS_RUN =~ ^[0-9]+$ ]]; then
+	echo "fps: --skip and --seconds take whole seconds: $SKIP, $SECONDS_RUN" >&2
+	exit 2
+fi
 
 load() {
 	if [[ -r /proc/loadavg ]]; then

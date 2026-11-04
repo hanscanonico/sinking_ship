@@ -291,12 +291,14 @@ bench:
 		$(if $(SHIP),--ship=$(SHIP)) $(if $(SECONDS),--seconds=$(SECONDS)) \
 		| grep -v '^\[godot_ai'
 
-# `make fps [SEED=4] [SEATS=8] [SECONDS=40] [RES=1440x900] [SPLIT=1] [ARGS=]`: a bots-only match in
-# a window, V-Sync off and always on top, a bot at the local seat's eyes (ARGS=--observer
-# for the observer camera; ARGS=--quality=high or --render-scale=1 to try a setting), its
-# frame rate summed up from the engine's own once-a-second --print-fps: the median and the
-# 10th percentile of the samples after the match's first 8, and the load average. SECONDS
-# count from the match's first frame, a held ship's dressing waited out (up to 600 s) and
+# `make fps [SEED=4] [SEATS=8] [SECONDS=40] [SKIP=8] [RES=1440x900] [SPLIT=1] [ARGS=]`: a
+# bots-only match in a window, V-Sync off and always on top, a bot at the local seat's eyes
+# (ARGS=--observer for the observer camera; ARGS=--quality=high or --render-scale=1 to try a
+# setting), its frame rate summed up from the engine's own once-a-second --print-fps: the
+# median and the 10th percentile of the samples after the match's first SKIP (SKIP=150
+# SECONDS=270 waits out the Titanic's background stretch build), and the load average.
+# SECONDS count from the match's first frame, the skipped ones with them, a held ship's
+# dressing waited out (up to 600 s) and
 # printed as the load line, never timed; a match that never starts fails. A window the
 # system is not drawing idles at a flat ~145 fps: such a run prints NOT DRAWING and fails.
 # SPLIT=1 (any value but 0) also prints where each frame's time goes over the match's
