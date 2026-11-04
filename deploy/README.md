@@ -18,7 +18,8 @@ browser ──https──▶ Cloudflare ──tunnel──▶ cloudflared ──
 
 Both images are built on the mini PC from the checkout by `deploy/Dockerfile`: an
 export stage downloads Godot 4.7.1's Linux editor and export templates, checks them
-against the SHA-512 sums in `deploy/.env`, and runs the repo's own `make import` and
+against the SHA-512 sums in `deploy/.env`, and builds the game's GDExtension for Linux with
+`make native` (the server ships it; `native/README.md`), then runs the repo's own
 `make export-server export-web`. Exports never ship the godot_ai editor helper (R11).
 
 A page reaches the game on its own origin: `https://<hostname>/?create=1&name=Ada`

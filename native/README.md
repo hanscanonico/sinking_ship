@@ -18,12 +18,46 @@ for, bit for bit. So far that is the walk-graph search (`ai/walk_search.gd`).
 
 `make native` builds for this machine, then imports once so Godot registers the
 extension. It needs `scons` (`pip install scons` in a venv, `SCONS=<path>`) and a C++
-compiler: gcc or clang on Linux, Xcode's clang on macOS, and on Windows
+compiler: gcc or clang on Linux, Xcode's clang on macOS (`xcode-select --install`; the
+library is universal, arm64 and x86_64 in one), and on Windows
 [llvm-mingw](https://github.com/mstorsjo/llvm-mingw/releases) (the `ucrt-x86_64` zip,
-unpacked anywhere, `LLVM_MINGW=<folder>`). Nothing goes on PATH.
+unpacked anywhere, `LLVM_MINGW=<folder>`). Nothing goes on PATH. On Linux,
+`PLATFORM=windows tools/native_build.sh` cross-compiles the Windows library with
+mingw-w64 instead.
 
-The binaries are built, never committed. CI builds Linux's in its `native` job, and the
-test shards load it.
+The `.gdextension` lists every platform's library in `lib/`, not only the one just
+built: copy another platform's library there (CI's artifacts, below) and run
+`make native` again to list it beside this machine's.
+
+The binaries are built, never committed. CI's verify builds three, each kept a week as
+an artifact of the run:
+
+- `native (linux)` — `native-linux`, the `.so` the ten test shards load
+  (`SINKING_NATIVE_REQUIRED=1`).
+- `native (macos)` — `native-macos`, the universal `.dylib`, built on an Apple-silicon
+  runner, where the two cross-check scripts run against it: arm64 is where a compiler
+  contracts `a * b + c` by default, so a difference from the engine's own GDScript
+  arithmetic would show there first.
+- `native (windows)` — `native-windows`, the `.dll`, cross-compiled on Linux with
+  mingw-w64. CI does not run it; the cross-checks are run on Windows by hand.
+
+## Exports
+
+Every desktop export ships the library for its platform: the macOS app and the macOS
+server take `macos`, the Windows game `windows.x86_64`, the Linux game and the Linux
+dedicated server `linux.x86_64`. The presets export `lib/sinking_native.gdextension`
+(they leave out `build/`, `src/` and `build_profile.json`), and Godot copies the library
+it lists for the platform beside the binary — into `Contents/Frameworks` on macOS.
+
+`make export-*` checks first (`tools/native_export_check.sh`) and stops when the
+export's platform has no library in `lib/`, saying how to get it. `NATIVE=0` exports
+without it, and the game runs the GDScript (Godot warns at the export, and the game
+logs that no library loads for its platform, when `lib/` holds other platforms'). The
+web preset leaves `native/` out, and its pack lists no extension: the web build has no
+threads and always runs the GDScript.
+
+The deploy's server image (`deploy/Dockerfile`) builds the Linux library with
+`make native` before `make export-server`.
 
 ## The fallback
 
@@ -40,6 +74,7 @@ never ran `make native`, or the web export, runs the GDScript and the same match
 - The heap is the same binary heap, with ties to the lower zone.
 - Floating-point contraction is off (`-ffp-contract=off`; MSVC `/fp:precise`), for
   godot-cpp's objects as for ours.
-- `tests/unit/ai/test_walk_search_native.gd` asks both sides the same questions and
-  fails on any difference. CI sets `SINKING_NATIVE_REQUIRED=1`, so a library that fails
-  to load fails too.
+- `tests/unit/ai/test_walk_search_native.gd` and `tests/unit/ai/test_water_native.gd`
+  ask both sides the same questions and fail on any difference. CI sets
+  `SINKING_NATIVE_REQUIRED=1`, so a library that fails to load fails too — on Linux
+  across the suite, on macOS (arm64) for those two scripts.
