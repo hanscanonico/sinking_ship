@@ -1,0 +1,53 @@
+#!/usr/bin/env python
+# The game's GDExtension (#410), built by `make native` (tools/native_build.sh), which
+# fetches godot-cpp at its pinned commit into build/godot-cpp first. Writes
+# lib/libsinking_native.<platform>.<arch>.<ext> and, beside it, the
+# sinking_native.gdextension that loads it — written only once the library is built, so
+# a checkout that has not built it has no extension for Godot to miss and runs the
+# GDScript (ai/walk_search.gd).
+import os
+
+env = Environment(tools=["default"], PLATFORM="")
+Export("env")
+env = SConscript("build/godot-cpp/SConstruct")
+
+# The same answers as GDScript, bit for bit (D4): no a * b + c fused into one rounding
+# where GDScript rounds twice. clang contracts by default on arm64, gcc in GNU mode.
+if env.get("is_msvc", False):
+    env.Append(CCFLAGS=["/fp:precise"])
+else:
+    env.Append(CCFLAGS=["-ffp-contract=off", "-fno-fast-math"])
+
+env.Append(CPPPATH=["src/"])
+sources = Glob("src/*.cpp")
+
+# One library a platform and architecture, whatever the target: the editor and the
+# exports load the same optimized build.
+platform = env["platform"]
+arch = env["arch"]
+name = "libsinking_native.{}.{}".format(platform, arch)
+library = env.SharedLibrary("lib/" + name + env["SHLIBSUFFIX"], source=sources)
+
+feature = "macos" if platform == "macos" else "{}.{}".format(platform, arch)
+
+
+def write_gdextension(target, source, env):
+    lines = [
+        "; Written by `make native` (native/SConstruct) beside the library it loads.",
+        "[configuration]",
+        "",
+        'entry_symbol = "sinking_native_init"',
+        'compatibility_minimum = "4.7"',
+        "reloadable = false",
+        "",
+        "[libraries]",
+        "",
+        '{} = "res://native/lib/{}"'.format(feature, os.path.basename(str(source[0]))),
+        "",
+    ]
+    with open(str(target[0]), "w", encoding="utf-8", newline="\n") as out:
+        out.write("\n".join(lines))
+
+
+extension = env.Command("lib/sinking_native.gdextension", library, write_gdextension)
+Default(library, extension)

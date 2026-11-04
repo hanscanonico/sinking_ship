@@ -39,6 +39,7 @@ project_scripts() {
 		-not -path './.godot/*' \
 		-not -path './addons/*' \
 		-not -path './bin/*' \
+		-not -path './native/build/*' \
 		-not -path './.claude/*' \
 		-print0 |
 		sort -z

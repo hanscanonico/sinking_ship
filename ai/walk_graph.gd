@@ -186,6 +186,9 @@ var _middles: StillPoints
 var _centres: StillPoints
 var _corners: StillPoints
 var _zone_corners := PackedInt32Array()
+## The graph laid out for the native search (WalkSearch.native_graph), or null where the
+## extension is not loaded and the searches are GDScript.
+var _native_graph: Object = null
 
 
 func _init(layout: ShipLayout, surfaces: Surfaces, rules: BrawlRules) -> void:
@@ -257,6 +260,9 @@ func _init(layout: ShipLayout, surfaces: Surfaces, rules: BrawlRules) -> void:
 				_add_corners(corners, deck.area, deck.height)
 	_zone_corners.append(corners.size())
 	_corners = StillPoints.new(corners)
+	_native_graph = WalkSearch.native_graph(
+		_out, _portal_to, _portal_entry, _portal_exit, _portal_length, _pace
+	)
 
 
 ## The Surfaces it asks.
@@ -814,7 +820,7 @@ func search(
 	if footing == Surfaces.NONE:
 		return WalkSearch.new()
 	_know(pose)
-	var found := WalkSearch.new(_zone_count)
+	var found := WalkSearch.new(_zone_count, _native_graph)
 	if _surfaces.is_ramp(footing):
 		var ramp := footing - _surfaces.platform_count()
 		for end in 2:
