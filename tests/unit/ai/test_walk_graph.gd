@@ -756,3 +756,33 @@ func test_a_shut_door_given_way_lets_the_walk_through_again() -> void:
 	assert_eq(graph.search(start, on, given).cost, walked.cost, "given way, they let it by")
 	surfaces.honour(shut)
 	assert_ne(graph.search(start, on, shut).cost, walked.cost, "and shut again, not")
+
+
+func test_each_way_of_searching_keeps_its_own_closed_portals() -> void:
+	# What a search may not go through is worked out once a pose for each way it may go
+	# — walking, wading, swimming: one way searched first changes no answer of another's,
+	# nor does a pose searched before.
+	var layout := SimFixtures.steamer()
+	var sinking: SinkScenario = load(SimFixtures.STEAMER_SINKING).duplicate()
+	sinking.explicit_hit = SimFixtures.explicit_hit(1, -2.0, 19.0, 1.0, 0.05, 1.5)
+	var sim := SimFixtures.sim(1, sinking, layout)
+	var surfaces := Surfaces.new(layout)
+	var shared := _graph(layout, surfaces)
+	var start := Vector3(-0.7, -2.6, -2.0)
+	var surface := surfaces.under(start, 0.1)
+	var ways := [[false, false], [false, true], [true, false], [true, true]]
+	var differ := false
+	for tick in range(0, sim.schedule.end_tick(), Ticks.RATE * 20):
+		var pose := sim.schedule.pose_at(tick)
+		var walked := PackedFloat64Array()
+		for order in [ways, [ways[3], ways[1], ways[0], ways[2]]]:
+			for way: Array in order:
+				var fresh := _graph(layout, surfaces).search(start, surface, pose, way[0], way[1])
+				var found := shared.search(start, surface, pose, way[0], way[1])
+				assert_eq(found.cost, fresh.cost, "at %d, swim %s wade %s" % [tick, way[0], way[1]])
+				assert_eq(found.came_by, fresh.came_by)
+				if way == ways[0]:
+					walked = found.cost
+				elif found.cost != walked:
+					differ = true
+	assert_true(differ, "the ways part somewhere as she floods")

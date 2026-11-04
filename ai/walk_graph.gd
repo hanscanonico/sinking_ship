@@ -65,34 +65,34 @@ class Search:
 ## The zones a search has still to settle, cheapest first, ties to the lower zone: a
 ## binary heap of (cost, zone).
 class OpenSet:
-	var _costs := PackedFloat64Array()
-	var _zones := PackedInt32Array()
+	var costs := PackedFloat64Array()
+	var zones := PackedInt32Array()
 
 	func is_empty() -> bool:
-		return _zones.is_empty()
+		return zones.is_empty()
 
 	func push(cost: float, zone: int) -> void:
-		var at := _zones.size()
-		_costs.append(cost)
-		_zones.append(zone)
+		var at := zones.size()
+		costs.append(cost)
+		zones.append(zone)
 		while at > 0:
 			var parent := (at - 1) >> 1
-			var above := _costs[parent]
-			if above < cost or above == cost and _zones[parent] < zone:
+			var above := costs[parent]
+			if above < cost or above == cost and zones[parent] < zone:
 				break
-			_costs[at] = above
-			_zones[at] = _zones[parent]
+			costs[at] = above
+			zones[at] = zones[parent]
 			at = parent
-		_costs[at] = cost
-		_zones[at] = zone
+		costs[at] = cost
+		zones[at] = zone
 
 	func pop() -> int:
-		var top := _zones[0]
-		var last := _zones.size() - 1
-		var cost := _costs[last]
-		var zone := _zones[last]
-		_costs.resize(last)
-		_zones.resize(last)
+		var top := zones[0]
+		var last := zones.size() - 1
+		var cost := costs[last]
+		var zone := zones[last]
+		costs.resize(last)
+		zones.resize(last)
 		if last == 0:
 			return top
 		var at := 0
@@ -104,18 +104,18 @@ class OpenSet:
 			if (
 				right < last
 				and (
-					_costs[right] < _costs[child]
-					or _costs[right] == _costs[child] and _zones[right] < _zones[child]
+					costs[right] < costs[child]
+					or costs[right] == costs[child] and zones[right] < zones[child]
 				)
 			):
 				child = right
-			if cost < _costs[child] or cost == _costs[child] and zone < _zones[child]:
+			if cost < costs[child] or cost == costs[child] and zone < zones[child]:
 				break
-			_costs[at] = _costs[child]
-			_zones[at] = _zones[child]
+			costs[at] = costs[child]
+			zones[at] = zones[child]
 			at = child
-		_costs[at] = cost
-		_zones[at] = zone
+		costs[at] = cost
+		zones[at] = zone
 		return top
 
 
@@ -166,6 +166,12 @@ var _platform_flooded := PackedByteArray()
 ## of, and good for every pose since that has them all the same — the line between a
 ## doorway's sides crosses nothing else that moves (Surfaces.blocked).
 var _portal_shut := PackedByteArray()
+## Per way a search may go — by swim * 2 + wade — and per portal, 1 where it may not go
+## through it under the pose known: its far zone doomed, flooded, or the portal shut or
+## wet, as the search's flags say. Empty until a search of that way asks, once a pose.
+var _portals_closed: Array[PackedByteArray] = [
+	PackedByteArray(), PackedByteArray(), PackedByteArray(), PackedByteArray()
+]
 var _shut_doors: Dictionary[StringName, float] = {}
 var _shut_opened: Dictionary[StringName, int] = {}
 var _shut_felled: Array[FunnelFall] = []
@@ -558,10 +564,15 @@ func highest_reachable(from_pos: Vector3, from_surface: int, pose: ShipPose) -> 
 func highest_in(found: Search, pose: ShipPose) -> int:
 	var best := NONE
 	var best_height := -INF
-	for zone in found.cost.size():
-		if found.cost[zone] == INF or doomed(zone, pose):
+	var cost := found.cost
+	var falling := not (pose.collapsing.is_empty() and pose.collapsed.is_empty())
+	_know(pose)
+	for zone in cost.size():
+		if cost[zone] == INF or falling and doomed(zone, pose):
 			continue
-		var height := world_height(zone, pose)
+		var height := _heights[zone]
+		if is_nan(height):
+			height = world_height(zone, pose)
 		if height > best_height:
 			best = zone
 			best_height = height
@@ -852,34 +863,131 @@ func search(
 		cost[start] = 0.0
 		arrived[start] = from_pos
 		open.push(0.0, start)
-	while not open.is_empty():
-		var zone := open.pop()
+	var closed := _closed_ways(pose, swim, wade)
+	# OpenSet's heap, inlined: the same order of (cost, zone), every pop the least.
+	var heap_costs := open.costs
+	var heap_zones := open.zones
+	var portal_to := _portal_to
+	var portal_entry := _portal_entry
+	var portal_exit := _portal_exit
+	var portal_length := _portal_length
+	while not heap_zones.is_empty():
+		var zone := heap_zones[0]
+		var last := heap_zones.size() - 1
+		var sift_cost := heap_costs[last]
+		var sift_zone := heap_zones[last]
+		heap_costs.resize(last)
+		heap_zones.resize(last)
+		if last > 0:
+			var down := 0
+			while true:
+				var child := down * 2 + 1
+				if child >= last:
+					break
+				var right := child + 1
+				if (
+					right < last
+					and (
+						heap_costs[right] < heap_costs[child]
+						or (
+							heap_costs[right] == heap_costs[child]
+							and heap_zones[right] < heap_zones[child]
+						)
+					)
+				):
+					child = right
+				if (
+					sift_cost < heap_costs[child]
+					or sift_cost == heap_costs[child] and sift_zone < heap_zones[child]
+				):
+					break
+				heap_costs[down] = heap_costs[child]
+				heap_zones[down] = heap_zones[child]
+				down = child
+			heap_costs[down] = sift_cost
+			heap_zones[down] = sift_zone
 		if done[zone] == 1:
 			continue
 		done[zone] = 1
+		var so_far := cost[zone]
+		var at := arrived[zone]
+		var pace := _pace[zone]
 		for index: int in _out[zone]:
-			var other := _portal_to[index]
-			if done[other] == 1 or doomed(other, pose):
-				continue
-			if not swim and (flooded(other, pose) or _shut(index, pose)):
-				continue
-			if not swim and not wade and _wet(index, pose):
+			var other := portal_to[index]
+			if done[other] == 1 or closed[index] == 1:
 				continue
 			var through := (
-				cost[zone]
-				+ arrived[zone].distance_to(_portal_entry[index]) * _pace[zone]
-				+ _portal_length[index]
+				so_far + at.distance_to(portal_entry[index]) * pace + portal_length[index]
 			)
 			if through < cost[other]:
 				cost[other] = through
 				came_by[other] = index
 				came_from[other] = zone
-				arrived[other] = _portal_exit[index]
-				open.push(through, other)
+				arrived[other] = portal_exit[index]
+				var up := heap_zones.size()
+				heap_costs.append(through)
+				heap_zones.append(other)
+				while up > 0:
+					var parent := (up - 1) >> 1
+					var above := heap_costs[parent]
+					if above < through or above == through and heap_zones[parent] < other:
+						break
+					heap_costs[up] = above
+					heap_zones[up] = heap_zones[parent]
+					up = parent
+				heap_costs[up] = through
+				heap_zones[up] = other
 	found.cost = cost
 	found.came_by = came_by
 	found.came_from = came_from
 	return found
+
+
+## Per portal, 1 where a search with [param swim] and [param wade] may not go through
+## it under [param pose] (search): worked out for every portal at once, once a pose.
+func _closed_ways(pose: ShipPose, swim: bool, wade: bool) -> PackedByteArray:
+	_know(pose)
+	var way := (2 if swim else 0) + (1 if wade else 0)
+	if _portals_closed[way].is_empty():
+		var falling := not (pose.collapsing.is_empty() and pose.collapsed.is_empty())
+		if not swim:
+			_flood_every_zone(pose)
+			if not wade:
+				_wet_every_portal(pose)
+		var closed := PackedByteArray()
+		closed.resize(_portal_to.size())
+		for index in closed.size():
+			var other := _portal_to[index]
+			if (
+				falling and doomed(other, pose)
+				or not swim and (_flooded[other] == 2 or _shut(index, pose))
+				or not swim and not wade and _portal_wet[index] == 2
+			):
+				closed[index] = 1
+		_portals_closed[way] = closed
+	return _portals_closed[way]
+
+
+## Works out flooded for every zone under the pose known at once (_flooded): the rooms'
+## middles read together.
+func _flood_every_zone(pose: ShipPose) -> void:
+	var rooms := _layout.rooms.size()
+	var middles := _middles.wet_all()
+	for zone in _zone_count:
+		if _flooded[zone] != 0:
+			continue
+		var under := middles[zone] == 1 if zone < rooms else _is_flooded(zone, pose)
+		_flooded[zone] = 2 if under else 1
+
+
+## Works out _wet for every portal under the pose known at once: their ends read together.
+func _wet_every_portal(pose: ShipPose) -> void:
+	var ends := _ends.wet_all()
+	for index in _portal_wet.size():
+		if _portal_wet[index] != 0:
+			continue
+		var wet := ends[index * 2] == 1 or ends[index * 2 + 1] == 1
+		_portal_wet[index] = 2 if wet or _shut(index, pose) else 1
 
 
 ## Whether [param zone] is flooded or giving way under [param pose]: never entered.
@@ -925,6 +1033,8 @@ func _know(pose: ShipPose) -> void:
 	_heights.fill(NAN)
 	_lowest.fill(NAN)
 	_flooded_share = NAN
+	for way in _portals_closed.size():
+		_portals_closed[way] = PackedByteArray()
 	_ends.read(pose)
 	_middles.read(pose)
 	_centres.read(pose)
