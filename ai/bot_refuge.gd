@@ -19,6 +19,8 @@ var _then := PackedFloat64Array()
 var _then_tick := -1
 var _now := PackedFloat64Array()
 var _now_tick := -1
+## The NativeWater choose's loop goes to (StillPoints.native_water), or null.
+var _water: Object = StillPoints.native_water()
 
 
 func _init(graph: WalkGraph, profile: BotProfile) -> void:
@@ -37,6 +39,25 @@ func choose(found: WalkSearch, pose: ShipPose, tick: int, kept: int) -> int:
 	var best_height := -INF
 	var kept_height := -INF
 	var reached := found.reached()
+	# Natively unless something gives way: then doomed() reads the pose's decks by name.
+	if _water != null and pose.collapsing.is_empty() and pose.collapsed.is_empty():
+		var rising := not (_then_tick < 0 or _now_tick <= _then_tick)
+		var picked: PackedFloat64Array = _water.refuge(
+			reached,
+			false,
+			PackedByteArray(),
+			_graph.heights_all(pose),
+			rising,
+			_then,
+			_now,
+			Ticks.to_seconds(_now_tick - _then_tick) if rising else 0.0,
+			_rise_seconds,
+			kept
+		)
+		best = int(picked[0])
+		best_height = picked[1]
+		kept_height = picked[2]
+		reached = PackedByteArray()
 	for zone in reached.size():
 		if reached[zone] == 0 or _graph.doomed(zone, pose):
 			continue
@@ -89,7 +110,6 @@ func _look(pose: ShipPose, tick: int) -> void:
 	if _now_tick >= 0 and (_then_tick < 0 or tick - _then_tick >= _window):
 		_then = _now.duplicate()
 		_then_tick = _now_tick
-	_now.resize(_graph.zone_count())
-	for zone in _graph.zone_count():
-		_now[zone] = _graph.lowest_above_water(zone, pose)
+	# Its own copy: the graph fills its own afresh for the next pose it is asked of.
+	_now = _graph.lowest_all(pose).duplicate()
 	_now_tick = tick
