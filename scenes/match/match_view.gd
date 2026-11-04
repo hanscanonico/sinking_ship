@@ -73,6 +73,9 @@ var _inner: InnerWater
 var _broken := false
 var _aft := 0
 var _drawn_pieces: ShipPieces
+## The dressing still building her stretches behind the match (StretchPlan), her whole
+## art drawn until they are in to take its place (_take_stretches); null once they are.
+var _later: ShipDressing
 ## What the sinking has done by the tick drawn, worked out once a tick rather than every
 ## frame (_show_sinking): the railings gone — the pose's failed ones and those the
 ## snapshot's railings have broken — and the collapses fired; for that tick and those
@@ -121,6 +124,9 @@ func setup(
 	_broken = not leaves.is_empty()
 	_aft = leaves[0] if _broken else 0
 	var stretches: Array[ShipArt] = []
+	if _later != null:
+		_later.stop_later()
+		_later = null
 	if _greybox.visible:
 		_greybox.build(_pieces.layout(leaves[0]) if _broken else ship, rules.railing_height)
 		_props = _greybox.props()
@@ -131,6 +137,8 @@ func setup(
 		dressing.finish()
 		_wear(dressing.art)
 		stretches = dressing.stretches
+		if _broken and dressing.plan != null and dressing.plan.whole:
+			_later = dressing
 		_props = []
 		_prop_art = _art.prop_art
 	_still.clear()
@@ -148,7 +156,7 @@ func setup(
 		_drawn_pieces = ShipPieces.new()
 		_drawn_pieces.name = "Pieces"
 		add_child(_drawn_pieces)
-	_drawn_pieces.setup(sim, _ship, _art, _greybox, stretches)
+	_drawn_pieces.setup(sim, _ship, _art, _greybox, stretches, _later != null)
 	_sinking_tick = -1
 	for body: Brawler in _bodies:
 		body.queue_free()
@@ -205,6 +213,27 @@ func _wear(dressed: ShipArt) -> void:
 	_ship.add_child(dressed)
 	_ship.move_child(dressed, at)
 	_art = dressed
+
+
+## Draws her as her stretches, every one built behind the match now (ShipDressing), in
+## place of her whole art: the first on the ship's own node, carrying the whole art's
+## props as they are placed and drawn as finely as it was; the rest on their pieces.
+func _take_stretches() -> void:
+	var stretches := _later.take_stretches()
+	_later = null
+	if stretches.is_empty() or stretches.has(null):
+		return
+	var first := stretches[0]
+	first.take_props(_art)
+	first.show_graphics(_art.graphics())
+	_wear(first)
+	_prop_art = _art.prop_art
+	_drawn_pieces.dress(first, stretches.slice(1))
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_PREDELETE and _later != null:
+		_later.stop_later()
 
 
 ## Draws every seat but [param seat] from now on — the view is in its eyes — or
@@ -374,6 +403,8 @@ func _on_corrected(by: Vector3) -> void:
 func _process(delta: float) -> void:
 	if _driver == null or _driver.current.is_empty():
 		return
+	if _later != null and _later.stretched():
+		_take_stretches()
 	_smoother.advance(delta)
 	var previous := _driver.previous
 	var current := _driver.current
