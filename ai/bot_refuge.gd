@@ -31,13 +31,14 @@ func _init(graph: WalkGraph, profile: BotProfile) -> void:
 
 ## The refuge for a bot whose search is [param found], seeing [param pose] as it stood
 ## on [param tick], its refuge till now [param kept] (WalkGraph.NONE for none).
-func choose(found: WalkGraph.Search, pose: ShipPose, tick: int, kept: int) -> int:
+func choose(found: WalkSearch, pose: ShipPose, tick: int, kept: int) -> int:
 	_look(pose, tick)
 	var best := WalkGraph.NONE
 	var best_height := -INF
 	var kept_height := -INF
-	for zone in found.cost.size():
-		if found.cost[zone] == INF or _graph.doomed(zone, pose):
+	var reached := found.reached()
+	for zone in reached.size():
+		if reached[zone] == 0 or _graph.doomed(zone, pose):
 			continue
 		var height := _graph.world_height(zone, pose) - _rise(zone) * _rise_seconds
 		if zone == kept:

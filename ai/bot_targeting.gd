@@ -73,7 +73,7 @@ func _init(
 func choose(
 	seen: Dictionary,
 	me: Dictionary,
-	found: WalkGraph.Search,
+	found: WalkSearch,
 	pose: ShipPose,
 	perch: int,
 	kept: int,
@@ -95,7 +95,7 @@ func choose(
 		if entry["seat"] == _seat or entry["out"] or entry["state"] == PlayerState.Body.SWIMMING:
 			continue
 		var zone := _zone_of(entry)
-		if zone != WalkGraph.NONE and (found.cost.is_empty() or found.cost[zone] == INF):
+		if zone != WalkGraph.NONE and not found.reaches(zone):
 			continue
 		# Not down into a room the sea is about to take: the bot would climb out of it.
 		if (

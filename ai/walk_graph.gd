@@ -51,17 +51,6 @@ class Portal:
 		ramp = ramp_index
 
 
-## Every dry zone reachable from one place, and the cheapest way to each: what one
-## search finds, for route_in and highest_in to read as often as they like.
-class Search:
-	## Per zone, the distance walked to reach it, or INF.
-	var cost := PackedFloat64Array()
-	## Per zone, the portal it was reached through, or NONE where the search started.
-	var came_by := PackedInt32Array()
-	## Per zone, the zone that portal was entered from, or NONE.
-	var came_from := PackedInt32Array()
-
-
 ## The zones a search has still to settle, cheapest first, ties to the lower zone: a
 ## binary heap of (cost, zone).
 class OpenSet:
@@ -450,31 +439,28 @@ func wade_out(
 	from_pos: Vector3, from_surface: int, pose: ShipPose, clear_by: float
 ) -> Array[Portal]:
 	var found := search(from_pos, from_surface, pose, false, true)
+	var cost := found.costs()
 	var nearest := NONE
-	for zone in found.cost.size():
+	for zone in cost.size():
 		if (
-			found.cost[zone] == INF
+			cost[zone] == INF
 			or flooded(zone, pose)
 			or doomed(zone, pose)
 			or lowest_above_water(zone, pose) < clear_by
 		):
 			continue
-		if nearest == NONE or found.cost[zone] < found.cost[nearest]:
+		if nearest == NONE or cost[zone] < cost[nearest]:
 			nearest = zone
 	return route_in(found, nearest)
 
 
 ## The portals to [param goal] in what [param found] found, in order: as route().
-func route_in(found: Search, goal: int) -> Array[Portal]:
+func route_in(found: WalkSearch, goal: int) -> Array[Portal]:
 	var legs: Array[Portal] = []
-	if goal == NONE or found.cost.is_empty() or found.cost[goal] == INF:
+	if goal == NONE:
 		return legs
-	var zone := goal
-	while found.came_by[zone] != NONE:
-		legs.push_front(_portals[found.came_by[zone]])
-		zone = found.came_from[zone]
-		if zone == NONE:
-			break
+	for index in found.way_to(goal):
+		legs.append(_portals[index])
 	return legs
 
 
@@ -561,14 +547,14 @@ func highest_reachable(from_pos: Vector3, from_surface: int, pose: ShipPose) -> 
 
 
 ## The highest zone of those [param found] reaches, as highest_reachable().
-func highest_in(found: Search, pose: ShipPose) -> int:
+func highest_in(found: WalkSearch, pose: ShipPose) -> int:
 	var best := NONE
 	var best_height := -INF
-	var cost := found.cost
+	var reached := found.reached()
 	var falling := not (pose.collapsing.is_empty() and pose.collapsed.is_empty())
 	_know(pose)
-	for zone in cost.size():
-		if cost[zone] == INF or falling and doomed(zone, pose):
+	for zone in reached.size():
+		if reached[zone] == 0 or falling and doomed(zone, pose):
 			continue
 		var height := _heights[zone]
 		if is_nan(height):
@@ -596,11 +582,12 @@ func way_off(ramp_surface: int, zone: int) -> Portal:
 ## such zone is reached.
 func way_ashore(from_pos: Vector3, bottom: int, pose: ShipPose) -> Array[Portal]:
 	var found := search(from_pos, bottom, pose, true)
+	var cost := found.costs()
 	var nearest := NONE
-	for zone in found.cost.size():
-		if found.cost[zone] == INF or flooded(zone, pose) or doomed(zone, pose):
+	for zone in cost.size():
+		if cost[zone] == INF or flooded(zone, pose) or doomed(zone, pose):
 			continue
-		if nearest == NONE or found.cost[zone] < found.cost[nearest]:
+		if nearest == NONE or cost[zone] < cost[nearest]:
 			nearest = zone
 	return route_in(found, nearest)
 
@@ -819,29 +806,15 @@ func _room_middle(room: int) -> Vector3:
 ## portal with an end under water — nor, if it may [param wade], a flooded one or a
 ## shut door, but through a portal with an end under water; ties go to the lower zone
 ## number. Its costs are metres walked, a crawl space's at crawl_speed (_pace). Empty
-## when it stands on nothing.
+## when it stands on nothing. Lazy: it settles only as far as it is asked (WalkSearch).
 func search(
 	from_pos: Vector3, from_surface: int, pose: ShipPose, swim := false, wade := false
-) -> Search:
-	var found := Search.new()
+) -> WalkSearch:
 	var footing := _surfaces.footing(from_surface) if from_surface != Surfaces.NONE else NONE
 	if footing == Surfaces.NONE:
-		return found
+		return WalkSearch.new()
 	_know(pose)
-	var cost := PackedFloat64Array()
-	cost.resize(_zone_count)
-	cost.fill(INF)
-	var came_by := PackedInt32Array()
-	came_by.resize(_zone_count)
-	came_by.fill(NONE)
-	var came_from := PackedInt32Array()
-	came_from.resize(_zone_count)
-	came_from.fill(NONE)
-	var arrived := PackedVector3Array()
-	arrived.resize(_zone_count)
-	var done := PackedByteArray()
-	done.resize(_zone_count)
-	var open := OpenSet.new()
+	var found := WalkSearch.new(_zone_count)
 	if _surfaces.is_ramp(footing):
 		var ramp := footing - _surfaces.platform_count()
 		for end in 2:
@@ -852,94 +825,18 @@ func search(
 				continue
 			if not swim and (flooded(zone, pose) or not wade and _surfaces.wet(exit, pose)):
 				continue
-			var reached := from_pos.distance_to(exit)
-			if reached < cost[zone]:
-				cost[zone] = reached
-				came_by[zone] = portal
-				arrived[zone] = exit
-				open.push(reached, zone)
+			found.reach(zone, from_pos.distance_to(exit), exit, portal)
 	else:
-		var start := zone_at(from_pos, footing)
-		cost[start] = 0.0
-		arrived[start] = from_pos
-		open.push(0.0, start)
-	var closed := _closed_ways(pose, swim, wade)
-	# OpenSet's heap, inlined: the same order of (cost, zone), every pop the least.
-	var heap_costs := open.costs
-	var heap_zones := open.zones
-	var portal_to := _portal_to
-	var portal_entry := _portal_entry
-	var portal_exit := _portal_exit
-	var portal_length := _portal_length
-	while not heap_zones.is_empty():
-		var zone := heap_zones[0]
-		var last := heap_zones.size() - 1
-		var sift_cost := heap_costs[last]
-		var sift_zone := heap_zones[last]
-		heap_costs.resize(last)
-		heap_zones.resize(last)
-		if last > 0:
-			var down := 0
-			while true:
-				var child := down * 2 + 1
-				if child >= last:
-					break
-				var right := child + 1
-				if (
-					right < last
-					and (
-						heap_costs[right] < heap_costs[child]
-						or (
-							heap_costs[right] == heap_costs[child]
-							and heap_zones[right] < heap_zones[child]
-						)
-					)
-				):
-					child = right
-				if (
-					sift_cost < heap_costs[child]
-					or sift_cost == heap_costs[child] and sift_zone < heap_zones[child]
-				):
-					break
-				heap_costs[down] = heap_costs[child]
-				heap_zones[down] = heap_zones[child]
-				down = child
-			heap_costs[down] = sift_cost
-			heap_zones[down] = sift_zone
-		if done[zone] == 1:
-			continue
-		done[zone] = 1
-		var so_far := cost[zone]
-		var at := arrived[zone]
-		var pace := _pace[zone]
-		for index: int in _out[zone]:
-			var other := portal_to[index]
-			if done[other] == 1 or closed[index] == 1:
-				continue
-			var through := (
-				so_far + at.distance_to(portal_entry[index]) * pace + portal_length[index]
-			)
-			if through < cost[other]:
-				cost[other] = through
-				came_by[other] = index
-				came_from[other] = zone
-				arrived[other] = portal_exit[index]
-				var up := heap_zones.size()
-				heap_costs.append(through)
-				heap_zones.append(other)
-				while up > 0:
-					var parent := (up - 1) >> 1
-					var above := heap_costs[parent]
-					if above < through or above == through and heap_zones[parent] < other:
-						break
-					heap_costs[up] = above
-					heap_zones[up] = heap_zones[parent]
-					up = parent
-				heap_costs[up] = through
-				heap_zones[up] = other
-	found.cost = cost
-	found.came_by = came_by
-	found.came_from = came_from
+		found.reach(zone_at(from_pos, footing), 0.0, from_pos)
+	found.walk(
+		_out,
+		_portal_to,
+		_portal_entry,
+		_portal_exit,
+		_portal_length,
+		_pace,
+		_closed_ways(pose, swim, wade)
+	)
 	return found
 
 

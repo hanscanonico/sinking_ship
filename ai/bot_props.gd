@@ -66,14 +66,14 @@ func steals_from(seen: Dictionary, victim: Dictionary) -> bool:
 func choose(
 	seen: Dictionary,
 	me: Dictionary,
-	found: WalkGraph.Search,
+	found: WalkSearch,
 	graph: WalkGraph,
 	under: float,
 	pose: ShipPose
 ) -> float:
 	buoy = -1
 	_wanting = under >= _profile.buoy_from and PropState.held_in(seen, _seat, _holdable) == -1
-	if not _wanting or me["state"] != PlayerState.Body.GROUNDED or found.cost.is_empty():
+	if not _wanting or me["state"] != PlayerState.Body.GROUNDED or found.is_empty():
 		return 0.0
 	var my_pos: Vector3 = me["pos"]
 	var lowest := pose.above_water(my_pos) - _rules.body_height
@@ -88,9 +88,13 @@ func choose(
 		if pose.above_water(stand) < lowest:
 			continue
 		var zone := graph.zone_at(stand, graph.surfaces().under(stand, _rules.step_height))
-		if zone == WalkGraph.NONE or found.cost[zone] == INF:
+		if zone == WalkGraph.NONE:
 			continue
-		var far := found.cost[zone] + Vector2(stand.x - my_pos.x, stand.z - my_pos.z).length()
+		# Further than the nearest yet, it need not know how far: the search stops there.
+		var walked := found.cost_to(zone, nearest)
+		if walked == INF:
+			continue
+		var far := walked + Vector2(stand.x - my_pos.x, stand.z - my_pos.z).length()
 		if far <= nearest:
 			nearest = far
 			buoy = entry["prop"]
