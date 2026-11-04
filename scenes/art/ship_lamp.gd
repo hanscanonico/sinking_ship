@@ -20,6 +20,9 @@ extends Node3D
 ## enough. A lamp with nothing left to change — done fading, steady, hanging still —
 ## sleeps until a change of its own, or ShipArt as she turns, wakes it.
 
+## Told as [member burning] changes (LampSight counts the lamps burning by it).
+signal burning_changed
+
 ## What the lamp is: a room's pendant globe, a hold's shaded cargo lamp, or a fire.
 enum Kind { PENDANT, CARGO, FIRE }
 
@@ -75,6 +78,7 @@ var burning := true:
 		if value != burning:
 			burning = value
 			wake()
+			burning_changed.emit()
 ## What powers its cell now (ShipPower.Power), and for a fire whether the water in its
 ## cell has reached it; ShipArt sets both from the pose.
 var power: int = ShipPower.Power.MAIN:
