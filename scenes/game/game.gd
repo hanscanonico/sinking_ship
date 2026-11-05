@@ -201,8 +201,10 @@ func _process(delta: float) -> void:
 	if _holding != null:
 		_hold.advance(delta, _baker.progress())
 		var dressed := _held_dressing == null or _held_dressing.done()
-		if _dressed_hold and Engine.get_process_frames() > _held_since and dressed:
-			if _served_held():
+		# Served once her dressing is done reading her schedule, beside the rest of it.
+		var read := _held_dressing == null or _held_dressing.schedule_read()
+		if _dressed_hold and Engine.get_process_frames() > _held_since and read:
+			if _served_held() and dressed:
 				_release_held()
 	elif _online == null and (_match == null or _match.is_over()):
 		_bake_upcoming()
@@ -319,6 +321,7 @@ func _play(choices: MatchChoices, rematch: bool = false) -> void:
 		return
 	_hold_over_backdrop()
 	_baker.bake(config, _args.bake_budget_ms)
+	_dress_ahead(config)
 
 
 ## The countdown held over the menu's backdrop, the ship at rest, while the held match's
@@ -395,7 +398,7 @@ func _served_held() -> bool:
 	# One served for another held match, given up, ends first; what it served is dropped.
 	if _serving.busy():
 		return false
-	# Her ship dressed, her sinking is built: nothing else builds it meanwhile.
+	# Her dressing built her schedule and reads it no more: served beside the rest of it.
 	var local := MatchScene.local_for(config, _args.autoplay)
 	var net_sim := _args.net_sim
 	var jump_to := _jump_tick(config)
@@ -443,7 +446,9 @@ func _dressing_of(config: MatchConfig, watched: bool = false) -> ShipDressing:
 		return null
 	# A replay is seen through eyes (MatchScene.start_replay).
 	var cut := INF if watched else MatchScene.cut_of(_observer(), _args.observer_cut)
+	# Asked for once her sinking is made: one dressed ahead of it may go on (_dress_ahead).
 	if _dressing != null and _dressing.fits(config, cut):
+		_dressing.sinking_made()
 		return _dressing
 	if _dressing != null:
 		_dressing.drop()
@@ -452,6 +457,21 @@ func _dressing_of(config: MatchConfig, watched: bool = false) -> ShipDressing:
 		push_warning("frame split: the match's sinking was built already; its poses untimed")
 	_dressing = ShipDressing.new(config, cut).start()
 	return _dressing
+
+
+## Starts dressing [param config]'s ship — or its replay's, when [param watched] — while
+## her sinking bakes (ShipDressing.start's ahead), told it is made once it is
+## (_dressing_of): her sea's maps are made beside her bake. Never for the greybox, nor
+## for a frame split, which times her schedule as her dressing first builds it.
+func _dress_ahead(config: MatchConfig, watched: bool = false) -> void:
+	if (_args.greybox and not watched) or _probe != null:
+		return
+	var cut := INF if watched else MatchScene.cut_of(_observer(), _args.observer_cut)
+	if _dressing != null and _dressing.fits(config, cut):
+		return
+	if _dressing != null:
+		_dressing.drop()
+	_dressing = ShipDressing.new(config, cut).start(true)
 
 
 ## [param config]'s ship dressed (_dressing_of), handed over to its match or its replay,
@@ -621,6 +641,7 @@ func _start_replay(file: ReplayFile) -> void:
 		return
 	_hold_over_backdrop()
 	_baker.bake(config, _args.bake_budget_ms)
+	_dress_ahead(config, true)
 
 
 ## The match [param file] plays, on [param match_rules]; null when its choices no longer
