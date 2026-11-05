@@ -108,7 +108,10 @@ static func _first_difference(a: Variant, b: Variant) -> String:
 		return "%d natively, %d in GDScript" % [a.size(), b.size()]
 	for index in a.size():
 		if var_to_bytes(a[index]) != var_to_bytes(b[index]):
-			return "at %d, %s natively, %s in GDScript" % [index, a[index], b[index]]
+			return (
+				"at %d, %s natively, %s in GDScript"
+				% [index, var_to_str(a[index]), var_to_str(b[index])]
+			)
 	return "nowhere"
 
 
