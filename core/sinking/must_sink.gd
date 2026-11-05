@@ -188,8 +188,10 @@ class Choosing:
 	## whether it was taken.
 	var _dry := false
 	var _planned_once := false
-	## Every bake the rule could start, in the order it would, and how many it has taken.
+	## Every bake the rule could start, in the order it would, each one's cap, and how
+	## many it has taken.
 	var _planned: Array[SinkBake] = []
+	var _caps := PackedFloat64Array()
 	var _started := 0
 	## The group task baking _planned's bakes listed in _queue, -1 while none runs. Under
 	## _lock, shared with its threads: the first of them that passes, those that have
@@ -292,14 +294,28 @@ class Choosing:
 		while ahead._stage != Stage.DONE:
 			ahead._advance()
 		_planned = ahead._planned
+		_caps = ahead._caps
 		_requeue()
 
-	## Lists the planned bakes still to bake: not over, nor past the first that passes.
+	## Lists the planned bakes still to bake — not over, nor past the first that passes —
+	## in the rule's order, but for the one to the furthest cap, the longest a bake can
+	## be: the last of the threads starts on it. That is the sure hit's, baked to the
+	## scenario's cap where drawn hits stop at its bound, and the one the others wait on
+	## when every hit before it leaves her afloat; while the first threads bake the hits
+	## the rule tries first, most often the one it plays.
 	func _requeue() -> void:
 		_queue = PackedInt32Array()
+		var furthest := -1
 		for index in _planned.size():
 			if index <= _passed and not _planned[index].is_done():
 				_queue.append(index)
+				if furthest == -1 or _caps[index] > _caps[furthest]:
+					furthest = index
+		var at := _queue.find(furthest)
+		var last := mini(_workers, _queue.size()) - 1
+		if at > last:
+			_queue.remove_at(at)
+			_queue.insert(last, furthest)
 
 	## Bakes the queued bakes side by side for up to [param steps] of their steps between
 	## them; whether they are over — at once for none.
@@ -452,6 +468,7 @@ class Choosing:
 			_bake = SinkBake.of(_structure, damage, _sea, cap)
 			if _dry:
 				_planned.append(_bake)
+				_caps.append(cap)
 		_started += 1
 
 	## How far a drawn hit, or a rung of the fallback, is baked: the scenario's bound

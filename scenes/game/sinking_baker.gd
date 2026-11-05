@@ -19,6 +19,10 @@ const STEPS_PER_LOOK := 1
 ## About as many steps as a match's bakes take, for the progress shown: SH27's census
 ## had 951 a bake at the median and 1.44 bakes a match.
 const TYPICAL_STEPS := 1400.0
+## The most bakes run side by side: past three the GDScript half of each slows them all
+## (the Titanic's five on a 14-core i7-13650HX: three at once ran each 1.25 times as long
+## as alone, five 2.4 times).
+const SIDE_BY_SIDE := 3
 ## A frame's length, in microseconds, that a budget (bake()) is a share of.
 const FRAME_USEC := 16667
 ## The longest the thread rests between steps to keep to a budget, in microseconds.
@@ -206,12 +210,13 @@ func _start(config: MatchConfig) -> void:
 		_task = WorkerThreadPool.add_task(_bake.run, false, "Sinking bake")
 
 
-## How many of a sinking's bakes run side by side here (MatchConfig.bake_workers): one
-## a core but the main thread's, or one where the build has no threads (the web's).
+## How many of a sinking's bakes run side by side here (MatchConfig.bake_workers): up to
+## SIDE_BY_SIDE, a core each but the main thread's, or one where the build has no
+## threads (the web's).
 static func workers() -> int:
 	if not OS.has_feature("threads"):
 		return 1
-	return maxi(1, OS.get_processor_count() - 1)
+	return clampi(OS.get_processor_count() - 1, 1, SIDE_BY_SIDE)
 
 
 ## [param made]'s sinking is made: the config wanted is told, when it is that sinking.
