@@ -535,6 +535,41 @@ func _climbing(points: PackedVector2Array) -> PackedVector2Array:
 	return climbing
 
 
+func test_her_plating_over_her_double_bottom_stays_inside_her_shell() -> void:
+	# Her double bottom's floors stand at her keel, so her flat keel is plated as a deck.
+	# Where her loft rises from a section's middle into a neighbour not plated alike —
+	# the Titanic's run up to her counter, her forefoot — that plating ran on at her keel
+	# out to the section's end, in the sea under her (#351). Under every level face of her
+	# shell at her keel, facing up, her bottom.
+	var checked := 0
+	for ship: StringName in Fleet.names():
+		var layout := Fleet.layout(ship)
+		if layout.dressed:
+			continue
+		var keel := layout.structure.keel_y
+		var faces := _shell_alone(layout)
+		var cells := FaceCells.file(faces)
+		var outside := 0
+		var first := ""
+		for index in range(0, faces.size(), 3):
+			var a := faces[index]
+			var b := faces[index + 1]
+			var c := faces[index + 2]
+			var level := absf(b.y - a.y) <= LEVEL and absf(c.y - a.y) <= LEVEL
+			if not level or absf(a.y - keel) > UNDER or FaceCells.facing(a, b, c) <= 0.0:
+				continue
+			checked += 1
+			var middle := (a + b + c) / 3.0
+			if is_nan(_bottom_under(faces, cells, middle + Vector3.UP * UNDER)):
+				outside += 1
+				if first.is_empty():
+					first = str(middle)
+		assert_eq(
+			outside, 0, "%s: plating at her keel outside her shell; first at %s" % [ship, first]
+		)
+	assert_gt(checked, 0, "the Titanic's plating over her double bottom looked at")
+
+
 ## Every triangle of [param layout]'s shell (SectionHull), alone, in her ship space.
 func _shell_faces(layout: ShipLayout) -> PackedVector3Array:
 	var space := ShipSpace.new(layout)
