@@ -71,8 +71,9 @@ func test_a_collapsed_deck_and_its_railings_answer_alike() -> void:
 func test_her_ships_answer_alike_doors_half_shut_and_a_funnel_down() -> void:
 	if not _loaded():
 		return
-	for path: String in [STEAMER, SMALL_TITANIC]:
-		var layout: ShipLayout = load(path)
+	var ships: Array[ShipLayout] = [load(STEAMER), load(SMALL_TITANIC)]
+	for layout: ShipLayout in ships:
+		var path := layout.resource_path
 		var pose := _pose(0)
 		if layout.structure != null:
 			for opening: ShipOpening in layout.structure.openings:
