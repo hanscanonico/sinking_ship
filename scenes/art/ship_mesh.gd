@@ -579,6 +579,23 @@ func model(prop: ShipModel, place: Transform3D, paints := {}) -> void:
 	_open()
 	for surface in prop.surfaces:
 		var paint: Paint = paints.get(surface.paint, surface.paint)
+		if _native != null:
+			_native.model_surface(
+				place,
+				turn,
+				mirrored,
+				surface.points,
+				surface.normals,
+				surface.order,
+				surface.inks,
+				paint.finish,
+				paint.colour,
+				paint.finish_in,
+				paint.colour_in,
+				foot,
+				head
+			)
+			continue
 		var points := surface.points
 		var normals := surface.normals
 		var order := surface.order
@@ -721,6 +738,11 @@ func commit(parent: Node3D, materials: Dictionary) -> void:
 	_placed.clear()
 	if _native != null:
 		_native.clear()
+
+
+## The NativeShipMesh drawing this mesh, or null where the GDScript does.
+func native() -> Object:
+	return _native
 
 
 ## Every batch drawn so far, by its key ("finish out" or "finish in x y z").

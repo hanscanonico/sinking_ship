@@ -467,6 +467,36 @@ func lining(point: Vector3, part: Part) -> ShipMesh.Paint:
 	return null
 
 
+## The linings as the extension's NativeLining reads them (LinedFaces): per room, whether
+## it has its own, its lined box, area and floor, and its paint for each Part by number,
+## 0 for none; null where the extension is not loaded.
+func native_lining() -> Object:
+	var grid := _space.rooms_grid.native()
+	var lining := ArtNative.made(&"NativeLining")
+	if grid == null or lining == null:
+		return null
+	var areas := []
+	var floors := PackedFloat64Array()
+	var parts := PackedInt32Array()
+	var numbers := {}
+	var paints := []
+	for index in _layout.rooms.size():
+		var room := _layout.rooms[index]
+		areas.append(room.area)
+		floors.append(room.floor_height)
+		var linings: Array = []
+		if _has_lining[index] == 1:
+			linings = _linings(_kinds[index])
+		for part in 4:
+			var paint: ShipMesh.Paint = linings[part] if part < linings.size() else null
+			if paint != null and not numbers.has(paint):
+				paints.append([paint.finish, paint.colour, paint.finish_in, paint.colour_in])
+				numbers[paint] = paints.size()
+			parts.append(0 if paint == null else numbers[paint])
+	lining.setup(grid, _has_lining, _lined_boxes, areas, floors, parts, paints)
+	return lining
+
+
 ## Whether [param box] (ship space) reaches into a room with a lining of its own.
 func lined_near(box: AABB) -> bool:
 	return not _lined_in(box).is_empty()

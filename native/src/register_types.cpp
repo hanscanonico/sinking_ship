@@ -22,6 +22,7 @@ static void initialize_sinking_native(ModuleInitializationLevel p_level) {
 	GDREGISTER_CLASS(NativeWater);
 	GDREGISTER_CLASS(NativeSink);
 	GDREGISTER_CLASS(NativeIndoorGrid);
+	GDREGISTER_CLASS(NativeLining);
 	GDREGISTER_CLASS(NativeShipMesh);
 }
 

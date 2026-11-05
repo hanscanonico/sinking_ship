@@ -668,6 +668,17 @@ Array NativeIndoorGrid::outdoors_over(const Vector3 &p_origin, const Vector3 &p_
 	return found;
 }
 
+void NativeIndoorGrid::set_columns(const PackedInt32Array &p_columns_from, const PackedInt32Array &p_columns) {
+	_columns_from.assign(p_columns_from.ptr(), p_columns_from.ptr() + p_columns_from.size());
+	_columns.assign(p_columns.ptr(), p_columns.ptr() + p_columns.size());
+}
+
+const int32_t *NativeIndoorGrid::rooms_over(double p_x, double p_z, int64_t &r_count) const {
+	const int64_t square = _square(p_x, p_z);
+	r_count = _columns_from[square + 1] - _columns_from[square];
+	return _columns.data() + _columns_from[square];
+}
+
 void NativeIndoorGrid::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("setup", "origin", "size", "low", "bands", "bounds", "cells_from", "cells",
 								 "ceiling_at", "edges_of"),
@@ -676,6 +687,100 @@ void NativeIndoorGrid::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("outdoors_over", "origin", "u", "v", "u_cuts", "v_cuts", "normal", "probe", "boxes"),
 			&NativeIndoorGrid::outdoors_over);
 	ClassDB::bind_method(D_METHOD("ceiling", "index", "x", "z"), &NativeIndoorGrid::ceiling);
+	ClassDB::bind_method(D_METHOD("set_columns", "columns_from", "columns"), &NativeIndoorGrid::set_columns);
+}
+
+// ---------------------------------------------------------------------------------------
+// NativeLining
+
+void NativeLining::setup(const Ref<NativeIndoorGrid> &p_grid, const PackedByteArray &p_lined, const Array &p_boxes,
+		const Array &p_areas, const PackedFloat64Array &p_floors, const PackedInt32Array &p_parts,
+		const Array &p_paints) {
+	_grid = p_grid;
+	_lined.assign(p_lined.ptr(), p_lined.ptr() + p_lined.size());
+	_boxes.clear();
+	_areas.clear();
+	_lined_rooms.clear();
+	for (int64_t index = 0; index < p_boxes.size(); index++) {
+		_boxes.push_back(p_boxes[index]);
+		_areas.push_back(p_areas[index]);
+		if (_lined[index] == 1) {
+			_lined_rooms.push_back((int32_t)index);
+		}
+	}
+	_floors.assign(p_floors.ptr(), p_floors.ptr() + p_floors.size());
+	_parts.assign(p_parts.ptr(), p_parts.ptr() + p_parts.size());
+	_paints.assign(1, Paint());
+	for (int64_t index = 0; index < p_paints.size(); index++) {
+		const Array one = p_paints[index];
+		_paints.push_back({ (int64_t)one[0], (Color)one[1], (int64_t)one[2], (Color)one[3] });
+	}
+}
+
+// RoomDressing.lined_near: of the lined rooms, whether one's box meets the box.
+bool NativeLining::lined_near(const AABB &p_box) const {
+	for (int32_t index : _lined_rooms) {
+		if (_boxes[index].intersects(p_box)) {
+			return true;
+		}
+	}
+	return false;
+}
+
+// RoomDressing.lining_lines.
+void NativeLining::lining_lines(const AABB &p_box, std::vector<float> r_lines[3]) const {
+	for (int axis = 0; axis < 3; axis++) {
+		r_lines[axis].clear();
+	}
+	for (int32_t index : _lined_rooms) {
+		if (_boxes[index].intersects(p_box)) {
+			const Rect2 &area = _areas[index];
+			const Vector2 end = area.position + area.size;
+			r_lines[0].push_back(area.position.x);
+			r_lines[0].push_back(end.x);
+			r_lines[2].push_back(area.position.y);
+			r_lines[2].push_back(end.y);
+		}
+	}
+	std::sort(r_lines[0].begin(), r_lines[0].end());
+	std::sort(r_lines[2].begin(), r_lines[2].end());
+}
+
+// RoomDressing.lining, by paint number: of the rooms over the point, in order, the first
+// lined one holding it (RoomDressing._holds) gives its paint for the part.
+int32_t NativeLining::lining(const Vector3 &p_point, int64_t p_part) const {
+	int64_t count = 0;
+	const int32_t *near = _grid->rooms_over(p_point.x, p_point.z, count);
+	for (int64_t at = 0; at < count; at++) {
+		const int32_t index = near[at];
+		if (_lined[index] != 1) {
+			continue;
+		}
+		const Rect2 &area = _areas[index];
+		const Vector2 end = area.position + area.size;
+		if (p_point.x < area.position.x || p_point.x > end.x) {
+			continue;
+		}
+		if (p_point.z < area.position.y || p_point.z > end.y) {
+			continue;
+		}
+		if ((double)p_point.y < _floors[index] - INSIDE) {
+			continue;
+		}
+		if ((double)p_point.y <= _grid->ceiling(index, p_point.x, p_point.z) + INSIDE) {
+			return _parts[index * 4 + p_part];
+		}
+	}
+	return 0;
+}
+
+const NativeLining::Paint &NativeLining::paint(int32_t p_id) const {
+	return _paints[p_id];
+}
+
+void NativeLining::_bind_methods() {
+	ClassDB::bind_method(D_METHOD("setup", "grid", "lined", "boxes", "areas", "floors", "parts", "paints"),
+			&NativeLining::setup);
 }
 
 // ---------------------------------------------------------------------------------------
@@ -1156,6 +1261,141 @@ void NativeShipMesh::turned_box(const Transform3D &p_place, const Vector3 &p_siz
 	close();
 }
 
+void NativeShipMesh::model_surface(const Transform3D &p_place, const Basis &p_turn, bool p_mirrored,
+		const PackedVector3Array &p_points, const PackedVector3Array &p_normals, const PackedInt32Array &p_order,
+		const PackedColorArray &p_inks, int64_t p_finish, const Color &p_colour, int64_t p_finish_in,
+		const Color &p_colour_in, double p_foot, double p_head) {
+	const int64_t count = p_points.size();
+	const Vector3 *points = p_points.ptr();
+	const Vector3 *normals = p_normals.ptr();
+	std::vector<Vector3> placed(count);
+	std::vector<Vector3> turned(count);
+	for (int64_t index = 0; index < count; index++) {
+		placed[index] = p_place.xform(points[index]);
+		turned[index] = p_turn.xform(normals[index]).normalized();
+	}
+	// Each batch's triangles, as the model's corners, in the order the batches are
+	// first reached, and whether each batch is outdoors (ShipMesh.model).
+	std::vector<int64_t> batches;
+	std::vector<std::vector<int32_t>> corners;
+	std::vector<bool> outdoors;
+	const int32_t *order = p_order.ptr();
+	const double least = SLIVER * SLIVER * SLIVER * SLIVER;
+	for (int64_t index = 0; index + 2 < p_order.size(); index += 3) {
+		const int32_t a = order[index];
+		const int32_t b = order[index + (p_mirrored ? 2 : 1)];
+		const int32_t c = order[index + (p_mirrored ? 1 : 2)];
+		if (minf(placed[a].y, minf(placed[b].y, placed[c].y)) >= _cut_above) {
+			continue;
+		}
+		const double aft = minf(placed[a].x, minf(placed[b].x, placed[c].x));
+		if (!_kept(aft, maxf(placed[a].x, maxf(placed[b].x, placed[c].x)))) {
+			continue;
+		}
+		const Vector3 facing = (placed[c] - placed[a]).cross(placed[b] - placed[a]);
+		if ((double)facing.length_squared() < least) {
+			continue;
+		}
+		const Vector3 middle = ((placed[a] + placed[b]) + placed[c]) / 3.0f;
+		const int64_t batch = _batch_for(middle, facing.normalized(), p_finish, p_finish_in);
+		size_t at = std::find(batches.begin(), batches.end(), batch) - batches.begin();
+		if (at == batches.size()) {
+			batches.push_back(batch);
+			corners.emplace_back();
+			outdoors.push_back(_last_outdoors);
+		}
+		corners[at].push_back(a);
+		corners[at].push_back(b);
+		corners[at].push_back(c);
+	}
+	const Color *inks = p_inks.ptr();
+	std::vector<int32_t> placed_at(count);
+	for (size_t at = 0; at < batches.size(); at++) {
+		const float flag = outdoors[at] ? 1.0f : 0.0f;
+		std::fill(placed_at.begin(), placed_at.end(), -1);
+		std::vector<int32_t> indices;
+		std::vector<Vector3> points_in;
+		std::vector<Vector3> normals_in;
+		std::vector<Vector2> uvs;
+		std::vector<Vector2> uv2s;
+		indices.reserve(corners[at].size());
+		for (int32_t corner : corners[at]) {
+			if (placed_at[corner] == -1) {
+				placed_at[corner] = (int32_t)points_in.size();
+				points_in.push_back(placed[corner]);
+				normals_in.push_back(turned[corner]);
+				uvs.push_back(bands(placed[corner], p_foot, p_head));
+				uv2s.push_back(Vector2(inks[corner].r, flag));
+			}
+			indices.push_back(placed_at[corner]);
+		}
+		_emit(batches[at], indices.data(), (int64_t)indices.size(), points_in.data(), normals_in.data(),
+				(int64_t)points_in.size(), outdoors[at] ? p_colour : p_colour_in, uvs.data(), uv2s.data());
+	}
+}
+
+void NativeShipMesh::lined_face(const Vector3 &p_origin, const Vector3 &p_u, const Vector3 &p_v, int64_t p_finish,
+		const Color &p_colour, int64_t p_finish_in, const Color &p_colour_in, int64_t p_part, double p_foot,
+		double p_head, const Ref<NativeLining> &p_lining) {
+	const Paint own = { p_finish, p_colour, p_finish_in, p_colour_in };
+	const bool narrow = minf(p_u.length(), p_v.length()) < NARROW;
+	const AABB box = AABB(p_origin, Vector3()).expand((p_origin + p_u) + p_v).grow((float)PROBE);
+	if (!narrow && (p_part == -1 || !p_lining->lined_near(box))) {
+		_face(p_origin, p_u, p_v, own, RIM_ALL, p_foot, p_head);
+		return;
+	}
+	std::vector<float> lines[3];
+	if (p_part != -1) {
+		p_lining->lining_lines(box, lines);
+	}
+	std::vector<float> u_cuts;
+	std::vector<float> v_cuts;
+	_splits(p_origin, p_u, lines, u_cuts);
+	_splits(p_origin, p_v, lines, v_cuts);
+	const Vector3 probe = p_u.cross(p_v).normalized() * (float)PROBE;
+	// LinedFaces._lining, by paint number.
+	auto lining_of = [&](size_t p_i, size_t p_j) -> int32_t {
+		if (p_part == -1) {
+			return 0;
+		}
+		Vector3 middle = p_origin + half_way(p_u, u_cuts[p_i], u_cuts[p_i + 1]);
+		middle += half_way(p_v, v_cuts[p_j], v_cuts[p_j + 1]);
+		return p_lining->lining(middle + probe, p_part);
+	};
+	std::vector<int32_t> shows;
+	for (size_t i = 0; i + 1 < u_cuts.size(); i++) {
+		for (size_t j = 0; j + 1 < v_cuts.size(); j++) {
+			shows.push_back(lining_of(i, j));
+		}
+	}
+	std::vector<float> kept_u;
+	std::vector<float> kept_v;
+	_needed_by(
+			p_origin, p_u, p_v, u_cuts, v_cuts,
+			[&shows](int64_t p_one, int64_t p_other) { return shows[p_one] != shows[p_other]; }, kept_u, kept_v);
+	u_cuts.swap(kept_u);
+	v_cuts.swap(kept_v);
+	const size_t columns = u_cuts.size() - 1;
+	const size_t rows = v_cuts.size() - 1;
+	for (size_t i = 0; i < columns; i++) {
+		for (size_t j = 0; j < rows; j++) {
+			const Vector3 at = (p_origin + p_u * u_cuts[i]) + p_v * v_cuts[j];
+			const Vector3 piece_u = p_u * (float)((double)u_cuts[i + 1] - (double)u_cuts[i]);
+			const Vector3 piece_v = p_v * (float)((double)v_cuts[j + 1] - (double)v_cuts[j]);
+			const int32_t lining = lining_of(i, j);
+			const int64_t rims = (i == 0 ? RIM_U0 : 0) | (i == columns - 1 ? RIM_U1 : 0) | (j == 0 ? RIM_V0 : 0) |
+					(j == rows - 1 ? RIM_V1 : 0);
+			if (lining == 0) {
+				_face(at, piece_u, piece_v, own, rims, p_foot, p_head);
+			} else {
+				const NativeLining::Paint &paint = p_lining->paint(lining);
+				_face(at, piece_u, piece_v, { paint.finish, paint.colour, paint.finish_in, paint.colour_in }, rims,
+						p_foot, p_head);
+			}
+		}
+	}
+}
+
 int64_t NativeShipMesh::batch_for(
 		const Vector3 &p_middle, const Vector3 &p_normal, int64_t p_finish, int64_t p_finish_in) {
 	return _batch_for(p_middle, p_normal, p_finish, p_finish_in);
@@ -1257,6 +1497,12 @@ void NativeShipMesh::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("turned_box", "place", "size", "finish", "colour", "finish_in", "colour_in",
 								 "rims"),
 			&NativeShipMesh::turned_box);
+	ClassDB::bind_method(D_METHOD("model_surface", "place", "turn", "mirrored", "points", "normals", "order", "inks",
+								 "finish", "colour", "finish_in", "colour_in", "foot", "head"),
+			&NativeShipMesh::model_surface);
+	ClassDB::bind_method(D_METHOD("lined_face", "origin", "u", "v", "finish", "colour", "finish_in", "colour_in",
+								 "part", "foot", "head", "lining"),
+			&NativeShipMesh::lined_face);
 	ClassDB::bind_method(D_METHOD("batch_for", "middle", "normal", "finish", "finish_in"), &NativeShipMesh::batch_for);
 	ClassDB::bind_method(D_METHOD("last_outdoors"), &NativeShipMesh::last_outdoors);
 	ClassDB::bind_method(D_METHOD("emit", "batch", "order", "points", "normals", "colour", "uvs", "uv2s"),

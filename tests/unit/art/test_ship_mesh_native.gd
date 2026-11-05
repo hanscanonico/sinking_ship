@@ -84,7 +84,14 @@ func _assert_same(native: Dictionary, reference: Dictionary, what: String) -> vo
 	var others := reference.keys()
 	others.sort()
 	if keys != others:
-		fail_test("%s: batches %s natively, %s in GDScript" % [what, keys, others])
+		var odd := keys.filter(func(key: String) -> bool: return not key in others)
+		odd.append_array(others.filter(func(key: String) -> bool: return not key in keys))
+		fail_test(
+			(
+				"%s: %d batches natively, %d in GDScript; %s"
+				% [what, keys.size(), others.size(), odd.slice(0, 4)]
+			)
+		)
 		return
 	var names := ["indices", "vertices", "normals", "colours", "uvs", "uv2s", "pieces", "halves"]
 	var vertices := 0
@@ -207,7 +214,22 @@ func _draw_turned(mesh: ShipMesh) -> void:
 		mesh.beam(_point(), _point(), Vector2(0.2, 0.1), _paint())
 
 
+## Modelled props set anywhere, turned, mirrored, and their paints swapped.
+func _draw_models(mesh: ShipMesh) -> void:
+	for name: String in ["armchair", "berth", "bitts", "chandelier", "coat"]:
+		var prop := ShipModel.named(name)
+		for index in 4:
+			var basis := Basis.from_euler(Vector3(0.0, _rng.randf_range(-PI, PI), 0.0))
+			if index == 1:
+				basis = basis.scaled(Vector3(-1.0, 1.0, 1.0))
+			if index == 2:
+				basis = Basis.from_euler(Vector3(_rng.randf(), _rng.randf(), _rng.randf()))
+			var swaps := {ShipPaints.white: _paints[1]} if index == 3 else {}
+			mesh.model(prop, Transform3D(basis, _point()), swaps)
+
+
 func _draw_all(mesh: ShipMesh) -> void:
+	_draw_models(mesh)
 	_draw_boxes(mesh)
 	_draw_faces(mesh)
 	_draw_quads(mesh)
@@ -383,9 +405,30 @@ func test_faces_over_her_rooms_are_drawn_alike() -> void:
 		var mesh := ShipMesh.new(outdoors, space.room_lines())
 		mesh.judge_by(space.rooms_grid, boxes)
 		return mesh
+	var lined := {
+		true: LinedFaces.new(RoomDressing.new(spaces[true], INF)),
+		false: LinedFaces.new(RoomDressing.new(spaces[false], INF)),
+	}
 	var draw := func(mesh: ShipMesh) -> void:
 		var paint := _paints[1]
+		var lining: LinedFaces = lined[mesh.native() != null]
 		for room: ShipRoom in layout.rooms:
+			# Its deck, ceiling and walls in its lining, as the art lays them (ShipArt._deck),
+			# and a plank's narrow edge.
+			var under := room.area.grow(0.4)
+			var floor_at := room.floor_height
+			var all := ShipMesh.ALL_FACES
+			lining.box(mesh, under, floor_at - 0.05, floor_at, paint, all, ShipMesh.TOP)
+			lining.box(mesh, under, floor_at + 2.4, floor_at + 2.5, paint, all, ShipMesh.BOTTOM)
+			var wall := Rect2(room.area.end.x - 0.05, under.position.y, 0.1, under.size.y)
+			lining.box(mesh, wall, floor_at, floor_at + 2.5, paint, all, ShipMesh.SIDES)
+			var edge := Vector3(under.position.x, floor_at, under.end.y)
+			lining.face(
+				mesh, edge, Vector3(0, -0.05, 0), Vector3(under.size.x, 0, 0), paint, 2, 0, 1
+			)
+			lining.face(
+				mesh, edge, Vector3(0, 1, 0), Vector3(under.size.x, 0, 0), paint, -1, NAN, NAN
+			)
 			var area := room.area
 			var floor := room.floor_height
 			# Its floor, walls on its edges and its ceiling, as the art lays them.

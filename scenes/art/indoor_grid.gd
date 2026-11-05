@@ -230,6 +230,12 @@ func native() -> Object:
 	_native.setup(
 		_origin, _size, _low, _bands, _bounds, cells_from, cells, _ceiling_of, _roof_edges_of
 	)
+	var columns_from := PackedInt32Array([0])
+	var columns := PackedInt32Array()
+	for each: PackedInt32Array in _columns:
+		columns.append_array(each)
+		columns_from.append(columns.size())
+	_native.set_columns(columns_from, columns)
 	return _native
 
 

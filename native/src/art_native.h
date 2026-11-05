@@ -13,7 +13,10 @@
 #include <godot_cpp/variant/aabb.hpp>
 #include <godot_cpp/variant/array.hpp>
 #include <godot_cpp/variant/callable.hpp>
+#include <godot_cpp/variant/basis.hpp>
 #include <godot_cpp/variant/color.hpp>
+#include <godot_cpp/variant/packed_byte_array.hpp>
+#include <godot_cpp/variant/packed_color_array.hpp>
 #include <godot_cpp/variant/packed_float32_array.hpp>
 #include <godot_cpp/variant/packed_float64_array.hpp>
 #include <godot_cpp/variant/packed_int32_array.hpp>
@@ -45,8 +48,10 @@ public:
 			const PackedFloat32Array &p_u_cuts, const PackedFloat32Array &p_v_cuts, const Vector3 &p_normal,
 			double p_probe, const Array &p_boxes);
 	double ceiling(int64_t p_index, double p_x, double p_z);
+	void set_columns(const PackedInt32Array &p_columns_from, const PackedInt32Array &p_columns);
 
-	// The same, for NativeShipMesh.
+	// The same, for NativeShipMesh and NativeLining.
+	const int32_t *rooms_over(double p_x, double p_z, int64_t &r_count) const;
 	bool outdoors_of(const Vector3 &p_point, const std::vector<AABB> &p_boxes);
 	bool outdoors_over_of(const Vector3 &p_origin, const Vector3 &p_u, const Vector3 &p_v,
 			const std::vector<float> &p_u_cuts, const std::vector<float> &p_v_cuts, const Vector3 &p_normal,
@@ -98,12 +103,50 @@ private:
 	std::vector<double> _bounds;
 	std::vector<int32_t> _cells_from;
 	std::vector<int32_t> _cells;
+	std::vector<int32_t> _columns_from;
+	std::vector<int32_t> _columns;
 	Callable _ceiling_at_call;
 	Callable _edges_of;
 	std::vector<Ceilings> _ceilings;
 	// _rooms_reaching's seen rooms: the call each was last seen in.
 	std::vector<uint32_t> _seen;
 	uint32_t _seen_mark = 0;
+};
+
+// RoomDressing's linings as LinedFaces reads them: each room's lining paints by part, its
+// lined box, its area and floor, over a NativeIndoorGrid; the paints by number, 0 none.
+class NativeLining : public RefCounted {
+	GDCLASS(NativeLining, RefCounted)
+
+public:
+	struct Paint {
+		int64_t finish = 0;
+		Color colour;
+		int64_t finish_in = 0;
+		Color colour_in;
+	};
+
+	void setup(const Ref<NativeIndoorGrid> &p_grid, const PackedByteArray &p_lined, const Array &p_boxes,
+			const Array &p_areas, const PackedFloat64Array &p_floors, const PackedInt32Array &p_parts,
+			const Array &p_paints);
+
+	bool lined_near(const AABB &p_box) const;
+	void lining_lines(const AABB &p_box, std::vector<float> r_lines[3]) const;
+	int32_t lining(const Vector3 &p_point, int64_t p_part) const;
+	const Paint &paint(int32_t p_id) const;
+
+protected:
+	static void _bind_methods();
+
+private:
+	Ref<NativeIndoorGrid> _grid;
+	std::vector<uint8_t> _lined;
+	std::vector<AABB> _boxes;
+	std::vector<Rect2> _areas;
+	std::vector<double> _floors;
+	std::vector<int32_t> _parts;
+	std::vector<Paint> _paints;
+	std::vector<int32_t> _lined_rooms;
 };
 
 // One ShipMesh's batches, and the faces, quads and boxes it draws into them.
@@ -128,6 +171,13 @@ public:
 			const Color &p_colour_in, int64_t p_rims, double p_foot, double p_head);
 	void turned_box(const Transform3D &p_place, const Vector3 &p_size, int64_t p_finish, const Color &p_colour,
 			int64_t p_finish_in, const Color &p_colour_in, int64_t p_rims);
+	void model_surface(const Transform3D &p_place, const Basis &p_turn, bool p_mirrored,
+			const PackedVector3Array &p_points, const PackedVector3Array &p_normals, const PackedInt32Array &p_order,
+			const PackedColorArray &p_inks, int64_t p_finish, const Color &p_colour, int64_t p_finish_in,
+			const Color &p_colour_in, double p_foot, double p_head);
+	void lined_face(const Vector3 &p_origin, const Vector3 &p_u, const Vector3 &p_v, int64_t p_finish,
+			const Color &p_colour, int64_t p_finish_in, const Color &p_colour_in, int64_t p_part, double p_foot,
+			double p_head, const Ref<NativeLining> &p_lining);
 	int64_t batch_for(const Vector3 &p_middle, const Vector3 &p_normal, int64_t p_finish, int64_t p_finish_in);
 	bool last_outdoors() const;
 	void emit(int64_t p_batch, const PackedInt32Array &p_order, const PackedVector3Array &p_points,
