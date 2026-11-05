@@ -13,7 +13,7 @@ const SHIPS: Array[StringName] = [&"steamer", &"small_titanic"]
 const SEED := 4
 ## Each ship's window of her first bake checked: the steps taken first, natively alone,
 ## and the steps checked.
-const WINDOWS := {&"steamer": Vector2i(0, 900), &"small_titanic": Vector2i(600, 300)}
+const WINDOWS := {&"steamer": Vector2i(0, 2000), &"small_titanic": Vector2i(600, 900)}
 
 
 ## A stepper that works every solve and sweep natively and in GDScript, keeps the
@@ -23,7 +23,7 @@ class Checked:
 
 	## Every how many steps the made-up heads are tried, and a hair: what a head is set
 	## off a sill or a floor by, either way.
-	const FUZZ_EVERY := 30
+	const FUZZ_EVERY := 15
 	const HAIR := 1e-12
 
 	var differences: Array[String] = []
