@@ -151,7 +151,7 @@ static func shell(
 	_close_steps(mesh, bulwark, layout, sides)
 	for index in sections.size():
 		_bulwarks(mesh, bulwark, layout, sections[index], sides[index * 2], sides[index * 2 + 1])
-	_plate_decks(mesh, plating, layout)
+	_plate_decks(mesh, plating, layout, sides)
 
 
 ## One side of [param outline] — [param side] 1 for starboard, -1 for port — in (z, y)
@@ -522,8 +522,13 @@ static func deck_beside(layout: ShipLayout, x: float, top: Vector2) -> float:
 
 ## Her deck plating: each section's level top at a deck's height, out to her shell —
 ## lofted along each run of sections plated at that height on that side —, open over
-## each stair coming up through a hole in the deck, as the deck is (_stairs_up()).
-static func _plate_decks(mesh: ShipMesh, paint: ShipMesh.Paint, layout: ShipLayout) -> void:
+## each stair coming up through a hole in the deck, as the deck is (_stairs_up()). A
+## plate on a section's keel — her double bottom's floor — stops at its middle where her
+## loft rises from there into a neighbour not plated alike (_keel_rises()), her run and
+## her forefoot, so it never lies in the sea under her.
+static func _plate_decks(
+	mesh: ShipMesh, paint: ShipMesh.Paint, layout: ShipLayout, sides: Array[PackedVector2Array]
+) -> void:
 	var sections := layout.structure.sections
 	var decks := PackedFloat64Array()
 	for platform: ShipPlatform in layout.platforms:
@@ -557,8 +562,30 @@ static func _plate_decks(mesh: ShipMesh, paint: ShipMesh.Paint, layout: ShipLayo
 				if index < sections.size() - 1
 				else PackedFloat64Array([top[0], 0.0, 0.0])
 			)
-			_plate(mesh, paint, x0, mid_aft, section.x, top, y, holes)
-			_plate(mesh, paint, section.x, top, x1, mid_fore, y, holes)
+			if not before.is_empty() or not _keel_rises(sides, index, index - 1, top[0]):
+				_plate(mesh, paint, x0, mid_aft, section.x, top, y, holes)
+			if not after.is_empty() or not _keel_rises(sides, index, index + 1, top[0]):
+				_plate(mesh, paint, section.x, top, x1, mid_fore, y, holes)
+
+
+## Whether [param height] is section [param index]'s keel and her loft rises from its
+## middle into section [param other]'s higher keel, the two in one run of her sheer
+## (_loft_shell()) — not where a run ends, its keel held out to the joint (_met()).
+static func _keel_rises(
+	sides: Array[PackedVector2Array], index: int, other: int, height: float
+) -> bool:
+	if other < 0 or other * 2 + 1 >= sides.size():
+		return false
+	var keel := minf(sides[index * 2][0].y, sides[index * 2 + 1][0].y)
+	var beyond := minf(sides[other * 2][0].y, sides[other * 2 + 1][0].y)
+	if absf(height - keel) > LEVEL or beyond <= keel + LEVEL:
+		return false
+	for side in 2:
+		if not is_equal_approx(
+			_sheer_of(sides[index * 2 + side]), _sheer_of(sides[other * 2 + side])
+		):
+			return false
+	return true
 
 
 ## The footprints of [param layout]'s stairs from [param x0] to [param x1] along her
