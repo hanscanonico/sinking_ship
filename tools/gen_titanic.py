@@ -2408,18 +2408,25 @@ def free_stretches(lo, hi, cuts, least):
         spans.append((at, hi))
     return [(a, b) for a, b in spans if b - a >= least]
 
-def clear_of(x0, x1, z0, z1, foot, top, lane):
+def clear_of(x0, x1, z0, z1, foot, top, lane, back=0):
     """Whether a box x0…x1, z0…z1 from foot to top keeps lane clear of every blocker
-    standing there, every room on that floor and every stair at it."""
+    standing there, every room on that floor and every stair at it; but for what lies wholly
+    behind its back, the side of it (-1 or 1 along z) it is backed onto, as a seat backs onto
+    the wall it stands against."""
+    def behind(c0, c1):
+        return (back > 0 and c0 >= z1 - 1e-6) or (back < 0 and c1 <= z0 + 1e-6)
     for b in block_geo:
-        if b[4] < top and b[5] > foot and b[0] < x1 + lane and b[1] > x0 - lane and b[2] < z1 + lane and b[3] > z0 - lane:
+        if (b[4] < top and b[5] > foot and b[0] < x1 + lane and b[1] > x0 - lane and b[2] < z1 + lane
+                and b[3] > z0 - lane and not behind(b[2], b[3])):
             return False
     for r in room_geo:
-        if abs(r[4] - foot) < 0.01 and r[0] < x1 + lane and r[1] > x0 - lane and r[2] < z1 + lane and r[3] > z0 - lane:
+        if (abs(r[4] - foot) < 0.01 and r[0] < x1 + lane and r[1] > x0 - lane and r[2] < z1 + lane
+                and r[3] > z0 - lane and not behind(r[2], r[3])):
             return False
     for r in ramp_geo:
         if (min(r[5], r[6]) - 0.01 <= foot <= max(r[5], r[6]) + 0.01
-                and r[0] < x1 + lane and r[1] > x0 - lane and r[2] < z1 + lane and r[3] > z0 - lane):
+                and r[0] < x1 + lane and r[1] > x0 - lane and r[2] < z1 + lane and r[3] > z0 - lane
+                and not behind(r[2], r[3])):
             return False
     return True
 
@@ -2440,7 +2447,7 @@ for house in ("officers_house", "staircase_house"):
         for k, (a, b) in enumerate(free_stretches(hx0 + 0.5, hx1 - 0.5, cuts, 2.0)):
             length = min(SEAT_LOCKER_LONGEST, b - a - 0.2)
             x0 = round((a + b - length) / 2, 4)
-            if clear_of(x0, x0 + length, z0, z1, BOAT, BOAT + SEAT_LOCKER[1], 0.3):
+            if clear_of(x0, x0 + length, z0, z1, BOAT, BOAT + SEAT_LOCKER[1], 0.3, -sign):
                 box("seat_locker_%s_%d_%s" % (house, k, tag), x0, round(x0 + length, 4), z0, z1, BOAT,
                     BOAT + SEAT_LOCKER[1])
 
@@ -2512,7 +2519,7 @@ for k in range(int((A_HOUSE[1] - A_HOUSE[0]) // BENCH_PITCH)):
         if face is None or door_near(2, sign * (face - T), x0, x1, A_DECK, 1.0):
             continue
         z0, z1 = sorted((sign * face, sign * (face + BENCH[1])))
-        if not clear_of(x0, x1, z0, z1, A_DECK, A_DECK + BENCH[2], 0.1) or any(
+        if not clear_of(x0, x1, z0, z1, A_DECK, A_DECK + BENCH[2], 0.1, -sign) or any(
                 r[0] - STAIR_CLEAR < x1 and x0 < r[1] + STAIR_CLEAR and r[2] < z1 and z0 < r[3] for r in ramp_geo
                 if max(r[5], r[6]) >= A_DECK - 0.01 and min(r[5], r[6]) <= A_DECK + 0.01):
             continue
