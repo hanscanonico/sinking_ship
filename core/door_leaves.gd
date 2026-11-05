@@ -54,6 +54,17 @@ func shut_of(door: int) -> float:
 	return _shut[door]
 
 
+## Every door's axis, plane, jamb, width, sill and head, as the extension takes them
+## (ContactsNative).
+func native_layout() -> Array:
+	return [_axes, _planes, _jambs, _widths, _sills, _heads]
+
+
+## How far each door stands shut as the pose last honoured has it.
+func shut_all() -> PackedFloat64Array:
+	return _shut
+
+
 ## Door [param door]'s doorway in the ship plane (x/z): the line across it its leaf slides
 ## along, from the jamb it slides from to the other — all a leaf of it ever reaches is a
 ## circle over that line (contacts).
