@@ -30,12 +30,9 @@ extends RefCounted
 const OUTSIDE := -1
 ## A cell is stiff (_hold_stiff) when its wet openings, at the head across each but no
 ## more than STIFF_HEAD, would pass more in the step than STIFF_HEAD of its surface holds
-## or than it has room for, and some opening has more than STILL_HEAD across it. Under
-## LEVEL_HEAD an opening passes water in proportion to the head, not its root (_root).
-## Metres.
+## or than it has room for, and some opening has more than STILL_HEAD across it. Metres.
 const STIFF_HEAD := 1.0
 const STILL_HEAD := 5e-3
-const LEVEL_HEAD := 1e-2
 ## A held head is solved until the step's water on it is out by no more than
 ## SURPLUS_TOLERANCE m³ — a slip that stays in that cell's own water, never lost: cells
 ## held together by Newton's method in at most NEWTON_TRIES tries, each step halved at
@@ -125,6 +122,10 @@ var _holding := PackedByteArray()
 var _alone := PackedByteArray()
 var _g: float
 var _discharge: float
+## The laws an opening passes water by.
+var _law: OpeningFlow
+## Where the game's extension is loaded, the solves and the sweep natively; else null.
+var _native: SinkNative
 
 
 ## The physics of [param structure] after a hit that did [param damage] — its gash, the
@@ -133,6 +134,7 @@ func _init(structure: ShipStructure, damage: HitDamage, sea: SeaPhysics) -> void
 	_sea = sea
 	_g = sea.gravity
 	_discharge = sea.discharge
+	_law = OpeningFlow.new(sea)
 	_hull = LevelHull.new(structure.sections)
 	_own_volume = structure.total_mass() / sea.sea_density
 	_rest = _hull.height_of(_own_volume)
@@ -171,6 +173,8 @@ func _init(structure: ShipStructure, damage: HitDamage, sea: SeaPhysics) -> void
 	_flow_solve.resize(_names.size() * 2)
 	_flow_last.resize(_names.size())
 	_shares.resize(_names.size())
+	var compiled := [_first, _second, _in_floor, _middle, _half, _flow_area]
+	_native = SinkNative.made(compiled, _boxes, _capacity, _air, _shipped, sea)
 	_touch(_opened)
 	_air.close(_touching)
 	_held.resize(_boxes.size())
@@ -260,40 +264,14 @@ func step(state: FloodState, seconds: float) -> FloodState:
 	_alone = _air.alone()
 	_shares_at = NAN
 	_shipped.begin(state.rotation, state.sea)
+	if _native != null:
+		_native.began(_air, _shipped)
 	var next := state.copy()
 	var heads := state.heads.duplicate()
-	var count := _names.size()
 	var sea := next.sea
 	var held := _hold_stiff(state, heads, sea, seconds)
 	_shipped.ship(next, heads, _held, _boxes, seconds)
-	# A held cell's openings pass what its solve said: the sweep's heads overfill a small one.
-	var solved := heads.duplicate()
-	for turn in count:
-		var index := turn if state.steps % 2 == 0 else count - 1 - turn
-		# Dry on both sides below it: nothing to pass, and nothing worth a call.
-		var first := _first[index]
-		var second := _second[index]
-		var bottom := _bottom[index]
-		var by_held := (first >= 0 and _held[first] == 1) or (second >= 0 and _held[second] == 1)
-		var standing := solved if by_held else heads
-		if (
-			(sea if first == OUTSIDE else standing[first]) <= bottom
-			and (sea if second == OUTSIDE else standing[second]) <= bottom
-		):
-			next.moved[index] = 0.0
-			continue
-		var amount := _transfer(index, standing, sea, state.seconds, seconds)
-		# A cell passing what a solve said gives no more than it holds: its neighbours' caps
-		# may have kept back some of what the solve counted on coming in.
-		var giver := first if amount > 0.0 else second
-		if giver != OUTSIDE and by_held:
-			var holds := maxf(next.water[giver], 0.0)
-			amount = clampf(amount, -holds, holds)
-		next.moved[index] = amount
-		if amount == 0.0:
-			continue
-		_give_to(first, -amount, next, heads)
-		_give_to(second, amount, next, heads)
+	heads = _sweep(state, next, heads, sea, seconds)
 	var full_held := PackedByteArray()
 	full_held.resize(_boxes.size())
 	for cell: int in held:
@@ -325,6 +303,47 @@ func step(state: FloodState, seconds: float) -> FloodState:
 	return next
 
 
+## Sweeps the openings of [param next], stepped [param seconds] from [param state], the
+## sea at [param sea], in a fixed order that turns round every step: each passes what
+## it would at the heads standing, capped, its sides' heads in [param heads] following.
+## Gives the heads it leaves.
+func _sweep(
+	state: FloodState, next: FloodState, heads: PackedFloat64Array, sea: float, seconds: float
+) -> PackedFloat64Array:
+	if _native != null:
+		return _native.sweep(state.steps % 2 != 0, next, heads, _held, sea, seconds)
+	var count := _names.size()
+	# A held cell's openings pass what its solve said: the sweep's heads overfill a small one.
+	var solved := heads.duplicate()
+	for turn in count:
+		var index := turn if state.steps % 2 == 0 else count - 1 - turn
+		# Dry on both sides below it: nothing to pass, and nothing worth a call.
+		var first := _first[index]
+		var second := _second[index]
+		var bottom := _bottom[index]
+		var by_held := (first >= 0 and _held[first] == 1) or (second >= 0 and _held[second] == 1)
+		var standing := solved if by_held else heads
+		if (
+			(sea if first == OUTSIDE else standing[first]) <= bottom
+			and (sea if second == OUTSIDE else standing[second]) <= bottom
+		):
+			next.moved[index] = 0.0
+			continue
+		var amount := _transfer(index, standing, sea, state.seconds, seconds)
+		# A cell passing what a solve said gives no more than it holds: its neighbours' caps
+		# may have kept back some of what the solve counted on coming in.
+		var giver := first if amount > 0.0 else second
+		if giver != OUTSIDE and by_held:
+			var holds := maxf(next.water[giver], 0.0)
+			amount = clampf(amount, -holds, holds)
+		next.moved[index] = amount
+		if amount == 0.0:
+			continue
+		_give_to(first, -amount, next, heads)
+		_give_to(second, amount, next, heads)
+	return heads
+
+
 ## Turns her cells and openings to [param rotation]: each cell's floor, ceiling and
 ## average surface, and each opening's corners as heights along the world's up.
 func _turn(rotation: PackedFloat64Array) -> void:
@@ -353,6 +372,8 @@ func _turn(rotation: PackedFloat64Array) -> void:
 			_bottom[index] = middle - reach
 			_top[index] = middle + reach
 			_size[index] = _flow_area[index] / (reach * 2.0)
+	if _native != null:
+		_native.turned(up)
 
 
 ## Each cell's openings water can pass — every one but those shut until they fail and
@@ -371,6 +392,8 @@ func _touch(opened: PackedFloat64Array) -> void:
 				widest += _flow_area[index]
 		_touching[cell] = touching
 		_widest[cell] = widest
+	if _native != null:
+		_native.touched(_touching)
 
 
 ## Gives [param side] — a cell, or the sea's account — [param amount] m³ of [param
@@ -530,6 +553,8 @@ func _solve_together(
 func _newton(
 	held: PackedInt32Array, state: FloodState, heads: PackedFloat64Array, sea: float, seconds: float
 ) -> bool:
+	if _native != null:
+		return _native.newton(held, state.water, heads, _held, sea, seconds)
 	var count := held.size()
 	var since := state.seconds
 	var rows := PackedInt32Array()
@@ -641,6 +666,8 @@ static func _largest(values: PackedFloat64Array) -> float:
 func _balanced(
 	cell: int, water: float, heads: PackedFloat64Array, sea: float, since: float, seconds: float
 ) -> float:
+	if _native != null:
+		return _native.balanced(cell, water, heads, _held, sea, seconds)
 	var low := _floor[cell]
 	var high := maxf(head(cell, water), _shipped.highest(cell))
 	for index: int in _touching[cell]:
@@ -969,19 +996,19 @@ func _transfer(
 		if first_head >= bottom:
 			# The cell under the hole reaches it: an orifice between the two sides.
 			var gives := give + (0.0 if down_held else 1.0 / _area[down])
-			amount = _orifice(size, high - low, gives, seconds)
+			amount = _law.orifice(size, high - low, gives, seconds)
 		else:
 			# Water falls through it at the rate the depth over it drives.
-			amount = _orifice(size, high - bottom, give, seconds)
+			amount = _law.orifice(size, high - bottom, give, seconds)
 	else:
 		var top := _top[index]
 		if low >= top:
 			var gives := give + (0.0 if down_held else 1.0 / _area[down])
-			amount = _orifice(size * (top - bottom), high - low, gives, seconds)
+			amount = _law.orifice(size * (top - bottom), high - low, gives, seconds)
 		elif low <= bottom and high <= top:
-			amount = _weir(size, high - bottom, give, seconds)
+			amount = _law.weir(size, high - bottom, give, seconds)
 		else:
-			amount = _flow(size, bottom, top, high, low) * seconds
+			amount = _law.wall_flow(size, bottom, top, high, low) * seconds
 	if up_held and down_held:
 		# Between two held sides the step's flow is the whole answer (_levelling).
 		amount = minf(amount, INF)
@@ -1007,59 +1034,8 @@ func _share_out(since: float) -> void:
 	_shares_at = since
 	for index in _names.size():
 		_shares[index] = open_share(_shut_time[index], since, _opened[index])
-
-
-## The water an opening of [param area] passes in [param seconds] with
-## [param difference] of head across it, the two sides' heads moving [param give]
-## together per m³ it passes: the orifice law, discharge × area × √(2g × difference),
-## solved over the step — the root of the difference falls evenly — so it lands on the
-## level and never past it.
-func _orifice(area: float, difference: float, give: float, seconds: float) -> float:
-	var rate := _discharge * area * sqrt(2.0 * _g)
-	if give <= 0.0:
-		return rate * _root(difference) * seconds
-	var root := sqrt(difference) - rate * give * seconds * 0.5
-	var left := root * root if root > 0.0 else 0.0
-	return (difference - left) / give
-
-
-## The square root of the head [param difference] across an opening, but in proportion
-## to it under LEVEL_HEAD: the root's slope runs to infinity at the level, which no real
-## opening's flow does and no solve for a held head could follow.
-static func _root(difference: float) -> float:
-	if difference >= LEVEL_HEAD:
-		return sqrt(difference)
-	return difference / sqrt(LEVEL_HEAD)
-
-
-## The water a sill of [param width] passes in [param seconds] with [param depth] of
-## water over it, the upstream side's head falling [param give] per m³: the weir law,
-## ⅔ × discharge × width × √(2g) × depth^1.5, solved over the step.
-func _weir(width: float, depth: float, give: float, seconds: float) -> float:
-	var rate := 2.0 / 3.0 * _discharge * width * sqrt(2.0 * _g)
-	if give <= 0.0:
-		return rate * depth * sqrt(depth) * seconds
-	var inverse_root := 1.0 / sqrt(depth) + rate * give * seconds * 0.5
-	return (depth - 1.0 / (inverse_root * inverse_root)) / give
-
-
-## The flow through a wall's opening [param width] wide from [param bottom] to
-## [param top], the water at [param high] on one side and [param low] on the other,
-## in m³/s: the orifice law where both sides are over it, the weir law summed over the
-## rest of its wet height.
-func _flow(width: float, bottom: float, top: float, high: float, low: float) -> float:
-	var rate := _discharge * width * sqrt(2.0 * _g)
-	var flow := 0.0
-	var under := minf(low, top) - bottom
-	if under > 0.0:
-		flow += rate * under * _root(high - low)
-	var from := maxf(bottom, low)
-	var to := minf(top, high)
-	if to > from:
-		var deep := high - from
-		var shallow := high - to
-		flow += rate * 2.0 / 3.0 * (deep * sqrt(deep) - shallow * sqrt(shallow))
-	return flow
+	if _native != null:
+		_native.shared(_shares)
 
 
 ## The most that can pass from [param up] to [param down] over an edge at

@@ -58,6 +58,11 @@ var _upward := PackedInt32Array()
 var _pocket := PackedInt32Array()
 var _air := PackedFloat64Array()
 var _members: Array[PackedInt32Array] = []
+## The same cells in one list for the extension (SinkNative): by first cell, where its
+## cells start in it and how many there are.
+var _members_from := PackedInt32Array()
+var _members_count := PackedInt32Array()
+var _member_list := PackedInt32Array()
 ## The push each pocket was last worked out at, by its first cell, and the heads of its
 ## cells it was worked out from: a solve asks it again at every opening of a cell.
 var _pushed := PackedFloat64Array()
@@ -104,6 +109,8 @@ func close(touching: Array[PackedInt32Array]) -> void:
 	_pocket.fill(-1)
 	_air.resize(_boxes.size())
 	_members.resize(_boxes.size())
+	_members_from.resize(_boxes.size())
+	_members_count.resize(_boxes.size())
 	_pushed.resize(_boxes.size())
 	_pushed_at.resize(_boxes.size())
 	_holding.resize(_boxes.size())
@@ -136,6 +143,8 @@ func begin(state: FloodState, seconds: float) -> void:
 	_pushed_at.fill(NAN)
 	_holding.fill(0)
 	_alone.fill(1)
+	_members_count.fill(0)
+	_member_list.clear()
 	if not _on:
 		return
 	for first in _boxes.size():
@@ -158,6 +167,9 @@ func begin(state: FloodState, seconds: float) -> void:
 		for cell: int in members:
 			air += state.air[cell]
 		_members[first] = members
+		_members_from[first] = _member_list.size()
+		_members_count[first] = members.size()
+		_member_list.append_array(members)
 		_air[first] = air
 		if members.size() > 1:
 			for cell: int in members:
@@ -182,6 +194,22 @@ func holding() -> PackedByteArray:
 ## pocket's does: read, never written.
 func alone() -> PackedByteArray:
 	return _alone
+
+
+## The step begun's pockets as the extension reads them (SinkNative): each cell's
+## pocket, each pocket's air by its first cell, where its cells start in one list and
+## how many there are, the list, holding and alone.
+func pockets() -> Array:
+	return [_pocket, _air, _members_from, _members_count, _member_list, _holding, _alone]
+
+
+## The atmosphere's pressure as metres of sea, and the least air a pocket holds.
+func atmosphere() -> float:
+	return _atmosphere
+
+
+func least() -> float:
+	return _least
 
 
 ## Whether [param cell]'s water is held by a pocket in the step begun.
