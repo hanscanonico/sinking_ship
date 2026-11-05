@@ -15,6 +15,5 @@ disable:
 max-public-methods: 27
 
 # MatchSim is the one tick (D2): the brawl, the sinking and the sea are each private
-# steps of it in §4's order, and together outgrow the default 1000 lines; Surfaces, the
-# one door, keeps its questions' GDScript beside its native mirror's (#410).
-max-file-lines: 1200
+# steps of it in §4's order, and together outgrow the default 1000 lines.
+max-file-lines: 1100

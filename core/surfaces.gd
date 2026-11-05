@@ -120,8 +120,8 @@ var _fallen: FallenFunnels
 ## honour() makes; null without the extension.
 var native: Object:
 	get = _mirrored
-var _asks_native := false
-var _native: Object
+## What holds a body back, worked in GDScript or by the mirror (obstacle_contacts).
+var _obstacles: ObstacleContacts
 
 
 ## [param layout]'s surfaces, on a grid of [param grid]'s cells — the data's when none.
@@ -175,61 +175,12 @@ func _init(layout: ShipLayout, grid: IndexRules = null) -> void:
 	stands = PropStands.new(layout, bounds)
 	doors = DoorLeaves.new(layout.structure)
 	_fallen = FallenFunnels.new(layout)
-	_asks_native = stands.native() != null
+	_obstacles = ObstacleContacts.new(stands.native() != null)
 
 
 ## native, made now if not yet.
 func _mirrored() -> Object:
-	if _native != null or not _asks_native:
-		return _native
-	_native = ContactsNative.made(&"NativeSurfaces")
-	var areas := PackedVector2Array()
-	for area: Rect2 in _areas:
-		areas.append(area.position)
-		areas.append(area.size)
-	var round := PackedByteArray()
-	var centres := PackedVector2Array()
-	var radii := PackedFloat64Array()
-	for blocker: ShipBlocker in _blockers:
-		round.append(0 if blocker.shape == ShipBlocker.Shape.BOX else 1)
-		centres.append(blocker.centre)
-		radii.append(blocker.radius)
-	var ramp_x := PackedByteArray()
-	var ramp_heights := PackedFloat64Array()
-	for ramp: ShipRamp in _ramps:
-		ramp_x.append(1 if ramp.axis == ShipRamp.Axis.X else 0)
-		ramp_heights.append(ramp.start_height)
-		ramp_heights.append(ramp.end_height)
-	_native.setup(
-		PackedInt32Array([_first_ramp, _first_top, _first_lid]),
-		areas,
-		_bottoms,
-		_tops,
-		_gone,
-		round,
-		centres,
-		radii,
-		ramp_x,
-		ramp_heights,
-		_grid.native_layout(),
-		stands.native()
-	)
-	var ends := PackedVector2Array()
-	var platforms := PackedInt32Array()
-	for railing: ShipRailing in _railings:
-		ends.append(railing.from)
-		ends.append(railing.to)
-		platforms.append(railing.platform)
-	var rails := SpatialIndex.flattened(_platform_rails)
-	_native.railings(
-		ends, _rail_normals, platforms, rails[0], rails[1], _rail_gone, _rail_grid.native_layout()
-	)
-	var leaves := doors.native_layout()
-	_native.doors(leaves[0], leaves[1], leaves[2], leaves[3], leaves[4], leaves[5])
-	_native.shut(doors.shut_all())
-	var down := _fallen.native_down()
-	_native.felled(down[0], down[1], down[2])
-	return _native
+	return _obstacles.native(self)
 
 
 ## Takes [param pose]'s collapsed platforms, failed railings and shut watertight
@@ -244,23 +195,18 @@ func honour(pose: ShipPose, broken := PackedInt32Array(), props: Array[PropState
 	if pose != _honoured_pose or broken != _honoured_by_match:
 		_honoured_pose = pose
 		doors.honour(pose)
-		if _native != null:
-			_native.shut(doors.shut_all())
-		if _fallen.honour(pose):
+		var fell := _fallen.honour(pose)
+		if fell:
 			shapes += 1
 			for surface in range(_first_top, _first_lid):
 				_tops[surface] = _fallen.top_of(surface - _first_top, _blocker_of(surface).top)
-			if _native != null:
-				var down := _fallen.native_down()
-				_native.felled(down[0], down[1], down[2])
-				_native.topped(_tops)
 		_honoured_by_match = broken.duplicate()
 		var failed := pose.broken_railings.duplicate()
 		failed.append_array(broken)
-		if _mask(pose.collapsed, failed):
+		var masked := _mask(pose.collapsed, failed)
+		if masked:
 			shapes += 1
-			if _native != null:
-				_native.masked(_gone, _rail_gone)
+		_obstacles.honoured(self, fell, masked)
 	stands.stand_all(props)
 
 
@@ -453,11 +399,11 @@ func joins(ramp_surface_id: int) -> PackedInt32Array:
 ## can crawl [param crawl_height] tall ducks under any of those whose underside is that
 ## high over its feet or higher where it has a floor to crawl on under it, its middle
 ## [param crawl_reach] in under the edge — the circle's radius when that is negative
-## (_crawls_under): a deck edge over a stair, with none, still holds it. On a stair,
+## (ObstacleContacts): a deck edge over a stair, with none, still holds it. On a stair,
 ## each is measured from the stair carried on to it, not from the feet: the deck at its
 ## head and a wall's top flush with that deck are where it goes, not a step too high,
 ## and the stair going on down under a deck edge is a floor to crawl on. One contact per
-## direction, the deepest; a crate's names it (Contact.prop).
+## direction, the deepest; a crate's names it (Contact.prop). ObstacleContacts works it.
 func obstacle_contacts(
 	ship_point: Vector3,
 	radius: float,
@@ -467,131 +413,9 @@ func obstacle_contacts(
 	crawl_height := INF,
 	crawl_reach := -1.0
 ) -> Array[Contact]:
-	if _asks_native:
-		var asked := _native if _native != null else _mirrored()
-		return ContactsNative.contacts_of(
-			asked.obstacle_contacts(
-				ship_point, radius, body_height, step, except_prop, crawl_height, crawl_reach
-			)
-		)
-	var contacts: Array[Contact] = []
-	var point := Vector2(ship_point.x, ship_point.z)
-	var feet := ship_point.y
-	# _overlaps' two heights, once: what the body can step onto stands under the first,
-	# and its head is at the second.
-	var reach_up := feet + step
-	var head := feet + body_height
-	var reach_in := radius if crawl_reach < 0.0 else crawl_reach
-	var box := Rect2(point - Vector2(radius, radius), Vector2(radius, radius) * 2.0)
-	var near := _grid.near(box, reach_up, head)
-	var stair := UNASKED
-	for surface: int in near:
-		if surface < _first_top:
-			continue
-		if not (reach_up < _tops[surface] and head > _bottoms[surface]):
-			continue
-		if stair == UNASKED:
-			stair = _stair_under(point, feet, step)
-		if _crawls_under(surface, point, reach_in, feet, step, crawl_height, stair):
-			continue
-		var blocker := _blocker_of(surface)
-		var contact: Contact
-		if blocker.shape == ShipBlocker.Shape.BOX:
-			var nearest := point.clamp(blocker.area.position, blocker.area.end)
-			if _tops[surface] <= _along(stair, nearest, feet) + step:
-				continue
-			contact = PlaneShapes.rect_contact(blocker.area, point, radius)
-		else:
-			contact = PlaneShapes.circle_contact(blocker.centre, blocker.radius, point, radius)
-		if contact != null:
-			contacts.append(contact)
-	for surface: int in near:
-		if surface >= _first_top:
-			break
-		if _gone[surface] == 1:
-			continue
-		var area := _areas[surface]
-		var closest := point.clamp(area.position, area.end)
-		var top := height_at(surface, Vector3(closest.x, 0.0, closest.y))
-		if not (reach_up < top and head > _bottoms[surface]):
-			continue
-		if stair == UNASKED:
-			stair = _stair_under(point, feet, step)
-		if surface < _first_ramp and top <= _along(stair, closest, feet) + step:
-			continue
-		if _crawls_under(surface, point, reach_in, feet, step, crawl_height, stair):
-			continue
-		var contact := (
-			PlaneShapes.climb_contact(_ramps[surface - _first_ramp], point, radius, reach_up)
-			if surface >= _first_ramp and closest == point
-			else PlaneShapes.rect_contact(area, point, radius)
-		)
-		if contact != null:
-			contacts.append(contact)
-	for prop: int in stands.near(point.x, point.y, radius, except_prop):
-		var under_it := stands.feet[prop]
-		if not (reach_up < under_it.y + stands.heights[prop] and head > under_it.y):
-			continue
-		var centre := Vector2(under_it.x, under_it.z)
-		var contact := PlaneShapes.circle_contact(centre, stands.radii[prop], point, radius)
-		if contact != null:
-			contact.prop = prop
-			contacts.append(contact)
-	contacts.append_array(doors.contacts(point, reach_up, head, radius))
-	contacts.append_array(_fallen.contacts(point, reach_up, head, radius))
-	return PlaneShapes.deepest_per_direction(contacts)
-
-
-## Whether a body with its feet at [param feet] and its middle at [param point] ducks
-## under [param surface] to crawl: under it — [param reach] in from its edge nearest
-## the body, where its middle would be once its circle is under it — a deck or a stair
-## stands within [param step] of the feet, or of [param stair] going on down to there,
-## with crawl_height or more of headroom up to it, and its underside is
-## [param crawl_height] or more over the feet, or over that stair there.
-func _crawls_under(
-	surface: int,
-	point: Vector2,
-	reach: float,
-	feet: float,
-	step: float,
-	crawl_height: float,
-	stair: int
-) -> bool:
-	var underside := _bottoms[surface]
-	if underside < feet + crawl_height and stair == NONE:
-		return false
-	var area := _areas[surface]
-	var closest := point.clamp(area.position, area.end)
-	var under_it := closest
-	if closest != point:
-		under_it += (closest - point).normalized() * reach
-	var low := minf(_along(stair, under_it, feet), feet)
-	if underside < low + crawl_height:
-		return false
-	var at := Vector3(under_it.x, feet + step, under_it.y)
-	var ground := _highest_at_or_below(at, _first_top)
-	if ground == NONE:
-		return false
-	var height := height_at(ground, at)
-	return height >= low - step and underside - height >= crawl_height
-
-
-## The ramp a body with its feet at [param feet] and its middle at [param point]
-## stands on — the highest surface within [param step] under them, if a ramp — or NONE.
-func _stair_under(point: Vector2, feet: float, step: float) -> int:
-	var at := Vector3(point.x, feet + step, point.y)
-	var stand := _highest_at_or_below(at, _first_top)
-	if stand < _first_ramp or height_at(stand, at) < feet - step:
-		return NONE
-	return stand
-
-
-## The height [param stair] stands at at [param at], carried on level past its ends;
-## off a stair (NONE), the feet's [param feet].
-func _along(stair: int, at: Vector2, feet: float) -> float:
-	if stair == NONE:
-		return feet
-	return _ramps[stair - _first_ramp].height_at(at.x, at.y)
+	return _obstacles.contacts(
+		self, ship_point, radius, body_height, step, except_prop, crawl_height, crawl_reach
+	)
 
 
 ## Every railing of [param surface] that a circle of [param radius] centred on
