@@ -62,6 +62,9 @@ const ON_HER_TAPER: Array[StringName] = [
 ]
 ## Her smaller sister's forecastle stores, wider aft than her shell at their forward end.
 const UNDER_HER_FORECASTLE: Array[StringName] = [&"forecastle stores"]
+## The traced Titanic's firemen's W.C.s on D deck, under the crew's stair up into her
+## forecastle with no room of it over the stairwell.
+const UNDER_HER_STAIRS: Array[StringName] = [&"firemen's W.C.s"]
 ## The traced Titanic's rooms laid out past her shell in places, where the sea is hers
 ## to draw (#318): inside it they are drawn whole — her windlass machinery room, forward
 ## of her forecastle's sheer, once held to nothing.
@@ -194,6 +197,16 @@ func test_rooms_past_her_shell_never_look_into_the_sea_inside_it() -> void:
 		_open_points(load(TITANIC), PAST_HER_SHELL, true),
 		[],
 		"points of her rooms inside her the sea is drawn in"
+	)
+
+
+## A room under a stairwell up into the cell over it, where no room of that cell stands
+## over the stairwell, never looks up it into the sea: the stairwell is drawn from the
+## cell's floor to its top, where it was once in no box — the sea drawn up the Titanic's
+## crew's stairs from her D deck forward into her forecastle (#318).
+func test_rooms_under_a_stairwell_never_look_up_it_into_the_sea() -> void:
+	assert_eq(
+		_open_points(load(TITANIC), UNDER_HER_STAIRS), [], "points of her rooms the sea is drawn in"
 	)
 
 

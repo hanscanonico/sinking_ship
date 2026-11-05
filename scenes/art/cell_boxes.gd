@@ -60,17 +60,21 @@ static func boxes(structure: ShipStructure, rooms: Array[ShipRoom]) -> Array[AAB
 ## reach past [param structure]'s shell — rooms stacked down her run, the lower the
 ## narrower (the steamer's aft peak, #148): each of its rooms in boxes of its own, from
 ## its floor up to the floor of the one over each part of it or the cell's top (_under),
-## the first in boxes(), with what her shell's narrowest over each leaves out of it
-## (_wings), and out to the bulkheads it shares (_to_bulkheads); each as [cell, box].
+## the first in boxes(), and out to the bulkheads it shares (_to_bulkheads), then what
+## her shell's narrowest over each leaves out of it and its stairwells (_room_boxes);
+## each as [cell, box].
 static func stacked(structure: ShipStructure, rooms: Array[ShipRoom]) -> Array:
 	var found := []
 	for index in structure.cells.size():
 		var cell := structure.cells[index]
 		if cell.shape >= WHOLE or cell.rooms.is_empty() or cell.kind == FloodCell.Kind.OPEN_WELL:
 			continue
-		var drawn := _room_boxes(structure, cell, rooms)
+		var rest: Array[AABB] = []
+		var drawn := _room_boxes(structure, cell, rooms, rest)
 		for at in range(1, drawn.size()):
 			found.append([index, _to_bulkheads(structure, cell, drawn, at)])
+		for box: AABB in rest:
+			found.append([index, box])
 	return found
 
 
@@ -126,10 +130,12 @@ static func _gains(structure: ShipStructure, drawn: Array[AABB], at: int, gained
 ## sections' rounded ends can have it touch (the Titanic's C deck at her B deck's after
 ## end) — else per room, stacked, a box for each part of it up to the floor of the room
 ## over it there or the cell's top (_under), each held inside her shell — none her
-## shell closes to nothing — the one up to the cell's top — the largest such — first,
-## and after them all what those leave out inside her shell (_wings).
+## shell closes to nothing — the one up to the cell's top — the largest such — first;
+## and into [param rest], for those, what they leave out inside her shell (_wings) and
+## the cell's stairwells no room of its stands over (_stairwells), as they are: none
+## carried out to a bulkhead, none in the way of a box that is.
 static func _room_boxes(
-	structure: ShipStructure, cell: FloodCell, rooms: Array[ShipRoom]
+	structure: ShipStructure, cell: FloodCell, rooms: Array[ShipRoom], rest: Array[AABB] = []
 ) -> Array[AABB]:
 	var round := _round_rooms(cell, rooms)
 	var own: Array[ShipRoom] = []
@@ -152,6 +158,15 @@ static func _room_boxes(
 			else:
 				box = AABB()
 			wings.append_array(_wings(structure, whole, box))
+	for area: Rect2 in _stairwells(structure, cell, own):
+		var low := Vector3(area.position.x, cell.low.y, area.position.y)
+		var whole := AABB(low, Vector3(area.end.x, cell.high.y, area.end.y) - low)
+		var box := _held(structure, whole)
+		if _kept(box):
+			wings.append(box)
+		else:
+			box = AABB()
+		wings.append_array(_wings(structure, whole, box))
 	if found.is_empty():
 		return [round]
 	found.sort_custom(
@@ -160,7 +175,7 @@ static func _room_boxes(
 				return a.end.y > b.end.y
 			return a.get_volume() > b.get_volume()
 	)
-	found.append_array(wings)
+	rest.append_array(wings)
 	return found
 
 
@@ -174,9 +189,7 @@ static func _kept(box: AABB) -> bool:
 ## band by band up it (_bands), less [param box] — where the room spans a joint to a
 ## wider section (the Titanic's seamen's mess, aft of her forecastle's taper), where her
 ## shell leans out over its floor (her after hold), or where it stands up past a
-## section's sheer that held its box to nothing (her windlass machinery room). After
-## every box round a room in its cell's list: the box its water is drawn in first stays
-## the one it was.
+## section's sheer that held its box to nothing (her windlass machinery room).
 static func _wings(structure: ShipStructure, whole: AABB, box: AABB) -> Array[AABB]:
 	var found: Array[AABB] = []
 	for section: HullSection in structure.sections:
@@ -258,6 +271,42 @@ static func _bands(structure: ShipStructure, section: HullSection, piece: AABB) 
 			var band := _held(structure, AABB(low, high - low))
 			if _kept(band):
 				found.append(band)
+	return found
+
+
+## The parts of the stairwells and open floors into [param cell] from the cell under it
+## (ShipOpening.Kind.STAIRWELL, OPEN) that none of [param own], its rooms, stands over:
+## a room under one stands up into [param cell] there, with no deck between — the
+## Titanic's crew's stairs from her D deck passages forward into her forecastle — and
+## sees up it to the cell's top.
+static func _stairwells(
+	structure: ShipStructure, cell: FloodCell, own: Array[ShipRoom]
+) -> Array[Rect2]:
+	var footprint := Rect2(
+		cell.low.x, cell.low.z, cell.high.x - cell.low.x, cell.high.z - cell.low.z
+	)
+	var found: Array[Rect2] = []
+	for opening: ShipOpening in structure.openings:
+		var up := opening.kind in [ShipOpening.Kind.STAIRWELL, ShipOpening.Kind.OPEN]
+		up = up and is_zero_approx(opening.size.y) and cell.name in opening.joins
+		if not up or not is_equal_approx(opening.centre.y, cell.low.y):
+			continue
+		var size := Vector2(opening.size.x, opening.size.z)
+		var over := Rect2(Vector2(opening.centre.x, opening.centre.z) - size * 0.5, size)
+		over = over.intersection(footprint)
+		if not over.has_area():
+			continue
+		var left: Array[Rect2] = [over]
+		for room: ShipRoom in own:
+			var rest: Array[Rect2] = []
+			for part: Rect2 in left:
+				var under := part.intersection(room.area)
+				if under.has_area():
+					rest.append_array(_around(part, under))
+				else:
+					rest.append(part)
+			left = rest
+		found.append_array(left)
 	return found
 
 
