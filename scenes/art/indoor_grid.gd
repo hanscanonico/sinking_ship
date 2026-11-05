@@ -241,16 +241,22 @@ func _ceiling_cells(index: int) -> Dictionary:
 ## Marks in [param marked] each probe of [param face] that [param box] holds, as
 ## AABB.has_point() tests a point: its ends included.
 func _mark_box(box: AABB, face: FaceProbes, marked: PackedByteArray) -> void:
-	var spans: Array[Vector2i] = []
-	for axis in 3:
-		spans.append(face.span(axis, box.position[axis], box.end[axis]))
-		if spans[axis].x >= spans[axis].y:
-			return
-	var u := spans[face.axis_of(0)]
-	var v := spans[face.axis_of(1)]
+	var end := box.end
+	var span_x := face.span(0, box.position.x, end.x)
+	if span_x.x >= span_x.y:
+		return
+	var span_y := face.span(1, box.position.y, end.y)
+	if span_y.x >= span_y.y:
+		return
+	var span_z := face.span(2, box.position.z, end.z)
+	if span_z.x >= span_z.y:
+		return
+	var u := FaceProbes.pick(face.axis_of(0), span_x, span_y, span_z)
+	var v := FaceProbes.pick(face.axis_of(1), span_x, span_y, span_z)
+	var rows := face.rows
 	for i in range(u.x, u.y):
 		for j in range(v.x, v.y):
-			marked[i * face.rows + j] = 1
+			marked[i * rows + j] = 1
 
 
 ## Marks in [param marked] each probe of [param face] that stands in room
@@ -266,16 +272,15 @@ func _mark_room(index: int, face: FaceProbes, marked: PackedByteArray) -> void:
 	var span_z := face.span(2, _bounds[at + 3], _bounds[at + 4])
 	if span_z.x >= span_z.y:
 		return
-	var spans: Array[Vector2i] = [span_x, span_y, span_z]
 	var cells := _ceiling_cells(index)
 	var xs := _edges_x[index]
 	var zs := _edges_z[index]
 	# Each x's and each z's cell of the room's ceiling, -1 on an edge of it.
-	var columns := _cells_along(face.values[0], spans[0], xs)
-	var rows := _cells_along(face.values[2], spans[2], zs)
+	var columns := _cells_along(face.values[0], span_x, xs)
+	var rows := _cells_along(face.values[2], span_z, zs)
 	var room := _layout.rooms[index]
-	var u := spans[face.axis_of(0)]
-	var v := spans[face.axis_of(1)]
+	var u := FaceProbes.pick(face.axis_of(0), span_x, span_y, span_z)
+	var v := FaceProbes.pick(face.axis_of(1), span_x, span_y, span_z)
 	var by := face.by
 	if by[1] == 2:
 		_mark_level(index, face, Vector4i(u.x, u.y, v.x, v.y), columns, rows, marked)
@@ -293,7 +298,8 @@ func _mark_room(index: int, face: FaceProbes, marked: PackedByteArray) -> void:
 	# floor and under its ceiling there: the same for the next probe under that cell.
 	var last_cell := -1
 	var under := Vector2i.ZERO
-	for k in range(spans[along].x, spans[along].y):
+	var spans_along := span_x if along == 0 else span_z
+	for k in range(spans_along.x, spans_along.y):
 		var pick_x := k if by[0] != 2 else 0
 		var pick_z := k if by[2] != 2 else 0
 		var column := columns[pick_x]
@@ -520,6 +526,13 @@ class FaceProbes:
 	## The axis that goes by a probe's column (0) or its row (1).
 	func axis_of(source: int) -> int:
 		return by.find(source)
+
+	## Of [param x], [param y] and [param z], [param axis]'s: z for -1, as an array of the
+	## three indexed by it gives.
+	static func pick(axis: int, x: Vector2i, y: Vector2i, z: Vector2i) -> Vector2i:
+		if axis == 0:
+			return x
+		return y if axis == 1 else z
 
 	func _least(axis: int) -> float:
 		var least := INF

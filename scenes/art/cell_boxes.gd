@@ -228,9 +228,12 @@ static func _opened(structure: ShipStructure, cell: FloodCell) -> AABB:
 
 
 ## [param box] held inside [param structure]'s shell athwartships: no wider to either
-## side than her shell stands at its narrowest over it.
+## side than her shell stands at its narrowest over it — read over the sections it
+## stands in, not one past an end it shares with a section's, which her sections'
+## rounded ends can have it touch: the Titanic's B deck corridor, ending on her forward
+## well's section, once held to nothing by that well's lower sheer.
 static func _held(structure: ShipStructure, box: AABB) -> AABB:
-	var shell := _shell(structure, box)
+	var shell := _shell(structure, box, SHELL_NEAR)
 	var held := box
 	held.position.z = maxf(box.position.z, -shell.x)
 	held.end.z = minf(box.end.z, shell.y)

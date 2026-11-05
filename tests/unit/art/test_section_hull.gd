@@ -437,16 +437,71 @@ func test_her_shell_closes_each_step_in_her_sheer_from_her_side_in_to_her_decks(
 	assert_gt(probed.size(), 6, "her poop, A deck's after end, the barque's raised decks too")
 
 
-func test_her_fo_c_sle_step_stays_open_beside_its_stair() -> void:
-	# Her fo'c'sle deck runs no further than her forecastle head's end: a stair climbs from
-	# it to the head, and a railing guards its edge either side of the stair. Her shell's
-	# step there stays open, as a railed edge is, so a broken railing leaves its opening.
+func test_her_fo_c_sle_step_runs_as_wide_as_her_decks_either_side() -> void:
+	# Her fo'c'sle step climbs from her fo'c'sle deck to her forecastle head as wide as the
+	# decks it joins (the owner's ruling, #348): nothing beside it open to C deck under it,
+	# where it once ran 1 m in from her shell either side. Her shell's step at its head
+	# stands open across it, as a railed edge is: a body walking up it meets no face of her
+	# shell.
 	var titanic: ShipLayout = load(TITANIC)
+	var step := _fo_c_sle_step(titanic)
+	var foot := _deck_past(titanic, step, step.area.position.x - BESIDE, step.start_height)
+	var head := _deck_past(titanic, step, step.area.end.x + BESIDE, step.end_height)
+	assert_not_null(foot, "her fo'c'sle deck at the step's foot")
+	assert_not_null(head, "her forecastle head at the step's head")
+	if foot == null or head == null:
+		return
+	var narrower := minf(foot.area.end.y, head.area.end.y)
+	assert_almost_eq(step.area.end.y, narrower, 1e-3, "as wide as the narrower deck, starboard")
+	assert_almost_eq(-step.area.position.y, narrower, 1e-3, "and to port")
 	var faces := _shell_faces(titanic)
-	for sign: float in [1.0, -1.0]:
-		var from := Vector3(106.5, 4.6, sign * 8.7)
-		var hit: Variant = _front_hit(faces, from, Vector3.RIGHT, 2.0)
-		assert_null(hit, "nothing across her end beside the stair, at z %.1f" % from.z)
+	for share: float in [0.05, 0.5, 0.95]:
+		var z := lerpf(step.area.position.y, step.area.end.y, share)
+		var from := Vector3(step.area.position.x - 0.5, step.start_height + 0.3, z)
+		var hit: Variant = _front_hit(faces, from, Vector3.RIGHT, step.area.size.x + 1.0)
+		assert_null(hit, "nothing across her step at z %.2f: %s" % [z, hit])
+
+
+func test_a_body_walking_up_her_fo_c_sle_step_never_sinks_into_plating() -> void:
+	# Her sheer stepped at her fo'c'sle step's foot, and her forecastle head's plating lay
+	# over its treads: from her fo'c'sle deck the step read as flat deck, and a body walking
+	# up it sank into the plating by up to 0.6 m (#348). Over every point of its treads,
+	# from a body's feet to its head, no level face of her shell.
+	var titanic: ShipLayout = load(TITANIC)
+	var step := _fo_c_sle_step(titanic)
+	var level := _level(_shell_alone(titanic))
+	var tall := SimFixtures.rules().body_height
+	for u: float in [0.02, 0.25, 0.5, 0.75, 0.98]:
+		for v: float in [0.02, 0.25, 0.5, 0.75, 0.98]:
+			var at := step.area.position + step.area.size * Vector2(u, v)
+			var tread := step.height_at(at.x, at.y)
+			var over := _level_over(level, at, tread + CLEAR, tread + tall)
+			assert_true(
+				is_nan(over),
+				"her plating at %.3f over her step at %s, tread %.3f" % [over, at, tread]
+			)
+
+
+## The Titanic's fo'c'sle step: the stair climbing along her from her fo'c'sle deck to
+## her forecastle head, forward of her forward well.
+func _fo_c_sle_step(layout: ShipLayout) -> ShipRamp:
+	var found: ShipRamp
+	for ramp: ShipRamp in layout.ramps:
+		var climbs := ramp.axis == ShipRamp.Axis.X and ramp.end_height > ramp.start_height
+		if climbs and ramp.area.position.x > 100.0 and ramp.start_height > 3.0:
+			assert_null(found, "one fo'c'sle step")
+			found = ramp
+	assert_not_null(found, "her fo'c'sle step")
+	return found
+
+
+## The platform of [param layout]'s at [param height] holding (x, the step's middle line).
+func _deck_past(layout: ShipLayout, step: ShipRamp, x: float, height: float) -> ShipPlatform:
+	for platform: ShipPlatform in layout.platforms:
+		var middle := step.area.get_center().y
+		if absf(platform.height - height) <= LEVEL and platform.contains(x, middle):
+			return platform
+	return null
 
 
 func test_her_rudder_and_propeller_stand_clear_of_her_shell() -> void:
@@ -533,6 +588,45 @@ func _climbing(points: PackedVector2Array) -> PackedVector2Array:
 		if climbing.is_empty() or not point.is_equal_approx(climbing[climbing.size() - 1]):
 			climbing.append(point)
 	return climbing
+
+
+func test_her_plating_over_her_double_bottom_stays_inside_her_shell() -> void:
+	# Her double bottom's floors stand at her keel, so her flat keel is plated as a deck.
+	# Where her loft rises from a section's middle into a neighbour not plated alike —
+	# the Titanic's run up to her counter, her forefoot — that plating ran on at her keel
+	# out to the section's end, in the sea under her, up to 6 m under her run (#351). Over
+	# the middle of every level face of her shell at her keel, facing up, her bottom on her
+	# centreline within UNDER: no plate under her as her loft rises from her keel. (Her
+	# sides, resampled, cut her flat keel's corner, so a plate's edge may stand a few
+	# centimetres outside her shell; on her centreline her loft keeps her keel.)
+	var checked := 0
+	for ship: StringName in Fleet.names():
+		var layout := Fleet.layout(ship)
+		if layout.dressed:
+			continue
+		var keel := layout.structure.keel_y
+		var faces := _shell_alone(layout)
+		var cells := FaceCells.file(faces)
+		var outside := 0
+		var first := ""
+		for index in range(0, faces.size(), 3):
+			var a := faces[index]
+			var b := faces[index + 1]
+			var c := faces[index + 2]
+			var level := absf(b.y - a.y) <= LEVEL and absf(c.y - a.y) <= LEVEL
+			if not level or absf(a.y - keel) > UNDER or FaceCells.facing(a, b, c) <= 0.0:
+				continue
+			checked += 1
+			var middle := (a + b + c) / 3.0
+			var centre := Vector3(middle.x, middle.y + UNDER, 0.01 if middle.z >= 0.0 else -0.01)
+			if is_nan(_bottom_under(faces, cells, centre)):
+				outside += 1
+				if first.is_empty():
+					first = str(middle)
+		assert_eq(
+			outside, 0, "%s: plating at her keel outside her shell; first at %s" % [ship, first]
+		)
+	assert_gt(checked, 0, "the Titanic's plating over her double bottom looked at")
 
 
 ## Every triangle of [param layout]'s shell (SectionHull), alone, in her ship space.
