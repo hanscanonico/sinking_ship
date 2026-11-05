@@ -3,14 +3,16 @@
 The hottest loops of the bots and of the sinking bake in C++, giving the same answers as
 the GDScript they stand in for, bit for bit: the walk-graph search (`ai/walk_search.gd`),
 the bots' reads of the water (`core/still_points.gd`, `ai/walk_graph.gd`,
-`ai/bot_refuge.gd`), and the bake's solves for a held head and its sweep of the openings
-(`core/sinking/sink_stepper.gd`, #411).
+`ai/bot_refuge.gd`), the bake's solves for a held head and its sweep of the openings
+(`core/sinking/sink_stepper.gd`, #411), and the water's effects' walks of her cells,
+openings and decks (`scenes/art/inner_water.gd`, `scenes/match/fx_planner.gd`,
+`scenes/audio/cue_planner.gd`).
 
 ## Layout
 
 - `src/` — the extension's sources: `walk_search_native.{h,cpp}` (`NativeWalkGraph`,
   `NativeWalkSearch`), `water_native.{h,cpp}` (`NativeWater`), `sink_native.{h,cpp}`
-  (`NativeSink`), `register_types.cpp` (the entry, `sinking_native_init`).
+  (`NativeSink`), `water_fx_native.{h,cpp}` (`NativeWaterFx`), `register_types.cpp` (the entry, `sinking_native_init`).
 - `SConstruct` — the build, over godot-cpp's; `build_profile.json` — the engine
   classes godot-cpp binds (few, so it compiles quickly).
 - `build/` — not tracked: godot-cpp at its pinned commit (`tools/native_build.sh`) and

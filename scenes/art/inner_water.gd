@@ -185,9 +185,9 @@ var _next_burst := 0
 ## drawn, -1 for none.
 var _leaks: Array[MeshInstance3D] = []
 var _airs := PackedFloat64Array()
-## Per cell, the glow its water was last given; and the light cast up into the pocket
-## an eye is in.
-var _glows := PackedFloat32Array()
+## Per cell, the glow its water was last given — in doubles, so a glow given is one kept,
+## not given again every frame — and the light cast up into the pocket an eye is in.
+var _glows := PackedFloat64Array()
 var _pocket_light: OmniLight3D
 ## Per cell, how hard its water churns as it climbs, 0…1, eased tick by tick; and the
 ## pose it was last worked out to.
@@ -202,9 +202,6 @@ var native: InnerWaterNative = InnerWaterNative.made()
 ## Per opening, 1 once it has a pour; and those still to have one.
 var _made := PackedByteArray()
 var _unmade := PackedInt32Array()
-## _show_pockets' leaks laid so far, and the cell of the pocket an eye is in.
-var _leaking := 0
-var _lit := -1
 
 
 ## Draws the water in [param structure], round [param rooms] where her cells poke out
@@ -256,9 +253,7 @@ func setup(
 	_stacks_shown.resize(_stack_cells.size())
 	_stacks_shown.fill(0)
 	if native != null:
-		native.lay_out(
-			structure, _boxes, _surfaces, _stacks, _stack_cells, _cell_stacks, _stack_bounds
-		)
+		native.lay_out(_boxes, _surfaces, _stacks, _stack_cells, _cell_stacks, _stack_bounds)
 	_leaves.clear()
 	_leaf_widths.clear()
 	if not paints.is_empty():
@@ -643,12 +638,6 @@ static func eased_inflow(churn: float, fresh: float) -> float:
 ## down churns as it pours in — and tells its sheets.
 func _show_inflows(then: ShipPose, now: ShipPose) -> void:
 	_inflow_now = now
-	if _asks_natively(then, now):
-		var found: Array = native.inflows(then, now, _inflows)
-		_inflows = found[0]
-		for cell: int in found[1]:
-			_show_inflow(cell, _inflows[cell])
-		return
 	for cell in _inflows.size():
 		var middle := _structure.cells[cell].low.lerp(_structure.cells[cell].high, 0.5)
 		var was := _level_of(then, cell) - then.world_height(middle)
@@ -658,15 +647,10 @@ func _show_inflows(then: ShipPose, now: ShipPose) -> void:
 		if churn == _inflows[cell]:
 			continue
 		_inflows[cell] = churn
-		_show_inflow(cell, churn)
-
-
-## Tells [param cell]'s sheets their churn [param churn].
-func _show_inflow(cell: int, churn: float) -> void:
-	if _surfaces[cell] != null:
-		_param(_surfaces[cell], &"inflow", churn)
-	for index: int in _stacks_of(cell):
-		_param(_stacks[index][2], &"inflow", churn)
+		if _surfaces[cell] != null:
+			_param(_surfaces[cell], &"inflow", churn)
+		for index: int in _stacks_of(cell):
+			_param(_stacks[index][2], &"inflow", churn)
 
 
 ## The stacks [param cell] is drawn in, by index into _stacks: none for most.
@@ -960,62 +944,49 @@ func _blow(index: int, levels: PackedFloat64Array, top: float, opening: ShipOpen
 ## bubbles over each one that leaks into water standing over the middle of its top, and
 ## a burst at the opening of each that has just gone free with air to blow out.
 func _show_pockets(pose: ShipPose, levels: PackedFloat64Array) -> void:
-	_leaking = 0
-	_lit = -1
+	var leak := 0
+	var lit := -1
 	var camera := get_viewport().get_camera_3d() if is_inside_tree() else null
 	var eye_cell := pose.cell_at(to_local(camera.global_position)) if camera != null else -1
-	if native != null:
-		# The extension lets go of every air never held, and gives the rest.
-		var found: Array = native.pockets(pose, _glows, _airs)
-		_airs = found[1]
-		for cell: int in found[0]:
-			_show_pocket(cell, pose, levels, eye_cell)
-	else:
-		for cell in _airs.size():
-			_show_pocket(cell, pose, levels, eye_cell)
-	for unused in range(_leaking, LEAKS):
+	for cell in _airs.size():
+		var low := _structure.cells[cell].low
+		var box := AABB(low, _structure.cells[cell].high - low)
+		var held := cell < pose.pockets.size() and pose.pockets[cell] > 0.0
+		var glow := POCKET_GLOW if held else 0.0
+		if _surfaces[cell] != null and _glows[cell] != glow:
+			_param(_surfaces[cell], &"pocket_glow", glow)
+			for index: int in _stacks_of(cell):
+				_param(_stacks[index][2], &"pocket_glow", glow)
+			_glows[cell] = glow
+		if held and cell == eye_cell:
+			lit = cell
+		if not held:
+			if _airs[cell] >= VENTS:
+				_vent(cell, levels, pose)
+			_airs[cell] = -1.0
+			continue
+		_airs[cell] = CellSurface.reach(_ship, box).y - levels[cell]
+		var top := box.get_center()
+		top.y = box.end.y
+		var over := pose.water_level(top + Vector3.UP * CellMap.DRY)
+		if leak >= LEAKS or _structure.cells[cell].leak_area <= 0.0 or over <= (_ship * top).y:
+			continue
+		var flat := _level * Basis.from_scale(Vector3(LEAK, 1.0, LEAK))
+		var outside := pose.cell_at(top + Vector3.UP * CellMap.DRY) == CellMap.NONE
+		_lay(_leaks[leak], flat, _at_height(top, over + FROTH_LIFT), 1.0, 0.0)
+		_param(_leaks[leak], &"outdoor", 1.0 if outside else 0.0)
+		leak += 1
+	for unused in range(leak, LEAKS):
 		_leaks[unused].visible = false
-	_pocket_light.visible = _lit != -1
-	if _lit != -1:
-		var low := _structure.cells[_lit].low
-		var box := AABB(low, _structure.cells[_lit].high - low)
+	_pocket_light.visible = lit != -1
+	if lit != -1:
+		var low := _structure.cells[lit].low
+		var box := AABB(low, _structure.cells[lit].high - low)
 		var middle := box.get_center()
 		middle.y = box.position.y
-		_pocket_light.position = _at_height(middle, levels[_lit] + FROTH_LIFT)
+		_pocket_light.position = _at_height(middle, levels[lit] + FROTH_LIFT)
 		var reach := maxf(box.size.x, box.size.z) * POCKET_SPAN
 		_pocket_light.omni_range = clampf(reach, POCKET_REACH.x, POCKET_REACH.y)
-
-
-## _show_pockets' look at [param cell], its water at world height [param levels]'s under
-## [param pose], an eye in [param eye_cell].
-func _show_pocket(cell: int, pose: ShipPose, levels: PackedFloat64Array, eye_cell: int) -> void:
-	var low := _structure.cells[cell].low
-	var box := AABB(low, _structure.cells[cell].high - low)
-	var held := cell < pose.pockets.size() and pose.pockets[cell] > 0.0
-	var glow := POCKET_GLOW if held else 0.0
-	if _surfaces[cell] != null and _glows[cell] != glow:
-		_param(_surfaces[cell], &"pocket_glow", glow)
-		for index: int in _stacks_of(cell):
-			_param(_stacks[index][2], &"pocket_glow", glow)
-		_glows[cell] = glow
-	if held and cell == eye_cell:
-		_lit = cell
-	if not held:
-		if _airs[cell] >= VENTS:
-			_vent(cell, levels, pose)
-		_airs[cell] = -1.0
-		return
-	_airs[cell] = CellSurface.reach(_ship, box).y - levels[cell]
-	var top := box.get_center()
-	top.y = box.end.y
-	var over := pose.water_level(top + Vector3.UP * CellMap.DRY)
-	if _leaking >= LEAKS or _structure.cells[cell].leak_area <= 0.0 or over <= (_ship * top).y:
-		return
-	var flat := _level * Basis.from_scale(Vector3(LEAK, 1.0, LEAK))
-	var outside := pose.cell_at(top + Vector3.UP * CellMap.DRY) == CellMap.NONE
-	_lay(_leaks[_leaking], flat, _at_height(top, over + FROTH_LIFT), 1.0, 0.0)
-	_param(_leaks[_leaking], &"outdoor", 1.0 if outside else 0.0)
-	_leaking += 1
 
 
 ## Bursts the air of [param cell]'s pocket out as it goes free, its cells' water at world

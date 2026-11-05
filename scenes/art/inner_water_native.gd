@@ -2,15 +2,15 @@ class_name InnerWaterNative
 extends RefCounted
 ## InnerWater's loops over every cell and opening of hers in the game's extension
 ## (native/, #410), a NativeWaterFx working each to the GDScript's answers bit for bit
-## (test_water_fx_native): which sheets to show and hide a frame, which openings may pour
-## a tick, each cell's churn and which pockets to look at. It lays her out for the
+## (test_water_fx_native): which sheets to show and hide a frame, and which openings may
+## pour a tick. It lays her out for the
 ## extension once and keeps which sheets show; InnerWater keeps the rest and draws every
 ## node. None where the extension is not loaded, and InnerWater's GDScript runs instead.
 
 var _fx: Object
 ## Per drawn cell surface, its cell, its box's middle and half size, and 1 while it
 ## shows; the same per stack, and per stacked cell where its stacks start and its
-## bounds' middle and half size; per cell, 1 where it has a surface, and its middle.
+## bounds' middle and half size.
 var _surface_cells := PackedInt32Array()
 var _surface_middles := PackedVector3Array()
 var _surface_halves := PackedVector3Array()
@@ -22,8 +22,6 @@ var _stack_shown := PackedByteArray()
 var _stacks_from := PackedInt32Array()
 var _bound_middles := PackedVector3Array()
 var _bound_halves := PackedVector3Array()
-var _surfaced := PackedByteArray()
-var _cell_middles := PackedVector3Array()
 
 
 func _init(fx: Object) -> void:
@@ -36,11 +34,10 @@ static func made() -> InnerWaterNative:
 	return InnerWaterNative.new(fx) if fx != null else null
 
 
-## Lays out [param structure]'s cells in [param boxes], their surfaces [param surfaces],
+## Lays out her cells in [param boxes], their surfaces [param surfaces],
 ## and [param stacks] (InnerWater._stacks), each run of them a cell of
 ## [param stack_cells] in [param stack_bounds].
 func lay_out(
-	structure: ShipStructure,
 	boxes: Array[AABB],
 	surfaces: Array[MeshInstance3D],
 	stacks: Array,
@@ -51,15 +48,11 @@ func lay_out(
 	_surface_cells.clear()
 	_surface_middles.clear()
 	_surface_halves.clear()
-	_surfaced.clear()
-	_cell_middles.clear()
 	for cell in boxes.size():
-		_surfaced.append(0 if surfaces[cell] == null else 1)
 		if surfaces[cell] != null:
 			_surface_cells.append(cell)
 			_surface_middles.append(boxes[cell].get_center())
 			_surface_halves.append(boxes[cell].size * 0.5)
-		_cell_middles.append(structure.cells[cell].low.lerp(structure.cells[cell].high, 0.5))
 	_surface_shown.resize(_surface_cells.size())
 	_surface_shown.fill(0)
 	_stack_middles.clear()
@@ -175,32 +168,3 @@ func find_wet(water: InnerWater, then: ShipPose, now: ShipPose, levels: PackedFl
 		var told := PackedFloat64Array([heads[slots[index * 2]], heads[slots[index * 2 + 1]]])
 		var top := CellSurface.reach(water._ship, water._spans[index]).y
 		water._blow(index, told, top, water._passages[index])
-
-
-## Each cell's churn eased a tick on from [param inflows], from [param then] to
-## [param now] (InnerWater._show_inflows), and the cells whose churn changed.
-func inflows(then: ShipPose, now: ShipPose, inflows_now: PackedFloat64Array) -> Array:
-	var constants := PackedFloat64Array(
-		[
-			Ticks.SECONDS_PER_TICK,
-			InnerWater.INFLOW_FULL,
-			InnerWater.INFLOW_EASE,
-			InnerWater.INFLOW_CALM
-		]
-	)
-	return _fx.inflows(
-		then.levels,
-		now.levels,
-		then.transform * _cell_middles,
-		now.transform * _cell_middles,
-		inflows_now,
-		constants
-	)
-
-
-## The cells InnerWater._show_pockets looks at under [param pose], each cell's glow
-## [param glows] and air [param airs] last, and the airs with every other's let go.
-func pockets(pose: ShipPose, glows: PackedFloat32Array, airs: PackedFloat64Array) -> Array:
-	return _fx.pockets(
-		pose.pockets, _surfaced, glows, airs, InnerWater.POCKET_GLOW, InnerWater.VENTS
-	)

@@ -1,7 +1,7 @@
 // Each loop here is a GDScript one, line for line: a Vector3's component is a float32
 // widened to a double where the GDScript reads it into a float, a Vector2 built from
-// doubles rounds each to a float32, sums run in the same order, and minf, maxf, clampf
-// and lerpf are the engine's (a < b ? a : b, a > b ? a : b, a + (b - a) * t).
+// doubles rounds each to a float32, sums run in the same order, and minf, maxf and
+// lerpf are the engine's (a < b ? a : b, a > b ? a : b, a + (b - a) * t).
 // Contraction is off. Every product of float32s — a point set in the world, a dot of
 // two vectors — the engine works before the call, as the GDScript has it work them.
 
@@ -24,10 +24,6 @@ inline double min_f(double p_a, double p_b) {
 
 inline double max_f(double p_a, double p_b) {
 	return p_a > p_b ? p_a : p_b;
-}
-
-inline double clamp_f(double p_value, double p_low, double p_high) {
-	return p_value < p_low ? p_low : (p_value > p_high ? p_high : p_value);
 }
 
 inline double abs_f(double p_value) {
@@ -273,74 +269,6 @@ Array NativeWaterFx::find_wet(const PackedFloat64Array &p_then, const PackedFloa
 	return found;
 }
 
-// InnerWater._show_inflows' churn of each cell, from p_then's levels to p_now's over
-// its middle's world height at either pose (p_middles_then[cell].y, p_middles_now's),
-// eased from p_inflows; p_constants are the seconds of a tick, INFLOW_FULL, INFLOW_EASE
-// and INFLOW_CALM. Gives every cell's churn and the cells whose churn changed.
-Array NativeWaterFx::inflows(const PackedFloat64Array &p_then, const PackedFloat64Array &p_now,
-		const PackedVector3Array &p_middles_then, const PackedVector3Array &p_middles_now,
-		const PackedFloat64Array &p_inflows, const PackedFloat64Array &p_constants) const {
-	PackedFloat64Array churns = p_inflows;
-	PackedInt32Array changed;
-	double *out = churns.ptrw();
-	const double *then = p_then.ptr();
-	const double *now = p_now.ptr();
-	const Vector3 *middles_then = p_middles_then.ptr();
-	const Vector3 *middles_now = p_middles_now.ptr();
-	const double seconds = p_constants[0];
-	const double full_rate = p_constants[1];
-	const double ease = p_constants[2];
-	const double calm = p_constants[3];
-	for (int64_t cell = 0; cell < churns.size(); cell++) {
-		const double was = then[cell] - double(middles_then[cell].y);
-		const double is_now = now[cell] - double(middles_now[cell].y);
-		double fresh = 0.0;
-		if (!(seconds <= 0.0 || full_rate <= 0.0)) {
-			fresh = clamp_f((is_now - was) / seconds / full_rate, 0.0, 1.0);
-		}
-		const double eased = lerp_f(out[cell], fresh, ease);
-		const double churn = eased >= calm ? eased : 0.0;
-		if (churn == out[cell]) {
-			continue;
-		}
-		out[cell] = churn;
-		changed.push_back(int32_t(cell));
-	}
-	Array found;
-	found.push_back(churns);
-	found.push_back(changed);
-	return found;
-}
-
-// InnerWater._show_pockets' walk of the cells: those it has more to do for than let go
-// of an air it never held — a pocket held (p_pockets), a surface (p_surfaced) whose glow
-// (p_glows) changes, or an air of p_vents or more let go — in order, and the airs with
-// every other cell's let go (-1).
-Array NativeWaterFx::pockets(const PackedFloat64Array &p_pockets, const PackedByteArray &p_surfaced,
-		const PackedFloat32Array &p_glows, const PackedFloat64Array &p_airs, double p_glow,
-		double p_vents) const {
-	PackedInt32Array asked;
-	PackedFloat64Array airs = p_airs;
-	double *air = airs.ptrw();
-	const double *pockets = p_pockets.ptr();
-	const int64_t pocket_count = p_pockets.size();
-	const uint8_t *surfaced = p_surfaced.ptr();
-	const float *glows = p_glows.ptr();
-	for (int64_t cell = 0; cell < airs.size(); cell++) {
-		const bool held = cell < pocket_count && pockets[cell] > 0.0;
-		const double glow = held ? p_glow : 0.0;
-		if (held || (surfaced[cell] == 1 && double(glows[cell]) != glow) || air[cell] >= p_vents) {
-			asked.push_back(int32_t(cell));
-			continue;
-		}
-		air[cell] = -1.0;
-	}
-	Array found;
-	found.push_back(asked);
-	found.push_back(airs);
-	return found;
-}
-
 // CuePlanner._reading's geometry: per cell, 1 where its water (p_levels) stands SHOWS
 // (p_shows) over its floor's lowest corner — its floor's middle dotted with the turn's
 // row of heights p_floors[cell].y, less its reach down under the turn's |row| p_row over
@@ -457,35 +385,6 @@ Array NativeWaterFx::coming_on(const PackedByteArray &p_then, const PackedByteAr
 	return found;
 }
 
-// FxPlanner._waterlines' walk of the decks: each one some corner of which may stand
-// within p_clear of the sea — its least corner's height p_lows[index].y, its plane's
-// rise across it from the turn's x.y (p_x_rise) and z.y (p_z_rise) over its sizes — to
-// find its line, in order; and the spray, every other deck's let go.
-Array NativeWaterFx::waterlines(const PackedVector3Array &p_lows, double p_x_rise, double p_z_rise,
-		const PackedFloat64Array &p_size_x, const PackedFloat64Array &p_size_z,
-		const PackedFloat32Array &p_spray, double p_clear) const {
-	PackedInt32Array crossing;
-	PackedFloat32Array spray = p_spray;
-	float *spray_at = spray.ptrw();
-	const Vector3 *lows = p_lows.ptr();
-	const double *size_x = p_size_x.ptr();
-	const double *size_z = p_size_z.ptr();
-	for (int64_t index = 0; index < p_lows.size(); index++) {
-		const double low = double(lows[index].y);
-		const double rise = abs_f(p_x_rise * size_x[index]) + abs_f(p_z_rise * size_z[index]);
-		if (abs_f(low) > rise + p_clear) {
-			spray_at[index * 2] = 0.0f;
-			spray_at[index * 2 + 1] = 0.0f;
-			continue;
-		}
-		crossing.push_back(int32_t(index));
-	}
-	Array found;
-	found.push_back(crossing);
-	found.push_back(spray);
-	return found;
-}
-
 // FxPlanner._floods' walk of the decks: those flooded under the pose now (p_now) and
 // not under the pose before (p_then), in order.
 PackedInt32Array NativeWaterFx::risen(const PackedByteArray &p_now, const PackedByteArray &p_then) const {
@@ -511,17 +410,11 @@ void NativeWaterFx::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("find_wet", "then", "now", "heads", "slots", "made", "drawn", "middles_then",
 								 "middles_now", "rises", "reaches", "last_heads", "wet"),
 			&NativeWaterFx::find_wet);
-	ClassDB::bind_method(D_METHOD("inflows", "then", "now", "middles_then", "middles_now", "inflows", "constants"),
-			&NativeWaterFx::inflows);
-	ClassDB::bind_method(D_METHOD("pockets", "pockets", "surfaced", "glows", "airs", "glow", "vents"),
-			&NativeWaterFx::pockets);
 	ClassDB::bind_method(D_METHOD("reading", "floors", "floor_halves", "levels", "row", "rise", "sides", "centres",
 								 "opening_halves", "shows", "pours"),
 			&NativeWaterFx::reading);
 	ClassDB::bind_method(D_METHOD("coming_on", "then", "now", "cells", "decks_then", "decks_now", "platform_slots",
 								 "heard", "off_since", "tick", "cell_rearm", "pour_rearm"),
 			&NativeWaterFx::coming_on);
-	ClassDB::bind_method(D_METHOD("waterlines", "lows", "x_rise", "z_rise", "size_x", "size_z", "spray", "clear"),
-			&NativeWaterFx::waterlines);
 	ClassDB::bind_method(D_METHOD("risen", "now", "then"), &NativeWaterFx::risen);
 }

@@ -11,7 +11,6 @@
 #include <godot_cpp/classes/ref_counted.hpp>
 #include <godot_cpp/variant/array.hpp>
 #include <godot_cpp/variant/packed_byte_array.hpp>
-#include <godot_cpp/variant/packed_float32_array.hpp>
 #include <godot_cpp/variant/packed_float64_array.hpp>
 #include <godot_cpp/variant/packed_int32_array.hpp>
 #include <godot_cpp/variant/packed_vector2_array.hpp>
@@ -39,12 +38,6 @@ public:
 			const PackedVector3Array &p_middles_then, const PackedVector3Array &p_middles_now,
 			const PackedFloat64Array &p_rises, const PackedFloat64Array &p_reaches,
 			const PackedVector2Array &p_last_heads, const PackedInt32Array &p_wet) const;
-	Array inflows(const PackedFloat64Array &p_then, const PackedFloat64Array &p_now,
-			const PackedVector3Array &p_middles_then, const PackedVector3Array &p_middles_now,
-			const PackedFloat64Array &p_inflows, const PackedFloat64Array &p_constants) const;
-	Array pockets(const PackedFloat64Array &p_pockets, const PackedByteArray &p_surfaced,
-			const PackedFloat32Array &p_glows, const PackedFloat64Array &p_airs, double p_glow,
-			double p_vents) const;
 	PackedByteArray reading(const PackedVector3Array &p_floors, const PackedVector3Array &p_floor_halves,
 			const PackedFloat64Array &p_levels, const PackedFloat64Array &p_row, double p_rise,
 			const PackedInt32Array &p_sides, const PackedVector3Array &p_centres,
@@ -54,9 +47,6 @@ public:
 			const PackedInt32Array &p_platform_slots, const PackedByteArray &p_heard,
 			const PackedInt32Array &p_off_since, int64_t p_tick, int64_t p_cell_rearm,
 			int64_t p_pour_rearm) const;
-	Array waterlines(const PackedVector3Array &p_lows, double p_x_rise, double p_z_rise,
-			const PackedFloat64Array &p_size_x, const PackedFloat64Array &p_size_z,
-			const PackedFloat32Array &p_spray, double p_clear) const;
 	PackedInt32Array risen(const PackedByteArray &p_now, const PackedByteArray &p_then) const;
 
 protected:

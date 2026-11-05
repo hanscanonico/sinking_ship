@@ -13,9 +13,10 @@ const SHIPS: Array[StringName] = [&"steamer", &"small_titanic"]
 const SEED := 4
 ## How many ticks each step checked spans, and where between its two poses each of its
 ## frames is drawn.
-const STRIDE := 4
-const ALPHAS: Array[float] = [0.0, 0.37, 1.0]
-## What is read of each drawn thing's material, and of an InnerWater's own state.
+const STRIDE := 15
+const ALPHAS: Array[float] = [0.37, 1.0]
+## What is read of each drawn thing's material — but its slot, each InnerWater's own
+## (InnerWater.TO_SHIP) — and of an InnerWater's own state.
 const PARAMS: Array[StringName] = [
 	&"clip_low",
 	&"clip_high",
@@ -30,7 +31,6 @@ const PARAMS: Array[StringName] = [
 	&"thrown",
 	&"burst",
 	&"leaking",
-	&"slot",
 ]
 const STATE: Array[StringName] = [
 	&"_ship",
