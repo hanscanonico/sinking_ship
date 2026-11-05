@@ -1,6 +1,6 @@
 extends GutTest
 ## Handrail on the steamer: a corridor wall's rail turns only where a stair beside it,
-## on its deck, begins and ends — never at a stair elsewhere on the ship (#431).
+## rising from its floor, begins and ends — never at a stair elsewhere on the ship (#431).
 
 const RunMatch := preload("res://tools/run_match.gd")
 
@@ -42,13 +42,13 @@ func test_a_wall_with_no_stair_beside_it_keeps_only_its_two_end_stops() -> void:
 	assert_eq(stops, PackedFloat32Array([wall.from + 0.1, wall.to - 0.1]))
 
 
-func test_a_stair_beside_a_wall_on_its_deck_keeps_its_stops() -> void:
+func test_a_stair_beside_a_wall_keeps_its_stops() -> void:
 	var wall := _wall(-6.5)
 	var layout := ShipLayout.new()
 	var beside := _stair(wall.rect(-6.1, -5.3, 0.0, 1.0), wall.floor, 1.0)
-	var overhead := _stair(wall.rect(-6.3, -5.2, 0.0, 1.0), wall.floor + 2.6, 2.6)
+	var below := _stair(wall.rect(-6.3, -5.2, 0.0, 1.0), wall.floor - 3.0, 2.9)
 	var across := _stair(wall.rect(-6.4, -5.1, 3.0, 4.0), wall.floor, 1.0)
-	layout.ramps.assign([beside, overhead, across])
+	layout.ramps.assign([beside, below, across])
 	var stops := Handrail.stops(layout, wall)
 	# Where it begins, and where it ends a metre up in a step, and the floor just past.
 	var want := [wall.from + 0.1, -6.1, -5.3, -5.3 + Handrail.DROP, wall.to - 0.1]

@@ -41,16 +41,17 @@ static func build(mesh: ShipMesh, layout: ShipLayout, wall: RoomDressing.Wall) -
 
 
 ## Where along [param wall] its rail turns, in order: just short of either end, and where
-## each stair of [param layout] beside it begins and ends — one on its deck (_on_deck())
-## that the rail's foot (FOOT) meets along it — and, where a stair ends in a step, its
-## top up at the next deck, DROP past that end, so the rail comes down there plumb. A
-## stair anywhere else on the ship, on another deck or across the ship, leaves the rail
-## straight: no stop of its own.
+## each stair of [param layout] beside it begins and ends — one the rail's foot (FOOT)
+## meets along it, rising over the wall's floor, so one that lifts the rail (_height()) —
+## and, where a stair ends in a step, DROP past that end, so the rail comes down there
+## plumb. A stair anywhere else on the ship, or one only coming up to this floor, leaves
+## the rail straight: no stop of its own.
 static func stops(layout: ShipLayout, wall: RoomDressing.Wall) -> PackedFloat32Array:
 	var result := PackedFloat32Array([wall.from + 0.1, wall.to - 0.1])
 	var probe := wall.rect(wall.from, wall.to, OUT + FOOT, OUT + FOOT)
 	for ramp: ShipRamp in layout.ramps:
-		if not _on_deck(ramp, wall) or not ramp.area.intersects(probe, true):
+		var top := maxf(ramp.start_height, ramp.end_height)
+		if top <= wall.floor or not ramp.area.intersects(probe, true):
 			continue
 		var span := Vector2(ramp.area.position.x, ramp.area.end.x)
 		if wall.side % 2 == 1:
@@ -71,20 +72,12 @@ static func _step(layout: ShipLayout, wall: RoomDressing.Wall, at: float, past: 
 
 
 ## Where [param wall]'s rail runs at [param along] it: OUT from its face, a hand's height
-## over the floor, or over a stair of [param layout] on its deck under its foot.
+## over the floor, or over a stair of [param layout] under its foot.
 static func _height(layout: ShipLayout, wall: RoomDressing.Wall, along: float) -> Vector3:
 	var at := wall.at(along, 0.0, OUT)
 	var foot := Vector2(at.x, at.z) + Vector2(wall.normal.x, wall.normal.z) * FOOT
 	var surface := wall.floor
 	for ramp: ShipRamp in layout.ramps:
-		if _on_deck(ramp, wall) and ramp.contains(foot.x, foot.y):
+		if ramp.contains(foot.x, foot.y):
 			surface = maxf(surface, ramp.height_at(foot.x, foot.y))
 	return Vector3(at.x, surface + 0.92, at.z)
-
-
-## Whether [param ramp] climbs from [param wall]'s deck: it rises over the wall's floor
-## from under its top, as _stair_beside() in RoomDressing reads a stair beside a wall. A
-## flight of a deck overhead, or one only coming up to this floor, is not the rail's.
-static func _on_deck(ramp: ShipRamp, wall: RoomDressing.Wall) -> bool:
-	var top := maxf(ramp.start_height, ramp.end_height)
-	return ramp.base() < wall.floor + 2.5 and top > wall.floor
