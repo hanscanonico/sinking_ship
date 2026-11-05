@@ -115,6 +115,13 @@ var _floors: Array[PackedInt32Array] = []
 var _floor_clearances: Array[PackedFloat64Array] = []
 ## Her funnels, lying where the last pose honoured has them fallen.
 var _fallen: FallenFunnels
+## The NativeSurfaces mirroring these (ContactsNative), made the first time it is asked
+## for — obstacle_contacts asks it, as the stands ask theirs — then told of every change
+## honour() makes; null without the extension.
+var native: Object:
+	get = _mirrored
+var _asks_native := false
+var _native: Object
 
 
 ## [param layout]'s surfaces, on a grid of [param grid]'s cells — the data's when none.
@@ -168,6 +175,61 @@ func _init(layout: ShipLayout, grid: IndexRules = null) -> void:
 	stands = PropStands.new(layout, bounds)
 	doors = DoorLeaves.new(layout.structure)
 	_fallen = FallenFunnels.new(layout)
+	_asks_native = stands.native() != null
+
+
+## native, made now if not yet.
+func _mirrored() -> Object:
+	if _native != null or not _asks_native:
+		return _native
+	_native = ContactsNative.made(&"NativeSurfaces")
+	var areas := PackedVector2Array()
+	for area: Rect2 in _areas:
+		areas.append(area.position)
+		areas.append(area.size)
+	var round := PackedByteArray()
+	var centres := PackedVector2Array()
+	var radii := PackedFloat64Array()
+	for blocker: ShipBlocker in _blockers:
+		round.append(0 if blocker.shape == ShipBlocker.Shape.BOX else 1)
+		centres.append(blocker.centre)
+		radii.append(blocker.radius)
+	var ramp_x := PackedByteArray()
+	var ramp_heights := PackedFloat64Array()
+	for ramp: ShipRamp in _ramps:
+		ramp_x.append(1 if ramp.axis == ShipRamp.Axis.X else 0)
+		ramp_heights.append(ramp.start_height)
+		ramp_heights.append(ramp.end_height)
+	_native.setup(
+		PackedInt32Array([_first_ramp, _first_top, _first_lid]),
+		areas,
+		_bottoms,
+		_tops,
+		_gone,
+		round,
+		centres,
+		radii,
+		ramp_x,
+		ramp_heights,
+		_grid.native_layout(),
+		stands.native()
+	)
+	var ends := PackedVector2Array()
+	var platforms := PackedInt32Array()
+	for railing: ShipRailing in _railings:
+		ends.append(railing.from)
+		ends.append(railing.to)
+		platforms.append(railing.platform)
+	var rails := SpatialIndex.flattened(_platform_rails)
+	_native.railings(
+		ends, _rail_normals, platforms, rails[0], rails[1], _rail_gone, _rail_grid.native_layout()
+	)
+	var leaves := doors.native_layout()
+	_native.doors(leaves[0], leaves[1], leaves[2], leaves[3], leaves[4], leaves[5])
+	_native.shut(doors.shut_all())
+	var down := _fallen.native_down()
+	_native.felled(down[0], down[1], down[2])
+	return _native
 
 
 ## Takes [param pose]'s collapsed platforms, failed railings and shut watertight
@@ -182,15 +244,23 @@ func honour(pose: ShipPose, broken := PackedInt32Array(), props: Array[PropState
 	if pose != _honoured_pose or broken != _honoured_by_match:
 		_honoured_pose = pose
 		doors.honour(pose)
+		if _native != null:
+			_native.shut(doors.shut_all())
 		if _fallen.honour(pose):
 			shapes += 1
 			for surface in range(_first_top, _first_lid):
 				_tops[surface] = _fallen.top_of(surface - _first_top, _blocker_of(surface).top)
+			if _native != null:
+				var down := _fallen.native_down()
+				_native.felled(down[0], down[1], down[2])
+				_native.topped(_tops)
 		_honoured_by_match = broken.duplicate()
 		var failed := pose.broken_railings.duplicate()
 		failed.append_array(broken)
 		if _mask(pose.collapsed, failed):
 			shapes += 1
+			if _native != null:
+				_native.masked(_gone, _rail_gone)
 	stands.stand_all(props)
 
 
@@ -397,6 +467,13 @@ func obstacle_contacts(
 	crawl_height := INF,
 	crawl_reach := -1.0
 ) -> Array[Contact]:
+	if _asks_native:
+		var asked := _native if _native != null else _mirrored()
+		return ContactsNative.contacts_of(
+			asked.obstacle_contacts(
+				ship_point, radius, body_height, step, except_prop, crawl_height, crawl_reach
+			)
+		)
 	var contacts: Array[Contact] = []
 	var point := Vector2(ship_point.x, ship_point.z)
 	var feet := ship_point.y
