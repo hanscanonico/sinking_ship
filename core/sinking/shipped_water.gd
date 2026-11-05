@@ -42,6 +42,8 @@ var _reach: float
 var _rate: float
 var _crest := 0.0
 var _trough := 0.0
+## The world's up in her axes at the step last begun.
+var _up := PackedFloat64Array([0.0, 1.0, 0.0])
 
 
 ## The green water [param structure]'s open wells ship in a sea of waves
@@ -80,6 +82,7 @@ func begin(rotation: PackedFloat64Array, sea: float) -> void:
 	_crest = sea + _reach
 	_trough = sea - _reach
 	var up := Attitude.up(rotation)
+	_up = up
 	for well in _cells.size():
 		var ends := _ends[well]
 		var heights := _heights[well]
@@ -89,6 +92,25 @@ func begin(rotation: PackedFloat64Array, sea: float) -> void:
 			heights[end] = up[0] * ends[at] + up[1] * ends[at + 1] + up[2] * ends[at + 2]
 			lowest = minf(lowest, heights[end])
 		_lowest[well] = lowest
+
+
+## Her wells as the extension reads them (SinkNative): each cell's well or -1, where
+## each well's edges start among all of them (and one more, their end), every edge's
+## two ends in ship space and its length, and discharge × √(2g).
+func layout() -> Array:
+	var from := PackedInt32Array([0])
+	var ends := PackedFloat64Array()
+	var lengths := PackedFloat64Array()
+	for well in _cells.size():
+		ends.append_array(_ends[well])
+		lengths.append_array(_lengths[well])
+		from.append(lengths.size())
+	return [_well_of, from, ends, lengths, _rate]
+
+
+## At the step begun: the crest's and the trough's heights, and the world's up, x, y, z.
+func surface() -> PackedFloat64Array:
+	return PackedFloat64Array([_crest, _trough]) + _up
 
 
 ## Whether cell [param cell], its water at [param level], is a well its edges may pass
