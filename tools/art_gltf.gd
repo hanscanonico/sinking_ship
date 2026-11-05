@@ -5,15 +5,18 @@ extends RefCounted
 ## every surface's material swapped for one showing its vertex colours, a surface with
 ## none painted its material's colour — so Blender can draw her with no game window.
 ##
-## Kept to a stretch along her (span), a mesh wholly on it is kept as it is, one wholly
-## off it dropped, and one across an end of it cut there, triangle by triangle, into ship
-## space: the geometry the glTF holds lies on the stretch alone, where the game's piece
-## paints (PieceClip) only hide what lies off it.
+## Kept to a stretch along her (span), a mesh wholly on it is kept whole, one wholly off
+## it dropped, and one across an end of it cut there, triangle by triangle: the geometry
+## the glTF holds lies on the stretch alone, where the game's piece paints (PieceClip)
+## only hide what lies off it. All of it is placed into ship space and merged into a few
+## large meshes, which the glTF writer writes in a second where thousands take minutes.
 
 ## The colour of a surface with neither vertex colours nor a colour its material says.
 const BARE := Color(0.8, 0.8, 0.8)
 ## The shader parameters a ShaderMaterial's colour is looked for under, in this order.
 const TINTS: Array[StringName] = [&"colour", &"color", &"albedo", &"tint"]
+## The most corners one merged mesh holds before the next is begun.
+const CHUNK := 1 << 20
 
 
 ## [param layout] dressed at rest to [param rules], cut away above [param cut] as the
@@ -27,11 +30,22 @@ static func dressed(layout: ShipLayout, rules: BrawlRules, cut: float = INF) -> 
 
 
 ## Every visible mesh under [param art], in ship space, as plain vertex-coloured meshes
-## under one node named [param name], kept to [param span] along her.
+## under one node named [param name], kept to [param span] along her: every mesh's
+## triangles placed into ship space and gathered into a few large meshes of up to
+## [constant CHUNK] corners each. Godot's glTF writer weighs each new buffer view against
+## every one before it, so thousands of small meshes write in time that grows with the
+## square of their number (#413: 2,087 of the Titanic's took 19 minutes) where a few
+## large ones take a second; the triangles, corners and colours drawn are the same.
 static func flattened(art: Node3D, name: String, span := Vector2(-INF, INF)) -> Node3D:
 	var holder := Node3D.new()
 	holder.name = name
-	_gather(art, holder, Transform3D.IDENTITY, span)
+	var merged := Gathered.new()
+	_gather(art, merged, Transform3D.IDENTITY, span)
+	for mesh in merged.meshes():
+		var copy := MeshInstance3D.new()
+		copy.name = "%s_%d" % [name, holder.get_child_count()]
+		copy.mesh = mesh
+		holder.add_child(copy)
 	return holder
 
 
@@ -45,8 +59,8 @@ static func write(holder: Node3D, path: String) -> Error:
 	return error
 
 
-## Every mesh under [param node], placed by [param place], copied under [param holder].
-static func _gather(node: Node, holder: Node3D, place: Transform3D, span: Vector2) -> void:
+## Every mesh under [param node], placed by [param place], added to [param merged].
+static func _gather(node: Node, merged: Gathered, place: Transform3D, span: Vector2) -> void:
 	for child: Node in node.get_children():
 		var at := place
 		if child is Node3D:
@@ -54,21 +68,18 @@ static func _gather(node: Node, holder: Node3D, place: Transform3D, span: Vector
 				continue
 			at = place * (child as Node3D).transform
 		if child is MeshInstance3D and (child as MeshInstance3D).mesh != null:
-			var copy := _copy((child as MeshInstance3D).mesh, at, span)
-			if copy != null:
-				copy.name = "%s_%d" % [child.name, holder.get_child_count()]
-				holder.add_child(copy)
-		_gather(child, holder, at, span)
+			_add((child as MeshInstance3D).mesh, at, span, merged)
+		_gather(child, merged, at, span)
 
 
-## [param source], placed by [param place], as a plain mesh kept to [param span]; null
-## when nothing of it lies on the stretch.
-static func _copy(source: Mesh, place: Transform3D, span: Vector2) -> MeshInstance3D:
+## [param source], placed by [param place] into ship space and kept to [param span],
+## added to [param merged]; nothing when none of it lies on the stretch.
+static func _add(source: Mesh, place: Transform3D, span: Vector2, merged: Gathered) -> void:
 	var reach := place * source.get_aabb()
 	if reach.end.x < span.x or reach.position.x > span.y:
-		return null
+		return
 	var cut := reach.position.x < span.x or reach.end.x > span.y
-	var mesh := ArrayMesh.new()
+	var turn := place.basis.inverse().transposed()
 	for surface in source.get_surface_count():
 		if source is ArrayMesh:
 			var primitive := (source as ArrayMesh).surface_get_primitive_type(surface)
@@ -88,31 +99,17 @@ static func _copy(source: Mesh, place: Transform3D, span: Vector2) -> MeshInstan
 			upward.resize(points.size())
 			upward.fill(Vector3.UP)
 			normals = upward
-		var plain := []
-		plain.resize(Mesh.ARRAY_MAX)
+		var indices: Variant = arrays[Mesh.ARRAY_INDEX]
 		if cut:
-			var indices: Variant = arrays[Mesh.ARRAY_INDEX]
 			var kept := _clipped(points, normals, colours, indices, place, span)
-			if kept[0].is_empty():
-				continue
-			plain[Mesh.ARRAY_VERTEX] = kept[0]
-			plain[Mesh.ARRAY_NORMAL] = kept[1]
-			plain[Mesh.ARRAY_COLOR] = kept[2]
-		else:
-			plain[Mesh.ARRAY_VERTEX] = points
-			plain[Mesh.ARRAY_NORMAL] = normals
-			plain[Mesh.ARRAY_COLOR] = colours
-			plain[Mesh.ARRAY_INDEX] = arrays[Mesh.ARRAY_INDEX]
-		mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, plain)
-		var material := StandardMaterial3D.new()
-		material.vertex_color_use_as_albedo = true
-		mesh.surface_set_material(mesh.get_surface_count() - 1, material)
-	if mesh.get_surface_count() == 0:
-		return null
-	var copy := MeshInstance3D.new()
-	copy.mesh = mesh
-	copy.transform = Transform3D.IDENTITY if cut else place
-	return copy
+			if not kept[0].is_empty():
+				merged.add(kept[0], kept[1], kept[2], null)
+			continue
+		var turned := PackedVector3Array()
+		turned.resize(points.size())
+		for corner in points.size():
+			turned[corner] = (turn * (normals as PackedVector3Array)[corner]).normalized()
+		merged.add(place * points, turned, colours, indices)
 
 
 ## The triangles of one surface — [param points], [param normals] and [param colours]
@@ -195,3 +192,63 @@ static func _tint(material: Material) -> Color:
 			if value is Color:
 				return value
 	return BARE
+
+
+## Triangles in ship space gathered into few large meshes, each one vertex-coloured
+## surface of up to [constant CHUNK] corners.
+class Gathered:
+	extends RefCounted
+	var _done: Array[ArrayMesh] = []
+	var _points := PackedVector3Array()
+	var _normals := PackedVector3Array()
+	var _colours := PackedColorArray()
+	var _indices := PackedInt32Array()
+
+	## [param points], [param normals] and [param colours] by corner, [param indices]
+	## three to a triangle or null for one per three corners.
+	func add(
+		points: PackedVector3Array,
+		normals: PackedVector3Array,
+		colours: PackedColorArray,
+		indices: Variant
+	) -> void:
+		if not _points.is_empty() and _points.size() + points.size() > CHUNK:
+			_close()
+		var base := _points.size()
+		_points.append_array(points)
+		_normals.append_array(normals)
+		_colours.append_array(colours)
+		var order: PackedInt32Array
+		if indices == null or (indices as PackedInt32Array).is_empty():
+			order = PackedInt32Array(range(base, base + points.size()))
+		else:
+			order = indices
+			if base > 0:
+				for index in order.size():
+					order[index] += base
+		_indices.append_array(order)
+
+	## Every mesh gathered, the one still open closed.
+	func meshes() -> Array[ArrayMesh]:
+		_close()
+		return _done
+
+	func _close() -> void:
+		if _points.is_empty():
+			return
+		var plain := []
+		plain.resize(Mesh.ARRAY_MAX)
+		plain[Mesh.ARRAY_VERTEX] = _points
+		plain[Mesh.ARRAY_NORMAL] = _normals
+		plain[Mesh.ARRAY_COLOR] = _colours
+		plain[Mesh.ARRAY_INDEX] = _indices
+		var mesh := ArrayMesh.new()
+		mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, plain)
+		var material := StandardMaterial3D.new()
+		material.vertex_color_use_as_albedo = true
+		mesh.surface_set_material(0, material)
+		_done.append(mesh)
+		_points = PackedVector3Array()
+		_normals = PackedVector3Array()
+		_colours = PackedColorArray()
+		_indices = PackedInt32Array()

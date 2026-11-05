@@ -51,6 +51,44 @@ func test_a_stretch_keeps_only_what_lies_on_it() -> void:
 	assert_lt(corners.size(), everywhere.size(), "less of her than all of her")
 
 
+func test_her_art_is_merged_into_few_meshes_in_ship_space() -> void:
+	var holder := ArtGltf.flattened(_art, "Merged")
+	var merged := _corners(holder)
+	var meshes := holder.get_child_count()
+	holder.free()
+	var shown := _shown(_art)
+	assert_gt(shown.size(), 0, "her art has corners")
+	assert_eq(meshes, ceili(float(merged.size()) / ArtGltf.CHUNK), "as few meshes as hold them")
+	assert_eq(merged.size(), shown.size(), "every corner of hers, and no other")
+	var unmatched := 0
+	for corner in shown.size():
+		if not merged[corner].is_equal_approx(shown[corner]):
+			unmatched += 1
+	assert_eq(unmatched, 0, "each where her art stands it, in ship space, in order")
+
+
+## Every corner of every triangle mesh shown under [param node], placed in its frame.
+func _shown(node: Node, place := Transform3D.IDENTITY) -> PackedVector3Array:
+	var found := PackedVector3Array()
+	for child: Node in node.get_children():
+		var at := place
+		if child is Node3D:
+			if not (child as Node3D).visible:
+				continue
+			at = place * (child as Node3D).transform
+		if child is MeshInstance3D and (child as MeshInstance3D).mesh != null:
+			var mesh := (child as MeshInstance3D).mesh
+			for surface in mesh.get_surface_count():
+				if mesh is ArrayMesh:
+					var primitive := (mesh as ArrayMesh).surface_get_primitive_type(surface)
+					if primitive != Mesh.PRIMITIVE_TRIANGLES:
+						continue
+				var points: PackedVector3Array = mesh.surface_get_arrays(surface)[Mesh.ARRAY_VERTEX]
+				found.append_array(at * points)
+		found.append_array(_shown(child, at))
+	return found
+
+
 ## Every corner of every mesh under [param node], placed in its frame.
 func _corners(node: Node, place := Transform3D.IDENTITY) -> PackedVector3Array:
 	var found := PackedVector3Array()
