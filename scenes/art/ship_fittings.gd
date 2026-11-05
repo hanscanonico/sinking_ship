@@ -107,6 +107,9 @@ const CABLE_HOLDER := &"cable holder"
 ## How near two pieces of the fore deck meet to carry a cable's line on from one to the
 ## next (_reach): ship-plane noise.
 const PIECE_JOIN := 0.001
+## The post a deck held up open under it stands on (DeckFurniture.GEAR): no break's
+## face to its edges (breaks()).
+const STANCHION := &"stanchion"
 ## The modelled bell (assets/models/bell): its origin where its bracket meets the
 ## mast's after face, at BELL over the deck, the bracket reaching aft (−x) BELL_REACH
 ## and the bell hung under its end; and its box over all there.
@@ -181,13 +184,19 @@ func build(mesh: ShipMesh, ship: Node3D = null, paints := {}) -> void:
 
 ## Where a deck ends over a lower one with no room of that deck's under its edge, and
 ## no deck between them ending under it — a break in the decks, as a poop's forward
-## face or a forecastle's after face — on [param space]: per break [x, from z, to z,
+## face or a forecastle's after face, never the edge of a deck held up on stanchions
+## (on_stanchions()), open under it — on [param space]: per break [x, from z, to z,
 ## foot, head, out], its face along x between the decks' heights, facing out (1 toward
 ## the bow, -1 toward the stern).
 static func breaks(space: ShipSpace) -> Array:
 	var found := []
+	var stanchions := space.layout.blockers.filter(
+		func(blocker: ShipBlocker) -> bool: return blocker.name == STANCHION
+	)
 	for platform: ShipPlatform in space.layout.platforms:
 		var area := platform.area
+		if on_stanchions(platform, stanchions):
+			continue
 		for out: float in [-1.0, 1.0]:
 			var x := area.position.x if out < 0.0 else area.end.x
 			var run := []
@@ -237,6 +246,18 @@ static func _hole_past(
 			continue
 		var past := Vector2((area.end.x if out > 0.0 else area.position.x) + out * 0.05, z)
 		if is_equal_approx(space.deck_under(past, platform.height + 0.01), platform.height):
+			return true
+	return false
+
+
+## Whether [param platform] is held up on one of [param stanchions] (STANCHION), standing
+## under it up to its deck: as her docking bridge over her poop, open under its edges.
+static func on_stanchions(platform: ShipPlatform, stanchions: Array) -> bool:
+	for stanchion: ShipBlocker in stanchions:
+		if (
+			is_equal_approx(stanchion.top, platform.height)
+			and platform.area.has_point(stanchion.centre)
+		):
 			return true
 	return false
 
