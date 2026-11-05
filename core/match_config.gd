@@ -22,6 +22,10 @@ var goal := MatchRules.Goal.LAST_STANDING
 ## How bonuses come aboard (#307): the match data's bonus rules, or null for a match
 ## without bonuses.
 var bonus_rules: BonusRules
+## How many of the must-sink rule's bakes may run side by side (MustSink.Choosing), set
+## before they begin: 1, the default, bakes them one after another; a scene or tool sets
+## it from the machine. Either way the sinking is the same.
+var bake_workers := 1
 ## Its sinking, baked once from the ship, the scenario and the seed (schedule()): match
 ## data every MatchSim of this match shares, so a sim resumed from a snapshot never
 ## bakes it again (D5). The must-sink rule's bake may run a slice at a time first
@@ -123,8 +127,15 @@ func bake_some(steps: int) -> bool:
 	if _choosing == null:
 		var sink_stream := SeedStreams.derive(match_seed, "sink")
 		var sea := SeaPhysics.load_default()
-		_choosing = MustSink.Choosing.new(ship.structure, scenario, sink_stream, sea)
+		_choosing = MustSink.Choosing.new(ship.structure, scenario, sink_stream, sea, bake_workers)
 	return _choosing.work(steps)
+
+
+## Stops its bakes running side by side, each at the end of its step: bake_some takes
+## them on from there.
+func halt_bake() -> void:
+	if _choosing != null:
+		_choosing.halt()
 
 
 ## The steps its bakes have taken so far, for a scene's progress.

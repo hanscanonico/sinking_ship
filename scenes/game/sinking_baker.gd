@@ -70,6 +70,7 @@ class Bake:
 			var stopping := _stopping
 			_lock.unlock()
 			if stopping:
+				config.halt_bake()
 				return
 			var began := Time.get_ticks_usec()
 			made = config.bake_some(SinkingBaker.STEPS_PER_LOOK)
@@ -198,9 +199,19 @@ func _start(config: MatchConfig) -> void:
 				% [(Time.get_ticks_usec() - _started_usec) / 1e6]
 			)
 		)
+	if _budget_usec == 0:
+		config.bake_workers = workers()
 	_bake = Bake.new(config, _budget_usec)
 	if not _bake.made():
 		_task = WorkerThreadPool.add_task(_bake.run, false, "Sinking bake")
+
+
+## How many of a sinking's bakes run side by side here (MatchConfig.bake_workers): one
+## a core but the main thread's, or one where the build has no threads (the web's).
+static func workers() -> int:
+	if not OS.has_feature("threads"):
+		return 1
+	return maxi(1, OS.get_processor_count() - 1)
 
 
 ## [param made]'s sinking is made: the config wanted is told, when it is that sinking.

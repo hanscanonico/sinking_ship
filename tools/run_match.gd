@@ -90,6 +90,7 @@ func _initialize() -> void:
 	if config == null:
 		quit(1)
 		return
+	config.bake_workers = SinkingBaker.workers()
 	var started := Time.get_ticks_usec()
 	var cache := BakeCache.when(args.bake_cache)
 	var cached := cache != null and cache.take(config)

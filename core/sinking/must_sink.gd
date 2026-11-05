@@ -151,6 +151,13 @@ static func _hit_bits(choice: Choice) -> PackedInt64Array:
 ## and draw again while the bake leaves her afloat, within quick_redraws and bakes; then
 ## the fallback's rungs, the first the quick check founders on baked; then the sure hit,
 ## with every door and porthole shut. An explicit hit is baked once, as given.
+##
+## Given workers, the bakes run side by side first (_plan): the rule is walked once ahead
+## on a copy of the stream with every bake left unbaked — so afloat — which starts every
+## bake the rule could ever start, in the order it would, since the rule only ever stops
+## early on a bake that passes. Those bakes run on up to that many of WorkerThreadPool's
+## threads, each on its own, those past one that passes stopped; then the rule runs as it
+## always does, taking each bake it starts from them. The choice is the very one.
 class Choosing:
 	enum Stage { DRAWING, BAKING, RUNGS, BAKING_RUNG, SURE, BAKING_SURE, GIVEN, DONE }
 
@@ -174,19 +181,44 @@ class Choosing:
 	var _bake: SinkBake
 	## The steps every bake has taken so far.
 	var _steps := 0
+	## How many bakes may run side by side; 1 for one after another, on the caller's
+	## thread.
+	var _workers := 1
+	## The walk ahead (_plan): whether this is it, which leaves every bake unbaked; and
+	## whether it was taken.
+	var _dry := false
+	var _planned_once := false
+	## Every bake the rule could start, in the order it would, and how many it has taken.
+	var _planned: Array[SinkBake] = []
+	var _started := 0
+	## The group task baking _planned's bakes listed in _queue, -1 while none runs. Under
+	## _lock, shared with its threads: the first of them that passes, those that have
+	## ended, the steps they took, and whether they are to stop; each step and end posts
+	## _stepped.
+	var _group := -1
+	var _queue := PackedInt32Array()
+	var _lock := Mutex.new()
+	var _stepped := Semaphore.new()
+	var _passed := 1 << 62
+	var _ended := 0
+	var _taken := 0
+	var _halting := false
 
 	## The rule for [param structure] under [param scenario], drawing from
-	## [param sink_stream] — none for an explicit hit — with [param sea]'s physics.
+	## [param sink_stream] — none for an explicit hit — with [param sea]'s physics, its
+	## bakes up to [param workers] side by side.
 	func _init(
 		structure: ShipStructure,
 		scenario: SinkScenario,
 		sink_stream: RandomNumberGenerator,
-		sea: SeaPhysics
+		sea: SeaPhysics,
+		workers := 1
 	) -> void:
 		_structure = structure
 		_scenario = scenario
 		_stream = sink_stream
 		_sea = sea
+		_workers = workers
 		_bands = scenario.hit if scenario.hit != null else HitBands.new()
 		_hull = LevelHull.new(structure.sections)
 		if scenario.explicit_hit != null:
@@ -200,6 +232,10 @@ class Choosing:
 
 	## Goes on for up to [param steps] of the bakes' steps; whether it is done.
 	func work(steps: int) -> bool:
+		if _workers > 1 and steps > 0 and not _planned_once and _stage == Stage.DRAWING:
+			_plan()
+		if not _side_by_side(steps):
+			return false
 		var left := steps
 		while _stage != Stage.DONE and left > 0:
 			if _bake != null:
@@ -215,13 +251,107 @@ class Choosing:
 	func is_done() -> bool:
 		return _stage == Stage.DONE
 
-	## The steps its bakes have taken so far.
+	## The steps its bakes have taken so far: once done, those of the bakes the rule
+	## started, as baked one after another.
 	func steps() -> int:
-		return _steps
+		if _stage == Stage.DONE:
+			return _steps
+		_lock.lock()
+		var taken := _taken
+		_lock.unlock()
+		return maxi(_steps, taken)
 
 	## What it chose, once done; null before.
 	func choice() -> Choice:
 		return _chosen
+
+	## Stops the bakes running side by side, each at the end of its step, and waits for
+	## them: work() takes them on from there.
+	func halt() -> void:
+		if _group < 0:
+			return
+		_lock.lock()
+		_halting = true
+		_lock.unlock()
+		WorkerThreadPool.wait_for_group_task_completion(_group)
+		_group = -1
+		_lock.lock()
+		_halting = false
+		_lock.unlock()
+		_requeue()
+
+	## Walks the rule ahead on a copy of the stream, every bake left unbaked so afloat:
+	## every bake it could start, in its order, to bake side by side.
+	func _plan() -> void:
+		_planned_once = true
+		var stream := RandomNumberGenerator.new()
+		stream.seed = _stream.seed
+		stream.state = _stream.state
+		var ahead := Choosing.new(_structure, _scenario, stream, _sea)
+		ahead._dry = true
+		while ahead._stage != Stage.DONE:
+			ahead._advance()
+		_planned = ahead._planned
+		_requeue()
+
+	## Lists the planned bakes still to bake: not over, nor past the first that passes.
+	func _requeue() -> void:
+		_queue = PackedInt32Array()
+		for index in _planned.size():
+			if index <= _passed and not _planned[index].is_done():
+				_queue.append(index)
+
+	## Bakes the queued bakes side by side for up to [param steps] of their steps between
+	## them; whether they are over — at once for none.
+	func _side_by_side(steps: int) -> bool:
+		if _group < 0:
+			if _queue.is_empty() or steps <= 0:
+				return _queue.is_empty()
+			_lock.lock()
+			_ended = 0
+			_lock.unlock()
+			var threads := mini(_workers, _queue.size())
+			_group = WorkerThreadPool.add_group_task(
+				_bake_queued, _queue.size(), threads, true, "Sinking bakes"
+			)
+		var left := steps
+		while true:
+			_lock.lock()
+			var over := _ended == _queue.size()
+			_lock.unlock()
+			if over:
+				break
+			if left <= 0:
+				return false
+			_stepped.wait()
+			left -= 1
+		WorkerThreadPool.wait_for_group_task_completion(_group)
+		_group = -1
+		_requeue()
+		return _queue.is_empty()
+
+	## On a thread of the group: bakes the [param slot]th queued bake to its end, or until
+	## told to halt or an earlier bake passes.
+	func _bake_queued(slot: int) -> void:
+		var index := _queue[slot]
+		var bake := _planned[index]
+		while not bake.is_done():
+			_lock.lock()
+			var stopping := _halting or index > _passed
+			_lock.unlock()
+			if stopping:
+				break
+			bake.run(1)
+			_lock.lock()
+			_taken += 1
+			_lock.unlock()
+			_stepped.post()
+		_lock.lock()
+		if bake.is_done() and MustSink.played(bake.end()):
+			_passed = mini(_passed, index)
+		_ended += 1
+		_lock.unlock()
+		_stepped.post()
 
 	## Moves on from where the rule stands — a bake just over, or a draw to make — to
 	## the next bake, or to its end.
@@ -311,9 +441,18 @@ class Choosing:
 				return
 		_stage = Stage.SURE
 
+	## Starts the bake of [param damage] to [param cap]: the one planned for it, when the
+	## bakes ran side by side.
 	func _start(damage: HitDamage, cap: float) -> void:
 		damage.sea_depth = _scenario.sea_depth
-		_bake = SinkBake.of(_structure, damage, _sea, cap)
+		if not _dry and _started < _planned.size():
+			_bake = _planned[_started]
+			_steps += _bake.steps()
+		else:
+			_bake = SinkBake.of(_structure, damage, _sea, cap)
+			if _dry:
+				_planned.append(_bake)
+		_started += 1
 
 	## How far a drawn hit, or a rung of the fallback, is baked: the scenario's bound
 	## (sinks_within), never past its cap.
@@ -324,6 +463,10 @@ class Choosing:
 	## Ends the rule on [param chosen]: its bake made its timeline — compacted only now,
 	## for the one bake kept — stamped with how it was come by.
 	func _finish(chosen: Choice) -> void:
+		if _dry:
+			_stage = Stage.DONE
+			return
+		_planned.clear()
 		chosen.draws = _drawn.draws
 		chosen.thrown = _drawn.thrown
 		chosen.timeline = _bake.timeline()
