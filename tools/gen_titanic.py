@@ -699,6 +699,14 @@ def breadth(x, y):
 # one deck and in one of its two cells (forecastle, forecastle_head).
 FCSL_STEP = 109.0625
 FCSL = (q(B_DECK + 1.56), q(B_DECK + 2.16))  # SB-III: C's sheer at x 91–108 and 108–128
+# The stair a body climbs from her fo'c'sle deck to her forecastle head (est.: the plates draw
+# her sheer, no step; the owner's ruling of 2026-11-05, #348): as wide as her hull, so nothing
+# beside it is open to C deck under it, and forward of the wall under it (FCSL_STEP) on her
+# fo'c'sle deck, between her after capstans (Plate IV, rings to x 110.26) and her cable
+# holders (from x 112.75), with 0.8 m of deck clear between each and it: 0.625 m up over
+# 0.875 m, within STEEPEST. Her sheer steps at its head, so her shell's top and her plating
+# stand at her fo'c'sle deck under it, never over its treads.
+FC_RAMP = (111.0625, 111.9375)
 POOP = q(B_DECK + 0.56)                    # SB-III: C's sheer at x −107…−130
 
 # Her sheer forward of her bridge deck's front (#399, the owner's ruling of 2026-11-03): D deck
@@ -750,7 +758,7 @@ STEPS_AT["B"] = (G_DECK, d_at(UPPER["B"]))
 
 def top_at(x):
     """Her shell's top at x: her forecastle, her well decks, her bridge deck, her poop."""
-    if x >= FCSL_STEP:
+    if x >= FC_RAMP[1]:
         return FCSL[1]
     if x >= FCSL_FROM:
         return FCSL[0]
@@ -1446,13 +1454,17 @@ def rail_taper(rid, strips, open_ends=()):
         gaps = next((g for end, g in open_ends if abs(end - x) < 1e-3), ())
         rail_line("%s_end_%d" % (rid, int(abs(x))), [index], 0, x, -w, w, gaps)
 
-FC1 = tapered("fcsl", "forecastle", FCSL_FROM, FCSL_STEP, FCSL[0], 4.0, 0.05)
-FC_RAMP = (FCSL_STEP, FCSL_STEP + 3.0)
-FC2 = tapered("fcsl_head", "forecastle", FC_RAMP[1], 128.0, FCSL[1], 3.0, 0.05)
+FC1 = tapered("fcsl", "forecastle", FCSL_FROM, FC_RAMP[0], FCSL[0], 4.0, 0.05)
+# Her forecastle head from the step's head, its first strip short so it stands about as wide
+# as the step it meets (her hull narrowing forward of it): no corner of the step's head
+# open past the deck.
+FC_HEAD_STEP = 0.5
+FC2 = (tapered("fcsl_head_step", "forecastle", FC_RAMP[1], FC_RAMP[1] + FC_HEAD_STEP, FCSL[1], FC_HEAD_STEP, 0.05)
+       + tapered("fcsl_head", "forecastle", FC_RAMP[1] + FC_HEAD_STEP, 128.0, FCSL[1], 3.0, 0.05))
 fc1 = [s[0] for s in FC1]
 fc2 = [s[0] for s in FC2]
 FC1W = FC1[0][3]
-FCRW = min(FC1[-1][3], FC2[0][3])
+FCRW = min([fit(FC_RAMP[0], FC_RAMP[1], h, 0.05) for h in FCSL] + [FC1[-1][3], FC2[0][3]])
 ramp("forecastle_step", FC_RAMP[0], FC_RAMP[1], -FCRW, FCRW, 0, FCSL[0], FCSL[1])
 # The poop deck from over C deck's rooms under it (C_PLAN) to her counter's end, in strips
 # as C deck's (hull_strips).
@@ -1504,7 +1516,7 @@ rail_line("well_port", well, 2, -CW, WELL[0], WELL[1])
 rail_line("well_starboard", well, 2, CW, WELL[0], WELL[1])
 rail_line("aft_well_port", aft_well, 2, -AW, AFT_WELL[0], AFT_WELL[1])
 rail_line("aft_well_starboard", aft_well, 2, AW, AFT_WELL[0], AFT_WELL[1])
-rail_taper("fcsl", FC1, [(FCSL_FROM, lanes_of("forecastle_")), (FCSL_STEP, [(-FCRW, FCRW)])])
+rail_taper("fcsl", FC1, [(FCSL_FROM, lanes_of("forecastle_")), (FC_RAMP[0], [(-FCRW, FCRW)])])
 rail_taper("fcsl_head", FC2, [(FC_RAMP[1], [(-FCRW, FCRW)])])
 rail_taper("poop", POOP_STRIPS, [(POOP_TO, lanes_of("poop_"))])
 # C deck's: along her side under the decks over it where no room of hers stands by it — her
@@ -3024,7 +3036,7 @@ SECTION_MAX = next(m / 100 for m in range(4000, 100, -1) if section_spans(m / 10
 # (And her stepped bulkheads' other stretches, so her cells' faces stand on breaks, her frames
 # otherwise as they stood.)
 SECTION_BREAKS = sorted(set(FRAME_BREAKS) | {round(x, 4) for x0, x1, *_r in HOUSES for x in (x0, x1)}
-                        | {BX["M"], UPPER["B"]})
+                        | {BX["M"], UPPER["B"], FC_RAMP[1]})
 # Each section from one break to the next, its ends shared with its neighbours', so they
 # tile her: a point on a bulkhead's line is in one of them, the one forward of it
 # (HullSection's span takes its after end, not its forward one). Each end stands one or two
