@@ -835,13 +835,16 @@ static func is_funnel(layout: ShipLayout, blocker: ShipBlocker) -> bool:
 	return FunnelArt.fitting_of(layout, blocker) != null
 
 
-## A wall, a funnel, a mast, a ventilator or a box on an open deck (DeckFurniture), by
-## its shape and where it stands — an engine standing in a room is the room's own
-## (RoomDressing). A blocker a deck rests on stops a plank short of its top, so the deck
-## shows. A funnel the sinking can fell stands over its foot on a piece of its own among
-## [param pieces], its smoke with it.
+## A piece of her deck gear by its name; else a wall, a funnel, a mast, a ventilator or a
+## box on an open deck (DeckFurniture), by its shape and where it stands — an engine
+## standing in a room is the room's own (RoomDressing). A blocker a deck rests on stops a
+## plank short of its top, so the deck shows. A funnel the sinking can fell stands over
+## its foot on a piece of its own among [param pieces], its smoke with it.
 func _blocker(mesh: ShipMesh, blocker: ShipBlocker, pieces: Dictionary) -> void:
 	var top := blocker.top - (PLANK if _space.deck_on(blocker) else 0.0)
+	if DeckFurniture.is_gear(blocker):
+		DeckFurniture.build(mesh, _space, blocker, top)
+		return
 	if blocker.shape == ShipBlocker.Shape.CYLINDER:
 		var felled := FunnelArt.fitting_of(_space.layout, blocker)
 		if felled != null:

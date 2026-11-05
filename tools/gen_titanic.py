@@ -146,12 +146,15 @@ def ramp(rid, x0, x1, z0, z1, axis, start, end):
         f.append(("end_height", num(end)))
     ramps.append(sub("Ramp_" + rid, "2_ramp", f))
 
-def box(bid, x0, x1, z0, z1, bottom, top):
+def box(bid, x0, x1, z0, z1, bottom, top, name=None):
+    """A box blocker; given name, a piece of her deck gear by it (gear(), GEAR)."""
     block_geo.append((x0, x1, z0, z1, bottom, top, True))
     f = [("area", rect_xz(x0, x1, z0, z1))]
     if bottom != 0.0:
         f.append(("bottom", num(bottom)))
     f.append(("top", num(top)))
+    if name:
+        f.append(("name", '&"%s"' % name))
     blockers.append(sub("Blocker_" + bid, "3_block", f))
 
 def drop_box(bid):
@@ -174,13 +177,44 @@ def relay_box(bid, x0, x1, z0, z1, bottom, top):
     body = ["[sub_resource type=\"Resource\" id=\"%s\"]" % kind_id, "script = ExtResource(\"3_block\")"]
     subs[at] = "\n".join(body + ["%s = %s" % kv for kv in f])
 
-def cylinder(bid, cx, cz, r, bottom, top):
+def cylinder(bid, cx, cz, r, bottom, top, name=None):
+    """A round blocker; given name, a piece of her deck gear by it (gear(), GEAR)."""
     block_geo.append((cx - r, cx + r, cz - r, cz + r, bottom, top, False))
     f = [("shape", "1"), ("centre", "Vector2(%s, %s)" % (num(cx), num(cz))), ("radius", num(r))]
     if bottom != 0.0:
         f.append(("bottom", num(bottom)))
     f.append(("top", num(top)))
+    if name:
+        f.append(("name", '&"%s"' % name))
     blockers.append(sub("Blocker_" + bid, "3_block", f))
+
+# Her deck gear, each kind at the sizes her plates draw it, as DeckFurniture.GEAR declares
+# them (tests/unit/art/test_deck_furniture.gd holds every named blocker to one): (its longer
+# side, its height, its shorter side), a round piece's diameter for both sides; its heights
+# est. but the docking bridge's stanchions', which are its deck's (POOP_BRIDGE below).
+ROUND_GEAR = ("capstan", "stanchion")
+GEAR = {
+    "capstan": [(1.625, 0.9375, 1.625)],
+    "electric crane": [(1.5, 2.5, 1.5)],
+    "electric winch": [(1.0, 1.0, 0.75), (1.875, 1.0, 0.875), (1.5625, 1.0, 1.125), (2.3125, 1.0, 1.125)],
+    "wheel stand": [(0.75, 1.25, 0.625)],
+    "stanchion": [(0.125, 2.625, 0.125)],
+}
+
+def gear(bid, kind, x0, x1, z0, z1, bottom):
+    """A piece of her gear of kind where its plate draws it, x0..x1 by z0..z1 (its ink's box,
+    or its place): the size of its kind nearest that box laid on its middle, its longer side
+    the way the box's is — a round piece's axis there — from bottom, on the grain."""
+    along_x = x1 - x0 >= z1 - z0
+    longer, shorter = (x1 - x0, z1 - z0) if along_x else (z1 - z0, x1 - x0)
+    size = min(GEAR[kind], key=lambda s: abs(s[0] - longer) + abs(s[2] - shorter))
+    mx, mz = (x0 + x1) * 0.5, (z0 + z1) * 0.5
+    if kind in ROUND_GEAR:
+        cylinder(bid, q(mx), q(mz), size[0] / 2, bottom, bottom + size[1], kind)
+        return
+    sx, sz = (size[0], size[2]) if along_x else (size[2], size[0])
+    gx, gz = q(mx - sx / 2), q(mz - sz / 2)
+    box(bid, gx, gx + sx, gz, gz + sz, bottom, bottom + size[1], kind)
 
 # A railing breaks span by span (SH10), as the steamer's: a run longer than
 # RAIL_SECTION is laid as touching spans of about that length.
@@ -1680,6 +1714,11 @@ def plan_layer(prefix, plan, floor, ceiling, breaks=(), parted_at=(), place=None
     for k, (what, x0, x1, z0, z1, top) in enumerate(plan.solids):
         floor = level((x0 + x1) * 0.5)
         sid, high = "%s_%d_%s" % (prefix, k, slug(what)), over((x0 + x1) * 0.5) if top is None else floor + top
+        if what in GEAR:
+            # A piece of her gear the plate draws on its deck, at its kind's size (GEAR).
+            assert top is not None and any(abs(s[1] - top) < 1e-9 for s in GEAR[what]), what
+            gear(sid, what, x0, x1, z0, z1, floor)
+            continue
         if top is not None or not any(r[1] < (x0 + x1) / 2 < r[2] and r[3] < (z0 + z1) / 2 < r[4] for r in plan.rooms):
             box(sid, x0, x1, z0, z1, floor, high)
             continue
@@ -2464,6 +2503,69 @@ DECK_VENTS += [(name, x, sign * z, r, deck) for name, x, z, r, deck in [
 for name, x, z, r, foot in DECK_VENTS:
     side = "" if z == 0.0 else ("_s" if z > 0.0 else "_p")
     cylinder("vent_%s%s" % (name, side), x, z, r, foot, foot + VENTS[r])
+# Her poop's gear and the docking bridge over it, as Plate IV draws them (POOP_PLAN, #381):
+# each piece of her gear where the plate draws it, at its kind's size (GEAR). The docking
+# bridge's deck POOP_BRIDGE over the poop's, across her where the plate dashes it, out to
+# her sides as far as the poop's narrowest strip under it reaches; on stanchions (est.:
+# Plate III's elevation draws a trestle), at each of its corners and along its edges across
+# her STANCHION_SPAN apart at most, but where its deck carries on past the edge or the
+# ladder comes up; railed round but at the head of its ladder up from the poop; and on her
+# centre line its wheel stand ("controlled ... from the docking bridge aft by mechanical
+# means", the special number), in the middle of its deck fore and aft (est.).
+POOP_PLAN = plates.load("poop")
+for k, (kind, x0, x1, z0, z1) in enumerate(POOP_PLAN.gear):
+    gear("poop_%d_%s" % (k, slug(kind)), kind, x0, x1, z0, z1, POOP)
+assert len({b[5] for b in POOP_PLAN.bridges}) == 1, "the docking bridge stands at one height"
+POOP_BRIDGE = q(POOP + POOP_PLAN.bridges[0][5])
+STANCHION = GEAR["stanchion"][0][0] / 2
+assert abs(POOP + GEAR["stanchion"][0][1] - POOP_BRIDGE) < 1e-9, "a stanchion stands up to the bridge"
+STANCHION_SPAN = 4.0
+BRIDGE_PIECES = []
+for _name, x0, x1, z0, z1, _height in POOP_PLAN.bridges:
+    if z0 is None:
+        half = min(w for _i, a, b, w in POOP_STRIPS if a < x1 and b > x0)
+        z0, z1 = -half, half
+    BRIDGE_PIECES.append((x0, x1, z0, z1))
+docking_bridge = [platform("docking_bridge_%d" % k, "docking bridge", *piece, POOP_BRIDGE)
+                  for k, piece in enumerate(BRIDGE_PIECES)]
+BRIDGE_LADDERS = []
+for name, x0, x1, z0, z1, rises, lower, upper in POOP_PLAN.stairs:
+    assert (rises, lower, upper) == ("fore", "poop", "docking bridge"), name
+    stair(slug(name), x0, x1, z0, z1, POOP, POOP_BRIDGE, [])
+    BRIDGE_LADDERS.append((x1, z0, z1))
+
+def carried_on(edge, side, along, piece):
+    """Whether another piece of the docking bridge carries its deck on past piece's edge at
+    x = edge (its after edge for side -1, its forward edge for side 1), at z along."""
+    for other in BRIDGE_PIECES:
+        near = other[1] if side < 0 else other[0]
+        if other is not piece and abs(near - edge) < 1e-6 and other[2] - 1e-6 <= along <= other[3] + 1e-6:
+            return True
+    return False
+
+BODY_WIDTH = 2 * rule("body_radius")
+posts = 0
+for piece in BRIDGE_PIECES:
+    x0, x1, z0, z1 = piece
+    count = max(1, math.ceil((z1 - z0 - 2 * STANCHION) / STANCHION_SPAN - 1e-9))
+    # Its outermost on the grain inside the deck's edge, never a hair over it.
+    lo, hi = math.ceil((z0 + STANCHION) * 16 - 1e-9) / 16, math.floor((z1 - STANCHION) * 16 + 1e-9) / 16
+    for side, edge in [(-1, x0), (1, x1)]:
+        for j in range(count + 1):
+            z = min(max(q(lerp(lo, hi, j / count)), lo), hi)
+            # None where its deck carries on, nor in a body's way to its ladder's head.
+            if carried_on(edge, side, z, piece) or any(
+                    abs(edge - lx) < 1e-6 and lz0 - BODY_WIDTH - STANCHION < z < lz1 + BODY_WIDTH + STANCHION
+                    for lx, lz0, lz1 in BRIDGE_LADDERS):
+                continue
+            x = edge - side * STANCHION
+            gear("docking_bridge_stanchion_%d" % posts, "stanchion", x, x, z, z, POOP)
+            posts += 1
+outline_rails("docking_bridge", BRIDGE_PIECES, docking_bridge, [(0, lx, lz0, lz1) for lx, lz0, lz1 in BRIDGE_LADDERS])
+WHEEL_AT = (BRIDGE_PIECES[0][0] + BRIDGE_PIECES[1][1]) * 0.5
+wheel = GEAR["wheel stand"][0]
+gear("docking_bridge_wheel_stand", "wheel stand", WHEEL_AT - wheel[2] / 2, WHEEL_AT + wheel[2] / 2,
+     -wheel[0] / 2, wheel[0] / 2, POOP_BRIDGE)
 # Benches, teak seats with low backs, BENCH long, deep and tall, each backed onto what
 # stands behind it: along A deck's house on both its promenades between its doors, a bench
 # every BENCH_PITCH.

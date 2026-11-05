@@ -12,10 +12,42 @@ extends RefCounted
 ## art-lint holds every blocker drawn, so a body is held off the whole of it and it reads
 ## solid there; a boat fills its box over its stems, a bench's back and arms stand under
 ## a step over its seat, and a ventilator's cowl spreads over its trunk only over head
-## height — and the box is sim data that never grows to fit a piece (D6).
+## height — and the box is sim data that never grows to fit a piece (D6). Her deck gear —
+## a capstan, a winch, a crane — goes by its name instead (GEAR): its plate says what it
+## is, and no shape does.
 
 ## What a box, or a ventilator's cylinder, on an open deck is drawn as (piece_of()).
-enum Piece { HATCH, CASING, SKYLIGHT, LOCKER, POST, BOAT, BENCH, VENT }
+enum Piece { HATCH, CASING, SKYLIGHT, LOCKER, POST, BOAT, BENCH, VENT, GEAR }
+
+## Her deck gear, by the name its blocker carries (ShipBlocker.name): each kind made at
+## the sizes her plates draw it, each size over all — its longer side, its height, its
+## shorter side; a round piece's diameter, height and diameter — to the model that
+## dresses it (assets/models/NAME), "" for one drawn by code alone. A blocker so named
+## stands at one of its kind's sizes, its longer side along x or z, and is drawn to it.
+## Until a kind's model is modelled (#381), it is drawn as its envelope, plain.
+const GEAR := {
+	# A warping capstan's drum on her poop (Plate IV), its height est.
+	&"capstan": {Vector3(1.625, 0.9375, 1.625): "capstan_162"},
+	# An electric crane's pedestal and machinery (Plates III and IV), its height est.
+	&"electric crane": {Vector3(1.5, 2.5, 1.5): "electric_crane"},
+	# An electric winch, at the four sizes her plates draw: the boats' on the boat deck,
+	# aft and forward; the after well's; the forward well's and the poop's. Heights est.
+	&"electric winch":
+	{
+		Vector3(1.0, 1.0, 0.75): "electric_winch_100",
+		Vector3(1.875, 1.0, 0.875): "electric_winch_188",
+		Vector3(1.5625, 1.0, 1.125): "electric_winch_156",
+		Vector3(2.3125, 1.0, 1.125): "electric_winch_231",
+	},
+	# The docking bridge's steering wheel on its pedestal (est.).
+	&"wheel stand": {Vector3(0.75, 1.25, 0.625): "docking_wheel"},
+	# A steel post the docking bridge stands on, from her poop to its deck (est.).
+	&"stanchion": {Vector3(0.125, 2.625, 0.125): ""},
+}
+## The kinds of her gear that stand round, each a cylinder; the rest are boxes.
+const ROUND_GEAR: Array[StringName] = [&"capstan", &"stanchion"]
+## The facets round a round piece of gear drawn as its envelope.
+const GEAR_SEGMENTS := 16
 
 ## How near the height of the deck a box stands on a hatch opening lies, to be its hatch.
 const HATCH_AT := 0.1
@@ -101,9 +133,10 @@ const HOOK_ARM := Vector2(0.06, 0.05)
 const HOOK_RISE := 0.12
 
 
-## [param blocker], a box standing on an open deck of [param space]'s ship or a
-## ventilator (is_vent()), drawn into [param mesh] to [param top] — its own top, or a
-## plank short of it where a deck rests on it — as piece_of() says it is.
+## [param blocker], a box standing on an open deck of [param space]'s ship, a
+## ventilator (is_vent()) or a piece of her gear (is_gear()), drawn into [param mesh] to
+## [param top] — its own top, or a plank short of it where a deck rests on it — as
+## piece_of() says it is.
 static func build(mesh: ShipMesh, space: ShipSpace, blocker: ShipBlocker, top: float) -> void:
 	var area := blocker.area
 	match piece_of(space, blocker):
@@ -128,15 +161,20 @@ static func build(mesh: ShipMesh, space: ShipSpace, blocker: ShipBlocker, top: f
 			bench(mesh, blocker, back_of(space.layout, blocker))
 		Piece.VENT:
 			vent(mesh, blocker)
+		Piece.GEAR:
+			gear(mesh, blocker, top)
 
 
-## What [param blocker], a box on an open deck of [param space]'s ship or a ventilator
-## (is_vent()), is drawn as: a ventilator's cylinder its cowl; a hatch's coaming where she
-## has no structure to say otherwise; a casing where a deck rests on it; a hatch's
-## coaming where one of her structure's hatch openings lies under it in the deck it
-## stands on; a boat where it stands at one of her boat stations; else by its shape.
+## What [param blocker], a box on an open deck of [param space]'s ship, a ventilator
+## (is_vent()) or a piece of her gear (is_gear()), is drawn as: her gear by its name; a
+## ventilator's cylinder its cowl; a hatch's coaming where she has no structure to say
+## otherwise; a casing where a deck rests on it; a hatch's coaming where one of her
+## structure's hatch openings lies under it in the deck it stands on; a boat where it
+## stands at one of her boat stations; else by its shape.
 static func piece_of(space: ShipSpace, blocker: ShipBlocker) -> Piece:
 	var layout := space.layout
+	if is_gear(blocker):
+		return Piece.GEAR
 	if blocker.shape == ShipBlocker.Shape.CYLINDER:
 		return Piece.VENT
 	if layout.structure == null:
@@ -157,13 +195,40 @@ static func piece_of(space: ShipSpace, blocker: ShipBlocker) -> Piece:
 
 
 ## Whether [param blocker] of [param layout] is a ventilator: a cylinder that is no funnel
-## (ShipArt.is_funnel) and no taller than VENT_TALLEST, which a mast is.
+## (ShipArt.is_funnel), no piece of her gear (is_gear) and no taller than VENT_TALLEST,
+## which a mast is.
 static func is_vent(layout: ShipLayout, blocker: ShipBlocker) -> bool:
 	return (
 		blocker.shape == ShipBlocker.Shape.CYLINDER
 		and blocker.top - blocker.bottom <= VENT_TALLEST
+		and not is_gear(blocker)
 		and not ShipArt.is_funnel(layout, blocker)
 	)
+
+
+## Whether [param blocker] is a piece of her deck gear: its name one of GEAR's.
+static func is_gear(blocker: ShipBlocker) -> bool:
+	return GEAR.has(blocker.name)
+
+
+## [param blocker]'s size over all as GEAR gives a kind's: its longer side, its height
+## and its shorter side; a cylinder's diameter, height and diameter.
+static func size_of(blocker: ShipBlocker) -> Vector3:
+	var height := blocker.top - blocker.bottom
+	if blocker.shape == ShipBlocker.Shape.CYLINDER:
+		return Vector3(blocker.radius * 2.0, height, blocker.radius * 2.0)
+	var plan := blocker.area.size
+	return Vector3(maxf(plan.x, plan.y), height, minf(plan.x, plan.y))
+
+
+## A piece of her gear over [param blocker] to [param top], drawn as its envelope until its
+## kind's model is modelled: a plain round or box of machinery, a stanchion a white post.
+static func gear(mesh: ShipMesh, blocker: ShipBlocker, top: float) -> void:
+	var paint := ShipPaints.white if blocker.name == &"stanchion" else ShipPaints.machine
+	if blocker.shape == ShipBlocker.Shape.CYLINDER:
+		mesh.cylinder(blocker.centre, blocker.radius, blocker.bottom, top, GEAR_SEGMENTS, paint)
+		return
+	mesh.box(blocker.area, blocker.bottom, top, paint, ShipMesh.TOP | ShipMesh.SIDES)
 
 
 ## A boat stowed on chocks over [param area] from [param bottom], a box at one of her boat

@@ -341,6 +341,7 @@ func _ground_tackle(mesh: ShipMesh) -> void:
 			and is_equal_approx(blocker.bottom, deck)
 			and fore.holds(blocker.centre)
 			and not DeckFurniture.is_vent(_layout, blocker)
+			and not DeckFurniture.is_gear(blocker)
 		):
 			_bell(mesh, blocker, deck)
 			return

@@ -16,6 +16,13 @@ const A_DECK := 5.5
 const TITANIC_OPEN_DECKS: Array[float] = [8.375, 5.5, 2.75, 0.0, 3.3125, 4.3125]
 const FERRY_PASSENGER_DECK := 4.8
 const FERRY_BRIDGE_DECK := 7.6
+## The gear the Titanic's plates draw on her open decks, by kind (#381): the electric
+## winches — the boats' four on the boat deck, the after well's, the forward well's pair
+## and the poop's —, the electric cranes — A deck's pair, each well's pair and the poop's
+## pair —, the poop's four capstans, and the docking bridge's stanchions and wheel stand.
+const TITANIC_GEAR := {
+	&"electric winch": 8, &"electric crane": 8, &"capstan": 4, &"stanchion": 13, &"wheel stand": 1
+}
 
 var _rules: BrawlRules = load("res://data/rules/brawl.tres")
 
@@ -384,6 +391,87 @@ func test_a_ventilator_is_drawn_in_its_trunk_s_footprint_under_head_height() -> 
 				fail_test("the ventilator at %s: a face out at %s" % [blocker.centre, corner])
 				break
 	assert_eq(drawn.size(), DeckFurniture.VENTS.size(), "every ventilator she carries")
+
+
+func test_every_piece_of_the_fleet_s_gear_stands_at_a_size_its_kind_is_made_at() -> void:
+	var pieces := 0
+	for ship: String in Fleet.names():
+		var layout := _layout(ship)
+		for blocker: ShipBlocker in layout.blockers:
+			if blocker.name.is_empty():
+				continue
+			pieces += 1
+			var named := "%s's %s at %s" % [ship, blocker.name, _middle(blocker)]
+			if not DeckFurniture.is_gear(blocker):
+				fail_test("%s: no kind of her gear" % named)
+				continue
+			var round := blocker.shape == ShipBlocker.Shape.CYLINDER
+			assert_eq(round, blocker.name in DeckFurniture.ROUND_GEAR, "%s: its shape" % named)
+			var made := false
+			for size: Vector3 in DeckFurniture.GEAR[blocker.name]:
+				made = made or DeckFurniture.size_of(blocker).distance_to(size) < 0.001
+			assert_true(
+				made, "%s: %s, no size it is made at" % [named, DeckFurniture.size_of(blocker)]
+			)
+	assert_gt(pieces, 0, "the Titanic's gear")
+
+
+func test_the_titanic_carries_the_gear_her_plates_draw() -> void:
+	var titanic := _layout("titanic")
+	var space := ShipSpace.new(titanic)
+	var counted := {}
+	for blocker: ShipBlocker in titanic.blockers:
+		if not DeckFurniture.is_gear(blocker):
+			continue
+		counted[blocker.name] = counted.get(blocker.name, 0) + 1
+		assert_eq(DeckFurniture.piece_of(space, blocker), DeckFurniture.Piece.GEAR)
+		assert_false(DeckFurniture.is_vent(titanic, blocker), "%s: no ventilator" % blocker.name)
+		var middle := _middle(blocker)
+		var at := Vector3(middle.x, (blocker.bottom + blocker.top) * 0.5, middle.y)
+		assert_true(space.outdoors(at), "%s at %s: on her open deck" % [blocker.name, middle])
+	assert_eq(counted, TITANIC_GEAR)
+
+
+func test_no_rig_line_is_made_fast_to_her_gear() -> void:
+	var titanic := _layout("titanic")
+	for line in DeckWorks.rigging(titanic, _rules):
+		for spar: ShipBlocker in line.spars:
+			assert_false(
+				DeckFurniture.is_gear(spar), "a %s rigged to a %s" % [line.kind, spar.name]
+			)
+
+
+func test_each_kind_of_her_gear_is_drawn_inside_its_envelope() -> void:
+	var titanic := _layout("titanic")
+	var drawn := {}
+	for blocker: ShipBlocker in titanic.blockers:
+		if not DeckFurniture.is_gear(blocker) or drawn.has(blocker.name):
+			continue
+		drawn[blocker.name] = true
+		var faces := _drawn(titanic, blocker)
+		assert_gt(faces.size(), 0, "a %s drawn" % blocker.name)
+		for corner: Vector3 in faces:
+			var flat := Vector2(corner.x, corner.z)
+			var inside := blocker.area.grow(OUTSIDE).has_point(flat)
+			if blocker.shape == ShipBlocker.Shape.CYLINDER:
+				inside = flat.distance_to(blocker.centre) <= blocker.radius + OUTSIDE
+			if (
+				not inside
+				or corner.y < blocker.bottom - OUTSIDE
+				or corner.y > blocker.top + OUTSIDE
+			):
+				fail_test(
+					"the %s at %s: a face out at %s" % [blocker.name, _middle(blocker), corner]
+				)
+				break
+	assert_eq(drawn.size(), TITANIC_GEAR.size(), "every kind she carries")
+
+
+## [param blocker]'s middle in the ship plane.
+func _middle(blocker: ShipBlocker) -> Vector2:
+	if blocker.shape == ShipBlocker.Shape.CYLINDER:
+		return blocker.centre
+	return blocker.area.get_center()
 
 
 ## Whether every face [param blocker] of [param layout] is drawn with stands in its

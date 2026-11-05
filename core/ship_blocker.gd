@@ -20,3 +20,8 @@ enum Shape { BOX, CYLINDER }
 ## stood in her before, never round this, which stands where her hull already lets it
 ## (#148). No rule reads it.
 @export var fitted: bool
+## What it is, for the art to draw it as: the gear on her open decks by its name — a
+## capstan, an electric winch, a crane (DeckFurniture.GEAR) —, laid at a size its kind
+## is made at; empty for a wall, a house, a hatch and all the rest, which the art reads
+## from its shape and where it stands. No rule reads it.
+@export var name: StringName
