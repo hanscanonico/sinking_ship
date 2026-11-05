@@ -36,6 +36,14 @@ const AT_HER_BULKHEADS: Array[StringName] = [
 	&"E deck working passage, turbine room",
 ]
 const UNDER_THE_STEERING_GEAR: Array[StringName] = [&"aft stores"]
+## The traced Titanic's rooms whose box ends on a joint between two of her sections: B
+## deck's corridor at her forward well's, the third-class entrance at her poop's front.
+const ON_A_JOINT: Array[StringName] = [
+	&"B deck corridor",
+	&"third-class entrance, C deck",
+	&"third-class entrance",
+	&"greasers' mess",
+]
 
 
 func test_every_drawn_cell_of_the_titanic_is_in_the_mask() -> void:
@@ -117,18 +125,30 @@ func test_rooms_at_a_bulkhead_never_look_into_the_sea() -> void:
 	)
 
 
+## A room whose box ends on a joint between two of her sections never looks into the sea:
+## her shell over the box is read over the sections it stands in, not the one past that
+## end, which her sections' rounded ends have it touch by a hair. B deck's corridor, out
+## to her forward well's section — whose sheer stands under B deck's top, her shell read
+## as nothing there — was once held to no width at all, the sea drawn the whole length
+## of the corridor once it reached B deck (#318).
+func test_rooms_ending_on_a_joint_never_look_into_the_sea() -> void:
+	assert_eq(
+		_open_points(load(TITANIC), ON_A_JOINT), [], "points of her rooms the sea is drawn in"
+	)
+
+
 ## Per room of [param layout] named in [param names], the first point found of it, from
 ## its floor to whatever roofs it, inside one of her cells but in no box the sea leaves
-## out (CellBoxes.boxes and stacked); every one of the rooms hers.
+## out (CellBoxes.boxes and stacked); every one of the names a room of hers.
 func _open_points(layout: ShipLayout, names: Array[StringName]) -> Array:
 	var masked := _masked(layout)
 	var space := ShipSpace.new(layout)
 	var open := []
-	var checked := 0
+	var checked := {}
 	for room: ShipRoom in layout.rooms:
 		if not room.name in names:
 			continue
-		checked += 1
+		checked[room.name] = true
 		var area := room.area.grow(-INWARD)
 		if not area.has_area():
 			continue
@@ -140,7 +160,8 @@ func _open_points(layout: ShipLayout, names: Array[StringName]) -> Array:
 					if _in_a_cell(layout.structure, point) and not _in_any(masked, point):
 						open.append("%s at %s" % [room.name, point.snappedf(0.01)])
 						break
-	assert_eq(checked, names.size(), "every one of the rooms is hers")
+	for name: StringName in names:
+		assert_true(checked.has(name), "%s is hers" % name)
 	return open
 
 
