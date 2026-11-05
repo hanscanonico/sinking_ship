@@ -76,6 +76,7 @@ func native(surfaces: Surfaces) -> Object:
 	_native.shut(s.doors.shut_all())
 	var down := s._fallen.native_down()
 	_native.felled(down[0], down[1], down[2])
+	_native.lidded(s.stands.lids)
 	return _native
 
 
