@@ -85,6 +85,22 @@ func cell(index: int) -> int:
 	return _cells[index]
 
 
+## Every point's cell by the cell map of the pose read, as cell() has them one by one:
+## for a caller that asks of them all.
+func cells() -> PackedInt32Array:
+	if not _located:
+		_locate()
+	return _cells
+
+
+## Every point as the pose read sets it in the world, whose y world_height reads: for a
+## caller that asks of them all.
+func world_points() -> PackedVector3Array:
+	if _world.is_empty():
+		_world = _pose.transform * _points
+	return _world
+
+
 ## Whether point [param index] is under the water of the pose read (Surfaces.wet).
 func wet(index: int) -> bool:
 	if not _located:
