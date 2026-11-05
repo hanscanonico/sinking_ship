@@ -20,9 +20,10 @@ extends RefCounted
 ## taken once they all are (take_stretches) to draw her in their place (MatchView).
 ##
 ## A match's dressing started ahead of her sinking (start) makes what of her the sinking
-## has no say in — her sea's maps — while that is baked, then waits to be told it is made
-## (sinking_made) before it reads her schedule: her art is drawn from it, what falls and
-## what the hit left open. Once it has read her schedule (schedule_read), her match may be
+## has no say in — her sea's maps, and her art's frame as it is drawn when nothing of her
+## falls (_frame_ahead) — while that is baked, then waits to be told it is made
+## (sinking_made) before it reads her schedule: the rest of her art is drawn from it, what
+## falls and what the hit left open. Once it has read her schedule (schedule_read), her match may be
 ## served beside the rest of her dressing.
 
 ## How long the main thread sleeps between flushes as it waits on a dressing, in µs.
@@ -82,6 +83,9 @@ var _ports := PackedVector3Array()
 var _ahead := false
 var _made := false
 var _read := false
+## Whether her art's frame (ShipArt.build_frame) was drawn ahead of her sinking
+## (_frame_ahead).
+var _framed := false
 
 
 ## [param dressed]'s ship to dress as its match draws her, cut away above [param cut] as
@@ -92,9 +96,14 @@ func _init(dressed: MatchConfig, cut: float = INF) -> void:
 	if dressed != null:
 		_ship = dressed.ship
 		_rules = dressed.rules
+	_new_art()
+
+
+## A new art for her, as yet undrawn.
+func _new_art() -> void:
 	art = ShipArt.new()
 	art.name = "ShipArt"
-	art.cut_above = cut
+	art.cut_above = cut_above
 
 
 ## [param ship] to dress whole and at rest — nothing of her to fall, fail or stand open —
@@ -266,6 +275,10 @@ func _dress() -> void:
 		if _ahead:
 			_building.unlock()
 			_ship_maps()
+			if not _turn():
+				return
+			_frame_ahead()
+			_building.unlock()
 			if not _sinking_waited() or not _turn():
 				return
 		var schedule := config.schedule()
@@ -283,7 +296,11 @@ func _dress() -> void:
 		# Her art and stretches built later are drawn from what was read of it here.
 		if plan.whole:
 			_schedule_read()
-		art.build(_ship, _rules.railing_height, _rules.body_radius, _falls, _fails, _ports)
+		if _framed and _falls.is_empty() and plan.whole:
+			art.build_fittings(_ports)
+		else:
+			_framed_wrong()
+			art.build(_ship, _rules.railing_height, _rules.body_radius, _falls, _fails, _ports)
 		if plan.whole:
 			_dress_stretches(plan.before)
 		else:
@@ -363,6 +380,33 @@ func _sinking_waited() -> bool:
 func _ship_maps() -> void:
 	SeaAndSky.maps_of(_ship)
 	DeckWetness.out_on_deck(_ship)
+
+
+## Draws her art's frame (ShipArt.build_frame) as her sinking is baked: as it is drawn
+## when nothing of hers falls and her art is all of her (StretchPlan.whole), as on every
+## Titanic sinking measured (#411); for one that does not, she is drawn again from the
+## start (_framed_wrong). Nothing of the frame reads what the hit leaves open.
+func _frame_ahead() -> void:
+	art.rules = _rules
+	art.pack = true
+	var fails := PackedInt32Array(range(_ship.railings.size()))
+	var none: Array[StringName] = []
+	art.build_frame(_ship, _rules.railing_height, _rules.body_radius, none, fails)
+	_framed = true
+
+
+## Lets go of a frame drawn ahead (_frame_ahead) that her sinking does not draw her as:
+## her art is drawn anew.
+func _framed_wrong() -> void:
+	if not _framed:
+		return
+	_framed = false
+	var span := art.span
+	art.free()
+	_new_art()
+	art.rules = _rules
+	art.pack = true
+	art.span = span
 
 
 func _schedule_read() -> void:

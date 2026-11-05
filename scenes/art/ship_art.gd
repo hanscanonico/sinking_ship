@@ -186,6 +186,20 @@ var _graphics := GraphicsQuality.of(GraphicsQuality.Preset.HIGH)
 ## the sinking can collapse: falls.
 var _occluders: ShipOccluders
 var _falls: Array[StringName] = []
+## What build_frame() drew, for build_fittings() to go on from; null when none waits.
+var _frame: Frame
+
+
+## What build_frame() leaves for build_fittings(): her layout, the rules' numbers, her
+## hull, the mesh her still art goes in and its chunks, and each piece's mesh by node.
+class Frame:
+	var layout: ShipLayout
+	var railing_height: float
+	var body_radius: float
+	var hull: ShipHull
+	var mesh: ShipMesh
+	var chunks: PackedChunks
+	var pieces := {}
 
 
 ## Draws [param layout]; [param railing_height] and [param body_radius] are the
@@ -200,6 +214,21 @@ func build(
 	falls: Array[StringName] = [],
 	fails := PackedInt32Array(),
 	open_ports := PackedVector3Array()
+) -> void:
+	build_frame(layout, railing_height, body_radius, falls, fails)
+	build_fittings(open_ports)
+
+
+## build() up to her fittings: all of her the portholes left open have no say in — her
+## hull, decks, stairs, walls, rigging, railings and ladders. build_fittings() goes on
+## from there, the two the same as one build(): so her dressing may draw this much while
+## her sinking is still baked (ShipDressing).
+func build_frame(
+	layout: ShipLayout,
+	railing_height: float,
+	body_radius: float,
+	falls: Array[StringName] = [],
+	fails := PackedInt32Array()
 ) -> void:
 	for child: Node in get_children():
 		remove_child(child)
@@ -284,6 +313,29 @@ func build(
 			continue
 		var into: ShipMesh = pieces.get(_wrecks[ladder.platform], mesh)
 		BoardingLadder.draw(into, layout, ladder)
+	_falls = falls
+	_frame = Frame.new()
+	_frame.layout = layout
+	_frame.railing_height = railing_height
+	_frame.body_radius = body_radius
+	_frame.hull = hull
+	_frame.mesh = mesh
+	_frame.chunks = chunks
+	_frame.pieces = pieces
+
+
+## The rest of build() from her fittings on, [param open_ports] the portholes the hit
+## left open (build): after build_frame(), once.
+func build_fittings(open_ports := PackedVector3Array()) -> void:
+	var layout := _frame.layout
+	var railing_height := _frame.railing_height
+	var body_radius := _frame.body_radius
+	var hull := _frame.hull
+	var mesh := _frame.mesh
+	var chunks := _frame.chunks
+	var pieces := _frame.pieces
+	var materials := _paints
+	_frame = null
 	var fittings := ShipFittings.new(_space, hull, body_radius, open_ports)
 	fittings.build(mesh, self, materials)
 	_broken_glass = BrokenGlass.new(layout, fittings.panes, self, materials)
@@ -327,8 +379,7 @@ func build(
 	prop_art.name = "Props"
 	add_child(prop_art)
 	prop_art.build(_space, materials)
-	_falls = falls
-	_occluders = ShipOccluders.new(_space, falls, span, cut_above)
+	_occluders = ShipOccluders.new(_space, _falls, span, cut_above)
 	add_child(_occluders)
 
 

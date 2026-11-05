@@ -6,18 +6,20 @@ extends RefCounted
 ## rides as one, and her whole art, built first, draws her; the stretches take its place
 ## at once, every one, when the last is in — so each is first needed at her first parting
 ## and they are built aft to fore. One that could not be built behind the match by then,
-## BEHIND as slowly as before it and MARGIN to spare, is built before the start; when none
+## BEHIND as slowly as its cost says and MARGIN to spare, is built before the start; when none
 ## could, her first stretch is drawn from the start and the rest built before it, as a
 ## match that breaks her always was. Pure: what a match's sinking and her rooms make it.
 
-## What a stretch of her art costs to build, measured on the Titanic on a Windows laptop
-## (#411): about a second for her outside and decks, and SECONDS_PER_ROOM for each of her
-## rooms whose middle stands on it (PieceClip.holds), in seconds.
+## What a stretch of her art costs to build behind her match, measured on the Titanic on a
+## Windows laptop (#411): SECONDS_EACH for her outside and decks, and SECONDS_PER_ROOM for
+## each of her rooms whose middle stands on it (PieceClip.holds), in seconds.
 const SECONDS_EACH := 13.0
 const SECONDS_PER_ROOM := 0.027
-## How many times longer a stretch takes to build behind the match than before it, and
-## the seconds a stretch built behind it is to be ready by ahead of her first parting.
-const BEHIND := 2.0
+## How many times longer a stretch may take to build behind the match than SECONDS_EACH
+## and SECONDS_PER_ROOM say — behind a match of eight on the Titanic her four stretches
+## took 108 s of the 113 s they say, with a quarter to spare (#411) — and the seconds a
+## stretch built behind it is to be ready by ahead of her first parting.
+const BEHIND := 1.25
 const MARGIN := 30.0
 
 ## Whether her art is first drawn whole, the stretches in later to take its place; and
