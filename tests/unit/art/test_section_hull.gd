@@ -539,8 +539,11 @@ func test_her_plating_over_her_double_bottom_stays_inside_her_shell() -> void:
 	# Her double bottom's floors stand at her keel, so her flat keel is plated as a deck.
 	# Where her loft rises from a section's middle into a neighbour not plated alike —
 	# the Titanic's run up to her counter, her forefoot — that plating ran on at her keel
-	# out to the section's end, in the sea under her (#351). Under every level face of her
-	# shell at her keel, facing up, her bottom.
+	# out to the section's end, in the sea under her, up to 6 m under her run (#351). Over
+	# the middle of every level face of her shell at her keel, facing up, her bottom on her
+	# centreline within UNDER: no plate under her as her loft rises from her keel. (Her
+	# sides, resampled, cut her flat keel's corner, so a plate's edge may stand a few
+	# centimetres outside her shell; on her centreline her loft keeps her keel.)
 	var checked := 0
 	for ship: StringName in Fleet.names():
 		var layout := Fleet.layout(ship)
@@ -560,7 +563,8 @@ func test_her_plating_over_her_double_bottom_stays_inside_her_shell() -> void:
 				continue
 			checked += 1
 			var middle := (a + b + c) / 3.0
-			if is_nan(_bottom_under(faces, cells, middle + Vector3.UP * UNDER)):
+			var centre := Vector3(middle.x, middle.y + UNDER, 0.01 if middle.z >= 0.0 else -0.01)
+			if is_nan(_bottom_under(faces, cells, centre)):
 				outside += 1
 				if first.is_empty():
 					first = str(middle)
