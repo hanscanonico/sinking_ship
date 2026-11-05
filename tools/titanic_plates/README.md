@@ -158,5 +158,7 @@ B deck (#367):
   runs 5 px to starboard of the stem's point and of the pieces drawn in pairs about it.
 - Her deck gear (#381): each piece a deck file's `GEAR` box, the generator laying its
   kind's size (`DeckFurniture.GEAR`) on the box's middle — the poop's capstans, cranes and
-  winch, the forecastle's cable holders —, and the docking bridge over the poop a
-  `BRIDGES` deck.
+  winch; the forecastle's steam windlass, steam winch, capstans and cable holders, each on
+  the deck either side of its step —, the forecastle's No. 1 hatch a `SOLIDS` coaming
+  named a hatch (`DeckFurniture.HATCH`), and the docking bridge over the poop a `BRIDGES`
+  deck, its port ladder the starboard one's mirror (est.).

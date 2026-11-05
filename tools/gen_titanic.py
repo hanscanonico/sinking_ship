@@ -194,28 +194,33 @@ def cylinder(bid, cx, cz, r, bottom, top, name=None):
 # est. but the docking bridge's stanchions', which are its deck's (POOP_BRIDGE below).
 ROUND_GEAR = ("capstan", "stanchion")
 GEAR = {
-    "capstan": [(1.625, 0.9375, 1.625)],
+    "capstan": [(1.625, 0.9375, 1.625), (1.375, 0.9375, 1.375), (1.125, 0.9375, 1.125)],
     "electric crane": [(1.5, 2.5, 1.5)],
     "electric winch": [(1.0, 1.0, 0.75), (1.875, 1.0, 0.875), (1.5625, 1.0, 1.125), (2.3125, 1.0, 1.125)],
     "wheel stand": [(0.75, 1.25, 0.625)],
     "stanchion": [(0.125, 2.625, 0.125)],
     "cable holder": [(2.75, 0.75, 2.1875)],
+    "steam windlass": [(5.625, 1.25, 3.3125)],
+    "steam winch": [(3.8125, 1.25, 2.75)],
 }
 
 def gear(bid, kind, x0, x1, z0, z1, bottom):
     """A piece of her gear of kind where its plate draws it, x0..x1 by z0..z1 (its ink's box,
     or its place): the size of its kind nearest that box laid on its middle, its longer side
-    the way the box's is — a round piece's axis there — from bottom, on the grain."""
+    the way the box's is — a round piece's axis there — from bottom, on the grain; its
+    footprint (x0, x1, z0, z1)."""
     along_x = x1 - x0 >= z1 - z0
     longer, shorter = (x1 - x0, z1 - z0) if along_x else (z1 - z0, x1 - x0)
     size = min(GEAR[kind], key=lambda s: abs(s[0] - longer) + abs(s[2] - shorter))
     mx, mz = (x0 + x1) * 0.5, (z0 + z1) * 0.5
     if kind in ROUND_GEAR:
-        cylinder(bid, q(mx), q(mz), size[0] / 2, bottom, bottom + size[1], kind)
-        return
+        r = size[0] / 2
+        cylinder(bid, q(mx), q(mz), r, bottom, bottom + size[1], kind)
+        return q(mx) - r, q(mx) + r, q(mz) - r, q(mz) + r
     sx, sz = (size[0], size[2]) if along_x else (size[2], size[0])
     gx, gz = q(mx - sx / 2), q(mz - sz / 2)
     box(bid, gx, gx + sx, gz, gz + sz, bottom, bottom + size[1], kind)
+    return gx, gx + sx, gz, gz + sz
 
 # A railing breaks span by span (SH10), as the steamer's: a run longer than
 # RAIL_SECTION is laid as touching spans of about that length.
@@ -1758,7 +1763,13 @@ for k, (x0, x1, _z0, half) in enumerate([p for p in A_PIECES if p[1] > SCREEN_RU
             *sorted((sign * half, sign * (half - 2 * T))), A_DECK, BOAT)
 for k, x in enumerate(FUNNELS):
     cylinder("funnel_%d" % (k + 1), x, 0.0, FUNNEL_RADIUS, FUNNEL_FOOT, FUNNEL_TOP)
-cylinder("foremast", 96.0, 0.0, 0.6, FCSL[0], FCSL[0] + 40.0)       # est., SB-III
+# The foremast, up through the forecastle where its plan draws its ring, 0.75 m across
+# (Plate IV px 9346-9374), hard on the steam windlass's forward face (FCSL_PLAN).
+FCSL_PLAN = plates.load("forecastle")
+FOREMAST_RING = (9346, 9374)
+cylinder("foremast", plates.kept(FCSL_PLAN.view.x(sum(FOREMAST_RING) * 0.5)), 0.0,
+         plates.kept((FCSL_PLAN.view.x(FOREMAST_RING[1]) - FCSL_PLAN.view.x(FOREMAST_RING[0])) * 0.5),
+         FCSL[0], FCSL[0] + 40.0)
 # The mainmast, up through A deck's after end and B deck's after second-class entrance,
 # where A deck's plan draws its circle (Plate III px 2385). B deck's plan draws its own
 # 1.1 m forward of it, calibrated on her after end (b_aft.py), and Plate III's elevation
@@ -2541,11 +2552,16 @@ for _name, x0, x1, z0, z1, _height in POOP_PLAN.bridges:
     BRIDGE_PIECES.append((x0, x1, z0, z1))
 docking_bridge = [platform("docking_bridge_%d" % k, "docking bridge", *piece, POOP_BRIDGE)
                   for k, piece in enumerate(BRIDGE_PIECES)]
+# Its ladder up from the poop where the plate draws it, to starboard, and one to port
+# mirroring it across her (est., the owner's ruling of 2026-11-05: the plate draws no
+# other, and its deck wants two ways up).
 BRIDGE_LADDERS = []
 for name, x0, x1, z0, z1, rises, lower, upper in POOP_PLAN.stairs:
     assert (rises, lower, upper) == ("fore", "poop", "docking bridge"), name
-    stair(slug(name), x0, x1, z0, z1, POOP, POOP_BRIDGE, [])
-    BRIDGE_LADDERS.append((x1, z0, z1))
+    assert z0 > 0.0, "%s to starboard, its mirror to port" % name
+    for side, (a, b) in [("s", (z0, z1)), ("p", (-z1, -z0))]:
+        stair("%s_%s" % (slug(name), side), x0, x1, a, b, POOP, POOP_BRIDGE, [])
+        BRIDGE_LADDERS.append((x1, a, b))
 
 def carried_on(edge, side, along, piece):
     """Whether another piece of the docking bridge carries its deck on past piece's edge at
@@ -2579,12 +2595,25 @@ WHEEL_AT = (BRIDGE_PIECES[0][0] + BRIDGE_PIECES[1][1]) * 0.5
 wheel = GEAR["wheel stand"][0]
 gear("docking_bridge_wheel_stand", "wheel stand", WHEEL_AT - wheel[2] / 2, WHEEL_AT + wheel[2] / 2,
      -wheel[0] / 2, wheel[0] / 2, POOP_BRIDGE)
-# Her gear on the forecastle head as Plate IV draws it (FCSL_PLAN, #381): her cable holders,
-# each side's cable led from it forward to its hawse pipe (ShipFittings).
-FCSL_PLAN = plates.load("forecastle")
+# Her gear on the forecastle and its head as Plate IV draws it (FCSL_PLAN, #381), each piece
+# on the deck it stands on, a body's width clear of the step between them (FLIGHT_LEAD):
+# her steam windlass and steam winch, No. 1 hatch's coaming between them and her after
+# capstans, her cable holders, each side's cable led from it forward to its hawse pipe
+# (ShipFittings), and her forward capstans.
+def fcsl_deck(kind, x0, x1):
+    """The forecastle deck a piece of kind x0..x1 along her stands on, either side of its step."""
+    if x1 <= FC_RAMP[0] - FLIGHT_LEAD:
+        return FCSL[0]
+    assert x0 >= FC_RAMP[1] + FLIGHT_LEAD, "%s a body's width clear of the forecastle's step" % kind
+    return FCSL[1]
+
 for k, (kind, x0, x1, z0, z1) in enumerate(FCSL_PLAN.gear):
-    assert x0 >= FC_RAMP[1], "%s on the forecastle head, forward of its step" % kind
-    gear("fcsl_%d_%s" % (k, slug(kind)), kind, x0, x1, z0, z1, FCSL[1])
+    deck = fcsl_deck(kind, x0, x1)
+    laid = gear("fcsl_%d_%s" % (k, slug(kind)), kind, x0, x1, z0, z1, deck)
+    assert fcsl_deck(kind, laid[0], laid[1]) == deck, kind
+for what, x0, x1, z0, z1, height in FCSL_PLAN.solids:
+    deck = fcsl_deck(what, x0, x1)
+    box("fcsl_" + slug(what), x0, x1, z0, z1, deck, deck + height, "hatch")
 # Benches, teak seats with low backs, BENCH long, deep and tall, each backed onto what
 # stands behind it: along A deck's house on both its promenades between its doors, a bench
 # every BENCH_PITCH.

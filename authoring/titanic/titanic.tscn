@@ -691,6 +691,11 @@ material = SubResource("StandardMaterial3D_swvke")
 left_to_right = 1.0
 size = Vector3(3.0625, 2.625, 1)
 
+[sub_resource type="PrismMesh" id="PrismMesh_3exft"]
+material = SubResource("StandardMaterial3D_swvke")
+left_to_right = 1.0
+size = Vector3(3.0625, 2.625, 1)
+
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_jiew5"]
 albedo_color = Color(0.9098039, 0.8862745, 0.8235294, 1)
 
@@ -10885,9 +10890,14 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 103.85, -19, -0.050000012)
 mesh = SubResource("PrismMesh_axr67")
 metadata/ship = &"ramp"
 
-[node name="Ramp_docking_bridge_ladder" type="MeshInstance3D" parent="Ramps" unique_id=472758664]
+[node name="Ramp_docking_bridge_ladder_s" type="MeshInstance3D" parent="Ramps" unique_id=106625068]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -128.78125, 4.625, 4.25)
 mesh = SubResource("PrismMesh_wyfqh")
+metadata/ship = &"ramp"
+
+[node name="Ramp_docking_bridge_ladder_p" type="MeshInstance3D" parent="Ramps" unique_id=1466899022]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -128.78125, 4.625, -4.25)
+mesh = SubResource("PrismMesh_3exft")
 metadata/ship = &"ramp"
 
 [node name="Blockers" type="Node3D" parent="." unique_id=2032804002]
@@ -14429,8 +14439,8 @@ material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
 [node name="Blocker_foremast" type="CSGCylinder3D" parent="Blockers" unique_id=707817604]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 96, 24.3125, 0)
-radius = 0.6
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 95.5, 24.3125, 0)
+radius = 0.375
 height = 40.0
 sides = 16
 material = SubResource("StandardMaterial3D_jiew5")
@@ -59534,19 +59544,76 @@ material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 metadata/name = &"wheel stand"
 
-[node name="Blocker_fcsl_0_cable_holder" type="CSGBox3D" parent="Blockers" unique_id=1814538404]
+[node name="Blocker_fcsl_0_steam_windlass" type="CSGBox3D" parent="Blockers" unique_id=715259815]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 93.46875, 4.9375, -0.0625)
+size = Vector3(3.3125, 1.25, 5.625)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+metadata/name = &"steam windlass"
+
+[node name="Blocker_fcsl_1_steam_winch" type="CSGBox3D" parent="Blockers" unique_id=1928877185]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 102.09375, 4.9375, 0.125)
+size = Vector3(3.8125, 1.25, 2.75)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+metadata/name = &"steam winch"
+
+[node name="Blocker_fcsl_2_capstan" type="CSGCylinder3D" parent="Blockers" unique_id=1412202603]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 109.5625, 4.78125, -3.8125)
+radius = 0.6875
+height = 0.9375
+sides = 16
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+metadata/name = &"capstan"
+
+[node name="Blocker_fcsl_3_capstan" type="CSGCylinder3D" parent="Blockers" unique_id=840902784]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 109.5625, 4.78125, 3.75)
+radius = 0.6875
+height = 0.9375
+sides = 16
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+metadata/name = &"capstan"
+
+[node name="Blocker_fcsl_4_capstan" type="CSGCylinder3D" parent="Blockers" unique_id=363571899]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 118.1875, 5.40625, -2.5)
+radius = 0.5625
+height = 0.9375
+sides = 16
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+metadata/name = &"capstan"
+
+[node name="Blocker_fcsl_5_capstan" type="CSGCylinder3D" parent="Blockers" unique_id=1649774192]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 118, 5.40625, 2.375)
+radius = 0.5625
+height = 0.9375
+sides = 16
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+metadata/name = &"capstan"
+
+[node name="Blocker_fcsl_6_cable_holder" type="CSGBox3D" parent="Blockers" unique_id=1361479737]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 114.125, 5.3125, -1.40625)
 size = Vector3(2.75, 0.75, 2.1875)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 metadata/name = &"cable holder"
 
-[node name="Blocker_fcsl_1_cable_holder" type="CSGBox3D" parent="Blockers" unique_id=239217178]
+[node name="Blocker_fcsl_7_cable_holder" type="CSGBox3D" parent="Blockers" unique_id=125085629]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 114.125, 5.3125, 1.40625)
 size = Vector3(2.75, 0.75, 2.1875)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 metadata/name = &"cable holder"
+
+[node name="Blocker_fcsl_no_1_hatch" type="CSGBox3D" parent="Blockers" unique_id=486920788]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 105.9375, 4.7125, 0.03125)
+size = Vector3(3.875, 0.8, 4.3125)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+metadata/name = &"hatch"
 
 [node name="Blocker_table_smoking_0_2" type="CSGBox3D" parent="Blockers" unique_id=2118333961]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -61.1875, 5.875, -7.825)
@@ -78372,41 +78439,48 @@ metadata/ship = &"railing"
 metadata/platform = &"Platform_g_101_0"
 
 [node name="Railing_docking_bridge_0aft_0_0" type="CSGBox3D" parent="Railings" unique_id=1615014821]
-transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -127.25, 6.4375, -7.8500004)
-size = Vector3(3.5000005, 1, 0.05)
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -127.25, 6.4375, -8.35)
+size = Vector3(2.5000005, 1, 0.05)
 material = SubResource("StandardMaterial3D_r6eh1")
 metadata/ship = &"railing"
 metadata/platform = &"Platform_docking_bridge_0"
 
 [node name="Railing_docking_bridge_0aft_0_1" type="CSGBox3D" parent="Railings" unique_id=1807776364]
-transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -127.25, 6.4375, -4.35)
-size = Vector3(3.5, 1, 0.05)
-material = SubResource("StandardMaterial3D_r6eh1")
-metadata/ship = &"railing"
-metadata/platform = &"Platform_docking_bridge_0"
-
-[node name="Railing_docking_bridge_0aft_0_2" type="CSGBox3D" parent="Railings" unique_id=1993403277]
-transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -127.25, 6.4375, -0.84999996)
-size = Vector3(3.5, 1, 0.05)
-material = SubResource("StandardMaterial3D_r6eh1")
-metadata/ship = &"railing"
-metadata/platform = &"Platform_docking_bridge_0"
-
-[node name="Railing_docking_bridge_0aft_0_3" type="CSGBox3D" parent="Railings" unique_id=732501647]
-transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -127.25, 6.4375, 2.325)
-size = Vector3(2.85, 1, 0.05)
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -127.25, 6.4375, -5.925)
+size = Vector3(2.35, 1, 0.05)
 material = SubResource("StandardMaterial3D_r6eh1")
 metadata/ship = &"railing"
 metadata/platform = &"Platform_docking_bridge_0"
 
 [node name="Railing_docking_bridge_0aft_1_0" type="CSGBox3D" parent="Railings" unique_id=1742291015]
-transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -127.25, 6.4375, 6)
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -127.25, 6.4375, -2.5)
 size = Vector3(2.5, 1, 0.05)
 material = SubResource("StandardMaterial3D_r6eh1")
 metadata/ship = &"railing"
 metadata/platform = &"Platform_docking_bridge_0"
 
 [node name="Railing_docking_bridge_0aft_1_1" type="CSGBox3D" parent="Railings" unique_id=1006034304]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -127.25, 6.4375, 0)
+size = Vector3(2.5, 1, 0.05)
+material = SubResource("StandardMaterial3D_r6eh1")
+metadata/ship = &"railing"
+metadata/platform = &"Platform_docking_bridge_0"
+
+[node name="Railing_docking_bridge_0aft_1_2" type="CSGBox3D" parent="Railings" unique_id=1014918262]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -127.25, 6.4375, 2.5)
+size = Vector3(2.5, 1, 0.05)
+material = SubResource("StandardMaterial3D_r6eh1")
+metadata/ship = &"railing"
+metadata/platform = &"Platform_docking_bridge_0"
+
+[node name="Railing_docking_bridge_0aft_2_0" type="CSGBox3D" parent="Railings" unique_id=1779598324]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -127.25, 6.4375, 6)
+size = Vector3(2.5, 1, 0.05)
+material = SubResource("StandardMaterial3D_r6eh1")
+metadata/ship = &"railing"
+metadata/platform = &"Platform_docking_bridge_0"
+
+[node name="Railing_docking_bridge_0aft_2_1" type="CSGBox3D" parent="Railings" unique_id=1497034185]
 transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -127.25, 6.4375, 8.425)
 size = Vector3(2.3500004, 1, 0.05)
 material = SubResource("StandardMaterial3D_r6eh1")

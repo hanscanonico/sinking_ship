@@ -19,16 +19,21 @@ const FERRY_BRIDGE_DECK := 7.6
 ## The gear the Titanic's plates draw on her open decks, by kind (#381): the electric
 ## winches — the boats' four on the boat deck, the after well's, the forward well's pair
 ## and the poop's —, the electric cranes — A deck's pair, each well's pair and the poop's
-## pair —, the poop's four capstans, the docking bridge's stanchions and wheel stand, and
-## the forecastle's two cable holders.
+## pair —, the poop's four capstans and the forecastle's four, the docking bridge's
+## stanchions and wheel stand, and the forecastle's steam windlass, steam winch and two
+## cable holders.
 const TITANIC_GEAR := {
 	&"electric winch": 8,
 	&"electric crane": 8,
-	&"capstan": 4,
+	&"capstan": 8,
 	&"stanchion": 13,
 	&"wheel stand": 1,
 	&"cable holder": 2,
+	&"steam windlass": 1,
+	&"steam winch": 1,
 }
+## The Titanic's forecastle deck aft of its step (tools/gen_titanic.py's FCSL[0]).
+const TITANIC_FORECASTLE := 4.3125
 
 var _rules: BrawlRules = load("res://data/rules/brawl.tres")
 
@@ -408,6 +413,8 @@ func test_every_piece_of_the_fleet_s_gear_stands_at_a_size_its_kind_is_made_at()
 				continue
 			pieces += 1
 			var named := "%s's %s at %s" % [ship, blocker.name, _middle(blocker)]
+			if blocker.name == DeckFurniture.HATCH:
+				continue
 			if not DeckFurniture.is_gear(blocker):
 				fail_test("%s: no kind of her gear" % named)
 				continue
@@ -436,6 +443,30 @@ func test_the_titanic_carries_the_gear_her_plates_draw() -> void:
 		var at := Vector3(middle.x, (blocker.bottom + blocker.top) * 0.5, middle.y)
 		assert_true(space.outdoors(at), "%s at %s: on her open deck" % [blocker.name, middle])
 	assert_eq(counted, TITANIC_GEAR)
+
+
+## A box named a hatch is its coaming though no opening of her structure lies under it:
+## the Titanic's No. 1 hatch on her forecastle, over its trunk through C deck, which her
+## foremast's derrick works (#381).
+func test_her_forecastle_s_no_1_hatch_is_a_hatch_her_foremast_works() -> void:
+	var titanic := _layout("titanic")
+	var space := ShipSpace.new(titanic)
+	var named := titanic.blockers.filter(
+		func(blocker: ShipBlocker) -> bool: return blocker.name == DeckFurniture.HATCH
+	)
+	assert_eq(named.size(), 1, "No. 1 hatch, on her forecastle")
+	if named.size() != 1:
+		return
+	var hatch: ShipBlocker = named[0]
+	assert_eq(hatch.shape, ShipBlocker.Shape.BOX)
+	assert_almost_eq(hatch.bottom, TITANIC_FORECASTLE, 0.0001, "on her forecastle deck")
+	assert_eq(DeckFurniture.piece_of(space, hatch), DeckFurniture.Piece.HATCH)
+	var runners := 0
+	for line in DeckWorks.rigging(titanic, _rules):
+		var foot := Vector2(line.to.x, line.to.z)
+		if line.kind == &"runner" and hatch.area.grow(0.001).has_point(foot):
+			runners += 1
+	assert_gt(runners, 0, "a derrick's runner over it")
 
 
 func test_no_rig_line_is_made_fast_to_her_gear() -> void:
