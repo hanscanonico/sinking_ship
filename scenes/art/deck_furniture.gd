@@ -156,6 +156,17 @@ static func piece_of(space: ShipSpace, blocker: ShipBlocker) -> Piece:
 	return Piece.SKYLIGHT
 
 
+## Whether [param blocker] of [param layout] stands over one of her structure's hatch
+## openings in the deck it stands on, the hatch's cover: on an open deck or indoors, as
+## D deck's under the Titanic's forward well.
+static func is_hatch_cover(layout: ShipLayout, blocker: ShipBlocker) -> bool:
+	return (
+		layout.structure != null
+		and blocker.shape == ShipBlocker.Shape.BOX
+		and _over_a_hatch(layout.structure, blocker)
+	)
+
+
 ## Whether [param blocker] of [param layout] is a ventilator: a cylinder that is no funnel
 ## (ShipArt.is_funnel) and no taller than VENT_TALLEST, which a mast is.
 static func is_vent(layout: ShipLayout, blocker: ShipBlocker) -> bool:
