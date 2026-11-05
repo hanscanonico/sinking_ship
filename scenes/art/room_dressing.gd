@@ -776,7 +776,7 @@ func _passage(mesh: ShipMesh, room: ShipRoom) -> void:
 	for wall: Wall in around:
 		if (wall.side % 2 == 0) != along_x or wall.length() < 0.5:
 			continue
-		_handrail(mesh, wall)
+		Handrail.build(mesh, _layout, wall)
 		if _stair_beside(wall) or (longest != null and wall.length() <= longest.length()):
 			continue
 		longest = wall
@@ -836,56 +836,6 @@ static func over_a_ramp(layout: ShipLayout, area: Rect2, low: float, high: float
 		if ramp.area.intersects(area) and ramp.base() < high and top > low:
 			return true
 	return false
-
-
-## A teak handrail on brass brackets along [param wall], at a hand's height over the
-## floor or over a stair beside it — straight between where a stair begins and ends —
-## stopping short of the wall's top.
-func _handrail(mesh: ShipMesh, wall: Wall) -> void:
-	var top := wall.floor + 2.4
-	var stops := PackedFloat32Array([wall.from + 0.1, wall.to - 0.1])
-	for ramp: ShipRamp in _layout.ramps:
-		var span := Vector2(ramp.area.position.x, ramp.area.end.x)
-		if wall.side % 2 == 1:
-			span = Vector2(ramp.area.position.y, ramp.area.end.y)
-		for at: float in [span.x, span.y]:
-			if at > wall.from + 0.1 and at < wall.to - 0.1:
-				stops.append(at)
-	stops.sort()
-	var rail := PackedVector3Array()
-	for along: float in stops:
-		rail.append(_hand_height(wall, along))
-	for index in rail.size() - 1:
-		var from := rail[index]
-		var to := rail[index + 1]
-		if from.y > top and to.y > top:
-			continue
-		if to.y > top:
-			to = from.lerp(to, (top - from.y) / (to.y - from.y))
-		elif from.y > top:
-			from = to.lerp(from, (top - to.y) / (from.y - to.y))
-		var pieces := ceili(from.distance_to(to) / PIECE)
-		for piece in pieces:
-			var start := from.lerp(to, float(piece) / pieces)
-			var end := from.lerp(to, float(piece + 1) / pieces)
-			mesh.beam(start, end, Vector2(0.045, 0.05), ShipPaints.teak, 0)
-		var brackets := maxi(1, floori(from.distance_to(to)))
-		for bracket in brackets + 1:
-			var at := from.lerp(to, float(bracket) / brackets) - wall.normal * 0.045
-			var box := Rect2(Vector2(at.x, at.z) - Vector2.ONE * 0.02, Vector2.ONE * 0.04)
-			block(mesh, box, at.y - 0.095, at.y - 0.025, ShipPaints.brass)
-
-
-## Where [param wall]'s handrail runs at [param along] it: 0.065 out from its face, a
-## hand's height over the floor, or over a stair beside it.
-func _hand_height(wall: Wall, along: float) -> Vector3:
-	var at := wall.at(along, 0.0, 0.065)
-	var foot := Vector2(at.x, at.z) + Vector2(wall.normal.x, wall.normal.z) * 0.1
-	var surface := wall.floor
-	for ramp: ShipRamp in _layout.ramps:
-		if ramp.contains(foot.x, foot.y):
-			surface = maxf(surface, ramp.height_at(foot.x, foot.y))
-	return Vector3(at.x, surface + 0.92, at.z)
 
 
 ## A lifebelt hung flat on a wall at [param centre], facing [param normal]
