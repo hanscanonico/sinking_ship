@@ -146,3 +146,55 @@ func test_a_choice_made_again_after_lamps_go_out_is_one_made_afresh() -> void:
 		assert_eq(kept.lights(room), fresh.lights(room), "room %d lit alike" % room)
 	for index in kept._lamps.size():
 		assert_eq(kept._lamps[index].wanted, fresh._lamps[index].wanted, "lamp %d alike" % index)
+
+
+func test_a_walk_lights_what_a_look_at_every_room_lights() -> void:
+	# The choice looks only at the rooms filed near the eye's square (#410), and hands
+	# only those it or the last looked at: along a walk over every storey, room after
+	# room lit as a look at each one of them lights it, and every lamp wanted alike.
+	for preset: int in [GraphicsQuality.Preset.LOW, GraphicsQuality.Preset.HIGH]:
+		var walked := _sight(preset)
+		for step in 61:
+			for height: float in [-1.0, 1.6, 4.2]:
+				var eye := Vector3(-30.0 + step, height, 2.5 * sin(step * 0.7))
+				walked.choose(eye)
+				var looked := _every_room_looked_at(walked, eye)
+				for room in _layout.rooms.size():
+					assert_eq(
+						walked.lights(room), looked[room] == 1, "room %d from %s" % [room, eye]
+					)
+				for index in walked._lamps.size():
+					var wanted: bool = looked[walked._rooms[index]] == 1
+					assert_eq(walked._lamps[index].wanted, wanted, "lamp %d from %s" % [index, eye])
+
+
+## The rooms [param sight] lights from [param eye], each room looked at, as LampSight
+## chose before it filed them by square: 1 lit, 0 not.
+func _every_room_looked_at(sight: LampSight, eye: Vector3) -> PackedByteArray:
+	var rooms := _layout.rooms.size()
+	var lit := PackedByteArray()
+	lit.resize(rooms)
+	var reach := PackedFloat32Array()
+	reach.resize(rooms)
+	reach.fill(INF)
+	var burning := 0
+	for room in rooms:
+		var box: AABB = sight._boxes[room]
+		if not box.has_volume() or not ShipLamp.relevant(eye, box, true):
+			continue
+		if sight.sees(eye, room):
+			lit[room] = 1
+			burning += sight._burning[room]
+		else:
+			var nearest := eye.clamp(box.position, box.end)
+			reach[room] = Vector2(eye.x - nearest.x, eye.z - nearest.z).length()
+	while true:
+		var next := -1
+		for room in rooms:
+			if lit[room] == 0 and (next == -1 or reach[room] < reach[next]):
+				next = room
+		if next == -1 or is_inf(reach[next]) or burning + sight._burning[next] > sight.limit:
+			break
+		lit[next] = 1
+		burning += sight._burning[next]
+	return lit

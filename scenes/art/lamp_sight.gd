@@ -12,6 +12,12 @@ extends RefCounted
 ## A gap at least this wide along a room's side, between its full walls
 ## (ShipSpace.wall_runs), is a doorway the eye can see into the room through.
 const DOORWAY := 0.5
+## The side of a square of the ship plane the rooms near the eye are filed by (_near): a
+## room is filed under every square within ShipLamp.REACH of its box, give or take
+## NEAR_SLACK, so the eye's square names every room it may stand near (#410: the Titanic
+## has over a thousand).
+const NEAR_SQUARE := 8.0
+const NEAR_SLACK := 0.5
 
 ## The most lamps burning at once but for those of the rooms in sight: the graphics
 ## preset's (show_graphics), as tuned until told.
@@ -37,6 +43,14 @@ var _lit := PackedByteArray()
 var _room_lamps: Array[PackedInt32Array] = []
 var _handed := PackedByteArray()
 var _recount := true
+## Per square of the ship plane (NEAR_SQUARE), the rooms with lamps the eye may stand near
+## from it, lowest first, filed again once a lamp is added; the rooms the last choice
+## looked at, the only ones it can have lit; and whether some room has never been handed
+## its choice, when a choice hands every room.
+var _near: Dictionary[Vector2i, PackedInt32Array] = {}
+var _filed := false
+var _looked := PackedInt32Array()
+var _unhanded := true
 
 
 func _init(space: ShipSpace) -> void:
@@ -51,6 +65,7 @@ func _init(space: ShipSpace) -> void:
 	_room_lamps.resize(rooms)
 	_handed.resize(rooms)
 	_handed.fill(2)
+	_reach.fill(INF)
 	for index in rooms:
 		_room_lamps[index] = PackedInt32Array()
 		var room := space.layout.rooms[index]
@@ -76,6 +91,8 @@ func add(lamp: ShipLamp, room: int, box: AABB) -> void:
 	_boxes[room] = box
 	_handed[room] = 2
 	_recount = true
+	_filed = false
+	_unhanded = true
 	lamp.burning_changed.connect(_on_burning_changed)
 
 
@@ -93,12 +110,19 @@ func choose(eye: Vector3) -> void:
 		for index in _lamps.size():
 			if _lamps[index].burning:
 				_burning[_rooms[index]] += 1
-	var burning := 0
-	for room in _boxes.size():
+	if not _filed:
+		_file_near()
+	# Every room but those looked at is unlit and out of reach: the last choice's go back
+	# to that before this one looks at its own.
+	var looked_before := _looked
+	for room: int in looked_before:
 		_lit[room] = 0
 		_reach[room] = INF
+	_looked = _near.get(_square(eye), PackedInt32Array())
+	var burning := 0
+	for room: int in _looked:
 		var box := _boxes[room]
-		if not box.has_volume() or not ShipLamp.relevant(eye, box, true):
+		if not ShipLamp.relevant(eye, box, true):
 			continue
 		if sees(eye, room):
 			_lit[room] = 1
@@ -108,20 +132,57 @@ func choose(eye: Vector3) -> void:
 			_reach[room] = Vector2(eye.x - nearest.x, eye.z - nearest.z).length()
 	while true:
 		var next := -1
-		for room in _reach.size():
+		for room: int in _looked:
 			if _lit[room] == 0 and (next == -1 or _reach[room] < _reach[next]):
 				next = room
 		if next == -1 or is_inf(_reach[next]) or burning + _burning[next] > limit:
 			break
 		_lit[next] = 1
 		burning += _burning[next]
-	for room in _lit.size():
-		var lit := _lit[room]
-		if lit == _handed[room]:
+	if _unhanded:
+		_unhanded = false
+		for room in _lit.size():
+			_hand(room)
+		return
+	for room: int in looked_before:
+		_hand(room)
+	for room: int in _looked:
+		_hand(room)
+
+
+## Hands room [param room]'s lamps the last choice for it, when it changed.
+func _hand(room: int) -> void:
+	var lit := _lit[room]
+	if lit == _handed[room]:
+		return
+	_handed[room] = lit
+	for index: int in _room_lamps[room]:
+		_lamps[index].wanted = lit == 1
+
+
+## The square of the ship plane (NEAR_SQUARE) ship point [param point] stands over.
+static func _square(point: Vector3) -> Vector2i:
+	return Vector2i(floori(point.x / NEAR_SQUARE), floori(point.z / NEAR_SQUARE))
+
+
+## Files every room with lamps under each square any point within ShipLamp.REACH of its
+## box, across the ship plane, stands over (_near), lowest room first.
+func _file_near() -> void:
+	_filed = true
+	_near.clear()
+	var grow := ShipLamp.REACH + NEAR_SLACK
+	for room in _boxes.size():
+		var box := _boxes[room]
+		if not box.has_volume():
 			continue
-		_handed[room] = lit
-		for index: int in _room_lamps[room]:
-			_lamps[index].wanted = lit == 1
+		var low := _square(box.position - Vector3(grow, 0.0, grow))
+		var high := _square(box.end + Vector3(grow, 0.0, grow))
+		for x in range(low.x, high.x + 1):
+			for z in range(low.y, high.y + 1):
+				var at := Vector2i(x, z)
+				var filed: PackedInt32Array = _near.get(at, PackedInt32Array())
+				filed.append(room)
+				_near[at] = filed
 
 
 ## Whether the last choice lit room [param room]'s lamps.
