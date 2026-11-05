@@ -199,6 +199,7 @@ GEAR = {
     "electric winch": [(1.0, 1.0, 0.75), (1.875, 1.0, 0.875), (1.5625, 1.0, 1.125), (2.3125, 1.0, 1.125)],
     "wheel stand": [(0.75, 1.25, 0.625)],
     "stanchion": [(0.125, 2.625, 0.125)],
+    "cable holder": [(2.75, 0.75, 2.1875)],
 }
 
 def gear(bid, kind, x0, x1, z0, z1, bottom):
@@ -2566,6 +2567,12 @@ WHEEL_AT = (BRIDGE_PIECES[0][0] + BRIDGE_PIECES[1][1]) * 0.5
 wheel = GEAR["wheel stand"][0]
 gear("docking_bridge_wheel_stand", "wheel stand", WHEEL_AT - wheel[2] / 2, WHEEL_AT + wheel[2] / 2,
      -wheel[0] / 2, wheel[0] / 2, POOP_BRIDGE)
+# Her gear on the forecastle head as Plate IV draws it (FCSL_PLAN, #381): her cable holders,
+# each side's cable led from it forward to its hawse pipe (ShipFittings).
+FCSL_PLAN = plates.load("forecastle")
+for k, (kind, x0, x1, z0, z1) in enumerate(FCSL_PLAN.gear):
+    assert x0 >= FC_RAMP[1], "%s on the forecastle head, forward of its step" % kind
+    gear("fcsl_%d_%s" % (k, slug(kind)), kind, x0, x1, z0, z1, FCSL[1])
 # Benches, teak seats with low backs, BENCH long, deep and tall, each backed onto what
 # stands behind it: along A deck's house on both its promenades between its doors, a bench
 # every BENCH_PITCH.

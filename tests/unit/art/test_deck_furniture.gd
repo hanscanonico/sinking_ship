@@ -19,9 +19,15 @@ const FERRY_BRIDGE_DECK := 7.6
 ## The gear the Titanic's plates draw on her open decks, by kind (#381): the electric
 ## winches — the boats' four on the boat deck, the after well's, the forward well's pair
 ## and the poop's —, the electric cranes — A deck's pair, each well's pair and the poop's
-## pair —, the poop's four capstans, and the docking bridge's stanchions and wheel stand.
+## pair —, the poop's four capstans, the docking bridge's stanchions and wheel stand, and
+## the forecastle's two cable holders.
 const TITANIC_GEAR := {
-	&"electric winch": 8, &"electric crane": 8, &"capstan": 4, &"stanchion": 13, &"wheel stand": 1
+	&"electric winch": 8,
+	&"electric crane": 8,
+	&"capstan": 4,
+	&"stanchion": 13,
+	&"wheel stand": 1,
+	&"cable holder": 2,
 }
 
 var _rules: BrawlRules = load("res://data/rules/brawl.tres")

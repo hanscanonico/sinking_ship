@@ -43,6 +43,9 @@ const GEAR := {
 	&"wheel stand": {Vector3(0.75, 1.25, 0.625): "docking_wheel"},
 	# A steel post the docking bridge stands on, from her poop to its deck (est.).
 	&"stanchion": {Vector3(0.125, 2.625, 0.125): ""},
+	# A windlass drum, or cable holder, on its bedplate on the forecastle (Plate IV), its
+	# height est.: her cable led from it (ShipFittings.CABLE_HOLDER).
+	&"cable holder": {Vector3(2.75, 0.75, 2.1875): "cable_holder"},
 }
 ## The kinds of her gear that stand round, each a cylinder; the rest are boxes.
 const ROUND_GEAR: Array[StringName] = [&"capstan", &"stanchion"]

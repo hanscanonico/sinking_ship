@@ -59520,6 +59520,20 @@ material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 metadata/name = &"wheel stand"
 
+[node name="Blocker_fcsl_0_cable_holder" type="CSGBox3D" parent="Blockers" unique_id=1814538404]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 114.125, 5.3125, -1.40625)
+size = Vector3(2.75, 0.75, 2.1875)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+metadata/name = &"cable holder"
+
+[node name="Blocker_fcsl_1_cable_holder" type="CSGBox3D" parent="Blockers" unique_id=239217178]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 114.125, 5.3125, 1.40625)
+size = Vector3(2.75, 0.75, 2.1875)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+metadata/name = &"cable holder"
+
 [node name="Blocker_table_smoking_0_2" type="CSGBox3D" parent="Blockers" unique_id=2118333961]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -61.1875, 5.875, -7.825)
 size = Vector3(0.9, 0.75, 0.9)

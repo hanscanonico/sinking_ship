@@ -100,6 +100,13 @@ const LAID := 0.2
 ## short of it.
 const HAWSE_IN := 0.8
 const SPURLING_IN: Array[float] = [3.6, 3.0, 2.4, 1.8, 1.2]
+## The gear a cable is worked by where a fore deck carries it (DeckFurniture.GEAR): a
+## windlass drum, or cable holder, on its bedplate, the cable led down through it to the
+## chain locker, so no spurling pipe stands apart from it.
+const CABLE_HOLDER := &"cable holder"
+## How near two pieces of the fore deck meet to carry a cable's line on from one to the
+## next (_reach): ship-plane noise.
+const PIECE_JOIN := 0.001
 ## The modelled bell (assets/models/bell): its origin where its bracket meets the
 ## mast's after face, at BELL over the deck, the bracket reaching aft (−x) BELL_REACH
 ## and the bell hung under its end; and its box over all there.
@@ -307,7 +314,8 @@ func _break_door(mesh: ShipMesh, sill: Vector3, normal: Vector3) -> void:
 ## on that deck, over a jumping head. The deck is the whole of the open deck at her
 ## bow, every piece it is cut into round its openings (EndDeck); a side's spurling pipe
 ## stands as far aft of its hawse pipe as SPURLING_IN lets all of the cable between
-## them lie on that deck (_laid), and where none does that side has neither.
+## them lie on that deck (_laid), and where none does that side has neither. A deck that
+## carries cable holders (CABLE_HOLDER) leads each one's cable instead (_led_from).
 func _ground_tackle(mesh: ShipMesh) -> void:
 	var fore := EndDeck.of(_space, 1.0)
 	if fore == null:
@@ -321,17 +329,19 @@ func _ground_tackle(mesh: ShipMesh) -> void:
 	if bow == Vector2.INF:
 		return
 	var middle := (bow.x + bow.y) * 0.5
-	for side: float in [-1.0, 1.0]:
-		var hawse := Vector2(end - HAWSE_IN, middle + side * (bow.y - bow.x) * 0.33)
-		for spurling: float in SPURLING_IN:
-			var pipe := Vector2(end - spurling, middle + side * 0.45)
-			if not _laid(fore, hawse, pipe):
-				continue
-			_deck_pipe(mesh, hawse, deck, 0.2)
-			_deck_pipe(mesh, pipe, deck, 0.13)
-			_chain(mesh, Vector3(hawse.x, deck, hawse.y), Vector3(pipe.x, deck, pipe.y))
-			tackle.append(Rect2(hawse, Vector2.ZERO).expand(pipe).grow(LAID))
-			break
+	var holders: Array[ShipBlocker] = []
+	for blocker: ShipBlocker in _layout.blockers:
+		if (
+			blocker.name == CABLE_HOLDER
+			and is_equal_approx(blocker.bottom, deck)
+			and fore.holds(blocker.area.get_center())
+		):
+			holders.append(blocker)
+	for holder in holders:
+		_led_from(mesh, fore, holder)
+	if holders.is_empty():
+		for side: float in [-1.0, 1.0]:
+			_led_aft(mesh, fore, middle, side, bow)
 	var chock := Rect2(end - ShipHull.TOE_RAIL_WIDTH - 0.04, middle - 0.18, 0.12, 0.36)
 	if is_equal_approx(_space.deck_under(chock.get_center(), deck), deck):
 		mesh.box(chock, deck, deck + 0.12, ShipPaints.dark, ShipMesh.TOP | ShipMesh.SIDES)
@@ -345,6 +355,60 @@ func _ground_tackle(mesh: ShipMesh) -> void:
 		):
 			_bell(mesh, blocker, deck)
 			return
+
+
+## A hawse pipe on [param deck] on [param side] of [param middle], the middle of its bow,
+## and its cable led aft to a spurling pipe as far aft as SPURLING_IN lets all of it lie on
+## the deck (_laid); neither where none does.
+func _led_aft(mesh: ShipMesh, deck: EndDeck, middle: float, side: float, bow: Vector2) -> void:
+	var end := deck.spread.end.x
+	var hawse := Vector2(end - HAWSE_IN, middle + side * (bow.y - bow.x) * 0.33)
+	for spurling: float in SPURLING_IN:
+		var pipe := Vector2(end - spurling, middle + side * 0.45)
+		if not _laid(deck, hawse, pipe):
+			continue
+		_deck_pipe(mesh, hawse, deck.height, 0.2)
+		_deck_pipe(mesh, pipe, deck.height, 0.13)
+		_chain(mesh, Vector3(hawse.x, deck.height, hawse.y), Vector3(pipe.x, deck.height, pipe.y))
+		tackle.append(Rect2(hawse, Vector2.ZERO).expand(pipe).grow(LAID))
+		return
+
+
+## The cable of [param holder], a cable holder on [param deck], led from its forward face
+## forward along its middle line to its hawse pipe, HAWSE_IN short of where the deck ends
+## on that line (_reach) — where her bow's flare takes the deck from under the pipe, which
+## leads down through her bow to the anchor in her side —, all of it lying on the deck
+## (_laid); none where it would not.
+func _led_from(mesh: ShipMesh, deck: EndDeck, holder: ShipBlocker) -> void:
+	var line := holder.area.get_center().y
+	var face := Vector2(holder.area.end.x, line)
+	var hawse := Vector2(_reach(deck, face) - HAWSE_IN, line)
+	var clear := face + Vector2(LAID, 0.0)
+	if hawse.x <= clear.x or not _laid(deck, clear, hawse):
+		return
+	_deck_pipe(mesh, hawse, deck.height, 0.2)
+	_chain(mesh, Vector3(hawse.x, deck.height, line), Vector3(face.x, deck.height, line))
+	tackle.append(Rect2(face, Vector2.ZERO).expand(hawse).grow(LAID))
+
+
+## How far forward [param deck]'s pieces carry the line along her through [param from]:
+## from the piece under it on to each piece that meets it there, as far as the last.
+func _reach(deck: EndDeck, from: Vector2) -> float:
+	var reach := from.x
+	var carried := true
+	while carried:
+		carried = false
+		for piece: ShipPlatform in deck.pieces:
+			var area := piece.area
+			if (
+				area.position.x <= reach + PIECE_JOIN
+				and area.end.x > reach + PIECE_JOIN
+				and area.position.y <= from.y
+				and from.y <= area.end.y
+			):
+				reach = area.end.x
+				carried = true
+	return reach
 
 
 ## Whether a cable from [param from] to [param to] — and the deck pipes at its ends —
