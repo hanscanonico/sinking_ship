@@ -171,6 +171,9 @@ var _decks: FloodedDecks
 var _least := PackedVector3Array()
 var _size_x := PackedFloat64Array()
 var _size_z := PackedFloat64Array()
+## The NativeWaterFx its walks of her decks go to (#410), or null where they run here:
+## the same effects either way (test_water_fx_native).
+var native: Object = WaterFxNative.made()
 
 
 func _init(config: MatchConfig, surfaces: Surfaces, schedule: SinkSchedule) -> void:
@@ -317,14 +320,24 @@ func _waterlines(
 	var lows := pose_now.transform * _least
 	var size_x := _size_x
 	var size_z := _size_z
+	# The extension passes over the decks clear of the sea itself, letting their spray go.
+	var asked := native != null
+	var decks := PackedInt32Array()
+	if asked:
+		var found: Array = native.waterlines(
+			lows, basis.x.y, basis.z.y, size_x, size_z, _spray, CLEAR_OF_SEA
+		)
+		decks = found[0]
+		_spray = found[1]
 	var spray_at := _spray
-	for index in lows.size():
+	for at in decks.size() if asked else lows.size():
+		var index := decks[at] if asked else at
 		var low := lows[index].y
 		# Every corner clear of the sea, over or under it, by more than its plane rises
 		# across it: no line to find (_crossing), on most of the Titanic's 1,349 decks —
 		# told from the packed arrays alone, no deck read.
 		var rise := absf(basis.x.y * size_x[index]) + absf(basis.z.y * size_z[index])
-		if absf(low) > rise + CLEAR_OF_SEA:
+		if not asked and absf(low) > rise + CLEAR_OF_SEA:
 			spray_at[index * 2] = 0.0
 			spray_at[index * 2 + 1] = 0.0
 			continue
@@ -373,7 +386,10 @@ func _waterlines(
 func _floods(pose_then: ShipPose, pose_now: ShipPose, tick: int, cues: Array[FxCue]) -> void:
 	var now := _decks.of(pose_now)
 	var then := _decks.of(pose_then)
-	for index in _layout.platforms.size():
+	var asked := native != null
+	var risen: PackedInt32Array = native.risen(now, then) if asked else PackedInt32Array()
+	for at in risen.size() if asked else _layout.platforms.size():
+		var index := risen[at] if asked else at
 		if now[index] == 0 or then[index] == 1:
 			continue
 		var platform := _layout.platforms[index]

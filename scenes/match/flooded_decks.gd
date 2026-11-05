@@ -20,7 +20,7 @@ func _init(layout: ShipLayout) -> void:
 	for deck: ShipPlatform in layout.platforms:
 		var middle := deck.area.get_center()
 		middles.append(Vector3(middle.x, deck.height, middle.y))
-	_middles = StillPoints.new(middles)
+	_middles = StillPoints.new(middles, StillPoints.native_water())
 
 
 ## Whether the water stands over the middle of platform [param platform] under
