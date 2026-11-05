@@ -903,12 +903,15 @@ func nearest_climb(
 
 ## The highest of the first [param surfaces] surfaces — crates' lids last, but
 ## [param except_prop]'s — under [param ship_point] at or below its height; ties go
-## to the lower number.
+## to the lower number. The lids are numbered after every other surface and come after
+## them: a question stopping short of them looks for none.
 func _highest_at_or_below(ship_point: Vector3, surfaces: int, except_prop: int = NONE) -> int:
 	var best := NONE
 	var best_height := -INF
 	var near := _at(ship_point, -INF, ship_point.y)
-	for surface: int in _with_lids(near, ship_point, except_prop):
+	if surfaces > _first_lid:
+		near = _with_lids(near, ship_point, except_prop)
+	for surface: int in near:
 		if surface >= surfaces:
 			break
 		if surface < _first_lid and _gone[surface] == 1 or not _contains(surface, ship_point):
