@@ -18,9 +18,18 @@ extends RefCounted
 ## built behind the match, her art is the whole of her, and done() says so as soon as it
 ## is — the match can start — while the stretches go on being built on the same thread,
 ## taken once they all are (take_stretches) to draw her in their place (MatchView).
+##
+## A match's dressing started ahead of her sinking (start) makes what of her the sinking
+## has no say in — her sea's maps — while that is baked, then waits to be told it is made
+## (sinking_made) before it reads her schedule: her art is drawn from it, what falls and
+## what the hit left open. Once it has read her schedule (schedule_read), her match may be
+## served beside the rest of her dressing.
 
 ## How long the main thread sleeps between flushes as it waits on a dressing, in µs.
 const WAIT_USEC := 200
+## How long a dressing started ahead sleeps between looks at whether her sinking is made,
+## in µs.
+const SINKING_LOOK_USEC := 20000
 
 ## Held by whichever dressing is building.
 static var _building := Mutex.new()
@@ -68,6 +77,11 @@ var _space: ShipSpace
 var _falls: Array[StringName] = []
 var _fails := PackedInt32Array()
 var _ports := PackedVector3Array()
+## Whether she is started before her sinking is made (start), and whether it is made
+## since (sinking_made); whether the dressing is done reading her schedule.
+var _ahead := false
+var _made := false
+var _read := false
 
 
 ## [param dressed]'s ship to dress as its match draws her, cut away above [param cut] as
@@ -92,10 +106,14 @@ static func at_rest(ship: ShipLayout, rules: BrawlRules) -> ShipDressing:
 	return dressing
 
 
-## Dresses her on a worker thread; done() says when she is. Returns itself.
-func start() -> ShipDressing:
+## Dresses her on a worker thread; done() says when she is. Returns itself. A match's
+## dressing started [param ahead] of her sinking — still baking, never to be touched —
+## makes her sea's maps at once, and reads her schedule only once told it is made
+## (sinking_made).
+func start(ahead := false) -> ShipDressing:
 	if _task >= 0 or _dressed:
 		return self
+	_ahead = ahead and config != null
 	_see_through()
 	# A match's dressing begun means the match before is over: its stretches are no longer
 	# wanted.
@@ -105,6 +123,24 @@ func start() -> ShipDressing:
 	_under_way.append(self)
 	_task = WorkerThreadPool.add_task(_dress, false, "Dressing a ship")
 	return self
+
+
+## Her match's sinking is made: a dressing started ahead of it may read her schedule.
+func sinking_made() -> void:
+	_guard.lock()
+	_made = true
+	_guard.unlock()
+
+
+## Whether the dressing is done reading her match's schedule: her match may be served
+## (MatchScene.serve) beside the rest of it.
+func schedule_read() -> bool:
+	if done():
+		return true
+	_guard.lock()
+	var read := _read
+	_guard.unlock()
+	return read
 
 
 ## Dresses her here and now, on the caller's thread — after any dressing under way.
@@ -220,29 +256,18 @@ static func _flush() -> void:
 
 
 func _dress() -> void:
-	# On the main thread the lock is waited for with the frames' work flowing, so the
-	# dressing that holds it can finish (the class's note).
-	if OS.get_thread_caller_id() == OS.get_main_thread_id():
-		while not _building.try_lock():
-			_flush()
-	else:
-		_building.lock()
-	# Let go while she waited her turn: never dressed, so the next waits no longer.
-	_guard.lock()
-	var dropped := _dropped
-	_guard.unlock()
-	if dropped:
-		_building.unlock()
-		_guard.lock()
-		_built = true
-		_guard.unlock()
-		_free_nodes()
+	if not _turn():
 		return
 	if config == null:
 		art.rules = _rules
 		art.pack = true
 		art.build(_ship, _rules.railing_height, _rules.body_radius)
 	else:
+		if _ahead:
+			_building.unlock()
+			_ship_maps()
+			if not _sinking_waited() or not _turn():
+				return
 		var schedule := config.schedule()
 		_falls = MatchView.falls_of(schedule)
 		# Any railing may break (SH10), not only those the scenario fails.
@@ -255,6 +280,9 @@ func _dress() -> void:
 		# All of her when the plan has her stretches in later to take her place.
 		if not plan.whole:
 			art.span = ShipPieces.first_span(schedule)
+		# Her art and stretches built later are drawn from what was read of it here.
+		if plan.whole:
+			_schedule_read()
 		art.build(_ship, _rules.railing_height, _rules.body_radius, _falls, _fails, _ports)
 		if plan.whole:
 			_dress_stretches(plan.before)
@@ -262,12 +290,9 @@ func _dress() -> void:
 			stretches = ShipPieces.stretches_of(
 				_ship, schedule, _rules, cut_above, _falls, _fails, _ports
 			)
+			_schedule_read()
 	_building.unlock()
-	# Her sea's maps of her rooms too, which her match's sea takes as it starts: a liner's
-	# take seconds (SeaAndSky.maps_of); and which of her decks stand in her rooms, which
-	# the sea's wetness and white water on them ask (DeckWetness.out_on_deck).
-	SeaAndSky.maps_of(_ship)
-	DeckWetness.out_on_deck(_ship)
+	_ship_maps()
 	_guard.lock()
 	_art_ready = true
 	_guard.unlock()
@@ -278,13 +303,72 @@ func _dress() -> void:
 		_building.unlock()
 	_guard.lock()
 	_built = true
-	dropped = _dropped
+	var dropped := _dropped
 	var stopped := _stop_later
 	_guard.unlock()
 	if dropped:
 		_free_nodes()
 	elif stopped and not _handed:
 		_free_stretches()
+
+
+## Takes the dressings' turn to build (the class's note): false when she was let go as
+## she waited for it — never dressed, freed, so the next waits no longer.
+func _turn() -> bool:
+	# On the main thread the lock is waited for with the frames' work flowing, so the
+	# dressing that holds it can finish (the class's note).
+	if OS.get_thread_caller_id() == OS.get_main_thread_id():
+		while not _building.try_lock():
+			_flush()
+	else:
+		_building.lock()
+	_guard.lock()
+	var dropped := _dropped
+	_guard.unlock()
+	if not dropped:
+		return true
+	_building.unlock()
+	_guard.lock()
+	_built = true
+	_guard.unlock()
+	_free_nodes()
+	return false
+
+
+## Waits, on her dressing's thread, for her sinking to be made (sinking_made): false when
+## she is let go, or no longer wanted (stop_later), meanwhile — then freed, never dressed.
+func _sinking_waited() -> bool:
+	while true:
+		_guard.lock()
+		var made := _made
+		var gone := _dropped or _stop_later
+		_guard.unlock()
+		if made:
+			return true
+		if gone:
+			# Freed before she counts as built: a drop() from now on finds nothing to free.
+			_free_nodes()
+			_guard.lock()
+			_built = true
+			_guard.unlock()
+			return false
+		OS.delay_usec(SINKING_LOOK_USEC)
+	return false
+
+
+## Her sea's maps of her rooms, which her match's sea takes as it starts: a liner's take
+## seconds (SeaAndSky.maps_of); and which of her decks stand in her rooms, which the sea's
+## wetness and white water on them ask (DeckWetness.out_on_deck). Hers whatever her
+## sinking does, each made once.
+func _ship_maps() -> void:
+	SeaAndSky.maps_of(_ship)
+	DeckWetness.out_on_deck(_ship)
+
+
+func _schedule_read() -> void:
+	_guard.lock()
+	_read = true
+	_guard.unlock()
 
 
 ## Builds the stretches [param which] of hers (ShipPieces.cuts_of), aft to fore, as
