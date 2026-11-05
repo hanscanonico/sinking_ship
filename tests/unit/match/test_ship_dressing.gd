@@ -5,6 +5,8 @@ extends GutTest
 ## the ship dressed here; a dressing let go before she is dressed frees her once she is;
 ## and one dressing fits only the cut it was made for, and a match on the ship, rules,
 ## sinking and seed it was made for: the one Play makes on the next match dressed ahead.
+## One started ahead of her sinking dresses her as one started after, whether or not her
+## sinking draws her as the frame it drew while it waited (ShipArt.build_frame).
 
 const MATCH := preload("res://scenes/match/match.tscn")
 const MATCH_DATA := "res://data/match/default.tres"
@@ -114,6 +116,24 @@ func test_a_dressing_started_ahead_of_her_sinking_dresses_her_as_one_started_aft
 	after.dress_now()
 	assert_eq(_shape(ahead.art), _shape(after.art), "the same ship, part for part")
 	assert_eq(ahead.art.span, after.art.span, "drawn to the same stretch")
+	assert_eq(ahead.art.prop_art.count(), after.art.prop_art.count(), "every crate drawn")
+	ahead.drop()
+	after.drop()
+
+
+func test_one_started_ahead_of_a_sinking_felling_a_deck_dresses_her_as_one_after() -> void:
+	var fells := SimFixtures.with_events(SimFixtures.calm(), [SimFixtures.collapse(4.0, &"bridge")])
+	var config := SimFixtures.config(2, fells, 1, SimFixtures.steamer())
+	var ahead := ShipDressing.new(config).start(true)
+	await wait_frames(5)
+	config.sinking()
+	ahead.sinking_made()
+	await wait_until(ahead.done, PATIENCE)
+	var falls := MatchView.falls_of(config.schedule())
+	assert_eq(falls, [&"bridge"] as Array[StringName], "her bridge falls")
+	var after := ShipDressing.new(config)
+	after.dress_now()
+	assert_eq(_shape(ahead.art), _shape(after.art), "the same ship, part for part")
 	assert_eq(ahead.art.prop_art.count(), after.art.prop_art.count(), "every crate drawn")
 	ahead.drop()
 	after.drop()

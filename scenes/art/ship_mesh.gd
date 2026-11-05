@@ -751,6 +751,9 @@ static func splits(
 	while line < high:
 		crossed.append(line)
 		line += step
+	# Its ends alone: neither is a cut, and the edge is long enough to keep whole.
+	if crossed.size() == 2 and length > SLIVER:
+		return fractions
 	crossed.sort()
 	var cut := PackedFloat32Array([0.0])
 	for at: float in crossed:
