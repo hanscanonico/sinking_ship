@@ -75,6 +75,10 @@ static var never_rest := false
 const DRY_MARGIN := 0.01
 ## A crate at rest's cell not yet looked for.
 const UNKNOWN_CELL := -2
+## How far past a crate's reach, in metres, every body stands before it is not asked
+## whether one is within it (_run_into_bodies): what no float32 rounding of the offset
+## between the two reaches across.
+const REACH_SLACK := 0.001
 
 var _rules: BrawlRules
 var _layout: ShipLayout
@@ -236,6 +240,8 @@ func _stirring(
 		_looked_in = here.cells
 		_rest_cells.fill(UNKNOWN_CELL)
 	var broken := _pieces != null and _pieces.count() > 1
+	var standing := pose.standing
+	var spans := _pieces.walked(standing) if broken else PackedVector2Array()
 	# Read here once, not of _at_rest per crate: a crate's own take() changes only its own;
 	# and the pose's numbers every crate at rest asks of.
 	var resting := _at_rest.gone
@@ -252,7 +258,7 @@ func _stirring(
 	for crate: PropState in state.props:
 		var prop := crate.prop
 		if broken:
-			_aboard[prop] = 1 if _pieces.piece_at(pose.standing, crate.pos.x) == _piece else 0
+			_aboard[prop] = 1 if Pieces.piece_in(standing, spans, crate.pos.x) == _piece else 0
 		var body := crate.body
 		var loose_here := body != PropState.Body.LOST and body < PropState.Body.HUNG
 		if _aboard[prop] == 0 or not loose_here:
@@ -828,6 +834,7 @@ func _run_into_bodies(
 		for player: PlayerState in bodies:
 			_within_reach(visit, player, -1)
 	visit.sort()
+	var box := _box_of(bodies)
 	var at := 0
 	while at < visit.size():
 		var crate := state.props[visit[at]]
@@ -838,6 +845,16 @@ func _run_into_bodies(
 			continue
 		var prop := _props[crate.prop]
 		var reach := prop.radius + _rules.body_radius
+		# Clear of the box round every body, as most crates are: no body within reach.
+		var clear := reach + REACH_SLACK
+		var pos := crate.pos
+		if (
+			pos.x <= box[0] - clear
+			or pos.x >= box[1] + clear
+			or pos.z <= box[2] - clear
+			or pos.z >= box[3] + clear
+		):
+			continue
 		for player: PlayerState in bodies:
 			# Out of reach first: the cheapest test, and most pairs fail it.
 			var offset := Vector2(player.pos.x - crate.pos.x, player.pos.z - crate.pos.z)
@@ -854,11 +871,23 @@ func _run_into_bodies(
 			var normal := offset / distance if distance > 0.0 else Vector2.RIGHT
 			_wake(crates, crate)
 			_collide(crate, player, normal, reach - distance, tick, events)
+			box = _box_of(bodies)
 			# The body moved: a later crate at rest it now reaches is asked in its turn.
 			if not broken:
 				_within_reach(visit, player, crate.prop)
 	for crate: PropState in crates:
 		_stand_one(crate, pose)
+
+
+## The least and most x and z of [param bodies]' middles.
+static func _box_of(bodies: Array[PlayerState]) -> PackedFloat64Array:
+	var box := PackedFloat64Array([INF, -INF, INF, -INF])
+	for player: PlayerState in bodies:
+		box[0] = minf(box[0], player.pos.x)
+		box[1] = maxf(box[1], player.pos.x)
+		box[2] = minf(box[2], player.pos.z)
+		box[3] = maxf(box[3], player.pos.z)
+	return box
 
 
 ## Adds to [param visit] every crate standing within reach of [param player]'s circle
