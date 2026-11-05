@@ -1,6 +1,7 @@
 // The extension's entry (sinking_native.gdextension): registers its classes at scene
 // level, before any script that asks ClassDB for them runs.
 
+#include "contacts_native.h"
 #include "sink_native.h"
 #include "walk_search_native.h"
 #include "water_fx_native.h"
@@ -21,6 +22,9 @@ static void initialize_sinking_native(ModuleInitializationLevel p_level) {
 	GDREGISTER_CLASS(NativeWalkSearch);
 	GDREGISTER_CLASS(NativeWater);
 	GDREGISTER_CLASS(NativeSink);
+	GDREGISTER_CLASS(NativeStands);
+	GDREGISTER_CLASS(NativeSurfaces);
+	GDREGISTER_CLASS(NativeCrates);
 	GDREGISTER_CLASS(NativeWaterFx);
 }
 
