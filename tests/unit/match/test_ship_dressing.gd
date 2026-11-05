@@ -98,3 +98,32 @@ func test_the_next_match_dressed_on_the_menu_fits_the_match_play_makes() -> void
 	var typed := upcoming.chosen(choices.with_seed(str(next.match_seed + 1)))
 	assert_false(dressing.fits(typed), "another seed's sinking is another")
 	dressing.drop()
+
+
+func test_a_dressing_started_ahead_of_her_sinking_dresses_her_as_one_started_after() -> void:
+	var config := _trawler()
+	var ahead := ShipDressing.new(config).start(true)
+	await wait_frames(5)
+	assert_false(ahead.done(), "never dressed before her sinking is made")
+	assert_false(ahead.schedule_read(), "nor reading her schedule")
+	config.sinking()
+	ahead.sinking_made()
+	await wait_until(ahead.done, PATIENCE)
+	assert_true(ahead.schedule_read(), "her schedule read once she is dressed")
+	var after := ShipDressing.new(config)
+	after.dress_now()
+	assert_eq(_shape(ahead.art), _shape(after.art), "the same ship, part for part")
+	assert_eq(ahead.art.span, after.art.span, "drawn to the same stretch")
+	assert_eq(ahead.art.prop_art.count(), after.art.prop_art.count(), "every crate drawn")
+	ahead.drop()
+	after.drop()
+
+
+func test_a_dressing_started_ahead_and_let_go_before_her_sinking_frees_her() -> void:
+	var dressing := ShipDressing.new(_trawler()).start(true)
+	await wait_frames(5)
+	var art := dressing.art
+	dressing.drop()
+	await wait_until(dressing.done, PATIENCE)
+	assert_true(dressing.done(), "her thread let her go without her sinking")
+	assert_false(is_instance_valid(art), "and freed what it built")

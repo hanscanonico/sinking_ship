@@ -329,8 +329,8 @@ bench:
 # itself — it takes the window lock itself, as capture does.
 fps:
 	GODOT="$(GODOT)" tools/fps.sh $(if $(SEED),--seed=$(SEED)) $(if $(SEATS),--seats=$(SEATS)) \
-		$(if $(SECONDS),--seconds=$(SECONDS)) $(if $(RES),--resolution=$(RES)) \
-		$(if $(filter-out 0,$(SPLIT)),--split) -- $(bake-cache-arg) $(ARGS)
+		$(if $(SECONDS),--seconds=$(SECONDS)) $(if $(SKIP),--skip=$(SKIP)) \
+		$(if $(RES),--resolution=$(RES)) $(if $(filter-out 0,$(SPLIT)),--split) -- $(bake-cache-arg) $(ARGS)
 
 # `make arena SEEDS=200 [LOBBIES=normal,hard-easy] [STOP=15:00] [SCENARIO=]`: bots-only
 # lobbies of the default match, seeds 1…SEEDS each, headless, written up as

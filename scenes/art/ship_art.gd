@@ -478,13 +478,18 @@ func show_power(pose: ShipPose) -> void:
 		_lamp_shown.resize(_lamps.size())
 		_lamp_shown.fill(-1)
 	# A pose that keeps no cells has no lamp in one (ShipPose.cell_at).
-	for index in _lamps.size() if not pose.levels.is_empty() else 0:
-		# The cell it hangs in as the pose has her cells — a piece's own, once she breaks.
-		var cell := _lamp_points.cell(index)
+	var levels := pose.levels
+	var lit := pose.lit
+	# The cell each hangs in as the pose has her cells — a piece's own, once she breaks —
+	# and where each hangs in the world: every lamp's at once (#410).
+	var cells := _lamp_points.cells() if not levels.is_empty() else PackedInt32Array()
+	var world := _lamp_points.world_points() if not levels.is_empty() else PackedVector3Array()
+	for index in cells.size():
+		var cell := cells[index]
 		if cell == CellMap.NONE:
 			continue
-		var power: int = pose.lit[cell]
-		var drowned := pose.levels[cell] >= _lamp_points.world_height(index)
+		var power: int = lit[cell]
+		var drowned := levels[cell] >= world[index].y
 		var shown := power * 2 + (1 if drowned else 0)
 		if shown == _lamp_shown[index]:
 			continue

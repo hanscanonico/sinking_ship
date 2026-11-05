@@ -161,6 +161,29 @@ func test_a_prop_as_it_was_is_carried_as_the_entry_it_was() -> void:
 		assert_eq(same, index != 1, "prop %d the entry taken before: %s" % [index, same])
 
 
+func test_railings_as_they_were_are_carried_as_a_new_codec_carries_them() -> void:
+	# The codec keeps the railings' hits it last put and took (#410): snapshot after
+	# snapshot, a hit or none, the bytes are a new codec's and the hits come back as sent.
+	var config := _config()
+	var codec := _codec(config)
+	var sim := MatchSim.create(config)
+	assert_gt(sim.state.railing_hp.size(), 1, "the steamer has railings")
+	for round_index in 4:
+		if round_index == 2:
+			var hit := sim.state.railing_hp.duplicate()
+			hit[1] -= 0.75
+			sim.state.railing_hp = hit
+		var sent := sim.snapshot()
+		var bytes := codec.encode_snapshot(sent, -1, -1, 0)
+		assert_eq(bytes, _codec(config).encode_snapshot(sent, -1, -1, 0), "round %d" % round_index)
+		var taken := codec.decode_snapshot(bytes).snapshot
+		var fresh := _codec(config).decode_snapshot(bytes).snapshot
+		assert_eq(
+			taken["railing_hp"], fresh["railing_hp"], "round %d as taken afresh" % round_index
+		)
+		_within_quantum(sent, taken, &"snapshot", "snapshot")
+
+
 func test_a_field_the_codec_forgets_is_lost_loudly() -> void:
 	var config := _config()
 	var codec := _codec(config)
