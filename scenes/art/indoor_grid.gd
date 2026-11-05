@@ -38,6 +38,10 @@ var _edges_x: Array[PackedFloat64Array] = []
 var _edges_z: Array[PackedFloat64Array] = []
 var _ceilings := []
 var _index := {}
+## The grid in the extension (ArtNative), which answers outdoors(), outdoors_over() and
+## ceiling() once it is made; null where it is not loaded.
+var _native: Object
+var _native_tried := false
 
 
 func _init(
@@ -61,6 +65,9 @@ func rooms_over(x: float, z: float) -> PackedInt32Array:
 ## and, when [param boxes] are given, a box per room holding all of it, outside every
 ## box too.
 func outdoors(point: Vector3, boxes: Array[AABB] = []) -> bool:
+	var grid := native()
+	if grid != null:
+		return grid.outdoors(point, boxes)
 	if _columns.is_empty():
 		_grid()
 	var band := clampi(floori((point.y - _low) / BAND), 0, _bands - 1)
@@ -109,6 +116,9 @@ func outdoors_over(
 		return []
 	if n_axis == u_axis or n_axis == v_axis:
 		return []
+	var grid := native()
+	if grid != null:
+		return grid.outdoors_over(origin, u, v, u_cuts, v_cuts, normal, probe, boxes)
 	if _columns.is_empty():
 		_grid()
 	var columns := u_cuts.size() - 1
@@ -175,6 +185,9 @@ func outdoors_over(
 ## only of a point on an edge, to double precision or to the single precision some of
 ## its tests take a point at.
 func ceiling(index: int, x: float, z: float) -> float:
+	var grid := native()
+	if grid != null:
+		return grid.ceiling(index, x, z)
 	var cells := _ceiling_cells(index)
 	var xs := _edges_x[index]
 	var zs := _edges_z[index]
@@ -196,6 +209,28 @@ func ceiling(index: int, x: float, z: float) -> float:
 	if on_edge:
 		return _ceiling_at.call(_layout.rooms[index], x, z)
 	return _cell_ceiling(index, cells, column * (zs.size() + 1) + row, x, z)
+
+
+## The grid as the extension's NativeIndoorGrid, made the first time it is asked, with
+## her ceilings worked out by calling back here; null where the extension is not loaded.
+func native() -> Object:
+	if _native_tried:
+		return _native
+	_native_tried = true
+	_native = ArtNative.made(&"NativeIndoorGrid")
+	if _native == null:
+		return null
+	if _columns.is_empty():
+		_grid()
+	var cells_from := PackedInt32Array([0])
+	var cells := PackedInt32Array()
+	for each: PackedInt32Array in _cells:
+		cells.append_array(each)
+		cells_from.append(cells.size())
+	_native.setup(
+		_origin, _size, _low, _bands, _bounds, cells_from, cells, _ceiling_of, _roof_edges_of
+	)
+	return _native
 
 
 ## [param room]'s index among her rooms.
@@ -224,6 +259,16 @@ func _ceiling_cells(index: int) -> Dictionary:
 		_edges_z.resize(_layout.rooms.size())
 	if _ceilings[index] != null:
 		return _ceilings[index]
+	var edges := _roof_edges_of(index)
+	_edges_x[index] = edges[0]
+	_edges_z[index] = edges[1]
+	var cells: Dictionary[int, float] = {}
+	_ceilings[index] = cells
+	return cells
+
+
+## The edges of what roofs room [param index], along x and along z, each sorted.
+func _roof_edges_of(index: int) -> Array[PackedFloat64Array]:
 	var xs := PackedFloat64Array()
 	var zs := PackedFloat64Array()
 	for edge: Rect2 in _roof_edges.call(_layout.rooms[index]):
@@ -231,11 +276,13 @@ func _ceiling_cells(index: int) -> Dictionary:
 		zs.append_array([edge.position.y, edge.end.y])
 	xs.sort()
 	zs.sort()
-	_edges_x[index] = xs
-	_edges_z[index] = zs
-	var cells: Dictionary[int, float] = {}
-	_ceilings[index] = cells
-	return cells
+	var edges: Array[PackedFloat64Array] = [xs, zs]
+	return edges
+
+
+## Room [param index]'s ceiling over ([param x], [param z]) worked out.
+func _ceiling_of(index: int, x: float, z: float) -> float:
+	return _ceiling_at.call(_layout.rooms[index], x, z)
 
 
 ## Marks in [param marked] each probe of [param face] that [param box] holds, as

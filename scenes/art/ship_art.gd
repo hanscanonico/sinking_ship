@@ -617,7 +617,7 @@ func _process(_delta: float) -> void:
 ## The faces of the ship, gathered for one commit.
 func _mesh() -> ShipMesh:
 	var mesh := ShipMesh.new(_outdoors, _space.room_lines())
-	mesh.outdoors_over = _space.rooms_grid.outdoors_over.bind(_room_boxes)
+	mesh.judge_by(_space.rooms_grid, _room_boxes)
 	mesh.cut_above = cut_above
 	mesh.keep = span
 	return mesh
