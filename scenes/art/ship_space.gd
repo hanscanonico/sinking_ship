@@ -42,6 +42,10 @@ var _thin_gathered := false
 ## Per room, the hatches in a deck over its floor over its area, each as its
 ## [footprint, height]: the only ones ceiling() need look at.
 var _hatches := {}
+## Every hatch of her structure, in her openings' order: what each room's hatches are
+## picked from, gathered the first time they are.
+var _hatch_openings: Array[ShipOpening] = []
+var _hatches_gathered := false
 ## Her walls, gathered the first time walled_between() is asked.
 var _walls: Array[ShipBlocker] = []
 ## Her rooms on a grid of ROOM_CELL squares, each over its area grown by INSIDE
@@ -54,6 +58,10 @@ var rooms_grid: IndoorGrid
 ## (_blockers_near, _platforms_near), built the first time they are asked.
 var _blocker_grid: SpatialIndex
 var _platform_grid: SpatialIndex
+## What _platform_grid covers (x/z): envelope() asks it of a line across all of it.
+var _plane := Rect2()
+## Her room_lines(), gathered the first time they are asked.
+var _lines: Array[PackedFloat32Array] = []
 ## Per room, its wall runs (wall_runs), the glazed apart; and the boxes on its floor
 ## (_on_floor).
 var _runs := {}
@@ -103,7 +111,8 @@ func _blockers_near(box: Rect2) -> PackedInt32Array:
 ## The platforms, by index and in order, whose areas may reach [param box] (x/z).
 func _platforms_near(box: Rect2) -> PackedInt32Array:
 	if _platform_grid == null:
-		_platform_grid = SpatialIndex.new(SpatialIndex.bounds_of(layout), ROOM_CELL)
+		_plane = SpatialIndex.bounds_of(layout)
+		_platform_grid = SpatialIndex.new(_plane, ROOM_CELL)
 		for index in layout.platforms.size():
 			_platform_grid.insert(index, layout.platforms[index].area.grow(NEAR_SLACK))
 	return _platform_grid.near(box.grow(NEAR_SLACK))
@@ -124,13 +133,24 @@ func _highest_ceiling(room: ShipRoom) -> float:
 		var platform := layout.platforms[index]
 		if platform.area.grow(ROOF_REACH).intersects(reach, true):
 			top = maxf(top, platform.height)
-	if layout.structure != null:
-		for opening: ShipOpening in layout.structure.openings:
-			var size := Vector2(opening.size.x, opening.size.z)
-			var footprint := Rect2(Vector2(opening.centre.x, opening.centre.z) - size * 0.5, size)
-			if opening.kind == ShipOpening.Kind.HATCH and footprint.intersects(reach, true):
-				top = maxf(top, opening.centre.y)
+	for opening: ShipOpening in _hatch_list():
+		var size := Vector2(opening.size.x, opening.size.z)
+		var footprint := Rect2(Vector2(opening.centre.x, opening.centre.z) - size * 0.5, size)
+		if footprint.intersects(reach, true):
+			top = maxf(top, opening.centre.y)
 	return top
+
+
+## Every hatch of her structure, in her openings' order, gathered the first time it is
+## asked.
+func _hatch_list() -> Array[ShipOpening]:
+	if not _hatches_gathered:
+		_hatches_gathered = true
+		if layout.structure != null:
+			for opening: ShipOpening in layout.structure.openings:
+				if opening.kind == ShipOpening.Kind.HATCH:
+					_hatch_openings.append(opening)
+	return _hatch_openings
 
 
 ## The share (0…1) of [param area] (x/z) that stands in a room at [param height]:
@@ -217,18 +237,13 @@ func _ceiling_at(room: ShipRoom, x: float, z: float) -> float:
 func hatch_over(room: ShipRoom, x: float, z: float) -> float:
 	if not _hatches.has(room):
 		var hatches := []
-		if layout.structure != null:
-			for opening: ShipOpening in layout.structure.openings:
-				var at := opening.centre
-				var size := Vector2(opening.size.x, opening.size.z)
-				var footprint := Rect2(Vector2(at.x, at.z) - size * 0.5, size)
-				var over := at.y > room.floor_height + SLIVER
-				if (
-					opening.kind == ShipOpening.Kind.HATCH
-					and over
-					and footprint.intersects(room.area)
-				):
-					hatches.append([footprint.grow(INSIDE), at.y])
+		for opening: ShipOpening in _hatch_list():
+			var at := opening.centre
+			var size := Vector2(opening.size.x, opening.size.z)
+			var footprint := Rect2(Vector2(at.x, at.z) - size * 0.5, size)
+			var over := at.y > room.floor_height + SLIVER
+			if over and footprint.intersects(room.area):
+				hatches.append([footprint.grow(INSIDE), at.y])
 		_hatches[room] = hatches
 	var lowest := INF
 	for hatch: Array in _hatches[room]:
@@ -242,7 +257,7 @@ func hatch_over(room: ShipRoom, x: float, z: float) -> float:
 func roof(room: ShipRoom, x: float, z: float) -> int:
 	if not _over.has(room):
 		var over: Array[int] = []
-		for index in layout.platforms.size():
+		for index: int in _platforms_near(room.area.grow(ROOF_REACH)):
 			var platform := layout.platforms[index]
 			# Grown past where anyone asks of a room (outdoors() reaches INSIDE past it).
 			var reach := platform.area.grow(ROOF_REACH)
@@ -269,7 +284,8 @@ func _lower_deck(a: int, b: int) -> bool:
 func floor_beneath(platform: ShipPlatform) -> float:
 	var middle := platform.area.get_center()
 	var beneath := -INF
-	for other: ShipPlatform in layout.platforms:
+	for index: int in _platforms_near(Rect2(middle, Vector2.ZERO)):
+		var other := layout.platforms[index]
 		if other.height < platform.height and other.contains(middle.x, middle.y):
 			beneath = maxf(beneath, other.height)
 	return beneath if beneath != -INF else platform.height
@@ -297,7 +313,11 @@ func stands_over_a_platform(platform: ShipPlatform) -> bool:
 ## Whether a platform rests on [param blocker]'s top: over more of it than a sliver, not
 ## merely meeting it edge to edge.
 func deck_on(blocker: ShipBlocker) -> bool:
-	for platform: ShipPlatform in layout.platforms:
+	var footprint := blocker.area
+	if blocker.shape == ShipBlocker.Shape.CYLINDER:
+		footprint = Rect2(blocker.centre, Vector2.ZERO)
+	for index: int in _platforms_near(footprint):
+		var platform := layout.platforms[index]
 		if not is_equal_approx(platform.height, blocker.top):
 			continue
 		var box := blocker.shape == ShipBlocker.Shape.BOX
@@ -358,7 +378,8 @@ func walled_between(from: Vector2, to: Vector2, bottom: float, top: float) -> bo
 ## [param bottom] and [param top]: no blocker, no ramp, and a deck at [param bottom]
 ## under all of it.
 func clear(area: Rect2, bottom: float, top: float) -> bool:
-	for blocker: ShipBlocker in layout.blockers:
+	for index: int in _blockers_near(area):
+		var blocker := layout.blockers[index]
 		if blocker.top <= bottom + SLIVER or blocker.bottom >= top - SLIVER:
 			continue
 		if blocker.shape == ShipBlocker.Shape.BOX:
@@ -396,6 +417,16 @@ func under_a_ramp(point: Vector2, height: float) -> bool:
 ## Every room edge, deck edge and floor height, per axis x, y, z: where a face may be
 ## cut so each piece of it lies wholly indoors or wholly out (ShipMesh).
 func room_lines() -> Array[PackedFloat32Array]:
+	if _lines.is_empty():
+		_lines = _room_lines()
+	# Copies: a caller may sort or add to its own.
+	var lines: Array[PackedFloat32Array] = [
+		_lines[0].duplicate(), _lines[1].duplicate(), _lines[2].duplicate()
+	]
+	return lines
+
+
+func _room_lines() -> Array[PackedFloat32Array]:
 	var xs := PackedFloat32Array()
 	var ys := PackedFloat32Array()
 	var zs := PackedFloat32Array()
@@ -415,7 +446,11 @@ func room_lines() -> Array[PackedFloat32Array]:
 ## port edge height, starboard edge height); INF when no deck stands there.
 func envelope(x: float) -> Vector4:
 	var shape := Vector4.INF
-	for platform: ShipPlatform in layout.platforms:
+	if _platform_grid == null:
+		_platforms_near(Rect2())
+	# The platforms across all of her at x, in order: the only ones over it.
+	for index: int in _platforms_near(Rect2(x, _plane.position.y, 0.0, _plane.size.y)):
+		var platform := layout.platforms[index]
 		var area := platform.area
 		if x <= area.position.x or x >= area.end.x:
 			continue
@@ -723,7 +758,9 @@ func _other_wall(blocker: ShipBlocker, point: Vector2, height: float) -> bool:
 ## The parts of [param area] no platform at [param height] covers.
 func uncovered(area: Rect2, height: float) -> Array[Rect2]:
 	var bare: Array[Rect2] = [area]
-	for platform: ShipPlatform in layout.platforms:
+	# A platform off the area takes nothing from any part of it.
+	for index: int in _platforms_near(area):
+		var platform := layout.platforms[index]
 		if not is_equal_approx(platform.height, height):
 			continue
 		var left: Array[Rect2] = []
