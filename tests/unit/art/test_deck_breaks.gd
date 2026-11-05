@@ -123,7 +123,7 @@ func test_the_liner_s_break_doors_stand_one_to_a_face_and_on_it() -> void:
 func test_the_titanic_s_docking_bridge_stands_open_on_stanchions_with_no_break_under_it() -> void:
 	# Its deck over her poop on stanchions (#381): its edges no face, no door or vent in
 	# the air under them.
-	var titanic: ShipLayout = load("res://data/ships/titanic.tres")
+	var titanic := Fleet.layout(&"titanic")
 	var bridge: Array[Rect2] = []
 	for platform: ShipPlatform in titanic.platforms:
 		if platform.name == &"docking bridge":
