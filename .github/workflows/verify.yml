@@ -103,7 +103,7 @@ jobs:
           retention-days: 7
 
   # The same extension for macOS (universal), built on an Apple-silicon runner and held
-  # to the GDScript there by the two cross-check scripts alone: on arm64 the engine's
+  # to the GDScript there by the three cross-check scripts alone: on arm64 the engine's
   # own float code could contract a * b + c where ours (-ffp-contract=off) does not, and
   # these would tell. Not the suite: the Linux shards run that.
   native-macos:
@@ -168,7 +168,7 @@ jobs:
         run: make import
 
       - name: Cross-check native against GDScript
-        run: make test JOBS=1 TESTS="tests/unit/ai/test_walk_search_native.gd tests/unit/ai/test_water_native.gd"
+        run: make test JOBS=1 TESTS="tests/unit/ai/test_walk_search_native.gd tests/unit/ai/test_water_native.gd tests/unit/core/test_sink_native.gd"
         env:
           SINKING_NATIVE_REQUIRED: "1"
 

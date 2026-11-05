@@ -142,6 +142,11 @@ func turn(up_x: float, up_y: float, up_z: float) -> void:
 		_shift = (_b + _c) * 0.5
 
 
+## Its least corner and its extent, x, y, z: what the extension turns (SinkStepper._native).
+func frame() -> PackedFloat64Array:
+	return _low + _size
+
+
 ## The height of its lowest and of its highest corner.
 func bottom() -> float:
 	return _bottom
