@@ -94,6 +94,68 @@ func _headroom_problems(layout: ShipLayout) -> PackedStringArray:
 	return found
 
 
+## Every room of [param layout]'s narrower than a body (#414), described: a space narrower
+## than a body is a solid block, not a room (#360). A room's clear width is its narrowest
+## walkable span across its short side between the faces of its walls, looked across every
+## HEADROOM_STEP along it (a wall's thickness in from either end): past a side with no wall
+## the span runs on into the room beyond, up to a body's breadth, so two rectangles that
+## open into each other count together. Its walls are those on its sides or beyond them,
+## standing where a crawling body would meet them; a closet's sides standing inside it, and
+## a wall across it, which a line across it runs along, narrow nothing.
+func _clear_width_problems(layout: ShipLayout) -> PackedStringArray:
+	var rules := SimFixtures.rules()
+	var body := rules.body_radius * 2.0
+	var walls := _walls(layout)
+	var found := PackedStringArray()
+	for room: ShipRoom in layout.rooms:
+		var area := room.area
+		var across := 0 if area.size.x < area.size.y else 1
+		var along := 1 - across
+		var low := area.position[across]
+		var high := area.end[across]
+		var round_it: Array[Rect2] = []
+		for wall: ShipBlocker in walls:
+			var box := wall.area
+			if (
+				not PlaneShapes.overlaps(
+					room.floor_height, rules.crawl_height, rules.step_height, wall.bottom, wall.top
+				)
+				or not box.intersects(area.grow(body))
+				or box.size[across] > box.size[along]
+				or (box.position[across] > low + WALL and box.end[across] < high - WALL)
+			):
+				continue
+			round_it.append(box)
+		var first := area.position[along] + WALL
+		var last := area.end[along] - WALL
+		if first > last:
+			first = (area.position[along] + area.end[along]) * 0.5
+			last = first
+		var at := first
+		while at <= last + LEVEL:
+			var cuts: Array[Vector2] = []
+			for box: Rect2 in round_it:
+				if box.position[along] <= at and at <= box.end[along]:
+					cuts.append(Vector2(box.position[across], box.end[across]))
+			cuts.sort()
+			var widest := 0.0
+			var reached := low - body
+			for cut: Vector2 in cuts + [Vector2(high + body, high + body)]:
+				if cut.x > reached and cut.x > low and reached < high:
+					widest = maxf(widest, cut.x - reached)
+				reached = maxf(reached, cut.y)
+			if widest < body:
+				found.append(
+					(
+						"%s at %s: %.2f m clear, narrower than a body (%.2f m)"
+						% [room.name, area.position, widest, body]
+					)
+				)
+				break
+			at += HEADROOM_STEP
+	return found
+
+
 ## Every reason a bonus spot of [param layout]'s (#308) is not where a bonus can lie,
 ## described: each lies in one of her rooms below her main deck — a room whose floor
 ## stands under zero — inside its area at its floor's height, on a platform there, on no
@@ -458,6 +520,57 @@ func test_the_headroom_rule_bites() -> void:
 		_headroom_problems(roofed.call(3.0, true)),
 		PackedStringArray(["under the roof: a crawl space with headroom to stand everywhere"])
 	)
+
+
+func test_every_room_is_at_least_a_body_wide() -> void:
+	var layouts := _layouts()
+	for path: String in layouts:
+		assert_eq(_clear_width_problems(layouts[path]), PackedStringArray(), path)
+
+
+func test_the_clear_width_rule_bites() -> void:
+	# The flat deck with a strip along her and a room beside it, test data: walled both
+	# sides at walls' middles 0.85 m apart, 0.2 m walls leave it 0.65 m clear; open along
+	# one side into the room beside it, it counts that room's floor too; 1.2 m apart, it is
+	# wide enough itself. A closet's sides standing in a room, or a wall across one, narrow
+	# nothing.
+	var strip := func(width: float, walled_beside: bool) -> ShipLayout:
+		var layout: ShipLayout = SimFixtures.deck().duplicate()
+		var blockers: Array[ShipBlocker] = []
+		var sides := [0.0, width + 1.2]
+		if walled_beside:
+			sides.append(width)
+		for z: float in sides:
+			var wall := ShipBlocker.new()
+			wall.area = Rect2(-3.0, z - WALL * 0.5, 6.0, WALL)
+			wall.top = 2.5
+			blockers.append(wall)
+		layout.blockers = blockers
+		var room := ShipRoom.new()
+		room.name = &"strip"
+		room.area = Rect2(-3.0, 0.0, 6.0, width)
+		var beside := ShipRoom.new()
+		beside.name = &"beside"
+		beside.area = Rect2(-3.0, width, 6.0, 1.2)
+		var rooms: Array[ShipRoom] = [room, beside]
+		layout.rooms = rooms
+		return layout
+	assert_eq(
+		_clear_width_problems(strip.call(0.85, true)),
+		PackedStringArray(["strip at (-3.0, 0.0): 0.65 m clear, narrower than a body (0.80 m)"]),
+		"walled both sides"
+	)
+	assert_eq(_clear_width_problems(strip.call(0.85, false)), PackedStringArray(), "open beside")
+	assert_eq(_clear_width_problems(strip.call(1.2, true)), PackedStringArray(), "wide enough")
+	var closeted: ShipLayout = strip.call(1.6, true)
+	for box: Rect2 in [
+		Rect2(-1.0, 0.6, 1.0, 0.06), Rect2(-1.0, 0.6, 0.06, 0.5), Rect2(2.0, 0.0, 0.06, 1.6)
+	]:
+		var side := ShipBlocker.new()
+		side.area = box
+		side.top = 2.5
+		closeted.blockers.append(side)
+	assert_eq(_clear_width_problems(closeted), PackedStringArray(), "a closet, a wall across")
 
 
 func test_every_bonus_spot_lies_on_a_floor_in_a_room_below_her_main_deck() -> void:

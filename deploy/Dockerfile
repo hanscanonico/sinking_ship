@@ -24,6 +24,7 @@ ARG GODOT_TEMPLATES_SHA512
 RUN apt-get update \
 	&& apt-get install -y --no-install-recommends ca-certificates curl unzip make \
 		libgl1 libx11-6 libxcursor1 libxinerama1 libxi6 libxrandr2 \
+		g++ scons git \
 	&& rm -rf /var/lib/apt/lists/*
 # Only the two templates the exports use are kept: the Linux server's and the
 # single-threaded web build's.
@@ -45,7 +46,10 @@ RUN set -eu; \
 	rm -rf /tmp/godot /tmp/godot.zip /tmp/templates /tmp/templates.tpz
 WORKDIR /src
 COPY . .
-RUN make import && make export-server export-web
+# The server ships the game's GDExtension (#410), built here for Linux: g++, scons and
+# git above are its build, and make export-server refuses to export without it. make
+# native imports the project once the library is there.
+RUN make native && make export-server export-web
 
 
 FROM gcr.io/distroless/base-debian12:nonroot AS server
