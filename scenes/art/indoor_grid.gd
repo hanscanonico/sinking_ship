@@ -114,14 +114,22 @@ func outdoors_over(
 	var columns := u_cuts.size() - 1
 	var rows := v_cuts.size() - 1
 	# Each probe point's coordinate along u's axis is its column's alone, along v's its
-	# row's, along the normal's the face's: the other terms of its sum are zeros.
+	# row's, along the normal's the face's: the other terms of its sum are zeros. Each is
+	# ShipMesh._middle()'s sum, term for term — its every rounding the same — the terms
+	# that stay the same along a row or a column worked out once.
+	var stepped := normal * probe
+	var first_u := u * (u_cuts[0] + u_cuts[1]) * 0.5
+	var first_v := v * (v_cuts[0] + v_cuts[1]) * 0.5
 	var along_u := PackedFloat64Array()
+	along_u.resize(columns)
 	for i in columns:
-		along_u.append(_probe(origin, u, v, u_cuts, v_cuts, i, 0, normal, probe)[u_axis])
+		along_u[i] = (origin + u * (u_cuts[i] + u_cuts[i + 1]) * 0.5 + first_v + stepped)[u_axis]
 	var along_v := PackedFloat64Array()
+	along_v.resize(rows)
+	var from_u := origin + first_u
 	for j in rows:
-		along_v.append(_probe(origin, u, v, u_cuts, v_cuts, 0, j, normal, probe)[v_axis])
-	var level: float = _probe(origin, u, v, u_cuts, v_cuts, 0, 0, normal, probe)[n_axis]
+		along_v[j] = (from_u + v * (v_cuts[j] + v_cuts[j + 1]) * 0.5 + stepped)[v_axis]
+	var level: float = (from_u + first_v + stepped)[n_axis]
 	var face := FaceProbes.new()
 	face.rows = rows
 	face.values.resize(3)
@@ -249,14 +257,16 @@ func _mark_box(box: AABB, face: FaceProbes, marked: PackedByteArray) -> void:
 ## [param index], as outdoors() tests a point against it.
 func _mark_room(index: int, face: FaceProbes, marked: PackedByteArray) -> void:
 	var at := index * 5
-	var spans: Array[Vector2i] = [
-		face.span(0, _bounds[at + 1], _bounds[at + 2]),
-		face.span(1, _bounds[at], INF),
-		face.span(2, _bounds[at + 3], _bounds[at + 4]),
-	]
-	for span: Vector2i in spans:
-		if span.x >= span.y:
-			return
+	var span_x := face.span(0, _bounds[at + 1], _bounds[at + 2])
+	if span_x.x >= span_x.y:
+		return
+	var span_y := face.span(1, _bounds[at], INF)
+	if span_y.x >= span_y.y:
+		return
+	var span_z := face.span(2, _bounds[at + 3], _bounds[at + 4])
+	if span_z.x >= span_z.y:
+		return
+	var spans: Array[Vector2i] = [span_x, span_y, span_z]
 	var cells := _ceiling_cells(index)
 	var xs := _edges_x[index]
 	var zs := _edges_z[index]
@@ -276,22 +286,28 @@ func _mark_room(index: int, face: FaceProbes, marked: PackedByteArray) -> void:
 	var x_at := face.values[0]
 	var z_at := face.values[2]
 	var depth := zs.size() + 1
+	var floor := _bounds[at]
+	var face_rows := face.rows
+	var by_column := by[1] == 1
+	# The cell of the ceiling map the last probe stood under, and the probes over its
+	# floor and under its ceiling there: the same for the next probe under that cell.
+	var last_cell := -1
+	var under := Vector2i.ZERO
 	for k in range(spans[along].x, spans[along].y):
 		var pick_x := k if by[0] != 2 else 0
 		var pick_z := k if by[2] != 2 else 0
-		var x := x_at[pick_x]
-		var z := z_at[pick_z]
 		var column := columns[pick_x]
 		var row := rows[pick_z]
-		var height := 0.0
 		if column == -1 or row == -1:
-			height = _ceiling_at.call(room, x, z)
-		else:
-			height = _cell_ceiling(index, cells, column * depth + row, x, z)
-		# The probes over its floor and under its ceiling there.
-		var under := face.span(1, _bounds[at], height + ShipSpace.INSIDE)
+			last_cell = -1
+			var height: float = _ceiling_at.call(room, x_at[pick_x], z_at[pick_z])
+			under = face.span(1, floor, height + ShipSpace.INSIDE)
+		elif column * depth + row != last_cell:
+			last_cell = column * depth + row
+			var height := _cell_ceiling(index, cells, last_cell, x_at[pick_x], z_at[pick_z])
+			under = face.span(1, floor, height + ShipSpace.INSIDE)
 		for j in range(under.x, under.y):
-			marked[k * face.rows + j if by[1] == 1 else j * face.rows + k] = 1
+			marked[k * face_rows + j if by_column else j * face_rows + k] = 1
 
 
 ## _mark_room() of a level face: its probes at one height, each piece of the room's
@@ -388,26 +404,6 @@ func _rooms_reaching(low: Vector3, high: Vector3) -> PackedInt32Array:
 						seen[index] = true
 						found.append(index)
 	return found
-
-
-## The probe point of piece ([param i], [param j]) of a face (outdoors_over), summed as
-## ShipMesh.face() sums it.
-static func _probe(
-	origin: Vector3,
-	u: Vector3,
-	v: Vector3,
-	u_cuts: PackedFloat32Array,
-	v_cuts: PackedFloat32Array,
-	i: int,
-	j: int,
-	normal: Vector3,
-	probe: float
-) -> Vector3:
-	# ShipMesh._middle()'s sum, term for term: its every rounding is the same.
-	var middle := (
-		origin + u * (u_cuts[i] + u_cuts[i + 1]) * 0.5 + v * (v_cuts[j] + v_cuts[j + 1]) * 0.5
-	)
-	return middle + normal * probe
 
 
 ## The one axis [param vector] has a component along — every other exactly zero — or -1.

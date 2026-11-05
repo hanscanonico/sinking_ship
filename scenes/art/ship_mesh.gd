@@ -784,9 +784,11 @@ static func needed(
 ) -> Array[PackedFloat32Array]:
 	var columns := u_cuts.size() - 1
 	var rows := v_cuts.size() - 1
+	var u_axis := _chunk_axis(u)
+	var v_axis := _chunk_axis(v)
 	var kept_u := PackedFloat32Array([0.0])
 	for i in range(1, columns):
-		var keep := _on_chunk_line(origin, u, u_cuts[i])
+		var keep := u_axis != -1 and _on_chunk_line(origin, u, u_axis, u_cuts[i])
 		for j in rows:
 			if keep:
 				break
@@ -796,7 +798,7 @@ static func needed(
 	kept_u.append(1.0)
 	var kept_v := PackedFloat32Array([0.0])
 	for j in range(1, rows):
-		var keep := _on_chunk_line(origin, v, v_cuts[j])
+		var keep := v_axis != -1 and _on_chunk_line(origin, v, v_axis, v_cuts[j])
 		for i in columns:
 			if keep:
 				break
@@ -823,16 +825,23 @@ static func _middle(
 	return origin + u * (u_cuts[i] + u_cuts[i + 1]) * 0.5 + v * (v_cuts[j] + v_cuts[j + 1]) * 0.5
 
 
-## Whether the cut [param fraction] of the way along [param edge] from [param origin]
-## (splits()) lies on a chunk line.
-static func _on_chunk_line(origin: Vector3, edge: Vector3, fraction: float) -> bool:
+## The axis [param edge] runs along, as splits() cuts it at the chunk lines: the first
+## its length lies along; -1 for none.
+static func _chunk_axis(edge: Vector3) -> int:
 	var length := edge.length()
 	for axis in 3:
 		if absf(edge[axis]) >= length - SLIVER:
-			var at := origin[axis] + edge[axis] * fraction
-			var step := CHUNK[axis]
-			return absf(at - roundf(at / step) * step) < SLIVER
-	return false
+			return axis
+	return -1
+
+
+## Whether the cut [param fraction] of the way along [param edge] from [param origin]
+## (splits()) lies on a chunk line across [param axis], the one it runs along
+## (_chunk_axis()).
+static func _on_chunk_line(origin: Vector3, edge: Vector3, axis: int, fraction: float) -> bool:
+	var at := origin[axis] + edge[axis] * fraction
+	var step := CHUNK[axis]
+	return absf(at - roundf(at / step) * step) < SLIVER
 
 
 ## [param low], every line of [param lines] strictly between, and [param high].

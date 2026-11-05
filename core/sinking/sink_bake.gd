@@ -493,6 +493,8 @@ func _by_leaf() -> Array:
 		PackedByteArray(),
 	]
 	var leaf_pieces := leaves()
+	# Per leaf and piece holding it, where in that piece each of the leaf's cells is.
+	var places := {}
 	var pose_at := 0
 	var cell_at := 0
 	for state in _times.size():
@@ -507,10 +509,12 @@ func _by_leaf() -> Array:
 			var pose := pose_at + holder
 			made[0].append(_seas[pose])
 			made[1].append_array(_rotations.slice(pose * 9, pose * 9 + 9))
-			var piece := _pieces[alive[holder]]
+			var key := Vector2i(leaf, alive[holder])
+			if not places.has(key):
+				places[key] = _cells_in(_pieces[leaf], _pieces[alive[holder]])
+			var place: PackedInt32Array = places[key]
 			for cell in cells_of(leaf):
-				var named := _pieces[leaf].stepper.cell_name(cell)
-				var at := starts[holder] + _cell_named(piece, named)
+				var at := starts[holder] + place[cell]
 				made[2].append(_heads[at])
 				made[3].append(_waters[at])
 				made[4].append(_pockets[at])
@@ -530,12 +534,17 @@ func _holder(alive: PackedInt32Array, leaf: int) -> int:
 	return -1
 
 
-## The cell of [param piece] called [param named].
-static func _cell_named(piece: BakePiece, named: StringName) -> int:
+## Per cell of [param leaf], the first cell of [param piece] of its name; -1 for none.
+static func _cells_in(leaf: BakePiece, piece: BakePiece) -> PackedInt32Array:
+	var first := {}
 	for cell in piece.state.water.size():
-		if piece.stepper.cell_name(cell) == named:
-			return cell
-	return -1
+		var named := piece.stepper.cell_name(cell)
+		if not first.has(named):
+			first[named] = cell
+	var found := PackedInt32Array()
+	for cell in leaf.state.water.size():
+		found.append(first.get(leaf.stepper.cell_name(cell), -1))
+	return found
 
 
 ## Whether [param boat]'s side stands high past its list limit under [param rotation]:
