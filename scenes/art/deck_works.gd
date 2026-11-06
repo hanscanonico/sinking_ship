@@ -458,6 +458,16 @@ static func _flat(at: Vector2) -> Vector3:
 	return Vector3(at.x, 0.0, at.y)
 
 
+## The mast radius the crosstree a mast of [param radius] carries was made for
+## (CROSSTREES): its arms' ends stand CROSSTREE_REACH past that, whatever the mast's own.
+static func crosstree_made_for(radius: float) -> float:
+	var model := RoomDressing.variant(CROSSTREES, radius)
+	for made: float in CROSSTREES:
+		if CROSSTREES[made] == model:
+			return made
+	return radius
+
+
 ## The height of the crosstree on a mast from [param bottom] to [param top] (mast).
 static func _yard(bottom: float, top: float) -> float:
 	return top - (top - bottom) * CROSSTREE_DOWN
@@ -472,9 +482,8 @@ static func _halyard(
 ) -> Array[RigLine]:
 	var centre := mast.centre
 	var yard := _yard(mast.bottom, mast.top)
-	var arm := Vector3(
-		centre.x, yard, centre.y + side * (mast.radius + CROSSTREE_REACH - HALYARD_INBOARD)
-	)
+	var reach := crosstree_made_for(mast.radius) + CROSSTREE_REACH - HALYARD_INBOARD
+	var arm := Vector3(centre.x, yard, centre.y + side * reach)
 	var off := centre.y + side * (mast.radius + HALYARD_OFF)
 	var spars: Array[ShipBlocker] = [mast]
 	var tops := _tops_under(layout, rules, arm, Vector3(centre.x, arm.y, off), spars)
