@@ -186,6 +186,17 @@ func test_a_dropped_frames_nodes_count_for_nothing() -> void:
 	assert_almost_eq(split.node_mean(&"MatchView"), 0.5, 0.0001)
 
 
+func test_a_named_class_whose_nodes_never_process_keeps_its_line_at_nothing() -> void:
+	var split := FrameSplit.new()
+	split.name_node(&"ShipLamp")
+	split.drop()
+	_node_frame(split, {&"MatchView": 900}, {&"process": 2000})
+	var classes: Array[StringName] = [&"MatchView", &"ShipLamp"]
+	assert_eq(split.node_classes(), classes, "named before any frame, kept over a drop")
+	assert_almost_eq(split.node_mean(&"ShipLamp"), 0.0, 0.0001)
+	assert_ne(_row_after(split, "ShipLamp"), -1, "reported")
+
+
 func test_the_stepper_is_its_own_work_without_the_steps_it_runs() -> void:
 	var split := FrameSplit.new()
 	_node_frame(split, {&"SimDriver": 2600, &"MatchView": 900}, {&"process": 4000, &"match": 2200})

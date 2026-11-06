@@ -53,6 +53,8 @@ static func made(
 	)
 	var wells := shipped.layout()
 	native._sink.wells(wells[0], wells[1], wells[2], wells[3], wells[4])
+	var faces := air.faces()
+	native._sink.faces(faces[0], faces[1])
 	native._openings = openings[0].size()
 	native._cells = boxes.size()
 	return native
@@ -73,9 +75,23 @@ func touched(touching: Array[PackedInt32Array]) -> void:
 	_sink.touched(from, flat)
 
 
-## Her cells and openings turned to where the world's up is [param up] in her axes.
-func turned(up: PackedFloat64Array) -> void:
-	_sink.turned(up)
+## Her cells and openings turned to where the world's up is [param up] in her axes, as
+## SinkStepper._turn and SinkAir.turned turn them: per cell its floor, ceiling and
+## average surface, then per opening its bottom, top, width or area and highest corner,
+## each in turn.
+func turned(up: PackedFloat64Array) -> PackedFloat64Array:
+	return _sink.turned(up)
+
+
+## Per opening, the way air passes it at the attitude last turned to (SinkAir.turned).
+func upward() -> PackedInt32Array:
+	return _sink.upward()
+
+
+## Every cell's head holding [param water] at the attitude last turned to
+## (TiltedBox.height).
+func heights(water: PackedFloat64Array) -> PackedFloat64Array:
+	return _sink.heights(water)
 
 
 ## Each opening's share open in the step under way.

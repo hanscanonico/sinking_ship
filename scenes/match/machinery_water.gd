@@ -2,19 +2,25 @@ class_name MachineryWater
 extends RefCounted
 ## Which machinery rooms' floors and machines the sea comes to over a step (FxPlanner's
 ## steam): every room's four floor corners and its machine's top read wet once a pose,
-## all together (StillPoints) — the Titanic has thousands, read every step.
+## all together (StillPoints) — the Titanic has thousands, read every step. Once she has
+## broken (SH33), each room is read as the piece its middle lies on stands (PieceViews).
 
 ## The rooms with a machine, in order.
 var rooms := PackedInt32Array()
 ## Per room, its floor's four corners then its machine's top, in ship space.
 var _points: StillPoints
+## Per room, its middle along her; and the pieces of her.
+var _middles := PackedFloat64Array()
+var _pieces: PieceViews
 ## What each point read under the pose at _tick, a byte a point; -1 before any.
 var _tick := -1
 var _wet := PackedByteArray()
 
 
-## [param machines] holds per room of [param layout] its machine's top, NAN for none.
-func _init(layout: ShipLayout, machines: PackedVector3Array) -> void:
+## [param machines] holds per room of [param layout] its machine's top, NAN for none;
+## [param pieces] the pieces of her each room lies on, where she breaks.
+func _init(layout: ShipLayout, machines: PackedVector3Array, pieces: PieceViews = null) -> void:
+	_pieces = pieces
 	var points := PackedVector3Array()
 	for index in layout.rooms.size():
 		if is_nan(machines[index].x):
@@ -22,6 +28,7 @@ func _init(layout: ShipLayout, machines: PackedVector3Array) -> void:
 		var room := layout.rooms[index]
 		var area := room.area
 		rooms.append(index)
+		_middles.append(area.get_center().x)
 		for corner: Vector2 in [
 			area.position,
 			Vector2(area.end.x, area.position.y),
@@ -58,5 +65,19 @@ func went_under(
 
 ## Whether each point is wet under [param pose], a byte a point.
 func _read(pose: ShipPose) -> PackedByteArray:
-	_points.read(pose)
-	return _points.wet_all()
+	var views: Array[ShipPose] = [pose]
+	if _pieces != null:
+		views = _pieces.of(pose)
+	if views.size() == 1:
+		_points.read(pose)
+		return _points.wet_all()
+	var wet := PackedByteArray()
+	wet.resize(_points.size())
+	for place in views.size():
+		_points.read(views[place])
+		var read := _points.wet_all()
+		for slot in rooms.size():
+			if _pieces.place_of(views, _middles[slot]) == place:
+				for point in range(slot * 5, slot * 5 + 5):
+					wet[point] = read[point]
+	return wet
