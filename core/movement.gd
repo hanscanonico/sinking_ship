@@ -38,6 +38,9 @@ const DUCK_LOOK := 0.1
 ## farther apart than touching then, and once it has pushed any body this far it scans
 ## every pair left instead, so such a pair ends it at least two of these out of touch.
 const CROWD_DRIFT := 0.1
+## How far over its feet a body in the air steps (_blockers): nothing but a hair, so a
+## deck it stood on — its height a 64-bit float, its feet a 32-bit one — is under it.
+const AIR_STEP := 0.001
 
 var _rules: BrawlRules
 var _hazards: Hazards
@@ -350,15 +353,15 @@ func _ceilings(live: Array[PlayerState], feet_before: PackedFloat64Array) -> voi
 ## pushes it back out in the deck plane and takes the velocity into it. It is met at
 ## the height the feet stood at before this tick's move, so a fall lands on a deck
 ## in _ground rather than being pushed off its edge. A body in the air steps onto
-## nothing: an edge over its feet holds it off from outside, rather than letting its
-## middle in over the edge and pushing it back out a tick later (#472). A swimmer steps
-## as a swimmer does (_swim_step). A body on its feet ducks under whatever it has a floor to crawl
-## under (Surfaces.obstacle_contacts), and crawls there (height_of); a body off them is
-## held by what its height there meets. A crate is held to as a wall is, unless the body
-## slams into it (Hazards.slams): out of it then, it goes on at the speed the two part
-## at — or it gives way, pushed before the body (Hazards.gives). A body still where
-## [param clear] last found it held by nothing is not asked again. True when it moved
-## anyone.
+## nothing (AIR_STEP): an edge over its feet holds it off from outside, rather than
+## letting its middle in over the edge and pushing it back out a tick later (#472). A
+## swimmer steps as a swimmer does (_swim_step). A body on its feet ducks under
+## whatever it has a floor to crawl under (Surfaces.obstacle_contacts), and crawls there
+## (height_of); a body off them is held by what its height there meets. A crate is
+## held to as a wall is, unless the body slams into it (Hazards.slams): out of it then,
+## it goes on at the speed the two part at — or it gives way, pushed before the body
+## (Hazards.gives). A body still where [param clear] last found it held by nothing is
+## not asked again. True when it moved anyone.
 func _blockers(
 	state: MatchState,
 	live: Array[PlayerState],
@@ -379,7 +382,7 @@ func _blockers(
 			height = height_of(player)
 			crawl = INF
 		if player.body == PlayerState.Body.AIRBORNE:
-			step = 0.0
+			step = AIR_STEP
 		elif player.body == PlayerState.Body.SWIMMING:
 			step = _swim_step(feet, pose_now.water_height(feet))
 		var contacts := _surfaces.obstacle_contacts(

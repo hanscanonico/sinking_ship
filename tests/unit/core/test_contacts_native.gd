@@ -206,7 +206,7 @@ func _ask_all(
 			var except := _rng.randi_range(-1, props.size() - 1)
 			_obstacles(native, reference, point, shape, rules.step_height, except, INF, -1.0)
 			# A body in the air, which steps onto nothing (#472).
-			_obstacles(native, reference, point, shape, 0.0, -1, INF, -1.0)
+			_obstacles(native, reference, point, shape, Movement.AIR_STEP, -1, INF, -1.0)
 			_obstacles(
 				native, reference, point, shape, rules.step_height, -1, rules.crawl_height, -1.0
 			)
