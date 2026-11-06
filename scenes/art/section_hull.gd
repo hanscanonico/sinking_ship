@@ -105,6 +105,11 @@ func breadth(x: float, y: float, side: int) -> float:
 	return _layout.structure.half_breadth(x, y, side * 2 - 1)
 
 
+## No head over her shell's own: over her sheer it has no breadth.
+func _skin_top(_x: float, _side: int) -> float:
+	return INF
+
+
 ## Each of [param sections]' sides, starboard then port, from her keel to her sheer,
 ## as many points up each (SIDE_POINTS, SIDE_SPACING).
 static func shell_sides(sections: Array[HullSection]) -> Array[PackedVector2Array]:
@@ -1006,5 +1011,28 @@ func _anchor(mesh: ShipMesh, side: int) -> void:
 	mesh.turned_box(Transform3D(lie, foot + along * 0.08 * _scale), arms, ShipPaints.dark, 0)
 	for end: float in [-1.0, 1.0]:
 		var fluke := foot + across * end * ARMS * 0.45 * _scale + along * 0.2 * _scale
-		var size := Vector3(0.18, 0.32, 0.1) * _scale
-		mesh.turned_box(Transform3D(lie, fluke), size, ShipPaints.dark, 0)
+		_fluke(mesh, Transform3D(lie, fluke), Vector3(0.18, 0.32, 0.1) * _scale)
+
+
+## A fluke of [param size] placed by [param place] (across, along her shank, out from her
+## plating): full at its foot and tapering up to its point on her plating, so no face of
+## it lies level for a body to take for a floor where her bow flares in under a deck.
+static func _fluke(mesh: ShipMesh, place: Transform3D, size: Vector3) -> void:
+	var half := size * 0.5
+	var b := place.basis
+	var corner := func(x: float, y: float, z: float) -> Vector3:
+		return place.origin + b.x * x * half.x + b.y * y * half.y + b.z * z * half.z
+	var paint := ShipPaints.dark
+	var slope := (b.z * size.y + b.y * size.z).normalized()
+	var faces: Array[Array] = [
+		[[[-1, -1, -1], [1, -1, -1], [1, 1, -1], [-1, 1, -1]], -b.z],
+		[[[-1, -1, -1], [-1, -1, 1], [1, -1, 1], [1, -1, -1]], -b.y],
+		[[[-1, -1, 1], [-1, 1, -1], [1, 1, -1], [1, -1, 1]], slope],
+		[[[-1, -1, -1], [-1, 1, -1], [-1, -1, 1]], -b.x],
+		[[[1, -1, -1], [1, -1, 1], [1, 1, -1]], b.x],
+	]
+	for face: Array in faces:
+		var ring := PackedVector3Array()
+		for at: Array in face[0]:
+			ring.append(corner.call(at[0], at[1], at[2]))
+		mesh.polygon(ring, face[1], paint, NAN, NAN)

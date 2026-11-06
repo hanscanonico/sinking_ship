@@ -39,17 +39,15 @@ func _init(space: ShipSpace) -> void:
 
 
 ## Whether ship point [param point] stands in roofed space inside her under her lowest
-## weather deck: below weather_floor(), inside her shell's outline at its x and height,
-## with a deck of hers over it there.
+## weather deck: below weather_floor(), inside her shell at its x and height as her art
+## lofts it (ShipStructure.half_breadth) — never a section's outline, which stands wider
+## than her skin where she narrows to her stem (#475) — with a deck of hers over it there.
 func holds(point: Vector3) -> bool:
 	if point.y >= _floor:
 		return false
-	var section := _layout.structure.section_at(point.x)
-	if section == null:
-		return false
 	var side := 1 if point.z >= 0.0 else -1
-	var shell := section.shell_at(point.y, side)
-	if is_nan(shell) or point.z * side > shell * side:
+	var breadth := _layout.structure.half_breadth(point.x, point.y, side)
+	if breadth <= 0.0 or point.z * side > breadth:
 		return false
 	return _under_a_deck(point)
 

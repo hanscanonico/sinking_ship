@@ -166,6 +166,11 @@ func full_area() -> float:
 	return _full_area
 
 
+## The share of its water's shift across her that counts (FloodCell.sideways).
+func sideways() -> float:
+	return _sideways
+
+
 ## The water under a surface at [param height], in m³: over its ceiling, its capacity
 ## and the thin surface's.
 func volume(height: float) -> float:

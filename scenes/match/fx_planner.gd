@@ -75,7 +75,7 @@ const DEBRIS_REACH := 7.0
 ## left to slide, in metres.
 const SLIDE_DRY := 0.3
 ## How far past a deck's plane every corner must stand from the sea to be passed over
-## unasked, in metres: wide of any rounding of _crossing's.
+## unasked, in metres: wide of any rounding of FxWaterlines._crossing's.
 const CLEAR_OF_SEA := 0.01
 ## A deck about to give way sheds dust every TRICKLE_TICKS; one that has gone
 ## lands FALL_SECONDS later (MatchView draws it falling that long).
@@ -142,8 +142,6 @@ var _funnel_blocker: ShipBlocker
 var _outlets: RoomOutlets
 ## Their floors and machines going under, read once a pose.
 var _machinery_water: MachineryWater
-## Per platform end of its waterline, how near its next burst of spray is, 0…1.
-var _spray := PackedFloat32Array()
 ## Per platform, whether what was loose on it has floated off.
 var _floated := PackedByteArray()
 var _smoke := -1.0
@@ -154,23 +152,18 @@ var _bent := false
 var _blasts := PackedVector3Array()
 var _blast_ways := PackedVector3Array()
 var _venting := -1
-## The line the sea crosses a deck along, and the heights of the deck's corners
-## over the sea, as _crossing() last found them.
-var _line := PackedVector3Array([Vector3.ZERO, Vector3.ZERO])
-var _heights := PackedFloat32Array([0.0, 0.0, 0.0, 0.0])
 ## Every crate set adrift, the newest last, at most Flotsam.CAP of them: where it came
 ## down (ship plane), the way it drifts, the tick it was sent and its radius.
 var _adrift_at := PackedVector2Array()
 var _adrift_way := PackedVector2Array()
 var _adrift_tick := PackedInt32Array()
 var _adrift_radius := PackedFloat32Array()
-## Her platforms' water, read once a pose (_floods); and their least corners, the
-## corner a deck's plane of heights is read from (_crossing), and their sizes along x
-## and z: what _waterlines reads of every deck, a tick, without touching one.
+## Her platforms' water, read once a pose (_floods); where the sea crosses her decks; and
+## her pose as each piece of her stands in it, once she has broken (#478), which every
+## question of where the sea and her water are is asked of.
 var _decks: FloodedDecks
-var _least := PackedVector3Array()
-var _size_x := PackedFloat64Array()
-var _size_z := PackedFloat64Array()
+var _waterline: FxWaterlines
+var _pieces: PieceViews
 ## The NativeWaterFx its walk of her decks for those newly flooded goes to (#410), or
 ## null where it runs here: the same effects either way (test_water_fx_native).
 var native: Object = WaterFxNative.made()
@@ -180,11 +173,8 @@ func _init(config: MatchConfig, surfaces: Surfaces, schedule: SinkSchedule) -> v
 	_layout = config.ship
 	_surfaces = surfaces
 	_schedule = schedule
-	_decks = FloodedDecks.new(config.ship)
-	for deck: ShipPlatform in config.ship.platforms:
-		_least.append(Vector3(deck.area.position.x, deck.height, deck.area.position.y))
-		_size_x.append(deck.area.size.x)
-		_size_z.append(deck.area.size.y)
+	_pieces = PieceViews.new(config.ship, schedule)
+	_decks = FloodedDecks.new(config.ship, _pieces)
 	var structure := config.ship.structure
 	if structure != null:
 		var boxes := CellBoxes.boxes(structure, _layout.rooms)
@@ -192,12 +182,13 @@ func _init(config: MatchConfig, surfaces: Surfaces, schedule: SinkSchedule) -> v
 			_drawn.append(0 if box.size == Vector3.ZERO else 1)
 		_find_wells(structure, boxes)
 	_space = ShipSpace.new(_layout)
+	_waterline = FxWaterlines.new(_layout, _space, _pieces)
 	var walls: Array[ShipBlocker] = []
 	for blocker: ShipBlocker in _layout.blockers:
 		if _space.is_wall(blocker):
 			walls.append(blocker)
-	_gash = GashPlanner.new(schedule, _layout, walls)
-	_failures = FailureFx.new(config.ship.structure, schedule)
+	_gash = GashPlanner.new(schedule, _layout, walls, _pieces)
+	_failures = FailureFx.new(config.ship.structure, schedule, _pieces)
 	_railing_height = config.rules.railing_height
 	_start_tick = Ticks.from_seconds(config.scenario.starts_at)
 	_end_tick = schedule.end_tick()
@@ -210,14 +201,13 @@ func _init(config: MatchConfig, surfaces: Surfaces, schedule: SinkSchedule) -> v
 			_funnel = Vector3(blocker.centre.x, blocker.top, blocker.centre.y)
 			_funnel_blocker = blocker
 	_outlets = RoomOutlets.new(_layout, _space, surfaces, config.rules)
-	_machinery_water = MachineryWater.new(_layout, _outlets.machines)
+	_machinery_water = MachineryWater.new(_layout, _outlets.machines, _pieces)
 	for index in _outlets.openings.size():
 		_blasts.append_array(_outlets.openings[index])
 		_blast_ways.append_array(_outlets.outwards[index])
 		for vent: Vector3 in _outlets.vents[index]:
 			_blasts.append(vent)
 			_blast_ways.append(Vector3.UP)
-	_spray.resize(_layout.platforms.size() * 2)
 	_floated.resize(_layout.platforms.size())
 
 
@@ -238,7 +228,7 @@ func plan(previous: Dictionary, current: Dictionary) -> Array[FxCue]:
 	_gash.breach(previous["tick"], tick, pose_now, cues)
 	_welling(previous["tick"], tick, pose_now, cues)
 	_failures.plan(previous, current, pose_now, cues)
-	_waterlines(pose_then, pose_now, tick, plunging, cues)
+	_waterline.plan(pose_then, pose_now, tick, plunging, cues)
 	_floods(pose_then, pose_now, tick, cues)
 	_machinery(pose_then, pose_now, previous["tick"], tick, cues)
 	_collapses(pose_now, fired, tick, cues)
@@ -268,7 +258,8 @@ func _from_event(
 			if event["kind"] == SimEvent.Kind.KNOCKED_BACK_IN:
 				splash.strength = 1.0
 			var rise := lerpf(SPLASH_RISE.x, SPLASH_RISE.y, splash.strength)
-			splash.rise = minf(rise, _headroom(splash.position, pose))
+			var seated := _pieces.of_piece(pose, current["seats"][seat].get("piece", 0))
+			splash.rise = minf(rise, _headroom(splash.position, seated))
 			cues.append(splash)
 		SimEvent.Kind.PROP_LOST when not _layout.props[event["prop"]].kind in PropArt.FURNITURE:
 			var crate: Vector3 = current["props"][event["prop"]]["pos"]
@@ -307,67 +298,6 @@ func _from_event(
 			_gash.strike(tick, cues)
 
 
-## Where the sea crosses each deck still standing: white water along the line out on
-## deck, never through a room (D7: the sea outside reaches no room's floor), and spray
-## bursting where it meets an open deck's edge — the sea climbing the deck, harder the
-## faster it climbs; in the plunge, the sea breaking over the sides instead.
-func _waterlines(
-	pose_then: ShipPose, pose_now: ShipPose, tick: int, plunging: bool, cues: Array[FxCue]
-) -> void:
-	var boost := PLUNGE_BOOST if plunging else 1.0
-	var uphill := -_downhill(pose_now)
-	var basis := pose_now.transform.basis
-	var lows := pose_now.transform * _least
-	var size_x := _size_x
-	var size_z := _size_z
-	var spray_at := _spray
-	for index in lows.size():
-		var low := lows[index].y
-		# Every corner clear of the sea, over or under it, by more than its plane rises
-		# across it: no line to find (_crossing), on most of the Titanic's 1,349 decks —
-		# told from the packed arrays alone, no deck read.
-		var rise := absf(basis.x.y * size_x[index]) + absf(basis.z.y * size_z[index])
-		if absf(low) > rise + CLEAR_OF_SEA:
-			spray_at[index * 2] = 0.0
-			spray_at[index * 2 + 1] = 0.0
-			continue
-		var platform := _layout.platforms[index]
-		if platform.name in pose_now.collapsed or not _crossing(platform, pose_now, low):
-			spray_at[index * 2] = 0.0
-			spray_at[index * 2 + 1] = 0.0
-			continue
-		var middle := (_line[0] + _line[1]) * 0.5
-		var climbing := (
-			(pose_then.world_height(middle) - pose_now.world_height(middle)) * Ticks.RATE
-		)
-		var strength := clampf(absf(climbing) / RUSH_SPEED * boost, WASH_LEAST, 1.0)
-		for run: Vector2 in DeckWetness.out_on_deck_along(_layout, index, _line[0], _line[1]):
-			var wash := FxCue.new(FxCue.Kind.WASH, tick, _line[0].lerp(_line[1], run.x))
-			wash.end = _line[0].lerp(_line[1], run.y)
-			wash.toward = uphill
-			wash.strength = strength
-			wash.on_sea = true
-			cues.append(wash)
-		# In the plunge the sea breaking over the sides (_swallowing) is the spray.
-		for end in 0 if plunging else 2:
-			var slot := index * 2 + end
-			spray_at[slot] += SPRAY_RATE * strength * Ticks.SECONDS_PER_TICK
-			if spray_at[slot] < 1.0:
-				continue
-			spray_at[slot] = fposmod(spray_at[slot], 1.0)
-			# Out on deck only: below decks the edge is the hull, and the spray would
-			# come out through it.
-			if not _at_edge(platform, _line[end]) or not _space.outdoors(_line[end] + Vector3.UP):
-				continue
-			var spray := FxCue.new(FxCue.Kind.SPRAY, tick, _line[end])
-			spray.on_sea = true
-			spray.strength = strength
-			var outward := _edge_outward(platform.area, _line[end])
-			spray.rise = lerpf(SPRAY_RISE.x, SPRAY_RISE.y, strength)
-			spray.toward = (Vector3.UP * 2.0 + outward).normalized()
-			cues.append(spray)
-
-
 ## As the sea reaches the middle of a deck that stands outdoors: bubbles over it,
 ## and whatever was loose on it comes up the first time beside the hull on the low
 ## side, where the sea came over — never across a still dry rail. Under a deck the air
@@ -394,10 +324,11 @@ func _floods(pose_then: ShipPose, pose_now: ShipPose, tick: int, cues: Array[FxC
 		cues.append(bubbles)
 		if platform.area.get_area() > 4.0 and _floated[index] == 0:
 			_floated[index] = 1
-			var side := ShipPose.low_side(pose_now.heel_deg).y
+			var view := _pieces.at(pose_now, over)
+			var side := ShipPose.low_side(view.heel_deg).y
 			var low := Vector3(0.0, 0.0, side) if side != 0.0 else _side_of(over)
 			var out := _overboard(over, low)
-			out.y = pose_now.water_height(out)
+			out.y = view.water_height(out)
 			var afloat := FxCue.new(FxCue.Kind.FLOTSAM, tick, out)
 			afloat.piece = FxCue.Piece.CHAIR if index % 2 == 0 else FxCue.Piece.LIFEBELT
 			afloat.toward = low
@@ -410,21 +341,26 @@ func _floods(pose_then: ShipPose, pose_now: ShipPose, tick: int, cues: Array[FxC
 ## [param pose]: on the floor, or on the room's water over it.
 func _welling(from_tick: int, tick: int, pose: ShipPose, cues: Array[FxCue]) -> void:
 	var beat := (tick - 1) - posmod(tick - 1, WELL_TICKS)
-	if _wells.is_empty() or beat < from_tick or not pose.pieces.is_empty():
+	if _wells.is_empty() or beat < from_tick:
 		return
-	if pose.levels.size() != _drawn.size():
+	# Each well as the piece it lies on stands; a hull that breaks, before it has, none.
+	var views := _pieces.of(pose)
+	if views.size() == 1 and not pose.pieces.is_empty():
 		return
 	for index in _wells.size():
 		var at := _wells[index]
-		var room := pose.levels[_well_cells[index * 2]]
-		var under := _gash.pushing(pose, _well_cells[index * 2 + 1])
-		var floor_at := pose.world_height(at)
+		var view := views[_pieces.place_of(views, at.x)]
+		if view.levels.size() != _drawn.size():
+			continue
+		var room := view.levels[_well_cells[index * 2]]
+		var under := _gash.pushing(view, _well_cells[index * 2 + 1])
+		var floor_at := view.world_height(at)
 		var depth := maxf(room - floor_at, 0.0)
-		var head := under - maxf(_gash.pushing(pose, _well_cells[index * 2]), floor_at)
+		var head := under - maxf(_gash.pushing(view, _well_cells[index * 2]), floor_at)
 		if under <= floor_at or depth >= WELL_DEEP or head < GashPlanner.LEAST_HEAD:
 			continue
 		var well := FxCue.new(FxCue.Kind.WELL, tick, at)
-		well.position.y = pose.height_of(maxf(room, floor_at), at)
+		well.position.y = view.height_of(maxf(room, floor_at), at)
 		well.radius = _well_reach[index]
 		well.strength = clampf(sqrt(head / WELL_HEAD), 0.0, 1.0) * (1.0 - depth / WELL_DEEP)
 		well.source = index
@@ -476,8 +412,8 @@ func _collapses(
 func _funnel_going(pose_then: ShipPose, pose_now: ShipPose, tick: int, cues: Array[FxCue]) -> void:
 	if is_nan(_funnel.x):
 		return
-	var now := pose_now.world_height(_funnel)
-	var then := pose_then.world_height(_funnel)
+	var now := _pieces.at(pose_now, _funnel).world_height(_funnel)
+	var then := _pieces.at(pose_then, _funnel).world_height(_funnel)
 	if now < FUNNEL_DIP and then >= FUNNEL_DIP:
 		cues.append(FxCue.new(FxCue.Kind.BELCH, tick, _funnel))
 	if now < 0.0 and then >= 0.0:
@@ -507,7 +443,8 @@ func _smoke_level(tick: int, plunging: bool, pose: ShipPose, cues: Array[FxCue])
 	var smoke := FxCue.new(FxCue.Kind.SMOKE, tick, _funnel)
 	smoke.strength = level
 	if plunging:
-		smoke.toward = (Vector3.UP - _downhill(pose) * SMOKE_BEND).normalized()
+		var bent := _downhill(_pieces.at(pose, _funnel))
+		smoke.toward = (Vector3.UP - bent * SMOKE_BEND).normalized()
 	cues.append(smoke)
 
 
@@ -519,7 +456,7 @@ func _blast(pose: ShipPose, tick: int, cues: Array[FxCue]) -> void:
 	while _venting < _blasts.size() * BLASTS:
 		var index := _venting % _blasts.size()
 		_venting += 1
-		if _surfaces.wet(_blasts[index], pose):
+		if _surfaces.wet(_blasts[index], _pieces.at(pose, _blasts[index])):
 			continue
 		var vent := FxCue.new(FxCue.Kind.VENT, tick, _blasts[index])
 		vent.toward = _blast_ways[index]
@@ -556,7 +493,7 @@ func _astern(pose: ShipPose, turn: int, tick: int, cues: Array[FxCue]) -> void:
 			stern + ASTERN * (along * 2.0 - 1.0), 0.0, side * (half + QUARTER + ASTERN_SPREAD * out)
 		)
 	at.z += _centre.z
-	at.y = pose.water_height(at)
+	at.y = _pieces.at(pose, at).water_height(at)
 	var boil := FxCue.new(FxCue.Kind.BUBBLES, tick, at)
 	boil.on_sea = true
 	boil.radius = ASTERN_BOIL.x
@@ -637,7 +574,7 @@ func _swallowing(pose: ShipPose, tick: int, cues: Array[FxCue]) -> void:
 			var edge := (
 				Vector3(x, outline.w, outline.y) if side > 0.0 else Vector3(x, outline.z, outline.x)
 			)
-			var above := pose.world_height(edge)
+			var above := _pieces.at(pose, edge).world_height(edge)
 			if above < SWALLOW.x or above > SWALLOW.y:
 				continue
 			var sheet := _side_sheet(x, length, side, tick)
@@ -680,10 +617,10 @@ func _side_sheet(x: float, length: float, side: float, tick: int) -> FxCue:
 ## standing out of the sea.
 func _slides(downhill: Vector3, pose: ShipPose, tick: int, cues: Array[FxCue]) -> void:
 	for platform: ShipPlatform in _layout.platforms:
-		if platform.name in pose.collapsed or _highest(platform, pose) < SLIDE_DRY:
-			continue
 		var middle := platform.area.get_center()
 		var at := Vector3(middle.x, platform.height, middle.y)
+		if platform.name in pose.collapsed or _highest(platform, _pieces.at(pose, at)) < SLIDE_DRY:
+			continue
 		var slide := FxCue.new(FxCue.Kind.SLIDE, tick, at)
 		slide.end = Vector3(platform.area.size.x * 0.5, 0.0, platform.area.size.y * 0.5)
 		slide.toward = downhill
@@ -886,34 +823,6 @@ func _dust(at: Vector3, radius: float, strength: float, tick: int, cues: Array[F
 	cues.append(dust)
 
 
-## Whether the sea crosses [param platform] under [param pose], its least corner
-## [param low] up in the world there; if it does, the line it crosses along is left in
-## _line, its two ends on the deck's edge.
-func _crossing(platform: ShipPlatform, pose: ShipPose, low: float) -> bool:
-	var area := platform.area
-	# The pose's world height over the deck is a plane: its corners' heights are its
-	# height at the least corner and its rise along x and z.
-	var basis := pose.transform.basis
-	var least := Vector3(area.position.x, platform.height, area.position.y)
-	var along_x := basis.x.y * area.size.x
-	var along_z := basis.z.y * area.size.y
-	_heights[0] = low
-	_heights[1] = low + along_x
-	_heights[2] = low + along_x + along_z
-	_heights[3] = low + along_z
-	var found := 0
-	for index in 4:
-		var above_a := _heights[index]
-		var above_b := _heights[(index + 1) % 4]
-		if (above_a < 0.0) == (above_b < 0.0) or found == 2:
-			continue
-		var a := least + _CORNERS[index] * Vector3(area.size.x, 0.0, area.size.y)
-		var b := least + _CORNERS[(index + 1) % 4] * Vector3(area.size.x, 0.0, area.size.y)
-		_line[found] = a.lerp(b, above_a / (above_a - above_b))
-		found += 1
-	return found == 2
-
-
 ## How high over the sea [param platform]'s highest corner stands under [param pose].
 func _highest(platform: ShipPlatform, pose: ShipPose) -> float:
 	var highest := -INF
@@ -922,16 +831,6 @@ func _highest(platform: ShipPlatform, pose: ShipPose) -> float:
 		at += Vector3(platform.area.position.x, platform.height, platform.area.position.y)
 		highest = maxf(highest, pose.world_height(at))
 	return highest
-
-
-## Whether [param point], on [param platform]'s edge, is on the edge of the decks:
-## no deck of the same height carries on past it.
-func _at_edge(platform: ShipPlatform, point: Vector3) -> bool:
-	var past := point + _edge_outward(platform.area, point) * 0.3
-	for other: ShipPlatform in _layout.platforms:
-		if absf(other.height - platform.height) < 0.05 and other.contains(past.x, past.z):
-			return false
-	return true
 
 
 ## Out of [param area] across the edge [param point] lies nearest.
@@ -994,10 +893,10 @@ func _underside(platform: ShipPlatform) -> Vector3:
 	return Vector3(middle.x, platform.height - ShipArt.PLANK, middle.y)
 
 
-## Whether every deck still standing has its middle under the sea.
+## Whether every deck still standing has its middle under the sea, each as its own piece
+## stands.
 func _sunk(pose: ShipPose) -> bool:
-	var highest := _surfaces.highest_platform(pose)
-	return highest == Surfaces.NONE or _surfaces.flooded(highest, pose)
+	return _pieces.sunk(_surfaces, pose)
 
 
 ## Where water wells up through [param structure]'s floors: every floor's gaps from a

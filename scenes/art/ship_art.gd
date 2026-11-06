@@ -162,8 +162,9 @@ var prop_art: PropArt
 ## Which of the rooms' lamps light, and the graphics preset it was last told of.
 var _lamp_sight: LampSight
 ## Every room's lamp, and where it burns: what the sinking's lit state and water reach
-## through the cell it hangs in (show_power).
+## through the cell it hangs in (show_power); and what steps them every frame.
 var _lamps: Array[ShipLamp] = []
+var _lamp_swing := LampSwing.new()
 var _lamp_at := PackedVector3Array()
 ## Per lamp, the power and drowning last handed it (power * 2 + drowned), -1 before any:
 ## each lamp is handed only what changed, not 2,700 of them every tick on the Titanic.
@@ -256,6 +257,7 @@ func build_frame(
 	_flashes.clear()
 	_flashing.clear()
 	_lamps.clear()
+	_lamp_swing.reset(self)
 	_lamp_at.clear()
 	_lamp_shown.clear()
 	_lamp_points = null
@@ -295,7 +297,7 @@ func build_frame(
 		if blocker.shape == ShipBlocker.Shape.CYLINDER:
 			reach = Vector2(blocker.centre.x - blocker.radius, blocker.centre.x + blocker.radius)
 		if mesh.kept(reach.x, reach.y):
-			_blocker(mesh, blocker, pieces)
+			_blocker(mesh, blocker, pieces, hull)
 	if rules != null:
 		DeckWorks.rig(mesh, layout, rules, span, _funnels, pieces)
 	var cap := Vector2(RAIL_WIDTH, RAIL_DEPTH)
@@ -566,7 +568,7 @@ func _wake_lamps() -> void:
 	var reach := LAMP_WAKE_REACH * LAMP_WAKE_REACH
 	for index in _lamps.size():
 		if camera == null or _lamp_at[index].distance_squared_to(eye) <= reach:
-			_lamps[index].wake()
+			_lamp_swing.wake(index)
 
 
 ## Turns each funnel [param falls] (ShipPose.falls) names about its foot as far as it has
@@ -606,7 +608,7 @@ static func wrecked(platform: ShipPlatform, floor_height: float, fallen: float) 
 	return Transform3D(tilt, pivot - tilt * pivot + Vector3.DOWN * drop)
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	if _smoke != null:
 		var aboard := PieceClip.holds(
 			span, (global_transform.affine_inverse() * _smoke.global_position).x
@@ -615,6 +617,7 @@ func _process(_delta: float) -> void:
 	var camera := get_viewport().get_camera_3d()
 	if camera != null and _lamp_sight != null:
 		_lamp_sight.choose(global_transform.affine_inverse() * camera.global_position)
+	_lamp_swing.step(delta)
 
 
 ## The faces of the ship, gathered for one commit.
@@ -895,7 +898,7 @@ static func is_funnel(layout: ShipLayout, blocker: ShipBlocker) -> bool:
 ## standing in a room is the room's own (RoomDressing). A blocker a deck rests on stops a
 ## plank short of its top, so the deck shows. A funnel the sinking can fell stands over
 ## its foot on a piece of its own among [param pieces], its smoke with it.
-func _blocker(mesh: ShipMesh, blocker: ShipBlocker, pieces: Dictionary) -> void:
+func _blocker(mesh: ShipMesh, blocker: ShipBlocker, pieces: Dictionary, hull: ShipHull) -> void:
 	var top := blocker.top - (PLANK if _space.deck_on(blocker) else 0.0)
 	if DeckFurniture.is_gear(blocker):
 		DeckFurniture.build(mesh, _space, blocker, top)
@@ -919,29 +922,29 @@ func _blocker(mesh: ShipMesh, blocker: ShipBlocker, pieces: Dictionary) -> void:
 	if _space.is_wall(blocker):
 		var deck := _space.deck_under(centre, blocker.bottom)
 		var foot := blocker.bottom if is_nan(deck) else deck
+		var shown := ShipMesh.ALL_FACES & ~hull.under_skin(area, blocker.bottom, blocker.top)
 		_lined.box(
 			mesh,
 			area,
 			blocker.bottom,
 			top,
 			ShipPaints.wall,
-			ShipMesh.ALL_FACES,
-			ShipMesh.SIDES,
+			shown,
+			shown & ShipMesh.SIDES,
 			foot,
 			blocker.top
 		)
 		if not is_nan(deck) and blocker.bottom - deck > DOOR_FROM:
 			DoorFrame.build(mesh, _space, blocker, deck)
 		if top < blocker.top:
-			# Where the deck laid on it stops short of its edge, it stands up to the
-			# deck's top itself.
+			# Where the deck laid on it stops short of its edge, it stands up to its top.
 			for bare: Rect2 in _space.uncovered(area, blocker.top):
-				mesh.box(bare, top, blocker.top, ShipPaints.wall, ShipMesh.TOP | ShipMesh.SIDES)
+				mesh.box(bare, top, blocker.top, ShipPaints.wall, shown & ~ShipMesh.BOTTOM)
 		# Along her side, up to the room's ceiling where the deck over it stops short of
 		# the wall, so her shell's outside never shows from in the room (#147).
 		for stretch: Vector3 in _space.short_of_ceiling(blocker):
 			var piece := ShipSpace.stretch_of(blocker, stretch)
-			var sides := ShipMesh.SIDES
+			var sides := ShipMesh.SIDES & ~hull.under_skin(piece, blocker.top, stretch.z)
 			_lined.box(
 				mesh, piece, blocker.top, stretch.z, ShipPaints.wall, sides, sides, foot, stretch.z
 			)
@@ -997,7 +1000,7 @@ func _hang_lamps(room: ShipRoom, index: int, brass: Material) -> void:
 			ShipLamp.fade_near(glass)
 		lamp.setup(index * 1.7 + number * 0.61, glass, brass, light.kind, light.facing)
 		_lamp_sight.add(lamp, index, box)
-		_lamps.append(lamp)
+		_lamps.append(_lamp_swing.carry(lamp))
 		_lamp_at.append(light.at)
 
 
