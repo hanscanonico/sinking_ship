@@ -1314,18 +1314,35 @@ AWD = fit(A_RUN[0], A_RUN[1], A_DECK, 0.05)
 # Where the plate gives a deck her whole breadth it is laid in strips no longer than
 # DECK_STRIP, each as wide as her hull is over it, so her deck's edge stays her side's
 # all along — as the forecastle's and the poop's are (tapered). Under each row of her
-# boats (STOWED_BOAT, at DAVITS, ROW_GAP or less apart) the strips are one breadth, the
-# row's narrowest, from ROW_MARGIN past its end boats — on to the deck's end where less
-# than ROW_GAP is left — so each boat stows to its deck's edge, and no step in that edge
-# stands by a davit, whose foot over it would read as deck where there is none.
+# davits (DAVITS, a lifeboat's length each, ROW_GAP or less apart) the strips are one
+# breadth, the row's narrowest, from ROW_MARGIN past its end stations — on to the deck's
+# end where less than ROW_GAP is left — so each boat stows to its deck's edge, and no
+# step in that edge stands by a davit, whose foot over it would read as deck where there
+# is none. The rows are her davits', not her boats': a shorter boat (stowed()) leaves
+# the deck under its davits as it is.
 DECK_STRIP = 12.0
-DAVITS = [60.5, 50.2, 40.0, 29.7, -38.7, -48.5, -57.6, -67.1]  # SB-III, forward to aft
+# Each station midway between its pair of davits on Plate III's elevation (SB-III); the
+# forward pair's posts at px 7888 and 8232 there, x 55.44 and 64.50 (#502).
+DAVITS = [60.0, 50.2, 40.0, 29.7, -38.7, -48.5, -57.6, -67.1]  # SB-III, forward to aft
 STOWED_BOAT = (9.0, 3.15, 1.5)  # over its stems, in from the deck's edge, over the deck
+# Boats 1 and 2, at the forward davits, were her emergency cutters (BOT: 25 ft 2 in by
+# 7 ft 2 in by 3 ft, a lifeboat 30 ft by 9 ft 1 in by 4 ft), and Plate III draws them so
+# (#502): its elevation boat 1 7.77 m over its stems (px 7906-8201), its plan each cutter
+# 80 px across (2.04 m) where a lifeboat is 108 px (2.76 m), and its hull three quarters
+# as deep as a lifeboat's. So a cutter stows as a lifeboat does, 0.45 m in from the
+# deck's edge (DeckFurniture.BOAT_OFF: STOWED_BOAT's 3.15 less 2.7 across), its gunwale
+# a foot lower.
+STOWED_CUTTER = (7.8, 2.5, 1.2)
 ROW_GAP = 2.0
 ROW_MARGIN = 1.5
 
+def stowed(x):
+    """The boat stowed at the davits at x, as STOWED_BOAT gives a lifeboat's box."""
+    return STOWED_CUTTER if x == DAVITS[0] else STOWED_BOAT
+
 def boat_rows():
-    """Her rows of boats, (from, to) along her: each boat's stems, ROW_MARGIN past the ends."""
+    """Her rows of davits, (from, to) along her: a lifeboat's length (STOWED_BOAT) at each
+    station, ROW_MARGIN past the ends."""
     rows = []
     for x in sorted(DAVITS):
         a, b = x - STOWED_BOAT[0] / 2, x + STOWED_BOAT[0] / 2
@@ -2603,12 +2620,14 @@ for house in ("officers_house", "staircase_house"):
 # boat station along her boat deck's edges (DAVITS, her LIFEBOAT fittings below): a box
 # from the deck's edge in — the edge of the strip of it laid under the boat, which the
 # art stows it by —, as long as the boat over its stems and as tall as its gunwale over
-# its chocks. Bodies are held off a boat as off a house, and none jumps up onto one.
+# its chocks (stowed()). Bodies are held off a boat as off a house, and none jumps up onto
+# one.
 for k, x in enumerate(DAVITS):
     edge = next(z1 for x0, x1, z0, z1 in BOAT_PIECES if x0 <= x <= x1 and z0 == -z1)
+    size = stowed(x)
     for number, sign in [(2 * k + 1, 1), (2 * k + 2, -1)]:
-        box("stowed_boat_%d" % number, x - STOWED_BOAT[0] / 2, x + STOWED_BOAT[0] / 2,
-            *sorted((sign * edge, sign * (edge - STOWED_BOAT[1]))), BOAT, BOAT + STOWED_BOAT[2])
+        box("stowed_boat_%d" % number, x - size[0] / 2, x + size[0] / 2,
+            *sorted((sign * edge, sign * (edge - size[1]))), BOAT, BOAT + size[2])
 # Her ventilators, each a trunk this round up to its cowl or its cap and this tall over its
 # deck (DeckFurniture.VENTS): big cowls abreast her funnels and on her forecastle, smaller
 # ones on her well decks and her poop, each with a lane a body wide round it. On the boat
@@ -4623,8 +4642,8 @@ def lifebuoy(x, side, h):
     posts = max(1, math.ceil(math.hypot(b[0] - a[0], b[1] - a[1]) / POST - 1e-9))  # as Godot's float32 spans count
     t = (math.floor((posts - 1) * 0.5) + 0.5) / posts
     at = (a[0] + (b[0] - a[0]) * t, h, a[1] + (b[1] - a[1]) * t)
-    # Never behind a boat stowed at the deck's edge (STOWED_BOAT), where no hand reaches it.
-    assert all(abs(at[0] - d) > STOWED_BOAT[0] / 2 + 0.5 for d in DAVITS) or abs(h - BOAT) > 1e-6, \
+    # Never behind a boat stowed at the deck's edge (stowed()), where no hand reaches it.
+    assert all(abs(at[0] - d) > stowed(d)[0] / 2 + 0.5 for d in DAVITS) or abs(h - BOAT) > 1e-6, \
         "a lifebuoy at %s hangs behind a boat" % (at,)
     f = [("kind", '&"lifebuoy"'), ("railing", str(k)), ("pos", "Vector3(%s, %s, %s)" % tuple(num(c) for c in at))]
     f += [(field, num(v)) for field, v in LIFEBUOY]
