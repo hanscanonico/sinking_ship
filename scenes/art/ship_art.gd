@@ -162,8 +162,9 @@ var prop_art: PropArt
 ## Which of the rooms' lamps light, and the graphics preset it was last told of.
 var _lamp_sight: LampSight
 ## Every room's lamp, and where it burns: what the sinking's lit state and water reach
-## through the cell it hangs in (show_power).
+## through the cell it hangs in (show_power); and what steps them every frame.
 var _lamps: Array[ShipLamp] = []
+var _lamp_swing := LampSwing.new()
 var _lamp_at := PackedVector3Array()
 ## Per lamp, the power and drowning last handed it (power * 2 + drowned), -1 before any:
 ## each lamp is handed only what changed, not 2,700 of them every tick on the Titanic.
@@ -256,6 +257,7 @@ func build_frame(
 	_flashes.clear()
 	_flashing.clear()
 	_lamps.clear()
+	_lamp_swing.reset(self)
 	_lamp_at.clear()
 	_lamp_shown.clear()
 	_lamp_points = null
@@ -566,7 +568,7 @@ func _wake_lamps() -> void:
 	var reach := LAMP_WAKE_REACH * LAMP_WAKE_REACH
 	for index in _lamps.size():
 		if camera == null or _lamp_at[index].distance_squared_to(eye) <= reach:
-			_lamps[index].wake()
+			_lamp_swing.wake(index)
 
 
 ## Turns each funnel [param falls] (ShipPose.falls) names about its foot as far as it has
@@ -606,7 +608,7 @@ static func wrecked(platform: ShipPlatform, floor_height: float, fallen: float) 
 	return Transform3D(tilt, pivot - tilt * pivot + Vector3.DOWN * drop)
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	if _smoke != null:
 		var aboard := PieceClip.holds(
 			span, (global_transform.affine_inverse() * _smoke.global_position).x
@@ -615,6 +617,7 @@ func _process(_delta: float) -> void:
 	var camera := get_viewport().get_camera_3d()
 	if camera != null and _lamp_sight != null:
 		_lamp_sight.choose(global_transform.affine_inverse() * camera.global_position)
+	_lamp_swing.step(delta)
 
 
 ## The faces of the ship, gathered for one commit.
@@ -997,7 +1000,7 @@ func _hang_lamps(room: ShipRoom, index: int, brass: Material) -> void:
 			ShipLamp.fade_near(glass)
 		lamp.setup(index * 1.7 + number * 0.61, glass, brass, light.kind, light.facing)
 		_lamp_sight.add(lamp, index, box)
-		_lamps.append(lamp)
+		_lamps.append(_lamp_swing.carry(lamp))
 		_lamp_at.append(light.at)
 
 
