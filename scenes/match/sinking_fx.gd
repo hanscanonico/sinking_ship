@@ -1,9 +1,9 @@
 class_name SinkingFx
 extends Node3D
 ## The sinking as seen (D12). Every step the SimDriver takes, FxPlanner turns the two
-## snapshots and the pose into cues, and they play here where the ship is drawn
-## (MatchView.ship_to_world), the sea being the world plane y = 0 (D7): white water
-## where the sea meets and climbs the decks — streaks thrown up and downwind, lace
+## snapshots and the pose into cues, and they play here where the ship is drawn, each
+## on its own piece of her (FxPieces), the sea being the world plane y = 0 (D7): white
+## water where the sea meets and climbs the decks — streaks thrown up and downwind, lace
 ## floating at the line — splashes, air blown out of flooding rooms, billows of steam
 ## from the machinery and the funnel's smoke thickening, dust and splinters as a deck
 ## gives way and its bits raining on the decks round (DeckDebris), wreckage floating
@@ -91,8 +91,6 @@ const SHORTEST := 0.3
 const WISP_SECONDS := 6.0
 ## Spray soaks the decks this far round where it bursts, at full, in metres.
 const SOAK := 2.5
-## The wet decks' overlay stands this far over the planks.
-const WET_LIFT := 0.004
 ## Grain sizes, in metres: a streak of white water's, the side of a square as big as
 ## it, STREAK_ASPECT times as long as it is wide; a patch of lace foam's, across and
 ## along.
@@ -130,8 +128,6 @@ const SHAFTS := 8
 const RUNNEL_LEAST := 1.0
 const RUNNEL_HOLD := FxPlanner.SLIDE_TICKS * Ticks.SECONDS_PER_TICK
 
-const WET_SHADER := preload("res://scenes/match/wet_deck.gdshader")
-
 var _driver: SimDriver
 var _view: MatchView
 var _sim: MatchSim
@@ -142,7 +138,6 @@ var _step := 0.0
 var _planner: FxPlanner
 var _wetness: DeckWetness
 var _flotsam: Flotsam
-var _debris: DeckDebris
 var _around: FxAroundEye
 var _gash: GashFx
 var _breach: BreachFx
@@ -193,12 +188,8 @@ var _belch: CPUParticles3D
 var _funnel := Vector3(NAN, NAN, NAN)
 var _smoke_level := 0.0
 var _smoke_way := Vector3.UP
-## Follows the ship as drawn: the wet decks' overlays and the debris hang from it.
-var _decks: Node3D
-var _wet_textures: Array[ImageTexture] = []
-var _wet_overlays: Array[MeshInstance3D] = []
-## The deck whose wetness the next step brings up to date.
-var _next_wet := 0
+## Follows the ship as drawn, piece by piece: the wet decks and the debris on them.
+var _pieces: FxPieces
 
 
 # Built as it joins the tree: a scene instanced and freed unshown builds none of it.
@@ -300,12 +291,9 @@ func _ready() -> void:
 	_flotsam.name = "Flotsam"
 	add_child(_flotsam)
 	_flotsam.landed.connect(_on_landed)
-	_decks = Node3D.new()
-	_decks.name = "WetDecks"
-	add_child(_decks)
-	_debris = DeckDebris.new()
-	_debris.name = "Debris"
-	_decks.add_child(_debris)
+	_pieces = FxPieces.new()
+	_pieces.name = "WetDecks"
+	add_child(_pieces)
 
 
 ## Shows the sinking of [param sim]'s match as [param driver] steps it, where
@@ -331,8 +319,7 @@ func setup(
 		if event.kind == SinkEvent.Kind.COLLAPSE:
 			falls.append(event.platform)
 	_wetness = DeckWetness.new(sim.config.ship, falls)
-	_build_decks(sim.config.ship)
-	_debris.setup(sim.config.ship)
+	_pieces.setup(view, sim, _wetness)
 	clear(planner)
 	_driver.stepped.connect(_on_stepped)
 
@@ -356,9 +343,8 @@ func clear(planner: FxPlanner = null) -> void:
 	_smoke_level = 0.0
 	_smoke_way = Vector3.UP
 	_funnel = Vector3(NAN, NAN, NAN)
-	_next_wet = 0
 	_flotsam.clear()
-	_debris.clear()
+	_pieces.clear()
 	_around.clear()
 	_gash.clear()
 	_breach.clear()
@@ -368,7 +354,7 @@ func clear(planner: FxPlanner = null) -> void:
 ## by [param camera] (none: seen from everywhere) from the room [param eye_room], by
 ## index in the layout, or from none.
 func play(cues: Array[FxCue], ship: Transform3D, camera: Camera3D, eye_room := -1) -> void:
-	_decks.transform = ship
+	_pieces.follow(ship)
 	_eye_indoors = eye_room >= 0
 	_offered.fill(0)
 	for index in cues.size():
@@ -448,7 +434,7 @@ func flotsam_count() -> int:
 
 ## How many bits of wreckage are out on the decks.
 func debris_count() -> int:
-	return _debris.count()
+	return _pieces.debris_count()
 
 
 func _on_stepped(_events: Array[SimEvent]) -> void:
@@ -462,26 +448,17 @@ func _on_stepped(_events: Array[SimEvent]) -> void:
 	play(cues, ship, get_viewport().get_camera_3d(), eye_room)
 	# Against the ship as stepped, not as last drawn: a deck righting under a piece
 	# sends it under before the deck is wadeable.
-	var pose := _schedule.pose_at(_driver.current["tick"])
-	_flotsam.go_under_shallows(_view.global_transform * pose.transform)
-	if _wet_overlays.is_empty():
-		return
-	# One deck a step, round them all in turn, so no step pays for them all.
-	var slot := _next_wet
-	_next_wet = (_next_wet + 1) % _wet_overlays.size()
-	var seconds := _wet_overlays.size() * Ticks.SECONDS_PER_TICK
-	if _wetness.update_one(slot, ship, seconds):
-		_wet_textures[slot].update(_wetness.picture(slot))
-	_wet_overlays[slot].visible = _wetness.shows(slot)
+	_pieces.sink_shallows(_flotsam, _schedule.pose_at(_driver.current["tick"]))
+	_pieces.dry_next(ship)
 
 
 func _process(delta: float) -> void:
 	if _driver == null or _driver.current.is_empty():
 		return
 	var ship := _view.ship_to_world()
-	_decks.transform = ship
+	_pieces.follow(ship)
 	_flotsam.advance(delta)
-	_debris.advance(delta)
+	_pieces.advance_debris(delta)
 	for index in _white.size():
 		_white_left[index] -= delta
 		if _white_left[index] <= 0.0 and _white[index].emitting:
@@ -489,18 +466,19 @@ func _process(delta: float) -> void:
 	for room in _shaken_left.size():
 		_shaken_left[room] -= delta
 	_around.advance(delta)
-	_gash.advance(ship, delta)
-	_breach.advance(ship, delta)
+	_gash.advance(ship, delta, _pieces)
+	_breach.advance(ship, delta, _pieces)
 	_advance_plumes(ship, delta, get_viewport().get_camera_3d())
 	_advance_boils(delta)
 	if not is_nan(_funnel.x):
-		var top := ship * _funnel
+		var top := ship * _pieces.of(_funnel) * _funnel
 		_smoke.global_position = top + Vector3.UP * 0.3
-		_smoke.direction = ship.basis * _smoke_way
+		_smoke.direction = (ship * _pieces.of(_funnel)).basis * _smoke_way
 		_smoke.emitting = _smoke_level > 0.0 and top.y > 0.3
 
 
-func _play(cue: FxCue, ship: Transform3D, camera: Camera3D) -> void:
+func _play(cue: FxCue, root: Transform3D, camera: Camera3D) -> void:
+	var ship := root * _pieces.of_cue(cue)
 	var at := ship * cue.position
 	if cue.on_sea:
 		at.y = 0.0
@@ -550,7 +528,7 @@ func _play(cue: FxCue, ship: Transform3D, camera: Camera3D) -> void:
 				looking = _looking(ship, camera)
 				if not _eye_indoors:
 					_around.drift(at, camera)
-			_debris.rain(cue.position, cue.radius, eye, looking, eye_height)
+			_pieces.debris_on(cue.position).rain(cue.position, cue.radius, eye, looking, eye_height)
 		FxCue.Kind.SLIDE:
 			if camera != null:
 				var eye := ship.affine_inverse() * camera.global_position
@@ -560,7 +538,8 @@ func _play(cue: FxCue, ship: Transform3D, camera: Camera3D) -> void:
 				if deck.has_point(Vector2(eye.x, eye.z)) and absf(feet - cue.position.y) < 0.6:
 					var downhill := Vector2(cue.toward.x, cue.toward.z)
 					var looking := _looking(ship, camera)
-					var run := _debris.slide(deck, cue.position.y, downhill, eye, looking)
+					var on := _pieces.debris_on(cue.position)
+					var run := on.slide(deck, cue.position.y, downhill, eye, looking)
 					_stream(run, cue.position.y, downhill, ship)
 		FxCue.Kind.SPLINTERS:
 			if _seen(at, 2.0, camera):
@@ -574,7 +553,7 @@ func _play(cue: FxCue, ship: Transform3D, camera: Camera3D) -> void:
 			from.y = maxf(from.y, 0.0)
 			_flotsam.throw(cue.piece, from, ship * cue.end, Vector2(toward.x, toward.z))
 		FxCue.Kind.STEAM:
-			_start_plume(cue, ship, camera)
+			_start_plume(cue, root, camera)
 		FxCue.Kind.BUBBLES:
 			_start_boil(at, cue.radius, cue.seconds)
 		FxCue.Kind.SMOKE:
@@ -713,10 +692,11 @@ func _water_burst(
 ## for this step's white water: the part of it within HUSHED of the eye for low
 ## foam, the rest for rising white water; the nearest the eye of each, within FAR,
 ## are drawn.
-func _offer_wash(index: int, cue: FxCue, ship: Transform3D, camera: Camera3D) -> void:
+func _offer_wash(index: int, cue: FxCue, root: Transform3D, camera: Camera3D) -> void:
 	if camera == null:
 		_offer(false, Vector4(index, 0.0, 1.0, 0.0))
 		return
+	var ship := root * _pieces.of_cue(cue)
 	var from := _on_sea(ship * cue.position)
 	var to := _on_sea(ship * cue.end)
 	var eye := camera.global_position
@@ -770,8 +750,9 @@ static func _line(offer: Vector4, cues: Array[FxCue], ship: Transform3D) -> Pack
 
 ## Rising white water along the share of a waterline [param offer] holds — all of it
 ## at least HUSHED from the eye — leaning up the deck the sea climbs.
-func _lay_wash(wash: CPUParticles3D, offer: Vector4, cues: Array[FxCue], ship: Transform3D) -> void:
+func _lay_wash(wash: CPUParticles3D, offer: Vector4, cues: Array[FxCue], root: Transform3D) -> void:
 	var cue := cues[int(offer.x)]
+	var ship := root * _pieces.of_cue(cue)
 	var line := _line(offer, cues, ship)
 	var length := line[0].distance_to(line[1])
 	if length < SHORTEST:
@@ -796,8 +777,9 @@ func _lay_wash(wash: CPUParticles3D, offer: Vector4, cues: Array[FxCue], ship: T
 ## floating on the water in a band the water's side of the line, drifting to it the
 ## way the sea climbs — the broader and faster the harder it climbs — and kept off the
 ## dry planks past it (FxGrains.keep_wet).
-func _lay_foam(foam: CPUParticles3D, offer: Vector4, cues: Array[FxCue], ship: Transform3D) -> void:
+func _lay_foam(foam: CPUParticles3D, offer: Vector4, cues: Array[FxCue], root: Transform3D) -> void:
 	var cue := cues[int(offer.x)]
+	var ship := root * _pieces.of_cue(cue)
 	var line := _line(offer, cues, ship)
 	var length := line[0].distance_to(line[1])
 	if length < SHORTEST:
@@ -870,9 +852,10 @@ func _sift_room(cue: FxCue, ship: Transform3D) -> void:
 	_sift.emitting = true
 
 
-## The sifting dust under the ceiling [param cue] names, on a ship drawn at
-## [param ship], falling straight down.
-func _place_sift(cue: FxCue, ship: Transform3D) -> void:
+## The sifting dust under the ceiling [param cue] names, on its piece of a ship drawn
+## at [param root], falling straight down.
+func _place_sift(cue: FxCue, root: Transform3D) -> void:
+	var ship := root * _pieces.of_cue(cue)
 	_sift.global_transform = Transform3D(ship.basis, ship * cue.position)
 	_sift.direction = ship.basis.transposed() * Vector3.DOWN
 
@@ -947,11 +930,11 @@ func _advance_plumes(ship: Transform3D, delta: float, camera: Camera3D) -> void:
 			plume.emitting = false
 
 
-## Puts plume [param index] where its vent is on a ship drawn at [param ship], faint
-## near [param camera]'s eye; whether it is out of the sea to go on.
+## Puts plume [param index] where its vent is on its piece of a ship drawn at
+## [param ship], faint near [param camera]'s eye; whether it is out of the sea to go on.
 func _place_plume(index: int, ship: Transform3D, camera: Camera3D) -> bool:
 	var plume := _plumes[index]
-	var at := ship * _plume_at[index]
+	var at := ship * _pieces.of(_plume_at[index]) * _plume_at[index]
 	if _plume_on_sea[index] == 1:
 		at.y = 0.0
 	elif at.y < 0.0:
@@ -1023,52 +1006,6 @@ func _on_landed(at: Vector3, strength: float) -> void:
 		var rise := lerpf(FxPlanner.SPLASH_RISE.x, FxPlanner.SPLASH_RISE.y, strength) * 0.7
 		var burst := _burst_for(FxCue.Kind.SPLASH)
 		_water_burst(burst, FxCue.Kind.SPLASH, at, at, Vector3.UP, strength * 0.6, rise, camera)
-
-
-## An overlay per deck DeckWetness tracks, just over its planks, in the deck's own
-## picture of its wetness.
-func _build_decks(layout: ShipLayout) -> void:
-	for overlay: MeshInstance3D in _wet_overlays:
-		overlay.queue_free()
-	_wet_overlays.clear()
-	_wet_textures.clear()
-	for slot in _wetness.platforms.size():
-		var platform := layout.platforms[_wetness.platforms[slot]]
-		var texture := ImageTexture.create_from_image(_wetness.picture(slot))
-		var material := ShaderMaterial.new()
-		material.shader = WET_SHADER
-		material.set_shader_parameter("wetness", texture)
-		var overlay := MeshInstance3D.new()
-		overlay.name = "Wet%d" % _wetness.platforms[slot]
-		overlay.mesh = _overlay(platform, _wetness.extent(slot))
-		overlay.material_override = material
-		overlay.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		overlay.visible = false
-		_decks.add_child(overlay)
-		_wet_overlays.append(overlay)
-		_wet_textures.append(texture)
-
-
-## [param platform]'s area as a quad WET_LIFT over it, its UV running over
-## [param extent] metres from its least corner.
-static func _overlay(platform: ShipPlatform, extent: Vector2) -> ArrayMesh:
-	var area := platform.area
-	var height := platform.height + WET_LIFT
-	var points := PackedVector3Array()
-	var uvs := PackedVector2Array()
-	for corner: Vector2 in [area.position, Vector2(area.end.x, area.position.y), area.end]:
-		points.append(Vector3(corner.x, height, corner.y))
-		uvs.append((corner - area.position) / extent)
-	for corner: Vector2 in [area.position, area.end, Vector2(area.position.x, area.end.y)]:
-		points.append(Vector3(corner.x, height, corner.y))
-		uvs.append((corner - area.position) / extent)
-	var arrays := []
-	arrays.resize(Mesh.ARRAY_MAX)
-	arrays[Mesh.ARRAY_VERTEX] = points
-	arrays[Mesh.ARRAY_TEX_UV] = uvs
-	var mesh := ArrayMesh.new()
-	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
-	return mesh
 
 
 func _emitters() -> Array[CPUParticles3D]:

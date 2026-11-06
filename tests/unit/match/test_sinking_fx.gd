@@ -38,7 +38,7 @@ func test_a_storm_of_cues_never_grows_the_pools() -> void:
 	var fx: SinkingFx = add_child_autofree(SinkingFx.new())
 	# Bits of wreckage land on the steamer's decks, drawn afloat.
 	var layout := SimFixtures.steamer()
-	fx._debris.setup(layout)
+	fx._pieces.debris_on(Vector3.ZERO).setup(layout)
 	var afloat := Transform3D(Basis(), Vector3.UP * layout.freeboard)
 	var nodes := fx.find_children("*", "", true, false).size()
 	var emitters := fx.emitters()
@@ -483,7 +483,7 @@ func test_an_eye_looking_straight_down_looks_along_the_ship() -> void:
 func test_water_streams_down_the_deck_before_the_eye_lying_on_the_planks() -> void:
 	var layout := SimFixtures.steamer()
 	var fx: SinkingFx = add_child_autofree(SinkingFx.new())
-	fx._debris.setup(layout)
+	fx._pieces.debris_on(Vector3.ZERO).setup(layout)
 	var camera: Camera3D = add_child_autofree(Camera3D.new())
 	var promenade := layout.platforms[0]
 	# The ship drawn afloat, its main deck its freeboard over the sea; the eye on the
