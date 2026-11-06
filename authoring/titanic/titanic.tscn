@@ -59562,14 +59562,14 @@ material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
 [node name="Blocker_stowed_boat_1" type="CSGBox3D" parent="Blockers" unique_id=1861326078]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 60.5, 9.125, 12.224999)
-size = Vector3(9, 1.5, 3.15)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 60, 8.975, 12.55)
+size = Vector3(7.8, 1.2, 2.5)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
 [node name="Blocker_stowed_boat_2" type="CSGBox3D" parent="Blockers" unique_id=2131984870]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 60.5, 9.125, -12.225)
-size = Vector3(9, 1.5, 3.15)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 60, 8.975, -12.55)
+size = Vector3(7.8, 1.2, 2.5)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
@@ -78888,8 +78888,8 @@ metadata/ship = &"railing"
 metadata/platform = &"Platform_boat_10_3"
 
 [node name="Railing_boat_ladder_9_p" type="CSGBox3D" parent="Railings" unique_id=2076301847]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 65.09375, 8.875, -10.875)
-size = Vector3(0.1875, 1, 0.05)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 63.5, 8.875, -10.875)
+size = Vector3(3.375, 1, 0.05)
 material = SubResource("StandardMaterial3D_r6eh1")
 metadata/ship = &"railing"
 metadata/platform = &"Platform_boat_13_1"
@@ -78902,8 +78902,8 @@ metadata/ship = &"railing"
 metadata/platform = &"Platform_boat_13_2"
 
 [node name="Railing_boat_ladder_9_e" type="CSGBox3D" parent="Railings" unique_id=346035199]
-transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 61.8125, 8.875, -10.2625)
-size = Vector3(0.7749996, 1, 0.05)
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 61.8125, 8.875, -10.375)
+size = Vector3(1, 1, 0.05)
 material = SubResource("StandardMaterial3D_r6eh1")
 metadata/ship = &"railing"
 metadata/platform = &"Platform_boat_13_0"
@@ -78916,15 +78916,15 @@ metadata/ship = &"railing"
 metadata/platform = &"Platform_boat_13_2"
 
 [node name="Railing_boat_ladder_10_s" type="CSGBox3D" parent="Railings" unique_id=889447380]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 65.09375, 8.875, 11.125)
-size = Vector3(0.1875, 1, 0.05)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 63.5, 8.875, 11.125)
+size = Vector3(3.375, 1, 0.05)
 material = SubResource("StandardMaterial3D_r6eh1")
 metadata/ship = &"railing"
 metadata/platform = &"Platform_boat_13_3"
 
 [node name="Railing_boat_ladder_10_e" type="CSGBox3D" parent="Railings" unique_id=2102959569]
-transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 61.8125, 8.875, 10.35625)
-size = Vector3(0.5874996, 1, 0.05)
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 61.8125, 8.875, 10.59375)
+size = Vector3(1.0625, 1, 0.05)
 material = SubResource("StandardMaterial3D_r6eh1")
 metadata/ship = &"railing"
 metadata/platform = &"Platform_boat_13_0"
@@ -122427,14 +122427,14 @@ metadata/along = Vector2(-2.0811, 27.9189)
 [node name="Fitting_boat_1" type="Marker3D" parent="Structure/Fittings" unique_id=327632326]
 metadata/ship = &"fitting"
 metadata/name = &"boat_1"
-metadata/x = 60.5
+metadata/x = 60.0
 metadata/list_limit_deg = 15.0
 
 [node name="Fitting_boat_2" type="Marker3D" parent="Structure/Fittings" unique_id=1334107647]
 metadata/ship = &"fitting"
 metadata/name = &"boat_2"
 metadata/side = -1
-metadata/x = 60.5
+metadata/x = 60.0
 metadata/list_limit_deg = 15.0
 
 [node name="Fitting_boat_3" type="Marker3D" parent="Structure/Fittings" unique_id=64885416]
@@ -122544,14 +122544,14 @@ metadata/list_limit_deg = 15.0
 [node name="Fitting_collapsible_c" type="Marker3D" parent="Structure/Fittings" unique_id=422028132]
 metadata/ship = &"fitting"
 metadata/name = &"collapsible_c"
-metadata/x = 60.5
+metadata/x = 60.0
 metadata/list_limit_deg = 15.0
 
 [node name="Fitting_collapsible_d" type="Marker3D" parent="Structure/Fittings" unique_id=1391121972]
 metadata/ship = &"fitting"
 metadata/name = &"collapsible_d"
 metadata/side = -1
-metadata/x = 60.5
+metadata/x = 60.0
 metadata/list_limit_deg = 15.0
 
 [node name="Fitting_funnel_1" type="Marker3D" parent="Structure/Fittings" unique_id=1597114261]
