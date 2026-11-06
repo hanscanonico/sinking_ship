@@ -1,16 +1,30 @@
 extends GutTest
 ## Bots round the Titanic's deck gear (#497), her dry world held still. The step up onto
 ## her head runs the breadth of her forecastle, and the walk graph's point for it lies on a
-## body's own line, not on her centreline where the steam winch and No. 1 hatch stand. On
-## main each stalled against the gear.
+## body's own line, not on her centreline where the steam winch and No. 1 hatch stand; a bot
+## going for a seat in its own zone — behind the steam windlass from the head of the ladder
+## up out of her forward well, behind the electric winch on her poop — goes round by the
+## floor. On main each stalled against the gear.
 
 const TITANIC := "res://data/ships/titanic.tres"
+const POOP := 3.3125
 const FORECASTLE := 4.3125
 const HEAD := 4.9375
+const FORWARD_WELL := 1.5625
 ## On her forecastle's port side, abreast of the steam winch.
 const BY_THE_WINCH := Vector3(102.0, FORECASTLE, -7.0)
 ## Her head's fore end, past the cable holders and capstans.
 const HEAD_FORE_END := Vector3(127.0, HEAD, 0.0)
+## In her forward well, on her centreline abaft its hatches: its route up runs by the ladder
+## to port, the cheapest way into her forecastle's zone, whose head the windlass stands beside.
+const IN_THE_FORWARD_WELL := Vector3(77.0, FORWARD_WELL, 0.0)
+## On her forecastle by the head of the starboard ladder, the windlass between it and the
+## port ladder's.
+const STARBOARD_LADDER_HEAD := Vector3(95.0, FORECASTLE, 6.0)
+## On her poop to starboard, and to port abaft its fore rail: the electric winch on her
+## centreline between, its fore face 0.31 m short of that rail.
+const POOP_STARBOARD := Vector3(-108.25, POOP, 4.5)
+const POOP_FORE_END := Vector3(-107.25, POOP, -3.0)
 ## How near the seat it goes for a bot comes: a shove's reach, about.
 const THERE := 1.6
 ## How long a walk is given.
@@ -103,3 +117,18 @@ func test_a_bot_by_the_steam_winch_goes_up_onto_her_head_for_a_seat() -> void:
 	var got_to := _bot_walk(BY_THE_WINCH, HEAD_FORE_END)
 	assert_lt(got_to.distance_to(HEAD_FORE_END), THERE, "at the seat: at %s" % got_to)
 
+
+## A normal bot in her forward well goes for a seat by the head of her starboard ladder. Its
+## route goes up the port ladder, and from its head the seat stands behind the steam windlass:
+## it goes round. On main it stalled on the windlass's bedplate at (92.57, 4.63, -2.02).
+func test_a_bot_up_from_her_forward_well_goes_round_the_windlass_for_a_seat() -> void:
+	var got_to := _bot_walk(IN_THE_FORWARD_WELL, STARBOARD_LADDER_HEAD)
+	assert_lt(got_to.distance_to(STARBOARD_LADDER_HEAD), THERE, "at the seat: at %s" % got_to)
+
+
+## A normal bot on her poop to starboard goes for a seat abaft its fore rail to port, round
+## the electric winch's after end. On main it stalled between the winch and the rail at
+## (-107.03, 3.31, 0.84).
+func test_a_bot_on_her_poop_goes_round_the_electric_winch_for_a_seat() -> void:
+	var got_to := _bot_walk(POOP_STARBOARD, POOP_FORE_END)
+	assert_lt(got_to.distance_to(POOP_FORE_END), THERE, "at the seat: at %s" % got_to)

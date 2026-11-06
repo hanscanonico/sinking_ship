@@ -787,8 +787,9 @@ func _follow_route(steer: Steer, me: Dictionary, now_pos: Vector3, pose: ShipPos
 	return true
 
 
-## At [param mark], off by this think's heading error, looking at it, keeping to its
-## own zone and surface — the one it reckons it stands on at [param now] — and the mark's.
+## At [param mark] — round by the floor where a walk straight at it would not get there
+## (BotFloorWay) — off by this think's heading error, looking at it, keeping to its own zone
+## and surface — the one it reckons it stands on at [param now] — and the mark's.
 func _walk_at(steer: Steer, me: Dictionary, mark: Dictionary, now: Vector3, pose: ShipPose) -> void:
 	if mark.is_empty():
 		return
@@ -798,7 +799,7 @@ func _walk_at(steer: Steer, me: Dictionary, mark: Dictionary, now: Vector3, pose
 		var mark_vel: Vector3 = mark["vel"]
 		var ahead := _lead * _profile.reaction_ticks * Ticks.SECONDS_PER_TICK
 		mark_pos += Vector3(mark_vel.x, 0.0, mark_vel.z) * ahead
-	var goal := _approach(my_pos, mark_pos, pose)
+	var goal := _floor_way.toward(my_pos, me["surface"], null, _approach(my_pos, mark_pos, pose))
 	var wish := Vector2(goal.x - my_pos.x, goal.z - my_pos.z).normalized().rotated(_aim_offset)
 	var on := _surfaces.under(now, _rules.step_height)
 	steer.move = _footing.clear_heading(
