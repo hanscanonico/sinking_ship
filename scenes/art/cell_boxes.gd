@@ -61,8 +61,8 @@ static func boxes(structure: ShipStructure, rooms: Array[ShipRoom]) -> Array[AAB
 ## narrower (the steamer's aft peak, #148): each of its rooms in boxes of its own, from
 ## its floor up to the floor of the one over each part of it or the cell's top (_under),
 ## the first in boxes(), and out to the bulkheads it shares (_to_bulkheads), then what
-## her shell's narrowest over each leaves out of it and its stairwells (_room_boxes);
-## each as [cell, box].
+## her shell's narrowest over each leaves out of it and its stairwells (_room_boxes),
+## less what the cell's other boxes hold (_less); each as [cell, box].
 static func stacked(structure: ShipStructure, rooms: Array[ShipRoom]) -> Array:
 	var found := []
 	for index in structure.cells.size():
@@ -71,10 +71,46 @@ static func stacked(structure: ShipStructure, rooms: Array[ShipRoom]) -> Array:
 			continue
 		var rest: Array[AABB] = []
 		var drawn := _room_boxes(structure, cell, rooms, rest)
+		var kept: Array[AABB] = [_to_bulkheads(structure, cell, drawn, 0)]
 		for at in range(1, drawn.size()):
-			found.append([index, _to_bulkheads(structure, cell, drawn, at)])
+			kept.append(_to_bulkheads(structure, cell, drawn, at))
+			found.append([index, kept[-1]])
 		for box: AABB in rest:
-			found.append([index, box])
+			for part: AABB in _less(box, kept):
+				kept.append(part)
+				found.append([index, part])
+	return found
+
+
+## What of [param box] none of [param others] holds, but a hair (MEET), in boxes: so no
+## two of a cell's boxes draw its water over each other.
+static func _less(box: AABB, others: Array[AABB]) -> Array[AABB]:
+	var left: Array[AABB] = [box]
+	for other: AABB in others:
+		var held := other.grow(-MEET)
+		var rest: Array[AABB] = []
+		for part: AABB in left:
+			if not held.intersects(part):
+				rest.append(part)
+				continue
+			var low := part.position
+			var high := part.end
+			for axis in 3:
+				if other.position[axis] > low[axis]:
+					var end := high
+					end[axis] = other.position[axis]
+					rest.append(AABB(low, end - low))
+					low[axis] = other.position[axis]
+				if other.end[axis] < high[axis]:
+					var start := low
+					start[axis] = other.end[axis]
+					rest.append(AABB(start, high - start))
+					high[axis] = other.end[axis]
+		left = rest
+	var found: Array[AABB] = []
+	for part: AABB in left:
+		if _kept(part) and part.size.y > 2.0 * MEET:
+			found.append(part)
 	return found
 
 
