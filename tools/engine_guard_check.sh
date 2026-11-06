@@ -4,8 +4,9 @@
 # passes one it did not, with a stand-in for the engine — Godot itself exits 0
 # after a SCRIPT ERROR, which is the whole reason the guard exists. And the engine
 # ends with whoever asked for it: a stand-in requester killed, and a make killed
-# under its recipe, each stop a stand-in engine that would otherwise sleep on. Each
-# of those steps waits on what happened, never on how long it took; DEADLINE seconds
+# under its recipe, each stop a stand-in engine that would otherwise sleep on, as do a
+# game window's bounds: a wall-clock limit, a Parse Error, one script error over and
+# over. Each of those steps waits on what happened, never on how long it took; DEADLINE seconds
 # is how long one may take before it fails.
 
 set -uo pipefail
@@ -89,6 +90,66 @@ if wait_for "[ -s '$WORK/a.pid' ] && [ -e '$WORK/a.armed' ]"; then
 else
 	fail "the guard never started its engine beside a watchdog"
 fi
+
+# A game window's bounds (#464), each against a stand-in engine that would otherwise
+# sleep on: ENGINE_GUARD_LIMIT stops it once it has run that long and the guard exits
+# 124; ENGINE_GUARD_EARLY stops it at once on a Parse Error, naming a stale import when
+# the error names a type not found, and on one SCRIPT ERROR line said over and over,
+# and the guard exits 1. Each says why.
+#
+# bounded NAME ENV BODY LABEL: the guard, with the environment ENV (NAME=VALUE words)
+# and no requester watched, over a stand-in engine that writes its PID to NAME.pid and
+# then runs BODY, in the background; true once it has ended, its exit status in
+# NAME.status, else a fail named LABEL.
+bounded() {
+	local name=$1 env=$2 body=$3 label=$4
+	(
+		# shellcheck disable=SC2086 # the environment's words, split on purpose
+		env ENGINE_GUARD_WATCH=0 ENGINE_GUARD_WATCH_EVERY=1 $env tools/engine_guard.sh \
+			bash -c "echo \$\$ >'$WORK/$name.pid'; $body" >/dev/null 2>"$WORK/$name.err"
+		echo $? >"$WORK/$name.status"
+	) &
+	PIDS+=($!)
+	wait_for "[ -s '$WORK/$name.status' ]" && return 0
+	fail "$label: the engine was still running after ${DEADLINE}s"
+	[[ -s "$WORK/$name.pid" ]] && PIDS+=("$(cat "$WORK/$name.pid")")
+	return 1
+}
+if bounded l "ENGINE_GUARD_LIMIT=2" "exec sleep 600" "a 2 s limit"; then
+	[[ "$(cat "$WORK/l.status")" == 124 ]] ||
+		fail "an engine past its limit: exit $(cat "$WORK/l.status"), wanted 124"
+	grep -q 'ran past its 2 s limit' "$WORK/l.err" ||
+		fail "an engine past its limit: no word why: $(cat "$WORK/l.err")"
+fi
+parse='echo "SCRIPT ERROR: Parse Error: Could not find type \"ObstacleContacts\" in the current scope." >&2'
+if bounded p "ENGINE_GUARD_EARLY=1" "$parse; exec sleep 600" "a Parse Error at startup"; then
+	[[ "$(cat "$WORK/p.status")" == 1 ]] ||
+		fail "a Parse Error at startup: exit $(cat "$WORK/p.status"), wanted 1"
+	grep -q 'its scripts failed to compile: SCRIPT ERROR: Parse Error' "$WORK/p.err" ||
+		fail "a Parse Error at startup: no word why: $(cat "$WORK/p.err")"
+	grep -qF 'stale import? run make import' "$WORK/p.err" ||
+		fail "a Parse Error naming a type not found: no word on a stale import: $(cat "$WORK/p.err")"
+fi
+compile='echo "SCRIPT ERROR: Compile Error: Failed to compile depended scripts." >&2'
+if bounded c "ENGINE_GUARD_EARLY=1" "$compile; exec sleep 600" "a Compile Error at startup"; then
+	[[ "$(cat "$WORK/c.status")" == 1 ]] ||
+		fail "a Compile Error at startup: exit $(cat "$WORK/c.status"), wanted 1"
+	grep -q 'stale import' "$WORK/c.err" &&
+		fail "a Compile Error naming no type: a word on a stale import: $(cat "$WORK/c.err")"
+fi
+loop="while :; do echo \"SCRIPT ERROR: Invalid access to property or key 'phase'\"; sleep 0.01; done"
+if bounded r "ENGINE_GUARD_EARLY=1 ENGINE_GUARD_REPEATS=20" "$loop" "one script error over and over"; then
+	[[ "$(cat "$WORK/r.status")" == 1 ]] ||
+		fail "one script error over and over: exit $(cat "$WORK/r.status"), wanted 1"
+	grep -q 'printed one script error 20 times' "$WORK/r.err" ||
+		fail "one script error over and over: no word why: $(cat "$WORK/r.err")"
+fi
+# The early stop leaves a run that errors once, and ends, to the scan at exit.
+said="$(ENGINE_GUARD_WATCH=0 ENGINE_GUARD_EARLY=1 ENGINE_GUARD_WATCH_EVERY=1 tools/engine_guard.sh \
+	bash -c 'echo "SCRIPT ERROR: once" >&2; sleep 2; echo out' 2>/dev/null)"
+status=$?
+((status == 1)) || fail "one script error under the early stop: exit $status, wanted 1"
+[[ "$said" == out ]] || fail "one script error under the early stop was cut short: '$said', not 'out'"
 
 # A make killed under its recipe, as a `timeout` around make does, with the guard in a
 # pipeline as the Makefile runs it: found above the guard without being named — the

@@ -872,8 +872,58 @@ void NativeShipMesh::set_roofed(double p_weather_floor, const PackedFloat64Array
 	}
 }
 
-// RoofedIndoors.holds: below her lowest weather deck, inside her shell's outline at the
-// point's x and height (ShipStructure.section_at, HullSection.shell_at), under a deck.
+// HullSection.shell_at, as a reach (ShipStructure._reach): how far out to side
+// [param p_side] her shell reaches at height [param p_y]; 0 where it does not.
+double NativeShipMesh::_reach(size_t p_section, double p_y, int64_t p_side) const {
+	const std::vector<Vector2> &outline = _outlines[p_section];
+	double outermost = -INFINITY;
+	for (size_t index = 0; index < outline.size(); index++) {
+		const Vector2 a = outline[index];
+		const Vector2 b = outline[(index + 1) % outline.size()];
+		if (a.y == b.y || ((double)a.y - p_y) * ((double)b.y - p_y) > 0.0) {
+			continue;
+		}
+		const double across = (double)a.x + ((double)b.x - (double)a.x) * (p_y - (double)a.y) / ((double)b.y - (double)a.y);
+		outermost = maxf(outermost, across * (double)p_side);
+	}
+	return outermost > -INFINITY ? std::abs(outermost * (double)p_side) : 0.0;
+}
+
+// ShipStructure.half_breadth: her shell as her art lofts it, between the two sections
+// whose middles stand either side of x, closing onto her stem past her last one's.
+double NativeShipMesh::_half_breadth(double p_x, double p_y, int64_t p_side) const {
+	const size_t count = _section_x.size();
+	if (count == 0) {
+		return 0.0;
+	}
+	const double aft_end = _section_x[0] - _section_length[0] * 0.5;
+	const double last_x = _section_x[count - 1];
+	const double last_length = _section_length[count - 1];
+	if (p_x < aft_end || p_x > last_x + last_length * 0.5) {
+		return 0.0;
+	}
+	for (size_t index = 0; index < count; index++) {
+		const double x = _section_x[index];
+		if (p_x > x && index < count - 1) {
+			continue;
+		}
+		const double here = _reach(index, p_y, p_side);
+		if (index == 0 && p_x <= x) {
+			return here;
+		}
+		if (p_x > x) {
+			return here * (1.0 - (p_x - x) / (last_length * 0.5));
+		}
+		const double before = _section_x[index - 1];
+		const double t = (p_x - before) / (x - before);
+		const double from = _reach(index - 1, p_y, p_side);
+		return from + (here - from) * t;
+	}
+	return 0.0;
+}
+
+// RoofedIndoors.holds: below her lowest weather deck, inside her shell at the point's x
+// and height as her art lofts it (_half_breadth), under a deck.
 bool NativeShipMesh::_holds(const Vector3 &p_point) const {
 	const double x = p_point.x;
 	const double y = p_point.y;
@@ -881,31 +931,9 @@ bool NativeShipMesh::_holds(const Vector3 &p_point) const {
 	if (y >= _weather_floor) {
 		return false;
 	}
-	int64_t section = -1;
-	for (size_t index = 0; index < _section_x.size(); index++) {
-		const double half = _section_length[index] * 0.5;
-		if (x >= _section_x[index] - half && x < _section_x[index] + half) {
-			section = (int64_t)index;
-			break;
-		}
-	}
-	if (section == -1) {
-		return false;
-	}
 	const int64_t side = z >= 0.0 ? 1 : -1;
-	const std::vector<Vector2> &outline = _outlines[section];
-	double outermost = -INFINITY;
-	for (size_t index = 0; index < outline.size(); index++) {
-		const Vector2 a = outline[index];
-		const Vector2 b = outline[(index + 1) % outline.size()];
-		if (a.y == b.y || ((double)a.y - y) * ((double)b.y - y) > 0.0) {
-			continue;
-		}
-		const double across = (double)a.x + ((double)b.x - (double)a.x) * (y - (double)a.y) / ((double)b.y - (double)a.y);
-		outermost = maxf(outermost, across * (double)side);
-	}
-	const double shell = outermost > -INFINITY ? outermost * (double)side : NAN;
-	if (std::isnan(shell) || z * (double)side > shell * (double)side) {
+	const double breadth = _half_breadth(x, y, side);
+	if (breadth <= 0.0 || z * (double)side > breadth) {
 		return false;
 	}
 	const auto found = _platform_squares.find(roof_square(x, z));

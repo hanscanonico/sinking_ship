@@ -295,7 +295,7 @@ func build_frame(
 		if blocker.shape == ShipBlocker.Shape.CYLINDER:
 			reach = Vector2(blocker.centre.x - blocker.radius, blocker.centre.x + blocker.radius)
 		if mesh.kept(reach.x, reach.y):
-			_blocker(mesh, blocker, pieces)
+			_blocker(mesh, blocker, pieces, hull)
 	if rules != null:
 		DeckWorks.rig(mesh, layout, rules, span, _funnels, pieces)
 	var cap := Vector2(RAIL_WIDTH, RAIL_DEPTH)
@@ -895,7 +895,7 @@ static func is_funnel(layout: ShipLayout, blocker: ShipBlocker) -> bool:
 ## standing in a room is the room's own (RoomDressing). A blocker a deck rests on stops a
 ## plank short of its top, so the deck shows. A funnel the sinking can fell stands over
 ## its foot on a piece of its own among [param pieces], its smoke with it.
-func _blocker(mesh: ShipMesh, blocker: ShipBlocker, pieces: Dictionary) -> void:
+func _blocker(mesh: ShipMesh, blocker: ShipBlocker, pieces: Dictionary, hull: ShipHull) -> void:
 	var top := blocker.top - (PLANK if _space.deck_on(blocker) else 0.0)
 	if DeckFurniture.is_gear(blocker):
 		DeckFurniture.build(mesh, _space, blocker, top)
@@ -919,29 +919,29 @@ func _blocker(mesh: ShipMesh, blocker: ShipBlocker, pieces: Dictionary) -> void:
 	if _space.is_wall(blocker):
 		var deck := _space.deck_under(centre, blocker.bottom)
 		var foot := blocker.bottom if is_nan(deck) else deck
+		var shown := ShipMesh.ALL_FACES & ~hull.under_skin(area, blocker.bottom, blocker.top)
 		_lined.box(
 			mesh,
 			area,
 			blocker.bottom,
 			top,
 			ShipPaints.wall,
-			ShipMesh.ALL_FACES,
-			ShipMesh.SIDES,
+			shown,
+			shown & ShipMesh.SIDES,
 			foot,
 			blocker.top
 		)
 		if not is_nan(deck) and blocker.bottom - deck > DOOR_FROM:
 			DoorFrame.build(mesh, _space, blocker, deck)
 		if top < blocker.top:
-			# Where the deck laid on it stops short of its edge, it stands up to the
-			# deck's top itself.
+			# Where the deck laid on it stops short of its edge, it stands up to its top.
 			for bare: Rect2 in _space.uncovered(area, blocker.top):
-				mesh.box(bare, top, blocker.top, ShipPaints.wall, ShipMesh.TOP | ShipMesh.SIDES)
+				mesh.box(bare, top, blocker.top, ShipPaints.wall, shown & ~ShipMesh.BOTTOM)
 		# Along her side, up to the room's ceiling where the deck over it stops short of
 		# the wall, so her shell's outside never shows from in the room (#147).
 		for stretch: Vector3 in _space.short_of_ceiling(blocker):
 			var piece := ShipSpace.stretch_of(blocker, stretch)
-			var sides := ShipMesh.SIDES
+			var sides := ShipMesh.SIDES & ~hull.under_skin(piece, blocker.top, stretch.z)
 			_lined.box(
 				mesh, piece, blocker.top, stretch.z, ShipPaints.wall, sides, sides, foot, stretch.z
 			)
