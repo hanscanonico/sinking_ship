@@ -3,10 +3,10 @@ extends GutTest
 ## (NativeSurfaces.floor_way, #410) against BotFloorWay's own GDScript, bit for bit: from
 ## every kind of start to every kind of portal on her ships — through a door, onto a stair
 ## and off one, ways found and none — as the bot asks it, every point of every way the
-## same, and the same none. The extension's Surfaces.under, which it asks per square, is
-## held to the GDScript in test_contacts_native. Where the extension is not loaded there
-## is nothing to hold it to; CI sets SINKING_NATIVE_REQUIRED, so a missing library there
-## fails.
+## same, the same none, and the same square it would give up on. The extension's
+## Surfaces.under, which it asks per square, is held to the GDScript in
+## test_contacts_native. Where the extension is not loaded there is nothing to hold it to;
+## CI sets SINKING_NATIVE_REQUIRED, so a missing library there fails.
 
 const STEAMER := "res://data/ships/steamer.tres"
 const TITANIC := "res://data/ships/titanic.tres"
@@ -176,6 +176,7 @@ func _ask(ways: Array, from: Vector3, portal: WalkGraph.Portal) -> void:
 		_none += 1
 	else:
 		_found += 1
+		_assert_stops_alike(ways, from, portal, keep, theirs, twin._settled)
 	if var_to_bytes(mine) != var_to_bytes(theirs):
 		_differences.append(
 			(
@@ -183,6 +184,43 @@ func _ask(ways: Array, from: Vector3, portal: WalkGraph.Portal) -> void:
 				% [from, portal.entry, keep, mine.size(), theirs.size()]
 			)
 		)
+
+
+## The extension, let settle as many squares as the GDScript settled finding [param theirs],
+## finds it too, and let settle one fewer finds none: it counts its squares as the GDScript
+## does and gives up where it does, to the square, which ways found below the cap alone
+## would not show.
+func _assert_stops_alike(
+	ways: Array,
+	from: Vector3,
+	portal: WalkGraph.Portal,
+	keep: PackedInt32Array,
+	theirs: PackedVector3Array,
+	settled: int
+) -> void:
+	var graph: WalkGraph = ways[0]
+	var native: BotFloorWay = ways[1]
+	var rules := native._native_rules.duplicate()
+	rules[2] = settled
+	var enough: PackedVector3Array = graph.surfaces().native.floor_way(
+		from, portal.entry, keep, rules
+	)
+	rules[2] = settled - 1
+	var short: PackedVector3Array = graph.surfaces().native.floor_way(
+		from, portal.entry, keep, rules
+	)
+	var alike := var_to_bytes(enough) == var_to_bytes(theirs)
+	if not alike or not short.is_empty():
+		var found := (
+			"found within %d squares %s, and within %d %s"
+			% [
+				settled,
+				"alike" if alike else "not alike",
+				settled - 1,
+				"none" if short.is_empty() else "too"
+			]
+		)
+		_differences.append("from %s to %s: %s" % [from, portal.entry, found])
 
 
 func _assert_none(what: String) -> void:
