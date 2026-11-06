@@ -789,10 +789,19 @@ func ceiling_of(cell: int) -> float:
 	return _ceiling[cell]
 
 
-## Every cell's ceiling (ceiling_of) and every opening's sill (sill_of), by index, at
-## the attitude it stands turned to: what a loop over them all reads (SinkFailures).
+## Every cell's floor, ceiling (floor_of, ceiling_of) and capacity, and every opening's
+## sill (sill_of), by index, at the attitude it stands turned to: what a loop over them
+## all reads (SinkFailures, BakePiece.gaps_of).
+func floors() -> PackedFloat64Array:
+	return _floor
+
+
 func ceilings() -> PackedFloat64Array:
 	return _ceiling
+
+
+func capacities() -> PackedFloat64Array:
+	return _capacity
 
 
 func sills() -> PackedFloat64Array:
