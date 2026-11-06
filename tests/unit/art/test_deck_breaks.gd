@@ -120,6 +120,23 @@ func test_the_liner_s_break_doors_stand_one_to_a_face_and_on_it() -> void:
 		assert_eq(within, back, "the door at %s on its deck's own face" % sill)
 
 
+func test_the_titanic_s_docking_bridge_stands_open_on_stanchions_with_no_break_under_it() -> void:
+	# Its deck over her poop on stanchions (#381): its edges no face, no door or vent in
+	# the air under them.
+	var titanic := Fleet.layout(&"titanic")
+	var bridge: Array[Rect2] = []
+	for platform: ShipPlatform in titanic.platforms:
+		if platform.name == &"docking bridge":
+			bridge.append(platform.area)
+	assert_gt(bridge.size(), 0, "her docking bridge")
+	for face: Array in ShipFittings.breaks(ShipSpace.new(titanic)):
+		for area in bridge:
+			var x: float = face[0]
+			var on_edge := is_equal_approx(x, area.position.x) or is_equal_approx(x, area.end.x)
+			var across: bool = face[1] < area.end.y and face[2] > area.position.y
+			assert_false(on_edge and across, "a break at x %.3f under the bridge's edge" % x)
+
+
 ## The lowest platform of [param layout] over [param height] at [param point].
 func _deck_over(layout: ShipLayout, point: Vector2, height: float) -> ShipPlatform:
 	var lowest: ShipPlatform = null
