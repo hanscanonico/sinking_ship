@@ -215,7 +215,8 @@ func build(mesh: ShipMesh) -> void:
 
 ## The faces of [param platform]'s planking ([constant ShipMesh.SIDES]) that lie on
 ## the hull's skin — along its sheer, against a step up to a taller run, or inside an
-## end's plating — which ShipArt leaves undrawn so no two faces share a plane.
+## end's plating — or just under it (under_skin()), which ShipArt leaves undrawn so no
+## two faces share a plane.
 func hidden_faces(platform: ShipPlatform) -> int:
 	var area := platform.area
 	var middle := area.get_center()
@@ -231,7 +232,7 @@ func hidden_faces(platform: ShipPlatform) -> int:
 		var beyond := _space.envelope(x + (SLIVER if end == 1 else -SLIVER))
 		if beyond.x == INF or minf(beyond.z, beyond.w) > platform.height + SLIVER:
 			hidden |= ShipMesh.POS_X if end == 1 else ShipMesh.NEG_X
-	return hidden
+	return hidden | under_skin(area, platform.height - ShipArt.PLANK, platform.height)
 
 
 ## The sides of a box over [param area] from [param bottom] to [param top] — of

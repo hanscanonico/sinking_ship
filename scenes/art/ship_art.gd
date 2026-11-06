@@ -282,9 +282,7 @@ func build_frame(
 		_breakups.append(null)
 		if _wrecks[index] == null:
 			if mesh.kept(platform.area.position.x, platform.area.end.x):
-				var hidden := hull.hidden_faces(platform)
-				hidden |= hull.under_skin(platform.area, platform.height - PLANK, platform.height)
-				_deck(mesh, platform, hidden)
+				_deck(mesh, platform, hull.hidden_faces(platform))
 			continue
 		_breakups[index] = DeckWreck.new(_space, platform, _dressing)
 		_breakups[index].build(_wrecks[index], self, pieces, _mesh)
@@ -918,7 +916,6 @@ func _blocker(mesh: ShipMesh, blocker: ShipBlocker, pieces: Dictionary, hull: Sh
 	if _space.is_wall(blocker):
 		var deck := _space.deck_under(centre, blocker.bottom)
 		var foot := blocker.bottom if is_nan(deck) else deck
-		# Its outside against her shell is never seen, and from afar would show through.
 		var shown := ShipMesh.ALL_FACES & ~hull.under_skin(area, blocker.bottom, blocker.top)
 		_lined.box(
 			mesh,
@@ -934,8 +931,7 @@ func _blocker(mesh: ShipMesh, blocker: ShipBlocker, pieces: Dictionary, hull: Sh
 		if not is_nan(deck) and blocker.bottom - deck > DOOR_FROM:
 			_door_frame(mesh, blocker, deck)
 		if top < blocker.top:
-			# Where the deck laid on it stops short of its edge, it stands up to the
-			# deck's top itself.
+			# Where the deck laid on it stops short of its edge, it stands up to its top.
 			for bare: Rect2 in _space.uncovered(area, blocker.top):
 				mesh.box(bare, top, blocker.top, ShipPaints.wall, shown & ~ShipMesh.BOTTOM)
 		# Along her side, up to the room's ceiling where the deck over it stops short of
