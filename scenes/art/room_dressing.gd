@@ -467,6 +467,36 @@ func lining(point: Vector3, part: Part) -> ShipMesh.Paint:
 	return null
 
 
+## The linings as the extension's NativeLining reads them (LinedFaces): per room, whether
+## it has its own, its lined box, area and floor, and its paint for each Part by number,
+## 0 for none; null where the extension is not loaded.
+func native_lining() -> Object:
+	var grid := _space.rooms_grid.native()
+	var lining := ArtNative.made(&"NativeLining")
+	if grid == null or lining == null:
+		return null
+	var areas := []
+	var floors := PackedFloat64Array()
+	var parts := PackedInt32Array()
+	var numbers := {}
+	var paints := []
+	for index in _layout.rooms.size():
+		var room := _layout.rooms[index]
+		areas.append(room.area)
+		floors.append(room.floor_height)
+		var linings: Array = []
+		if _has_lining[index] == 1:
+			linings = _linings(_kinds[index])
+		for part in 4:
+			var paint: ShipMesh.Paint = linings[part] if part < linings.size() else null
+			if paint != null and not numbers.has(paint):
+				paints.append([paint.finish, paint.colour, paint.finish_in, paint.colour_in])
+				numbers[paint] = paints.size()
+			parts.append(0 if paint == null else numbers[paint])
+	lining.setup(grid, _has_lining, _lined_boxes, areas, floors, parts, paints)
+	return lining
+
+
 ## Whether [param box] (ship space) reaches into a room with a lining of its own.
 func lined_near(box: AABB) -> bool:
 	return not _lined_in(box).is_empty()
@@ -636,10 +666,25 @@ func build(mesh: ShipMesh, signs: Node3D, panes: Array[Array]) -> void:
 		# gear room's capstan gear with it.
 		var own := [Kind.ENGINE, Kind.HOLD, Kind.DINING, Kind.BATH]
 		if _kinds[index] not in own + [Kind.SHAFT, Kind.LOCKER]:
-			FurnitureDressing.build(mesh, room, _space.furniture(room))
+			furnish(mesh, _space, room)
 		var signed := [Kind.ENGINE, Kind.BOILER, Kind.HOLD, Kind.PASSAGE, Kind.FIRST_CORRIDOR]
 		if _kinds[index] in signed:
 			_signs(mesh, signs, room)
+
+
+## [param room]'s furniture on [param space] (ShipSpace.furniture()), into [param mesh]:
+## a box over one of her structure's hatch openings in its floor (DeckFurniture.
+## is_hatch_cover) is the hatch's cover, battened under its tarpaulin as on her open decks
+## (DeckWorks.hatch) — the Titanic's D deck covers under her forward well —; every other
+## piece is FurnitureDressing's.
+static func furnish(mesh: ShipMesh, space: ShipSpace, room: ShipRoom) -> void:
+	var pieces: Array[ShipBlocker] = []
+	for blocker: ShipBlocker in space.furniture(room):
+		if DeckFurniture.is_hatch_cover(space.layout, blocker):
+			DeckWorks.hatch(mesh, blocker.area, blocker.bottom, blocker.top)
+		else:
+			pieces.append(blocker)
+	FurnitureDressing.build(mesh, room, pieces)
 
 
 ## The next lower-deck cabin, [param room] with [param glass]: _cabin() numbered on

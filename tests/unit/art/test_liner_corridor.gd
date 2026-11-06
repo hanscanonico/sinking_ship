@@ -63,8 +63,9 @@ func _drawn(draw: Callable) -> PackedVector3Array:
 	var mesh := ShipMesh.new(func(_point: Vector3) -> bool: return false, _space.room_lines())
 	draw.call(mesh)
 	var faces := PackedVector3Array()
-	for key: String in mesh._batches:
-		var batch: ShipMesh.Batch = mesh._batches[key]
+	var batches := mesh.batches()
+	for key: String in batches:
+		var batch: ShipMesh.Batch = batches[key]
 		for index: int in batch.indices:
 			faces.append(batch.vertices[index])
 	return faces

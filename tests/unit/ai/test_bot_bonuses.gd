@@ -68,6 +68,14 @@ func _two_kinds() -> BonusRules:
 	return SimFixtures.bonus_rules(600.0, 45.0, 0.0, 2, kinds)
 
 
+## The steamer as she floats before any hit, and so for good: none comes.
+func _unstruck() -> SinkScenario:
+	var sinking: SinkScenario = load(SimFixtures.STEAMER_SINKING).duplicate()
+	sinking.hit = null
+	sinking.explicit_hit = null
+	return sinking
+
+
 ## Whether [param profile]'s bot, seat 0 of [param sim] placed at [param at], goes for a
 ## bonus at its first think.
 func _goes(sim: MatchSim, profile: BotProfile, at: Vector3) -> bool:
@@ -190,6 +198,47 @@ func test_a_bot_heeds_the_floor_of_every_room_on_its_way() -> void:
 		source.next_frame(sim.state.tick)
 		var going := source.brain.intent == BotBrain.Intent.TAKE_BONUS
 		assert_eq(going, case[1], "listed %.0f°" % case[0])
+
+
+## A dry room below the sea counts by the water in her, not by the sea outside her (#340):
+## before any hit, her stokehold's floor stands a metre below the sea, every cell of her
+## dry, and from her engine room each tier sets out for the Double life lying there — a
+## margin over no water at all — and the bot goes down, takes it, and does not turn back
+## on the way for the sea outside.
+func test_a_bot_goes_for_a_bonus_in_a_dry_room_below_the_sea() -> void:
+	var engine_room := Vector3(-1.675, -2.6, 0.0)
+	for tier: String in BotProfile.tiers():
+		var dry := _steamer(_unstruck())
+		var spot := _spot_in(dry, &"stokehold")
+		SimFixtures.bring_aboard(dry, spot)
+		var at := dry.config.ship.bonus_spots[spot].point
+		assert_lt(dry.pose().above_water(at), 0.0, "the stokehold's floor is below the sea")
+		assert_eq(dry.pose().above_water_held(at), INF, "and no water is in her")
+		assert_true(_goes(dry, _tier(StringName(tier)), engine_room), "%s sets out" % tier)
+	var sim := _steamer(_unstruck())
+	SimFixtures.bring_aboard(sim, _spot_in(sim, &"stokehold"))
+	SimFixtures.place(sim, 0, engine_room, 0.0)
+	var bot := sim.state.seats[0]
+	var runner := _runner(sim, BotInputSource.new(0, _tier(&"normal"), sim.config))
+	var took := _until(runner, 20.0, func() -> bool: return bot.bonus != -1)
+	assert_true(took, "it went down and took it: at %s" % bot.pos)
+
+
+## A room below the sea with water in it still counts by that water: struck, her stokehold
+## takes the sea in from the first seconds, and with its water over its floor no tier sets
+## out for the Double life lying there: each still keeps out of rising water.
+func test_a_bot_keeps_out_of_a_room_below_the_sea_with_water_in_it() -> void:
+	var engine_room := Vector3(-1.675, -2.6, 0.0)
+	var sinking: SinkScenario = load(SimFixtures.STEAMER_SINKING).duplicate()
+	sinking.explicit_hit = SimFixtures.explicit_hit(1, -2.0, 19.0, 1.0, 0.05, 1.5)
+	var sim := _steamer(sinking)
+	_runner(sim, BotInputSource.new(0, _tier(&"normal"), sim.config)).run(Ticks.from_seconds(8.0))
+	var spot := _spot_in(sim, &"stokehold")
+	SimFixtures.bring_aboard(sim, spot)
+	var held := sim.pose().above_water_held(sim.config.ship.bonus_spots[spot].point)
+	assert_lt(held, 0.0, "the stokehold has water over its floor")
+	for tier: String in BotProfile.tiers():
+		assert_false(_goes(sim, _tier(StringName(tier)), engine_room), "%s stays out" % tier)
 
 
 ## A bot sees a bonus only as old as its view, reaction_ticks: one taken since is still

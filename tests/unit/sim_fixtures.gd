@@ -31,6 +31,8 @@ const HOLD_FLOOR := -2.0
 static var _match_hits: Array[MustSink.Choice] = []
 ## Those past the last match_hits has worked out, by seed: one asked alone.
 static var _lone_hits: Dictionary[int, MustSink.Choice] = {}
+## The weak hull's breaking match (breaking), made once.
+static var _breaking: MatchConfig
 
 
 ## The steamer's match hits on seeds 1…[param count], as her matches choose them
@@ -431,6 +433,42 @@ static func kind_sim(
 ## bonus spot [param spot], as the plan would bring it aboard: of none of the plan's.
 static func bring_aboard(match_sim: MatchSim, spot: int, kind := 0) -> void:
 	match_sim.state.bonuses.append(BonusState.new(-1, kind, spot))
+
+
+## The weak hull's match (steamer_weak) on her pinned breaks_in_two seed, which parts her
+## in two at x -8 (test_breaking), of [param seats] seats played with [param bonus_rules]:
+## made once for every suite that reads it, her sinking baked once with it.
+static func breaking(seats: int, bonus_rules: BonusRules) -> MatchConfig:
+	if _breaking == null or _breaking.seats != seats:
+		_breaking = MatchConfig.from_rules(
+			load("res://data/match/default.tres"),
+			PinnedSeeds.seed_named(&"breaks_in_two"),
+			seats,
+			&"steamer_weak"
+		)
+		_breaking.countdown_ticks = 0
+	_breaking.bonus_rules = bonus_rules
+	return _breaking
+
+
+## The tick [param seconds] after [param schedule]'s hull first parts.
+static func after_parting(schedule: SinkSchedule, seconds: float) -> int:
+	for event: SinkTimeline.Event in schedule.timeline().events:
+		if event.kind == SinkTimeline.Kind.PARTED:
+			return schedule.physics_tick(event.seconds) + Ticks.from_seconds(seconds)
+	return -1
+
+
+## The first of [param layout]'s bonus spots on the last piece [param schedule]'s sinking
+## ends in (ShipPieces.leaves_of) — the fore one, which the ship's own node does not
+## follow — [param clear] metres or more from where that piece breaks away.
+static func fore_spot(layout: ShipLayout, schedule: SinkSchedule, clear: float) -> int:
+	var leaves := ShipPieces.leaves_of(schedule)
+	var cut := schedule.span_of(leaves[leaves.size() - 1]).x
+	for spot in layout.bonus_spots.size():
+		if layout.bonus_spots[spot].point.x >= cut + clear:
+			return spot
+	return -1
 
 
 ## A ship held at [param trim_deg] and [param heel_deg], lifted well clear of the
