@@ -80,8 +80,10 @@ var _decks: Array[ShipPlatform] = []
 var _deck_grid: SpatialIndex
 var _shallow := 0.0
 ## The ship (ship to world) as last stepped, which a piece coming down between steps
-## is sent under against; none before the first.
-var _ship := Transform3D.IDENTITY
+## is sent under against — per piece of her once she has broken, and where each past the
+## first begins along her; none before the first.
+var _ships: Array[Transform3D] = [Transform3D.IDENTITY]
+var _cuts := PackedFloat64Array()
 var _stepped := false
 
 
@@ -144,9 +146,16 @@ func setup(layout: ShipLayout, wade: float) -> void:
 
 ## Sends under every piece afloat over a deck that stands less than wading depth
 ## and UNDER_LEAD under the sea with the ship at [param ship] (ship to world); a piece
-## that comes down on the sea before the next is sent under against this one.
-func go_under_shallows(ship: Transform3D) -> void:
-	_ship = ship
+## that comes down on the sea before the next is sent under against this one. Once she
+## has broken (SH33), [param ship] is her first piece's, [param fore] each other's, aft
+## to fore, and [param cuts] where each begins along her: a deck is under as its own
+## piece stands.
+func go_under_shallows(
+	ship: Transform3D, fore: Array[Transform3D] = [], cuts := PackedFloat64Array()
+) -> void:
+	_ships = [ship]
+	_ships.append_array(fore)
+	_cuts = cuts
 	_stepped = true
 	for index in CAP:
 		if _state[index] == State.AFLOAT:
@@ -158,17 +167,21 @@ func go_under_shallows(ship: Transform3D) -> void:
 func _go_under_if_shallow(index: int) -> void:
 	if not _stepped:
 		return
-	var on_ship := _ship.affine_inverse() * _pieces[index].position
-	var point := Vector2(on_ship.x, on_ship.z)
-	# Only the decks filed over the cell under it can hold it.
-	for deck_index: int in _deck_grid.in_cell(_deck_grid.cell_at(point)):
-		var deck := _decks[deck_index]
-		if not deck.area.has_point(point):
+	for at in _ships.size():
+		var ship := _ships[at]
+		var on_ship := ship.affine_inverse() * _pieces[index].position
+		if FxPieces.leaf_along(_cuts, on_ship.x) != at:
 			continue
-		if (_ship * Vector3(on_ship.x, deck.height, on_ship.z)).y > -_shallow:
-			_state[index] = State.SINKING
-			_age[index] = 0.0
-			return
+		var point := Vector2(on_ship.x, on_ship.z)
+		# Only the decks filed over the cell under it can hold it.
+		for deck_index: int in _deck_grid.in_cell(_deck_grid.cell_at(point)):
+			var deck := _decks[deck_index]
+			if not deck.area.has_point(point):
+				continue
+			if (ship * Vector3(on_ship.x, deck.height, on_ship.z)).y > -_shallow:
+				_state[index] = State.SINKING
+				_age[index] = 0.0
+				return
 
 
 ## Every piece gone, and the ship as last stepped forgotten.
@@ -176,7 +189,8 @@ func clear() -> void:
 	for index in CAP:
 		_state[index] = State.IDLE
 		_pieces[index].visible = false
-	_ship = Transform3D.IDENTITY
+	_ships = [Transform3D.IDENTITY]
+	_cuts = PackedFloat64Array()
 	_stepped = false
 
 
