@@ -149,5 +149,16 @@ B deck (#367):
 - Plate IV's poop and forecastle views: the forecastle's 125 ft (BOT) and its after end
   agree with `FCSL_FROM` within 0.6 m. On B deck's calibration the poop's front stands
   within 0.4 m of the elevation's (px 1740 there, x -106.55, 0.6 m aft of `POOP_TO`, the
-  texts' 106 ft), but its view draws the poop a quarter longer than her stern allows, so
-  `POOP_TO` stays the texts'.
+  texts' 106 ft), and `POOP_TO` stays the texts'. The poop's view (`poop.py`, #381) draws
+  her stern at px 370 and the poop's front at px 1628: B deck's calibration carried aft
+  reads them -138.59 and -106.82, so the view is at B deck's scale within 0.4%, not longer
+  than her poop; it is pegged on `X_AFT` and `POOP_TO`. The forecastle's view
+  (`forecastle.py`, #381) is pegged on its after face (px 9222) and her stem's head (px
+  10682): it draws 3.7% larger along her than B deck's view aft. Its dashed centre line
+  runs 5 px to starboard of the stem's point and of the pieces drawn in pairs about it.
+- Her deck gear (#381): each piece a deck file's `GEAR` box, the generator laying its
+  kind's size (`DeckFurniture.GEAR`) on the box's middle — the poop's capstans, cranes and
+  winch; the forecastle's steam windlass, steam winch, capstans and cable holders, each on
+  the deck either side of its step —, the forecastle's No. 1 hatch a `SOLIDS` coaming
+  named a hatch (`DeckFurniture.HATCH`), and the docking bridge over the poop a `BRIDGES`
+  deck, its port ladder the starboard one's mirror (est.).
