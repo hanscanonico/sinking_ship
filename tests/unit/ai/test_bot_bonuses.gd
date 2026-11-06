@@ -21,6 +21,13 @@ const TITANIC_SINKING := "res://data/sinking/titanic_open_sea.tres"
 ## the middle of her steering gear room on the poop: where a bot there sets out from.
 const G_DECK_CABIN := Vector3(-120.5531, -11.0, -0.7937)
 const STEERING_GEAR := Vector3(-124.9063, 0.0, -0.0625)
+## The Titanic's bonus spot in a two-berth third-class room on her G deck, aft of O, through
+## the passage that holds the foot of the stair down from F deck and, beside it, the head of
+## the stair on down to her after hold (#491).
+const G_DECK_TWO_BERTH := Vector3(-116.8438, -11.0, 0.0)
+## Where in the Titanic's second-class dining saloon on D deck a bot sets out from for the
+## CO2 evaporator room, two decks down, whose area runs past her cells at her shell.
+const DINING_SALOON := Vector3(-70.54295, -3.1875, -8.19375)
 
 
 func _tier(tier: StringName) -> BotProfile:
@@ -263,6 +270,61 @@ func test_a_bot_on_the_titanic_goes_for_a_bonus_far_below_decks() -> void:
 	assert_true(_until(runner, 1.0, going), "it sets out")
 	var took := _until(runner, 40.0, func() -> bool: return bot.bonus != -1)
 	assert_true(took, "it went down and took it: at %s" % bot.pos)
+
+
+## Down on the Titanic's G deck by the stair from F deck, a bot going for the Double life in a
+## two-berth room aft of O is in a passage whose door aft lies behind that stair, and between
+## the stair's foot and the door's line stands the head of the stair on down to her after hold.
+## A walk straight at the door runs onto that stair; it goes round by the floor, along the
+## passage's side of the stair it came down, and takes it (#491). On main it paced at the
+## stair's foot, on and off the stair down, for the rest of the match.
+func test_a_bot_on_the_titanic_goes_round_the_stairs_in_a_passage_for_a_bonus() -> void:
+	var sinking: SinkScenario = load(TITANIC_SINKING).duplicate()
+	sinking.hit = null
+	sinking.explicit_hit = null
+	var sim := SimFixtures.bonus_sim(SimFixtures.bonus_rules(600.0), 3, load(TITANIC), sinking)
+	var spot := _spot_at(sim, G_DECK_TWO_BERTH)
+	assert_ne(spot, -1, "a spot there")
+	SimFixtures.bring_aboard(sim, spot)
+	assert_eq(sim.pose().above_water_held(G_DECK_TWO_BERTH), INF, "no water is in her")
+	SimFixtures.place(sim, 0, STEERING_GEAR, 0.0)
+	var bot := sim.state.seats[0]
+	var source := BotInputSource.new(0, _tier(&"normal"), sim.config)
+	var runner := _runner(sim, source)
+	var going := func() -> bool: return source.brain.intent == BotBrain.Intent.TAKE_BONUS
+	assert_true(_until(runner, 1.0, going), "it sets out")
+	var took := _until(runner, 40.0, func() -> bool: return bot.bonus != -1)
+	assert_true(took, "it went round the stairs and took it: at %s" % bot.pos)
+
+
+## A room's area runs out to the middle of its walls, and at the Titanic's shell that lay
+## past her cells, where the sea outside her reads: her CO2 evaporator room on the orlop has a
+## corner there, within a body's radius of her shell (her sections cut finer where she
+## tapers, #318, hold it inside her now). Held dry, with no hit, the room stands clear of
+## any water in her where a body can stand in it, and a normal bot in her second-class dining saloon sets out for the Double
+## life lying there (#491). On main the corner read the sea, 3.4 m over the floor, and no bot
+## went for any bonus whose way passed a room like it.
+func test_a_bot_reads_a_room_at_her_shell_by_where_a_body_stands() -> void:
+	var sinking: SinkScenario = load(TITANIC_SINKING).duplicate()
+	sinking.hit = null
+	sinking.explicit_hit = null
+	var sim := SimFixtures.bonus_sim(SimFixtures.bonus_rules(600.0), 3, load(TITANIC), sinking)
+	var spot := _spot_in(sim, &"CO2 evaporator room")
+	assert_ne(spot, -1, "a spot there")
+	var layout := sim.config.ship
+	var room := layout.bonus_spots[spot].room
+	var area := layout.rooms[room].area
+	var corner := Vector3(area.position.x, layout.rooms[room].floor_height, area.position.y)
+	var shell := layout.structure.half_breadth(corner.x, corner.y, -1)
+	assert_gt(
+		absf(corner.z), shell - sim.config.rules.body_radius, "a corner of its area at her shell"
+	)
+	SimFixtures.bring_aboard(sim, spot)
+	var profile := _tier(&"normal")
+	var bonuses := BotBonuses.new(0, profile, sim.config.rules, layout, sim.config.bonus_rules)
+	var at := layout.bonus_spots[spot].point
+	assert_eq(bonuses.floor_held(room, at, sim.pose()), INF, "where a body stands in it, dry")
+	assert_true(_goes(sim, profile, DINING_SALOON), "a bot in the dining saloon sets out")
 
 
 ## A room below the sea with water in it still counts by that water: struck, her stokehold

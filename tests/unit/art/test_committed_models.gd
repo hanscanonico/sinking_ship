@@ -133,7 +133,9 @@ func _rows() -> Dictionary:
 		"capstan_137": ["hero", _fills_its_gear_envelope.bind("capstan_137")],
 		"capstan_112": ["hero", _fills_its_gear_envelope.bind("capstan_112")],
 		"cable_holder": ["hero", _fills_its_gear_envelope.bind("cable_holder")],
-		"electric_crane": ["hero", _fills_its_gear_envelope.bind("electric_crane")],
+		"electric_crane_688": ["hero", _fills_its_gear_envelope.bind("electric_crane_688")],
+		"electric_crane_925": ["hero", _fills_its_gear_envelope.bind("electric_crane_925")],
+		"electric_crane_700": ["hero", _fills_its_gear_envelope.bind("electric_crane_700")],
 		"steam_windlass": ["hero", _fills_its_gear_envelope.bind("steam_windlass")],
 		"steam_winch": ["hero", _fills_its_gear_envelope.bind("steam_winch")],
 		"electric_winch_100": ["furniture", _fills_its_gear_envelope.bind("electric_winch_100")],
@@ -384,15 +386,16 @@ func _fills_the_bench_s_box_its_back_under_a_step(box: AABB) -> void:
 
 
 ## A piece of her deck gear's model [param model] (DeckFurniture.GEAR): from the deck under
-## the middle of its footprint, its envelope over all, its longer side along x. Where it is
-## placed, art-lint holds it to fill each of its parts (DeckGear.PARTS), and
+## the middle of its footprint, its envelope over all, its longer side along x — a crane's
+## down to the deck its crutch post stands on (DeckGear.DROPS). Where it is placed,
+## art-lint holds it to fill each of its parts (DeckGear.PARTS), and
 ## test_deck_furniture.gd holds it inside them.
 func _fills_its_gear_envelope(box: AABB, model: String) -> void:
 	var wanted := AABB()
 	for kind: StringName in DeckFurniture.GEAR:
 		for size: Vector3 in DeckFurniture.GEAR[kind]:
 			if DeckFurniture.GEAR[kind][size] == model:
-				wanted = DeckGear.envelope(size)
+				wanted = DeckGear.envelope_of(model, size)
 	assert_ne(wanted.size, Vector3.ZERO, "GEAR names %s" % model)
 	_fills_its_box(box, wanted, model)
 
