@@ -51,7 +51,7 @@ const ON_HER_TAPER: Array[StringName] = [
 	&"after hold",
 	&"deck men's berths",
 	&"firemen's W.C.s, E deck",
-	&"firemen's W.C.s, F deck aft of A",
+	&"firemen's W.C.s, F deck aft",
 	&"firemen's wash place, E deck",
 	&"lamp trimmer's and storekeeper's berths",
 	&"men's lavatory, E deck aft of B",
