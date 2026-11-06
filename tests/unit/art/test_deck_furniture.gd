@@ -418,13 +418,13 @@ func test_every_piece_of_the_fleet_s_gear_stands_at_a_size_its_kind_is_made_at()
 			if not DeckFurniture.is_gear(blocker):
 				fail_test("%s: no kind of her gear" % named)
 				continue
-			var round := blocker.shape == ShipBlocker.Shape.CYLINDER
-			assert_eq(round, blocker.name in DeckFurniture.ROUND_GEAR, "%s: its shape" % named)
-			var made := false
-			for size: Vector3 in DeckFurniture.GEAR[blocker.name]:
-				made = made or DeckFurniture.size_of(blocker).distance_to(size) < 0.001
-			assert_true(
-				made, "%s: %s, no size it is made at" % [named, DeckFurniture.size_of(blocker)]
+			# A part of a piece is held to its foot (test_deck_gear.gd).
+			if DeckGear.is_part(blocker):
+				continue
+			assert_ne(
+				DeckGear.foot_of(blocker),
+				Vector3.ZERO,
+				"%s: %s, no size it is made at" % [named, DeckFurniture.size_of(blocker)]
 			)
 	assert_gt(pieces, 0, "the Titanic's gear")
 
@@ -436,7 +436,8 @@ func test_the_titanic_carries_the_gear_her_plates_draw() -> void:
 	for blocker: ShipBlocker in titanic.blockers:
 		if not DeckFurniture.is_gear(blocker):
 			continue
-		counted[blocker.name] = counted.get(blocker.name, 0) + 1
+		if DeckFurniture.GEAR.has(blocker.name):
+			counted[blocker.name] = counted.get(blocker.name, 0) + 1
 		assert_eq(DeckFurniture.piece_of(space, blocker), DeckFurniture.Piece.GEAR)
 		assert_false(DeckFurniture.is_vent(titanic, blocker), "%s: no ventilator" % blocker.name)
 		var middle := _middle(blocker)
@@ -478,30 +479,40 @@ func test_no_rig_line_is_made_fast_to_her_gear() -> void:
 			)
 
 
-func test_each_kind_of_her_gear_is_drawn_inside_its_envelope() -> void:
+## Each kind of her gear, at every size she carries it, drawn — its foot and each of its
+## other parts (DeckGear) — inside the parts it is made of: no face of it out of them all.
+func test_each_kind_of_her_gear_is_drawn_inside_its_parts() -> void:
 	var titanic := _layout("titanic")
 	var drawn := {}
 	for blocker: ShipBlocker in titanic.blockers:
-		if not DeckFurniture.is_gear(blocker) or drawn.has(blocker.name):
+		var size := DeckGear.foot_of(blocker)
+		if size == Vector3.ZERO or drawn.has([blocker.name, size]):
 			continue
-		drawn[blocker.name] = true
-		var faces := _drawn(titanic, blocker)
+		drawn[[blocker.name, size]] = true
+		var parts := DeckGear.laid(blocker)
+		var faces := PackedVector3Array()
+		for part in parts:
+			faces.append_array(_drawn(titanic, part))
 		assert_gt(faces.size(), 0, "a %s drawn" % blocker.name)
 		for corner: Vector3 in faces:
-			var flat := Vector2(corner.x, corner.z)
-			var inside := blocker.area.grow(OUTSIDE).has_point(flat)
-			if blocker.shape == ShipBlocker.Shape.CYLINDER:
-				inside = flat.distance_to(blocker.centre) <= blocker.radius + OUTSIDE
-			if (
-				not inside
-				or corner.y < blocker.bottom - OUTSIDE
-				or corner.y > blocker.top + OUTSIDE
-			):
+			if not parts.any(_holds.bind(corner)):
 				fail_test(
 					"the %s at %s: a face out at %s" % [blocker.name, _middle(blocker), corner]
 				)
 				break
-	assert_eq(drawn.size(), TITANIC_GEAR.size(), "every kind she carries")
+	var kinds := {}
+	for made: Array in drawn:
+		kinds[made[0]] = true
+	assert_eq(kinds.size(), TITANIC_GEAR.size(), "every kind she carries")
+
+
+## Whether [param corner] of a face stands inside [param part], to OUTSIDE.
+func _holds(part: ShipBlocker, corner: Vector3) -> bool:
+	var flat := Vector2(corner.x, corner.z)
+	var inside := part.area.grow(OUTSIDE).has_point(flat)
+	if part.shape == ShipBlocker.Shape.CYLINDER:
+		inside = flat.distance_to(part.centre) <= part.radius + OUTSIDE
+	return inside and corner.y >= part.bottom - OUTSIDE and corner.y <= part.top + OUTSIDE
 
 
 ## [param blocker]'s middle in the ship plane.
