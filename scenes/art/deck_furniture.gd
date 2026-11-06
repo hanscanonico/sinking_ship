@@ -25,8 +25,8 @@ enum Piece { HATCH, CASING, SKYLIGHT, LOCKER, POST, BOAT, BENCH, VENT, GEAR }
 ## shorter side; a round piece's diameter, height and diameter — to the model that
 ## dresses it (assets/models/NAME), "" for one drawn by code alone. A piece is its parts
 ## (DeckGear.PARTS): its foot, a blocker so named, stands at one of its kind's sizes, its
-## longer side along x or z, and each other part is a blocker named for it. A piece is
-## drawn as its model at its foot, filling its parts (DeckGear.draw()).
+## longer side along x or z, either way about, and each other part is a blocker named for
+## it. A piece is drawn as its model at its foot, filling its parts (DeckGear.draw()).
 const GEAR := {
 	# A warping capstan's drum (Plate IV), its height est.: on her poop, and on her
 	# forecastle, the after pair and the forward pair on its head.
@@ -36,8 +36,15 @@ const GEAR := {
 		Vector3(1.375, 0.9375, 1.375): "capstan_137",
 		Vector3(1.125, 0.9375, 1.125): "capstan_112",
 	},
-	# An electric crane's pedestal and machinery (Plates III and IV), its height est.
-	&"electric crane": {Vector3(1.5, 2.5, 1.5): "electric_crane"},
+	# An electric crane's pedestal and machinery (Plates III and IV), its height est., and
+	# its jib stowed on its crutch post (DeckGear.PARTS): her wells', her poop's and A
+	# deck's, each pair's long over all as its jib and tall to its house's top.
+	&"electric crane":
+	{
+		Vector3(8.375, 2.5, 1.5): "electric_crane_688",
+		Vector3(10.75, 2.5, 1.5): "electric_crane_925",
+		Vector3(8.5, 2.5, 1.5): "electric_crane_700",
+	},
 	# An electric winch, at the four sizes her plates draw: the boats' on the boat deck,
 	# aft and forward; the after well's; the forward well's and the poop's. Heights est.
 	&"electric winch":
@@ -180,7 +187,7 @@ static func build(mesh: ShipMesh, space: ShipSpace, blocker: ShipBlocker, top: f
 		Piece.VENT:
 			vent(mesh, blocker)
 		Piece.GEAR:
-			gear(mesh, blocker, top)
+			gear(mesh, space.layout, blocker, top)
 
 
 ## What [param blocker], a box on an open deck of [param space]'s ship, a ventilator
@@ -253,10 +260,11 @@ static func size_of(blocker: ShipBlocker) -> Vector3:
 	return Vector3(maxf(plan.x, plan.y), height, minf(plan.x, plan.y))
 
 
-## A piece of her gear over [param blocker] to [param top]: its kind's model at its foot,
-## filling its parts (DeckGear.draw()); a kind with none, a stanchion, a white post.
-static func gear(mesh: ShipMesh, blocker: ShipBlocker, top: float) -> void:
-	if DeckGear.draw(mesh, blocker):
+## A piece of her gear over [param blocker] of [param layout] to [param top]: its kind's
+## model at its foot, filling its parts (DeckGear.draw()); a kind with none, a stanchion,
+## a white post.
+static func gear(mesh: ShipMesh, layout: ShipLayout, blocker: ShipBlocker, top: float) -> void:
+	if DeckGear.draw(mesh, layout, blocker):
 		return
 	var paint := ShipPaints.white if blocker.name == &"stanchion" else ShipPaints.machine
 	if blocker.shape == ShipBlocker.Shape.CYLINDER:
