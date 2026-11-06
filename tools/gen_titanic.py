@@ -1654,8 +1654,11 @@ DECKS_AT = {BOAT: boat, A_DECK: a_deck, B_DECK: b_deck, 0.0: c_deck + well, D_DE
 # (C and D decks forward, where her sheer steps them.)
 DECKS_AT.update({h: c_deck + well for _at, h in C_SHEER})
 DECKS_AT.update({h: d_deck for _at, h in D_SHEER})
+# Each flight's hole railed round on the deck it comes up to, but her open decks' flights',
+# which leave none (OPEN_DECK_FLIGHTS, by name: the prefixes once here caught her after grand
+# staircase's flights onto A and B decks, #486).
 for name, _lo, _hi, _z0, _z1, high, _x_low in list(stairs):
-    if high in DECKS_AT and not name.startswith(("boat_aft", "a_aft", "b_aft", "a_fwd")):
+    if high in DECKS_AT and name not in OPEN_DECK_FLIGHTS:
         hole_rails(DECKS_AT[high], name)
 
 # --- Boarding ladders (SH5), one down each side of both well decks, where a body shoved
