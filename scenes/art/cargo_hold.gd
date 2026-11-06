@@ -323,7 +323,9 @@ static func headroom(space: ShipSpace, room: ShipRoom) -> float:
 ## Under every hatch standing on a deck that roofs [param room]: its coaming's
 ## timbers round the opening and strongbacks across it, under the deck, overhead.
 func _hatch_beams(mesh: ShipMesh, room: ShipRoom) -> void:
-	for blocker: ShipBlocker in _layout.blockers:
+	# Of her blockers, those near the room: every box over any of it is among them.
+	for near: int in _space._blockers_near(room.area):
+		var blocker := _layout.blockers[near]
 		if blocker.shape != ShipBlocker.Shape.BOX or _space.is_wall(blocker):
 			continue
 		var area := blocker.area.intersection(room.area)

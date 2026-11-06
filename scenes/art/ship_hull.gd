@@ -245,11 +245,16 @@ func under_skin(area: Rect2, bottom: float, top: float) -> int:
 	for side in 2:
 		var face := area.end.y if side == 1 else -area.position.y
 		var under := true
+		# Asked no further once a point is not under it: most walls stand far inboard.
 		for x: float in [area.position.x + SLIVER, area.get_center().x, area.end.x - SLIVER]:
 			var head := _skin_top(x, side)
 			for y: float in [bottom + SLIVER, (bottom + top) * 0.5, top - SLIVER]:
 				var gap := breadth(x, y, side) - face
-				under = under and y <= head and gap >= 0.0 and gap < SKIN_GAP
+				under = y <= head and gap >= 0.0 and gap < SKIN_GAP
+				if not under:
+					break
+			if not under:
+				break
 		if under:
 			hidden |= ShipMesh.POS_Z if side == 1 else ShipMesh.NEG_Z
 	return hidden

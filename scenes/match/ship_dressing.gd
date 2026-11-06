@@ -86,6 +86,10 @@ var _read := false
 ## Whether her art's frame (ShipArt.build_frame) was drawn ahead of her sinking
 ## (_frame_ahead).
 var _framed := false
+## One ShipSpace of her layout for her sea's maps and her art (ShipArt.shared_space),
+## each asking what the other worked out; made as she is first dressed, on her
+## dressing's thread, which alone asks it.
+var _shared: ShipSpace
 
 
 ## [param dressed]'s ship to dress as its match draws her, cut away above [param cut] as
@@ -272,6 +276,8 @@ static func _flush() -> void:
 func _dress() -> void:
 	if not _turn():
 		return
+	_shared = ShipSpace.new(_ship)
+	art.shared_space = _shared
 	if config == null:
 		art.rules = _rules
 		art.pack = true
@@ -383,8 +389,8 @@ func _sinking_waited() -> bool:
 ## wetness and white water on them ask (DeckWetness.out_on_deck). Hers whatever her
 ## sinking does, each made once.
 func _ship_maps() -> void:
-	SeaAndSky.maps_of(_ship)
-	DeckWetness.out_on_deck(_ship)
+	SeaAndSky.maps_of(_ship, _shared)
+	DeckWetness.out_on_deck(_ship, _shared)
 
 
 ## Draws her art's frame (ShipArt.build_frame) as her sinking is baked: as it is drawn
@@ -409,6 +415,7 @@ func _framed_wrong() -> void:
 	var span := art.span
 	art.free()
 	_new_art()
+	art.shared_space = _shared
 	art.rules = _rules
 	art.pack = true
 	art.span = span

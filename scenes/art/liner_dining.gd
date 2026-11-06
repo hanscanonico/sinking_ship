@@ -349,7 +349,9 @@ func _wall_top(wall: RoomDressing.Wall, along: float) -> float:
 	var inside := wall.at(along, 0.0, -ShipMesh.SLIVER * 2.0)
 	var at := Vector2(inside.x, inside.z)
 	var top := wall.floor
-	for blocker: ShipBlocker in _space.layout.blockers:
+	# Of her blockers, those near the point: every wall over it is among them.
+	for index: int in _space._blockers_near(Rect2(at, Vector2.ZERO)):
+		var blocker := _space.layout.blockers[index]
 		if not _space.is_wall(blocker) or blocker.bottom > wall.floor + 0.1:
 			continue
 		if blocker.area.grow(ShipMesh.SLIVER).has_point(at):

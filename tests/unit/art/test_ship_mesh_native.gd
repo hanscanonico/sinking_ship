@@ -6,8 +6,9 @@ extends GutTest
 ## zero areas, tilted and narrow faces, edges cut many times and pieces judged on a
 ## cell's boundary, cut away above and kept to a stretch, fading or not; a real ship's
 ## rooms judged by her grid both ways, point by point and face by face, her roofed space
-## indoors or not; and her whole art. Where the extension is not loaded there is nothing
-## to hold it to; CI sets SINKING_NATIVE_REQUIRED, so a missing library there fails.
+## indoors or not, by a mesh judged so or made like one (ShipMesh.like); and her whole
+## art. Where the extension is not loaded there is nothing to hold it to; CI sets
+## SINKING_NATIVE_REQUIRED, so a missing library there fails.
 
 const RunMatch := preload("res://tools/run_match.gd")
 const SEED := 411
@@ -399,16 +400,23 @@ func test_faces_over_her_rooms_are_drawn_alike() -> void:
 	var layout := RunMatch.default_config(SEED, 0, &"small_titanic").ship
 	var spaces := {true: _space(layout, true), false: _space(layout, false)}
 	var boxes := _boxes(layout)
+	# Boxes holding only the lower part of each room, so what is judged indoors hangs on
+	# the boxes as well as the rooms.
+	var squat: Array[AABB] = []
+	for box: AABB in boxes:
+		squat.append(AABB(box.position, Vector3(box.size.x, minf(box.size.y, 1.2), box.size.z)))
 	var roofs := {true: RoofedIndoors.new(spaces[true]), false: RoofedIndoors.new(spaces[false])}
-	var made := func(roofed: bool) -> ShipMesh:
+	# A mesh judged by her rooms and [param judged], or one made like it (ShipMesh.like), as
+	# ShipArt makes its pieces': judged the same way, its boxes and roofed space shared.
+	var made := func(roofed: bool, like: bool, judged: Array[AABB]) -> ShipMesh:
 		var space: ShipSpace = spaces[ArtNative.allowed]
 		var roof: RoofedIndoors = roofs[ArtNative.allowed]
-		var outdoors := func(point: Vector3) -> bool: return space.outdoors(point, boxes)
+		var outdoors := func(point: Vector3) -> bool: return space.outdoors(point, judged)
 		if roofed:
-			outdoors = func(point: Vector3) -> bool: return roof.outdoors(point, boxes)
+			outdoors = func(point: Vector3) -> bool: return roof.outdoors(point, judged)
 		var mesh := ShipMesh.new(outdoors, space.room_lines())
-		mesh.judge_by(space.rooms_grid, boxes, roof if roofed else null)
-		return mesh
+		mesh.judge_by(space.rooms_grid, judged, roof if roofed else null)
+		return ShipMesh.like(mesh) if like else mesh
 	var lined := {
 		true: LinedFaces.new(RoomDressing.new(spaces[true], INF)),
 		false: LinedFaces.new(RoomDressing.new(spaces[false], INF)),
@@ -445,8 +453,10 @@ func test_faces_over_her_rooms_are_drawn_alike() -> void:
 			mesh.face(fore, Vector3(0, 2.5, 0), Vector3(0, 0, area.size.y), paint)
 			mesh.box(area, floor + 2.5, floor + 2.55, paint, ShipMesh.BOTTOM)
 	assert_gt(roofs[false].weather_floor(), -INF, "she has a weather deck to be roofed under")
-	_both(made.bind(false), draw, "faces over her rooms")
-	_both(made.bind(true), draw, "faces over her rooms, roofed space indoors")
+	_both(made.bind(false, false, boxes), draw, "faces over her rooms")
+	_both(made.bind(true, false, boxes), draw, "faces over her rooms, roofed space indoors")
+	_both(made.bind(false, true, squat), draw, "faces over her rooms, squat boxes, made like")
+	_both(made.bind(true, true, squat), draw, "faces over her rooms, roofed, squat, made like")
 
 
 ## Every batch her whole art commits, hashed in order: drawn by the extension when
