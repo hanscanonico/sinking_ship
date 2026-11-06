@@ -2660,13 +2660,13 @@ for bid, x0, x1, z0, z1 in A_BENCHES:
 
 # Sixteen seats across her decks (SH21 takes more): six on the boat deck and one on her
 # bridge, two on A deck's promenade, one on B deck's second-class promenade aft, one on
-# each well deck, the forecastle and the poop, one in the first-class dining saloon, facing
-# forward to the grand staircase's foot.
+# each well deck, the forecastle — between her foremast and her steam winch — and the
+# poop, one in the first-class dining saloon, facing forward to the grand staircase's foot.
 spawns = [
     (60.0, BOAT, 9.5), (60.0, BOAT, -9.5), (5.0, BOAT, 9.5), (5.0, BOAT, -9.5), (-40.0, BOAT, 9.5),
     (-40.0, BOAT, -9.5), (69.0, BOAT, 0.0), (-77.0, BOAT, 0.0),
     (45.0, A_DECK, 11.5), (-20.0, A_DECK, -11.5), (-80.0, B_DECK, 11.5),
-    (82.0, WELL_DECK, 8.0), (-100.0, 0.0, -6.0), (100.0, FCSL[0], 0.0), (-115.0, POOP, 0.0),
+    (82.0, WELL_DECK, 8.0), (-100.0, 0.0, -6.0), (98.0, FCSL[0], 0.0), (-115.0, POOP, 0.0),
     (-6.0, D_DECK, 1.0),
 ]
 # --- Her public rooms' furniture (SB-IV, est.), after every other platform, blocker and

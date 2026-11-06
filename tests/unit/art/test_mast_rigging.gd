@@ -134,10 +134,11 @@ func test_the_steamer_s_mast_is_stayed_to_her_funnel() -> void:
 
 
 func test_the_liner_s_masts_are_stayed_and_carry_her_aerial() -> void:
-	# Her mainmast where each liner's plan puts it: the Titanic's her A deck's plate (#360).
+	# Her masts where each liner's plan puts them: the Titanic's her plates, her mainmast
+	# A deck's (#360), her foremast the forecastle's (#381).
 	for ship: String in ["small_titanic", "titanic"]:
 		var layout := Fleet.layout(StringName(ship))
-		var fore := _cylinder(layout, Vector2(96.0, 0.0))
+		var fore := _cylinder(layout, Vector2(96.0 if ship == "small_titanic" else 95.5, 0.0))
 		var aft := -92.5 if ship == "small_titanic" else -88.625
 		var main := _cylinder(layout, Vector2(aft, 0.0))
 		var lines := _rigging(ship)
