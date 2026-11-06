@@ -51,6 +51,18 @@ GEAR = [
     ("cable holder", 10007, 971, 10109, 1058),
 ]
 
+# Her side forward of the step (tools/gen_titanic.py's FC_RAMP) to her stem's head, the
+# middle of the line the plate draws it with on her starboard side, every 50 px and closer at
+# her stem, where her port side is lettered over ("FORECASTLE DK"); her port side reads
+# 0.13-0.17 m narrower where it is clear of the lettering (px 10300, 10500, 10550). Her
+# forecastle head is laid within it (FC2, #469).
+SIDE = [
+    (9922, 1312), (9950, 1304), (10000, 1290.5), (10050, 1276.5), (10100, 1260), (10150, 1242.5),
+    (10200, 1222.5), (10250, 1200.5), (10300, 1177.5), (10350, 1154.5), (10400, 1129.5),
+    (10450, 1103.5), (10500, 1076.5), (10550, 1046), (10600, 1017), (10625, 1000.5),
+    (10650, 985), (10665, 975.5), (10675, 967.5), (10682, 960),
+]
+
 # The plate's "No 1 hatch", its coaming, over the trunk C deck's plan draws under it (c.py's
 # "No. 1 hatch trunk"), its height est. as her wells' are.
 SOLIDS = [

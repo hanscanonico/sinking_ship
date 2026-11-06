@@ -116,8 +116,8 @@ var _floor_clearances: Array[PackedFloat64Array] = []
 ## Her funnels, lying where the last pose honoured has them fallen.
 var _fallen: FallenFunnels
 ## The NativeSurfaces mirroring these (ContactsNative), made the first time it is asked
-## for — obstacle_contacts asks it, as the stands ask theirs — then told of every change
-## honour() makes; null without the extension.
+## for — obstacle_contacts, landing and ceiling ask it, as the stands ask theirs — then
+## told of every change honour() makes; null without the extension.
 var native: Object:
 	get = _mirrored
 ## What holds a body back, worked in GDScript or by the mirror (obstacle_contacts).
@@ -339,6 +339,9 @@ func under(ship_point: Vector3, step: float, except_prop: int = NONE) -> int:
 ## surface under it at or below its height — never the lid of the crate
 ## [param except_prop] — or NONE when nothing is: the sea.
 func landing(ship_point: Vector3, except_prop: int = NONE) -> int:
+	var mirror := native
+	if mirror != null:
+		return mirror.landing(ship_point, except_prop)
 	return _highest_at_or_below(ship_point, _first_lid + stands.count(), except_prop)
 
 
@@ -347,6 +350,9 @@ func landing(ship_point: Vector3, except_prop: int = NONE) -> int:
 ## [param clearance] above the feet, or INF when nothing is. Anything nearer the
 ## feet than that is underfoot.
 func ceiling(ship_point: Vector3, clearance: float) -> float:
+	var mirror := native
+	if mirror != null:
+		return mirror.ceiling(ship_point, clearance)
 	var lowest := INF
 	for surface: int in _at(ship_point, ship_point.y + clearance, INF):
 		if _gone[surface] == 1 or not _contains(surface, ship_point):
