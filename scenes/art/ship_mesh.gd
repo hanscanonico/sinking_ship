@@ -160,12 +160,18 @@ func _init(outdoors: Callable, room_cuts: Array[PackedFloat32Array]) -> void:
 
 
 ## Judges each piece indoors or out by [param grid]'s rooms and [param boxes], a box per
-## room holding all of it: the outdoors callable this mesh was made with must say the
-## same (ShipSpace.outdoors), and outdoors_over becomes the grid's.
-func judge_by(grid: IndoorGrid, boxes: Array[AABB]) -> void:
-	outdoors_over = grid.outdoors_over.bind(boxes)
+## room holding all of it, and when given by [param roofed] too: the outdoors callable
+## this mesh was made with must say the same (ShipSpace.outdoors, or RoofedIndoors.outdoors
+## over the same grid), and outdoors_over becomes theirs.
+func judge_by(grid: IndoorGrid, boxes: Array[AABB], roofed: RoofedIndoors = null) -> void:
+	if roofed != null:
+		outdoors_over = roofed.outdoors_over.bind(boxes)
+	else:
+		outdoors_over = grid.outdoors_over.bind(boxes)
 	if _native != null and grid.native() != null:
 		_native.set_grid(grid.native(), boxes)
+		if roofed != null:
+			_native.callv(&"set_roofed", roofed.shape())
 
 
 ## An axis-aligned box over [param area] (x/z) from [param bottom] to [param top]:

@@ -5,9 +5,9 @@ extends GutTest
 ## calls — made-up boxes, faces, quads and turned boxes over room lines, with slivers,
 ## zero areas, tilted and narrow faces, edges cut many times and pieces judged on a
 ## cell's boundary, cut away above and kept to a stretch, fading or not; a real ship's
-## rooms judged by her grid both ways, point by point and face by face; and her whole
-## art. Where the extension is not loaded there is nothing to hold it to; CI sets
-## SINKING_NATIVE_REQUIRED, so a missing library there fails.
+## rooms judged by her grid both ways, point by point and face by face, her roofed space
+## indoors or not; and her whole art. Where the extension is not loaded there is nothing
+## to hold it to; CI sets SINKING_NATIVE_REQUIRED, so a missing library there fails.
 
 const RunMatch := preload("res://tools/run_match.gd")
 const SEED := 411
@@ -399,11 +399,15 @@ func test_faces_over_her_rooms_are_drawn_alike() -> void:
 	var layout := RunMatch.default_config(SEED, 0, &"small_titanic").ship
 	var spaces := {true: _space(layout, true), false: _space(layout, false)}
 	var boxes := _boxes(layout)
-	var made := func() -> ShipMesh:
+	var roofs := {true: RoofedIndoors.new(spaces[true]), false: RoofedIndoors.new(spaces[false])}
+	var made := func(roofed: bool) -> ShipMesh:
 		var space: ShipSpace = spaces[ArtNative.allowed]
+		var roof: RoofedIndoors = roofs[ArtNative.allowed]
 		var outdoors := func(point: Vector3) -> bool: return space.outdoors(point, boxes)
+		if roofed:
+			outdoors = func(point: Vector3) -> bool: return roof.outdoors(point, boxes)
 		var mesh := ShipMesh.new(outdoors, space.room_lines())
-		mesh.judge_by(space.rooms_grid, boxes)
+		mesh.judge_by(space.rooms_grid, boxes, roof if roofed else null)
 		return mesh
 	var lined := {
 		true: LinedFaces.new(RoomDressing.new(spaces[true], INF)),
@@ -440,7 +444,9 @@ func test_faces_over_her_rooms_are_drawn_alike() -> void:
 			var fore := Vector3(area.end.x, floor, area.position.y)
 			mesh.face(fore, Vector3(0, 2.5, 0), Vector3(0, 0, area.size.y), paint)
 			mesh.box(area, floor + 2.5, floor + 2.55, paint, ShipMesh.BOTTOM)
-	_both(made, draw, "faces over her rooms")
+	assert_gt(roofs[false].weather_floor(), -INF, "she has a weather deck to be roofed under")
+	_both(made.bind(false), draw, "faces over her rooms")
+	_both(made.bind(true), draw, "faces over her rooms, roofed space indoors")
 
 
 ## Every batch her whole art commits, hashed in order: drawn by the extension when

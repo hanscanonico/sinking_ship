@@ -4,16 +4,20 @@ The hottest loops of the bots and of the sinking bake in C++, giving the same an
 the GDScript they stand in for, bit for bit: the walk-graph search (`ai/walk_search.gd`),
 the bots' reads of the water (`core/still_points.gd`, `ai/walk_graph.gd`,
 `ai/bot_refuge.gd`), the bake's solves for a held head and its sweep of the openings
-(`core/sinking/sink_stepper.gd`, #411), and the dressed ship's face emission — her faces
-cut at the chunk and room lines, judged indoors or out and gathered into batches
-(`scenes/art/ship_mesh.gd`, `scenes/art/indoor_grid.gd`, #411).
+(`core/sinking/sink_stepper.gd`, #411), the floating furniture's contacts: where her
+props stand (`core/prop_stands.gd`), what holds a circle back
+(`Surfaces.obstacle_contacts` and the railings' contacts, `core/surfaces.gd`) and the
+cargo's contact passes (`Hazards._move`, `core/hazards.gd`), and the dressed ship's face
+emission — her faces cut at the chunk and room lines, judged indoors or out and gathered
+into batches (`scenes/art/ship_mesh.gd`, `scenes/art/indoor_grid.gd`, #411).
 
 ## Layout
 
 - `src/` — the extension's sources: `walk_search_native.{h,cpp}` (`NativeWalkGraph`,
   `NativeWalkSearch`), `water_native.{h,cpp}` (`NativeWater`), `sink_native.{h,cpp}`
-  (`NativeSink`), `art_native.{h,cpp}` (`NativeShipMesh`, `NativeIndoorGrid`),
-  `register_types.cpp` (the entry, `sinking_native_init`).
+  (`NativeSink`), `contacts_native.{h,cpp}` (`NativeStands`, `NativeSurfaces`,
+  `NativeCrates`), `art_native.{h,cpp}` (`NativeShipMesh`, `NativeIndoorGrid`,
+  `NativeLining`), `register_types.cpp` (the entry, `sinking_native_init`).
 - `SConstruct` — the build, over godot-cpp's; `build_profile.json` — the engine
   classes godot-cpp binds (few, so it compiles quickly).
 - `build/` — not tracked: godot-cpp at its pinned commit (`tools/native_build.sh`) and
@@ -42,7 +46,7 @@ an artifact of the run:
 - `native (linux)` — `native-linux`, the `.so` the ten test shards load
   (`SINKING_NATIVE_REQUIRED=1`).
 - `native (macos)` — `native-macos`, the universal `.dylib`, built on an Apple-silicon
-  runner, where the four cross-check scripts run against it: arm64 is where a compiler
+  runner, where the five cross-check scripts run against it: arm64 is where a compiler
   contracts `a * b + c` by default, so a difference from the engine's own GDScript
   arithmetic would show there first.
 - `native (windows)` — `native-windows`, the `.dll`, cross-compiled on Linux with
@@ -73,24 +77,32 @@ null unless `ClassDB.class_exists("NativeWalkGraph")`. A `WalkSearch` given one 
 every question to a `NativeWalkSearch`. Otherwise it answers itself. Each
 `SinkStepper` asks `SinkNative.made()` for its loops the same way, null without a
 `NativeSink`: the stepper keeps every state and hands the extension her layout once and
-what its loops read at each turn and step. A `ShipMesh` asks `ArtNative.made()` for a
-`NativeShipMesh` and hands it every face, quad and box, and its `IndoorGrid` hands its
-grid to a `NativeIndoorGrid`; the extension calls back for what stays GDScript's (a
-room's ceiling worked out, what fades). A checkout that never ran `make native`, or
-the web export, runs the GDScript and the same match, the same sinking and the same
-art.
+what its loops read at each turn and step. `ContactsNative.loaded()` decides the same
+for the contacts as each `PropStands`, `Surfaces` and `Hazards` is made: a `PropStands`
+keeps its props on a `NativeStands`' grid, a `Surfaces` mirrors her surfaces, railings,
+doors and fallen funnels into a `NativeSurfaces` the first time it is asked and tells it
+of every change `honour()` makes, and `Hazards` hands a `NativeCrates` each tick's
+crates for its contact passes, which reads and writes their `PropState`s and calls back
+into `Hazards.damage` when a crate would break a railing. A `ShipMesh` asks
+`ArtNative.made()` for a `NativeShipMesh` and hands it every face, quad, box and model,
+and its `IndoorGrid` hands its grid to a `NativeIndoorGrid`; the extension calls back for
+what stays GDScript's (a room's ceiling worked out, what fades, roofed space). A checkout
+that never ran `make native`, or the web export, runs the GDScript and the same match,
+the same sinking and the same art.
 
 ## Determinism
 
 - Each operation keeps the GDScript's types and order. A GDScript `float` is a double
   and a `Vector3` floats, so a distance is worked in float32 and widened before it is
-  paced and added.
+  paced and added. A vector's own sums, products, lengths, dots and clamps are
+  godot-cpp's `Vector2` and `Vector3`, the engine's code.
 - The heap is the same binary heap, with ties to the lower zone.
 - `minf`, `maxf` and `clampf` are the engine's (`a < b ? a : b`, …), and a sort is the
   engine's insertion sort, which places a NaN or a -0 where the engine does.
 - Floating-point contraction is off (`-ffp-contract=off`; MSVC `/fp:precise`), for
   godot-cpp's objects as for ours.
 - `tests/unit/ai/test_walk_search_native.gd`, `tests/unit/ai/test_water_native.gd`,
-  `tests/unit/core/test_sink_native.gd` and `tests/unit/art/test_ship_mesh_native.gd`
-  ask both sides the same questions and fail on any difference. CI sets `SINKING_NATIVE_REQUIRED=1`, so a library that fails to load
-  fails too — on Linux across the suite, on macOS (arm64) for those four scripts.
+  `tests/unit/core/test_sink_native.gd`, `tests/unit/core/test_contacts_native.gd` and
+  `tests/unit/art/test_ship_mesh_native.gd` ask both sides the same questions and fail
+  on any difference. CI sets `SINKING_NATIVE_REQUIRED=1`, so a library that fails to load
+  fails too — on Linux across the suite, on macOS (arm64) for those five scripts.

@@ -160,6 +160,8 @@ public:
 	void set_fading(const Callable &p_fading);
 	void set_outdoors_over(const Callable &p_outdoors_over);
 	void set_grid(const Ref<NativeIndoorGrid> &p_grid, const Array &p_boxes);
+	void set_roofed(double p_weather_floor, const PackedFloat64Array &p_sections, const Array &p_outlines,
+			const Array &p_areas, const PackedFloat64Array &p_heights);
 
 	void box(const Rect2 &p_area, double p_bottom, double p_top, int64_t p_finish, const Color &p_colour,
 			int64_t p_finish_in, const Color &p_colour_in, int64_t p_faces, double p_foot, double p_head);
@@ -252,6 +254,18 @@ private:
 	Callable _fading;
 	Ref<NativeIndoorGrid> _grid;
 	std::vector<AABB> _boxes;
+	// RoofedIndoors: her lowest weather deck, her sections (x and length) and their
+	// outlines, her platforms (area and height) and, per square of the plane, those
+	// reaching into it; whether any is set.
+	bool _roofed = false;
+	double _weather_floor = -INFINITY;
+	std::vector<double> _section_x;
+	std::vector<double> _section_length;
+	std::vector<std::vector<Vector2>> _outlines;
+	std::vector<Rect2> _platform_areas;
+	std::vector<double> _platform_heights;
+	std::map<std::pair<int64_t, int64_t>, std::vector<int32_t>> _platform_squares;
+	bool _holds(const Vector3 &p_point) const;
 	std::vector<Batch> _batches;
 	std::map<Place, int64_t> _placed;
 	bool _last_outdoors = true;

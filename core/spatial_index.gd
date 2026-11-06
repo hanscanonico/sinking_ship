@@ -210,6 +210,39 @@ func along(start: Vector2, end: Vector2, bottom := -INF, top := INF) -> PackedIn
 	return found
 
 
+## The grid as the extension takes it (ContactsNative): its origin, side, size, lowest
+## band, band and bands, scan_over; per cell of the plane where its items begin and,
+## after the last, where they end, and the items; the same of every band's cells, none
+## with one band; and every item.
+func native_layout() -> Array:
+	var columns := flattened(_columns)
+	var cells := flattened(_cells) if _bands > 1 else [PackedInt32Array(), PackedInt32Array()]
+	return [
+		_origin,
+		_side,
+		_size,
+		_low,
+		_band,
+		_bands,
+		_scan_over,
+		columns[0],
+		columns[1],
+		cells[0],
+		cells[1],
+		_all
+	]
+
+
+## [param lists] end to end, and where each begins: [from, items].
+static func flattened(lists: Array[PackedInt32Array]) -> Array:
+	var from := PackedInt32Array([0])
+	var items := PackedInt32Array()
+	for list: PackedInt32Array in lists:
+		items.append_array(list)
+		from.append(items.size())
+	return [from, items]
+
+
 ## How many cells there are in the plane: rows of the grid, each from its low-x end.
 func cell_count() -> int:
 	return _columns.size()

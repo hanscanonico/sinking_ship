@@ -831,13 +831,110 @@ void NativeShipMesh::set_grid(const Ref<NativeIndoorGrid> &p_grid, const Array &
 	}
 }
 
+namespace {
+
+// RoofedIndoors.CELL.
+constexpr double ROOF_CELL = 2.0;
+
+inline std::pair<int64_t, int64_t> roof_square(double p_x, double p_z) {
+	return { floori(p_x / ROOF_CELL), floori(p_z / ROOF_CELL) };
+}
+
+} // namespace
+
+void NativeShipMesh::set_roofed(double p_weather_floor, const PackedFloat64Array &p_sections,
+		const Array &p_outlines, const Array &p_areas, const PackedFloat64Array &p_heights) {
+	_roofed = true;
+	_weather_floor = p_weather_floor;
+	_section_x.clear();
+	_section_length.clear();
+	_outlines.clear();
+	for (int64_t index = 0; index < p_outlines.size(); index++) {
+		_section_x.push_back(p_sections[index * 2]);
+		_section_length.push_back(p_sections[index * 2 + 1]);
+		const PackedVector2Array outline = p_outlines[index];
+		_outlines.emplace_back(outline.ptr(), outline.ptr() + outline.size());
+	}
+	_platform_areas.clear();
+	_platform_squares.clear();
+	_platform_heights.assign(p_heights.ptr(), p_heights.ptr() + p_heights.size());
+	for (int64_t index = 0; index < p_areas.size(); index++) {
+		const Rect2 area = p_areas[index];
+		_platform_areas.push_back(area);
+		const Vector2 end = area.position + area.size;
+		const auto first = roof_square(area.position.x, area.position.y);
+		const auto last = roof_square(end.x, end.y);
+		for (int64_t x = first.first; x < last.first + 1; x++) {
+			for (int64_t z = first.second; z < last.second + 1; z++) {
+				_platform_squares[{ x, z }].push_back((int32_t)index);
+			}
+		}
+	}
+}
+
+// RoofedIndoors.holds: below her lowest weather deck, inside her shell's outline at the
+// point's x and height (ShipStructure.section_at, HullSection.shell_at), under a deck.
+bool NativeShipMesh::_holds(const Vector3 &p_point) const {
+	const double x = p_point.x;
+	const double y = p_point.y;
+	const double z = p_point.z;
+	if (y >= _weather_floor) {
+		return false;
+	}
+	int64_t section = -1;
+	for (size_t index = 0; index < _section_x.size(); index++) {
+		const double half = _section_length[index] * 0.5;
+		if (x >= _section_x[index] - half && x < _section_x[index] + half) {
+			section = (int64_t)index;
+			break;
+		}
+	}
+	if (section == -1) {
+		return false;
+	}
+	const int64_t side = z >= 0.0 ? 1 : -1;
+	const std::vector<Vector2> &outline = _outlines[section];
+	double outermost = -INFINITY;
+	for (size_t index = 0; index < outline.size(); index++) {
+		const Vector2 a = outline[index];
+		const Vector2 b = outline[(index + 1) % outline.size()];
+		if (a.y == b.y || ((double)a.y - y) * ((double)b.y - y) > 0.0) {
+			continue;
+		}
+		const double across = (double)a.x + ((double)b.x - (double)a.x) * (y - (double)a.y) / ((double)b.y - (double)a.y);
+		outermost = maxf(outermost, across * (double)side);
+	}
+	const double shell = outermost > -INFINITY ? outermost * (double)side : NAN;
+	if (std::isnan(shell) || z * (double)side > shell * (double)side) {
+		return false;
+	}
+	const auto found = _platform_squares.find(roof_square(x, z));
+	if (found == _platform_squares.end()) {
+		return false;
+	}
+	for (int32_t index : found->second) {
+		const Rect2 &area = _platform_areas[index];
+		const Vector2 end = area.position + area.size;
+		if (_platform_heights[index] > y && x >= area.position.x && x <= end.x && z >= area.position.y &&
+				z <= end.y) {
+			return true;
+		}
+	}
+	return false;
+}
+
 bool NativeShipMesh::_kept(double p_aft, double p_fore) const {
 	return p_fore >= (double)_keep.x - KEEP_MARGIN && p_aft <= (double)_keep.y + KEEP_MARGIN;
 }
 
 bool NativeShipMesh::_outdoors(const Vector3 &p_point) {
 	if (_grid.is_valid()) {
-		return _grid->outdoors_of(p_point, _boxes);
+		// RoofedIndoors.outdoors: holds() is false at or over the weather floor.
+		const bool outdoors = _grid->outdoors_of(p_point, _boxes);
+		if (outdoors && _roofed) {
+			return !_holds(p_point);
+		}
+		return outdoors;
 	}
 	return _outdoors_call.call(p_point);
 }
@@ -1137,6 +1234,22 @@ void NativeShipMesh::_face(const Vector3 &p_origin, const Vector3 &p_u, const Ve
 		bool found = false;
 		if (_grid.is_valid()) {
 			found = _grid->outdoors_over_of(p_origin, p_u, p_v, u_cuts, v_cuts, normal, PROBE, _boxes, shows);
+			// RoofedIndoors.outdoors_over: each piece called outdoors asked of holds().
+			if (found && _roofed && !std::isinf(_weather_floor)) {
+				const size_t rows = v_cuts.size() - 1;
+				for (size_t i = 0; i + 1 < u_cuts.size(); i++) {
+					for (size_t j = 0; j < rows; j++) {
+						if (shows[i * rows + j] == 1) {
+							const Vector3 middle = (p_origin + half_way(p_u, u_cuts[i], u_cuts[i + 1])) +
+									half_way(p_v, v_cuts[j], v_cuts[j + 1]);
+							const Vector3 point = middle + normal * (float)PROBE;
+							if (_holds(point)) {
+								shows[i * rows + j] = 0;
+							}
+						}
+					}
+				}
+			}
 		} else if (_outdoors_over.is_valid()) {
 			const Array over =
 					_outdoors_over.call(p_origin, p_u, p_v, packed_of(u_cuts), packed_of(v_cuts), normal, PROBE);
@@ -1485,6 +1598,8 @@ void NativeShipMesh::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_fading", "fading"), &NativeShipMesh::set_fading);
 	ClassDB::bind_method(D_METHOD("set_outdoors_over", "outdoors_over"), &NativeShipMesh::set_outdoors_over);
 	ClassDB::bind_method(D_METHOD("set_grid", "grid", "boxes"), &NativeShipMesh::set_grid);
+	ClassDB::bind_method(D_METHOD("set_roofed", "weather_floor", "sections", "outlines", "areas", "heights"),
+			&NativeShipMesh::set_roofed);
 	ClassDB::bind_method(D_METHOD("box", "area", "bottom", "top", "finish", "colour", "finish_in", "colour_in",
 								 "faces", "foot", "head"),
 			&NativeShipMesh::box);
